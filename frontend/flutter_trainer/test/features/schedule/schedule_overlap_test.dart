@@ -1036,7 +1036,14 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining(_ko.consultOverlapHint), findsOneWidget);
-      expect(find.textContaining('박성호'), findsOneWidget);
+      // 창은 스케줄 위에 뜨므로(#2717) 겹친 일정 안내 안에서 찾는다.
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('schedule-overlap')),
+          matching: find.textContaining('박성호'),
+        ),
+        findsOneWidget,
+      );
       // 대기 그대로 — 승인 버튼이 다시 누를 수 있게 남아 있다.
       final accept = find.byKey(
         const ValueKey<String>('consultation-accept-consult-1'),

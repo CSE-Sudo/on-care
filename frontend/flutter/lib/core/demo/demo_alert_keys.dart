@@ -30,3 +30,45 @@ const Map<String, String> kDemoAlertKeyBySeedId = <String, String>{
   'seed-noti-9': kDemoAlertMealStreak,
   'seed-noti-4': kDemoAlertMaintenance,
 };
+
+/// 로컬 시드 알림 id → 화면에 보이는 경과 시간. (#2660)
+///
+/// 시드는 그날 처음 켤 때 오늘로 옮겨지지만, 같은 날 안에서 실제 경과로 셈하면
+/// "10분 전" 이 몇 시간 뒤 "5시간 전" 이 되어 "오늘 18:00 PT를 마쳤어요" 같은 문구와
+/// 어긋난다. 예전 데모 목록처럼 언제 열어도 같은 시각으로 보이게 인터셉터가 이 값으로
+/// `time_ago` 를 셈한다. 시드가 넣는 `created_at` 과 같은 값이다(순서·커서는 그쪽).
+const Map<String, Duration> kDemoAlertAgeBySeedId = <String, Duration>{
+  'seed-noti-1': Duration(minutes: 10),
+  'seed-noti-8': Duration(minutes: 20),
+  'seed-noti-5': Duration(minutes: 30),
+  'seed-noti-7': Duration(minutes: 45),
+  'seed-noti-2': Duration(hours: 1),
+  'seed-noti-3': Duration(hours: 2),
+  'seed-noti-6': Duration(hours: 3),
+  'seed-noti-9': Duration(hours: 26),
+  'seed-noti-4': Duration(hours: 28),
+};
+
+/// 로컬 시드 알림 id → 누르면 갈 곳(서버 `action` 과 같은 모양). (#2660)
+///
+/// 예전 데모 목록이 알림마다 정해 둔 목적지다 — 나트륨·저녁 기록은 식단, 운동 목표·
+/// PT 완료는 운동. 서버는 갈래별 표로만 정해 이 알림들이 모두 홈으로 가는데, 데모
+/// 화면이 기준이라 데모 목적지를 그대로 둔다(서버를 맞추는 일은 #2690). 표에 없는
+/// 시드(점검 공지)는 갈 곳이 없다.
+const Map<String, ({String label, String target})> kDemoAlertActionBySeedId =
+    <String, ({String label, String target})>{
+      'seed-noti-1': (label: '식단 보기', target: 'diet'),
+      'seed-noti-8': (label: '식단 기록하기', target: 'diet'),
+      'seed-noti-5': (label: '운동 보기', target: 'exercise'),
+      'seed-noti-7': (label: '리포트 보기', target: 'coach_chat'),
+      'seed-noti-2': (label: '운동 기록 보기', target: 'exercise'),
+      'seed-noti-3': (label: '대화 보기', target: 'coach_chat'),
+      'seed-noti-6': (label: '운동 보기', target: 'exercise'),
+      'seed-noti-9': (label: '홈 보기', target: 'dashboard'),
+    };
+
+/// 시드할 때 이미 읽은 알림. 데모에 다시 로그인하면 시드 알림이 이 상태로 돌아간다.
+const Set<String> kDemoAlertReadSeedIds = <String>{
+  'seed-noti-9',
+  'seed-noti-4',
+};

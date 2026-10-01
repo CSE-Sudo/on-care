@@ -17,9 +17,9 @@ const int kDemoOpeningPoints = 25000;
 
 /// 목업 API 의 포인트 원장. 서버 `points_ledger` 의 대역이다. (#1786)
 ///
-/// 데모에서 기록을 만드는 곳이 셋으로 갈려 있다 — 식단은 `LocalApiInterceptor`,
-/// 운동은 `MockExerciseRepository`, 루틴 완료는 `MockMemberCoachRepository`.
-/// 셋이 이 원장 하나를 함께 써야 하루 한도와 MY 잔액이 한 숫자로 움직인다.
+/// 데모에서 기록을 만드는 곳이 둘로 갈려 있다 — 식단·운동은 `LocalApiInterceptor`
+/// (#2662), 루틴 완료는 `MockMemberCoachRepository`. 둘이 이 원장 하나를 함께
+/// 써야 하루 한도와 MY 잔액이 한 숫자로 움직인다.
 ///
 /// 규칙은 서버와 같다: 같은 기록은 한 번만, 한도를 넘으면 0, 기록을 지우면
 /// 회수하되 잔액은 0 아래로 내려가지 않고, 회수된 적립은 그날 한도에서 빠진다.

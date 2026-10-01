@@ -15,6 +15,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get appTitle => 'On-Care';
 
   @override
+  String get notFoundTitle => '페이지를 찾을 수 없어요';
+
+  @override
+  String get notFoundMessage => '주소가 잘못됐거나 더 이상 없는 페이지예요. 주소를 다시 확인해 주세요.';
+
+  @override
+  String get notFoundGoHome => '홈으로';
+
+  @override
+  String get notFoundGoSignIn => '로그인하러 가기';
+
+  @override
   String get navDashboard => '홈';
 
   @override
@@ -760,16 +772,16 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String exCompletedPtTime(String time) {
-    return '$time 수업 완료';
+    return '$time 완료';
+  }
+
+  @override
+  String exPtSessionNumber(int count) {
+    return '$count회차';
   }
 
   @override
   String get exCompletedPtNoProgram => '등록된 운동 프로그램이 없습니다.';
-
-  @override
-  String exCompletedPtFeedback(String coachName) {
-    return '$coachName · 오늘의 피드백';
-  }
 
   @override
   String get exAddExercise => '운동 추가';
@@ -937,7 +949,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exOwnRecords => '직접 기록한 운동';
 
   @override
-  String get exOwnRecordsEmpty => '직접 추가할 운동이 없어요';
+  String get exOwnRecordsEmpty => '직접 기록한 운동이 없어요';
 
   @override
   String get exOwnRecordSource => '직접 기록';
@@ -3707,9 +3719,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get demoAlertMaintenanceBody => '내일 02:00~03:00 점검 예정입니다.';
 
   @override
-  String get exPtLogTitle => '오늘 완료한 PT';
-
-  @override
   String get exPtFeedbackTitle => '오늘의 피드백';
 
   @override
@@ -3775,15 +3784,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exConsultHistoryCancelBody => '취소한 요청은 다시 되돌릴 수 없어요.';
-
-  @override
-  String exDemoPtSessionCount(String trainerName) {
-    return '$trainerName 트레이너와 12회차';
-  }
-
-  @override
-  String get exDemoPtFeedback =>
-      '숄더프레스할 때 오른쪽 어깨가 들리는 경향이 있으니, 마무리할 때 회전근개 스트레칭을 꼭 해주세요!';
 
   @override
   String pointsRewardBadge(int points) {

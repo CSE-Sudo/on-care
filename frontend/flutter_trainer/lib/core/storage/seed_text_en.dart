@@ -718,6 +718,30 @@ const Map<String, String> _seedEnglish = <String, String>{
   '데드리프트 힙힌지 안정적. 중량 55kg 유지 후 다음 달 60kg.':
       'Deadlift hip hinge is stable. Hold 55kg, then 60kg next month.',
   '허리 스트레칭': 'Lower-back stretch',
+  // 매주 PT 로 늘어난 김민수의 수업 메모·소감(#2694).
+  '상체 근력 기초 확인. 벤치프레스 30kg 로 시작해 자세 우선.':
+      'Checked baseline upper-body strength. Start bench press at 30kg, form first.',
+  '하체가 후들거렸지만 끝까지 했어요.':
+      'My legs were shaking, but I finished it.',
+  '하체 기본 패턴 확인. 레그프레스 60kg 부터 시작.':
+      'Checked basic lower-body patterns. Start leg press at 60kg.',
+  '데드리프트 자세가 아직 어려워요.': 'Deadlift form is still hard for me.',
+  '힙힌지 패턴 연습 위주. 데드리프트 50kg 로 자세부터.':
+      'Focused on the hip-hinge pattern. Deadlift at 50kg, form first.',
+  '벤치프레스 자세가 조금 익숙해졌어요.':
+      'Bench press form feels a bit more familiar.',
+  '벤치프레스 35kg 4×10 안정. 다음 세션도 같은 무게로 반복.':
+      'Bench press 35kg 4×10 is stable. Repeat the same weight next session.',
+  '레그프레스 무게를 올렸는데 버틸 만했어요.':
+      'I raised the leg press weight and it was manageable.',
+  '하체 근력 향상. 레그프레스 65kg 로 올림.':
+      'Lower-body strength is improving. Leg press raised to 65kg.',
+  '어깨 불편감이 많이 줄었어요.': 'My shoulder discomfort has eased a lot.',
+  '어깨 가동범위 개선. 숄더프레스 10kg 유지하고 밴드 보강 계속.':
+      'Shoulder range of motion improved. Keep shoulder press at 10kg and continue band work.',
+  '다음 주엔 40kg 에 도전해 볼게요.': "I'll try 40kg next week.",
+  '벤치프레스 37.5kg 4×10 성공. 다음 세션 40kg.':
+      'Bench press 37.5kg 4×10 done. 40kg next session.',
   '자전거 라이딩': 'Bike ride',
   '어깨가 아직 조금 불편해서 무게를 낮췄어요.':
       'My shoulder is still a little uncomfortable, so I went lighter.',
@@ -735,6 +759,27 @@ const Map<String, String> _seedEnglish = <String, String>{
   '혈액순환 개선': 'Improves circulation',
   '기초대사량 향상': 'Boosts basal metabolism',
   'PT 피드백 반영 · 오른쪽 어깨 보호': 'Based on PT feedback · Protects the right shoulder',
+  // 시드 상담 일정의 상담 요청 문의 글과 지난 주 취소 사유 (#2669).
+  '저녁 외식이 잦은데 식단 기록을 어떻게 이어 가면 좋을지 상담받고 싶어요.':
+      'I eat out for dinner a lot. Could we talk about how to keep up my meal log?',
+  '수업을 오전 시간대로 옮길 수 있을지 여쭤보고 싶어요.':
+      "I'd like to ask whether my sessions could move to the morning.",
+  '예전에 무릎을 다친 적이 있어요. 무리 없이 시작할 수 있을지 궁금해요.':
+      'I hurt my knee a while ago. Can I start without overdoing it?',
+  '주말에만 운동할 수 있는데 그래도 꾸준히 할 수 있을까요?':
+      'I can only work out on weekends. Can I still keep it consistent?',
+  '체중 감량을 목표로 PT 를 알아보고 있어요. 퇴근 후 시간대가 좋아요.':
+      "I'm looking into PT to lose weight. After-work hours suit me best.",
+  '정형외과 재진 소견서도 보내드려요. 걷기는 괜찮대요':
+      "Here's my orthopedic follow-up note too. They said walking is fine",
+  '회식이 잦아서 야식을 어떻게 줄일지 상담받고 싶어요.':
+      'I have team dinners often. Could we talk about cutting down late-night snacks?',
+  '혈압이 다시 올라서 운동 강도를 같이 봐 주셨으면 해요.':
+      'My blood pressure is up again. Could we go over my workout intensity together?',
+  '무릎 재활 목표를 다시 잡고 싶어요. 병원 소견도 받아 뒀어요.':
+      "I'd like to reset my knee rehab goals. I have my doctor's notes too.",
+  '감기 기운이 있어 이번 수업은 쉬고 싶다고 연락함':
+      'Messaged ahead: feeling a cold coming on, wants to skip this session',
   // 지난 PT 메모·지난 상담(#2667).
   '인터벌 6세트 완주. 마지막 두 세트에서 호흡이 빨리 올라와 휴식을 90초로 늘림.':
       'Finished 6 interval sets. Breathing spiked in the last two, so rest went up to 90 seconds.',

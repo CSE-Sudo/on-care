@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
+import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/my_health/data/repositories/dio_my_health_repository.dart';
 import 'package:oncare/features/my_health/data/repositories/mock_my_health_repository.dart';
 import 'package:oncare/features/my_health/domain/entities/health_history.dart';
@@ -14,7 +15,11 @@ final myHealthRepositoryProvider = Provider<MyHealthRepository>((ref) {
   // 데모/로컬 모드에서만 인메모리 mock 을 사용한다. diet/exercise 와 동일한 분기.
   if (ref.watch(appConfigProvider).useMockApi) {
     // 잔액은 목업 식단·운동·코치 경로와 같은 원장에서 읽는다(#1786).
-    return MockMyHealthRepository(points: ref.watch(demoPointsLedgerProvider));
+    // 이름·이메일은 목업 인터셉터가 저장한 프로필과 같은 DB 에서 읽는다(#2661).
+    return MockMyHealthRepository(
+      points: ref.watch(demoPointsLedgerProvider),
+      db: ref.watch(appDatabaseProvider),
+    );
   }
   return DioMyHealthRepository(ref.watch(dioProvider));
 }, name: 'myHealthRepository');

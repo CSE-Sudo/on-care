@@ -47,13 +47,22 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 새로고침해도 그 자리에 남는다.
 class SchedulePage extends ConsumerStatefulWidget {
   /// Creates the schedule tab.
-  const SchedulePage({super.key, this.date, this.sessionId});
+  const SchedulePage({
+    super.key,
+    this.date,
+    this.sessionId,
+    this.openInbox = false,
+  });
 
   /// Browsed day as `YYYY-MM-DD`; invalid or absent means today.
   final String? date;
 
   /// Session selected by a deep link from the dashboard.
   final String? sessionId;
+
+  /// 들어오자마자 상담 요청함 창을 연다 — 알림·옛 주소가 상담함으로 보낼 때
+  /// ([AppRoutes.consultations]). 연 뒤에는 주소에서 쿼리를 지운다(#2717).
+  final bool openInbox;
 
   @override
   ConsumerState<SchedulePage> createState() => _SchedulePageState();
@@ -104,8 +113,27 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.openInbox) _openInboxFromLink();
+  }
+
+  /// 주소가 부른 상담 요청함 창을 연다. 쿼리를 먼저 지워, 창을 닫은 뒤
+  /// 새로고침이나 뒤로 가기로 창이 다시 뜨지 않게 한다.
+  void _openInboxFromLink() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.go(
+        AppRoutes.scheduleAt(date: widget.date, sessionId: widget.sessionId),
+      );
+      showConsultationsDialog(context);
+    });
+  }
+
+  @override
   void didUpdateWidget(SchedulePage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.openInbox && !oldWidget.openInbox) _openInboxFromLink();
     // The URL is the source of truth: a link from the dashboard, or
     // back/forward, must move the calendar.
     if (widget.date != oldWidget.date) {
@@ -608,10 +636,6 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     ref.watch(clientsProvider);
     // 오늘 버튼 계산은 [_todayControl] 안에 있다 — 그 버튼이 헤더가 아니라
     // 날짜 행에 살기 때문이다(#882).
-    final consultationInbox = ref.watch(consultationInboxEnabledProvider);
-    final pendingConsultations = consultationInbox
-        ? ref.watch(consultationPendingCountProvider).valueOrNull
-        : null;
 
     return AppWebPage(
       title: l.schedTitle,
@@ -619,24 +643,6 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       // 검색 바는 헤더 가운데 자리다 — 다른 탭과 같은 가로 위치에 서고, 자리가
       // 모자라면 스스로 아이콘으로 접힌다.
       headerCenter: const ClientSearchBar(),
-      actions: <Widget>[
-        AppButton(
-          key: const ValueKey<String>('schedule-open-slots'),
-          label: l.schedSlots,
-          // `오늘` 과 같은 네이비 외곽선이다 — 둘 다 페이지 배경 위에 선다(#2180).
-          variant: AppButtonVariant.strongOutline,
-          leadingIcon: AppIcons.eventAvailable,
-          onPressed: () => _openReservationSlotsSheet(),
-        ),
-        // 상담 확인은 맨 오른쪽이다(#882, #1009). 예약 슬롯 왼쪽에 있을 때는
-        // 알림 배지가 그 버튼과 겹쳐, 몇 건 밀렸는지가 배지 색으로도 잘 읽히지
-        // 않았다.
-        if (consultationInbox)
-          ConsultationInboxAction(
-            pending: pendingConsultations,
-            onTap: () => showConsultationsDialog(context),
-          ),
-      ],
       // 날짜 행은 async `when()` **바깥**에 있다: 주를 넘길 때마다 새 provider
       // 가 `loading` 으로 시작하는데, 그때 페이지 전체를 스피너로 비우면 날짜
       // 행이 깜빡인다. 격자만 async 상태를 따른다(review PR 245).
@@ -650,6 +656,10 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   /// 넘길 때마다 일곱 개가 함께 흔들린다.
   Widget _buildTimetable() {
     final AppLocalizations l = AppLocalizations.of(context);
+    final consultationInbox = ref.watch(consultationInboxEnabledProvider);
+    final pendingConsultations = consultationInbox
+        ? ref.watch(consultationPendingCountProvider).valueOrNull
+        : null;
     final start = _weekStart;
     final end = start.add(const Duration(days: 6));
     final range = (from: ymd(start), to: ymd(end));
@@ -658,13 +668,32 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     // 날짜 행은 **시간표 쪽 열 안**에 있다. 페이지 폭 전체에 걸쳐 두면 `오늘`
     // 이 상세 패널 위에 떠, 무엇을 조작하는 버튼인지 자리로 말하지 못한다.
     // 시간표 안에 두면 오른쪽 끝이 일요일 칸 위로 온다(#988).
-    final navBar = Padding(
+    // 예약 슬롯·상담 요청 — 화면 머리 오른쪽 끝은 모든 탭이 알림 종 하나만
+    // 두는 자리라 머리에서 내렸다(#2628). 넓은 화면에서는 상세 패널 칸의 머리에,
+    // 좁은 화면에서는 날짜 행의 `새 일정` 왼쪽에 선다.
+    final List<Widget> intakeActions = <Widget>[
+      AppButton(
+        key: const ValueKey<String>('schedule-open-slots'),
+        label: l.schedSlots,
+        // `오늘` 과 같은 네이비 외곽선이다 — 둘 다 페이지 배경 위에 선다(#2180).
+        variant: AppButtonVariant.strongOutline,
+        leadingIcon: AppIcons.eventAvailable,
+        onPressed: () => _openReservationSlotsSheet(),
+      ),
+      if (consultationInbox)
+        ConsultationInboxAction(
+          pending: pendingConsultations,
+          onTap: () => showConsultationsDialog(context),
+        ),
+    ];
+    Widget navBar({required bool withIntake}) => Padding(
       padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
       child: ScheduleDateNavBar(
         start: start,
         end: end,
         onShift: _shiftWeek,
         trailing: _todayControl(),
+        actions: withIntake ? intakeActions : const <Widget>[],
         // `새 일정` 은 이 행의 오른쪽 끝, 일요일 칸 위에 선다. 예전에는 페이지
         // 헤더의 다른 문서 액션과 섞여 있어, 무엇을 조작하는 버튼인지 시간표와
         // 자리로 이어지지 않았다(#882 와 같은 이유).
@@ -737,7 +766,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
             final stacked = Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                navBar,
+                navBar(withIntake: true),
                 Expanded(child: grid),
               ],
             );
@@ -764,13 +793,12 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
                 ],
               );
             }
-            // 머리(날짜 행 · 패널 제목)를 **한 줄에** 세우고 몸(격자 · 카드)을
-            // 그 아래 한 줄에 세운다. 날짜 행을 시간표 열 안에만 두었더니
-            // 왼쪽은 그 높이만큼 내려가고 오른쪽은 맨 위에서 시작해, 두 열의
-            // 머리가 어긋났다 — 가로로 훑을 때 눈이 한 번 더 움직인다(#1008).
+            // 머리(날짜 행 · 패널 칸 머리)를 **한 줄에** 세우고 몸(격자 · 카드)을
+            // 그 아래 한 줄에 세운다 — 같은 `Row` 라 높이가 저절로 맞는다(#1008).
             //
-            // 같은 `Row` 에 넣으면 높이가 저절로 맞는다. 어느 한쪽의 높이를
-            // 상수로 베껴 두면 그 값이 바뀌는 순간 조용히 어긋난다.
+            // 패널 칸의 머리에는 예약 슬롯·상담 요청이 서고, `상세 일정` 제목은
+            // 그 아래 카드 위로 내려간다(#2628). 둘 다 시간표에 일정을 들이는
+            // 동작이라 `새 일정` 과 같은 높이에 선다.
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
@@ -782,11 +810,36 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
                         padding: const EdgeInsets.only(
                           right: OnCareLayout.splitGap,
                         ),
-                        child: navBar,
+                        child: navBar(withIntake: false),
                       ),
                     ),
                     const SizedBox(width: OnCareSize.hairline),
-                    SizedBox(width: _panelWidth, child: _panelHeader()),
+                    SizedBox(
+                      width: _panelWidth,
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          left: OnCareSpacing.s16,
+                          bottom: OnCareSpacing.s8,
+                        ),
+                        child: Row(
+                          key: const ValueKey<String>(
+                            'schedule-intake-actions',
+                          ),
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: <Widget>[
+                            for (
+                              int i = 0;
+                              i < intakeActions.length;
+                              i++
+                            ) ...<Widget>[
+                              if (i > 0)
+                                const SizedBox(width: OnCareSpacing.s8),
+                              intakeActions[i],
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 Expanded(
@@ -807,7 +860,18 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
                       ),
                       SizedBox(
                         width: _panelWidth,
-                        child: _buildWeekDetail(selected, withTitle: false),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            _panelHeader(),
+                            Expanded(
+                              child: _buildWeekDetail(
+                                selected,
+                                withTitle: false,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -820,11 +884,11 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     );
   }
 
-  /// 상세 패널의 폭. 날짜 행과 패널 머리글이 같은 값을 써야 두 열의 경계가
-  /// 위아래로 이어진다.
+  /// 상세 패널의 폭.
   static const double _panelWidth = OnCareLayout.splitListWidth;
 
-  /// 날짜 행과 한 줄에 서는 패널 머리글. (#1008)
+  /// 넓은 화면의 패널 머리글 — 시간표 머리와 같은 높이에서 시작한다(#1008,
+  /// #2628). 선택한 일정이 없어도 자리를 말한다.
   ///
   /// 문구가 `스케줄` 이던 때에는 페이지 제목과 같은 말이라 그 자리가 무엇인지
   /// 말하지 못했다 — 왼쪽 격자도 스케줄이고 오른쪽 카드도 스케줄이다.
@@ -864,7 +928,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       key: const Key('week-detail'),
       padding: const EdgeInsets.all(OnCareSpacing.s16),
       children: <Widget>[
-        // 넓은 화면에서는 제목이 날짜 행과 한 줄에 서므로 여기서는 빼둔다.
+        // 넓은 화면에서는 패널 머리글([_panelHeader])이 따로 서므로 빼둔다.
         if (withTitle) ...<Widget>[
           Text(l.schedDetailTitle, style: _panelTitleStyle()),
           const SizedBox(height: OnCareSpacing.s12),

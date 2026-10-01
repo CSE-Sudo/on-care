@@ -352,6 +352,29 @@ enum AppWebPageWidth {
 /// 웹 페이지 틀(#1696) — 헤더 88(`titleLarge` + `bodySmall` 부제 + 액션), 좌우 16.
 ///
 /// 여백은 틀만 넣는다. 페이지가 직접 여백을 더하지 않는다.
+/// 모든 [AppWebPage] 머리의 **오른쪽 끝**에 붙는 것 — 콘솔 전체의 도구(#2628).
+///
+/// 셸이 본문을 이것으로 감싸 한 번만 준다. 화면마다 [AppWebPage.actions] 에
+/// 따로 넣으면 새 화면이 빠뜨리기 쉽고, 화면의 버튼과 뒤섞여 자리가 흔들린다.
+/// 트레이너웹은 알림 종을 여기 둔다.
+class AppWebHeaderTrailing extends InheritedWidget {
+  const AppWebHeaderTrailing({
+    super.key,
+    required this.trailing,
+    required super.child,
+  });
+
+  final Widget trailing;
+
+  static Widget? maybeOf(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<AppWebHeaderTrailing>()
+      ?.trailing;
+
+  @override
+  bool updateShouldNotify(AppWebHeaderTrailing oldWidget) =>
+      trailing != oldWidget.trailing;
+}
+
 class AppWebPage extends StatelessWidget {
   const AppWebPage({
     super.key,
@@ -362,6 +385,7 @@ class AppWebPage extends StatelessWidget {
     this.width = AppWebPageWidth.wide,
     this.leading,
     this.headerCenter,
+    this.showHeaderTrailing = true,
   });
 
   final String title;
@@ -381,6 +405,12 @@ class AppWebPage extends StatelessWidget {
   /// 보다 좁아질 때만 대칭을 포기하고 제목과 액션 사이 남는 폭을 쓴다(#995).
   /// 자식은 받은 폭을 보고 스스로 아이콘으로 접을 수 있다.
   final Widget? headerCenter;
+
+  /// [AppWebHeaderTrailing] 이 주는 콘솔 도구를 이 화면 머리에도 붙이는가.
+  ///
+  /// 그 도구가 여는 화면 자신(알림 화면)이나, 폭이 좁아 머리 오른쪽 끝이 다른
+  /// 화면과 어긋나는 화면(문서)은 끈다(#2628).
+  final bool showHeaderTrailing;
 
   /// 머리 높이 — 88 이 기본이고, 글자 배율이 커져 제목·부제가 그 안에 들지
   /// 않을 때만 늘어난다(#2431).
@@ -407,6 +437,11 @@ class AppWebPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     final double side = tokens.density.pagePadding;
+    // 화면의 버튼 뒤에 콘솔 전체의 도구를 잇는다 — 늘 머리 맨 오른쪽이다.
+    final Widget? shared = showHeaderTrailing
+        ? AppWebHeaderTrailing.maybeOf(context)
+        : null;
+    final List<Widget> actions = <Widget>[...this.actions, ?shared];
     final Widget titleBlock = Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,

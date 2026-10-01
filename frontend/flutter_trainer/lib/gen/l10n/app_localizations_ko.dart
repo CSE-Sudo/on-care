@@ -1030,12 +1030,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get consultTitle => '상담 요청';
 
   @override
-  String get consultBackToSchedule => '스케줄로 돌아가기';
-
-  @override
-  String get consultBackToDashboard => '대시보드로 돌아가기';
-
-  @override
   String consultPendingCount(int count) {
     return '대기 중 $count건';
   }
@@ -3363,6 +3357,18 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get notifTitle => '알림';
+
+  @override
+  String get notifSeeAll => '전체 보기';
+
+  @override
+  String get notifGroupAll => '전체';
+
+  @override
+  String get notifGroupMessages => '메시지';
+
+  @override
+  String get notifGroupEmpty => '이 종류의 알림이 없어요';
 
   @override
   String get notifReadAll => '모두 읽음';

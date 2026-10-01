@@ -16,6 +16,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'On-Care';
 
   @override
+  String get notFoundTitle => 'Page not found';
+
+  @override
+  String get notFoundMessage =>
+      'The link may be broken, or the page may no longer exist. Please check the address and try again.';
+
+  @override
+  String get notFoundGoHome => 'Go home';
+
+  @override
+  String get notFoundGoSignIn => 'Go to sign in';
+
+  @override
   String get navDashboard => 'Home';
 
   @override
@@ -782,12 +795,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get exCompletedPtNoProgram => 'No workout program was recorded.';
+  String exPtSessionNumber(int count) {
+    return 'Session $count';
+  }
 
   @override
-  String exCompletedPtFeedback(String coachName) {
-    return '$coachName · Today\'s feedback';
-  }
+  String get exCompletedPtNoProgram => 'No workout program was recorded.';
 
   @override
   String get exAddExercise => 'Add Exercise';
@@ -968,7 +981,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exOwnRecords => 'Workouts you logged';
 
   @override
-  String get exOwnRecordsEmpty => 'No workouts logged yet';
+  String get exOwnRecordsEmpty => 'No workouts logged';
 
   @override
   String get exOwnRecordSource => 'Self-logged';
@@ -3856,9 +3869,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Maintenance is scheduled for tomorrow, 02:00–03:00.';
 
   @override
-  String get exPtLogTitle => 'Today\'s completed PT';
-
-  @override
   String get exPtFeedbackTitle => 'Today\'s feedback';
 
   @override
@@ -3925,15 +3935,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exConsultHistoryCancelBody =>
       'A cancelled request can\'t be restored.';
-
-  @override
-  String exDemoPtSessionCount(String trainerName) {
-    return 'Session 12 with Trainer $trainerName';
-  }
-
-  @override
-  String get exDemoPtFeedback =>
-      'Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!';
 
   @override
   String pointsRewardBadge(int points) {

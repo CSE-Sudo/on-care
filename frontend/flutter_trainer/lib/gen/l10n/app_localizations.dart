@@ -1982,18 +1982,6 @@ abstract class AppLocalizations {
   /// **'Consultation requests'**
   String get consultTitle;
 
-  /// No description provided for @consultBackToSchedule.
-  ///
-  /// In en, this message translates to:
-  /// **'Back to schedule'**
-  String get consultBackToSchedule;
-
-  /// No description provided for @consultBackToDashboard.
-  ///
-  /// In en, this message translates to:
-  /// **'Back to dashboard'**
-  String get consultBackToDashboard;
-
   /// No description provided for @consultPendingCount.
   ///
   /// In en, this message translates to:
@@ -6138,6 +6126,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Notifications'**
   String get notifTitle;
+
+  /// No description provided for @notifSeeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get notifSeeAll;
+
+  /// No description provided for @notifGroupAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get notifGroupAll;
+
+  /// No description provided for @notifGroupMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages'**
+  String get notifGroupMessages;
+
+  /// No description provided for @notifGroupEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications of this kind'**
+  String get notifGroupEmpty;
 
   /// No description provided for @notifReadAll.
   ///

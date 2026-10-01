@@ -13,6 +13,7 @@ import 'package:oncare_trainer/shared/models/chat_preview.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart'
     show demoUnregisteredClientIdsSnapshot;
+import 'package:oncare_trainer/shared/services/demo_chat_files.dart';
 
 /// Reads and sends messages in a trainer↔member chat thread.
 ///
@@ -62,12 +63,23 @@ class DriftChatRepository implements ChatRepository {
       final ids = rows.map((r) => r.id).toList();
       final weeks = await _markers(_reportKeyPrefix, ids);
       final images = await _markers(_imageKeyPrefix, ids);
+      // 회원이 보낸 것으로 시드한 사진·PDF(#2669).
+      final files = <String, ChatAttachment>{};
+      for (final MapEntry<String, String> e in (await _markers(
+        demoChatFileKeyPrefix,
+        ids,
+      )).entries) {
+        final ChatAttachment? file =
+            _demoImages[e.key] ?? await decodeDemoChatFile(e.key, e.value);
+        if (file == null) continue;
+        files[e.key] = _demoImages[e.key] = file;
+      }
       return rows
           .map(
             (row) => _toEntity(
               row,
               weeks[row.id],
-              _imageAttachment(row.id, images[row.id]),
+              files[row.id] ?? _imageAttachment(row.id, images[row.id]),
             ),
           )
           .toList();
@@ -288,7 +300,7 @@ class DriftChatRepository implements ChatRepository {
   static const String _reportKeyPrefix = 'report_msg_';
   static const String _imageKeyPrefix = 'chat_image_';
 
-  /// 풀어 둔 데모 사진. 메시지 id 가 키다([_imageAttachment]).
+  /// 풀어 둔 데모 사진·파일. 메시지 id 가 키다([_imageAttachment]).
   static final Map<String, ChatAttachment> _demoImages =
       <String, ChatAttachment>{};
 

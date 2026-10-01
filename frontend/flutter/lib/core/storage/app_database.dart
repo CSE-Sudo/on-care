@@ -75,6 +75,14 @@ class ExerciseSessions extends Table {
   IntColumn get calories => integer()();
   TextColumn get intensity =>
       text().withDefault(const Constant('moderate'))(); // light|moderate|high
+  /// 이 기록을 누가 만들었나 — `member`|`trainer_pt`|`assigned_routine`. 서버
+  /// `exercise_sessions.source` 와 같은 어휘다. 코칭에서 파생된 기록은 회원이
+  /// 고치거나 지울 수 없다(#499, #638). 이 컬럼이 생기기 전 기록은 `member`
+  /// 다. (#2662)
+  TextColumn get source => text().withDefault(const Constant('member'))();
+  /// 배정 루틴을 완료해 생긴 기록이면 그 루틴 id. 완료를 되돌릴 때 이 기록을
+  /// 찾아 지운다. (#1131, #2662)
+  TextColumn get assignedRoutineId => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
@@ -123,7 +131,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -197,6 +205,16 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(
           exerciseSessions,
           exerciseSessions.durationSeconds,
+        );
+      }
+      if (from < 14) {
+        // 운동 기록의 출처·배정 루틴 id 컬럼 추가 — 데모 운동이 이 표에 남으면서
+        // PT·배정 루틴 기록을 회원 기록과 가르게 됐다. 기존 기록은 `member` 다.
+        // (#2662)
+        await m.addColumn(exerciseSessions, exerciseSessions.source);
+        await m.addColumn(
+          exerciseSessions,
+          exerciseSessions.assignedRoutineId,
         );
       }
     },

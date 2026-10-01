@@ -1733,12 +1733,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      // 김민수는 최근 기록에 반복 운동이 있어 A안이 `기존 패턴 유지형` —
+      // 그 반복 운동(`저강도 유산소` …)으로 짜인다(#2704, 서버와 같은 규칙).
+      //
       // 검토 단계에 들어온 것만으로는 아직 편집기에 아무것도 반영되지
       // 않는다 — `템플릿에 반영`을 눌러야 한다.
       expect(
         find.descendant(
           of: find.byType(ProgramEditorWorkspace),
-          matching: find.text('저강도 걷기'),
+          matching: find.text('저강도 유산소'),
         ),
         findsNothing,
       );
@@ -1765,7 +1768,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(ProgramEditorWorkspace),
-          matching: find.text('저강도 걷기'),
+          matching: find.text('저강도 유산소'),
         ),
         findsOneWidget,
       );

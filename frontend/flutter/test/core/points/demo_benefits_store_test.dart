@@ -233,9 +233,30 @@ void main() {
       expect(await db.readValue(kDemoBenefitsKey), isNull);
 
       await db.putValue(kDemoBenefitsKey, '{}');
+      await db.putValue('seeded_v23', '2020-01-01');
+      await seedIfEmpty(db, fixture: fixture);
+      expect(await db.readValue(kDemoBenefitsKey), '{}');
+
+      // v22 를 거친 설치가 v23(#2694)으로 넘어올 때도 장부는 남는다.
+      await db.deleteValue('seeded_v23');
+      await db.putValue('seeded_v22', '2020-01-01');
+      await seedIfEmpty(db, fixture: fixture);
+      expect(await db.readValue(kDemoBenefitsKey), '{}');
+      expect(await db.readValue('seeded_v22'), isNull);
+
+      // v21 을 거친 설치가 넘어올 때도 장부는 남는다(#2662).
+      await db.deleteValue('seeded_v23');
+      await db.putValue('seeded_v21', '2020-01-01');
+      await seedIfEmpty(db, fixture: fixture);
+      expect(await db.readValue(kDemoBenefitsKey), '{}');
+      expect(await db.readValue('seeded_v21'), isNull);
+
+      // v20 을 거친 설치가 넘어올 때도 장부는 남는다(#2660).
+      await db.deleteValue('seeded_v23');
       await db.putValue('seeded_v20', '2020-01-01');
       await seedIfEmpty(db, fixture: fixture);
       expect(await db.readValue(kDemoBenefitsKey), '{}');
+      expect(await db.readValue('seeded_v20'), isNull);
     });
   });
 }

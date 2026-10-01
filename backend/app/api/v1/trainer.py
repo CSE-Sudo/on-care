@@ -128,7 +128,8 @@ from app.services import (
 )
 from app.services.coach import conversation
 from app.services.exercise_service import (
-    build_current_week, monday_of_str, monday_of_this_week_str, weekly_goals,
+    build_current_week, monday_of_str, monday_of_this_week_str,
+    pt_session_times, weekly_goals,
 )
 from app.services.coach.chat import answer as coach_answer
 
@@ -906,7 +907,7 @@ def trainer_client_exercise_week(
         )
     ).all()
     # 회원 앱과 같은 연속 일수 — 운동만 센다.
-    data = build_current_week(list(rows))
+    data = build_current_week(list(rows), pt_session_times(db, rows))
     profile = db.scalar(
         select(HealthProfile).where(HealthProfile.user_id == member_id)
     )
