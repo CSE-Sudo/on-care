@@ -5,6 +5,7 @@ import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
 import 'package:oncare_trainer/features/coaching/domain/routine_effects.dart';
+import 'package:oncare_trainer/features/coaching/presentation/routine_effect_text.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_limits.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -75,11 +76,23 @@ class RoutineMinutesField extends StatelessWidget {
     this.label,
     this.keyPrefix,
     this.compact = false,
+    this.min = 1,
+    this.max = 600,
+    this.helper,
     super.key,
   });
 
   final int minutes;
   final ValueChanged<int> onChanged;
+
+  /// 받는 값의 범위(분). 개별 운동 시간은 기본값(1~600분)이고, AI 생성
+  /// 조건의 총 시간은 서버 범위(10~180분)를 넘긴다(#2871). 범위 밖으로 친
+  /// 값은 경계값으로 당기고, 경계에 닿으면 −/+ 가 잠긴다.
+  final int min;
+  final int max;
+
+  /// 칸 아래 도움말. 범위가 좁은 칸에서 받는 범위를 알린다(#2871).
+  final String? helper;
 
   /// Optional context-specific label. Individual exercises use the default
   /// `routineFieldMinutes`; generation constraints pass the total-time label.
@@ -98,11 +111,12 @@ class RoutineMinutesField extends StatelessWidget {
     return _NumberInput(
       label: label ?? l.routineFieldMinutes,
       value: minutes.toDouble(),
-      min: 1,
-      max: 600,
+      min: min.toDouble(),
+      max: max.toDouble(),
       suffix: l.routineUnitMinutes,
       keyPrefix: keyPrefix ?? 'routine-minutes',
       steppers: !compact,
+      helper: helper,
       onChanged: (double v) => onChanged(v.round()),
     );
   }
@@ -441,8 +455,9 @@ class _RoutineEffectFieldState extends State<RoutineEffectField> {
       key: ValueKey<String>(widget.keyPrefix),
       controller: _controller,
       label: l.routineFieldEffect,
+      // 자동 문구는 보이는 글만 화면 언어로 옮긴다 — 저장 값은 그대로다(#2737).
       hint: widget.autoEffect.isNotEmpty
-          ? widget.autoEffect
+          ? routineEffectText(l, widget.autoEffect)
           : l.routineFieldEffectHint,
       // 글자 수 표시 없이 막는다 — 회원 카드에서 한 줄로 읽히는 길이다.
       inputFormatters: <TextInputFormatter>[
@@ -630,10 +645,14 @@ class _NumberInput extends StatefulWidget {
     required this.steppers,
     required this.onChanged,
     this.decimals = 0,
+    this.helper,
   });
 
   /// 필드 위 라벨("세트 수"·"횟수"·"중량"·"운동 시간").
   final String label;
+
+  /// 칸 아래 도움말(받는 범위 등). 없으면 그리지 않는다.
+  final String? helper;
   final double value;
   final double min;
   final double max;
@@ -741,6 +760,8 @@ class _NumberInputState extends State<_NumberInput> {
       ],
       onChanged: _typed,
       onSubmitted: _commit,
+      // compact 칸은 도움말을 칸에 붙인다 — 스테퍼 칸은 줄 아래에 따로 둔다.
+      helper: widget.steppers ? null : widget.helper,
       suffix: Padding(
         padding: const EdgeInsetsDirectional.only(end: OnCareSpacing.s12),
         child: Center(
@@ -787,6 +808,16 @@ class _NumberInputState extends State<_NumberInput> {
             ),
           ],
         ),
+        if (widget.helper case final String helper) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s4),
+          Text(
+            helper,
+            key: _key('helper'),
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
+        ],
       ],
     );
   }

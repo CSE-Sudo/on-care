@@ -19,6 +19,7 @@ import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/keep_words.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/core/web/leave_guard.dart';
+import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_card.dart';
@@ -154,6 +155,7 @@ class _MyPageState extends ConsumerState<MyPage> {
     if (want == _leaveGuarded) return;
     _leaveGuarded = want;
     setLeaveGuard(
+      this,
       want
           ? () => mounted && _section == _MySection.edit && !_saving && _isDirty
           : null,
@@ -162,7 +164,7 @@ class _MyPageState extends ConsumerState<MyPage> {
 
   @override
   void dispose() {
-    if (_leaveGuarded) setLeaveGuard(null);
+    if (_leaveGuarded) setLeaveGuard(this, null);
     for (final c in _fields.values) {
       c.dispose();
     }
@@ -334,7 +336,8 @@ class _MyPageState extends ConsumerState<MyPage> {
       destructive: true,
     );
     if (!ok || !mounted) return;
-    // The router's auth gate redirects to the login screen.
+    // The router's auth gate redirects to the login screen — 직접 로그아웃이라
+    // 지금 자리(`?from=`)를 싣지 않는다(#2765).
     await ref.read(sessionControllerProvider.notifier).signOut();
   }
 
@@ -395,7 +398,8 @@ class _MyPageState extends ConsumerState<MyPage> {
       return;
     }
     // 계정이 사라졌으므로 남은 토큰은 무효다 — 세션을 비워 인증 게이트가
-    // 로그인 화면으로 돌려보내게 한다.
+    // 로그인 화면으로 돌려보내게 한다. 탈퇴 화면 주소를 다음 사람이 이어 받지
+    // 않도록 `?from=` 없이 간다(#2765).
     await ref.read(sessionControllerProvider.notifier).signOut();
   }
 
@@ -779,9 +783,14 @@ class _MyPageState extends ConsumerState<MyPage> {
   /// 상담·예약·담당 회원 소식은 서버에 설정 칸이 생기기 전에는 값이 `null` 이라
   /// 스위치를 막고 그렇다고 말한다 — 눌러도 서버가 켜짐으로 되돌려 보내면
   /// 저장된 것처럼 보이다가 조용히 되돌아간다.
+  ///
+  /// 서버 값을 받기 전·받지 못했을 때는 모든 스위치를 끔으로 막고, 맨 위 줄에
+  /// 불러오는 중 또는 실패와 다시 시도를 둔다(#2883). 기본값(켬)을 보여 주면
+  /// 꺼 둔 알림이 켜진 것처럼 보이고, 그 상태로 누르면 서버 값을 덮어썼다.
   Widget _notificationCard() {
     final AppLocalizations l = AppLocalizations.of(context);
-    final settings = ref.watch(trainerSettingsProvider);
+    final AsyncValue<TrainerSettings> load = ref.watch(trainerSettingsProvider);
+    final TrainerSettings? settings = load.valueOrNull;
     final controller = ref.read(trainerSettingsProvider.notifier);
     Widget row({
       required String key,
@@ -790,10 +799,11 @@ class _MyPageState extends ConsumerState<MyPage> {
       required bool? value,
       required Future<void> Function(bool) onChanged,
     }) {
-      final bool ready = value != null;
+      final bool loaded = settings != null;
+      final bool ready = loaded && value != null;
       return AppListRow(
         title: title,
-        subtitle: ready ? hint : l.myNotifNotReady,
+        subtitle: !loaded || value != null ? hint : l.myNotifNotReady,
         // 스위치에 이름을 붙인다 — 제목과 따로 읽히면 음성 안내에는
         // 정체 불명의 `switch, on` 만 남는다(회원 앱 #1942).
         trailing: Semantics(
@@ -801,7 +811,7 @@ class _MyPageState extends ConsumerState<MyPage> {
           excludeSemantics: true,
           child: Switch(
             key: ValueKey<String>('my-notif-$key'),
-            value: value ?? true,
+            value: loaded && (value ?? true),
             onChanged: ready ? (v) => _applySetting(() => onChanged(v)) : null,
           ),
         ),
@@ -810,32 +820,51 @@ class _MyPageState extends ConsumerState<MyPage> {
 
     return _SettingsCard(
       rows: <Widget>[
+        if (load.hasError && settings == null)
+          AppListRow(
+            key: const ValueKey<String>('my-notif-load-failed'),
+            title: l.myNotifLoadFailed,
+            trailing: AppButton(
+              key: const ValueKey<String>('my-notif-retry'),
+              label: l.actionRetry,
+              leadingIcon: AppIcons.refresh,
+              variant: AppButtonVariant.secondary,
+              size: OnCareButtonSize.small,
+              onPressed: controller.reload,
+            ),
+          )
+        else if (settings == null)
+          AppListRow(
+            key: const ValueKey<String>('my-notif-loading'),
+            title: l.myNotifLoading,
+            trailing: const AppLoading.inline(),
+          ),
         row(
           key: 'new-message',
           title: l.myNotifNewMessage,
           hint: l.myNotifNewMessageHint,
-          value: settings.newMessageAlerts,
+          value: settings?.newMessageAlerts,
           onChanged: controller.setNewMessageAlerts,
         ),
         row(
           key: 'consultation',
           title: l.myNotifConsultation,
           hint: l.myNotifConsultationHint,
-          value: settings.consultationAlerts,
+          value: settings?.consultationAlerts,
           onChanged: controller.setConsultationAlerts,
         ),
         row(
           key: 'reservation',
           title: l.myNotifReservation,
           hint: l.myNotifReservationHint,
-          value: settings.reservationAlerts,
+          value: settings?.reservationAlerts,
           onChanged: controller.setReservationAlerts,
         ),
         row(
           key: 'member-updates',
           title: l.myNotifMemberUpdates,
           hint: l.myNotifMemberUpdatesHint,
-          value: settings.memberUpdateAlerts,
+          value: settings?.memberUpdateAlerts,
           onChanged: controller.setMemberUpdateAlerts,
         ),
       ],
@@ -2322,10 +2351,16 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
       _errorField = null;
     });
     final navigator = Navigator.of(context);
+    final SessionController session = ref.read(
+      sessionControllerProvider.notifier,
+    );
     try {
-      await ref
+      final TrainerAuthTokens? reissued = await ref
           .read(trainerAccountRepositoryProvider)
           .changePassword(currentPassword: current, newPassword: next);
+      // 서버는 변경 전에 발급한 토큰을 모두 끊는다 — 이 기기는 응답의 새 토큰으로
+      // 이어 쓴다(#2766). 다른 기기는 다음 요청 때 로그인 화면으로 간다.
+      if (reissued != null) await session.adoptReissuedTokens(reissued);
     } on NewPasswordRejected catch (e) {
       // 새 비밀번호가 서버 기준에 걸렸다 — 새 비밀번호 칸 아래에 이 앱의 문구로.
       if (mounted) {

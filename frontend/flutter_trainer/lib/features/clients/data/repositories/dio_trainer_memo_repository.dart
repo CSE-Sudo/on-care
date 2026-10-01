@@ -43,6 +43,7 @@ class DioTrainerMemoRepository implements TrainerMemoRepository {
     String? insightId,
     String insightKind = '',
     TrainerMemoRef? ref,
+    TrainerMemoCategory category = TrainerMemoCategory.none,
   }) async {
     try {
       final response = await _dio.post<Map<String, Object?>>(
@@ -60,6 +61,7 @@ class DioTrainerMemoRepository implements TrainerMemoRepository {
             'ref_id': ref.id
           else if (ref != null)
             'ref_date': ?ref.day,
+          if (category != TrainerMemoCategory.none) 'category': category.wire,
         },
       );
       return TrainerMemo.fromJson(response.data!);
@@ -72,12 +74,13 @@ class DioTrainerMemoRepository implements TrainerMemoRepository {
   Future<TrainerMemo> update(
     String clientId,
     String memoId,
-    String body,
-  ) async {
+    String body, {
+    TrainerMemoCategory? category,
+  }) async {
     try {
       final response = await _dio.put<Map<String, Object?>>(
         '${_base(clientId)}/${Uri.encodeComponent(memoId)}',
-        data: <String, Object?>{'body': body},
+        data: <String, Object?>{'body': body, 'category': ?category?.wire},
       );
       return TrainerMemo.fromJson(response.data!);
     } on DioException catch (error) {

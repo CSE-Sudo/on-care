@@ -683,6 +683,17 @@ def test_trainer_client_exercise_week_accepts_week_start(client, db_session):
         date.fromisoformat(monday_of_this_week_str()) - timedelta(days=7)
     ).isoformat()
 
+    # 시드가 지난 주 월요일에 이미 운동을 깔아 둘 수 있다 — 루틴 이력으로 만든
+    # 세션 등(#2726). 넣기 전 값을 기준으로 증가분만 본다.
+    before_last = client.get(
+        url, headers=_auth(token), params={"week_start": last_monday}
+    )
+    assert before_last.status_code == 200, before_last.text
+    base_minutes = before_last.json()["daily_minutes"][0]
+    base_calories = before_last.json()["daily_calories"][0]
+    before_current = client.get(url, headers=_auth(token))
+    assert before_current.status_code == 200, before_current.text
+
     row = ExerciseSession(
         id=f"test-exercise-week-{uuid4().hex[:10]}",
         user_id="user-jisu",
@@ -700,19 +711,22 @@ def test_trainer_client_exercise_week_accepts_week_start(client, db_session):
         )
         assert response.status_code == 200, response.text
         body = response.json()
-        assert body["daily_minutes"][0] == 33
-        assert body["daily_calories"][0] == 222
+        assert body["daily_minutes"][0] == base_minutes + 33
+        assert body["daily_calories"][0] == base_calories + 222
 
         # 월요일이 아닌 날을 줘도 그 주로 맞춘다.
         midweek = (date.fromisoformat(last_monday) + timedelta(days=3)).isoformat()
         same = client.get(url, headers=_auth(token), params={"week_start": midweek})
         assert same.status_code == 200, same.text
-        assert same.json()["daily_minutes"][0] == 33
+        assert same.json()["daily_minutes"][0] == base_minutes + 33
 
         # 이번 주에는 그 기록이 없다 — 인자를 빼면 예전 동작 그대로다.
         current = client.get(url, headers=_auth(token))
         assert current.status_code == 200, current.text
-        assert current.json()["daily_minutes"][0] != 33
+        assert (
+            current.json()["daily_minutes"][0]
+            == before_current.json()["daily_minutes"][0]
+        )
     finally:
         db_session.delete(row)
         db_session.commit()

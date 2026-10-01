@@ -47,7 +47,7 @@ flutter run -d chrome \
 
 # Android
 flutter run -d <android-device>  # debug
-flutter build apk --release      # 또는 build appbundle
+flutter build appbundle --release  # android/key.properties 필요(docs/mobile_release.md)
 
 # iOS
 flutter run -d <ios-device>      # debug

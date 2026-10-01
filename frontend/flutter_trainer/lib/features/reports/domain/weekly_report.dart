@@ -9,11 +9,13 @@ import 'package:oncare_report/oncare_report.dart'
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/korean_josa.dart';
+import 'package:oncare_trainer/core/utils/korean_josa_l10n.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
 import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
     show elapsedWeekdays, weekdayCount;
 import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -22,6 +24,8 @@ export 'package:oncare_report/oncare_report.dart'
     show calorieTolerance, recordedMean, sugarLimitG;
 export 'package:oncare_trainer/core/utils/korean_josa.dart'
     show hasFinalConsonant;
+export 'package:oncare_trainer/core/utils/korean_josa_l10n.dart'
+    show withParticle;
 
 /// Monday of the week containing [day], stripped to a date.
 DateTime weekStartOf(DateTime day) {
@@ -32,6 +36,16 @@ DateTime weekStartOf(DateTime day) {
     day.month,
     day.day - (day.weekday - DateTime.monday),
   );
+}
+
+/// [weekStart] 가 속한 주의 월요일에서 [weeks] 주 옮긴 월요일. 음수면 앞 주다.
+///
+/// 주를 옮기는 곳은 전부 이것을 쓴다(#2774). `Duration(days: 7)` 로 빼면
+/// 서머타임이 시작된 주는 167시간뿐이라, 월요일 0시에서 빼면 전 주 월요일이
+/// 아니라 그 전날 일요일 23시가 되고 — 그 날짜는 2주 전 주에 속한다.
+DateTime shiftWeeks(DateTime weekStart, int weeks) {
+  final DateTime monday = weekStartOf(weekStart);
+  return DateTime(monday.year, monday.month, monday.day + 7 * weeks);
 }
 
 /// One client's week, as the trainer would summarise it to them.
@@ -175,7 +189,11 @@ class WeeklyReport implements ReportSheetWeek {
   ReportSheetAnswers? get answers => memberFeedback;
 
   /// Sunday of the reported week.
-  DateTime get weekEnd => weekStart.add(const Duration(days: 6));
+  ///
+  /// 달력 날짜로 더한다 — 그 주 안에 서머타임 전환이 있으면 `Duration` 은
+  /// 자정을 한 시간 밀어 날짜가 어긋난다(#2774).
+  DateTime get weekEnd =>
+      DateTime(weekStart.year, weekStart.month, weekStart.day + 6);
 
   /// 문서에 실리는 내용 전부를 이은 열쇠. (#2484)
   ///
@@ -308,9 +326,13 @@ WeeklyReport buildWeeklyReport({
 }) {
   final start = weekStartOf(weekStart);
   final end = start.add(const Duration(days: 6));
+  // 상담은 PT 가 아니다(#2741) — 리포트가 세는 것은 PT 횟수다. 상담이 있던 주가
+  // PT 1회 더로 읽히고 이행률 분모도 커졌다. 실서버 `build_weekly_report` 와 같다.
   final inWeek = sessions.where((s) {
     final day = DateTime.tryParse(s.date);
-    if (day == null || s.isGap) return false;
+    if (day == null || s.isGap || s.type == SessionType.consultation) {
+      return false;
+    }
     return !day.isBefore(start) && !day.isAfter(end);
   }).toList();
 
@@ -739,57 +761,3 @@ String exerciseBaseName(String line) {
 /// `은`/`는` 을 받침에 맞춰 붙인다. 규칙은 [withTopicJosa] 에 있다.
 String _topicParticle(AppLocalizations l, String word) =>
     withParticle(l, word, '은', '는');
-
-/// 한국어일 때만 받침에 맞는 조사를 붙인다. 다른 언어에는 조사가 없다 —
-/// 영어 문장에 `Squat은` 이 남으면 안 된다.
-String withParticle(
-  AppLocalizations l,
-  String word,
-  String afterConsonant,
-  String afterVowel,
-) {
-  if (l.localeName != 'ko') return word;
-  return '$word${hasFinalConsonant(word) ? afterConsonant : afterVowel}';
-}
-
-/// The trainer's own week — the numbers that answer "how am I doing?".
-class TrainerWeekStats {
-  /// Creates the stats.
-  const TrainerWeekStats({
-    required this.sessionsBooked,
-    required this.sessionsDone,
-    required this.activeClients,
-    required this.programsSent,
-  });
-
-  /// Sessions booked this week.
-  final int sessionsBooked;
-
-  /// Sessions completed this week.
-  final int sessionsDone;
-
-  /// Clients marked 활성.
-  final int activeClients;
-
-  /// Sessions that carry a program (i.e. a routine was prepared).
-  final int programsSent;
-
-  /// Completion rate as a percentage; null when nothing was booked.
-  int? get completionRate => sessionsBooked == 0
-      ? null
-      : ((sessionsDone / sessionsBooked) * 100).round();
-}
-
-/// Aggregates the trainer's week from every session in the range.
-TrainerWeekStats buildTrainerWeekStats({
-  required List<ScheduleSession> sessions,
-  required List<TrainerClient> clients,
-}) {
-  final booked = sessions.where((s) => !s.isGap).toList();
-  return TrainerWeekStats(
-    sessionsBooked: booked.length,
-    sessionsDone: booked.where((s) => s.isDone).length,
-    activeClients: clients.where((c) => c.active).length,
-    programsSent: booked.where((s) => s.program.isNotEmpty).length,
-  );
-}

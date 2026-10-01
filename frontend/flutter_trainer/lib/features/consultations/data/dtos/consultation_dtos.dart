@@ -1,3 +1,4 @@
+import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 
@@ -83,12 +84,18 @@ ConsultationRequest consultationRequestFromJson(Map<String, Object?> json) {
     purposeDetail: _nullable(json['health_purpose_detail']),
     preferredDate: _date(json['preferred_date']),
     preferredTimeCode: _str(json['preferred_time_slot']),
-    slotStartsAt: DateTime.tryParse(_str(json['slot_starts_at']))?.toLocal(),
+    // 기기 시간대가 아니라 KST 로 읽는다 — 슬롯 창·스케줄과 같은 시각이어야
+    // 한다(#2759).
+    slotStartsAt: switch (DateTime.tryParse(_str(json['slot_starts_at']))) {
+      final DateTime at => toKst(at),
+      null => null,
+    },
     slotDurationMinutes: (json['slot_duration_minutes'] as num?)?.toInt(),
     message: _nullable(json['message']),
     status: _str(json['status']),
     decisionNote: _nullable(json['decision_note']),
     createdAt: DateTime.tryParse(_str(json['created_at'])),
+    cancelledByTrainer: json['cancelled_by_trainer'] == true,
   );
 }
 

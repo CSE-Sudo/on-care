@@ -4,10 +4,14 @@ import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/drift.dart';
 
 import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/program_draft_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/shared/models/chat_preview.dart';
+import 'package:oncare_trainer/shared/models/client_chat_message.dart';
+import 'package:oncare_trainer/shared/services/demo_chat_files.dart';
 
 /// 데모의 루틴 상태를 drift(`AppKeyValues`)에 남긴다. (#2668)
 ///
@@ -123,10 +127,15 @@ class DemoRoutineStore {
   ///
   /// [replacing] 은 이번 전송이 내리는 이전 배정 id 다(`개인운동만` 재전송,
   /// #2514).
+  ///
+  /// 채팅에도 전송 안내를 남긴다(#2672) — 실서버가 전송 한 번에 알림과 함께
+  /// 대화 가운데 안내를 남기는 것과 같다. [programNames] 는 함께 간 PT
+  /// 프로그램의 운동 이름이다.
   Future<void> recordDelivery(
     String memberId,
     StoredDelivery delivery, {
     Set<String> replacing = const <String>{},
+    List<String> programNames = const <String>[],
   }) async {
     final List<AssignedRoutine> before = await assigned(memberId);
     await writeAssigned(memberId, <AssignedRoutine>[
@@ -135,6 +144,59 @@ class DemoRoutineStore {
         if (!replacing.contains(r.id)) r,
     ]);
     await writeDelivery(memberId, delivery);
+    await postDeliveryCard(
+      memberId,
+      RoutineDeliveryNotice(
+        kind: delivery.kind,
+        programNames: programNames,
+        routineNames: <String>[
+          for (final AssignedRoutine r in delivery.routines) r.name,
+        ],
+      ),
+    );
+  }
+
+  /// 채팅에 루틴 전송 안내를 남긴다. (#2672)
+  ///
+  /// 트레이너가 보낸 메시지 한 줄과, 그것이 전송 안내임을 적은 표시 행
+  /// (`routine_msg_<id>`)이다 — 리포트 안내(`report_msg_`)와 같은 방식이라 데모
+  /// 대화 표에 칸을 늘리지 않는다. 고객 목록의 마지막 메시지도 이 안내가 된다.
+  Future<void> postDeliveryCard(
+    String memberId,
+    RoutineDeliveryNotice notice,
+  ) async {
+    if (notice.programNames.isEmpty && notice.routineNames.isEmpty) return;
+    final DateTime now = nowKst();
+    final String id = 'chat-$memberId-${now.microsecondsSinceEpoch}';
+    await _db.transaction(() async {
+      await _db
+          .into(_db.clientChatMessages)
+          .insert(
+            ClientChatMessagesCompanion.insert(
+              id: id,
+              clientId: memberId,
+              sender: 'trainer',
+              // 대화는 카드를 그리고, 목록은 아래 코드를 로케일 문구로 그린다.
+              body: '',
+              timeLabel:
+                  '${now.hour.toString().padLeft(2, '0')}:'
+                  '${now.minute.toString().padLeft(2, '0')}',
+              createdAt: now,
+            ),
+          );
+      await _db.putValue(
+        '$demoRoutineDeliveryKeyPrefix$id',
+        jsonEncode(notice.toJson()),
+      );
+      await (_db.update(
+        _db.trainerClients,
+      )..where((t) => t.id.equals(memberId))).write(
+        const TrainerClientsCompanion(
+          lastMessage: Value(ChatPreviewCode.routineDelivered),
+          lastTime: Value(ChatPreviewCode.justNow),
+        ),
+      );
+    });
   }
 
   /// 마지막으로 `개인운동만` 보낸 배정 id — 다음에 보낼 때 내린다(#2514).
@@ -194,9 +256,16 @@ class DemoRoutineStore {
   }
 
   /// 제안 하나를 검토한 것으로 남긴다.
-  Future<void> addReviewedSuggestion(String id) async {
+  Future<void> addReviewedSuggestion(String id) =>
+      addReviewedSuggestions(<String>[id]);
+
+  /// 전송에 실려 나간 제안들을 검토한 것으로 남긴다(#2747). 실서버가 전송
+  /// 트랜잭션에서 그 제안을 닫는 것과 같다 — 남기지 않으면 다음 위저드가
+  /// 보낸 제안을 다시 채운다.
+  Future<void> addReviewedSuggestions(Iterable<String> ids) async {
+    if (ids.isEmpty) return;
     final Set<String> reviewed = await readReviewedSuggestions();
-    reviewed.add(id);
+    reviewed.addAll(ids);
     await _write(_reviewedKey, reviewed.toList());
   }
 

@@ -16,13 +16,11 @@ import 'package:oncare/app/router/main_shell.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
+import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
-import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
-import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
@@ -33,6 +31,7 @@ import 'package:oncare/features/notification/presentation/pages/notification_pag
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+import '../helpers/demo_exercise.dart';
 import '../helpers/fake_dashboard_repository.dart';
 import '../helpers/fake_diet_repository.dart';
 import '../helpers/fake_notification_repository.dart';
@@ -87,6 +86,7 @@ void main() {
     String location = AppRoutes.dashboard,
     FakeNotificationRepository? notifications,
   }) async {
+    final AppDatabase exerciseDb = await seededDemoDatabase(tester);
     await tester.binding.setSurfaceSize(const Size(430, 2400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -101,9 +101,8 @@ void main() {
           appConfigProvider.overrideWithValue(_config),
           appLoggerProvider.overrideWithValue(Logger(level: Level.off)),
           dietRepositoryProvider.overrideWithValue(diet as DietRepository),
-          exerciseRepositoryProvider.overrideWithValue(
-            MockExerciseRepository() as ExerciseRepository,
-          ),
+          // 운동은 앱의 데모와 같은 경로(로컬 목업 API + drift)로 돈다(#2724).
+          ...demoExerciseOverrides(exerciseDb),
           dashboardRepositoryProvider.overrideWithValue(
             FakeDashboardRepository(diet) as DashboardRepository,
           ),

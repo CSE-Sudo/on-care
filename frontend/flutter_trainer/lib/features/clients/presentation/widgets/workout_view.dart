@@ -113,7 +113,8 @@ class _HistoryCard extends StatelessWidget {
   /// 이 카드가 가리키는 기록 — 메모 작성 창과 데모 저장소가 출처 태그를 그린다.
   /// 서버는 id 만 받아 이름·날짜를 기록에서 다시 읽는다(#2332).
   TrainerMemoRef get _memoRef {
-    final DateTime? day = entry.date ?? entry.completedAt;
+    // 카드가 놓인 날짜 줄과 같은 날이다(#2748).
+    final DateTime? day = historyDayOf(entry);
     // 데모 이력은 코드 없이 고정 이름만 갖는다 — 이름으로도 종류를 찾는다.
     final String? code = routineKindCode(entry.label, kind: entry.kind);
     return TrainerMemoRef(
@@ -293,7 +294,10 @@ class _DailyExerciseRecordsState extends ConsumerState<_DailyExerciseRecords> {
     final List<RoutineHistoryEntry> undated = <RoutineHistoryEntry>[];
     for (final RoutineHistoryEntry entry
         in history.valueOrNull ?? const <RoutineHistoryEntry>[]) {
-      final DateTime? when = entry.completedAt;
+      // 운동한 날(서버 `date`, 없으면 KST 로 옮긴 완료 시각)로 묶는다(#2748).
+      // 예전에는 UTC 완료 시각의 날짜로 묶어, KST 오전 9시 전 운동은 전날에,
+      // 지난 날짜로 소급 체크한 운동은 체크한 오늘 줄에 붙었다.
+      final DateTime? when = historyDayOf(entry);
       // 날짜를 모르는 기록은 버리지 않고 따로 모은다. 어느 날 줄에도 붙일 수
       // 없지만, 모른다고 숨기면 트레이너 눈에는 기록이 사라진 것으로
       // 보인다(#1114 가 목록에서 지킨 규칙이다).

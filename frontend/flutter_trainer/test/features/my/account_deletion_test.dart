@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/my/data/trainer_account_repository.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
@@ -33,10 +34,10 @@ class _FakeAccountRepository implements TrainerAccountRepository {
   bool get supportsPasswordChange => true;
 
   @override
-  Future<void> changePassword({
+  Future<TrainerAuthTokens?> changePassword({
     required String currentPassword,
     required String newPassword,
-  }) async {}
+  }) async => null;
 
   @override
   Future<void> deleteAccount({List<String> reasons = const <String>[]}) async {
@@ -220,5 +221,28 @@ void main() {
     expect(repo.deleteCalls, 1);
     // 화면에 보이는 순서가 아니라 사유 목록 순서다 — 서버 코드 그대로.
     expect(repo.lastReasons, <String>['missing_feature', 'leaving_work']);
+  });
+
+  testWidgets('탈퇴하면 로그인 화면 주소에 탈퇴 화면이 실리지 않는다 (#2765)', (tester) async {
+    final repo = await _pumpSettings(tester);
+
+    await _tapDelete(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('delete-account-confirm')),
+      seedTrainerProfile.name,
+    );
+    await settle(tester);
+    final submit = find.byKey(const ValueKey<String>('delete-account-submit'));
+    await tester.ensureVisible(submit);
+    await settle(tester);
+    await tester.tap(submit);
+    await settle(tester);
+
+    expect(repo.deleteCalls, 1);
+    final String location = currentLocation(tester);
+    expect(Uri.parse(location).path, AppRoutes.signIn);
+    // 다음에 로그인하는 사람이 탈퇴 화면으로 이어 가지 않는다.
+    expect(AppRoutes.resumeTarget(location), isNull);
+    expect(Uri.parse(location).queryParameters, isEmpty);
   });
 }

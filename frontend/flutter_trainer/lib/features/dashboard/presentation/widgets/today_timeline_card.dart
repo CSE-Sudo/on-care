@@ -6,19 +6,17 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/core/utils/kst_clock_provider.dart';
+import 'package:oncare_trainer/features/dashboard/domain/next_session.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_chips.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
 import 'package:oncare_ui/oncare_ui.dart';
-
-/// 상담은 "메모 남기기"로, 그 외(1:1 PT 등)는 "PT 준비하기"로 갈린다 —
-/// 상담엔 준비할 프로그램이 없고, PT엔 남길 상담 메모가 없다.
-bool _isConsultation(String type) => type.contains('상담');
 
 /// `HH:mm`.
 String _hm(DateTime t) =>
@@ -36,6 +34,9 @@ class TodayTimelineCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
     final schedule = ref.watch(todayScheduleProvider);
+    // 분마다 다시 그린다 — 남은 시간이 화면을 다시 열지 않아도 흐르고,
+    // 시각이 지난 수업은 배너에서 물러난다(#2865).
+    final DateTime now = ref.watch(kstNowProvider);
     final clients =
         ref.watch(clientsProvider).valueOrNull ?? const <TrainerClient>[];
 
@@ -66,21 +67,21 @@ class TodayTimelineCard extends ConsumerWidget {
                   placement: AppStatePlacement.card,
                 );
               }
-              // 담당이 끊긴 회원의 일정은 준비할 수업이 아니다(#2589).
-              final next = booked
-                  .where((s) => s.isUpcoming && !s.memberDetached)
-                  .toList();
+              // 담당이 끊긴 회원의 일정은 준비할 수업이 아니다(#2589). 끝난
+              // 시각이 지난 `예정` 도 완료 처리를 잊은 것이지 다음 수업이
+              // 아니다(#2865).
+              final NextSession? next = pickNextSession(booked, now);
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  if (next.isNotEmpty) ...<Widget>[
+                  if (next != null) ...<Widget>[
                     _NextUpBanner(
-                      now: nowKst(),
-                      next: next.first,
+                      now: now,
+                      next: next,
                       client: findClientIdentity(
                         clients,
-                        clientId: next.first.clientId,
-                        clientName: next.first.clientName,
+                        clientId: next.session.clientId,
+                        clientName: next.session.clientName,
                       ),
                     ),
                     const SizedBox(height: OnCareSpacing.s8),
@@ -128,23 +129,27 @@ class TodayTimelineCard extends ConsumerWidget {
 /// 활동 피드백 카드(카드형 `AppBanner`)와 바탕·채움 버튼이 같아 두 영역이 한
 /// 덩어리처럼 보였다. 회색 카드 안 구획([AppTileTone.neutral])에 한 줄 요약
 /// 글자와 키가 달린 동작 버튼을 담는다.
+///
+/// 이미 시작해 아직 끝나지 않은 수업은 "진행 중 · 끝까지 N분" 으로 적는다
+/// (#2865).
 class _NextUpBanner extends StatelessWidget {
   const _NextUpBanner({required this.now, required this.next, this.client});
 
   final DateTime now;
-  final ScheduleSession next;
+  final NextSession next;
   final TrainerClient? client;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    final name = client?.name ?? next.clientName;
-    final nextMinutes = clockMinutes(next.time);
-    final minutesLeft = nextMinutes == null
-        ? 0
-        : (nextMinutes - (now.hour * 60 + now.minute)).clamp(0, 24 * 60);
-    final isConsultation = _isConsultation(next.type);
+    final ScheduleSession session = next.session;
+    final name = client?.name ?? session.clientName;
+    final bool inProgress = next.phase == NextSessionPhase.inProgress;
+    // 상담은 "메모 남기기"로, 그 외(1:1 PT 등)는 "PT 준비하기"로 갈린다 —
+    // 상담엔 준비할 프로그램이 없고, PT엔 남길 상담 메모가 없다. 계약값으로
+    // 가른다(#2867).
+    final isConsultation = session.isConsultation;
     final clientId = client?.id;
     final TextStyle base = tokens
         .text(OnCareTypography.bodySmall)
@@ -168,12 +173,16 @@ class _NextUpBanner extends StatelessWidget {
                   TextSpan(text: l.dashScheduleNowLabel(_hm(now))),
                   const TextSpan(text: '   '),
                   TextSpan(
-                    text: l.dashScheduleNextSession(next.time, name),
+                    text: inProgress
+                        ? l.dashScheduleInProgress(session.time, name)
+                        : l.dashScheduleNextSession(session.time, name),
                     style: const TextStyle(color: OnCareColors.textPrimary),
                   ),
                   const TextSpan(text: '  '),
                   TextSpan(
-                    text: l.dashScheduleMinutesLeft(minutesLeft),
+                    text: inProgress
+                        ? l.dashScheduleMinutesToEnd(next.minutesLeft)
+                        : l.dashScheduleMinutesLeft(next.minutesLeft),
                     style: OnCareTypography.strong(
                       base,
                     ).copyWith(color: tokens.brand.primary),
@@ -199,7 +208,10 @@ class _NextUpBanner extends StatelessWidget {
                   // 날짜만 실어 보내면 그날 첫 일정이 열려, 정작 메모를
                   // 남기려던 상담이 아닌 다른 일정이 선택된다(#1422).
                   // 스케줄 화면은 `session` 을 받아 그 일정을 고를 수 있다.
-                  ? AppRoutes.scheduleAt(date: next.date, sessionId: next.id)
+                  ? AppRoutes.scheduleAt(
+                      date: session.date,
+                      sessionId: session.id,
+                    )
                   : AppRoutes.coachingFor(clientId),
             ),
             size: OnCareButtonSize.small,
@@ -246,7 +258,7 @@ class _Row extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    final isConsultation = _isConsultation(session.type);
+    final isConsultation = session.isConsultation;
     // 완료된 세션은 시간도 함께 물러난다 — 종류 알약이 완료 때 회색으로
     // 바래는 것과 같은 기준이다. 아직 끝나지 않은 시간은 "지금 처리해야
     // 할 일"이라 검은 글씨로 또렷하게 남는다.
@@ -368,8 +380,10 @@ class _Row extends StatelessWidget {
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
+                        // 저장된 종류는 계약값이라 화면 언어로 옮겨 적는다
+                        // — 스케줄 탭 카드·주간 표와 같은 문구다(#2867).
                         child: AppTag(
-                          label: session.type,
+                          label: sessionTypeLabel(l, session.type),
                           tone: session.isDone
                               ? AppTagTone.neutral
                               : AppTagTone.brand,

@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
-import 'package:flutter/widgets.dart' show Locale;
+import 'package:flutter/widgets.dart' show Locale, immutable;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
@@ -239,7 +239,11 @@ class LocalReportRepository implements ReportRepository {
   /// 그 주(월→일)의 요일별 값. 기록이 하나도 없으면 null — 화면이 "없다"고
   /// 말할 수 있어야 한다(0 으로 채우면 "하루 0kcal" 처럼 읽힌다).
   Future<WeekSeries?> _weekSeries(String clientId, DateTime monday) async {
-    final sunday = monday.add(const Duration(days: 6));
+    // 달력 날짜로 더한다 — 그 주에 서머타임 전환이 있으면 `Duration` 은
+    // 날짜를 하루 어긋나게 한다(#2774).
+    DateTime dayOf(int offset) =>
+        DateTime(monday.year, monday.month, monday.day + offset);
+    final sunday = dayOf(6);
     final rows =
         await (_db.select(_db.clientDailyMetrics)..where(
               (t) =>
@@ -252,8 +256,7 @@ class LocalReportRepository implements ReportRepository {
     final byDate = <String, ClientDailyMetricRow>{
       for (final row in rows) row.date: row,
     };
-    ClientDailyMetricRow? on(int day) =>
-        byDate[ymd(monday.add(Duration(days: day)))];
+    ClientDailyMetricRow? on(int day) => byDate[ymd(dayOf(day))];
     return WeekSeries(
       days: <ReportDay>[
         for (var d = 0; d < 7; d++)
@@ -317,7 +320,10 @@ class LocalReportRepository implements ReportRepository {
     required Uint8List bytes,
     required String fileName,
     required String message,
-  }) {
+  }) async {
+    // 실서버와 같은 규칙 — 빈 문구는 받지 않는다(#2771). 그대로 넣으면 회원
+    // 채팅에 빈 말풍선 리포트가 선다.
+    if (message.trim().isEmpty) throw const ValidationError();
     // 데모/드리프트에는 첨부 저장소가 없다 — 대신 reportWeekStart를 실어
     // 보내, 채팅 화면이 이 메시지를 리포트 전송 안내로 구분해 그리게 한다.
     return _chat.sendTrainerMessage(
@@ -852,6 +858,9 @@ WeeklyReport weeklyReportFromJson(
     carbsWeek: doubles('carbs_week'),
     proteinWeek: doubles('protein_week'),
     fatWeek: doubles('fat_week'),
+    // 요일별 끼니 기록 수(#2772). 없으면 빈 목록이라 끼니 줄이 `–` 로 서고
+    // 끼니 문장이 빠진다 — 이 칸이 없던 옛 응답과 같은 동작이다.
+    mealCounts: ints('meal_counts'),
     // 회원이 적어 둔 하루 목표. 없으면 null 이고 판정이 공통 상수로
     // 되돌아간다(#1430).
     calorieTarget: optInt('calorie_target'),
@@ -868,11 +877,18 @@ WeeklyReport weeklyReportFromJson(
             exercises: (day['exercises'] as List<Object?>? ?? const <Object?>[])
                 .whereType<String>()
                 .toList(growable: false),
+            assigned: _assignedOf(day['assigned']),
           ),
     ],
     memberFeedback: memberFeedback,
   );
 }
+
+/// 그날 배정된 개인운동 수(#2772). 없거나 0 이하면 null — 배정을 모르는
+/// 날이다. 0 을 그대로 두면 쉬는 날이 `0 / 0` 으로 그려진다(#2232, 데모
+/// `assignedCount` 와 같은 규칙).
+int? _assignedOf(Object? value) =>
+    value is num && value > 0 ? value.toInt() : null;
 
 /// Decodes `ReportSendsOut`. (#2288)
 ///
@@ -1020,8 +1036,45 @@ final reportRepositoryProvider = Provider<ReportRepository>((ref) {
   return DioReportRepository(ref.watch(dioProvider));
 }, name: 'reportRepository');
 
-/// Identifies one client's report week.
-typedef ReportKey = ({TrainerClient client, DateTime weekStart});
+/// 한 회원의 한 주 리포트를 찾는 열쇠.
+///
+/// [client] 는 리포트를 만들 때 쓰는 **실어 나르는 값**일 뿐, 같은 열쇠인지는
+/// 회원 id·이름·주로만 가린다(#2768). 실서버 명단은 30초마다 다시 읽혀 내용이
+/// 같은 새 [TrainerClient] 를 내보내는데, 객체를 그대로 열쇠로 쓰면 폴링 한
+/// 번마다 리포트·초안·요약 provider 가 전부 새 열쇠가 되어 다시 불렸다 — 편집기가
+/// 로딩 카드로 깜빡이며 입력 포커스를 잃고, 요약(모델 호출)이 다시 생성됐다.
+///
+/// 이름은 열쇠에 넣는다. 리포트 본문·PDF 가 `report.client.name` 으로 인사를
+/// 쓰므로, 이름이 바뀌면 새로 읽어야 화면과 보낼 문서에 새 이름이 선다. 그 밖의
+/// 명단 필드(최근 대화·신호 등)는 폴링마다 바뀔 수 있어 열쇠에 넣지 않는다.
+@immutable
+class ReportKey {
+  /// [client] 의 [weekStart] 주.
+  const ReportKey({required this.client, required this.weekStart});
+
+  /// 리포트를 만들 때 넘기는 회원. 열쇠의 같음에는 id·이름만 쓴다.
+  final TrainerClient client;
+
+  /// 그 주의 월요일.
+  final DateTime weekStart;
+
+  /// 회원 id — 열쇠의 중심.
+  String get clientId => client.id;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ReportKey &&
+      other.client.id == client.id &&
+      other.client.name == client.name &&
+      other.weekStart == weekStart;
+
+  @override
+  int get hashCode => Object.hash(client.id, client.name, weekStart);
+
+  @override
+  String toString() =>
+      'ReportKey(${client.id}, ${weekStart.toIso8601String()})';
+}
 
 /// Streams a client's weekly report.
 final weeklyReportProvider = StreamProvider.autoDispose

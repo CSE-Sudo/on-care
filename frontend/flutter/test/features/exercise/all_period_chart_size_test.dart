@@ -8,16 +8,19 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logger/logger.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/core/logging/app_logger.dart';
+import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
-import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+
+import '../../helpers/demo_exercise.dart';
 
 const AppConfig _config = AppConfig(
   environment: Environment.dev,
@@ -37,6 +40,7 @@ Future<void> _openAllPeriod(
   WidgetTester tester, {
   double textScale = 1.0,
 }) async {
+  final AppDatabase exerciseDb = await seededDemoDatabase(tester);
   tester.platformDispatcher.textScaleFactorTestValue = textScale;
   addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
   await tester.binding.setSurfaceSize(const Size(390, 900));
@@ -44,9 +48,9 @@ Future<void> _openAllPeriod(
   await tester.pumpWidget(
     ProviderScope(
       overrides: <Override>[
-        // 데모 운동은 이제 로컬 목업 API(drift)를 탄다(#2662) — 이 화면 시험은
-        // DB 없이 메모리 목업의 주를 본다.
-        exerciseRepositoryProvider.overrideWithValue(MockExerciseRepository()),
+        // 운동은 앱의 데모와 같은 경로(로컬 목업 API + drift)로 돈다(#2724).
+        ...demoExerciseOverrides(exerciseDb),
+        appLoggerProvider.overrideWithValue(Logger(level: Level.off)),
         appConfigProvider.overrideWithValue(_config),
         accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
         memberCoachRepositoryProvider.overrideWithValue(

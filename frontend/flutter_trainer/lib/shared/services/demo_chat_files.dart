@@ -15,6 +15,11 @@ import 'package:pdf/widgets.dart' as pw;
 /// 않으므로 시드가 무거워지지 않는다.
 const String demoChatFileKeyPrefix = 'chat_file_';
 
+/// 루틴 전송 안내(#2672) 표시 행의 머리. 메시지 id 뒤에 붙고, 값은 안내 JSON
+/// (`RoutineDeliveryNotice.toJson`) 이다. 데모 대화 표에 칸을 늘리지 않고 리포트
+/// 안내(`report_msg_`)처럼 키-값 표에 둔다.
+const String demoRoutineDeliveryKeyPrefix = 'routine_msg_';
+
 /// 시드가 남기는 첨부 표시 한 건.
 ///
 /// [asset] 은 사진일 때 앱 번들 경로다. PDF 는 [lines] 를 한 줄씩 적은 한 쪽

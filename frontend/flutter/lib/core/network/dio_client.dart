@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
+import 'package:oncare/core/network/client_platform.dart';
 import 'package:oncare/core/network/interceptors/accept_language_interceptor.dart';
 import 'package:oncare/core/network/interceptors/api_logging_interceptor.dart';
 import 'package:oncare/core/network/interceptors/auth_interceptor.dart';
@@ -28,6 +29,8 @@ final dioProvider = Provider<Dio>((ref) {
       receiveTimeout: const Duration(seconds: 15),
       sendTimeout: const Duration(seconds: 10),
       contentType: Headers.jsonContentType,
+      // 웹 빌드는 자기가 웹이라고 알린다 — 서버가 짧은 refresh 토큰을 준다(#2828).
+      headers: clientPlatformHeaders(),
       // 4xx/5xx are normal API errors and should surface as DioException
       // so callers can react via try/catch, not slip past `res.data!`
       // straight into a misleading "Null check" failure in a fromJson
@@ -52,12 +55,12 @@ final dioProvider = Provider<Dio>((ref) {
           ref.watch(appDatabaseProvider),
           logger,
           isRealApi: config.isRealApi,
-          // 목업 운동·코치 저장소와 같은 원장 — 하루 한도와 잔액이 하나다(#1786).
+          // 목업 코치 저장소와 같은 원장 — 하루 한도와 잔액이 하나다(#1786).
           points: ref.watch(demoPointsLedgerProvider),
           // 목업 헬스장 저장소와 같은 쿠폰 원장 — 해제가 쿠폰 취소로 이어진다(#1787).
           coupons: ref.watch(demoCouponBookProvider),
-          // 목업 운동 저장소와 같은 보호권 원장 — 보호한 날에 기록이 생기면
-          // 여기서 되돌린다(#1788).
+          // 사용처(쿠폰 원장)와 같은 보호권 원장 — 보호한 날에 운동 기록이
+          // 생기면 여기서 되돌린다(#1788).
           shields: ref.watch(demoStreakShieldBookProvider),
           // 챌린지 원장(#1789). 운동한 날은 이 인터셉터의 운동 표(운동 탭과 같은
           // 기록)로 센다(#2662).

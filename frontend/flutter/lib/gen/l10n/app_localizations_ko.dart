@@ -72,6 +72,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get errorUnknown => '알 수 없는 오류';
 
   @override
+  String get errorForbidden => '이 기능을 쓸 권한이 없어요. 필요한 동의나 트레이너 연결을 확인해 주세요.';
+
+  @override
+  String get errorRateLimited => '요청이 많아 잠시 멈췄어요. 잠시 뒤 다시 시도해 주세요.';
+
+  @override
   String get dashboardMetricCalories => '칼로리';
 
   @override
@@ -2479,18 +2485,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachChatInputHint => '트레이너에게 메시지 보내기...';
 
   @override
-  String get coachChatDemoAnalyzed => 'AI가 내 식단·운동 데이터를 분석했어요';
+  String get coachChatRoutineReceived => '트레이너가 운동을 보냈어요';
 
   @override
-  String coachChatDemoReportSent(String trainer) {
-    return '$trainer님께 요약 리포트가 전송됐어요';
+  String get coachChatRoutineReceivedPt => 'PT 프로그램과 개인운동을 받았어요';
+
+  @override
+  String get coachChatRoutineReceivedPersonal => '개인운동을 받았어요';
+
+  @override
+  String get coachChatRoutineReceivedAfterCancel => '취소된 PT 대신 개인운동을 받았어요';
+
+  @override
+  String get coachChatRoutineReceivedProgram => '운동 프로그램을 받았어요';
+
+  @override
+  String coachChatRoutineReceivedMore(String names, int count) {
+    return '$names 외 $count개';
   }
-
-  @override
-  String get coachChatDemoRoutineReceived => '개인 추천운동을 받았어요';
-
-  @override
-  String get coachChatDemoNotified => '알림으로도 전달됐어요';
 
   @override
   String coachChatDateDivider(DateTime date) {
@@ -2577,6 +2589,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String aicInsightDiscomfortPart(String part) {
     return '$part 통증 감지';
   }
+
+  @override
+  String get aicBodyPartKnee => '무릎';
+
+  @override
+  String get aicBodyPartBack => '허리';
+
+  @override
+  String get aicBodyPartAnkle => '발목';
+
+  @override
+  String get aicBodyPartShoulder => '어깨';
+
+  @override
+  String get aicBodyPartWrist => '손목';
+
+  @override
+  String get aicBodyPartNeck => '목';
 
   @override
   String get aicInsightDiscomfort => '통증 감지';
@@ -2771,6 +2801,10 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get exConsultExpiredBody =>
       '트레이너가 시간 안에 확인하지 않았어요. 다른 시간으로 다시 신청해 보세요.';
+
+  @override
+  String get exConsultCancelledByTrainerBody =>
+      '트레이너가 상담 일정을 취소했어요. 다른 시간으로 다시 신청해 보세요.';
 
   @override
   String get exExerciseGoal => '운동 목표';
@@ -2990,6 +3024,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get authSocialSignInFailed => '소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get authSocialComingSoon => '소셜 로그인은 준비 중이에요. 이메일로 로그인해 주세요';
 
   @override
   String get signUpTitle => '회원가입';
@@ -3526,6 +3563,48 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachRoutineGone => '이 프로그램은 더 이상 없어요. 목록을 새로 불러와 주세요';
+
+  @override
+  String get routineEffectCardioDefault => '체력 향상·만성질환 예방';
+
+  @override
+  String get routineEffectStrengthDefault => '근력·근지구력 향상';
+
+  @override
+  String get routineEffectStretchDefault => '유연성·부상 예방';
+
+  @override
+  String get routineEffectBloodPressure => '혈압 관리에 도움';
+
+  @override
+  String get routineEffectFatLoss => '체지방 감량에 도움';
+
+  @override
+  String get routineEffectCardioFitness => '심폐 체력 향상';
+
+  @override
+  String get routineEffectGentleRecovery => '무리 없는 체력 회복';
+
+  @override
+  String get routineEffectMuscleMass => '근육량 유지·증가';
+
+  @override
+  String get routineEffectStrength => '근력 향상';
+
+  @override
+  String get routineEffectPostureMuscles => '자세 지지 근육 강화';
+
+  @override
+  String get routineEffectHeartRate => '혈압·심박 안정';
+
+  @override
+  String get routineEffectMuscleRecovery => '근육 회복';
+
+  @override
+  String get routineEffectLoosen => '굳은 근육 이완';
+
+  @override
+  String get routineEffectJointRange => '관절 가동 범위 회복';
 
   @override
   String get coachRoutineNetworkError => '네트워크 연결을 확인하고 다시 시도해 주세요';

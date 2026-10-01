@@ -95,15 +95,26 @@ class _NoMemoRepository implements TrainerMemoRepository {
     String? insightId,
     String insightKind = '',
     TrainerMemoRef? ref,
+    TrainerMemoCategory category = TrainerMemoCategory.none,
   }) async => throw UnsupportedError('not used');
   @override
-  Future<TrainerMemo> update(String clientId, String memoId, String body) =>
-      throw UnsupportedError('not used');
+  Future<TrainerMemo> update(
+    String clientId,
+    String memoId,
+    String body, {
+    TrainerMemoCategory? category,
+  }) => throw UnsupportedError('not used');
   @override
   Future<void> delete(String clientId, String memoId) async {}
 }
 
 class _StaticLiveChatRepository implements ChatRepository {
+  @override
+  Future<List<ClientChatMessage>> fetchOlder(
+    String clientId, {
+    required ClientChatMessage before,
+  }) async => const <ClientChatMessage>[];
+
   @override
   Stream<List<ClientChatMessage>> watchThread(String clientId) =>
       Stream<List<ClientChatMessage>>.value(<ClientChatMessage>[
@@ -603,25 +614,25 @@ void main() {
       expect(location, contains('week=2026-08-18'));
     });
 
-    testWidgets('a sent message lands below the routine-sent banner', (
-      tester,
-    ) async {
+    testWidgets('a sent message lands below the last message', (tester) async {
       await openMessages(tester);
       await tester.enterText(find.byType(TextField).last, '다음 세션 때 봬요!');
       await tester.tap(find.byIcon(AppIcons.send));
       await settle(tester);
 
-      // 배너는 그날의 분석 → 대화 → 루틴 전송이라는 하루의 **끝**을 표시한다.
-      // 목록 맨 아래에 고정돼 있으면 방금 보낸 답장이 그 앞으로 들어가,
-      // 화면에서는 "내가 보낸 말이 루틴 전송보다 먼저" 로 읽힌다.
-      // 배너는 날이 바뀌는 자리마다 한 번씩 더 있다 — 닫는 배너는 맨 뒤다.
-      final banner = find.textContaining('개인 추천운동이').last;
+      // 데모에만 날마다 붙던 가짜 `개인 추천운동이 …` 배너는 걷어냈다(#2672) —
+      // 운동을 보낸 일은 실제로 보낸 자리의 전송 안내로만 선다. 방금 보낸 답장은
+      // 대화의 마지막 메시지 아래에 쌓인다.
+      expect(find.textContaining('개인 추천운동이'), findsNothing);
+      final double lastSeeded = find
+          .textContaining('유산소 프로그램을 추천했는데')
+          .evaluate()
+          .map(
+            (e) => tester.getTopLeft(find.byElementPredicate((x) => x == e)).dy,
+          )
+          .reduce((a, b) => a > b ? a : b);
       final sent = find.text('다음 세션 때 봬요!').last;
-      expect(banner, findsOneWidget);
-      expect(
-        tester.getTopLeft(banner).dy,
-        lessThan(tester.getTopLeft(sent).dy),
-      );
+      expect(lastSeeded, lessThan(tester.getTopLeft(sent).dy));
     });
 
     testWidgets(

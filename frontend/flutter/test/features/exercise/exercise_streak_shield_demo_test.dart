@@ -1,22 +1,30 @@
-/// 데모 모드의 연속 기록 보호권 — 목업 운동 저장소·목업 식단과 보호권 원장이 한
-/// 규칙으로 움직인다. (#1788)
+/// 데모 모드의 연속 기록 보호권 — 운동(로컬 목업 API)·목업 식단과 보호권 원장이
+/// 한 규칙으로 움직인다. (#1788)
+///
+/// 운동은 앱의 데모와 같은 경로(로컬 목업 API + 시드한 메모리 drift)로 돈다(#2724).
 ///
 /// 보호권은 **기록 연속**(식단 한 끼든 운동 한 건이든)을 지킨다. 운동 탭의 주간
 /// 응답에는 보호권이 실리지 않고 연속 일수도 운동만 센다 — 여기서 그 경계를 본다.
 library;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logger/logger.dart';
 import 'package:oncare/core/errors/app_error.dart';
+import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/entities/diet_period.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
+import 'package:oncare/features/exercise/data/repositories/dio_exercise_repository.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_streak_shield_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/entities/streak_shield.dart';
+import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
+
+import '../../helpers/demo_exercise.dart';
+import '../../helpers/fixed_clock.dart';
 
 /// 목요일. 어제(수)는 이번 주 안이다.
 final DateTime _today = DateTime(2026, 8, 20, 9);
@@ -75,14 +83,18 @@ class _FakeDiet implements DietRepository {
 
 void main() {
   late DemoStreakShieldBook book;
-  late MockExerciseRepository exercise;
+  late ExerciseRepository exercise;
+  late LocalApiInterceptor api;
 
-  setUp(() {
+  setUp(() async {
+    useFixedKstDate(_today);
     book = DemoStreakShieldBook(
       ledger: DemoPointsLedger(openingBalance: 1000),
       now: () => _today,
     );
-    exercise = MockExerciseRepository(today: _today, shields: book);
+    final db = await seededDemoDatabase();
+    api = LocalApiInterceptor(db, Logger(level: Level.off), shields: book);
+    exercise = DioExerciseRepository(demoExerciseDio(db, api: api));
   });
 
   MockStreakShieldRepository repoWith(_FakeDiet diet) =>
@@ -139,14 +151,15 @@ void main() {
     // 수정으로 그날로 옮긴 경우.
     expect(book.use(_yesterday, hasRecordOn: (_) => false).statusCode, 200);
     expect(book.held, 0);
-    final ExerciseSession monday = (await exercise.addSessions(<ExerciseSessionDraft>[
-      ExerciseSessionDraft(
-        type: ExerciseType.cardio,
-        minutes: 15,
-        calories: 60,
-        date: DateTime(2026, 8, 17),
-      ),
-    ])).sessions.single;
+    final ExerciseSession monday =
+        (await exercise.addSessions(<ExerciseSessionDraft>[
+          ExerciseSessionDraft(
+            type: ExerciseType.cardio,
+            minutes: 15,
+            calories: 60,
+            date: DateTime(2026, 8, 17),
+          ),
+        ])).sessions.single;
     await exercise.updateSession(
       id: monday.id!,
       type: ExerciseType.cardio,
@@ -158,7 +171,7 @@ void main() {
 
     // 루틴 완료 기록도 같다.
     expect(book.use(_yesterday, hasRecordOn: (_) => false).statusCode, 200);
-    await exercise.addAssignedRoutineSession(
+    await api.addAssignedRoutineSession(
       type: ExerciseType.cardio,
       minutes: 20,
       calories: 100,
@@ -190,7 +203,9 @@ void main() {
     // 어제는 비었고(연속이 거기서 끊긴다), 그 너머 20일 전에는 식단이 있다.
     final DateTime longAgo = DateTime(2026, 7, 31);
     expect(_today.difference(longAgo).inDays, lessThan(30));
-    final MockStreakShieldRepository repo = repoWith(_FakeDiet(<DateTime>{longAgo}));
+    final MockStreakShieldRepository repo = repoWith(
+      _FakeDiet(<DateTime>{longAgo}),
+    );
 
     // 끊긴 데서 멈추고 읽으면 20일 전이 "기록 없음" 으로 답해 보호권이 빠진다.
     await expectLater(repo.use(longAgo), throwsA(isA<ServerError>()));

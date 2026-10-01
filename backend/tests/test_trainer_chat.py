@@ -294,3 +294,136 @@ def test_chat_pagination_two_pages_contiguous(client, db_session):
         db_session.query(TrainerClient).filter(TrainerClient.member_id == mid).delete()
         db_session.query(User).filter(User.id == mid).delete()
         db_session.commit()
+
+
+def test_routine_assignment_leaves_a_delivery_card_in_both_threads(client, db_session):
+    """운동을 보내면 알림과 함께 채팅에도 전송 안내가 남는다(#2672).
+
+    말풍선이 아니라 안내 카드다 — 트레이너·회원 응답 모두 `routine_delivery`
+    로 무엇을 보냈는지 싣고, 본문은 카드를 못 그리는 자리(마지막 메시지)용 한 줄이다.
+    """
+    from app.models.models import ChatMessage
+
+    token = _tok(client)
+    created = client.post(
+        "/v1/trainer/clients/user-jisu/routines",
+        json={"name": "전송 안내 확인 운동", "minutes": 10, "type": "유산소", "reason": ""},
+        headers=_h(token),
+    )
+    assert created.status_code == 201, created.text
+    try:
+        thread = client.get(
+            "/v1/trainer/clients/user-jisu/chat", headers=_h(token)
+        ).json()
+        card = thread[-1]
+        assert card["sender"] == "trainer"
+        assert card["routine_delivery"] == {
+            "kind": "routine",
+            "program_names": [],
+            "routine_names": ["전송 안내 확인 운동"],
+        }
+        assert "전송 안내 확인 운동" in card["body"]
+
+        member = client.post(
+            "/v1/auth/login",
+            data={"username": "jisu@oncare.com", "password": "oncare123"},
+        ).json()["access_token"]
+        mine = client.get("/v1/me/coach/chat", headers=_h(member)).json()
+        assert mine[-1]["routine_delivery"]["routine_names"] == ["전송 안내 확인 운동"]
+    finally:
+        db_session.query(ChatMessage).filter(
+            ChatMessage.member_id == "user-jisu",
+            ChatMessage.routine_delivery_json.is_not(None),
+        ).delete()
+        db_session.commit()
+
+
+def test_plain_messages_carry_no_delivery_card(client):
+    token = _tok(client)
+    thread = client.get("/v1/trainer/clients/user-jisu/chat", headers=_h(token)).json()
+    assert all(
+        m["routine_delivery"] is None
+        for m in thread
+        if not m["body"].startswith("운동을 보냈어요")
+    )
+
+
+def _dart_utc_iso(server_iso: str) -> str:
+    """서버 `created_at` 을 트레이너 웹이 커서로 되돌려 보내는 모양으로 바꾼다. (#2749)
+
+    트레이너 웹은 `DateTime.toUtc().toIso8601String()` 을 쓴다 — 밀리초 세 자리는
+    언제나, 마이크로초는 0 이 아닐 때만 붙고, 오프셋 대신 `Z` 다.
+    """
+    from datetime import datetime, timezone
+
+    ts = datetime.fromisoformat(server_iso).astimezone(timezone.utc)
+    ms, us = divmod(ts.microsecond, 1000)
+    frac = f"{ms:03d}" + (f"{us:03d}" if us else "")
+    return ts.strftime("%Y-%m-%dT%H:%M:%S") + f".{frac}Z"
+
+
+def test_chat_pagination_with_trainer_web_cursor_reaches_first_message(client, db_session):
+    """트레이너 웹 커서(UTC `Z`·밀리초/마이크로초)로 처음 메시지까지 이어 받는다. (#2749)
+
+    폴링은 커서 없이 최신 50건을, 이전 페이지는 가장 오래된 메시지의
+    (created_at, id) 를 넘긴다. 같은 시각이 여럿이어도 빠지거나 겹치지 않고, 덜 찬
+    쪽에서 멈춘다.
+    """
+    from datetime import datetime, timedelta, timezone
+    from uuid import uuid4
+
+    from app.db.seed_trainer import TRAINER_ID
+    from app.models.models import ChatMessage, TrainerClient, User
+
+    mid = f"pgmember-{uuid4().hex[:6]}"
+    db_session.add(User(id=mid, email=f"{mid}@oncare.com", name="웹커서회원", role="member"))
+    db_session.flush()
+    db_session.add(TrainerClient(
+        id=f"tc-pg-{mid}", trainer_id=TRAINER_ID, member_id=mid,
+        goal="x", active=True, sort_order=999,
+    ))
+    base = datetime(2021, 2, 1, tzinfo=timezone.utc)
+    ids = [f"pgw-{mid}-{i:03d}" for i in range(120)]
+    for i, cid in enumerate(ids):
+        db_session.add(ChatMessage(
+            id=cid, trainer_id=TRAINER_ID, member_id=mid,
+            sender="member" if i % 2 else "trainer", body=f"m{i}",
+            # 셋씩 같은 시각, 시각마다 마이크로초가 붙거나(홀수) 0 이다(짝수).
+            created_at=base + timedelta(
+                seconds=i // 3, microseconds=123456 if (i // 3) % 2 else 0,
+            ),
+        ))
+    db_session.commit()
+    try:
+        token = _tok(client)
+        url = f"/v1/trainer/clients/{mid}/chat"
+        latest = client.get(url, headers=_h(token)).json()
+        assert len(latest) == 50
+        assert latest[-1]["id"] == ids[-1]
+
+        got = [m["id"] for m in latest]
+        page = latest
+        sizes = []
+        while len(page) == 50:
+            oldest = page[0]
+            r = client.get(
+                url,
+                params={
+                    "limit": 50,
+                    "before": _dart_utc_iso(oldest["created_at"]),
+                    "before_id": oldest["id"],
+                },
+                headers=_h(token),
+            )
+            assert r.status_code == 200, r.text
+            page = r.json()
+            sizes.append(len(page))
+            got = [m["id"] for m in page] + got
+
+        assert sizes == [50, 20]
+        assert got == ids  # 순서까지 그대로, 중복·누락 없음
+    finally:
+        db_session.query(ChatMessage).filter(ChatMessage.member_id == mid).delete()
+        db_session.query(TrainerClient).filter(TrainerClient.member_id == mid).delete()
+        db_session.query(User).filter(User.id == mid).delete()
+        db_session.commit()

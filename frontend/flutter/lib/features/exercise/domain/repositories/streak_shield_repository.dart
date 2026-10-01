@@ -6,7 +6,7 @@ import 'package:oncare/features/exercise/domain/entities/streak_shield.dart';
 /// 운동 현황의 버튼 여부는 운동 주간 응답(`ExerciseWeek.streakShield`)이 준다.
 ///
 /// 운동 저장소([ExerciseRepository])와 따로 둔 이유: 데모에서 "어제 운동 기록이
-/// 있나" 를 아는 곳은 목업 운동 저장소인데, 그 계약에 메서드를 더하면 운동 화면
+/// 있나" 를 아는 곳은 운동 저장소인데, 그 계약에 메서드를 더하면 운동 화면
 /// 테스트의 대역이 모두 함께 바뀌어야 한다.
 abstract interface class StreakShieldRepository {
   /// 쓰지 않은 보호권 수와 보호한 날(최근 먼저).

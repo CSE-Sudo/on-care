@@ -60,8 +60,8 @@ class TrainerClients extends Table {
   TextColumn get gender => text().nullable()();
 
   /// 회원의 실제 나이 — 연결 시점에 회원 프로필의 생년월일로 계산해 저장한다.
-  /// null 이면 [TrainerClient.rosterAge] 가 예전 행을 위한 표시용 폴백을
-  /// 쓴다. 트레이너가 직접 입력하는 값이 아니다.
+  /// null 이면 화면은 나이를 적지 않는다(#2744). 트레이너가 직접 입력하는
+  /// 값이 아니다.
   IntColumn get age => integer().nullable()();
 
   @override

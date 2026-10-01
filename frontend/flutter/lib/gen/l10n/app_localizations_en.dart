@@ -74,6 +74,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorUnknown => 'Something went wrong';
 
   @override
+  String get errorForbidden =>
+      'You don\'t have access to this feature. Please check the required consent or your trainer connection.';
+
+  @override
+  String get errorRateLimited =>
+      'Too many requests right now. Please try again in a moment.';
+
+  @override
   String get dashboardMetricCalories => 'Calories';
 
   @override
@@ -2558,19 +2566,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachChatInputHint => 'Message your trainer...';
 
   @override
-  String get coachChatDemoAnalyzed => 'AI analyzed your diet and exercise data';
+  String get coachChatRoutineReceived => 'Your trainer sent a workout';
 
   @override
-  String coachChatDemoReportSent(String trainer) {
-    return 'A summary report was sent to $trainer';
+  String get coachChatRoutineReceivedPt =>
+      'You received a PT program and personal workout';
+
+  @override
+  String get coachChatRoutineReceivedPersonal =>
+      'You received a personal workout';
+
+  @override
+  String get coachChatRoutineReceivedAfterCancel =>
+      'You received a personal workout in place of the cancelled PT';
+
+  @override
+  String get coachChatRoutineReceivedProgram =>
+      'You received a workout program';
+
+  @override
+  String coachChatRoutineReceivedMore(String names, int count) {
+    return '$names and $count more';
   }
-
-  @override
-  String get coachChatDemoRoutineReceived =>
-      'You received a personalized workout recommendation';
-
-  @override
-  String get coachChatDemoNotified => 'It was also delivered as a notification';
 
   @override
   String coachChatDateDivider(DateTime date) {
@@ -2664,6 +2681,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String aicInsightDiscomfortPart(String part) {
     return '$part pain noted';
   }
+
+  @override
+  String get aicBodyPartKnee => 'Knee';
+
+  @override
+  String get aicBodyPartBack => 'Back';
+
+  @override
+  String get aicBodyPartAnkle => 'Ankle';
+
+  @override
+  String get aicBodyPartShoulder => 'Shoulder';
+
+  @override
+  String get aicBodyPartWrist => 'Wrist';
+
+  @override
+  String get aicBodyPartNeck => 'Neck';
 
   @override
   String get aicInsightDiscomfort => 'Pain noted';
@@ -2865,6 +2900,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exConsultExpiredBody =>
       'The trainer did not respond in time. Try requesting another time.';
+
+  @override
+  String get exConsultCancelledByTrainerBody =>
+      'The trainer cancelled this consultation. Try requesting another time.';
 
   @override
   String get exExerciseGoal => 'Exercise Goal';
@@ -3101,6 +3140,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get authSocialSignInFailed =>
       'Social sign-in failed. Please try again in a moment';
+
+  @override
+  String get authSocialComingSoon =>
+      'Social sign-in is coming soon. Please sign in with your email';
 
   @override
   String get signUpTitle => 'Sign up';
@@ -3670,6 +3713,52 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get coachRoutineGone =>
       'This program no longer exists. Please refresh the list';
+
+  @override
+  String get routineEffectCardioDefault =>
+      'Builds fitness and helps prevent chronic disease';
+
+  @override
+  String get routineEffectStrengthDefault =>
+      'Builds strength and muscular endurance';
+
+  @override
+  String get routineEffectStretchDefault =>
+      'Improves flexibility and helps prevent injury';
+
+  @override
+  String get routineEffectBloodPressure => 'Helps manage blood pressure';
+
+  @override
+  String get routineEffectFatLoss => 'Helps reduce body fat';
+
+  @override
+  String get routineEffectCardioFitness => 'Improves cardiorespiratory fitness';
+
+  @override
+  String get routineEffectGentleRecovery => 'Rebuilds fitness without strain';
+
+  @override
+  String get routineEffectMuscleMass => 'Maintains and builds muscle mass';
+
+  @override
+  String get routineEffectStrength => 'Builds strength';
+
+  @override
+  String get routineEffectPostureMuscles =>
+      'Strengthens posture-supporting muscles';
+
+  @override
+  String get routineEffectHeartRate => 'Steadies blood pressure and heart rate';
+
+  @override
+  String get routineEffectMuscleRecovery => 'Helps muscles recover';
+
+  @override
+  String get routineEffectLoosen => 'Loosens tight muscles';
+
+  @override
+  String get routineEffectJointRange => 'Restores joint range of motion';
 
   @override
   String get coachRoutineNetworkError => 'Check your connection and try again';

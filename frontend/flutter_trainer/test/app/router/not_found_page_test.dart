@@ -386,6 +386,31 @@ void main() {
       expect(Uri.parse(currentLocation(tester)).path, AppRoutes.signIn);
       expect(AppRoutes.resumeTarget(currentLocation(tester)), path);
 
+      // 이어 가기는 로그인한 계정의 몫이다 — 데모 진입은 대시보드로 간다(#2765).
+      await tester.enterText(find.byType(TextField).at(0), 'coach@oncare.test');
+      await tester.enterText(find.byType(TextField).at(1), 'pw');
+      await tester.tap(find.widgetWithText(InkWell, '로그인'));
+      await settle(tester);
+
+      expect(
+        container.read(sessionControllerProvider).status,
+        SessionStatus.authenticated,
+      );
+      expect(currentLocation(tester), path);
+      expect(_page, findsOneWidget);
+    });
+
+    testWidgets('demo entry ignores the parked path and opens the 대시보드', (
+      tester,
+    ) async {
+      const path = '/clients/seed-client-1/diet/old';
+      final container = await pumpTrainerApp(
+        tester,
+        bootAt: path,
+        demoEntry: true,
+      );
+      expect(AppRoutes.resumeTarget(currentLocation(tester)), path);
+
       await tester.ensureVisible(find.text('로그인 없이 데모 둘러보기'));
       await tester.pump();
       await tester.tap(find.text('로그인 없이 데모 둘러보기'));
@@ -393,10 +418,10 @@ void main() {
 
       expect(
         container.read(sessionControllerProvider).status,
-        isNot(SessionStatus.signedOut),
+        SessionStatus.demo,
       );
-      expect(currentLocation(tester), path);
-      expect(_page, findsOneWidget);
+      expect(currentLocation(tester), AppRoutes.dashboard);
+      expect(_page, findsNothing);
     });
 
     testWidgets('an unknown path under no screen just opens sign-in', (

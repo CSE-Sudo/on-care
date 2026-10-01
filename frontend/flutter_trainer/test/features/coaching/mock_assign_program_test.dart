@@ -3,8 +3,54 @@
 // 데모에는 받을 회원 백엔드가 없지만, 보낸 것이 배정 목록에 남아야 한다.
 // 아무것도 하지 않던 동안에는 화면이 `보냈어요` 라고 말해 놓고 전송 이력이
 // 그대로여서, 같은 탭의 PT 등록(실제로 반영됨)과 두 경로가 다르게 움직였다.
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
+
+/// `개인운동만` 본문 — 버피 45초(유산소)와 플랭크 3세트 60초(근력). (#2755)
+///
+/// 트레이너 웹이 `routineOnlyAssignToJson` 으로 만드는 모양 그대로다: 분은 초를
+/// 반올림한 값이고 초가 `duration_seconds` 에 함께 실린다.
+Map<String, Object?> _secondsPayload() => <String, Object?>{
+  'name': '이번 주 개인운동',
+  'delivery_kind': 'routine_only',
+  'start_date': '2026-09-30',
+  'active_days': 7,
+  'sessions': <Object?>[
+    <String, Object?>{
+      'id': 'routine-only-0',
+      'name': '버피',
+      'exercises': <Object?>[
+        <String, Object?>{
+          'id': 'personal-0',
+          'name': '버피',
+          'type': '유산소',
+          'duration': 1,
+          'duration_seconds': 45,
+          'source': 'ai',
+        },
+      ],
+    },
+    <String, Object?>{
+      'id': 'routine-only-1',
+      'name': '플랭크',
+      'exercises': <Object?>[
+        <String, Object?>{
+          'id': 'personal-1',
+          'name': '플랭크',
+          'type': '근력',
+          'duration': 0,
+          'duration_seconds': null,
+          'sets': 3,
+          'reps': 0,
+          'hold_seconds': 60,
+          'source': 'trainer',
+        },
+      ],
+    },
+  ],
+};
 
 void main() {
   test('보낸 개인운동이 배정 목록 맨 앞에 남는다', () async {
@@ -80,5 +126,59 @@ void main() {
     });
     final after = await repo.watchAssignedRoutines(memberId).first;
     expect(after.length, before.length);
+  });
+
+  group('초 단위 운동 시간 (#2755)', () {
+    test('유산소 45초는 분으로 접히지 않고 초로 남는다', () async {
+      final repo = MockTrainerRoutineRepository();
+      await repo.assignProgram('m-2755', _secondsPayload());
+
+      final rows = await repo.watchAssignedRoutines('m-2755').first;
+      final burpee = rows.firstWhere((r) => r.name == '버피');
+      expect(burpee.durationSeconds, 45);
+      expect(burpee.seconds, 45);
+      expect(burpee.minutes, 1);
+    });
+
+    test('근력은 초를 비우고 세트·버티기로 남는다', () async {
+      final repo = MockTrainerRoutineRepository();
+      await repo.assignProgram('m-2755', _secondsPayload());
+
+      final rows = await repo.watchAssignedRoutines('m-2755').first;
+      final plank = rows.firstWhere((r) => r.name == '플랭크');
+      expect(plank.durationSeconds, isNull);
+      expect(plank.sets, 3);
+      expect(plank.holdSeconds, 60);
+    });
+
+    test('직전 전송도 초를 들고 있다 — 이력 카드가 45초로 읽는다', () async {
+      final repo = MockTrainerRoutineRepository();
+      await repo.assignProgram('m-2755', _secondsPayload());
+
+      final delivery = await repo.fetchLatestDelivery('m-2755');
+      expect(delivery, isNotNull);
+      final burpee = delivery!.routines.firstWhere((r) => r.name == '버피');
+      expect(burpee.durationSeconds, 45);
+    });
+
+    test('데모 DB 에 남긴 배정과 직전 전송이 다시 열어도 초를 유지한다', () async {
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
+      await MockTrainerRoutineRepository(
+        db: db,
+      ).assignProgram('m-2755', _secondsPayload());
+
+      // 새로고침 — 같은 DB 를 새 저장소가 읽는다.
+      final reopened = MockTrainerRoutineRepository(db: db);
+      final rows = await reopened.watchAssignedRoutines('m-2755').first;
+      expect(rows.firstWhere((r) => r.name == '버피').durationSeconds, 45);
+      expect(rows.firstWhere((r) => r.name == '플랭크').durationSeconds, isNull);
+
+      final delivery = await reopened.fetchLatestDelivery('m-2755');
+      expect(
+        delivery!.routines.firstWhere((r) => r.name == '버피').durationSeconds,
+        45,
+      );
+    });
   });
 }

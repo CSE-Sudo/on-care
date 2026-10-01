@@ -65,8 +65,11 @@ class AppSidebar extends ConsumerWidget {
     // trainer looks at the sidebar between tasks.
     // 알림 설정이 이 배지를 끈다 — 설정 화면이 "사이드바 뱃지로 알려드려요"
     // 라고 적어 두고 정작 아무 데서도 읽지 않아, 꺼도 배지가 그대로였다(#817).
-    final settings = ref.watch(trainerSettingsProvider);
-    final unread = settings.newMessageAlerts
+    // 설정을 받기 전·받지 못했을 때는 켠 쪽(배지 보임)으로 둔다(#2883).
+    final bool newMessageAlerts =
+        ref.watch(trainerSettingsProvider).valueOrNull?.newMessageAlerts ??
+        true;
+    final unread = newMessageAlerts
         ? ref
               .watch(unreadCountsProvider)
               .valueOrNull
@@ -123,7 +126,6 @@ class AppSidebar extends ConsumerWidget {
                         // navDestinations and is rendered below with its
                         // count passed in directly.
                         NavBadge.pendingConsultations => null,
-                        NavBadge.unreadNotifications => null,
                         NavBadge.none => null,
                       },
                       onTap: () {

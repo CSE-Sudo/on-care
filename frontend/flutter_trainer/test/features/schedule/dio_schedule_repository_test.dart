@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/dio_schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 
@@ -159,6 +161,84 @@ void main() {
       'member-reservation',
     ]);
     expect(calls, 2);
+  });
+
+  test(
+    'watchDate picks up an external reservation by polling (#2865)',
+    () async {
+      var calls = 0;
+      when(
+        () => dio.get<List<dynamic>>(
+          _schedulePath,
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer((_) async {
+        calls += 1;
+        return _okList(<dynamic>[
+          _session(id: 'before'),
+          if (calls > 1) _session(id: 'member-reservation', time: '15:00'),
+        ], _schedulePath);
+      });
+      final pollingRepo = DioScheduleRepository(
+        dio,
+        pollInterval: const Duration(milliseconds: 5),
+      );
+      addTearDown(pollingRepo.dispose);
+
+      final emissions = await pollingRepo
+          .watchDate('2026-08-06')
+          .take(2)
+          .toList()
+          .timeout(const Duration(seconds: 1));
+
+      // 대시보드 오늘 일정은 이 조회를 쓴다 — 회원 앱에서 잡은 오늘 예약이
+      // 트레이너가 아무것도 하지 않아도 나타난다.
+      expect(emissions.last.map((session) => session.id), <String>[
+        'before',
+        'member-reservation',
+      ]);
+      final queries = verify(
+        () => dio.get<List<dynamic>>(
+          _schedulePath,
+          queryParameters: captureAny(named: 'queryParameters'),
+        ),
+      ).captured;
+      // 폴링으로 여러 번 읽어도 묻는 날짜는 구독한 그날 하나다. (Map 은 내용이
+      // 같아도 Set 에서 서로 다른 원소라 날짜 값으로 모아 비교한다.)
+      expect(
+        queries.map((dynamic q) => (q as Map<String, String>)['date']).toSet(),
+        <String>{'2026-08-06'},
+      );
+    },
+  );
+
+  test('watchToday re-reads the KST date on every poll (#2865)', () async {
+    var now = DateTime(2026, 8, 20, 23, 59, 59);
+    debugNowKstOverride = () => now;
+    addTearDown(() => debugNowKstOverride = null);
+    stubGet(<dynamic>[]);
+    final pollingRepo = DioScheduleRepository(
+      dio,
+      pollInterval: const Duration(milliseconds: 5),
+    );
+    addTearDown(pollingRepo.dispose);
+
+    final sub = pollingRepo.watchToday().listen((_) {});
+    await Future<void>.delayed(const Duration(milliseconds: 2));
+    now = DateTime(2026, 8, 21, 0, 0, 1);
+    await Future<void>.delayed(const Duration(milliseconds: 60));
+    await sub.cancel();
+
+    final queries = verify(
+      () => dio.get<List<dynamic>>(
+        _schedulePath,
+        queryParameters: captureAny(named: 'queryParameters'),
+      ),
+    ).captured.cast<Map<String, String>>();
+    expect(queries.first, <String, String>{'date': '2026-08-20'});
+    // 자정을 넘긴 뒤의 조회는 새 날짜를 묻는다 — 구독할 때의 날짜에 묶이지
+    // 않는다.
+    expect(queries.last, <String, String>{'date': '2026-08-21'});
   });
 
   test(
@@ -496,5 +576,47 @@ void main() {
     ).thenAnswer((_) async => _okList(<dynamic>[], path));
 
     await expectLater(repo.sendScheduledRoutines('s1'), completes);
+  });
+
+  group('이미 있는 PT 에 개인운동 붙이기 (#2747)', () {
+    const String path = '/trainer/schedule/s1/routines';
+
+    Future<Map<String, Object?>> put(List<RoutineExercise> items) async {
+      when(
+        () => dio.put<List<dynamic>>(path, data: any(named: 'data')),
+      ).thenAnswer((_) async => _okList(<dynamic>[], path));
+
+      await repo.updateScheduledRoutines('s1', items);
+
+      return verify(
+            () => dio.put<List<dynamic>>(path, data: captureAny(named: 'data')),
+          ).captured.single
+          as Map<String, Object?>;
+    }
+
+    test('개인운동을 채운 AI 제안 id 를 함께 싣는다', () async {
+      final body = await put(const <RoutineExercise>[
+        RoutineExercise(
+          name: '걷기',
+          minutes: 30,
+          type: '유산소',
+          source: 'ai',
+          suggestionId: 'sug-walk',
+        ),
+        RoutineExercise(name: '계단 오르기', minutes: 15, type: '유산소'),
+      ]);
+
+      expect(body['suggestion_ids'], <String>['sug-walk']);
+      expect(body['personal_routines'], hasLength(2));
+    });
+
+    test('일정 상세에서 고친 줄처럼 제안이 없으면 옛 본문 그대로다', () async {
+      final body = await put(const <RoutineExercise>[
+        RoutineExercise(name: '걷기', minutes: 30, type: '유산소'),
+      ]);
+
+      expect(body.containsKey('suggestion_ids'), isFalse);
+      expect(body['personal_routines'], hasLength(1));
+    });
   });
 }
