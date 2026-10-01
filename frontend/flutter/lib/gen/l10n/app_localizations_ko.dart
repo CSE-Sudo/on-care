@@ -2085,16 +2085,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myFieldGoals => '건강·운동 목표';
 
   @override
-  String get myNotifDietLog => '식단 기록 알림';
-
-  @override
   String get myNotifExercise => '운동 리마인더';
 
   @override
   String get myNotifTrainer => '트레이너 메시지';
-
-  @override
-  String get myNotifAiCoaching => 'AI 코칭 조언';
 
   @override
   String get myNotifWeeklyReport => '주간 리포트';
@@ -3751,19 +3745,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String alertTimeDaysAgo(int days) {
     return '$days일 전';
   }
-
-  @override
-  String get demoAlertSodiumTitle => '나트륨 섭취 주의';
-
-  @override
-  String get demoAlertSodiumBody =>
-      '점심 짬뽕으로 오늘 나트륨이 4,657mg까지 올랐어요. 물을 충분히 드세요.';
-
-  @override
-  String get demoAlertDinnerTitle => '저녁 식단을 기록해 주세요';
-
-  @override
-  String get demoAlertDinnerBody => '오늘 저녁 식단이 아직 없어요. 사진 한 장이면 돼요.';
 
   @override
   String get demoAlertRoutineTitle => '새 운동 루틴이 도착했어요';

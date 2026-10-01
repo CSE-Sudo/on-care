@@ -183,7 +183,7 @@ void main() {
   testWidgets('데모는 기기 저장을 그대로 쓴다', (WidgetTester tester) async {
     // repository override 없이 — 데모 설정이 로컬 저장소를 고르는지 확인한다.
     SharedPreferences.setMockInitialValues(<String, Object>{
-      'notif_diet_log': false,
+      'notif_trainer_message': false,
     });
     final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
@@ -204,7 +204,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final index = kNotificationSettingItems.indexWhere(
-      (NotificationSettingItem item) => item.key == 'notif_diet_log',
+      (NotificationSettingItem item) => item.key == 'notif_trainer_message',
     );
     expect(
       tester.widgetList<Switch>(find.byType(Switch)).toList()[index].value,
@@ -338,6 +338,31 @@ void main() {
       expect(
         find.byKey(const Key('notificationSettingsLoadFailed')),
         findsNothing,
+      );
+    });
+  });
+
+  group('제어할 알림이 없는 스위치 (#2854)', () {
+    testWidgets('식단 기록·AI 코칭 스위치가 없다', (WidgetTester tester) async {
+      // 실서버에 이 두 알림을 만드는 곳이 없다 — 켜 두어도 아무것도 오지 않았다.
+      await _pump(tester);
+
+      expect(find.byType(Switch), findsNWidgets(3));
+      expect(find.text('식단 기록 알림'), findsNothing);
+      expect(find.text('AI 코칭 조언'), findsNothing);
+      expect(find.text('운동 리마인더'), findsOneWidget);
+      expect(find.text('트레이너 메시지'), findsOneWidget);
+      expect(find.text('주간 리포트'), findsOneWidget);
+    });
+
+    test('설정 항목은 서버가 실제로 만드는 알림의 키뿐이다', () {
+      expect(
+        kNotificationSettingItems.map((NotificationSettingItem i) => i.key),
+        <String>[
+          'notif_exercise_reminder',
+          'notif_trainer_message',
+          'notif_weekly_report',
+        ],
       );
     });
   });

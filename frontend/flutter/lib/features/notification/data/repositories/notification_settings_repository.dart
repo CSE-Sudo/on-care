@@ -21,12 +21,15 @@ class NotificationSettingItem {
 }
 
 /// 화면에 보이는 순서 그대로. 주간 리포트만 기본 꺼짐이다.
+///
+/// 모든 항목은 서버가 실제로 만드는 알림을 켜고 끈다. 식단 기록·AI 코칭
+/// (`notif_diet_log`·`notif_ai_coaching`)은 그 알림을 만드는 곳이 서버에 없어
+/// 뺐다(#2854) — 켜 두면 올 것으로 기대하는데 아무것도 오지 않았다. 서버는 이미
+/// 저장된 값 때문에 응답에 두 필드를 남기지만, 앱은 읽지도 보내지도 않는다.
 const List<NotificationSettingItem> kNotificationSettingItems =
     <NotificationSettingItem>[
-      NotificationSettingItem('notif_diet_log', true),
       NotificationSettingItem('notif_exercise_reminder', true),
       NotificationSettingItem('notif_trainer_message', true),
-      NotificationSettingItem('notif_ai_coaching', true),
       NotificationSettingItem('notif_weekly_report', false),
     ];
 

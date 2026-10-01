@@ -1507,10 +1507,8 @@
   "myFieldHeight": "Height (cm)",
   "myFieldWeight": "Weight (kg)",
   "myFieldGoals": "Health and exercise goals",
-  "myNotifDietLog": "Diet log reminder",
   "myNotifExercise": "Exercise reminder",
   "myNotifTrainer": "Trainer message",
-  "myNotifAiCoaching": "AI coaching tips",
   "myNotifWeeklyReport": "Weekly report",
   "mySupportFaq": "FAQ",
   "mySupportInquiry": "1:1 Inquiry",
@@ -3110,22 +3108,6 @@
         "type": "int"
       }
     }
-  },
-  "demoAlertSodiumTitle": "Watch your sodium",
-  "@demoAlertSodiumTitle": {
-    "description": "Title of a demo notification shown in tour mode."
-  },
-  "demoAlertSodiumBody": "Lunch jjamppong pushed today's sodium to 4,657mg. Drink plenty of water.",
-  "@demoAlertSodiumBody": {
-    "description": "Body of a demo notification shown in tour mode."
-  },
-  "demoAlertDinnerTitle": "Log your dinner",
-  "@demoAlertDinnerTitle": {
-    "description": "Title of a demo notification shown in tour mode."
-  },
-  "demoAlertDinnerBody": "No dinner logged yet today. One photo is all it takes.",
-  "@demoAlertDinnerBody": {
-    "description": "Body of a demo notification shown in tour mode."
   },
   "demoAlertRoutineTitle": "A new workout routine arrived",
   "@demoAlertRoutineTitle": {

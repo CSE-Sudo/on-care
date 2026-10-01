@@ -2157,16 +2157,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myFieldGoals => 'Health and exercise goals';
 
   @override
-  String get myNotifDietLog => 'Diet log reminder';
-
-  @override
   String get myNotifExercise => 'Exercise reminder';
 
   @override
   String get myNotifTrainer => 'Trainer message';
-
-  @override
-  String get myNotifAiCoaching => 'AI coaching tips';
 
   @override
   String get myNotifWeeklyReport => 'Weekly report';
@@ -3903,20 +3897,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String alertTimeDaysAgo(int days) {
     return '${days}d ago';
   }
-
-  @override
-  String get demoAlertSodiumTitle => 'Watch your sodium';
-
-  @override
-  String get demoAlertSodiumBody =>
-      'Lunch jjamppong pushed today\'s sodium to 4,657mg. Drink plenty of water.';
-
-  @override
-  String get demoAlertDinnerTitle => 'Log your dinner';
-
-  @override
-  String get demoAlertDinnerBody =>
-      'No dinner logged yet today. One photo is all it takes.';
 
   @override
   String get demoAlertRoutineTitle => 'A new workout routine arrived';

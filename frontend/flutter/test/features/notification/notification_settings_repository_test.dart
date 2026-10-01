@@ -89,9 +89,30 @@ void main() {
 
       final settings = await DioNotificationSettingsRepository(dio).fetch();
 
-      expect(settings['notif_diet_log'], isFalse);
       expect(settings['notif_trainer_message'], isFalse);
       expect(settings['notif_weekly_report'], isTrue);
+    });
+
+    test('서버가 남겨 둔 식단 기록·AI 코칭 값은 읽지 않는다', () async {
+      // 이미 저장된 회원 값 때문에 서버는 두 필드를 계속 준다(#2854). 앱은
+      // 그 알림을 만드는 곳이 없어 스위치를 뺐으므로 오류 없이 무시한다.
+      when(
+        () => dio.get<Map<String, Object?>>('/users/me/notification-settings'),
+      ).thenAnswer(
+        (_) async => _ok<Map<String, Object?>>(<String, Object?>{
+          'diet_log': false,
+          'exercise_reminder': true,
+          'trainer_message': true,
+          'ai_coaching': false,
+          'weekly_report': false,
+        }),
+      );
+
+      final settings = await DioNotificationSettingsRepository(dio).fetch();
+
+      expect(settings.keys, isNot(contains('notif_diet_log')));
+      expect(settings.keys, isNot(contains('notif_ai_coaching')));
+      expect(settings.length, kNotificationSettingItems.length);
     });
 
     test('서버가 모르는 항목은 기본값으로 둔다', () async {
@@ -107,7 +128,7 @@ void main() {
       final settings = await DioNotificationSettingsRepository(dio).fetch();
 
       expect(settings['notif_trainer_message'], isFalse);
-      expect(settings['notif_diet_log'], isTrue);
+      expect(settings['notif_exercise_reminder'], isTrue);
       expect(settings['notif_weekly_report'], isFalse);
       expect(settings.length, kNotificationSettingItems.length);
     });

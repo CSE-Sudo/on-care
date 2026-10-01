@@ -3770,12 +3770,6 @@ abstract class AppLocalizations {
   /// **'Health and exercise goals'**
   String get myFieldGoals;
 
-  /// No description provided for @myNotifDietLog.
-  ///
-  /// In en, this message translates to:
-  /// **'Diet log reminder'**
-  String get myNotifDietLog;
-
   /// No description provided for @myNotifExercise.
   ///
   /// In en, this message translates to:
@@ -3787,12 +3781,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Trainer message'**
   String get myNotifTrainer;
-
-  /// No description provided for @myNotifAiCoaching.
-  ///
-  /// In en, this message translates to:
-  /// **'AI coaching tips'**
-  String get myNotifAiCoaching;
 
   /// No description provided for @myNotifWeeklyReport.
   ///
@@ -6773,30 +6761,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{days}d ago'**
   String alertTimeDaysAgo(int days);
-
-  /// Title of a demo notification shown in tour mode.
-  ///
-  /// In en, this message translates to:
-  /// **'Watch your sodium'**
-  String get demoAlertSodiumTitle;
-
-  /// Body of a demo notification shown in tour mode.
-  ///
-  /// In en, this message translates to:
-  /// **'Lunch jjamppong pushed today\'s sodium to 4,657mg. Drink plenty of water.'**
-  String get demoAlertSodiumBody;
-
-  /// Title of a demo notification shown in tour mode.
-  ///
-  /// In en, this message translates to:
-  /// **'Log your dinner'**
-  String get demoAlertDinnerTitle;
-
-  /// Body of a demo notification shown in tour mode.
-  ///
-  /// In en, this message translates to:
-  /// **'No dinner logged yet today. One photo is all it takes.'**
-  String get demoAlertDinnerBody;
 
   /// Title of a demo notification shown in tour mode.
   ///

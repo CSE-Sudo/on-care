@@ -506,6 +506,20 @@ category: hospital|exercise|meal|medication|other
 
 category: reminder|health_check|achievement|system|coach_chat|coach_report|routine|member_schedule|coach_invite|consultation_result|consult_decision|health_goals|benefits|points_shop
 
+#### 회원 알림 수신 설정 (#489·#2854)
+
+| 메서드 | 경로 | 응답 |
+| --- | --- | --- |
+| GET | `/users/me/notification-settings` | `{ diet_log, exercise_reminder, trainer_message, ai_coaching, weekly_report }` (bool) |
+| PUT | `/users/me/notification-settings` | 보낸 항목만 반영, 응답은 GET 과 같음 |
+
+- 회원 앱 스위치는 `exercise_reminder`·`trainer_message`·`weekly_report` 세 가지입니다.
+  `diet_log`·`ai_coaching` 은 **이 kind 로 만드는 알림이 없어** 앱이 더는 그리거나 보내지 않고,
+  이미 저장된 값과 예전 앱 버전을 위해 응답·저장에만 남아 있습니다.
+- **끌 수 없는 알림**: 포인트 쿠폰(`points_coupon`)·주간 챌린지 결과(`weekly_challenge`)는
+  설정과 무관하게 늘 만듭니다(`notification_service.ALWAYS_DELIVERED`). 새 회원 알림 kind 는
+  설정 키이거나 이 집합에 있어야 합니다.
+
 #### 알림 문장의 언어 (#2302)
 
 알림은 만든 순간의 한국어 문장만 저장해 영어 화면에서도 한국어로 보였습니다. 이제 **문장 틀

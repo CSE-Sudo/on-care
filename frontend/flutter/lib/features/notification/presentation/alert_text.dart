@@ -10,8 +10,6 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 /// 돌아간다 — 빈 줄보다 한국어 한 줄이 낫다.
 ({String title, String body}) alertText(AppLocalizations l, AlertItem item) {
   final (String, String)? demo = switch (item.messageKey) {
-    kDemoAlertSodium => (l.demoAlertSodiumTitle, l.demoAlertSodiumBody),
-    kDemoAlertDinner => (l.demoAlertDinnerTitle, l.demoAlertDinnerBody),
     kDemoAlertRoutine => (
       l.demoAlertRoutineTitle,
       l.demoAlertRoutineBody(kDemoTrainerName),

@@ -1749,14 +1749,10 @@ class _MacroSuggestionRow extends StatelessWidget {
 /// Localized label for a notification toggle, keyed off its stable prefKey.
 String _notifLabel(AppLocalizations l, String prefKey) {
   switch (prefKey) {
-    case 'notif_diet_log':
-      return l.myNotifDietLog;
     case 'notif_exercise_reminder':
       return l.myNotifExercise;
     case 'notif_trainer_message':
       return l.myNotifTrainer;
-    case 'notif_ai_coaching':
-      return l.myNotifAiCoaching;
     case 'notif_weekly_report':
       return l.myNotifWeeklyReport;
     default:
