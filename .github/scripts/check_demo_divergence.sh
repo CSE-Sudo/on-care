@@ -9,7 +9,10 @@
 #   2. 데모·목업 저장소(파일·클래스 이름에 demo·mock)의 `bool get supports… => false`
 #
 # 저장소를 고르는 provider·controller(presentation/controllers)는 정상 구조라 보지
-# 않는다. 일부러 다르게 둔 곳은 예외 목록에 `경로 · 이유 · #이슈` 로 적으면 통과한다.
+# 않는다. 일부러 다르게 둔 곳은 예외 목록에 `경로 · 줄에 들어 있는 글자 · 이유 · #이슈`
+# 로 적으면 그 글자를 포함한 줄만 통과한다 — 같은 파일의 다른 새 분기는 계속
+# 걸린다(#2795). 코드에서 사라진 항목은 따로 알린다(#2796). 낡은 항목은 같은
+# 자리에 다시 들어온 분기를 조용히 통과시킨다.
 #
 # 사용: check_demo_divergence.sh <base-rev>   (저장소 루트에서, HEAD 와 비교)
 # 환경: DEMO_DIVERGENCE_ALLOWLIST  예외 목록 경로(기본 .github/demo-divergence-allowlist.txt)
@@ -21,9 +24,12 @@ base="${1:?base rev 가 필요합니다}"
 allowlist="${DEMO_DIVERGENCE_ALLOWLIST:-.github/demo-divergence-allowlist.txt}"
 mode="${DEMO_DIVERGENCE_MODE:-warn}"
 summary="${GITHUB_STEP_SUMMARY:-/dev/null}"
+format='경로 · 줄에 들어 있는 글자 · 이유 · #이슈'
 
-# --- 예외 목록: `경로 · 이유 · #이슈`. `#` 로 시작하는 줄과 빈 줄은 건너뛴다.
-declare -A allowed=()
+# --- 예외 목록. `#` 로 시작하는 줄과 빈 줄은 건너뛴다.
+entry_path=()
+entry_anchor=()
+entry_line=()
 if [ -f "$allowlist" ]; then
   n=0
   while IFS= read -r raw || [ -n "$raw" ]; do
@@ -31,14 +37,28 @@ if [ -f "$allowlist" ]; then
     line="${raw%$'\r'}"
     case "$line" in '' | '#'*) continue ;; esac
     path=$(printf '%s' "$line" | awk -F ' · ' '{ print $1 }')
-    issue=$(printf '%s' "$line" | awk -F ' · ' 'NF >= 3 { print $3 }')
-    if ! printf '%s' "$issue" | grep -qE '#[0-9]+'; then
-      echo "::warning file=$allowlist,line=$n,title=예외 목록 형식::'경로 · 이유 · #이슈' 형식이 아니라 무시합니다: $line"
+    anchor=$(printf '%s' "$line" | awk -F ' · ' 'NF >= 4 { print $2 }')
+    issue=$(printf '%s' "$line" | awk -F ' · ' 'NF >= 4 { print $NF }')
+    if [ -z "$anchor" ] || ! printf '%s' "$issue" | grep -qE '#[0-9]+'; then
+      echo "::warning file=$allowlist,line=$n,title=예외 목록 형식::'$format' 형식이 아니라 무시합니다: $line"
       continue
     fi
-    allowed["$path"]=1
+    entry_path+=("$path")
+    entry_anchor+=("$anchor")
+    entry_line+=("$n")
   done < "$allowlist"
 fi
+
+# allowed <path> <text>: 그 경로에 있고 그 글자를 포함하는 예외 항목이 있는가.
+allowed() {
+  local i
+  for i in "${!entry_path[@]}"; do
+    if [ "${entry_path[$i]}" = "$1" ] && [[ "$2" == *"${entry_anchor[$i]}"* ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
 
 # --- 추가된 줄: kind<TAB>path<TAB>line<TAB>text
 hits=$(git -c core.quotePath=false diff -U0 --no-color --no-ext-diff "$base" HEAD -- 'frontend/' | awk '
@@ -89,33 +109,52 @@ while IFS=$'\t' read -r kind path line text; do
   else
     what="화면 코드가 useMockApi 로 갈라집니다"
   fi
-  if [ -n "${allowed[$path]:-}" ]; then
+  if allowed "$path" "$text"; then
     passed=$((passed + 1))
     echo "예외 목록으로 통과: $path:$line"
     continue
   fi
   warned=$((warned + 1))
-  echo "::warning file=$path,line=$line,title=데모 분기::$what. 데모가 기준입니다 — 실서버에만 있는 것은 데모에도 넣고, 일부러 다르게 둔다면 $allowlist 에 '경로 · 이유 · #이슈' 로 적어 주세요(#2791)."
+  echo "::warning file=$path,line=$line,title=데모 분기::$what. 데모가 기준입니다 — 실서버에만 있는 것은 데모에도 넣고, 일부러 다르게 둔다면 $allowlist 에 '$format' 로 적어 주세요(#2791)."
   report="$report| \`$path:$line\` | $what |"$'\n'
 done <<< "$hits"
+
+# --- 낡은 예외 항목(#2796): 경로가 없거나 그 파일에 글자가 더는 없다.
+# PR 이 그 파일이나 예외 목록을 건드렸으면 경고, 아니면 알림만 — 관계없는 PR 마다
+# 노란 경고를 붙이지 않는다. 실패 모드에서도 실패 사유로 세지 않는다.
+touched=$(git -c core.quotePath=false diff --name-only "$base" HEAD)
+stale=0
+for i in "${!entry_path[@]}"; do
+  path="${entry_path[$i]}"
+  if git cat-file -e "HEAD:$path" 2>/dev/null \
+    && git show "HEAD:$path" | grep -qF -- "${entry_anchor[$i]}"; then
+    continue
+  fi
+  stale=$((stale + 1))
+  level=notice
+  if printf '%s\n' "$touched" | grep -qxF -e "$path" -e "$allowlist"; then
+    level=warning
+  fi
+  echo "::$level file=$allowlist,line=${entry_line[$i]},title=낡은 예외 항목::$path 에 '${entry_anchor[$i]}' 가 더는 없습니다. 차이를 없앴다면 이 줄을 지워 주세요(#2796)."
+done
 
 {
   echo "### 데모 분기 검사 (#2791, ${mode} 모드)"
   echo
   if [ "$warned" -eq 0 ]; then
-    echo "새로 들어온 데모 분기 없음 (예외 목록 통과 ${passed}건)."
+    echo "새로 들어온 데모 분기 없음 (예외 목록 통과 ${passed}건, 낡은 예외 항목 ${stale}건)."
   else
-    echo "예외 목록에 없는 데모 분기 ${warned}건 (예외 목록 통과 ${passed}건)."
+    echo "예외 목록에 없는 데모 분기 ${warned}건 (예외 목록 통과 ${passed}건, 낡은 예외 항목 ${stale}건)."
     echo
     echo "| 위치 | 내용 |"
     echo "| --- | --- |"
     printf '%s' "$report"
     echo
-    echo "데모가 기준입니다. 일부러 다르게 둔 것이라면 \`$allowlist\` 에 \`경로 · 이유 · #이슈\` 한 줄을 더하세요."
+    echo "데모가 기준입니다. 일부러 다르게 둔 것이라면 \`$allowlist\` 에 \`$format\` 한 줄을 더하세요."
   fi
 } >> "$summary"
 
-echo "데모 분기: 경고 ${warned}건, 예외 목록 통과 ${passed}건 ($base..HEAD)."
+echo "데모 분기: 경고 ${warned}건, 예외 목록 통과 ${passed}건, 낡은 예외 항목 ${stale}건 ($base..HEAD)."
 if [ "$mode" = fail ] && [ "$warned" -gt 0 ]; then
   exit 1
 fi

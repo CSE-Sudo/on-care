@@ -48,6 +48,22 @@ expect() {
   fi
 }
 
+# expect_stale <name> <warnings> <notices>: 낡은 예외 항목의 경고·알림 수(#2796).
+# 실패 모드로 돌려 낡은 항목이 실패 사유로 세지지 않는 것도 함께 본다.
+expect_stale() {
+  local name="$1" want_w="$2" want_n="$3" out code=0 got_w got_n
+  out=$(DEMO_DIVERGENCE_MODE=fail bash "$script" "$base" 2>&1) || code=$?
+  got_w=$(printf '%s\n' "$out" | grep -c '^::warning .*title=낡은 예외 항목' || true)
+  got_n=$(printf '%s\n' "$out" | grep -c '^::notice .*title=낡은 예외 항목' || true)
+  if [ "$got_w" = "$want_w" ] && [ "$got_n" = "$want_n" ] && [ "$code" = 0 ]; then
+    echo "ok   $name"
+  else
+    echo "FAIL $name: 경고 $got_w건(기대 $want_w), 알림 $got_n건(기대 $want_n), 종료 $code(기대 0)"
+    printf '%s\n' "$out" | sed 's/^/     /'
+    failures=$((failures + 1))
+  fi
+}
+
 page=frontend/flutter/lib/features/diet/presentation/pages/diet_page.dart
 widget=frontend/flutter_trainer/lib/features/clients/presentation/widgets/card.dart
 shared=frontend/flutter/lib/shared/widgets/sheet.dart
@@ -107,16 +123,41 @@ expect '=> true 는 걸리지 않는다' 0
 
 new_repo
 mkdir -p .github
-printf '%s\n' '# 주석' "$page · 데모 전용 안내 · #1" > .github/demo-divergence-allowlist.txt
-put "$page" 'final demo = config.useMockApi;'
-put "$widget" 'final demo = config.useMockApi;'
-expect '예외 목록의 파일은 통과하고 나머지는 걸린다' 1
+printf '%s\n' '# 주석' "$page · showDemo · 데모 전용 안내 · #1" > .github/demo-divergence-allowlist.txt
+put "$page" 'final showDemo = config.useMockApi;'
+put "$widget" 'final showDemo = config.useMockApi;'
+expect '예외 목록의 경로·글자는 통과하고 다른 파일은 걸린다' 1
 
 new_repo
 mkdir -p .github
-printf '%s\n' "$page · 이슈 번호 없음" > .github/demo-divergence-allowlist.txt
-put "$page" 'final demo = config.useMockApi;'
-expect '이슈 번호가 없는 예외 줄은 무시된다' 1
+printf '%s\n' "$page · showDemo · 데모 전용 안내 · #1" > .github/demo-divergence-allowlist.txt
+put "$page" 'final showDemo = config.useMockApi;
+final other = config.useMockApi;'
+expect '예외 파일이라도 글자가 없는 새 분기는 걸린다(#2795)' 1
+
+new_repo
+mkdir -p .github
+printf '%s\n' "$page · showDemo · 이슈 번호 없음" "$page · 데모 전용 안내 · #1" \
+  > .github/demo-divergence-allowlist.txt
+put "$page" 'final showDemo = config.useMockApi;'
+expect '이슈 번호나 글자 칸이 없는 예외 줄은 무시된다' 1
+
+new_repo
+mkdir -p .github
+printf '%s\n' "$page · showDemo · 데모 전용 안내 · #1" > .github/demo-divergence-allowlist.txt
+put "$page" 'final showDemo = config.useMockApi;'
+base=$(git rev-parse HEAD)
+put "$widget" 'final x = 1;'
+expect_stale '코드에 남아 있는 예외 항목은 낡지 않았다' 0 0
+
+new_repo
+mkdir -p .github
+printf '%s\n' "$page · showDemo · 데모 전용 안내 · #1" \
+  "$widget · gone · 지운 파일 · #2" > .github/demo-divergence-allowlist.txt
+put "$page" 'final showDemo = config.useMockApi;'
+base=$(git rev-parse HEAD)
+put "$page" 'final demo = 1;'
+expect_stale '이 PR 이 글자를 지운 항목은 경고, 관계없는 항목은 알림(#2796)' 1 1
 
 new_repo
 put "$page" 'final demo = config.useMockApi;'
