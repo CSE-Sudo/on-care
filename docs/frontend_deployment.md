@@ -130,6 +130,17 @@ flutter build web --release --base-href "/frontend/"
 
 실기기에 설치한 APK 는 **다시 빌드해야 합니다.** `String.fromEnvironment` 는 컴파일 타임 상수라서 dart-define 값이 APK 안에 박히고, 이미 설치된 앱의 서버 주소는 나중에 바꿀 수 없습니다. 절차는 [`local_fullstack.md`](local_fullstack.md) 의 안드로이드 실기기 절에 있습니다.
 
+### 에러 추적(Sentry, #2839)
+
+두 앱은 처리하지 못한 오류를 Sentry 로 보낼 수 있습니다. **`SENTRY_DSN` 이 비어 있거나, `USE_MOCK_API=true`(데모)이거나, `ENV=dev` 이면 보내지 않고 SDK 도 초기화하지 않습니다.** 지금 배포 빌드는 셋 다 해당해 아무것도 보내지 않습니다.
+
+```yaml
+--dart-define=ENV=prod
+--dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN_MEMBER }}   # 트레이너 웹은 별도 DSN
+```
+
+사용자 식별·요청 본문·헤더·쿼리·화면 캡처·터치 기록·print 로그는 싣지 않고, 태그는 오류 출처·화면 경로 패턴·환경입니다(`lib/core/observability/error_reporter.dart`). 배포 워크플로의 DSN 주입과 웹 소스맵 업로드는 #480 에서 채웁니다.
+
 ### `ENV=prod` 로 띄울 때 걸리는 것
 
 `backend/app/core/config.py` 는 `env=prod` 에서 아래를 만족하지 않으면 **기동을 거부합니다.** `.env.example` 기본값을 그대로 가져가면 둘이 바로 걸립니다.

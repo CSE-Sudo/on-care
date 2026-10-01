@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/not_found_page.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/app_shell.dart';
+import 'package:oncare_trainer/core/observability/error_reporter.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_sign_in_page.dart';
@@ -314,11 +315,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     (_, _) => refresh.value++,
   );
   ref.onDispose(refresh.dispose);
-  return buildAppRouter(
+  final router = buildAppRouter(
     readStatus: () => ref.read(sessionControllerProvider).status,
     refresh: refresh,
     initialLocation: ref.read(routerInitialLocationProvider),
     // 직접 로그아웃·탈퇴한 뒤에는 이전 자리를 잇지 않는다(#2765).
     readResume: () => !ref.read(signedOutByUserProvider),
   );
+  // 오류 보고에 화면 경로 패턴(값이 빠진 `/legal/:document` 형태)을 싣는다 (#2839).
+  ref
+      .read(errorReporterProvider)
+      .attachRouteResolver(
+        () => router.routerDelegate.currentConfiguration.fullPath,
+      );
+  return router;
 });

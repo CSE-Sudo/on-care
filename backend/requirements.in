@@ -25,3 +25,7 @@ openai>=1.40
 # 기준 시각(app/core/clock.py)이 ZoneInfo("Asia/Seoul") 를 import 시점에 잡으므로
 # 없으면 앱이 아예 뜨지 않는다. 베이스 이미지와 무관하게 보장한다.
 tzdata>=2024.1
+# 처리하지 못한 예외를 에러 추적 도구로 보낸다(#2839). SENTRY_DSN 이 없거나 ENV=dev 면
+# 초기화하지 않는다. 요청 본문·헤더·쿼리 같은 개인정보는 보내지 않는다
+# (app/core/error_tracking.py).
+sentry-sdk[fastapi]>=2.0

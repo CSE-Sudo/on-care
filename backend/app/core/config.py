@@ -4,7 +4,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # 개발 기본 시크릿(운영에서 그대로 쓰면 기동 차단)
@@ -141,6 +141,16 @@ class Settings(BaseSettings):
     security_headers: bool = True   # 보안 응답 헤더(HSTS·nosniff·frame deny 등)
     # 루트 로거 레벨. 허용값만(임의 문자열 금지 — 오타로 로깅이 조용히 죽는 것 방지).
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+
+    # --- 에러 추적(Sentry, #2839) ---
+    # 처리하지 못한 예외를 외부 에러 추적 도구로 보낸다. DSN 은 배포 환경변수로만 넣고
+    # 저장소에 두지 않는다. 비어 있거나 ENV=dev 면 초기화하지 않는다(개발·데모 오류는
+    # 보내지 않음). 요청 본문·헤더·쿼리·지역 변수는 보내지 않는다(app/core/error_tracking.py).
+    sentry_dsn: str = ""
+    # 비우면 ENV 값(staging·prod)을 그대로 쓴다.
+    sentry_environment: str = ""
+    # 오류 이벤트 표본 비율(0~1). 성능 추적(APM)은 켜지 않는다.
+    sentry_sample_rate: float = Field(default=1.0, ge=0.0, le=1.0)
 
     # --- Rate limit (인증 엔드포인트 브루트포스 방어) ---
     rate_limit_enabled: bool = True

@@ -37,7 +37,7 @@ from app.api.v1 import (
     trainers,
     users,
 )
-from app.core import observability
+from app.core import error_tracking, observability
 from app.core.body_limit import RequestBodySizeLimitMiddleware
 from app.core.config import get_settings
 from app.core.locale import RequestLocaleMiddleware
@@ -46,6 +46,9 @@ from app.db.init_db import init_db
 settings = get_settings()
 # 로깅을 먼저 설정(요청 ID 포함 포맷). 이후 모듈 로거들이 이 설정을 따른다.
 observability.setup_logging(settings.log_level)
+# 에러 추적(#2839). SDK 가 FastAPI·Starlette 를 감싸므로 앱을 만들기 전에 초기화한다.
+# SENTRY_DSN 이 없거나 ENV=dev 면 아무것도 하지 않는다.
+error_tracking.init_error_tracking(settings)
 
 
 @asynccontextmanager
