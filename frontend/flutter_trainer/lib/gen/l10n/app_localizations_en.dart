@@ -230,6 +230,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Social sign-in failed. Please try again in a moment.';
 
   @override
+  String get authSocialComingSoon =>
+      'Social sign-in is coming soon. Please sign in with your email.';
+
+  @override
   String get authErrSignInFailed =>
       'Sign-in failed. Please try again in a moment.';
 
@@ -362,6 +366,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashChurnRiskEmpty => 'No members are at churn risk right now.';
 
   @override
+  String get dashChurnRiskLoading => 'Checking recent sessions';
+
+  @override
+  String get dashChurnRiskUnavailable => 'Unavailable · Tap to retry';
+
+  @override
+  String get dashActivityFeedbackLoading => 'Checking recent sessions.';
+
+  @override
+  String get dashActivityFeedbackUnavailable =>
+      'Couldn\'t load recent sessions, so activity feedback is unavailable. Tap the churn risk card to retry.';
+
+  @override
   String get dashActivityDifficultyTitle =>
       'Behind exercise goal / routine skipped';
 
@@ -434,6 +451,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String dashScheduleMinutesLeft(int minutes) {
     return 'in $minutes min';
+  }
+
+  @override
+  String dashScheduleInProgress(String time, String name) {
+    return 'In progress: $time · $name';
+  }
+
+  @override
+  String dashScheduleMinutesToEnd(int minutes) {
+    return '$minutes min left';
   }
 
   @override
@@ -957,20 +984,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatLoadFailed => 'Couldn\'t load the conversation';
 
   @override
-  String chatDemoAnalyzed(String name) {
-    return 'AI analysed $name\'s meals and workouts';
+  String get chatLoadOlder => 'Load earlier messages';
+
+  @override
+  String get chatLoadOlderFailed => 'Couldn\'t load earlier messages · Retry';
+
+  @override
+  String get chatRoutineDelivered => 'Workout sent';
+
+  @override
+  String get chatRoutineDeliveredPt => 'PT program and personal exercises sent';
+
+  @override
+  String get chatRoutineDeliveredPersonal => 'Personal exercises sent';
+
+  @override
+  String get chatRoutineDeliveredAfterCancel =>
+      'Personal exercises sent in place of the cancelled PT';
+
+  @override
+  String get chatRoutineDeliveredProgram => 'Workout program sent';
+
+  @override
+  String chatRoutineDeliveredMore(String names, int count) {
+    return '$names and $count more';
   }
-
-  @override
-  String get chatDemoReportSent => 'A summary report was sent to you';
-
-  @override
-  String chatDemoRoutineSent(String name) {
-    return 'A personalized workout recommendation was sent to $name';
-  }
-
-  @override
-  String get chatDemoNotified => 'The member app was notified';
 
   @override
   String get chatInputHint => 'Type a message...';
@@ -1133,6 +1171,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String consultSlotDuration(int minutes) {
     return '$minutes min';
   }
+
+  @override
+  String get consultStatusCancelled => 'Cancelled';
+
+  @override
+  String get consultStatusCancelledByTrainer => 'Withdrawn (session cancelled)';
 
   @override
   String get consultStatusExpired => 'Expired';
@@ -1360,6 +1404,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsSendFailed => 'Couldn\'t send the report. Please try again';
+
+  @override
+  String get reportsSendAlreadyDone =>
+      'This report was already sent. Send history has been refreshed';
 
   @override
   String reportsSent(String name) {
@@ -1763,6 +1811,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Coaching has ended, so client details are hidden';
 
   @override
+  String get schedReservationLockedHint =>
+      'Booked by the member. It can\'t be moved or deleted here; use Cancel to call it off.';
+
+  @override
+  String get schedEndedLockedHint =>
+      'Finished sessions can only have their note and program edited.';
+
+  @override
+  String get schedDoneLockedHint =>
+      'Completed sessions can only have their note and program edited. Move the date forward to reopen it as upcoming.';
+
+  @override
   String get schedGroupPersonal => 'Personal exercise';
 
   @override
@@ -1812,6 +1872,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedRoutinesSkipped => 'Marked as not sent.';
+
+  @override
+  String get schedRoutinesSkipFailed =>
+      'Couldn\'t mark the personal exercise as not sent. Please try again.';
+
+  @override
+  String get schedRoutinesLoadFailed => 'Couldn\'t load personal exercises';
+
+  @override
+  String get schedClientUnresolved =>
+      'Couldn\'t tell which member this session is for. Please pick the member.';
 
   @override
   String get schedRoutinesUpdated => 'Personal exercise updated.';
@@ -2208,6 +2279,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get slotReload => 'Reload';
 
   @override
+  String get slotLoadFailed => 'Couldn\'t load reservation slots';
+
+  @override
   String get slotEmpty => 'No booking slots are open.';
 
   @override
@@ -2218,6 +2292,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get slotOpenSummary => 'Open';
+
+  @override
+  String get slotOverlappedSummary => 'Overlaps a session';
+
+  @override
+  String get slotOverlappedHint =>
+      'Another session is booked at this time, so members see it as full. Close it if you will not use it.';
 
   @override
   String get slotCloseAction => 'Close bookings';
@@ -2261,6 +2342,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myNotifNotReady => 'Coming soon — always on for now';
+
+  @override
+  String get myNotifLoading => 'Loading notification settings…';
+
+  @override
+  String get myNotifLoadFailed =>
+      'Couldn\'t load notification settings. Please try again';
 
   @override
   String get myNotifNewMessageHint =>
@@ -2699,6 +2787,52 @@ class AppLocalizationsEn extends AppLocalizations {
   String get routineFieldEffectHint => 'e.g. Protect right shoulder';
 
   @override
+  String get routineEffectCardioDefault =>
+      'Builds fitness and helps prevent chronic disease';
+
+  @override
+  String get routineEffectStrengthDefault =>
+      'Builds strength and muscular endurance';
+
+  @override
+  String get routineEffectStretchDefault =>
+      'Improves flexibility and helps prevent injury';
+
+  @override
+  String get routineEffectBloodPressure => 'Helps manage blood pressure';
+
+  @override
+  String get routineEffectFatLoss => 'Helps reduce body fat';
+
+  @override
+  String get routineEffectCardioFitness => 'Improves cardiorespiratory fitness';
+
+  @override
+  String get routineEffectGentleRecovery => 'Rebuilds fitness without strain';
+
+  @override
+  String get routineEffectMuscleMass => 'Maintains and builds muscle mass';
+
+  @override
+  String get routineEffectStrength => 'Builds strength';
+
+  @override
+  String get routineEffectPostureMuscles =>
+      'Strengthens posture-supporting muscles';
+
+  @override
+  String get routineEffectHeartRate => 'Steadies blood pressure and heart rate';
+
+  @override
+  String get routineEffectMuscleRecovery => 'Helps muscles recover';
+
+  @override
+  String get routineEffectLoosen => 'Loosens tight muscles';
+
+  @override
+  String get routineEffectJointRange => 'Restores joint range of motion';
+
+  @override
   String get routineFieldSets => 'Sets';
 
   @override
@@ -2774,6 +2908,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachSendFailed => 'Couldn\'t send. Please try again';
+
+  @override
+  String get coachSwitchClientTitle => 'Switch to another client?';
+
+  @override
+  String get coachSwitchClientBody =>
+      'You have unsent work. Switching clients discards the program and personal exercises you are building.';
+
+  @override
+  String get coachSwitchClientConfirm => 'Switch';
+
+  @override
+  String get personalRoutineTargetLoadFailed => 'Couldn\'t load PT sessions';
+
+  @override
+  String get personalRoutineStartPast =>
+      'The start date has passed, so it\'s now set to today. Check it and send again';
+
+  @override
+  String get schedRoutinesReadFailed =>
+      'Couldn\'t check the attached personal exercises. Please try again';
 
   @override
   String get coachScheduleFailed =>
@@ -2928,6 +3083,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiGenerateFailed =>
       'AI generation failed. Please try again in a moment';
+
+  @override
+  String aiGenerateInvalidConditions(int min, int max) {
+    return 'Check the generation conditions. Total time must be between $min and $max minutes';
+  }
+
+  @override
+  String aiGenerateMinutesHelper(int min, int max) {
+    return 'Enter between $min and $max minutes';
+  }
 
   @override
   String get aiGenerateRateLimited =>
@@ -3368,6 +3533,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiSourceChatInsight => 'Chat-detected memos';
+
+  @override
+  String get aiSourceRecentChat => 'Recent chat';
 
   @override
   String get aiSourceWeeklyFeedback => 'Member weekly feedback';
@@ -3941,8 +4109,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashTodoReport => 'Report';
 
   @override
-  String dashTodoConsultationSubtitle(int month, int day) {
-    return 'Consultation request for $month/$day';
+  String dashTodoConsultationSubtitle(String when) {
+    return 'Preferred: $when';
   }
 
   @override
@@ -3962,6 +4130,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get dashTaskLoadFailed =>
       'Couldn\'t load your task status. Please try again in a moment';
+
+  @override
+  String get dashTaskDayChanged =>
+      'The date changed, so today\'s tasks were reloaded. Please tap again';
 
   @override
   String get dashTaskDismissTitle => 'Delete this item?';
@@ -4241,6 +4413,100 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientMemoSearchEmpty => 'No memos match your search.';
 
   @override
+  String get clientMemoCategoryExercise => 'Exercise';
+
+  @override
+  String get clientMemoCategoryDiet => 'Diet';
+
+  @override
+  String get clientMemoCategoryPain => 'Pain · injury';
+
+  @override
+  String get clientMemoCategoryLife => 'Life · schedule';
+
+  @override
+  String get clientMemoRecordLink => 'Link a workout (optional)';
+
+  @override
+  String get clientMemoRecordNone => 'No link';
+
+  @override
+  String get clientMemoRecordEmpty => 'No workouts in the last 14 days';
+
+  @override
+  String clientMemoRecordDay(String month, String day, String weekday) {
+    return '$month/$day ($weekday)';
+  }
+
+  @override
+  String clientMemoRecordPtSession(String date) {
+    return '$date PT session';
+  }
+
+  @override
+  String clientMemoRecordPersonal(String date) {
+    return '$date Personal workout';
+  }
+
+  @override
+  String clientMemoRecordPersonalNamed(String date, String name) {
+    return '$date Personal workout · $name';
+  }
+
+  @override
+  String clientMemoRecordMemberLog(String date) {
+    return '$date Member log';
+  }
+
+  @override
+  String get clientMemoTabMemo => 'Memos';
+
+  @override
+  String get clientMemoTabFeedback => 'Feedback';
+
+  @override
+  String get clientFeedbackPrivate =>
+      'Feedback you and the member exchanged. Tap one to edit it where it was written.';
+
+  @override
+  String get clientFeedbackToMember => 'Trainer → member';
+
+  @override
+  String get clientFeedbackFromMember => 'Member → trainer';
+
+  @override
+  String clientFeedbackSourcePt(String date) {
+    return 'PT · $date';
+  }
+
+  @override
+  String clientFeedbackSourceReport(String date) {
+    return 'Report · week of $date';
+  }
+
+  @override
+  String clientFeedbackSourceWeekly(String date) {
+    return 'Weekly check-in · week of $date';
+  }
+
+  @override
+  String get clientFeedbackWeeklyNoNote => 'No note';
+
+  @override
+  String get clientFeedbackEmpty => 'No feedback exchanged yet.';
+
+  @override
+  String get clientFeedbackLoadFailed =>
+      'Couldn\'t load feedback. Try again in a moment';
+
+  @override
+  String get clientFeedbackSearchHint =>
+      'Search feedback (text, source, direction)';
+
+  @override
+  String get clientFeedbackSearchEmpty => 'No feedback matches your search.';
+
+  @override
   String get followUp => 'Follow-ups';
 
   @override
@@ -4395,6 +4661,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'That date has passed. Pick today or a later date';
 
   @override
+  String get programEditorSending => 'Adding to the schedule';
+
+  @override
+  String get programEditorAlreadySent =>
+      'You just sent this setup. Apply a new one to send again';
+
+  @override
   String get coachSendNetworkFailed =>
       'Check your network connection and try again';
 
@@ -4494,6 +4767,21 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get programEditorAiReapplyTitle =>
+      'Replace the AI exercises with the new plan?';
+
+  @override
+  String programEditorAiReapplyBody(int count) {
+    return 'Replaces the AI exercises added earlier ($count) with the new plan. Exercises you added or edited stay.';
+  }
+
+  @override
+  String get programEditorAiReapplyReplace => 'Replace';
+
+  @override
+  String get programEditorAiReapplyAppend => 'Add after';
+
+  @override
   String programEditorSessionNameTyped(String type) {
     return '$type session';
   }
@@ -4577,6 +4865,76 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get reportsSummaryEmptyClient =>
       'Select a member to see their weekly summary and coaching suggestions here';
+
+  @override
+  String reportsDemoSummarySteadyThisWeek(String name) {
+    return '$name kept workouts and meals on plan this week. Hold this rhythm and consider nudging the training intensity up next week.';
+  }
+
+  @override
+  String reportsDemoSummarySteadyPastWeek(String name) {
+    return '$name kept workouts and meals on plan that week. Hold this rhythm and consider nudging the training intensity up gradually.';
+  }
+
+  @override
+  String reportsDemoSummaryCompletionThisWeek(String name) {
+    return '$name\'s workouts slipped this week. Ask whether the schedule was tight, then rebuild with a shorter routine next week.';
+  }
+
+  @override
+  String reportsDemoSummaryCompletionPastWeek(String name) {
+    return '$name\'s workouts slipped that week. Ask whether the schedule was tight, then rebuild with a shorter routine.';
+  }
+
+  @override
+  String reportsDemoSummarySkippedThisWeek(String name) {
+    return '$name skipped a few exercises this week. Check whether pain or difficulty was the reason and agree on substitutes together.';
+  }
+
+  @override
+  String reportsDemoSummarySkippedPastWeek(String name) {
+    return '$name skipped a few exercises that week. Check whether pain or difficulty was the reason and agree on substitutes together.';
+  }
+
+  @override
+  String reportsDemoSummarySodiumThisWeek(String name) {
+    return '$name had salty meals often this week. Set one small goal together, such as cutting back on soups and processed foods.';
+  }
+
+  @override
+  String reportsDemoSummarySodiumPastWeek(String name) {
+    return '$name had salty meals often that week. Set one small goal together, such as cutting back on soups and processed foods.';
+  }
+
+  @override
+  String reportsDemoSummarySugarThisWeek(String name) {
+    return '$name had sweets and sugary drinks often this week. Start by suggesting fruit or nuts as snacks instead.';
+  }
+
+  @override
+  String reportsDemoSummarySugarPastWeek(String name) {
+    return '$name had sweets and sugary drinks often that week. Start by suggesting fruit or nuts as snacks instead.';
+  }
+
+  @override
+  String reportsDemoSummaryCaloriesThisWeek(String name) {
+    return '$name\'s intake drifted from the calorie goal this week. Review the meal log together for skipped or oversized meals.';
+  }
+
+  @override
+  String reportsDemoSummaryCaloriesPastWeek(String name) {
+    return '$name\'s intake drifted from the calorie goal that week. Review the meal log together for skipped or oversized meals.';
+  }
+
+  @override
+  String reportsDemoSummaryMacroThisWeek(String name) {
+    return '$name\'s carb, protein and fat split differed from the goals this week. Go over meal composition together to rebalance it.';
+  }
+
+  @override
+  String reportsDemoSummaryMacroPastWeek(String name) {
+    return '$name\'s carb, protein and fat split differed from the goals that week. Go over meal composition together to rebalance it.';
+  }
 
   @override
   String get reportsLastWeek => 'Last week';

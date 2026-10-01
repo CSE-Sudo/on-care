@@ -124,6 +124,17 @@ const List<_Client> _clients = <_Client>[
       _Chat('trainer', '혈압약 드시는 시간은 그대로시죠? 유산소가 그 시간과 겹치지 않게 잡을게요', '화 10:26'),
       _Chat('client', '네, 아침 8시 그대로예요', '화 10:29'),
       _Chat('trainer', '확인했어요. 화·목은 15분 저강도로 바꿔서 보냈습니다 🙂', '화 10:34'),
+      // 트레이너가 보낸 첨부(#2663) — 회원 앱 시드와 같은 자리·같은 파일이다
+      // (`frontend/flutter/lib/features/member_coach/data/demo_coach_files.dart`).
+      _Chat(
+        'trainer',
+        '동작 순서는 이 파일로 정리해 뒀어요',
+        '화 10:35',
+        file: _ChatFile.pdfAsset(
+          'tue-thu-15min-program.pdf',
+          'assets/demo/coach-program-tue-thu.pdf',
+        ),
+      ),
       // 2일차.
       _Chat(
         'trainer',
@@ -137,6 +148,16 @@ const List<_Client> _clients = <_Client>[
         '국물만 절반 남기셔도 400~500mg은 빠져요. 그거 하나만 먼저 해보죠',
         '수 12:52',
         dayIndex: 1,
+      ),
+      _Chat(
+        'trainer',
+        '이렇게 국은 건더기 위주로 드시면 돼요',
+        '수 12:53',
+        dayIndex: 1,
+        file: _ChatFile.image(
+          'soup-example.jpeg',
+          'assets/images/diet-doenjang-rice.jpeg',
+        ),
       ),
       _Chat('client', '오늘은 국물 안 마셨어요! 걷기도 25분 했습니다', '수 19:05', dayIndex: 1),
       _Chat('trainer', '좋아요 👏 그 한 가지만 지켜도 추이가 달라져요', '수 19:20', dayIndex: 1),
@@ -1324,10 +1345,13 @@ const List<_Client> _clients = <_Client>[
 /// 읽히기도 했다. 성별은 백엔드 시드(`seed_trainer._MEMBER_GENDERS`)와 같다.
 /// 나이는 회원의 이야기(재활·혈압 관리·첫 운동 …)에 맞춰 골랐다.
 ///
-/// 김민수는 여기 없다 — 그는 회원 앱 데모 계정과 같은 사람이라 공유 픽스처가
-/// 정하는 값을 두 앱이 함께 쓴다.
+/// 김민수(1)의 값은 백엔드 시드의 회원 프로필(`seed_member_data` 의
+/// `birth_date` 1990-01-15, `_MEMBER_GENDERS` 의 male)에서 온다. 예전에는 여기
+/// 없어 id 해시 폴백 나이가 보였는데, 그 폴백이 사라져(#2744) 데모에도 실제
+/// 나이를 둔다.
 const Map<int, ({String gender, int age})> _clientDemographics =
     <int, ({String gender, int age})>{
+      1: (gender: 'male', age: 36),
       2: (gender: 'female', age: 29),
       3: (gender: 'male', age: 34),
       4: (gender: 'female', age: 27),

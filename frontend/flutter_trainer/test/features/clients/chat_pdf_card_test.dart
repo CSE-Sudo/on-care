@@ -12,6 +12,12 @@ import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
 
 class _PdfChatRepository implements ChatRepository {
   @override
+  Future<List<ClientChatMessage>> fetchOlder(
+    String clientId, {
+    required ClientChatMessage before,
+  }) async => const <ClientChatMessage>[];
+
+  @override
   Stream<List<ClientChatMessage>> watchThread(String clientId) =>
       Stream.value(<ClientChatMessage>[
         ClientChatMessage(
@@ -57,6 +63,7 @@ class _NoMemoRepository implements TrainerMemoRepository {
     String? insightId,
     String insightKind = '',
     TrainerMemoRef? ref,
+    TrainerMemoCategory category = TrainerMemoCategory.none,
   }) => throw UnimplementedError();
 
   @override
@@ -68,8 +75,12 @@ class _NoMemoRepository implements TrainerMemoRepository {
       const <TrainerMemo>[];
 
   @override
-  Future<TrainerMemo> update(String clientId, String memoId, String body) =>
-      throw UnimplementedError();
+  Future<TrainerMemo> update(
+    String clientId,
+    String memoId,
+    String body, {
+    TrainerMemoCategory? category,
+  }) => throw UnimplementedError();
 }
 
 void main() {

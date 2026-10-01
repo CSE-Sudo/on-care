@@ -311,7 +311,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
               // 승인·거절 결과를 카드 우측 상단 태그로 바로 보여준다. 대기 중은
               // 태그를 달지 않는다 — 위 `대기 N` 필터가 이미 그 상태를 말하고
               // 있어, 카드마다 또 붙이면 같은 말을 반복하는 셈이다.
-              if (!request.isPending) _StatusTag(status: request.status),
+              if (!request.isPending) _StatusTag(request: request),
             ],
           ),
           const SizedBox(height: OnCareSpacing.s12),
@@ -439,19 +439,25 @@ class _RejectDialogState extends State<_RejectDialog> {
 
 /// 승인·거절 — 카드 우측 상단에 톤으로 구분해 붙인다.
 class _StatusTag extends StatelessWidget {
-  const _StatusTag({required this.status});
+  const _StatusTag({required this.request});
 
-  /// `pending` | `accepted` | `rejected`.
-  final String status;
+  final ConsultationRequest request;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final (String label, AppTagTone tone) = switch (status) {
+    final (String label, AppTagTone tone) = switch (request.status) {
       'accepted' => (l.consultStatusAccepted, AppTagTone.success),
       'rejected' => (l.consultStatusRejected, AppTagTone.danger),
       // 시간 안에 확인하지 못해 자리가 풀린 요청 — 거절(판단)과 구분한다(#1873).
       'expired' => (l.consultStatusExpired, AppTagTone.neutral),
+      // 트레이너가 상담 일정을 취소·삭제해 철회된 신청과 회원이 직접 취소한
+      // 신청을 가른다(#2758). 예전에는 둘 다 `대기중` 으로 보였다.
+      'cancelled' when request.cancelledByTrainer => (
+        l.consultStatusCancelledByTrainer,
+        AppTagTone.neutral,
+      ),
+      'cancelled' => (l.consultStatusCancelled, AppTagTone.neutral),
       _ => (l.consultStatusPending, AppTagTone.caution),
     };
     return AppTag(label: label, tone: tone);

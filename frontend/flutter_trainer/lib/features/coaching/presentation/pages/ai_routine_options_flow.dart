@@ -3,11 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
-import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
-import 'package:oncare_trainer/core/utils/korean_josa.dart';
+import 'package:oncare_trainer/core/utils/korean_josa_l10n.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
@@ -21,6 +20,7 @@ import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggest
 import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_direction.dart';
 import 'package:oncare_trainer/features/coaching/domain/routine_effects.dart';
+import 'package:oncare_trainer/features/coaching/domain/routine_generate_limits.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_duration.dart';
@@ -76,6 +76,7 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
     this.recommendedReason = '',
     this.onReviewCompleted,
     this.onManualCreate,
+    this.onGenerated,
     this.onStepNav,
     this.attachTarget,
     this.onAttach,
@@ -101,6 +102,10 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
 
   /// AI 단계를 종료하고 빈 프로그램 편집기로 전환한다.
   final VoidCallback? onManualCreate;
+
+  /// 후보를 받았다 — 바깥 화면이 "보내지 않은 작성 내용" 으로 센다(#2873).
+  /// 다시 그리게 하지 않는 가벼운 알림이다.
+  final VoidCallback? onGenerated;
 
   /// [embedded] 일 때 단계 진행 줄(`이전` · 다음 단계 버튼)을 바깥에 넘긴다.
   ///
@@ -383,6 +388,12 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
 
   Future<void> _generate() async {
     if (_generating) return;
+    // 칸이 범위 밖 값을 받지 않지만, 범위 밖 요청은 서버가 422 로 거절하므로
+    // 보내기 전에 한 번 더 막는다(#2871).
+    if (_minutesTouched && !isRoutineGenerateMinutesInRange(_minutes)) {
+      _showGenerateRangeError();
+      return;
+    }
     setState(() => _generating = true);
     try {
       final options = await ref
@@ -417,16 +428,28 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         // 기본값)으로 채운다 — 트레이너가 시간만 고쳤다면 강도는 그대로
         // 서버가 계산하도록 둬야 하고, 그 반대도 마찬가지다(#776).
         if (!_minutesTouched) {
-          _minutes = analysis.suggestedAvailableMinutes ?? _minutes;
+          // 칸이 받는 범위로 당겨 채운다 — 범위 밖 값이 다음 요청에 실리면
+          // 서버가 거절한다(#2871).
+          _minutes = clampRoutineGenerateMinutes(
+            analysis.suggestedAvailableMinutes ?? _minutes,
+          );
         }
         if (!_intensityTouched) {
           _intensity = analysis.suggestedIntensity ?? _intensity;
         }
       });
+      widget.onGenerated?.call();
       _scrollToTop();
     } catch (e) {
       if (!mounted) return;
       final AppLocalizations l = AppLocalizations.of(context);
+      // 서버가 입력을 거절했다(422) — 같은 값으로 다시 눌러도 결과가 같으니
+      // 일시 장애처럼 안내하지 않고 조건을 고치게 한다. 서버 상세는 그대로
+      // 내보이지 않는다(#2871).
+      if (e is ValidationError) {
+        _showGenerateRangeError();
+        return;
+      }
       // 한도 초과는 고장이 아니라 잠시 뒤 되는 상태다. 다른 오류와 같은 문구를
       // 쓰면 트레이너가 기능이 깨진 것으로 읽는다(#582).
       showAppToast(
@@ -437,6 +460,19 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     } finally {
       if (mounted) setState(() => _generating = false);
     }
+  }
+
+  /// 생성 조건이 서버 범위를 벗어났다는 안내(#2871).
+  void _showGenerateRangeError() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    showAppToast(
+      context,
+      l.aiGenerateInvalidConditions(
+        kRoutineGenerateMinMinutes,
+        kRoutineGenerateMaxMinutes,
+      ),
+      type: AppToastType.error,
+    );
   }
 
   void _selectChoice(_RoutineChoice choice) {
@@ -572,9 +608,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 도중(`build`)에도 불리므로 여기서 `setState` 를 하면 겹친다.
   void _seedPersonalFromSuggestions() {
     if (_personalSeeded) return;
-    final suggestions = ref
-        .read(routineSuggestionsProvider(widget.client.id))
-        .valueOrNull;
+    final AsyncValue<List<RoutineSuggestion>> async = ref.read(
+      routineSuggestionsProvider(widget.client.id),
+    );
+    // 다시 읽는 중이면 들고 있는 값은 **전송 전의** 목록이다(#2747) — 보낸
+    // 직후 새로 선 위저드가 그 값으로 채우면 방금 보낸 제안이 되살아난다.
+    if (async.isLoading) return;
+    final suggestions = async.valueOrNull;
     // 아직 도착하지 않았다. **채웠다고 표시하지 않는다** — 표시해 버리면
     // 뒤늦게 온 제안이 영영 목록에 들어오지 못하고, 트레이너는 제안이 있는
     // 날에도 빈 목록을 본다.
@@ -611,10 +651,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       // 것은 서버의 AI 제안까지 거절하는 일이다 — 되돌릴 수 있는 범위가 달라
       // 문구도 나눈다.
       // 이름은 조사를 붙여 넘긴다 — `을(를)` 은 사람이 쓴 문장으로 읽히지
-      // 않는다.
+      // 않는다. 영어 화면에는 조사를 붙이지 않는다(#2895).
       message: personal
-          ? l.aiPersonalDismissBody(withObjectJosa(name))
-          : l.aiProgramExerciseRemoveBody(withObjectJosa(name)),
+          ? l.aiPersonalDismissBody(withObjectJosaFor(l, name))
+          : l.aiProgramExerciseRemoveBody(withObjectJosaFor(l, name)),
       confirmLabel: l.actionDelete,
       cancelLabel: l.actionCancel,
       destructive: true,
@@ -674,7 +714,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     }
     if (!mounted) return;
     ref.invalidate(routineSuggestionsProvider(widget.client.id));
-    showAppToast(context, l.aiPersonalDismissed(withTopicJosa(name)));
+    showAppToast(context, l.aiPersonalDismissed(withTopicJosaFor(l, name)));
   }
 
   RoutineExercise _exerciseOfSuggestion(RoutineSuggestion s) =>
@@ -693,6 +733,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         weight: s.weight ?? 0,
         reason: s.reason,
         source: 'ai',
+        // 보낼 때 이 제안을 닫는 데 쓴다(#2747).
+        suggestionId: s.id,
       );
 
   void _goToStage(int stage) {
@@ -1288,6 +1330,11 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     // 선택 칩(`AppChoiceChip`)과 같은 선택 색 — 켜진 자료가 한눈에 갈린다.
     final OnCareTokens tokens = context.oncare;
     final (String label, String range) = switch (source) {
+      // 서버 `_recent_chat_lines` 와 같은 범위다(#2794).
+      RoutineContextSource.recentChat => (
+        l.aiSourceRecentChat,
+        l.aiSourceRangeDays(14, 10),
+      ),
       RoutineContextSource.ptFeedback => (
         l.aiSourcePtFeedback,
         l.aiSourceRangeDays(14, 5),
@@ -1434,6 +1481,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             keyPrefix: 'generation-minutes',
             minutes: _minutes,
             label: l.routineFieldTotalMinutes,
+            // 서버가 받는 범위만 받는다(#2871) — 개별 운동 시간 칸과 다르다.
+            min: kRoutineGenerateMinMinutes,
+            max: kRoutineGenerateMaxMinutes,
+            helper: l.aiGenerateMinutesHelper(
+              kRoutineGenerateMinMinutes,
+              kRoutineGenerateMaxMinutes,
+            ),
             onChanged: (minutes) => setState(() {
               _minutes = minutes;
               _minutesTouched = true;
@@ -1452,21 +1506,17 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     );
   }
 
-  /// 데모(`USE_MOCK_API=true`)에서는 목표 기반 기본 추천 상태를 내보이지 않는다.
-  /// (#1028)
-  ///
-  /// 데모 회원은 축적된 운동 기록이 아예 없어 생성기가 늘
-  /// [RecommendationStatus.template] 을 돌려준다 — 그래서 데모를 열면 언제나
-  /// `목표 기반 루틴 생성`·`목표 기반 기본 추천`만 보였고, 정작 보여 줘야 할
-  /// **데이터 기반 맞춤 흐름**이 화면에 한 번도 나오지 않았다. 실 API 모드는
-  /// 그대로다 — 기록이 적은 실제 회원에게는 그 사실을 계속 말해야 한다.
-  bool get _hideTemplateState => ref.watch(appConfigProvider).useMockApi;
-
   /// Only known after the first generation — before that we haven't seen
   /// the member's analysis yet, so the button stays generic (#776).
+  ///
+  /// 데모와 실서버가 같다(#2674). 예전에는 데모에서 기록 부족(템플릿) 상태를
+  /// 숨겼다(#1028) — 데모 회원에게 기록이 없어 생성기가 늘 템플릿을 돌려줘,
+  /// 데이터 기반 흐름이 한 번도 보이지 않았기 때문이다. 이제 데모도 시드한
+  /// 운동 기록으로 서버와 같은 규칙의 추천 상태를 계산하므로, 기록이 쌓인 회원은
+  /// 학습 중·맞춤 흐름을, 기록이 적은 회원은 그 사실을 그대로 본다.
   String _generateButtonLabel(AppLocalizations l) {
     final status = _options?.analysis.recommendationStatus;
-    return status == RecommendationStatus.template && !_hideTemplateState
+    return status == RecommendationStatus.template
         ? l.aiGenerateGoalBased
         : l.aiGenerateCandidates;
   }
@@ -1479,14 +1529,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       children: <Widget>[
         AppSectionHeader(title: l.aiCompareCandidates, icon: AppIcons.ai),
         const SizedBox(height: OnCareSpacing.s8),
-        // 데모에서는 목표 기반 기본 추천 안내를 띄우지 않는다 —
-        // [_hideTemplateState] 참고.
-        if (!(_hideTemplateState &&
-            options.analysis.recommendationStatus ==
-                RecommendationStatus.template)) ...<Widget>[
-          _RecommendationStatusBanner(analysis: options.analysis),
-          const SizedBox(height: OnCareSpacing.s8),
-        ],
+        // 기록이 적은 회원에게도 그 사실을 말한다 — 데모·실서버 같다(#2674).
+        _RecommendationStatusBanner(analysis: options.analysis),
+        const SizedBox(height: OnCareSpacing.s8),
         Text(
           l.aiBasisGoalCompletion(
                 healthFocusGoalLabel(l, options.analysis.goal),
@@ -1510,12 +1555,11 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             ).copyWith(fontStyle: FontStyle.italic),
           ),
         ],
-        // Only when the AI actually generated these plans. The rule-based
-        // fallback ignores chat entirely, so showing "참고한 최근 대화" next to a
-        // rule plan would claim an input that was never used — the trainer
-        // would think a knee complaint was accounted for when it wasn't.
-        if (options.generatedBy == 'ai' &&
-            options.analysis.recentMessages.isNotEmpty) ...<Widget>[
+        // 규칙형도 최근 대화를 읽는다(#1440) — 통증 부위를 찾아 그 부위에
+        // 부담이 큰 동작을 빼므로, 대화를 참고했다고 말하는 것이 사실이다.
+        // 예전에는 AI 생성일 때만 보여, 규칙형으로 도는 데모와 AI 가 실패한
+        // 주의 실서버에서는 무엇을 보고 동작을 뺐는지 알 수 없었다(#2674).
+        if (options.analysis.recentMessages.isNotEmpty) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s4),
           _ChatEvidence(lines: options.analysis.recentMessages),
         ],
@@ -1945,7 +1989,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     );
     // 제안이 늦게 도착하면 그때 한 번 채운다 — 트레이너가 이미 손댔으면
     // (_personalSeeded) 그대로 둔다.
-    if (suggestions.hasValue && !_personalSeeded) {
+    if (suggestions.hasValue && !suggestions.isLoading && !_personalSeeded) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) setState(_seedPersonalFromSuggestions);
       });

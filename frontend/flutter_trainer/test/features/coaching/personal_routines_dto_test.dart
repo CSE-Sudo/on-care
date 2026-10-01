@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare_trainer/features/coaching/data/dtos/program_draft_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 
 /// PT 에 붙이는 개인운동이 서버로 나가는 모양. (#2223)
 void main() {
@@ -124,6 +125,129 @@ void main() {
 
       expect(body['name'], '걷기');
       expect(body.containsKey('client_request_id'), isFalse);
+    });
+  });
+
+  group('AI 제안 종결 — `suggestion_ids` (#2747)', () {
+    const RoutineExercise fromSuggestion = RoutineExercise(
+      name: '걷기',
+      minutes: 30,
+      type: '유산소',
+      source: 'ai',
+      suggestionId: 'sug-walk',
+    );
+    const RoutineExercise typed = RoutineExercise(
+      name: '계단 오르기',
+      minutes: 15,
+      type: '유산소',
+    );
+
+    test('제안에서 온 줄만 모으고, 겹친 id 는 한 번만 싣는다', () {
+      expect(
+        suggestionIdsOf(const <RoutineExercise>[
+          fromSuggestion,
+          typed,
+          fromSuggestion,
+          RoutineExercise(
+            name: '자전거',
+            minutes: 20,
+            type: '유산소',
+            suggestionId: '',
+          ),
+        ]),
+        <String>['sug-walk'],
+      );
+    });
+
+    test('편집해도 어느 제안에서 왔는지는 남는다', () {
+      final RoutineExercise edited = fromSuggestion.copyWith(minutes: 40);
+
+      expect(edited.minutes, 40);
+      expect(edited.suggestionId, 'sug-walk');
+    });
+
+    test('개인운동만 본문에 제안 id 가 실린다', () {
+      final body = routineOnlyAssignToJson(
+        const <RoutineExercise>[fromSuggestion, typed],
+        programName: '이번 주 개인운동',
+        startDate: '2026-09-25',
+        activeDays: 7,
+      );
+
+      expect(body['suggestion_ids'], <String>['sug-walk']);
+    });
+
+    test('제안에서 온 줄이 없으면 키 자체를 싣지 않는다', () {
+      final body = routineOnlyAssignToJson(
+        const <RoutineExercise>[typed],
+        programName: '이번 주 개인운동',
+        startDate: '2026-09-25',
+        activeDays: 7,
+      );
+
+      expect(body.containsKey('suggestion_ids'), isFalse);
+    });
+
+    test('세션 운동 항목에는 제안 id 가 섞이지 않는다', () {
+      final body = routineOnlyAssignToJson(
+        const <RoutineExercise>[fromSuggestion],
+        programName: '이번 주 개인운동',
+        startDate: '2026-09-25',
+        activeDays: 7,
+      );
+      final session =
+          (body['sessions']! as List<Object?>).single! as Map<String, Object?>;
+      final exercise =
+          (session['exercises']! as List<Object?>).single!
+              as Map<String, Object?>;
+
+      expect(exercise.containsKey('suggestion_ids'), isFalse);
+      expect(exercise.containsKey('suggestion_id'), isFalse);
+    });
+
+    test('PT 일정 추가 본문에도 제안 id 가 실린다', () {
+      final body = programScheduleToJson(
+        assignment: const <String, Object?>{'name': '하체 PT'},
+        date: '2026-09-25',
+        time: '10:00',
+        durationMinutes: 50,
+        clientName: '김민수',
+        personalRoutines: personalRoutinesToJson(const <RoutineExercise>[
+          fromSuggestion,
+        ]),
+        suggestionIds: const <String>['sug-walk'],
+      );
+
+      expect(body['suggestion_ids'], <String>['sug-walk']);
+      expect(body['personal_routines'], hasLength(1));
+    });
+
+    test('이미 있는 PT 에 붙이는 본문에도 제안 id 가 실린다', () {
+      final body = scheduledRoutinesUpdateToJson(const <RoutineExercise>[
+        fromSuggestion,
+        typed,
+      ]);
+
+      expect(body['suggestion_ids'], <String>['sug-walk']);
+      expect(body['personal_routines'], hasLength(2));
+      expect(
+        scheduledRoutinesUpdateToJson(const <RoutineExercise>[
+          typed,
+        ]).containsKey('suggestion_ids'),
+        isFalse,
+      );
+    });
+
+    test('PT 일정 추가에 제안 id 가 없으면 옛 본문 그대로다', () {
+      final body = programScheduleToJson(
+        assignment: const <String, Object?>{'name': '하체 PT'},
+        date: '2026-09-25',
+        time: '10:00',
+        durationMinutes: 50,
+        clientName: '김민수',
+      );
+
+      expect(body.containsKey('suggestion_ids'), isFalse);
     });
   });
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
+import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
@@ -102,10 +104,17 @@ class _SessionProgramEditorState extends ConsumerState<SessionProgramEditor> {
             // 편집기가 보여 주지 않은 값은 그대로 둔다(#1011).
             note: widget.noteOnly ? _note.text.trim() : widget.session.note,
           );
-    } catch (_) {
+    } catch (error) {
       if (mounted) setState(() => _saving = false);
       if (!mounted) return;
-      showAppToast(context, l.progSaveFailed, type: AppToastType.error);
+      // 서버 사유(이미 보낸 프로그램은 고칠 수 없다는 409 등)를 보인다(#2754).
+      showAppToast(
+        context,
+        error is AppError
+            ? serverDetailOr(l, error.message, l.progSaveFailed)
+            : l.progSaveFailed,
+        type: AppToastType.error,
+      );
       return;
     }
     if (!mounted) return;

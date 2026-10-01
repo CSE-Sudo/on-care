@@ -187,11 +187,9 @@ ReportSendRecord? demoCurrentWeekRecord(String clientId, DateTime now) {
   final DateTime monday = weekStartOf(now);
   for (final demo in demoSentReports) {
     if (demo.clientId != clientId) continue;
-    final DateTime day = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: demo.daysAgo));
+    // 달력 날짜로 뺀다 — `Duration` 은 서머타임 전환을 넘으면 전날 23시가
+    // 되어 하루 이른 날로 적힌다(#2774).
+    final DateTime day = DateTime(now.year, now.month, now.day - demo.daysAgo);
     final DateTime sentAt = day.isBefore(monday)
         ? DateTime(monday.year, monday.month, monday.day, demo.hour)
         : DateTime(day.year, day.month, day.day, demo.hour);

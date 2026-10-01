@@ -33,6 +33,14 @@
   "errorServer": "Server error",
   "errorCancelled": "Cancelled",
   "errorUnknown": "Something went wrong",
+  "errorForbidden": "You don't have access to this feature. Please check the required consent or your trainer connection.",
+  "@errorForbidden": {
+    "description": "403 from the server: signed in, but not allowed to use this feature (missing consent or trainer link). Never suggests signing in again (#2859)."
+  },
+  "errorRateLimited": "Too many requests right now. Please try again in a moment.",
+  "@errorRateLimited": {
+    "description": "429 from the server: too many requests; it will work again shortly (#2859)."
+  },
   "dashboardMetricCalories": "Calories",
   "dashboardMetricExercise": "Weekly exercise",
   "homeDashboardLoadError": "Could not load the dashboard.",
@@ -1913,17 +1921,23 @@
     }
   },
   "coachChatInputHint": "Message your trainer...",
-  "coachChatDemoAnalyzed": "AI analyzed your diet and exercise data",
-  "coachChatDemoReportSent": "A summary report was sent to {trainer}",
-  "@coachChatDemoReportSent": {
+  "coachChatRoutineReceived": "Your trainer sent a workout",
+  "coachChatRoutineReceivedPt": "You received a PT program and personal workout",
+  "coachChatRoutineReceivedPersonal": "You received a personal workout",
+  "coachChatRoutineReceivedAfterCancel": "You received a personal workout in place of the cancelled PT",
+  "coachChatRoutineReceivedProgram": "You received a workout program",
+  "coachChatRoutineReceivedMore": "{names} and {count} more",
+  "@coachChatRoutineReceivedMore": {
+    "description": "Routine delivery notice: first names, then how many more.",
     "placeholders": {
-      "trainer": {
+      "names": {
         "type": "String"
+      },
+      "count": {
+        "type": "int"
       }
     }
   },
-  "coachChatDemoRoutineReceived": "You received a personalized workout recommendation",
-  "coachChatDemoNotified": "It was also delivered as a notification",
   "coachChatDateDivider": "{date}",
   "@coachChatDateDivider": {
     "description": "Chat date divider with full date and weekday.",
@@ -2009,6 +2023,30 @@
         "type": "String"
       }
     }
+  },
+  "aicBodyPartKnee": "Knee",
+  "@aicBodyPartKnee": {
+    "description": "Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as \"무릎\" or \"Knee\"."
+  },
+  "aicBodyPartBack": "Back",
+  "@aicBodyPartBack": {
+    "description": "Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as \"허리\" or \"Back\"."
+  },
+  "aicBodyPartAnkle": "Ankle",
+  "@aicBodyPartAnkle": {
+    "description": "Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as \"발목\" or \"Ankle\"."
+  },
+  "aicBodyPartShoulder": "Shoulder",
+  "@aicBodyPartShoulder": {
+    "description": "Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as \"어깨\" or \"Shoulder\"."
+  },
+  "aicBodyPartWrist": "Wrist",
+  "@aicBodyPartWrist": {
+    "description": "Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as \"손목\" or \"Wrist\"."
+  },
+  "aicBodyPartNeck": "Neck",
+  "@aicBodyPartNeck": {
+    "description": "Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as \"목\" or \"Neck\"."
   },
   "aicInsightDiscomfort": "Pain noted",
   "@aicInsightDiscomfort": {
@@ -2167,6 +2205,7 @@
   "exConsultConfirmedAt": "Confirmed time",
   "exConsultExpired": "Expired",
   "exConsultExpiredBody": "The trainer did not respond in time. Try requesting another time.",
+  "exConsultCancelledByTrainerBody": "The trainer cancelled this consultation. Try requesting another time.",
   "exExerciseGoal": "Exercise Goal",
   "exGoalHealth": "Health Management",
   "exOptionOther": "Other",
@@ -2264,6 +2303,7 @@
   "authSignInUnavailable": "Can't sign in right now. Please try again in a moment",
   "authSessionExpired": "Your session has expired. Please sign in again",
   "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment",
+  "authSocialComingSoon": "Social sign-in is coming soon. Please sign in with your email",
   "signUpTitle": "Sign up",
   "signUpSubtitle": "Create an On-Care account and start managing your health",
   "signUpNameHint": "Name",

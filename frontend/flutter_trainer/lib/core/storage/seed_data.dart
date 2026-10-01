@@ -23,7 +23,7 @@ import 'package:oncare_trainer/features/schedule/domain/entities/schedule_sessio
     show ScheduleConsultation;
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart'
-    show ChatAttachmentKind;
+    show ChatAttachmentKind, RoutineDeliveryNotice;
 import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/services/demo_chat_files.dart';
 
@@ -35,10 +35,19 @@ part 'seed_text_en.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v46']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v50']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
+///
+/// `_v50` 은 김민수 대화에 트레이너가 보낸 PDF·사진을 붙였다(#2663). 올리지
+/// 않으면 오늘 이미 시드된 브라우저의 김민수 대화에 그 두 메시지가 없어 회원 앱
+/// 데모와 대화가 갈린다. (#2663 이 맡아 둔 `_v47` 은 그사이 main 이
+/// `_v49` 까지 올라 `_v50` 으로 옮겼다.)
+///
+/// `_v48` 은 김민수의 성별·나이를 로스터에 심었다(#2744). 올리지 않으면 오늘
+/// 이미 시드된 브라우저에서 김민수의 나이 칸이 비어 성별만 보인다. (`_v47` 은
+/// 병렬 작업 #2663 몫이라 건너뛴다.)
 ///
 /// `_v46` 은 김민수를 뺀 회원의 지난 끼니를 최근 4주에서 리포트 이력 전체로
 /// 늘렸다(#2732). 올리지 않으면 오늘 이미 시드된 브라우저에서 4주보다 오래된
@@ -197,7 +206,7 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v46') == today &&
+  if (await db.readValue('trainer_seeded_v50') == today &&
       seededLanguage == language.name) {
     // 일정 행이 동기로 읽는 상담 연결을 저장소에서 되살린다(#2669).
     await loadDemoScheduleConsultations(db);
@@ -421,6 +430,24 @@ Future<void> seedIfEmpty(
           ? 0
           : _lastChat(client.chat).dayIndex;
 
+      // 지난 전송 안내(#2672)의 시각 — 대화의 가장 이른 메시지 20분 전. 보낸
+      // 운동은 이 회원에게 처음 배정된 AI 개인운동이다(배정 시드와 같은 목록).
+      //
+      // 김민수는 빼 둔다 — 그의 대화는 회원 앱 데모와 같은 본문·순서여야 하는데
+      // 회원 앱 데모 대화에는 이 안내가 없다. 데모에서 실제로 보내면 생긴다.
+      final List<_Routine> deliveredRoutines = fromFixture
+          ? const <_Routine>[]
+          : client.aiRoutine;
+      DateTime? deliveryAt;
+      if (client.chat.isNotEmpty && deliveredRoutines.isNotEmpty) {
+        DateTime earliest = chatCreatedAt(client, 0, lastDayIndex);
+        for (var i = 1; i < client.chat.length; i++) {
+          final DateTime at = chatCreatedAt(client, i, lastDayIndex);
+          if (at.isBefore(earliest)) earliest = at;
+        }
+        deliveryAt = earliest.subtract(const Duration(minutes: 20));
+      }
+
       await db.batch((Batch b) {
         b.insertAll(db.clientDietEntries, <ClientDietEntriesCompanion>[
           for (var i = 0; i < diet.length; i++)
@@ -513,6 +540,20 @@ Future<void> seedIfEmpty(
               // 시각 계산은 [chatCreatedAt] 한 곳에서 맡는다.
               createdAt: chatCreatedAt(client, i, lastDayIndex),
             ),
+          // 지난 전송 안내 한 건(#2672) — 이 회원의 첫 배정(시드 AI 운동)을 보낸
+          // 일이다. 실서버는 운동을 보내면 대화 가운데 안내를 남긴다. 대화가
+          // 시작되기 조금 전에 두어 마지막 메시지·안읽음은 그대로다.
+          if (deliveryAt != null)
+            ClientChatMessagesCompanion.insert(
+              id: 'seed-routine-${client.id}',
+              clientId: 'seed-client-${client.id}',
+              sender: 'trainer',
+              body: '',
+              timeLabel:
+                  '${deliveryAt.hour.toString().padLeft(2, '0')}:'
+                  '${deliveryAt.minute.toString().padLeft(2, '0')}',
+              createdAt: deliveryAt,
+            ),
         ]);
       });
 
@@ -529,6 +570,19 @@ Future<void> seedIfEmpty(
             name: file.name,
             asset: file.asset,
             lines: file.lines,
+          ),
+        );
+      }
+      if (deliveryAt != null) {
+        await db.putValue(
+          '${demoRoutineDeliveryKeyPrefix}seed-routine-${client.id}',
+          jsonEncode(
+            RoutineDeliveryNotice(
+              kind: 'routine_only',
+              routineNames: <String>[
+                for (final _Routine r in deliveredRoutines) t(r.name),
+              ],
+            ).toJson(),
           ),
         );
       }
@@ -857,7 +911,7 @@ Future<void> seedIfEmpty(
     await seedDemoNotifications(db, now: now);
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v46', today);
+    await db.putValue('trainer_seeded_v50', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }
@@ -1176,6 +1230,12 @@ class _ChatFile {
   const _ChatFile.pdf(this.name, this.lines)
     : kind = ChatAttachmentKind.pdf,
       asset = null;
+
+  /// 앱 번들에 든 PDF 를 그대로 붙인다 — 트레이너가 보낸 운동 안내처럼 한글
+  /// 문서일 때다(#2663). 회원 앱 데모가 같은 파일을 같은 자리에 둔다.
+  const _ChatFile.pdfAsset(this.name, String this.asset)
+    : kind = ChatAttachmentKind.pdf,
+      lines = const <String>[];
 
   final ChatAttachmentKind kind;
   final String name;

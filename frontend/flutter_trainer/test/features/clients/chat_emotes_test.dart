@@ -17,6 +17,12 @@ import 'package:oncare_ui/oncare_ui.dart';
 
 /// 보낸 것을 적어 두는 대역. 데모처럼 쓰면 스레드가 그대로 다시 흐른다.
 class _RecordingChatRepository implements ChatRepository {
+  @override
+  Future<List<ClientChatMessage>> fetchOlder(
+    String clientId, {
+    required ClientChatMessage before,
+  }) async => const <ClientChatMessage>[];
+
   _RecordingChatRepository({this.seed = const <ClientChatMessage>[]});
 
   final List<ClientChatMessage> seed;

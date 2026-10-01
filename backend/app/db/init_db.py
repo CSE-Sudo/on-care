@@ -10,6 +10,8 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
 
 from pathlib import Path
 
@@ -26,12 +28,25 @@ logger = logging.getLogger(__name__)
 DEMO_USER_ID = "user-7d4e9a2c5f18"
 
 
-def init_db() -> None:
-    settings = get_settings()
+def _ensure_vector_extension(settings) -> None:
+    """pgvector 확장을 켠다 — **create_all 을 쓰는 개발 환경에서만.** (#2912)
 
+    운영은 Alembic 이 스키마의 정답이고 확장도 마이그레이션(`0001_baseline`)이 만든다.
+    그런데도 매 기동마다 `CREATE EXTENSION` 을 보내면, 이미 있어도 권한 확인과 카탈로그
+    잠금을 거치고 확장 생성 권한이 없는 운영 DB 역할에서는 경고·실패의 원인이 된다.
+    create_all 은 vector 타입이 있어야 테이블을 만들 수 있으니 개발에서는 그대로 둔다.
+    """
+    if not settings.auto_create_tables:
+        return
     with engine.connect() as conn:
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         conn.commit()
+
+
+def init_db() -> None:
+    settings = get_settings()
+
+    _ensure_vector_extension(settings)
 
     # 개발 편의: create_all(멱등). 운영은 Alembic(`alembic upgrade head`)을 정답으로 삼고
     # AUTO_CREATE_TABLES=false 로 꺼둔다.
@@ -564,6 +579,46 @@ def _seed_exercise_catalog() -> None:
 
 
 _PUBLIC_COACH_DOCS_VERSION = "coach_public_docs"
+#: 공개 문서 재적재를 한 인스턴스로 묶는 advisory lock 키(#2912).
+_PUBLIC_COACH_DOCS_LOCK = "seed:coach_public_docs"
+
+
+@contextmanager
+def _session_advisory_lock(key: str) -> Iterator[bool]:
+    """세션 단위 advisory lock 을 **전용 연결**에서 기다리지 않고 잡는다.
+
+    트랜잭션 잠금(`pg_advisory_xact_lock`)은 커밋마다 풀려, 커밋을 여러 번 하는
+    작업을 끝까지 묶지 못한다. 세션 잠금은 커밋과 무관하게 연결이 살아 있는 동안
+    유지되므로, 작업 세션과 다른 연결에 쥐어 두고 끝나면 직접 푼다. 프로세스가
+    죽으면 연결이 끊기며 DB 가 잠금을 풀어 준다.
+
+    잡았으면 True, 다른 연결이 쥐고 있으면 False 를 내준다.
+    """
+    conn = engine.connect()
+    try:
+        acquired = bool(
+            conn.execute(
+                text("SELECT pg_try_advisory_lock(hashtext(:key))"), {"key": key}
+            ).scalar()
+        )
+        # 잠금을 쥔 채 'idle in transaction' 으로 남지 않게 트랜잭션은 닫는다.
+        conn.commit()
+        try:
+            yield acquired
+        finally:
+            if acquired:
+                try:
+                    conn.execute(
+                        text("SELECT pg_advisory_unlock(hashtext(:key))"), {"key": key}
+                    )
+                    conn.commit()
+                except Exception:  # noqa: BLE001
+                    # 풀지 못한 잠금을 쥔 연결을 풀에 돌려보내지 않는다 — 버리면
+                    # 연결이 끊기며 DB 가 잠금을 푼다.
+                    conn.invalidate()
+                    raise
+    finally:
+        conn.close()
 
 #: 시드가 넣은 공개 문서의 `source`. 관리자가 직접 올린 공공 문서
 #: (`POST /coach/documents/public`, 기본 `source="public"`)와 구분하려고 따로 둔다 —
@@ -587,7 +642,6 @@ def _seed_public_coach_docs() -> None:
     기동에서 다시 시도한다 — 여기서 적어 두면 빈 근거가 최신 상태로 굳는다.
     """
     from app.data.coach_public_docs import PUBLIC_DOCS
-    from app.services.coach.rag import ingest_document
 
     docs = [
         {"title": doc.title, "domain": doc.domain, "content": doc.read()}
@@ -614,50 +668,66 @@ def _seed_public_coach_docs() -> None:
     try:
         if up_to_date(db):
             return
-        # 같은 DB 를 쓰는 인스턴스가 동시에 뜨면 한 곳만 바꾼다. 임베딩까지 잠금
-        # 안에서 도는데, 경쟁하는 쪽은 같이 기동하는 인스턴스뿐이다.
-        db.execute(
-            text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
-            {"key": "seed:coach_public_docs"},
-        )
-        db.expire_all()
-        if up_to_date(db):
-            db.rollback()
-            return
-
-        db.execute(
-            delete(models.CoachDocument).where(
-                models.CoachDocument.user_id.is_(None),
-                models.CoachDocument.source == PUBLIC_DOC_SOURCE,
-            )
-        )
-        failed = 0
-        for doc in docs:
-            try:
-                ingest_document(
-                    db, doc["content"], user_id=None,
-                    domain=doc["domain"], source=PUBLIC_DOC_SOURCE,
-                    title=doc["title"],
-                )
-            except Exception:  # noqa: BLE001 — 적재 실패가 기동을 막지 않도록
-                # 조용히 삼키면 RAG 가 빈 채로 코치가 규칙 폴백에 갇혀 원인 파악이
-                # 어렵다.
-                logger.warning(
-                    "공개 근거 문서 적재 실패 — 임베딩 제공자(EMBEDDER) 설정 확인 필요: %s",
-                    doc["title"],
-                    exc_info=True,
-                )
-                failed += 1
+        db.rollback()
+        # 같은 DB 를 쓰는 인스턴스가 동시에 뜨면 한 곳만 바꾼다(#2912). 문서마다
+        # 커밋하므로 트랜잭션 잠금은 첫 커밋에서 풀린다 — 세션 잠금을 전용 연결로
+        # 끝까지 쥔다. 기다리지 않는다: 잠금을 못 잡았으면 다른 인스턴스가 같은
+        # DB 에 같은 문서를 적재하는 중이고, 이 인스턴스가 임베딩 API 를 기다리며
+        # 기동을 늦출 이유가 없다. 그쪽이 실패하면 지문이 남지 않아 다음 기동이
+        # 다시 시도한다.
+        with _session_advisory_lock(_PUBLIC_COACH_DOCS_LOCK) as acquired:
+            if not acquired:
+                logger.info("다른 인스턴스가 공개 근거 문서를 적재하고 있어 건너뛴다.")
+                return
+            db.expire_all()
+            if up_to_date(db):
                 db.rollback()
-        if failed:
-            return
-        db.merge(models.ReferenceDataVersion(
-            name=_PUBLIC_COACH_DOCS_VERSION, fingerprint=fingerprint
-        ))
-        db.commit()
+                return
+            if not _reload_public_coach_docs(db, docs, fingerprint):
+                return
     finally:
         db.close()
     logger.info("공개 근거 문서를 다시 적재했다(%d건)", len(docs))
+
+
+def _reload_public_coach_docs(db: Session, docs: list[dict], fingerprint: str) -> bool:
+    """시드 공개 문서를 [docs] 로 바꾸고 지문을 남긴다. 하나라도 실패하면 False.
+
+    잠금은 호출자가 쥔다.
+    """
+    from app.services.coach.rag import ingest_document
+
+    db.execute(
+        delete(models.CoachDocument).where(
+            models.CoachDocument.user_id.is_(None),
+            models.CoachDocument.source == PUBLIC_DOC_SOURCE,
+        )
+    )
+    failed = 0
+    for doc in docs:
+        try:
+            ingest_document(
+                db, doc["content"], user_id=None,
+                domain=doc["domain"], source=PUBLIC_DOC_SOURCE,
+                title=doc["title"],
+            )
+        except Exception:  # noqa: BLE001 — 적재 실패가 기동을 막지 않도록
+            # 조용히 삼키면 RAG 가 빈 채로 코치가 규칙 폴백에 갇혀 원인 파악이
+            # 어렵다.
+            logger.warning(
+                "공개 근거 문서 적재 실패 — 임베딩 제공자(EMBEDDER) 설정 확인 필요: %s",
+                doc["title"],
+                exc_info=True,
+            )
+            failed += 1
+            db.rollback()
+    if failed:
+        return False
+    db.merge(models.ReferenceDataVersion(
+        name=_PUBLIC_COACH_DOCS_VERSION, fingerprint=fingerprint
+    ))
+    db.commit()
+    return True
 
 
 def _seed_demo_places() -> None:

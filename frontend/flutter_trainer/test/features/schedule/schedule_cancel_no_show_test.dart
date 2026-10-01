@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
+import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
@@ -19,6 +20,10 @@ void main() {
     late AppDatabase db;
 
     setUp(() async {
+      // 오늘의 끝 — 노쇼는 시작 시각이 지난 수업에만 적힌다(#2760). 실제 시각에
+      // 맡기면 아래 노쇼 테스트가 오늘 16:00 수업 전에 돌 때 깨진다.
+      final DateTime real = nowKst();
+      useFixedKstDate(DateTime(real.year, real.month, real.day, 23, 59));
       db = AppDatabase.forTesting(NativeDatabase.memory());
       await seedIfEmpty(db);
     });
@@ -155,7 +160,8 @@ void main() {
         tester,
         token: 'demo-trainer-token',
         at: AppRoutes.schedule,
-        seedClock: kMidWeekKst,
+        // 오늘 수업이 모두 시작한 뒤 — 완료·노쇼가 열린다(#2760).
+        seedClock: kMidWeekEveningKst,
       );
     }
 

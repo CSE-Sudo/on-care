@@ -119,7 +119,39 @@ void main() {
       expect(c.weekCompletion, <int>[100, 50]);
       expect(c.sodiumWeek, isEmpty);
       expect(c.active, isFalse); // absent → false
-      expect(c.rosterAge, inInclusiveRange(20, 39));
+      // 생년월일이 없는 회원은 나이를 지어내지 않는다(#2744).
+      expect(c.age, isNull);
+      expect(c.rosterAge, isNull);
+    });
+
+    test('reads the server age as-is and keeps null as null (#2744)', () {
+      final withAge = trainerClientFromJson(<String, Object?>{
+        'id': 'user-a',
+        'age': 41,
+      });
+      final webDouble = trainerClientFromJson(<String, Object?>{
+        'id': 'user-b',
+        'age': 29.0, // 웹 JSON 은 정수를 double 로 줄 수 있다
+      });
+      final noAge = trainerClientFromJson(<String, Object?>{
+        'id': 'user-c',
+        'age': null,
+      });
+
+      expect(withAge.rosterAge, 41);
+      expect(webDouble.rosterAge, 29);
+      expect(noAge.rosterAge, isNull);
+    });
+
+    test('two members without a birth date both show no age (#2744)', () {
+      // 예전에는 id 해시로 20~39 사이 값을 지어내 id 마다 다른 나이가 떴다.
+      for (final String id in <String>['user-sera', 'seed-client-8', 'x']) {
+        expect(
+          trainerClientFromJson(<String, Object?>{'id': id}).rosterAge,
+          isNull,
+          reason: id,
+        );
+      }
     });
   });
 

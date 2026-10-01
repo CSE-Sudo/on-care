@@ -26,6 +26,7 @@ ConsultationRequest _request({
   DateTime? createdAt,
   DateTime? slotStartsAt,
   int? slotDurationMinutes,
+  bool cancelledByTrainer = false,
 }) => ConsultationRequest(
   id: id,
   memberId: 'user-$id',
@@ -40,6 +41,7 @@ ConsultationRequest _request({
   message: message,
   status: status,
   createdAt: createdAt,
+  cancelledByTrainer: cancelledByTrainer,
 );
 
 /// A stand-in inbox that reports itself enabled (so the nav row renders)
@@ -338,6 +340,29 @@ void main() {
     expect(find.text('승인됨'), findsOneWidget);
     expect(find.text('승인'), findsNothing);
   });
+
+  for (final (bool byTrainer, String label) in <(bool, String)>[
+    (true, '일정 취소로 철회'),
+    (false, '취소됨'),
+  ]) {
+    testWidgets('취소된 신청은 대기중이 아니라 $label 로 보인다 (#2758)', (tester) async {
+      final repo = _FakeConsultationRepository(
+        requests: <ConsultationRequest>[
+          _request(status: 'cancelled', cancelledByTrainer: byTrainer),
+        ],
+      );
+      await _pumpInbox(tester, repo);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('consultation-filter-all')),
+      );
+      await settle(tester);
+
+      expect(_inInbox(find.text(label)), findsOneWidget);
+      expect(_inInbox(find.text('대기중')), findsNothing);
+      // 끝난 신청이라 결정 버튼이 없다.
+      expect(_inInbox(find.text('승인')), findsNothing);
+    });
+  }
 
   testWidgets('an empty inbox explains itself instead of showing nothing', (
     tester,

@@ -54,7 +54,8 @@ void main() {
         tester,
         token: 'demo-trainer-token',
         at: AppRoutes.schedule,
-        seedClock: kMidWeekKst,
+        // 오늘 수업이 모두 시작한 뒤 — 완료·노쇼가 열린다(#2760).
+        seedClock: kMidWeekEveningKst,
         extraOverrides: <Override>[
           scheduleRepositoryProvider.overrideWith((ref) {
             repo = _NoRoutineRepository(ref.watch(appDatabaseProvider));

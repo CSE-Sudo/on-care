@@ -224,6 +224,18 @@ abstract class AppLocalizations {
   /// **'Something went wrong'**
   String get errorUnknown;
 
+  /// 403 from the server: signed in, but not allowed to use this feature (missing consent or trainer link). Never suggests signing in again (#2859).
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have access to this feature. Please check the required consent or your trainer connection.'**
+  String get errorForbidden;
+
+  /// 429 from the server: too many requests; it will work again shortly (#2859).
+  ///
+  /// In en, this message translates to:
+  /// **'Too many requests right now. Please try again in a moment.'**
+  String get errorRateLimited;
+
   /// No description provided for @dashboardMetricCalories.
   ///
   /// In en, this message translates to:
@@ -4453,29 +4465,41 @@ abstract class AppLocalizations {
   /// **'Message your trainer...'**
   String get coachChatInputHint;
 
-  /// No description provided for @coachChatDemoAnalyzed.
+  /// No description provided for @coachChatRoutineReceived.
   ///
   /// In en, this message translates to:
-  /// **'AI analyzed your diet and exercise data'**
-  String get coachChatDemoAnalyzed;
+  /// **'Your trainer sent a workout'**
+  String get coachChatRoutineReceived;
 
-  /// No description provided for @coachChatDemoReportSent.
+  /// No description provided for @coachChatRoutineReceivedPt.
   ///
   /// In en, this message translates to:
-  /// **'A summary report was sent to {trainer}'**
-  String coachChatDemoReportSent(String trainer);
+  /// **'You received a PT program and personal workout'**
+  String get coachChatRoutineReceivedPt;
 
-  /// No description provided for @coachChatDemoRoutineReceived.
+  /// No description provided for @coachChatRoutineReceivedPersonal.
   ///
   /// In en, this message translates to:
-  /// **'You received a personalized workout recommendation'**
-  String get coachChatDemoRoutineReceived;
+  /// **'You received a personal workout'**
+  String get coachChatRoutineReceivedPersonal;
 
-  /// No description provided for @coachChatDemoNotified.
+  /// No description provided for @coachChatRoutineReceivedAfterCancel.
   ///
   /// In en, this message translates to:
-  /// **'It was also delivered as a notification'**
-  String get coachChatDemoNotified;
+  /// **'You received a personal workout in place of the cancelled PT'**
+  String get coachChatRoutineReceivedAfterCancel;
+
+  /// No description provided for @coachChatRoutineReceivedProgram.
+  ///
+  /// In en, this message translates to:
+  /// **'You received a workout program'**
+  String get coachChatRoutineReceivedProgram;
+
+  /// Routine delivery notice: first names, then how many more.
+  ///
+  /// In en, this message translates to:
+  /// **'{names} and {count} more'**
+  String coachChatRoutineReceivedMore(String names, int count);
 
   /// Chat date divider with full date and weekday.
   ///
@@ -4608,6 +4632,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{part} pain noted'**
   String aicInsightDiscomfortPart(String part);
+
+  /// Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as "무릎" or "Knee".
+  ///
+  /// In en, this message translates to:
+  /// **'Knee'**
+  String get aicBodyPartKnee;
+
+  /// Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as "허리" or "Back".
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get aicBodyPartBack;
+
+  /// Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as "발목" or "Ankle".
+  ///
+  /// In en, this message translates to:
+  /// **'Ankle'**
+  String get aicBodyPartAnkle;
+
+  /// Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as "어깨" or "Shoulder".
+  ///
+  /// In en, this message translates to:
+  /// **'Shoulder'**
+  String get aicBodyPartShoulder;
+
+  /// Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as "손목" or "Wrist".
+  ///
+  /// In en, this message translates to:
+  /// **'Wrist'**
+  String get aicBodyPartWrist;
+
+  /// Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as "목" or "Neck".
+  ///
+  /// In en, this message translates to:
+  /// **'Neck'**
+  String get aicBodyPartNeck;
 
   /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
@@ -4944,6 +5004,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The trainer did not respond in time. Try requesting another time.'**
   String get exConsultExpiredBody;
+
+  /// No description provided for @exConsultCancelledByTrainerBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The trainer cancelled this consultation. Try requesting another time.'**
+  String get exConsultCancelledByTrainerBody;
 
   /// No description provided for @exExerciseGoal.
   ///
@@ -5370,6 +5436,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Social sign-in failed. Please try again in a moment'**
   String get authSocialSignInFailed;
+
+  /// No description provided for @authSocialComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Social sign-in is coming soon. Please sign in with your email'**
+  String get authSocialComingSoon;
 
   /// No description provided for @signUpTitle.
   ///

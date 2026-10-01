@@ -3,9 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
+import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -31,6 +38,146 @@ String _monthDay(String? day) {
   if (parsed == null) return day ?? '';
   return '${parsed.month}/${parsed.day}';
 }
+
+/// 메모 분류 칩·태그 이름(#2622). 메모 창 칩과 목록 태그가 같은 말을 쓴다.
+String memoCategoryLabel(AppLocalizations l, TrainerMemoCategory category) =>
+    switch (category) {
+      TrainerMemoCategory.exercise => l.clientMemoCategoryExercise,
+      TrainerMemoCategory.diet => l.clientMemoCategoryDiet,
+      TrainerMemoCategory.pain => l.clientMemoCategoryPain,
+      TrainerMemoCategory.life => l.clientMemoCategoryLife,
+      TrainerMemoCategory.none => l.clientMemoTagManual,
+    };
+
+/// 메모 창 `운동 기록 연결` 이 보여 주는 기간 — 오늘 포함 14일. (#2622)
+///
+/// AI 프로그램 추천이 직접 쓴 메모를 읽는 기간(`TRAINER_MEMO_LOOKBACK_DAYS`)과
+/// 같다 — 그보다 오래된 기록에 지금 메모를 붙일 일은 드물다.
+const int memoRecordLookbackDays = 14;
+
+/// 메모 창 `운동 기록 연결` 드롭다운의 한 줄 — `9/30 (수) PT 세션`. (#2622)
+String memoRecordOptionLabel(AppLocalizations l, TrainerMemoRef ref) {
+  final DateTime? day = ref.day == null ? null : DateTime.tryParse(ref.day!);
+  final String date = day == null
+      ? (ref.day ?? '')
+      : l.clientMemoRecordDay(
+          '${day.month}',
+          '${day.day}',
+          weekdayNames(l)[day.weekday - 1],
+        );
+  return switch (ref.kind) {
+    TrainerMemoRefKind.ptSession => l.clientMemoRecordPtSession(date),
+    TrainerMemoRefKind.personal when ref.name.isNotEmpty =>
+      l.clientMemoRecordPersonalNamed(date, ref.name),
+    TrainerMemoRefKind.personal => l.clientMemoRecordPersonal(date),
+    TrainerMemoRefKind.memberLog => l.clientMemoRecordMemberLog(date),
+  };
+}
+
+/// 운동 이력 카드 하나가 가리키는 기록 — 운동 탭 카드(`_HistoryCard`)와 같은
+/// 규칙이다. 같은 기록이면 어느 자리에서 남겨도 같은 메모가 된다.
+TrainerMemoRef memoRefForHistory(RoutineHistoryEntry entry) {
+  final DateTime? day = entry.date ?? entry.completedAt;
+  // 데모 이력은 코드 없이 고정 이름만 갖는다 — 이름으로도 종류를 찾는다.
+  final String? code = routineKindCode(entry.label, kind: entry.kind);
+  return TrainerMemoRef(
+    kind: code == 'pt_session'
+        ? TrainerMemoRefKind.ptSession
+        : TrainerMemoRefKind.personal,
+    id: entry.id,
+    day: day == null ? null : ymd(day),
+    // 고정 이름(`AI 개인운동` 등)은 코드가 있어 화면이 번역한다.
+    name: code == null ? entry.label : '',
+  );
+}
+
+/// 최근 [memoRecordLookbackDays] 일 동안 메모를 이을 수 있는 운동 기록, 최신
+/// 먼저. (#2622)
+///
+/// 운동 탭이 메모 아이콘을 다는 카드와 같은 것들이다 — PT 세션·개인 운동 이력
+/// 카드(id 가 있는 것)와, 회원이 직접 적은 운동이 있는 날의 `회원 기록` 하나씩.
+/// 같은 날 안에서는 PT → 개인 운동 → 회원 기록 순서다.
+final memoRecordOptionsProvider = FutureProvider.autoDispose
+    .family<List<TrainerMemoRef>, String>((ref, clientId) async {
+      final DateTime now = nowKst();
+      final DateTime today = DateTime(now.year, now.month, now.day);
+      final DateTime from = DateTime(
+        today.year,
+        today.month,
+        today.day - (memoRecordLookbackDays - 1),
+      );
+      bool inRange(DateTime day) {
+        final DateTime d = DateTime(day.year, day.month, day.day);
+        return !d.isBefore(from) && !d.isAfter(today);
+      }
+
+      final List<RoutineHistoryEntry> history = await ref.watch(
+        clientHistoryProvider(clientId).future,
+      );
+      final List<TrainerMemoRef> refs = <TrainerMemoRef>[];
+      final Map<String, Set<String>> historyNamesByDay =
+          <String, Set<String>>{};
+      for (final RoutineHistoryEntry entry in history) {
+        final DateTime? day = entry.date ?? entry.completedAt;
+        // id 를 잃은 옛 기록은 운동 탭에서도 메모 자리가 없다.
+        if (entry.id.isEmpty || day == null || !inRange(day)) continue;
+        refs.add(memoRefForHistory(entry));
+        historyNamesByDay
+            .putIfAbsent(ymd(day), () => <String>{})
+            .addAll(entry.exercises.map((item) => item.name.trim()));
+      }
+
+      // 회원 직접 기록은 주 단위 운동 조회에 실려 온다(운동 탭과 같은 출처).
+      final ClientRepository repo = ref.watch(clientRepositoryProvider);
+      for (
+        DateTime monday = weekStartOf(from);
+        !monday.isAfter(today);
+        monday = DateTime(monday.year, monday.month, monday.day + 7)
+      ) {
+        final ClientExerciseWeek week = await repo.fetchExerciseWeek(
+          clientId,
+          weekStart: monday,
+        );
+        for (final (int i, String label) in week.dayLabels.indexed) {
+          final DateTime day = DateTime(
+            monday.year,
+            monday.month,
+            monday.day + i,
+          );
+          if (!inRange(day)) continue;
+          final Set<String> inHistory =
+              historyNamesByDay[ymd(day)] ?? const <String>{};
+          final List<ClientExerciseItem> items =
+              week.itemsByDayLabel[label] ?? const <ClientExerciseItem>[];
+          // 운동 탭의 `회원 기록` 카드와 같은 판정 — 이력 카드가 이미 말하는
+          // 운동만 있는 날은 따로 카드가 서지 않는다.
+          if (items.any(
+            (ClientExerciseItem item) =>
+                item.isMemberLog && !inHistory.contains(item.name.trim()),
+          )) {
+            refs.add(
+              TrainerMemoRef(kind: TrainerMemoRefKind.memberLog, day: ymd(day)),
+            );
+          }
+        }
+      }
+
+      int rank(TrainerMemoRefKind kind) => switch (kind) {
+        TrainerMemoRefKind.ptSession => 0,
+        TrainerMemoRefKind.personal => 1,
+        TrainerMemoRefKind.memberLog => 2,
+      };
+      refs.sort((TrainerMemoRef a, TrainerMemoRef b) {
+        final int byDay = (b.day ?? '').compareTo(a.day ?? '');
+        if (byDay != 0) return byDay;
+        return rank(a.kind).compareTo(rank(b.kind));
+      });
+      return refs;
+    });
+
+/// 두 기록 연결이 같은 기록을 가리키는가 — 드롭다운 선택 비교에 쓴다.
+bool sameMemoRecord(TrainerMemoRef a, TrainerMemoRef b) =>
+    a.kind == b.kind && a.id == b.id && a.day == b.day;
 
 /// [memo] 가 [ref] 가 가리키는 기록에서 남긴 메모인가.
 bool _isFor(TrainerMemo memo, TrainerMemoRef ref) {
