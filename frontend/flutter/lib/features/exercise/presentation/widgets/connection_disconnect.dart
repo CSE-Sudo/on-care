@@ -40,15 +40,12 @@ Future<bool> confirmDisconnect(
   // 담당 코치도 더는 내 코치가 아니다(#1865). 다시 읽지 않으면 헤더의 대화
   // 버튼이 여전히 트레이너 채팅으로 가고, AI 챗봇 입구로 바뀌지 않는다(#1840).
   // 그 코치에 딸린 화면(배정 운동·PT 일정·대화·미읽음)도 함께 비워야 한다.
-  ref
-    ..invalidate(memberCoachProvider)
-    ..invalidate(coachRoutinesProvider)
-    ..invalidate(coachSessionsProvider)
-    ..invalidate(coachChatProvider)
-    ..invalidate(coachUnreadProvider)
-    // 담당이 없는 회원에게만 담당 요청이 온다. 데모는 요청을 앱을 켤 때 한 번만
-    // 받아서, 다시 읽지 않으면 끊은 뒤 온 요청 창이 뜨지 않는다(#2659).
-    ..invalidate(coachInvitesProvider);
+  // 묶음은 앱 복귀 재확인과 같은 목록이다(#2843).
+  ref.invalidate(memberCoachProvider);
+  invalidateCoachBoundData(ref.invalidate);
+  // 담당이 없는 회원에게만 담당 요청이 온다. 데모는 요청을 앱을 켤 때 한 번만
+  // 받아서, 다시 읽지 않으면 끊은 뒤 온 요청 창이 뜨지 않는다(#2659).
+  ref.invalidate(coachInvitesProvider);
   return true;
 }
 

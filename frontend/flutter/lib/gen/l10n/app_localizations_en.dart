@@ -2288,6 +2288,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachChatLoadFailed => 'Couldn\'t load the conversation';
 
   @override
+  String get coachChatUnassigned =>
+      'Your trainer is no longer assigned, so you can\'t send messages here';
+
+  @override
   String get coachChatSendFailed =>
       'Couldn\'t send your message. Please try again';
 
@@ -3836,6 +3840,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get coachTrainerNone =>
       'You don\'t have a trainer yet. Connect a gym and trainer from the Exercise tab';
+
+  @override
+  String get coachTrainerLoadFailed => 'Couldn\'t load your trainer';
+
+  @override
+  String get coachTrainerRetrying =>
+      'Couldn\'t load your trainer. Trying again';
 
   @override
   String get alertCategoryReminder => 'Reminder';

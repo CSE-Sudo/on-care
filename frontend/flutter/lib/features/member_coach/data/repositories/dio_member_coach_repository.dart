@@ -115,6 +115,8 @@ class DioMemberCoachRepository implements MemberCoachRepository {
     final List<CoachMessage> messages = await _getList(
       '/me/coach/chat',
       coachMessageFromJson,
+      // 대화의 404 는 "기록 없음" 이 아니라 담당 해제다(#2843).
+      notFoundMeansUnassigned: true,
       // 커서는 시각과 id 를 함께 넘긴다 — 같은 초에 들어온 메시지가 둘이면
       // 시각만으로는 경계가 갈리지 않는다(서버도 같은 짝으로 본다).
       query: before == null
@@ -137,6 +139,8 @@ class DioMemberCoachRepository implements MemberCoachRepository {
       activePollingStream<List<CoachMessage>>(
         load: fetchChat,
         interval: pollInterval,
+        // 해제는 잠깐의 실패가 아니다 — 받아 둔 대화가 있어도 알린다.
+        surfaceError: (Object error) => error is CoachUnassignedException,
       );
 
   @override
@@ -321,6 +325,7 @@ class DioMemberCoachRepository implements MemberCoachRepository {
     String path,
     T Function(Map<String, Object?>) fromJson, {
     Map<String, Object?>? query,
+    bool notFoundMeansUnassigned = false,
   }) async {
     try {
       final res = await _dio.get<List<dynamic>>(path, queryParameters: query);
@@ -334,7 +339,10 @@ class DioMemberCoachRepository implements MemberCoachRepository {
           })
           .toList(growable: false);
     } on DioException catch (e) {
-      if (e.response?.statusCode == 404) return <T>[];
+      if (e.response?.statusCode == 404) {
+        if (notFoundMeansUnassigned) throw const CoachUnassignedException();
+        return <T>[];
+      }
       throw AppError.fromDio(e);
     }
   }

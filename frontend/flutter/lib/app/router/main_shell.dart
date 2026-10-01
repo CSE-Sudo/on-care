@@ -101,6 +101,15 @@ class _MainShellState extends ConsumerState<MainShell>
     ref.invalidate(coachRoutinesProvider);
     ref.invalidate(coachRoutinesOnDayProvider);
     ref.invalidate(coachSessionsProvider);
+    _recheckCoach();
+  }
+
+  /// 앱을 떠난 사이 트레이너가 담당을 해제했을 수 있다 — 담당 코치를 다시 읽고,
+  /// 사라졌으면 헤더·홈 트레이너 카드·대화가 함께 바뀐다(#2843).
+  void _recheckCoach() {
+    unawaited(
+      recheckMemberCoach(ProviderScope.containerOf(context, listen: false)),
+    );
   }
 
   void _refreshBranch(int index) {
@@ -109,6 +118,7 @@ class _MainShellState extends ConsumerState<MainShell>
         ref.invalidate(dashboardSummaryProvider);
         ref.invalidate(dietRecommendationsProvider);
         ref.invalidate(coachSessionsProvider);
+        _recheckCoach();
         break;
       case 1:
         // 방금 저장한 끼니가 보이도록 그날 자료를 다시 읽는다 — 저장 전 캐시가

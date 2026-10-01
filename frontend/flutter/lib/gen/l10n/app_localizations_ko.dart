@@ -2215,6 +2215,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachChatLoadFailed => '대화를 불러오지 못했어요';
 
   @override
+  String get coachChatUnassigned => '담당이 해제되어 더 이상 대화를 보낼 수 없어요';
+
+  @override
   String get coachChatSendFailed => '메시지 전송에 실패했어요. 다시 시도해 주세요';
 
   @override
@@ -3685,6 +3688,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachTrainerNone => '담당 트레이너가 아직 없어요. 운동 탭에서 헬스장·트레이너를 연결해 보세요';
+
+  @override
+  String get coachTrainerLoadFailed => '담당 트레이너 정보를 불러오지 못했어요';
+
+  @override
+  String get coachTrainerRetrying => '담당 트레이너 정보를 불러오지 못해 다시 불러오고 있어요';
 
   @override
   String get alertCategoryReminder => '리마인더';

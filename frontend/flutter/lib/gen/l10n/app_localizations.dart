@@ -4010,6 +4010,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the conversation'**
   String get coachChatLoadFailed;
 
+  /// Trainer chat notice shown instead of the thread once the server reports the assignment ended; the input is disabled (#2843).
+  ///
+  /// In en, this message translates to:
+  /// **'Your trainer is no longer assigned, so you can\'t send messages here'**
+  String get coachChatUnassigned;
+
   /// No description provided for @coachChatSendFailed.
   ///
   /// In en, this message translates to:
@@ -6653,6 +6659,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You don\'t have a trainer yet. Connect a gym and trainer from the Exercise tab'**
   String get coachTrainerNone;
+
+  /// Home trainer card title when the assigned-trainer lookup failed (not a confirmed 'no trainer') (#2843).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your trainer'**
+  String get coachTrainerLoadFailed;
+
+  /// Toast from the header chat button when the assigned-trainer lookup failed; tapping also retries (#2843).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your trainer. Trying again'**
+  String get coachTrainerRetrying;
 
   /// Notification category badge.
   ///

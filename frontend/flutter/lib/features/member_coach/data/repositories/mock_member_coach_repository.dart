@@ -718,9 +718,11 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
       // 서버와 같은 쪽을 준다 — 최신 [chatPageSize] 건, 커서가 있으면 그 앞 한
       // 쪽(#2640). 전부를 한 번에 주면 쪽 사이의 경계가 데모에서만 없어 보인다.
+      // 끊겼으면 실서버의 404 처럼 해제 신호를 준다(#2843) — 빈 목록이면
+      // 대화방이 안내 없이 비어 보인다.
       _hasCoach()
       ? List<CoachMessage>.unmodifiable(pageCoachChat(_chat, before: before))
-      : const <CoachMessage>[];
+      : throw const CoachUnassignedException();
 
   @override
   Stream<List<CoachMessage>> watchChat() =>

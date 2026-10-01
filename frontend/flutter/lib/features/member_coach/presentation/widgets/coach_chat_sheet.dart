@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -379,12 +380,23 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final chat = ref.watch(coachChatProvider);
+    // 서버가 대화를 404 로 답하면 담당이 해제된 것이다(#2843). 빈 대화로 그리지
+    // 않고 안내를 띄우며 입력을 막는다.
+    final bool unassigned = chat.error is CoachUnassignedException;
     // 폴링으로 새 리포트 안내가 오면 받은 리포트 목록도 다시 읽는다(#2643) —
     // 예전에는 앱을 다시 켜기 전까지 목록에 나타나지 않았다.
     ref.listen<AsyncValue<List<CoachMessage>>>(coachChatProvider, (
       AsyncValue<List<CoachMessage>>? previous,
       AsyncValue<List<CoachMessage>> next,
     ) {
+      // 해제를 처음 알게 된 순간 담당 코치도 다시 읽는다 — 대화방을 나가면
+      // 헤더가 AI 챗봇 입구로, 홈 트레이너 카드가 사라진 모습으로 바뀐다.
+      if (next.error is CoachUnassignedException &&
+          previous?.error is! CoachUnassignedException) {
+        unawaited(
+          recheckMemberCoach(ProviderScope.containerOf(context, listen: false)),
+        );
+      }
       final List<CoachMessage>? before = previous?.valueOrNull;
       final List<CoachMessage>? after = next.valueOrNull;
       if (before == null || after == null) return;
@@ -465,10 +477,16 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
               child: chat.when(
                 loading: () => const AppLoading(),
                 // 재시도 동작은 원래 없었다 — 문구만 규격 빈 화면 틀에 담는다.
-                error: (_, _) => AppEmptyState(
-                  title: l.coachChatLoadFailed,
-                  icon: AppIcons.error,
-                ),
+                error: (Object error, _) => error is CoachUnassignedException
+                    ? AppEmptyState(
+                        key: const ValueKey<String>('coach-chat-unassigned'),
+                        title: l.coachChatUnassigned,
+                        icon: AppIcons.disconnect,
+                      )
+                    : AppEmptyState(
+                        title: l.coachChatLoadFailed,
+                        icon: AppIcons.error,
+                      ),
                 data: (latest) {
                   // 폴링이 주는 최신 쪽 앞에, 손으로 더 받아 온 옛 쪽을 붙여
                   // 그린다(#1943). 둘을 한 provider 에 두면 15초마다 새로 받는
@@ -590,7 +608,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                 onEmote: _pickEmote,
                 attachTooltip: l.coachPhotoAttach,
                 onAttach: _picking ? null : _attachPhoto,
-                enabled: !_sending,
+                enabled: !_sending && !unassigned,
                 onSend: _send,
               ),
             ),
