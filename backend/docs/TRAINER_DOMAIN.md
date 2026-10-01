@@ -98,6 +98,12 @@
 담당이 이미 해제된 회원의 상태 전환은 409 다(되돌려 봐야 로스터가 휴면 그대로라
 "저장했는데 그대로"가 된다). 담당 재배정은 회원이 동의하는 연결 경로(연결 코드·담당 요청)의 몫이다.
 
+담당이 생기는 두 경로(연결 코드 `POST /trainer/pairing-code`·담당 요청 수락
+`POST /me/coach/invites/{id}/accept`)는 같은 트랜잭션에서 그 회원에게 걸린 **대기 중 담당 요청**을
+닫는다(#2894). 연결된 트레이너가 보낸 것은 `accepted`(연결 코드면 이 행이 이력 행이 되어 수락 행이 둘
+남지 않는다), 다른 트레이너가 보낸 것은 `cancelled` 이고 그 트레이너에게 알림은 보내지 않는다.
+연결이 실패하면 대기 요청도 그대로다. 정리 이전에 남은 행은 마이그레이션 `0128_close_stale_invites` 가 같은 기준으로 닫는다.
+
 ### 해제된 담당은 데이터 접근 경계 밖이다 (#2281)
 
 담당 해제는 링크 행을 지우지 않고 `active=False` 로 내린다(`remove_client`). 그래서
@@ -257,7 +263,7 @@
 | POST | `/trainer/schedule/recurring/preview` | 반복 설정이 만들 회차와 겹치는 기존 일정 |
 | POST | `/trainer/schedule/recurring` | 주간 반복 회차 일괄 등록(전부 아니면 전무, 409 에 충돌 목록) |
 | POST | `/trainer/schedule/{session_id}/cancel` | 일정 취소 기록(`source`=member\|trainer\|other, `reason?`). 회원 예약으로 생긴 일정이면 예약을 거두고 슬롯 좌석을 돌려준다(#2283). 상담 요청으로 생긴 일정이면 요청을 `cancelled` 로 바꾸고 신청 때 잠근 자리를 돌려준다(#2758) |
-| POST | `/trainer/schedule/{session_id}/no-show` | 노쇼 기록 |
+| POST | `/trainer/schedule/{session_id}/no-show` | 노쇼 기록. 시작 시각(KST) 전이면 400 (#2760) |
 | GET | `/trainer/clients/{member_id}/follow-ups?include_completed=` | 회원 후속 관리 할 일(예정일 순, 기본 미완료) |
 | POST | `/trainer/clients/{member_id}/follow-ups` | 후속 관리 등록 (`client_request_id?` 로 재시도 멱등) |
 | GET | `/trainer/follow-ups?scope=due\|open` | 내 할 일 — `due` 는 오늘 예정 + 기한 지난 미완료 |
@@ -273,14 +279,16 @@
 | POST | `/trainer/clients/{member_id}/chat/read` | 읽음 처리 |
 | GET | `/trainer/chat/unread` | 회원별 미확인 수 |
 | GET | `/trainer/schedule?date=` | 하루 타임라인 |
-| GET | `/trainer/schedule?from=&to=&member_id=` | 구간 조회 / 회원 필터. 각 일정에 담당 회원 `member_id` 를 싣는다(가망 고객·공백은 null, #2586). 담당이 끊긴 회원의 일정은 `member_detached: true`·`해제 회원` 으로 가려 싣는다(#2589) |
+| GET | `/trainer/schedule?from=&to=&member_id=` | 구간 조회 / 회원 필터. 각 일정에 담당 회원 `member_id` 를 싣는다(가망 고객·공백은 null, #2586). 담당이 끊긴 회원의 일정은 `member_detached: true`·`해제 회원` 으로 가려 싣는다(#2589). 회원 예약 슬롯으로 생긴 일정은 `is_reservation: true` (#2756) |
 | GET | `/trainer/schedule/booked-dates` | 예약 있는 날짜 |
 | POST | `/trainer/schedule` | 예약 생성(예정, `client_request_id?`) |
-| PUT | `/trainer/schedule/{id}` | 예약 수정 |
-| DELETE | `/trainer/schedule/{id}` | 예약 삭제 |
-| POST | `/trainer/schedule/{id}/complete` | 세션 완료(예정→완료) |
+| PUT | `/trainer/schedule/{id}` | 예약 수정. 완료·취소·노쇼 세션은 `note`·아직 보내지 않은 `program` 만(그 밖은 409, #2754). 회원 예약 일정도 `note`·`program` 만(#2756) |
+| DELETE | `/trainer/schedule/{id}` | 예약 삭제. 회원 예약 일정은 409 — 취소로 거둔다(#2756) |
+| POST | `/trainer/schedule/{id}/complete` | 세션 완료(예정→완료). 시작 시각(KST) 전이면 400 (#2760) |
+| POST | `/trainer/schedule/{id}/reopen` | 완료 세션을 미래 날짜의 예정으로(`date`, 선택 `time`·`duration_minutes`). 겹치면 아무것도 바꾸지 않고 409 `schedule_overlap` (#2757) |
 | GET | `/trainer/dashboard/task-progress` | 오늘 할 일 진행 상태 — 보관 기간(63일) 안의 날짜별 기록 |
 | PUT | `/trainer/dashboard/task-progress/{date}` | 그날 진행 상태 통째로 저장(KST 오늘·어제만) |
+| POST | `/trainer/dashboard/task-progress/{date}/keys` | 할 일 키 하나 체크·해제·삭제 — 그날 행에 그 키만 반영하고 합계는 서버가 다시 냄(KST 오늘·어제만, #2886) |
 | POST | `/trainer/clients/{member_id}/ai-coach` | 담당 회원 데이터 기반 AI 코칭 질의 |
 | GET | `/trainer/clients/{member_id}/report?week_start=` | 주간 리포트(어느 요일을 줘도 그 주 월요일로 정규화) |
 | GET | `/trainer/clients/{member_id}/report/summary?week_start=` | 주간 리포트 AI 요약(머리 문장 + 근거 최대 3줄) |
@@ -387,7 +395,14 @@ range`)이었고, `-3000` 이나 주 100,000분(한 주는 10,080분이다) 같�
 
 - **별도 테이블**(`trainer_daily_task_progress`, `0065_trainer_daily_task_progress`).
   그래프가 날짜별 이력을 읽어 프로필 컬럼 하나로는 담을 수 없다. (trainer_id, date)
-  하나당 한 행이고 앱이 그날 목록 전체를 **통째로 덮어쓴다**(PUT).
+  하나당 한 행이다.
+- **체크·해제·삭제는 키 단위로 보낸다**(`POST …/{date}/keys`, #2886). 예전 앱은 그날
+  목록 전체를 통째로 덮어써(PUT) 두 탭·기기에서 서로 다른 할 일을 체크하면 나중에
+  도착한 쪽이 앞의 체크를 지웠다. 서버는 행을 잠그고(`FOR UPDATE`) 저장된 집합에 그
+  키만 더하거나 빼며, 지운 키는 되살리지 않는다. 그날 목록은 요청의 `keys`(화면이
+  보여 주는 미션) + 화면이 모르는 저장 키(`seen` 밖)이고, 합계·이월 완료(전날
+  `pending_keys` 와 겹치는 완료)는 서버가 다시 낸다. 응답은 반영 뒤 그날 상태라 앱이
+  다른 기기의 변경까지 받는다. PUT 은 옛 앱을 위해 남긴다.
 - **보관 63일.** 그래프가 이번 주와 8주 전까지 되짚는 범위다. 쓸 때 오래된 행을 지운다.
 - **오늘은 서버 KST 가 정한다.** PUT 은 KST 오늘·어제만 받고 그 밖은 422 다 —
   자정을 넘긴 화면은 받고, 기기 시계가 틀린 요청은 막는다. `지난 할 일` 은 어제 행의

@@ -14,6 +14,8 @@ import 'package:oncare_trainer/features/consultations/presentation/pages/consult
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
+import 'package:oncare_trainer/features/schedule/domain/session_client_resolver.dart';
+import 'package:oncare_trainer/features/schedule/presentation/schedule_action_error.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/cancel_session_dialog.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/consultation_inbox_action.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/reservation_slots_sheet.dart';
@@ -100,9 +102,9 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  /// [d] 가 속한 주의 월요일.
-  static DateTime _mondayOf(DateTime d) =>
-      _dateOnly(d).subtract(Duration(days: d.weekday - DateTime.monday));
+  /// [d] 가 속한 주의 월요일. 달력으로 센다 — 24시간 단위로 빼면 서머타임
+  /// 시간대에서 하루 어긋난다(#2890).
+  static DateTime _mondayOf(DateTime d) => mondayOf(d);
 
   /// Parses a `YYYY-MM-DD` route parameter, falling back to today. A
   /// malformed date in the URL should land the trainer on today rather
@@ -159,7 +161,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
 
   /// `-1` = 지난 주, `+1` = 다음 주. 고른 날을 함께 옮긴다.
   void _shiftWeek(int direction) =>
-      _selectDay(_selectedDay.add(Duration(days: 7 * direction)));
+      _selectDay(addCalendarDays(_selectedDay, 7 * direction));
 
   /// 입력 폼 크기(560)의 가운데 모달로 [child] 를 연다(#1250, #1706).
   ///
@@ -313,9 +315,33 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     if (!ok || !mounted) return;
     try {
       await ref.read(scheduleRepositoryProvider).deleteSession(s.id);
-    } catch (_) {
-      if (!mounted) return;
-      showAppToast(context, l.schedDeleteFailed, type: AppToastType.error);
+    } catch (error) {
+      // 서버 사유(회원 예약 일정은 지울 수 없다는 409 등)를 보인다(#2756).
+      _showActionError(error, l.schedDeleteFailed);
+    }
+  }
+
+  /// 일정 동작이 실패했을 때 알린다 — 스케줄 화면 동작이 모두 이 길로 간다.
+  /// (#2888)
+  ///
+  /// 서버 사유가 있으면 그것을, 없으면 동작별 [fallback] 을 띄운다. 일정 상태가
+  /// 그새 바뀌어 거절됐으면(409) 그 주를 다시 읽어 화면을 서버 상태에 맞춘다 —
+  /// 다른 탭에서 이미 노쇼로 마무리한 PT 를 이 화면이 예정으로 들고 있으면 같은
+  /// 동작을 되풀이하게 된다. [sessionId] 를 주면 그 PT 의 개인운동도 다시 읽는다.
+  void _showActionError(Object error, String fallback, {String? sessionId}) {
+    if (!mounted) return;
+    final AppLocalizations l = AppLocalizations.of(context);
+    showAppToast(
+      context,
+      scheduleActionErrorMessage(l, error, fallback),
+      type: AppToastType.error,
+    );
+    if (!isScheduleStateConflict(error)) return;
+    ref.invalidate(scheduleRangeProvider);
+    if (sessionId != null) {
+      setState(() {
+        _routinesRevision[sessionId] = (_routinesRevision[sessionId] ?? 0) + 1;
+      });
     }
   }
 
@@ -339,11 +365,11 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       await ref
           .read(scheduleRepositoryProvider)
           .completeSession(s.id, note: '');
-    } catch (_) {
+    } catch (error) {
       // A DB or programJson-decode failure must not escape to the UI —
       // the session stays 예정 and the trainer is told (review PR 237).
-      if (!mounted) return;
-      showAppToast(context, l.schedCompleteFailed, type: AppToastType.error);
+      // 서버가 사유를 주면(시작 전이라 완료할 수 없다는 400 등) 그것을 보인다.
+      _showActionError(error, l.schedCompleteFailed);
     }
   }
 
@@ -378,13 +404,8 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       await ref
           .read(scheduleRepositoryProvider)
           .sendScheduledRoutines(session.id, items: edited);
-    } catch (_) {
-      if (!mounted) return;
-      showAppToast(
-        context,
-        l.schedRoutinesSendFailed,
-        type: AppToastType.error,
-      );
+    } catch (error) {
+      _showActionError(error, l.schedRoutinesSendFailed, sessionId: session.id);
       return;
     }
     if (!mounted) return;
@@ -417,12 +438,11 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       await ref
           .read(scheduleRepositoryProvider)
           .updateScheduledRoutines(session.id, edited);
-    } catch (_) {
-      if (!mounted) return;
-      showAppToast(
-        context,
+    } catch (error) {
+      _showActionError(
+        error,
         l.schedRoutinesUpdateFailed,
-        type: AppToastType.error,
+        sessionId: session.id,
       );
       return;
     }
@@ -441,13 +461,9 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       await ref
           .read(scheduleRepositoryProvider)
           .dismissScheduledRoutines(session.id);
-    } catch (_) {
-      if (!mounted) return;
-      showAppToast(
-        context,
-        l.schedRoutinesSendFailed,
-        type: AppToastType.error,
-      );
+    } catch (error) {
+      // 보내려던 것이 아니다 — 전송 실패 문구를 쓰지 않는다(#2888).
+      _showActionError(error, l.schedRoutinesSkipFailed, sessionId: session.id);
       return;
     }
     if (!mounted) return;
@@ -464,8 +480,8 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   /// 지표 때문이다 — 트레이너 사정의 취소와 고객 취소를 구분하지 않으면 나중에
   /// 회원의 낮은 이행률을 잘못 읽는다.
   ///
-  /// 같은 창에서 `노쇼` 도 고른다(#2175). [allowNoShow] 는 오늘·지난 PT 에서만
-  /// 참이다 — 오지 않았다는 사실은 그 시간이 지나야 안다.
+  /// 같은 창에서 `노쇼` 도 고른다(#2175). [allowNoShow] 는 시작 시각이 지난
+  /// PT 에서만 참이다 — 오지 않았다는 사실은 그 시간이 지나야 안다(#2760).
   Future<void> _confirmCancel(
     ScheduleSession s, {
     required bool allowNoShow,
@@ -488,12 +504,11 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
           reason: result.reason,
         );
       }
-    } catch (_) {
-      if (!mounted) return;
-      showAppToast(
-        context,
+    } catch (error) {
+      // 서버 사유(시작 전이라 노쇼 불가, 이미 마무리된 세션 등)를 보인다(#2888).
+      _showActionError(
+        error,
         result.noShow ? l.schedNoShowFailed : l.schedCancelFailed,
-        type: AppToastType.error,
       );
     }
   }
@@ -550,9 +565,8 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
         l.schedSentTo(s.clientName),
         type: AppToastType.success,
       );
-    } catch (_) {
-      if (!mounted) return;
-      showAppToast(context, l.coachSendFailed, type: AppToastType.error);
+    } catch (error) {
+      _showActionError(error, l.coachSendFailed, sessionId: s.id);
     } finally {
       if (mounted) setState(() => _sendingProgramId = null);
     }
@@ -565,9 +579,9 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   /// 프로그램도 AI 로 한 번 짜고, 고치는 것만 이 카드의 부분 창에서 한다.
   /// 붙이면 코칭 탭이 이 일정으로 돌려보낸다.
   void _goAddRoutines(ScheduleSession s) {
-    final String? clientId = s.clientId ?? _rosterIdByName(s.clientName);
+    final String? clientId = _sessionClientId(s);
     if (clientId == null) {
-      context.go(AppRoutes.clients);
+      _goPickClient(s);
       return;
     }
     context.go(
@@ -580,27 +594,50 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     );
   }
 
-  /// 일정에 회원 id 가 없을 때(예전에 이름으로만 잡은 일정) 로스터에서 이름으로
-  /// 찾는다 — [_openProgram] 과 같은 방식이다.
-  String? _rosterIdByName(String name) {
-    final clients = ref.read(clientsProvider).valueOrNull ?? const [];
-    for (final c in clients) {
-      if (c.name == name) return c.id;
+  /// 이 일정의 회원 id — 일정에 실린 id 가 먼저다. (#2864)
+  ///
+  /// 이름은 표시 전용이라 동명이인을 가르지 못한다. id 가 없는 예전 일정만
+  /// 이름으로 찾되, 정확히 한 명이 일치할 때만 쓴다
+  /// ([resolveSessionClientId]). 명단을 아직 읽지 못했으면 일정의 id 를 믿는다.
+  String? _sessionClientId(ScheduleSession s) {
+    final clients = ref.read(clientsProvider).valueOrNull;
+    return resolveSessionClientId(
+      s,
+      clients == null
+          ? null
+          : <ScheduleClientKey>[
+              for (final c in clients) (id: c.id, name: c.name),
+            ],
+    );
+  }
+
+  /// 회원을 특정할 수 없을 때 — 회원 목록으로 보내 고르게 한다. (#2864)
+  ///
+  /// 상담(미등록 고객) 일정은 원래 회원 id 가 없으므로 안내 없이 목록으로
+  /// 간다. 그 밖의 경우는 왜 목록으로 왔는지 알린다 — 동명이인 가운데 아무나
+  /// 골라 엉뚱한 회원에게 프로그램을 보내는 것보다 한 번 더 고르는 편이 낫다.
+  void _goPickClient(ScheduleSession s) {
+    final bool consultation =
+        s.consultation != null || s.type == SessionType.consultation;
+    if (!consultation) {
+      showAppToast(context, AppLocalizations.of(context).schedClientUnresolved);
     }
-    return null;
+    context.go(AppRoutes.clients);
   }
 
   /// 계획 없는 세션의 `프로그램 추가` — 이 카드 안이 아니라 그 고객의 코칭
   /// 탭으로 이동한다. 프로그램은 AI 코칭 탭에서 짓고 보내는 것이라, 스케줄
   /// 카드에는 편집기를 두지 않는다(#1247).
+  ///
+  /// 회원은 일정의 id 로 찾는다(#2864) — 이름으로 찾던 때에는 동명이인 중
+  /// 명단 앞쪽 회원의 코칭 탭이 열렸다.
   void _openProgram(ScheduleSession s) {
-    final clients = ref.read(clientsProvider).valueOrNull ?? const [];
-    final match = clients.where((c) => c.name == s.clientName);
-    if (match.isEmpty) {
-      context.go(AppRoutes.clients);
+    final String? clientId = _sessionClientId(s);
+    if (clientId == null) {
+      _goPickClient(s);
       return;
     }
-    context.go(AppRoutes.coachingFor(match.first.id));
+    context.go(AppRoutes.coachingFor(clientId));
   }
 
   String get _selectedYmd => ymd(_selectedDay);
@@ -661,7 +698,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
         ? ref.watch(consultationPendingCountProvider).valueOrNull
         : null;
     final start = _weekStart;
-    final end = start.add(const Duration(days: 6));
+    final end = addCalendarDays(start, 6);
     final range = (from: ymd(start), to: ymd(end));
     final week = ref.watch(scheduleRangeProvider(range));
 
@@ -919,8 +956,11 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     }
 
     final day = DateTime.tryParse(session.date) ?? _selectedDay;
-    final today = _dateOnly(nowKst());
-    final isFuture = day.isAfter(today);
+    final DateTime now = nowKst();
+    final today = _dateOnly(now);
+    // 날짜가 아니라 시작 시각으로 가른다(#2760) — 오늘 저녁 PT 를 오전에
+    // 완료·노쇼로 처리하면 하지 않은 운동이 기록되거나 오지 않았다고 적힌다.
+    final bool started = sessionHasStarted(session, now);
     final dateText = day == today
         ? l.labelToday
         : l.dateMonthDay(day.month, day.day);
@@ -942,15 +982,14 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
           onDelete: () => _confirmDelete(session),
           // 담당이 끊긴 회원의 일정은 완료할 수 없다 — 회원 운동 기록에 적히는
           // 일이라 서버가 막는다(#2281, #2589).
-          onComplete:
-              (session.isUpcoming && !isFuture && !session.memberDetached)
+          onComplete: (session.isUpcoming && started && !session.memberDetached)
               ? () => _confirmComplete(session)
               : null,
           // 취소는 앞으로의 약속에도 열려 있다 — 거두는 것이 취소다. 노쇼는
-          // 같은 창의 선택지로, 지나간 약속에만 선다: 오지 않았다는 사실은 그
-          // 시간이 지나야 안다(#871, #2175).
+          // 같은 창의 선택지로, 시작 시각이 지난 약속에만 선다: 오지 않았다는
+          // 사실은 그 시간이 지나야 안다(#871, #2175, #2760).
           onCancel: session.isUpcoming
-              ? () => _confirmCancel(session, allowNoShow: !isFuture)
+              ? () => _confirmCancel(session, allowNoShow: started)
               : null,
           programDateLabel: dateText,
           sendingProgram: _sendingProgramId == session.id,

@@ -102,6 +102,7 @@ from app.schemas.trainer_api import (
     TrainerProgramTemplateUpdate,
     TrainerNotificationOut, TrainerNotificationSettings, TrainerNotificationSettingsUpdate,
     TrainerPasswordChange, WeeklyReportOut,
+    TrainerTaskKeyChange,
     TrainerTaskProgressDayOut, TrainerTaskProgressOut, TrainerTaskProgressSave,
 )
 from app.services import (
@@ -122,6 +123,7 @@ from app.services import (
     notification_templates,
     trainer_report_summary_service,
     report_pdf_storage,
+    attachment_cleanup,
     trainer_routine_options_service,
     trainer_gym_search,
     trainer_service,
@@ -396,7 +398,11 @@ def trainer_delete_me(
                 reason=f"trainer_{reason}",
             )
         )
+    # 채팅 첨부의 바이트는 DB 밖에 있어 CASCADE 가 닿지 않는다 — 행이 사라지기
+    # 전에 목록을 잡아 두고, 탈퇴 커밋이 끝난 뒤에 지운다(#2817).
+    attachments = attachment_cleanup.files_in_threads(db, trainer_id=trainer.id)
     trainer_service.delete_trainer_account(db, trainer)
+    attachment_cleanup.purge(attachments)
     return {"status": "deleted"}
 
 
@@ -1667,6 +1673,30 @@ def trainer_save_task_progress(
     return trainer_task_progress_service.save_day(db, trainer.id, day, payload)
 
 
+
+@router.post(
+    "/trainer/dashboard/task-progress/{day}/keys",
+    response_model=TrainerTaskProgressDayOut,
+)
+def trainer_change_task_key(
+    day: str,
+    payload: TrainerTaskKeyChange,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> TrainerTaskProgressDayOut:
+    """할 일 키 하나를 체크·해제·삭제한다. KST 오늘·어제만 받는다. (#2886)
+
+    그날 전체를 덮어쓰지 않아, 다른 탭·기기에서 체크한 할 일이 남는다. 응답은
+    반영 뒤의 그날 상태라 앱이 다른 기기의 변경까지 받아 그린다.
+    """
+    if not _is_ymd(day):
+        raise HTTPException(status_code=422, detail="날짜는 YYYY-MM-DD 형식이어야 합니다.")
+    if day not in trainer_task_progress_service.writable_dates():
+        raise HTTPException(
+            status_code=422, detail="오늘 또는 어제(KST)만 저장할 수 있습니다."
+        )
+    return trainer_task_progress_service.apply_key(db, trainer.id, day, payload)
+
 # ---- 스케줄 (트레이너 타임라인 + 예약→수업→기록 완료 루프) ----
 
 @router.get("/trainer/schedule/booked-dates", response_model=list[str])
@@ -1887,6 +1917,7 @@ def trainer_assign_program_with_schedule(
         raise HTTPException(
             status_code=409,
             detail={
+                "code": exc.code,
                 "message": str(exc),
                 "candidates": [
                     candidate.model_dump(mode="json") for candidate in exc.candidates
@@ -2007,7 +2038,8 @@ def trainer_update_session(
     db: Annotated[Session, Depends(get_db)],
 ) -> ScheduleSessionOut:
     """예약 수정(제공된 필드만). member_id 변경 시 담당 고객이어야 한다.
-    완료된 세션은 기록과의 정합성을 위해 수정 불가(409)."""
+    완료·취소·노쇼 세션은 기록과의 정합성을 위해 메모·아직 보내지 않은
+    프로그램만 수정할 수 있다(그 밖은 409, #2754)."""
     fields = payload.model_dump(exclude_unset=True)
     if fields.get("member_id"):
         _require_client(db, trainer.id, fields["member_id"])
@@ -2113,11 +2145,21 @@ def trainer_reopen_session(
     """
     try:
         out = trainer_service.reopen_session(
-            db, trainer.id, session_id, new_date=payload.date
+            db,
+            trainer.id,
+            session_id,
+            new_date=payload.date,
+            time=payload.time,
+            duration_minutes=payload.duration_minutes,
         )
     except trainer_service.ClientLinkDetached as e:
         # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
         raise HTTPException(status_code=404, detail=str(e)) from e
+    except trainer_service.ScheduleOverlap as e:
+        # 겹치면 아무것도 바꾸지 않는다 — 완료·날짜·파생 기록이 그대로다. (#2757)
+        raise HTTPException(
+            status_code=409, detail=trainer_service.overlap_detail(e)
+        ) from e
     except trainer_service.ScheduleConflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
     if out is None:
