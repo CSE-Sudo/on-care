@@ -1862,29 +1862,41 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load earlier messages · Retry'**
   String get chatLoadOlderFailed;
 
-  /// No description provided for @chatDemoAnalyzed.
+  /// No description provided for @chatRoutineDelivered.
   ///
   /// In en, this message translates to:
-  /// **'AI analysed {name}\'s meals and workouts'**
-  String chatDemoAnalyzed(String name);
+  /// **'Workout sent'**
+  String get chatRoutineDelivered;
 
-  /// No description provided for @chatDemoReportSent.
+  /// No description provided for @chatRoutineDeliveredPt.
   ///
   /// In en, this message translates to:
-  /// **'A summary report was sent to you'**
-  String get chatDemoReportSent;
+  /// **'PT program and personal exercises sent'**
+  String get chatRoutineDeliveredPt;
 
-  /// No description provided for @chatDemoRoutineSent.
+  /// No description provided for @chatRoutineDeliveredPersonal.
   ///
   /// In en, this message translates to:
-  /// **'A personalized workout recommendation was sent to {name}'**
-  String chatDemoRoutineSent(String name);
+  /// **'Personal exercises sent'**
+  String get chatRoutineDeliveredPersonal;
 
-  /// No description provided for @chatDemoNotified.
+  /// No description provided for @chatRoutineDeliveredAfterCancel.
   ///
   /// In en, this message translates to:
-  /// **'The member app was notified'**
-  String get chatDemoNotified;
+  /// **'Personal exercises sent in place of the cancelled PT'**
+  String get chatRoutineDeliveredAfterCancel;
+
+  /// No description provided for @chatRoutineDeliveredProgram.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout program sent'**
+  String get chatRoutineDeliveredProgram;
+
+  /// No description provided for @chatRoutineDeliveredMore.
+  ///
+  /// In en, this message translates to:
+  /// **'{names} and {count} more'**
+  String chatRoutineDeliveredMore(String names, int count);
 
   /// No description provided for @chatInputHint.
   ///

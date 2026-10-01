@@ -2566,19 +2566,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachChatInputHint => 'Message your trainer...';
 
   @override
-  String get coachChatDemoAnalyzed => 'AI analyzed your diet and exercise data';
+  String get coachChatRoutineReceived => 'Your trainer sent a workout';
 
   @override
-  String coachChatDemoReportSent(String trainer) {
-    return 'A summary report was sent to $trainer';
+  String get coachChatRoutineReceivedPt =>
+      'You received a PT program and personal workout';
+
+  @override
+  String get coachChatRoutineReceivedPersonal =>
+      'You received a personal workout';
+
+  @override
+  String get coachChatRoutineReceivedAfterCancel =>
+      'You received a personal workout in place of the cancelled PT';
+
+  @override
+  String get coachChatRoutineReceivedProgram =>
+      'You received a workout program';
+
+  @override
+  String coachChatRoutineReceivedMore(String names, int count) {
+    return '$names and $count more';
   }
-
-  @override
-  String get coachChatDemoRoutineReceived =>
-      'You received a personalized workout recommendation';
-
-  @override
-  String get coachChatDemoNotified => 'It was also delivered as a notification';
 
   @override
   String coachChatDateDivider(DateTime date) {

@@ -115,6 +115,8 @@ class DriftChatRepository implements ChatRepository {
   ) async {
     final ids = rows.map((r) => r.id).toList();
     final weeks = await _markers(_reportKeyPrefix, ids);
+    // 루틴 전송 안내(#2672) — 보낸 쪽이 남긴 표시 행이다.
+    final deliveries = await _markers(demoRoutineDeliveryKeyPrefix, ids);
     final images = await _markers(_imageKeyPrefix, ids);
     // 회원이 보낸 것으로 시드한 사진·PDF(#2669).
     final files = <String, ChatAttachment>{};
@@ -133,6 +135,7 @@ class DriftChatRepository implements ChatRepository {
             row,
             weeks[row.id],
             files[row.id] ?? _imageAttachment(row.id, images[row.id]),
+            delivery: deliveries[row.id],
           ),
         )
         .toList();
@@ -359,8 +362,17 @@ class DriftChatRepository implements ChatRepository {
   ClientChatMessage _toEntity(
     ClientChatMessageRow row,
     String? weekStart,
-    ChatAttachment? attachment,
-  ) {
+    ChatAttachment? attachment, {
+    String? delivery,
+  }) {
+    RoutineDeliveryNotice? notice;
+    if (delivery != null) {
+      try {
+        notice = RoutineDeliveryNotice.fromJson(jsonDecode(delivery));
+      } on FormatException {
+        notice = null;
+      }
+    }
     return ClientChatMessage(
       id: row.id,
       sender: row.sender == 'trainer' ? ChatSender.trainer : ChatSender.client,
@@ -370,6 +382,7 @@ class DriftChatRepository implements ChatRepository {
       attachment: attachment,
       reportWeekStart: weekStart == null ? null : DateTime.tryParse(weekStart),
       emoteId: row.emoteId,
+      routineDelivery: notice,
     );
   }
 
