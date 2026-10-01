@@ -642,6 +642,7 @@ def trainer_client_diet_period(
 
     트레이너 화면의 기간 그래프가 회원 앱과 같은 숫자를 그리려면 같은 집계를
     읽어야 한다(#2156). `from` 을 생략하면 그 회원의 첫 기록일부터다(#2079).
+    구간 상한(1100일, #2833)도 같다.
     """
     _require_client(db, trainer.id, member_id)
     return diet_service.build_period(db, member_id, start=from_date, end=to_date)
@@ -662,6 +663,7 @@ def trainer_client_exercise_period(
 
     `전체` 가 모든 기록을 그리므로(#2079) 주마다 부르면 왕복이 주 수만큼 늘어난다
     (#2247). 한 주를 펼쳐 볼 때는 그대로 `GET .../exercise-week?week_start=` 다.
+    구간 상한(160주, #2833)도 같다.
     """
     _require_client(db, trainer.id, member_id)
     profile = db.scalar(

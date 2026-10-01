@@ -11,6 +11,8 @@ import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/domain/entities/diet_period.dart'
+    show kDietAllPeriodMaxDays;
 import 'package:oncare/features/diet/domain/meal_emoji.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
@@ -415,13 +417,19 @@ DietDateRange dietRangeForTab(
     // 시작은 첫 기록일이다(`GET /me/records/span`). 가입일로 두면 기록을
     // 남기기 전 기간이 빈 칸으로 먼저 보인다. 아직 못 읽었거나 기록이 하나도
     // 없으면 오늘 하루만 그린다 — 지어낸 기간보다 하루가 낫다.
+    //
+    // 다만 서버 기간 집계와 같은 상한(약 3년)까지만 거슬러 올라간다(#2833).
+    // 날짜가 잘못 들어간 아주 오래된 기록 하나가 수십만 칸을 만들지 않게 한다.
     final DateTime? first = firstRecord;
-    return (
-      from: first == null || first.isAfter(last)
-          ? last
-          : DateTime(first.year, first.month, first.day),
-      to: last,
+    final DateTime from = first == null || first.isAfter(last)
+        ? last
+        : DateTime(first.year, first.month, first.day);
+    final DateTime floor = DateTime(
+      last.year,
+      last.month,
+      last.day - (kDietAllPeriodMaxDays - 1),
     );
+    return (from: from.isBefore(floor) ? floor : from, to: last);
   }
   final DateTime monday = DateTime(
     today.year,

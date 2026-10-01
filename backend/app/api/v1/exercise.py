@@ -75,6 +75,9 @@ def exercise_period(
     왕복이 된다(#2079). 한 주를 펼쳐 볼 때는 그대로
     `GET /exercise/weeks/current?week_start=` 다: 이 응답에는 세션 목록과 코칭
     문구가 없다.
+
+    구간은 끝 주에서 거슬러 최대 `MAX_PERIOD_WEEKS`(160주)다. 더 이른 `from`·첫 기록
+    주는 그 하한으로 잘리고, 응답 `from_week` 가 실제 시작 주다(#2833).
     """
     profile = db.scalar(
         select(HealthProfile).where(HealthProfile.user_id == current_user.id)

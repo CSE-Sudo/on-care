@@ -11,6 +11,8 @@ import 'package:oncare/features/exercise/data/kakao_gym_demo_profile.dart';
 import 'package:oncare/features/exercise/data/repositories/dio_exercise_repository.dart';
 import 'package:oncare/features/exercise/data/repositories/dio_gym_repository.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
+import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart'
+    show kExerciseMaxPeriodWeeks;
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/gym_search_area.dart';
@@ -123,6 +125,7 @@ int exerciseAllPeriodWeeks(DateTime? firstRecord, DateTime today) {
   final DateTime thisMonday = mondayOfWeek(today);
   if (!firstMonday.isBefore(thisMonday)) return kExerciseMinPeriodWeeks;
   final int weeks = thisMonday.difference(firstMonday).inDays ~/ 7 + 1;
+  if (weeks > kExerciseMaxPeriodWeeks) return kExerciseMaxPeriodWeeks;
   return weeks < kExerciseMinPeriodWeeks ? kExerciseMinPeriodWeeks : weeks;
 }
 

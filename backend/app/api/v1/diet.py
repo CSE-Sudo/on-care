@@ -82,6 +82,9 @@ def diet_period(
     기간 그래프가 쓰는 길이다 — 하루에 한 번씩 부르면 `전체`(모든 기록, #2079)가
     수백 번의 왕복이 된다. 끼니·사진은 싣지 않으므로 하루를 펼쳐 볼 때는 그대로
     `GET /diet/days/{date}` 를 쓴다.
+
+    구간은 끝에서 거슬러 최대 `MAX_PERIOD_DAYS`(1100일)다. 더 이른 `from`·첫 기록일은
+    그 하한으로 잘리고, 응답 `from_date` 가 실제 시작일이다(#2833).
     """
     return diet_service.build_period(db, current_user.id, start=from_date, end=to_date)
 
