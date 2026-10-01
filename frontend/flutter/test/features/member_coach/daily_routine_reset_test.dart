@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
@@ -48,6 +49,28 @@ void main() {
       isTrue,
     );
 
+    // 담당 트레이너가 배정한 것은 회원이 지우지 못한다 — 실서버 403 과 같다
+    // (#1020, #2666). 목록도 그대로다.
+    await expectLater(
+      coach.deleteRoutine(id),
+      throwsA(isA<UnauthorizedError>()),
+    );
+    expect(
+      (await coach.fetchRoutines()).map((CoachRoutine r) => r.id),
+      contains(id),
+    );
+  });
+
+  test('담당이 없으면 추천을 지울 수 있고, 걸려 있던 어제는 그대로다 (#2161)', () async {
+    final DateTime day1 = DateTime(2026, 8, 20, 9);
+    final DateTime day2 = DateTime(2026, 8, 21, 9);
+    useFixedKstDate(day1);
+    final MockMemberCoachRepository coach = MockMemberCoachRepository(
+      linked: () => false,
+    );
+    final String id = (await coach.fetchRoutines()).first.id;
+
+    debugNowKstOverride = () => day2;
     // 취소하면 오늘부터 빠지고, 걸려 있던 어제는 그대로다.
     await coach.deleteRoutine(id);
     expect(

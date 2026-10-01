@@ -106,6 +106,34 @@ def test_fixture_sessions_record_the_day_they_happened(client, db_session):
         assert clock.to_seoul(row.completed_at).date() == day, row.id
 
 
+def test_fixture_sessions_carry_pt_and_routine_source(client, db_session):
+    """픽스처 운동은 PT 날이면 `trainer_pt`, 그 밖은 `assigned_routine` 이다. (#2693)
+
+    픽스처에는 회원이 손으로 적은 기록이 없다. 출처를 비우면 `member` 로 떨어져
+    PT 가 `직접 기록한 운동` 에 서고 고칠 수 있게 된다 — 회원 앱 데모와 같은
+    규칙이어야 두 경로가 같은 카드를 그린다(#2662).
+    """
+    from app.db.demo_fixture import load_fixture
+    from app.models.models import ExerciseSession
+
+    pt_days = {
+        day.iso for day in load_fixture().days_for(clock.today()) if day.is_pt
+    }
+    rows = db_session.scalars(
+        select(ExerciseSession).where(
+            ExerciseSession.user_id == _MEMBER_ID,
+            ExerciseSession.id.like("seed-fix-ex-%"),
+        )
+    ).all()
+    assert rows, "픽스처 운동 시드가 없다"
+
+    for row in rows:
+        day = row.id.removeprefix(f"seed-fix-ex-{_MEMBER_ID}-")[:10]
+        expected = "trainer_pt" if day in pt_days else "assigned_routine"
+        assert row.source == expected, row.id
+    assert any(row.source == "trainer_pt" for row in rows)
+
+
 def test_no_personal_doc_points_at_a_deleted_seed_row(client, db_session):
     """지워진 시드 행을 가리키는 개인 RAG 문서가 남지 않는다.
 

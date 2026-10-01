@@ -72,7 +72,7 @@ def _body(day: str, **overrides) -> dict:
             }
         ],
         "date": day,
-        # 시드 일정(10·12·14·16·17·18·19시)과 겹치지 않는 시각이다. 겹치면
+        # 시드 일정(12·14·15·17·18·19시)과 겹치지 않는 시각이다. 겹치면
         # 프로그램이 **그 시드 일정에 붙고** id 가 시드 것이 되어, 뒷정리가
         # 그날의 시드를 지워 버린다 — 타임라인 개수를 세는 다른 테스트가
         # 함께 깨진다.
@@ -246,8 +246,8 @@ def test_a_new_send_retires_the_previous_personal_routines(client, db_session):
         client.post(
             f"/v1/trainer/schedule/{first}/program/send", json={}, headers=_h(token)
         )
-        # 시드의 18:00 김민수 PT(#2567)와 겹치지 않는 자리다.
-        second = _attach(client, token, day, time="19:10")
+        # 오늘 18:00 은 김민수의 시드 PT 자리다(#2694) — 비어 있는 10:00 에 둔다.
+        second = _attach(client, token, day, time="10:00")
         _complete(client, token, second)
         client.post(
             f"/v1/trainer/schedule/{second}/program/send", json={}, headers=_h(token)

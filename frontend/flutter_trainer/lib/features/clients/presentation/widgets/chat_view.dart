@@ -754,9 +754,12 @@ class _Bubble extends ConsumerWidget {
   ) async {
     final l = AppLocalizations.of(context);
     try {
-      final bytes = await ref
-          .read(trainerChatPdfRepositoryProvider)
-          .download(attachment.downloadPath);
+      // 데모 대화의 파일은 받아 올 서버가 없어 바이트를 들고 온다(#2669).
+      final bytes =
+          attachment.localBytes ??
+          await ref
+              .read(trainerChatPdfRepositoryProvider)
+              .download(attachment.downloadPath);
       if (!context.mounted) return;
       await showAppDialog<void>(
         context: context,

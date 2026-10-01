@@ -90,6 +90,26 @@ void main() {
     expect(session.program.single.durationSeconds, 600);
   });
 
+  test('coachSessionFromJson reads session_number (#2697)', () {
+    CoachSession parse(Object? number) =>
+        coachSessionFromJson(<String, Object?>{
+          'id': 'session-number',
+          'date': '2026-09-21',
+          'time': '18:00',
+          'type': '1:1 PT',
+          'duration_minutes': 50,
+          'status': '완료',
+          'note': '',
+          'program': const <Object?>[],
+          'session_number': number,
+        });
+
+    expect(parse(12).sessionNumber, 12);
+    // 예정·상담과 옛 서버는 싣지 않는다 — 칩을 세우지 않는다.
+    expect(parse(null).sessionNumber, isNull);
+    expect(parse(0).sessionNumber, isNull);
+  });
+
   group('duration_seconds (#2221)', () {
     test('coachSessionFromJson reads program seconds', () {
       final CoachSession session = coachSessionFromJson(<String, Object?>{

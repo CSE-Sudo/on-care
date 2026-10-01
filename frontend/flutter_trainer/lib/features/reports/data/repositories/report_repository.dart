@@ -10,9 +10,13 @@ import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/network/interceptors/accept_language_interceptor.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/core/storage/demo_language.dart';
+import 'package:oncare_trainer/core/storage/seed_data.dart'
+    show seedLanguageKey;
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
+import 'package:oncare_trainer/features/reports/data/demo_report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/member_report_history.dart';
 import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
 import 'package:oncare_trainer/features/reports/domain/report_send_record.dart';
@@ -23,6 +27,8 @@ import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repo
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
+import 'package:oncare_trainer/shared/services/client_repository.dart'
+    show trainerClientFromRow;
 
 /// 회원별 지난 리포트 한 쪽의 주 수 — 서버의 기본값과 같다(#2393).
 const int memberReportHistoryPageSize = 12;
@@ -160,8 +166,39 @@ class LocalReportRepository implements ReportRepository {
             // 회원이 낸 답(#2232). 없는 주가 정상이라 null 로 돌아오고,
             // 화면이 그때 "아직 받지 못함"을 그린다.
             memberFeedback: await _memberFeedback(client.id, start),
+            // 회원 목표 — 실서버 응답의 `*_target` 과 같은 출처(건강 프로필)다.
+            // 안 넘기면 판정·주간 표가 공통 상수를 써서 실서버와 다르게 읽힌다.
+            targets: await _targets(client.id),
           ),
         );
+  }
+
+  /// 데모 건강 프로필(`member_health_profile:<id>`)의 하루 목표.
+  Future<ReportTargets> _targets(String clientId) async {
+    final String? saved = await _db.readValue(
+      'member_health_profile:$clientId',
+    );
+    if (saved == null) return const ReportTargets();
+    final Map<String, Object?> values;
+    try {
+      final Object? decoded = jsonDecode(saved);
+      if (decoded is! Map<String, Object?>) return const ReportTargets();
+      values = decoded;
+    } on FormatException {
+      return const ReportTargets();
+    }
+    num? at(String key) => switch (values[key]) {
+      final num n when n > 0 => n,
+      _ => null,
+    };
+    return ReportTargets(
+      calories: at('daily_calories')?.toInt(),
+      sodium: at('daily_sodium_mg')?.toInt(),
+      sugar: at('daily_sugar_g')?.toDouble(),
+      carbs: at('daily_carbs_g')?.toDouble(),
+      protein: at('daily_protein_g')?.toDouble(),
+      fat: at('daily_fat_g')?.toDouble(),
+    );
   }
 
   @override
@@ -170,10 +207,10 @@ class LocalReportRepository implements ReportRepository {
     required DateTime weekStart,
     required AppLocalizations l,
   }) async {
-    // 데모에는 모델이 없다. 실서버가 공급자 장애에서 쓰는 것과 **같은** 규칙
-    // 기반 요약을 쓴다 — 데모에서 본 문장이 실서버의 실패 화면과 같아진다.
+    // 데모에는 모델이 없다. 실서버가 평소 보여 주는 `생성` 요약을 데모에서도
+    // 보이도록, 미리 써 둔 머리 문장에 규칙 요약의 근거 줄을 붙인다(#2669).
     final report = await watch(client: client, weekStart: weekStart).first;
-    return ruleReportSummary(l, report, client);
+    return demoGeneratedReportSummary(l, report, client);
   }
 
   /// 저장된 운동 목록을 방어적으로 디코드. 깨진 값은 빈 목록으로.
@@ -376,8 +413,14 @@ class LocalReportRepository implements ReportRepository {
   /// 데모 회원의 지난 리포트 이력([demoReportHistoryFor])에 실행 중 보낸
   /// 것을 얹는다(#2394). 같은 주는 실행 중 기록이 이긴다 — 작업대의 주 단위
   /// 기록([sentReports])과 같은 규칙이라 두 화면이 같은 주를 다르게 말하지
-  /// 않는다. 데모 기록은 본문이 비어 있어, 목록이 그 주 수치로 만든 초안의
-  /// 첫 줄로 채운다(#2423).
+  /// 않는다.
+  ///
+  /// 실서버처럼 줄마다 **보낸 본문의 첫 줄과 PDF 표시**를 싣는다(#2669). 데모
+  /// 기록은 본문을 저장하지 않으므로 그 주 수치로 만든 초안([reportMessage])을
+  /// 시드 언어로 채운다 — 수치와 따로 노는 고정 문장을 두지 않는다는 #2423 의
+  /// 규칙 그대로다. 공유 메뉴의 기본 전송이 PDF 라서(#1378) 데모의 보낸
+  /// 리포트는 모두 PDF 로 나간 것으로 둔다 — 실행 중 기록도 `sendPdf` 가
+  /// 남긴 것뿐이다.
   @override
   Future<MemberReportHistoryPage> memberReportHistory({
     required String clientId,
@@ -405,9 +448,47 @@ class LocalReportRepository implements ReportRepository {
     final int size = limit < 1 ? 1 : limit;
     final List<MemberReportHistoryItem> page = all.take(size).toList();
     return MemberReportHistoryPage(
-      items: page,
+      items: await _withDemoBodies(clientId, page),
       nextBefore: all.length > size ? page.last.weekStart : null,
     );
+  }
+
+  /// [items] 에 PDF 표시를 달고, 본문이 빈 줄은 그 주 초안의 첫 줄로 채운다.
+  Future<List<MemberReportHistoryItem>> _withDemoBodies(
+    String clientId,
+    List<MemberReportHistoryItem> items,
+  ) async {
+    final TrainerClientRow? row = await (_db.select(
+      _db.trainerClients,
+    )..where((t) => t.id.equals(clientId))).getSingleOrNull();
+    final TrainerClient? client = row == null
+        ? null
+        : trainerClientFromRow(row);
+    final AppLocalizations l = lookupAppLocalizations(
+      Locale(await _db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name),
+    );
+    return <MemberReportHistoryItem>[
+      for (final MemberReportHistoryItem item in items)
+        MemberReportHistoryItem(
+          weekStart: item.weekStart,
+          sentAt: item.sentAt,
+          read: item.read,
+          sendCount: item.sendCount,
+          feedbackPreview: item.feedbackPreview.isNotEmpty || client == null
+              ? item.feedbackPreview
+              : reportFeedbackPreview(
+                  reportMessage(
+                    l,
+                    await watch(
+                      client: client,
+                      weekStart: item.weekStart,
+                    ).first,
+                  ),
+                ),
+          messageId: item.messageId,
+          hasPdf: true,
+        ),
+    ];
   }
 
   /// 실행 중에 [clientId] 에게 보낸 리포트를 주마다 하나씩 — 가장 최근 전송과

@@ -23,15 +23,15 @@ void main() {
     dio.close();
   });
 
-  test('GET /ai-coach/feedback returns greeting + 3 suggestions', () async {
+  test('GET /ai-coach/feedback returns diet + exercise', () async {
     final res = await dio.get<Map<String, Object?>>('/ai-coach/feedback');
     expect(res.statusCode, 200);
     expect(res.data!['greeting'], isNotEmpty);
     final suggestions = (res.data!['suggestions']! as List<Object?>)
         .cast<Map<String, Object?>>();
-    expect(suggestions.length, 3);
-    final tags = suggestions.map((s) => s['tag']! as String).toSet();
-    expect(tags, containsAll(<String>['diet', 'exercise', 'hydration']));
+    // 실서버와 같은 식단·운동 두 건 — 데모 코칭 시트의 카드 구성이다(#2706).
+    final tags = suggestions.map((s) => s['tag']! as String).toList();
+    expect(tags, <String>['diet', 'exercise']);
   });
 
   test('GET /users/me returns the demo profile', () async {

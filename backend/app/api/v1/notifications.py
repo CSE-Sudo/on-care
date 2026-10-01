@@ -18,6 +18,11 @@ from sqlalchemy.orm import Session
 from app.api.deps import CurrentUser, RequireMember
 from app.core.locale import Locale, RequestLocale, localized
 from app.core.pagination import DEFAULT_PAGE, MAX_PAGE, parse_before
+from app.db.seed_notifications import (
+    DEMO_AGO_BY_ID,
+    demo_time_ago,
+    slide_demo_notifications,
+)
 from app.db.session import get_db
 from app.models.models import Notification
 from app.schemas.misc_api import NotificationAction, NotificationOut
@@ -71,8 +76,27 @@ _ACTION_BY_CATEGORY: dict[str, tuple[str, str, str]] = {
 }
 
 
-def _action_for(category: str, locale: Locale = "ko") -> NotificationAction | None:
+#: 알림별 목적지(`Notification.action_target`, #2690)의 라벨. 갈래별 표와 목적지가
+#: 같으면 그 라벨을 쓰고, 여기 없는 목적지는 "보기" 다.
+_LABEL_BY_TARGET: dict[str, tuple[str, str]] = {
+    "diet": ("식단 보기", "View meals"),
+    "exercise": ("운동 보기", "View workouts"),
+    "dashboard": ("홈 보기", "View home"),
+    "coach_chat": ("대화 보기", "View chat"),
+}
+
+
+def _action_for(
+    category: str, locale: Locale = "ko", target: str | None = None
+) -> NotificationAction | None:
+    """알림의 행동 유도. [target] 이 있으면 그 목적지, 없으면 갈래별 표다(#2690)."""
     entry = _ACTION_BY_CATEGORY.get(category)
+    if target:
+        if entry is not None and entry[2] == target:
+            ko, en = entry[0], entry[1]
+        else:
+            ko, en = _LABEL_BY_TARGET.get(target, ("보기", "View"))
+        return NotificationAction(label=localized(ko, en, locale), target=target)
     if entry is None:
         return None
     ko, en, target = entry
@@ -89,11 +113,18 @@ def notification_out(row: Notification, locale: Locale) -> NotificationOut:
         title=row.title, body=row.body, template=row.template,
         template_args=row.template_args, locale=locale,
     )
+    # 데모 계정 알림은 회원 앱 데모처럼 정해 둔 시각으로 보인다(#2691).
+    demo_ago = DEMO_AGO_BY_ID.get(row.id)
     return NotificationOut(
         id=row.id, title=title, body=body, category=row.category,
         read=row.read, created_at=row.created_at,
-        time_ago=_time_ago(row.created_at, locale),
-        action=_action_for(row.category, locale), invite_id=row.invite_id,
+        time_ago=(
+            demo_time_ago(demo_ago, locale)
+            if demo_ago is not None
+            else _time_ago(row.created_at, locale)
+        ),
+        action=_action_for(row.category, locale, row.action_target),
+        invite_id=row.invite_id,
         template=row.template, args=row.template_args,
     )
 
@@ -143,6 +174,11 @@ def list_notifications(
         db.rollback()
     # 끝난 주의 챌린지 결과 알림도 같은 이유로 여기서 생긴다(#1789).
     weekly_challenge_service.settle_quietly(db, current_user.id)
+    # 데모 계정 알림은 날이 바뀌면 오늘로 옮긴다 — 회원 앱 데모와 같다(#2691).
+    try:
+        slide_demo_notifications(db, current_user.id)
+    except Exception:  # noqa: BLE001 — 옮기지 못해도 알림 목록은 그대로 준다
+        db.rollback()
     query = select(Notification).where(Notification.user_id == current_user.id)
     cursor = parse_before(before)
     if cursor is not None:

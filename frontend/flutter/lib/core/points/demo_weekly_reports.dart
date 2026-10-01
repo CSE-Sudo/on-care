@@ -1,3 +1,4 @@
+import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 
@@ -12,7 +13,9 @@ import 'package:oncare/core/points/demo_points_ledger.dart';
 ///
 /// 담당 여부는 쿠폰 원장이 들고 있는 값을 본다 — 데모에서 트레이너를 해제하면 그
 /// 자리에서 항목이 열린다.
-class DemoWeeklyReportBook {
+///
+/// 받은 주는 쿠폰 원장의 구획에 함께 실려 새로고침 뒤에도 남는다(#2664).
+class DemoWeeklyReportBook implements DemoPersistable {
   DemoWeeklyReportBook({
     required DemoPointsLedger ledger,
     required DateTime Function() now,
@@ -28,8 +31,14 @@ class DemoWeeklyReportBook {
   final DateTime Function() _now;
   final bool Function() _hasTrainer;
   final List<DateTime> _weeks = <DateTime>[];
+
+  /// 주(월요일) → 받은 시각. 목록의 `purchased_at` 이다.
+  final Map<DateTime, DateTime> _purchasedAt = <DateTime, DateTime>{};
   final Map<String, DateTime> _requests = <String, DateTime>{};
   int _sequence = 0;
+
+  @override
+  void Function()? onChanged;
 
   /// 지금 교환하면 받는 주 — 지난주 월요일.
   DateTime get targetWeek {
@@ -53,7 +62,7 @@ class DemoWeeklyReportBook {
         for (final DateTime week in weeks)
           <String, Object?>{
             'week_start': _ymd(week),
-            'purchased_at': _now().toIso8601String(),
+            'purchased_at': (_purchasedAt[week] ?? _now()).toIso8601String(),
           },
       ],
       'next_week_start': _ymd(targetWeek),
@@ -79,8 +88,35 @@ class DemoWeeklyReportBook {
       return _error(409, '포인트가 부족해요.');
     }
     _weeks.add(week);
+    _purchasedAt[week] = _now();
     if (clientRequestId != null) _requests[clientRequestId] = week;
+    onChanged?.call();
     return DemoCouponResult(201, _exchangeJson(week));
+  }
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'sequence': _sequence,
+    'weeks': <Map<String, Object?>>[
+      for (final DateTime week in _weeks)
+        <String, Object?>{
+          'week_start': week.toIso8601String(),
+          'purchased_at': _purchasedAt[week]?.toIso8601String(),
+        },
+    ],
+  };
+
+  @override
+  void restore(Map<String, Object?> json) {
+    _sequence = (json['sequence'] as num?)?.toInt() ?? 0;
+    _weeks.clear();
+    _purchasedAt.clear();
+    for (final Map<String, Object?> row in demoRows(json['weeks'])) {
+      final DateTime week = demoParseTime(row['week_start']);
+      _weeks.add(week);
+      final DateTime? at = demoParseTimeOrNull(row['purchased_at']);
+      if (at != null) _purchasedAt[week] = at;
+    }
   }
 
   Map<String, Object?> _exchangeJson(DateTime week) => <String, Object?>{

@@ -390,8 +390,7 @@ def test_schedule_update_member_id_empty_unassigns(client, db_session):
     c = client.post(
         "/v1/trainer/schedule",
         json={
-            # 시드의 18:00 김민수 PT(#2567)와 겹치지 않는 자리다.
-            "date": _today(), "time": "19:10", "client_name": "이지수",
+            "date": _today(), "time": "16:00", "client_name": "이지수",
             "member_id": "user-jisu", "type": "1:1 PT", "duration_minutes": 40,
         },
         headers=_h(token),
@@ -426,8 +425,7 @@ def test_schedule_update_rejects_null_for_non_nullable_fields(
     token = _tok(client)
     # 파라미터마다 세션이 하나씩 생긴다 — 지우지 않으면 실행 한 번에 여섯 건이
     # 그대로 남아 이 파일에서 가장 크게 누적된다(#558).
-    # 시드의 18:00 김민수 PT(#2567)와 겹치지 않는 자리다.
-    sid = make_pt_session(token, time="19:10", duration_minutes=40)
+    sid = make_pt_session(token, time="16:10", duration_minutes=40)
 
     r = client.put(
         f"/v1/trainer/schedule/{sid}",
@@ -488,8 +486,7 @@ def test_complete_session_logs_history_and_is_idempotent(
     # 오늘 예정 세션 생성(user-jisu 매칭). 픽스처가 테스트 끝에 지워 이력이 쌓이지 않는다.
     sid = make_pt_session(
         token,
-        # 시드의 18:00 김민수 PT(#2567)와 겹치지 않는 자리다.
-        time="19:10",
+        time="19:00",
         duration_minutes=40,
         program=[
             {"name": "레그프레스", "type": "근력", "sets": 3, "weight": 80.0},
@@ -597,7 +594,7 @@ def test_completed_session_cannot_be_edited(client, make_pt_session):
 def test_schedule_invalid_date_time_422(client):
     """달력상 불가능한 날짜/시간은 create·update 모두 422(DB 저장 방지, 리뷰 재-#4)."""
     token = _tok(client)
-    # 시드 타임라인(10:00 PT)과 겹치지 않는 시각 — 겹치면 422 전에 409 가 난다.
+    # 시드 타임라인과 겹치지 않는 시각 — 겹치면 422 전에 409 가 난다.
     base = {"date": _today(), "time": "08:00", "type": "1:1 PT"}
     url = "/v1/trainer/schedule"
     # 잘못된 날짜
@@ -633,10 +630,12 @@ def test_schedule_range_returns_every_day_in_one_request(client):
     """주 캘린더가 7일치를 한 번에 읽는다 — 하루짜리 요청 7번이 아니라."""
     token = _sched_token(client)
     made = []
+    # 시드가 쓰지 않는 이른 시각이다 — 지난 날에는 회원 주간 PT(09:00·10:00·
+    # 13:00·16:00)가 깔려 있어, 그 칸에 두면 겹침(409)으로 떨어진다(#2694).
     for day in ("2026-09-07", "2026-09-09", "2026-09-13"):
         r = client.post(
             "/v1/trainer/schedule",
-            json={"date": day, "time": "10:00", "client_name": "범위테스트",
+            json={"date": day, "time": "07:00", "client_name": "범위테스트",
                   "type": "1:1 PT", "duration_minutes": 60},
             headers=_sched_auth(token),
         )
@@ -661,7 +660,7 @@ def test_schedule_range_excludes_days_outside_the_window(client):
     token = _sched_token(client)
     r = client.post(
         "/v1/trainer/schedule",
-        json={"date": "2026-09-20", "time": "10:00", "client_name": "창밖",
+        json={"date": "2026-09-20", "time": "07:00", "client_name": "창밖",
               "type": "1:1 PT", "duration_minutes": 60},
         headers=_sched_auth(token),
     )

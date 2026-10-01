@@ -4,6 +4,7 @@ import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/drift.dart';
 
 import 'package:oncare/core/demo/demo_ai_advice.dart';
+import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/utils/clock.dart';
 
@@ -25,7 +26,7 @@ const String kDietDayMessagesKey = 'diet_day_messages';
 
 /// Date-aware idempotent seeder. Runs at bootstrap.
 ///
-/// **Flag format (v4+).** `AppKeyValues['seeded_v19']` stores the
+/// **Flag format (v4+).** `AppKeyValues['seeded_v23']` stores the
 /// *date string* the seed last ran with (`YYYY-MM-DD`). Behaviour:
 ///
 /// - `null` (first ever boot, or upgrading from v1/v2) — wipe any
@@ -53,7 +54,7 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
   final now = nowKst();
   final today = _fmtDate(now);
 
-  final seedDate = await db.readValue('seeded_v19');
+  final seedDate = await db.readValue('seeded_v23');
   if (seedDate == today) {
     // Already seeded for today — leave both seed rows and user rows
     // untouched.
@@ -102,6 +103,31 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
   // v19: 어제에 수행한 스트레칭이 한 건 생겼다(#1361). 올리지 않으면 오늘 이미
   // 시드된 설치가 예전 하루를 그대로 들고 있어 이번 주 스트레칭 링이 계속 0 이다.
   await db.deleteValue('seeded_v18');
+  // v20: 포인트 내역·쿠폰·챌린지·보호권·이모티콘이 시드된다(#2664). 혜택 플래그의 첫
+  // 부팅에만 혜택 장부를 지워 다시 깔게 한다 — 날짜만 바뀐 부팅에는 회원이 데모에서
+  // 쌓은 포인트·쿠폰을 남긴다(실서버처럼). v21 이후로 넘어오는 설치는 이미 v20 을
+  // 거쳤으므로 장부를 지우지 않는다.
+  final String? seededV20 = await db.readValue('seeded_v20');
+  final String? seededV21 = await db.readValue('seeded_v21');
+  final String? seededV22 = await db.readValue('seeded_v22');
+  await db.deleteValue('seeded_v19');
+  if (seedDate == null &&
+      seededV20 == null &&
+      seededV21 == null &&
+      seededV22 == null) {
+    await db.deleteValue(kDemoBenefitsKey);
+  }
+  // v21: 주간 리포트 알림의 갈래가 서버와 같은 `coach_report` 가 됐다(#2660). 올리지
+  // 않으면 오늘 이미 시드된 설치가 리포트 알림을 말풍선 아이콘으로 그린다.
+  await db.deleteValue('seeded_v20');
+  // v22: 운동 기록이 출처(PT·배정 루틴)와 중량을 든다(#2662). 데모 운동 탭이 이
+  // 표를 읽게 되면서, 올리지 않으면 오늘 이미 시드된 설치의 PT 기록이 회원
+  // 기록으로 읽혀 `직접 기록한 운동` 에 서고 고칠 수 있게 된다.
+  await db.deleteValue('seeded_v21');
+  // v23: 김민수의 PT 가 지난 11주의 오늘과 같은 요일 수업이 됐다(#2694). 올리지
+  // 않으면 오늘 이미 시드된 설치가 6주마다 수요일이던 옛 PT 날을 들고 있어
+  // 트레이너 웹과 PT 날이 갈린다.
+  await db.deleteValue('seeded_v22');
   // Also clear the curated KV advice so re-seed state is fully reset: this
   // version re-writes it below, but if a later seed drops or renames the key
   // an existing install would otherwise keep the stale text forever.
@@ -163,16 +189,20 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
               name: Value(e.name),
               sets: Value(e.type == 'strength' ? e.sets : null),
               reps: Value(e.type == 'strength' ? e.reps : null),
+              weight: Value(e.type == 'strength' ? e.weight : null),
+              // 픽스처에는 회원이 손으로 적은 기록이 없다 — PT 날은 트레이너
+              // 지도 세션, 나머지 날은 배정받은 개인운동을 한 기록이다. 비워
+              // 두면 `member` 로 떨어져 PT 가 `직접 기록한 운동` 에 서고 고칠
+              // 수 있게 된다(#499, #638, #2662).
+              source: Value(day.isPt ? 'trainer_pt' : 'assigned_routine'),
             ),
       ]);
     });
 
-    // ---- Today's schedule (2 events) ----
-    await db.batch((Batch b) {});
-
     // ---- Notifications ----
     await db.batch((Batch b) {
-      // 앱 데모 알림(`demoAlerts`)·백엔드 데모 계정 시드와 같은 목록이다(#1812).
+      // 백엔드 데모 계정 시드(`seed_notifications.py`)와 같은 목록·갈래다(#1812).
+      // 데모 알림함은 인터셉터 `GET /notifications` 로 이 행을 읽는다(#2660).
       b.insertAll(db.notificationItems, <NotificationItemsCompanion>[
         NotificationItemsCompanion.insert(
           id: 'seed-noti-1',
@@ -200,7 +230,7 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
           createdAt: now.subtract(const Duration(minutes: 45)),
           title: '이번 주 리포트가 등록됐어요',
           body: '$kDemoTrainerName 트레이너님이 이번 주 리포트를 등록했어요.',
-          category: 'coach_chat',
+          category: 'coach_report',
         ),
         NotificationItemsCompanion.insert(
           id: 'seed-noti-2',
@@ -259,7 +289,7 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
     }),
   );
 
-  await db.putValue('seeded_v19', today);
+  await db.putValue('seeded_v23', today);
 }
 
 String _fmtDate(DateTime d) =>

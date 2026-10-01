@@ -1,16 +1,15 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/network/dio_client.dart';
+import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
-import 'package:oncare/core/points/demo_points_ledger.dart';
-import 'package:oncare/core/points/demo_streak_shields.dart';
-import 'package:oncare/core/points/demo_weekly_challenge.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/data/kakao_gym_demo_profile.dart';
 import 'package:oncare/features/exercise/data/repositories/dio_exercise_repository.dart';
 import 'package:oncare/features/exercise/data/repositories/dio_gym_repository.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
@@ -34,36 +33,41 @@ import 'package:oncare/shared/services/record_span_provider.dart';
 // 추론이 둘 사이를 돈다.
 final Provider<ExerciseRepository>
 exerciseRepositoryProvider = Provider<ExerciseRepository>((ref) {
-  // Local/demo mode serves the mock "오늘 PT 받은 날" scenario week (12회차 PT,
-  // 코치 피드백·짬뽕 식단 반영 AI 루틴) so the exercise tab renders the intended
-  // context with no backend. The real REST repo is used otherwise.
+  final Dio dio = ref.watch(dioProvider);
+  // 데모(목업 모드)도 실서버와 같은 저장소를 쓴다 — 요청은 로컬 목업 API 가 받아
+  // drift 에 남긴다(#2662). 식단(#616)과 같은 방향이다. 예전에는 메모리 목업이라
+  // 추가·수정·삭제한 기록이 새로고침하면 사라지고, 홈·챌린지가 읽는 drift 와
+  // 운동 탭이 다른 기록을 봤다. 칼로리 미리보기도 종목표 매칭을 탄다.
   if (ref.watch(appConfigProvider).useMockApi) {
-    // One instance per provider lifetime so in-memory CRUD (add/edit/delete)
-    // persists across `exerciseWeekProvider` invalidations for the session.
-    // 포인트는 식단(목업 API)·MY 와 같은 원장에 쌓는다(#1786). 보호권은 사용처
-    // 목업 API 와 같은 원장이다(#1788).
-    final MockExerciseRepository repo = MockExerciseRepository(
-      points: ref.watch(demoPointsLedgerProvider),
-      shields: ref.watch(demoStreakShieldBookProvider),
-      // 추천 개인운동의 날짜별 목록·완료는 목업 코치 저장소가 들고 있다(#2161).
-      // 그 저장소는 이 저장소를 받아 만들어지므로 여기서 watch 하면 서로를
-      // 기다린다 — 조언이 부를 때 읽어 온다.
-      routineDays: (DateTime from, DateTime to) {
-        final MemberCoachRepository coach = ref.read(
-          memberCoachRepositoryProvider,
-        );
-        return coach is MockMemberCoachRepository
-            ? coach.routineDaysBetween(from, to)
-            : const <RoutineDay>[];
-      },
-    );
-    // 주간 챌린지 목업은 운동한 날을 이 저장소에서 센다(#1789) — 목업 모드에서
-    // 회원이 추가한 운동은 여기에만 있다.
-    ref.watch(demoWeeklyChallengeProvider).recordedDays =
-        repo.recordedDaysOfWeek;
-    return repo;
+    // 추천 개인운동의 날짜별 목록·완료는 목업 코치 저장소가 들고 있다(#2161).
+    // 그 저장소는 이 저장소를 보고 만들어지므로 여기서 watch 하면 서로를
+    // 기다린다 — 조언이 부를 때 읽어 온다.
+    LocalApiInterceptor.of(dio)?.routineDays = (DateTime from, DateTime to) {
+      final MemberCoachRepository coach = ref.read(
+        memberCoachRepositoryProvider,
+      );
+      if (coach is! MockMemberCoachRepository) {
+        return const <RoutineAdviceDay>[];
+      }
+      return <RoutineAdviceDay>[
+        for (final RoutineDay day in coach.routineDaysBetween(from, to))
+          (
+            date: day.date,
+            routines: <RoutineAdviceItem>[
+              for (final CoachRoutine r in day.routines)
+                (
+                  name: r.name,
+                  type: r.type,
+                  minutes: r.minutes,
+                  done: r.completed,
+                  completedMinutes: r.completedMinutes,
+                ),
+            ],
+          ),
+      ];
+    };
   }
-  return DioExerciseRepository(ref.watch(dioProvider));
+  return DioExerciseRepository(dio);
 }, name: 'exerciseRepository');
 
 final exerciseWeekProvider = FutureProvider<ExerciseWeek>((ref) {

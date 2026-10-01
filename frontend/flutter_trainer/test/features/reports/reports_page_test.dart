@@ -989,10 +989,11 @@ void main() {
       find.text('실제 리포트 요약 API 연결 후 사용할 수 있어요. 현재 문구는 자동 생성하지 않습니다.'),
       findsNothing,
     );
-    // 데모에는 모델이 없어 수치에서 조립한 문장이 온다 — 그래서 'AI 생성'
-    // 배지는 달리지 않는다. 트레이너가 이 문장을 어디까지 믿을지 알아야 한다.
-    expect(find.text('AI 생성'), findsNothing);
-    expect(find.textContaining('운동 이행률'), findsWidgets);
+    // 데모는 모델 대신 미리 써 둔 고정본을 생성 요약으로 보여 준다(#2669) —
+    // 실서버에서 늘 보이는 'AI 생성' 배지가 데모에서도 보인다.
+    expect(find.text('AI 생성'), findsOneWidget);
+    // 근거 줄은 규칙 요약의 것이고, 데모도 회원이 적어 둔 목표로 판정한다.
+    expect(find.textContaining('개인 목표'), findsWidgets);
   });
 
   testWidgets('요약 카드가 다음 주 할 일까지 적어 아래를 채운다 (#1177)', (tester) async {
@@ -1026,8 +1027,9 @@ void main() {
 
     final after = tester.widget<TextField>(field).controller!.text;
     expect(after, isNot(before), reason: '입력창이 요약으로 바뀌지 않았다');
-    // 제목 줄과 근거가 함께 들어가야 트레이너가 손볼 재료가 된다.
-    expect(after, contains('회원은'));
+    // 제목 줄과 근거가 함께 들어가야 트레이너가 손볼 재료가 된다. 데모 제목
+    // 줄은 회원 이름으로 시작하는 고정본이다(#2669).
+    expect(after, contains('님'));
     expect(after, contains('· '));
   });
 

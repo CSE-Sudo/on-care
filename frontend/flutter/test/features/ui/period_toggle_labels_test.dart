@@ -17,6 +17,8 @@ import 'package:oncare/features/account/data/repositories/mock_account_repositor
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
+import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
+import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
@@ -65,6 +67,9 @@ Future<void> _pumpDiet(
   tester,
   const DietRecordPage(),
   <Override>[
+    // 데모 운동은 이제 로컬 목업 API(drift)를 탄다(#2662) — 이 화면 시험은
+    // DB 없이 메모리 목업의 주를 본다.
+    exerciseRepositoryProvider.overrideWithValue(MockExerciseRepository()),
     appConfigProvider.overrideWithValue(_config),
     dietRepositoryProvider.overrideWithValue(FakeDietRepository()),
     accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
@@ -81,6 +86,9 @@ Future<void> _pumpExercise(
   tester,
   const ExercisePage(),
   <Override>[
+    // 데모 운동은 이제 로컬 목업 API(drift)를 탄다(#2662) — 이 화면 시험은
+    // DB 없이 메모리 목업의 주를 본다.
+    exerciseRepositoryProvider.overrideWithValue(MockExerciseRepository()),
     appConfigProvider.overrideWithValue(_config),
     accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
     memberCoachRepositoryProvider.overrideWithValue(

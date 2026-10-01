@@ -5,6 +5,19 @@
   "@appTitle": {
     "description": "Application name shown in window/AppBar titles."
   },
+  "notFoundTitle": "Page not found",
+  "@notFoundTitle": {
+    "description": "Title of the 404 page shown for an address that matches no screen (#2633)."
+  },
+  "notFoundMessage": "The link may be broken, or the page may no longer exist. Please check the address and try again.",
+  "notFoundGoHome": "Go home",
+  "@notFoundGoHome": {
+    "description": "404 page button for a signed-in (or demo) member; goes to the home dashboard."
+  },
+  "notFoundGoSignIn": "Go to sign in",
+  "@notFoundGoSignIn": {
+    "description": "404 page button when nobody is signed in; goes to the sign-in screen."
+  },
   "navDashboard": "Home",
   "navDiet": "Diet",
   "navExercise": "Exercise",
@@ -454,15 +467,16 @@
       }
     }
   },
-  "exCompletedPtNoProgram": "No workout program was recorded.",
-  "exCompletedPtFeedback": "{coachName} · Today's feedback",
-  "@exCompletedPtFeedback": {
+  "exPtSessionNumber": "Session {count}",
+  "@exPtSessionNumber": {
+    "description": "PT card chip — which session with the assigned trainer this was (#2666).",
     "placeholders": {
-      "coachName": {
-        "type": "String"
+      "count": {
+        "type": "int"
       }
     }
   },
+  "exCompletedPtNoProgram": "No workout program was recorded.",
   "exAddExercise": "Add Exercise",
   "exDurationMinutes": "{minutes} min",
   "@exDurationMinutes": {
@@ -575,7 +589,7 @@
   },
   "exQueueDiscard": "Discard",
   "exOwnRecords": "Workouts you logged",
-  "exOwnRecordsEmpty": "No workouts logged yet",
+  "exOwnRecordsEmpty": "No workouts logged",
   "exOwnRecordSource": "Self-logged",
   "exCompletedPtDayTitle": "Completed PT",
   "exCompletedRoutineDayTitle": "Completed solo workout",
@@ -3075,10 +3089,6 @@
   "@demoAlertMaintenanceBody": {
     "description": "Body of a demo notification shown in tour mode."
   },
-  "exPtLogTitle": "Today's completed PT",
-  "@exPtLogTitle": {
-    "description": "Title of the completed PT session card."
-  },
   "exPtFeedbackTitle": "Today's feedback",
   "exNextPtSchedule": "Next PT · {when}",
   "@exNextPtSchedule": {
@@ -3152,15 +3162,6 @@
     "description": "Confirm button of the cancel-consultation dialog. Sits next to Keep, like Cancel booking (#2554)."
   },
   "exConsultHistoryCancelBody": "A cancelled request can't be restored.",
-  "exDemoPtSessionCount": "Session 12 with Trainer {trainerName}",
-  "@exDemoPtSessionCount": {
-    "placeholders": {
-      "trainerName": {
-        "type": "String"
-      }
-    }
-  },
-  "exDemoPtFeedback": "Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!",
   "pointsRewardBadge": "+{points}P",
   "@pointsRewardBadge": {
     "description": "Points earned badge on the save toast (shown after a star icon), e.g. +50P.",

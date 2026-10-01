@@ -136,6 +136,63 @@ def test_member_sessions_carry_note_only_for_done_pt(client, db_session):
         db_session.commit()
 
 
+def test_member_sessions_number_done_pt_in_order(client, db_session):
+    """완료 PT 에만 담당 트레이너와의 회차가 실린다(#2697).
+
+    회차는 날짜·시각 순으로 처음부터 센다 — 뒤 수업이 앞 수업보다 하나 크다.
+    상담·예정·취소는 세지 않고 null 이다. 트레이너 응답에는 싣지 않는다.
+    """
+    from app.models import models
+
+    tag = uuid4().hex[:6]
+    rows = {
+        "first": ("2031-05-06", "07:00", "1:1 PT", "완료"),
+        "consult": ("2031-05-07", "07:00", "상담", "완료"),
+        "cancelled": ("2031-05-08", "07:00", "1:1 PT", "취소"),
+        "second": ("2031-05-13", "07:00", "1:1 PT", "완료"),
+        "upcoming": ("2031-05-20", "07:00", "1:1 PT", "예정"),
+    }
+    ids = {key: f"sched-2697-{key}-{tag}" for key in rows}
+    for key, (day, time, type_, status) in rows.items():
+        db_session.add(models.TrainerSchedule(
+            id=ids[key], trainer_id="trainer-demo", member_id="user-jisu",
+            date=day, time=time, client_name="이지수",
+            type=type_, duration_minutes=50, status=status,
+            note="", program_json="[]", sort_order=0,
+        ))
+    db_session.commit()
+    try:
+        sessions = client.get("/v1/me/coach/sessions", headers=_h(_member_tok(client))).json()
+        numbers = {s["id"]: s["session_number"] for s in sessions if s["id"] in ids.values()}
+        assert numbers[ids["first"]] is not None
+        assert numbers[ids["second"]] == numbers[ids["first"]] + 1
+        assert numbers[ids["consult"]] is None
+        assert numbers[ids["cancelled"]] is None
+        assert numbers[ids["upcoming"]] is None
+        # 2031 년 수업이 가장 늦은 완료 PT 라, 그 번호가 곧 완료 PT 전체 수다.
+        done_pt = sum(
+            1 for s in sessions if s["status"] == "완료" and s["type"] != "상담"
+        )
+        if len(sessions) < 100:
+            assert numbers[ids["second"]] == done_pt
+
+        trainer = client.get(
+            "/v1/trainer/schedule",
+            params={"date": "2031-05-13", "member_id": "user-jisu"},
+            headers=_h(_trainer_tok(client)),
+        ).json()
+        assert all(
+            s.get("session_number") is None for s in trainer if s["id"] in ids.values()
+        )
+    finally:
+        db_session.rollback()
+        for sid in ids.values():
+            row = db_session.get(models.TrainerSchedule, sid)
+            if row is not None:
+                db_session.delete(row)
+        db_session.commit()
+
+
 def test_member_send_reflects_in_trainer_roster(client):
     mt = _member_tok(client)
     r = client.post(

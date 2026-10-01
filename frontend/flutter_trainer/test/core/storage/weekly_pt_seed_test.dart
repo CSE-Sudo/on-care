@@ -8,6 +8,7 @@
 /// 고정해 본다.
 library;
 
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -63,7 +64,9 @@ void main() {
     test('$label 시연: 회원마다 붙은 뒤의 모든 주에 수업이 1~2회다', () async {
       final List<TrainerScheduleRow> rows = await seededRows(_dayOfWeek(today));
 
-      for (int id = 1; id <= 15; id++) {
+      // 김민수(1)는 아래 `픽스처 PT 날` 시험이 본다 — 그의 수업 날은 픽스처가
+      // 정해 비워 둔 날이 겹친 주에는 수업이 없다(#2694).
+      for (int id = 2; id <= 15; id++) {
         final String clientId = 'seed-client-$id';
         final int joined =
             demoMemberJoinedWeeksAgo[clientId] ?? demoReportHistoryWeeks;
@@ -93,6 +96,33 @@ void main() {
           }
         }
       }
+    });
+
+    test('$label 시연: 김민수의 수업 날은 공유 픽스처의 PT 날 그대로다 (#2694)', () async {
+      final DateTime now = _dayOfWeek(today);
+      final List<TrainerScheduleRow> rows = await seededRows(now);
+      final List<String> seeded =
+          rows
+              .where(
+                (r) =>
+                    r.clientId == 'seed-client-1' &&
+                    r.status != ScheduleStatus.gap,
+              )
+              .map((r) => r.date)
+              .toList()
+            ..sort();
+      final List<String> fixture = <String>[
+        for (final FixtureDay d in DemoFixture.load().daysFor(now))
+          if (d.isPt) d.date,
+      ];
+      expect(seeded, fixture);
+      expect(
+        rows
+            .where((r) => r.clientId == 'seed-client-1')
+            .map((r) => r.time)
+            .toSet(),
+        <String>{'18:00'},
+      );
     });
 
     test('$label 시연: 한 주에 PT 를 1회 넘게 받는 회원은 몇 명뿐이다', () async {
@@ -152,10 +182,25 @@ void main() {
     });
   }
 
-  test('지난 주 수업은 전부 완료이고, 이번 주는 요일에 따라 완료·예정으로 갈린다', () async {
+  test('지난 주 수업은 완료이되 3주 전에 노쇼·취소가 한 건씩 있고, 이번 주는 '
+      '요일에 따라 완료·예정으로 갈린다', () async {
     final DateTime thursday = _dayOfWeek(4);
     final List<TrainerScheduleRow> rows = await seededRows(thursday);
     final String monday = ymd(_monday);
+    final String missFrom = ymd(
+      DateTime(
+        _monday.year,
+        _monday.month,
+        _monday.day - 7 * seedPastMissWeeksAgo,
+      ),
+    );
+    final String missTo = ymd(
+      DateTime(
+        _monday.year,
+        _monday.month,
+        _monday.day - 7 * seedPastMissWeeksAgo + 6,
+      ),
+    );
 
     // 지난 상담(`seed-schedule-c`, #2667)은 되풀이한 수업이 아니다.
     final List<TrainerScheduleRow> past = rows
@@ -166,12 +211,32 @@ void main() {
         )
         .toList();
     expect(past, isNotEmpty);
+    // 끝내 하지 못한 수업은 3주 전의 배준혁 노쇼·강서연 회원 취소뿐이다(#2669).
+    final List<TrainerScheduleRow> missed = past
+        .where((r) => r.status != ScheduleStatus.done)
+        .toList();
+    expect(
+      <(String, String)>{for (final r in missed) (r.clientName, r.status)},
+      <(String, String)>{
+        ('배준혁', ScheduleStatus.noShow),
+        ('강서연', ScheduleStatus.cancelled),
+      },
+    );
+    for (final TrainerScheduleRow r in missed) {
+      expect(r.date.compareTo(missFrom) >= 0, isTrue, reason: r.date);
+      expect(r.date.compareTo(missTo) <= 0, isTrue, reason: r.date);
+    }
+    final TrainerScheduleRow cancelled = missed.firstWhere(
+      (r) => r.status == ScheduleStatus.cancelled,
+    );
+    expect(cancelled.cancellationSource, CancellationSource.member);
+    expect(cancelled.cancellationReason, isNotEmpty);
+    expect(cancelled.cancelledAt, isNotNull);
+    expect(
+      missed.firstWhere((r) => r.status == ScheduleStatus.noShow).noShowAt,
+      isNotNull,
+    );
     for (final TrainerScheduleRow r in past) {
-      expect(
-        r.status,
-        ScheduleStatus.done,
-        reason: '${r.date} ${r.clientName}',
-      );
       expect(r.type, SessionType.personalTraining);
       expect(r.clientId, isNotNull, reason: '지난 주에는 회원 PT 만 되풀이한다');
     }
@@ -226,6 +291,7 @@ void main() {
           .every(
             (r) =>
                 r.id.startsWith('seed-schedule-p') ||
+                r.id.startsWith('seed-schedule-f') ||
                 r.id.startsWith('seed-schedule-c'),
           ),
       isTrue,

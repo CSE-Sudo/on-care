@@ -39,6 +39,14 @@ class AppPrefs {
   Future<void> setOnboardingDone(bool value) =>
       _prefs.setBool(_kOnboardingDone, value);
 
+  /// 첫 설정 기기 기록만 지운다 — 계정 경계(로그인·로그아웃·만료)에서 부른다.
+  /// (#2630)
+  ///
+  /// 이 기록은 프로필을 못 받아 왔을 때의 보조 판단이라 **지금 세션의 계정
+  /// 것**이어야 한다. 기기 전체에 하나로 남기면 앞 계정이 끝낸 기록을 보고 첫
+  /// 설정을 안 한 새 계정을 홈으로 보낸다. 홈 가이드 기록은 건드리지 않는다.
+  Future<void> forgetOnboardingDone() => _prefs.remove(_kOnboardingDone);
+
   bool get homeGuideDone => _prefs.getBool(_kHomeGuideDone) ?? false;
   Future<void> setHomeGuideDone(bool value) =>
       _prefs.setBool(_kHomeGuideDone, value);

@@ -79,6 +79,9 @@ void main() {
   test('buildWeeklyReport — 회원이 붙은 뒤의 지난 주들도 PT 가 1~2회이고 모두 진행됐다', () async {
     final DriftScheduleRepository schedule = DriftScheduleRepository(db);
     for (final TrainerClient client in clients) {
+      // 김민수의 수업 날은 공유 픽스처가 정한다 — 비워 둔 날이 겹친 주는 0회다.
+      // 그의 수업 날은 주간 PT 시드 시험이 픽스처와 맞춰 본다(#2694).
+      if (client.id == 'seed-client-1') continue;
       final List<ScheduleSession> sessions = await schedule
           .watchClientSessions((id: client.id, name: client.name))
           .first;
@@ -98,12 +101,17 @@ void main() {
           inInclusiveRange(1, 2),
           reason: '${client.id} · $back주 전',
         );
+        // 3주 전의 배준혁(9) 노쇼·강서연(6) 회원 취소 한 건씩은 진행되지
+        // 않은 수업이다(#2669). 나머지 지난 주 수업은 모두 끝난 수업이다.
+        final bool missedOne =
+            back == seedPastMissWeeksAgo &&
+            (client.id == 'seed-client-9' || client.id == 'seed-client-6');
         expect(
           report.sessionsDone,
-          report.sessionsBooked,
+          report.sessionsBooked - (missedOne ? 1 : 0),
           reason: '지난 주 수업은 끝난 수업이다 — ${client.id} · $back주 전',
         );
-        expect(report.attendanceRate, 100);
+        if (!missedOne) expect(report.attendanceRate, 100);
       }
     }
   });

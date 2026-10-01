@@ -477,7 +477,7 @@ def test_routine_completion_on_protected_day_refunds_shield(
     )
     r = client.post(
         f"/v1/me/coach/routines/{routine_id}/complete",
-        json={"minutes": 20, "intensity": "moderate", "member_note": ""},
+        json={"minutes": 20, "intensity": "moderate"},
         headers=h,
     )
     assert r.status_code == 200, r.text

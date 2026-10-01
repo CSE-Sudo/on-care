@@ -156,6 +156,9 @@ void main() {
       // 횟수를 못 박으면 무관한 provider 가 늘 때마다 여기가 깨진다. 확인하려는
       // 성질은 "리셋 뒤 다시 조회한다" 하나다.
       final int dietFetchesBeforeReset = diet.fetchTodayCalls;
+      final NotificationController notificationsBefore = container.read(
+        notificationControllerProvider.notifier,
+      );
 
       accountId = 'account-b';
       container.read(sessionFeatureResetProvider)();
@@ -167,9 +170,15 @@ void main() {
             .any((ChatMessage message) => message.content == 'A 사용자 메시지'),
         isFalse,
       );
+      // 알림 읽음은 저장소(drift)에 있다. 데모 로그인 때 시드 알림 읽음을 되돌리는
+      // 것은 인터셉터가 맡는다(#2660) — 리셋이 확인할 것은 컨트롤러를 새로 만들어
+      // 저장소에서 다시 읽는다는 것이다.
       expect(
-        container.read(notificationControllerProvider).unreadCount,
-        greaterThan(0),
+        identical(
+          container.read(notificationControllerProvider.notifier),
+          notificationsBefore,
+        ),
+        isFalse,
       );
       expect(
         (await container.read(coachSessionsProvider.future)).single.id,
