@@ -51,10 +51,7 @@ void main() {
 
     // 담당 트레이너가 배정한 것은 회원이 지우지 못한다 — 실서버 403 과 같다
     // (#1020, #2666). 목록도 그대로다.
-    await expectLater(
-      coach.deleteRoutine(id),
-      throwsA(isA<UnauthorizedError>()),
-    );
+    await expectLater(coach.deleteRoutine(id), throwsA(isA<ForbiddenError>()));
     expect(
       (await coach.fetchRoutines()).map((CoachRoutine r) => r.id),
       contains(id),
