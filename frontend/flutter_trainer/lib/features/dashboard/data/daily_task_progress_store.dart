@@ -480,7 +480,7 @@ class DailyTaskHistoryController
 
   /// 아직 답을 받지 못한 변경이 있는가. 있으면 다시 읽기를 미룬다 — 다시 읽은
   /// 기록이 선반영한 체크를 잠깐 지웠다가 되살리며 깜빡인다.
-  bool get hasPendingChanges => _inFlight > 0;
+  bool hasPendingChanges() => _inFlight > 0;
 
   @override
   Future<DailyTaskHistory> build() {

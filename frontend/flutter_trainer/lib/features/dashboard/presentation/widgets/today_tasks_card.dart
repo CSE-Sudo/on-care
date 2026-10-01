@@ -172,7 +172,7 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) return;
-    if (ref.read(dailyTaskHistoryProvider.notifier).hasPendingChanges) return;
+    if (ref.read(dailyTaskHistoryProvider.notifier).hasPendingChanges()) return;
     ref.invalidate(dailyTaskHistoryProvider);
   }
 

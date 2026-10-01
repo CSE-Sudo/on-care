@@ -397,7 +397,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(today()?.completedKeys, <String>{'b'});
       expect(
-        container.read(dailyTaskHistoryProvider.notifier).hasPendingChanges,
+        container.read(dailyTaskHistoryProvider.notifier).hasPendingChanges(),
         isTrue,
       );
 
@@ -413,7 +413,7 @@ void main() {
       await applying;
       expect(today()?.completedKeys, <String>{'a', 'b'});
       expect(
-        container.read(dailyTaskHistoryProvider.notifier).hasPendingChanges,
+        container.read(dailyTaskHistoryProvider.notifier).hasPendingChanges(),
         isFalse,
       );
     });
