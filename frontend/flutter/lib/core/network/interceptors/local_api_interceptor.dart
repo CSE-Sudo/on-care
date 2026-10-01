@@ -15,6 +15,7 @@ import 'package:drift/drift.dart'
         OrderingMode,
         OrderingTerm,
         Value;
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:logger/logger.dart';
 import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/demo/demo_ai_advice.dart';
@@ -43,6 +44,8 @@ import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart'
     show kMaxExerciseSessionsPerSave;
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
     show setsFromStrengthMinutes;
+import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
+import 'package:oncare/features/exercise/domain/repositories/routine_session_log.dart';
 import 'package:oncare_ui/oncare_ui.dart' show AppInputError, AppInputRules;
 
 /// A drift-backed dummy backend. Intercepts dio requests and serves
@@ -71,7 +74,7 @@ const String _srcWater = '$_srcKdri — 수분';
 const String _srcPaAdult = '$_srcPa — 성인(19~64세) 신체활동 지침';
 const String _srcPaSafety = '$_srcPa — 안전하게 신체활동 실천하기';
 
-class LocalApiInterceptor extends Interceptor {
+class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   LocalApiInterceptor(
     this._db,
     this._logger, {
@@ -84,6 +87,17 @@ class LocalApiInterceptor extends Interceptor {
        _couponsArg = coupons,
        _shieldsArg = shields,
        _challengesArg = challenges;
+
+  /// [dio] 에 걸린 로컬 목업 API. 목업 모드가 아니면(또는 테스트가 다른 Dio 를
+  /// 넣었으면) null 이다. 운동·코치 저장소가 이 인터셉터에 데모 연결을 붙인다.
+  static LocalApiInterceptor? of(Dio dio) =>
+      dio.interceptors.whereType<LocalApiInterceptor>().firstOrNull;
+
+  /// 기간의 날마다 걸려 있던 추천 개인운동과 그날 완료(#2161). 목업 코치
+  /// 저장소가 들고 있는 것이라 운동 저장소가 붙이고, 부를 때 빌려 온다 — 운동
+  /// AI 맞춤 조언(#2162)이 추천 운동을 보고 말하는 재료다. 없으면 빈 목록이다.
+  /// (#2662)
+  List<RoutineAdviceDay> Function(DateTime from, DateTime to)? routineDays;
 
   /// 연속 기록 보호권(#1788). 앱에서는 목업 운동 저장소와 같은 인스턴스를 받아
   /// 사용처에서 교환한 보호권이 운동 현황의 연속 일수로 이어진다. 주지 않으면
@@ -154,6 +168,8 @@ class LocalApiInterceptor extends Interceptor {
     'POST /exercise/sessions': _exerciseAddSession,
     'POST /exercise/calories': _exerciseCalories,
     'GET /notifications': _notifications,
+    'GET /notifications/unread-count': _notificationsUnreadCount,
+    'POST /notifications/read-all': _notificationsReadAll,
     'GET /ai-coach/feedback': _aiCoachFeedback,
     'POST /ai-coach/chat': _aiCoachChat,
     'GET /ai-coach/insights': _aiCoachInsights,
@@ -291,6 +307,7 @@ class LocalApiInterceptor extends Interceptor {
         );
     // 식단 한 끼도 기록이다 — 보호한 날이면 보호권을 돌려준다(#1788).
     _refundShieldOnDate(_todayDateString());
+    await _retireCuratedAdvice(dietDates: <String>[_todayDateString()]);
   }
 
   Future<Response<Object?>?> _safeHandle(RequestOptions options) async {
@@ -361,15 +378,27 @@ class LocalApiInterceptor extends Interceptor {
     if (method == 'DELETE' && path.startsWith('/ai-coach/insights/')) {
       return _aiCoachInsightDismiss;
     }
+    if (method == 'POST' &&
+        path.startsWith('/notifications/') &&
+        path.endsWith('/read')) {
+      return _notificationRead;
+    }
     return null;
   }
 
   Future<Response<Object?>> _dietDelete(RequestOptions options) async {
     final id = options.path.split('/').last;
+    // 지우기 전에 날짜를 읽어 둔다 — 그날의 큐레이션 문장을 거둬야 한다.
+    final DietEntryRow? existing = await (_db.select(
+      _db.dietEntries,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
     final n = await (_db.delete(
       _db.dietEntries,
     )..where((t) => t.id.equals(id))).go();
     if (n == 0) return _notFound(options, '식단 기록을 찾을 수 없습니다.');
+    await _retireCuratedAdvice(
+      dietDates: <String>[if (existing != null) existing.date],
+    );
     // 이 끼니로 받은 포인트를 회수한다 — 실서버와 같은 규칙이다(#1786).
     _points.revoke(PointsRule.dietEntry.sourceType, id);
     return _ok(options, <String, Object?>{'status': 'deleted'});
@@ -377,13 +406,28 @@ class LocalApiInterceptor extends Interceptor {
 
   Future<Response<Object?>> _exerciseDelete(RequestOptions options) async {
     final id = options.path.split('/').last;
-    final n = await (_db.delete(
+    final existing = await (_db.select(
+      _db.exerciseSessions,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    if (existing == null) return _notFound(options, '운동 기록을 찾을 수 없습니다.');
+    if (existing.source != 'member') return _derivedExercise(options);
+    await (_db.delete(
       _db.exerciseSessions,
     )..where((t) => t.id.equals(id))).go();
-    if (n == 0) return _notFound(options, '운동 기록을 찾을 수 없습니다.');
     _points.revoke(PointsRule.exerciseManual.sourceType, id);
+    await _retireCuratedAdvice();
     return _ok(options, <String, Object?>{'status': 'deleted'});
   }
+
+  /// PT·배정 루틴에서 파생된 기록은 회원이 고치거나 지울 수 없다 — 서버
+  /// (`exercise.py` 의 `_reject_if_derived`)와 같은 409 다. 기록은 분명히 있으므로
+  /// 404 로 없는 척하지 않는다. (#499, #638, #2662)
+  Response<Object?> _derivedExercise(RequestOptions options) =>
+      Response<Object?>(
+        requestOptions: options,
+        statusCode: 409,
+        data: <String, Object?>{'detail': '코칭에서 생성된 운동 기록은 수정하거나 삭제할 수 없습니다.'},
+      );
 
   Future<Response<Object?>> _exerciseUpdate(RequestOptions options) async {
     final id = options.path.split('/').last;
@@ -391,6 +435,7 @@ class LocalApiInterceptor extends Interceptor {
       _db.exerciseSessions,
     )..where((t) => t.id.equals(id))).getSingleOrNull();
     if (existing == null) return _notFound(options, '운동 기록을 찾을 수 없습니다.');
+    if (existing.source != 'member') return _derivedExercise(options);
     final body = _jsonBody(options);
     final type = (body['type'] as String? ?? existing.type).trim();
     final durationSeconds = body.containsKey('duration_seconds')
@@ -465,6 +510,7 @@ class LocalApiInterceptor extends Interceptor {
     );
     // 기록을 보호권으로 이어 붙인 날로 옮겼으면 그 보호권을 되돌린다(#1788).
     _refundShieldOn(weekStart, dayLabel);
+    await _retireCuratedAdvice();
     return _ok(
       options,
       _sessionJson(
@@ -588,6 +634,7 @@ class LocalApiInterceptor extends Interceptor {
           ),
         );
     _refundShieldOnDate(day);
+    await _retireCuratedAdvice(dietDates: <String>[day]);
     final row = await (_db.select(
       _db.dietEntries,
     )..where((t) => t.id.equals(id))).getSingle();
@@ -710,6 +757,10 @@ class LocalApiInterceptor extends Interceptor {
     )..where((t) => t.id.equals(id))).getSingle();
     // 옮겨 간 날이 보호한 날이면 보호권을 돌려준다(#1788).
     _refundShieldOnDate(row.date);
+    // 날짜를 옮긴 수정이면 떠난 날과 옮겨 간 날이 모두 바뀌었다.
+    await _retireCuratedAdvice(
+      dietDates: <String>{existing.date, row.date}.toList(),
+    );
     final foods = jsonDecode(row.foodsJson) as List<Object?>;
     final macros = _foodMacroTotals(foods);
     return _ok(options, <String, Object?>{
@@ -800,14 +851,16 @@ class LocalApiInterceptor extends Interceptor {
         final sodiumOrder = b.value.compareTo(a.value);
         return sodiumOrder != 0 ? sodiumOrder : a.key.compareTo(b.key);
       });
-    final sodiumSourceNames = sodiumSources
-        .take(2)
-        .map((source) => source.key)
-        .join('·');
+    // 경고가 짚는 상위 급원 두 개. 서버(`dashboard._SODIUM_SOURCE_COUNT`)와 같다.
+    final List<String> sodiumSourceNames = <String>[
+      for (final MapEntry<String, int> source in sodiumSources.take(2))
+        source.key,
+    ];
+    final String lang = _requestLang(options);
 
     // 데모 시드가 큐레이션 '통합 조언'을 준비해 뒀는지. 있으면 그것을 우선
-    // 노출하고, 없으면(시드 없는 테스트 DB 등) 나트륨 상위 급원 기반 경고를
-    // 동적으로 생성한다.
+    // 노출하고, 없으면(시드 없는 테스트 DB, 회원이 기록을 바꿔 거둔 뒤 —
+    // [_retireCuratedAdvice]) 나트륨 상위 급원 기반 경고를 동적으로 생성한다.
     final seededAdvice = await _db.readValue('dashboard_ai_advice');
     final bool hasSeededAdvice =
         seededAdvice != null && seededAdvice.isNotEmpty;
@@ -818,10 +871,8 @@ class LocalApiInterceptor extends Interceptor {
       _db.exerciseSessions,
     )..where((t) => t.weekStart.equals(weekStart))).get();
     int exerciseMinutes = 0;
-    int exerciseCalories = 0;
     for (final r in exerciseRows) {
       exerciseMinutes += r.minutes;
-      exerciseCalories += r.calories;
     }
 
     // (혈당 row removed from the home summary per the latest design ref —
@@ -852,23 +903,21 @@ class LocalApiInterceptor extends Interceptor {
           ...nutritionByDate[_dateString(monday.add(Duration(days: index)))]!,
         },
     ];
-    final loggedNutritionDays = nutritionWeek
-        .where((day) => (day['calories']! as num) > 0)
-        .toList();
-    final averageSodium = loggedNutritionDays.isEmpty
-        ? totalSodium.toDouble()
-        : loggedNutritionDays.fold<double>(
-                0,
-                (total, day) => total + (day['sodium_mg']! as num).toDouble(),
-              ) /
-              loggedNutritionDays.length;
-    var score = 50;
-    if (averageSodium <= sodiumGoal) score += 20;
-    if (exerciseMinutes >= 150) {
-      score += 30;
-    } else if (exerciseMinutes > 0) {
-      score += 15;
-    }
+    final String? sodiumWarning = _homeSodiumWarning(
+      lang: lang,
+      totalSodium: totalSodium,
+      sodiumGoal: sodiumGoal,
+      sourceNames: sodiumSourceNames,
+    );
+    final ({String key, String text}) exerciseFeedback = _homeExerciseFeedback(
+      lang: lang,
+      minutes: exerciseMinutes,
+    );
+    final String adviceKey = hasSeededAdvice
+        ? kDailyCombinedAdviceKey
+        : sodiumWarning != null
+        ? (sodiumSourceNames.isEmpty ? 'sodium_over' : 'sodium_over_sources')
+        : exerciseFeedback.key;
 
     return _ok(options, <String, Object?>{
       'indicators': <Map<String, Object?>>[
@@ -897,32 +946,83 @@ class LocalApiInterceptor extends Interceptor {
       'macros': _macroPayload(totalCarbs, totalProtein, totalFat),
       'diet_entries': dietRows.length,
       'exercise_minutes': exerciseMinutes,
-      'exercise_calories': exerciseCalories,
-      // 운동 횟수 = 운동한 '일수'(활성 일수). 운동 화면의 workoutCount 와 정의를
-      // 맞춰, 하루에 여러 세션을 기록해도 1회로 센다(세션 행 수가 아니라 distinct 요일).
-      'exercise_count': exerciseRows.map((r) => r.dayLabel).toSet().length,
+      // 주간 점수·지난 주 비교선·운동 칼로리·횟수는 서버처럼 싣지 않는다 — 홈이
+      // 읽지 않는다(#2646).
       'nutrition_week': nutritionWeek,
-      'nutrition_week_prev': <Object?>[],
-      'week_score': score,
-      // Delta is a static demo number for now — full week-over-week
-      // diff lands in a later phase.
-      'week_score_delta': 12,
       // 시드가 큐레이션한 통합 조언은 **키로** 내려보낸다 — 문장은 ARB 가
       // ko·en 양쪽으로 갖고 있고 화면이 로케일에 맞게 고른다(#435).
-      'ai_advice_key': hasSeededAdvice ? kDailyCombinedAdviceKey : null,
-      // 시드 조언이 없을 때(시드 없는 테스트 DB 등)만 나트륨 급원 기반 경고를
-      // 동적으로 만든다. 서버가 만드는 문장과 같은 성격이라 번역본이 없다.
-      'sodium_warning': hasSeededAdvice
-          ? null
-          : totalSodium > sodiumGoal
-          ? sodiumSourceNames.isNotEmpty
-                ? '$sodiumSourceNames 섭취로 나트륨이 높아요.'
-                : '오늘 나트륨이 ${totalSodium}mg 으로 권장량(${sodiumGoal}mg)을 넘었어요.'
-          : null,
-      'exercise_feedback': exerciseMinutes >= 60
-          ? '이번 주 운동 목표를 달성했어요! 마무리 스트레칭도 잊지 마세요.'
-          : '주간 운동 목표 80%를 달성했어요! 오늘 가볍게 걷기를 더해 100%를 채워봐요!',
+      //
+      // 시드 조언이 없으면 서버와 같은 순서로 고른다 — 나트륨 경고가 있으면
+      // 그것, 없으면 이번 주 운동 되먹임이다. 음식 이름이 든 경고도 키와 음식
+      // 이름 인자로 싣는다(#2644).
+      'ai_advice_key': adviceKey,
+      'ai_advice_params': <String, Object?>{
+        if (adviceKey == 'sodium_over_sources') 'foods': sodiumSourceNames,
+      },
+      // 키를 모르는 화면이 읽는 문장. 서버처럼 요청 언어를 따른다.
+      'sodium_warning': hasSeededAdvice ? null : sodiumWarning,
+      'exercise_feedback': exerciseFeedback.text,
     });
+  }
+
+  /// 홈 나트륨 경고 — 서버 `dashboard._build_sodium_warning` 과 같은 문장.
+  /// 목표 안이면 null. 음식 이름은 회원이 적은 데이터라 번역하지 않는다.
+  static String? _homeSodiumWarning({
+    required String lang,
+    required int totalSodium,
+    required int sodiumGoal,
+    required List<String> sourceNames,
+  }) {
+    if (totalSodium <= sodiumGoal) return null;
+    final bool en = lang == 'en';
+    if (sourceNames.isEmpty) {
+      return en
+          ? 'Sodium is at ${totalSodium}mg today, over your target (${sodiumGoal}mg).'
+          : '오늘 나트륨이 ${totalSodium}mg 으로 권장량(${sodiumGoal}mg)을 넘었어요.';
+    }
+    return en
+        ? 'Sodium is high from ${sourceNames.join(' and ')}.'
+        : '${sourceNames.join('·')} 섭취로 나트륨이 높아요.';
+  }
+
+  /// 이번 주 운동 되먹임 — 서버 `dashboard._exercise_feedback` 과 같은 기준
+  /// (주 150분)·같은 문장·같은 키.
+  static ({String key, String text}) _homeExerciseFeedback({
+    required String lang,
+    required int minutes,
+  }) {
+    final bool en = lang == 'en';
+    if (minutes >= 150) {
+      return (
+        key: 'exercise_on_track',
+        text: en
+            ? 'You worked out $minutes minutes this week. You are on track!'
+            : '이번 주 $minutes분 운동했어요. 목표 달성 중이에요!',
+      );
+    }
+    if (minutes > 0) {
+      return (
+        key: 'exercise_more',
+        text: en
+            ? 'You worked out $minutes minutes this week. A little more to go!'
+            : '이번 주 $minutes분 운동했어요. 조금만 더 힘내요!',
+      );
+    }
+    return (
+      key: 'exercise_start',
+      text: en
+          ? 'Start moving this week — an easy walk is a good beginning.'
+          : '이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.',
+    );
+  }
+
+  /// 요청의 화면 언어 — `Accept-Language` 가 영어면 `en`, 아니면 `ko`.
+  /// 서버 `core.locale` 처럼 지원하지 않는 언어는 한국어로 떨어진다.
+  static String _requestLang(RequestOptions options) {
+    final Object? header = options.headers['Accept-Language'];
+    return header is String && header.trim().toLowerCase().startsWith('en')
+        ? 'en'
+        : 'ko';
   }
 
   // ---- Diet ----
@@ -1094,9 +1194,12 @@ class LocalApiInterceptor extends Interceptor {
       'total_sodium_mg': totalSodium,
       'total_sugar_g': totalSugar,
       'macros': _macroPayload(totalCarbs, totalProtein, totalFat),
-      'ai_coach_message':
-          await _dietDayMessage(date) ??
-          _derivedDietDayMessage(totalSodium: totalSodium, empty: rows.isEmpty),
+      'ai_coach_message': await _dietDayCoachMessage(
+        options,
+        date: date,
+        totalSodium: totalSodium,
+        empty: rows.isEmpty,
+      ),
     });
   }
 
@@ -1213,35 +1316,121 @@ class LocalApiInterceptor extends Interceptor {
 
   /// GET /diet/recommendations — 홈 "AI 추천 식단".
   ///
-  /// 데모에는 개인화 근거가 없다(로그인하지 않은 둘러보기). 그래서 서버가 고르는
-  /// 대신 앱과 서버가 공유하는 기본 순서를 그대로 돌려주고, `reason_text` 는 비워
-  /// 둔다 — 카드 문구는 앱의 l10n 기본값이 쓰여 로케일을 따라간다.
+  /// 서버(`diet_recommendation_service`)의 규칙 경로와 같다(#2661). 최근 3일 식단
+  /// 기록의 하루 평균에서 신호(나트륨·당류 과다, 열량 과다·부족, 단백질 부족)를
+  /// 뽑고, 신호와 맞는 메뉴를 앞으로 올린다. 데모에는 AI 가 없어 서버가 AI 에
+  /// 실패했을 때의 규칙 순서다. `reason_text` 는 비워 두어 카드 문구는 앱의 l10n
+  /// 기본값이 로케일을 따라간다.
   ///
-  /// `personalized` 를 false 로 주는 것이 핵심이다. 화면이 그 값으로 근거 줄을
-  /// 감추므로, 근거가 없는데 있는 척하지 않게 된다.
+  /// 기록이 없거나 신호가 없으면 서버처럼 `personalized: false` 다 — 화면이 그
+  /// 값으로 근거 줄을 감추므로, 근거가 없는데 있는 척하지 않는다.
   Future<Response<Object?>> _dietRecommendations(RequestOptions options) async {
+    final DateTime now = nowKst();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    final String start = _dateString(
+      DateTime(today.year, today.month, today.day - (_recLookbackDays - 1)),
+    );
+    final rows =
+        await (_db.select(_db.dietEntries)..where(
+              (t) =>
+                  t.date.isBiggerOrEqualValue(start) &
+                  t.date.isSmallerOrEqualValue(_dateString(today)),
+            ))
+            .get();
+
+    // 평균은 '기록이 있는 날' 기준이다 — 서버 `build_context` 와 같다.
+    final Map<String, List<double>> perDay = <String, List<double>>{};
+    for (final DietEntryRow r in rows) {
+      final List<double> day = perDay.putIfAbsent(
+        r.date,
+        () => <double>[0, 0, 0, 0],
+      );
+      day[0] += r.sodiumMg;
+      day[1] += r.sugarG;
+      day[2] += r.totalCalories;
+      day[3] += _foodMacroTotals(
+        jsonDecode(r.foodsJson) as List<Object?>,
+      ).proteinG;
+    }
+    final int n = perDay.length;
+    double avg(int i) => n == 0
+        ? 0
+        : perDay.values.fold<double>(
+                0,
+                (double a, List<double> d) => a + d[i],
+              ) /
+              n;
+    final int avgSodium = avg(0).truncate();
+    final double avgSugar = avg(1);
+    final int avgCalories = avg(2).truncate();
+    final double avgProtein = avg(3);
+
+    final Map<String, Object?> profile = await _mergedProfile();
+    int? positive(Object? v) => v is num && v > 0 ? v.toInt() : null;
+    final int sodiumLimit = positive(profile['daily_sodium_mg']) ?? 2000;
+    final int sugarLimit = positive(profile['daily_sugar_g']) ?? 50;
+    final int calorieLimit = positive(profile['daily_calories']) ?? 2000;
+    final int proteinGoal = positive(profile['daily_protein_g']) ?? 0;
+
+    final Set<String> signals = <String>{
+      if (n > 0) ...<String>{
+        if (avgSodium >= sodiumLimit * _recHighRatio) 'sodium_high',
+        if (avgSugar >= sugarLimit * _recHighRatio) 'sugar_high',
+        if (avgCalories >= calorieLimit * _recHighRatio)
+          'calorie_high'
+        else if (avgCalories > 0 && avgCalories <= calorieLimit * _recLowRatio)
+          'calorie_low',
+        if (proteinGoal > 0 && avgProtein <= proteinGoal * _recLowRatio)
+          'protein_low',
+      },
+    };
+
+    // 신호와 `good_for` 가 겹치는 만큼 점수를 준다. 동점은 기본 순서를 지킨다
+    // (서버 `_rule_rank`). 신호가 없으면 정확히 기본 순서다.
+    final List<MealRecommendation> base = MealRecommendations.fallback.items;
+    int score(MealRecommendation m) =>
+        (_recGoodFor[m.key] ?? const <String>{}).intersection(signals).length;
+    final List<MealRecommendation> ranked = <MealRecommendation>[...base]
+      ..sort((MealRecommendation a, MealRecommendation b) {
+        final int byScore = score(b).compareTo(score(a));
+        return byScore != 0 ? byScore : base.indexOf(a) - base.indexOf(b);
+      });
+
     return _ok(options, <String, Object?>{
       'items': <Map<String, Object?>>[
-        for (final MealRecommendation item
-            in MealRecommendations.fallback.items)
+        for (final MealRecommendation item in ranked)
           <String, Object?>{'key': item.key, 'reason_key': item.reasonKey},
       ],
-      'personalized': false,
-      'days_with_data': 0,
-      'avg_sodium_mg': 0,
-      'sodium_limit_mg': 0,
+      'personalized': n > 0 && signals.isNotEmpty,
+      'days_with_data': n,
+      'avg_sodium_mg': avgSodium,
+      'sodium_limit_mg': sodiumLimit,
       'trainer_pick': _demoTrainerPick(options),
     });
   }
+
+  /// 추천 신호를 뽑는 기간(일). 서버 `LOOKBACK_DAYS` 와 같다.
+  static const int _recLookbackDays = 3;
+
+  /// 한도의 몇 % 이상이면 과다, 미만이면 부족인지. 서버 `_HIGH_RATIO`·`_LOW_RATIO`.
+  static const double _recHighRatio = 0.9;
+  static const double _recLowRatio = 0.6;
+
+  /// 메뉴 → 도움이 되는 신호. 서버 `meal_catalog.CATALOG` 의 `good_for` 와 같다.
+  static const Map<String, Set<String>> _recGoodFor = <String, Set<String>>{
+    'chicken_salad': <String>{'sodium_high', 'protein_low'},
+    'brown_rice_box': <String>{'sugar_high', 'calorie_low'},
+    'salmon': <String>{'protein_low', 'sodium_high'},
+    'tofu': <String>{'calorie_high'},
+    'namul_bibimbap': <String>{'sugar_high'},
+  };
 
   /// 데모 담당 트레이너가 확정해 둔 식단 추천(#2380). 서버 `trainer_pick` 과 같은
   /// 모양이다. 4주 추천 메뉴 리스트(`kDemoMenuPlan`)의 저녁 고단백 메뉴를 쓴다 —
   /// 트레이너 웹 데모가 같은 리스트에서 후보를 낸다. 담당이 없는 데모 회원이면
   /// 홈이 담당을 확인해 그리지 않는다.
   Map<String, Object?> _demoTrainerPick(RequestOptions options) {
-    final Object? header = options.headers['Accept-Language'];
-    final String lang =
-        header is String && header.toLowerCase().startsWith('en') ? 'en' : 'ko';
+    final String lang = _requestLang(options);
     final DemoPlanMenu menu = (kDemoMenuPlan[lang] ?? kDemoMenuPlan['ko']!)
         .firstWhere(
           (DemoPlanMenu m) => m.slot == 'dinner' && m.tag == 'protein_high',
@@ -1253,6 +1442,65 @@ class LocalApiInterceptor extends Interceptor {
       'keyword': menu.keyword,
       'trainer_name': kDemoTrainerName,
     };
+  }
+
+  /// 하루 식단 코치 문장(`ai_coach_message`). 실 서버 `diet_service.build_day`
+  /// 와 같은 규칙이다(#2644).
+  ///
+  /// - 한국어 화면이면 시드가 정해 둔 그날의 큐레이션 문장을 먼저 쓴다. 픽스처
+  ///   문장이 한국어뿐이라, 영어 화면에서는 건너뛰고 수치 기반 문장을 쓴다.
+  /// - 수치 기반 문장은 지난 날짜면 그날을 되짚고, 나트륨 기준은 회원 목표다.
+  Future<String> _dietDayCoachMessage(
+    RequestOptions options, {
+    required String date,
+    required int totalSodium,
+    required bool empty,
+  }) async {
+    final String lang = _requestLang(options);
+    if (lang == 'ko') {
+      final String? curated = await _dietDayMessage(date);
+      if (curated != null) return curated;
+    }
+    final Map<String, Object?> profile = await _mergedProfile();
+    return derivedDietDayMessage(
+      lang: lang,
+      totalSodium: totalSodium,
+      empty: empty,
+      isPast: date.compareTo(_todayDateString()) < 0,
+      sodiumLimit: (profile['daily_sodium_mg'] as num?)?.toInt(),
+    );
+  }
+
+  /// 회원이 식단·운동 기록을 바꿨다 — 시드가 큐레이션해 둔 문장을 거둔다(#2645).
+  ///
+  /// 홈 '오늘의 AI 통합 조언'(`dashboard_ai_advice`)과 식단 탭의 하루 코치
+  /// 문장([kDietDayMessagesKey])은 시드의 기록에 맞춰 쓴 글이다. 기록을 지우거나
+  /// 고친 뒤에도 남아 있으면, 끼니를 다 지운 홈이 여전히 "짬뽕 …" 을 말한다. 기록이
+  /// 바뀐 뒤로는 실 서버처럼 지금 기록으로 만든 조언을 낸다.
+  ///
+  /// 통합 조언은 식단·운동 어느 쪽이 바뀌어도 거두고, 하루 코치 문장은
+  /// [dietDates] 의 날짜만 거둔다. 다음 날 시드가 새로 깔리면 다시 채워진다.
+  Future<void> _retireCuratedAdvice({
+    List<String> dietDates = const <String>[],
+  }) async {
+    await _db.deleteValue('dashboard_ai_advice');
+    if (dietDates.isEmpty) return;
+    final String? raw = await _db.readValue(kDietDayMessagesKey);
+    if (raw == null || raw.isEmpty) return;
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } on FormatException {
+      return;
+    }
+    if (decoded is! Map<String, Object?>) return;
+    final Map<String, Object?> messages = Map<String, Object?>.of(decoded);
+    final int before = messages.length;
+    for (final String date in dietDates) {
+      messages.remove(date);
+    }
+    if (messages.length == before) return;
+    await _db.putValue(kDietDayMessagesKey, jsonEncode(messages));
   }
 
   /// 시드가 정해 둔 그 날짜의 코치 문구. 없으면 null.
@@ -1272,16 +1520,50 @@ class LocalApiInterceptor extends Interceptor {
     }
   }
 
-  /// 시드에 문장이 없는 날짜용 — 그날의 수치를 보고 만든 문구.
-  String _derivedDietDayMessage({
+  /// 회원 나트륨 목표가 없을 때의 하루 상한. 서버 `SODIUM_LIMIT_MG` 와 같다.
+  static const int _kDefaultSodiumLimitMg = 2000;
+
+  /// 시드에 문장이 없는 날짜(또는 영어 화면)용 — 그날의 수치를 보고 만든 문구.
+  ///
+  /// 실 서버 `diet_service.coach_message` 와 **같은 문장**이다. [isPast] 면
+  /// 그날을 되짚는다 — 지난 날짜를 보면서 "오늘 … 저녁은" 을 읽지 않게(#2644).
+  /// 나트륨 기준은 [sodiumLimit](회원 목표), 없으면 2,000mg 이다.
+  @visibleForTesting
+  static String derivedDietDayMessage({
+    required String lang,
     required int totalSodium,
     required bool empty,
+    bool isPast = false,
+    int? sodiumLimit,
   }) {
-    if (empty) return '아직 오늘 식단 기록이 없어요. 첫 끼니를 기록해 볼까요?';
-    if (totalSodium > 2000) {
-      return '오늘 나트륨 섭취가 많았어요. 저녁은 담백한 구이/샐러드로 균형을 맞춰봐요!';
+    final bool en = lang == 'en';
+    final int limit = sodiumLimit ?? _kDefaultSodiumLimitMg;
+    if (isPast) {
+      if (totalSodium > limit) {
+        return en
+            ? 'Sodium ran high that day. Go easy on soups and sauces the next day to balance it out.'
+            : '그날은 나트륨 섭취가 많았어요. 다음 날은 국물·양념을 줄여 균형을 맞춰 봐요.';
+      }
+      if (empty) {
+        return en ? 'No meals were logged that day.' : '이날은 식단 기록이 없어요.';
+      }
+      return en
+          ? 'A well-balanced day with sodium within your target.'
+          : '나트륨을 목표 안에서 지킨 균형 잡힌 하루였어요.';
     }
-    return '균형 잡힌 하루였어요. 내일도 이대로 가요!';
+    if (totalSodium > limit) {
+      return en
+          ? 'You had a lot of sodium today. Balance it out with a light grilled dish or salad for dinner!'
+          : '오늘 나트륨 섭취가 많았어요. 저녁은 담백한 구이/샐러드로 균형을 맞춰봐요!';
+    }
+    if (empty) {
+      return en
+          ? 'No meals logged today yet. Want to log your first meal?'
+          : '아직 오늘 식단 기록이 없어요. 첫 끼니를 기록해 볼까요?';
+    }
+    return en
+        ? 'A well-balanced day. Keep it up tomorrow!'
+        : '균형 잡힌 하루였어요. 내일도 이대로 가요!';
   }
 
   /// 음식 목록에서 탄·단·지 한 항목의 합. `diet_entries` 에는 탄단지 칼럼이
@@ -1427,6 +1709,7 @@ class LocalApiInterceptor extends Interceptor {
             idempotencyKey: Value(idempotencyKey),
           ),
         );
+    await _retireCuratedAdvice(dietDates: <String>[_todayDateString()]);
 
     return _ok(options, <String, Object?>{
       'entry_id': id,
@@ -1610,7 +1893,16 @@ class LocalApiInterceptor extends Interceptor {
         ),
     ];
 
-    final ExerciseAdvice advice = exercisePeriodAdviceOf(days, period);
+    // 추천 개인운동도 서버와 같은 구간을 읽는다(#2162) — 목업 운동 저장소가
+    // 하던 일을 이 자리로 옮겼다(#2662).
+    final DateTime today = _dateOnly(nowKst());
+    final ExerciseAdvice advice = exercisePeriodAdviceOf(
+      days,
+      period,
+      routineDays:
+          routineDays?.call(routineAdviceFetchStart(period, today), today) ??
+          const <RoutineAdviceDay>[],
+    );
     return _ok(options, <String, Object?>{
       'period': period,
       'from_date': start,
@@ -1818,6 +2110,8 @@ class LocalApiInterceptor extends Interceptor {
                   weightKg > 0
               ? 'db'
               : 'estimate',
+          source: r.source,
+          assignedRoutineId: r.assignedRoutineId,
         ),
       );
     }
@@ -1913,14 +2207,6 @@ class LocalApiInterceptor extends Interceptor {
     if (delta == 1) return '어제';
     return '${date.month}월 ${date.day}일';
   }
-
-  String _defaultTimeLabel(String type) => switch (type) {
-    'cardio' => '07:30',
-    'strength' => '18:00',
-    'yoga' || 'stretching' || 'flexibility' => '20:00',
-    'walking' => '12:00',
-    _ => '15:00',
-  };
 
   List<String> _defaultItems(String type) => switch (type) {
     'cardio' => const <String>['러닝머신 30분'],
@@ -2160,7 +2446,10 @@ class LocalApiInterceptor extends Interceptor {
   /// 검사를 마친 기록 한 건을 drift 에 넣고 응답 한 칸과 적립을 돌려준다.
   /// `ex-` 접두(`seed-` 가 아닌)라 seedIfEmpty 가 지우지 않는다.
   Future<({Map<String, Object?> session, PointsAward points})>
-  _insertExerciseSession(Map<String, Object?> payload, {required String id}) async {
+  _insertExerciseSession(
+    Map<String, Object?> payload, {
+    required String id,
+  }) async {
     final type = (payload['type'] as String?) ?? 'cardio';
     final durationSeconds = (payload['duration_seconds'] as num?)?.toInt();
     final minutes = _minutesOf(payload);
@@ -2206,6 +2495,7 @@ class LocalApiInterceptor extends Interceptor {
         );
     // 보호권으로 이어 붙인 날에 기록이 생기면 그 보호권을 되돌린다(#1788).
     _refundShieldOn(weekStart, dayLabel);
+    await _retireCuratedAdvice();
 
     return (
       session: _sessionJson(
@@ -2230,6 +2520,124 @@ class LocalApiInterceptor extends Interceptor {
     );
   }
 
+  /// 배정 루틴을 수행한 기록 — 서버 `complete_assigned_routine` 의 대역이다.
+  /// 목업 코치 저장소가 루틴 완료 때 부른다(#1131). 회원이 적은 기록과 같은 표에
+  /// 남으므로 운동 탭·홈·챌린지가 같은 기록을 보고, 새로고침해도 이어진다(#2662).
+  ///
+  /// 칼로리는 회원 기록과 같은 자리([_demoEstimate])에서 다시 계산한다 — 넘겨받은
+  /// 값은 쓰지 않는다(#1312). 적립은 코치 저장소가 루틴 완료로 따로 한다.
+  @override
+  Future<ExerciseSession> addAssignedRoutineSession({
+    required ExerciseType type,
+    required int minutes,
+    required int calories,
+    required DateTime date,
+    required String routineId,
+    required String name,
+    ExerciseIntensity intensity = ExerciseIntensity.moderate,
+    int? durationSeconds,
+  }) async {
+    final String kind = type.name;
+    // 초로 완료한 배정은 기록도 초를 든다 — 분은 초에서 파생된다(#2221).
+    final int savedMinutes = durationSeconds != null
+        ? _minutesFromSeconds(durationSeconds)
+        : minutes;
+    final estimated = await _demoEstimate(
+      name: name,
+      type: kind,
+      minutes: savedMinutes,
+      intensity: intensity.name,
+    );
+    final (String weekStart, String dayLabel) = _placement(_dateString(date));
+    // `seed-` 가 아닌 접두라 다음 날 시드가 다시 깔려도 지워지지 않는다.
+    final String id =
+        'ex-routine-$routineId-${DateTime.now().microsecondsSinceEpoch}';
+    await _db
+        .into(_db.exerciseSessions)
+        .insert(
+          ExerciseSessionsCompanion.insert(
+            id: id,
+            weekStart: weekStart,
+            dayLabel: dayLabel,
+            type: kind,
+            name: Value(name),
+            minutes: savedMinutes,
+            calories: estimated.calories,
+            intensity: Value(intensity.name),
+            durationSeconds: Value(durationSeconds),
+            source: const Value('assigned_routine'),
+            assignedRoutineId: Value(routineId),
+          ),
+        );
+    // 루틴 완료 기록도 같다 — 보호한 날이면 보호권을 되돌린다(#1788).
+    _refundShieldOn(weekStart, dayLabel);
+    return ExerciseSession.fromJson(
+      _sessionJson(
+        id: id,
+        weekStart: weekStart,
+        dayLabel: dayLabel,
+        type: kind,
+        name: name,
+        minutes: savedMinutes,
+        sets: null,
+        reps: null,
+        holdSeconds: null,
+        durationSeconds: durationSeconds,
+        weight: null,
+        calories: estimated.calories,
+        intensity: intensity.name,
+        calorieSource: estimated.source,
+        source: 'assigned_routine',
+        assignedRoutineId: routineId,
+      ),
+    );
+  }
+
+  /// 배정 루틴 완료를 되돌릴 때 그 수행 기록을 지운다 — 서버
+  /// `uncomplete_assigned_routine` 의 대역이다. 회원 수기 기록은 건드리지 않는다.
+  @override
+  Future<void> removeAssignedRoutineSession(String id) async {
+    await (_db.delete(_db.exerciseSessions)
+          ..where((t) => t.id.equals(id) & t.source.equals('assigned_routine')))
+        .go();
+  }
+
+  /// 남아 있는 배정 루틴 수행 기록 — 새로고침한 뒤 목업 코치 저장소가 그날의
+  /// 체크를 되살린다. (#2662)
+  @override
+  Future<List<ExerciseSession>> assignedRoutineSessions() async {
+    final rows =
+        await (_db.select(_db.exerciseSessions)..where(
+              (t) =>
+                  t.source.equals('assigned_routine') &
+                  t.assignedRoutineId.isNotNull(),
+            ))
+            .get();
+    return <ExerciseSession>[
+      for (final r in rows)
+        ExerciseSession.fromJson(
+          _sessionJson(
+            id: r.id,
+            weekStart: r.weekStart,
+            dayLabel: r.dayLabel,
+            type: r.type,
+            name: r.name,
+            minutes: r.minutes,
+            sets: r.sets,
+            reps: r.reps,
+            holdSeconds: r.holdSeconds,
+            durationSeconds: r.durationSeconds,
+            weight: r.weight,
+            calories: r.calories,
+            intensity: r.intensity,
+            calorieSource: 'estimate',
+            source: r.source,
+            assignedRoutineId: r.assignedRoutineId,
+          ),
+        ),
+    ];
+  }
+
   /// 단건 응답 한 벌. 생성과 수정이 같은 모양을 내야 앱이 두 경로에서 같은
   /// 기록을 읽는다.
   Map<String, Object?> _sessionJson({
@@ -2247,6 +2655,8 @@ class LocalApiInterceptor extends Interceptor {
     required int calories,
     required String intensity,
     required String calorieSource,
+    String source = 'member',
+    String? assignedRoutineId,
   }) => <String, Object?>{
     'id': id,
     'day_label': dayLabel,
@@ -2263,8 +2673,18 @@ class LocalApiInterceptor extends Interceptor {
     'calorie_source': calorieSource,
     'intensity': intensity,
     'date_label': _dateLabelForDayLabel(dayLabel, weekStart),
-    'time_label': _defaultTimeLabel(type),
+    // 시각은 PT 를 받은 날에만 있다 — 데모 픽스처는 PT 를 18:00 수업으로 둔다.
+    // 개인운동·회원 기록은 언제 했는지를 남기지 않으므로 지어내지 않는다.
+    // 유형별 기본 시각을 붙이면 개인운동 카드에 `07:30 수업 완료` 가 선다.
+    // (#1884, #2662)
+    'time_label': source == 'trainer_pt' ? '18:00' : null,
     'items': name.isEmpty ? _defaultItems(type) : <String>[name],
+    // 누가 만든 기록인가 — 앱은 이 값으로 `직접 추가한 운동` 과 PT·배정 루틴
+    // 기록을 가르고 연필을 붙인다(#499, #638). 배정 이름은 서버처럼 그 운동의
+    // 이름이다. (#2662)
+    'source': source,
+    'assigned_routine_id': assignedRoutineId,
+    'assigned_routine_name': assignedRoutineId == null ? '' : name,
   };
 
   /// 초 → 분. 실 서버 `ExerciseSessionCreate._minutes_from_seconds` 와 같은
@@ -2334,9 +2754,14 @@ class LocalApiInterceptor extends Interceptor {
           'category': r.category,
           'read': r.read,
           'created_at': r.createdAt.toIso8601String(),
-          'time_ago': _timeAgoKorean(now.difference(r.createdAt)),
-          // 내 혜택 알림(챌린지 결과)은 서버처럼 갈 곳을 싣는다(#1789).
-          'action': ?_demoActionFor(r.category),
+          // 데모 시드 알림은 정해 둔 경과 시간으로 보인다 — 같은 날 안에서 시각이
+          // 흐르지 않는다(#2660). 나머지는 실제 경과다.
+          'time_ago': _timeAgoKorean(
+            kDemoAlertAgeBySeedId[r.id] ?? now.difference(r.createdAt),
+          ),
+          // 데모 시드 알림은 예전 데모 목록의 목적지, 나머지는 서버처럼 갈래별
+          // 목적지를 싣는다(#1789·#2660).
+          'action': ?(_demoSeedAction(r.id) ?? _demoActionFor(r.category)),
           // 데모 시드 알림은 문구 키를 함께 준다 — 화면이 로케일에 맞는 문장을
           // 고른다. 시드 밖의 알림은 키가 없다(#1812).
           'message_key': ?kDemoAlertKeyBySeedId[r.id],
@@ -2345,8 +2770,63 @@ class LocalApiInterceptor extends Interceptor {
     return _ok(options, list);
   }
 
+  static Map<String, Object?>? _demoSeedAction(String id) {
+    final ({String label, String target})? a = kDemoAlertActionBySeedId[id];
+    if (a == null) return null;
+    return <String, Object?>{'label': a.label, 'target': a.target};
+  }
+
+  /// 데모에 로그인하면 시드 알림을 시드할 때의 읽음 상태로 되돌린다(#2660).
+  ///
+  /// 예전 데모는 로그인·계정 전환마다 알림이 처음 상태였다(#1936). 읽음이 drift 에
+  /// 남게 된 뒤에도 그 모양을 지킨다. 챌린지 결과처럼 데모 중에 생긴 알림은 둔다.
+  /// 앱을 다시 켜기만 한 것(새로고침)은 로그인이 아니라 읽음이 남는다 — 실서버와
+  /// 같고, 날짜가 바뀌면 시드가 다시 깔리며 풀린다.
+  Future<void> _resetDemoNotificationReads() async {
+    await (_db.update(_db.notificationItems)
+          ..where((t) => t.id.isIn(kDemoAlertKeyBySeedId.keys)))
+        .write(const NotificationItemsCompanion(read: Value(false)));
+    await (_db.update(_db.notificationItems)
+          ..where((t) => t.id.isIn(kDemoAlertReadSeedIds)))
+        .write(const NotificationItemsCompanion(read: Value(true)));
+  }
+
+  /// 헤더 벨 배지가 폴링하는 미읽음 수. 서버와 같은 키(`unread`)로 답한다.
+  Future<Response<Object?>> _notificationsUnreadCount(
+    RequestOptions options,
+  ) async {
+    final unread = await (_db.select(
+      _db.notificationItems,
+    )..where((t) => t.read.equals(false))).get();
+    return _ok(options, <String, Object?>{'unread': unread.length});
+  }
+
+  /// 알림 한 건 읽음. 없는 id 는 서버처럼 404 다.
+  Future<Response<Object?>> _notificationRead(RequestOptions options) async {
+    final List<String> parts = options.path.split('/');
+    final String id = parts[parts.length - 2];
+    final int n =
+        await (_db.update(_db.notificationItems)..where((t) => t.id.equals(id)))
+            .write(const NotificationItemsCompanion(read: Value(true)));
+    if (n == 0) return _notFound(options, '알림을 찾을 수 없습니다.');
+    return _ok(options, <String, Object?>{'id': id, 'read': true});
+  }
+
+  /// 안 읽은 알림을 모두 읽음. 바꾼 건수를 서버와 같은 키로 준다.
+  Future<Response<Object?>> _notificationsReadAll(
+    RequestOptions options,
+  ) async {
+    final int n =
+        await (_db.update(_db.notificationItems)
+              ..where((t) => t.read.equals(false)))
+            .write(const NotificationItemsCompanion(read: Value(true)));
+    return _ok(options, <String, Object?>{'marked_read': n});
+  }
+
   // ---- AI Coach ----
 
+  /// GET /ai-coach/feedback — 실서버(`build_feedback`)와 같은 식단·운동 두 건이다
+  /// (#2706). 데모 코칭 시트는 이 응답 대신 고정 카드 두 장을 그린다.
   Future<Response<Object?>> _aiCoachFeedback(RequestOptions options) async {
     return _ok(options, <String, Object?>{
       'greeting': '안녕하세요, 오늘 컨디션은 어떠세요?',
@@ -2360,11 +2840,6 @@ class LocalApiInterceptor extends Interceptor {
           'tag': 'exercise',
           'title': '저녁 산책 15분',
           'body': '저녁 시간대 가벼운 유산소는 수면의 질도 함께 끌어올립니다.',
-        },
-        <String, Object?>{
-          'tag': 'hydration',
-          'title': '수분 보충',
-          'body': '오늘 평소보다 활동량이 많았어요. 물 한 컵 더 마셔봐요.',
         },
       ],
     });
@@ -2412,7 +2887,12 @@ class LocalApiInterceptor extends Interceptor {
     // 실 서버는 그만한 시간이 걸리므로 데모도 같은 리듬으로 답한다.
     await Future<void>.delayed(const Duration(milliseconds: 700));
 
-    final (String reply, List<String> sources) = _mockCoachReply(message);
+    // 답은 요청 언어로 낸다 — 실서버가 `Accept-Language` 로 고르는 것과 같다(#2712).
+    final Object? lang = options.headers['Accept-Language'];
+    final (String reply, List<String> sources) = _mockCoachReply(
+      message,
+      english: lang is String && lang.toLowerCase().startsWith('en'),
+    );
     final ({int spent, int? balance}) charge =
         replayed ?? _aiChatQuota.record(clientRequestId: requestId);
     // 주고받은 것을 그대로 남긴다 — 실서버가 대화를 저장하는 것과 같은 몫(#1824).
@@ -2804,92 +3284,191 @@ class LocalApiInterceptor extends Interceptor {
     return _ok(options, <String, Object?>{'status': 'dismissed'});
   }
 
-  (String, List<String>) _mockCoachReply(String message) {
-    bool has(List<String> keys) => keys.any(message.contains);
+  (String, List<String>) _mockCoachReply(
+    String message, {
+    bool english = false,
+  }) {
+    // 영어 질문도 같은 갈래로 알아듣고, 답은 요청 언어로 낸다(#2712) — 실서버가
+    // `Accept-Language` 로 답하는 언어를 고르는 것과 같다. 영어 키워드는 소문자다.
+    final String lower = message.toLowerCase();
+    bool has(List<String> keys) =>
+        keys.any((String k) => message.contains(k) || lower.contains(k));
+    String say(String ko, String en) => english ? en : ko;
 
     // 아픈 곳 이야기가 먼저다. 영양 갈래를 앞에 두면 "허리가 당겨요" 가 `당` 에
     // 걸려 디저트 이야기를 답한다 — 화면에는 `허리 통증 감지` 표시가 붙은 채로
     // 엉뚱한 답이 달렸다(#1918).
     if (detectChatInsight(message)?.kind == ChatInsightKind.discomfort) {
       return (
-        '불편한 곳이 있으시군요. 오늘은 그 부위에 힘이 실리는 동작을 빼고, 걷기나 가벼운 스트레칭으로 '
-            '바꿔 보세요. 통증이 사흘 넘게 이어지거나 붓는다면 병원 진료를 받아 보시는 것이 좋아요.',
+        say(
+          '불편한 곳이 있으시군요. 오늘은 그 부위에 힘이 실리는 동작을 빼고, 걷기나 가벼운 스트레칭으로 '
+              '바꿔 보세요. 통증이 사흘 넘게 이어지거나 붓는다면 병원 진료를 받아 보시는 것이 좋아요.',
+          "Sorry to hear something's bothering you. Today, skip moves that load that area "
+              'and switch to walking or light stretching. If the pain lasts more than three days '
+              "or it swells, it's best to see a doctor.",
+        ),
         <String>[_srcPaSafety],
       );
     }
-    if (has(<String>['나트륨', '짜', '소금', '국물'])) {
+    if (has(<String>['나트륨', '짜', '소금', '국물', 'sodium', 'salt', 'broth'])) {
       return (
-        '나트륨을 줄이려면 국물은 남기고 건더기 위주로 드시고, 소금 대신 후추·마늘·레몬으로 '
-            '간을 해보세요. 하루 목표는 2000mg 이하예요. 🌿',
+        say(
+          '나트륨을 줄이려면 국물은 남기고 건더기 위주로 드시고, 소금 대신 후추·마늘·레몬으로 '
+              '간을 해보세요. 하루 목표는 2000mg 이하예요. 🌿',
+          'To cut sodium, leave the broth and eat the solids, and season with pepper, '
+              'garlic or lemon instead of salt. Aim for 2,000mg or less a day. 🌿',
+        ),
         <String>[_srcSodium],
       );
     }
     // `당` 한 글자는 쓰지 않는다 — `당기다`·`당근`·`담당` 까지 걸린다.
-    if (has(<String>['혈당', '설탕', '단 것', '단맛', '디저트'])) {
+    if (has(<String>[
+      '혈당',
+      '설탕',
+      '단 것',
+      '단맛',
+      '디저트',
+      'sugar',
+      'sweet',
+      'dessert',
+    ])) {
       return (
-        '가당 음료와 디저트 같은 단순당을 줄이고, 식이섬유가 풍부한 통곡물·채소를 늘려보세요. '
-            '음료를 물이나 무가당 차로 바꾸는 것만으로도 하루 당류가 꽤 줄어요. 🍵',
+        say(
+          '가당 음료와 디저트 같은 단순당을 줄이고, 식이섬유가 풍부한 통곡물·채소를 늘려보세요. '
+              '음료를 물이나 무가당 차로 바꾸는 것만으로도 하루 당류가 꽤 줄어요. 🍵',
+          'Cut back on simple sugars like sweetened drinks and desserts, and add more '
+              'fiber-rich whole grains and vegetables. Just switching drinks to water or '
+              'unsweetened tea lowers your daily sugar quite a bit. 🍵',
+        ),
         <String>[_srcCarb],
       );
     }
-    if (has(<String>['운동', '걷', '헬스', '유산소', '근력'])) {
+    if (has(<String>[
+      '운동',
+      '걷',
+      '헬스',
+      '유산소',
+      '근력',
+      'exercise',
+      'workout',
+      'walk',
+      'cardio',
+      'strength',
+    ])) {
       return (
-        '빠르게 걷기 같은 중강도 유산소를 주 5회, 하루 30분씩 해보세요. 주간 목표 150분이 이렇게 '
-            '채워져요. 여기에 주 2회 가벼운 근력 운동을 더하면 균형이 좋아집니다. 🚶',
+        say(
+          '빠르게 걷기 같은 중강도 유산소를 주 5회, 하루 30분씩 해보세요. 주간 목표 150분이 이렇게 '
+              '채워져요. 여기에 주 2회 가벼운 근력 운동을 더하면 균형이 좋아집니다. 🚶',
+          'Try 30 minutes of moderate cardio such as brisk walking, five days a week. '
+              'That fills your 150-minute weekly goal. Add light strength training twice '
+              'a week for a good balance. 🚶',
+        ),
         <String>[_srcPaAdult],
       );
     }
     // 저녁 메뉴 추천은 빠른 질문 버튼의 첫 줄이다 — 일반론 대신 오늘 기록(점심
     // 짬뽕)과 이어지는 한 끼를 답해야 "맞춤"으로 읽힌다(#1180).
-    if (has(<String>['저녁']) && has(<String>['메뉴', '먹', '추천'])) {
+    if (has(<String>['저녁', 'dinner']) &&
+        has(<String>['메뉴', '먹', '추천', 'menu', 'eat', 'recommend'])) {
       return (
-        '오늘 점심에 드신 짬뽕으로 나트륨과 당류가 많았어요. 저녁은 싱겁고 단백질과 채소가 '
-            '풍부한 메뉴를 추천해요.\n'
-            '🍽️ 추천 메뉴: 닭가슴살 채소구이 + 현미밥\n\n'
-            '• 닭가슴살로 운동 후 단백질을 보충하고\n'
-            '• 다양한 채소로 식이섬유와 영양소를 챙겨주세요.\n'
-            '• 현미밥은 적당량 곁들여 균형 잡힌 한 끼로 드시면 좋아요.\n\n'
-            '오늘은 국물이나 양념이 많은 음식은 피하고, 물도 충분히 섭취해 주세요.',
+        say(
+          '오늘 점심에 드신 짬뽕으로 나트륨과 당류가 많았어요. 저녁은 싱겁고 단백질과 채소가 '
+              '풍부한 메뉴를 추천해요.\n'
+              '🍽️ 추천 메뉴: 닭가슴살 채소구이 + 현미밥\n\n'
+              '• 닭가슴살로 운동 후 단백질을 보충하고\n'
+              '• 다양한 채소로 식이섬유와 영양소를 챙겨주세요.\n'
+              '• 현미밥은 적당량 곁들여 균형 잡힌 한 끼로 드시면 좋아요.\n\n'
+              '오늘은 국물이나 양념이 많은 음식은 피하고, 물도 충분히 섭취해 주세요.',
+          'The jjamppong you had for lunch was high in sodium and sugar. For dinner, '
+              "I'd suggest something lightly seasoned with plenty of protein and vegetables.\n"
+              '🍽️ Suggested menu: grilled chicken breast with vegetables + brown rice\n\n'
+              '• Chicken breast tops up protein after your workout.\n'
+              '• A mix of vegetables adds fiber and nutrients.\n'
+              '• Add a moderate portion of brown rice for a balanced meal.\n\n'
+              'Skip soupy or heavily seasoned dishes today, and drink plenty of water.',
+        ),
         <String>[_srcSodium, _srcCarb],
       );
     }
-    if (has(<String>['단백질'])) {
+    if (has(<String>['단백질', 'protein'])) {
       return (
-        '근력 운동을 하시는 동안에는 체중 1kg당 1.2~1.6g이 기준이에요. 회원님 목표는 하루 100g이니 '
-            '끼니마다 손바닥 하나 정도의 단백질 반찬을 올리시면 채워집니다.',
+        say(
+          '근력 운동을 하시는 동안에는 체중 1kg당 1.2~1.6g이 기준이에요. 회원님 목표는 하루 100g이니 '
+              '끼니마다 손바닥 하나 정도의 단백질 반찬을 올리시면 채워집니다.',
+          "While you're doing strength training, aim for 1.2–1.6g per kg of body weight. "
+              'Your goal is 100g a day, so a palm-sized protein dish at each meal will get '
+              'you there.',
+        ),
         <String>[_srcProtein],
       );
     }
-    if (has(<String>['뭐 먹', '식단', '점심', '저녁', '아침', '메뉴'])) {
+    if (has(<String>[
+      '뭐 먹',
+      '식단',
+      '점심',
+      '저녁',
+      '아침',
+      '메뉴',
+      'what should i eat',
+      'meal',
+      'lunch',
+      'dinner',
+      'breakfast',
+      'menu',
+    ])) {
       return (
-        '채소·통곡물·저지방 단백질 위주로 담아 보세요. 국·찌개는 싱겁게, 튀김보다 구이·찜으로 '
-            '드시면 좋아요. 최근 나트륨이 높았다면 담백한 샐러드나 생선구이가 균형을 맞춰줘요. 🥗',
+        say(
+          '채소·통곡물·저지방 단백질 위주로 담아 보세요. 국·찌개는 싱겁게, 튀김보다 구이·찜으로 '
+              '드시면 좋아요. 최근 나트륨이 높았다면 담백한 샐러드나 생선구이가 균형을 맞춰줘요. 🥗',
+          'Build your plate around vegetables, whole grains and lean protein. Keep soups '
+              'lightly seasoned and choose grilled or steamed over fried. If your sodium has '
+              'been high lately, a light salad or grilled fish helps balance it. 🥗',
+        ),
         <String>[_srcSodium],
       );
     }
-    if (has(<String>['물', '수분'])) {
+    if (has(<String>['물', '수분', 'water', 'hydrat'])) {
       return (
-        '하루 6~8잔의 물을 나눠 마시면 좋아요. 카페인·가당 음료를 줄이고 물로 바꿔 보세요. 💧',
+        say(
+          '하루 6~8잔의 물을 나눠 마시면 좋아요. 카페인·가당 음료를 줄이고 물로 바꿔 보세요. 💧',
+          'Spread 6–8 glasses of water across the day. Try swapping caffeinated and '
+              'sweetened drinks for water. 💧',
+        ),
         <String>[_srcWater],
       );
     }
-    if (has(<String>['체중', '살', '다이어트', '몸무게'])) {
+    if (has(<String>['체중', '살', '다이어트', '몸무게', 'weight'])) {
       return (
-        '급격한 감량보다 식단과 운동을 병행한 완만한 감량이 안전해요. 한 주에 체중의 0.5~1% 정도가 '
-            '무리 없는 속도예요. 함께 천천히 가봐요! 💪',
+        say(
+          '급격한 감량보다 식단과 운동을 병행한 완만한 감량이 안전해요. 한 주에 체중의 0.5~1% 정도가 '
+              '무리 없는 속도예요. 함께 천천히 가봐요! 💪',
+          'Losing weight gradually with both diet and exercise is safer than dropping it '
+              'fast. About 0.5–1% of your body weight a week is a comfortable pace. '
+              "Let's take it steady together! 💪",
+        ),
         <String>['체중 관리'],
       );
     }
-    if (has(<String>['기록', '어떻게', '사용', '방법'])) {
+    if (has(<String>['기록', '어떻게', '사용', '방법', 'log', 'record', 'how do i'])) {
       return (
-        '식단은 사진 한 장이면 AI가 칼로리와 영양소를 계산해 기록해요. 운동은 가운데 + 버튼으로 바로 '
-            '추가할 수 있고요. 기록이 쌓이면 제가 그걸 보고 더 구체적으로 도와드릴 수 있어요. 📷',
+        say(
+          '식단은 사진 한 장이면 AI가 칼로리와 영양소를 계산해 기록해요. 운동은 가운데 + 버튼으로 바로 '
+              '추가할 수 있고요. 기록이 쌓이면 제가 그걸 보고 더 구체적으로 도와드릴 수 있어요. 📷',
+          'For meals, one photo is enough: AI works out the calories and nutrients and logs '
+              'them. You can add workouts right away with the + button in the middle. Once '
+              'your records build up, I can help more specifically. 📷',
+        ),
         <String>[],
       );
     }
     return (
-      '좋은 질문이에요! 식단·운동·수분 관리에 대해 더 구체적으로 물어봐 주시면 온이가 '
-          '맞춤으로 도와드릴게요. 예를 들어 "나트륨 줄이는 법"이나 "오늘 뭐 먹을까?"처럼요. 😊',
+      say(
+        '좋은 질문이에요! 식단·운동·수분 관리에 대해 더 구체적으로 물어봐 주시면 온이가 '
+            '맞춤으로 도와드릴게요. 예를 들어 "나트륨 줄이는 법"이나 "오늘 뭐 먹을까?"처럼요. 😊',
+        'Good question! Ask Oni something more specific about diet, exercise or hydration '
+            'and I\'ll tailor the help. For example, "how to cut sodium" or "what should I '
+            'eat today?" 😊',
+      ),
       <String>[],
     );
   }
@@ -2906,6 +3485,7 @@ class LocalApiInterceptor extends Interceptor {
     if (username.isEmpty || password.isEmpty) {
       return _badRequest(options, 'username and password are required');
     }
+    await _resetDemoNotificationReads();
     return _ok(options, <String, Object?>{
       'access_token': 'demo-access-${DateTime.now().microsecondsSinceEpoch}',
       'refresh_token': 'demo-refresh',
@@ -2999,6 +3579,7 @@ class LocalApiInterceptor extends Interceptor {
     if (token.isEmpty) {
       return _badRequest(options, 'token is required');
     }
+    await _resetDemoNotificationReads();
     return _ok(options, <String, Object?>{
       'access_token': 'demo-social-${DateTime.now().microsecondsSinceEpoch}',
       'refresh_token': 'demo-refresh',
@@ -3268,8 +3849,15 @@ class LocalApiInterceptor extends Interceptor {
   Future<Response<Object?>> _usersMeHealth(RequestOptions options) async {
     // 끝난 주의 챌린지를 먼저 판정해 보상이 든 잔액을 싣는다(#1789).
     await _settleChallenges();
+    // 이름·이메일은 `PUT /users/me` 가 저장한 프로필에서 읽는다(#2661) — 서버도
+    // 같은 사용자 행을 읽으므로 내 프로필에서 바꾼 값이 MY 카드에 보인다.
+    final Map<String, Object?> me = await _mergedProfile();
     return _ok(options, <String, Object?>{
-      'profile': <String, Object?>{'name': '김민수', 'email': 'minsu@oncare.com'},
+      'profile': <String, Object?>{
+        'id': me['id'],
+        'name': me['name'],
+        'email': me['email'],
+      },
       'risk': <String, Object?>{
         'title': '이번 주 관리 포인트',
         'body': '식단·운동 기록을 꾸준히 이어 가면 트레이너가 더 정확하게 도와줄 수 있어요.',
@@ -3591,7 +4179,9 @@ class LocalApiInterceptor extends Interceptor {
               createdAt: nowKst(),
               title: notice.title,
               body: notice.body,
-              category: 'benefits',
+              // 서버와 같은 갈래다 — 챌린지 아이콘으로 그리고 포인트 사용처로
+              // 간다(`weekly_challenge_service`, #1789·#2660).
+              category: 'points_shop',
             ),
             mode: InsertMode.insertOrIgnore,
           );
@@ -3627,8 +4217,31 @@ class LocalApiInterceptor extends Interceptor {
   }
 
   /// 목업 알림의 행동 유도 — 서버 `_ACTION_BY_CATEGORY` 중 목업이 만드는 것만.
+  ///
+  /// 데모 시드 알림(리마인더·성취·트레이너 메시지·리포트·루틴)도 서버 표를 그대로
+  /// 따른다. 데모 알림함이 실서버 데모 계정과 같은 곳으로 이어져야 한다(#2660).
   static Map<String, Object?>? _demoActionFor(String category) =>
       switch (category) {
+        'reminder' => const <String, Object?>{
+          'label': '기록하러 가기',
+          'target': 'dashboard',
+        },
+        'achievement' => const <String, Object?>{
+          'label': '대시보드 보기',
+          'target': 'dashboard',
+        },
+        'coach_chat' => const <String, Object?>{
+          'label': '대화 보기',
+          'target': 'coach_chat',
+        },
+        'coach_report' => const <String, Object?>{
+          'label': '리포트 보기',
+          'target': 'coach_chat',
+        },
+        'routine' => const <String, Object?>{
+          'label': '운동 보기',
+          'target': 'exercise',
+        },
         'benefits' => const <String, Object?>{
           'label': '내 혜택 보기',
           'target': 'my_benefits',
@@ -3710,6 +4323,122 @@ class LocalApiInterceptor extends Interceptor {
         'distance_meters': 177,
         'lat': 37.5573851891011,
         'lng': 126.937543667755,
+      },
+      // 신촌 밖에서 위치를 허용하면 위 네 곳이 반경 밖이라 목록이 비었다(#2661).
+      // 자주 시연하는 권역(강남역·홍대입구역·잠실역)의 카카오 Local `헬스장` 검색
+      // 실응답을 같은 방식으로 옮겼다. 거리는 초기 지도 중심(신촌) 기준이고, 좌표가
+      // 오면 아래에서 다시 잰다. 시연용 보강 값(`kakao_gym_demo_profile.dart`)은
+      // 두지 않아 평점·태그 없이 그린다.
+      // 강남역
+      <String, Object?>{
+        'id': '27280559',
+        'name': '스포애니 강남역1호점',
+        'category': 'fitness',
+        'address': '서울 강남구 강남대로78길 8',
+        'distance_meters': 10678,
+        'lat': 37.4946647,
+        'lng': 127.03008422,
+      },
+      <String, Object?>{
+        'id': '1426076788',
+        'name': '스포애니 역삼역점',
+        'category': 'fitness',
+        'address': '서울 강남구 테헤란로 146',
+        'distance_meters': 10691,
+        'lat': 37.49998997,
+        'lng': 127.03543776,
+      },
+      <String, Object?>{
+        'id': '1710995183',
+        'name': 'F45 역삼',
+        'category': 'fitness',
+        'address': '서울 강남구 테헤란로14길 13',
+        'distance_meters': 10649,
+        'lat': 37.49854351,
+        'lng': 127.03351911,
+      },
+      <String, Object?>{
+        'id': '27440610',
+        'name': '스포애니 강남역2호점',
+        'category': 'fitness',
+        'address': '서울 서초구 서초대로78길 44',
+        'distance_meters': 10631,
+        'lat': 37.49379653,
+        'lng': 127.02846456,
+      },
+      // 홍대입구역
+      <String, Object?>{
+        'id': '355866189',
+        'name': 'F45 합정',
+        'category': 'fitness',
+        'address': '서울 마포구 양화로 85',
+        'distance_meters': 1785,
+        'lat': 37.55228104,
+        'lng': 126.91706103,
+      },
+      <String, Object?>{
+        'id': '1521470440',
+        'name': '에이블짐 홍대입구역점',
+        'category': 'fitness',
+        'address': '서울 마포구 양화로 186',
+        'distance_meters': 981,
+        'lat': 37.55766857,
+        'lng': 126.92589302,
+      },
+      <String, Object?>{
+        'id': '1001520518',
+        'name': '짐박스피트니스 홍대입구점',
+        'category': 'fitness',
+        'address': '서울 마포구 양화로 144',
+        'distance_meters': 1272,
+        'lat': 37.55533994,
+        'lng': 126.92238583,
+      },
+      <String, Object?>{
+        'id': '142489778',
+        'name': '아크로짐 홍대점24시휘트니스',
+        'category': 'fitness',
+        'address': '서울 마포구 월드컵북로 30',
+        'distance_meters': 1544,
+        'lat': 37.55735976,
+        'lng': 126.91937098,
+      },
+      // 잠실역
+      <String, Object?>{
+        'id': '1781300886',
+        'name': 'F45 잠실',
+        'category': 'fitness',
+        'address': '서울 송파구 송파대로 558',
+        'distance_meters': 15064,
+        'lat': 37.51509458,
+        'lng': 127.09971196,
+      },
+      <String, Object?>{
+        'id': '15209409',
+        'name': '스포애니 잠실점',
+        'category': 'fitness',
+        'address': '서울 송파구 삼학사로 99',
+        'distance_meters': 15173,
+        'lat': 37.5060787,
+        'lng': 127.09698899,
+      },
+      <String, Object?>{
+        'id': '1192524319',
+        'name': '에이블짐 잠실역점',
+        'category': 'fitness',
+        'address': '서울 송파구 올림픽로35가길 11',
+        'distance_meters': 15390,
+        'lat': 37.51632971,
+        'lng': 127.10406058,
+      },
+      <String, Object?>{
+        'id': '1645271768',
+        'name': '헬스보이짐 잠실점',
+        'category': 'fitness',
+        'address': '서울 송파구 올림픽로 240',
+        'distance_meters': 15065,
+        'lat': 37.51131078,
+        'lng': 127.0981404,
       },
     ];
 
@@ -3954,6 +4683,27 @@ const List<_DemoFood> _demoFoods = <_DemoFood>[
   _DemoFood('라면', 550, 500, 1800, 5, 70, 10, 16),
   _DemoFood('삼계탕', 1000, 900, 1400, 1, 40, 70, 45),
   _DemoFood('떡볶이', 300, 550, 1600, 20, 100, 10, 12),
+  // 시드가 100g 당 값을 적은 줄 — 1회 섭취량을 곱해 1인분으로 옮겼다(#2661).
+  _DemoFood('순대', 220, 391.6, 1113.2, 2.4, 71, 7, 8.7),
+  _DemoFood('갈비탕', 670, 361.8, 1333.3, 0.7, 2.7, 57, 13.8),
+  _DemoFood('설렁탕', 500, 120, 110, 0, 1.8, 21.3, 2.9),
+  _DemoFood('잔치국수', 700, 308, 1512, 0.3, 56.4, 13.5, 3.4),
+  _DemoFood('물냉면', 700, 462, 2429, 17.6, 91.8, 13.9, 4.4),
+  _DemoFood('삼겹살', 200, 968, 160, 0, 0, 45.6, 82.4),
+  _DemoFood('제육볶음', 250, 487.5, 1252.5, 0.9, 11.8, 30.4, 35.5),
+  _DemoFood('불고기', 200, 372, 936, 6.7, 13.5, 20.7, 26.2),
+  _DemoFood('양념치킨', 200, 552, 806, 12.5, 42.3, 35.5, 26.8),
+  _DemoFood('김치', 40, 15.2, 220.4, 1, 2.6, 0.8, 0.2),
+  _DemoFood('계란후라이', 60, 124.8, 96.6, 0, 3.1, 9.4, 8.3),
+  _DemoFood('계란찜', 200, 178, 658, 0, 8.9, 9.5, 11.5),
+  _DemoFood('샐러드', 150, 43.5, 13.5, 6.6, 10.5, 2, 0.2),
+  _DemoFood('아메리카노', 240, 2.4, 4.8, 0, 0, 0.3, 0),
+  _DemoFood('콜라', 208, 76, 4, 18.1, 18.9, 0, 0),
+  _DemoFood('우유', 206, 138, 82.4, 9.9, 10, 6.4, 7.9),
+  _DemoFood('바나나', 118, 90.9, 0, 17, 23.6, 1.3, 0.2),
+  _DemoFood('오트밀', 234, 166.1, 9.4, 0.6, 28.1, 5.9, 3.6),
+  _DemoFood('그릭 요거트', 100, 97, 35, 4, 4, 9, 5),
+  _DemoFood('닭가슴살', 100, 144, 328, 0, 0, 28, 3.6),
   // 분석 데모가 돌려주는 세 줄 — 그 끼니를 수정하며 이름을 고쳐도 붙게 둔다.
   _DemoFood('요거트 아이스크림', 110, 135, 55, 14.5, 26, 3, 2),
   _DemoFood('과일 토핑', 90, 55, 5, 9, 13, 1, 0.5),

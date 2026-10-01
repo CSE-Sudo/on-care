@@ -59,6 +59,20 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         "지수 회원이 건강 목표를 바꿨어요: 목표 없음",
     ),
     (
+        nt.TRAINER_HEALTH_NOTES,
+        {"member_name": "지수", "focus": ["재활"], "with_focus": False},
+        "",
+        "회원 주의사항 변경",
+        "지수 회원이 건강상태·주의사항을 바꿨어요",
+    ),
+    (
+        nt.TRAINER_HEALTH_NOTES,
+        {"member_name": "지수", "focus": ["재활"], "with_focus": True},
+        "",
+        "회원 주의사항 변경",
+        "지수 회원이 건강 목표와 건강상태·주의사항을 바꿨어요",
+    ),
+    (
         nt.TRAINER_MEMBER_RENAMED,
         {"old_name": "김지수", "new_name": "김지수B"},
         "",
@@ -609,6 +623,16 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
         nt.TRAINER_HEALTH_GOAL,
         {"member_name": "Alex", "focus": []},
         ("Member goals changed", "Alex changed their health goals: none"),
+    ),
+    (
+        nt.TRAINER_HEALTH_NOTES,
+        {"member_name": "Alex", "with_focus": False},
+        ("Member health notes changed", "Alex updated their health notes"),
+    ),
+    (
+        nt.TRAINER_HEALTH_NOTES,
+        {"member_name": "Alex", "with_focus": True},
+        ("Member health notes changed", "Alex updated their health goals and health notes"),
     ),
     (
         nt.TRAINER_MEMBER_RENAMED,

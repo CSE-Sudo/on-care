@@ -304,9 +304,10 @@ void main() {
           await settle(tester);
 
           expect(repo.readCalls, <String>['noti-withdrawn']);
+          expect(Uri.parse(currentLocation(tester)).path, AppRoutes.schedule);
           expect(
-            Uri.parse(currentLocation(tester)).path,
-            AppRoutes.consultations,
+            find.byKey(const ValueKey<String>('consultations-dialog')),
+            findsOneWidget,
           );
         });
       });
@@ -324,9 +325,10 @@ void main() {
         await settle(tester);
 
         expect(repo.readCalls, isEmpty);
+        expect(Uri.parse(currentLocation(tester)).path, AppRoutes.schedule);
         expect(
-          Uri.parse(currentLocation(tester)).path,
-          AppRoutes.consultations,
+          find.byKey(const ValueKey<String>('consultations-dialog')),
+          findsOneWidget,
         );
       });
     });

@@ -121,6 +121,7 @@ Future<void> openAlertTarget(
       ref
         ..invalidate(dietTodayProvider)
         ..invalidate(dietByDateProvider(nowKst()))
+        ..invalidate(dietPeriodProvider)
         ..invalidate(dietAdviceProvider);
       if (!context.mounted) return;
       context.go(AppRoutes.diet);

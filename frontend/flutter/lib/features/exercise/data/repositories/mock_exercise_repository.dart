@@ -11,8 +11,13 @@ import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
+import 'package:oncare/features/exercise/domain/repositories/routine_session_log.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 
+/// 메모리 운동 저장소 — **테스트용 대역**이다. 앱의 데모(`useMockApi`)는 이제
+/// `DioExerciseRepository` + 로컬 목업 API(drift)를 써서 기록이 새로고침해도
+/// 남는다(#2662). 아래 설명은 이 대역이 데모를 맡던 때의 것이다.
+///
 /// In-memory stateful mock for demo mode (`useMockApi`). The week it starts
 /// from is **김민수의 공유 픽스처**(`shared/demo_fixture`)이고, 그 위에서
 /// add/update/delete 를 앱 세션 동안 메모리로 이어받아 주간 요약·차트·횟수가
@@ -26,7 +31,8 @@ import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 /// minutes, the stacked-chart series (유산소/근력/스트레칭), per-day calories,
 /// and the weekly totals are all derived from it in [_buildWeek], keeping the
 /// invariant `daily == cardio + strength + stretching` for every day.
-class MockExerciseRepository implements ExerciseRepository {
+class MockExerciseRepository
+    implements ExerciseRepository, RoutineSessionLog {
   /// [today] defaults to the real date; tests inject a fixed date so the
   /// date-relative fixture stays deterministic. [fixture] defaults to the
   /// bundled 김민수 픽스처. [points] 를 주면 직접 추가한 운동이 포인트를 받고
@@ -475,6 +481,7 @@ class MockExerciseRepository implements ExerciseRepository {
   /// [addSessions] 로 남기면 회원 수기 기록이 되어 `직접 추가한 운동` 목록에
   /// 서고 연필·삭제까지 붙는다 — 실서버에서는 409 로 막히는 동작이다.
   /// 되돌리기는 [removeAssignedRoutineSession] 이 맡는다.
+  @override
   Future<ExerciseSession> addAssignedRoutineSession({
     required ExerciseType type,
     required int minutes,
@@ -511,6 +518,7 @@ class MockExerciseRepository implements ExerciseRepository {
   /// 배정 루틴 완료를 되돌릴 때 그 수행 기록도 지운다. 서버의
   /// `uncomplete_assigned_routine` 대역 — 회원 수기 기록을 지우는
   /// [deleteSession] 과 달리 파생 기록만 지운다.
+  @override
   Future<void> removeAssignedRoutineSession(String id) async {
     await Future<void>.delayed(const Duration(milliseconds: 100));
     final ({List<ExerciseSession> store, int index})? at = _locate(id);
@@ -518,6 +526,18 @@ class MockExerciseRepository implements ExerciseRepository {
     if (at.store[at.index].source != ExerciseSource.assignedRoutine) return;
     _removeAt(at);
   }
+
+  /// 메모리 대역에는 새로고침이 없다 — 이 인스턴스가 남긴 배정 루틴 기록만 있다.
+  @override
+  Future<List<ExerciseSession>> assignedRoutineSessions() async =>
+      <ExerciseSession>[
+        for (final List<ExerciseSession> store in <List<ExerciseSession>>[
+          _sessions,
+          ..._pastAdded.values,
+        ])
+          for (final ExerciseSession s in store)
+            if (s.assignedRoutineId != null && s.date != null) s,
+      ];
 
   /// 새 기록을 [date] 의 주에 넣는다. 이번 주 총 칼로리 헤드라인은 이번 주에
   /// 들어온 기록만 더한다.

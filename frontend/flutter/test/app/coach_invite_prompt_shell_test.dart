@@ -16,7 +16,6 @@ import 'package:oncare/app/router/main_shell.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
-import 'package:oncare/features/dashboard/data/repositories/mock_dashboard_repository.dart';
 import 'package:oncare/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
@@ -29,11 +28,14 @@ import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/presentation/alert_navigation.dart';
+import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/features/notification/presentation/pages/notification_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+import '../helpers/fake_dashboard_repository.dart';
 import '../helpers/fake_diet_repository.dart';
+import '../helpers/fake_notification_repository.dart';
 
 const AppConfig _config = AppConfig(
   environment: Environment.dev,
@@ -83,6 +85,7 @@ void main() {
     WidgetTester tester,
     _InviteRepository repository, {
     String location = AppRoutes.dashboard,
+    FakeNotificationRepository? notifications,
   }) async {
     await tester.binding.setSurfaceSize(const Size(430, 2400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -102,9 +105,13 @@ void main() {
             MockExerciseRepository() as ExerciseRepository,
           ),
           dashboardRepositoryProvider.overrideWithValue(
-            MockDashboardRepository(diet) as DashboardRepository,
+            FakeDashboardRepository(diet) as DashboardRepository,
           ),
           memberCoachRepositoryProvider.overrideWithValue(repository),
+          // 알림함은 데모에서도 Dio + drift 를 탄다(#2660) — 식단처럼 가짜로 덮는다.
+          notificationRepositoryProvider.overrideWithValue(
+            notifications ?? FakeNotificationRepository(),
+          ),
         ],
         child: MaterialApp.router(
           theme: AppTheme.light(),
@@ -120,6 +127,30 @@ void main() {
 
   String location() =>
       router.routerDelegate.currentConfiguration.uri.toString();
+
+  // 셸이 알림 목록을 미리 불러 둔다 — 알림함에 들어가면 첫 조회 로딩 없이 바로
+  // 목록이다. 데모의 예전 모양이고 실서버도 따른다(#2688).
+  testWidgets('셸이 알림 목록을 미리 불러 알림함이 로딩 없이 뜬다', (tester) async {
+    final FakeNotificationRepository notifications =
+        FakeNotificationRepository(const <AlertItem>[
+          AlertItem(
+            id: 'n1',
+            title: '미리 받은 알림',
+            body: '본문',
+            timeAgo: '방금',
+            category: AlertCategory.reminder,
+          ),
+        ]);
+    await pumpShell(tester, _InviteRepository(), notifications: notifications);
+    expect(notifications.fetchCalls, greaterThan(0));
+
+    router.go(AppRoutes.notification);
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byKey(const Key('notificationFirstLoading')), findsNothing);
+    expect(find.text('미리 받은 알림'), findsOneWidget);
+  });
 
   for (final (String path, String tab) in <(String, String)>[
     (AppRoutes.diet, '식단'),

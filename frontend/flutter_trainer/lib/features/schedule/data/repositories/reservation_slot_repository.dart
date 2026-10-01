@@ -1,15 +1,18 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
+import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/schedule/data/demo_reservation_slots.dart';
 import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/reservation_slot.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 
 abstract interface class ReservationSlotRepository {
   Future<List<ReservationSlot>> list();
@@ -165,11 +168,90 @@ class SlotErrorCodes {
 class MockReservationSlotRepository implements ReservationSlotRepository {
   /// [seed] 는 처음부터 열려 있는 자리다. 기본은 빈 목록 — 앱의 목업 모드만
   /// 데모 자리([demoReservationSlots])를 넣어 만든다.
+  ///
+  /// [db] 가 있으면 트레이너가 열고 고치고 닫은 자리를 키-값 저장소에 적어
+  /// 두고 다시 읽는다(#2669) — 예전에는 메모리뿐이라 새로고침하면 사라졌다.
+  /// 시드 자리는 "오늘" 기준으로 매번 새로 만들고, 그 위에 저장해 둔 자리를
+  /// id 로 덮어 얹는다. 없으면(단위 테스트) 메모리에만 둔다.
   MockReservationSlotRepository({
     Iterable<ReservationSlot> seed = const <ReservationSlot>[],
+    this.db,
   }) : _slots = <ReservationSlot>[...seed];
 
   final List<ReservationSlot> _slots;
+
+  /// 바꾼 자리를 적어 두는 데모 저장소.
+  final AppDatabase? db;
+
+  /// 트레이너가 바꾼 자리 — id 로 찾는다. 저장소에 적는 것은 이것뿐이다.
+  final Map<String, ReservationSlot> _changed = <String, ReservationSlot>{};
+  bool _restored = false;
+
+  /// 바꾼 자리를 적어 두는 키.
+  static const String storageKey = 'demo_reservation_slots';
+
+  Future<void> _restore() async {
+    if (_restored) return;
+    _restored = true;
+    final String? saved = await db?.readValue(storageKey);
+    if (saved == null) return;
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(saved);
+    } on FormatException {
+      return;
+    }
+    if (decoded is! List) return;
+    for (final Object? item in decoded) {
+      if (item is! Map<String, Object?>) continue;
+      final Object? id = item['id'];
+      final DateTime? startsAt = DateTime.tryParse(
+        item['starts_at'] as String? ?? '',
+      );
+      if (id is! String || startsAt == null) continue;
+      _remember(
+        ReservationSlot(
+          id: id,
+          startsAt: startsAt,
+          durationMinutes: (item['duration_minutes'] as num?)?.toInt() ?? 60,
+          booked: item['booked'] == true,
+          isClosed: item['is_closed'] == true,
+          sessionType:
+              item['session_type'] as String? ?? SessionType.personalTraining,
+        ),
+      );
+    }
+  }
+
+  /// [slot] 을 목록에 넣거나 같은 id 를 바꾼다.
+  void _remember(ReservationSlot slot) {
+    _changed[slot.id] = slot;
+    final int index = _slots.indexWhere((s) => s.id == slot.id);
+    if (index < 0) {
+      _slots.add(slot);
+    } else {
+      _slots[index] = slot;
+    }
+  }
+
+  Future<void> _save(ReservationSlot slot) async {
+    _remember(slot);
+    await db?.putValue(
+      storageKey,
+      jsonEncode(<Object?>[
+        for (final ReservationSlot s in _changed.values)
+          <String, Object?>{
+            'id': s.id,
+            // 벽시계 그대로 적는다 — 읽을 때도 같은 벽시계로 돌아온다.
+            'starts_at': s.startsAt.toIso8601String(),
+            'duration_minutes': s.durationMinutes,
+            'booked': s.booked,
+            'is_closed': s.isClosed,
+            'session_type': s.sessionType,
+          },
+      ]),
+    );
+  }
 
   final StreamController<void> _revisions = StreamController<void>.broadcast();
 
@@ -198,6 +280,7 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
 
   @override
   Future<List<ReservationSlot>> list() async {
+    await _restore();
     final now = nowKst();
     return _slots.where((slot) => slot.startsAt.isAfter(now)).toList()
       ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
@@ -209,6 +292,7 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
     int durationMinutes = 60,
     required String sessionType,
   }) async {
+    await _restore();
     _validateFuture(startsAt);
     // 슬롯은 늘 한 사람 몫이라 새로 연 자리는 비어 있는 상태로 시작한다
     // (#1012, #1072).
@@ -220,7 +304,7 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
       isClosed: false,
       sessionType: sessionType,
     );
-    _slots.add(slot);
+    await _save(slot);
     _bump();
     return slot;
   }
@@ -232,6 +316,7 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
     int? durationMinutes,
     String? sessionType,
   }) async {
+    await _restore();
     final index = _slots.indexWhere((slot) => slot.id == id);
     if (index < 0) throw StateError('not_found');
     final old = _slots[index];
@@ -247,13 +332,14 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
       isClosed: old.isClosed,
       sessionType: sessionType ?? old.sessionType,
     );
-    _slots[index] = updated;
+    await _save(updated);
     _bump();
     return updated;
   }
 
   @override
   Future<ReservationSlot> close(String id) async {
+    await _restore();
     final index = _slots.indexWhere((slot) => slot.id == id);
     if (index < 0) throw StateError('not_found');
     final old = _slots[index];
@@ -265,7 +351,7 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
       isClosed: true,
       sessionType: old.sessionType,
     );
-    _slots[index] = closed;
+    await _save(closed);
     _bump();
     return closed;
   }
@@ -277,7 +363,10 @@ final reservationSlotRepositoryProvider = Provider<ReservationSlotRepository>((
   ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   final ReservationSlotRepository repository =
       ref.watch(appConfigProvider).useMockApi
-      ? MockReservationSlotRepository(seed: demoReservationSlots())
+      ? MockReservationSlotRepository(
+          seed: demoReservationSlots(),
+          db: ref.watch(appDatabaseProvider),
+        )
       : DioReservationSlotRepository(ref.watch(dioProvider));
   ref.onDispose(repository.dispose);
   return repository;

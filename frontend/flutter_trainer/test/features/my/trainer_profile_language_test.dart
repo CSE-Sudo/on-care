@@ -5,12 +5,14 @@
 library;
 
 import 'package:demo_fixture/demo_fixture.dart';
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
+import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/features/auth/data/dtos/trainer_me_dto.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_repository.dart';
@@ -195,6 +197,7 @@ void main() {
       final container = ProviderContainer(
         overrides: <Override>[
           appConfigProvider.overrideWithValue(_demoConfig),
+          appDatabaseProvider.overrideWithValue(_memoryDb()),
           demoLanguageProvider.overrideWithValue(DemoLanguage.en),
         ],
       );
@@ -208,7 +211,10 @@ void main() {
 
     test('데모 언어를 덮어쓰지 않으면 한국어다', () async {
       final container = ProviderContainer(
-        overrides: <Override>[appConfigProvider.overrideWithValue(_demoConfig)],
+        overrides: <Override>[
+          appConfigProvider.overrideWithValue(_demoConfig),
+          appDatabaseProvider.overrideWithValue(_memoryDb()),
+        ],
       );
       addTearDown(container.dispose);
       expect(container.read(demoLanguageProvider), DemoLanguage.ko);
@@ -268,4 +274,11 @@ void main() {
       );
     });
   });
+}
+
+/// 데모 저장소가 바꾼 값을 적는 메모리 DB(#2669). 테스트가 끝나면 닫는다.
+AppDatabase _memoryDb() {
+  final AppDatabase db = AppDatabase.forTesting(NativeDatabase.memory());
+  addTearDown(db.close);
+  return db;
 }

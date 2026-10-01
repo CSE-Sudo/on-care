@@ -14,7 +14,12 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 /// 회원이 코드를 불러 준 것 자체가 동의라 회원에게 다시 물을 일은 없지만,
 /// 여섯 자리가 하나만 틀려도 **남의** 식단·건강 기록이 열린다.
 class _FakeInviteRepository implements ClientInviteRepository {
-  _FakeInviteRepository({this.paired, this.failure});
+  _FakeInviteRepository({
+    this.paired,
+    this.failure,
+    this.connectsImmediately = true,
+    List<ClientInvite> pending = const <ClientInvite>[],
+  }) : pending = List<ClientInvite>.of(pending);
 
   /// 코드가 가리키는 회원. 없으면 조회가 [NotFoundError] 로 끝난다.
   PairedMember? paired;
@@ -22,9 +27,15 @@ class _FakeInviteRepository implements ClientInviteRepository {
   /// 있으면 조회가 이 오류로 끝난다.
   AppError? failure;
 
-  // 이 창은 코드로 그 자리에서 연결한다 — 기다릴 답이 없다.
+  /// 기본은 데모처럼 그 자리에서 연결한다. 실서버는 `false` 다.
   @override
-  bool get connectsImmediately => true;
+  final bool connectsImmediately;
+
+  /// 옛 담당 요청 경로로 보낸, 답을 기다리는 요청.
+  final List<ClientInvite> pending;
+
+  /// 취소에 넘어간 요청 id 들.
+  final List<String> cancelled = <String>[];
 
   /// 조회에 넘어간 코드들.
   final List<String> previewed = <String>[];
@@ -58,10 +69,13 @@ class _FakeInviteRepository implements ClientInviteRepository {
 
   @override
   Future<List<ClientInvite>> listSent({String status = 'pending'}) async =>
-      const <ClientInvite>[];
+      List<ClientInvite>.unmodifiable(pending);
 
   @override
-  Future<void> cancel(String inviteId) async {}
+  Future<void> cancel(String inviteId) async {
+    cancelled.add(inviteId);
+    pending.removeWhere((invite) => invite.id == inviteId);
+  }
 }
 
 PairedMember _paired() => const PairedMember(
@@ -253,5 +267,42 @@ void main() {
     for (int i = 0; i < 6; i++) {
       expect(find.byKey(ValueKey<String>('pairing-digit-$i')), findsOneWidget);
     }
+  });
+
+  testWidgets('데모도 답을 기다리는 요청 자리를 실서버와 같이 그린다', (tester) async {
+    // 데모에는 기다릴 답이 없어 늘 비지만, 두 모드가 같은 창이어야 데모로
+    // 익힌 흐름이 실서버에서도 통한다(#2670).
+    await pumpDialog(tester, _FakeInviteRepository(paired: _paired()));
+
+    expect(find.text('답을 기다리는 요청'), findsOneWidget);
+    expect(find.text('기다리는 요청이 없어요'), findsOneWidget);
+  });
+
+  testWidgets('실서버는 보낸 요청을 보여 주고 거둘 수 있다', (tester) async {
+    final repository = _FakeInviteRepository(
+      paired: _paired(),
+      connectsImmediately: false,
+      pending: <ClientInvite>[
+        ClientInvite(
+          id: 'tci-1',
+          memberId: 'user-8f2a41c9d6e3',
+          memberName: '박하늘',
+          memberEmail: '',
+          status: ClientInviteStatus.pending,
+          createdAt: DateTime(2026, 9, 29, 10),
+        ),
+      ],
+    );
+    await pumpDialog(tester, repository);
+
+    expect(find.text('답을 기다리는 요청'), findsOneWidget);
+    expect(find.text('박하늘'), findsOneWidget);
+
+    await tester.tap(find.text('요청 거두기'));
+    await tester.pumpAndSettle();
+
+    expect(repository.cancelled, <String>['tci-1']);
+    expect(find.text('박하늘'), findsNothing);
+    expect(find.text('기다리는 요청이 없어요'), findsOneWidget);
   });
 }

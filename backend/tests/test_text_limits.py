@@ -30,7 +30,7 @@ from app.schemas.trainer_api import (
     TrainerProgramDraftCreate,
     TrainerProgramDraftUpdate,
 )
-from app.schemas.user import HealthGoalsUpdate
+from app.schemas.user import HealthGoalsUpdate, OnboardingRequest
 
 
 def test_grades_are_ordered():
@@ -112,8 +112,9 @@ def test_comma_spacing_does_not_count_against_the_trainer():
     assert len(saved.conditions) > TEXT_ENTRY_MAX  # 저장 형태는 더 길다
 
 
-def test_member_path_carries_long_trainer_notes_unchecked():
-    """회원 앱에는 이 글을 줄일 칸이 없다 — 목표 칩 저장을 막지 않는다(#2619)."""
-    long_notes = "가" * (TEXT_ENTRY_MAX + 1)
-    saved = HealthGoalsUpdate(conditions=f"재활, {long_notes}")
-    assert saved.conditions == f"재활, {long_notes}"
+@pytest.mark.parametrize("schema", [HealthGoalsUpdate, OnboardingRequest])
+def test_member_paths_use_the_same_notes_limit(schema):
+    """회원도 온보딩·MY 에서 주의사항을 적는다 — 트레이너 경로와 같은 상한이다(#2619)."""
+    assert schema(conditions="재활, " + "가" * TEXT_ENTRY_MAX).conditions
+    with pytest.raises(ValidationError):
+        schema(conditions="재활, " + "가" * (TEXT_ENTRY_MAX + 1))

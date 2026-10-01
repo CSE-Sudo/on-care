@@ -124,22 +124,7 @@ const List<NavDestination> navDestinations = <NavDestination>[
   ),
 ];
 
-/// 상담 요청 — deliberately NOT in [navDestinations]. (#467)
-///
-/// That list defines branch order (index N here is branch N there), and the
-/// row is only shown against the real API. A conditional entry would make
-/// the list's length depend on build config, which is exactly what
-/// `AppShell.myBranchIndex` reads. Keeping it separate lets the sidebar
-/// render it with an explicit branch index and leaves the demo untouched.
-const NavDestination consultationsDestination = NavDestination(
-  label: NavLabel.consultations,
-  icon: AppIcons.consultation,
-  route: AppRoutes.consultations,
-  badge: NavBadge.pendingConsultations,
-);
-
-/// 알림함 — [consultationsDestination] 과 같은 이유로 [navDestinations] 밖에
-/// 둔다. 실 API 빌드에서만 보이고, 브랜치 인덱스를 사이드바가 직접 넘긴다. (#503)
+/// 알림함 — [navDestinations] 밖에 둔다. 실 API 빌드에서만 보이고, 브랜치 인덱스를 사이드바가 직접 넘긴다. (#503)
 const NavDestination notificationsDestination = NavDestination(
   label: NavLabel.notifications,
   icon: AppIcons.notifications,

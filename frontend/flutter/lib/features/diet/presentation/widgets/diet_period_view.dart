@@ -140,11 +140,9 @@ class _DietPeriodViewState extends ConsumerState<DietPeriodView> {
       : NumberFormat('#,##0.#').format(v);
 
   void _retry() {
-    // 실패는 날짜별 provider 에 남아 있다. 집계만 무효화하면 같은 에러를 다시
-    // 읽어 와 아무 일도 일어나지 않는다.
-    for (final DateTime d in dietRangeDates(widget.range)) {
-      ref.invalidate(dietByDateProvider(d));
-    }
+    // 집계는 `GET /diet/days` 한 번이다(#2236) — 날짜별 캐시를 읽지 않으므로
+    // 이 범위의 집계만 비우면 된다. 예전처럼 날짜 수만큼 날짜별 캐시를 비우면
+    // `전체` 범위에서는 쓰이지도 않는 무효화가 수백 번 돈다(#2625).
     ref.invalidate(dietPeriodProvider(widget.range));
   }
 

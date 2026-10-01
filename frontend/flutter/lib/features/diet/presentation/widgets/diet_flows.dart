@@ -17,6 +17,7 @@ import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/entities/food_nutrition_suggestion.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
+import 'package:oncare/features/diet/presentation/controllers/diet_refresh.dart';
 import 'package:oncare/features/diet/presentation/widgets/meal_photo_view.dart';
 import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -485,28 +486,66 @@ class _SourceOption extends StatelessWidget {
 /// AI analysis result sheet shown after picking a photo.
 /// Runs the real `POST /diet/analyze` on the picked [photo] and shows the
 /// recognised foods + nutrition. The backend persists the entry as part of
-/// analysis, so a successful result refreshes [dietTodayProvider].
-/// 결과 시트. `저장` 까지 마치면 true — 저장된 기록을 확인할 준비가 됐다는
-/// 뜻이다(#1434).
+/// analysis, so a successful result refreshes every diet cache.
+///
+/// **기록이 남아 있으면 true** — 저장된 기록을 확인할 준비가 됐다는 뜻이다
+/// (#1434). 분석 요청이 이미 저장·적립까지 마치므로, 분석이 성공한 뒤에는
+/// `저장` 이든 `닫기` 든 끌어내려 닫든 모두 저장 성공이다(#2627). 분석이
+/// 실패했거나 결과 시트에서 기록을 지웠으면 false 다.
+///
+/// 분석 실패 화면의 `다른 사진 고르기` 는 이 시트를 닫고 사진 선택부터 다시
+/// 연다. 그 새 흐름의 결과가 곧 이 흐름의 결과다 — 버리면 새 사진으로 저장해도
+/// 하단 `+` 로 시작한 흐름이 식단 탭으로 옮겨 가지 않는다.
 Future<bool> showDietResultSheet(
   BuildContext context,
   MealPhoto photo,
   String mealType,
 ) async {
-  final bool? done = await showAppSheet<bool>(
-    // 하단 바·+ 버튼이 시트 위로 올라오지 않도록 루트에 올린다. 식단 추가 시트와
-    // 같은 규칙이다 — 둘이 같은 층에 있어야 한다(#791).
-    context: _rootContext(context),
+  // 하단 바·+ 버튼이 시트 위로 올라오지 않도록 루트에 올린다. 식단 추가 시트와
+  // 같은 규칙이다 — 둘이 같은 층에 있어야 한다(#791).
+  final BuildContext root = _rootContext(context);
+  final DietResultOutcome outcome = DietResultOutcome();
+  final Object? closedWith = await showAppSheet<Object>(
+    context: root,
     builder: (BuildContext ctx) =>
-        _ResultSheet(photo: photo, mealType: mealType),
+        _ResultSheet(photo: photo, mealType: mealType, outcome: outcome),
   );
-  return done ?? false;
+  if (closedWith == _ResultSheetExit.pickAnother) {
+    if (!root.mounted) return false;
+    return showDietAddSheet(root);
+  }
+  return outcome.resolve(closedWith);
+}
+
+/// 결과 시트가 값 없이 닫혔을 때 무엇을 돌려줄지 정하는 기록. (#2627)
+///
+/// 시트는 `저장` 말고도 `닫기` 버튼과 끌어내려 닫기로 닫힌다. 뒤의 둘은 값을
+/// 싣지 못하므로, 분석이 성공했는지를 시트 바깥에 따로 남겨 둔다.
+@visibleForTesting
+class DietResultOutcome {
+  /// 서버에 기록이 남아 있다 — 분석이 성공했고 시트에서 지우지 않았다.
+  bool saved = false;
+
+  /// 시트가 닫힌 값. 명시적인 `true`/`false` 는 그대로, 값 없이 닫혔으면
+  /// [saved] 다.
+  bool resolve(Object? closedWith) => closedWith is bool ? closedWith : saved;
+}
+
+/// 결과 시트가 `bool` 말고 돌려주는 것.
+enum _ResultSheetExit {
+  /// 분석 실패 화면의 `다른 사진 고르기` — 사진 선택부터 다시 연다.
+  pickAnother,
 }
 
 class _ResultSheet extends ConsumerStatefulWidget {
-  const _ResultSheet({required this.photo, required this.mealType});
+  const _ResultSheet({
+    required this.photo,
+    required this.mealType,
+    required this.outcome,
+  });
   final MealPhoto photo;
   final String mealType;
+  final DietResultOutcome outcome;
 
   @override
   ConsumerState<_ResultSheet> createState() => _ResultSheetState();
@@ -576,15 +615,12 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
             idempotencyKey: _idempotencyKey,
           );
       if (!mounted) return;
-      // analyze() already persisted the entry → refresh the day's summary/list.
-      ref.invalidate(dietTodayProvider);
-      // 조언도 새 합계로 다시 받는다 — 들고 있으면 옛 합계를 말한다(#2078).
-      ref.invalidate(dietAdviceProvider);
+      // analyze() already persisted the entry → 이 시점부터 기록은 저장돼
+      // 있다. 시트를 어떻게 닫든 저장 성공이다(#2627).
+      widget.outcome.saved = true;
+      refreshDietRecords(ref.invalidate);
       // 저장과 함께 포인트도 적립됐다 — MY 잔액을 다시 읽는다(#1786).
       refreshPointsBalance(ref);
-      // 기간 뷰(이번 주·전체)는 오늘을 dietByDateProvider 로 읽는다.
-      // 같이 비우지 않으면 끼니를 바꿔도 기간 막대만 옛 값에 머문다.
-      ref.invalidate(dietByDateProvider(nowKst()));
       await _holdAnalyzing(elapsed);
       if (!mounted) return;
       setState(() {
@@ -666,12 +702,8 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
     try {
       await _saveFoods(id: r.entryId, mealType: _type, foods: foods);
       if (!mounted) return;
-      ref.invalidate(dietTodayProvider);
-      // 조언도 새 합계로 다시 받는다 — 들고 있으면 옛 합계를 말한다(#2078).
-      ref.invalidate(dietAdviceProvider);
-      ref.invalidate(dietByDateProvider(nowKst()));
       // 날짜를 옮겨 둔 기록이면 그 날도 비운다.
-      ref.invalidate(dietByDateProvider(_date));
+      refreshDietRecords(ref.invalidate, dates: <DateTime>[_date]);
       _finish();
     } on Object catch (_) {
       if (!mounted) return;
@@ -698,11 +730,9 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
       if (!mounted) return;
       // 지운 끼니의 적립은 회수된다 — MY 잔액을 다시 읽는다(#1786).
       refreshPointsBalance(ref);
-      ref.invalidate(dietTodayProvider);
-      // 조언도 새 합계로 다시 받는다 — 들고 있으면 옛 합계를 말한다(#2078).
-      ref.invalidate(dietAdviceProvider);
-      ref.invalidate(dietByDateProvider(nowKst()));
-      ref.invalidate(dietByDateProvider(_date));
+      // 기록이 없어졌다 — 어떻게 닫히든 저장 성공이 아니다.
+      widget.outcome.saved = false;
+      refreshDietRecords(ref.invalidate, dates: <DateTime>[_date]);
       final AppToastHost toast = AppToastHost.of(context);
       // 지웠으니 식단 탭으로 옮겨 갈 기록이 없다 — `false` 로 닫는다.
       Navigator.of(context).pop(false);
@@ -749,11 +779,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
       });
       // 떠난 날과 도착한 날을 모두 비운다 — 한쪽만 비우면 합계가 두 날에
       // 겹쳐 보이거나 어느 쪽에서도 보이지 않는다.
-      ref.invalidate(dietTodayProvider);
-      // 조언도 새 합계로 다시 받는다 — 들고 있으면 옛 합계를 말한다(#2078).
-      ref.invalidate(dietAdviceProvider);
-      ref.invalidate(dietByDateProvider(previous));
-      ref.invalidate(dietByDateProvider(chosen));
+      refreshDietRecords(ref.invalidate, dates: <DateTime>[previous, chosen]);
       showAppToast(
         context,
         l.dietRecordDateMoved(_recordDateLabel(context, chosen)),
@@ -777,11 +803,16 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
   /// Sends the user back to the source picker. The photo they have can't be
   /// analysed, so "다시 시도" would just fail again — the useful next step is
   /// choosing a different one.
-  void _pickAnother() {
-    final NavigatorState navigator = Navigator.of(context);
-    navigator.pop();
-    unawaited(showDietAddSheet(navigator.context));
-  }
+  ///
+  /// 사진 선택은 [showDietResultSheet] 가 이 시트가 닫힌 뒤 연다 — 그래야 새
+  /// 흐름의 저장 결과가 처음 흐름의 결과로 돌아간다(#2627).
+  void _pickAnother() =>
+      Navigator.of(context).pop(_ResultSheetExit.pickAnother);
+
+  /// 아래 `닫기`. 기록은 분석 때 이미 저장됐으므로 `저장` 과 같이 저장 성공으로
+  /// 닫는다 — 식단 탭 이동과 홈 요약 갱신이 똑같이 일어난다(#2627). 저장 알림은
+  /// `저장` 에만 띄운다.
+  void _close() => Navigator.of(context).pop(true);
 
   /// Takes an expired session back to sign-in.
   ///
@@ -868,7 +899,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
           ? l.dietAnalysisFailed
           : l.dietAnalysisDone,
       subtitle: l.dietAiNutritionResult,
-      // 닫기는 아래 `취소` 버튼 하나로 모은다 — 머리의 X 와 둘이 있으면 같은
+      // 닫기는 아래 `닫기` 버튼 하나로 모은다 — 머리의 X 와 둘이 있으면 같은
       // 일을 하는 자리가 화면에 둘이다(#1564).
       showClose: false,
       // 이 시트는 AI 가 읽은 결과를 말한다 — 홈의 `오늘의 AI 통합 조언` 과
@@ -919,7 +950,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
         fullWidth: true,
       );
     }
-    // [취소] 왼쪽, [저장] 오른쪽 — 앱의 모든 하단 두 버튼과 같은 순서다(#1690).
+    // [취소]·[닫기] 왼쪽, [저장] 오른쪽 — 앱의 모든 하단 두 버튼과 같은 순서다(#1690).
     if (_editing) {
       // 수정 모드의 `취소` 는 고친 값만 버리고 시트에 남는다. `저장` 은 고친
       // 값을 보낸 뒤 닫는다.
@@ -930,10 +961,11 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
         onConfirm: _saving ? null : () => unawaited(_saveEdit()),
       );
     }
+    // 분석 요청이 이미 기록을 남겼다 — 왼쪽은 `취소` 가 아니라 `닫기` 다.
+    // `취소` 는 저장을 하지 않는 것으로 읽히지만 기록은 이미 남아 있다(#2627).
     return AppButtonPair(
-      cancelLabel: l.dietCancel,
-      // 저장은 이미 끝났고, 이 버튼은 시트를 닫기만 한다.
-      onCancel: () => Navigator.of(context).pop(),
+      cancelLabel: l.dietAnalysisClose,
+      onCancel: _close,
       confirmLabel: l.dietSave,
       onConfirm: _finish,
     );
@@ -2165,12 +2197,8 @@ class _MealCreatePageState extends ConsumerState<_MealCreatePage>
             idempotencyKey: _idempotencyKey,
           );
       if (!mounted) return;
-      ref.invalidate(dietTodayProvider);
-      // 조언도 새 합계로 다시 받는다 — 들고 있으면 옛 합계를 말한다(#2078).
-      ref.invalidate(dietAdviceProvider);
-      // 기간 뷰(이번 주·전체)는 오늘을 dietByDateProvider 로 읽는다.
-      ref.invalidate(dietByDateProvider(nowKst()));
-      ref.invalidate(dietByDateProvider(_date));
+      // 지난 날짜로 적었으면 그 날도 비운다.
+      refreshDietRecords(ref.invalidate, dates: <DateTime>[_date]);
       // 포인트는 적립되지 않는다 — 사진 분석 저장만 적립한다(#2151).
       navigator.pop(true);
       if (!toastContext.mounted) return;
@@ -2435,11 +2463,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet>
       });
       // 떠난 날과 도착한 날을 모두 비운다 — 한쪽만 비우면 합계가 두 날에
       // 겹쳐 보이거나 어느 쪽에서도 보이지 않는다.
-      ref.invalidate(dietTodayProvider);
-      // 조언도 새 합계로 다시 받는다 — 들고 있으면 옛 합계를 말한다(#2078).
-      ref.invalidate(dietAdviceProvider);
-      ref.invalidate(dietByDateProvider(previous));
-      ref.invalidate(dietByDateProvider(chosen));
+      refreshDietRecords(ref.invalidate, dates: <DateTime>[previous, chosen]);
       if (!toastContext.mounted) return;
       // 목록으로 돌아가면 이 카드가 원래 날에서 사라진다 — 어디로 갔는지 말한다.
       showAppToast(
@@ -2495,15 +2519,9 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet>
     try {
       await _saveFoods(id: id, mealType: _type, foods: foods);
       if (!mounted) return;
-      ref.invalidate(dietTodayProvider);
-      // 조언도 새 합계로 다시 받는다 — 들고 있으면 옛 합계를 말한다(#2078).
-      ref.invalidate(dietAdviceProvider);
-      // 기간 뷰(이번 주·전체)는 오늘을 dietByDateProvider 로 읽는다.
-      // 같이 비우지 않으면 끼니를 바꿔도 기간 막대만 옛 값에 머문다.
-      ref.invalidate(dietByDateProvider(nowKst()));
       // 지난 날의 기록이면 그 날도 비운다 — 오늘만 비우면 그 날 목록이 옛
       // 끼니·칼로리에 머문다.
-      ref.invalidate(dietByDateProvider(_date));
+      refreshDietRecords(ref.invalidate, dates: <DateTime>[_date]);
       // 화면을 닫지 않고 보기 모드로 돌아간다. 닫아 버리면 목록으로 나가는데
       // 그 카드는 총 칼로리만 말하므로 방금 고친 값이 어떻게 됐는지 확인할
       // 자리가 없다. 취소가 이 화면에 남는 것과도 짝이 맞는다.
@@ -2552,12 +2570,9 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet>
       if (!mounted) return;
       // 지운 끼니의 적립은 회수된다 — MY 잔액을 다시 읽는다(#1786).
       refreshPointsBalance(ref);
-      ref.invalidate(dietTodayProvider);
-      // 조언도 새 합계로 다시 받는다 — 들고 있으면 옛 합계를 말한다(#2078).
-      ref.invalidate(dietAdviceProvider);
-      // 기간 뷰(이번 주·전체)는 오늘을 dietByDateProvider 로 읽는다.
-      // 같이 비우지 않으면 끼니를 바꿔도 기간 막대만 옛 값에 머문다.
-      ref.invalidate(dietByDateProvider(nowKst()));
+      // 끼니가 놓였던 날도 비운다 — 오늘만 비우면 지난 날의 끼니를 지웠을 때
+      // 돌아간 그 날 목록과 영양 요약에 지운 끼니가 남는다(#2626).
+      refreshDietRecords(ref.invalidate, dates: <DateTime>[_date]);
       navigator.pop();
       if (!toastContext.mounted) return;
       showAppToast(toastContext, l.dietDeleted, type: AppToastType.success);

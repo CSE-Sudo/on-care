@@ -116,4 +116,28 @@ void main() {
     expect(_demoCarryOverRow, findsNothing);
     expect(_filledBars(tester), 0);
   });
+
+  testWidgets('실계정은 저장 이력이 없으면 기록 없음·빈 지난 할 일이다', (WidgetTester tester) async {
+    await openDashboard(
+      tester,
+      extraOverrides: <Override>[
+        // 실계정(`useMockApi == false`)에서 provider 가 돌려주는 값(#2671).
+        demoTaskHistoryProvider.overrideWithValue(null),
+      ],
+    );
+
+    expect(
+      find.byKey(const ValueKey<String>('dashboard-category-toggle-지난 할 일')),
+      findsNothing,
+    );
+    expect(_demoCarryOverRow, findsNothing);
+    expect(_filledBars(tester), 0);
+
+    // 지난 날만 있는 지난주도 비어 있다 — 데모라면 일곱 칸이 모두 찬다.
+    await tester.tap(
+      find.byKey(const ValueKey<String>('task-progress-prev-week')),
+    );
+    await settle(tester);
+    expect(_filledBars(tester), 0);
+  });
 }

@@ -127,6 +127,7 @@ CoachSession coachSessionFromJson(Map<String, Object?> json) {
         : 0,
     status: _str(json['status']),
     note: _str(json['note']),
+    sessionNumber: _positiveIntOrNull(json['session_number']),
     program: rawProgram is List<Object?>
         ? rawProgram
               .map((Object? item) {

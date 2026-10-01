@@ -92,11 +92,11 @@ class ChatAttachment {
   final int fileSize;
   final String downloadPath;
 
-  /// 데모에서 보낸 사진의 바이트. (#2493)
+  /// 데모 대화의 사진·PDF 바이트. (#2493, #2669)
   ///
   /// 데모에는 [downloadPath] 로 내려받을 서버가 없다. 값이 있으면 화면은 받아
-  /// 오지 않고 이 바이트를 그대로 그린다 — 회원앱 `CoachAttachment.localBytes`
-  /// 와 같은 자리다.
+  /// 오지 않고 이 바이트를 그대로 그리거나 연다 — 회원앱
+  /// `CoachAttachment.localBytes` 와 같은 자리다.
   final Uint8List? localBytes;
 
   bool get isImage => kind == ChatAttachmentKind.image;

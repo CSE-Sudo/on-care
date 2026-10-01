@@ -59,7 +59,7 @@ def _add_exercise(client, headers) -> dict:
 def _complete(client, headers, routine_id: str) -> dict:
     r = client.post(
         f"/v1/me/coach/routines/{routine_id}/complete",
-        json={"minutes": 10, "intensity": "moderate", "member_note": ""},
+        json={"minutes": 10, "intensity": "moderate"},
         headers=headers,
     )
     assert r.status_code == 200, r.text

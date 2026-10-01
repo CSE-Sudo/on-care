@@ -566,6 +566,42 @@ void main() {
     expect(repo.submitted!['goals'], isNull);
   });
 
+  testWidgets('적은 건강상태·주의사항은 고른 목표 뒤에 이어 보낸다 (#2619)', (tester) async {
+    final _RecordingRepository repo = await _open(tester);
+    await _fillBasics(tester);
+    await _tapNext(tester);
+
+    await tester.tap(find.text('재활'));
+    await tester.enterText(
+      _field('onboardConditionsField'),
+      '왼쪽 무릎 연골 수술 이력이 있어요',
+    );
+    await tester.pumpAndSettle();
+
+    await _tapNext(tester);
+    await _tapNext(tester);
+    await tester.tap(find.text('완료'));
+    await tester.pumpAndSettle();
+
+    expect(repo.submitted!['conditions'], '재활, 왼쪽 무릎 연골 수술 이력이 있어요');
+  });
+
+  testWidgets('단계를 건너뛰면 적은 주의사항도 비운다 (#2619)', (tester) async {
+    final _RecordingRepository repo = await _open(tester);
+    await _fillBasics(tester);
+    await _tapNext(tester);
+
+    await tester.enterText(_field('onboardConditionsField'), '허리 디스크');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('onboardSkipStep')));
+    await tester.pumpAndSettle();
+    await _tapNext(tester);
+    await tester.tap(find.text('완료'));
+    await tester.pumpAndSettle();
+
+    expect(repo.submitted!['conditions'], isNull);
+  });
+
   testWidgets('완료는 기본 정보와 열 칸을 모두 보낸다', (tester) async {
     final _RecordingRepository repo = await _open(tester);
     await _fillBasics(tester);

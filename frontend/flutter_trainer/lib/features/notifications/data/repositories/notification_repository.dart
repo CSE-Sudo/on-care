@@ -1,12 +1,17 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
+import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/core/storage/demo_language.dart';
+import 'package:oncare_trainer/core/storage/seed_notifications.dart';
 import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
+import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/notifications/domain/entities/trainer_notification.dart';
 
 /// 트레이너 알림함을 읽고 읽음 처리한다. (#503)
@@ -14,15 +19,14 @@ import 'package:oncare_trainer/features/notifications/domain/entities/trainer_no
 /// 두 구현이 [trainerNotificationRepositoryProvider] 뒤에 있고
 /// [AppConfig.useMockApi] 로 갈린다.
 ///
-///  * [DemoNotificationRepository] — 데모. 알림을 만드는 회원 백엔드가 없어
-///    항상 비어 있다. 상담 인박스(#467)와 같은 이유로, 늘 "없어요"만 말하는
-///    진입점을 데모에 남기지 않는다.
+///  * [DemoNotificationRepository] — 데모. 로컬 DB 에 심어 둔 과거 알림을
+///    읽는다(#2628). 예전에는 늘 비어 있어 진입점을 감췄다(#503).
 ///  * [DioNotificationRepository] — 실 백엔드(`/trainer/notifications`).
 ///
 /// 회원용 `/notifications` 를 쓰지 않는 이유: 그 경로는 트레이너 계정을 403 으로
 /// 막는 **회원 전용**이다(역할 분리). 저장되는 행은 같은 테이블이다.
 abstract interface class TrainerNotificationRepository {
-  /// 이 빌드에서 알림함을 쓸 수 있는가. 데모에서는 진입점을 감춘다.
+  /// 이 빌드에서 알림함을 쓸 수 있는가. 지금은 두 구현 모두 쓴다(#2628).
   bool get supportsInbox;
 
   /// 받은 알림 한 쪽(최신순). [before] 가 없으면 첫 쪽이다.
@@ -48,37 +52,123 @@ abstract interface class TrainerNotificationRepository {
   Future<int> markAllRead();
 }
 
-/// 데모: 알림함이 없다. 읽기는 빈 결과로 성공해, 딥링크로 들어와도 오류가
-/// 아니라 빈 화면이 된다.
+/// 데모: 로컬 DB 에 심어 둔 과거 알림을 읽는다(#2628).
+///
+/// 알림은 다 확인해도 이전 기록이 남는 화면이다. 데모에는 알림을 새로 만드는
+/// 회원 백엔드가 없지만, 시드가 트레이너가 받는 종류를 골고루 심어 두고
+/// 읽음 처리도 그 값을 고쳐 남긴다. 한 쪽에 모두 담는다.
 class DemoNotificationRepository implements TrainerNotificationRepository {
-  const DemoNotificationRepository();
+  const DemoNotificationRepository(this._db, {this.language = DemoLanguage.ko});
+
+  final AppDatabase _db;
+
+  /// `3시간 전` 같은 상대 시각의 언어. 실 서버는 요청 언어로 적어 보낸다.
+  final DemoLanguage language;
 
   @override
-  bool get supportsInbox => false;
+  bool get supportsInbox => true;
 
-  /// 어느 쪽을 물어도 빈 마지막 쪽이다 — 이어 받기가 끝없이 돌지 않는다.
+  Future<List<Map<String, Object?>>> _rows() async =>
+      _decode(await _db.readValue(demoNotificationsKey));
+
+  static List<Map<String, Object?>> _decode(String? raw) {
+    if (raw == null || raw.isEmpty) return <Map<String, Object?>>[];
+    final Object? decoded = jsonDecode(raw);
+    if (decoded is! List) return <Map<String, Object?>>[];
+    return <Map<String, Object?>>[
+      for (final Object? row in decoded)
+        if (row is Map<String, Object?>) Map<String, Object?>.of(row),
+    ];
+  }
+
+  TrainerNotificationPage _page(List<Map<String, Object?>> rows) {
+    // 데모의 '지금'(서울 벽시계)을 같은 순간의 UTC 로 — 시드와 같은 시계다.
+    final DateTime wall = nowKst();
+    final DateTime now = DateTime.utc(
+      wall.year,
+      wall.month,
+      wall.day,
+      wall.hour,
+      wall.minute,
+      wall.second,
+    ).subtract(kstOffset);
+    final List<TrainerNotification> items = <TrainerNotification>[
+      for (final Map<String, Object?> row in rows)
+        TrainerNotification.fromJson(<String, Object?>{
+          ...row,
+          'time_ago': demoTimeAgo(
+            DateTime.parse(row['created_at']! as String),
+            now: now,
+            korean: language == DemoLanguage.ko,
+          ),
+        }),
+    ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return TrainerNotificationPage(items: items);
+  }
+
   @override
   Future<TrainerNotificationPage> fetch({
     TrainerNotificationCursor? before,
-  }) async => TrainerNotificationPage.empty;
+  }) async =>
+      // 한 쪽에 모두 담았다 — 이어 받을 쪽이 없다.
+      before == null ? _page(await _rows()) : TrainerNotificationPage.empty;
 
-  /// 데모에는 알림을 만드는 회원 백엔드가 없다. 폴링해 봐야 같은 빈 목록을
-  /// 다시 세는 요청이라, 한 번 내고 끝낸다.
-  @override
-  Stream<TrainerNotificationPage> watch() =>
-      Stream<TrainerNotificationPage>.value(TrainerNotificationPage.empty);
-
-  @override
-  Future<int> unreadCount() async => 0;
-
-  @override
-  Stream<int> watchUnreadCount() => Stream<int>.value(0);
+  Stream<List<Map<String, Object?>>> _watchRows() =>
+      (_db.select(_db.appKeyValues)
+            ..where((t) => t.key.equals(demoNotificationsKey)))
+          .watchSingleOrNull()
+          .map((AppKeyValue? row) => _decode(row?.value));
 
   @override
-  Future<void> markRead(String id) async {}
+  Stream<TrainerNotificationPage> watch() => _watchRows().map(_page);
 
   @override
-  Future<int> markAllRead() async => 0;
+  Future<int> unreadCount() async =>
+      (await _rows()).where((r) => r['read'] != true).length;
+
+  @override
+  Stream<int> watchUnreadCount() =>
+      _watchRows().map((rows) => rows.where((r) => r['read'] != true).length);
+
+  @override
+  Future<void> markRead(String id) async {
+    final List<Map<String, Object?>> rows = await _rows();
+    for (final Map<String, Object?> row in rows) {
+      if (row['id'] == id) row['read'] = true;
+    }
+    await _db.putValue(demoNotificationsKey, jsonEncode(rows));
+  }
+
+  @override
+  Future<int> markAllRead() async {
+    final List<Map<String, Object?>> rows = await _rows();
+    int marked = 0;
+    for (final Map<String, Object?> row in rows) {
+      if (row['read'] != true) {
+        row['read'] = true;
+        marked++;
+      }
+    }
+    await _db.putValue(demoNotificationsKey, jsonEncode(rows));
+    return marked;
+  }
+}
+
+/// 서버 `notification_service.time_ago` 와 같은 상대 시각 문구.
+@visibleForTesting
+String demoTimeAgo(DateTime at, {required DateTime now, required bool korean}) {
+  final int sec = now.difference(at).inSeconds;
+  if (sec < 60) return korean ? '방금 전' : 'just now';
+  if (sec < 3600) {
+    final int n = sec ~/ 60;
+    return korean ? '$n분 전' : '$n min ago';
+  }
+  if (sec < 86400) {
+    final int n = sec ~/ 3600;
+    return korean ? '$n시간 전' : '$n ${n == 1 ? 'hour' : 'hours'} ago';
+  }
+  final int n = sec ~/ 86400;
+  return korean ? '$n일 전' : '$n ${n == 1 ? 'day' : 'days'} ago';
 }
 
 /// 다음 쪽 커서가 실리는 응답 헤더(#2293). 서버 `trainer.py` 와 같은 이름이다.
@@ -187,7 +277,10 @@ final trainerNotificationRepositoryProvider =
     Provider<TrainerNotificationRepository>((ref) {
       ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
       if (ref.watch(appConfigProvider).useMockApi) {
-        return const DemoNotificationRepository();
+        return DemoNotificationRepository(
+          ref.watch(appDatabaseProvider),
+          language: ref.watch(demoLanguageProvider),
+        );
       }
       return DioNotificationRepository(ref.watch(dioProvider));
     }, name: 'trainerNotificationRepository');

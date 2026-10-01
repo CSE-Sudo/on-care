@@ -1232,7 +1232,9 @@ void main() {
       );
       expect(find.textContaining('16:00\u201316:45'), findsWidgets);
       expect(find.text('덤벨 플라이'), findsOneWidget);
-      expect(find.textContaining('4세트'), findsOneWidget);
+      // 프로그램 줄의 양을 정확히 본다 — 그 PT 에 붙은 개인운동(회원의 근력
+      // 운동, #2668)도 `4세트` 를 적을 수 있어 부분 일치로는 둘이 잡힌다.
+      expect(find.text('4세트 · 8회 · 65kg'), findsOneWidget);
       // 프로그램만 고쳤으므로 원래 메모는 그대로 남는다.
       expect(find.text('벤치 컨디션 확인 필요.'), findsNothing);
     });

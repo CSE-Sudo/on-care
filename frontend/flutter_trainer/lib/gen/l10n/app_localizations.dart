@@ -1982,18 +1982,6 @@ abstract class AppLocalizations {
   /// **'Consultation requests'**
   String get consultTitle;
 
-  /// No description provided for @consultBackToSchedule.
-  ///
-  /// In en, this message translates to:
-  /// **'Back to schedule'**
-  String get consultBackToSchedule;
-
-  /// No description provided for @consultBackToDashboard.
-  ///
-  /// In en, this message translates to:
-  /// **'Back to dashboard'**
-  String get consultBackToDashboard;
-
   /// No description provided for @consultPendingCount.
   ///
   /// In en, this message translates to:
@@ -6031,6 +6019,30 @@ abstract class AppLocalizations {
   /// **'Notifications'**
   String get notifTitle;
 
+  /// No description provided for @notifSeeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get notifSeeAll;
+
+  /// No description provided for @notifGroupAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get notifGroupAll;
+
+  /// No description provided for @notifGroupMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages'**
+  String get notifGroupMessages;
+
+  /// No description provided for @notifGroupEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications of this kind'**
+  String get notifGroupEmpty;
+
   /// No description provided for @notifReadAll.
   ///
   /// In en, this message translates to:
@@ -6078,6 +6090,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{name} changed their health goals: {goals}'**
   String notifTplHealthGoalBody(String name, String goals);
+
+  /// No description provided for @notifTplHealthNotesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Member health notes changed'**
+  String get notifTplHealthNotesTitle;
+
+  /// No description provided for @notifTplHealthNotesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} updated their health notes'**
+  String notifTplHealthNotesBody(String name);
+
+  /// No description provided for @notifTplHealthNotesWithGoalsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} updated their health goals and health notes'**
+  String notifTplHealthNotesWithGoalsBody(String name);
 
   /// Shown in place of the goal list when the member cleared every health goal.
   ///

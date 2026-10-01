@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +7,7 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
+import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/demo_member_directory.dart';
 import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
@@ -13,8 +15,10 @@ import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/consultations/data/dtos/consultation_dtos.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
+import 'package:oncare_trainer/features/schedule/data/demo_reservation_slots.dart';
 import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/reservation_slot.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
@@ -23,10 +27,10 @@ import 'package:oncare_trainer/shared/services/client_repository.dart';
 ///
 /// Two implementations, selected by [consultationRepositoryProvider] via
 /// [AppConfig.useMockApi]:
-///  * [DemoConsultationRepository] — demo / `USE_MOCK_API=true`. The demo
-///    has no member backend to receive requests from, and its roster is
-///    seeded, so the inbox is empty and the sidebar row is hidden. The
-///    demo screens stay exactly as they are.
+///  * [DemoConsultationRepository] — demo / `USE_MOCK_API=true`. 데모에는
+///    요청을 보낼 회원 백엔드가 없어, 회원이 보낸 것처럼 시드 요청 두 건을
+///    두고 상담함 메뉴를 실서버와 똑같이 보여 준다. 수락·거절은 키-값 저장소에
+///    남아 새로고침해도 그대로다(#2669).
 ///  * [DioConsultationRepository] — the real backend. Accepting books the
 ///    consultation; it does not create the trainer↔member link — that
 ///    happens later with the member's 6-digit code (#2584).
@@ -92,9 +96,12 @@ class ConsultationAcceptResult {
   final String? scheduleId;
 }
 
-/// Demo build: no inbox. Reads succeed with nothing so any consumer that
-/// does run (tests, a deep link) renders an empty state instead of an
-/// error, and decisions are refused rather than silently doing nothing.
+/// Demo build: 회원이 보낸 것처럼 시드한 요청 두 건으로 상담함을 채운다.
+///
+/// [db] 가 있으면 수락·거절과 상담 연결을 키-값 저장소에 적어, 새로고침해도
+/// 결정이 되돌아가지 않는다(#2669). 예전에는 메모리에만 있어 새로고침하면
+/// 요청이 다시 대기로 섰고, 이미 잡힌 상담 일정과 겹쳐 두 번째 수락이 겹침
+/// 오류로 멈췄다. [db] 가 없으면(단위 테스트) 메모리에만 둔다.
 class DemoConsultationRepository implements ConsultationRepository {
   /// Creates the demo source.
   ///
@@ -103,56 +110,114 @@ class DemoConsultationRepository implements ConsultationRepository {
   DemoConsultationRepository({
     List<ConsultationRequest>? requests,
     this.scheduleRepository,
+    this.db,
     DemoLanguage language = DemoLanguage.ko,
-  }) : _requests =
-           requests ??
-           <ConsultationRequest>[
-             // 회원은 트레이너가 연 자리를 골라 신청한다(#1873) — 시드도 그
-             // 형태를 따라야 카드가 "고른 시간" 과 그 길이를 보여 준다.
-             ConsultationRequest(
-               id: 'demo-consultation-1',
-               memberId: 'demo-consult-member-1',
-               memberName: '김하늘',
-               goalCode: 'fitness',
-               purposeCode: 'general',
-               preferredDate: _demoSlot(days: 1, hour: 19),
-               preferredTimeCode: '19:00',
-               slotStartsAt: _demoSlot(days: 1, hour: 19),
-               slotDurationMinutes: 30,
-               status: 'pending',
-               message: language.isEnglish
-                   ? "I'd like my first consultation at a time that works "
-                         'after work.'
-                   : '퇴근 후 가능한 시간으로 첫 상담을 받고 싶어요.',
-             ),
-             // 이미 담당 고객인 회원도 재상담을 요청할 수 있다 — 김민수
-             // (`demoAlreadyLinkedMemberId`)로 그 시나리오를 보여준다.
-             ConsultationRequest(
-               id: 'demo-consultation-2',
-               memberId: demoAlreadyLinkedMemberId,
-               memberName: '김민수',
-               goalCode: 'weight_loss',
-               purposeCode: 'chronic',
-               preferredDate: _demoSlot(days: 3, hour: 12),
-               preferredTimeCode: '12:00',
-               slotStartsAt: _demoSlot(days: 3, hour: 12),
-               slotDurationMinutes: 60,
-               status: 'pending',
-               message: language.isEnglish
-                   ? 'It would be great if you could help with my blood '
-                         'pressure too.'
-                   : '혈압 관리도 같이 봐주시면 좋겠어요.',
-             ),
-           ];
+  }) : _requests = requests ?? _seedRequests(language);
 
-  /// 오늘부터 [days] 뒤 [hour] 시 정각 — 데모 자리의 시작 시각.
-  static DateTime _demoSlot({required int days, required int hour}) {
-    final DateTime day = nowKst().add(Duration(days: days));
-    return DateTime(day.year, day.month, day.day, hour);
+  /// 시드 요청 — 회원이 트레이너가 연 **상담 자리**([demoReservationSlots])를
+  /// 골라 신청한 모양이다(#1873). 예전에는 자리 목록에 없는 시각(내일 19:00
+  /// 등)을 골라, 예약 슬롯 창과 상담함이 서로 다른 달력을 말했다(#2669).
+  static List<ConsultationRequest> _seedRequests(DemoLanguage language) {
+    final DateTime now = nowKst();
+    final Map<String, ReservationSlot> slots = <String, ReservationSlot>{
+      for (final ReservationSlot slot in demoReservationSlots(now: now))
+        slot.id: slot,
+    };
+    // 김하늘은 퇴근 뒤 자리를, 김민수는 출근 전 자리를 골랐다.
+    final ReservationSlot evening = slots['slot-kim-5']!;
+    final ReservationSlot morning = slots['slot-kim-3']!;
+    String hm(DateTime t) =>
+        '${t.hour.toString().padLeft(2, '0')}:'
+        '${t.minute.toString().padLeft(2, '0')}';
+    return <ConsultationRequest>[
+      ConsultationRequest(
+        id: 'demo-consultation-1',
+        memberId: 'demo-consult-member-1',
+        memberName: '김하늘',
+        goalCode: 'fitness',
+        purposeCode: 'general',
+        preferredDate: evening.startsAt,
+        preferredTimeCode: hm(evening.startsAt),
+        slotStartsAt: evening.startsAt,
+        slotDurationMinutes: evening.durationMinutes,
+        status: 'pending',
+        message: language.isEnglish
+            ? "I'd like my first consultation at a time that works "
+                  'after work.'
+            : '퇴근 후 가능한 시간으로 첫 상담을 받고 싶어요.',
+        // 받은 시각 — 인박스가 최신순으로 서고 `더 보기` 커서가 된다.
+        createdAt: now.subtract(const Duration(hours: 3)),
+      ),
+      // 이미 담당 고객인 회원도 재상담을 요청할 수 있다 — 김민수
+      // (`demoAlreadyLinkedMemberId`)로 그 시나리오를 보여준다.
+      ConsultationRequest(
+        id: 'demo-consultation-2',
+        memberId: demoAlreadyLinkedMemberId,
+        memberName: '김민수',
+        goalCode: 'weight_loss',
+        purposeCode: 'chronic',
+        preferredDate: morning.startsAt,
+        preferredTimeCode: hm(morning.startsAt),
+        slotStartsAt: morning.startsAt,
+        slotDurationMinutes: morning.durationMinutes,
+        status: 'pending',
+        message: language.isEnglish
+            ? 'It would be great if you could help with my blood '
+                  'pressure too.'
+            : '혈압 관리도 같이 봐주시면 좋겠어요.',
+        createdAt: now.subtract(const Duration(days: 1, hours: 2)),
+      ),
+    ];
   }
 
   List<ConsultationRequest> _requests;
   final ScheduleRepository Function()? scheduleRepository;
+
+  /// 결정을 적어 두는 데모 저장소. 없으면 메모리에만 둔다.
+  final AppDatabase? db;
+
+  /// 저장해 둔 결정을 한 번만 얹는다.
+  bool _restored = false;
+
+  /// 수락·거절을 적어 두는 키 — `{요청 id: {status, note}}`.
+  static const String decisionsKey = 'demo_consultation_decisions';
+
+  Future<void> _restore() async {
+    if (_restored) return;
+    _restored = true;
+    final AppDatabase? store = db;
+    if (store == null) return;
+    final String? saved = await store.readValue(decisionsKey);
+    if (saved == null) return;
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(saved);
+    } on FormatException {
+      return;
+    }
+    if (decoded is! Map<String, Object?>) return;
+    for (final MapEntry<String, Object?> e in decoded.entries) {
+      final Object? v = e.value;
+      if (v is! Map<String, Object?> || v['status'] is! String) continue;
+      final int index = _requests.indexWhere((r) => r.id == e.key);
+      if (index < 0 || !_requests[index].isPending) continue;
+      final Object? note = v['note'];
+      _replace(index, v['status']! as String, note is String ? note : null);
+    }
+  }
+
+  Future<void> _persist() async {
+    final AppDatabase? store = db;
+    if (store == null) return;
+    await store.putValue(
+      decisionsKey,
+      jsonEncode(<String, Object?>{
+        for (final ConsultationRequest r in _requests)
+          if (!r.isPending)
+            r.id: <String, Object?>{'status': r.status, 'note': r.decisionNote},
+      }),
+    );
+  }
 
   @override
   bool get supportsInbox => true;
@@ -164,12 +229,35 @@ class DemoConsultationRepository implements ConsultationRepository {
     DateTime? before,
     String? beforeId,
   }) async {
-    // 데모 인박스는 한 줌이라 커서가 실제로 쓰일 일이 없다 — 상한만 지킨다.
-    if (before != null) return const <ConsultationRequest>[];
-    final Iterable<ConsultationRequest> rows = status == 'all'
-        ? _requests
-        : _requests.where((request) => request.status == status);
-    return List<ConsultationRequest>.unmodifiable(rows.take(limit));
+    await _restore();
+    final List<ConsultationRequest> rows =
+        (status == 'all'
+              ? _requests.toList()
+              : _requests.where((request) => request.status == status).toList())
+          ..sort(_newestFirst);
+    // 서버와 같은 커서다(#980) — 받은 시각이 [before] 보다 이르거나, 같으면 id 가
+    // [beforeId] 보다 앞선 요청만 준다.
+    final Iterable<ConsultationRequest> page = before == null
+        ? rows
+        : rows.where((ConsultationRequest r) {
+            final DateTime? at = r.createdAt;
+            if (at == null) return false;
+            if (at.isBefore(before)) return true;
+            return at.isAtSameMomentAs(before) &&
+                beforeId != null &&
+                r.id.compareTo(beforeId) < 0;
+          });
+    return List<ConsultationRequest>.unmodifiable(page.take(limit));
+  }
+
+  /// 받은 시각의 최신순, 같으면 id 역순 — 서버의 정렬과 같다.
+  static int _newestFirst(ConsultationRequest a, ConsultationRequest b) {
+    final DateTime? x = a.createdAt;
+    final DateTime? y = b.createdAt;
+    if (x != null && y != null && !x.isAtSameMomentAs(y)) return y.compareTo(x);
+    if (x == null && y != null) return 1;
+    if (x != null && y == null) return -1;
+    return b.id.compareTo(a.id);
   }
 
   /// 데모의 인박스는 메모리에 있다. 폴링해도 같은 값을 다시 세는 것뿐이라
@@ -183,14 +271,17 @@ class DemoConsultationRepository implements ConsultationRepository {
   );
 
   @override
-  Future<int> pendingCount() async =>
-      _requests.where((request) => request.isPending).length;
+  Future<int> pendingCount() async {
+    await _restore();
+    return _requests.where((request) => request.isPending).length;
+  }
 
   @override
   Stream<int> watchPendingCount() => Stream<int>.fromFuture(pendingCount());
 
   @override
   Future<ConsultationAcceptResult> accept(String id) async {
+    await _restore();
     final index = _requests.indexWhere((request) => request.id == id);
     if (index < 0 || !_requests[index].isPending) {
       throw const ValidationError();
@@ -219,18 +310,17 @@ class DemoConsultationRepository implements ConsultationRepository {
         durationMinutes: request.slotDurationMinutes ?? 60,
         note: '',
       );
-      demoScheduleConsultations[demoConsultationKey(
-            clientId: request.memberId,
-            date: date,
-            time: time,
-          )] =
-          ScheduleConsultation(
-            id: request.id,
-            goalCode: request.goalCode,
-            message: request.message,
-          );
+      await saveDemoScheduleConsultation(
+        db,
+        demoConsultationKey(clientId: request.memberId, date: date, time: time),
+        ScheduleConsultation(
+          id: request.id,
+          goalCode: request.goalCode,
+          message: request.message,
+        ),
+      );
     }
-    _decide(id, 'accepted');
+    await _decide(id, 'accepted');
     // 수락은 담당 연결이 아니다 — 서버와 같은 답을 준다(#2584).
     return ConsultationAcceptResult(
       clientConnected: false,
@@ -240,14 +330,20 @@ class DemoConsultationRepository implements ConsultationRepository {
 
   @override
   Future<void> reject(String id, {String? note}) async {
-    _decide(id, 'rejected', note: note);
+    await _restore();
+    await _decide(id, 'rejected', note: note);
   }
 
-  void _decide(String id, String status, {String? note}) {
+  Future<void> _decide(String id, String status, {String? note}) async {
     final index = _requests.indexWhere((request) => request.id == id);
     if (index < 0 || !_requests[index].isPending) {
       throw const ValidationError();
     }
+    _replace(index, status, note);
+    await _persist();
+  }
+
+  void _replace(int index, String status, String? note) {
     final request = _requests[index];
     _requests = <ConsultationRequest>[
       ..._requests.take(index),
@@ -265,6 +361,7 @@ class DemoConsultationRepository implements ConsultationRepository {
         message: request.message,
         purposeDetail: request.purposeDetail,
         decisionNote: note,
+        createdAt: request.createdAt,
       ),
       ..._requests.skip(index + 1),
     ];
@@ -399,6 +496,7 @@ final consultationRepositoryProvider = Provider<ConsultationRepository>((ref) {
   if (ref.watch(appConfigProvider).useMockApi) {
     return DemoConsultationRepository(
       scheduleRepository: () => ref.read(scheduleRepositoryProvider),
+      db: ref.watch(appDatabaseProvider),
       language: ref.watch(demoLanguageProvider),
     );
   }

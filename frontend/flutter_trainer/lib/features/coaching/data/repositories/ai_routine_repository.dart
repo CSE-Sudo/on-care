@@ -62,6 +62,11 @@ class DriftAiRoutineRepository implements AiRoutineRepository {
               minutes: row.minutes,
               type: row.type,
               reason: row.reason,
+              // 근력의 양(#2705) — 초기 AI 루틴도 세트·횟수로 읽는다.
+              sets: row.sets,
+              reps: row.reps,
+              holdSeconds: row.holdSeconds,
+              weight: row.weight,
             ),
           )
           .toList();

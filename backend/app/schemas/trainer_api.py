@@ -28,6 +28,7 @@ from app.schemas.exercise_limits import (
 )
 from app.schemas.health_goal_ranges import (
     ConditionsText,
+    check_conditions_notes,
     DailyBurnKcal,
     DailyCalories,
     DailyCarbsG,
@@ -257,15 +258,8 @@ class MemberHealthProfileUpdate(PartialUpdate):
     @field_validator("conditions")
     @classmethod
     def _normalize_conditions(cls, value: str | None) -> str | None:
-        normalized = health_focus.normalize_conditions(value)
-        # 트레이너가 적은 건강상태·주의사항은 기록 한 건 상한까지다(#2618).
-        # 회원 경로(`HealthGoalsUpdate`)는 이 글을 고칠 칸이 없어 싣고만 오므로
-        # 검사하지 않는다 — 긴 글이 남은 회원이 목표 칩을 못 바꾸게 된다(#2619).
-        if health_focus.notes_length(normalized) > TEXT_ENTRY_MAX:
-            raise ValueError(
-                f"건강상태·주의사항은 {TEXT_ENTRY_MAX}자까지 적을 수 있습니다."
-            )
-        return normalized
+        # 건강상태·주의사항은 기록 한 건 상한까지다 — 회원 경로와 같다(#2618).
+        return check_conditions_notes(health_focus.normalize_conditions(value))
 
 class ClientDietEntryOut(BaseModel):
     """고객 식단 서브탭 한 끼 — 프론트 ClientDietEntry 계약 정렬."""
@@ -1456,6 +1450,10 @@ class ScheduleSessionOut(BaseModel):
     #: 수업 기록으로만 남는다 — 이름은 `해제 회원`, `member_id`·글·프로그램·취소
     #: 사유는 비어 있고, 회원 상세·코칭으로 이어지지 않는다.
     member_detached: bool = False
+    #: 완료한 PT 가 담당 트레이너와의 몇 번째 수업인가(1부터, #2697). 회원 응답의
+    #: 완료 PT 에만 싣는다 — 예정·취소·노쇼·상담과 트레이너 응답은 null 이다.
+    #: 회원 목록이 최근 100건으로 잘리므로 앱이 세면 그보다 오래된 회원에게 틀린다.
+    session_number: int | None = None
 
 
 class DeliveryOut(BaseModel):

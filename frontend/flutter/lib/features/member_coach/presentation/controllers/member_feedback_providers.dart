@@ -8,6 +8,7 @@ library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
@@ -122,15 +123,27 @@ class SentReportNotice {
 
 /// 트레이너가 보낸 리포트 목록(최신 → 오래된). (#2232)
 ///
+/// 대화를 **끝까지** 읽어 만든다(#2643). 예전에는 커서 없이 한 번만 불러 최신
+/// 50건 안의 리포트만 보였다 — 대화가 길어지면 몇 주 전 리포트가 목록에서
+/// 사라졌다.
+///
+/// autoDispose 다. 예전에는 한 번 읽은 목록이 세션 내내 남아, 앱을 다시 켜기
+/// 전까지 새 리포트가 보이지 않았다. 이제 화면에 들어올 때마다 새로 읽고,
+/// 채팅이 폴링으로 새 리포트 안내를 받으면 다시 읽는다(`TrainerChatPage`).
+final sentReportNoticesProvider =
+    FutureProvider.autoDispose<List<SentReportNotice>>((ref) async {
+      final List<CoachMessage> chat = await fetchWholeCoachChat(
+        ref.watch(memberCoachRepositoryProvider),
+      );
+      return selectReportNotices(chat);
+    }, name: 'sentReportNotices');
+
+/// 대화에서 리포트 안내만 골라 목록으로 만든다(최신 주 → 오래된 주). (#2232)
+///
 /// 같은 주 리포트를 두 번 보냈으면 **마지막 것 하나만** 남긴다. 회원이 받은
 /// 것은 마지막 글이고, 목록에 같은 주가 두 줄로 서면 어느 것을 열어야 하는지
 /// 알 수 없다.
-final sentReportNoticesProvider = FutureProvider<List<SentReportNotice>>((
-  ref,
-) async {
-  final List<CoachMessage> chat = await ref
-      .watch(memberCoachRepositoryProvider)
-      .fetchChat();
+List<SentReportNotice> selectReportNotices(Iterable<CoachMessage> chat) {
   final Map<String, SentReportNotice> latest = <String, SentReportNotice>{};
   for (final CoachMessage message in chat) {
     final DateTime? week = message.reportWeekStart;
@@ -141,10 +154,8 @@ final sentReportNoticesProvider = FutureProvider<List<SentReportNotice>>((
     if (seen != null && seen.sentAt.isAfter(message.createdAt)) continue;
     latest[key] = SentReportNotice(message: message, weekStart: monday);
   }
-  final List<SentReportNotice> notices = latest.values.toList()
-    ..sort(
-      (SentReportNotice a, SentReportNotice b) =>
-          b.weekStart.compareTo(a.weekStart),
-    );
-  return notices;
-}, name: 'sentReportNotices');
+  return latest.values.toList()..sort(
+    (SentReportNotice a, SentReportNotice b) =>
+        b.weekStart.compareTo(a.weekStart),
+  );
+}

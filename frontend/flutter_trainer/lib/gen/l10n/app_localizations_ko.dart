@@ -1030,12 +1030,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get consultTitle => '상담 요청';
 
   @override
-  String get consultBackToSchedule => '스케줄로 돌아가기';
-
-  @override
-  String get consultBackToDashboard => '대시보드로 돌아가기';
-
-  @override
   String consultPendingCount(int count) {
     return '대기 중 $count건';
   }
@@ -3303,6 +3297,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notifTitle => '알림';
 
   @override
+  String get notifSeeAll => '전체 보기';
+
+  @override
+  String get notifGroupAll => '전체';
+
+  @override
+  String get notifGroupMessages => '메시지';
+
+  @override
+  String get notifGroupEmpty => '이 종류의 알림이 없어요';
+
+  @override
   String get notifReadAll => '모두 읽음';
 
   @override
@@ -3326,6 +3332,19 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String notifTplHealthGoalBody(String name, String goals) {
     return '$name 회원이 건강 목표를 바꿨어요: $goals';
+  }
+
+  @override
+  String get notifTplHealthNotesTitle => '회원 주의사항 변경';
+
+  @override
+  String notifTplHealthNotesBody(String name) {
+    return '$name 회원이 건강상태·주의사항을 바꿨어요';
+  }
+
+  @override
+  String notifTplHealthNotesWithGoalsBody(String name) {
+    return '$name 회원이 건강 목표와 건강상태·주의사항을 바꿨어요';
   }
 
   @override

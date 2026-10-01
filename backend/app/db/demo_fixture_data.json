@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "readme": "김민수 데모 데이터의 단일 원본. 사용자앱·트레이너웹·백엔드가 이 파일만 읽는다. 날짜는 상대값이다 — weeks[].weeksAgo 는 이번 주 월요일에서 몇 주 거슬러 올라가는지, days[].weekday 는 월(0)~일(6). recent[].offset 은 오늘로부터의 일수이고 주 격자 위를 덮는다. 이행률은 exercises[].done 개수에서 계산한다 — 퍼센트를 따로 적지 않는다. 3주 전 수요일은 일부러 비워 둔다 — 기록 연속이 끊긴 자리가 보이고, 최근 30일 안이라 연속 기록 보호권(#1788)을 그 칸에 써 볼 수 있다.",
+  "readme": "김민수 데모 데이터의 단일 원본. 사용자앱·트레이너웹·백엔드가 이 파일만 읽는다. 날짜는 상대값이다 — weeks[].weeksAgo 는 이번 주 월요일에서 몇 주 거슬러 올라가는지, days[].weekday 는 월(0)~일(6). recent[].offset 은 오늘로부터의 일수이고 주 격자 위를 덮는다. 이행률은 exercises[].done 개수에서 계산한다 — 퍼센트를 따로 적지 않는다. 20일 전(recent offset 20)은 일부러 비워 둔다 — 기록 연속이 끊긴 자리가 보이고, 최근 30일 안이라 연속 기록 보호권(#1788)을 그 칸에 써 볼 수 있다. 요일이 아니라 일수로 두는 이유는 매주 PT 날(오늘과 같은 요일)과 겹치지 않게 하려는 것이다 — 20 은 7 의 배수가 아니다. 매주 PT 는 weeklyPt 가 정한다 — sessions[].weeksAgo 주 전의 오늘과 같은 요일이 PT 날이고(오늘이 늘 PT 날이라 요일을 못 박지 않는다), 끼니는 그날 격자의 것을 그대로 쓴다. 격자가 비워 둔 날은 그 주 수업을 건너뛴다.",
   "member": {
     "name": "김민수",
     "userAppSeedId": "user-7d4e9a2c5f18",
@@ -524,6 +524,16 @@
           "aiComment": "연어의 지방과 현미밥의 복합 탄수화물 조합이 좋아요."
         }
       ]
+    },
+    {
+      "offset": 20,
+      "label": "",
+      "pt": false,
+      "clientFeedback": "",
+      "trainerNote": "",
+      "dayMessage": "",
+      "exercises": [],
+      "meals": []
     }
   ],
   "weeks": [
@@ -1369,7 +1379,17 @@
         {
           "weekday": 2,
           "exercises": [],
-          "meals": []
+          "meals": [
+            {
+              "meal": "breakfast-egg-strawberry"
+            },
+            {
+              "meal": "lunch-chicken-salad"
+            },
+            {
+              "meal": "dinner-salmon-brown-rice"
+            }
+          ]
         },
         {
           "weekday": 3,
@@ -1862,56 +1882,7 @@
         },
         {
           "weekday": 2,
-          "label": "PT 세션 · 트레이너 지도",
-          "pt": true,
-          "clientFeedback": "레그프레스 무게가 붙었어요. 마지막 세트가 힘들었어요.",
-          "trainerNote": "하체 근력 향상 확인. 다음 세션 레그프레스 5kg 증량.",
-          "exercises": [
-            {
-              "name": "레그프레스",
-              "type": "strength",
-              "minutes": 12,
-              "calories": 72,
-              "done": true,
-              "sets": 4,
-              "reps": 12,
-              "weight": 70
-            },
-            {
-              "name": "레그컬",
-              "type": "strength",
-              "minutes": 9,
-              "calories": 54,
-              "done": true,
-              "sets": 3,
-              "reps": 12,
-              "weight": 35
-            },
-            {
-              "name": "카프레이즈",
-              "type": "strength",
-              "minutes": 6,
-              "calories": 36,
-              "done": true,
-              "sets": 3,
-              "reps": 20,
-              "weight": 0
-            },
-            {
-              "name": "마무리 러닝머신",
-              "type": "cardio",
-              "minutes": 15,
-              "calories": 135,
-              "done": true
-            },
-            {
-              "name": "하체 스트레칭",
-              "type": "stretching",
-              "minutes": 10,
-              "calories": 30,
-              "done": true
-            }
-          ],
+          "exercises": [],
           "meals": [
             {
               "meal": "breakfast-egg-strawberry"
@@ -3362,56 +3333,7 @@
         },
         {
           "weekday": 2,
-          "label": "PT 세션 · 트레이너 지도",
-          "pt": true,
-          "clientFeedback": "데드리프트 자세를 잡아주셔서 허리가 편했어요.",
-          "trainerNote": "데드리프트 힙힌지 안정적. 중량 55kg 유지 후 다음 달 60kg.",
-          "exercises": [
-            {
-              "name": "데드리프트",
-              "type": "strength",
-              "minutes": 12,
-              "calories": 72,
-              "done": true,
-              "sets": 4,
-              "reps": 8,
-              "weight": 55
-            },
-            {
-              "name": "루마니안 데드리프트",
-              "type": "strength",
-              "minutes": 9,
-              "calories": 54,
-              "done": true,
-              "sets": 3,
-              "reps": 10,
-              "weight": 40
-            },
-            {
-              "name": "플랭크",
-              "type": "strength",
-              "minutes": 6,
-              "calories": 36,
-              "done": true,
-              "sets": 3,
-              "holdSeconds": 45,
-              "weight": 0
-            },
-            {
-              "name": "마무리 러닝머신",
-              "type": "cardio",
-              "minutes": 12,
-              "calories": 108,
-              "done": true
-            },
-            {
-              "name": "허리 스트레칭",
-              "type": "stretching",
-              "minutes": 10,
-              "calories": 30,
-              "done": true
-            }
-          ],
+          "exercises": [],
           "meals": [
             {
               "meal": "breakfast-greek-yogurt-nuts"
@@ -4859,56 +4781,7 @@
         },
         {
           "weekday": 2,
-          "label": "PT 세션 · 트레이너 지도",
-          "pt": true,
-          "clientFeedback": "어깨가 아직 조금 불편해서 무게를 낮췄어요.",
-          "trainerNote": "오른쪽 어깨 가동범위 제한. 숄더프레스 중량 낮추고 밴드 보강 병행.",
-          "exercises": [
-            {
-              "name": "숄더프레스",
-              "type": "strength",
-              "minutes": 12,
-              "calories": 72,
-              "done": true,
-              "sets": 4,
-              "reps": 12,
-              "weight": 10
-            },
-            {
-              "name": "밴드 외전",
-              "type": "strength",
-              "minutes": 6,
-              "calories": 36,
-              "done": true,
-              "sets": 3,
-              "reps": 20,
-              "weight": 0
-            },
-            {
-              "name": "인클라인 푸시업",
-              "type": "strength",
-              "minutes": 9,
-              "calories": 54,
-              "done": true,
-              "sets": 3,
-              "reps": 12,
-              "weight": 0
-            },
-            {
-              "name": "마무리 러닝머신",
-              "type": "cardio",
-              "minutes": 10,
-              "calories": 90,
-              "done": true
-            },
-            {
-              "name": "어깨 관절 보호 스트레칭",
-              "type": "stretching",
-              "minutes": 12,
-              "calories": 36,
-              "done": true
-            }
-          ],
+          "exercises": [],
           "meals": [
             {
               "meal": "breakfast-egg-strawberry"
@@ -6346,56 +6219,7 @@
         },
         {
           "weekday": 2,
-          "label": "PT 세션 · 트레이너 지도",
-          "pt": true,
-          "clientFeedback": "벤치프레스가 처음이라 어색했지만 재밌었어요 💪",
-          "trainerNote": "상체 근력 기초 확인. 벤치프레스 35kg 로 시작해 자세 우선.",
-          "exercises": [
-            {
-              "name": "벤치프레스",
-              "type": "strength",
-              "minutes": 12,
-              "calories": 72,
-              "done": true,
-              "sets": 4,
-              "reps": 10,
-              "weight": 35
-            },
-            {
-              "name": "체스트프레스",
-              "type": "strength",
-              "minutes": 9,
-              "calories": 54,
-              "done": true,
-              "sets": 3,
-              "reps": 12,
-              "weight": 25
-            },
-            {
-              "name": "랫풀다운",
-              "type": "strength",
-              "minutes": 9,
-              "calories": 54,
-              "done": true,
-              "sets": 3,
-              "reps": 12,
-              "weight": 30
-            },
-            {
-              "name": "마무리 러닝머신",
-              "type": "cardio",
-              "minutes": 15,
-              "calories": 135,
-              "done": true
-            },
-            {
-              "name": "상체 스트레칭",
-              "type": "stretching",
-              "minutes": 10,
-              "calories": 30,
-              "done": true
-            }
-          ],
+          "exercises": [],
           "meals": [
             {
               "meal": "breakfast-greek-yogurt-nuts"
@@ -7833,56 +7657,7 @@
         },
         {
           "weekday": 2,
-          "label": "PT 세션 · 트레이너 지도",
-          "pt": true,
-          "clientFeedback": "첫 PT 라 긴장했는데 생각보다 할 만했어요.",
-          "trainerNote": "첫 세션. 체력 수준 점검 위주로 가볍게 진행.",
-          "exercises": [
-            {
-              "name": "고블릿 스쿼트",
-              "type": "strength",
-              "minutes": 9,
-              "calories": 54,
-              "done": true,
-              "sets": 3,
-              "reps": 12,
-              "weight": 12
-            },
-            {
-              "name": "케틀벨 스윙",
-              "type": "strength",
-              "minutes": 9,
-              "calories": 54,
-              "done": true,
-              "sets": 3,
-              "reps": 15,
-              "weight": 12
-            },
-            {
-              "name": "코어 서킷",
-              "type": "strength",
-              "minutes": 6,
-              "calories": 36,
-              "done": true,
-              "sets": 2,
-              "reps": 12,
-              "weight": 0
-            },
-            {
-              "name": "마무리 러닝머신",
-              "type": "cardio",
-              "minutes": 10,
-              "calories": 90,
-              "done": true
-            },
-            {
-              "name": "전신 스트레칭",
-              "type": "stretching",
-              "minutes": 12,
-              "calories": 36,
-              "done": true
-            }
-          ],
+          "exercises": [],
           "meals": [
             {
               "meal": "breakfast-oatmeal-banana"
@@ -9242,6 +9017,572 @@
       ]
     }
   ],
+  "weeklyPt": {
+    "label": "PT 세션 · 트레이너 지도",
+    "sessions": [
+      {
+        "weeksAgo": 11,
+        "clientFeedback": "첫 PT 라 긴장했는데 생각보다 할 만했어요.",
+        "trainerNote": "첫 세션. 체력 수준 점검 위주로 가볍게 진행.",
+        "exercises": [
+          {
+            "name": "고블릿 스쿼트",
+            "type": "strength",
+            "minutes": 9,
+            "calories": 54,
+            "done": true,
+            "sets": 3,
+            "reps": 12,
+            "weight": 12
+          },
+          {
+            "name": "케틀벨 스윙",
+            "type": "strength",
+            "minutes": 9,
+            "calories": 54,
+            "done": true,
+            "sets": 3,
+            "reps": 15,
+            "weight": 12
+          },
+          {
+            "name": "코어 서킷",
+            "type": "strength",
+            "minutes": 6,
+            "calories": 36,
+            "done": true,
+            "sets": 2,
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "name": "마무리 러닝머신",
+            "type": "cardio",
+            "minutes": 10,
+            "calories": 90,
+            "done": true
+          },
+          {
+            "name": "전신 스트레칭",
+            "type": "stretching",
+            "minutes": 12,
+            "calories": 36,
+            "done": true
+          }
+        ]
+      },
+      {
+        "weeksAgo": 10,
+        "clientFeedback": "벤치프레스가 처음이라 어색했지만 재밌었어요 💪",
+        "trainerNote": "상체 근력 기초 확인. 벤치프레스 30kg 로 시작해 자세 우선.",
+        "exercises": [
+          {
+            "name": "벤치프레스",
+            "type": "strength",
+            "minutes": 12,
+            "calories": 72,
+            "done": true,
+            "sets": 4,
+            "reps": 10,
+            "weight": 30
+          },
+          {
+            "name": "체스트프레스",
+            "type": "strength",
+            "minutes": 9,
+            "calories": 54,
+            "done": true,
+            "sets": 3,
+            "reps": 12,
+            "weight": 25
+          },
+          {
+            "name": "랫풀다운",
+            "type": "strength",
+            "minutes": 9,
+            "calories": 54,
+            "done": true,
+            "sets": 3,
+            "reps": 12,
+            "weight": 30
+          },
+          {
+            "name": "마무리 러닝머신",
+            "type": "cardio",
+            "minutes": 15,
+            "calories": 135,
+            "done": true
+          },
+          {
+            "name": "상체 스트레칭",
+            "type": "stretching",
+            "minutes": 10,
+            "calories": 30,
+            "done": true
+          }
+        ]
+      },
+      {
+        "weeksAgo": 9,
+        "clientFeedback": "하체가 후들거렸지만 끝까지 했어요.",
+        "trainerNote": "하체 기본 패턴 확인. 레그프레스 60kg 부터 시작.",
+        "exercises": [
+          {
+            "name": "레그프레스",
+            "type": "strength",
+            "minutes": 12,
+            "calories": 72,
+            "done": true,
+            "sets": 4,
+            "reps": 12,
+            "weight": 60
+          },
+          {
+            "name": "레그컬",
+            "type": "strength",
+            "minutes": 9,
+            "calories": 54,
+            "done": true,
+            "sets": 3,
+            "reps": 12,
+            "weight": 35
+          },
+          {
+            "name": "카프레이즈",
+            "type": "strength",
+            "minutes": 6,
+            "calories": 36,
+            "done": true,
+            "sets": 3,
+            "reps": 20,
+            "weight": 0
+          },
+          {
+            "name": "마무리 러닝머신",
+            "type": "cardio",
+            "minutes": 15,
+            "calories": 135,
+            "done": true
+          },
+          {
+            "name": "하체 스트레칭",
+            "type": "stretching",
+            "minutes": 10,
+            "calories": 30,
+            "done": true
+          }
+        ]
+      },
+      {
+        "weeksAgo": 8,
+        "clientFeedback": "어깨가 아직 조금 불편해서 무게를 낮췄어요.",
+        "trainerNote": "오른쪽 어깨 가동범위 제한. 숄더프레스 중량 낮추고 밴드 보강 병행.",
+        "exercises": [
+          {
+            "name": "숄더프레스",
+            "type": "strength",
+            "minutes": 12,
+            "calories": 72,
+            "done": true,
+            "sets": 4,
+            "reps": 12,
+            "weight": 10
+          },
+          {
+            "name": "밴드 외전",
+            "type": "strength",
+            "minutes": 6,
+            "calories": 36,
+            "done": true,
+            "sets": 3,
+            "reps": 20,
+            "weight": 0
+          },
+          {
+            "name": "인클라인 푸시업",
+            "type": "strength",
+            "minutes": 9,
+            "calories": 54,
+            "done": true,
+            "sets": 3,
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "name": "마무리 러닝머신",
+            "type": "cardio",
+            "minutes": 10,
+            "calories": 90,
+            "done": true
+          },
+          {
+            "name": "어깨 관절 보호 스트레칭",
+            "type": "stretching",
+            "minutes": 12,
+            "calories": 36,
+            "done": true
+          }
+        ]
+      },
+      {
+        "weeksAgo": 7,
+        "clientFeedback": "데드리프트 자세가 아직 어려워요.",
+        "trainerNote": "힙힌지 패턴 연습 위주. 데드리프트 50kg 로 자세부터.",
+        "exercises": [
+          {
+            "name": "데드리프트",
+            "type": "strength",
+            "minutes": 12,
+            "calories": 72,
+            "done": true,
+            "sets": 4,
+            "reps": 8,
+            "weight": 50
+          },
+          {
+            "name": "루마니안 데드리프트",
+            "type": "strength",
+            "minutes": 9,
+            "calories": 54,
+            "done": true,
+            "sets": 3,
+            "reps": 10,
+            "weight": 40
+          },
+          {
+            "name": "플랭크",
+            "type": "strength",
+            "minutes": 6,
+            "calories": 36,
+            "done": true,
+            "sets": 3,
+            "holdSeconds": 45,
+            "weight": 0
+          },
+          {
+            "name": "마무리 러닝머신",
+            "type": "cardio",
+            "minutes": 12,
+            "calories": 108,
+            "done": true
+          },
+          {
+            "name": "허리 스트레칭",
+            "type": "stretching",
+            "minutes": 10,
+            "calories": 30,
+            "done": true
+          }
+        ]
+      },
+      {
+        "weeksAgo": 6,
+        "clientFeedback": "벤치프레스 자세가 조금 익숙해졌어요.",
+        "trainerNote": "벤치프레스 35kg 4×10 안정. 다음 세션도 같은 무게로 반복.",
+        "exercises": [
+          {
+            "name": "벤치프레스",
+            "type": "strength",
+            "minutes": 12,
+            "calories": 72,
+            "done": true,
+            "sets": 4,
+            "reps": 10,
+            "weight": 35
+          },
+          {
+            "name": "체스트프레스",
+            "type": "strength",
+            "minutes": 9,
+            "calories": 54,
+            "done": true,
+            "sets": 3,
+            "reps": 12,
+            "weight": 25
+          },
+          {
+            "name": "랫풀다운",
+            "type": "strength",
+            "minutes": 9,
+            "calories": 54,
+            "done": true,
+            "sets": 3,
+            "reps": 12,
+            "weight": 30
+          },
+          {
+            "name": "마무리 러닝머신",
+            "type": "cardio",
+            "minutes": 15,
+            "calories": 135,
+            "done": true
+          },
+          {
+            "name": "상체 스트레칭",
+            "type": "stretching",
+            "minutes": 10,
+            "calories": 30,
+            "done": true
+          }
+        ]
+      },
+      {
+        "weeksAgo": 5,
+        "clientFeedback": "레그프레스 무게를 올렸는데 버틸 만했어요.",
+        "trainerNote": "하체 근력 향상. 레그프레스 65kg 로 올림.",
+        "exercises": [
+          {
+            "name": "레그프레스",
+            "type": "strength",
+            "minutes": 12,
+            "calories": 72,
+            "done": true,
+            "sets": 4,
+            "reps": 12,
+            "weight": 65
+          },
+          {
+            "name": "레그컬",
+            "type": "strength",
+            "minutes": 9,
+            "calories": 54,
+            "done": true,
+            "sets": 3,
+            "reps": 12,
+            "weight": 35
+          },
+          {
+            "name": "카프레이즈",
+            "type": "strength",
+            "minutes": 6,
+            "calories": 36,
+            "done": true,
+            "sets": 3,
+            "reps": 20,
+            "weight": 0
+          },
+          {
+            "name": "마무리 러닝머신",
+            "type": "cardio",
+            "minutes": 15,
+            "calories": 135,
+            "done": true
+          },
+          {
+            "name": "하체 스트레칭",
+            "type": "stretching",
+            "minutes": 10,
+            "calories": 30,
+            "done": true
+          }
+        ]
+      },
+      {
+        "weeksAgo": 4,
+        "clientFeedback": "어깨 불편감이 많이 줄었어요.",
+        "trainerNote": "어깨 가동범위 개선. 숄더프레스 10kg 유지하고 밴드 보강 계속.",
+        "exercises": [
+          {
+            "name": "숄더프레스",
+            "type": "strength",
+            "minutes": 12,
+            "calories": 72,
+            "done": true,
+            "sets": 4,
+            "reps": 12,
+            "weight": 10
+          },
+          {
+            "name": "밴드 외전",
+            "type": "strength",
+            "minutes": 6,
+            "calories": 36,
+            "done": true,
+            "sets": 3,
+            "reps": 20,
+            "weight": 0
+          },
+          {
+            "name": "인클라인 푸시업",
+            "type": "strength",
+            "minutes": 9,
+            "calories": 54,
+            "done": true,
+            "sets": 3,
+            "reps": 12,
+            "weight": 0
+          },
+          {
+            "name": "마무리 러닝머신",
+            "type": "cardio",
+            "minutes": 10,
+            "calories": 90,
+            "done": true
+          },
+          {
+            "name": "어깨 관절 보호 스트레칭",
+            "type": "stretching",
+            "minutes": 12,
+            "calories": 36,
+            "done": true
+          }
+        ]
+      },
+      {
+        "weeksAgo": 3,
+        "clientFeedback": "데드리프트 자세를 잡아주셔서 허리가 편했어요.",
+        "trainerNote": "데드리프트 힙힌지 안정적. 중량 55kg 유지 후 다음 달 60kg.",
+        "exercises": [
+          {
+            "name": "데드리프트",
+            "type": "strength",
+            "minutes": 12,
+            "calories": 72,
+            "done": true,
+            "sets": 4,
+            "reps": 8,
+            "weight": 55
+          },
+          {
+            "name": "루마니안 데드리프트",
+            "type": "strength",
+            "minutes": 9,
+            "calories": 54,
+            "done": true,
+            "sets": 3,
+            "reps": 10,
+            "weight": 40
+          },
+          {
+            "name": "플랭크",
+            "type": "strength",
+            "minutes": 6,
+            "calories": 36,
+            "done": true,
+            "sets": 3,
+            "holdSeconds": 45,
+            "weight": 0
+          },
+          {
+            "name": "마무리 러닝머신",
+            "type": "cardio",
+            "minutes": 12,
+            "calories": 108,
+            "done": true
+          },
+          {
+            "name": "허리 스트레칭",
+            "type": "stretching",
+            "minutes": 10,
+            "calories": 30,
+            "done": true
+          }
+        ]
+      },
+      {
+        "weeksAgo": 2,
+        "clientFeedback": "레그프레스 무게가 붙었어요. 마지막 세트가 힘들었어요.",
+        "trainerNote": "하체 근력 향상 확인. 다음 세션 레그프레스 5kg 증량.",
+        "exercises": [
+          {
+            "name": "레그프레스",
+            "type": "strength",
+            "minutes": 12,
+            "calories": 72,
+            "done": true,
+            "sets": 4,
+            "reps": 12,
+            "weight": 70
+          },
+          {
+            "name": "레그컬",
+            "type": "strength",
+            "minutes": 9,
+            "calories": 54,
+            "done": true,
+            "sets": 3,
+            "reps": 12,
+            "weight": 35
+          },
+          {
+            "name": "카프레이즈",
+            "type": "strength",
+            "minutes": 6,
+            "calories": 36,
+            "done": true,
+            "sets": 3,
+            "reps": 20,
+            "weight": 0
+          },
+          {
+            "name": "마무리 러닝머신",
+            "type": "cardio",
+            "minutes": 15,
+            "calories": 135,
+            "done": true
+          },
+          {
+            "name": "하체 스트레칭",
+            "type": "stretching",
+            "minutes": 10,
+            "calories": 30,
+            "done": true
+          }
+        ]
+      },
+      {
+        "weeksAgo": 1,
+        "clientFeedback": "다음 주엔 40kg 에 도전해 볼게요.",
+        "trainerNote": "벤치프레스 37.5kg 4×10 성공. 다음 세션 40kg.",
+        "exercises": [
+          {
+            "name": "벤치프레스",
+            "type": "strength",
+            "minutes": 12,
+            "calories": 72,
+            "done": true,
+            "sets": 4,
+            "reps": 10,
+            "weight": 37.5
+          },
+          {
+            "name": "체스트프레스",
+            "type": "strength",
+            "minutes": 9,
+            "calories": 54,
+            "done": true,
+            "sets": 3,
+            "reps": 12,
+            "weight": 25
+          },
+          {
+            "name": "랫풀다운",
+            "type": "strength",
+            "minutes": 9,
+            "calories": 54,
+            "done": true,
+            "sets": 3,
+            "reps": 12,
+            "weight": 30
+          },
+          {
+            "name": "마무리 러닝머신",
+            "type": "cardio",
+            "minutes": 15,
+            "calories": 135,
+            "done": true
+          },
+          {
+            "name": "상체 스트레칭",
+            "type": "stretching",
+            "minutes": 10,
+            "calories": 30,
+            "done": true
+          }
+        ]
+      }
+    ]
+  },
   "routines": [
     {
       "id": "seed-routine-user-7d4e9a2c5f18-0",

@@ -12,7 +12,6 @@ import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
-import 'package:oncare/features/dashboard/data/repositories/mock_dashboard_repository.dart';
 import 'package:oncare/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
@@ -28,13 +27,16 @@ import 'package:oncare/features/member_coach/data/repositories/mock_member_coach
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/locale_provider.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import 'helpers/diet_period_tabs.dart';
 import 'helpers/fake_activity_calendar_repository.dart';
+import 'helpers/fake_dashboard_repository.dart';
 import 'helpers/fake_diet_repository.dart';
+import 'helpers/fake_notification_repository.dart';
 
 class _CountingMemberCoachRepository extends MockMemberCoachRepository {
   int routineLoads = 0;
@@ -100,12 +102,16 @@ void main() {
           // 9.8); the smoke test only inspects the nav, so the mock is
           // plenty.
           dashboardRepositoryProvider.overrideWithValue(
-            MockDashboardRepository(diet) as DashboardRepository,
+            FakeDashboardRepository(diet) as DashboardRepository,
           ),
           if (memberCoachRepository != null)
             memberCoachRepositoryProvider.overrideWithValue(
               memberCoachRepository,
             ),
+          // 알림함은 데모에서도 Dio + drift 를 탄다(#2660) — 식단처럼 가짜로 덮는다.
+          notificationRepositoryProvider.overrideWithValue(
+            FakeNotificationRepository(),
+          ),
           sessionFeatureResetOverride(),
           if (locale != null) localeProvider.overrideWith((ref) => locale),
         ],
