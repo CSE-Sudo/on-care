@@ -388,12 +388,79 @@ class SessionController extends StateNotifier<SessionState>
       access: tokens.access,
       refresh: tokens.refresh.isEmpty ? stored : tokens.refresh,
     );
+    // 계정 확인보다 **먼저** 저장한다. 갱신 토큰은 일회용이라 방금 쓴 [stored] 는
+    // 서버에서 이미 폐기됐다. 아래에서 다른 계정의 토큰으로 밝혀져도, 저장소는 그
+    // 계정(다른 탭)의 세션이므로 회전 결과를 돌려놓아야 그 탭이 다음 회전에서
+    // 끊기지 않는다(#2764).
     await _persist(rotated);
     if (!_holdsToken(staleToken)) {
       return const TokenRefreshResult.unavailable();
     }
-    _setAccessToken(rotated.access);
-    return TokenRefreshResult.refreshed(rotated.access);
+
+    // 저장소의 갱신 토큰은 같은 출처의 모든 탭이 공유한다(웹 `FlutterSecureStorage`
+    // = localStorage). 다른 탭이 다른 트레이너로 다시 로그인했다면 방금 받은 토큰은
+    // **그 계정의 것**이다. 그대로 쓰면 화면은 이전 트레이너인데 요청은 새 계정
+    // 명의로 나간다 — 회전 결과의 주인을 확인하고 나서야 채택한다(#2764).
+    final _AccountCheck check = await _checkSameAccount(rotated.access);
+    if (!_holdsToken(staleToken)) {
+      return const TokenRefreshResult.unavailable();
+    }
+    switch (check) {
+      case _AccountCheck.same:
+        _setAccessToken(rotated.access);
+        return TokenRefreshResult.refreshed(rotated.access);
+      case _AccountCheck.other:
+        await _endSwitchedAccountSession(staleToken);
+        return const TokenRefreshResult.rejected();
+      case _AccountCheck.unknown:
+        // 확인을 못 했다(연결 실패·서버 오류) — 다른 계정의 토큰일 수 있으니 채택하지
+        // 않되, 세션도 끝내지 않는다. 회전 결과는 저장소에 있어 다음 401 때 그것으로
+        // 다시 회전하고 다시 확인한다.
+        return const TokenRefreshResult.unavailable();
+    }
+  }
+
+  /// [access] 의 주인이 이 탭에 로그인한 트레이너와 같은가(#2764).
+  ///
+  /// 프로필 이메일로 비교한다 — 세션이 들고 있는 계정 식별자가 이메일뿐이고, 계정
+  /// 경계([_syncAccountScope])도 같은 값을 쓴다. 토큰을 클라이언트에서 디코드해
+  /// `sub` 를 보는 길은 요청이 하나 줄지만 클라이언트가 JWT 구조에 묶인다.
+  Future<_AccountCheck> _checkSameAccount(String access) async {
+    final String? mine = _accountKey(state.profile?.email);
+    if (mine == null) return _AccountCheck.unknown;
+    final TrainerProfile profile;
+    try {
+      profile = await _repo.fetchProfile(access);
+    } on NotTrainerException {
+      // 트레이너가 아닌 계정의 토큰이다 — 이 탭의 계정일 수 없다.
+      return _AccountCheck.other;
+    } catch (_) {
+      // 방금 받은 토큰의 401 을 포함해 모두 "모름"으로 둔다. 확인 실패만으로
+      // 이 탭의 세션을 끝내면 잠깐 끊긴 사용자에게 재로그인을 요구하게 된다.
+      return _AccountCheck.unknown;
+    }
+    return _accountKey(profile.email) == mine
+        ? _AccountCheck.same
+        : _AccountCheck.other;
+  }
+
+  /// 이메일 비교용 정규화. 비어 있으면 비교할 수 없다.
+  static String? _accountKey(String? email) {
+    final String key = (email ?? '').trim().toLowerCase();
+    return key.isEmpty ? null : key;
+  }
+
+  /// 다른 탭이 다른 계정으로 로그인해 이 탭의 세션을 이을 수 없다 — **이 탭만**
+  /// 로그아웃 상태로 보내고 만료 안내를 띄운다(#2764).
+  ///
+  /// [_endExpiredSession] 과 달리 저장소를 지우지 않는다. 저장소의 토큰은 다른 탭이
+  /// 지금 쓰는 계정의 것이라, 지우면 그 탭까지 다음 회전에서 끊긴다. 서버 폐기
+  /// (`/auth/logout`)도 같은 이유로 부르지 않는다.
+  Future<void> _endSwitchedAccountSession(String staleToken) async {
+    if (!_holdsToken(staleToken)) return;
+    _setAccessToken(null);
+    state = const SessionState(status: SessionStatus.signedOut);
+    _ref.read(sessionExpiredNoticeProvider.notifier).state = true;
   }
 
   /// 갱신이 거부되었다 — 로그아웃과 같은 길([_expire])로 세션을 닫고 로그인
@@ -491,6 +558,18 @@ class SessionController extends StateNotifier<SessionState>
     _setAccessToken(null);
     state = const SessionState(status: SessionStatus.signedOut);
   }
+}
+
+/// 회전으로 받은 토큰의 주인 확인 결과(#2764).
+enum _AccountCheck {
+  /// 이 탭의 계정이다 — 채택한다.
+  same,
+
+  /// 다른 계정이다 — 채택하지 않고 이 탭의 세션을 끝낸다.
+  other,
+
+  /// 확인하지 못했다 — 채택하지도, 끝내지도 않는다.
+  unknown,
 }
 
 /// 실행 중 세션이 만료되어 로그인 화면으로 보냈다 — 로그인 화면이 한 번 안내하고
