@@ -1698,6 +1698,8 @@
   "onboardGenderOther": "기타",
   "aiCoachWelcome": "안녕하세요, AI 건강 코치 온이예요 🙂\n식단·운동 기록을 보고 도와드릴게요. 무엇이든 편하게 물어보세요.",
   "aiCoachFailure": "앗, 잠시 문제가 생겼어요. 잠시 후 다시 시도해 주세요.",
+  "aicResend": "다시 보내기",
+  "aicSendFailedMine": "보내지 못했어요 · 길게 누르면 고쳐 쓸 수 있어요",
   "actionCancel": "취소",
   "actionDelete": "삭제",
   "actionEdit": "수정",

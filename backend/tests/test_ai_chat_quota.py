@@ -123,3 +123,62 @@ def test_free_per_day_is_five(client, db_session, llm):
     blocked = _send(client, h)
     assert blocked.status_code == 402
     assert blocked.json()["detail"]["code"] == "points_required"
+
+
+# ── 응답을 못 받은 앱의 다시 보내기 (#2846) ─────────────────────────────
+
+
+def _questions(client, headers) -> list[str]:
+    return [
+        m["content"]
+        for m in client.get("/v1/ai-coach/messages", headers=headers).json()["messages"]
+        if m["role"] == "user"
+    ]
+
+
+def test_resend_of_last_free_chat_replays_without_consent(
+    client, db_session, llm, small_limits
+):
+    """마지막 무료 대화가 서버에서 끝난 뒤 같은 키로 다시 오면 동의를 묻지 않고
+    저장한 답을 준다 — 앱의 한도가 이미 "포인트" 로 바뀌어 있어도 다시 세지 않는다."""
+    h = _member(client, db_session, points=100)
+    key = uuid4().hex
+
+    first = _send(client, h, client_request_id=key)
+    assert first.status_code == 200, first.text
+    resend = _send(client, h, client_request_id=key)
+
+    assert resend.status_code == 200, resend.text
+    assert resend.json()["reply"] == first.json()["reply"]
+    assert resend.json()["points_spent"] == 0
+    quota = client.get("/v1/ai-coach/quota", headers=h).json()
+    assert quota["free_left"] == 0
+    assert quota["next"] == "paid"
+    # 질문도 한 번만 저장된다.
+    assert _questions(client, h).count("물 얼마나?") == 1
+
+
+def test_resend_of_paid_chat_spends_once(client, db_session, llm, small_limits):
+    h = _member(client, db_session, points=100)
+    _send(client, h)
+    key = uuid4().hex
+
+    paid = _send(client, h, pay_with_points=True, client_request_id=key)
+    resend = _send(client, h, pay_with_points=True, client_request_id=key)
+
+    assert paid.status_code == 200 and resend.status_code == 200
+    assert paid.json()["points_spent"] == 50
+    assert resend.json()["balance_after"] == 50
+    assert client.get("/v1/me/points/shop", headers=h).json()["balance"] == 50
+    assert _questions(client, h).count("물 얼마나?") == 2
+
+
+def test_new_key_for_same_text_is_a_new_chat(client, db_session, llm, small_limits):
+    """새로 쓴 글은 새 키라 새 대화로 센다 — 앱이 키를 다시 쓰는 것이 중요한 까닭."""
+    h = _member(client, db_session, points=100)
+    _send(client, h, client_request_id=uuid4().hex)
+
+    again = _send(client, h, client_request_id=uuid4().hex)
+
+    assert again.status_code == 402
+    assert again.json()["detail"]["code"] == "points_required"

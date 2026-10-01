@@ -31,6 +31,9 @@ class ChatMessage {
     this.pointsSpent = 0,
     this.balanceAfter,
     this.replyQuota,
+    this.failed = false,
+    this.clientRequestId,
+    this.paidAttempt = false,
   });
 
   final ChatRole role;
@@ -65,7 +68,33 @@ class ChatMessage {
   /// [replyToInsight] 처럼 방금 받은 답에만 있고 저장된 대화에서는 늘 null 이다.
   final AiChatQuota? replyQuota;
 
+  /// 보내지 못한 회원 메시지(#2846). 지우지 않고 남겨 `다시 보내기` 로 같은 키를
+  /// 다시 보낸다.
+  final bool failed;
+
+  /// 이 회원 메시지를 보낼 때 쓴 멱등키(#2846). 다시 보낼 때 같은 키를 써야 서버가
+  /// 이미 처리한 질문을 다시 세거나 차감하지 않는다.
+  final String? clientRequestId;
+
+  /// 포인트로 보내기로 동의하고 보낸 메시지인가(#2846). 다시 보낼 때도 같게 보낸다.
+  final bool paidAttempt;
+
   bool get isUser => role == ChatRole.user;
+
+  /// 보내지 못한 상태로 바꾼 사본. 키와 포인트 여부를 함께 남긴다. (#2846)
+  ChatMessage asFailed({
+    required String clientRequestId,
+    required bool paidAttempt,
+  }) => ChatMessage(
+    role: role,
+    content: content,
+    sources: sources,
+    insight: insight,
+    at: at,
+    failed: true,
+    clientRequestId: clientRequestId,
+    paidAttempt: paidAttempt,
+  );
 
   /// 주고받은 때만 채운 사본.
   ChatMessage withTime(DateTime value) => ChatMessage(
@@ -80,6 +109,9 @@ class ChatMessage {
     pointsSpent: pointsSpent,
     balanceAfter: balanceAfter,
     replyQuota: replyQuota,
+    failed: failed,
+    clientRequestId: clientRequestId,
+    paidAttempt: paidAttempt,
   );
 
   /// 감지 결과만 바꾼 사본.
@@ -93,6 +125,9 @@ class ChatMessage {
     at: at,
     pointsSpent: pointsSpent,
     balanceAfter: balanceAfter,
+    failed: failed,
+    clientRequestId: clientRequestId,
+    paidAttempt: paidAttempt,
   );
 
   /// Request shape sent as chat history to the server (snake_case-safe).

@@ -3358,6 +3358,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiCoachFailure => '앗, 잠시 문제가 생겼어요. 잠시 후 다시 시도해 주세요.';
 
   @override
+  String get aicResend => '다시 보내기';
+
+  @override
+  String get aicSendFailedMine => '보내지 못했어요 · 길게 누르면 고쳐 쓸 수 있어요';
+
+  @override
   String get actionCancel => '취소';
 
   @override

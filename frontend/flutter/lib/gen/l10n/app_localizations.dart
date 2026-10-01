@@ -6043,6 +6043,18 @@ abstract class AppLocalizations {
   /// **'Something went wrong. Please try again in a moment.'**
   String get aiCoachFailure;
 
+  /// No description provided for @aicResend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send again'**
+  String get aicResend;
+
+  /// No description provided for @aicSendFailedMine.
+  ///
+  /// In en, this message translates to:
+  /// **'Not sent · Long-press to edit'**
+  String get aicSendFailedMine;
+
   /// Generic cancel button in shared dialogs.
   ///
   /// In en, this message translates to:

@@ -2590,6 +2590,8 @@
   "@aiCoachFailure": {
     "description": "Bubble shown when the coach reply could not be fetched."
   },
+  "aicResend": "Send again",
+  "aicSendFailedMine": "Not sent · Long-press to edit",
   "actionCancel": "Cancel",
   "@actionCancel": {
     "description": "Generic cancel button in shared dialogs."

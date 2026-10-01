@@ -3491,6 +3491,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Something went wrong. Please try again in a moment.';
 
   @override
+  String get aicResend => 'Send again';
+
+  @override
+  String get aicSendFailedMine => 'Not sent · Long-press to edit';
+
+  @override
   String get actionCancel => 'Cancel';
 
   @override
