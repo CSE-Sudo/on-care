@@ -16,6 +16,7 @@ import 'package:drift/drift.dart'
         OrderingTerm,
         Value;
 import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:logger/logger.dart';
 import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/demo/demo_accounts.dart';
@@ -47,6 +48,9 @@ import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
     show setsFromStrengthMinutes;
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/routine_session_log.dart';
+import 'package:oncare/features/member_coach/data/demo_coach_files.dart';
+import 'package:oncare/features/member_coach/domain/entities/member_coach.dart'
+    show CoachAttachmentKind;
 import 'package:oncare_ui/oncare_ui.dart' show AppInputError, AppInputRules;
 
 /// A drift-backed dummy backend. Intercepts dio requests and serves
@@ -399,7 +403,39 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         path.endsWith('/read')) {
       return _notificationRead;
     }
+    if (method == 'GET' && path.startsWith('/chat/attachments/')) {
+      return _chatAttachment;
+    }
     return null;
+  }
+
+  /// 데모 대화에 트레이너가 보낸 첨부의 바이트 — 앱 번들에서 꺼낸다. (#2663)
+  ///
+  /// 실서버는 같은 경로로 저장해 둔 파일을 준다. 데모에 없는 id 는 404 다 —
+  /// [_dietPhoto] 처럼 바이트로 답해야 부르는 쪽(`ResponseType.bytes`)이 상태
+  /// 코드를 그대로 받는다.
+  Future<Response<Object?>> _chatAttachment(RequestOptions options) async {
+    final DemoCoachFile? file = demoCoachFileById(options.path.split('/').last);
+    if (file == null) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 404,
+        data: Uint8List(0),
+      );
+    }
+    final ByteData data = await rootBundle.load(file.asset);
+    return Response<Object?>(
+      requestOptions: options,
+      statusCode: 200,
+      data: data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+      headers: Headers.fromMap(<String, List<String>>{
+        Headers.contentTypeHeader: <String>[
+          file.kind == CoachAttachmentKind.pdf
+              ? 'application/pdf'
+              : 'image/jpeg',
+        ],
+      }),
+    );
   }
 
   Future<Response<Object?>> _dietDelete(RequestOptions options) async {

@@ -511,10 +511,10 @@ void main() {
         findsAtLeastNWidgets(1),
       );
 
-      // 스레드의 마지막 메시지(트레이너 발신). 17번은 리포트 등록 안내라
+      // 스레드의 마지막 메시지(트레이너 발신). 19번은 리포트 등록 안내라
       // 말풍선이 아니다 — 시각도 붙지 않는다(#1605).
       final sentBubble = find.byKey(
-        const ValueKey<String>('trainer-message-bubble-seed-chat-1-18'),
+        const ValueKey<String>('trainer-message-bubble-seed-chat-1-20'),
       );
       final sentTime = find.descendant(
         of: find.ancestor(of: sentBubble, matching: find.byType(AppChatBubble)),

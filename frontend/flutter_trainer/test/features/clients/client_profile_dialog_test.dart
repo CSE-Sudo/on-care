@@ -367,7 +367,7 @@ void main() {
       'm1',
       body: '무릎이 아파요',
       source: TrainerMemoSource.chatInsight,
-      insightId: 'seed-chat-1-16:discomfort',
+      insightId: 'seed-chat-1-18:discomfort',
       insightKind: 'discomfort',
     );
     await _pumpDialog(tester, repository);
@@ -383,7 +383,7 @@ void main() {
       'm1',
       body: '무릎이 아파요',
       source: TrainerMemoSource.chatInsight,
-      insightId: 'seed-chat-1-16:discomfort',
+      insightId: 'seed-chat-1-18:discomfort',
       insightKind: 'discomfort',
     );
     await _pumpDialog(tester, repository);
@@ -442,7 +442,7 @@ void main() {
       await goTo(tester, AppRoutes.messagesFor('seed-client-1'));
 
       final addButton = find.byKey(
-        const ValueKey<String>('chat-insight-add-seed-chat-1-16:discomfort'),
+        const ValueKey<String>('chat-insight-add-seed-chat-1-18:discomfort'),
       );
       await tester.ensureVisible(addButton);
       await tester.tap(addButton);

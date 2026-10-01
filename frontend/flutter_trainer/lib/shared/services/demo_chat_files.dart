@@ -57,7 +57,11 @@ Future<ChatAttachment?> decodeDemoChatFile(
   try {
     bytes = switch (kind) {
       ChatAttachmentKind.image => await _asset(decoded['asset']),
-      ChatAttachmentKind.pdf => await _pdf(decoded['lines']),
+      // 번들에 든 PDF 가 있으면 그것을, 없으면 적힌 줄로 한 쪽을 그린다(#2663).
+      ChatAttachmentKind.pdf =>
+        decoded['asset'] is String
+            ? await _asset(decoded['asset'])
+            : await _pdf(decoded['lines']),
     };
   } on Object {
     return null;
