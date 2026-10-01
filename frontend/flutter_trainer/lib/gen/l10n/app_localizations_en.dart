@@ -366,6 +366,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashChurnRiskEmpty => 'No members are at churn risk right now.';
 
   @override
+  String get dashChurnRiskLoading => 'Checking recent sessions';
+
+  @override
+  String get dashChurnRiskUnavailable => 'Unavailable · Tap to retry';
+
+  @override
+  String get dashActivityFeedbackLoading => 'Checking recent sessions.';
+
+  @override
+  String get dashActivityFeedbackUnavailable =>
+      'Couldn\'t load recent sessions, so activity feedback is unavailable. Tap the churn risk card to retry.';
+
+  @override
   String get dashActivityDifficultyTitle =>
       'Behind exercise goal / routine skipped';
 
@@ -1850,6 +1863,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t mark the personal exercise as not sent. Please try again.';
 
   @override
+  String get schedRoutinesLoadFailed => 'Couldn\'t load personal exercises';
+
+  @override
   String get schedClientUnresolved =>
       'Couldn\'t tell which member this session is for. Please pick the member.';
 
@@ -2246,6 +2262,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get slotReload => 'Reload';
+
+  @override
+  String get slotLoadFailed => 'Couldn\'t load reservation slots';
 
   @override
   String get slotEmpty => 'No booking slots are open.';
