@@ -39,6 +39,7 @@ from app.api.v1 import (
 )
 from app.core import observability
 from app.core.body_limit import RequestBodySizeLimitMiddleware
+from app.core.client_ip import warn_if_untrusted_setup
 from app.core.config import get_settings
 from app.core.locale import RequestLocaleMiddleware
 from app.db.init_db import init_db
@@ -50,6 +51,8 @@ observability.setup_logging(settings.log_level)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # 프록시 뒤 운영에서 클라이언트 IP 를 소켓 주소로 읽게 설정됐으면 남긴다(#2815).
+    warn_if_untrusted_setup(settings)
     init_db()
     yield
 

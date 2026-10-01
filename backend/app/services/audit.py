@@ -7,20 +7,15 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import Request
 from sqlalchemy.orm import Session
 
+# 감사 로그 IP 는 rate limit 과 **같은 함수**로 읽는다(#2815). 예전에는 여기서
+# `X-Forwarded-For` 첫 값(요청자가 쓴 값)을 그대로 적어 로그인 기록 IP 를 위조할 수
+# 있었다. 호출부가 `audit.client_ip` 로 부르므로 이름을 그대로 내보낸다.
+from app.core.client_ip import client_ip  # noqa: F401
 from app.models.models import AuditLog
 
 log = logging.getLogger(__name__)
-
-
-def client_ip(request: Request) -> str:
-    """클라이언트 IP. 프록시 뒤면 X-Forwarded-For 첫 IP 사용."""
-    xff = request.headers.get("x-forwarded-for")
-    if xff:
-        return xff.split(",")[0].strip()[:64]
-    return (request.client.host if request.client else "")[:64]
 
 
 def record(

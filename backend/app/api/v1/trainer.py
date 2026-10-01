@@ -27,7 +27,7 @@ from app.core import clock
 from app.core.config import get_settings
 from app.core.locale import Locale, RequestLocale
 from app.core.pagination import DEFAULT_PAGE, MAX_PAGE, parse_before
-from app.core.rate_limit import limiter, rate_limit
+from app.core.rate_limit import check_key, limiter, rate_limit
 from app.core.security import hash_password, verify_password
 from app.db.session import get_db
 from app.models.models import (
@@ -2748,6 +2748,25 @@ def delete_trainer_program_template(
 # ---------------------------------------------------------------------------
 
 
+def _check_pairing_attempt(trainer_id: str) -> None:
+    """연결 코드 미리보기·사용의 트레이너 단위 한도. (#2815)
+
+    IP 버킷(`pairing-redeem`)은 요청마다 주소를 바꾸면 갈라진다. 트레이너 계정은
+    공개 가입이라 id 버킷 하나로도 부족해 하루 상한을 함께 둔다. 두 엔드포인트가
+    같은 키를 쓴다 — 미리보기도 코드를 맞혀 보는 시도다.
+    """
+    settings = get_settings()
+    check_key(
+        f"pairing-redeem:trainer:{trainer_id}",
+        settings.rate_limit_auth_per_minute,
+    )
+    check_key(
+        f"pairing-redeem-day:trainer:{trainer_id}",
+        settings.pairing_redeem_per_day,
+        24 * 60 * 60.0,
+    )
+
+
 @router.post(
     "/trainer/pairing-code/preview",
     response_model=PairedMemberOut,
@@ -2767,8 +2786,11 @@ def trainer_preview_pairing_code(
     회원이 코드를 다시 띄워야 할 이유가 없다. 연결(`POST /trainer/pairing-code`)
     이 쓰는 순간에만 사라진다.
 
-    소비와 같은 rate limit 버킷을 쓴다. 확인도 코드를 맞혀 보는 시도다.
+    소비와 같은 rate limit 버킷을 쓴다. 확인도 코드를 맞혀 보는 시도다. IP 버킷에
+    더해 트레이너 id 버킷(분·하루)을 함께 건다(#2815) — IP 를 바꿔도 한 트레이너의
+    시도는 한 곳에서 센다.
     """
+    _check_pairing_attempt(trainer.id)
     try:
         return trainer_client_invite_service.preview_pairing_code(
             db, trainer.id, payload.code
@@ -2804,6 +2826,7 @@ def trainer_redeem_pairing_code(
     코드가 틀렸는지·만료됐는지·이미 쓰였는지는 구분해 알려 주지 않는다(404).
     갈라 주면 어떤 코드가 존재하기는 했는지를 알려 주는 셈이다.
     """
+    _check_pairing_attempt(trainer.id)
     try:
         return trainer_client_invite_service.redeem_pairing_code(
             db, trainer.id, payload.code

@@ -2,9 +2,9 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Literal
+from typing import Literal, Optional
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # 개발 기본 시크릿(운영에서 그대로 쓰면 기동 차단)
@@ -173,6 +173,30 @@ class Settings(BaseSettings):
     # 24시간에 만들 수 있는 요청 수(취소·거절·만료 포함). 넘으면 429 + Retry-After.
     # 다른 한도와 같이 RATE_LIMIT_ENABLED=false 면 끈다.
     consultation_create_per_day: int = 10
+    # 같은 이메일 로그인 연속 실패 잠금(#2815). IP 를 바꿔 가며 한 계정의 비밀번호를
+    # 맞혀 보는 것을 막는다 — IP 한도만으로는 요청마다 주소를 바꾸면 끝없이 시도할 수
+    # 있다. `login_lockout_seconds` 안에 `login_max_failures` 번 틀리면 그 이메일은
+    # 남은 시간 동안 429 다. 성공하면 실패 기록을 지운다.
+    login_max_failures: int = 5
+    login_lockout_seconds: int = 15 * 60
+    # 회원 연결 코드 미리보기·사용의 트레이너 하루 상한(#2815). 분당 한도(IP·트레이너
+    # id)에 더해, 트레이너 계정이 공개 가입이라 한 계정이 하루 종일 코드를 훑는 것을
+    # 막는다. 정상 사용(회원 한 명당 한두 번)으로는 닿지 않는 값.
+    pairing_redeem_per_day: int = 30
+
+    # --- 클라이언트 IP (#2815) ---
+    # rate limit 키·감사 로그 IP 를 정할 때 믿는 앞단 프록시 수. `X-Forwarded-For` 를
+    # 오른쪽에서 이 번째 값으로 읽는다(`app/core/client_ip.py`). 0 이면 헤더를 보지 않고
+    # 소켓 주소를 쓴다. 비워 두면 운영(prod)은 1, 그 밖은 0 — 운영 배포(App Runner·
+    # Railway·EC2+Nginx)는 모두 프록시 하나 뒤다. 프록시가 늘면 그 수로 맞춘다.
+    trusted_proxy_hops: Optional[int] = Field(default=None, ge=0, le=5)
+
+    @property
+    def effective_proxy_hops(self) -> int:
+        """실제로 쓰는 신뢰 프록시 홉 수(미설정이면 운영 1, 그 밖 0)."""
+        if self.trusted_proxy_hops is not None:
+            return self.trusted_proxy_hops
+        return 1 if self.is_prod else 0
 
     @property
     def admin_email_set(self) -> set[str]:

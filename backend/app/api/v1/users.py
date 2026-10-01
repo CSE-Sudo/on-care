@@ -22,7 +22,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser, RequireMember
-from app.core.rate_limit import rate_limit
+from app.core.config import get_settings
+from app.core.rate_limit import (
+    clear_failures,
+    ensure_unlocked,
+    rate_limit,
+    record_failure,
+)
 from app.services.audit import client_ip, record as audit
 from app.core.security import (
     decode_refresh_claims,
@@ -460,6 +466,11 @@ def register_trainer(
     return UserMe(id=trainer.id, name=trainer.name, email=trainer.email)
 
 
+def _login_lock_key(username: str) -> str:
+    """로그인 실패 잠금 버킷 키. 대소문자·앞뒤 공백만 다른 입력은 같은 계정이다."""
+    return f"login-fail:{username.strip().lower()}"
+
+
 @router.post(
     "/auth/login",
     response_model=Token,
@@ -470,12 +481,25 @@ def login(
     form: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[Session, Depends(get_db)],
 ) -> Token:
+    """이메일·비밀번호 로그인.
+
+    IP 한도(`auth-login`)에 더해 **이메일 단위 실패 잠금**을 건다(#2815). IP 를
+    바꿔 가며 한 계정을 노리면 IP 버킷은 매번 새로 시작하지만, 이메일 버킷은 한
+    곳에 모인다. 잠금 판정은 비밀번호 확인보다 먼저 한다 — 잠긴 동안에는 맞는
+    비밀번호인지 여부도 응답에 드러나지 않는다. 없는 이메일도 똑같이 세고 잠가
+    가입 여부가 갈리지 않게 한다.
+    """
+    settings = get_settings()
+    lock_key = _login_lock_key(form.username)
+    lock_window = float(settings.login_lockout_seconds)
+    ensure_unlocked(lock_key, settings.login_max_failures, lock_window)
     user = db.scalar(select(User).where(User.email == form.username))
     if (
         not user
         or not user.is_active
         or not verify_password(form.password, user.hashed_password)
     ):
+        record_failure(lock_key, lock_window)
         audit(
             db,
             event="auth.login",
@@ -486,6 +510,7 @@ def login(
         raise HTTPException(
             status_code=401, detail="이메일 또는 비밀번호가 올바르지 않습니다."
         )
+    clear_failures(lock_key)
     audit(db, event="auth.login", user_id=user.id, ip=client_ip(request), success=True)
     return auth_tokens.issue_token_pair(user)
 
