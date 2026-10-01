@@ -7,6 +7,7 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/chat_pdf_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
@@ -263,12 +264,16 @@ class _ChatViewState extends ConsumerState<ChatView> {
             ..add(const SizedBox(height: OnCareSpacing.s12));
         }
         // 구분선은 위아래 여백을 스스로 갖는다.
-        final DateTime localDate = m.createdAt.toLocal();
+        //
+        // 날짜는 KST 로 정한다(#2751). 말풍선 시각은 서버가 KST 로 적어 준
+        // 라벨이라, 구분선만 `toLocal()`(브라우저 시간대)로 정하면 UTC 브라우저에서
+        // KST 아침 메시지가 전날 구분선 아래 "08:10" 으로 놓인다.
+        final DateTime day = kstDateOf(m.createdAt);
         out.add(
           AppChatDateDivider(
-            AppLocalizations.of(context).chatDateDivider(localDate),
+            AppLocalizations.of(context).chatDateDivider(day),
             key: ValueKey<String>(
-              'trainer-chat-date-${localDate.year}-${localDate.month}-${localDate.day}',
+              'trainer-chat-date-${day.year}-${day.month}-${day.day}',
             ),
           ),
         );
@@ -371,13 +376,9 @@ class _ChatViewState extends ConsumerState<ChatView> {
     }
   }
 
-  static bool _sameDay(DateTime a, DateTime b) {
-    final localA = a.toLocal();
-    final localB = b.toLocal();
-    return localA.year == localB.year &&
-        localA.month == localB.month &&
-        localA.day == localB.day;
-  }
+  /// 같은 날인가 — KST 기준(#2751). 브라우저 시간대로 가르면 구분선이 말풍선
+  /// 시각(서버 KST 라벨)과 다른 날을 가리킨다.
+  static bool _sameDay(DateTime a, DateTime b) => isSameKstDay(a, b);
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
