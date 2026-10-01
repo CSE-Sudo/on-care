@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
@@ -6,6 +7,8 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/core/storage/seed_data.dart'
+    show seedLanguageKey;
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/dio_chat_repository.dart';
@@ -326,13 +329,146 @@ class DriftChatRepository implements ChatRepository {
       '${t.minute.toString().padLeft(2, '0')}';
 }
 
+/// 데모 저장소에 **회원 자동 답장**을 더한 것(#2790).
+///
+/// 실서버에서는 회원이 실제로 답한다. 데모에는 답할 사람이 없어, 보내도 대화가
+/// 거기서 멈춘 채로 보였다. 잠시 뒤 짧은 답을 하나 붙인다 — 답이 오는 모양(새
+/// 말풍선, 닫아 둔 동안의 안 읽음 배지, 고객 목록 미리보기)을 데모에서도 볼 수
+/// 있게 한다. 회원 앱 데모의 트레이너 자동 답장(#2663)과 짝이다.
+///
+/// 데모 프로바이더만 이것을 쓴다 — 시험이 직접 만드는 [DriftChatRepository] 는
+/// 답하지 않아 남은 타이머를 신경 쓰지 않는다.
+class DemoRepliesChatRepository extends DriftChatRepository {
+  /// [replyDelay] 만큼 지나 답한다.
+  DemoRepliesChatRepository(super.db, {required this.replyDelay});
+
+  /// 보낸 뒤 회원이 답하기까지의 시간.
+  final Duration replyDelay;
+
+  @override
+  Future<void> sendTrainerMessage({
+    required String clientId,
+    required String text,
+    DateTime? reportWeekStart,
+    String? emoteId,
+  }) async {
+    await super.sendTrainerMessage(
+      clientId: clientId,
+      text: text,
+      reportWeekStart: reportWeekStart,
+      emoteId: emoteId,
+    );
+    // 빈 글은 보내지지 않았다. 리포트 등록 안내는 대화가 아니라 알림이라 답을
+    // 붙이지 않는다.
+    if ((text.trim().isEmpty && emoteId == null) || reportWeekStart != null) {
+      return;
+    }
+    _scheduleReply(clientId);
+  }
+
+  @override
+  Future<void> sendTrainerImage({
+    required String clientId,
+    required Uint8List bytes,
+    required String fileName,
+    String message = '',
+  }) async {
+    await super.sendTrainerImage(
+      clientId: clientId,
+      bytes: bytes,
+      fileName: fileName,
+      message: message,
+    );
+    _scheduleReply(clientId);
+  }
+
+  /// 돌아가며 쓰는 답 — (한국어, 영어). 데모 내용 언어를 따른다.
+  static const List<(String, String)> _replies = <(String, String)>[
+    ('네, 확인했어요! 오늘 해 볼게요 💪', "Got it! I'll give it a try today 💪"),
+    (
+      '알겠습니다 🙂 해 보고 다시 말씀드릴게요',
+      "Okay 🙂 I'll try it and let you know how it goes",
+    ),
+    ('감사합니다! 다음 PT 때 뵐게요', 'Thank you! See you at the next PT session'),
+  ];
+
+  int _replySeq = 0;
+  final Set<Timer> _replyTimers = <Timer>{};
+
+  void _scheduleReply(String clientId) {
+    final (String ko, String en) = _replies[_replySeq++ % _replies.length];
+    late final Timer timer;
+    timer = Timer(replyDelay, () {
+      _replyTimers.remove(timer);
+      unawaited(_reply(clientId, ko: ko, en: en));
+    });
+    _replyTimers.add(timer);
+  }
+
+  Future<void> _reply(
+    String clientId, {
+    required String ko,
+    required String en,
+  }) async {
+    try {
+      // 기다리는 사이 담당을 종료했으면 답할 회원이 없다.
+      if (demoUnregisteredClientIdsSnapshot(_db).contains(clientId)) return;
+      final String text = await _db.readValue(seedLanguageKey) == 'en'
+          ? en
+          : ko;
+      final now = nowKst();
+      await _db.transaction(() async {
+        await _db
+            .into(_db.clientChatMessages)
+            .insert(
+              ClientChatMessagesCompanion.insert(
+                id: 'chat-$clientId-reply-${now.microsecondsSinceEpoch}',
+                clientId: clientId,
+                sender: 'client',
+                body: text,
+                timeLabel: DriftChatRepository._timeLabel(now),
+                createdAt: now,
+              ),
+            );
+        await (_db.update(
+          _db.trainerClients,
+        )..where((t) => t.id.equals(clientId))).write(
+          TrainerClientsCompanion(
+            lastMessage: Value(text),
+            lastTime: const Value(ChatPreviewCode.justNow),
+          ),
+        );
+      });
+    } on Object {
+      // 데모 답장이 못 붙었다고 보낸 쪽을 깨지 않는다(DB 를 닫은 뒤 등).
+    }
+  }
+
+  /// 기다리던 답장을 거둔다 — 저장소를 버릴 때 부른다.
+  void dispose() {
+    for (final Timer timer in _replyTimers) {
+      timer.cancel();
+    }
+    _replyTimers.clear();
+  }
+}
+
+/// 데모 회원 자동 답장까지의 시간(#2790).
+const Duration demoChatReplyDelay = Duration(seconds: 2);
+
 /// Provides the [ChatRepository]: the real Dio-backed source (thread shared
 /// with the member app) or the local drift source for demo / `USE_MOCK_API`.
 final chatRepositoryProvider = Provider<ChatRepository>((ref) {
   ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   final config = ref.watch(appConfigProvider);
   if (config.useMockApi) {
-    return DriftChatRepository(ref.watch(appDatabaseProvider));
+    // 보내면 잠시 뒤 회원이 답한다 — 실서버에서는 회원이 실제로 답한다(#2790).
+    final repo = DemoRepliesChatRepository(
+      ref.watch(appDatabaseProvider),
+      replyDelay: demoChatReplyDelay,
+    );
+    ref.onDispose(repo.dispose);
+    return repo;
   }
   return DioChatRepository(ref.watch(dioProvider));
 });
