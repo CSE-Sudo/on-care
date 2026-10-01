@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare_trainer/app/router/app_router.dart';
@@ -236,15 +236,16 @@ void main() {
         AppRoutes.clientDetail('seed-client-1'),
       );
 
-      // 데모 진입은 로그인 폼 아래라 기본 테스트 화면에서는 화면 밖이다.
-      await tester.ensureVisible(find.text('로그인 없이 데모 둘러보기'));
-      await tester.pump();
-      await tester.tap(find.text('로그인 없이 데모 둘러보기'));
+      // 이어 가기는 로그인한 계정의 몫이다 — 데모 진입은 늘 대시보드로 간다
+      // (#2765). 그래서 이메일로 로그인해 원래 자리로 잇는지 본다.
+      await tester.enterText(find.byType(TextField).at(0), 'coach@oncare.test');
+      await tester.enterText(find.byType(TextField).at(1), 'pw');
+      await tester.tap(find.widgetWithText(InkWell, '로그인'));
       await settle(tester);
 
       expect(
         container.read(sessionControllerProvider).status,
-        isNot(SessionStatus.signedOut),
+        SessionStatus.authenticated,
       );
       expect(currentLocation(tester), AppRoutes.clientDetail('seed-client-1'));
     });
