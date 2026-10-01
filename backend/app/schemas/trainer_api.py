@@ -2180,6 +2180,25 @@ class TrainerTaskProgressSave(BaseModel):
         return self
 
 
+class TrainerTaskKeyChange(BaseModel):
+    """할 일 키 하나의 변경 — 그날 행에 이 키만 더하거나 뺀다. (#2886)
+
+    통째 저장(`TrainerTaskProgressSave`)은 나중에 도착한 쪽이 그날 전체를 덮어써,
+    탭·기기 두 곳에서 서로 다른 할 일을 체크하면 한쪽 체크가 사라졌다. 이 요청은
+    누른 키 하나만 바꾸고 합계는 서버가 저장된 집합에서 다시 낸다.
+
+    - `keys`: 화면이 지금 보여 주는 미션 키(지운 것 제외). 처음 보는 미션을 그날
+      목록에 올린다.
+    - `seen`: 이 화면이 그날 한 번이라도 본 미션 키. 저장된 키 중 여기 있으면서
+      `keys` 에 없는 것은 화면에서 사라진 미션(처리한 상담 등)이라 목록에서 뺀다.
+      여기 없는 저장 키는 이 화면이 모르는 미션이라 그대로 둔다(#2763).
+    """
+    key: _TaskKey
+    action: Literal["check", "uncheck", "dismiss"]
+    keys: list[_TaskKey] = Field(default_factory=list, max_length=1000)
+    seen: list[_TaskKey] = Field(default_factory=list, max_length=1000)
+
+
 class TrainerNotificationSettings(BaseModel):
     """트레이너 알림 수신 설정."""
     notify_new_message: bool

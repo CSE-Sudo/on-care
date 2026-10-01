@@ -102,6 +102,7 @@ from app.schemas.trainer_api import (
     TrainerProgramTemplateUpdate,
     TrainerNotificationOut, TrainerNotificationSettings, TrainerNotificationSettingsUpdate,
     TrainerPasswordChange, WeeklyReportOut,
+    TrainerTaskKeyChange,
     TrainerTaskProgressDayOut, TrainerTaskProgressOut, TrainerTaskProgressSave,
 )
 from app.services import (
@@ -1666,6 +1667,30 @@ def trainer_save_task_progress(
         )
     return trainer_task_progress_service.save_day(db, trainer.id, day, payload)
 
+
+
+@router.post(
+    "/trainer/dashboard/task-progress/{day}/keys",
+    response_model=TrainerTaskProgressDayOut,
+)
+def trainer_change_task_key(
+    day: str,
+    payload: TrainerTaskKeyChange,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> TrainerTaskProgressDayOut:
+    """할 일 키 하나를 체크·해제·삭제한다. KST 오늘·어제만 받는다. (#2886)
+
+    그날 전체를 덮어쓰지 않아, 다른 탭·기기에서 체크한 할 일이 남는다. 응답은
+    반영 뒤의 그날 상태라 앱이 다른 기기의 변경까지 받아 그린다.
+    """
+    if not _is_ymd(day):
+        raise HTTPException(status_code=422, detail="날짜는 YYYY-MM-DD 형식이어야 합니다.")
+    if day not in trainer_task_progress_service.writable_dates():
+        raise HTTPException(
+            status_code=422, detail="오늘 또는 어제(KST)만 저장할 수 있습니다."
+        )
+    return trainer_task_progress_service.apply_key(db, trainer.id, day, payload)
 
 # ---- 스케줄 (트레이너 타임라인 + 예약→수업→기록 완료 루프) ----
 
