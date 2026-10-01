@@ -1712,6 +1712,12 @@ abstract class AppLocalizations {
   /// **'Day total'**
   String get clientDietDayTotal;
 
+  /// Shown under the day total when the expanded day's meals fail to load (#2892)
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this day\'s meals'**
+  String get clientDietDayMealsFailed;
+
   /// 트레이너 웹 식단 합계 kcal — 오늘 끼니 카드의 네 칸 오른쪽 끝과 펼친 날 하루 합계 줄 오른쪽 끝. 음식 kcal 과 구분되게 총을 붙인다. calories 는 천 단위 구분이 된 숫자. (#2421)
   ///
   /// In en, this message translates to:
@@ -6690,6 +6696,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Logged by member'**
   String get workoutMemberLogTitle;
+
+  /// Shown in the expanded day when its workouts fail to load (#2892)
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this day\'s workouts'**
+  String get workoutDayExercisesFailed;
 
   /// No description provided for @workoutPendingCancel.
   ///

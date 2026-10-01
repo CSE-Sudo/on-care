@@ -903,6 +903,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientDietDayTotal => 'Day total';
 
   @override
+  String get clientDietDayMealsFailed => 'Couldn\'t load this day\'s meals';
+
+  @override
   String clientDietTotalCalories(String calories) {
     return 'Total $calories kcal';
   }
@@ -3863,6 +3866,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get workoutMemberLogTitle => 'Logged by member';
+
+  @override
+  String get workoutDayExercisesFailed => 'Couldn\'t load this day\'s workouts';
 
   @override
   String get workoutPendingCancel => 'Cancel assignment';

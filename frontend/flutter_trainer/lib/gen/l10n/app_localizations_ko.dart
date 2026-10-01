@@ -877,6 +877,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientDietDayTotal => '하루 합계';
 
   @override
+  String get clientDietDayMealsFailed => '끼니 기록을 불러오지 못했어요';
+
+  @override
   String clientDietTotalCalories(String calories) {
     return '총 $calories kcal';
   }
@@ -3675,6 +3678,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get workoutMemberLogTitle => '직접 기록';
+
+  @override
+  String get workoutDayExercisesFailed => '운동 기록을 불러오지 못했어요';
 
   @override
   String get workoutPendingCancel => '배정 취소';
