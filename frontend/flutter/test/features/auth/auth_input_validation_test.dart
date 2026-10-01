@@ -101,8 +101,26 @@ Future<void> _type(WidgetTester tester, String key, String text) async {
 String _valueOf(WidgetTester tester, String key) =>
     tester.widget<TextField>(_input(key)).controller!.text;
 
+/// 가입 화면이면 먼저 동의를 모두 체크한다(#2819) — 필수 동의 없이는 가입
+/// 버튼이 꺼져 있어, 이 묶음의 형식 검사까지 닿지 않는다.
+Future<void> _agreeAll(WidgetTester tester) async {
+  final Finder all = find.byKey(const ValueKey<String>('consent-all'));
+  if (all.evaluate().isEmpty) return;
+  final bool on = tester
+      .widget<Checkbox>(
+        find.descendant(of: all, matching: find.byType(Checkbox)),
+      )
+      .value!;
+  if (on) return;
+  await tester.ensureVisible(all);
+  await tester.pump();
+  await tester.tap(all);
+  await tester.pump();
+}
+
 /// 오류 문구가 늘어 버튼이 화면 밖으로 밀려도 누를 수 있게 끌어온다.
 Future<void> _submit(WidgetTester tester, String key) async {
+  await _agreeAll(tester);
   final Finder submit = find.byKey(ValueKey<String>(key));
   await tester.ensureVisible(submit);
   await tester.pump();

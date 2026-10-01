@@ -364,6 +364,8 @@ void main() {
       await _type(tester, phone, '01012345678');
       await _type(tester, password, 'signup-pw-1234');
       await _type(tester, confirm, confirmValue ?? 'signup-pw-1234');
+      // 필수 동의 없이는 가입 버튼이 꺼져 있다(#2819).
+      await _tapKey(tester, 'consent-all');
     }
 
     testWidgets('칸마다 name·username/email·국내 전화·newPassword 힌트다', (

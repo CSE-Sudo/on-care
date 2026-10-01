@@ -3228,6 +3228,58 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signUpFailed => 'Sign-up failed. Please try again in a moment.';
 
   @override
+  String get consentAll => 'Agree to all';
+
+  @override
+  String get consentRequiredTag => '[Required]';
+
+  @override
+  String get consentOptionalTag => '[Optional]';
+
+  @override
+  String get consentView => 'View';
+
+  @override
+  String get consentTerms => 'Terms of Service';
+
+  @override
+  String get consentPrivacy => 'Collection and use of personal information';
+
+  @override
+  String get consentHealth =>
+      'Processing of health information (sensitive data)';
+
+  @override
+  String get consentHealthDetail =>
+      'Covers your diet and exercise logs, body data such as weight, and health goals. We ask for this separately from other personal information.';
+
+  @override
+  String get consentAge14 => 'I am 14 years of age or older';
+
+  @override
+  String get consentAge14Detail => 'You must be 14 or older to sign up.';
+
+  @override
+  String get consentMarketing => 'Receive marketing notifications';
+
+  @override
+  String get consentRequiredHint => 'Agree to all required items to continue.';
+
+  @override
+  String get consentPageTitle => 'Agreements';
+
+  @override
+  String get consentPageSubtitle =>
+      'Please review and agree to the items below to keep using On-Care.';
+
+  @override
+  String get consentPageAction => 'Agree and continue';
+
+  @override
+  String get consentPageFailed =>
+      'Couldn\'t save your agreement. Please try again in a moment.';
+
+  @override
   String get onboardSkip => 'Do this later';
 
   @override

@@ -16,6 +16,7 @@ import 'package:oncare/features/account/presentation/pages/onboarding_page.dart'
 import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';
 import 'package:oncare/features/app_guide/presentation/pages/guide_tour_page.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare/features/auth/presentation/pages/consent_page.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_up_page.dart';
 import 'package:oncare/features/auth/presentation/pages/splash_page.dart';
@@ -48,10 +49,30 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// - already in the app (demo or authenticated) → kept off the sign-in
 ///   screen (bounced to the dashboard).
 ///
+/// - authenticated but [consentRequired] → held on the consent screen
+///   until the account agrees (#2819); the consent screen is off-limits
+///   otherwise.
+///
 /// Returning `null` means "no redirect — stay put".
-String? sessionRedirect(SessionStatus status, String location) {
+String? sessionRedirect(
+  SessionStatus status,
+  String location, {
+  bool consentRequired = false,
+}) {
   final onAuthRoute =
       location == AppRoutes.signIn || location == AppRoutes.signUp;
+  // 동의가 남은 계정은 어느 주소로 가든 동의 화면에 붙든다(#2819). 데모에는
+  // 계정이 없어 해당하지 않는다.
+  if (status == SessionStatus.authenticated && consentRequired) {
+    return location == AppRoutes.consent ? null : AppRoutes.consent;
+  }
+  if (location == AppRoutes.consent) {
+    return switch (status) {
+      SessionStatus.unknown => AppRoutes.splash,
+      SessionStatus.signedOut => AppRoutes.signIn,
+      SessionStatus.demo || SessionStatus.authenticated => AppRoutes.dashboard,
+    };
+  }
   switch (status) {
     // 복구 중에는 시작 화면에 머문다(#1944). 전에는 로그아웃과 같이 묶여
     // **완전히 눌리는 로그인 폼**이 떴다 — 느린 망에서 이메일을 치던 중에
@@ -90,6 +111,7 @@ GoRouter buildAppRouter({
   required AppConfig config,
   NavigatorObserver? observer,
   SessionStatus Function()? readStatus,
+  bool Function()? readConsentRequired,
   Listenable? refresh,
 }) {
   GoRouter.optionURLReflectsImperativeAPIs = true;
@@ -104,8 +126,11 @@ GoRouter buildAppRouter({
     errorBuilder: (context, state) => const NotFoundPage(),
     redirect: readStatus == null
         ? null
-        : (context, state) =>
-              sessionRedirect(readStatus(), state.matchedLocation),
+        : (context, state) => sessionRedirect(
+            readStatus(),
+            state.matchedLocation,
+            consentRequired: readConsentRequired?.call() ?? false,
+          ),
     routes: <RouteBase>[
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
@@ -248,6 +273,10 @@ GoRouter buildAppRouter({
         builder: (context, state) => const SignUpPage(),
       ),
       GoRoute(
+        path: AppRoutes.consent,
+        builder: (context, state) => const ConsentPage(),
+      ),
+      GoRoute(
         path: AppRoutes.onboarding,
         builder: (context, state) => const OnboardingPage(),
       ),
@@ -283,6 +312,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     config: config,
     observer: observer,
     readStatus: () => ref.read(sessionControllerProvider).status,
+    readConsentRequired: () =>
+        ref.read(sessionControllerProvider).consentRequired,
     refresh: refresh,
   );
   ref.listen<SessionState>(sessionControllerProvider, (

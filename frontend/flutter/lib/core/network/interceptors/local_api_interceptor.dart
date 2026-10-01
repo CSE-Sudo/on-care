@@ -37,6 +37,7 @@ import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/ai_coach/domain/chat_insight_detector.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
+import 'package:oncare/features/auth/domain/signup_consent.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart'
     show MealImageFormat;
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
@@ -183,6 +184,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     'POST /auth/social/kakao': _authSocial,
     'POST /auth/social/google': _authSocial,
     'GET /users/me': _usersMe,
+    'POST /users/me/consents': _usersMeConsents,
     'GET /users/me/profile': _usersMeProfile,
     'PUT /users/me': _usersMeUpdate,
     'DELETE /users/me': _usersMeDelete,
@@ -3598,6 +3600,24 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       AppInputError.passwordTooLong => 'password_too_long',
       _ => 'password_weak',
     };
+    // 동의 목록을 보냈다면 서버처럼 필수 항목을 본다(#2819). 보내지 않은 옛
+    // 빌드의 가입은 막지 않는다.
+    final List<String> missingConsents = _missingConsents(body['consents']);
+    if (missingConsents.isNotEmpty) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 422,
+        data: <String, Object?>{
+          'detail': <Object?>[
+            <String, Object?>{
+              'type': 'value_error',
+              'loc': <Object?>['body'],
+              'msg': 'consent_required: ${missingConsents.join(', ')}',
+            },
+          ],
+        },
+      );
+    }
     if (passwordCode != null) {
       return Response<Object?>(
         requestOptions: options,
@@ -3725,6 +3745,44 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       'id': p['id'],
       'name': p['name'],
       'email': p['email'],
+      // 데모 회원은 동의를 마친 계정으로 둔다(#2819) — 데모 진입마다 동의
+      // 화면이 끼면 시연 흐름이 끊긴다.
+      'consent_required': false,
+      'consent_pending': const <String>[],
+    });
+  }
+
+  /// [raw] 가 목록이면 그 안에 없는 회원 필수 동의 항목, 목록이 아니면(안
+  /// 보냄) 빈 목록. 서버(`signup_consent.missing_required`)처럼 정렬해 준다.
+  static List<String> _missingConsents(Object? raw) {
+    if (raw is! List) return const <String>[];
+    final Set<String> given = <String>{for (final Object? k in raw) '$k'};
+    return SignupConsent.memberRequired.difference(given).toList()..sort();
+  }
+
+  /// POST /users/me/consents — 동의 화면의 저장(#2819). 서버처럼 필수 항목이
+  /// 빠지면 아무것도 남기지 않고 422 다. 데모에는 남길 기록이 없다.
+  Future<Response<Object?>> _usersMeConsents(RequestOptions options) async {
+    final body = _jsonBody(options);
+    final Object? raw = body['consents'];
+    final List<String> missing = raw is List
+        ? _missingConsents(raw)
+        : (SignupConsent.memberRequired.toList()..sort());
+    if (missing.isNotEmpty) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 422,
+        data: <String, Object?>{
+          'detail': <String, Object?>{
+            'code': 'consent_required',
+            'missing': missing,
+          },
+        },
+      );
+    }
+    return _ok(options, <String, Object?>{
+      'consent_required': false,
+      'consent_pending': const <String>[],
     });
   }
 

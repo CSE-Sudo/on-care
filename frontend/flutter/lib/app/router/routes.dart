@@ -30,6 +30,7 @@ class AppRoutes {
   static const String mySettings = '/my-health/settings/:section';
   static const String gyms = '/gyms';
   static const String gymDetail = '/gyms/:gymId';
+
   /// 트레이너 **상세**. 목록 화면은 없다 — 트레이너는 헬스장을 거쳐 만난다
   /// (헬스장 찾기 카드 → 헬스장 상세 → 트레이너 상세). #1885
   static const String trainerDetail = '/trainers/:trainerId';
@@ -75,9 +76,11 @@ class AppRoutes {
   static const String signIn = '/auth/sign-in';
   static const String signUp = '/auth/sign-up';
 
+  /// 가입 동의(#2819) — 동의가 남은 계정이 로그인하면 다른 화면보다 먼저 온다.
+  static const String consent = '/auth/consent';
+
   // First-run onboarding (shown right after sign-up)
   static const String onboarding = '/onboarding';
-
 
   /// 포인트 안내의 `시작하기` 뒤에 보는 사용 가이드(#1857) — 예시 자료로 채운
   /// 화면 위에서 주요 기능을 하나씩 밝게 짚는다.
