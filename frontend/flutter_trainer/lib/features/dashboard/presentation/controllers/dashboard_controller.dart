@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -47,7 +49,7 @@ const int _churnSessionLookbackDays = 30;
 /// 실시간성이 필요 없다. 그 스트림을 그대로 구독해 뒀더니 대시보드를 떠나도
 /// (또는 다른 화면의 실서버 모드 위젯 테스트에서 대시보드가 배경에 잠깐
 /// 그려지기만 해도) 5초 타이머가 계속 돌아, 위젯 트리를 지운 뒤에도 타이머가
-/// 남아 여러 테스트가 실패했다. `.first` 로 첫 값만 받고 구독을 바로 끊어
+/// 남아 여러 테스트가 실패했다. [_firstValue] 로 첫 값만 받고 구독을 바로 끊어
 /// 진짜 "한 번 조회"로 만든다.
 final _churnRecentSessionsProvider =
     FutureProvider.autoDispose<List<ScheduleSession>>((ref) {
@@ -56,8 +58,50 @@ final _churnRecentSessionsProvider =
         today.subtract(const Duration(days: _churnSessionLookbackDays)),
       );
       final to = ymd(today);
-      return ref.watch(scheduleRepositoryProvider).watchRange(from, to).first;
+      final stream = ref.watch(scheduleRepositoryProvider).watchRange(from, to);
+      return _firstValue(stream, onCancel: ref.onDispose);
     }, name: 'churnRecentSessions');
+
+/// [stream] 의 첫 값 — 구독 해제가 끝나기를 기다리지 않는다. (#2891)
+///
+/// `Stream.first` 는 첫 값을 받은 뒤 **구독 해제 Future 가 끝나야** 값을
+/// 돌려준다. drift 조회 스트림의 해제는 위젯 테스트의 가짜 시간 안에서 끝나지
+/// 않아, 첫 값이 이미 왔는데도 이 provider 가 테스트 내내 로딩에 머물렀다 —
+/// 예전에는 로딩을 빈 목록으로 바꿔 계산해 드러나지 않았다. 첫 값(또는
+/// 오류)을 받는 즉시 끝내고, 해제는 뒤에서 마저 한다. provider 가 먼저
+/// 버려지면 [onCancel] 로 구독을 끊는다.
+Future<T> _firstValue<T>(
+  Stream<T> stream, {
+  required void Function(void Function() cb) onCancel,
+}) {
+  final completer = Completer<T>();
+  var cancelled = false;
+  late final StreamSubscription<T> subscription;
+  void finish() {
+    if (cancelled) return;
+    cancelled = true;
+    unawaited(subscription.cancel());
+  }
+
+  subscription = stream.listen(
+    (value) {
+      if (completer.isCompleted) return;
+      completer.complete(value);
+      finish();
+    },
+    onError: (Object error, StackTrace stackTrace) {
+      if (completer.isCompleted) return;
+      completer.completeError(error, stackTrace);
+      finish();
+    },
+    onDone: () {
+      if (completer.isCompleted) return;
+      completer.completeError(StateError('No element'), StackTrace.current);
+    },
+  );
+  onCancel(finish);
+  return completer.future;
+}
 
 /// 이탈 위험·활동 피드백이 함께 쓰는 원자재(로스터·최근 세션).
 ///
