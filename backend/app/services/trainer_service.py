@@ -4502,21 +4502,26 @@ def _scheduled_routines_for_request(
 
 
 def _clear_scheduled_routines(
-    db: Session, trainer_id: str, schedule_id: str
+    db: Session, trainer_id: str, schedule_id: str, *, keep_personal: bool = False
 ) -> None:
     """그 PT 에 붙어 있던 **아직 보내지 않은** 줄을 지운다. (#2224, #2279)
 
     프로그램과 개인운동을 함께 걷는다 — 둘 다 `scheduled` 로 붙어 있다가 전송
     때 함께 나간다. 보낸 것(`approved`)·보내지 않기로 한 것(`dismissed`)은
     건드리지 않는다: 회원이 이미 받았거나 트레이너가 이미 답한 것이다.
+
+    [keep_personal] 이면 개인운동은 두고 프로그램 줄만 걷는다(#2280) — 개인운동
+    없이 다시 붙인 PT 에서 "없이" 를 "지워라" 로 읽으면, 일정 상세에서 붙여 둔
+    개인운동이 말없이 사라진다.
     """
-    for row in db.scalars(
-        select(TrainerRoutine).where(
-            TrainerRoutine.trainer_id == trainer_id,
-            TrainerRoutine.schedule_id == schedule_id,
-            TrainerRoutine.status == ROUTINE_SCHEDULED,
-        )
-    ).all():
+    query = select(TrainerRoutine).where(
+        TrainerRoutine.trainer_id == trainer_id,
+        TrainerRoutine.schedule_id == schedule_id,
+        TrainerRoutine.status == ROUTINE_SCHEDULED,
+    )
+    if keep_personal:
+        query = query.where(TrainerRoutine.delivery_kind.is_(None))
+    for row in db.scalars(query).all():
         db.delete(row)
     db.flush()
 
@@ -5047,11 +5052,18 @@ def update_scheduled_routines(
     하나를 빼거나 시간을 줄일 수 있어야 한다 — PT 직전에 회원 상태를 보고
     손보는 일이 흔하다.
 
+    붙은 것이 하나도 없으면 **처음 붙인다**(#2280). `직접 만들기`·저장한
+    프로그램 적용으로 짠 PT 는 개인운동 단계를 지나지 않는다. 일정 상세에서
+    코칭 탭의 개인운동 단계(AI 제안)로 가 짠 것을 여기로 붙인다 — 프로그램
+    만들기(`일정 추가`)와 같이 출처는 받은 그대로 남긴다: AI 제안을 손대지
+    않고 붙였으면 `ai` 다.
+
     이미 보낸 것은 손댈 수 없다(`scheduled` 만 고친다). 보낸 뒤에 바뀌면
     회원이 어제 본 목록과 오늘 본 목록이 말없이 달라진다.
 
     - 소유 슬롯 아님 → None(404).
-    - 붙은 것이 없음 / 빈 목록으로 비우려 함 → ScheduleError.
+    - 빈 목록으로 비우려 함 → ScheduleError.
+    - 처음 붙이는데 붙일 수 없는 PT → ScheduleError(`_ensure_routine_attachable`).
     """
     s = _get_owned_session(db, trainer_id, session_id)
     if s is None:
@@ -5070,10 +5082,45 @@ def update_scheduled_routines(
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
     ).all()
     if not rows:
-        raise ScheduleError("고칠 개인운동이 없습니다.")
+        _ensure_routine_attachable(db, trainer_id, s)
+        _add_scheduled_routines(
+            db, trainer_id, s.member_id,
+            items=items,
+            schedule_id=s.id,
+            # 프로그램 만들기와 같다 — 개인운동은 그 PT 가 있는 날의 것이다.
+            exercise_date=s.date,
+            client_request_id=None,
+        )
+        db.commit()
+        return list_scheduled_routines(db, trainer_id, session_id)
     _rewrite_scheduled_routines(db, rows, items)
     db.commit()
     return list_scheduled_routines(db, trainer_id, session_id)
+
+
+def _ensure_routine_attachable(
+    db: Session, trainer_id: str, s: TrainerSchedule
+) -> None:
+    """개인운동이 없는 PT 에 처음 붙여도 되는가. 아니면 ScheduleError. (#2280)
+
+    붙인 개인운동은 PT 프로그램과 함께 완료 전송으로 나간다. 그래서 그 전송을
+    아직 기다리는 PT 에만 붙인다.
+
+    - 회원이 없는 일정(상담·공백): 받을 사람이 없다.
+    - 프로그램이 없는 일정: 나중에 프로그램 만들기로 PT 를 실으면 그때 붙은
+      줄을 갈아 끼우므로(`_clear_scheduled_routines`) 여기서 붙인 것이 사라진다.
+    - 이미 보낸 PT: 보낸 뒤에 바뀌면 회원이 본 목록이 말없이 달라진다.
+    - 취소·노쇼: 열리지 않은 PT 다음에 할 운동을 새로 짜는 자리가 아니다.
+    """
+    if not s.member_id:
+        raise ScheduleError("회원이 연결되지 않은 일정입니다.")
+    _ensure_session_member_linked(db, trainer_id, s)
+    if not _program_items(s.program_json):
+        raise ScheduleError("PT 프로그램이 없는 일정입니다.")
+    if s.program_sent_at is not None:
+        raise ScheduleError("이미 보낸 PT에는 개인운동을 붙일 수 없습니다.")
+    if s.status in {SCHEDULE_CANCELLED, SCHEDULE_NO_SHOW}:
+        raise ScheduleError("취소된 PT에는 개인운동을 붙일 수 없습니다.")
 
 
 def dismiss_scheduled_routines(
@@ -5271,7 +5318,13 @@ def assign_program_with_schedule(
     # 쌓여, 두 번 짠 트레이너가 두 배를 보내게 된다 — 트레이너는 바꾼 것으로
     # 아는데 회원은 더해진 것을 받는다. 아직 보내지 않은 것이라 지워도 회원이
     # 본 것은 없다.
-    _clear_scheduled_routines(db, trainer_id, session.id)
+    #
+    # 개인운동 없이 붙이면 붙어 있던 개인운동은 그대로 둔다(#2280) — 바꿀 것이
+    # 없으니 지울 까닭도 없다. 새로 짠 개인운동으로 바꾸는 것은 트레이너 웹이
+    # 한 번 묻고 보낸다.
+    _clear_scheduled_routines(
+        db, trainer_id, session.id, keep_personal=not personal_routines
+    )
     # 프로그램은 **회원에게 보내지 않고 이 PT 에 붙여만 둔다**(#2279). 예전에는
     # 여기서 바로 배정해, 등록만 해도 회원 목록에 떴고 PT 를 마치고 보낼 때
     # 한 벌이 더 생겼다 — 회원은 같은 운동을 두 번 해야 하는 것으로 봤다.

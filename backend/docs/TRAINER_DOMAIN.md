@@ -111,7 +111,7 @@
 | `/trainer/clients/{id}/…` 회원 단위 읽기·쓰기 전부(식단·사진·건강 정보·기록·조언·채팅·사진/PDF 전송·루틴·제안·프로그램·메모·할 일 등록·루틴 후보·AI 코치·리포트) | 404 |
 | 회원을 붙이는 일정(`POST /trainer/schedule`·반복·`program-schedule`, `member_id` 로 옮기는 `PUT`, `member_id` 필터 조회) | 404 — 알림도 나가지 않는다 |
 | 경로에 회원 id 가 없는 쓰기: 제안 승인·완료한 일정의 프로그램 전송 | 404 (`trainer_service.has_active_client_link`) |
-| 해제 전에 잡아 둔 일정을 id 로 여는 쓰기: 개인운동 전송(`/routines/send`)·완료(`/complete`)·수정(`PUT`)·되돌리기(`/reopen`) | 404 — 회원 운동 기록도 알림도 남지 않는다(`_ensure_session_member_linked`). 취소·삭제는 약속이 없어졌다는 통보·트레이너 자기 일정 정리라 그대로 열린다 |
+| 해제 전에 잡아 둔 일정을 id 로 여는 쓰기: 개인운동 전송(`/routines/send`)·개인운동 처음 붙이기(`PUT /routines`, #2280)·완료(`/complete`)·수정(`PUT`)·되돌리기(`/reopen`) | 404 — 회원 운동 기록도 알림도 남지 않는다(`_ensure_session_member_linked`). 취소·삭제는 약속이 없어졌다는 통보·트레이너 자기 일정 정리라 그대로 열린다 |
 | 트레이너 스케줄(일·구간 조회·예약 날짜 점·겹침 거절 응답) | 빼지 않고 **익명**으로 싣는다(#2589) — `member_detached`, 이름 `해제 회원`, `member_id`·글·프로그램·취소 사유는 비운다 |
 | 해제 시점에 아직 시작하지 않은 `예정` 일정 | `취소`(사유 `담당 해제`)로 바꾸고 예약 좌석을 돌려준다(#2589). 알림은 해제 알림 한 건이 취소 수를 함께 전한다 |
 | 해제 자체(`DELETE`)·재등록(`/registration`)·활성/휴면 전환(`/status`) | 링크를 직접 읽는다 — 다시 해제 404, 재등록 204(동의가 철회된 링크는 409, 아래 #1631), 상태 전환 409(기존 그대로) |
@@ -242,6 +242,7 @@
 | POST | `/trainer/clients/{member_id}/program` | 프로그램 배정 — 세션당 루틴 한 건 (#709). `delivery_kind`·`trainer_message`·`start_date`·`active_days` 로 프로그램 만들기의 `개인운동만` 전송을 받는다. `active_days` 만큼만 회원 목록에 걸어 둔다(`active_from`~`ended_on`, #2161) — `개인운동만` 은 7 을 보내 보낸 날부터 한 주 동안 걸리고, 다음 주 분은 트레이너가 다시 보낸다 (#2223). 보낼 때 이 트레이너가 보내 둔 이전 개인운동(`delivery_kind` 있는 줄)은 PT 와 함께 보낼 때처럼 오늘부로 내린다 (#2514) |
 | POST | `/trainer/clients/{member_id}/program-schedule` | 프로그램 탭 `일정 추가` — 배정과 PT 일정 등록을 한 트랜잭션으로, `client_request_id` 로 재시도 멱등 (#1580). 고른 시간대와 겹치는 예정 세션에 연결하고 없으면 새 일정, 여럿이면 `session_id` 필수(아니면 409 + 후보) (#1581) |
 | GET | `/trainer/schedule/{session_id}/routines` | 그 PT 일정에 붙어 있는 개인운동 — 보낸 것까지, 건마다 `pending_send` (#2223, #2224) |
+| PUT | `/trainer/schedule/{session_id}/routines` | 그 PT 에 붙은 개인운동 고치기 — 보내지는 않는다 (#2224). 붙은 것이 없으면 처음 붙인다 — 일정 상세에서 코칭 탭의 개인운동 단계로 가 짠 것. 회원·PT 프로그램이 있고 아직 보내지 않은, 취소·노쇼가 아닌 PT 만이고 출처는 받은 그대로다 (#2280) |
 | PUT | `/trainer/clients/{member_id}/routines/{routine_id}` | 루틴 부분 수정(이름·시간·종류·사유). `duration_seconds` 를 보내면 분을 초에서 다시 접고, `minutes` 만 보내면 예전 초를 지운다 (#2547) |
 | DELETE | `/trainer/clients/{member_id}/routines/{routine_id}` | 루틴 철회 |
 | GET | `/trainer/clients/{member_id}/memos` | 회원 메모 목록(최신순) |
