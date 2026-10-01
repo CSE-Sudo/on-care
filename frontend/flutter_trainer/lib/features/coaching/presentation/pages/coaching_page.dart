@@ -227,7 +227,11 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     super.didUpdateWidget(oldWidget);
     // Following a second "AI 루틴 만들기" link (from another client's
     // 개요) must switch the workspace, not silently keep the old one.
-    if (widget.clientId != null && widget.clientId != oldWidget.clientId) {
+    //
+    // 주소가 선택 회원의 원천이다(#2872) — 지난 주소가 아니라 **지금 보이는
+    // 회원**과 견준다. 주소가 그대로인 재진입(앞 주소와 같은 `client`)도
+    // 화면이 다른 회원을 보고 있으면 그 회원으로 돌아온다.
+    if (widget.clientId != null && widget.clientId != _clientId) {
       _selectClient(widget.clientId!);
     }
     if (widget.attachSessionId != oldWidget.attachSessionId ||
@@ -285,6 +289,18 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       // other clients keep being tracked while the selection changes.
     });
     _sentTimer?.cancel();
+  }
+
+  /// 회원 카드를 눌렀다 — 상태가 아니라 **주소**를 바꾼다(#2872).
+  ///
+  /// 화면은 바뀐 주소를 [didUpdateWidget] 에서 받아 [_selectClient] 로
+  /// 바뀐다. 그래야 새로고침·주소 공유·뒤로 가기가 모두 같은 회원을 연다.
+  /// 리포트 화면의 회원 전환처럼 기록을 남기는 `go` 다. 붙이기 흐름 쿼리
+  /// (`attach`·`d`·`r`)는 앞 회원의 PT 것이라 떼고 `client` 만 남긴다.
+  Future<void> _requestClient(String id) async {
+    if (id == _clientId) return;
+    if (!mounted) return;
+    context.go(AppRoutes.coachingFor(id));
   }
 
   bool _isStillSelected(String clientId) =>
@@ -899,7 +915,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                                 final list = ClientPickerList(
                                   clients: clients,
                                   selectedId: selected.id,
-                                  onSelect: _selectClient,
+                                  onSelect: _requestClient,
                                   rowKeyPrefix: 'program-client',
                                   scrollKey: 'program-client-list-scroll',
                                 );
@@ -1081,7 +1097,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                   client: c,
                   stacked: true,
                   selected: c.id == client.id,
-                  onTap: () => _selectClient(c.id),
+                  onTap: () => _requestClient(c.id),
                 ),
               ),
               if (c != clients.last) const SizedBox(width: OnCareSpacing.s8),
