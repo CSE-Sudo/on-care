@@ -26,9 +26,6 @@ import 'package:oncare_trainer/features/notifications/domain/entities/trainer_no
 /// 회원용 `/notifications` 를 쓰지 않는 이유: 그 경로는 트레이너 계정을 403 으로
 /// 막는 **회원 전용**이다(역할 분리). 저장되는 행은 같은 테이블이다.
 abstract interface class TrainerNotificationRepository {
-  /// 이 빌드에서 알림함을 쓸 수 있는가. 지금은 두 구현 모두 쓴다(#2628).
-  bool get supportsInbox;
-
   /// 받은 알림 한 쪽(최신순). [before] 가 없으면 첫 쪽이다.
   ///
   /// 서버는 한 쪽(기본 100건)만 준다. 다음 쪽이 있으면
@@ -64,9 +61,6 @@ class DemoNotificationRepository implements TrainerNotificationRepository {
 
   /// `3시간 전` 같은 상대 시각의 언어. 실 서버는 요청 언어로 적어 보낸다.
   final DemoLanguage language;
-
-  @override
-  bool get supportsInbox => true;
 
   Future<List<Map<String, Object?>>> _rows() async =>
       _decode(await _db.readValue(demoNotificationsKey));
@@ -190,9 +184,6 @@ class DioNotificationRepository implements TrainerNotificationRepository {
   /// 알림함을 열어 둔 채로 배지만 올라가면 목록과 숫자가 어긋나 보여서다.
   final Duration pollInterval;
 
-  @override
-  bool get supportsInbox => true;
-
   /// 본문은 전과 같은 배열이고, 다음 쪽 커서는 응답 헤더로 온다(#2293).
   /// 헤더가 없으면 마지막 쪽이다.
   @override
@@ -284,12 +275,6 @@ final trainerNotificationRepositoryProvider =
       }
       return DioNotificationRepository(ref.watch(dioProvider));
     }, name: 'trainerNotificationRepository');
-
-/// 알림함에 들어갈 수 있는 빌드인가 — 사이드바 진입점 노출 조건.
-final notificationInboxEnabledProvider = Provider<bool>(
-  (ref) => ref.watch(trainerNotificationRepositoryProvider).supportsInbox,
-  name: 'notificationInboxEnabled',
-);
 
 /// 받은 알림의 첫 쪽.
 ///

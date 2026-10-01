@@ -19,9 +19,6 @@ class _Repo implements TrainerNotificationRepository {
   final List<TrainerNotification> _rows;
 
   @override
-  bool get supportsInbox => true;
-
-  @override
   Future<TrainerNotificationPage> fetch({
     TrainerNotificationCursor? before,
   }) async => TrainerNotificationPage(items: _rows);

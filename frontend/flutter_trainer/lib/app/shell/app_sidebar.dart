@@ -123,7 +123,6 @@ class AppSidebar extends ConsumerWidget {
                         // navDestinations and is rendered below with its
                         // count passed in directly.
                         NavBadge.pendingConsultations => null,
-                        NavBadge.unreadNotifications => null,
                         NavBadge.none => null,
                       },
                       onTap: () {
