@@ -660,6 +660,43 @@ class DriftScheduleRepository implements ScheduleRepository {
         note: Value(note),
       ),
     );
+    if (current != null) {
+      await _moveDemoConsultationLink(
+        current,
+        clientId: clientId ?? current.clientId,
+        date: date ?? current.date,
+        time: time,
+      );
+    }
+  }
+
+  /// 상담 일정을 옮기면 상담 연결도 새 날짜·시각으로 옮긴다(#2758).
+  ///
+  /// 연결은 회원·날짜·시각을 키로 붙는다. 그대로 두면 옮긴 일정이 상담 요청
+  /// 내용을 잃고, 상담함은 그 신청의 일정이 사라진 것으로 읽는다. 서버처럼
+  /// 신청의 시각은 이 일정을 따른다 — 예전 자리는 일정이 떠나 다시 빈다.
+  Future<void> _moveDemoConsultationLink(
+    TrainerScheduleRow before, {
+    required String? clientId,
+    required String date,
+    required String time,
+  }) async {
+    if (before.type != SessionType.consultation) return;
+    final String from = demoConsultationKey(
+      clientId: before.clientId,
+      date: before.date,
+      time: before.time,
+    );
+    final String to = demoConsultationKey(
+      clientId: clientId,
+      date: date,
+      time: time,
+    );
+    if (from == to) return;
+    final ScheduleConsultation? link = demoScheduleConsultations.remove(from);
+    if (link == null) return;
+    demoScheduleConsultations[to] = link;
+    await writeDemoScheduleConsultations(_db);
   }
 
   /// 완료 세션을 [date](미래)의 예정으로 되돌린다(#1396). 데모 DB에는 완료가
@@ -818,13 +855,19 @@ class DriftScheduleRepository implements ScheduleRepository {
   ///
   /// 보냄·숨김 표시도 함께 지운다 — 새로 붙인 개인운동은 아직 아무 데도 가지
   /// 않았다.
+  ///
+  /// 그 개인운동을 채운 AI 제안은 검토한 것으로 남긴다(#2747) — 실서버가 등록
+  /// 트랜잭션에서 그 제안을 닫는 것과 같다.
   Future<void> _rememberPersonalRoutines(
     String sessionId,
     List<RoutineExercise> routines,
-  ) => _routineStore.writeSession(
-    sessionId,
-    SessionRoutineState(items: List<RoutineExercise>.unmodifiable(routines)),
-  );
+  ) async {
+    await _routineStore.writeSession(
+      sessionId,
+      SessionRoutineState(items: List<RoutineExercise>.unmodifiable(routines)),
+    );
+    await _routineStore.addReviewedSuggestions(suggestionIdsOf(routines));
+  }
 
   /// Removes a session from the timeline.
   @override
@@ -862,9 +905,28 @@ class DriftScheduleRepository implements ScheduleRepository {
 
   @override
   Future<void> deleteSession(String id) async {
+    final TrainerScheduleRow? row = await (_db.select(
+      _db.trainerScheduleEntries,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
     await (_db.delete(
       _db.trainerScheduleEntries,
     )..where((t) => t.id.equals(id))).go();
+    // 서버는 예정·취소인 상담 일정을 지울 때만 신청을 철회한다(#2758). 상담함은
+    // 연결된 일정이 없어진 신청을 철회로 읽으므로, 이미 치른(완료·노쇼) 상담을
+    // 지울 때는 연결을 먼저 떼어 신청을 수락된 채로 둔다.
+    if (row != null &&
+        row.type == SessionType.consultation &&
+        (row.status == ScheduleStatus.done ||
+            row.status == ScheduleStatus.noShow)) {
+      final ScheduleConsultation? removed = demoScheduleConsultations.remove(
+        demoConsultationKey(
+          clientId: row.clientId,
+          date: row.date,
+          time: row.time,
+        ),
+      );
+      if (removed != null) await writeDemoScheduleConsultations(_db);
+    }
   }
 
   /// Marks an 예정 session 완료 (with the trainer's [note]) and, when the
@@ -970,6 +1032,9 @@ class DriftScheduleRepository implements ScheduleRepository {
         ]),
       ),
     );
+    // 코칭 탭에서 짠 개인운동을 이 PT 에 붙인 것이면 그 개인운동을 채운 AI
+    // 제안은 검토한 것으로 남긴다(#2747) — 실서버가 같은 요청에서 닫는다.
+    await _routineStore.addReviewedSuggestions(suggestionIdsOf(items));
   }
 
   /// 마무리된 PT 의 개인운동을 보낸다. 취소·노쇼 PT 뒤에 보낸 것은 그 종류로

@@ -2579,6 +2579,24 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get aicBodyPartKnee => '무릎';
+
+  @override
+  String get aicBodyPartBack => '허리';
+
+  @override
+  String get aicBodyPartAnkle => '발목';
+
+  @override
+  String get aicBodyPartShoulder => '어깨';
+
+  @override
+  String get aicBodyPartWrist => '손목';
+
+  @override
+  String get aicBodyPartNeck => '목';
+
+  @override
   String get aicInsightDiscomfort => '통증 감지';
 
   @override
@@ -2771,6 +2789,10 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get exConsultExpiredBody =>
       '트레이너가 시간 안에 확인하지 않았어요. 다른 시간으로 다시 신청해 보세요.';
+
+  @override
+  String get exConsultCancelledByTrainerBody =>
+      '트레이너가 상담 일정을 취소했어요. 다른 시간으로 다시 신청해 보세요.';
 
   @override
   String get exExerciseGoal => '운동 목표';
@@ -2990,6 +3012,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get authSocialSignInFailed => '소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get authSocialComingSoon => '소셜 로그인은 준비 중이에요. 이메일로 로그인해 주세요';
 
   @override
   String get signUpTitle => '회원가입';

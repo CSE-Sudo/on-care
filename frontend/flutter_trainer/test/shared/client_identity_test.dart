@@ -82,6 +82,31 @@ void main() {
     expect(find.text(goal), findsNothing);
   });
 
+  // 회원 관리 목록·상세·메시지 행이 함께 쓰는 자리다(#2744). 생년월일이 없는
+  // 회원에게 id 해시로 지은 나이를 적지 않는다.
+  testWidgets('회원 행은 서버가 준 나이만 적고, 없으면 성별만 적는다', (tester) async {
+    await pumpBlock(
+      tester,
+      Column(
+        children: <Widget>[
+          ClientIdentityBlock(
+            client: makeClient(
+              id: 'user-a',
+              name: '가회원',
+              gender: 'female',
+              age: 41,
+            ),
+          ),
+          ClientIdentityBlock(
+            client: makeClient(id: 'user-b', name: '나회원', gender: 'male'),
+          ),
+        ],
+      ),
+    );
+    expect(find.text('여성 · 41세'), findsOneWidget);
+    expect(find.text('남성'), findsOneWidget);
+  });
+
   testWidgets('둘째 줄은 바꾸거나 숨길 수 있고, 비면 줄을 만들지 않는다', (tester) async {
     await pumpBlock(
       tester,

@@ -64,7 +64,7 @@ from app.schemas.consultation_api import (
     ConsultationStatusFilter,
     TrainerConsultationOut,
 )
-from app.schemas.user import AccountDeleteRequest
+from app.schemas.user import AccountDeleteRequest, PasswordChanged
 from app.schemas.trainer_api import (
     ChatMessageOut, ChatSendRequest, ClientCoachMessageOut, ClientCoachOut,
     ClientCoachRequest, ClientDietEntryOut, DeliveryOut,
@@ -105,6 +105,7 @@ from app.schemas.trainer_api import (
     TrainerTaskProgressDayOut, TrainerTaskProgressOut, TrainerTaskProgressSave,
 )
 from app.services import (
+    auth_tokens,
     diet_service,
     diet_trainer_analysis,
     diet_trainer_pick,
@@ -328,13 +329,18 @@ def trainer_clear_gym(
     return trainer_service.clear_trainer_gym(db, trainer, profile)
 
 
-@router.post("/trainer/me/password", status_code=200)
+@router.post("/trainer/me/password", status_code=200, response_model=PasswordChanged)
 def trainer_change_password(
     payload: TrainerPasswordChange,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
-) -> dict:
-    """비밀번호 변경. 현재 비밀번호가 맞아야 하고, 같은 값으로는 바꿀 수 없다."""
+) -> PasswordChanged:
+    """비밀번호 변경. 현재 비밀번호가 맞아야 하고, 같은 값으로는 바꿀 수 없다.
+
+    바꾸면 계정의 토큰 세대가 올라가 **다른 기기에 이미 나간 접근·refresh 토큰이
+    모두 무효**가 된다(#2766) — 비밀번호를 바꾸는 이유는 대개 누가 계정을 쓰고
+    있을지 모른다는 의심이다. 요청한 기기는 응답에 담긴 새 토큰으로 이어 쓴다.
+    """
     if not verify_password(payload.current_password, trainer.hashed_password):
         # 현재 비밀번호 불일치는 401 이 아니라 400 — 토큰은 유효하므로
         # 클라이언트가 로그아웃 처리로 오인하면 안 된다.
@@ -342,8 +348,14 @@ def trainer_change_password(
     if verify_password(payload.new_password, trainer.hashed_password):
         raise HTTPException(status_code=400, detail="현재와 다른 비밀번호를 입력해 주세요.")
     trainer.hashed_password = hash_password(payload.new_password)
+    # 비밀번호와 세대는 한 트랜잭션으로 — 하나만 반영되면 옛 토큰이 살아남거나
+    # 비밀번호는 그대로인데 모든 기기가 끊긴다.
+    auth_tokens.bump_version(trainer)
     db.commit()
-    return {"status": "changed"}
+    tokens = auth_tokens.issue_token_pair(trainer)
+    return PasswordChanged(
+        access_token=tokens.access_token, refresh_token=tokens.refresh_token
+    )
 
 
 #: 트레이너 탈퇴 화면이 보여 주는 사유(#2264). 회원 사유(`DELETION_REASONS`)와 같은
@@ -1078,6 +1090,7 @@ def trainer_assign_routine(
         intensity=payload.intensity,
         sets=payload.sets,
         reps=payload.reps,
+        hold_seconds=payload.hold_seconds,
         weight=payload.weight,
     )
 
@@ -1131,6 +1144,7 @@ def trainer_create_routine_suggestion(
         type_=payload.type,
         sets=payload.sets,
         reps=payload.reps,
+        hold_seconds=payload.hold_seconds,
         weight=payload.weight,
         reason=payload.reason,
         evidence=payload.evidence,
@@ -1164,6 +1178,7 @@ def trainer_approve_routine_suggestion(
             type_=fields.get("type"),
             sets=fields.get("sets"),
             reps=fields.get("reps"),
+            hold_seconds=fields.get("hold_seconds"),
             weight=fields.get("weight"),
             reason=fields.get("reason"),
         )
@@ -1228,6 +1243,7 @@ def trainer_assign_program(
         trainer_message=payload.trainer_message.strip(),
         start_date=payload.start_date,
         active_days=payload.active_days,
+        suggestion_ids=payload.suggestion_ids,
     )
 
 
@@ -1858,6 +1874,7 @@ def trainer_assign_program_with_schedule(
             client_request_id=payload.client_request_id,
             session_id=payload.session_id,
             personal_routines=payload.personal_routines,
+            suggestion_ids=payload.suggestion_ids,
         )
     except trainer_service.IdempotencyConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -1915,7 +1932,11 @@ def trainer_update_schedule_routines(
     """
     try:
         rows = trainer_service.update_scheduled_routines(
-            db, trainer.id, session_id, payload.personal_routines
+            db,
+            trainer.id,
+            session_id,
+            payload.personal_routines,
+            suggestion_ids=payload.suggestion_ids,
         )
     except trainer_service.ClientLinkDetached as exc:
         # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
@@ -2509,13 +2530,20 @@ async def trainer_send_report_pdf(
     db: Annotated[Session, Depends(get_db)],
     pdf: UploadFile = File(...),
     week_start: str = Form(...),
-    message: str = Form("이번 주 리포트입니다."),
+    message: str = Form(...),
     client_request_id: str | None = Form(None, min_length=1, max_length=64),
 ) -> ChatMessageOut:
-    """현재 리포트에서 생성한 PDF만 담당 고객 채팅으로 전송한다."""
+    """현재 리포트에서 생성한 PDF만 담당 고객 채팅으로 전송한다.
+
+    `message` 는 필수이고 공백뿐이면 422 다(#2771). 서버가 대신 채우던 한국어
+    기본 문장은 트레이너·회원의 언어를 몰라, 영어로 쓰는 회원에게도 한국어가
+    나갔다 — 회원이 받을 글은 앱이 그 언어로 만든다.
+    """
     _require_client(db, trainer.id, member_id)
     week = _report_week(week_start)
-    text = message.strip() or "이번 주 리포트입니다."
+    text = message.strip()
+    if not text:
+        raise HTTPException(status_code=422, detail="리포트와 함께 보낼 메시지를 입력해 주세요.")
 
     # 재시도는 기존 메시지를 바로 돌려줘 파일을 다시 쓰지 않는다.
     if client_request_id:

@@ -25,8 +25,6 @@ from app.api.deps import CurrentUser, RequireMember
 from app.core.rate_limit import rate_limit
 from app.services.audit import client_ip, record as audit
 from app.core.security import (
-    create_access_token,
-    create_refresh_token,
     decode_refresh_claims,
     hash_password,
     verify_password,
@@ -51,6 +49,7 @@ from app.schemas.user import (
     UserRegister,
 )
 from app.services import (
+    auth_tokens,
     consultation_service,
     health_goal_change,
     member_departure,
@@ -488,10 +487,7 @@ def login(
             status_code=401, detail="이메일 또는 비밀번호가 올바르지 않습니다."
         )
     audit(db, event="auth.login", user_id=user.id, ip=client_ip(request), success=True)
-    return Token(
-        access_token=create_access_token(user.id),
-        refresh_token=create_refresh_token(user.id),
-    )
+    return auth_tokens.issue_token_pair(user)
 
 
 @router.post(
@@ -518,6 +514,21 @@ def refresh(
     user = db.scalar(select(User).where(User.id == claims.subject))
     if user is None or not user.is_active:
         raise invalid
+    if not auth_tokens.is_current(user, claims.token_version):
+        # 비밀번호 변경 전에 발급된 refresh 토큰(#2766). 다른 기기에 남은 세션이다 —
+        # 회전해 주면 비밀번호를 바꾼 의미가 없다. 폐기 표에도 적어 같은 토큰이
+        # 다시 와도 같은 결과가 되게 한다(세대 칸이 되돌려져도 살아나지 않게).
+        token_revocation.revoke(
+            db, jti=claims.jti, user_id=user.id, expires_at=claims.expires_at
+        )
+        audit(
+            db,
+            event="auth.refresh_stale",
+            user_id=user.id,
+            ip=client_ip(request),
+            success=False,
+        )
+        raise invalid
     first_use = token_revocation.revoke(
         db, jti=claims.jti, user_id=user.id, expires_at=claims.expires_at
     )
@@ -531,10 +542,7 @@ def refresh(
             success=False,
         )
         raise invalid
-    return Token(
-        access_token=create_access_token(user.id),
-        refresh_token=create_refresh_token(user.id),
-    )
+    return auth_tokens.issue_token_pair(user)
 
 
 @router.post(

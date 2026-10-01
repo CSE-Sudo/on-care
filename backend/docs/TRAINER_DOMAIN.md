@@ -144,6 +144,11 @@
 - 코드로 연결되면 같은 트레이너·회원이라 상담 일정이 담당 회원 일정으로 그대로 이어지고,
   회원 건강 목표가 비어 있으면 그 트레이너에게 수락된 가장 최근 상담의 운동 목표로 채운다
   (`carry_consultation_into_link`, #1818). 회원이 마이페이지에서 고른 목표가 우선이다.
+- 상담 일정을 취소하거나 진행 전에 삭제하면 상담 요청도 `cancelled`(처리자 = 트레이너)가 되고
+  신청 때 잠근 자리가 풀린다(`consultation_service.withdraw_for_trainer_schedule`, #2758).
+  날짜·시각을 옮기면 요청은 `accepted` 로 두고 옛 자리만 풀어 요청에서 끊는다
+  (`release_slot_for_moved_schedule`) — 회원 응답의 시각은 일정 값을 따른다. 모두 일정 변경과
+  같은 트랜잭션이다.
 
 트레이너 웹은 회원 단위 요청이 404 로 돌아오면(`ClientAccessInterceptor`) 명단만
 곧바로 다시 읽는다. 명단에서 빠진 회원은 상세·메시지·리포트가 원래의 '찾을 수 없음'
@@ -222,7 +227,7 @@
 | GET | `/trainer/gyms/search?query=&lat=&lng=` | 소속으로 고를 헬스장 검색 — 등록된 헬스장 먼저, 카카오 결과 뒤(#2543) |
 | PUT | `/trainer/me/gym/kakao` | 카카오 검색 결과로 소속 설정 `{kakao_place_id, name}` — 카카오로 재확인, 아니면 404, 카카오 불가 503(#2543) |
 | DELETE | `/trainer/me/gym` | 소속 해제(원래 없어도 200) |
-| POST | `/trainer/me/password` | 비밀번호 변경(현재 비밀번호 확인) |
+| POST | `/trainer/me/password` | 비밀번호 변경(현재 비밀번호 확인). 성공하면 토큰 세대를 올려 다른 기기 토큰을 끊고, 요청 기기용 새 토큰 한 쌍을 돌려준다(#2766) |
 | GET | `/trainer/me/settings` | 알림 수신 설정 |
 | PUT | `/trainer/me/settings` | 알림 수신 설정 부분 수정 |
 | GET | `/trainer/clients` | 회원 로스터(회원 실데이터 집계) — 기본 50명, `after_id` 로 이어 받기 (#980) |
@@ -238,11 +243,11 @@
 | GET | `/trainer/clients/{member_id}/routines` | 배정 루틴 |
 | GET | `/trainer/clients/{member_id}/routines/unsent` | PT 에 붙여만 두고 아직 보내지 않은 개인운동 (#2225) |
 | GET | `/trainer/clients/{member_id}/deliveries/latest` | 가장 최근 전송 한 묶음 — 종류·PT 일정·개인운동 (#2225) |
-| POST | `/trainer/clients/{member_id}/routines` | 루틴 배정(단건). 시간은 `minutes` 또는 `duration_seconds` — 초가 오면 초가 기준이고 분은 반올림 (#2547) |
-| POST | `/trainer/clients/{member_id}/program` | 프로그램 배정 — 세션당 루틴 한 건 (#709). `delivery_kind`·`trainer_message`·`start_date`·`active_days` 로 프로그램 만들기의 `개인운동만` 전송을 받는다. `active_days` 만큼만 회원 목록에 걸어 둔다(`active_from`~`ended_on`, #2161) — `개인운동만` 은 7 을 보내 보낸 날부터 한 주 동안 걸리고, 다음 주 분은 트레이너가 다시 보낸다 (#2223). 보낼 때 이 트레이너가 보내 둔 이전 개인운동(`delivery_kind` 있는 줄)은 PT 와 함께 보낼 때처럼 오늘부로 내린다 (#2514) |
-| POST | `/trainer/clients/{member_id}/program-schedule` | 프로그램 탭 `일정 추가` — 배정과 PT 일정 등록을 한 트랜잭션으로, `client_request_id` 로 재시도 멱등 (#1580). 고른 시간대와 겹치는 예정 세션에 연결하고 없으면 새 일정, 여럿이면 `session_id` 필수(아니면 409 + 후보) (#1581) |
+| POST | `/trainer/clients/{member_id}/routines` | 루틴 배정(단건). 시간은 `minutes` 또는 `duration_seconds` — 초가 오면 초가 기준이고 분은 반올림 (#2547). 근력은 `sets`·`reps` 또는 버티기 `hold_seconds` 를 저장한다 — 제안 생성·승인도 같다 (#2753) |
+| POST | `/trainer/clients/{member_id}/program` | 프로그램 배정 — 세션당 루틴 한 건 (#709). `delivery_kind`·`trainer_message`·`start_date`·`active_days` 로 프로그램 만들기의 `개인운동만` 전송을 받는다. `active_days` 만큼만 회원 목록에 걸어 둔다(`active_from`~`ended_on`, #2161) — `개인운동만` 은 7 을 보내 보낸 날부터 한 주 동안 걸리고, 다음 주 분은 트레이너가 다시 보낸다 (#2223). 보낼 때 이 트레이너가 보내 둔 이전 개인운동(`delivery_kind` 있는 줄)은 PT 와 함께 보낼 때처럼 오늘부로 내린다 (#2514). `suggestion_ids` 로 개인운동을 채운 대기 중 AI 제안 id 를 받으면 배정과 같은 트랜잭션에서 그 제안을 `consumed` 로 닫는다 — 검토 목록·회원 목록 어디에도 다시 뜨지 않고 백로그 한도에서도 빠진다. 이 트레이너·이 회원의 대기 제안이 아닌 id 는 무시한다 (#2747) |
+| POST | `/trainer/clients/{member_id}/program-schedule` | 프로그램 탭 `일정 추가` — 배정과 PT 일정 등록을 한 트랜잭션으로, `client_request_id` 로 재시도 멱등 (#1580). 고른 시간대와 겹치는 예정 세션에 연결하고 없으면 새 일정, 여럿이면 `session_id` 필수(아니면 409 + 후보) (#1581). `suggestion_ids` 는 `program` 과 같은 규약으로 같은 트랜잭션에서 대기 제안을 닫는다 — 등록이 실패하면 제안도 대기로 남는다 (#2747) |
 | GET | `/trainer/schedule/{session_id}/routines` | 그 PT 일정에 붙어 있는 개인운동 — 보낸 것까지, 건마다 `pending_send` (#2223, #2224) |
-| PUT | `/trainer/schedule/{session_id}/routines` | 그 PT 에 붙은 개인운동 고치기 — 보내지는 않는다 (#2224). 붙은 것이 없으면 처음 붙인다 — 일정 상세에서 코칭 탭의 개인운동 단계로 가 짠 것. 회원·PT 프로그램이 있고 아직 보내지 않은, 취소·노쇼가 아닌 PT 만이고 출처는 받은 그대로다 (#2280) |
+| PUT | `/trainer/schedule/{session_id}/routines` | 그 PT 에 붙은 개인운동 고치기 — 보내지는 않는다 (#2224). 붙은 것이 없으면 처음 붙인다 — 일정 상세에서 코칭 탭의 개인운동 단계로 가 짠 것. 회원·PT 프로그램이 있고 아직 보내지 않은, 취소·노쇼가 아닌 PT 만이고 출처는 받은 그대로다 (#2280). `suggestion_ids` 를 주면 그 개인운동을 채운 이 회원의 대기 중 AI 제안을 같은 트랜잭션에서 `consumed` 로 닫는다 — 실패하면 대기로 남는다 (#2747) |
 | PUT | `/trainer/clients/{member_id}/routines/{routine_id}` | 루틴 부분 수정(이름·시간·종류·사유). `duration_seconds` 를 보내면 분을 초에서 다시 접고, `minutes` 만 보내면 예전 초를 지운다 (#2547) |
 | DELETE | `/trainer/clients/{member_id}/routines/{routine_id}` | 루틴 철회 |
 | GET | `/trainer/clients/{member_id}/memos` | 회원 메모 목록(최신순) |
@@ -251,7 +256,7 @@
 | DELETE | `/trainer/clients/{member_id}/memos/{memo_id}` | 메모 삭제 |
 | POST | `/trainer/schedule/recurring/preview` | 반복 설정이 만들 회차와 겹치는 기존 일정 |
 | POST | `/trainer/schedule/recurring` | 주간 반복 회차 일괄 등록(전부 아니면 전무, 409 에 충돌 목록) |
-| POST | `/trainer/schedule/{session_id}/cancel` | 일정 취소 기록(`source`=member\|trainer\|other, `reason?`). 회원 예약으로 생긴 일정이면 예약을 거두고 슬롯 좌석을 돌려준다(#2283) |
+| POST | `/trainer/schedule/{session_id}/cancel` | 일정 취소 기록(`source`=member\|trainer\|other, `reason?`). 회원 예약으로 생긴 일정이면 예약을 거두고 슬롯 좌석을 돌려준다(#2283). 상담 요청으로 생긴 일정이면 요청을 `cancelled` 로 바꾸고 신청 때 잠근 자리를 돌려준다(#2758) |
 | POST | `/trainer/schedule/{session_id}/no-show` | 노쇼 기록 |
 | GET | `/trainer/clients/{member_id}/follow-ups?include_completed=` | 회원 후속 관리 할 일(예정일 순, 기본 미완료) |
 | POST | `/trainer/clients/{member_id}/follow-ups` | 후속 관리 등록 (`client_request_id?` 로 재시도 멱등) |
@@ -280,6 +285,7 @@
 | GET | `/trainer/clients/{member_id}/report?week_start=` | 주간 리포트(어느 요일을 줘도 그 주 월요일로 정규화) |
 | GET | `/trainer/clients/{member_id}/report/summary?week_start=` | 주간 리포트 AI 요약(머리 문장 + 근거 최대 3줄) |
 | POST | `/trainer/clients/{member_id}/report/send` | 리포트를 회원 채팅 스레드로 전송 |
+| POST | `/trainer/clients/{member_id}/report/send-pdf` | 리포트 PDF 를 회원 채팅 스레드로 전송 — `message` 필수, 공백뿐이면 422 (#2771) |
 
 리포트 요약(`headline`·`points`)과 리포트 본문의 초안 문장(`message`, 본문 없이 보낸
 `report/send` 가 쓰는 글)은 요청의 `Accept-Language` 언어로 만든다(#2298). `en` 이면
@@ -314,6 +320,12 @@ scope에 포함해 회원과 트레이너가 우연히 같은 키를 만들어�
 | `POST /trainer/consultations/{id}/accept` | — |
 
 회원 예약 응답에는 `conflicts` 를 싣지 않는다 — 트레이너의 다른 일정(남의 이름·시각)이다.
+
+반대 방향도 있다(#2761). 자리를 **연 뒤에** 그 시간에 일정이 생기면 위 경로들은 막지 않는다
+— 일정 저장은 자리를 보지 않는다. 대신 자리 목록을 만들 때마다
+`reservation_service.overlapped_slot_ids` 가 같은 규칙으로 판정해 `overlapped` 를 싣는다
+(그 자리의 예약·상담이 만든 일정은 뺀다). 회원 목록은 마감, 상담 신청 폼은 제외, 트레이너
+슬롯 창은 `일정과 겹침` 이다. 자리를 닫지 않으므로 일정을 취소·이동하면 다시 빈 자리가 된다.
 
 ### 스케줄 구간 조회 (`from`/`to`)
 
@@ -523,6 +535,9 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 
 - 회원별 식단·기록과 최신 메시지·루틴을 **배치 조회**한다(N+1 방지).
   `chat_messages`·`trainer_routines`의 회원별 최신 1건은 **`DISTINCT ON (member_id)`**로 한 번에.
+- 카드의 `age` 는 `HealthProfile.birth_date` 로 센 만 나이(KST 오늘 기준)다. 성별·목표와 같은
+  배치 조회에서 읽고, 연결 확인 카드(`PairedMemberOut.age`)와 같은 `profile_format.age_on` 으로
+  센다. 생년월일이 없거나 읽히지 않으면 `null` — 앱이 나이를 지어내지 않는다(#2744).
 - `last_routine` 라벨은 `created_at`(UTC 저장)을 **시스템 로컬 시각으로 변환**해 계산한다
   (`_local_date_iso` → `astimezone().date()`). UTC `.date()`로 계산하면 자정 근처에서
   '오늘/어제'가 어긋난다. 운영은 `TZ=Asia/Seoul`.

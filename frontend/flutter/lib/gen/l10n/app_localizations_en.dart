@@ -2666,6 +2666,24 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get aicBodyPartKnee => 'Knee';
+
+  @override
+  String get aicBodyPartBack => 'Back';
+
+  @override
+  String get aicBodyPartAnkle => 'Ankle';
+
+  @override
+  String get aicBodyPartShoulder => 'Shoulder';
+
+  @override
+  String get aicBodyPartWrist => 'Wrist';
+
+  @override
+  String get aicBodyPartNeck => 'Neck';
+
+  @override
   String get aicInsightDiscomfort => 'Pain noted';
 
   @override
@@ -2865,6 +2883,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exConsultExpiredBody =>
       'The trainer did not respond in time. Try requesting another time.';
+
+  @override
+  String get exConsultCancelledByTrainerBody =>
+      'The trainer cancelled this consultation. Try requesting another time.';
 
   @override
   String get exExerciseGoal => 'Exercise Goal';
@@ -3101,6 +3123,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get authSocialSignInFailed =>
       'Social sign-in failed. Please try again in a moment';
+
+  @override
+  String get authSocialComingSoon =>
+      'Social sign-in is coming soon. Please sign in with your email';
 
   @override
   String get signUpTitle => 'Sign up';
