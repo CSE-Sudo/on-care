@@ -39,6 +39,84 @@ final _consultationMissionsProvider =
       return ref.watch(consultationRepositoryProvider).fetch();
     }, name: 'consultationMissions');
 
+/// 비동기 원천이 한 번이라도 답했는가 — 값이든 오류든.
+bool _settled(AsyncValue<Object?> value) => value.hasValue || value.hasError;
+
+/// 저장된 기록에서 되살린 체크·이월. [restoreTaskMarks] 의 결과.
+typedef TaskMarks = ({Set<String> checked, Set<String> carriedOver});
+
+/// 오늘 기록 [today] 와 어제 기록 [yesterday] 에서 [keys] 의 체크·이월을
+/// 되살린다. 처음 초기화와 늦게 나타난 미션(#2763)이 같은 규칙을 쓴다.
+///
+/// 체크한 키를 저장해 둔 날은 그 키만 되살린다(#1716). 옛 기록만 있는 날은
+/// pending 에서 추정한다 — 그때는 마지막 저장 뒤에 생긴 미션도 체크로 보인다.
+/// 이월은 어제 끝내지 못한 키다(#2228).
+@visibleForTesting
+TaskMarks restoreTaskMarks({
+  required Set<String> keys,
+  required DailyTaskSnapshot? today,
+  required DailyTaskSnapshot? yesterday,
+  required Set<String> dismissed,
+}) {
+  final Set<String>? completed = today?.completedKeys;
+  final Set<String> checked = today == null
+      ? <String>{}
+      : completed != null
+      ? completed.intersection(keys).difference(dismissed)
+      : keys
+            .where(
+              (String k) =>
+                  !today.pendingKeys.contains(k) && !dismissed.contains(k),
+            )
+            .toSet();
+  final Set<String> carriedOver = yesterday == null
+      ? <String>{}
+      : yesterday.pendingKeys.intersection(keys);
+  return (checked: checked, carriedOver: carriedOver);
+}
+
+/// 오늘 저장할 스냅숏 — 화면이 아는 미션의 상태에, 화면이 아직 모르는 미션의
+/// 저장 상태를 그대로 얹는다(#2763).
+///
+/// 저장은 그날 전체를 덮어쓴다. 상담 목록 읽기가 실패했거나 늦어 화면에 없는
+/// 미션을 빼고 저장하면, 다른 기기나 이전 방문에서 해 둔 그 체크가 서버에서
+/// 사라지고 진행률 그래프의 완료 수가 준다. 그래서 [seen] 밖의 키는 [saved]
+/// 의 완료·미완료를 그대로 옮긴다. 화면에 나타났다가 사라진 미션(상담을
+/// 처리해 대기에서 빠진 요청 등)은 전처럼 빠진다.
+///
+/// 옮겨 온 완료는 이월분인지 알 수 없어 오늘 완료로 센다. 옛 기록(체크 키가
+/// 없는 날)의 완료는 알 수 없어 옮기지 않는다.
+@visibleForTesting
+DailyTaskSnapshot composeTaskSnapshot({
+  required Set<String> allKeys,
+  required Set<String> checked,
+  required Set<String> carriedOver,
+  required Set<String> dismissed,
+  required Set<String> seen,
+  required DailyTaskSnapshot? saved,
+}) {
+  final Set<String> done = checked.intersection(allKeys);
+  final int carriedDone = done.intersection(carriedOver).length;
+  final Set<String> unseen = <String>{
+    ...?saved?.completedKeys,
+    ...?saved?.pendingKeys,
+  }.difference(seen).difference(dismissed).difference(allKeys);
+  final Set<String> keptDone = unseen.intersection(
+    saved?.completedKeys ?? const <String>{},
+  );
+  final Set<String> keptPending = unseen
+      .intersection(saved?.pendingKeys ?? const <String>{})
+      .difference(keptDone);
+  return DailyTaskSnapshot(
+    total: allKeys.length + keptDone.length + keptPending.length,
+    completedToday: done.length - carriedDone + keptDone.length,
+    completedCarriedOver: carriedDone,
+    pendingKeys: allKeys.difference(done).union(keptPending),
+    dismissedKeys: Set<String>.of(dismissed),
+    completedKeys: done.union(keptDone),
+  );
+}
+
 /// One concrete 오늘 할 일 item — 상담 요청 하나, 건강 신호가 있는 고객
 /// 하나, 프로그램 미등록 고객 하나, 리포트 대상 고객 하나 등.
 ///
@@ -102,39 +180,57 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
   Set<String> _carriedOverKeys = <String>{};
   String? _initializedForDate;
 
+  /// 지금까지 화면에 나타난 미션 키 — 저장된 체크·이월을 이미 옮겨 온 키다.
+  ///
+  /// 이 밖의 키는 아직 이 화면이 모르는 미션이다(원천이 늦게 왔거나 읽기에
+  /// 실패했다). 그런 키의 저장 상태는 덮어쓰지 않고 그대로 둔다(#2763).
+  Set<String> _seenKeys = <String>{};
+
   void _initializeIfNewDay(Set<String> missionKeys, DailyTaskHistory history) {
     final today = ymd(nowKst());
     if (_initializedForDate == today) return;
     _initializedForDate = today;
     final snapshot = history.read(today);
-    final DateTime yesterdayDay = nowKst().subtract(const Duration(days: 1));
-    final yesterdayDate = ymd(yesterdayDay);
-    // 어제 기록이 없으면 데모 이력을 본다 — 그 안의 미완료 키는 데모 전용이라
-    // 오늘의 실제 항목을 이월로 끌어가지 않는다(#1203). 실계정은 데모 이력이
-    // 없다(#2671).
-    final yesterday =
-        history.read(yesterdayDate) ??
-        ref.read(demoTaskHistoryProvider)?.snapshotFor(yesterdayDay);
     _dismissedKeys = snapshot == null
         ? <String>{}
         : Set<String>.of(snapshot.dismissedKeys);
-    // 체크한 키를 저장해 둔 날은 그 키만 되살린다(#1716). 옛 기록만 있는 날은
-    // pending 에서 추정한다 — 그때는 마지막 저장 뒤에 생긴 미션도 체크로 보인다.
-    final Set<String>? completed = snapshot?.completedKeys;
-    _checkedKeys = snapshot == null
-        ? <String>{}
-        : completed != null
-        ? completed.intersection(missionKeys).difference(_dismissedKeys)
-        : missionKeys
-              .where(
-                (k) =>
-                    !snapshot.pendingKeys.contains(k) &&
-                    !_dismissedKeys.contains(k),
-              )
-              .toSet();
-    _carriedOverKeys = yesterday == null
-        ? <String>{}
-        : yesterday.pendingKeys.intersection(missionKeys);
+    final TaskMarks marks = restoreTaskMarks(
+      keys: missionKeys,
+      today: snapshot,
+      yesterday: _yesterdaySnapshot(history),
+      dismissed: _dismissedKeys,
+    );
+    _checkedKeys = marks.checked;
+    _carriedOverKeys = marks.carriedOver;
+    _seenKeys = Set<String>.of(missionKeys);
+  }
+
+  /// 초기화 뒤에 새로 나타난 미션에 저장된 체크·이월을 옮겨 온다(#2763).
+  ///
+  /// 미션 원천은 여럿이고(상담 요청·회원 명단·건강 신호) 도착 순서가 매번
+  /// 다르다. 원천이 모두 준비된 뒤에 초기화하지만, 그 뒤에 생긴 미션(새 상담
+  /// 요청, 다시 읽은 명단)도 같은 날 저장해 둔 체크를 잃지 않게 한다.
+  void _restoreLateKeys(Set<String> missionKeys, DailyTaskHistory history) {
+    final Set<String> late = missionKeys.difference(_seenKeys);
+    if (late.isEmpty) return;
+    _seenKeys.addAll(late);
+    final TaskMarks marks = restoreTaskMarks(
+      keys: late,
+      today: history.read(ymd(nowKst())),
+      yesterday: _yesterdaySnapshot(history),
+      dismissed: _dismissedKeys,
+    );
+    _checkedKeys.addAll(marks.checked);
+    _carriedOverKeys.addAll(marks.carriedOver);
+  }
+
+  /// 어제 기록. 없으면 데모 이력을 본다 — 그 안의 미완료 키는 데모 전용이라
+  /// 오늘의 실제 항목을 이월로 끌어가지 않는다(#1203). 실계정은 데모 이력이
+  /// 없다(#2671).
+  DailyTaskSnapshot? _yesterdaySnapshot(DailyTaskHistory history) {
+    final DateTime yesterdayDay = nowKst().subtract(const Duration(days: 1));
+    return history.read(ymd(yesterdayDay)) ??
+        ref.read(demoTaskHistoryProvider)?.snapshotFor(yesterdayDay);
   }
 
   /// 저장된 상태를 아직 못 읽었으면 체크·삭제를 받지 않는다 — 빈 상태에서
@@ -197,22 +293,17 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
   }
 
   Future<void> _persist(Set<String> allKeys) async {
-    final checked = _checkedKeys.intersection(allKeys);
-    final carriedCompleted = checked.intersection(_carriedOverKeys).length;
+    final String today = ymd(nowKst());
+    final DailyTaskSnapshot snapshot = composeTaskSnapshot(
+      allKeys: allKeys,
+      checked: _checkedKeys,
+      carriedOver: _carriedOverKeys,
+      dismissed: _dismissedKeys,
+      seen: _seenKeys,
+      saved: ref.read(dailyTaskHistoryProvider).valueOrNull?.read(today),
+    );
     try {
-      await ref
-          .read(dailyTaskHistoryProvider.notifier)
-          .save(
-            ymd(nowKst()),
-            DailyTaskSnapshot(
-              total: allKeys.length,
-              completedToday: checked.length - carriedCompleted,
-              completedCarriedOver: carriedCompleted,
-              pendingKeys: allKeys.difference(checked),
-              dismissedKeys: Set<String>.of(_dismissedKeys),
-              completedKeys: checked,
-            ),
-          );
+      await ref.read(dailyTaskHistoryProvider.notifier).save(today, snapshot);
     } on AppError {
       if (!mounted) return;
       showAppToast(
@@ -331,7 +422,16 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
     final missions = _buildMissions(l);
     final missionKeys = <String>{for (final m in missions) m.key};
     final history = ref.watch(dailyTaskHistoryProvider).valueOrNull;
-    if (history != null) _initializeIfNewDay(missionKeys, history);
+    // 미션 원천이 모두 답한 뒤에만 저장 상태를 옮겨 온다(#2763). 이력이 상담
+    // 목록보다 먼저 오면, 그 순간 없는 상담 키의 체크·이월이 버려지고 그 상태로
+    // 저장해 서버의 상담 체크까지 덮어썼다. 그 전에는 체크·삭제도 받지 않는다.
+    final bool sourcesSettled =
+        _settled(ref.watch(_consultationMissionsProvider)) &&
+        _settled(ref.watch(clientsProvider));
+    if (history != null && sourcesSettled) {
+      _initializeIfNewDay(missionKeys, history);
+      _restoreLateKeys(missionKeys, history);
+    }
     final allKeys = missionKeys.difference(_dismissedKeys);
     final visible = missions.where((m) => allKeys.contains(m.key)).toList();
 
@@ -551,9 +651,7 @@ class _CategorySectionState extends State<_CategorySection> {
                       remaining == 0
                           ? OnCareColors.success
                           : OnCareColors.textSecondary,
-                      _expanded
-                          ? AppIcons.expandLess
-                          : AppIcons.chevronRight,
+                      _expanded ? AppIcons.expandLess : AppIcons.chevronRight,
                     ),
                 ],
               ),
