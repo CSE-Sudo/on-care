@@ -42,7 +42,7 @@
 | `trainer_profiles` | 트레이너 프로필(전문분야·경력·소속 짐) |
 | `trainer_clients` | 트레이너↔회원 담당 링크(로스터의 정의) |
 | `trainer_routines` | 트레이너/AI가 회원에게 배정한 루틴. PT 일정에 붙인 개인운동은 `schedule_id`·`status='scheduled'`·`delivery_kind` 를 갖는다(`0092_routine_schedule_link`, #2223) |
-| `trainer_client_memos` | 트레이너가 회원별로 남긴 메모(직접 작성 + 채팅 인사이트 + 운동 기록 카드, `0036_trainer_memos`·`0106_trainer_memo_exercise_ref`). 분류 `category`(`exercise`·`diet`·`pain`·`life`, 빈 문자열 = 고르지 않음, `0111_trainer_memo_category`, #2622) |
+| `trainer_client_memos` | 트레이너가 회원별로 남긴 메모(직접 작성 + 채팅 인사이트 + 운동 기록 카드, `0036_trainer_memos`·`0106_trainer_memo_exercise_ref`). 분류 `category`(`exercise`·`diet`·`pain`·`life`, 빈 문자열 = 고르지 않음, `0129_trainer_memo_category`, #2622) |
 | `trainer_follow_up_tasks` | 트레이너가 회원별로 남긴 후속 관리 할 일(예정일·완료 상태, `0047_trainer_follow_up_task`) |
 | `trainer_program_drafts` | 트레이너가 저장해 둔 프로그램 초안(세션 배열, 회원과 묶이지 않음, `0038`+`0039`) |
 | `routine_history` | 회원 운동 완료 기록(회원 앱·PT 세션 공용 원본) |
