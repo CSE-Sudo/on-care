@@ -276,3 +276,24 @@ jobs:
             exit 1
           fi
           echo "healthz OK: env=$ACTUAL_ENV demo_fallback=false demo_seed=$DEMO_SEED"
+
+      # healthz 는 프로세스만 본다(App Runner 헬스체크도 healthz 다 — DB 일시 장애로
+      # 인스턴스를 갈아 치우지 않게). DB 까지 닿는지는 배포 직후 readyz 로 따로 본다(#2912).
+      - name: Verify database reachability (readyz)
+        env:
+          URL: ${{ steps.apprunner.outputs.url }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 6); do
+            if BODY=$(curl -fsS --max-time 10 "https://$URL/v1/readyz"); then
+              STATUS=$(printf '%s' "$BODY" | jq -r '.status // "missing"')
+              if [ "$STATUS" = "ready" ]; then
+                echo "readyz OK"
+                exit 0
+              fi
+            fi
+            echo "readyz not ready, retry $i"
+            sleep 10
+          done
+          echo "::error::배포 후 /v1/readyz 가 ready 를 돌려주지 않습니다 — DATABASE_URL·DB 보안 그룹·DB 상태를 확인하세요."
+          exit 1

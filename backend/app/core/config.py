@@ -107,6 +107,9 @@ class Settings(BaseSettings):
     # Gemini HTTP 타임아웃(초). 걸지 않으면 무응답 시 호출 스레드가 무기한 묶여
     # 워커 풀이 고갈된다(추천 경로는 스레드 풀에서 돈다).
     gemini_timeout_seconds: float = 30.0
+    # 식단 사진 인식 HTTP 타임아웃(초, #2912). 사진 분석은 글 응답보다 오래 걸려
+    # gemini_timeout_seconds 와 따로 둔다. Gemini·LiteLLM 비전 인식기가 함께 쓴다.
+    recognizer_timeout_seconds: float = 60.0
     coach_llm: str = "gemini"         # openai | gemini | litellm
     openai_api_key: str = ""
     openai_chat_model: str = "gpt-4o"

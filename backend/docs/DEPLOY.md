@@ -16,6 +16,14 @@ GitHub(main push) ──> Actions ──> ECR(이미지) ──> App Runner(:800
 가 여러 인스턴스를 동시에 띄워도 하나만 마이그레이션하고 나머지는 대기 후 no-op 이다(리뷰 #3).
 운영은 `AUTO_CREATE_TABLES=false` 로 두고 Alembic 을 스키마의 유일한 소스로 삼는다.
 
+> **DB 연결 한도**: `scripts/migrate.py` 는 `MIGRATE_CONNECT_TIMEOUT`(기본 10초) 안에 DB 에 붙지
+> 못하면 실패한다(#2912). 잘못된 호스트·막힌 보안 그룹에서 OS TCP 타임아웃(수 분)까지 기다려 헬스체크
+> 한도를 넘기지 않게 하려는 값이다.
+>
+> **확장 생성은 마이그레이션 몫**: 앱 기동의 `init_db` 는 `AUTO_CREATE_TABLES=true`(로컬 개발)일 때만
+> `CREATE EXTENSION vector` 를 부른다(#2912). 운영은 Alembic 첫 리비전이 확장을 만들므로, 앱 계정에
+> 확장 생성 권한이 없어도 기동 경고가 남지 않는다.
+>
 > **무거운 마이그레이션 주의**: lock 획득 대기 한도는 `MIGRATE_LOCK_TIMEOUT`(기본 120초)다.
 > 데이터가 쌓인 뒤 120초를 넘길 수 있는 마이그레이션을 배포하기 전에는, 동시에 뜬 다른 인스턴스가
 > fail-fast·재시작 루프에 빠지지 않도록 이 값을 넉넉히(예: `MIGRATE_LOCK_TIMEOUT=600`) 올려 둔다.
@@ -27,7 +35,9 @@ GitHub(main push) ──> Actions ──> ECR(이미지) ──> App Runner(:800
 `alembic heads` 가 **정확히 1개**인지 검사해 마이그레이션 head 분기(선형화 누락)를 막는다.
 배포 잡은 `concurrency` 로 한 번에 하나만 돌고, `update-service`가 반환한 정확한 OperationId와
 `/v1/healthz` 를 폴링해 **실제 배포·기동 성공까지 확인**한 뒤, healthz 가 싣는 설정(`env`·
-`demo_fallback`·`demo_seed`)이 운영 기대값인지 확인하고 나서야 워크플로우를 통과시킨다(#2821).
+`demo_fallback`·`demo_seed`)이 운영 기대값인지 확인하고(#2821), `/v1/readyz` 로 **DB 까지 닿는지**
+확인하고 나서야 워크플로우를 통과시킨다(#2912). App Runner 헬스체크는 계속 healthz 다 — DB 일시
+장애로 인스턴스를 갈아 치우지 않게 프로세스 생존만 본다.
 
 **수동 실행**도 CI 게이트를 우회하지 않는다. `main`에서 워크플로우를 실행하며 배포할 40자리
 커밋 SHA를 입력해야 하고, 워크플로우가 GitHub Actions API에서 그 SHA의 `main` push에 대한
@@ -87,6 +97,9 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `SEED_DEMO_DATA` | 운영 권장 `false`. 데이터 든 데모 계정을 두려면 `true` + `DEMO_LOGIN_PASSWORD` 필수 |
 | `DEMO_LOGIN_PASSWORD` | `SEED_DEMO_DATA=true` 일 때 12자+ 강한 값(아니면 기동 거부) |
 | `GEMINI_API_KEY` 또는 LiteLLM(`LITELLM_*`) | 식단 인식/코치. 없으면 stub 폴백 |
+| `GEMINI_MODEL` | 운영은 **고정 버전** 모델 이름(아래 "모델 고정"). 비우면 코드 기본 별칭 |
+| `RECOGNIZER_TIMEOUT_SECONDS` | 식단 사진 인식 한 건의 대기 한도(초, 기본 60, #2912) |
+| `MIGRATE_CONNECT_TIMEOUT` | 기동 마이그레이션의 DB 연결 한도(초, 기본 10, #2912) |
 | `KAKAO_REST_API_KEY` | 장소(O2O) 실검색. 없으면 시드 폴백. `PLACES_PROVIDER=auto` 기본 |
 
 > 참고: 키가 없어도 인식/장소는 폴백으로 동작(기동은 됨). 운영 시크릿은 Secrets Manager/SSM 에 두고
@@ -185,6 +198,36 @@ App Runner 의 컨테이너 디스크는 재배포·재시작·스케일 아웃 
       변수 `BACKEND_EXPECTED_ENV`(기본 `prod`)다. 데모 서비스를 이 워크플로로 배포한다면 그 서비스용
       설정에서 이 값을 `staging` 으로 둔다.
 - [ ] 기동 로그에 `[startup]` WARN 이 없다(데모 폴백·운영 데모 시드·로컬 첨부 저장소).
+
+## 5-3) 모델 고정 (#2912)
+
+코드 기본값 `GEMINI_MODEL=gemini-flash-latest` 는 **별칭**이라 제공자가 가리키는 모델을 바꾸면
+배포 없이 응답 품질·형식·비용이 바뀐다. 로컬·데모는 별칭으로 두되(핀 모델이 은퇴해 깨지는 일을
+피한다), 운영은 고정 버전을 넣는다.
+
+1. 제공자 문서에서 현재 별칭이 가리키는 고정 버전 이름과 은퇴 예정일을 확인한다.
+2. 데모(스테이징) 서비스의 `GEMINI_MODEL` 을 그 이름으로 바꿔 식단 사진 인식·코치 답변을 확인한다.
+3. 운영 App Runner 환경변수 `GEMINI_MODEL` 을 같은 값으로 바꾼다(재배포 없이 서비스 갱신).
+4. 은퇴 예정일 한 달 전에 같은 절차로 다음 버전으로 옮긴다. 담당자는 배포 담당(#480)이다.
+
+임베딩 설정(`EMBEDDER`·`EMBED_DIM` 등)은 바꾸면 저장된 벡터와 차원·공간이 어긋나므로 여기서 다루지
+않는다 — 바꿀 때는 재임베딩(`scripts/reembed`)이 함께 필요하다.
+
+## 5-4) 정기 운영 작업 (#2912)
+
+| 작업 | 주기 | 방법 | 담당 |
+|---|---|---|---|
+| 읽은 알림 정리 | 매월 1회 | `python -m scripts.purge_notifications --dry-run` 으로 대상 확인 → 같은 명령에서 `--dry-run` 을 빼고 실행. 읽은 알림 중 90일 지난 것만 지운다 | 배포 담당(#480) |
+| 모델 은퇴 확인 | 분기 1회 | 위 5-3 | 배포 담당(#480) |
+
+알림 정리는 되돌릴 수 없어 자동 스케줄로 돌리지 않는다. 운영 DB 를 향한 `DATABASE_URL` 로
+컨테이너(또는 같은 이미지의 일회성 작업)에서 실행한다.
+
+## 리전 (#2912)
+
+리전은 **아직 확정하지 않았다**(#480 에서 결정). 현재 설정은 백엔드 `ap-southeast-1`(Neon DB 와
+같은 리전, 위 1절), 프론트 정적 호스팅 `ap-northeast-2` 다. 첨부 저장소 S3 버킷은 **백엔드와 같은
+리전**에 둔다(`ATTACHMENT_S3_REGION`) — 다른 리전이면 업로드·다운로드마다 리전 간 전송 지연·요금이 붙는다.
 
 ## 6) 프론트 연결
 
