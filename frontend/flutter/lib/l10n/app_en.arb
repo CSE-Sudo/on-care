@@ -1569,6 +1569,9 @@
     "description": "Button above the trainer chat thread that fetches the previous page (#1943)."
   },
   "coachChatLoadFailed": "Couldn't load the conversation",
+  "coachChatEmptyTitle": "Start a conversation with {trainer}",
+  "@coachChatEmptyTitle": {"placeholders": {"trainer": {"type": "String"}}},
+  "coachChatEmptyBody": "Send a photo of what you ate today or ask about your workouts",
   "coachChatSendFailed": "Couldn't send your message. Please try again",
   "coachPhotoAttach": "Send a photo",
   "@coachPhotoAttach": {

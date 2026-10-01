@@ -2273,6 +2273,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachChatLoadFailed => 'Couldn\'t load the conversation';
 
   @override
+  String coachChatEmptyTitle(String trainer) {
+    return 'Start a conversation with $trainer';
+  }
+
+  @override
+  String get coachChatEmptyBody =>
+      'Send a photo of what you ate today or ask about your workouts';
+
+  @override
   String get coachChatSendFailed =>
       'Couldn\'t send your message. Please try again';
 

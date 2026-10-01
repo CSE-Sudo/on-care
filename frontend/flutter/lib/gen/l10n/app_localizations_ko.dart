@@ -2200,6 +2200,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachChatLoadFailed => '대화를 불러오지 못했어요';
 
   @override
+  String coachChatEmptyTitle(String trainer) {
+    return '$trainer님과 대화를 시작해 보세요';
+  }
+
+  @override
+  String get coachChatEmptyBody => '오늘 먹은 식단 사진이나 운동하며 궁금한 점을 보내 보세요';
+
+  @override
   String get coachChatSendFailed => '메시지 전송에 실패했어요. 다시 시도해 주세요';
 
   @override

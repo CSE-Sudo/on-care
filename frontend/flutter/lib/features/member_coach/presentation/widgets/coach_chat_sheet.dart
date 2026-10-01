@@ -390,6 +390,11 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     ) {
       final List<CoachMessage>? before = previous?.valueOrNull;
       final List<CoachMessage>? after = next.valueOrNull;
+      // 보낸 사진이 대화에 들어왔으면 대기 목록에서 뺀다 — 원본 바이트가
+      // 화면을 오래 열어 둔 만큼 쌓이지 않게(#2880).
+      if (after != null) {
+        ref.read(coachPhotoSendProvider.notifier).settle(after);
+      }
       if (before == null || after == null) return;
       if (hasNewReportNotice(before, after)) {
         ref.invalidate(sentReportNoticesProvider);
@@ -467,10 +472,13 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
             Expanded(
               child: chat.when(
                 loading: () => const AppLoading(),
-                // 재시도 동작은 원래 없었다 — 문구만 규격 빈 화면 틀에 담는다.
-                error: (_, _) => AppEmptyState(
+                // 다음 폴링까지 기다리지 않고 다시 받을 수 있게 한다(#2880).
+                error: (_, _) => AppErrorState(
+                  key: const ValueKey<String>('coach-chat-error'),
                   title: l.coachChatLoadFailed,
-                  icon: AppIcons.error,
+                  retryLabel: l.actionRetry,
+                  retryKey: const ValueKey<String>('coach-chat-retry'),
+                  onRetry: () => ref.invalidate(coachChatProvider),
                 ),
                 data: (latest) {
                   // 폴링이 주는 최신 쪽 앞에, 손으로 더 받아 온 옛 쪽을 붙여
@@ -501,6 +509,16 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                     for (final PendingCoachPhoto p in photos)
                       if (p.status != CoachPhotoSendStatus.sent) p,
                   ];
+                  // 연결만 되고 아직 주고받은 것이 없으면 입력줄 위가 통째로
+                  // 비었다. 무엇을 보내면 되는지 안내한다(#2880).
+                  if (messages.isEmpty && unsent.isEmpty) {
+                    return AppEmptyState(
+                      key: const ValueKey<String>('coach-chat-empty'),
+                      title: l.coachChatEmptyTitle(widget.trainerName),
+                      message: l.coachChatEmptyBody,
+                      icon: AppIcons.chat,
+                    );
+                  }
                   final ChatEdges edges = ChatEdges(
                     oldestId: messages.firstOrNull?.id,
                     newestId: unsent.isNotEmpty
@@ -686,6 +704,12 @@ class _MessageRow extends ConsumerWidget {
     );
   }
 
+  /// 본문 글줄을 그릴지. 글 없이 보낸 사진은 본문이 빈 문자열이라, 그대로
+  /// 그리면 사진 위에 빈 글줄과 간격만큼 여백이 생겼다(#2880). 첨부가 없으면
+  /// 빈 본문이어도 말풍선 높이를 지키려고 그린다.
+  bool get _hasText =>
+      message.body.trim().isNotEmpty || message.attachment == null;
+
   /// 말풍선 내용. 리포트 등록 안내는 여기로 오지 않는다 — 그것은 말풍선이
   /// 아니라 대화 가운데 안내라, 스레드를 세울 때 갈라진다(#1600).
   Widget _body(BuildContext context, WidgetRef ref) {
@@ -701,10 +725,11 @@ class _MessageRow extends ConsumerWidget {
             id: emote,
             semanticLabel: AppLocalizations.of(context).a11yEmote,
           )
-        else
+        else if (_hasText)
           Text(message.body),
         if (message.attachment case final attachment?) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s8),
+          if (message.emoteId != null || _hasText)
+            const SizedBox(height: OnCareSpacing.s8),
           // 사진은 대화 안에서 그리고, 리포트 PDF 는 내려받는
           // 카드로 둔다. 사진을 카드로 두면 볼 때마다 파일을
           // 열어야 한다. (#921)

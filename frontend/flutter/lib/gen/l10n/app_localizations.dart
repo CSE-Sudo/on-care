@@ -3980,6 +3980,18 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the conversation'**
   String get coachChatLoadFailed;
 
+  /// No description provided for @coachChatEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a conversation with {trainer}'**
+  String coachChatEmptyTitle(String trainer);
+
+  /// No description provided for @coachChatEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a photo of what you ate today or ask about your workouts'**
+  String get coachChatEmptyBody;
+
   /// No description provided for @coachChatSendFailed.
   ///
   /// In en, this message translates to:

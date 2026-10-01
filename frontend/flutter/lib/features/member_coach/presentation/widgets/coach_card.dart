@@ -93,8 +93,12 @@ class CoachCard extends ConsumerWidget {
                                 )
                                 .copyWith(color: OnCareColors.textTertiary),
                           ),
+                          // 전문 분야를 비운 트레이너는 이름만 — 가운뎃점만
+                          // 남지 않게 한다(#2880, 트레이너 정보 한 줄 #2083).
                           Text(
-                            '${coach.name} · ${coach.specialty}',
+                            coach.specialty.trim().isEmpty
+                                ? coach.name
+                                : '${coach.name} · ${coach.specialty}',
                             style: tokens
                                 .text(OnCareTypography.titleSmall)
                                 .copyWith(color: OnCareColors.textPrimary),

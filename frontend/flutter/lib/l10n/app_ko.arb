@@ -1239,6 +1239,8 @@
   "coachChatBack": "뒤로가기",
   "coachChatLoadOlder": "이전 메시지 더 보기",
   "coachChatLoadFailed": "대화를 불러오지 못했어요",
+  "coachChatEmptyTitle": "{trainer}님과 대화를 시작해 보세요",
+  "coachChatEmptyBody": "오늘 먹은 식단 사진이나 운동하며 궁금한 점을 보내 보세요",
   "coachChatSendFailed": "메시지 전송에 실패했어요. 다시 시도해 주세요",
   "coachPhotoAttach": "사진 보내기",
   "coachPhotoSheetSubtitle": "식사·자세·인바디 사진을 트레이너에게 보내요",
