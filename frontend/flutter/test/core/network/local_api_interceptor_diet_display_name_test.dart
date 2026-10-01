@@ -12,8 +12,7 @@ import 'package:logger/logger.dart';
 
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/storage/app_database.dart';
-
-import '../../helpers/fixed_clock.dart';
+import 'package:oncare/core/utils/clock.dart';
 
 final Uint8List _jpeg = Uint8List.fromList(<int>[0xFF, 0xD8, 0xFF, 0xE0, 1, 2]);
 
@@ -22,7 +21,13 @@ void main() {
   late Dio dio;
 
   setUp(() {
-    useFixedKstDate(DateTime(2026, 8, 20, 12));
+    // 2026-08-20 정오에 고정하되, 읽을 때마다 1µs 씩 흐르게 둔다. 데모 백엔드는
+    // 끼니 id 를 지금 시각으로 만들어, 한 테스트에서 두 번 분석하면 시계가
+    // 멈춰 있는 동안 id 가 겹친다 — 실제 시계에서는 생기지 않는 충돌이다.
+    final DateTime noon = DateTime(2026, 8, 20, 12);
+    int tick = 0;
+    debugNowKstOverride = () => noon.add(Duration(microseconds: tick++));
+    addTearDown(() => debugNowKstOverride = null);
     db = AppDatabase.forTesting(NativeDatabase.memory());
     dio = Dio(BaseOptions(baseUrl: 'https://example.test'));
     dio.interceptors.add(LocalApiInterceptor(db, Logger(level: Level.off)));

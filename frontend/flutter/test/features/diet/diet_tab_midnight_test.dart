@@ -62,6 +62,15 @@ Future<void Function(DateTime)> _pump(WidgetTester tester) async {
   };
 }
 
+/// 다시 읽기를 끝까지 기다린다. 새로 읽는 동안에도 앞 목록을 그대로 그려
+/// 프레임이 서지 않으므로, `pumpAndSettle` 만으로는 대역의 응답 지연 타이머가
+/// 남은 채 테스트가 끝난다.
+Future<void> _settleRefetch(WidgetTester tester) async {
+  await tester.pumpAndSettle();
+  await tester.pump(const Duration(milliseconds: 500));
+  await tester.pumpAndSettle();
+}
+
 AppWeekStrip _strip(WidgetTester tester) =>
     tester.widget<AppWeekStrip>(find.byType(AppWeekStrip));
 
@@ -71,7 +80,7 @@ void main() {
     expect(_card('mock-breakfast'), findsOneWidget);
 
     advance(_afterMidnight);
-    await tester.pumpAndSettle();
+    await _settleRefetch(tester);
 
     // 어제(19일) 목록이 아니라 새 오늘의 목록이다.
     expect(_card('mock-breakfast'), findsOneWidget);
@@ -88,7 +97,7 @@ void main() {
     expect(_card('mock-yesterday-breakfast'), findsOneWidget);
 
     advance(_afterMidnight);
-    await tester.pumpAndSettle();
+    await _settleRefetch(tester);
 
     // 회원이 고른 18일에 그대로 있고, `오늘` 알약으로 돌아갈 수 있다.
     expect(_strip(tester).selected, DateTime(2026, 8, 18));

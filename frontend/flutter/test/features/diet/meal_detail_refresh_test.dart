@@ -139,7 +139,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final Uri uri = router.routerDelegate.currentConfiguration.uri;
+    // 목록은 상세를 push 로 올린다 — `currentConfiguration.uri` 는 아래 화면
+    // 위치로 남고, 올라간 상세의 주소(쿼리 포함)는 마지막 match 가 갖는다.
+    final RouteMatch top = router.routerDelegate.currentConfiguration.last;
+    expect(top, isA<ImperativeRouteMatch>());
+    final Uri uri = (top as ImperativeRouteMatch).matches.uri;
     expect(uri.path, '/diet/entries/mock-yesterday-breakfast');
     expect(uri.queryParameters['date'], '2026-08-19');
   });
@@ -163,7 +167,10 @@ void main() {
     await tester.tap(find.text('저장'));
     await tester.pumpAndSettle();
 
-    final List<DietEntry> today = (await repo.fetchToday()).entries;
+    // 대역은 `Future.delayed` 로 응답을 늦춘다 — 위젯 테스트의 가짜 시간
+    // 안에서 바로 기다리면 아무도 시간을 흘리지 않아 끝나지 않는다.
+    final DietDay? day = await tester.runAsync(repo.fetchToday);
+    final List<DietEntry> today = day!.entries;
     expect(
       today.map((DietEntry e) => e.id),
       isNot(contains('mock-yesterday-breakfast')),

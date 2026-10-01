@@ -170,7 +170,13 @@ void main() {
     test('다른 식단 요청은 전역 대기를 그대로 쓴다', () async {
       final ({Dio dio, List<RequestOptions> sent}) d = _dio(
         (RequestOptions o, RequestInterceptorHandler h, int _) =>
-            _ok(o, h, const <String, Object?>{'entries': <Object?>[]}),
+            _ok(o, h, const <String, Object?>{
+              'entries': <Object?>[],
+              'total_calories': 0,
+              'total_sodium_mg': 0,
+              'total_sugar_g': 0,
+              'ai_coach_message': '',
+            }),
       );
       addTearDown(d.dio.close);
       d.dio.options.receiveTimeout = const Duration(seconds: 15);

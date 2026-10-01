@@ -82,27 +82,33 @@ Future<void Function(DateTime)> _pump(WidgetTester tester) async {
   };
 }
 
+/// 오늘 화면의 운동 현황 카드. 지난 날짜 상세도 같은 카드를 `isToday: false` 로
+/// 그리므로 타입만으로는 두 화면을 가르지 못한다.
+final Finder _todayLoadCard = find.byWidgetPredicate(
+  (Widget w) => w is ExerciseDayLoadCard && w.isToday,
+);
+
 void main() {
   testWidgets('오늘을 보던 중 자정을 넘기면 오늘 카드가 그대로 선다', (WidgetTester tester) async {
     final void Function(DateTime) advance = await _pump(tester);
-    expect(find.byType(ExerciseDayLoadCard), findsOneWidget);
+    expect(_todayLoadCard, findsOneWidget);
 
     advance(DateTime(2026, 8, 20, 0, 10));
     await tester.pumpAndSettle();
 
     // 어제를 고른 상태로 남으면 오늘 카드 대신 그날 기록 화면이 선다.
-    expect(find.byType(ExerciseDayLoadCard), findsOneWidget);
+    expect(_todayLoadCard, findsOneWidget);
   });
 
   testWidgets('지난 날짜를 고른 채면 자정 뒤에도 그 날에 머문다', (WidgetTester tester) async {
     final void Function(DateTime) advance = await _pump(tester);
     await tester.tap(find.text('18').first);
     await tester.pumpAndSettle();
-    expect(find.byType(ExerciseDayLoadCard), findsNothing);
+    expect(_todayLoadCard, findsNothing);
 
     advance(DateTime(2026, 8, 20, 0, 10));
     await tester.pumpAndSettle();
 
-    expect(find.byType(ExerciseDayLoadCard), findsNothing);
+    expect(_todayLoadCard, findsNothing);
   });
 }
