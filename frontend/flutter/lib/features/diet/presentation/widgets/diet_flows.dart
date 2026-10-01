@@ -1480,20 +1480,31 @@ class _ResultRow extends StatelessWidget {
 Future<void> openMealDetailPage(BuildContext context, DietMeal meal) {
   final String? id = meal.id;
   if (id == null) return Future<void>.value();
-  return context.push<void>(AppRoutes.dietEntryDetailPath(id), extra: meal);
+  // 주소에 날짜를 싣는다 — 새로고침하면 `extra` 가 사라져 이 날짜의 목록에서
+  // 끼니를 다시 찾는다. 빠지면 지난 날 끼니가 오류 화면이 된다(#2881).
+  return context.push<void>(
+    AppRoutes.dietEntryDetailPath(id, date: meal.date),
+    extra: meal,
+  );
 }
 
 /// Full-page meal editor. [initialMeal] makes the first transition immediate;
-/// when a web URL is refreshed, the same meal is restored from today's data.
+/// when a web URL is refreshed, the same meal is restored from the list of
+/// [date] (today when the address carries no date).
 class DietMealDetailPage extends ConsumerStatefulWidget {
   const DietMealDetailPage({
     super.key,
     required this.entryId,
     this.initialMeal,
+    this.date,
   });
 
   final String entryId;
   final DietMeal? initialMeal;
+
+  /// 주소에 실린 끼니의 날(#2881). 없으면 오늘이다 — 날짜를 싣기 전의 주소와
+  /// 분석 완료 시트의 연필이 그렇다.
+  final DateTime? date;
 
   @override
   ConsumerState<DietMealDetailPage> createState() => _DietMealDetailPageState();
@@ -1508,11 +1519,12 @@ class _DietMealDetailPageState extends ConsumerState<DietMealDetailPage> {
   /// (#1947).
   DietMeal? _found;
 
-  /// 오늘 목록에서 찾았으니 날짜는 오늘이다.
-  DietMeal _fromEntry(DietEntry entry) => DietMeal(
+  /// [day] 의 목록에서 찾았으니 날짜는 그 날이다. 오늘로 고정하면 새로고침한
+  /// 지난 끼니를 저장할 때 오늘로 옮겨진다(#2881).
+  DietMeal _fromEntry(DietEntry entry, DateTime day) => DietMeal(
     id: entry.id,
     mealType: entry.mealType,
-    date: _todayKst(),
+    date: day,
     time: entry.timeLabel,
     total: entry.totalCalories,
     emoji: '',
@@ -1543,18 +1555,33 @@ class _DietMealDetailPageState extends ConsumerState<DietMealDetailPage> {
     if (found != null) return _MealEditSheet(meal: found);
 
     final AppLocalizations l = AppLocalizations.of(context);
+    final DateTime today = _todayKst();
+    final DateTime day = _dayOf(widget.date) ?? today;
+    // 오늘이면 식단 탭과 같은 오늘 목록을 본다 — 같은 캐시를 나눠 써야 한쪽에서
+    // 고친 값이 다른 쪽에 곧바로 보인다.
+    final FutureProvider<DietDay> source = day == today
+        ? dietTodayProvider
+        : dietByDateProvider(day);
     return ref
-        .watch(dietTodayProvider)
+        .watch(source)
         .when(
-          data: (DietDay day) {
-            for (final DietEntry entry in day.entries) {
+          data: (DietDay loaded) {
+            for (final DietEntry entry in loaded.entries) {
               if (entry.id == widget.entryId) {
                 // 빌드 중에 setState 하지 않는다 — 한 번 기억해 두고 같은
                 // 값으로 그린다. 다음 빌드부터는 위에서 곧장 돌아간다.
-                return _MealEditSheet(meal: _found = _fromEntry(entry));
+                return _MealEditSheet(meal: _found = _fromEntry(entry, day));
               }
             }
-            return _MealDetailUnavailable(message: l.dietLoadError);
+            // 목록은 읽었는데 그 끼니가 없다 — 지워졌거나 없는 주소다. 읽기
+            // 실패와 같은 문구를 쓰면 다시 시도하면 될 것처럼 읽힌다(#2881).
+            return _MealDetailUnavailable(
+              key: const Key('dietMealNotFound'),
+              message: l.dietMealNotFound,
+              detail: l.dietMealNotFoundMessage,
+              actionLabel: l.dietMealNotFoundAction,
+              onAction: () => context.go(AppRoutes.diet),
+            );
           },
           loading: () => const Scaffold(
             backgroundColor: OnCareColors.surfaceCard,
@@ -1566,16 +1593,34 @@ class _DietMealDetailPageState extends ConsumerState<DietMealDetailPage> {
 }
 
 class _MealDetailUnavailable extends StatelessWidget {
-  const _MealDetailUnavailable({required this.message});
+  const _MealDetailUnavailable({
+    super.key,
+    required this.message,
+    this.detail,
+    this.actionLabel,
+    this.onAction,
+  });
 
   final String message;
+  final String? detail;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: OnCareColors.surfaceCard,
       appBar: AppTopBar(title: ''),
-      body: AppEmptyState(title: message, icon: AppIcons.error),
+      body: AppEmptyState(
+        title: message,
+        message: detail,
+        icon: AppIcons.error,
+        actionLabel: actionLabel,
+        onAction: onAction,
+        actionKey: onAction == null
+            ? null
+            : const Key('dietMealNotFoundAction'),
+      ),
     );
   }
 }

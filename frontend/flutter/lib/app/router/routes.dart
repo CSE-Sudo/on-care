@@ -1,3 +1,5 @@
+import 'package:oncare/core/utils/wire_date.dart';
+
 /// Centralised route paths. Anything that needs to navigate imports
 /// this rather than another feature module — see STRUCTURE.md §4.
 class AppRoutes {
@@ -30,6 +32,7 @@ class AppRoutes {
   static const String mySettings = '/my-health/settings/:section';
   static const String gyms = '/gyms';
   static const String gymDetail = '/gyms/:gymId';
+
   /// 트레이너 **상세**. 목록 화면은 없다 — 트레이너는 헬스장을 거쳐 만난다
   /// (헬스장 찾기 카드 → 헬스장 상세 → 트레이너 상세). #1885
   static const String trainerDetail = '/trainers/:trainerId';
@@ -47,8 +50,12 @@ class AppRoutes {
   static String trainerDetailPath(String trainerId) =>
       '/trainers/${Uri.encodeComponent(trainerId)}';
 
-  static String dietEntryDetailPath(String entryId) =>
-      '$diet/entries/${Uri.encodeComponent(entryId)}';
+  /// 끼니 상세. [date] 는 그 끼니가 놓인 날이다 — 웹에서 새로고침하면 화면이
+  /// 이 날짜의 목록에서 끼니를 다시 찾는다(#2881). 없으면 오늘에서 찾는다.
+  static String dietEntryDetailPath(String entryId, {DateTime? date}) {
+    final String path = '$diet/entries/${Uri.encodeComponent(entryId)}';
+    return date == null ? path : '$path?date=${wireDate(date)}';
+  }
 
   static String myCouponDetailPath(String couponId) =>
       '$myBenefits/coupons/${Uri.encodeComponent(couponId)}';
@@ -77,7 +84,6 @@ class AppRoutes {
 
   // First-run onboarding (shown right after sign-up)
   static const String onboarding = '/onboarding';
-
 
   /// 포인트 안내의 `시작하기` 뒤에 보는 사용 가이드(#1857) — 예시 자료로 채운
   /// 화면 위에서 주요 기능을 하나씩 밝게 짚는다.

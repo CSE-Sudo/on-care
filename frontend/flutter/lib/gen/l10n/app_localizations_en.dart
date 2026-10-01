@@ -343,6 +343,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietLoadError => 'Couldn\'t load your diet.';
 
   @override
+  String get dietMealNotFound => 'This meal was deleted or doesn\'t exist';
+
+  @override
+  String get dietMealNotFoundMessage =>
+      'Check your meals again in the Diet tab.';
+
+  @override
+  String get dietMealNotFoundAction => 'Go to Diet';
+
+  @override
   String get dietPeriodAverage => 'Daily average';
 
   @override

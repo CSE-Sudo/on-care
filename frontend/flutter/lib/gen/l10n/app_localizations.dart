@@ -704,6 +704,24 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load your diet.'**
   String get dietLoadError;
 
+  /// No description provided for @dietMealNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This meal was deleted or doesn\'t exist'**
+  String get dietMealNotFound;
+
+  /// No description provided for @dietMealNotFoundMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your meals again in the Diet tab.'**
+  String get dietMealNotFoundMessage;
+
+  /// No description provided for @dietMealNotFoundAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Diet'**
+  String get dietMealNotFoundAction;
+
   /// No description provided for @dietPeriodAverage.
   ///
   /// In en, this message translates to:
