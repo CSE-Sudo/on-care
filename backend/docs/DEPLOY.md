@@ -80,7 +80,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `JWT_SECRET` | `openssl rand -hex 32` (기본값이면 기동 거부) |
 | `DATABASE_URL` | 위 Neon 접속 문자열(직접 엔드포인트) |
 | `AUTO_CREATE_TABLES` | `false` (Alembic 이 정답) |
-| `CORS_ALLOW_ORIGINS` | GitHub Pages 도메인 (예: `https://ewhasudo.zapto.org`) |
+| `CORS_ALLOW_ORIGINS` | 회원 앱·트레이너 웹이 실제로 서비스되는 도메인(콤마 구분). `*` 면 기동 거부 |
 | `TZ` | `Asia/Seoul` (오늘/어제 라벨 KST 기준) |
 | `SEED_DEMO_DATA` | 운영 권장 `false`. 데이터 든 데모 계정을 두려면 `true` + `DEMO_LOGIN_PASSWORD` 필수 |
 | `DEMO_LOGIN_PASSWORD` | `SEED_DEMO_DATA=true` 일 때 12자+ 강한 값(아니면 기동 거부) |
@@ -89,6 +89,19 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 > 참고: 키가 없어도 인식/장소는 폴백으로 동작(기동은 됨). 운영 시크릿은 Secrets Manager/SSM 에 두고
 > App Runner 에 주입한다.
+
+**운영에서 기본값을 그대로 두면 안 되는 키** — 기동은 되지만 개발용 동작이 남는다(#2840).
+전체 키와 기본값·운영 권장값은 `backend/.env.example` 이 `config.py` 와 1:1 로 갖고 있다
+(`tests/test_env_example.py` 가 빠진 키를 잡는다).
+
+| 키 | 운영 값 | 기본값 그대로면 |
+|---|---|---|
+| `FORCE_HTTPS` | `true` | HTTP 요청이 HTTPS 로 넘어가지 않는다 |
+| `ALLOW_DEMO_FALLBACK` | `false` | `ENV=prod` 면 어차피 꺼지지만, 스테이징·시연 서버를 `ENV=dev` 로 띄우면 토큰 없는 요청이 데모 계정으로 처리된다 |
+| `ADMIN_EMAILS` | 운영 담당자 이메일(콤마 구분) | 관리자가 없어 공공 RAG 문서 적재·`/v1/system/metrics` 를 쓸 수 없다 |
+| `REPORT_PDF_STORAGE_DIR`·`CHAT_IMAGE_STORAGE_DIR` | 영속 저장소를 붙인 경로 | 컨테이너 안 `data/` 에 쌓인다. 영속 디스크가 없는 컴퓨트(App Runner 등)에서는 재배포·재시작 때 주간 리포트 PDF·채팅 사진이 사라진다(저장소 구성은 #480 범위) |
+| `SECURITY_HEADERS`·`RATE_LIMIT_ENABLED` | `true`(기본값 유지) | 끄면 보안 헤더·시도 제한이 빠진다 |
+| `LOG_LEVEL` | `INFO` | — |
 
 ## 4) App Runner 서비스
 
