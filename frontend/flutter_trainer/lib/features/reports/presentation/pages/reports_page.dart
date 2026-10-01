@@ -100,8 +100,13 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   String _locationFor(String? clientId) =>
       AppRoutes.reportFor(clientId, weekStart: _weekParam);
 
-  /// Clients whose report was sent this session — keeps the button from
-  /// being pressed twice in a row by accident.
+  /// 이번 세션에 이 주 리포트를 보낸 회원.
+  ///
+  /// 작업대의 `전송 완료` 표시를 서버 기록이 다시 읽히기 전까지 바로 세우는
+  /// 데에만 쓴다. 전송을 막는 데 쓰지 않는다(#2770) — 예전에는 [_send] 가 이
+  /// 집합에 든 회원을 조용히 돌려보내, `다시 쓰기` 로 고친 리포트의 전송 버튼이
+  /// 아무 반응 없이 죽었다. 같은 리포트가 두 번 나가는 것은 서버 기록으로 묻는
+  /// 재전송 확인([_confirmResend])과 [_sending]·[_confirming] 이 막는다.
   final Set<String> _sent = <String>{};
 
   /// 작업대의 정렬. 기본은 손이 필요한 회원부터다(#2232).
@@ -300,7 +305,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   /// [didUpdateWidget] 에서 부른다.
   void _enterWeek(DateTime week) {
     _weekStart = week;
-    // A different week is a different report — allow sending again.
+    // 다른 주는 다른 리포트다 — 앞 주의 `전송 완료` 표시를 끌고 가지 않는다.
     _sent.clear();
     _stage = 0;
     _maxStage = 0;
@@ -438,7 +443,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   Future<void> _send(WeeklyReport report, String message) async {
     final AppLocalizations l = AppLocalizations.of(context);
     final id = report.client.id;
-    if (_sending != null || _confirming || _sent.contains(id)) return;
+    // 연타·창 겹침만 막는다. 이미 보낸 회원이어도 여기서 돌려보내지 않는다 —
+    // 다시 쓰기 뒤의 재전송은 아래 확인창이 묻는다(#2770).
+    if (_sending != null || _confirming) return;
     // 이미 보낸 주면 한 번 더 묻는다(#2288). 기록은 서버에서 오므로 새로고침한
     // 뒤에도 이 확인이 선다 — 전에는 세션 메모리만 봐서 새로고침하면 같은
     // 리포트가 아무 확인 없이 두 번 나갔다.
