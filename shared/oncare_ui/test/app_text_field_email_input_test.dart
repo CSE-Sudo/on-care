@@ -58,7 +58,12 @@ void main() {
       const AppTextField(key: fieldKey, keyboardType: TextInputType.phone),
     );
 
-    expect(_inner(tester, fieldKey).autocorrect, isTrue);
+    // 끄지 않고 TextField 기본값(null — 플랫폼·autofillHints 로 정함)에 맡긴다.
+    expect(_inner(tester, fieldKey).autocorrect, isNot(isFalse));
+    expect(
+      _inner(tester, fieldKey).autocorrect,
+      const TextField().autocorrect,
+    );
   });
 
   testWidgets('이메일 칸에 대문자로 친 값은 그대로 보인다 — 바꾸는 것은 서버다', (

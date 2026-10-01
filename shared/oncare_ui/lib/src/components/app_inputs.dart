@@ -139,8 +139,10 @@ class AppTextField extends StatelessWidget {
         maxLines: obscureText ? 1 : maxLines,
         maxLength: maxLength,
         keyboardType: keyboardType,
-        // 자동 대문자는 TextField 기본값(none) 그대로 둔다.
-        autocorrect: !email,
+        // 자동 대문자는 TextField 기본값(none) 그대로 둔다. 이메일이 아닌 칸의
+        // 자동 고침은 null 로 넘겨 TextField 가 autofillHints 로 정하게 한다
+        // (true 를 박으면 비밀번호 칸 같은 추론을 덮어쓴다).
+        autocorrect: email ? false : null,
         enableSuggestions: !email,
         textInputAction: textInputAction,
         inputFormatters: inputFormatters,
