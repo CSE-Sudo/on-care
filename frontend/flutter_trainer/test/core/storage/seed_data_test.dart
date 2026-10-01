@@ -68,7 +68,7 @@ void main() {
       }
 
       expect(await db.select(db.clientChatMessages).get(), isNotEmpty);
-      expect(await db.readValue('trainer_seeded_v38'), _todayString());
+      expect(await db.readValue('trainer_seeded_v45'), _todayString());
     });
 
     test(
@@ -331,7 +331,8 @@ void main() {
         reason: '오늘 열이 비면 스케줄 탭 첫 화면이 빈다',
       );
       // 주간 시간표는 월~일만 그린다 — 이번 주 밖의 행은 지난 주에 되풀이한
-      // 회원 PT 뿐이다(#2452). 다음 주 이후로 넘어간 행은 어디에도 보이지 않는다.
+      // 회원 PT(#2452)와 지난 상담(#2667)뿐이다. 다음 주 이후로 넘어간 행은
+      // 어디에도 보이지 않는다.
       final DateTime now = nowKst();
       final DateTime monday = DateTime(
         now.year,
@@ -345,7 +346,13 @@ void main() {
       final String mondayYmd = ymd(monday);
       for (final s in schedule.where((s) => !week.contains(s.date))) {
         expect(s.date.compareTo(mondayYmd), lessThan(0), reason: s.date);
-        expect(s.id, startsWith('seed-schedule-p'), reason: s.date);
+        expect(
+          s.id.startsWith('seed-schedule-p') ||
+              s.id.startsWith('seed-schedule-f') ||
+              s.id.startsWith('seed-schedule-c'),
+          isTrue,
+          reason: '${s.date} ${s.id}',
+        );
       }
       expect(
         schedule.where((s) => week.contains(s.date)).length,
@@ -475,13 +482,13 @@ void main() {
 
     test('stale flag (different date) re-seeds schedule onto today', () async {
       await seedIfEmpty(db);
-      await db.putValue('trainer_seeded_v38', '2020-01-01');
+      await db.putValue('trainer_seeded_v45', '2020-01-01');
 
       await seedIfEmpty(db);
 
       final schedule = await db.select(db.trainerScheduleEntries).get();
       expect(schedule.any((s) => s.date == _todayString()), isTrue);
-      expect(await db.readValue('trainer_seeded_v38'), _todayString());
+      expect(await db.readValue('trainer_seeded_v45'), _todayString());
     });
 
     test(
@@ -673,7 +680,7 @@ void main() {
         expect(week.length, 7);
         expect(week.any((v) => (v as num) > 0), isTrue);
 
-        expect(await db.readValue('trainer_seeded_v38'), today);
+        expect(await db.readValue('trainer_seeded_v45'), today);
       },
     );
 
@@ -782,7 +789,7 @@ void main() {
           );
 
       // Force a re-seed.
-      await db.putValue('trainer_seeded_v38', '2020-01-01');
+      await db.putValue('trainer_seeded_v45', '2020-01-01');
       await seedIfEmpty(db);
 
       final chat = await db.select(db.clientChatMessages).get();
@@ -900,7 +907,7 @@ void main() {
         'daily_calories': 1700,
       });
 
-      await db.putValue('trainer_seeded_v38', '2020-01-01');
+      await db.putValue('trainer_seeded_v45', '2020-01-01');
       await seedIfEmpty(db);
 
       final p = await repository.fetchHealthProfile('seed-client-2');

@@ -2,7 +2,8 @@
 ///
 /// 시연은 `사진 찍기` → 분석 중 → 분석 완료 순으로 흐른다. 데모 응답이 즉시
 /// 오더라도 분석 중 화면이 보여야 하고, 완료 시트의 닫기는 머리의 X 가 아니라
-/// `저장` 옆 `취소` 하나로 모인다.
+/// `저장` 옆 `닫기` 하나로 모인다. 분석 요청이 이미 기록을 남기므로 그 버튼은
+/// `취소` 가 아니다(#2627).
 library;
 
 import 'dart:typed_data';
@@ -38,10 +39,14 @@ class _FixedPicker implements MealPhotoPicker {
       MealPhoto.fromBytes(_jpegBytes)!;
 }
 
+/// 시트 흐름이 끝난 결과(기록이 남았나). 테스트마다 새로 채운다.
+final List<bool> _results = <bool>[];
+
 Future<void> _pumpApp(
   WidgetTester tester,
   FakeDietRepository repository,
 ) async {
+  _results.clear();
   await tester.binding.setSurfaceSize(const Size(500, 1600));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
@@ -60,7 +65,8 @@ Future<void> _pumpApp(
           builder: (BuildContext context) => Scaffold(
             body: Center(
               child: ElevatedButton(
-                onPressed: () => showDietAddSheet(context),
+                onPressed: () async =>
+                    _results.add(await showDietAddSheet(context)),
                 child: const Text('open'),
               ),
             ),
@@ -95,7 +101,7 @@ void main() {
     expect(find.text('저장'), findsOneWidget);
   });
 
-  testWidgets('완료 시트는 저장·취소·수정을 갖고 X 는 없다', (WidgetTester tester) async {
+  testWidgets('완료 시트는 저장·닫기·수정을 갖고 X 는 없다', (WidgetTester tester) async {
     useFixedKstDate(DateTime(2026, 8, 20, 9));
     await _pumpApp(tester, FakeDietRepository());
     await _startAnalyze(tester);
@@ -105,9 +111,11 @@ void main() {
       tester.element(find.text('저장')),
     );
     expect(find.text(l.dietSave), findsOneWidget);
-    expect(find.text('취소'), findsOneWidget);
+    expect(find.text('닫기'), findsOneWidget);
+    // 기록은 이미 남아 있다 — 저장하지 않는 것으로 읽히는 `취소` 는 없다.
+    expect(find.text('취소'), findsNothing);
     expect(find.byKey(const Key('diet-result-edit')), findsOneWidget);
-    // 체크 아이콘과 머리의 X 는 지웠다 — 닫는 자리는 `취소` 하나다.
+    // 체크 아이콘과 머리의 X 는 지웠다 — 닫는 자리는 `닫기` 하나다.
     expect(find.byIcon(AppIcons.check), findsNothing);
     expect(find.byIcon(AppIcons.close), findsNothing);
 
@@ -116,7 +124,7 @@ void main() {
       find.ancestor(of: find.text('저장'), matching: find.byType(AppButton)),
     );
     final Size cancel = tester.getSize(
-      find.ancestor(of: find.text('취소'), matching: find.byType(AppButton)),
+      find.ancestor(of: find.text('닫기'), matching: find.byType(AppButton)),
     );
     expect(save.height, cancel.height);
     // 폭은 반반이다 — 앱의 모든 하단 두 버튼과 같다(#1690).
@@ -162,22 +170,27 @@ void main() {
     );
   });
 
-  testWidgets('취소는 저장 없이 시트를 닫는다', (WidgetTester tester) async {
+  testWidgets('닫기는 시트를 닫고 저장 성공으로 끝난다 — 알림은 띄우지 않는다', (
+    WidgetTester tester,
+  ) async {
     useFixedKstDate(DateTime(2026, 8, 20, 9));
     await _pumpApp(tester, FakeDietRepository());
     await _startAnalyze(tester);
     await tester.pumpAndSettle();
 
     // 시트가 길어 버튼이 접힌 화면에서는 스크롤해야 닿는다.
-    await tester.ensureVisible(find.text('취소'));
+    await tester.ensureVisible(find.text('닫기'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('취소'));
+    await tester.tap(find.text('닫기'));
     await tester.pumpAndSettle();
 
     expect(find.text('저장'), findsNothing);
+    // 기록은 분석 때 남았다 — `저장` 과 같은 결과다.
+    expect(_results, <bool>[true]);
     final AppLocalizations l = AppLocalizations.of(
       tester.element(find.text('open')),
     );
+    // 저장 알림은 `저장` 에만 뜬다.
     expect(find.text(l.dietSaved), findsNothing);
   });
 }

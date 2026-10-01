@@ -72,24 +72,44 @@ class AppRoutes {
   static bool isLegalPath(String path) =>
       path == legal || path.startsWith('$legal/');
 
-  /// 스케줄 하위의 상담 요청 인박스. (#467, #1228)
-  static const String consultationsSegment = 'consultations';
-  static const String consultations = '$schedule/$consultationsSegment';
+  /// 스케줄을 열면서 그 위에 상담 요청함 **창**을 띄우라는 쿼리. (#2717)
+  static const String inboxParam = 'inbox';
 
-  /// 이전 독립 탭 주소. 기존 링크는 새 스케줄 하위 주소로 리다이렉트한다.
+  /// 상담 요청함 — 스케줄 위에 뜨는 창이다. 페이지가 따로 없다(#2717).
+  ///
+  /// 알림처럼 상담함으로 보내야 하는 길은 이 주소로 스케줄에 가고, 스케줄이
+  /// 창을 연 뒤 쿼리를 지운다 — 스케줄·대시보드 버튼이 여는 창과 같은 창이다.
+  static const String consultations = '$schedule?$inboxParam=1';
+
+  /// 예전 상담함 주소들 — 독립 탭(`/consultations`)과 스케줄 하위 페이지
+  /// (`/schedule/consultations`). 남은 링크는 [consultations] 로 보낸다.
   static const String legacyConsultations = '/consultations';
-
-  /// 대시보드에서 열었음을 남겨 돌아가기 동선을 복원한다.
-  static String consultationsFromDashboard() => Uri(
-    path: consultations,
-    queryParameters: const <String, String>{'from': 'dashboard'},
-  ).toString();
+  static const String legacyScheduleConsultations = '$schedule/consultations';
 
   /// 알림함 — 놓친 변화를 나중에 확인하는 자리. (#503)
   ///
-  /// 상담 요청과 같은 이유로 nav 행은 실 API 빌드에서만 보인다(데모에는 알림을
-  /// 만드는 회원 백엔드가 없다). 라우트 자체는 항상 등록해 딥링크가 살아 있다.
+  /// 들어오는 길은 화면 머리의 알림 종이다(#2628). 사이드바 탭이 아니다.
   static const String notifications = '/notifications';
+
+  /// 알림 화면 — [from] 은 종을 누른 화면이다. 알림 화면의 뒤로 가기가 그리로
+  /// 돌아간다(#2628). 셸의 갈래를 옮겨 오므로 되돌아갈 이력이 남지 않는다.
+  static String notificationsFrom(String? from) =>
+      from == null || from.isEmpty || from.startsWith(notifications)
+      ? notifications
+      : Uri(
+          path: notifications,
+          queryParameters: <String, String>{'from': from},
+        ).toString();
+
+  /// 알림 화면 뒤로 가기가 갈 곳. 콘솔 안의 주소만 받는다 — 밖으로 나가는
+  /// 주소나 알림 화면 자신이면 대시보드다.
+  static String notificationsBackTarget(String? from) =>
+      from != null &&
+          from.startsWith('/') &&
+          !from.startsWith('//') &&
+          !from.startsWith(notifications)
+      ? from
+      : dashboard;
 
   // --- Client detail ---
 
@@ -142,19 +162,34 @@ class AppRoutes {
   /// it is what made the 대시보드 '주의 고객' 카드 → 목록 → 고객 순서에서
   /// 필터가 사라지게 했다: 상세는 별개 라우트라 쿼리를 물려주지 않으면 그
   /// 자리에서 전체 로스터로 돌아간다(#816).
-  static String clientDetail(String id, {String? section, String? filter}) {
+  ///
+  /// [openHealthNotes] 는 들어가자마자 신체·목표 창의 `건강 목표` 탭을 연다 —
+  /// 주의사항 알림에서 온 길이다(#2619).
+  static String clientDetail(
+    String id, {
+    String? section,
+    String? filter,
+    bool openHealthNotes = false,
+  }) {
     final safeSection = clientSections.contains(section)
         ? section!
         : defaultClientSection;
     final path = '$clients/${Uri.encodeComponent(id)}/$safeSection';
     // 빈 맵을 넘기면 `?` 만 붙은 주소가 나온다 — 필터가 없을 때는 쿼리 자체를
     // 만들지 않는다.
-    if (filter == null) return path;
+    if (filter == null && !openHealthNotes) return path;
     return Uri(
       path: path,
-      queryParameters: <String, String>{'f': filter},
+      queryParameters: <String, String>{
+        'f': ?filter,
+        if (openHealthNotes) clientOpenParam: clientOpenHealthNotes,
+      },
     ).toString();
   }
+
+  /// [clientDetail] 이 창을 열라고 알리는 쿼리 이름과 값.
+  static const String clientOpenParam = 'open';
+  static const String clientOpenHealthNotes = 'health-notes';
 
   /// Builds the 고객 list filtered to a preset. Used by the dashboard
   /// KPI cards (`unread` = 답장 필요, `attention` = 주의 고객).

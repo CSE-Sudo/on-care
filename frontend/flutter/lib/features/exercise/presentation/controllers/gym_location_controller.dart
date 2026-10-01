@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/exercise/domain/entities/gym_search_area.dart';
 import 'package:oncare/features/place/domain/entities/place.dart';
 import 'package:oncare/features/place/domain/entities/place_query.dart';
@@ -46,11 +45,3 @@ class GymLocationService {
     );
   }
 }
-
-/// 위치를 얻기 전에는 실제 거리로 오인할 숫자를 표시하지 않는다.
-final gymHasLocationProvider = StateProvider<bool>((ref) => false);
-final gymShowDistanceProvider = Provider<bool>(
-  (ref) =>
-      ref.watch(appConfigProvider).useMockApi ||
-      ref.watch(gymHasLocationProvider),
-);

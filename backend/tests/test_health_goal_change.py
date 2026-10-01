@@ -11,7 +11,7 @@ import pytest
 from sqlalchemy import delete, select
 
 from app.models.models import HealthProfile, Notification, User
-from app.services import health_goal_change, notification_service
+from app.services import health_focus, health_goal_change, notification_service
 
 MEMBER_ID = "user-jisu"
 
@@ -96,6 +96,59 @@ def _goal_notices(client, token: str, *, trainer: bool) -> list[dict]:
 )
 def test_only_a_different_goal_set_counts_as_a_change(before, after, changed):
     assert health_goal_change.focus_changed(before, after) is changed
+
+
+@pytest.mark.parametrize(
+    ("before", "after", "changed"),
+    [
+        ("체중 감량, 무릎 통증 주의", "재활, 무릎 통증 주의", False),
+        ("체중 감량, 무릎 통증 주의, 러닝 자제", "체중 감량, 러닝 자제, 무릎 통증 주의", False),
+        ("체중 감량", "체중 감량, 무릎 통증 주의", True),
+        ("체중 감량, 무릎 통증 주의", "체중 감량", True),
+    ],
+)
+def test_notes_change_ignores_goals_and_order(before, after, changed):
+    assert health_goal_change.notes_changed(before, after) is changed
+
+
+def test_member_notes_change_tells_the_trainer_without_recording(client, seeded):
+    """회원이 적은 주의사항은 담당 트레이너가 바로 알아야 한다(#2619).
+
+    `바꾼 사람` 기록은 목표 칩만의 것이라 남기지 않는다.
+    """
+    current = client.get("/v1/users/me/profile", headers=_h(seeded["member"])).json()
+    goals = ", ".join(
+        t for t in current["conditions"].split(", ") if t in health_focus.FOCUS_OPTIONS
+    )
+    saved = client.put(
+        "/v1/users/me/health-goals",
+        headers=_h(seeded["member"]),
+        json={"conditions": f"{goals}, 왼쪽 무릎 연골 수술 이력이 있어요"},
+    )
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["focus_changed_at"] == current["focus_changed_at"]
+
+    notices = _goal_notices(client, seeded["trainer"], trainer=True)
+    assert len(notices) == 1
+    assert notices[0]["subject_id"] == MEMBER_ID
+    assert notices[0]["template"] == "trainer_health_notes"
+    assert notices[0]["title"] == "회원 주의사항 변경"
+    # 글은 알림에 싣지 않는다 — 미리보기에 건강 정보가 드러나지 않게.
+    assert "무릎" not in notices[0]["body"]
+
+
+def test_goal_and_notes_change_together_is_one_notice(client, seeded):
+    saved = client.put(
+        "/v1/users/me/health-goals",
+        headers=_h(seeded["member"]),
+        json={"conditions": "자세 교정, 허리 디스크"},
+    )
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["focus_changed_by"] == "member"
+
+    notices = _goal_notices(client, seeded["trainer"], trainer=True)
+    assert len(notices) == 1
+    assert notices[0]["body"].endswith("건강 목표와 건강상태·주의사항을 바꿨어요")
 
 
 def test_member_change_is_recorded_and_the_trainer_is_told(client, seeded):

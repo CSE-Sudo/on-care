@@ -65,6 +65,7 @@ class AppPopover extends StatefulWidget {
     this.width,
     this.maxHeight,
     this.padding = EdgeInsets.zero,
+    this.alignEnd = false,
   });
 
   final OverlayPortalController controller;
@@ -77,6 +78,10 @@ class AppPopover extends StatefulWidget {
   final double? width;
   final double? maxHeight;
   final EdgeInsetsGeometry padding;
+
+  /// 상자의 **오른쪽** 끝을 앵커 오른쪽 끝에 맞춘다 — 화면 오른쪽 끝의 앵커
+  /// (머리의 알림 종)에서 상자가 화면 밖으로 나가지 않게 한다(#2628).
+  final bool alignEnd;
 
   @override
   State<AppPopover> createState() => _AppPopoverState();
@@ -94,10 +99,17 @@ class _AppPopoverState extends State<AppPopover> {
         overlayChildBuilder: (BuildContext context) =>
             CompositedTransformFollower(
               link: _link,
-              targetAnchor: Alignment.bottomLeft,
+              targetAnchor: widget.alignEnd
+                  ? Alignment.bottomRight
+                  : Alignment.bottomLeft,
+              followerAnchor: widget.alignEnd
+                  ? Alignment.topRight
+                  : Alignment.topLeft,
               offset: const Offset(0, OnCareSpacing.s4),
               child: Align(
-                alignment: Alignment.topLeft,
+                alignment: widget.alignEnd
+                    ? Alignment.topRight
+                    : Alignment.topLeft,
                 child: TapRegion(
                   groupId: this,
                   child: AppPopoverSurface(

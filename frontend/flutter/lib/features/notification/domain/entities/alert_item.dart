@@ -95,7 +95,6 @@ class AlertItem {
     this.action,
     this.createdAt = '',
     this.messageKey,
-    this.age,
   });
 
   final String id;
@@ -115,7 +114,7 @@ class AlertItem {
   /// 달라질 수 있고(정밀도·오프셋), 커서는 서버가 준 값과 **같아야** 경계가 맞는다.
   /// 화면에 보이는 시각은 별도로 [timeAgo] 가 담당한다.
   ///
-  /// 데모 알림처럼 서버에서 오지 않은 항목은 비어 있다 — 목 모드는 쪽을 나누지 않는다.
+  /// 서버에서 오지 않은 항목(테스트 대역 등)은 비어 있다 — 그 뒤로는 이어 받지 않는다.
   final String createdAt;
 
   /// 서버가 지정한 이동 경로. 없으면 읽음 처리만 한다.
@@ -124,10 +123,6 @@ class AlertItem {
   /// 데모 알림 문구의 키(`demo_alert_keys.dart`). 있으면 화면이 [title]·[body]
   /// 대신 로케일에 맞는 문장을 쓴다. 서버가 만든 알림은 번역본이 없어 비어 있다. (#1812)
   final String? messageKey;
-
-  /// 데모 알림이 만들어진 지 얼마나 됐는가. 서버 시각([createdAt])이 없는 데모
-  /// 알림도 화면이 로케일에 맞는 상대 시각을 그리게 한다. (#1812)
-  final Duration? age;
 
   AlertItem copyWith({bool? read}) => AlertItem(
     id: id,
@@ -141,7 +136,6 @@ class AlertItem {
     action: action,
     createdAt: createdAt,
     messageKey: messageKey,
-    age: age,
   );
 }
 
@@ -154,6 +148,7 @@ class NotificationState {
   const NotificationState({
     required this.items,
     this.loading = false,
+    this.loaded = false,
     this.failedToLoad = false,
     this.hasMore = false,
     this.loadingMore = false,
@@ -161,8 +156,22 @@ class NotificationState {
 
   final List<AlertItem> items;
 
-  /// 첫 조회가 진행 중인가. 새로고침 중에는 기존 목록을 그대로 보여 준다.
+  /// 조회가 진행 중인가. 첫 조회와 새로고침 모두 참이 된다 — 새로고침 중에는
+  /// 기존 목록을 그대로 보여 준다.
   final bool loading;
+
+  /// 목록을 한 번이라도 받았는가(#2638).
+  ///
+  /// [loading] 만으로는 "아직 받는 중" 과 "받아 봤더니 없음" 을 가를 수 없다 —
+  /// 둘 다 목록이 비어 있다. 받은 적이 없는 채로 비어 있으면 화면은 빈 상태 대신
+  /// 로딩 표시를 그린다.
+  final bool loaded;
+
+  /// 첫 조회가 아직 끝나지 않아 **보여 줄 목록이 없는** 상태인가(#2638).
+  ///
+  /// 이미 받은 뒤의 새로고침은 여기에 들지 않는다. 빈 목록을 당길 때마다 로딩
+  /// 표시로 바뀌면 화면이 흔들린다.
+  bool get awaitingFirstLoad => loading && !loaded && items.isEmpty;
 
   /// 마지막 조회가 실패했는가. 화면이 재시도를 제안하는 근거다.
   final bool failedToLoad;
@@ -182,12 +191,14 @@ class NotificationState {
   NotificationState copyWith({
     List<AlertItem>? items,
     bool? loading,
+    bool? loaded,
     bool? failedToLoad,
     bool? hasMore,
     bool? loadingMore,
   }) => NotificationState(
     items: items ?? this.items,
     loading: loading ?? this.loading,
+    loaded: loaded ?? this.loaded,
     failedToLoad: failedToLoad ?? this.failedToLoad,
     hasMore: hasMore ?? this.hasMore,
     loadingMore: loadingMore ?? this.loadingMore,

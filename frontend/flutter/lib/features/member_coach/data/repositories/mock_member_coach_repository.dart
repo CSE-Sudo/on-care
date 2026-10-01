@@ -2,13 +2,14 @@ import 'dart:typed_data';
 
 import 'package:demo_fixture/demo_fixture.dart';
 
+import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/points_award.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/core/utils/wire_date.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
+import 'package:oncare/features/exercise/domain/repositories/routine_session_log.dart';
 import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
@@ -21,6 +22,11 @@ import 'package:oncare/features/member_coach/domain/repositories/member_coach_re
 /// 끊긴 화면이 나온다.
 typedef DemoCoachLinkCheck = bool Function();
 
+/// 데모에서 담당 트레이너를 다시 잇는다 — 담당 요청을 수락했을 때다. (#2659)
+///
+/// [DemoCoachLinkCheck] 와 같은 까닭으로 연결 상태는 헬스장 저장소에 둔다.
+typedef DemoCoachRelink = void Function(String trainerId);
+
 /// In-memory demo coach for `USE_MOCK_API=true`. Mirrors the trainer app's
 /// seed identity ([kDemoTrainerName]) so the two demo apps tell one story. Chat is
 /// stateful for the session so a sent message appears in the thread.
@@ -32,19 +38,25 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   /// [points] 를 주면 루틴 완료(AI 추천·트레이너 배정)가 포인트를 받고 되돌리면
   /// 회수된다(#1786).
   MockMemberCoachRepository({
-    MockExerciseRepository? exercise,
+    RoutineSessionLog? exercise,
     DemoPointsLedger? points,
     DemoCoachLinkCheck? linked,
+    DemoCoachRelink? relink,
   }) : _exercise = exercise,
        _points = points,
-       _linked = linked;
+       _linked = linked,
+       _relink = relink;
 
-  final MockExerciseRepository? _exercise;
+  final RoutineSessionLog? _exercise;
   final DemoPointsLedger? _points;
 
   /// 담당 트레이너 연결 여부를 묻는 곳. 주지 않으면 늘 연결된 것으로 본다
   /// (연결을 끊을 길이 없는 테스트·단독 사용).
   final DemoCoachLinkCheck? _linked;
+
+  /// 담당 요청을 수락했을 때 연결을 다시 잇는 곳. 주지 않으면 수락해도 연결
+  /// 상태는 그대로다(테스트·단독 사용).
+  final DemoCoachRelink? _relink;
 
   /// 담당이 살아 있는가. 끊겼으면 코치도, 배정 운동도, 대화도 내 것이 아니다.
   bool _hasCoach() => _linked?.call() ?? true;
@@ -335,11 +347,65 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   Future<MemberCoach?> fetchCoach() async => _hasCoach() ? _coach : null;
 
   @override
-  Future<List<CoachRoutine>> fetchRoutines() async =>
-      _routinesOn(todayKst(), today: true);
+  Future<List<CoachRoutine>> fetchRoutines() async {
+    await _restoreCompletions();
+    return _routinesOn(todayKst(), today: true);
+  }
+
+  /// 남아 있는 루틴 수행 기록에서 완료 체크를 되살린다 — 이 저장소가 처음
+  /// 읽힐 때 한 번. (#2662)
+  ///
+  /// 체크는 메모리에 있고 수행 기록은 로컬 목업 API(drift)에 남는다. 새로고침하면
+  /// 체크만 풀려, 운동 현황은 30분을 말하는데 목록은 미완료로 보이고 다시 체크하면
+  /// 같은 기록이 하나 더 생겼다. 실서버는 완료를 저장하므로 새로고침해도 체크가
+  /// 남는다 — 데모도 기록을 근거로 같은 모양을 낸다. 되돌릴 때 지울 기록과
+  /// 회수할 포인트의 근거(기록 id)도 함께 되살린다.
+  Future<void> _restoreCompletions() => _restoring ??= _restore();
+  Future<void>? _restoring;
+
+  Future<void> _restore() async {
+    final RoutineSessionLog? exercise = _exercise;
+    if (exercise == null) return;
+    final List<ExerciseSession> sessions;
+    try {
+      sessions = await exercise.assignedRoutineSessions();
+    } on Object {
+      // 되살리지 못해도 목록은 보여야 한다 — 체크가 풀린 예전 모양으로 둔다.
+      return;
+    }
+    final List<CoachRoutine> all = <CoachRoutine>[
+      ..._routines,
+      ..._autoRoutines,
+    ];
+    for (final ExerciseSession s in sessions) {
+      final String? routineId = s.assignedRoutineId;
+      final DateTime? date = s.date;
+      final String? sessionId = s.id;
+      if (routineId == null || date == null || sessionId == null) continue;
+      final String day = _dayKey(date);
+      final Map<String, CoachRoutine> done = _doneByDay[day] ??=
+          <String, CoachRoutine>{};
+      if (done.containsKey(routineId)) continue;
+      final CoachRoutine? base = all
+          .where((CoachRoutine r) => r.id == routineId)
+          .firstOrNull;
+      if (base == null) continue;
+      done[routineId] = base.copyWith(
+        completed: true,
+        completedMinutes: s.minutes,
+        completedDurationSeconds: s.durationSeconds,
+        completedIntensity: s.intensity.name,
+      );
+      final String slot = '$day|$routineId';
+      _completionSessions[slot] = sessionId;
+      // 완료 적립의 근거는 그 기록 id 다([_awardCompletion]).
+      _completionSources[slot] = sessionId;
+    }
+  }
 
   @override
   Future<List<CoachRoutine>> fetchRoutinesOn(DateTime day) async {
+    await _restoreCompletions();
     final DateTime today = todayKst();
     final DateTime date = DateTime(day.year, day.month, day.day);
     // 실서버처럼 아직 오지 않은 날은 목록이 없다(422).
@@ -443,6 +509,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     int? durationSeconds,
     String intensity = 'moderate',
   }) async {
+    await _restoreCompletions();
     final CoachRoutine routine = _todayRoutine(routineId);
     final String day = _dayKey(todayKst());
     final String slot = '$day|$routineId';
@@ -493,6 +560,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
 
   @override
   Future<CoachRoutine> uncompleteRoutine(String routineId) async {
+    await _restoreCompletions();
     // 오늘 취소한 배정이라도 오늘 남긴 완료는 되돌릴 수 있다 — 실서버와 같다.
     final String day = _dayKey(todayKst());
     final CoachRoutine? done = _doneByDay[day]?.remove(routineId);
@@ -527,7 +595,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     required String intensity,
     int? durationSeconds,
   }) async {
-    final MockExerciseRepository? exercise = _exercise;
+    final RoutineSessionLog? exercise = _exercise;
     if (exercise == null) return;
     final ExerciseType type = exerciseTypeFromLabel(routine.type);
     final ExerciseIntensity level = exerciseIntensityFromLabel(intensity);
@@ -551,22 +619,100 @@ class MockMemberCoachRepository implements MemberCoachRepository {
 
   @override
   Future<void> deleteRoutine(String routineId) async {
-    // 데모에는 담당 트레이너가 있다 — 실서버라면 403 이다. 목업에서까지 막으면
-    // 데모에서 이 동작을 보여 줄 수 없으므로 목록에서만 내린다. 화면은 담당이
-    // 없을 때만 이 버튼을 그린다. (#1020)
-    //
+    // 담당 트레이너가 있으면 실서버처럼 막는다(403) — 배정을 물리는 것은
+    // 트레이너의 일이다. 화면도 담당이 없을 때만 이 버튼을 그린다. (#1020, #2666)
+    if (_hasCoach()) {
+      throw const UnauthorizedError(
+        message: '담당 트레이너가 배정한 개인운동은 회원이 직접 취소할 수 없습니다.',
+      );
+    }
     // 실서버처럼 행은 남기고 오늘부터 목록에서 뺀다 — 지난 날짜에 걸려 있던
     // 목록은 그대로다(#2161).
     _todayRoutine(routineId);
     _endedOn[routineId] = _dayKey(todayKst());
   }
 
-  /// 데모에는 트레이너가 잡은 일정이 없다. (#490)
+  /// 트레이너가 잡아 둔 PT 일정 — 지난 완료 세션·오늘·다음 예정. (#2659)
   ///
-  /// 시드로 만들어 넣지 않는 이유: 데모 홈에 없던 카드가 생겨 화면이 지금과
-  /// 달라진다. 실모드에서만 나타나는 것이 맞다.
+  /// #490 에서는 데모 홈에 없던 카드가 생긴다는 이유로 비워 두었다. 그러면 데모의
+  /// `다음 PT` 는 늘 `예정 없음` 이고 주간 리포트의 PT 예약도 늘 0 이라, 데모가
+  /// 실서버 화면을 보여 주지 못한다. 데모는 실서버 화면을 그대로 보여야 한다.
+  ///
+  /// 완료 세션은 **공유 픽스처의 PT 날**에서 만든다 — 그날 운동 기록이 곧 그
+  /// 수업의 프로그램이고, 픽스처의 트레이너 메모가 곧 피드백이다. 일정을 따로
+  /// 지으면 같은 날의 운동 기록과 PT 일정이 서로 다른 수업을 말한다. 시각·길이는
+  /// 트레이너 웹 시드의 오늘 김민수 PT(18:00 · 50분)와 같다. 다음 예정은 한 주 뒤
+  /// 같은 요일·같은 시각이다 — 트레이너 웹도 이 회원의 수업을 매주 같은 요일에
+  /// 놓는다.
+  ///
+  /// 완료 세션에는 회차(`sessionNumber`)를 싣는다 — 이 담당과 받은 완료 PT 를
+  /// 날짜순으로 센 순번이다. 실서버(`session_number`, #2697)와 같은 규칙이라,
+  /// 운동 탭 `오늘 완료한 PT` 카드가 두 모드에서 같은 경로로 `12회차` 를 그린다.
+  /// 예정 수업은 회차가 없다. (#2694)
+  ///
+  /// 담당이 끊겼으면 비어 있다. 실서버도 활성 담당의 일정만 준다.
   @override
-  Future<List<CoachSession>> fetchSessions() async => const <CoachSession>[];
+  Future<List<CoachSession>> fetchSessions() async {
+    if (!_hasCoach()) return const <CoachSession>[];
+    final DateTime today = todayKst();
+    final List<FixtureDay> ptDays = <FixtureDay>[
+      for (final FixtureDay day in _fixtureDays)
+        if (day.isPt) day,
+    ];
+    return List<CoachSession>.unmodifiable(<CoachSession>[
+      for (final (int index, FixtureDay day) in ptDays.indexed)
+        CoachSession(
+          id: 'seed-pt-${day.date}',
+          date: DateTime.parse(day.date),
+          time: _ptTime,
+          type: _ptType,
+          durationMinutes: _ptMinutes,
+          status: '완료',
+          sessionNumber: index + 1,
+          note: day.trainerNote,
+          program: <CoachProgramItem>[
+            for (final FixtureExercise e in day.exercises)
+              if (e.done) _programItem(e),
+          ],
+        ),
+      CoachSession(
+        id: 'seed-pt-next',
+        date: DateTime(today.year, today.month, today.day + 7),
+        time: _ptTime,
+        type: _ptType,
+        durationMinutes: _ptMinutes,
+        status: '예정',
+      ),
+    ]);
+  }
+
+  static const String _ptTime = '18:00';
+  static const String _ptType = '1:1 PT';
+  static const int _ptMinutes = 50;
+
+  /// 픽스처 운동 한 줄 → 수업 프로그램 한 줄. 근력은 세트·횟수·중량, 나머지는
+  /// 운동 시간(분)이다 — 서버 계약과 같다. 버티는 운동(플랭크)은 횟수 대신 버틴
+  /// 시간을 이름에 붙인다. 트레이너 웹 시드의 오늘 수업(`플랭크 60초`)과 같은
+  /// 표기다.
+  static CoachProgramItem _programItem(FixtureExercise e) {
+    if (e.type != 'strength') {
+      return CoachProgramItem(
+        name: e.name,
+        sets: 0,
+        reps: 0,
+        weight: 0,
+        duration: e.minutes,
+        durationSeconds: e.minutes * 60,
+      );
+    }
+    final int? hold = e.holdSeconds;
+    return CoachProgramItem(
+      name: hold == null ? e.name : '${e.name} $hold초',
+      sets: e.sets ?? 0,
+      reps: e.reps ?? 0,
+      weight: e.weight ?? 0,
+    );
+  }
 
   @override
   Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
@@ -742,17 +888,57 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     return saved;
   }
 
-  /// 데모에는 요청을 보낼 트레이너 백엔드가 없다. 빈 목록이라 카드 자체가
-  /// 그려지지 않고, 데모 화면은 지금 그대로다.
-  @override
-  Future<List<CoachInvite>> fetchInvites() async => const <CoachInvite>[];
+  /// 담당 트레이너가 다시 보낸 연결 요청 — 연결이 끊긴 동안만 한 건 뜬다. (#2659)
+  ///
+  /// 예전에는 늘 빈 목록이라 데모에서는 앱 어디서든 뜨는 담당 요청 창
+  /// (`CoachInvitePrompter`)을 볼 길이 없었다. 연결된 회원에게는 요청이 오지
+  /// 않는다 — 실서버도 담당이 있는 회원에게는 요청을 보낼 수 없다. 끊은 뒤에
+  /// 같은 트레이너가 다시 청하는 모양이라, 수락하면 끊기 전 화면으로 돌아간다.
+  static const CoachInvite _invite = CoachInvite(
+    id: 'demo-invite-1',
+    trainerId: 'trainer-kim',
+    trainerName: kDemoTrainerName,
+    gymName: '온케어짐 신촌점',
+    message: '민수님, 무릎 상태 봐 가며 하던 프로그램 이어서 같이 해요. 연결 요청 드립니다.',
+  );
 
+  /// 답한 요청은 다시 뜨지 않는다 — 실서버에서도 수락·거절한 요청은 목록에서
+  /// 빠진다.
+  bool _inviteAnswered = false;
+
+  @override
+  Future<List<CoachInvite>> fetchInvites() async =>
+      _hasCoach() || _inviteAnswered
+      ? const <CoachInvite>[]
+      : const <CoachInvite>[_invite];
+
+  /// 수락하면 그 트레이너가 다시 담당이 된다. 연결 상태는 헬스장 저장소가
+  /// 들고 있으므로 거기에 잇는다 — 이 저장소가 따로 들면 한쪽만 이어진다(#1865).
   @override
   Future<void> acceptInvite(
     String inviteId, {
     required bool dataSharingConsent,
-  }) async {}
+  }) async {
+    _requirePendingInvite(inviteId);
+    if (!dataSharingConsent) {
+      // 실서버도 동의 없는 수락은 400 이다(#1022).
+      throw const ServerError(statusCode: 400);
+    }
+    _inviteAnswered = true;
+    _relink?.call(_invite.trainerId);
+  }
 
   @override
-  Future<void> rejectInvite(String inviteId) async {}
+  Future<void> rejectInvite(String inviteId) async {
+    _requirePendingInvite(inviteId);
+    _inviteAnswered = true;
+  }
+
+  /// 목록에 없는 요청에 답하면 실서버는 404 다. 요청 창은 [AppError] 를 받아
+  /// 실패 안내를 띄운다 — 다른 예외면 창이 멈춘다.
+  void _requirePendingInvite(String inviteId) {
+    if (inviteId != _invite.id || _inviteAnswered || _hasCoach()) {
+      throw const NotFoundError();
+    }
+  }
 }

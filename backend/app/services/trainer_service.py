@@ -1847,9 +1847,8 @@ def _routine_out(
         completed_intensity=completion.intensity if completion is not None else None,
         # 개인 운동 회원 피드백은 없앴다(#1825). 응답 모양은 옛 앱을 위해 남긴다.
         member_note="",
-        trainer_feedback=(
-            completion.trainer_feedback if completion is not None else ""
-        ),
+        # 개인 운동 트레이너 피드백도 없앴다(#2517). 응답 모양은 옛 앱을 위해 남긴다.
+        trainer_feedback="",
         schedule_id=getattr(rt, "schedule_id", None),
         pending_send=getattr(rt, "status", "") == ROUTINE_SCHEDULED,
         delivery_kind=getattr(rt, "delivery_kind", None),
@@ -2184,8 +2183,6 @@ def complete_assigned_routine(
         assigned_routine_id=routine.id,
         assigned_trainer_id=trainer_id,
         assigned_routine_name=routine.name,
-        # 개인 운동 피드백은 받지 않는다(#1825) — 불편은 채팅에서 감지한다.
-        member_note="",
         completed_at=completed_at,
     )
     db.add(row)
@@ -2293,36 +2290,8 @@ def uncomplete_assigned_routine(
     return _routine_out(db, routine, None)
 
 
-def update_assigned_routine_feedback(
-    db: Session,
-    trainer_id: str,
-    member_id: str,
-    history_id: str,
-    feedback: str,
-) -> RoutineHistoryOut:
-    """활성 담당 관계가 확인된 트레이너가 자신이 배정한 기록에 피드백한다.
-
-    API 계층은 현재 활성 담당 관계를 먼저 확인하고, 여기서는 수행 스냅샷의
-    배정 트레이너까지 일치하는지 추가로 검증한다(#638).
-    """
-    row = db.scalar(
-        select(ExerciseSession).where(
-            ExerciseSession.id == history_id,
-            ExerciseSession.user_id == member_id,
-            ExerciseSession.source == "assigned_routine",
-            ExerciseSession.assigned_trainer_id == trainer_id,
-        )
-    )
-    if row is None:
-        raise RoutineNotFound("배정 루틴 수행 기록을 찾을 수 없습니다.")
-    row.trainer_feedback = feedback.strip()
-    db.commit()
-    db.refresh(row)
-    return _assigned_history_out(row)
-
-
 def _assigned_history_out(row: ExerciseSession) -> RoutineHistoryOut:
-    """배정 루틴 수행을 조회·수정 응답에서 공유하는 이력 계약으로 변환한다."""
+    """배정 루틴 수행 → 트레이너 이력 계약."""
     completed_at = row.completed_at or row.created_at
     # 라벨의 날짜는 [build_client_history] 와 같은 규칙을 쓴다(#1264). 두 곳이
     # 갈리면 같은 기록이 목록과 상세에서 다른 날로 보인다.
@@ -2350,9 +2319,9 @@ def _assigned_history_out(row: ExerciseSession) -> RoutineHistoryOut:
         # 이름이 있으면 트레이너가 지은 이름이라 코드가 없다.
         kind=None if row.assigned_routine_name else "assigned_routine",
         exercise_items=[_assigned_exercise_item(row)],
-        # 개인 운동 회원 피드백은 없앴다(#1825). 옛 데이터가 있어도 내려보내지 않는다.
+        # 개인 운동 피드백은 회원(#1825)·트레이너(#2517) 모두 없앴다. 응답 모양만 남긴다.
         client_feedback="",
-        trainer_note=row.trainer_feedback,
+        trainer_note="",
         assigned_routine_id=row.assigned_routine_id,
         completed_at=completed_at,
     )
@@ -5586,7 +5555,7 @@ def _derived_exercise_id(session_id: str) -> str:
     `sched-hist-{id}` 와 같은 이유다. 동시 완료나 재호출에도 같은 id 가 나와
     중복 행이 생기지 않는다.
     """
-    return f"sched-ex-{session_id}"
+    return f"{exercise_service.PT_EXERCISE_ID_PREFIX}{session_id}"
 
 
 def _schedule_day(day: str) -> date:
@@ -6332,10 +6301,36 @@ def build_member_sessions(db: Session, member_id: str) -> list[ScheduleSessionOu
         .order_by(TrainerSchedule.date.desc(), TrainerSchedule.time.desc())
         .limit(_MEMBER_SESSIONS_LIMIT)
     ).all()
-    return [_member_schedule_out(s) for s in rows]
+    numbers = _done_pt_numbers(db, member_id, trainer_id)
+    return [_member_schedule_out(s, numbers.get(s.id)) for s in rows]
 
 
-def _member_schedule_out(s: TrainerSchedule) -> ScheduleSessionOut:
+def _done_pt_numbers(db: Session, member_id: str, trainer_id: str) -> dict[str, int]:
+    """이 회원이 이 트레이너와 마친 PT 의 회차 — 세션 id → 1부터의 순번. (#2697)
+
+    목록은 최근 100건만 내리지만 회차는 처음부터 센다. 상담은 수업이 아니라 세지
+    않는다. 같은 날·같은 시각이면 id 로 순서를 고정해 응답마다 번호가 바뀌지 않게 한다.
+    """
+    ids = db.scalars(
+        select(TrainerSchedule.id)
+        .where(
+            TrainerSchedule.member_id == member_id,
+            TrainerSchedule.trainer_id == trainer_id,
+            TrainerSchedule.status == SCHEDULE_DONE,
+            TrainerSchedule.type != "상담",
+        )
+        .order_by(
+            TrainerSchedule.date.asc(),
+            TrainerSchedule.time.asc(),
+            TrainerSchedule.id.asc(),
+        )
+    ).all()
+    return {sid: i for i, sid in enumerate(ids, start=1)}
+
+
+def _member_schedule_out(
+    s: TrainerSchedule, session_number: int | None = None
+) -> ScheduleSessionOut:
     """회원에게 내보내는 세션 — `note` 는 **완료된 PT** 것만 싣는다(#2515).
 
     `note` 한 칸이 PT 일정에서는 회원에게 보내는 트레이너 피드백이고, 상담 일정에서는
@@ -6348,6 +6343,7 @@ def _member_schedule_out(s: TrainerSchedule) -> ScheduleSessionOut:
         out.note = ""
     # 상담 요청 내용은 트레이너 카드용이다 — 회원은 `내 상담 요청` 에서 본다(#2584).
     out.consultation = None
+    out.session_number = session_number
     return out
 
 

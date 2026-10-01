@@ -12,12 +12,14 @@
 /// 상태를 들지 않는 저장소를 읽으므로, 인스턴스가 같은지로는 리셋 여부를 알 수 없다.
 library;
 
+import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/session/session_feature_reset.dart';
+import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
@@ -84,6 +86,15 @@ void main() {
       overrides: <Override>[
         appConfigProvider.overrideWithValue(_mockConfig),
         gymRepositoryProvider.overrideWithValue(gym),
+        // 리셋이 다시 읽는 MY 목업 저장소가 저장된 프로필을 DB 에서 읽는다(#2661)
+        // — 실기기 DB 는 이 테스트에서 열 수 없어 메모리 DB 를 끼운다.
+        appDatabaseProvider.overrideWith((ref) {
+          final AppDatabase db = AppDatabase.forTesting(
+            NativeDatabase.memory(),
+          );
+          ref.onDispose(db.close);
+          return db;
+        }),
         sessionFeatureResetOverride(),
       ],
     );

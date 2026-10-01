@@ -33,7 +33,7 @@ from app.services.coach import personal_ingest
 from app.services.exercise_service import (
     weekly_goals,
     WEEKDAY_LABELS, build_current_week, monday_of_str, monday_of_this_week_str,
-    session_date_of,
+    pt_session_times, session_date_of,
 )
 
 router = APIRouter(tags=["exercise"])
@@ -119,7 +119,7 @@ def current_week(
         .where(ExerciseSession.user_id == current_user.id)
         .where(ExerciseSession.week_start == week_start)
     ).all()
-    data = build_current_week(list(rows))
+    data = build_current_week(list(rows), pt_session_times(db, rows))
     profile = db.scalar(
         select(HealthProfile).where(HealthProfile.user_id == current_user.id)
     )

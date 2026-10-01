@@ -507,8 +507,9 @@ void main() {
       ).called(1);
     });
 
-    test('데모에는 요청을 보낼 트레이너 백엔드가 없다', () async {
-      // 데모 사용자에게는 담당 요청 창이 뜨지 않는다(#1801).
+    test('데모에서 담당이 있는 회원에게는 요청이 오지 않는다', () async {
+      // 연결된 데모 사용자에게는 담당 요청 창이 뜨지 않는다(#1801). 끊긴 뒤의
+      // 요청은 `demo_coach_seed_test` 가 본다(#2659).
       expect(await MockMemberCoachRepository().fetchInvites(), isEmpty);
     });
   });

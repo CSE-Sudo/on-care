@@ -77,7 +77,6 @@ from app.schemas.trainer_api import (
     MemberReportSendsOut,
     ReportSendRequest, ReportSendsOut, ReportSummaryOut,
     RoutineAssignRequest, RoutineOut, RoutineHistoryOut,
-    RoutineFeedbackRequest,
     RoutineSuggestionApproveRequest, RoutineSuggestionCreateRequest,
     ProgramAssignRequest, ProgramScheduleOut, ProgramScheduleRequest,
     RoutineOptionsOut, RoutineOptionsRequest, RoutineUpdateRequest,
@@ -129,7 +128,8 @@ from app.services import (
 )
 from app.services.coach import conversation
 from app.services.exercise_service import (
-    build_current_week, monday_of_str, monday_of_this_week_str, weekly_goals,
+    build_current_week, monday_of_str, monday_of_this_week_str,
+    pt_session_times, weekly_goals,
 )
 from app.services.coach.chat import answer as coach_answer
 
@@ -718,30 +718,6 @@ def trainer_client_history(
     return trainer_service.build_client_history(db, member_id, trainer.id)
 
 
-@router.put(
-    "/trainer/clients/{member_id}/history/{history_id}/feedback",
-    response_model=RoutineHistoryOut,
-)
-def trainer_update_routine_feedback(
-    member_id: str,
-    history_id: str,
-    payload: RoutineFeedbackRequest,
-    trainer: RequireTrainer,
-    db: Annotated[Session, Depends(get_db)],
-) -> RoutineHistoryOut:
-    """담당 회원의 배정 루틴 수행 기록에 피드백을 남기거나 고친다."""
-    _require_client(db, trainer.id, member_id)
-    feedback = payload.feedback.strip()
-    if not feedback:
-        raise HTTPException(status_code=400, detail="피드백 내용이 필요합니다.")
-    try:
-        return trainer_service.update_assigned_routine_feedback(
-            db, trainer.id, member_id, history_id, feedback
-        )
-    except trainer_service.RoutineNotFound as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-
-
 @router.get(
     "/trainer/clients/{member_id}/diet-advice",
     response_model=DietAdviceResponse,
@@ -931,7 +907,7 @@ def trainer_client_exercise_week(
         )
     ).all()
     # 회원 앱과 같은 연속 일수 — 운동만 센다.
-    data = build_current_week(list(rows))
+    data = build_current_week(list(rows), pt_session_times(db, rows))
     profile = db.scalar(
         select(HealthProfile).where(HealthProfile.user_id == member_id)
     )

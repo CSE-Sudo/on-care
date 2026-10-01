@@ -325,7 +325,6 @@ def _assigned_row(**over) -> ExerciseSession:
         source="assigned_routine",
         assigned_routine_id="rt-1",
         assigned_routine_name="하체 루틴",
-        trainer_feedback="",
         completed_at=datetime(2026, 9, 25, 10, tzinfo=timezone.utc),
         created_at=datetime(2026, 9, 25, 10, tzinfo=timezone.utc),
     )

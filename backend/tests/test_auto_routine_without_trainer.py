@@ -116,7 +116,7 @@ def test_auto_recommendation_can_be_completed(client, lone_member):
     done = client.post(
         f"/v1/me/coach/routines/{routine['id']}/complete",
         headers=_h(token),
-        json={"minutes": 15, "intensity": "light", "member_note": ""},
+        json={"minutes": 15, "intensity": "light"},
     )
 
     # 담당이 없다고 완료가 막히면, 화면에 보이는 운동을 수행할 수 없다.
@@ -284,7 +284,7 @@ def test_a_finished_routine_stays_even_if_pain_is_mentioned_after(
     done = client.post(
         f"/v1/me/coach/routines/{walk['id']}/complete",
         headers=_h(token),
-        json={"minutes": 20, "intensity": "light", "member_note": ""},
+        json={"minutes": 20, "intensity": "light"},
     )
     assert done.status_code == 200, done.text
 

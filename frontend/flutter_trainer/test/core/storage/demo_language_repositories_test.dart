@@ -101,6 +101,7 @@ void main() {
       final container = ProviderContainer(
         overrides: <Override>[
           appConfigProvider.overrideWithValue(_demoConfig),
+          appDatabaseProvider.overrideWithValue(_memoryDb()),
           demoLanguageProvider.overrideWithValue(DemoLanguage.en),
         ],
       );
@@ -207,4 +208,11 @@ void main() {
       }
     });
   });
+}
+
+/// 데모 저장소가 바꾼 값을 적는 메모리 DB(#2669). 테스트가 끝나면 닫는다.
+AppDatabase _memoryDb() {
+  final AppDatabase db = AppDatabase.forTesting(NativeDatabase.memory());
+  addTearDown(db.close);
+  return db;
 }

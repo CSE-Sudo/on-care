@@ -173,7 +173,7 @@ def test_member_cannot_complete_a_pending_suggestion(client, suggestion):
     done = client.post(
         f"/v1/me/coach/routines/{row['id']}/complete",
         headers=_h(_member_token(client)),
-        json={"minutes": 8, "intensity": "light", "member_note": ""},
+        json={"minutes": 8, "intensity": "light"},
     )
 
     # 조회에서만 거르면 id 를 알아낸 호출이 한 경로 남는다.

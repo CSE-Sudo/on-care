@@ -17,8 +17,10 @@ import 'package:oncare/features/exercise/presentation/widgets/exercise_flows.dar
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_invite_prompter.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/weekly_feedback_prompter.dart';
+import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/services/record_span_provider.dart';
 import 'package:oncare/shared/widgets/coaching_sheet.dart';
 import 'package:oncare/shared/widgets/member_bottom_nav.dart';
 import 'package:oncare/shared/widgets/oni_fab.dart';
@@ -91,6 +93,10 @@ class _MainShellState extends ConsumerState<MainShell>
     // 앱을 켠 순간의 추천이 하루 종일 고정되고 첫 조회가 실패하면 기본 추천이
     // 앱 수명 내내 남았다(#1938).
     ref.invalidate(dietRecommendationsProvider);
+    // 식단 기간 집계와 기록 시작일은 autoDispose 가 아니다 — 앱을 떠난 사이
+    // 날이 바뀌거나 다른 기기에서 기록했으면 옛 그래프가 남는다(#2625).
+    ref.invalidate(dietPeriodProvider);
+    ref.invalidate(recordSpanProvider);
     ref.invalidate(exerciseWeekProvider);
     ref.invalidate(coachRoutinesProvider);
     ref.invalidate(coachRoutinesOnDayProvider);
@@ -111,9 +117,16 @@ class _MainShellState extends ConsumerState<MainShell>
         ref.invalidate(dietByDateProvider(nowKst()));
         // AI 맞춤 조언도 같은 이유로 다시 받는다(#2078).
         ref.invalidate(dietAdviceProvider);
+        // `이번 주`·`전체` 그래프와 그 시작일도 — 둘 다 오늘 캐시를 보지 않는다
+        // (#2625).
+        ref.invalidate(dietPeriodProvider);
+        ref.invalidate(recordSpanProvider);
         break;
       case 2:
         ref.invalidate(exerciseWeekProvider);
+        // AI 맞춤 조언도 다시 받는다 — 식단 탭과 같다(#2078, #2631). 다른 탭의
+        // `+` 로 운동을 적고 돌아와도 조언이 새 기록을 말한다.
+        ref.invalidate(exerciseAdviceProvider);
         ref.invalidate(coachRoutinesProvider);
         // 지난 날짜 목록도 — 탭을 떠난 사이 날이 바뀌면 오늘 체크가 어제 것이
         // 된다(#2161).
@@ -172,6 +185,10 @@ class _MainShellState extends ConsumerState<MainShell>
   @override
   Widget build(BuildContext context) {
     ref.listen<AsyncValue<int>>(notificationUnreadProvider, _onUnreadChanged);
+    // 알림 목록을 미리 불러 둔다(#2688). 알림함에 들어갈 때 컨트롤러를 처음 만들면
+    // 첫 조회 동안 로딩 표시가 보인다 — 데모는 예전처럼 목록이 바로 떠야 하고,
+    // 실서버도 그 모양을 따른다. 세션이 바뀌어 무효화되면 여기서 다시 만든다.
+    ref.listen<NotificationState>(notificationControllerProvider, (_, _) {});
     return Scaffold(
       // 페이지가 하단 바 뒤까지 이어지게 둔다 — 각 탭은 바 높이만큼 아래 여백을
       // 스스로 둔다.

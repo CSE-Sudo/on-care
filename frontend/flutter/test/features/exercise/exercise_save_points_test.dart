@@ -256,7 +256,9 @@ void main() {
     await dismissToast(tester);
   });
 
-  testWidgets('기록을 고치면 적립 표시도 잔액 다시 읽기도 없다', (WidgetTester tester) async {
+  // 수정은 적립을 주지 않지만, 날짜를 옮기면 주간 챌린지의 운동한 날이 바뀐다 —
+  // 저장·삭제와 같은 갱신 함수로 MY 쪽을 다시 읽는다(#2634).
+  testWidgets('기록을 고치면 적립 표시는 없고 MY 는 다시 읽는다', (WidgetTester tester) async {
     final ExerciseSession existing = ExerciseSession(
       id: 'ex-1',
       dayLabel: '월',
@@ -281,7 +283,7 @@ void main() {
     expect(find.text('운동 기록이 수정됐어요'), findsOneWidget);
     expect(_badge, findsNothing);
     await tester.pumpAndSettle();
-    expect(health.calls, 1);
+    expect(health.calls, 2);
 
     await dismissToast(tester);
   });

@@ -174,6 +174,11 @@ void main() {
       ),
       isTrue,
     );
+    // 데모 저장소가 접수 id 를 새로 주므로(#2659) 넣은 값이 아니라 접수된 목록을
+    // 기준으로 본다.
+    final List<ConsultationRequest> seeded = container.read(
+      consultationRequestControllerProvider,
+    );
 
     await expectLater(
       controller.login(email: 'member@example.com', password: 'password'),
@@ -184,10 +189,7 @@ void main() {
       container.read(sessionControllerProvider).status,
       SessionStatus.demo,
     );
-    expect(
-      container.read(consultationRequestControllerProvider),
-      <ConsultationRequest>[_pendingRequest],
-    );
+    expect(container.read(consultationRequestControllerProvider), seeded);
     expect(
       container
           .read(consultationRequestControllerProvider.notifier)

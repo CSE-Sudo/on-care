@@ -5,14 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
-import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
+import 'package:oncare/features/exercise/presentation/controllers/exercise_refresh.dart';
 import 'package:oncare/features/exercise/presentation/widgets/own_exercise_records.dart';
 import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -124,10 +123,10 @@ Future<bool> confirmDeleteExerciseSession(
   if (!confirmed) return false;
   try {
     await ref.read(exerciseRepositoryProvider).deleteSession(id);
-    // 목록·주간 통계·그래프가 한 번에 최신이 된다 — 추가 경로와 같은 무효화다.
-    ref.invalidate(exerciseWeekProvider);
-    // 지운 기록의 적립은 회수된다 — MY 잔액을 다시 읽는다(#1786).
-    refreshPointsBalance(ref);
+    // 추가 경로와 같은 갱신이다(#2634) — 이번 주·지난 주 목록과 그래프, AI
+    // 조언, MY 기록 달력·보호권, 회수된 적립(#1786)과 주간 챌린지가 함께
+    // 최신이 된다.
+    refreshAfterExerciseChange(ref.invalidate);
     toast.show(l.exDeleted, type: AppToastType.success);
     return true;
   } on Object {
@@ -562,7 +561,6 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
       // Sheet dismissed mid-save → don't pop the page below.
       if (!mounted) return;
       _refreshAfterSave();
-      refreshPointsBalance(ref);
       navigator.pop(true);
       toast.show(
         drafts.length > 1 ? l.exLoggedCount(drafts.length) : l.exLogged,
@@ -577,15 +575,10 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
     }
   }
 
-  /// 저장 뒤에 다시 읽을 것들. 주간 데이터 무효화로 통계·차트·목록이 반영된다.
-  void _refreshAfterSave() {
-    ref.invalidate(exerciseWeekProvider);
-    // 보호권으로 이어 붙인 날에 기록했으면 서버가 그 보호권을 되돌렸다 —
-    // 내 혜택의 보유 수를 다시 읽는다(#1788). 그날 달력 칸도 달라졌다(#2075).
-    ref
-      ..invalidate(myStreakShieldsProvider)
-      ..invalidate(activityCalendarProvider);
-  }
+  /// 저장·수정 뒤에 다시 읽을 것들 — 삭제·추천 개인운동 완료와 같은 함수다
+  /// (#2634). 지난 주 날짜로 적거나 옮긴 기록(#2629), AI 조언(#2631), 날짜를
+  /// 옮긴 뒤의 주간 챌린지까지 함께 비운다.
+  void _refreshAfterSave() => refreshAfterExerciseChange(ref.invalidate);
 
   Future<void> _saveEdit() async {
     final AppLocalizations l = AppLocalizations.of(context);

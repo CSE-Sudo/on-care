@@ -150,7 +150,7 @@ void main() {
     expect(find.text(l.signUpPhoneFormatInvalid), findsOneWidget);
     expect(repo.saves, 0);
 
-    await tester.enterText(find.byKey(_phone), '01012345678');
+    await tester.enterText(find.byKey(_phone), '01098765432');
     await tester.pump();
     expect(find.text(l.signUpPhoneFormatInvalid), findsNothing);
 
@@ -196,6 +196,11 @@ void main() {
     );
 
     expect(find.text(l.signUpPhoneFormatInvalid), findsNothing);
+    // 이름만 고친다 — 바꾼 칸이 있어야 요청이 나간다(#2655).
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('my-profile-name')),
+      '연락처없음2',
+    );
     await _save(tester, l);
 
     expect(find.text(l.signUpPhoneFormatInvalid), findsNothing);

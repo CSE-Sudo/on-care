@@ -6,13 +6,12 @@ import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/features/ai_coach/presentation/widgets/insight_history_sheet.dart';
-import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart'
     show exerciseTypeFromLabel;
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart'
     show ExerciseIntensity, exerciseIntensityFromName;
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
-import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
+import 'package:oncare/features/exercise/presentation/controllers/exercise_refresh.dart';
 import 'package:oncare/features/exercise/presentation/widgets/own_exercise_records.dart'
     show exerciseAmountLabelOf, exerciseIntensityLabel;
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
@@ -426,9 +425,9 @@ class _RecommendedExerciseRowState
       // 목록과 함께 운동 AI 조언도 다시 읽는다 — 조언이 오늘 한 추천 운동을
       // 보고 말한다(#2161, #2162).
       refreshCoachRoutines(ref);
-      ref.invalidate(exerciseWeekProvider);
-      // 되돌린 완료의 적립은 회수된다 — MY 잔액을 다시 읽는다(#1786).
-      refreshPointsBalance(ref);
+      // 운동 기록 삭제와 같은 갱신이다(#2634) — 되돌린 완료의 적립 회수(#1786)와
+      // 함께 MY 기록 달력·보호권·주간 챌린지도 다시 읽는다.
+      refreshAfterExerciseChange(ref.invalidate);
       if (mounted) {
         showAppToast(context, l.coachRoutineUndone, type: AppToastType.success);
       }
@@ -478,14 +477,9 @@ class _RecommendedExerciseRowState
       // 목록과 함께 운동 AI 조언도 다시 읽는다 — 조언이 오늘 한 추천 운동을
       // 보고 말한다(#2161, #2162).
       refreshCoachRoutines(ref);
-      ref.invalidate(exerciseWeekProvider);
-      // 완료 기록이 보호한 날에 떨어지면 보호권이 돌아온다 — 다시 읽는다(#1788).
-      // 그날 달력 칸도 달라졌다(#2075).
-      ref
-        ..invalidate(myStreakShieldsProvider)
-        ..invalidate(activityCalendarProvider);
-      // 추천·배정 운동 완료는 포인트를 받는다 — MY 잔액을 다시 읽는다(#1786).
-      refreshPointsBalance(ref);
+      // 운동 기록 저장과 같은 갱신이다(#2634) — 보호권(#1788)·달력 칸(#2075)·
+      // 적립(#1786)·주간 챌린지를 함께 다시 읽는다.
+      refreshAfterExerciseChange(ref.invalidate);
       if (mounted) {
         showAppToast(
           context,
@@ -729,25 +723,6 @@ class _RecommendedExerciseRowState
               ),
             ],
           ),
-          if (routine.trainerFeedback.isNotEmpty) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s8),
-            Container(
-              key: Key('routineFeedback-${routine.id}'),
-              width: double.infinity,
-              margin: const EdgeInsets.only(left: OnCareSpacing.tilePadding),
-              padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
-              decoration: BoxDecoration(
-                color: tokens.brand.surface,
-                borderRadius: OnCareRadius.mdAll,
-              ),
-              child: Text(
-                l.coachRoutineTrainerFeedback(routine.trainerFeedback),
-                style: tokens
-                    .text(OnCareTypography.bodySmall)
-                    .copyWith(color: OnCareColors.textPrimary),
-              ),
-            ),
-          ],
         ],
       ),
     );

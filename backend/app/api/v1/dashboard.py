@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser
 from app.core import clock
+from app.core.locale import localized
 from app.db.session import get_db
 from app.models.models import DietEntry, ExerciseSession
 from app.schemas.dashboard_api import (
@@ -99,16 +100,22 @@ def _build_sodium_warning(
     source_names: list[str],
     sodium_goal_mg: int = _MAX_SODIUM_MG,
 ) -> str | None:
+    # 문장은 요청 언어(`Accept-Language`)로 만든다(#2721). 음식 이름은 회원이 적은
+    # 그대로 둔다.
     if total_sodium_mg <= sodium_goal_mg:
         return None
     if not source_names:
-        return (
+        return localized(
             f"오늘 나트륨이 {total_sodium_mg}mg 으로 "
-            f"권장량({sodium_goal_mg}mg)을 넘었어요."
+            f"권장량({sodium_goal_mg}mg)을 넘었어요.",
+            f"Today's sodium is {total_sodium_mg}mg, "
+            f"over the recommended {sodium_goal_mg}mg.",
         )
 
-    top_source_names = "·".join(source_names[:2])
-    return f"{top_source_names} 섭취로 나트륨이 높아요."
+    return localized(
+        f"{'·'.join(source_names[:2])} 섭취로 나트륨이 높아요.",
+        f"High sodium from {', '.join(source_names[:2])}.",
+    )
 
 
 def _advice_key(
@@ -220,13 +227,22 @@ def dashboard_summary(
     exercise_calories = sum(r.calories for r in ex_rows)
     exercise_count = len(ex_rows)
     if exercise_minutes >= 150:
-        exercise_feedback = f"이번 주 {exercise_minutes}분 운동했어요. 목표 달성 중이에요!"
+        exercise_feedback = localized(
+            f"이번 주 {exercise_minutes}분 운동했어요. 목표 달성 중이에요!",
+            f"You've exercised {exercise_minutes} minutes this week. You're on track!",
+        )
         exercise_advice_key = "exercise_on_track"
     elif exercise_minutes > 0:
-        exercise_feedback = f"이번 주 {exercise_minutes}분 운동했어요. 조금만 더 힘내요!"
+        exercise_feedback = localized(
+            f"이번 주 {exercise_minutes}분 운동했어요. 조금만 더 힘내요!",
+            f"You've exercised {exercise_minutes} minutes this week. Keep it up!",
+        )
         exercise_advice_key = "exercise_more"
     else:
-        exercise_feedback = "이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요."
+        exercise_feedback = localized(
+            "이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.",
+            "Start this week's workouts. A light walk is a good first step.",
+        )
         exercise_advice_key = "exercise_start"
 
     # --- 주간 점수 + 지난주 대비 변화량(동일 공식으로 실제 차이 집계) ---
