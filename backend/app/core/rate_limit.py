@@ -195,6 +195,16 @@ def clear_failures(key: str) -> None:
     limiter.reset(key)
 
 
+def register_email_key(email: str) -> str:
+    """가입 시도 이메일 버킷 키(#2913). 회원·트레이너 가입이 같은 키를 쓴다."""
+    return f"register-email:{email.strip().lower()}"
+
+
+def password_change_fail_key(user_id: str) -> str:
+    """비밀번호 변경 실패 잠금 키(#2913). 회원 쪽 변경도 같은 키 규칙을 쓴다."""
+    return f"password-change-fail:{user_id}"
+
+
 def rate_limit(bucket: str, per_minute: int | None = None):
     """엔드포인트에 붙일 의존성 팩토리. bucket 은 엔드포인트 구분자.
 

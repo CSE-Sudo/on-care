@@ -1412,6 +1412,10 @@ refresh 토큰은 **일회용**이다. `POST /auth/refresh` 는 회전할 때 �
 안내와 함께 로그인 화면으로 간다. 변경이 실패하면(400·422) 세대는 그대로다.
 세대 비교는 회원·트레이너 공통이라, 회원 비밀번호 변경·재설정이 생기면 같은 칸을 올리면 된다.
 
+접근 토큰 수명은 기본 **60분**(`ACCESS_TOKEN_EXPIRE_MINUTES`, #2913), refresh 는 30일이다. 두 앱은
+401 을 받으면 `POST /auth/refresh` 로 새 쌍을 받아 요청을 다시 보내므로 수명이 짧아도 화면은 끊기지
+않는다.
+
 ### 시도 제한과 클라이언트 IP (#2815)
 
 IP 단위 한도와 감사 로그 IP 는 같은 함수(`app/core/client_ip.py`)로 읽는다. 요청자가 넣은
@@ -1427,6 +1431,8 @@ IP 를 바꿔 가며 한 계정을 노리는 시도는 계정 쪽 버킷이 막�
 | `POST /auth/login` | IP | 분당 `RATE_LIMIT_AUTH_PER_MINUTE`(10) |
 | `POST /auth/login` | **이메일(대소문자 무시) 연속 실패** | `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `LOGIN_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429. 잠긴 동안에는 비밀번호를 확인하지 않는다. 성공하면 실패 기록을 지운다. 없는 이메일도 같이 센다 |
 | `POST /trainer/pairing-code/preview`·`POST /trainer/pairing-code` | IP + **트레이너 id** | 각각 분당 10, 트레이너 id 는 하루 `PAIRING_REDEEM_PER_DAY`(30) 도 함께. 두 엔드포인트가 한 버킷 |
+| `POST /auth/register`·`POST /auth/trainer/register` | IP + **이메일(대소문자 무시)** | IP 는 분당 10. 같은 이메일은 시간당 `REGISTER_PER_EMAIL_PER_HOUR`(5) — 성공·409 를 가리지 않고 세고, 두 가입이 한 버킷이다(#2913). 409 문구는 그대로 |
+| `POST /trainer/me/password` | IP + **사용자 id 연속 실패** | IP 는 분당 10. 현재 비밀번호를 `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `PASSWORD_CHANGE_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429(잠긴 동안 비밀번호를 확인하지 않는다). 틀린 시도는 감사 로그 `auth.password_change`(실패)에 남고, 성공하면 실패 기록을 지운다(#2913) |
 
 한도 저장소는 프로세스 메모리라 인스턴스가 여럿이면 한도도 그 배수가 된다. 운영 인스턴스가
 하나를 넘게 되면 공유 저장소 구현으로 바꾼다(`app/core/rate_limit.py`).

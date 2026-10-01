@@ -17,7 +17,9 @@ from datetime import datetime, timezone
 from pathlib import PurePath
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
+from fastapi import (
+    APIRouter, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile,
+)
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
@@ -27,7 +29,15 @@ from app.core import clock
 from app.core.config import get_settings
 from app.core.locale import Locale, RequestLocale
 from app.core.pagination import DEFAULT_PAGE, MAX_PAGE, parse_before
-from app.core.rate_limit import check_key, limiter, rate_limit
+from app.core.rate_limit import (
+    check_key,
+    clear_failures,
+    ensure_unlocked,
+    limiter,
+    password_change_fail_key,
+    rate_limit,
+    record_failure,
+)
 from app.core.security import hash_password, verify_password
 from app.db.session import get_db
 from app.models.models import (
@@ -133,6 +143,7 @@ from app.services.exercise_service import (
     pt_session_times, weekly_goals,
 )
 from app.services.coach.chat import answer as coach_answer
+from app.services.audit import client_ip, record as audit
 
 router = APIRouter(tags=["trainer"])
 
@@ -329,8 +340,14 @@ def trainer_clear_gym(
     return trainer_service.clear_trainer_gym(db, trainer, profile)
 
 
-@router.post("/trainer/me/password", status_code=200, response_model=PasswordChanged)
+@router.post(
+    "/trainer/me/password",
+    status_code=200,
+    response_model=PasswordChanged,
+    dependencies=[Depends(rate_limit("trainer-password-change"))],
+)
 def trainer_change_password(
+    request: Request,
     payload: TrainerPasswordChange,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
@@ -340,11 +357,31 @@ def trainer_change_password(
     바꾸면 계정의 토큰 세대가 올라가 **다른 기기에 이미 나간 접근·refresh 토큰이
     모두 무효**가 된다(#2766) — 비밀번호를 바꾸는 이유는 대개 누가 계정을 쓰고
     있을지 모른다는 의심이다. 요청한 기기는 응답에 담긴 새 토큰으로 이어 쓴다.
+
+    시도 제한(#2913): IP 한도에 더해 **계정 단위 실패 잠금**을 건다. 접근 토큰을
+    손에 넣은 쪽이 현재 비밀번호를 맞혀 보면, 맞히는 순간 다른 기기 토큰까지 끊고
+    계정을 가져간다. 로그인 잠금과 같은 창(`login_lockout_seconds`) 안에
+    `password_change_max_failures` 번 틀리면 남은 시간 동안 429 이고, 틀린 시도는
+    감사 로그에 남는다. 잠금 판정은 비밀번호 확인보다 먼저 한다.
     """
+    settings = get_settings()
+    lock_key = password_change_fail_key(trainer.id)
+    lock_window = float(settings.login_lockout_seconds)
+    ensure_unlocked(lock_key, settings.password_change_max_failures, lock_window)
     if not verify_password(payload.current_password, trainer.hashed_password):
+        record_failure(lock_key, lock_window)
+        audit(
+            db,
+            event="auth.password_change",
+            user_id=trainer.id,
+            ip=client_ip(request),
+            success=False,
+            detail="current_password_mismatch",
+        )
         # 현재 비밀번호 불일치는 401 이 아니라 400 — 토큰은 유효하므로
         # 클라이언트가 로그아웃 처리로 오인하면 안 된다.
         raise HTTPException(status_code=400, detail="현재 비밀번호가 일치하지 않습니다.")
+    clear_failures(lock_key)
     if verify_password(payload.new_password, trainer.hashed_password):
         raise HTTPException(status_code=400, detail="현재와 다른 비밀번호를 입력해 주세요.")
     trainer.hashed_password = hash_password(payload.new_password)

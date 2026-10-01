@@ -36,7 +36,10 @@ class Settings(BaseSettings):
     # --- JWT ---
     jwt_secret: str = DEFAULT_JWT_SECRET
     jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 60 * 24
+    # 접근 토큰 수명(#2913). 두 앱 모두 401 을 받으면 refresh 로 새 토큰을 받아 요청을
+    # 다시 보내므로 짧아도 사용자 체감이 없고, 새어 나간 토큰이 쓰일 수 있는 시간이
+    # 줄어든다. 데모·개발 환경은 ACCESS_TOKEN_EXPIRE_MINUTES 로 길게 둘 수 있다.
+    access_token_expire_minutes: int = 60
     refresh_token_expire_days: int = 30
     # 토큰 없이 접근 시 데모 사용자로 폴백(개발 편의). 운영(prod)에서는 항상 비활성.
     allow_demo_fallback: bool = True
@@ -188,6 +191,14 @@ class Settings(BaseSettings):
     # id)에 더해, 트레이너 계정이 공개 가입이라 한 계정이 하루 종일 코드를 훑는 것을
     # 막는다. 정상 사용(회원 한 명당 한두 번)으로는 닿지 않는 값.
     pairing_redeem_per_day: int = 30
+    # 같은 이메일 가입 시도의 시간당 상한(#2913). 가입은 이미 있는 이메일에 409 를
+    # 주므로, IP 한도만으로는 IP 를 바꿔 가며 특정 이메일의 가입 여부를 계속 물을 수
+    # 있다. 회원·트레이너 가입이 한 버킷을 쓴다. 정상 가입(오타 몇 번)으로는 닿지 않는 값.
+    register_per_email_per_hour: int = 5
+    # 비밀번호 변경의 현재 비밀번호 연속 실패 잠금(#2913). 접근 토큰을 손에 넣은 쪽이
+    # 현재 비밀번호를 맞혀 보는 것을 사용자 id 단위로 막는다. 창은 로그인 잠금과 같다
+    # (`login_lockout_seconds`).
+    password_change_max_failures: int = 5
 
     # --- 클라이언트 IP (#2815) ---
     # rate limit 키·감사 로그 IP 를 정할 때 믿는 앞단 프록시 수. `X-Forwarded-For` 를

@@ -101,8 +101,19 @@ def clean(raw: str) -> str:
     return text
 
 
+def rejection_reason(text: str, limit: int) -> str | None:
+    """검사 탈락 사유(`empty`·`too_long`·`measure`). 통과면 None."""
+    if not text:
+        return "empty"
+    if len(plain(text)) > limit:
+        return "too_long"
+    if has_measure(text):
+        return "measure"
+    return None
+
+
 def valid(text: str, limit: int) -> bool:
-    return bool(text) and len(plain(text)) <= limit and not has_measure(text)
+    return rejection_reason(text, limit) is None
 
 
 def build_prompt(
@@ -185,9 +196,16 @@ def generate(
             metrics.incr(f"{metric}.fallback", reason="error")
             logger.warning("%s LLM 실패", metric, exc_info=True)
             return None
-        if valid(text, limit):
+        reason = rejection_reason(text, limit)
+        if reason is None:
             metrics.incr(f"{metric}.generated", by="llm")
             return text
-        logger.info("%s LLM 문장 검사 탈락: %r", metric, text)
+        # 문장에는 회원이 먹은 메뉴·수치가 들어 있다(#2913). 운영 로그(INFO)에는
+        # 메트릭 이름·사유·길이만 남기고, 원문은 DEBUG 로만 본다.
+        logger.info(
+            "%s LLM 문장 검사 탈락: reason=%s len=%d limit=%d",
+            metric, reason, len(plain(text)), limit,
+        )
+        logger.debug("%s LLM 탈락 문장 원문: %r", metric, text)
     metrics.incr(f"{metric}.fallback", reason="invalid")
     return None

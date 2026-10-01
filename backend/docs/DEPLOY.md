@@ -90,6 +90,9 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `FORWARDED_ALLOW_IPS` | uvicorn 프록시 헤더 신뢰 대역(`scripts/start.sh`, 기본 `*`). 고정 대역이 있으면 좁힌다. 클라이언트 IP 는 이 값과 무관하게 위 홉 수로 읽는다 |
 | `LOGIN_MAX_FAILURES`·`LOGIN_LOCKOUT_SECONDS` | 같은 이메일 로그인 연속 실패 잠금(기본 5회·900초) |
 | `PAIRING_REDEEM_PER_DAY` | 회원 연결 코드 미리보기·사용의 트레이너 하루 상한(기본 30) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | 접근 토큰 수명(분, #2913). 기본 60. 두 앱은 만료되면 refresh 로 이어 가므로 운영은 짧게 둔다. 데모·개발 환경만 길게 |
+| `REGISTER_PER_EMAIL_PER_HOUR` | 같은 이메일 가입 시도 시간당 상한(회원·트레이너 공용, 기본 5, #2913) |
+| `PASSWORD_CHANGE_MAX_FAILURES` | 비밀번호 변경의 현재 비밀번호 연속 실패 잠금(사용자 단위, 기본 5회, 창은 `LOGIN_LOCKOUT_SECONDS`, #2913) |
 | `EXPOSE_API_DOCS` | `/docs`·`/redoc`·`/openapi.json` 공개 여부(#2834). 비우면 운영은 닫힘(404). 스키마는 스테이징·로컬에서 본다 |
 
 > **시도 제한은 인스턴스 메모리에 둔다**(`app/core/rate_limit.py`). App Runner 최소·최대 인스턴스가
@@ -136,6 +139,15 @@ flutter build web --release \
 ```
 
 지도 핀은 프론트 카카오맵 **JS SDK**(JS키 + 도메인 등록) 담당. 백엔드는 좌표+정보만 제공한다.
+
+**운영 체크리스트 — 카카오 JavaScript 키 허용 도메인(#2913).** `KAKAO_JS_KEY` 는 웹 빌드에 들어가
+브라우저에 그대로 보인다. 키를 지키는 것은 카카오 개발자 콘솔의 **JavaScript SDK 도메인** 목록뿐이다.
+배포·도메인을 바꿀 때마다 아래를 확인한다.
+
+- 목록에 운영 회원 웹·트레이너 웹 주소만 있는가(`https://` 포함, 경로 없이 출처 단위).
+- 개발용 주소(`localhost` 등)·옛 배포 주소·임시 미리보기 주소가 남아 있지 않은가. 로컬 개발이
+  필요하면 운영 키가 아닌 개발용 앱 키를 따로 쓴다.
+- 확인한 날짜와 결과를 담당 이슈에 남긴다.
 
 ---
 

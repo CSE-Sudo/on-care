@@ -128,6 +128,8 @@ flutter build web --release --base-href "/frontend/"
 
 트레이너 웹 빌드 스텝에는 `KAKAO_JS_KEY` 만 있으므로(소속 헬스장 찾기 지도, #2543), 거기에도 위 두 값을 새로 줘야 합니다. 트레이너 웹 지도가 뜨려면 카카오 콘솔의 JavaScript SDK 도메인에 트레이너 웹 주소도 등록돼 있어야 합니다.
 
+`KAKAO_JS_KEY` 는 웹 빌드에 들어가 브라우저에 그대로 보이므로, 이 허용 도메인 목록이 키를 지키는 유일한 장치입니다(#2913). 배포·도메인을 바꿀 때마다 목록에 **운영 회원 웹·트레이너 웹 주소만** 남아 있는지, 개발용(`localhost` 등)·옛 배포·임시 미리보기 주소가 지워졌는지 확인합니다. 체크리스트는 [`backend/docs/DEPLOY.md`](../backend/docs/DEPLOY.md) 의 "프론트 연결" 절에 있습니다.
+
 실기기에 설치한 APK 는 **다시 빌드해야 합니다.** `String.fromEnvironment` 는 컴파일 타임 상수라서 dart-define 값이 APK 안에 박히고, 이미 설치된 앱의 서버 주소는 나중에 바꿀 수 없습니다. 절차는 [`local_fullstack.md`](local_fullstack.md) 의 안드로이드 실기기 절에 있습니다.
 
 ### `ENV=prod` 로 띄울 때 걸리는 것

@@ -24,10 +24,12 @@ from sqlalchemy.orm import Session
 from app.api.deps import CurrentUser, RequireMember
 from app.core.config import get_settings
 from app.core.rate_limit import (
+    check_key,
     clear_failures,
     ensure_unlocked,
     rate_limit,
     record_failure,
+    register_email_key,
 )
 from app.services.audit import client_ip, record as audit
 from app.core.security import (
@@ -379,6 +381,21 @@ def delete_me(
 # ---- 인증 (Stage 4 대비, 지금도 동작) ----
 
 
+def _check_register_email(email: str) -> None:
+    """같은 이메일 가입 시도 상한(#2913).
+
+    가입은 이미 있는 이메일에 409 를 주므로 IP 한도만으로는 IP 를 바꿔 가며 특정
+    이메일의 가입 여부를 계속 물을 수 있다. 이메일 단위로 한 시간에 몇 번까지만
+    받는다. 성공·실패를 가리지 않고 센다 — 세는 기준이 결과에 따라 갈리면 그 차이로
+    다시 가입 여부가 드러난다. 문구(409·429)는 그대로라 화면 변화는 없다.
+    """
+    check_key(
+        register_email_key(email),
+        get_settings().register_per_email_per_hour,
+        3600.0,
+    )
+
+
 @router.post(
     "/auth/register",
     response_model=UserMe,
@@ -390,6 +407,7 @@ def register(
     payload: UserRegister,
     db: Annotated[Session, Depends(get_db)],
 ) -> UserMe:
+    _check_register_email(payload.email)
     # `payload.email` 은 스키마가 소문자로 맞췄다. 대소문자만 다른 기존 주소도
     # 같은 이메일로 보고 거절한다(#2816).
     exists = db.scalar(select(User).where(func.lower(User.email) == payload.email))
@@ -451,8 +469,9 @@ def register_trainer(
     소속 헬스장은 여기서 정하지 않는다 — 가입 뒤 `PUT /trainer/me/gym` 으로 고른다
     (#1627). 소속이 없는 동안에는 상담 대상이 아니다(#443·#451).
 
-    회원 가입과 같은 rate limit 버킷을 쓴다.
+    회원 가입과 같은 rate limit 버킷을 쓴다(IP·이메일 둘 다).
     """
+    _check_register_email(payload.email)
     try:
         trainer = trainer_signup_service.register_trainer(db, payload)
     except trainer_signup_service.TrainerEmailTaken as exc:
