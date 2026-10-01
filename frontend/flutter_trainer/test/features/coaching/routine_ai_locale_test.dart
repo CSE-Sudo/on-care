@@ -429,7 +429,7 @@ void main() {
     });
 
     test('언어와 무관하게 시간·강도·유형 구성은 같다', () async {
-      for (final int? minutes in <int?>[null, 5, 45, 180]) {
+      for (final int? minutes in <int?>[null, 10, 45, 180]) {
         final RoutineOptions ko = await _generate(
           const MockTrainerRoutineOptionsRepository(),
           minutes: minutes,
