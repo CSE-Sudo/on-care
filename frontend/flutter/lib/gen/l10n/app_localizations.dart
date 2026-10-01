@@ -4945,6 +4945,12 @@ abstract class AppLocalizations {
   /// **'The trainer did not respond in time. Try requesting another time.'**
   String get exConsultExpiredBody;
 
+  /// No description provided for @exConsultCancelledByTrainerBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The trainer cancelled this consultation. Try requesting another time.'**
+  String get exConsultCancelledByTrainerBody;
+
   /// No description provided for @exExerciseGoal.
   ///
   /// In en, this message translates to:

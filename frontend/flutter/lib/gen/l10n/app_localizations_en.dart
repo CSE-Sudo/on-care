@@ -2867,6 +2867,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'The trainer did not respond in time. Try requesting another time.';
 
   @override
+  String get exConsultCancelledByTrainerBody =>
+      'The trainer cancelled this consultation. Try requesting another time.';
+
+  @override
   String get exExerciseGoal => 'Exercise Goal';
 
   @override
