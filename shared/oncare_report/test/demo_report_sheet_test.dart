@@ -47,22 +47,40 @@ void main() {
       expect(w.calorieGoal, kReportCalorieTargetKcal);
     });
 
-    test('PT 는 이력 창 안의 주마다 한 번, 모두 진행했다', () {
-      for (int back = 0; back < kDemoReportPtWeeks; back++) {
-        final ReportSheetWeek w = _inputs(
-          weekStart: _thisMonday.subtract(Duration(days: 7 * back)),
-        ).week;
-        expect(w.sessionsBooked, 1, reason: '$back주 전');
-        expect(w.sessionsDone, 1, reason: '$back주 전');
-      }
-      final ReportSheetWeek old = _inputs(
-        weekStart: DateTime(
+    test('PT 는 픽스처가 적은 지난 PT 날과 오늘 수업이고, 모두 진행했다', () {
+      final String today =
+          '${_now.year}-${_now.month.toString().padLeft(2, '0')}-'
+          '${_now.day.toString().padLeft(2, '0')}';
+      for (int back = 0; back <= kDemoReportPtWeeks; back++) {
+        final DateTime monday = DateTime(
           _thisMonday.year,
           _thisMonday.month,
-          _thisMonday.day - 7 * kDemoReportPtWeeks,
-        ),
-      ).week;
-      expect(old.sessionsBooked, 0);
+          _thisMonday.day - 7 * back,
+        );
+        final ReportSheetWeek w = _inputs(weekStart: monday).week;
+        final String mondayYmd =
+            '${monday.year}-${monday.month.toString().padLeft(2, '0')}-'
+            '${monday.day.toString().padLeft(2, '0')}';
+        final int pastPt = _fixture
+            .daysFor(_now)
+            .where(
+              (FixtureDay d) =>
+                  d.weekStart == mondayYmd && d.isPt && d.date != today,
+            )
+            .length;
+        final int expected = pastPt + (back == 0 ? 1 : 0);
+        expect(w.sessionsBooked, expected, reason: '$back주 전');
+        expect(w.sessionsDone, expected, reason: '$back주 전');
+      }
+      // 이번 주는 오늘 수업이 늘 한 번 선다.
+      expect(_inputs().week.sessionsBooked, greaterThanOrEqualTo(1));
+      // 지난 주에도 픽스처 PT 날이 있다 — 빈 PT 이력이 아니다.
+      expect(
+        _inputs(
+          weekStart: _thisMonday.subtract(const Duration(days: 7)),
+        ).week.sessionsBooked,
+        greaterThan(0),
+      );
     });
 
     test('요일별 수치는 픽스처의 그날 값 그대로다', () {

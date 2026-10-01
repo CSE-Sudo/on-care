@@ -6,8 +6,9 @@
 /// 바꿔야 두 앱이 같은 주를 같은 결과지로 보여 준다.
 ///
 /// - 요일별 수치: 기록이 있는 날만, 픽스처 값 그대로(끼니 수·배정 수 포함).
-/// - PT: 김민수는 매주 같은 요일에 한 번 수업을 받고, 이력 창
-///   ([kDemoReportPtWeeks]) 안의 주는 모두 진행했다.
+/// - PT: 픽스처가 PT 날로 적은 지난 날마다 한 번, 그리고 이번 주에는 오늘
+///   수업 한 번이다. 모두 진행했다 — 트레이너 웹 시드의 `seed-schedule-f…`
+///   행과 오늘 수업 행과 같다(#2694).
 /// - 목표: 회원이 적어 둔 하루 목표가 없어 공통 기본값으로 판정한다.
 /// - 운동 추이: 실제로 한 운동을 유형별로 더한다(근력은 세트).
 /// - 회원 답: 트레이너 웹 시드의 김민수 답과 같다.
@@ -17,8 +18,8 @@ import 'package:demo_fixture/demo_fixture.dart';
 import 'package:oncare_report/src/report_sheet_data.dart';
 import 'package:oncare_report/src/report_sheet_values.dart';
 
-/// 데모 PT 이력이 닿는 주 수(이번 주 포함) — 트레이너 웹
-/// `demoReportHistoryWeeks` 와 같다.
+/// 데모 리포트 이력이 닿는 주 수(이번 주 포함) — 트레이너 웹
+/// `demoReportHistoryWeeks` 와 같다. 이 창보다 앞선 주에는 픽스처 PT 날도 없다.
 const int kDemoReportPtWeeks = 14;
 
 /// 김민수가 MY 에 적어 둔 주간 운동 목표 — 트레이너 웹
@@ -203,6 +204,7 @@ ReportSheetInputs demoReportSheetInputs({
     days: days,
     weekStart: start,
     thisMonday: thisMonday,
+    today: now,
     languageCode: languageCode,
   );
   return ReportSheetInputs(
@@ -227,6 +229,7 @@ ReportSheetWeekData demoReportSheetWeek({
   required List<FixtureDay> days,
   required DateTime weekStart,
   required DateTime thisMonday,
+  DateTime? today,
   String languageCode = 'ko',
 }) {
   final DateTime monday = reportWeekStartOf(weekStart);
@@ -238,7 +241,16 @@ ReportSheetWeekData demoReportSheetWeek({
         DateTime.parse(d.date).weekday - 1: d,
   };
   final int back = _weeksBetween(monday, thisMonday);
-  final bool hasPt = back >= 0 && back < kDemoReportPtWeeks;
+  // 지난 PT 는 픽스처가 PT 날로 적은 날이고, 오늘 수업은 오늘 일정이 갖는다 —
+  // 트레이너 웹 시드도 오늘의 픽스처 PT 날은 건너뛰고 오늘 일정으로 세운다.
+  final String? todayYmd = today == null ? null : _ymd(today);
+  final int pastPt = days
+      .where(
+        (FixtureDay d) =>
+            d.weekStart == mondayYmd && d.isPt && d.date != todayYmd,
+      )
+      .length;
+  final int sessions = pastPt + (back == 0 ? 1 : 0);
   DemoReportAnswer? answer;
   for (final DemoReportAnswer a in kDemoReportAnswers) {
     if (a.weeksAgo == back) answer = a;
@@ -252,8 +264,8 @@ ReportSheetWeekData demoReportSheetWeek({
     return ReportSheetWeekData(
       memberName: fixture.memberName,
       weekStart: monday,
-      sessionsBooked: hasPt ? 1 : 0,
-      sessionsDone: hasPt ? 1 : 0,
+      sessionsBooked: sessions,
+      sessionsDone: sessions,
       completionAvg: null,
       sodiumAvg: null,
       isCurrentWeek: back == 0,
@@ -269,8 +281,8 @@ ReportSheetWeekData demoReportSheetWeek({
   return ReportSheetWeekData(
     memberName: fixture.memberName,
     weekStart: monday,
-    sessionsBooked: hasPt ? 1 : 0,
-    sessionsDone: hasPt ? 1 : 0,
+    sessionsBooked: sessions,
+    sessionsDone: sessions,
     completionAvg: recordedMean(completion)?.round(),
     sodiumAvg: recordedMean(sodium)?.round(),
     isCurrentWeek: back == 0,
