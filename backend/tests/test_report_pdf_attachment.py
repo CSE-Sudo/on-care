@@ -94,7 +94,7 @@ def test_pdf_send_rejects_wrong_member_type_and_size(client, monkeypatch):
     assert client.post(
         "/v1/trainer/clients/user-nobody/report/send-pdf",
         headers=_headers(token),
-        data={"week_start": "2026-08-03"},
+        data={"week_start": "2026-08-03", "message": "이번 주 리포트입니다."},
         files={"pdf": ("weekly.pdf", PDF, "application/pdf")},
     ).status_code == 404
 

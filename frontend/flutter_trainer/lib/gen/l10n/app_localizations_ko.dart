@@ -1325,6 +1325,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsSendFailed => '리포트 전송에 실패했어요. 다시 시도해 주세요';
 
   @override
+  String get reportsSendAlreadyDone => '이미 전송된 리포트예요. 전송 기록을 다시 불러왔어요';
+
+  @override
   String reportsSent(String name) {
     return '$name님에게 리포트를 보냈어요';
   }

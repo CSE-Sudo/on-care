@@ -171,7 +171,7 @@ class ReportPdfGenerator {
       // ③ 전송 단계에서는 편집기가 직전 주들을 더는 보고 있지 않아 치워졌을
       // 수 있다 — 다시 읽어 둔다.
       for (int back = 1; back <= kCalorieBaselineWeeks; back++) {
-        final ReportKey key = (
+        final ReportKey key = ReportKey(
           client: report.client,
           // [calorieBaselineProvider] 와 같은 주 목록이어야 캐시를 함께
           // 쓴다 — 둘 다 달력 날짜로 옮긴다(#2774).

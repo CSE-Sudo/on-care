@@ -228,7 +228,7 @@ void main() {
         makeClient(id: t.memberId, name: t.memberName);
 
     ReportKey keyOf(TestTrainer t) =>
-        (client: clientOf(t), weekStart: weekStartOf(nowKst()));
+        ReportKey(client: clientOf(t), weekStart: weekStartOf(nowKst()));
 
     test('weeklyReportProvider — B 에게 B 의 리포트만', () async {
       await signIn(TestTrainer.a);

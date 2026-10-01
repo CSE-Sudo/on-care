@@ -935,6 +935,10 @@
   "reportsNoClients": "No members yet, so there's nothing to report on",
   "reportsWeekly": "Weekly report",
   "reportsSendFailed": "Couldn't send the report. Please try again",
+  "reportsSendAlreadyDone": "This report was already sent. Send history has been refreshed",
+  "@reportsSendAlreadyDone": {
+    "description": "Toast when the server says this report send was already processed (409, #2773)."
+  },
   "reportsSent": "Report sent to {name}",
   "reportsGoToChat": "Go to chat",
   "@reportsSent": {

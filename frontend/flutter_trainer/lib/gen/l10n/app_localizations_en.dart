@@ -1372,6 +1372,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsSendFailed => 'Couldn\'t send the report. Please try again';
 
   @override
+  String get reportsSendAlreadyDone =>
+      'This report was already sent. Send history has been refreshed';
+
+  @override
   String reportsSent(String name) {
     return 'Report sent to $name';
   }
