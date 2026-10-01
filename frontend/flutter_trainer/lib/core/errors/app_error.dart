@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:oncare_trainer/core/utils/server_message.dart';
 
 /// Domain-level error type for the whole app. Repositories convert any
 /// transport / framework exception into one of these before surfacing it
@@ -17,13 +18,8 @@ sealed class AppError implements Exception {
   /// Map a `DioException` into the closest AppError. Add new branches
   /// here rather than at call sites.
   factory AppError.fromDio(DioException e) {
-    final data = e.response?.data;
-    final rawDetail = data is Map<String, dynamic> && data['detail'] is String
-        ? data['detail'] as String
-        : null;
-    final detail = rawDetail != null && rawDetail.trim().isNotEmpty
-        ? rawDetail
-        : null;
+    // 문자열 `detail` 과 객체 `detail.message` 를 한 규칙으로 읽는다(#2911).
+    final detail = serverDetailText(e.response?.data);
     final message = detail ?? e.message;
     switch (e.type) {
       case DioExceptionType.connectionTimeout:

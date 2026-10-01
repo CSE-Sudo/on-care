@@ -19,23 +19,36 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 이름이 실제로 하는 일과 달라 "활동 피드백"으로 고쳤다.
 class AiSummaryCard extends StatelessWidget {
   /// Creates the card.
-  const AiSummaryCard({super.key, required this.activityFeedback});
+  const AiSummaryCard({
+    super.key,
+    required this.activityFeedback,
+    this.statusMessage,
+  });
 
   /// 이행률·이탈 위험·식단 피드백 미완료 등 트레이너 활동 피드백 bullets.
   final List<ActivityFeedbackItem> activityFeedback;
+
+  /// 피드백을 아직 계산할 수 없을 때(입력 조회 중·실패) 목록 대신 보일 한
+  /// 줄. (#2891)
+  ///
+  /// 빈 목록을 넘기면 "담당 회원이 없어요" 로 읽혀, 못 읽은 것을 없다고
+  /// 말하게 된다.
+  final String? statusMessage;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     // 대상이 없는 신호는 아예 그리지 않는다 — "0명" 문장은 안내가 아니다.
-    final active = activityFeedback.where((i) => i.count > 0).toList();
+    final active = statusMessage != null
+        ? const <ActivityFeedbackItem>[]
+        : activityFeedback.where((i) => i.count > 0).toList();
     // 흰 카드들 사이에서 안내 카드로 구분되도록 옅은 남색 카드형 배너 — 리포트
     // 탭 요약 카드·회원 식단 분석과 같은 모양이다(#2468).
     return AppBanner(
       placement: AppBannerPlacement.card,
       icon: AppIcons.activityFeedback,
       title: l.dashAiSummaryTitle,
-      message: active.isEmpty ? l.dashAiNoClients : null,
+      message: statusMessage ?? (active.isEmpty ? l.dashAiNoClients : null),
       child: active.isEmpty
           ? null
           : Column(

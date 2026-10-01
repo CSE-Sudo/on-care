@@ -265,7 +265,9 @@ class _HistoryRow extends ConsumerWidget {
     if (preview.isEmpty) {
       final WeeklyReport? report = ref
           .watch(
-            weeklyReportProvider((client: client, weekStart: item.weekStart)),
+            weeklyReportProvider(
+              ReportKey(client: client, weekStart: item.weekStart),
+            ),
           )
           .valueOrNull;
       if (report != null) {

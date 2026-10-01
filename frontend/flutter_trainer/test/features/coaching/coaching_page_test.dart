@@ -27,9 +27,11 @@ import 'package:oncare_trainer/features/coaching/data/repositories/ai_routine_re
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_program_template_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_options_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
+import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_suggestion_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/ai_routine_item.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_template.dart';
 import 'package:oncare_trainer/features/coaching/presentation/pages/ai_routine_options_flow.dart';
@@ -424,6 +426,52 @@ class _SpyTrainerRoutineRepository implements TrainerRoutineRepository {
 /// prove routine delivery (assignRoutine) doesn't touch chat at all — a
 /// failing chat repo must have zero effect on the "전송 완료" claim
 /// (subin21cc review Major#2a).
+/// 전송 이력 카드가 직전 전송을 몇 번 읽었는지 센다(#2750).
+class _CountingDeliveryRepository extends _CapturingProgramRepository {
+  int latestReads = 0;
+
+  @override
+  Future<SentDelivery?> fetchLatestDelivery(String memberId) async {
+    latestReads++;
+    return null;
+  }
+}
+
+/// 대기 중 AI 제안 하나를 늘 주고, 몇 번 읽혔는지 센다(#2747).
+class _FixedSuggestionRepository implements TrainerRoutineSuggestionRepository {
+  static const RoutineSuggestion stairs = RoutineSuggestion(
+    id: 'sug-fixed-stairs',
+    name: '계단 오르기',
+    minutes: 15,
+    type: '유산소',
+    reason: '하체 지구력',
+  );
+
+  int reads = 0;
+
+  @override
+  Future<List<RoutineSuggestion>> pending(String memberId) async {
+    reads++;
+    return const <RoutineSuggestion>[stairs];
+  }
+
+  @override
+  Future<void> approve(
+    String suggestionId, {
+    String? name,
+    int? minutes,
+    String? type,
+    int? sets,
+    int? reps,
+    int? holdSeconds,
+    double? weight,
+    String? reason,
+  }) async {}
+
+  @override
+  Future<void> dismiss(String suggestionId) async {}
+}
+
 class _FakeRealChatRepository implements ChatRepository {
   @override
   Future<List<ClientChatMessage>> fetchOlder(
@@ -587,6 +635,61 @@ Future<void> _applyRecommendedRoutine(WidgetTester tester) async {
   // 프로그램 검토 다음은 개인운동 단계다(#2223) — 거기서 `프로그램에 반영` 을
   // 눌러야 PT 구성과 개인운동이 함께 편집기로 간다.
   await _completePersonalStep(tester, scrollable);
+}
+
+/// 위저드를 `개인운동만` 으로 지나 편집기의 개인운동 박스에서 보낸다
+/// (#2223). 보낸 뒤에는 정해진 프레임만 돌린다 — 이 파일의 다른 전송
+/// 테스트와 같다.
+Future<void> _sendRoutineOnlyFromWizard(
+  WidgetTester tester,
+  Finder scrollable,
+) async {
+  final skip = find.byKey(const ValueKey<String>('skip-pt-program'));
+  await tester.scrollUntilVisible(skip, 150, scrollable: scrollable);
+  await _ensureCentered(tester, skip);
+  await tester.tap(skip);
+  await tester.pumpAndSettle();
+  await _completePersonalStep(tester, scrollable);
+
+  final send = find.byKey(const ValueKey<String>('personal-routine-send'));
+  await tester.scrollUntilVisible(send, 150, scrollable: scrollable);
+  await _ensureCentered(tester, send);
+  await tester.tap(send);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('보내기').last);
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
+}
+
+/// 보낸 뒤 `AI 추천으로 돌아가기` 로 위저드를 다시 지나 새 `개인운동만`
+/// 구성을 반영한다. 개인운동 단계는 제안으로 채워져 있다고 보고(고정 제안
+/// 저장소), 보낸 뒤라 `pumpAndSettle` 대신 정해진 프레임만 돌린다.
+Future<void> _applyNewRoutineOnlyAfterSend(
+  WidgetTester tester,
+  Finder scrollable,
+) async {
+  final back = find.byKey(const ValueKey<String>('return-to-ai-flow'));
+  await tester.scrollUntilVisible(back, 150, scrollable: scrollable);
+  await _ensureCentered(tester, back);
+  await tester.tap(back);
+  await settle(tester);
+
+  final skip = find.byKey(const ValueKey<String>('skip-pt-program'));
+  await tester.scrollUntilVisible(skip, 150, scrollable: scrollable);
+  await _ensureCentered(tester, skip);
+  await tester.tap(skip);
+  await settle(tester);
+
+  final done = find.byKey(const ValueKey<String>('complete-personal-routines'));
+  await tester.scrollUntilVisible(
+    done,
+    150,
+    scrollable: scrollable,
+    maxScrolls: 100,
+  );
+  await _ensureCentered(tester, done);
+  await tester.tap(done);
+  await settle(tester);
 }
 
 /// 개인운동 단계를 통과한다. AI 제안이 채워져 있으면 그대로, 비어 있으면
@@ -2741,6 +2844,135 @@ void main() {
         ),
         findsNothing,
       );
+    });
+
+    testWidgets('개인운동만 보낸 뒤 위저드로 새 구성을 반영하면 다시 보낼 수 '
+        '있다 (#2752)', (tester) async {
+      // 새 구성은 새 전송이다 — 템플릿 적용·직접 만들기와 같은 규칙이다.
+      // 예전에는 `_sent` 가 남아 버튼이 이유 없이 회색이고 박스가 `보냄`
+      // 으로 굳었다.
+      final routines = _CapturingProgramRepository();
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(1600, 1200);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.coaching,
+        seedClock: kMidWeekKst,
+        extraOverrides: <Override>[
+          trainerRoutineRepositoryProvider.overrideWithValue(routines),
+          trainerRoutineSuggestionRepositoryProvider.overrideWithValue(
+            _FixedSuggestionRepository(),
+          ),
+          scheduleRepositoryProvider.overrideWith(
+            (ref) => _AttachScheduleRepository(
+              ref.watch(appDatabaseProvider),
+              attached: const <RoutineExercise>[],
+            ),
+          ),
+        ],
+      );
+
+      final scrollable = find.byType(Scrollable).first;
+      await _sendRoutineOnlyFromWizard(tester, scrollable);
+      expect(routines.programs, hasLength(1));
+
+      final send = find.byKey(const ValueKey<String>('personal-routine-send'));
+      // 방금 보낸 같은 구성을 곧바로 두 번 보내는 것은 막힌다.
+      expect(tester.widget<AppButton>(send).onPressed, isNull);
+
+      await _applyNewRoutineOnlyAfterSend(tester, scrollable);
+
+      expect(send, findsOneWidget);
+      expect(tester.widget<AppButton>(send).onPressed, isNotNull);
+      expect(find.text('보냈어요'), findsNothing);
+    });
+
+    testWidgets('개인운동만 보내면 전송 이력 카드가 직전 전송을 다시 읽는다 '
+        '(#2750)', (tester) async {
+      // 카드는 배정 목록이 아니라 직전 전송을 따로 읽는다 — 성공 분기가 그
+      // 값을 무효화하지 않으면 화면을 떠났다 와야 방금 보낸 것이 보인다.
+      final routines = _CountingDeliveryRepository();
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(1600, 1200);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.coaching,
+        seedClock: kMidWeekKst,
+        extraOverrides: <Override>[
+          trainerRoutineRepositoryProvider.overrideWithValue(routines),
+          scheduleRepositoryProvider.overrideWith(
+            (ref) => _AttachScheduleRepository(
+              ref.watch(appDatabaseProvider),
+              attached: const <RoutineExercise>[],
+            ),
+          ),
+        ],
+      );
+
+      final scrollable = find.byType(Scrollable).first;
+      // 카드가 처음 한 번은 읽는다.
+      expect(routines.latestReads, greaterThan(0));
+      final int before = routines.latestReads;
+
+      await _sendRoutineOnlyFromWizard(tester, scrollable);
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(routines.programs, hasLength(1));
+      expect(routines.latestReads, greaterThan(before));
+    });
+
+    testWidgets('개인운동을 채운 AI 제안 id 가 전송에 실린다 (#2747)', (tester) async {
+      // 서버가 이 id 로 대기 중 제안을 닫는다 — 닫지 않으면 다음 위저드에
+      // 같은 제안이 다시 서고, 대기 건이 쌓여 새 제안 준비도 멈춘다.
+      final routines = _CapturingProgramRepository();
+      final suggestions = _FixedSuggestionRepository();
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(1600, 1200);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.coaching,
+        seedClock: kMidWeekKst,
+        extraOverrides: <Override>[
+          trainerRoutineRepositoryProvider.overrideWithValue(routines),
+          trainerRoutineSuggestionRepositoryProvider.overrideWithValue(
+            suggestions,
+          ),
+          scheduleRepositoryProvider.overrideWith(
+            (ref) => _AttachScheduleRepository(
+              ref.watch(appDatabaseProvider),
+              attached: const <RoutineExercise>[],
+            ),
+          ),
+        ],
+      );
+
+      final scrollable = find.byType(Scrollable).first;
+      await _sendRoutineOnlyFromWizard(tester, scrollable);
+      await settle(tester);
+
+      expect(routines.programs, hasLength(1));
+      final sent = routines.programs.single;
+      expect(sent['suggestion_ids'], <String>[
+        _FixedSuggestionRepository.stairs.id,
+      ]);
+      // 회원에게 가는 운동 항목에는 제안 id 가 섞이지 않는다.
+      final session =
+          (sent['sessions']! as List<Object?>).first! as Map<String, Object?>;
+      final exercise =
+          (session['exercises']! as List<Object?>).first!
+              as Map<String, Object?>;
+      expect(exercise.containsKey('suggestion_ids'), isFalse);
+      // 위저드가 제안 저장소에서 개인운동을 채웠다.
+      expect(suggestions.reads, greaterThan(0));
     });
 
     testWidgets('프로그램 탭에 AI 개인운동 제안 카드가 더는 없다 (#2223)', (tester) async {
