@@ -203,6 +203,19 @@ class Settings(BaseSettings):
             return self.trusted_proxy_hops
         return 1 if self.is_prod else 0
 
+    #: API 문서(`/docs`·`/redoc`·`/openapi.json`) 공개 여부(#2834). 비워 두면 운영은
+    #: 끄고 그 밖은 켠다. 문서는 엔드포인트 전체 목록·스키마·docstring 의 내부 설계
+    #: 설명을 인증 없이 보여 준다 — 운영 스키마는 스테이징·로컬에서 본다. 꼭 운영에서
+    #: 켜야 하면 `EXPOSE_API_DOCS=true` 로 명시한다.
+    expose_api_docs: Optional[bool] = None
+
+    @property
+    def api_docs_enabled(self) -> bool:
+        """실제로 문서를 여는가(미설정이면 운영 끔, 그 밖 켬)."""
+        if self.expose_api_docs is not None:
+            return self.expose_api_docs
+        return not self.is_prod
+
     @property
     def admin_email_set(self) -> set[str]:
         return {e.strip().lower() for e in self.admin_emails.split(",") if e.strip()}

@@ -3,7 +3,7 @@ FastAPI 진입점 (STEP 1: 골격 재구성).
 
 프론트 계약에 맞춰 /v1 prefix 로 라우터를 마운트합니다.
 실행: uvicorn app.main:app --reload
-문서: http://localhost:8000/docs
+문서: http://localhost:8000/docs (운영은 기본으로 닫힌다 — EXPOSE_API_DOCS, #2834)
 """
 
 from __future__ import annotations
@@ -58,12 +58,21 @@ async def lifespan(app: FastAPI):
     yield
 
 
+def api_docs_urls(s: Settings) -> dict[str, str | None]:
+    """API 문서 경로(#2834). 꺼져 있으면 셋 다 None — FastAPI 가 경로를 만들지 않아 404."""
+    if s.api_docs_enabled:
+        return {"docs_url": "/docs", "redoc_url": "/redoc", "openapi_url": "/openapi.json"}
+    return {"docs_url": None, "redoc_url": None, "openapi_url": None}
+
+
 app = FastAPI(
     title="On-Care Backend",
     description="PT 회원과 트레이너를 잇는 식단·운동 관리 서비스 — 회원 앱·트레이너 웹 공용 API",
     version=settings.app_version,
     lifespan=lifespan,
+    **api_docs_urls(settings),
 )
+
 
 def body_limit_rules(s: Settings) -> tuple[BodyLimitRule, ...]:
     """경로별 요청 본문 상한 표(#2832). 처음 맞는 규칙 하나가 적용된다.
