@@ -283,7 +283,8 @@
 | GET | `/trainer/dashboard/task-progress` | 오늘 할 일 진행 상태 — 보관 기간(63일) 안의 날짜별 기록 |
 | PUT | `/trainer/dashboard/task-progress/{date}` | 그날 진행 상태 통째로 저장(KST 오늘·어제만) |
 | POST | `/trainer/clients/{member_id}/ai-coach` | 담당 회원 데이터 기반 AI 코칭 질의 |
-| GET | `/trainer/clients/{member_id}/report?week_start=` | 주간 리포트(어느 요일을 줘도 그 주 월요일로 정규화) |
+| GET | `/trainer/reports/queue?week_start=` | 리포트 작업대 요약 — 담당 회원 전원의 세션 예약·완료 수, 요일별·평균 이행률을 한 번에(#2863) |
+| GET | `/trainer/clients/{member_id}/report?week_start=` | 주간 리포트(어느 요일을 줘도 그 주 월요일로 정규화). 직전 4주 칼로리 평균 `calorie_baseline` 포함(#2863) |
 | GET | `/trainer/clients/{member_id}/report/summary?week_start=` | 주간 리포트 AI 요약(머리 문장 + 근거 최대 3줄) |
 | POST | `/trainer/clients/{member_id}/report/send` | 리포트를 회원 채팅 스레드로 전송 |
 | POST | `/trainer/clients/{member_id}/report/send-pdf` | 리포트 PDF 를 회원 채팅 스레드로 전송 — `message` 필수, 공백뿐이면 422 (#2771) |
@@ -414,6 +415,12 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 데이터는 없다. **기록이 없는 항목은 0 이 아니라 `null`** 로 내려간다("이행률 0%"는
 "안 했다"는 거짓말이 되므로). 전송은 별도 리포트 함이 아니라 **회원이 이미 읽고 있는
 채팅 스레드**로 들어간다.
+
+**작업대 요약 (#2863)**: 트레이너 웹 리포트 첫 화면은 `GET /trainer/reports/queue` 하나로
+담당 회원 전원의 큐 값(세션 예약·완료 수, 요일별·평균 이행률)을 받는다. 값은 회원별
+`build_weekly_report` 와 같은 규칙이고, 회원 목록은 회원 단위 경로와 같은 접근 규칙(담당 연결
+활성 + 데이터 공유 동의 유효)으로 고른다 — 작업대에 서는 회원과 편집기를 열 수 있는 회원이 같다.
+리포트 응답의 `calorie_baseline` 은 그 주 앞 4주 동안 기록한 날의 하루 평균 칼로리다.
 
 **회원 본인 경로 (#2652)**: 회원 앱 결과지는 `GET /me/coach/weekly-report` 로 같은
 `build_weekly_report` 를 부른다 — 같은 회원·같은 주면 두 앱이 **같은 값**을 읽는다.

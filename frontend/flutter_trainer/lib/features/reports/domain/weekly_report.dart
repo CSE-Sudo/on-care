@@ -80,6 +80,7 @@ class WeeklyReport implements ReportSheetWeek {
     this.days = const <ReportDay>[],
     this.mealCounts = const <int>[],
     this.memberFeedback,
+    this.calorieBaseline,
   });
 
   /// Who the report is about.
@@ -179,6 +180,14 @@ class WeeklyReport implements ReportSheetWeek {
   /// 그 둘은 다음 주 처방이 정반대라, 갈림길은 회원 본인의 답이 정한다.
   final MemberWeeklyFeedback? memberFeedback;
 
+  /// 직전 4주(`kCalorieBaselineWeeks`) 동안 기록한 날의 하루 평균 칼로리 — ①
+  /// 섭취 칼로리 줄이 견주는 `평소`. (#2232, #2863)
+  ///
+  /// 리포트와 함께 온다. 예전에는 화면이 직전 4주 리포트(와 회원 피드백)를
+  /// 통째로 다시 불러 칼로리 배열만 꺼내 썼다. 기록이 없으면 null 이고, 그때는
+  /// 비교 줄을 그리지 않는다 — `평소 0kcal` 은 굶었다는 뜻으로 읽힌다.
+  final double? calorieBaseline;
+
   @override
   String get memberName => client.name;
 
@@ -225,6 +234,7 @@ class WeeklyReport implements ReportSheetWeek {
       for (final ReportDay day in days)
         '${day.completion}:${day.assigned}:${day.exercises.join('␟')}',
       mealCounts.join(','),
+      calorieBaseline,
       if (member == null)
         '-'
       else
@@ -320,6 +330,7 @@ WeeklyReport buildWeeklyReport({
   WeekSeries? week,
   MemberWeeklyFeedback? memberFeedback,
   ReportTargets targets = const ReportTargets(),
+  double? calorieBaseline,
 }) {
   final start = weekStartOf(weekStart);
   final end = start.add(const Duration(days: 6));
@@ -367,6 +378,7 @@ WeeklyReport buildWeeklyReport({
     proteinTarget: targets.protein,
     fatTarget: targets.fat,
     memberFeedback: memberFeedback,
+    calorieBaseline: calorieBaseline,
   );
 }
 

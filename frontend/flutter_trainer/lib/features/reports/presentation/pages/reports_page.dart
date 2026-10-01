@@ -13,6 +13,7 @@ import 'package:oncare_trainer/features/reports/data/report_send_log.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/calorie_baseline.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/report_queue.dart';
+import 'package:oncare_trainer/features/reports/domain/report_queue_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/client_report_view.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/member_report_history_view.dart';
@@ -779,19 +780,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               icon: AppIcons.reports,
             );
           }
-          // 이번 주 큐를 세우려면 회원별 리포트가 필요하다. 한 명이 실패해도
-          // 나머지 줄은 그대로 선다 — 작업대의 답은 "누가 남았나" 이고, 그
-          // 답은 수치 없이도 낼 수 있다.
-          final reports = <String, WeeklyReport>{};
-          bool anyLoading = false;
-          for (final TrainerClient c in clients) {
-            final AsyncValue<WeeklyReport> value = ref.watch(
-              weeklyReportProvider(ReportKey(client: c, weekStart: _weekStart)),
-            );
-            final WeeklyReport? data = value.valueOrNull;
-            if (data != null) reports[c.id] = data;
-            if (value.isLoading) anyLoading = true;
-          }
           // 기록 자체를 본다 — notifier 를 보면 상태가 바뀌어도 다시 그리지
           // 않아 전송한 회원이 큐에 남는다.
           // 데모 기록을 얹는다 — 작업대의 두 열이 다 차 있어야 이 화면이
@@ -804,7 +792,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           final AsyncValue<Map<String, ReportSendRecord>> history = ref.watch(
             reportSendHistoryProvider(_weekStart),
           );
-          if (history.isLoading) anyLoading = true;
           final Map<String, ReportSendRecord> sendLog = withDemoSends(
             mergeSendLogs(
               history.valueOrNull ?? const <String, ReportSendRecord>{},
@@ -856,7 +843,24 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               sentFor,
               _weekStart,
             );
-            final WeeklyReport? sentReport = reports[sentFor];
+            // 작업대 요약은 수치 몇 개뿐이라 그대로 그릴 수 없다 — 그 회원의
+            // 리포트를 이때 읽는다(#2863).
+            final TrainerClient? sentClient = clients
+                .where((TrainerClient c) => c.id == sentFor)
+                .firstOrNull;
+            final AsyncValue<WeeklyReport>? sentAsync = sentClient == null
+                ? null
+                : ref.watch(
+                    weeklyReportProvider(
+                      ReportKey(client: sentClient, weekStart: _weekStart),
+                    ),
+                  );
+            final WeeklyReport? sentReport = sentAsync?.valueOrNull;
+            if (record != null &&
+                sentReport == null &&
+                (sentAsync?.isLoading ?? false)) {
+              return const AppLoading();
+            }
             if (record != null && sentReport != null) {
               return SentReportView(
                 report: sentReport,
@@ -886,6 +890,25 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
           // ── 작업대 ──────────────────────────────────────────────────
           if (_clientId == null) {
+            // 큐는 작업대 요약 하나로 세운다(#2863) — 회원마다 리포트·피드백을
+            // 부르면 회원 N명에 요청이 2N개였다. 편집기·보낸 리포트·지난
+            // 리포트 화면에서는 부르지 않는다. 요약을 읽지 못해도 줄은 그대로
+            // 선다 — 작업대의 답은 "누가 남았나" 이고, 그 답은 수치 없이도 낼
+            // 수 있다.
+            final AsyncValue<Map<String, ReportQueueSummary>> queue = ref.watch(
+              reportQueueProvider(
+                ReportQueueKey(clients: clients, weekStart: _weekStart),
+              ),
+            );
+            final Map<String, ReportQueueSummary> summaries =
+                queue.valueOrNull ?? const <String, ReportQueueSummary>{};
+            final Map<String, WeeklyReport> reports = <String, WeeklyReport>{
+              for (final TrainerClient c in clients)
+                if (summaries[c.id] case final ReportQueueSummary s)
+                  c.id: s.toQueueReport(c, _weekStart),
+            };
+            final bool loading =
+                (queue.isLoading && !queue.hasValue) || history.isLoading;
             return ReportWorkbench(
               entries: buildReportQueue(
                 clients: clients,
@@ -898,7 +921,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                   if (ymd(r.weekStart) == ymd(_weekStart)) r.clientId: r,
               },
               sort: _sort,
-              loading: anyLoading,
+              loading: loading,
               historyFailed: history.hasError && !history.isLoading,
               weekNav: weekNav,
               onSortChanged: (value) => setState(() => _sort = value),

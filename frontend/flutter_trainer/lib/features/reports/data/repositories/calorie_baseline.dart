@@ -20,29 +20,17 @@ const int kCalorieBaselineWeeks = 4;
 ///
 /// 아직 읽히지 않았거나 넉 주 내내 기록이 없으면 null 이고, 그때는 비교 줄을
 /// 아예 그리지 않는다. `평소 0kcal` 은 모른다는 뜻이 아니라 굶었다는 뜻이다.
+///
+/// 값은 그 주 리포트가 함께 싣고 온다([WeeklyReport.calorieBaseline], #2863).
+/// 예전에는 직전 4주 리포트를 같은 family 로 다시 읽어 칼로리 배열만 꺼냈다 —
+/// 회원 한 명을 열 때마다 리포트·회원 피드백 요청이 4주치 더 나갔다. 실서버는
+/// `WeeklyReportOut.calorie_baseline` 으로, 데모는 drift 이력으로 같은 규칙을
+/// 센다.
 final calorieBaselineProvider = Provider.autoDispose.family<double?, ReportKey>(
-  (ref, key) {
-    final List<int> recorded = <int>[];
-    for (int back = 1; back <= kCalorieBaselineWeeks; back++) {
-      // 같은 family 를 그대로 다시 읽는다 — 주마다 API 를 새로 만들 것이 없고,
-      // 이미 본 주는 캐시에 남아 있어 주를 오갈 때 다시 부르지 않는다.
-      final WeeklyReport? past = ref
-          .watch(
-            weeklyReportProvider(
-              ReportKey(
-                client: key.client,
-                // 달력 날짜로 옮긴다 — `Duration` 은 서머타임 시작 주를 건너
-                // 한 주를 빠뜨리고 다른 주를 두 번 읽는다(#2774).
-                weekStart: shiftWeeks(key.weekStart, -back),
-              ),
-            ),
-          )
-          .valueOrNull;
-      if (past == null) continue;
-      recorded.addAll(past.caloriesWeek.where((int kcal) => kcal > 0));
-    }
-    if (recorded.isEmpty) return null;
-    return recorded.fold<int>(0, (int a, int b) => a + b) / recorded.length;
-  },
+  (ref, key) => ref.watch(
+    weeklyReportProvider(
+      key,
+    ).select((AsyncValue<WeeklyReport> r) => r.valueOrNull?.calorieBaseline),
+  ),
   name: 'calorieBaseline',
 );

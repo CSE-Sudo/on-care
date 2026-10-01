@@ -75,7 +75,7 @@ from app.schemas.trainer_api import (
     ReportFeedbackOut,
     ReportFeedbackSaveRequest,
     MemberReportSendsOut,
-    ReportSendRequest, ReportSendsOut, ReportSummaryOut,
+    ReportQueueOut, ReportSendRequest, ReportSendsOut, ReportSummaryOut,
     RoutineAssignRequest, RoutineOut, RoutineHistoryOut,
     RoutineSuggestionApproveRequest, RoutineSuggestionCreateRequest,
     ProgramAssignRequest, ProgramScheduleOut, ProgramScheduleRequest,
@@ -2442,6 +2442,23 @@ def trainer_save_report_goals(
     week = _report_week(payload.week_start or trainer_service.today_iso())
     return trainer_service.save_report_goals(
         db, trainer.id, member_id, week, payload.goals
+    )
+
+
+@router.get("/trainer/reports/queue", response_model=ReportQueueOut)
+def trainer_report_queue(
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+    week_start: str | None = Query(None, description="YYYY-MM-DD (기본: 이번 주)"),
+) -> ReportQueueOut:
+    """리포트 작업대의 큐 — 담당 회원 전원의 그 주 요약을 한 번에. (#2863)
+
+    작업대가 회원마다 리포트·회원 피드백을 따로 부르면 회원 N명에 요청 2N개가
+    나갔다. 큐가 쓰는 값(세션 예약·완료, 이행률)만 묶어 준다 — 회원 한 명의
+    전체 리포트는 편집기를 열 때 `/trainer/clients/{id}/report` 로 읽는다.
+    """
+    return trainer_service.build_report_queue(
+        db, trainer.id, _report_week(week_start or trainer_service.today_iso())
     )
 
 
