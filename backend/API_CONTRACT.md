@@ -47,7 +47,7 @@
 | Method | Path | 응답 |
 |---|---|---|
 | GET | `/ping` | `{ message }` |
-| GET | `/healthz` | `{ status, backend }` |
+| GET | `/healthz` | `{ status, backend, env, demo_fallback, demo_seed, attachment_storage }` (#2821) |
 | GET | `/version` | `{ api_version, app_version }` |
 
 ### 사용자
@@ -63,6 +63,11 @@
 남고(누가 골랐는지는 남기지 않는다), 모르는 코드는 조용히 버린다. 아는 코드는
 `privacy` · `rarely_used` · `hard_to_use` · `too_many_notifications` · `found_alternative` ·
 `other`. 계정과 그에 매인 기록은 예전처럼 그대로 지워진다.
+
+탈퇴하면 그 회원이 낀 채팅 스레드의 **첨부 파일(사진·리포트 PDF)도 저장소에서 지운다**(#2817).
+스레드 행이 CASCADE 로 사라지므로 남긴 파일은 열 수 없는 고아가 된다. 트레이너 탈퇴
+(`DELETE /trainer/me`)도 그 트레이너의 스레드 첨부를 같은 규칙으로 지운다. 파일 삭제는 커밋
+뒤에 하고, 실패해도 응답은 `deleted` 다(서버 로그에 남겨 다시 지운다).
 
 `risk`: `{ title, body, level(low|medium|high) }`
 
@@ -1101,6 +1106,10 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   넘으면 **413**. 두 경로가 같은 규약을 한 함수(`chat_attachments.receive_chat_image`)로 쓴다.
 - **같은 `client_request_id` 재시도는 한 번만 보낸다.** 같은 키에 다른 글이나 사진이 아닌 메시지가
   있으면 **409**.
+- **내려받기는 서버가 권한을 확인한 뒤 흘려보낸다**(#2817). 바이트는 운영에서 객체 저장소(S3),
+  개발에서는 로컬 디스크에 있지만 응답은 같다 — 서명 URL 을 내주지 않는다(링크가 새면 권한
+  확인 없이 열리고, 담당 해제·동의 철회 뒤에도 만료 전까지 열리기 때문). 응답에
+  `Cache-Control: private, no-store` 가 붙고, 저장소에 바이트가 없으면 **404** 다.
 - 회원 경로는 **활성 담당 링크가 있어야 한다** — 없으면 글 메시지(`POST /me/coach/chat`)와 같이
   **404**. 트레이너 계정은 **403**. 트레이너 경로는 담당 고객이 아니면 **404**.
 - 알림: 트레이너가 보내면 회원에게, 회원이 보내면 트레이너에게 새 메시지 알림이 남는다(글 메시지와
@@ -1424,9 +1433,14 @@ refresh 토큰은 **일회용**이다. `POST /auth/refresh` 는 회전할 때 �
 demo_fallback_enabled = allow_demo_fallback and not is_prod
 ```
 
-- **dev / staging** — 데모 사용자(`user-7d4e9a2c5f18`)로 응답한다. 프론트가 `USE_MOCK_API=false` 로
-  전환할 때 로그인 없이도 화면이 뜨게 하려는 것이다.
+- **기본값은 꺼짐**(#2821) — `ALLOW_DEMO_FALLBACK` 을 주지 않으면 어느 환경이든 401 이다. 환경변수를
+  빠뜨린 배포 서버가 로그인 없는 요청을 데모 회원으로 처리하지 않게 하려는 것이다.
+- **로컬 개발** — `.env.example` 이 `ALLOW_DEMO_FALLBACK=true` 로 켠다. 켜면 dev / staging 에서 데모
+  사용자(`user-7d4e9a2c5f18`)로 응답한다. 프론트가 `USE_MOCK_API=false` 로 전환할 때 로그인 없이도
+  화면이 뜨게 하려는 것이다. 켠 채 기동하면 WARN 로그가 남는다.
 - **prod** — `ALLOW_DEMO_FALLBACK` 값과 무관하게 **항상 비활성**이고 401 을 낸다.
+- 지금 어느 쪽으로 떠 있는지는 `GET /healthz` 의 `demo_fallback` 으로 읽는다. 배포 워크플로가
+  배포 직후 이 값과 `env` 를 확인한다.
 
 운영은 이 외에도 기동 시점에 막는 것이 있다(`_guard_prod_secrets`): 기본 `JWT_SECRET`,
 CORS 와일드카드, 기본·짧은 `DEMO_LOGIN_PASSWORD` 로 켠 데모 시드, `AUTO_CREATE_TABLES=true`

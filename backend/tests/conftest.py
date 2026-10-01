@@ -46,6 +46,14 @@ DATABASE_URL = os.environ["DATABASE_URL"]
 #: 두 임베더가 `embed_dim` 을 공유해 벡터 차원은 달라지지 않는다.
 os.environ.setdefault("EMBEDDER", "hash")
 
+#: 테스트는 로컬 개발 환경(`.env.example`)과 같이 데모 폴백을 켠 채 돈다.
+#:
+#: 설정 기본값은 꺼짐이다(#2821) — 환경변수를 빠뜨린 배포 서버가 로그인 없는 요청을
+#: 데모 회원으로 처리하지 않게 하려는 것이다. 토큰 없이 데모 회원 화면을 읽는 기존
+#: 테스트는 개발 환경을 전제로 하므로 여기서 켠다. 기본값(꺼짐)의 동작은
+#: `test_prod_readiness` 가 설정을 직접 바꿔 확인한다.
+os.environ.setdefault("ALLOW_DEMO_FALLBACK", "true")
+
 
 #: 이 DB 를 비워도 되는가.
 #:
