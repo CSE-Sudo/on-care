@@ -732,11 +732,14 @@ Future<void> _sendProgram(WidgetTester tester) async {
   );
   // `직접 만들기` 로 짠 편집기에는 개인운동이 없어, 어느 PT 에 올릴지 정한 뒤
   // 한 번 붙잡힌다(#2280) — 이 헬퍼는 전송 흐름을 보려는 것이라 개인운동 없이
-  // 넘어간다. 창이 없으면 전송이 이미 돌고 있으므로 더 기다리지 않는다.
-  await tester.pump();
+  // 넘어간다. 기존 PT 에 올리면 그 PT 에 붙은 개인운동을 먼저 읽고 나서 창이
+  // 서므로 몇 프레임 기다린다.
   final dialog = find.byKey(
     const ValueKey<String>('no-personal-routine-dialog'),
   );
+  for (var i = 0; i < 5 && dialog.evaluate().isEmpty; i++) {
+    await tester.pump(const Duration(milliseconds: 20));
+  }
   if (dialog.evaluate().isNotEmpty) {
     await tester.pumpAndSettle();
     await tester.tap(
