@@ -6530,6 +6530,8 @@ def build_weekly_report(
     # 수업" 이고 리포트는 그 분모로 이행을 읽는다 — 진행되지 않은 약속을 분모에
     # 넣으면 트레이너 사정의 취소가 회원의 낮은 이행률로 보인다. 취소·노쇼
     # 자체에 패널티를 주는 지표는 이번 범위가 아니라 별도 정책이다.
+    # 상담도 세지 않는다(#2741) — 리포트가 말하는 것은 **PT** 횟수다. 상담이 있던
+    # 주는 PT 가 1회 더 나오고 이행률 분모도 그만큼 커졌다.
     sessions = db.scalars(
         select(TrainerSchedule).where(
             TrainerSchedule.trainer_id == trainer_id,
@@ -6537,6 +6539,7 @@ def build_weekly_report(
             TrainerSchedule.date >= monday_str,
             TrainerSchedule.date <= sunday_str,
             TrainerSchedule.status.in_((SCHEDULE_UPCOMING, SCHEDULE_DONE)),
+            TrainerSchedule.type != "상담",
         )
     ).all()
     booked = len(sessions)

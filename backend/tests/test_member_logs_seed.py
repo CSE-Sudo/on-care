@@ -243,3 +243,32 @@ def test_trainer_notes_seed_twice_adds_nothing(client, db_session):
     seed_trainer_notes()
     db_session.expire_all()
     assert counts() == before
+
+
+# ---- #2741 리포트 PT 횟수에서 상담 제외 -----------------------------------------------
+
+
+def test_report_does_not_count_a_consultation_as_pt(db_session):
+    from app.db.seed_trainer import TRAINER_ID
+    from app.models.models import TrainerSchedule
+    from app.services.trainer_service import build_weekly_report
+
+    consult = db_session.scalar(
+        select(TrainerSchedule).where(TrainerSchedule.id.like("seed-consult-%"))
+    )
+    assert consult is not None
+    day = date.fromisoformat(consult.date)
+    monday = day - timedelta(days=day.weekday())
+    rows = db_session.scalars(
+        select(TrainerSchedule).where(
+            TrainerSchedule.trainer_id == TRAINER_ID,
+            TrainerSchedule.member_id == consult.member_id,
+            TrainerSchedule.date >= monday.isoformat(),
+            TrainerSchedule.date <= (monday + timedelta(days=6)).isoformat(),
+            TrainerSchedule.status.in_(("예정", "완료")),
+        )
+    ).all()
+    pt = [r for r in rows if r.type != "상담"]
+    assert len(pt) < len(rows)  # 그 주에 상담이 섞여 있다
+    report = build_weekly_report(db_session, TRAINER_ID, consult.member_id, monday)
+    assert report.sessions_booked == len(pt)

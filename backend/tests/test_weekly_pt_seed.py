@@ -132,7 +132,7 @@ def test_weekly_pt_never_seeds_today_or_later(client, db_session):
 
 
 def test_report_sessions_booked_matches_the_schedule(client, db_session):
-    """리포트의 PT 횟수 == 그 주 스케줄의 예정·완료 수업 수(따로 센 값이 없다)."""
+    """리포트의 PT 횟수 == 그 주 스케줄의 예정·완료 PT 수(따로 센 값이 없다)."""
     from app.db.seed_member_data import _JOINED_WEEKS_AGO, _WEEKLY_PT, _valid_member_ids
     from app.db.seed_trainer import TRAINER_ID
     from app.models.models import TrainerSchedule
@@ -155,6 +155,8 @@ def test_report_sessions_booked_matches_the_schedule(client, db_session):
                     TrainerSchedule.date >= start.isoformat(),
                     TrainerSchedule.date <= (start + timedelta(days=6)).isoformat(),
                     TrainerSchedule.status.in_(("예정", "완료")),
+                    # 상담은 PT 가 아니다(#2741).
+                    TrainerSchedule.type != "상담",
                 )
             )
             assert report.sessions_booked == in_schedule, f"{member_id} · {back}주 전"

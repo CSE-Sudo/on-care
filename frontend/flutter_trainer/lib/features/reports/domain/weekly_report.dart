@@ -14,6 +14,7 @@ import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
     show elapsedWeekdays, weekdayCount;
 import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -308,9 +309,13 @@ WeeklyReport buildWeeklyReport({
 }) {
   final start = weekStartOf(weekStart);
   final end = start.add(const Duration(days: 6));
+  // 상담은 PT 가 아니다(#2741) — 리포트가 세는 것은 PT 횟수다. 상담이 있던 주가
+  // PT 1회 더로 읽히고 이행률 분모도 커졌다. 실서버 `build_weekly_report` 와 같다.
   final inWeek = sessions.where((s) {
     final day = DateTime.tryParse(s.date);
-    if (day == null || s.isGap) return false;
+    if (day == null || s.isGap || s.type == SessionType.consultation) {
+      return false;
+    }
     return !day.isBefore(start) && !day.isAfter(end);
   }).toList();
 
