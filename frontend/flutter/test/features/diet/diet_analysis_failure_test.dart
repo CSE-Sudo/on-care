@@ -88,6 +88,28 @@ void main() {
       );
     });
 
+    test('코드 없는 429 는 잠시 뒤 다시 시도할 분당 한도로 본다', () {
+      expect(
+        DietAnalysisFailure.fromError(_fromStatus(429)),
+        DietAnalysisFailure.rateLimited,
+      );
+      expect(
+        DietAnalysisFailure.fromError(_fromStatus(422)),
+        DietAnalysisFailure.badRequest,
+      );
+    });
+
+    test('저장소가 던진 코드 거절은 그 이유를 그대로 쓴다', () {
+      for (final DietAnalysisFailure f in <DietAnalysisFailure>[
+        DietAnalysisFailure.noFood,
+        DietAnalysisFailure.dailyLimit,
+        DietAnalysisFailure.rateLimited,
+        DietAnalysisFailure.unavailable,
+      ]) {
+        expect(DietAnalysisFailure.fromError(DietAnalysisRejected(f)), f);
+      }
+    });
+
     test('같은 사진 재시도가 통할 수 있을 때만 canRetry 가 참이다', () {
       expect(DietAnalysisFailure.unsupportedFormat.canRetry, isFalse);
       expect(DietAnalysisFailure.badRequest.canRetry, isFalse);
@@ -95,6 +117,88 @@ void main() {
       expect(DietAnalysisFailure.notImplemented.canRetry, isFalse);
       expect(DietAnalysisFailure.recognitionFailed.canRetry, isTrue);
       expect(DietAnalysisFailure.temporary.canRetry, isTrue);
+      expect(DietAnalysisFailure.noFood.canRetry, isFalse);
+      expect(DietAnalysisFailure.dailyLimit.canRetry, isFalse);
+      expect(DietAnalysisFailure.unavailable.canRetry, isFalse);
+      expect(DietAnalysisFailure.rateLimited.canRetry, isTrue);
+    });
+
+    test('사진 길이 막힌 거절만 직접 추가를 권한다', () {
+      expect(
+        DietAnalysisFailure.values
+            .where((DietAnalysisFailure f) => f.offersManualEntry)
+            .toSet(),
+        <DietAnalysisFailure>{
+          DietAnalysisFailure.noFood,
+          DietAnalysisFailure.dailyLimit,
+          DietAnalysisFailure.rateLimited,
+          DietAnalysisFailure.unavailable,
+        },
+      );
+    });
+  });
+
+  group('DietAnalysisFailure.fromCode', () {
+    test('서버 detail.code 를 거절 이유로 옮긴다', () {
+      expect(
+        DietAnalysisFailure.fromCode('no_food_detected'),
+        DietAnalysisFailure.noFood,
+      );
+      expect(
+        DietAnalysisFailure.fromCode('daily_limit'),
+        DietAnalysisFailure.dailyLimit,
+      );
+      expect(
+        DietAnalysisFailure.fromCode('rate_limited'),
+        DietAnalysisFailure.rateLimited,
+      );
+      expect(
+        DietAnalysisFailure.fromCode('analysis_unavailable'),
+        DietAnalysisFailure.unavailable,
+      );
+      expect(DietAnalysisFailure.fromCode('unknown'), isNull);
+      expect(DietAnalysisFailure.fromCode(null), isNull);
+      expect(DietAnalysisFailure.fromCode(42), isNull);
+    });
+  });
+
+  group('DietAnalysisRejected.fromResponseData', () {
+    test('{detail: {code, message}} 를 읽는다', () {
+      final DietAnalysisRejected? r = DietAnalysisRejected.fromResponseData(
+        <String, Object?>{
+          'detail': <String, Object?>{
+            'code': 'daily_limit',
+            'message': '오늘 사진 분석 횟수를 다 썼어요.',
+          },
+        },
+      );
+      expect(r?.failure, DietAnalysisFailure.dailyLimit);
+      expect(r?.message, '오늘 사진 분석 횟수를 다 썼어요.');
+    });
+
+    test('코드가 없거나 모양이 다르면 null — AppError 로 넘긴다', () {
+      expect(DietAnalysisRejected.fromResponseData(null), isNull);
+      expect(DietAnalysisRejected.fromResponseData('oops'), isNull);
+      expect(
+        DietAnalysisRejected.fromResponseData(<String, Object?>{
+          'detail': '문자열 detail',
+        }),
+        isNull,
+      );
+      expect(
+        DietAnalysisRejected.fromResponseData(<String, Object?>{
+          'detail': <Object?>[
+            <String, Object?>{'type': 'missing'},
+          ],
+        }),
+        isNull,
+      );
+      expect(
+        DietAnalysisRejected.fromResponseData(<String, Object?>{
+          'detail': <String, Object?>{'code': 'rate_limited', 'message': 3},
+        })?.message,
+        isNull,
+      );
     });
   });
 }

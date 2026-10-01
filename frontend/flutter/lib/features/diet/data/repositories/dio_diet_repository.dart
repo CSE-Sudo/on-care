@@ -3,6 +3,7 @@ import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/network/request_extras.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
+import 'package:oncare/features/diet/domain/entities/diet_analysis_failure.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/entities/diet_period.dart';
 import 'package:oncare/features/diet/domain/entities/food_nutrition_suggestion.dart';
@@ -98,6 +99,11 @@ class DioDietRepository implements DietRepository {
       // The screen has to tell "this photo will never work" (415) apart from
       // "the recognizer hiccuped" (502) to know whether offering a retry is
       // honest, and it must not type-test DioException to do it.
+      // 서버가 이유를 코드로 알려 준 거절(음식 없음·오늘 한도·분석 꺼짐)은
+      // 상태 코드보다 그 코드가 정확하다(#2848, #2827, #2812).
+      final DietAnalysisRejected? rejected =
+          DietAnalysisRejected.fromResponseData(e.response?.data);
+      if (rejected != null) throw rejected;
       throw AppError.fromDio(e);
     }
   }

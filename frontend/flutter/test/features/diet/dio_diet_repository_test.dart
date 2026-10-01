@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/features/diet/data/repositories/dio_diet_repository.dart';
+import 'package:oncare/features/diet/domain/entities/diet_analysis_failure.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/entities/food_nutrition_suggestion.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
@@ -359,6 +360,93 @@ void main() {
             'statusCode',
             415,
           ),
+        ),
+      );
+    });
+
+    Future<Object?> rejectedWith(int status, Object? body) async {
+      final Dio failing = Dio(BaseOptions(baseUrl: 'https://example.test'));
+      addTearDown(failing.close);
+      failing.interceptors.add(
+        InterceptorsWrapper(
+          onRequest:
+              (RequestOptions options, RequestInterceptorHandler handler) {
+                handler.reject(
+                  DioException(
+                    requestOptions: options,
+                    type: DioExceptionType.badResponse,
+                    response: Response<Object?>(
+                      requestOptions: options,
+                      statusCode: status,
+                      data: body,
+                    ),
+                  ),
+                );
+              },
+        ),
+      );
+      try {
+        await DioDietRepository(failing).analyze(
+          photo: MealPhoto.fromBytes(
+            Uint8List.fromList(<int>[0xFF, 0xD8, 0xFF, 0xE0]),
+          )!,
+          mealType: 'lunch',
+        );
+      } on Object catch (e) {
+        return e;
+      }
+      fail('analyze 가 거절을 던지지 않았다');
+    }
+
+    Map<String, Object?> coded(String code) => <String, Object?>{
+      'detail': <String, Object?>{'code': code, 'message': '서버 문구'},
+    };
+
+    test('코드가 붙은 거절은 이유별 DietAnalysisRejected 로 올라온다', () async {
+      // 422 는 음식 없음, 429 는 하루 한도와 분당 한도 둘 다라 상태만으로는
+      // 화면이 무엇을 권할지 정할 수 없다(#2848, #2827, #2812).
+      final Map<(int, String), DietAnalysisFailure> cases =
+          <(int, String), DietAnalysisFailure>{
+            (422, 'no_food_detected'): DietAnalysisFailure.noFood,
+            (429, 'daily_limit'): DietAnalysisFailure.dailyLimit,
+            (429, 'rate_limited'): DietAnalysisFailure.rateLimited,
+            (503, 'analysis_unavailable'): DietAnalysisFailure.unavailable,
+          };
+      for (final MapEntry<(int, String), DietAnalysisFailure> c
+          in cases.entries) {
+        final Object? error = await rejectedWith(c.key.$1, coded(c.key.$2));
+        expect(
+          error,
+          isA<DietAnalysisRejected>()
+              .having((DietAnalysisRejected r) => r.failure, 'failure', c.value)
+              .having(
+                (DietAnalysisRejected r) => r.message,
+                'message',
+                '서버 문구',
+              ),
+          reason: c.key.$2,
+        );
+      }
+    });
+
+    test('모르는 코드·FastAPI 검증 오류는 지금처럼 AppError 로 남는다', () async {
+      expect(
+        await rejectedWith(422, <String, Object?>{
+          'detail': <Object?>[
+            <String, Object?>{
+              'type': 'missing',
+              'loc': <String>['body'],
+            },
+          ],
+        }),
+        isA<ServerError>(),
+      );
+      expect(
+        await rejectedWith(429, coded('something_new')),
+        isA<ServerError>().having(
+          (ServerError e) => e.statusCode,
+          'statusCode',
+          429,
         ),
       );
     });

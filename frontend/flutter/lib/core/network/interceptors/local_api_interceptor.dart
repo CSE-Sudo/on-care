@@ -99,6 +99,12 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   /// (#2662)
   List<RoutineAdviceDay> Function(DateTime from, DateTime to)? routineDays;
 
+  /// 데모 인식기가 이 사진에서 음식을 찾았는지(#2848). 목업은 사진을 볼 수
+  /// 없어 기본은 "찾았다"(고정 요거트 볼)다. 실서버처럼 음식이 없는 사진을
+  /// 흉내 낼 때(테스트·시연) false 를 돌려주면 끼니·포인트 없이
+  /// 422 `no_food_detected` 로 거절한다.
+  bool Function(Uint8List? photoBytes)? demoPhotoHasFood;
+
   /// 연속 기록 보호권(#1788). 앱에서는 사용처(쿠폰 원장)와 같은 인스턴스를 받아
   /// 교환한 보호권이 기록 연속으로 이어진다. 주지 않으면
   /// 쿠폰 원장이 쓰는 것, 그것도 없으면 이 인터셉터의 원장으로 만든다.
@@ -1644,6 +1650,21 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
               .toJson(),
         });
       }
+    }
+
+    // 음식이 없는 사진은 빈 끼니로 저장하지 않는다 — 실서버와 같은 422 와
+    // 코드로 거절하고, 끼니·사진·포인트를 남기지 않는다(#2848).
+    if (demoPhotoHasFood?.call(photoBytes) == false) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 422,
+        data: <String, Object?>{
+          'detail': <String, Object?>{
+            'code': 'no_food_detected',
+            'message': '사진에서 음식을 찾지 못했어요. 다른 사진을 고르거나 직접 입력해 주세요.',
+          },
+        },
+      );
     }
 
     // 데모 인식 결과 — 무엇을 찍든 요거트 아이스크림 볼로 읽는다(#1564).

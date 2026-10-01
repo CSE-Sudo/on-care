@@ -1016,6 +1016,30 @@ abstract class AppLocalizations {
   /// **'Photo analysis is unavailable right now. Please log the meal manually.'**
   String get dietAnalysisNotImplemented;
 
+  /// No description provided for @dietAnalysisNoFood.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t find any food in this photo. Pick another photo or add the meal manually.'**
+  String get dietAnalysisNoFood;
+
+  /// No description provided for @dietAnalysisDailyLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve used today\'s photo analyses. They reset tomorrow — for now you can add the meal manually.'**
+  String get dietAnalysisDailyLimit;
+
+  /// No description provided for @dietAnalysisRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many photo analyses in a short time. Try again in a moment or add the meal manually.'**
+  String get dietAnalysisRateLimited;
+
+  /// No description provided for @dietAnalysisUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo analysis is unavailable right now. Please add the meal manually.'**
+  String get dietAnalysisUnavailable;
+
   /// No description provided for @dietAnalysisPickAnother.
   ///
   /// In en, this message translates to:
