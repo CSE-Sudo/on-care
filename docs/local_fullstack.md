@@ -6,6 +6,9 @@
 > 둘 다 `useMockApi` 기본값이 `true` 입니다. dart-define 없이 실행하면 각각
 > **자기 로컬 drift DB** 를 보기 때문에, 둘 다 잘 도는 것처럼 보여도 서로의
 > 데이터는 절대 보이지 않습니다. 상호작용을 확인하려면 아래 3단계를 모두 거쳐야 합니다.
+>
+> 배포 웹 빌드는 이 값을 워크플로가 명시해서 넘깁니다 — 운영은 실서버 고정, Pages 데모는
+> 목업입니다. [`frontend_deployment.md`](frontend_deployment.md#운영-빌드는-실서버를-봅니다) 참고.
 
 ## Flutter 버전 — 3.44.9
 
@@ -51,6 +54,10 @@ docker compose up -d --build
 ```
 
 → http://localhost:8000/docs (모든 경로는 `/v1/...`)
+
+예전에 만든 `.env` 를 그대로 쓴다면 두 줄을 확인합니다(#2821). 데모 폴백은 이제 기본이 꺼짐이라
+토큰 없이 데모 회원 화면을 보려면 `ALLOW_DEMO_FALLBACK=true` 가 있어야 하고, 컨테이너 기동
+스크립트는 `ENV` 가 비어 있으면 뜨지 않습니다(`.env.example` 은 둘 다 들어 있습니다).
 
 AI 키는 없어도 됩니다. `GEMINI_API_KEY` 가 비어 있으면 식단 인식이 오프라인 스텁으로
 폴백해서 `/v1/diet/analyze` 가 그대로 동작합니다(CI 와 같은 경로).
