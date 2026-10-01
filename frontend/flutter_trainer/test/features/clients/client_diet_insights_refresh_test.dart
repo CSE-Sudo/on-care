@@ -111,6 +111,14 @@ Future<WidgetRef> _pumpWatcher(
   return captured;
 }
 
+/// 무효화 → 다시 읽기 → 다시 그리기까지 프레임을 넘긴다. 무효화는 다음
+/// 프레임에 다시 읽고, 응답은 그 뒤 프레임에 그려지므로 한 번으로는 모자란다.
+Future<void> _flush(WidgetTester tester) async {
+  for (int i = 0; i < 5; i++) {
+    await tester.pump(const Duration(milliseconds: 16));
+  }
+}
+
 String _shown(WidgetTester tester) =>
     tester.widget<Text>(find.byKey(const ValueKey<String>('watcher'))).data!;
 
@@ -176,8 +184,7 @@ void main() {
         ClientDietSentence('tr_today_good', <String, Object>{'kcal': 1800}),
       ];
       refreshClientDietInsights(ref);
-      await tester.pump();
-      await tester.pump();
+      await _flush(tester);
 
       expect(_shown(tester), 'tr_today_good|2');
     });
@@ -192,8 +199,7 @@ void main() {
         ClientDietSentence('tr_today_empty'),
       ];
       refreshClientDietInsights(ref);
-      await tester.pump();
-      await tester.pump();
+      await _flush(tester);
 
       expect(_shown(tester), 'tr_today_empty|2');
     });
