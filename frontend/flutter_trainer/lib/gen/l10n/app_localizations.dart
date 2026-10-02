@@ -8841,6 +8841,12 @@ abstract class AppLocalizations {
   /// **'Available after the report summary API is connected. No summary is generated now.'**
   String get reportsAiUnavailable;
 
+  /// No description provided for @reportsAiFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t create the summary. Please try again.'**
+  String get reportsAiFailed;
+
   /// No description provided for @reportsPdfGenerationFailed.
   ///
   /// In en, this message translates to:

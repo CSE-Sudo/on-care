@@ -22,10 +22,14 @@ import 'package:demo_fixture/demo_fixture.dart'
     show DemoPlanMenu, kDemoMenuPlan;
 import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_rules/oncare_rules.dart' show pyRound;
 
 // 4주 추천 메뉴 리스트는 트레이너 웹 데모와 함께 쓴다(#2379) — 공유 픽스처로 옮겼다.
 export 'package:demo_fixture/demo_fixture.dart'
     show DemoPlanMenu, kDemoMenuPlan;
+// 서버와 같은 반올림은 공용 규칙 패키지 한 곳에 있다(#2860). 이 파일을 통해
+// 쓰던 자리가 그대로 읽히도록 다시 내보낸다.
+export 'package:oncare_rules/oncare_rules.dart' show pyRound;
 
 /// 끼니 한 행. 탄단지는 음식에서 되짚은 값이다.
 typedef DemoDietEntry = ({
@@ -60,15 +64,6 @@ DemoDietTargets demoDietTargets(Map<String, Object?> profile) {
     sodiumMg: positive(profile['daily_sodium_mg']) ?? 2000,
     sugarG: positive(profile['daily_sugar_g']) ?? 50,
   );
-}
-
-/// 파이썬 `round()` 와 같은 반올림(0.5 는 짝수 쪽). 서버와 수치를 맞춘다.
-int pyRound(num x) {
-  final int f = x.floor();
-  final num diff = x - f;
-  if (diff > 0.5) return f + 1;
-  if (diff < 0.5) return f;
-  return f.isEven ? f : f + 1;
 }
 
 // ── 공통 ───────────────────────────────────────────────────────────────

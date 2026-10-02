@@ -32,7 +32,8 @@ from datetime import date, timedelta
 from typing import Protocol, Sequence
 
 from app.services import exercise_types, period_window
-from app.services.exercise_advice import Advice, advice, has_final_consonant
+from app.services.exercise_advice import Advice, advice
+from app.services.korean_josa import ends_with_hangul
 
 #: 조언 한 마디의 상한 — 회원 앱·트레이너웹 카드 폭에 맞춘 값이다(#1574).
 ADVICE_MAX_LEN = 45
@@ -224,9 +225,9 @@ def _today(day: RoutineDayLike) -> Advice:
     two = len(pending) >= 2
     first = pending[0]
     then = pending[1] if two else ""
-    # 한글로 끝나지 않는 이름(`Squat`)에는 조사를 붙일 수 없다 — `Squat을(를)` 로
-    # 적지 않고 마친 운동을 말하는 문장을 건너뛴다.
-    if done and has_final_consonant(done[-1]) is not None:
+    # 한글로 끝나지 않는 이름(`Squat`)에는 조사가 어색하다 — 마친 운동을 말하는
+    # 문장을 건너뛴다. 기준은 받침 판정이 아니라 "한글 이름인가" 다(#2897).
+    if done and ends_with_hangul(done[-1]):
         finished = done[-1]
         return _first_fit(
             *(
@@ -369,7 +370,7 @@ def _done_today_praise(key: str) -> Advice:
         return advice("routine_all_done_today_part", part=_PART_CODES[key])
     named = (
         "routine_all_done_today_name_plain"
-        if has_final_consonant(key) is None
+        if not ends_with_hangul(key)
         else "routine_all_done_today_name"
     )
     return _first_fit(advice(named, name=key), advice("routine_all_done_today"))
@@ -428,7 +429,7 @@ def _all(days: Sequence[RoutineDayLike]) -> Advice:
                 advice("routine_all_missed_part", part=part),
                 advice("routine_all_missed_part_short", part=part),
             )
-        if has_final_consonant(key) is None:
+        if not ends_with_hangul(key):
             return _first_fit(
                 advice("routine_all_missed_name_plain", name=key),
                 advice("routine_all_missed_name_plain_short", name=key),

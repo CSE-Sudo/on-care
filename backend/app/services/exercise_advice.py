@@ -23,7 +23,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from app.core.locale import Locale, current_locale
-from app.services import exercise_types
+from app.services import exercise_types, korean_josa
 
 #: 운동 이름이 드는 값. 한국어 틀은 `{done_obj}`(을/를)·`{done_subj}`(이/가)처럼
 #: 이름 뒤 조사를 따로 받는다.
@@ -186,24 +186,13 @@ _EN: dict[str, str] = {
 KEYS: tuple[str, ...] = tuple(_KO)
 
 
-def has_final_consonant(word: str) -> bool | None:
-    """마지막 글자에 받침이 있나. 한글로 끝나지 않으면 None — 조사를 정할 수 없다."""
-    stripped = word.rstrip(" )]}")
-    if not stripped:
-        return None
-    last = ord(stripped[-1])
-    if not 0xAC00 <= last <= 0xD7A3:
-        return None
-    return (last - 0xAC00) % 28 != 0
-
-
 def _particle(word: str, with_final: str, without_final: str) -> str:
-    """받침에 맞는 조사. 정할 수 없는 이름은 `_plain` 키로 가므로 여기 오지 않지만,
-    오면 두 꼴을 함께 적는다."""
-    final = has_final_consonant(word)
-    if final is None:
-        return f"{with_final}({without_final})"
-    return with_final if final else without_final
+    """받침에 맞는 조사. 규칙은 서버·두 앱이 함께 쓰는 `korean_josa` 하나다(#2897).
+
+    한글로 끝나지 않는 이름은 대개 `_plain` 키로 가지만, 오더라도 `을(를)` 처럼 두
+    꼴을 함께 적지 않는다 — 숫자는 읽는 소리로, 그 밖은 받침 없음으로 고른다.
+    """
+    return korean_josa.particle(word, with_final, without_final)
 
 
 def _ko_fields(params: dict[str, str | int]) -> dict[str, str | int]:
