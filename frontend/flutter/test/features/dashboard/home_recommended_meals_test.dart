@@ -8,6 +8,8 @@
 /// 2. 응답을 기다리는 동안에도 스켈레톤 없이 같은 카드가 즉시 보인다(깜빡임 없음).
 /// 3. 서버가 실패해도 화면이 유지된다.
 /// 4. 실 모드에서 서버가 순서를 바꾸거나 개인화 문구를 주면 그대로 반영된다.
+/// 5. 실서버에서는 응답 전·실패 때 고정 5종을 `AI 추천` 으로 그리지 않는다 —
+///    불러오는 중 카드와 다시 시도 카드를 보인다(#2813). 1~3 은 데모 한정이다.
 library;
 
 import 'dart:async';
@@ -17,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/app/app_theme.dart';
+import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
@@ -61,12 +64,14 @@ void main() {
   Future<void> pumpHome(
     WidgetTester tester, {
     required Future<MealRecommendations> Function() recommendations,
+    bool demo = true,
   }) async {
     await tester.binding.setSurfaceSize(const Size(800, 1600));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
+          mealRecsDemoFallbackProvider.overrideWithValue(demo),
           accountRepositoryProvider.overrideWithValue(
             MockAccountRepository(
               profile: const UserProfile(
@@ -142,6 +147,103 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(renderedMealNames(tester), demoOrder);
+  });
+
+  test('기본 추천 폴백은 데모(목업) 설정에서만 켜진다', () {
+    bool fallbackFor({required bool mock}) {
+      final ProviderContainer container = ProviderContainer(
+        overrides: <Override>[
+          appConfigProvider.overrideWithValue(
+            AppConfig(
+              environment: Environment.dev,
+              apiBaseUrl: 'https://dev.api.test',
+              useMockApi: mock,
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      return container.read(mealRecsDemoFallbackProvider);
+    }
+
+    expect(fallbackFor(mock: true), isTrue);
+    expect(fallbackFor(mock: false), isFalse);
+  });
+
+  testWidgets('실서버: 추천 실패면 고정 카드 대신 다시 시도 카드를 보인다',
+      (WidgetTester tester) async {
+    await pumpHome(
+      tester,
+      demo: false,
+      recommendations: () async => throw Exception('recommendation down'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(renderedMealNames(tester), isEmpty);
+    expect(find.text('AI 추천'), findsNothing);
+    expect(find.byKey(const ValueKey<String>('home-rec-meals-error')),
+        findsOneWidget);
+    expect(find.text('추천 식단을 불러오지 못했어요'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('home-rec-meals-retry')),
+        findsOneWidget);
+    // 섹션 제목은 그대로 남아 홈 배치가 흔들리지 않는다.
+    expect(find.text('추천 식단'), findsOneWidget);
+  });
+
+  testWidgets('실서버: 다시 시도를 누르면 추천을 다시 받아 카드로 바뀐다',
+      (WidgetTester tester) async {
+    int calls = 0;
+    await pumpHome(
+      tester,
+      demo: false,
+      recommendations: () async {
+        calls += 1;
+        if (calls == 1) throw Exception('recommendation down');
+        return const MealRecommendations(
+          personalized: true,
+          items: <MealRecommendation>[
+            MealRecommendation(key: 'salmon', reasonKey: 'omega'),
+          ],
+        );
+      },
+    );
+    await tester.pumpAndSettle();
+    expect(calls, 1);
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('home-rec-meals-retry')),
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('home-rec-meals-retry')));
+    await tester.pumpAndSettle();
+
+    expect(calls, 2);
+    expect(find.byKey(const ValueKey<String>('home-rec-meals-state')),
+        findsNothing);
+    expect(renderedMealNames(tester).first, '연어 구이 + 나물');
+  });
+
+  testWidgets('실서버: 응답 전에는 고정 카드 대신 불러오는 중 카드를 보인다',
+      (WidgetTester tester) async {
+    final Completer<MealRecommendations> pending =
+        Completer<MealRecommendations>();
+    await pumpHome(
+      tester,
+      demo: false,
+      recommendations: () => pending.future,
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(renderedMealNames(tester), isEmpty);
+    expect(find.byKey(const ValueKey<String>('home-rec-meals-loading')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('home-rec-meals-error')),
+        findsNothing);
+
+    pending.complete(MealRecommendations.fallback);
+    await tester.pumpAndSettle();
+    // 서버가 준 결과라면(빈 데이터용 기본 추천이라도) 카드로 그린다.
     expect(renderedMealNames(tester), demoOrder);
   });
 

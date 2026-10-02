@@ -10,6 +10,7 @@ import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/dashboard/presentation/widgets/dashboard_content.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
@@ -54,6 +55,7 @@ Future<void> _pump(WidgetTester tester, {List<CoachSession>? sessions}) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: <Override>[
+        mealRecsDemoFallbackProvider.overrideWithValue(true),
         accountRepositoryProvider.overrideWithValue(
           MockAccountRepository(
             profile: const UserProfile(
