@@ -315,7 +315,13 @@ void main() {
           .record(clientId: 'c1', weekStart: w1, message: '이번 주 글');
       container
           .read(reportSendLogProvider.notifier)
-          .record(clientId: 'c1', weekStart: w2, message: '다시 쓴 글');
+          .record(
+            clientId: 'c1',
+            weekStart: w2,
+            message: '다시 쓴 글',
+            // 서버에 이미 한 번 나간 주를 다시 보냈다.
+            previousCount: 1,
+          );
 
       final MemberReportHistoryState state = await view(container, 'c1');
       expect(state.items.map((i) => i.weekStart), <DateTime>[w1, w2, w3]);

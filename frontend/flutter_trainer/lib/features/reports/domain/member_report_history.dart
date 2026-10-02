@@ -87,9 +87,11 @@ String reportFeedbackPreview(String body, {int maxLength = 80}) {
 
 /// 서버·저장소의 이력 [fetched] 에 이번 세션에 보낸 기록 [session] 을 얹는다.
 ///
-/// [clientId] 의 기록만 본다. 같은 주가 둘 다 있으면 **세션 기록이 이긴다** —
-/// 방금 다시 보낸 글이 서버에서 아직 돌아오지 않았을 때 옛 첫 줄을 보여 주지
-/// 않는다. 보낸 횟수는 둘 중 큰 쪽을 지킨다. 결과는 최신 주부터다.
+/// [clientId] 의 기록만 본다. 같은 주가 둘 다 있으면 `mergeSendLogs` 와 같은
+/// 규칙이다(#2885): 서버 기록의 보낸 횟수가 세션 기록만큼 찼으면 서버가 방금
+/// 보낸 것을 돌려준 것이라 서버 줄(읽음 여부 포함)이 남고, 아직 덜 찼으면
+/// 세션 기록이 이긴다 — 방금 다시 보낸 글이 서버에서 돌아오기 전에 옛 첫 줄을
+/// 보여 주지 않는다. 결과는 최신 주부터다.
 ///
 /// [oldestLoaded] 가 있으면 그보다 오래된 주의 세션 기록은 얹지 않는다 —
 /// 아직 불러오지 않은 쪽에 속한 주가 목록 중간에 끼어들지 않게 한다.
@@ -115,6 +117,7 @@ List<MemberReportHistoryItem> mergeMemberHistory({
     final MemberReportHistoryItem mine = MemberReportHistoryItem.fromRecord(
       record,
     );
+    if (theirs != null && theirs.sendCount >= mine.sendCount) continue;
     byWeek[key] = theirs == null
         ? mine
         : MemberReportHistoryItem(
@@ -122,9 +125,7 @@ List<MemberReportHistoryItem> mergeMemberHistory({
             sentAt: mine.sentAt,
             // 방금 보낸 것은 아직 아무도 읽지 않았다.
             read: false,
-            sendCount: theirs.sendCount > mine.sendCount
-                ? theirs.sendCount
-                : mine.sendCount,
+            sendCount: mine.sendCount,
             feedbackPreview: mine.feedbackPreview,
             messageId: theirs.messageId,
             hasPdf: theirs.hasPdf,
