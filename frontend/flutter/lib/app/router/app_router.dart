@@ -262,7 +262,10 @@ GoRouter buildAppRouter({
       ),
       GoRoute(
         path: AppRoutes.onboarding,
-        builder: (context, state) => const OnboardingPage(),
+        builder: (context, state) => OnboardingPage(
+          // 앱 안에서 다시 연 첫 설정(#2855) — 끝나면 연 자리로 돌아간다.
+          resumed: state.uri.queryParameters['from'] == 'app',
+        ),
       ),
       GoRoute(
         path: AppRoutes.splash,

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/app_icons.dart';
+import 'package:oncare/app/router/day_change_refresh.dart';
 import 'package:oncare/app/router/member_refresh_targets.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
@@ -56,6 +57,10 @@ class _MainShellState extends ConsumerState<MainShell>
     with WidgetsBindingObserver {
   late int _lastIndex = widget.navigationShell.currentIndex;
 
+  /// 마지막으로 갱신한 날(KST). 날이 바뀐 복귀·MY 재진입에서만 기록 그래프·
+  /// 보호권·주간 챌린지를 다시 읽는다(#2852).
+  final DayChangeRefresher _dayChange = DayChangeRefresher();
+
   StatefulNavigationShell get navigationShell => widget.navigationShell;
 
   @override
@@ -97,6 +102,9 @@ class _MainShellState extends ConsumerState<MainShell>
     // 앱을 떠난 사이 트레이너가 예약을 취소하거나 연결을 해제했을 수 있다
     // (#2856).
     refreshGymTabData(ref.invalidate);
+    // 앱을 켜 둔 채 자정을 넘겼으면 그래프의 "오늘" 칸과 보호 가능 구간이 새
+    // 날짜 기준이어야 한다(#2852).
+    _dayChange.refreshIfDayChanged(ref.invalidate);
     _recheckCoach();
   }
 
@@ -143,6 +151,10 @@ class _MainShellState extends ConsumerState<MainShell>
         // 한쪽만 새 값이면 엇갈린다. 다른 회원이 잡은 자리도 여기서 반영된다
         // (#2856).
         refreshGymTabData(ref.invalidate);
+        break;
+      case 3:
+        // MY 를 다시 열었을 때도 날이 바뀌었으면 기록 그래프를 새 날짜로(#2852).
+        _dayChange.refreshIfDayChanged(ref.invalidate);
         break;
       default:
         break;
