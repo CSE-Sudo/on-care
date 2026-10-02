@@ -1786,7 +1786,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                   key: ValueKey<String>(
                     'routine-remove-$_activeKeyPrefix-$index',
                   ),
-                  icon: AppIcons.close,
+                  icon: AppIcons.delete,
                   // 개인운동 단계에서 AI 제안을 빼는 것은 없앤 카드의
                   // `추천 안 함`(휴지통)과 같은 일이다 — 서버의 대기 중 제안도
                   // 함께 거절해, 뺀 제안이 내일 다시 올라오지 않게 한다(#2223).
