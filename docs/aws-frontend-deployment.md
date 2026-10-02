@@ -195,7 +195,7 @@ CloudFront 검증이 끝난 뒤 별도 변경으로 진행합니다.
 1. `us-east-1`에서 `ewhasudo.zapto.org`용 ACM 인증서 발급 및 DNS 검증
 2. CloudFront distribution에 인증서와 alternate domain name 연결
 3. DNS를 GitHub Pages에서 CloudFront로 전환
-4. 전환 후 랜딩페이지, 두 앱, SPA 새로고침, 카카오맵 확인
+4. 전환 후 랜딩페이지, 두 앱, SPA 새로고침, 카카오맵 확인. 2번에서 연결한 대체 도메인은 다음 배포부터 랜딩의 og:url·canonical 에 자동으로 들어간다([랜딩 바로가기와 og:url·canonical](frontend_deployment.md#랜딩-바로가기와-ogurlcanonical))
 5. 롤백 가능 여부를 확인한 뒤 GitHub Pages 배포 중단
 
 ## 7. 릴리스 전환과 롤백
