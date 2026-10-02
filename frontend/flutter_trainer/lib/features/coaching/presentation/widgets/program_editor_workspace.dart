@@ -233,7 +233,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
               _editingProgramInfo = true;
             }),
             icon: AppIcons.edit,
-            color: OnCareColors.textTertiary,
+            color: OnCareColors.textSecondary,
           ),
         ],
       );

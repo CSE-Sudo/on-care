@@ -1723,8 +1723,8 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
                   icon: AppIcons.edit,
                   tooltip: l.actionEdit,
                   size: AppIconButtonSize.small,
-                  // 휴지통과 같은 색 — 둘 다 본문보다 물러서 있는 보조 동작이다.
-                  color: OnCareColors.textTertiary,
+                  // 연필·휴지통은 신체·목표 연필과 같은 진한 회색이다.
+                  color: OnCareColors.textSecondary,
                   onPressed: _busy || _editingId != null
                       ? null
                       : () => setState(() {
@@ -1738,7 +1738,7 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
                   icon: AppIcons.delete,
                   tooltip: l.actionDelete,
                   size: AppIconButtonSize.small,
-                  color: OnCareColors.textTertiary,
+                  color: OnCareColors.textSecondary,
                   onPressed: _busy || _editingId != null
                       ? null
                       : () => _delete(memo),
