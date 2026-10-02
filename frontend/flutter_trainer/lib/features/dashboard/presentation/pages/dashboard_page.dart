@@ -9,6 +9,7 @@ import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/dashboard/data/daily_task_progress_store.dart';
 import 'package:oncare_trainer/features/dashboard/data/demo_task_history.dart';
+import 'package:oncare_trainer/features/dashboard/domain/activity_feedback.dart';
 import 'package:oncare_trainer/features/dashboard/domain/churn_risk.dart';
 import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart';
 import 'package:oncare_trainer/features/dashboard/presentation/controllers/dashboard_controller.dart';
@@ -72,7 +73,22 @@ class DashboardPage extends ConsumerWidget {
                   children: <Widget>[
                     const TodayTimelineCard(),
                     const SizedBox(height: OnCareSpacing.s16),
-                    AiSummaryCard(activityFeedback: activityFeedback),
+                    AiSummaryCard(
+                      key: const ValueKey<String>(
+                        'dashboard-activity-feedback',
+                      ),
+                      activityFeedback:
+                          activityFeedback.valueOrNull ??
+                          const <ActivityFeedbackItem>[],
+                      // 입력이 준비되지 않았으면 "담당 회원 없음" 대신 상태를
+                      // 말한다(#2891).
+                      statusMessage: activityFeedback.hasValue
+                          ? null
+                          : activityFeedback.hasError &&
+                                !activityFeedback.isLoading
+                          ? l.dashActivityFeedbackUnavailable
+                          : l.dashActivityFeedbackLoading,
+                    ),
                   ],
                 );
                 final rightColumn = Column(
@@ -90,7 +106,12 @@ class DashboardPage extends ConsumerWidget {
                     const TrainerVerificationBanner(
                       bottomGap: OnCareSpacing.s16,
                     ),
-                    _KpiRow(summary: summary, churnRisk: churnRisk, wide: wide),
+                    _KpiRow(
+                      summary: summary,
+                      churnRisk: churnRisk,
+                      wide: wide,
+                      onRetryChurn: () => retryChurnInputs(ref.invalidate),
+                    ),
                     const SizedBox(height: OnCareSpacing.s16),
                     if (wide)
                       Row(
@@ -123,6 +144,9 @@ class DashboardPage extends ConsumerWidget {
   }
 }
 
+/// 값을 아직 모르는 KPI 의 자리 표시 — 0 으로 읽히지 않게 숫자를 비운다.
+const String _pendingValue = '–';
+
 /// 몇 주 전까지 볼 수 있는가 — 무한정 뒤로 가면 저장된 기록이 없는 빈 주만
 /// 계속 나온다. 서버 보관 기간(63일)이 이 범위에 맞춰져 있다(#1633).
 const int _maxTaskProgressWeeksBack = 8;
@@ -145,11 +169,12 @@ class _TaskProgressCard extends ConsumerWidget {
     final history = ref.watch(dailyTaskHistoryProvider).valueOrNull;
     final demoHistory = ref.watch(demoTaskHistoryProvider);
     final offset = ref.watch(_taskProgressWeekOffsetProvider);
-    final today = nowKst();
-    final currentMonday = today.subtract(Duration(days: today.weekday - 1));
-    final monday = currentMonday.add(Duration(days: 7 * offset));
+    // 자정으로 자른 오늘에서 달력으로 센다(#2890). 시각이 남은 지금에서 24시간
+    // 단위로 빼면 자정 근처·서머타임 전환 주에 요일 칸이 하루씩 밀렸다.
+    final today = todayKst();
+    final monday = addCalendarDays(mondayOf(today), 7 * offset);
     final dates = <DateTime>[
-      for (var i = 0; i < weekdayCount; i++) monday.add(Duration(days: i)),
+      for (var i = 0; i < weekdayCount; i++) addCalendarDays(monday, i),
     ];
     final OnCareBrand brand = context.oncare.brand;
     return AppCard(
@@ -248,11 +273,49 @@ class _KpiRow extends StatelessWidget {
     required this.summary,
     required this.churnRisk,
     required this.wide,
+    required this.onRetryChurn,
   });
 
   final DashboardSummary summary;
-  final List<ChurnRiskClient> churnRisk;
+
+  /// 이탈 위험 목록 — 최근 세션을 읽는 동안·실패하면 값이 없다(#2891).
+  final AsyncValue<List<ChurnRiskClient>> churnRisk;
   final bool wide;
+
+  /// 이탈 위험 신호를 다시 읽는다.
+  final VoidCallback onRetryChurn;
+
+  /// 이탈 위험 KPI. (#2891)
+  ///
+  /// 최근 세션이 오기 전·조회가 실패한 동안에는 숫자를 그리지 않는다 — 빈
+  /// 세션으로 센 숫자는 실제보다 부풀려진 빨간 숫자였다. 읽는 중에는 자리
+  /// 표시, 실패하면 확인할 수 없다는 문구와 눌러서 다시 읽기다.
+  Widget _churnCard(BuildContext context, AppLocalizations l) {
+    const Key key = ValueKey<String>('dashboard-churn-kpi');
+    final List<ChurnRiskClient>? entries = churnRisk.valueOrNull;
+    if (entries == null || churnRisk.isLoading) {
+      final bool failed = churnRisk.hasError && !churnRisk.isLoading;
+      return AppStatCard(
+        key: key,
+        label: l.dashChurnRisk,
+        value: _pendingValue,
+        icon: AppIcons.personOff,
+        caption: failed ? l.dashChurnRiskUnavailable : l.dashChurnRiskLoading,
+        onTap: failed ? onRetryChurn : null,
+      );
+    }
+    return AppStatCard(
+      key: key,
+      label: l.dashChurnRisk,
+      value: '${entries.length}',
+      unit: l.dashUnitPeople,
+      icon: AppIcons.personOff,
+      // 주의 회원과 같은 규칙·같은 빨강 — 톤이 다르면 서로 다른 심각도로 읽힌다.
+      toneColor: entries.isEmpty ? OnCareColors.success : OnCareColors.danger,
+      caption: entries.isEmpty ? l.dashChurnRiskNone : l.dashChurnRiskCheck,
+      onTap: () => showChurnRiskDialog(context, entries: entries),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -292,18 +355,7 @@ class _KpiRow extends StatelessWidget {
             : l.dashCheckPtSignals,
         onTap: () => context.go(AppRoutes.clientsFiltered('attention')),
       ),
-      AppStatCard(
-        label: l.dashChurnRisk,
-        value: '${churnRisk.length}',
-        unit: l.dashUnitPeople,
-        icon: AppIcons.personOff,
-        // 주의 회원과 같은 규칙·같은 빨강 — 톤이 다르면 서로 다른 심각도로 읽힌다.
-        toneColor: churnRisk.isEmpty
-            ? OnCareColors.success
-            : OnCareColors.danger,
-        caption: churnRisk.isEmpty ? l.dashChurnRiskNone : l.dashChurnRiskCheck,
-        onTap: () => showChurnRiskDialog(context, entries: churnRisk),
-      ),
+      _churnCard(context, l),
     ];
 
     // IntrinsicHeight so the tiles line up: the hint line is present on

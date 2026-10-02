@@ -90,6 +90,46 @@ def _active_trainer_id(db: Session, member_id: str) -> str | None:
     )
 
 
+def _close_pending_for_member(
+    db: Session,
+    member_id: str,
+    *,
+    linked_trainer_id: str,
+    exclude_id: str | None = None,
+) -> TrainerClientInvite | None:
+    """담당이 생긴 회원에게 걸린 **대기 중 담당 요청**을 닫는다(커밋은 호출자). (#2894)
+
+    담당이 생기는 두 경로(동기화 코드 연결·담당 요청 수락)가 같은 트랜잭션 안에서
+    부른다. 남겨 두면 트레이너 웹 '답 기다리는 요청'과 회원 앱 받은 요청에 이미
+    끝난 요청이 남고, 수락하면 같은 트레이너에게 수락 알림이 한 번 더 가거나 다른
+    트레이너 요청은 `MemberAlreadyCoached` 로 실패한다.
+
+    - 연결된 트레이너가 보낸 대기 요청 → `accepted`. 그 행을 돌려줘 코드 연결이
+      이력 행을 새로 만들지 않고 이 행을 쓰게 한다.
+    - 다른 트레이너가 보낸 대기 요청 → `cancelled`. 새 상태값을 두면 두 앱이
+      모두 바뀌어야 하므로 기존 값으로 닫는다. 그 트레이너에게 알리지는 않는다.
+
+    `exclude_id` 는 지금 수락 중인 행이다 — 호출자가 직접 상태를 바꾼다.
+    """
+    query = select(TrainerClientInvite).where(
+        TrainerClientInvite.member_id == member_id,
+        TrainerClientInvite.status == "pending",
+    )
+    if exclude_id is not None:
+        query = query.where(TrainerClientInvite.id != exclude_id)
+    now = _now()
+    own: TrainerClientInvite | None = None
+    for pending in db.scalars(query).all():
+        if pending.trainer_id == linked_trainer_id:
+            pending.status = "accepted"
+            # 부분 유니크(대기 중일 때만)라 같은 트레이너의 대기 행은 하나뿐이다.
+            own = pending
+        else:
+            pending.status = "cancelled"
+        pending.decided_at = now
+    return own
+
+
 def _paired_out(db: Session, member: User) -> PairedMemberOut:
     profile = db.scalar(
         select(HealthProfile).where(HealthProfile.user_id == member.id)
@@ -185,20 +225,26 @@ def redeem_pairing_code(
             # 동의 없이 살아 있는 링크다. 회원이 코드를 띄운 것이 새 동의이므로
             # 그 시각을 적는다(#1631). 코드는 이미 소비됐다.
             data_consent_service.grant(link, used.consented_at)
+            _close_pending_for_member(db, member.id, linked_trainer_id=trainer_id)
             db.commit()
             return _paired_out(db, member)
         if current is not None:
             raise MemberAlreadyCoached("이미 다른 트레이너가 담당 중인 회원이에요.")
 
-        row = TrainerClientInvite(
-            id=f"tci-{uuid.uuid4().hex[:12]}",
-            trainer_id=trainer_id,
-            member_id=member.id,
-            message=None,
-            status="accepted",
-            decided_at=_now(),
-        )
-        db.add(row)
+        # 이 트레이너가 앞서 보낸 대기 요청이 있으면 그 행이 이력이 된다 —
+        # 같은 연결에 수락 행이 둘 남지 않게 한다(#2894).
+        own = _close_pending_for_member(db, member.id, linked_trainer_id=trainer_id)
+        if own is None:
+            db.add(
+                TrainerClientInvite(
+                    id=f"tci-{uuid.uuid4().hex[:12]}",
+                    trainer_id=trainer_id,
+                    member_id=member.id,
+                    message=None,
+                    status="accepted",
+                    decided_at=_now(),
+                )
+            )
 
         consultation_service.attach_member_to_trainer(
             db, trainer_id, member.id, consented_at=used.consented_at
@@ -212,6 +258,14 @@ def redeem_pairing_code(
         _notify_member_paired(db, trainer_id, member.id)
 
         db.commit()
+    except IntegrityError:
+        # 위 담당 확인과 커밋(또는 중간 flush) 사이에 다른 연결(복구·수락)이 먼저
+        # 들어왔다 — 회원당 활성 담당 1명 인덱스에 걸린 것이다. 500 대신 조회로
+        # 막았을 때와 같은 409 로 옮긴다(#2911). 롤백으로 코드도 살아남는다.
+        db.rollback()
+        raise MemberAlreadyCoached(
+            "이미 다른 트레이너가 담당 중인 회원이에요."
+        ) from None
     except Exception:
         # 실패했으면 코드도 되살아나야 한다 — 회원이 다시 띄우게 만들지 않는다.
         db.rollback()
@@ -371,6 +425,7 @@ def accept(
             member_id,
             consented_at=_now(),
         )
+        _flush_new_link(db)
     elif data_consent_service.blocks_access(existing):
         # 동의 없이 살아 있는 링크다 — 방금 받은 동의를 적는다. (#1631)
         data_consent_service.grant(existing, _now())
@@ -380,6 +435,11 @@ def accept(
 
     row.status = "accepted"
     row.decided_at = _now()
+    # 다른 트레이너들이 보낸 대기 요청도 함께 닫는다 — 회원당 활성 담당은 1명이라
+    # 남겨 두면 수락할 수 없는 요청으로 남는다(#2894).
+    _close_pending_for_member(
+        db, member_id, linked_trainer_id=row.trainer_id, exclude_id=row.id
+    )
 
     member_name = db.scalar(select(User.name).where(User.id == member_id)) or ""
     notification_service.queue_for_trainer(
@@ -394,6 +454,21 @@ def accept(
     db.commit()
     db.refresh(row)
     return _to_member_out(db, [row])[0]
+
+
+def _flush_new_link(db: Session) -> None:
+    """방금 만든·되살린 담당 링크를 먼저 내려 보낸다. (#2911)
+
+    위 담당 확인과 쓰기 사이에 다른 트레이너의 담당(복구·연결 코드)이 먼저 생기면
+    회원당 활성 담당 1명 인덱스(`uq_trainer_client_active_member`)에 걸린다. 그
+    위반이 뒤따르는 조회의 자동 flush 에서 500 으로 터지지 않도록 여기서 내려
+    보내고, 조회로 막았을 때와 같은 [MemberAlreadyCoached](409) 로 옮긴다.
+    """
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise MemberAlreadyCoached("이미 다른 트레이너가 담당 중이에요.") from None
 
 
 def reject(db: Session, member_id: str, invite_id: str) -> MemberClientInviteOut:

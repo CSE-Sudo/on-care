@@ -248,4 +248,59 @@ void main() {
     expect(memos, hasLength(1));
     expect(memos.single.body, '재로그인 후에도 남아야 하는 메모');
   });
+
+  test(
+    'a picked category goes out with the memo and comes back (#2622)',
+    () async {
+      Map<String, Object?>? sent;
+      when(
+        () => dio.post<Map<String, Object?>>(_path, data: any(named: 'data')),
+      ).thenAnswer((invocation) async {
+        sent = (invocation.namedArguments[#data] as Map<Object?, Object?>)
+            .cast<String, Object?>();
+        return _ok<Map<String, Object?>>(<String, Object?>{
+          ..._memoJson(body: '허리 디스크 이력'),
+          'category': 'pain',
+        });
+      });
+
+      final memo = await repo.create(
+        'm1',
+        body: '허리 디스크 이력',
+        category: TrainerMemoCategory.pain,
+      );
+      expect(sent!['category'], 'pain');
+      expect(memo.category, TrainerMemoCategory.pain);
+
+      // 고르지 않은 메모는 분류 칸을 싣지 않는다.
+      await repo.create('m1', body: '분류 없음');
+      expect(sent!.containsKey('category'), isFalse);
+    },
+  );
+
+  test('update sends a category only when one is given (#2622)', () async {
+    Map<String, Object?>? sent;
+    when(
+      () => dio.put<Map<String, Object?>>(
+        '$_path/memo-1',
+        data: any(named: 'data'),
+      ),
+    ).thenAnswer((invocation) async {
+      sent = (invocation.namedArguments[#data] as Map<Object?, Object?>)
+          .cast<String, Object?>();
+      return _ok<Map<String, Object?>>(_memoJson());
+    });
+
+    await repo.update('m1', 'memo-1', '본문', category: TrainerMemoCategory.none);
+    // 빈 문자열은 분류를 지운다 — `직접 작성` 으로 돌아간다.
+    expect(sent, <String, Object?>{'body': '본문', 'category': ''});
+  });
+
+  test('an unknown category reads as none instead of failing the list', () {
+    final memo = TrainerMemo.fromJson(<String, Object?>{
+      ..._memoJson(),
+      'category': 'sleep',
+    });
+    expect(memo.category, TrainerMemoCategory.none);
+  });
 }

@@ -758,6 +758,30 @@ abstract class AppLocalizations {
   /// **'No members are at churn risk right now.'**
   String get dashChurnRiskEmpty;
 
+  /// No description provided for @dashChurnRiskLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking recent sessions'**
+  String get dashChurnRiskLoading;
+
+  /// No description provided for @dashChurnRiskUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable · Tap to retry'**
+  String get dashChurnRiskUnavailable;
+
+  /// No description provided for @dashActivityFeedbackLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking recent sessions.'**
+  String get dashActivityFeedbackLoading;
+
+  /// No description provided for @dashActivityFeedbackUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load recent sessions, so activity feedback is unavailable. Tap the churn risk card to retry.'**
+  String get dashActivityFeedbackUnavailable;
+
   /// No description provided for @dashActivityDifficultyTitle.
   ///
   /// In en, this message translates to:
@@ -871,6 +895,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'in {minutes} min'**
   String dashScheduleMinutesLeft(int minutes);
+
+  /// Dashboard banner when today's session has started but not yet ended (#2865).
+  ///
+  /// In en, this message translates to:
+  /// **'In progress: {time} · {name}'**
+  String dashScheduleInProgress(String time, String name);
+
+  /// Minutes until the in-progress session ends (#2865).
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min left'**
+  String dashScheduleMinutesToEnd(int minutes);
 
   /// No description provided for @dashPreparePt.
   ///
@@ -1333,6 +1369,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Conditions and cautions'**
   String get memberHealthConditions;
+
+  /// No description provided for @memberHealthConditionsShared.
+  ///
+  /// In en, this message translates to:
+  /// **'The member sees this too · Used for recommendations'**
+  String get memberHealthConditionsShared;
+
+  /// No description provided for @memberHealthConditionsPrivateHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep trainer-only notes in Memo.'**
+  String get memberHealthConditionsPrivateHint;
 
   /// No description provided for @memberHealthDietGoal.
   ///
@@ -1826,29 +1874,41 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load earlier messages · Retry'**
   String get chatLoadOlderFailed;
 
-  /// No description provided for @chatDemoAnalyzed.
+  /// No description provided for @chatRoutineDelivered.
   ///
   /// In en, this message translates to:
-  /// **'AI analysed {name}\'s meals and workouts'**
-  String chatDemoAnalyzed(String name);
+  /// **'Workout sent'**
+  String get chatRoutineDelivered;
 
-  /// No description provided for @chatDemoReportSent.
+  /// No description provided for @chatRoutineDeliveredPt.
   ///
   /// In en, this message translates to:
-  /// **'A summary report was sent to you'**
-  String get chatDemoReportSent;
+  /// **'PT program and personal exercises sent'**
+  String get chatRoutineDeliveredPt;
 
-  /// No description provided for @chatDemoRoutineSent.
+  /// No description provided for @chatRoutineDeliveredPersonal.
   ///
   /// In en, this message translates to:
-  /// **'A personalized workout recommendation was sent to {name}'**
-  String chatDemoRoutineSent(String name);
+  /// **'Personal exercises sent'**
+  String get chatRoutineDeliveredPersonal;
 
-  /// No description provided for @chatDemoNotified.
+  /// No description provided for @chatRoutineDeliveredAfterCancel.
   ///
   /// In en, this message translates to:
-  /// **'The member app was notified'**
-  String get chatDemoNotified;
+  /// **'Personal exercises sent in place of the cancelled PT'**
+  String get chatRoutineDeliveredAfterCancel;
+
+  /// No description provided for @chatRoutineDeliveredProgram.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout program sent'**
+  String get chatRoutineDeliveredProgram;
+
+  /// No description provided for @chatRoutineDeliveredMore.
+  ///
+  /// In en, this message translates to:
+  /// **'{names} and {count} more'**
+  String chatRoutineDeliveredMore(String names, int count);
 
   /// No description provided for @chatInputHint.
   ///
@@ -3103,6 +3163,18 @@ abstract class AppLocalizations {
   /// **'Booked by the member. It can\'t be moved or deleted here; use Cancel to call it off.'**
   String get schedReservationLockedHint;
 
+  /// No description provided for @schedEndedLockedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished sessions can only have their note and program edited.'**
+  String get schedEndedLockedHint;
+
+  /// No description provided for @schedDoneLockedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed sessions can only have their note and program edited. Move the date forward to reopen it as upcoming.'**
+  String get schedDoneLockedHint;
+
   /// No description provided for @schedGroupPersonal.
   ///
   /// In en, this message translates to:
@@ -3192,6 +3264,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Marked as not sent.'**
   String get schedRoutinesSkipped;
+
+  /// No description provided for @schedRoutinesSkipFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t mark the personal exercise as not sent. Please try again.'**
+  String get schedRoutinesSkipFailed;
+
+  /// No description provided for @schedRoutinesLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load personal exercises'**
+  String get schedRoutinesLoadFailed;
+
+  /// No description provided for @schedClientUnresolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t tell which member this session is for. Please pick the member.'**
+  String get schedClientUnresolved;
 
   /// No description provided for @schedRoutinesUpdated.
   ///
@@ -3871,6 +3961,12 @@ abstract class AppLocalizations {
   /// **'Reload'**
   String get slotReload;
 
+  /// No description provided for @slotLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load reservation slots'**
+  String get slotLoadFailed;
+
   /// No description provided for @slotEmpty.
   ///
   /// In en, this message translates to:
@@ -3990,6 +4086,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Coming soon — always on for now'**
   String get myNotifNotReady;
+
+  /// Notification settings card row shown while the saved settings are loading; switches stay disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading notification settings…'**
+  String get myNotifLoading;
+
+  /// Notification settings card row when loading the saved settings failed; shown with a retry button and switches stay disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load notification settings. Please try again'**
+  String get myNotifLoadFailed;
 
   /// No description provided for @myNotifNewMessageHint.
   ///
@@ -5029,6 +5137,42 @@ abstract class AppLocalizations {
   /// **'Couldn\'t send. Please try again'**
   String get coachSendFailed;
 
+  /// No description provided for @coachSwitchClientTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to another client?'**
+  String get coachSwitchClientTitle;
+
+  /// No description provided for @coachSwitchClientBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unsent work. Switching clients discards the program and personal exercises you are building.'**
+  String get coachSwitchClientBody;
+
+  /// No description provided for @coachSwitchClientConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch'**
+  String get coachSwitchClientConfirm;
+
+  /// No description provided for @personalRoutineTargetLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load PT sessions'**
+  String get personalRoutineTargetLoadFailed;
+
+  /// No description provided for @personalRoutineStartPast.
+  ///
+  /// In en, this message translates to:
+  /// **'The start date has passed, so it\'s now set to today. Check it and send again'**
+  String get personalRoutineStartPast;
+
+  /// No description provided for @schedRoutinesReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check the attached personal exercises. Please try again'**
+  String get schedRoutinesReadFailed;
+
   /// No description provided for @coachScheduleFailed.
   ///
   /// In en, this message translates to:
@@ -5286,6 +5430,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AI generation failed. Please try again in a moment'**
   String get aiGenerateFailed;
+
+  /// No description provided for @aiGenerateInvalidConditions.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the generation conditions. Total time must be between {min} and {max} minutes'**
+  String aiGenerateInvalidConditions(int min, int max);
+
+  /// No description provided for @aiGenerateMinutesHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter between {min} and {max} minutes'**
+  String aiGenerateMinutesHelper(int min, int max);
 
   /// No description provided for @aiGenerateRateLimited.
   ///
@@ -6030,6 +6186,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Chat-detected memos'**
   String get aiSourceChatInsight;
+
+  /// Source the AI may read — the raw recent chat with the member (last 14 days, up to 10, #2794)
+  ///
+  /// In en, this message translates to:
+  /// **'Recent chat'**
+  String get aiSourceRecentChat;
 
   /// No description provided for @aiSourceWeeklyFeedback.
   ///
@@ -6997,11 +7159,11 @@ abstract class AppLocalizations {
   /// **'Report'**
   String get dashTodoReport;
 
-  /// No description provided for @dashTodoConsultationSubtitle.
+  /// Subtitle of a consultation-request task: the member's preferred (or chosen slot) date and time, not the date the request arrived.
   ///
   /// In en, this message translates to:
-  /// **'Consultation request for {month}/{day}'**
-  String dashTodoConsultationSubtitle(int month, int day);
+  /// **'Preferred: {when}'**
+  String dashTodoConsultationSubtitle(String when);
 
   /// Subtitle of the demo carried-over task shown before real history exists.
   ///
@@ -7032,6 +7194,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load your task status. Please try again in a moment'**
   String get dashTaskLoadFailed;
+
+  /// Toast when a task tap arrives after midnight on a dashboard opened the previous day; the tap is ignored and today's list is reloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'The date changed, so today\'s tasks were reloaded. Please tap again'**
+  String get dashTaskDayChanged;
 
   /// No description provided for @dashTaskDismissTitle.
   ///
@@ -7495,6 +7663,156 @@ abstract class AppLocalizations {
   /// **'No memos match your search.'**
   String get clientMemoSearchEmpty;
 
+  /// No description provided for @clientMemoCategoryExercise.
+  ///
+  /// In en, this message translates to:
+  /// **'Exercise'**
+  String get clientMemoCategoryExercise;
+
+  /// No description provided for @clientMemoCategoryDiet.
+  ///
+  /// In en, this message translates to:
+  /// **'Diet'**
+  String get clientMemoCategoryDiet;
+
+  /// No description provided for @clientMemoCategoryPain.
+  ///
+  /// In en, this message translates to:
+  /// **'Pain · injury'**
+  String get clientMemoCategoryPain;
+
+  /// No description provided for @clientMemoCategoryLife.
+  ///
+  /// In en, this message translates to:
+  /// **'Life · schedule'**
+  String get clientMemoCategoryLife;
+
+  /// No description provided for @clientMemoRecordLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Link a workout (optional)'**
+  String get clientMemoRecordLink;
+
+  /// No description provided for @clientMemoRecordNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No link'**
+  String get clientMemoRecordNone;
+
+  /// No description provided for @clientMemoRecordEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No workouts in the last 14 days'**
+  String get clientMemoRecordEmpty;
+
+  /// No description provided for @clientMemoRecordDay.
+  ///
+  /// In en, this message translates to:
+  /// **'{month}/{day} ({weekday})'**
+  String clientMemoRecordDay(String month, String day, String weekday);
+
+  /// No description provided for @clientMemoRecordPtSession.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} PT session'**
+  String clientMemoRecordPtSession(String date);
+
+  /// No description provided for @clientMemoRecordPersonal.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} Personal workout'**
+  String clientMemoRecordPersonal(String date);
+
+  /// No description provided for @clientMemoRecordPersonalNamed.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} Personal workout · {name}'**
+  String clientMemoRecordPersonalNamed(String date, String name);
+
+  /// No description provided for @clientMemoRecordMemberLog.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} Member log'**
+  String clientMemoRecordMemberLog(String date);
+
+  /// No description provided for @clientMemoTabMemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Memos'**
+  String get clientMemoTabMemo;
+
+  /// No description provided for @clientMemoTabFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback'**
+  String get clientMemoTabFeedback;
+
+  /// No description provided for @clientFeedbackPrivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback you and the member exchanged. Tap one to edit it where it was written.'**
+  String get clientFeedbackPrivate;
+
+  /// No description provided for @clientFeedbackToMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer → member'**
+  String get clientFeedbackToMember;
+
+  /// No description provided for @clientFeedbackFromMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Member → trainer'**
+  String get clientFeedbackFromMember;
+
+  /// No description provided for @clientFeedbackSourcePt.
+  ///
+  /// In en, this message translates to:
+  /// **'PT session · {date}'**
+  String clientFeedbackSourcePt(String date);
+
+  /// No description provided for @clientFeedbackSourceReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Report · week of {date}'**
+  String clientFeedbackSourceReport(String date);
+
+  /// No description provided for @clientFeedbackSourceWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly check-in · week of {date}'**
+  String clientFeedbackSourceWeekly(String date);
+
+  /// No description provided for @clientFeedbackWeeklyNoNote.
+  ///
+  /// In en, this message translates to:
+  /// **'No note'**
+  String get clientFeedbackWeeklyNoNote;
+
+  /// No description provided for @clientFeedbackEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No feedback exchanged yet.'**
+  String get clientFeedbackEmpty;
+
+  /// No description provided for @clientFeedbackLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load feedback. Try again in a moment'**
+  String get clientFeedbackLoadFailed;
+
+  /// No description provided for @clientFeedbackSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search feedback (text, source, direction)'**
+  String get clientFeedbackSearchHint;
+
+  /// No description provided for @clientFeedbackSearchEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No feedback matches your search.'**
+  String get clientFeedbackSearchEmpty;
+
   /// No description provided for @followUp.
   ///
   /// In en, this message translates to:
@@ -7910,6 +8228,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose a session for the \'{name}\' template.'**
   String programTemplateSessionPickerBody(String name);
+
+  /// No description provided for @programEditorAiReapplyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace the AI exercises with the new plan?'**
+  String get programEditorAiReapplyTitle;
+
+  /// No description provided for @programEditorAiReapplyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Replaces the AI exercises added earlier ({count}) with the new plan. Exercises you added or edited stay.'**
+  String programEditorAiReapplyBody(int count);
+
+  /// No description provided for @programEditorAiReapplyReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get programEditorAiReapplyReplace;
+
+  /// No description provided for @programEditorAiReapplyAppend.
+  ///
+  /// In en, this message translates to:
+  /// **'Add after'**
+  String get programEditorAiReapplyAppend;
 
   /// No description provided for @programEditorSessionNameTyped.
   ///

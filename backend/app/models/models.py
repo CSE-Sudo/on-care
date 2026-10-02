@@ -144,6 +144,18 @@ class HealthProfile(Base):
     focus_changed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # 건강상태·주의사항(`conditions` 에서 목표 칩을 뺀 글)을 마지막으로 바꾼
+    # 사람·시각 (#2942). 같은 칸이지만 목표 칩 기록과 따로 둔다 — 하나로 묶으면
+    # 칩 아래 `마지막 변경` 줄이 주의사항만 고친 저장에도 움직인다.
+    notes_changed_by: Mapped[str | None] = mapped_column(
+        String(10), nullable=True
+    )  # member|trainer
+    notes_changed_by_id: Mapped[str | None] = mapped_column(
+        String(64), nullable=True
+    )
+    notes_changed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     activity_points: Mapped[int] = mapped_column(Integer, default=0)
     activity_rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -1566,6 +1578,9 @@ class TrainerClientMemo(Base):
     ref_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
     #: 트레이너가 지은 루틴 이름. 서버가 붙인 고정 이름은 비운다(앱이 번역한다).
     ref_name: Mapped[str] = mapped_column(String(100), default="", server_default="")
+    #: 분류(#2622) — exercise|diet|pain|life, 고르지 않으면 빈 문자열.
+    #: 운동 기록 메모는 늘 'exercise' 다(서버가 채운다).
+    category: Mapped[str] = mapped_column(String(16), default="", server_default="")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -1585,6 +1600,11 @@ class TrainerClientMemo(Base):
         CheckConstraint(
             "source IN ('trainer', 'chat_insight', 'exercise_memo')",
             name="ck_trainer_client_memo_source",
+        ),
+        # 응답 스키마(TrainerMemoOut.category)도 정해진 값만 받는다 — source 와 같은 이유.
+        CheckConstraint(
+            "category IN ('', 'exercise', 'diet', 'pain', 'life')",
+            name="ck_trainer_client_memo_category",
         ),
         Index("ix_trainer_client_memos_pair", "trainer_id", "member_id"),
     )
@@ -2059,6 +2079,13 @@ class ChatMessage(Base):
     # 실어 보낸 값을 그대로 들고 있는다. 일반 대화는 NULL 이라 예전 행과 조회
     # 흐름은 그대로다.
     report_week_start: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    # 이 메시지가 루틴 전송 안내라면 그 전송(종류·운동 이름)의 JSON. (#2672)
+    #
+    # 운동을 보내면 알림만 가고 채팅에는 남지 않아, 대화 속에서 "어제 보낸
+    # 루틴" 을 짚을 자리가 없었다. 리포트 전송 안내([report_week_start])처럼
+    # 보내는 쪽이 실어 둔 값으로 두 앱이 대화 가운데 안내 카드를 그린다. 일반
+    # 대화는 NULL 이다.
+    routine_delivery_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     # 이 메시지가 이모티콘이면 그 id(`oni_owoon` …). 본문은 이모티콘을 못 그리는
     # 자리(알림·미리보기)를 위한 글이고, 그림은 이 id 로 고른다. (#2020)
     emote_id: Mapped[str | None] = mapped_column(String(40), nullable=True)

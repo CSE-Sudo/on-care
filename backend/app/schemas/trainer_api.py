@@ -214,6 +214,9 @@ class MemberHealthProfileOut(BaseModel):
     #: 건강 목표를 마지막으로 바꾼 사람(`member`|`trainer`)과 시각(#1832).
     focus_changed_by: str | None = None
     focus_changed_at: _datetime | None = None
+    #: 건강상태·주의사항을 마지막으로 바꾼 사람과 시각(#2942). 목표 칩 기록과 따로다.
+    notes_changed_by: str | None = None
+    notes_changed_at: _datetime | None = None
 
 
 class MemberHealthProfileUpdate(PartialUpdate):
@@ -371,6 +374,19 @@ class ChatAttachmentOut(BaseModel):
     download_path: str
 
 
+class RoutineDeliveryCardOut(BaseModel):
+    """채팅 가운데 루틴 전송 안내 — 무엇을 보냈나. (#2672)
+
+    [kind] 는 `pt_with_routine`(PT 프로그램과 개인운동) · `routine_only`(개인운동만)
+    · `cancelled_routine_only`(취소·노쇼 PT 뒤 개인운동) · `routine`(단건 배정·AI
+    제안 승인). 운동 이름은 회원·트레이너가 적은 그대로라 번역하지 않는다.
+    """
+
+    kind: str
+    program_names: list[str] = Field(default_factory=list)
+    routine_names: list[str] = Field(default_factory=list)
+
+
 class ChatMessageOut(BaseModel):
     """채팅 메시지 — 프론트 ClientChatMessage 계약 정렬.
 
@@ -391,6 +407,9 @@ class ChatMessageOut(BaseModel):
     # 이 값으로 대화 가운데 안내 상자를 그린다(#1600). 첨부 유무와는 별개다 —
     # 리포트는 PDF 없이 본문만으로도 나간다.
     report_week_start: str | None = None
+    # 루틴 전송 안내라면 그 전송(#2672), 아니면 None. 두 앱이 리포트 안내처럼
+    # 대화 가운데 카드로 그린다.
+    routine_delivery: RoutineDeliveryCardOut | None = None
 
 
 class ChatSendRequest(BaseModel):
@@ -1062,6 +1081,11 @@ TrainerMemoSource = Literal["trainer", "chat_insight", "exercise_memo"]
 #: `개인 운동 · 9/23 코어 강화`, `회원 기록 · 9/23`)를 그리는 데 쓴다.
 TrainerMemoRefKind = Literal["pt_session", "personal", "member_log"]
 
+#: 메모 분류(#2622). 트레이너가 직접 쓴 메모에서 고른다 — 운동·식단·통증·부상·
+#: 생활·일정. 빈 문자열은 고르지 않은 것이다(태그는 `직접 작성`). 운동 기록 메모는
+#: 서버가 늘 'exercise' 로 채우고, 채팅 감지 메모는 비어 있다.
+TrainerMemoCategory = Literal["", "exercise", "diet", "pain", "life"]
+
 
 class TrainerMemoOut(BaseModel):
     """회원별 트레이너 메모. (#706)"""
@@ -1078,6 +1102,8 @@ class TrainerMemoOut(BaseModel):
     ref_date: str | None = None
     #: 트레이너가 지은 루틴 이름. 고정 이름(PT 세션 등)은 비어 있다.
     ref_name: str = ""
+    #: 분류(#2622). 고르지 않았으면 빈 문자열.
+    category: TrainerMemoCategory = ""
     created_at: _datetime
     updated_at: _datetime
 
@@ -1098,6 +1124,9 @@ class TrainerMemoCreateRequest(BaseModel):
     ref_id: str | None = Field(default=None, max_length=64)
     #: 회원 직접 기록 카드는 하루치 묶음이라 id 대신 그 날(YYYY-MM-DD)을 보낸다.
     ref_date: _date | None = None
+    #: 분류(#2622). 직접 쓴 메모만 고른다. 운동 기록 메모는 보내지 않아도
+    #: 'exercise' 가 되고, 다른 분류를 보내면 422 다.
+    category: TrainerMemoCategory = ""
 
     @model_validator(mode="after")
     def _reject_mismatched_source(self) -> TrainerMemoCreateRequest:
@@ -1120,18 +1149,64 @@ class TrainerMemoCreateRequest(BaseModel):
                 )
         elif has_ref:
             raise ValueError(f"{self.source} 메모에는 기록 연결을 보낼 수 없습니다.")
+        # 분류는 트레이너가 고르는 값이다 — 채팅 감지 메모는 감지 이유가 태그이고,
+        # 운동 기록 메모는 언제나 운동이다.
+        if self.source == "chat_insight" and self.category:
+            raise ValueError("chat_insight 메모에는 분류를 보낼 수 없습니다.")
+        if self.source == "exercise_memo" and self.category not in ("", "exercise"):
+            raise ValueError("exercise_memo 메모의 분류는 exercise 입니다.")
         return self
 
 
 class TrainerMemoUpdateRequest(PartialUpdate):
-    """메모 부분 수정. 본문만 고칠 수 있다.
+    """메모 부분 수정. 본문과, 직접 쓴 메모의 분류(#2622)를 고칠 수 있다.
 
     `source`·`insight_id` 는 "이 메모가 어디서 왔나"라는 사실이라 고칠 값이 아니다 —
     채팅에서 생긴 메모를 손봤다고 직접 쓴 메모가 되지는 않고, `insight_id` 를
-    바꿀 수 있으면 중복 방지 키가 무너진다.
+    바꿀 수 있으면 중복 방지 키가 무너진다. 운동 기록·채팅 감지 메모의 분류도
+    출처에서 정해지므로 바꿀 수 없다(바꾸려 하면 400).
     """
 
     body: str | None = Field(default=None, min_length=1, max_length=500)
+    #: 빈 문자열은 분류를 지운다(`직접 작성` 으로 돌아간다).
+    category: TrainerMemoCategory | None = None
+
+
+#: 회원 피드백 모아 보기의 출처(#2615). 'pt_session' 은 완료 PT 세션 피드백
+#: (`TrainerSchedule.note`), 'report' 는 보낸 주간 리포트, 'weekly' 는 회원이
+#: 쓴 주간 피드백이다.
+ClientFeedbackKind = Literal["pt_session", "report", "weekly"]
+
+#: 피드백의 방향. 앞의 둘은 트레이너가 회원에게, 'weekly' 는 회원이 트레이너에게.
+ClientFeedbackDirection = Literal["to_member", "from_member"]
+
+
+class ClientFeedbackOut(BaseModel):
+    """회원 한 명과 주고받은 피드백 한 건 — 읽기 전용 모아 보기(#2615).
+
+    고치는 곳은 원래 자리(스케줄 일정·리포트 주·회원 앱) 하나뿐이다. 그래서
+    앱이 그 자리로 가는 데 쓰는 값(`schedule_id`·`week_start`)을 함께 준다.
+    """
+
+    #: 출처 안에서 유일한 값에 출처를 붙였다(`pt_session:<id>` 등).
+    id: str
+    kind: ClientFeedbackKind
+    direction: ClientFeedbackDirection
+    #: 그 피드백이 붙는 날(YYYY-MM-DD). PT 는 수업 날, 리포트·주간 피드백은 그 주 월요일.
+    date: str
+    #: 피드백 글. 주간 피드백은 한 줄 피드백(비어 있을 수 있다 — 칩만 고른 주).
+    body: str = ""
+    #: PT 세션 피드백의 일정 id — 앱이 스케줄의 그 일정으로 간다.
+    schedule_id: str | None = None
+    #: 리포트·주간 피드백의 주(월요일) — 앱이 리포트의 그 주로 간다.
+    week_start: str | None = None
+    #: 리포트를 보낸 시각·주간 피드백을 마지막으로 고친 시각. PT 는 없다.
+    at: _datetime | None = None
+    #: 주간 피드백 칩(회원 앱 값 그대로 — great|good|ok|tired|bad 등). 앱이 번역한다.
+    condition: str = ""
+    intensity: str = ""
+    pain_area: str = ""
+    pain_on: str = ""
 
 
 #: 후속 관리 할 일이 가리키는 업무 갈래. 할 일에서 어느 화면으로 갈지를 고르는
@@ -1212,19 +1287,25 @@ RoutineIntensityLabel = Literal["낮음", "보통", "높음"]
 
 #: AI 추천이 읽을 수 있는 트레이너 쪽 자료(#2587).
 #:
+#: * recent_chat — 회원과의 최근 대화 원문(최근 14일 · 최신 10건, #2794)
 #: * pt_feedback — 완료한 PT 일정의 글(트레이너 피드백)
 #: * consult_memo — 상담 일정의 글(상담 메모, 트레이너만 본다)
 #: * trainer_memo — 회원 상세에서 트레이너가 직접 쓴 메모(`source='trainer'`)
 #: * chat_insight — 채팅 감지에서 남긴 메모(`source='chat_insight'`)
 #: * weekly_feedback — 회원이 남긴 주간 피드백
 RoutineContextSource = Literal[
-    "pt_feedback", "consult_memo", "trainer_memo", "chat_insight", "weekly_feedback"
+    "recent_chat",
+    "pt_feedback",
+    "consult_memo",
+    "trainer_memo",
+    "chat_insight",
+    "weekly_feedback",
 ]
 
 #: 트레이너가 고르지 않았을 때의 기본값. 상담 메모만 뺀다 — 등록 상담처럼
 #: 운동 구성과 무관하거나 민감한 내용이 섞이는 자리라, 넣을지는 트레이너가 켠다.
 ROUTINE_DEFAULT_SOURCES: tuple[RoutineContextSource, ...] = (
-    "pt_feedback", "trainer_memo", "chat_insight", "weekly_feedback",
+    "recent_chat", "pt_feedback", "trainer_memo", "chat_insight", "weekly_feedback",
 )
 
 #: 자료별 최대 건수. 서비스의 조회 limit 이 이 값을 그대로 쓴다 — 이유는
@@ -1250,7 +1331,7 @@ class RoutineOptionsRequest(BaseModel):
     #: 폴백에 들어간다. 보내지 않으면(`None`) [ROUTINE_DEFAULT_SOURCES] 를 쓴다 —
     #: 이 필드 이전의 클라이언트도 같은 기본값으로 동작한다. 빈 목록은 "아무 자료도
     #: 넣지 않음" 이라는 명시적 선택이라 기본값으로 바꾸지 않는다.
-    sources: list[RoutineContextSource] | None = Field(default=None, max_length=5)
+    sources: list[RoutineContextSource] | None = Field(default=None, max_length=6)
 
 
 #: 분석에 싣는 최근 대화 최대 건수. 서비스의 조회 limit 이 이 값을 그대로 쓴다 —
@@ -2181,6 +2262,25 @@ class TrainerTaskProgressSave(BaseModel):
         if self.completed_today + self.completed_carried_over > self.total:
             raise ValueError("완료 수는 전체 할 일 수보다 많을 수 없습니다.")
         return self
+
+
+class TrainerTaskKeyChange(BaseModel):
+    """할 일 키 하나의 변경 — 그날 행에 이 키만 더하거나 뺀다. (#2886)
+
+    통째 저장(`TrainerTaskProgressSave`)은 나중에 도착한 쪽이 그날 전체를 덮어써,
+    탭·기기 두 곳에서 서로 다른 할 일을 체크하면 한쪽 체크가 사라졌다. 이 요청은
+    누른 키 하나만 바꾸고 합계는 서버가 저장된 집합에서 다시 낸다.
+
+    - `keys`: 화면이 지금 보여 주는 미션 키(지운 것 제외). 처음 보는 미션을 그날
+      목록에 올린다.
+    - `seen`: 이 화면이 그날 한 번이라도 본 미션 키. 저장된 키 중 여기 있으면서
+      `keys` 에 없는 것은 화면에서 사라진 미션(처리한 상담 등)이라 목록에서 뺀다.
+      여기 없는 저장 키는 이 화면이 모르는 미션이라 그대로 둔다(#2763).
+    """
+    key: _TaskKey
+    action: Literal["check", "uncheck", "dismiss"]
+    keys: list[_TaskKey] = Field(default_factory=list, max_length=1000)
+    seen: list[_TaskKey] = Field(default_factory=list, max_length=1000)
 
 
 class TrainerNotificationSettings(BaseModel):

@@ -26,9 +26,6 @@ import 'package:oncare_trainer/features/notifications/domain/entities/trainer_no
 /// 회원용 `/notifications` 를 쓰지 않는 이유: 그 경로는 트레이너 계정을 403 으로
 /// 막는 **회원 전용**이다(역할 분리). 저장되는 행은 같은 테이블이다.
 abstract interface class TrainerNotificationRepository {
-  /// 이 빌드에서 알림함을 쓸 수 있는가. 지금은 두 구현 모두 쓴다(#2628).
-  bool get supportsInbox;
-
   /// 받은 알림 한 쪽(최신순). [before] 가 없으면 첫 쪽이다.
   ///
   /// 서버는 한 쪽(기본 100건)만 준다. 다음 쪽이 있으면
@@ -64,9 +61,6 @@ class DemoNotificationRepository implements TrainerNotificationRepository {
 
   /// `3시간 전` 같은 상대 시각의 언어. 실 서버는 요청 언어로 적어 보낸다.
   final DemoLanguage language;
-
-  @override
-  bool get supportsInbox => true;
 
   Future<List<Map<String, Object?>>> _rows() async =>
       _decode(await _db.readValue(demoNotificationsKey));
@@ -190,9 +184,6 @@ class DioNotificationRepository implements TrainerNotificationRepository {
   /// 알림함을 열어 둔 채로 배지만 올라가면 목록과 숫자가 어긋나 보여서다.
   final Duration pollInterval;
 
-  @override
-  bool get supportsInbox => true;
-
   /// 본문은 전과 같은 배열이고, 다음 쪽 커서는 응답 헤더로 온다(#2293).
   /// 헤더가 없으면 마지막 쪽이다.
   @override
@@ -285,12 +276,6 @@ final trainerNotificationRepositoryProvider =
       return DioNotificationRepository(ref.watch(dioProvider));
     }, name: 'trainerNotificationRepository');
 
-/// 알림함에 들어갈 수 있는 빌드인가 — 사이드바 진입점 노출 조건.
-final notificationInboxEnabledProvider = Provider<bool>(
-  (ref) => ref.watch(trainerNotificationRepositoryProvider).supportsInbox,
-  name: 'notificationInboxEnabled',
-);
-
 /// 받은 알림의 첫 쪽.
 ///
 /// 스트림인 이유는 배지와 짝을 맞추기 위해서다 — 알림함을 열어 둔 채 배지만
@@ -330,11 +315,21 @@ final trainerPendingNotificationReadsProvider = StateProvider<Set<String>>((
   return const <String>{};
 }, name: 'trainerPendingNotificationReads');
 
+/// 보냈지만 서버가 센 미읽음 수에는 아직 비치지 않은 '모두 읽음' 요청 수. (#2884)
+///
+/// 하나라도 있으면 배지는 0 이다. 새 숫자가 오거나 요청이 실패하면
+/// [NotificationReadTracker.markAllRead] 가 줄인다. 계정이 바뀌면 비운다.
+final trainerPendingReadAllProvider = StateProvider<int>((ref) {
+  ref.watch(accountScopeProvider);
+  return 0;
+}, name: 'trainerPendingReadAll');
+
 /// 배지·알림 화면이 그리는 미읽음 수. 아직 모르면 `null`. (#2762)
 ///
 /// 서버 수([trainerUnreadNotificationsProvider])에서 읽음 처리 중인 알림을
 /// 미리 뺀다 — 누른 알림이 다음 폴링(20초)까지 배지에 남지 않게 한다.
 final trainerUnreadBadgeProvider = Provider.autoDispose<int?>((ref) {
+  if (ref.watch(trainerPendingReadAllProvider) > 0) return 0;
   final int? unread = ref.watch(trainerUnreadNotificationsProvider).valueOrNull;
   if (unread == null) return null;
   final int pending = ref.watch(trainerPendingNotificationReadsProvider).length;
@@ -384,6 +379,51 @@ class NotificationReadTracker {
     _container
       ..invalidate(trainerNotificationsProvider)
       ..invalidate(trainerUnreadNotificationsProvider);
+  }
+
+  /// 받은 알림 전체를 읽음으로 보낸다. 배지는 요청 전에 0 으로 두고, 실패하면
+  /// 되돌린다. 성공 여부를 돌려준다 — 안내는 부른 쪽이 잡아 둔 토스트로 띄운다.
+  /// (#2884)
+  ///
+  /// 단건과 같은 이유로 [ProviderContainer] 만 쓴다. 팝오버의 '모두 읽음' 은
+  /// 응답이 오기 전에 팝오버가 닫힐 수 있다.
+  Future<bool> markAllRead() async {
+    _pendReadAll(1);
+    final TrainerNotificationRepository repository = _container.read(
+      trainerNotificationRepositoryProvider,
+    );
+    try {
+      await repository.markAllRead();
+    } on Object {
+      _pendReadAll(-1);
+      return false;
+    }
+    // 서버는 쪽과 무관하게 전체를 읽음으로 바꾼다. 받아 둔 과거 쪽도 같게
+    // 비춘다. 알림 화면을 연 적이 없으면 새로 만들지 않는다.
+    if (_container.exists(trainerNotificationPagingProvider)) {
+      _container.read(trainerNotificationPagingProvider.notifier).markAllRead();
+    }
+    late final ProviderSubscription<AsyncValue<int>> watching;
+    watching = _container.listen<AsyncValue<int>>(
+      trainerUnreadNotificationsProvider,
+      (AsyncValue<int>? _, AsyncValue<int> next) {
+        if (next.isLoading) return;
+        watching.close();
+        _pendReadAll(-1);
+      },
+    );
+    _container
+      ..invalidate(trainerNotificationsProvider)
+      ..invalidate(trainerUnreadNotificationsProvider);
+    return true;
+  }
+
+  void _pendReadAll(int delta) {
+    final StateController<int> pending = _container.read(
+      trainerPendingReadAllProvider.notifier,
+    );
+    final int next = pending.state + delta;
+    pending.state = next < 0 ? 0 : next;
   }
 
   void _pend(String id) {

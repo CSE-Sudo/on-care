@@ -42,7 +42,7 @@
 | `trainer_profiles` | 트레이너 프로필(전문분야·경력·소속 짐) |
 | `trainer_clients` | 트레이너↔회원 담당 링크(로스터의 정의) |
 | `trainer_routines` | 트레이너/AI가 회원에게 배정한 루틴. PT 일정에 붙인 개인운동은 `schedule_id`·`status='scheduled'`·`delivery_kind` 를 갖는다(`0092_routine_schedule_link`, #2223) |
-| `trainer_client_memos` | 트레이너가 회원별로 남긴 메모(직접 작성 + 채팅 인사이트 + 운동 기록 카드, `0036_trainer_memos`·`0106_trainer_memo_exercise_ref`) |
+| `trainer_client_memos` | 트레이너가 회원별로 남긴 메모(직접 작성 + 채팅 인사이트 + 운동 기록 카드, `0036_trainer_memos`·`0106_trainer_memo_exercise_ref`). 분류 `category`(`exercise`·`diet`·`pain`·`life`, 빈 문자열 = 고르지 않음, `0129_trainer_memo_category`, #2622) |
 | `trainer_follow_up_tasks` | 트레이너가 회원별로 남긴 후속 관리 할 일(예정일·완료 상태, `0047_trainer_follow_up_task`) |
 | `trainer_program_drafts` | 트레이너가 저장해 둔 프로그램 초안(세션 배열, 회원과 묶이지 않음, `0038`+`0039`) |
 | `routine_history` | 회원 운동 완료 기록(회원 앱·PT 세션 공용 원본) |
@@ -63,6 +63,13 @@
 
 같은 `trainer_schedule.note` 라도 PT 일정이면 피드백, 상담 일정이면 메모로 부른다.
 
+**건강상태·주의사항**(`health_profiles.conditions` 에서 목표 칩을 뺀 글)은 메모도 피드백도 아니다(#2518).
+회원(온보딩·MY 건강 목표)과 담당 트레이너(신체·목표 창)가 **같은 글을 함께 보고 고치는 공유 건강 정보**이고,
+AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래서 회원 메모로 합치지 않는다.
+트레이너 웹은 이 칸에 `회원에게도 보여요 · 추천할 때 참고해요` 를 달고, 편집 중에는 칸 이름 옆에
+`트레이너만 볼 내용은 메모에 남겨 주세요.` 를 둔다 — 비공개로 남길 내용을 이 칸에 적으면 회원에게 그대로 보인다.
+회원 앱은 `추천할 때 참고해요` 만 단다. 트레이너가 본다는 사실은 담당 연결 때 데이터 공유 동의로 이미 알린다.
+
 개인운동 **한 건마다** 남기는 피드백은 양쪽 모두 없다 — 회원 쪽은 #1825, 트레이너 쪽은 #2517 에서
 없앴고 저장 칸(`exercise_sessions.trainer_feedback`·`member_note`)도 지웠다(`0107_drop_routine_feedback`,
 `0108_drop_member_note`, #2624).
@@ -70,6 +77,16 @@
 것은 운동 기록 메모(#2332)로 남긴다. 응답의 `trainer_feedback`·`member_note` 칸은 옛 앱을 위해
 빈 문자열로 남긴다.
 회원 앱 응답은 완료된 PT 의 글만 싣고 상담 일정의 글은 싣지 않는다(#2515, 6절 `/me/coach/sessions`).
+
+트레이너 웹 회원 상세의 `메모` 창은 `메모 | 피드백` 두 탭이다(#2615).
+
+- **메모 탭**은 위 표의 회원 메모다. 직접 쓴 메모는 분류(`운동`·`식단`·`통증·부상`·`생활·일정`)를 하나 고를 수 있다(#2622).
+  - 고르지 않으면 태그가 `직접 작성` 이다.
+  - `운동` 에서 최근 14일 운동 기록을 이으면 운동 탭 카드에서 남긴 메모와 같은 운동 기록 메모가 된다.
+  - 운동 기록 메모의 분류는 늘 `exercise`, 채팅 감지 메모는 비어 있고 둘 다 바꿀 수 없다.
+- **피드백 탭**은 회원과 주고받은 피드백을 모아 보는 읽기 전용 목록이다. 완료 PT 의 글, 보낸 주간 리포트, 회원 주간 피드백을 한데 보여 준다.
+  - 쓰고 고치는 곳은 원래 자리(스케줄 일정·리포트 주) 하나뿐이다.
+  - 리포트는 초안(`trainer_report_feedback`)이 아니라 실제로 보낸 메시지(`chat_messages.report_week_start`)를 읽는다.
 
 ### 담당 링크 제약 (`trainer_clients`)
 
@@ -97,6 +114,12 @@
 해제된 과거 회원의 카드는 예나 지금이나 휴면으로 보여야 하기 때문이다. 그래서
 담당이 이미 해제된 회원의 상태 전환은 409 다(되돌려 봐야 로스터가 휴면 그대로라
 "저장했는데 그대로"가 된다). 담당 재배정은 회원이 동의하는 연결 경로(연결 코드·담당 요청)의 몫이다.
+
+담당이 생기는 두 경로(연결 코드 `POST /trainer/pairing-code`·담당 요청 수락
+`POST /me/coach/invites/{id}/accept`)는 같은 트랜잭션에서 그 회원에게 걸린 **대기 중 담당 요청**을
+닫는다(#2894). 연결된 트레이너가 보낸 것은 `accepted`(연결 코드면 이 행이 이력 행이 되어 수락 행이 둘
+남지 않는다), 다른 트레이너가 보낸 것은 `cancelled` 이고 그 트레이너에게 알림은 보내지 않는다.
+연결이 실패하면 대기 요청도 그대로다. 정리 이전에 남은 행은 마이그레이션 `0128_close_stale_invites` 가 같은 기준으로 닫는다.
 
 ### 해제된 담당은 데이터 접근 경계 밖이다 (#2281)
 
@@ -182,6 +205,24 @@
   최근 메시지(`diet_coach_inputs.trainer_notes`)를 넣어 만든 뒤 보관하므로, 담당이 끝나는 경로(회원
   해제·트레이너 해제·트레이너 탈퇴)가 `forget_trainer_notes` 로 이번 주·전체 조언을 지우고 추천 메뉴
   리스트를 오늘로 만료시킨다(#2386). 회원이 받은 채팅 자체는 회원의 기록이라 그대로다.
+- **회원 메모(`trainer_client_memos`)는 해제해도 남기고 열람만 막는다(#2520).** 채팅·리포트와 같은
+  기준이다. 출처(`trainer` 직접·`chat_insight` 채팅 감지·`exercise_memo` 운동 기록)를 가리지 않는다.
+
+  | 경로 | 메모 |
+  |---|---|
+  | 회원 해제·헬스장 해제·트레이너 해제(`remove_client`) | 행은 남는다. `_require_client` 가 404 로 막는다 |
+  | 트레이너 혼자 재등록(`restore_client`) | 409 — 메모도 닫힌 채다 |
+  | 회원의 새 동의로 같은 트레이너와 다시 연결 | 옛 메모가 그대로 다시 보인다 |
+  | 다른 트레이너에게 옮김 | 새 트레이너에게 넘어가지 않는다 — 메모는 (트레이너, 회원) 쌍의 것이다 |
+  | 트레이너 탈퇴·회원 탈퇴 | `trainer_id`·`member_id` 의 `users.id` `CASCADE` 로 함께 지워진다 |
+
+  지우지 않는 까닭: 다시 보려면 회원의 새 동의가 꼭 있어야 하고(`restore_client` 409), 그때는
+  채팅·리포트도 함께 다시 보인다. 채팅 감지 메모는 회원 글의 원문이 아니라 트레이너 웹이 만든
+  요약(`무릎 불편 감지`)이고, 원본인 채팅이 남으므로 메모만 지워도 남는 정보는 줄지 않는다.
+  해제된 동안 메모는 어디에도 쓰이지 않는다 — 메모를 읽는 AI 루틴 후보
+  (`trainer_routine_options_service`)도 `_require_client` 를 지난 뒤에만 돈다. 식단 AI 조언을
+  지우는 것(위 항목)은 해제된 동안에도 회원 화면에 끊은 트레이너의 말이 남기 때문이라 경우가 다르다.
+  `test_data_consent_revocation.py` 의 메모 테스트가 이 기준을 고정한다.
 
 ### 트레이너 헬스장 소속 정책 (`0020_gym_profiles_trainer_fk`)
 
@@ -269,8 +310,9 @@
 | PUT | `/trainer/clients/{member_id}/routines/{routine_id}` | 루틴 부분 수정(이름·시간·종류·사유). `duration_seconds` 를 보내면 분을 초에서 다시 접고, `minutes` 만 보내면 예전 초를 지운다 (#2547) |
 | DELETE | `/trainer/clients/{member_id}/routines/{routine_id}` | 루틴 철회 |
 | GET | `/trainer/clients/{member_id}/memos` | 회원 메모 목록(최신순) |
-| POST | `/trainer/clients/{member_id}/memos` | 메모 작성 (`insight_id?` 로 채팅 인사이트 중복 방지, `source=exercise_memo` 는 `ref_id`(이력 카드) 또는 `ref_date`(회원 직접 기록 카드)로 기록을 가리키고 서버가 `ref_kind`·`ref_date`·`ref_name` 을 채운다 — 트레이너 화면에 보이지 않는 기록이면 404) |
-| PUT | `/trainer/clients/{member_id}/memos/{memo_id}` | 메모 본문 수정 |
+| POST | `/trainer/clients/{member_id}/memos` | 메모 작성 (`insight_id?` 로 채팅 인사이트 중복 방지, `source=exercise_memo` 는 `ref_id`(이력 카드) 또는 `ref_date`(회원 직접 기록 카드)로 기록을 가리키고 서버가 `ref_kind`·`ref_date`·`ref_name` 을 채운다 — 트레이너 화면에 보이지 않는 기록이면 404). `category`(`exercise`\|`diet`\|`pain`\|`life`\|빈 문자열)는 직접 메모가 고르고, `exercise_memo` 는 서버가 `exercise` 로 채운다(다른 값 422), `chat_insight` 는 분류를 보내면 422 (#2622) |
+| PUT | `/trainer/clients/{member_id}/memos/{memo_id}` | 메모 본문·분류 수정. 분류는 직접 쓴 메모만 바뀐다 — 다른 출처의 분류를 바꾸려 하면 400, 지금 값 그대로면 통과 (#2622) |
+| GET | `/trainer/clients/{member_id}/feedbacks` | 회원과 주고받은 피드백 모아 보기(최신순, 최근 90일, 최대 100건, #2615). `[{ id, kind(pt_session\|report\|weekly), direction(to_member\|from_member), date, body, schedule_id?, week_start?, at?, condition, intensity, pain_area, pain_on }]`. PT 는 내가 지도한 완료 PT(상담 제외)의 글, 리포트는 내가 보낸 리포트 메시지(주마다 가장 최근 하나), 주간 피드백은 이 담당이 시작된 주(`data_consent_at`)부터 |
 | DELETE | `/trainer/clients/{member_id}/memos/{memo_id}` | 메모 삭제 |
 | POST | `/trainer/schedule/recurring/preview` | 반복 설정이 만들 회차와 겹치는 기존 일정 |
 | POST | `/trainer/schedule/recurring` | 주간 반복 회차 일괄 등록(전부 아니면 전무, 409 에 충돌 목록) |
@@ -300,6 +342,7 @@
 | POST | `/trainer/schedule/{id}/reopen` | 완료 세션을 미래 날짜의 예정으로(`date`, 선택 `time`·`duration_minutes`). 겹치면 아무것도 바꾸지 않고 409 `schedule_overlap` (#2757) |
 | GET | `/trainer/dashboard/task-progress` | 오늘 할 일 진행 상태 — 보관 기간(63일) 안의 날짜별 기록 |
 | PUT | `/trainer/dashboard/task-progress/{date}` | 그날 진행 상태 통째로 저장(KST 오늘·어제만) |
+| POST | `/trainer/dashboard/task-progress/{date}/keys` | 할 일 키 하나 체크·해제·삭제 — 그날 행에 그 키만 반영하고 합계는 서버가 다시 냄(KST 오늘·어제만, #2886) |
 | POST | `/trainer/clients/{member_id}/ai-coach` | 담당 회원 데이터 기반 AI 코칭 질의 |
 | GET | `/trainer/clients/{member_id}/report?week_start=` | 주간 리포트(어느 요일을 줘도 그 주 월요일로 정규화) |
 | GET | `/trainer/clients/{member_id}/report/summary?week_start=` | 주간 리포트 AI 요약(머리 문장 + 근거 최대 3줄) |
@@ -382,8 +425,12 @@ range`)이었고, `-3000` 이나 주 100,000분(한 주는 10,080분이다) 같�
 회원도 온보딩·MY 에서 같은 글을 적으므로 세 경로 모두 같은 검사
 (`check_conditions_notes`)를 쓴다(#2619). 회원이 이 글을 고치면 담당 트레이너에게
 `trainer_health_notes` 알림이 가고, 트레이너 웹은 누르면 신체·목표 창의 `건강 목표`
-탭을 바로 연다. `바꾼 사람` 기록(`focus_changed_*`)은 목표 칩만의 것이라 남기지
-않는다.
+탭을 바로 연다. `바꾼 사람` 기록은 목표 칩(`focus_changed_*`)과 따로
+`notes_changed_*`(`0131_health_notes_changed`)에 남긴다(#2942) — 하나로 묶으면 칩의
+`마지막 변경` 이 주의사항만 고친 저장에도 움직인다. 두 앱 모두 `건강 목표`·
+`건강상태·주의사항` 제목 줄 끝에 구획마다 `마지막 변경: 회원 · 10월 2일` 을 따로 단다
+(트레이너 웹 편집 중에는 주의사항 줄 끝이 메모 안내로 바뀐다). 트레이너가 고친
+주의사항은 회원에게 알리지 않고 이 줄로만 보인다 — 수치 목표와 같은 규칙이다.
 
 두 앱 화면은 `oncare_ui` 의 `AppGoalRanges` 로 **같은 숫자**를 미리 보여 준다.
 값을 바꿀 때는 서버 모듈과 그 파일을 함께 고친다 — 한쪽만 고치면 화면은
@@ -406,7 +453,14 @@ range`)이었고, `-3000` 이나 주 100,000분(한 주는 10,080분이다) 같�
 
 - **별도 테이블**(`trainer_daily_task_progress`, `0065_trainer_daily_task_progress`).
   그래프가 날짜별 이력을 읽어 프로필 컬럼 하나로는 담을 수 없다. (trainer_id, date)
-  하나당 한 행이고 앱이 그날 목록 전체를 **통째로 덮어쓴다**(PUT).
+  하나당 한 행이다.
+- **체크·해제·삭제는 키 단위로 보낸다**(`POST …/{date}/keys`, #2886). 예전 앱은 그날
+  목록 전체를 통째로 덮어써(PUT) 두 탭·기기에서 서로 다른 할 일을 체크하면 나중에
+  도착한 쪽이 앞의 체크를 지웠다. 서버는 행을 잠그고(`FOR UPDATE`) 저장된 집합에 그
+  키만 더하거나 빼며, 지운 키는 되살리지 않는다. 그날 목록은 요청의 `keys`(화면이
+  보여 주는 미션) + 화면이 모르는 저장 키(`seen` 밖)이고, 합계·이월 완료(전날
+  `pending_keys` 와 겹치는 완료)는 서버가 다시 낸다. 응답은 반영 뒤 그날 상태라 앱이
+  다른 기기의 변경까지 받는다. PUT 은 옛 앱을 위해 남긴다.
 - **보관 63일.** 그래프가 이번 주와 8주 전까지 되짚는 범위다. 쓸 때 오래된 행을 지운다.
 - **오늘은 서버 KST 가 정한다.** PUT 은 KST 오늘·어제만 받고 그 밖은 422 다 —
   자정을 넘긴 화면은 받고, 기기 시계가 틀린 요청은 막는다. `지난 할 일` 은 어제 행의
@@ -642,6 +696,8 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 |---|---|---|
 | GET | `/me/coach` | 내 담당 코치 요약(활성 담당 없으면 404) |
 | GET | `/me/coach/routines?date=` | 받은 루틴 — 그날 걸려 있던 목록과 그날 완료(`date` 없으면 오늘, 미래는 422) |
+| POST | `/me/coach/routines/{id}/complete?date=` | 그날 완료(`date` 없으면 오늘). 지난 날짜는 그날 걸려 있던 배정만(#2506), 미래는 422 |
+| DELETE | `/me/coach/routines/{id}/complete?date=` | 그날 완료 되돌리기(`date` 없으면 오늘) |
 | GET | `/me/coach/sessions` | 내 PT 세션(최근 100건) |
 | GET | `/me/coach/chat` | 채팅 스레드 |
 | GET | `/me/coach/chat/unread` | 미확인 수 |
@@ -687,7 +743,16 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
   빠지고, 지난 날짜에 걸려 있던 목록은 남는다. 이미 내려온 배정을 다시 철회하면 404.
   승인 전·거절한 후보는 회원 목록에 걸린 적이 없어 예전처럼 행째 지운다.
 - 완료는 `(배정, 그날)` 에 한 번이다(`uq_exercise_sessions_routine_day`). `complete`·
-  `DELETE …/complete` 는 **오늘**만 건드린다. 지난 날짜는 읽기 전용이다.
+  `DELETE …/complete` 는 `?date=` 가 없으면 **오늘**을 건드린다.
+- **지난 날짜도 체크·해제할 수 있다**(#2506). 처음(#2161)에는 "뒤늦게 고치면 트레이너가 본
+  기록과 갈린다" 는 이유로 읽기 전용이었지만, 식단·직접 기록한 운동은 지난 날짜도 고칠 수
+  있고 둘 다 트레이너가 보는 기록이라 개인운동만 막을 근거가 약했다. 대신:
+  - 그날 회원 목록에 걸려 있던 배정만 된다(그 뒤 내려왔어도 된다). 아니면 404, 미래는 422.
+  - 기록은 그날 정오(`completed_at`)에 놓이고, 실제로 누른 때는 `created_at` 에 남는다 —
+    트레이너 화면은 둘의 날이 다르면 "다음 날 이후 체크" 로 가른다.
+  - 포인트 하루 한도는 **적립하는 날** 기준이라 몰아 체크해도 오늘 1회뿐이다. 보호권은
+    그날 기준으로 환급되고 연속 기록은 다시 계산된다(직접 기록한 운동을 과거에 추가할 때와 같다).
+  - 트레이너에게 알림은 가지 않는다.
 - `RoutineOut.completed` 는 조회한 **그날** 완료했는가다. 트레이너 배정 목록도 오늘 기준이다.
 - 담당 없는 회원의 하루치 AI 추천은 만들 때 `active_from = 그날`, `ended_on = 다음 날`
   이라 그날 하루만 걸린다. 지난 날짜를 열어도 그날 추천을 새로 만들지 않는다.

@@ -9,6 +9,7 @@
 ///  * `backend/tests/test_seed_demo_chat.py` — 리포트 등록 안내 **한 줄만
 ///    빠진다**(#1605). 데모 두 앱은 서버 없이 이 사건을 보여 줘야 하지만,
 ///    실서버 스레드는 트레이너가 실제로 리포트를 보낼 때 그 메시지를 만든다.
+///    트레이너가 보낸 첨부 두 건은 실서버 시드도 같은 자리에 둔다(#2788).
 library;
 
 import 'package:flutter_test/flutter_test.dart';
@@ -30,12 +31,14 @@ const List<(CoachSender, String)> kDemoThread = <(CoachSender, String)>[
   (CoachSender.trainer, '혈압약 드시는 시간은 그대로시죠? 유산소가 그 시간과 겹치지 않게 잡을게요'),
   (CoachSender.me, '네, 아침 8시 그대로예요'),
   (CoachSender.trainer, '확인했어요. 화·목은 15분 저강도로 바꿔서 보냈습니다 🙂'),
+  (CoachSender.trainer, '동작 순서는 이 파일로 정리해 뒀어요'),
   (
     CoachSender.trainer,
     '민수님, 요즘 나트륨이 목표(2,000mg) 근처에서 자주 걸리네요. 국·찌개가 잦으신 편인가요?',
   ),
   (CoachSender.me, '회사 구내식당이라 국물이 늘 나와요 😅'),
   (CoachSender.trainer, '국물만 절반 남기셔도 400~500mg은 빠져요. 그거 하나만 먼저 해보죠'),
+  (CoachSender.trainer, '이렇게 국은 건더기 위주로 드시면 돼요'),
   (CoachSender.me, '오늘은 국물 안 마셨어요! 걷기도 25분 했습니다'),
   (CoachSender.trainer, '좋아요 👏 그 한 가지만 지켜도 추이가 달라져요'),
   (CoachSender.trainer, '내일 프로그램은 걷기 20분으로 조금 늘려서 보냈어요. 주말까지 이 페이스로 가봐요'),
