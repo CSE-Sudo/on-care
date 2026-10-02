@@ -12,7 +12,7 @@
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -370,6 +370,61 @@ def test_revoked_consent_counts_as_missing(client, db_session):
     db_session.commit()
 
     assert signup_consent.pending_kinds(db_session, user) == ["health"]
+
+
+def test_consenting_again_after_revoking_revives_the_row(client, db_session):
+    """철회한 동의를 같은 버전으로 다시 받으면 고유 제약에 걸리지 않고 되살린다."""
+    email = _email("reconsent")
+    reg = client.post(
+        "/v1/auth/register",
+        json={"email": email, "password": PASSWORD, "consents": MEMBER_REQUIRED},
+    )
+    user = db_session.get(User, reg.json()["id"])
+    row = db_session.scalar(
+        select(UserConsent).where(
+            UserConsent.user_id == user.id, UserConsent.kind == "health"
+        )
+    )
+    row.revoked_at = FIXED_NOW
+    db_session.commit()
+
+    later = FIXED_NOW + timedelta(days=1)
+    signup_consent.record(db_session, user.id, ["health"], now=later)
+    db_session.commit()
+
+    rows = db_session.scalars(
+        select(UserConsent).where(
+            UserConsent.user_id == user.id, UserConsent.kind == "health"
+        )
+    ).all()
+    assert len(rows) == 1
+    assert rows[0].revoked_at is None
+    assert rows[0].agreed_at == later
+    assert signup_consent.pending_kinds(db_session, user) == []
+
+
+def test_demo_consent_seed_survives_a_revoked_demo_consent(client, db_session):
+    """데모 계정이 동의를 철회해 둔 상태에서 시드를 다시 돌려도 멈추지 않는다."""
+    from app.db import init_db
+
+    email = _email("seed-revoked")
+    reg = client.post(
+        "/v1/auth/register",
+        json={"email": email, "password": PASSWORD, "consents": MEMBER_REQUIRED},
+    )
+    user = db_session.get(User, reg.json()["id"])
+    row = db_session.scalar(
+        select(UserConsent).where(
+            UserConsent.user_id == user.id, UserConsent.kind == "privacy"
+        )
+    )
+    row.revoked_at = FIXED_NOW
+    db_session.commit()
+
+    init_db._seed_demo_consents()
+
+    db_session.expire_all()
+    assert signup_consent.pending_kinds(db_session, user) == []
 
 
 def test_consents_are_deleted_with_the_account(client, db_session):

@@ -81,31 +81,39 @@ def record(
 
     같은 항목·같은 버전에 이미 철회되지 않은 동의가 있으면 새로 쓰지 않는다 —
     처음 동의한 시각이 그대로 남아야 한다.
+
+    철회했던 동의를 같은 버전으로 다시 받으면 그 줄을 되살린다. 항목·버전마다
+    한 줄만 둘 수 있어(`uq_user_consents_user_kind_version`) 새 줄을 쓰면
+    고유 제약에 걸린다. 다시 동의한 시각을 새로 적는다.
     """
     at = now or clock.now()
     wanted = {kind for kind in kinds if kind in CURRENT_VERSIONS}
     if not wanted:
         return
-    existing = {
-        row.kind
+    current = {
+        row.kind: row
         for row in db.scalars(
             select(UserConsent).where(
                 UserConsent.user_id == user_id,
                 UserConsent.kind.in_(wanted),
-                UserConsent.revoked_at.is_(None),
             )
         )
         if row.version == CURRENT_VERSIONS[row.kind]
     }
-    for kind in sorted(wanted - existing):
-        db.add(
-            UserConsent(
-                user_id=user_id,
-                kind=kind,
-                version=CURRENT_VERSIONS[kind],
-                agreed_at=at,
+    for kind in sorted(wanted):
+        row = current.get(kind)
+        if row is None:
+            db.add(
+                UserConsent(
+                    user_id=user_id,
+                    kind=kind,
+                    version=CURRENT_VERSIONS[kind],
+                    agreed_at=at,
+                )
             )
-        )
+        elif row.revoked_at is not None:
+            row.revoked_at = None
+            row.agreed_at = at
 
 
 def agreed_kinds(db: Session, user_id: str) -> set[str]:
