@@ -21,6 +21,9 @@ pillow>=10.0
 python-dotenv>=1.0
 google-genai>=1.0
 openai>=1.40
+# 채팅 첨부(사진·리포트 PDF)의 운영 저장소 S3(#2817). 컨테이너 디스크는 재배포·
+# 스케일 아웃에서 비므로 운영 바이트는 버킷에 둔다. 로컬 개발은 쓰지 않는다.
+boto3>=1.34
 # zoneinfo 의 타임존 DB. 슬림 컨테이너에는 시스템 tzdata 가 없을 수 있는데,
 # 기준 시각(app/core/clock.py)이 ZoneInfo("Asia/Seoul") 를 import 시점에 잡으므로
 # 없으면 앱이 아예 뜨지 않는다. 베이스 이미지와 무관하게 보장한다.

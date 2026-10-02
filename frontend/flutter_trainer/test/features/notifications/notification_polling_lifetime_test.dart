@@ -32,9 +32,6 @@ class _AccountRepo implements TrainerNotificationRepository {
   final String account;
 
   @override
-  bool get supportsInbox => true;
-
-  @override
   Future<TrainerNotificationPage> fetch({
     TrainerNotificationCursor? before,
   }) async => TrainerNotificationPage(

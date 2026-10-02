@@ -65,6 +65,9 @@ class AppConfig {
   });
 
   final Environment environment;
+
+  /// FastAPI 백엔드 주소. **`/v1` 접두사까지 포함한다** — 요청 경로는
+  /// `/auth/login` 처럼 `/v1` 없이 쓰인다. 트레이너 웹과 같은 규칙이다(#2810).
   final String apiBaseUrl;
   final String? sentryDsn;
 
@@ -127,9 +130,12 @@ class AppConfig {
       'staging' => Environment.staging,
       _ => Environment.dev,
     };
+    // 기본값은 자리표시자다. 운영 웹 빌드는 저장소 변수에서 실제 주소를 받고, 비어
+    // 있으면 배포 워크플로가 빌드 전에 멈춘다(#2810). 트레이너 웹과 맞춰 `/v1` 까지
+    // 적어 둔다 — 값을 넣을 때 `/v1` 을 빠뜨리는 실수를 막기 위해서다.
     const apiBaseUrl = String.fromEnvironment(
       'API_BASE_URL',
-      defaultValue: 'https://dev.api.oncare.example.com',
+      defaultValue: 'https://dev.api.oncare.example.com/v1',
     );
     const sentryDsn = String.fromEnvironment('SENTRY_DSN');
     const useMockApi = bool.fromEnvironment('USE_MOCK_API', defaultValue: true);

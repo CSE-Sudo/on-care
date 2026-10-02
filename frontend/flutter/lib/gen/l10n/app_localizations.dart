@@ -224,6 +224,18 @@ abstract class AppLocalizations {
   /// **'Something went wrong'**
   String get errorUnknown;
 
+  /// 403 from the server: signed in, but not allowed to use this feature (missing consent or trainer link). Never suggests signing in again (#2859).
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have access to this feature. Please check the required consent or your trainer connection.'**
+  String get errorForbidden;
+
+  /// 429 from the server: too many requests; it will work again shortly (#2859).
+  ///
+  /// In en, this message translates to:
+  /// **'Too many requests right now. Please try again in a moment.'**
+  String get errorRateLimited;
+
   /// No description provided for @dashboardMetricCalories.
   ///
   /// In en, this message translates to:
@@ -1831,6 +1843,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No workouts logged'**
   String get exOwnRecordsEmpty;
+
+  /// Text link at the bottom of the self-logged workouts card — opens that day's workout detail; same wording as the home card link (#2507).
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get exRecordDetailOpen;
+
+  /// No description provided for @exRecordDetailInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout details'**
+  String get exRecordDetailInfo;
+
+  /// No description provided for @exRecordDetailTotalCalories.
+  ///
+  /// In en, this message translates to:
+  /// **'Total calories burned'**
+  String get exRecordDetailTotalCalories;
 
   /// No description provided for @exOwnRecordSource.
   ///
@@ -4453,29 +4483,41 @@ abstract class AppLocalizations {
   /// **'Message your trainer...'**
   String get coachChatInputHint;
 
-  /// No description provided for @coachChatDemoAnalyzed.
+  /// No description provided for @coachChatRoutineReceived.
   ///
   /// In en, this message translates to:
-  /// **'AI analyzed your diet and exercise data'**
-  String get coachChatDemoAnalyzed;
+  /// **'Your trainer sent a workout'**
+  String get coachChatRoutineReceived;
 
-  /// No description provided for @coachChatDemoReportSent.
+  /// No description provided for @coachChatRoutineReceivedPt.
   ///
   /// In en, this message translates to:
-  /// **'A summary report was sent to {trainer}'**
-  String coachChatDemoReportSent(String trainer);
+  /// **'You received a PT program and personal workout'**
+  String get coachChatRoutineReceivedPt;
 
-  /// No description provided for @coachChatDemoRoutineReceived.
+  /// No description provided for @coachChatRoutineReceivedPersonal.
   ///
   /// In en, this message translates to:
-  /// **'You received a personalized workout recommendation'**
-  String get coachChatDemoRoutineReceived;
+  /// **'You received a personal workout'**
+  String get coachChatRoutineReceivedPersonal;
 
-  /// No description provided for @coachChatDemoNotified.
+  /// No description provided for @coachChatRoutineReceivedAfterCancel.
   ///
   /// In en, this message translates to:
-  /// **'It was also delivered as a notification'**
-  String get coachChatDemoNotified;
+  /// **'You received a personal workout in place of the cancelled PT'**
+  String get coachChatRoutineReceivedAfterCancel;
+
+  /// No description provided for @coachChatRoutineReceivedProgram.
+  ///
+  /// In en, this message translates to:
+  /// **'You received a workout program'**
+  String get coachChatRoutineReceivedProgram;
+
+  /// Routine delivery notice: first names, then how many more.
+  ///
+  /// In en, this message translates to:
+  /// **'{names} and {count} more'**
+  String coachChatRoutineReceivedMore(String names, int count);
 
   /// Chat date divider with full date and weekday.
   ///
@@ -6112,7 +6154,7 @@ abstract class AppLocalizations {
   /// No description provided for @healthNotesHelper.
   ///
   /// In en, this message translates to:
-  /// **'Used when recommending workouts'**
+  /// **'Used for recommendations'**
   String get healthNotesHelper;
 
   /// Health goal chip in onboarding and MY health goals.
@@ -6384,11 +6426,17 @@ abstract class AppLocalizations {
   /// **'AI recommended solo workouts'**
   String get coachRoutineAiTitle;
 
-  /// No description provided for @coachRoutinePastReadOnly.
+  /// Shown after tapping the pencil on a past day's recommended exercises — past checks are allowed and marked as late for the trainer (#2506).
   ///
   /// In en, this message translates to:
-  /// **'What you did that day. Past days can\'t be checked.'**
-  String get coachRoutinePastReadOnly;
+  /// **'You can add a missed check now. Your trainer will see it as checked later.'**
+  String get coachRoutinePastEditHint;
+
+  /// Leaves the past-day check editing mode (#2506).
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get coachRoutinePastEditDone;
 
   /// Shown after a routine is marked done.
   ///
@@ -6587,12 +6635,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Suggested {level}'**
   String coachRoutinePlannedIntensity(String level);
-
-  /// The intensity the member logged for a completed routine.
-  ///
-  /// In en, this message translates to:
-  /// **'Logged {level}'**
-  String coachRoutineDoneIntensity(String level);
 
   /// Submit button of the completion dialog.
   ///

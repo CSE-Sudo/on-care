@@ -67,9 +67,17 @@ def test_log_level_rejects_invalid():
     assert Settings(_env_file=None, log_level="DEBUG").log_level == "DEBUG"
 
 
+def test_demo_fallback_is_off_by_default(monkeypatch):
+    """환경변수 없이 뜨면 데모 폴백은 꺼져 있다(#2821)."""
+    monkeypatch.delenv("ALLOW_DEMO_FALLBACK", raising=False)
+    s = Settings(_env_file=None)
+    assert s.allow_demo_fallback is False
+    assert s.demo_fallback_enabled is False
+
+
 def test_demo_fallback_gated_by_env():
-    # 개발: 기본 허용
-    assert Settings(_env_file=None).demo_fallback_enabled is True
+    # 개발: 명시적으로 켜야 허용(.env.example 이 켠다)
+    assert Settings(_env_file=None, allow_demo_fallback=True).demo_fallback_enabled is True
     # 운영: 설정과 무관하게 비활성(_prod 헬퍼가 seed/auto_create 가드를 모두 만족)
     assert _prod(allow_demo_fallback=True).demo_fallback_enabled is False
     # 명시적으로 끄면 개발에서도 비활성

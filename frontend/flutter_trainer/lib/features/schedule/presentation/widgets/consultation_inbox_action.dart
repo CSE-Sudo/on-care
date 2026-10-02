@@ -9,17 +9,21 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 정작 몇 건 밀렸는지가 눈에 꽂히지 않았고 — 알림이 아니라 배너로 읽혔다 —
 /// 타임라인에서 세로 공간까지 빼앗았다.
 ///
-/// 지금은 아이콘 버튼 위에 **빨간 배지**를 얹은 헤더 액션이다. 알림을 알림으로
+/// 지금은 아이콘 버튼 위에 **숫자 배지**를 얹은 헤더 액션이다. 알림을 알림으로
 /// 읽히게 하는 가장 익숙한 표현이고, 헤더 액션 줄에서 가장 적은 폭을 쓴다.
 /// 라벨을 함께 두면 영어 로케일·큰 글자 배율에서 줄 전체가 넘친다 — #849
 /// 관문이 폭 1024·en·배율 1.3 에서 그것을 잡았다. 이름은 툴팁으로 남는다.
 ///
 /// 배지는 **아이콘이 아니라 버튼 네모의 오른쪽 위 모서리**에 걸친다(#987).
-/// 아이콘 위에 얹으면 빨간 원이 아이콘의 절반 가까이를 덮어 무슨 버튼인지
+/// 아이콘 위에 얹으면 배지 원이 아이콘의 절반 가까이를 덮어 무슨 버튼인지
 /// 형태로 알아볼 수 없었다. 네모 밖으로 나가는 만큼은 자리를 비우지 않는다 —
 /// `Clip.none` 으로 그리므로 잘리지 않고, 옆 버튼과 같은 높이를 지킨다(#1013).
 ///
-/// 빨강은 처리할 것이 있을 때만 뜬다: 0건이거나 아직 못 읽었으면([pending] 이
+/// 배지는 알림 종·사이드바·메시지 숫자와 같은 브랜드 남색이다(#2806). 처음에는
+/// 빨강이었는데, 같은 머리 줄의 알림 종이 남색이라 상담만 경고처럼 튀었다 —
+/// 빨강은 경고 신호에 남겨 둔다(#2669). 대기 상담은 처리할 일이지 경고가 아니다.
+///
+/// 배지는 처리할 것이 있을 때만 뜬다: 0건이거나 아직 못 읽었으면([pending] 이
 /// null) 배지 없이 조용한 버튼으로 남는다.
 class ConsultationInboxAction extends StatelessWidget {
   const ConsultationInboxAction({
@@ -61,7 +65,12 @@ class ConsultationInboxAction extends StatelessWidget {
             right: -_badgeOverflowRight,
             // 배지는 숫자를 더하는 표시일 뿐 누르는 대상이 아니다 — 탭이
             // 배지에 걸려 버튼에 닿지 않는 일이 없게 한다.
-            child: IgnorePointer(child: AppCountBadge(count: count)),
+            child: IgnorePointer(
+              child: AppCountBadge(
+                count: count,
+                color: context.oncare.brand.primary,
+              ),
+            ),
           ),
       ],
     );

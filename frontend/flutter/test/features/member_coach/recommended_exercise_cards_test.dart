@@ -84,6 +84,7 @@ class _SecondsRoutineRepository extends MockMemberCoachRepository {
     required int minutes,
     int? durationSeconds,
     String intensity = 'moderate',
+    DateTime? day,
   }) async {
     sentMinutes = minutes;
     sentDurationSeconds = durationSeconds;

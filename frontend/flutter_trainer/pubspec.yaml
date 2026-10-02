@@ -123,6 +123,8 @@ flutter:
 
   assets:
     - assets/images/
+    # 데모 대화에서 트레이너가 보낸 첨부 PDF (#2663).
+    - assets/demo/
 
   fonts:
     # Pretendard (SIL OFL 1.1) — 두 앱 공통 한글 UI 서체 (#995).
