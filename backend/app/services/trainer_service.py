@@ -38,6 +38,10 @@ from app.models.models import (
 from app.schemas.trainer_api import (
     ChatAttachmentOut, ChatMessageOut, ClientDietEntryOut, DeliveryOut,
     MemberCoachOut,
+    TrainerRoutineDayItemOut,
+    TrainerRoutineDayOut,
+    TrainerRoutineDayRoutineOut,
+    TrainerRoutineDaysOut,
     PersonalRoutineItem,
     ProgramDraftExercise,
     ProgramDraftSession,
@@ -177,6 +181,8 @@ PT_HISTORY_KIND_LABEL = "PT 세션 · 트레이너 지도"
 
 #: 이름 없이 배정된 루틴을 수행한 이력의 이름. 저장하지 않고 응답 때 붙인다.
 ASSIGNED_HISTORY_FALLBACK_LABEL = "배정 루틴 수행"
+#: 하루치 개인운동 완료 카드의 이름(#2510). 트레이너 웹은 `kind` 로 번역한다.
+PERSONAL_HISTORY_LABEL = "개인운동"
 
 #: 서버가 붙이는 고정 이름 → 이력 종류 코드. 트레이너가 지은 이름처럼 여기 없는
 #: 이름은 코드가 없다(사람이 쓴 말은 번역 대상이 아니다).
@@ -186,6 +192,7 @@ _HISTORY_KIND_CODES: dict[str, RoutineHistoryKind] = {
     # 옛 시드·픽스처의 이름. 지금은 `AI 개인운동` 으로 부른다(#1453).
     "AI 루틴 · 자율 운동": "ai_personal",
     ASSIGNED_HISTORY_FALLBACK_LABEL: "assigned_routine",
+    PERSONAL_HISTORY_LABEL: "personal_routine",
 }
 
 
@@ -389,21 +396,98 @@ def _daily_week(
     ]
 
 
-def _week_completion(hist_rows: list[RoutineHistory], monday: date) -> list[int]:
-    """이번 주(월→일) 일별 완료율. 같은 날 여러 기록이면 최댓값, 없으면 0."""
-    by_date: dict[str, list[int]] = {}
-    for h in hist_rows:
-        by_date.setdefault(h.date, []).append(h.completion_rate)
-    out: list[int] = []
-    for i in range(7):
-        vals = by_date.get((monday + timedelta(days=i)).isoformat())
-        out.append(max(vals) if vals else 0)
+def week_completion_by_member(
+    db: Session, trainer_id: str, member_ids: Sequence[str], monday: date
+) -> dict[str, list[int | None]]:
+    """그 주(월→일) 회원별 요일 이행률(0..100). (#2513)
+
+    그날 이행률 = (완료한 개인운동 + 완료한 PT) ÷ (그날 걸린 개인운동 + 그날
+    잡힌 PT). 예전에는 `routine_history` 의 그날 최댓값이었는데, 운영 코드에서 그
+    표에 쓰는 곳은 PT 완료 하나뿐이라 값이 사실상 "PT 를 했으면 100" 이었다 —
+    회원이 개인운동을 매일 해도 PT 없는 날은 `기록 없음` 으로 그려졌다.
+
+    - 개인운동은 회원 화면과 같은 규칙([_routine_items_on])으로 센다. 다음 날
+      이후에 체크한 것도 완료다. 새 개인운동이 온 날 이미 한 옛 것도 그날 칸에
+      남는다.
+    - PT 는 이 트레이너의 예정·완료만 분모다. 취소·노쇼는 트레이너 사정일 수
+      있어 세지 않고(#871), 상담도 PT 가 아니다(#2741).
+    - **직접 추가한 운동은 넣지 않는다.** 해야 할 목록(분모)이 없고, 넣으면 받은
+      개인운동을 빼먹고 다른 운동을 해도 100% 가 되어 "준 운동을 하고 있나" 가
+      가려진다.
+
+    아무것도 걸리지 않은 날과 아직 오지 않은 날은 null 이다. 0 은 "걸렸는데
+    하나도 안 했다" 라는 다른 뜻이다. 쿼리는 회원 수와 무관하게 셋이다.
+    """
+    out: dict[str, list[int | None]] = {m: [None] * 7 for m in member_ids}
+    end = min(monday + timedelta(days=6), clock.today())
+    if not member_ids or end < monday:
+        return out
+    monday_iso, end_iso = monday.isoformat(), end.isoformat()
+    rows = db.scalars(
+        select(TrainerRoutine)
+        .where(
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.member_id.in_(member_ids),
+            TrainerRoutine.status == ROUTINE_APPROVED,
+            TrainerRoutine.active_from <= end_iso,
+            or_(
+                TrainerRoutine.ended_on.is_(None),
+                TrainerRoutine.ended_on >= monday_iso,
+            ),
+        )
+        .order_by(TrainerRoutine.sort_order, TrainerRoutine.created_at)
+    ).all()
+    rows_by_member: dict[str, list[TrainerRoutine]] = defaultdict(list)
+    for row in rows:
+        rows_by_member[row.member_id].append(row)
+    done: dict[tuple[str, date], ExerciseSession] = {}
+    if rows:
+        for session in db.scalars(
+            select(ExerciseSession).where(
+                ExerciseSession.assigned_routine_id.in_([r.id for r in rows]),
+                ExerciseSession.week_start == monday_iso,
+            )
+        ).all():
+            day = exercise_activity.activity_date_of(session)
+            if day is not None and monday <= day <= end:
+                done[(session.assigned_routine_id, day)] = session
+    pt: dict[tuple[str, str], list[int]] = {}
+    for session in db.scalars(
+        select(TrainerSchedule).where(
+            TrainerSchedule.trainer_id == trainer_id,
+            TrainerSchedule.member_id.in_(member_ids),
+            TrainerSchedule.date >= monday_iso,
+            TrainerSchedule.date <= end_iso,
+            TrainerSchedule.status.in_((SCHEDULE_UPCOMING, SCHEDULE_DONE)),
+            TrainerSchedule.type != "상담",
+        )
+    ).all():
+        counts = pt.setdefault((session.member_id or "", session.date), [0, 0])
+        counts[0] += 1
+        if session.status == SCHEDULE_DONE:
+            counts[1] += 1
+    for member_id in member_ids:
+        week = out[member_id]
+        for offset in range(7):
+            day = monday + timedelta(days=offset)
+            if day > end:
+                break
+            items = _routine_items_on(
+                rows_by_member.get(member_id, []), done, day,
+                keep_done_on_end_day=True,
+            )
+            booked, pt_done = pt.get((member_id, day.isoformat()), (0, 0))
+            total = len(items) + booked
+            if total == 0:
+                continue
+            finished = sum(1 for item in items if item.done) + pt_done
+            week[offset] = round(100 * finished / total)
     return out
 
 
 def _week_days(
     rows: list[ExerciseSession],
-    week: list[int],
+    week: list[int | None],
     assigned: list[int | None] | None = None,
 ) -> list[WeeklyReportDayOut]:
     """요일별 이행률 + 그날 **실제로 한** 운동(월→일).
@@ -435,7 +519,7 @@ def _week_days(
         ).append(name)
     return [
         WeeklyReportDayOut(
-            completion=week[i] if i < len(week) else 0,
+            completion=week[i] if i < len(week) else None,
             exercises=by_weekday.get(i, []),
             assigned=assigned[i] if assigned and i < len(assigned) else None,
         )
@@ -560,7 +644,6 @@ def build_roster(
     today_str = today.isoformat()
     monday = today - timedelta(days=today.weekday())
     week_ago_str = (today - timedelta(days=6)).isoformat()
-    monday_str = monday.isoformat()
 
     # 식단(오늘 합계 + 이번 주 추이) — 전 고객 배치, 날짜 한정. 월요일은 항상
     # `today - 6` 이후라 이 창 하나로 이번 주 월→일을 모두 덮는다.
@@ -572,17 +655,8 @@ def build_roster(
     ).all():
         diet_by_member[e.user_id].append(e)
 
-    # 이번 주 운동기록(완료율용) — 트레이너 소유(PT) or 자율(NULL)만, 날짜 한정.
-    # 타 트레이너의 기록은 제외한다(메모 노출 방지, 리뷰 PR 250-#1).
-    hist_by_member: dict[str, list[RoutineHistory]] = defaultdict(list)
-    for h in db.scalars(
-        select(RoutineHistory).where(
-            RoutineHistory.member_id.in_(member_ids),
-            RoutineHistory.date >= monday_str,
-            or_(RoutineHistory.trainer_id.is_(None), RoutineHistory.trainer_id == trainer_id),
-        )
-    ).all():
-        hist_by_member[h.member_id].append(h)
+    # 이번 주 이행률 — 이 트레이너가 건 개인운동과 잡은 PT 로 센다(#2513).
+    week_by_member = week_completion_by_member(db, trainer_id, member_ids, monday)
 
     last_msg_by = _latest_by_member(db, ChatMessage, trainer_id, member_ids)
     # 철회해 내려온 배정은 로스터의 "최근 루틴" 이 아니다(#2161) — 예전에는
@@ -659,8 +733,10 @@ def build_roster(
             last_routine_date=(
                 _local_date_iso(last_rt.created_at) if last_rt else None
             ),
-            week_completion=_week_completion(
-                hist_by_member.get(link.member_id, []) if readable else [], monday
+            week_completion=(
+                week_by_member.get(link.member_id, [None] * 7)
+                if readable
+                else [None] * 7
             ),
             sodium_week=_sodium_week(diet_rows, monday),
             calories_week=_calories_week(diet_rows, monday),
@@ -814,6 +890,10 @@ def build_client_history(
             # 갖고 있으니(`date`) 그날로 채운다. (#1114, #1025)
             completed_at=_day_start(r.date),
         )))
+    # 개인운동 완료는 **하루 한 장**으로 묶는다(#2510). 한 건마다 카드를 두면
+    # 하루에 여럿일 때 카드가 쌓이고, 이름이 태그와 줄에 두 번 나오며, 하지 않은
+    # 것이 보이지 않아 그날 이행을 알 수 없었다.
+    by_day: dict[str, list[ExerciseSession]] = {}
     for r in assigned_rows:
         completed_at = r.completed_at or r.created_at
         # 이력이 붙는 날짜는 회원 화면과 같은 논리 운동일이다 — 완료 시각만
@@ -822,15 +902,129 @@ def build_client_history(
             exercise_activity.activity_date_of(r)
             or clock.to_seoul(completed_at).date()
         ).isoformat()
-        dated.append(
-            (
-                day,
-                clock.to_seoul(completed_at).timestamp(),
-                _assigned_history_out(r),
+        by_day.setdefault(day, []).append(r)
+    if by_day:
+        routine_days = {
+            routine_day.date.isoformat(): routine_day
+            for routine_day in member_routine_days(
+                db, member_id,
+                date.fromisoformat(min(by_day)), date.fromisoformat(max(by_day)),
+                trainer_id=trainer_id, keep_done_on_end_day=True,
             )
-        )
+        }
+        routine_ids = {
+            item.routine_id
+            for routine_day in routine_days.values()
+            for item in routine_day.routines
+        }
+        routines = {
+            row.id: row
+            for row in db.scalars(
+                select(TrainerRoutine).where(TrainerRoutine.id.in_(routine_ids))
+            ).all()
+        } if routine_ids else {}
+        for day, sessions in by_day.items():
+            out = _personal_day_history_out(
+                day, sessions, routine_days.get(day), routines
+            )
+            dated.append(
+                (
+                    day,
+                    max(
+                        clock.to_seoul(r.completed_at or r.created_at).timestamp()
+                        for r in sessions
+                    ),
+                    out,
+                )
+            )
     dated.sort(key=lambda item: (item[0], item[1]), reverse=True)
     return [item[2] for item in dated[:limit]]
+
+
+def _personal_day_history_out(
+    day: str,
+    sessions: list[ExerciseSession],
+    routine_day: RoutineDay | None,
+    routines: Mapping[str, TrainerRoutine],
+) -> RoutineHistoryOut:
+    """그날 개인운동 완료 → 운동 기록 카드 한 장 `개인운동`. (#2510)
+
+    줄은 그날 걸려 있던 배정 순서다. 한 것은 ✓(그 운동 기록 id 를 달아 트레이너
+    메모가 가리킨다, #2332), 하지 않은 것은 ✗ 다. **오늘** 아직 안 한 것은
+    줄을 두지 않는다 — 오늘이 끝나지 않았고 `매일 하는 개인 운동` 이 `아직` 으로
+    이미 말한다. 그날 목록에 없던 완료(그 사이 지워진 배정 등)는 뒤에 붙인다.
+    """
+    by_id = {r.id: r for r in sessions}
+    by_routine = {
+        r.assigned_routine_id: r for r in sessions if r.assigned_routine_id
+    }
+    today_iso = clock.today_iso()
+    items: list[RoutineHistoryExerciseOut] = []
+    lines: list[str] = []
+    used: set[str] = set()
+    for item in routine_day.routines if routine_day is not None else []:
+        session = by_id.get(item.session_id or "") or by_routine.get(item.routine_id)
+        if session is not None:
+            used.add(session.id)
+            items.append(_personal_done_item(session))
+            lines.append(_assigned_history_out(session).exercises[0])
+            continue
+        if day >= today_iso:
+            continue
+        row = routines.get(item.routine_id)
+        if row is None:
+            continue
+        items.append(_personal_missed_item(row))
+        lines.append(f"{row.name} ✗")
+    for session in sessions:
+        if session.id in used:
+            continue
+        items.append(_personal_done_item(session))
+        lines.append(_assigned_history_out(session).exercises[0])
+    done = sum(1 for item in items if item.done)
+    completed = [r.completed_at or r.created_at for r in sessions]
+    return RoutineHistoryOut(
+        # 하루 한 장이라 날짜가 곧 id 다. 메모도 이 id 로 그날 개인운동에 단다.
+        id=f"personal-{day}",
+        date_label=history_date_label(day),
+        label=PERSONAL_HISTORY_LABEL,
+        completion_rate=round(100 * done / len(items)) if items else 100,
+        exercises=lines,
+        date=day,
+        kind="personal_routine",
+        exercise_items=items,
+        client_feedback="",
+        trainer_note="",
+        completed_at=max(completed) if completed else None,
+    )
+
+
+def _personal_done_item(session: ExerciseSession) -> RoutineHistoryExerciseOut:
+    """한 개인운동 한 줄 — 수행 기록의 값과 그 기록 id. (#2510)"""
+    return _assigned_exercise_item(session).model_copy(
+        update={"session_id": session.id, "done": True}
+    )
+
+
+def _personal_missed_item(row: TrainerRoutine) -> RoutineHistoryExerciseOut:
+    """하지 않은 개인운동 한 줄 — 배정에 적힌 양. (#2510)
+
+    수행 기록이 없으니 트레이너가 보낸 처방을 그대로 적는다. 근력은 세트·횟수
+    (또는 버틴 초)·중량, 나머지는 시간이다([_assigned_exercise_item] 과 같은 틀).
+    """
+    type_code = exercise_types.normalize(row.type)
+    strength = type_code == exercise_types.STRENGTH and row.sets is not None
+    return RoutineHistoryExerciseOut(
+        name=row.name,
+        type=type_code,
+        minutes=0 if strength else row.minutes,
+        sets=row.sets if strength else None,
+        reps=row.reps if strength and not row.hold_seconds else None,
+        hold_seconds=row.hold_seconds if strength and row.hold_seconds else None,
+        duration_seconds=None if strength else row.duration_seconds,
+        weight=row.weight if strength else None,
+        done=False,
+    )
 
 
 # ---- 채팅 (트레이너↔회원, 양방향 공유 스레드) ----
@@ -2847,6 +3041,12 @@ def assign_program(
     이 정하므로(#2161), `개인운동만` 은 7 을 보내 보낸 날부터 한 주만 걸어
     둔다. 비우면 트레이너가 철회할 때까지 걸려 있는 기존 배정이다.
 
+    `개인운동만` 의 [start_date] 가 미래면 **그날부터** 한 주를 건다(#2656).
+    예전에는 시작일과 상관없이 보낸 날부터 걸어, 확인창이 말한 기간("10/5부터
+    10/11까지")과 회원 앱에 뜨는 기간(9/30~10/6)이 달랐다. 알림은 지금 가고
+    문구가 시작일을 말한다. 이전 개인운동은 시작일 전날까지 두고 시작일에
+    교대한다([_retire_personal_routines]).
+
     [suggestion_ids] 는 이 전송의 개인운동을 채운 대기 중 AI 제안이다(#2747).
     배정과 같은 트랜잭션에서 닫아, 보낸 제안이 다음 위저드에 다시 뜨거나 대기
     백로그를 차지해 새 제안을 막지 않게 한다.
@@ -2866,10 +3066,16 @@ def assign_program(
         # 주 것이 함께 걸려 회원이 두 벌을 받는다. 같은 트랜잭션이라 배정이
         # 실패하면 내린 것도 되돌아간다. 재시도는 위에서 이미 돌려보냈으므로
         # 방금 보낸 한 주를 내리는 일은 없다.
+        today = clock.today()
+        starts = (
+            start_date
+            if delivery_kind == DELIVERY_ROUTINE_ONLY
+            and start_date is not None
+            and start_date > today
+            else today
+        )
         if delivery_kind is not None:
-            _retire_personal_routines(
-                db, trainer_id, member_id, today=clock.today()
-            )
+            _retire_personal_routines(db, trainer_id, member_id, today=starts)
         created = _add_program_routines(
             db, trainer_id, member_id,
             name=name, sessions=sessions, client_request_id=client_request_id,
@@ -2877,6 +3083,7 @@ def assign_program(
             trainer_message=trainer_message,
             start_date=start_date,
             active_days=active_days,
+            active_from=starts,
         )
         _consume_routine_suggestions(db, trainer_id, member_id, suggestion_ids)
     except IntegrityError:
@@ -2946,6 +3153,7 @@ def _add_program_routines(
     status: str = ROUTINE_APPROVED,
     schedule_id: str | None = None,
     notify: bool = True,
+    active_from: date | None = None,
 ) -> list[TrainerRoutine]:
     """세션 루틴과 배정 알림을 세션에 올리고 flush 한다. 커밋은 호출부 몫이다.
 
@@ -2961,11 +3169,16 @@ def _add_program_routines(
     보낼 때 함께 올라간다. 그때는 [schedule_id] 로 어느 PT 의 것인지 묶고,
     [notify] 를 내려 배정 알림도 미룬다: 지금 알리면 회원은 아직 오지 않은
     운동의 알림을 먼저 받는다.
+
+    [active_from] 은 회원 목록에 걸리는 첫날이다(기본 오늘). `개인운동만` 을
+    미래 시작일로 보낼 때 그날을 준다(#2656) — [active_days] 도 그날부터 센다.
     """
     multi = len(sessions) > 1
-    today_iso = clock.today_iso()
+    today = clock.today()
+    begin = active_from or today
+    today_iso = begin.isoformat()
     ended_on = (
-        (clock.today() + timedelta(days=active_days)).isoformat()
+        (begin + timedelta(days=active_days)).isoformat()
         if active_days is not None
         else None
     )
@@ -3039,6 +3252,7 @@ def _add_program_routines(
             seconds=sum(_session_seconds(session.exercises) for session in sessions),
             multi=multi,
             routine_only=delivery_kind == DELIVERY_ROUTINE_ONLY,
+            starts_on=begin if begin > today else None,
         ),
     )
     return created
@@ -3063,6 +3277,7 @@ def _program_notification_args(
     seconds: int,
     multi: bool,
     routine_only: bool = False,
+    starts_on: date | None = None,
 ) -> dict[str, Any]:
     """프로그램 배정 알림의 틀 인자. 합계 시간은 초로 더한 값이다. (#2546)
 
@@ -3071,8 +3286,12 @@ def _program_notification_args(
 
     [routine_only] 는 `개인운동만` 전송이다(#2581) — 프로그램 이름과 `세션 N개`
     대신 `개인운동 N개` 로 말한다.
+
+    [starts_on] 은 미래 시작일로 보낸 개인운동이 걸리기 시작하는 날이다(#2656).
+    알림은 지금 가므로, 문구가 그날을 말하지 않으면 회원은 오늘 열어 보고 빈
+    목록을 본다.
     """
-    return {
+    args: dict[str, Any] = {
         "name": name,
         "sessions": sessions,
         "seconds": seconds,
@@ -3080,6 +3299,9 @@ def _program_notification_args(
         "multi": multi,
         "routine_only": routine_only,
     }
+    if starts_on is not None:
+        args["starts_on"] = starts_on.isoformat()
+    return args
 
 
 # ---- 회원별 트레이너 메모 (#706) ----
@@ -3126,6 +3348,7 @@ def _resolve_exercise_memo_ref(
     *,
     ref_id: str | None,
     ref_date: date | None,
+    ref_kind: str | None = None,
 ) -> _MemoRef:
     """운동 탭 기록 카드가 가리키는 기록을 찾아 출처 표시 값을 채운다. (#2332)
 
@@ -3135,10 +3358,14 @@ def _resolve_exercise_memo_ref(
     [RoutineNotFound] 다(있는지 없는지를 가르지 않는다).
     """
     if ref_date is not None:
-        # 회원 직접 기록 카드는 하루치 묶음이다. 오지 않은 날의 기록은 없다.
+        # 날짜로 가리키면 그날의 한 상자(`personal`·`member_log`) 또는 그날
+        # 운동 기록 전체(`day`)에 다는 메모다(#2508). 오지 않은 날의 기록은 없다.
         if ref_date > _today():
             raise RoutineNotFound("운동 기록을 찾을 수 없습니다.")
-        return _MemoRef(kind="member_log", ref_id=None, day=ref_date.isoformat())
+        return _MemoRef(
+            kind=ref_kind or "day", ref_id=None, day=ref_date.isoformat()
+        )
+
 
     history = db.scalar(
         select(RoutineHistory).where(
@@ -3227,7 +3454,7 @@ def create_memo(
     body: str, source: str = "trainer",
     insight_id: str | None = None, insight_kind: str = "",
     ref_id: str | None = None, ref_date: date | None = None,
-    category: str = "",
+    category: str = "", ref_kind: str | None = None,
 ) -> TrainerMemoOut:
     """회원 메모를 남긴다.
 
@@ -3250,7 +3477,8 @@ def create_memo(
     ref: _MemoRef | None = None
     if source == "exercise_memo":
         ref = _resolve_exercise_memo_ref(
-            db, trainer_id, member_id, ref_id=ref_id, ref_date=ref_date
+            db, trainer_id, member_id,
+            ref_id=ref_id, ref_date=ref_date, ref_kind=ref_kind,
         )
 
     now = datetime.now(timezone.utc)
@@ -5004,6 +5232,12 @@ def latest_delivery(
             TrainerRoutine.member_id == member_id,
             TrainerRoutine.status == ROUTINE_APPROVED,
             TrainerRoutine.delivery_kind.is_not(None),
+            # 미래 시작일로 보냈다가 걸리기 전에 다른 것으로 바꾼 줄은 하루도
+            # 뜨지 않았다(#2656) — 가장 최근 전송이 아니다.
+            or_(
+                TrainerRoutine.ended_on.is_(None),
+                TrainerRoutine.ended_on > TrainerRoutine.active_from,
+            ),
         )
         # 같은 날 두 번 보내면 `created_at` 이 같은 초에 걸릴 수 있다. 그때
         # `id` 로 가르면 난수라 순서가 뒤집힌다 — `sort_order` 는 이 회원의
@@ -5064,10 +5298,15 @@ def latest_delivery(
     if session is not None and session.trainer_id != trainer_id:
         session = None
 
-    sent_on = _iso_day_or_none(newest.active_from)
+    # 미래 시작일로 보낸 `개인운동만` 은 걸리는 첫날이 보낸 날보다 늦다(#2656).
+    sent_on = (
+        routine_sent_on(newest)
+        if _iso_day_or_none(newest.active_from)
+        else None
+    )
     return DeliveryOut(
         kind=kind,
-        sent_on=date.fromisoformat(sent_on) if sent_on else None,
+        sent_on=sent_on,
         session=_schedule_out(session) if session is not None else None,
         routines=_routine_outs(db, personal),
     )
@@ -5164,23 +5403,35 @@ def _retire_personal_routines(
     지우지 않고 `ended_on` 만 오늘로 찍는다 — 회원이 지난 날짜를 열면 그날
     걸려 있던 목록이 그대로 보여야 한다(#2161).
 
+    [today] 는 **새 개인운동이 걸리기 시작하는 날**이다. `개인운동만` 을 미래
+    시작일로 보내면(#2656) 이전 것은 그 전날까지 걸려 있다가 시작일에 교대한다
+    — 그 사이 회원 목록이 비지 않는다. 시작일 뒤에야 걸리기로 했던 옛 것(앞서
+    더 먼 시작일로 보낸 것)은 걸리기 전에 내린다: `ended_on` 을 그 첫날로 찍어
+    하루도 뜨지 않게 한다(`ended_on >= active_from` 제약을 지킨다).
+
     **프로그램 세션 줄은 건드리지 않는다.** 개인운동만 `delivery_kind` 를 달고
     있어(#2223) 그 값으로 가른다 — PT 프로그램 배정은 비어 있다.
     """
     iso = today.isoformat()
+    live = (
+        TrainerRoutine.trainer_id == trainer_id,
+        TrainerRoutine.member_id == member_id,
+        TrainerRoutine.status == ROUTINE_APPROVED,
+        TrainerRoutine.delivery_kind.is_not(None),
+        or_(
+            TrainerRoutine.ended_on.is_(None),
+            TrainerRoutine.ended_on > iso,
+        ),
+    )
     db.execute(
         update(TrainerRoutine)
-        .where(
-            TrainerRoutine.trainer_id == trainer_id,
-            TrainerRoutine.member_id == member_id,
-            TrainerRoutine.status == ROUTINE_APPROVED,
-            TrainerRoutine.delivery_kind.is_not(None),
-            or_(
-                TrainerRoutine.ended_on.is_(None),
-                TrainerRoutine.ended_on > iso,
-            ),
-        )
+        .where(*live, TrainerRoutine.active_from <= iso)
         .values(ended_on=iso)
+    )
+    db.execute(
+        update(TrainerRoutine)
+        .where(*live, TrainerRoutine.active_from > iso)
+        .values(ended_on=TrainerRoutine.active_from)
     )
 
 
@@ -6703,6 +6954,17 @@ class RoutineDayItem:
     done: bool
     #: 그날 완료로 남긴 분. 하지 않았으면 None.
     completed_minutes: int | None
+    #: 그날 완료를 **다음 날 이후에** 체크했는가(#2506 의 지난 날짜 체크). 완료로
+    #: 세지만 트레이너는 "몰아서 체크했다" 를 따로 본다(#2508).
+    late: bool = False
+    #: 그날 완료로 남은 운동 기록 id. 트레이너 메모가 이 완료를 가리킨다(#2510).
+    session_id: str | None = None
+    #: 이 배정이 걸린 기간 — 회원 목록에 뜨는 첫날과 내려가는 날(그날은 안 뜬다).
+    #: 트레이너가 배정 묶음을 그릴 때 쓴다(#2508).
+    active_from: str = ""
+    ended_on: str | None = None
+    #: 개인운동(`delivery_kind` 를 단 줄)인가. 아니면 기한 없는 따로 배정이다.
+    personal: bool = False
 
 
 @dataclass(frozen=True)
@@ -6713,6 +6975,18 @@ class RoutineDay:
     routines: list[RoutineDayItem]
 
 
+def _checked_after(session: ExerciseSession, day: date) -> bool:
+    """[day] 의 완료를 그다음 날 이후에 체크했는가. (#2508)
+
+    완료가 붙는 날은 회원이 고른 운동일이고(#2506), 체크한 때는 행이 생긴
+    시각이다 — 둘을 KST 날짜로 견준다. 시각이 없는 옛 행은 제때 한 것으로 본다.
+    """
+    created = session.created_at
+    if created is None:
+        return False
+    return clock.to_seoul(created).date() > day
+
+
 def member_routine_days(
     db: Session,
     member_id: str,
@@ -6720,6 +6994,7 @@ def member_routine_days(
     end: date,
     *,
     trainer_id: str | None = None,
+    keep_done_on_end_day: bool = False,
 ) -> list[RoutineDay]:
     """[start]~[end](양끝 포함)의 날마다 걸려 있던 추천 개인운동과 그날 완료. (#2161)
 
@@ -6737,6 +7012,12 @@ def member_routine_days(
 
     [trainer_id] 를 주면 그 트레이너의 배정만 읽는다 — 트레이너 리포트(#2772)
     가 자기가 보낸 배정으로 분모를 세는 자리다. 생략하면 지금의 담당이다.
+
+    [keep_done_on_end_day] 를 켜면 **내려간 날에 이미 한** 배정도 그날 칸에
+    남긴다(#2508). 새 개인운동이 오면 옛 것은 그날부로 내려가는데(#2224), 회원이
+    그 전에 옛 것을 체크했다면 그 완료는 그날의 이행이다 — 빼면 한 일이 사라지고,
+    분모에서만 빼면 완료가 분모보다 많아진다. 하지 않은 옛 것은 그날 칸에 두지
+    않는다(회원 화면에도 없던 것이다).
     """
     end = min(end, clock.today())
     if end < start:
@@ -6754,7 +7035,11 @@ def member_routine_days(
             TrainerRoutine.active_from <= end_iso,
             or_(
                 TrainerRoutine.ended_on.is_(None),
-                TrainerRoutine.ended_on > start_iso,
+                (
+                    TrainerRoutine.ended_on >= start_iso
+                    if keep_done_on_end_day
+                    else TrainerRoutine.ended_on > start_iso
+                ),
             ),
         )
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.created_at)
@@ -6776,31 +7061,66 @@ def member_routine_days(
     days: list[RoutineDay] = []
     day = start
     while day <= end:
-        iso = day.isoformat()
-        items: list[RoutineDayItem] = []
-        for row in rows:
-            if row.active_from > iso or (
-                row.ended_on is not None and row.ended_on <= iso
-            ):
-                continue
-            completion = done.get((row.id, day))
-            items.append(
-                RoutineDayItem(
-                    routine_id=row.id,
-                    name=row.name,
-                    type=row.type,
-                    minutes=row.minutes,
-                    sort_order=row.sort_order,
-                    source=row.source,
-                    done=completion is not None,
-                    completed_minutes=(
-                        completion.minutes if completion is not None else None
-                    ),
-                )
+        days.append(
+            RoutineDay(
+                date=day,
+                routines=_routine_items_on(
+                    rows, done, day, keep_done_on_end_day=keep_done_on_end_day
+                ),
             )
-        days.append(RoutineDay(date=day, routines=items))
+        )
         day += timedelta(days=1)
     return days
+
+
+def _routine_items_on(
+    rows: Sequence[TrainerRoutine],
+    done: dict[tuple[str, date], ExerciseSession],
+    day: date,
+    *,
+    keep_done_on_end_day: bool,
+) -> list[RoutineDayItem]:
+    """[day] 에 걸려 있던 배정과 그날 완료 — [member_routine_days] 의 하루치.
+
+    로스터 이행률(#2513)이 여러 회원을 한 번에 읽고 같은 규칙으로 세려고 따로
+    둔다. [rows] 는 배정 순서로 정렬돼 있어야 한다.
+    """
+    iso = day.isoformat()
+    items: list[RoutineDayItem] = []
+    for row in rows:
+        completion = done.get((row.id, day))
+        if row.active_from > iso:
+            continue
+        if row.ended_on is not None and row.ended_on <= iso:
+            # 내려간 날에 이미 한 것만 그날 칸에 남는다([member_routine_days]).
+            if not (
+                keep_done_on_end_day
+                and row.ended_on == iso
+                and completion is not None
+            ):
+                continue
+        items.append(
+            RoutineDayItem(
+                routine_id=row.id,
+                name=row.name,
+                type=row.type,
+                minutes=row.minutes,
+                sort_order=row.sort_order,
+                source=row.source,
+                done=completion is not None,
+                completed_minutes=(
+                    completion.minutes if completion is not None else None
+                ),
+                late=(
+                    completion is not None and _checked_after(completion, day)
+                ),
+                session_id=completion.id if completion is not None else None,
+                active_from=row.active_from,
+                ended_on=row.ended_on,
+                personal=row.delivery_kind is not None,
+            )
+        )
+    return items
 
 
 def advice_routine_days(db: Session, member_id: str, period: str) -> list[RoutineDay]:
@@ -6817,6 +7137,125 @@ def advice_routine_days(db: Session, member_id: str, period: str) -> list[Routin
         auto_routine_service.ensure_auto_routines(db, member_id)
     return member_routine_days(
         db, member_id, routine_advice.fetch_start(period, today), today
+    )
+
+
+#: 날짜별 개인운동 조회가 한 번에 읽는 최대 날 수. `전체` 는 첫 개인운동 주부터
+#: 읽는데, 오래 담당한 회원이라도 한 해를 넘겨 한 번에 그릴 일은 없다. (#2508)
+ROUTINE_DAYS_MAX_SPAN = 371
+
+
+def routine_sent_on(row: TrainerRoutine) -> date:
+    """배정을 **보낸 날**(KST). (#2656)
+
+    대개 회원 목록에 걸린 첫날(`active_from`)과 같다 — PT 에 붙여 두었다가
+    보낸 개인운동도 보낸 날부터 건다(#2224). `개인운동만` 은 시작일을 미래로
+    고르면 그날부터 걸리므로, 보낸 날은 행을 만든 날이다.
+    """
+    if row.delivery_kind == DELIVERY_ROUTINE_ONLY and row.created_at is not None:
+        created = clock.to_seoul(row.created_at).date()
+        return min(created, date.fromisoformat(row.active_from))
+    return date.fromisoformat(row.active_from)
+
+
+def build_trainer_routine_days(
+    db: Session,
+    trainer_id: str,
+    member_id: str,
+    start: date | None = None,
+    end: date | None = None,
+) -> TrainerRoutineDaysOut:
+    """트레이너가 보는 날짜별 개인운동 이행 — 그날 걸린 것과 결과. (#2508)
+
+    회원 화면과 같은 규칙([member_routine_days])이고, 이 트레이너가 건 배정만
+    읽는다. 새 배정이 온 날 이미 체크한 옛 것도 그날 칸에 남긴다.
+
+    - 결과는 `done`(그날 완료) / `late`(다음 날 이후 체크) / `missed`(안 함,
+      오늘 이전만) / `pending`(오늘 아직)이다.
+    - [start] 를 비우면 이 트레이너가 처음 건 배정의 첫날부터다. 걸린 적이
+      없으면 빈 응답이다. [end] 는 기본 오늘이고 오늘을 넘지 않는다.
+    - 너무 긴 기간은 끝에서 [ROUTINE_DAYS_MAX_SPAN] 일로 자른다.
+    """
+    today = clock.today()
+    end = min(end or today, today)
+    if start is None:
+        first = db.scalar(
+            select(func.min(TrainerRoutine.active_from)).where(
+                TrainerRoutine.trainer_id == trainer_id,
+                TrainerRoutine.member_id == member_id,
+                TrainerRoutine.status == ROUTINE_APPROVED,
+            )
+        )
+        if first is None:
+            return TrainerRoutineDaysOut()
+        start = date.fromisoformat(first)
+    start = max(start, end - timedelta(days=ROUTINE_DAYS_MAX_SPAN - 1))
+    if end < start:
+        return TrainerRoutineDaysOut()
+    days = member_routine_days(
+        db, member_id, start, end,
+        trainer_id=trainer_id, keep_done_on_end_day=True,
+    )
+    seen: list[str] = []
+    for day in days:
+        for item in day.routines:
+            if item.routine_id not in seen:
+                seen.append(item.routine_id)
+    rows = {
+        row.id: row
+        for row in db.scalars(
+            select(TrainerRoutine).where(TrainerRoutine.id.in_(seen))
+        ).all()
+    } if seen else {}
+    goals = _member_goals(db, member_id)
+    routines = [
+        TrainerRoutineDayRoutineOut(
+            id=row.id,
+            name=row.name,
+            type=row.type,
+            source=row.source,
+            sort_order=row.sort_order,
+            minutes=row.minutes,
+            duration_seconds=row.duration_seconds,
+            sets=row.sets,
+            reps=row.reps,
+            hold_seconds=row.hold_seconds,
+            weight=row.weight,
+            effect=_routine_effect(db, row, goals),
+            active_from=date.fromisoformat(row.active_from),
+            ended_on=(
+                date.fromisoformat(row.ended_on) if row.ended_on else None
+            ),
+            sent_on=routine_sent_on(row),
+            personal=row.delivery_kind is not None,
+        )
+        for routine_id in seen
+        if (row := rows.get(routine_id)) is not None
+    ]
+
+    def status(item: RoutineDayItem, day: date) -> str:
+        if item.done:
+            return "late" if item.late else "done"
+        return "pending" if day >= today else "missed"
+
+    return TrainerRoutineDaysOut(
+        start=start,
+        end=end,
+        routines=routines,
+        days=[
+            TrainerRoutineDayOut(
+                date=day.date,
+                items=[
+                    TrainerRoutineDayItemOut(
+                        routine_id=item.routine_id,
+                        status=status(item, day.date),
+                        session_id=item.session_id,
+                    )
+                    for item in day.routines
+                ],
+            )
+            for day in days
+        ],
     )
 
 
@@ -7106,15 +7545,8 @@ def build_weekly_report(
     booked = len(sessions)
     done = sum(1 for s in sessions if s.status == SCHEDULE_DONE)
 
-    hist = db.scalars(
-        select(RoutineHistory).where(
-            RoutineHistory.member_id == member_id,
-            RoutineHistory.date >= monday_str,
-            RoutineHistory.date <= sunday_str,
-            or_(RoutineHistory.trainer_id.is_(None), RoutineHistory.trainer_id == trainer_id),
-        )
-    ).all()
-    week = _week_completion(hist, monday)
+    # 요일 이행률은 로스터와 같은 계산이다(#2513) — 걸린 개인운동과 잡힌 PT.
+    week = week_completion_by_member(db, trainer_id, [member_id], monday)[member_id]
     # 요일 칸은 회원의 실제 운동 기록에서 만든다(#1288). 기록이 (그 주 월요일,
     # 요일) 로 저장되므로 월요일 하나로 한 주가 그대로 걸린다.
     exercise_rows = db.scalars(
@@ -7130,8 +7562,9 @@ def build_weekly_report(
     days = _week_days(
         list(exercise_rows), week, _assigned_week(db, trainer_id, member_id, monday)
     )
-    recorded = [d for d in week if d > 0]
-    # 기록이 하나도 없으면 null — 0% 로 보고하면 "아무것도 안 했다"는 거짓말이 된다.
+    recorded = [d for d in week if d is not None]
+    # 걸린 것이 하나도 없으면 null — 0% 로 보고하면 "아무것도 안 했다"는 거짓말이
+    # 된다. 걸렸는데 안 한 날(0)은 평균에 든다(#2513).
     completion_avg = round(sum(recorded) / len(recorded)) if recorded else None
 
     diet = db.scalars(

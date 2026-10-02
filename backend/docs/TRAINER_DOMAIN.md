@@ -279,20 +279,21 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
 | GET | `/trainer/clients/{member_id}/exercise/weeks?from=&to=` | 구간이 걸친 주들의 운동 집계 — 회원 API `GET /exercise/weeks` 와 같은 응답. `전체` 그래프가 쓴다 (#2247) |
 | GET | `/trainer/clients/{member_id}/diet-recommendations` | 회원에게 추천할 AI 식단 후보(4주 추천 메뉴 리스트에서 급한 태그 순)와 지금 확정한 추천·해소 여부 (#2378) |
 | PUT | `/trainer/clients/{member_id}/diet-recommendations` | 후보 하나를 확정·바꾸기 — 회원 앱 홈 `추천 식단` 첫 장의 `트레이너 추천` 이 된다. 리스트에 없는 메뉴는 422 (#2378) |
-| GET | `/trainer/clients/{member_id}/history` | 해당 회원 운동 기록(최신순) |
+| GET | `/trainer/clients/{member_id}/history` | 해당 회원 운동 기록(최신순). 이 트레이너가 건 개인운동의 완료는 **하루 한 장** `개인운동`(`kind: personal_routine`, `id: personal-YYYY-MM-DD`)으로 묶인다 — 줄은 그날 걸린 배정 순서이고 한 것은 `done: true` 와 그 운동 기록 `session_id`(메모가 가리키는 값), 지난 날 하지 않은 것은 `done: false` 다. 오늘 아직 안 한 것은 줄이 없다 (#2510) |
 | DELETE | `/trainer/me` | 트레이너 탈퇴 — 담당 회원에게 알린 뒤 계정과 딸린 데이터 삭제 (#505). 본문 `reasons`(선택, #2264) |
 | GET | `/trainer/clients/{member_id}/routines` | 배정 루틴 |
+| GET | `/trainer/clients/{member_id}/routine-days?from=&to=` | 날짜별 개인운동 이행 (#2508). `days[]` 는 날마다 그날 걸린 배정과 결과 `status` — `done`(그날 완료) · `late`(그날 완료를 다음 날 이후 체크, 완료로 센다) · `missed`(안 함, **오늘 이전만**) · `pending`(오늘 아직) — 와 완료의 `session_id`. `routines[]` 는 기간에 걸렸던 배정과 그 묶음 정보(`active_from`·`ended_on`(그날은 안 뜸)·`sent_on`·`personal`) 다. 새 배정이 온 날 이미 체크한 옛 것도 그날 칸에 남는다. `from` 을 비우면 이 트레이너가 처음 건 배정의 첫날부터, `to` 는 기본 오늘이고 오늘을 넘지 않는다. 걸린 적이 없으면 빈 응답 |
 | GET | `/trainer/clients/{member_id}/routines/unsent` | PT 에 붙여만 두고 아직 보내지 않은 개인운동 (#2225) |
 | GET | `/trainer/clients/{member_id}/deliveries/latest` | 가장 최근 전송 한 묶음 — 종류·PT 일정·개인운동 (#2225) |
 | POST | `/trainer/clients/{member_id}/routines` | 루틴 배정(단건). 시간은 `minutes` 또는 `duration_seconds` — 초가 오면 초가 기준이고 분은 반올림 (#2547). 근력은 `sets`·`reps` 또는 버티기 `hold_seconds` 를 저장한다 — 제안 생성·승인도 같다 (#2753) |
-| POST | `/trainer/clients/{member_id}/program` | 프로그램 배정 — 세션당 루틴 한 건 (#709). `delivery_kind`·`trainer_message`·`start_date`·`active_days` 로 프로그램 만들기의 `개인운동만` 전송을 받는다. `active_days` 만큼만 회원 목록에 걸어 둔다(`active_from`~`ended_on`, #2161) — `개인운동만` 은 7 을 보내 보낸 날부터 한 주 동안 걸리고, 다음 주 분은 트레이너가 다시 보낸다 (#2223). 보낼 때 이 트레이너가 보내 둔 이전 개인운동(`delivery_kind` 있는 줄)은 PT 와 함께 보낼 때처럼 오늘부로 내린다 (#2514). `suggestion_ids` 로 개인운동을 채운 대기 중 AI 제안 id 를 받으면 배정과 같은 트랜잭션에서 그 제안을 `consumed` 로 닫는다 — 검토 목록·회원 목록 어디에도 다시 뜨지 않고 백로그 한도에서도 빠진다. 이 트레이너·이 회원의 대기 제안이 아닌 id 는 무시한다 (#2747) |
+| POST | `/trainer/clients/{member_id}/program` | 프로그램 배정 — 세션당 루틴 한 건 (#709). `delivery_kind`·`trainer_message`·`start_date`·`active_days` 로 프로그램 만들기의 `개인운동만` 전송을 받는다. `active_days` 만큼만 회원 목록에 걸어 둔다(`active_from`~`ended_on`, #2161) — `개인운동만` 은 7 을 보내 보낸 날부터 한 주 동안 걸리고, 다음 주 분은 트레이너가 다시 보낸다 (#2223). `start_date` 가 미래면 **그날부터** 한 주를 건다(`active_from = 시작일`, `ended_on = 시작일 + 7`) — 알림은 지금 가고 제목이 "{M/D}부터 할 개인운동이 왔어요" 로 그날을 말한다. `deliveries/latest` 의 `sent_on` 은 보낸 날(오늘)이다 (#2656). 보낼 때 이 트레이너가 보내 둔 이전 개인운동(`delivery_kind` 있는 줄)은 PT 와 함께 보낼 때처럼 새 것이 걸리는 날(오늘 또는 미래 시작일)부로 내린다 — 미래 시작일이면 그 전날까지 두고 시작일에 교대하며, 시작일 뒤에야 걸리기로 했던 옛 것은 걸리기 전에 내린다 (#2514, #2656). `suggestion_ids` 로 개인운동을 채운 대기 중 AI 제안 id 를 받으면 배정과 같은 트랜잭션에서 그 제안을 `consumed` 로 닫는다 — 검토 목록·회원 목록 어디에도 다시 뜨지 않고 백로그 한도에서도 빠진다. 이 트레이너·이 회원의 대기 제안이 아닌 id 는 무시한다 (#2747) |
 | POST | `/trainer/clients/{member_id}/program-schedule` | 프로그램 탭 `일정 추가` — 배정과 PT 일정 등록을 한 트랜잭션으로, `client_request_id` 로 재시도 멱등 (#1580). 고른 시간대와 겹치는 예정 세션에 연결하고 없으면 새 일정, 여럿이면 `session_id` 필수(아니면 409 + 후보) (#1581). `suggestion_ids` 는 `program` 과 같은 규약으로 같은 트랜잭션에서 대기 제안을 닫는다 — 등록이 실패하면 제안도 대기로 남는다 (#2747) |
 | GET | `/trainer/schedule/{session_id}/routines` | 그 PT 일정에 붙어 있는 개인운동 — 보낸 것까지, 건마다 `pending_send` (#2223, #2224) |
 | PUT | `/trainer/schedule/{session_id}/routines` | 그 PT 에 붙은 개인운동 고치기 — 보내지는 않는다 (#2224). 붙은 것이 없으면 처음 붙인다 — 일정 상세에서 코칭 탭의 개인운동 단계로 가 짠 것. 회원·PT 프로그램이 있고 아직 보내지 않은, 취소·노쇼가 아닌 PT 만이고 출처는 받은 그대로다 (#2280). `suggestion_ids` 를 주면 그 개인운동을 채운 이 회원의 대기 중 AI 제안을 같은 트랜잭션에서 `consumed` 로 닫는다 — 실패하면 대기로 남는다 (#2747) |
 | PUT | `/trainer/clients/{member_id}/routines/{routine_id}` | 루틴 부분 수정(이름·시간·종류·사유). `duration_seconds` 를 보내면 분을 초에서 다시 접고, `minutes` 만 보내면 예전 초를 지운다 (#2547) |
 | DELETE | `/trainer/clients/{member_id}/routines/{routine_id}` | 루틴 철회 |
 | GET | `/trainer/clients/{member_id}/memos` | 회원 메모 목록(최신순) |
-| POST | `/trainer/clients/{member_id}/memos` | 메모 작성 (`insight_id?` 로 채팅 인사이트 중복 방지, `source=exercise_memo` 는 `ref_id`(이력 카드) 또는 `ref_date`(회원 직접 기록 카드)로 기록을 가리키고 서버가 `ref_kind`·`ref_date`·`ref_name` 을 채운다 — 트레이너 화면에 보이지 않는 기록이면 404). `category`(`exercise`\|`diet`\|`pain`\|`life`\|빈 문자열)는 직접 메모가 고르고, `exercise_memo` 는 서버가 `exercise` 로 채운다(다른 값 422), `chat_insight` 는 분류를 보내면 422 (#2622) |
+| POST | `/trainer/clients/{member_id}/memos` | 메모 작성 (`insight_id?` 로 채팅 인사이트 중복 방지, `source=exercise_memo` 는 `ref_id`(이력 카드) 또는 `ref_date`(그날 운동 기록 — 함께 보낸 `ref_kind` 로 그날의 `personal`·`member_log` 상자, 없으면 그날 전체 `day`, #2508)로 기록을 가리키고 서버가 `ref_kind`·`ref_date`·`ref_name` 을 채운다 — 트레이너 화면에 보이지 않는 기록이면 404). `category`(`exercise`\|`diet`\|`pain`\|`life`\|빈 문자열)는 직접 메모가 고르고, `exercise_memo` 는 서버가 `exercise` 로 채운다(다른 값 422), `chat_insight` 는 분류를 보내면 422 (#2622) |
 | PUT | `/trainer/clients/{member_id}/memos/{memo_id}` | 메모 본문·분류 수정. 분류는 직접 쓴 메모만 바뀐다 — 다른 출처의 분류를 바꾸려 하면 400, 지금 값 그대로면 통과 (#2622) |
 | GET | `/trainer/clients/{member_id}/feedbacks` | 회원과 주고받은 피드백 모아 보기(최신순, 최근 90일, 최대 100건, #2615). `[{ id, kind(pt_session\|report\|weekly), direction(to_member\|from_member), date, body, schedule_id?, week_start?, at?, condition, intensity, pain_area, pain_on }]`. PT 는 내가 지도한 완료 PT(상담 제외)의 글, 리포트는 내가 보낸 리포트 메시지(주마다 가장 최근 하나), 주간 피드백은 이 담당이 시작된 주(`data_consent_at`)부터 |
 | DELETE | `/trainer/clients/{member_id}/memos/{memo_id}` | 메모 삭제 |
@@ -463,11 +464,27 @@ LLM 비용 가드로 **트레이너 id 단위 분당 한도**(`COACH_CHAT_PER_MI
 
 ### 주간 리포트 (`/trainer/clients/{id}/report`)
 
-O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, 이행률은
-`routine_history`, 나트륨은 `diet_entries`에서 그 주만 집계한다 — 새로 수집하는
-데이터는 없다. **기록이 없는 항목은 0 이 아니라 `null`** 로 내려간다("이행률 0%"는
-"안 했다"는 거짓말이 되므로). 전송은 별도 리포트 함이 아니라 **회원이 이미 읽고 있는
-채팅 스레드**로 들어간다.
+O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, 이행률은 그 주에 걸린
+개인운동(`trainer_routines`·`exercise_sessions`)과 잡힌 PT(`trainer_schedule`), 나트륨은
+`diet_entries`에서 그 주만 집계한다 — 새로 수집하는 데이터는 없다. **기록이 없는 항목은
+0 이 아니라 `null`** 로 내려간다("이행률 0%"는 "안 했다"는 거짓말이 되므로). 전송은 별도
+리포트 함이 아니라 **회원이 이미 읽고 있는 채팅 스레드**로 들어간다.
+
+**이행률 (#2513)**: 그날 이행률 = (완료한 개인운동 + 완료한 PT) ÷ (그날 걸린 개인운동 +
+그날 잡힌 PT). 로스터 `week_completion`(회원 목록 행 막대·프로그램 화면 `주간 운동 이행률`),
+리포트 `week_completion`·`days[].completion`·`completion_avg`, 이행률 배지가 모두 이 값이다
+(`week_completion_by_member`).
+
+- 개인운동은 회원 화면과 같은 규칙으로 센다(`member_routine_days`) — 이 트레이너가 건
+  것, 그날 걸려 있던 것. 다음 날 이후에 체크한 것도 완료다. 새 개인운동이 온 날 이미
+  한 옛 것은 그날 칸에 남는다.
+- PT 는 이 트레이너의 `예정·완료` 만 분모다. 취소·노쇼·상담은 세지 않는다.
+- **직접 추가한 운동은 넣지 않는다.** 해야 할 목록(분모)이 없고, 넣으면 받은 개인운동을
+  빼먹고 다른 운동을 해도 100% 가 되어 "준 운동을 하고 있나" 가 가려진다.
+- 아무것도 걸리지 않은 날과 아직 오지 않은 날은 `null`, 걸렸는데 하나도 안 한 날은 `0`
+  이다. 오늘은 아직 안 한 것도 분모에 든다. `completion_avg` 는 `null` 이 아닌 날의 평균이다.
+- 예전에는 `routine_history` 의 그날 최댓값이었다. 운영 코드에서 그 표에 쓰는 곳은 PT
+  완료 하나뿐이라, 개인운동을 매일 해도 PT 없는 날은 `기록 없음` 이었다.
 
 **회원 본인 경로 (#2652)**: 회원 앱 결과지는 `GET /me/coach/weekly-report` 로 같은
 `build_weekly_report` 를 부른다 — 같은 회원·같은 주면 두 앱이 **같은 값**을 읽는다.

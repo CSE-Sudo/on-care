@@ -70,6 +70,7 @@ from app.schemas.trainer_api import (
     ClientCoachRequest, ClientDietEntryOut, ClientFeedbackOut, DeliveryOut,
     MemberHealthProfileOut, MemberHealthProfileUpdate,
     MemberWeeklyFeedbackOut,
+    TrainerRoutineDaysOut,
     ReportGoalsOut,
     ReportGoalsSaveRequest,
     ReportFeedbackOut,
@@ -1076,6 +1077,30 @@ def trainer_client_routines(
     return trainer_service.build_routines(db, member_id, trainer.id)
 
 
+@router.get(
+    "/trainer/clients/{member_id}/routine-days",
+    response_model=TrainerRoutineDaysOut,
+)
+def trainer_client_routine_days(
+    member_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+    from_date: Annotated[_date | None, Query(alias="from")] = None,
+    to_date: Annotated[_date | None, Query(alias="to")] = None,
+) -> TrainerRoutineDaysOut:
+    """날짜별 개인운동 이행 — 그날 걸린 것과 완료·늦은 체크·안 함·오늘 아직. (#2508)
+
+    `GET .../routines` 는 **오늘** 완료만 준다. 개인운동은 매일 새로 체크하는
+    목록이라(#2161) 트레이너가 "날마다 했나" 를 보려면 날짜별로 읽어야 한다.
+    `from` 을 생략하면 이 트레이너가 처음 건 배정의 첫날부터, `to` 는 기본
+    오늘이다. 담당이 해제된 회원은 404 다(#2312).
+    """
+    _require_client(db, trainer.id, member_id)
+    return trainer_service.build_trainer_routine_days(
+        db, trainer.id, member_id, start=from_date, end=to_date
+    )
+
+
 @router.post("/trainer/clients/{member_id}/routines", response_model=RoutineOut, status_code=201)
 def trainer_assign_routine(
     member_id: str,
@@ -1355,6 +1380,7 @@ def trainer_create_memo(
             insight_kind=payload.insight_kind,
             ref_id=payload.ref_id,
             ref_date=payload.ref_date,
+            ref_kind=payload.ref_kind,
             category=payload.category,
         )
     except trainer_service.RoutineNotFound as exc:

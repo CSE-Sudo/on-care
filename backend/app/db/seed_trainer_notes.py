@@ -255,7 +255,7 @@ def seed_memos(db: Session, today: date, valid: set[str]) -> None:
             member_id=member,
             body=body,
             source="exercise_memo" if member_log else "trainer",
-            ref_kind="member_log" if member_log else "",
+            ref_kind="day" if member_log else "",
             ref_date=day.isoformat() if member_log else None,
             category=category,
             created_at=at,
