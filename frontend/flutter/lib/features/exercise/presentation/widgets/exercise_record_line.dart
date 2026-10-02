@@ -16,6 +16,7 @@ class ExerciseRecordLine extends StatelessWidget {
     this.amount = '',
     this.typeLabel,
     this.trailing = const <Widget>[],
+    this.badge,
   });
 
   final String name;
@@ -25,6 +26,9 @@ class ExerciseRecordLine extends StatelessWidget {
 
   final String? typeLabel;
   final List<Widget> trailing;
+
+  /// 이름 바로 뒤에 붙는 작은 태그(개인 기록 등, #2971). 없으면 비운다.
+  final Widget? badge;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +65,16 @@ class ExerciseRecordLine extends StatelessWidget {
                                 )
                                 .copyWith(color: OnCareColors.textPrimary),
                           ),
+                          if (badge case final Widget b)
+                            WidgetSpan(
+                              alignment: PlaceholderAlignment.middle,
+                              child: Padding(
+                                padding: const EdgeInsets.only(
+                                  left: OnCareSpacing.s8,
+                                ),
+                                child: b,
+                              ),
+                            ),
                           if (amount.isNotEmpty)
                             TextSpan(
                               text: ' · $amount',

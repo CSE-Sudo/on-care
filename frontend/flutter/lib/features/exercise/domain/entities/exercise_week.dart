@@ -92,6 +92,29 @@ enum ExerciseCalorieSource {
   bool get isGrounded => this != ExerciseCalorieSource.estimate;
 }
 
+/// 직접 기록한 운동의 개인 기록 태그. (#2971)
+///
+/// 서버가 회원의 지난 기록과 견줘 기록마다 하나를 정한다 — 평가가 아니라 사실만
+/// 알린다. 우선순위는 [maxWeight] → [longest] → [first] 다.
+enum ExerciseRecord {
+  /// 같은 근력 운동을 전에 든 어떤 중량보다 무겁다.
+  maxWeight,
+
+  /// 같은 운동(근력 외)을 전에 한 어떤 시간보다 길다.
+  longest,
+
+  /// 이 이름으로 처음 적은 운동이다.
+  first;
+
+  /// 서버 값(`max_weight` 등). 모르는 값·null 은 태그 없음이다.
+  static ExerciseRecord? fromJson(Object? value) => switch (value) {
+    'max_weight' => maxWeight,
+    'longest' => longest,
+    'first' => first,
+    _ => null,
+  };
+}
+
 class ExerciseSession {
   const ExerciseSession({
     this.id,
@@ -116,6 +139,7 @@ class ExerciseSession {
     this.weight,
     this.date,
     this.pointsAward,
+    this.record,
   });
 
   final String? id;
@@ -123,6 +147,9 @@ class ExerciseSession {
   /// 이 기록을 새로 추가해 받은 포인트(#1786). 생성 응답에만 있고, 주간 목록의
   /// 기록은 null 이다.
   final PointsAward? pointsAward;
+
+  /// 개인 기록 태그(#2971). 직접 기록한 운동에만 있고, 없으면 null 이다.
+  final ExerciseRecord? record;
   final String dayLabel;
   final ExerciseType type;
   final int minutes;
@@ -214,6 +241,7 @@ class ExerciseSession {
         weight: (json['weight'] as num?)?.toDouble(),
         date: DateTime.tryParse(json['date'] as String? ?? ''),
         pointsAward: PointsAward.fromJson(json['points']),
+        record: ExerciseRecord.fromJson(json['record']),
       );
 }
 
@@ -293,10 +321,9 @@ class ExerciseWeek {
     return ExerciseWeek(
       sessions: const <ExerciseSession>[],
       dailyMinutes: numbers('daily_minutes'),
-      dayLabels:
-          ((json['day_labels'] as List<Object?>?) ?? const <Object?>[])
-              .whereType<String>()
-              .toList(growable: false),
+      dayLabels: ((json['day_labels'] as List<Object?>?) ?? const <Object?>[])
+          .whereType<String>()
+          .toList(growable: false),
       totalMinutes: (json['total_minutes'] as num?)?.toInt() ?? 0,
       totalCalories: (json['total_calories'] as num?)?.toInt() ?? 0,
       streakDays: (json['streak_days'] as num?)?.toInt() ?? 0,

@@ -885,14 +885,31 @@ class _ExerciseCardState extends ConsumerState<_ExerciseCard> {
                   ),
                 ),
                 const SizedBox(height: OnCareSpacing.s4),
-                Text(
-                  exerciseAmountLabel(l, _s),
-                  key: ValueKey<String>('exercise-detail-amount-$id'),
-                  style: _style(
-                    context,
-                    OnCareTypography.caption,
-                    OnCareColors.textSecondary,
-                  ),
+                // 개인 기록 태그는 운동량 옆 하나다(#2971) — 그 운동량에 대한
+                // 사실이고, 이름 옆에 두면 오른쪽 칼로리와 자리를 다퉈 이름이
+                // 잘렸다. 운동 현황의 `N일 연속` 과 같은 주황이다.
+                Wrap(
+                  spacing: OnCareSpacing.s8,
+                  runSpacing: OnCareSpacing.s4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: <Widget>[
+                    Text(
+                      exerciseAmountLabel(l, _s),
+                      key: ValueKey<String>('exercise-detail-amount-$id'),
+                      style: _style(
+                        context,
+                        OnCareTypography.caption,
+                        OnCareColors.textSecondary,
+                      ),
+                    ),
+                    if (_s.record case final ExerciseRecord record)
+                      AppTag(
+                        key: ValueKey<String>('exercise-detail-record-$id'),
+                        label: exerciseRecordLabel(l, record),
+                        icon: exerciseRecordIcon(record),
+                        tone: AppTagTone.caution,
+                      ),
+                  ],
                 ),
               ],
             ),

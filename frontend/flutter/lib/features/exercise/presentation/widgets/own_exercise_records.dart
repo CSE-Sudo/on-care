@@ -148,6 +148,22 @@ class _OwnRecordLine extends StatelessWidget {
       name: session.name.isNotEmpty
           ? session.name
           : exerciseTypeLabel(l, session.type),
+      // 운동 탭 목록에는 개인 기록(최고 중량·최장 시간)만 붙인다(#2971) —
+      // 새 운동마다 붙는 `첫 기록` 까지 서면 목록이 태그로 붐비고 정말 축하할
+      // 기록이 묻힌다. `첫 기록` 은 상세에서만 보인다.
+      badge: switch (session.record) {
+        final ExerciseRecord r when r != ExerciseRecord.first => AppTag(
+          key: id == null
+              ? null
+              : ValueKey<String>('exercise-own-record-badge-$id'),
+          label: exerciseRecordLabel(l, r),
+          icon: exerciseRecordIcon(r),
+          // 운동 현황의 `N일 연속` 과 같은 주황이다 — 같은 동기 부여 신호다.
+          // 초록은 `이행 100%` 처럼 달성·정상을 뜻한다.
+          tone: AppTagTone.caution,
+        ),
+        _ => null,
+      },
       trailing: <Widget>[
         exerciseIntensityTag(
           exerciseIntensityLabel(l, session.intensity),
@@ -173,6 +189,19 @@ List<ExerciseSession> ownExerciseSessionsOn(ExerciseWeek week, DateTime date) {
       )
       .toList(growable: false);
 }
+
+/// 개인 기록 태그의 문구 — 운동 탭 목록과 운동 기록 상세가 같은 말을 쓴다. (#2971)
+String exerciseRecordLabel(AppLocalizations l, ExerciseRecord r) => switch (r) {
+  ExerciseRecord.maxWeight => l.exRecordMaxWeight,
+  ExerciseRecord.longest => l.exRecordLongest,
+  ExerciseRecord.first => l.exRecordFirst,
+};
+
+/// 개인 기록 태그의 아이콘 — `N일 연속` 의 번개처럼 같은 동기 부여 계열임을
+/// 보인다. 최고·최장은 앱의 성취 트로피다. 첫 기록은 아이콘 없이 글자만 둔다 —
+/// 트로피가 진짜 개인 기록에만 붙어야 돋보인다. (#2971)
+IconData? exerciseRecordIcon(ExerciseRecord r) =>
+    r == ExerciseRecord.first ? null : AppIcons.achievement;
 
 /// 강도 한 값의 표기 — `가벼움`·`보통`·`높음`.
 ///
