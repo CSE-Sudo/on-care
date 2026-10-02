@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/core/config/app_config.dart';
 
+import 'package:oncare/features/exercise/data/kakao_gym_demo_profile.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
@@ -12,47 +13,47 @@ import 'package:oncare/features/place/domain/entities/place_query.dart';
 import 'package:oncare/features/place/domain/repositories/place_repository.dart';
 import 'package:oncare/features/place/presentation/controllers/place_controller.dart';
 
-/// `local_api_interceptor` 의 데모 픽스처와 같은 카카오 실데이터(id 포함).
+/// `local_api_interceptor` 의 데모 픽스처와 같은 가상 비제휴 헬스장(id 포함, #2811).
 class _KakaoFixtureRepository implements PlaceRepository {
   const _KakaoFixtureRepository();
 
   @override
   Future<List<Place>> nearbyPlaces(PlaceQuery query) async => const <Place>[
     Place(
-      id: '11621774',
-      name: '휘트니스에이든',
+      id: 'gym-demo-fitstudio',
+      name: '온케어 핏스튜디오',
       category: PlaceCategory.fitness,
-      address: '서울 마포구 신촌로 92',
+      address: '서울 마포구 신촌로 90',
       distanceMeters: 127,
-      lat: 37.5551767483122,
-      lng: 126.935686079639,
+      lat: 37.5551767,
+      lng: 126.9356861,
     ),
     Place(
-      id: '1558845892',
-      name: '하이핏',
+      id: 'gym-demo-movelab',
+      name: '온케어 무브랩',
       category: PlaceCategory.fitness,
-      address: '서울 서대문구 연세로4길 19',
+      address: '서울 서대문구 연세로 20',
       distanceMeters: 186,
-      lat: 37.5573727191112,
-      lng: 126.937816432934,
+      lat: 37.5573727,
+      lng: 126.9378164,
     ),
     Place(
-      id: '328969863',
-      name: '빌드업짐 PT 신촌점',
+      id: 'gym-demo-ptlab',
+      name: '온케어 PT랩',
       category: PlaceCategory.fitness,
-      address: '서울 서대문구 연세로4길 1',
+      address: '서울 서대문구 연세로 12',
       distanceMeters: 133,
-      lat: 37.5570723299884,
-      lng: 126.937142154792,
+      lat: 37.5570723,
+      lng: 126.9371422,
     ),
     Place(
-      id: '696444256',
-      name: '신인규피티스튜디오',
+      id: 'gym-demo-onestudio',
+      name: '온케어 1:1 스튜디오',
       category: PlaceCategory.fitness,
-      address: '서울 서대문구 명물길 10',
+      address: '서울 서대문구 명물길 30',
       distanceMeters: 177,
-      lat: 37.5573851891011,
-      lng: 126.937543667755,
+      lat: 37.5573852,
+      lng: 126.9375437,
     ),
   ];
 }
@@ -121,17 +122,18 @@ void main() {
   test('카카오 헬스장에 상세용 정보가 채워진다', () async {
     final container = _containerWith(const _KakaoFixtureRepository());
     final gyms = await container.read(gymFinderResultsProvider.future);
-    final Gym buildUp = gyms.firstWhere((Gym g) => g.id == '328969863');
+    final Gym buildUp = gyms.firstWhere((Gym g) => g.id == 'gym-demo-ptlab');
 
-    // 카카오 실데이터
-    expect(buildUp.name, '빌드업짐 PT 신촌점');
-    expect(buildUp.address, '서울 서대문구 연세로4길 1');
+    // 장소 검색이 준 값
+    expect(buildUp.name, '온케어 PT랩');
+    expect(buildUp.address, '서울 서대문구 연세로 12');
     expect(buildUp.distanceKm, closeTo(0.133, 0.001));
     expect(buildUp.hasCoordinates, isTrue);
     // 카카오가 주지 않아 데모 프로필에서 채우는 값 — 상세 화면이 이걸 렌더한다
     expect(buildUp.rating, greaterThan(0));
     expect(buildUp.tags, isNotEmpty);
-    expect(buildUp.phone, isNotNull);
+    // 가상 헬스장에는 전화번호를 지어내 넣지 않는다(#2811).
+    expect(buildUp.phone, isNull);
     expect(buildUp.weekdayHours, isNotNull);
   });
 
@@ -142,10 +144,10 @@ void main() {
       useMockApi: false,
     );
     final gyms = await container.read(gymFinderResultsProvider.future);
-    final Gym buildUp = gyms.firstWhere((Gym g) => g.id == '328969863');
+    final Gym buildUp = gyms.firstWhere((Gym g) => g.id == 'gym-demo-ptlab');
 
     // 카카오가 준 값은 그대로 남는다
-    expect(buildUp.name, '빌드업짐 PT 신촌점');
+    expect(buildUp.name, '온케어 PT랩');
     expect(buildUp.hasCoordinates, isTrue);
     // 지어낸 값은 붙지 않는다 (평점 0 이면 UI 가 뱃지를 감춘다)
     expect(buildUp.rating, 0);
@@ -255,11 +257,11 @@ void main() {
     // 트레이너는 Gym 이 아니라 Trainer 에 있고 gymId(= 카카오 place id)로 이어진다.
     final container = _containerWith(const _KakaoFixtureRepository());
     final trainers = await container.read(
-      gymTrainersProvider('328969863').future,
+      gymTrainersProvider('gym-demo-ptlab').future,
     );
 
     expect(trainers, isNotEmpty);
-    expect(trainers.every((Trainer t) => t.gymId == '328969863'), isTrue);
+    expect(trainers.every((Trainer t) => t.gymId == 'gym-demo-ptlab'), isTrue);
   });
 
   test('모든 헬스장이 지도 핀을 찍을 좌표를 갖는다', () async {
@@ -275,5 +277,29 @@ void main() {
 
     expect(gyms.length, 3);
     expect(gyms.every((Gym g) => g.rating > 0), isTrue);
+  });
+
+  test('가상 트레이너는 실재 업체(카카오 place id)에 소속되지 않는다', () async {
+    // 예전 데모는 신촌 실재 업체 4곳에 가상 트레이너를 붙였다(#2811).
+    const Set<String> realKakaoIds = <String>{
+      '11621774',
+      '1558845892',
+      '328969863',
+      '696444256',
+    };
+    final container = _containerWith(const _KakaoFixtureRepository());
+    final trainers = await container
+        .read(gymRepositoryProvider)
+        .fetchAllTrainers();
+
+    for (final Trainer t in trainers) {
+      expect(realKakaoIds.contains(t.gymId), isFalse, reason: t.name);
+      // 숫자만으로 된 id 는 카카오 place id(실재 업체)다.
+      expect(RegExp(r'^\d+$').hasMatch(t.gymId), isFalse, reason: t.name);
+    }
+    for (final String id in kKakaoGymDemoProfiles.keys) {
+      expect(id, startsWith('gym-demo-'));
+      expect(kKakaoGymDemoProfiles[id]!.phone, isNull, reason: id);
+    }
   });
 }

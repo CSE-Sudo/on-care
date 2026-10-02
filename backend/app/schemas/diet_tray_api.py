@@ -26,6 +26,9 @@ class DietTrayOut(BaseModel):
     window_to: str
     has_trainer: bool
     coupon: CouponOut | None = None
+    #: 식판을 줄 수 있는 서버인가(#2822). 거짓이면 앱이 카드를 그리지 않고, 받기는
+    #: 409 다. 이미 받은 쿠폰은 `coupon` 에 그대로 온다.
+    enabled: bool = True
 
 
 class DietTrayClaimRequest(BaseModel):
