@@ -41,7 +41,7 @@ final Provider<MemberCoachRepository> memberCoachRepositoryProvider =
         // 완료할 때 찾는다 — 여기서 watch 하면 코치 화면만 그리는 데도 Dio 와
         // 로컬 DB 가 서야 한다.
         final GymRepository gym = ref.watch(gymRepositoryProvider);
-        return MockMemberCoachRepository(
+        final MockMemberCoachRepository mock = MockMemberCoachRepository(
           exercise: _LazyRoutineSessionLog(() {
             final ExerciseRepository exercise = ref.read(
               exerciseRepositoryProvider,
@@ -58,7 +58,12 @@ final Provider<MemberCoachRepository> memberCoachRepositoryProvider =
           linked: gym is MockGymRepository ? () => gym.hasTrainer : null,
           // 끊긴 뒤 온 담당 요청을 수락하면 같은 곳에 다시 잇는다(#2659).
           relink: gym is MockGymRepository ? gym.linkTrainer : null,
+          // 보내면 잠시 뒤 트레이너가 답한다 — 실서버에서는 트레이너가 실제로
+          // 답한다(#2663).
+          replyDelay: const Duration(seconds: 2),
         );
+        ref.onDispose(mock.dispose);
+        return mock;
       }
       return DioMemberCoachRepository(ref.watch(dioProvider));
     }, name: 'memberCoachRepository');
@@ -253,12 +258,16 @@ final coachChatHistoryProvider =
 /// 아래 [coachInvitesProvider] 와 **같은 규칙**으로 받는다 — 앱을 켤 때와 돌아올
 /// 때 바로, 켜져 있는 동안 15초마다. 예전에는 한 번만 조회해서, 앱을 켜 둔 채
 /// 트레이너가 메시지를 보내도 배지가 켤 때의 수(대개 0)로 남았다(#1929).
-/// 데모에는 따라갈 서버가 없어 한 번만 받는다.
+/// 데모는 따라갈 서버 대신 데모 저장소가 바뀔 때마다 받는다 — 자동 답장이 오면
+/// 배지가 선다(#2663).
 final coachUnreadProvider = StreamProvider.autoDispose<int>((ref) {
   final MemberCoachRepository repository = ref.watch(
     memberCoachRepositoryProvider,
   );
   if (ref.watch(appConfigProvider).useMockApi) {
+    if (repository is MockMemberCoachRepository) {
+      return repository.watchUnread();
+    }
     return Stream<int>.fromFuture(repository.unreadCount());
   }
   return activePollingStream<int>(

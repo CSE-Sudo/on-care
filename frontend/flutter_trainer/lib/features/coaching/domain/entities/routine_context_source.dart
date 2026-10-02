@@ -3,6 +3,13 @@
 /// 서버 `RoutineContextSource` 와 같은 값이다 — [wire] 가 요청의 `sources`
 /// 목록에 그대로 들어간다. 순서는 위저드의 체크 목록 순서다.
 enum RoutineContextSource {
+  /// 회원과의 최근 대화 원문. 최근 14일 · 최대 10건. (#2794)
+  ///
+  /// 예전에는 고르는 목록에 없어 늘 AI 에 실렸다 — 민감한 대화가 섞일 수 있어
+  /// 트레이너가 뺄 수 있게 한다. 끄면 규칙형의 통증 판단에도 쓰이지 않고,
+  /// `참고한 최근 대화` 도 보이지 않는다.
+  recentChat('recent_chat', defaultOn: true),
+
   /// 완료한 PT 일정의 글(트레이너 피드백). 최근 14일 · 최대 5건.
   ptFeedback('pt_feedback', defaultOn: true),
 
@@ -33,6 +40,16 @@ enum RoutineContextSource {
   static Set<RoutineContextSource> get defaults => <RoutineContextSource>{
     for (final RoutineContextSource source in values)
       if (source.defaultOn) source,
+  };
+
+  /// [recentChat] 이 생기기 전(#2794)부터 있던 자료. 그때 저장한 선택은 이
+  /// 다섯 가지만 보고 고른 것이라, 새 자료는 기본값으로 더한다.
+  static const Set<RoutineContextSource> legacy = <RoutineContextSource>{
+    ptFeedback,
+    consultMemo,
+    trainerMemo,
+    chatInsight,
+    weeklyFeedback,
   };
 
   /// [wire] → 값. 모르는 값(다른 버전이 저장한 것)은 `null` 이다.

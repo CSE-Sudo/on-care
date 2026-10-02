@@ -209,6 +209,10 @@ class ScheduleSession {
   /// Whether the session is still upcoming (예정).
   bool get isUpcoming => status == ScheduleStatus.upcoming;
 
+  /// 상담 일정인가 — 계약값 [SessionType.consultation] 과 그대로 비교한다(#2867).
+  /// 화면 문구(`상담`/`Consultation`)나 부분 일치로 가르지 않는다.
+  bool get isConsultation => type == SessionType.consultation;
+
   /// 진행 전에 거두어진 약속.
   bool get isCancelled => status == ScheduleStatus.cancelled;
 

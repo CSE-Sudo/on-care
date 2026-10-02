@@ -16,8 +16,10 @@ import 'package:drift/drift.dart'
         OrderingTerm,
         Value;
 import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:logger/logger.dart';
 import 'package:oncare/core/advice/exercise_advice.dart';
+import 'package:oncare/core/demo/demo_accounts.dart';
 import 'package:oncare/core/demo/demo_ai_advice.dart';
 import 'package:oncare/core/demo/demo_alert_keys.dart';
 import 'package:oncare/core/demo/diet_advice.dart';
@@ -46,6 +48,9 @@ import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
     show setsFromStrengthMinutes;
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/routine_session_log.dart';
+import 'package:oncare/features/member_coach/data/demo_coach_files.dart';
+import 'package:oncare/features/member_coach/domain/entities/member_coach.dart'
+    show CoachAttachmentKind;
 // 분·kcal 반올림·운동 유형 정규화는 실서버와 같은 공용 규칙을 쓴다(#2860, #2861).
 import 'package:oncare_rules/oncare_rules.dart'
     show
@@ -407,7 +412,39 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         path.endsWith('/read')) {
       return _notificationRead;
     }
+    if (method == 'GET' && path.startsWith('/chat/attachments/')) {
+      return _chatAttachment;
+    }
     return null;
+  }
+
+  /// 데모 대화에 트레이너가 보낸 첨부의 바이트 — 앱 번들에서 꺼낸다. (#2663)
+  ///
+  /// 실서버는 같은 경로로 저장해 둔 파일을 준다. 데모에 없는 id 는 404 다 —
+  /// [_dietPhoto] 처럼 바이트로 답해야 부르는 쪽(`ResponseType.bytes`)이 상태
+  /// 코드를 그대로 받는다.
+  Future<Response<Object?>> _chatAttachment(RequestOptions options) async {
+    final DemoCoachFile? file = demoCoachFileById(options.path.split('/').last);
+    if (file == null) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 404,
+        data: Uint8List(0),
+      );
+    }
+    final ByteData data = await rootBundle.load(file.asset);
+    return Response<Object?>(
+      requestOptions: options,
+      statusCode: 200,
+      data: data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+      headers: Headers.fromMap(<String, List<String>>{
+        Headers.contentTypeHeader: <String>[
+          file.kind == CoachAttachmentKind.pdf
+              ? 'application/pdf'
+              : 'image/jpeg',
+        ],
+      }),
+    );
   }
 
   Future<Response<Object?>> _dietDelete(RequestOptions options) async {
@@ -3555,6 +3592,9 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   /// POST /auth/login — the demo accepts any non-empty credentials and
   /// issues a token so the login flow works without a server. Real
   /// credentials are validated by FastAPI when USE_MOCK_API=false.
+  ///
+  /// 이 데모에서 가입한 이메일만은 서버처럼 가입한 비밀번호를 본다(#2665) —
+  /// 틀리면 서버와 같은 401 이다. 그 밖의 이메일은 지금처럼 데모 회원으로 든다.
   Future<Response<Object?>> _authLogin(RequestOptions options) async {
     final body = _jsonBody(options);
     final username = (body['username'] as String? ?? '').trim();
@@ -3562,6 +3602,15 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     if (username.isEmpty || password.isEmpty) {
       return _badRequest(options, 'username and password are required');
     }
+    final Map<String, Object?>? account = await _accounts.find(username);
+    if (account != null && account['password'] != body['password']) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 401,
+        data: <String, Object?>{'detail': '이메일 또는 비밀번호가 올바르지 않습니다.'},
+      );
+    }
+    await _accounts.signIn(account == null ? null : username);
     await _resetDemoNotificationReads();
     return _ok(options, <String, Object?>{
       'access_token': 'demo-access-${DateTime.now().microsecondsSinceEpoch}',
@@ -3571,8 +3620,12 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   }
 
   /// POST /auth/register — mirrors FastAPI: returns the created user
-  /// `{id, name, email}` with 201. Duplicate emails are only enforced by
-  /// FastAPI when USE_MOCK_API=false. `name` defaults to the email local-part.
+  /// `{id, name, email}` with 201. `name` defaults to the email local-part.
+  ///
+  /// 가입한 계정은 [DemoAccounts] 에 남는다(#2665). 새 계정은 첫 설정 전의 빈
+  /// 프로필로 시작해, 로그인하면 실서버처럼 첫 설정으로 간다. 이미 있는
+  /// 이메일(데모 회원·데모 세계의 다른 계정·이 데모에서 가입한 계정)은 서버와
+  /// 같은 409 로 거절한다.
   ///
   /// 비밀번호는 서버와 같은 기준(`AppInputRules.signUpPassword`, #1555)을 보고,
   /// 어기면 서버와 같은 모양의 422(`detail[].type` 코드)를 준다 — 목업에서만
@@ -3609,15 +3662,40 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         },
       );
     }
+    if (await _isTakenEmail(email)) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 409,
+        data: <String, Object?>{'detail': '이미 가입된 이메일입니다.'},
+      );
+    }
+    // 서버 계정 id 와 같은 `user-<12자리 hex>` 모양이다.
+    final String hex = DateTime.now().microsecondsSinceEpoch
+        .toRadixString(16)
+        .padLeft(12, '0');
+    final String id = 'user-${hex.substring(hex.length - 12)}';
+    final String savedName = name.isEmpty ? email.split('@').first : name;
+    await _accounts.add(
+      id: id,
+      email: email,
+      password: password,
+      name: savedName,
+      phone: (body['phone'] as String? ?? '').trim(),
+    );
     return Response<Object?>(
       requestOptions: options,
       statusCode: 201,
-      data: <String, Object?>{
-        'id': 'user-${DateTime.now().microsecondsSinceEpoch}',
-        'name': name.isEmpty ? email.split('@').first : name,
-        'email': email,
-      },
+      data: <String, Object?>{'id': id, 'name': savedName, 'email': email},
     );
+  }
+
+  /// 다른 계정이 이미 쓰는 이메일인가 — 데모 회원·데모 세계의 다른 계정
+  /// ([_demoTakenEmails])·이 데모에서 가입한 계정. (#2665)
+  Future<bool> _isTakenEmail(String email) async {
+    final String key = DemoAccounts.normalize(email);
+    return key == DemoAccounts.demoEmail ||
+        _demoTakenEmails.contains(key) ||
+        await _accounts.find(key) != null;
   }
 
   /// POST /auth/logout — 데모에는 폐기할 서버 세션이 없다. 여기서 받아 주지 않으면
@@ -3656,6 +3734,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     if (token.isEmpty) {
       return _badRequest(options, 'token is required');
     }
+    // 데모의 소셜 로그인은 데모 회원으로 든다 — 가입 계정에서 바꿔 들어와도.
+    await _accounts.signIn(null);
     await _resetDemoNotificationReads();
     return _ok(options, <String, Object?>{
       'access_token': 'demo-social-${DateTime.now().microsecondsSinceEpoch}',
@@ -3696,15 +3776,33 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     'onboarded': true,
   };
 
+  /// 가입한 계정과 지금 로그인한 계정(#2665).
+  late final DemoAccounts _accounts = DemoAccounts(_db);
+
+  /// 이 데모에서 가입한 계정의 시작 프로필 — 실서버의 새 계정처럼 가입 때 받은
+  /// 값만 있고, 첫 설정 전이다(#2665). 목표는 비워 두면 앱이 권장값을 쓴다.
+  static Map<String, Object?> _signedUpProfile(Map<String, Object?> account) {
+    final String phone = account['phone'] as String? ?? '';
+    return <String, Object?>{
+      for (final String k in _defaultProfile.keys) k: null,
+      'id': account['id'],
+      'name': account['name'],
+      'email': account['email'],
+      'phone': phone.isEmpty ? null : phone,
+      'onboarded': false,
+    };
+  }
+
   Future<Map<String, Object?>> _readProfileOverlay() async {
-    final raw = await _db.readValue('profile_overlay');
+    final raw = await _db.readValue(await _accounts.currentProfileKey());
     if (raw == null || raw.isEmpty) return <String, Object?>{};
     return (jsonDecode(raw) as Map<Object?, Object?>).cast<String, Object?>();
   }
 
   Future<Map<String, Object?>> _mergedProfile() async {
+    final Map<String, Object?>? account = await _accounts.current();
     return <String, Object?>{
-      ..._defaultProfile,
+      if (account == null) ..._defaultProfile else ..._signedUpProfile(account),
       ...await _readProfileOverlay(),
     };
   }
@@ -3712,7 +3810,10 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   Future<void> _mergeProfileOverlay(Map<String, Object?> patch) async {
     final overlay = await _readProfileOverlay();
     overlay.addAll(patch);
-    await _db.putValue('profile_overlay', jsonEncode(overlay));
+    await _db.putValue(
+      await _accounts.currentProfileKey(),
+      jsonEncode(overlay),
+    );
   }
 
   Future<Response<Object?>> _usersMe(RequestOptions options) async {
@@ -3765,9 +3866,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     final String currentEmail = ((current['email'] as String?) ?? '')
         .trim()
         .toLowerCase();
-    if (email != null &&
-        email != currentEmail &&
-        _demoTakenEmails.contains(email)) {
+    if (email != null && email != currentEmail && await _isTakenEmail(email)) {
       return Response<Object?>(
         requestOptions: options,
         statusCode: 409,
@@ -3799,6 +3898,10 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       if (body.containsKey(k)) patch[k] = body[k];
     }
     await _mergeProfileOverlay(patch);
+    // 가입 계정은 바꾼 이메일로 다음에 로그인한다 — 서버도 같은 사용자 행이다.
+    if (email != null && email != currentEmail) {
+      await _accounts.renameCurrent(email);
+    }
     return _ok(options, await _mergedProfile());
   }
 
@@ -3830,6 +3933,15 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       if (body.containsKey(k)) patch[k] = body[k];
     }
     _normalizeConditions(patch);
+    await _stampMemberHealthChanges(patch);
+    await _mergeProfileOverlay(patch);
+    return _ok(options, await _mergedProfile());
+  }
+
+  /// 회원이 저장한 `conditions` 에서 목표 칩·건강상태·주의사항이 실제로 바뀌었으면
+  /// 누가 언제 바꿨는지 [patch] 에 얹는다 — 실서버 `record_member_change` 와 같은
+  /// 규칙이다. MY 건강 목표와 온보딩이 함께 쓴다(#2942).
+  Future<void> _stampMemberHealthChanges(Map<String, Object?> patch) async {
     // 목표 칩이 실제로 바뀐 저장만 `마지막 변경` 으로 남긴다 — 실서버와 같은
     // 규칙이다(#1832). 목업에는 담당 트레이너 쪽 알림함이 없어 기록만 한다.
     if (patch['conditions'] case final String next) {
@@ -3842,9 +3954,20 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         patch['focus_changed_by'] = 'member';
         patch['focus_changed_at'] = nowKst().toIso8601String();
       }
+      // 건강상태·주의사항은 따로 남긴다 — 조각 순서만 바뀐 저장은 아니다(#2942).
+      Set<String> notes(String raw) => healthFocusNotes(
+        raw,
+      ).split(', ').where((String t) => t.isNotEmpty).toSet();
+      final Set<String> notesBefore = notes(
+        current['conditions'] as String? ?? '',
+      );
+      final Set<String> notesAfter = notes(next);
+      if (notesBefore.length != notesAfter.length ||
+          !notesBefore.containsAll(notesAfter)) {
+        patch['notes_changed_by'] = 'member';
+        patch['notes_changed_at'] = nowKst().toIso8601String();
+      }
     }
-    await _mergeProfileOverlay(patch);
-    return _ok(options, await _mergedProfile());
   }
 
   /// 옛 질환 이름(고혈압·당뇨 등)을 새 건강 목표로 정리한다 — 서버 스키마가
@@ -3861,8 +3984,15 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   /// The body's `reasons` (#2019) are dropped here on purpose: the server keeps
   /// them in a table nobody reads back, and the demo has no such table. The
   /// withdrawal itself is what the demo has to reproduce.
+  ///
+  /// 가입 계정이 탈퇴하면 계정째 지운다(#2665) — 같은 이메일로 다시 가입할 수
+  /// 있고, 그 비밀번호로는 더 로그인되지 않는다.
   Future<Response<Object?>> _usersMeDelete(RequestOptions options) async {
-    await _db.putValue('profile_overlay', '');
+    if (await _accounts.current() != null) {
+      await _accounts.removeCurrent();
+      return _ok(options, <String, Object?>{'status': 'deleted'});
+    }
+    await _db.putValue(DemoAccounts.demoProfileKey, '');
     return _ok(options, <String, Object?>{'status': 'deleted'});
   }
 
@@ -3895,6 +4025,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     }
     patch['onboarded'] = true;
     _normalizeConditions(patch);
+    // 처음 고른 목표·적은 주의사항도 회원이 정한 것이다 — 실서버처럼 남긴다.
+    await _stampMemberHealthChanges(patch);
     await _mergeProfileOverlay(patch);
     return _ok(options, await _mergedProfile());
   }

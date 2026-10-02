@@ -38,9 +38,6 @@ class _PagedRepo implements TrainerNotificationRepository {
   Completer<void>? gate;
 
   @override
-  bool get supportsInbox => true;
-
-  @override
   Future<TrainerNotificationPage> fetch({
     TrainerNotificationCursor? before,
   }) async {

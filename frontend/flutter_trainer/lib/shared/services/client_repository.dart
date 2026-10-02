@@ -449,6 +449,11 @@ class DriftClientRepository implements ClientRepository {
         final String at => DateTime.tryParse(at),
         _ => null,
       },
+      notesChangedBy: saved['notes_changed_by'] as String?,
+      notesChangedAt: switch (saved['notes_changed_at']) {
+        final String at => DateTime.tryParse(at),
+        _ => null,
+      },
       weeklyWorkoutGoal: saved.containsKey('weekly_workout_goal')
           ? (saved['weekly_workout_goal'] as num?)?.toInt()
           : 3,
@@ -524,6 +529,8 @@ class DriftClientRepository implements ClientRepository {
       ),
       'focus_changed_by': current.focusChangedBy,
       'focus_changed_at': current.focusChangedAt?.toIso8601String(),
+      'notes_changed_by': current.notesChangedBy,
+      'notes_changed_at': current.notesChangedAt?.toIso8601String(),
     };
     // 목표 칩이 실제로 바뀐 저장만 `마지막 변경` 으로 남긴다 — 실서버와 같은
     // 규칙이다(#1832). 주의사항 글·수치만 고친 저장은 목표 변경이 아니다.
@@ -532,6 +539,17 @@ class DriftClientRepository implements ClientRepository {
     if (before.length != after.length || !before.containsAll(after)) {
       saved['focus_changed_by'] = MemberHealthProfile.focusChangedByTrainer;
       saved['focus_changed_at'] = nowKst().toIso8601String();
+    }
+    // 건강상태·주의사항은 따로 남긴다 — 조각 순서만 바뀐 저장은 아니다(#2942).
+    Set<String> notes(String raw) => healthFocusNotes(
+      raw,
+    ).split(', ').where((String t) => t.isNotEmpty).toSet();
+    final Set<String> notesBefore = notes(current.conditions);
+    final Set<String> notesAfter = notes(saved['conditions'] as String);
+    if (notesBefore.length != notesAfter.length ||
+        !notesBefore.containsAll(notesAfter)) {
+      saved['notes_changed_by'] = MemberHealthProfile.focusChangedByTrainer;
+      saved['notes_changed_at'] = nowKst().toIso8601String();
     }
     await _db.putValue('member_health_profile:$clientId', jsonEncode(saved));
     // 로스터의 회원 목표는 건강 목표다 — 실서버가 `conditions` 에서 읽는 것과 같다(#1818).
