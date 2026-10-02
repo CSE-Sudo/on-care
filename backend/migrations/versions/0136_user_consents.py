@@ -8,7 +8,7 @@
 다음 로그인 때 동의 화면을 띄운다.
 
 Revision ID: 0136_user_consents
-Revises: 0134_users_email_lower_unique
+Revises: 0135_diet_analysis_usages
 Create Date: 2026-10-01
 """
 from __future__ import annotations
@@ -19,7 +19,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0136_user_consents"
-down_revision: str | Sequence[str] | None = "0134_users_email_lower_unique"
+down_revision: str | Sequence[str] | None = "0135_diet_analysis_usages"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
