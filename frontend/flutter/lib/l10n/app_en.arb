@@ -2865,7 +2865,14 @@
   },
   "coachRoutineTitle": "Recommended solo workouts",
   "coachRoutineAiTitle": "AI recommended solo workouts",
-  "coachRoutinePastReadOnly": "What you did that day. Past days can't be checked.",
+  "coachRoutinePastEditHint": "You can add a missed check now. Your trainer will see it as checked later.",
+  "@coachRoutinePastEditHint": {
+    "description": "Shown after tapping the pencil on a past day's recommended exercises — past checks are allowed and marked as late for the trainer (#2506)."
+  },
+  "coachRoutinePastEditDone": "Done",
+  "@coachRoutinePastEditDone": {
+    "description": "Leaves the past-day check editing mode (#2506)."
+  },
   "@coachRoutineAiTitle": {
     "description": "Card title when the member has no trainer — every line is AI recommended (#2015)."
   },

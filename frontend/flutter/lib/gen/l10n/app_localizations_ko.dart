@@ -3556,7 +3556,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutineAiTitle => 'AI 추천 개인운동';
 
   @override
-  String get coachRoutinePastReadOnly => '그날 한 운동이에요. 지난 날짜는 체크할 수 없어요.';
+  String get coachRoutinePastEditHint =>
+      '빠뜨린 체크를 지금 할 수 있어요. 트레이너에게는 나중에 체크한 것으로 보여요.';
+
+  @override
+  String get coachRoutinePastEditDone => '완료';
 
   @override
   String get coachRoutineLogged => '운동 기록에 반영했어요';

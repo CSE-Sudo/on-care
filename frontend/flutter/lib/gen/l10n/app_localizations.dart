@@ -6408,11 +6408,17 @@ abstract class AppLocalizations {
   /// **'AI recommended solo workouts'**
   String get coachRoutineAiTitle;
 
-  /// No description provided for @coachRoutinePastReadOnly.
+  /// Shown after tapping the pencil on a past day's recommended exercises — past checks are allowed and marked as late for the trainer (#2506).
   ///
   /// In en, this message translates to:
-  /// **'What you did that day. Past days can\'t be checked.'**
-  String get coachRoutinePastReadOnly;
+  /// **'You can add a missed check now. Your trainer will see it as checked later.'**
+  String get coachRoutinePastEditHint;
+
+  /// Leaves the past-day check editing mode (#2506).
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get coachRoutinePastEditDone;
 
   /// Shown after a routine is marked done.
   ///
