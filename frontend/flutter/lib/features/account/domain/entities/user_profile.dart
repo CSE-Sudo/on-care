@@ -39,6 +39,8 @@ class UserProfile {
     this.focusChangedBy,
     this.focusChangedAt,
     this.hasPassword = true,
+    this.notesChangedBy,
+    this.notesChangedAt,
   });
 
   final String id;
@@ -104,6 +106,12 @@ class UserProfile {
   /// MY 비밀번호 변경이 "바꿀 비밀번호가 없음" 을 말한다. 이 값을 주지 않는
   /// 서버(필드 추가 이전)에서는 참으로 둔다 — 그때는 서버의 409 가 같은 안내를 낸다.
   final bool hasPassword;
+  /// 건강상태·주의사항을 마지막으로 바꾼 사람 — [focusChangedByMember] 또는
+  /// [focusChangedByTrainer](#2942). 목표 칩 기록과 따로다. 바꾼 적이 없으면 null.
+  final String? notesChangedBy;
+
+  /// 건강상태·주의사항을 마지막으로 바꾼 시각(로컬 시각). 바꾼 적이 없으면 null.
+  final DateTime? notesChangedAt;
 
   factory UserProfile.fromJson(Map<String, Object?> json) => UserProfile(
     onboarded: (json['onboarded'] as bool?) ?? false,
@@ -140,5 +148,13 @@ class UserProfile {
       _ => null,
     },
     hasPassword: (json['has_password'] as bool?) ?? true,
+    notesChangedBy: switch (json['notes_changed_by']) {
+      final String by when by.isNotEmpty => by,
+      _ => null,
+    },
+    notesChangedAt: switch (json['notes_changed_at']) {
+      final String at => DateTime.tryParse(at)?.toLocal(),
+      _ => null,
+    },
   );
 }

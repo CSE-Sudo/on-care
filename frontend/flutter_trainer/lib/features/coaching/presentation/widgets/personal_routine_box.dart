@@ -38,6 +38,7 @@ class PersonalRoutineBox extends StatelessWidget {
     this.target,
     this.nearestPt,
     this.targetReady = true,
+    this.onRetryTarget,
     super.key,
   });
 
@@ -57,6 +58,14 @@ class PersonalRoutineBox extends StatelessWidget {
   /// 시작일의 PT 를 아직 읽는 중이면 거짓이다. 그동안은 확정 버튼을 잠근다 —
   /// 읽기 전에 누르면 PT 가 있는 날인데도 바로 보내 버린다.
   final bool targetReady;
+
+  /// 시작일의 PT 를 읽지 못했을 때 다시 읽는다. (#2896)
+  ///
+  /// null 이 아니면 읽기에 실패한 것이다 — 버튼 위에 실패 안내와 `다시 시도`
+  /// 를 세운다. 확정 버튼은 [targetReady] 가 거짓이라 그대로 잠겨 있다가,
+  /// 다시 읽어 성공하면 풀린다. 이 줄이 없으면 위저드를 처음부터 다시 돌려야
+  /// 짠 개인운동을 보낼 수 있다.
+  final VoidCallback? onRetryTarget;
 
   /// PT 모드의 `개인운동 추가`·`개인운동 수정`. (#2280)
   ///
@@ -233,6 +242,32 @@ class PersonalRoutineBox extends StatelessWidget {
                   ),
                 ),
               ],
+            ],
+            if (onRetryTarget case final VoidCallback retry) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s8),
+              Row(
+                key: const ValueKey<String>('personal-routine-target-failed'),
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      l.personalRoutineTargetLoadFailed,
+                      style: context.oncare
+                          .text(OnCareTypography.caption)
+                          .copyWith(color: OnCareColors.danger),
+                    ),
+                  ),
+                  AppButton(
+                    key: const ValueKey<String>(
+                      'personal-routine-target-retry',
+                    ),
+                    label: l.actionRetry,
+                    leadingIcon: AppIcons.refresh,
+                    variant: AppButtonVariant.text,
+                    size: OnCareButtonSize.small,
+                    onPressed: retry,
+                  ),
+                ],
+              ),
             ],
             const SizedBox(height: OnCareSpacing.s12),
             AppActionRow(

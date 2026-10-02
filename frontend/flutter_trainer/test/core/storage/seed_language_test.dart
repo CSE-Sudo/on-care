@@ -419,7 +419,7 @@ void main() {
                 ..orderBy([(t) => OrderingTerm(expression: t.createdAt)]))
               .get();
       expect(chat.first.timeLabel, '화 10:02');
-      expect(chat[16].body, '무릎이 가볍게 당기긴 했는데 괜찮아요');
+      expect(chat[18].body, '무릎이 가볍게 당기긴 했는데 괜찮아요');
       final history = await db.select(db.clientRoutineHistory).get();
       expect(history.map((h) => h.dateLabel), contains('9/24 (오늘)'));
       final meals = await (db.select(
