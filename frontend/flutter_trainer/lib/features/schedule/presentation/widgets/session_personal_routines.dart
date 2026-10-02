@@ -548,7 +548,6 @@ class _SendPersonalRoutinesDialogState
       title: widget.editOnly
           ? l.schedEditRoutinesTitle
           : l.schedRoutinesSendTitle,
-      showClose: false,
       footer: AppButtonPair(
         cancelLabel: l.actionCancel,
         onCancel: () => Navigator.of(context).pop(),

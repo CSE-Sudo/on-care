@@ -42,11 +42,12 @@ class AppDialog extends StatelessWidget {
   final Widget? footer;
   final AppDialogSize size;
 
-  /// 헤더에 닫기 X 를 둘지. 확인창처럼 하단 버튼으로만 닫는 창은 끈다.
+  /// 헤더에 닫기 X 를 둘지. 비워 두면 X 를 둔다(#2983).
   ///
-  /// 비워 두면 웹은 [footer] 가 있을 때 X 를 두지 않는다(#2465) — 하단 `취소`
-  /// 와 X 가 함께 있으면 닫는 길이 둘이라 서로 다른 동작처럼 읽힌다. 하단
-  /// 버튼이 없는 조회용 창만 X 로 닫는다. 모바일은 비워 두면 X 를 둔다.
+  /// 보기 창은 X 만, 입력·편집 창은 X 와 하단 `취소`·`저장` 을 함께 둔다 —
+  /// 보러만 연 입력 창을 `취소` 로 나가는 것이 어색했다. X 는 `취소` 와 같이
+  /// 저장하지 않고 닫는다. 예/아니오로 답하는 확인·선택 창만 `false` 로 꺼서
+  /// 하단 버튼으로만 닫는다([showAppConfirmDialog]).
   final bool? showClose;
 
   /// 본문 안쪽. 미리보기처럼 가장자리까지 채울 때만 바꾼다.
@@ -68,8 +69,7 @@ class AppDialog extends StatelessWidget {
             AppDialogSize.large => OnCareLayout.dialogLarge,
           }
         : OnCareLayout.mobileDialogMaxWidth;
-    final bool showClose =
-        this.showClose ?? !(tokens.density.isWeb && footer != null);
+    final bool showClose = this.showClose ?? true;
     final bool hasHeader = title != null || showClose || trailing != null;
 
     return Dialog(
