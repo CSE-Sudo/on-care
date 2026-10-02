@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
+import 'package:oncare_trainer/features/reports/domain/report_queue_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_workbench.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -49,6 +50,15 @@ void main() {
       token: 'demo-trainer-token',
       extraOverrides: <Override>[
         clientsProvider.overrideWith((ref) => roster.stream),
+        // 작업대 줄 수치는 이 테스트가 보는 것이 아니다. 데모 저장소의 요약은
+        // 회원마다 drift 구독을 열어 두는데, 계정 단위로 살아 있어 테스트 정리의
+        // DB 닫기가 그 구독의 남은 쿼리를 기다리며 끝나지 않는다 — 빈 요약으로
+        // 바꿔 둔다(#2863).
+        reportQueueProvider.overrideWith(
+          (ref, key) => Stream<Map<String, ReportQueueSummary>>.value(
+            const <String, ReportQueueSummary>{},
+          ),
+        ),
       ],
     );
     return (container, roster);
