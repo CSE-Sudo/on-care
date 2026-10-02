@@ -1411,7 +1411,7 @@ gym_id, gym_name, gym_address, gym_is_fitness, status, decided_at, decided_by, n
 
 - **반려는 새 연결만 막는다.** 이미 맺어진 담당 관계·받은 상담은 그대로 둔다 — 끊으려면 회원 쪽
   알림·동의 철회가 따라야 하고, 그건 계정 정지·탈퇴 경로의 일이다.
-- 마이그레이션(`0124_trainer_verification`)은 **기존 트레이너를 모두 `approved` 로 채운다.**
+- 마이그레이션(`0136_trainer_verification`)은 **기존 트레이너를 모두 `approved` 로 채운다.**
   DB 기본값은 `pending` 이라 ORM 밖에서 넣은 행은 노출되지 않는다. ORM 기본값은 `approved`
   (시드·운영 스크립트 경로)이고, 공개 가입만 `pending` 을 명시한다.
 - 자격증 사본 등 증빙 업로드와 운영자 관리 화면은 아직 없다.
