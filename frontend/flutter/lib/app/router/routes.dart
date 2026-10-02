@@ -30,6 +30,7 @@ class AppRoutes {
   static const String mySettings = '/my-health/settings/:section';
   static const String gyms = '/gyms';
   static const String gymDetail = '/gyms/:gymId';
+
   /// 트레이너 **상세**. 목록 화면은 없다 — 트레이너는 헬스장을 거쳐 만난다
   /// (헬스장 찾기 카드 → 헬스장 상세 → 트레이너 상세). #1885
   static const String trainerDetail = '/trainers/:trainerId';
@@ -74,6 +75,9 @@ class AppRoutes {
   static const String splash = '/auth/splash';
   static const String signIn = '/auth/sign-in';
   static const String signUp = '/auth/sign-up';
+
+  /// 가입 동의(#2819) — 동의가 남은 계정이 로그인하면 다른 화면보다 먼저 온다.
+  static const String consent = '/auth/consent';
 
   /// 비밀번호 재설정(#2824). 로그인 화면과 재설정 메일의 링크
   /// (`?token=…`)가 연다. 세션 상태와 상관없이 열린다 — 복구 중이거나 로그인한

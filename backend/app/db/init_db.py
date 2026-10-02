@@ -97,6 +97,9 @@ def init_db() -> None:
         # 깔린 뒤라야 지난 수업에 메모를 달 수 있다.
         from app.db.seed_trainer_notes import seed_trainer_notes
         seed_trainer_notes()
+        # 데모 계정은 가입 동의를 마친 상태로 둔다(#2819). 동의 행이 없으면 로그인
+        # 직후 동의 화면에 붙잡혀 시연·E2E 가 그 뒤 화면으로 가지 못한다.
+        _seed_demo_consents()
         # 시드 기록을 개인 RAG 문서로 적재(#604). **모든 시드가 끝난 뒤**여야 한다 —
         # 확장 회원(4~15)의 기록은 바로 위에서 만들어지므로, 앞에서 훑으면 첫 기동에
         # 그들 문서가 통째로 빠지고 재기동해야 채워진다.
@@ -122,6 +125,29 @@ def _seed_demo_user() -> None:
             )
             db.add(user)
             db.commit()
+    finally:
+        db.close()
+
+
+#: 데모 시드가 쓰는 이메일 도메인. 실제 가입 계정은 이 도메인을 쓰지 않는다.
+DEMO_EMAIL_DOMAINS = ("@oncare.com", "@oncare.demo")
+
+
+def _seed_demo_consents() -> None:
+    """데모 계정마다 역할별 필수 동의를 지금 버전으로 남긴다(멱등, #2819)."""
+    from app.services import signup_consent
+
+    db: Session = SessionLocal()
+    try:
+        users = db.scalars(select(models.User)).all()
+        for user in users:
+            email = (user.email or "").lower()
+            if not email.endswith(DEMO_EMAIL_DOMAINS):
+                continue
+            signup_consent.record(
+                db, user.id, signup_consent.required_for(user.role)
+            )
+        db.commit()
     finally:
         db.close()
 

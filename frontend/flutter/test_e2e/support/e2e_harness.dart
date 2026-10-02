@@ -166,10 +166,12 @@ class E2eApi {
     final Response<Map<String, dynamic>> res = await dio
         .post<Map<String, dynamic>>(
           '/auth/register',
-          data: <String, String>{
+          data: <String, Object>{
             'email': email,
             'password': demoPassword,
             'name': name ?? 'E2E 회원',
+            // 필수 가입 동의(#2819). 없으면 로그인 뒤 동의 화면에 붙잡힌다.
+            'consents': <String>['terms', 'privacy', 'health', 'age14'],
           },
         );
     expect(res.statusCode, 201, reason: '$email 가입 실패: ${res.data}');

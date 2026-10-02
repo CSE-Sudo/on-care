@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare/features/member_coach/presentation/widgets/trainer_share_consent_details.dart';
 import 'package:oncare/features/my_health/data/repositories/trainer_sync_repository.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -129,7 +130,10 @@ class _TrainerSyncSheetState extends ConsumerState<_TrainerSyncSheet> {
             // 코드보다 먼저 무엇이 공유되는지 말한다 — 코드를 받는 것이
             // 동의라, 동의하는 내용이 코드 아래에 있으면 안 된다.
             Text(l.trainerSyncConsent, style: secondary),
-            const SizedBox(height: OnCareSpacing.s24),
+            // 목적·기간·거부권을 펼쳐 볼 수 있게 둔다(#2826).
+            const SizedBox(height: OnCareSpacing.s4),
+            const TrainerShareConsentDetails(),
+            const SizedBox(height: OnCareSpacing.s20),
             if (!_agreed)
               AppButton(
                 key: const ValueKey<String>('trainer-sync-agree'),

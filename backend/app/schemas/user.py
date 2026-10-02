@@ -32,6 +32,7 @@ from app.services.contact_format import clean_email, normalize_phone
 from app.services.password_policy import check_new_password
 from app.services.profile_format import clean_birth_date, clean_name
 from app.services.health_focus import normalize_conditions
+from app.services.signup_consent import Kind as ConsentKind, missing_required
 
 
 # ---- GET /users/me ----
@@ -39,6 +40,26 @@ class UserMe(BaseModel):
     id: str
     name: str
     email: str
+    #: 필수 가입 동의(약관·개인정보·건강정보·만 14세) 중 지금 버전에 동의하지
+    #: 않은 항목이 있는가(#2819). 참이면 앱이 다른 화면보다 먼저 동의 화면을
+    #: 띄운다 — 동의 절차가 생기기 전에 가입한 계정, 소셜 첫 가입, 문서 버전이
+    #: 올라간 뒤의 첫 로그인이 여기에 걸린다.
+    consent_required: bool = False
+    #: 아직 동의하지 않은 필수 항목(`terms`·`privacy`·`health`·`age14`).
+    consent_pending: list[str] = Field(default_factory=list)
+
+
+class ConsentSubmit(BaseModel):
+    """POST /users/me/consents — 가입 뒤 동의 화면에서 받은 항목. (#2819)"""
+
+    consents: list[ConsentKind]
+
+
+class ConsentStatus(BaseModel):
+    """동의를 남긴 뒤의 상태. `GET /users/me` 의 같은 이름 칸과 같다."""
+
+    consent_required: bool
+    consent_pending: list[str] = Field(default_factory=list)
 
 
 # ---- GET /users/me/health ----
@@ -119,6 +140,16 @@ class Token(BaseModel):
     access_token: str
     refresh_token: str = ""
     token_type: str = "bearer"
+
+
+class LoginToken(Token):
+    """로그인·소셜 로그인 응답. (#2819)
+
+    토큰과 함께 이 계정이 동의 화면을 거쳐야 하는지 알린다. 앱이 로그인 직후
+    `GET /users/me` 를 한 번 더 부르지 않고도 바로 동의 화면으로 갈 수 있다.
+    """
+
+    consent_required: bool = False
 
 
 class RefreshRequest(BaseModel):
@@ -228,6 +259,25 @@ class UserRegister(BaseModel):
     #:
     #: 들어온 표기가 무엇이든 `010-0000-0000` 하나로 정리해 저장한다(#1780).
     phone: str = ""
+    #: 가입 화면에서 체크한 동의 항목(#2819). 보냈다면 필수 항목
+    #: ([REQUIRED_CONSENTS_ROLE] 의 필수 집합)이 모두 있어야 한다 — 빠지면 422.
+    #:
+    #: **보내지 않으면(null) 막지 않는다.** 동의 화면이 없는 옛 앱 빌드에서도
+    #: 가입은 되고, 동의 행이 없으므로 로그인 직후 동의 화면을 거친다. 빈
+    #: 목록(`[]`)은 '보냈는데 아무것도 체크하지 않았다'라 422 다.
+    consents: Optional[list[ConsentKind]] = None
+
+    #: 필수 항목을 고르는 역할. 트레이너 가입은 건강정보 동의가 없다.
+    REQUIRED_CONSENTS_ROLE: ClassVar[str] = "member"
+
+    @model_validator(mode="after")
+    def _check_required_consents(self) -> "UserRegister":
+        if self.consents is None:
+            return self
+        missing = missing_required(self.REQUIRED_CONSENTS_ROLE, self.consents)
+        if missing:
+            raise ValueError(f"필수 동의 항목이 빠졌습니다: {', '.join(missing)}")
+        return self
 
     @field_validator("email", mode="before")
     @classmethod
@@ -263,7 +313,12 @@ class TrainerRegister(UserRegister):
     예전에는 헬스장 초대 코드를 더 받았지만 발급 경로가 없어 걷어 냈다(#1627).
     소속 헬스장은 가입 뒤 `PUT /trainer/me/gym` 으로 고른다. 스키마를 따로 두는
     이유는 엔드포인트가 달라서다 — 트레이너만의 필드가 다시 생기면 여기에 더한다.
+
+    필수 동의 항목은 회원과 다르다(#2819) — 트레이너는 자기 건강정보를 기록하지
+    않으므로 건강정보 처리 동의가 없다.
     """
+
+    REQUIRED_CONSENTS_ROLE: ClassVar[str] = "trainer"
 
 
 # ---- 프로필 / 온보딩 / 건강 목표 ----

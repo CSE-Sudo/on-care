@@ -476,17 +476,95 @@ abstract class AppLocalizations {
   /// **'Confirm password'**
   String get authPasswordConfirm;
 
-  /// No description provided for @authLegalNotice.
-  ///
-  /// In en, this message translates to:
-  /// **'By signing up you agree to'**
-  String get authLegalNotice;
-
   /// No description provided for @authSignUpAndStart.
   ///
   /// In en, this message translates to:
   /// **'Sign up and start'**
   String get authSignUpAndStart;
+
+  /// No description provided for @consentAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree to all'**
+  String get consentAll;
+
+  /// No description provided for @consentRequiredTag.
+  ///
+  /// In en, this message translates to:
+  /// **'[Required]'**
+  String get consentRequiredTag;
+
+  /// No description provided for @consentOptionalTag.
+  ///
+  /// In en, this message translates to:
+  /// **'[Optional]'**
+  String get consentOptionalTag;
+
+  /// No description provided for @consentView.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get consentView;
+
+  /// No description provided for @consentTerms.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get consentTerms;
+
+  /// No description provided for @consentPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection and use of personal information'**
+  String get consentPrivacy;
+
+  /// No description provided for @consentAge14.
+  ///
+  /// In en, this message translates to:
+  /// **'I am 14 years of age or older'**
+  String get consentAge14;
+
+  /// No description provided for @consentAge14Detail.
+  ///
+  /// In en, this message translates to:
+  /// **'You must be 14 or older to sign up.'**
+  String get consentAge14Detail;
+
+  /// No description provided for @consentMarketing.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive marketing notifications'**
+  String get consentMarketing;
+
+  /// No description provided for @consentRequiredHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree to all required items to continue.'**
+  String get consentRequiredHint;
+
+  /// No description provided for @consentPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Agreements'**
+  String get consentPageTitle;
+
+  /// No description provided for @consentPageSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Please review and agree to the items below to keep using On-Care.'**
+  String get consentPageSubtitle;
+
+  /// No description provided for @consentPageAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree and continue'**
+  String get consentPageAction;
+
+  /// No description provided for @consentPageFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save your agreement. Please try again in a moment.'**
+  String get consentPageFailed;
 
   /// No description provided for @authHasAccount.
   ///

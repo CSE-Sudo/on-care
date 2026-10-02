@@ -49,6 +49,7 @@ class _RecordingAuthRepository implements TrainerAuthRepository {
     required String email,
     required String password,
     required String name,
+    List<String>? consents,
   }) async => _tokens;
 
   @override

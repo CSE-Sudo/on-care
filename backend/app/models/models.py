@@ -721,6 +721,39 @@ class AccountDeletionReason(Base):
     )
 
 
+class UserConsent(Base):
+    """가입 동의 한 항목 — 누가 어느 문서의 어느 버전에 언제 동의했는가. (#2819)
+
+    항목(`kind`)은 `terms`·`privacy`·`health`·`age14`·`marketing` 이고, 버전은
+    `services/signup_consent.CURRENT_VERSIONS` 가 정한다. 문서가 바뀌면 새 버전의
+    행이 더해질 뿐 옛 행은 지우지 않는다 — 그때 무엇에 동의했는지가 이력이다.
+
+    계정이 지워지면 함께 지운다. 탈퇴한 계정의 동의 이력을 따로 보관할 근거는
+    처리방침 정비(#2820)에서 정한다.
+    """
+
+    __tablename__ = "user_consents"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    kind: Mapped[str] = mapped_column(String(20))
+    version: Mapped[str] = mapped_column(String(20))
+    agreed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    #: 철회한 시각. 지금은 철회 화면이 없어 비어 있다 — 선택 항목(마케팅)을
+    #: 끄는 화면이 생기면 여기에 적는다.
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "kind", "version", name="uq_user_consents_user_kind_version"
+        ),
+    )
+
+
 class DietPhoto(Base):
     """끼니 사진 — 회원이 올린 사진의 축소본. (#699)
 
