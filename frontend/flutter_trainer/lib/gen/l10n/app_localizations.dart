@@ -7714,7 +7714,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientFeedbackSourcePt.
   ///
   /// In en, this message translates to:
-  /// **'PT · {date}'**
+  /// **'PT session · {date}'**
   String clientFeedbackSourcePt(String date);
 
   /// No description provided for @clientFeedbackSourceReport.

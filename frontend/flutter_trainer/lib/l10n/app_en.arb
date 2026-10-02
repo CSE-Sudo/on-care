@@ -2877,7 +2877,7 @@
   "clientFeedbackPrivate": "Feedback you and the member exchanged. Tap one to edit it where it was written.",
   "clientFeedbackToMember": "Trainer → member",
   "clientFeedbackFromMember": "Member → trainer",
-  "clientFeedbackSourcePt": "PT · {date}",
+  "clientFeedbackSourcePt": "PT session · {date}",
   "@clientFeedbackSourcePt": {
     "placeholders": {
       "date": {

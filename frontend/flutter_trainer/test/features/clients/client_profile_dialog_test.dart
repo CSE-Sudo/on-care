@@ -1641,7 +1641,7 @@ void main() {
       expect(ptY, lessThan(weeklyY));
       expect(weeklyY, lessThan(reportY));
 
-      expect(find.text('PT · 9/30'), findsOneWidget);
+      expect(find.text('PT 세션 · 9/30'), findsOneWidget);
       expect(find.text('주간 피드백 · 9/28 주'), findsOneWidget);
       expect(find.text('리포트 · 9/21 주'), findsOneWidget);
       expect(find.text('트레이너 → 회원'), findsNWidgets(2));
