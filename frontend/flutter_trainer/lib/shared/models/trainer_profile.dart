@@ -30,6 +30,45 @@ class TrainerGym {
   final String phone;
 }
 
+/// 운영자 승인 상태 — `GET /trainer/me` 의 `verification.status` (#2825).
+enum TrainerVerificationStatus {
+  /// 가입 직후. 회원 앱에 나오지 않고 상담·회원 연결을 받을 수 없다.
+  pending,
+
+  /// 승인됨 — 모든 기능이 열린다.
+  approved,
+
+  /// 반려됨. 승인 대기와 같이 막히고, 사유가 있으면 함께 보인다.
+  rejected;
+
+  /// 서버 문자열을 읽는다. 모르는 값은 [pending] — 닫힌 쪽으로 읽는다.
+  static TrainerVerificationStatus fromWire(Object? value) => switch (value) {
+    'approved' => approved,
+    'rejected' => rejected,
+    _ => pending,
+  };
+}
+
+/// 트레이너 계정의 운영자 승인 상태 (#2825).
+class TrainerVerification {
+  /// Creates a verification snapshot.
+  const TrainerVerification({required this.status, this.note = ''});
+
+  /// 승인된 상태 — 데모 트레이너와 승인 절차 이전 서버의 응답이 이 값이다.
+  static const TrainerVerification approved = TrainerVerification(
+    status: TrainerVerificationStatus.approved,
+  );
+
+  /// 승인 대기·승인·반려.
+  final TrainerVerificationStatus status;
+
+  /// 반려 사유. 승인·대기면 빈 문자열이다.
+  final String note;
+
+  /// 승인을 받아 회원 앱 노출·상담·회원 연결이 열려 있는가.
+  bool get isApproved => status == TrainerVerificationStatus.approved;
+}
+
 /// A trainer account's profile.
 ///
 /// Until the real backend exists, login attaches a single fixed
@@ -47,6 +86,7 @@ class TrainerProfile {
     required this.intro,
     required this.certifications,
     required this.gym,
+    this.verification = TrainerVerification.approved,
   });
 
   /// Display name (e.g. "김태오").
@@ -76,6 +116,9 @@ class TrainerProfile {
   /// Gym the trainer belongs to.
   final TrainerGym gym;
 
+  /// 운영자 승인 상태 (#2825). 데모 프로필은 승인 상태다.
+  final TrainerVerification verification;
+
   /// Returns a copy with the given fields replaced. Used by 회원가입 to
   /// reflect the submitted name/email on the (otherwise seed) demo profile.
   TrainerProfile copyWith({
@@ -87,6 +130,7 @@ class TrainerProfile {
     String? intro,
     List<String>? certifications,
     TrainerGym? gym,
+    TrainerVerification? verification,
   }) {
     return TrainerProfile(
       name: name ?? this.name,
@@ -97,6 +141,7 @@ class TrainerProfile {
       intro: intro ?? this.intro,
       certifications: certifications ?? this.certifications,
       gym: gym ?? this.gym,
+      verification: verification ?? this.verification,
     );
   }
 }
