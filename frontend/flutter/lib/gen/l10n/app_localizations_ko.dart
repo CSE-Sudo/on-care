@@ -3335,48 +3335,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutineGone => '이 프로그램은 더 이상 없어요. 목록을 새로 불러와 주세요';
 
   @override
-  String get routineEffectCardioDefault => '체력 향상·만성질환 예방';
-
-  @override
-  String get routineEffectStrengthDefault => '근력·근지구력 향상';
-
-  @override
-  String get routineEffectStretchDefault => '유연성·부상 예방';
-
-  @override
-  String get routineEffectBloodPressure => '혈압 관리에 도움';
-
-  @override
-  String get routineEffectFatLoss => '체지방 감량에 도움';
-
-  @override
-  String get routineEffectCardioFitness => '심폐 체력 향상';
-
-  @override
-  String get routineEffectGentleRecovery => '무리 없는 체력 회복';
-
-  @override
-  String get routineEffectMuscleMass => '근육량 유지·증가';
-
-  @override
-  String get routineEffectStrength => '근력 향상';
-
-  @override
-  String get routineEffectPostureMuscles => '자세 지지 근육 강화';
-
-  @override
-  String get routineEffectHeartRate => '혈압·심박 안정';
-
-  @override
-  String get routineEffectMuscleRecovery => '근육 회복';
-
-  @override
-  String get routineEffectLoosen => '굳은 근육 이완';
-
-  @override
-  String get routineEffectJointRange => '관절 가동 범위 회복';
-
-  @override
   String get coachRoutineNetworkError => '네트워크 연결을 확인하고 다시 시도해 주세요';
 
   @override

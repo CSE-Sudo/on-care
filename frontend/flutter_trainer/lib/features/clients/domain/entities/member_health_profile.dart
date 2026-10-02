@@ -1,5 +1,7 @@
 import 'package:oncare_trainer/features/clients/domain/diet_analysis_rules.dart'
     show pyRound;
+import 'package:oncare_ui/oncare_ui.dart'
+    show kGoalDefaultDailyProteinG, kGoalDefaultProteinGPerKg;
 
 class MemberHealthProfile {
   /// [focusChangedBy] 값 — 건강 목표를 마지막으로 바꾼 사람(#1832).
@@ -64,10 +66,11 @@ class MemberHealthProfile {
       defaultDailyProteinG;
 
   /// 체중도 개인 목표도 없을 때의 단백질 목표 — 서버 `DEFAULT_PROTEIN_G`.
-  static const int defaultDailyProteinG = 60;
+  /// 값은 공용 패키지 `oncare_ui` 의 `kGoalDefault…` 한 곳에 있다(#2906).
+  static const int defaultDailyProteinG = kGoalDefaultDailyProteinG;
 
   /// 체중 1kg 당 단백질 목표(g) — 서버 `PROTEIN_G_PER_KG`.
-  static const double proteinGPerKg = 1.2;
+  static const double proteinGPerKg = kGoalDefaultProteinGPerKg;
 
   /// 체중 기반 단백질 목표. 체중이 없으면 null.
   static int? proteinTargetFromWeight(double? weightKg) =>

@@ -23,6 +23,13 @@ import 'package:demo_fixture/demo_fixture.dart'
 import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_rules/oncare_rules.dart' show pyRound;
+import 'package:oncare_ui/oncare_ui.dart'
+    show
+        kGoalDefaultDailyCalories,
+        kGoalDefaultDailyProteinG,
+        kGoalDefaultDailySodiumMg,
+        kGoalDefaultDailySugarG,
+        kGoalDefaultProteinGPerKg;
 
 // 4주 추천 메뉴 리스트는 트레이너 웹 데모와 함께 쓴다(#2379) — 공유 픽스처로 옮겼다.
 export 'package:demo_fixture/demo_fixture.dart'
@@ -53,16 +60,20 @@ typedef DemoDietTargets = ({
 });
 
 /// 개인 목표 → 하루 목표. 단백질은 목표 → 체중 × 1.2g → 60g 순이다.
+///
+/// 기본값은 공용 패키지 `oncare_ui` 의 `kGoalDefault…` 한 곳에 있다(#2906).
 DemoDietTargets demoDietTargets(Map<String, Object?> profile) {
   int? positive(Object? v) => v is num && v > 0 ? v.toInt() : null;
   final num? weight = profile['weight_kg'] as num?;
   return (
-    calories: positive(profile['daily_calories']) ?? 2000,
+    calories: positive(profile['daily_calories']) ?? kGoalDefaultDailyCalories,
     proteinG:
         positive(profile['daily_protein_g']) ??
-        (weight != null && weight > 0 ? pyRound(weight * 1.2) : 60),
-    sodiumMg: positive(profile['daily_sodium_mg']) ?? 2000,
-    sugarG: positive(profile['daily_sugar_g']) ?? 50,
+        (weight != null && weight > 0
+            ? pyRound(weight * kGoalDefaultProteinGPerKg)
+            : kGoalDefaultDailyProteinG),
+    sodiumMg: positive(profile['daily_sodium_mg']) ?? kGoalDefaultDailySodiumMg,
+    sugarG: positive(profile['daily_sugar_g']) ?? kGoalDefaultDailySugarG,
   );
 }
 

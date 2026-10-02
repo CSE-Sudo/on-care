@@ -54,16 +54,24 @@ import 'package:oncare/features/member_coach/data/demo_coach_files.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart'
     show CoachAttachmentKind;
 import 'package:oncare_core/clock.dart';
-// 분·kcal 반올림·운동 유형 정규화는 실서버와 같은 공용 규칙을 쓴다(#2860, #2861).
+// 분·kcal 반올림·운동 유형 정규화·칼로리 계수는 실서버와 같은 공용 규칙을
+// 쓴다(#2860, #2861, #2906).
 import 'package:oncare_rules/oncare_rules.dart'
     show
+        exerciseIntensityFactor,
+        fallbackExerciseCalories,
         kExerciseTypeCardio,
         kExerciseTypeStrength,
         kExerciseTypeStretching,
         minutesFromSeconds,
-        normalizeExerciseType,
-        pyRound;
-import 'package:oncare_ui/oncare_ui.dart' show AppInputError, AppInputRules;
+        normalizeExerciseType;
+import 'package:oncare_ui/oncare_ui.dart'
+    show
+        AppInputError,
+        AppInputRules,
+        kGoalDefaultDailyCalories,
+        kGoalDefaultDailySodiumMg,
+        kGoalDefaultDailySugarG;
 
 /// A drift-backed dummy backend. Intercepts dio requests and serves
 /// them out of the local SQLite database so the app can run as a
@@ -887,10 +895,13 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     final today = _todayDateString();
     final profile = await _mergedProfile();
     final int calorieGoal =
-        (profile['daily_calories'] as num?)?.toInt() ?? 2000;
+        (profile['daily_calories'] as num?)?.toInt() ??
+        kGoalDefaultDailyCalories;
     final int sodiumGoal =
-        (profile['daily_sodium_mg'] as num?)?.toInt() ?? 2000;
-    final int sugarGoal = (profile['daily_sugar_g'] as num?)?.toInt() ?? 50;
+        (profile['daily_sodium_mg'] as num?)?.toInt() ??
+        kGoalDefaultDailySodiumMg;
+    final int sugarGoal =
+        (profile['daily_sugar_g'] as num?)?.toInt() ?? kGoalDefaultDailySugarG;
 
     // Diet aggregates.
     final dietRows = await (_db.select(
@@ -1453,9 +1464,12 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
 
     final Map<String, Object?> profile = await _mergedProfile();
     int? positive(Object? v) => v is num && v > 0 ? v.toInt() : null;
-    final int sodiumLimit = positive(profile['daily_sodium_mg']) ?? 2000;
-    final int sugarLimit = positive(profile['daily_sugar_g']) ?? 50;
-    final int calorieLimit = positive(profile['daily_calories']) ?? 2000;
+    final int sodiumLimit =
+        positive(profile['daily_sodium_mg']) ?? kGoalDefaultDailySodiumMg;
+    final int sugarLimit =
+        positive(profile['daily_sugar_g']) ?? kGoalDefaultDailySugarG;
+    final int calorieLimit =
+        positive(profile['daily_calories']) ?? kGoalDefaultDailyCalories;
     final int proteinGoal = positive(profile['daily_protein_g']) ?? 0;
 
     final Set<String> signals = <String>{
@@ -1607,7 +1621,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   }
 
   /// 회원 나트륨 목표가 없을 때의 하루 상한. 서버 `SODIUM_LIMIT_MG` 와 같다.
-  static const int _kDefaultSodiumLimitMg = 2000;
+  static const int _kDefaultSodiumLimitMg = kGoalDefaultDailySodiumMg;
 
   /// 시드에 문장이 없는 날짜(또는 영어 화면)용 — 그날의 수치를 보고 만든 문구.
   ///
@@ -2403,22 +2417,6 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     return (_mondayOf(day), _weekdayLabels[day.weekday - 1]);
   }
 
-  /// 강도 배수 — 서버 `exercise_catalog.energy.INTENSITY_FACTOR` 와 같은 값이다.
-  static const Map<String, double> _intensityFactor = <String, double>{
-    'light': 0.85,
-    'moderate': 1.0,
-    'high': 1.2,
-  };
-
-  /// 유형별 분당 kcal 폴백 — 이름이 종목표에 붙지 않을 때다. 서버
-  /// `exercise_catalog.energy.FALLBACK_KCAL_PER_MIN` 과 같은 값이어야 한다.
-  static const Map<String, double> _fallbackKcalPerMin = <String, double>{
-    'cardio': 9.0,
-    'strength': 6.0,
-    'stretching': 3.0,
-    'other': 5.0,
-  };
-
   /// POST /diet/nutrition — 음식 이름으로 공공 영양 DB 값. (#1896)
   ///
   /// 서버와 같은 순서다: 이름을 표에 붙이고, 붙었으면 **양으로 환산**해 돌려준다.
@@ -2525,18 +2523,17 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   }) async {
     // 유형 표기는 서버 `exercise_types.normalize` 와 같은 공용 표로 접는다 —
     // 한글 라벨(`유산소`)도 기타로 떨어지지 않는다(#2861).
-    final String normalized = normalizeExerciseType(type);
-    final double factor = _intensityFactor[intensity ?? 'moderate'] ?? 1.0;
+    // 강도 배수·유형별 분당 kcal 폴백은 서버 `exercise_catalog.energy` 와 같은
+    // 공용 표(`oncare_rules`)다(#2906).
+    final double factor = exerciseIntensityFactor(intensity);
     final DemoExerciseActivity? matched = matchDemoExercise(name);
     final double? weightKg = ((await _mergedProfile())['weight_kg'] as num?)
         ?.toDouble();
     // 체중을 모르면 참조표로 계산하지 않는다 — 기준 체중으로 낸 값은 이 회원의
     // 값이 아닌데 `db` 로 표시되면 실제보다 높은 신뢰 신호를 준다.
     if (matched == null || weightKg == null || weightKg <= 0) {
-      final double perMin =
-          _fallbackKcalPerMin[normalized] ?? _fallbackKcalPerMin['other']!;
       return (
-        calories: pyRound(perMin * minutes * factor),
+        calories: fallbackExerciseCalories(type, minutes, intensity),
         source: 'estimate',
         matchedName: '',
       );
