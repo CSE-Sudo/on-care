@@ -16,6 +16,8 @@ dependencies:
   # 두 앱이 이미 쓰는 패키지라 버전을 묶지 않는다(oncare_ui 와 같다).
   intl: any
   pdf: ^3.11.3
+  # 네이티브에서 PDF 쪽 그림·인쇄를 맡는다. 웹은 pdf.js 를 직접 부른다(pdf_pages.dart).
+  printing: any
   web: ^1.1.0
   # 김민수 데모 주차를 세우는 원본(데모 빌더).
   demo_fixture:
