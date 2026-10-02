@@ -20,6 +20,8 @@ from datetime import date, timedelta
 from functools import lru_cache
 from pathlib import Path
 
+from app.core.week import monday_of
+
 #: 픽스처 파일. `shared/demo_fixture/assets/kim_minsu.json` 과 내용이 같다 —
 #: 백엔드 이미지가 `backend/` 만 담기 때문에 여기에도 둔다(`tool/gen_demo_fixture.py`
 #: 가 두 곳에 함께 쓴다).
@@ -194,7 +196,7 @@ class FixtureDay:
     @property
     def week_start(self) -> str:
         """그 주 월요일. 운동은 주 단위로 조회된다."""
-        return (self.day - timedelta(days=self.day.weekday())).isoformat()
+        return monday_of(self.day).isoformat()
 
     @property
     def day_label(self) -> str:
@@ -286,7 +288,7 @@ class DemoFixture:
         아직 오지 않은 요일은 넣지 않는다 — 넣으면 주간 추이 그래프가 빈 날을
         막대로 그리고 주 평균도 실제보다 높아진다(#752).
         """
-        this_monday = today - timedelta(days=today.weekday())
+        this_monday = monday_of(today)
         by_date: dict[date, dict] = {}
 
         for week in self._weeks:
