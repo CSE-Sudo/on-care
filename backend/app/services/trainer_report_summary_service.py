@@ -31,7 +31,8 @@ from sqlalchemy.orm import Session
 
 from app.core.locale import Locale, current_locale, localized
 from app.schemas.trainer_api import ReportSummaryOut, WeeklyReportOut
-from app.services import client_signals, korean_josa, trainer_service
+from app.services import client_signals, korean_josa
+from app.services.trainer import reports as trainer_reports_service
 from app.services.coach import prompt_safety
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
 
@@ -140,7 +141,7 @@ def generate_summary(
     요청 컨텍스트를 보지 못하므로, 언어는 여기서 한 번 정해 끝까지 넘긴다.
     """
     locale = locale or current_locale()
-    report = trainer_service.build_weekly_report(db, trainer_id, member_id, week)
+    report = trainer_reports_service.build_weekly_report(db, trainer_id, member_id, week)
     evidence = _evidence(report, locale)
     fallback = _rule_summary(report, evidence, locale)
     if not evidence:
@@ -482,7 +483,7 @@ def _skipped_exercises(report: WeeklyReportOut) -> list[str]:
             if "✗" in line:
                 # 분량을 뗀 이름으로 묶는다 — 같은 운동을 요일마다 건너뛴 것이
                 # 서로 다른 운동 셋으로 읽히면 안 된다(#1177).
-                name = trainer_service.exercise_base_name(line)
+                name = trainer_reports_service.exercise_base_name(line)
                 if name and name not in names:
                     names.append(name)
     return names[:MAX_POINTS]

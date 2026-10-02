@@ -54,8 +54,11 @@ from app.services import (
     exercise_service,
     health_goal_change,
     diet_photo_service,
-    trainer_service,
 )
+from app.services.trainer import client_status as trainer_client_status_service
+from app.services.trainer import _common as trainer_common_service
+from app.services.trainer import member_mirror as trainer_member_mirror_service
+from app.services.trainer import roster as trainer_roster_service
 from app.services.exercise_service import (
     build_current_week, monday_of_str, monday_of_this_week_str,
     pt_session_times, weekly_goals,
@@ -93,10 +96,10 @@ def trainer_clients(
     돌려주면 이어 받기가 제자리를 돈다).
     """
     try:
-        return trainer_service.build_roster(
+        return trainer_roster_service.build_roster(
             db, trainer.id, limit=limit, after_id=after_id
         )
-    except trainer_service.RosterCursorNotFound as exc:
+    except trainer_roster_service.RosterCursorNotFound as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
@@ -117,7 +120,7 @@ def trainer_remove_client(
         raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
     if not link.active:
         raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
-    trainer_service.remove_client(db, link)
+    trainer_client_status_service.remove_client(db, link)
 
 
 @router.put("/trainer/clients/{member_id}/registration", status_code=204)
@@ -136,10 +139,10 @@ def trainer_restore_client(
     if link is None:
         raise HTTPException(status_code=404, detail="고객을 찾을 수 없습니다.")
     try:
-        trainer_service.restore_client(db, link)
-    except trainer_service.ClientLinkDetached as exc:
+        trainer_client_status_service.restore_client(db, link)
+    except trainer_common_service.ClientLinkDetached as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    except trainer_service.ClientConsentRequired as exc:
+    except trainer_client_status_service.ClientConsentRequired as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
@@ -170,8 +173,8 @@ def trainer_set_client_status(
     if link is None:
         raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
     try:
-        return trainer_service.set_client_active(db, link, payload.active)
-    except trainer_service.ClientLinkDetached as exc:
+        return trainer_client_status_service.set_client_active(db, link, payload.active)
+    except trainer_common_service.ClientLinkDetached as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
@@ -271,11 +274,11 @@ def trainer_client_diet(
 ) -> list[ClientDietEntryOut]:
     """담당 고객의 식단(회원이 회원 앱에서 기록한 실제 데이터)."""
     _require_client(db, trainer.id, member_id)
-    day = date or trainer_service.today_iso()
+    day = date or trainer_common_service.today_iso()
     # 형식 검증 — 잘못된 date 가 조용히 빈 목록으로 나가지 않게 422(캘린더 라우트와 일관, #278).
     if not _is_ymd(day):
         raise HTTPException(status_code=422, detail="date 는 YYYY-MM-DD 형식이어야 합니다.")
-    return trainer_service.build_client_diet(db, member_id, day)
+    return trainer_roster_service.build_client_diet(db, member_id, day)
 
 
 @router.get(
@@ -390,7 +393,7 @@ def trainer_client_history(
 ) -> list[RoutineHistoryOut]:
     """담당 고객의 운동 완료 기록(최신순). 타 트레이너 기록/메모는 제외한다."""
     _require_client(db, trainer.id, member_id)
-    return trainer_service.build_client_history(db, member_id, trainer.id)
+    return trainer_roster_service.build_client_history(db, member_id, trainer.id)
 
 
 @router.get(
@@ -535,7 +538,7 @@ def trainer_client_exercise_advice(
     # 같은 기간을 두 화면이 다른 날부터 세게 된다.
     start, end, days = exercise_service.period_days(db, member_id, period)
     # 추천 개인운동 기준 조언(#2162)도 회원 앱과 같은 함수로 읽는다.
-    routine_days = trainer_service.advice_routine_days(db, member_id, period)
+    routine_days = trainer_member_mirror_service.advice_routine_days(db, member_id, period)
     advice = exercise_service.period_advice(days, period, routine_days)
     return ExerciseAdviceResponse(
         period=period,

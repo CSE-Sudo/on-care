@@ -103,7 +103,7 @@ def trainer_notes(db: Session, member_id: str) -> list[str]:
     **회원이 이미 받은 것만** 읽는다 — 트레이너의 비공개 메모는 넣지 않는다. 조언이
     메모에서 나온 말을 하면 회원은 보지 못한 지시를 AI 에게서 듣게 된다.
     """
-    from app.services.trainer_service import get_member_trainer_id
+    from app.services.trainer._common import get_member_trainer_id
 
     trainer_id = get_member_trainer_id(db, member_id)
     if trainer_id is None:

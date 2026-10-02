@@ -103,11 +103,11 @@ def exchange(
     [TrainerAssigned], 이미 받은 주면 [WeekAlreadyOwned], 잔액이 모자라면
     [points_service.InsufficientPoints] 다.
     """
-    from app.services import trainer_service
+    from app.services.trainer import _common as trainer_common_service
 
     if client_request_id and _by_request(db, member_id, client_request_id):
         return _exchange_out(db, member_id)
-    if trainer_service.get_member_trainer_id(db, member_id) is not None:
+    if trainer_common_service.get_member_trainer_id(db, member_id) is not None:
         raise TrainerAssigned("담당 트레이너가 리포트를 등록해 줘요.")
 
     week = target_week()

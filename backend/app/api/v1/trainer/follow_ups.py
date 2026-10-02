@@ -18,9 +18,7 @@ from app.schemas.trainer_api import (
     TrainerFollowUpTaskCreateRequest, TrainerFollowUpTaskOut,
     TrainerFollowUpTaskUpdateRequest,
 )
-from app.services import (
-    trainer_service,
-)
+from app.services.trainer import follow_ups as trainer_follow_ups_service
 from app.api.v1.trainer._common import (
     _require_client,
 )
@@ -52,7 +50,7 @@ def trainer_client_follow_ups(
     기본은 미완료만이다. 완료 이력까지 보려면 `include_completed=true`.
     """
     _require_client(db, trainer.id, member_id)
-    return trainer_service.build_client_follow_ups(
+    return trainer_follow_ups_service.build_client_follow_ups(
         db, trainer.id, member_id, include_completed=include_completed
     )
 
@@ -78,7 +76,7 @@ def trainer_create_follow_up(
     if not title:
         # 공백만 있는 할 일을 성공으로 처리하면 대시보드에 빈 줄이 쌓인다.
         raise HTTPException(status_code=400, detail="할 일 내용이 필요합니다.")
-    return trainer_service.create_follow_up(
+    return trainer_follow_ups_service.create_follow_up(
         db,
         trainer.id,
         member_id,
@@ -101,8 +99,8 @@ def trainer_follow_ups(
     `scope=open` 은 예정일과 무관한 미완료 전체.
     """
     if scope == "open":
-        return trainer_service.build_open_follow_ups(db, trainer.id)
-    return trainer_service.build_due_follow_ups(db, trainer.id)
+        return trainer_follow_ups_service.build_open_follow_ups(db, trainer.id)
+    return trainer_follow_ups_service.build_due_follow_ups(db, trainer.id)
 
 
 @router.put("/trainer/follow-ups/{task_id}", response_model=TrainerFollowUpTaskOut)
@@ -121,8 +119,8 @@ def trainer_update_follow_up(
         if not fields["title"]:
             raise HTTPException(status_code=400, detail="할 일 내용이 필요합니다.")
     try:
-        return trainer_service.update_follow_up(db, trainer.id, task_id, fields)
-    except trainer_service.FollowUpTaskNotFound as exc:
+        return trainer_follow_ups_service.update_follow_up(db, trainer.id, task_id, fields)
+    except trainer_follow_ups_service.FollowUpTaskNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
@@ -137,6 +135,6 @@ def trainer_complete_follow_up(
 ) -> TrainerFollowUpTaskOut:
     """할 일 완료 처리. 같은 요청을 반복해도 성공하고 완료 시각은 유지된다."""
     try:
-        return trainer_service.complete_follow_up(db, trainer.id, task_id)
-    except trainer_service.FollowUpTaskNotFound as exc:
+        return trainer_follow_ups_service.complete_follow_up(db, trainer.id, task_id)
+    except trainer_follow_ups_service.FollowUpTaskNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

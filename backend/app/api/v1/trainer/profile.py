@@ -41,8 +41,10 @@ from app.services import (
     data_consent_service,
     attachment_cleanup,
     trainer_gym_search,
-    trainer_service,
 )
+from app.services.trainer import gym as trainer_gym_service
+from app.services.trainer import notification_settings as trainer_notification_settings_service
+from app.services.trainer import profile as trainer_profile_service
 from app.api.v1.trainer._common import (
     _require_profile,
 )
@@ -57,7 +59,7 @@ def trainer_me(
     db: Annotated[Session, Depends(get_db)],
 ) -> TrainerMe:
     profile = _require_profile(db, trainer.id)
-    return trainer_service.build_trainer_me(trainer, profile)
+    return trainer_profile_service.build_trainer_me(trainer, profile)
 
 
 @router.put("/trainer/me", response_model=TrainerMe)
@@ -73,8 +75,8 @@ def trainer_update_me(
         # 빈 PATCH 를 성공으로 처리하면 클라이언트가 저장됐다고 오해한다.
         raise HTTPException(status_code=400, detail="수정할 항목이 없습니다.")
     try:
-        return trainer_service.update_trainer_profile(db, trainer, profile, fields)
-    except trainer_service.GymTextNotEditable as e:
+        return trainer_profile_service.update_trainer_profile(db, trainer, profile, fields)
+    except trainer_profile_service.GymTextNotEditable as e:
         # 값이 틀린 게 아니라 헬스장 정보가 소속에서만 파생되는 것과 충돌하는 것이라
         # 422 가 아니라 409.
         raise HTTPException(
@@ -97,7 +99,7 @@ def trainer_set_gym(
     fitness Place 가 아니면 404 다.
     """
     profile = _require_profile(db, trainer.id)
-    me = trainer_service.set_trainer_gym(db, trainer, profile, payload.gym_id)
+    me = trainer_gym_service.set_trainer_gym(db, trainer, profile, payload.gym_id)
     if me is None:
         raise HTTPException(status_code=404, detail="헬스장을 찾을 수 없습니다.")
     return me
@@ -159,7 +161,7 @@ def trainer_clear_gym(
     갱신된 프로필을 그대로 돌려주므로 클라이언트가 다시 GET 하지 않아도 된다.
     """
     profile = _require_profile(db, trainer.id)
-    return trainer_service.clear_trainer_gym(db, trainer, profile)
+    return trainer_gym_service.clear_trainer_gym(db, trainer, profile)
 
 
 @router.post(
@@ -270,7 +272,7 @@ def trainer_delete_me(
     # 채팅 첨부의 바이트는 DB 밖에 있어 CASCADE 가 닿지 않는다 — 행이 사라지기
     # 전에 목록을 잡아 두고, 탈퇴 커밋이 끝난 뒤에 지운다(#2817).
     attachments = attachment_cleanup.files_in_threads(db, trainer_id=trainer.id)
-    trainer_service.delete_trainer_account(db, trainer)
+    trainer_profile_service.delete_trainer_account(db, trainer)
     attachment_cleanup.purge(attachments)
     return {"status": "deleted"}
 
@@ -282,7 +284,7 @@ def trainer_settings(
 ) -> TrainerNotificationSettings:
     """알림 수신 설정. 기본값은 서버가 소유한다 — 클라이언트마다 기본값을
     들고 있으면 기기별로 갈라진다."""
-    return trainer_service.build_notification_settings(
+    return trainer_notification_settings_service.build_notification_settings(
         _require_profile(db, trainer.id)
     )
 
@@ -297,6 +299,6 @@ def trainer_update_settings(
     fields = payload.model_dump(exclude_unset=True)
     if not fields:
         raise HTTPException(status_code=400, detail="수정할 항목이 없습니다.")
-    return trainer_service.update_notification_settings(
+    return trainer_notification_settings_service.update_notification_settings(
         db, _require_profile(db, trainer.id), fields
     )

@@ -15,9 +15,8 @@ from app.db.session import get_db
 from app.schemas.trainer_api import (
     RoutineOut, RoutineSuggestionApproveRequest, RoutineSuggestionCreateRequest,
 )
-from app.services import (
-    trainer_service,
-)
+from app.services.trainer import routine_suggestions as trainer_routine_suggestions_service
+from app.services.trainer import routines as trainer_routines_service
 from app.api.v1.trainer._common import (
     _require_client,
 )
@@ -48,7 +47,7 @@ def trainer_routine_suggestions(
     나타나지 않는다.
     """
     _require_client(db, trainer.id, member_id)
-    return trainer_service.list_routine_suggestions(db, trainer.id, member_id)
+    return trainer_routine_suggestions_service.list_routine_suggestions(db, trainer.id, member_id)
 
 
 @router.post(
@@ -66,7 +65,7 @@ def trainer_create_routine_suggestion(
     _require_client(db, trainer.id, member_id)
     if not payload.name.strip():
         raise HTTPException(status_code=400, detail="운동 이름이 필요합니다.")
-    return trainer_service.create_routine_suggestion(
+    return trainer_routine_suggestions_service.create_routine_suggestion(
         db,
         trainer.id,
         member_id,
@@ -100,7 +99,7 @@ def trainer_approve_routine_suggestion(
     if name is not None and not name.strip():
         raise HTTPException(status_code=400, detail="운동 이름이 필요합니다.")
     try:
-        return trainer_service.approve_routine_suggestion(
+        return trainer_routine_suggestions_service.approve_routine_suggestion(
             db,
             trainer.id,
             suggestion_id,
@@ -114,9 +113,9 @@ def trainer_approve_routine_suggestion(
             weight=fields.get("weight"),
             reason=fields.get("reason"),
         )
-    except trainer_service.RoutineNotFound as exc:
+    except trainer_routines_service.RoutineNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except trainer_service.RoutineAlreadyReviewed as exc:
+    except trainer_routine_suggestions_service.RoutineAlreadyReviewed as exc:
         # 두 번 눌렀거나 다른 창에서 이미 처리한 경우다. 404 로 뭉개면 트레이너가
         # "사라졌다" 로 읽는데, 실제로는 이미 반영돼 있다.
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -133,10 +132,10 @@ def trainer_dismiss_routine_suggestion(
 ) -> RoutineOut:
     """제안을 추천하지 않기로 한다. 회원 배정도 알림도 만들지 않는다."""
     try:
-        return trainer_service.dismiss_routine_suggestion(
+        return trainer_routine_suggestions_service.dismiss_routine_suggestion(
             db, trainer.id, suggestion_id
         )
-    except trainer_service.RoutineNotFound as exc:
+    except trainer_routines_service.RoutineNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except trainer_service.RoutineAlreadyReviewed as exc:
+    except trainer_routine_suggestions_service.RoutineAlreadyReviewed as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

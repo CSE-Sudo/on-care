@@ -22,8 +22,8 @@ from app.schemas.trainer_api import (
 )
 from app.services import (
     trainer_program_template_service,
-    trainer_service,
 )
+from app.services.trainer import programs as trainer_programs_service
 
 
 router = APIRouter(tags=["trainer"])
@@ -51,7 +51,7 @@ def trainer_program_drafts(
     `member_id` 를 주면 코칭 화면이 그 회원에게 자동 보관한 것만 돌려준다
     (#2873). 내 초안만 거르므로 남의 회원 id 로는 빈 목록이다.
     """
-    return trainer_service.build_program_drafts(
+    return trainer_programs_service.build_program_drafts(
         db, trainer.id, member_id=member_id
     )
 
@@ -76,7 +76,7 @@ def trainer_create_program_draft(
         raise HTTPException(status_code=400, detail="프로그램 이름이 필요합니다.")
     if payload.member_id is not None:
         _require_client(db, trainer.id, payload.member_id)
-    return trainer_service.create_program_draft(
+    return trainer_programs_service.create_program_draft(
         db, trainer.id,
         name=name,
         goal=payload.goal.strip(),
@@ -99,8 +99,8 @@ def trainer_program_draft(
 ) -> TrainerProgramDraftOut:
     """저장된 초안 상세 — 편집기로 불러올 때 쓴다."""
     try:
-        return trainer_service.get_program_draft(db, trainer.id, draft_id)
-    except trainer_service.ProgramDraftNotFound as exc:
+        return trainer_programs_service.get_program_draft(db, trainer.id, draft_id)
+    except trainer_programs_service.ProgramDraftNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
@@ -124,10 +124,10 @@ def trainer_update_program_draft(
     if "name" in fields and not fields["name"]:
         raise HTTPException(status_code=400, detail="프로그램 이름이 필요합니다.")
     try:
-        return trainer_service.update_program_draft(
+        return trainer_programs_service.update_program_draft(
             db, trainer.id, draft_id, fields
         )
-    except trainer_service.ProgramDraftNotFound as exc:
+    except trainer_programs_service.ProgramDraftNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
@@ -139,8 +139,8 @@ def trainer_delete_program_draft(
 ) -> dict:
     """저장된 초안 삭제. 이미 배정한 루틴·등록한 일정은 그대로 남는다."""
     try:
-        trainer_service.delete_program_draft(db, trainer.id, draft_id)
-    except trainer_service.ProgramDraftNotFound as exc:
+        trainer_programs_service.delete_program_draft(db, trainer.id, draft_id)
+    except trainer_programs_service.ProgramDraftNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return {"status": "deleted"}
 

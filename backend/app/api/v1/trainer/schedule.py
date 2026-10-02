@@ -22,9 +22,8 @@ from app.schemas.trainer_api import (
     ScheduleRecurringPreviewOut, ScheduleRecurringRequest, ScheduleReopenRequest,
     ScheduleSessionOut, ScheduleUpdateRequest,
 )
-from app.services import (
-    trainer_service,
-)
+from app.services.trainer import _common as trainer_common_service
+from app.services.trainer import schedule as trainer_schedule_service
 from app.api.v1.trainer._common import (
     _is_ymd,
     _require_client,
@@ -43,7 +42,7 @@ def trainer_booked_dates(
     db: Annotated[Session, Depends(get_db)],
 ) -> list[str]:
     """예약이 있는(공백 아닌) 날짜 목록 — 주간 스트립 도트용."""
-    return trainer_service.booked_dates(db, trainer.id)
+    return trainer_schedule_service.booked_dates(db, trainer.id)
 
 
 @router.get("/trainer/schedule", response_model=list[ScheduleSessionOut])
@@ -82,17 +81,17 @@ def trainer_schedule(
             )
         if from_ > to:
             raise HTTPException(status_code=422, detail="from 은 to 보다 늦을 수 없습니다.")
-        return trainer_service.build_schedule_range(
+        return trainer_schedule_service.build_schedule_range(
             db, trainer.id, from_, to, member_id=member_id
         )
 
     if member_id is not None and date is None:
-        return trainer_service.build_client_schedule(db, trainer.id, member_id)
+        return trainer_schedule_service.build_client_schedule(db, trainer.id, member_id)
 
-    day = date or trainer_service.today_iso()
+    day = date or trainer_common_service.today_iso()
     if not _is_ymd(day):
         raise HTTPException(status_code=422, detail="date 는 YYYY-MM-DD 형식이어야 합니다.")
-    return trainer_service.build_schedule_range(
+    return trainer_schedule_service.build_schedule_range(
         db, trainer.id, day, day, member_id=member_id
     )
 
@@ -107,7 +106,7 @@ def trainer_create_session(
     if payload.member_id:
         _require_client(db, trainer.id, payload.member_id)
     try:
-        return trainer_service.create_session(
+        return trainer_schedule_service.create_session(
             db,
             trainer.id,
             date=payload.date,
@@ -120,12 +119,12 @@ def trainer_create_session(
             program=payload.program,
             client_request_id=payload.client_request_id,
         )
-    except trainer_service.IdempotencyConflict as exc:
+    except trainer_common_service.IdempotencyConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    except trainer_service.ScheduleOverlap as exc:
+    except trainer_schedule_service.ScheduleOverlap as exc:
         # 겹친 세션을 함께 실어 화면이 어느 일정과 겹치는지 짚게 한다. (#2284)
         raise HTTPException(
-            status_code=409, detail=trainer_service.overlap_detail(exc)
+            status_code=409, detail=trainer_schedule_service.overlap_detail(exc)
         ) from exc
 
 
@@ -145,7 +144,7 @@ def trainer_preview_recurring_sessions(
     """
     if payload.member_id:
         _require_client(db, trainer.id, payload.member_id)
-    dates, conflicts = trainer_service.preview_recurring_sessions(
+    dates, conflicts = trainer_schedule_service.preview_recurring_sessions(
         db,
         trainer.id,
         start=payload.date,
@@ -176,7 +175,7 @@ def trainer_create_recurring_sessions(
     if payload.member_id:
         _require_client(db, trainer.id, payload.member_id)
     try:
-        return trainer_service.create_recurring_sessions(
+        return trainer_schedule_service.create_recurring_sessions(
             db,
             trainer.id,
             start=payload.date,
@@ -191,19 +190,19 @@ def trainer_create_recurring_sessions(
             until=payload.until,
             client_request_id=payload.client_request_id,
         )
-    except trainer_service.ScheduleSeriesConflict as exc:
+    except trainer_schedule_service.ScheduleSeriesConflict as exc:
         raise HTTPException(
             status_code=409,
             detail={
                 # 단건 겹침과 같은 코드 — 화면이 한 가지 규칙으로 알아본다. (#2284)
-                "code": trainer_service.SCHEDULE_OVERLAP_CODE,
+                "code": trainer_schedule_service.SCHEDULE_OVERLAP_CODE,
                 "message": str(exc),
                 "conflicts": [
                     conflict.model_dump(mode="json") for conflict in exc.conflicts
                 ],
             },
         ) from exc
-    except trainer_service.ScheduleError as exc:
+    except trainer_schedule_service.ScheduleError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
@@ -229,7 +228,7 @@ def trainer_assign_program_with_schedule(
     if not any(session.exercises for session in payload.sessions):
         raise HTTPException(status_code=400, detail="운동이 하나 이상 필요합니다.")
     try:
-        result = trainer_service.assign_program_with_schedule(
+        result = trainer_schedule_service.assign_program_with_schedule(
             db,
             trainer.id,
             member_id,
@@ -244,13 +243,13 @@ def trainer_assign_program_with_schedule(
             personal_routines=payload.personal_routines,
             suggestion_ids=payload.suggestion_ids,
         )
-    except trainer_service.IdempotencyConflict as exc:
+    except trainer_common_service.IdempotencyConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    except trainer_service.ScheduleOverlap as exc:
+    except trainer_schedule_service.ScheduleOverlap as exc:
         raise HTTPException(
-            status_code=409, detail=trainer_service.overlap_detail(exc)
+            status_code=409, detail=trainer_schedule_service.overlap_detail(exc)
         ) from exc
-    except trainer_service.AttachTargetConflict as exc:
+    except trainer_schedule_service.AttachTargetConflict as exc:
         # 겹치는 후보를 함께 실어 화면이 어느 회차를 고를지 다시 물을 수 있게 한다.
         raise HTTPException(
             status_code=409,
@@ -282,7 +281,7 @@ def trainer_schedule_routines(
     일정은 조건에서 걸러져 빈 목록이 된다 — 없는 일정과 같은 답이라 어느 id 가
     실재하는지 알려 주지 않는다.
     """
-    return trainer_service.list_scheduled_routines(db, trainer.id, session_id)
+    return trainer_schedule_service.list_scheduled_routines(db, trainer.id, session_id)
 
 
 @router.put(
@@ -300,17 +299,17 @@ def trainer_update_schedule_routines(
     처음 붙인다(#2280) — 개인운동 단계를 지나지 않은 PT 를 구제하는 자리다.
     """
     try:
-        rows = trainer_service.update_scheduled_routines(
+        rows = trainer_schedule_service.update_scheduled_routines(
             db,
             trainer.id,
             session_id,
             payload.personal_routines,
             suggestion_ids=payload.suggestion_ids,
         )
-    except trainer_service.ClientLinkDetached as exc:
+    except trainer_common_service.ClientLinkDetached as exc:
         # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except trainer_service.ScheduleError as exc:
+    except trainer_schedule_service.ScheduleError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if rows is None:
         raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
@@ -334,13 +333,13 @@ def trainer_send_schedule_routines(
     `personal_routines` 를 주면 그 내용으로 고쳐서 보낸다.
     """
     try:
-        sent = trainer_service.send_scheduled_routines(
+        sent = trainer_schedule_service.send_scheduled_routines(
             db, trainer.id, session_id, items=payload.personal_routines
         )
-    except trainer_service.ClientLinkDetached as exc:
+    except trainer_common_service.ClientLinkDetached as exc:
         # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except trainer_service.ScheduleError as exc:
+    except trainer_schedule_service.ScheduleError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if sent is None:
         raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
@@ -358,10 +357,10 @@ def trainer_dismiss_schedule_routines(
     `개인운동 미전송` 표시를 걷어낸다. 무엇을 짰다가 안 보냈는지는 남는다.
     """
     try:
-        done = trainer_service.dismiss_scheduled_routines(
+        done = trainer_schedule_service.dismiss_scheduled_routines(
             db, trainer.id, session_id
         )
-    except trainer_service.ScheduleError as exc:
+    except trainer_schedule_service.ScheduleError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if done is None:
         raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
@@ -382,15 +381,15 @@ def trainer_update_session(
     if fields.get("member_id"):
         _require_client(db, trainer.id, fields["member_id"])
     try:
-        out = trainer_service.update_session(db, trainer.id, session_id, fields)
-    except trainer_service.ClientLinkDetached as e:
+        out = trainer_schedule_service.update_session(db, trainer.id, session_id, fields)
+    except trainer_common_service.ClientLinkDetached as e:
         # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
         raise HTTPException(status_code=404, detail=str(e)) from e
-    except trainer_service.ScheduleOverlap as e:
+    except trainer_schedule_service.ScheduleOverlap as e:
         raise HTTPException(
-            status_code=409, detail=trainer_service.overlap_detail(e)
+            status_code=409, detail=trainer_schedule_service.overlap_detail(e)
         ) from e
-    except trainer_service.ScheduleConflict as e:
+    except trainer_schedule_service.ScheduleConflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
     if out is None:
         raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
@@ -405,8 +404,8 @@ def trainer_delete_session(
 ) -> dict:
     """예약 삭제."""
     try:
-        deleted = trainer_service.delete_session(db, trainer.id, session_id)
-    except trainer_service.ScheduleConflict as e:
+        deleted = trainer_schedule_service.delete_session(db, trainer.id, session_id)
+    except trainer_schedule_service.ScheduleConflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
     if not deleted:
         raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
@@ -426,13 +425,13 @@ def trainer_complete_session(
     회원 운동 기록으로 적재된다(#871).
     """
     try:
-        out = trainer_service.complete_session(db, trainer.id, session_id, payload.note)
-    except trainer_service.ClientLinkDetached as e:
+        out = trainer_schedule_service.complete_session(db, trainer.id, session_id, payload.note)
+    except trainer_common_service.ClientLinkDetached as e:
         # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
         raise HTTPException(status_code=404, detail=str(e)) from e
-    except trainer_service.ScheduleError as e:
+    except trainer_schedule_service.ScheduleError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
-    except trainer_service.ScheduleConflict as e:
+    except trainer_schedule_service.ScheduleConflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
     if out is None:
         raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
@@ -453,16 +452,16 @@ def trainer_cancel_session(
     반복해도 200 이고 취소 시각·주체는 처음 값을 지킨다.
     """
     try:
-        out = trainer_service.cancel_session(
+        out = trainer_schedule_service.cancel_session(
             db,
             trainer.id,
             session_id,
             source=payload.source,
             reason=payload.reason.strip(),
         )
-    except trainer_service.ScheduleError as e:
+    except trainer_schedule_service.ScheduleError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
-    except trainer_service.ScheduleConflict as e:
+    except trainer_schedule_service.ScheduleConflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
     if out is None:
         raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
@@ -482,7 +481,7 @@ def trainer_reopen_session(
     완료 시 적재된 파생 기록(트레이너 이력·회원 운동기록)을 함께 지운다.
     """
     try:
-        out = trainer_service.reopen_session(
+        out = trainer_schedule_service.reopen_session(
             db,
             trainer.id,
             session_id,
@@ -490,15 +489,15 @@ def trainer_reopen_session(
             time=payload.time,
             duration_minutes=payload.duration_minutes,
         )
-    except trainer_service.ClientLinkDetached as e:
+    except trainer_common_service.ClientLinkDetached as e:
         # 해제·동의 철회된 회원의 일정 — 남의 회원과 같은 404. (#2281, #1631)
         raise HTTPException(status_code=404, detail=str(e)) from e
-    except trainer_service.ScheduleOverlap as e:
+    except trainer_schedule_service.ScheduleOverlap as e:
         # 겹치면 아무것도 바꾸지 않는다 — 완료·날짜·파생 기록이 그대로다. (#2757)
         raise HTTPException(
-            status_code=409, detail=trainer_service.overlap_detail(e)
+            status_code=409, detail=trainer_schedule_service.overlap_detail(e)
         ) from e
-    except trainer_service.ScheduleConflict as e:
+    except trainer_schedule_service.ScheduleConflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
     if out is None:
         raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
@@ -517,10 +516,10 @@ def trainer_mark_session_no_show(
     거두어진 것이고, 노쇼는 약속이 그대로 있는데 회원이 오지 않은 것이다.
     """
     try:
-        out = trainer_service.mark_session_no_show(db, trainer.id, session_id)
-    except trainer_service.ScheduleError as e:
+        out = trainer_schedule_service.mark_session_no_show(db, trainer.id, session_id)
+    except trainer_schedule_service.ScheduleError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
-    except trainer_service.ScheduleConflict as e:
+    except trainer_schedule_service.ScheduleConflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
     if out is None:
         raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
@@ -544,13 +543,13 @@ def trainer_send_session_program(
     같은 모양의 루틴을 받는다. 같은 세션을 두 번 눌러도 배정은 한 번이다.
     """
     try:
-        out = trainer_service.send_session_program(
+        out = trainer_schedule_service.send_session_program(
             db, trainer.id, session_id,
             client_request_id=payload.client_request_id,
         )
-    except trainer_service.ClientLinkDetached as e:
+    except trainer_common_service.ClientLinkDetached as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
-    except trainer_service.ScheduleError as e:
+    except trainer_schedule_service.ScheduleError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     if out is None:
         raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")

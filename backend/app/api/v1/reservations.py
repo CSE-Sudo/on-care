@@ -18,7 +18,8 @@ from app.schemas.reservation_api import (
     TrainerSlotOut,
     TrainerSlotUpdate,
 )
-from app.services import consultation_service, reservation_service, trainer_service
+from app.services import consultation_service, reservation_service
+from app.services.trainer import schedule as trainer_schedule_service
 
 router = APIRouter(tags=["reservations"])
 
@@ -72,11 +73,11 @@ def create_reservation(
 ) -> ReservationOut:
     try:
         return reservation_service.reserve(db, member, payload.slot_id)
-    except trainer_service.ScheduleOverlap as exc:
+    except trainer_schedule_service.ScheduleOverlap as exc:
         # 회원에게는 트레이너의 다른 일정(남의 이름·시각)을 싣지 않는다. (#2284)
         raise HTTPException(
             status_code=409,
-            detail=trainer_service.overlap_detail(exc, include_conflicts=False),
+            detail=trainer_schedule_service.overlap_detail(exc, include_conflicts=False),
         ) from exc
     except ReservationError as exc:
         raise _slot_error(exc) from exc
@@ -165,9 +166,9 @@ def create_trainer_slot(
             payload.session_type,
             payload.duration_minutes,
         )
-    except trainer_service.ScheduleOverlap as exc:
+    except trainer_schedule_service.ScheduleOverlap as exc:
         raise HTTPException(
-            status_code=409, detail=trainer_service.overlap_detail(exc)
+            status_code=409, detail=trainer_schedule_service.overlap_detail(exc)
         ) from exc
     except ReservationError as exc:
         raise _slot_error(exc) from exc
@@ -187,9 +188,9 @@ def update_trainer_slot(
             slot_id,
             payload.model_dump(exclude_unset=True),
         )
-    except trainer_service.ScheduleOverlap as exc:
+    except trainer_schedule_service.ScheduleOverlap as exc:
         raise HTTPException(
-            status_code=409, detail=trainer_service.overlap_detail(exc)
+            status_code=409, detail=trainer_schedule_service.overlap_detail(exc)
         ) from exc
     except ReservationError as exc:
         raise _slot_error(exc) from exc
