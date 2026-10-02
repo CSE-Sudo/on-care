@@ -1773,7 +1773,7 @@ class _CertsEditor extends StatelessWidget {
                 // 아이콘 하나뿐인 버튼이라 무엇을 지우는지 툴팁이 접근성
                 // 이름으로 말한다(#972).
                 AppIconButton(
-                  icon: AppIcons.close,
+                  icon: AppIcons.delete,
                   tooltip: l.a11yRemoveCertification,
                   color: OnCareColors.textTertiary,
                   onPressed: () => onRemove(i),

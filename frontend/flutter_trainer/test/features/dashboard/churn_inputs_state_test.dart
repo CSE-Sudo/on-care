@@ -255,10 +255,10 @@ void main() {
 
       final card = churnCard(tester);
       expect(card.value, '–');
-      expect(card.caption, '최근 세션 확인 중');
+      expect(card.caption, '최근 운동 기록 확인 중');
       expect(card.toneColor, isNull, reason: '확정 전에는 빨강·초록을 칠하지 않는다');
       expect(card.onTap, isNull);
-      expect(find.text(keepWords('최근 세션을 확인하고 있어요.')), findsOneWidget);
+      expect(find.text(keepWords('최근 운동 기록을 확인하고 있어요.')), findsOneWidget);
 
       pending.complete(const <ScheduleSession>[]);
       await settle(tester);
