@@ -281,7 +281,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     _resetNotifier?.removeListener(_resetScroll);
     _sentTimer?.cancel();
     _wizardNav.dispose();
-    // 기다리던 보관은 마저 한다 — 다른 탭으로 옮겨도 작성 내용이 남는다.
+    // 기다리던 보관은 거둔다. 탭을 옮겨도 이 화면은 남으므로, 사라지는 것은
+    // 로그아웃·계정 전환 때다 — 그때 앞 계정 앞으로 저장하면 안 된다.
     _autosaver?.dispose();
     super.dispose();
   }
@@ -355,10 +356,14 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     });
   }
 
+  /// 보내는 중인 회원도 묻지 않는다 — 전송이 끝나면 보관본을 지우고, 실패하면
+  /// 화면에 작성 내용이 그대로 남아 있다.
   bool _autosavePromptBlocked(String clientId) =>
       !mounted ||
       _clientId != clientId ||
       _hasUnsentWorkFor(clientId) ||
+      _sendingClientIds.contains(clientId) ||
+      _sendingRoutineOnly.contains(clientId) ||
       _draftAttachFor != null ||
       _returnToSchedule?.clientId == clientId;
 

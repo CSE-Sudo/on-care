@@ -124,10 +124,14 @@ class CoachingDraftAutosaver {
     });
   }
 
-  /// 기다리는 보관을 마저 하고 더 받지 않는다. 화면이 사라질 때 부른다.
+  /// 기다리는 보관을 거두고 더 받지 않는다. 화면이 사라질 때 부른다.
+  ///
+  /// 마저 저장하지 않는다 — 코칭 화면은 탭을 옮겨도 남아 있어, 사라지는 것은
+  /// 로그아웃·계정 전환 때다. 그때 저장하면 앞 계정의 작성 내용이 다음 세션의
+  /// 저장소로 간다.
   void dispose() {
-    unawaited(flush());
     _disposed = true;
+    _pending.clear();
     for (final Timer timer in _timers.values) {
       timer.cancel();
     }

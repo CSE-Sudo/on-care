@@ -291,17 +291,19 @@ void main() {
     expect(repo.rows, hasLength(1));
   });
 
-  testWidgets('dispose 는 기다리던 보관을 마저 하고 더 받지 않는다', (tester) async {
+  testWidgets('dispose 는 기다리던 보관을 거두고 더 받지 않는다', (tester) async {
     repo = _RecordingRepository();
     saver = CoachingDraftAutosaver(repo);
     saver.schedule('m1', _payload('하나'));
 
     saver.dispose();
-    await tester.pump();
-    expect(repo.calls, <String>['create pgm-1 하나']);
+    await tester.pump(_delay);
+    // 로그아웃·계정 전환 뒤 앞 계정의 작성 내용을 저장하지 않는다.
+    expect(repo.calls, isEmpty);
+    expect(saver.hasPending('m1'), isFalse);
 
     saver.schedule('m1', _payload('둘'));
     await tester.pump(_delay);
-    expect(repo.calls, hasLength(1));
+    expect(repo.calls, isEmpty);
   });
 }
