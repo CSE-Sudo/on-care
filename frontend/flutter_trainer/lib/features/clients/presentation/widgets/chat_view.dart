@@ -639,7 +639,6 @@ class _ChatInsightBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final tokens = context.oncare;
     final isDiscomfort = insight.kind == ChatInsightKind.discomfort;
     final title = isDiscomfort
         ? l.chatInsightDiscomfortTitle(chatInsightBodyPartLabel(l, insight))
@@ -659,41 +658,20 @@ class _ChatInsightBanner extends StatelessWidget {
         icon: AppIcons.warning,
         title: title,
         message: description,
+        // 메모로 옮겨 적으면 바탕만 하얗게 비우고 붉은 테두리는 남긴다 —
+        // 무슨 일이 있었는지는 그대로이고, 처리 여부만 바탕색이 가른다.
+        resolved: saved,
         // 알약은 저장 뒤에도 빨간색이다. 초록으로 뒤집으면 빨간 카드
         // 한가운데서 가장 밝은 것이 "메모 추가됨" 이 되어, 정작 읽어야 할
         // 감지 내용보다 눈에 먼저 들어온다. 배너 채움(8%) 위에서 알약이
         // 보이도록 한 단계 진하게(16%) 칠한다.
-        trailing: Material(
-          color: OnCareColors.onWhite(OnCareColors.danger, OnCareAlpha.medium),
-          borderRadius: OnCareRadius.pillAll,
-          child: InkWell(
-            key: ValueKey<String>('chat-insight-add-${insight.id}'),
-            onTap: saved ? null : onAddMemo,
-            borderRadius: OnCareRadius.pillAll,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: OnCareSpacing.s8,
-                vertical: OnCareSpacing.s4,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  AppIcon(
-                    saved ? AppIcons.check : AppIcons.add,
-                    size: OnCareSize.iconSmall,
-                    color: OnCareColors.danger,
-                  ),
-                  const SizedBox(width: OnCareSpacing.s4),
-                  Text(
-                    saved ? l.chatInsightMemoAdded : l.chatInsightAddMemo,
-                    style: tokens
-                        .text(OnCareTypography.strong(OnCareTypography.caption))
-                        .copyWith(color: OnCareColors.danger),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        trailing: AppTag(
+          key: ValueKey<String>('chat-insight-add-${insight.id}'),
+          label: saved ? l.chatInsightMemoAdded : l.chatInsightAddMemo,
+          tone: AppTagTone.danger,
+          icon: saved ? AppIcons.check : AppIcons.add,
+          onTint: true,
+          onTap: saved ? null : onAddMemo,
         ),
       ),
     );

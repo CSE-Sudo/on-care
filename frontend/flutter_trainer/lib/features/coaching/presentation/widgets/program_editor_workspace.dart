@@ -622,13 +622,15 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
             spacing: OnCareSpacing.s8,
             runSpacing: OnCareSpacing.s4,
             children: <Widget>[
-              _RegisterFieldBox(
+              AppPickerField(
+                compact: true,
                 key: const ValueKey<String>('program-register-date'),
                 icon: AppIcons.calendar,
                 value: ymd(widget.registerDate),
                 onTap: () => unawaited(_pickRegisterDate(context)),
               ),
-              _RegisterFieldBox(
+              AppPickerField(
+                compact: true,
                 key: const ValueKey<String>('program-register-time'),
                 icon: AppIcons.clock,
                 value:
@@ -1770,77 +1772,6 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
         widget.onDelete();
         return;
     }
-  }
-}
-
-/// 테두리 박스(아이콘·값·펼침 화살표) — 날짜·시간처럼 눌러서 다이얼로그를
-/// 여는 자리에 쓴다. 값 자체(날짜·시간)가 무엇을 고르는 칸인지 이미
-/// 말해 주므로 위에 별도 라벨을 얹지 않는다(#1536) — 라벨이 있던 예약
-/// 슬롯 시트(`reservation_slots_sheet.dart`의 `_tappableFieldColumn`)와는
-/// 박스 자체의 생김새만 같다.
-class _RegisterFieldBox extends StatelessWidget {
-  const _RegisterFieldBox({
-    required this.icon,
-    required this.value,
-    required this.onTap,
-    super.key,
-  });
-
-  final IconData icon;
-  final String value;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.oncare;
-    return Material(
-      color: Colors.transparent,
-      borderRadius: OnCareRadius.mdAll,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: OnCareRadius.mdAll,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s12),
-          decoration: BoxDecoration(
-            color: OnCareColors.surfaceCard,
-            borderRadius: OnCareRadius.mdAll,
-            border: Border.all(color: OnCareColors.lineStrong),
-          ),
-          // 바로 옆 `일정 추가`([AppButton] medium)의 높이와 맞춘다 — 세로
-          // 패딩만으로는 폰트 지표에 따라 미세하게 어긋날 수 있어, 높이를
-          // 직접 고정한다(#1536). `Container.height`+`alignment`는 쓰지
-          // 않는다 — 그 조합은 내부적으로 `Align`이 되어 `Wrap`이 주는
-          // 만큼 가로로 늘어나 버린다(각 칩이 한 줄씩 차지하게 됨).
-          // `SizedBox`는 세로만 고정하고 가로는 그대로 내용 크기를 따른다.
-          child: SizedBox(
-            height: tokens.density.buttonHeight(OnCareButtonSize.medium),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                AppIcon(
-                  icon,
-                  size: OnCareSize.iconSmall,
-                  color: tokens.brand.primary,
-                ),
-                const SizedBox(width: OnCareSpacing.s8),
-                Text(
-                  value,
-                  style: tokens
-                      .text(OnCareTypography.strong(OnCareTypography.bodySmall))
-                      .copyWith(color: OnCareColors.textPrimary),
-                ),
-                const SizedBox(width: OnCareSpacing.s8),
-                const AppIcon(
-                  AppIcons.expandMore,
-                  size: OnCareSize.iconMedium,
-                  color: OnCareColors.textTertiary,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 
