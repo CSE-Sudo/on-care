@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
@@ -48,10 +48,15 @@ class ReportSendLog extends StateNotifier<Map<String, ReportSendRecord>> {
   ReportSendLog() : super(const <String, ReportSendRecord>{});
 
   /// [clientId] 의 [weekStart] 주 리포트를 방금 보냈다고 적는다.
+  ///
+  /// [previousCount] 는 이 전송 앞까지 보낸 횟수다 — 기록은 그다음 번호로
+  /// 선다(#2885). 예전에는 늘 1 로 적고 서버 기록과 큰 쪽을 골라, 세 번째로
+  /// 보낸 직후에도 서버의 옛 `2회` 가 서버가 돌아올 때까지 남았다.
   void record({
     required String clientId,
     required DateTime weekStart,
     required String message,
+    int previousCount = 0,
   }) {
     final DateTime monday = weekStartOf(weekStart);
     state = <String, ReportSendRecord>{
@@ -61,6 +66,8 @@ class ReportSendLog extends StateNotifier<Map<String, ReportSendRecord>> {
         weekStart: monday,
         sentAt: nowKst(),
         message: message,
+        read: false,
+        sendCount: (previousCount < 0 ? 0 : previousCount) + 1,
       ),
     };
   }
@@ -96,9 +103,15 @@ final reportSendHistoryProvider = FutureProvider.autoDispose
 
 /// 서버 기록 [history] 에 이번 세션 기록 [session] 을 얹은 사본.
 ///
-/// 같은 회원·같은 주의 기록이 둘 다 있으면 **더 늦게 보낸 것**이 남는다 —
-/// 방금 다시 보낸 글이 서버에서 아직 돌아오지 않았을 때 옛 본문을 보여 주지
-/// 않는다. 보낸 횟수는 둘 중 큰 쪽을 지킨다.
+/// 세션 기록은 서버가 방금 보낸 것을 돌려줄 때까지만 선다(#2885):
+///  * 서버에 같은 회원·같은 주 기록이 없으면 세션 기록이 그 자리에 선다.
+///  * 서버 기록의 보낸 횟수가 세션 기록만큼 찼으면 서버가 따라잡은 것이다 —
+///    세션 기록을 버리고 서버 기록(읽음 여부 포함)을 그대로 둔다.
+///  * 아직 덜 찼으면 방금 보낸 것이 서버에 없다 — 세션 기록이 이긴다.
+///
+/// 비교는 보낸 횟수로 한다. 예전에는 보낸 시각을 견줬는데, 세션 시각은 기기
+/// 시계라 기기가 서버보다 빠르면 세션 기록이 계속 이겨, 회원이 읽은 뒤에도
+/// `안 읽음` 으로 남았다.
 Map<String, ReportSendRecord> mergeSendLogs(
   Map<String, ReportSendRecord> history,
   Map<String, ReportSendRecord> session,
@@ -106,22 +119,8 @@ Map<String, ReportSendRecord> mergeSendLogs(
   final merged = <String, ReportSendRecord>{...history};
   session.forEach((String key, ReportSendRecord mine) {
     final ReportSendRecord? theirs = merged[key];
-    if (theirs == null) {
-      merged[key] = mine;
-      return;
-    }
-    if (theirs.sentAt.isAfter(mine.sentAt)) return;
-    merged[key] = ReportSendRecord(
-      clientId: mine.clientId,
-      weekStart: mine.weekStart,
-      sentAt: mine.sentAt,
-      message: mine.message,
-      // 방금 보낸 것은 아직 아무도 읽지 않았다.
-      read: false,
-      sendCount: theirs.sendCount > mine.sendCount
-          ? theirs.sendCount
-          : mine.sendCount,
-    );
+    if (theirs != null && theirs.sendCount >= mine.sendCount) return;
+    merged[key] = mine;
   });
   return merged;
 }

@@ -252,7 +252,7 @@ def unread_count(
 
 @router.post("/notifications/read-all")
 def mark_all_read(
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     """내 미확인 알림을 모두 읽음 처리."""
@@ -268,7 +268,7 @@ def mark_all_read(
 @router.post("/notifications/{notification_id}/read", status_code=200)
 def mark_read(
     notification_id: str,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     row = db.scalar(select(Notification).where(Notification.id == notification_id))
@@ -282,7 +282,7 @@ def mark_read(
 @router.delete("/notifications/{notification_id}")
 def delete_notification(
     notification_id: str,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     """알림 삭제(본인 소유만)."""

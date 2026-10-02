@@ -15,7 +15,7 @@ from app.models.models import (
     TrainerReservationSlot,
     TrainerSchedule,
 )
-from app.services import trainer_service
+from app.services.trainer import schedule as trainer_schedule_service
 
 _PROGRAM = [{"name": "스쿼트", "sets": 3, "reps": "10회", "weight": "40kg"}]
 
@@ -43,7 +43,7 @@ def _future(days: int) -> str:
 def _pin_now(monkeypatch, hour: int, minute: int = 0) -> None:
     """시작 판정 시각을 오늘 KST [hour]:[minute] 로 고정한다."""
     monkeypatch.setattr(
-        trainer_service,
+        trainer_schedule_service,
         "_now_kst",
         lambda: clock.now().replace(
             hour=hour, minute=minute, second=0, microsecond=0
@@ -325,7 +325,7 @@ def test_reopen_into_an_overlap_changes_nothing(client, db_session, make_session
 
     assert reopened.status_code == 409, reopened.text
     detail = reopened.json()["detail"]
-    assert detail["code"] == trainer_service.SCHEDULE_OVERLAP_CODE
+    assert detail["code"] == trainer_schedule_service.SCHEDULE_OVERLAP_CODE
     assert [c["id"] for c in detail["conflicts"]] == [blocker]
     db_session.expire_all()
     stored = db_session.get(TrainerSchedule, sid)
@@ -423,7 +423,7 @@ def test_session_has_started(day_offset, time, now, started):
     today = "2026-10-01"
     day = (datetime.fromisoformat(today) + timedelta(days=day_offset)).date()
     assert (
-        trainer_service.session_has_started(
+        trainer_schedule_service.session_has_started(
             day.isoformat(), time, now=_kst(today, *now)
         )
         is started

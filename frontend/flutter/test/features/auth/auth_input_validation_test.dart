@@ -101,11 +101,35 @@ Future<void> _type(WidgetTester tester, String key, String text) async {
 String _valueOf(WidgetTester tester, String key) =>
     tester.widget<TextField>(_input(key)).controller!.text;
 
+/// 가입 화면이면 먼저 동의를 모두 체크한다(#2819) — 필수 동의 없이는 가입
+/// 버튼이 꺼져 있어, 이 묶음의 형식 검사까지 닿지 않는다.
+Future<void> _agreeAll(WidgetTester tester) async {
+  final Finder all = find.byKey(const ValueKey<String>('consent-all'));
+  if (all.evaluate().isEmpty) return;
+  final bool on = tester
+      .widget<Checkbox>(
+        find.descendant(of: all, matching: find.byType(Checkbox)),
+      )
+      .value!;
+  if (on) return;
+  await tester.ensureVisible(all);
+  await tester.pump();
+  await tester.tap(all);
+  await tester.pump();
+}
+
 /// 오류 문구가 늘어 버튼이 화면 밖으로 밀려도 누를 수 있게 끌어온다.
+///
+/// 동의 묶음까지 들어가 가입 화면이 테스트 창보다 길다. 방금 친 칸에 초점이
+/// 남아 있으면 그 칸이 커서를 보이려고 스크롤을 되돌려 버튼이 다시 화면 밖으로
+/// 나가므로, 초점을 먼저 거두고 스크롤이 멎은 뒤에 누른다.
 Future<void> _submit(WidgetTester tester, String key) async {
+  await _agreeAll(tester);
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tester.pumpAndSettle();
   final Finder submit = find.byKey(ValueKey<String>(key));
   await tester.ensureVisible(submit);
-  await tester.pump();
+  await tester.pumpAndSettle();
   await tester.tap(submit);
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 300));
@@ -120,6 +144,7 @@ Finder _errorUnder(String key, String message) => find.descendant(
 const String _nameEmpty = '이름을 입력해 주세요';
 const String _emailEmpty = '이메일을 입력해 주세요';
 const String _emailInvalid = '이메일 형식이 올바르지 않아요';
+const String _emailTooLong = '이메일은 255자까지 입력할 수 있어요';
 const String _passwordEmpty = '비밀번호를 입력해 주세요';
 const String _phoneInvalid = '전화번호를 010-0000-0000 형식으로 입력해 주세요';
 const String _passwordWeak = '영문과 숫자를 포함해 8자 이상 입력해 주세요';
@@ -307,6 +332,46 @@ void main() {
       final Map<String, Object?> data =
           registers.single.data! as Map<String, Object?>;
       expect(data['name'], '김민수');
+    });
+
+    testWidgets('255자를 넘는 이메일은 보내지 않고 칸 아래에 길이 문구를 보인다', (
+      WidgetTester tester,
+    ) async {
+      // 서버(`contact_format.EMAIL_MAX_LENGTH`)가 422 로 돌려보낼 값을 화면이
+      // 먼저 잡는다(#2908). 전에는 형식만 보고 통과시켜, 제출 뒤에야 서버 오류
+      // 문구가 떴다.
+      final _FakeServer server = await _pump(
+        tester,
+        const SignUpPage(),
+        status: 409,
+      );
+      const String domain = '@oncare.com';
+      final String tooLong = '${'a' * (256 - domain.length)}$domain';
+      final String atLimit = '${'a' * (255 - domain.length)}$domain';
+
+      await _type(tester, name, '김민수');
+      await _type(tester, email, tooLong);
+      await _type(tester, phone, '01012345678');
+      await _type(tester, password, '1234567a');
+      await _type(tester, confirm, '1234567a');
+
+      await _submit(tester, submit);
+
+      expect(_errorUnder(email, _emailTooLong), findsOneWidget);
+      expect(find.text(_emailInvalid), findsNothing);
+      expect(server.requests, isEmpty);
+
+      // 한 글자 줄여 255자가 되면 문구가 사라지고 요청이 나간다.
+      await _type(tester, email, atLimit);
+      expect(find.text(_emailTooLong), findsNothing);
+
+      await _submit(tester, submit);
+
+      final List<RequestOptions> registers = server.to('/auth/register');
+      expect(registers, hasLength(1));
+      final Map<String, Object?> data =
+          registers.single.data! as Map<String, Object?>;
+      expect(data['email'], atLimit);
     });
 
     testWidgets('전화번호는 숫자만 쳐도 010-0000-0000 으로 끊긴다', (

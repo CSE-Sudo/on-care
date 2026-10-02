@@ -12,12 +12,16 @@
 ///     남의 기록이 보인다.
 library;
 
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logger/logger.dart';
 
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/core/network/interceptors/mock_api_interceptor.dart';
+import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
+import 'package:oncare/core/storage/app_database.dart';
 
 AppConfig _config({Set<String> realApi = const <String>{}}) => AppConfig(
   environment: Environment.dev,
@@ -136,60 +140,80 @@ void main() {
     });
   });
 
-  group('MockApiInterceptor', () {
-    late Logger logger;
+  group('LocalApiInterceptor', () {
+    late AppDatabase db;
 
-    setUp(() => logger = Logger(level: Level.off));
+    setUp(() => db = AppDatabase.forTesting(NativeDatabase.memory()));
+    tearDown(() => db.close());
 
-    /// 인터셉터가 목업 응답으로 가로챘는지(resolve), 흘려보냈는지(next) 판정.
+    /// 인터셉터가 목업 응답으로 답했는지(true), 실 네트워크로 흘려보냈는지(false).
     Future<bool> intercepted(
-      MockApiInterceptor interceptor,
       String path, {
       String method = 'GET',
+      bool Function(String method, String path)? isRealApi,
     }) async {
-      final options = RequestOptions(path: path, method: method);
-      bool resolved = false;
-      final handler = _RecordingHandler(onResolve: () => resolved = true);
-      interceptor.onRequest(options, handler);
-      return resolved;
+      final _CountingAdapter network = _CountingAdapter();
+      final Dio dio = Dio(BaseOptions(baseUrl: 'https://example.test/v1'))
+        ..httpClientAdapter = network
+        ..interceptors.add(
+          LocalApiInterceptor(
+            db,
+            Logger(level: Level.off),
+            isRealApi: isRealApi,
+          ),
+        );
+      await dio.request<Object?>(path, options: Options(method: method));
+      return network.calls == 0;
     }
 
     test('스위치가 꺼져 있으면 알려진 경로를 그대로 가로챈다', () async {
-      final interceptor = MockApiInterceptor(logger);
-      expect(await intercepted(interceptor, '/ping'), isTrue);
+      expect(await intercepted('/ping'), isTrue);
     });
 
     test('스위치가 켜진 요청은 가로채지 않고 흘려보낸다', () async {
-      final interceptor = MockApiInterceptor(
-        logger,
-        isRealApi: (String method, String path) =>
-            method == 'GET' && path.startsWith('/ping'),
+      expect(
+        await intercepted(
+          '/ping',
+          isRealApi: (String method, String path) =>
+              method == 'GET' && path.startsWith('/ping'),
+        ),
+        isFalse,
       );
-      expect(await intercepted(interceptor, '/ping'), isFalse);
     });
 
     test('메서드가 다르면 스위치가 켜져 있어도 가로챈다', () async {
-      final interceptor = MockApiInterceptor(
-        logger,
-        isRealApi: (String method, String path) =>
-            method == 'POST' && path.startsWith('/ping'),
+      expect(
+        await intercepted(
+          '/ping',
+          isRealApi: (String method, String path) =>
+              method == 'POST' && path.startsWith('/ping'),
+        ),
+        isTrue,
       );
-      expect(await intercepted(interceptor, '/ping'), isTrue);
     });
   });
 }
 
-/// resolve/next 중 무엇이 불렸는지만 기록하는 핸들러.
-class _RecordingHandler extends RequestInterceptorHandler {
-  _RecordingHandler({required this.onResolve});
-
-  final void Function() onResolve;
+/// 실 네트워크로 나간 요청 수만 세는 어댑터.
+class _CountingAdapter implements HttpClientAdapter {
+  int calls = 0;
 
   @override
-  void resolve(Response<dynamic> response, [bool callFollowingResponseInterceptor = false]) {
-    onResolve();
+  void close({bool force = false}) {}
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    calls++;
+    return ResponseBody.fromString(
+      '{}',
+      200,
+      headers: <String, List<String>>{
+        Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+      },
+    );
   }
-
-  @override
-  void next(RequestOptions requestOptions) {}
 }

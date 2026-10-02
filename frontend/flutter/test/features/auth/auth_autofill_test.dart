@@ -17,13 +17,14 @@ import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/network/dio_client.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_up_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+
+import '../../helpers/mock_account_repository.dart';
 
 const AppConfig _config = AppConfig(
   environment: Environment.dev,
@@ -220,6 +221,15 @@ void main() {
       expect(_field(tester, password).obscureText, isTrue);
     });
 
+    testWidgets('이메일 칸은 자동 대문자·자동 고침이 꺼져 있다(#2816)', (tester) async {
+      await pumpSignIn(tester);
+
+      final TextField field = _field(tester, email);
+      expect(field.textCapitalization, TextCapitalization.none);
+      expect(field.autocorrect, isFalse);
+      expect(field.enableSuggestions, isFalse);
+    });
+
     testWidgets('두 칸이 같은 AutofillGroup 하나에 묶이고, 떠날 때는 취소한다', (tester) async {
       await pumpSignIn(tester);
 
@@ -364,6 +374,8 @@ void main() {
       await _type(tester, phone, '01012345678');
       await _type(tester, password, 'signup-pw-1234');
       await _type(tester, confirm, confirmValue ?? 'signup-pw-1234');
+      // 필수 동의 없이는 가입 버튼이 꺼져 있다(#2819).
+      await _tapKey(tester, 'consent-all');
     }
 
     testWidgets('칸마다 name·username/email·국내 전화·newPassword 힌트다', (
@@ -399,6 +411,15 @@ void main() {
       );
       await _type(tester, phone, '01012345678');
       expect(_field(tester, phone).controller!.text, '010-1234-5678');
+    });
+
+    testWidgets('이메일 칸은 자동 대문자·자동 고침이 꺼져 있다(#2816)', (tester) async {
+      await pumpSignUp(tester);
+
+      final TextField field = _field(tester, email);
+      expect(field.textCapitalization, TextCapitalization.none);
+      expect(field.autocorrect, isFalse);
+      expect(field.enableSuggestions, isFalse);
     });
 
     testWidgets('다섯 칸이 같은 AutofillGroup 하나에 묶이고, 떠날 때는 취소한다', (tester) async {

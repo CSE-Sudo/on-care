@@ -110,7 +110,3 @@ _BY_KEY: dict[str, MealItem] = {item.key: item for item in CATALOG}
 def get(key: str) -> MealItem | None:
     """카탈로그 조회. LLM 이 지어낸 key 를 걸러내는 게이트로도 쓴다."""
     return _BY_KEY.get(key)
-
-
-def is_valid(key: str) -> bool:
-    return key in _BY_KEY

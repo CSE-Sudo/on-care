@@ -32,7 +32,7 @@ from app.data.meal_catalog import CATALOG, DEFAULT_ORDER, RECOMMENDATION_COUNT, 
 from app.models.models import DietEntry, HealthProfile
 from app.schemas.diet_api import DietRecommendationItem, DietRecommendationsResponse
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
-from app.services import health_focus
+from app.services import goal_defaults, health_focus
 
 logger = logging.getLogger(__name__)
 
@@ -49,9 +49,9 @@ LOOKBACK_DAYS = 3
 
 #: 기본 일일 한도. 나트륨은 WHO 권고, 당류는 2025 한국인 영양소 섭취기준의 첨가당
 #: 권고(총에너지 10% 이내)를 따른다. HealthProfile 에 개인 목표가 있으면 그쪽이 우선한다.
-DEFAULT_SODIUM_LIMIT_MG = 2000
-DEFAULT_SUGAR_LIMIT_G = 50
-DEFAULT_CALORIE_LIMIT = 2000
+DEFAULT_SODIUM_LIMIT_MG = goal_defaults.DAILY_SODIUM_MG
+DEFAULT_SUGAR_LIMIT_G = goal_defaults.DAILY_SUGAR_G
+DEFAULT_CALORIE_LIMIT = goal_defaults.DAILY_CALORIES
 
 #: 한도의 몇 %를 넘으면 "과다" 신호로 볼지. 1.0 은 경계에서 신호가 깜빡이므로 여유를 둔다.
 _HIGH_RATIO = 0.9

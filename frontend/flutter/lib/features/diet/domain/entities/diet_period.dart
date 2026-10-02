@@ -1,5 +1,11 @@
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 
+/// `전체` 식단이 거슬러 올라가는 최대 날 수(약 3년). 서버 기간 집계의 상한
+/// (`diet_service.MAX_PERIOD_DAYS`, #2833)과 같다 — 날짜가 잘못 들어간 아주
+/// 오래된 기록 하나가 그래프를 수십만 칸으로 늘리지 않게 한다. 데모 응답
+/// (`LocalApiInterceptor`)도 같은 값으로 자른다.
+const int kDietAllPeriodMaxDays = 1100;
+
 /// 기간 뷰의 하루. 하루 상세( [DietDay] )에서 화면이 그리는 세 수치만 남긴다.
 class DietPeriodDay {
   const DietPeriodDay({

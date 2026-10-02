@@ -1,4 +1,5 @@
-import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 트레이너가 고객 기록을 보는 기간 — 회원 앱 식단·운동 탭의 토글과 **같은
 /// 뜻·같은 순서**다(#914).
@@ -37,6 +38,15 @@ const int kClientMinPeriodDays = 1;
 /// 회원 앱 `kExerciseMinPeriodWeeks` 와 같다.
 const int kClientMinExerciseWeeks = 1;
 
+/// `전체` 식단이 거슬러 올라가는 최대 날 수(약 3년). 서버 기간 집계의 상한
+/// (`diet_service.MAX_PERIOD_DAYS`, #2833)과 같다 — 날짜가 잘못 들어간 아주 오래된
+/// 기록 하나가 그래프를 수십만 칸으로 늘리지 않게 한다.
+const int kClientMaxPeriodDays = 1100;
+
+/// `전체` 운동이 거슬러 올라가는 최대 주 수(약 3년). 서버
+/// `exercise_service.MAX_PERIOD_WEEKS`(#2833)와 같다.
+const int kClientMaxExerciseWeeks = 160;
+
 /// [period] 가 덮는 날짜 범위. [exercise] 면 `전체` 가 운동 기준으로 길어진다.
 /// [firstRecord] 는 그 회원이 **처음 기록한 날**이다(#2079). `전체` 가 거기서
 /// 시작한다 — 없으면(기록이 없거나 아직 못 읽었으면) 식단은 오늘 하루, 운동은
@@ -52,11 +62,7 @@ ClientDateRange clientRangeFor(
     case ClientPeriod.today:
       return (from: day, to: day);
     case ClientPeriod.week:
-      final DateTime monday = DateTime(
-        day.year,
-        day.month,
-        day.day - (day.weekday - 1),
-      );
+      final DateTime monday = mondayOf(day);
       return (
         from: monday,
         to: DateTime(monday.year, monday.month, monday.day + 6),
@@ -75,21 +81,37 @@ ClientDateRange clientRangeFor(
         final DateTime firstMonday = first == null
             ? thisMonday
             : clientMondayOf(first);
+        // 서버와 같은 상한으로 자른다(#2833).
+        final DateTime floorMonday = DateTime(
+          thisMonday.year,
+          thisMonday.month,
+          thisMonday.day - (kClientMaxExerciseWeeks - 1) * 7,
+        );
         return (
-          from: firstMonday.isAfter(thisMonday) ? thisMonday : firstMonday,
+          from: firstMonday.isAfter(thisMonday)
+              ? thisMonday
+              : firstMonday.isBefore(floorMonday)
+              ? floorMonday
+              : firstMonday,
           to: day,
         );
       }
-      return (from: first == null || first.isAfter(day) ? day : first, to: day);
+      final DateTime floor = DateTime(
+        day.year,
+        day.month,
+        day.day - (kClientMaxPeriodDays - 1),
+      );
+      final DateTime from = first == null || first.isAfter(day) ? day : first;
+      return (from: from.isBefore(floor) ? floor : from, to: day);
   }
 }
 
 /// [day] 가 속한 주의 월요일(시각은 0시).
 ///
 /// 서버도 데모도 운동·리포트 이력을 주 단위로 들고 있고, 그 키가 언제나
-/// 월요일이다. 읽는 쪽과 쓰는 쪽이 같은 함수를 써야 주가 어긋나지 않는다.
-DateTime clientMondayOf(DateTime day) =>
-    DateTime(day.year, day.month, day.day - (day.weekday - 1));
+/// 월요일이다. 읽는 쪽과 쓰는 쪽이 같은 함수를 써야 주가 어긋나지 않는다 —
+/// 두 앱이 함께 쓰는 `oncare_ui` 의 [mondayOf] 로 센다(#2908).
+DateTime clientMondayOf(DateTime day) => mondayOf(day);
 
 /// 범위가 덮는 모든 날짜(시작·끝 포함).
 List<DateTime> clientRangeDates(ClientDateRange range) {
@@ -108,16 +130,8 @@ List<DateTime> clientRangeDates(ClientDateRange range) {
 /// 서버도 데모도 운동·식단 이력을 **주 단위**로 읽는다. 한 달을 그리려면 그
 /// 달에 걸친 4~6개의 주를 각각 읽어 이어 붙인다.
 List<DateTime> clientRangeWeekStarts(ClientDateRange range) {
-  final DateTime first = DateTime(
-    range.from.year,
-    range.from.month,
-    range.from.day - (range.from.weekday - 1),
-  );
-  final DateTime last = DateTime(
-    range.to.year,
-    range.to.month,
-    range.to.day - (range.to.weekday - 1),
-  );
+  final DateTime first = mondayOf(range.from);
+  final DateTime last = mondayOf(range.to);
   final List<DateTime> out = <DateTime>[];
   DateTime cursor = first;
   while (!cursor.isAfter(last)) {

@@ -23,11 +23,19 @@ enum SessionStatus {
 class SessionState {
   /// Creates a session snapshot. [profile] is non-null only when
   /// [status] is [SessionStatus.authenticated].
-  const SessionState({this.status = SessionStatus.unknown, this.profile});
+  const SessionState({
+    this.status = SessionStatus.unknown,
+    this.profile,
+    this.consentRequired = false,
+  });
 
   /// Current lifecycle state.
   final SessionStatus status;
 
   /// The signed-in trainer's profile, or `null` when not authenticated.
   final TrainerProfile? profile;
+
+  /// 로그인은 됐지만 가입 동의가 남았다 — 라우터가 다른 화면보다 먼저 동의
+  /// 화면을 띄운다. (#2819) 데모에는 계정이 없어 언제나 거짓이다.
+  final bool consentRequired;
 }

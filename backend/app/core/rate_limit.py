@@ -4,11 +4,22 @@
 분당 시도 횟수를 제한한다. 단일 인스턴스/데모에 충분하며, 다중 인스턴스 운영에서는
 Redis 백엔드로 교체(같은 check() 인터페이스 유지)하면 된다.
 
-키는 `엔드포인트 + IP`(또는 트레이너 id) 조합이라 바깥에서 늘릴 수 있다. 그래서
+키는 `엔드포인트 + IP`(또는 트레이너·회원 id — [check_user]) 조합이라 바깥에서 늘릴 수 있다. 그래서
 윈도우가 지난 키는 들고 있지 않는다 — check() 안에서 비워진 키를 바로 지우고,
 주기적으로 만료 키를 훑어 정리하며, 그래도 남으면 키 총수 상한으로 자른다.
 
 RATE_LIMIT_ENABLED=false 로 끌 수 있고, RATE_LIMIT_AUTH_PER_MINUTE 로 한도를 조정한다.
+
+**IP 는 `app.core.client_ip.client_ip` 로 읽는다**(#2815) — 감사 로그와 같은 함수다.
+요청자가 `X-Forwarded-For` 를 바꿔 보내도 버킷이 갈라지지 않는다.
+
+IP 버킷만으로는 부족한 곳(로그인·연결 코드·비밀번호 변경·가입)은 계정·이메일·
+사용자 id 를 키로 하는 버킷을 같이 건다(`check_key`, 실패 잠금 `ensure_unlocked`·
+`record_failure`). IP 를 바꿔도 같은 계정을 노리는 시도는 한 버킷에 모인다.
+
+**저장소는 프로세스 메모리다.** 인스턴스가 N 개면 한도도 N 배가 된다. 운영 인스턴스가
+하나를 넘게 되면 같은 메서드(`check`·`retry_after`·`hit`·`reset`)를 가진 공유
+저장소(Redis 등) 구현으로 `limiter` 를 바꾼다 — 호출하는 쪽은 그대로다.
 """
 from __future__ import annotations
 
@@ -18,6 +29,7 @@ from collections import deque
 
 from fastapi import HTTPException, Request, status
 
+from app.core.client_ip import client_ip
 from app.core.config import get_settings
 
 #: 만료 키 청소 주기(초). 요청마다 전체를 훑지 않기 위한 간격이다.
@@ -49,34 +61,79 @@ class RateLimiter:
             self._expires_at.clear()
             self._next_sweep = time.monotonic() + self._sweep_interval
 
-    def check(self, key: str, limit: int, window: float) -> None:
-        """key 에 대해 window(초) 동안 limit 회 초과 시 429."""
+    def check(
+        self, key: str, limit: int, window: float, *, detail: object | None = None
+    ) -> None:
+        """key 에 대해 window(초) 동안 limit 회 초과 시 429.
+
+        [detail] 을 주면 429 응답의 `detail` 로 쓴다 — 앱이 다른 429(하루 상한 등)와
+        구분해야 하는 경로는 `{code, message}` 를 넘긴다.
+        """
         now = time.monotonic()
         with self._lock:
             if now >= self._next_sweep:
                 self._sweep(now)
-            dq = self._hits.get(key)
-            if dq is not None:
-                cutoff = now - window
-                while dq and dq[0] <= cutoff:
-                    dq.popleft()
-                if not dq:
-                    # 윈도우가 지난 키는 남기지 않는다.
-                    self._drop(key)
-                    dq = None
+            dq = self._live(key, now, window)
             # 한도 판정은 키가 없을 때(0회)도 예전과 똑같이 먼저 한다 — limit 이 0 이면
             # 첫 요청부터 막히고, 그때 키는 만들지 않는다.
             if (len(dq) if dq is not None else 0) >= limit:
-                raise HTTPException(
-                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    detail="요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.",
-                    headers={"Retry-After": str(int(window))},
-                )
+                raise too_many_requests(window, detail=detail)
+            self._append(key, now, window, dq)
+
+    def retry_after(self, key: str, limit: int, window: float) -> int | None:
+        """기록하지 않고 한도만 본다. 막혔으면 풀릴 때까지 남은 초, 아니면 None.
+
+        실패만 세는 버킷(로그인 잠금)이 쓴다 — 시도할 때가 아니라 틀렸을 때 `hit`
+        으로 센다.
+        """
+        now = time.monotonic()
+        with self._lock:
+            dq = self._live(key, now, window)
+            count = len(dq) if dq is not None else 0
+            if count < limit:
+                return None
             if dq is None:
-                self._make_room(now)
-                dq = self._hits[key] = deque()
-            dq.append(now)
-            self._expires_at[key] = now + window
+                return int(window)
+            # 가장 오래된 기록이 창 밖으로 나가면 한 번 더 시도할 수 있다.
+            return max(1, int(dq[0] + window - now + 0.999))
+
+    def hit(self, key: str, window: float) -> None:
+        """한도 판정 없이 한 번 센다."""
+        now = time.monotonic()
+        with self._lock:
+            if now >= self._next_sweep:
+                self._sweep(now)
+            self._append(key, now, window, self._live(key, now, window))
+
+    def reset(self, key: str) -> None:
+        """key 의 기록을 지운다(로그인 성공 시 실패 기록 초기화)."""
+        with self._lock:
+            self._drop(key)
+
+    # ---- 내부: 기록 ----
+
+    def _live(self, key: str, now: float, window: float) -> deque[float] | None:
+        """창 안에 남은 기록. 비었으면 키를 지우고 None. 호출자가 _lock 을 쥔다."""
+        dq = self._hits.get(key)
+        if dq is None:
+            return None
+        cutoff = now - window
+        while dq and dq[0] <= cutoff:
+            dq.popleft()
+        if not dq:
+            # 윈도우가 지난 키는 남기지 않는다.
+            self._drop(key)
+            return None
+        return dq
+
+    def _append(
+        self, key: str, now: float, window: float, dq: deque[float] | None
+    ) -> None:
+        if dq is None:
+            self._make_room(now)
+            dq = self._hits[key] = deque()
+        dq.append(now)
+        self._expires_at[key] = now + window
 
     # ---- 내부: 키 정리 ----
 
@@ -107,6 +164,61 @@ class RateLimiter:
 limiter = RateLimiter()
 
 
+def too_many_requests(
+    retry_after: float, *, detail: object | None = None
+) -> HTTPException:
+    """모든 버킷이 같은 429 문구·`Retry-After` 를 쓴다(화면은 기존 안내 그대로).
+
+    [detail] 을 주면 그 값을 `detail` 로 쓴다 — 다른 429(하루 상한 등)와 구분해야
+    하는 경로가 `{code, message}` 를 넘긴다.
+    """
+    return HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail=detail
+        if detail is not None
+        else "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.",
+        headers={"Retry-After": str(max(1, int(retry_after)))},
+    )
+
+
+def check_key(key: str, limit: int, window: float = 60.0) -> None:
+    """IP 가 아닌 키(사용자 id·이메일 등)로 한도를 건다. 끄면 아무것도 하지 않는다."""
+    if not get_settings().rate_limit_enabled:
+        return
+    limiter.check(key, limit, window)
+
+
+def ensure_unlocked(key: str, limit: int, window: float) -> None:
+    """실패 기록이 한도에 닿은 키면 429. 시도 자체는 세지 않는다."""
+    if not get_settings().rate_limit_enabled:
+        return
+    retry = limiter.retry_after(key, limit, window)
+    if retry is not None:
+        raise too_many_requests(retry)
+
+
+def record_failure(key: str, window: float) -> None:
+    """실패 한 번을 센다(`ensure_unlocked` 와 짝)."""
+    if not get_settings().rate_limit_enabled:
+        return
+    limiter.hit(key, window)
+
+
+def clear_failures(key: str) -> None:
+    """성공하면 실패 기록을 지운다."""
+    limiter.reset(key)
+
+
+def register_email_key(email: str) -> str:
+    """가입 시도 이메일 버킷 키(#2913). 회원·트레이너 가입이 같은 키를 쓴다."""
+    return f"register-email:{email.strip().lower()}"
+
+
+def password_change_fail_key(user_id: str) -> str:
+    """비밀번호 변경 실패 잠금 키(#2913). 회원 쪽 변경도 같은 키 규칙을 쓴다."""
+    return f"password-change-fail:{user_id}"
+
+
 def rate_limit(bucket: str, per_minute: int | None = None):
     """엔드포인트에 붙일 의존성 팩토리. bucket 은 엔드포인트 구분자.
 
@@ -119,8 +231,24 @@ def rate_limit(bucket: str, per_minute: int | None = None):
         settings = get_settings()
         if not settings.rate_limit_enabled:
             return
-        ip = request.client.host if request.client else "unknown"
+        # 감사 로그와 같은 함수로 읽는다(#2815) — 위조한 X-Forwarded-For 로 버킷이
+        # 갈라지지 않는다.
+        ip = client_ip(request) or "unknown"
         limit = per_minute or settings.rate_limit_auth_per_minute
         limiter.check(f"{bucket}:{ip}", limit, 60.0)
 
     return _dep
+
+
+def check_user(
+    bucket: str, user_id: str, per_minute: int, *, detail: object | None = None
+) -> None:
+    """사용자 id 버킷으로 분당 한도를 센다. (#2827)
+
+    IP 버킷은 같은 헬스장 Wi-Fi 의 회원들이 한 버킷을 나눠 쓴다 — 한 사람의 폭주가
+    옆 사람의 기록을 막는다. 로그인한 사용자의 비용 가드는 사람 단위로 센다(트레이너
+    AI 코치의 트레이너 id 버킷 #1548 과 같은 방식). `per_minute` 가 0 이하면 끈다.
+    """
+    if not get_settings().rate_limit_enabled or per_minute <= 0:
+        return
+    limiter.check(f"{bucket}:user:{user_id}", per_minute, 60.0, detail=detail)

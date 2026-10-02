@@ -13,8 +13,8 @@ library;
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 
 /// [now] 다음 분 경계까지 남은 시간. 정확히 경계 위면 1분 뒤다.

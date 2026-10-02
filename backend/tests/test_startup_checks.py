@@ -17,6 +17,11 @@ def _prod(**kw) -> Settings:
         cors_allow_origins="https://app.oncare.com",
         seed_demo_data=False,
         auto_create_tables=False,
+        # 운영은 사진 인식·임베딩 키가 필수다(#2812). conftest 가 EMBEDDER=hash 를
+        # 환경변수로 심으므로 운영 값을 명시한다.
+        gemini_api_key="test-gemini-key",
+        recognizer="gemini",
+        embedder="gemini",
     )
     base.update(kw)
     return Settings(**base)
@@ -62,9 +67,13 @@ def test_default_settings_have_no_demo_fallback_warning(monkeypatch):
     assert not any("데모 폴백" in w for w in warnings)
 
 
-def test_prod_with_demo_seed_is_warned():
-    settings = _prod(seed_demo_data=True, demo_login_password="a-long-demo-password")
-    warnings = startup_checks.check(settings)
-    assert any("SEED_DEMO_DATA" in w for w in warnings)
-    # 운영에서는 폴백이 늘 꺼지므로 폴백 경고는 없다.
-    assert not any("데모 폴백" in w for w in warnings)
+def test_prod_with_demo_seed_is_refused_before_startup_checks():
+    # 경고로 남기지 않고 설정 단계에서 막는다 — 비밀번호가 강해도 같다(#2811).
+    with pytest.raises(ValueError, match="SEED_DEMO_DATA"):
+        _prod(seed_demo_data=True, demo_login_password="a-long-demo-password")
+
+
+def test_prod_without_demo_seed_has_no_demo_warning():
+    warnings = startup_checks.check(_prod())
+    # 운영에서는 폴백이 늘 꺼지고 시드도 켤 수 없어 데모 경고가 없다.
+    assert not any("데모" in w for w in warnings)

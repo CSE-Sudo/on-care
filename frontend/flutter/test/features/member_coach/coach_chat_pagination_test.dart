@@ -85,4 +85,51 @@ void main() {
     );
     expect(older.single.id, 'm1');
   });
+
+  // 커서가 KST 벽시계로 들고 있는 시각이어도 서버에는 같은 UTC 순간으로 간다.
+  // `toUtc()` 는 기기 시간대로 읽어 KST 가 아닌 기기에서 9시간 어긋났다(#2876).
+  test('KST 벽시계 커서는 UTC 순간으로 되돌려 보낸다', () async {
+    final _RecordingDio dio = _RecordingDio(<List<Map<String, Object?>>>[
+      <Map<String, Object?>>[],
+    ]);
+    final repository = DioMemberCoachRepository(dio.build());
+
+    await repository.fetchChat(
+      before: CoachMessage(
+        id: 'm9',
+        sender: CoachSender.trainer,
+        body: '',
+        timeLabel: '07:00',
+        // KST 2026-09-02 07:00 = 2026-09-01 22:00Z
+        createdAt: DateTime(2026, 9, 2, 7),
+      ),
+    );
+
+    expect(
+      dio.requests.single.queryParameters['before'],
+      '2026-09-01T22:00:00.000Z',
+    );
+  });
+
+  test('UTC 순간 커서는 그대로 보낸다', () async {
+    final _RecordingDio dio = _RecordingDio(<List<Map<String, Object?>>>[
+      <Map<String, Object?>>[],
+    ]);
+    final repository = DioMemberCoachRepository(dio.build());
+
+    await repository.fetchChat(
+      before: CoachMessage(
+        id: 'm9',
+        sender: CoachSender.trainer,
+        body: '',
+        timeLabel: '07:00',
+        createdAt: DateTime.utc(2026, 9, 1, 22),
+      ),
+    );
+
+    expect(
+      dio.requests.single.queryParameters['before'],
+      '2026-09-01T22:00:00.000Z',
+    );
+  });
 }

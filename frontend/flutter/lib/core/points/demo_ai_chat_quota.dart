@@ -1,5 +1,5 @@
 import 'package:oncare/core/points/demo_points_ledger.dart';
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 데모의 AI 챗봇 하루 한도. 서버 `ai_chat_quota_service` 의 대역이다. (#2145)
 ///

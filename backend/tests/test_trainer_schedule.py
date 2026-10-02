@@ -152,7 +152,7 @@ def test_program_schedule_rolls_back_assignment_when_schedule_fails(
     client, db_session, monkeypatch
 ):
     """일정 쓰기가 실패하면 배정도 남지 않는다 — 반쪽 성공이 없다. (#1580)"""
-    from app.services import trainer_service
+    from app.services.trainer import schedule as trainer_schedule_service
 
     token = _tok(client)
     day = (clock.today() + timedelta(days=63)).isoformat()
@@ -161,7 +161,7 @@ def test_program_schedule_rolls_back_assignment_when_schedule_fails(
     def fail(*_args, **_kwargs):
         raise RuntimeError("schedule write failed")
 
-    monkeypatch.setattr(trainer_service, "_add_session", fail)
+    monkeypatch.setattr(trainer_schedule_service, "_add_session", fail)
     try:
         with pytest.raises(RuntimeError):
             client.post(

@@ -71,9 +71,8 @@ class AppConfig {
   final String apiBaseUrl;
   final String? sentryDsn;
 
-  /// When true, [MockApiInterceptor] short-circuits any HTTP request
-  /// matching a known path and returns canned data. Used while the
-  /// real REST backend (Q1 decision) is being built.
+  /// When true, `LocalApiInterceptor` short-circuits any HTTP request
+  /// matching a known path and answers from the drift-backed demo store.
   final bool useMockApi;
 
   /// 목업 모드에서도 **실 백엔드를 쓸 기능 키** 목록.

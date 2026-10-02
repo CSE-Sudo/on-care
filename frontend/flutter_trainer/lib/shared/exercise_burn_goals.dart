@@ -1,14 +1,21 @@
 /// 운동 그래프가 쓰는 **지표 정의**. 회원 앱
-/// `features/exercise/domain/entities/exercise_load.dart` 와 같은 규칙을 여기에도
-/// 적어 둔다 — 두 앱은 패키지가 갈라져 있어 코드를 공유할 수 없다
-/// (`activity_charts`·`metric_trend_chart` 와 같은 방식이다).
+/// `features/exercise/domain/entities/exercise_load.dart` 와 같은 규칙이다.
 ///
-/// 한쪽만 고치면 같은 회원의 같은 주가 회원 화면과 트레이너 화면에서 다른
-/// 이야기를 한다. 값을 바꿀 일이 생기면 **양쪽을 함께** 고친다.
+/// 두 앱이 함께 써야 하는 값은 공용 패키지에서 읽는다 — 목표를 세우지 않은
+/// 회원의 기본 목표는 `oncare_ui` 의 `kGoalDefault…`(#2906), 유형 구분은
+/// `oncare_report` 의 [ExerciseKind] 다. 한쪽만 고치면 같은 회원의 같은 주가 회원
+/// 화면과 트레이너 화면에서 다른 이야기를 하므로, 이 파일에는 트레이너 화면만의
+/// 환산(분 → 세트)과 목표 묶음만 남긴다.
 library;
 
 import 'package:oncare_report/oncare_report.dart' show ExerciseKind;
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
+import 'package:oncare_ui/oncare_ui.dart'
+    show
+        kGoalDefaultDailyBurnKcal,
+        kGoalDefaultWeeklyCardioMinutes,
+        kGoalDefaultWeeklyFlexibilityMinutes,
+        kGoalDefaultWeeklyStrengthSets;
 
 /// 유형별로 재는 단위가 다르다 — 유산소·스트레칭은 **분**, 근력은 **세트**.
 ///
@@ -34,19 +41,20 @@ int setsFromStrengthMinutes(num minutes) =>
 ///
 /// 실제 그래프는 이 상수가 아니라 회원 프로필에서 읽은 [ExerciseBurnGoals] 를
 /// 쓴다(#2157).
-const double kDailyBurnKcal = 300;
+const double kDailyBurnKcal = kGoalDefaultDailyBurnKcal * 1.0;
 
 /// 주간 소모 칼로리 목표의 기본값 — 하루 목표 × 7.
 const double kWeeklyBurnKcal = kDailyBurnKcal * 7;
 
 /// 주간 유산소 목표(분)의 기본값. WHO 의 주 150분 중강도 권고.
-const double kWeeklyCardioMinutes = 150;
+const double kWeeklyCardioMinutes = kGoalDefaultWeeklyCardioMinutes * 1.0;
 
 /// 주간 근력 목표(세트)의 기본값. 하루 3세트 × 7일.
-const double kWeeklyStrengthSets = 21;
+const double kWeeklyStrengthSets = kGoalDefaultWeeklyStrengthSets * 1.0;
 
 /// 주간 스트레칭 목표(분)의 기본값.
-const double kWeeklyStretchingMinutes = 60;
+const double kWeeklyStretchingMinutes =
+    kGoalDefaultWeeklyFlexibilityMinutes * 1.0;
 
 /// 운동 그래프가 견주는 **회원의 목표** 한 벌 (#2157).
 ///

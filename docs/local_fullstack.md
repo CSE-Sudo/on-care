@@ -214,7 +214,8 @@ flutter run -d chrome \
 
 ## 데모 계정
 
-`SEED_DEMO_DATA=true`(기본값)면 시드 계정이 생성됩니다. 비밀번호는 모두
+`SEED_DEMO_DATA=true` 면 시드 계정이 생성됩니다. 서버 기본값은 `false` 라(#2811)
+`backend/.env.example` 을 복사해 쓰거나 직접 켜야 합니다. 비밀번호는 모두
 `.env` 의 `DEMO_LOGIN_PASSWORD`(기본 `oncare123`)입니다.
 
 | 역할 | 이메일 | 비고 |

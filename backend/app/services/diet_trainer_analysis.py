@@ -23,6 +23,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 
+from app.core.week import monday_of
 from app.services import diet_all_advice as all_advice
 from app.services import diet_coach_inputs as inputs
 from app.services import diet_week_advice as week_advice
@@ -419,7 +420,7 @@ def analysis(db, member_id: str, period: str, *, now: datetime) -> Analysis:
         return Analysis(period, today.isoformat(), today.isoformat(),
                         1 if entries else 0, tuple(sentences))
     if period == PERIOD_WEEK:
-        two_weeks = today - timedelta(days=today.weekday() + 7)
+        two_weeks = monday_of(today) - timedelta(days=7)
         entries = inputs.entries_between(db, member_id, two_weeks, today)
         start, end, logged, sentences = week_sentences(entries, targets, now)
         return Analysis(period, start.isoformat(), end.isoformat(), logged, tuple(sentences))

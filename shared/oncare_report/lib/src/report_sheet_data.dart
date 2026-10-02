@@ -7,25 +7,42 @@
 /// 원본이다 — 한쪽만 고치면 같은 주가 두 앱에서 다른 점수를 말한다.
 library;
 
+import 'package:oncare_ui/oncare_ui.dart'
+    show
+        kGoalDefaultDailyCalories,
+        kGoalDefaultDailyCarbsG,
+        kGoalDefaultDailyFatG,
+        kGoalDefaultDailyProteinG,
+        kGoalDefaultDailySodiumMg,
+        kGoalDefaultDailySugarG;
+
 /// 유형별로 재는 단위가 다르다 — 유산소·스트레칭은 **분**, 근력은 **세트**.
 enum ExerciseKind { cardio, strength, stretching }
 
 /// 칼로리가 목표에서 이만큼 벗어나면 주의로 본다. 백엔드와 같은 값이다.
 const double calorieTolerance = 0.15;
 
+// 회원 목표가 없을 때 쓰는 아래 기본값은 두 앱의 기준선과 같은 공용 정의
+// (`oncare_ui` 의 `kGoalDefault…`)를 읽는다(#2906). 결과지만 다른 숫자를 들면
+// 같은 회원의 같은 주가 홈 카드와 결과지에서 다른 목표선으로 그려진다.
+
 /// 당류 하루 기준(g) — 회원 목표가 없을 때 쓴다.
-const double sugarLimitG = 50;
+const double sugarLimitG = kGoalDefaultDailySugarG * 1.0;
 
 /// 하루 칼로리 목표(kcal) — 회원 목표가 없을 때 쓴다.
-const int kReportCalorieTargetKcal = 2000;
+const int kReportCalorieTargetKcal = kGoalDefaultDailyCalories;
 
 /// 하루 나트륨 목표(mg) — 회원 목표가 없을 때 쓴다. 백엔드 `SODIUM_TARGET_MG`.
-const int kReportSodiumTargetMg = 2000;
+const int kReportSodiumTargetMg = kGoalDefaultDailySodiumMg;
 
 /// 하루 탄수화물·단백질·지방 목표(g) — 회원 목표가 없을 때 쓴다.
-const int kReportCarbsTargetG = 275;
-const int kReportProteinTargetG = 100;
-const int kReportFatTargetG = 55;
+///
+/// 단백질은 회원 앱 홈 카드·트레이너 웹 영양 카드·서버 식단 분석과 같은 60g 이다.
+/// 예전 100g 은 결과지에만 남아 있어, 단백질 목표를 비워 둔 회원의 결과지만
+/// 다른 선으로 견줬다.
+const int kReportCarbsTargetG = kGoalDefaultDailyCarbsG;
+const int kReportProteinTargetG = kGoalDefaultDailyProteinG;
+const int kReportFatTargetG = kGoalDefaultDailyFatG;
 
 /// `잘한 주` 로 보는 루틴 수행률·출석률(%).
 const int kReportGoodCompletionThreshold = 80;

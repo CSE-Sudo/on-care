@@ -47,4 +47,46 @@ void main() {
     expect(book.unlock('dog_love').statusCode, 400);
     expect(ledger.balance, 20);
   });
+
+  test('같은 키로 다시 사면 다시 쓰지 않고 200 과 지금 상태를 준다 (#2845)', () {
+    expect(book.unlock('oni_owoon', clientRequestId: 'k1').statusCode, 200);
+    final DemoCouponResult retry = book.unlock(
+      'oni_owoon',
+      clientRequestId: 'k1',
+    );
+
+    expect(retry.statusCode, 200);
+    expect(ledger.balance, 70);
+    // 다른 키는 서버처럼 409 와 이유 코드다.
+    final DemoCouponResult other = book.unlock(
+      'oni_owoon',
+      clientRequestId: 'k2',
+    );
+    expect(other.statusCode, 409);
+    expect(
+      ((other.body! as Map<String, Object?>)['detail']!
+          as Map<String, Object?>)['code'],
+      'already_unlocked',
+    );
+  });
+
+  test('구매 키는 저장·복원 뒤에도 기억한다', () {
+    book.unlock('oni_owoon', clientRequestId: 'k1');
+    final DemoEmoteBook restored = DemoEmoteBook(ledger: ledger, now: () => now)
+      ..restore(book.toJson());
+
+    expect(restored.unlock('oni_owoon', clientRequestId: 'k1').statusCode, 200);
+    expect(ledger.balance, 70);
+  });
+
+  test('잔액 부족은 insufficient_points 코드다', () {
+    book.unlock('oni_owoon');
+    book.unlock('oni_gains');
+    final DemoCouponResult r = book.unlock('dog_love');
+    expect(
+      ((r.body! as Map<String, Object?>)['detail']!
+          as Map<String, Object?>)['code'],
+      'insufficient_points',
+    );
+  });
 }

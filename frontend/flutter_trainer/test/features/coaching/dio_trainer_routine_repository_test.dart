@@ -52,7 +52,7 @@ void main() {
           id: '',
           name: 'AI 맞춤 루틴',
           minutes: 999, // clamped to 600
-          type: 'weird', // -> 근력
+          type: 'weird', // -> 기타 (#2861)
           reason: '걷기, 스쿼트',
           source: 'ai',
         ),
@@ -64,9 +64,9 @@ void main() {
           data: <String, Object?>{
             'name': 'AI 맞춤 루틴',
             'minutes': 600,
-            // 근력은 세트로 재므로 초를 싣지 않는다(#2547).
+            // 초를 정하지 않았으니 비어 있다(#2547).
             'duration_seconds': null,
-            'type': '근력',
+            'type': '기타',
             // 날짜·강도·세트·중량도 함께 나간다 — 회원 앱의 운동 추가와 같은
             // 칸이다 (#1276, #1310). 세트·횟수·중량은 안 정했으면 비어 있다.
             'exercise_date': null,

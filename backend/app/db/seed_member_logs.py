@@ -25,6 +25,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core import clock
+from app.core.week import monday_of
 from app.db.session import SessionLocal
 from app.models import models
 from app.services import exercise_activity, exercise_types
@@ -361,7 +362,7 @@ def seed_routine_sessions(
     # 날은 통째로 건너뛴다.
     existing: set[str] = set()
     member_days: set[str] = set()
-    first_week = (since - timedelta(days=since.weekday())).isoformat()
+    first_week = monday_of(since).isoformat()
     for sid, done_at in db.execute(
         select(
             models.ExerciseSession.id, models.ExerciseSession.completed_at
@@ -379,7 +380,7 @@ def seed_routine_sessions(
         day = date.fromisoformat(day_str)
         if day_str in member_days:
             continue
-        monday = day - timedelta(days=day.weekday())
+        monday = monday_of(day)
         for k, (name, kind, minutes, sets, reps, weight, hold) in enumerate(
             routine_for(number, day, rate)
         ):

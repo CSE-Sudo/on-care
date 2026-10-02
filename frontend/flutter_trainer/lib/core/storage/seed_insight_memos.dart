@@ -1,7 +1,7 @@
 import 'dart:convert';
 
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/messages/domain/chat_context_insight.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';

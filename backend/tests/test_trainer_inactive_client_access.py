@@ -764,21 +764,21 @@ def test_link_seeded_inactive_is_blocked(client, db_session):
 
 
 def test_has_active_client_link(db_session, pair):
-    from app.services import trainer_service
+    from app.services.trainer import _common as trainer_common_service
 
-    assert trainer_service.has_active_client_link(
+    assert trainer_common_service.has_active_client_link(
         db_session, pair.trainer_id, pair.member_id
     )
     link = db_session.get(TrainerClient, pair.link_id)
     link.active = False
     db_session.commit()
-    assert not trainer_service.has_active_client_link(
+    assert not trainer_common_service.has_active_client_link(
         db_session, pair.trainer_id, pair.member_id
     )
-    assert not trainer_service.has_active_client_link(
+    assert not trainer_common_service.has_active_client_link(
         db_session, pair.trainer_id, "nobody"
     )
-    assert not trainer_service.has_active_client_link(
+    assert not trainer_common_service.has_active_client_link(
         db_session, "nobody", pair.member_id
     )
 
@@ -999,10 +999,10 @@ def _revoke_but_keep_active(db_session, p: Pair) -> None:
 
 
 def test_has_active_client_link_needs_consent(db_session, pair):
-    from app.services import trainer_service
+    from app.services.trainer import _common as trainer_common_service
 
     _revoke_but_keep_active(db_session, pair)
-    assert not trainer_service.has_active_client_link(
+    assert not trainer_common_service.has_active_client_link(
         db_session, pair.trainer_id, pair.member_id
     )
 
