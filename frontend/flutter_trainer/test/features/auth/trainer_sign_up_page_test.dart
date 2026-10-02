@@ -7,6 +7,7 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
+import 'package:oncare_trainer/features/my/presentation/pages/legal_document_page.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -145,16 +146,20 @@ Future<void> _type(
   await tester.pump();
 }
 
-/// 동의를 아직 모두 켜지 않았으면 전체 동의를 누른다(#2819) — 필수 동의 없이는
-/// 가입 버튼이 꺼져 있어, 이 묶음의 형식 검사까지 닿지 않는다.
+/// 필수 동의가 하나라도 꺼져 있으면 전체 동의를 누른다(#2819) — 필수 동의
+/// 없이는 가입 버튼이 꺼져 있어, 이 묶음의 형식 검사까지 닿지 않는다. 필수를
+/// 이미 다 켠 테스트의 선택 항목은 건드리지 않는다.
 Future<void> _agreeAll(WidgetTester tester) async {
-  final Finder all = find.byKey(const ValueKey<String>('consent-all'));
-  final bool on = tester
+  bool on(String id) => tester
       .widget<Checkbox>(
-        find.descendant(of: all, matching: find.byType(Checkbox)),
+        find.descendant(
+          of: find.byKey(ValueKey<String>('consent-$id')),
+          matching: find.byType(Checkbox),
+        ),
       )
       .value!;
-  if (on) return;
+  if (<String>['terms', 'privacy', 'age14'].every(on)) return;
+  final Finder all = find.byKey(const ValueKey<String>('consent-all'));
   await tester.ensureVisible(all);
   await tester.pump();
   await tester.tap(all);
@@ -162,13 +167,19 @@ Future<void> _agreeAll(WidgetTester tester) async {
 }
 
 /// 오류 문구가 늘어 버튼이 화면 밖으로 밀려도 누를 수 있게 끌어온다.
+///
+/// 동의 묶음까지 들어가 가입 화면이 테스트 창보다 길다. 방금 친 칸에 초점이
+/// 남아 있으면 그 칸이 커서를 보이려고 스크롤을 되돌리는 동안 화면이 누름을
+/// 받지 않으므로, 초점을 먼저 거두고 스크롤이 멎은 뒤에 누른다.
 Future<void> _submit(WidgetTester tester) async {
   await _agreeAll(tester);
+  FocusManager.instance.primaryFocus?.unfocus();
+  await settle(tester);
   final Finder submit = find.byKey(
     const ValueKey<String>('trainer-signup-submit'),
   );
   await tester.ensureVisible(submit);
-  await tester.pump();
+  await settle(tester);
   await tester.tap(submit);
   await settle(tester);
 }
@@ -176,6 +187,11 @@ Future<void> _submit(WidgetTester tester) async {
 /// [key] 칸 **안에**(입력창 아래 오류 자리) [message] 가 그려졌는가.
 Finder _errorUnder(ValueKey<String> key, String message) =>
     find.descendant(of: find.byKey(key), matching: find.text(message));
+
+/// 지금 열려 있는 문서. 주소가 아니라 화면을 본다 — `push` 로 쌓은 라우트는
+/// 라우터가 아래 화면의 주소를 그대로 들고 있어 URL 로는 구분되지 않는다.
+String? _shownDocument(WidgetTester tester) =>
+    tester.widget<LegalDocumentPage>(find.byType(LegalDocumentPage)).document;
 
 void main() {
   testWidgets('가입 화면에 초대 코드 입력이 없다', (WidgetTester tester) async {
@@ -470,10 +486,11 @@ void main() {
 
     await tapKey(tester, 'consent-view-privacy');
     await settle(tester);
-    expect(currentLocation(tester), AppRoutes.legalDocument('privacy'));
+    expect(_shownDocument(tester), AppRoutes.legalPrivacy);
 
     await tester.tap(find.byTooltip('뒤로'));
     await settle(tester);
+    expect(find.byType(LegalDocumentPage), findsNothing);
     expect(currentLocation(tester), AppRoutes.signUp);
     final Checkbox terms = tester.widget<Checkbox>(
       find.descendant(

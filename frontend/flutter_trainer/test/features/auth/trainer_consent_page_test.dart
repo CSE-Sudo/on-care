@@ -16,6 +16,7 @@ import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart'
 import 'package:oncare_trainer/features/auth/domain/repositories/consent_repository.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare_trainer/features/my/presentation/pages/legal_document_page.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -112,6 +113,11 @@ Future<void> _tapKey(WidgetTester tester, String key) async {
   await tester.pump();
 }
 
+/// 지금 열려 있는 문서. 주소가 아니라 화면을 본다 — `push` 로 쌓은 라우트는
+/// 라우터가 아래 화면의 주소를 그대로 들고 있어 URL 로는 구분되지 않는다.
+String? _shownDocument(WidgetTester tester) =>
+    tester.widget<LegalDocumentPage>(find.byType(LegalDocumentPage)).document;
+
 void main() {
   testWidgets('동의가 남은 계정은 로그인 뒤 동의 화면에 붙들린다', (WidgetTester tester) async {
     await _pumpConsent(tester);
@@ -178,6 +184,6 @@ void main() {
     await _tapKey(tester, 'consent-view-terms');
     await settle(tester);
 
-    expect(currentLocation(tester), AppRoutes.legalDocument('terms'));
+    expect(_shownDocument(tester), AppRoutes.legalTerms);
   });
 }
