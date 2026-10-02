@@ -1,4 +1,4 @@
-package com.barmi.oncare
+package com.csesudo.oncare
 
 import io.flutter.embedding.android.FlutterActivity
 
