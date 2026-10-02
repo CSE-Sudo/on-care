@@ -822,9 +822,15 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   Stream<T> _watch<T>(Future<T> Function() load) {
     late final StreamController<T> out;
     StreamSubscription<void>? changes;
+    // 읽기가 실패하면(해제 신호 등, #2843) 스트림의 오류로 흘려보낸다 — 삼키면
+    // 듣는 쪽은 첫 값을 끝없이 기다린다.
     Future<void> push() async {
-      final T value = await load();
-      if (!out.isClosed) out.add(value);
+      try {
+        final T value = await load();
+        if (!out.isClosed) out.add(value);
+      } on Object catch (error, stack) {
+        if (!out.isClosed) out.addError(error, stack);
+      }
     }
 
     out = StreamController<T>(

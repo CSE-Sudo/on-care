@@ -152,7 +152,10 @@ class UserProfile {
       _ => null,
     },
     notesChangedAt: switch (json['notes_changed_at']) {
-      final String at => DateTime.tryParse(at)?.toLocal(),
+      final String at => switch (DateTime.tryParse(at)) {
+        final DateTime t => toKst(t),
+        null => null,
+      },
       _ => null,
     },
   );
