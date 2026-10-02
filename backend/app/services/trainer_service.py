@@ -84,6 +84,7 @@ from app.schemas.points_api import PointsOut
 from app.services.coach import personal_ingest
 from app.services import trainer_verification_service
 from app.services.exercise_duration import format_duration, seconds_or_minutes
+from app.services import korean_josa
 
 # 일일 나트륨 목표(mg). 프론트 `sodiumTargetMg` 와 같은 값 — 리포트의
 # '초과 N일'이 앱 화면의 경고와 어긋나면 안 된다.
@@ -7383,13 +7384,13 @@ def _topic(word: str) -> str:
     """`은`/`는` 을 받침에 맞춰 붙인다.
 
     `은(는)` 은 사람이 쓴 글로 읽히지 않는다 — 회원이 그대로 받는 문장이라
-    기계가 쓴 티가 나는 자리를 남기지 않는다.
+    기계가 쓴 티가 나는 자리를 남기지 않는다. 규칙은 서버·두 앱이 함께 쓰는
+    `korean_josa` 하나다(#2897) — `레그 프레스(머신)` 은 괄호 앞 글자로,
+    `플랭크 60` 은 읽는 소리로 고른다.
     """
     if not word:
         return word
-    last = word[-1]
-    has_batchim = "가" <= last <= "힣" and (ord(last) - 0xAC00) % 28 != 0
-    return f"{word}{'은' if has_batchim else '는'}"
+    return korean_josa.with_particle(word, "은", "는")
 
 
 def _skipped_names(report: WeeklyReportOut) -> list[str]:

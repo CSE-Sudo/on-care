@@ -31,7 +31,7 @@ from sqlalchemy.orm import Session
 
 from app.core.locale import Locale, current_locale, localized
 from app.schemas.trainer_api import ReportSummaryOut, WeeklyReportOut
-from app.services import client_signals, trainer_service
+from app.services import client_signals, korean_josa, trainer_service
 from app.services.coach import prompt_safety
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
 
@@ -488,26 +488,6 @@ def _skipped_exercises(report: WeeklyReportOut) -> list[str]:
     return names[:MAX_POINTS]
 
 
-def _has_batchim(word: str) -> bool:
-    """마지막 글자를 소리 내어 읽었을 때 받침이 있는가.
-
-    조사를 고르는 유일한 기준이다. 한글만 보던 때에는 `81%`·`1,916mg` 처럼
-    숫자·단위로 끝나는 말이 전부 받침 없음으로 떨어져 조사가 반쯤 어긋났다.
-    앱의 `hasFinalConsonant` 와 같은 규칙이다(#1177).
-    """
-    word = word.strip()
-    if not word:
-        return False
-    last = word[-1]
-    if "가" <= last <= "힣":
-        return (ord(last) - 0xAC00) % 28 != 0
-    if last.isdigit():
-        # 영·일·삼·육·칠·팔에 받침이 있다.
-        return int(last) in {0, 1, 3, 6, 7, 8}
-    # 화면에 쓰는 단위는 모두 모음으로 끝나게 읽힌다(퍼센트·밀리그램·그램).
-    return False
-
-
 def _points(
     report: WeeklyReportOut, evidence: list[str], locale: Locale | None = None
 ) -> list[str]:
@@ -605,12 +585,12 @@ def _rule_summary(
     elif good:
         kept = good[0]
         headline = (
-            f"{name} 고객은 {kept}{'으로' if _has_batchim(kept) else '로'} 잘 지켰고, "
-            f"다음 주는 {top}{'을' if _has_batchim(top) else '를'} 함께 챙기면 좋겠습니다."
+            f"{name} 고객은 {kept}{korean_josa.particle(kept, '으로', '로')} 잘 지켰고, "
+            f"다음 주는 {top}{korean_josa.particle(top, '을', '를')} 함께 챙기면 좋겠습니다."
             f"{rest}"
         )
     else:
-        subject = "이" if _has_batchim(top) else "가"
+        subject = korean_josa.particle(top, "이", "가")
         headline = (
             f"{name} 고객은 {top}{subject} 목표를 벗어나 다음 주 조정이 필요합니다.{rest}"
         )

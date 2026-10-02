@@ -47,8 +47,9 @@ void main() {
       expect(assignRoutineToJson(_routine(minutes: -5))['minutes'], 0);
     });
 
-    test('falls back to 근력 for an invalid type', () {
-      expect(assignRoutineToJson(_routine(type: 'weird'))['type'], '근력');
+    // 모르는 값은 서버 normalize_ko 와 같이 기타다 (#2861).
+    test('falls back to 기타 for an invalid type', () {
+      expect(assignRoutineToJson(_routine(type: 'weird'))['type'], '기타');
       expect(assignRoutineToJson(_routine(type: '스트레칭'))['type'], '스트레칭');
     });
 

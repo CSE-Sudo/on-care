@@ -1,4 +1,14 @@
+import 'package:oncare_rules/oncare_rules.dart' show pyRound;
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
+
+// 초 → 분(`minutesFromSeconds`). 0 이 아니면 최소 1분, 반올림은 서버
+// (Python `round`)와 같은 짝수 쪽이다 — 2분 30초는 2분이다. 서버(`duration`)와
+// 회원 기록(`ExerciseSessionCreate`)이 같은 규칙으로 접는다(#2221, #2860).
+//
+// 칼로리 추정과 분을 더하는 집계만 이 값을 쓴다. 트레이너가 적은 시간은 초
+// 그대로 저장되고 그대로 보인다. 규칙은 회원 앱과 함께 쓰는 공용 패키지 한
+// 곳에 있고, 여기서는 그대로 다시 내보낸다.
+export 'package:oncare_rules/oncare_rules.dart' show minutesFromSeconds;
 
 /// 유형·시간·강도로 소모 칼로리를 어림한다.
 ///
@@ -34,17 +44,6 @@ const double kStrengthMinutesPerSet = 3;
 /// 세므로, 세트로 받은 값을 저장 전에 여기서 환산한다.
 int minutesFromSets(int sets) => (sets * kStrengthMinutesPerSet).round();
 
-/// 초 → 분. 0 이 아니면 최소 1분으로 반올림한다 — 서버(`duration`)와 회원
-/// 기록(`ExerciseSessionCreate`)이 같은 규칙으로 접는다. (#2221)
-///
-/// 칼로리 추정과 분을 더하는 집계만 이 값을 쓴다. 트레이너가 적은 시간은 초
-/// 그대로 저장되고 그대로 보인다.
-int minutesFromSeconds(int seconds) {
-  if (seconds <= 0) return 0;
-  final int minutes = (seconds / 60).round();
-  return minutes < 1 ? 1 : minutes;
-}
-
 /// 예상 소모 칼로리 한 건과 그 근거. (#1312)
 class RoutineCalorieEstimate {
   const RoutineCalorieEstimate({required this.calories, this.isRough = true});
@@ -77,8 +76,9 @@ RoutineCalorieEstimate? estimateRoutineCalories({
   final double perMinute = _kcalPerMinute[normaliseRoutineType(type)] ?? 5;
   final double factor =
       _intensityFactor[normaliseRoutineIntensity(intensity)] ?? 1.0;
+  // 서버 `energy.fallback` 과 같은 곱셈 순서·같은 반올림(Python `round`)이다(#2860).
   return RoutineCalorieEstimate(
-    calories: (perMinute * (minutes < 0 ? 0 : minutes) * factor).round(),
+    calories: pyRound(perMinute * (minutes < 0 ? 0 : minutes) * factor),
   );
 }
 

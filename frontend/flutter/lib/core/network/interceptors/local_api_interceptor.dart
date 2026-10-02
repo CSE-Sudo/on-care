@@ -54,6 +54,15 @@ import 'package:oncare/features/exercise/domain/repositories/routine_session_log
 import 'package:oncare/features/member_coach/data/demo_coach_files.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart'
     show CoachAttachmentKind;
+// 분·kcal 반올림·운동 유형 정규화는 실서버와 같은 공용 규칙을 쓴다(#2860, #2861).
+import 'package:oncare_rules/oncare_rules.dart'
+    show
+        kExerciseTypeCardio,
+        kExerciseTypeStrength,
+        kExerciseTypeStretching,
+        minutesFromSeconds,
+        normalizeExerciseType,
+        pyRound;
 import 'package:oncare_ui/oncare_ui.dart' show AppInputError, AppInputRules;
 
 /// A drift-backed dummy backend. Intercepts dio requests and serves
@@ -507,7 +516,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         ? (body['duration_seconds'] as num?)?.toInt()
         : existing.durationSeconds;
     final minutes = durationSeconds != null
-        ? _minutesFromSeconds(durationSeconds)
+        ? minutesFromSeconds(durationSeconds)
         : ((body['minutes'] as num?)?.toInt() ?? existing.minutes);
     final intensity = (body['intensity'] as String? ?? existing.intensity)
         .trim();
@@ -2025,12 +2034,9 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       if (date.compareTo(start) < 0 || date.compareTo(end) > 0) continue;
       final ({int minutes, int calories, Map<String, int> byType}) day =
           perDate[date] ?? (minutes: 0, calories: 0, byType: <String, int>{});
-      final String kind = switch (r.type) {
-        'cardio' || 'walking' => 'cardio',
-        'strength' => 'strength',
-        'yoga' || 'stretching' || 'flexibility' => 'stretching',
-        _ => 'other',
-      };
+      // 서버 `exercise_types.normalize` 와 같은 공용 표 — 한글 라벨·옛 값도
+      // 제 유형 칸에 들어간다(#2861).
+      final String kind = normalizeExerciseType(r.type);
       day.byType[kind] = (day.byType[kind] ?? 0) + r.minutes;
       perDate[date] = (
         minutes: day.minutes + r.minutes,
@@ -2226,10 +2232,11 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         (c) => c + r.calories,
         ifAbsent: () => r.calories,
       );
-      final bucket = switch (r.type) {
-        'cardio' || 'walking' => perDayCardio,
-        'strength' => perDayStrength,
-        'yoga' || 'stretching' || 'flexibility' => perDayStretching,
+      // 서버 `exercise_types.normalize` 와 같은 공용 표로 칸을 고른다(#2861).
+      final bucket = switch (normalizeExerciseType(r.type)) {
+        kExerciseTypeCardio => perDayCardio,
+        kExerciseTypeStrength => perDayStrength,
+        kExerciseTypeStretching => perDayStretching,
         _ => perDayOther,
       };
       bucket.update(
@@ -2516,7 +2523,9 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     required int minutes,
     required String? intensity,
   }) async {
-    final String normalized = _normalizedExerciseType(type);
+    // 유형 표기는 서버 `exercise_types.normalize` 와 같은 공용 표로 접는다 —
+    // 한글 라벨(`유산소`)도 기타로 떨어지지 않는다(#2861).
+    final String normalized = normalizeExerciseType(type);
     final double factor = _intensityFactor[intensity ?? 'moderate'] ?? 1.0;
     final DemoExerciseActivity? matched = matchDemoExercise(name);
     final double? weightKg = ((await _mergedProfile())['weight_kg'] as num?)
@@ -2527,7 +2536,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       final double perMin =
           _fallbackKcalPerMin[normalized] ?? _fallbackKcalPerMin['other']!;
       return (
-        calories: (perMin * minutes * factor).round(),
+        calories: pyRound(perMin * minutes * factor),
         source: 'estimate',
         matchedName: '',
       );
@@ -2538,14 +2547,6 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       matchedName: matched.name,
     );
   }
-
-  /// 옛 어휘를 표준 유형으로 접는다 — 서버 `exercise_types.normalize` 와 같다.
-  static String _normalizedExerciseType(String? raw) => switch (raw?.trim()) {
-    'cardio' || 'walking' => 'cardio',
-    'strength' => 'strength',
-    'flexibility' || 'stretching' || 'yoga' => 'stretching',
-    _ => 'other',
-  };
 
   /// 요청 몸통을 Map 으로. dio 는 Map 으로도 JSON 문자열로도 준다.
   static Map<String, Object?> _payloadOf(Object? body) {
@@ -2602,7 +2603,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   int _minutesOf(Map<String, Object?> payload) {
     final int? durationSeconds = (payload['duration_seconds'] as num?)?.toInt();
     return durationSeconds != null
-        ? _minutesFromSeconds(durationSeconds)
+        ? minutesFromSeconds(durationSeconds)
         : ((payload['minutes'] as num?)?.toInt() ?? 0);
   }
 
@@ -2703,7 +2704,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     final String kind = type.name;
     // 초로 완료한 배정은 기록도 초를 든다 — 분은 초에서 파생된다(#2221).
     final int savedMinutes = durationSeconds != null
-        ? _minutesFromSeconds(durationSeconds)
+        ? minutesFromSeconds(durationSeconds)
         : minutes;
     final estimated = await _demoEstimate(
       name: name,
@@ -2849,11 +2850,6 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     'assigned_routine_id': assignedRoutineId,
     'assigned_routine_name': assignedRoutineId == null ? '' : name,
   };
-
-  /// 초 → 분. 실 서버 `ExerciseSessionCreate._minutes_from_seconds` 와 같은
-  /// 규칙이다 — 1초짜리 기록도 0분이 되지 않는다. (#2071)
-  static int _minutesFromSeconds(int seconds) =>
-      seconds <= 0 ? 0 : math.max(1, (seconds / 60).round());
 
   /// (주 시작, 요일 라벨) → `YYYY-MM-DD`. FastAPI `session_date_of` 와 같다.
   String _dateOfWeekday(String weekStart, String dayLabel) {
