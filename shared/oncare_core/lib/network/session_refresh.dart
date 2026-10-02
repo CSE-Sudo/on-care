@@ -1,5 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 /// 만료된 접근 토큰을 갈아 끼우려 한 결과의 종류. (#1546)
 enum TokenRefreshStatus {
   /// 새 접근 토큰을 받았다 — 원 요청을 그 토큰으로 다시 보낸다.
@@ -41,6 +39,10 @@ class TokenRefreshResult {
 /// 네트워크 계층이 인증 기능을 직접 가져오면 `dio_client ↔ session_controller`
 /// 가 서로를 가져오게 된다. 그래서 이 잎(leaf) 인터페이스만 두고, 컨트롤러가
 /// 만들어질 때 [SessionRefreshBridge] 에 자신을 붙인다.
+///
+/// 회원 앱과 트레이너 웹이 같은 백엔드(`/auth/refresh`)를 상대하므로 갱신 규칙도
+/// 이 패키지 하나로 공유한다(#2907). 브리지를 앱 전체에 하나 두는 provider 는
+/// 각 앱의 `core/network/auth_token.dart` 에 있다.
 abstract interface class SessionTokenRefresher {
   /// [staleToken] 이 401 로 거부되었다. 갱신 토큰으로 한 번 회전한다.
   ///
@@ -101,9 +103,3 @@ class SessionRefreshBridge {
     }
   }
 }
-
-/// 앱 전체가 함께 쓰는 [SessionRefreshBridge].
-final sessionRefreshBridgeProvider = Provider<SessionRefreshBridge>(
-  (ref) => SessionRefreshBridge(),
-  name: 'sessionRefreshBridge',
-);

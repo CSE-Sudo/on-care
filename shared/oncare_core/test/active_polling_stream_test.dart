@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
+import 'package:oncare_core/active_polling_stream.dart';
 
 void main() {
   final TestWidgetsFlutterBinding binding =
@@ -63,4 +63,61 @@ void main() {
       }
     },
   );
+
+  // #2843: 잠깐의 실패는 마지막 값을 지키지만, 상태가 바뀌었다는 오류(담당 해제)는
+  // 값을 받은 뒤에도 흘려보내야 한다.
+  group('surfaceError', () {
+    Future<List<Object>> collect({
+      required Object failure,
+      bool Function(Object error)? surfaceError,
+    }) async {
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      var calls = 0;
+      final List<Object> events = <Object>[];
+      final StreamSubscription<String> sub = activePollingStream<String>(
+        load: () async {
+          calls += 1;
+          if (calls == 1) return 'first';
+          throw failure;
+        },
+        interval: const Duration(milliseconds: 5),
+        surfaceError: surfaceError,
+      ).listen(events.add, onError: events.add);
+      try {
+        // 첫 값 뒤로 몇 번 더 실패하도록 기다린다.
+        while (calls < 4) {
+          await Future<void>.delayed(const Duration(milliseconds: 5));
+        }
+      } finally {
+        await sub.cancel();
+      }
+      return events;
+    }
+
+    test('지정하지 않으면 값을 받은 뒤의 실패는 감춘다', () async {
+      final List<Object> events = await collect(failure: StateError('503'));
+
+      expect(events, <Object>['first']);
+    });
+
+    test('참으로 고른 오류는 값을 받은 뒤에도 알린다', () async {
+      final List<Object> events = await collect(
+        failure: const FormatException('gone'),
+        surfaceError: (Object error) => error is FormatException,
+      );
+
+      expect(events.first, 'first');
+      expect(events.skip(1), isNotEmpty);
+      expect(events.skip(1), everyElement(isA<FormatException>()));
+    });
+
+    test('고르지 않은 오류는 여전히 감춘다', () async {
+      final List<Object> events = await collect(
+        failure: StateError('503'),
+        surfaceError: (Object error) => error is FormatException,
+      );
+
+      expect(events, <Object>['first']);
+    });
+  });
 }

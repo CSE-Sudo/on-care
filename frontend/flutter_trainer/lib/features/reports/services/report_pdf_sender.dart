@@ -3,9 +3,9 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http_parser/http_parser.dart';
+import 'package:oncare_core/request_id.dart';
 
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/core/utils/request_id.dart';
 
 /// 리포트 PDF 전송의 업로드·응답 대기 한도.
 const Duration reportPdfTimeout = Duration(minutes: 2);

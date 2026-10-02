@@ -1,5 +1,5 @@
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/follow_up_task.dart';
 import 'package:oncare_trainer/shared/services/follow_up_task_repository.dart';
 

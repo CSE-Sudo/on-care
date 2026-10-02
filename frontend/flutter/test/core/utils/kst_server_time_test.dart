@@ -14,7 +14,6 @@ library;
 import 'dart:io' show Directory, File, FileSystemEntity;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
@@ -23,6 +22,7 @@ import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 import 'package:oncare/features/exercise/presentation/utils/next_pt.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 필드만 꺼낸다 — `==` 는 isUtc 까지 보므로 벽시계 비교는 필드로 한다.
 List<int> _wall(DateTime t) => <int>[t.year, t.month, t.day, t.hour, t.minute];

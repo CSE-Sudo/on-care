@@ -1,109 +1,15 @@
-/// 서비스 기준 시각이 기기 타임존과 무관하게 KST 인지 (#850).
+/// 앱 안에서 서비스 기준 시각(KST)을 우회하지 않는지 (#850).
 ///
-/// 백엔드는 같은 것을 `tests/test_clock.py`(#557)로 지킨다. 그쪽은 프로세스
-/// 타임존을 UTC 로 바꿔 놓고 확인하지만, Dart 에는 그런 수단이 없다. 대신
-/// **UTC 와의 차이**를 본다 — 기기가 어느 타임존이든 UTC+9 여야 한다.
+/// 시계 자체(`nowKst`·`toKst` 등)는 두 앱이 함께 쓰는 `shared/oncare_core` 로
+/// 옮겼고 그 계산은 패키지 테스트가 본다(#2907). 여기서는 이 앱의 소스에
+/// `DateTime.now()` 가 남지 않았는지만 검사한다.
 library;
 
 import 'dart:io' show Directory, File, FileSystemEntity;
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare/core/utils/clock.dart';
-
 void main() {
-  test('nowKst 는 기기 타임존과 무관하게 UTC+9 다', () {
-    // 실행 날짜 고정(#2940)을 걷어 내고 실제 계산을 본다. 다음 테스트 앞에서
-    // `flutter_test_config.dart` 가 다시 건다.
-    debugNowKstOverride = null;
-    final DateTime before = DateTime.now().toUtc();
-    final DateTime kst = nowKst();
-    final DateTime after = DateTime.now().toUtc();
-
-    // 로컬로 만든 값이라 그대로 빼면 기기 오프셋이 섞인다. 필드를 UTC 로 다시
-    // 읽어 순수한 벽시계 차이를 본다.
-    final DateTime asUtc = DateTime.utc(
-      kst.year,
-      kst.month,
-      kst.day,
-      kst.hour,
-      kst.minute,
-      kst.second,
-      kst.millisecond,
-      kst.microsecond,
-    );
-
-    expect(asUtc.difference(before) >= kstOffset, isTrue);
-    expect(asUtc.difference(after) <= kstOffset, isTrue);
-  });
-
-  test('todayKst 는 0시로 잘린 KST 날짜다', () {
-    final DateTime today = todayKst();
-    final DateTime now = nowKst();
-
-    expect(today.hour, 0);
-    expect(today.minute, 0);
-    expect(today.second, 0);
-    expect(<int>[today.year, today.month, today.day], <int>[
-      now.year,
-      now.month,
-      now.day,
-    ]);
-  });
-
-  group('toKst', () {
-    test('UTC 23:00 은 다음 날 KST 08:00 이다', () {
-      final DateTime k = toKst(DateTime.utc(2026, 8, 16, 23));
-
-      expect(k.isUtc, isFalse);
-      expect(<int>[k.year, k.month, k.day, k.hour], <int>[2026, 8, 17, 8]);
-    });
-
-    test('UTC 15:00 은 다음 날 KST 00:00 이다 — 경계', () {
-      final DateTime k = toKst(DateTime.utc(2026, 8, 16, 15));
-
-      expect(<int>[k.month, k.day, k.hour], <int>[8, 17, 0]);
-    });
-
-    test('UTC 14:59 은 같은 날 KST 23:59 다', () {
-      final DateTime k = toKst(DateTime.utc(2026, 8, 16, 14, 59));
-
-      expect(<int>[k.month, k.day, k.hour, k.minute], <int>[8, 16, 23, 59]);
-    });
-
-    test('월말·연말도 넘긴다', () {
-      final DateTime k = toKst(DateTime.utc(2026, 12, 31, 20));
-
-      expect(<int>[k.year, k.month, k.day, k.hour], <int>[2027, 1, 1, 5]);
-    });
-
-    test('오프셋이 붙은 문자열은 KST 벽시계로 바뀐다', () {
-      final DateTime k = toKst(DateTime.parse('2026-08-16T23:30:00+00:00'));
-
-      expect(<int>[k.month, k.day, k.hour, k.minute], <int>[8, 17, 8, 30]);
-    });
-
-    test('+09:00 문자열은 적힌 벽시계 그대로다', () {
-      final DateTime k = toKst(DateTime.parse('2026-08-17T07:15:00+09:00'));
-
-      expect(<int>[k.month, k.day, k.hour, k.minute], <int>[8, 17, 7, 15]);
-    });
-
-    test('오프셋 없는 문자열은 이미 KST 벽시계라 그대로 둔다', () {
-      final DateTime raw = DateTime.parse('2026-08-17T07:15:00');
-      final DateTime k = toKst(raw);
-
-      expect(k, raw);
-      expect(<int>[k.day, k.hour], <int>[17, 7]);
-    });
-
-    test('nowKst 로 만든 값은 두 번 바꾸지 않는다', () {
-      final DateTime now = nowKst();
-
-      expect(toKst(now), now);
-    });
-  });
-
   // ── 우회 금지 ───────────────────────────────────────────────────────────
   //
   // 한 곳만 `DateTime.now()` 로 남으면 그 값과 `nowKst()` 가 9시간 어긋나, 고치기
@@ -126,9 +32,8 @@ void main() {
       // 않았고, 이 검사가 **자기 자신을** 위반으로 잡아 로컬 스위트가 늘
       // 빨간불이었다. 리눅스 CI 에서는 통과해 CI 로는 드러나지 않는다.
       final String path = entity.path.replaceAll(r'\', '/');
-      // 생성물과 시각 계층 자신은 대상이 아니다.
+      // 생성물과 이 검사 자신은 대상이 아니다.
       if (path.contains('/gen/')) continue;
-      if (path.endsWith('core/utils/clock.dart')) continue;
       if (path.endsWith('core/utils/clock_test.dart')) continue;
 
       final List<String> lines = entity.readAsStringSync().split('\n');

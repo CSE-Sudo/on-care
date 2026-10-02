@@ -6,7 +6,6 @@ import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/data/kakao_gym_demo_profile.dart';
 import 'package:oncare/features/exercise/data/repositories/dio_exercise_repository.dart';
 import 'package:oncare/features/exercise/data/repositories/dio_gym_repository.dart';
@@ -30,6 +29,7 @@ import 'package:oncare/features/place/domain/entities/place.dart';
 import 'package:oncare/features/place/domain/entities/place_query.dart';
 import 'package:oncare/features/place/presentation/controllers/place_controller.dart';
 import 'package:oncare/shared/services/record_span_provider.dart';
+import 'package:oncare_core/clock.dart';
 
 // 타입을 적어 둔다 — 목업 코치 저장소와 서로를 읽어(추천 개인운동, #2161)
 // 추론이 둘 사이를 돈다.

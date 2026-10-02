@@ -1,10 +1,10 @@
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/ai_coach/domain/chat_insight_detector.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_chat_quota.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
 import 'package:oncare/features/ai_coach/domain/repositories/ai_coach_repository.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 테스트 전용 AI 코치 저장소. 앱은 `DioAiCoachRepository` 를 쓰고, 테스트가
 /// `aiCoachRepositoryProvider` 를 이것으로 바꿔 끼운다.
