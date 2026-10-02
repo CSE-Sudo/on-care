@@ -26,7 +26,8 @@ from app.schemas.exercise_api import (
 )
 from app.schemas.points_api import PointsOut
 from app.services import (
-    exercise_activity, exercise_service, exercise_types, points_service,
+    exercise_activity, exercise_records, exercise_service, exercise_types,
+    points_service,
     streak_shield_service, trainer_service,
 )
 from app.services.coach import personal_ingest
@@ -124,8 +125,13 @@ def current_week(
         select(HealthProfile).where(HealthProfile.user_id == current_user.id)
     )
     goal_minutes, goal_calories = weekly_goals(profile)
+    # 직접 기록한 운동마다 개인 기록 태그를 붙인다(#2971).
+    records = exercise_records.personal_records(db, current_user.id, rows)
     return ExerciseWeekResponse(
-        sessions=[ExerciseSessionOut(**s) for s in data.pop("sessions")],
+        sessions=[
+            ExerciseSessionOut(**s, record=records.get(s["id"]))
+            for s in data.pop("sessions")
+        ],
         weekly_goal_minutes=goal_minutes,
         weekly_goal_calories=goal_calories,
         **data,
