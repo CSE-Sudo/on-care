@@ -88,7 +88,8 @@ void main() {
 
   testWidgets('목표와 정확히 같으면 초과가 아니다', (WidgetTester tester) async {
     // 경계는 다른 지표와 같다 — `>` 지, `>=` 가 아니다.
-    await pumpCard(tester, makeClient(carbsG: 275, proteinG: 100, fatG: 55));
+    // 단백질 기본 목표는 식단 분석과 같은 60g 이다(#2898).
+    await pumpCard(tester, makeClient(carbsG: 275, proteinG: 60, fatG: 55));
 
     for (final String label in <String>['탄수화물', '단백질', '지방']) {
       expect(
@@ -136,8 +137,8 @@ void main() {
     expect(find.textContaining('/ 1,600 kcal'), findsOneWidget);
     expect(barColor(tester, '탄수화물'), OnCareColors.danger);
     expect(barColor(tester, '지방'), OnCareColors.danger);
-    // 비어 있는 칸(단백질)은 회원 앱 기본값 100g 이다.
-    expect(find.textContaining('/ 100g'), findsOneWidget);
+    // 비어 있는 칸(단백질)은 식단 분석과 같은 실효 목표 — 체중도 없으면 60g(#2898).
+    expect(find.textContaining('/ 60g'), findsOneWidget);
     expect(barColor(tester, '단백질'), isNot(OnCareColors.danger));
   });
 }

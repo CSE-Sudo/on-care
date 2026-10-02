@@ -38,7 +38,10 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 회원 앱 `UserProfile` 의 기본 목표와 같은 값. 칼로리·나트륨·당류는
 /// `trainer_client.dart` 가 이미 들고 있다(로스터 카드도 같은 값을 본다).
 const int carbsTargetG = 275;
-const int proteinTargetG = 100;
+
+/// 체중도 개인 목표도 모를 때의 단백질 목표 — 식단 분석 기준(60g)과 같다(#2898).
+/// 예전 100g 은 분석과 달라, 카드가 모자라다고 한 날을 분석은 채웠다고 했다.
+const int proteinTargetG = MemberHealthProfile.defaultDailyProteinG;
 const int fatTargetG = 55;
 
 /// 고객의 하루 식단 목표 한 벌.
@@ -51,7 +54,8 @@ typedef ClientDietGoals = ({int calories, int carbsG, int proteinG, int fatG});
 ClientDietGoals clientDietGoalsOf(MemberHealthProfile? profile) => (
   calories: profile?.dailyCalories ?? calorieTargetKcal,
   carbsG: profile?.dailyCarbsG ?? carbsTargetG,
-  proteinG: profile?.dailyProteinG ?? proteinTargetG,
+  // 단백질은 식단 분석과 같은 실효 목표다 — 체중 × 1.2g 등(#2898).
+  proteinG: profile?.effectiveDailyProteinG ?? proteinTargetG,
   fatG: profile?.dailyFatG ?? fatTargetG,
 );
 

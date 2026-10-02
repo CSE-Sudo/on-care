@@ -1055,7 +1055,8 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     _kSodium => UserProfile.defaultDailySodiumMg,
     _kSugar => UserProfile.defaultDailySugarG,
     _kCarbs => UserProfile.defaultDailyCarbsG,
-    _kProtein => UserProfile.defaultDailyProteinG,
+    // 단백질은 식단 분석과 같은 실효 목표다 — 체중이 있으면 체중 × 1.2g(#2898).
+    _kProtein => _base.effectiveDailyProteinG,
     _kFat => UserProfile.defaultDailyFatG,
     _kBurn => kDefaultExerciseLoadGoals.dailyBurnKcal.round(),
     _kCardio => kDefaultExerciseLoadGoals.weeklyCardioMinutes.round(),
@@ -1597,7 +1598,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
               keyboardType: TextInputType.number,
               inputFormatters: _digitsOnly,
               hint: split == null
-                  ? '${UserProfile.defaultDailyProteinG}'
+                  ? '${_base.effectiveDailyProteinG}'
                   : '${split.protein}',
               errorText: _errors.of(_kProtein),
               onChanged: (_) {

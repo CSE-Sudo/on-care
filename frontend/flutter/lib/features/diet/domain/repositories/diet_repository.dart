@@ -49,10 +49,15 @@ abstract class DietRepository {
   /// [idempotencyKey], when supplied, lets the server dedupe a retried
   /// request (lost-response case) so the same photo isn't recorded twice.
   /// Generate it once per capture and reuse it across retries.
+  ///
+  /// [date] 는 기록을 남길 날(`YYYY-MM-DD`)이다(#2849). 지난 날짜 화면에서 연
+  /// 추가가 싣는다. 빠지면 서버가 저장하는 날(KST 오늘)이다. 앞날·작년 1월
+  /// 1일보다 앞선 날은 서버가 422 로 거절한다.
   Future<DietAnalysisResult> analyze({
     required MealPhoto photo,
     required String mealType,
     String? idempotencyKey,
+    String? date,
   });
 
   /// DELETE /diet/entries/{id} — remove a diet entry.

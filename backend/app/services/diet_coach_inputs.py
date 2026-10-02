@@ -54,17 +54,24 @@ def load_profile(db: Session, user_id: str) -> HealthProfile | None:
     return db.scalar(select(HealthProfile).where(HealthProfile.user_id == user_id))
 
 
+def effective_protein_g(profile: HealthProfile | None) -> int:
+    """실효 하루 단백질 목표 — 개인 목표 → 체중 × 1.2g → 60g. (#2898)
+
+    식단 분석·조언·추천 식단이 이 값으로 판단한다. 영양 카드·리포트 막대도 같은
+    분모를 쓰도록 프로필 응답이 `effective_daily_protein_g` 로 내려 준다.
+    """
+    if profile is not None and profile.daily_protein_g:
+        return profile.daily_protein_g
+    if profile is not None and profile.weight_kg:
+        return round(profile.weight_kg * PROTEIN_G_PER_KG)
+    return DEFAULT_PROTEIN_G
+
+
 def targets_of(profile: HealthProfile | None) -> DietTargets:
     """개인 목표를 먼저, 없으면 기본값."""
-    if profile is not None and profile.daily_protein_g:
-        protein = profile.daily_protein_g
-    elif profile is not None and profile.weight_kg:
-        protein = round(profile.weight_kg * PROTEIN_G_PER_KG)
-    else:
-        protein = DEFAULT_PROTEIN_G
     return DietTargets(
         calories=(profile.daily_calories if profile else None) or DEFAULT_CALORIES,
-        protein_g=protein,
+        protein_g=effective_protein_g(profile),
         sodium_mg=(profile.daily_sodium_mg if profile else None) or DEFAULT_SODIUM_MG,
         sugar_g=(profile.daily_sugar_g if profile else None) or DEFAULT_SUGAR_G,
     )

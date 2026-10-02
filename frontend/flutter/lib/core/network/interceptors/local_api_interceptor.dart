@@ -301,11 +301,13 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
 
     final List<Object?> foods =
         (analysis['foods'] as List<Object?>?) ?? const <Object?>[];
-    final (String mealType, String? idempotencyKey) = _analyzeRequestFields(
-      options,
-    );
+    final (:String mealType, :String? idempotencyKey, :String? date) =
+        _analyzeRequestFields(options);
     final Uint8List? photoBytes = _requestPhotoBytes(options);
     final DateTime now = nowKst();
+    // 서버가 받아 준 날짜다(#2849). 앱이 보낸 날짜로 서버가 저장했으므로 같은
+    // 날에 둔다 — 오늘로 두면 지난 날짜 화면에 끼니가 보이지 않는다.
+    final String day = date ?? _todayDateString();
 
     // 서버가 준 id 를 그대로 쓴다 — 이어지는 수정·삭제가 같은 행을 가리킨다.
     // 같은 응답이 두 번 들어와도(재시도) 덮어쓰기라 중복 행이 생기지 않는다.
@@ -314,7 +316,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         .insertOnConflictUpdate(
           DietEntriesCompanion.insert(
             id: id,
-            date: _todayDateString(),
+            date: day,
             mealType: mealType,
             timeLabel:
                 '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
@@ -337,8 +339,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           ),
         );
     // 식단 한 끼도 기록이다 — 보호한 날이면 보호권을 돌려준다(#1788).
-    _refundShieldOnDate(_todayDateString());
-    await _retireCuratedAdvice(dietDates: <String>[_todayDateString()]);
+    _refundShieldOnDate(day);
+    await _retireCuratedAdvice(dietDates: <String>[day]);
   }
 
   Future<Response<Object?>?> _safeHandle(RequestOptions options) async {
@@ -629,15 +631,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       final String? error = _entryDateError(date);
       if (error != null) return _unprocessable(options, error);
     }
-    const Set<String> mealTypes = <String>{
-      'breakfast',
-      'lunch',
-      'dinner',
-      'snack',
-      'lateNight',
-    };
     final String? mealType = (body['meal_type'] as String?)?.trim();
-    if (mealType == null || !mealTypes.contains(mealType)) {
+    if (mealType == null || !_mealTypes.contains(mealType)) {
       return _unprocessable(options, 'meal_type 이 올바르지 않습니다.');
     }
     final Object? foodsValue = body['foods'];
@@ -744,6 +739,18 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     }
     final mealType = (body['meal_type'] as String?)?.trim();
     final timeLabel = (body['time_label'] as String?)?.trim();
+    // 실서버와 같은 검증이다(#2882) — 끼니는 다섯 값, 시각은 `HH:MM` 이거나 빈
+    // 문자열. 데모에서만 통과하면 실연동에서 그 저장이 처음 실패한다.
+    if (body.containsKey('meal_type') &&
+        body['meal_type'] != null &&
+        !_mealTypes.contains(body['meal_type'])) {
+      return _unprocessable(options, 'meal_type 이 올바르지 않습니다.');
+    }
+    if (timeLabel != null &&
+        timeLabel.isNotEmpty &&
+        !_hhmm.hasMatch(timeLabel)) {
+      return _unprocessable(options, 'time_label 은 HH:MM 형식이어야 합니다.');
+    }
     final Object? foodsValue = body['foods'];
     if (body.containsKey('foods') &&
         (foodsValue is! List || foodsValue.any((food) => food is! Map))) {
@@ -1651,9 +1658,12 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   /// drift so it shows up in GET /diet/days/today. `diet-` id (not
   /// `seed-`) means seedIfEmpty never wipes it.
   Future<Response<Object?>> _dietAnalyze(RequestOptions options) async {
-    final (String mealType, String? idempotencyKey) = _analyzeRequestFields(
-      options,
-    );
+    final (:String mealType, :String? idempotencyKey, :String? date) =
+        _analyzeRequestFields(options);
+    // 다섯 값 밖의 끼니는 저장하지 않는다 — 실서버와 같은 422(#2882).
+    if (!_mealTypes.contains(mealType)) {
+      return _unprocessable(options, 'meal_type 이 올바르지 않습니다.');
+    }
     final Uint8List? photoBytes = _requestPhotoBytes(options);
 
     // 같은 멱등키가 이미 저장돼 있으면 새로 저장하지 않고 기존 entry 를 반환(재시도 중복 방지).
@@ -1761,9 +1771,29 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     const int totalCal = 395;
     const int totalNa = 185;
     const double totalSugar = 29.5;
-    const String coach =
-        '나트륨이 185mg으로 낮아 부담이 적어요. 당류는 하루 목표(50g)의 절반 남짓인데, '
-        '그 절반이 요거트 아이스크림 자체에서 나옵니다. 토핑은 지금처럼 과일·견과 위주로 담아 보세요.';
+    // 영어 화면이면 실서버처럼 영어 표시 이름과 영어 식단평을 싣는다(#2850).
+    // `name` 은 영양표 매칭용이라 한국어 그대로다 — 실서버 스텁과 같다.
+    final bool english = _prefersEnglish(options);
+    if (english) {
+      for (final Map<String, Object?> food in foods) {
+        food['display_name'] = _demoFoodDisplayNamesEn[food['name']];
+      }
+    }
+    final String coach = english
+        ? 'Sodium is low at 185mg, so this is an easy meal on that front. '
+              'Sugar is a little over half of your daily target (50g), and '
+              'half of that comes from the frozen yogurt itself. Keep the '
+              'toppings mostly fruit and nuts like you did here.'
+        : '나트륨이 185mg으로 낮아 부담이 적어요. 당류는 하루 목표(50g)의 절반 남짓인데, '
+              '그 절반이 요거트 아이스크림 자체에서 나옵니다. 토핑은 지금처럼 과일·견과 위주로 담아 보세요.';
+
+    // 지난 날짜 화면에서 연 추가는 그 날짜로 남긴다(#2849). 실서버와 같은
+    // 규칙으로 걸러 낸다 — 데모에서만 통과하면 실연동에서 처음 실패한다.
+    if (date != null) {
+      final String? error = _analyzeDateError(date);
+      if (error != null) return _unprocessable(options, error);
+    }
+    final String day = date ?? _todayDateString();
 
     final now = nowKst();
     final id = 'diet-${now.microsecondsSinceEpoch}';
@@ -1775,7 +1805,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         .insert(
           DietEntriesCompanion.insert(
             id: id,
-            date: _todayDateString(),
+            date: day,
             mealType: mealType,
             timeLabel: timeLabel,
             foodsJson: jsonEncode(foods),
@@ -1784,7 +1814,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
             sugarG: const Value(totalSugar),
             // 인식 결과의 코멘트를 행에 남긴다 — 목록으로 돌아갔을 때도 끼니
             // 카드에 그대로 보인다.
-            aiComment: const Value(coach),
+            aiComment: Value(coach),
             // 방금 찍은/고른 그 사진을 함께 남긴다. 인식 결과는 데모라 무엇을
             // 찍든 같지만, 카드에 보이는 사진까지 남의 것이면 자기가 방금
             // 올린 끼니라는 게 화면에서 사라진다.
@@ -1794,7 +1824,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
             idempotencyKey: Value(idempotencyKey),
           ),
         );
-    await _retireCuratedAdvice(dietDates: <String>[_todayDateString()]);
+    await _retireCuratedAdvice(dietDates: <String>[day]);
 
     return _ok(options, <String, Object?>{
       'entry_id': id,
@@ -1815,6 +1845,26 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       'points': _points.award(PointsRule.dietEntry, id).toJson(),
     });
   }
+
+  /// 끼니 구분 — 서버 `MealTypeLiteral` 과 같은 다섯 값이다(#2882).
+  static const Set<String> _mealTypes = <String>{
+    'breakfast',
+    'lunch',
+    'dinner',
+    'snack',
+    'lateNight',
+  };
+
+  /// 기록 시각(`HH:MM`, 24시간) — 서버 `DietEntryUpdate.time_label` 과 같다.
+  static final RegExp _hhmm = RegExp(r'^([01]\d|2[0-3]):[0-5]\d$');
+
+  /// 데모 인식 음식의 영어 표시 이름(#2850). 실서버 스텁(`recognizer/stub.py`
+  /// `_EN_DISPLAY_NAMES`)과 같은 값이다.
+  static const Map<String, String> _demoFoodDisplayNamesEn = <String, String>{
+    '요거트 아이스크림': 'Frozen yogurt',
+    '과일 토핑': 'Fruit topping',
+    '그래놀라 토핑': 'Granola topping',
+  };
 
   /// 분석 요청에서 끼니 구분과 멱등키를 꺼낸다.
   ///
@@ -1874,9 +1924,13 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     return null;
   }
 
-  (String, String?) _analyzeRequestFields(RequestOptions options) {
+  ({String mealType, String? idempotencyKey, String? date})
+  _analyzeRequestFields(RequestOptions options) {
     String mealType = 'lunch';
     String? idempotencyKey;
+    // 기록 날짜(#2849). 지난 날짜 화면에서 연 `식단 추가` 가 그 날짜를 싣는다.
+    // 빠지면 저장하는 날(오늘)이다.
+    String? date;
     final data = options.data;
     if (data is FormData) {
       for (final MapEntry<String, String> f in data.fields) {
@@ -1884,12 +1938,30 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         if (f.key == 'idempotency_key' && f.value.isNotEmpty) {
           idempotencyKey = f.value;
         }
+        if (f.key == 'date' && f.value.trim().isNotEmpty) {
+          date = f.value.trim();
+        }
       }
     } else if (data is Map) {
       mealType = (data['meal_type'] as String?) ?? 'lunch';
       idempotencyKey = data['idempotency_key'] as String?;
+      final String? raw = (data['date'] as String?)?.trim();
+      if (raw != null && raw.isNotEmpty) date = raw;
     }
-    return (mealType, idempotencyKey);
+    return (mealType: mealType, idempotencyKey: idempotencyKey, date: date);
+  }
+
+  /// 사진 분석의 기록 날짜 검사(#2849). 실서버(`analyze_record_date`)와 같은
+  /// 규칙이다 — 형식이 맞고, 오늘보다 뒤가 아니며, 작년 1월 1일보다 앞서지
+  /// 않는다(앱의 날짜 고르기 범위와 같다).
+  static String? _analyzeDateError(String date) {
+    final String? error = _entryDateError(date);
+    if (error != null) return error;
+    final DateTime parsed = DateTime.parse(date);
+    if (parsed.isBefore(DateTime(nowKst().year - 1))) {
+      return 'date 는 작년 1월 1일보다 앞설 수 없습니다.';
+    }
+    return null;
   }
 
   String _todayDateString() {
@@ -3870,6 +3942,16 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     };
   }
 
+  /// 프로필 응답 — 서버 `ProfileView` 처럼 실효 단백질 목표를 함께 싣는다(#2898).
+  /// 식단 분석이 쓰는 규칙(목표 → 체중 × 1.2g → 60g)과 같은 값이다.
+  Future<Map<String, Object?>> _profileView() async {
+    final Map<String, Object?> profile = await _mergedProfile();
+    return <String, Object?>{
+      ...profile,
+      'effective_daily_protein_g': demoDietTargets(profile).proteinG,
+    };
+  }
+
   Future<void> _mergeProfileOverlay(Map<String, Object?> patch) async {
     final overlay = await _readProfileOverlay();
     overlay.addAll(patch);
@@ -3927,7 +4009,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   }
 
   Future<Response<Object?>> _usersMeProfile(RequestOptions options) async {
-    return _ok(options, await _mergedProfile());
+    return _ok(options, await _profileView());
   }
 
   /// 데모 세계에서 **다른 계정이 이미 쓰는** 이메일(#2639).
@@ -4003,7 +4085,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     if (email != null && email != currentEmail) {
       await _accounts.renameCurrent(email);
     }
-    return _ok(options, await _mergedProfile());
+    return _ok(options, await _profileView());
   }
 
   /// PUT /users/me/health-goals — 식단 일일 목표(6종) + 운동 목표(7종)를
@@ -4036,7 +4118,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     _normalizeConditions(patch);
     await _stampMemberHealthChanges(patch);
     await _mergeProfileOverlay(patch);
-    return _ok(options, await _mergedProfile());
+    return _ok(options, await _profileView());
   }
 
   /// 회원이 저장한 `conditions` 에서 목표 칩·건강상태·주의사항이 실제로 바뀌었으면
@@ -4129,7 +4211,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     // 처음 고른 목표·적은 주의사항도 회원이 정한 것이다 — 실서버처럼 남긴다.
     await _stampMemberHealthChanges(patch);
     await _mergeProfileOverlay(patch);
-    return _ok(options, await _mergedProfile());
+    return _ok(options, await _profileView());
   }
 
   /// POST /users/me/onboarding/skip — 첫 설정 건너뛰기만 남긴다(#2855). 서버처럼

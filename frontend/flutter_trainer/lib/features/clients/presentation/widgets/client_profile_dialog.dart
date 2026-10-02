@@ -467,7 +467,8 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       l.memberHealthGoalProtein,
       AppGoalRanges.dailyProteinG,
       true,
-      hint: '$proteinTargetG',
+      // 비워 두면 식단 분석이 쓰는 실효 목표(#2898)다 — 체중이 있으면 체중 × 1.2g.
+      hint: '${_base?.effectiveDailyProteinG ?? proteinTargetG}',
     ),
     _NumberField(
       'client-goal-fat',

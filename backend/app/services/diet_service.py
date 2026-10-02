@@ -40,10 +40,14 @@ logger = logging.getLogger(__name__)
 # 숫자가 무엇을 재고 나온 값인가" 가 사라져 회원이 양을 고쳐도 다시 셀 근거가 없다.
 # 비례 환산에 필요한 건 DB 재조회가 아니라 이 한 값이다. 없을 수 있다(양을 못 얻은
 # 인식·이 필드 이전 기록) — 읽는 쪽이 null 을 견딘다.
+#
+# `display_name` 은 영어 화면에서 분석한 음식의 표시 이름이다(#2850). 있을 때만
+# 남긴다 — 한국어 화면·수기 입력 기록에 null 칸을 늘리지 않는다.
 _FOOD_STORAGE_FIELDS = (
-    "name", "amount_g", "calories", "sodium_mg", "sugar_g",
+    "name", "display_name", "amount_g", "calories", "sodium_mg", "sugar_g",
     "carbs_g", "protein_g", "fat_g", "source",
 )
+_OPTIONAL_FOOD_FIELDS = frozenset({"display_name"})
 # 하루 나트륨 상한. WHO 권고(2,000mg)를 쓴다 — 2025 한국인 영양소 섭취기준의
 # 성인 만성질환위험감소섭취량 2,300mg 보다 엄격한 쪽이다. 예전에는 이 값이
 # DASH(고혈압 식이) 상한이라는 이름을 달고 있었는데, 지금 타깃은 고혈압
@@ -87,7 +91,11 @@ def store_foods(foods: list[RecognizedFood]) -> list[dict]:
     더하면 고친 뒤에 화면이 달라진다.
     """
     return [
-        {field: getattr(food, field) for field in _FOOD_STORAGE_FIELDS}
+        {
+            field: getattr(food, field)
+            for field in _FOOD_STORAGE_FIELDS
+            if field not in _OPTIONAL_FOOD_FIELDS or getattr(food, field) is not None
+        }
         for food in foods
     ]
 
@@ -619,20 +627,25 @@ def find_by_idempotency(db: Session, user_id: str, key: str) -> DietEntry | None
 def save_analyzed_entry(
     db: Session, user_id: str, meal_type: str, analysis: DietAnalysis,
     idempotency_key: str | None,
+    record_date: date_type | None = None,
 ) -> tuple[DietEntry, bool]:
     """분석 결과를 diet_entries 에 저장. 반환: (entry, is_new).
 
     동시 재시도가 유니크 제약(user_id, idempotency_key)에 걸리면 이미 저장된 엔트리를
     반환한다(is_new=False, 중복 저장·재적재 방지). 신규 저장 시 개인 RAG 문서로도 적재.
+
+    `record_date` 는 기록을 남길 날이다(#2849). 지난 날짜 화면에서 연 추가가 싣고,
+    빠지면 저장하는 날이다. 검증(앞날 금지·범위)은 라우터 경계에서 끝난다.
     """
     foods_for_storage = store_foods(analysis.foods)
     # 날짜와 시각은 같은 시계 스냅샷에서 뽑는다. 따로 읽으면 KST 자정 사이에
     # date 는 어제, time_label 은 오늘이 되어 한 행 안에서 어긋난다.
     recorded_at = clock.now()
+    entry_date = record_date or recorded_at.date()
     entry = DietEntry(
         id=f"diet-{uuid.uuid4().hex[:12]}",
         user_id=user_id,
-        date=recorded_at.date().isoformat(),
+        date=entry_date.isoformat(),
         meal_type=meal_type,
         time_label=recorded_at.strftime("%H:%M"),
         foods_json=json.dumps(foods_for_storage, ensure_ascii=False),
@@ -651,7 +664,7 @@ def save_analyzed_entry(
     db.add(entry)
     # 보호한 날에 기록이 생기면 그날 쓴 보호권을 되돌린다(#1788) — 식단 한 끼도
     # 기록이라 보호가 필요 없어진다. 기록과 같은 트랜잭션에서 부른다.
-    streak_shield_service.refund_for_record(db, user_id, recorded_at.date())
+    streak_shield_service.refund_for_record(db, user_id, entry_date)
     try:
         db.commit()
     except IntegrityError:

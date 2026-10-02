@@ -124,6 +124,7 @@ from app.schemas.trainer_api import (
     TrainerTaskKeyChange,
     TrainerTaskProgressDayOut, TrainerTaskProgressOut, TrainerTaskProgressSave,
 )
+from app.services.diet_coach_inputs import effective_protein_g
 from app.services import (
     audit,
     auth_tokens,
@@ -673,6 +674,7 @@ def _member_health_out(db: Session, member_id: str) -> MemberHealthProfileOut:
         conditions=profile.conditions if profile is not None else "",
         focus_changed_by=profile.focus_changed_by if profile is not None else None,
         focus_changed_at=profile.focus_changed_at if profile is not None else None,
+        effective_daily_protein_g=effective_protein_g(profile),
         notes_changed_by=profile.notes_changed_by if profile is not None else None,
         notes_changed_at=profile.notes_changed_at if profile is not None else None,
         **values,
