@@ -4,8 +4,8 @@
 `(user_id, kst_date)` 로 센다. 인메모리가 아니라 DB 라서 재기동·여러 인스턴스에서도
 값이 같다.
 
-Revision ID: 0121_diet_analysis_usages
-Revises: 0110_user_token_version
+Revision ID: 0134_diet_analysis_usages
+Revises: 0131_health_notes_changed
 """
 from __future__ import annotations
 
@@ -14,8 +14,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0121_diet_analysis_usages"
-down_revision: str | Sequence[str] | None = "0110_user_token_version"
+revision: str = "0134_diet_analysis_usages"
+down_revision: str | Sequence[str] | None = "0131_health_notes_changed"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
