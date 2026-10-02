@@ -62,7 +62,7 @@ chore(repo): remove unused api/ and package.json from old calculator demo
 ### 4.1 PR 생성
 
 - PR 제목은 커밋 메시지와 동일한 Conventional Commits 형식을 사용합니다.
-- 본문은 [`.github/pull_request_template.md`](../.github/pull_request_template.md) 의 모든 섹션(Summary / Changes / Commits / Notes / Test Plan / Related Issues / Checklist) 을 채웁니다.
+- 본문은 [`.github/pull_request_template.md`](../.github/pull_request_template.md) 의 모든 섹션(Summary / Changes / Commits / Notes / Screenshots (Optional) / Test Plan / Related Issues / Checklist) 을 채웁니다.
 - 관련 이슈가 있으면 본문에 `Closes #<issue-number>` 를 명시해 머지 시 자동 close 되도록 합니다.
 
 ### 4.2 Reviewers & Assignees

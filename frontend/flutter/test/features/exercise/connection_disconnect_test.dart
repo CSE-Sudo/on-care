@@ -5,6 +5,7 @@
 /// 연결을 끊을 방법이 화면에서 없어지므로 여기서 지킨다.
 library;
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,6 +18,7 @@ import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.d
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/widgets/connection_disconnect.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -51,17 +53,49 @@ const AppConfig _config = AppConfig(
   useMockApi: true,
 );
 
+/// 해제 요청이 [error] 로 실패하는 대역. 조회는 데모 그대로다. (#2857)
+class _FailingDisconnectRepository extends MockGymRepository {
+  _FailingDisconnectRepository(this.error);
+
+  final Object error;
+  int disconnectCalls = 0;
+
+  @override
+  Future<void> disconnectMyGym() async {
+    disconnectCalls++;
+    throw error;
+  }
+
+  @override
+  Future<void> disconnectMyTrainer() async {
+    disconnectCalls++;
+    throw error;
+  }
+}
+
+DioException _status(int code) => DioException(
+  requestOptions: RequestOptions(path: '/me/coach'),
+  response: Response<void>(
+    requestOptions: RequestOptions(path: '/me/coach'),
+    statusCode: code,
+  ),
+  type: DioExceptionType.badResponse,
+);
+
 void main() {
   Future<MockGymRepository> pumpDetail(
     WidgetTester tester, {
     required String location,
     Gym? myGym = _myGym,
     Trainer? myTrainer = _myTrainer,
+    MockGymRepository? repo,
+    bool myTrainerFails = false,
+    bool myGymFails = false,
   }) async {
     await tester.binding.setSurfaceSize(const Size(390, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final MockGymRepository repository = MockGymRepository();
+    final MockGymRepository repository = repo ?? MockGymRepository();
     final GoRouter router = buildAppRouter(config: _config);
     addTearDown(router.dispose);
     router.go(AppRoutes.gyms);
@@ -77,8 +111,13 @@ void main() {
           nearbyGymsProvider.overrideWith(
             (ref) async => const <Gym>[_myGym, _otherGym],
           ),
-          myGymProvider.overrideWith((ref) async => myGym),
-          myTrainerProvider.overrideWith((ref) async => myTrainer),
+          myGymProvider.overrideWith(
+            (ref) async => myGymFails ? throw StateError('offline') : myGym,
+          ),
+          myTrainerProvider.overrideWith(
+            (ref) async =>
+                myTrainerFails ? throw StateError('offline') : myTrainer,
+          ),
           recommendedTrainersProvider.overrideWith(
             (ref) async => const <Trainer>[_myTrainer],
           ),
@@ -198,5 +237,121 @@ void main() {
     expect(await tester.runAsync(repository.fetchMyTrainer), isNull);
     // 헬스장은 그대로다.
     expect(await tester.runAsync(repository.fetchMyGym), isNotNull);
+  });
+
+  group('실패 처리 (#2857)', () {
+    const String failedToast = '연결을 해제하지 못했어요. 다시 시도해 주세요.';
+
+    Future<void> confirmDelete(WidgetTester tester) async {
+      await tester.tap(find.text('삭제'));
+      for (int i = 0; i < 4; i++) {
+        await tester.pump(const Duration(milliseconds: 400));
+      }
+    }
+
+    /// 실패 안내는 잠시 뒤 스스로 닫힌다 — 그 타이머가 남지 않게 흘려 보낸다.
+    Future<void> drainToast(WidgetTester tester) async {
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump(const Duration(seconds: 1));
+    }
+
+    testWidgets('해제 요청이 실패하면 안내가 뜨고 상세가 그대로 남는다', (WidgetTester tester) async {
+      final _FailingDisconnectRepository repository =
+          _FailingDisconnectRepository(StateError('offline'));
+      await pumpDetail(
+        tester,
+        location: AppRoutes.gymDetailPath(_myGym.id),
+        repo: repository,
+      );
+      await tapDisconnect(tester);
+      await confirmDelete(tester);
+
+      expect(repository.disconnectCalls, 1);
+      expect(find.text(failedToast), findsOneWidget);
+      // 화면을 닫지 않는다 — 회원이 다시 시도할 수 있다.
+      expect(
+        find.byKey(const Key('connection-disconnect-button')),
+        findsOneWidget,
+      );
+      await drainToast(tester);
+    });
+
+    testWidgets('트레이너 상세의 해제 실패도 안내하고 화면을 남긴다', (WidgetTester tester) async {
+      final _FailingDisconnectRepository repository =
+          _FailingDisconnectRepository(_status(500));
+      await pumpDetail(
+        tester,
+        location: AppRoutes.trainerDetailPath(_myTrainer.id),
+        repo: repository,
+      );
+      await tapDisconnect(tester);
+      await confirmDelete(tester);
+
+      expect(find.text(failedToast), findsOneWidget);
+      expect(
+        find.byKey(const Key('connection-disconnect-button')),
+        findsOneWidget,
+      );
+      await drainToast(tester);
+    });
+
+    testWidgets('서버가 이미 연결이 없다(404)고 하면 성공처럼 닫는다', (WidgetTester tester) async {
+      await pumpDetail(
+        tester,
+        location: AppRoutes.gymDetailPath(_myGym.id),
+        repo: _FailingDisconnectRepository(_status(404)),
+      );
+      await tapDisconnect(tester);
+      await confirmDelete(tester);
+
+      expect(find.text(failedToast), findsNothing);
+      expect(find.text('헬스장 상세'), findsNothing);
+    });
+
+    testWidgets('담당 트레이너 조회가 실패해도 확인 창은 뜬다', (WidgetTester tester) async {
+      await pumpDetail(
+        tester,
+        location: AppRoutes.gymDetailPath(_myGym.id),
+        myTrainerFails: true,
+      );
+      await tapDisconnect(tester);
+
+      expect(find.byType(AppDialog), findsOneWidget);
+      // 누가 함께 해제되는지 모르면 그 안내만 뺀다.
+      expect(find.textContaining('연결도 함께 해제됩니다'), findsNothing);
+    });
+
+    testWidgets('내 헬스장 조회가 실패해도 트레이너 해제 확인 창은 뜬다', (WidgetTester tester) async {
+      await pumpDetail(
+        tester,
+        location: AppRoutes.trainerDetailPath(_myTrainer.id),
+        myGymFails: true,
+      );
+      await tapDisconnect(tester);
+
+      expect(find.byType(AppDialog), findsOneWidget);
+    });
+  });
+
+  group('규칙 (#2857)', () {
+    test('404 만 이미 해제된 것으로 본다', () {
+      expect(isAlreadyDisconnected(_status(404)), isTrue);
+      expect(isAlreadyDisconnected(_status(500)), isFalse);
+      expect(isAlreadyDisconnected(_status(409)), isFalse);
+      expect(isAlreadyDisconnected(StateError('offline')), isFalse);
+    });
+
+    test('확인 창용 조회는 실패하면 null 이다', () async {
+      expect(
+        await readConnectionForConfirm(Future<Gym?>.value(_myGym)),
+        _myGym,
+      );
+      expect(
+        await readConnectionForConfirm(
+          Future<Gym?>.error(StateError('offline')),
+        ),
+        isNull,
+      );
+    });
   });
 }

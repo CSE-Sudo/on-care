@@ -124,7 +124,8 @@ Features MVP → Polish → Quality → Release scaffolding).
 - **Stage 1** Bootstrap — `flutter create`, lib/ skeleton, core
   dependencies, strict analyzer, AppConfig + dart-define,
   GitHub Actions CI (format/analyze/test) + CD (web →
-  github.io/oncare-flutter).
+  github.io/oncare-flutter, 당시 별도 저장소 기준 — 지금은 루트
+  deploy.yml 이 `/frontend/` 로 배포).
 - **Stage 2** Core infra — go_router with StatefulShellRoute +
   BottomNav, Riverpod ProviderObserver, design tokens + Material
   theme, Dio + interceptors (mock/auth-stub/logging), drift +

@@ -119,6 +119,24 @@ class CoachPhotoSendController extends Notifier<List<PendingCoachPhoto>> {
     ];
   }
 
+  /// 대화([thread])에 들어온 보낸 사진을 목록에서 뺀다. (#2880)
+  ///
+  /// 서버가 받은 사진은 대화가 그 메시지를 가질 때까지만 여기서 그린다. 그 뒤로도
+  /// 남겨 두면 원본 바이트가 화면을 오래 열어 두고 보낸 장수만큼 메모리에 쌓인다.
+  /// 보내는 중·실패한 사진은 그대로 둔다.
+  void settle(Iterable<CoachMessage> thread) {
+    final Set<String> ids = <String>{for (final CoachMessage m in thread) m.id};
+    bool landed(PendingCoachPhoto p) =>
+        p.status == CoachPhotoSendStatus.sent &&
+        p.message != null &&
+        ids.contains(p.message!.id);
+    if (!state.any(landed)) return;
+    state = <PendingCoachPhoto>[
+      for (final PendingCoachPhoto p in state)
+        if (!landed(p)) p,
+    ];
+  }
+
   Future<bool> _upload(PendingCoachPhoto pending) async {
     final MemberCoachRepository repository = ref.read(
       memberCoachRepositoryProvider,

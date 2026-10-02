@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -62,8 +64,9 @@ class GymTab extends ConsumerWidget {
     // 담당이 있으면 헤더의 채팅 버튼이 그 자리를 맡는다.
     //
     // 조회 중에는 찾기 화면을 미리 보여 주지 않는다. 잠깐 떴다 사라지면 연결이
-    // 풀린 것처럼 읽힌다.
-    if (myGymAsync.isLoading) {
+    // 풀린 것처럼 읽힌다. 탭 재진입·앱 복귀로 다시 읽는 중에는 이전 값을 그대로
+    // 그린다 — 카드가 로딩으로 비었다가 다시 그려지면 깜빡인다(#2856).
+    if (myGymAsync.isLoading && !myGymAsync.hasValue) {
       return const Padding(
         padding: EdgeInsets.symmetric(horizontal: OnCareSpacing.s20),
         child: Align(
@@ -544,7 +547,15 @@ class _SlotNotice extends StatelessWidget {
 ///
 /// 예약 패널 안에 두는 이유: 자리를 잡은 곳과 무르는 곳이 같아야 회원이 찾는다.
 /// 별도 '예약 내역' 화면을 만들면 한 번 보고 다시 안 여는 자리가 하나 더 생긴다.
-class _MyReservations extends StatelessWidget {
+/// 트레이너 패널이 처음부터 보여 주는 지난 예약 수. (#2879)
+///
+/// 서버는 지난 예약도 함께 준다(쪽 크기 50). 모두 그리면 PT 를 꾸준히 받는
+/// 회원일수록 패널이 지난 줄로 길어져 다가오는 예약과 빈 자리 고르기가 아래로
+/// 밀린다. 최근 몇 건만 두고 나머지는 `더 보기` 로 접는다.
+@visibleForTesting
+const int kRecentPastReservations = 3;
+
+class _MyReservations extends StatefulWidget {
   const _MyReservations({
     required this.reservations,
     required this.label,
@@ -562,9 +573,36 @@ class _MyReservations extends StatelessWidget {
   final ValueChanged<MyReservation> onCancel;
 
   @override
+  State<_MyReservations> createState() => _MyReservationsState();
+}
+
+class _MyReservationsState extends State<_MyReservations> {
+  /// 접어 둔 지난 예약까지 펼쳤는가.
+  bool _showAllPast = false;
+
+  @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
+    // 다가오는 예약(취소 가능)은 모두, 지난 예약은 최근 몇 건만 — 목록은 이미
+    // 다가오는 것 먼저, 지난 것은 최근 것부터 정렬돼 온다.
+    final List<MyReservation> upcoming = widget.reservations
+        .where((MyReservation r) => r.cancellable)
+        .toList(growable: false);
+    final List<MyReservation> past = widget.reservations
+        .where((MyReservation r) => !r.cancellable)
+        .toList(growable: false);
+    final int hiddenPast = _showAllPast
+        ? 0
+        : math.max(0, past.length - kRecentPastReservations);
+    final List<MyReservation> shown = <MyReservation>[
+      ...upcoming,
+      ...past.take(past.length - hiddenPast),
+    ];
+    final String Function(DateTime) label = widget.label;
+    final String? cancelling = widget.cancelling;
+    final bool disabled = widget.disabled;
+    final ValueChanged<MyReservation> onCancel = widget.onCancel;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(OnCareSpacing.s12),
@@ -582,7 +620,7 @@ class _MyReservations extends StatelessWidget {
                 .text(OnCareTypography.strong(OnCareTypography.caption))
                 .copyWith(color: tokens.brand.primary),
           ),
-          for (final MyReservation r in reservations) ...<Widget>[
+          for (final MyReservation r in shown) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s4),
             Row(
               children: <Widget>[
@@ -619,6 +657,18 @@ class _MyReservations extends StatelessWidget {
                     size: OnCareButtonSize.small,
                   ),
               ],
+            ),
+          ],
+          if (past.length > kRecentPastReservations) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s4),
+            AppButton(
+              key: const Key('reservations-past-toggle'),
+              label: _showAllPast
+                  ? l.exReservationPastLess
+                  : l.exReservationPastMore(hiddenPast),
+              onPressed: () => setState(() => _showAllPast = !_showAllPast),
+              variant: AppButtonVariant.text,
+              size: OnCareButtonSize.small,
             ),
           ],
         ],
