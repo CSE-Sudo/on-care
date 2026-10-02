@@ -11,6 +11,7 @@
 library;
 
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_rules/oncare_rules.dart' show josa;
 
 /// 조언 한 마디.
 class ExerciseAdvice {
@@ -43,25 +44,11 @@ class ExerciseAdvice {
   final Map<String, Object> params;
 }
 
-/// 마지막 글자에 받침이 있나. 한글로 끝나지 않으면 null — 조사를 정할 수 없다.
-/// 서버 `exercise_advice.has_final_consonant` 와 같다.
-bool? hasFinalConsonant(String word) {
-  String stripped = word;
-  while (stripped.isNotEmpty &&
-      ' )]}'.contains(stripped[stripped.length - 1])) {
-    stripped = stripped.substring(0, stripped.length - 1);
-  }
-  if (stripped.isEmpty) return null;
-  final int last = stripped.runes.last;
-  if (last < 0xAC00 || last > 0xD7A3) return null;
-  return (last - 0xAC00) % 28 != 0;
-}
-
-String _particle(String word, String withFinal, String withoutFinal) {
-  final bool? finalConsonant = hasFinalConsonant(word);
-  if (finalConsonant == null) return '$withFinal($withoutFinal)';
-  return finalConsonant ? withFinal : withoutFinal;
-}
+/// 받침에 맞는 조사. 규칙은 서버·두 앱이 함께 쓰는 `oncare_rules` 의 [josa] 다
+/// (#2897) — 한글로 끝나지 않는 이름도 한 꼴을 고르고, `을(를)` 처럼 두 꼴을 함께
+/// 적지 않는다. 서버 `exercise_advice._particle` 과 같다.
+String _particle(String word, String withFinal, String withoutFinal) =>
+    josa(word, withFinal, withoutFinal);
 
 /// 이름 뒤 목적격 조사(을/를). 한국어 ARB 만 쓰고 영어 문장은 무시한다.
 String _obj(Object? name) => _particle(_str(name), '을', '를');
