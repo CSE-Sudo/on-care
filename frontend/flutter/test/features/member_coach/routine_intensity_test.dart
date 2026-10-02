@@ -107,10 +107,28 @@ void main() {
     );
   });
 
+  test('완료 표시를 해도 권한 강도는 그대로다', () {
+    // 예전에는 copyWith 가 강도를 옮기지 않아, `가벼움` 을 권한 운동이 체크하는
+    // 순간 기본값 `보통` 으로 바뀌었다 — 데모에서 `권장 보통` 으로 보였다.
+    final CoachRoutine done = _planned.copyWith(
+      completed: true,
+      completedIntensity: 'high',
+    );
+    expect(done.intensity, _planned.intensity);
+    expect(done.completedIntensity, 'high');
+  });
+
   testWidgets('권장대로 한 운동은 수행 강도만 남는다', (WidgetTester tester) async {
     await _pump(tester, const <CoachRoutine>[_doneAsPlanned]);
 
-    expect(find.text('수행 보통'), findsOneWidget);
+    // 한 강도는 `보통` 만 적는다 — `권장` 만 말머리를 단다(#2507).
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('routineDoneIntensity-r-done-same')),
+        matching: find.text('보통'),
+      ),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const Key('routinePlannedIntensity-r-done-same')),
       findsNothing,
@@ -121,7 +139,13 @@ void main() {
   testWidgets('권장과 다르게 한 운동은 권장과 수행이 함께 읽힌다', (WidgetTester tester) async {
     await _pump(tester, const <CoachRoutine>[_doneHarder]);
 
-    expect(find.text('수행 높음'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('routineDoneIntensity-r-done-harder')),
+        matching: find.text('높음'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('권장 가벼움'), findsOneWidget);
   });
 
