@@ -186,6 +186,31 @@ String historyExerciseName(Object? item) {
       .trim();
 }
 
+/// 파이썬 `round` 와 같은 반올림 — 딱 절반이면 짝수 쪽이다(2.5 → 2, 3.5 → 4).
+///
+/// Dart 의 `round` 는 바깥쪽(2.5 → 3)이라, 서버와 같은 시간 배분 식을 써도
+/// 5분 요청에서 B안 합이 6분이 됐다(#2715). 서버 셈을 옮긴 곳은 이것을 쓴다.
+int pyRound(num value) {
+  final int floor = value.floor();
+  final num rest = value - floor;
+  if (rest < 0.5) return floor;
+  if (rest > 0.5) return floor + 1;
+  return floor.isEven ? floor : floor + 1;
+}
+
+/// 한 운동이 기록에 가장 많이 나온 횟수 — 서버 추천 상태의 반복 문턱이 본다
+/// (`max(name_counts.values())`). 안 한 운동(✗)은 세지 않는다.
+int maxRepeat(Iterable<List<Object?>> sessions) {
+  final Map<String, int> counts = <String, int>{};
+  for (final List<Object?> items in sessions) {
+    for (final Object? item in items) {
+      final String name = historyExerciseName(item);
+      if (name.isNotEmpty) counts[name] = (counts[name] ?? 0) + 1;
+    }
+  }
+  return counts.values.fold<int>(0, (int a, int b) => a > b ? a : b);
+}
+
 /// 최근 기록에서 두 번 이상 나온 운동, 많이 나온 순으로 셋까지 — 서버
 /// `_analyze_routine_history` 의 `frequent`(`Counter.most_common`). 횟수가
 /// 같으면 먼저 본 순서다.

@@ -72,6 +72,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get errorUnknown => '알 수 없는 오류';
 
   @override
+  String get errorForbidden => '이 기능을 쓸 권한이 없어요. 필요한 동의나 트레이너 연결을 확인해 주세요.';
+
+  @override
+  String get errorRateLimited => '요청이 많아 잠시 멈췄어요. 잠시 뒤 다시 시도해 주세요.';
+
+  @override
   String get dashboardMetricCalories => '칼로리';
 
   @override
@@ -974,6 +980,15 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exOwnRecordsEmpty => '직접 기록한 운동이 없어요';
+
+  @override
+  String get exRecordDetailOpen => '자세히';
+
+  @override
+  String get exRecordDetailInfo => '운동 정보';
+
+  @override
+  String get exRecordDetailTotalCalories => '총 소모 칼로리';
 
   @override
   String get exOwnRecordSource => '직접 기록';
@@ -2493,18 +2508,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachChatInputHint => '트레이너에게 메시지 보내기...';
 
   @override
-  String get coachChatDemoAnalyzed => 'AI가 내 식단·운동 데이터를 분석했어요';
+  String get coachChatRoutineReceived => '트레이너가 운동을 보냈어요';
 
   @override
-  String coachChatDemoReportSent(String trainer) {
-    return '$trainer님께 요약 리포트가 전송됐어요';
+  String get coachChatRoutineReceivedPt => 'PT 프로그램과 개인운동을 받았어요';
+
+  @override
+  String get coachChatRoutineReceivedPersonal => '개인운동을 받았어요';
+
+  @override
+  String get coachChatRoutineReceivedAfterCancel => '취소된 PT 대신 개인운동을 받았어요';
+
+  @override
+  String get coachChatRoutineReceivedProgram => '운동 프로그램을 받았어요';
+
+  @override
+  String coachChatRoutineReceivedMore(String names, int count) {
+    return '$names 외 $count개';
   }
-
-  @override
-  String get coachChatDemoRoutineReceived => '개인 추천운동을 받았어요';
-
-  @override
-  String get coachChatDemoNotified => '알림으로도 전달됐어요';
 
   @override
   String coachChatDateDivider(DateTime date) {
@@ -3407,7 +3428,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get healthNotesHint => '예) 왼쪽 무릎 수술 이력, 허리 디스크';
 
   @override
-  String get healthNotesHelper => '운동을 추천할 때 참고해요';
+  String get healthNotesHelper => '추천할 때 참고해요';
 
   @override
   String get healthFocusWeightLoss => '체중 감량';
@@ -3558,7 +3579,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutineAiTitle => 'AI 추천 개인운동';
 
   @override
-  String get coachRoutinePastReadOnly => '그날 한 운동이에요. 지난 날짜는 체크할 수 없어요.';
+  String get coachRoutinePastEditHint =>
+      '빠뜨린 체크를 지금 할 수 있어요. 트레이너에게는 나중에 체크한 것으로 보여요.';
+
+  @override
+  String get coachRoutinePastEditDone => '완료';
 
   @override
   String get coachRoutineLogged => '운동 기록에 반영했어요';
@@ -3663,11 +3688,6 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String coachRoutinePlannedIntensity(String level) {
     return '권장 $level';
-  }
-
-  @override
-  String coachRoutineDoneIntensity(String level) {
-    return '수행 $level';
   }
 
   @override

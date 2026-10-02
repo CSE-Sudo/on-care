@@ -5,6 +5,17 @@
 # App Runner/프록시 뒤이므로 --proxy-headers 로 X-Forwarded-Proto 를 신뢰(HTTPS 판정).
 set -euo pipefail
 
+# ENV 는 반드시 명시한다(#2821). 백엔드의 운영 안전장치(JWT·CORS·데모 비밀번호 검사,
+# 데모 폴백 차단)는 ENV=prod 일 때만 켜지는데, 값을 빠뜨리면 설정 기본값(dev)으로
+# 조용히 떠서 그 장치가 전부 꺼진다. 컨테이너는 값이 없으면 아예 뜨지 않는다.
+# 로컬 개발은 uvicorn 을 직접 띄우므로 이 검사를 거치지 않는다.
+ENV_TRIMMED="$(printf '%s' "${ENV:-}" | tr -d '[:space:]')"
+if [[ -z "${ENV_TRIMMED}" ]]; then
+  echo "[start] ENV 가 비어 있습니다 — 배포 환경에서는 ENV=prod(또는 staging) 를 명시해야 합니다." >&2
+  exit 1
+fi
+echo "[start] ENV=${ENV_TRIMMED}"
+
 # 포트: Railway 등 일부 플랫폼은 동적 $PORT 를 주입한다. 없거나 비어 있으면
 # (App Runner·로컬·docker-compose) 8000 으로 폴백 → 한 이미지가 두 플랫폼 모두에서
 # 그대로 뜬다. 검증은 마이그레이션보다 먼저 한다 — DB 가 unavailable 할 때 포트
