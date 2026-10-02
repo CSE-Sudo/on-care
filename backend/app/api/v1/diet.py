@@ -41,7 +41,9 @@ from app.schemas.diet_api import (
     DietTodayResponse,
     FoodNutritionOut,
     FoodNutritionRequest,
+    MealTypeLiteral,
     MemberTrainerPick,
+    analyze_record_date,
 )
 from app.schemas.points_api import PointsOut
 from app.services import (
@@ -254,12 +256,31 @@ def food_nutrition(
     )
 
 
+def _analyze_record_date(
+    record_date: str | None = Form(
+        None,
+        alias="date",
+        description="기록 날짜(YYYY-MM-DD, 선택). 빠지면 저장하는 날. 앞날·작년 1월 1일 이전은 422.",
+    ),
+) -> Date | None:
+    """사진 분석의 기록 날짜(#2849). 지난 날짜 화면에서 연 추가는 그 날로 남긴다.
+
+    의존성으로 두어 본문보다 먼저 돈다 — 인식(비용이 드는 외부 호출) 전에 걸러 낸다.
+    """
+    try:
+        return analyze_record_date(record_date)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+
 @router.post("/diet/analyze", response_model=DietAnalyzeResponse)
 async def diet_analyze(
     current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
     image: UploadFile = File(..., description="음식 사진"),
-    meal_type: str = Form("lunch", description="breakfast|lunch|dinner|snack|lateNight"),
+    # 다섯 값 밖은 인식 전에 422 다(#2882) — 직접 기록·수정과 같은 규칙.
+    meal_type: MealTypeLiteral = Form("lunch", description="breakfast|lunch|dinner|snack|lateNight"),
+    entry_date: Date | None = Depends(_analyze_record_date),
     idempotency_key: str | None = Form(
         None,
         max_length=64,  # DietEntry.idempotency_key 컬럼(String(64)) 경계와 일치 — 초과 시 DB 500 방지
@@ -331,7 +352,8 @@ async def diet_analyze(
         raise HTTPException(status_code=422, detail=_NO_FOOD_DETECTED)
 
     return await run_in_threadpool(
-        _persist_analysis, db, user_id, meal_type, analysis, idempotency_key, image_bytes
+        _persist_analysis, db, user_id, meal_type, analysis, idempotency_key, image_bytes,
+        entry_date,
     )
 
 
@@ -374,6 +396,7 @@ def _persist_analysis(
     analysis: DietAnalysis,
     idempotency_key: str | None,
     image_bytes: bytes,
+    entry_date: Date | None = None,
 ) -> DietAnalyzeResponse:
     """인식 결과를 보강·저장하고 적립·사진 저장까지 한다. 동기(스레드풀에서 부른다).
 
@@ -383,7 +406,8 @@ def _persist_analysis(
     enrich_analysis(db, analysis, enabled=get_settings().nutrition_db_enrich)
 
     entry, is_new = diet_service.save_analyzed_entry(
-        db, user_id, meal_type, analysis, idempotency_key
+        db, user_id, meal_type, analysis, idempotency_key,
+        record_date=entry_date,
     )
     entry_id = entry.id
     # 아래에서 적립·사진 저장이 각각 커밋하므로 그때 이 인스턴스의 속성이

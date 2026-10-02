@@ -25,7 +25,7 @@ from starlette.concurrency import run_in_threadpool
 from app.core.config import get_settings
 from app.models.models import GymProfile, Place, TrainerProfile, User
 from app.schemas.trainer_api import TrainerGymCandidate, TrainerMe
-from app.services import trainer_service
+from app.services.trainer import gym as trainer_gym_service
 from app.services.places import kakao
 
 logger = logging.getLogger(__name__)
@@ -126,7 +126,7 @@ def _select_existing(
         return False, None
     if place.category != "fitness":
         return True, None
-    return True, trainer_service.set_trainer_gym(db, trainer, profile, place.id)
+    return True, trainer_gym_service.set_trainer_gym(db, trainer, profile, place.id)
 
 
 def _phone_of(db: Session, place_id: str) -> str:
@@ -225,4 +225,4 @@ def _insert_and_select(
             is_partner=False,
         ))
         db.flush()
-    return trainer_service.set_trainer_gym(db, trainer, profile, match["id"])
+    return trainer_gym_service.set_trainer_gym(db, trainer, profile, match["id"])

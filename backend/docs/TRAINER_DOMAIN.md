@@ -115,7 +115,7 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
 | `active` | 담당 관계가 살아 있는가 | 연결 코드·담당 요청 수락·헬스장 해제·탈퇴 등 시스템 | 회원측 '내 코치'가 사라지고 예약·코치 조회가 막힌다 |
 | `dormant` | 트레이너가 지금 적극적으로 관리하는가 | 트레이너가 화면에서 직접 | 배지만 휴면이 된다. 담당·기록·식단·운동·채팅은 그대로 |
 
-로스터의 `active` 필드는 둘의 AND 다(`trainer_service._roster_active`) — 담당이
+로스터의 `active` 필드는 둘의 AND 다(`trainer._common._roster_active`) — 담당이
 해제된 과거 회원의 카드는 예나 지금이나 휴면으로 보여야 하기 때문이다. 그래서
 담당이 이미 해제된 회원의 상태 전환은 409 다(되돌려 봐야 로스터가 휴면 그대로라
 "저장했는데 그대로"가 된다). 담당 재배정은 회원이 동의하는 연결 경로(연결 코드·담당 요청)의 몫이다.
@@ -138,7 +138,7 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
 |---|---|
 | `/trainer/clients/{id}/…` 회원 단위 읽기·쓰기 전부(식단·사진·건강 정보·기록·조언·채팅·사진/PDF 전송·루틴·제안·프로그램·메모·할 일 등록·루틴 후보·AI 코치·리포트) | 404 |
 | 회원을 붙이는 일정(`POST /trainer/schedule`·반복·`program-schedule`, `member_id` 로 옮기는 `PUT`, `member_id` 필터 조회) | 404 — 알림도 나가지 않는다 |
-| 경로에 회원 id 가 없는 쓰기: 제안 승인·완료한 일정의 프로그램 전송 | 404 (`trainer_service.has_active_client_link`) |
+| 경로에 회원 id 가 없는 쓰기: 제안 승인·완료한 일정의 프로그램 전송 | 404 (`trainer._common.has_active_client_link`) |
 | 해제 전에 잡아 둔 일정을 id 로 여는 쓰기: 개인운동 전송(`/routines/send`)·개인운동 처음 붙이기(`PUT /routines`, #2280)·완료(`/complete`)·수정(`PUT`)·되돌리기(`/reopen`) | 404 — 회원 운동 기록도 알림도 남지 않는다(`_ensure_session_member_linked`). 취소·삭제는 약속이 없어졌다는 통보·트레이너 자기 일정 정리라 그대로 열린다 |
 | 트레이너 스케줄(일·구간 조회·예약 날짜 점·겹침 거절 응답) | 빼지 않고 **익명**으로 싣는다(#2589) — `member_detached`, 이름 `해제 회원`, `member_id`·글·프로그램·취소 사유는 비운다 |
 | 해제 시점에 아직 시작하지 않은 `예정` 일정 | `취소`(사유 `담당 해제`)로 바꾸고 예약 좌석을 돌려준다(#2589). 알림은 해제 알림 한 건이 취소 수를 함께 전한다 |
@@ -314,6 +314,22 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
 
 ## 4. 트레이너 API (`/v1/trainer/*`, RequireTrainer)
 
+### 코드 위치 (#2909)
+
+트레이너 도메인 코드는 영역별 모듈로 나뉘어 있다. 영역 모듈끼리 서로의 비공개 헬퍼를
+직접 부르지 않고 각 패키지의 `_common` 을 거친다.
+
+| 계층 | 위치 | 영역 모듈 |
+|---|---|---|
+| 서비스 | `app/services/trainer/` | `roster` · `chat` · `client_status` · `routines` · `routine_suggestions` · `memos` · `follow_ups` · `programs` · `schedule` · `member_mirror` · `profile` · `gym` · `reports` · `notification_settings` · `weekly_feedback` |
+| 라우터 | `app/api/v1/trainer/` | `profile` · `clients` · `chat` · `routines` · `routine_suggestions` · `memos` · `follow_ups` · `programs` · `task_progress` · `schedule` · `ai_coach` · `reports` · `client_invites` · `consultations` · `notifications` |
+
+영역 라우터는 `app/main.py` 가 `trainer.routers` 순서대로 같은 prefix 로 마운트한다.
+호출부는 이름을 정의한 영역 모듈에서 바로 가져온다 — 예전 단일 모듈 경로와 재수출
+호환 도우미는 없다. 본문의 `trainer.<영역>.X` 는 `app/services/trainer/<영역>.py` 의 이름이다.
+라우트 Method·Path 집합과 예전 경로가 다시 생기지 않는지는
+`tests/test_trainer_module_split.py` 가 지킨다.
+
 | Method | Path | 설명 |
 |---|---|---|
 | GET | `/trainer/me` | 내 트레이너 프로필 |
@@ -380,7 +396,8 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
 | PUT | `/trainer/dashboard/task-progress/{date}` | 그날 진행 상태 통째로 저장(KST 오늘·어제만) |
 | POST | `/trainer/dashboard/task-progress/{date}/keys` | 할 일 키 하나 체크·해제·삭제 — 그날 행에 그 키만 반영하고 합계는 서버가 다시 냄(KST 오늘·어제만, #2886) |
 | POST | `/trainer/clients/{member_id}/ai-coach` | 담당 회원 데이터 기반 AI 코칭 질의 |
-| GET | `/trainer/clients/{member_id}/report?week_start=` | 주간 리포트(어느 요일을 줘도 그 주 월요일로 정규화) |
+| GET | `/trainer/reports/queue?week_start=` | 리포트 작업대 요약 — 담당 회원 전원의 세션 예약·완료 수, 요일별·평균 이행률을 한 번에(#2863) |
+| GET | `/trainer/clients/{member_id}/report?week_start=` | 주간 리포트(어느 요일을 줘도 그 주 월요일로 정규화). 직전 4주 칼로리 평균 `calorie_baseline` 포함(#2863) |
 | GET | `/trainer/clients/{member_id}/report/summary?week_start=` | 주간 리포트 AI 요약(머리 문장 + 근거 최대 3줄) |
 | POST | `/trainer/clients/{member_id}/report/send` | 리포트를 회원 채팅 스레드로 전송 |
 | POST | `/trainer/clients/{member_id}/report/send-pdf` | 리포트 PDF 를 회원 채팅 스레드로 전송 — `message` 필수, 공백뿐이면 422 (#2771) |
@@ -405,7 +422,7 @@ scope에 포함해 회원과 트레이너가 우연히 같은 키를 만들어�
 11:00 시작은 이어질 뿐이다. 길이 0인 일정은 시작 1분, 자정을 넘는 일정은 다음 날까지
 차지한다. 시간을 차지하는 상태는 `예정`·`완료` 뿐이다(취소·노쇼·공백은 빈 시간).
 
-판정은 `trainer_service.conflicting_sessions` 한 곳에 있고 아래 경로가 모두 쓴다.
+판정은 `trainer.schedule.conflicting_sessions` 한 곳에 있고 아래 경로가 모두 쓴다.
 겹치면 **409** `detail = { code: "schedule_overlap", message, conflicts[] }` 다.
 
 | 경로 | 비교에서 빼는 것 |
@@ -472,6 +489,20 @@ range`)이었고, `-3000` 이나 주 100,000분(한 주는 10,080분이다) 같�
 값을 바꿀 때는 서버 모듈과 그 파일을 함께 고친다 — 한쪽만 고치면 화면은
 괜찮다는데 저장이 422 로 떨어지는 자리가 생긴다.
 
+
+### 실효 단백질 목표 (#2898)
+
+개인 단백질 목표 칸은 비어 있는 경우가 많다. 그때 식단 분석·조언·추천 식단은
+**체중 × 1.2g, 체중도 없으면 60g** 으로 판단한다(`diet_coach_inputs.effective_protein_g`).
+화면은 한동안 100g 을 분모로 써서, 하루 70g 을 먹은 날 카드는 "70 / 100g" 으로
+모자라 보이는데 바로 아래 분석은 목표를 채웠다고 말할 수 있었다.
+
+이제 서버가 같은 규칙으로 계산한 값을 내려 준다 — 트레이너 회원 건강 프로필의
+`effective_daily_protein_g`, 주간 리포트의 `effective_protein_target`. 트레이너 웹
+영양 요약 카드와 리포트 막대가 개인 목표가 없을 때 이 값을 쓰고, 옛 응답이면
+같은 규칙을 앱에서 계산한다. 개인 목표 필드(`daily_protein_g`·`protein_target`)는
+그대로 null 이라 '이 회원이 정한 목표'인지 기본값인지 계속 가를 수 있다.
+
 ### 알림 수신 설정 (`/trainer/me/settings`)
 
 기기 로컬이 아니라 **계정 단위** — 트레이너는 센터 PC 와 태블릿을 오간다. 값이 3개뿐이고
@@ -522,6 +553,12 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 데이터는 없다. **기록이 없는 항목은 0 이 아니라 `null`** 로 내려간다("이행률 0%"는
 "안 했다"는 거짓말이 되므로). 전송은 별도 리포트 함이 아니라 **회원이 이미 읽고 있는
 채팅 스레드**로 들어간다.
+
+**작업대 요약 (#2863)**: 트레이너 웹 리포트 첫 화면은 `GET /trainer/reports/queue` 하나로
+담당 회원 전원의 큐 값(세션 예약·완료 수, 요일별·평균 이행률)을 받는다. 값은 회원별
+`build_weekly_report` 와 같은 규칙이고, 회원 목록은 회원 단위 경로와 같은 접근 규칙(담당 연결
+활성 + 데이터 공유 동의 유효)으로 고른다 — 작업대에 서는 회원과 편집기를 열 수 있는 회원이 같다.
+리포트 응답의 `calorie_baseline` 은 그 주 앞 4주 동안 기록한 날의 하루 평균 칼로리다.
 
 **회원 본인 경로 (#2652)**: 회원 앱 결과지는 `GET /me/coach/weekly-report` 로 같은
 `build_weekly_report` 를 부른다 — 같은 회원·같은 주면 두 앱이 **같은 값**을 읽는다.
@@ -761,6 +798,9 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
   AI 를 부르지 않는다. 저장하지 않고 응답 때 채우는 이유는 배정 길이 여럿(단일 배정·AI 제안·
   담당 없는 회원의 자동 추천·프로그램·일정 개인운동)이라 한 곳(`_routine_out`)에서 채워야 빠짐이
   없고, 회원이 목표를 바꾸면 문구도 따라가야 해서다. 운동 여럿으로 짠 세션과 `기타` 유형은 비운다.
+- **서버는 한국어 문장만 낸다.** 영어 화면 문구는 같은 표의 `en` 칸이 원본이고, 두 앱이 함께 쓰는
+  `shared/oncare_ui` 의 `routineEffectText` 가 표의 문장을 알아보고 화면 언어로 그린다(#2906).
+  트레이너가 직접 쓴 문장은 그대로 둔다.
 - **`reason` 과 섞지 않는다.** `reason` 은 AI 추천 사유(트레이너 판단 재료)거나 옛 배정의 운동 이름
   나열이다. 회원 앱은 효과가 있으면 `reason` 을 카드에 싣지 않고, 효과가 없는 옛 응답에서만
   예전처럼 `reason` 으로 떨어진다.

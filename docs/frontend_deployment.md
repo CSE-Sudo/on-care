@@ -32,13 +32,34 @@
 
 ## GitHub Pages 배포 과정
 
-1. 회원 앱과 트레이너 웹의 Flutter 의존성을 설치합니다.
-2. 두 앱에 필요한 drift WASM 파일을 내려받습니다.
-3. 빌드 모드를 정합니다. `main` push 는 항상 `mock`(목업)이고, 수동 실행에서 `backend` 입력으로 `real` 을 고를 때만 실서버 빌드가 됩니다. `real` 이면 `API_BASE_URL` 저장소 변수를 먼저 검사합니다.
-4. 회원 앱을 `/frontend/`, 트레이너 웹을 `/trainer/` base path로 빌드합니다.
-5. 루트 `index.html`과 두 앱의 빌드 결과를 `public/` 아래에 모읍니다.
-6. Pages artifact를 업로드하고 `github-pages` 환경에 배포합니다.
-7. 배포 action이 제한 시간 안에 완료를 확인하지 못하면 `version.txt`로 실제 반영 여부를 추가 검증합니다.
+1. 랜딩 `index.html` 의 앱 바로가기를 검사합니다([아래 절](#랜딩-바로가기와-ogurlcanonical)).
+2. 회원 앱과 트레이너 웹의 Flutter 의존성을 설치합니다.
+3. 두 앱에 필요한 drift WASM 파일을 내려받습니다.
+4. 빌드 모드를 정합니다. `main` push 는 항상 `mock`(목업)이고, 수동 실행에서 `backend` 입력으로 `real` 을 고를 때만 실서버 빌드가 됩니다. `real` 이면 `API_BASE_URL` 저장소 변수를 먼저 검사합니다.
+5. 회원 앱을 `/frontend/`, 트레이너 웹을 `/trainer/` base path로 빌드합니다.
+6. 루트 `index.html`과 두 앱의 빌드 결과를 `public/` 아래에 모으고, 랜딩의 og:url·canonical 을 `CNAME` 도메인으로 채웁니다.
+7. Pages artifact를 업로드하고 `github-pages` 환경에 배포합니다.
+8. 배포 action이 제한 시간 안에 완료를 확인하지 못하면 `version.txt`로 실제 반영 여부를 추가 검증합니다.
+9. 배포된 랜딩을 받아 앱 바로가기·canonical·같은 도메인의 `/frontend/`·`/trainer/` 응답을 확인합니다.
+
+## 랜딩 바로가기와 og:url·canonical
+
+루트 `index.html` 은 Pages(데모)와 AWS(운영)에 **같은 파일**로 올라갑니다. 두 배포 모두 랜딩을 루트에, 회원 앱을 `/frontend/`, 트레이너 웹을 `/trainer/` 에 두므로 앱 바로가기는 **상대 경로**(`frontend/#/dashboard`, `trainer/`)로 씁니다. 그래야 각 배포의 방문자가 자기 배포의 앱으로 가고, 무료 DNS 이름이 끊겨도 운영 랜딩의 버튼은 영향을 받지 않습니다(#2841). 데모 영상·GitHub 같은 외부 링크는 절대 주소 그대로 둡니다.
+
+`og:url`·`canonical` 은 상대 경로를 쓸 수 없어 원본에는 표시 줄 `<!-- SITE_URL_META -->` 만 두고, 배포 워크플로가 자기 도메인으로 바꿉니다.
+
+| 배포 | og:url·canonical 에 들어가는 주소 |
+| --- | --- |
+| GitHub Pages | [`CNAME`](../CNAME) 의 도메인 |
+| AWS CloudFront | 배포에 연결된 대체 도메인(운영 도메인)의 첫 번째, 없으면 CloudFront 기본 도메인. 운영 도메인을 붙이면 워크플로 수정 없이 다음 배포부터 반영 |
+
+검사·치환·배포 후 확인은 [`.github/scripts/landing_site_url.sh`](../.github/scripts/landing_site_url.sh) 하나로 합니다.
+
+- `check` — 앱 바로가기에 `http(s)://…/frontend`·`…/trainer` 절대 주소가 없고, 상대 경로 바로가기와 표시 줄이 있는지. PR Gate 와 두 배포 워크플로의 빌드 전에 돕니다.
+- `stamp` — 표시 줄을 og:url·canonical 태그로 바꿉니다(https 주소만 받음).
+- `verify` — 배포된 랜딩을 받아 바로가기가 상대 경로인지, canonical 이 그 배포 주소인지, 같은 도메인의 `/frontend/`·`/trainer/` 가 응답하는지 확인합니다. AWS 배포에서 실패하면 직전 릴리스로 되돌립니다.
+
+경계 검사는 `bash .github/scripts/test_landing_site_url.sh` 로 돌립니다.
 
 ## AWS 배포 스위치
 
@@ -162,11 +183,11 @@ Vercel 프로젝트가 이 Git 저장소와 연결되어 있으면 저장소 안
 | 항목 | `.env.example` | prod 요구 |
 | --- | --- | --- |
 | `CORS_ALLOW_ORIGINS` | `*` | 와일드카드 금지 — 배포 도메인을 명시 |
-| `DEMO_LOGIN_PASSWORD` | `oncare123` | `SEED_DEMO_DATA=true` 면 기본값이 아닌 12자 이상 |
+| `SEED_DEMO_DATA` | `true` | `false` — 켜면 기동 거부(#2811) |
 | `JWT_SECRET` | 기본값 | 안전한 값 필수 |
 | `AUTO_CREATE_TABLES` | — | `false` — Alembic 을 스키마의 유일한 경로로 둡니다 |
 
-시연용으로 `SEED_DEMO_DATA=true` 를 켜면 `DEMO_LOGIN_PASSWORD` 를 바꿔야 하고, 그러면 [`local_fullstack.md`](local_fullstack.md) 의 데모 계정 표(`oncare123`)와 갈리므로 그쪽도 함께 손봅니다.
+운영에서는 데모 시드를 켤 수 없습니다. 시연용 데모 계정이 필요하면 데모 전용 DB 를 둔 별도 환경(`ENV=dev`·`staging`)에서 켭니다. 예전 기본값으로 운영 DB 에 데모 데이터가 이미 심겼다면 [`backend/docs/DEPLOY.md`](../backend/docs/DEPLOY.md) 의 데모 데이터 정리 절차를 따릅니다.
 
 `ENV` 를 `dev`·`staging` 으로 두면 이 가드가 걸리지 않는 대신 **CORS 가 `*` 로 열린 채 배포됩니다.**
 
@@ -178,6 +199,7 @@ Vercel 프로젝트가 이 Git 저장소와 연결되어 있으면 저장소 안
 - 사용자 앱 `https://ewhasudo.zapto.org/frontend/`이 정상 응답하는지 확인
 - 트레이너 웹 `https://ewhasudo.zapto.org/trainer/`이 정상 응답하는지 확인
 - `https://ewhasudo.zapto.org/version.txt`의 값이 배포한 전체 커밋 SHA와 일치하는지 확인
+- 랜딩의 '회원 앱 바로가기'·'트레이너 웹 바로가기'가 **같은 도메인**의 `/frontend/`·`/trainer/` 로 열리고, 페이지 소스의 `canonical` 이 그 배포 주소인지 확인(워크플로의 `Verify landing app links` 단계가 같은 내용을 자동으로 봅니다)
 
 운영(AWS) 배포는 위 응답 확인에 더해 다음을 봅니다.
 

@@ -62,6 +62,7 @@ class _AnalyzeWith extends FakeDietRepository {
     required MealPhoto photo,
     required String mealType,
     String? idempotencyKey,
+    String? date,
   }) async {
     final DietAnalysisResult base = await super.analyze(
       photo: photo,

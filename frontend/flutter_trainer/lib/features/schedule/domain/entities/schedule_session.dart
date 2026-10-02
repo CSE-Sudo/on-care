@@ -1,5 +1,6 @@
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// PT 세션 프로그램의 운동 한 항목 (예: 레그프레스 3세트 · 80kg).
 ///
@@ -240,10 +241,7 @@ bool sessionHasStarted(ScheduleSession session, DateTime now) =>
 
 /// [sessionHasStarted] 의 값 판. 데모 저장소가 행을 엔티티로 바꾸기 전에 쓴다.
 bool hasStartedAt(String date, String time, DateTime now) {
-  final String today =
-      '${now.year.toString().padLeft(4, '0')}-'
-      '${now.month.toString().padLeft(2, '0')}-'
-      '${now.day.toString().padLeft(2, '0')}';
+  final String today = wireDate(now);
   if (date != today) return date.compareTo(today) < 0;
   final int? start = clockMinutes(time);
   if (start == null) return true;

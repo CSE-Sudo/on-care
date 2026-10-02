@@ -5,7 +5,6 @@ Android / iOS 릴리즈 절차와 버전 관리 정책을 정리합니다.
 
 > CI 자동화 범위: **Web만 자동**. Android/iOS는 수동.
 > 회원 앱은 모노레포 `frontend/flutter/` 이고, 워크플로는 저장소 **루트** `.github/workflows/` 에 있습니다.
-> `frontend/flutter/.github/` 아래 파일은 별도 저장소 시절의 것이라 GitHub Actions 가 실행하지 않습니다.
 
 ---
 
@@ -78,7 +77,7 @@ flutter build apk --release \
 
 ### 2.3 사전 점검
 
-- [ ] `applicationId` = `com.barmi.oncare` (Stage 1.1에서 설정됨)
+- [ ] `applicationId` = `com.csesudo.oncare` (확정값·검사: `docs/mobile_release.md` §4)
 - [ ] 권한 — 현재는 마이크/카메라 등 추가 권한 없음. 새 기능 추가 시 `AndroidManifest.xml` 갱신.
 - [ ] 소셜 SDK 통합 시 `AndroidManifest.xml` placeholder
   (`KAKAO_NATIVE_KEY`, `NAVER_CLIENT_ID`)와 `--dart-define` 동기화.
@@ -89,7 +88,7 @@ flutter build apk --release \
 
 ### 3.1 설정 (1회)
 
-1. Apple Developer 계정 / Bundle ID `com.barmi.oncare` 생성.
+1. Apple Developer 계정 / Bundle ID `com.csesudo.oncare` 생성.
 2. App Store Connect 앱 등록.
 3. Xcode → Runner → Signing & Capabilities → Team + Provisioning Profile.
 

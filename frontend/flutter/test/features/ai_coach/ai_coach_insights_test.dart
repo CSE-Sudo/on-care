@@ -9,9 +9,7 @@ import 'package:logger/logger.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/storage/app_database.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/ai_coach/data/repositories/dio_ai_coach_repository.dart';
-import 'package:oncare/features/ai_coach/data/repositories/mock_ai_coach_repository.dart';
 import 'package:oncare/features/ai_coach/domain/chat_insight_detector.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_chat_quota.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
@@ -22,8 +20,10 @@ import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_contr
 import 'package:oncare/features/ai_coach/presentation/controllers/chat_controller.dart';
 import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+import '../../helpers/mock_ai_coach_repository.dart';
 import 'free_quota.dart';
 
 /// AI 챗봇 통증·부정적 반응 감지 — 응답 파싱, 메시지 표시, 감지 기록 창(#1824).

@@ -126,19 +126,6 @@ HealthPurposeType healthPurposeFromExerciseGoal(ExerciseGoal goal) =>
       ExerciseGoal.health => HealthPurposeType.general,
     };
 
-/// `HH:MM` 또는 `HH:MM-HH:MM`. 시각이 없는 값은 서버가 더는 받지 않으므로
-/// (#1587) 여기까지 오기 전에 [ConsultationDraft.toJson] 이 막는다 — 남겨 둔
-/// `flexible` 은 이미 저장된 요청을 다시 직렬화하는 경로를 위한 것이다.
-String preferredTimeSlotToWire(PreferredTime t) {
-  final TimeOfDay? start = t.start;
-  if (start == null) return 'flexible';
-  String hm(TimeOfDay value) =>
-      '${value.hour.toString().padLeft(2, '0')}:'
-      '${value.minute.toString().padLeft(2, '0')}';
-  final TimeOfDay end = t.end ?? start;
-  return start == end ? hm(start) : '${hm(start)}-${hm(end)}';
-}
-
 /// 상담 신청 내용. 대상은 트레이너 한 사람이다 — 헬스장 전체로 보내는 갈래는
 /// 없앴고, 서버도 `trainer_id` 없는 요청을 422 로 거절한다.
 class ConsultationDraft {

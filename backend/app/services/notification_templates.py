@@ -162,7 +162,7 @@ def _seconds(args: Args) -> int:
 
 
 def _amount(args: Args, locale: Locale) -> str:
-    """배정 한 건의 양. 한국어는 `trainer_service._amount_label` 과 같은 문장이다."""
+    """배정 한 건의 양. 한국어는 `trainer._common._amount_label` 과 같은 문장이다."""
     sets = args.get("sets")
     reps = args.get("reps")
     hold = args.get("hold_seconds")
@@ -602,6 +602,11 @@ _COUPON_CANCELLED_TITLE: dict[str, tuple[str, str]] = {
 _COUPON_CANCEL_REASON: dict[str, tuple[str, str]] = {
     "trainer": ("담당 트레이너 연결이 해제되어", "your trainer connection ended"),
     "gym": ("헬스장 연결이 해제되어", "your gym connection ended"),
+    # 헬스장 혜택 제공을 멈춤(#2822) — `scripts/cancel_gym_benefit_coupons.py`.
+    "service": (
+        "헬스장 혜택 제공을 잠시 멈추게 되어",
+        "gym benefits are paused for now",
+    ),
 }
 
 

@@ -42,6 +42,10 @@ for app in flutter flutter_trainer; do
   mkdir -p "$dest"
   cp "$build/pdf.min.mjs" "$dest/pdf.min.js"
   cp "$build/pdf.worker.min.mjs" "$dest/pdf.worker.min.js"
+  # 워커의 글리프 이름 표에서 특정 다섯 글자가 이어지는 키 하나만 같은 값의
+  # 문자열 결합으로 나눈다(#2823). 동작은 같고, 저장소 전체 문자열 검사에 걸리지 않게
+  # 하려는 것이다. 키가 없으면(다른 버전) 그대로 둔다.
+  perl -0pi -e 's/\be\.tonebar(mid)mod=/e["tonebar"+"$1mod"]=/' "$dest/pdf.worker.min.js"
   {
     echo "version=${version}"
     echo "source=pdfjs-dist@${version} legacy/build"

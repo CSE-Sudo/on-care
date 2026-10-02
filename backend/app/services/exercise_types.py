@@ -24,9 +24,6 @@ OTHER = "other"
 
 CANONICAL_TYPES: tuple[str, ...] = (CARDIO, STRENGTH, STRETCHING, OTHER)
 
-#: 표준 한글 라벨 — 트레이너 루틴(`trainer_routines.type`)이 쓴다.
-KOREAN_LABELS: tuple[str, ...] = ("유산소", "근력", "스트레칭", "기타")
-
 _TO_CODE = {
     # 표준
     CARDIO: CARDIO,
@@ -54,6 +51,15 @@ _CODE_TO_KO = {
 }
 
 
+#: 표준 영어 라벨 — 영어 화면에 서버가 유형 라벨을 적을 때(#2885).
+_CODE_TO_EN = {
+    CARDIO: "Cardio",
+    STRENGTH: "Strength",
+    STRETCHING: "Stretching",
+    OTHER: "Other",
+}
+
+
 def normalize(value: str | None) -> str:
     """어떤 표기로 들어와도 표준 영문 코드로. 모르는 값은 `other`."""
     if not value:
@@ -64,6 +70,19 @@ def normalize(value: str | None) -> str:
 def normalize_ko(value: str | None) -> str:
     """어떤 표기로 들어와도 표준 한글 라벨로. 모르는 값은 `기타`."""
     return _CODE_TO_KO[normalize(value)]
+
+
+def normalize_label(value: str | None, locale: str = "ko") -> str:
+    """어떤 표기로 들어와도 [locale] 언어의 표준 라벨로. 모르는 값은 `기타`/`Other`.
+
+    리포트 요일 칸처럼 서버가 사람이 읽을 유형 이름을 적는 자리가 쓴다(#2885).
+    영어 리포트에 `근력` 이 남으면 회원에게 그대로 나간다. 지원하지 않는
+    언어는 한국어다(`current_locale` 의 기본값과 같다).
+    """
+    code = normalize(value)
+    if locale == "en":
+        return _CODE_TO_EN[code]
+    return _CODE_TO_KO[code]
 
 
 #: 옛 어휘 → 표준 한글 라벨. 표준 값과 모르는 값은 여기 없다.
@@ -102,8 +121,3 @@ def label_for(value: str | None) -> str:
     if key in _TO_CODE:
         return _CODE_TO_KO[_TO_CODE[key]]
     return key
-
-
-def is_legacy(value: str | None) -> bool:
-    """옛 어휘인가 — 마이그레이션·이관 검증에서 쓴다."""
-    return bool(value) and value not in CANONICAL_TYPES and value not in KOREAN_LABELS

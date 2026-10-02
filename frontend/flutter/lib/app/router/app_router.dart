@@ -193,6 +193,8 @@ GoRouter buildAppRouter({
         path: AppRoutes.dietEntryDetail,
         builder: (context, state) => DietMealDetailPage(
           entryId: state.pathParameters['entryId'] ?? '',
+          // 새로고침하면 `extra` 는 사라지고 주소의 날짜만 남는다(#2881).
+          date: parseWireDate(state.uri.queryParameters['date']),
           initialMeal: state.extra is DietMeal
               ? state.extra! as DietMeal
               : null,

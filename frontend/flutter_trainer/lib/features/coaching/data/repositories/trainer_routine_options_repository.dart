@@ -2,13 +2,13 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_rules.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_store.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_routine_options_repository.dart';
@@ -19,6 +19,7 @@ import 'package:oncare_trainer/features/coaching/domain/routine_generate_limits.
 import 'package:oncare_trainer/shared/models/trainer_client.dart'
     show sodiumTargetMg;
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Generates A/B routine options for a member (the AI generation step). The
 /// result is *generated*, not assigned — the trainer picks/edits one and
@@ -560,11 +561,7 @@ class MockTrainerRoutineOptionsRepository
 
   /// 그 날이 속한 주(월요일) — 서로 다른 주를 세는 키.
   static String _weekKey(DateTime at) {
-    final DateTime monday = DateTime(
-      at.year,
-      at.month,
-      at.day,
-    ).subtract(Duration(days: at.weekday - 1));
+    final DateTime monday = mondayOf(at);
     return '${monday.year}-${monday.month}-${monday.day}';
   }
 

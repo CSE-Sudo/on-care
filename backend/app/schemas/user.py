@@ -87,17 +87,6 @@ class PairingCodeOut(BaseModel):
     expires_in_seconds: int
 
 
-class RiskInfo(BaseModel):
-    title: str
-    body: str
-    level: str  # low | medium | high
-
-
-class SettingItem(BaseModel):
-    label: str
-    icon: str
-    kind: str
-
 
 class MemberNotificationSettings(BaseModel):
     """회원 알림 수신 설정. (#489)
@@ -128,11 +117,14 @@ class MemberNotificationSettingsUpdate(PartialUpdate):
 
 
 class UserHealth(BaseModel):
+    """MY 탭 계정 카드 — 회원 식별 정보와 포인트 잔액.
+
+    위험 문구(`risk`)·활동 순위(`activity_rank`)·설정 메뉴(`settings`)는
+    #2903 에서 뺐다. 앱이 읽지 않는 고정값이었다.
+    """
+
     profile: HealthProfileBrief
-    risk: RiskInfo
     activity_points: int
-    activity_rank: Optional[int]
-    settings: list[SettingItem]
 
 
 # ---- 인증(로그인) ----
@@ -339,6 +331,9 @@ class ProfileView(BaseModel):
     daily_sugar_g: Optional[int] = None
     daily_carbs_g: Optional[int] = None
     daily_protein_g: Optional[int] = None
+    #: 식단 분석·조언이 실제로 쓰는 하루 단백질 목표(#2898) — 개인 목표가 있으면
+    #: 그 값, 없으면 체중 × 1.2g, 둘 다 없으면 60g. 영양 카드 분모가 이 값이다.
+    effective_daily_protein_g: Optional[int] = None
     daily_fat_g: Optional[int] = None
     weekly_workout_goal: Optional[int] = None
     weekly_exercise_minutes_goal: Optional[int] = None

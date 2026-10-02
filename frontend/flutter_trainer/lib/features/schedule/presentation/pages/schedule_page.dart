@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_core/request_id.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/core/utils/request_id.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/presentation/pages/consultations_page.dart';
@@ -79,7 +79,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   ///
   /// 고른 날에서 **파생한다** — 따로 들고 있으면 둘이 어긋날 수 있다. "주만
   /// 넘기고 고른 날은 유지" 같은 요구가 생기면 그때 상태로 승격한다.
-  DateTime get _weekStart => _mondayOf(_selectedDay);
+  DateTime get _weekStart => mondayOf(_selectedDay);
 
   /// Session shown in the detail panel.
   late String? _selectedSessionId = widget.sessionId;
@@ -101,10 +101,6 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   final Map<String, String> _sendRequestIds = <String, String>{};
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
-
-  /// [d] 가 속한 주의 월요일. 달력으로 센다 — 24시간 단위로 빼면 서머타임
-  /// 시간대에서 하루 어긋난다(#2890).
-  static DateTime _mondayOf(DateTime d) => mondayOf(d);
 
   /// Parses a `YYYY-MM-DD` route parameter, falling back to today. A
   /// malformed date in the URL should land the trainer on today rather

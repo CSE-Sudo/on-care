@@ -107,9 +107,6 @@ void main() {
           gymFinderResultsProvider.overrideWith(
             (ref) async => const <Gym>[_gym],
           ),
-          recommendedTrainersProvider.overrideWith(
-            (ref) async => const <Trainer>[],
-          ),
           trainerSlotsProvider(_trainer.id).overrideWith((ref) async => _slots),
           myReservationsProvider.overrideWith((ref) async => reservations),
           consultationRequestControllerProvider.overrideWith(
@@ -141,7 +138,7 @@ void main() {
     final AppLocalizations l = await pumpTab(tester);
 
     expect(find.textContaining('잔여'), findsNothing);
-    expect(find.text(l.exSlotFull), findsNothing);
+    expect(find.text('예약 마감'), findsNothing);
     expect(
       find.descendant(
         of: find.byKey(const ValueKey<String>('slot-chip-slot-open')),
@@ -263,14 +260,14 @@ void main() {
   });
 
   testWidgets('연결된 헬스장에서는 상담 자리를 내주지 않는다 (#1136)', (WidgetTester tester) async {
-    final AppLocalizations l = await pumpTab(tester);
+    await pumpTab(tester);
 
     // 이미 연결된 헬스장이라 상담은 지난 걸음이다 — 1:1 PT 자리만 남는다.
     expect(
       find.byKey(const ValueKey<String>('slot-chip-slot-consultation')),
       findsNothing,
     );
-    expect(find.text(l.exSlotTypeConsultation), findsNothing);
+    expect(find.text('상담'), findsNothing);
     expect(
       find.byKey(const ValueKey<String>('slot-chip-slot-open')),
       findsOneWidget,

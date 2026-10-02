@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/points/points_rules.dart';
-import 'package:oncare/core/utils/request_id.dart';
 import 'package:oncare/features/app_guide/presentation/controllers/app_guide_controller.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart';
@@ -36,6 +35,7 @@ import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/features/my_health/presentation/widgets/trainer_sync_sheet.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/request_id.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// Stable identifiers for the settings rows, decoupled from their localized
@@ -1204,17 +1204,20 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         ),
         // 분석용 식판(#2150) — 기록 그래프 바로 아래. 사진 기록이 쌓이는 흐름과 "며칠
         // 더 찍으면 받는가" 를 한눈에 잇는다. 불러오는 중·실패면 아무것도 그리지 않는다
-        // (식판을 못 읽었다고 교환까지 막지 않는다).
+        // (식판을 못 읽었다고 교환까지 막지 않는다). 제휴 헬스장이 없어 식판을 줄 수
+        // 없는 서버(`enabled` 거짓, #2822)도 그리지 않는다.
         ...tray.maybeWhen(
           data: (DietTray data) => <Widget>[
-            DietTrayCard(
-              tray: data,
-              busy: _claimingTray,
-              onClaim: idle ? _claimTray : null,
-              onViewCoupon: (Coupon coupon) =>
-                  context.push<void>(AppRoutes.myCouponDetailPath(coupon.id)),
-            ),
-            const SizedBox(height: OnCareSpacing.cardGap),
+            if (data.enabled) ...<Widget>[
+              DietTrayCard(
+                tray: data,
+                busy: _claimingTray,
+                onClaim: idle ? _claimTray : null,
+                onViewCoupon: (Coupon coupon) =>
+                    context.push<void>(AppRoutes.myCouponDetailPath(coupon.id)),
+              ),
+              const SizedBox(height: OnCareSpacing.cardGap),
+            ],
           ],
           orElse: () => const <Widget>[],
         ),

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
@@ -467,7 +467,8 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       l.memberHealthGoalProtein,
       AppGoalRanges.dailyProteinG,
       true,
-      hint: '$proteinTargetG',
+      // 비워 두면 식단 분석이 쓰는 실효 목표(#2898)다 — 체중이 있으면 체중 × 1.2g.
+      hint: '${_base?.effectiveDailyProteinG ?? proteinTargetG}',
     ),
     _NumberField(
       'client-goal-fat',

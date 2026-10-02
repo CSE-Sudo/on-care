@@ -91,9 +91,6 @@ void main() {
                 loadGymTrainers?.call() ??
                 Future<List<Trainer>>.value(const <Trainer>[_kim, _park]),
           ),
-          recommendedTrainersProvider.overrideWith(
-            (ref) async => const <Trainer>[],
-          ),
           memberCoachRepositoryProvider.overrideWithValue(
             MockMemberCoachRepository(),
           ),

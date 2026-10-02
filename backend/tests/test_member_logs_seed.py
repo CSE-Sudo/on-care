@@ -251,7 +251,7 @@ def test_trainer_notes_seed_twice_adds_nothing(client, db_session):
 def test_report_does_not_count_a_consultation_as_pt(db_session):
     from app.db.seed_trainer import TRAINER_ID
     from app.models.models import TrainerSchedule
-    from app.services.trainer_service import build_weekly_report
+    from app.services.trainer.reports import build_weekly_report
 
     consult = db_session.scalar(
         select(TrainerSchedule).where(TrainerSchedule.id.like("seed-consult-%"))

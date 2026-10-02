@@ -23,7 +23,8 @@ from app.models.models import (
     TrainerSchedule,
     User,
 )
-from app.services import reservation_service, trainer_service
+from app.services import reservation_service
+from app.services.trainer import _common as trainer_common_service
 
 TRAINER_EMAIL = "trainer@oncare.com"
 MEMBER_EMAIL = "jisu@oncare.com"
@@ -70,7 +71,7 @@ def _unit_fixture(*, schedule_status: str):
 def test_release_for_cancelled_schedule_restores_seat_and_keeps_record() -> None:
     """이미 `취소` 로 바뀐 일정은 그대로 두고 좌석과 예약만 정리한다."""
     slot, reservation, schedule = _unit_fixture(
-        schedule_status=trainer_service.SCHEDULE_CANCELLED
+        schedule_status=trainer_common_service.SCHEDULE_CANCELLED
     )
     cancelled_at = datetime.now(timezone.utc) - timedelta(minutes=1)
     schedule.cancelled_at = cancelled_at
@@ -96,7 +97,7 @@ def test_release_for_cancelled_schedule_restores_seat_and_keeps_record() -> None
 def test_release_for_cancelled_schedule_never_exceeds_capacity() -> None:
     """좌석이 이미 차 있지 않아도(정합이 어긋난 행) 정원을 넘지 않는다."""
     slot, reservation, schedule = _unit_fixture(
-        schedule_status=trainer_service.SCHEDULE_CANCELLED
+        schedule_status=trainer_common_service.SCHEDULE_CANCELLED
     )
     slot.remaining = 1
     db = Mock(spec=Session)
@@ -128,7 +129,7 @@ def test_release_for_cancelled_schedule_without_reservation_is_noop() -> None:
 def test_release_marks_upcoming_schedule_with_given_source() -> None:
     """호출 순서상 일정이 아직 `예정` 이면 넘겨받은 주체로 취소 기록을 남긴다."""
     slot, reservation, schedule = _unit_fixture(
-        schedule_status=trainer_service.SCHEDULE_UPCOMING
+        schedule_status=trainer_common_service.SCHEDULE_UPCOMING
     )
     schedule.cancellation_source = None
     db = Mock(spec=Session)
@@ -139,7 +140,7 @@ def test_release_marks_upcoming_schedule_with_given_source() -> None:
         db, schedule.id, cancelled_by="other"
     )
 
-    assert schedule.status == trainer_service.SCHEDULE_CANCELLED
+    assert schedule.status == trainer_common_service.SCHEDULE_CANCELLED
     assert schedule.cancellation_source == "other"
     assert schedule.cancelled_at is not None
 

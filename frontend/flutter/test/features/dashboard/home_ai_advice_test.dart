@@ -4,14 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logger/logger.dart';
-
 import 'package:oncare/app/app.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/demo/demo_ai_advice.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
 import 'package:oncare/features/dashboard/presentation/ai_advice_text.dart';
@@ -23,6 +21,7 @@ import 'package:oncare/shared/services/locale_provider.dart';
 
 import '../../helpers/fake_dashboard_repository.dart';
 import '../../helpers/fake_diet_repository.dart';
+import '../../helpers/mock_account_repository.dart';
 
 final RegExp _hangul = RegExp('[가-힣]');
 

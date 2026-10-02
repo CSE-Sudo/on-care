@@ -2,6 +2,8 @@
 ///
 /// 서버·데모가 채우는 공용 효과 표의 한국어 문장을 회원 앱이 알아보고 영어
 /// 화면에서는 영어 문구로 바꾼다. 표가 늘었는데 번역을 빠뜨리면 여기서 잡힌다.
+/// 번역 표는 두 앱이 함께 쓰는 `oncare_ui` 한 벌이고, 이 테스트는 앱이 넘기는
+/// `localeName` 으로 그 표가 화면 언어를 고르는지 본다(#2906).
 library;
 
 import 'dart:convert';
@@ -9,8 +11,8 @@ import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare/features/member_coach/presentation/routine_effect_text.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart' show routineEffectText;
 
 final RegExp _hangul = RegExp('[가-힣]');
 
@@ -42,18 +44,27 @@ void main() {
     final Set<String> sentences = _tableSentences();
     expect(sentences, isNotEmpty);
     for (final String sentence in sentences) {
-      final String text = routineEffectText(en, sentence);
+      final String text = routineEffectText(
+        sentence,
+        languageCode: en.localeName,
+      );
       expect(_hangul.hasMatch(text), isFalse, reason: sentence);
     }
   });
 
   test('한국어 화면은 표의 문장 그대로다', () {
     for (final String sentence in _tableSentences()) {
-      expect(routineEffectText(ko, sentence), sentence);
+      expect(
+        routineEffectText(sentence, languageCode: ko.localeName),
+        sentence,
+      );
     }
   });
 
   test('트레이너가 직접 쓴 문장은 그대로 둔다', () {
-    expect(routineEffectText(en, '오른쪽 어깨 보호'), '오른쪽 어깨 보호');
+    expect(
+      routineEffectText('오른쪽 어깨 보호', languageCode: en.localeName),
+      '오른쪽 어깨 보호',
+    );
   });
 }
