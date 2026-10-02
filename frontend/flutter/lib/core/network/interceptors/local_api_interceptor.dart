@@ -3937,6 +3937,15 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       if (body.containsKey(k)) patch[k] = body[k];
     }
     _normalizeConditions(patch);
+    await _stampMemberHealthChanges(patch);
+    await _mergeProfileOverlay(patch);
+    return _ok(options, await _mergedProfile());
+  }
+
+  /// 회원이 저장한 `conditions` 에서 목표 칩·건강상태·주의사항이 실제로 바뀌었으면
+  /// 누가 언제 바꿨는지 [patch] 에 얹는다 — 실서버 `record_member_change` 와 같은
+  /// 규칙이다. MY 건강 목표와 온보딩이 함께 쓴다(#2942).
+  Future<void> _stampMemberHealthChanges(Map<String, Object?> patch) async {
     // 목표 칩이 실제로 바뀐 저장만 `마지막 변경` 으로 남긴다 — 실서버와 같은
     // 규칙이다(#1832). 목업에는 담당 트레이너 쪽 알림함이 없어 기록만 한다.
     if (patch['conditions'] case final String next) {
@@ -3949,9 +3958,20 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         patch['focus_changed_by'] = 'member';
         patch['focus_changed_at'] = nowKst().toIso8601String();
       }
+      // 건강상태·주의사항은 따로 남긴다 — 조각 순서만 바뀐 저장은 아니다(#2942).
+      Set<String> notes(String raw) => healthFocusNotes(
+        raw,
+      ).split(', ').where((String t) => t.isNotEmpty).toSet();
+      final Set<String> notesBefore = notes(
+        current['conditions'] as String? ?? '',
+      );
+      final Set<String> notesAfter = notes(next);
+      if (notesBefore.length != notesAfter.length ||
+          !notesBefore.containsAll(notesAfter)) {
+        patch['notes_changed_by'] = 'member';
+        patch['notes_changed_at'] = nowKst().toIso8601String();
+      }
     }
-    await _mergeProfileOverlay(patch);
-    return _ok(options, await _mergedProfile());
   }
 
   /// 옛 질환 이름(고혈압·당뇨 등)을 새 건강 목표로 정리한다 — 서버 스키마가
@@ -4009,6 +4029,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     }
     patch['onboarded'] = true;
     _normalizeConditions(patch);
+    // 처음 고른 목표·적은 주의사항도 회원이 정한 것이다 — 실서버처럼 남긴다.
+    await _stampMemberHealthChanges(patch);
     await _mergeProfileOverlay(patch);
     return _ok(options, await _mergedProfile());
   }

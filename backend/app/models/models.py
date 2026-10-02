@@ -144,6 +144,18 @@ class HealthProfile(Base):
     focus_changed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # 건강상태·주의사항(`conditions` 에서 목표 칩을 뺀 글)을 마지막으로 바꾼
+    # 사람·시각 (#2942). 같은 칸이지만 목표 칩 기록과 따로 둔다 — 하나로 묶으면
+    # 칩 아래 `마지막 변경` 줄이 주의사항만 고친 저장에도 움직인다.
+    notes_changed_by: Mapped[str | None] = mapped_column(
+        String(10), nullable=True
+    )  # member|trainer
+    notes_changed_by_id: Mapped[str | None] = mapped_column(
+        String(64), nullable=True
+    )
+    notes_changed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     activity_points: Mapped[int] = mapped_column(Integer, default=0)
     activity_rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
