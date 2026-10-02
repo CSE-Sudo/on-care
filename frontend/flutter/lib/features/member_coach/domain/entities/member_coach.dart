@@ -155,6 +155,9 @@ class CoachRoutine {
     type: type,
     reason: reason,
     source: source,
+    // 권한 강도도 트레이너가 정한 값이다(#2160). 빠뜨리면 체크하는 순간 기본값
+    // `보통` 으로 바뀌어, `가벼움` 을 권한 운동이 `권장 보통` 으로 보였다.
+    intensity: intensity,
     effect: effect,
     deliveryKind: deliveryKind,
     // 배정된 초는 트레이너가 정한 값이라 완료 표시에 흔들리지 않는다(#2221).

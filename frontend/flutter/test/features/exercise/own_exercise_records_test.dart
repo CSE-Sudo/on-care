@@ -13,6 +13,7 @@ import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
+import 'package:oncare/features/exercise/presentation/widgets/exercise_record_line.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
@@ -225,14 +226,14 @@ void main() {
       find.byKey(const ValueKey<String>('exercise-own-records')),
       findsOneWidget,
     );
-    expect(find.text('아침 러닝'), findsOneWidget);
+    expect(find.textContaining('아침 러닝'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('exercise-own-record-own-1')),
       findsOneWidget,
     );
   });
 
-  testWidgets('저장한 값(유형·운동량·강도·칼로리)이 그대로 보인다', (tester) async {
+  testWidgets('카드 한 장에 줄 — [유형] 이름 … [강도], 아래 자세히 하나 (#2507)', (tester) async {
     useFixedKstDate();
     await pumpExercise(
       tester,
@@ -248,21 +249,139 @@ void main() {
           reps: 12,
           weight: 60,
         ),
+        _memberSession(id: 'own-run', date: today()),
       ]),
     );
 
     final AppLocalizations l = AppLocalizations.of(
       tester.element(find.byType(ExercisePage)),
     );
-    expect(find.text('스쿼트'), findsOneWidget);
-    expect(find.text(l.exTypeStrength), findsWidgets);
-    // 근력은 세트·횟수·중량으로 읽는다 — 분으로 적으면 화면마다 다른 수가 된다.
+    final Finder section = find.byKey(
+      const ValueKey<String>('exercise-own-records'),
+    );
+    final Finder line = find.byKey(
+      const ValueKey<String>('exercise-own-record-own-strength'),
+    );
+    // 여러 개를 적어도 카드는 하나, 줄만 늘어난다(#2544).
     expect(
-      find.text('${l.exSetsCount(5)} · ${l.exRepsCount(12)} · 60${l.exUnitKg}'),
+      find.descendant(of: section, matching: find.byType(ExerciseRecordLine)),
+      findsNWidgets(2),
+    );
+    expect(
+      find.descendant(of: line, matching: find.text(l.exTypeStrength)),
       findsOneWidget,
     );
-    expect(find.text(l.exLevelModerate), findsWidgets);
-    expect(find.text('210 ${l.unitKcal}'), findsWidgets);
+    expect(
+      find.descendant(of: line, matching: find.text('스쿼트')),
+      findsOneWidget,
+    );
+    // 강도는 줄 오른쪽 태그 — "수행" 같은 말머리 없이 값만.
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey<String>('exercise-own-record-intensity-own-strength'),
+        ),
+        matching: find.text(l.exLevelModerate),
+      ),
+      findsOneWidget,
+    );
+    // 운동량·칼로리·연필은 줄에 없다 — 상세에서 본다.
+    expect(
+      find.descendant(
+        of: line,
+        matching: find.textContaining(l.exSetsCount(5)),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: line, matching: find.textContaining(l.unitKcal)),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: section, matching: find.byType(IconButton)),
+      findsNothing,
+    );
+    // 들어가는 자리는 카드 아래 `자세히` 하나다.
+    expect(
+      find.descendant(
+        of: section,
+        matching: find.byKey(
+          const ValueKey<String>('exercise-own-records-open'),
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: section, matching: find.text(l.exRecordDetailOpen)),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('자세히를 누르면 그날 기록 전체를 운동마다 상자로 본다 (#2507)', (tester) async {
+    useFixedKstDate();
+    await pumpExercise(
+      tester,
+      _RecordingRepository(<ExerciseSession>[
+        _memberSession(
+          id: 'own-strength',
+          date: today(),
+          name: '스쿼트',
+          type: ExerciseType.strength,
+          minutes: 36,
+          calories: 210,
+          sets: 5,
+          reps: 12,
+          weight: 60,
+        ),
+        _memberSession(id: 'own-run', date: today(), calories: 200),
+      ]),
+    );
+
+    final AppLocalizations l = AppLocalizations.of(
+      tester.element(find.byType(ExercisePage)),
+    );
+    final Finder open = find.byKey(
+      const ValueKey<String>('exercise-own-records-open'),
+    );
+    await tester.ensureVisible(open);
+    await tester.pumpAndSettle();
+    await tester.tap(open);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('exerciseRecordDetailPage')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('exercise-detail-card-own-strength')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('exercise-detail-card-own-run')),
+      findsOneWidget,
+    );
+    String valueOf(String key) =>
+        (tester.widget<Text>(find.byKey(ValueKey<String>(key)))).data ?? '';
+    expect(valueOf('exercise-detail-name-own-strength'), '스쿼트');
+    // 근력은 세트·횟수·중량으로 읽는다 — 분으로 적으면 화면마다 다른 수가 된다.
+    expect(
+      valueOf('exercise-detail-amount-own-strength'),
+      '${l.exSetsCount(5)} · ${l.exRepsCount(12)} · 60${l.exUnitKg}',
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey<String>('exercise-detail-intensity-own-strength'),
+        ),
+        matching: find.text(l.exLevelModerate),
+      ),
+      findsOneWidget,
+    );
+    // 운동마다 칼로리는 이름 옆, 합계는 맨 아래 `총 소모 칼로리`.
+    expect(
+      valueOf('exercise-detail-calories-own-strength'),
+      '210 ${l.unitKcal}',
+    );
+    expect(valueOf('exercise-detail-calories-own-run'), '200 ${l.unitKcal}');
+    expect(valueOf('exercise-detail-calories'), '410 ${l.unitKcal}');
+    expect(find.text(l.exRecordDetailTotalCalories), findsOneWidget);
   });
 
   testWidgets('운동 탭 안의 추가 버튼은 하단 + 와 같은 시트를 연다', (tester) async {
@@ -315,23 +434,30 @@ void main() {
     );
   });
 
-  testWidgets('기록에서 수정과 삭제로 들어갈 수 있다', (tester) async {
+  testWidgets('상세의 연필로 수정과 삭제로 들어갈 수 있다 (#2507)', (tester) async {
     useFixedKstDate();
     final _RecordingRepository repo = _RecordingRepository(<ExerciseSession>[
       _memberSession(id: 'own-1', date: today()),
     ]);
     await pumpExercise(tester, repo);
 
-    // 수정 — 같은 시트가 그 기록으로 열린다.
-    final Finder edit = find.byKey(
-      const ValueKey<String>('exercise-own-record-edit-own-1'),
+    // 자세히 → 그날 상세(보기) → 그 운동 상자의 연필 → 같은 수정 시트가 그
+    // 기록으로 열린다.
+    final Finder open = find.byKey(
+      const ValueKey<String>('exercise-own-records-open'),
     );
-    await tester.ensureVisible(edit);
+    await tester.ensureVisible(open);
     await tester.pumpAndSettle();
+    await tester.tap(open);
+    await tester.pumpAndSettle();
+    final Finder edit = find.byKey(
+      const ValueKey<String>('exercise-detail-edit-own-1'),
+    );
     await tester.tap(edit);
     await tester.pumpAndSettle();
+    // 상세가 운동 탭 위에 올라와 있어 탭은 화면 밖(offstage)이다.
     final AppLocalizations l = AppLocalizations.of(
-      tester.element(find.byType(ExercisePage)),
+      tester.element(find.byType(ExercisePage, skipOffstage: false)),
     );
     expect(find.text(l.exEditExercise), findsOneWidget);
     Navigator.of(
@@ -356,8 +482,9 @@ void main() {
     await tester.tap(find.widgetWithText(TextButton, l.actionDelete));
     await tester.pumpAndSettle();
     expect(repo.deletedId, 'own-1');
-    // 목록이 곧바로 최신 상태가 된다.
-    expect(find.text('아침 러닝'), findsNothing);
+    // 그날 마지막 기록을 지우면 상세가 닫히고, 목록이 곧바로 최신 상태가 된다.
+    expect(find.byKey(const Key('exerciseRecordDetailPage')), findsNothing);
+    expect(find.textContaining('아침 러닝'), findsNothing);
   });
 
   testWidgets('PT 일지·배정 루틴은 직접 기록 목록에 섞이지 않는다', (tester) async {
@@ -389,7 +516,7 @@ void main() {
       const ValueKey<String>('exercise-own-records'),
     );
     expect(
-      find.descendant(of: section, matching: find.text('내가 적은 러닝')),
+      find.descendant(of: section, matching: find.textContaining('내가 적은 러닝')),
       findsOneWidget,
     );
     expect(
