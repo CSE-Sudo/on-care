@@ -315,7 +315,7 @@ void main() {
 
     expect(find.text('리포트'), findsWidgets);
     // ① 은 지표를 나란히 세우던 비교 표가 아니라 요일 격자다(#2232).
-    expect(find.text('PT 세션'), findsOneWidget);
+    expect(find.text('PT'), findsOneWidget);
     // 피드백 입력창은 ③ 전송 단계로 내려갔다 — ① 이번 주 확인은 읽기만
     // 하는 단계라 입력이 없다(#2232).
     expect(find.text('트레이너 피드백'), findsNothing);
@@ -1395,7 +1395,7 @@ void main() {
     expect(find.text('지난 주 목표 달성'), findsNothing);
     expect(find.text('지난 주에 고른 목표가 없어요'), findsNothing);
     // 회원의 답 · 이번 주 수치 · 운동 추세 — 빠진 자리 없이 이어진다.
-    expect(find.text('PT 세션'), findsOneWidget);
+    expect(find.text('PT'), findsOneWidget);
     expect(cardNumbers(tester), <int>[1, 2, 3]);
   });
 

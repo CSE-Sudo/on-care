@@ -246,7 +246,7 @@ void main() {
     // 첫 단계에서는 뒤로 갈 곳이 없어 버튼도 없다.
     expect(prev, findsNothing);
     // ① 은 읽는 단계다 — 요일 격자가 서고, 쓰는 자리는 없다.
-    expect(find.text('PT 세션'), findsOneWidget);
+    expect(find.text('PT'), findsOneWidget);
     expect(find.text('트레이너 피드백'), findsNothing);
 
     // ② 작성 — 요약과 입력창이 같은 화면에 선다. 단계 이름이 `작성` 인데
@@ -255,7 +255,7 @@ void main() {
     await settle(tester);
     expect(find.text('이번 주 요약'), findsOneWidget);
     expect(find.text('트레이너 피드백'), findsOneWidget);
-    expect(find.text('PT 세션'), findsNothing);
+    expect(find.text('PT'), findsNothing);
 
     await tester.tap(next);
     await settle(tester);
@@ -280,7 +280,7 @@ void main() {
     await tester.tap(prev);
     await settle(tester);
     expect(find.text('트레이너 피드백'), findsNothing);
-    expect(find.text('PT 세션'), findsOneWidget);
+    expect(find.text('PT'), findsOneWidget);
   });
 
   testWidgets('영어로 켜도 작업대에 한국어가 남지 않는다 (#501, #2232)', (tester) async {

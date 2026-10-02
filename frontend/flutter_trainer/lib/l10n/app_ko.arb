@@ -149,12 +149,12 @@
   "dashChurnRiskCheck": "이탈 신호 확인",
   "dashChurnRiskTitle": "이탈 위험 회원",
   "dashChurnRiskEmpty": "지금은 이탈 위험 신호가 없어요.",
-  "dashChurnRiskLoading": "최근 세션 확인 중",
+  "dashChurnRiskLoading": "최근 운동 기록 확인 중",
   "dashChurnRiskUnavailable": "확인할 수 없음 · 눌러서 다시 시도",
-  "dashActivityFeedbackLoading": "최근 세션을 확인하고 있어요.",
-  "dashActivityFeedbackUnavailable": "최근 세션을 불러오지 못해 활동 피드백을 확인할 수 없어요. 이탈 위험 카드를 눌러 다시 시도해 주세요.",
+  "dashActivityFeedbackLoading": "최근 운동 기록을 확인하고 있어요.",
+  "dashActivityFeedbackUnavailable": "최근 운동 기록을 불러오지 못해 활동 피드백을 확인할 수 없어요. 이탈 위험 카드를 눌러 다시 시도해 주세요.",
   "dashActivityDifficultyTitle": "운동 목표 미달·배정 루틴 미수행",
-  "dashActivityDifficultyDesc": "{names} 회원이 이번 주 운동 목표에 못 미치거나 배정 루틴을 하지 않았어요. 다음 세션 전에 난이도를 낮추고 최근 피드백을 확인해 주세요.",
+  "dashActivityDifficultyDesc": "{names} 회원이 이번 주 운동 목표에 못 미치거나 배정 루틴을 하지 않았어요. 다음 PT 전에 난이도를 낮추고 최근 피드백을 확인해 주세요.",
   "dashActivityInactiveTitle": "기록 끊김",
   "dashActivityInactiveDesc": "{names} 회원이 며칠째 식단·운동 기록이 없어요. 이탈로 이어지기 전에 먼저 연락해서 재참여를 유도해 보세요.",
   "dashActivityDietFeedbackTitle": "식단 피드백 미완료",
@@ -479,7 +479,7 @@
   "legendDone": "완료",
   "clientFeedback": "회원 피드백",
   "workoutKindAiPersonal": "AI 개인운동",
-  "workoutKindPtSession": "PT 세션 · 트레이너 지도",
+  "workoutKindPtSession": "PT · 트레이너 지도",
   "workoutKindAssignedRoutine": "배정 루틴 수행",
   "dietLoadFailed": "식단을 불러오지 못했어요",
   "dietEmpty": "아직 기록된 식단이 없어요",
@@ -508,7 +508,7 @@
   "reportsSendAlreadyDone": "이미 전송된 리포트예요. 전송 기록을 다시 불러왔어요",
   "reportsSent": "{name}님에게 리포트를 보냈어요",
   "reportsGoToChat": "채팅으로 이동하기",
-  "reportsScheduleWarning": "이번 주 일정을 불러오지 못해 세션 수가 비어 있을 수 있어요",
+  "reportsScheduleWarning": "이번 주 일정을 불러오지 못해 PT 횟수가 비어 있을 수 있어요",
   "unitTimes": "회",
   "unitMinutes": "분",
   "clientPeriodToday": "오늘",
@@ -585,7 +585,7 @@
       }
     }
   },
-  "reportBodySkipped": "다만 {names} 건너뛰셨더라고요. 컨디션 때문이었다면 다음 세션 때 말씀해 주세요. 대체 동작으로 바꿔 둘게요.",
+  "reportBodySkipped": "다만 {names} 건너뛰셨더라고요. 컨디션 때문이었다면 다음 PT 때 말씀해 주세요. 대체 동작으로 바꿔 둘게요.",
   "reportBodySodiumOver": "나트륨은 하루 평균 {avg}mg이었고, 목표({target}mg)를 넘긴 날이 {days}일이었어요. 국물을 절반만 남기셔도 하루 400~500mg은 줄어듭니다.",
   "reportBodySodiumOk": "나트륨은 하루 평균 {avg}mg으로 목표({target}mg) 안에서 잘 지키고 계세요.",
   "reportBodyPraise": "정말 잘하셨어요. 다음 주도 이 페이스 그대로 가요!",
@@ -610,7 +610,7 @@
       }
     }
   },
-  "reportBodySessionsNone": "이 주에는 진행한 PT 세션이 없었어요.",
+  "reportBodySessionsNone": "이 주에는 진행한 PT가 없었어요.",
   "reportBodyExerciseCount": "배정된 개인 운동 {total}개 중 {done}개를 완료하셨어요.",
   "@reportBodyExerciseCount": {
     "placeholders": {
@@ -722,7 +722,7 @@
       }
     }
   },
-  "reportBodyMemberPain": "{area} 아프셨다고 남겨 주셨는데, 다음 세션 전에 상태를 꼭 다시 알려 주세요. 그 부위는 강도를 낮춰 둘게요.",
+  "reportBodyMemberPain": "{area} 아프셨다고 남겨 주셨는데, 다음 PT 전에 상태를 꼭 다시 알려 주세요. 그 부위는 강도를 낮춰 둘게요.",
   "@reportBodyMemberPain": {
     "placeholders": {
       "area": {
@@ -741,7 +741,7 @@
   "reportTipWorkout": "운동은 한 번에 20분이라도 주 3회를 먼저 채우는 걸 목표로 해요.",
   "reportTipMeals": "식사는 사진 한 장이라도 매 끼니 남겨 주시면 더 정확하게 봐 드릴 수 있어요.",
   "reportTipSessionsNone": "다음 주 PT 일정도 이번에 같이 잡아 둘게요.",
-  "reportTipSessionsMissed": "빠진 PT 세션은 다음 주에 보강 일정으로 잡아 드릴게요.",
+  "reportTipSessionsMissed": "빠진 PT는 다음 주에 보강 일정으로 잡아 드릴게요.",
   "reportTipKeep": "지금 루틴은 그대로 유지하면서, 운동 강도만 조금씩 올려 볼게요.",
   "schedTitle": "스케줄",
   "schedDetailTitle": "상세 일정",
@@ -749,7 +749,7 @@
   "schedDeleteConfirm": "{time} {name}님 PT 일정을 삭제할까요?",
   "schedDeleteFailed": "일정 삭제에 실패했어요. 다시 시도해 주세요",
   "schedCompleteTitle": "일정 완료",
-  "schedCompleteConfirm": "{time} {name}님 세션을 완료할까요?",
+  "schedCompleteConfirm": "{time} {name}님 PT를 완료할까요?",
   "@schedCompleteConfirm": {
     "placeholders": {
       "time": {
@@ -765,8 +765,8 @@
   "schedDetachedMember": "해제 회원",
   "schedDetachedMemberHint": "담당이 끝난 회원이라 회원 정보는 볼 수 없어요",
   "schedReservationLockedHint": "회원이 예약한 일정이에요. 시간을 바꾸거나 지울 수 없고, 약속을 거두려면 취소해 주세요.",
-  "schedEndedLockedHint": "끝난 세션은 메모·프로그램만 고칠 수 있어요.",
-  "schedDoneLockedHint": "완료한 세션은 메모·프로그램만 고칠 수 있어요. 날짜를 앞으로 옮기면 예정으로 되돌릴 수 있어요.",
+  "schedEndedLockedHint": "끝난 PT는 메모·프로그램만 고칠 수 있어요.",
+  "schedDoneLockedHint": "완료한 PT는 메모·프로그램만 고칠 수 있어요. 날짜를 앞으로 옮기면 예정으로 되돌릴 수 있어요.",
   "schedGroupPersonal": "개인운동",
   "schedRoutinesGoesOnComplete": "이 PT 의 프로그램을 보낼 때 회원에게 함께 가요.",
   "schedRoutinesNotSentYet": "아직 회원에게 가지 않았어요.",
@@ -810,9 +810,9 @@
   "schedFieldTime": "시간",
   "schedEndBeforeStart": "종료 시간은 시작 시간보다 늦어야 해요",
   "schedReopenTitle": "예정으로 바꿀까요?",
-  "schedReopenBody": "완료된 세션을 앞으로 옮기면 예정 상태로 되돌아가고, 그 완료가 남긴 운동 기록은 사라져요.",
+  "schedReopenBody": "완료된 PT를 앞으로 옮기면 예정 상태로 되돌아가고, 그 완료가 남긴 운동 기록은 사라져요.",
   "schedReopenConfirm": "예정으로 바꾸기",
-  "schedReopenPastBlocked": "완료된 세션은 미래 날짜로만 옮길 수 있어요",
+  "schedReopenPastBlocked": "완료된 PT는 미래 날짜로만 옮길 수 있어요",
   "schedTimeRangeTitle": "시간 선택",
   "schedTimeRangeConfirm": "확인",
   "schedTimePickerTimeLabel": "시각",
@@ -998,7 +998,7 @@
   "myClientManagementEmpty": "담당 회원이 없어요",
   "myClientManagementSearchHint": "이름으로 회원 검색",
   "myBasicInfo": "기본 정보",
-  "myStatSessionsDone": "완료 세션",
+  "myStatSessionsDone": "완료 PT",
   "myStatRoutinesSent": "프로그램 전송",
   "myGymName": "헬스장 이름",
   "myGymAddress": "주소",
@@ -1149,7 +1149,7 @@
     }
   },
   "coachRegisteredOn": "{date} 스케줄에 등록됐어요",
-  "coachRegisteredAttachedExisting": "{date}에 이미 예정된 세션이 있어 그 세션에 프로그램만 추가됐어요 — 고른 시간 범위는 적용되지 않았어요",
+  "coachRegisteredAttachedExisting": "{date}에 이미 예정된 PT가 있어 그 PT에 프로그램만 추가됐어요 — 고른 시간 범위는 적용되지 않았어요",
   "@coachRegisteredAttachedExisting": {
     "placeholders": {
       "date": {
@@ -1374,7 +1374,7 @@
   "filterAll": "전체",
   "authErrInvalidCredentials": "이메일 또는 비밀번호가 올바르지 않습니다.",
   "authErrEmailTaken": "이미 가입된 이메일입니다.",
-  "authErrSessionExpired": "세션이 만료됐어요. 다시 로그인해 주세요.",
+  "authErrSessionExpired": "로그인이 만료됐어요. 다시 로그인해 주세요.",
   "authErrNoSocialToken": "소셜 로그인 토큰이 없어요",
   "authErrNetwork": "네트워크 연결을 확인해 주세요.",
   "authErrGeneric": "로그인 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.",
@@ -1922,7 +1922,7 @@
   "reportsActionSugar": "당류가 목표({target}g)를 넘긴 날이 있어요. 음료·간식부터 짚어 주세요.",
   "reportsActionLowCompletion": "프로그램 난이도를 한 단계 낮춰 완수 경험을 먼저 만들어 주세요.",
   "reportsActionHighCompletion": "페이스가 좋아요. 다음 주에는 세트 수나 중량을 한 단계 올려 보세요.",
-  "reportsActionSkipped": "{names} 대체 동작을 준비해 다음 세션에서 맞춰 주세요.",
+  "reportsActionSkipped": "{names} 대체 동작을 준비해 다음 PT에서 맞춰 주세요.",
   "reportsActionUnlogged": "기록이 없는 날이 {days}일이었어요. 기록 습관을 먼저 잡아 주세요.",
   "reportsActionCalories": "칼로리가 목표({target}kcal)보다 적어요. 단백질 한 끼 보완을 제안해 주세요.",
   "reportsAiGenerated": "AI 생성",
@@ -2305,7 +2305,7 @@
   "reportsPreviewNextPage": "다음 쪽",
   "reportsPreviewZoomIn": "확대",
   "reportsPreviewZoomOut": "축소",
-  "reportsGridPtSession": "PT 세션",
+  "reportsGridPtSession": "PT",
   "reportsGridPtPerWeek": "주 {count}회",
   "@reportsGridPtPerWeek": {
     "placeholders": {

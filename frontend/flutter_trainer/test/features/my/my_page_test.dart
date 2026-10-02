@@ -86,7 +86,7 @@ void main() {
 
       await tester.scrollUntilVisible(find.text('담당 회원'), 150);
       expect(find.text('15 명'), findsOneWidget); // live client count
-      expect(find.text('완료 세션'), findsOneWidget);
+      expect(find.text('완료 PT'), findsOneWidget);
 
       await tester.scrollUntilVisible(find.text('온케어짐 신촌점').last, 150);
       // 운영 시간으로 정한 값이 아니라 늘 붙던 '영업 중' 은 없앴다(#2264).

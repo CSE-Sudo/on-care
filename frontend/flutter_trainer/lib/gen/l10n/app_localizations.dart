@@ -815,7 +815,7 @@ abstract class AppLocalizations {
   /// No description provided for @dashChurnRiskLoading.
   ///
   /// In en, this message translates to:
-  /// **'Checking recent sessions'**
+  /// **'Checking recent workouts'**
   String get dashChurnRiskLoading;
 
   /// No description provided for @dashChurnRiskUnavailable.
@@ -827,13 +827,13 @@ abstract class AppLocalizations {
   /// No description provided for @dashActivityFeedbackLoading.
   ///
   /// In en, this message translates to:
-  /// **'Checking recent sessions.'**
+  /// **'Checking recent workouts.'**
   String get dashActivityFeedbackLoading;
 
   /// No description provided for @dashActivityFeedbackUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load recent sessions, so activity feedback is unavailable. Tap the churn risk card to retry.'**
+  /// **'Couldn\'t load recent workouts, so activity feedback is unavailable. Tap the churn risk card to retry.'**
   String get dashActivityFeedbackUnavailable;
 
   /// No description provided for @dashActivityDifficultyTitle.
@@ -845,7 +845,7 @@ abstract class AppLocalizations {
   /// No description provided for @dashActivityDifficultyDesc.
   ///
   /// In en, this message translates to:
-  /// **'{names} are behind this week\'s exercise goal or skipped an assigned routine. Lower the difficulty before the next session and check recent feedback.'**
+  /// **'{names} are behind this week\'s exercise goal or skipped an assigned routine. Lower the difficulty before the next PT and check recent feedback.'**
   String dashActivityDifficultyDesc(String names);
 
   /// No description provided for @dashActivityInactiveTitle.
@@ -2321,7 +2321,7 @@ abstract class AppLocalizations {
   /// Workout history kind for a completed PT session (server kind code pt_session).
   ///
   /// In en, this message translates to:
-  /// **'PT session · Trainer-led'**
+  /// **'PT · Trainer-led'**
   String get workoutKindPtSession;
 
   /// Workout history kind for a completed assigned routine that has no name (server kind code assigned_routine).
@@ -2495,7 +2495,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsScheduleWarning.
   ///
   /// In en, this message translates to:
-  /// **'This week\'s schedule didn\'t load, so session counts may be missing'**
+  /// **'This week\'s schedule didn\'t load, so PT counts may be missing'**
   String get reportsScheduleWarning;
 
   /// No description provided for @unitTimes.
@@ -2711,7 +2711,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodySkipped.
   ///
   /// In en, this message translates to:
-  /// **'One thing — {names} got skipped. If that was a condition thing, tell me at the next session and I\'ll swap in an alternative.'**
+  /// **'One thing — {names} got skipped. If that was a condition thing, tell me at our next PT and I\'ll swap in an alternative.'**
   String reportBodySkipped(String names);
 
   /// No description provided for @reportBodySodiumOver.
@@ -2759,7 +2759,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodySessionsNone.
   ///
   /// In en, this message translates to:
-  /// **'There were no PT sessions this week.'**
+  /// **'There was no PT this week.'**
   String get reportBodySessionsNone;
 
   /// No description provided for @reportBodyExerciseCount.
@@ -2824,7 +2824,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodyMemberPain.
   ///
   /// In en, this message translates to:
-  /// **'You mentioned pain in your {area}. Let me know how it feels before the next session — I\'ll ease off that area.'**
+  /// **'You mentioned pain in your {area}. Let me know how it feels before our next PT — I\'ll ease off that area.'**
   String reportBodyMemberPain(String area);
 
   /// No description provided for @reportBodyMemberTooHard.
@@ -2896,7 +2896,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportTipSessionsMissed.
   ///
   /// In en, this message translates to:
-  /// **'I\'ll set up make-up slots next week for the sessions we missed.'**
+  /// **'I\'ll set up make-up slots next week for the PT we missed.'**
   String get reportTipSessionsMissed;
 
   /// No description provided for @reportTipKeep.
@@ -2944,7 +2944,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedCompleteConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Mark the {time} session with {name} as complete?'**
+  /// **'Mark {name}\'s {time} PT as complete?'**
   String schedCompleteConfirm(String time, String name);
 
   /// No description provided for @schedCompleteFailed.
@@ -2980,13 +2980,13 @@ abstract class AppLocalizations {
   /// No description provided for @schedEndedLockedHint.
   ///
   /// In en, this message translates to:
-  /// **'Finished sessions can only have their note and program edited.'**
+  /// **'A finished PT can only have its note and program edited.'**
   String get schedEndedLockedHint;
 
   /// No description provided for @schedDoneLockedHint.
   ///
   /// In en, this message translates to:
-  /// **'Completed sessions can only have their note and program edited. Move the date forward to reopen it as upcoming.'**
+  /// **'A completed PT can only have its note and program edited. Move the date forward to reopen it as upcoming.'**
   String get schedDoneLockedHint;
 
   /// No description provided for @schedGroupPersonal.
@@ -3244,7 +3244,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedReopenBody.
   ///
   /// In en, this message translates to:
-  /// **'Moving a completed session forward switches it back to upcoming, and the workout log it created will be removed.'**
+  /// **'Moving a completed PT forward switches it back to upcoming, and the workout log it created will be removed.'**
   String get schedReopenBody;
 
   /// No description provided for @schedReopenConfirm.
@@ -3256,7 +3256,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedReopenPastBlocked.
   ///
   /// In en, this message translates to:
-  /// **'A completed session can only move to a future date'**
+  /// **'A completed PT can only move to a future date'**
   String get schedReopenPastBlocked;
 
   /// No description provided for @schedTimeRangeTitle.
@@ -4072,7 +4072,7 @@ abstract class AppLocalizations {
   /// No description provided for @myStatSessionsDone.
   ///
   /// In en, this message translates to:
-  /// **'Sessions done'**
+  /// **'PT done'**
   String get myStatSessionsDone;
 
   /// No description provided for @myStatRoutinesSent.
@@ -4852,7 +4852,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachRegisteredAttachedExisting.
   ///
   /// In en, this message translates to:
-  /// **'There was already a session planned on {date}, so the program was only attached to it — the time range you picked wasn\'t applied'**
+  /// **'There was already a PT planned on {date}, so the program was only attached to it — the time range you picked wasn\'t applied'**
   String coachRegisteredAttachedExisting(String date);
 
   /// No description provided for @coachGoToSchedule.
@@ -5836,7 +5836,7 @@ abstract class AppLocalizations {
   /// No description provided for @authErrSessionExpired.
   ///
   /// In en, this message translates to:
-  /// **'Your session expired. Please sign in again.'**
+  /// **'Your sign-in expired. Please sign in again.'**
   String get authErrSessionExpired;
 
   /// No description provided for @authErrNoSocialToken.
@@ -7854,7 +7854,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsActionSkipped.
   ///
   /// In en, this message translates to:
-  /// **'Prepare alternatives for {names} for the next session.'**
+  /// **'Prepare alternatives for {names} for the next PT.'**
   String reportsActionSkipped(String names);
 
   /// No description provided for @reportsActionUnlogged.
@@ -8586,7 +8586,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsGridPtSession.
   ///
   /// In en, this message translates to:
-  /// **'PT sessions'**
+  /// **'PT'**
   String get reportsGridPtSession;
 
   /// No description provided for @reportsGridPtPerWeek.

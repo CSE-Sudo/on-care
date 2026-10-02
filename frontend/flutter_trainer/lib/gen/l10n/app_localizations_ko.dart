@@ -379,24 +379,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashChurnRiskEmpty => '지금은 이탈 위험 신호가 없어요.';
 
   @override
-  String get dashChurnRiskLoading => '최근 세션 확인 중';
+  String get dashChurnRiskLoading => '최근 운동 기록 확인 중';
 
   @override
   String get dashChurnRiskUnavailable => '확인할 수 없음 · 눌러서 다시 시도';
 
   @override
-  String get dashActivityFeedbackLoading => '최근 세션을 확인하고 있어요.';
+  String get dashActivityFeedbackLoading => '최근 운동 기록을 확인하고 있어요.';
 
   @override
   String get dashActivityFeedbackUnavailable =>
-      '최근 세션을 불러오지 못해 활동 피드백을 확인할 수 없어요. 이탈 위험 카드를 눌러 다시 시도해 주세요.';
+      '최근 운동 기록을 불러오지 못해 활동 피드백을 확인할 수 없어요. 이탈 위험 카드를 눌러 다시 시도해 주세요.';
 
   @override
   String get dashActivityDifficultyTitle => '운동 목표 미달·배정 루틴 미수행';
 
   @override
   String dashActivityDifficultyDesc(String names) {
-    return '$names 회원이 이번 주 운동 목표에 못 미치거나 배정 루틴을 하지 않았어요. 다음 세션 전에 난이도를 낮추고 최근 피드백을 확인해 주세요.';
+    return '$names 회원이 이번 주 운동 목표에 못 미치거나 배정 루틴을 하지 않았어요. 다음 PT 전에 난이도를 낮추고 최근 피드백을 확인해 주세요.';
   }
 
   @override
@@ -1213,7 +1213,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get workoutKindAiPersonal => 'AI 개인운동';
 
   @override
-  String get workoutKindPtSession => 'PT 세션 · 트레이너 지도';
+  String get workoutKindPtSession => 'PT · 트레이너 지도';
 
   @override
   String get workoutKindAssignedRoutine => '배정 루틴 수행';
@@ -1318,7 +1318,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsGoToChat => '채팅으로 이동하기';
 
   @override
-  String get reportsScheduleWarning => '이번 주 일정을 불러오지 못해 세션 수가 비어 있을 수 있어요';
+  String get reportsScheduleWarning => '이번 주 일정을 불러오지 못해 PT 횟수가 비어 있을 수 있어요';
 
   @override
   String get unitTimes => '회';
@@ -1447,7 +1447,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportBodySkipped(String names) {
-    return '다만 $names 건너뛰셨더라고요. 컨디션 때문이었다면 다음 세션 때 말씀해 주세요. 대체 동작으로 바꿔 둘게요.';
+    return '다만 $names 건너뛰셨더라고요. 컨디션 때문이었다면 다음 PT 때 말씀해 주세요. 대체 동작으로 바꿔 둘게요.';
   }
 
   @override
@@ -1482,7 +1482,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get reportBodySessionsNone => '이 주에는 진행한 PT 세션이 없었어요.';
+  String get reportBodySessionsNone => '이 주에는 진행한 PT가 없었어요.';
 
   @override
   String reportBodyExerciseCount(int total, int done) {
@@ -1536,7 +1536,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportBodyMemberPain(String area) {
-    return '$area 아프셨다고 남겨 주셨는데, 다음 세션 전에 상태를 꼭 다시 알려 주세요. 그 부위는 강도를 낮춰 둘게요.';
+    return '$area 아프셨다고 남겨 주셨는데, 다음 PT 전에 상태를 꼭 다시 알려 주세요. 그 부위는 강도를 낮춰 둘게요.';
   }
 
   @override
@@ -1576,7 +1576,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportTipSessionsNone => '다음 주 PT 일정도 이번에 같이 잡아 둘게요.';
 
   @override
-  String get reportTipSessionsMissed => '빠진 PT 세션은 다음 주에 보강 일정으로 잡아 드릴게요.';
+  String get reportTipSessionsMissed => '빠진 PT는 다음 주에 보강 일정으로 잡아 드릴게요.';
 
   @override
   String get reportTipKeep => '지금 루틴은 그대로 유지하면서, 운동 강도만 조금씩 올려 볼게요.';
@@ -1603,7 +1603,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String schedCompleteConfirm(String time, String name) {
-    return '$time $name님 세션을 완료할까요?';
+    return '$time $name님 PT를 완료할까요?';
   }
 
   @override
@@ -1623,11 +1623,11 @@ class AppLocalizationsKo extends AppLocalizations {
       '회원이 예약한 일정이에요. 시간을 바꾸거나 지울 수 없고, 약속을 거두려면 취소해 주세요.';
 
   @override
-  String get schedEndedLockedHint => '끝난 세션은 메모·프로그램만 고칠 수 있어요.';
+  String get schedEndedLockedHint => '끝난 PT는 메모·프로그램만 고칠 수 있어요.';
 
   @override
   String get schedDoneLockedHint =>
-      '완료한 세션은 메모·프로그램만 고칠 수 있어요. 날짜를 앞으로 옮기면 예정으로 되돌릴 수 있어요.';
+      '완료한 PT는 메모·프로그램만 고칠 수 있어요. 날짜를 앞으로 옮기면 예정으로 되돌릴 수 있어요.';
 
   @override
   String get schedGroupPersonal => '개인운동';
@@ -1764,13 +1764,13 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get schedReopenBody =>
-      '완료된 세션을 앞으로 옮기면 예정 상태로 되돌아가고, 그 완료가 남긴 운동 기록은 사라져요.';
+      '완료된 PT를 앞으로 옮기면 예정 상태로 되돌아가고, 그 완료가 남긴 운동 기록은 사라져요.';
 
   @override
   String get schedReopenConfirm => '예정으로 바꾸기';
 
   @override
-  String get schedReopenPastBlocked => '완료된 세션은 미래 날짜로만 옮길 수 있어요';
+  String get schedReopenPastBlocked => '완료된 PT는 미래 날짜로만 옮길 수 있어요';
 
   @override
   String get schedTimeRangeTitle => '시간 선택';
@@ -2210,7 +2210,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myBasicInfo => '기본 정보';
 
   @override
-  String get myStatSessionsDone => '완료 세션';
+  String get myStatSessionsDone => '완료 PT';
 
   @override
   String get myStatRoutinesSent => '프로그램 전송';
@@ -2622,7 +2622,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String coachRegisteredAttachedExisting(String date) {
-    return '$date에 이미 예정된 세션이 있어 그 세션에 프로그램만 추가됐어요 — 고른 시간 범위는 적용되지 않았어요';
+    return '$date에 이미 예정된 PT가 있어 그 PT에 프로그램만 추가됐어요 — 고른 시간 범위는 적용되지 않았어요';
   }
 
   @override
@@ -3172,7 +3172,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrEmailTaken => '이미 가입된 이메일입니다.';
 
   @override
-  String get authErrSessionExpired => '세션이 만료됐어요. 다시 로그인해 주세요.';
+  String get authErrSessionExpired => '로그인이 만료됐어요. 다시 로그인해 주세요.';
 
   @override
   String get authErrNoSocialToken => '소셜 로그인 토큰이 없어요';
@@ -4361,7 +4361,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportsActionSkipped(String names) {
-    return '$names 대체 동작을 준비해 다음 세션에서 맞춰 주세요.';
+    return '$names 대체 동작을 준비해 다음 PT에서 맞춰 주세요.';
   }
 
   @override
@@ -4802,7 +4802,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsPreviewZoomOut => '축소';
 
   @override
-  String get reportsGridPtSession => 'PT 세션';
+  String get reportsGridPtSession => 'PT';
 
   @override
   String reportsGridPtPerWeek(int count) {
