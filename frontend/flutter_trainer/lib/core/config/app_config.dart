@@ -6,10 +6,10 @@ enum Environment { dev, staging, prod }
 /// App-wide configuration resolved from `--dart-define`s at build time.
 ///
 /// Mirrors the user app (`frontend/flutter`) so both On-Care apps share
-/// the same networking contract. The GitHub Pages demo builds with the
-/// default `USE_MOCK_API=true` and reads the browser-local drift seed; a
-/// build that should hit the real backend passes `API_BASE_URL` +
-/// `USE_MOCK_API=false`.
+/// the same networking contract. 운영 웹 빌드(`aws-frontend-deploy.yml`)는
+/// `USE_MOCK_API=false`·`API_BASE_URL`(저장소 변수)·`ENV=prod` 를 넘겨 실서버를
+/// 본다. GitHub Pages 데모 빌드(`deploy.yml`)는 기본으로 `USE_MOCK_API=true` 를
+/// 넘겨 브라우저 drift 시드를 읽는다(#2810).
 class AppConfig {
   const AppConfig({
     required this.environment,

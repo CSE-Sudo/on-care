@@ -117,6 +117,20 @@ Widget _formShell(
   return PopScope(canPop: !saving, child: page);
 }
 
+/// 구획 제목 줄 끝의 `마지막 변경: 트레이너 · 9월 16일` (#1832, #2942).
+/// 회원과 담당 트레이너가 같은 칸을 고치므로 누가 언제 바꿨는지 남긴다. 바꾼 적이
+/// 없으면 null 이라 줄 끝이 비어 있다.
+Widget? _lastChangedTag(BuildContext context, String? label, Key key) =>
+    label == null
+    ? null
+    : Text(
+        label,
+        key: key,
+        style: context.oncare
+            .text(OnCareTypography.caption)
+            .copyWith(color: OnCareColors.textTertiary),
+      );
+
 /// 폼 칸을 묶는 카드.
 Widget _card(List<Widget> children) => AppCard(
   child: Column(
@@ -1272,6 +1286,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final String locale = Localizations.localeOf(context).toString();
     // 칼로리와 탄단지는 서로 다른 값이 아니다 — 탄·단은 4kcal/g, 지방은
     // 9kcal/g 이라 셋이 정해지면 칼로리도 정해진다. 두 방향을 세기를 달리해
     // 잇는다: 탄단지를 고치면 칼로리를 **바꾸고**, 칼로리를 고치면 탄단지에는
@@ -1298,7 +1313,16 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
         // 순서: 관리 초점 → 자유 입력 운동 목표 → 수치형 운동 목표 → 식단 목표
         // (#1471). 온보딩 2단계가 묻는 것과 같은 순서라, 두 화면이 같은 이야기를
         // 같은 차례로 한다.
-        AppSectionHeader(title: l.myGoalsFocusSection),
+        // 담당 트레이너도 같은 목표를 고친다 — 누가 언제 바꿨는지 구획 제목 줄
+        // 끝에 남긴다(#1832). 아래 주의사항 구획과 같은 자리다(#2942).
+        AppSectionHeader(
+          title: l.myGoalsFocusSection,
+          trailing: _lastChangedTag(
+            context,
+            focusLastChangedLabel(l, _base, locale: locale),
+            const Key('goalFocusLastChanged'),
+          ),
+        ),
         const SizedBox(height: OnCareSpacing.s8),
         _card(<Widget>[
           if (_editing) ...<Widget>[
@@ -1354,29 +1378,21 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
                       ],
                     ),
             ),
-          // 담당 트레이너도 같은 목표를 고친다 — 누가 언제 바꿨는지 칩 아래에
-          // 남긴다(#1832).
-          if (focusLastChangedLabel(
-                l,
-                _base,
-                locale: Localizations.localeOf(context).toString(),
-              )
-              case final String changed) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s12),
-            Text(
-              changed,
-              key: const Key('goalFocusLastChanged'),
-              style: context.oncare
-                  .text(OnCareTypography.caption)
-                  .copyWith(color: OnCareColors.textTertiary),
-            ),
-          ],
         ]),
         const SizedBox(height: OnCareSpacing.s20),
         // 부상·통증처럼 운동을 짤 때 피해야 할 것(#2619). 목표 칩과 같은
         // `conditions` 칸에 담기지만, 고르는 목표와 적는 주의사항은 다른 이야기라
         // 구획을 나눈다. 담당 트레이너도 같은 글을 보고 고친다.
-        AppSectionHeader(title: l.healthNotesLabel),
+        // 담당 트레이너가 고친 글은 알림이 오지 않는다 — 누가 언제 바꿨는지
+        // 구획 제목 줄 끝에 남긴다(#2942). 목표 칩 기록과 따로다.
+        AppSectionHeader(
+          title: l.healthNotesLabel,
+          trailing: _lastChangedTag(
+            context,
+            notesLastChangedLabel(l, _base, locale: locale),
+            const Key('goalConditionsLastChanged'),
+          ),
+        ),
         const SizedBox(height: OnCareSpacing.s8),
         _card(<Widget>[
           if (_editing)

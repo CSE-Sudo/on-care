@@ -385,6 +385,17 @@ class _CapturingProgramRepository implements TrainerRoutineRepository {
       Stream.value(const <AssignedRoutine>[]);
 }
 
+/// 배정 목록만 돌려주는 실서버 대역 — 기존 AI 추천(#2673)이 읽는 자리다.
+class _AssignedOnlyRoutineRepository extends _SpyTrainerRoutineRepository {
+  _AssignedOnlyRoutineRepository(this.rows);
+
+  final List<AssignedRoutine> rows;
+
+  @override
+  Stream<List<AssignedRoutine>> watchAssignedRoutines(String memberId) =>
+      Stream.value(rows);
+}
+
 class _SpyTrainerRoutineRepository implements TrainerRoutineRepository {
   // 전송 이력의 `직전 전송` 은 이 테스트가 보지 않는다(#2225).
   @override
@@ -946,6 +957,8 @@ void _expectNutritionStatusCardsInBounds(WidgetTester tester) {
 
 void main() {
   test('real API mode never exposes bundled drift recommendations', () async {
+    // 실서버의 기존 AI 추천은 그 회원에게 배정된 AI 개인운동이다(#2673) —
+    // 데모 시드가 아니다. 트레이너가 보낸 것·이미 한 것은 빠진다.
     final container = ProviderContainer(
       overrides: <Override>[
         appConfigProvider.overrideWithValue(
@@ -955,20 +968,50 @@ void main() {
             useMockApi: false,
           ),
         ),
+        trainerRoutineRepositoryProvider.overrideWithValue(
+          _AssignedOnlyRoutineRepository(const <AssignedRoutine>[
+            AssignedRoutine(
+              id: 'r-ai',
+              name: '실내 자전거',
+              minutes: 20,
+              type: '유산소',
+              reason: '무릎 부담 없는 유산소',
+              source: 'ai',
+            ),
+            AssignedRoutine(
+              id: 'r-done',
+              name: '걷기',
+              minutes: 30,
+              type: '유산소',
+              reason: '',
+              source: 'ai',
+              completed: true,
+            ),
+            AssignedRoutine(
+              id: 'r-trainer',
+              name: '스쿼트',
+              minutes: 0,
+              type: '근력',
+              reason: '',
+              source: 'trainer',
+              sets: 3,
+              reps: 12,
+            ),
+          ]),
+        ),
       ],
     );
     addTearDown(container.dispose);
 
     expect(
       container.read(aiRoutineRepositoryProvider),
-      isA<EmptyAiRoutineRepository>(),
+      isA<AssignedAiRoutineRepository>(),
     );
-    expect(
-      await container.read(
-        aiRoutineProvider((id: 'real-client-1', name: '김민수')).future,
-      ),
-      isEmpty,
+    final items = await container.read(
+      aiRoutineProvider((id: 'real-client-1', name: '김민수')).future,
     );
+    expect(items.map((i) => i.name), <String>['실내 자전거']);
+    expect(items.single.reason, '무릎 부담 없는 유산소');
   });
 
   group('demo coaching repositories', () {

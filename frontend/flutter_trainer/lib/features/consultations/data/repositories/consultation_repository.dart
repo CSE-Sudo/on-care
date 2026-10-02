@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
@@ -123,9 +124,10 @@ class DemoConsultationRepository implements ConsultationRepository {
       for (final ReservationSlot slot in demoReservationSlots(now: now))
         slot.id: slot,
     };
-    // 김하늘은 퇴근 뒤 자리를, 김민수는 출근 전 자리를 골랐다.
-    final ReservationSlot evening = slots['slot-kim-5']!;
-    final ReservationSlot morning = slots['slot-kim-3']!;
+    // 김하늘은 퇴근 뒤 자리를, 김민수는 출근 전 자리를 골랐다. 신청이 잡은
+    // 자리라 예약 슬롯 창에서는 예약된 칸이다([demoPendingRequestSlots], #2797).
+    final ReservationSlot evening = slots['slot-kim-6']!;
+    final ReservationSlot morning = slots['slot-kim-7']!;
     String hm(DateTime t) =>
         '${t.hour.toString().padLeft(2, '0')}:'
         '${t.minute.toString().padLeft(2, '0')}';
@@ -751,6 +753,24 @@ final consultationPendingCountProvider = StreamProvider.autoDispose<int>((ref) {
   return ref.watch(consultationRepositoryProvider).watchPendingCount();
 }, name: 'consultationPendingCount');
 
+/// 대시보드 `오늘 할 일` 의 상담 미션이 쓰는 대기 목록 — **한 번만** 읽는다.
+///
+/// [consultationsProvider](인박스 화면 전용)는 [ConsultationRepository.watch]
+/// 를 그대로 구독하는데, 실서버 구현은 배지처럼 몇 초마다 다시 읽는 폴링
+/// 스트림이다. 대시보드 카드에 그 스트림을 물리면 대시보드를 떠나도 폴링이
+/// 계속 돌았다. `fetch()` 는 일회성 Future 라 그대로 쓴다.
+///
+/// 한 번만 읽으므로 스스로는 갱신되지 않는다. 승인·거절 뒤에는
+/// [_refreshAfterDecision] 이 무효화하고, 새 요청은 카드가 이미 돌고 있는
+/// [consultationPendingCountProvider] 값의 변화를 보고 다시 읽는다(#2887).
+final pendingConsultationsOnceProvider =
+    FutureProvider.autoDispose<List<ConsultationRequest>>((ref) {
+      if (!ref.watch(consultationInboxEnabledProvider)) {
+        return Future.value(const <ConsultationRequest>[]);
+      }
+      return ref.watch(consultationRepositoryProvider).fetch();
+    }, name: 'pendingConsultationsOnce');
+
 /// Accepts a request and refreshes everything it changed.
 ///
 /// The roster is invalidated too — accepting is precisely the moment a new
@@ -783,7 +803,17 @@ Future<void> rejectConsultation(
   _refreshAfterDecision(ref);
 }
 
+/// 상담 결정 뒤 다시 읽을 것 — 인박스 목록, 배지 수, 대시보드 상담 미션(#2887).
+@visibleForTesting
+final List<ProviderOrFamily> consultationDecisionRefreshTargets =
+    List<ProviderOrFamily>.unmodifiable(<ProviderOrFamily>[
+      consultationsProvider,
+      consultationPendingCountProvider,
+      pendingConsultationsOnceProvider,
+    ]);
+
 void _refreshAfterDecision(WidgetRef ref) {
-  ref.invalidate(consultationsProvider);
-  ref.invalidate(consultationPendingCountProvider);
+  for (final ProviderOrFamily target in consultationDecisionRefreshTargets) {
+    ref.invalidate(target);
+  }
 }

@@ -1,3 +1,4 @@
+import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 
 /// 주간 반복 규칙 — PT 에서 실제로 쓰이는 형태만 담는다. (#870)
@@ -47,7 +48,9 @@ List<DateTime> seriesOccurrences(DateTime start, WeeklyRecurrence rule) {
   var day = DateTime(start.year, start.month, start.day);
   while (!day.isAfter(horizon) && out.length < limit) {
     if (rule.weekdays.contains(day.weekday)) out.add(day);
-    day = day.add(const Duration(days: 1));
+    // 달력의 다음 날 — 24시간을 더하면 서머타임이 끝나는 날 같은 날이 두 번
+    // 세어진다(#2890).
+    day = addCalendarDays(day, 1);
   }
   return out;
 }
