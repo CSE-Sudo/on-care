@@ -1087,7 +1087,9 @@ void main() {
     expect(tester.widget<TextField>(field).controller!.text, draft);
   });
 
-  testWidgets('요약 생성이 실패해도 카드가 안내문으로 돌아간다 (#755)', (tester) async {
+  testWidgets('요약 생성이 실패해도 카드가 비지 않고 실패와 다시 시도를 띄운다 (#755, #2885)', (
+    tester,
+  ) async {
     await openReports(
       stage: 1,
       tester,
@@ -1096,9 +1098,15 @@ void main() {
       ],
     );
 
+    expect(find.text('요약을 만들지 못했어요. 다시 시도해 주세요.'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('reports-ai-retry')),
+      findsOneWidget,
+    );
+    // 예전 안내문으로 되돌아가지 않는다 — 그 문구는 실패를 말하지 않는다.
     expect(
       find.text('실제 리포트 요약 API 연결 후 사용할 수 있어요. 현재 문구는 자동 생성하지 않습니다.'),
-      findsOneWidget,
+      findsNothing,
     );
   });
 

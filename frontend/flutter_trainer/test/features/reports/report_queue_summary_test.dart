@@ -413,6 +413,13 @@ void main() {
       const ValueKey<String>('reports-queue-loading'),
     );
 
+    /// 작업대 줄의 `열기` 버튼. 키가 [AppButton] 자신에 붙어 있다 — 그 키 아래
+    /// 자손에서 [AppButton] 을 찾으면 늘 비어 있다.
+    Finder openButton(String clientId) => find.byWidgetPredicate(
+      (Widget w) =>
+          w is AppButton && w.key == ValueKey<String>('reports-open-$clientId'),
+    );
+
     Future<ProviderContainer> open(
       WidgetTester tester,
       _CountingRepository repo,
@@ -476,10 +483,7 @@ void main() {
       await settle(tester);
 
       expect(loading, findsNothing);
-      final Finder open1 = find.descendant(
-        of: find.byKey(const ValueKey<String>('reports-open-seed-client-1')),
-        matching: find.byType(AppButton),
-      );
+      final Finder open1 = openButton('seed-client-1');
       expect(open1, findsOneWidget);
       // 요약에 없던 회원도 수치 없이 열 수 있다 — 편집기가 따로 읽는다.
       expect(tester.widget<AppButton>(open1).onPressed, isNotNull);
@@ -491,10 +495,7 @@ void main() {
       await settle(tester);
 
       expect(loading, findsNothing);
-      final Finder open1 = find.descendant(
-        of: find.byKey(const ValueKey<String>('reports-open-seed-client-1')),
-        matching: find.byType(AppButton),
-      );
+      final Finder open1 = openButton('seed-client-1');
       expect(open1, findsOneWidget);
       expect(tester.widget<AppButton>(open1).onPressed, isNotNull);
       expect(repo.watched, isEmpty);
@@ -507,10 +508,7 @@ void main() {
       expect(repo.watched, isEmpty);
 
       await tester.tap(
-        find.descendant(
-          of: find.byKey(const ValueKey<String>('reports-open-seed-client-1')),
-          matching: find.byType(AppButton),
-        ),
+        openButton('seed-client-1'),
       );
       await settle(tester);
 
