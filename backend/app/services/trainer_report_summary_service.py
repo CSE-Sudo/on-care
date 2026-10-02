@@ -31,7 +31,7 @@ from sqlalchemy.orm import Session
 
 from app.core.locale import Locale, current_locale, localized
 from app.schemas.trainer_api import ReportSummaryOut, WeeklyReportOut
-from app.services import client_signals, korean_josa, trainer_service
+from app.services import client_signals, goal_defaults, korean_josa, trainer_service
 from app.services.coach import prompt_safety
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
 
@@ -41,9 +41,10 @@ logger = logging.getLogger(__name__)
 #: 먼저다(#1430) — 같은 1,900kcal 이 어떤 회원에게는 부족이고 어떤 회원에게는
 #: 초과다. 적어 둔 것이 없을 때만 이 값을 쓰고, 근거 문장에 어느 기준을 썼는지
 #: 함께 적는다.
-SODIUM_TARGET_MG = 2000
-CALORIE_TARGET_KCAL = 2000
-SUGAR_TARGET_G = 50
+#: 값은 목표 미설정 기본값 원본(`goal_defaults`) 한 곳에 있다(#2906).
+SODIUM_TARGET_MG = goal_defaults.DAILY_SODIUM_MG
+CALORIE_TARGET_KCAL = goal_defaults.DAILY_CALORIES
+SUGAR_TARGET_G = goal_defaults.DAILY_SUGAR_G
 
 #: 칼로리가 목표에서 이만큼 벗어나면 주의로 본다. 하루하루가 목표에 딱 맞는
 #: 주는 없으므로 좁게 잡으면 매주 주의가 뜬다. 회원 목록의 `칼로리 목표 이탈`

@@ -63,7 +63,13 @@ import 'package:oncare_rules/oncare_rules.dart'
         minutesFromSeconds,
         normalizeExerciseType,
         pyRound;
-import 'package:oncare_ui/oncare_ui.dart' show AppInputError, AppInputRules;
+import 'package:oncare_ui/oncare_ui.dart'
+    show
+        AppInputError,
+        AppInputRules,
+        kGoalDefaultDailyCalories,
+        kGoalDefaultDailySodiumMg,
+        kGoalDefaultDailySugarG;
 
 /// A drift-backed dummy backend. Intercepts dio requests and serves
 /// them out of the local SQLite database so the app can run as a
@@ -887,10 +893,13 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     final today = _todayDateString();
     final profile = await _mergedProfile();
     final int calorieGoal =
-        (profile['daily_calories'] as num?)?.toInt() ?? 2000;
+        (profile['daily_calories'] as num?)?.toInt() ??
+        kGoalDefaultDailyCalories;
     final int sodiumGoal =
-        (profile['daily_sodium_mg'] as num?)?.toInt() ?? 2000;
-    final int sugarGoal = (profile['daily_sugar_g'] as num?)?.toInt() ?? 50;
+        (profile['daily_sodium_mg'] as num?)?.toInt() ??
+        kGoalDefaultDailySodiumMg;
+    final int sugarGoal =
+        (profile['daily_sugar_g'] as num?)?.toInt() ?? kGoalDefaultDailySugarG;
 
     // Diet aggregates.
     final dietRows = await (_db.select(
@@ -1453,9 +1462,12 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
 
     final Map<String, Object?> profile = await _mergedProfile();
     int? positive(Object? v) => v is num && v > 0 ? v.toInt() : null;
-    final int sodiumLimit = positive(profile['daily_sodium_mg']) ?? 2000;
-    final int sugarLimit = positive(profile['daily_sugar_g']) ?? 50;
-    final int calorieLimit = positive(profile['daily_calories']) ?? 2000;
+    final int sodiumLimit =
+        positive(profile['daily_sodium_mg']) ?? kGoalDefaultDailySodiumMg;
+    final int sugarLimit =
+        positive(profile['daily_sugar_g']) ?? kGoalDefaultDailySugarG;
+    final int calorieLimit =
+        positive(profile['daily_calories']) ?? kGoalDefaultDailyCalories;
     final int proteinGoal = positive(profile['daily_protein_g']) ?? 0;
 
     final Set<String> signals = <String>{
@@ -1607,7 +1619,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   }
 
   /// 회원 나트륨 목표가 없을 때의 하루 상한. 서버 `SODIUM_LIMIT_MG` 와 같다.
-  static const int _kDefaultSodiumLimitMg = 2000;
+  static const int _kDefaultSodiumLimitMg = kGoalDefaultDailySodiumMg;
 
   /// 시드에 문장이 없는 날짜(또는 영어 화면)용 — 그날의 수치를 보고 만든 문구.
   ///

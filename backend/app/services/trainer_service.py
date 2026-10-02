@@ -84,11 +84,11 @@ from app.schemas.points_api import PointsOut
 from app.services.coach import personal_ingest
 from app.services import trainer_verification_service
 from app.services.exercise_duration import format_duration, seconds_or_minutes
-from app.services import korean_josa
+from app.services import goal_defaults, korean_josa
 
 # 일일 나트륨 목표(mg). 프론트 `sodiumTargetMg` 와 같은 값 — 리포트의
-# '초과 N일'이 앱 화면의 경고와 어긋나면 안 된다.
-SODIUM_TARGET_MG = 2000
+# '초과 N일'이 앱 화면의 경고와 어긋나면 안 된다. 원본은 `goal_defaults`(#2906).
+SODIUM_TARGET_MG = goal_defaults.DAILY_SODIUM_MG
 
 
 class IdempotencyConflict(Exception):

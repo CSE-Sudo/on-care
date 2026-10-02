@@ -1,17 +1,26 @@
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
+import 'package:oncare_ui/oncare_ui.dart'
+    show
+        kGoalDefaultDailyCalories,
+        kGoalDefaultDailySodiumMg,
+        kGoalDefaultDailySugarG;
+
+// 아래 세 기본 목표는 회원 앱과 함께 쓰는 공용 패키지 `oncare_ui` 의
+// `kGoalDefault…` 한 곳에 있다(#2906). 서버와는 원본 표
+// `shared/oncare_rules/vectors/goal_defaults.json` 으로 대조한다.
 
 /// Daily sodium target (mg). Over this, the list card metric, the diet
 /// summary tile, and the AI comment all flip to the warning case.
-const int sodiumTargetMg = 2000;
+const int sodiumTargetMg = kGoalDefaultDailySodiumMg;
 
 /// Daily calorie target (kcal). The weekly trend chart colours a day red
 /// above this, the same way the member app's home tab does.
-const int calorieTargetKcal = 2000;
+const int calorieTargetKcal = kGoalDefaultDailyCalories;
 
 /// Daily sugar target (g). Over this, the diet summary 당류 tile warns.
-const int sugarTargetG = 50;
+const int sugarTargetG = kGoalDefaultDailySugarG;
 
 /// 로스터가 보여 주는 성별 — 저장된 값(`male`/`female`/`other`)이 있으면
 /// 그것, 없으면 빈 문자열(미입력·서버가 가림).

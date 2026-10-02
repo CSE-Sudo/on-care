@@ -38,7 +38,7 @@ class ReportSummary {
 }
 
 /// 하루 목표 — 백엔드 `trainer_report_summary_service` 와 같은 값이다.
-const int summarySodiumTargetMg = 2000;
+const int summarySodiumTargetMg = sodiumTargetMg;
 
 /// 목표를 이 날 수보다 많이 넘겼으면 주의로 본다 — [WeeklyReport.isGoodWeek]
 /// 와 같은 기준이다.

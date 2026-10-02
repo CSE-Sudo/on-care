@@ -17,8 +17,9 @@ LLM 생성과 이 규칙형 생성기로의 폴백은 `trainer_routine_options_s
 from __future__ import annotations
 
 from app.core.locale import Locale, localized
+from app.services import goal_defaults
 
-SODIUM_TARGET_MG = 2000
+SODIUM_TARGET_MG = goal_defaults.DAILY_SODIUM_MG
 
 #: 근거 문장 길이 상한 — 응답 스키마(`RoutineOptionPlanOut.rationale`)와 같은 값이다.
 #: 트레이너 메모(최대 500자)를 그대로 인용하므로, 긴 메모에 주의 문장이 붙으면

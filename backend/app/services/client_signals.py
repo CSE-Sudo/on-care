@@ -38,7 +38,13 @@ from app.models.models import (
     TrainerSchedule,
 )
 from app.schemas.trainer_api import ClientSignalOut
-from app.services import exercise_activity, exercise_service, exercise_types, health_focus
+from app.services import (
+    exercise_activity,
+    exercise_service,
+    exercise_types,
+    goal_defaults,
+    health_focus,
+)
 from app.services.coach import insights
 
 # ---- 신호 종류 — 앱이 이 문자열로 배지·필터를 고른다. 번역하지 않는다. ----
@@ -115,12 +121,13 @@ EXERCISE_GOAL_LOW_PERCENT = 50
 EXERCISE_GOAL_FROM_WEEKDAY = 2
 #: 프로필에 유형별 목표가 없을 때의 기본값. 회원 앱 `kDefaultExerciseLoadGoals`
 #: 와 같아야 한다 — 회원이 보는 링과 트레이너 배지가 다른 목표를 쓰면 안 된다.
-DEFAULT_WEEKLY_CARDIO_MINUTES = 150
-DEFAULT_WEEKLY_STRENGTH_SETS = 21
-DEFAULT_WEEKLY_STRETCHING_MINUTES = 60
+#: 원본은 `goal_defaults`(#2906).
+DEFAULT_WEEKLY_CARDIO_MINUTES = goal_defaults.WEEKLY_CARDIO_MINUTES
+DEFAULT_WEEKLY_STRENGTH_SETS = goal_defaults.WEEKLY_STRENGTH_SETS
+DEFAULT_WEEKLY_STRETCHING_MINUTES = goal_defaults.WEEKLY_FLEXIBILITY_MINUTES
 
 #: 칼로리 목표 기본값. 개인 목표(`HealthProfile.daily_calories`)가 먼저다.
-DEFAULT_CALORIE_TARGET_KCAL = 2000
+DEFAULT_CALORIE_TARGET_KCAL = goal_defaults.DAILY_CALORIES
 #: 칼로리가 목표에서 이만큼 벗어나면 이탈로 본다(과다·부족 모두). 하루하루가
 #: 목표에 딱 맞는 주는 없으므로 좁게 잡으면 늘 뜬다. 리포트 요약도 이 값을 쓴다.
 CALORIE_TOLERANCE = 0.15
