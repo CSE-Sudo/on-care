@@ -768,14 +768,12 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 
 ## 8. 마이그레이션 선형화 주의
 
-트레이너 마이그레이션은 `0012_trainer_domain` →
-`0013_trainer_active_coach_uq` 뒤에 상담·트레이너 인덱스의 두 `0014` 분기를
-`0015_merge_alembic_heads`로 합친다. 그 뒤는 `0016_drop_vitals` →
-`0017_add_diet_exercise_goals` → `0018_diet_entry_sugar_g_float` →
-`0019_trainer_noti_settings` → **`0020_gym_profiles_trainer_fk`** 순의 단일
-chain이다. `0020`의 `down_revision`은 `0019_trainer_noti_settings`다.
+마이그레이션은 단일 chain이고 계속 자라므로 끝을 문서에 적지 않는다. 현재 head 는
+`cd backend && alembic heads` 로 확인하고, 새 마이그레이션의 `down_revision` 은 그 head 로 잡는다.
+초기 트레이너 스택(`0012_trainer_domain` ~ `0020_gym_profiles_trainer_fk`)에서 두 `0014` 분기를
+`0015_merge_alembic_heads`로 합친 기록은 [DEPLOY.md](DEPLOY.md) "마이그레이션 head 선형화" 절에 있다.
 
-배포는 이 순서를 따라 `alembic upgrade head`를 실행하며, CI에서
+배포는 `alembic upgrade head`를 실행하며, CI에서
 `alembic heads`가 하나인지 먼저 검증한다. 이미 별도 migration head를 적용한 DB는
 `down_revision`을 임의로 바꾸지 말고 배포 문서의 merge revision 절차를 따른다.
 
