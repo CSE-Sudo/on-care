@@ -186,6 +186,7 @@ class FakeTrainerAuthRepository implements TrainerAuthRepository {
     required String email,
     required String password,
     required String name,
+    List<String>? consents,
   }) async => _tokensFor(TestTrainer.fromEmail(email));
 
   @override

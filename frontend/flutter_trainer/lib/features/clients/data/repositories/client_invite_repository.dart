@@ -239,7 +239,7 @@ class DemoClientInviteRepository implements ClientInviteRepository {
 
     final MemberLookup found = await lookup(memberId);
     if (!found.canInvite) {
-      throw const ValidationError(message: '이미 담당하고 있는 회원이에요.');
+      throw const AlreadyManagedError();
     }
     return (memberId, found);
   }

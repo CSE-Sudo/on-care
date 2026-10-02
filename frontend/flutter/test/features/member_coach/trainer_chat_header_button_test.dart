@@ -171,4 +171,57 @@ void main() {
     // 로딩 중에 "트레이너가 없다" 고 말하면 거짓이 된다.
     expect(find.text('담당 트레이너를 불러오는 중이에요'), findsOneWidget);
   });
+
+  // #2843: 조회 실패는 "담당이 없다" 가 아니다. 서로 다른 문구여야 하고, 실패면
+  // 같은 탭으로 다시 읽는다.
+  group('조회 실패', () {
+    testWidgets('누르면 없다가 아니라 불러오지 못했다고 알린다', (WidgetTester tester) async {
+      await pump(
+        tester,
+        coachOverride: memberCoachProvider.overrideWith(
+          (ref) => Future<MemberCoach?>.error(Exception('offline')),
+        ),
+      );
+
+      await tester.tap(find.byKey(const Key('trainerChatHeaderButton')));
+      await tester.pump();
+
+      expect(find.text('담당 트레이너 정보를 불러오지 못해 다시 불러오고 있어요'), findsOneWidget);
+      expect(
+        find.text('담당 트레이너가 아직 없어요. 운동 탭에서 헬스장·트레이너를 연결해 보세요'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('누르면 다시 읽어 트레이너 버튼이 살아난다', (WidgetTester tester) async {
+      var calls = 0;
+      await pump(
+        tester,
+        coachOverride: memberCoachProvider.overrideWith((ref) {
+          calls += 1;
+          if (calls == 1) {
+            return Future<MemberCoach?>.error(Exception('offline'));
+          }
+          return Future<MemberCoach?>.value(_coach);
+        }),
+      );
+      expect(_drawnEnabled(tester), isFalse);
+
+      await tester.tap(find.byKey(const Key('trainerChatHeaderButton')));
+      await tester.pumpAndSettle();
+
+      expect(calls, 2);
+      expect(_drawnEnabled(tester), isTrue);
+      expect(find.byKey(const Key('aiChatHeaderButton')), findsNothing);
+    });
+
+    test('영어에서도 실패와 로딩 문구가 갈린다', () {
+      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
+
+      expect(en.coachTrainerRetrying, isNot(en.coachTrainerNone));
+      expect(en.coachTrainerRetrying, isNot(en.coachTrainerLoading));
+      expect(en.coachTrainerLoadFailed, isNot(en.coachTrainerNone));
+      expect(en.coachTrainerRetrying, isNot(matches(RegExp('[가-힣]'))));
+    });
+  });
 }

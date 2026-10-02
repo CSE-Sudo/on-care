@@ -798,9 +798,11 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
       // 서버와 같은 쪽을 준다 — 최신 [chatPageSize] 건, 커서가 있으면 그 앞 한
       // 쪽(#2640). 전부를 한 번에 주면 쪽 사이의 경계가 데모에서만 없어 보인다.
+      // 끊겼으면 실서버의 404 처럼 해제 신호를 준다(#2843) — 빈 목록이면
+      // 대화방이 안내 없이 비어 보인다.
       _hasCoach()
       ? List<CoachMessage>.unmodifiable(pageCoachChat(_chat, before: before))
-      : const <CoachMessage>[];
+      : throw const CoachUnassignedException();
 
   /// 대화가 바뀔 때마다 최신 쪽을 다시 준다. (#2663)
   ///
@@ -820,9 +822,15 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   Stream<T> _watch<T>(Future<T> Function() load) {
     late final StreamController<T> out;
     StreamSubscription<void>? changes;
+    // 읽기가 실패하면(해제 신호 등, #2843) 스트림의 오류로 흘려보낸다 — 삼키면
+    // 듣는 쪽은 첫 값을 끝없이 기다린다.
     Future<void> push() async {
-      final T value = await load();
-      if (!out.isClosed) out.add(value);
+      try {
+        final T value = await load();
+        if (!out.isClosed) out.add(value);
+      } on Object catch (error, stack) {
+        if (!out.isClosed) out.addError(error, stack);
+      }
     }
 
     out = StreamController<T>(

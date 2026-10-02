@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/app/app_icons.dart';
+import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/member_coach/data/repositories/chat_pdf_repository.dart';
 import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
@@ -135,7 +137,9 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
   /// 폰 폭보다 길어져 넘치므로, 그때만 줄 폭에 맞춰 통째로 줄인다 — 평소에는
   /// 가용 폭 그대로다. (패키지 구분선이 긴 날짜를 감당하게 되면 걷어낸다.)
   Widget _dateDivider(DateTime date) {
-    final DateTime localDate = date.toLocal();
+    // 서버 시각(UTC 순간)을 KST 날짜로 — 기기 시간대가 달라도 KST 오전 0~9시
+    // 메시지가 전날 구분선 아래로 가지 않는다(#2876).
+    final DateTime localDate = kstDateOf(date);
     final Widget divider = AppChatDateDivider(
       AppLocalizations.of(context).coachChatDateDivider(localDate),
       key: ValueKey<String>(
@@ -155,13 +159,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     );
   }
 
-  static bool _sameDay(DateTime a, DateTime b) {
-    final localA = a.toLocal();
-    final localB = b.toLocal();
-    return localA.year == localB.year &&
-        localA.month == localB.month &&
-        localA.day == localB.day;
-  }
+  static bool _sameDay(DateTime a, DateTime b) => isSameKstDay(a, b);
 
   /// 대화를 열거나 메시지가 늘면 맨 아래를 보여 준다.
   ///
@@ -333,12 +331,23 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final chat = ref.watch(coachChatProvider);
+    // 서버가 대화를 404 로 답하면 담당이 해제된 것이다(#2843). 빈 대화로 그리지
+    // 않고 안내를 띄우며 입력을 막는다.
+    final bool unassigned = chat.error is CoachUnassignedException;
     // 폴링으로 새 리포트 안내가 오면 받은 리포트 목록도 다시 읽는다(#2643) —
     // 예전에는 앱을 다시 켜기 전까지 목록에 나타나지 않았다.
     ref.listen<AsyncValue<List<CoachMessage>>>(coachChatProvider, (
       AsyncValue<List<CoachMessage>>? previous,
       AsyncValue<List<CoachMessage>> next,
     ) {
+      // 해제를 처음 알게 된 순간 담당 코치도 다시 읽는다 — 대화방을 나가면
+      // 헤더가 AI 챗봇 입구로, 홈 트레이너 카드가 사라진 모습으로 바뀐다.
+      if (next.error is CoachUnassignedException &&
+          previous?.error is! CoachUnassignedException) {
+        unawaited(
+          recheckMemberCoach(ProviderScope.containerOf(context, listen: false)),
+        );
+      }
       final List<CoachMessage>? before = previous?.valueOrNull;
       final List<CoachMessage>? after = next.valueOrNull;
       // 보낸 사진이 대화에 들어왔으면 대기 목록에서 뺀다 — 원본 바이트가
@@ -422,14 +431,21 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
             Expanded(
               child: chat.when(
                 loading: () => const AppLoading(),
-                // 다음 폴링까지 기다리지 않고 다시 받을 수 있게 한다(#2880).
-                error: (_, _) => AppErrorState(
-                  key: const ValueKey<String>('coach-chat-error'),
-                  title: l.coachChatLoadFailed,
-                  retryLabel: l.actionRetry,
-                  retryKey: const ValueKey<String>('coach-chat-retry'),
-                  onRetry: () => ref.invalidate(coachChatProvider),
-                ),
+                // 해제는 다시 받아도 같으니 안내만, 그 밖의 실패는 다음 폴링까지
+                // 기다리지 않고 다시 받을 수 있게 한다(#2880).
+                error: (Object error, _) => error is CoachUnassignedException
+                    ? AppEmptyState(
+                        key: const ValueKey<String>('coach-chat-unassigned'),
+                        title: l.coachChatUnassigned,
+                        icon: AppIcons.disconnect,
+                      )
+                    : AppErrorState(
+                        key: const ValueKey<String>('coach-chat-error'),
+                        title: l.coachChatLoadFailed,
+                        retryLabel: l.actionRetry,
+                        retryKey: const ValueKey<String>('coach-chat-retry'),
+                        onRetry: () => ref.invalidate(coachChatProvider),
+                      ),
                 data: (latest) {
                   // 폴링이 주는 최신 쪽 앞에, 손으로 더 받아 온 옛 쪽을 붙여
                   // 그린다(#1943). 둘을 한 provider 에 두면 15초마다 새로 받는
@@ -558,7 +574,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                 onEmote: _pickEmote,
                 attachTooltip: l.coachPhotoAttach,
                 onAttach: _picking ? null : _attachPhoto,
-                enabled: !_sending,
+                enabled: !_sending && !unassigned,
                 onSend: _send,
               ),
             ),

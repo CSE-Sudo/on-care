@@ -73,6 +73,12 @@ class User(Base):
     )
 
 
+# 이메일은 대소문자를 무시하고 하나다(#2816). 저장은 소문자로 하지만, 정규화 전에 들어온
+# 값이나 다른 경로로 쓴 값이 대소문자만 다른 계정을 만들지 못하게 DB 가 마지막으로 막는다.
+# 마이그레이션 `0134_users_email_lower_unique` 와 같은 이름·식이다.
+Index("uq_users_email_lower", func.lower(User.email), unique=True)
+
+
 class HealthProfile(Base):
     """건강 위험 정보 — /users/me/health 의 risk + 메타."""
 
@@ -130,6 +136,12 @@ class HealthProfile(Base):
 
     # 온보딩 완료 여부(프론트 온보딩 게이팅용)
     onboarded: Mapped[bool] = mapped_column(Boolean, default=False)
+    # 첫 설정을 **건너뛰었는가**(#2855). 건너뛴 회원은 다음 로그인·세션 복구 때
+    # 첫 설정 화면으로 다시 끌려가지 않는다. 폼에서 앱을 닫은(건너뛰지 않은)
+    # 회원은 거짓 그대로라 지금처럼 다시 첫 설정으로 간다(#2630).
+    onboarding_skipped: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
+    )
 
     # 건강 목표(`conditions` 의 목표 칩)를 마지막으로 바꾼 사람·시각 (#1832).
     # 회원과 담당 트레이너가 같은 칸을 고치므로, 승인 대신 기록과 알림으로 서로
@@ -709,6 +721,39 @@ class AccountDeletionReason(Base):
     )
 
 
+class UserConsent(Base):
+    """가입 동의 한 항목 — 누가 어느 문서의 어느 버전에 언제 동의했는가. (#2819)
+
+    항목(`kind`)은 `terms`·`privacy`·`health`·`age14`·`marketing` 이고, 버전은
+    `services/signup_consent.CURRENT_VERSIONS` 가 정한다. 문서가 바뀌면 새 버전의
+    행이 더해질 뿐 옛 행은 지우지 않는다 — 그때 무엇에 동의했는지가 이력이다.
+
+    계정이 지워지면 함께 지운다. 탈퇴한 계정의 동의 이력을 따로 보관할 근거는
+    처리방침 정비(#2820)에서 정한다.
+    """
+
+    __tablename__ = "user_consents"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    kind: Mapped[str] = mapped_column(String(20))
+    version: Mapped[str] = mapped_column(String(20))
+    agreed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    #: 철회한 시각. 지금은 철회 화면이 없어 비어 있다 — 선택 항목(마케팅)을
+    #: 끄는 화면이 생기면 여기에 적는다.
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "kind", "version", name="uq_user_consents_user_kind_version"
+        ),
+    )
+
+
 class DietPhoto(Base):
     """끼니 사진 — 회원이 올린 사진의 축소본. (#699)
 
@@ -1052,6 +1097,11 @@ class CoachDocument(Base):
     """
 
     __tablename__ = "coach_documents"
+    # 교체·삭제는 (user_id, source_ref) 로 좁힌다. 마이그레이션 0030 이 만든 인덱스를
+    # 모델에도 적어 `alembic check` 가 '지울 인덱스' 로 보지 않게 한다(#2838).
+    __table_args__ = (
+        Index("ix_coach_documents_user_source_ref", "user_id", "source_ref"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     # nullable: 공공 문서는 NULL(전체 공유), 개인 문서는 특정 user_id
@@ -2662,4 +2712,31 @@ class TrainerReportGoal(Base):
         UniqueConstraint(
             "member_id", "week_start", name="uq_trainer_report_goals_member_week"
         ),
+    )
+
+
+class DietAnalysisUsage(Base):
+    """식단 사진 분석이 외부 비전 모델을 부른 한 번 — 하루 상한을 센다. (#2827)
+
+    모델을 부르기 **직전에** 한 줄이 생긴다. 끼니(`diet_entries`)로 세지 않는 이유는
+    둘이다 — 음식을 못 찾은 사진(#2848)은 끼니를 남기지 않지만 모델 비용은 나가고,
+    끼니를 지우고 다시 찍으면 끼니 수로는 하루 상한이 다시 열린다. 같은 멱등키의
+    재전송은 모델을 부르지 않으므로 줄이 생기지 않는다. 모델 호출이 실패하면 그 줄을
+    지운다 — 회원 탓이 아닌 실패로 하루 상한을 깎지 않는다.
+    """
+
+    __tablename__ = "diet_analysis_usages"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: 부른 KST 날짜 `YYYY-MM-DD`. 하루 상한을 이 값으로 센다.
+    kst_date: Mapped[str] = mapped_column(String(10))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index("ix_diet_analysis_usages_user_date", "user_id", "kst_date"),
     )

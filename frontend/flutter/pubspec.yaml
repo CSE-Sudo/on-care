@@ -40,6 +40,12 @@ dependencies:
   demo_fixture:
     path: ../../shared/demo_fixture
 
+  # --- 서버와 같은 계산 규칙 ---
+  # 반올림·운동 유형 정규화·한국어 조사처럼 서버와 두 앱이 같은 값을 내야 하는
+  # 규칙의 단일 원본(#2860, #2861, #2897). 앱마다 따로 적지 않는다.
+  oncare_rules:
+    path: ../../shared/oncare_rules
+
   # --- UI 규격 ---
   # 두 앱이 같은 토큰·테마·컴포넌트를 쓴다(#1690). 화면마다 크기·색을 적지 않는다.
   oncare_ui:
@@ -86,6 +92,7 @@ dependencies:
   pdf: ^3.11.3
   image_picker: ^1.2.3
   geolocator: ^14.0.2
+  sentry_flutter: ^8.14.2
 
   # NOTE: Social-login SDKs (sign_in_with_apple / google_sign_in /
   # kakao_flutter_sdk_user / flutter_naver_login) are added in Stage 4

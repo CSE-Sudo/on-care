@@ -11,6 +11,8 @@ import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/domain/entities/diet_period.dart'
+    show kDietAllPeriodMaxDays;
 import 'package:oncare/features/diet/domain/meal_emoji.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
@@ -315,20 +317,8 @@ DietMeal _mealFromEntry(DietEntry e, DateTime date) {
     // 음식별 영양을 하나도 빠짐없이 옮긴다. 수정 화면이 이 값을 그대로 되돌려
     // 보내야 저장 뒤에도 끼니 합계가 남는다(#1853). 섭취량도 같이 온다 —
     // 그 값이 나머지 여섯 값의 기준이라 흘리면 비례 환산이 근거를 잃는다(#1876).
-    items: <DietFood>[
-      for (final FoodItem f in e.foods)
-        DietFood(
-          f.name,
-          f.calories,
-          amountG: f.amountG,
-          sodiumMg: f.sodiumMg,
-          sugarG: f.sugarG,
-          carbsG: f.carbsG,
-          proteinG: f.proteinG,
-          fatG: f.fatG,
-          source: f.source,
-        ),
-    ],
+    // 표시 이름이 있으면 그것을 보인다(#2850).
+    items: <DietFood>[for (final FoodItem f in e.foods) DietFood.fromItem(f)],
     tags: const <DietTag>[],
     sodium: sodium,
     sugar: sugar,
@@ -417,13 +407,19 @@ DietDateRange dietRangeForTab(
     // 시작은 첫 기록일이다(`GET /me/records/span`). 가입일로 두면 기록을
     // 남기기 전 기간이 빈 칸으로 먼저 보인다. 아직 못 읽었거나 기록이 하나도
     // 없으면 오늘 하루만 그린다 — 지어낸 기간보다 하루가 낫다.
+    //
+    // 다만 서버 기간 집계와 같은 상한(약 3년)까지만 거슬러 올라간다(#2833).
+    // 날짜가 잘못 들어간 아주 오래된 기록 하나가 수십만 칸을 만들지 않게 한다.
     final DateTime? first = firstRecord;
-    return (
-      from: first == null || first.isAfter(last)
-          ? last
-          : DateTime(first.year, first.month, first.day),
-      to: last,
+    final DateTime from = first == null || first.isAfter(last)
+        ? last
+        : DateTime(first.year, first.month, first.day);
+    final DateTime floor = DateTime(
+      last.year,
+      last.month,
+      last.day - (kDietAllPeriodMaxDays - 1),
     );
+    return (from: from.isBefore(floor) ? floor : from, to: last);
   }
   final DateTime monday = DateTime(
     today.year,
@@ -440,6 +436,11 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
   int _weekShift = 0; // whole-week steps away from today
   late DateTime _selected;
 
+  /// 이 화면이 마지막으로 그린 오늘. 탭은 셸 안에 살아 있어 앱을 켜 둔 채
+  /// 자정을 넘기면 [_selected] 가 어제로 남는다(#2882) — [_followMidnight] 가
+  /// 이 값과 견줘 날이 바뀐 것을 알아챈다.
+  late DateTime _shownToday;
+
   DateTime get _today {
     final DateTime n = nowKst();
     return DateTime(n.year, n.month, n.day);
@@ -448,7 +449,16 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
   @override
   void initState() {
     super.initState();
-    _selected = _today;
+    _selected = _shownToday = _today;
+  }
+
+  /// 날이 바뀌었으면, 회원이 날짜를 직접 고르지 않은 채(지난 오늘을 보던 중)
+  /// 였을 때만 새 오늘로 옮긴다. 일부러 지난 날짜를 보던 회원은 그대로 둔다.
+  /// 셸이 앱 복귀·탭 전환 때 식단을 다시 읽으므로 그 빌드에서 옮겨진다.
+  void _followMidnight(DateTime today) {
+    if (today == _shownToday) return;
+    if (_weekShift == 0 && _selected == _shownToday) _selected = today;
+    _shownToday = today;
   }
 
   /// 기간 뷰가 집계할 범위. `전체` 는 첫 기록일부터다(#2079) — 아직 못 읽었으면
@@ -477,6 +487,7 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
       lang: Localizations.localeOf(context).languageCode == 'en' ? 'en' : 'ko',
     );
     final DateTime today = _today;
+    _followMidnight(today);
     // 스트립은 늘 월요일에서 시작해 일요일로 끝난다 (#1059). 오늘을 가운데
     // 두면 한 줄에 지난주 끝과 이번 주 앞이 섞여, `이번 주` 그래프가 세는
     // 주와 달력이 보여 주는 주가 서로 어긋났다.
@@ -619,7 +630,9 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
                     _MealLog(
                       entries: day.entries,
                       date: _selected,
-                      onAdd: () => showDietAddSheet(context),
+                      // 보고 있는 날로 추가한다(#2849). 어제를 보며 누른
+                      // 추가가 오늘로 들어가면 어제 목록에는 끝내 보이지 않는다.
+                      onAdd: () => showDietAddSheet(context, date: _selected),
                       onEditMeal: (DietMeal m) =>
                           openMealDetailPage(context, m),
                     ),

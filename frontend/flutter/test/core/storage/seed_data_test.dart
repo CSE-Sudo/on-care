@@ -523,5 +523,38 @@ void main() {
         reason: 'rows without a seed- prefix must never be touched',
       );
     });
+
+    test('every legacy version flag is cleared in one pass', () async {
+      // 한 줄씩 지우던 목록을 반복문으로 접었다(#2914) — 중간 버전(v15 처럼
+      // 예전 목록에서 빠져 있던 것 포함)도 빠짐없이 지워져야 한다.
+      for (final String flag in <String>[
+        'seeded_v3',
+        'seeded_v15',
+        'seeded_v19',
+        'seeded_v22',
+      ]) {
+        await db.putValue(flag, '2020-01-01');
+      }
+
+      await seedIfEmpty(db, fixture: _fixture);
+
+      for (final String flag in kLegacySeedFlags) {
+        expect(await db.readValue(flag), isNull, reason: flag);
+      }
+      expect(await db.readValue(kSeedFlag), _todayString());
+    });
+  });
+
+  group('legacy seed flags', () {
+    test('cover every version before the current one', () {
+      expect(kLegacySeedFlags.first, 'seeded_v2');
+      expect(kLegacySeedFlags.last, 'seeded_v${kSeedVersion - 1}');
+      expect(kLegacySeedFlags, hasLength(kSeedVersion - 2));
+      expect(kLegacySeedFlags, isNot(contains(kSeedFlag)));
+    });
+
+    test('the current flag key follows the version', () {
+      expect(kSeedFlag, 'seeded_v$kSeedVersion');
+    });
   });
 }

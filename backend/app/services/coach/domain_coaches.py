@@ -20,6 +20,7 @@ from collections.abc import Callable
 from sqlalchemy.orm import Session
 
 from app.core.locale import current_locale, localized
+from app.db.session import release_connection
 from app.schemas.misc_api import CoachSuggestion
 from app.services.coach import grounding, prompt_safety
 from app.services.coach.llm import get_coach_llm
@@ -93,6 +94,8 @@ def _rag_suggestion(
             "Please give advice based on the information above.",
         )
         user_prompt = f"{combined}\n\n{ask}"
+        # LLM 을 기다리는 동안 DB 연결을 쥐지 않는다(#2836) — 여기까지는 읽기뿐이다.
+        release_connection(db)
         result = llm.generate(_system_prompt(system_prompt), user_prompt)
         if not result.text.strip():
             return fallback

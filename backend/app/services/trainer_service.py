@@ -45,6 +45,8 @@ from app.schemas.trainer_api import (
     MemberReportSendsOut,
     MemberWeeklyFeedbackOut,
     ReportGoalsOut,
+    ReportQueueItemOut,
+    ReportQueueOut,
     ReportSendOut,
     ReportSendsOut,
     ProgramItem, ProgramScheduleOut, ReportFeedbackOut, RoutineCompleteOut,
@@ -84,6 +86,7 @@ from app.schemas.points_api import PointsOut
 from app.services.coach import personal_ingest
 from app.services import trainer_verification_service
 from app.services.exercise_duration import format_duration, seconds_or_minutes
+from app.services import korean_josa
 
 # 일일 나트륨 목표(mg). 프론트 `sodiumTargetMg` 와 같은 값 — 리포트의
 # '초과 N일'이 앱 화면의 경고와 어긋나면 안 된다.
@@ -430,7 +433,10 @@ def _week_days(
             continue
         # 이름이 빈 기록은 그 컬럼이 생기기 전(#1276)의 것이다. 유형 라벨이라도
         # 적어야 그날 무엇을 했는지가 칸에서 통째로 사라지지 않는다.
-        name = (row.name or "").strip() or exercise_types.normalize_ko(row.type)
+        # 라벨은 요청 언어로 고른다(#2885) — 영어 리포트에 `근력` 이 남지 않게.
+        name = (row.name or "").strip() or exercise_types.normalize_label(
+            row.type, current_locale()
+        )
         by_weekday.setdefault(
             exercise_service.WEEKDAY_LABELS.index(row.day_label), []
         ).append(name)
@@ -1257,10 +1263,23 @@ def mark_thread_read(db: Session, trainer_id: str, member_id: str, reader: str) 
 
 
 def unread_counts_for_trainer(db: Session, trainer_id: str) -> dict[str, int]:
-    """트레이너 기준 회원별 미확인(회원이 보낸 read_at NULL) 메시지 수."""
+    """트레이너 기준 회원별 미확인(회원이 보낸 read_at NULL) 메시지 수.
+
+    **지금 담당 중이고 동의가 유효한 링크**의 회원만 센다(#2868). 읽음 처리
+    (`POST /trainer/clients/{id}/chat/read`)는 `_require_client` 로 그런 링크를
+    요구하므로, 해제·동의 철회 회원을 세면 트레이너가 지울 수 없는 배지가 남고
+    "예전에 담당했던 회원" 이 숫자로 드러난다. 메시지 행은 그대로 두므로
+    재등록(새 동의 포함)하면 남은 안읽음이 다시 보인다.
+    """
     rows = db.execute(
         select(ChatMessage.member_id, func.count())
+        .join(
+            TrainerClient,
+            (TrainerClient.trainer_id == ChatMessage.trainer_id)
+            & (TrainerClient.member_id == ChatMessage.member_id),
+        )
         .where(
+            data_consent_service.open_link_clause(),
             ChatMessage.trainer_id == trainer_id,
             ChatMessage.sender == "member",
             ChatMessage.read_at.is_(None),
@@ -1302,8 +1321,7 @@ def has_active_client_link(db: Session, trainer_id: str, member_id: str) -> bool
         select(TrainerClient.id).where(
             TrainerClient.trainer_id == trainer_id,
             TrainerClient.member_id == member_id,
-            TrainerClient.active.is_(True),
-            data_consent_service.allows_access_clause(),
+            data_consent_service.open_link_clause(),
         )
     ) is not None
 
@@ -7150,7 +7168,6 @@ def build_weekly_report(
     # 기록이 있는 날만 센다 — 아직 오지 않은 요일의 0 까지 나누면 주 초반
     # 평균이 실제보다 낮아진다(로스터의 `sodiumWeekAvg` 와 같은 규칙).
     recorded_sodium = [mg for mg in sodium_week if mg > 0]
-    sodium_over_days = sum(1 for mg in sodium_week if mg > SODIUM_TARGET_MG)
     sodium_avg = (
         round(sum(recorded_sodium) / len(recorded_sodium)) if recorded_sodium else None
     )
@@ -7161,8 +7178,15 @@ def build_weekly_report(
     profile = db.scalars(
         select(HealthProfile).where(HealthProfile.user_id == member_id)
     ).first()
+    # 초과일은 그 회원의 나트륨 목표로 센다(#2885). 같은 응답의 `sodium_target`
+    # 과 AI 요약이 개인 목표를 적는데 초과일만 2,000mg 으로 세면, 1,500mg 목표인
+    # 회원의 1,800mg 날이 목표 안으로, 2,300mg 목표인 회원의 2,100mg 날이 초과로
+    # 읽혔다. 목표가 없으면 공통 기준이다.
+    sodium_limit = sodium_limit_mg(profile.daily_sodium_mg if profile else None)
+    sodium_over_days = sum(1 for mg in sodium_week if mg > sodium_limit)
 
     report = WeeklyReportOut(
+        calorie_baseline=_calorie_baseline(db, member_id, monday),
         member_id=member_id,
         member_name=member_name,
         calorie_target=profile.daily_calories if profile else None,
@@ -7170,6 +7194,7 @@ def build_weekly_report(
         sugar_target=profile.daily_sugar_g if profile else None,
         carbs_target=profile.daily_carbs_g if profile else None,
         protein_target=profile.daily_protein_g if profile else None,
+        effective_protein_target=diet_coach_inputs.effective_protein_g(profile),
         fat_target=profile.daily_fat_g if profile else None,
         week_start=monday_str,
         week_end=sunday_str,
@@ -7190,6 +7215,125 @@ def build_weekly_report(
         message="",
     )
     return report.model_copy(update={"message": report_message(report)})
+
+
+def sodium_limit_mg(target: int | None) -> int:
+    """나트륨 초과를 가르는 하루 기준(mg) — 회원 목표, 없으면 공통 기준. (#2885)
+
+    0 이하는 "목표 없음" 으로 읽는다(앱의 목표 읽기와 같은 규칙).
+    """
+    return target if target is not None and target > 0 else SODIUM_TARGET_MG
+
+
+#: 칼로리 `평소` 가 견주는 직전 주 수. 한 주만 보면 그 주가 아프거나 출장이었을
+#: 때 기준 자체가 거짓이 된다 — 트레이너 웹 `kCalorieBaselineWeeks` 와 같다.
+CALORIE_BASELINE_WEEKS = 4
+
+
+def _calorie_baseline(db: Session, member_id: str, monday: date) -> float | None:
+    """[monday] 주 직전 4주에 **기록한 날**의 하루 평균 칼로리. 없으면 None. (#2863)
+
+    앱이 직전 4주 리포트를 하나씩 다시 읽어 `calories_week` 의 0 아닌 날을
+    평균 내던 계산을 그대로 옮겼다 — 날마다 합을 반올림한 뒤(`_calories_week`
+    와 같은 규칙) 0 인 날은 뺀다. 안 적은 날을 0 으로 세면 성실히 적은 주가
+    오히려 적게 먹은 주로 보인다.
+    """
+    start = monday - timedelta(days=7 * CALORIE_BASELINE_WEEKS)
+    end = monday - timedelta(days=1)
+    rows = db.execute(
+        select(DietEntry.date, func.sum(DietEntry.total_calories))
+        .where(
+            DietEntry.user_id == member_id,
+            DietEntry.date >= start.isoformat(),
+            DietEntry.date <= end.isoformat(),
+        )
+        .group_by(DietEntry.date)
+    ).all()
+    recorded = [round(total or 0) for _, total in rows]
+    recorded = [kcal for kcal in recorded if kcal > 0]
+    if not recorded:
+        return None
+    return sum(recorded) / len(recorded)
+
+
+def build_report_queue(db: Session, trainer_id: str, week: date) -> ReportQueueOut:
+    """[week] 주 리포트 작업대 — 열람할 수 있는 담당 회원 전원의 요약. (#2863)
+
+    작업대는 담당 회원 전원을 한 화면에 세운다. 예전에는 앱이 회원마다 주간
+    리포트와 회원 피드백을 따로 불러(회원 N명이면 요청 2N개) 서버도 회원마다
+    `build_weekly_report` 를 돌렸다. 큐가 쓰는 값은 세션 예약·완료 수와 이행률
+    뿐이라, 그 값만 회원 id 목록으로 **묶어** 읽는다 — 회원 수와 무관하게 쿼리
+    수가 정해져 있다.
+
+    값의 규칙은 [build_weekly_report] 와 같다. 회원이 볼 수 있는 링크
+    (`_require_client` 와 같은 조건: 담당이 살아 있고 동의가 철회되지 않음)만
+    싣는다 — 회원 리포트가 404 인 회원의 수치를 여기로 새게 하지 않는다.
+    """
+    monday = week_start_of(week)
+    sunday = monday + timedelta(days=6)
+    monday_str, sunday_str = monday.isoformat(), sunday.isoformat()
+    member_ids = list(
+        db.scalars(
+            select(TrainerClient.member_id)
+            .where(
+                TrainerClient.trainer_id == trainer_id,
+                TrainerClient.active.is_(True),
+                data_consent_service.allows_access_clause(),
+            )
+            .order_by(TrainerClient.member_id)
+        ).all()
+    )
+    if not member_ids:
+        return ReportQueueOut(week_start=monday_str, items=[])
+
+    # 세션 — 리포트와 같이 취소·노쇼·상담은 세지 않는다(#871, #2741).
+    booked: dict[str, int] = defaultdict(int)
+    done: dict[str, int] = defaultdict(int)
+    for member_id, status in db.execute(
+        select(TrainerSchedule.member_id, TrainerSchedule.status).where(
+            TrainerSchedule.trainer_id == trainer_id,
+            TrainerSchedule.member_id.in_(member_ids),
+            TrainerSchedule.date >= monday_str,
+            TrainerSchedule.date <= sunday_str,
+            TrainerSchedule.status.in_((SCHEDULE_UPCOMING, SCHEDULE_DONE)),
+            TrainerSchedule.type != "상담",
+        )
+    ).all():
+        booked[member_id] += 1
+        if status == SCHEDULE_DONE:
+            done[member_id] += 1
+
+    # 이행률 — 리포트와 같은 `_week_completion` 규칙(같은 날 여럿이면 최댓값).
+    hist_by_member: dict[str, list[RoutineHistory]] = defaultdict(list)
+    for row in db.scalars(
+        select(RoutineHistory).where(
+            RoutineHistory.member_id.in_(member_ids),
+            RoutineHistory.date >= monday_str,
+            RoutineHistory.date <= sunday_str,
+            or_(
+                RoutineHistory.trainer_id.is_(None),
+                RoutineHistory.trainer_id == trainer_id,
+            ),
+        )
+    ).all():
+        hist_by_member[row.member_id].append(row)
+
+    items: list[ReportQueueItemOut] = []
+    for member_id in member_ids:
+        week_values = _week_completion(hist_by_member.get(member_id, []), monday)
+        recorded = [d for d in week_values if d > 0]
+        items.append(
+            ReportQueueItemOut(
+                member_id=member_id,
+                sessions_booked=booked.get(member_id, 0),
+                sessions_done=done.get(member_id, 0),
+                completion_avg=(
+                    round(sum(recorded) / len(recorded)) if recorded else None
+                ),
+                week_completion=week_values,
+            )
+        )
+    return ReportQueueOut(week_start=monday_str, items=items)
 
 
 def report_message(report: WeeklyReportOut, locale: Locale | None = None) -> str:
@@ -7254,18 +7398,20 @@ def _report_message_ko(report: WeeklyReportOut) -> str:
         paragraphs.append(" ".join(workout))
 
     diet: list[str] = []
+    # 초과일을 센 기준과 같은 목표를 적는다(#2885).
+    sodium_limit = sodium_limit_mg(report.sodium_target)
     if report.sodium_avg is not None:
         # 평균과 초과일을 한 문장에 뒤섞지 않는다. `평균 1,916mg으로 목표를
         # 3일 넘겼어요` 는 평균이 목표를 넘긴 것처럼 읽힌다. 목표도 문장에
         # 박아 두지 않는다 — 기준이 바뀌면 문장만 옛말을 한다(#1177).
         diet.append(
             f"나트륨은 하루 평균 {report.sodium_avg:,}mg이었고, "
-            f"목표({SODIUM_TARGET_MG:,}mg)를 넘긴 날이 "
+            f"목표({sodium_limit:,}mg)를 넘긴 날이 "
             f"{report.sodium_over_days}일이었어요. 국물을 절반만 남기셔도 "
             "하루 400~500mg은 줄어듭니다."
             if report.sodium_over_days > 0
             else f"나트륨은 하루 평균 {report.sodium_avg:,}mg으로 "
-            f"목표({SODIUM_TARGET_MG:,}mg) 안에서 잘 지키고 계세요."
+            f"목표({sodium_limit:,}mg) 안에서 잘 지키고 계세요."
         )
     recorded = [v for v in report.calories_week if v > 0]
     if recorded:
@@ -7334,14 +7480,15 @@ def _report_message_en(report: WeeklyReportOut) -> str:
         paragraphs.append(" ".join(workout))
 
     diet: list[str] = []
+    sodium_limit = sodium_limit_mg(report.sodium_target)
     if report.sodium_avg is not None:
         diet.append(
             f"Sodium averaged {report.sodium_avg:,}mg a day, and went over the "
-            f"{SODIUM_TARGET_MG:,}mg target on {_plural_days(report.sodium_over_days)}. "
+            f"{sodium_limit:,}mg target on {_plural_days(report.sodium_over_days)}. "
             "Leaving half the broth behind saves 400–500mg a day."
             if report.sodium_over_days > 0
             else f"Sodium averaged {report.sodium_avg:,}mg a day — comfortably "
-            f"inside the {SODIUM_TARGET_MG:,}mg target."
+            f"inside the {sodium_limit:,}mg target."
         )
     recorded = [v for v in report.calories_week if v > 0]
     if recorded:
@@ -7370,13 +7517,13 @@ def _topic(word: str) -> str:
     """`은`/`는` 을 받침에 맞춰 붙인다.
 
     `은(는)` 은 사람이 쓴 글로 읽히지 않는다 — 회원이 그대로 받는 문장이라
-    기계가 쓴 티가 나는 자리를 남기지 않는다.
+    기계가 쓴 티가 나는 자리를 남기지 않는다. 규칙은 서버·두 앱이 함께 쓰는
+    `korean_josa` 하나다(#2897) — `레그 프레스(머신)` 은 괄호 앞 글자로,
+    `플랭크 60` 은 읽는 소리로 고른다.
     """
     if not word:
         return word
-    last = word[-1]
-    has_batchim = "가" <= last <= "힣" and (ord(last) - 0xAC00) % 28 != 0
-    return f"{word}{'은' if has_batchim else '는'}"
+    return korean_josa.with_particle(word, "은", "는")
 
 
 def _skipped_names(report: WeeklyReportOut) -> list[str]:

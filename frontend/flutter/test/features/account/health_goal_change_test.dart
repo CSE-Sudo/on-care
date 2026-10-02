@@ -78,10 +78,9 @@ void main() {
         'focus_changed_at': '2026-09-16T01:30:00Z',
       });
       expect(profile.focusChangedBy, UserProfile.focusChangedByTrainer);
-      expect(
-        profile.focusChangedAt,
-        DateTime.utc(2026, 9, 16, 1, 30).toLocal(),
-      );
+      // 01:30Z 는 KST 10:30 이다 — 기기 시간대와 상관없이 KST 벽시계로 읽는다
+      // (#2876).
+      expect(profile.focusChangedAt, DateTime(2026, 9, 16, 10, 30));
     });
 
     test('바꾼 적이 없으면 둘 다 비어 있고 줄을 그리지 않는다', () {

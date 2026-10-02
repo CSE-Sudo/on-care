@@ -14,7 +14,7 @@ import pytest
 #: 시드 제휴 헬스장 — 카카오에는 없다.
 HEALTHMATE_ID = "gym-healthmate"
 #: 시드의 카카오 발견 헬스장 — `places.id` 가 카카오 장소 id 다.
-DISCOVERED_GYM_ID = "328969863"
+DISCOVERED_GYM_ID = "gym-demo-ptlab"
 #: 시드 데모의 medical 장소.
 MEDICAL_PLACE_ID = "place-1"
 
@@ -324,15 +324,31 @@ def test_selecting_a_non_gym_kakao_place_is_404(client, trainer, fake_kakao, db_
     assert db_session.get(models.Place, food_id) is None
 
 
-def test_selecting_an_existing_gym_does_not_call_kakao(client, trainer, kakao_off):
+def test_selecting_an_existing_gym_does_not_call_kakao(
+    client, trainer, kakao_off, db_session, created_places
+):
+    """이미 `places` 에 있는 카카오 헬스장은 카카오를 다시 부르지 않고 고른다.
+
+    시드에는 실재 업체(숫자 카카오 id)가 없으므로 테스트가 직접 만든다(#2811).
+    """
+    from app.models import models
+
     token, _ = trainer
+    place_id = _new_kakao_id()
+    db_session.add(models.Place(
+        id=place_id, name="이미 있는 헬스장", category="fitness",
+        address="", lat=37.55, lng=126.93,
+    ))
+    db_session.commit()
+    created_places.append(place_id)
+
     r = client.put(
         "/v1/trainer/me/gym/kakao",
-        json={"kakao_place_id": DISCOVERED_GYM_ID, "name": "아무 이름"},
+        json={"kakao_place_id": place_id, "name": "아무 이름"},
         headers=_auth(token),
     )
     assert r.status_code == 200, r.text
-    assert r.json()["gym"]["id"] == DISCOVERED_GYM_ID
+    assert r.json()["gym"]["id"] == place_id
 
 
 def test_selecting_a_non_fitness_place_is_404(client, trainer, kakao_off, db_session):
