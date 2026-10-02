@@ -1,7 +1,9 @@
 # 의존성 업데이트 PR 을 주 1회 받는다(#2837).
 #
 # 생태계마다 업데이트를 한 묶음(groups)으로 모아 PR 수를 줄인다 — 매주 많아야
-# 생태계당 하나다. 주 버전 변경은 따로 떼어 내 리뷰가 묻히지 않게 한다.
+# 생태계당 하나다. pip·pub 의 주 버전 변경은 자동 PR 로 받지 않는다(#2978) — 앱 전체
+# 코드 수정이 따르므로 필요할 때 패키지별 이슈로 계획한다. 보안 업데이트는 ignore 와
+# 별개로 계속 열린다.
 # PR 처리 규칙은 docs/team_workflow.md "의존성 업데이트 PR" 을 따른다.
 version: 2
 
@@ -22,8 +24,9 @@ updates:
     groups:
       backend-minor-patch:
         update-types: [minor, patch]
-      backend-major:
-        update-types: [major]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   # 워크플로의 action. 커밋 SHA 고정(#1554·#2340)을 유지한 채 SHA 와 버전 주석을 함께 올린다.
   - package-ecosystem: github-actions
@@ -62,5 +65,9 @@ updates:
     groups:
       flutter-minor-patch:
         update-types: [minor, patch]
-      flutter-major:
-        update-types: [major]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      # flutter_localizations(SDK)가 intl 버전을 고정한다 — 앱에서 따로 올리면 의존성
+      # 해석이 실패한다. Flutter SDK 를 올릴 때 함께 맞춘다.
+      - dependency-name: intl
