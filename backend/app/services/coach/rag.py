@@ -2,12 +2,12 @@
 RAG 적재(ingest) + 검색(retrieve).
 
 핵심 격리 규칙:
-- 개인 문서(환자 데이터): user_id = 특정 사용자
+- 개인 문서(회원 기록 요약): user_id = 특정 회원
 - 공공 문서(가이드라인):  user_id = NULL  → 전체 공유
 - 검색은 (user_id == 본인 OR user_id IS NULL) 로만 → 남의 개인기록 절대 안 섞임
 - domain('diet'|'exercise'|'general') 으로 도메인별 코치가 자기 자료 위주 검색
 
-STEP 8 챗봇도 retrieve_context() 를 그대로 재사용합니다.
+AI 코치 채팅(coach/chat.py)도 같은 검색(retrieve)을 재사용합니다.
 """
 from __future__ import annotations
 
@@ -198,7 +198,7 @@ def ingest_personal_text(
     db: Session, user_id: str, text: str, *, domain: str, source: str,
     title: str = "", source_ref: str | None = None,
 ) -> int:
-    """환자 개인 데이터(식단/운동/채팅 요약)를 적재.
+    """회원 개인 기록(식단/운동/채팅 요약)을 적재.
 
     [source_ref] 를 주면 나중에 그 기록만 골라 교체·삭제할 수 있다.
     """
@@ -250,7 +250,7 @@ def retrieve_context(
 ) -> str:
     """
     검색 결과를 LLM 프롬프트용 컨텍스트 문자열로 합친다.
-    STEP 8 챗봇도 이 함수를 그대로 사용.
+    도메인 코치(domain_coaches)가 이 함수로 컨텍스트를 만든다.
     """
     hits = retrieve(db, query, user_id=user_id, domain=domain)
     lines: list[str] = []

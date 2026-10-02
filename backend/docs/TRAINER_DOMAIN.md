@@ -258,6 +258,24 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
   같은 규칙이라 같은 헬스장은 한 행으로 모인다. 규칙: **목록에 들어가는 헬스장 =
   카카오에 있는 실제 헬스장(`스포츠시설` 카테고리)**.
 
+### 트레이너 운영자 승인 (#2825, `0132_trainer_verification`)
+
+헬스장이 실재해도 **그 사람이 그 헬스장 트레이너인지는** 소속 선택만으로 알 수 없다.
+공개 가입 트레이너는 `TrainerProfile.verification_status='pending'` 으로 시작하고, 운영자가
+`POST /admin/trainers/{id}/approve` 로 승인해야 회원에게 닿는다.
+
+- 승인 전(`pending`)·반려(`rejected`) 트레이너는 회원 앱 디렉터리(`gym_service._trainer_query`),
+  상담 대상(`consultation_service._validate_target`), 연결 코드·담당 요청 발송
+  (`RequireApprovedTrainer`, 403 `trainer_not_approved`)에서 빠진다. 반려 뒤 남은 담당 요청은
+  회원이 수락할 수 없다(404).
+- 프로필·소속·비밀번호·탈퇴 같은 계정 관리는 승인과 무관하게 열려 있다 — 운영자가 판단할
+  내용을 채워 두는 시간이다.
+- 반려는 **새 연결만** 막는다. 이미 맺은 담당·받은 상담은 그대로다.
+- 처리 시각·처리자·반려 사유는 `verification_decided_at`·`verification_decided_by`·
+  `verification_note` 에 남고, `GET /trainer/me` 의 `verification` 으로 트레이너 웹에 간다.
+- 기존 트레이너와 시드 트레이너는 `approved` 다(마이그레이션 백필·ORM 기본값). DB 기본값은
+  `pending` 이라 ORM 밖에서 넣은 행은 닫힌 쪽에서 시작한다.
+
 ## 4. 트레이너 API (`/v1/trainer/*`, RequireTrainer)
 
 | Method | Path | 설명 |
@@ -782,14 +800,12 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 
 ## 8. 마이그레이션 선형화 주의
 
-트레이너 마이그레이션은 `0012_trainer_domain` →
-`0013_trainer_active_coach_uq` 뒤에 상담·트레이너 인덱스의 두 `0014` 분기를
-`0015_merge_alembic_heads`로 합친다. 그 뒤는 `0016_drop_vitals` →
-`0017_add_diet_exercise_goals` → `0018_diet_entry_sugar_g_float` →
-`0019_trainer_noti_settings` → **`0020_gym_profiles_trainer_fk`** 순의 단일
-chain이다. `0020`의 `down_revision`은 `0019_trainer_noti_settings`다.
+마이그레이션은 단일 chain이고 계속 자라므로 끝을 문서에 적지 않는다. 현재 head 는
+`cd backend && alembic heads` 로 확인하고, 새 마이그레이션의 `down_revision` 은 그 head 로 잡는다.
+초기 트레이너 스택(`0012_trainer_domain` ~ `0020_gym_profiles_trainer_fk`)에서 두 `0014` 분기를
+`0015_merge_alembic_heads`로 합친 기록은 [DEPLOY.md](DEPLOY.md) "마이그레이션 head 선형화" 절에 있다.
 
-배포는 이 순서를 따라 `alembic upgrade head`를 실행하며, CI에서
+배포는 `alembic upgrade head`를 실행하며, CI에서
 `alembic heads`가 하나인지 먼저 검증한다. 이미 별도 migration head를 적용한 DB는
 `down_revision`을 임의로 바꾸지 말고 배포 문서의 merge revision 절차를 따른다.
 

@@ -3656,6 +3656,12 @@ abstract class AppLocalizations {
   /// **'Remove Connection'**
   String get myConnectionDeleteTitle;
 
+  /// No description provided for @myConnectionDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t remove the connection. Please try again.'**
+  String get myConnectionDeleteFailed;
+
   /// No description provided for @myDelete.
   ///
   /// In en, this message translates to:
@@ -4021,6 +4027,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load the conversation'**
   String get coachChatLoadFailed;
+
+  /// No description provided for @coachChatEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a conversation with {trainer}'**
+  String coachChatEmptyTitle(String trainer);
+
+  /// No description provided for @coachChatEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a photo of what you ate today or ask about your workouts'**
+  String get coachChatEmptyBody;
 
   /// No description provided for @coachChatSendFailed.
   ///
@@ -4831,6 +4849,12 @@ abstract class AppLocalizations {
   /// **'No trainers are affiliated yet.'**
   String get exGymConsultNoTrainers;
 
+  /// No description provided for @exGymTrainersLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this gym\'s trainers.'**
+  String get exGymTrainersLoadError;
+
   /// No description provided for @exTrainerConsultRequest.
   ///
   /// In en, this message translates to:
@@ -5316,6 +5340,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Past booking'**
   String get exReservationPast;
+
+  /// No description provided for @exReservationPastMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Show {count} more past bookings'**
+  String exReservationPastMore(int count);
+
+  /// No description provided for @exReservationPastLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide past bookings'**
+  String get exReservationPastLess;
 
   /// No description provided for @exCancelConfirmBody.
   ///
@@ -5844,6 +5880,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a recommended workout +{routine}P\nSpend them in MY › Use Points'**
   String guidePointsBody(int diet, int exercise, int routine);
+
+  /// No description provided for @guideSampleFoodScrambledEggs.
+  ///
+  /// In en, this message translates to:
+  /// **'Scrambled eggs'**
+  String get guideSampleFoodScrambledEggs;
+
+  /// No description provided for @guideSampleFoodWholeWheatToast.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole-wheat toast'**
+  String get guideSampleFoodWholeWheatToast;
+
+  /// No description provided for @guideSampleFoodChickenSalad.
+  ///
+  /// In en, this message translates to:
+  /// **'Chicken breast salad'**
+  String get guideSampleFoodChickenSalad;
+
+  /// No description provided for @guideSampleFoodBrownRice.
+  ///
+  /// In en, this message translates to:
+  /// **'Brown rice'**
+  String get guideSampleFoodBrownRice;
+
+  /// No description provided for @guideSampleFoodGrilledSalmon.
+  ///
+  /// In en, this message translates to:
+  /// **'Grilled salmon'**
+  String get guideSampleFoodGrilledSalmon;
+
+  /// No description provided for @guideSampleFoodRoastedVegetables.
+  ///
+  /// In en, this message translates to:
+  /// **'Roasted vegetables'**
+  String get guideSampleFoodRoastedVegetables;
 
   /// Onboarding step 1: the basic info step must be filled in (#1830).
   ///
@@ -7014,6 +7086,24 @@ abstract class AppLocalizations {
   /// **'Cancel request'**
   String get exConsultHistoryCancelAction;
 
+  /// No description provided for @exConsultCancelFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t cancel the consultation request. Please try again.'**
+  String get exConsultCancelFailed;
+
+  /// No description provided for @exConsultCancelStale.
+  ///
+  /// In en, this message translates to:
+  /// **'This request was already handled. It now shows its latest status.'**
+  String get exConsultCancelStale;
+
+  /// No description provided for @exConsultHistoryLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your consultation requests.'**
+  String get exConsultHistoryLoadError;
+
   /// No description provided for @exConsultHistoryCancelBody.
   ///
   /// In en, this message translates to:
@@ -7948,6 +8038,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Send feedback now'**
   String get weeklyFeedbackNowButton;
+
+  /// No description provided for @authForgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot your password?'**
+  String get authForgotPassword;
+
+  /// No description provided for @passwordChangeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change password'**
+  String get passwordChangeTitle;
+
+  /// No description provided for @passwordChangeCurrentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Current password'**
+  String get passwordChangeCurrentHint;
+
+  /// No description provided for @passwordChangeNewHint.
+  ///
+  /// In en, this message translates to:
+  /// **'New password (8+ characters, letters and numbers)'**
+  String get passwordChangeNewHint;
+
+  /// No description provided for @passwordChangeConfirmHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm new password'**
+  String get passwordChangeConfirmHint;
+
+  /// No description provided for @passwordChangeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'This device stays signed in. Other devices will need to sign in again.'**
+  String get passwordChangeNote;
+
+  /// No description provided for @passwordChangeAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Change password'**
+  String get passwordChangeAction;
+
+  /// No description provided for @passwordChangeDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Password changed'**
+  String get passwordChangeDone;
+
+  /// No description provided for @passwordChangeWrongCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Your current password is incorrect'**
+  String get passwordChangeWrongCurrent;
+
+  /// No description provided for @passwordChangeSameAsCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a password different from your current one'**
+  String get passwordChangeSameAsCurrent;
+
+  /// No description provided for @passwordChangeDemoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo accounts can\'t change passwords'**
+  String get passwordChangeDemoTitle;
+
+  /// No description provided for @passwordChangeDemoBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo mode has no server account. Sign in with a real account to change your password here.'**
+  String get passwordChangeDemoBody;
+
+  /// No description provided for @passwordChangeSocialTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This account has no password'**
+  String get passwordChangeSocialTitle;
+
+  /// No description provided for @passwordChangeSocialBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Accounts that sign in with Kakao or Google are managed by that service.'**
+  String get passwordChangeSocialBody;
+
+  /// No description provided for @passwordTooManyAttempts.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please try again in a moment.'**
+  String get passwordTooManyAttempts;
+
+  /// No description provided for @passwordTemporaryFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t complete the request. Please try again shortly.'**
+  String get passwordTemporaryFailure;
+
+  /// No description provided for @passwordResetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset password'**
+  String get passwordResetTitle;
+
+  /// No description provided for @passwordResetRequestSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll email a reset code to the address you signed up with.'**
+  String get passwordResetRequestSubtitle;
+
+  /// No description provided for @passwordResetSendAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Send code'**
+  String get passwordResetSendAction;
+
+  /// No description provided for @passwordResetHaveCode.
+  ///
+  /// In en, this message translates to:
+  /// **'I already have a code'**
+  String get passwordResetHaveCode;
+
+  /// No description provided for @passwordResetSentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your email'**
+  String get passwordResetSentTitle;
+
+  /// Shown after a reset request. Same text whether or not the account exists.
+  ///
+  /// In en, this message translates to:
+  /// **'If an account uses {email}, we\'ve sent a code you can use once within {minutes} minutes.'**
+  String passwordResetSentBody(String email, int minutes);
+
+  /// No description provided for @passwordResetConfirmSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code from the email and your new password.'**
+  String get passwordResetConfirmSubtitle;
+
+  /// No description provided for @passwordResetCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'16-character reset code'**
+  String get passwordResetCodeHint;
+
+  /// No description provided for @passwordResetCodeEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code'**
+  String get passwordResetCodeEmpty;
+
+  /// No description provided for @passwordResetCodeMalformed.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 16-character code from the email'**
+  String get passwordResetCodeMalformed;
+
+  /// No description provided for @passwordResetCodeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This code is wrong or has expired. Request a new one.'**
+  String get passwordResetCodeInvalid;
+
+  /// No description provided for @passwordResetConfirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Save new password'**
+  String get passwordResetConfirmAction;
+
+  /// No description provided for @passwordResetResend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a new code'**
+  String get passwordResetResend;
+
+  /// No description provided for @passwordResetDemoNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo mode doesn\'t send email. The code is filled in for you.'**
+  String get passwordResetDemoNote;
+
+  /// No description provided for @passwordResetUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'We can\'t send reset emails right now. Please contact support.'**
+  String get passwordResetUnavailable;
+
+  /// No description provided for @passwordResetDoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Password reset'**
+  String get passwordResetDoneTitle;
+
+  /// No description provided for @passwordResetDoneBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with your new password. You\'ve been signed out on every device.'**
+  String get passwordResetDoneBody;
+
+  /// No description provided for @passwordResetBackToSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to sign in'**
+  String get passwordResetBackToSignIn;
 }
 
 class _AppLocalizationsDelegate

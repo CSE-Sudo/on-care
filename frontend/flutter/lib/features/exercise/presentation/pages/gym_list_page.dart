@@ -571,15 +571,29 @@ class _GymListCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    // 트레이너를 아직 못 읽었거나 한 명도 없으면 이 부분은 통째로 없다 —
+    // 트레이너를 아직 읽는 중이거나 한 명도 없으면 이 부분은 통째로 없다 —
     // 카드가 예전과 같은 모습으로 남는다.
+    final AsyncValue<List<Trainer>> trainersAsync = ref.watch(
+      gymTrainersProvider(gym.id),
+    );
     final List<Trainer> trainers =
-        ref.watch(gymTrainersProvider(gym.id)).valueOrNull ?? const <Trainer>[];
+        trainersAsync.valueOrNull ?? const <Trainer>[];
+    // 조회가 실패했으면 '트레이너 없음' 과 구분해 짧은 안내를 둔다(#2857,
+    // #2879). 카드를 누르면 상세로 가면서 다시 읽는다 — 상세의 소속 트레이너
+    // 섹션이 그 결과를 보여 준다.
+    final bool trainersFailed =
+        trainersAsync.hasError && !trainersAsync.isLoading;
+    final VoidCallback? tap = onTap == null
+        ? null
+        : () {
+            if (trainersFailed) ref.invalidate(gymTrainersProvider(gym.id));
+            onTap!();
+          };
     final TextStyle meta = tokens
         .text(OnCareTypography.bodySmall)
         .copyWith(color: OnCareColors.textSecondary);
     return AppCard(
-      onTap: onTap,
+      onTap: tap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -714,6 +728,28 @@ class _GymListCard extends ConsumerWidget {
               // 이름·직함은 한 줄 그대로 두고 화살표만 붙는다.
               onDetail: () =>
                   context.push(AppRoutes.trainerDetailPath(trainer.id)),
+            ),
+          ],
+          if (trainersFailed) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s8),
+            Row(
+              key: Key('gym-trainers-failed-${gym.id}'),
+              children: <Widget>[
+                const AppIcon(
+                  AppIcons.offline,
+                  size: OnCareSize.iconSmall,
+                  color: OnCareColors.textTertiary,
+                ),
+                const SizedBox(width: OnCareSpacing.s4),
+                Expanded(
+                  child: Text(
+                    l.exGymTrainersLoadError,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: meta,
+                  ),
+                ),
+              ],
             ),
           ],
         ],

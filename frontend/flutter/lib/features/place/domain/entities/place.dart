@@ -32,8 +32,11 @@ class Place {
   final PlaceCategory category;
   final String address;
   final int distanceMeters;
-  final double lat;
-  final double lng;
+
+  /// 좌표. 서버 계약(`PlaceOut.lat/lng`)이 null 을 허용한다(#2879) — 좌표가
+  /// 없는 장소도 목록에는 서고, 지도 마커만 빠진다.
+  final double? lat;
+  final double? lng;
 
   factory Place.fromJson(Map<String, Object?> json) => Place(
     id: json['id']! as String,
@@ -41,7 +44,7 @@ class Place {
     category: _categoryFromWire(json['category']! as String),
     address: json['address']! as String,
     distanceMeters: (json['distance_meters']! as num).toInt(),
-    lat: (json['lat']! as num).toDouble(),
-    lng: (json['lng']! as num).toDouble(),
+    lat: (json['lat'] as num?)?.toDouble(),
+    lng: (json['lng'] as num?)?.toDouble(),
   );
 }
