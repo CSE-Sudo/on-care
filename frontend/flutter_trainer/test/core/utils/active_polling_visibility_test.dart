@@ -80,7 +80,9 @@ void main() {
     expect(probe.calls(), 1);
 
     setState(AppLifecycleState.inactive);
-    await reach(probe.calls, 3);
+    // 읽기 수가 아니라 내보낸 값 수로 기다린다 — 값은 읽기가 끝난 뒤 한 박자
+    // 늦게 들어오므로, 읽기 수로 기다리면 마지막 값을 보기 전에 단정한다.
+    await reach(() => probe.emitted.length, 3);
     expect(probe.emitted.take(3), <int>[1, 2, 3]);
     await probe.stop();
   });
