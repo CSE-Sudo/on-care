@@ -7,8 +7,10 @@ from __future__ import annotations
 import pytest
 
 PARTNER_IDS = {"gym-oncare-sinchon", "gym-healthmate", "gym-bodyandsoul"}
-#: 카카오 Local 에서 발견한 실재 업체 — 제휴는 아니지만 상담 대상이어야 한다.
-DISCOVERED_IDS = {"11621774", "1558845892", "328969863", "696444256"}
+#: 제휴가 아닌 가상 헬스장 — 제휴는 아니지만 상담 대상이어야 한다(#2811 전에는 실재 업체).
+DISCOVERED_IDS = {
+    "gym-demo-fitstudio", "gym-demo-movelab", "gym-demo-ptlab", "gym-demo-onestudio",
+}
 SEEDED_IDS = PARTNER_IDS | DISCOVERED_IDS
 SINCHON = {"lat": 37.5559, "lng": 126.9368}
 
@@ -120,7 +122,7 @@ def test_every_seeded_gym_has_at_least_two_trainers(client):
 
 
 def test_discovered_gyms_are_not_partners(client):
-    """카카오에서 발견한 실재 업체는 제휴가 아니다 — 구분이 유지돼야 한다."""
+    """비제휴 헬스장은 제휴가 아니다 — 구분이 유지돼야 한다."""
     for gym_id in DISCOVERED_IDS:
         gym = client.get(f"/v1/gyms/{gym_id}").json()
         assert gym["is_partner"] is False, gym["name"]
@@ -171,14 +173,14 @@ def test_seeded_trainers_cover_every_gym(client):
 def test_consultation_works_for_a_trainer_at_a_discovered_gym(
     client, db_session, directory_trainer
 ):
-    """카카오 발견 헬스장 소속 트레이너도 상담 대상이어야 한다.
+    """비제휴 헬스장 소속 트레이너도 상담 대상이어야 한다.
 
     헬스장 상세의 트레이너 목록은 제휴 여부를 가리지 않으므로, 발견 헬스장 소속만
     상담에서 404 가 나면 화면과 백엔드가 어긋난다(#324 → #327).
     """
     from tests.test_consultations import _auth, _payload, _register_member
 
-    trainer_id = directory_trainer(gym_id="328969863")  # 빌드업짐 PT 신촌점
+    trainer_id = directory_trainer(gym_id="gym-demo-ptlab")  # 비제휴 가상 헬스장
     _member_id, token = _register_member(client)
     payload = _payload(db_session, trainer_id=trainer_id)
     r = client.post("/v1/consultations", headers=_auth(token), json=payload)
@@ -612,10 +614,10 @@ def test_coordinates_must_be_sent_as_a_pair(client):
 
 
 def test_discovered_gyms_expose_no_invented_numbers(client):
-    """실재 업체에 확인할 수 없는 평점·영업시간·태그를 붙여 내보내지 않는다.
+    """비제휴 헬스장은 카카오가 주는 정보만 갖는다 — 평점·영업시간·태그·전화가 없다.
 
-    주석은 API 응답에 남지 않는다 — 실제 상호·주소·전화와 함께 평점이 내려가면
-    화면에서는 실제 평점으로 읽힌다(리뷰 지적).
+    시드의 비제휴 헬스장은 가상 상호다(#2811). 지어낸 전화번호는 실제 누군가의
+    번호일 수 있어 넣지 않는다.
     """
     for gym_id in DISCOVERED_IDS:
         gym = client.get(f"/v1/gyms/{gym_id}").json()
@@ -623,8 +625,7 @@ def test_discovered_gyms_expose_no_invented_numbers(client):
         assert gym["tags"] == [], gym["name"]
         assert not gym["weekday_hours"], gym["name"]
         assert not gym["weekend_hours"], gym["name"]
-        # 전화·주소는 카카오 실데이터라 그대로 노출한다.
-        assert gym["phone"], gym["name"]
+        assert not gym["phone"], gym["name"]
 
 
 def test_disconnect_clears_every_active_link(client, db_session):

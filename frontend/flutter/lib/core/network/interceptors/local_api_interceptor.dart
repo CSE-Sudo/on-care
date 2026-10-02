@@ -4603,45 +4603,46 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         'lat': 37.4995,
         'lng': 127.0263,
       },
-      // 헬스장 찾기(#329)가 보는 신촌 권역 후보. 카카오 Local `헬스장` 검색 실응답을
-      // 그대로 옮긴 것이라 id·이름·주소·거리·좌표가 전부 실데이터이고, 실 API 로
-      // 전환해도 같은 id 로 매칭된다(`kakao_gym_demo_profile.dart`).
-      // 제휴 헬스장(온케어짐/헬스메이트/바디앤소울)과 이름이 겹치지 않는 곳만 골랐다.
+      // 헬스장 찾기(#329)가 보는 신촌 권역 비제휴 후보. **가상 헬스장**이다 — 예전에는
+      // 카카오 실응답의 실재 업체를 옮겨 와 가상 트레이너를 붙였는데, 실재 업체에
+      // 실존하지 않는 직원을 붙이는 것이라 가상 상호로 바꿨다(#2811). id 는 백엔드
+      // 시드(`seed_gyms._DEMO_NONPARTNER_GYMS`)와 같아 실 API 로 전환해도 그대로
+      // 매칭된다(`kakao_gym_demo_profile.dart`).
       <String, Object?>{
-        'id': '11621774',
-        'name': '휘트니스에이든',
+        'id': 'gym-demo-fitstudio',
+        'name': '온케어 핏스튜디오',
         'category': 'fitness',
-        'address': '서울 마포구 신촌로 92',
+        'address': '서울 마포구 신촌로 90',
         'distance_meters': 127,
-        'lat': 37.5551767483122,
-        'lng': 126.935686079639,
+        'lat': 37.5551767,
+        'lng': 126.9356861,
       },
       <String, Object?>{
-        'id': '1558845892',
-        'name': '하이핏',
+        'id': 'gym-demo-movelab',
+        'name': '온케어 무브랩',
         'category': 'fitness',
-        'address': '서울 서대문구 연세로4길 19',
+        'address': '서울 서대문구 연세로 20',
         'distance_meters': 186,
-        'lat': 37.5573727191112,
-        'lng': 126.937816432934,
+        'lat': 37.5573727,
+        'lng': 126.9378164,
       },
       <String, Object?>{
-        'id': '328969863',
-        'name': '빌드업짐 PT 신촌점',
+        'id': 'gym-demo-ptlab',
+        'name': '온케어 PT랩',
         'category': 'fitness',
-        'address': '서울 서대문구 연세로4길 1',
+        'address': '서울 서대문구 연세로 12',
         'distance_meters': 133,
-        'lat': 37.5570723299884,
-        'lng': 126.937142154792,
+        'lat': 37.5570723,
+        'lng': 126.9371422,
       },
       <String, Object?>{
-        'id': '696444256',
-        'name': '신인규피티스튜디오',
+        'id': 'gym-demo-onestudio',
+        'name': '온케어 1:1 스튜디오',
         'category': 'fitness',
-        'address': '서울 서대문구 명물길 10',
+        'address': '서울 서대문구 명물길 30',
         'distance_meters': 177,
-        'lat': 37.5573851891011,
-        'lng': 126.937543667755,
+        'lat': 37.5573852,
+        'lng': 126.9375437,
       },
       // 신촌 밖에서 위치를 허용하면 위 네 곳이 반경 밖이라 목록이 비었다(#2661).
       // 자주 시연하는 권역(강남역·홍대입구역·잠실역)의 카카오 Local `헬스장` 검색

@@ -1251,7 +1251,27 @@ def test_every_coupon_with_a_notification_has_english_and_a_title():
 def test_coupon_cancel_reasons_match_the_service():
     from app.services import points_coupon_service as pcs
 
-    assert {pcs._CANCEL_TRAINER, pcs._CANCEL_GYM} == set(nt._COUPON_CANCEL_REASON)
+    assert {pcs._CANCEL_TRAINER, pcs._CANCEL_GYM, pcs._CANCEL_SERVICE} == set(
+        nt._COUPON_CANCEL_REASON
+    )
+
+
+def test_coupon_cancelled_for_paused_gym_benefits_reads_in_both_languages():
+    """헬스장 혜택을 멈춰 취소한 쿠폰(#2822)도 두 언어로 까닭과 환불을 알린다."""
+    args = {
+        "item": "locker_month",
+        "benefit": "개인 락커 1개월 무료",
+        "reason": "service",
+        "refunded": 7000,
+    }
+    ko_title, ko_body = nt.render(nt.MEMBER_COUPON_CANCELLED, args, "ko")
+    assert ko_title == "락커 쿠폰이 취소됐어요"
+    assert "헬스장 혜택 제공을 잠시 멈추게 되어" in ko_body
+    assert "7,000P" in ko_body
+    en_title, en_body = nt.render(nt.MEMBER_COUPON_CANCELLED, args, "en")
+    assert en_title == "Locker coupon cancelled"
+    assert "gym benefits are paused" in en_body
+    assert "7,000P" in en_body
 
 
 def test_coupon_benefit_in_korean_is_the_stored_catalog_text():

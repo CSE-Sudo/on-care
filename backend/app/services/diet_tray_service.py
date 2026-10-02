@@ -29,6 +29,9 @@
   취소된 쿠폰은 식판을 받은 것이 아니므로, 새 담당이 생기고 조건을 채우고 있으면
   다시 받는다.
 - **담당이 끊기면** 받지 않은 식판 쿠폰을 취소한다(`cancel_renewal_coupons`).
+- **헬스장 혜택이 닫힌 서버**(`points_coupon_service.gym_benefits_enabled`, #2822)는
+  받기를 [TraysUnavailable] 로 거부하고, 상태 응답의 `enabled` 를 거짓으로 준다 —
+  식판을 줄 제휴 헬스장이 없다.
 - 받기는 잔액 행을 잠근 채 조건을 다시 확인한다 — 같은 회원의 받기가 겹쳐도 한
   장이다. 사용 가능한 쿠폰 한 장은 partial unique index 가 마지막 방어선이다.
 """
@@ -62,6 +65,10 @@ RECEIVED = "received"
 
 class DietTrayError(Exception):
     """식판 받기 규칙 위반. 라우터가 409 로 옮긴다."""
+
+
+class TraysUnavailable(DietTrayError):
+    """헬스장 혜택이 닫힌 서버다(#2822)."""
 
 
 class TrainerRequired(DietTrayError):
@@ -123,6 +130,8 @@ def claim(
 
     if client_request_id and _by_request(db, member_id, client_request_id):
         return _state_out(db, member_id)
+    if not points_coupon_service.gym_benefits_enabled():
+        raise TraysUnavailable("지금은 식판을 받을 수 없어요.")
 
     points_service.lock_balance(db, member_id)
     points_coupon_service.expire_stale(db, member_id)
@@ -172,6 +181,7 @@ def _state_out(db: Session, member_id: str) -> DietTrayOut:
     from app.services import trainer_service
 
     has_trainer = trainer_service.get_member_trainer_id(db, member_id) is not None
+    enabled = points_coupon_service.gym_benefits_enabled()
     first, last = window()
     days = photo_days(db, member_id)
     received = _received(db, member_id)
@@ -180,7 +190,7 @@ def _state_out(db: Session, member_id: str) -> DietTrayOut:
         status = RECEIVED
     elif active is not None:
         status = ISSUED
-    elif has_trainer and days >= REQUIRED_DAYS:
+    elif enabled and has_trainer and days >= REQUIRED_DAYS:
         status = CLAIMABLE
     else:
         status = PROGRESS
@@ -194,6 +204,7 @@ def _state_out(db: Session, member_id: str) -> DietTrayOut:
         window_to=last.isoformat(),
         has_trainer=has_trainer,
         coupon=points_coupon_service.coupon_out(row) if row is not None else None,
+        enabled=enabled,
     )
 
 

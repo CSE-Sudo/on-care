@@ -486,7 +486,7 @@ def test_put_me_allows_clearing_the_phone(client):
 
 
 @pytest.mark.parametrize(
-    "gym_phone", ["02-1234-5678", "02-332-1720", "0502-5552-4212", "010-7616-9819"]
+    "gym_phone", ["02-1234-5678", "02-332-1720", "0502-5552-4212", "010-1234-5678"]
 )
 def test_gym_phone_keeps_every_shape_a_gym_number_takes(gym_phone):
     """헬스장 대표번호에는 휴대전화 규칙을 걸지 않는다. (DB 불필요)

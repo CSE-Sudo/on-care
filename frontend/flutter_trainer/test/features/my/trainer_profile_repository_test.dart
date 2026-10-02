@@ -113,25 +113,25 @@ void main() {
           '/trainer/me/gym/kakao',
           data: any(named: 'data'),
         ),
-      ).thenAnswer((_) async => _profileResponse(gymId: '1558845892'));
+      ).thenAnswer((_) async => _profileResponse(gymId: '9000000001'));
 
       final result = await repository.selectGym(
         const TrainerGymCandidate(
-          id: '1558845892',
-          name: '하이핏',
-          address: '서울 서대문구 연세로4길 19',
+          id: '9000000001',
+          name: '온케어 무브랩',
+          address: '서울 서대문구 연세로 20',
           registered: false,
         ),
       );
 
-      expect(result.gym.id, '1558845892');
+      expect(result.gym.id, '9000000001');
       // 주소는 보내지 않는다 — 서버가 카카오 값으로 저장한다.
       verify(
         () => dio.put<Map<String, Object?>>(
           '/trainer/me/gym/kakao',
           data: <String, Object?>{
-            'kakao_place_id': '1558845892',
-            'name': '하이핏',
+            'kakao_place_id': '9000000001',
+            'name': '온케어 무브랩',
           },
         ),
       ).called(1);
@@ -165,8 +165,8 @@ void main() {
               'registered': true,
             },
             <String, Object?>{
-              'id': '1558845892',
-              'name': '하이핏',
+              'id': '9000000001',
+              'name': '온케어 무브랩',
               'address': '서울 서대문구',
               'lat': 37,
               'lng': 127,
@@ -186,7 +186,7 @@ void main() {
           queryParameters: <String, Object?>{'query': '헬스'},
         ),
       ).called(1);
-      expect(gyms.map((g) => g.id), <String>['gym-1', '1558845892']);
+      expect(gyms.map((g) => g.id), <String>['gym-1', '9000000001']);
       expect(gyms.first.registered, isTrue);
       expect(gyms.first.hasLocation, isTrue);
       expect(gyms.first.distanceMeters, isNull);

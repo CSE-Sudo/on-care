@@ -14,6 +14,18 @@
   사용 처리는 두 쿠폰과 같은 길을 탄다. **기한이 없다**([NO_EXPIRY]) — 식판이
   헬스장에 언제 닿을지는 우리 사정이라, 그 때문에 회원의 쿠폰이 만료되면 안 된다.
 
+**헬스장 혜택은 기능 플래그로 묶는다**(#2822). PT 재등록 할인·락커·분석용 식판은
+헬스장이 현장에서 주는 것이라, 그 헬스장과 제휴가 없으면 회원이 포인트를 쓰고도
+받지 못한다. [gym_benefits_enabled] 가 거짓인 서버(제휴 확정 전 실서비스)는
+
+- 사용처 목록에서 두 항목을 빼고(`build_shop`),
+- 교환을 없는 항목처럼 거부하고(`exchange` → [BenefitUnavailable], 404),
+- 식판 받기도 거부한다(`diet_tray_service.claim`).
+
+이미 발급된 쿠폰은 `scripts/cancel_gym_benefit_coupons.py` 가 취소하고 포인트를
+돌려준다(담당·헬스장 해제와 같은 취소 경로, 알림 까닭 `service`). 데모 시드가 켜진
+서버는 플래그와 상관없이 연다 — 데모 화면은 그대로다.
+
 모든 쿠폰은 헬스장에서 회원이 휴대폰으로 쿠폰 화면을 열고, 직원(PT 재등록은
 트레이너·헬스장 직원)이 확인한 뒤 **회원 휴대폰에서** `사용 완료` 를 누른다
 (직원 확인 버튼). 트레이너웹에는 처리 화면이 없다.
@@ -213,6 +225,9 @@ CATALOG: tuple[ShopItem, ...] = (
     WEEKLY_REPORT,
 )
 _CATALOG_IDS = frozenset(item.id for item in CATALOG)
+#: 헬스장이 현장에서 주는 혜택 — [gym_benefits_enabled] 가 거짓이면 닫힌다(#2822).
+GYM_BENEFIT_ITEMS: tuple[ShopItem, ...] = (PT_RENEWAL, LOCKER_MONTH, DIET_TRAY)
+GYM_BENEFIT_IDS = frozenset(item.id for item in GYM_BENEFIT_ITEMS)
 _ITEMS: dict[str, ShopItem] = {item.id: item for item in (*CATALOG, DIET_TRAY)}
 
 
@@ -222,6 +237,10 @@ class CouponError(Exception):
 
 class UnknownItem(CouponError):
     """카탈로그에 없는 항목이다."""
+
+
+class BenefitUnavailable(UnknownItem):
+    """헬스장 혜택이 닫힌 서버다(#2822). 목록에 없는 항목과 같이 404 로 옮긴다."""
 
 
 class TrainerRequired(CouponError):
@@ -257,6 +276,17 @@ def item_of(item_id: str) -> ShopItem | None:
     return _ITEMS.get(item_id)
 
 
+def gym_benefits_enabled() -> bool:
+    """헬스장 현장 혜택(PT 재등록·락커·식판)을 여는 서버인가(#2822).
+
+    설정 `gym_benefits_enabled` 가 참이거나, 데모 시드가 켜진 비운영 서버다.
+    """
+    from app.core.config import get_settings
+    from app.db import demo_ids
+
+    return get_settings().gym_benefits_enabled or demo_ids.demo_data_enabled()
+
+
 # ---- 조회 ----
 
 
@@ -281,6 +311,7 @@ def build_shop(db: Session, member_id: str) -> PointsShopOut:
     balance = points_service.balance(db, member_id)
     has_trainer = trainer_service.get_member_trainer_id(db, member_id) is not None
     has_gym = gym_service.get_member_gym(db, member_id) is not None
+    benefits_on = gym_benefits_enabled()
     now = clock.now()
     active_items = set(
         db.scalars(
@@ -303,6 +334,9 @@ def build_shop(db: Session, member_id: str) -> PointsShopOut:
     )
     items: list[ShopItemOut] = []
     for item in CATALOG:
+        # 제휴 전 실서비스는 헬스장 현장 혜택을 싣지 않는다(#2822).
+        if item.id in GYM_BENEFIT_IDS and not benefits_on:
+            continue
         if item.id == GRAPH_COLOR.id and all_colors:
             continue
         if item.id == WEEKLY_REPORT.id and has_trainer:
@@ -345,7 +379,11 @@ def build_shop(db: Session, member_id: str) -> PointsShopOut:
             )
         )
     return PointsShopOut(
-        balance=balance, has_trainer=has_trainer, has_gym=has_gym, items=items
+        balance=balance,
+        has_trainer=has_trainer,
+        has_gym=has_gym,
+        gym_benefits_enabled=benefits_on,
+        items=items,
     )
 
 
@@ -413,6 +451,8 @@ def exchange(
     item = _ITEMS.get(item_id) if item_id in _CATALOG_IDS else None
     if item is None:
         raise UnknownItem("없는 교환 항목이에요.")
+    if item.id in GYM_BENEFIT_IDS and not gym_benefits_enabled():
+        raise BenefitUnavailable("지금은 교환할 수 없는 항목이에요.")
     if item.id == GRAPH_COLOR.id:
         # 쿠폰이 아니라 그래프 색 하나가 열린다 — 고른 색은 `option` 이 싣는다(#2076).
         return graph_color_service.exchange(
@@ -635,9 +675,25 @@ def cancel_locker_coupons(db: Session, member_id: str) -> int:
     )
 
 
+def cancel_gym_benefit_coupons(db: Session, member_id: str) -> int:
+    """헬스장 혜택을 닫은 서버에서 남은 혜택 쿠폰을 취소하고 포인트를 돌려준다(#2822).
+
+    PT 재등록·락커·식판의 사용 가능한 쿠폰이 대상이다. 규칙은
+    [cancel_renewal_coupons] 와 같다 — 취소한 장수를 돌려주고, 커밋하지 않으며,
+    기한이 지난 쿠폰은 만료로 내린다(소멸). 알림 까닭은 `service` 다.
+    `scripts/cancel_gym_benefit_coupons.py` 가 회원마다 부른다.
+    """
+    return sum(
+        _cancel_unused(db, member_id, item, reason=_CANCEL_SERVICE)
+        for item in GYM_BENEFIT_ITEMS
+    )
+
+
 #: 쿠폰이 취소된 까닭 — 알림 틀 인자(#2302). 제목·문장은 틀이 항목·언어별로 고른다.
 _CANCEL_TRAINER = "trainer"
 _CANCEL_GYM = "gym"
+#: 헬스장 혜택 제공을 멈춰서(#2822).
+_CANCEL_SERVICE = "service"
 
 
 def _cancel_unused(

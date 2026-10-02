@@ -27,6 +27,16 @@ logger = logging.getLogger(__name__)
 
 DEMO_USER_ID = "user-7d4e9a2c5f18"
 
+#: 데모 장소(서울시청 인근, 카카오맵 실연동 전까지 사용). 이름·주소는 지어낸 값이다.
+#: 정리 스크립트(`scripts/purge_demo_data.py`)도 이 목록을 본다(#2811).
+DEMO_PLACES: tuple[tuple[str, str, str, str, float, float], ...] = (
+    ("place-1", "온케어 내과의원", "medical", "서울 중구 세종대로 110", 37.5660, 126.9785),
+    ("place-2", "헬스플러스 피트니스", "fitness", "서울 중구 을지로 50", 37.5663, 126.9820),
+    ("place-3", "그린샐러드 키친", "healthy_food", "서울 중구 명동길 20", 37.5638, 126.9850),
+    ("place-4", "건강약국", "pharmacy", "서울 중구 태평로 30", 37.5650, 126.9770),
+    ("place-5", "한강공원 러닝트랙", "fitness", "서울 영등포구 여의동로 330", 37.5283, 126.9325),
+)
+
 
 def _ensure_vector_extension(settings) -> None:
     """pgvector 확장을 켠다 — **create_all 을 쓰는 개발 환경에서만.** (#2912)
@@ -774,14 +784,7 @@ def _seed_demo_places() -> None:
     try:
         if db.scalar(select(models.Place).limit(1)):
             return
-        demo = [
-            ("place-1", "온케어 내과의원", "medical", "서울 중구 세종대로 110", 37.5660, 126.9785),
-            ("place-2", "헬스플러스 피트니스", "fitness", "서울 중구 을지로 50", 37.5663, 126.9820),
-            ("place-3", "그린샐러드 키친", "healthy_food", "서울 중구 명동길 20", 37.5638, 126.9850),
-            ("place-4", "건강약국", "pharmacy", "서울 중구 태평로 30", 37.5650, 126.9770),
-            ("place-5", "한강공원 러닝트랙", "fitness", "서울 영등포구 여의동로 330", 37.5283, 126.9325),
-        ]
-        for pid, name, cat, addr, lat, lng in demo:
+        for pid, name, cat, addr, lat, lng in DEMO_PLACES:
             db.add(models.Place(id=pid, name=name, category=cat, address=addr, lat=lat, lng=lng))
         db.commit()
     finally:
