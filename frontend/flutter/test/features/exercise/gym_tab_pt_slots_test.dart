@@ -107,9 +107,6 @@ void main() {
           gymFinderResultsProvider.overrideWith(
             (ref) async => const <Gym>[_gym],
           ),
-          recommendedTrainersProvider.overrideWith(
-            (ref) async => const <Trainer>[],
-          ),
           trainerSlotsProvider(_trainer.id).overrideWith((ref) async => _slots),
           myReservationsProvider.overrideWith((ref) async => reservations),
           consultationRequestControllerProvider.overrideWith(

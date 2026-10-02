@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/entities/diet_period.dart';
@@ -16,6 +15,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/fixed_clock.dart';
+import '../../helpers/mock_account_repository.dart';
 import '../../helpers/record_span.dart';
 
 /// 짝수 날에만 기록이 있는 저장소 — 기간 평균이 **기록이 있는 날만으로**

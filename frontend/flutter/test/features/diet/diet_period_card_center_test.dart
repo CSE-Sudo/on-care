@@ -11,7 +11,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
@@ -21,6 +20,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
+import '../../helpers/mock_account_repository.dart';
 
 Widget _app() => ProviderScope(
   overrides: <Override>[

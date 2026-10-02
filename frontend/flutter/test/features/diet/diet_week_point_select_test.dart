@@ -11,7 +11,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
@@ -22,6 +21,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
+import '../../helpers/mock_account_repository.dart';
 
 /// 날마다 다른 값을 주는 대역 — 고른 날과 평균이 갈려야 검증이 된다.
 class _VaryingDietRepository extends FakeDietRepository {

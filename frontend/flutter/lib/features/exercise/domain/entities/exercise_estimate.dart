@@ -8,18 +8,6 @@ library;
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare_rules/oncare_rules.dart' show pyRound;
 
-/// 저장 키로 쓰는 요일 라벨(월→일). 화면 문구가 아니라 **기록의 키**라
-/// 로케일을 타지 않는다 — 영어로 쓰면 데모 저장소가 요일을 못 찾는다.
-const List<String> kWeekdayLabelsKo = <String>[
-  '월',
-  '화',
-  '수',
-  '목',
-  '금',
-  '토',
-  '일',
-];
-
 /// 강도별 배수 (가벼움 / 보통 / 높음).
 const Map<ExerciseIntensity, double> kIntensityFactor =
     <ExerciseIntensity, double>{

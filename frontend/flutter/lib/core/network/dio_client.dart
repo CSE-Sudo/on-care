@@ -8,14 +8,13 @@ import 'package:oncare/core/network/interceptors/accept_language_interceptor.dar
 import 'package:oncare/core/network/interceptors/api_logging_interceptor.dart';
 import 'package:oncare/core/network/interceptors/auth_interceptor.dart';
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
-import 'package:oncare/core/network/interceptors/mock_api_interceptor.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/core/points/demo_weekly_challenge.dart';
 import 'package:oncare/core/storage/app_database.dart';
 
-/// App-wide `Dio` instance, wired with logging/auth/mock interceptors
+/// App-wide `Dio` instance, wired with logging/auth/local-api interceptors
 /// based on the current [AppConfig]. Feature data sources should read
 /// this provider rather than constructing their own `Dio`.
 final dioProvider = Provider<Dio>((ref) {
@@ -43,31 +42,29 @@ final dioProvider = Provider<Dio>((ref) {
   // 언어는 요청마다 읽으므로 언어가 바뀌어도 Dio 를 다시 만들지 않는다(#2297).
   dio.interceptors.add(AcceptLanguageInterceptor(ref));
 
-  // Order matters: LocalApi (drift-backed) and the legacy in-memory
-  // MockApi both short-circuit before auth/logging fire.
+  // Order matters: LocalApi (drift-backed) short-circuits before auth/logging
+  // fire.
   if (config.useMockApi) {
-    // REAL_API 로 켠 기능의 경로는 두 목업 인터셉터 모두 가로채지 않고 실 네트워크로
+    // REAL_API 로 켠 기능의 경로는 목업 인터셉터가 가로채지 않고 실 네트워크로
     // 흘려보낸다 — 준비된 기능만 골라 실연동해 보여줄 수 있게(전역 USE_MOCK_API 는
     // 끄는 순간 전 기능이 함께 넘어간다).
-    dio.interceptors
-      ..add(
-        LocalApiInterceptor(
-          ref.watch(appDatabaseProvider),
-          logger,
-          isRealApi: config.isRealApi,
-          // 목업 코치 저장소와 같은 원장 — 하루 한도와 잔액이 하나다(#1786).
-          points: ref.watch(demoPointsLedgerProvider),
-          // 목업 헬스장 저장소와 같은 쿠폰 원장 — 해제가 쿠폰 취소로 이어진다(#1787).
-          coupons: ref.watch(demoCouponBookProvider),
-          // 사용처(쿠폰 원장)와 같은 보호권 원장 — 보호한 날에 운동 기록이
-          // 생기면 여기서 되돌린다(#1788).
-          shields: ref.watch(demoStreakShieldBookProvider),
-          // 챌린지 원장(#1789). 운동한 날은 이 인터셉터의 운동 표(운동 탭과 같은
-          // 기록)로 센다(#2662).
-          challenges: ref.watch(demoWeeklyChallengeProvider),
-        ),
-      )
-      ..add(MockApiInterceptor(logger, isRealApi: config.isRealApi));
+    dio.interceptors.add(
+      LocalApiInterceptor(
+        ref.watch(appDatabaseProvider),
+        logger,
+        isRealApi: config.isRealApi,
+        // 목업 코치 저장소와 같은 원장 — 하루 한도와 잔액이 하나다(#1786).
+        points: ref.watch(demoPointsLedgerProvider),
+        // 목업 헬스장 저장소와 같은 쿠폰 원장 — 해제가 쿠폰 취소로 이어진다(#1787).
+        coupons: ref.watch(demoCouponBookProvider),
+        // 사용처(쿠폰 원장)와 같은 보호권 원장 — 보호한 날에 운동 기록이
+        // 생기면 여기서 되돌린다(#1788).
+        shields: ref.watch(demoStreakShieldBookProvider),
+        // 챌린지 원장(#1789). 운동한 날은 이 인터셉터의 운동 표(운동 탭과 같은
+        // 기록)로 센다(#2662).
+        challenges: ref.watch(demoWeeklyChallengeProvider),
+      ),
+    );
   }
   // 실행 중 만료된 토큰은 갱신 뒤 원 요청을 한 번 다시 보낸다(#1546).
   dio.interceptors.add(AuthInterceptor(ref, retryClient: dio));

@@ -5,9 +5,9 @@ library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
-import 'package:oncare/features/account/domain/entities/recommended_goals.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 void main() {
   test('공유 기본값이 회원 앱 기준선과 같다', () {

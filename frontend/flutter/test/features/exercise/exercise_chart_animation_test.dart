@@ -16,7 +16,6 @@ import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/storage/app_database.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
@@ -28,6 +27,7 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart' show ChartReveal;
 
 import '../../helpers/demo_exercise.dart';
+import '../../helpers/mock_account_repository.dart';
 import '../../helpers/painter_ink.dart';
 
 /// [painter] 를 [size] 로 그려 **거의 불투명하고 트랙보다 진한**(RGB 합 600

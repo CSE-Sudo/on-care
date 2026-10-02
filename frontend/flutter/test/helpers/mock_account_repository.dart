@@ -4,8 +4,9 @@ import 'package:oncare/features/account/domain/entities/profile_update_rejected.
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/domain/repositories/account_repository.dart';
 
-/// Not wired by default (the app uses [DioAccountRepository] → the drift-backed
-/// LocalApiInterceptor). Kept for unit tests / offline overrides.
+/// 테스트 전용 계정 저장소. 앱은 `DioAccountRepository`(데모에서는 drift 기반
+/// LocalApiInterceptor)를 쓰고, 테스트가 `accountRepositoryProvider` 를 이것으로
+/// 바꿔 끼운다.
 class MockAccountRepository implements AccountRepository {
   MockAccountRepository({
     UserProfile profile = _demo,

@@ -175,9 +175,9 @@ void main() {
   test('추천 트레이너의 소속 헬스장도 전부 유효하다', () async {
     final container = _containerWith(const _KakaoFixtureRepository());
     final gyms = await container.read(gymFinderResultsProvider.future);
-    final recommended = await container.read(
-      recommendedTrainersProvider.future,
-    );
+    final recommended = await container
+        .read(gymRepositoryProvider)
+        .fetchRecommendedTrainers();
     final Set<String> gymIds = gyms.map((Gym g) => g.id).toSet();
 
     expect(recommended, isNotEmpty);
@@ -197,29 +197,17 @@ void main() {
     final trainers = await container
         .read(gymRepositoryProvider)
         .fetchAllTrainers();
-    final recommended = await container.read(
-      recommendedTrainersProvider.future,
-    );
+    final recommended = await container
+        .read(gymRepositoryProvider)
+        .fetchRecommendedTrainers();
 
     final missing = trainers
         .where((Trainer t) => t.reasons.isEmpty)
         .map((Trainer t) => t.name);
     expect(missing, isEmpty, reason: '추천 사유가 없는 트레이너');
 
-    // 전원이 사유를 가지므로 추천 레일 = 전체 트레이너 **에서 담당 트레이너를 뺀
-    // 만큼**이다(#864). 이미 담당인 사람이 추천에 다시 서지 않는다.
-    final Trainer? assigned = await container.read(myTrainerProvider.future);
-    final int expected = trainers
-        .where((Trainer t) => t.id != assigned?.id)
-        .length;
-    expect(recommended.length, expected);
-    if (assigned != null) {
-      expect(
-        recommended.where((Trainer t) => t.id == assigned.id),
-        isEmpty,
-        reason: '담당 트레이너가 추천에 남아 있다',
-      );
-    }
+    // 전원이 사유를 가지므로 추천 레일 = 전체 트레이너다.
+    expect(recommended.length, trainers.length);
 
     // 키워드 하나하나는 트레이너끼리 겹쳐도 된다 — `체중 감량` 을 다루는 사람이
     // 여럿인 게 자연스럽다(#1881). 겹치면 안 되는 것은 **조합**이다: 조합까지

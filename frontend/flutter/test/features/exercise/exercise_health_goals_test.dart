@@ -10,7 +10,6 @@ import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
@@ -30,6 +29,7 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
 
 import '../../helpers/demo_exercise.dart';
+import '../../helpers/mock_account_repository.dart';
 
 class _GoalSyncHost extends StatefulWidget {
   const _GoalSyncHost();
