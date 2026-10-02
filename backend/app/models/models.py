@@ -1337,6 +1337,35 @@ class TrainerProfile(Base):
     reminder_lead_minutes: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default="30", default=30
     )
+    #: 운영자 승인 상태(#2825) — pending|approved|rejected. 승인 전에는 회원 앱
+    #: 디렉터리·상담 대상·담당 요청·연결 코드에서 빠진다
+    #: (`trainer_verification_service`).
+    #:
+    #: DB 기본값은 pending 이다 — ORM 을 거치지 않고 들어온 행은 노출되지 않는
+    #: 쪽으로 닫힌다. ORM 기본값이 approved 인 것은 시드·운영 스크립트처럼 운영자가
+    #: 직접 넣는 경로 때문이고, 공개 가입(`register_trainer`)은 pending 을 명시한다.
+    verification_status: Mapped[str] = mapped_column(
+        String(16),
+        CheckConstraint(
+            "verification_status IN ('pending', 'approved', 'rejected')",
+            name="ck_trainer_profiles_verification_status",
+        ),
+        nullable=False,
+        server_default="pending",
+        default="approved",
+        index=True,
+    )
+    #: 승인·반려를 처리한 시각과 운영자. 가입 직후(pending)·백필 행은 비어 있다.
+    verification_decided_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    verification_decided_by: Mapped[str | None] = mapped_column(
+        String(64), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    #: 반려 사유 — 트레이너 웹이 그대로 보여 준다. 승인이면 비운다.
+    verification_note: Mapped[str] = mapped_column(
+        String(300), nullable=False, server_default="", default=""
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
