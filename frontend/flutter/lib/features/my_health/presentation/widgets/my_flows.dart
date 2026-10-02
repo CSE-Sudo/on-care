@@ -2024,6 +2024,10 @@ class LegalDocumentPage extends StatelessWidget {
     final bool isTerms = document == _LegalDoc.terms.name;
     final String title = isTerms ? l.myLegalTermsTitle : l.myLegalPrivacyTitle;
     final String body = isTerms ? l.myLegalTermsBody : l.myLegalPrivacyBody;
+    // 두 문서는 시행일이 따로 간다 — 처리방침만 고쳐도 약관 날짜는 그대로다(#2820).
+    final String effectiveDate = isTerms
+        ? l.myLegalTermsEffectiveDate
+        : l.myLegalPrivacyEffectiveDate;
     return _shell(context, title, <Widget>[
       _card(<Widget>[
         Text(
@@ -2036,7 +2040,7 @@ class LegalDocumentPage extends StatelessWidget {
       const SizedBox(height: OnCareSpacing.s12),
       Center(
         child: Text(
-          l.myLegalEffectiveDate,
+          effectiveDate,
           style: context.oncare
               .text(OnCareTypography.caption)
               .copyWith(color: OnCareColors.textTertiary),
