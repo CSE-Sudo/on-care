@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
+import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 
 /// 그 주에 내가 낸 답. 아직 안 냈으면 `submitted == false` 인 빈 답이다.
@@ -132,9 +133,16 @@ class SentReportNotice {
 /// 채팅이 폴링으로 새 리포트 안내를 받으면 다시 읽는다(`TrainerChatPage`).
 final sentReportNoticesProvider =
     FutureProvider.autoDispose<List<SentReportNotice>>((ref) async {
-      final List<CoachMessage> chat = await fetchWholeCoachChat(
-        ref.watch(memberCoachRepositoryProvider),
-      );
+      final List<CoachMessage> chat;
+      try {
+        chat = await fetchWholeCoachChat(
+          ref.watch(memberCoachRepositoryProvider),
+        );
+      } on CoachUnassignedException {
+        // 담당이 해제되면 대화를 읽을 수 없다 — 받은 리포트도 없는 것으로 본다.
+        // 대화 404 를 해제 신호로 바꾸기 전(#2843)과 같은 빈 목록이다.
+        return const <SentReportNotice>[];
+      }
       return selectReportNotices(chat);
     }, name: 'sentReportNotices');
 

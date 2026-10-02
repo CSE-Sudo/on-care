@@ -97,6 +97,15 @@ class _MainShellState extends ConsumerState<MainShell>
     // 앱을 떠난 사이 트레이너가 예약을 취소하거나 연결을 해제했을 수 있다
     // (#2856).
     refreshGymTabData(ref.invalidate);
+    _recheckCoach();
+  }
+
+  /// 앱을 떠난 사이 트레이너가 담당을 해제했을 수 있다 — 담당 코치를 다시 읽고,
+  /// 사라졌으면 헤더·홈 트레이너 카드·대화가 함께 바뀐다(#2843).
+  void _recheckCoach() {
+    unawaited(
+      recheckMemberCoach(ProviderScope.containerOf(context, listen: false)),
+    );
   }
 
   void _refreshBranch(int index) {
@@ -106,6 +115,7 @@ class _MainShellState extends ConsumerState<MainShell>
         // 되도록 함께 비운다 — 목록은 [kHomeReentryRefreshTargets](#2842).
         kHomeReentryRefreshTargets.forEach(ref.invalidate);
         unawaited(refreshProfileQuietly(ref.read(profileProvider.notifier)));
+        _recheckCoach();
         break;
       case 1:
         // 방금 저장한 끼니가 보이도록 그날 자료를 다시 읽는다 — 저장 전 캐시가

@@ -94,6 +94,7 @@
     }
   },
   "homeAiAdviceBody": "Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.",
+  "homeAiAdviceNoRecord": "Log today's meals and workouts, and we'll put together advice for your day.",
   "homeSodiumExceededBadge": "Sodium over",
   "homeMacroCarbs": "Carbs",
   "homeMacroProtein": "Protein",
@@ -150,6 +151,7 @@
   },
   "homeRecBasisOverLimit": "over the daily limit",
   "homeRecMealsTitle": "Recommended meals",
+  "homeRecMealsErrorTitle": "Couldn't load meal suggestions",
   "homeViewAll": "View all",
   "@homeScheduleDate": {
     "placeholders": {
@@ -1542,6 +1544,10 @@
   "coachCardExerciseTitle": "3 workouts this week",
   "coachCardExerciseBody": "You finished three workouts this week — staying consistent is what counts. Take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.",
   "coachCardWaterTag": "Hydration",
+  "coachSheetErrorTitle": "Couldn't load your advice",
+  "coachSheetErrorBody": "Check your connection and try again.",
+  "coachSheetEmptyTitle": "Advice will appear as you log more",
+  "coachSheetEmptyBody": "Try logging today's meals and workouts.",
   "coachInviteTitle": "A trainer wants to coach you",
   "coachInviteFrom": "Trainer {name}",
   "@coachInviteFrom": {
@@ -1583,6 +1589,10 @@
     "description": "Button above the trainer chat thread that fetches the previous page (#1943)."
   },
   "coachChatLoadFailed": "Couldn't load the conversation",
+  "coachChatUnassigned": "Your trainer is no longer assigned, so you can't send messages here",
+  "@coachChatUnassigned": {
+    "description": "Trainer chat notice shown instead of the thread once the server reports the assignment ended; the input is disabled (#2843)."
+  },
   "coachChatEmptyTitle": "Start a conversation with {trainer}",
   "@coachChatEmptyTitle": {"placeholders": {"trainer": {"type": "String"}}},
   "coachChatEmptyBody": "Send a photo of what you ate today or ask about your workouts",
@@ -3069,6 +3079,14 @@
   "coachTrainerNone": "You don't have a trainer yet. Connect a gym and trainer from the Exercise tab",
   "@coachTrainerNone": {
     "description": "Tooltip when no trainer is assigned yet."
+  },
+  "coachTrainerLoadFailed": "Couldn't load your trainer",
+  "@coachTrainerLoadFailed": {
+    "description": "Home trainer card title when the assigned-trainer lookup failed (not a confirmed 'no trainer') (#2843)."
+  },
+  "coachTrainerRetrying": "Couldn't load your trainer. Trying again",
+  "@coachTrainerRetrying": {
+    "description": "Toast from the header chat button when the assigned-trainer lookup failed; tapping also retries (#2843)."
   },
   "alertCategoryReminder": "Reminder",
   "@alertCategoryReminder": {

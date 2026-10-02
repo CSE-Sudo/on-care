@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/app/app_icons.dart';
+import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_feedback_providers.dart';
 import 'package:oncare/features/member_coach/presentation/weekly_feedback_labels.dart';
@@ -131,7 +132,9 @@ class _ReportRowState extends ConsumerState<_ReportRow> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final DateTime sentAt = widget.notice.sentAt;
+    // 서버 시각(UTC 순간)을 표시 직전에 KST 로 바꾼다 — 그대로 쓰면 KST 오전
+    // 0~9시에 보낸 리포트가 전날로 보인다(#2844). 정렬·비교는 원래 값을 쓴다.
+    final DateTime sentAt = toKst(widget.notice.sentAt);
     return AppCard(
       padding: EdgeInsets.zero,
       child: AppListRow(

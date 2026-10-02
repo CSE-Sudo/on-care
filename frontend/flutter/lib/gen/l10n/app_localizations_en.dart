@@ -130,6 +130,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.';
 
   @override
+  String get homeAiAdviceNoRecord =>
+      'Log today\'s meals and workouts, and we\'ll put together advice for your day.';
+
+  @override
   String get homeSodiumExceededBadge => 'Sodium over';
 
   @override
@@ -250,6 +254,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeRecMealsTitle => 'Recommended meals';
+
+  @override
+  String get homeRecMealsErrorTitle => 'Couldn\'t load meal suggestions';
 
   @override
   String get homeViewAll => 'View all';
@@ -2241,6 +2248,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachCardWaterTag => 'Hydration';
 
   @override
+  String get coachSheetErrorTitle => 'Couldn\'t load your advice';
+
+  @override
+  String get coachSheetErrorBody => 'Check your connection and try again.';
+
+  @override
+  String get coachSheetEmptyTitle => 'Advice will appear as you log more';
+
+  @override
+  String get coachSheetEmptyBody => 'Try logging today\'s meals and workouts.';
+
+  @override
   String get coachInviteTitle => 'A trainer wants to coach you';
 
   @override
@@ -2288,6 +2307,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachChatLoadFailed => 'Couldn\'t load the conversation';
+
+  @override
+  String get coachChatUnassigned =>
+      'Your trainer is no longer assigned, so you can\'t send messages here';
 
   @override
   String coachChatEmptyTitle(String trainer) {
@@ -3975,6 +3998,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get coachTrainerNone =>
       'You don\'t have a trainer yet. Connect a gym and trainer from the Exercise tab';
+
+  @override
+  String get coachTrainerLoadFailed => 'Couldn\'t load your trainer';
+
+  @override
+  String get coachTrainerRetrying =>
+      'Couldn\'t load your trainer. Trying again';
 
   @override
   String get alertCategoryReminder => 'Reminder';
