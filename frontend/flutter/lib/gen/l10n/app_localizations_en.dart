@@ -1009,6 +1009,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exOwnRecordsEmpty => 'No workouts logged';
 
   @override
+  String get exRecordDetailOpen => 'Details';
+
+  @override
+  String get exRecordDetailInfo => 'Workout details';
+
+  @override
+  String get exRecordDetailTotalCalories => 'Total calories burned';
+
+  @override
   String get exOwnRecordSource => 'Self-logged';
 
   @override
@@ -3727,8 +3736,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachRoutineAiTitle => 'AI recommended solo workouts';
 
   @override
-  String get coachRoutinePastReadOnly =>
-      'What you did that day. Past days can\'t be checked.';
+  String get coachRoutinePastEditHint =>
+      'You can add a missed check now. Your trainer will see it as checked later.';
+
+  @override
+  String get coachRoutinePastEditDone => 'Done';
 
   @override
   String get coachRoutineLogged => 'Added to your workout log';
@@ -3838,11 +3850,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String coachRoutinePlannedIntensity(String level) {
     return 'Suggested $level';
-  }
-
-  @override
-  String coachRoutineDoneIntensity(String level) {
-    return 'Logged $level';
   }
 
   @override
