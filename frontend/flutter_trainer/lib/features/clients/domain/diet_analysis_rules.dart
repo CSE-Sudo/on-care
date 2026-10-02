@@ -541,13 +541,15 @@ List<ClientDietSentence> _weekFinding(
   ];
 }
 
-/// 첫 문제·근거 → 비교 → 둘째 문제·근거 순으로, [_maxSentences] 에서 자른다.
+/// 첫 문제 → 비교 → 첫 근거 → 둘째 문제·근거 순으로, [_maxSentences] 에서 자른다.
+/// 비교는 첫 문제 바로 뒤다 — 근거 뒤에 두면 무엇을 견준 것인지 읽히지 않는다.
 List<ClientDietSentence> _cap(
   List<List<ClientDietSentence>> groups,
   ClientDietSentence? compare,
 ) => <ClientDietSentence>[
-  ...groups.first,
+  groups.first.first,
   ?compare,
+  ...groups.first.skip(1),
   for (final List<ClientDietSentence> g in groups.skip(1)) ...g,
 ].take(_maxSentences).toList();
 
@@ -621,9 +623,21 @@ weekSentences(
         if (!e.key.isBefore(prevStart) && e.key.isBefore(w.start)) e.value,
     ];
     if (prev.isNotEmpty) {
-      compare = ClientDietSentence('tr_week_vs_last', <String, Object>{
+      final int prevDays = _weekHits(
+        prev,
+        targets,
+        today,
+        now,
+      )[kinds.first]!.length;
+      // 기록한 날 수가 주마다 달라 비율로 견준다(서버와 같다).
+      final double nowRate = hits[kinds.first]!.length / logged;
+      final double prevRate = prevDays / prev.length;
+      final String way = nowRate == prevRate
+          ? 'same'
+          : (nowRate > prevRate ? 'more' : 'less');
+      compare = ClientDietSentence('tr_week_vs_last_$way', <String, Object>{
         'prev_logged': prev.length,
-        'prev_days': _weekHits(prev, targets, today, now)[kinds.first]!.length,
+        'prev_days': prevDays,
       });
     }
   }

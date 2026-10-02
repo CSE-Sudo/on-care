@@ -1461,6 +1461,13 @@
       }
      },
      {
+      "key": "tr_week_vs_last_more",
+      "params": {
+       "prev_logged": 7,
+       "prev_days": 2
+      }
+     },
+     {
       "key": "tr_week_cause",
       "params": {
        "weekday": 0,
@@ -1468,13 +1475,6 @@
        "food": "짬뽕",
        "food_value": 4286,
        "nutrient": "sodium"
-      }
-     },
-     {
-      "key": "tr_week_vs_last",
-      "params": {
-       "prev_logged": 7,
-       "prev_days": 2
       }
      },
      {
@@ -2920,13 +2920,31 @@
    "en": "Averaged 1,500kcal and 120g protein a day."
   },
   {
-   "key": "tr_week_vs_last",
+   "key": "tr_week_vs_last_more",
    "params": {
     "prev_logged": 7,
     "prev_days": 2
    },
-   "ko": "지난주에는 기록한 7일 중 2일이었어요.",
-   "en": "Last week it was 2 of 7 logged days."
+   "ko": "지난주(7일 중 2일)보다 늘었어요.",
+   "en": "Up from last week (2 of 7 days)."
+  },
+  {
+   "key": "tr_week_vs_last_less",
+   "params": {
+    "prev_logged": 7,
+    "prev_days": 5
+   },
+   "ko": "지난주(7일 중 5일)보다 줄었어요.",
+   "en": "Down from last week (5 of 7 days)."
+  },
+  {
+   "key": "tr_week_vs_last_same",
+   "params": {
+    "prev_logged": 6,
+    "prev_days": 3
+   },
+   "ko": "지난주(6일 중 3일)와 비슷해요.",
+   "en": "About the same as last week (3 of 6 days)."
   },
   {
    "key": "tr_all_few",

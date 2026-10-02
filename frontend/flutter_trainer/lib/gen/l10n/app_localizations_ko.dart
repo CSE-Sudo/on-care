@@ -5844,8 +5844,17 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String clientDietAnalysisWeekVsLast(int prevLogged, int prevDays) {
-    return '지난주에는 기록한 $prevLogged일 중 $prevDays일이었어요.';
+  String clientDietAnalysisWeekVsLast(
+    int prevLogged,
+    int prevDays,
+    String way,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(way, {
+      'more': '보다 늘었어요',
+      'less': '보다 줄었어요',
+      'other': '와 비슷해요',
+    });
+    return '지난주($prevLogged일 중 $prevDays일)$_temp0.';
   }
 
   @override

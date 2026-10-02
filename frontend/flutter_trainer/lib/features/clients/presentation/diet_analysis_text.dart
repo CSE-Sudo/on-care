@@ -87,9 +87,12 @@ String? clientDietSentenceText(AppLocalizations l, ClientDietSentence s) {
       amount('kcal', 'calorie'),
       amount('protein', 'protein'),
     ),
-    'tr_week_vs_last' => l.clientDietAnalysisWeekVsLast(
+    'tr_week_vs_last_more' ||
+    'tr_week_vs_last_less' ||
+    'tr_week_vs_last_same' => l.clientDietAnalysisWeekVsLast(
       number('prev_logged'),
       number('prev_days'),
+      s.key.substring('tr_week_vs_last_'.length),
     ),
     'tr_all_few' => l.clientDietAnalysisAllFew(number('days')),
     'tr_all_slot_sodium' => l.clientDietAnalysisAllSlotSodium(

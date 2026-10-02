@@ -157,9 +157,10 @@ def test_week_compares_the_first_finding_with_last_week_and_caps_at_four():
                               sodium_mg=sodium, protein_g=40, total_calories=700))
     _, _, _, out = svc.week_sentences(entries, TARGETS, _at(today, 20))
     assert [s.key for s in out] == [
-        "tr_week_over", "tr_week_cause", "tr_week_vs_last", "tr_week_protein_short",
+        "tr_week_over", "tr_week_vs_last_more", "tr_week_cause", "tr_week_protein_short",
     ]
-    assert out[2].text == "지난주에는 기록한 7일 중 2일이었어요."
+    # 비교는 첫 문제 바로 뒤 — 무엇을 견주는지 읽히게.
+    assert out[1].text == "지난주(7일 중 2일)보다 늘었어요."
     assert len(out) == svc.MAX_SENTENCES
 
 

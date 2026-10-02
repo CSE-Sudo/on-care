@@ -6107,8 +6107,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String clientDietAnalysisWeekVsLast(int prevLogged, int prevDays) {
-    return 'Last week it was $prevDays of $prevLogged logged days.';
+  String clientDietAnalysisWeekVsLast(
+    int prevLogged,
+    int prevDays,
+    String way,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(way, {
+      'more': 'Up from last week',
+      'less': 'Down from last week',
+      'other': 'About the same as last week',
+    });
+    return '$_temp0 ($prevDays of $prevLogged days).';
   }
 
   @override

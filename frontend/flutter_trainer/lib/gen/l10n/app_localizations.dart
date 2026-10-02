@@ -10093,8 +10093,8 @@ abstract class AppLocalizations {
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.
   ///
   /// In en, this message translates to:
-  /// **'Last week it was {prevDays} of {prevLogged} logged days.'**
-  String clientDietAnalysisWeekVsLast(int prevLogged, int prevDays);
+  /// **'{way, select, more{Up from last week} less{Down from last week} other{About the same as last week}} ({prevDays} of {prevLogged} days).'**
+  String clientDietAnalysisWeekVsLast(int prevLogged, int prevDays, String way);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///

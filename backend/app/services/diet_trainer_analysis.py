@@ -90,7 +90,9 @@ _KO: dict[str, str] = {
     "tr_week_breakfast_snack_food": "아침 대신 먹은 것은 {food} {count}번이 가장 많았어요.",
     "tr_week_protein_avg": "모자란 날은 하루 평균 {value} 정도였어요.",
     "tr_week_good_avg": "하루 평균 {kcal}, 단백질 {protein}을 드셨어요.",
-    "tr_week_vs_last": "지난주에는 기록한 {prev_logged}일 중 {prev_days}일이었어요.",
+    "tr_week_vs_last_more": "지난주({prev_logged}일 중 {prev_days}일)보다 늘었어요.",
+    "tr_week_vs_last_less": "지난주({prev_logged}일 중 {prev_days}일)보다 줄었어요.",
+    "tr_week_vs_last_same": "지난주({prev_logged}일 중 {prev_days}일)와 비슷해요.",
     "tr_all_few": "최근 4주 기록이 {days}일이라, 7일이 넘으면 흐름을 짚어 드릴게요.",
     "tr_all_slot_sodium": "최근 4주 동안 {slot_ko} 나트륨이 {days}번 목표의 절반을 넘었어요.",
     "tr_all_carb_heavy": "최근 4주 섭취 열량 중 탄수화물이 {pct}%로 높은 편이에요.",
@@ -132,7 +134,9 @@ _EN: dict[str, str] = {
     "tr_week_breakfast_snack_food": "{food} replaced breakfast most often ({count} times).",
     "tr_week_protein_avg": "Those days averaged {value} a day.",
     "tr_week_good_avg": "Averaged {kcal} and {protein} protein a day.",
-    "tr_week_vs_last": "Last week it was {prev_days} of {prev_logged} logged days.",
+    "tr_week_vs_last_more": "Up from last week ({prev_days} of {prev_logged} days).",
+    "tr_week_vs_last_less": "Down from last week ({prev_days} of {prev_logged} days).",
+    "tr_week_vs_last_same": "About the same as last week ({prev_days} of {prev_logged} days).",
     "tr_all_few": "Only {days} days logged in the last 4 weeks. The trend shows after 7.",
     "tr_all_slot_sodium": "In the last 4 weeks, {slot_en} sodium went over half the goal "
                           "{days} times.",
@@ -403,8 +407,11 @@ def _week_finding(kind: str, hit: list, scope: str, logged: int) -> list[Sentenc
 
 
 def _cap(groups: list[list[Sentence]], compare: Sentence | None) -> list[Sentence]:
-    """첫 문제·근거 → 비교 → 둘째 문제·근거 순으로, [MAX_SENTENCES] 에서 자른다."""
-    ordered = list(groups[0]) + ([compare] if compare else [])
+    """첫 문제 → 비교 → 첫 근거 → 둘째 문제·근거 순으로, [MAX_SENTENCES] 에서 자른다.
+
+    비교는 첫 문제 바로 뒤다 — 근거 뒤에 두면 무엇을 견준 것인지 읽히지 않는다.
+    """
+    ordered = [groups[0][0]] + ([compare] if compare else []) + list(groups[0][1:])
     for g in groups[1:]:
         ordered += g
     return ordered[:MAX_SENTENCES]
@@ -444,8 +451,15 @@ def week_sentences(
         prev = {d: r for d, r in records_all.items() if start - timedelta(days=7) <= d < start}
         if prev:
             prev_hits = _week_hits(prev, targets, today=today, now_time=at)
-            compare = Sentence("tr_week_vs_last", {
-                "prev_logged": len(prev), "prev_days": len(prev_hits[kinds[0]]),
+            prev_days = len(prev_hits[kinds[0]])
+            # 기록한 날 수가 주마다 달라 비율로 견준다.
+            now_rate = len(hits[kinds[0]]) / logged
+            prev_rate = prev_days / len(prev)
+            way = "same" if now_rate == prev_rate else (
+                "more" if now_rate > prev_rate else "less"
+            )
+            compare = Sentence(f"tr_week_vs_last_{way}", {
+                "prev_logged": len(prev), "prev_days": prev_days,
             })
     return start, end, logged, _cap(groups, compare)
 
