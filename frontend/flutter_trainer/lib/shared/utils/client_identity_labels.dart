@@ -21,12 +21,14 @@ String clientDemographicsLabel(BuildContext context, TrainerClient client) =>
 /// 트레이너가 지금 잇는 사람이 목록의 그 사람인지 견줄 때 한 번 더 생각해야
 /// 한다.
 ///
-/// [age] 가 `null` 이면(회원이 생년월일을 넣지 않았다) 성별만 적는다 — 나이를
-/// 지어내지 않는다(#2744).
+/// 아는 값만 적는다 — 지어내지 않는다.
+/// - [age] 가 `null` 이면(회원이 생년월일을 넣지 않았다) 성별만(#2744).
+/// - 성별이 `male`/`female`/`other` 가 아니면(미입력, 또는 담당 해제·동의 철회로
+///   서버가 비워 보냄 #2814) 나이만(#2870).
+/// - 둘 다 모르면 빈 문자열 — 부르는 쪽은 구분 문구 자리를 그리지 않는다.
 ///
-/// [gender] 가 비어 있으면 성별을 적지 않는다(#2814) — 담당 해제·동의 철회
-/// 회원은 서버가 성별·나이를 비워 보내고, 둘 다 없으면 빈 문자열이다. 빈
-/// 값을 `기타` 로 읽으면 가린 자리에 성별이 있는 것처럼 보인다.
+/// `other` 는 회원이 직접 고른 `기타` 다. 미입력을 `기타` 로 바꿔 적으면 회원이
+/// 고르지 않은 값을 고른 것처럼 보이므로 둘을 가른다.
 String demographicsLabel(
   BuildContext context, {
   required String gender,
@@ -35,13 +37,12 @@ String demographicsLabel(
   // 성별·나이 문구는 ARB 가 정한다 (#2304) — 예전의 `korean ?` 분기는 두 언어만
   // 코드에 박아 두어, 로케일이 늘면 그 언어도 영어로 떨어졌다.
   final AppLocalizations l = AppLocalizations.of(context);
-  final String? genderLabel = gender.trim().isEmpty
-      ? null
-      : switch (gender) {
-          'female' => l.memberHealthGenderFemale,
-          'male' => l.memberHealthGenderMale,
-          _ => l.memberHealthGenderOther,
-        };
+  final String? genderLabel = switch (gender) {
+    'female' => l.memberHealthGenderFemale,
+    'male' => l.memberHealthGenderMale,
+    'other' => l.memberHealthGenderOther,
+    _ => null,
+  };
   if (genderLabel == null) {
     return age == null ? '' : l.coachClientAge(age);
   }

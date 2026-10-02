@@ -155,6 +155,8 @@ class _ClientConnectDialogState extends ConsumerState<ClientConnectDialog> {
   /// 한국어가 새지 않게 한다).
   String _messageFor(AppLocalizations l, Object error) => switch (error) {
     NotFoundError() => l.clientConnectCodeInvalid,
+    // 타입으로 받은 사유는 로케일 문구로 — 한국어 문장이 새지 않는다(#2893).
+    AlreadyManagedError() => l.clientConnectAlreadyManaged,
     AppError(:final String? message) => serverDetailOr(
       l,
       message,
@@ -364,13 +366,16 @@ class _PairedMemberCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // 성별·나이가 모두 없으면 목록(ClientIdentityBlock)처럼
-                    // 칸을 그리지 않는다(#2814).
+                    // 성별·나이를 모두 모르면 목록(ClientIdentityBlock)처럼
+                    // 칸을 그리지 않는다(#2814, #2870).
                     if (demographics.isNotEmpty) ...<Widget>[
                       const SizedBox(width: OnCareSpacing.s4),
                       Flexible(
                         child: Text(
                           demographics,
+                          key: const ValueKey<String>(
+                            'client-connect-demographics',
+                          ),
                           overflow: TextOverflow.ellipsis,
                           style: clientDemographicsStyle(context),
                         ),

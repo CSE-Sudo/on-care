@@ -13,7 +13,8 @@ const int calorieTargetKcal = 2000;
 /// Daily sugar target (g). Over this, the diet summary 당류 tile warns.
 const int sugarTargetG = 50;
 
-/// 로스터가 보여 주는 성별 — 저장된 값이 있으면 그것, 없으면 빈 값.
+/// 로스터가 보여 주는 성별 — 저장된 값(`male`/`female`/`other`)이 있으면
+/// 그것, 없으면 빈 문자열(미입력·서버가 가림).
 ///
 /// [TrainerClient.rosterGender] 의 알맹이를 밖으로 꺼낸 것이다. 신규 고객
 /// 등록의 확인 카드도 같은 값을 보여야 하기 때문이다 (#1634) — 목록은
@@ -25,11 +26,12 @@ const int sugarTargetG = 50;
 /// 성별을 저장하므로 폴백은 회원이 성별을 적지 않았을 때만 선다 — 이름으로
 /// 고칠 회원이 남지 않아 표를 지웠다(#2734).
 ///
-/// 값이 없으면 지어내지 않고 빈 값이다(#2814). 서버는 담당 해제·동의 철회
-/// 회원의 성별을 비워 보내는데, 여기서 id 로 성별을 지어내면 가린 자리에
-/// 엉뚱한 성별이 다시 보였다 — 나이를 지어내지 않게 한 #2744 와 같은 규칙이다.
-/// [id] 는 부르는 쪽 호환을 위해 남겨 둔다.
-String rosterGenderFor({required String id, String gender = ''}) {
+/// 회원 앱에서 성별은 선택 입력이다. 예전에는 값이 없으면 회원 id 문자 코드
+/// 합의 짝홀로 `남성`/`여성` 을 지어냈는데, 트레이너는 그 값이 회원이 적은
+/// 것인지 화면이 만든 것인지 가를 수 없어 실제와 다른 성별을 믿게 됐다. 서버가
+/// 담당 해제·동의 철회 회원의 성별을 비워 보낼 때(#2814)도 가린 자리에 엉뚱한
+/// 성별이 다시 보였다. 나이(#2744)와 같이 "모르면 적지 않는다" 로 바꿨다(#2870).
+String rosterGenderFor({String gender = ''}) {
   if (gender == 'male' || gender == 'female' || gender == 'other') {
     return gender;
   }
@@ -157,9 +159,10 @@ class TrainerClient {
   final List<int> caloriesWeek;
   final List<double> sugarWeek;
 
-  /// 로스터가 보여 주는 성별. 저장된 값이 없거나 서버가 가린 회원(담당 해제·
-  /// 동의 철회, #2814)이면 빈 값이고, 화면은 그때 성별을 적지 않는다.
-  String get rosterGender => rosterGenderFor(id: id, gender: gender);
+  /// 로스터가 보여 주는 성별. 회원이 성별을 적지 않았거나 서버가 가린 회원
+  /// (담당 해제·동의 철회, #2814)이면 빈 문자열이고, 화면은 그때 성별을 적지
+  /// 않는다(#2870, [rosterGenderFor]).
+  String get rosterGender => rosterGenderFor(gender: gender);
 
   /// 로스터가 보여 주는 나이. 생년월일이 없는 회원은 `null` 이고, 화면은
   /// 그때 나이를 적지 않는다(#2744).
