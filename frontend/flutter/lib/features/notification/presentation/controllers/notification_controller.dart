@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/network/dio_client.dart';
-import 'package:oncare/core/utils/active_polling_stream.dart';
 import 'package:oncare/features/notification/data/repositories/dio_notification_repository.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/domain/repositories/notification_repository.dart';
+import 'package:oncare_core/active_polling_stream.dart';
 
 class NotificationController extends StateNotifier<NotificationState> {
   /// 만들자마자 `/notifications` 에서 최신 알림을 불러온다. 데모(목 모드)도 같은

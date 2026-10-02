@@ -1,4 +1,4 @@
-import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
 import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
     show elapsedWeekdays;

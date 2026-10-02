@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/data/repositories/dio_consultation_repository.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 예약 슬롯은 트레이너에 귀속된다(#426). 예전에는 위젯 안에 슬롯 3개가
 /// 하드코딩되어 있어 누구를 예약하든 같은 시간이 떴다.

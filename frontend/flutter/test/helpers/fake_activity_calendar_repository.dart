@@ -1,6 +1,6 @@
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart';
 import 'package:oncare/features/benefits/domain/repositories/activity_calendar_repository.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 기록 그래프의 메모리 대역. (#2075, #2076)
 ///

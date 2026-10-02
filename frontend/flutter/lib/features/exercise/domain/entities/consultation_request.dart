@@ -1,5 +1,5 @@
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 상담 요청의 상태.
 ///

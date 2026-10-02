@@ -1,13 +1,13 @@
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/entities/streak_shield.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/repositories/streak_shield_repository.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 데모 모드의 보호권 저장소. 규칙은 [DemoStreakShieldBook] 이 서버와 같게 들고
 /// 있다. (#1788)

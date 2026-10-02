@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:oncare_core/active_polling_stream.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_core/request_id.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/core/utils/request_id.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/program_draft_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
@@ -57,6 +57,7 @@ class DioScheduleRepository implements ScheduleRepository {
         load: read,
         interval: pollExternal ? pollInterval : null,
         refreshes: _revisions.stream,
+        keepPollingWhileInactive: true,
       );
 
   void _bump() {

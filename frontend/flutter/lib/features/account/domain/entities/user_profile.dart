@@ -1,4 +1,4 @@
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart'
     show
         kGoalDefaultDailyCalories,

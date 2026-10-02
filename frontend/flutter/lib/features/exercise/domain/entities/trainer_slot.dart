@@ -1,4 +1,4 @@
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 
 /// One bookable time on a trainer's calendar.
 ///
