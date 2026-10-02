@@ -33,6 +33,14 @@
   "errorServer": "Server error",
   "errorCancelled": "Cancelled",
   "errorUnknown": "Something went wrong",
+  "errorForbidden": "You don't have access to this feature. Please check the required consent or your trainer connection.",
+  "@errorForbidden": {
+    "description": "403 from the server: signed in, but not allowed to use this feature (missing consent or trainer link). Never suggests signing in again (#2859)."
+  },
+  "errorRateLimited": "Too many requests right now. Please try again in a moment.",
+  "@errorRateLimited": {
+    "description": "429 from the server: too many requests; it will work again shortly (#2859)."
+  },
   "dashboardMetricCalories": "Calories",
   "dashboardMetricExercise": "Weekly exercise",
   "homeDashboardLoadError": "Could not load the dashboard.",
@@ -611,6 +619,12 @@
   "exQueueDiscard": "Discard",
   "exOwnRecords": "Workouts you logged",
   "exOwnRecordsEmpty": "No workouts logged",
+  "exRecordDetailOpen": "Details",
+  "@exRecordDetailOpen": {
+    "description": "Text link at the bottom of the self-logged workouts card — opens that day's workout detail; same wording as the home card link (#2507)."
+  },
+  "exRecordDetailInfo": "Workout details",
+  "exRecordDetailTotalCalories": "Total calories burned",
   "exOwnRecordSource": "Self-logged",
   "exCompletedPtDayTitle": "Completed PT",
   "exCompletedRoutineDayTitle": "Completed solo workout",
@@ -1915,17 +1929,23 @@
     }
   },
   "coachChatInputHint": "Message your trainer...",
-  "coachChatDemoAnalyzed": "AI analyzed your diet and exercise data",
-  "coachChatDemoReportSent": "A summary report was sent to {trainer}",
-  "@coachChatDemoReportSent": {
+  "coachChatRoutineReceived": "Your trainer sent a workout",
+  "coachChatRoutineReceivedPt": "You received a PT program and personal workout",
+  "coachChatRoutineReceivedPersonal": "You received a personal workout",
+  "coachChatRoutineReceivedAfterCancel": "You received a personal workout in place of the cancelled PT",
+  "coachChatRoutineReceivedProgram": "You received a workout program",
+  "coachChatRoutineReceivedMore": "{names} and {count} more",
+  "@coachChatRoutineReceivedMore": {
+    "description": "Routine delivery notice: first names, then how many more.",
     "placeholders": {
-      "trainer": {
+      "names": {
         "type": "String"
+      },
+      "count": {
+        "type": "int"
       }
     }
   },
-  "coachChatDemoRoutineReceived": "You received a personalized workout recommendation",
-  "coachChatDemoNotified": "It was also delivered as a notification",
   "coachChatDateDivider": "{date}",
   "@coachChatDateDivider": {
     "description": "Chat date divider with full date and weekday.",
@@ -2659,7 +2679,7 @@
   },
   "healthNotesLabel": "Health notes & cautions",
   "healthNotesHint": "e.g. Left knee surgery, herniated disc",
-  "healthNotesHelper": "Used when recommending workouts",
+  "healthNotesHelper": "Used for recommendations",
   "healthFocusWeightLoss": "Weight loss",
   "@healthFocusWeightLoss": {
     "description": "Health goal chip in onboarding and MY health goals."
@@ -2860,7 +2880,14 @@
   },
   "coachRoutineTitle": "Recommended solo workouts",
   "coachRoutineAiTitle": "AI recommended solo workouts",
-  "coachRoutinePastReadOnly": "What you did that day. Past days can't be checked.",
+  "coachRoutinePastEditHint": "You can add a missed check now. Your trainer will see it as checked later.",
+  "@coachRoutinePastEditHint": {
+    "description": "Shown after tapping the pencil on a past day's recommended exercises — past checks are allowed and marked as late for the trainer (#2506)."
+  },
+  "coachRoutinePastEditDone": "Done",
+  "@coachRoutinePastEditDone": {
+    "description": "Leaves the past-day check editing mode (#2506)."
+  },
   "@coachRoutineAiTitle": {
     "description": "Card title when the member has no trainer — every line is AI recommended (#2015)."
   },
@@ -2988,15 +3015,6 @@
   "coachRoutinePlannedIntensity": "Suggested {level}",
   "@coachRoutinePlannedIntensity": {
     "description": "The intensity the trainer suggests for a routine.",
-    "placeholders": {
-      "level": {
-        "type": "String"
-      }
-    }
-  },
-  "coachRoutineDoneIntensity": "Logged {level}",
-  "@coachRoutineDoneIntensity": {
-    "description": "The intensity the member logged for a completed routine.",
     "placeholders": {
       "level": {
         "type": "String"

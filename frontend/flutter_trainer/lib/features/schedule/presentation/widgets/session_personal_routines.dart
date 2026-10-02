@@ -103,6 +103,15 @@ class _SessionPersonalRoutinesState
   /// 않는다(#2280).
   bool _loaded = false;
 
+  /// 마지막 조회가 실패했는가 — 숨기지 않고 실패 안내와 재시도를 세운다
+  /// (#2891). 마무리된 PT 에 보내지 않은 개인운동이 남아 있어도 조회가 한 번
+  /// 실패해 갈래째 사라지면, 트레이너는 보낼 것이 없다고 읽어 회원에게
+  /// 루틴이 영영 가지 않을 수 있다.
+  bool _failed = false;
+
+  /// 다시 읽는 중인가 — 재시도 버튼을 거듭 누르지 않게 잠근다.
+  bool _loading = false;
+
   /// 아직 보내지 않은 것만 — 전송 버튼이 실을 것이다.
   List<RoutineExercise> get _unsent => <RoutineExercise>[
     for (final SessionRoutine r in _routines)
@@ -122,6 +131,7 @@ class _SessionPersonalRoutinesState
   }
 
   Future<void> _load() async {
+    if (mounted) setState(() => _loading = true);
     try {
       final rows = await ref
           .read(scheduleRepositoryProvider)
@@ -130,14 +140,19 @@ class _SessionPersonalRoutinesState
       setState(() {
         _routines = rows;
         _loaded = true;
+        _failed = false;
+        _loading = false;
       });
       widget.onChanged?.call(_unsent);
     } catch (_) {
-      // 읽지 못하면 조용히 숨긴다 — 없는 것을 있다고 말하지 않는다.
+      // 없는 것을 있다고 말하지 않되, 못 읽은 것을 없다고도 말하지 않는다 —
+      // 목록 대신 실패 안내와 재시도를 세운다(#2891).
       if (!mounted) return;
       setState(() {
         _routines = const <SessionRoutine>[];
         _loaded = false;
+        _failed = true;
+        _loading = false;
       });
       widget.onChanged?.call(null);
     }
@@ -145,6 +160,13 @@ class _SessionPersonalRoutinesState
 
   @override
   Widget build(BuildContext context) {
+    if (_failed) {
+      return PersonalRoutinesLoadError(
+        key: const ValueKey<String>('session-personal-routines-error'),
+        retryKey: const ValueKey<String>('session-personal-routines-retry'),
+        onRetry: _loading ? null : () => unawaited(_load()),
+      );
+    }
     if (_routines.isEmpty) {
       return _loaded && widget.showEmpty
           ? _NoPersonalRoutines(onAdd: widget.onAdd)
@@ -220,6 +242,79 @@ class _SessionPersonalRoutinesState
                 .copyWith(color: OnCareColors.textTertiary),
           ),
         const SizedBox(height: OnCareSpacing.s12),
+      ],
+    );
+  }
+}
+
+/// 개인운동을 읽지 못했을 때의 `개인운동` 갈래. (#2891)
+///
+/// "없음" 과 구분되는 한 줄 — 불러오지 못했다는 사실과 다시 시도를 함께
+/// 둔다. 일정 상세와 코칭 탭의 미전송 안내가 같은 모양을 쓴다.
+class PersonalRoutinesLoadError extends StatelessWidget {
+  const PersonalRoutinesLoadError({
+    required this.onRetry,
+    this.retryKey,
+    this.showLabel = true,
+    super.key,
+  });
+
+  /// 다시 읽는다. 읽는 중이면 null 로 잠근다.
+  final VoidCallback? onRetry;
+
+  final Key? retryKey;
+
+  /// 위에 `개인운동` 갈래 이름을 붙이는가 — 일정 상세처럼 다른 갈래와 나란한
+  /// 자리에서만 붙인다.
+  final bool showLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final tokens = context.oncare;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        if (showLabel) ...<Widget>[
+          Text(
+            l.schedGroupPersonal,
+            style: tokens
+                .text(OnCareTypography.strong(OnCareTypography.caption))
+                .copyWith(color: OnCareColors.textSecondary),
+          ),
+          const SizedBox(height: OnCareSpacing.s8),
+        ],
+        AppTile(
+          tone: AppTileTone.neutral,
+          child: Row(
+            children: <Widget>[
+              const AppIcon(
+                AppIcons.error,
+                size: OnCareSize.iconSmall,
+                color: OnCareColors.danger,
+              ),
+              const SizedBox(width: OnCareSpacing.s8),
+              Expanded(
+                child: Text(
+                  l.schedRoutinesLoadFailed,
+                  style: tokens
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textSecondary),
+                ),
+              ),
+              const SizedBox(width: OnCareSpacing.s8),
+              AppButton(
+                key: retryKey,
+                label: l.actionRetry,
+                leadingIcon: AppIcons.refresh,
+                variant: AppButtonVariant.text,
+                size: OnCareButtonSize.small,
+                onPressed: onRetry,
+              ),
+            ],
+          ),
+        ),
+        if (showLabel) const SizedBox(height: OnCareSpacing.s12),
       ],
     );
   }

@@ -13,6 +13,9 @@ import 'package:oncare_trainer/core/utils/clock.dart';
 
 void main() {
   test('nowKst 는 기기 타임존과 무관하게 UTC+9 다', () {
+    // 실행 날짜 고정(#2940)을 걷어 내고 실제 계산을 본다. 다음 테스트 앞에서
+    // `flutter_test_config.dart` 가 다시 건다.
+    debugNowKstOverride = null;
     final DateTime before = DateTime.now().toUtc();
     final DateTime kst = nowKst();
     final DateTime after = DateTime.now().toUtc();

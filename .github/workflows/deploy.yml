@@ -5,6 +5,17 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      backend:
+        # 이 워크플로는 데모 배포다(#2810). 운영 배포(실서버 고정)는
+        # aws-frontend-deploy.yml 이 맡는다. main push 는 입력이 없으므로 항상 목업으로
+        # 빌드되고, 실서버로 한 번 올려 보고 싶을 때만 수동 실행에서 real 을 고른다.
+        description: '두 웹이 볼 백엔드 — mock(브라우저 drift 목업, 기본) 또는 real(저장소 변수 API_BASE_URL)'
+        type: choice
+        options:
+          - mock
+          - real
+        default: mock
 
 permissions:
   contents: read
@@ -41,6 +52,37 @@ jobs:
       - name: Check Flutter version
         run: flutter --version
 
+      # 빌드 모드를 한 곳에서 정한다(#2810). push 에는 입력이 없어 mock 이 되고,
+      # 데모 사이트가 지금처럼 목업으로 유지된다.
+      - name: Resolve web build mode
+        env:
+          BACKEND: ${{ inputs.backend || 'mock' }}
+        run: |
+          set -euo pipefail
+          case "$BACKEND" in
+            mock)
+              echo "WEB_USE_MOCK_API=true" >> "$GITHUB_ENV"
+              echo "WEB_ENV=dev" >> "$GITHUB_ENV"
+              ;;
+            real)
+              echo "WEB_USE_MOCK_API=false" >> "$GITHUB_ENV"
+              echo "WEB_ENV=prod" >> "$GITHUB_ENV"
+              ;;
+            *)
+              echo "::error::알 수 없는 backend 입력: $BACKEND"
+              exit 1
+              ;;
+          esac
+          echo "web build backend=$BACKEND"
+
+      # real 일 때만 주소를 요구한다. 비어 있는 채로 실서버 빌드를 하면 자리표시자
+      # 주소를 부르는 앱이 그대로 배포된다.
+      - name: Require API base URL for a real-backend build
+        if: env.WEB_USE_MOCK_API == 'false'
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: bash .github/scripts/check_web_api_base_url.sh
+
       - name: Install Flutter dependencies
         working-directory: frontend/flutter
         run: flutter pub get
@@ -58,9 +100,24 @@ jobs:
         # 시크릿이 비어 있으면 지도는 폴백 그래픽으로 뜨고 빌드는 깨지지 않는다.
         # 이 키는 클라이언트 노출이 전제이며, 카카오 콘솔의
         # [플랫폼 키 > JavaScript 키 > JavaScript SDK 도메인] 등록으로 보호된다.
-        run: >-
-          flutter build web --release --base-href "/frontend/"
-          --dart-define=KAKAO_JS_KEY=${{ secrets.KAKAO_JS_KEY }}
+        #
+        # USE_MOCK_API·ENV 는 위 "Resolve web build mode" 가 정한다. mock 빌드는
+        # API_BASE_URL 을 넘기지 않는다(목업은 네트워크를 쓰지 않는다).
+        env:
+          KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: |
+          set -euo pipefail
+          args=(
+            --release --base-href "/frontend/"
+            --dart-define=KAKAO_JS_KEY="$KAKAO_JS_KEY"
+            --dart-define=USE_MOCK_API="$WEB_USE_MOCK_API"
+            --dart-define=ENV="$WEB_ENV"
+          )
+          if [ "$WEB_USE_MOCK_API" = "false" ]; then
+            args+=(--dart-define=API_BASE_URL="$API_BASE_URL")
+          fi
+          flutter build web "${args[@]}"
 
       - name: Install Flutter dependencies (trainer)
         working-directory: frontend/flutter_trainer
@@ -77,9 +134,22 @@ jobs:
         working-directory: frontend/flutter_trainer
         # 소속 헬스장 찾기 지도(#2543). 회원 앱과 같은 카카오맵 JS 키를 쓰고, 카카오
         # 콘솔에 트레이너 웹 도메인이 등록돼 있어야 뜬다. 키가 없으면 목록만 보인다.
-        run: >-
-          flutter build web --release --base-href "/trainer/"
-          --dart-define=KAKAO_JS_KEY=${{ secrets.KAKAO_JS_KEY }}
+        # 백엔드 모드는 회원 앱과 같다 — 둘이 갈리면 회원 기록이 트레이너에게 안 보인다.
+        env:
+          KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: |
+          set -euo pipefail
+          args=(
+            --release --base-href "/trainer/"
+            --dart-define=KAKAO_JS_KEY="$KAKAO_JS_KEY"
+            --dart-define=USE_MOCK_API="$WEB_USE_MOCK_API"
+            --dart-define=ENV="$WEB_ENV"
+          )
+          if [ "$WEB_USE_MOCK_API" = "false" ]; then
+            args+=(--dart-define=API_BASE_URL="$API_BASE_URL")
+          fi
+          flutter build web "${args[@]}"
 
       - name: Prepare GitHub Pages files
         run: |

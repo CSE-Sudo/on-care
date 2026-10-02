@@ -12,9 +12,10 @@
 가면 상대는 곧 알림을 읽지 않게 된다.
 
 예외는 **회원이 고친 건강상태·주의사항**이다(#2619). 부상·통증처럼 운동을 짤 때
-피해야 할 것이라 담당 트레이너는 바로 알아야 한다. 기록(`focus_changed_*`)은 목표
-칩만의 것이라 남기지 않고 알림만 보낸다. 트레이너가 고친 주의사항은 회원에게
-알리지 않는다 — 수치 목표와 같다.
+피해야 할 것이라 담당 트레이너는 바로 알아야 한다. 목표 칩 기록(`focus_changed_*`)
+은 칩만의 것이라 건드리지 않고, 주의사항은 따로 `notes_changed_*` 에 남긴다
+(#2942). 트레이너가 고친 주의사항은 회원에게 알리지 않는다 — 수치 목표와 같다.
+회원은 글 아래 `마지막 변경` 줄로 안다.
 
 호출부의 트랜잭션에 얹는다(커밋하지 않는다). 기록과 알림이 목표 저장과 함께
 성사되어야, 목표는 바뀌었는데 알림만 없는 반쪽 상태가 생기지 않는다.
@@ -53,12 +54,20 @@ def _stamp(profile: HealthProfile, changed_by: str, actor_id: str) -> None:
     profile.focus_changed_at = clock.now()
 
 
+def _stamp_notes(profile: HealthProfile, changed_by: str, actor_id: str) -> None:
+    """건강상태·주의사항을 바꾼 사람·시각(#2942). 목표 칩 기록과 따로 남긴다."""
+    profile.notes_changed_by = changed_by
+    profile.notes_changed_by_id = actor_id
+    profile.notes_changed_at = clock.now()
+
+
 def record_member_change(
     db: Session, profile: HealthProfile, *, before: str | None, member: User
 ) -> bool:
     """회원이 저장한 뒤 부른다. 목표가 바뀌었으면 기록하고 담당 트레이너에게 알린다.
 
-    건강상태·주의사항만 바뀌었으면 기록 없이 알리기만 한다(#2619). 둘 다 바뀌었으면
+    건강상태·주의사항이 바뀌었으면 `notes_changed_*` 에 따로 남기고 알린다(#2619,
+    #2942) — 목표 칩 기록은 건드리지 않는다. 둘 다 바뀌었으면
     알림은 주의사항 틀 하나로 합친다 — 한 번 저장에 알림 두 건은 과하다.
 
     담당 트레이너가 없으면 기록만 남긴다. 목표가 바뀌었으면 True.
@@ -69,6 +78,8 @@ def record_member_change(
         return False
     if focus:
         _stamp(profile, CHANGED_BY_MEMBER, member.id)
+    if notes:
+        _stamp_notes(profile, CHANGED_BY_MEMBER, member.id)
     trainer_id = get_member_trainer_id(db, member.id)
     if trainer_id is not None:
         notification_service.queue_for_trainer(
@@ -103,7 +114,12 @@ def record_trainer_change(
 
     회원 알림은 수신 설정을 보지 않는다 — 내 목표가 남의 손으로 바뀐 사실은 끌 수
     있는 알림이 아니다(상담 결과 알림과 같은 이유). 바뀌었으면 True.
+
+    건강상태·주의사항만 바뀌었으면 기록만 남기고 알리지 않는다(#2942) — 회원은
+    MY 건강 목표의 글 아래 `마지막 변경` 줄로 안다.
     """
+    if notes_changed(before, profile.conditions):
+        _stamp_notes(profile, CHANGED_BY_TRAINER, trainer.id)
     if not focus_changed(before, profile.conditions):
         return False
     _stamp(profile, CHANGED_BY_TRAINER, trainer.id)

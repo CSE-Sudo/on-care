@@ -57,10 +57,15 @@ class DioMemberCoachRepository implements MemberCoachRepository {
     required int minutes,
     int? durationSeconds,
     String intensity = 'moderate',
+    DateTime? day,
   }) async {
     try {
       final Response<Map<String, Object?>> response = await _dio.post(
         '/me/coach/routines/$routineId/complete',
+        // 지난 날짜만 싣는다(#2506) — 없으면 서버가 오늘로 적는다.
+        queryParameters: day == null
+            ? null
+            : <String, Object?>{'date': wireDate(day)},
         data: <String, Object?>{
           'minutes': minutes,
           // 서버는 0 이하를 거절한다(422) — 초가 없거나 0 이면 키를 싣지 않고
@@ -81,10 +86,16 @@ class DioMemberCoachRepository implements MemberCoachRepository {
   }
 
   @override
-  Future<CoachRoutine> uncompleteRoutine(String routineId) async {
+  Future<CoachRoutine> uncompleteRoutine(
+    String routineId, {
+    DateTime? day,
+  }) async {
     try {
       final Response<Map<String, Object?>> response = await _dio.delete(
         '/me/coach/routines/$routineId/complete',
+        queryParameters: day == null
+            ? null
+            : <String, Object?>{'date': wireDate(day)},
       );
       final Map<String, Object?>? data = response.data;
       if (data == null) {

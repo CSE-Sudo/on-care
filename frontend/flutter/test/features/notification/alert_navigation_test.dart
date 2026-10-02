@@ -112,11 +112,14 @@ class _FakeCoachRepository implements MemberCoachRepository {
     required int minutes,
     int? durationSeconds,
     String intensity = 'moderate',
+    DateTime? day,
   }) async => throw UnimplementedError();
 
   @override
-  Future<CoachRoutine> uncompleteRoutine(String routineId) async =>
-      throw UnimplementedError();
+  Future<CoachRoutine> uncompleteRoutine(
+    String routineId, {
+    DateTime? day,
+  }) async => throw UnimplementedError();
 
   @override
   Future<void> deleteRoutine(String routineId) async {}

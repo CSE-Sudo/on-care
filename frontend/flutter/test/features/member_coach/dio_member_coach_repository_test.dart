@@ -109,6 +109,53 @@ void main() {
   );
 
   test(
+    'completeRoutine and uncompleteRoutine send a past day as ?date= (#2506)',
+    () async {
+      const String path = '/me/coach/routines/r1/complete';
+      final Map<String, Object?> body = <String, Object?>{
+        'id': 'r1',
+        'name': '코어 운동',
+        'minutes': 30,
+        'type': '근력',
+        'reason': '',
+        'source': 'trainer',
+        'completed': true,
+      };
+      when(
+        () => dio.post<Map<String, Object?>>(
+          path,
+          queryParameters: <String, Object?>{'date': '2026-08-19'},
+          data: <String, Object?>{'minutes': 30, 'intensity': 'moderate'},
+        ),
+      ).thenAnswer((_) async => _ok<Map<String, Object?>>(body, path));
+      when(
+        () => dio.delete<Map<String, Object?>>(
+          path,
+          queryParameters: <String, Object?>{'date': '2026-08-19'},
+        ),
+      ).thenAnswer(
+        (_) async => _ok<Map<String, Object?>>(<String, Object?>{
+          ...body,
+          'completed': false,
+        }, path),
+      );
+
+      final CoachRoutine done = await repo.completeRoutine(
+        'r1',
+        minutes: 30,
+        day: DateTime(2026, 8, 19),
+      );
+      final CoachRoutine undone = await repo.uncompleteRoutine(
+        'r1',
+        day: DateTime(2026, 8, 19),
+      );
+
+      expect(done.completed, isTrue);
+      expect(undone.completed, isFalse);
+    },
+  );
+
+  test(
     'completeRoutine sends duration_seconds for a seconds routine (#2221)',
     () async {
       // 45초 배정을 분으로만 보내면 `1분` 기록이 된다 — 초도 함께 싣는다.

@@ -129,8 +129,18 @@ def complete_my_routine(
     payload: AssignedRoutineCompleteRequest,
     member: RequireMember,
     db: Annotated[Session, Depends(get_db)],
+    day: Annotated[
+        date | None,
+        Query(
+            alias="date",
+            description="완료할 날(KST). 없으면 오늘. 그날 걸려 있던 배정만 된다.",
+        ),
+    ] = None,
 ) -> RoutineCompleteOut:
-    """나에게 배정된 루틴을 오늘의 운동 기록으로 완료한다 — 하루 한 번 (#2161).
+    """나에게 배정된 루틴을 그날의 운동 기록으로 완료한다 — 하루 한 번 (#2161).
+
+    지난 날짜도 된다(#2506) — 빠뜨린 체크를 나중에 한다. 아직 오지 않은 날은
+    422, 그날 목록에 없던 배정은 404 다.
 
     포인트 적립 결과(`points`)가 함께 온다 — AI 추천·트레이너 배정 모두 같은
     규칙이다(#1786).
@@ -151,7 +161,10 @@ def complete_my_routine(
             reps=payload.reps,
             weight=payload.weight,
             intensity=payload.intensity,
+            day=day,
         )
+    except trainer_service.RoutineDayInFuture as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except trainer_service.RoutineNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -164,8 +177,14 @@ def uncomplete_my_routine(
     routine_id: str,
     member: RequireMember,
     db: Annotated[Session, Depends(get_db)],
+    day: Annotated[
+        date | None,
+        Query(alias="date", description="되돌릴 날(KST). 없으면 오늘."),
+    ] = None,
 ) -> RoutineOut:
-    """완료 표시를 되돌린다 — 그 배정으로 남은 운동 기록을 지운다. (#1131)
+    """그날의 완료 표시를 되돌린다 — 그 배정으로 남은 운동 기록을 지운다. (#1131)
+
+    지난 날짜도 된다(#2506). 아직 오지 않은 날은 422 다.
 
     체크를 잘못 눌렀을 때 되돌릴 방법이 없으면, 하지 않은 운동이 주간 시간·
     칼로리에 그대로 남는다. 배정 자체는 지우지 않는다 — 지우는 것은 `수행`이지
@@ -174,8 +193,10 @@ def uncomplete_my_routine(
     trainer_id = trainer_service.get_member_trainer_id(db, member.id)
     try:
         return trainer_service.uncomplete_assigned_routine(
-            db, trainer_id, member.id, routine_id
+            db, trainer_id, member.id, routine_id, day=day
         )
+    except trainer_service.RoutineDayInFuture as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except trainer_service.RoutineNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

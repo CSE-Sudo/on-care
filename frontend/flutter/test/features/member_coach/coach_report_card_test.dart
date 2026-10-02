@@ -192,10 +192,12 @@ void main() {
       );
 
       expect(reports.length, 1);
+      // 트레이너가 보낸 운동 안내 PDF·사진(#2663)과 달리, 리포트 안내에는
+      // 첨부가 없다 — 미리보기는 회원 기록으로 만든다.
       expect(
-        chat.where((CoachMessage m) => m.attachment != null),
+        reports.where((CoachMessage m) => m.attachment != null),
         isEmpty,
-        reason: '데모에는 첨부 저장소가 없다 — 미리보기는 회원 기록으로 만든다',
+        reason: '데모 리포트 미리보기는 회원 기록으로 만든다',
       );
     });
   });

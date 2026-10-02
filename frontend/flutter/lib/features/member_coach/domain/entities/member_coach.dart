@@ -155,6 +155,9 @@ class CoachRoutine {
     type: type,
     reason: reason,
     source: source,
+    // 권한 강도도 트레이너가 정한 값이다(#2160). 빠뜨리면 체크하는 순간 기본값
+    // `보통` 으로 바뀌어, `가벼움` 을 권한 운동이 `권장 보통` 으로 보였다.
+    intensity: intensity,
     effect: effect,
     deliveryKind: deliveryKind,
     // 배정된 초는 트레이너가 정한 값이라 완료 표시에 흔들리지 않는다(#2221).
@@ -294,6 +297,7 @@ class CoachMessage {
     this.attachment,
     this.reportWeekStart,
     this.emoteId,
+    this.routineDelivery,
   });
 
   final String id;
@@ -317,7 +321,34 @@ class CoachMessage {
   /// 읽는 글이라 함께 온다. 그림은 이 id 로 고른다.
   final String? emoteId;
 
+  /// 이 메시지가 루틴 전송 안내라면 그 전송. (#2672)
+  ///
+  /// 트레이너가 운동을 보내면 알림과 함께 대화에도 이 안내가 남는다 — 알림은
+  /// 지나가지만 대화는 "어제 받은 루틴" 을 짚을 수 있는 기록이다. 리포트
+  /// 안내([reportWeekStart])처럼 보내는 쪽이 실어 보낸 값으로만 판단한다.
+  final CoachRoutineDelivery? routineDelivery;
+
   bool get fromMe => sender == CoachSender.me;
+}
+
+/// 루틴 전송 안내 — 무엇을 보냈나. 서버 `RoutineDeliveryCardOut`. (#2672)
+///
+/// [kind] 는 `pt_with_routine` · `routine_only` · `cancelled_routine_only` ·
+/// `routine` 이다. 운동 이름은 트레이너가 적은 그대로라 번역하지 않는다.
+class CoachRoutineDelivery {
+  const CoachRoutineDelivery({
+    required this.kind,
+    this.programNames = const <String>[],
+    this.routineNames = const <String>[],
+  });
+
+  final String kind;
+
+  /// 함께 간 PT 프로그램의 운동 이름.
+  final List<String> programNames;
+
+  /// 보낸 개인운동 이름.
+  final List<String> routineNames;
 }
 
 /// 첨부의 종류. 화면이 그릴 방법을 이 값으로 정한다.

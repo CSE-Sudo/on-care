@@ -125,9 +125,13 @@ final trainerChatImageRepositoryProvider = Provider<TrainerChatImageRepository>(
   (ref) {
     ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
     if (ref.watch(appConfigProvider).useMockApi) {
-      return DemoTrainerChatImageRepository(
-        DriftChatRepository(ref.watch(appDatabaseProvider)),
+      // 사진을 보내도 회원이 답한다(#2790).
+      final chat = DemoRepliesChatRepository(
+        ref.watch(appDatabaseProvider),
+        replyDelay: demoChatReplyDelay,
       );
+      ref.onDispose(chat.dispose);
+      return DemoTrainerChatImageRepository(chat);
     }
     return DioTrainerChatImageRepository(ref.watch(dioProvider));
   },
