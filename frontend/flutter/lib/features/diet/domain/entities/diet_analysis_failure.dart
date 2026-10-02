@@ -28,9 +28,6 @@ enum DietAnalysisFailure {
   /// 로그인해도 같은 403 이라 로그인으로 보내면 로그아웃·로그인만 되풀이된다.
   forbidden(canRetry: false),
 
-  /// 429 — 요청 한도를 넘었다(#2859). 잠시 뒤 같은 사진으로 다시 하면 된다.
-  rateLimited(canRetry: true),
-
   /// 501 — no recognizer is wired up for this deployment.
   notImplemented(canRetry: false),
 
@@ -46,8 +43,9 @@ enum DietAnalysisFailure {
   /// again after midnight (KST); until then only manual entry records.
   dailyLimit(canRetry: false, offersManualEntry: true),
 
-  /// 429 `rate_limited` — too many analyses in a minute (#2827). A retry a
-  /// moment later goes through.
+  /// 429 — 요청 한도를 넘었다(#2859). `rate_limited` 는 분당 분석 한도(#2827),
+  /// 코드 없는 429 는 공통 분당 제한이다. 잠시 뒤 같은 사진으로 다시 하면 되고,
+  /// 기다리지 않으려면 직접 추가로 적을 수 있다.
   rateLimited(canRetry: true, offersManualEntry: true),
 
   /// 503 `analysis_unavailable` — photo analysis is switched off on this

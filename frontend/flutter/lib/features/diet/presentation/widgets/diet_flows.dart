@@ -875,9 +875,13 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
           l.dietAnalysisUnsupportedFormat,
         DietAnalysisFailure.badRequest => l.dietAnalysisBadRequest,
         DietAnalysisFailure.unauthorized => l.dietAnalysisUnauthorized,
-        // 권한·동의 부족과 요청 한도는 어느 화면에서나 같은 뜻이라 공통
+        // 권한·동의 부족과 공통 요청 한도는 어느 화면에서나 같은 뜻이라 공통
         // 문구를 쓴다 — 403 에는 서버 사유가 있으면 한국어 화면에서 그것을
-        // 보인다(#2859).
+        // 보인다(#2859). 사진 분석 전용 분당 한도(`rate_limited`, #2827)만
+        // 직접 추가를 함께 권하는 분석 문구다.
+        DietAnalysisFailure.rateLimited
+            when _failureError is DietAnalysisRejected =>
+          l.dietAnalysisRateLimited,
         DietAnalysisFailure.forbidden ||
         DietAnalysisFailure.rateLimited => appErrorMessage(
           l,
@@ -887,7 +891,6 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
         DietAnalysisFailure.notImplemented => l.dietAnalysisNotImplemented,
         DietAnalysisFailure.noFood => l.dietAnalysisNoFood,
         DietAnalysisFailure.dailyLimit => l.dietAnalysisDailyLimit,
-        DietAnalysisFailure.rateLimited => l.dietAnalysisRateLimited,
         DietAnalysisFailure.unavailable => l.dietAnalysisUnavailable,
         // 502 and transport failures share the "try again shortly" wording —
         // from the user's side both are "it broke, not your photo".
