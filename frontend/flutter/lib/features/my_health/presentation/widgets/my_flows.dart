@@ -725,6 +725,8 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
             icon: AppIcons.edit,
             tooltip: l.actionEdit,
             size: AppIconButtonSize.small,
+            // 연필은 앱 전체에서 회색이다 — 목록의 `›` 와 같은 색(#2507).
+            color: OnCareColors.textTertiary,
             onPressed: _beginEdit,
           ),
       ],
@@ -1666,6 +1668,8 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
             icon: AppIcons.edit,
             tooltip: l.actionEdit,
             size: AppIconButtonSize.small,
+            // 연필은 앱 전체에서 회색이다 — 목록의 `›` 와 같은 색(#2507).
+            color: OnCareColors.textTertiary,
             onPressed: _beginEdit,
           ),
       ],

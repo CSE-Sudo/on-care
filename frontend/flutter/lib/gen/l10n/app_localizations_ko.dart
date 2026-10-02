@@ -977,6 +977,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exOwnRecordsEmpty => '직접 기록한 운동이 없어요';
 
   @override
+  String get exRecordDetailOpen => '자세히';
+
+  @override
+  String get exRecordDetailInfo => '운동 정보';
+
+  @override
+  String get exRecordDetailTotalCalories => '총 소모 칼로리';
+
+  @override
   String get exOwnRecordSource => '직접 기록';
 
   @override
@@ -3565,7 +3574,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutineAiTitle => 'AI 추천 개인운동';
 
   @override
-  String get coachRoutinePastReadOnly => '그날 한 운동이에요. 지난 날짜는 체크할 수 없어요.';
+  String get coachRoutinePastEditHint =>
+      '빠뜨린 체크를 지금 할 수 있어요. 트레이너에게는 나중에 체크한 것으로 보여요.';
+
+  @override
+  String get coachRoutinePastEditDone => '완료';
 
   @override
   String get coachRoutineLogged => '운동 기록에 반영했어요';
@@ -3670,11 +3683,6 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String coachRoutinePlannedIntensity(String level) {
     return '권장 $level';
-  }
-
-  @override
-  String coachRoutineDoneIntensity(String level) {
-    return '수행 $level';
   }
 
   @override

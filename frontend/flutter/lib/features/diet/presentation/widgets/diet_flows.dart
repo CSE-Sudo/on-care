@@ -1048,6 +1048,8 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
       icon: AppIcons.edit,
       tooltip: l.actionEdit,
       size: AppIconButtonSize.small,
+      // 연필은 앱 전체에서 회색이다 — 목록의 `›` 와 같은 색(#2507).
+      color: OnCareColors.textTertiary,
       onPressed: _beginEdit,
     );
   }
@@ -2809,6 +2811,8 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet>
                                     icon: AppIcons.edit,
                                     tooltip: l.dietEditMeal,
                                     size: AppIconButtonSize.small,
+                                    // 연필은 앱 전체에서 회색이다 — 목록의 `›` 와 같은 색(#2507).
+                                    color: OnCareColors.textTertiary,
                                     onPressed: _beginEdit,
                                   ),
                               ],
