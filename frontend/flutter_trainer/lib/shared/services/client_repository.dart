@@ -399,7 +399,7 @@ class DriftClientRepository implements ClientRepository {
   Future<void> removeClient(String id) async {
     // 삭제 확인창이 트레이너에게 하는 약속(스케줄·루틴·리포트·메시지가
     // **트레이너 화면에서만** 사라지고, 원본은 지워지지 않는다)은 실
-    // 백엔드(`trainer_service.remove_client`)와 같아야 한다. 예전에는 여기서
+    // 백엔드(`trainer.client_status.remove_client`)와 같아야 한다. 예전에는 여기서
     // 스케줄·AI 루틴·운동 기록·채팅·리포트 피드백 행을 실제로 지웠는데, 그
     // 대가가 재등록 때 드러났다 — 카드의 주간 이행률(`weekCompletionJson`)은
     // 캐시라 손대지 않은 채 남는데 근거가 되는 `clientRoutineHistory` 는 이미
