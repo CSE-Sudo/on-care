@@ -1439,7 +1439,7 @@ void main() {
       //
       // 메모는 더 이상 완료 처리에서 받지 않으므로(#1106) 그 문구로 찾지
       // 않는다 — 방금 생긴 PT 기록의 종류로 확인한다.
-      expect(find.text('PT 세션 · 트레이너 지도'), findsWidgets);
+      expect(find.text('PT · 트레이너 지도'), findsWidgets);
       // 날짜는 미션 카드가 아니라 그 줄이 말한다.
       const List<String> weekdays = <String>['월', '화', '수', '목', '금', '토', '일'];
       final DateTime today = nowKst();
