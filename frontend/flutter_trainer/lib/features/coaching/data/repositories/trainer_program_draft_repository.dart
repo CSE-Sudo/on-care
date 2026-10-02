@@ -162,10 +162,3 @@ final trainerProgramDraftRepositoryProvider =
       }
       return DioTrainerProgramDraftRepository(ref.watch(dioProvider));
     }, name: 'trainerProgramDraftRepository');
-
-/// The trainer's saved drafts, most recently updated first. Invalidate
-/// after a save or a delete.
-final trainerProgramDraftsProvider =
-    FutureProvider.autoDispose<List<TrainerProgramDraftSummary>>((ref) {
-      return ref.watch(trainerProgramDraftRepositoryProvider).list();
-    });

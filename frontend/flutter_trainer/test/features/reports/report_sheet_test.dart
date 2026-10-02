@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare_trainer/features/reports/domain/report_sheet.dart';
+import 'package:oncare_report/oncare_report.dart';
 import 'package:oncare_trainer/features/reports/domain/report_trend.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';

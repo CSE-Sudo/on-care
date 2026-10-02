@@ -15,7 +15,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/chat_pdf_repository.dart';
-import 'package:oncare_trainer/features/clients/data/repositories/client_coach_repository.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_invite_repository.dart';
 import 'package:oncare_trainer/features/clients/presentation/controllers/roster_view.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_meal_photo.dart';
@@ -36,7 +35,6 @@ import 'package:oncare_trainer/features/notifications/domain/entities/trainer_no
 import 'package:oncare_trainer/features/reports/data/report_send_log.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
-import 'package:oncare_trainer/features/reports/services/report_pdf_sender.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/reservation_slot_repository.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -413,7 +411,6 @@ void main() {
           'schedule': scheduleRepositoryProvider,
           'reservationSlot': reservationSlotRepositoryProvider,
           'consultation': consultationRepositoryProvider,
-          'clientCoach': clientCoachRepositoryProvider,
           'clientInvite': clientInviteRepositoryProvider,
           'chatPdf': trainerChatPdfRepositoryProvider,
           'chatImage': trainerChatImageRepositoryProvider,
@@ -428,7 +425,6 @@ void main() {
           'routine': trainerRoutineRepositoryProvider,
           'notification': trainerNotificationRepositoryProvider,
           'report': reportRepositoryProvider,
-          'pdfSender': reportPdfSenderProvider,
         };
 
     for (final MapEntry<String, ProviderListenable<Object>> entry
