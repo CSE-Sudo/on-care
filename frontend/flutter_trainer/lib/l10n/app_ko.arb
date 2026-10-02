@@ -415,12 +415,6 @@
   "chatInsightMemoSummaryNegative": "운동 부담 감지",
   "chatInsightMemoSaved": "AI 감지 내용을 메모에 추가했어요.",
   "chatInsightMemoSaveFailed": "메모에 추가하지 못했어요. 잠시 후 다시 시도해 주세요",
-  "coachSheetTitle": "{name} 코칭 상담",
-  "coachSheetSubtitle": "이 회원의 식단·운동 기록을 근거로 답해요.",
-  "coachSheetHint": "예) 나트륨이 계속 높은데 어떤 식단을 권할까요?",
-  "coachSheetSources": "근거",
-  "coachSheetAsk": "물어보기",
-  "coachSheetAskAgain": "다시 묻기",
   "consultTitle": "상담 요청",
   "consultFilterAll": "전체",
   "consultFilterPendingCount": "대기 {count}",
@@ -1379,10 +1373,6 @@
   "authErrNetwork": "네트워크 연결을 확인해 주세요.",
   "authErrGeneric": "로그인 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요.",
   "authErrEmptyResponse": "응답이 비어 있어요.",
-  "coachDemoUnavailable": "데모 모드에서는 AI 코칭을 사용할 수 없어요",
-  "coachNotMyClient": "담당 회원이 아니에요",
-  "coachAskFailed": "질문을 보낼 수 없어요",
-  "coachRateLimited": "질문을 너무 자주 보냈어요. 1분 뒤에 다시 물어봐 주세요",
   "slotFutureOnly": "현재보다 이후 시간만 예약 슬롯으로 설정할 수 있습니다.",
   "slotNotFound": "예약 슬롯을 찾을 수 없습니다.",
   "slotTypeLockedByBooking": "이미 예약된 자리의 종류는 바꿀 수 없습니다.",
@@ -1712,24 +1702,7 @@
   "clientFeedbackSearchHint": "피드백 검색 (본문·출처·방향)",
   "clientFeedbackSearchEmpty": "찾는 피드백이 없어요.",
   "followUp": "후속 관리",
-  "followUpTitle": "{name}님 후속 관리",
-  "@followUpTitle": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "followUpHint": "다시 확인할 내용을 적어 주세요",
-  "followUpAdd": "후속 관리 추가",
-  "followUpDue": "확인 예정일",
   "followUpOverdue": "기한 지남",
-  "followUpContextGeneral": "회원 상세",
-  "followUpContextDiet": "식단",
-  "followUpContextExercise": "운동",
-  "followUpContextMessage": "메시지",
-  "followUpContextProgram": "프로그램",
-  "followUpContextSchedule": "일정",
   "followUpComplete": "완료",
   "followUpCount": "{count}건",
   "@followUpCount": {
@@ -1739,10 +1712,8 @@
       }
     }
   },
-  "followUpEmpty": "남은 후속 관리가 없어요.",
   "followUpDashboardEmpty": "오늘 처리할 후속 관리가 없어요.",
   "followUpLoadFailed": "후속 관리를 불러오지 못했어요. 잠시 후 다시 시도해 주세요",
-  "followUpSaveFailed": "후속 관리를 저장하지 못했어요. 잠시 후 다시 시도해 주세요",
   "followUpCompleteFailed": "완료 처리하지 못했어요. 잠시 후 다시 시도해 주세요",
   "programEditorDefaultName": "{goal} 프로그램",
   "programEditorSaveUnsupported": "프로그램 이름을 입력해 주세요",

@@ -1060,9 +1060,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exSpecialty => '전문 분야';
 
   @override
-  String get exKakaoMapArea => '카카오맵 영역';
-
-  @override
   String get myTabTitle => 'MY';
 
   @override

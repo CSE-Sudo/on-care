@@ -672,19 +672,6 @@
   "chatInsightMemoSummaryNegative": "Workout strain detected",
   "chatInsightMemoSaved": "The AI insight was added to your memos.",
   "chatInsightMemoSaveFailed": "Couldn't add the memo. Please try again.",
-  "coachSheetTitle": "Coaching for {name}",
-  "@coachSheetTitle": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "coachSheetSubtitle": "Answers are grounded in this member's meals and workouts.",
-  "coachSheetHint": "e.g. Sodium keeps running high — what meals should I suggest?",
-  "coachSheetSources": "Sources",
-  "coachSheetAsk": "Ask",
-  "coachSheetAskAgain": "Ask again",
   "consultTitle": "Consultation requests",
   "consultFilterAll": "All",
   "consultFilterPendingCount": "Pending {count}",
@@ -2050,10 +2037,6 @@
   "authErrNetwork": "Please check your network connection.",
   "authErrGeneric": "Something went wrong signing in. Please try again in a moment.",
   "authErrEmptyResponse": "The response was empty.",
-  "coachDemoUnavailable": "AI coaching isn't available in demo mode",
-  "coachNotMyClient": "That isn't one of your members",
-  "coachAskFailed": "Couldn't send your question",
-  "coachRateLimited": "You've sent too many questions. Please try again in a minute",
   "slotFutureOnly": "Booking slots can only be set for future times.",
   "slotNotFound": "Booking slot not found.",
   "slotTypeLockedByBooking": "Can't change the type of a slot that's already booked.",
@@ -2652,24 +2635,7 @@
   "clientFeedbackSearchHint": "Search feedback (text, source, direction)",
   "clientFeedbackSearchEmpty": "No feedback matches your search.",
   "followUp": "Follow-ups",
-  "followUpTitle": "Follow-ups on {name}",
-  "@followUpTitle": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "followUpHint": "Note what you want to check again",
-  "followUpAdd": "Add follow-up",
-  "followUpDue": "Check on",
   "followUpOverdue": "Overdue",
-  "followUpContextGeneral": "Member detail",
-  "followUpContextDiet": "Diet",
-  "followUpContextExercise": "Workout",
-  "followUpContextMessage": "Messages",
-  "followUpContextProgram": "Program",
-  "followUpContextSchedule": "Schedule",
   "followUpComplete": "Done",
   "followUpCount": "{count} left",
   "@followUpCount": {
@@ -2679,10 +2645,8 @@
       }
     }
   },
-  "followUpEmpty": "No follow-ups left.",
   "followUpDashboardEmpty": "Nothing to follow up on today.",
   "followUpLoadFailed": "Couldn't load follow-ups. Please try again.",
-  "followUpSaveFailed": "Couldn't save the follow-up. Please try again.",
   "followUpCompleteFailed": "Couldn't mark it done. Please try again.",
   "programEditorDefaultName": "{goal} program",
   "@programEditorDefaultName": {

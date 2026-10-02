@@ -1104,9 +1104,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exSpecialty => 'Specialties';
 
   @override
-  String get exKakaoMapArea => 'Kakao Map area';
-
-  @override
   String get myTabTitle => 'MY';
 
   @override

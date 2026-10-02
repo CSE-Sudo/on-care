@@ -1078,28 +1078,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t add the memo. Please try again.';
 
   @override
-  String coachSheetTitle(String name) {
-    return 'Coaching for $name';
-  }
-
-  @override
-  String get coachSheetSubtitle =>
-      'Answers are grounded in this member\'s meals and workouts.';
-
-  @override
-  String get coachSheetHint =>
-      'e.g. Sodium keeps running high — what meals should I suggest?';
-
-  @override
-  String get coachSheetSources => 'Sources';
-
-  @override
-  String get coachSheetAsk => 'Ask';
-
-  @override
-  String get coachSheetAskAgain => 'Ask again';
-
-  @override
   String get consultTitle => 'Consultation requests';
 
   @override
@@ -3361,20 +3339,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authErrEmptyResponse => 'The response was empty.';
 
   @override
-  String get coachDemoUnavailable =>
-      'AI coaching isn\'t available in demo mode';
-
-  @override
-  String get coachNotMyClient => 'That isn\'t one of your members';
-
-  @override
-  String get coachAskFailed => 'Couldn\'t send your question';
-
-  @override
-  String get coachRateLimited =>
-      'You\'ve sent too many questions. Please try again in a minute';
-
-  @override
   String get slotFutureOnly =>
       'Booking slots can only be set for future times.';
 
@@ -4189,39 +4153,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get followUp => 'Follow-ups';
 
   @override
-  String followUpTitle(String name) {
-    return 'Follow-ups on $name';
-  }
-
-  @override
-  String get followUpHint => 'Note what you want to check again';
-
-  @override
-  String get followUpAdd => 'Add follow-up';
-
-  @override
-  String get followUpDue => 'Check on';
-
-  @override
   String get followUpOverdue => 'Overdue';
-
-  @override
-  String get followUpContextGeneral => 'Member detail';
-
-  @override
-  String get followUpContextDiet => 'Diet';
-
-  @override
-  String get followUpContextExercise => 'Workout';
-
-  @override
-  String get followUpContextMessage => 'Messages';
-
-  @override
-  String get followUpContextProgram => 'Program';
-
-  @override
-  String get followUpContextSchedule => 'Schedule';
 
   @override
   String get followUpComplete => 'Done';
@@ -4232,18 +4164,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get followUpEmpty => 'No follow-ups left.';
-
-  @override
   String get followUpDashboardEmpty => 'Nothing to follow up on today.';
 
   @override
   String get followUpLoadFailed =>
       'Couldn\'t load follow-ups. Please try again.';
-
-  @override
-  String get followUpSaveFailed =>
-      'Couldn\'t save the follow-up. Please try again.';
 
   @override
   String get followUpCompleteFailed =>

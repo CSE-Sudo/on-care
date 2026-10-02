@@ -2006,12 +2006,6 @@ abstract class AppLocalizations {
   /// **'Specialties'**
   String get exSpecialty;
 
-  /// No description provided for @exKakaoMapArea.
-  ///
-  /// In en, this message translates to:
-  /// **'Kakao Map area'**
-  String get exKakaoMapArea;
-
   /// No description provided for @myTabTitle.
   ///
   /// In en, this message translates to:
