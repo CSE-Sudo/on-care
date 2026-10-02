@@ -14,6 +14,7 @@ import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/controllers/exercise_refresh.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_flows.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
@@ -97,6 +98,10 @@ class _MainShellState extends ConsumerState<MainShell>
   void _refreshMemberData() {
     memberResumeRefreshTargets(nowKst()).forEach(ref.invalidate);
     unawaited(refreshProfileQuietly(ref.read(profileProvider.notifier)));
+    // 헬스장 영역(내 헬스장·담당 트레이너·내 예약·예약 가능 시간)도 —
+    // 앱을 떠난 사이 트레이너가 예약을 취소하거나 연결을 해제했을 수 있다
+    // (#2856).
+    refreshGymTabData(ref.invalidate);
     // 앱을 켜 둔 채 자정을 넘겼으면 그래프의 "오늘" 칸과 보호 가능 구간이 새
     // 날짜 기준이어야 한다(#2852).
     _dayChange.refreshIfDayChanged(ref.invalidate);
@@ -132,6 +137,10 @@ class _MainShellState extends ConsumerState<MainShell>
         // 된다(#2161).
         ref.invalidate(coachRoutinesOnDayProvider);
         ref.invalidate(coachSessionsProvider);
+        // 헬스장 영역도 함께 — `다음 PT` 는 코치 일정과 내 예약을 합쳐 계산하므로
+        // 한쪽만 새 값이면 엇갈린다. 다른 회원이 잡은 자리도 여기서 반영된다
+        // (#2856).
+        refreshGymTabData(ref.invalidate);
         break;
       case 3:
         // MY 를 다시 열었을 때도 날이 바뀌었으면 기록 그래프를 새 날짜로(#2852).

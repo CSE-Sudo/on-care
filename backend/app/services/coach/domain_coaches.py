@@ -5,10 +5,10 @@
   1) 사용자 최근 데이터로 질의문 구성
   2) retrieve_context() 로 [내 기록 + 공공 가이드라인] 컨텍스트 확보 (격리·도메인 필터 적용)
   3) LLM 에 system+user 프롬프트로 코칭 생성 (토큰 기록)
-  4) 실패(키 없음/자료 없음/에러) 시 STEP 6 규칙 기반으로 폴백
+  4) 실패(키 없음/자료 없음/에러) 시 coach_service 의 규칙 기반으로 폴백
 
 식단·운동을 각각 생성한 뒤 합치는 구조는 coach_service.build_feedback 에서.
-STEP 8 챗봇은 retrieve_context + get_coach_llm 을 직접 재사용.
+AI 코치 채팅(coach/chat.py)은 같은 검색·LLM 계층(retrieve, get_coach_llm)을 따로 쓴다.
 
 제목과 코칭 문장은 요청 언어(`Accept-Language`, #2297)로 만든다(#2707). 영어면
 한국어 지시문 끝에 출력 언어 규칙만 덧붙인다 — 한국어 프롬프트는 그대로다.
@@ -24,7 +24,7 @@ from app.schemas.misc_api import CoachSuggestion
 from app.services.coach import grounding, prompt_safety
 from app.services.coach.llm import get_coach_llm
 from app.services.coach.rag import retrieve_context
-# STEP 6 규칙 기반(폴백)
+# 규칙 기반(폴백)
 from app.services.coach_service import (
     _diet_today_priority, _diet_weekly_or_default, _exercise_suggestion,
     diet_period_context,

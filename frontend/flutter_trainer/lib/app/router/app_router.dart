@@ -7,6 +7,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/app_shell.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare_trainer/features/auth/presentation/pages/trainer_password_reset_page.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_sign_in_page.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_sign_up_page.dart';
 import 'package:oncare_trainer/features/clients/presentation/pages/clients_page.dart';
@@ -55,6 +56,9 @@ String? sessionRedirect(
 }) {
   final path = Uri.tryParse(location)?.path ?? location;
   if (AppRoutes.isLegalPath(path)) return null;
+  // 재설정 메일의 링크는 어느 상태에서 열려도 그 자리에 둔다(#2824). 로그인
+  // 화면으로 보내면 주소의 코드를 잃는다.
+  if (path == AppRoutes.passwordReset) return null;
   final onAuthRoute = path == AppRoutes.signIn || path == AppRoutes.signUp;
   switch (status) {
     case SessionStatus.unknown:
@@ -295,6 +299,12 @@ GoRouter buildAppRouter({
       GoRoute(
         path: AppRoutes.signUp,
         builder: (context, state) => const TrainerSignUpPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.passwordReset,
+        builder: (context, state) => TrainerPasswordResetPage(
+          initialCode: state.uri.queryParameters['token'],
+        ),
       ),
     ],
   );

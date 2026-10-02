@@ -19,6 +19,12 @@ import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_period_view.dart';
+import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
+import 'package:oncare/features/exercise/domain/entities/gym.dart';
+import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
+import 'package:oncare/features/exercise/domain/entities/trainer.dart';
+import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
+import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_activity_status.dart';
@@ -55,6 +61,53 @@ class _CountingMemberCoachRepository extends MockMemberCoachRepository {
   }
 }
 
+/// 헬스장 영역 조회를 센다(#2856). 값은 데모 저장소 그대로다.
+class _CountingGymRepository extends MockGymRepository {
+  int gymLoads = 0;
+  int trainerLoads = 0;
+  int reservationLoads = 0;
+  int slotLoads = 0;
+
+  @override
+  Future<Gym?> fetchMyGym() {
+    gymLoads += 1;
+    return super.fetchMyGym();
+  }
+
+  @override
+  Future<Trainer?> fetchMyTrainer() {
+    trainerLoads += 1;
+    return super.fetchMyTrainer();
+  }
+
+  @override
+  Future<List<MyReservation>> fetchMyReservations({
+    int limit = reservationPageSize,
+    DateTime? before,
+    String? beforeId,
+  }) {
+    reservationLoads += 1;
+    return super.fetchMyReservations(
+      limit: limit,
+      before: before,
+      beforeId: beforeId,
+    );
+  }
+
+  @override
+  Future<List<TrainerSlot>> fetchSlots(String trainerId) {
+    slotLoads += 1;
+    return super.fetchSlots(trainerId);
+  }
+
+  List<int> get counts => <int>[
+    gymLoads,
+    trainerLoads,
+    reservationLoads,
+    slotLoads,
+  ];
+}
+
 void main() {
   // 저장된 세션이 없다고 답해 준다 — 없으면 복구가 끝나지 않아 시작
   // 화면(#1944)에 머문다.
@@ -64,6 +117,7 @@ void main() {
     WidgetTester tester, {
     Locale? locale,
     MemberCoachRepository? memberCoachRepository,
+    GymRepository? gymRepository,
   }) async {
     final AppDatabase exerciseDb = await seededDemoDatabase(tester);
     const config = AppConfig(
@@ -108,6 +162,8 @@ void main() {
             memberCoachRepositoryProvider.overrideWithValue(
               memberCoachRepository,
             ),
+          if (gymRepository != null)
+            gymRepositoryProvider.overrideWithValue(gymRepository),
           // 알림함은 데모에서도 Dio + drift 를 탄다(#2660) — 식단처럼 가짜로 덮는다.
           notificationRepositoryProvider.overrideWithValue(
             FakeNotificationRepository(),
@@ -223,6 +279,56 @@ void main() {
     expect(find.text('Diet'), findsAtLeastNWidgets(1));
     expect(find.text('Exercise'), findsAtLeastNWidgets(1));
     expect(find.text('MY'), findsAtLeastNWidgets(1));
+  });
+
+  // 운동 탭의 헬스장 영역(내 헬스장·담당 트레이너·내 예약·예약 가능 시간)은
+  // autoDispose 가 아니라 처음 읽은 값이 남았다 — 트레이너가 웹에서 예약을
+  // 취소해도 회원 앱은 옛 예약과 `다음 PT` 를 보였다(#2856).
+  testWidgets('gym area refreshes on exercise tab entry and app resume', (
+    tester,
+  ) async {
+    final _CountingGymRepository gyms = _CountingGymRepository();
+    await pumpApp(tester, locale: const Locale('ko'), gymRepository: gyms);
+
+    // 화면에 붙어 있는 것처럼 네 값을 듣는다 — 어느 하위 탭이 열려 있든
+    // 셸의 갱신이 네 값을 모두 다시 읽게 하는지만 본다.
+    final ProviderContainer container = ProviderScope.containerOf(
+      tester.element(find.byType(OncareApp)),
+    );
+    final List<ProviderSubscription<Object?>> subs =
+        <ProviderSubscription<Object?>>[
+          container.listen(myGymProvider, (_, _) {}),
+          container.listen(myTrainerProvider, (_, _) {}),
+          container.listen(myReservationsProvider, (_, _) {}),
+          container.listen(trainerSlotsProvider('trainer-kim'), (_, _) {}),
+        ];
+    addTearDown(() {
+      for (final ProviderSubscription<Object?> sub in subs) {
+        sub.close();
+      }
+    });
+    await tester.pumpAndSettle();
+    final List<int> beforeEntry = gyms.counts;
+    expect(beforeEntry, everyElement(greaterThan(0)));
+
+    await tester.tap(find.text('운동').last);
+    await tester.pumpAndSettle();
+
+    final List<int> afterEntry = gyms.counts;
+    for (int i = 0; i < afterEntry.length; i++) {
+      expect(afterEntry[i], greaterThan(beforeEntry[i]), reason: 'entry #$i');
+    }
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pumpAndSettle();
+
+    final List<int> afterResume = gyms.counts;
+    for (int i = 0; i < afterResume.length; i++) {
+      expect(afterResume[i], greaterThan(afterEntry[i]), reason: 'resume #$i');
+    }
   });
 
   testWidgets('member coaching data refreshes on branch entry and app resume', (

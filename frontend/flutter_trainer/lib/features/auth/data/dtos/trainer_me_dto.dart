@@ -5,7 +5,8 @@ import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 /// repository so the DTO ↔ domain mapping can be unit-tested directly.
 ///
 /// Shape: `{ id, name, email, phone, specialty, career, intro,
-/// certifications[], gym { name, address, hours, phone } }`. Missing
+/// certifications[], gym { name, address, hours, phone },
+/// verification { status, decided_at, note } }`. Missing
 /// scalar fields fall back to `''`; a missing/invalid `gym` yields an
 /// empty gym; `certifications` keeps only string entries.
 TrainerProfile trainerProfileFromJson(Map<String, Object?> json) {
@@ -34,6 +35,19 @@ TrainerProfile trainerProfileFromJson(Map<String, Object?> json) {
     intro: _str(json['intro']),
     certifications: certifications,
     gym: gym,
+    verification: trainerVerificationFromJson(json['verification']),
+  );
+}
+
+/// `verification { status, decided_at, note }` 을 읽는다 (#2825).
+///
+/// 칸이 아예 없으면 승인 절차 이전 서버다 — 그때는 막을 근거가 없으므로 승인으로
+/// 읽는다. 칸이 있는데 상태를 모르면 닫힌 쪽(승인 대기)이다.
+TrainerVerification trainerVerificationFromJson(Object? json) {
+  if (json is! Map<String, Object?>) return TrainerVerification.approved;
+  return TrainerVerification(
+    status: TrainerVerificationStatus.fromWire(json['status']),
+    note: _str(json['note']).trim(),
   );
 }
 
