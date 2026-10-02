@@ -2218,7 +2218,8 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get coachInviteExplain => '수락하면 내 식단·운동 기록을 이 트레이너가 볼 수 있어요.';
+  String get coachInviteExplain =>
+      '수락하면 내 식단 기록·운동 기록·신체 정보와 건강 목표를 이 트레이너가 볼 수 있어요. 수락하기 전에 공유 동의를 받아요.';
 
   @override
   String get coachInviteAccept => '수락';
@@ -2770,7 +2771,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exConsultDataSharingNotice =>
-      '상담 신청 정보(이름·운동 목표·문의 내용)는 이 트레이너에게 전달돼요. 식단·운동 기록은 상담 뒤 연결 코드로 등록할 때 따로 동의를 받아요.';
+      '상담 신청 정보(이름·운동 목표·문의 내용)는 상담을 위해 이 트레이너에게 전달되고, 보낸 뒤에는 상담 요청과 일정에 남아요. 동의하지 않으면 상담 신청만 보낼 수 없고 다른 기능은 그대로 쓸 수 있어요. 식단·운동 기록은 상담 뒤 연결 코드로 등록할 때 따로 동의를 받아요.';
 
   @override
   String get exConsultDataSharingAgree =>
@@ -2791,7 +2792,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String coachInviteConsentBody(String name) {
-    return '$name 트레이너와 담당으로 연결되면, 회원님의 식단 기록·운동 기록·신체 정보와 건강 목표를 이 트레이너가 볼 수 있어요. 연결을 해제하면 열람 권한도 함께 사라져요.';
+    return '$name 트레이너와 담당으로 연결되면, 코칭·상담·리포트 작성을 위해 회원님의 식단 기록·운동 기록·신체 정보와 건강 목표를 이 트레이너가 볼 수 있어요. 연결을 해제하면 열람 권한도 함께 사라지지만, 그 전에 주고받은 대화와 전달된 리포트는 남아요. 동의하지 않아도 개인 기록 기능은 그대로 쓸 수 있어요.';
   }
 
   @override
@@ -3159,7 +3160,45 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get trainerSyncConsent =>
-      '이 코드를 입력한 트레이너가 담당이 되면, 회원님의 식단 기록·운동 기록·신체 정보와 건강 목표를 볼 수 있어요. 연결을 해제하면 열람 권한도 함께 사라져요.';
+      '이 코드를 입력한 트레이너가 담당이 되면, 코칭·상담·리포트 작성을 위해 회원님의 식단 기록·운동 기록·신체 정보와 건강 목표를 볼 수 있어요. 연결을 해제하면 열람 권한도 함께 사라지지만, 그 전에 주고받은 대화와 전달된 리포트는 남아요. 동의하지 않아도 개인 기록 기능은 그대로 쓸 수 있어요.';
+
+  @override
+  String get trainerShareDetailMore => '자세히 보기';
+
+  @override
+  String get trainerShareDetailLess => '접기';
+
+  @override
+  String get trainerShareRecipientLabel => '받는 사람';
+
+  @override
+  String get trainerShareRecipient => '담당으로 연결된 트레이너';
+
+  @override
+  String get trainerShareItemsLabel => '공유 항목';
+
+  @override
+  String get trainerShareItems => '식단 기록·운동 기록·신체 정보와 건강 목표';
+
+  @override
+  String get trainerSharePurposeLabel => '이용 목적';
+
+  @override
+  String get trainerSharePurpose => '코칭·상담·리포트 작성';
+
+  @override
+  String get trainerSharePeriodLabel => '이용 기간';
+
+  @override
+  String get trainerSharePeriod =>
+      '연결을 해제해 동의를 철회할 때까지예요. MY 탭에서 담당 트레이너 연결을 삭제하면 철회되고, 그 뒤로 트레이너는 새 기록을 볼 수 없어요. 다만 철회 전에 주고받은 대화와 전달된 리포트는 지워지지 않고 남아요.';
+
+  @override
+  String get trainerShareRefuseLabel => '거부할 권리';
+
+  @override
+  String get trainerShareRefuse =>
+      '동의하지 않을 수 있어요. 동의하지 않아도 앱의 개인 기록 기능은 그대로 쓸 수 있고, 트레이너 연결만 되지 않아요.';
 
   @override
   String get trainerSyncAgree => '동의하고 코드 받기';
@@ -3189,6 +3228,55 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get signUpFailed => '회원가입에 실패했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get consentAll => '전체 동의';
+
+  @override
+  String get consentRequiredTag => '[필수]';
+
+  @override
+  String get consentOptionalTag => '[선택]';
+
+  @override
+  String get consentView => '보기';
+
+  @override
+  String get consentTerms => '이용약관 동의';
+
+  @override
+  String get consentPrivacy => '개인정보 수집·이용 동의';
+
+  @override
+  String get consentHealth => '건강정보(민감정보) 처리 동의';
+
+  @override
+  String get consentHealthDetail =>
+      '식단·운동 기록, 체중 같은 신체 정보와 건강 목표가 여기에 해당해요. 다른 개인정보와 따로 동의를 받아요.';
+
+  @override
+  String get consentAge14 => '만 14세 이상이에요';
+
+  @override
+  String get consentAge14Detail => '만 14세 미만은 가입할 수 없어요.';
+
+  @override
+  String get consentMarketing => '마케팅 알림 수신';
+
+  @override
+  String get consentRequiredHint => '필수 항목에 모두 동의해야 다음으로 넘어갈 수 있어요.';
+
+  @override
+  String get consentPageTitle => '서비스 이용 동의';
+
+  @override
+  String get consentPageSubtitle => '계속 이용하려면 아래 항목을 확인하고 동의해 주세요.';
+
+  @override
+  String get consentPageAction => '동의하고 계속하기';
+
+  @override
+  String get consentPageFailed => '동의를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get onboardSkip => '나중에 하기';
