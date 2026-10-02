@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
+import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
@@ -17,6 +18,8 @@ class SessionEndedBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    // 처리 날짜는 KST 로 읽는다 — 브라우저 시간대로 읽으면 KST 오전 0~9시에
+    // 처리한 세션이 해외 브라우저에서 전날로 보였다(#2893).
     final DateTime? at = session.isCancelled
         ? session.cancelledAt
         : session.noShowAt;
@@ -25,9 +28,9 @@ class SessionEndedBox extends StatelessWidget {
         session.isCancelled && session.cancellationSource.isNotEmpty
         ? l.schedCancelledBy(
             cancellationSourceLabel(l, session.cancellationSource),
-            at == null ? '' : ymd(at.toLocal()),
+            at == null ? '' : ymd(kstDateOf(at)),
           )
-        : (at == null ? '' : ymd(at.toLocal()));
+        : (at == null ? '' : ymd(kstDateOf(at)));
     return SizedBox(
       key: ValueKey<String>('session-ended-${session.id}'),
       width: double.infinity,

@@ -84,6 +84,7 @@ from app.schemas.points_api import PointsOut
 from app.services.coach import personal_ingest
 from app.services import trainer_verification_service
 from app.services.exercise_duration import format_duration, seconds_or_minutes
+from app.services import korean_josa
 
 # 일일 나트륨 목표(mg). 프론트 `sodiumTargetMg` 와 같은 값 — 리포트의
 # '초과 N일'이 앱 화면의 경고와 어긋나면 안 된다.
@@ -1257,10 +1258,23 @@ def mark_thread_read(db: Session, trainer_id: str, member_id: str, reader: str) 
 
 
 def unread_counts_for_trainer(db: Session, trainer_id: str) -> dict[str, int]:
-    """트레이너 기준 회원별 미확인(회원이 보낸 read_at NULL) 메시지 수."""
+    """트레이너 기준 회원별 미확인(회원이 보낸 read_at NULL) 메시지 수.
+
+    **지금 담당 중이고 동의가 유효한 링크**의 회원만 센다(#2868). 읽음 처리
+    (`POST /trainer/clients/{id}/chat/read`)는 `_require_client` 로 그런 링크를
+    요구하므로, 해제·동의 철회 회원을 세면 트레이너가 지울 수 없는 배지가 남고
+    "예전에 담당했던 회원" 이 숫자로 드러난다. 메시지 행은 그대로 두므로
+    재등록(새 동의 포함)하면 남은 안읽음이 다시 보인다.
+    """
     rows = db.execute(
         select(ChatMessage.member_id, func.count())
+        .join(
+            TrainerClient,
+            (TrainerClient.trainer_id == ChatMessage.trainer_id)
+            & (TrainerClient.member_id == ChatMessage.member_id),
+        )
         .where(
+            data_consent_service.open_link_clause(),
             ChatMessage.trainer_id == trainer_id,
             ChatMessage.sender == "member",
             ChatMessage.read_at.is_(None),
@@ -1302,8 +1316,7 @@ def has_active_client_link(db: Session, trainer_id: str, member_id: str) -> bool
         select(TrainerClient.id).where(
             TrainerClient.trainer_id == trainer_id,
             TrainerClient.member_id == member_id,
-            TrainerClient.active.is_(True),
-            data_consent_service.allows_access_clause(),
+            data_consent_service.open_link_clause(),
         )
     ) is not None
 
@@ -7170,6 +7183,7 @@ def build_weekly_report(
         sugar_target=profile.daily_sugar_g if profile else None,
         carbs_target=profile.daily_carbs_g if profile else None,
         protein_target=profile.daily_protein_g if profile else None,
+        effective_protein_target=diet_coach_inputs.effective_protein_g(profile),
         fat_target=profile.daily_fat_g if profile else None,
         week_start=monday_str,
         week_end=sunday_str,
@@ -7370,13 +7384,13 @@ def _topic(word: str) -> str:
     """`은`/`는` 을 받침에 맞춰 붙인다.
 
     `은(는)` 은 사람이 쓴 글로 읽히지 않는다 — 회원이 그대로 받는 문장이라
-    기계가 쓴 티가 나는 자리를 남기지 않는다.
+    기계가 쓴 티가 나는 자리를 남기지 않는다. 규칙은 서버·두 앱이 함께 쓰는
+    `korean_josa` 하나다(#2897) — `레그 프레스(머신)` 은 괄호 앞 글자로,
+    `플랭크 60` 은 읽는 소리로 고른다.
     """
     if not word:
         return word
-    last = word[-1]
-    has_batchim = "가" <= last <= "힣" and (ord(last) - 0xAC00) % 28 != 0
-    return f"{word}{'은' if has_batchim else '는'}"
+    return korean_josa.with_particle(word, "은", "는")
 
 
 def _skipped_names(report: WeeklyReportOut) -> list[str]:

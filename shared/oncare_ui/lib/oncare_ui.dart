@@ -14,6 +14,7 @@ export 'src/charts/ring_gauge.dart';
 export 'src/components/app_button.dart';
 export 'src/components/app_calendar.dart';
 export 'src/components/app_chat.dart';
+export 'src/components/app_consent.dart';
 export 'src/components/app_dialog.dart';
 export 'src/components/app_duration_field.dart';
 export 'src/components/app_duration_wheel.dart';

@@ -16,6 +16,8 @@ on:
       - "shared/oncare_kakao_map/**"
       # 두 앱이 함께 쓰는 주간 리포트 결과지(#2652).
       - "shared/oncare_report/**"
+      # 서버와 두 앱이 같은 값을 내야 하는 계산 규칙과 그 입력 표(#2860).
+      - "shared/oncare_rules/**"
       # 데모·실서버 진입점 비교 시험이 읽는 예외 목록 — 목록만 바뀌어도 돈다(#2792).
       - ".github/demo-divergence-allowlist.txt"
       - ".github/workflows/user-app-ci.yml"
@@ -31,6 +33,8 @@ on:
       - "shared/oncare_kakao_map/**"
       # 두 앱이 함께 쓰는 주간 리포트 결과지(#2652).
       - "shared/oncare_report/**"
+      # 서버와 두 앱이 같은 값을 내야 하는 계산 규칙과 그 입력 표(#2860).
+      - "shared/oncare_rules/**"
       # 데모·실서버 진입점 비교 시험이 읽는 예외 목록 — 목록만 바뀌어도 돈다(#2792).
       - ".github/demo-divergence-allowlist.txt"
       - ".github/workflows/user-app-ci.yml"
@@ -80,6 +84,15 @@ jobs:
         working-directory: shared/demo_fixture
         run: |
           dart pub get
+          dart test
+
+      # 서버와 같은 계산 규칙 패키지(#2860). 입력 표(`vectors/*.json`)를 백엔드
+      # pytest 도 읽는다. 트레이너 CI 에 두면 같은 검사를 두 번 하므로 여기만 둔다.
+      - name: Analyze and test shared rules package
+        working-directory: shared/oncare_rules
+        run: |
+          dart pub get
+          dart analyze --fatal-infos
           dart test
 
       # 두 앱이 함께 쓰는 UI 규격 패키지(#1691). 토큰·테마 불변식은 앱 테스트가

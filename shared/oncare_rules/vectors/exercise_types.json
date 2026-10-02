@@ -1,0 +1,28 @@
+{
+  "_comment": "운동 유형 표기 → 표준 코드·한글 라벨 (#2861). 서버 exercise_types.normalize·normalize_ko 와 oncare_rules normalizeExerciseType·normalizeExerciseTypeKo 가 같은 답을 내야 한다. 모르는 값은 other/기타.",
+  "normalize": [
+    ["cardio", "cardio", "유산소"],
+    ["strength", "strength", "근력"],
+    ["stretching", "stretching", "스트레칭"],
+    ["other", "other", "기타"],
+    ["유산소", "cardio", "유산소"],
+    ["근력", "strength", "근력"],
+    ["스트레칭", "stretching", "스트레칭"],
+    ["기타", "other", "기타"],
+    ["walking", "cardio", "유산소"],
+    ["걷기", "cardio", "유산소"],
+    ["yoga", "stretching", "스트레칭"],
+    ["요가", "stretching", "스트레칭"],
+    ["flexibility", "stretching", "스트레칭"],
+    ["유연성", "stretching", "스트레칭"],
+    [" 유산소 ", "cardio", "유산소"],
+    ["  cardio", "cardio", "유산소"],
+    ["근력\n", "strength", "근력"],
+    ["Cardio", "other", "기타"],
+    ["crossfit", "other", "기타"],
+    ["필라테스", "other", "기타"],
+    ["", "other", "기타"],
+    ["   ", "other", "기타"],
+    [null, "other", "기타"]
+  ]
+}

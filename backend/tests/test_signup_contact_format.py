@@ -73,9 +73,9 @@ def test_clean_email_rejects_malformed(value):
         clean_email(value)
 
 
-def test_clean_email_keeps_the_typed_value():
-    """대소문자를 바꾸지 않는다 — 로그인 조회가 그대로 비교한다."""
-    assert clean_email("Member@ONCARE.com") == "Member@ONCARE.com"
+def test_clean_email_lowercases_the_value():
+    """소문자로 맞춰 저장한다(#2816) — 로그인·중복 확인도 같은 규칙으로 비교한다."""
+    assert clean_email("Member@ONCARE.com") == "member@oncare.com"
 
 
 @pytest.mark.parametrize(

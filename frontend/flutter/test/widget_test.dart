@@ -47,6 +47,16 @@ import 'helpers/fake_notification_repository.dart';
 class _CountingMemberCoachRepository extends MockMemberCoachRepository {
   int routineLoads = 0;
   int sessionLoads = 0;
+  int coachLoads = 0;
+
+  /// 끄면 트레이너가 웹에서 담당을 해제한 것과 같다(#2843).
+  bool assigned = true;
+
+  @override
+  Future<MemberCoach?> fetchCoach() {
+    coachLoads += 1;
+    return assigned ? super.fetchCoach() : Future<MemberCoach?>.value();
+  }
 
   @override
   Future<List<CoachRoutine>> fetchRoutines() {
@@ -356,6 +366,51 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.sessionLoads, greaterThan(beforeResume));
+  });
+
+  testWidgets('담당이 해제된 채 앱으로 돌아오면 헤더가 AI 챗봇 입구로 바뀐다 (#2843)', (
+    tester,
+  ) async {
+    final repository = _CountingMemberCoachRepository();
+    await pumpApp(
+      tester,
+      locale: const Locale('ko'),
+      memberCoachRepository: repository,
+    );
+    expect(find.byKey(const Key('trainerChatHeaderButton')), findsWidgets);
+    final int beforeResume = repository.coachLoads;
+
+    // 앱을 떠난 사이 트레이너가 웹에서 담당을 해제했다.
+    repository.assigned = false;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pumpAndSettle();
+
+    expect(repository.coachLoads, greaterThan(beforeResume));
+    expect(find.byKey(const Key('trainerChatHeaderButton')), findsNothing);
+    expect(find.byKey(const Key('aiChatHeaderButton')), findsWidgets);
+  });
+
+  testWidgets('홈 탭에 다시 들어오면 담당 코치를 다시 확인한다 (#2843)', (tester) async {
+    final repository = _CountingMemberCoachRepository();
+    await pumpApp(
+      tester,
+      locale: const Locale('ko'),
+      memberCoachRepository: repository,
+    );
+
+    await tester.tap(find.text('운동').last);
+    await tester.pumpAndSettle();
+    final int beforeHome = repository.coachLoads;
+    repository.assigned = false;
+
+    await tester.tap(find.text('홈').last);
+    await tester.pumpAndSettle();
+
+    expect(repository.coachLoads, greaterThan(beforeHome));
+    expect(find.byKey(const Key('aiChatHeaderButton')), findsWidgets);
   });
 
   testWidgets('record sheet has no fixed bottom gap without a system inset', (

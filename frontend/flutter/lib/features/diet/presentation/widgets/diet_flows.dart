@@ -43,9 +43,61 @@ class DietFood {
     this.proteinG = 0,
     this.fatG = 0,
     this.source = FoodSource.estimate,
+    this.displayName,
+    this.storedName,
   });
+
+  /// 서버가 준 저장된 음식. 표시 이름이 있으면 그것을 이름으로 보인다(#2850).
+  factory DietFood.fromItem(FoodItem f) => DietFood(
+    f.label,
+    f.calories,
+    amountG: f.amountG,
+    sodiumMg: f.sodiumMg,
+    sugarG: f.sugarG,
+    carbsG: f.carbsG,
+    proteinG: f.proteinG,
+    fatG: f.fatG,
+    source: f.source,
+    displayName: f.displayName,
+    storedName: f.name,
+  );
+
+  /// 사진 분석이 인식한 음식. [DietFood.fromItem] 과 같은 규칙이다.
+  factory DietFood.fromRecognized(RecognizedFood f) => DietFood(
+    f.label,
+    f.calories,
+    amountG: f.amountG,
+    sodiumMg: f.sodiumMg,
+    sugarG: f.sugarG,
+    carbsG: f.carbsG,
+    proteinG: f.proteinG,
+    fatG: f.fatG,
+    source: f.source,
+    displayName: f.displayName,
+    storedName: f.name,
+  );
+
+  /// 화면에 보이고 수정 화면이 고치는 이름.
   final String name;
   final int kcal;
+
+  /// 서버가 준 표시 이름과 저장된 원래 이름(#2850). 영어 화면에서 분석한
+  /// 음식은 [name] 이 영어 표시 이름이고, [storedName] 이 공공 영양 DB 가
+  /// 매칭하는 한국어 이름이다. 저장할 때 [wireName] 이 둘을 되돌린다.
+  final String? displayName;
+  final String? storedName;
+
+  /// 저장할 때 보낼 이름. 표시 이름을 그대로 두었으면 원래 이름과 표시 이름을
+  /// 함께 되돌려 매칭 키가 영어로 덮이지 않게 하고, 회원이 이름을 바꿨으면 그
+  /// 이름이 곧 이름이다 — 표시 이름은 싣지 않는다.
+  ({String name, String? displayName}) get wireName {
+    final String typed = name.trim();
+    final String? shown = displayName;
+    if (shown != null && typed == shown && storedName != null) {
+      return (name: storedName!, displayName: shown);
+    }
+    return (name: typed, displayName: null);
+  }
 
   /// 먹은 양(g). 나머지 영양이 이 양을 재고 나온 값이라, 수정 화면은 이 칸
   /// 하나로 여섯 값을 함께 움직인다(#1876). 모르면 null 이다 — [FoodItem.amountG]
@@ -162,6 +214,18 @@ DateTime _todayKst() {
   return DateTime(now.year, now.month, now.day);
 }
 
+/// 시각을 버린 날짜. null 은 null 이다.
+DateTime? _dayOf(DateTime? date) =>
+    date == null ? null : DateTime(date.year, date.month, date.day);
+
+/// 새 기록을 시작할 날(#2849). 넘겨받은 날이 없거나 아직 오지 않은 날이면
+/// 오늘이다 — 앞날의 식사는 기록하지 않는다.
+DateTime _startDate(DateTime? date) {
+  final DateTime today = _todayKst();
+  final DateTime? day = _dayOf(date);
+  return day == null || day.isAfter(today) ? today : day;
+}
+
 /// 기록 날짜를 화면 언어로 — `2026년 9월 16일`.
 String _recordDateLabel(BuildContext context, DateTime date) =>
     DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(date);
@@ -219,7 +283,11 @@ typedef DietPickedPhoto = ({MealPhoto photo, String mealType});
 ///
 /// **기록이 저장되면 true.** 하단 `+` 로 연 흐름이 저장 성공에만 식단 탭으로
 /// 옮겨 가려면, 취소·권한 거부·분석 실패와 저장 성공을 구분해야 한다(#1434).
-Future<bool> showDietAddSheet(BuildContext context) async {
+///
+/// [date] 는 새 기록을 남길 날이다(#2849). 식단 탭에서 지난 날짜를 보며 연
+/// `식단 추가` 는 그 날짜를 넘긴다 — 사진 분석도 직접 입력도 그 날로 시작한다.
+/// 빠지면(하단 `+`) 오늘이다.
+Future<bool> showDietAddSheet(BuildContext context, {DateTime? date}) async {
   final Object? choice = await showAppSheet<Object>(
     context: _rootContext(context),
     builder: (BuildContext ctx) => const _DietAddSheet(),
@@ -232,8 +300,9 @@ Future<bool> showDietAddSheet(BuildContext context) async {
       context,
       picked.photo,
       picked.mealType,
+      date: date,
     ),
-    _DietAddChoice.manual => openDietManualAddPage(context),
+    _DietAddChoice.manual => openDietManualAddPage(context, date: date),
     _ => false,
   };
 }
@@ -501,20 +570,43 @@ class _SourceOption extends StatelessWidget {
 Future<bool> showDietResultSheet(
   BuildContext context,
   MealPhoto photo,
-  String mealType,
-) async {
+  String mealType, {
+  DateTime? date,
+}) async {
   // 하단 바·+ 버튼이 시트 위로 올라오지 않도록 루트에 올린다. 식단 추가 시트와
   // 같은 규칙이다 — 둘이 같은 층에 있어야 한다(#791).
   final BuildContext root = _rootContext(context);
   final DietResultOutcome outcome = DietResultOutcome();
   final Object? closedWith = await showAppSheet<Object>(
     context: root,
-    builder: (BuildContext ctx) =>
-        _ResultSheet(photo: photo, mealType: mealType, outcome: outcome),
+    builder: (BuildContext ctx) => _ResultSheet(
+      photo: photo,
+      mealType: mealType,
+      outcome: outcome,
+      date: date,
+    ),
   );
   if (closedWith == _ResultSheetExit.pickAnother) {
     if (!root.mounted) return false;
-    return showDietAddSheet(root);
+    // 다시 고른 사진도 처음 고른 날로 남긴다(#2849).
+    return showDietAddSheet(root, date: date);
+  }
+  if (!outcome.saved && outcome.failed && root.mounted) {
+    // 실패 화면으로 닫혀도 서버는 이미 저장했을 수 있다(#2847) — 앱이 응답을
+    // 기다리다 끊긴 사이에도 서버는 끝까지 처리해 끼니를 남기고 포인트를
+    // 적립한다. 시트가 닫힌 뒤라 시트의 ref 는 쓸 수 없어 컨테이너로 비운다.
+    final ProviderContainer container = ProviderScope.containerOf(
+      root,
+      listen: false,
+    );
+    refreshDietRecords(container.invalidate, dates: <DateTime>[?_dayOf(date)]);
+    invalidatePointsBalance(container.invalidate);
+  }
+  // 사진으로는 기록할 수 없을 때(음식 없음·오늘 분석 다 씀 등)의 `직접 추가` —
+  // 그 화면에서 저장했으면 이 흐름도 저장 성공이다(#2848, #2827).
+  if (closedWith == _ResultSheetExit.manual) {
+    if (!root.mounted) return false;
+    return openDietManualAddPage(root);
   }
   return outcome.resolve(closedWith);
 }
@@ -528,6 +620,10 @@ class DietResultOutcome {
   /// 서버에 기록이 남아 있다 — 분석이 성공했고 시트에서 지우지 않았다.
   bool saved = false;
 
+  /// 분석 요청이 한 번이라도 실패로 끝났다(#2847). 실패로 보인 요청도 서버에서는
+  /// 저장됐을 수 있어, 그대로 닫히면 식단 기록·잔액을 한 번 다시 읽는다.
+  bool failed = false;
+
   /// 시트가 닫힌 값. 명시적인 `true`/`false` 는 그대로, 값 없이 닫혔으면
   /// [saved] 다.
   bool resolve(Object? closedWith) => closedWith is bool ? closedWith : saved;
@@ -537,6 +633,9 @@ class DietResultOutcome {
 enum _ResultSheetExit {
   /// 분석 실패 화면의 `다른 사진 고르기` — 사진 선택부터 다시 연다.
   pickAnother,
+
+  /// 분석 실패 화면의 `직접 추가` — 사진 없이 적는 화면을 연다.
+  manual,
 }
 
 class _ResultSheet extends ConsumerStatefulWidget {
@@ -544,10 +643,14 @@ class _ResultSheet extends ConsumerStatefulWidget {
     required this.photo,
     required this.mealType,
     required this.outcome,
+    this.date,
   });
   final MealPhoto photo;
   final String mealType;
   final DietResultOutcome outcome;
+
+  /// 기록을 남길 날. null 이면 오늘이다(#2849).
+  final DateTime? date;
 
   @override
   ConsumerState<_ResultSheet> createState() => _ResultSheetState();
@@ -563,13 +666,14 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
   /// 쓴다(#2859).
   Object? _failureError;
 
-  /// 이 기록이 놓인 날. 분석은 저장한 시각의 날짜로 남기므로 처음은 늘 오늘이고,
-  /// 지난 식사의 사진이면 `날짜 변경` 으로 실제로 먹은 날로 옮긴다(#1241).
+  /// 이 기록이 놓인 날. 식단 탭에서 지난 날짜를 보며 연 추가면 그 날이고
+  /// (#2849), 아니면 오늘이다. 다른 날 먹은 식사의 사진이면 `날짜 변경` 으로
+  /// 실제로 먹은 날로 옮긴다(#1241).
   ///
   /// 날짜는 식단 상세처럼 따로 옮긴다(#1947) — 사진을 올린 자리에서 가장 흔히
   /// 고치는 것이 날짜라, 연필을 거치게 하지 않는다. 끼니·음식은 헤더 연필이
   /// 이 시트 안에 여는 수정 모드에서 고친다(#2097).
-  late DateTime _date = _todayKst();
+  late DateTime _date = _startDate(widget.date);
 
   /// 날짜를 옮기는 중. 두 번 눌러 같은 기록을 두 날짜로 보내지 않게 막는다.
   bool _movingDate = false;
@@ -613,6 +717,13 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
       _failureError = null;
     });
     final Stopwatch elapsed = Stopwatch()..start();
+    // 분석 중에 시트를 끌어내려 닫아도 요청은 끝까지 가고 서버는 저장한다
+    // (#2847). 그때는 이 State 의 ref 를 쓸 수 없으므로 컨테이너를 먼저 잡아
+    // 두고, 응답이 오면 시트가 남아 있든 없든 기록을 다시 읽게 한다.
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     try {
       final DietAnalysisResult result = await ref
           .read(dietRepositoryProvider)
@@ -620,14 +731,18 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
             photo: widget.photo,
             mealType: widget.mealType,
             idempotencyKey: _idempotencyKey,
+            // 오늘이면 싣지 않는다 — 서버가 저장하는 순간의 날짜를 쓴다. 자정
+            // 직전에 연 시트가 앱 시계의 어제로 못 박히지 않는다.
+            date: _date == _todayKst() ? null : wireDate(_date),
           );
-      if (!mounted) return;
       // analyze() already persisted the entry → 이 시점부터 기록은 저장돼
       // 있다. 시트를 어떻게 닫든 저장 성공이다(#2627).
       widget.outcome.saved = true;
-      refreshDietRecords(ref.invalidate);
+      // 지난 날짜로 남겼으면 그 날도 비운다(#2849).
+      refreshDietRecords(container.invalidate, dates: <DateTime>[_date]);
       // 저장과 함께 포인트도 적립됐다 — MY 잔액을 다시 읽는다(#1786).
-      refreshPointsBalance(ref);
+      invalidatePointsBalance(container.invalidate);
+      if (!mounted) return;
       await _holdAnalyzing(elapsed);
       if (!mounted) return;
       setState(() {
@@ -635,6 +750,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
         _loading = false;
       });
     } on Object catch (error) {
+      widget.outcome.failed = true;
       if (!mounted) return;
       // 실패도 같은 바닥을 쓴다 — 즉시 튀어나오는 실패 문구는 사진을 보지도
       // 않고 거절한 것처럼 읽힌다.
@@ -664,18 +780,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
     final DietAnalysisResult? r = _result;
     if (r == null || r.entryId.isEmpty) return;
     final List<DietFood> foods = <DietFood>[
-      for (final RecognizedFood f in r.foods)
-        DietFood(
-          f.name,
-          f.calories,
-          amountG: f.amountG,
-          sodiumMg: f.sodiumMg,
-          sugarG: f.sugarG,
-          carbsG: f.carbsG,
-          proteinG: f.proteinG,
-          fatG: f.fatG,
-          source: f.source,
-        ),
+      for (final RecognizedFood f in r.foods) DietFood.fromRecognized(f),
     ];
     setState(() {
       _editing = true;
@@ -817,6 +922,10 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
   void _pickAnother() =>
       Navigator.of(context).pop(_ResultSheetExit.pickAnother);
 
+  /// 사진으로는 이 끼니를 기록할 수 없다 — 사진 없이 적는 화면으로 넘긴다.
+  /// 그 화면도 [showDietResultSheet] 가 이 시트가 닫힌 뒤 연다.
+  void _openManual() => Navigator.of(context).pop(_ResultSheetExit.manual);
+
   /// 아래 `닫기`. 기록은 분석 때 이미 저장됐으므로 `저장` 과 같이 저장 성공으로
   /// 닫는다 — 식단 탭 이동과 홈 요약 갱신이 똑같이 일어난다(#2627). 저장 알림은
   /// `저장` 에만 띄운다.
@@ -862,9 +971,13 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
           l.dietAnalysisUnsupportedFormat,
         DietAnalysisFailure.badRequest => l.dietAnalysisBadRequest,
         DietAnalysisFailure.unauthorized => l.dietAnalysisUnauthorized,
-        // 권한·동의 부족과 요청 한도는 어느 화면에서나 같은 뜻이라 공통
+        // 권한·동의 부족과 공통 요청 한도는 어느 화면에서나 같은 뜻이라 공통
         // 문구를 쓴다 — 403 에는 서버 사유가 있으면 한국어 화면에서 그것을
-        // 보인다(#2859).
+        // 보인다(#2859). 사진 분석 전용 분당 한도(`rate_limited`, #2827)만
+        // 직접 추가를 함께 권하는 분석 문구다.
+        DietAnalysisFailure.rateLimited
+            when _failureError is DietAnalysisRejected =>
+          l.dietAnalysisRateLimited,
         DietAnalysisFailure.forbidden ||
         DietAnalysisFailure.rateLimited => appErrorMessage(
           l,
@@ -872,6 +985,9 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
           fallback: l.dietAnalysisFailedBody,
         ),
         DietAnalysisFailure.notImplemented => l.dietAnalysisNotImplemented,
+        DietAnalysisFailure.noFood => l.dietAnalysisNoFood,
+        DietAnalysisFailure.dailyLimit => l.dietAnalysisDailyLimit,
+        DietAnalysisFailure.unavailable => l.dietAnalysisUnavailable,
         // 502 and transport failures share the "try again shortly" wording —
         // from the user's side both are "it broke, not your photo".
         DietAnalysisFailure.recognitionFailed ||
@@ -885,8 +1001,12 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
     if (failure.canRetry) return _run;
     return switch (failure) {
       DietAnalysisFailure.unsupportedFormat ||
-      DietAnalysisFailure.badRequest => _pickAnother,
+      DietAnalysisFailure.badRequest ||
+      DietAnalysisFailure.noFood => _pickAnother,
       DietAnalysisFailure.unauthorized => () => unawaited(_signInAgain()),
+      // 사진 길이 닫혔다(오늘 다 씀·분석 꺼짐) — 기록할 수 있는 길은 직접 추가다.
+      DietAnalysisFailure.dailyLimit ||
+      DietAnalysisFailure.unavailable => _openManual,
       _ => () => Navigator.of(context).pop(),
     };
   }
@@ -895,10 +1015,33 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
     if (failure.canRetry) return l.actionRetry;
     return switch (failure) {
       DietAnalysisFailure.unsupportedFormat ||
-      DietAnalysisFailure.badRequest => l.dietAnalysisPickAnother,
+      DietAnalysisFailure.badRequest ||
+      DietAnalysisFailure.noFood => l.dietAnalysisPickAnother,
       DietAnalysisFailure.unauthorized => l.dietAnalysisSignIn,
+      DietAnalysisFailure.dailyLimit ||
+      DietAnalysisFailure.unavailable => l.dietManualAdd,
       _ => l.dietAnalysisClose,
     };
+  }
+
+  /// 왼쪽 버튼. 직접 추가를 권하는 실패에서만 두 버튼이 된다(#2848, #2827).
+  /// 주 동작이 이미 `직접 추가` 면 왼쪽은 `닫기` 이고, 아니면(다른 사진·다시
+  /// 시도) 왼쪽이 `직접 추가` 다.
+  ({String label, VoidCallback onPressed})? _failureSecondary(
+    AppLocalizations l,
+    DietAnalysisFailure failure,
+  ) {
+    if (!failure.offersManualEntry) return null;
+    final bool manualIsPrimary =
+        failure == DietAnalysisFailure.dailyLimit ||
+        failure == DietAnalysisFailure.unavailable;
+    if (manualIsPrimary) {
+      return (
+        label: l.dietAnalysisClose,
+        onPressed: () => Navigator.of(context).pop(),
+      );
+    }
+    return (label: l.dietManualAdd, onPressed: _openManual);
   }
 
   /// `_result == null` without a classified failure shouldn't happen, but
@@ -962,6 +1105,18 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
     if (_loading) return null;
     if (_failed || _result == null) {
       final DietAnalysisFailure failure = _shownFailure;
+      final ({String label, VoidCallback onPressed})? secondary =
+          _failureSecondary(l, failure);
+      if (secondary != null) {
+        return AppButtonPair(
+          cancelKey: const Key('dietAnalysisFailureSecondary'),
+          cancelLabel: secondary.label,
+          onCancel: secondary.onPressed,
+          confirmKey: const Key('dietAnalysisFailureAction'),
+          confirmLabel: _failureActionLabel(l, failure),
+          onConfirm: _failureAction(failure),
+        );
+      }
       return AppButton(
         key: const Key('dietAnalysisFailureAction'),
         label: _failureActionLabel(l, failure),
@@ -1028,7 +1183,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
 
     final DietAnalysisResult r = _result!;
     final String recognized = r.foods
-        .map((RecognizedFood f) => f.name)
+        .map((RecognizedFood f) => f.label)
         .join(' · ');
     // 수정 중에는 합계가 고치는 음식을 곧바로 따라온다 — 식단 상세와 같다.
     // 보기에서는 서버가 준 합계를 그대로 적는다.
@@ -1084,7 +1239,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
                               // 이름 안·이름과 양 사이를 붙는 공백으로 잇고, 줄은
                               // ` · ` 에서만 바뀐다. `그래놀라` / `토핑 50g` 처럼
                               // 한 음식이 두 줄로 갈리면 다른 음식처럼 읽힌다.
-                              TextSpan(text: _keepTogether(r.foods[i].name)),
+                              TextSpan(text: _keepTogether(r.foods[i].label)),
                               if (r.foods[i].amountG case final double grams)
                                 TextSpan(
                                   text: _keepTogether(
@@ -1403,20 +1558,31 @@ class _ResultRow extends StatelessWidget {
 Future<void> openMealDetailPage(BuildContext context, DietMeal meal) {
   final String? id = meal.id;
   if (id == null) return Future<void>.value();
-  return context.push<void>(AppRoutes.dietEntryDetailPath(id), extra: meal);
+  // 주소에 날짜를 싣는다 — 새로고침하면 `extra` 가 사라져 이 날짜의 목록에서
+  // 끼니를 다시 찾는다. 빠지면 지난 날 끼니가 오류 화면이 된다(#2881).
+  return context.push<void>(
+    AppRoutes.dietEntryDetailPath(id, date: meal.date),
+    extra: meal,
+  );
 }
 
 /// Full-page meal editor. [initialMeal] makes the first transition immediate;
-/// when a web URL is refreshed, the same meal is restored from today's data.
+/// when a web URL is refreshed, the same meal is restored from the list of
+/// [date] (today when the address carries no date).
 class DietMealDetailPage extends ConsumerStatefulWidget {
   const DietMealDetailPage({
     super.key,
     required this.entryId,
     this.initialMeal,
+    this.date,
   });
 
   final String entryId;
   final DietMeal? initialMeal;
+
+  /// 주소에 실린 끼니의 날(#2881). 없으면 오늘이다 — 날짜를 싣기 전의 주소와
+  /// 분석 완료 시트의 연필이 그렇다.
+  final DateTime? date;
 
   @override
   ConsumerState<DietMealDetailPage> createState() => _DietMealDetailPageState();
@@ -1431,11 +1597,12 @@ class _DietMealDetailPageState extends ConsumerState<DietMealDetailPage> {
   /// (#1947).
   DietMeal? _found;
 
-  /// 오늘 목록에서 찾았으니 날짜는 오늘이다.
-  DietMeal _fromEntry(DietEntry entry) => DietMeal(
+  /// [day] 의 목록에서 찾았으니 날짜는 그 날이다. 오늘로 고정하면 새로고침한
+  /// 지난 끼니를 저장할 때 오늘로 옮겨진다(#2881).
+  DietMeal _fromEntry(DietEntry entry, DateTime day) => DietMeal(
     id: entry.id,
     mealType: entry.mealType,
-    date: _todayKst(),
+    date: day,
     time: entry.timeLabel,
     total: entry.totalCalories,
     emoji: '',
@@ -1446,18 +1613,7 @@ class _DietMealDetailPageState extends ConsumerState<DietMealDetailPage> {
     // 웹에서 새로고침해 들어오면 `initialMeal` 없이 이 경로로 복원된다 —
     // 여기서도 영양을 하나도 흘리지 않아야 저장 뒤에 합계가 남는다(#1853).
     items: <DietFood>[
-      for (final FoodItem food in entry.foods)
-        DietFood(
-          food.name,
-          food.calories,
-          amountG: food.amountG,
-          sodiumMg: food.sodiumMg,
-          sugarG: food.sugarG,
-          carbsG: food.carbsG,
-          proteinG: food.proteinG,
-          fatG: food.fatG,
-          source: food.source,
-        ),
+      for (final FoodItem food in entry.foods) DietFood.fromItem(food),
     ],
     tags: const <DietTag>[],
     sodium: entry.sodiumMg,
@@ -1477,18 +1633,33 @@ class _DietMealDetailPageState extends ConsumerState<DietMealDetailPage> {
     if (found != null) return _MealEditSheet(meal: found);
 
     final AppLocalizations l = AppLocalizations.of(context);
+    final DateTime today = _todayKst();
+    final DateTime day = _dayOf(widget.date) ?? today;
+    // 오늘이면 식단 탭과 같은 오늘 목록을 본다 — 같은 캐시를 나눠 써야 한쪽에서
+    // 고친 값이 다른 쪽에 곧바로 보인다.
+    final FutureProvider<DietDay> source = day == today
+        ? dietTodayProvider
+        : dietByDateProvider(day);
     return ref
-        .watch(dietTodayProvider)
+        .watch(source)
         .when(
-          data: (DietDay day) {
-            for (final DietEntry entry in day.entries) {
+          data: (DietDay loaded) {
+            for (final DietEntry entry in loaded.entries) {
               if (entry.id == widget.entryId) {
                 // 빌드 중에 setState 하지 않는다 — 한 번 기억해 두고 같은
                 // 값으로 그린다. 다음 빌드부터는 위에서 곧장 돌아간다.
-                return _MealEditSheet(meal: _found = _fromEntry(entry));
+                return _MealEditSheet(meal: _found = _fromEntry(entry, day));
               }
             }
-            return _MealDetailUnavailable(message: l.dietLoadError);
+            // 목록은 읽었는데 그 끼니가 없다 — 지워졌거나 없는 주소다. 읽기
+            // 실패와 같은 문구를 쓰면 다시 시도하면 될 것처럼 읽힌다(#2881).
+            return _MealDetailUnavailable(
+              key: const Key('dietMealNotFound'),
+              message: l.dietMealNotFound,
+              detail: l.dietMealNotFoundMessage,
+              actionLabel: l.dietMealNotFoundAction,
+              onAction: () => context.go(AppRoutes.diet),
+            );
           },
           loading: () => const Scaffold(
             backgroundColor: OnCareColors.surfaceCard,
@@ -1500,16 +1671,34 @@ class _DietMealDetailPageState extends ConsumerState<DietMealDetailPage> {
 }
 
 class _MealDetailUnavailable extends StatelessWidget {
-  const _MealDetailUnavailable({required this.message});
+  const _MealDetailUnavailable({
+    super.key,
+    required this.message,
+    this.detail,
+    this.actionLabel,
+    this.onAction,
+  });
 
   final String message;
+  final String? detail;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: OnCareColors.surfaceCard,
       appBar: AppTopBar(title: ''),
-      body: AppEmptyState(title: message, icon: AppIcons.error),
+      body: AppEmptyState(
+        title: message,
+        message: detail,
+        icon: AppIcons.error,
+        actionLabel: actionLabel,
+        onAction: onAction,
+        actionKey: onAction == null
+            ? null
+            : const Key('dietMealNotFoundAction'),
+      ),
     );
   }
 }
@@ -1682,6 +1871,9 @@ mixin _FoodEditing<W extends ConsumerStatefulWidget> on ConsumerState<W> {
           proteinG: _asDouble(e.protein),
           fatG: _asDouble(e.fat),
           source: e.source,
+          // 이름을 그대로 두었는지는 저장할 때 [DietFood.wireName] 이 가린다.
+          displayName: _foods[index].displayName,
+          storedName: _foods[index].storedName,
         );
     });
   }
@@ -1972,7 +2164,8 @@ mixin _FoodEditing<W extends ConsumerStatefulWidget> on ConsumerState<W> {
     for (final DietFood f in _foods)
       if (f.name.trim().isNotEmpty)
         FoodItem(
-          name: f.name.trim(),
+          name: f.wireName.name,
+          displayName: f.wireName.displayName,
           calories: f.kcal,
           amountG: f.amountG,
           sodiumMg: f.sodiumMg,
@@ -2130,10 +2323,13 @@ mixin _FoodEditing<W extends ConsumerStatefulWidget> on ConsumerState<W> {
 ///
 /// 하단 내비·`+` 버튼을 가리도록 루트 내비게이터에 올린다 — 사진 선택 시트와
 /// 같은 자리다(#791).
-Future<bool> openDietManualAddPage(BuildContext context) async {
+Future<bool> openDietManualAddPage(
+  BuildContext context, {
+  DateTime? date,
+}) async {
   final bool? saved = await Navigator.of(context, rootNavigator: true)
       .push<bool>(
-        MaterialPageRoute<bool>(builder: (_) => const _MealCreatePage()),
+        MaterialPageRoute<bool>(builder: (_) => _MealCreatePage(date: date)),
       );
   return saved ?? false;
 }
@@ -2148,7 +2344,10 @@ Future<bool> openDietManualAddPage(BuildContext context) async {
 /// 없어, 여기서만 사진을 받으면 흐름이 갈린다. 목록 썸네일은 음식 이름으로
 /// 고른 이모지다(`mealThumbEmoji`).
 class _MealCreatePage extends ConsumerStatefulWidget {
-  const _MealCreatePage();
+  const _MealCreatePage({this.date});
+
+  /// 처음 고를 날짜. 지난 날짜 화면에서 열었으면 그 날이다(#2849).
+  final DateTime? date;
 
   @override
   ConsumerState<_MealCreatePage> createState() => _MealCreatePageState();
@@ -2158,7 +2357,7 @@ class _MealCreatePageState extends ConsumerState<_MealCreatePage>
     with _FoodEditing<_MealCreatePage> {
   /// 처음 끼니는 사진 분석과 같이 지금 시각으로 고른다.
   MealType _type = MealType.values.byName(_currentMealType());
-  DateTime _date = _todayKst();
+  late DateTime _date = _startDate(widget.date);
   bool _busy = false;
 
   /// `음식을 하나 이상 적어 주세요` — 저장을 눌렀는데 이름 적힌 음식이 없을 때.

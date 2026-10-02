@@ -18,6 +18,12 @@ from app.services import emote_service, points_service
 
 router = APIRouter(tags=["emotes"])
 
+# 409·400 을 앱이 문구로 나누는 코드. 같은 409 라도 "이미 열려 있음" 과 "담당 없음" 은
+# 회원에게 할 말이 다르다. (#2845)
+ALREADY_UNLOCKED_CODE = "already_unlocked"
+TRAINER_REQUIRED_CODE = "trainer_required"
+INSUFFICIENT_POINTS_CODE = "insufficient_points"
+
 
 @router.get("/me/emotes", response_model=EmoteStateOut)
 def my_emotes(
@@ -42,10 +48,20 @@ def unlock_emote(
         )
     except emote_service.UnknownEmote as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except (
-        emote_service.TrainerRequired,
-        emote_service.AlreadyUnlocked,
-    ) as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except emote_service.TrainerRequired as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": TRAINER_REQUIRED_CODE, "message": str(exc)},
+        ) from exc
+    except emote_service.AlreadyUnlocked as exc:
+        # 응답을 못 받고 다른 키로 다시 산 경우도 여기 온다 — 앱은 실패가 아니라
+        # "이미 열려 있음" 으로 안내한다. (#2845)
+        raise HTTPException(
+            status_code=409,
+            detail={"code": ALREADY_UNLOCKED_CODE, "message": str(exc)},
+        ) from exc
     except points_service.InsufficientPoints as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=400,
+            detail={"code": INSUFFICIENT_POINTS_CODE, "message": str(exc)},
+        ) from exc

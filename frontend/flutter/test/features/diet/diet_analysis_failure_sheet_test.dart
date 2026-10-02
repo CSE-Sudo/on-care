@@ -10,6 +10,7 @@ import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
+import 'package:oncare/features/diet/domain/entities/diet_analysis_failure.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/domain/repositories/meal_photo_picker.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
@@ -55,6 +56,7 @@ class _FailingDietRepository extends FakeDietRepository {
     required MealPhoto photo,
     required String mealType,
     String? idempotencyKey,
+    String? date,
   }) async {
     attempts += 1;
     throw AppError.fromDio(
@@ -68,6 +70,25 @@ class _FailingDietRepository extends FakeDietRepository {
         ),
       ),
     );
+  }
+}
+
+/// Refuses every analyze with a coded reason, as the repository does for a
+/// `{detail: {code}}` body (#2848, #2827, #2812).
+class _RejectingDietRepository extends _FailingDietRepository {
+  _RejectingDietRepository(this.failure) : super(0);
+
+  final DietAnalysisFailure failure;
+
+  @override
+  Future<DietAnalysisResult> analyze({
+    required MealPhoto photo,
+    required String mealType,
+    String? idempotencyKey,
+    String? date,
+  }) async {
+    attempts += 1;
+    throw DietAnalysisRejected(failure, message: '서버 문구');
   }
 }
 
@@ -126,6 +147,15 @@ String _actionLabel(WidgetTester tester) => tester
     .widget<Text>(
       find.descendant(
         of: find.byKey(const Key('dietAnalysisFailureAction')),
+        matching: find.byType(Text),
+      ),
+    )
+    .data!;
+
+String _secondaryLabel(WidgetTester tester) => tester
+    .widget<Text>(
+      find.descendant(
+        of: find.byKey(const Key('dietAnalysisFailureSecondary')),
         matching: find.byType(Text),
       ),
     )
@@ -210,6 +240,106 @@ void main() {
     await tester.tap(find.byKey(const Key('dietAnalysisFailureAction')));
     await tester.pumpAndSettle();
     expect(repo.attempts, 2);
+  });
+
+  testWidgets('음식 없는 사진은 다른 사진 고르기와 직접 추가를 함께 권한다', (
+    WidgetTester tester,
+  ) async {
+    final _RejectingDietRepository repo = _RejectingDietRepository(
+      DietAnalysisFailure.noFood,
+    );
+    await _openResultSheet(tester, repo);
+
+    expect(find.textContaining('사진에서 음식을 찾지 못했어요'), findsOneWidget);
+    expect(_actionLabel(tester), '다른 사진 고르기');
+    expect(_secondaryLabel(tester), '직접 추가');
+
+    await tester.tap(find.byKey(const Key('dietAnalysisFailureAction')));
+    await tester.pumpAndSettle();
+    expect(repo.attempts, 1, reason: '같은 사진은 다시 보내도 음식이 없다');
+    expect(find.byKey(const Key('dietAddSheet')), findsOneWidget);
+  });
+
+  testWidgets('음식 없는 사진에서 직접 추가를 누르면 사진 없이 적는 화면이 열린다', (
+    WidgetTester tester,
+  ) async {
+    final _RejectingDietRepository repo = _RejectingDietRepository(
+      DietAnalysisFailure.noFood,
+    );
+    await _openResultSheet(tester, repo);
+
+    await tester.tap(find.byKey(const Key('dietAnalysisFailureSecondary')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mealCreatePage')), findsOneWidget);
+    expect(find.byKey(const Key('dietAnalysisFailureAction')), findsNothing);
+    expect(repo.attempts, 1);
+  });
+
+  testWidgets('오늘 분석을 다 쓰면 직접 추가가 주 버튼이고 다시 시도는 없다', (
+    WidgetTester tester,
+  ) async {
+    final _RejectingDietRepository repo = _RejectingDietRepository(
+      DietAnalysisFailure.dailyLimit,
+    );
+    await _openResultSheet(tester, repo);
+
+    expect(find.textContaining('오늘 사진 분석 횟수를 다 썼어요'), findsOneWidget);
+    expect(_actionLabel(tester), '직접 추가');
+    expect(_secondaryLabel(tester), '닫기');
+    expect(find.text('다시 시도'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('dietAnalysisFailureAction')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('mealCreatePage')), findsOneWidget);
+    expect(repo.attempts, 1, reason: '한도가 찬 날 재전송은 또 거절된다');
+  });
+
+  testWidgets('오늘 분석을 다 쓴 화면의 닫기는 시트만 닫는다', (WidgetTester tester) async {
+    final _RejectingDietRepository repo = _RejectingDietRepository(
+      DietAnalysisFailure.dailyLimit,
+    );
+    await _openResultSheet(tester, repo);
+
+    await tester.tap(find.byKey(const Key('dietAnalysisFailureSecondary')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('dietAnalysisFailureAction')), findsNothing);
+    expect(find.byKey(const Key('mealCreatePage')), findsNothing);
+    expect(find.text('open'), findsOneWidget);
+  });
+
+  testWidgets('분당 한도는 같은 사진 다시 시도와 직접 추가를 함께 둔다', (WidgetTester tester) async {
+    final _RejectingDietRepository repo = _RejectingDietRepository(
+      DietAnalysisFailure.rateLimited,
+    );
+    await _openResultSheet(tester, repo);
+
+    expect(find.textContaining('사진 분석 요청이 너무 잦아요'), findsOneWidget);
+    expect(_actionLabel(tester), '다시 시도');
+    expect(_secondaryLabel(tester), '직접 추가');
+
+    await tester.tap(find.byKey(const Key('dietAnalysisFailureAction')));
+    await tester.pumpAndSettle();
+    expect(repo.attempts, 2, reason: '잠시 뒤 재시도는 실제로 다시 보낸다');
+  });
+
+  testWidgets('분석이 꺼진 서버는 직접 추가로 안내한다', (WidgetTester tester) async {
+    final _RejectingDietRepository repo = _RejectingDietRepository(
+      DietAnalysisFailure.unavailable,
+    );
+    await _openResultSheet(tester, repo);
+
+    expect(find.textContaining('지금은 사진 분석을 쓸 수 없어요'), findsOneWidget);
+    expect(_actionLabel(tester), '직접 추가');
+    expect(_secondaryLabel(tester), '닫기');
+  });
+
+  testWidgets('직접 추가를 권하지 않는 실패는 버튼 하나 그대로다', (WidgetTester tester) async {
+    final _FailingDietRepository repo = _FailingDietRepository(415);
+    await _openResultSheet(tester, repo);
+
+    expect(find.byKey(const Key('dietAnalysisFailureSecondary')), findsNothing);
   });
 
   testWidgets('403 은 다시 로그인을 띄우지 않고 권한·동의를 안내한다 (#2859)', (

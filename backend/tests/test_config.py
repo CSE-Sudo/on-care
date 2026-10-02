@@ -29,8 +29,12 @@ def _prod(**kw) -> Settings:
         _env_file=None, env="prod",
         jwt_secret="a-strong-random-secret-value",
         cors_allow_origins="https://app.oncare.com",
-        seed_demo_data=False,       # 운영 권장: 데모 시드 끔(켜려면 DEMO_LOGIN_PASSWORD 강제)
+        seed_demo_data=False,       # 운영은 데모 시드를 켤 수 없다(#2811)
         auto_create_tables=False,   # 운영은 Alembic 이 스키마 소스
+        gemini_api_key="test-gemini-key",  # 운영은 사진 인식·임베딩 키 필수(#2812)
+        # conftest 가 EMBEDDER=hash 를 환경변수로 심으므로 운영 값을 명시한다.
+        recognizer="gemini",
+        embedder="gemini",
     )
     base.update(kw)
     return Settings(**base)

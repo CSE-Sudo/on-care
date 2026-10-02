@@ -809,6 +809,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  oncare_rules:
+    dependency: "direct main"
+    description:
+      path: "../../shared/oncare_rules"
+      relative: true
+    source: path
+    version: "0.1.0"
   oncare_ui:
     dependency: "direct main"
     description:

@@ -12,6 +12,8 @@ on:
       - "shared/demo_fixture/**"
       # 추천 개인운동 효과 문구표 원본 — 서버·트레이너 웹 사본이 같은지 본다(#2570).
       - "shared/routine_effects/**"
+      # 서버와 두 앱이 같은 값을 내야 하는 계산 규칙과 그 입력 표(#2860).
+      - "shared/oncare_rules/**"
       - ".github/workflows/backend-ci.yml"
   pull_request:
     paths:
@@ -20,6 +22,8 @@ on:
       - "shared/demo_fixture/**"
       # 추천 개인운동 효과 문구표 원본 — 서버·트레이너 웹 사본이 같은지 본다(#2570).
       - "shared/routine_effects/**"
+      # 서버와 두 앱이 같은 값을 내야 하는 계산 규칙과 그 입력 표(#2860).
+      - "shared/oncare_rules/**"
       - ".github/workflows/backend-ci.yml"
 
 # 토큰 권한을 저장소·조직 기본값에 맡기지 않고 여기서 최소로 선언한다(#1557).

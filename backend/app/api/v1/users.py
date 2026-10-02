@@ -17,15 +17,23 @@ from typing import Annotated
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentUser, RequireMember
+from app.api.deps import CurrentUser, RequireMember, RequireUser
 from app.core import clock
 from app.core.config import get_settings
 from app.core.locale import get_request_locale
-from app.core.rate_limit import limiter, rate_limit
+from app.core.rate_limit import (
+    check_key,
+    clear_failures,
+    ensure_unlocked,
+    limiter,
+    rate_limit,
+    record_failure,
+    register_email_key,
+)
 from app.services.audit import client_ip, record as audit
 from app.services.audit_email import masked_email
 from app.core.security import (
@@ -37,6 +45,8 @@ from app.db.session import get_db
 from app.models.models import AccountDeletionReason, HealthProfile, User
 from app.schemas.user import (
     AccountDeleteRequest,
+    ConsentStatus,
+    ConsentSubmit,
     MemberPasswordChange,
     PasswordChanged,
     PasswordResetConfirm,
@@ -45,6 +55,7 @@ from app.schemas.user import (
     PasswordResetRequested,
     HealthGoalsUpdate,
     HealthProfileBrief,
+    LoginToken,
     OnboardingRequest,
     PairingCodeOut,
     ProfileUpdate,
@@ -69,10 +80,13 @@ from app.services import (
     name_change,
     password_reset,
     reservation_service,
+    signup_consent,
     token_revocation,
     trainer_signup_service,
     weekly_challenge_service,
 )
+from app.services.diet_coach_inputs import effective_protein_g
+from app.services.contact_format import normalize_email
 from app.services.health_service import DEMO_SETTINGS
 from app.services.profile_format import name_from_email
 
@@ -80,8 +94,48 @@ router = APIRouter(tags=["users"])
 
 
 @router.get("/users/me", response_model=UserMe)
-def get_me(current_user: CurrentUser) -> UserMe:
-    return UserMe(id=current_user.id, name=current_user.name, email=current_user.email)
+def get_me(
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> UserMe:
+    # 아직 동의하지 않은 필수 항목을 함께 준다(#2819). 앱은 이 값으로 다른
+    # 화면보다 먼저 동의 화면을 띄운다.
+    pending = signup_consent.pending_kinds(db, current_user)
+    return UserMe(
+        id=current_user.id,
+        name=current_user.name,
+        email=current_user.email,
+        consent_required=bool(pending),
+        consent_pending=pending,
+    )
+
+
+@router.post("/users/me/consents", response_model=ConsentStatus)
+def submit_consents(
+    payload: ConsentSubmit,
+    user: RequireUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> ConsentStatus:
+    """가입 뒤 동의 화면에서 받은 항목을 남긴다. (#2819)
+
+    동의 절차가 생기기 전에 가입한 계정, 소셜 로그인으로 처음 들어온 계정, 문서
+    버전이 올라간 계정이 다음 로그인 때 거치는 화면이 부른다. 회원·트레이너 모두
+    쓴다 — 필수 항목은 계정 역할로 고른다.
+
+    필수 항목이 하나라도 빠지면 아무것도 남기지 않고 422 다. 일부만 남기면
+    화면은 다시 뜨는데 어떤 항목은 이미 동의한 것으로 남아, 무엇에 언제 동의했는지
+    이력이 흐려진다.
+    """
+    missing = signup_consent.missing_required(user.role, payload.consents)
+    if missing:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "consent_required", "missing": missing},
+        )
+    signup_consent.record(db, user.id, payload.consents)
+    db.commit()
+    pending = signup_consent.pending_kinds(db, user)
+    return ConsentStatus(consent_required=bool(pending), consent_pending=pending)
 
 
 @router.get("/users/me/health", response_model=UserHealth)
@@ -156,6 +210,7 @@ def _profile_view(user: User) -> ProfileView:
         daily_sugar_g=p.daily_sugar_g if p else None,
         daily_carbs_g=p.daily_carbs_g if p else None,
         daily_protein_g=p.daily_protein_g if p else None,
+        effective_daily_protein_g=effective_protein_g(p),
         daily_fat_g=p.daily_fat_g if p else None,
         weekly_workout_goal=p.weekly_workout_goal if p else None,
         weekly_exercise_minutes_goal=(p.weekly_exercise_minutes_goal if p else None),
@@ -165,6 +220,7 @@ def _profile_view(user: User) -> ProfileView:
         weekly_strength_sets=p.weekly_strength_sets if p else None,
         weekly_flexibility_minutes=(p.weekly_flexibility_minutes if p else None),
         onboarded=p.onboarded if p else False,
+        onboarding_skipped=bool(p.onboarding_skipped) if p else False,
         has_password=bool(user.hashed_password),
         focus_changed_by=p.focus_changed_by if p else None,
         focus_changed_at=p.focus_changed_at if p else None,
@@ -208,6 +264,24 @@ def submit_onboarding(
     return _profile_view(user)
 
 
+@router.post("/users/me/onboarding/skip", response_model=ProfileView)
+def skip_onboarding(
+    user: RequireMember,
+    db: Annotated[Session, Depends(get_db)],
+) -> ProfileView:
+    """첫 설정 건너뛰기를 계정에 남긴다(#2855).
+
+    건너뛴 회원은 다음 로그인·세션 복구 때 첫 설정 화면으로 다시 가지 않는다.
+    값은 아무것도 저장하지 않는다 — 건너뛴 것이지 끝낸 것이 아니라 `onboarded`
+    는 그대로다. 여러 번 불러도 결과가 같다.
+    """
+    profile = _get_or_create_profile(db, user)
+    profile.onboarding_skipped = True
+    db.commit()
+    db.refresh(user)
+    return _profile_view(user)
+
+
 @router.put("/users/me/health-goals", response_model=ProfileView)
 def update_health_goals(
     payload: HealthGoalsUpdate,
@@ -241,7 +315,13 @@ def update_me(
 
     new_email = data.get("email")
     if new_email is not None and new_email != user.email:
-        dup = db.scalar(select(User).where(User.email == new_email, User.id != user.id))
+        # 대소문자만 다른 주소도 같은 이메일이다(#2816). `new_email` 은 스키마가
+        # 이미 소문자로 맞췄다.
+        dup = db.scalar(
+            select(User).where(
+                func.lower(User.email) == new_email, User.id != user.id
+            )
+        )
         if dup is not None:
             raise HTTPException(status_code=409, detail="이미 사용 중인 이메일입니다.")
         user.email = new_email
@@ -457,6 +537,21 @@ def change_my_password(
 # ---- 인증 (Stage 4 대비, 지금도 동작) ----
 
 
+def _check_register_email(email: str) -> None:
+    """같은 이메일 가입 시도 상한(#2913).
+
+    가입은 이미 있는 이메일에 409 를 주므로 IP 한도만으로는 IP 를 바꿔 가며 특정
+    이메일의 가입 여부를 계속 물을 수 있다. 이메일 단위로 한 시간에 몇 번까지만
+    받는다. 성공·실패를 가리지 않고 센다 — 세는 기준이 결과에 따라 갈리면 그 차이로
+    다시 가입 여부가 드러난다. 문구(409·429)는 그대로라 화면 변화는 없다.
+    """
+    check_key(
+        register_email_key(email),
+        get_settings().register_per_email_per_hour,
+        3600.0,
+    )
+
+
 @router.post(
     "/auth/register",
     response_model=UserMe,
@@ -468,7 +563,10 @@ def register(
     payload: UserRegister,
     db: Annotated[Session, Depends(get_db)],
 ) -> UserMe:
-    exists = db.scalar(select(User).where(User.email == payload.email))
+    _check_register_email(payload.email)
+    # `payload.email` 은 스키마가 소문자로 맞췄다. 대소문자만 다른 기존 주소도
+    # 같은 이메일로 보고 거절한다(#2816).
+    exists = db.scalar(select(User).where(func.lower(User.email) == payload.email))
     if exists:
         audit(
             db,
@@ -494,6 +592,12 @@ def register(
     # 회원을 알아볼 방법도 없었다.
     if payload.phone:
         db.add(HealthProfile(user_id=user.id, phone=payload.phone))
+    # 가입 화면에서 체크한 동의를 계정과 **한 트랜잭션**으로 남긴다(#2819).
+    # 나눠 커밋하면 동의 기록 없는 계정이 남는다. 목록을 보내지 않은 옛 빌드는
+    # 기록 없이 만들어지고, 로그인 직후 동의 화면을 거친다.
+    if payload.consents is not None:
+        db.flush()
+        signup_consent.record(db, user.id, payload.consents)
     try:
         db.commit()
     except IntegrityError:
@@ -527,8 +631,9 @@ def register_trainer(
     소속 헬스장은 여기서 정하지 않는다 — 가입 뒤 `PUT /trainer/me/gym` 으로 고른다
     (#1627). 소속이 없는 동안에는 상담 대상이 아니다(#443·#451).
 
-    회원 가입과 같은 rate limit 버킷을 쓴다.
+    회원 가입과 같은 rate limit 버킷을 쓴다(IP·이메일 둘 다).
     """
+    _check_register_email(payload.email)
     try:
         trainer = trainer_signup_service.register_trainer(db, payload)
     except trainer_signup_service.TrainerEmailTaken as exc:
@@ -551,22 +656,44 @@ def register_trainer(
     return UserMe(id=trainer.id, name=trainer.name, email=trainer.email)
 
 
+def _login_lock_key(username: str) -> str:
+    """로그인 실패 잠금 버킷 키. 대소문자·앞뒤 공백만 다른 입력은 같은 계정이다."""
+    return f"login-fail:{normalize_email(username)}"
+
+
 @router.post(
     "/auth/login",
-    response_model=Token,
+    response_model=LoginToken,
     dependencies=[Depends(rate_limit("auth-login"))],
 )
 def login(
     request: Request,
     form: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[Session, Depends(get_db)],
-) -> Token:
-    user = db.scalar(select(User).where(User.email == form.username))
+) -> LoginToken:
+    """이메일·비밀번호 로그인.
+
+    IP 한도(`auth-login`)에 더해 **이메일 단위 실패 잠금**을 건다(#2815). IP 를
+    바꿔 가며 한 계정을 노리면 IP 버킷은 매번 새로 시작하지만, 이메일 버킷은 한
+    곳에 모인다. 잠금 판정은 비밀번호 확인보다 먼저 한다 — 잠긴 동안에는 맞는
+    비밀번호인지 여부도 응답에 드러나지 않는다. 없는 이메일도 똑같이 세고 잠가
+    가입 여부가 갈리지 않게 한다.
+    """
+    settings = get_settings()
+    lock_key = _login_lock_key(form.username)
+    lock_window = float(settings.login_lockout_seconds)
+    ensure_unlocked(lock_key, settings.login_max_failures, lock_window)
+    # 가입이 소문자로 저장하므로 입력도 같은 규칙으로 맞춰 찾는다(#2816) — 모바일
+    # 키보드가 첫 글자를 대문자로 바꿔도 같은 계정이다.
+    user = db.scalar(
+        select(User).where(func.lower(User.email) == normalize_email(form.username))
+    )
     if (
         not user
         or not user.is_active
         or not verify_password(form.password, user.hashed_password)
     ):
+        record_failure(lock_key, lock_window)
         audit(
             db,
             event="auth.login",
@@ -577,8 +704,9 @@ def login(
         raise HTTPException(
             status_code=401, detail="이메일 또는 비밀번호가 올바르지 않습니다."
         )
+    clear_failures(lock_key)
     audit(db, event="auth.login", user_id=user.id, ip=client_ip(request), success=True)
-    return auth_tokens.issue_token_pair(user)
+    return auth_tokens.issue_login_tokens(db, user)
 
 
 @router.post(
