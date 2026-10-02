@@ -105,6 +105,15 @@ class _MainShellState extends ConsumerState<MainShell>
     // 앱을 켜 둔 채 자정을 넘겼으면 그래프의 "오늘" 칸과 보호 가능 구간이 새
     // 날짜 기준이어야 한다(#2852).
     _dayChange.refreshIfDayChanged(ref.invalidate);
+    _recheckCoach();
+  }
+
+  /// 앱을 떠난 사이 트레이너가 담당을 해제했을 수 있다 — 담당 코치를 다시 읽고,
+  /// 사라졌으면 헤더·홈 트레이너 카드·대화가 함께 바뀐다(#2843).
+  void _recheckCoach() {
+    unawaited(
+      recheckMemberCoach(ProviderScope.containerOf(context, listen: false)),
+    );
   }
 
   void _refreshBranch(int index) {
@@ -114,6 +123,7 @@ class _MainShellState extends ConsumerState<MainShell>
         // 되도록 함께 비운다 — 목록은 [kHomeReentryRefreshTargets](#2842).
         kHomeReentryRefreshTargets.forEach(ref.invalidate);
         unawaited(refreshProfileQuietly(ref.read(profileProvider.notifier)));
+        _recheckCoach();
         break;
       case 1:
         // 방금 저장한 끼니가 보이도록 그날 자료를 다시 읽는다 — 저장 전 캐시가
