@@ -6,7 +6,7 @@ import 'package:logger/logger.dart';
 
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/storage/app_database.dart';
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 
 void main() {
   late AppDatabase db;
@@ -71,11 +71,11 @@ void main() {
         .into(db.notificationItems)
         .insert(
           NotificationItemsCompanion.insert(
-            id: 'seed-noti-1',
+            id: 'seed-noti-5',
             createdAt: nowKst().subtract(const Duration(minutes: 5)),
-            title: '나트륨 섭취 주의',
-            body: '점심 짬뽕으로 오늘 나트륨이 3,428mg까지 올랐어요.',
-            category: 'reminder',
+            title: '새 운동 루틴이 도착했어요',
+            body: '트레이너님이 걷기 루틴으로 조정해 보냈어요.',
+            category: 'routine',
           ),
         );
 
@@ -84,7 +84,7 @@ void main() {
       for (final e in res.data!.cast<Map<String, Object?>>())
         e['id']! as String: e,
     };
-    expect(byId['seed-noti-1']!['message_key'], 'sodium');
+    expect(byId['seed-noti-5']!['message_key'], 'routine');
     expect(byId['n-1']!.containsKey('message_key'), isFalse);
   });
 
@@ -217,10 +217,10 @@ void main() {
         .into(db.notificationItems)
         .insert(
           NotificationItemsCompanion.insert(
-            id: 'seed-noti-1',
+            id: 'seed-noti-6',
             createdAt: nowKst().subtract(const Duration(hours: 5)),
-            title: '나트륨 섭취 주의',
-            body: '점심 짬뽕으로 오늘 나트륨이 4,657mg까지 올랐어요.',
+            title: '이번 주 운동 목표까지 조금 남았어요',
+            body: '저강도 유산소(걷기) 30분부터 채워 봐요.',
             category: 'reminder',
           ),
         );
@@ -228,11 +228,12 @@ void main() {
     final list = (await dio.get<List<Object?>>(
       '/notifications',
     )).data!.cast<Map<String, Object?>>();
-    final seed = list.firstWhere((e) => e['id'] == 'seed-noti-1');
-    expect(seed['time_ago'], '10분 전');
+    final seed = list.firstWhere((e) => e['id'] == 'seed-noti-6');
+    expect(seed['time_ago'], '3시간 전');
+    // 갈래(리마인더)의 기본 목적지가 아니라 이 알림의 목적지(운동)다.
     expect(seed['action'], <String, Object?>{
-      'label': '식단 보기',
-      'target': 'diet',
+      'label': '운동 보기',
+      'target': 'exercise',
     });
     // 시드가 아닌 알림은 실제 경과와 갈래별 목적지다.
     final other = list.firstWhere((e) => e['id'] == 'n-1');
@@ -248,11 +249,11 @@ void main() {
       await db.batch((b) {
         b.insertAll(db.notificationItems, <NotificationItemsCompanion>[
           NotificationItemsCompanion.insert(
-            id: 'seed-noti-1',
+            id: 'seed-noti-5',
             createdAt: now,
             title: 't',
             body: 'b',
-            category: 'reminder',
+            category: 'routine',
           ),
           NotificationItemsCompanion.insert(
             id: 'seed-noti-9',
@@ -283,7 +284,7 @@ void main() {
         await dio.post<Object?>(path, data: body);
 
         final r = await reads();
-        expect(r['seed-noti-1'], isFalse);
+        expect(r['seed-noti-5'], isFalse);
         expect(r['seed-noti-9'], isTrue);
         expect(r['n-1'], isTrue, reason: '시드가 아닌 알림은 건드리지 않는다');
       });

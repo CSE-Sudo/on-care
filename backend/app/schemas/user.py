@@ -32,6 +32,7 @@ from app.services.contact_format import clean_email, normalize_phone
 from app.services.password_policy import check_new_password
 from app.services.profile_format import clean_birth_date, clean_name
 from app.services.health_focus import normalize_conditions
+from app.services.signup_consent import Kind as ConsentKind, missing_required
 
 
 # ---- GET /users/me ----
@@ -39,6 +40,26 @@ class UserMe(BaseModel):
     id: str
     name: str
     email: str
+    #: 필수 가입 동의(약관·개인정보·건강정보·만 14세) 중 지금 버전에 동의하지
+    #: 않은 항목이 있는가(#2819). 참이면 앱이 다른 화면보다 먼저 동의 화면을
+    #: 띄운다 — 동의 절차가 생기기 전에 가입한 계정, 소셜 첫 가입, 문서 버전이
+    #: 올라간 뒤의 첫 로그인이 여기에 걸린다.
+    consent_required: bool = False
+    #: 아직 동의하지 않은 필수 항목(`terms`·`privacy`·`health`·`age14`).
+    consent_pending: list[str] = Field(default_factory=list)
+
+
+class ConsentSubmit(BaseModel):
+    """POST /users/me/consents — 가입 뒤 동의 화면에서 받은 항목. (#2819)"""
+
+    consents: list[ConsentKind]
+
+
+class ConsentStatus(BaseModel):
+    """동의를 남긴 뒤의 상태. `GET /users/me` 의 같은 이름 칸과 같다."""
+
+    consent_required: bool
+    consent_pending: list[str] = Field(default_factory=list)
 
 
 # ---- GET /users/me/health ----
@@ -65,17 +86,6 @@ class PairingCodeOut(BaseModel):
     #: 지금부터 만료까지 남은 초. 0 이하로는 내려가지 않는다.
     expires_in_seconds: int
 
-
-class RiskInfo(BaseModel):
-    title: str
-    body: str
-    level: str  # low | medium | high
-
-
-class SettingItem(BaseModel):
-    label: str
-    icon: str
-    kind: str
 
 
 class MemberNotificationSettings(BaseModel):
@@ -107,11 +117,14 @@ class MemberNotificationSettingsUpdate(PartialUpdate):
 
 
 class UserHealth(BaseModel):
+    """MY 탭 계정 카드 — 회원 식별 정보와 포인트 잔액.
+
+    위험 문구(`risk`)·활동 순위(`activity_rank`)·설정 메뉴(`settings`)는
+    #2903 에서 뺐다. 앱이 읽지 않는 고정값이었다.
+    """
+
     profile: HealthProfileBrief
-    risk: RiskInfo
     activity_points: int
-    activity_rank: Optional[int]
-    settings: list[SettingItem]
 
 
 # ---- 인증(로그인) ----
@@ -119,6 +132,16 @@ class Token(BaseModel):
     access_token: str
     refresh_token: str = ""
     token_type: str = "bearer"
+
+
+class LoginToken(Token):
+    """로그인·소셜 로그인 응답. (#2819)
+
+    토큰과 함께 이 계정이 동의 화면을 거쳐야 하는지 알린다. 앱이 로그인 직후
+    `GET /users/me` 를 한 번 더 부르지 않고도 바로 동의 화면으로 갈 수 있다.
+    """
+
+    consent_required: bool = False
 
 
 class RefreshRequest(BaseModel):
@@ -136,14 +159,76 @@ class PasswordChanged(Token):
     status: str = "changed"
 
 
+class MemberPasswordChange(BaseModel):
+    """회원 비밀번호 변경(`POST /users/me/password`, #2824).
+
+    트레이너 `TrainerPasswordChange` 와 같은 규약이다. 현재 비밀번호를 요구해
+    토큰만 빼앗긴 상태에서 계정까지 넘어가지 않게 한다.
+    """
+
+    #: 지금 비밀번호는 기준 이전에 만든 것일 수 있어 새 기준을 보지 않는다.
+    current_password: str = Field(min_length=1, max_length=200)
+    #: 가입과 같은 기준(`password_policy.check_new_password`, #1555).
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def _check_new_password(cls, value: str) -> str:
+        return check_new_password(value)
+
+
+class PasswordResetRequest(BaseModel):
+    """비밀번호 재설정 요청(`POST /auth/password-reset/request`, #2824).
+
+    형식 검사는 하지 않는다 — 형식이 틀린 주소는 어차피 계정이 없고, 422 와
+    202 가 갈리면 응답이 하나 더 생길 뿐이다. 길이만 막는다.
+    """
+
+    email: str = Field(min_length=1, max_length=255)
+
+    @field_validator("email")
+    @classmethod
+    def _strip(cls, value: str) -> str:
+        # 가입과 같이 앞뒤 공백만 자른다 — 소문자로 고치면 로그인 조회와 어긋난다.
+        return value.strip()
+
+
+class PasswordResetRequested(BaseModel):
+    """재설정 요청 응답. 계정이 있든 없든 **같다** — 가입 여부를 드러내지 않는다."""
+
+    status: str = "requested"
+    #: 코드 유효 시간(분). 화면이 "N분 안에 입력하세요" 를 그린다.
+    expires_in_minutes: int
+
+
+class PasswordResetConfirm(BaseModel):
+    """비밀번호 재설정 확인(`POST /auth/password-reset/confirm`, #2824)."""
+
+    #: 메일의 코드. 하이픈·공백·대소문자는 서버가 정규화한다.
+    token: str = Field(min_length=1, max_length=64)
+    #: 가입과 같은 기준(#1555).
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def _check_new_password(cls, value: str) -> str:
+        return check_new_password(value)
+
+
+class PasswordResetDone(BaseModel):
+    """재설정 완료. 토큰은 주지 않는다 — 새 비밀번호로 다시 로그인한다."""
+
+    status: str = "reset"
+
+
 class SocialLoginRequest(BaseModel):
     # provider 가 준 토큰 (kakao/naver=access_token, google=id_token)
     token: str
 
 
 class UserRegister(BaseModel):
-    #: 형식은 `contact_format.clean_email` 이 본다(#1780). 앞뒤 공백만 잘라내고
-    #: 값 자체는 바꾸지 않는다 — 소문자로 고치면 로그인 조회가 어긋난다.
+    #: 형식은 `contact_format.clean_email` 이 본다(#1780). 앞뒤 공백을 잘라내고
+    #: 소문자로 맞춰 저장한다(#2816) — 로그인·중복 확인도 같은 규칙으로 비교한다.
     email: str
     #: 새로 정하는 비밀번호라 `password_policy.check_new_password` 기준을 본다
     #: (#1555). 로그인은 이 스키마를 쓰지 않으므로 기준 이전에 만든 계정은
@@ -166,6 +251,25 @@ class UserRegister(BaseModel):
     #:
     #: 들어온 표기가 무엇이든 `010-0000-0000` 하나로 정리해 저장한다(#1780).
     phone: str = ""
+    #: 가입 화면에서 체크한 동의 항목(#2819). 보냈다면 필수 항목
+    #: ([REQUIRED_CONSENTS_ROLE] 의 필수 집합)이 모두 있어야 한다 — 빠지면 422.
+    #:
+    #: **보내지 않으면(null) 막지 않는다.** 동의 화면이 없는 옛 앱 빌드에서도
+    #: 가입은 되고, 동의 행이 없으므로 로그인 직후 동의 화면을 거친다. 빈
+    #: 목록(`[]`)은 '보냈는데 아무것도 체크하지 않았다'라 422 다.
+    consents: Optional[list[ConsentKind]] = None
+
+    #: 필수 항목을 고르는 역할. 트레이너 가입은 건강정보 동의가 없다.
+    REQUIRED_CONSENTS_ROLE: ClassVar[str] = "member"
+
+    @model_validator(mode="after")
+    def _check_required_consents(self) -> "UserRegister":
+        if self.consents is None:
+            return self
+        missing = missing_required(self.REQUIRED_CONSENTS_ROLE, self.consents)
+        if missing:
+            raise ValueError(f"필수 동의 항목이 빠졌습니다: {', '.join(missing)}")
+        return self
 
     @field_validator("email", mode="before")
     @classmethod
@@ -201,7 +305,12 @@ class TrainerRegister(UserRegister):
     예전에는 헬스장 초대 코드를 더 받았지만 발급 경로가 없어 걷어 냈다(#1627).
     소속 헬스장은 가입 뒤 `PUT /trainer/me/gym` 으로 고른다. 스키마를 따로 두는
     이유는 엔드포인트가 달라서다 — 트레이너만의 필드가 다시 생기면 여기에 더한다.
+
+    필수 동의 항목은 회원과 다르다(#2819) — 트레이너는 자기 건강정보를 기록하지
+    않으므로 건강정보 처리 동의가 없다.
     """
+
+    REQUIRED_CONSENTS_ROLE: ClassVar[str] = "trainer"
 
 
 # ---- 프로필 / 온보딩 / 건강 목표 ----
@@ -222,6 +331,9 @@ class ProfileView(BaseModel):
     daily_sugar_g: Optional[int] = None
     daily_carbs_g: Optional[int] = None
     daily_protein_g: Optional[int] = None
+    #: 식단 분석·조언이 실제로 쓰는 하루 단백질 목표(#2898) — 개인 목표가 있으면
+    #: 그 값, 없으면 체중 × 1.2g, 둘 다 없으면 60g. 영양 카드 분모가 이 값이다.
+    effective_daily_protein_g: Optional[int] = None
     daily_fat_g: Optional[int] = None
     weekly_workout_goal: Optional[int] = None
     weekly_exercise_minutes_goal: Optional[int] = None
@@ -231,6 +343,12 @@ class ProfileView(BaseModel):
     weekly_strength_sets: Optional[int] = None
     weekly_flexibility_minutes: Optional[int] = None
     onboarded: bool = False
+    #: 첫 설정을 건너뛰었는가(#2855). 앱은 `onboarded` 또는 이 값이 참이면 로그인·
+    #: 세션 복구 뒤 첫 설정 화면으로 보내지 않는다.
+    onboarding_skipped: bool = False
+    #: 이메일 비밀번호가 있는 계정인가(#2824). 소셜 로그인 전용 계정은 false 라
+    #: 앱이 MY 의 비밀번호 변경 대신 안내를 보여 준다.
+    has_password: bool = True
     #: 건강 목표를 마지막으로 바꾼 사람(`member`|`trainer`)과 시각. 바꾼 적이 없으면
     #: 둘 다 null 이다(#1832).
     focus_changed_by: Optional[str] = None

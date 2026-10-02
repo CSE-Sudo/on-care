@@ -9,6 +9,9 @@
 **장소 id 는 카카오 장소 id 를 그대로 쓴다.** 시드의 카카오 발견 헬스장(`seed_gyms`
 `_DISCOVERED_GYMS`)과 같은 규칙이라, 같은 실제 헬스장은 기본키 하나로 모인다 —
 두 트레이너가 같은 곳을 골라도 행이 둘 생기지 않는다.
+
+**`async` 함수 안의 DB 작업은 스레드풀로 넘긴다(#2835).** 카카오 호출만 `await`
+하고, 동기 세션 조회·커밋은 `run_in_threadpool` 로 돌려 이벤트 루프를 막지 않는다.
 """
 from __future__ import annotations
 
@@ -17,11 +20,12 @@ import logging
 from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app.core.config import get_settings
 from app.models.models import GymProfile, Place, TrainerProfile, User
 from app.schemas.trainer_api import TrainerGymCandidate, TrainerMe
-from app.services import trainer_service
+from app.services.trainer import gym as trainer_gym_service
 from app.services.places import kakao
 
 logger = logging.getLogger(__name__)
@@ -69,15 +73,8 @@ async def search(
     같은 헬스장이 두 줄로 나오면 어느 쪽을 골라야 하는지 헷갈린다. 카카오 호출이
     실패하면 등록된 결과만 돌려준다(검색 자체가 막히면 소속을 바꿀 수 없다).
     """
-    registered = _registered_matches(db, query)
-    out = [
-        TrainerGymCandidate(
-            id=p.id, name=p.name, address=p.address, lat=p.lat, lng=p.lng,
-            phone=_phone_of(db, p.id), registered=True,
-        )
-        for p in registered
-    ]
-    seen = {p.id for p in registered}
+    out = await run_in_threadpool(_registered_candidates, db, query)
+    seen = {c.id for c in out}
 
     if not kakao_enabled():
         return out
@@ -94,7 +91,7 @@ async def search(
         logger.warning("카카오 헬스장 검색 실패(%s) — 등록된 헬스장만 반환", type(exc).__name__)
         return out
 
-    known = _known_ids(db, [g["id"] for g in found])
+    known = await run_in_threadpool(_known_ids, db, [g["id"] for g in found])
     for g in found:
         place_id = known.get(g["id"], g["id"])
         if place_id in seen:
@@ -107,6 +104,29 @@ async def search(
             registered=g["id"] in known,
         ))
     return out
+
+
+def _registered_candidates(db: Session, query: str) -> list[TrainerGymCandidate]:
+    """등록된 헬스장 후보(전화번호 포함). 동기 DB — 스레드풀에서 부른다."""
+    return [
+        TrainerGymCandidate(
+            id=p.id, name=p.name, address=p.address, lat=p.lat, lng=p.lng,
+            phone=_phone_of(db, p.id), registered=True,
+        )
+        for p in _registered_matches(db, query)
+    ]
+
+
+def _select_existing(
+    db: Session, trainer: User, profile: TrainerProfile, kakao_place_id: str
+) -> tuple[bool, TrainerMe | None]:
+    """이미 `places` 에 있는 곳이면 (True, 결과). 없으면 (False, None). 동기 DB."""
+    place = _existing_place(db, kakao_place_id)
+    if place is None:
+        return False, None
+    if place.category != "fitness":
+        return True, None
+    return True, trainer_gym_service.set_trainer_gym(db, trainer, profile, place.id)
 
 
 def _phone_of(db: Session, place_id: str) -> str:
@@ -158,11 +178,11 @@ async def select_kakao_gym(
     2. 없으면 `name` 으로 카카오를 다시 검색해 id 가 같은 헬스장을 찾는다. 찾은
        값으로 `places`·`gym_profiles` 를 만들고 소속을 설정한다.
     """
-    place = _existing_place(db, kakao_place_id)
-    if place is not None:
-        if place.category != "fitness":
-            return None
-        return trainer_service.set_trainer_gym(db, trainer, profile, place.id)
+    handled, me = await run_in_threadpool(
+        _select_existing, db, trainer, profile, kakao_place_id
+    )
+    if handled:
+        return me
 
     if not kakao_enabled():
         raise GymLookupUnavailable
@@ -181,7 +201,13 @@ async def select_kakao_gym(
     match = next((g for g in found if g["id"] == kakao_place_id), None)
     if match is None:
         return None
+    return await run_in_threadpool(_insert_and_select, db, trainer, profile, match)
 
+
+def _insert_and_select(
+    db: Session, trainer: User, profile: TrainerProfile, match: dict
+) -> TrainerMe:
+    """카카오에서 확인한 헬스장을 `places`·`gym_profiles` 에 넣고 소속을 정한다. 동기 DB."""
     db.add(Place(
         id=match["id"], name=match["name"][:200], category="fitness",
         address=match["address"][:300], lat=match["lat"], lng=match["lng"],
@@ -199,4 +225,4 @@ async def select_kakao_gym(
             is_partner=False,
         ))
         db.flush()
-    return trainer_service.set_trainer_gym(db, trainer, profile, match["id"])
+    return trainer_gym_service.set_trainer_gym(db, trainer, profile, match["id"])

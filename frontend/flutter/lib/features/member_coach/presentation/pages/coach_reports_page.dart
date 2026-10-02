@@ -19,6 +19,7 @@ import 'package:oncare/features/member_coach/presentation/widgets/coach_report_o
 import 'package:oncare/features/member_coach/presentation/widgets/sent_weekly_feedback_card.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/weekly_feedback_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 받은 리포트 목록과 직전 주 피드백.
@@ -131,12 +132,14 @@ class _ReportRowState extends ConsumerState<_ReportRow> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final DateTime sentAt = widget.notice.sentAt;
+    // 서버 시각(UTC 순간)을 표시 직전에 KST 로 바꾼다 — 그대로 쓰면 KST 오전
+    // 0~9시에 보낸 리포트가 전날로 보인다(#2844). 정렬·비교는 원래 값을 쓴다.
+    final DateTime sentAt = toKst(widget.notice.sentAt);
     return AppCard(
       padding: EdgeInsets.zero,
       child: AppListRow(
         key: ValueKey<String>(
-          'coach-report-${ymdOfReportWeek(widget.notice.weekStart)}',
+          'coach-report-${wireDate(widget.notice.weekStart)}',
         ),
         title: weekRangeLabel(l, widget.notice.weekStart),
         subtitle: l.coachReportSentOn(sentAt.month, sentAt.day),

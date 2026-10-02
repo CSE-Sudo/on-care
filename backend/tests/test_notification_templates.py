@@ -20,7 +20,7 @@ import pytest
 
 from app.core.clock import SEOUL
 from app.services import health_focus, notification_service, notification_templates as nt
-from app.services.trainer_service import _amount_label, _routine_notification_args
+from app.services.trainer._common import _amount_label, _routine_notification_args
 
 HANGUL = re.compile(r"[가-힣]")
 STARTS = datetime(2026, 10, 1, 9, 5, tzinfo=SEOUL)
@@ -404,7 +404,7 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         "담당 트레이너 연결 해제",
         "담당 트레이너와 담당 연결이 끊어졌어요.",
     ),
-    # 일정 — `trainer_service` 의 일정 등록·변경·취소·반복 등록.
+    # 일정 — `trainer.schedule` 의 일정 등록·변경·취소·반복 등록.
     (
         nt.MEMBER_SCHEDULE_ADDED,
         {"date": "2026-10-01", "time": "09:00", "type": "1:1 PT"},
@@ -529,7 +529,7 @@ def test_every_template_has_a_korean_regression_case():
     assert covered == nt.codes()
 
 
-# 루틴 양은 `trainer_service._amount_label` 이 기준이다 — 두 규칙이 갈라지면 알림과
+# 루틴 양은 `trainer._common._amount_label` 이 기준이다 — 두 규칙이 갈라지면 알림과
 # 수행 이력이 같은 배정을 다르게 말한다.
 AMOUNTS = [
     ("유산소", 30, None, None, None, None),
@@ -546,7 +546,7 @@ AMOUNTS = [
 
 
 @pytest.mark.parametrize(("type_", "minutes", "sets", "reps", "hold", "weight"), AMOUNTS)
-def test_routine_amount_matches_the_trainer_service_rule(type_, minutes, sets, reps, hold, weight):
+def test_routine_amount_matches_the_trainer_routine_rule(type_, minutes, sets, reps, hold, weight):
     args = _routine_notification_args(
         "스쿼트", type_, minutes=minutes, sets=sets, reps=reps,
         hold_seconds=hold, weight=weight,
@@ -1251,7 +1251,27 @@ def test_every_coupon_with_a_notification_has_english_and_a_title():
 def test_coupon_cancel_reasons_match_the_service():
     from app.services import points_coupon_service as pcs
 
-    assert {pcs._CANCEL_TRAINER, pcs._CANCEL_GYM} == set(nt._COUPON_CANCEL_REASON)
+    assert {pcs._CANCEL_TRAINER, pcs._CANCEL_GYM, pcs._CANCEL_SERVICE} == set(
+        nt._COUPON_CANCEL_REASON
+    )
+
+
+def test_coupon_cancelled_for_paused_gym_benefits_reads_in_both_languages():
+    """헬스장 혜택을 멈춰 취소한 쿠폰(#2822)도 두 언어로 까닭과 환불을 알린다."""
+    args = {
+        "item": "locker_month",
+        "benefit": "개인 락커 1개월 무료",
+        "reason": "service",
+        "refunded": 7000,
+    }
+    ko_title, ko_body = nt.render(nt.MEMBER_COUPON_CANCELLED, args, "ko")
+    assert ko_title == "락커 쿠폰이 취소됐어요"
+    assert "헬스장 혜택 제공을 잠시 멈추게 되어" in ko_body
+    assert "7,000P" in ko_body
+    en_title, en_body = nt.render(nt.MEMBER_COUPON_CANCELLED, args, "en")
+    assert en_title == "Locker coupon cancelled"
+    assert "gym benefits are paused" in en_body
+    assert "7,000P" in en_body
 
 
 def test_coupon_benefit_in_korean_is_the_stored_catalog_text():
@@ -1324,9 +1344,9 @@ def test_challenge_period_crosses_the_year():
 
 
 def test_schedule_slot_args_match_the_member_visible_slot():
-    from app.services import trainer_service as ts
+    from app.services.trainer import schedule as trainer_schedule_service
 
-    args = ts._slot_args(("2026-10-01", "09:00", "1:1 PT", 50))
+    args = trainer_schedule_service._slot_args(("2026-10-01", "09:00", "1:1 PT", 50))
     assert args == {"date": "2026-10-01", "time": "09:00", "type": "1:1 PT"}
     assert _ko(nt.MEMBER_SCHEDULE_CANCELLED, args)[1] == "2026-10-01 09:00 · 1:1 PT"
 

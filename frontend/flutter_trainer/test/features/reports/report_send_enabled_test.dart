@@ -14,13 +14,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/member_report_history.dart';
+import 'package:oncare_trainer/features/reports/domain/report_queue_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/report_send_record.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
@@ -43,6 +44,12 @@ class _Drafts implements ReportRepository {
   /// 회원 id → 저장된 초안. 없는 회원은 저장한 적 없는 주다.
   final Map<String, String> stored;
   final List<String> sent = <String>[];
+
+  @override
+  Stream<List<ReportQueueSummary>> watchQueue({
+    required List<TrainerClient> clients,
+    required DateTime weekStart,
+  }) => reportQueueFromReports(this, clients: clients, weekStart: weekStart);
 
   @override
   Stream<WeeklyReport> watch({

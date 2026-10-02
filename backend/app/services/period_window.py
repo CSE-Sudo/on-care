@@ -14,6 +14,7 @@ from datetime import date as date_type
 from datetime import timedelta
 
 from app.core import clock
+from app.core.week import monday_of
 
 #: 기간 이름. 화면의 기간 토글과 같은 말이다.
 PERIOD_TODAY = "today"
@@ -30,6 +31,6 @@ def period_bounds(period: str, today: date_type | None = None) -> tuple[str, str
     if period == PERIOD_TODAY:
         return day.isoformat(), day.isoformat()
     if period == PERIOD_WEEK:
-        monday = day - timedelta(days=day.weekday())
+        monday = monday_of(day)
         return monday.isoformat(), day.isoformat()
     return (day - timedelta(days=ALL_PERIOD_DAYS - 1)).isoformat(), day.isoformat()

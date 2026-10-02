@@ -2,12 +2,12 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/demo_member_directory.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_invite_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_invite.dart';
 import 'package:oncare_trainer/features/clients/domain/repositories/client_data_refresher.dart';
@@ -745,7 +745,10 @@ void main() {
       await enterSyncCode(tester, demoAlreadyLinkedPairingCode);
 
       expect(find.text('김민수'), findsWidgets);
-      expect(find.text('이미 담당하고 있는 회원이에요.'), findsNothing);
+      expect(
+        find.text('이미 담당하고 있는 회원이에요. 회원 목록에서 찾아 주세요'),
+        findsNothing,
+      );
 
       // 바로 잇지 않는다 — 이름·성별·나이를 확인하고 누른다.
       expect(find.text('이 회원이 맞나요?'), findsOneWidget);
@@ -782,8 +785,37 @@ void main() {
       // 김민수(seed-client-1)는 이미 담당 중이다.
       await enterSyncCode(tester, demoAlreadyLinkedPairingCode);
 
-      expect(find.text('이미 담당하고 있는 회원이에요.'), findsOneWidget);
+      expect(
+        find.text('이미 담당하고 있는 회원이에요. 회원 목록에서 찾아 주세요'),
+        findsOneWidget,
+      );
       // 이유만 보여 주고 끝낸다 — 연결된 회원 카드가 뜨지 않는다.
+      expect(
+        find.byKey(const ValueKey<String>('client-connect-result')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('영어 화면 데모에서도 담당 중 안내가 영어로 뜬다 (#2893)', (tester) async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.clients,
+        locale: const Locale('en'),
+      );
+
+      await tester.tap(find.text('Register new member'));
+      await settle(tester);
+
+      await enterSyncCode(tester, demoAlreadyLinkedPairingCode);
+
+      expect(
+        find.text(
+          'You already manage this member. Find them in your member list',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('이미 담당'), findsNothing);
       expect(
         find.byKey(const ValueKey<String>('client-connect-result')),
         findsNothing,

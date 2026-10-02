@@ -1,9 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare_trainer/features/reports/services/report_jpeg_encoder.dart';
-import 'package:oncare_trainer/features/reports/services/report_pdf_image.dart';
-import 'package:oncare_trainer/features/reports/services/report_widget_capture.dart';
+import 'package:oncare_report/oncare_report.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import 'pdf_test_images.dart';

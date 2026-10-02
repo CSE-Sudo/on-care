@@ -29,12 +29,15 @@ from dataclasses import dataclass
 from app.services import exercise_types
 
 #: 강도 배수(가벼움/보통/높음). 참조표 계수는 "보통" 수행 기준이라 그대로 곱한다.
-#: 회원 앱 `kIntensityFactor`·트레이너 앱과 같은 값이어야 한다.
+#: 원본은 `shared/oncare_rules/vectors/exercise_energy.json` 이고 두 앱은 공용
+#: 패키지 `oncare_rules` 로 같은 값을 읽는다 — `tests/test_shared_rule_sources.py`
+#: 가 대조한다(#2906).
 INTENSITY_FACTOR = {"light": 0.85, "moderate": 1.0, "high": 1.2}
 
 #: 이름이 붙지 않았을 때 쓰는 유형별 분당 kcal. #1312 이전에 유일한 계산이었고,
 #: 지금은 **폴백**이다. 정확도가 아니라 화면 간 일관성이 목적이라(#1131) 값을
 #: 바꾸지 않았다 — 여기를 건드리면 이름이 안 붙는 옛 기록의 값이 통째로 움직인다.
+#: 원본 표는 강도 배수와 같은 `exercise_energy.json` 이다(#2906).
 FALLBACK_KCAL_PER_MIN = {
     exercise_types.CARDIO: 9.0,
     exercise_types.STRENGTH: 6.0,

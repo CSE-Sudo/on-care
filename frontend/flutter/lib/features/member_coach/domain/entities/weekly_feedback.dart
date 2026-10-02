@@ -12,7 +12,8 @@
 /// (포인트 교환, #2022)와는 다른 길이라 그 경로와 섞지 않는다.
 library;
 
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 한 주 컨디션. 좋은 쪽에서 나쁜 쪽 순서다 — 화면이 이 순서대로 줄을 세운다.
 enum WeekCondition {
@@ -182,9 +183,9 @@ class MemberWeeklyFeedback {
 DateTime? askableWeek([DateTime? today]) {
   final DateTime day = _dateOnly(today ?? todayKst());
   return switch (day.weekday) {
-    DateTime.sunday => _monday(day),
+    DateTime.sunday => mondayOf(day),
     // 월요일에는 어제 끝난 주다 — 오늘이 속한 주는 아직 하루도 지나지 않았다.
-    DateTime.monday => _monday(day.subtract(const Duration(days: 1))),
+    DateTime.monday => mondayOf(day.subtract(const Duration(days: 1))),
     _ => null,
   };
 }
@@ -198,11 +199,8 @@ DateTime? askableWeek([DateTime? today]) {
 /// 일요일만은 예외다 — 오늘로 끝나는 주가 곧 방금 끝난 주다.
 DateTime manualFeedbackWeek([DateTime? today]) {
   final DateTime day = _dateOnly(today ?? todayKst());
-  if (day.weekday == DateTime.sunday) return _monday(day);
-  return _monday(day).subtract(const Duration(days: 7));
+  if (day.weekday == DateTime.sunday) return mondayOf(day);
+  return mondayOf(day).subtract(const Duration(days: 7));
 }
 
 DateTime _dateOnly(DateTime v) => DateTime(v.year, v.month, v.day);
-
-DateTime _monday(DateTime day) =>
-    _dateOnly(day).subtract(Duration(days: day.weekday - DateTime.monday));

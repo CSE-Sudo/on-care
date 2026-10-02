@@ -46,11 +46,8 @@ def check(settings: Settings) -> list[str]:
             "데모 회원으로 처리됩니다. 배포 환경이면 ALLOW_DEMO_FALLBACK=false·ENV=prod 로 "
             "띄우세요."
         )
-    if settings.is_prod and settings.seed_demo_data:
-        warnings.append(
-            "운영(env=prod)에서 데모 시드가 켜져 있습니다(SEED_DEMO_DATA=true) — 운영 DB 에 "
-            "데모 계정·기록이 생깁니다. 데모 시연은 별도 서비스·별도 DB 로 띄우세요."
-        )
+    # 운영 + 데모 시드는 경고가 아니라 설정 단계에서 기동을 거부한다(#2811) —
+    # 이 검사까지 오지 않는다.
 
     for message in warnings:
         logger.warning("[startup] %s", message)

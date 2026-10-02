@@ -15,6 +15,7 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 회원 AI 챗봇 대화를 보관하는 기간(일). 서버 `HISTORY_RETENTION_DAYS` 와 같다(#1823).
@@ -81,12 +82,12 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
     final AppLocalizations l = AppLocalizations.of(context);
     switch (result.outcome) {
       case ChatSendOutcome.sent:
-        // 포인트로 보냈으면 MY 의 잔액도 바뀌었다.
-        if (ref.read(chatControllerProvider).messages.lastOrNull?.pointsSpent
-            case final int spent when spent > 0) {
-          ref.invalidate(myHealthStateProvider);
-        }
+        _refreshBalanceIfPaid();
       case ChatSendOutcome.ignored:
+        break;
+      case ChatSendOutcome.failed:
+        // 보낸 말은 `보내지 못함` 으로 대화에 남고 `다시 보내기` 가 같은 키로 보낸다.
+        // 입력칸은 되살리지 않는다 — 다시 쓰면 새 키라 두 번 세질 수 있다(#2846).
         break;
       case ChatSendOutcome.needsConsent:
         _restoreInput(text);
@@ -101,6 +102,56 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
           type: AppToastType.error,
         );
     }
+  }
+
+  /// 포인트로 보냈으면 MY 의 잔액도 바뀌었다.
+  void _refreshBalanceIfPaid() {
+    if (ref.read(chatControllerProvider).messages.lastOrNull?.pointsSpent
+        case final int spent when spent > 0) {
+      ref.invalidate(myHealthStateProvider);
+    }
+  }
+
+  /// 보내지 못한 메시지를 처음 쓴 키로 다시 보낸다. (#2846)
+  ///
+  /// 서버가 포인트 동의를 요구하면 보낼 때마다 묻는 규칙(#2217)을 그대로 따른다.
+  /// 한도에 걸리면 메시지는 `보내지 못함` 으로 남고 까닭만 안내한다.
+  Future<void> _retry(String clientRequestId) async {
+    final ChatController chat = ref.read(chatControllerProvider.notifier);
+    _scrollToBottom();
+    ChatSendResult result = await chat.retry(clientRequestId);
+    if (!mounted) return;
+    if (result.outcome == ChatSendOutcome.needsConsent) {
+      if (!await _confirmPaidChat()) return;
+      result = await chat.retry(clientRequestId, payWithPoints: true);
+      if (!mounted) return;
+    }
+    final AppLocalizations l = AppLocalizations.of(context);
+    switch (result.outcome) {
+      case ChatSendOutcome.sent:
+        _refreshBalanceIfPaid();
+      case ChatSendOutcome.ignored:
+      case ChatSendOutcome.failed:
+      case ChatSendOutcome.needsConsent:
+        break;
+      case ChatSendOutcome.dailyLimit:
+        showAppToast(context, l.aicQuotaExhausted);
+      case ChatSendOutcome.insufficientPoints:
+        showAppToast(
+          context,
+          l.aicPaidInsufficient(l.myPointsCost(result.shortfall)),
+          type: AppToastType.error,
+        );
+    }
+  }
+
+  /// 보내지 못한 메시지를 길게 누르면 입력칸으로 되돌려 고쳐 쓰게 한다. (#2846)
+  void _editFailed(String clientRequestId) {
+    final ChatMessage? failed = ref
+        .read(chatControllerProvider.notifier)
+        .discardFailed(clientRequestId);
+    if (failed == null) return;
+    _controller.text = failed.content;
   }
 
   /// 보내지 못한 글을 입력칸에 돌려놓는다 — 다시 쓰게 하지 않는다.
@@ -415,9 +466,14 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
     final AppLocalizations l = AppLocalizations.of(context);
     final List<Widget> out = <Widget>[];
     DateTime? shown;
+    // 실패 안내의 `다시 보내기` 는 바로 앞의 보내지 못한 메시지를 다시 보낸다.
+    String? failedKey;
     for (final ChatMessage m in messages) {
-      final DateTime? at = m.at?.toLocal();
-      if (at != null && (shown == null || !_sameDay(shown, at))) {
+      final DateTime? at = switch (m.at) {
+        final DateTime t => toKst(t),
+        null => null,
+      };
+      if (at != null && (shown == null || !isSameKstDay(shown, at))) {
         shown = at;
         out
           ..add(
@@ -430,26 +486,30 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
           )
           ..add(const SizedBox(height: OnCareSpacing.s8));
       }
+      final String? retryKey = m.notice == ChatNotice.failure
+          ? failedKey
+          : null;
+      failedKey = m.failed ? m.clientRequestId : null;
       out
-        ..add(_bubble(context, m))
+        ..add(_bubble(context, m, retryKey: retryKey))
         ..add(const SizedBox(height: OnCareSpacing.s16));
     }
     return out;
   }
 
-  static bool _sameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
-
   /// 말풍선 옆 시각(`18:13`). 주고받은 때를 모르는 말풍선(인사·실패 안내·기다리는
   /// 중)에는 붙이지 않는다.
   static String? _clock(ChatMessage m) {
-    final DateTime? at = m.at?.toLocal();
+    final DateTime? at = switch (m.at) {
+      final DateTime t => toKst(t),
+      null => null,
+    };
     if (at == null || m.pending) return null;
     return '${at.hour.toString().padLeft(2, '0')}:'
         '${at.minute.toString().padLeft(2, '0')}';
   }
 
-  Widget _bubble(BuildContext context, ChatMessage m) {
+  Widget _bubble(BuildContext context, ChatMessage m, {String? retryKey}) {
     // 앱이 스스로 띄운 말풍선(인사·실패 안내)은 문구가 비어 있다. 로케일에 맞춰
     // 여기서 그린다 — 컨트롤러는 어떤 말풍선인지만 정한다(#847).
     final AppLocalizations l = AppLocalizations.of(context);
@@ -460,6 +520,7 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
       null => m.content,
     };
     final String? time = _clock(m);
+    if (m.isUser && m.failed) return _failedBubble(context, m, text);
     if (m.isUser) {
       final ChatInsight? insight = m.insight;
       if (insight == null) {
@@ -526,6 +587,20 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
                   ),
                   child: _sourceChips(m.sources),
                 ),
+              // 답을 받지 못한 질문을 같은 키로 다시 보낸다(#2846).
+              if (retryKey != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: OnCareSpacing.s8),
+                  child: AppButton(
+                    key: const Key('aiCoachResend'),
+                    label: l.aicResend,
+                    size: OnCareButtonSize.small,
+                    variant: AppButtonVariant.brandOutline,
+                    onPressed: ref.watch(chatControllerProvider).sending
+                        ? null
+                        : () => _retry(retryKey),
+                  ),
+                ),
               // 포인트로 산 답변이면 얼마가 나갔는지 바로 아래에 적는다(#2145).
               if (!m.pending && m.pointsSpent > 0)
                 Padding(
@@ -545,6 +620,32 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
                 ),
             ],
           ),
+        ),
+      ],
+    );
+  }
+
+  /// 보내지 못한 회원 메시지 — 지우지 않고 남긴다. 아래에 `보내지 못함` 을 적고,
+  /// 길게 누르면 입력칸으로 되돌려 고쳐 쓴다. (#2846)
+  Widget _failedBubble(BuildContext context, ChatMessage m, String text) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final String? key = m.clientRequestId;
+    return Column(
+      key: const Key('aiCoachFailedMessage'),
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: <Widget>[
+        GestureDetector(
+          onLongPress: key == null ? null : () => _editFailed(key),
+          child: AppChatBubble(mine: true, child: Text(text)),
+        ),
+        const SizedBox(height: OnCareSpacing.s4),
+        Text(
+          l.aicSendFailedMine,
+          key: const Key('aiCoachFailedLabel'),
+          textAlign: TextAlign.end,
+          style: context.oncare
+              .text(OnCareTypography.caption)
+              .copyWith(color: OnCareColors.danger),
         ),
       ],
     );
@@ -617,11 +718,12 @@ class _QuotaLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    final TextStyle style = OnCareTypography.numeric(
-      tokens.text(OnCareTypography.caption),
-    ).copyWith(
-      color: quota.short ? OnCareColors.danger : OnCareColors.textSecondary,
-    );
+    final TextStyle style =
+        OnCareTypography.numeric(
+          tokens.text(OnCareTypography.caption),
+        ).copyWith(
+          color: quota.short ? OnCareColors.danger : OnCareColors.textSecondary,
+        );
     final String text = switch (quota.next) {
       AiChatNext.free => l.aicQuotaFreeLeft(quota.freeLeft),
       AiChatNext.paid => l.aicQuotaPaidNext(

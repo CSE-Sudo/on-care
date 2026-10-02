@@ -1,4 +1,4 @@
-import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 
 /// 주간 반복 규칙 — PT 에서 실제로 쓰이는 형태만 담는다. (#870)

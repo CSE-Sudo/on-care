@@ -42,6 +42,7 @@ class MockTrainerAuthRepository implements TrainerAuthRepository {
     required String email,
     required String password,
     required String name,
+    List<String>? consents,
   }) async {
     await Future<void>.delayed(_loginDelay);
     if (email.trim().isEmpty || password.isEmpty) {

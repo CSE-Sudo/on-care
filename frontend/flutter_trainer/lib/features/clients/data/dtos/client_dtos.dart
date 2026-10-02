@@ -10,19 +10,24 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 /// mapping is unit-testable and shared with any future source.
 
 /// `GET /v1/trainer/clients` element → [TrainerClient].
+///
+/// 담당이 해제된 관계(`registered: false`)는 서버가 성별·나이·건강 목표를 비워
+/// 보낸다(#2814). 그 규칙이 빠진 옛 서버를 만나도 화면에 남지 않게 여기서도
+/// 한 번 더 비운다. 동의 철회는 서버만 아는 상태라 서버 값을 그대로 믿는다.
 TrainerClient trainerClientFromJson(Map<String, Object?> json) {
+  final bool registered = json['registered'] != false;
   return TrainerClient(
     id: _str(json['id']),
     name: _str(json['name']),
     avatar: _str(json['avatar']),
-    gender: _str(json['gender']),
-    age: _nullableInt(json['age']),
-    goal: _str(json['goal']),
+    gender: registered ? _str(json['gender']) : '',
+    age: registered ? _nullableInt(json['age']) : null,
+    goal: registered ? _str(json['goal']) : '',
     lastMessage: _str(json['last_message']),
     lastTime: _str(json['last_time']),
     lastMessageAt: DateTime.tryParse(_str(json['last_message_at'])),
     active: json['active'] == true,
-    registered: json['registered'] != false,
+    registered: registered,
     calories: _int(json['calories']),
     sodiumMg: _int(json['sodium_mg']),
     sugarG: _double(json['sugar_g']),

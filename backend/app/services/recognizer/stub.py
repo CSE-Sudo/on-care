@@ -7,11 +7,34 @@
 세 항목은 시드(`food_nutrients_seed`)의 같은 이름에 그대로 붙는다 — 여기 값과
 시드 값이 갈리면 enrich 가 시드 쪽으로 덮으므로, 고칠 때 둘을 같이 고친다.
 같은 결과를 Flutter 로컬 데모(`local_api_interceptor.dart`)도 들고 있다.
+
+영어 화면이면 실제 인식기처럼 영어 표시 이름과 영어 식단평을 싣는다(#2850).
+`name` 은 시드 매칭용이라 한국어 그대로다.
 """
 from __future__ import annotations
 
+from app.core.locale import current_locale
 from app.schemas.diet import DietAnalysis, RecognizedFood
 from app.services.recognizer.base import FoodRecognizer
+
+
+_EN_DISPLAY_NAMES = {
+    "요거트 아이스크림": "Frozen yogurt",
+    "과일 토핑": "Fruit topping",
+    "그래놀라 토핑": "Granola topping",
+}
+
+_COMMENT_KO = (
+    "나트륨이 185mg으로 낮아 부담이 적어요. 당류는 하루 목표(50g)의 "
+    "절반 남짓인데, 그 절반이 요거트 아이스크림 자체에서 나옵니다. "
+    "토핑은 지금처럼 과일·견과 위주로 담아 보세요."
+)
+_COMMENT_EN = (
+    "Sodium is low at 185mg, so this is an easy meal on that front. Sugar is "
+    "a little over half of your daily target (50g), and half of that comes "
+    "from the frozen yogurt itself. Keep the toppings mostly fruit and nuts "
+    "like you did here."
+)
 
 
 class StubFoodRecognizer(FoodRecognizer):
@@ -32,10 +55,12 @@ class StubFoodRecognizer(FoodRecognizer):
                 carbs_g=20.0, protein_g=5.0, fat_g=11.5, confidence=0.8,
             ),
         ]
+        english = current_locale() == "en"
+        if english:
+            for food in foods:
+                food.display_name = _EN_DISPLAY_NAMES.get(food.name)
         return DietAnalysis(
             engine=self.name,
             foods=foods,
-            coach_comment="나트륨이 185mg으로 낮아 부담이 적어요. 당류는 하루 목표(50g)의 "
-            "절반 남짓인데, 그 절반이 요거트 아이스크림 자체에서 나옵니다. "
-            "토핑은 지금처럼 과일·견과 위주로 담아 보세요.",
+            coach_comment=_COMMENT_EN if english else _COMMENT_KO,
         ).compute_totals()

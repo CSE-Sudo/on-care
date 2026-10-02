@@ -1,6 +1,6 @@
 """실서버 데모 계정 알림이 회원 앱 데모와 같게 보이는지. (#2690·#2691) DB 필요.
 
-회원 앱 데모 알림함이 기준이다 — 알림별 목적지(나트륨 → 식단 등)와 언제 열어도
+회원 앱 데모 알림함이 기준이다 — 알림별 목적지(PT 완료 → 운동 등)와 언제 열어도
 같은 시각("10분 전 … 어제")을 실서버 데모 계정도 따른다.
 """
 from __future__ import annotations
@@ -43,8 +43,6 @@ def test_demo_alerts_open_the_same_screens_as_the_app_demo(client, db_session):
         return None if action is None else action["target"]
 
     assert [target(n) for n in DEMO_IDS] == [
-        "diet",  # 나트륨 섭취 주의
-        "diet",  # 저녁 식단 기록
         "exercise",  # 새 운동 루틴
         "coach_chat",  # 주간 리포트
         "exercise",  # PT 수업 완료
@@ -66,8 +64,6 @@ def test_demo_alerts_keep_their_times_and_move_to_today(client, db_session):
 
     inbox = _inbox(client)
     assert [inbox[n]["time_ago"] for n in DEMO_IDS] == [
-        "10분 전",
-        "20분 전",
         "30분 전",
         "45분 전",
         "1시간 전",
@@ -77,7 +73,7 @@ def test_demo_alerts_keep_their_times_and_move_to_today(client, db_session):
         "어제",
     ]
     en = _inbox(client, {"Accept-Language": "en"})
-    assert en["noti-demo-1"]["time_ago"] == "10 min ago"
+    assert en["noti-demo-3"]["time_ago"] == "30 min ago"
     assert en["noti-demo-8"]["time_ago"] == "yesterday"
 
     # 목록을 읽을 때 오늘로 옮겨졌다 — 새로 생긴 알림과의 순서도 맞는다.
@@ -103,6 +99,36 @@ def test_seed_backfills_targets_for_rows_seeded_before_the_column(db_session):
     assert seed_demo_notifications(db_session, DEMO_USER_ID) == 0
 
     db_session.expire_all()
-    assert db_session.get(Notification, "noti-demo-1").action_target == "diet"
+    assert db_session.get(Notification, "noti-demo-5").action_target == "exercise"
     assert db_session.get(Notification, "noti-demo-7").action_target == "exercise"
     assert db_session.get(Notification, "noti-demo-9").action_target is None
+
+
+def test_removed_diet_alerts_leave_the_demo_inbox(client, db_session):
+    # 예전 시드가 남긴 식단 알림 두 건은 다시 시드할 때 걷힌다(#2854).
+    for nid, title in (
+        ("noti-demo-1", "나트륨 섭취 주의"),
+        ("noti-demo-2", "저녁 식단을 기록해 주세요"),
+    ):
+        if db_session.get(Notification, nid) is None:
+            db_session.add(
+                Notification(
+                    id=nid,
+                    user_id=DEMO_USER_ID,
+                    title=title,
+                    body="",
+                    category="reminder",
+                    read=False,
+                    created_at=datetime.now(timezone.utc),
+                )
+            )
+    db_session.commit()
+
+    assert seed_demo_notifications(db_session, DEMO_USER_ID) == 0
+
+    db_session.expire_all()
+    assert db_session.get(Notification, "noti-demo-1") is None
+    assert db_session.get(Notification, "noti-demo-2") is None
+    inbox = _inbox(client)
+    assert "noti-demo-1" not in inbox
+    assert "noti-demo-2" not in inbox

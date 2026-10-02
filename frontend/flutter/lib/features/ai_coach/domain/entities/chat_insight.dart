@@ -4,6 +4,8 @@
 /// `app/services/coach/insights.py` 가 같은 규칙으로 계산해 내려 준다.
 library;
 
+import 'package:oncare_core/clock.dart';
+
 /// 감지 기록을 모아 보는 기간(메시지 작성일 기준). 서버와 같다.
 const int kChatInsightWindowDays = 30;
 
@@ -75,7 +77,7 @@ class ChatInsightRecord {
     if (insight == null || createdAt == null) return null;
     return ChatInsightRecord(
       messageId: (json['message_id'] as String?) ?? '',
-      createdAt: createdAt.toLocal(),
+      createdAt: toKst(createdAt),
       insight: insight,
       text: ((json['text'] as String?) ?? '').trim(),
     );

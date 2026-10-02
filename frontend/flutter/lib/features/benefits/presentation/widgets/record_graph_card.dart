@@ -360,7 +360,7 @@ class _Cell extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: Container(
-          key: ValueKey<String>('record-cell-${_ymd(day.date)}'),
+          key: ValueKey<String>('record-cell-${wireDate(day.date)}'),
           width: side,
           height: side,
           decoration: BoxDecoration(
@@ -469,8 +469,3 @@ String recordDayLabel(AppLocalizations l, ActivityDay day) {
 
 bool _sameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
-
-String _ymd(DateTime d) =>
-    '${d.year.toString().padLeft(4, '0')}-'
-    '${d.month.toString().padLeft(2, '0')}-'
-    '${d.day.toString().padLeft(2, '0')}';

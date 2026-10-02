@@ -271,6 +271,65 @@ void main() {
     expect(_menuName(tester), '구운 고등어 정식');
   });
 
+  group('추천일·먹은 날은 KST 날짜 (#2893)', () {
+    test('서버 시각은 UTC 순간 그대로 읽는다', () {
+      final ClientDietPick pick = ClientDietPick.fromJson(<String, Object?>{
+        'slot': 'dinner',
+        'name': '닭가슴살 샐러드',
+        'status': 'resolved',
+        'confirmed_at': '2026-09-28T15:30:00Z',
+        'resolved_at': '2026-09-29T15:30:00+00:00',
+      });
+      expect(pick.confirmedAt, DateTime.utc(2026, 9, 28, 15, 30));
+      expect(pick.confirmedAt.isUtc, isTrue);
+      expect(pick.resolvedAt, DateTime.utc(2026, 9, 29, 15, 30));
+      expect(pick.resolvedAt!.isUtc, isTrue);
+    });
+
+    testWidgets('UTC 15:30 에 추천했으면 KST 다음 날로 말한다', (tester) async {
+      await _pump(
+        tester,
+        ClientDietRecommendations(
+          needs: const <String>['protein_high'],
+          pick: ClientDietPick.fromJson(<String, Object?>{
+            'slot': 'dinner',
+            'name': '닭가슴살 샐러드',
+            'tag': 'protein_high',
+            'status': 'active',
+            'confirmed_at': '2026-09-28T15:30:00Z',
+          }),
+          candidates: _five.skip(1).toList(),
+        ),
+      );
+      expect(
+        find.text('9월 29일에 이 메뉴를 추천했어요. 회원 앱 홈에 트레이너 추천으로 떠 있어요.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('UTC 15:30 에 먹었으면 KST 다음 날로 말한다', (tester) async {
+      await _pump(
+        tester,
+        ClientDietRecommendations(
+          needs: const <String>['protein_high'],
+          pick: ClientDietPick.fromJson(<String, Object?>{
+            'slot': 'dinner',
+            'name': '닭가슴살 샐러드',
+            'tag': 'protein_high',
+            'status': 'resolved',
+            'confirmed_at': '2026-09-28T15:30:00Z',
+            'resolved_at': '2026-09-29T15:30:00Z',
+          }),
+          candidates: _five.skip(1).toList(),
+        ),
+      );
+      expect(
+        find.text('회원이 9월 30일 저녁에 추천한 메뉴(닭가슴살 샐러드)를 먹었어요.'),
+        findsOneWidget,
+      );
+    });
+  });
+
   testWidgets('채울 점이 없으면 묻지 않고 분석만 남는다', (tester) async {
     await _pump(tester, const ClientDietRecommendations());
     expect(find.text('식단 분석'), findsOneWidget);

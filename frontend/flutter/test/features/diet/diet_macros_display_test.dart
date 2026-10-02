@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
-import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/fixed_clock.dart';
+import '../../helpers/mock_account_repository.dart';
 
 Widget _app(Widget home, {List<Override> overrides = const <Override>[]}) {
   return ProviderScope(
@@ -145,7 +145,7 @@ void main() {
     expect(partial.effectiveDailySodiumMg, 2000);
     expect(partial.effectiveDailySugarG, 50);
     expect(partial.effectiveDailyCarbsG, 275);
-    expect(partial.effectiveDailyProteinG, 100);
+    expect(partial.effectiveDailyProteinG, 60);
     expect(partial.effectiveDailyFatG, 55);
   });
 
@@ -316,7 +316,8 @@ void main() {
     expect(find.textContaining('탄수화물 45%'), findsNothing);
     expect(find.textContaining('120 / 275g'), findsOneWidget);
     expect(find.textContaining('단백질 17%'), findsNothing);
-    expect(find.textContaining('45 / 100g'), findsOneWidget); // 단백질 45g
+    // 단백질 45g — 목표 없는 회원의 분모는 식단 분석과 같은 60g 이다(#2898).
+    expect(find.textContaining('45 / 60g'), findsOneWidget);
     expect(find.textContaining('지방 38%'), findsNothing);
     expect(find.textContaining('45 / 55g'), findsOneWidget); // 지방 45g
     // 탄단지는 목표 대비 진행바로 적는다 (#1879) — 초과 여부는 바 색이 말한다.

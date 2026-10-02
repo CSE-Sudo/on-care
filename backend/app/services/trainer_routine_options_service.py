@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from app.services import health_focus
 from app.core import clock, metrics
 from app.core.locale import Locale, current_locale
+from app.core.week import monday_of
 from app.models.models import (
     ChatMessage,
     DietEntry,
@@ -760,11 +761,11 @@ def _recent_weekly_feedback(
     (`data_consent_at`, 담당이 시작될 때 적힌다)이 든 주부터만 읽는다. 동의
     시각이 없는 옛 링크는 가를 기준이 없어 두 주를 그대로 읽는다.
     """
-    this_week = today_date - timedelta(days=today_date.weekday())
+    this_week = monday_of(today_date)
     weeks = [this_week, this_week - timedelta(days=7)]
     if link.data_consent_at is not None:
         started = link.data_consent_at.astimezone(clock.SEOUL).date()
-        first_week = started - timedelta(days=started.weekday())
+        first_week = monday_of(started)
         weeks = [week for week in weeks if week >= first_week]
     if not weeks:
         return []

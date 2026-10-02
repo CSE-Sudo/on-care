@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/router/routes.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
@@ -19,7 +18,20 @@ import 'package:oncare/features/my_health/presentation/controllers/my_health_con
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+
+/// 이 알림을 누르면 갈 곳이 있는가(#2877).
+///
+/// 코치 초대 알림은 초대 ID 로, 나머지는 서버가 준 action 으로 판단한다. 갈 곳이
+/// 없는 알림은 목록에서 눌리는 모양(물결·버튼 읽기)을 주지 않는다 — 눌리는 모양인데
+/// 아무 일도 없으면 고장으로 보인다.
+bool isAlertNavigable(AlertItem item) {
+  if (item.wireCategory == 'coach_invite' && item.inviteId != null) {
+    return true;
+  }
+  return item.action?.isNavigable ?? false;
+}
 
 /// 알림을 눌렀을 때 관련 화면으로 보내고, **그 화면이 읽는 값을 다시 받게 한다.**
 ///
@@ -85,9 +97,22 @@ Future<void> openAlertTarget(
         name = (await ref.refresh(memberCoachProvider.future))?.name;
       } on Exception {
         // 못 받으면 이동하지 않는다. 이름 없는 빈 대화창을 여느니 제자리가 낫다.
+        // 다만 말없이 멈추면 고장으로 보이므로 사정을 알린다(#2877).
+        if (!context.mounted) return;
+        AppToastHost.of(context).show(
+          AppLocalizations.of(context).alertCoachChatFailed,
+          type: AppToastType.error,
+        );
         return;
       }
-      if (name == null || !context.mounted) return;
+      if (!context.mounted) return;
+      if (name == null) {
+        // 알림이 온 뒤 담당이 끊겼다 — 대화할 상대가 없다(#2877).
+        AppToastHost.of(
+          context,
+        ).show(AppLocalizations.of(context).alertCoachChatNoTrainer);
+        return;
+      }
       await openTrainerChatPage(context, trainerName: name);
     case AlertTarget.consultations:
       // 상담 요청의 승인·거절·만료(#2067). 결과와 사유는 운동 탭이 아니라 내 상담

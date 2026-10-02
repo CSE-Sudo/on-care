@@ -21,9 +21,14 @@ class DioTrainerProgramDraftRepository
   String _path(String id) => '$_base/${Uri.encodeComponent(id)}';
 
   @override
-  Future<List<TrainerProgramDraftSummary>> list() async {
+  Future<List<TrainerProgramDraftSummary>> list({String? memberId}) async {
     try {
-      final response = await _dio.get<List<dynamic>>(_base);
+      final response = memberId == null
+          ? await _dio.get<List<dynamic>>(_base)
+          : await _dio.get<List<dynamic>>(
+              _base,
+              queryParameters: <String, Object?>{'member_id': memberId},
+            );
       final data = response.data ?? const <dynamic>[];
       return data
           .map(

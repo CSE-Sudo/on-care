@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
@@ -466,7 +467,8 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       l.memberHealthGoalProtein,
       AppGoalRanges.dailyProteinG,
       true,
-      hint: '$proteinTargetG',
+      // 비워 두면 식단 분석이 쓰는 실효 목표(#2898)다 — 체중이 있으면 체중 × 1.2g.
+      hint: '${_base?.effectiveDailyProteinG ?? proteinTargetG}',
     ),
     _NumberField(
       'client-goal-fat',
@@ -1886,8 +1888,9 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
     }
   }
 
+  /// 메모 시각은 KST 벽시계로 보인다 — 브라우저 시간대와 상관없이(#2893).
   static String _dayLabel(DateTime at) {
-    final local = at.toLocal();
+    final DateTime local = toKst(at);
     String two(int v) => v.toString().padLeft(2, '0');
     return '${local.year}.${two(local.month)}.${two(local.day)} '
         '${two(local.hour)}:${two(local.minute)}';

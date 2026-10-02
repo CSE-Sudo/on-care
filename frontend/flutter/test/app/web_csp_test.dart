@@ -118,30 +118,36 @@ void main() {
     });
 
     test('moved helpers ship next to index.html', () {
-      // 파일 → 그 파일을 부르는 곳. 워커는 index.html 이 아니라
-      // js/pdfjs_worker.js 가 주소를 넘긴다.
-      final String workerSetup = File(
-        'web/js/pdfjs_worker.js',
+      // index.html 은 글꼴 보정과 pdf.js 로더만 부른다. pdf.js 본체·워커는
+      // 로더가 `pdfjs/` 아래에서 올린다(#2818).
+      final String loader = File(
+        'web/js/pdfjs_loader.js',
       ).readAsStringSync();
-      final Map<String, String> referencedFrom = <String, String>{
-        'web/js/font_fix.js': markup,
-        'web/js/pdfjs_worker.js': markup,
-        'web/pdfjs/pdf.min.js': markup,
-        'web/pdfjs/pdf.worker.min.js': workerSetup,
-      };
-      referencedFrom.forEach((String path, String referrer) {
+      for (final String path in <String>[
+        'web/js/font_fix.js',
+        'web/js/pdfjs_loader.js',
+      ]) {
         expect(File(path).existsSync(), isTrue, reason: path);
-        expect(referrer, contains(path.replaceFirst('web/', '')), reason: path);
-      });
+        expect(markup, contains(path.replaceFirst('web/', '')), reason: path);
+      }
+      expect(loader, contains('"pdfjs/"'));
+      for (final String name in <String>['pdf.min.js', 'pdf.worker.min.js']) {
+        expect(File('web/pdfjs/$name').existsSync(), isTrue, reason: name);
+        expect(loader, contains(name), reason: name);
+      }
     });
 
-    test('pdf.js worker is configured right after pdf.js loads', () {
-      final int lib = markup.indexOf('src="pdfjs/pdf.min.js"');
-      final int worker = markup.indexOf('src="js/pdfjs_worker.js"');
-      final int boot = markup.indexOf('src="flutter_bootstrap.js"');
+    test('pdf.js loads before Flutter boots', () {
+      // 로더가 pdf.js 를 올린 뒤에 Flutter 를 띄운다 — 먼저 뜨면 `printing` 이
+      // 자기 로더(CDN)로 빠진다. index.html 은 Flutter 를 따로 부르지 않는다.
+      final String loader = File(
+        'web/js/pdfjs_loader.js',
+      ).readAsStringSync();
+      final int lib = loader.indexOf('pdf.min.js');
+      final int boot = loader.indexOf('"flutter_bootstrap.js"');
       expect(lib, greaterThan(0));
-      expect(worker, greaterThan(lib));
-      expect(boot, greaterThan(worker));
+      expect(boot, greaterThan(lib));
+      expect(markup, isNot(contains('src="flutter_bootstrap.js"')));
     });
 
     test('font fix still runs from <head>', () {

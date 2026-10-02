@@ -9,7 +9,13 @@
 /// 원인 음식·끼니를 붙여 트레이너가 읽기 좋은 서술로 말한다.
 library;
 
+import 'package:oncare_rules/oncare_rules.dart' show pyRound;
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
+import 'package:oncare_ui/oncare_ui.dart';
+
+// 서버와 같은 반올림은 공용 규칙 패키지 한 곳에 있다(#2860). 이 파일을 통해
+// 쓰던 자리가 그대로 읽히도록 다시 내보낸다.
+export 'package:oncare_rules/oncare_rules.dart' show pyRound;
 
 /// 음식 한 가지. 값이 없으면(옛 기록) null 이다.
 class DietRuleFood {
@@ -124,18 +130,6 @@ const int _topFoods = 2;
 const int _maxFindings = 2;
 const int _maxSentences = 4;
 
-/// 파이썬 `round` — 반올림이 짝수 쪽이다(`round(2.5) == 2`). 서버와 같은 수를 내려면
-/// Dart 의 `round()`(0 에서 먼 쪽) 대신 이것을 쓴다.
-int pyRound(num value) {
-  final double v = value.toDouble();
-  final double floor = v.floorToDouble();
-  final double diff = v - floor;
-  if (diff > 0.5) return floor.toInt() + 1;
-  if (diff < 0.5) return floor.toInt();
-  final int f = floor.toInt();
-  return f.isEven ? f : f + 1;
-}
-
 /// 파이썬 `f"{x:.1f}"` — 소수 첫째 자리까지.
 ///
 /// 둘 다 **실제 이진수 값**으로 반올림하지만, 정확히 절반일 때 파이썬은 짝수 쪽,
@@ -150,11 +144,6 @@ String pyFixed1(double x) {
   }
   return x.toStringAsFixed(1);
 }
-
-String _ymd(DateTime d) =>
-    '${d.year.toString().padLeft(4, '0')}-'
-    '${d.month.toString().padLeft(2, '0')}-'
-    '${d.day.toString().padLeft(2, '0')}';
 
 DateTime _day(String ymd) {
   final DateTime d = DateTime.parse(ymd);
@@ -371,11 +360,7 @@ Map<DateTime, _DayRecord> _dayRecords(List<DietRuleEntry> entries) {
   DateTime today,
   Iterable<DateTime> recorded,
 ) {
-  final DateTime monday = DateTime(
-    today.year,
-    today.month,
-    today.day - (today.weekday - 1),
-  );
+  final DateTime monday = mondayOf(today);
   final int thisWeekDays = recorded
       .where((DateTime d) => !d.isBefore(monday) && !d.isAfter(today))
       .length;
@@ -875,4 +860,4 @@ ClientDietSentence? _foodsSentence(List<MapEntry<String, int>> ranked) {
 
 /// [today] 로부터 [days] 일 전(포함)의 `YYYY-MM-DD`.
 String daysBefore(DateTime today, int days) =>
-    _ymd(DateTime(today.year, today.month, today.day - days));
+    wireDate(DateTime(today.year, today.month, today.day - days));

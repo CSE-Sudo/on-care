@@ -10,9 +10,10 @@ library;
 import 'dart:io' show File;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_recurrence.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 bool _isMidnight(DateTime d) =>
     d.hour == 0 && d.minute == 0 && d.second == 0 && d.millisecond == 0;

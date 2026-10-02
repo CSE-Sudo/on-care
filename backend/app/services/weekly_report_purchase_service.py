@@ -23,6 +23,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core import clock
+from app.core.week import monday_of
 from app.models.models import WeeklyReportPurchase
 from app.schemas.points_api import ExchangeOut
 from app.schemas.weekly_report_api import (
@@ -56,7 +57,7 @@ class WeekAlreadyOwned(WeeklyReportError):
 def target_week(today: date | None = None) -> date:
     """지금 교환하면 받는 주 — 지난주 월요일(KST)."""
     day = today or clock.today()
-    return day - timedelta(days=day.weekday() + 7)
+    return monday_of(day) - timedelta(days=7)
 
 
 def owns(db: Session, member_id: str, week_start: date) -> bool:
@@ -103,11 +104,11 @@ def exchange(
     [TrainerAssigned], 이미 받은 주면 [WeekAlreadyOwned], 잔액이 모자라면
     [points_service.InsufficientPoints] 다.
     """
-    from app.services import trainer_service
+    from app.services.trainer import _common as trainer_common_service
 
     if client_request_id and _by_request(db, member_id, client_request_id):
         return _exchange_out(db, member_id)
-    if trainer_service.get_member_trainer_id(db, member_id) is not None:
+    if trainer_common_service.get_member_trainer_id(db, member_id) is not None:
         raise TrainerAssigned("담당 트레이너가 리포트를 등록해 줘요.")
 
     week = target_week()

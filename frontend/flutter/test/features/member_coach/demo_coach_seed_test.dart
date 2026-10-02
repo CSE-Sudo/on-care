@@ -7,12 +7,12 @@ library;
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/core/errors/app_error.dart';
-import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/core/utils/wire_date.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/utils/next_pt.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 void main() {
   group('PT 일정', () {

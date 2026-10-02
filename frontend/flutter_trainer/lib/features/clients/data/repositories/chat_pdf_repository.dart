@@ -3,13 +3,13 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:oncare_core/request_id.dart';
 
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/utils/request_id.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 
 class TrainerChatPdfRepository {

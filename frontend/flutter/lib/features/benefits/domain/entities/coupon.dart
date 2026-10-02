@@ -1,7 +1,7 @@
 /// 포인트로 교환한 쿠폰 한 장 — `GET /me/coupons` 의 항목. (#1787)
 library;
 
-import 'package:oncare/core/utils/clock.dart' show kstOffset;
+import 'package:oncare_core/clock.dart' show kstOffset;
 
 /// 쿠폰 상태. 서버가 기한이 지난 쿠폰을 아직 만료로 내리지 않았어도 응답은
 /// 만료로 온다 — 앱은 받은 값만 믿는다.
