@@ -247,6 +247,92 @@ def _routine_missed_days(
     return assigned_days
 
 
+@dataclass(frozen=True)
+class SignalFacts:
+    """회원 한 명의 신호를 정하는 재료 — DB 에서 모은 사실만 담는다. (#2906)
+
+    판정([decide_signals])을 DB 조회와 떼어 둔 것은 같은 사실에 같은 신호가
+    나오는지 사례 파일(`scripts/gen_client_signals_cases.py`)로 서버·트레이너 웹
+    데모가 함께 대조하기 위해서다.
+    """
+
+    #: 최근 [DISCOMFORT_WINDOW_DAYS] 일 대화에 통증·불편 호소가 있었나.
+    discomfort: bool
+    #: 담당 시작일에서 오늘까지 지난 날 수.
+    link_age_days: int
+    #: 마지막 기록(없으면 담당 시작일)에서 오늘까지 — [RECORD_LOOKBACK_DAYS] 상한.
+    record_gap_days: int
+    #: 최근 [NO_SHOW_WINDOW_DAYS] 일 노쇼·회원 사정 취소 수.
+    no_show_count: int
+    #: 최근 창에서 배정 루틴이 걸려 있었는데 하나도 완료하지 않은 날 수.
+    routine_missed_days: int
+    #: 오늘 요일(월=0).
+    weekday: int
+    #: 이번 주 유형별 운동 달성률 평균(%). 아직 보지 않는 요일이면 None.
+    exercise_goal_percent: int | None
+    #: 어제까지 최근 창에서 칼로리를 기록한 날의 (칼로리, 단백질).
+    recent_diet: tuple[tuple[int, float], ...]
+    #: 하루 칼로리 목표(개인 목표, 없으면 기본값).
+    calorie_target: int
+    #: 하루 단백질 목표(g). 적지 않았으면 None.
+    protein_target: float | None
+    #: 회원 건강 목표(`health_focus` 코드).
+    focus: frozenset[str]
+
+
+def decide_signals(facts: SignalFacts) -> list[ClientSignalOut]:
+    """사실 → 신호, 급한 순. **판정은 여기 한 곳에서만 한다.** (#2203, #2906)"""
+    found: list[ClientSignalOut] = []
+
+    if facts.discomfort:
+        found.append(ClientSignalOut(kind=SIGNAL_DISCOMFORT))
+
+    if facts.link_age_days < NEW_LINK_GRACE_DAYS:
+        return found
+
+    gap = facts.record_gap_days
+    if gap >= RECORD_GAP_DAYS:
+        found.append(ClientSignalOut(kind=SIGNAL_RECORD_GAP, days=gap))
+
+    if facts.no_show_count >= NO_SHOW_MIN_COUNT:
+        found.append(ClientSignalOut(kind=SIGNAL_NO_SHOW, count=facts.no_show_count))
+
+    missed = facts.routine_missed_days
+    if missed >= ROUTINE_MIN_ASSIGNED_DAYS:
+        found.append(ClientSignalOut(kind=SIGNAL_ROUTINE_MISSED, days=missed))
+
+    if facts.weekday >= EXERCISE_GOAL_FROM_WEEKDAY and facts.exercise_goal_percent is not None:
+        percent = facts.exercise_goal_percent
+        if percent < EXERCISE_GOAL_LOW_PERCENT:
+            found.append(ClientSignalOut(kind=SIGNAL_EXERCISE_GOAL_LOW, percent=percent))
+
+    recent = facts.recent_diet
+    if len(recent) >= MIN_RECORDED_DAYS:
+        target = facts.calorie_target
+        mean_kcal = sum(k for k, _ in recent) / len(recent)
+        if calorie_off_target(mean_kcal, target):
+            gap_ratio = calorie_gap(mean_kcal, target)
+            found.append(ClientSignalOut(
+                kind=SIGNAL_CALORIE_OFF,
+                percent=abs(round(gap_ratio * 100)),
+                direction="over" if gap_ratio > 0 else "under",
+            ))
+
+        protein_target = facts.protein_target
+        if protein_target and protein_target > 0 and facts.focus & PROTEIN_FOCUS:
+            mean_protein = sum(p for _, p in recent) / len(recent)
+            if mean_protein < protein_target * PROTEIN_LOW_RATIO:
+                found.append(ClientSignalOut(
+                    kind=SIGNAL_PROTEIN_LOW,
+                    percent=round(mean_protein / protein_target * 100),
+                ))
+
+    if any(s.kind == SIGNAL_RECORD_GAP for s in found):
+        found = [s for s in found if s.kind not in _RECORD_DERIVED]
+    found.sort(key=lambda s: SIGNAL_ORDER.index(s.kind))
+    return found
+
+
 def build_signals(
     db: Session, trainer_id: str, links: list[TrainerClient]
 ) -> dict[str, list[ClientSignalOut]]:
@@ -388,55 +474,29 @@ def build_signals(
         member = data[member_id]
         profile = profiles.get(member_id)
         link_start = clock.to_seoul(link.created_at).date() if link.created_at else today
-        found: list[ClientSignalOut] = []
-
-        if member.discomfort:
-            found.append(ClientSignalOut(kind=SIGNAL_DISCOMFORT))
-
-        if (today - link_start).days < NEW_LINK_GRACE_DAYS:
-            out[member_id] = found
-            continue
-
-        gap = _record_gap_days(member, link_start, today)
-        if gap >= RECORD_GAP_DAYS:
-            found.append(ClientSignalOut(kind=SIGNAL_RECORD_GAP, days=gap))
-
-        if member.no_show_count >= NO_SHOW_MIN_COUNT:
-            found.append(ClientSignalOut(kind=SIGNAL_NO_SHOW, count=member.no_show_count))
-
-        missed = _routine_missed_days(routines_by_member.get(member_id, []), completed, today)
-        if missed >= ROUTINE_MIN_ASSIGNED_DAYS:
-            found.append(ClientSignalOut(kind=SIGNAL_ROUTINE_MISSED, days=missed))
-
-        if today.weekday() >= EXERCISE_GOAL_FROM_WEEKDAY:
-            percent = _exercise_goal_percent(member.week_sessions, profile, today)
-            if percent < EXERCISE_GOAL_LOW_PERCENT:
-                found.append(ClientSignalOut(kind=SIGNAL_EXERCISE_GOAL_LOW, percent=percent))
-
-        recent = _recent_diet(member, today)
-        if len(recent) >= MIN_RECORDED_DAYS:
-            target = _positive(getattr(profile, "daily_calories", None), DEFAULT_CALORIE_TARGET_KCAL)
-            mean_kcal = sum(k for k, _ in recent) / len(recent)
-            if calorie_off_target(mean_kcal, target):
-                gap_ratio = calorie_gap(mean_kcal, target)
-                found.append(ClientSignalOut(
-                    kind=SIGNAL_CALORIE_OFF,
-                    percent=abs(round(gap_ratio * 100)),
-                    direction="over" if gap_ratio > 0 else "under",
-                ))
-
-            protein_target = getattr(profile, "daily_protein_g", None)
-            focus = set(health_focus.focus_in(getattr(profile, "conditions", None)))
-            if protein_target and protein_target > 0 and focus & PROTEIN_FOCUS:
-                mean_protein = sum(p for _, p in recent) / len(recent)
-                if mean_protein < protein_target * PROTEIN_LOW_RATIO:
-                    found.append(ClientSignalOut(
-                        kind=SIGNAL_PROTEIN_LOW,
-                        percent=round(mean_protein / protein_target * 100),
-                    ))
-
-        if any(s.kind == SIGNAL_RECORD_GAP for s in found):
-            found = [s for s in found if s.kind not in _RECORD_DERIVED]
-        found.sort(key=lambda s: SIGNAL_ORDER.index(s.kind))
-        out[member_id] = found
+        out[member_id] = decide_signals(
+            SignalFacts(
+                discomfort=member.discomfort,
+                link_age_days=(today - link_start).days,
+                record_gap_days=_record_gap_days(member, link_start, today),
+                no_show_count=member.no_show_count,
+                routine_missed_days=_routine_missed_days(
+                    routines_by_member.get(member_id, []), completed, today
+                ),
+                weekday=today.weekday(),
+                exercise_goal_percent=(
+                    _exercise_goal_percent(member.week_sessions, profile, today)
+                    if today.weekday() >= EXERCISE_GOAL_FROM_WEEKDAY
+                    else None
+                ),
+                recent_diet=tuple(_recent_diet(member, today)),
+                calorie_target=_positive(
+                    getattr(profile, "daily_calories", None), DEFAULT_CALORIE_TARGET_KCAL
+                ),
+                protein_target=getattr(profile, "daily_protein_g", None),
+                focus=frozenset(
+                    health_focus.focus_in(getattr(profile, "conditions", None))
+                ),
+            )
+        )
     return out
