@@ -562,7 +562,9 @@ void main() {
     expect(remove.tooltip, isNotEmpty);
     // 줄마다 빨간 휴지통이 서 있으면 메모보다 지우기가 먼저 눈에 든다.
     // 붉은 것은 확인창의 확정 버튼이다(아래 테스트).
-    expect(remove.color, OnCareColors.textTertiary);
+    // 연필·휴지통은 신체·목표 연필과 같은 진한 회색이다.
+    expect(remove.color, OnCareColors.textSecondary);
+    expect(edit.color, OnCareColors.textSecondary);
     expect(edit.color, isNot(OnCareColors.danger));
     // 배경 없는 아이콘 버튼이다 — 글자 버튼일 때는 본문만큼 눈에 들어왔다.
     expect(edit.variant, AppIconButtonVariant.plain);
@@ -1723,7 +1725,7 @@ void main() {
       expect(ptY, lessThan(weeklyY));
       expect(weeklyY, lessThan(reportY));
 
-      expect(find.text('PT · 9/30'), findsOneWidget);
+      expect(find.text('PT 세션 · 9/30'), findsOneWidget);
       expect(find.text('주간 피드백 · 9/28 주'), findsOneWidget);
       expect(find.text('리포트 · 9/21 주'), findsOneWidget);
       expect(find.text('트레이너 → 회원'), findsNWidgets(2));
