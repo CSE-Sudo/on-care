@@ -174,6 +174,7 @@ def _profile_view(user: User) -> ProfileView:
         weekly_strength_sets=p.weekly_strength_sets if p else None,
         weekly_flexibility_minutes=(p.weekly_flexibility_minutes if p else None),
         onboarded=p.onboarded if p else False,
+        onboarding_skipped=bool(p.onboarding_skipped) if p else False,
         has_password=bool(user.hashed_password),
         focus_changed_by=p.focus_changed_by if p else None,
         focus_changed_at=p.focus_changed_at if p else None,
@@ -212,6 +213,24 @@ def submit_onboarding(
     # 처음 고른 목표도 회원이 정한 목표다 — 담당 트레이너가 이미 있으면 알린다(#1832).
     health_goal_change.record_member_change(db, profile, before=before, member=user)
 
+    db.commit()
+    db.refresh(user)
+    return _profile_view(user)
+
+
+@router.post("/users/me/onboarding/skip", response_model=ProfileView)
+def skip_onboarding(
+    user: RequireMember,
+    db: Annotated[Session, Depends(get_db)],
+) -> ProfileView:
+    """첫 설정 건너뛰기를 계정에 남긴다(#2855).
+
+    건너뛴 회원은 다음 로그인·세션 복구 때 첫 설정 화면으로 다시 가지 않는다.
+    값은 아무것도 저장하지 않는다 — 건너뛴 것이지 끝낸 것이 아니라 `onboarded`
+    는 그대로다. 여러 번 불러도 결과가 같다.
+    """
+    profile = _get_or_create_profile(db, user)
+    profile.onboarding_skipped = True
     db.commit()
     db.refresh(user)
     return _profile_view(user)

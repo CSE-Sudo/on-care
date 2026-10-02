@@ -23,8 +23,8 @@ const AppConfig kDemoNotificationConfig = AppConfig(
   useMockApi: true,
 );
 
-/// 데모 시드 알림 아홉 건 중 안 읽은 것. 시드의 앞 일곱 건이다.
-const int kDemoUnreadNotifications = 7;
+/// 데모 시드 알림 일곱 건 중 안 읽은 것. 시드의 앞 다섯 건이다.
+const int kDemoUnreadNotifications = 5;
 
 /// 앱이 부팅 때 넣는 것과 같은 데모 시드가 든 인메모리 DB. 닫는 것은 부른 쪽 몫이다.
 Future<AppDatabase> seededDemoDatabase() async {

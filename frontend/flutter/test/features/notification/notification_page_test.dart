@@ -15,7 +15,7 @@ Future<void> _pumpNotificationPage(
   Brightness platformBrightness, {
   Locale locale = const Locale('ko'),
 }) async {
-  // 데모 알림이 아홉 건이라 모든 줄이 그려지도록 화면을 길게 둔다(#1812).
+  // 데모 알림이 일곱 건이라 모든 줄이 그려지도록 화면을 길게 둔다(#1812).
   tester.view.physicalSize = const Size(800, 2400);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -51,22 +51,22 @@ void main() {
       locale: const Locale('en'),
     );
 
-    expect(find.text('Watch your sodium'), findsOneWidget);
+    expect(find.text('A new workout routine arrived'), findsOneWidget);
     expect(find.text('Scheduled maintenance'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey<String>('notification-time-seed-noti-1')),
+      find.byKey(const ValueKey<String>('notification-time-seed-noti-5')),
       findsOneWidget,
     );
     expect(
       tester
           .widget<Text>(
-            find.byKey(const ValueKey<String>('notification-time-seed-noti-1')),
+            find.byKey(const ValueKey<String>('notification-time-seed-noti-5')),
           )
           .data,
-      '10m ago',
+      '30m ago',
     );
-    expect(find.text('나트륨 섭취 주의'), findsNothing);
-    expect(find.text('10분 전'), findsNothing);
+    expect(find.text('새 운동 루틴이 도착했어요'), findsNothing);
+    expect(find.text('30분 전'), findsNothing);
   });
 
   for (final Brightness brightness in Brightness.values) {
@@ -87,7 +87,7 @@ void main() {
           theme.colorScheme.surfaceContainerHigh,
           OnCareBrand.member.surface,
         );
-        expect(find.text('나트륨 섭취 주의'), findsOneWidget);
+        expect(find.text('새 운동 루틴이 도착했어요'), findsOneWidget);
         expect(find.text('서비스 점검 안내'), findsOneWidget);
         // 개발용 가상 푸시 버튼은 목/데모 빌드에도 두지 않는다(#1242).
         expect(find.text('Simulate push'), findsNothing);
