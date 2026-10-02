@@ -1,5 +1,4 @@
 import 'package:oncare/core/advice/diet_advice.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/entities/diet_period.dart';
@@ -7,6 +6,7 @@ import 'package:oncare/features/diet/domain/entities/food_nutrition_suggestion.d
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 테스트용 인메모리 식단 저장소.
 ///

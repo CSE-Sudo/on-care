@@ -1,3 +1,4 @@
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_report/oncare_report.dart'
     show
         ReportSheetAnswers,
@@ -6,7 +7,6 @@ import 'package:oncare_report/oncare_report.dart'
         calorieTolerance,
         recordedMean,
         sugarLimitG;
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/korean_josa.dart';
 import 'package:oncare_trainer/core/utils/korean_josa_l10n.dart';

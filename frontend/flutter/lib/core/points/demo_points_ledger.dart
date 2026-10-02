@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/points/points_award.dart';
 import 'package:oncare/core/points/points_rules.dart';
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 // 원장을 쓰는 목업들이 규칙도 함께 읽으므로 같이 내보낸다.

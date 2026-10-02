@@ -8,7 +8,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare/core/network/session_refresh.dart';
+import 'package:oncare_core/network/session_refresh.dart';
 
 class _GatedRefresher implements SessionTokenRefresher {
   final List<String> calls = <String>[];

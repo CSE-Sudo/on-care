@@ -5,6 +5,7 @@ import 'dart:ui' show Locale;
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_rules/oncare_rules.dart'
     show
         kExerciseTypeCardio,
@@ -17,7 +18,6 @@ import 'package:oncare_trainer/core/network/interceptors/client_access_intercept
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_menu_plans.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/data/dtos/client_dtos.dart'
     show
