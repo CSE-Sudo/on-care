@@ -26,7 +26,7 @@ _MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
     / "versions"
-    / "0120_users_email_lower_unique.py"
+    / "0133_users_email_lower_unique.py"
 )
 
 
