@@ -120,6 +120,10 @@ const double _repeatedShare = 0.25;
 const int _repeatedMinItems = 20;
 const int _topFoods = 2;
 
+// 이번 주·전체 — 말할 문제 수와 문장 수(서버 `MAX_FINDINGS`·`MAX_SENTENCES`).
+const int _maxFindings = 2;
+const int _maxSentences = 4;
+
 /// 파이썬 `round` — 반올림이 짝수 쪽이다(`round(2.5) == 2`). 서버와 같은 수를 내려면
 /// Dart 의 `round()`(0 에서 먼 쪽) 대신 이것을 쓴다.
 int pyRound(num value) {
@@ -393,84 +397,24 @@ Map<DateTime, _DayRecord> _dayRecords(List<DietRuleEntry> entries) {
   return (scope: 'this', start: monday, end: today);
 }
 
-/// 이번 주 — 끼니 습관 → 넘친 영양(가장 큰 끼니) → 모자란 단백질 → 칭찬.
-({DateTime start, DateTime end, int logged, List<ClientDietSentence> sentences})
-weekSentences(
-  List<DietRuleEntry> entries,
+/// 종류별로 걸린 날 — 서버 `_week_hits`(회원 앱 `week_advice.find` 와 같은 선).
+Map<String, List<_DayRecord>> _weekHits(
+  Iterable<_DayRecord> records,
   DietRuleTargets targets,
+  DateTime today,
   DateTime now,
 ) {
-  final DateTime today = DateTime(now.year, now.month, now.day);
-  final Map<DateTime, _DayRecord> all = _dayRecords(entries);
-  final w = weekWindow(today, all.keys);
-  final Map<DateTime, _DayRecord> records = <DateTime, _DayRecord>{
-    for (final MapEntry<DateTime, _DayRecord> e in all.entries)
-      if (!e.key.isBefore(w.start) && !e.key.isAfter(w.end)) e.key: e.value,
-  };
-  if (records.isEmpty) {
-    return (
-      start: w.start,
-      end: w.end,
-      logged: 0,
-      sentences: const <ClientDietSentence>[
-        ClientDietSentence('tr_week_empty'),
-      ],
-    );
-  }
-  final int logged = records.length;
-  final String scope = w.scope;
-  List<ClientDietSentence> one(String key, Map<String, Object> p) =>
-      <ClientDietSentence>[ClientDietSentence(key, p)];
-  ({
-    DateTime start,
-    DateTime end,
-    int logged,
-    List<ClientDietSentence> sentences,
-  })
-  done(List<ClientDietSentence> s) =>
-      (start: w.start, end: w.end, logged: logged, sentences: s);
-
-  final List<_DayRecord> days = records.values.toList()
+  final List<_DayRecord> days = records.toList()
     ..sort((_DayRecord a, _DayRecord b) => a.day.compareTo(b.day));
   final bool breakfastOver =
       now.hour + now.minute / 60 >= _breakfastDeadlineHour;
-  final List<_DayRecord> finished = <_DayRecord>[
-    for (final _DayRecord r in days)
-      if (r.day.isBefore(today) || (r.day == today && breakfastOver)) r,
-  ];
-  final List<_DayRecord> closed = <_DayRecord>[
-    for (final _DayRecord r in days)
-      if (r.day.isBefore(today)) r,
-  ];
-
-  final List<_DayRecord> skipped = <_DayRecord>[
-    for (final _DayRecord r in finished)
-      if (!r.slots.contains('breakfast')) r,
-  ];
-  if (skipped.length >= _skipBreakfastMin) {
-    final int withSnack = skipped
-        .where((_DayRecord r) => r.slots.any(_snacks.contains))
-        .length;
-    if (withSnack >= _skipSnackMin) {
-      return done(
-        one('tr_week_skip_breakfast_snack', <String, Object>{
-          'scope': scope,
-          'logged': logged,
-          'days': skipped.length,
-          'snack_days': withSnack,
-        }),
-      );
-    }
-    return done(
-      one('tr_week_skip_breakfast', <String, Object>{
-        'scope': scope,
-        'logged': logged,
-        'days': skipped.length,
-      }),
-    );
-  }
-
-  final Map<String, List<_DayRecord>> counted = <String, List<_DayRecord>>{
+  return <String, List<_DayRecord>>{
+    'breakfast': <_DayRecord>[
+      for (final _DayRecord r in days)
+        if ((r.day.isBefore(today) || (r.day == today && breakfastOver)) &&
+            !r.slots.contains('breakfast'))
+          r,
+    ],
     'sodium': <_DayRecord>[
       for (final _DayRecord r in days)
         if (r.sodiumMg > targets.sodiumMg) r,
@@ -484,54 +428,109 @@ weekSentences(
         if (r.sugarG > targets.sugarG) r,
     ],
     'protein': <_DayRecord>[
-      for (final _DayRecord r in closed)
-        if (r.mainMeals >= _proteinMinMeals &&
+      for (final _DayRecord r in days)
+        if (r.day.isBefore(today) &&
+            r.mainMeals >= _proteinMinMeals &&
             r.proteinG < targets.proteinG * _proteinShortRatio)
           r,
     ],
   };
-  String kind = _focusOrder.first;
-  for (final String k in _focusOrder.skip(1)) {
-    if (counted[k]!.length > counted[kind]!.length) kind = k;
-  }
-  final List<_DayRecord> hits = counted[kind]!;
-  if (hits.length < _focusMinDays) {
-    return done(
-      one('tr_week_good', <String, Object>{'scope': scope, 'days': logged}),
-    );
-  }
-  if (kind == 'protein') {
-    return done(
-      one('tr_week_protein_short', <String, Object>{
+}
+
+/// 말할 종류 — 아침 습관이 먼저, 그다음 걸린 날이 많은 영양(같으면 과잉이 먼저).
+List<String> _weekKinds(Map<String, List<_DayRecord>> hits) {
+  final List<String> focus = <String>[
+    for (final String k in _focusOrder)
+      if (hits[k]!.length >= _focusMinDays) k,
+  ];
+  // List.sort 는 안정 정렬이 아니라 순서 번호로 동률을 가른다.
+  focus.sort((String a, String b) {
+    final int by = hits[b]!.length.compareTo(hits[a]!.length);
+    return by != 0
+        ? by
+        : _focusOrder.indexOf(a).compareTo(_focusOrder.indexOf(b));
+  });
+  return <String>[
+    if (hits['breakfast']!.length >= _skipBreakfastMin) 'breakfast',
+    ...focus,
+  ].take(_maxFindings).toList();
+}
+
+/// [문제 문장, 근거 문장] — 근거가 없으면 한 문장이다.
+List<ClientDietSentence> _weekFinding(
+  String kind,
+  List<_DayRecord> hit,
+  String scope,
+  int logged,
+) {
+  if (kind == 'breakfast') {
+    final List<_DayRecord> snackDays = <_DayRecord>[
+      for (final _DayRecord r in hit)
+        if (r.slots.any(_snacks.contains)) r,
+    ];
+    if (snackDays.length < _skipSnackMin) {
+      return <ClientDietSentence>[
+        ClientDietSentence('tr_week_skip_breakfast', <String, Object>{
+          'scope': scope,
+          'logged': logged,
+          'days': hit.length,
+        }),
+      ];
+    }
+    final List<MapEntry<String, int>> top = _mostCommon(<String>[
+      for (final _DayRecord r in snackDays)
+        for (final _Meal m in r.meals)
+          if (_snacks.contains(m.slot)) ...m.names,
+    ]);
+    return <ClientDietSentence>[
+      ClientDietSentence('tr_week_skip_breakfast_snack', <String, Object>{
         'scope': scope,
         'logged': logged,
-        'days': hits.length,
+        'days': hit.length,
+        'snack_days': snackDays.length,
       }),
-    );
+      if (top.isNotEmpty)
+        ClientDietSentence('tr_week_breakfast_snack_food', <String, Object>{
+          'food': top.first.key,
+          'count': top.first.value,
+        }),
+    ];
   }
-  final List<ClientDietSentence> out = <ClientDietSentence>[
-    ClientDietSentence('tr_week_over', <String, Object>{
-      'scope': scope,
-      'logged': logged,
-      'days': hits.length,
-      'nutrient': kind,
-    }),
-  ];
+  if (kind == 'protein') {
+    final num sum = hit.fold<num>(0, (num a, _DayRecord r) => a + r.proteinG);
+    return <ClientDietSentence>[
+      ClientDietSentence('tr_week_protein_short', <String, Object>{
+        'scope': scope,
+        'logged': logged,
+        'days': hit.length,
+      }),
+      ClientDietSentence('tr_week_protein_avg', <String, Object>{
+        'nutrient': 'protein',
+        'value': pyRound(sum / hit.length),
+      }),
+    ];
+  }
   int valueOf(_Meal m) => switch (kind) {
     'calorie' => m.kcal,
     'sodium' => m.sodium,
     _ => m.sugar,
   };
   ({DateTime day, _Meal meal})? best;
-  for (final _DayRecord r in hits) {
+  for (final _DayRecord r in hit) {
     for (final _Meal m in r.meals) {
       if (best == null || valueOf(m) > valueOf(best.meal)) {
         best = (day: r.day, meal: m);
       }
     }
   }
-  if (best != null && best.meal.names.isNotEmpty) {
-    out.add(
+  return <ClientDietSentence>[
+    ClientDietSentence('tr_week_over', <String, Object>{
+      'scope': scope,
+      'logged': logged,
+      'days': hit.length,
+      'nutrient': kind,
+    }),
+    if (best != null && best.meal.names.isNotEmpty)
       ClientDietSentence('tr_week_cause', <String, Object>{
         'weekday': best.day.weekday - 1,
         'slot': best.meal.slot,
@@ -539,9 +538,96 @@ weekSentences(
         'food_value': valueOf(best.meal),
         'nutrient': kind,
       }),
-    );
+  ];
+}
+
+/// 첫 문제·근거 → 비교 → 둘째 문제·근거 순으로, [_maxSentences] 에서 자른다.
+List<ClientDietSentence> _cap(
+  List<List<ClientDietSentence>> groups,
+  ClientDietSentence? compare,
+) => <ClientDietSentence>[
+  ...groups.first,
+  ?compare,
+  for (final List<ClientDietSentence> g in groups.skip(1)) ...g,
+].take(_maxSentences).toList();
+
+/// 이번 주 — 걸린 문제를 두 가지까지, 각각 근거를 붙이고 첫 문제는 지난주와 견준다.
+({DateTime start, DateTime end, int logged, List<ClientDietSentence> sentences})
+weekSentences(
+  List<DietRuleEntry> entries,
+  DietRuleTargets targets,
+  DateTime now,
+) {
+  final DateTime today = DateTime(now.year, now.month, now.day);
+  final Map<DateTime, _DayRecord> all = _dayRecords(entries);
+  final w = weekWindow(today, all.keys);
+  final Map<DateTime, _DayRecord> records = <DateTime, _DayRecord>{
+    for (final MapEntry<DateTime, _DayRecord> e in all.entries)
+      if (!e.key.isBefore(w.start) && !e.key.isAfter(w.end)) e.key: e.value,
+  };
+  ({
+    DateTime start,
+    DateTime end,
+    int logged,
+    List<ClientDietSentence> sentences,
+  })
+  done(int logged, List<ClientDietSentence> s) =>
+      (start: w.start, end: w.end, logged: logged, sentences: s);
+  if (records.isEmpty) {
+    return done(0, const <ClientDietSentence>[
+      ClientDietSentence('tr_week_empty'),
+    ]);
   }
-  return done(out);
+  final int logged = records.length;
+  final String scope = w.scope;
+  final Map<String, List<_DayRecord>> hits = _weekHits(
+    records.values,
+    targets,
+    today,
+    now,
+  );
+  final List<String> kinds = _weekKinds(hits);
+  if (kinds.isEmpty) {
+    num kcal = 0, protein = 0;
+    for (final _DayRecord r in records.values) {
+      kcal += r.kcal;
+      protein += r.proteinG;
+    }
+    return done(logged, <ClientDietSentence>[
+      ClientDietSentence('tr_week_good', <String, Object>{
+        'scope': scope,
+        'days': logged,
+      }),
+      ClientDietSentence('tr_week_good_avg', <String, Object>{
+        'kcal': pyRound(kcal / logged),
+        'protein': pyRound(protein / logged),
+      }),
+    ]);
+  }
+  final List<List<ClientDietSentence>> groups = <List<ClientDietSentence>>[
+    for (final String k in kinds) _weekFinding(k, hits[k]!, scope, logged),
+  ];
+
+  // 지난주 — 이번 주를 볼 때만 견준다(지난주를 돌아볼 때는 그 전 주를 읽지 않는다).
+  ClientDietSentence? compare;
+  if (scope == 'this') {
+    final DateTime prevStart = DateTime(
+      w.start.year,
+      w.start.month,
+      w.start.day - 7,
+    );
+    final List<_DayRecord> prev = <_DayRecord>[
+      for (final MapEntry<DateTime, _DayRecord> e in all.entries)
+        if (!e.key.isBefore(prevStart) && e.key.isBefore(w.start)) e.value,
+    ];
+    if (prev.isNotEmpty) {
+      compare = ClientDietSentence('tr_week_vs_last', <String, Object>{
+        'prev_logged': prev.length,
+        'prev_days': _weekHits(prev, targets, today, now)[kinds.first]!.length,
+      });
+    }
+  }
+  return done(logged, _cap(groups, compare));
 }
 
 // ── 전체(최근 4주) ──────────────────────────────────────────────────────
@@ -563,8 +649,8 @@ ClientDietSentence? _foodsSentence(List<MapEntry<String, int>> ranked) {
   });
 }
 
-/// 전체 — 회원 앱과 같은 최근 4주 판정 하나 + 원인 음식. 트레이너 화면은 지난주에
-/// 말한 종류를 건너뛰지 않는다(서버와 같다).
+/// 전체 — 회원 앱과 같은 최근 4주 후보 중 앞의 두 가지까지 + 원인 음식. 트레이너
+/// 화면은 지난주에 말한 종류를 건너뛰지 않는다(서버와 같다).
 ({int logged, List<ClientDietSentence> sentences}) allSentences(
   List<DietRuleEntry> entries,
   DietRuleTargets targets,
@@ -580,6 +666,16 @@ ClientDietSentence? _foodsSentence(List<MapEntry<String, int>> ranked) {
       ClientDietSentence('tr_all_few', <String, Object>{'days': days}),
     ]);
   }
+
+  // 후보 — 서버 `all_advice.candidates` 순서. 편중의 음식 문장은 반복 음식과 같이
+  // 나오면 뺄 수 있게 따로 둔다.
+  final List<
+    ({String kind, List<ClientDietSentence> s, ClientDietSentence? foods})
+  >
+  found =
+      <
+        ({String kind, List<ClientDietSentence> s, ClientDietSentence? foods})
+      >[];
 
   // 끼니별 나트륨.
   ({String slot, int days})? slotBest;
@@ -613,13 +709,17 @@ ClientDietSentence? _foodsSentence(List<MapEntry<String, int>> ranked) {
             if (m.slot == slot && m.sodium > limit) ...m.names,
       ]),
     );
-    return done(<ClientDietSentence>[
-      ClientDietSentence('tr_all_slot_sodium', <String, Object>{
-        'slot': slot,
-        'days': slotBest.days,
-      }),
-      ?extra,
-    ]);
+    found.add((
+      kind: 'slot_sodium',
+      s: <ClientDietSentence>[
+        ClientDietSentence('tr_all_slot_sodium', <String, Object>{
+          'slot': slot,
+          'days': slotBest.days,
+        }),
+        ?extra,
+      ],
+      foods: null,
+    ));
   }
 
   // 탄단지 편중.
@@ -639,17 +739,19 @@ ClientDietSentence? _foodsSentence(List<MapEntry<String, int>> ranked) {
         ? 'tr_all_protein_light'
         : null;
     if (key != null) {
-      final ClientDietSentence? extra = _foodsSentence(
-        _mostCommon(<String>[
-          for (final DietRuleEntry e in entries) ...e.foodNames,
-        ]),
-      );
-      return done(<ClientDietSentence>[
-        ClientDietSentence(key, <String, Object>{
-          'pct': key == 'tr_all_carb_heavy' ? carbPct : proteinPct,
-        }),
-        ?extra,
-      ]);
+      found.add((
+        kind: 'macro',
+        s: <ClientDietSentence>[
+          ClientDietSentence(key, <String, Object>{
+            'pct': key == 'tr_all_carb_heavy' ? carbPct : proteinPct,
+          }),
+        ],
+        foods: _foodsSentence(
+          _mostCommon(<String>[
+            for (final DietRuleEntry e in entries) ...e.foodNames,
+          ]),
+        ),
+      ));
     }
   }
 
@@ -671,12 +773,16 @@ ClientDietSentence? _foodsSentence(List<MapEntry<String, int>> ranked) {
         .length;
     final int a = met(before), b = met(recent);
     if ((b - a).abs() >= _trendMinDiff) {
-      return done(<ClientDietSentence>[
-        ClientDietSentence(
-          b > a ? 'tr_all_protein_trend_up' : 'tr_all_protein_trend_down',
-          <String, Object>{'before': a, 'after': b},
-        ),
-      ]);
+      found.add((
+        kind: 'trend',
+        s: <ClientDietSentence>[
+          ClientDietSentence(
+            b > a ? 'tr_all_protein_trend_up' : 'tr_all_protein_trend_down',
+            <String, Object>{'before': a, 'after': b},
+          ),
+        ],
+        foods: null,
+      ));
     }
   }
 
@@ -697,13 +803,17 @@ ClientDietSentence? _foodsSentence(List<MapEntry<String, int>> ranked) {
     }
   }
   if (frequent != null) {
-    return done(<ClientDietSentence>[
-      ClientDietSentence('tr_all_frequent', <String, Object>{
-        'slot': frequent.slot,
-        'food': frequent.food,
-        'count': frequent.count,
-      }),
-    ]);
+    found.add((
+      kind: 'frequent',
+      s: <ClientDietSentence>[
+        ClientDietSentence('tr_all_frequent', <String, Object>{
+          'slot': frequent.slot,
+          'food': frequent.food,
+          'count': frequent.count,
+        }),
+      ],
+      foods: null,
+    ));
   }
 
   // 반복 음식.
@@ -720,18 +830,33 @@ ClientDietSentence? _foodsSentence(List<MapEntry<String, int>> ranked) {
     if ((a.value + b.value) / total >= _repeatedShare &&
         a.key.runes.length <= _frequentNameMax &&
         b.key.runes.length <= _frequentNameMax) {
-      return done(<ClientDietSentence>[
-        ClientDietSentence('tr_all_repeated', <String, Object>{
-          'food1': a.key,
-          'food2': b.key,
-        }),
-      ]);
+      found.add((
+        kind: 'repeated',
+        s: <ClientDietSentence>[
+          ClientDietSentence('tr_all_repeated', <String, Object>{
+            'food1': a.key,
+            'food2': b.key,
+          }),
+        ],
+        foods: null,
+      ));
     }
   }
 
-  return done(<ClientDietSentence>[
-    ClientDietSentence('tr_all_good', <String, Object>{'days': days}),
-  ]);
+  final picked = found.take(_maxFindings).toList();
+  if (picked.isEmpty) {
+    return done(<ClientDietSentence>[
+      ClientDietSentence('tr_all_good', <String, Object>{'days': days}),
+    ]);
+  }
+  // 반복 음식이 함께 나오면 편중 뒤의 "자주 먹은 음식" 은 같은 말이라 뺀다.
+  final bool repeated = picked.any((f) => f.kind == 'repeated');
+  return done(
+    _cap(<List<ClientDietSentence>>[
+      for (final f in picked)
+        <ClientDietSentence>[...f.s, if (!repeated) ?f.foods],
+    ], null),
+  );
 }
 
 /// [today] 로부터 [days] 일 전(포함)의 `YYYY-MM-DD`.

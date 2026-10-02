@@ -4313,6 +4313,51 @@
       }
     }
   },
+  "clientDietAnalysisWeekBreakfastSnackFood": "{food} replaced breakfast most often ({count} times).",
+  "@clientDietAnalysisWeekBreakfastSnackFood": {
+    "description": "트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.",
+    "placeholders": {
+      "food": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "clientDietAnalysisWeekProteinAvg": "Those days averaged {value} a day.",
+  "@clientDietAnalysisWeekProteinAvg": {
+    "description": "트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "clientDietAnalysisWeekGoodAvg": "Averaged {kcal} and {protein} protein a day.",
+  "@clientDietAnalysisWeekGoodAvg": {
+    "description": "트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.",
+    "placeholders": {
+      "kcal": {
+        "type": "String"
+      },
+      "protein": {
+        "type": "String"
+      }
+    }
+  },
+  "clientDietAnalysisWeekVsLast": "Last week it was {prevDays} of {prevLogged} logged days.",
+  "@clientDietAnalysisWeekVsLast": {
+    "description": "트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.",
+    "placeholders": {
+      "prevLogged": {
+        "type": "int"
+      },
+      "prevDays": {
+        "type": "int"
+      }
+    }
+  },
   "clientDietAnalysisAllFew": "Only {days} days logged in the last 4 weeks. The trend shows after 7.",
   "@clientDietAnalysisAllFew": {
     "description": "트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).",
@@ -4352,7 +4397,7 @@
       }
     }
   },
-  "clientDietAnalysisAllProteinTrendUp": "Days meeting the protein goal rose from {before} to {after} over the last 2 weeks.",
+  "clientDietAnalysisAllProteinTrendUp": "Days meeting the protein goal rose from {before} in the prior 2 weeks to {after} in the last 2 weeks.",
   "@clientDietAnalysisAllProteinTrendUp": {
     "description": "트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).",
     "placeholders": {
@@ -4364,7 +4409,7 @@
       }
     }
   },
-  "clientDietAnalysisAllProteinTrendDown": "Days meeting the protein goal fell from {before} to {after} over the last 2 weeks.",
+  "clientDietAnalysisAllProteinTrendDown": "Days meeting the protein goal fell from {before} in the prior 2 weeks to {after} in the last 2 weeks.",
   "@clientDietAnalysisAllProteinTrendDown": {
     "description": "트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).",
     "placeholders": {

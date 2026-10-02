@@ -191,6 +191,14 @@ def cases() -> list[dict]:
             protein.append(named(d, meal, "국수", protein=15, kcal=500, sodium=400))
     c.append({"name": "week_protein_short", "period": "week", "now": at(THU, 20),
               "targets": t, "entries": protein})
+    # 지난주 기록이 있으면 첫 문제를 지난주와 견주고, 4문장에서 자른다.
+    compare = list(over)
+    for i in range(7):
+        d = MON - timedelta(days=7 - i)
+        compare.append(named(d, "lunch", "라면", sodium=2500 if i < 2 else 900, protein=40,
+                             kcal=700))
+    c.append({"name": "week_vs_last", "period": "week", "now": at(THU, 20),
+              "targets": t, "entries": compare})
     # 화요일, 이번 주 기록 1일 + 지난주 기록 → 지난주를 돌아본다.
     tue = MON + timedelta(days=1)
     last = [named(MON - timedelta(days=7 - i), "breakfast", "토스트", sodium=2500)
@@ -256,6 +264,10 @@ def renderings() -> list[dict]:
                           "nutrient": "sodium"},
         "tr_week_protein_short": {"scope": "this", "logged": 3, "days": 3},
         "tr_week_good": {"scope": "this", "days": 3},
+        "tr_week_breakfast_snack_food": {"food": "과자", "count": 3},
+        "tr_week_protein_avg": {"nutrient": "protein", "value": 45},
+        "tr_week_good_avg": {"kcal": 1500, "protein": 120},
+        "tr_week_vs_last": {"prev_logged": 7, "prev_days": 2},
         "tr_all_few": {"days": 3},
         "tr_all_slot_sodium": {"slot": "dinner", "days": 6},
         "tr_all_carb_heavy": {"pct": 68},

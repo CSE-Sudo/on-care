@@ -78,6 +78,19 @@ String? clientDietSentenceText(AppLocalizations l, ClientDietSentence s) {
       str('scope'),
       number('days'),
     ),
+    'tr_week_breakfast_snack_food' =>
+      l.clientDietAnalysisWeekBreakfastSnackFood(str('food'), number('count')),
+    'tr_week_protein_avg' => l.clientDietAnalysisWeekProteinAvg(
+      amount('value', 'protein'),
+    ),
+    'tr_week_good_avg' => l.clientDietAnalysisWeekGoodAvg(
+      amount('kcal', 'calorie'),
+      amount('protein', 'protein'),
+    ),
+    'tr_week_vs_last' => l.clientDietAnalysisWeekVsLast(
+      number('prev_logged'),
+      number('prev_days'),
+    ),
     'tr_all_few' => l.clientDietAnalysisAllFew(number('days')),
     'tr_all_slot_sodium' => l.clientDietAnalysisAllSlotSodium(
       str('slot'),

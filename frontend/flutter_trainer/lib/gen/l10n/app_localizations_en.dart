@@ -6092,6 +6092,26 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String clientDietAnalysisWeekBreakfastSnackFood(String food, int count) {
+    return '$food replaced breakfast most often ($count times).';
+  }
+
+  @override
+  String clientDietAnalysisWeekProteinAvg(String value) {
+    return 'Those days averaged $value a day.';
+  }
+
+  @override
+  String clientDietAnalysisWeekGoodAvg(String kcal, String protein) {
+    return 'Averaged $kcal and $protein protein a day.';
+  }
+
+  @override
+  String clientDietAnalysisWeekVsLast(int prevLogged, int prevDays) {
+    return 'Last week it was $prevDays of $prevLogged logged days.';
+  }
+
+  @override
   String clientDietAnalysisAllFew(int days) {
     return 'Only $days days logged in the last 4 weeks. The trend shows after 7.';
   }
@@ -6120,12 +6140,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String clientDietAnalysisAllProteinTrendUp(int before, int after) {
-    return 'Days meeting the protein goal rose from $before to $after over the last 2 weeks.';
+    return 'Days meeting the protein goal rose from $before in the prior 2 weeks to $after in the last 2 weeks.';
   }
 
   @override
   String clientDietAnalysisAllProteinTrendDown(int before, int after) {
-    return 'Days meeting the protein goal fell from $before to $after over the last 2 weeks.';
+    return 'Days meeting the protein goal fell from $before in the prior 2 weeks to $after in the last 2 weeks.';
   }
 
   @override
