@@ -7,7 +7,9 @@ from pydantic import ValidationError
 from app.core.config import DEFAULT_JWT_SECRET, Settings
 
 
-def test_dev_defaults():
+def test_dev_defaults(monkeypatch):
+    # CI 는 AUTO_CREATE_TABLES=false 로 돈다(#2838). 기본값을 보려면 환경변수를 비운다.
+    monkeypatch.delenv("AUTO_CREATE_TABLES", raising=False)
     s = Settings(_env_file=None)
     assert s.env == "dev"
     assert s.is_prod is False
@@ -50,9 +52,16 @@ def test_prod_blocks_auto_create_tables():
         _prod(auto_create_tables=True)
 
 
-def test_dev_keeps_auto_create_tables():
+def test_dev_keeps_auto_create_tables(monkeypatch):
     """개발에서는 create_all 편의 유지(기본 True)."""
+    monkeypatch.delenv("AUTO_CREATE_TABLES", raising=False)
     assert Settings(_env_file=None).auto_create_tables is True
+
+
+def test_auto_create_tables_env_false_is_respected(monkeypatch):
+    """CI·운영처럼 AUTO_CREATE_TABLES=false 를 주면 create_all 을 끈다(#2838)."""
+    monkeypatch.setenv("AUTO_CREATE_TABLES", "false")
+    assert Settings(_env_file=None).auto_create_tables is False
 
 
 def test_log_level_rejects_invalid():

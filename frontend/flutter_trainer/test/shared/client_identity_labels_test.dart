@@ -62,7 +62,7 @@ void main() {
 
     testWidgets('모르는 성별 값은 기타로 읽는다', (tester) async {
       expect(
-        await _label(tester, const Locale('en'), gender: '', age: 50),
+        await _label(tester, const Locale('en'), gender: 'x', age: 50),
         'Other · Age 50',
       );
       expect(
@@ -80,10 +80,20 @@ void main() {
         await _label(tester, const Locale('en'), gender: 'male', age: null),
         'Male',
       );
+    });
+
+    testWidgets('성별이 비면 성별을 적지 않는다 (#2814)', (tester) async {
       expect(
-        await _label(tester, const Locale('ko'), gender: '', age: null),
-        '기타',
+        await _label(tester, const Locale('ko'), gender: '', age: 50),
+        '50세',
       );
+      expect(
+        await _label(tester, const Locale('en'), gender: '', age: 50),
+        'Age 50',
+      );
+      // 담당 해제·동의 철회 회원 — 서버가 둘 다 비워 보낸다.
+      expect(await _label(tester, const Locale('ko'), gender: '', age: null), '');
+      expect(await _label(tester, const Locale('en'), gender: ' ', age: null), '');
     });
 
     testWidgets('영어 문구에는 한글이 없다', (tester) async {

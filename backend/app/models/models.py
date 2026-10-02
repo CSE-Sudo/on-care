@@ -1052,6 +1052,11 @@ class CoachDocument(Base):
     """
 
     __tablename__ = "coach_documents"
+    # 교체·삭제는 (user_id, source_ref) 로 좁힌다. 마이그레이션 0030 이 만든 인덱스를
+    # 모델에도 적어 `alembic check` 가 '지울 인덱스' 로 보지 않게 한다(#2838).
+    __table_args__ = (
+        Index("ix_coach_documents_user_source_ref", "user_id", "source_ref"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     # nullable: 공공 문서는 NULL(전체 공유), 개인 문서는 특정 user_id
@@ -2289,19 +2294,32 @@ class AuditLog(Base):
     """보안 감사 로그 — 인증/관리자 이벤트 추적.
 
     user_id 는 FK 를 두지 않는다(사용자가 삭제돼도 감사 기록은 남아야 하므로).
-    event 예: auth.login, auth.register, auth.social, admin.public_doc_upload.
+    event 예: auth.login, auth.register, auth.social, admin.public_doc_upload,
+    trainer.client_read, consent.grant, consent.revoke, account.withdraw,
+    auth.password_change.
+
+    `user_id` 는 **행위자**, `target_user_id` 는 그 행위의 **대상 회원**이다
+    (#2830 — 트레이너가 누구의 기록을 봤는지, 누구의 동의가 오갔는지). 대상도
+    FK 가 없어 링크·계정 행이 지워져도 기록은 남는다. `resource` 는 열람한 기록
+    종류(diet·exercise·body·report) 같은 짧은 분류이고, 식단 내용 같은 개인정보
+    본문은 어느 칸에도 적지 않는다.
     """
 
     __tablename__ = "audit_logs"
+    __table_args__ = (
+        Index("ix_audit_logs_target_created", "target_user_id", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     event: Mapped[str] = mapped_column(String(50), index=True)
     user_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    target_user_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    resource: Mapped[str] = mapped_column(String(30), default="", server_default="")
     ip: Mapped[str] = mapped_column(String(64), default="")
     success: Mapped[bool] = mapped_column(Boolean, default=True)
     detail: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True), server_default=func.now(), index=True
     )
 
 
