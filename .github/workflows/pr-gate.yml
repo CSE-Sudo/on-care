@@ -148,6 +148,15 @@ jobs:
           gitleaks git . --log-opts="$base..HEAD" --config .gitleaks.toml \
             --no-banner --redact --exit-code 1
 
+      - name: Check landing app links
+        # 소개 페이지는 Pages(데모)와 AWS(운영)에 같은 파일로 올라간다. 앱 바로가기에 절대 주소가
+        # 들어오면 한쪽 방문자가 다른 배포로 넘어가므로, 상대 경로와 og:url·canonical 표시 줄을
+        # 병합 전에 확인한다(#2841). 검사 스크립트의 경계도 함께 돌린다.
+        run: |
+          set -euo pipefail
+          bash .github/scripts/test_landing_site_url.sh
+          bash .github/scripts/landing_site_url.sh check index.html
+
       - name: Test the demo divergence checker
         # 아래 검사가 오탐하면 필수 검사인 이 job 이 PR 병합을 막는다. 임시 저장소의
         # 가짜 diff 로 걸림·안 걸림·예외 통과를 먼저 확인한다(#2791).

@@ -37,6 +37,7 @@ from app.services import (
     exercise_activity,
     exercise_service,
     exercise_types,
+    goal_defaults,
     notification_service,
     notification_templates,
     routine_suggestion_service,
@@ -45,8 +46,8 @@ from app.services.exercise_duration import format_duration, seconds_or_minutes
 
 
 # 일일 나트륨 목표(mg). 프론트 `sodiumTargetMg` 와 같은 값 — 리포트의
-# '초과 N일'이 앱 화면의 경고와 어긋나면 안 된다.
-SODIUM_TARGET_MG = 2000
+# '초과 N일'이 앱 화면의 경고와 어긋나면 안 된다. 원본은 `goal_defaults`(#2906).
+SODIUM_TARGET_MG = goal_defaults.DAILY_SODIUM_MG
 
 
 class IdempotencyConflict(Exception):

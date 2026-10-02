@@ -23,6 +23,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core import clock
+from app.core.week import monday_of
 from app.models.models import WeeklyReportPurchase
 from app.schemas.points_api import ExchangeOut
 from app.schemas.weekly_report_api import (
@@ -56,7 +57,7 @@ class WeekAlreadyOwned(WeeklyReportError):
 def target_week(today: date | None = None) -> date:
     """지금 교환하면 받는 주 — 지난주 월요일(KST)."""
     day = today or clock.today()
-    return day - timedelta(days=day.weekday() + 7)
+    return monday_of(day) - timedelta(days=7)
 
 
 def owns(db: Session, member_id: str, week_start: date) -> bool:

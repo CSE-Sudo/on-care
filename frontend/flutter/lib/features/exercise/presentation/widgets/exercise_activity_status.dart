@@ -68,7 +68,7 @@ const double _kCapShadowInnerAlpha = 0.65;
 /// 없는 주의 그루터기 높이, 고르지 않은 막대의 흐림.
 const double _kWeekSlot = 26;
 const double _kBurnBarWidth = 12;
-const double _kBurnBarMinHeight = 3;
+const double _kBurnMinBarHeight = 3;
 const double _kBurnStubHeight = 4;
 const double _kDimmedBarOpacity = 0.35;
 
@@ -132,11 +132,7 @@ final Color kBurnColor = OnCareBrand.member.strong;
 /// 화면에서 쓰는 소모 칼로리 색 — 테마 브랜드의 `strong`.
 Color _burnColor(BuildContext context) => context.oncare.brand.strong;
 
-DateTime _thisMonday() {
-  final DateTime n = nowKst();
-  final DateTime d = DateTime(n.year, n.month, n.day);
-  return d.subtract(Duration(days: d.weekday - 1));
-}
+DateTime _thisMonday() => mondayOf(nowKst());
 
 DateTime _today() {
   final DateTime n = nowKst();
@@ -1237,7 +1233,7 @@ class _BurnBar extends StatelessWidget {
     );
     final double barHeight = math.max(
       (value / max).clamp(0.0, 1.0) * height,
-      _kBurnBarMinHeight,
+      _kBurnMinBarHeight,
     );
     final Widget fill = total <= 0
         ? ColoredBox(color: _burnColor(context))
@@ -1344,9 +1340,7 @@ class _AllPeriodView extends ConsumerWidget {
             final Map<DateTime, List<ExerciseDayBar>> byWeek =
                 <DateTime, List<ExerciseDayBar>>{};
             for (final ExerciseDayBar d in days) {
-              final DateTime monday = d.date.subtract(
-                Duration(days: d.date.weekday - 1),
-              );
+              final DateTime monday = mondayOf(d.date);
               byWeek.putIfAbsent(monday, () => <ExerciseDayBar>[]).add(d);
             }
             final List<DateTime> mondays = byWeek.keys.toList()..sort();

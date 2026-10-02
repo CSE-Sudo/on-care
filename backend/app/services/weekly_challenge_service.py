@@ -34,6 +34,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core import clock
+from app.core.week import monday_of
 from app.models.models import ExerciseSession, HealthProfile, WeeklyChallenge
 from app.schemas.challenge_api import (
     ChallengeJoinOut,
@@ -359,7 +360,7 @@ def challenge_out(row: WeeklyChallenge, *, progress: int | None = None) -> Chall
 def week_monday(day: date | None = None) -> date:
     """[day](기본 오늘, KST)가 속한 주의 월요일."""
     target = day if day is not None else clock.today()
-    return target - timedelta(days=target.weekday())
+    return monday_of(target)
 
 
 def _for_week(db: Session, member_id: str, monday: date) -> WeeklyChallenge | None:

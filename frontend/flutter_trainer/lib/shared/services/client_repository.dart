@@ -40,6 +40,7 @@ import 'package:oncare_trainer/shared/health_focus.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Reads a trainer's clients + their diet/history for the 고객 관리 tab.
 ///
@@ -944,10 +945,11 @@ class DriftClientRepository implements ClientRepository {
           todaySentences(entries, targets, now, avgProteinG: avg),
         );
       case ClientPeriod.week:
+        final DateTime thisMonday = mondayOf(today);
         final DateTime twoWeeks = DateTime(
-          today.year,
-          today.month,
-          today.day - (today.weekday - 1) - 7,
+          thisMonday.year,
+          thisMonday.month,
+          thisMonday.day - 7,
         );
         return ClientDietAnalysis(
           weekSentences(
@@ -974,7 +976,7 @@ class DriftClientRepository implements ClientRepository {
   /// 회원 목표 → 규칙이 쓰는 하루 목표. 서버 `diet_coach_inputs.targets_of` 와 같은
   /// 순서(목표 → 체중 × 1.2g → 60g)다 — 영양 요약 카드와 같은 분모다(#2898).
   DietRuleTargets _dietTargets(MemberHealthProfile p) => (
-    calories: p.dailyCalories ?? 2000,
+    calories: p.dailyCalories ?? calorieTargetKcal,
     proteinG: p.effectiveDailyProteinG,
     sodiumMg: p.dailySodiumMg ?? sodiumTargetMg,
     sugarG: p.dailySugarG ?? sugarTargetG,
@@ -1717,12 +1719,6 @@ final clientHistoryProvider = StreamProvider.autoDispose
     .family<List<RoutineHistoryEntry>, String>((ref, clientId) {
       keepAliveForAccount(ref);
       return ref.watch(clientRepositoryProvider).watchHistory(clientId);
-    });
-
-final clientExerciseWeekProvider = FutureProvider.autoDispose
-    .family<ClientExerciseWeek, String>((ref, clientId) {
-      keepAliveForAccount(ref);
-      return ref.watch(clientRepositoryProvider).fetchExerciseWeek(clientId);
     });
 
 /// 고객 기간 조회의 조회 키 — 누구의, 어느 기간을, **어느 날 기준으로**.

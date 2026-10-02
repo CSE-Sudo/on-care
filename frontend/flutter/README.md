@@ -57,8 +57,7 @@ flutter build ios --release      # Xcode에서 archive
 
 ## CI / CD
 
-워크플로는 저장소 **루트** `.github/workflows/` 에 있습니다. 이 폴더의 `frontend/flutter/.github/` 는 별도
-저장소 시절에 쓰던 것이라 GitHub Actions 가 실행하지 않습니다.
+워크플로는 저장소 **루트** `.github/workflows/` 에 있습니다.
 
 - **`user-app-ci.yml`** — 회원 앱을 건드린 PR·푸시에서 `flutter analyze`·`flutter test`. 웹 빌드는 하지 않습니다.
 - **`deploy.yml`** — `main` 푸시 / `workflow_dispatch` 시 회원 앱(`--base-href "/frontend/"`)·트레이너 웹(`/trainer/`)을

@@ -330,6 +330,33 @@ void main() {
     expect(repo.registerCalls, 1);
   });
 
+  // --- 서버 이메일 길이 상한(#2908) --------------------------------------
+
+  testWidgets('255자를 넘는 이메일은 칸 아래에 길이 문구를 보이고 보내지 않는다', (
+    WidgetTester tester,
+  ) async {
+    // 서버 `contact_format.EMAIL_MAX_LENGTH` 가 422 로 돌려보낼 값을 화면이
+    // 먼저 잡는다. 전에는 형식만 보고 통과시켜, 제출 뒤에 서버 오류로 떨어졌다.
+    final repo = await _pumpSignUp(tester);
+    const String domain = '@oncare.com';
+    final String tooLong = '${'a' * (256 - domain.length)}$domain';
+    final String atLimit = '${'a' * (255 - domain.length)}$domain';
+
+    await _fill(tester, email: tooLong);
+    await _submit(tester);
+
+    expect(_errorUnder(_emailKey, '이메일은 255자까지 입력할 수 있어요'), findsOneWidget);
+    expect(find.text('이메일 형식이 올바르지 않아요'), findsNothing);
+    expect(repo.registerCalls, 0);
+
+    // 딱 255자면 보낸다.
+    await _type(tester, _emailKey, atLimit);
+    expect(find.text('이메일은 255자까지 입력할 수 있어요'), findsNothing);
+    await _submit(tester);
+    expect(repo.registerCalls, 1);
+    expect(repo.email, atLimit);
+  });
+
   // --- 서버 비밀번호 기준과 같은 상한(#1555) ------------------------------
 
   testWidgets('64자를 넘으면 칸 아래에 상한을 알리고 보내지 않는다', (WidgetTester tester) async {

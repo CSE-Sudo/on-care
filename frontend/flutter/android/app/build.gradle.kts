@@ -23,7 +23,9 @@ val hasReleaseSigning = releaseSigningKeys.all {
 }
 
 android {
-    namespace = "com.barmi.oncare"
+    // 앱 ID 는 스토어 등록 뒤 바꿀 수 없다. iOS 번들 ID·Kotlin 패키지 경로와 같은 값이어야
+    // 하며 tool/ci/check_mobile_app_identity.py 가 검사한다(#2823).
+    namespace = "com.csesudo.oncare"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -37,8 +39,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.barmi.oncare"
+        applicationId = "com.csesudo.oncare"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

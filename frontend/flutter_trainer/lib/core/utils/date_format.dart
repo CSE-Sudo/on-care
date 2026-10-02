@@ -1,13 +1,14 @@
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Formats [d] as the `YYYY-MM-DD` string used by every date-keyed
-/// drift column (seeding, schedule filters, reservation counts). Single
-/// source of truth so writers and readers can never drift apart.
-String ymd(DateTime d) =>
-    '${d.year.toString().padLeft(4, '0')}-'
-    '${d.month.toString().padLeft(2, '0')}-'
-    '${d.day.toString().padLeft(2, '0')}';
+/// drift column (seeding, schedule filters, reservation counts).
+///
+/// 정의는 두 앱이 함께 쓰는 `oncare_ui` 의 [wireDate] 하나뿐이다(#2908) —
+/// 회원 앱·서버와 같은 날짜 키를 쓴다. 트레이너 웹 곳곳이 이 이름으로 부르므로
+/// 이름만 남긴다.
+const String Function(DateTime) ymd = wireDate;
 
 /// 기간의 끝 날짜 표기 — 시작과 같은 해면 연도를 빼고 `MM-DD` 로 적는다.
 ///

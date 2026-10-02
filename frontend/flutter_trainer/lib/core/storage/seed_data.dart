@@ -26,6 +26,7 @@ import 'package:oncare_trainer/shared/models/client_chat_message.dart'
     show ChatAttachmentKind, RoutineDeliveryNotice;
 import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/services/demo_chat_files.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 // The roster itself is bulky enough to drown the seeding logic, so it
 // lives next door. `part` keeps the `_Client` family private to this
@@ -591,7 +592,7 @@ Future<void> seedIfEmpty(
         final DateTime at = chatCreatedAt(client, i, lastDayIndex);
         await db.putValue(
           'report_msg_seed-chat-${client.id}-$i',
-          ymd(DateTime(at.year, at.month, at.day - (at.weekday - 1))),
+          ymd(mondayOf(at)),
         );
       }
     }
@@ -632,11 +633,7 @@ Future<void> seedIfEmpty(
     // 이번 주 월요일 — 주간 시간표가 항상 월~일을 그리므로 요일 슬롯의 기준도
     // 같아야 한다. 날짜를 성분으로 옮긴다(Duration 은 서머타임이 있는 지역에서
     // 하루씩 밀린다).
-    final DateTime monday = DateTime(
-      now.year,
-      now.month,
-      now.day - (now.weekday - 1),
-    );
+    final DateTime monday = mondayOf(now);
     final seedClientIdByName = <String, String>{
       for (final _Client c in _clients) c.name: 'seed-client-${c.id}',
     };
@@ -1545,7 +1542,7 @@ int _mealCountOf(int calories) =>
 /// **같은 요일 자리에** 같은 기록 습관으로 채운다. 기록이 아예 없는 날은 없다.
 Iterable<_SeedDay> _seedDays(_Client client, DateTime now) sync* {
   final today = DateTime(now.year, now.month, now.day);
-  final monday = today.subtract(Duration(days: today.weekday - 1));
+  final monday = mondayOf(today);
   final todayIndex = today.weekday - 1;
 
   for (var back = 0; back < demoMetricsHistoryWeeks; back++) {
@@ -2793,7 +2790,7 @@ Iterable<ClientWeeklyFeedbacksCompanion> _weeklyFeedbacks(
   final List<_Feedback>? weeks = _demoFeedback[clientId];
   if (weeks == null) return;
   final DateTime today = DateTime(now.year, now.month, now.day);
-  final DateTime monday = today.subtract(Duration(days: today.weekday - 1));
+  final DateTime monday = mondayOf(today);
   for (final _Feedback f in weeks) {
     final DateTime week = monday.subtract(Duration(days: 7 * f.weeksAgo));
     yield ClientWeeklyFeedbacksCompanion.insert(

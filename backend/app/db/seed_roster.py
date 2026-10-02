@@ -23,6 +23,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core import clock
+from app.core.week import monday_of
 from app.db.session import SessionLocal
 from app.models import models
 
@@ -245,7 +246,7 @@ def _seed_one_sodium_day(
 
 def _seed_completion_days(db: Session, member_id: str, completion: list[int]) -> None:
     today = clock.today()
-    this_monday = today - timedelta(days=today.weekday())
+    this_monday = monday_of(today)
     existing = set(
         db.scalars(
             select(models.RoutineHistory.id).where(

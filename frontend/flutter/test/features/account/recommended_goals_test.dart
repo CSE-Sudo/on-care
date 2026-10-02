@@ -1,9 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
-import 'package:oncare/features/account/domain/entities/recommended_goals.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 온보딩이 미리 채우는 권장 목표의 계산. (#1276 후속 — 온보딩 개편)
 ///

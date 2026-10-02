@@ -35,14 +35,15 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/widgets/nutrition_calorie_donut.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 회원 앱 `UserProfile` 의 기본 목표와 같은 값. 칼로리·나트륨·당류는
+/// 회원 앱 `UserProfile` 의 기본 목표와 같은 값 — 둘 다 공용 패키지 `oncare_ui`
+/// 의 `kGoalDefault…` 를 읽는다(#2906). 칼로리·나트륨·당류는
 /// `trainer_client.dart` 가 이미 들고 있다(로스터 카드도 같은 값을 본다).
-const int carbsTargetG = 275;
+const int carbsTargetG = kGoalDefaultDailyCarbsG;
 
 /// 체중도 개인 목표도 모를 때의 단백질 목표 — 식단 분석 기준(60g)과 같다(#2898).
 /// 예전 100g 은 분석과 달라, 카드가 모자라다고 한 날을 분석은 채웠다고 했다.
 const int proteinTargetG = MemberHealthProfile.defaultDailyProteinG;
-const int fatTargetG = 55;
+const int fatTargetG = kGoalDefaultDailyFatG;
 
 /// 고객의 하루 식단 목표 한 벌.
 typedef ClientDietGoals = ({int calories, int carbsG, int proteinG, int fatG});
