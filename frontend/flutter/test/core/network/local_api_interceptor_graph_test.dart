@@ -15,11 +15,11 @@ import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/core/storage/app_database.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/benefits/data/repositories/dio_activity_calendar_repository.dart';
 import 'package:oncare/features/benefits/data/repositories/dio_benefits_repository.dart';
 import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
+import 'package:oncare_core/clock.dart';
 
 import '../../helpers/strict_dio.dart';
 

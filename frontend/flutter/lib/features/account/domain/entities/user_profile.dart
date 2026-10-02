@@ -1,4 +1,4 @@
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 
 /// GET /users/me/profile — the consolidated profile the settings modals
 /// edit (내 프로필 + 건강 목표).

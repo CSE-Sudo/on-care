@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 데모의 채팅 이모티콘 — 하나씩 사서 7일 동안 쓴다. 서버 `emote_service` 의

@@ -1,20 +1,24 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:oncare_trainer/core/network/auth_token.dart';
-import 'package:oncare_trainer/core/network/interceptors/client_access_interceptor.dart';
-import 'package:oncare_trainer/core/network/session_refresh.dart';
+import 'package:oncare_core/network/session_refresh.dart';
 
 /// Attaches `Authorization: Bearer <token>` to outgoing requests when a
-/// session token is present and the caller has not already set one
-/// (login → `/trainer/me` passes an explicit header before the token is
-/// mirrored into [authAccessTokenProvider]). In mock mode no real
-/// requests are made, so the header only matters against the live
-/// FastAPI backend.
+/// session token is present **and the caller has not already set one**.
+/// 회원 앱의 목업 모드에서는 LocalApiInterceptor 가 이보다 먼저 요청을 끝내므로,
+/// 토큰은 실서버(FastAPI)를 상대할 때만 의미가 있다.
+///
+/// 회원 앱과 트레이너 웹이 이 인터셉터 하나를 함께 쓴다(#2907). 토큰과 갱신
+/// 브리지는 각 앱의 provider 에 있으므로 읽는 함수로 받는다 — 두 앱의 조립은
+/// 각 앱 `core/network/auth_token.dart` 의 `authInterceptorFor` 에 있다.
+///
+/// 호출부가 이미 넣은 헤더를 덮지 않는 이유: 세션 복구는 아직 세션에 반영하지 않은
+/// 토큰으로 내 정보(회원 `GET /users/me`, 트레이너 `GET /trainer/me`)를 찔러 본다.
+/// 그 토큰이 유효한지 확인하기 전에 세션에 넣어 버리면, 만료된 토큰으로 앱이 잠시
+/// 로그인 상태가 된다.
 ///
 /// ## 실행 중 만료 (#1546)
 ///
-/// 접근 토큰은 하루면 만료된다. 콘솔을 켜 둔 채 그 시간을 넘기면 화면은 로그인
+/// 접근 토큰은 하루면 만료된다. 앱·콘솔을 켜 둔 채 그 시간을 넘기면 화면은 로그인
 /// 상태인데 모든 조회·저장이 401 로 실패했다 — 갱신은 앱 시작 복구에만 있었다.
 /// 이제 **이 인터셉터가 붙인 세션 토큰**으로 나간 요청이 401 을 받으면:
 ///
@@ -25,17 +29,29 @@ import 'package:oncare_trainer/core/network/session_refresh.dart';
 ///    그대로 호출부에 간다.
 ///  * 연결 실패·5xx 로 회전하지 못하면 토큰을 지우지 않고 원 오류를 돌려준다.
 ///
-/// 호출부가 직접 헤더를 넣은 요청(복구·로그인의 `/trainer/me` 확인 등)과
-/// `/auth/*` 요청(로그인·갱신·로그아웃 — 토큰이 필요 없는 경로)은 손대지 않는다.
-/// 다시 보낸 요청이 또 401 이어도 더 시도하지 않는다.
+/// 호출부가 직접 헤더를 넣은 요청(복구의 확인 요청 등)과 `/auth/*` 요청(로그인·
+/// 갱신·로그아웃 — 토큰이 필요 없는 경로)은 손대지 않는다. 다시 보낸 요청이 또
+/// 401 이어도 더 시도하지 않는다.
 ///
-/// 순서: 이 인터셉터는 [ClientAccessInterceptor] 앞에 있다. 다시 보낸 요청은
-/// 사슬을 처음부터 다시 지나므로 그 404 는 거기서 한 번만 보고된다.
+/// 순서: 트레이너 웹에서는 이 인터셉터가 담당 해제 감지(`ClientAccessInterceptor`)
+/// 앞에 있다. 다시 보낸 요청은 사슬을 처음부터 다시 지나므로 그 404 는 거기서
+/// 한 번만 보고된다.
 class AuthInterceptor extends Interceptor {
   /// [retryClient] 가 없으면 헤더만 붙인다.
-  AuthInterceptor(this._ref, {this.retryClient});
+  ///
+  /// [accessToken] 과 [refreshBridge] 는 쓸 때마다 부른다 — 로그인·로그아웃·갱신이
+  /// 토큰을 바꿔도 인터셉터를 다시 만들지 않는다.
+  AuthInterceptor({
+    required this.accessToken,
+    required this.refreshBridge,
+    this.retryClient,
+  });
 
-  final Ref _ref;
+  /// 지금 세션의 접근 토큰. 없으면 null.
+  final String? Function() accessToken;
+
+  /// 갱신을 한 번에 하나만 돌리는 앱 전체의 브리지.
+  final SessionRefreshBridge Function() refreshBridge;
 
   /// 만료 뒤 원 요청을 다시 보낼 Dio. 보통 이 인터셉터가 붙은 그 Dio 다.
   final Dio? retryClient;
@@ -57,7 +73,7 @@ class AuthInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     if (!options.headers.containsKey('Authorization')) {
-      final token = _ref.read(authAccessTokenProvider);
+      final String? token = accessToken();
       if (token != null && token.isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
         options.extra[sessionTokenExtra] = token;
@@ -84,16 +100,14 @@ class AuthInterceptor extends Interceptor {
       return;
     }
 
-    String? token = _ref.read(authAccessTokenProvider);
+    String? token = accessToken();
     // 그 사이 로그아웃했거나 세션이 끝났다 — 다시 보낼 토큰이 없다.
     if (token == null || token.isEmpty) {
       handler.next(err);
       return;
     }
     if (token == sent) {
-      final TokenRefreshResult result = await _ref
-          .read(sessionRefreshBridgeProvider)
-          .refresh(sent);
+      final TokenRefreshResult result = await refreshBridge().refresh(sent);
       final String? refreshed = result.accessToken;
       if (result.status != TokenRefreshStatus.refreshed || refreshed == null) {
         handler.next(err);

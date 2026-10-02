@@ -1,9 +1,9 @@
 import 'package:oncare/core/points/demo_streak_shields.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart';
 import 'package:oncare/features/benefits/domain/repositories/activity_calendar_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 데모 모드의 기록 그래프 저장소 — 목업 API 의 답에 **운동만 덧씌운다**.
 /// (#2075, #2076)

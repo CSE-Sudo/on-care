@@ -10,7 +10,7 @@ import 'package:logger/logger.dart';
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/storage/app_database.dart';
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 
 void main() {
   late AppDatabase db;

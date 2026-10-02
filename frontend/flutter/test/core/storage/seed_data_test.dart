@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart';
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 시드가 읽는 것과 같은 픽스처. 테스트에서는 에셋 번들 대신 파일로 읽는다 — 번들이
 /// 준비됐는지에 기대지 않고 시드 자체만 본다.
