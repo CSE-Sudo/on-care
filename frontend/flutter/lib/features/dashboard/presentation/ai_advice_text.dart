@@ -12,13 +12,18 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 ///    인자로 온다(#2644).
 /// 2. [DashboardSummary.sodiumWarning] / [DashboardSummary.exerciseFeedback] —
 ///    서버가 요청 언어로 만든 문장. 키를 모르거나 인자가 맞지 않을 때만 쓴다.
-/// 3. ARB 기본 문구.
+/// 3. 기록을 권하는 중립 안내(`homeAiAdviceNoRecord`).
+///
+/// 데모 회원의 하루를 묘사한 문장(`homeAiAdviceBody`, 짬뽕·저녁 PT)은 데모만
+/// 싣는 키([kDailyCombinedAdviceKey])로만 고른다. 예전에는 서버가 근거를 주지
+/// 않으면 그 문장으로 떨어져, 기록이 없는 회원에게도 실제 분석처럼 보였다
+/// (#2813).
 String aiAdviceBody(AppLocalizations l, DashboardSummary summary) {
   final String? fromKey = _localized(l, summary);
   return fromKey ??
       summary.sodiumWarning ??
       summary.exerciseFeedback ??
-      l.homeAiAdviceBody;
+      l.homeAiAdviceNoRecord;
 }
 
 /// 모르는 키는 null 을 돌려 서버 문장·ARB 기본값으로 넘긴다 — 서버가 새 키를

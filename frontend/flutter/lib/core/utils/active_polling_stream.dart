@@ -10,9 +10,14 @@ import 'package:flutter/widgets.dart';
 /// stream: consumers continue showing the last good value while the next
 /// poll retries. Cancelling the subscription or backgrounding the app stops
 /// the timer immediately.
+///
+/// [surfaceError] 가 참인 오류는 값을 받은 뒤에도 흘려보낸다 — 잠깐의 실패가
+/// 아니라 상태가 바뀌었다는 신호(예: 담당 해제로 대화가 404, #2843)라 마지막
+/// 값을 붙들고 있으면 안 되는 경우다.
 Stream<T> activePollingStream<T>({
   required Future<T> Function() load,
   required Duration interval,
+  bool Function(Object error)? surfaceError,
 }) {
   late final StreamController<T> controller;
   late final _LifecycleObserver lifecycleObserver;
@@ -42,7 +47,7 @@ Stream<T> activePollingStream<T>({
       if (!cancelled &&
           foreground &&
           requestGeneration == lifecycleGeneration &&
-          !hasValue) {
+          (!hasValue || (surfaceError?.call(error) ?? false))) {
         controller.addError(error, stackTrace);
       }
     } finally {
