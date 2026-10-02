@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_report/gen/l10n/report_sheet_localizations_en.dart';
+import 'package:oncare_report/gen/l10n/report_sheet_localizations_ko.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
 import 'package:oncare_trainer/features/reports/domain/report_trend.dart';
@@ -15,6 +17,10 @@ import '../../helpers/client_factory.dart';
 
 final AppLocalizationsKo _ko = AppLocalizationsKo();
 final AppLocalizationsEn _en = AppLocalizationsEn();
+
+/// 결과지 본문 문구는 공용 패키지(`oncare_report`)의 번역에서 온다.
+final ReportSheetLocalizationsKo _sheetKo = ReportSheetLocalizationsKo();
+final ReportSheetLocalizationsEn _sheetEn = ReportSheetLocalizationsEn();
 
 /// 결과지의 모든 칸. 한 장에 이것이 다 실려야 한다(#2485).
 const List<String> _sections = <String>[
@@ -176,14 +182,14 @@ void main() {
       expect(find.text(_ko.reportsPdfDocTitle), findsOneWidget);
       expect(find.text('김회원'), findsOneWidget);
       expect(
-        find.text(_ko.reportsSheetPeriodValue('2026-08-10', '2026-08-16')),
+        find.text(_sheetKo.reportsSheetPeriodValue('2026-08-10', '2026-08-16')),
         findsOneWidget,
       );
       expect(
         find.text(_ko.reportsPdfAttendance('1', '2', '50')),
         findsOneWidget,
       );
-      expect(find.text(_ko.reportsSheetDaysOf('4', '7')), findsOneWidget);
+      expect(find.text(_sheetKo.reportsSheetDaysOf('4', '7')), findsOneWidget);
     });
 
     testWidgets('식단·운동 분석은 부족·적정·초과 눈금 아래 막대로 선다', (tester) async {
@@ -193,8 +199,8 @@ void main() {
       );
 
       // 두 섹션마다 눈금 머리 한 줄씩.
-      expect(find.text(_ko.reportsSheetBandUnder), findsWidgets);
-      expect(find.text(_ko.reportsSheetBandNormal), findsWidgets);
+      expect(find.text(_sheetKo.reportsSheetBandUnder), findsWidgets);
+      expect(find.text(_sheetKo.reportsSheetBandNormal), findsWidgets);
       final Finder diet = find.byKey(const ValueKey<String>('sheet-diet'));
       for (final String label in <String>[
         _ko.metricCalories,
@@ -321,7 +327,7 @@ void main() {
       for (final String key in _sections) {
         expect(find.byKey(ValueKey<String>(key)), findsOneWidget, reason: key);
       }
-      expect(find.text(_ko.reportsSheetScoreNone), findsOneWidget);
+      expect(find.text(_sheetKo.reportsSheetScoreNone), findsOneWidget);
       expect(find.text(_ko.reportsPdfNoData), findsWidgets);
       expect(find.text(_ko.reportsMemberFeedbackUnanswered), findsWidgets);
       // 기록이 없으면 막대를 채우지 않는다 — 0 으로 긋지 않는다.
@@ -341,14 +347,14 @@ void main() {
       expect(
         find.descendant(
           of: score,
-          matching: find.text(_ko.reportsSheetScoreFormula),
+          matching: find.text(_sheetKo.reportsSheetScoreFormula),
         ),
         findsOneWidget,
       );
       expect(
         find.descendant(
           of: score,
-          matching: find.text(_ko.reportsSheetScoreUnit),
+          matching: find.text(_sheetKo.reportsSheetScoreUnit),
         ),
         findsOneWidget,
       );
@@ -442,8 +448,8 @@ void main() {
       );
 
       expect(find.text(_en.reportsPdfDocTitle), findsOneWidget);
-      expect(find.text(_en.reportsSheetDietTitle), findsOneWidget);
-      expect(find.text(_en.reportsSheetScoreTitle), findsOneWidget);
+      expect(find.text(_sheetEn.reportsSheetDietTitle), findsOneWidget);
+      expect(find.text(_sheetEn.reportsSheetScoreTitle), findsOneWidget);
       // 회원 이름·통증 부위는 사용자 데이터라 검사에서 뺀다.
       final List<String> leaked = _texts(tester)
           .where((String s) => !s.contains('김회원') && !s.contains('오른 무릎'))
