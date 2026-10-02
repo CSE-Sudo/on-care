@@ -104,6 +104,7 @@ class PointsShop {
     required this.hasTrainer,
     required this.hasGym,
     required this.items,
+    this.gymBenefitsEnabled = true,
   });
 
   final int balance;
@@ -113,10 +114,15 @@ class PointsShop {
   final bool hasGym;
   final List<ShopItem> items;
 
+  /// 헬스장 현장 혜택(PT 재등록·락커·분석용 식판)을 여는 서버인가(#2822). 거짓이면
+  /// 서버가 [items] 에서 두 항목을 빼고 보낸다. 필드가 없는 응답(데모 목업)은 참.
+  final bool gymBenefitsEnabled;
+
   factory PointsShop.fromJson(Map<String, Object?> json) => PointsShop(
     balance: (json['balance'] as num?)?.toInt() ?? 0,
     hasTrainer: json['has_trainer'] == true,
     hasGym: json['has_gym'] == true,
+    gymBenefitsEnabled: json['gym_benefits_enabled'] != false,
     items: <ShopItem>[
       for (final Object? raw in (json['items'] as List<Object?>?) ?? <Object?>[])
         ShopItem.fromJson((raw! as Map<Object?, Object?>).cast<String, Object?>()),

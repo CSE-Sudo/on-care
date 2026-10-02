@@ -3,10 +3,10 @@ ORM 모델 — 프론트 계약(LocalApiInterceptor + drift 스키마)에 맞춤
 
 핵심 정렬 사항:
 - 사용자 id 는 문자열(예: 'user-7d4e9a2c5f18')
-- 식단은 나트륨(sodium_mg)·당류(sugar_g)를 1급 지표로 (고혈압·당뇨 특화)
+- 식단은 칼로리·탄단지와 함께 나트륨(sodium_mg)·당류(sugar_g)를 1급 지표로 둔다(섭취기준 대비 관리)
 - drift 테이블(diet_entries, exercise_sessions, notifications)과 1:1 대응
 
-이번 STEP 1 에서는 테이블 생성만 검증하고, 살은 이후 STEP 에서 채웁니다.
+스키마 변경은 Alembic 마이그레이션(backend/alembic)으로 한다.
 """
 
 from __future__ import annotations
@@ -73,6 +73,12 @@ class User(Base):
     )
 
 
+# 이메일은 대소문자를 무시하고 하나다(#2816). 저장은 소문자로 하지만, 정규화 전에 들어온
+# 값이나 다른 경로로 쓴 값이 대소문자만 다른 계정을 만들지 못하게 DB 가 마지막으로 막는다.
+# 마이그레이션 `0134_users_email_lower_unique` 와 같은 이름·식이다.
+Index("uq_users_email_lower", func.lower(User.email), unique=True)
+
+
 class HealthProfile(Base):
     """건강 위험 정보 — /users/me/health 의 risk + 메타."""
 
@@ -88,7 +94,7 @@ class HealthProfile(Base):
     risk_level: Mapped[str] = mapped_column(
         String(20), default="low"
     )  # low|medium|high
-    conditions: Mapped[str] = mapped_column(Text, default="")  # "고혈압, 당뇨 전단계"
+    conditions: Mapped[str] = mapped_column(Text, default="")  # 건강 목표 칩 + 트레이너 메모, 예: "체중 감량, 근력 향상"
     # 자유 서술 회원 목표(`goals`)는 지웠다 — 목표는 건강 목표 칩(`conditions`)으로만
     # 고른다(#2358).
 
@@ -130,6 +136,12 @@ class HealthProfile(Base):
 
     # 온보딩 완료 여부(프론트 온보딩 게이팅용)
     onboarded: Mapped[bool] = mapped_column(Boolean, default=False)
+    # 첫 설정을 **건너뛰었는가**(#2855). 건너뛴 회원은 다음 로그인·세션 복구 때
+    # 첫 설정 화면으로 다시 끌려가지 않는다. 폼에서 앱을 닫은(건너뛰지 않은)
+    # 회원은 거짓 그대로라 지금처럼 다시 첫 설정으로 간다(#2630).
+    onboarding_skipped: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
+    )
 
     # 건강 목표(`conditions` 의 목표 칩)를 마지막으로 바꾼 사람·시각 (#1832).
     # 회원과 담당 트레이너가 같은 칸을 고치므로, 승인 대신 기록과 알림으로 서로
@@ -709,6 +721,39 @@ class AccountDeletionReason(Base):
     )
 
 
+class UserConsent(Base):
+    """가입 동의 한 항목 — 누가 어느 문서의 어느 버전에 언제 동의했는가. (#2819)
+
+    항목(`kind`)은 `terms`·`privacy`·`health`·`age14`·`marketing` 이고, 버전은
+    `services/signup_consent.CURRENT_VERSIONS` 가 정한다. 문서가 바뀌면 새 버전의
+    행이 더해질 뿐 옛 행은 지우지 않는다 — 그때 무엇에 동의했는지가 이력이다.
+
+    계정이 지워지면 함께 지운다. 탈퇴한 계정의 동의 이력을 따로 보관할 근거는
+    처리방침 정비(#2820)에서 정한다.
+    """
+
+    __tablename__ = "user_consents"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    kind: Mapped[str] = mapped_column(String(20))
+    version: Mapped[str] = mapped_column(String(20))
+    agreed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    #: 철회한 시각. 지금은 철회 화면이 없어 비어 있다 — 선택 항목(마케팅)을
+    #: 끄는 화면이 생기면 여기에 적는다.
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "kind", "version", name="uq_user_consents_user_kind_version"
+        ),
+    )
+
+
 class DietPhoto(Base):
     """끼니 사진 — 회원이 올린 사진의 축소본. (#699)
 
@@ -1041,10 +1086,10 @@ class MemberNotificationSetting(Base):
 
 
 class CoachDocument(Base):
-    """RAG 코치용 문서 + 임베딩 (STEP 7).
+    """RAG 코치용 문서 + 임베딩.
 
     두 종류의 문서가 공존:
-      - 개인 문서(환자 데이터): user_id = 특정 사용자  → 그 사용자만 검색됨
+      - 개인 문서(회원 기록 요약): user_id = 특정 회원  → 그 회원만 검색됨
       - 공공 문서(가이드라인 등): user_id = NULL        → 모든 사용자 공유
 
     검색 시 (user_id == 현재사용자 OR user_id IS NULL) 로 가져오면
@@ -1052,6 +1097,11 @@ class CoachDocument(Base):
     """
 
     __tablename__ = "coach_documents"
+    # 교체·삭제는 (user_id, source_ref) 로 좁힌다. 마이그레이션 0030 이 만든 인덱스를
+    # 모델에도 적어 `alembic check` 가 '지울 인덱스' 로 보지 않게 한다(#2838).
+    __table_args__ = (
+        Index("ix_coach_documents_user_source_ref", "user_id", "source_ref"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     # nullable: 공공 문서는 NULL(전체 공유), 개인 문서는 특정 user_id
@@ -1336,6 +1386,35 @@ class TrainerProfile(Base):
     )
     reminder_lead_minutes: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default="30", default=30
+    )
+    #: 운영자 승인 상태(#2825) — pending|approved|rejected. 승인 전에는 회원 앱
+    #: 디렉터리·상담 대상·담당 요청·연결 코드에서 빠진다
+    #: (`trainer_verification_service`).
+    #:
+    #: DB 기본값은 pending 이다 — ORM 을 거치지 않고 들어온 행은 노출되지 않는
+    #: 쪽으로 닫힌다. ORM 기본값이 approved 인 것은 시드·운영 스크립트처럼 운영자가
+    #: 직접 넣는 경로 때문이고, 공개 가입(`register_trainer`)은 pending 을 명시한다.
+    verification_status: Mapped[str] = mapped_column(
+        String(16),
+        CheckConstraint(
+            "verification_status IN ('pending', 'approved', 'rejected')",
+            name="ck_trainer_profiles_verification_status",
+        ),
+        nullable=False,
+        server_default="pending",
+        default="approved",
+        index=True,
+    )
+    #: 승인·반려를 처리한 시각과 운영자. 가입 직후(pending)·백필 행은 비어 있다.
+    verification_decided_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    verification_decided_by: Mapped[str | None] = mapped_column(
+        String(64), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    #: 반려 사유 — 트레이너 웹이 그대로 보여 준다. 승인이면 비운다.
+    verification_note: Mapped[str] = mapped_column(
+        String(300), nullable=False, server_default="", default=""
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -1755,6 +1834,12 @@ class TrainerProgramDraft(Base):
     #708 은 세션 하나만 담았고(`session_name`/`exercises_json`), #709 에서 세션
     배열로 올렸다. `0039_program_sessions` 가 기존 행을 세션 1개짜리 배열로
     옮긴다.
+
+    코칭 화면의 자동 보관(#2873)은 같은 표에 **회원별 작성 중 내용**을 둔다.
+    `member_id` 가 있으면 그 회원에게 짜던 것이고, 비어 있으면 위의 회원 없는
+    초안이다. 위저드 단계·후보·개인운동처럼 편집기 밖의 작성 상태는
+    `workspace_json` 에 객체 하나로 싣는다 — 화면 상태라 서버가 해석하지 않고,
+    크기만 스키마가 막는다.
     """
 
     __tablename__ = "trainer_program_drafts"
@@ -1768,6 +1853,14 @@ class TrainerProgramDraft(Base):
     period: Mapped[str] = mapped_column(String(100), default="")
     memo: Mapped[str] = mapped_column(Text, default="")
     sessions_json: Mapped[str] = mapped_column(Text, default="[]")
+    # 자동 보관한 회원(#2873). 회원이 탈퇴하면 그 회원에게 짜던 내용도 함께
+    # 사라진다.
+    member_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    workspace_json: Mapped[str] = mapped_column(
+        Text, default="{}", server_default="{}"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -2003,7 +2096,7 @@ class RoutineHistory(Base):
     #: 운동 목록. 옛 행·시드는 문장(`["레그프레스 3세트", ...]`)이고, 완료한 PT 는
     #: 값을 담은 객체(`{name, type, label, sets, …, duration_seconds}`)다 — 문장의
     #: `초` 는 버티는 운동의 초로 되읽혀 운동 시간의 초를 남길 수 없었다(#2546).
-    #: 두 모양 모두 `trainer_service.parse_history_exercise` 가 읽는다.
+    #: 두 모양 모두 `trainer._common.parse_history_exercise` 가 읽는다.
     exercises_json: Mapped[str] = mapped_column(Text, default="[]")
     client_feedback: Mapped[str] = mapped_column(Text, default="")
     trainer_note: Mapped[str] = mapped_column(Text, default="")
@@ -2260,19 +2353,32 @@ class AuditLog(Base):
     """보안 감사 로그 — 인증/관리자 이벤트 추적.
 
     user_id 는 FK 를 두지 않는다(사용자가 삭제돼도 감사 기록은 남아야 하므로).
-    event 예: auth.login, auth.register, auth.social, admin.public_doc_upload.
+    event 예: auth.login, auth.register, auth.social, admin.public_doc_upload,
+    trainer.client_read, consent.grant, consent.revoke, account.withdraw,
+    auth.password_change.
+
+    `user_id` 는 **행위자**, `target_user_id` 는 그 행위의 **대상 회원**이다
+    (#2830 — 트레이너가 누구의 기록을 봤는지, 누구의 동의가 오갔는지). 대상도
+    FK 가 없어 링크·계정 행이 지워져도 기록은 남는다. `resource` 는 열람한 기록
+    종류(diet·exercise·body·report) 같은 짧은 분류이고, 식단 내용 같은 개인정보
+    본문은 어느 칸에도 적지 않는다.
     """
 
     __tablename__ = "audit_logs"
+    __table_args__ = (
+        Index("ix_audit_logs_target_created", "target_user_id", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     event: Mapped[str] = mapped_column(String(50), index=True)
     user_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    target_user_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    resource: Mapped[str] = mapped_column(String(30), default="", server_default="")
     ip: Mapped[str] = mapped_column(String(64), default="")
     success: Mapped[bool] = mapped_column(Boolean, default=True)
     detail: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True), server_default=func.now(), index=True
     )
 
 
@@ -2299,6 +2405,33 @@ class RevokedRefreshToken(Base):
     #: 이 토큰이 스스로 만료되는 시각. 정리 기준.
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     revoked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class PasswordResetToken(Base):
+    """비밀번호 재설정 코드(#2824).
+
+    메일로 보낸 일회용 코드의 **해시만** 담는다 — 표가 새어도 그것으로 비밀번호를
+    바꿀 수 없다. 코드는 짧은 시간만 유효하고(`expires_at`), 한 번 쓰면
+    `used_at` 이 찍혀 다시 쓸 수 없다. 같은 계정으로 새 코드를 보내면 앞서 보낸
+    코드는 쓴 것으로 닫는다. 코드는 80비트 난수라 맞혀 볼 수 없고, 확인 요청은
+    IP 별 rate limit 을 따로 받는다.
+    """
+
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: 정규화한 코드의 SHA-256(16진수). 확인 요청은 이 값으로 찾는다.
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
 
@@ -2593,4 +2726,31 @@ class TrainerReportGoal(Base):
         UniqueConstraint(
             "member_id", "week_start", name="uq_trainer_report_goals_member_week"
         ),
+    )
+
+
+class DietAnalysisUsage(Base):
+    """식단 사진 분석이 외부 비전 모델을 부른 한 번 — 하루 상한을 센다. (#2827)
+
+    모델을 부르기 **직전에** 한 줄이 생긴다. 끼니(`diet_entries`)로 세지 않는 이유는
+    둘이다 — 음식을 못 찾은 사진(#2848)은 끼니를 남기지 않지만 모델 비용은 나가고,
+    끼니를 지우고 다시 찍으면 끼니 수로는 하루 상한이 다시 열린다. 같은 멱등키의
+    재전송은 모델을 부르지 않으므로 줄이 생기지 않는다. 모델 호출이 실패하면 그 줄을
+    지운다 — 회원 탓이 아닌 실패로 하루 상한을 깎지 않는다.
+    """
+
+    __tablename__ = "diet_analysis_usages"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: 부른 KST 날짜 `YYYY-MM-DD`. 하루 상한을 이 값으로 센다.
+    kst_date: Mapped[str] = mapped_column(String(10))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index("ix_diet_analysis_usages_user_date", "user_id", "kst_date"),
     )

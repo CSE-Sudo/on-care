@@ -11,11 +11,14 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/network/auth_token.dart';
+import 'package:oncare/core/observability/error_reporter.dart';
 import 'package:oncare/features/account/presentation/first_run_route.dart';
 import 'package:oncare/features/account/presentation/pages/onboarding_page.dart';
 import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';
 import 'package:oncare/features/app_guide/presentation/pages/guide_tour_page.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare/features/auth/presentation/pages/consent_page.dart';
+import 'package:oncare/features/auth/presentation/pages/password_reset_page.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_up_page.dart';
 import 'package:oncare/features/auth/presentation/pages/splash_page.dart';
@@ -35,6 +38,7 @@ import 'package:oncare/features/exercise/presentation/pages/gym_list_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/trainer_detail_page.dart';
 import 'package:oncare/features/member_coach/presentation/pages/coach_reports_page.dart';
 import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
+import 'package:oncare/features/my_health/presentation/pages/password_change_page.dart';
 import 'package:oncare/features/my_health/presentation/pages/withdraw_page.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/features/notification/presentation/pages/notification_page.dart';
@@ -48,10 +52,34 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// - already in the app (demo or authenticated) → kept off the sign-in
 ///   screen (bounced to the dashboard).
 ///
+/// - authenticated but [consentRequired] → held on the consent screen
+///   until the account agrees (#2819); the consent screen is off-limits
+///   otherwise.
+///
 /// Returning `null` means "no redirect — stay put".
-String? sessionRedirect(SessionStatus status, String location) {
+String? sessionRedirect(
+  SessionStatus status,
+  String location, {
+  bool consentRequired = false,
+}) {
+  // 재설정 메일의 링크는 어느 상태에서 열려도 그 자리에 둔다(#2824). 복구 중에
+  // 시작 화면으로 보내면 주소의 코드를 잃고, 로그인한 채 열었다고 홈으로 보내면
+  // 링크가 아무 일도 하지 않는다.
+  if (location == AppRoutes.passwordReset) return null;
   final onAuthRoute =
       location == AppRoutes.signIn || location == AppRoutes.signUp;
+  // 동의가 남은 계정은 어느 주소로 가든 동의 화면에 붙든다(#2819). 데모에는
+  // 계정이 없어 해당하지 않는다.
+  if (status == SessionStatus.authenticated && consentRequired) {
+    return location == AppRoutes.consent ? null : AppRoutes.consent;
+  }
+  if (location == AppRoutes.consent) {
+    return switch (status) {
+      SessionStatus.unknown => AppRoutes.splash,
+      SessionStatus.signedOut => AppRoutes.signIn,
+      SessionStatus.demo || SessionStatus.authenticated => AppRoutes.dashboard,
+    };
+  }
   switch (status) {
     // 복구 중에는 시작 화면에 머문다(#1944). 전에는 로그아웃과 같이 묶여
     // **완전히 눌리는 로그인 폼**이 떴다 — 느린 망에서 이메일을 치던 중에
@@ -90,6 +118,7 @@ GoRouter buildAppRouter({
   required AppConfig config,
   NavigatorObserver? observer,
   SessionStatus Function()? readStatus,
+  bool Function()? readConsentRequired,
   Listenable? refresh,
 }) {
   GoRouter.optionURLReflectsImperativeAPIs = true;
@@ -104,8 +133,11 @@ GoRouter buildAppRouter({
     errorBuilder: (context, state) => const NotFoundPage(),
     redirect: readStatus == null
         ? null
-        : (context, state) =>
-              sessionRedirect(readStatus(), state.matchedLocation),
+        : (context, state) => sessionRedirect(
+            readStatus(),
+            state.matchedLocation,
+            consentRequired: readConsentRequired?.call() ?? false,
+          ),
     routes: <RouteBase>[
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
@@ -161,6 +193,8 @@ GoRouter buildAppRouter({
         path: AppRoutes.dietEntryDetail,
         builder: (context, state) => DietMealDetailPage(
           entryId: state.pathParameters['entryId'] ?? '',
+          // 새로고침하면 `extra` 는 사라지고 주소의 날짜만 남는다(#2881).
+          date: parseWireDate(state.uri.queryParameters['date']),
           initialMeal: state.extra is DietMeal
               ? state.extra! as DietMeal
               : null,
@@ -200,6 +234,7 @@ GoRouter buildAppRouter({
           'terms' => const LegalDocumentPage(document: 'terms'),
           'privacy' => const LegalDocumentPage(document: 'privacy'),
           'withdraw' => const WithdrawPage(),
+          AppRoutes.passwordSettingsSection => const PasswordChangePage(),
           _ => const SupportPage(),
         },
       ),
@@ -248,8 +283,20 @@ GoRouter buildAppRouter({
         builder: (context, state) => const SignUpPage(),
       ),
       GoRoute(
+        path: AppRoutes.consent,
+        builder: (context, state) => const ConsentPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.passwordReset,
+        builder: (context, state) =>
+            PasswordResetPage(initialCode: state.uri.queryParameters['token']),
+      ),
+      GoRoute(
         path: AppRoutes.onboarding,
-        builder: (context, state) => const OnboardingPage(),
+        builder: (context, state) => OnboardingPage(
+          // 앱 안에서 다시 연 첫 설정(#2855) — 끝나면 연 자리로 돌아간다.
+          resumed: state.uri.queryParameters['from'] == 'app',
+        ),
       ),
       GoRoute(
         path: AppRoutes.splash,
@@ -283,8 +330,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     config: config,
     observer: observer,
     readStatus: () => ref.read(sessionControllerProvider).status,
+    readConsentRequired: () =>
+        ref.read(sessionControllerProvider).consentRequired,
     refresh: refresh,
   );
+  // 오류 보고에 화면 경로 패턴(값이 빠진 `/diet/:id` 형태)을 태그로 단다(#2839).
+  ref
+      .read(errorReporterProvider)
+      .attachRouteResolver(
+        () => router.routerDelegate.currentConfiguration.fullPath,
+      );
   ref.listen<SessionState>(sessionControllerProvider, (
     SessionState? previous,
     SessionState next,

@@ -22,6 +22,7 @@ from google.genai import types
 from app.core.config import get_settings
 from app.schemas.diet import DietAnalysis, RecognizedFood
 from app.services.recognizer.base import FoodRecognizer
+from app.services.recognizer.locale_prompt import display_name_of, localized_prompt
 
 _PROMPT = """당신은 전문 영양사입니다. 업로드된 음식 사진을 분석해 아래 JSON 스키마로만 응답하세요.
 설명, 마크다운, 코드블록 없이 순수 JSON만 출력합니다.
@@ -44,6 +45,8 @@ _PROMPT = """당신은 전문 영양사입니다. 업로드된 음식 사진을 
 }
 
 음식이 여러 개면 foods 에 모두 넣으세요. 모르는 값은 null 로 두세요.
+사진에 음식이 보이지 않으면(풍경·사람·빈 그릇 등) 음식을 지어내지 말고 foods 를
+빈 배열 [] 로 두세요.
 amount_g 는 **사진에 실제로 담긴 양**을 그램으로 추정하세요(그릇 크기·조각 수를
 근거로). 공공 영양 DB 가 100g 당 값을 갖고 있어 이 값으로 환산합니다 — 영양
 수치보다 이쪽이 더 중요합니다.
@@ -68,12 +71,14 @@ class GeminiVisionRecognizer(FoodRecognizer):
         self._model = settings.gemini_model
 
     async def recognize(self, image_bytes: bytes, mime_type: str) -> DietAnalysis:
+        # 요청 언어는 컨텍스트 변수라 작업 스레드로 넘기기 전에 고른다. (#2850)
+        prompt = localized_prompt(_PROMPT)
         start = time.perf_counter()
         response = await asyncio.to_thread(
             self._client.models.generate_content,
             model=self._model,
             contents=[
-                _PROMPT,
+                prompt,
                 types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
             ],
             config=types.GenerateContentConfig(
@@ -94,6 +99,7 @@ class GeminiVisionRecognizer(FoodRecognizer):
                 foods.append(
                     RecognizedFood(
                         name=str(f.get("name", "알 수 없음")),
+                        display_name=display_name_of(f),
                         amount_g=_as_amount_g(f.get("amount_g")),
                         calories=_as_int(f.get("calories")),
                         carbs_g=_as_macro_float(f.get("carbs_g")),

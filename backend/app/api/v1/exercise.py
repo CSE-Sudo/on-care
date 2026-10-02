@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentUser
+from app.api.deps import CurrentUser, RequireMember
 from app.core import clock
 from app.db.session import get_db
 from app.models.models import ExerciseSession, HealthProfile
@@ -26,9 +26,13 @@ from app.schemas.exercise_api import (
 )
 from app.schemas.points_api import PointsOut
 from app.services import (
-    exercise_activity, exercise_service, exercise_types, points_service,
-    streak_shield_service, trainer_service,
+    exercise_activity,
+    exercise_service,
+    exercise_types,
+    points_service,
+    streak_shield_service,
 )
+from app.services.trainer import member_mirror as trainer_member_mirror_service
 from app.services.coach import personal_ingest
 from app.services.exercise_service import (
     weekly_goals,
@@ -75,6 +79,9 @@ def exercise_period(
     왕복이 된다(#2079). 한 주를 펼쳐 볼 때는 그대로
     `GET /exercise/weeks/current?week_start=` 다: 이 응답에는 세션 목록과 코칭
     문구가 없다.
+
+    구간은 끝 주에서 거슬러 최대 `MAX_PERIOD_WEEKS`(160주)다. 더 이른 `from`·첫 기록
+    주는 그 하한으로 잘리고, 응답 `from_week` 가 실제 시작 주다(#2833).
     """
     profile = db.scalar(
         select(HealthProfile).where(HealthProfile.user_id == current_user.id)
@@ -156,7 +163,7 @@ def exercise_advice(
     (#2162) — 읽는 구간은 트레이너웹과 같은 함수가 정한다.
     """
     start, end, days = exercise_service.period_days(db, current_user.id, period)
-    routine_days = trainer_service.advice_routine_days(db, current_user.id, period)
+    routine_days = trainer_member_mirror_service.advice_routine_days(db, current_user.id, period)
     advice = exercise_service.period_advice(days, period, routine_days)
     return ExerciseAdviceResponse(
         period=period,
@@ -249,7 +256,7 @@ def _calories_for(
 @router.post("/exercise/calories", response_model=ExerciseCalorieResponse)
 def preview_calories(
     payload: ExerciseCalorieRequest,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> ExerciseCalorieResponse:
     """운동 이름·시간·강도로 소모 칼로리 미리보기. (#1312)
@@ -284,7 +291,7 @@ def preview_calories(
 )
 def add_sessions(
     payload: ExerciseSessionsCreate,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> ExerciseSessionsCreatedOut:
     """운동 기록 1~N개를 **한 트랜잭션으로** 추가한다. (#2544)
@@ -378,7 +385,7 @@ def _new_member_session(
 def update_session(
     session_id: str,
     payload: ExerciseSessionCreate,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> ExerciseSessionOut:
     """운동 기록 수정(본인 소유만, 아니면 404). 유형/이름/시간/칼로리/강도/날짜 갱신."""
@@ -428,7 +435,7 @@ def update_session(
 @router.delete("/exercise/sessions/{session_id}")
 def delete_session(
     session_id: str,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     """운동 기록 삭제. 본인 소유 세션만 삭제 가능(아니면 404)."""

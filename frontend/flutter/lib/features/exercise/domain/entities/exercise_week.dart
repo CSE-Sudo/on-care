@@ -1,4 +1,10 @@
 import 'package:oncare/core/points/points_award.dart';
+import 'package:oncare_rules/oncare_rules.dart'
+    show
+        kExerciseTypeCardio,
+        kExerciseTypeStrength,
+        kExerciseTypeStretching,
+        normalizeExerciseType;
 
 /// "N일 연속" — 운동한 요일 중 **가장 긴 연속 구간**의 길이. 활성 일수의 단순
 /// 합계가 아니다(월·수·금 운동은 3일이 아니라 1일 연속).
@@ -27,17 +33,22 @@ int longestActiveStreak(List<double> dailyMinutes) {
 
 enum ExerciseType { cardio, strength, yoga, walking, stretching, other }
 
-/// 서버·저장소가 쓰는 유형 코드 → [ExerciseType].
+/// 유형 표기(영문 코드·한글 라벨·옛 값) → [ExerciseType].
 ///
-/// 표준 어휘는 네 가지(cardio·strength·flexibility·other)인데 이 enum 은 옛
+/// 표준 어휘는 네 가지(cardio·strength·stretching·other)인데 이 enum 은 옛
 /// 이름을 아직 값으로 들고 있다 — `flexibility` 를 이름으로 찾으면 못 찾아
 /// **스트레칭 기록이 기타로 떨어졌다**. 옛 값도 자기 버킷으로 접어 읽는다. (#996)
-ExerciseType _exerciseTypeFromString(String s) => switch (s) {
-  'cardio' || 'walking' => ExerciseType.cardio,
-  'strength' => ExerciseType.strength,
-  'flexibility' || 'stretching' || 'yoga' => ExerciseType.stretching,
-  _ => ExerciseType.other,
-};
+///
+/// 접는 표는 서버 `exercise_types.normalize` 와 같은 공용 표
+/// ([normalizeExerciseType]) 하나다 — `유산소`·`근력` 같은 한글 라벨도 기타로
+/// 떨어지지 않는다(#2861).
+ExerciseType exerciseTypeFromCode(String? value) =>
+    switch (normalizeExerciseType(value)) {
+      kExerciseTypeCardio => ExerciseType.cardio,
+      kExerciseTypeStrength => ExerciseType.strength,
+      kExerciseTypeStretching => ExerciseType.stretching,
+      _ => ExerciseType.other,
+    };
 
 /// Workout intensity, persisted so the edit sheet reopens at the saved
 /// level and calorie estimates stay consistent. Order matches the
@@ -192,7 +203,7 @@ class ExerciseSession {
       ExerciseSession(
         id: json['id'] as String?,
         dayLabel: json['day_label']! as String,
-        type: _exerciseTypeFromString(json['type']! as String),
+        type: exerciseTypeFromCode(json['type']! as String),
         minutes: (json['minutes']! as num).toInt(),
         calories: (json['calories']! as num).toInt(),
         calorieSource: ExerciseCalorieSource.fromJson(json['calorie_source']),

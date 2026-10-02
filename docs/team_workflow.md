@@ -62,7 +62,7 @@ chore(repo): remove unused api/ and package.json from old calculator demo
 ### 4.1 PR 생성
 
 - PR 제목은 커밋 메시지와 동일한 Conventional Commits 형식을 사용합니다.
-- 본문은 [`.github/pull_request_template.md`](../.github/pull_request_template.md) 의 모든 섹션(Summary / Changes / Commits / Notes / Test Plan / Related Issues / Checklist) 을 채웁니다.
+- 본문은 [`.github/pull_request_template.md`](../.github/pull_request_template.md) 의 모든 섹션(Summary / Changes / Commits / Notes / Screenshots (Optional) / Test Plan / Related Issues / Checklist) 을 채웁니다.
 - 관련 이슈가 있으면 본문에 `Closes #<issue-number>` 를 명시해 머지 시 자동 close 되도록 합니다.
 
 ### 4.2 Reviewers & Assignees
@@ -134,6 +134,38 @@ Linux 에서 작업한다면 `cd shared/oncare_ui && flutter test --update-golde
 ```bash
 gh api repos/actions/checkout/git/ref/tags/v4 --jq .object.sha
 ```
+
+---
+
+## 6.2 의존성 업데이트 PR (#2837)
+
+Dependabot 이 매주 월요일 오전에 생태계별로 묶은 업데이트 PR 을 엽니다
+([`.github/dependabot.yml`](../.github/dependabot.yml)) — 백엔드(pip), GitHub Actions,
+회원 앱·트레이너 웹(pub). 백엔드·두 앱의 주 버전 변경은 자동 PR 로 받지 않습니다(#2978).
+
+- **부·수 버전 묶음**: CI 가 모두 초록이면 담당 영역 사람이 변경 기록(릴리스 노트)만 훑고
+  병합합니다. 한 패키지 때문에 깨지면 그 패키지만 묶음에서 빼고(`@dependabot ignore this
+  minor version`) 나머지를 병합합니다.
+- **주 버전 변경**: Dependabot 이 열지 않습니다. 올려야 할 때는 패키지별로 이슈를 만들어
+  마이그레이션 안내와 필요한 코드 수정 범위를 적고, 그 이슈의 PR 에서 버전과 코드를 함께
+  올립니다. 취약점 때문에 열리는 보안 업데이트 PR 은 주 버전이어도 열리므로 우선 처리합니다.
+- **백엔드 잠금 파일**: `requirements.txt`·`requirements-dev.txt` 는 손으로 고치지 않습니다.
+  직접 의존을 바꿀 때는 `requirements.in`(·`requirements-dev.in`)을 고친 뒤 잠금 파일을
+  다시 만듭니다(절차는 [backend/README.md](../backend/README.md) "의존성").
+- **취약점 경고**: 백엔드 CI 의 `Dependency audit (pip-audit)` 잡이 잠금 파일의 알려진
+  취약점을 요약에 남깁니다. 지금은 경고 모드라 병합을 막지 않지만, 경고가 뜨면 해당
+  패키지 업데이트를 우선 처리합니다.
+
+## 6.3 비밀값 스캔 (#2837)
+
+PR gate 가 PR 의 새 커밋을 gitleaks 로 검사합니다([`.gitleaks.toml`](../.gitleaks.toml)).
+걸리면 값을 지우는 커밋을 더하는 것만으로는 부족합니다 — 이력에 남으므로 그 커밋을
+고쳐 다시 푸시하고, 실제 키였다면 즉시 교체합니다. 예시 파일에는 `CHANGE_ME_…` 처럼
+자리표시자임이 이름에서 드러나는 값만 둡니다. 정말 오탐인 한 줄은 줄 끝에
+`gitleaks:allow` 주석을 달고 PR 에 이유를 적습니다.
+
+저장소 설정의 Secret scanning·Push protection(Settings → Code security)도 켜 두면 푸시
+단계에서 한 번 더 막습니다. 저장소 관리자가 확인합니다.
 
 ---
 

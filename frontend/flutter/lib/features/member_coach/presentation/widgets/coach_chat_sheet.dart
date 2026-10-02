@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -20,8 +21,9 @@ import 'package:oncare/features/member_coach/presentation/widgets/coach_report_c
 import 'package:oncare/features/member_coach/presentation/widgets/coach_report_opener.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/emote_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_report/oncare_report.dart' show PdfPagesView;
 import 'package:oncare_ui/oncare_ui.dart';
-import 'package:printing/printing.dart';
 
 /// 루트 화면 위에 채팅 페이지를 열어 하단 내비게이션과 플로팅 버튼을 가린다.
 Future<void> openTrainerChatPage(
@@ -135,7 +137,9 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
   /// 폰 폭보다 길어져 넘치므로, 그때만 줄 폭에 맞춰 통째로 줄인다 — 평소에는
   /// 가용 폭 그대로다. (패키지 구분선이 긴 날짜를 감당하게 되면 걷어낸다.)
   Widget _dateDivider(DateTime date) {
-    final DateTime localDate = date.toLocal();
+    // 서버 시각(UTC 순간)을 KST 날짜로 — 기기 시간대가 달라도 KST 오전 0~9시
+    // 메시지가 전날 구분선 아래로 가지 않는다(#2876).
+    final DateTime localDate = kstDateOf(date);
     final Widget divider = AppChatDateDivider(
       AppLocalizations.of(context).coachChatDateDivider(localDate),
       key: ValueKey<String>(
@@ -155,13 +159,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     );
   }
 
-  static bool _sameDay(DateTime a, DateTime b) {
-    final localA = a.toLocal();
-    final localB = b.toLocal();
-    return localA.year == localB.year &&
-        localA.month == localB.month &&
-        localA.day == localB.day;
-  }
+  static bool _sameDay(DateTime a, DateTime b) => isSameKstDay(a, b);
 
   /// 대화를 열거나 메시지가 늘면 맨 아래를 보여 준다.
   ///
@@ -333,14 +331,30 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final chat = ref.watch(coachChatProvider);
+    // 서버가 대화를 404 로 답하면 담당이 해제된 것이다(#2843). 빈 대화로 그리지
+    // 않고 안내를 띄우며 입력을 막는다.
+    final bool unassigned = chat.error is CoachUnassignedException;
     // 폴링으로 새 리포트 안내가 오면 받은 리포트 목록도 다시 읽는다(#2643) —
     // 예전에는 앱을 다시 켜기 전까지 목록에 나타나지 않았다.
     ref.listen<AsyncValue<List<CoachMessage>>>(coachChatProvider, (
       AsyncValue<List<CoachMessage>>? previous,
       AsyncValue<List<CoachMessage>> next,
     ) {
+      // 해제를 처음 알게 된 순간 담당 코치도 다시 읽는다 — 대화방을 나가면
+      // 헤더가 AI 챗봇 입구로, 홈 트레이너 카드가 사라진 모습으로 바뀐다.
+      if (next.error is CoachUnassignedException &&
+          previous?.error is! CoachUnassignedException) {
+        unawaited(
+          recheckMemberCoach(ProviderScope.containerOf(context, listen: false)),
+        );
+      }
       final List<CoachMessage>? before = previous?.valueOrNull;
       final List<CoachMessage>? after = next.valueOrNull;
+      // 보낸 사진이 대화에 들어왔으면 대기 목록에서 뺀다 — 원본 바이트가
+      // 화면을 오래 열어 둔 만큼 쌓이지 않게(#2880).
+      if (after != null) {
+        ref.read(coachPhotoSendProvider.notifier).settle(after);
+      }
       if (before == null || after == null) return;
       if (hasNewReportNotice(before, after)) {
         ref.invalidate(sentReportNoticesProvider);
@@ -417,11 +431,21 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
             Expanded(
               child: chat.when(
                 loading: () => const AppLoading(),
-                // 재시도 동작은 원래 없었다 — 문구만 규격 빈 화면 틀에 담는다.
-                error: (_, _) => AppEmptyState(
-                  title: l.coachChatLoadFailed,
-                  icon: AppIcons.error,
-                ),
+                // 해제는 다시 받아도 같으니 안내만, 그 밖의 실패는 다음 폴링까지
+                // 기다리지 않고 다시 받을 수 있게 한다(#2880).
+                error: (Object error, _) => error is CoachUnassignedException
+                    ? AppEmptyState(
+                        key: const ValueKey<String>('coach-chat-unassigned'),
+                        title: l.coachChatUnassigned,
+                        icon: AppIcons.disconnect,
+                      )
+                    : AppErrorState(
+                        key: const ValueKey<String>('coach-chat-error'),
+                        title: l.coachChatLoadFailed,
+                        retryLabel: l.actionRetry,
+                        retryKey: const ValueKey<String>('coach-chat-retry'),
+                        onRetry: () => ref.invalidate(coachChatProvider),
+                      ),
                 data: (latest) {
                   // 폴링이 주는 최신 쪽 앞에, 손으로 더 받아 온 옛 쪽을 붙여
                   // 그린다(#1943). 둘을 한 provider 에 두면 15초마다 새로 받는
@@ -451,6 +475,16 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                     for (final PendingCoachPhoto p in photos)
                       if (p.status != CoachPhotoSendStatus.sent) p,
                   ];
+                  // 연결만 되고 아직 주고받은 것이 없으면 입력줄 위가 통째로
+                  // 비었다. 무엇을 보내면 되는지 안내한다(#2880).
+                  if (messages.isEmpty && unsent.isEmpty) {
+                    return AppEmptyState(
+                      key: const ValueKey<String>('coach-chat-empty'),
+                      title: l.coachChatEmptyTitle(widget.trainerName),
+                      message: l.coachChatEmptyBody,
+                      icon: AppIcons.chat,
+                    );
+                  }
                   final ChatEdges edges = ChatEdges(
                     oldestId: messages.firstOrNull?.id,
                     newestId: unsent.isNotEmpty
@@ -540,7 +574,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                 onEmote: _pickEmote,
                 attachTooltip: l.coachPhotoAttach,
                 onAttach: _picking ? null : _attachPhoto,
-                enabled: !_sending,
+                enabled: !_sending && !unassigned,
                 onSend: _send,
               ),
             ),
@@ -626,6 +660,12 @@ class _MessageRow extends ConsumerWidget {
     );
   }
 
+  /// 본문 글줄을 그릴지. 글 없이 보낸 사진은 본문이 빈 문자열이라, 그대로
+  /// 그리면 사진 위에 빈 글줄과 간격만큼 여백이 생겼다(#2880). 첨부가 없으면
+  /// 빈 본문이어도 말풍선 높이를 지키려고 그린다.
+  bool get _hasText =>
+      message.body.trim().isNotEmpty || message.attachment == null;
+
   /// 말풍선 내용. 리포트 등록 안내는 여기로 오지 않는다 — 그것은 말풍선이
   /// 아니라 대화 가운데 안내라, 스레드를 세울 때 갈라진다(#1600).
   Widget _body(BuildContext context, WidgetRef ref) {
@@ -641,10 +681,11 @@ class _MessageRow extends ConsumerWidget {
             id: emote,
             semanticLabel: AppLocalizations.of(context).a11yEmote,
           )
-        else
+        else if (_hasText)
           Text(message.body),
         if (message.attachment case final attachment?) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s8),
+          if (message.emoteId != null || _hasText)
+            const SizedBox(height: OnCareSpacing.s8),
           // 사진은 대화 안에서 그리고, 리포트 PDF 는 내려받는
           // 카드로 둔다. 사진을 카드로 두면 볼 때마다 파일을
           // 열어야 한다. (#921)
@@ -785,11 +826,8 @@ Future<void> openPdfPreviewPage(
 
 /// [openPdfPreviewPage] 가 여는 화면 — 머리에 파일 이름과 `<`, 아래는 미리보기.
 ///
-/// `build` 는 **부를 때마다 복사본**을 준다. 웹에서 미리보기는 pdf.js 로 그리는데,
-/// pdf.js 는 받은 바이트의 버퍼를 워커로 넘기면서(transfer) 원본을 비워 버린다.
-/// 같은 바이트를 그대로 다시 주면 두 번째 렌더가 `ArrayBuffer ... is already
-/// detached` 로 죽고, 그리다 만 미리보기가 스피너만 도는 채로 남는다. 미리보기는
-/// 화면 크기·용지 설정이 바뀔 때마다 다시 그리므로 두 번째 호출은 반드시 온다.
+/// 쪽을 굽는 일은 공용 [PdfPagesView] 가 한다 — 웹에서 `printing` 의
+/// `PdfPreview` 는 CSP 에 막혀 스피너만 돌았다(#2828).
 class PdfPreviewPage extends StatelessWidget {
   const PdfPreviewPage({
     required this.bytes,
@@ -805,29 +843,10 @@ class PdfPreviewPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
     return Scaffold(
       key: pageKey,
       appBar: AppTopBar(title: fileName),
-      body: PdfPreview(
-        build: (_) async => Uint8List.fromList(bytes),
-        pdfFileName: fileName,
-        allowSharing: false,
-        // 미리보기가 실패했을 때 스피너를 계속 돌리면 회원은 느린 것과
-        // 안 되는 것을 구별할 수 없다.
-        onError: (_, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(OnCareSpacing.s24),
-            child: Text(
-              l.coachChatPdfOpenFailed,
-              textAlign: TextAlign.center,
-              style: tokens
-                  .text(OnCareTypography.bodySmall)
-                  .copyWith(color: OnCareColors.textSecondary),
-            ),
-          ),
-        ),
-      ),
+      body: PdfPagesView(pdf: bytes, failedText: l.coachChatPdfOpenFailed),
     );
   }
 }

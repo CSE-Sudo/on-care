@@ -137,7 +137,7 @@ class _ClientFeedbackSectionState extends ConsumerState<ClientFeedbackSection> {
   }
 }
 
-/// 출처 태그 — `PT · 9/30`, `리포트 · 9/22 주`, `주간 피드백 · 9/29 주`.
+/// 출처 태그 — `PT 세션 · 9/30`(메모 탭 출처 태그와 같은 이름), `리포트 · 9/22 주`, `주간 피드백 · 9/29 주`.
 String feedbackSourceLabel(AppLocalizations l, ClientFeedback item) {
   final String date = '${item.date.month}/${item.date.day}';
   return switch (item.kind) {
@@ -216,57 +216,127 @@ class _FeedbackTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Wrap(
-            spacing: OnCareSpacing.s4,
-            runSpacing: OnCareSpacing.s4,
+          // 머리 줄: 왼쪽에 출처 태그, 오른쪽 끝에 방향. 방향은 출처보다 덜
+          // 중요한 덧말이라 태그 모양 없이 회색 글자로 둔다.
+          Row(
             children: <Widget>[
-              // 회원이 쓴 글은 브랜드 색으로 — 방향이 한눈에 갈린다.
-              AppTag(
-                key: ValueKey<String>('client-feedback-direction-${item.id}'),
-                label: directionLabel,
-                tone: item.kind.fromMember
-                    ? AppTagTone.brand
-                    : AppTagTone.neutral,
+              Expanded(
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: AppTag(
+                    key: ValueKey<String>('client-feedback-source-${item.id}'),
+                    label: sourceLabel,
+                    // PT 세션은 메모 탭의 `PT 세션 · 9/30` 태그와 같은 파랑이다.
+                    tone: item.kind == ClientFeedbackKind.ptSession
+                        ? AppTagTone.brand
+                        : AppTagTone.neutral,
+                    icon: switch (item.kind) {
+                      ClientFeedbackKind.ptSession => AppIcons.exercise,
+                      ClientFeedbackKind.report => AppIcons.reports,
+                      ClientFeedbackKind.weekly => AppIcons.note,
+                    },
+                  ),
+                ),
               ),
-              AppTag(
-                key: ValueKey<String>('client-feedback-source-${item.id}'),
-                label: sourceLabel,
-                icon: switch (item.kind) {
-                  ClientFeedbackKind.ptSession => AppIcons.exercise,
-                  ClientFeedbackKind.report => AppIcons.reports,
-                  ClientFeedbackKind.weekly => AppIcons.note,
-                },
+              const SizedBox(width: OnCareSpacing.s8),
+              Text(
+                key: ValueKey<String>('client-feedback-direction-${item.id}'),
+                directionLabel,
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textTertiary),
               ),
             ],
           ),
           const SizedBox(height: OnCareSpacing.s4),
-          if (weekly != null)
-            Text(
-              key: ValueKey<String>('client-feedback-answers-${item.id}'),
-              weeklyAnswersLine(l, weekly),
-              style: tokens
-                  .text(OnCareTypography.bodySmall)
-                  .copyWith(color: OnCareColors.textSecondary),
+          // 본문은 태그 글자와 같은 선에서 시작한다(태그 안쪽 여백 8).
+          Padding(
+            padding: const EdgeInsetsDirectional.only(start: OnCareSpacing.s8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                if (weekly != null) ...<Widget>[
+                  _WeeklyAnswers(
+                    key: ValueKey<String>('client-feedback-answers-${item.id}'),
+                    weekly: weekly,
+                  ),
+                  // 고른 답과 회원이 직접 쓴 글은 다른 말이다 — 붙어 있으면
+                  // 한 문단(인용)처럼 읽힌다.
+                  const SizedBox(height: OnCareSpacing.s8),
+                ],
+                if (item.body.isNotEmpty)
+                  Text(
+                    item.body,
+                    // 리포트 본문은 길다 — 목록에서는 앞부분만, 전문은 원래 자리에서.
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                    style: tokens
+                        .text(OnCareTypography.body)
+                        .copyWith(color: OnCareColors.textPrimary),
+                  )
+                else if (item.kind == ClientFeedbackKind.weekly)
+                  Text(
+                    l.clientFeedbackWeeklyNoNote,
+                    style: tokens
+                        .text(OnCareTypography.bodySmall)
+                        .copyWith(color: OnCareColors.textTertiary),
+                  ),
+              ],
             ),
-          if (item.body.isNotEmpty)
-            Text(
-              item.body,
-              // 리포트 본문은 길다 — 목록에서는 앞부분만, 전문은 원래 자리에서.
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-              style: tokens
-                  .text(OnCareTypography.body)
-                  .copyWith(color: OnCareColors.textPrimary),
-            )
-          else if (item.kind == ClientFeedbackKind.weekly)
-            Text(
-              l.clientFeedbackWeeklyNoNote,
-              style: tokens
-                  .text(OnCareTypography.bodySmall)
-                  .copyWith(color: OnCareColors.textTertiary),
-            ),
+          ),
         ],
       ),
+    );
+  }
+}
+
+/// 주간 피드백 세 문항의 답 — `컨디션 지쳤어요` 처럼 문항 이름은 옅게, 답은
+/// 진하게 칸을 나눠 둔다. 한 줄 문장이면 회원 글을 인용한 것처럼 읽혔다.
+/// 세 답은 같은 색이다 — 아픈 곳만 빨강이면 한 칸만 튀어 어색했다.
+class _WeeklyAnswers extends StatelessWidget {
+  const _WeeklyAnswers({super.key, required this.weekly});
+
+  final MemberWeeklyFeedback weekly;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    Widget answer(String question, String value) => Text.rich(
+      TextSpan(
+        children: <InlineSpan>[
+          TextSpan(
+            text: '$question  ',
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
+          TextSpan(
+            text: value,
+            style: tokens
+                .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                .copyWith(color: OnCareColors.textPrimary),
+          ),
+        ],
+      ),
+    );
+    return Wrap(
+      spacing: OnCareSpacing.s16,
+      runSpacing: OnCareSpacing.s4,
+      children: <Widget>[
+        answer(
+          l.reportsMemberFeedbackConditionLabel,
+          conditionLabel(l, weekly.condition),
+        ),
+        answer(
+          l.reportsMemberFeedbackIntensityLabel,
+          intensityLabel(l, weekly.intensity),
+        ),
+        answer(
+          l.reportsMemberFeedbackPainLabel,
+          weekly.hasPain ? weekly.painArea : l.reportsMemberFeedbackPainNone,
+        ),
+      ],
     );
   }
 }

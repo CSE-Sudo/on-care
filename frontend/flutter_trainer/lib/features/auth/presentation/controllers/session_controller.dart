@@ -1,12 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/network/session_refresh.dart';
 
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/auth_token.dart';
-import 'package:oncare_trainer/core/network/session_refresh.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/secure_token_store.dart';
+import 'package:oncare_trainer/features/auth/data/repositories/consent_repositories.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
@@ -80,6 +81,14 @@ class SessionController extends StateNotifier<SessionState>
   Future<void> _tokenStorageTail = Future<void>.value();
 
   TrainerAuthRepository get _repo => _ref.read(trainerAuthRepositoryProvider);
+
+  /// 동의가 끝날 때까지 저장하지 않고 들고 있는 토큰. (#2819)
+  ///
+  /// 동의가 남은 세션을 저장해 두면, 동의 화면에서 새로고침만 해도 복구가
+  /// 동의 없이 들여보낸다 — 복구는 `/trainer/me` 만 보고 동의 여부를 모른다.
+  /// 저장하지 않으면 새로고침은 로그인 화면으로 돌아가고, 다시 로그인하면 서버가
+  /// 다시 동의를 요구한다. 동의를 마치면 그때 저장한다.
+  TrainerAuthTokens? _consentPendingTokens;
   SecureTokenStore get _tokens => _ref.read(secureTokenStoreProvider);
 
   void _setAccessToken(String? token) {
@@ -248,12 +257,14 @@ class SessionController extends StateNotifier<SessionState>
     required String email,
     required String password,
     required String name,
+    List<String>? consents,
   }) async {
     _userActionStarted = true;
     final tokens = await _repo.register(
       email: email,
       password: password,
       name: name,
+      consents: consents,
     );
     await _establish(tokens);
   }
@@ -272,7 +283,15 @@ class SessionController extends StateNotifier<SessionState>
   /// Any failure clears the just-issued tokens and rethrows an
   /// [AuthException] (role rejection keeps its specific message).
   Future<void> _establish(TrainerAuthTokens tokens) async {
-    await _persist(tokens);
+    // 동의가 남았으면 저장하지 않는다 — 앞 계정의 저장 토큰도 지워, 새로고침이
+    // 앞 계정으로 되살아나지 않게 한다(#2819, [_consentPendingTokens]).
+    if (tokens.consentRequired) {
+      await _clearPersistedTokens();
+      _consentPendingTokens = tokens;
+    } else {
+      await _persist(tokens);
+      _consentPendingTokens = null;
+    }
     _setAccessToken(tokens.access);
     try {
       final profile = await _repo.fetchProfile(tokens.access);
@@ -282,6 +301,7 @@ class SessionController extends StateNotifier<SessionState>
       state = SessionState(
         status: SessionStatus.authenticated,
         profile: profile,
+        consentRequired: tokens.consentRequired,
       );
     } catch (e) {
       // 로그인·가입·소셜이 실패한 것이라 이 만료도 그 사용자 행동의 일부다 —
@@ -315,7 +335,35 @@ class SessionController extends StateNotifier<SessionState>
     if (status != SessionStatus.authenticated && status != SessionStatus.demo) {
       return;
     }
-    state = SessionState(status: status, profile: profile);
+    state = SessionState(
+      status: status,
+      profile: profile,
+      consentRequired: state.consentRequired,
+    );
+  }
+
+  /// 동의 화면에서 체크한 항목을 남긴다 → `POST /users/me/consents`. (#2819)
+  ///
+  /// 서버가 남은 동의가 없다고 하면 들고 있던 토큰을 그제야 저장하고 동의 요구를
+  /// 푼다 — 라우터 가드가 동의 화면을 걷어 낸다. 실패는 그대로 던진다(화면이
+  /// 알린다). 그 사이 로그아웃·다른 계정 로그인이 있었다면 결과를 버린다.
+  Future<void> submitConsents(List<String> consents) async {
+    final String? token = _ref.read(authAccessTokenProvider);
+    final bool stillRequired = await _ref
+        .read(consentRepositoryProvider)
+        .submit(consents);
+    if (token == null || !_holdsToken(token)) return;
+    if (!stillRequired) {
+      final TrainerAuthTokens? pending = _consentPendingTokens;
+      _consentPendingTokens = null;
+      if (pending != null) await _persist(pending);
+      if (!_holdsToken(token)) return;
+    }
+    state = SessionState(
+      status: state.status,
+      profile: state.profile,
+      consentRequired: stillRequired,
+    );
   }
 
   /// Signs out — revokes the session server-side, clears persisted tokens,
@@ -595,6 +643,7 @@ class SessionController extends StateNotifier<SessionState>
     if (!mounted) return;
     if (!userInitiated && _userActionStarted) return;
     _setAccessToken(null);
+    _consentPendingTokens = null;
     state = const SessionState(status: SessionStatus.signedOut);
   }
 }

@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -44,6 +45,7 @@ String? _lastChanged(
       : l.memberHealthFocusChangedByMember;
   return l.memberHealthFocusLastChanged(
     who,
-    DateFormat.MMMd(locale).format(at),
+    // 브라우저 시간대가 아니라 KST 날짜로(#2893).
+    DateFormat.MMMd(locale).format(kstDateOf(at)),
   );
 }

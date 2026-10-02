@@ -7,8 +7,6 @@ import 'package:demo_fixture/demo_fixture.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/points_award.dart';
-import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/core/utils/wire_date.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/routine_session_log.dart';
@@ -17,6 +15,8 @@ import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 데모에서 담당 트레이너 연결이 아직 살아 있는지 묻는다. (#1865)
 ///
@@ -94,6 +94,12 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   /// 실서버는 취소한 배정을 지우지 않고 그날부터 목록에서 뺀다. 데모도 행을
   /// 남겨 두어야 지난 날짜를 열었을 때 그날 걸려 있던 목록이 그대로 보인다.
   final Map<String, String> _endedOn = <String, String>{};
+
+  /// 지난 날짜에서 해제한 픽스처 완료 — `그날|루틴 id`. (#2506)
+  ///
+  /// 지난 날짜의 완료는 공유 픽스처가 정한다([_fixtureCompletion]). 회원이 그
+  /// 체크를 풀면 픽스처를 고칠 수 없으니 여기 적어 두고 그 완료를 덮는다.
+  final Set<String> _fixtureUndone = <String>{};
 
   static String _dayKey(DateTime day) => wireDate(day);
 
@@ -360,10 +366,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   ///
   /// 스레드 날짜는 실행할 때마다 오늘로 옮겨진다. 여기에 고정된 주를 적으면
   /// 대화는 이번 주인데 안내 상자만 지난 주를 가리키게 된다.
-  static final DateTime _reportWeekStart = _mondayOf(_seedAt(2, '18:17'));
-
-  static DateTime _mondayOf(DateTime day) =>
-      DateTime(day.year, day.month, day.day - (day.weekday - DateTime.monday));
+  static final DateTime _reportWeekStart = mondayOf(_seedAt(2, '18:17'));
 
   static int _minutesOfDay(String timeLabel) {
     final match = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(timeLabel);
@@ -463,7 +466,9 @@ class MockMemberCoachRepository implements MemberCoachRepository {
           in _hasCoach() ? _routines : _autoRoutines)
         if (_isListedOn(routine.id, key))
           done[routine.id] ??
-              (today ? routine : _fixtureCompletion(routine, key) ?? routine),
+              (today || _fixtureUndone.contains('$key|${routine.id}')
+                  ? routine
+                  : _fixtureCompletion(routine, key) ?? routine),
     ]);
   }
 
@@ -471,7 +476,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   /// (#2161)
   ///
   /// 데모의 운동 AI 맞춤 조언(#2162)이 읽는 자리다. 실서버의
-  /// `trainer_service.member_routine_days` 와 같은 모양이라, 조언 규칙은 두 경로에서
+  /// `trainer._common.member_routine_days` 와 같은 모양이라, 조언 규칙은 두 경로에서
   /// 같은 입력을 받는다. 아직 오지 않은 날은 담지 않는다.
   List<RoutineDay> routineDaysBetween(DateTime from, DateTime to) {
     final DateTime today = todayKst();
@@ -519,8 +524,16 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   );
 
   /// 오늘 목록의 [routineId]. 없으면(취소했거나 남의 것) 실서버처럼 못 찾는다.
-  CoachRoutine _todayRoutine(String routineId) {
-    final String key = _dayKey(todayKst());
+  CoachRoutine _todayRoutine(String routineId) =>
+      _routineOn(routineId, todayKst());
+
+  /// [day] 목록의 [routineId] — 그날 걸려 있지 않았으면 실서버처럼 못 찾는다.
+  /// (#2506)
+  CoachRoutine _routineOn(String routineId, DateTime day) {
+    final String key = _dayKey(day);
+    if (_hasCoach() && key.compareTo(_routineSinceKey()) < 0) {
+      throw StateError('Routine not found.');
+    }
     for (final CoachRoutine routine
         in _hasCoach() ? _routines : _autoRoutines) {
       if (routine.id == routineId && _isListedOn(routineId, key)) {
@@ -536,12 +549,18 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     required int minutes,
     int? durationSeconds,
     String intensity = 'moderate',
+    DateTime? day,
   }) async {
     await _restoreCompletions();
-    final CoachRoutine routine = _todayRoutine(routineId);
-    final String day = _dayKey(todayKst());
-    final String slot = '$day|$routineId';
-    final CoachRoutine? already = _doneByDay[day]?[routineId];
+    final DateTime target = _targetDay(day);
+    final CoachRoutine routine = _routineOn(routineId, target);
+    final String key = _dayKey(target);
+    final String slot = '$key|$routineId';
+    final CoachRoutine? already =
+        _doneByDay[key]?[routineId] ??
+        (_fixtureUndone.contains(slot) || target == todayKst()
+            ? null
+            : _fixtureCompletion(routine, key));
     if (already != null) {
       // 같은 날 재전송은 새로 적립하지 않고 처음 받은 값을 돌려준다 — 실서버와
       // 같다.
@@ -556,20 +575,26 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     final int? seconds = durationSeconds != null && durationSeconds > 0
         ? durationSeconds
         : null;
+    // 지난 날짜 기록은 그날 정오에 놓는다 — 실서버와 같다(#2506).
+    final DateTime at = target == todayKst()
+        ? nowKst()
+        : DateTime(target.year, target.month, target.day, 12);
     final CoachRoutine completed = routine.copyWith(
       completed: true,
-      completedAt: nowKst(),
+      completedAt: at,
       completedMinutes: minutes,
       completedDurationSeconds: seconds,
       completedIntensity: intensity,
     );
-    (_doneByDay[day] ??= <String, CoachRoutine>{})[routineId] = completed;
+    _fixtureUndone.remove(slot);
+    (_doneByDay[key] ??= <String, CoachRoutine>{})[routineId] = completed;
     await _logSession(
       completed,
       slot: slot,
       minutes: minutes,
       durationSeconds: seconds,
       intensity: intensity,
+      at: at,
     );
     final PointsAward? award = _awardCompletion(slot);
     return award == null ? completed : completed.copyWith(pointsAward: award);
@@ -587,19 +612,28 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   }
 
   @override
-  Future<CoachRoutine> uncompleteRoutine(String routineId) async {
+  Future<CoachRoutine> uncompleteRoutine(
+    String routineId, {
+    DateTime? day,
+  }) async {
     await _restoreCompletions();
     // 오늘 취소한 배정이라도 오늘 남긴 완료는 되돌릴 수 있다 — 실서버와 같다.
-    final String day = _dayKey(todayKst());
-    final CoachRoutine? done = _doneByDay[day]?.remove(routineId);
+    final DateTime target = _targetDay(day);
+    final String key = _dayKey(target);
+    final String slot = '$key|$routineId';
+    final CoachRoutine? done = _doneByDay[key]?.remove(routineId);
     final CoachRoutine base = <CoachRoutine>[..._routines, ..._autoRoutines]
         .firstWhere(
           (CoachRoutine routine) => routine.id == routineId,
           orElse: () => throw StateError('Routine not found.'),
         );
-    // 지난 날짜의 완료는 건드리지 않는다 — 지난 날짜는 읽기 전용이다.
+    // 지난 날짜의 픽스처 완료도 함께 푼다(#2506) — 픽스처는 고칠 수 없어 덮어
+    // 둔다. 회원이 다시 체크했다 푼 날도 같다: 그러지 않으면 푼 뒤에 픽스처의
+    // 완료가 되살아난다.
+    if (target != todayKst() && _fixtureCompletion(base, key) != null) {
+      _fixtureUndone.add(slot);
+    }
     if (done == null) return base;
-    final String slot = '$day|$routineId';
     // 이 완료로 받은 포인트를 회수한다(#1786).
     final String? source = _completionSources.remove(slot);
     if (source != null) {
@@ -621,6 +655,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     required String slot,
     required int minutes,
     required String intensity,
+    required DateTime at,
     int? durationSeconds,
   }) async {
     final RoutineSessionLog? exercise = _exercise;
@@ -638,11 +673,23 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       minutes: minutes,
       durationSeconds: durationSeconds,
       calories: estimateExerciseCalories(type, minutes, intensity: level),
-      date: nowKst(),
+      date: at,
       intensity: level,
     );
     final String? id = session.id;
     if (id != null) _completionSessions[slot] = id;
+  }
+
+  /// 완료·해제가 다룰 날. 비우면 오늘, 아직 오지 않은 날은 실서버처럼(422)
+  /// 거절한다. (#2506)
+  static DateTime _targetDay(DateTime? day) {
+    final DateTime today = todayKst();
+    if (day == null) return today;
+    final DateTime date = DateTime(day.year, day.month, day.day);
+    if (date.isAfter(today)) {
+      throw ArgumentError.value(day, 'day', '아직 오지 않은 날입니다.');
+    }
+    return date;
   }
 
   @override
@@ -748,9 +795,11 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
       // 서버와 같은 쪽을 준다 — 최신 [chatPageSize] 건, 커서가 있으면 그 앞 한
       // 쪽(#2640). 전부를 한 번에 주면 쪽 사이의 경계가 데모에서만 없어 보인다.
+      // 끊겼으면 실서버의 404 처럼 해제 신호를 준다(#2843) — 빈 목록이면
+      // 대화방이 안내 없이 비어 보인다.
       _hasCoach()
       ? List<CoachMessage>.unmodifiable(pageCoachChat(_chat, before: before))
-      : const <CoachMessage>[];
+      : throw const CoachUnassignedException();
 
   /// 대화가 바뀔 때마다 최신 쪽을 다시 준다. (#2663)
   ///
@@ -770,9 +819,15 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   Stream<T> _watch<T>(Future<T> Function() load) {
     late final StreamController<T> out;
     StreamSubscription<void>? changes;
+    // 읽기가 실패하면(해제 신호 등, #2843) 스트림의 오류로 흘려보낸다 — 삼키면
+    // 듣는 쪽은 첫 값을 끝없이 기다린다.
     Future<void> push() async {
-      final T value = await load();
-      if (!out.isClosed) out.add(value);
+      try {
+        final T value = await load();
+        if (!out.isClosed) out.add(value);
+      } on Object catch (error, stack) {
+        if (!out.isClosed) out.addError(error, stack);
+      }
     }
 
     out = StreamController<T>(
@@ -981,7 +1036,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   Future<MemberWeeklyFeedback> fetchWeeklyFeedback({
     DateTime? weekStart,
   }) async {
-    final DateTime week = _mondayOf(weekStart ?? manualFeedbackWeek());
+    final DateTime week = mondayOf(weekStart ?? manualFeedbackWeek());
     // 담당이 끊긴 데모에서는 보낼 곳이 없다 — 빈 답이라 화면이 칸을 숨긴다.
     if (!_hasCoach()) return MemberWeeklyFeedback.empty(week);
     _seedFeedback();
@@ -1001,7 +1056,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       throw StateError('담당 트레이너가 없으면 주간 피드백을 보낼 수 없습니다.');
     }
     _seedFeedback();
-    final DateTime week = _mondayOf(weekStart);
+    final DateTime week = mondayOf(weekStart);
     final String area = painArea.trim();
     final MemberWeeklyFeedback saved = MemberWeeklyFeedback(
       weekStart: week,

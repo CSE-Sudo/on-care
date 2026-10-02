@@ -112,11 +112,14 @@ class _FakeCoachRepository implements MemberCoachRepository {
     required int minutes,
     int? durationSeconds,
     String intensity = 'moderate',
+    DateTime? day,
   }) async => throw UnimplementedError();
 
   @override
-  Future<CoachRoutine> uncompleteRoutine(String routineId) async =>
-      throw UnimplementedError();
+  Future<CoachRoutine> uncompleteRoutine(
+    String routineId, {
+    DateTime? day,
+  }) async => throw UnimplementedError();
 
   @override
   Future<void> deleteRoutine(String routineId) async {}
@@ -139,8 +142,9 @@ class _FakeCoachRepository implements MemberCoachRepository {
   // 주간 피드백은 이 대역이 서는 화면의 관심사가 아니다 — 안 낸 주로 답한다.
   // (#2232)
   @override
-  Future<MemberWeeklyFeedback> fetchWeeklyFeedback({DateTime? weekStart}) async =>
-      MemberWeeklyFeedback.empty(weekStart ?? manualFeedbackWeek());
+  Future<MemberWeeklyFeedback> fetchWeeklyFeedback({
+    DateTime? weekStart,
+  }) async => MemberWeeklyFeedback.empty(weekStart ?? manualFeedbackWeek());
 
   @override
   Future<MemberWeeklyFeedback> saveWeeklyFeedback({
@@ -289,6 +293,12 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400)); // 화면 전환
     }
 
+    /// 띄운 토스트가 스스로 내려갈 때까지 시간을 흘린다 — 남은 타이머가 없어야 한다.
+    Future<void> drainToasts(WidgetTester tester) async {
+      await tester.pump(const Duration(seconds: 10));
+      await tester.pumpAndSettle();
+    }
+
     testWidgets('아는 목적지는 그 화면으로 보낸다', (WidgetTester tester) async {
       for (final (AlertTarget target, String label) in <(AlertTarget, String)>[
         (AlertTarget.dashboard, '대시보드'),
@@ -355,13 +365,49 @@ void main() {
       expect(find.text('김트레이너'), findsWidgets);
     });
 
-    testWidgets('코치를 못 받으면 대화를 열지 않는다', (WidgetTester tester) async {
+    testWidgets('코치를 못 받으면 대화를 열지 않고 사정을 알린다', (WidgetTester tester) async {
       final _FakeCoachRepository repo = _FakeCoachRepository(throws: true);
       await pumpApp(tester, repo);
       await tap(tester, AlertTarget.coachChat);
 
       // 이름 없는 빈 대화창을 여느니 알림 목록에 남는 편이 낫다.
       expect(find.text('home'), findsOneWidget);
+      // 다만 말없이 멈추면 고장으로 보인다(#2877).
+      expect(
+        find.text(AppLocalizations.of(ctx).alertCoachChatFailed),
+        findsOneWidget,
+      );
+      await drainToasts(tester);
+    });
+
+    testWidgets('담당 트레이너가 없으면 대화를 열 수 없다고 알린다', (WidgetTester tester) async {
+      // 알림이 온 뒤 담당이 끊긴 상황 — 새로 받아 봐도 코치가 없다.
+      final _FakeCoachRepository repo = _FakeCoachRepository();
+      await pumpApp(tester, repo);
+      await tap(tester, AlertTarget.coachChat);
+
+      expect(find.text('home'), findsOneWidget);
+      expect(
+        find.text(AppLocalizations.of(ctx).alertCoachChatNoTrainer),
+        findsOneWidget,
+      );
+      await drainToasts(tester);
+    });
+
+    testWidgets('코치를 받으면 실패 안내 없이 대화를 연다', (WidgetTester tester) async {
+      final _FakeCoachRepository repo = _FakeCoachRepository(coach: _coach);
+      await pumpApp(tester, repo);
+      await tap(tester, AlertTarget.coachChat);
+
+      expect(find.text('김트레이너'), findsWidgets);
+      expect(
+        find.text(AppLocalizations.of(ctx).alertCoachChatNoTrainer),
+        findsNothing,
+      );
+      expect(
+        find.text(AppLocalizations.of(ctx).alertCoachChatFailed),
+        findsNothing,
+      );
     });
 
     testWidgets('대화로 갈 때 읽지 않은 수를 다시 읽는다', (WidgetTester tester) async {

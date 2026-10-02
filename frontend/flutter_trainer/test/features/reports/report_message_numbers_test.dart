@@ -147,8 +147,8 @@ void main() {
       expect(message, contains('저녁 밥 양을 3분의 2로 줄이고'));
     });
 
-    test('PT 세션이 없었다는 것과 다음 주 일정을 말한다', () {
-      expect(message, contains('이 주에는 진행한 PT 세션이 없었어요'));
+    test('PT가 없었다는 것과 다음 주 일정을 말한다', () {
+      expect(message, contains('이 주에는 진행한 PT가 없었어요'));
       expect(message, contains('다음 주 PT 일정도 이번에 같이 잡아 둘게요'));
     });
 
@@ -297,7 +297,7 @@ void main() {
     test('칼로리를 넘긴 주를 영어로도 같은 판정으로 적는다', () {
       final message = reportMessage(_en, _overWeek());
       expect(message, contains('36% above your 2,000kcal target'));
-      expect(message, contains('There were no PT sessions this week.'));
+      expect(message, contains('There was no PT this week.'));
       expect(message, isNot(contains('Great work')));
       expect(message, isNot(contains('은 ')));
     });

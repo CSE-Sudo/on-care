@@ -3,6 +3,7 @@ import 'package:oncare/core/points/demo_emote_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/core/points/demo_weekly_challenge.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 데모 회원(김민수)의 혜택 장부 시드(#2664). [DemoBenefitsStore] 의 구획 모양이다.
 ///
@@ -90,10 +91,11 @@ Future<Map<String, Map<String, Object?>>> buildDemoBenefitsSeed(
   shields.exchange();
 
   // ---- 지난주 월요일: 챌린지 참가, 2주 전 리포트 받기 ----
+  final DateTime thisMonday = mondayOf(today);
   final DateTime lastMonday = DateTime(
-    today.year,
-    today.month,
-    today.day - (today.weekday - DateTime.monday) - 7,
+    thisMonday.year,
+    thisMonday.month,
+    thisMonday.day - 7,
   );
   clock = DateTime(lastMonday.year, lastMonday.month, lastMonday.day, 8, 40);
   await challenges.join(daysOf: (_) async => <DateTime>{});

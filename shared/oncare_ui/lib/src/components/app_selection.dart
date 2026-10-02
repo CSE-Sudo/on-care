@@ -22,10 +22,15 @@ class AppChoiceChip extends StatelessWidget {
     required this.selected,
     required this.onSelected,
     this.icon,
+    this.danger = false,
   });
 
   final String label;
   final bool selected;
+
+  /// 참이면 고른 모양이 브랜드 대신 위험 빨강이다 — `통증·부상` 처럼 고른
+  /// 뒤 붙는 태그가 빨강인 분류가 고를 때부터 같은 색을 쓴다.
+  final bool danger;
 
   /// `null` 이면 비활성이다.
   final ValueChanged<bool>? onSelected;
@@ -38,17 +43,25 @@ class AppChoiceChip extends StatelessWidget {
     final Color foreground = !enabled
         ? OnCareColors.textDisabled
         : selected
-        ? tokens.brand.primary
+        ? (danger ? OnCareColors.danger : tokens.brand.primary)
         : OnCareColors.textPrimary;
     return Semantics(
       button: true,
       selected: selected,
       child: Material(
-        color: selected ? tokens.brand.surface : OnCareColors.surfaceCard,
+        color: !selected
+            ? OnCareColors.surfaceCard
+            : danger
+            ? OnCareColors.onWhite(OnCareColors.danger, OnCareAlpha.subtle)
+            : tokens.brand.surface,
         shape: RoundedRectangleBorder(
           borderRadius: OnCareRadius.mdAll,
           side: BorderSide(
-            color: selected ? tokens.brand.border : OnCareColors.lineStrong,
+            color: !selected
+                ? OnCareColors.lineStrong
+                : danger
+                ? OnCareColors.danger
+                : tokens.brand.border,
           ),
         ),
         clipBehavior: Clip.antiAlias,

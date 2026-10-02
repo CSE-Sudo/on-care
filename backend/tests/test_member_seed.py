@@ -222,7 +222,7 @@ def test_today_pt_schedule_matches_the_fixture_pt(client, db_session):
 
     from app.db.demo_fixture import load_fixture
     from app.models.models import RoutineHistory, TrainerSchedule
-    from app.services.trainer_service import parse_history_exercise
+    from app.services.trainer._common import parse_history_exercise
 
     today = clock.today()
     fixture_day = load_fixture().days_for(today)[-1]
@@ -301,7 +301,7 @@ def test_timeline_members_history_does_not_contradict_today(client, db_session):
 
     from app.db.seed_member_data import _SCHEDULE
     from app.models.models import RoutineHistory
-    from app.services.trainer_service import parse_history_exercise
+    from app.services.trainer._common import parse_history_exercise
 
     today = clock.today().isoformat()
     for _t, name, member_id, _typ, _dur, _status, _note, program in _SCHEDULE:

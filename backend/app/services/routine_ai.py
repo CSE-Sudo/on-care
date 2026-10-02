@@ -17,8 +17,9 @@ LLM 생성과 이 규칙형 생성기로의 폴백은 `trainer_routine_options_s
 from __future__ import annotations
 
 from app.core.locale import Locale, localized
+from app.services import goal_defaults
 
-SODIUM_TARGET_MG = 2000
+SODIUM_TARGET_MG = goal_defaults.DAILY_SODIUM_MG
 
 #: 근거 문장 길이 상한 — 응답 스키마(`RoutineOptionPlanOut.rationale`)와 같은 값이다.
 #: 트레이너 메모(최대 500자)를 그대로 인용하므로, 긴 메모에 주의 문장이 붙으면
@@ -63,6 +64,12 @@ _CARDIO_KEYWORDS = ("걷기", "러닝", "자전거", "유산소", "인터벌", "
 
 #: 주의사항·대화에서 찾는 부담 부위와, 그 부위에 부담이 큰 운동 이름의 조각.
 #: (#1440) 진단을 하지 않는다 — **무엇을 빼야 안전한가**만 안다.
+#:
+#: 이 표와 아래 낱말 표·라이브러리 운동은 트레이너 웹 데모 A/B
+#: (`demo_routine_rules.dart`)도 같은 값으로 든다. 바꾸면
+#: `scripts/gen_routine_caution_cases.py` 로 공유 사례 파일
+#: (`shared/oncare_rules/vectors/routine_caution_cases.json`)을 다시 만든다 —
+#: 서버·트레이너 웹 테스트가 그 파일과 대조한다(#2906).
 _CAUTION_RULES: tuple[tuple[str, tuple[str, ...], tuple[str, ...]], ...] = (
     (
         "무릎",

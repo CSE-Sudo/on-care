@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart' show TimeOfDay;
 
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
@@ -9,6 +8,7 @@ import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 import 'package:oncare/features/exercise/domain/repositories/consultation_repository.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
+import 'package:oncare_core/clock.dart';
 
 class DioConsultationRepository implements ConsultationRepository {
   DioConsultationRepository(this._dio);
@@ -84,7 +84,19 @@ class DioConsultationRepository implements ConsultationRepository {
 
   @override
   Future<void> cancel(String consultationId) async {
-    await _dio.delete<void>('/consultations/$consultationId');
+    try {
+      await _dio.delete<void>('/consultations/$consultationId');
+    } on DioException catch (e) {
+      // 화면이 '다시 시도' 와 '서버 목록으로 맞추기' 를 가를 수 있게 옮긴다
+      // (#2858). 나머지(네트워크·서버 오류)는 그대로 올린다.
+      switch (e.response?.statusCode) {
+        case 409:
+          throw const ConsultationNoLongerPending();
+        case 404:
+          throw const ConsultationNotFound();
+      }
+      rethrow;
+    }
   }
 
   @override
@@ -192,10 +204,9 @@ class MockConsultationRepository implements ConsultationRepository {
     final int i = _mine.indexWhere(
       (ConsultationRequest r) => r.id == consultationId,
     );
-    if (i < 0) throw StateError('consultation not found: $consultationId');
-    if (!_mine[i].isPending) {
-      throw StateError('consultation not pending: $consultationId');
-    }
+    // 실서버와 같은 예외를 낸다(#2858) — 화면이 두 경로에서 같은 안내를 한다.
+    if (i < 0) throw const ConsultationNotFound();
+    if (!_mine[i].isPending) throw const ConsultationNoLongerPending();
     _mine[i] = _mine[i].copyWith(status: ConsultationStatus.cancelled);
     final String? slotId = _slotOf.remove(consultationId);
     if (slotId != null) _mockGyms?.setSlotBooked(slotId, booked: false);

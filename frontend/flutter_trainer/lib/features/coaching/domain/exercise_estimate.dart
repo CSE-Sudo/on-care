@@ -1,8 +1,19 @@
+import 'package:oncare_rules/oncare_rules.dart' show fallbackExerciseCalories;
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
+
+// 초 → 분(`minutesFromSeconds`). 0 이 아니면 최소 1분, 반올림은 서버
+// (Python `round`)와 같은 짝수 쪽이다 — 2분 30초는 2분이다. 서버(`duration`)와
+// 회원 기록(`ExerciseSessionCreate`)이 같은 규칙으로 접는다(#2221, #2860).
+//
+// 칼로리 추정과 분을 더하는 집계만 이 값을 쓴다. 트레이너가 적은 시간은 초
+// 그대로 저장되고 그대로 보인다. 규칙은 회원 앱과 함께 쓰는 공용 패키지 한
+// 곳에 있고, 여기서는 그대로 다시 내보낸다.
+export 'package:oncare_rules/oncare_rules.dart' show minutesFromSeconds;
 
 /// 유형·시간·강도로 소모 칼로리를 어림한다.
 ///
-/// 백엔드 `exercise_catalog.energy.fallback` 과 같은 표다(#1276) — 운동 이름이
+/// 백엔드 `exercise_catalog.energy.fallback` 과 같은 표다(#1276, 공용 표는
+/// `oncare_rules` 의 `kFallbackKcalPerMinute`·`kExerciseIntensityFactor`, #2906) — 운동 이름이
 /// 종목 참조표에 붙지 않을 때의 **폴백**이고, 붙으면 서버가 종목 계수와 회원
 /// 체중으로 계산한다(#1312). 트레이너 폼은 아직 수행할 회원이 정해지지 않은
 /// 자리라 여기서는 늘 이 표를 쓴다. 트레이너가
@@ -12,18 +23,6 @@ import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 /// **세 유형을 한 축에서 비교하는 값은 이 칼로리 하나다.** 유산소는 분, 근력은
 /// 세트, 스트레칭은 분으로 재는 서로 더할 수 없는 값이라, 합쳐 보려면 셋이 함께
 /// 만든 결과 하나로 읽어야 한다.
-const Map<String, double> _kcalPerMinute = <String, double>{
-  '유산소': 9,
-  '근력': 6,
-  '스트레칭': 3,
-  '기타': 5,
-};
-
-const Map<String, double> _intensityFactor = <String, double>{
-  'light': 0.85,
-  'moderate': 1.0,
-  'high': 1.2,
-};
 
 /// 근력 1세트가 차지하는 벽시계 시간(세트 + 휴식). 회원 앱
 /// `kStrengthMinutesPerSetWithRest`·백엔드 `STRENGTH_MINUTES_PER_SET` 과 같은
@@ -33,17 +32,6 @@ const double kStrengthMinutesPerSet = 3;
 /// 근력 세트 수 → 분. 서버는 여전히 분(>0)을 요구하고 주간 운동 시간도 분으로
 /// 세므로, 세트로 받은 값을 저장 전에 여기서 환산한다.
 int minutesFromSets(int sets) => (sets * kStrengthMinutesPerSet).round();
-
-/// 초 → 분. 0 이 아니면 최소 1분으로 반올림한다 — 서버(`duration`)와 회원
-/// 기록(`ExerciseSessionCreate`)이 같은 규칙으로 접는다. (#2221)
-///
-/// 칼로리 추정과 분을 더하는 집계만 이 값을 쓴다. 트레이너가 적은 시간은 초
-/// 그대로 저장되고 그대로 보인다.
-int minutesFromSeconds(int seconds) {
-  if (seconds <= 0) return 0;
-  final int minutes = (seconds / 60).round();
-  return minutes < 1 ? 1 : minutes;
-}
 
 /// 예상 소모 칼로리 한 건과 그 근거. (#1312)
 class RoutineCalorieEstimate {
@@ -74,11 +62,13 @@ RoutineCalorieEstimate? estimateRoutineCalories({
   required String intensity,
 }) {
   if (name.trim().isEmpty) return null;
-  final double perMinute = _kcalPerMinute[normaliseRoutineType(type)] ?? 5;
-  final double factor =
-      _intensityFactor[normaliseRoutineIntensity(intensity)] ?? 1.0;
+  // 서버 `energy.fallback` 과 같은 곱셈 순서·같은 반올림(Python `round`)이다(#2860).
   return RoutineCalorieEstimate(
-    calories: (perMinute * (minutes < 0 ? 0 : minutes) * factor).round(),
+    calories: fallbackExerciseCalories(
+      normaliseRoutineType(type),
+      minutes,
+      normaliseRoutineIntensity(intensity),
+    ),
   );
 }
 

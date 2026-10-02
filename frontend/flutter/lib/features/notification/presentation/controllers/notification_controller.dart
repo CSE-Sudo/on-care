@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/network/dio_client.dart';
-import 'package:oncare/core/utils/active_polling_stream.dart';
 import 'package:oncare/features/notification/data/repositories/dio_notification_repository.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/domain/repositories/notification_repository.dart';
+import 'package:oncare_core/active_polling_stream.dart';
 
 class NotificationController extends StateNotifier<NotificationState> {
   /// 만들자마자 `/notifications` 에서 최신 알림을 불러온다. 데모(목 모드)도 같은
@@ -32,7 +32,10 @@ class NotificationController extends StateNotifier<NotificationState> {
   }
 
   Future<void> _loadOnce() async {
-    if (mounted) state = state.copyWith(loading: true);
+    // 다시 받기 시작하면 실패 표시를 내린다(#2877) — 재시도 중에도 실패 안내가
+    // 남아 있으면 누른 것이 먹지 않은 것처럼 보인다. 받아 본 적 없이 비어 있으면
+    // 화면이 첫 로딩 표시로 돌아간다.
+    if (mounted) state = state.copyWith(loading: true, failedToLoad: false);
     try {
       final items = await _repo.fetchPage(limit: notificationPageSize);
       if (!mounted) return;
@@ -94,7 +97,15 @@ class NotificationController extends StateNotifier<NotificationState> {
   /// 화면 진입·복귀·당겨서 새로고침이 모두 이 경로를 쓴다.
   Future<void> refresh() => _load();
 
+  /// 알림 한 건을 읽음으로 바꾼다.
+  ///
+  /// 쓰기가 실패하면 그 알림만 안 읽음으로 되돌린다(#2877). 알림을 누르면 이동이
+  /// 함께 일어나므로 따로 안내하지 않는다 — 서버에 안 읽음으로 남은 것이 화면에도
+  /// 그대로 보이면 된다.
   Future<void> markRead(String id) async {
+    final bool wasUnread = state.items.any(
+      (AlertItem i) => i.id == id && !i.read,
+    );
     // copyWith 로 바꾼다 — 새 상태를 통째로 만들면 이어 받아 둔 쪽 정보(hasMore)가
     // 사라져, 읽음 처리 한 번에 "더 보기" 가 멈춘다.
     state = state.copyWith(
@@ -105,7 +116,7 @@ class NotificationController extends StateNotifier<NotificationState> {
     try {
       await _repo.markRead(id);
     } catch (_) {
-      // 낙관적 업데이트 유지 — 영속화 실패는 다음 로드에서 정정된다.
+      if (mounted && wasUnread) _restoreUnread(<String>{id});
     } finally {
       // **쓰기가 끝난 뒤에** 다시 센다. 먼저 부르면 서버가 아직 옛 수를 답해,
       // 배지가 다음 폴링까지 틀린 채로 남는다(리뷰).
@@ -113,17 +124,41 @@ class NotificationController extends StateNotifier<NotificationState> {
     }
   }
 
-  Future<void> markAllRead() async {
+  /// 모두 읽음으로 바꾸고, 서버 쓰기가 성공했는지 돌려준다.
+  ///
+  /// 실패하면 읽음 표시를 되돌리고 `false` 를 돌려준다(#2877) — 화면이 실패를
+  /// 알린다. 예전에는 실패를 버려, 화면은 모두 읽음인데 서버에는 안 읽음으로 남아
+  /// 다음 조회 때 말없이 되살아났다.
+  Future<bool> markAllRead() async {
+    final Set<String> unread = state.items
+        .where((AlertItem i) => !i.read)
+        .map((AlertItem i) => i.id)
+        .toSet();
     state = state.copyWith(
       items: state.items.map((AlertItem i) => i.copyWith(read: true)).toList(),
     );
     try {
       await _repo.markAllRead();
+      return true;
     } catch (_) {
-      // 낙관적 업데이트 유지.
+      if (mounted) _restoreUnread(unread);
+      return false;
     } finally {
       onChanged?.call();
     }
+  }
+
+  /// [ids] 를 안 읽음으로 되돌린다. 그 사이 새로고침으로 목록이 바뀌었으면 지금
+  /// 목록에 남아 있는 것만 되돌린다 — 새로 받은 목록은 이미 서버 상태다.
+  void _restoreUnread(Set<String> ids) {
+    if (ids.isEmpty) return;
+    state = state.copyWith(
+      items: state.items
+          .map(
+            (AlertItem i) => ids.contains(i.id) ? i.copyWith(read: false) : i,
+          )
+          .toList(),
+    );
   }
 }
 

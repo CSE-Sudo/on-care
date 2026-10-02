@@ -46,3 +46,9 @@ double snapExerciseWeight(double kg) =>
 /// 추가 시트의 `추가할 운동` 목록이 이 수에서 더 쌓이지 않는다. 서버도 같은
 /// 수를 넘는 요청을 422 로 거절한다.
 const int kMaxExerciseSessionsPerSave = 20;
+
+/// `전체` 운동 그래프가 거슬러 올라가는 최대 주 수(약 3년). 서버 기간 집계의
+/// 상한(`exercise_service.MAX_PERIOD_WEEKS`, #2833)과 같다 — 날짜가 잘못 들어간
+/// 아주 오래된 기록 하나가 그래프를 수만 주로 늘리지 않게 한다. 데모 응답
+/// (`LocalApiInterceptor`)도 같은 값으로 자른다.
+const int kExerciseMaxPeriodWeeks = 160;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
@@ -217,8 +218,11 @@ TextStyle _line(BuildContext context) => context.oncare
     .text(OnCareTypography.body)
     .copyWith(color: OnCareColors.textPrimary);
 
-String _day(BuildContext context, DateTime d) =>
-    DateFormat.MMMd(Localizations.localeOf(context).toLanguageTag()).format(d);
+/// 'N월 N일' — KST 날짜로 읽는다(#2893). 서버 시각은 UTC 순간이라 그대로
+/// 찍으면 브라우저 시간대의 날짜가 된다.
+String _day(BuildContext context, DateTime d) => DateFormat.MMMd(
+  Localizations.localeOf(context).toLanguageTag(),
+).format(kstDateOf(d));
 
 /// 끼니 · 메뉴 이름 · 이유 키워드 · 1인분 추정치.
 class _Menu extends StatelessWidget {

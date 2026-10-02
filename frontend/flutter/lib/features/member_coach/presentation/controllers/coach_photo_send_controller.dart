@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:oncare/core/utils/request_id.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare_core/request_id.dart';
 
 /// 회원이 트레이너에게 보내는 사진 한 장의 전송 상태. (#1665)
 enum CoachPhotoSendStatus {
@@ -116,6 +116,24 @@ class CoachPhotoSendController extends Notifier<List<PendingCoachPhoto>> {
     state = <PendingCoachPhoto>[
       for (final PendingCoachPhoto p in state)
         if (p.requestId != requestId) p,
+    ];
+  }
+
+  /// 대화([thread])에 들어온 보낸 사진을 목록에서 뺀다. (#2880)
+  ///
+  /// 서버가 받은 사진은 대화가 그 메시지를 가질 때까지만 여기서 그린다. 그 뒤로도
+  /// 남겨 두면 원본 바이트가 화면을 오래 열어 두고 보낸 장수만큼 메모리에 쌓인다.
+  /// 보내는 중·실패한 사진은 그대로 둔다.
+  void settle(Iterable<CoachMessage> thread) {
+    final Set<String> ids = <String>{for (final CoachMessage m in thread) m.id};
+    bool landed(PendingCoachPhoto p) =>
+        p.status == CoachPhotoSendStatus.sent &&
+        p.message != null &&
+        ids.contains(p.message!.id);
+    if (!state.any(landed)) return;
+    state = <PendingCoachPhoto>[
+      for (final PendingCoachPhoto p in state)
+        if (!landed(p)) p,
     ];
   }
 

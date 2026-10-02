@@ -7,7 +7,9 @@
    완료할 수 있다.
 2. 지난 날짜는 그날 걸려 있던 목록과 그날 완료를 그대로 보여 준다 — 트레이너가
    나중에 철회해도 그날 목록은 남는다.
-3. 완료·해제는 오늘만 건드린다.
+3. 완료·해제는 날짜를 주지 않으면 오늘만 건드린다. 날짜를 주면 그날 걸려 있던
+   배정에 한해 지난 날짜도 체크·해제한다(#2506) — 기록은 그날에 놓이고, 포인트
+   하루 한도는 적립하는 날 기준이다.
 """
 from __future__ import annotations
 
@@ -259,10 +261,114 @@ def test_uncompleting_only_touches_today(client, assigned, today, monkeypatch):
     assert undone.status_code == 200, undone.text
     assert undone.json()["completed"] is False
 
-    # 어제 한 운동은 남는다 — 지난 날짜는 읽기 전용이다.
+    # 어제 한 운동은 남는다 — 날짜를 주지 않은 해제는 오늘만 건드린다.
     rows = _completions(routine["id"])
     assert len(rows) == 1
     assert _mine(client, member, today.date())[routine["id"]]["completed"] is True
+
+
+def _complete_on(client, member: str, routine_id: str, day, minutes: int = 20):
+    return client.post(
+        f"/v1/me/coach/routines/{routine_id}/complete",
+        headers=_h(member),
+        params={"date": day.isoformat()},
+        json={"minutes": minutes, "intensity": "moderate"},
+    )
+
+
+def test_a_past_day_can_be_checked_later(client, assigned, today, monkeypatch):
+    """빠뜨린 체크를 다음 날 한다 — 기록은 그날에 놓인다. (#2506)"""
+    _, routine = assigned
+    member = _login(client, "jisu@oncare.com")
+    _move_to(monkeypatch, today + timedelta(days=1))
+
+    res = _complete_on(client, member, routine["id"], today.date(), minutes=15)
+
+    assert res.status_code == 200, res.text
+    assert res.json()["completed"] is True
+    assert _mine(client, member, today.date())[routine["id"]]["completed"] is True
+    # 오늘 목록은 그대로 미완료다.
+    assert _mine(client, member)[routine["id"]]["completed"] is False
+    [row] = _completions(routine["id"])
+    assert row.minutes == 15
+    # 기록은 그날 정오에, 누른 시각은 생성 시각에 남는다 — 트레이너가
+    # "다음 날 이후 체크" 를 가르는 재료다.
+    assert clock.to_seoul(row.completed_at).date() == today.date()
+    assert clock.to_seoul(row.created_at).date() == today.date() + timedelta(days=1)
+
+
+def test_a_past_day_check_can_be_undone(client, assigned, today, monkeypatch):
+    _, routine = assigned
+    member = _login(client, "jisu@oncare.com")
+    _move_to(monkeypatch, today + timedelta(days=1))
+    assert _complete_on(client, member, routine["id"], today.date()).status_code == 200
+
+    undone = client.delete(
+        f"/v1/me/coach/routines/{routine['id']}/complete",
+        headers=_h(member),
+        params={"date": today.date().isoformat()},
+    )
+
+    assert undone.status_code == 200, undone.text
+    assert _completions(routine["id"]) == []
+    assert _mine(client, member, today.date())[routine["id"]]["completed"] is False
+
+
+def test_a_day_the_routine_was_not_on_cannot_be_checked(client, assigned, today):
+    """배정 전날에는 목록에 없었다 — 없던 운동을 한 것으로 적지 않는다."""
+    _, routine = assigned
+    member = _login(client, "jisu@oncare.com")
+
+    res = _complete_on(
+        client, member, routine["id"], today.date() - timedelta(days=1)
+    )
+
+    assert res.status_code == 404, res.text
+    assert _completions(routine["id"]) == []
+
+
+def test_a_future_day_cannot_be_checked(client, assigned, today):
+    _, routine = assigned
+    member = _login(client, "jisu@oncare.com")
+
+    res = _complete_on(
+        client, member, routine["id"], today.date() + timedelta(days=1)
+    )
+
+    assert res.status_code == 422, res.text
+
+
+def test_a_withdrawn_routine_can_still_be_checked_for_the_days_it_was_on(
+    client, assigned, today, monkeypatch
+):
+    """오늘 내려온 배정이라도 걸려 있던 어제는 체크할 수 있다. (#2506)"""
+    trainer, routine = assigned
+    member = _login(client, "jisu@oncare.com")
+    _move_to(monkeypatch, today + timedelta(days=1))
+    client.delete(
+        f"/v1/trainer/clients/{MEMBER_ID}/routines/{routine['id']}",
+        headers=_h(trainer),
+    )
+
+    res = _complete_on(client, member, routine["id"], today.date())
+
+    assert res.status_code == 200, res.text
+    assert _mine(client, member, today.date())[routine["id"]]["completed"] is True
+
+
+def test_checking_past_days_uses_todays_point_limit(
+    client, assigned, today, monkeypatch
+):
+    """지난 날짜를 몰아 체크해도 포인트는 오늘 한도를 쓴다 — 하루 한 번. (#2506)"""
+    _, routine = assigned
+    member = _login(client, "jisu@oncare.com")
+    _move_to(monkeypatch, today + timedelta(days=1))
+    _complete(client, member, routine["id"])
+
+    past = _complete_on(client, member, routine["id"], today.date())
+
+    assert past.status_code == 200, past.text
+    assert past.json()["points"]["awarded"] == 0
 
 
 def test_withdrawing_a_pending_suggestion_removes_the_row(client):
@@ -379,11 +485,11 @@ def test_a_removed_ai_recommendation_does_not_come_back_the_same_day(
 
 
 def _days(start, end):
-    from app.services import trainer_service
+    from app.services.trainer import _common as trainer_common_service
 
     db = SessionLocal()
     try:
-        return trainer_service.member_routine_days(db, MEMBER_ID, start, end)
+        return trainer_common_service.member_routine_days(db, MEMBER_ID, start, end)
     finally:
         db.close()
 

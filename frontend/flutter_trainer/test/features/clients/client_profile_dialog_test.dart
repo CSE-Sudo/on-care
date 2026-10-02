@@ -4,11 +4,11 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_feedback_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_feedback.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
@@ -277,6 +277,31 @@ Future<void> _startEditing(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('메모 시각은 브라우저 시간대가 아니라 KST 로 보인다 (#2893)', (tester) async {
+    final repository = _FakeMemoRepository();
+    // 서버가 준 UTC 9월 16일 15:30 = KST 9월 17일 00:30.
+    final DateTime at = DateTime.utc(2026, 9, 16, 15, 30);
+    repository._byClient['m1'] = <TrainerMemo>[
+      TrainerMemo.fromJson(<String, Object?>{
+        'id': 'memo-utc',
+        'body': '야간 통증 문의',
+        'source': 'trainer',
+        'created_at': at.toIso8601String(),
+        'updated_at': at.toIso8601String(),
+      }),
+    ];
+    await _pumpDialog(tester, repository);
+
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey<String>('client-memo-time-memo-utc')),
+          )
+          .data,
+      '2026.09.17 00:30',
+    );
+  });
+
   testWidgets('a saved memo shows in the list and survives a reopen', (
     tester,
   ) async {
@@ -562,7 +587,9 @@ void main() {
     expect(remove.tooltip, isNotEmpty);
     // 줄마다 빨간 휴지통이 서 있으면 메모보다 지우기가 먼저 눈에 든다.
     // 붉은 것은 확인창의 확정 버튼이다(아래 테스트).
-    expect(remove.color, OnCareColors.textTertiary);
+    // 연필·휴지통은 신체·목표 연필과 같은 진한 회색이다.
+    expect(remove.color, OnCareColors.textSecondary);
+    expect(edit.color, OnCareColors.textSecondary);
     expect(edit.color, isNot(OnCareColors.danger));
     // 배경 없는 아이콘 버튼이다 — 글자 버튼일 때는 본문만큼 눈에 들어왔다.
     expect(edit.variant, AppIconButtonVariant.plain);
@@ -1723,7 +1750,7 @@ void main() {
       expect(ptY, lessThan(weeklyY));
       expect(weeklyY, lessThan(reportY));
 
-      expect(find.text('PT · 9/30'), findsOneWidget);
+      expect(find.text('PT 세션 · 9/30'), findsOneWidget);
       expect(find.text('주간 피드백 · 9/28 주'), findsOneWidget);
       expect(find.text('리포트 · 9/21 주'), findsOneWidget);
       expect(find.text('트레이너 → 회원'), findsNWidgets(2));

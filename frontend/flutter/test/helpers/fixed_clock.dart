@@ -6,8 +6,7 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 주 중간의 기준일 — 2026-08-20 (목) 오전 9시. 앞뒤로 사흘씩 남아 어제·내일
 /// 어느 쪽을 눌러도 스트립 안에 있다.

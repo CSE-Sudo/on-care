@@ -47,10 +47,6 @@ ROUTINE_EFFECTS_BY_GOAL: dict[str, dict[str, str]] = {
     },
 }
 
-#: 저장 칸 길이(`trainer_routines.effect`).
-EFFECT_MAX_LENGTH = 40
-
-
 def auto_routine_effect(routine_type: str, goals: str | None) -> str:
     """`routine_type` 운동을 `goals` 회원에게 권할 때 채울 효과.
 
@@ -66,13 +62,3 @@ def auto_routine_effect(routine_type: str, goals: str | None) -> str:
     if first in by_goal:
         return by_goal[first]
     return ROUTINE_EFFECT_DEFAULTS.get(routine_type, ROUTINE_EFFECT_DEFAULTS["기타"])
-
-
-def resolve_routine_effect(
-    written: str | None, routine_type: str, goals: str | None
-) -> str:
-    """트레이너가 적은 효과가 있으면 그것, 없으면 문구표의 자동 문구."""
-    text = (written or "").strip()
-    if text:
-        return text[:EFFECT_MAX_LENGTH]
-    return auto_routine_effect(routine_type, goals)

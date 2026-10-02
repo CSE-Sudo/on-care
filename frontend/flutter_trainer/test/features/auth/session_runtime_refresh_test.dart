@@ -22,7 +22,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/auth_token.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
-import 'package:oncare_trainer/core/network/interceptors/auth_interceptor.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/secure_token_store.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
@@ -57,7 +56,7 @@ class _Session {
             ),
           );
           dio.httpClientAdapter = backend;
-          dio.interceptors.add(AuthInterceptor(ref, retryClient: dio));
+          dio.interceptors.add(authInterceptorFor(ref, retryClient: dio));
           return dio;
         }),
       ],

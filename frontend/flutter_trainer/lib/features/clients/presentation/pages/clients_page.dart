@@ -16,6 +16,7 @@ import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/widgets/trainer_verification_banner.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 관리 필터 패널 폭 — 아홉 개 칩이 서너 줄로 접히는 폭이다.
@@ -95,6 +96,10 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
     // (실 API 는 #2670 에서 켰다). 이 provider 가 꺼진 빌드에서만 진입점
     // 자체를 그리지 않는다. (#919·#1634)
     final canConnect = ref.watch(clientInvitesEnabledProvider);
+    // 운영자 승인 전에는 서버가 연결 코드를 403 으로 막는다(#2825). 진입점은
+    // 남겨 두고 끈 채로, 그 아래 배너가 이유를 적는다 — 버튼이 사라지면 이 기능이
+    // 있다는 것조차 모른다.
+    final approved = ref.watch(trainerVerificationProvider).isApproved;
     final activeFilter = clientFilterFrom(widget.filter);
 
     final Widget page = clientsAsync.when(
@@ -176,12 +181,19 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                             key: const ValueKey<String>('clients-new'),
                             label: l.clientsNew,
                             leadingIcon: AppIcons.addClient,
-                            onPressed: () => _openConnectDialog(context),
+                            onPressed: approved
+                                ? () => _openConnectDialog(context)
+                                : null,
                           ),
                         ],
                       ],
                     ),
                     const SizedBox(height: OnCareSpacing.s12),
+                    if (canConnect)
+                      const TrainerVerificationBanner(
+                        scope: TrainerVerificationScope.connect,
+                        bottomGap: OnCareSpacing.s12,
+                      ),
                   ],
                   Expanded(
                     child: AppSplitView(
@@ -229,7 +241,11 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                                   filter: widget.filter,
                                 ),
                               ),
-                              onClose: () => context.go(AppRoutes.clients),
+                              // 걸어 둔 목록 필터(`f`)를 들고 돌아간다(#2893).
+                              filter: widget.filter,
+                              onClose: () => context.go(
+                                AppRoutes.clientsWith(widget.filter),
+                              ),
                             ),
                     ),
                   ),

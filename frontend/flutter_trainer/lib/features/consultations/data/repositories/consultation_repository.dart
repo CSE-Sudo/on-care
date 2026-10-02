@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/active_polling_stream.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
@@ -11,9 +13,8 @@ import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/demo_member_directory.dart';
-import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/core/utils/poll_intervals.dart';
 import 'package:oncare_trainer/features/consultations/data/dtos/consultation_dtos.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
 import 'package:oncare_trainer/features/schedule/data/demo_reservation_slots.dart';
@@ -503,11 +504,15 @@ class DioConsultationRepository implements ConsultationRepository {
   }) => activePollingStream<List<ConsultationRequest>>(
     load: () => fetch(status: status, limit: limit),
     interval: pollInterval,
+    keepPollingWhileInactive: true,
   );
 
   @override
-  Stream<int> watchPendingCount() =>
-      activePollingStream<int>(load: pendingCount, interval: pollInterval);
+  Stream<int> watchPendingCount() => activePollingStream<int>(
+    load: pendingCount,
+    interval: pollInterval,
+    keepPollingWhileInactive: true,
+  );
 
   @override
   Future<int> pendingCount() async {

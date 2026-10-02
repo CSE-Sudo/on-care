@@ -15,7 +15,8 @@ from sqlalchemy import text
 
 from app.core.security import create_access_token
 from app.models.models import ChatMessage, TrainerClient, User
-from app.services import trainer_service
+from app.services.trainer import _common as trainer_common_service
+from app.services.trainer import reports as trainer_reports_service
 
 TRAINER_ID = "trainer-demo"
 PDF = b"%PDF-1.4\n1 0 obj<<>>endobj\n%%EOF\n"
@@ -138,7 +139,7 @@ def _message(
 
 
 def _history(db, member_id: str, *, limit: int = 12, before: date | None = None):
-    return trainer_service.list_member_report_sends(
+    return trainer_reports_service.list_member_report_sends(
         db, TRAINER_ID, member_id, limit=limit, before=before
     )
 
@@ -152,23 +153,23 @@ def _weeks(out) -> list[str]:
 
 def test_preview_takes_the_first_non_blank_line():
     body = "\n\n  이번 주 식단이 좋았어요  \n운동은 조금 부족했어요"
-    assert trainer_service.report_feedback_preview(body) == "이번 주 식단이 좋았어요"
+    assert trainer_reports_service.report_feedback_preview(body) == "이번 주 식단이 좋았어요"
 
 
 def test_preview_keeps_a_short_line_whole():
-    line = "가" * trainer_service.REPORT_PREVIEW_LENGTH
-    assert trainer_service.report_feedback_preview(line) == line
+    line = "가" * trainer_reports_service.REPORT_PREVIEW_LENGTH
+    assert trainer_reports_service.report_feedback_preview(line) == line
 
 
 def test_preview_cuts_a_long_line_with_an_ellipsis():
-    line = "나" * (trainer_service.REPORT_PREVIEW_LENGTH + 30)
-    preview = trainer_service.report_feedback_preview(line)
-    assert len(preview) == trainer_service.REPORT_PREVIEW_LENGTH
+    line = "나" * (trainer_reports_service.REPORT_PREVIEW_LENGTH + 30)
+    preview = trainer_reports_service.report_feedback_preview(line)
+    assert len(preview) == trainer_reports_service.REPORT_PREVIEW_LENGTH
     assert preview.endswith("…")
 
 
 def test_preview_of_an_empty_body_is_empty():
-    assert trainer_service.report_feedback_preview("  \n \n") == ""
+    assert trainer_reports_service.report_feedback_preview("  \n \n") == ""
 
 
 # ---- 서비스 ----
@@ -309,7 +310,7 @@ def test_weekly_roster_view_uses_the_same_fold(client, db_session):
     [mine] = _history(db_session, member).sends
     [roster] = [
         s
-        for s in trainer_service.list_report_sends(
+        for s in trainer_reports_service.list_report_sends(
             db_session, TRAINER_ID, date(2025, 9, 1)
         ).sends
         if s.member_id == member
@@ -343,7 +344,7 @@ def test_api_returns_sends_newest_first_with_the_documented_shape(client, db_ses
     assert [s["week_start"] for s in body["sends"]] == ["2025-09-08", "2025-09-01"]
     assert body["sends"][0] == {
         "week_start": "2025-09-08",
-        "sent_at": trainer_service._iso(BASE + timedelta(days=7)),
+        "sent_at": trainer_common_service._iso(BASE + timedelta(days=7)),
         "read": False,
         "send_count": 1,
         "message_id": latest,

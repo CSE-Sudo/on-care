@@ -68,6 +68,14 @@ class DioAccountRepository implements AccountRepository {
   }
 
   @override
+  Future<UserProfile> skipOnboarding() async {
+    final res = await _dio.post<Map<String, Object?>>(
+      '/users/me/onboarding/skip',
+    );
+    return UserProfile.fromJson(res.data!);
+  }
+
+  @override
   Future<UserProfile> updateProfile({
     String? name,
     String? email,
