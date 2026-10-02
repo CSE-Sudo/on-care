@@ -267,8 +267,8 @@
 | GET | `/healthz` | `{status: "ok", version: "..."}` |
 | GET | `/version` | `{api_version, commit_sha}` |
 
-`MockApiInterceptor`의 `GET /ping → {message: "pong (mock)"}`도 dev/test
-용으로 살려두면 좋습니다.
+데모 모드(`USE_MOCK_API=true`)에서는 `LocalApiInterceptor` 가
+`GET /ping → {message: "pong (local)"}` 를 답합니다.
 
 ---
 
