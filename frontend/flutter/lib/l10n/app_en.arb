@@ -27,10 +27,6 @@
   "pageAiCoachTitle": "AI Coach",
   "pageNotificationTitle": "Notifications",
   "actionRetry": "Retry",
-  "errorNetwork": "Network problem",
-  "errorUnauthorized": "Sign in required",
-  "errorNotFound": "Not found",
-  "errorServer": "Server error",
   "errorCancelled": "Cancelled",
   "errorUnknown": "Something went wrong",
   "errorForbidden": "You don't have access to this feature. Please check the required consent or your trainer connection.",
@@ -95,7 +91,6 @@
   },
   "homeAiAdviceBody": "Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.",
   "homeAiAdviceNoRecord": "Log today's meals and workouts, and we'll put together advice for your day.",
-  "homeSodiumExceededBadge": "Sodium over",
   "homeMacroCarbs": "Carbs",
   "homeMacroProtein": "Protein",
   "homeMacroFat": "Fat",
@@ -113,7 +108,6 @@
       }
     }
   },
-  "homeWeeklyExerciseTrend": "Exercise trend",
   "homeExerciseTrendUnavailable": "Couldn't load this week's workout history.",
   "homeExerciseBurned": "Calories",
   "homeMealReasonSodium": "Great for sodium control",
@@ -152,7 +146,6 @@
   "homeRecBasisOverLimit": "over the daily limit",
   "homeRecMealsTitle": "Recommended meals",
   "homeRecMealsErrorTitle": "Couldn't load meal suggestions",
-  "homeViewAll": "View all",
   "@homeScheduleDate": {
     "placeholders": {
       "weekday": {
@@ -168,7 +161,6 @@
   },
   "unitKcal": "kcal",
   "unitMinutes": "min",
-  "unitSets": "sets",
   "unitKcalValue": "{count} kcal",
   "@unitKcalValue": {
     "placeholders": {
@@ -224,17 +216,6 @@
   "dietMealNotFoundAction": "Go to Diet",
   "dietPeriodAverage": "Daily average",
   "dietPeriodEmpty": "No meals were logged in this period.",
-  "dietPeriodRange": "{start} - {end}",
-  "@dietPeriodRange": {
-    "placeholders": {
-      "start": {
-        "type": "String"
-      },
-      "end": {
-        "type": "String"
-      }
-    }
-  },
   "dietPeriodNoRecord": "No record",
   "dietPeriodNotYet": "Not yet",
   "dietPeriodOverGoal": "{amount} {unit} over goal",
@@ -403,12 +384,6 @@
   "exGymTab": "Gym",
   "exMyGymSection": "My Gym",
   "exConnected": "Connected",
-  "exRecommendedGyms": "Recommended Gyms",
-  "exRecommendedTrainers": "Recommended Trainers",
-  "exSeeMore": "See more",
-  "exNoConnectedGym": "You don't have a connected gym yet.",
-  "exNoRecommendedGyms": "No gym recommendations yet.",
-  "exNoRecommendedTrainers": "No trainer recommendations yet.",
   "exTrainerAffiliation": "Gym",
   "exTrainerIntroSection": "About the trainer",
   "exTrainerCareer": "{career} of experience",
@@ -423,7 +398,6 @@
   "exTrainerCertifications": "Certifications",
   "exTrainerRecommendationReason": "A great fit for reaching my health goals",
   "exNearbyGymsMapLabel": "Gyms near me",
-  "exWeekSummary": "This Week's Summary",
   "exActivityTitle": "Activity",
   "exBurnWeekOfMonthTitle": "Burned in week {week}, {month}/",
   "@exBurnWeekOfMonthTitle": {
@@ -450,27 +424,6 @@
   "exLoadEmpty": "No records yet.",
   "exThisWeek": "This week",
   "exPeriodAll": "All",
-  "exExerciseContent": "What you did",
-  "exViewDetail": "View details",
-  "exRegister": "Register",
-  "exGymRegistered": "Registered {gym}",
-  "@exGymRegistered": {
-    "placeholders": {
-      "gym": {
-        "type": "String"
-      }
-    }
-  },
-  "exWeekNumber": "Week {n}",
-  "@exWeekNumber": {
-    "placeholders": {
-      "n": {
-        "type": "int"
-      }
-    }
-  },
-  "exTodayTotalTime": "Today's total time",
-  "exRest": "Rest",
   "exRestSeconds": "Rest {seconds}s",
   "@exRestSeconds": {
     "placeholders": {
@@ -479,11 +432,6 @@
       }
     }
   },
-  "exAiRecommendedExercise": "AI recommended exercise",
-  "exStatTime": "Time",
-  "exStatCalories": "Calories",
-  "exStatStreak": "Streak",
-  "exUnitStreakDays": "day streak",
   "exStreakCheer": "{days} days in a row!",
   "@exStreakCheer": {
     "placeholders": {
@@ -529,7 +477,6 @@
   "exExerciseType": "Exercise Type",
   "exExerciseDate": "Date",
   "exExerciseName": "Exercise Name",
-  "exExerciseNameHint": "e.g. Squat, Treadmill",
   "exExerciseNameHintCardio": "e.g. Treadmill, Indoor cycling",
   "exExerciseNameHintStrength": "e.g. Squat, Bench press",
   "exExerciseNameHintFlexibility": "e.g. Full-body stretch, Yoga",
@@ -634,7 +581,6 @@
   },
   "exRecordDetailInfo": "Workout details",
   "exRecordDetailTotalCalories": "Total calories burned",
-  "exOwnRecordSource": "Self-logged",
   "exCompletedPtDayTitle": "Completed PT",
   "exCompletedRoutineDayTitle": "Completed solo workout",
   "exDeleteExercise": "Delete workout",
@@ -646,7 +592,6 @@
   "exFindGym": "Find a Gym",
   "exGymDetailTitle": "Gym Details",
   "exTrainerDetailTitle": "Trainer Details",
-  "exDistance": "Distance",
   "exRating": "Rating",
   "exAffiliatedTrainer": "Affiliated Trainer",
   "exRecommendationReason": "Why we recommend this trainer",
@@ -666,7 +611,6 @@
   },
   "exNoSearchResults": "No search results.",
   "exTrainersLoadError": "Couldn't load trainers.",
-  "exGymSearchHint": "Search by gym or area",
   "exNearbyGyms": "Nearby gyms",
   "exGymListCollapse": "Collapse list",
   "@exGymListCollapse": {
@@ -676,40 +620,7 @@
   "@exGymListExpand": {
     "description": "Brings the gym result list back under the map"
   },
-  "exAiAnalysis": "✦ AI analysis",
-  "exNoGymMatch": "No gyms match '{query}'",
-  "@exNoGymMatch": {
-    "placeholders": {
-      "query": {
-        "type": "String"
-      }
-    }
-  },
   "exGymsLoadError": "Couldn't load gyms.",
-  "exAiTopPick": "✦ AI top pick",
-  "exGymDetailHint": "See trainers and request a consultation",
-  "exReasonTrainer": "Personal trainer {name}{role} on site",
-  "@exReasonTrainer": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      },
-      "role": {
-        "type": "String"
-      }
-    }
-  },
-  "exReasonHours": "Open {hours}{weekend}",
-  "@exReasonHours": {
-    "placeholders": {
-      "hours": {
-        "type": "String"
-      },
-      "weekend": {
-        "type": "String"
-      }
-    }
-  },
   "exGymWeekdayHours": "Weekdays {hours}",
   "@exGymWeekdayHours": {
     "placeholders": {
@@ -746,9 +657,7 @@
       }
     }
   },
-  "exSlotFull": "Fully booked",
   "exSlotTypePersonalTraining": "1:1 PT",
-  "exSlotTypeConsultation": "Consultation",
   "exSlotsEmpty": "No times available",
   "exSlotsAllBooked": "All available times are fully booked",
   "exSlotsLoadError": "Could not load available times.",
@@ -773,8 +682,6 @@
       }
     }
   },
-  "exGymInfo": "Gym Info",
-  "exConsultButton": "💬 1:1 Consult",
   "exAddress": "Address",
   "exHours": "Hours",
   "exPhone": "Phone",
@@ -1166,7 +1073,6 @@
   "myBenefitsEmptyMessage": "Redeem your points for a coupon.",
   "myBenefitsLoadFailed": "Couldn't load benefits",
   "challengeTitle": "Weekly workout challenge",
-  "challengeShort": "Weekly challenge",
   "challengeShortWithRange": "Weekly challenge · {range}",
   "@challengeShortWithRange": {
     "description": "Title of the progress row in the exercise tab, naming the week it covers.",
@@ -1244,46 +1150,6 @@
       }
     }
   },
-  "challengeWeekTitle": "Challenge {range}",
-  "@challengeWeekTitle": {
-    "placeholders": {
-      "range": {
-        "type": "String"
-      }
-    }
-  },
-  "challengeStatusActive": "In progress",
-  "challengeStatusSucceeded": "Completed",
-  "challengeStatusFailed": "Missed",
-  "challengeResultSucceeded": "{progress} of {goal} workouts · {reward} earned",
-  "@challengeResultSucceeded": {
-    "placeholders": {
-      "goal": {
-        "type": "int"
-      },
-      "progress": {
-        "type": "int"
-      },
-      "reward": {
-        "type": "String"
-      }
-    }
-  },
-  "challengeResultFailed": "{progress} of {goal} workouts · {stake} stake lost",
-  "@challengeResultFailed": {
-    "placeholders": {
-      "goal": {
-        "type": "int"
-      },
-      "progress": {
-        "type": "int"
-      },
-      "stake": {
-        "type": "String"
-      }
-    }
-  },
-  "challengeLoadFailed": "Couldn't load challenges",
   "myCouponStatusUsable": "Available",
   "myCouponStatusUsed": "Used",
   "myCouponStatusExpired": "Expired",
@@ -1532,7 +1398,6 @@
   "myFieldGender": "Gender",
   "myFieldHeight": "Height (cm)",
   "myFieldWeight": "Weight (kg)",
-  "myFieldGoals": "Health and exercise goals",
   "myNotifExercise": "Exercise reminder",
   "myNotifTrainer": "Trainer message",
   "myNotifWeeklyReport": "Weekly report",
@@ -1592,7 +1457,6 @@
   "@coachChatSubtitle": {
     "description": "Line under the trainer's name in the chat header. States the relationship only — nothing tracks whether the trainer is online or working, so it must not promise availability (#2089)."
   },
-  "coachChatBack": "Back",
   "coachChatLoadOlder": "Load older messages",
   "@coachChatLoadOlder": {
     "description": "Button above the trainer chat thread that fetches the previous page (#1943)."
@@ -1650,25 +1514,7 @@
       }
     }
   },
-  "coachChatReportOpenPdf": "Open PDF",
   "coachChatReportPreviewPdf": "Preview PDF",
-  "coachReportPdfDocTitle": "Weekly report",
-  "coachReportPdfDocTitleContinued": "Weekly report (cont.)",
-  "coachReportPdfPeriod": "Period {from} – {to}",
-  "@coachReportPdfPeriod": {
-    "description": "Week the previewed report covers, printed under the title.",
-    "placeholders": {
-      "from": {
-        "type": "String"
-      },
-      "to": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfSectionMetrics": "Key metrics",
-  "coachReportPdfSectionTrend": "Daily trend",
-  "coachReportPdfSectionDaily": "Day by day",
   "coachReportPdfBullet": "· {label}: {value}",
   "@coachReportPdfBullet": {
     "description": "One metric line in the previewed report.",
@@ -1681,266 +1527,6 @@
       }
     }
   },
-  "coachReportPdfLabelWorkoutDays": "Days trained",
-  "coachReportPdfLabelWorkoutMinutes": "Total workout time",
-  "coachReportPdfLabelBurned": "Calories burned",
-  "coachReportPdfLabelSessions": "PT sessions",
-  "coachReportPdfLabelCalories": "Average intake",
-  "coachReportPdfLabelSodium": "Average sodium",
-  "coachReportPdfLabelSugar": "Average sugar",
-  "coachReportPdfLabelMinutesShort": "Workout time",
-  "coachReportPdfLabelCaloriesShort": "Intake",
-  "coachReportPdfLabelSodiumShort": "Sodium",
-  "coachReportPdfLabelSugarShort": "Sugar",
-  "coachReportPdfValueDays": "{value} days",
-  "@coachReportPdfValueDays": {
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfValueMinutes": "{value} min",
-  "@coachReportPdfValueMinutes": {
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfValueKcal": "{value} kcal",
-  "@coachReportPdfValueKcal": {
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfValueMg": "{value} mg",
-  "@coachReportPdfValueMg": {
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfValueGram": "{value} g",
-  "@coachReportPdfValueGram": {
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfAttendance": "{done} of {booked}",
-  "@coachReportPdfAttendance": {
-    "description": "PT sessions completed out of the ones booked that week.",
-    "placeholders": {
-      "done": {
-        "type": "String"
-      },
-      "booked": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfNoData": "No data",
-  "coachReportPdfDay": "{weekday} — workout {exercise}, intake {intake}",
-  "@coachReportPdfDay": {
-    "description": "One weekday line in the previewed report.",
-    "placeholders": {
-      "weekday": {
-        "type": "String"
-      },
-      "exercise": {
-        "type": "String"
-      },
-      "intake": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfSectionTrainerNote": "Trainer feedback",
-  "@coachReportPdfSectionTrainerNote": {
-    "description": "Section heading for the message the trainer sent with the report."
-  },
-  "coachReportPdfNoTrainerNote": "No feedback came with this report.",
-  "@coachReportPdfNoTrainerNote": {
-    "description": "Shown under the trainer-message heading when the report arrived without a note."
-  },
-  "coachReportPdfSectionChange": "Change from last week",
-  "@coachReportPdfSectionChange": {
-    "description": "Section heading comparing this week with the previous one."
-  },
-  "coachReportPdfSectionMacros": "Average macros",
-  "@coachReportPdfSectionMacros": {
-    "description": "Section heading for average carbs / protein / fat."
-  },
-  "coachReportPdfLabelLoggedDays": "Days with meals logged",
-  "@coachReportPdfLabelLoggedDays": {
-    "description": "Metric label: how many days of the week have diet records."
-  },
-  "coachReportPdfLabelSodiumOver": "Days over the sodium goal",
-  "@coachReportPdfLabelSodiumOver": {
-    "description": "Metric label: days whose sodium exceeded the member's daily goal."
-  },
-  "coachReportPdfLabelPtDone": "PT sessions done",
-  "@coachReportPdfLabelPtDone": {
-    "description": "Metric label used when only completed PT sessions are known."
-  },
-  "coachReportPdfValueSessions": "{value} sessions",
-  "@coachReportPdfValueSessions": {
-    "description": "A count of PT sessions with its unit.",
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfLabelCardio": "Cardio",
-  "@coachReportPdfLabelCardio": {
-    "description": "Metric label for cardio minutes."
-  },
-  "coachReportPdfLabelStrength": "Strength",
-  "@coachReportPdfLabelStrength": {
-    "description": "Metric label for strength minutes."
-  },
-  "coachReportPdfLabelStretching": "Stretching",
-  "@coachReportPdfLabelStretching": {
-    "description": "Metric label for stretching minutes."
-  },
-  "coachReportPdfSectionTypes": "Minutes by workout type",
-  "@coachReportPdfSectionTypes": {
-    "description": "Section heading breaking the week's minutes down by workout type."
-  },
-  "coachReportPdfNoSessions": "None booked",
-  "@coachReportPdfNoSessions": {
-    "description": "Shown for PT when nothing was booked and nothing was recorded."
-  },
-  "coachReportPdfBandPeriod": "Period",
-  "@coachReportPdfBandPeriod": {
-    "description": "Header band cell title for the reported week."
-  },
-  "coachReportPdfSectionGoals": "Against your goals",
-  "@coachReportPdfSectionGoals": {
-    "description": "Section heading for the goal gauges."
-  },
-  "coachReportPdfColumnMetric": "Metric",
-  "@coachReportPdfColumnMetric": {
-    "description": "Summary table column: the metric name."
-  },
-  "coachReportPdfColumnThisWeek": "This week",
-  "@coachReportPdfColumnThisWeek": {
-    "description": "Summary table column: this week's value."
-  },
-  "coachReportPdfColumnLastWeek": "Last week",
-  "@coachReportPdfColumnLastWeek": {
-    "description": "Summary table column: last week's value."
-  },
-  "coachReportPdfColumnChange": "Change",
-  "@coachReportPdfColumnChange": {
-    "description": "Summary table column: the difference between the two weeks."
-  },
-  "coachReportPdfColumnWeekday": "Day",
-  "@coachReportPdfColumnWeekday": {
-    "description": "Daily table column: the weekday."
-  },
-  "coachReportPdfColumnWorkout": "Workout",
-  "@coachReportPdfColumnWorkout": {
-    "description": "Daily table column: what was done that day."
-  },
-  "coachReportPdfColumnIntake": "Intake",
-  "@coachReportPdfColumnIntake": {
-    "description": "Daily table column: calories eaten that day."
-  },
-  "coachReportPdfUpcoming": "Still to come",
-  "@coachReportPdfUpcoming": {
-    "description": "Daily table cell for a weekday that has not happened yet."
-  },
-  "coachReportPdfGoalOf": "{value} (goal {target})",
-  "@coachReportPdfGoalOf": {
-    "description": "Text form of a gauge: the value and the goal it is measured against.",
-    "placeholders": {
-      "value": {
-        "type": "String"
-      },
-      "target": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfChartTarget": "goal {value}",
-  "@coachReportPdfChartTarget": {
-    "description": "Label on a chart's dashed goal line.",
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfDayUpcoming": "{weekday} — still to come",
-  "@coachReportPdfDayUpcoming": {
-    "description": "Daily line for a weekday that has not happened yet.",
-    "placeholders": {
-      "weekday": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfChange": "· {label}: {current} (last week {previous}, {delta})",
-  "@coachReportPdfChange": {
-    "description": "One comparison line: this week's value, last week's, and the difference.",
-    "placeholders": {
-      "label": {
-        "type": "String"
-      },
-      "current": {
-        "type": "String"
-      },
-      "previous": {
-        "type": "String"
-      },
-      "delta": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfDeltaUp": "+{value}",
-  "@coachReportPdfDeltaUp": {
-    "description": "Difference when this week is higher.",
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfDeltaDown": "-{value}",
-  "@coachReportPdfDeltaDown": {
-    "description": "Difference when this week is lower.",
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfDeltaSame": "no change",
-  "@coachReportPdfDeltaSame": {
-    "description": "Difference when both weeks are equal."
-  },
-  "coachReportPdfNoPreviousWeek": "There are no records from last week to compare with.",
-  "@coachReportPdfNoPreviousWeek": {
-    "description": "Shown under the comparison heading when the previous week has nothing."
-  },
-  "coachReportPdfSodiumTargetNote": "The sodium goal is the {target}mg daily target you set on the MY screen.",
-  "@coachReportPdfSodiumTargetNote": {
-    "description": "Footnote naming the sodium goal the over-days count was measured against.",
-    "placeholders": {
-      "target": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfPreviewNote": "Built from your own records for the week the trainer's report covers.",
   "coachReportPdfFileName": "weekly-report_{date}.pdf",
   "@coachReportPdfFileName": {
     "placeholders": {
@@ -1983,7 +1569,6 @@
   "navDietOptionSub": "Nutrition analysis from a photo",
   "navExerciseOptionSub": "Log the type and duration",
   "aicHeaderSubtitle": "Ask me anytime",
-  "aicDatePillToday": "Today",
   "aicMedicalDisclaimer": "The AI coach is a reference for diet and exercise habits, not a diagnosis or prescription. Please consult a doctor about symptoms.",
   "aicInputHint": "Ask the AI anything",
   "aicQuotaFreeLeft": "{count, plural, =1{1 free chat left today} other{{count} free chats left today}}",
@@ -2242,18 +1827,6 @@
   "exOtherGoalHint": "Please describe your specific exercise goal in the message.",
   "exPreferredDate": "Preferred Date",
   "exTimeFlexible": "Discuss Later",
-  "exTimeRangeTitle": "Select time",
-  "exTimeRangeStartTime": "Start time",
-  "exTimeRangeEndTime": "End time",
-  "exTimeRangeStartHourStep": "Start hour",
-  "exTimeRangeStartMinuteStep": "Start minute",
-  "exTimeRangeEndHourStep": "End hour",
-  "exTimeRangeEndMinuteStep": "End minute",
-  "exSlotAm": "AM",
-  "exSlotPm": "PM",
-  "exTimeRangeInvalidEnd": "End time must be later than the start time.",
-  "exTimeRangePrevStep": "Previous step",
-  "exTimeRangeNextStep": "Next step",
   "exConsultMessage": "Message",
   "exConsultMessageHint": "Share your exercise experience or anything helpful for the consultation.",
   "exSendConsultRequest": "Send Consultation Request",
@@ -2268,7 +1841,6 @@
   "exConsultAcceptedStatus": "Accepted",
   "exConsultRejectedStatus": "Rejected",
   "exReturnExercise": "Return to Exercise",
-  "exConsultStatusSection": "Consultation Request Status",
   "exConsultHistoryTitle": "My Consultation Requests",
   "exConsultHistoryEmpty": "You haven't sent any consultation requests yet.",
   "exConsultHistoryInProgress": "In Progress",
@@ -2855,18 +2427,6 @@
   "@myGoalMacroApplySuggestion": {
     "description": "Button that fills the macro fields with the suggested grams."
   },
-  "myGoalWorkoutCount": "Weekly workout count goal",
-  "@myGoalWorkoutCount": {
-    "description": "Health goal field label."
-  },
-  "myGoalWorkoutMinutes": "Weekly workout minutes goal",
-  "@myGoalWorkoutMinutes": {
-    "description": "Health goal field label."
-  },
-  "myGoalWorkoutCalories": "Weekly calories burned goal (kcal)",
-  "@myGoalWorkoutCalories": {
-    "description": "Health goal field label."
-  },
   "myGoalUnsetHint": "Dimmed values are the baseline used before you set a goal",
   "@myGoalUnsetHint": {
     "description": "Footnote under a read-only health-goal card that has fields the member has never set. The number shown is the app-wide baseline in force, not the personalized recommendation the edit form offers."
@@ -2932,10 +2492,6 @@
   "coachAssignedTrainer": "My trainer",
   "@coachAssignedTrainer": {
     "description": "Header of the assigned trainer card."
-  },
-  "coachPointsTitle": "This week's coaching points",
-  "@coachPointsTitle": {
-    "description": "Section title in the coaching card."
   },
   "coachRoutineTitle": "Recommended solo workouts",
   "coachRoutineAiTitle": "AI recommended solo workouts",
@@ -3337,7 +2893,6 @@
   "a11ySendMessage": "Send message",
   "a11yClearSearch": "Clear search",
   "a11yRemoveFood": "Remove food",
-  "a11yOpenCalendar": "Open schedule calendar",
   "a11yPrevWeek": "Previous week",
   "a11yNextWeek": "Next week",
   "exConsultHistoryCancelTitle": "Cancel this consultation request?",
@@ -4267,7 +3822,6 @@
   "coachReportsEmptyHint": "Weekly reports from your trainer land here",
   "coachReportsLoadFailed": "Couldn't load your reports",
   "weeklyFeedbackLoadFailed": "Couldn't load the weekly feedback you sent",
-  "coachReportOpen": "Open report",
   "coachReportSentOn": "Sent {month}/{day}",
   "@coachReportSentOn": {
     "placeholders": {
