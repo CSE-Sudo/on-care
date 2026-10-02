@@ -272,10 +272,6 @@ class CouponNotUsable(CouponError):
         self.status = status
 
 
-def item_of(item_id: str) -> ShopItem | None:
-    return _ITEMS.get(item_id)
-
-
 def gym_benefits_enabled() -> bool:
     """헬스장 현장 혜택(PT 재등록·락커·식판)을 여는 서버인가(#2822).
 
