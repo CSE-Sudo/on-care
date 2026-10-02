@@ -8,6 +8,8 @@
 > 아래는 그 선택에 이르기까지의 비교 기록입니다. **현재 동작은 아래를 보세요.**
 >
 > - 데모 응답 구현 → `lib/core/network/interceptors/local_api_interceptor.dart`
+>   (라우팅 표·공유 상태) + `lib/core/network/interceptors/local_api/*.dart`
+>   (경로 묶음별 핸들러 — 식단·운동·AI 코치·알림·프로필·포인트 등)
 > - 백엔드 API 계약 → [backend/API_CONTRACT.md](../../../backend/API_CONTRACT.md)
 
 ---
