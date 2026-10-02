@@ -100,7 +100,7 @@ void main() {
     await _pump(tester);
 
     expect(find.text('PT 세션'), findsOneWidget);
-    expect(find.text('개인 운동'), findsOneWidget);
+    expect(find.text('개인운동'), findsOneWidget);
     expect(find.text('식단 기록'), findsOneWidget);
     expect(find.text('섭취 칼로리'), findsOneWidget);
   });

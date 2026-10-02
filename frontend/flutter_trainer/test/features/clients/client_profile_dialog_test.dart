@@ -1424,7 +1424,7 @@ void main() {
       await tester.tap(picker);
       await tester.pumpAndSettle();
       // 최신 먼저, `9/30 (수) PT 세션` 처럼 날짜·요일·종류를 적는다.
-      expect(find.text('9/29 (화) 개인 운동 · 코어 강화'), findsWidgets);
+      expect(find.text('9/29 (화) 개인운동 · 코어 강화'), findsWidgets);
       await tester.tap(find.text('9/30 (수) PT 세션').last);
       await tester.pumpAndSettle();
 

@@ -1600,9 +1600,39 @@ void main() {
         const ValueKey<String>('client-exercise-detail'),
       );
       expect(detail, findsOneWidget);
+      // 운동 현황 카드 안이 아니라 그 아래 따로 선 `운동 기록` 카드다(#2509).
+      final Finder recordsCard = find.ancestor(
+        of: detail,
+        matching: find.byWidgetPredicate(
+          (Widget w) =>
+              w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith(
+                'program-workout-records-',
+              ),
+        ),
+      );
+      expect(recordsCard, findsOneWidget);
       expect(
-        find.descendant(of: detail, matching: find.text('운동 기록')),
+        find.descendant(of: recordsCard, matching: find.text('운동 기록')),
         findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('client-exercise-status-card')),
+          matching: detail,
+        ),
+        findsNothing,
+      );
+      // 요약 → 상세 순이다: 주간 운동 이행률이 운동 기록보다 위다.
+      expect(
+        tester
+            .getTopLeft(
+              find.byKey(
+                const ValueKey<String>('program-week-completion-chart'),
+              ),
+            )
+            .dy,
+        lessThan(tester.getTopLeft(recordsCard).dy),
       );
       // 이름과 값을 ` · ` 로 잇는다(#1902) — 예전에는 그 수가 이름 안에 있었다.
       expect(

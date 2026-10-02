@@ -403,11 +403,8 @@ void main() {
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: SingleChildScrollView(
-            child: ClientExerciseStatusCard(
-              clientId: 'c1',
-              clientName: '김민수',
-              period: period,
-            ),
+            // 상세는 운동 현황 카드 밖 따로 선 위젯이다(#2509).
+            child: ClientWorkoutRecordsDetail(clientId: 'c1', period: period),
           ),
         ),
       ),
@@ -635,9 +632,8 @@ void main() {
             supportedLocales: AppLocalizations.supportedLocales,
             home: const Scaffold(
               body: SingleChildScrollView(
-                child: ClientExerciseStatusCard(
+                child: ClientWorkoutRecordsDetail(
                   clientId: 'c1',
-                  clientName: '김민수',
                   period: ClientPeriod.week,
                 ),
               ),

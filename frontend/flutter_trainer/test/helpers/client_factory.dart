@@ -20,7 +20,7 @@ TrainerClient makeClient({
   String lastMessage = '안녕하세요',
   String lastTime = '방금',
   String lastRoutine = '오늘',
-  List<int>? weekCompletion,
+  List<int?>? weekCompletion,
   List<int>? sodiumWeek,
   List<int> caloriesWeek = const <int>[],
   List<ClientSignal> signals = const <ClientSignal>[],

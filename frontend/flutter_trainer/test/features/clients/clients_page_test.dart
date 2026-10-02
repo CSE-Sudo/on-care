@@ -149,7 +149,8 @@ void main() {
       expect(added.goal, '체중 감량');
       expect(added.active, isTrue);
       expect(added.sodiumMg, 0);
-      expect(added.weekCompletion, List<int>.filled(7, 0));
+      // 아직 아무것도 걸리지 않았다 — 0% 가 아니라 빈 칸이다(#2513).
+      expect(added.weekCompletion, List<int?>.filled(7, null));
       expect(added.id.startsWith('seed-'), isFalse); // survives re-seed
     });
 
