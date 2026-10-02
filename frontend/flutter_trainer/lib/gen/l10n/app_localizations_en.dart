@@ -4484,7 +4484,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String clientFeedbackSourcePt(String date) {
-    return 'PT · $date';
+    return 'PT session · $date';
   }
 
   @override

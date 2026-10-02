@@ -1849,7 +1849,7 @@
   "clientFeedbackPrivate": "회원과 주고받은 피드백이에요. 누르면 쓴 자리로 가서 고칠 수 있어요.",
   "clientFeedbackToMember": "트레이너 → 회원",
   "clientFeedbackFromMember": "회원 → 트레이너",
-  "clientFeedbackSourcePt": "PT · {date}",
+  "clientFeedbackSourcePt": "PT 세션 · {date}",
   "@clientFeedbackSourcePt": {
     "placeholders": {
       "date": {

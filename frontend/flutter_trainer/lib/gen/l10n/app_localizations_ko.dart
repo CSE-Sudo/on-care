@@ -4260,7 +4260,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String clientFeedbackSourcePt(String date) {
-    return 'PT · $date';
+    return 'PT 세션 · $date';
   }
 
   @override
