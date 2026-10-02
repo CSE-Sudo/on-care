@@ -269,17 +269,21 @@ def test_audit_ip_ignores_spoofed_header(client, db_session):
     from sqlalchemy import select
 
     from app.models.models import AuditLog
+    from app.services.audit_email import masked_email
 
     email = f"ip-audit-{uuid4().hex[:10]}@oncare.com"
     _register(client, email)
     assert _login(client, email, "wrong-pw-0000", "6.6.6.6").status_code == 401
     db_session.expire_all()
+    # 감사 기록은 이메일을 가려 적는다 — 같은 규칙으로 찾고 방금 남긴 줄을 본다.
     row = db_session.scalars(
-        select(AuditLog).where(
+        select(AuditLog)
+        .where(
             AuditLog.event == "auth.login",
             AuditLog.success.is_(False),
-            AuditLog.detail == email,
+            AuditLog.detail == masked_email(email),
         )
+        .order_by(AuditLog.id.desc())
     ).first()
     assert row is not None
     # 테스트 환경은 프록시 홉 0 — 소켓 주소(TestClient 는 "testclient")를 적는다.
