@@ -5126,6 +5126,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Available after the report summary API is connected. No summary is generated now.';
 
   @override
+  String get reportsAiFailed =>
+      'Couldn\'t create the summary. Please try again.';
+
+  @override
   String get reportsPdfGenerationFailed =>
       'Couldn\'t generate the PDF. Please try again.';
 

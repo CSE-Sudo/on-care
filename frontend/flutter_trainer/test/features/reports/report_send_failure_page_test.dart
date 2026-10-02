@@ -14,6 +14,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/member_report_history.dart';
+import 'package:oncare_trainer/features/reports/domain/report_queue_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/report_send_record.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
@@ -88,6 +89,12 @@ class _FlakyServer implements ReportRepository {
     memberHistoryAsked++;
     return const MemberReportHistoryPage.empty();
   }
+
+  @override
+  Stream<List<ReportQueueSummary>> watchQueue({
+    required List<TrainerClient> clients,
+    required DateTime weekStart,
+  }) => reportQueueFromReports(this, clients: clients, weekStart: weekStart);
 
   @override
   Stream<WeeklyReport> watch({
