@@ -26,14 +26,14 @@ dependencies:
   # 사용자 앱과 같은 gen-l10n 파이프라인. arb 는 lib/l10n, 생성물은 lib/gen/l10n.
   flutter_localizations:
     sdk: flutter
-  intl: any
+  intl: 0.20.3
 
   cupertino_icons: ^1.0.8
 
   # --- State management & DI ---
   # 사용자 앱(frontend/flutter)과 동일한 Riverpod 기반. 트레이너 앱은
   # 별도 프로젝트이므로 코드는 공유하지 않고 스택만 맞춘다.
-  flutter_riverpod: ^2.6.1
+  flutter_riverpod: ^3.1.0
 
   # --- Routing ---
   go_router: ^14.6.2
@@ -46,15 +46,15 @@ dependencies:
   # --- Networking (real backend) ---
   # 사용자 앱(frontend/flutter)과 동일한 Dio 스택. USE_MOCK_API=false 일 때
   # 트레이너 API(POST /v1/auth/login, GET /v1/trainer/me, ...)를 호출한다.
-  dio: ^5.7.0
+  dio: ^5.11.1
   http_parser: ^4.0.2
 
   # 채팅에 붙일 사진을 고른다(#921). 웹에서는 파일 선택 창으로 동작한다.
   image_picker: ^1.2.3
 
   # WeeklyReport 데이터를 A4 PDF binary로 만들고, 브라우저 인쇄를 연다(#778).
-  pdf: ^3.11.3
-  printing: ^5.14.2
+  pdf: ^3.13.1
+  printing: ^5.15.1
 
   # 세션 access/refresh 토큰을 플랫폼 보안 저장소(Keychain/Keystore/웹)에
   # 보관한다. 기존 SharedPreferences 기반 SessionTokenStore 를 대체한다.
@@ -95,7 +95,7 @@ dependencies:
   # drift(SQLite) 로컬 백엔드 — 백엔드 미연결 동안 고객/스케줄 등 mock
   # 데이터를 영속 저장한다 (사용자 앱과 동일 스택, 코드는 공유하지 않음).
   drift: ^2.20.3
-  drift_flutter: ^0.2.4
+  drift_flutter: ^0.2.8
   path: ^1.9.0
   package_info_plus: ^9.0.1
   web: ^1.1.1
@@ -120,8 +120,8 @@ dev_dependencies:
   # `flutter analyze` 는 analysis_options.yaml 의 custom_lint 플러그인을 돌리지
   # 않는다. `dart run custom_lint` 를 따로 돌려야 하고, CI 도 별도 단계로 둔다
   # (회원 앱과 동일한 구성).
-  custom_lint: ^0.7.6
-  riverpod_lint: ^2.6.3
+  custom_lint: ^0.8.1
+  riverpod_lint: ^3.1.0
 
 flutter:
   uses-material-design: true
