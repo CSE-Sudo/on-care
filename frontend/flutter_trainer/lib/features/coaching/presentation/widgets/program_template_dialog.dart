@@ -130,6 +130,11 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
           l.coachTemplateSaveFailed,
         ),
       );
+    } on Object {
+      // 응답을 해석하지 못했거나 로컬 저장이 막혔다(#2896). 잡지 않으면 창에는
+      // 아무 말 없이 저장 버튼만 다시 살아난다.
+      if (!mounted) return;
+      setState(() => _saveError = l.coachTemplateSaveFailed);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

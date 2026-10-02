@@ -10,15 +10,17 @@
 """
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import PurePath
+from urllib.parse import quote
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
-from starlette.responses import FileResponse
+from starlette.responses import StreamingResponse
 
 from app.api.deps import RequireUser
 from app.core.config import get_settings
@@ -26,6 +28,7 @@ from app.db.session import get_db
 from app.models.models import ChatMessage, TrainerClient
 from app.schemas.trainer_api import ChatMessageOut
 from app.services import (
+    attachment_store,
     chat_image_storage,
     data_consent_service,
     report_pdf_storage,
@@ -33,6 +36,7 @@ from app.services import (
 )
 
 router = APIRouter(tags=["chat-attachments"])
+logger = logging.getLogger(__name__)
 
 #: 어느 종류든 "찾을 수 없습니다" 로 끝난다. 권한이 없는 사람에게 파일의
 #: 존재 여부를 알려 주지 않기 위해서다.
@@ -44,7 +48,7 @@ def download_chat_attachment(
     file_id: str,
     user: RequireUser,
     db: Annotated[Session, Depends(get_db)],
-) -> FileResponse:
+) -> StreamingResponse:
     message = db.scalar(
         select(ChatMessage).where(
             ChatMessage.attachment_file_id == file_id,
@@ -71,28 +75,77 @@ def download_chat_attachment(
 
     if message.attachment_type == "image":
         try:
-            path, media_type = chat_image_storage.path_for(file_id)
+            blob, media_type = chat_image_storage.open_image(file_id)
         except FileNotFoundError as exc:
             raise HTTPException(status_code=404, detail=_NOT_FOUND) from exc
+        except attachment_store.StoreError as exc:
+            raise _store_unavailable() from exc
         # 사진은 대화 안에서 그려야 한다 — `attachment` 로 주면 브라우저가
         # 내려받기로 처리해 스레드에 아무것도 보이지 않는다.
-        return FileResponse(
-            path,
+        return _stream(
+            blob,
             media_type=media_type,
             filename=message.attachment_file_name or "photo",
-            content_disposition_type="inline",
+            disposition="inline",
         )
 
     try:
-        path = report_pdf_storage.path_for(file_id)
+        blob = report_pdf_storage.open_pdf(file_id)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=_NOT_FOUND) from exc
-    return FileResponse(
-        path,
+    except attachment_store.StoreError as exc:
+        raise _store_unavailable() from exc
+    return _stream(
+        blob,
         media_type="application/pdf",
         filename=message.attachment_file_name or "weekly-report.pdf",
-        content_disposition_type="attachment",
+        disposition="attachment",
     )
+
+
+def _store_unavailable() -> HTTPException:
+    """저장소 장애. 파일이 없다는 404 와 구분해야 앱이 다시 시도할 수 있다."""
+    logger.exception("첨부 저장소를 읽지 못했습니다.")
+    return HTTPException(
+        status_code=503, detail="첨부를 잠시 불러올 수 없습니다. 다시 시도해 주세요."
+    )
+
+
+def _content_disposition(disposition: str, filename: str) -> str:
+    """`FileResponse` 와 같은 규칙의 Content-Disposition.
+
+    ASCII 로 그대로 적을 수 있으면 `filename="…"`, 아니면 RFC 5987 의
+    `filename*=utf-8''…` 로 적는다 — 한글 파일명이 깨지지 않게.
+    """
+    quoted = quote(filename)
+    if quoted != filename:
+        return f"{disposition}; filename*=utf-8''{quoted}"
+    return f'{disposition}; filename="{filename}"'
+
+
+def _stream(
+    blob: attachment_store.OpenedBlob,
+    *,
+    media_type: str,
+    filename: str,
+    disposition: Literal["inline", "attachment"],
+) -> StreamingResponse:
+    """권한 확인이 끝난 첨부를 서버가 흘려보낸다. (#2817)
+
+    저장소가 S3 여도 서명 URL 을 내주지 않는다 — 링크가 새면 권한 확인 없이
+    열리고, 동의 철회(#1631)·담당 해제 뒤에도 만료 전까지 열린다. 바이트가
+    서버를 거치는 비용보다 그 판단을 한 곳에 두는 쪽이 중요하다.
+    """
+    headers = {
+        "Content-Disposition": _content_disposition(disposition, filename),
+        # 사용자가 올린 바이트다. 브라우저가 형식을 다시 추측하지 않게 한다.
+        "X-Content-Type-Options": "nosniff",
+        # 권한이 바뀌면 바로 막혀야 하므로 중간 캐시에 남기지 않는다.
+        "Cache-Control": "private, no-store",
+    }
+    if blob.size is not None:
+        headers["Content-Length"] = str(blob.size)
+    return StreamingResponse(blob.iter_chunks(), media_type=media_type, headers=headers)
 
 
 async def receive_chat_image(

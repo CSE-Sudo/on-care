@@ -25,6 +25,8 @@ class MemberHealthProfile {
     this.weeklyBurnGoal,
     this.focusChangedBy,
     this.focusChangedAt,
+    this.notesChangedBy,
+    this.notesChangedAt,
   });
 
   final String memberId;
@@ -62,6 +64,13 @@ class MemberHealthProfile {
   /// 건강 목표를 마지막으로 바꾼 시각(로컬 시각).
   final DateTime? focusChangedAt;
 
+  /// 건강상태·주의사항을 마지막으로 바꾼 사람 — `member` 또는 `trainer`(#2942).
+  /// 목표 칩 기록과 따로다. 바꾼 적이 없으면 null.
+  final String? notesChangedBy;
+
+  /// 건강상태·주의사항을 마지막으로 바꾼 시각(로컬 시각).
+  final DateTime? notesChangedAt;
+
   factory MemberHealthProfile.fromJson(Map<String, Object?> json) =>
       MemberHealthProfile(
         memberId: json['member_id'] as String? ?? '',
@@ -90,6 +99,14 @@ class MemberHealthProfile {
           _ => null,
         },
         focusChangedAt: switch (json['focus_changed_at']) {
+          final String at => DateTime.tryParse(at)?.toLocal(),
+          _ => null,
+        },
+        notesChangedBy: switch (json['notes_changed_by']) {
+          final String by when by.isNotEmpty => by,
+          _ => null,
+        },
+        notesChangedAt: switch (json['notes_changed_at']) {
           final String at => DateTime.tryParse(at)?.toLocal(),
           _ => null,
         },

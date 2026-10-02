@@ -44,9 +44,10 @@ void main() {
   test('real mode never selects drift for recommendations or schedule', () {
     final container = _containerFor(useMockApi: false);
 
+    // 실서버의 기존 AI 추천은 배정 목록에서 온다(#2673) — drift 가 아니다.
     expect(
       container.read(aiRoutineRepositoryProvider),
-      isA<EmptyAiRoutineRepository>(),
+      isA<AssignedAiRoutineRepository>(),
     );
     expect(
       container.read(scheduleRepositoryProvider),

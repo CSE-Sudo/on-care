@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import CurrentUser, RequireMember
 from app.core.rate_limit import rate_limit
 from app.services.audit import client_ip, record as audit
+from app.services.audit_email import masked_email
 from app.core.security import (
     decode_refresh_claims,
     hash_password,
@@ -49,6 +50,7 @@ from app.schemas.user import (
     UserRegister,
 )
 from app.services import (
+    attachment_cleanup,
     auth_tokens,
     consultation_service,
     data_consent_service,
@@ -155,6 +157,8 @@ def _profile_view(user: User) -> ProfileView:
         onboarded=p.onboarded if p else False,
         focus_changed_by=p.focus_changed_by if p else None,
         focus_changed_at=p.focus_changed_at if p else None,
+        notes_changed_by=p.notes_changed_by if p else None,
+        notes_changed_at=p.notes_changed_at if p else None,
     )
 
 
@@ -230,6 +234,17 @@ def update_me(
         if dup is not None:
             raise HTTPException(status_code=409, detail="이미 사용 중인 이메일입니다.")
         user.email = new_email
+        # 위 중복 조회는 빠른 실패용이다. 같은 새 이메일로 바꾸는 요청(또는 같은
+        # 이메일 가입)이 겹치면 둘 다 조회를 통과하고 `users.email` 유일 제약에서
+        # 만난다 — 500 대신 조회로 막았을 때와 같은 409 로 옮긴다(#2911). 아래
+        # 조회의 자동 flush 에서 터지지 않도록 이메일만 여기서 먼저 내려 보낸다.
+        try:
+            db.flush()
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(
+                status_code=409, detail="이미 사용 중인 이메일입니다."
+            ) from None
     if data.get("name") is not None:
         name_before = user.name
         user.name = data["name"]
@@ -362,8 +377,12 @@ def delete_me(
     member_departure.notify_trainer(db, user, reason="withdrawn")
     # 동의 종료·탈퇴를 감사 기록으로 남긴다 — 링크와 계정이 사라져도 남는다(#2830).
     data_consent_service.stage_account_withdrawal(db, user, ip=client_ip(request))
+    # 채팅 첨부의 바이트는 DB 밖에 있어 CASCADE 가 닿지 않는다 — 행이 사라지기
+    # 전에 목록을 잡아 두고, 커밋이 끝난 뒤에 지운다(#2817).
+    attachments = attachment_cleanup.files_in_threads(db, member_id=user.id)
     db.delete(user)
     db.commit()
+    attachment_cleanup.purge(attachments)
     return {"status": "deleted"}
 
 
@@ -388,7 +407,7 @@ def register(
             event="auth.register",
             ip=client_ip(request),
             success=False,
-            detail=payload.email,
+            detail=masked_email(payload.email),
         )
         raise HTTPException(status_code=409, detail="이미 가입된 이메일입니다.")
     user = User(
@@ -450,7 +469,7 @@ def register_trainer(
             event="auth.trainer_register",
             ip=client_ip(request),
             success=False,
-            detail=payload.email,
+            detail=masked_email(payload.email),
         )
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
@@ -485,7 +504,7 @@ def login(
             event="auth.login",
             ip=client_ip(request),
             success=False,
-            detail=form.username,
+            detail=masked_email(form.username),
         )
         raise HTTPException(
             status_code=401, detail="이메일 또는 비밀번호가 올바르지 않습니다."
@@ -546,7 +565,8 @@ def refresh(
             success=False,
         )
         raise invalid
-    return auth_tokens.issue_token_pair(user)
+    # 웹으로 발급된 토큰은 헤더가 없어도 웹 수명으로 회전한다(#2828).
+    return auth_tokens.issue_token_pair(user, web=claims.web)
 
 
 @router.post(
