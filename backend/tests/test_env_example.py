@@ -128,6 +128,8 @@ def test_prod_recommended_values_pass_guard():
         allow_demo_fallback=False,
         seed_rag_ingest=False,
         force_https=True,
+        # 운영은 사진 인식·임베딩 키가 필수다(#2812). 예시 파일은 비워 둔다.
+        gemini_api_key="test-gemini-key",
     )
     assert s.is_prod is True
     assert s.demo_fallback_enabled is False
