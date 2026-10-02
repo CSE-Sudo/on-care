@@ -1052,6 +1052,11 @@ class CoachDocument(Base):
     """
 
     __tablename__ = "coach_documents"
+    # 교체·삭제는 (user_id, source_ref) 로 좁힌다. 마이그레이션 0030 이 만든 인덱스를
+    # 모델에도 적어 `alembic check` 가 '지울 인덱스' 로 보지 않게 한다(#2838).
+    __table_args__ = (
+        Index("ix_coach_documents_user_source_ref", "user_id", "source_ref"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     # nullable: 공공 문서는 NULL(전체 공유), 개인 문서는 특정 user_id
@@ -2289,19 +2294,32 @@ class AuditLog(Base):
     """보안 감사 로그 — 인증/관리자 이벤트 추적.
 
     user_id 는 FK 를 두지 않는다(사용자가 삭제돼도 감사 기록은 남아야 하므로).
-    event 예: auth.login, auth.register, auth.social, admin.public_doc_upload.
+    event 예: auth.login, auth.register, auth.social, admin.public_doc_upload,
+    trainer.client_read, consent.grant, consent.revoke, account.withdraw,
+    auth.password_change.
+
+    `user_id` 는 **행위자**, `target_user_id` 는 그 행위의 **대상 회원**이다
+    (#2830 — 트레이너가 누구의 기록을 봤는지, 누구의 동의가 오갔는지). 대상도
+    FK 가 없어 링크·계정 행이 지워져도 기록은 남는다. `resource` 는 열람한 기록
+    종류(diet·exercise·body·report) 같은 짧은 분류이고, 식단 내용 같은 개인정보
+    본문은 어느 칸에도 적지 않는다.
     """
 
     __tablename__ = "audit_logs"
+    __table_args__ = (
+        Index("ix_audit_logs_target_created", "target_user_id", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     event: Mapped[str] = mapped_column(String(50), index=True)
     user_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    target_user_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    resource: Mapped[str] = mapped_column(String(30), default="", server_default="")
     ip: Mapped[str] = mapped_column(String(64), default="")
     success: Mapped[bool] = mapped_column(Boolean, default=True)
     detail: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True), server_default=func.now(), index=True
     )
 
 
@@ -2328,6 +2346,33 @@ class RevokedRefreshToken(Base):
     #: 이 토큰이 스스로 만료되는 시각. 정리 기준.
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     revoked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class PasswordResetToken(Base):
+    """비밀번호 재설정 코드(#2824).
+
+    메일로 보낸 일회용 코드의 **해시만** 담는다 — 표가 새어도 그것으로 비밀번호를
+    바꿀 수 없다. 코드는 짧은 시간만 유효하고(`expires_at`), 한 번 쓰면
+    `used_at` 이 찍혀 다시 쓸 수 없다. 같은 계정으로 새 코드를 보내면 앞서 보낸
+    코드는 쓴 것으로 닫는다. 코드는 80비트 난수라 맞혀 볼 수 없고, 확인 요청은
+    IP 별 rate limit 을 따로 받는다.
+    """
+
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: 정규화한 코드의 SHA-256(16진수). 확인 요청은 이 값으로 찾는다.
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
 

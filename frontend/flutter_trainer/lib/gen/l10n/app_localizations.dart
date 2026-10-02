@@ -4246,7 +4246,7 @@ abstract class AppLocalizations {
   /// No description provided for @myLegalPrivacyBody.
   ///
   /// In en, this message translates to:
-  /// **'This English text is provided for convenience; the Korean original governs.\n\n1. Information collected\nFor trainer sign-up and service delivery, On-Care (the \"Company\") collects name, email and phone number, along with gym affiliation, certifications, career, speciality and service access logs.\n\n2. Purpose of collection and use\nThe information is used only to identify trainers and to let an operator check their gym affiliation and credentials (trainers are not shown to members until approved), to connect them with assigned members, to provide scheduling, messaging and reports, and to improve the service and answer enquiries.\n\n3. Access to and processing of member information\nA trainer may open the diet, workout and body-weight records of members they are assigned to, inside the Service. The Company is the controller of those records; the trainer processes them only for coaching and reports, within the scope the Company sets. Reports and messages a trainer sends are delivered to that member and kept in the Service as a record. When an assignment ends, the trainer\'s access is revoked immediately, and a member may withdraw consent to share their information at any time.\n\n4. Retention\nA trainer\'s personal information is destroyed without delay on account deletion, unless the law requires it to be kept, in which case it is stored securely for that period. Reports and messages already delivered belong to the member\'s record and follow the member\'s retention period.\n\n5. Provision to third parties\nThe Company does not provide personal information to outside parties without consent, except where the law specifically requires it.\n\n6. Safeguards\nAccess to member information is limited by assignment, traffic is encrypted in transit, and access logs are retained.\n\n7. Your rights\nA trainer may review or correct their personal information, or request that its processing stop and that it be deleted, at any time.\n\n8. Privacy officer\nFor privacy enquiries, contact customer support (support@oncare.com).\n\nEffective: January 1, 2026'**
+  /// **'This English text is provided for convenience; the Korean original governs.\n\n1. Information collected\nFor trainer sign-up and service delivery, On-Care (the \"Company\") collects name, email and phone number, along with gym affiliation, certifications, career, speciality and service access logs.\n\n2. Purpose of collection and use\nThe information is used only to identify trainers and to let an operator check their gym affiliation and credentials (trainers are not shown to members until approved), to connect them with assigned members, to provide scheduling, messaging and reports, and to improve the service and answer enquiries.\n\n3. Access to and processing of member information\nA trainer may open the diet, workout and body-weight records of members they are assigned to, inside the Service. The Company is the controller of those records; the trainer processes them only for coaching and reports, within the scope the Company sets. Reports and messages a trainer sends are delivered to that member and kept in the Service as a record. When an assignment ends, the trainer\'s access is revoked immediately, and a member may withdraw consent to share their information at any time.\n\n4. Retention\nA trainer\'s personal information is destroyed without delay on account deletion, unless the law requires it to be kept, in which case it is stored securely for that period. Reports and messages already delivered belong to the member\'s record and follow the member\'s retention period.\n\n5. Provision to third parties\nThe Company does not provide personal information to outside parties without consent, except where the law specifically requires it.\n\n6. Safeguards\nAccess to member information is limited by assignment, and traffic is encrypted in transit. Sign-in and other access logs are kept for one year; records of trainers opening members\' health information, of consent being given or withdrawn, and of account deletion are kept for two years, then destroyed. An access record holds only the trainer, the member, the kind of information and the time, never the health information itself.\n\n7. Your rights\nA trainer may review or correct their personal information, or request that its processing stop and that it be deleted, at any time.\n\n8. Privacy officer\nFor privacy enquiries, contact customer support (support@oncare.com).\n\nEffective: January 1, 2026'**
   String get myLegalPrivacyBody;
 
   /// No description provided for @myAppInfo.
@@ -9003,6 +9003,12 @@ abstract class AppLocalizations {
   /// **'{gender} · Age {age}'**
   String coachClientDemographics(String gender, int age);
 
+  /// Roster age label when the member's gender is not shown (#2814).
+  ///
+  /// In en, this message translates to:
+  /// **'Age {age}'**
+  String coachClientAge(int age);
+
   /// No description provided for @coachTemplateMenu.
   ///
   /// In en, this message translates to:
@@ -10484,6 +10490,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{start} – {end}'**
   String reportsSheetPeriodValue(String start, String end);
+
+  /// No description provided for @authForgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot your password?'**
+  String get authForgotPassword;
+
+  /// No description provided for @passwordResetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset password'**
+  String get passwordResetTitle;
+
+  /// No description provided for @passwordResetRequestSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll email a reset code to the address you signed up with.'**
+  String get passwordResetRequestSubtitle;
+
+  /// No description provided for @passwordResetSendAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Send code'**
+  String get passwordResetSendAction;
+
+  /// No description provided for @passwordResetHaveCode.
+  ///
+  /// In en, this message translates to:
+  /// **'I already have a code'**
+  String get passwordResetHaveCode;
+
+  /// No description provided for @passwordResetSentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your email'**
+  String get passwordResetSentTitle;
+
+  /// Shown after a reset request. Same text whether or not the account exists.
+  ///
+  /// In en, this message translates to:
+  /// **'If an account uses {email}, we\'ve sent a code you can use once within {minutes} minutes.'**
+  String passwordResetSentBody(String email, int minutes);
+
+  /// No description provided for @passwordResetConfirmSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code from the email and your new password.'**
+  String get passwordResetConfirmSubtitle;
+
+  /// No description provided for @passwordResetCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'16-character reset code'**
+  String get passwordResetCodeHint;
+
+  /// No description provided for @passwordResetCodeEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code'**
+  String get passwordResetCodeEmpty;
+
+  /// No description provided for @passwordResetCodeMalformed.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 16-character code from the email'**
+  String get passwordResetCodeMalformed;
+
+  /// No description provided for @passwordResetCodeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This code is wrong or has expired. Request a new one.'**
+  String get passwordResetCodeInvalid;
+
+  /// No description provided for @passwordResetConfirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Save new password'**
+  String get passwordResetConfirmAction;
+
+  /// No description provided for @passwordResetResend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a new code'**
+  String get passwordResetResend;
+
+  /// No description provided for @passwordResetDemoNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo mode doesn\'t send email. The code is filled in for you.'**
+  String get passwordResetDemoNote;
+
+  /// No description provided for @passwordResetUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'We can\'t send reset emails right now. Please contact support.'**
+  String get passwordResetUnavailable;
+
+  /// No description provided for @passwordResetDoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Password reset'**
+  String get passwordResetDoneTitle;
+
+  /// No description provided for @passwordResetDoneBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with your new password. You\'ve been signed out on every device.'**
+  String get passwordResetDoneBody;
+
+  /// No description provided for @passwordResetBackToSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to sign in'**
+  String get passwordResetBackToSignIn;
+
+  /// No description provided for @passwordResetTooMany.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please try again in a moment.'**
+  String get passwordResetTooMany;
+
+  /// No description provided for @passwordResetTemporaryFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t complete the request. Please try again shortly.'**
+  String get passwordResetTemporaryFailure;
 }
 
 class _AppLocalizationsDelegate

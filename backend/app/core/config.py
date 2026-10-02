@@ -4,7 +4,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # 개발 기본 시크릿(운영에서 그대로 쓰면 기동 차단)
@@ -46,6 +46,15 @@ class Settings(BaseSettings):
     # 기본은 꺼짐(#2821) — ENV 를 빠뜨린 채 뜬 서버가 로그인 없는 요청을 데모 회원으로
     # 처리하지 않게 한다. 로컬 개발은 .env.example 의 ALLOW_DEMO_FALLBACK=true 로 켠다.
     allow_demo_fallback: bool = False
+
+    # --- 감사 로그 (#2830) ---
+    # 트레이너의 회원 기록 열람(`trainer.client_read`)은 같은 (트레이너, 회원, 자원)
+    # 조합을 이 시간(분) 안에 한 번만 남긴다 — 화면을 넘길 때마다 쌓이지 않게.
+    audit_read_dedupe_minutes: int = 10
+    # 보존 기간(일). 지난 기록은 기동 시 정리한다. 0 이면 정리하지 않는다.
+    # 인증·계정 이벤트(접속 기록)는 1년, 건강정보 열람·동의·탈퇴 기록은 2년.
+    audit_retention_days: int = 365
+    audit_sensitive_retention_days: int = 730
 
     # --- 소셜 로그인 ---
     # Apple 로그인에서 허용할 `aud`(client_id) 목록, 콤마 구분.
@@ -147,6 +156,36 @@ class Settings(BaseSettings):
     # 돌지만, 실 임베딩 키로 처음 띄우면 그만큼 기동이 길어진다 — 끄고 싶으면 false.
     seed_rag_ingest: bool = True
 
+    # --- 메일 발송(비밀번호 재설정, #2824) ---
+    # auto: SMTP_HOST 와 MAIL_FROM 이 있으면 smtp, 없으면 log. log 는 실제로 보내지
+    # 않고 서버 로그에만 남긴다(개발용). 운영에서 log 로 풀리면 재설정 요청은 503 으로
+    # 꺼지고 기동 로그에 오류가 남는다(`mail_enabled`).
+    # AWS SES 는 SMTP 인터페이스를 주므로 SES 도 이 smtp 구현으로 쓴다 — 계정·키는
+    # 배포 환경변수로만 넣는다(코드·저장소에 두지 않는다).
+    mail_provider: Literal["auto", "smtp", "log"] = "auto"
+    mail_from: str = ""
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    # true: 평문 연결 뒤 STARTTLS(587). false 면 smtp_ssl 을 본다.
+    smtp_starttls: bool = True
+    # true: 처음부터 TLS(465). starttls 와 함께 켜면 ssl 이 우선한다.
+    smtp_ssl: bool = False
+    smtp_timeout_seconds: float = 10.0
+
+    # --- 비밀번호 재설정(#2824) ---
+    # 재설정 코드 유효 시간(분). 메일을 열어 바로 쓰는 일회용이라 짧게 둔다.
+    password_reset_token_minutes: int = 30
+    # 같은 이메일로 재설정 메일을 보낼 수 있는 횟수(아래 창 안에서). IP 버킷과 별개다
+    # — 여러 IP 에서 한 사람에게 메일 폭탄을 보내는 것을 막는다.
+    password_reset_email_per_window: int = 3
+    password_reset_email_window_minutes: int = 15
+    # 메일 속 링크가 여는 화면 주소. 비어 있으면 링크 없이 코드만 보낸다 — 앱에서
+    # 코드를 붙여 넣어도 된다. `?token=` 이 붙는다.
+    password_reset_member_url: str = ""
+    password_reset_trainer_url: str = ""
+
     # --- 기타 ---
     cors_allow_origins: str = "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000"
     seed_demo_data: bool = True
@@ -161,6 +200,16 @@ class Settings(BaseSettings):
     security_headers: bool = True   # 보안 응답 헤더(HSTS·nosniff·frame deny 등)
     # 루트 로거 레벨. 허용값만(임의 문자열 금지 — 오타로 로깅이 조용히 죽는 것 방지).
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+
+    # --- 에러 추적(Sentry, #2839) ---
+    # 처리하지 못한 예외를 외부 에러 추적 도구로 보낸다. DSN 은 배포 환경변수로만 넣고
+    # 저장소에 두지 않는다. 비어 있거나 ENV=dev 면 초기화하지 않는다(개발·데모 오류는
+    # 보내지 않음). 요청 본문·헤더·쿼리·지역 변수는 보내지 않는다(app/core/error_tracking.py).
+    sentry_dsn: str = ""
+    # 비우면 ENV 값(staging·prod)을 그대로 쓴다.
+    sentry_environment: str = ""
+    # 오류 이벤트 표본 비율(0~1). 성능 추적(APM)은 켜지 않는다.
+    sentry_sample_rate: float = Field(default=1.0, ge=0.0, le=1.0)
 
     # --- Rate limit (인증 엔드포인트 브루트포스 방어) ---
     rate_limit_enabled: bool = True
@@ -229,6 +278,25 @@ class Settings(BaseSettings):
         return self.env.strip().lower() in ("prod", "production")
 
     @property
+    def mail_backend(self) -> str:
+        """실제로 쓸 메일 발송 수단(`smtp`|`log`). `auto` 를 여기서 푼다."""
+        if self.mail_provider != "auto":
+            return self.mail_provider
+        return "smtp" if self.smtp_host.strip() and self.mail_from.strip() else "log"
+
+    @property
+    def mail_enabled(self) -> bool:
+        """재설정 메일을 보낼 수 있는가.
+
+        개발·스테이징은 log 발송으로도 켜 둔다(코드를 서버 로그에서 읽어 확인한다).
+        운영은 실제 발송 수단이 있어야만 켠다 — 로그로만 남기는 재설정은 회원에게
+        닿지 않을뿐더러, 로그를 읽을 수 있는 사람이 남의 계정을 되찾게 된다.
+        """
+        if self.mail_backend == "smtp":
+            return bool(self.smtp_host.strip() and self.mail_from.strip())
+        return not self.is_prod
+
+    @property
     def demo_fallback_enabled(self) -> bool:
         """데모 사용자 폴백 허용 여부 — 운영에서는 설정과 무관하게 항상 비활성."""
         return self.allow_demo_fallback and not self.is_prod
@@ -236,6 +304,14 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def _guard_prod_secrets(self) -> "Settings":
         """운영 환경에서 안전하지 않은 기본값을 쓰면 기동을 막는다(fail-fast)."""
+        # SMTP 를 명시해 놓고 서버·발신 주소를 비우면 설정 실수다. auto 와 달리 조용히
+        # log 로 떨어뜨리지 않고 기동에서 드러낸다(#2824).
+        if self.mail_provider == "smtp" and not (
+            self.smtp_host.strip() and self.mail_from.strip()
+        ):
+            raise ValueError(
+                "MAIL_PROVIDER=smtp 이면 SMTP_HOST 와 MAIL_FROM 을 함께 설정해야 합니다."
+            )
         if self.is_prod:
             if not self.jwt_secret or self.jwt_secret == DEFAULT_JWT_SECRET:
                 raise ValueError(
