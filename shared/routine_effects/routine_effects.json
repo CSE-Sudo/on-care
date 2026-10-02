@@ -1,5 +1,5 @@
 {
-  "_comment": "추천 개인운동 효과 한 줄 문구표(#2570). 운동 유형 × 회원 첫 건강 목표. 서버(backend/app/data/routine_effects.py)와 트레이너 웹(frontend/flutter_trainer/lib/features/coaching/domain/routine_effects.dart)이 사본을 들고, 각자의 테스트가 이 파일과 같은지 검사한다. 근거: 생애주기별 신체활동 지침(backend/app/data/coach_docs/pa_adult.txt 유산소·근력, pa_safety.txt 준비·정리운동).",
+  "_comment": "추천 개인운동 효과 한 줄 문구표(#2570). 운동 유형 × 회원 첫 건강 목표. 서버(backend/app/data/routine_effects.py)와 트레이너 웹(frontend/flutter_trainer/lib/features/coaching/domain/routine_effects.dart)이 사본을 들고, 각자의 테스트가 이 파일과 같은지 검사한다. `en` 칸은 표 문장의 영어 화면 문구로, 두 앱이 함께 쓰는 `oncare_ui` 의 `routineEffectText` 가 같은 값을 든다(#2906). 서버는 한국어 문장만 쓴다. 근거: 생애주기별 신체활동 지침(backend/app/data/coach_docs/pa_adult.txt 유산소·근력, pa_safety.txt 준비·정리운동).",
   "default": {
     "유산소": "체력 향상·만성질환 예방",
     "근력": "근력·근지구력 향상",
@@ -24,5 +24,21 @@
       "자세 교정": "굳은 근육 이완",
       "재활": "관절 가동 범위 회복"
     }
+  },
+  "en": {
+    "체력 향상·만성질환 예방": "Builds fitness and helps prevent chronic disease",
+    "근력·근지구력 향상": "Builds strength and muscular endurance",
+    "유연성·부상 예방": "Improves flexibility and helps prevent injury",
+    "혈압 관리에 도움": "Helps manage blood pressure",
+    "체지방 감량에 도움": "Helps reduce body fat",
+    "심폐 체력 향상": "Improves cardiorespiratory fitness",
+    "무리 없는 체력 회복": "Rebuilds fitness without strain",
+    "근육량 유지·증가": "Maintains and builds muscle mass",
+    "근력 향상": "Builds strength",
+    "자세 지지 근육 강화": "Strengthens posture-supporting muscles",
+    "혈압·심박 안정": "Steadies blood pressure and heart rate",
+    "근육 회복": "Helps muscles recover",
+    "굳은 근육 이완": "Loosens tight muscles",
+    "관절 가동 범위 회복": "Restores joint range of motion"
   }
 }

@@ -2961,62 +2961,6 @@
   "@coachRoutineGone": {
     "description": "Shown when the routine is missing."
   },
-  "routineEffectCardioDefault": "Builds fitness and helps prevent chronic disease",
-  "@routineEffectCardioDefault": {
-    "description": "Routine effect line (#2725). Translation of the shared effect table sentence \"체력 향상·만성질환 예방\"."
-  },
-  "routineEffectStrengthDefault": "Builds strength and muscular endurance",
-  "@routineEffectStrengthDefault": {
-    "description": "Routine effect line (#2725). Translation of the shared effect table sentence \"근력·근지구력 향상\"."
-  },
-  "routineEffectStretchDefault": "Improves flexibility and helps prevent injury",
-  "@routineEffectStretchDefault": {
-    "description": "Routine effect line (#2725). Translation of the shared effect table sentence \"유연성·부상 예방\"."
-  },
-  "routineEffectBloodPressure": "Helps manage blood pressure",
-  "@routineEffectBloodPressure": {
-    "description": "Routine effect line (#2725). Translation of the shared effect table sentence \"혈압 관리에 도움\"."
-  },
-  "routineEffectFatLoss": "Helps reduce body fat",
-  "@routineEffectFatLoss": {
-    "description": "Routine effect line (#2725). Translation of the shared effect table sentence \"체지방 감량에 도움\"."
-  },
-  "routineEffectCardioFitness": "Improves cardiorespiratory fitness",
-  "@routineEffectCardioFitness": {
-    "description": "Routine effect line (#2725). Translation of the shared effect table sentence \"심폐 체력 향상\"."
-  },
-  "routineEffectGentleRecovery": "Rebuilds fitness without strain",
-  "@routineEffectGentleRecovery": {
-    "description": "Routine effect line (#2725). Translation of the shared effect table sentence \"무리 없는 체력 회복\"."
-  },
-  "routineEffectMuscleMass": "Maintains and builds muscle mass",
-  "@routineEffectMuscleMass": {
-    "description": "Routine effect line (#2725). Translation of the shared effect table sentence \"근육량 유지·증가\"."
-  },
-  "routineEffectStrength": "Builds strength",
-  "@routineEffectStrength": {
-    "description": "Routine effect line (#2725). Translation of the shared effect table sentence \"근력 향상\"."
-  },
-  "routineEffectPostureMuscles": "Strengthens posture-supporting muscles",
-  "@routineEffectPostureMuscles": {
-    "description": "Routine effect line (#2725). Translation of the shared effect table sentence \"자세 지지 근육 강화\"."
-  },
-  "routineEffectHeartRate": "Steadies blood pressure and heart rate",
-  "@routineEffectHeartRate": {
-    "description": "Routine effect line (#2725). Translation of the shared effect table sentence \"혈압·심박 안정\"."
-  },
-  "routineEffectMuscleRecovery": "Helps muscles recover",
-  "@routineEffectMuscleRecovery": {
-    "description": "Routine effect line (#2725). Translation of the shared effect table sentence \"근육 회복\"."
-  },
-  "routineEffectLoosen": "Loosens tight muscles",
-  "@routineEffectLoosen": {
-    "description": "Routine effect line (#2725). Translation of the shared effect table sentence \"굳은 근육 이완\"."
-  },
-  "routineEffectJointRange": "Restores joint range of motion",
-  "@routineEffectJointRange": {
-    "description": "Routine effect line (#2725). Translation of the shared effect table sentence \"관절 가동 범위 회복\"."
-  },
   "coachRoutineNetworkError": "Check your connection and try again",
   "@coachRoutineNetworkError": {
     "description": "Shown when the network is unavailable."
