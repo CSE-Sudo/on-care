@@ -547,6 +547,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'Photo analysis is unavailable right now. Please log the meal manually.';
 
   @override
+  String get dietAnalysisNoFood =>
+      'We couldn\'t find any food in this photo. Pick another photo or add the meal manually.';
+
+  @override
+  String get dietAnalysisDailyLimit =>
+      'You\'ve used today\'s photo analyses. They reset tomorrow — for now you can add the meal manually.';
+
+  @override
+  String get dietAnalysisRateLimited =>
+      'Too many photo analyses in a short time. Try again in a moment or add the meal manually.';
+
+  @override
+  String get dietAnalysisUnavailable =>
+      'Photo analysis is unavailable right now. Please add the meal manually.';
+
+  @override
   String get dietAnalysisPickAnother => 'Pick another photo';
 
   @override

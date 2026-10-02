@@ -16,6 +16,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app.api.deps import CurrentUser
 from app.core.config import get_settings
@@ -95,8 +96,9 @@ async def places_nearby(
                     status_code=503,
                     detail="장소 검색을 잠시 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.",
                 ) from None
-    return _seed_nearby(
-        db, lat, lng, category, radius_m,
+    # 시드 조회는 동기 DB 다 — 이벤트 루프를 막지 않게 스레드풀로 넘긴다(#2835).
+    return await run_in_threadpool(
+        _seed_nearby, db, lat, lng, category, radius_m,
         exclude=frozenset() if demo else demo_ids.demo_place_ids(),
     )
 

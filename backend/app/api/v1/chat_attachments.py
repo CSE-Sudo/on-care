@@ -19,7 +19,6 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from starlette.concurrency import run_in_threadpool
 from starlette.responses import StreamingResponse
 
 from app.api.deps import RequireUser
@@ -148,7 +147,7 @@ def _stream(
     return StreamingResponse(blob.iter_chunks(), media_type=media_type, headers=headers)
 
 
-async def receive_chat_image(
+def receive_chat_image(
     db: Session,
     *,
     trainer_id: str,
@@ -168,6 +167,11 @@ async def receive_chat_image(
     형식은 **바이트를 보고 판정한다.** 확장자와 `Content-Type` 은 보내는 쪽이
     자유롭게 적을 수 있어, 그 말을 믿으면 `image/png` 라고 적힌 아무 파일이나
     저장된다.
+
+    **동기 함수다(#2835).** DB 조회·커밋, 파일 저장(`os.fsync`)이 모두 동기라
+    이벤트 루프에서 돌면 그동안 같은 프로세스의 다른 요청(헬스체크 포함)이 멈춘다.
+    호출하는 라우트도 `def` 로 두어 FastAPI 스레드풀에서 돌게 하고, 업로드는
+    `UploadFile.file` 을 동기로 읽는다.
     """
     viewer = "trainer" if sender == "trainer" else "member"
     text = message.strip()
@@ -186,7 +190,7 @@ async def receive_chat_image(
             return trainer_service.chat_message_out(existing, viewer)
 
     settings = get_settings()
-    data = await image.read(settings.max_chat_image_bytes + 1)
+    data = image.file.read(settings.max_chat_image_bytes + 1)
     if len(data) > settings.max_chat_image_bytes:
         raise HTTPException(status_code=413, detail="이미지 용량이 너무 큽니다.")
     try:
@@ -204,10 +208,10 @@ async def receive_chat_image(
     file_id: str | None = None
     try:
         # 저장 전에 회전 적용·메타데이터(EXIF 위치 등) 제거·재인코딩을 거친다
-        # (#2829). Pillow 작업이라 이벤트 루프를 막지 않게 스레드로 넘긴다.
+        # (#2829). 동기 핸들러라 이미 스레드풀에서 돌므로 이벤트 루프를 막지 않는다.
         # 디코딩할 수 없는 파일은 저장하지 않고 415 다.
         try:
-            stored = await run_in_threadpool(chat_image_storage.save, data)
+            stored = chat_image_storage.save(data)
         except chat_image_storage.UnsupportedImage as exc:
             raise HTTPException(status_code=415, detail=str(exc)) from exc
         file_id = stored.file_id

@@ -28,6 +28,20 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://oncare:oncare@localhost:5432/oncare"
     # DB 커넥션 인출(연결 수립) 상한(초) — 네트워크 파티션/무응답 시 스레드 무한 점유 방지.
     db_connect_timeout_seconds: int = 5
+    # 커넥션 풀(#2836). 기본값을 SQLAlchemy 에 맡기면 풀 대기가 30초라, 풀이 마르면
+    # 가벼운 조회도 30초 뒤에 500 이 된다. 짧게 실패시켜 클라이언트 재시도로 넘긴다.
+    # (pool_size + max_overflow) × 워커 수 × 인스턴스 수가 DB 연결 상한(Neon 플랜)
+    # 안에 들어와야 한다 — 값은 배포 문서(DEPLOY.md)에 계산법과 함께 적어 둔다.
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
+    db_pool_timeout_seconds: float = 10.0
+    # 유휴 연결 재활용 주기(초). 관리형 DB 가 오래 쉰 연결을 먼저 끊으면 다음 요청이
+    # 끊긴 연결을 받는다(pre_ping 이 잡지만 왕복이 하나 더 든다). 그보다 짧게 둔다.
+    db_pool_recycle_seconds: int = 300
+    # 쿼리 하나의 실행 상한(ms). 잘못된 쿼리·잠금 대기 하나가 연결을 무기한 쥐지
+    # 않게 한다. 0 이면 끈다. 마이그레이션(`scripts/migrate.py`·Alembic)은 별도
+    # 연결이라 이 값의 영향을 받지 않는다.
+    db_statement_timeout_ms: int = 10_000
     # 앱 기동 시 create_all() 로 테이블 생성 여부(개발 편의). 운영은 Alembic 을 정답으로 → false 권장.
     auto_create_tables: bool = True
 
@@ -244,6 +258,14 @@ class Settings(BaseSettings):
     # UI 라 연타가 그대로 비용이 된다. 생성 왕복이 실측 3~6초라(#579) 사람이
     # 결과를 보고 조정하는 속도로는 분당 10회에 닿지 않는다.
     routine_options_per_minute: int = 10
+    # 식단 사진 분석 한도(#2827). 사진 한 장이 외부 비전 모델 호출 한 번이라 비용이
+    # 가장 큰 축이다. 분당 값은 재시도 루프·스크립트 폭주를 막고(사용자 id 버킷 —
+    # 같은 헬스장 Wi-Fi 의 회원끼리 한 버킷을 나눠 쓰지 않게), 하루 값은 한 회원의
+    # 하루 비용을 묶는다. 하루 값은 DB(`diet_analysis_usages`)에서 KST 날짜로 세므로
+    # 재기동·여러 인스턴스에서도 같다. 끼니 다섯 번에 재촬영 여유를 더한 값이다.
+    # 0 이면 그 한도를 끈다. RATE_LIMIT_ENABLED=false 면 둘 다 끈다.
+    diet_analyze_per_minute: int = 10
+    diet_analyze_per_day: int = 20
     # 상담 요청 생성 한도(#1628). 트래픽이 아니라 **남에게 주는 피해**를 막는 정책이다
     # — 답을 기다리는 요청 하나가 트레이너 자리 하나를 최대 24시간 잠그고(#1873),
     # 신청·취소를 되풀이하면 트레이너 알림함이 찬다. 둘 다 DB 에서 세므로 재기동이나
@@ -393,7 +415,48 @@ class Settings(BaseSettings):
                     "운영(env=prod)에서는 AUTO_CREATE_TABLES=false 로 두고 Alembic 을 스키마의 "
                     "유일한 소스로 삼아야 합니다."
                 )
+            # 사진 인식·임베딩은 키가 없으면 개발용 대체(고정 식단 스텁·해시 벡터)로
+            # 내려간다. 운영에서 그대로 뜨면 사진과 무관한 음식이 끼니로 저장되고
+            # 포인트까지 나가며, 의미 없는 벡터가 RAG 테이블에 섞인다(#2812).
+            # 조용히 뜨는 대신 기동을 거부해 배포 단계에서 바로 드러나게 한다.
+            problems = self.missing_ai_config()
+            if problems:
+                raise ValueError(
+                    "운영(env=prod)에서는 사진 인식·임베딩 키가 필요합니다: " + "; ".join(problems)
+                )
         return self
+
+    def recognizer_problem(self) -> str | None:
+        """설정된 식단 인식기를 실제로 쓸 수 없는 이유. 쓸 수 있으면 None. (#2812)"""
+        engine = self.recognizer.strip().lower()
+        if engine == "gemini":
+            return None if self.gemini_api_key else "RECOGNIZER=gemini 인데 GEMINI_API_KEY 가 비어 있음"
+        if engine == "claude":
+            if self.litellm_base_url and self.litellm_api_key:
+                return None
+            return "RECOGNIZER=claude 인데 LITELLM_BASE_URL·LITELLM_API_KEY 가 비어 있음"
+        if engine == "stub":
+            return "RECOGNIZER=stub 은 개발용 고정 식단이라 운영에서 쓸 수 없음"
+        return f"RECOGNIZER={engine} 는 운영에서 쓸 수 있는 인식기가 아님(gemini|claude)"
+
+    def embedder_problem(self) -> str | None:
+        """설정된 임베더를 실제로 쓸 수 없는 이유. 쓸 수 있으면 None. (#2812)"""
+        chosen = self.embedder.strip().lower()
+        if chosen == "gemini":
+            return None if self.gemini_api_key else "EMBEDDER=gemini 인데 GEMINI_API_KEY 가 비어 있음"
+        if chosen == "openai":
+            return None if self.openai_api_key else "EMBEDDER=openai 인데 OPENAI_API_KEY 가 비어 있음"
+        if chosen == "litellm":
+            if self.litellm_base_url and self.litellm_api_key and self.litellm_embed_model:
+                return None
+            return "EMBEDDER=litellm 인데 LITELLM_BASE_URL·LITELLM_API_KEY·LITELLM_EMBED_MODEL 중 빈 값이 있음"
+        if chosen == "hash":
+            return "EMBEDDER=hash 는 개발용 해시 벡터라 운영에서 쓸 수 없음"
+        return f"EMBEDDER={chosen} 는 알 수 없는 임베더"
+
+    def missing_ai_config(self) -> list[str]:
+        """운영 기동을 막는 AI 설정 문제 목록. 비어 있으면 통과."""
+        return [p for p in (self.recognizer_problem(), self.embedder_problem()) if p]
 
 
 @lru_cache
