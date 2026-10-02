@@ -1,0 +1,14 @@
+{
+  "_comment": "운동 칼로리 계수(#2906) — 이 파일이 원본이다. 강도 배수와, 운동 이름이 종목표에 붙지 않을 때 쓰는 유형별 분당 kcal 폴백. 서버 `app/services/exercise_catalog/energy.py` 의 `INTENSITY_FACTOR`·`FALLBACK_KCAL_PER_MIN` 과 공용 패키지 `oncare_rules` 의 `kExerciseIntensityFactor`·`kFallbackKcalPerMinute` 가 이 값을 들고, 서버 pytest·패키지·두 앱 테스트가 이 파일과 같은지 본다.",
+  "intensity_factor": {
+    "light": 0.85,
+    "moderate": 1.0,
+    "high": 1.2
+  },
+  "fallback_kcal_per_min": {
+    "cardio": 9.0,
+    "strength": 6.0,
+    "stretching": 3.0,
+    "other": 5.0
+  }
+}

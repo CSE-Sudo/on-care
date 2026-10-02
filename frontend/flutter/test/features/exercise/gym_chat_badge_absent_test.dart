@@ -75,10 +75,6 @@ Future<void> _pump(WidgetTester tester, int unread) async {
         myReservationsProvider.overrideWith(
           (ref) async => const <MyReservation>[],
         ),
-        recommendedGymsProvider.overrideWith((ref) async => const <Gym>[]),
-        recommendedTrainersProvider.overrideWith(
-          (ref) async => const <Trainer>[],
-        ),
         gymFinderResultsProvider.overrideWith((ref) async => const <Gym>[]),
         consultationRequestControllerProvider.overrideWith(
           (ref) => newTestConsultationController(),

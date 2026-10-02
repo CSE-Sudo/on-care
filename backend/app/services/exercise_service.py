@@ -23,9 +23,10 @@ from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.core.locale import Locale
+from app.core.week import monday_of
 from app.models.models import ExerciseSession, TrainerSchedule
 from app.services import (
-    exercise_activity, exercise_types, period_window, routine_advice,
+    exercise_activity, exercise_types, goal_defaults, period_window, routine_advice,
 )
 from app.services.exercise_advice import Advice, advice
 from app.services.exercise_catalog import energy, resolver
@@ -93,7 +94,7 @@ def first_session_date(db: Session, user_id: str) -> str | None:
 
 def monday_of_this_week_str() -> str:
     today = clock.today()
-    return (today - timedelta(days=today.weekday())).isoformat()
+    return monday_of(today).isoformat()
 
 
 def monday_of_str(day: str) -> str:
@@ -106,7 +107,7 @@ def monday_of_str(day: str) -> str:
         d = date.fromisoformat(day)
     except (TypeError, ValueError):
         return monday_of_this_week_str()
-    return (d - timedelta(days=d.weekday())).isoformat()
+    return monday_of(d).isoformat()
 
 
 def weekday_label_of(day: str) -> str:
@@ -290,10 +291,10 @@ def _bucket(t: str) -> str:
 
 #: 프로필에 목표가 없을 때 쓰는 기본값. 회원 앱의 `UserProfile` 기본값과 같다 —
 #: 두 앱이 다른 기본값을 쓰면 같은 회원의 그래프에 다른 목표선이 그려진다.
-DEFAULT_WEEKLY_MINUTES_GOAL = 150
+DEFAULT_WEEKLY_MINUTES_GOAL = goal_defaults.WEEKLY_CARDIO_MINUTES
 #: 하루 소모 칼로리 목표의 기본값. 회원 앱 `ExerciseLoadGoals.dailyBurnKcal`·트레이너
-#: 웹 `kDailyBurnKcal` 과 같다.
-DEFAULT_DAILY_BURN_KCAL = 300
+#: 웹 `kDailyBurnKcal` 과 같다. 원본은 `goal_defaults`(#2906).
+DEFAULT_DAILY_BURN_KCAL = goal_defaults.DAILY_BURN_KCAL
 #: 주간 소모 칼로리 목표의 기본값 — 하루 기본값 × 7.
 DEFAULT_WEEKLY_BURN_GOAL = DEFAULT_DAILY_BURN_KCAL * 7
 
@@ -430,7 +431,7 @@ def build_period(
 
 
 def _monday_of(day: date) -> date:
-    return day - timedelta(days=day.weekday())
+    return monday_of(day)
 
 
 def build_current_week(

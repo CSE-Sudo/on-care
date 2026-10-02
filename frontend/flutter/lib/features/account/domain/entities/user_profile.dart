@@ -1,21 +1,33 @@
 import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart'
+    show
+        kGoalDefaultDailyCalories,
+        kGoalDefaultDailyCarbsG,
+        kGoalDefaultDailyFatG,
+        kGoalDefaultDailyProteinG,
+        kGoalDefaultDailySodiumMg,
+        kGoalDefaultDailySugarG,
+        kGoalDefaultProteinGPerKg;
 
 /// GET /users/me/profile — the consolidated profile the settings modals
 /// edit (내 프로필 + 건강 목표).
 class UserProfile {
-  static const int defaultDailyCalories = 2000;
-  static const int defaultDailySodiumMg = 2000;
-  static const int defaultDailySugarG = 50;
-  static const int defaultDailyCarbsG = 275;
+  // 목표를 세우지 않은 회원의 기준선. 값은 공용 패키지 `oncare_ui` 의
+  // `kGoalDefault…` 한 곳에 있고(#2906), 서버와는 원본 표
+  // `shared/oncare_rules/vectors/goal_defaults.json` 으로 대조한다.
+  static const int defaultDailyCalories = kGoalDefaultDailyCalories;
+  static const int defaultDailySodiumMg = kGoalDefaultDailySodiumMg;
+  static const int defaultDailySugarG = kGoalDefaultDailySugarG;
+  static const int defaultDailyCarbsG = kGoalDefaultDailyCarbsG;
 
   /// 체중도 개인 목표도 없을 때의 단백질 목표 — 서버
   /// `diet_coach_inputs.DEFAULT_PROTEIN_G` 와 같다(#2898). 예전 100g 은 식단
   /// 분석 기준(60g)과 달라, 카드와 분석이 같은 날을 다르게 판단했다.
-  static const int defaultDailyProteinG = 60;
+  static const int defaultDailyProteinG = kGoalDefaultDailyProteinG;
 
   /// 체중 1kg 당 단백질 목표(g) — 서버 `PROTEIN_G_PER_KG` 와 같다(#2898).
-  static const double proteinGPerKg = 1.2;
-  static const int defaultDailyFatG = 55;
+  static const double proteinGPerKg = kGoalDefaultProteinGPerKg;
+  static const int defaultDailyFatG = kGoalDefaultDailyFatG;
 
   /// [focusChangedBy] 값 — 건강 목표를 마지막으로 바꾼 사람(#1832).
   static const String focusChangedByMember = 'member';

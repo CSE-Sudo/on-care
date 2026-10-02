@@ -3,6 +3,7 @@ import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 목업 API 의 연속 기록 보호권. 서버 `streak_shield_service` 의 대역이다. (#1788)
 ///
@@ -100,7 +101,7 @@ class DemoStreakShieldBook implements DemoPersistable {
       'used': <Map<String, Object?>>[
         for (final _DemoShield s in used)
           <String, Object?>{
-            'date': _ymd(s.protectedOn!),
+            'date': wireDate(s.protectedOn!),
             'used_at': s.usedAt?.toIso8601String(),
           },
       ],
@@ -109,12 +110,12 @@ class DemoStreakShieldBook implements DemoPersistable {
           : recordStreakDays(hasRecordOn),
       // 창은 보유 수와 상관없이 내려 준다 — 보호권이 없으면 그래프가 교환과
       // 사용을 한 번에 잇는다. 어느 날이 실제로 비었는지는 기록 그래프가 가린다.
-      'protectable_from': _ymd(DateTime(
+      'protectable_from': wireDate(DateTime(
         yesterday.year,
         yesterday.month,
         yesterday.day - (protectWindowDays - 1),
       )),
-      'protectable_to': _ymd(yesterday),
+      'protectable_to': wireDate(yesterday),
     };
   }
 
@@ -246,7 +247,7 @@ class DemoStreakShieldBook implements DemoPersistable {
       'acquired_at': shield.acquiredAt.toIso8601String(),
       'protected_on': shield.protectedOn == null
           ? null
-          : _ymd(shield.protectedOn!),
+          : wireDate(shield.protectedOn!),
       'used_at': shield.usedAt?.toIso8601String(),
     },
     'spent': cost,
@@ -257,11 +258,6 @@ class DemoStreakShieldBook implements DemoPersistable {
       DemoCouponResult(status, <String, Object?>{'detail': detail});
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
-
-  static String _ymd(DateTime day) =>
-      '${day.year.toString().padLeft(4, '0')}-'
-      '${day.month.toString().padLeft(2, '0')}-'
-      '${day.day.toString().padLeft(2, '0')}';
 }
 
 class _DemoShield {

@@ -10,7 +10,7 @@
 #   Its X.Y.Z is the sqlite3 C library version, NOT the Dart
 #   package version — pin a known-good build here.
 #
-# CI does the same thing inline in .github/workflows/deploy-web.yml.
+# CI does the same thing inline in the repo-root .github/workflows/deploy.yml.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

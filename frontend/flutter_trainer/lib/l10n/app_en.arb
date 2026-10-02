@@ -170,6 +170,10 @@
     "description": "Red text under the email field on sign-in/sign-up when it is empty (#1784)."
   },
   "authErrEmailInvalid": "Enter a valid email address",
+  "authErrEmailTooLong": "Email addresses can be up to 255 characters",
+  "@authErrEmailTooLong": {
+    "description": "Red text under the email field when the address is longer than the server limit (#2908). The limit matches the users.email column and EMAIL_MAX_LENGTH in contact_format.py."
+  },
   "authErrPasswordEmpty": "Enter your password",
   "authErrPasswordWeak": "Use at least 8 characters, including letters and numbers",
   "authErrPasswordTooLong": "Passwords can be up to 64 characters, or fewer if they include Korean or emoji",
@@ -672,19 +676,6 @@
   "chatInsightMemoSummaryNegative": "Workout strain detected",
   "chatInsightMemoSaved": "The AI insight was added to your memos.",
   "chatInsightMemoSaveFailed": "Couldn't add the memo. Please try again.",
-  "coachSheetTitle": "Coaching for {name}",
-  "@coachSheetTitle": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "coachSheetSubtitle": "Answers are grounded in this member's meals and workouts.",
-  "coachSheetHint": "e.g. Sodium keeps running high — what meals should I suggest?",
-  "coachSheetSources": "Sources",
-  "coachSheetAsk": "Ask",
-  "coachSheetAskAgain": "Ask again",
   "consultTitle": "Consultation requests",
   "consultFilterAll": "All",
   "consultFilterPendingCount": "Pending {count}",
@@ -1672,20 +1663,6 @@
     "description": "Label of the one-line benefit field on a personal routine row. Left empty, the auto-filled benefit (shown as the placeholder) is sent (#2570)."
   },
   "routineFieldEffectHint": "e.g. Protect right shoulder",
-  "routineEffectCardioDefault": "Builds fitness and helps prevent chronic disease",
-  "routineEffectStrengthDefault": "Builds strength and muscular endurance",
-  "routineEffectStretchDefault": "Improves flexibility and helps prevent injury",
-  "routineEffectBloodPressure": "Helps manage blood pressure",
-  "routineEffectFatLoss": "Helps reduce body fat",
-  "routineEffectCardioFitness": "Improves cardiorespiratory fitness",
-  "routineEffectGentleRecovery": "Rebuilds fitness without strain",
-  "routineEffectMuscleMass": "Maintains and builds muscle mass",
-  "routineEffectStrength": "Builds strength",
-  "routineEffectPostureMuscles": "Strengthens posture-supporting muscles",
-  "routineEffectHeartRate": "Steadies blood pressure and heart rate",
-  "routineEffectMuscleRecovery": "Helps muscles recover",
-  "routineEffectLoosen": "Loosens tight muscles",
-  "routineEffectJointRange": "Restores joint range of motion",
   "routineFieldSets": "Sets",
   "routineFieldReps": "Reps",
   "routineFieldHold": "Hold time",
@@ -1718,6 +1695,18 @@
   "coachSwitchClientTitle": "Switch to another client?",
   "coachSwitchClientBody": "You have unsent work. Switching clients discards the program and personal exercises you are building.",
   "coachSwitchClientConfirm": "Switch",
+  "coachDraftResumeTitle": "You have saved work",
+  "coachDraftResumeBody": "The program you were building for {name} was saved automatically. Continue where you left off?",
+  "@coachDraftResumeBody": {
+    "description": "Body of the coaching screen's resume prompt for an autosaved draft.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "coachDraftResume": "Continue",
+  "coachDraftDiscard": "Discard",
   "personalRoutineTargetLoadFailed": "Couldn't load PT sessions",
   "personalRoutineStartPast": "The start date has passed, so it's now set to today. Check it and send again",
   "schedRoutinesReadFailed": "Couldn't check the attached personal exercises. Please try again",
@@ -2051,10 +2040,6 @@
   "authErrNetwork": "Please check your network connection.",
   "authErrGeneric": "Something went wrong signing in. Please try again in a moment.",
   "authErrEmptyResponse": "The response was empty.",
-  "coachDemoUnavailable": "AI coaching isn't available in demo mode",
-  "coachNotMyClient": "That isn't one of your members",
-  "coachAskFailed": "Couldn't send your question",
-  "coachRateLimited": "You've sent too many questions. Please try again in a minute",
   "slotFutureOnly": "Booking slots can only be set for future times.",
   "slotNotFound": "Booking slot not found.",
   "slotTypeLockedByBooking": "Can't change the type of a slot that's already booked.",
@@ -2653,24 +2638,7 @@
   "clientFeedbackSearchHint": "Search feedback (text, source, direction)",
   "clientFeedbackSearchEmpty": "No feedback matches your search.",
   "followUp": "Follow-ups",
-  "followUpTitle": "Follow-ups on {name}",
-  "@followUpTitle": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "followUpHint": "Note what you want to check again",
-  "followUpAdd": "Add follow-up",
-  "followUpDue": "Check on",
   "followUpOverdue": "Overdue",
-  "followUpContextGeneral": "Member detail",
-  "followUpContextDiet": "Diet",
-  "followUpContextExercise": "Workout",
-  "followUpContextMessage": "Messages",
-  "followUpContextProgram": "Program",
-  "followUpContextSchedule": "Schedule",
   "followUpComplete": "Done",
   "followUpCount": "{count} left",
   "@followUpCount": {
@@ -2680,10 +2648,8 @@
       }
     }
   },
-  "followUpEmpty": "No follow-ups left.",
   "followUpDashboardEmpty": "Nothing to follow up on today.",
   "followUpLoadFailed": "Couldn't load follow-ups. Please try again.",
-  "followUpSaveFailed": "Couldn't save the follow-up. Please try again.",
   "followUpCompleteFailed": "Couldn't mark it done. Please try again.",
   "programEditorDefaultName": "{goal} program",
   "@programEditorDefaultName": {

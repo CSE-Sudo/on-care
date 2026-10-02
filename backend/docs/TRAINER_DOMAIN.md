@@ -314,6 +314,22 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
 
 ## 4. 트레이너 API (`/v1/trainer/*`, RequireTrainer)
 
+### 코드 위치 (#2909)
+
+트레이너 도메인 코드는 영역별 모듈로 나뉘어 있다. 영역 모듈끼리 서로의 비공개 헬퍼를
+직접 부르지 않고 각 패키지의 `_common` 을 거친다.
+
+| 계층 | 위치 | 영역 모듈 |
+|---|---|---|
+| 서비스 | `app/services/trainer/` | `roster` · `chat` · `client_status` · `routines` · `routine_suggestions` · `memos` · `follow_ups` · `programs` · `schedule` · `member_mirror` · `profile` · `gym` · `reports` · `notification_settings` · `weekly_feedback` |
+| 라우터 | `app/api/v1/trainer/` | `profile` · `clients` · `chat` · `routines` · `routine_suggestions` · `memos` · `follow_ups` · `programs` · `task_progress` · `schedule` · `ai_coach` · `reports` · `client_invites` · `consultations` · `notifications` |
+
+영역 라우터는 `app/main.py` 가 `trainer.routers` 순서대로 같은 prefix 로 마운트한다.
+호환 단계 동안 예전 경로 `app.services.trainer_service`·`app.api.v1.trainer` 가 영역
+모듈의 이름을 같은 객체로 다시 내보낸다(`app.core.module_reexport`) — 아래 표와 본문의
+`trainer_service.X` 표기는 그 경로다. 라우트 Method·Path 집합은
+`tests/test_trainer_module_split.py` 의 스냅숏이 지킨다.
+
 | Method | Path | 설명 |
 |---|---|---|
 | GET | `/trainer/me` | 내 트레이너 프로필 |
@@ -782,6 +798,9 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
   AI 를 부르지 않는다. 저장하지 않고 응답 때 채우는 이유는 배정 길이 여럿(단일 배정·AI 제안·
   담당 없는 회원의 자동 추천·프로그램·일정 개인운동)이라 한 곳(`_routine_out`)에서 채워야 빠짐이
   없고, 회원이 목표를 바꾸면 문구도 따라가야 해서다. 운동 여럿으로 짠 세션과 `기타` 유형은 비운다.
+- **서버는 한국어 문장만 낸다.** 영어 화면 문구는 같은 표의 `en` 칸이 원본이고, 두 앱이 함께 쓰는
+  `shared/oncare_ui` 의 `routineEffectText` 가 표의 문장을 알아보고 화면 언어로 그린다(#2906).
+  트레이너가 직접 쓴 문장은 그대로 둔다.
 - **`reason` 과 섞지 않는다.** `reason` 은 AI 추천 사유(트레이너 판단 재료)거나 옛 배정의 운동 이름
   나열이다. 회원 앱은 효과가 있으면 `reason` 을 카드에 싣지 않고, 효과가 없는 옛 응답에서만
   예전처럼 `reason` 으로 떨어진다.

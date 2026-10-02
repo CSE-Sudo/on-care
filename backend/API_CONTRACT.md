@@ -1119,10 +1119,10 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/trainer/clients/{member_id}/routine-options` | `{ available_minutes, intensity_preference, trainer_note?, sources? }` → `{ analysis, plan_a, plan_b, generated_by }` — AI 루틴 A/B 후보. 분당 한도 `ROUTINE_OPTIONS_PER_MINUTE` |
 | POST | `/trainer/clients/{member_id}/program` | `{ name, sessions[], client_request_id?, delivery_kind?, trainer_message?, start_date?, active_days?, suggestion_ids? }` → **201** `RoutineOut[]` — 다중 세션 프로그램 배정(#709) |
 | POST | `/trainer/clients/{member_id}/program-schedule` | 프로그램 + 날짜·시각(또는 붙일 `session_id`) → **201** `{ routines, session, attached_to_existing, personal_routines }` — 배정과 PT 일정 등록을 한 트랜잭션으로(#1580). 붙일 일정이 모호하면 409 `{ message, candidates }` |
-| GET | `/trainer/programs` | `[{ id, name, goal, period, session_count, exercise_count, updated_at }]` — 프로그램 초안 목록 |
-| POST | `/trainer/programs` | `{ name, goal?, period?, memo?, sessions[] }` → **201** 초안 |
-| GET | `/trainer/programs/{draft_id}` | 초안 상세(편집기로 불러올 때) |
-| PUT | `/trainer/programs/{draft_id}` | 부분 수정, `sessions` 는 통째로 교체 |
+| GET | `/trainer/programs?member_id=` | `[{ id, name, goal, period, session_count, exercise_count, member_id, updated_at }]` — 프로그램 초안 목록. `member_id` 를 주면 그 회원에게 자동 보관한 것만(#2873) |
+| POST | `/trainer/programs` | `{ name, goal?, period?, memo?, sessions[], member_id?, workspace? }` → **201** 초안. `member_id` 는 코칭 화면의 회원별 자동 보관이며 담당 회원이 아니면 404, `workspace` 는 편집기 밖의 작성 상태 객체(JSON 64,000자 이하, 서버는 해석하지 않음)(#2873) |
+| GET | `/trainer/programs/{draft_id}` | 초안 상세(편집기로 불러올 때). `member_id`·`workspace` 포함 |
+| PUT | `/trainer/programs/{draft_id}` | 부분 수정, `sessions`·`workspace` 는 통째로 교체. `member_id` 는 바꾸지 않는다 |
 | DELETE | `/trainer/programs/{draft_id}` | `{ status: "deleted" }` — 이미 배정한 루틴·일정은 남는다 |
 | GET | `/trainer/program-templates` | `[{ id, name, goal, exercises, updated_at }]` — 내 템플릿(없으면 시작 구성) |
 | POST | `/trainer/program-templates` | `{ name, goal?, exercises }` → **201**. 개수 상한을 넘으면 409 |

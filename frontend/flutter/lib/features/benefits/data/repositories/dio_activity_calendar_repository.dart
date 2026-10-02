@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart';
 import 'package:oncare/features/benefits/domain/repositories/activity_calendar_repository.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// `/me/activity-calendar` 를 읽고 `/me/graph-color` 를 쓴다. (#2075, #2076)
 class DioActivityCalendarRepository implements ActivityCalendarRepository {
@@ -26,8 +27,8 @@ class DioActivityCalendarRepository implements ActivityCalendarRepository {
           await _dio.get<Map<String, Object?>>(
             '/me/activity-calendar',
             queryParameters: <String, Object?>{
-              if (from != null) 'from': _ymd(from),
-              if (to != null) 'to': _ymd(to),
+              if (from != null) 'from': wireDate(from),
+              if (to != null) 'to': wireDate(to),
             },
           ),
         ),
@@ -52,9 +53,4 @@ class DioActivityCalendarRepository implements ActivityCalendarRepository {
       throw AppError.fromDio(e);
     }
   }
-
-  static String _ymd(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-'
-      '${d.month.toString().padLeft(2, '0')}-'
-      '${d.day.toString().padLeft(2, '0')}';
 }

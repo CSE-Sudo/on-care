@@ -292,6 +292,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authErrEmailInvalid => 'Enter a valid email address';
 
   @override
+  String get authErrEmailTooLong =>
+      'Email addresses can be up to 255 characters';
+
+  @override
   String get authErrPasswordEmpty => 'Enter your password';
 
   @override
@@ -1076,28 +1080,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get chatInsightMemoSaveFailed =>
       'Couldn\'t add the memo. Please try again.';
-
-  @override
-  String coachSheetTitle(String name) {
-    return 'Coaching for $name';
-  }
-
-  @override
-  String get coachSheetSubtitle =>
-      'Answers are grounded in this member\'s meals and workouts.';
-
-  @override
-  String get coachSheetHint =>
-      'e.g. Sodium keeps running high — what meals should I suggest?';
-
-  @override
-  String get coachSheetSources => 'Sources';
-
-  @override
-  String get coachSheetAsk => 'Ask';
-
-  @override
-  String get coachSheetAskAgain => 'Ask again';
 
   @override
   String get consultTitle => 'Consultation requests';
@@ -2620,52 +2602,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get routineFieldEffectHint => 'e.g. Protect right shoulder';
 
   @override
-  String get routineEffectCardioDefault =>
-      'Builds fitness and helps prevent chronic disease';
-
-  @override
-  String get routineEffectStrengthDefault =>
-      'Builds strength and muscular endurance';
-
-  @override
-  String get routineEffectStretchDefault =>
-      'Improves flexibility and helps prevent injury';
-
-  @override
-  String get routineEffectBloodPressure => 'Helps manage blood pressure';
-
-  @override
-  String get routineEffectFatLoss => 'Helps reduce body fat';
-
-  @override
-  String get routineEffectCardioFitness => 'Improves cardiorespiratory fitness';
-
-  @override
-  String get routineEffectGentleRecovery => 'Rebuilds fitness without strain';
-
-  @override
-  String get routineEffectMuscleMass => 'Maintains and builds muscle mass';
-
-  @override
-  String get routineEffectStrength => 'Builds strength';
-
-  @override
-  String get routineEffectPostureMuscles =>
-      'Strengthens posture-supporting muscles';
-
-  @override
-  String get routineEffectHeartRate => 'Steadies blood pressure and heart rate';
-
-  @override
-  String get routineEffectMuscleRecovery => 'Helps muscles recover';
-
-  @override
-  String get routineEffectLoosen => 'Loosens tight muscles';
-
-  @override
-  String get routineEffectJointRange => 'Restores joint range of motion';
-
-  @override
   String get routineFieldSets => 'Sets';
 
   @override
@@ -2745,6 +2681,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachSwitchClientConfirm => 'Switch';
+
+  @override
+  String get coachDraftResumeTitle => 'You have saved work';
+
+  @override
+  String coachDraftResumeBody(String name) {
+    return 'The program you were building for $name was saved automatically. Continue where you left off?';
+  }
+
+  @override
+  String get coachDraftResume => 'Continue';
+
+  @override
+  String get coachDraftDiscard => 'Discard';
 
   @override
   String get personalRoutineTargetLoadFailed => 'Couldn\'t load PT sessions';
@@ -3362,20 +3312,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authErrEmptyResponse => 'The response was empty.';
-
-  @override
-  String get coachDemoUnavailable =>
-      'AI coaching isn\'t available in demo mode';
-
-  @override
-  String get coachNotMyClient => 'That isn\'t one of your members';
-
-  @override
-  String get coachAskFailed => 'Couldn\'t send your question';
-
-  @override
-  String get coachRateLimited =>
-      'You\'ve sent too many questions. Please try again in a minute';
 
   @override
   String get slotFutureOnly =>
@@ -4192,39 +4128,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get followUp => 'Follow-ups';
 
   @override
-  String followUpTitle(String name) {
-    return 'Follow-ups on $name';
-  }
-
-  @override
-  String get followUpHint => 'Note what you want to check again';
-
-  @override
-  String get followUpAdd => 'Add follow-up';
-
-  @override
-  String get followUpDue => 'Check on';
-
-  @override
   String get followUpOverdue => 'Overdue';
-
-  @override
-  String get followUpContextGeneral => 'Member detail';
-
-  @override
-  String get followUpContextDiet => 'Diet';
-
-  @override
-  String get followUpContextExercise => 'Workout';
-
-  @override
-  String get followUpContextMessage => 'Messages';
-
-  @override
-  String get followUpContextProgram => 'Program';
-
-  @override
-  String get followUpContextSchedule => 'Schedule';
 
   @override
   String get followUpComplete => 'Done';
@@ -4235,18 +4139,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get followUpEmpty => 'No follow-ups left.';
-
-  @override
   String get followUpDashboardEmpty => 'Nothing to follow up on today.';
 
   @override
   String get followUpLoadFailed =>
       'Couldn\'t load follow-ups. Please try again.';
-
-  @override
-  String get followUpSaveFailed =>
-      'Couldn\'t save the follow-up. Please try again.';
 
   @override
   String get followUpCompleteFailed =>

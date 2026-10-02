@@ -102,9 +102,6 @@ void main() {
           gymTrainersProvider(
             _gym.id,
           ).overrideWith((ref) async => <Trainer>[trainer]),
-          recommendedTrainersProvider.overrideWith(
-            (ref) async => const <Trainer>[],
-          ),
           memberCoachRepositoryProvider.overrideWithValue(
             MockMemberCoachRepository(),
           ),

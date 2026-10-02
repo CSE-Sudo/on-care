@@ -1104,9 +1104,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exSpecialty => 'Specialties';
 
   @override
-  String get exKakaoMapArea => 'Kakao Map area';
-
-  @override
   String get myTabTitle => 'MY';
 
   @override
@@ -2777,6 +2774,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authEmailInvalid => 'Enter a valid email address';
 
   @override
+  String get authEmailTooLong => 'Email addresses can be up to 255 characters';
+
+  @override
   String get authPasswordEmpty => 'Enter your password';
 
   @override
@@ -3495,52 +3495,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get coachRoutineGone =>
       'This program no longer exists. Please refresh the list';
-
-  @override
-  String get routineEffectCardioDefault =>
-      'Builds fitness and helps prevent chronic disease';
-
-  @override
-  String get routineEffectStrengthDefault =>
-      'Builds strength and muscular endurance';
-
-  @override
-  String get routineEffectStretchDefault =>
-      'Improves flexibility and helps prevent injury';
-
-  @override
-  String get routineEffectBloodPressure => 'Helps manage blood pressure';
-
-  @override
-  String get routineEffectFatLoss => 'Helps reduce body fat';
-
-  @override
-  String get routineEffectCardioFitness => 'Improves cardiorespiratory fitness';
-
-  @override
-  String get routineEffectGentleRecovery => 'Rebuilds fitness without strain';
-
-  @override
-  String get routineEffectMuscleMass => 'Maintains and builds muscle mass';
-
-  @override
-  String get routineEffectStrength => 'Builds strength';
-
-  @override
-  String get routineEffectPostureMuscles =>
-      'Strengthens posture-supporting muscles';
-
-  @override
-  String get routineEffectHeartRate => 'Steadies blood pressure and heart rate';
-
-  @override
-  String get routineEffectMuscleRecovery => 'Helps muscles recover';
-
-  @override
-  String get routineEffectLoosen => 'Loosens tight muscles';
-
-  @override
-  String get routineEffectJointRange => 'Restores joint range of motion';
 
   @override
   String get coachRoutineNetworkError => 'Check your connection and try again';
