@@ -4,8 +4,8 @@
 복구 때마다 같은 폼으로 다시 끌려갔다. 건너뛴 사실을 계정에 남겨 기기를 바꿔도
 다시 묻지 않게 한다. 기존 행은 거짓이라 지금 판단(`onboarded`)은 그대로다.
 
-Revision ID: 0128_onboarding_skipped
-Revises: 0110_user_token_version
+Revision ID: 0139_onboarding_skipped
+Revises: 0131_health_notes_changed
 Create Date: 2026-10-01
 """
 from __future__ import annotations
@@ -15,8 +15,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0128_onboarding_skipped"
-down_revision: str | Sequence[str] | None = "0110_user_token_version"
+revision: str = "0139_onboarding_skipped"
+down_revision: str | Sequence[str] | None = "0131_health_notes_changed"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
