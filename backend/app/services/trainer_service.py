@@ -3694,6 +3694,23 @@ def dump_draft_sessions(sessions: Sequence[ProgramDraftSession]) -> str:
     )
 
 
+def draft_workspace(workspace_json: str) -> dict:
+    """자동 보관한 작성 상태를 읽는다(#2873). 깨진 값이면 빈 객체다.
+
+    세션과 같은 이유로 관대하다 — 작성 상태를 못 읽어도 편집기 구성은 열려야
+    한다.
+    """
+    try:
+        raw = json.loads(workspace_json) if workspace_json else {}
+    except json.JSONDecodeError:
+        return {}
+    return raw if isinstance(raw, dict) else {}
+
+
+def _dump_workspace(workspace: dict | None) -> str:
+    return json.dumps(workspace or {}, ensure_ascii=False)
+
+
 def _draft_out(draft: TrainerProgramDraft) -> TrainerProgramDraftOut:
     return TrainerProgramDraftOut(
         id=draft.id,
@@ -3702,6 +3719,8 @@ def _draft_out(draft: TrainerProgramDraft) -> TrainerProgramDraftOut:
         period=draft.period,
         memo=draft.memo,
         sessions=draft_sessions(draft.sessions_json),
+        member_id=draft.member_id,
+        workspace=draft_workspace(draft.workspace_json),
         created_at=draft.created_at,
         updated_at=draft.updated_at,
     )
@@ -3712,16 +3731,23 @@ _PROGRAM_DRAFT_LIMIT = 100
 
 
 def build_program_drafts(
-    db: Session, trainer_id: str
+    db: Session, trainer_id: str, member_id: str | None = None
 ) -> list[TrainerProgramDraftSummary]:
     """내가 저장한 프로그램 초안 목록(최근 수정 먼저).
 
     세션·운동 구성은 싣지 않는다 — 목록은 "무엇을 저장해 뒀나"만 보여 주고,
     편집기로 불러올 때 상세를 따로 읽는다.
+
+    [member_id] 를 주면 그 회원에게 자동 보관한 것만 돌려준다(#2873) — 코칭
+    화면이 그 회원의 작성 중 내용을 찾는 길이다.
     """
+    query = select(TrainerProgramDraft).where(
+        TrainerProgramDraft.trainer_id == trainer_id
+    )
+    if member_id is not None:
+        query = query.where(TrainerProgramDraft.member_id == member_id)
     rows = db.scalars(
-        select(TrainerProgramDraft)
-        .where(TrainerProgramDraft.trainer_id == trainer_id)
+        query
         .order_by(
             TrainerProgramDraft.updated_at.desc(), TrainerProgramDraft.id.desc()
         )
@@ -3738,6 +3764,7 @@ def build_program_drafts(
                 period=d.period,
                 session_count=len(sessions),
                 exercise_count=sum(len(s.exercises) for s in sessions),
+                member_id=d.member_id,
                 updated_at=d.updated_at,
             )
         )
@@ -3769,8 +3796,14 @@ def create_program_draft(
     db: Session, trainer_id: str, *,
     name: str, goal: str, period: str, memo: str,
     sessions: Sequence[ProgramDraftSession],
+    member_id: str | None = None,
+    workspace: dict | None = None,
 ) -> TrainerProgramDraftOut:
-    """프로그램 초안을 저장한다. 세션은 받은 순서 그대로 남는다."""
+    """프로그램 초안을 저장한다. 세션은 받은 순서 그대로 남는다.
+
+    [member_id] 가 있으면 코칭 화면이 그 회원에게 짜던 내용을 자동 보관한
+    것이다(#2873). 담당 회원인지는 라우터가 먼저 확인한다.
+    """
     now = datetime.now(timezone.utc)
     draft = TrainerProgramDraft(
         id=f"pgm-{uuid.uuid4().hex[:12]}",
@@ -3780,6 +3813,8 @@ def create_program_draft(
         period=period,
         memo=memo,
         sessions_json=dump_draft_sessions(sessions),
+        member_id=member_id,
+        workspace_json=_dump_workspace(workspace),
         created_at=now,
         updated_at=now,
     )
@@ -3810,6 +3845,8 @@ def update_program_draft(
                 for item in fields["sessions"]
             ]
         )
+    if "workspace" in fields:
+        draft.workspace_json = _dump_workspace(fields["workspace"])
     draft.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(draft)
