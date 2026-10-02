@@ -150,8 +150,6 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
     return AppDialog(
       title: widget.template == null ? l.coachTemplateNew : l.coachTemplateEdit,
       size: AppDialogSize.medium,
-      // 하단 [취소, 저장] 으로만 닫는다 — 예전 창에도 닫기 X 는 없었다.
-      showClose: false,
       footer: AppButtonPair(
         cancelLabel: l.actionCancel,
         onCancel: _saving ? null : () => Navigator.of(context).pop(),
