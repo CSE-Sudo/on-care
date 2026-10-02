@@ -71,6 +71,10 @@ class EarnRule:
     daily_cap: int
 
 
+# 적립 규칙의 원본은 `shared/oncare_rules/vectors/points_rules.json` 이다(#2906).
+# 회원 앱 `PointsRule` 과 `tests/test_shared_rule_sources.py` 가 같은 파일로
+# 대조하므로, 값을 바꾸면 원본 표와 앱도 함께 바꾼다.
+
 #: 식단 기록 — 사진 분석으로 끼니가 새로 저장될 때.
 DIET_ENTRY = EarnRule("diet_entry", SOURCE_DIET_ENTRY, 50, 3)
 #: 회원이 직접 추가한 운동 기록.

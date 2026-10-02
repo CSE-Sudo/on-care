@@ -28,14 +28,16 @@ from app.schemas.dashboard_api import (
     DashboardSummary,
 )
 from app.schemas.diet_api import calculate_macros
+from app.services import goal_defaults
 
 router = APIRouter(tags=["dashboard"])
 
 # 일일 권장 기준치. 나트륨은 WHO 권고, 당류는 2025 한국인 영양소 섭취기준의
 # 첨가당 권고(총에너지의 10% 이내 = 2,000kcal 기준 50g)를 따른다(#1652).
-_MAX_CALORIES = 2000
-_MAX_SODIUM_MG = 2000
-_MAX_SUGAR_G = 50
+# 값은 목표 미설정 기본값 원본(`goal_defaults`) 한 곳에 있다(#2906).
+_MAX_CALORIES = goal_defaults.DAILY_CALORIES
+_MAX_SODIUM_MG = goal_defaults.DAILY_SODIUM_MG
+_MAX_SUGAR_G = goal_defaults.DAILY_SUGAR_G
 
 # 요일 라벨(월=0 … 일=6) — 홈 주간 추이 차트 x축용
 _DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"]

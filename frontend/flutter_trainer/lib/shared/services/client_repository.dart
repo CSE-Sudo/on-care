@@ -976,7 +976,7 @@ class DriftClientRepository implements ClientRepository {
   /// 회원 목표 → 규칙이 쓰는 하루 목표. 서버 `diet_coach_inputs.targets_of` 와 같은
   /// 순서(목표 → 체중 × 1.2g → 60g)다 — 영양 요약 카드와 같은 분모다(#2898).
   DietRuleTargets _dietTargets(MemberHealthProfile p) => (
-    calories: p.dailyCalories ?? 2000,
+    calories: p.dailyCalories ?? calorieTargetKcal,
     proteinG: p.effectiveDailyProteinG,
     sodiumMg: p.dailySodiumMg ?? sodiumTargetMg,
     sugarG: p.dailySugarG ?? sugarTargetG,
