@@ -6190,6 +6190,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientDietRecNo => 'No';
 
   @override
+  String get clientDietRecPrev => 'Previous pick';
+
+  @override
+  String get clientDietRecForward => 'Next pick';
+
+  @override
   String get clientDietRecYes => 'Yes, recommend';
 
   @override

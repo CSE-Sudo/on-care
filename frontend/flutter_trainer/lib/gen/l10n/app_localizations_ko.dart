@@ -5923,7 +5923,13 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get clientDietRecNo => '아니오';
+  String get clientDietRecNo => '아니요';
+
+  @override
+  String get clientDietRecPrev => '이전 추천';
+
+  @override
+  String get clientDietRecForward => '다음 추천';
 
   @override
   String get clientDietRecYes => '예, 추천할게요';
