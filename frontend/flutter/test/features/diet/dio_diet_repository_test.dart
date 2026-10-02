@@ -430,6 +430,7 @@ void main() {
     });
 
     test('모르는 코드·FastAPI 검증 오류는 지금처럼 AppError 로 남는다', () async {
+      // 422·429 는 공통 오류 변환이 입력 오류·요청 과다로 따로 나눈다(#2859).
       expect(
         await rejectedWith(422, <String, Object?>{
           'detail': <Object?>[
@@ -439,15 +440,11 @@ void main() {
             },
           ],
         }),
-        isA<ServerError>(),
+        isA<ValidationError>(),
       );
       expect(
         await rejectedWith(429, coded('something_new')),
-        isA<ServerError>().having(
-          (ServerError e) => e.statusCode,
-          'statusCode',
-          429,
-        ),
+        isA<RateLimitedError>(),
       );
     });
 
