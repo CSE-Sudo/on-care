@@ -162,7 +162,7 @@ def _seconds(args: Args) -> int:
 
 
 def _amount(args: Args, locale: Locale) -> str:
-    """배정 한 건의 양. 한국어는 `trainer_service._amount_label` 과 같은 문장이다."""
+    """배정 한 건의 양. 한국어는 `trainer._common._amount_label` 과 같은 문장이다."""
     sets = args.get("sets")
     reps = args.get("reps")
     hold = args.get("hold_seconds")

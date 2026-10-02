@@ -31,6 +31,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Protocol, Sequence
 
+from app.core.week import monday_of
 from app.services import exercise_types, period_window
 from app.services.exercise_advice import Advice, advice
 from app.services.korean_josa import ends_with_hangul
@@ -107,7 +108,7 @@ def body_part_of(name: str) -> str | None:
 
 # --- 입력 모양 ----------------------------------------------------------------
 #
-# `trainer_service.RoutineDay` 를 그대로 받는다. 그 모듈이 이 서비스 계층을 읽으므로
+# `trainer._common.RoutineDay` 를 그대로 받는다. 그 모듈이 이 서비스 계층을 읽으므로
 # 여기서 들여오면 돌아 들어온다 — 필요한 필드만 약속으로 적는다.
 
 
@@ -129,7 +130,7 @@ def fetch_start(period: str, today: date) -> date:
     if period == period_window.PERIOD_TODAY:
         return today
     if period == period_window.PERIOD_WEEK:
-        return today - timedelta(days=today.weekday() + 7)
+        return monday_of(today) - timedelta(days=7)
     return today - timedelta(days=period_window.ALL_PERIOD_DAYS - 1)
 
 
@@ -198,7 +199,7 @@ def _pct(part: float, whole: float) -> int:
 
 def coach_advice(days: Sequence[RoutineDayLike], period: str) -> Advice | None:
     """추천 목록 기준 조언. 오늘 걸린 추천이 없으면 None. [days] 는 날짜순이고
-    마지막 날이 오늘이다(`trainer_service.member_routine_days` 가 그렇게 준다)."""
+    마지막 날이 오늘이다(`trainer._common.member_routine_days` 가 그렇게 준다)."""
     if not days or not days[-1].routines:
         return None
     if period == period_window.PERIOD_TODAY:
@@ -254,7 +255,7 @@ def _today(day: RoutineDayLike) -> Advice:
 
 def _week(days: Sequence[RoutineDayLike]) -> Advice:
     today = days[-1].date
-    monday = today - timedelta(days=today.weekday())
+    monday = monday_of(today)
     this_week = [d for d in days if d.date >= monday]
     last_week = [d for d in days if monday - timedelta(days=7) <= d.date < monday]
     done_days = sum(1 for d in this_week if any(i.done for i in d.routines))

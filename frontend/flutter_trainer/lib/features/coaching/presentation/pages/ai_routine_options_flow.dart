@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/korean_josa_l10n.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
@@ -14,6 +14,7 @@ import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_options_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_suggestion_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/routine_context_source_store.dart';
+import 'package:oncare_trainer/features/coaching/domain/coaching_workspace_draft.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_context_source.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
@@ -82,6 +83,8 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
     this.onAttach,
     this.onAttachCancel,
     this.startRoutineOnly = false,
+    this.initialSnapshot,
+    this.onSnapshot,
     super.key,
   });
 
@@ -137,6 +140,18 @@ class AiRoutineOptionsFlow extends ConsumerStatefulWidget {
   /// 날로 잡혀 있어, 반영한 뒤 개인운동 박스가 그 PT 에 붙인다.
   final bool startRoutineOnly;
 
+  /// 자동 보관해 둔 작성 상태로 연다 — 새로 고침 뒤 `이어서 쓰기`(#2873).
+  ///
+  /// 같은 단계·같은 후보·같은 입력으로 선다. 후보를 다시 만들지 않는다.
+  /// 붙이기 흐름([attachTarget])에서는 쓰지 않는다.
+  final AiRoutineWizardSnapshot? initialSnapshot;
+
+  /// 작성 상태가 바뀌었다 — 바깥 화면이 자동 보관에 싣는다(#2873).
+  ///
+  /// 그리는 도중에도 불리므로, 받는 쪽은 다시 그리게 하지 말고 값만 적어 둔다
+  /// ([onGenerated] 와 같다).
+  final ValueChanged<AiRoutineWizardSnapshot>? onSnapshot;
+
   bool get _attachMode => attachTarget != null;
 
   @override
@@ -174,6 +189,15 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     super.initState();
     final RoutineContextSourceStore? store = _sourceStore();
     if (store != null) _sources = store.read(_sourceAccount());
+    // 글자를 칠 때는 이 화면이 다시 그려지지 않는다 — 요청·메모 칸의 변경도
+    // 자동 보관에 실리게 따로 듣는다(#2873).
+    _prompt.addListener(_emitSnapshot);
+    _trainerMemo.addListener(_emitSnapshot);
+    final AiRoutineWizardSnapshot? saved = widget.initialSnapshot;
+    if (saved != null && !widget._attachMode) {
+      _restoreSnapshot(saved);
+      return;
+    }
     // 붙이기 흐름은 개인운동 단계에서 바로 시작한다(#2280). 제안이 아직
     // 오지 않았으면 개인운동 칸이 그릴 때 채운다.
     if (widget._attachMode || widget.startRoutineOnly) {
@@ -185,6 +209,67 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       // 보이게 끌어올린다.
       _scrollToTop();
     }
+  }
+
+  /// 자동 보관해 둔 작성 상태를 그대로 놓는다(#2873). 상태만 바꾼다 —
+  /// `initState` 에서 부른다.
+  void _restoreSnapshot(AiRoutineWizardSnapshot saved) {
+    _kind = saved.routineOnly
+        ? ProgramKind.routineOnly
+        : ProgramKind.ptWithRoutine;
+    _stage = saved.stage.clamp(0, _steps.length - 1);
+    _maxReachedStage = saved.maxReachedStage.clamp(_stage, _steps.length - 1);
+    _options = saved.options;
+    _selectedKey = saved.selectedKey;
+    _edited = List<RoutineExercise>.of(saved.edited);
+    _measureChosen.addAll(saved.measureChosen);
+    _personal = List<RoutineExercise>.of(saved.personal);
+    _personalMeasureChosen.addAll(saved.personalMeasureChosen);
+    _personalSeeded = saved.personalSeeded;
+    // 줄마다 채운 AI 제안 id 가 따라온다 — 근거 표시·거절이 다시 그 제안을
+    // 가리킨다.
+    _personalOrigins
+      ..clear()
+      ..addAll(<_PersonalOrigin?>[
+        for (final RoutineExercise e in _personal)
+          if (e.suggestionId case final String id when id.isNotEmpty)
+            _PersonalOrigin(id: id)
+          else
+            null,
+      ]);
+    _prompt.text = saved.prompt;
+    _trainerMemo.text = saved.trainerMemo;
+    _minutes = saved.minutes;
+    _intensity = saved.intensity;
+    _minutesTouched = saved.minutesTouched;
+    _intensityTouched = saved.intensityTouched;
+  }
+
+  /// 지금 작성 상태(#2873).
+  AiRoutineWizardSnapshot _snapshot() => AiRoutineWizardSnapshot(
+    stage: _stage,
+    maxReachedStage: _maxReachedStage,
+    routineOnly: _kind == ProgramKind.routineOnly,
+    selectedKey: _selectedKey,
+    edited: List<RoutineExercise>.unmodifiable(_edited),
+    personal: List<RoutineExercise>.unmodifiable(_personal),
+    personalSeeded: _personalSeeded,
+    options: _options,
+    prompt: _prompt.text,
+    trainerMemo: _trainerMemo.text,
+    minutes: _minutes,
+    intensity: _intensity,
+    minutesTouched: _minutesTouched,
+    intensityTouched: _intensityTouched,
+    measureChosen: Set<int>.unmodifiable(_measureChosen),
+    personalMeasureChosen: Set<int>.unmodifiable(_personalMeasureChosen),
+  );
+
+  /// 바깥에 작성 상태를 알린다. 붙이기 흐름은 편집기의 PT 에 딸린 짧은 단계라
+  /// 따로 보관하지 않는다.
+  void _emitSnapshot() {
+    if (!mounted || widget._attachMode) return;
+    widget.onSnapshot?.call(_snapshot());
   }
 
   /// 선택을 남길 저장소. 브라우저 저장소를 못 읽는 자리(저장소를 붙이지 않은
@@ -882,6 +967,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       },
     ];
     final Widget nav = _stepNav();
+    // 단계·후보·목록이 바뀌면 다시 그려진다 — 그때마다 알린다. 같은 내용이면
+    // 받는 쪽이 거른다(#2873).
+    _emitSnapshot();
 
     if (widget.embedded) {
       final onStepNav = widget.onStepNav;
@@ -1786,7 +1874,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                   key: ValueKey<String>(
                     'routine-remove-$_activeKeyPrefix-$index',
                   ),
-                  icon: AppIcons.close,
+                  icon: AppIcons.delete,
                   // 개인운동 단계에서 AI 제안을 빼는 것은 없앤 카드의
                   // `추천 안 함`(휴지통)과 같은 일이다 — 서버의 대기 중 제안도
                   // 함께 거절해, 뺀 제안이 내일 다시 올라오지 않게 한다(#2223).

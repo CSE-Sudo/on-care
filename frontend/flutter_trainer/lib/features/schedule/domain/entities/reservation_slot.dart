@@ -1,4 +1,4 @@
-import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 
 /// A reservable time exposed by a trainer — 1:1 PT or 상담.
 ///

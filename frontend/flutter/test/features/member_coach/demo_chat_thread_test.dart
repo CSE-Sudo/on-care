@@ -14,9 +14,9 @@ library;
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare_core/clock.dart';
 
 /// (보낸 쪽, 본문) — 트레이너 앱 시드의 김민수 스레드와 글자까지 같아야 한다.
 /// 회원 시점이므로 트레이너 앱의 `client` 가 여기서는 `me` 다.

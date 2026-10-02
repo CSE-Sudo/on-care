@@ -9,7 +9,7 @@ from sqlalchemy import select
 
 from app.core import clock
 from app.models.models import TrainerSchedule
-from app.services import trainer_service
+from app.services.trainer import schedule as trainer_schedule_service
 
 
 def _tok(client) -> str:
@@ -307,7 +307,7 @@ def test_series_is_capped(client, cleanup_sessions):
         time="19:50",
     )
     assert created.status_code == 201, created.text
-    assert len(created.json()) == trainer_service.MAX_SERIES_OCCURRENCES
+    assert len(created.json()) == trainer_schedule_service.MAX_SERIES_OCCURRENCES
 
 
 def test_invalid_recurrence_is_rejected(client):

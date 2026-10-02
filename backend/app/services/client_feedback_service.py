@@ -16,6 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core import clock
+from app.core.week import monday_of
 from app.models.models import (
     ChatMessage,
     MemberWeeklyFeedback,
@@ -163,4 +164,4 @@ def _weekly_feedbacks(
 
 
 def _monday(day: date) -> date:
-    return day - timedelta(days=day.weekday())
+    return monday_of(day)

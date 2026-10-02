@@ -24,7 +24,7 @@ from app.schemas.trainer_api import (
     ScheduleRoutineUpdateRequest,
 )
 from app.services import routine_suggestion_service as suggestions
-from app.services import trainer_service
+from app.services.trainer import _common as trainer_common_service
 
 MEMBER = "user-jisu"
 #: 같은 트레이너의 다른 담당 회원 — 남의 회원 제안 id 를 섞어 보낸다.
@@ -89,12 +89,12 @@ def test_blank_suggestion_id_is_rejected():
 
 def test_consumed_is_a_routine_status_of_its_own():
     """`approved` 면 회원 목록에 두 벌, `dismissed` 면 '추천 안 함' 과 섞인다."""
-    assert trainer_service.ROUTINE_CONSUMED in trainer_service.ROUTINE_STATUSES
-    assert trainer_service.ROUTINE_CONSUMED not in {
-        trainer_service.ROUTINE_APPROVED,
-        trainer_service.ROUTINE_PENDING,
-        trainer_service.ROUTINE_DISMISSED,
-        trainer_service.ROUTINE_SCHEDULED,
+    assert trainer_common_service.ROUTINE_CONSUMED in trainer_common_service.ROUTINE_STATUSES
+    assert trainer_common_service.ROUTINE_CONSUMED not in {
+        trainer_common_service.ROUTINE_APPROVED,
+        trainer_common_service.ROUTINE_PENDING,
+        trainer_common_service.ROUTINE_DISMISSED,
+        trainer_common_service.ROUTINE_SCHEDULED,
     }
 
 
@@ -136,7 +136,7 @@ def _pending(db_session, member_id: str = MEMBER) -> str:
             type="유산소",
             reason="",
             source="ai",
-            status=trainer_service.ROUTINE_PENDING,
+            status=trainer_common_service.ROUTINE_PENDING,
             client_request_id=row_id,
         )
     )
@@ -212,7 +212,7 @@ def test_routine_only_send_closes_the_suggestion(client, db_session, clean):
     )
 
     assert r.status_code == 201, r.text
-    assert _status(db_session, sid) == trainer_service.ROUTINE_CONSUMED
+    assert _status(db_session, sid) == trainer_common_service.ROUTINE_CONSUMED
     # 다시 연 위저드가 같은 제안을 채우지 않는다.
     assert sid not in _review_ids(client, token)
 
@@ -247,7 +247,7 @@ def test_failed_send_keeps_the_suggestion_pending(client, db_session, clean):
     r = client.post(_PROGRAM_URL, json=body, headers=_h(token))
 
     assert r.status_code == 400, r.text
-    assert _status(db_session, sid) == trainer_service.ROUTINE_PENDING
+    assert _status(db_session, sid) == trainer_common_service.ROUTINE_PENDING
     assert sid in _review_ids(client, token)
 
 
@@ -263,9 +263,9 @@ def test_other_members_suggestion_id_is_ignored(client, db_session, clean):
     )
 
     assert r.status_code == 201, r.text
-    assert _status(db_session, mine) == trainer_service.ROUTINE_CONSUMED
+    assert _status(db_session, mine) == trainer_common_service.ROUTINE_CONSUMED
     # 다른 회원 제안은 그 회원의 검토 목록에 그대로 남는다.
-    assert _status(db_session, theirs) == trainer_service.ROUTINE_PENDING
+    assert _status(db_session, theirs) == trainer_common_service.ROUTINE_PENDING
 
 
 def test_already_reviewed_suggestion_is_left_alone(client, db_session, clean):
@@ -284,7 +284,7 @@ def test_already_reviewed_suggestion_is_left_alone(client, db_session, clean):
     )
 
     assert r.status_code == 201, r.text
-    assert _status(db_session, sid) == trainer_service.ROUTINE_DISMISSED
+    assert _status(db_session, sid) == trainer_common_service.ROUTINE_DISMISSED
 
 
 def test_pt_with_routine_send_closes_the_suggestion(client, db_session, clean):
@@ -331,7 +331,7 @@ def test_pt_with_routine_send_closes_the_suggestion(client, db_session, clean):
 
     assert r.status_code == 201, r.text
     clean.append(r.json()["session"]["id"])
-    assert _status(db_session, sid) == trainer_service.ROUTINE_CONSUMED
+    assert _status(db_session, sid) == trainer_common_service.ROUTINE_CONSUMED
     assert sid not in _review_ids(client, token)
 
 
@@ -354,7 +354,7 @@ def test_pt_with_routine_failure_keeps_the_suggestion(client, db_session, clean)
     )
 
     assert r.status_code == 422, r.text
-    assert _status(db_session, sid) == trainer_service.ROUTINE_PENDING
+    assert _status(db_session, sid) == trainer_common_service.ROUTINE_PENDING
 
 
 def test_sending_frees_the_backlog_for_new_suggestions(client, db_session, clean):
@@ -376,7 +376,7 @@ def test_sending_frees_the_backlog_for_new_suggestions(client, db_session, clean
             select(TrainerRoutine).where(
                 TrainerRoutine.trainer_id == TRAINER,
                 TrainerRoutine.member_id == MEMBER,
-                TrainerRoutine.status == trainer_service.ROUTINE_PENDING,
+                TrainerRoutine.status == trainer_common_service.ROUTINE_PENDING,
             )
         ).all()
     )
@@ -394,7 +394,7 @@ def test_sending_frees_the_backlog_for_new_suggestions(client, db_session, clean
     assert r.status_code == 201, r.text
 
     for sid in backlog:
-        assert _status(db_session, sid) == trainer_service.ROUTINE_CONSUMED
+        assert _status(db_session, sid) == trainer_common_service.ROUTINE_CONSUMED
     # 한도가 비었으니 오늘 후보가 준비된다(신호가 있는 시드 회원).
     assert any(i.startswith("sug-") for i in _review_ids(client, token))
     for row in db_session.scalars(
@@ -468,7 +468,7 @@ def test_first_attach_to_existing_pt_closes_the_suggestion(client, db_session, c
     )
 
     assert r.status_code == 200, r.text
-    assert _status(db_session, sid) == trainer_service.ROUTINE_CONSUMED
+    assert _status(db_session, sid) == trainer_common_service.ROUTINE_CONSUMED
     assert sid not in _review_ids(client, token)
 
 
@@ -488,7 +488,7 @@ def test_rewriting_attached_routines_closes_the_suggestion(client, db_session, c
     )
 
     assert r.status_code == 200, r.text
-    assert _status(db_session, sid) == trainer_service.ROUTINE_CONSUMED
+    assert _status(db_session, sid) == trainer_common_service.ROUTINE_CONSUMED
 
 
 def test_attach_without_suggestion_ids_leaves_suggestions_alone(
@@ -506,7 +506,7 @@ def test_attach_without_suggestion_ids_leaves_suggestions_alone(
     )
 
     assert r.status_code == 200, r.text
-    assert _status(db_session, sid) == trainer_service.ROUTINE_PENDING
+    assert _status(db_session, sid) == trainer_common_service.ROUTINE_PENDING
 
 
 def test_failed_attach_keeps_the_suggestion_pending(client, db_session, clean):
@@ -521,7 +521,7 @@ def test_failed_attach_keeps_the_suggestion_pending(client, db_session, clean):
     )
 
     assert r.status_code == 404, r.text
-    assert _status(db_session, sid) == trainer_service.ROUTINE_PENDING
+    assert _status(db_session, sid) == trainer_common_service.ROUTINE_PENDING
 
 
 def test_attach_ignores_other_members_suggestion(client, db_session, clean):
@@ -538,5 +538,5 @@ def test_attach_ignores_other_members_suggestion(client, db_session, clean):
     )
 
     assert r.status_code == 200, r.text
-    assert _status(db_session, mine) == trainer_service.ROUTINE_CONSUMED
-    assert _status(db_session, theirs) == trainer_service.ROUTINE_PENDING
+    assert _status(db_session, mine) == trainer_common_service.ROUTINE_CONSUMED
+    assert _status(db_session, theirs) == trainer_common_service.ROUTINE_PENDING

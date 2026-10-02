@@ -2,7 +2,7 @@
 식단 도메인 서비스 — 라우터에서 분리한 집계·코칭·저장 로직.
 
 diet 라우터가 오늘 집계·나트륨 코칭·엔트리 저장/멱등을 직접 수행해 두꺼웠던 것을
-여기로 이관한다(exercise_service/health_service 와 일관성). 동작·응답 계약은 불변이며,
+여기로 이관한다(exercise_service 와 일관성). 동작·응답 계약은 불변이며,
 라우터는 HTTP 관심사(업로드·인식기 디스패치·에러 매핑)만 담당한다.
 """
 from __future__ import annotations
@@ -64,7 +64,7 @@ def load_foods(foods_json: str) -> list[dict]:
 
     항목이 딕셔너리라는 보장이 없다. `["김치찌개", 42, null]` 처럼 문자열·숫자가
     섞인 기록이 있고(#724), 숫자 항목에서 `field in food` 가 TypeError 를 내 그 날의
-    식단 조회 전체가 500 이 됐다. 트레이너 쪽(`trainer_service._food_names`)과 같은
+    식단 조회 전체가 500 이 됐다. 트레이너 쪽(`trainer.roster._food_names`)과 같은
     규칙으로 문자열은 이름으로 살리고, 나머지(숫자·null 등)는 건너뛴다.
     """
     try:

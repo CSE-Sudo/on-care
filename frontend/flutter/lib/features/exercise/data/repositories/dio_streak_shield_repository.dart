@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/features/exercise/domain/entities/streak_shield.dart';
 import 'package:oncare/features/exercise/domain/repositories/streak_shield_repository.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// `/me/streak-shields` 를 읽고 쓴다. (#1788)
 class DioStreakShieldRepository implements StreakShieldRepository {
@@ -36,7 +37,7 @@ class DioStreakShieldRepository implements StreakShieldRepository {
         _ok(
           await _dio.post<Map<String, Object?>>(
             '/me/streak-shields/use',
-            data: <String, Object?>{'date': _ymd(date)},
+            data: <String, Object?>{'date': wireDate(date)},
           ),
         ),
       );
@@ -44,9 +45,4 @@ class DioStreakShieldRepository implements StreakShieldRepository {
       throw AppError.fromDio(e);
     }
   }
-
-  static String _ymd(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-'
-      '${d.month.toString().padLeft(2, '0')}-'
-      '${d.day.toString().padLeft(2, '0')}';
 }

@@ -23,7 +23,7 @@ import 'package:logger/logger.dart';
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart';
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 
 String _dateString(DateTime d) =>
     '${d.year.toString().padLeft(4, '0')}-'

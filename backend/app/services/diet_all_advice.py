@@ -28,6 +28,7 @@ from datetime import date, datetime, timedelta
 from sqlalchemy.orm import Session
 
 from app.core import clock
+from app.core.week import monday_of
 from app.services import diet_ai_sentence
 from app.services import diet_coach_inputs as inputs
 from app.services.diet_advice_copy import SLOT_LABELS_KO, Line, ai_line, line
@@ -280,7 +281,7 @@ def all_advice(
 ) -> DietAdvice:
     now = now or clock.now()
     today = now.date()
-    monday = today - timedelta(days=today.weekday())
+    monday = monday_of(today)
     key = monday.isoformat()
     start = today - timedelta(days=WINDOW_DAYS - 1)
 

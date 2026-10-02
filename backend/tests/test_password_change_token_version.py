@@ -43,9 +43,9 @@ def trainer_email(client, db_session) -> Iterator[str]:
     db_session.expire_all()
     row = db_session.get(models.User, trainer_id)
     if row is not None:
-        from app.services import trainer_service
+        from app.services.trainer import profile as trainer_profile_service
 
-        trainer_service.delete_trainer_account(db_session, row)
+        trainer_profile_service.delete_trainer_account(db_session, row)
 
 
 def _change(client, access_token: str):

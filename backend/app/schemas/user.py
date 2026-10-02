@@ -87,17 +87,6 @@ class PairingCodeOut(BaseModel):
     expires_in_seconds: int
 
 
-class RiskInfo(BaseModel):
-    title: str
-    body: str
-    level: str  # low | medium | high
-
-
-class SettingItem(BaseModel):
-    label: str
-    icon: str
-    kind: str
-
 
 class MemberNotificationSettings(BaseModel):
     """회원 알림 수신 설정. (#489)
@@ -128,11 +117,14 @@ class MemberNotificationSettingsUpdate(PartialUpdate):
 
 
 class UserHealth(BaseModel):
+    """MY 탭 계정 카드 — 회원 식별 정보와 포인트 잔액.
+
+    위험 문구(`risk`)·활동 순위(`activity_rank`)·설정 메뉴(`settings`)는
+    #2903 에서 뺐다. 앱이 읽지 않는 고정값이었다.
+    """
+
     profile: HealthProfileBrief
-    risk: RiskInfo
     activity_points: int
-    activity_rank: Optional[int]
-    settings: list[SettingItem]
 
 
 # ---- 인증(로그인) ----

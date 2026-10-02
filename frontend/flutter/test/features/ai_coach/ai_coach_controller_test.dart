@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:oncare/features/ai_coach/data/repositories/mock_ai_coach_repository.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
+
+import '../../helpers/mock_ai_coach_repository.dart';
 
 void main() {
   test('aiCoachStateProvider returns greeting + suggestions', () async {

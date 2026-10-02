@@ -4,11 +4,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_report/oncare_report.dart' show PdfPagesView;
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/chat_pdf_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
@@ -24,7 +25,6 @@ import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_ui/oncare_ui.dart';
-import 'package:printing/printing.dart';
 
 /// PDF 미리보기 창에서 문서가 차지하는 높이. 한 쪽을 줄이지 않고 읽을 수 있는
 /// 크기다 — 창이 화면보다 낮으면 창 본문이 스크롤된다.
@@ -892,11 +892,8 @@ class _Bubble extends ConsumerWidget {
 
   /// 채팅에 붙은 PDF 한 부를 미리보기로 연다.
   ///
-  /// `build` 는 **부를 때마다 복사본**을 준다. 웹에서 미리보기는 pdf.js 로 그리는데,
-  /// pdf.js 는 받은 바이트의 버퍼를 워커로 넘기면서(transfer) 원본을 비워 버린다.
-  /// 같은 바이트를 그대로 다시 주면 두 번째 렌더가 `ArrayBuffer ... is already
-  /// detached` 로 죽고, 그리다 만 미리보기가 스피너만 도는 채로 남는다. 미리보기는
-  /// 화면 크기·용지 설정이 바뀔 때마다 다시 그리므로 두 번째 호출은 반드시 온다.
+  /// 쪽을 굽는 일은 공용 [PdfPagesView] 가 한다 — 웹에서 `printing` 의
+  /// `PdfPreview` 는 CSP 에 막혀 스피너만 돌았다(#2828).
   Future<void> _openPdf(
     BuildContext context,
     WidgetRef ref,
@@ -919,25 +916,7 @@ class _Bubble extends ConsumerWidget {
           bodyPadding: EdgeInsets.zero,
           child: SizedBox(
             height: _pdfPreviewHeight,
-            child: PdfPreview(
-              build: (_) async => Uint8List.fromList(bytes),
-              pdfFileName: attachment.fileName,
-              allowSharing: false,
-              // 미리보기가 실패했을 때 스피너를 계속 돌리면 느린 것과 안 되는
-              // 것을 구별할 수 없다.
-              onError: (_, _) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(OnCareSpacing.s16),
-                  child: Text(
-                    l.chatPdfOpenFailed,
-                    textAlign: TextAlign.center,
-                    style: dialogContext.oncare
-                        .text(OnCareTypography.body)
-                        .copyWith(color: OnCareColors.textSecondary),
-                  ),
-                ),
-              ),
-            ),
+            child: PdfPagesView(pdf: bytes, failedText: l.chatPdfOpenFailed),
           ),
         ),
       );

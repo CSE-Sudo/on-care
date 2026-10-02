@@ -141,13 +141,14 @@ gh api repos/actions/checkout/git/ref/tags/v4 --jq .object.sha
 
 Dependabot 이 매주 월요일 오전에 생태계별로 묶은 업데이트 PR 을 엽니다
 ([`.github/dependabot.yml`](../.github/dependabot.yml)) — 백엔드(pip), GitHub Actions,
-회원 앱·트레이너 웹(pub). 주 버전 변경은 따로 묶여 올라옵니다.
+회원 앱·트레이너 웹(pub). 백엔드·두 앱의 주 버전 변경은 자동 PR 로 받지 않습니다(#2978).
 
 - **부·수 버전 묶음**: CI 가 모두 초록이면 담당 영역 사람이 변경 기록(릴리스 노트)만 훑고
   병합합니다. 한 패키지 때문에 깨지면 그 패키지만 묶음에서 빼고(`@dependabot ignore this
   minor version`) 나머지를 병합합니다.
-- **주 버전 묶음**: 바로 병합하지 않습니다. 마이그레이션 안내를 읽고, 필요한 코드 수정을
-  같은 PR 이나 뒤따르는 PR 에 함께 넣습니다.
+- **주 버전 변경**: Dependabot 이 열지 않습니다. 올려야 할 때는 패키지별로 이슈를 만들어
+  마이그레이션 안내와 필요한 코드 수정 범위를 적고, 그 이슈의 PR 에서 버전과 코드를 함께
+  올립니다. 취약점 때문에 열리는 보안 업데이트 PR 은 주 버전이어도 열리므로 우선 처리합니다.
 - **백엔드 잠금 파일**: `requirements.txt`·`requirements-dev.txt` 는 손으로 고치지 않습니다.
   직접 의존을 바꿀 때는 `requirements.in`(·`requirements-dev.in`)을 고친 뒤 잠금 파일을
   다시 만듭니다(절차는 [backend/README.md](../backend/README.md) "의존성").

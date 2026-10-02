@@ -14,7 +14,6 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/storage/app_database.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart';
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/dashboard/domain/repositories/dashboard_repository.dart';
@@ -24,6 +23,7 @@ import 'package:oncare/features/diet/presentation/controllers/diet_controller.da
 import 'package:oncare/features/exercise/domain/entities/streak_shield.dart';
 import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
 
 import '../helpers/demo_exercise.dart';
 import '../helpers/fake_dashboard_repository.dart';

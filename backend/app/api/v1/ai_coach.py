@@ -38,7 +38,7 @@ from app.services import ai_chat_quota_service, points_service
 from app.services.coach import conversation, insights
 from app.services.coach.chat import answer
 from app.services.coach_service import build_feedback
-from app.services.trainer_service import get_member_trainer_id
+from app.services.trainer._common import get_member_trainer_id
 
 router = APIRouter(tags=["ai-coach"])
 

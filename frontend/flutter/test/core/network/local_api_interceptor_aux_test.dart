@@ -40,21 +40,14 @@ void main() {
     expect(res.data!['email'], 'minsu@oncare.com');
   });
 
-  test('GET /users/me/health returns the full MyHealthState shape', () async {
+  test('GET /users/me/health returns the same shape as the server', () async {
     final res = await dio.get<Map<String, Object?>>('/users/me/health');
     expect(res.statusCode, 200);
     final body = res.data!;
+    // 실서버와 같은 두 키뿐 — 고정 위험 문구·순위·설정 메뉴는 없다(#2903).
+    expect(body.keys.toSet(), <String>{'profile', 'activity_points'});
     expect((body['profile']! as Map)['name'], '김민수');
-    expect((body['risk']! as Map)['level'], 'medium');
-    expect(body.containsKey('indicators'), isFalse);
     expect(body['activity_points'], kDemoOpeningPoints);
-    final settings = (body['settings']! as List<Object?>)
-        .cast<Map<String, Object?>>();
-    expect(settings.map((s) => s['kind']).toList(), <String>[
-      'my-profile',
-      'notification',
-      'support',
-    ]);
   });
 
   test('GET /places/nearby returns every category when unfiltered', () async {

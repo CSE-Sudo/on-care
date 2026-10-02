@@ -2,13 +2,10 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:oncare_core/request_id.dart';
 
-import 'package:oncare_trainer/core/network/dio_client.dart';
-import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/core/utils/request_id.dart';
 
 /// 리포트 PDF 전송의 업로드·응답 대기 한도.
 const Duration reportPdfTimeout = Duration(minutes: 2);
@@ -90,8 +87,3 @@ class ReportPdfSender {
     if (_requestIds[key] == requestId) _requestIds.remove(key);
   }
 }
-
-final reportPdfSenderProvider = Provider<ReportPdfSender>((ref) {
-  ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
-  return ReportPdfSender(ref.watch(dioProvider));
-});

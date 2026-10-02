@@ -31,8 +31,9 @@ from app.services import (
     chat_image_storage,
     data_consent_service,
     report_pdf_storage,
-    trainer_service,
 )
+from app.services.trainer import chat as trainer_chat_service
+from app.services.trainer import _common as trainer_common_service
 
 router = APIRouter(tags=["chat-attachments"])
 logger = logging.getLogger(__name__)
@@ -178,7 +179,7 @@ def receive_chat_image(
 
     # 재시도는 기존 메시지를 바로 돌려줘 파일을 다시 쓰지 않는다(PDF 와 같은 규약).
     if client_request_id:
-        existing = trainer_service.find_message_by_client_request(
+        existing = trainer_chat_service.find_message_by_client_request(
             db, trainer_id, member_id, sender, client_request_id
         )
         if existing is not None:
@@ -187,7 +188,7 @@ def receive_chat_image(
                     status_code=409,
                     detail="같은 client_request_id에 다른 메시지를 보낼 수 없습니다.",
                 )
-            return trainer_service.chat_message_out(existing, viewer)
+            return trainer_chat_service.chat_message_out(existing, viewer)
 
     settings = get_settings()
     data = image.file.read(settings.max_chat_image_bytes + 1)
@@ -215,7 +216,7 @@ def receive_chat_image(
         except chat_image_storage.UnsupportedImage as exc:
             raise HTTPException(status_code=415, detail=str(exc)) from exc
         file_id = stored.file_id
-        sent = trainer_service.send_message(
+        sent = trainer_chat_service.send_message(
             db,
             trainer_id,
             member_id,
@@ -235,7 +236,7 @@ def receive_chat_image(
         if sent.attachment is None or sent.attachment.file_id != file_id:
             chat_image_storage.delete(file_id)
         return sent
-    except trainer_service.IdempotencyConflict as exc:
+    except trainer_common_service.IdempotencyConflict as exc:
         if file_id:
             chat_image_storage.delete(file_id)
         raise HTTPException(status_code=409, detail=str(exc)) from exc

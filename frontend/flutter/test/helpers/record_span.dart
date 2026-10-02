@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/shared/services/record_span_provider.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 테스트가 그리는 `전체` 기간의 길이 — 84칸(12주).
 ///

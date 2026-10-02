@@ -1834,6 +1834,12 @@ class TrainerProgramDraft(Base):
     #708 은 세션 하나만 담았고(`session_name`/`exercises_json`), #709 에서 세션
     배열로 올렸다. `0039_program_sessions` 가 기존 행을 세션 1개짜리 배열로
     옮긴다.
+
+    코칭 화면의 자동 보관(#2873)은 같은 표에 **회원별 작성 중 내용**을 둔다.
+    `member_id` 가 있으면 그 회원에게 짜던 것이고, 비어 있으면 위의 회원 없는
+    초안이다. 위저드 단계·후보·개인운동처럼 편집기 밖의 작성 상태는
+    `workspace_json` 에 객체 하나로 싣는다 — 화면 상태라 서버가 해석하지 않고,
+    크기만 스키마가 막는다.
     """
 
     __tablename__ = "trainer_program_drafts"
@@ -1847,6 +1853,14 @@ class TrainerProgramDraft(Base):
     period: Mapped[str] = mapped_column(String(100), default="")
     memo: Mapped[str] = mapped_column(Text, default="")
     sessions_json: Mapped[str] = mapped_column(Text, default="[]")
+    # 자동 보관한 회원(#2873). 회원이 탈퇴하면 그 회원에게 짜던 내용도 함께
+    # 사라진다.
+    member_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    workspace_json: Mapped[str] = mapped_column(
+        Text, default="{}", server_default="{}"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -2082,7 +2096,7 @@ class RoutineHistory(Base):
     #: 운동 목록. 옛 행·시드는 문장(`["레그프레스 3세트", ...]`)이고, 완료한 PT 는
     #: 값을 담은 객체(`{name, type, label, sets, …, duration_seconds}`)다 — 문장의
     #: `초` 는 버티는 운동의 초로 되읽혀 운동 시간의 초를 남길 수 없었다(#2546).
-    #: 두 모양 모두 `trainer_service.parse_history_exercise` 가 읽는다.
+    #: 두 모양 모두 `trainer._common.parse_history_exercise` 가 읽는다.
     exercises_json: Mapped[str] = mapped_column(Text, default="[]")
     client_feedback: Mapped[str] = mapped_column(Text, default="")
     trainer_note: Mapped[str] = mapped_column(Text, default="")

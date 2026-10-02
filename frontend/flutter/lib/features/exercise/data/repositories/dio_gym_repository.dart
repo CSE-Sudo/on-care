@@ -1,12 +1,12 @@
 import 'package:dio/dio.dart';
 
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/gym_search_area.dart';
 import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 헬스장·트레이너 디렉터리 실 API. (#324)
 ///

@@ -18,6 +18,10 @@ on:
       - "shared/oncare_report/**"
       # 서버와 두 앱이 같은 값을 내야 하는 계산 규칙과 그 입력 표(#2860).
       - "shared/oncare_rules/**"
+      # 코치 카드 효과 문구 시험이 읽는 공용 효과 표(#2906).
+      - "shared/routine_effects/**"
+      # 두 앱이 함께 쓰는 인증·네트워크·시계 기반(#2907).
+      - "shared/oncare_core/**"
       # 데모·실서버 진입점 비교 시험이 읽는 예외 목록 — 목록만 바뀌어도 돈다(#2792).
       - ".github/demo-divergence-allowlist.txt"
       - ".github/workflows/user-app-ci.yml"
@@ -35,6 +39,10 @@ on:
       - "shared/oncare_report/**"
       # 서버와 두 앱이 같은 값을 내야 하는 계산 규칙과 그 입력 표(#2860).
       - "shared/oncare_rules/**"
+      # 코치 카드 효과 문구 시험이 읽는 공용 효과 표(#2906).
+      - "shared/routine_effects/**"
+      # 두 앱이 함께 쓰는 인증·네트워크·시계 기반(#2907).
+      - "shared/oncare_core/**"
       # 데모·실서버 진입점 비교 시험이 읽는 예외 목록 — 목록만 바뀌어도 돈다(#2792).
       - ".github/demo-divergence-allowlist.txt"
       - ".github/workflows/user-app-ci.yml"
@@ -61,7 +69,7 @@ jobs:
         working-directory: frontend/flutter
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -94,6 +102,16 @@ jobs:
           dart pub get
           dart analyze --fatal-infos
           dart test
+
+      # 두 앱이 함께 쓰는 인증·네트워크·시계 기반(#2907). 토큰 갱신 경쟁·401 재시도·
+      # 언어 헤더·폴링 수명은 이 패키지 테스트가 본다. 트레이너 CI 에 두면 같은
+      # 검사를 두 번 하므로 여기만 둔다.
+      - name: Analyze and test shared core package
+        working-directory: shared/oncare_core
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test
 
       # 두 앱이 함께 쓰는 UI 규격 패키지(#1691). 토큰·테마 불변식은 앱 테스트가
       # 보지 않으므로 여기서 한 번 돌린다(트레이너 CI 에는 두지 않는다).
@@ -170,3 +188,73 @@ jobs:
 
       - name: Test
         run: flutter test
+
+  # 회원 앱 모바일 릴리스 설정(#2823). 앱 ID·홈 화면 이름이 Android·iOS·웹에서 같은지,
+  # 그리고 업로드 키(android/key.properties)가 없으면 릴리스 빌드가 실제로 멈추는지
+  # 본다. 키스토어는 저장소에 없으므로, 서명 설정이 있을 때 통과하는 쪽은 러너에서
+  # 그때그때 만든 일회용 키로만 확인하고 남기지 않는다.
+  mobile-release-config:
+    name: Mobile release config (user app)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: frontend/flutter
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check app ID, app name and release signing config
+        working-directory: .
+        run: python3 tool/ci/check_mobile_app_identity.py
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          # analyze-and-test 와 같은 이유로 고정한다(#659).
+          flutter-version: '3.44.9'
+          cache: true
+
+      - name: Release build stops without key.properties
+        # 가드는 Gradle 작업 그래프가 정해지는 시점에 멈추므로 컴파일 전에 끝난다.
+        # 다른 이유(SDK·의존성)로 실패한 것을 통과로 보지 않도록 가드 메시지를 확인한다.
+        run: |
+          set -uo pipefail
+          export JAVA_HOME="${JAVA_HOME_17_X64:-$JAVA_HOME}"
+          if [ -e android/key.properties ]; then
+            echo "::error::android/key.properties 가 저장소에 있습니다. 서명 설정은 커밋하지 않습니다."
+            exit 1
+          fi
+          flutter pub get
+          log="$RUNNER_TEMP/release-without-key.log"
+          if flutter build appbundle --release >"$log" 2>&1; then
+            cat "$log"
+            echo "::error::key.properties 없이 릴리스 번들이 만들어졌습니다. 디버그 키 서명 가드가 동작하지 않습니다."
+            exit 1
+          fi
+          if ! grep -qF "storeFile, storePassword, keyAlias, keyPassword" "$log"; then
+            cat "$log"
+            echo "::error::릴리스 빌드가 서명 가드가 아닌 다른 이유로 실패했습니다."
+            exit 1
+          fi
+          echo "key.properties 없이 릴리스 빌드가 서명 가드에서 멈춤."
+
+      - name: Release tasks pass the guard with a signing config
+        # 위 단계가 만든 Gradle 래퍼로 작업 그래프만 확인한다(--dry-run). 키와 비밀번호는
+        # 러너 임시 폴더에서 만들고 이 단계가 끝나면 지운다.
+        run: |
+          set -euo pipefail
+          export JAVA_HOME="${JAVA_HOME_17_X64:-$JAVA_HOME}"
+          secret="$(openssl rand -hex 16)"
+          keystore="$RUNNER_TEMP/ci-throwaway-upload.jks"
+          keytool -genkeypair -noprompt -keystore "$keystore" -storetype PKCS12 \
+            -alias upload -keyalg RSA -keysize 2048 -validity 1 \
+            -storepass "$secret" -keypass "$secret" -dname "CN=CI throwaway"
+          trap 'rm -f android/key.properties "$keystore"' EXIT
+          printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=upload\nkeyPassword=%s\n' \
+            "$keystore" "$secret" "$secret" > android/key.properties
+          cd android
+          ./gradlew --no-daemon :app:bundleRelease :app:assembleRelease --dry-run

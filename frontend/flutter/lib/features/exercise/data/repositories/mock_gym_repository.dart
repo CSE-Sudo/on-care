@@ -1,11 +1,11 @@
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
+import 'package:oncare_core/clock.dart';
 
 /// In-memory gym + trainer data matching the prototype's `GymCard` /
 /// `GymFinder` mocks. The user starts connected to 온케어짐 신촌점 and to

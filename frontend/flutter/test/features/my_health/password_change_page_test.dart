@@ -17,7 +17,6 @@ import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/network/auth_token.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/core/storage/secure_token_store.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/auth/data/repositories/mock_password_repository.dart';
@@ -27,6 +26,8 @@ import 'package:oncare/features/auth/presentation/controllers/session_controller
 import 'package:oncare/features/my_health/presentation/pages/password_change_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+
+import '../../helpers/mock_account_repository.dart';
 
 const String _current = 'old-pass-1';
 const String _newPw = 'new-pass-2';

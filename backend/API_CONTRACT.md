@@ -77,7 +77,7 @@
 |---|---|---|
 | GET | `/users/me` | `{ id(str), name, email, consent_required, consent_pending[] }` (아래 "가입 동의" 참고, #2819) |
 | POST | `/users/me/consents` | `{ consents: [항목] }` → `{ consent_required, consent_pending[] }` (#2819) |
-| GET | `/users/me/health` | `{ profile, risk, activity_points, activity_rank, settings[] }` |
+| GET | `/users/me/health` | `{ profile: { id, name, email }, activity_points }` — MY 계정 카드. 위험 문구(`risk`)·활동 순위(`activity_rank`)·설정 메뉴(`settings[]`)는 앱이 읽지 않는 고정값이라 뺐다(#2903) |
 | DELETE | `/users/me` | `{ status: "deleted" }` |
 | GET | `/users/me/profile` | `ProfileView` — `{ id, name, email, phone, birth_date, gender, height_cm, weight_kg, conditions, daily_calories, daily_sodium_mg, daily_sugar_g, daily_carbs_g, daily_protein_g, daily_fat_g, weekly_workout_goal, weekly_exercise_minutes_goal, weekly_burn_goal, daily_burn_kcal, weekly_cardio_minutes, weekly_strength_sets, weekly_flexibility_minutes, onboarded, focus_changed_by, focus_changed_at }` — MY 프로필 통합 뷰 |
 | PUT | `/users/me` | 부분 수정 `{ name?, email?, phone?, birth_date?, gender?, height_cm?, weight_kg? }` → `ProfileView`. 다른 계정이 쓰는 이메일은 409, 전화번호를 빈 값으로 보내면 422. 형식 규칙은 아래 "인증" 의 연락처·이름·생년월일 절과 같다 |
@@ -99,8 +99,6 @@
 스레드 행이 CASCADE 로 사라지므로 남긴 파일은 열 수 없는 고아가 된다. 트레이너 탈퇴
 (`DELETE /trainer/me`)도 그 트레이너의 스레드 첨부를 같은 규칙으로 지운다. 파일 삭제는 커밋
 뒤에 하고, 실패해도 응답은 `deleted` 다(서버 로그에 남겨 다시 지운다).
-
-`risk`: `{ title, body, level(low|medium|high) }`
 
 #### 첫 설정 완료·건너뛰기 (#1927·#2855)
 
@@ -1121,10 +1119,10 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/trainer/clients/{member_id}/routine-options` | `{ available_minutes, intensity_preference, trainer_note?, sources? }` → `{ analysis, plan_a, plan_b, generated_by }` — AI 루틴 A/B 후보. 분당 한도 `ROUTINE_OPTIONS_PER_MINUTE` |
 | POST | `/trainer/clients/{member_id}/program` | `{ name, sessions[], client_request_id?, delivery_kind?, trainer_message?, start_date?, active_days?, suggestion_ids? }` → **201** `RoutineOut[]` — 다중 세션 프로그램 배정(#709) |
 | POST | `/trainer/clients/{member_id}/program-schedule` | 프로그램 + 날짜·시각(또는 붙일 `session_id`) → **201** `{ routines, session, attached_to_existing, personal_routines }` — 배정과 PT 일정 등록을 한 트랜잭션으로(#1580). 붙일 일정이 모호하면 409 `{ message, candidates }` |
-| GET | `/trainer/programs` | `[{ id, name, goal, period, session_count, exercise_count, updated_at }]` — 프로그램 초안 목록 |
-| POST | `/trainer/programs` | `{ name, goal?, period?, memo?, sessions[] }` → **201** 초안 |
-| GET | `/trainer/programs/{draft_id}` | 초안 상세(편집기로 불러올 때) |
-| PUT | `/trainer/programs/{draft_id}` | 부분 수정, `sessions` 는 통째로 교체 |
+| GET | `/trainer/programs?member_id=` | `[{ id, name, goal, period, session_count, exercise_count, member_id, updated_at }]` — 프로그램 초안 목록. `member_id` 를 주면 그 회원에게 자동 보관한 것만(#2873) |
+| POST | `/trainer/programs` | `{ name, goal?, period?, memo?, sessions[], member_id?, workspace? }` → **201** 초안. `member_id` 는 코칭 화면의 회원별 자동 보관이며 담당 회원이 아니면 404, `workspace` 는 편집기 밖의 작성 상태 객체(JSON 64,000자 이하, 서버는 해석하지 않음)(#2873) |
+| GET | `/trainer/programs/{draft_id}` | 초안 상세(편집기로 불러올 때). `member_id`·`workspace` 포함 |
+| PUT | `/trainer/programs/{draft_id}` | 부분 수정, `sessions`·`workspace` 는 통째로 교체. `member_id` 는 바꾸지 않는다 |
 | DELETE | `/trainer/programs/{draft_id}` | `{ status: "deleted" }` — 이미 배정한 루틴·일정은 남는다 |
 | GET | `/trainer/program-templates` | `[{ id, name, goal, exercises, updated_at }]` — 내 템플릿(없으면 시작 구성) |
 | POST | `/trainer/program-templates` | `{ name, goal?, exercises }` → **201**. 개수 상한을 넘으면 409 |
@@ -1514,8 +1512,11 @@ N명이면 첫 화면에서 요청이 2N개였다.
   하나라도 빠지면 아무것도 남기지 않고 **422** `{ detail: { code: "consent_required", missing: [...] } }`.
   이미 지금 버전에 동의한 항목은 다시 쓰지 않는다 — 처음 동의한 시각이 남는다.
 - 문서 버전은 `services/signup_consent.CURRENT_VERSIONS` 한 곳이 정한다. 약관·처리방침 본문을
-  고치면(#2820) 그 항목의 버전을 올린다.
-- 국외 이전 동의는 아직 항목에 없다 — 필요 여부를 처리방침 정비(#2820)에서 정한 뒤 더한다.
+  고치면 그 항목의 버전을 올린다. 처리방침은 위탁·국외 이전·파기 절차 절을 더하며 `privacy` 가
+  `2026-10-03` 으로 올랐다(#2820) — 그 전 버전에만 동의한 계정은 다음 로그인 때 동의 화면을 다시
+  거친다. 버전 날짜는 두 앱 처리방침 본문의 시행일과 같아야 한다.
+- 국외 이전 동의는 따로 받지 않는다(#2820). 계약 이행을 위한 처리 위탁·보관이라 처리방침 공개로
+  갈음한다(「개인정보 보호법」 제28조의8 제1항 제3호). 위탁·이전 표는 `docs/privacy_processing.md`.
 
 ### 가입 연락처 형식 (#1780)
 
