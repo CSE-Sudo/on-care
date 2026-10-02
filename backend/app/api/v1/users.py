@@ -85,6 +85,7 @@ from app.services import (
     trainer_signup_service,
     weekly_challenge_service,
 )
+from app.services.diet_coach_inputs import effective_protein_g
 from app.services.contact_format import normalize_email
 from app.services.health_service import DEMO_SETTINGS
 from app.services.profile_format import name_from_email
@@ -209,6 +210,7 @@ def _profile_view(user: User) -> ProfileView:
         daily_sugar_g=p.daily_sugar_g if p else None,
         daily_carbs_g=p.daily_carbs_g if p else None,
         daily_protein_g=p.daily_protein_g if p else None,
+        effective_daily_protein_g=effective_protein_g(p),
         daily_fat_g=p.daily_fat_g if p else None,
         weekly_workout_goal=p.weekly_workout_goal if p else None,
         weekly_exercise_minutes_goal=(p.weekly_exercise_minutes_goal if p else None),

@@ -16,6 +16,7 @@ import 'package:oncare_trainer/core/storage/seed_data.dart'
     show seedLanguageKey;
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_summary.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/calorie_baseline.dart'
@@ -254,6 +255,14 @@ class LocalReportRepository implements ReportRepository {
       sugar: at('daily_sugar_g')?.toDouble(),
       carbs: at('daily_carbs_g')?.toDouble(),
       protein: at('daily_protein_g')?.toDouble(),
+      // 실서버 `effective_protein_target` 과 같은 규칙(#2898).
+      effectiveProtein:
+          (at('daily_protein_g')?.toInt() ??
+                  MemberHealthProfile.proteinTargetFromWeight(
+                    at('weight_kg')?.toDouble(),
+                  ) ??
+                  MemberHealthProfile.defaultDailyProteinG)
+              .toDouble(),
       fat: at('daily_fat_g')?.toDouble(),
     );
   }
@@ -951,6 +960,9 @@ WeeklyReport weeklyReportFromJson(
     sugarTarget: (json['sugar_target'] as num?)?.toDouble(),
     carbsTarget: (json['carbs_target'] as num?)?.toDouble(),
     proteinTarget: (json['protein_target'] as num?)?.toDouble(),
+    // 실효 단백질 목표(#2898). 옛 응답이면 null 이고 막대가 공통 기본값을 쓴다.
+    effectiveProteinTarget: (json['effective_protein_target'] as num?)
+        ?.toDouble(),
     fatTarget: (json['fat_target'] as num?)?.toDouble(),
     days: <ReportDay>[
       for (final day in (json['days'] as List<Object?>? ?? const <Object?>[]))

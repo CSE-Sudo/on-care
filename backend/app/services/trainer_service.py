@@ -7193,6 +7193,7 @@ def build_weekly_report(
         sugar_target=profile.daily_sugar_g if profile else None,
         carbs_target=profile.daily_carbs_g if profile else None,
         protein_target=profile.daily_protein_g if profile else None,
+        effective_protein_target=diet_coach_inputs.effective_protein_g(profile),
         fat_target=profile.daily_fat_g if profile else None,
         week_start=monday_str,
         week_end=sunday_str,

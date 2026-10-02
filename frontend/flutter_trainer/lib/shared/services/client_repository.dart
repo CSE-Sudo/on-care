@@ -964,14 +964,10 @@ class DriftClientRepository implements ClientRepository {
   }
 
   /// 회원 목표 → 규칙이 쓰는 하루 목표. 서버 `diet_coach_inputs.targets_of` 와 같은
-  /// 순서(목표 → 체중 × 1.2g)다. 둘 다 없으면 데모 회원의 목표 [_demoProteinG] 다.
+  /// 순서(목표 → 체중 × 1.2g → 60g)다 — 영양 요약 카드와 같은 분모다(#2898).
   DietRuleTargets _dietTargets(MemberHealthProfile p) => (
     calories: p.dailyCalories ?? 2000,
-    proteinG:
-        p.dailyProteinG ??
-        (p.weightKg != null && p.weightKg! > 0
-            ? pyRound(p.weightKg! * 1.2)
-            : _demoProteinG),
+    proteinG: p.effectiveDailyProteinG,
     sodiumMg: p.dailySodiumMg ?? sodiumTargetMg,
     sugarG: p.dailySugarG ?? sugarTargetG,
   );
@@ -1035,11 +1031,6 @@ class DriftClientRepository implements ClientRepository {
     carbsG: e.carbsG,
     fatG: e.fatG,
   );
-
-  /// 데모 회원의 하루 단백질 목표. 같은 화면의 영양 요약 카드(`proteinTargetG`)·
-  /// 회원 앱 목 프로필·백엔드 시드(`daily_protein_g: 100`)와 같다 — 서버 기본값(60g)을
-  /// 쓰면 요약 카드는 `/ 100g` 인데 분석은 목표를 채웠다고 말한다.
-  static const int _demoProteinG = 100;
 
   static String _demoPickKey(String clientId) => 'demo_diet_pick:$clientId';
 

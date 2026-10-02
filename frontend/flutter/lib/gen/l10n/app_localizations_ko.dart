@@ -349,6 +349,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietLoadError => '식단 정보를 불러오지 못했어요.';
 
   @override
+  String get dietMealNotFound => '삭제됐거나 없는 기록이에요';
+
+  @override
+  String get dietMealNotFoundMessage => '식단 탭에서 기록을 다시 확인해 주세요.';
+
+  @override
+  String get dietMealNotFoundAction => '식단 탭으로';
+
+  @override
   String get dietPeriodAverage => '하루 평균';
 
   @override

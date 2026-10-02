@@ -1,3 +1,5 @@
+import 'package:oncare/core/utils/wire_date.dart';
+
 /// Centralised route paths. Anything that needs to navigate imports
 /// this rather than another feature module — see STRUCTURE.md §4.
 class AppRoutes {
@@ -48,8 +50,12 @@ class AppRoutes {
   static String trainerDetailPath(String trainerId) =>
       '/trainers/${Uri.encodeComponent(trainerId)}';
 
-  static String dietEntryDetailPath(String entryId) =>
-      '$diet/entries/${Uri.encodeComponent(entryId)}';
+  /// 끼니 상세. [date] 는 그 끼니가 놓인 날이다 — 웹에서 새로고침하면 화면이
+  /// 이 날짜의 목록에서 끼니를 다시 찾는다(#2881). 없으면 오늘에서 찾는다.
+  static String dietEntryDetailPath(String entryId, {DateTime? date}) {
+    final String path = '$diet/entries/${Uri.encodeComponent(entryId)}';
+    return date == null ? path : '$path?date=${wireDate(date)}';
+  }
 
   static String myCouponDetailPath(String couponId) =>
       '$myBenefits/coupons/${Uri.encodeComponent(couponId)}';

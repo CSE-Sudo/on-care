@@ -12,6 +12,7 @@ import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/network/auth_token.dart';
 import 'package:oncare/core/observability/error_reporter.dart';
+import 'package:oncare/core/utils/wire_date.dart';
 import 'package:oncare/features/account/presentation/first_run_route.dart';
 import 'package:oncare/features/account/presentation/pages/onboarding_page.dart';
 import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';
@@ -193,6 +194,8 @@ GoRouter buildAppRouter({
         path: AppRoutes.dietEntryDetail,
         builder: (context, state) => DietMealDetailPage(
           entryId: state.pathParameters['entryId'] ?? '',
+          // 새로고침하면 `extra` 는 사라지고 주소의 날짜만 남는다(#2881).
+          date: parseWireDate(state.uri.queryParameters['date']),
           initialMeal: state.extra is DietMeal
               ? state.extra! as DietMeal
               : null,

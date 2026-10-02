@@ -190,9 +190,9 @@
 | GET | `/diet/days?from=&to=` | `{ from_date, to_date, days[] }` — 날짜별 합계 `{ date, total_calories, total_sodium_mg, total_sugar_g, carbs_g, protein_g, fat_g }`. 기간 그래프가 쓰는 길이라 끼니·사진은 싣지 않는다. `from` 을 생략하면 **첫 기록일**부터, `to` 를 생략하면 오늘까지. 기록이 없는 날도 0 으로 채워 온다 (#2236). 구간은 끝(`to`, 오늘 이후면 오늘)에서 거슬러 **최대 1100일**(`diet_service.MAX_PERIOD_DAYS`)이고, 더 이른 `from`·첫 기록일은 그 하한으로 잘린다 — 응답 `from_date` 가 실제 시작일이다 (#2833). `from > to` 면 `to` 하루다 |
 | GET | `/diet/advice?period=&lang=` | `{ period, from_date, to_date, days_logged, message, analysis, analysis_key?, analysis_params, action, action_key?, action_params, action_source? }` — 식단 탭 AI 맞춤 조언. `period` 는 `today`(기본)·`week`·`all`, `lang` 은 `ko`(기본)·`en`. 규칙 한 줄(`analysis`) + 다음 할 일 한 문장(`action`)이다 (#1017, #2251) |
 | GET | `/diet/recommendations?use_llm=` | `{ items[{ key, reason_key, reason_text? }], basis?, personalized, source, days_with_data, avg_sodium_mg, sodium_limit_mg, trainer_pick? }` — 홈 `추천 식단`. `trainer_pick` 은 담당 트레이너가 확정한 추천 `{ slot, name, tag, keyword, trainer_name }` 이고 없거나 해소됐으면 null (#2378) |
-| POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립) |
+| POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key?, date? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립). `date`(`YYYY-MM-DD`)는 기록을 남길 날로, 지난 날짜 화면에서 연 추가가 싣는다(#2849). 없으면 저장하는 날(KST), 앞날·작년 1월 1일 이전·형식 오류는 인식 전에 422. 포인트 하루 한도는 지금처럼 적립 시점 기준이다. `meal_type` 이 다섯 값 밖이면 인식 전에 422(#2882) |
 | POST | `/diet/entries` | `{ date?, meal_type, foods[](1개 이상, 이름 필수), idempotency_key? }` → 201, 새 `entries[]` 항목 하나 — 사진 없이 회원이 직접 적은 끼니(#2151). 합계는 음식에서 내고, **포인트는 적립하지 않는다.** `date` 가 없으면 오늘(KST), 앞날은 422. 당류 > 탄수화물인 음식이 있으면 422 |
-| PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나 |
+| PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나. `meal_type` 은 다섯 값, `time_label` 은 `HH:MM` 또는 빈 문자열(그 밖은 422, #2882) |
 | DELETE | `/diet/entries/{id}` | `{ status: "deleted" }` — 그 끼니로 받은 포인트를 회수한다 |
 | POST | `/diet/nutrition` | `{ name(필수), amount_g? }` → `{ matched_name?, match(exact\|similar)?, source, amount_g?, calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` — 이름으로 찾은 공공 DB 값(#1896). 못 찾았거나 양을 정할 수 없으면 `matched_name`·`match` 가 null |
 
@@ -224,15 +224,17 @@
 - 담당이 아니거나 해제·동의 철회된 회원은 다른 트레이너 경로와 같은 404. 담당을 해제하면 그 트레이너의 추천도 지운다.
 
 `entries[]`: `{ id(str), meal_type(breakfast|lunch|dinner|snack|lateNight), time_label, foods[], total_calories(int), sodium_mg(int), sugar_g(float), ai_comment(str), photo_url(str?) }`
-`meal_type` 값은 회원 앱 `MealType.name` 그대로다 — 그래서 `lateNight`(야식, #1988)만 camelCase 다. DB 는 `String(20)` 자유 문자열이라 이 값을 검증하지 않으므로, 앱이 이름과 다른 문자열을 보내면 조용히 저장되고 트레이너 웹에서 다른 끼니로 읽힌다. 새 끼니를 더할 때도 enum 이름과 전송값을 일치시킨다.
+`meal_type` 값은 회원 앱 `MealType.name` 그대로다 — 그래서 `lateNight`(야식, #1988)만 camelCase 다. DB 는 `String(20)` 자유 문자열이지만 **API 가 다섯 값만 받는다** — 직접 기록·사진 분석(인식 전)·수정 모두 다섯 값 밖이면 422 다(#2882, `MealTypeLiteral`). 새 끼니를 더할 때는 enum 이름·전송값·`MealTypeLiteral` 을 함께 고친다. `PUT` 의 `time_label` 은 `HH:MM`(24시간)이거나 빈 문자열이고, 그 밖은 422 다.
 `lateNight` 이전에 저장된 `snack` 은 그대로 `snack` 이다 — 백필하지 않는다. 앱은 모르는 `meal_type` 을 간식으로 접어 읽고 죽지 않는다.
 `ai_comment` 는 사진 분석이 만든 식단평이다(#1932). 손으로 고쳐 만든 끼니와 분석이 식단평을 내지 못한 끼니는 빈 문자열이고, 앱은 비어 있으면 그 줄을 그리지 않는다.
 당류만 소수다 — 항목 단위 당류가 6.3g·8.5g 처럼 소수로 들어오고 합계도 절삭 없이 유지된다(`total_sugar_g` 도 float).
-`foods[]`: `[{ name, amount_g(float?), calories(int?), sodium_mg(int?), sugar_g(float?), carbs_g(float?), protein_g(float?), fat_g(float?), source(db|estimate|mixed|member) }]` — 음식별 영양은 회원이 식단 상세에서 고칠 수 있는 값이고, 그대로 저장된다(#1856, #1892).
+`foods[]`: `[{ name, display_name(str?), amount_g(float?), calories(int?), sodium_mg(int?), sugar_g(float?), carbs_g(float?), protein_g(float?), fat_g(float?), source(db|estimate|mixed|member) }]` — 음식별 영양은 회원이 식단 상세에서 고칠 수 있는 값이고, 그대로 저장된다(#1856, #1892).
 
 `source` 는 그 음식의 숫자가 어디서 왔나다. `db`(공공 DB × 양) · `mixed`(DB 행에 탄단지가 비어 인식기 값을 남김) · `estimate`(매칭이나 양이 없어 인식기 추정 그대로) · `member`(회원이 수정 화면에서 영양 칸을 직접 고침, #2105). **`PUT` 의 `foods[].source` 는 앱이 정해 보낸다** — 손대지 않은 음식과 섭취량만 바꾼 음식은 원래 값을, 공공 DB 값으로 채운 음식은 `db` 를, 영양 칸을 고친 음식은 `member` 를 싣는다. 네 값 밖은 422 이고, **빠지면 `member` 로 저장한다**(인식기 쪽 기본값 `estimate` 를 쓰면 수정 경로로 들어온 숫자를 인식기 추정이라 부르게 된다). 이 필드 이전 기록은 `source` 가 없을 수 있고, 읽는 쪽은 `estimate` 로 읽는다.
 
 `POST /diet/nutrition` 의 `match` 는 찾은 음식이 **같은 음식**(`exact` — 이름·별칭·양 표기를 뗀 이름·`계란`→`달걀` 표기 변형이 표 이름과 같다)인지, 이름 끝말로 붙은 **비슷한 음식**(`similar` — `야채비빔밥` → `비빔밥`)인지다(#2107). 수정 화면은 이름을 바꾼 음식이 같은 음식에 붙으면 곧바로 그 값으로 채우고, 비슷한 음식이면 제안만 한다. 매칭은 사진 분석 보정과 같은 것이다.
+
+`display_name` 은 화면 언어로 된 표시 이름이다(#2850). `Accept-Language: en` 으로 사진을 분석하면 인식기가 영어 이름을 함께 내고, `name` 은 공공 DB 매칭용이라 **한국어 그대로** 둔다 — 영양 보정은 화면 언어와 상관없이 같다. 같은 요청의 식단평(`analysis.coach_comment`, 저장되는 `ai_comment`)도 영어로 쓴다. 한국어 화면·수기 입력·이 필드 이전 기록에는 키가 없고, 읽는 쪽은 `display_name` 이 있으면 그것을, 없으면 `name` 을 보인다. `PUT` 은 앱이 이름을 바꾸지 않은 음식에만 되돌려 싣는다(바꾼 이름이 회원이 쓴 표시 이름이다). 저장된 식단평은 분석 당시 언어로 남는다.
 
 `amount_g` 는 **그 영양이 무엇을 재고 나온 값인가** 다. 공공 DB 는 100g 기준이라 보정이 이 양으로 환산하며, 환산에 실제로 쓴 값(인식기 추정 또는 알려진 1회 섭취량)이 그대로 실린다. 양을 못 얻어 추정치를 그대로 둔 음식과 이 필드 이전 기록은 `null` 이다 — 읽는 쪽이 null 을 견뎌야 한다. 앱은 이 값으로 나머지 여섯 값을 비례 환산한다(#1876).
 
@@ -793,6 +795,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - **`/trainers/recommended` 순서**: 회원마다 다르다. 회원의 건강 목표(`conditions`, 옛 질환 이름은 새 목표로 읽는다)·가장 최근 상담의 `exercise_goal`·내 헬스장(`MemberGym`)을 신호로 점수를 매겨 내림차순 정렬한다. 동점은 경력 → id 로 갈라 같은 회원이 새로고침해도 순서가 흔들리지 않는다. (#500)
 - **트레이너 화면의 회원 목표(`TrainerClientOut.goal`, `MemberCoachOut.goal`, 루틴 추천 분석의 `goal`)**: 회원 건강 목표(`conditions` 중 목표, 최대 2개)를 ` · ` 로 이은 값이다. 트레이너가 `PUT /trainer/clients/{id}/health-profile` 로 `conditions` 를 고치면 회원앱과 같은 칸이 바뀐다. 옛 질환 이름은 저장 때 정리하고, 목표가 아닌 글(건강상태·주의사항)은 남는다. 회원이 6자리 코드로 연결될 때(`POST /trainer/pairing-code`) 회원 목표가 비어 있으면 그 트레이너에게 수락된 가장 최근 상담의 `exercise_goal` 을 목표로 채운다(#1818). 상담 수락은 담당 연결이 아니라 채우지 않는다(#2584). 상담 운동 목표가 건강 목표 여덟 종과 1:1 이 되면서 `other` 를 뺀 모든 값이 빠짐없이 채워진다(#1992).
 - **회원 건강 목표 숫자의 범위**: 회원 경로(`PUT /users/me/health-goals`·`POST /users/me/onboarding`)와 트레이너 경로(`PUT /trainer/clients/{id}/health-profile`)가 **같은 범위**를 쓴다 — 같은 컬럼을 고치는 문들이라 기준이 갈라지면 한쪽으로 들어온 값을 다른 쪽이 고칠 수 없다. 범위는 `app/schemas/health_goal_ranges.py` 한 곳에 있고, 어긋나면 422 다. `null` 은 그대로 목표 해제다. 자세한 사정은 [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) 참조. (#1888)
+- **실효 단백질 목표(`effective_daily_protein_g`, 주간 리포트는 `effective_protein_target`)**: 회원이 하루 단백질 목표를 정하지 않아도 채워지는 값이다 — 개인 목표 → 체중 × 1.2g → 60g(`diet_coach_inputs.effective_protein_g`). 식단 분석·기간/주간/전체 조언·추천 식단이 이 값으로 판단하므로 두 앱의 영양 카드·리포트 막대도 개인 목표가 없으면 이 값을 분모로 쓴다. `GET /users/me/profile`(`ProfileView`), `GET·PUT /trainer/clients/{id}/health-profile`(`MemberHealthProfileOut`), `WeeklyReportOut` 에 실린다. 개인 목표 필드(`daily_protein_g`·`protein_target`)는 그대로 null 을 유지해 '이 회원의 목표'와 기본값을 가른다. 예전에는 카드가 100g, 분석이 60g 을 써 같은 날을 서로 다르게 판단했다. (#2898)
 - **건강 목표·주의사항을 마지막으로 바꾼 사람**: `GET /users/me/profile`·`PUT /users/me`·`PUT /users/me/health-goals`·`POST /users/me/onboarding` 응답(`ProfileView`)과 `GET/PUT /trainer/clients/{id}/health-profile` 응답에 `focus_changed_by`·`focus_changed_at`(목표 칩, #1832)과 `notes_changed_by`·`notes_changed_at`(건강상태·주의사항, #2942)이 따로 실린다. `*_by` 는 `member`|`trainer`, 바꾼 적이 없으면 둘 다 `null` 이다. 목표 칩 집합이나 주의사항 조각이 실제로 달라진 저장에만 남는다(순서만 바뀐 저장은 아니다). 트레이너가 주의사항만 고치면 기록만 남고 회원 알림은 없다.
 - **신호가 없는 회원**(온보딩 전 등)은 운영자가 `recommend_reason` 을 적어 둔 트레이너만 **기존 순서 그대로** 받는다. 빈 목록을 주지 않는다.
 - **`reason`**: 운영자가 쓴 `recommend_reason` 이 우선이고, 비어 있을 때만 점수 근거에서 만든 문구가 채워진다(예: `회원님이 다니는 헬스장 소속 · 체중 감량 지도 경험`).
