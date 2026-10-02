@@ -200,7 +200,9 @@ app.include_router(ai_coach.router, prefix=settings.api_v1_prefix)
 app.include_router(chat_attachments.router, prefix=settings.api_v1_prefix)
 app.include_router(coach_docs.router, prefix=settings.api_v1_prefix)
 app.include_router(admin_trainers.router, prefix=settings.api_v1_prefix)
-app.include_router(trainer.router, prefix=settings.api_v1_prefix)
+# 트레이너 라우터는 영역별로 나뉘어 있다(#2909) — 같은 prefix 로 정해진 순서대로 붙인다.
+for trainer_router in trainer.routers:
+    app.include_router(trainer_router, prefix=settings.api_v1_prefix)
 app.include_router(member_coach.router, prefix=settings.api_v1_prefix)
 app.include_router(points.router, prefix=settings.api_v1_prefix)
 app.include_router(emotes.router, prefix=settings.api_v1_prefix)
