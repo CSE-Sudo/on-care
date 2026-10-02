@@ -260,14 +260,14 @@ def test_migration_backfills_existing_trainers_as_approved():
 
     path = (
         Path(__file__).resolve().parents[1]
-        / "migrations/versions/0136_trainer_verification.py"
+        / "migrations/versions/0132_trainer_verification.py"
     )
     source = path.read_text(encoding="utf-8")
     spec = importlib.util.spec_from_file_location("m0124", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 
-    assert module.revision == "0136_trainer_verification"
+    assert module.revision == "0132_trainer_verification"
     # 칸을 approved 기본값으로 만든 뒤(백필) pending 으로 바꾼다.
     assert source.index('server_default="approved"') < source.index(
         'server_default="pending"'

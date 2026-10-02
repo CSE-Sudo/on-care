@@ -11,7 +11,7 @@
 마이그레이션만으로 사라지면 안 된다. 칸을 approved 기본값으로 만들어 기존 행을 한 번에
 채운 뒤, 기본값을 pending 으로 바꿔 이후 들어오는 행은 닫힌 쪽에서 시작하게 한다.
 
-Revision ID: 0136_trainer_verification
+Revision ID: 0132_trainer_verification
 Revises: 0131_health_notes_changed
 Create Date: 2026-10-01
 """
@@ -22,7 +22,7 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0136_trainer_verification"
+revision: str = "0132_trainer_verification"
 down_revision: str | Sequence[str] | None = "0131_health_notes_changed"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
