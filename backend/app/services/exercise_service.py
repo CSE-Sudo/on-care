@@ -119,20 +119,6 @@ def weekday_label_of(day: str) -> str:
     return WEEKDAY_LABELS[d.weekday()]
 
 
-def estimate_calories(type_: str, minutes: int, intensity: str) -> int:
-    """유형·분·강도만으로 추정하는 **폴백**. 운동 이름도 체중도 안 볼 때다.
-
-    이름이 있으면 [estimate] 를 쓴다 — 이 함수는 같은 `유산소 30분` 이면 달리기든
-    자전거든, 회원 체중이 몇이든 같은 값을 낸다(#1312). 그래도 남겨 둔 이유는
-    이름이 종목표에 붙지 않는 기록이 늘 있기 때문이고, 그때 화면마다 값이
-    갈리지 않으려면 폴백도 한 곳이어야 하기 때문이다(#1131).
-
-    운동 유형은 정규화해서 본다 — 옛 값(`walking`·`yoga`)으로 저장된 기록도
-    같은 표를 타야 회원 화면에서 칼로리가 갈리지 않는다.
-    """
-    return energy.fallback(type_, minutes, intensity).calories
-
-
 def member_weight_kg(db: Session, user_id: str) -> float | None:
     """소모 칼로리 계산에 쓸 회원 체중. 건강 프로필에 없으면 None.
 

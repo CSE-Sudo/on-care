@@ -4230,6 +4230,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     await _settleChallenges();
     // 이름·이메일은 `PUT /users/me` 가 저장한 프로필에서 읽는다(#2661) — 서버도
     // 같은 사용자 행을 읽으므로 내 프로필에서 바꾼 값이 MY 카드에 보인다.
+    // 모양은 실서버와 같다 — 위험 문구·순위·설정 메뉴는 싣지 않는다(#2903).
     final Map<String, Object?> me = await _mergedProfile();
     return _ok(options, <String, Object?>{
       'profile': <String, Object?>{
@@ -4237,23 +4238,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         'name': me['name'],
         'email': me['email'],
       },
-      'risk': <String, Object?>{
-        'title': '이번 주 관리 포인트',
-        'body': '식단·운동 기록을 꾸준히 이어 가면 트레이너가 더 정확하게 도와줄 수 있어요.',
-        'level': 'medium',
-      },
       // 원장의 잔액 — 적립·회수가 그대로 보인다(#1786).
       'activity_points': _points.balance,
-      'activity_rank': 14,
-      'settings': <Map<String, Object?>>[
-        <String, Object?>{'label': '내 프로필', 'icon': '👤', 'kind': 'my-profile'},
-        <String, Object?>{
-          'label': '알림 설정',
-          'icon': '🔔',
-          'kind': 'notification',
-        },
-        <String, Object?>{'label': '고객 지원', 'icon': '💬', 'kind': 'support'},
-      ],
     });
   }
 

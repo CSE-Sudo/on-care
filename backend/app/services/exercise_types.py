@@ -24,9 +24,6 @@ OTHER = "other"
 
 CANONICAL_TYPES: tuple[str, ...] = (CARDIO, STRENGTH, STRETCHING, OTHER)
 
-#: 표준 한글 라벨 — 트레이너 루틴(`trainer_routines.type`)이 쓴다.
-KOREAN_LABELS: tuple[str, ...] = ("유산소", "근력", "스트레칭", "기타")
-
 _TO_CODE = {
     # 표준
     CARDIO: CARDIO,
@@ -124,8 +121,3 @@ def label_for(value: str | None) -> str:
     if key in _TO_CODE:
         return _CODE_TO_KO[_TO_CODE[key]]
     return key
-
-
-def is_legacy(value: str | None) -> bool:
-    """옛 어휘인가 — 마이그레이션·이관 검증에서 쓴다."""
-    return bool(value) and value not in CANONICAL_TYPES and value not in KOREAN_LABELS

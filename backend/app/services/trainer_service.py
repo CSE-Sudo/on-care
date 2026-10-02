@@ -4167,11 +4167,6 @@ def _schedule_outs(
     ]
 
 
-def build_schedule(db: Session, trainer_id: str, day: str) -> list[ScheduleSessionOut]:
-    """하루 타임라인(시간순, 공백 포함)."""
-    return build_schedule_range(db, trainer_id, day, day)
-
-
 def build_client_schedule(
     db: Session, trainer_id: str, member_id: str
 ) -> list[ScheduleSessionOut]:
