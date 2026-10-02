@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
+import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
@@ -1148,7 +1149,11 @@ class _DailyDietRecordsState extends ConsumerState<_DailyDietRecords> {
         key: const ValueKey<String>('diet-daily-records'),
         children: <Widget>[
           // 최근 날이 위다 — 트레이너가 먼저 궁금해하는 것은 어제와 오늘이다.
-          for (final ClientDietDay day in period.days.reversed)
+          // 오지 않은 날은 그리지 않는다(#2512) — `기록 없음` 이 아니라 아직
+          // 기록할 수 없는 날이다.
+          for (final ClientDietDay day in period.days.reversed.where(
+            (ClientDietDay d) => !d.date.isAfter(todayKst()),
+          ))
             ClientDayRecordTile(
               date: day.date,
               logged: day.logged,

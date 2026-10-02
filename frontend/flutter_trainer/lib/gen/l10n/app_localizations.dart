@@ -2384,12 +2384,6 @@ abstract class AppLocalizations {
   /// **'Member feedback'**
   String get clientFeedback;
 
-  /// No description provided for @workoutKindAiPersonal.
-  ///
-  /// In en, this message translates to:
-  /// **'AI personal exercise'**
-  String get workoutKindAiPersonal;
-
   /// Workout history kind for a completed PT session (server kind code pt_session).
   ///
   /// In en, this message translates to:
@@ -5872,8 +5866,8 @@ abstract class AppLocalizations {
   /// No description provided for @aiRoutineOnlyWeeklyHint.
   ///
   /// In en, this message translates to:
-  /// **'Appears in the member app every day for 7 days from today. Send next week\'s set again then.'**
-  String get aiRoutineOnlyWeeklyHint;
+  /// **'Appears in the member app every day for 7 days, {start} to {end}. Send next week\'s set again then.'**
+  String aiRoutineOnlyWeeklyHint(String start, String end);
 
   /// No description provided for @aiRoutineOnlySend.
   ///
@@ -6829,17 +6823,89 @@ abstract class AppLocalizations {
   /// **'That program is already gone'**
   String get routineAlreadyGone;
 
+  /// No description provided for @workoutKindPersonal.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise'**
+  String get workoutKindPersonal;
+
+  /// No description provided for @workoutRoutineDay.
+  ///
+  /// In en, this message translates to:
+  /// **'{month}/{day} ({weekday})'**
+  String workoutRoutineDay(int month, int day, String weekday);
+
+  /// No description provided for @workoutRoutineDoneOf.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} of {total} done'**
+  String workoutRoutineDoneOf(int done, int total);
+
+  /// No description provided for @workoutRoutineSentUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent {sent} · until {end}'**
+  String workoutRoutineSentUntil(String sent, String end);
+
+  /// No description provided for @coachRoutineAdherenceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise follow-through'**
+  String get coachRoutineAdherenceTitle;
+
+  /// No description provided for @coachRoutineAdherenceSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'All done on {full} of the past {days} days'**
+  String coachRoutineAdherenceSummary(int days, int full);
+
+  /// No description provided for @coachRoutineAdherenceLate.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} on {weekday} checked later'**
+  String coachRoutineAdherenceLate(String weekday, int count);
+
+  /// No description provided for @coachRoutineAdherenceFirstDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent today'**
+  String get coachRoutineAdherenceFirstDay;
+
+  /// No description provided for @coachRoutineAdherenceCell.
+  ///
+  /// In en, this message translates to:
+  /// **'{date}: {done} of {total} done'**
+  String coachRoutineAdherenceCell(String date, int done, int total);
+
+  /// No description provided for @workoutTotalBurned.
+  ///
+  /// In en, this message translates to:
+  /// **'{calories} kcal burned'**
+  String workoutTotalBurned(String calories);
+
+  /// No description provided for @workoutLineBurned.
+  ///
+  /// In en, this message translates to:
+  /// **'{calories} kcal burned'**
+  String workoutLineBurned(String calories);
+
+  /// No description provided for @workoutLineEstimated.
+  ///
+  /// In en, this message translates to:
+  /// **'Est. {calories} kcal burned'**
+  String workoutLineEstimated(String calories);
+
+  /// No description provided for @workoutDaySourcePt.
+  ///
+  /// In en, this message translates to:
+  /// **'PT'**
+  String get workoutDaySourcePt;
+
   /// No description provided for @workoutPendingTitle.
   ///
   /// In en, this message translates to:
-  /// **'Daily personal exercises'**
+  /// **'Personal exercises'**
   String get workoutPendingTitle;
-
-  /// No description provided for @workoutRoutineDoneToday.
-  ///
-  /// In en, this message translates to:
-  /// **'Done today'**
-  String get workoutRoutineDoneToday;
 
   /// No description provided for @workoutUndatedTitle.
   ///
@@ -6850,14 +6916,8 @@ abstract class AppLocalizations {
   /// No description provided for @workoutMemberLogTitle.
   ///
   /// In en, this message translates to:
-  /// **'Logged by member'**
+  /// **'Added by member'**
   String get workoutMemberLogTitle;
-
-  /// No description provided for @workoutPendingCancel.
-  ///
-  /// In en, this message translates to:
-  /// **'Cancel assignment'**
-  String get workoutPendingCancel;
 
   /// No description provided for @routineUpdateFailed.
   ///
@@ -7603,6 +7663,12 @@ abstract class AppLocalizations {
   /// **'Member\'s log · {date}'**
   String clientMemoTagMemberLog(String date);
 
+  /// No description provided for @clientMemoTagDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout · {date}'**
+  String clientMemoTagDay(String date);
+
   /// No description provided for @clientMemoEdited.
   ///
   /// In en, this message translates to:
@@ -7692,6 +7758,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{date} Member log'**
   String clientMemoRecordMemberLog(String date);
+
+  /// No description provided for @clientMemoRecordExerciseDay.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} workout'**
+  String clientMemoRecordExerciseDay(String date);
 
   /// No description provided for @clientMemoTabMemo.
   ///

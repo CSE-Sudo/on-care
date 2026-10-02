@@ -70,6 +70,7 @@ class ClientDayRecordTile extends StatelessWidget {
     this.toggleable = true,
     this.emptyLabel,
     this.extra,
+    this.dateTrailing,
     this.notes = const <String, String>{},
   });
 
@@ -105,6 +106,9 @@ class ClientDayRecordTile extends StatelessWidget {
 
   /// 펼쳤을 때 [details] 아래에 덧붙일 것. 식단은 여기에 끼니를 늘어놓는다.
   final Widget? extra;
+
+  /// 날짜 바로 오른쪽에 둘 것 — 운동은 그날 메모 자리(#2508).
+  final Widget? dateTrailing;
 
   @override
   Widget build(BuildContext context) {
@@ -162,6 +166,7 @@ class ClientDayRecordTile extends StatelessWidget {
                       ),
                     ),
                   ),
+                  ?dateTrailing,
                   const SizedBox(width: OnCareSpacing.s8),
                   // 접힌 줄에는 수치를 적지 않는다(#1465). 기록이 없는 날만
                   // 그렇다고 말한다 — 그 줄은 펼칠 것이 없어 화살표도 없다.

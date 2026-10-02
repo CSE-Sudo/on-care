@@ -1254,9 +1254,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientFeedback => '회원 피드백';
 
   @override
-  String get workoutKindAiPersonal => 'AI 개인운동';
-
-  @override
   String get workoutKindPtSession => 'PT 세션 · 트레이너 지도';
 
   @override
@@ -1603,7 +1600,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportBodyExerciseCount(int total, int done) {
-    return '배정된 개인 운동 $total개 중 $done개를 완료하셨어요.';
+    return '배정된 개인운동 $total개 중 $done개를 완료하셨어요.';
   }
 
   @override
@@ -3201,8 +3198,9 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get aiRoutineOnlyWeeklyHint =>
-      '보낸 날부터 7일간 회원 앱에 매일 떠요. 다음 주 분은 그때 다시 보내 주세요.';
+  String aiRoutineOnlyWeeklyHint(String start, String end) {
+    return '$start부터 $end까지 7일간 회원 앱에 매일 떠요. 다음 주 분은 그때 다시 보내 주세요.';
+  }
 
   @override
   String get aiRoutineOnlySend => '회원에게 보내기';
@@ -3755,19 +3753,70 @@ class AppLocalizationsKo extends AppLocalizations {
   String get routineAlreadyGone => '이미 삭제된 프로그램이에요';
 
   @override
-  String get workoutPendingTitle => '매일 하는 개인 운동';
+  String get workoutKindPersonal => '개인운동';
 
   @override
-  String get workoutRoutineDoneToday => '오늘 완료';
+  String workoutRoutineDay(int month, int day, String weekday) {
+    return '$month/$day($weekday)';
+  }
+
+  @override
+  String workoutRoutineDoneOf(int done, int total) {
+    return '$total개 중 $done개 완료';
+  }
+
+  @override
+  String workoutRoutineSentUntil(String sent, String end) {
+    return '$sent 보냄 · $end까지';
+  }
+
+  @override
+  String get coachRoutineAdherenceTitle => '개인운동 이행';
+
+  @override
+  String coachRoutineAdherenceSummary(int days, int full) {
+    return '지난 $days일 중 모두 완료 $full일';
+  }
+
+  @override
+  String coachRoutineAdherenceLate(String weekday, int count) {
+    return '$weekday요일 $count건은 다음 날 체크';
+  }
+
+  @override
+  String get coachRoutineAdherenceFirstDay => '오늘 보낸 개인운동이에요';
+
+  @override
+  String coachRoutineAdherenceCell(String date, int done, int total) {
+    return '$date: $done/$total 완료';
+  }
+
+  @override
+  String workoutTotalBurned(String calories) {
+    return '총 소모 $calories kcal';
+  }
+
+  @override
+  String workoutLineBurned(String calories) {
+    return '소모 $calories kcal';
+  }
+
+  @override
+  String workoutLineEstimated(String calories) {
+    return '예상 소모 $calories kcal';
+  }
+
+  @override
+  String get workoutDaySourcePt => 'PT';
+
+  @override
+  String get workoutPendingTitle => '개인운동';
 
   @override
   String get workoutUndatedTitle => '날짜를 알 수 없는 기록';
 
   @override
-  String get workoutMemberLogTitle => '직접 기록';
-
-  @override
-  String get workoutPendingCancel => '배정 취소';
+  String get workoutMemberLogTitle => '회원 추가';
 
   @override
   String get routineUpdateFailed => '프로그램을 수정하지 못했어요. 잠시 후 다시 시도해 주세요';
@@ -4175,17 +4224,22 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String clientMemoTagPersonal(String date) {
-    return '개인 운동 · $date';
+    return '개인운동 · $date';
   }
 
   @override
   String clientMemoTagPersonalNamed(String date, String name) {
-    return '개인 운동 · $date $name';
+    return '개인운동 · $date $name';
   }
 
   @override
   String clientMemoTagMemberLog(String date) {
     return '회원 기록 · $date';
+  }
+
+  @override
+  String clientMemoTagDay(String date) {
+    return '운동 기록 · $date';
   }
 
   @override
@@ -4230,17 +4284,22 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String clientMemoRecordPersonal(String date) {
-    return '$date 개인 운동';
+    return '$date 개인운동';
   }
 
   @override
   String clientMemoRecordPersonalNamed(String date, String name) {
-    return '$date 개인 운동 · $name';
+    return '$date 개인운동 · $name';
   }
 
   @override
   String clientMemoRecordMemberLog(String date) {
     return '$date 회원 기록';
+  }
+
+  @override
+  String clientMemoRecordExerciseDay(String date) {
+    return '$date 운동 기록';
   }
 
   @override
@@ -5274,7 +5333,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get reportsGridPersonal => '개인 운동';
+  String get reportsGridPersonal => '개인운동';
 
   @override
   String get reportsGridPersonalUnit => '수행 / 배정';

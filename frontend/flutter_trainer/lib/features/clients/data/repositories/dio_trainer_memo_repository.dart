@@ -59,8 +59,11 @@ class DioTrainerMemoRepository implements TrainerMemoRepository {
           // 이름·날짜는 서버가 그 기록에서 읽는다(#2332).
           if (ref != null && ref.id != null)
             'ref_id': ref.id
-          else if (ref != null)
+          else if (ref != null) ...<String, Object?>{
             'ref_date': ?ref.day,
+            // 그날의 어느 상자인가(#2508). 그날 전체(`day`)면 보내지 않는다.
+            if (ref.kind != TrainerMemoRefKind.day) 'ref_kind': ref.kind.wire,
+          },
           if (category != TrainerMemoCategory.none) 'category': category.wire,
         },
       );

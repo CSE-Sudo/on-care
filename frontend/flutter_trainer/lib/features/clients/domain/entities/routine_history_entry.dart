@@ -130,6 +130,7 @@ const Map<String, String> _kindByStoredLabel = <String, String>{
   // 옛 시드·픽스처의 이름. 지금은 `AI 개인운동` 으로 부른다(#1453).
   'AI 루틴 · 자율 운동': 'ai_personal',
   '배정 루틴 수행': 'assigned_routine',
+  '개인운동': 'personal_routine',
 };
 
 /// 화면에 그리는 기록 종류 이름. (#1453, #2300)
@@ -141,7 +142,10 @@ String routineKindLabel(AppLocalizations l, String raw, {String? kind}) {
   final String? code = routineKindCode(raw, kind: kind);
   return switch (code) {
     'pt_session' => l.workoutKindPtSession,
-    'ai_personal' => l.workoutKindAiPersonal,
+    // 하루치 개인운동 카드는 `개인운동` 이다(#2510) — 데모·옛 서버의 `AI 개인운동`
+    // 도 같은 하루치 카드라 같은 이름으로 부른다. AI 가 짠 것만 담는 카드가
+    // 아니다(트레이너가 보낸 것도 섞인다).
+    'ai_personal' || 'personal_routine' => l.workoutKindPersonal,
     // 서버는 이름 없는 배정에만 이 코드를 붙인다 — 이름이 있으면 코드가 없다.
     'assigned_routine' => l.workoutKindAssignedRoutine,
     _ => raw,

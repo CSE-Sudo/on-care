@@ -832,7 +832,6 @@
   "programNone": "No program recorded",
   "legendDone": "Done",
   "clientFeedback": "Member feedback",
-  "workoutKindAiPersonal": "AI personal exercise",
   "workoutKindPtSession": "PT session · Trainer-led",
   "@workoutKindPtSession": {
     "description": "Workout history kind for a completed PT session (server kind code pt_session)."
@@ -2140,7 +2139,8 @@
   "@aiRoutineOnlyWeekRange": {
     "placeholders": { "start": { "type": "String" }, "end": { "type": "String" } }
   },
-  "aiRoutineOnlyWeeklyHint": "Appears in the member app every day for 7 days from today. Send next week's set again then.",
+  "@aiRoutineOnlyWeeklyHint": {"placeholders": {"start": {"type": "String"}, "end": {"type": "String"}}},
+  "aiRoutineOnlyWeeklyHint": "Appears in the member app every day for 7 days, {start} to {end}. Send next week's set again then.",
   "aiRoutineOnlySend": "Send to member",
   "aiRoutineOnlySentLabel": "Sent",
   "aiRoutineOnlySent": "Personal exercise sent to the member.",
@@ -2544,11 +2544,40 @@
     }
   },
   "routineAlreadyGone": "That program is already gone",
-  "workoutPendingTitle": "Daily personal exercises",
-  "workoutRoutineDoneToday": "Done today",
+  "workoutKindPersonal": "Personal exercise",
+  "workoutRoutineDay": "{month}/{day} ({weekday})",
+  "@workoutRoutineDay": {"placeholders": {"month": {"type": "int"}, "day": {"type": "int"}, "weekday": {"type": "String"}}},
+  "workoutRoutineDoneOf": "{done} of {total} done",
+  "@workoutRoutineDoneOf": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "workoutRoutineSentUntil": "Sent {sent} · until {end}",
+  "@workoutRoutineSentUntil": {"placeholders": {"sent": {"type": "String"}, "end": {"type": "String"}}},
+  "coachRoutineAdherenceTitle": "Personal exercise follow-through",
+  "coachRoutineAdherenceSummary": "All done on {full} of the past {days} days",
+  "@coachRoutineAdherenceSummary": {"placeholders": {"days": {"type": "int"}, "full": {"type": "int"}}},
+  "coachRoutineAdherenceLate": "{count} on {weekday} checked later",
+  "@coachRoutineAdherenceLate": {"placeholders": {"weekday": {"type": "String"}, "count": {"type": "int"}}},
+  "coachRoutineAdherenceFirstDay": "Sent today",
+  "coachRoutineAdherenceCell": "{date}: {done} of {total} done",
+  "@coachRoutineAdherenceCell": {"placeholders": {"date": {"type": "String"}, "done": {"type": "int"}, "total": {"type": "int"}}},
+  "workoutTotalBurned": "{calories} kcal burned",
+  "@workoutTotalBurned": {"placeholders": {"calories": {"type": "String"}}},
+  "workoutLineBurned": "{calories} kcal burned",
+  "@workoutLineBurned": {"placeholders": {"calories": {"type": "String"}}},
+  "workoutLineEstimated": "Est. {calories} kcal burned",
+  "@workoutLineEstimated": {"placeholders": {"calories": {"type": "String"}}},
+  "workoutDaySourcePt": "PT",
+  "workoutPendingTitle": "Personal exercises",
   "workoutUndatedTitle": "Records without a date",
-  "workoutMemberLogTitle": "Logged by member",
-  "workoutPendingCancel": "Cancel assignment",
+  "workoutMemberLogTitle": "Added by member",
   "routineUpdateFailed": "Couldn't update the program. Please try again in a moment",
   "routineUpdated": "Program updated",
   "routineDeleteTitle": "Delete this program?",
@@ -2815,6 +2844,14 @@
       }
     }
   },
+  "clientMemoTagDay": "Workout · {date}",
+  "@clientMemoTagDay": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "clientMemoEdited": "Edited",
   "clientMemoSearchHint": "Search memos (text or tag)",
   "clientMemoSearchEmpty": "No memos match your search.",
@@ -2868,6 +2905,14 @@
   },
   "clientMemoRecordMemberLog": "{date} Member log",
   "@clientMemoRecordMemberLog": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoRecordExerciseDay": "{date} workout",
+  "@clientMemoRecordExerciseDay": {
     "placeholders": {
       "date": {
         "type": "String"

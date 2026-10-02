@@ -507,7 +507,6 @@
   "programNone": "등록된 프로그램 없음",
   "legendDone": "완료",
   "clientFeedback": "회원 피드백",
-  "workoutKindAiPersonal": "AI 개인운동",
   "workoutKindPtSession": "PT 세션 · 트레이너 지도",
   "workoutKindAssignedRoutine": "배정 루틴 수행",
   "dietLoadFailed": "식단을 불러오지 못했어요",
@@ -704,7 +703,7 @@
     }
   },
   "reportBodySessionsNone": "이 주에는 진행한 PT 세션이 없었어요.",
-  "reportBodyExerciseCount": "배정된 개인 운동 {total}개 중 {done}개를 완료하셨어요.",
+  "reportBodyExerciseCount": "배정된 개인운동 {total}개 중 {done}개를 완료하셨어요.",
   "@reportBodyExerciseCount": {
     "placeholders": {
       "total": {
@@ -1426,7 +1425,8 @@
   "@aiRoutineOnlyWeekRange": {
     "placeholders": { "start": { "type": "String" }, "end": { "type": "String" } }
   },
-  "aiRoutineOnlyWeeklyHint": "보낸 날부터 7일간 회원 앱에 매일 떠요. 다음 주 분은 그때 다시 보내 주세요.",
+  "@aiRoutineOnlyWeeklyHint": {"placeholders": {"start": {"type": "String"}, "end": {"type": "String"}}},
+  "aiRoutineOnlyWeeklyHint": "{start}부터 {end}까지 7일간 회원 앱에 매일 떠요. 다음 주 분은 그때 다시 보내 주세요.",
   "aiRoutineOnlySend": "회원에게 보내기",
   "aiRoutineOnlySentLabel": "보냈어요",
   "aiRoutineOnlySent": "개인운동을 회원에게 보냈어요.",
@@ -1620,11 +1620,40 @@
   "myWithdrawStay": "계속 사용하기",
   "myWithdrawContinue": "탈퇴 계속",
   "routineAlreadyGone": "이미 삭제된 프로그램이에요",
-  "workoutPendingTitle": "매일 하는 개인 운동",
-  "workoutRoutineDoneToday": "오늘 완료",
+  "workoutKindPersonal": "개인운동",
+  "workoutRoutineDay": "{month}/{day}({weekday})",
+  "@workoutRoutineDay": {"placeholders": {"month": {"type": "int"}, "day": {"type": "int"}, "weekday": {"type": "String"}}},
+  "workoutRoutineDoneOf": "{total}개 중 {done}개 완료",
+  "@workoutRoutineDoneOf": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "workoutRoutineSentUntil": "{sent} 보냄 · {end}까지",
+  "@workoutRoutineSentUntil": {"placeholders": {"sent": {"type": "String"}, "end": {"type": "String"}}},
+  "coachRoutineAdherenceTitle": "개인운동 이행",
+  "coachRoutineAdherenceSummary": "지난 {days}일 중 모두 완료 {full}일",
+  "@coachRoutineAdherenceSummary": {"placeholders": {"days": {"type": "int"}, "full": {"type": "int"}}},
+  "coachRoutineAdherenceLate": "{weekday}요일 {count}건은 다음 날 체크",
+  "@coachRoutineAdherenceLate": {"placeholders": {"weekday": {"type": "String"}, "count": {"type": "int"}}},
+  "coachRoutineAdherenceFirstDay": "오늘 보낸 개인운동이에요",
+  "coachRoutineAdherenceCell": "{date}: {done}/{total} 완료",
+  "@coachRoutineAdherenceCell": {"placeholders": {"date": {"type": "String"}, "done": {"type": "int"}, "total": {"type": "int"}}},
+  "workoutTotalBurned": "총 소모 {calories} kcal",
+  "@workoutTotalBurned": {"placeholders": {"calories": {"type": "String"}}},
+  "workoutLineBurned": "소모 {calories} kcal",
+  "@workoutLineBurned": {"placeholders": {"calories": {"type": "String"}}},
+  "workoutLineEstimated": "예상 소모 {calories} kcal",
+  "@workoutLineEstimated": {"placeholders": {"calories": {"type": "String"}}},
+  "workoutDaySourcePt": "PT",
+  "workoutPendingTitle": "개인운동",
   "workoutUndatedTitle": "날짜를 알 수 없는 기록",
-  "workoutMemberLogTitle": "직접 기록",
-  "workoutPendingCancel": "배정 취소",
+  "workoutMemberLogTitle": "회원 추가",
   "routineUpdateFailed": "프로그램을 수정하지 못했어요. 잠시 후 다시 시도해 주세요",
   "routineUpdated": "프로그램을 수정했어요",
   "routineDeleteTitle": "프로그램을 삭제할까요?",
@@ -1758,7 +1787,7 @@
       }
     }
   },
-  "clientMemoTagPersonal": "개인 운동 · {date}",
+  "clientMemoTagPersonal": "개인운동 · {date}",
   "@clientMemoTagPersonal": {
     "placeholders": {
       "date": {
@@ -1766,7 +1795,7 @@
       }
     }
   },
-  "clientMemoTagPersonalNamed": "개인 운동 · {date} {name}",
+  "clientMemoTagPersonalNamed": "개인운동 · {date} {name}",
   "@clientMemoTagPersonalNamed": {
     "placeholders": {
       "date": {
@@ -1779,6 +1808,14 @@
   },
   "clientMemoTagMemberLog": "회원 기록 · {date}",
   "@clientMemoTagMemberLog": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoTagDay": "운동 기록 · {date}",
+  "@clientMemoTagDay": {
     "placeholders": {
       "date": {
         "type": "String"
@@ -1817,7 +1854,7 @@
       }
     }
   },
-  "clientMemoRecordPersonal": "{date} 개인 운동",
+  "clientMemoRecordPersonal": "{date} 개인운동",
   "@clientMemoRecordPersonal": {
     "placeholders": {
       "date": {
@@ -1825,7 +1862,7 @@
       }
     }
   },
-  "clientMemoRecordPersonalNamed": "{date} 개인 운동 · {name}",
+  "clientMemoRecordPersonalNamed": "{date} 개인운동 · {name}",
   "@clientMemoRecordPersonalNamed": {
     "placeholders": {
       "date": {
@@ -1838,6 +1875,14 @@
   },
   "clientMemoRecordMemberLog": "{date} 회원 기록",
   "@clientMemoRecordMemberLog": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoRecordExerciseDay": "{date} 운동 기록",
+  "@clientMemoRecordExerciseDay": {
     "placeholders": {
       "date": {
         "type": "String"
@@ -2586,7 +2631,7 @@
       }
     }
   },
-  "reportsGridPersonal": "개인 운동",
+  "reportsGridPersonal": "개인운동",
   "reportsGridPersonalUnit": "수행 / 배정",
   "reportsGridDoneOfAssigned": "{done} / {total}회",
   "@reportsGridDoneOfAssigned": {

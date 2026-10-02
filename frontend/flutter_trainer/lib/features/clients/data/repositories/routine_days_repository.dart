@@ -298,13 +298,12 @@ Future<Map<String, String>> demoTodayAssignedRoutines(
 ///
 /// 씨앗 배정(날짜·종류 없음)은 오늘 포함 4주 전부터 걸린 기한 없는 배정이다
 /// (백엔드 `_seed_routine_since`). 데모에서 보낸 개인운동은 시작일부터 7일이다
-/// (#2656). 목록은 최신순이라 순서를 뒤집어 배정 순서로 둔다.
+/// (#2656).
 List<RoutineDayRoutine> demoRoutineWindows(
   List<AssignedRoutine> assigned,
   DateTime today,
 ) {
   final DateTime seedSince = today.subtract(const Duration(days: 27));
-  final int count = assigned.length;
   return <RoutineDayRoutine>[
     for (final (int i, AssignedRoutine r) in assigned.indexed)
       () {
@@ -316,8 +315,9 @@ List<RoutineDayRoutine> demoRoutineWindows(
           name: r.name,
           type: r.type,
           source: r.source,
-          // 최신순 목록의 뒤가 먼저 보낸 것이다.
-          sortOrder: count - i,
+          // 한 전송 안은 보낸 순서 그대로 목록에 들어 있다 — 묶음은 보낸
+          // 날로 갈리므로 목록 순서가 곧 배정 순서다.
+          sortOrder: i,
           activeFrom: from,
           endedOn: personal ? from.add(const Duration(days: 7)) : null,
           sentOn: from.isAfter(today) ? today : from,

@@ -4,17 +4,21 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
+import 'package:oncare_trainer/features/clients/data/repositories/routine_days_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/routine_days.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_day_record_tile.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_exercise_status_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_section.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/client_routine_status.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/exercise_memo.dart';
-import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
+import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
+import 'package:oncare_trainer/features/coaching/presentation/routine_effect_text.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_duration.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -68,22 +72,13 @@ class _WorkoutViewState extends ConsumerState<WorkoutView> {
         onChanged: (ClientPeriod p) => setState(() => _period = p),
         child: ClientExerciseStatusCard(clientId: client.id, period: _period),
       ),
-      // 아직 하지 않은 개인 운동. 지난 기록보다 먼저 온다 — 앞으로 할 일이
-      // 지나간 일보다 급하고, 잘못 보낸 배정을 여기서 바로 물릴 수 있어야
-      // 한다(#1020). 물릴 것이 없으면 이 자리는 통째로 비어 있다.
-      //
-      // `오늘` 에만 둔다. 이번 주·전체는 지나간 기록을 되짚는 화면이라, 기간과
-      // 무관한 '앞으로 할 일' 이 거기 계속 붙어 있으면 두 성격이 섞인다 —
-      // 기간 토글이 목록을 지배한다는 이 화면의 규칙과도 어긋난다.
-      if (_period == ClientPeriod.today) _PendingRoutines(clientId: client.id),
       // 운동 탭에는 AI 분석 카드를 두지 않는다(#2329) — 현황과 날짜별 기록이
       // 이미 같은 기간을 말하고 있어, 한 문장 해석이 기록을 밀어내기만 했다.
-      const SizedBox(height: OnCareSpacing.s12),
+      const SizedBox(height: OnCareSpacing.s16),
       // 기록은 이 목록 하나다. 예전에는 날짜별 목록 아래에 `운동 기록` 카드
       // 목록이 또 있어, 이번 주·전체에서 같은 날의 같은 운동이 두 벌로
       // 나왔다(#1025). 미션 카드는 버리지 않고 이 목록의 펼친 자리로 들어왔다.
-      AppSectionHeader(title: l.workoutRecords),
-      const SizedBox(height: OnCareSpacing.s8),
+      // 제목은 두지 않는다 — 식단 탭처럼 현황 바로 아래가 기록이다.
       _DailyExerciseRecords(clientId: client.id, period: _period),
     ];
     if (embedded) {
@@ -110,24 +105,6 @@ class _HistoryCard extends StatelessWidget {
   final String clientId;
   final RoutineHistoryEntry entry;
 
-  /// 이 카드가 가리키는 기록 — 메모 작성 창과 데모 저장소가 출처 태그를 그린다.
-  /// 서버는 id 만 받아 이름·날짜를 기록에서 다시 읽는다(#2332).
-  TrainerMemoRef get _memoRef {
-    // 카드가 놓인 날짜 줄과 같은 날이다(#2748).
-    final DateTime? day = historyDayOf(entry);
-    // 데모 이력은 코드 없이 고정 이름만 갖는다 — 이름으로도 종류를 찾는다.
-    final String? code = routineKindCode(entry.label, kind: entry.kind);
-    return TrainerMemoRef(
-      kind: code == 'pt_session'
-          ? TrainerMemoRefKind.ptSession
-          : TrainerMemoRefKind.personal,
-      id: entry.id,
-      day: day == null ? null : ymd(day),
-      // 고정 이름(`AI 개인운동` 등)은 코드가 있어 화면이 번역한다.
-      name: code == null ? entry.label : '',
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -142,10 +119,14 @@ class _HistoryCard extends StatelessWidget {
               label: routineKindLabel(l, entry.label, kind: entry.kind),
               tone: AppTagTone.brand,
             ),
-            // id 를 잃은 옛 기록은 가리킬 수 없어 메모 자리를 두지 않는다.
+            // 한 건에 메모 하나다(#2332). id 를 잃은 옛 기록은 가리킬 수 없어
+            // 메모 자리를 두지 않는다.
             memo: entry.id.isEmpty
                 ? null
-                : ExerciseMemoButton(clientId: clientId, memoRef: _memoRef),
+                : ExerciseMemoButton(
+                    clientId: clientId,
+                    memoRef: _entryMemoRef(entry),
+                  ),
           ),
           const SizedBox(height: OnCareSpacing.s8),
           for (final (int i, ClientExerciseItem item)
@@ -289,6 +270,10 @@ class _DailyExerciseRecordsState extends ConsumerState<_DailyExerciseRecords> {
     final AsyncValue<List<RoutineHistoryEntry>> history = ref.watch(
       clientHistoryProvider(widget.clientId),
     );
+    // 지금 걸린 개인운동 — `오늘` 맨 위 상자가 그린다.
+    final List<AssignedRoutine> routines =
+        ref.watch(assignedRoutinesProvider(widget.clientId)).valueOrNull ??
+        const <AssignedRoutine>[];
     final Map<String, List<RoutineHistoryEntry>> byDate =
         <String, List<RoutineHistoryEntry>>{};
     final List<RoutineHistoryEntry> undated = <RoutineHistoryEntry>[];
@@ -341,192 +326,105 @@ class _DailyExerciseRecordsState extends ConsumerState<_DailyExerciseRecords> {
     }
 
     return async.maybeWhen(
-      data: (ClientExercisePeriod period) => withUndated(
-        ClientDayRecordCard(
-          key: const ValueKey<String>('exercise-daily-records'),
-          children: <Widget>[
-            for (final ClientExerciseDay day in period.days.reversed)
-              () {
-                final List<RoutineHistoryEntry> dayEntries =
-                    byDate[ymd(day.date)] ?? const <RoutineHistoryEntry>[];
-                // 집계는 0 인데 이력은 있는 날이 있다 — 스케줄에서 세션을 완료
-                // 처리하면 이력이 먼저 생기고 하루 집계는 아직 0 이다. 시간만
-                // 보고 접어 두면 방금 남긴 기록이 갈 곳을 잃는다(#1025).
-                final bool logged = day.minutes > 0 || dayEntries.isNotEmpty;
-                final bool today = widget.period == ClientPeriod.today;
-                return ClientDayRecordTile(
-                  date: day.date,
-                  logged: logged,
-                  expanded: today || _openDay == ymd(day.date),
-                  toggleable: !today,
-                  onToggle: () => setState(() {
-                    _openDay = _openDay == ymd(day.date) ? null : ymd(day.date);
-                  }),
-                  emptyLabel: l.dietDayEmpty,
-                  // 그날의 기록 카드가 펼친 자리로 들어온다 — 종류와 운동
-                  // 줄이다(완료 배지·피드백·메모는 #2329 에서 걷어냈다).
-                  // 이력이 없는 날에는 지표에 남은 운동 이름만 보여 준다.
-                  extra: (today || _openDay == ymd(day.date)) && logged
-                      ? _DayDetail(
-                          clientId: widget.clientId,
-                          date: day.date,
-                          entries: dayEntries,
-                        )
-                      : null,
-                  details: <({String label, String value})>[
-                    (
-                      label: l.clientTrendWorkoutMinutes,
-                      value: '${day.minutes}${l.unitMinutes}',
-                    ),
-                    (
-                      // 섭취 칼로리와 같은 말로 부르지 않는다(#1465).
-                      label: l.clientTrendCaloriesBurned,
-                      value: '${formatNumber(day.calories)} ${l.unitKcal}',
-                    ),
-                    if (day.cardioMinutes > 0)
-                      (
-                        label: l.routineTypeCardio,
-                        value: '${day.cardioMinutes}${l.unitMinutes}',
-                      ),
-                    // 근력은 **세트**로 읽는다 (#1170). 같은 40분이라도 12세트를
-                    // 한 날과 6세트를 하고 절반을 쉰 날이 같은 값이 되면, 분은
-                    // 근력이 얼마나였는지를 말해 주지 못한다 — 회원 앱도 근력만
-                    // 세트로 잰다(`ExerciseLoadKind.strength`).
-                    if (day.strengthSets > 0)
-                      (
-                        label: l.routineTypeStrength,
-                        value: l.progSetsValue(day.strengthSets),
-                      ),
-                    if (day.stretchingMinutes > 0)
-                      (
-                        label: l.routineTypeFlexibility,
-                        value: '${day.stretchingMinutes}${l.unitMinutes}',
-                      ),
-                    if (day.otherMinutes > 0)
-                      (
-                        label: l.routineTypeOther,
-                        value: '${day.otherMinutes}${l.unitMinutes}',
-                      ),
-                  ],
-                );
-              }(),
-          ],
-        ),
-      ),
-      orElse: () => const SizedBox.shrink(),
-    );
-  }
-}
-
-/// 펼친 날에 실제로 한 운동. (#1025)
-///
-/// 위 알약들은 "얼마나" 를 말한다(시간·칼로리·유형별 분). 그 숫자가 **무엇으로**
-/// 채워졌는지는 이름이 말한다 — 식단에서 하루 합계 아래 끼니를 펴는 것과 같은
-/// 자리다.
-///
-/// 줄은 아래 운동 기록 카드와 같은 [_ExerciseLine] 이다. 걸른 운동에 취소선이
-/// 그어지는 규칙도 그대로라, 한 화면에서 같은 표시가 다른 뜻으로 읽히지 않는다.
-class _DayDetail extends ConsumerWidget {
-  const _DayDetail({
-    required this.clientId,
-    required this.date,
-    required this.entries,
-  });
-
-  final String clientId;
-  final DateTime date;
-
-  /// 그날의 미션 카드들. 비어 있으면 지표에 남은 운동 이름만 보여 준다.
-  final List<RoutineHistoryEntry> entries;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final AsyncValue<List<ClientExerciseItem>> async = ref.watch(
-      clientExercisesOnProvider((clientId: clientId, date: date)),
-    );
-    if (entries.isNotEmpty) {
-      // 이력이 있는 날에도 회원이 **직접 적은** 운동은 따로 보여 준다(#2534).
-      // 위 알약의 시간·칼로리에는 이미 더해져 있는데 이름이 빠지면, 트레이너는
-      // 시간만 늘고 무엇을 했는지 모르는 날을 보게 된다.
-      final List<ClientExerciseItem> own = _memberLogs(
-        async.valueOrNull ?? const <ClientExerciseItem>[],
-      );
-      return Padding(
-        padding: const EdgeInsets.only(top: OnCareSpacing.s12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            for (final RoutineHistoryEntry entry in entries) ...<Widget>[
-              _HistoryCard(clientId: clientId, entry: entry),
-              const SizedBox(height: OnCareSpacing.s8),
-            ],
-            if (own.isNotEmpty) ...<Widget>[
-              // 이력 카드와 같은 모양의 카드 한 장으로 묶는다 — 태그가 이
-              // 묶음이 무엇인지 말해, 이력 카드의 줄과 섞여 읽히지 않는다.
+      data: (ClientExercisePeriod period) {
+        // `오늘` 은 날짜 줄 없이 그날 내용만 카드에 담는다 — 식단 `오늘` 처럼.
+        // 기간 제목이 이미 오늘이라 날짜 줄은 같은 말을 한 번 더 한다.
+        if (widget.period == ClientPeriod.today) {
+          final ClientExerciseDay? day = period.days
+              .where((ClientExerciseDay d) => ymd(d.date) == ymd(todayKst()))
+              .firstOrNull;
+          if (day == null) return const SizedBox.shrink();
+          final List<RoutineHistoryEntry> dayEntries =
+              byDate[ymd(day.date)] ?? const <RoutineHistoryEntry>[];
+          final bool logged = day.minutes > 0 || dayEntries.isNotEmpty;
+          if (!logged && routines.isEmpty) {
+            return withUndated(
               AppCard(
-                key: ValueKey<String>('workout-member-log-${ymd(date)}'),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    _CardHead(
-                      tag: AppTag(label: l.workoutMemberLogTitle),
-                      memo: ExerciseMemoButton(
-                        clientId: clientId,
-                        memoRef: TrainerMemoRef(
-                          kind: TrainerMemoRefKind.memberLog,
-                          day: ymd(date),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: OnCareSpacing.s8),
-                    for (final (int i, ClientExerciseItem item) in own.indexed)
-                      _ExerciseLine(
-                        key: ValueKey<String>(
-                          'workout-member-log-line-${ymd(date)}-$i',
-                        ),
-                        line: clientExerciseLine(l, item),
-                      ),
-                  ],
+                key: const ValueKey<String>('exercise-daily-records'),
+                child: Text(
+                  l.dietDayEmpty,
+                  style: context.oncare
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textTertiary),
                 ),
               ),
-              const SizedBox(height: OnCareSpacing.s8),
-            ],
-          ],
-        ),
-      );
-    }
-    return async.maybeWhen(
-      data: (List<ClientExerciseItem> items) {
-        // 분 수는 있는데 이름이 없는 날이 있다 — 합계만 들어온 기록이다.
-        // 그럴 때는 아무 말도 하지 않는다: 위 알약이 이미 그날을 말했다.
-        if (items.isEmpty) return const SizedBox.shrink();
-        return Padding(
-          padding: const EdgeInsets.only(top: OnCareSpacing.s12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            );
+          }
+          // 식단 `오늘` 처럼 출처마다 상자 한 장 — 개인운동 · 회원 추가 · PT.
+          // 오늘 걸린 개인운동은 맨 위 상자 하나다(#2508) — 해야 할 목록과 한
+          // 것을 두 자리에 나눠 같은 운동을 두 번 보이지 않는다. 메모는 상자마다
+          // 머리 오른쪽에 둔다 — 개인운동·회원 추가·PT 를 따로 적는다.
+          return withUndated(
+            KeyedSubtree(
+              key: const ValueKey<String>('exercise-daily-records'),
+              child: _DayDetail(
+                clientId: widget.clientId,
+                day: day,
+                entries: dayEntries,
+                asCards: true,
+                routines: routines,
+              ),
+            ),
+          );
+        }
+        return withUndated(
+          ClientDayRecordCard(
+            key: const ValueKey<String>('exercise-daily-records'),
             children: <Widget>[
-              // 이력 카드가 없는 날도 회원이 직접 적은 운동에는 메모를 남길 수
-              // 있어야 한다(#2332). 출처를 모르는 행만 있는 날은 `회원 기록` 이라
-              // 부를 수 없어 두지 않는다.
-              if (items.any((ClientExerciseItem item) => item.isMemberLog))
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: ExerciseMemoButton(
-                    clientId: clientId,
-                    memoRef: TrainerMemoRef(
-                      kind: TrainerMemoRefKind.memberLog,
-                      day: ymd(date),
-                    ),
-                  ),
-                ),
-              for (final (int i, ClientExerciseItem item) in items.indexed)
-                _ExerciseLine(
-                  key: ValueKey<String>(
-                    'workout-exercise-line-${ymd(date)}-$i',
-                  ),
-                  line: clientExerciseLine(l, item),
-                ),
+              // 오지 않은 날은 그리지 않는다(#2512) — `기록 없음` 이 아니라 아직
+              // 기록할 수 없는 날이다.
+              for (final ClientExerciseDay day in period.days.reversed.where(
+                (ClientExerciseDay d) => !d.date.isAfter(todayKst()),
+              ))
+                () {
+                  final List<RoutineHistoryEntry> dayEntries =
+                      byDate[ymd(day.date)] ?? const <RoutineHistoryEntry>[];
+                  // 집계는 0 인데 이력은 있는 날이 있다 — 스케줄에서 세션을 완료
+                  // 처리하면 이력이 먼저 생기고 하루 집계는 아직 0 이다. 시간만
+                  // 보고 접어 두면 방금 남긴 기록이 갈 곳을 잃는다(#1025).
+                  final bool logged = day.minutes > 0 || dayEntries.isNotEmpty;
+                  final bool today = widget.period == ClientPeriod.today;
+                  return ClientDayRecordTile(
+                    date: day.date,
+                    logged: logged,
+                    expanded: today || _openDay == ymd(day.date),
+                    toggleable: !today,
+                    onToggle: () => setState(() {
+                      _openDay = _openDay == ymd(day.date)
+                          ? null
+                          : ymd(day.date);
+                    }),
+                    emptyLabel: l.dietDayEmpty,
+                    // 그날 메모는 날짜 바로 오른쪽에 하나다(#2508) — 펼침 화살표
+                    // 옆에 두면 펼치려다 누르기 쉽고, 접힌 채로도 메모가 있는
+                    // 날을 훑어 찾을 수 있다.
+                    // 접힌 날은 메모가 있을 때만 개수와 아이콘을 둔다 — 날마다
+                    // 빈 아이콘이 서면 목록이 아이콘 줄이 된다. `메모 추가` 는
+                    // 펼친 날에만 선다.
+                    dateTrailing: logged
+                        ? ExerciseMemoButton(
+                            compact: true,
+                            addWhenEmpty: _openDay == ymd(day.date),
+                            clientId: widget.clientId,
+                            memoRef: TrainerMemoRef(
+                              kind: TrainerMemoRefKind.day,
+                              day: ymd(day.date),
+                            ),
+                          )
+                        : null,
+                    // 식단 펼친 날과 같은 모양이다 — 맨 위 `하루 합계` 줄, 그 아래
+                    // PT·개인운동·직접 기록 줄(#2508). 하루 합계가 알약이던 동안에는
+                    // 식단과 말투가 달랐다.
+                    extra: (today || _openDay == ymd(day.date)) && logged
+                        ? _DayDetail(
+                            clientId: widget.clientId,
+                            day: day,
+                            entries: dayEntries,
+                          )
+                        : null,
+                    details: const <({String label, String value})>[],
+                  );
+                }(),
             ],
           ),
         );
@@ -534,13 +432,187 @@ class _DayDetail extends ConsumerWidget {
       orElse: () => const SizedBox.shrink(),
     );
   }
+}
 
-  /// 그날 운동 행 중 이력 카드가 말하지 않는 것 — 회원이 직접 적은 기록. (#2534)
+/// 펼친 날 — 식단 펼친 날과 같은 줄 모양이다. (#1025, #2508)
+///
+/// 맨 위 `하루 합계` 줄이 "얼마나"(운동 시간·유형별·총 소모 kcal)를 말하고, 그
+/// 아래 줄들이 **무엇으로** 채워졌는지를 출처별로 말한다 — 개인운동 · 회원 추가
+/// · PT. 식단이 하루 합계 아래 끼니를 펴는 것과 같은 자리다.
+///
+/// 출처 안에서는 운동을 유형별로 묶어 옅은 유형 이름 아래 들여 쓴다. 개인운동
+/// 줄은 왼쪽 세로 막대가 한 것(색)과 안 한 것(회색)을 가른다. 메모는 날짜마다
+/// 하나라 여기 두지 않는다 — 날짜 줄(이번 주·전체)이나 첫 상자 머리(오늘)에 선다.
+class _DayDetail extends ConsumerWidget {
+  const _DayDetail({
+    required this.clientId,
+    required this.day,
+    required this.entries,
+    this.asCards = false,
+    this.routines = const <AssignedRoutine>[],
+  });
+
+  /// `오늘` — 하루 합계 줄 없이 출처마다 상자 한 장으로 그린다(식단 `오늘`).
+  final bool asCards;
+
+  final String clientId;
+  final ClientExerciseDay day;
+
+  /// 그날의 이력 — PT 세션과 하루치 개인운동 카드.
+  final List<RoutineHistoryEntry> entries;
+
+  /// `오늘` 걸린 개인운동 — 있으면 개인운동 상자가 이력 대신 이것을 그린다.
+  final List<AssignedRoutine> routines;
+
+  DateTime get date => day.date;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final List<ClientExerciseItem> items =
+        ref
+            .watch(clientExercisesOnProvider((clientId: clientId, date: date)))
+            .valueOrNull ??
+        const <ClientExerciseItem>[];
+    // 회원이 직접 적은 기록만 따로 한 줄로 둔다(#2534) — PT 완료·개인운동
+    // 완료 행은 그 출처가 말한다. 이력이 없는 날은 출처를 모르는 행도 여기
+    // 선다(옛 응답).
+    final List<ClientExerciseItem> own = entries.isEmpty
+        ? <ClientExerciseItem>[
+            for (final ClientExerciseItem item in items)
+              if (!_isAssignedRow(item) && item.source != 'trainer_pt') item,
+          ]
+        : _memberLogs(items);
+    // 트레이너가 살필 순서 — 개인운동 → 회원 추가 → PT. PT 는 트레이너가 함께
+    // 한 운동이라 맨 아래로 둔다.
+    final List<RoutineHistoryEntry> personal = <RoutineHistoryEntry>[
+      for (final RoutineHistoryEntry entry in entries)
+        if (!_isPtEntry(entry)) entry,
+    ];
+    final List<RoutineHistoryEntry> pt = <RoutineHistoryEntry>[
+      for (final RoutineHistoryEntry entry in entries)
+        if (_isPtEntry(entry)) entry,
+    ];
+    final List<_Line> ownLines = <_Line>[
+      for (final (int i, ClientExerciseItem item) in own.indexed)
+        _Line(
+          key: ValueKey<String>(
+            entries.isEmpty
+                ? 'workout-exercise-line-${ymd(date)}-$i'
+                : 'workout-member-log-line-${ymd(date)}-$i',
+          ),
+          type: item.type,
+          item: item,
+          calories: item.calories,
+        ),
+    ];
+    if (asCards) {
+      final List<Widget> cards = <Widget>[
+        // 걸린 개인운동이 있으면 그 상자가 하루치 `개인운동` 카드를 대신한다 —
+        // 같은 운동을 두 번 보이지 않는다. 다른 개인운동 이력(옛 AI 개인운동
+        // 등)은 그대로 상자로 선다.
+        if (routines.isNotEmpty)
+          _PersonalTodayCard(
+            clientId: clientId,
+            date: date,
+            routines: routines,
+            entry: personal.where(_isPersonalDay).firstOrNull,
+          ),
+        for (final RoutineHistoryEntry entry in personal)
+          if (routines.isEmpty || !_isPersonalDay(entry))
+            _TodayCard.entry(clientId: clientId, entry: entry, dayItems: items),
+        if (own.isNotEmpty)
+          _TodayCard(
+            key: ValueKey<String>('workout-member-log-${ymd(date)}'),
+            tag: AppTag(label: l.workoutMemberLogTitle),
+            lines: ownLines,
+            done: own,
+            memo: ExerciseMemoButton(
+              clientId: clientId,
+              memoRef: TrainerMemoRef(
+                kind: TrainerMemoRefKind.memberLog,
+                day: ymd(date),
+              ),
+            ),
+          ),
+        for (final RoutineHistoryEntry entry in pt)
+          _TodayCard.entry(clientId: clientId, entry: entry, dayItems: items),
+      ];
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          for (final (int i, Widget card) in cards.indexed) ...<Widget>[
+            if (i > 0) const SizedBox(height: OnCareSpacing.s12),
+            card,
+          ],
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _WorkoutDayRow(
+          key: ValueKey<String>('workout-day-total-${ymd(date)}'),
+          // 날짜 줄 바로 아래라 선을 긋지 않는다 — 식단 펼친 날과 같다. 선은
+          // 줄과 줄 사이에만.
+          divider: false,
+          label: Text(
+            l.clientDietDayTotal,
+            style: context.oncare
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textSecondary),
+          ),
+          lines: <Widget>[
+            Text(
+              _totalLine(l),
+              style: context.oncare
+                  .text(OnCareTypography.caption)
+                  .copyWith(color: OnCareColors.textSecondary),
+            ),
+          ],
+          trailing: Text(
+            l.workoutTotalBurned(formatNumber(day.calories)),
+            maxLines: 1,
+            softWrap: false,
+            style: OnCareTypography.numeric(
+              context.oncare
+                  .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                  .copyWith(color: context.oncare.brand.primary),
+            ),
+          ),
+        ),
+        for (final RoutineHistoryEntry entry in personal)
+          _EntryRow(entry: entry, dayItems: items),
+        if (own.isNotEmpty)
+          _WorkoutDayRow(
+            key: ValueKey<String>('workout-member-log-${ymd(date)}'),
+            label: AppTag(label: l.workoutMemberLogTitle),
+            lines: <Widget>[_GroupedLines(lines: ownLines, showCalories: true)],
+          ),
+        for (final RoutineHistoryEntry entry in pt)
+          _EntryRow(entry: entry, dayItems: items),
+      ],
+    );
+  }
+
+  /// `운동 시간 43분 · 유산소 25분 · 근력 6세트` — 근력은 세트로 읽는다(#1170).
+  String _totalLine(AppLocalizations l) => <String>[
+    '${l.clientTrendWorkoutMinutes} ${day.minutes}${l.unitMinutes}',
+    if (day.cardioMinutes > 0)
+      '${l.routineTypeCardio} ${day.cardioMinutes}${l.unitMinutes}',
+    if (day.strengthSets > 0)
+      '${l.routineTypeStrength} ${l.progSetsValue(day.strengthSets)}',
+    if (day.stretchingMinutes > 0)
+      '${l.routineTypeFlexibility} ${day.stretchingMinutes}${l.unitMinutes}',
+    if (day.otherMinutes > 0)
+      '${l.routineTypeOther} ${day.otherMinutes}${l.unitMinutes}',
+  ].join(' · ');
+
+  /// 그날 운동 행 중 이력이 말하지 않는 것 — 회원이 직접 적은 기록. (#2534)
   ///
   /// PT 완료·배정 운동 완료로 생긴 행은 출처로 거른다([ClientExerciseItem.isMemberLog]).
-  /// 이름으로도 한 번 더 거른다: 시드의 `AI 개인운동` 이력처럼 같은 운동이 이력
-  /// 카드와 `member` 행에 함께 적힌 날이 있다. 같은 이름을 두 번 보여 주느니 이력
-  /// 카드 한 번으로 둔다.
+  /// 이름으로도 한 번 더 거른다: 시드의 개인운동 이력처럼 같은 운동이 이력과
+  /// `member` 행에 함께 적힌 날이 있다. 같은 이름을 두 번 보여 주지 않는다.
   List<ClientExerciseItem> _memberLogs(List<ClientExerciseItem> items) {
     final Set<String> inHistory = <String>{
       for (final RoutineHistoryEntry entry in entries)
@@ -553,41 +625,924 @@ class _DayDetail extends ConsumerWidget {
   }
 }
 
-/// 회원이 매일 하는 개인 운동과 그 취소. (#1020, #2161)
+/// PT 세션 이력인가 — 나머지는 개인운동(하루치 카드·옛 AI 개인운동)이다.
+bool _isPtEntry(RoutineHistoryEntry entry) =>
+    routineKindCode(entry.label, kind: entry.kind) == 'pt_session';
+
+/// 하루치 `개인운동` 카드인가(#2510) — 그날 걸린 개인운동과 한 것.
+bool _isPersonalDay(RoutineHistoryEntry entry) =>
+    routineKindCode(entry.label, kind: entry.kind) == 'personal_routine';
+
+/// 개인운동 완료로 생긴 운동 행인가.
+bool _isAssignedRow(ClientExerciseItem item) =>
+    item.source == 'assigned_routine' || item.assignedRoutineId != null;
+
+/// 운동 줄들의 시간 합(초). 근력은 세트로 재므로 시간이 없다.
+int _secondsOf(Iterable<ClientExerciseItem> items) => items.fold<int>(
+  0,
+  (int sum, ClientExerciseItem item) =>
+      sum + (item.sets == null && item.done ? item.seconds : 0),
+);
+
+/// 운동 줄들의 소모 kcal 합. 값이 실리지 않은 줄뿐이면 null.
+int? _caloriesOf(Iterable<ClientExerciseItem> items) {
+  int? sum;
+  for (final ClientExerciseItem item in items) {
+    final int? kcal = item.calories;
+    if (kcal != null) sum = (sum ?? 0) + kcal;
+  }
+  return sum;
+}
+
+/// 줄 오른쪽 끝의 소모 kcal — 식단 줄처럼 알약·첫 운동 줄과 한 줄에 선다.
+/// 시간·완료 수는 적지 않는다: 하루 합계가 총 시간을 말한다.
+class _RowTotals extends StatelessWidget {
+  const _RowTotals({this.calories, this.strong = true, this.estimated = false});
+
+  final int? calories;
+  final bool strong;
+
+  /// 아직 안 한 운동의 예상값 — `예상 소모 N kcal` 을 옅게.
+  final bool estimated;
+
+  /// `예상 소모 1,234 kcal` 이 들어가는 폭 — 줄마다 kcal 끝이 맞는다.
+  static const double width = 128;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final int? kcal = calories;
+    final TextStyle base = context.oncare.text(
+      strong
+          ? OnCareTypography.strong(OnCareTypography.bodySmall)
+          : OnCareTypography.bodySmall,
+    );
+    return SizedBox(
+      width: width,
+      child: kcal == null
+          ? null
+          : Text(
+              // 무엇의 kcal 인지 줄마다 말한다 — 식단 탭의 kcal(먹은 양)과
+              // 같은 숫자 모양이라 `소모` 를 붙인다.
+              estimated
+                  ? l.workoutLineEstimated(formatNumber(kcal))
+                  : l.workoutLineBurned(formatNumber(kcal)),
+              maxLines: 1,
+              softWrap: false,
+              textAlign: TextAlign.end,
+              style: OnCareTypography.numeric(base).copyWith(
+                color: estimated
+                    ? OnCareColors.textTertiary
+                    : OnCareColors.textPrimary,
+              ),
+            ),
+    );
+  }
+}
+
+/// 이력 한 건 → 펼친 날의 한 줄. PT 는 `PT`, 하루치 개인운동은 `개인운동`.
+class _EntryRow extends StatelessWidget {
+  const _EntryRow({
+    required this.entry,
+    this.dayItems = const <ClientExerciseItem>[],
+  });
+
+  final RoutineHistoryEntry entry;
+
+  /// 그날 운동 기록 행 — 이 줄의 소모 kcal 을 여기서 센다. 이력 줄에는 kcal
+  /// 이 없다.
+  final List<ClientExerciseItem> dayItems;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final String? code = routineKindCode(entry.label, kind: entry.kind);
+    final bool personal = code == 'ai_personal' || code == 'personal_routine';
+    final ClientExerciseItem? Function(ClientExerciseItem) rowOf = _rowMatcher(
+      _dayRowsOf(entry, dayItems, personal: personal),
+    );
+    return _WorkoutDayRow(
+      key: ValueKey<String>('workout-entry-${entry.id}'),
+      label: AppTag(
+        label: code == 'pt_session'
+            ? l.workoutDaySourcePt
+            : routineKindLabel(l, entry.label, kind: entry.kind),
+        tone: AppTagTone.brand,
+      ),
+      lines: <Widget>[
+        _GroupedLines(
+          // 줄마다 그 운동의 소모 kcal — 오늘 상자와 같다.
+          showCalories: true,
+          lines: <_Line>[
+            for (final (int i, ClientExerciseItem item)
+                in entry.exercises.indexed)
+              () {
+                final ClientExerciseItem? row = rowOf(item);
+                return _Line(
+                  key: ValueKey<String>('workout-exercise-line-${entry.id}-$i'),
+                  type: item.type,
+                  item: item,
+                  calories: row?.calories,
+                  intensity: item.intensity ?? row?.intensity,
+                  // 지난 날의 개인운동은 한 것과 안 한 것이다.
+                  mark: !personal
+                      ? _LineMark.none
+                      : item.done
+                      ? _LineMark.done
+                      : _LineMark.missed,
+                );
+              }(),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// 이력 줄 → 그날 운동 행. 이름으로 하나씩 짝짓는다 — 이력 줄에는 소모
+/// kcal·강도가 없고 운동 행에 있다. 안 한 줄은 짝이 없다.
+ClientExerciseItem? Function(ClientExerciseItem) _rowMatcher(
+  List<ClientExerciseItem> rows,
+) {
+  final List<ClientExerciseItem> pool = <ClientExerciseItem>[...rows];
+  return (ClientExerciseItem item) {
+    if (!item.done) return null;
+    final int at = pool.indexWhere(
+      (ClientExerciseItem row) => row.name.trim() == item.name.trim(),
+    );
+    if (at < 0) return null;
+    return pool.removeAt(at);
+  };
+}
+
+/// 이력 한 건이 가리키는 메모 자리 — `오늘` PT 상자·옛 이력 상자·날짜 없는 기록.
+TrainerMemoRef _entryMemoRef(RoutineHistoryEntry entry) {
+  final String? code = routineKindCode(entry.label, kind: entry.kind);
+  final DateTime? day = historyDayOf(entry);
+  return TrainerMemoRef(
+    kind: code == 'pt_session'
+        ? TrainerMemoRefKind.ptSession
+        : TrainerMemoRefKind.personal,
+    id: entry.id,
+    day: day == null ? null : ymd(day),
+    name: code == null ? entry.label : '',
+  );
+}
+
+/// 이 이력에 해당하는 그날 운동 행. 출처(PT 완료·개인운동 완료)로 고르고,
+/// 출처가 없는 데모·옛 응답은 이름으로 잇는다.
+List<ClientExerciseItem> _dayRowsOf(
+  RoutineHistoryEntry entry,
+  List<ClientExerciseItem> dayItems, {
+  required bool personal,
+}) {
+  final List<ClientExerciseItem> bySource = <ClientExerciseItem>[
+    for (final ClientExerciseItem item in dayItems)
+      if (personal ? _isAssignedRow(item) : item.source == 'trainer_pt') item,
+  ];
+  if (bySource.isNotEmpty) return bySource;
+  final Set<String> names = <String>{
+    for (final ClientExerciseItem item in entry.exercises)
+      if (item.done) item.name.trim(),
+  };
+  return <ClientExerciseItem>[
+    for (final ClientExerciseItem item in dayItems)
+      if (names.contains(item.name.trim())) item,
+  ];
+}
+
+/// 줄 앞 표시. 개인운동만 막대를 단다 — PT·회원 추가는 한 것만 적힌다.
+enum _LineMark {
+  /// 막대 없이 자리만 맞춘다.
+  none,
+
+  /// 한 것 — 색 막대.
+  done,
+
+  /// 오늘 아직 — 회색 막대, 글씨 옅게.
+  pending,
+
+  /// 지난 날 안 한 것 — 회색 막대, 글씨 더 옅게.
+  missed,
+}
+
+/// 운동 한 줄의 내용.
+class _Line {
+  const _Line({
+    required this.key,
+    required this.type,
+    this.name,
+    this.detail,
+    this.item,
+    this.effect,
+    this.mark = _LineMark.none,
+    this.calories,
+    this.intensity,
+    this.estimated = false,
+  });
+
+  final Key key;
+
+  /// 유형 — 계약값(`cardio`)이나 배정 유형(`유산소`). 비면 묶음 이름 없이 선다.
+  final String type;
+
+  /// 운동 이름(`스쿼트`)과 세부(`3세트 · 12회`). 비면 [item] 에서 만든다.
+  final String? name;
+  final String? detail;
+
+  /// 이 줄의 운동 행 — [name] 이 없을 때 이름과 세부를 만든다.
+  final ClientExerciseItem? item;
+
+  /// 이름 뒤 옅은 효과 한 줄(개인운동).
+  final String? effect;
+  final _LineMark mark;
+
+  /// 이 운동의 소모 kcal — 안 한 줄이나 값을 모르면 비운다.
+  final int? calories;
+
+  /// 강도 계약값(`moderate`) — 운동 글 바로 뒤 작은 태그. 비면 [item] 의 강도,
+  /// 그것도 없으면 태그를 두지 않는다.
+  final String? intensity;
+
+  /// [calories] 가 아직 안 한 운동의 예상값인가 — `예상 소모` 로 옅게 적는다.
+  final bool estimated;
+}
+
+/// 유형 순서와 묶음 이름. 계약값과 배정 유형(한국어)을 함께 받는다.
+const List<String> _typeOrder = <String>[
+  'cardio',
+  'strength',
+  'stretching',
+  'other',
+  '',
+];
+
+String _typeCode(String type) => switch (type.trim()) {
+  'cardio' || '유산소' || '걷기' => 'cardio',
+  'strength' || '근력' => 'strength',
+  'stretching' || 'flexibility' || '스트레칭' || '요가' || '유연성' => 'stretching',
+  '' => '',
+  _ => 'other',
+};
+
+String? _typeCaption(AppLocalizations l, String code) => switch (code) {
+  'cardio' => l.routineTypeCardio,
+  'strength' => l.routineTypeStrength,
+  'stretching' => l.routineTypeFlexibility,
+  'other' => l.routineTypeOther,
+  _ => null,
+};
+
+/// 운동 줄을 유형별로 묶어 그린다 — 옅은 유형 이름 아래 들여 쓴 줄. (#2508)
 ///
-/// 배정된 루틴 **이력**을 되살리는 것이 아니다. 지난 배정·PT 이력은 프로그램
-/// 탭이 맡고, 여기에는 지금 회원 목록에 걸려 있는 것이 온다.
+/// 줄마다 유형 칩을 달면 태그가 줄 수만큼 늘어 출처 알약이 묻힌다. 묶음 안
+/// 순서는 들어온 순서 그대로다.
+class _GroupedLines extends StatelessWidget {
+  const _GroupedLines({
+    super.key,
+    required this.lines,
+    this.showCalories = false,
+  });
+
+  final List<_Line> lines;
+
+  /// 줄마다 오른쪽 kcal 을 적는가(`오늘` 상자).
+  final bool showCalories;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final Map<String, List<_Line>> groups = <String, List<_Line>>{};
+    for (final _Line line in lines) {
+      (groups[_typeCode(line.type)] ??= <_Line>[]).add(line);
+    }
+    final List<Widget> children = <Widget>[];
+    for (final String code in _typeOrder) {
+      final List<_Line>? group = groups[code];
+      if (group == null) continue;
+      final String? caption = _typeCaption(l, code);
+      if (caption != null) {
+        children.add(
+          Padding(
+            padding: EdgeInsets.only(
+              top: children.isEmpty ? 0 : OnCareSpacing.s8,
+              bottom: OnCareSpacing.s2,
+            ),
+            child: Text(
+              caption,
+              style: context.oncare
+                  .text(OnCareTypography.caption)
+                  .copyWith(color: OnCareColors.textTertiary),
+            ),
+          ),
+        );
+      }
+      for (final _Line line in group) {
+        children.add(_LineRow(line: line, showCalories: showCalories));
+      }
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: children,
+    );
+  }
+}
+
+/// 들여 쓴 운동 한 줄 — 왼쪽 막대, 이름·양(과 효과), 오른쪽 kcal.
+class _LineRow extends StatelessWidget {
+  const _LineRow({required this.line, this.showCalories = false});
+
+  final _Line line;
+  final bool showCalories;
+
+  /// 막대 굵기와 막대~글씨 사이.
+  static const double _barWidth = 3;
+
+  @override
+  Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    final AppLocalizations l = AppLocalizations.of(context);
+    final ClientExerciseItem item =
+        line.item ?? const ClientExerciseItem(name: '');
+    final String name = line.name ?? item.name;
+    // 세부는 이름을 뺀 나머지 — `벤치프레스 · 4세트 · 10회` 에서 `4세트 · 10회`.
+    // 강도는 글 대신 오른쪽 태그로 둔다(회원 앱 운동 탭과 같다).
+    final String detail =
+        line.detail ??
+        () {
+          final String full = clientExerciseLine(
+            l,
+            ClientExerciseItem.fromJson(<String, Object?>{
+              ...item.toJson(),
+              'intensity': null,
+            }),
+          );
+          final String head = '${item.name} · ';
+          return full.startsWith(head) ? full.substring(head.length) : '';
+        }();
+    final String? intensity = _intensityLabel(
+      l,
+      line.intensity ?? item.intensity,
+    );
+    final Color bar = switch (line.mark) {
+      _LineMark.done => OnCareColors.success,
+      _LineMark.pending || _LineMark.missed => OnCareColors.lineStrong,
+      _LineMark.none => Colors.transparent,
+    };
+    // 이름은 진하게, 세부는 한 단계 옅게 — 둘이 같은 글씨면 무엇을 했는지와
+    // 얼마나 했는지가 한 덩어리로 읽힌다.
+    final Color ink = switch (line.mark) {
+      _LineMark.done || _LineMark.none => OnCareColors.textPrimary,
+      _LineMark.pending => OnCareColors.textSecondary,
+      _LineMark.missed => OnCareColors.textTertiary,
+    };
+    final Color sub = switch (line.mark) {
+      _LineMark.done || _LineMark.none => OnCareColors.textSecondary,
+      _LineMark.pending => OnCareColors.textTertiary,
+      _LineMark.missed => OnCareColors.textDisabled,
+    };
+    final String? effect = line.effect;
+    return Padding(
+      key: line.key,
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s4),
+      child: Container(
+        padding: const EdgeInsets.only(left: OnCareSpacing.s8),
+        decoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(color: bar, width: _barWidth),
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Expanded(
+              child: Text.rich(
+                TextSpan(
+                  children: <InlineSpan>[
+                    TextSpan(
+                      text: name,
+                      style: tokens
+                          .text(
+                            OnCareTypography.strong(OnCareTypography.bodySmall),
+                          )
+                          .copyWith(color: ink),
+                    ),
+                    if (detail.isNotEmpty) ...<InlineSpan>[
+                      TextSpan(
+                        text: ' · ',
+                        style: tokens
+                            .text(OnCareTypography.caption)
+                            .copyWith(color: OnCareColors.textTertiary),
+                      ),
+                      TextSpan(
+                        text: detail,
+                        style: OnCareTypography.numeric(
+                          tokens.text(OnCareTypography.bodySmall),
+                        ).copyWith(color: sub),
+                      ),
+                    ],
+                    // 강도는 운동 글 바로 뒤 — 무엇을 얼마나 어떤 강도로 했는지가
+                    // 한 덩어리로 읽힌다. 트레이너가 정한 강도는 아직 안 한 동안
+                    // 회색, 회원이 하면 파랑으로 확정된다. 기록(PT·회원 추가)의
+                    // 강도는 한 강도다.
+                    if (intensity != null)
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            left: OnCareSpacing.s8,
+                          ),
+                          child: AppTag(
+                            label: intensity,
+                            tone:
+                                line.mark == _LineMark.pending ||
+                                    line.mark == _LineMark.missed
+                                ? AppTagTone.neutral
+                                : AppTagTone.brand,
+                          ),
+                        ),
+                      ),
+                    // 효과는 같은 줄 끝에 옅게 — 앞에 중간 점을 두지 않는다
+                    // (#2951). 세부와 같은 말로 읽히지 않게 간격과 색으로만
+                    // 가른다.
+                    if (effect != null && effect.isNotEmpty) ...<InlineSpan>[
+                      const WidgetSpan(
+                        child: SizedBox(width: OnCareSpacing.s8),
+                      ),
+                      TextSpan(
+                        text: effect,
+                        style: tokens
+                            .text(OnCareTypography.caption)
+                            .copyWith(color: OnCareColors.textTertiary),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            if (showCalories) ...<Widget>[
+              const SizedBox(width: OnCareSpacing.s12),
+              _RowTotals(
+                calories: line.calories,
+                strong: false,
+                estimated: line.estimated,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// `오늘` 의 출처 상자 한 장 — 식단 `오늘` 끼니 카드와 같은 틀이다(#2508).
 ///
-/// 개인 운동은 매일 새로 체크하는 목록이라(#2161), 오늘 이미 한 운동도 내일
-/// 다시 걸린다. 그래서 오늘 한 것도 여기 남기고 `오늘 완료` 로 표시한다. 취소는
-/// 목록에서 내릴 뿐 이미 한 기록을 지우지 않는다 — 서버가 행을 남기고 그날부터
-/// 목록에서 뺀다.
-class _PendingRoutines extends ConsumerWidget {
-  const _PendingRoutines({required this.clientId});
+/// 맨 위 알약(회원 추가 · PT), 유형별로 묶은 운동 줄과 줄마다 오른쪽 kcal, 선
+/// 아래 요약(운동 시간 · 근력 세트)과 `총 N kcal`.
+class _TodayCard extends StatelessWidget {
+  const _TodayCard({
+    super.key,
+    required this.tag,
+    required this.lines,
+    this.done,
+    this.memo,
+  });
+
+  /// 이력 한 건(PT 세션·하루치 개인운동) → 상자.
+  factory _TodayCard.entry({
+    required String clientId,
+    required RoutineHistoryEntry entry,
+    required List<ClientExerciseItem> dayItems,
+  }) {
+    final String? code = routineKindCode(entry.label, kind: entry.kind);
+    final bool personal = code == 'ai_personal' || code == 'personal_routine';
+    final ClientExerciseItem? Function(ClientExerciseItem) rowOf = _rowMatcher(
+      _dayRowsOf(entry, dayItems, personal: personal),
+    );
+
+    return _TodayCard(
+      key: ValueKey<String>('workout-entry-${entry.id}'),
+      tag: Builder(
+        builder: (BuildContext context) {
+          final AppLocalizations l = AppLocalizations.of(context);
+          return AppTag(
+            label: code == 'pt_session'
+                ? l.workoutDaySourcePt
+                : routineKindLabel(l, entry.label, kind: entry.kind),
+            tone: AppTagTone.brand,
+          );
+        },
+      ),
+      done: <ClientExerciseItem>[
+        for (final ClientExerciseItem item in entry.exercises)
+          if (item.done) item,
+      ],
+      lines: <_Line>[
+        for (final (int i, ClientExerciseItem item) in entry.exercises.indexed)
+          () {
+            final ClientExerciseItem? row = rowOf(item);
+            return _Line(
+              key: ValueKey<String>('workout-exercise-line-${entry.id}-$i'),
+              type: item.type,
+              item: item,
+              calories: row?.calories,
+              intensity: item.intensity ?? row?.intensity,
+              mark: !personal
+                  ? _LineMark.none
+                  : item.done
+                  ? _LineMark.done
+                  : _LineMark.pending,
+            );
+          }(),
+      ],
+      // 이 기록에 다는 메모 — id 를 잃은 옛 기록은 가리킬 수 없어 두지 않는다.
+      memo: entry.id.isEmpty
+          ? null
+          : ExerciseMemoButton(
+              clientId: clientId,
+              memoRef: _entryMemoRef(entry),
+            ),
+    );
+  }
+
+  final Widget tag;
+  final List<_Line> lines;
+
+  /// 머리 오른쪽 메모 자리 — 이 상자(기록)에 남긴 메모.
+  final Widget? memo;
+
+  /// 한 운동 — 요약(운동 시간·근력 세트)을 센다. 없으면 줄 수만큼 모두 한 것.
+  final List<ClientExerciseItem>? done;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          _CardTop(tag: tag, memo: memo),
+          const SizedBox(height: OnCareSpacing.s8),
+          // 알약 글씨가 시작하는 자리에 내용을 맞춘다 — 알약 배경 끝이 아니라.
+          Padding(
+            padding: const EdgeInsets.only(left: _tagInset),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                _GroupedLines(lines: lines, showCalories: true),
+                _CardFooter(
+                  done: done ?? const <ClientExerciseItem>[],
+                  calories: _caloriesOf(<ClientExerciseItem>[
+                    for (final _Line line in lines)
+                      if (line.calories != null)
+                        ClientExerciseItem(name: '', calories: line.calories),
+                  ]),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// `오늘` 상자 내용이 들여 쓰는 폭 — 출처 알약 안쪽 여백과 같아, 유형 이름과
+/// 운동 줄이 알약 글씨와 한 세로줄에 선다.
+const double _tagInset = OnCareSpacing.s8;
+
+/// `오늘` 상자 머리 — 왼쪽 알약(과 덧붙일 말), 오른쪽 끝 메모.
+class _CardTop extends StatelessWidget {
+  const _CardTop({required this.tag, this.note, this.memo});
+
+  final Widget tag;
+  final Widget? note;
+  final Widget? memo;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget? note = this.note;
+    return Row(
+      children: <Widget>[
+        tag,
+        // 덧붙일 말이 남는 폭을 다 가져 메모를 오른쪽 끝으로 민다 — `Flexible`
+        // 과 `Spacer` 를 함께 두면 폭을 반씩 나눠 메모가 가운데쯤에 멈춘다.
+        if (note != null) ...<Widget>[
+          const SizedBox(width: OnCareSpacing.s8),
+          Expanded(child: note),
+        ] else
+          const Spacer(),
+        ?memo,
+      ],
+    );
+  }
+}
+
+/// `오늘` 상자 아래 — 선, 요약(운동 시간 · 근력 세트)과 `총 소모 N kcal`.
+class _CardFooter extends StatelessWidget {
+  const _CardFooter({required this.done, this.calories});
+
+  /// 한 운동 줄.
+  final List<ClientExerciseItem> done;
+  final int? calories;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final int seconds = _secondsOf(done);
+    final int sets = done.fold<int>(
+      0,
+      (int sum, ClientExerciseItem item) => sum + (item.sets ?? 0),
+    );
+    final int? total = calories;
+    final String summary = <String>[
+      if (seconds > 0)
+        '${l.clientTrendWorkoutMinutes} ${formatExerciseDuration(l, seconds)}',
+      if (sets > 0) '${l.routineTypeStrength} ${l.progSetsValue(sets)}',
+    ].join(' · ');
+    if (summary.isEmpty && total == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: OnCareSpacing.s8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          const AppDivider(),
+          const SizedBox(height: OnCareSpacing.s8),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  summary,
+                  style: tokens
+                      .text(OnCareTypography.caption)
+                      .copyWith(color: OnCareColors.textSecondary),
+                ),
+              ),
+              if (total != null)
+                // 식단의 `총 N kcal`(먹은 양)과 헷갈리지 않게 `소모` 를 붙인다.
+                Text(
+                  l.workoutTotalBurned(formatNumber(total)),
+                  style: OnCareTypography.numeric(
+                    tokens
+                        .text(
+                          OnCareTypography.strong(OnCareTypography.bodySmall),
+                        )
+                        .copyWith(color: tokens.brand.primary),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// `오늘` 맨 위 개인운동 상자 — 지금 걸린 개인운동과 오늘 했는지. (#2508)
+///
+/// 머리 줄은 다른 상자와 같다: 왼쪽 `개인운동` 알약, 한 수(`2/4`)와 보낸 날·
+/// 끝나는 날. 줄은 유형별로 묶어 `운동명 · 세부 효과` 이고, 왼쪽 막대가 한 것
+/// (색)과 아직(회색)을 가른다. 묶음 안에서는 아직 → 한 것 순서다. 아래는 한
+/// 것의 요약과 `총 N kcal`.
+///
+/// 내리기(X)는 두지 않는다 — 바꾸는 길은 새로 보내기 하나다(#2511).
+class _PersonalTodayCard extends ConsumerWidget {
+  const _PersonalTodayCard({
+    required this.clientId,
+    required this.date,
+    required this.routines,
+    this.entry,
+  });
 
   final String clientId;
+  final DateTime date;
+  final List<AssignedRoutine> routines;
+
+  /// 오늘 한 개인운동 이력(하루치 카드) — 없으면 아직 아무것도 안 한 날이다.
+  final RoutineHistoryEntry? entry;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final List<AssignedRoutine> pending =
-        ref.watch(assignedRoutinesProvider(clientId)).valueOrNull ??
-        const <AssignedRoutine>[];
-    // 물릴 것이 없으면 제목도 두지 않는다 — 늘 있는 빈 카드는 자리만 먹는다.
-    if (pending.isEmpty) return const SizedBox.shrink();
-    return Column(
+    final RoutineDaysKey key = routineDaysKeyNow(clientId);
+    // 날짜별 조회가 실패해도 목록은 그대로 보인다 — 한 것 표시만 배정의
+    // `completed` 로 떨어진다.
+    final RoutineDays days =
+        ref.watch(clientRoutineDaysProvider(key)).valueOrNull ??
+        RoutineDays.empty;
+    final List<ClientExerciseItem> items =
+        ref
+            .watch(clientExercisesOnProvider((clientId: clientId, date: date)))
+            .valueOrNull ??
+        const <ClientExerciseItem>[];
+    final RoutineHistoryEntry? entry = this.entry;
+    final List<ClientExerciseItem> rows = entry == null
+        ? <ClientExerciseItem>[
+            for (final ClientExerciseItem item in items)
+              if (_isAssignedRow(item)) item,
+          ]
+        : _dayRowsOf(entry, items, personal: true);
+    // 줄마다의 kcal — 그날 개인운동 행에서 이름으로 하나씩 짝짓는다.
+    final List<ClientExerciseItem> pool = <ClientExerciseItem>[...rows];
+    int? kcalOf(AssignedRoutine routine) {
+      final int at = pool.indexWhere(
+        (ClientExerciseItem row) =>
+            row.assignedRoutineId == routine.id ||
+            row.name.trim() == routine.name.trim(),
+      );
+      if (at < 0) return null;
+      return pool.removeAt(at).calories;
+    }
+
+    bool doneToday(AssignedRoutine routine) =>
+        days.dayOf(key.day)?.itemFor(routine.id)?.status.completed ??
+        routine.completed;
+    final List<AssignedRoutine> ordered = <AssignedRoutine>[
+      for (final AssignedRoutine r in routines)
+        if (!doneToday(r)) r,
+      for (final AssignedRoutine r in routines)
+        if (doneToday(r)) r,
+    ];
+    final int doneCount = routines.where(doneToday).length;
+    final String? sent = _todayWindow(l, days, key.day);
+    return AppCard(
       key: const ValueKey<String>('workout-pending-routines'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        const SizedBox(height: OnCareSpacing.s16),
-        AppSectionHeader(title: l.workoutPendingTitle),
-        const SizedBox(height: OnCareSpacing.s8),
-        for (final AssignedRoutine routine in pending)
-          Padding(
-            padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
-            child: _PendingRoutineRow(clientId: clientId, routine: routine),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          _CardTop(
+            tag: AppTag(label: l.workoutKindPersonal, tone: AppTagTone.brand),
+            note: Text.rich(
+              key: const ValueKey<String>('workout-pending-window'),
+              TextSpan(
+                children: <InlineSpan>[
+                  // `3/6` 은 날짜처럼 읽혀 문장으로 적는다.
+                  TextSpan(
+                    text: l.workoutRoutineDoneOf(doneCount, routines.length),
+                    style: context.oncare
+                        .text(OnCareTypography.strong(OnCareTypography.caption))
+                        .copyWith(color: OnCareColors.textSecondary),
+                  ),
+                  if (sent != null) TextSpan(text: '   $sent'),
+                ],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.oncare
+                  .text(OnCareTypography.caption)
+                  .copyWith(color: OnCareColors.textTertiary),
+            ),
+            // 그날 개인운동 상자에 다는 메모.
+            memo: ExerciseMemoButton(
+              clientId: clientId,
+              memoRef: TrainerMemoRef(
+                kind: TrainerMemoRefKind.personal,
+                day: ymd(date),
+              ),
+            ),
           ),
-      ],
+          const SizedBox(height: OnCareSpacing.s8),
+          // 알약 글씨가 시작하는 자리에 내용을 맞춘다 — 알약 배경 끝이 아니라.
+          Padding(
+            padding: const EdgeInsets.only(left: _tagInset),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                _GroupedLines(
+                  key: const ValueKey<String>('workout-pending-list'),
+                  showCalories: true,
+                  lines: <_Line>[
+                    for (final AssignedRoutine routine in ordered)
+                      () {
+                        final bool done = doneToday(routine);
+                        return _Line(
+                          key: ValueKey<String>(
+                            done
+                                ? 'workout-routine-done-${routine.id}'
+                                : 'workout-routine-pending-${routine.id}',
+                          ),
+                          type: routine.type,
+                          name: routine.name,
+                          detail: _pendingRoutineAmountLabel(l, routine),
+                          intensity: routine.intensity,
+                          effect: _effectOf(l, routine),
+                          mark: done ? _LineMark.done : _LineMark.pending,
+                          // 안 한 운동은 유형·시간·강도로 어림한 예상값을 옅게 —
+                          // 프로그램 화면이 보낼 때 보여 준 값과 같은 식이다.
+                          calories: done
+                              ? kcalOf(routine)
+                              : _estimateOf(routine),
+                          estimated: !done,
+                        );
+                      }(),
+                  ],
+                ),
+                _CardFooter(
+                  done: <ClientExerciseItem>[
+                    for (final ClientExerciseItem item in rows)
+                      if (item.done) item,
+                  ],
+                  calories: _caloriesOf(rows),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 아직 안 한 개인운동의 예상 소모 kcal — 근력은 세트를 분으로 바꿔 센다.
+  static int? _estimateOf(AssignedRoutine routine) => estimateRoutineCalories(
+    name: routine.name,
+    type: routine.type,
+    minutes: routine.type == '근력' && (routine.sets ?? 0) > 0
+        ? minutesFromSets(routine.sets!)
+        : routine.minutes,
+    intensity: routine.intensity,
+  )?.calories;
+
+  /// 이름 뒤 옅은 한 줄 — 효과가 있으면 효과, 없을 때만 옛 사유(#2951).
+  static String? _effectOf(AppLocalizations l, AssignedRoutine routine) {
+    if (routine.effect.isNotEmpty) return routineEffectText(l, routine.effect);
+    if (routine.reason.isNotEmpty) return routine.reason;
+    return null;
+  }
+
+  /// 머리 줄 알약 옆 — "9/29(화) 보냄 · 10/5(월)까지". 지금 걸린 개인운동이
+  /// 없으면(기한 없는 따로 배정뿐) 적지 않는다.
+  static String? _todayWindow(
+    AppLocalizations l,
+    RoutineDays days,
+    DateTime today,
+  ) {
+    final RoutineDayGroup? group = days.currentPersonal(today);
+    final DateTime? last = group?.lastDay;
+    if (group == null || last == null) return null;
+    return l.workoutRoutineSentUntil(
+      routineDayLabel(l, group.sentOn),
+      routineDayLabel(l, last),
+    );
+  }
+}
+
+/// 펼친 날의 한 줄 — `[머리] 내용 …… 오른쪽 값` (식단 `_DayRow` 와 같은 틀).
+class _WorkoutDayRow extends StatelessWidget {
+  const _WorkoutDayRow({
+    super.key,
+    required this.label,
+    required this.lines,
+    this.trailing,
+    this.divider = true,
+  });
+
+  /// 위에 선을 긋는가 — 첫 줄(하루 합계)은 긋지 않는다.
+  final bool divider;
+
+  /// 머리 칸 — 출처 알약이나 `하루 합계`.
+  final Widget label;
+  final List<Widget> lines;
+  final Widget? trailing;
+
+  /// 머리 칸 폭 — 식단 펼친 날과 같다.
+  static const double labelWidth = 64;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget? trailing = this.trailing;
+    return Container(
+      padding: EdgeInsets.only(
+        top: divider ? OnCareSpacing.s12 : OnCareSpacing.s4,
+        bottom: OnCareSpacing.s12,
+      ),
+      decoration: divider
+          ? const BoxDecoration(
+              border: Border(top: BorderSide(color: OnCareColors.lineSubtle)),
+            )
+          : null,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          // 알약 길이가 줄마다 달라(PT·개인운동·회원 추가) 가운데에 세운다.
+          SizedBox(
+            width: labelWidth,
+            child: Center(
+              child: FittedBox(fit: BoxFit.scaleDown, child: label),
+            ),
+          ),
+          const SizedBox(width: OnCareSpacing.s12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: lines,
+            ),
+          ),
+          if (trailing != null) ...<Widget>[
+            const SizedBox(width: OnCareSpacing.s12),
+            trailing,
+          ],
+        ],
+      ),
     );
   }
 }
@@ -611,162 +1566,6 @@ String _pendingRoutineAmountLabel(AppLocalizations l, AssignedRoutine routine) {
     ?strengthWeightLabel(l, routine.weight),
   ];
   return parts.isEmpty ? l.minutesShort(routine.minutes) : parts.join(' · ');
-}
-
-/// 물릴 수 있는 개인 운동 한 줄 — 이름·시간과 취소.
-class _PendingRoutineRow extends ConsumerStatefulWidget {
-  const _PendingRoutineRow({required this.clientId, required this.routine});
-
-  final String clientId;
-  final AssignedRoutine routine;
-
-  @override
-  ConsumerState<_PendingRoutineRow> createState() => _PendingRoutineRowState();
-}
-
-class _PendingRoutineRowState extends ConsumerState<_PendingRoutineRow> {
-  bool _busy = false;
-
-  Future<void> _cancel() async {
-    final AppLocalizations l = AppLocalizations.of(context);
-    // 되돌릴 수 없는 일이라 한 번 묻는다 — 프로그램 탭의 취소와 같은 문구다.
-    final bool ok = await showAppConfirmDialog(
-      context: context,
-      title: l.routineDeleteTitle,
-      message: l.routineDeleteBody(widget.routine.name),
-      confirmLabel: l.actionDelete,
-      cancelLabel: l.actionCancel,
-      destructive: true,
-    );
-    if (!ok || !mounted) return;
-
-    setState(() => _busy = true);
-    try {
-      // 프로그램 탭이 쓰는 것과 **같은** mutation 이다(#504, #1020).
-      await ref
-          .read(trainerRoutineRepositoryProvider)
-          .deleteRoutine(widget.clientId, widget.routine.id);
-      if (!mounted) return;
-      showAppToast(context, l.routineDeleted, type: AppToastType.success);
-    } on StateError {
-      // 404 — 이미 없는 것을 지우려 했다. 목적은 이뤄진 셈이라 목록만 다시 읽고
-      // 그 줄을 화면에서 걷어낸다.
-      if (!mounted) return;
-      showAppToast(context, l.routineAlreadyGone);
-    } on Object {
-      if (!mounted) return;
-      showAppToast(context, l.routineDeleteFailed, type: AppToastType.error);
-    } finally {
-      if (mounted) setState(() => _busy = false);
-      ref.invalidate(assignedRoutinesProvider(widget.clientId));
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    final AssignedRoutine routine = widget.routine;
-    final TextStyle separator = tokens
-        .text(OnCareTypography.caption)
-        .copyWith(color: OnCareColors.textTertiary);
-    return AppCard(
-      padding: AppCard.compactPadding,
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                // 이름 - 종류 - 시간/세트/횟수 를 한 줄에 둔다 — 프로그램 탭
-                // AI 개인 운동 제안 카드와 같은 구성이다.
-                Text.rich(
-                  TextSpan(
-                    children: <InlineSpan>[
-                      TextSpan(
-                        text: routine.name,
-                        style: tokens
-                            .text(
-                              OnCareTypography.strong(
-                                OnCareTypography.bodySmall,
-                              ),
-                            )
-                            .copyWith(color: OnCareColors.textPrimary),
-                      ),
-                      TextSpan(text: ' · ', style: separator),
-                      TextSpan(
-                        text: routineTypeLabel(l, routine.type),
-                        style: tokens
-                            .text(
-                              OnCareTypography.strong(OnCareTypography.caption),
-                            )
-                            .copyWith(color: OnCareColors.textTertiary),
-                      ),
-                      TextSpan(text: ' · ', style: separator),
-                      TextSpan(
-                        text: _pendingRoutineAmountLabel(l, routine),
-                        style: OnCareTypography.numeric(
-                          tokens.text(
-                            OnCareTypography.strong(OnCareTypography.caption),
-                          ),
-                        ).copyWith(color: tokens.brand.primary),
-                      ),
-                    ],
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (routine.reason.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: OnCareSpacing.s2),
-                  Text(
-                    routine.reason,
-                    style: tokens
-                        .text(OnCareTypography.caption)
-                        .copyWith(color: OnCareColors.textTertiary),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(width: OnCareSpacing.s8),
-          // 오늘 이미 했는가 — 매일 새로 체크하는 목록이라 완료는 오늘 기준이다
-          // (#2161).
-          if (routine.completed) ...<Widget>[
-            AppTag(
-              key: ValueKey<String>('workout-routine-done-${routine.id}'),
-              label: l.workoutRoutineDoneToday,
-              icon: AppIcons.check,
-              tone: AppTagTone.success,
-            ),
-            const SizedBox(width: OnCareSpacing.s4),
-          ],
-          // 누가 보낸 것인지 — AI 추천과 트레이너 배정은 물릴 때의 무게가 다르다.
-          routine.source == 'ai'
-              ? AppTag(
-                  label: l.clientWorkoutSourceAi,
-                  icon: AppIcons.ai,
-                  tone: AppTagTone.brand,
-                )
-              : AppTag(
-                  label: l.coachTrainer,
-                  icon: AppIcons.badge,
-                  tone: AppTagTone.brand,
-                ),
-          const SizedBox(width: OnCareSpacing.s4),
-          if (_busy)
-            const AppLoading.inline()
-          else
-            AppIconButton(
-              key: ValueKey<String>('workout-cancel-routine-${routine.id}'),
-              onPressed: _cancel,
-              icon: AppIcons.close,
-              color: OnCareColors.textSecondary,
-              tooltip: l.workoutPendingCancel,
-            ),
-        ],
-      ),
-    );
-  }
 }
 
 /// 고객이 그날 한 운동 한 줄 — `벤치프레스 · 4세트 · 10회 · 40kg`. (#1902)

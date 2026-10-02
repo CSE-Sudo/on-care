@@ -12,10 +12,13 @@ import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/request_id.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/core/web/leave_guard.dart';
+import 'package:oncare_trainer/features/clients/data/repositories/routine_days_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/routine_days.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_diet_period_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_exercise_status_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_section.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/client_routine_status.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/diet_view.dart'
     show ClientDietAnalysisPanel;
 import 'package:oncare_trainer/features/coaching/data/dtos/program_draft_dtos.dart';
@@ -540,6 +543,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     // 것과 같아야 한다(#2223). 두 번째 전송은 `_sent` 가 막는다.
     if (!mounted) return;
     ref.invalidate(assignedRoutinesProvider(sentFor));
+    // 새 개인운동이 걸리면 날짜별 이행 칸도 바뀐다(#2508).
+    ref.invalidate(clientRoutineDaysProvider);
     // 전송 이력 카드는 직전 전송(`_latestDeliveryProvider`)을 따로 읽는다 —
     // 다시 읽게 하지 않으면 탭을 옮겨 다녀와야 방금 보낸 것이 보인다(#2280,
     // #2750).
@@ -701,6 +706,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     // 다시 읽으라고 말해 줘야 한다(#1029). 일정 쪽은 저장소가 스스로 다시
     // 읽는다.
     ref.invalidate(assignedRoutinesProvider(sentFor));
+    // 새 개인운동이 걸리면 날짜별 이행 칸도 바뀐다(#2508).
+    ref.invalidate(clientRoutineDaysProvider);
     // 3열 `전송 이력` 카드는 배정 목록이 아니라 직전 전송
     // (`_latestDeliveryProvider`, #2225)을 따로 읽는다 — 카드가 전송 동안에도
     // 떠 있어 autoDispose 로 버려지지 않으므로, 여기서 무효화하지 않으면
@@ -1749,6 +1756,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
 /// 본문이 남는 높이를 모두 갖는다.
 class _SectionCard extends StatelessWidget {
   const _SectionCard({
+    super.key,
     required this.title,
     required this.icon,
     required this.child,
@@ -1820,6 +1828,41 @@ class _WeekCompletionBars extends StatelessWidget {
                   if (i < week.length && week[i] == null) i,
               },
             ),
+    );
+  }
+}
+
+/// 개인운동 이행 — 지금 걸린 개인운동을 보낸 날부터 7칸. (#2509)
+///
+/// 다음 프로그램을 짜는 자리에서 지난 개인운동을 회원이 매일 했는지 본다.
+/// 지금 걸린 개인운동이 없으면 카드를 두지 않는다(기한 없는 따로 배정만 있는
+/// 회원도 그렇다 — 칸의 시작점인 "보낸 날" 이 없다).
+class _RoutineAdherenceCard extends ConsumerWidget {
+  const _RoutineAdherenceCard({required this.clientId});
+
+  final String clientId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final RoutineDaysKey key = routineDaysKeyNow(clientId);
+    final RoutineDays? days = ref
+        .watch(clientRoutineDaysProvider(key))
+        .valueOrNull;
+    final RoutineDayGroup? group = days?.currentPersonal(key.day);
+    if (days == null || group == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: OnCareSpacing.s12),
+      child: _SectionCard(
+        key: ValueKey<String>('program-routine-adherence-card-$clientId'),
+        title: l.coachRoutineAdherenceTitle,
+        icon: AppIcons.personalRoutine,
+        child: ClientRoutineAdherenceStrip(
+          days: days,
+          group: group,
+          today: key.day,
+        ),
+      ),
     );
   }
 }
@@ -1929,14 +1972,29 @@ class _ClientDataSwitcherState extends ConsumerState<_ClientDataSwitcher> {
             topGap: OnCareSpacing.s12,
           ),
         ] else ...<Widget>[
+          // 요약 → 상세 순이다(#2509): 운동 현황(그래프) → 주간 운동 이행률 →
+          // 개인운동 이행 → 운동 기록. 예전에는 운동 기록이 운동 현황 카드 안
+          // 그래프 아래 붙어 있어, 이행률보다 먼저 긴 목록을 지나야 했다.
           ClientExerciseStatusCard(
             key: ValueKey<String>('program-workout-${widget.client.id}'),
             clientId: widget.client.id,
             period: _period,
-            clientName: widget.client.name,
           ),
           const SizedBox(height: OnCareSpacing.s12),
           _WeekCompletionBars(client: widget.client),
+          _RoutineAdherenceCard(clientId: widget.client.id),
+          const SizedBox(height: OnCareSpacing.s12),
+          _SectionCard(
+            key: ValueKey<String>(
+              'program-workout-records-${widget.client.id}',
+            ),
+            title: l.workoutRecords,
+            icon: AppIcons.exercise,
+            child: ClientWorkoutRecordsDetail(
+              clientId: widget.client.id,
+              period: _period,
+            ),
+          ),
         ],
       ],
     );
