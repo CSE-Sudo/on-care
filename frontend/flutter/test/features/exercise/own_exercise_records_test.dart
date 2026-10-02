@@ -455,8 +455,9 @@ void main() {
     );
     await tester.tap(edit);
     await tester.pumpAndSettle();
+    // 상세가 운동 탭 위에 올라와 있어 탭은 화면 밖(offstage)이다.
     final AppLocalizations l = AppLocalizations.of(
-      tester.element(find.byType(ExercisePage)),
+      tester.element(find.byType(ExercisePage, skipOffstage: false)),
     );
     expect(find.text(l.exEditExercise), findsOneWidget);
     Navigator.of(

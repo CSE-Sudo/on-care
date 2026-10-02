@@ -891,22 +891,21 @@ class _PtLogCard extends ConsumerWidget {
     final ExerciseIntensity? intensity = todayPt
         .map((ExerciseSession s) => s.intensity)
         .firstOrNull;
-    // 종목 줄은 그날의 PT 운동 기록이 있으면 그것으로 적는다 — 기록에는 종목마다
-    // 유형이 있어 `[근력] 벤치프레스 · 4세트 …` 로 적을 수 있다. 아직 못 읽었으면
-    // 프로그램으로 적고 유형 태그는 비운다(#2507).
-    final List<_LineData> lines = todayPt.isNotEmpty
-        ? <_LineData>[
-            for (final ExerciseSession s in todayPt)
-              (
-                type: s.type,
-                name: s.name.isNotEmpty ? s.name : exerciseTypeLabel(l, s.type),
-                amount: exerciseAmountLabel(l, s),
-              ),
-          ]
-        : <_LineData>[
-            for (final CoachProgramItem item in session.program)
-              (type: null, name: item.name, amount: _ptProgramAmount(l, item)),
-          ];
+    // 종목 줄은 PT 프로그램으로 적는다 — 그날의 PT 운동 기록은 수업 한 건으로
+    // 묶여 와(`PT 세션`) 종목을 말하지 않는다. 유형 태그는 같은 이름의 기록이
+    // 있을 때만 붙이고, 모르면 비운다 — 없는 값을 지어내지 않는다(#2507).
+    final Map<String, ExerciseType> typeByName = <String, ExerciseType>{
+      for (final ExerciseSession s in todayPt)
+        if (s.name.isNotEmpty) s.name: s.type,
+    };
+    final List<_LineData> lines = <_LineData>[
+      for (final CoachProgramItem item in session.program)
+        (
+          type: typeByName[item.name],
+          name: item.name,
+          amount: _ptProgramAmount(l, item),
+        ),
+    ];
     return _PtSessionCard(
       key: const Key('completedPtSessionCard'),
       time: session.time,

@@ -50,6 +50,9 @@ class OwnExerciseRecords extends ConsumerWidget {
           AppSectionHeader(
             title: l.exOwnRecords,
             icon: AppIcons.exercise,
+            // 한 줄에 다 서지 못하면 버튼이 다음 줄로 넘어간다 — 카드 안이라
+            // 폭이 좁아, 영어·큰 글자에서 제목과 버튼이 한 줄을 넘쳤다.
+            trailingFit: AppSectionTrailingFit.wrap,
             trailing: AppButton(
               key: const ValueKey<String>('exercise-add-button'),
               label: l.exAddExercise,
