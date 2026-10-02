@@ -1,5 +1,5 @@
 """
-FastAPI 진입점 (STEP 1: 골격 재구성).
+FastAPI 진입점.
 
 프론트 계약에 맞춰 /v1 prefix 로 라우터를 마운트합니다.
 실행: uvicorn app.main:app --reload
@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import (
     activity,
+    admin_trainers,
     ai_coach,
     challenges,
     chat_attachments,
@@ -46,6 +47,7 @@ from app.core.config import Settings, get_settings
 from app.core.locale import RequestLocaleMiddleware
 from app.core.security_headers import security_headers_for
 from app.db.init_db import init_db
+from app.services import mailer
 
 settings = get_settings()
 # 로깅을 먼저 설정(요청 ID 포함 포맷). 이후 모듈 로거들이 이 설정을 따른다.
@@ -60,6 +62,8 @@ async def lifespan(app: FastAPI):
     # 프록시 뒤 운영에서 클라이언트 IP 를 소켓 주소로 읽게 설정됐으면 남긴다(#2815).
     warn_if_untrusted_setup(settings)
     init_db()
+    # 메일 발송 수단이 없으면 기동 로그에 드러낸다 — 운영이면 재설정이 꺼진다(#2824).
+    mailer.warn_if_disabled(settings)
     yield
 
 
@@ -189,6 +193,7 @@ app.include_router(places.router, prefix=settings.api_v1_prefix)
 app.include_router(ai_coach.router, prefix=settings.api_v1_prefix)
 app.include_router(chat_attachments.router, prefix=settings.api_v1_prefix)
 app.include_router(coach_docs.router, prefix=settings.api_v1_prefix)
+app.include_router(admin_trainers.router, prefix=settings.api_v1_prefix)
 app.include_router(trainer.router, prefix=settings.api_v1_prefix)
 app.include_router(member_coach.router, prefix=settings.api_v1_prefix)
 app.include_router(points.router, prefix=settings.api_v1_prefix)

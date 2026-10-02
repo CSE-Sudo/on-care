@@ -22,11 +22,14 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser, RequireMember
+from app.core import clock
 from app.core.config import get_settings
+from app.core.locale import get_request_locale
 from app.core.rate_limit import (
     check_key,
     clear_failures,
     ensure_unlocked,
+    limiter,
     rate_limit,
     record_failure,
     register_email_key,
@@ -42,6 +45,12 @@ from app.db.session import get_db
 from app.models.models import AccountDeletionReason, HealthProfile, User
 from app.schemas.user import (
     AccountDeleteRequest,
+    MemberPasswordChange,
+    PasswordChanged,
+    PasswordResetConfirm,
+    PasswordResetDone,
+    PasswordResetRequest,
+    PasswordResetRequested,
     HealthGoalsUpdate,
     HealthProfileBrief,
     OnboardingRequest,
@@ -65,6 +74,7 @@ from app.services import (
     member_departure,
     member_pairing_service,
     name_change,
+    password_reset,
     reservation_service,
     token_revocation,
     trainer_signup_service,
@@ -163,6 +173,7 @@ def _profile_view(user: User) -> ProfileView:
         weekly_strength_sets=p.weekly_strength_sets if p else None,
         weekly_flexibility_minutes=(p.weekly_flexibility_minutes if p else None),
         onboarded=p.onboarded if p else False,
+        has_password=bool(user.hashed_password),
         focus_changed_by=p.focus_changed_by if p else None,
         focus_changed_at=p.focus_changed_at if p else None,
         notes_changed_by=p.notes_changed_by if p else None,
@@ -395,6 +406,63 @@ def delete_me(
     db.commit()
     attachment_cleanup.purge(attachments)
     return {"status": "deleted"}
+
+
+@router.post(
+    "/users/me/password",
+    status_code=200,
+    response_model=PasswordChanged,
+    dependencies=[Depends(rate_limit("member-password-change"))],
+)
+def change_my_password(
+    request: Request,
+    payload: MemberPasswordChange,
+    user: RequireMember,
+    db: Annotated[Session, Depends(get_db)],
+) -> PasswordChanged:
+    """회원 비밀번호 변경(#2824). 트레이너 `POST /trainer/me/password` 와 같은 규약.
+
+    현재 비밀번호가 맞아야 하고 같은 값으로는 바꿀 수 없다. 바꾸면 토큰 세대가
+    올라 다른 기기의 접근·refresh 토큰이 모두 끊기고(#2766), 요청한 기기는 응답의
+    새 토큰 한 쌍으로 이어 쓴다.
+
+    소셜 로그인 전용 계정(비밀번호 없음)은 409 다 — 확인할 현재 비밀번호가 없다.
+    현재 비밀번호 불일치는 401 이 아니라 400 이다. 토큰은 유효하므로 앱이
+    로그아웃으로 오인하면 안 된다. 틀린 비밀번호를 연달아 맞혀 보는 것은 IP 별
+    rate limit 이 막는다.
+    """
+    if not user.hashed_password:
+        raise HTTPException(
+            status_code=409,
+            detail="소셜 로그인 계정은 비밀번호가 없어 바꿀 수 없습니다.",
+        )
+    if not verify_password(payload.current_password, user.hashed_password):
+        audit(
+            db,
+            event="auth.password_change",
+            user_id=user.id,
+            ip=client_ip(request),
+            success=False,
+        )
+        raise HTTPException(status_code=400, detail="현재 비밀번호가 일치하지 않습니다.")
+    if verify_password(payload.new_password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="현재와 다른 비밀번호를 입력해 주세요.")
+    user.hashed_password = hash_password(payload.new_password)
+    # 비밀번호와 세대는 한 트랜잭션으로 — 하나만 반영되면 옛 토큰이 살아남거나
+    # 비밀번호는 그대로인데 모든 기기가 끊긴다.
+    auth_tokens.bump_version(user)
+    db.commit()
+    audit(
+        db,
+        event="auth.password_change",
+        user_id=user.id,
+        ip=client_ip(request),
+        success=True,
+    )
+    tokens = auth_tokens.issue_token_pair(user)
+    return PasswordChanged(
+        access_token=tokens.access_token, refresh_token=tokens.refresh_token
+    )
 
 
 # ---- 인증 (Stage 4 대비, 지금도 동작) ----
@@ -663,3 +731,106 @@ def logout(
         success=True,
     )
     return None
+
+
+# ---- 비밀번호 재설정 (#2824) ----
+
+
+@router.post(
+    "/auth/password-reset/request",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=PasswordResetRequested,
+    dependencies=[Depends(rate_limit("auth-password-reset-request"))],
+)
+def request_password_reset(
+    payload: PasswordResetRequest,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+) -> PasswordResetRequested:
+    """재설정 코드를 메일로 보낸다. 회원·트레이너 공용.
+
+    **응답은 계정 존재 여부와 무관하게 같다**(202). 가입되지 않은 이메일, 쉬는
+    계정, 소셜 로그인 전용 계정에는 아무것도 보내지 않지만 응답으로는 알 수 없다.
+
+    시도 제한은 두 겹이다. IP 별 분당 한도(`auth-password-reset-request`)와,
+    한 이메일로 보내는 메일 수 한도(`PASSWORD_RESET_EMAIL_PER_WINDOW`). 뒤의 것은
+    여러 IP 에서 한 사람에게 메일을 쏟아붓는 것을 막는다 — 계정이 없는 주소도 똑같이
+    세므로 429 로 가입 여부가 드러나지 않는다.
+
+    서버에 메일 발송 수단이 없으면(운영인데 SMTP 설정이 비었을 때) 503 이다.
+    """
+    settings = get_settings()
+    if settings.rate_limit_enabled:
+        limiter.check(
+            f"pw-reset-email:{payload.email.lower()}",
+            settings.password_reset_email_per_window,
+            settings.password_reset_email_window_minutes * 60.0,
+        )
+    try:
+        issued = password_reset.request_reset(
+            db,
+            payload.email,
+            now=clock.now(),
+            settings=settings,
+            locale=get_request_locale(request),
+        )
+    except password_reset.ResetUnavailable:
+        raise HTTPException(
+            status_code=503,
+            detail="지금은 비밀번호 재설정 메일을 보낼 수 없습니다. 고객센터로 문의해 주세요.",
+        ) from None
+    audit(
+        db,
+        event="auth.password_reset_request",
+        user_id=issued.user_id if issued else None,
+        ip=client_ip(request),
+        # 감사 로그에는 실제로 코드를 만들었는지 남긴다 — 응답과 달리 운영자만 본다.
+        success=issued is not None,
+    )
+    return PasswordResetRequested(
+        expires_in_minutes=settings.password_reset_token_minutes
+    )
+
+
+@router.post(
+    "/auth/password-reset/confirm",
+    response_model=PasswordResetDone,
+    dependencies=[Depends(rate_limit("auth-password-reset-confirm"))],
+)
+def confirm_password_reset(
+    payload: PasswordResetConfirm,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+) -> PasswordResetDone:
+    """코드와 새 비밀번호로 비밀번호를 바꾼다.
+
+    코드가 없거나 만료됐거나 이미 쓰였으면 모두 400 `invalid_reset_token` 하나다 —
+    어느 쪽인지 갈라 알려 줄 이유가 없다. 바꾸면 토큰 세대가 올라 모든 기기의
+    세션이 끊긴다(#2766). 새 토큰은 주지 않으므로 새 비밀번호로 다시 로그인한다.
+    """
+    try:
+        user = password_reset.confirm_reset(
+            db, payload.token, payload.new_password, now=clock.now()
+        )
+    except password_reset.InvalidResetCode:
+        audit(
+            db,
+            event="auth.password_reset_confirm",
+            ip=client_ip(request),
+            success=False,
+        )
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "invalid_reset_token",
+                "message": "재설정 코드가 올바르지 않거나 만료되었습니다. 다시 요청해 주세요.",
+            },
+        ) from None
+    audit(
+        db,
+        event="auth.password_reset_confirm",
+        user_id=user.id,
+        ip=client_ip(request),
+        success=True,
+    )
+    return PasswordResetDone()

@@ -306,8 +306,10 @@ DietMeal _mealFromEntry(DietEntry e, DateTime date) {
     time: e.timeLabel,
     total: e.totalCalories,
     // 사진이 없을 때 그리는 이모지 — 음식 이름으로 고르고, 모르면 끼니
-    // 이모지다(#2151).
-    emoji: mealThumbEmoji(e.mealType, e.foods.map((FoodItem f) => f.name)),
+    // 이모지다(#2151). 자료가 정해 둔 이모지가 있으면 그것을 쓴다(#2878).
+    emoji:
+        e.thumbEmoji ??
+        mealThumbEmoji(e.mealType, e.foods.map((FoodItem f) => f.name)),
     thumbBg: OnCareColors.surfaceInput,
     photoAsset: e.photoAsset,
     photoUrl: e.photoUrl,

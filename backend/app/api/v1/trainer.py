@@ -23,7 +23,7 @@ from fastapi import (
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
-from app.api.deps import RequireTrainer
+from app.api.deps import RequireApprovedTrainer, RequireTrainer
 from app.api.v1 import chat_attachments
 from app.core import clock
 from app.core.config import get_settings
@@ -2869,7 +2869,7 @@ def _check_pairing_attempt(trainer_id: str) -> None:
 )
 def trainer_preview_pairing_code(
     payload: PairingCodeRedeem,
-    trainer: RequireTrainer,
+    trainer: RequireApprovedTrainer,  # 승인 전 403(#2825)
     db: Annotated[Session, Depends(get_db)],
 ) -> PairedMemberOut:
     """코드가 가리키는 회원을 **연결하지 않고** 보여 준다. (#1634)
@@ -2905,7 +2905,7 @@ def trainer_preview_pairing_code(
 )
 def trainer_redeem_pairing_code(
     payload: PairingCodeRedeem,
-    trainer: RequireTrainer,
+    trainer: RequireApprovedTrainer,  # 승인 전 403(#2825)
     db: Annotated[Session, Depends(get_db)],
 ) -> PairedMemberOut:
     """회원이 띄운 6자리 동기화 코드로 담당 관계를 **바로** 만든다. (#1634)
@@ -2953,7 +2953,7 @@ def trainer_client_invites(
 )
 def create_trainer_client_invite(
     payload: TrainerClientInviteCreate,
-    trainer: RequireTrainer,
+    trainer: RequireApprovedTrainer,  # 승인 전 403(#2825)
     db: Annotated[Session, Depends(get_db)],
 ) -> TrainerClientInviteOut:
     """담당 요청을 보낸다. 명단에는 아직 아무것도 생기지 않는다."""

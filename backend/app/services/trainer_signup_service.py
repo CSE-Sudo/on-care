@@ -8,6 +8,10 @@
 발급 경로가 끝내 없어(#1627) 운영에서 새 트레이너를 받을 수 없었다. 초대 코드를
 걷어 내고, 소속은 가입한 트레이너가 헬스장을 찾아 직접 고른다
 (`PUT /trainer/me/gym`, #452). 소속을 정하기 전까지는 상담 대상이 아니다(#443·#451).
+
+**운영자 승인 전에는 노출되지 않는다(#2825).** 가입은 누구나 할 수 있고 소속도
+직접 고르므로, 가입한 트레이너는 pending 으로 시작한다. 승인 전까지 회원 앱
+디렉터리·상담 대상·담당 요청·연결 코드에서 빠진다(`trainer_verification_service`).
 """
 from __future__ import annotations
 
@@ -20,6 +24,7 @@ from sqlalchemy.orm import Session
 from app.core.security import hash_password
 from app.models.models import TrainerProfile, User
 from app.schemas.user import TrainerRegister
+from app.services import trainer_verification_service
 
 
 class TrainerEmailTaken(Exception):
@@ -47,7 +52,14 @@ def register_trainer(db: Session, payload: TrainerRegister) -> User:
     db.add(trainer)
     db.flush()
 
-    db.add(TrainerProfile(trainer_id=trainer.id))
+    # 모델 기본값(approved)은 운영자가 직접 넣는 시드 경로용이다 — 공개 가입은
+    # 승인 대기를 명시한다(#2825).
+    db.add(
+        TrainerProfile(
+            trainer_id=trainer.id,
+            verification_status=trainer_verification_service.PENDING,
+        )
+    )
 
     try:
         db.commit()

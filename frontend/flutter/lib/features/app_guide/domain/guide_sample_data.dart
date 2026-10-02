@@ -15,6 +15,7 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/features/my_health/data/repositories/mock_my_health_repository.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
+import 'package:oncare/gen/l10n/app_localizations.dart';
 
 /// 사용 가이드가 짚는 **예시 자료**. (#1857)
 ///
@@ -24,12 +25,15 @@ import 'package:oncare/features/notification/presentation/controllers/notificati
 ///
 /// 덮는 것은 **화면이 직접 읽는 provider 뿐이다.** 그 아래 단계(저장소 등)를
 /// 덮으면, 그것을 읽는 provider 가 가이드 화면 밖에 있어 Riverpod 이 막는다.
-List<Override> guideSampleOverrides() {
+///
+/// 예시 음식 이름은 화면 언어를 따른다([l], #2878).
+List<Override> guideSampleOverrides(AppLocalizations l) {
   // 데모 시드를 그대로 쓰는 자리 — 헬스장·트레이너·MY 는 이미 "연결된 회원"
   // 한 명분이 통째로 준비돼 있다. 한 벌만 만들어 가이드가 끝날 때까지 쓴다.
   final MockGymRepository gym = MockGymRepository();
   final MockMemberCoachRepository coach = MockMemberCoachRepository();
   const MockMyHealthRepository myHealth = MockMyHealthRepository();
+  final DietDay dietDay = guideSampleDietDay(l);
 
   return <Override>[
     // 홈
@@ -43,8 +47,8 @@ List<Override> guideSampleOverrides() {
     // 알림을 받아 두는 편이 실제 화면에 가깝다.
     notificationUnreadProvider.overrideWith((ref) => Stream<int>.value(1)),
     // 식단 — 하루 뷰와 날짜별 캐시가 서로 다른 provider 라 둘 다 채운다.
-    dietTodayProvider.overrideWith((ref) async => kGuideSampleDietDay),
-    dietByDateFamily.overrideWith((ref, date) async => kGuideSampleDietDay),
+    dietTodayProvider.overrideWith((ref) async => dietDay),
+    dietByDateFamily.overrideWith((ref, date) async => dietDay),
     dietAdviceProvider.overrideWith((ref, key) async => kGuideSampleDietAdvice),
     // 운동
     exerciseAdviceProvider.overrideWith(
@@ -140,7 +144,12 @@ const ExerciseWeek kGuideSampleWeek = ExerciseWeek(
 
 /// 예시 하루 식단 — 홈 요약과 같은 하루다(칼로리 1,480 · 나트륨 1,720 · 당류 32).
 /// 두 화면이 다른 하루를 말하면 가이드 도중 숫자가 바뀌는 것처럼 보인다.
-const DietDay kGuideSampleDietDay = DietDay(
+///
+/// 음식 이름은 화면 언어의 문구로 싣는다(#2878). 예전에는 한국어 이름이 박혀
+/// 있어 영어 가이드의 식단 단계에서 끼니 카드에 한국어가 섞였다. 썸네일 이모지는
+/// 한국어 이름표로 고르므로 언어와 상관없이 같은 이모지가 나오게 끼니마다 정해
+/// 둔다. 숫자는 언어와 무관하다.
+DietDay guideSampleDietDay(AppLocalizations l) => DietDay(
   entries: <DietEntry>[
     DietEntry(
       id: 'guide-breakfast',
@@ -148,7 +157,7 @@ const DietDay kGuideSampleDietDay = DietDay(
       timeLabel: '08:20',
       foods: <FoodItem>[
         FoodItem(
-          name: '스크램블에그',
+          name: l.guideSampleFoodScrambledEggs,
           calories: 180,
           sodiumMg: 220,
           sugarG: 1,
@@ -157,7 +166,7 @@ const DietDay kGuideSampleDietDay = DietDay(
           fatG: 13,
         ),
         FoodItem(
-          name: '통밀 토스트',
+          name: l.guideSampleFoodWholeWheatToast,
           calories: 140,
           sodiumMg: 180,
           sugarG: 3,
@@ -172,7 +181,7 @@ const DietDay kGuideSampleDietDay = DietDay(
       carbsG: 28,
       proteinG: 18,
       fatG: 15,
-      aiComment: '단백질로 하루를 연 좋은 시작이에요.',
+      thumbEmoji: '🍳',
     ),
     DietEntry(
       id: 'guide-lunch',
@@ -180,7 +189,7 @@ const DietDay kGuideSampleDietDay = DietDay(
       timeLabel: '12:40',
       foods: <FoodItem>[
         FoodItem(
-          name: '닭가슴살 샐러드',
+          name: l.guideSampleFoodChickenSalad,
           calories: 380,
           sodiumMg: 520,
           sugarG: 8,
@@ -189,7 +198,7 @@ const DietDay kGuideSampleDietDay = DietDay(
           fatG: 14,
         ),
         FoodItem(
-          name: '현미밥',
+          name: l.guideSampleFoodBrownRice,
           calories: 230,
           sodiumMg: 10,
           sugarG: 1,
@@ -204,7 +213,7 @@ const DietDay kGuideSampleDietDay = DietDay(
       carbsG: 71,
       proteinG: 43,
       fatG: 16,
-      aiComment: '단백질이 넉넉하고 나트륨도 낮게 잡혔어요.',
+      thumbEmoji: '🍗',
     ),
     DietEntry(
       id: 'guide-dinner',
@@ -212,7 +221,7 @@ const DietDay kGuideSampleDietDay = DietDay(
       timeLabel: '19:10',
       foods: <FoodItem>[
         FoodItem(
-          name: '연어구이',
+          name: l.guideSampleFoodGrilledSalmon,
           calories: 330,
           sodiumMg: 480,
           sugarG: 2,
@@ -221,7 +230,7 @@ const DietDay kGuideSampleDietDay = DietDay(
           fatG: 21,
         ),
         FoodItem(
-          name: '구운 채소',
+          name: l.guideSampleFoodRoastedVegetables,
           calories: 220,
           sodiumMg: 310,
           sugarG: 17,
@@ -236,11 +245,11 @@ const DietDay kGuideSampleDietDay = DietDay(
       carbsG: 37,
       proteinG: 37,
       fatG: 28,
-      aiComment: '채소를 함께 담아 식이섬유가 충분해요.',
+      thumbEmoji: '🐟',
     ),
   ],
   totalCalories: 1480,
-  macros: DietMacros(
+  macros: const DietMacros(
     carbsPct: 52,
     proteinPct: 25,
     fatPct: 23,
