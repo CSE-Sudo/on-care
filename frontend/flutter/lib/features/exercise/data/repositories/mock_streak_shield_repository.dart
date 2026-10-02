@@ -8,6 +8,7 @@ import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/entities/streak_shield.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/repositories/streak_shield_repository.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 데모 모드의 보호권 저장소. 규칙은 [DemoStreakShieldBook] 이 서버와 같게 들고
 /// 있다. (#1788)
@@ -76,7 +77,7 @@ class MockStreakShieldRepository implements StreakShieldRepository {
 
     final List<DateTime> mondays = <DateTime>[
       for (
-        DateTime monday = _mondayOf(first);
+        DateTime monday = mondayOf(first);
         !monday.isAfter(last);
         monday = _shift(monday, 7)
       )
@@ -116,8 +117,6 @@ class MockStreakShieldRepository implements StreakShieldRepository {
 
   static DateTime _shift(DateTime d, int days) =>
       DateTime(d.year, d.month, d.day + days);
-
-  static DateTime _mondayOf(DateTime d) => _shift(d, 1 - d.weekday);
 
   static String _key(DateTime d) => '${d.year}-${d.month}-${d.day}';
 }

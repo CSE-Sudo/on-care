@@ -11,6 +11,7 @@ import 'package:oncare/features/diet/domain/entities/food_nutrition_suggestion.d
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Real-network implementation of [DietRepository]. Issues HTTP
 /// requests via [Dio]; the dev/local build serves them out of
@@ -48,7 +49,7 @@ class DioDietRepository implements DietRepository {
   @override
   Future<DietDay> fetchByDate(DateTime date) async {
     final res = await _dio.get<Map<String, Object?>>(
-      '/diet/days/${_formatDate(date)}',
+      '/diet/days/${wireDate(date)}',
     );
     return DietDay.fromJson(res.data!);
   }
@@ -58,17 +59,12 @@ class DioDietRepository implements DietRepository {
     final res = await _dio.get<Map<String, Object?>>(
       '/diet/days',
       queryParameters: <String, String>{
-        if (from != null) 'from': _formatDate(from),
-        if (to != null) 'to': _formatDate(to),
+        if (from != null) 'from': wireDate(from),
+        if (to != null) 'to': wireDate(to),
       },
     );
     return DietPeriod.fromJson(res.data!);
   }
-
-  String _formatDate(DateTime date) =>
-      '${date.year.toString().padLeft(4, '0')}-'
-      '${date.month.toString().padLeft(2, '0')}-'
-      '${date.day.toString().padLeft(2, '0')}';
 
   @override
   Future<MealRecommendations> fetchRecommendations() async {

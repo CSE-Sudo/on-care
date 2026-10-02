@@ -421,11 +421,7 @@ DietDateRange dietRangeForTab(
     );
     return (from: from.isBefore(floor) ? floor : from, to: last);
   }
-  final DateTime monday = DateTime(
-    today.year,
-    today.month,
-    today.day - (today.weekday - 1),
-  );
+  final DateTime monday = mondayOf(today);
   return (
     from: monday,
     to: DateTime(monday.year, monday.month, monday.day + 6),
@@ -492,9 +488,7 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
     // 두면 한 줄에 지난주 끝과 이번 주 앞이 섞여, `이번 주` 그래프가 세는
     // 주와 달력이 보여 주는 주가 서로 어긋났다.
     final DateTime center = today.add(Duration(days: _weekShift * 7));
-    final DateTime monday = center.subtract(
-      Duration(days: center.weekday - DateTime.monday),
-    );
+    final DateTime monday = mondayOf(center);
     final List<DateTime> days = List<DateTime>.generate(
       7,
       (int i) => monday.add(Duration(days: i)),

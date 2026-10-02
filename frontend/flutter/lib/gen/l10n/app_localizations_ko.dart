@@ -3090,6 +3090,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authEmailInvalid => '이메일 형식이 올바르지 않아요';
 
   @override
+  String get authEmailTooLong => '이메일은 255자까지 입력할 수 있어요';
+
+  @override
   String get authPasswordEmpty => '비밀번호를 입력해 주세요';
 
   @override

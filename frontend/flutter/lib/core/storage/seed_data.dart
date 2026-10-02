@@ -8,6 +8,7 @@ import 'package:oncare/core/demo/demo_alert_keys.dart';
 import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 하루 단위 코치 문구(날짜 → 문장)를 담는 키-값 키.
 ///
@@ -84,7 +85,7 @@ Future<bool> _hadBenefitsSeed(AppDatabase db) async {
 /// 스트레칭 breakdown the prototype shows.
 Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
   final now = nowKst();
-  final today = _fmtDate(now);
+  final today = wireDate(now);
 
   // 뺀 데모 알림(#2854)은 오늘 이미 시드된 설치에서도 걷어 낸다 — 날짜가
   // 바뀌기를 기다리면 그날 하루 실서버에 없는 알림이 남는다.
@@ -273,8 +274,3 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
 
   await db.putValue(kSeedFlag, today);
 }
-
-String _fmtDate(DateTime d) =>
-    '${d.year.toString().padLeft(4, '0')}-'
-    '${d.month.toString().padLeft(2, '0')}-'
-    '${d.day.toString().padLeft(2, '0')}';

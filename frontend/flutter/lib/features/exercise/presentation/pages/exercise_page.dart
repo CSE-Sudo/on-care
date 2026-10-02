@@ -463,9 +463,7 @@ class _ExerciseWeekStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     // 월요일에서 시작해 일요일로 끝난다 — 식단 탭과 같은 규칙이다. (#1059)
-    final DateTime monday = center.subtract(
-      Duration(days: center.weekday - DateTime.monday),
-    );
+    final DateTime monday = mondayOf(center);
     final List<DateTime> days = List<DateTime>.generate(
       7,
       (int i) => monday.add(Duration(days: i)),

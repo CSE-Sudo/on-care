@@ -1609,6 +1609,7 @@
   "authGoogleAction": "구글로 시작하기",
   "authEmailEmpty": "이메일을 입력해 주세요",
   "authEmailInvalid": "이메일 형식이 올바르지 않아요",
+  "authEmailTooLong": "이메일은 255자까지 입력할 수 있어요",
   "authPasswordEmpty": "비밀번호를 입력해 주세요",
   "authSignInFailed": "로그인에 실패했어요. 이메일·비밀번호를 확인해 주세요",
   "authSignInNetworkFailed": "인터넷 연결을 확인하고 다시 시도해 주세요",

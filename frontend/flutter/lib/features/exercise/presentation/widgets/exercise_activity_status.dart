@@ -132,11 +132,7 @@ final Color kBurnColor = OnCareBrand.member.strong;
 /// 화면에서 쓰는 소모 칼로리 색 — 테마 브랜드의 `strong`.
 Color _burnColor(BuildContext context) => context.oncare.brand.strong;
 
-DateTime _thisMonday() {
-  final DateTime n = nowKst();
-  final DateTime d = DateTime(n.year, n.month, n.day);
-  return d.subtract(Duration(days: d.weekday - 1));
-}
+DateTime _thisMonday() => mondayOf(nowKst());
 
 DateTime _today() {
   final DateTime n = nowKst();
@@ -1344,9 +1340,7 @@ class _AllPeriodView extends ConsumerWidget {
             final Map<DateTime, List<ExerciseDayBar>> byWeek =
                 <DateTime, List<ExerciseDayBar>>{};
             for (final ExerciseDayBar d in days) {
-              final DateTime monday = d.date.subtract(
-                Duration(days: d.date.weekday - 1),
-              );
+              final DateTime monday = mondayOf(d.date);
               byWeek.putIfAbsent(monday, () => <ExerciseDayBar>[]).add(d);
             }
             final List<DateTime> mondays = byWeek.keys.toList()..sort();

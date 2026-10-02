@@ -5,6 +5,7 @@ import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart' show DemoCouponResult;
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// [monday] 주에 운동 기록이 있는 날들(자정으로 자른 날짜).
 typedef DemoExerciseDays = Future<Set<DateTime>> Function(DateTime monday);
@@ -58,7 +59,7 @@ class DemoWeeklyChallenge implements DemoPersistable {
 
   /// 주가 끝난 진행 중 챌린지를 판정한다. 이번에 판정한 것의 결과 알림을 돌려준다.
   Future<List<DemoChallengeNotice>> settleDue(DemoExerciseDays daysOf) async {
-    final DateTime thisMonday = _mondayOf(_today());
+    final DateTime thisMonday = mondayOf(_today());
     final List<DemoChallengeNotice> notices = <DemoChallengeNotice>[];
     for (final _DemoChallenge c in List<_DemoChallenge>.of(_challenges)) {
       if (c.status != _active || !c.weekStart.isBefore(thisMonday)) continue;
@@ -87,7 +88,7 @@ class DemoWeeklyChallenge implements DemoPersistable {
     int? goal,
   }) async {
     final DateTime today = _today();
-    final DateTime monday = _mondayOf(today);
+    final DateTime monday = mondayOf(today);
     final _DemoChallenge? row = _forWeek(monday);
     final int balance = _ledger.balance;
     final int progress = _count(await daysOf(monday), monday, today);
@@ -99,9 +100,9 @@ class DemoWeeklyChallenge implements DemoPersistable {
         ? 'insufficient_points'
         : null;
     return <String, Object?>{
-      'week_start': _ymd(monday),
-      'week_end': _ymd(_addDays(monday, 6)),
-      'join_until': _ymd(_addDays(monday, 1)),
+      'week_start': wireDate(monday),
+      'week_end': wireDate(_addDays(monday, 6)),
+      'join_until': wireDate(_addDays(monday, 1)),
       'stake': row?.stake ?? stake,
       'reward': row?.reward ?? reward,
       'goal': row?.goal ?? goalOf(goal),
@@ -129,7 +130,7 @@ class DemoWeeklyChallenge implements DemoPersistable {
       }
     }
     final DateTime today = _today();
-    final DateTime monday = _mondayOf(today);
+    final DateTime monday = mondayOf(today);
     if (_forWeek(monday) != null) {
       return _error(409, '이번 주 챌린지에 이미 참가했어요.');
     }
@@ -222,9 +223,6 @@ class DemoWeeklyChallenge implements DemoPersistable {
     return DateTime(now.year, now.month, now.day);
   }
 
-  static DateTime _mondayOf(DateTime day) =>
-      DateTime(day.year, day.month, day.day - (day.weekday - DateTime.monday));
-
   static DateTime _addDays(DateTime day, int days) =>
       DateTime(day.year, day.month, day.day + days);
 
@@ -264,8 +262,8 @@ class DemoWeeklyChallenge implements DemoPersistable {
     final int days = c.finalDays ?? progress ?? 0;
     return <String, Object?>{
       'id': c.id,
-      'week_start': _ymd(c.weekStart),
-      'week_end': _ymd(_addDays(c.weekStart, 6)),
+      'week_start': wireDate(c.weekStart),
+      'week_end': wireDate(_addDays(c.weekStart, 6)),
       'goal': c.goal,
       'progress': days,
       'stake': c.stake,
@@ -304,11 +302,6 @@ class DemoWeeklyChallenge implements DemoPersistable {
 
   static DemoCouponResult _error(int status, String detail) =>
       DemoCouponResult(status, <String, Object?>{'detail': detail});
-
-  static String _ymd(DateTime day) =>
-      '${day.year.toString().padLeft(4, '0')}-'
-      '${day.month.toString().padLeft(2, '0')}-'
-      '${day.day.toString().padLeft(2, '0')}';
 }
 
 /// 판정 결과 알림 한 건. 목업 API 가 알림함에 넣는다(`category: benefits`).

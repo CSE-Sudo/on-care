@@ -30,6 +30,7 @@ import 'package:oncare/features/place/domain/entities/place.dart';
 import 'package:oncare/features/place/domain/entities/place_query.dart';
 import 'package:oncare/features/place/presentation/controllers/place_controller.dart';
 import 'package:oncare/shared/services/record_span_provider.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 // 타입을 적어 둔다 — 목업 코치 저장소와 서로를 읽어(추천 개인운동, #2161)
 // 추론이 둘 사이를 돈다.

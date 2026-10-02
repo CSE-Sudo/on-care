@@ -2330,6 +2330,10 @@
     "description": "Red text under the email field on sign-in/sign-up when it is empty (#1784)."
   },
   "authEmailInvalid": "Enter a valid email address",
+  "authEmailTooLong": "Email addresses can be up to 255 characters",
+  "@authEmailTooLong": {
+    "description": "Red text under the email field when the address is longer than the server limit (#2908). The limit matches the users.email column and EMAIL_MAX_LENGTH in contact_format.py."
+  },
   "authPasswordEmpty": "Enter your password",
   "authSignInFailed": "Sign-in failed. Check your email and password",
   "authSignInNetworkFailed": "Check your internet connection and try again",

@@ -110,6 +110,25 @@ void main() {
     expect(repo.saves, 0, reason: '형식이 틀린 이메일은 서버로 보내지 않는다');
   });
 
+  testWidgets('255자를 넘는 이메일은 저장을 보내지 않고 길이 문구로 알린다', (
+    WidgetTester tester,
+  ) async {
+    // 서버 `contact_format.EMAIL_MAX_LENGTH` 와 같은 상한이다(#2908). 전에는
+    // 화면이 형식만 보고 통과시켜 저장 실패 토스트만 남았다.
+    final (AppLocalizations l, _CountingAccountRepository repo) =
+        await _openProfile(tester);
+    const String domain = '@oncare.com';
+    final String tooLong =
+        '${'a' * (AppInputRules.emailMaxLength + 1 - domain.length)}$domain';
+
+    await tester.enterText(find.byKey(_email), tooLong);
+    await _save(tester, l);
+
+    expect(find.text(l.authEmailTooLong), findsOneWidget);
+    expect(find.text(l.authEmailInvalid), findsNothing);
+    expect(repo.saves, 0, reason: '너무 긴 이메일은 서버로 보내지 않는다');
+  });
+
   testWidgets('이메일 칸을 비워도 저장을 보내지 않는다', (WidgetTester tester) async {
     final (AppLocalizations l, _CountingAccountRepository repo) =
         await _openProfile(tester);

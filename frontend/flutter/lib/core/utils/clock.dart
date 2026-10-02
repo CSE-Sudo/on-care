@@ -124,13 +124,7 @@ bool isSameKstDay(DateTime a, DateTime b) => kstDateOf(a) == kstDateOf(b);
 /// 날을 건너가면 한 시간이 남거나 모자라 전날 23:00 으로 떨어지고, 그 값을
 /// `ymd()` 로 자르면 날짜가 하루 어긋난다. `DateTime` 생성자는 넘친 일 수를
 /// 달력 기준으로 정규화하므로 시간대 전환과 상관없이 자정이 유지된다.
-/// 날짜만 다루는 계산(주 이동·요일 칸·반복 회차)은 이 함수를 쓴다.
+/// 날짜만 다루는 계산(주 이동·요일 칸·반복 회차)은 이 함수를 쓴다. 주의 월요일은
+/// `oncare_ui` 의 `mondayOf` 가 같은 방식으로 구한다(#2908).
 DateTime addCalendarDays(DateTime d, int days) =>
     DateTime(d.year, d.month, d.day + days);
-
-/// [d] 가 속한 주의 월요일 0시. (#2890)
-///
-/// 주 단위 조회 키·주간 화면의 첫 칸이다. [addCalendarDays] 와 같은 이유로
-/// `subtract(Duration(days: …))` 를 쓰지 않는다.
-DateTime mondayOf(DateTime d) =>
-    addCalendarDays(d, -(d.weekday - DateTime.monday));

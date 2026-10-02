@@ -139,7 +139,7 @@ class _ReportRowState extends ConsumerState<_ReportRow> {
       padding: EdgeInsets.zero,
       child: AppListRow(
         key: ValueKey<String>(
-          'coach-report-${ymdOfReportWeek(widget.notice.weekStart)}',
+          'coach-report-${wireDate(widget.notice.weekStart)}',
         ),
         title: weekRangeLabel(l, widget.notice.weekStart),
         subtitle: l.coachReportSentOn(sentAt.month, sentAt.day),
