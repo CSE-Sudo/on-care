@@ -20,7 +20,7 @@ from app.schemas.trainer_api import (
     RoutineSuggestionCreateRequest,
     RoutineUpdateRequest,
 )
-from app.services.trainer_service import _apply_routine_duration, _routine_seconds
+from app.services.trainer._common import _apply_routine_duration, _routine_seconds
 
 
 # ---- 스키마·규칙 (DB 없음) ----

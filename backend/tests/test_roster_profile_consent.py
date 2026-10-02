@@ -23,7 +23,7 @@ from sqlalchemy import select
 
 from app.core import clock
 from app.models.models import HealthProfile, TrainerClient, User
-from app.services import trainer_service
+from app.services.trainer import roster as trainer_roster_service
 
 PREFIX = "roster2814-"
 
@@ -82,7 +82,7 @@ def _member_with_profile(db_session, trainer: User, *, order: int, **link_fields
 
 
 def _card(db_session, trainer: User, member_id: str):
-    rows = trainer_service.build_roster(db_session, trainer.id, limit=50)
+    rows = trainer_roster_service.build_roster(db_session, trainer.id, limit=50)
     return next(r for r in rows if r.id == member_id)
 
 

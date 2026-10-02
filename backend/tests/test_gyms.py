@@ -426,9 +426,9 @@ def test_my_coach_exposes_gym_id(client, db_session):
     데모 회원(user-7d4e9a2c5f18)은 hashed_password 가 비어 있어 로그인할 수 없으므로
     서비스를 직접 호출해 확인한다.
     """
-    from app.services import trainer_service
+    from app.services.trainer import member_mirror as trainer_member_mirror_service
 
-    coach = trainer_service.build_member_coach(db_session, "user-7d4e9a2c5f18")
+    coach = trainer_member_mirror_service.build_member_coach(db_session, "user-7d4e9a2c5f18")
     assert coach is not None, "시드가 user-7d4e9a2c5f18 ↔ 데모 트레이너(trainer-demo)를 연결해야 한다"
     # 이름만으로는 목록의 헬스장과 이어붙일 수 없다.
     assert coach.gym.id == "gym-oncare-sinchon"
@@ -550,7 +550,7 @@ def test_coach_gym_follows_the_member_link_not_the_trainer(db_session, connected
     따라간다.
     """
     from app.models import models
-    from app.services import trainer_service
+    from app.services.trainer import member_mirror as trainer_member_mirror_service
 
     member_id, _token = connected_member()
     # 데모 트레이너의 소속은 gym-oncare-sinchon 이다. 회원만 다른 곳으로 옮긴다.
@@ -558,7 +558,7 @@ def test_coach_gym_follows_the_member_link_not_the_trainer(db_session, connected
     link.gym_id = "gym-healthmate"
     db_session.commit()
 
-    coach = trainer_service.build_member_coach(db_session, member_id)
+    coach = trainer_member_mirror_service.build_member_coach(db_session, member_id)
     assert coach is not None
     assert coach.gym.id == "gym-healthmate"
     assert coach.gym.name == "헬스메이트 신촌점"
@@ -587,13 +587,13 @@ def test_coach_gym_falls_back_to_the_trainer_when_unlinked(db_session, connected
     빈 카드로 퇴화시키는 것보다 낫다.
     """
     from app.models import models
-    from app.services import trainer_service
+    from app.services.trainer import member_mirror as trainer_member_mirror_service
 
     member_id, _token = connected_member()
     db_session.delete(db_session.get(models.MemberGym, member_id))
     db_session.commit()
 
-    coach = trainer_service.build_member_coach(db_session, member_id)
+    coach = trainer_member_mirror_service.build_member_coach(db_session, member_id)
     assert coach is not None
     assert coach.gym.id == "gym-oncare-sinchon"
 
@@ -631,7 +631,8 @@ def test_discovered_gyms_expose_no_invented_numbers(client):
 def test_disconnect_clears_every_active_link(client, db_session):
     """활성 링크가 여러 개 남은 경우에도 전부 내려야 '해제했는데 그대로'가 안 된다."""
     from app.models.models import TrainerClient
-    from app.services import trainer_service
+    from app.services.trainer import _common as trainer_common_service
+    from app.services.trainer import member_mirror as trainer_member_mirror_service
     from tests.test_consultations import _register_member
 
     member_id, _token = _register_member(client)
@@ -645,8 +646,8 @@ def test_disconnect_clears_every_active_link(client, db_session):
     )
     db_session.commit()
     try:
-        assert trainer_service.disconnect_member_coach(db_session, member_id) is True
-        assert trainer_service.get_member_trainer_id(db_session, member_id) is None
+        assert trainer_member_mirror_service.disconnect_member_coach(db_session, member_id) is True
+        assert trainer_common_service.get_member_trainer_id(db_session, member_id) is None
         remaining = db_session.query(TrainerClient).filter(
             TrainerClient.member_id == member_id, TrainerClient.active.is_(True)
         ).count()

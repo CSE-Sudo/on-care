@@ -37,7 +37,7 @@ def _trainer_tok(client) -> str:
 
 
 def _last_week() -> str:
-    from app.services.trainer_service import week_start_of
+    from app.services.trainer.reports import week_start_of
 
     return (week_start_of(clock.today()) - timedelta(days=7)).isoformat()
 
@@ -47,7 +47,7 @@ def _last_week() -> str:
 def test_default_week_is_last_week_not_this_one():
     """기본값이 지난 주인 까닭 — 끝나지도 않은 주의 `한 주 컨디션` 은 물을 수 없다."""
     from app.api.v1.member_coach import _feedback_week
-    from app.services.trainer_service import week_start_of
+    from app.services.trainer.reports import week_start_of
 
     assert _feedback_week(None) == week_start_of(clock.today()) - timedelta(days=7)
 
@@ -98,7 +98,7 @@ def test_empty_week_start_means_the_same_as_not_sending_one():
 def test_allowed_values_match_the_database_constraint():
     """서비스와 DB 가 같은 목록을 봐야 한다 — 한쪽만 늘리면 저장이 DB 에서 막힌다."""
     from app.models.models import MemberWeeklyFeedback
-    from app.services.trainer_service import (
+    from app.services.trainer.weekly_feedback import (
         _WEEKLY_FEEDBACK_CONDITIONS,
         _WEEKLY_FEEDBACK_INTENSITIES,
     )
@@ -113,7 +113,7 @@ def test_allowed_values_match_the_database_constraint():
 
 def test_condition_scale_runs_from_best_to_worst():
     """화면이 이 순서를 그대로 줄로 세운다 — 섞이면 `좋음` 이 `나쁨` 왼쪽이 아니게 된다."""
-    from app.services.trainer_service import _WEEKLY_FEEDBACK_CONDITIONS
+    from app.services.trainer.weekly_feedback import _WEEKLY_FEEDBACK_CONDITIONS
 
     assert _WEEKLY_FEEDBACK_CONDITIONS == ("great", "good", "ok", "tired", "bad")
 
@@ -121,14 +121,14 @@ def test_condition_scale_runs_from_best_to_worst():
 def test_intensity_scale_runs_from_too_easy_to_too_hard():
     """양쪽 끝이 모두 있어야 한다. `힘들었나` 만 물으면 너무 쉬웠던 주가 `괜찮음`
     으로 접혀, 다음 주에도 같은 무게가 나간다."""
-    from app.services.trainer_service import _WEEKLY_FEEDBACK_INTENSITIES
+    from app.services.trainer.weekly_feedback import _WEEKLY_FEEDBACK_INTENSITIES
 
     assert _WEEKLY_FEEDBACK_INTENSITIES == ("too_easy", "right", "hard", "too_hard")
 
 
 def test_intensity_scale_has_a_middle():
     """가운데 값이 없으면 `딱 맞았다` 를 말할 수 없어, 모든 주가 문제로 보인다."""
-    from app.services.trainer_service import _WEEKLY_FEEDBACK_INTENSITIES
+    from app.services.trainer.weekly_feedback import _WEEKLY_FEEDBACK_INTENSITIES
 
     assert "right" in _WEEKLY_FEEDBACK_INTENSITIES
 

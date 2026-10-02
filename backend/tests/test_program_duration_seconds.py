@@ -20,15 +20,14 @@ from app.schemas.trainer_api import (
 from app.services import notification_templates as nt
 from app.services.coach.personal_ingest import exercise_text
 from app.services.exercise_duration import format_duration
-from app.services.trainer_service import (
-    _program_item_label,
+from app.services.trainer._common import (
     _program_items,
     _program_notification_args,
     _program_row_seconds,
-    _program_seconds_and_type,
     _session_seconds,
     _session_summary,
 )
+from app.services.trainer.schedule import _program_item_label, _program_seconds_and_type
 
 
 def _draft(**over) -> ProgramDraftExercise:

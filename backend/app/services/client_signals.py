@@ -100,7 +100,7 @@ RECORD_LOOKBACK_DAYS = 30
 NO_SHOW_WINDOW_DAYS = 30
 NO_SHOW_MIN_COUNT = 2
 #: `TrainerSchedule.status`·`cancellation_source` 계약값.
-#: `trainer_service.SCHEDULE_NO_SHOW`·`SCHEDULE_CANCELLED` 와 같다(테스트가 지킨다).
+#: `trainer._common.SCHEDULE_NO_SHOW`·`SCHEDULE_CANCELLED` 와 같다(테스트가 지킨다).
 _SCHEDULE_NO_SHOW = "노쇼"
 _SCHEDULE_CANCELLED = "취소"
 _CANCELLED_BY_MEMBER = "member"

@@ -20,7 +20,7 @@ import pytest
 
 from app.core.clock import SEOUL
 from app.services import health_focus, notification_service, notification_templates as nt
-from app.services.trainer_service import _amount_label, _routine_notification_args
+from app.services.trainer._common import _amount_label, _routine_notification_args
 
 HANGUL = re.compile(r"[가-힣]")
 STARTS = datetime(2026, 10, 1, 9, 5, tzinfo=SEOUL)
@@ -404,7 +404,7 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         "담당 트레이너 연결 해제",
         "담당 트레이너와 담당 연결이 끊어졌어요.",
     ),
-    # 일정 — `trainer_service` 의 일정 등록·변경·취소·반복 등록.
+    # 일정 — `trainer.schedule` 의 일정 등록·변경·취소·반복 등록.
     (
         nt.MEMBER_SCHEDULE_ADDED,
         {"date": "2026-10-01", "time": "09:00", "type": "1:1 PT"},
@@ -529,7 +529,7 @@ def test_every_template_has_a_korean_regression_case():
     assert covered == nt.codes()
 
 
-# 루틴 양은 `trainer_service._amount_label` 이 기준이다 — 두 규칙이 갈라지면 알림과
+# 루틴 양은 `trainer._common._amount_label` 이 기준이다 — 두 규칙이 갈라지면 알림과
 # 수행 이력이 같은 배정을 다르게 말한다.
 AMOUNTS = [
     ("유산소", 30, None, None, None, None),
@@ -546,7 +546,7 @@ AMOUNTS = [
 
 
 @pytest.mark.parametrize(("type_", "minutes", "sets", "reps", "hold", "weight"), AMOUNTS)
-def test_routine_amount_matches_the_trainer_service_rule(type_, minutes, sets, reps, hold, weight):
+def test_routine_amount_matches_the_trainer_routine_rule(type_, minutes, sets, reps, hold, weight):
     args = _routine_notification_args(
         "스쿼트", type_, minutes=minutes, sets=sets, reps=reps,
         hold_seconds=hold, weight=weight,
@@ -1344,9 +1344,9 @@ def test_challenge_period_crosses_the_year():
 
 
 def test_schedule_slot_args_match_the_member_visible_slot():
-    from app.services import trainer_service as ts
+    from app.services.trainer import schedule as trainer_schedule_service
 
-    args = ts._slot_args(("2026-10-01", "09:00", "1:1 PT", 50))
+    args = trainer_schedule_service._slot_args(("2026-10-01", "09:00", "1:1 PT", 50))
     assert args == {"date": "2026-10-01", "time": "09:00", "type": "1:1 PT"}
     assert _ko(nt.MEMBER_SCHEDULE_CANCELLED, args)[1] == "2026-10-01 09:00 · 1:1 PT"
 

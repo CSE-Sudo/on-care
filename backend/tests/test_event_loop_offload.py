@@ -24,8 +24,8 @@ _SLOW_SECONDS = 1.5
     [
         ("app.api.v1.chat_attachments", "receive_chat_image"),
         ("app.api.v1.member_coach", "send_image_to_coach"),
-        ("app.api.v1.trainer", "trainer_send_chat_image"),
-        ("app.api.v1.trainer", "trainer_send_report_pdf"),
+        ("app.api.v1.trainer.chat", "trainer_send_chat_image"),
+        ("app.api.v1.trainer.reports", "trainer_send_report_pdf"),
     ],
 )
 def test_upload_routes_without_external_awaits_are_sync(module, name):
@@ -41,8 +41,8 @@ def test_upload_routes_without_external_awaits_are_sync(module, name):
         ("app.api.v1.diet", "diet_analyze"),
         ("app.api.v1.social", "social_login"),
         ("app.api.v1.places", "places_nearby"),
-        ("app.api.v1.trainer", "trainer_search_gyms"),
-        ("app.api.v1.trainer", "trainer_set_kakao_gym"),
+        ("app.api.v1.trainer.profile", "trainer_search_gyms"),
+        ("app.api.v1.trainer.profile", "trainer_set_kakao_gym"),
     ],
 )
 def test_routes_that_await_external_calls_stay_async(module, name):

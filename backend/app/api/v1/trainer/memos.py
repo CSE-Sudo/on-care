@@ -17,8 +17,9 @@ from app.schemas.trainer_api import (
 )
 from app.services import (
     client_feedback_service,
-    trainer_service,
 )
+from app.services.trainer import memos as trainer_memos_service
+from app.services.trainer import routines as trainer_routines_service
 from app.api.v1.trainer._common import (
     _require_client,
 )
@@ -42,7 +43,7 @@ def trainer_client_memos(
 ) -> list[TrainerMemoOut]:
     """담당 고객에 대해 내가 남긴 메모 목록(최신 먼저)."""
     _require_client(db, trainer.id, member_id)
-    return trainer_service.build_memos(db, trainer.id, member_id)
+    return trainer_memos_service.build_memos(db, trainer.id, member_id)
 
 
 @router.post(
@@ -71,7 +72,7 @@ def trainer_create_memo(
         # 공백만 있는 메모를 성공으로 처리하면 목록에 빈 줄이 쌓인다.
         raise HTTPException(status_code=400, detail="메모 내용이 필요합니다.")
     try:
-        return trainer_service.create_memo(
+        return trainer_memos_service.create_memo(
             db, trainer.id, member_id,
             body=body,
             source=payload.source,
@@ -81,7 +82,7 @@ def trainer_create_memo(
             ref_date=payload.ref_date,
             category=payload.category,
         )
-    except trainer_service.RoutineNotFound as exc:
+    except trainer_routines_service.RoutineNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
@@ -106,12 +107,12 @@ def trainer_update_memo(
         if not fields["body"]:
             raise HTTPException(status_code=400, detail="메모 내용이 필요합니다.")
     try:
-        return trainer_service.update_memo(
+        return trainer_memos_service.update_memo(
             db, trainer.id, member_id, memo_id, fields
         )
-    except trainer_service.MemoNotFound as exc:
+    except trainer_memos_service.MemoNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except trainer_service.MemoCategoryLocked as exc:
+    except trainer_memos_service.MemoCategoryLocked as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
@@ -144,7 +145,7 @@ def trainer_delete_memo(
     """메모 삭제. 트레이너 혼자 보는 기록이라 비활성 상태를 두지 않고 지운다."""
     _require_client(db, trainer.id, member_id)
     try:
-        trainer_service.delete_memo(db, trainer.id, member_id, memo_id)
-    except trainer_service.MemoNotFound as exc:
+        trainer_memos_service.delete_memo(db, trainer.id, member_id, memo_id)
+    except trainer_memos_service.MemoNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return {"status": "deleted"}

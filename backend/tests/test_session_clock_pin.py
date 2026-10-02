@@ -139,18 +139,19 @@ def test_clock_today_holds_across_midnight(midnight_source, session_clock_pin) -
 def test_service_today_helpers_hold_across_midnight(
     midnight_source, session_clock_pin
 ) -> None:
-    from app.services import diet_service, trainer_service
+    from app.services import diet_service
+    from app.services.trainer import _common as trainer_common_service
 
     start_iso = session_clock_pin.start_date.isoformat()
     midnight_source.moment = midnight_source.moment + timedelta(minutes=5)
 
     assert diet_service.today_str() == start_iso
-    assert trainer_service.today_iso() == start_iso
+    assert trainer_common_service.today_iso() == start_iso
 
 
 def test_relative_time_label_reads_the_pinned_today(midnight_source) -> None:
     """채팅 시각 라벨도 같은 '오늘'을 본다 — 자정 뒤에 '어제'로 밀리지 않는다."""
-    from app.services.trainer_service import relative_time_label
+    from app.services.trainer._common import relative_time_label
 
     seeded = clock.now().replace(hour=21, minute=10, second=0, microsecond=0)
     midnight_source.moment = midnight_source.moment + timedelta(minutes=5)

@@ -23,8 +23,8 @@ from app.schemas.consultation_api import (
 )
 from app.services import (
     consultation_service,
-    trainer_service,
 )
+from app.services.trainer import schedule as trainer_schedule_service
 
 
 router = APIRouter(tags=["trainer"])
@@ -114,10 +114,10 @@ def trainer_accept_consultation(
         )
     except consultation_service.ConsultationNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except trainer_service.ScheduleOverlap as exc:
+    except trainer_schedule_service.ScheduleOverlap as exc:
         # 회원이 고른 자리에 그 사이 트레이너가 다른 일정을 잡았다. (#2284)
         raise HTTPException(
-            status_code=409, detail=trainer_service.overlap_detail(exc)
+            status_code=409, detail=trainer_schedule_service.overlap_detail(exc)
         ) from exc
     except (
         consultation_service.ConsultationAlreadyDecided,

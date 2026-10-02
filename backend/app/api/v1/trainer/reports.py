@@ -43,8 +43,11 @@ from app.services import (
     notification_service,
     trainer_report_summary_service,
     report_pdf_storage,
-    trainer_service,
 )
+from app.services.trainer import chat as trainer_chat_service
+from app.services.trainer import _common as trainer_common_service
+from app.services.trainer import reports as trainer_reports_service
+from app.services.trainer import weekly_feedback as trainer_weekly_feedback_service
 from app.api.v1.trainer._common import (
     _audit_client_read,
     _is_ymd,
@@ -66,9 +69,9 @@ def _report_week(day: str) -> _date:
     """
     if not _is_ymd(day):
         raise HTTPException(status_code=422, detail="week_start 는 YYYY-MM-DD 형식이어야 합니다.")
-    week = trainer_service.week_start_of(_date.fromisoformat(day))
-    today = _date.fromisoformat(trainer_service.today_iso())
-    if week > trainer_service.week_start_of(today):
+    week = trainer_reports_service.week_start_of(_date.fromisoformat(day))
+    today = _date.fromisoformat(trainer_common_service.today_iso())
+    if week > trainer_reports_service.week_start_of(today):
         raise HTTPException(status_code=422, detail="아직 오지 않은 주는 조회할 수 없습니다.")
     return week
 
@@ -86,8 +89,8 @@ def trainer_client_report(
 ) -> WeeklyReportOut:
     """담당 고객의 주간 리포트. 아무 요일을 줘도 그 주의 월요일로 정규화한다."""
     _require_client(db, trainer.id, member_id)
-    return trainer_service.build_weekly_report(
-        db, trainer.id, member_id, _report_week(week_start or trainer_service.today_iso())
+    return trainer_reports_service.build_weekly_report(
+        db, trainer.id, member_id, _report_week(week_start or trainer_common_service.today_iso())
     )
 
 
@@ -124,7 +127,7 @@ def trainer_client_report_summary(
         db,
         trainer.id,
         member_id,
-        _report_week(week_start or trainer_service.today_iso()),
+        _report_week(week_start or trainer_common_service.today_iso()),
         locale,
     )
 
@@ -145,9 +148,9 @@ def trainer_client_report_feedback(
     아직 쓰지 않은 상태이고, 화면은 그때 자동 생성 문구를 쓴다.
     """
     _require_client(db, trainer.id, member_id)
-    return trainer_service.get_report_feedback(
+    return trainer_reports_service.get_report_feedback(
         db, trainer.id, member_id,
-        _report_week(week_start or trainer_service.today_iso()),
+        _report_week(week_start or trainer_common_service.today_iso()),
     )
 
 
@@ -168,8 +171,8 @@ def trainer_save_client_report_feedback(
     회원에게 아무것도 보내지 않는다.
     """
     _require_client(db, trainer.id, member_id)
-    week = _report_week(payload.week_start or trainer_service.today_iso())
-    return trainer_service.save_report_feedback(
+    week = _report_week(payload.week_start or trainer_common_service.today_iso())
+    return trainer_reports_service.save_report_feedback(
         db, trainer.id, member_id, week, payload.body
     )
 
@@ -193,8 +196,8 @@ def trainer_client_member_weekly_feedback(
     아직 답하지 않았으면 `submitted=false` 로 답한다 — 오류가 아니다.
     """
     _require_client(db, trainer.id, member_id)
-    return trainer_service.get_member_weekly_feedback(
-        db, member_id, _report_week(week_start or trainer_service.today_iso())
+    return trainer_weekly_feedback_service.get_member_weekly_feedback(
+        db, member_id, _report_week(week_start or trainer_common_service.today_iso())
     )
 
 
@@ -219,8 +222,8 @@ def trainer_client_report_goals(
     회원의 첫 주다.
     """
     _require_client(db, trainer.id, member_id)
-    return trainer_service.get_report_goals(
-        db, member_id, _report_week(week_start or trainer_service.today_iso())
+    return trainer_reports_service.get_report_goals(
+        db, member_id, _report_week(week_start or trainer_common_service.today_iso())
     )
 
 
@@ -244,8 +247,8 @@ def trainer_save_report_goals(
     목표를 통째로 바꾸는 동작이라 여러 번 눌러도 결과가 같다.
     """
     _require_client(db, trainer.id, member_id)
-    week = _report_week(payload.week_start or trainer_service.today_iso())
-    return trainer_service.save_report_goals(
+    week = _report_week(payload.week_start or trainer_common_service.today_iso())
+    return trainer_reports_service.save_report_goals(
         db, trainer.id, member_id, week, payload.goals
     )
 
@@ -262,8 +265,8 @@ def trainer_report_queue(
     나갔다. 큐가 쓰는 값(세션 예약·완료, 이행률)만 묶어 준다 — 회원 한 명의
     전체 리포트는 편집기를 열 때 `/trainer/clients/{id}/report` 로 읽는다.
     """
-    return trainer_service.build_report_queue(
-        db, trainer.id, _report_week(week_start or trainer_service.today_iso())
+    return trainer_reports_service.build_report_queue(
+        db, trainer.id, _report_week(week_start or trainer_common_service.today_iso())
     )
 
 
@@ -279,8 +282,8 @@ def trainer_report_sends(
     전에 확인을 받는 근거다. 회원마다 따로 묻지 않고 한 번에 준다 — 작업대는
     로스터 전체를 한 화면에 세운다.
     """
-    return trainer_service.list_report_sends(
-        db, trainer.id, _report_week(week_start or trainer_service.today_iso())
+    return trainer_reports_service.list_report_sends(
+        db, trainer.id, _report_week(week_start or trainer_common_service.today_iso())
     )
 
 
@@ -318,7 +321,7 @@ def trainer_client_report_sends(
                 status_code=422, detail="before 는 YYYY-MM-DD 형식이어야 합니다."
             )
         cursor = _date.fromisoformat(before)
-    return trainer_service.list_member_report_sends(
+    return trainer_reports_service.list_member_report_sends(
         db, trainer.id, member_id, limit=limit, before=cursor
     )
 
@@ -341,12 +344,12 @@ def trainer_send_report(
     서버가 생성한 것이 나간다.
     """
     _require_client(db, trainer.id, member_id)
-    week = _report_week(payload.week_start or trainer_service.today_iso())
+    week = _report_week(payload.week_start or trainer_common_service.today_iso())
     text = (payload.message or "").strip()
     if not text:
-        report = trainer_service.build_weekly_report(db, trainer.id, member_id, week)
+        report = trainer_reports_service.build_weekly_report(db, trainer.id, member_id, week)
         text = report.message
-    return trainer_service.send_message(
+    return trainer_chat_service.send_message(
         db, trainer.id, member_id, "trainer", text,
         notify=notification_service.WEEKLY_REPORT,
         report_week_start=week.isoformat(),
@@ -384,7 +387,7 @@ def trainer_send_report_pdf(
 
     # 재시도는 기존 메시지를 바로 돌려줘 파일을 다시 쓰지 않는다.
     if client_request_id:
-        existing = trainer_service.find_message_by_client_request(
+        existing = trainer_chat_service.find_message_by_client_request(
             db, trainer.id, member_id, "trainer", client_request_id
         )
         if existing is not None:
@@ -393,7 +396,7 @@ def trainer_send_report_pdf(
                     status_code=409,
                     detail="같은 client_request_id에 다른 메시지를 보낼 수 없습니다.",
                 )
-            return trainer_service.chat_message_out(existing, "trainer")
+            return trainer_chat_service.chat_message_out(existing, "trainer")
 
     if pdf.content_type != "application/pdf":
         raise HTTPException(status_code=415, detail="PDF 파일만 전송할 수 있습니다.")
@@ -415,7 +418,7 @@ def trainer_send_report_pdf(
     file_id: str | None = None
     try:
         file_id = report_pdf_storage.save(data)
-        sent = trainer_service.send_message(
+        sent = trainer_chat_service.send_message(
             db,
             trainer.id,
             member_id,
@@ -433,7 +436,7 @@ def trainer_send_report_pdf(
         if sent.attachment is None or sent.attachment.file_id != file_id:
             report_pdf_storage.delete(file_id)
         return sent
-    except trainer_service.IdempotencyConflict as exc:
+    except trainer_common_service.IdempotencyConflict as exc:
         if file_id:
             report_pdf_storage.delete(file_id)
         raise HTTPException(status_code=409, detail=str(exc)) from exc

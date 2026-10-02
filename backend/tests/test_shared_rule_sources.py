@@ -25,9 +25,9 @@ from app.services import (
     points_service,
     routine_ai,
     trainer_report_summary_service,
-    trainer_service,
 )
 from app.services.exercise_catalog import energy
+from app.services.trainer import _common as trainer_common_service
 
 #: 원본 표 위치. 백엔드 이미지에는 없고 저장소에서 테스트할 때만 읽는다.
 SOURCES = Path(__file__).resolve().parents[2] / "shared/oncare_rules/vectors"
@@ -73,7 +73,7 @@ def test_goal_defaults_module_has_no_value_missing_from_the_original() -> None:
         (diet_recommendation_service.DEFAULT_CALORIE_LIMIT, "daily_calories"),
         (diet_recommendation_service.DEFAULT_SODIUM_LIMIT_MG, "daily_sodium_mg"),
         (diet_recommendation_service.DEFAULT_SUGAR_LIMIT_G, "daily_sugar_g"),
-        (trainer_service.SODIUM_TARGET_MG, "daily_sodium_mg"),
+        (trainer_common_service.SODIUM_TARGET_MG, "daily_sodium_mg"),
         (routine_ai.SODIUM_TARGET_MG, "daily_sodium_mg"),
         (trainer_report_summary_service.SODIUM_TARGET_MG, "daily_sodium_mg"),
         (trainer_report_summary_service.CALORIE_TARGET_KCAL, "daily_calories"),

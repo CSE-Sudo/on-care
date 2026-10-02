@@ -34,7 +34,10 @@ from app.models.models import (
     TrainerSchedule,
     User,
 )
-from app.services import trainer_client_invite_service, trainer_service
+from app.services import trainer_client_invite_service
+from app.services.trainer import client_status as trainer_client_status_service
+from app.services.trainer import _common as trainer_common_service
+from app.services.trainer import schedule as trainer_schedule_service
 from app.services.audit_email import PREFIX, masked_email
 
 EMAIL_PREFIX = "race2911-"
@@ -259,10 +262,10 @@ def test_restore_race_raises_link_detached(client, db_session, cleanup, monkeypa
     restorer = _trainer(db_session)
     _link(db_session, holder, member_id, active=True)
     stale = _link(db_session, restorer, member_id, active=False)
-    _skip_select(trainer_service, monkeypatch)
+    _skip_select(trainer_client_status_service, monkeypatch)
 
-    with pytest.raises(trainer_service.ClientLinkDetached):
-        trainer_service.restore_client(db_session, stale)
+    with pytest.raises(trainer_common_service.ClientLinkDetached):
+        trainer_client_status_service.restore_client(db_session, stale)
 
     assert _active_trainers(db_session, member_id) == [holder]
 
@@ -272,7 +275,7 @@ def test_restore_without_race_still_works(client, db_session, cleanup):
     restorer = _trainer(db_session)
     stale = _link(db_session, restorer, member_id, active=False)
 
-    trainer_service.restore_client(db_session, stale)
+    trainer_client_status_service.restore_client(db_session, stale)
 
     assert _active_trainers(db_session, member_id) == [restorer]
 
@@ -410,16 +413,16 @@ def test_scheduled_routine_list_queries_do_not_grow_with_rows(
     many = _schedule_with_routines(db_session, trainer_id, member_id, 6)
 
     # 운동 참조표 캐시 같은 첫 호출 비용을 먼저 치른다.
-    trainer_service.list_scheduled_routines(db_session, trainer_id, one)
+    trainer_schedule_service.list_scheduled_routines(db_session, trainer_id, one)
     db_session.expire_all()
     single = _count_queries(
         db_session,
-        lambda: trainer_service.list_scheduled_routines(db_session, trainer_id, one),
+        lambda: trainer_schedule_service.list_scheduled_routines(db_session, trainer_id, one),
     )
     db_session.expire_all()
     multiple = _count_queries(
         db_session,
-        lambda: trainer_service.list_scheduled_routines(db_session, trainer_id, many),
+        lambda: trainer_schedule_service.list_scheduled_routines(db_session, trainer_id, many),
     )
 
     assert multiple == single
@@ -434,10 +437,10 @@ def test_scheduled_routine_list_still_fills_effect_from_goals(
     _set_goal_and_weight(db_session, member_id)
     schedule_id = _schedule_with_routines(db_session, trainer_id, member_id, 3)
 
-    rows = trainer_service.list_scheduled_routines(db_session, trainer_id, schedule_id)
+    rows = trainer_schedule_service.list_scheduled_routines(db_session, trainer_id, schedule_id)
 
     assert [row.effect for row in rows] == ["혈압 관리에 도움"] * 3
-    single = trainer_service._routine_out(
+    single = trainer_common_service._routine_out(
         db_session, db_session.get(TrainerRoutine, rows[0].id)
     )
     # 한 건 응답(조회를 그때그때 하는 길)과 목록 응답이 같은 값이다.
@@ -481,14 +484,14 @@ def test_every_object_detail_carries_a_code():
 
 
 def test_overlap_detail_has_code_and_message():
-    exc = trainer_service.ScheduleOverlap([], "겹쳐요")
-    detail = trainer_service.overlap_detail(exc)
-    assert detail["code"] == trainer_service.SCHEDULE_OVERLAP_CODE
+    exc = trainer_schedule_service.ScheduleOverlap([], "겹쳐요")
+    detail = trainer_schedule_service.overlap_detail(exc)
+    assert detail["code"] == trainer_schedule_service.SCHEDULE_OVERLAP_CODE
     assert detail["message"] == "겹쳐요"
 
 
 def test_attach_target_conflict_has_a_code():
-    assert trainer_service.AttachTargetConflict.code == "attach_target_conflict"
+    assert trainer_schedule_service.AttachTargetConflict.code == "attach_target_conflict"
 
 
 # ---------------------------------------------------------------------------

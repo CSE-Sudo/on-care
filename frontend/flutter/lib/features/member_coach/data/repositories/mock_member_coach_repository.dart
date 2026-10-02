@@ -476,7 +476,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   /// (#2161)
   ///
   /// 데모의 운동 AI 맞춤 조언(#2162)이 읽는 자리다. 실서버의
-  /// `trainer_service.member_routine_days` 와 같은 모양이라, 조언 규칙은 두 경로에서
+  /// `trainer._common.member_routine_days` 와 같은 모양이라, 조언 규칙은 두 경로에서
   /// 같은 입력을 받는다. 아직 오지 않은 날은 담지 않는다.
   List<RoutineDay> routineDaysBetween(DateTime from, DateTime to) {
     final DateTime today = todayKst();

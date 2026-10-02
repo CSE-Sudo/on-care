@@ -22,8 +22,9 @@ from app.schemas.trainer_api import (
 )
 from app.services import (
     trainer_routine_options_service,
-    trainer_service,
 )
+from app.services.trainer import routines as trainer_routines_service
+from app.services.trainer import schedule as trainer_schedule_service
 from app.api.v1.trainer._common import (
     _require_client,
 )
@@ -50,7 +51,7 @@ def trainer_latest_delivery(
     개인운동이 어느 PT 와 짝인지 알 수 없다(#2224). 보낸 적이 없으면 `null`.
     """
     _require_client(db, trainer.id, member_id)
-    return trainer_service.latest_delivery(db, trainer.id, member_id)
+    return trainer_schedule_service.latest_delivery(db, trainer.id, member_id)
 
 
 @router.get(
@@ -69,7 +70,7 @@ def trainer_unsent_personal_routines(
     `POST /trainer/schedule/{id}/routines/send` 가 맡는다(#2224).
     """
     _require_client(db, trainer.id, member_id)
-    return trainer_service.unsent_personal_routines(db, trainer.id, member_id)
+    return trainer_schedule_service.unsent_personal_routines(db, trainer.id, member_id)
 
 
 @router.get("/trainer/clients/{member_id}/routines", response_model=list[RoutineOut])
@@ -80,7 +81,7 @@ def trainer_client_routines(
 ) -> list[RoutineOut]:
     """담당 고객에게 배정된 루틴 목록."""
     _require_client(db, trainer.id, member_id)
-    return trainer_service.build_routines(db, member_id, trainer.id)
+    return trainer_routines_service.build_routines(db, member_id, trainer.id)
 
 
 @router.post("/trainer/clients/{member_id}/routines", response_model=RoutineOut, status_code=201)
@@ -96,7 +97,7 @@ def trainer_assign_routine(
     # 공백만 있는 이름은 trim 후 400.
     if not payload.name.strip():
         raise HTTPException(status_code=400, detail="루틴 이름이 필요합니다.")
-    return trainer_service.assign_routine(
+    return trainer_routines_service.assign_routine(
         db, trainer.id, member_id,
         name=payload.name.strip(), minutes=payload.minutes,
         duration_seconds=payload.duration_seconds,
@@ -135,7 +136,7 @@ def trainer_assign_program(
     if not any(session.exercises for session in payload.sessions):
         # 운동이 하나도 없는 프로그램을 배정하면 회원에게 빈 루틴만 간다.
         raise HTTPException(status_code=400, detail="운동이 하나 이상 필요합니다.")
-    return trainer_service.assign_program(
+    return trainer_routines_service.assign_program(
         db, trainer.id, member_id,
         name=name,
         sessions=payload.sessions,
@@ -173,10 +174,10 @@ def trainer_update_routine(
     if "name" in fields:
         fields["name"] = fields["name"].strip()
     try:
-        return trainer_service.update_routine(
+        return trainer_routines_service.update_routine(
             db, trainer.id, member_id, routine_id, fields
         )
-    except trainer_service.RoutineNotFound as exc:
+    except trainer_routines_service.RoutineNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
@@ -190,8 +191,8 @@ def trainer_delete_routine(
     """배정한 루틴 철회. 회원 앱에서도 사라진다. (#504)"""
     _require_client(db, trainer.id, member_id)
     try:
-        trainer_service.delete_routine(db, trainer.id, member_id, routine_id)
-    except trainer_service.RoutineNotFound as exc:
+        trainer_routines_service.delete_routine(db, trainer.id, member_id, routine_id)
+    except trainer_routines_service.RoutineNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return {"status": "deleted"}
 

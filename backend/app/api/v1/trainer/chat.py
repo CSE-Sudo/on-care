@@ -25,8 +25,9 @@ from app.schemas.trainer_api import (
 from app.services import (
     emote_service,
     notification_service,
-    trainer_service,
 )
+from app.services.trainer import chat as trainer_chat_service
+from app.services.trainer import _common as trainer_common_service
 from app.api.v1.trainer._common import (
     _require_client,
 )
@@ -48,7 +49,7 @@ def trainer_chat_unread(
     지금 담당 중이고 동의가 유효한 회원만 센다 — 해제·동의 철회 회원은
     읽음 처리(`_require_client`)가 404 라 지울 수 없는 숫자가 되기 때문이다(#2868).
     """
-    return trainer_service.unread_counts_for_trainer(db, trainer.id)
+    return trainer_chat_service.unread_counts_for_trainer(db, trainer.id)
 
 
 @router.get("/trainer/clients/{member_id}/chat", response_model=list[ChatMessageOut])
@@ -74,7 +75,7 @@ def trainer_client_chat(
             raise HTTPException(
                 status_code=422, detail="before 는 ISO datetime 형식이어야 합니다."
             ) from e
-    return trainer_service.build_chat_thread(
+    return trainer_chat_service.build_chat_thread(
         db, trainer.id, member_id, limit=limit, before=before_dt, before_id=before_id
     )
 
@@ -99,7 +100,7 @@ def trainer_send_chat(
     if not text:
         raise HTTPException(status_code=400, detail="빈 메시지는 보낼 수 없습니다.")
     try:
-        return trainer_service.send_message(
+        return trainer_chat_service.send_message(
             db,
             trainer.id,
             member_id,
@@ -109,7 +110,7 @@ def trainer_send_chat(
             client_request_id=payload.client_request_id,
             emote_id=emote_id,
         )
-    except trainer_service.IdempotencyConflict as exc:
+    except trainer_common_service.IdempotencyConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
@@ -121,7 +122,7 @@ def trainer_mark_chat_read(
 ) -> dict:
     """트레이너가 해당 고객 스레드를 읽음 처리."""
     _require_client(db, trainer.id, member_id)
-    n = trainer_service.mark_thread_read(db, trainer.id, member_id, "trainer")
+    n = trainer_chat_service.mark_thread_read(db, trainer.id, member_id, "trainer")
     return {"marked_read": n}
 
 

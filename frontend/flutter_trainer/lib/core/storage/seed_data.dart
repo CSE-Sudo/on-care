@@ -2017,7 +2017,7 @@ const int _chatSpreadDays = 40;
 /// 알고 싶은 것은 "얼마나 됐나" 가 아니라 **언제였나** 이고, 그건 운동·식단
 /// 기록과 맞춰 보려면 날짜여야 한다.
 ///
-/// 백엔드 `trainer_service.relative_time_label` 과 같은 규칙이다 — 데모와 실
+/// 백엔드 `trainer._common.relative_time_label` 과 같은 규칙이다 — 데모와 실
 /// API 가 같은 자리에 다른 모양을 그리면 안 된다.
 String _lastTimeLabel(_Client client, DateTime now, _SeedText t) {
   if (client.chat.isEmpty) return '-';

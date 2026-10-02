@@ -29,7 +29,8 @@ from app.models.models import (
     TrainerSchedule,
     User,
 )
-from app.services import consultation_service, reservation_service, trainer_service
+from app.services import consultation_service, reservation_service
+from app.services.trainer import _common as trainer_common_service
 
 EMAIL_PREFIX = "slots-2758-"
 PASSWORD = "slots-pw-1234"
@@ -261,7 +262,7 @@ def test_cancelling_a_consultation_session_frees_its_slot(client, db_session):
     response = _cancel(client, token, schedule_id)
 
     assert response.status_code == 200, response.text
-    assert response.json()["status"] == trainer_service.SCHEDULE_CANCELLED
+    assert response.json()["status"] == trainer_common_service.SCHEDULE_CANCELLED
     assert _remaining(db_session, slot["id"]) == 1
     request = db_session.get(ConsultationRequest, request_id)
     assert request.status == "cancelled"

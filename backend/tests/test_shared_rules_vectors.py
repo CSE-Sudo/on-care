@@ -16,7 +16,8 @@ from pathlib import Path
 import pytest
 
 from app.schemas.exercise_api import ExerciseCalorieRequest, ExerciseSessionCreate
-from app.services import exercise_advice, exercise_types, korean_josa, trainer_service
+from app.services import exercise_advice, exercise_types, korean_josa
+from app.services.trainer import reports as trainer_reports_service
 from app.services.exercise_catalog import energy
 
 #: 입력 표 위치. 백엔드 이미지에는 없고 저장소에서 테스트할 때만 읽는다.
@@ -123,7 +124,7 @@ def test_weekly_feedback_topic_uses_shared_rule(case: dict) -> None:
     """주간 피드백 초안의 `은/는` 이 운동 조언·리포트 요약과 같은 판정을 쓴다."""
     word = case["word"]
     expected = word + case["topic"] if word else word
-    assert trainer_service._topic(word) == expected
+    assert trainer_reports_service._topic(word) == expected
 
 
 @pytest.mark.parametrize(
@@ -151,7 +152,7 @@ def test_parenthesised_name_gets_same_particle_in_advice_and_feedback() -> None:
     name = "레그 프레스(머신)"
     advice_text = exercise_advice.advice("routine_all_done_today_name", name=name).text
     assert f"{name}을 " in advice_text
-    assert trainer_service._topic(name) == f"{name}은"
+    assert trainer_reports_service._topic(name) == f"{name}은"
 
 
 def test_direction_particle_uses_ro_after_rieul() -> None:

@@ -108,7 +108,7 @@ def body_part_of(name: str) -> str | None:
 
 # --- 입력 모양 ----------------------------------------------------------------
 #
-# `trainer_service.RoutineDay` 를 그대로 받는다. 그 모듈이 이 서비스 계층을 읽으므로
+# `trainer._common.RoutineDay` 를 그대로 받는다. 그 모듈이 이 서비스 계층을 읽으므로
 # 여기서 들여오면 돌아 들어온다 — 필요한 필드만 약속으로 적는다.
 
 
@@ -199,7 +199,7 @@ def _pct(part: float, whole: float) -> int:
 
 def coach_advice(days: Sequence[RoutineDayLike], period: str) -> Advice | None:
     """추천 목록 기준 조언. 오늘 걸린 추천이 없으면 None. [days] 는 날짜순이고
-    마지막 날이 오늘이다(`trainer_service.member_routine_days` 가 그렇게 준다)."""
+    마지막 날이 오늘이다(`trainer._common.member_routine_days` 가 그렇게 준다)."""
     if not days or not days[-1].routines:
         return None
     if period == period_window.PERIOD_TODAY:

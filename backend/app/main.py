@@ -39,6 +39,7 @@ from app.api.v1 import (
     trainers,
     users,
 )
+from app.api.v1.trainer import notifications as trainer_notifications
 from app.core import error_tracking, observability, startup_checks
 from app.core.body_limit import BodyLimitRule, RequestBodySizeLimitMiddleware
 from app.core.client_ip import warn_if_untrusted_setup
@@ -155,7 +156,10 @@ app.add_middleware(
     allow_headers=["*"],
     # 트레이너 알림함 다음 쪽 커서(#2293). 노출하지 않으면 브라우저가 헤더를
     # 가려, 트레이너 웹은 늘 마지막 쪽이라고 읽는다.
-    expose_headers=[trainer.NEXT_BEFORE_HEADER, trainer.NEXT_BEFORE_ID_HEADER],
+    expose_headers=[
+        trainer_notifications.NEXT_BEFORE_HEADER,
+        trainer_notifications.NEXT_BEFORE_ID_HEADER,
+    ],
 )
 
 

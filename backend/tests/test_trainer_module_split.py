@@ -1,28 +1,28 @@
-"""트레이너 서비스·라우터 영역별 모듈 분리의 호환 단계 가드. (#2909)
+"""트레이너 서비스·라우터 영역별 모듈 구조 가드. (#2909)
 
-한 파일이던 `trainer_service.py`·`api/v1/trainer.py` 를 영역별 모듈로 옮겼다. 이동만
-했으므로 다음이 그대로여야 한다(모두 DB 없이 돈다).
+한 파일이던 `trainer_service.py`·`api/v1/trainer.py` 를 영역별 모듈로 옮겼고, 호환
+단계의 예전 경로 재수출도 지웠다. 다음이 지켜져야 한다(모두 DB 없이 돈다).
 
 - 트레이너 라우트의 Method·Path 집합 — 나누기 전 표(아래 스냅숏)와 같다.
-- 예전 경로(`trainer_service.X`, `trainer.X`)가 영역 모듈의 같은 객체를 가리킨다.
-- 예전 경로를 monkeypatch 하면 영역 모듈 안의 호출도 바뀐 값을 본다(한 파일이던
-  때와 같은 효과). 되돌리면 원래 객체로 돌아온다.
+- 예전 경로(`app.services.trainer_service`, `app.core.module_reexport`)가 다시 생기지
+  않고, 어느 코드도 그 경로를 가져오지 않는다. 라우터 패키지는 마운트 목록만 낸다.
+- 이름마다 정의한 영역 모듈이 하나다 — 호출부는 그 모듈에서 가져온다.
 - 영역 모듈끼리 서로의 비공개 헬퍼를 가져다 쓰지 않는다 — `_common` 을 거친다.
 """
 from __future__ import annotations
 
 import ast
 import importlib
-import sys
+import importlib.util
 import types
-from datetime import datetime
 from pathlib import Path
 
 import pytest
 
 from tests.route_helpers import api_routes
 
-_APP = Path(__file__).resolve().parents[1] / "app"
+_BACKEND = Path(__file__).resolve().parents[1]
+_APP = _BACKEND / "app"
 
 #: 나누기 전 `app/api/v1/trainer.py` 가 등록하던 라우트(Method·Path). 라우트를 새로
 #: 만들거나 지우는 PR 은 이 표도 함께 고친다 — 이동 PR 은 고치지 않는다.
@@ -217,119 +217,72 @@ def test_every_area_router_is_mounted_once():
     assert all(r.routes for r in trainer.routers), "라우트가 없는 영역 라우터가 있다"
 
 
-# ---- 예전 경로 재수출 ----
+# ---- 예전 경로 제거 ----
 
 
-@pytest.mark.parametrize("area", _SERVICE_AREAS)
-def test_trainer_service_reexports_the_same_objects(area):
-    from app.services import trainer_service
-
-    module = importlib.import_module(f"app.services.trainer.{area}")
-    names = _defined_names(module)
-    assert names, f"{area} 에 정의된 함수가 없다"
-    for name in names:
-        assert getattr(trainer_service, name) is getattr(module, name), name
+@pytest.mark.parametrize(
+    "module", ["app.services.trainer_service", "app.core.module_reexport"]
+)
+def test_compat_modules_are_gone(module):
+    assert importlib.util.find_spec(module) is None, f"{module} 가 다시 생겼다"
 
 
-@pytest.mark.parametrize("area", _ROUTER_AREAS)
-def test_trainer_router_package_reexports_the_same_objects(area):
+def test_router_package_exposes_only_the_mount_list():
+    """라우터 패키지는 영역 라우터 목록만 낸다 — 예전 단일 모듈의 이름을 다시 싣지 않는다."""
     from app.api.v1 import trainer
 
-    module = importlib.import_module(f"app.api.v1.trainer.{area}")
-    for name in _defined_names(module):
-        assert getattr(trainer, name) is getattr(module, name), name
+    for area in _ROUTER_AREAS:
+        module = importlib.import_module(f"app.api.v1.trainer.{area}")
+        leaked = [name for name in _defined_names(module) if hasattr(trainer, name)]
+        assert leaked == [], f"{area}: {leaked}"
 
 
-def test_old_router_names_used_outside_the_package_stay_reachable():
-    from app.api.v1 import trainer
+def test_cors_headers_come_from_the_notifications_router():
+    from app.api.v1.trainer import notifications
+    from app.main import app
 
-    # `app/main.py` 의 CORS expose_headers 가 읽는다.
-    assert trainer.NEXT_BEFORE_HEADER == "X-Next-Before"
-    assert trainer.NEXT_BEFORE_ID_HEADER == "X-Next-Before-Id"
-    assert callable(trainer.trainer_me)
-
-
-# ---- monkeypatch 전파 ----
+    cors = next(m for m in app.user_middleware if m.cls.__name__ == "CORSMiddleware")
+    exposed = cors.kwargs["expose_headers"]
+    assert notifications.NEXT_BEFORE_HEADER in exposed
+    assert notifications.NEXT_BEFORE_ID_HEADER in exposed
 
 
-def test_patching_the_old_service_path_reaches_the_area_module():
-    """`trainer_service._now_kst` 를 고정하면 스케줄 판정(`session_has_started`)이 그 값을 본다.
-
-    conftest 의 자동 픽스처가 이미 같은 이름을 고정해 두므로, 그 값을 기준으로
-    바꾸고 되돌린다.
-    """
-    from app.services import trainer_service
-    from app.services.trainer import schedule
-
-    before = trainer_service._now_kst
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setattr(trainer_service, "_now_kst", lambda: datetime(2026, 1, 1, 10, 0))
-        assert schedule.session_has_started("2026-01-01", "09:30")
-        assert not schedule.session_has_started("2026-01-01", "10:30")
-    assert trainer_service._now_kst is before
-    assert schedule._now_kst is before
-
-
-def test_patching_a_common_helper_reaches_every_area_that_imported_it():
-    """`_today` 는 `_common` 에 있고 여러 영역이 가져다 쓴다 — 모두 고정 값을 본다."""
-    from app.services import trainer_service
-
-    before = trainer_service._today
-    users = [
-        importlib.import_module(f"app.services.trainer.{n}") for n in _SERVICE_AREAS
-    ]
-    users = [m for m in users if vars(m).get("_today") is before]
-    assert len(users) > 1
-
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setattr(trainer_service, "_today", lambda: "fixed")
-        assert all(m._today() == "fixed" for m in users)
-    assert all(m._today is before for m in users)
+def test_no_code_imports_the_removed_compat_paths():
+    removed = {"app.services.trainer_service", "app.core.module_reexport"}
+    hits: list[str] = []
+    for folder in ("app", "tests", "scripts", "migrations"):
+        for path in sorted((_BACKEND / folder).rglob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    modules = [alias.name for alias in node.names]
+                elif isinstance(node, ast.ImportFrom) and node.module:
+                    modules = [node.module] + [
+                        f"{node.module}.{alias.name}" for alias in node.names
+                    ]
+                else:
+                    continue
+                if removed & set(modules):
+                    hits.append(f"{path.relative_to(_BACKEND)}:{node.lineno}")
+    assert hits == []
 
 
-def test_patching_a_shared_import_reaches_every_area_that_uses_it():
-    """한 파일이던 때처럼 `trainer_service.select` 하나를 바꾸면 모든 영역이 본다."""
-    from app.services import trainer_service
-
-    real = trainer_service.select
-    users = [
-        importlib.import_module(f"app.services.trainer.{n}") for n in _SERVICE_AREAS
-    ]
-    users = [m for m in users if vars(m).get("select") is real]
-    assert len(users) > 1
-
-    def never(*args, **kwargs):
-        return real(*args, **kwargs)
-
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setattr(trainer_service, "select", never)
-        assert all(m.select is never for m in users)
-    assert all(m.select is real for m in users)
+# ---- 정의 위치 ----
 
 
-def test_patch_leaves_a_different_object_with_the_same_name_alone():
-    from app.core.module_reexport import reexport
-
-    a = types.ModuleType("w2909_area_a")
-    b = types.ModuleType("w2909_area_b")
-    a.helper = lambda: "a"
-    b.helper = lambda: "b"
-    facade = types.ModuleType("w2909_facade")
-    sys.modules["w2909_facade"] = facade
-    try:
-        with pytest.raises(RuntimeError):
-            reexport("w2909_facade", (a, b))
-        b.helper = a.helper
-        b.other = "b-only"
-        reexport("w2909_facade", (a, b))
-        facade.helper = "patched"
-        assert a.helper == "patched" and b.helper == "patched"
-        b.other = "changed"
-        facade.other = "set-on-facade"
-        # 퍼사드와 다른 객체를 쥔 모듈은 건드리지 않는다.
-        assert b.other == "changed"
-    finally:
-        del sys.modules["w2909_facade"]
+@pytest.mark.parametrize(
+    ("package", "areas"),
+    [("app.services.trainer", _SERVICE_AREAS), ("app.api.v1.trainer", _ROUTER_AREAS)],
+)
+def test_each_name_is_defined_in_exactly_one_area(package, areas):
+    owners: dict[str, list[str]] = {}
+    for area in areas:
+        module = importlib.import_module(f"{package}.{area}")
+        names = _defined_names(module)
+        assert names or area == "_common", f"{area} 에 정의된 함수·클래스가 없다"
+        for name in names:
+            owners.setdefault(name, []).append(area)
+    assert {n: a for n, a in owners.items() if len(a) > 1} == {}
 
 
 # ---- 영역 경계 ----

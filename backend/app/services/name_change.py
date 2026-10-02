@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.models.models import User
 from app.services import notification_service, notification_templates
-from app.services.trainer_service import get_member_trainer_id
+from app.services.trainer._common import get_member_trainer_id
 
 
 def record_member_rename(db: Session, member: User, *, before: str | None) -> bool:

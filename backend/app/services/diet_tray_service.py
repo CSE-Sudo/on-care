@@ -126,7 +126,7 @@ def claim(
     [client_request_id] 로 이미 발급한 쿠폰이 있으면 새로 만들지 않고 지금 상태를
     돌려준다 — 응답을 못 받고 다시 누른 받기가 두 장을 만들지 않는다.
     """
-    from app.services import trainer_service
+    from app.services.trainer import member_mirror as trainer_member_mirror_service
 
     if client_request_id and _by_request(db, member_id, client_request_id):
         return _state_out(db, member_id)
@@ -140,7 +140,7 @@ def claim(
         raise AlreadyReceived("식판은 이미 받았어요.")
     if _active(db, member_id) is not None:
         raise ActiveTrayCoupon("받지 않은 식판 쿠폰이 이미 있어요.")
-    coach = trainer_service.build_member_coach(db, member_id)
+    coach = trainer_member_mirror_service.build_member_coach(db, member_id)
     if coach is None:
         raise TrainerRequired("담당 트레이너가 있어야 받을 수 있어요.")
     days = photo_days(db, member_id)
@@ -178,9 +178,9 @@ def claim(
 
 
 def _state_out(db: Session, member_id: str) -> DietTrayOut:
-    from app.services import trainer_service
+    from app.services.trainer import _common as trainer_common_service
 
-    has_trainer = trainer_service.get_member_trainer_id(db, member_id) is not None
+    has_trainer = trainer_common_service.get_member_trainer_id(db, member_id) is not None
     enabled = points_coupon_service.gym_benefits_enabled()
     first, last = window()
     days = photo_days(db, member_id)

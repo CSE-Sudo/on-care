@@ -44,7 +44,7 @@ def _next_week(week: str) -> str:
 
 def test_goals_are_stored_on_the_week_they_apply_to():
     """월요일에 고른 목표가 그 주가 아니라 다음 주 월요일에 붙는다."""
-    from app.services.trainer_service import week_start_of
+    from app.services.trainer.reports import week_start_of
 
     assert week_start_of(date(2026, 9, 14)) + timedelta(days=7) == date(2026, 9, 21)
 
@@ -52,7 +52,7 @@ def test_goals_are_stored_on_the_week_they_apply_to():
 def test_any_day_of_the_picking_week_applies_to_the_same_next_week():
     """주 중간에 고쳐도 적용되는 주는 하나다 — 목요일에 고친 목표가 목요일부터
     시작하는 '주' 에 붙으면 회수하는 쪽이 그 주를 찾지 못한다."""
-    from app.services.trainer_service import week_start_of
+    from app.services.trainer.reports import week_start_of
 
     for offset in range(7):
         day = date(2026, 9, 14) + timedelta(days=offset)
@@ -211,7 +211,7 @@ def test_too_many_goals_are_refused(client):
 def test_week_start_defaults_to_this_week(client):
     """날짜를 빼고 보내면 지금 보고 있는 주로 본다 — 적용은 그 다음 주다."""
     from app.core import clock
-    from app.services.trainer_service import week_start_of
+    from app.services.trainer.reports import week_start_of
 
     t = _trainer_tok(client)
     r = client.put(GOALS, json={"goals": ["기본 주 확인"]}, headers=_h(t))

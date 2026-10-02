@@ -124,7 +124,7 @@ class FixtureExercise:
     def label(self) -> str:
         """트레이너 화면이 쓰는 표기. 이행률과 이 목록이 같은 자리에서 나온다(#754).
 
-        실제 PT 완료가 적는 줄(`trainer_service._program_item_label`)과 같은
+        실제 PT 완료가 적는 줄(`trainer.schedule._program_item_label`)과 같은
         모양이다 — 근력은 세트·횟수(버티면 초)·중량, 나머지는 분. 예전에는 이름만
         적어, 값이 같은 날 세션 행에만 남고 트레이너 이력 카드에는 이름만
         섰다(#2567). 화면은 이 줄 끝의 값을 되읽는다(`parse_history_exercise`).

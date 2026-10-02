@@ -197,7 +197,7 @@ def test_history_line_carries_the_values_the_trainer_reads_back():
     세트·횟수·중량·시간이 서지 않았다. 실제 PT 완료가 적는 줄과 같은 모양이어야
     `parse_history_exercise` 가 픽스처와 같은 값을 돌려준다.
     """
-    from app.services.trainer_service import parse_history_exercise
+    from app.services.trainer._common import parse_history_exercise
 
     for day in load_fixture().days_for(date(2026, 8, 16)):
         for exercise in day.exercises:

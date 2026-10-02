@@ -21,7 +21,9 @@ from app.models.models import (
     TrainerReservationSlot,
     TrainerSchedule,
 )
-from app.services import notification_service, reservation_service, trainer_service
+from app.services import notification_service, reservation_service
+from app.services.trainer import _common as trainer_common_service
+from app.services.trainer import schedule as trainer_schedule_service
 
 TRAINER_EMAIL = "trainer@oncare.com"
 MEMBER_EMAIL = "jisu@oncare.com"
@@ -75,7 +77,7 @@ def _schedule(
         client_name="회원",
         type="1:1 PT",
         duration_minutes=duration,
-        status=trainer_service.SCHEDULE_UPCOMING,
+        status=trainer_common_service.SCHEDULE_UPCOMING,
     )
 
 
@@ -250,12 +252,12 @@ def test_overlap_rejection_queues_nothing(unit, monkeypatch) -> None:
     """겹침으로 거절되면 일정도 알림도 그대로다."""
 
     def overlap(*args, **kwargs):
-        raise trainer_service.ScheduleOverlap([])
+        raise trainer_schedule_service.ScheduleOverlap([])
 
     monkeypatch.setattr(reservation_service, "_ensure_slot_free", overlap)
     before = (unit.schedules[0].date, unit.schedules[0].time)
 
-    with pytest.raises(trainer_service.ScheduleOverlap):
+    with pytest.raises(trainer_schedule_service.ScheduleOverlap):
         reservation_service.update_slot(
             unit.db,
             "trainer-demo",
@@ -272,11 +274,11 @@ def test_uses_the_shared_schedule_change_helper(unit, monkeypatch) -> None:
     """일반 일정 수정과 같은 헬퍼로, 바꾸기 전 값을 넘겨 알린다."""
     calls: list[dict] = []
     monkeypatch.setattr(
-        trainer_service,
+        trainer_schedule_service,
         "_notify_schedule_changed",
         lambda db, **kwargs: calls.append(kwargs),
     )
-    before_slot = trainer_service._member_visible_slot(unit.schedules[0])
+    before_slot = trainer_schedule_service._member_visible_slot(unit.schedules[0])
 
     reservation_service.update_slot(
         unit.db,
