@@ -134,28 +134,28 @@ class _AdviceRepository implements ExerciseRepository {
 
 Widget _app(ExerciseRepository repo, {Locale locale = const Locale('ko')}) =>
     ProviderScope(
-      overrides: <Override>[
-        appConfigProvider.overrideWithValue(
-          const AppConfig(
-            environment: Environment.dev,
-            apiBaseUrl: 'https://example.test',
-            useMockApi: true,
-          ),
-        ),
-        exerciseRepositoryProvider.overrideWithValue(repo),
-        accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
-        memberCoachRepositoryProvider.overrideWithValue(
-          MockMemberCoachRepository() as MemberCoachRepository,
-        ),
-      ],
-      child: MaterialApp(
-        theme: AppTheme.light(),
-        locale: locale,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: const ExercisePage(),
+  overrides: <Override>[
+    appConfigProvider.overrideWithValue(
+      const AppConfig(
+        environment: Environment.dev,
+        apiBaseUrl: 'https://example.test',
+        useMockApi: true,
       ),
-    );
+    ),
+    exerciseRepositoryProvider.overrideWithValue(repo),
+    accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
+    memberCoachRepositoryProvider.overrideWithValue(
+      MockMemberCoachRepository() as MemberCoachRepository,
+    ),
+  ],
+  child: MaterialApp(
+    theme: AppTheme.light(),
+    locale: locale,
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: const ExercisePage(),
+  ),
+);
 
 /// 조언 카드가 지금 보여 주는 글자 전부.
 String _adviceText(WidgetTester tester) => tester
@@ -245,7 +245,9 @@ void main() {
     expect(ownRecords, greaterThan(coaching));
   });
 
-  testWidgets('문장 키가 오면 앱 언어로 그린다 — 영어 앱에서 영어 조언', (WidgetTester tester) async {
+  testWidgets('문장 키가 오면 앱 언어로 그린다 — 영어 앱에서 영어 조언', (
+    WidgetTester tester,
+  ) async {
     // 서버는 한국어 문장과 함께 키·값을 준다(#2210). 영어 앱은 키로 영어 문장을
     // 그리고, 운동 이름은 트레이너가 적은 그대로 들어간다.
     const ExerciseAdvice keyed = ExerciseAdvice(
