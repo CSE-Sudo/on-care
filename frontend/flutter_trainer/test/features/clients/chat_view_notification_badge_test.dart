@@ -75,9 +75,6 @@ class _FakeNotificationRepository implements TrainerNotificationRepository {
   int get _unread => chat.readCalls.isEmpty || chat.failRead ? unreadBefore : 0;
 
   @override
-  bool get supportsInbox => true;
-
-  @override
   Future<TrainerNotificationPage> fetch({
     TrainerNotificationCursor? before,
   }) async => TrainerNotificationPage.empty;

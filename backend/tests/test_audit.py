@@ -24,15 +24,19 @@ def test_login_and_register_events_are_audited(client, db_session):
     ).all()
     assert len(regs) >= 1
 
-    # 로그인 실패 감사(detail=시도 이메일, success=False)
+    # 로그인 실패 감사(detail=시도 이메일의 가명값, success=False). 원문은 남기지
+    # 않는다(#2911).
+    from app.services.audit_email import masked_email
+
     fails = db_session.scalars(
         select(AuditLog).where(
             AuditLog.event == "auth.login",
             AuditLog.success.is_(False),
-            AuditLog.detail == email,
+            AuditLog.detail == masked_email(email),
         )
     ).all()
     assert len(fails) >= 1
+    assert all(email not in (row.detail or "") for row in fails)
 
     # 로그인 성공 감사(user_id 기록, success=True)
     oks = db_session.scalars(

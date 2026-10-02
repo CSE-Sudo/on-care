@@ -136,13 +136,15 @@ void main() {
             token: 'demo-trainer-token-existing',
             locale: locale,
           );
-          await container
-              .read(chatRepositoryProvider)
-              .sendTrainerMessage(
-                clientId: 'seed-client-2',
-                text: '',
-                emoteId: 'dog_love',
-              );
+          // 데모 프로바이더의 저장소는 잠시 뒤 회원 답장을 붙여(#2790) 미리보기를
+          // 바꾼다. 여기서 보는 것은 이모티콘 미리보기라 답하지 않는 저장소로 보낸다.
+          await DriftChatRepository(
+            container.read(appDatabaseProvider),
+          ).sendTrainerMessage(
+            clientId: 'seed-client-2',
+            text: '',
+            emoteId: 'dog_love',
+          );
           await container
               .read(clientRepositoryProvider)
               .addClient(name: 'Jordan Park', goal: '');

@@ -317,13 +317,15 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
         const SizedBox(height: OnCareSpacing.s12),
         slots.when(
           loading: () => const AppLoading(placement: AppStatePlacement.card),
-          error: (_, _) => Center(
-            child: AppButton(
-              label: l.slotReload,
-              leadingIcon: AppIcons.refresh,
-              variant: AppButtonVariant.secondary,
-              onPressed: () => ref.invalidate(reservationSlotsProvider),
-            ),
+          // 버튼만 두면 슬롯이 없는 것인지 못 읽은 것인지 알 수 없다(#2891) —
+          // 다른 화면처럼 이유 문구와 재시도를 함께 보인다.
+          error: (_, _) => AppErrorState(
+            key: const ValueKey<String>('slot-load-error'),
+            placement: AppStatePlacement.card,
+            title: l.slotLoadFailed,
+            retryLabel: l.slotReload,
+            retryKey: const ValueKey<String>('slot-load-retry'),
+            onRetry: () => ref.invalidate(reservationSlotsProvider),
           ),
           data: (allSlots) {
             // 고른 날의 슬롯만 보여 주던 것을 앞으로 열린 슬롯 전부로 넓힌다
