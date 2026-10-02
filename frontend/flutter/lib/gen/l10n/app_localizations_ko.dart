@@ -4761,4 +4761,109 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get weeklyFeedbackNowButton => '지금 피드백 보내기';
+
+  @override
+  String get authForgotPassword => '비밀번호를 잊으셨나요?';
+
+  @override
+  String get passwordChangeTitle => '비밀번호 변경';
+
+  @override
+  String get passwordChangeCurrentHint => '현재 비밀번호';
+
+  @override
+  String get passwordChangeNewHint => '새 비밀번호 (영문·숫자 포함 8자 이상)';
+
+  @override
+  String get passwordChangeConfirmHint => '새 비밀번호 확인';
+
+  @override
+  String get passwordChangeNote => '이 기기는 로그인이 유지되고, 다른 기기에서는 다시 로그인해야 해요.';
+
+  @override
+  String get passwordChangeAction => '비밀번호 바꾸기';
+
+  @override
+  String get passwordChangeDone => '비밀번호를 바꿨어요';
+
+  @override
+  String get passwordChangeWrongCurrent => '현재 비밀번호가 맞지 않아요';
+
+  @override
+  String get passwordChangeSameAsCurrent => '현재와 다른 비밀번호를 입력해 주세요';
+
+  @override
+  String get passwordChangeDemoTitle => '데모 계정은 비밀번호를 바꿀 수 없어요';
+
+  @override
+  String get passwordChangeDemoBody =>
+      '데모 모드에는 서버 계정이 없어요. 실제 계정으로 로그인하면 여기서 바꿀 수 있어요.';
+
+  @override
+  String get passwordChangeSocialTitle => '이 계정에는 비밀번호가 없어요';
+
+  @override
+  String get passwordChangeSocialBody => '카카오·구글로 로그인한 계정은 그 서비스에서 계정을 관리해요.';
+
+  @override
+  String get passwordTooManyAttempts => '시도가 너무 많아요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get passwordTemporaryFailure => '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get passwordResetTitle => '비밀번호 재설정';
+
+  @override
+  String get passwordResetRequestSubtitle => '가입한 이메일로 재설정 코드를 보내 드려요.';
+
+  @override
+  String get passwordResetSendAction => '코드 받기';
+
+  @override
+  String get passwordResetHaveCode => '이미 코드가 있어요';
+
+  @override
+  String get passwordResetSentTitle => '메일을 확인해 주세요';
+
+  @override
+  String passwordResetSentBody(String email, int minutes) {
+    return '$email 로 가입된 계정이 있다면 $minutes분 동안 한 번 쓸 수 있는 코드를 보냈어요.';
+  }
+
+  @override
+  String get passwordResetConfirmSubtitle => '메일로 받은 코드와 새 비밀번호를 입력해 주세요.';
+
+  @override
+  String get passwordResetCodeHint => '재설정 코드 16자리';
+
+  @override
+  String get passwordResetCodeEmpty => '코드를 입력해 주세요';
+
+  @override
+  String get passwordResetCodeMalformed => '메일에 적힌 16자리 코드를 입력해 주세요';
+
+  @override
+  String get passwordResetCodeInvalid => '코드가 맞지 않거나 만료됐어요. 코드를 다시 받아 주세요.';
+
+  @override
+  String get passwordResetConfirmAction => '새 비밀번호 저장';
+
+  @override
+  String get passwordResetResend => '코드 다시 받기';
+
+  @override
+  String get passwordResetDemoNote => '데모 모드에서는 메일이 가지 않아요. 코드 칸을 미리 채워 두었어요.';
+
+  @override
+  String get passwordResetUnavailable => '지금은 재설정 메일을 보낼 수 없어요. 고객센터로 문의해 주세요.';
+
+  @override
+  String get passwordResetDoneTitle => '비밀번호를 바꿨어요';
+
+  @override
+  String get passwordResetDoneBody => '새 비밀번호로 다시 로그인해 주세요. 모든 기기의 로그인이 끝났어요.';
+
+  @override
+  String get passwordResetBackToSignIn => '로그인하러 가기';
 }

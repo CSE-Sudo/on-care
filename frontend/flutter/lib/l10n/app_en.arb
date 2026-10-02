@@ -4263,5 +4263,50 @@
       }
     }
   },
-  "weeklyFeedbackNowButton": "Send feedback now"
+  "weeklyFeedbackNowButton": "Send feedback now",
+  "authForgotPassword": "Forgot your password?",
+  "passwordChangeTitle": "Change password",
+  "passwordChangeCurrentHint": "Current password",
+  "passwordChangeNewHint": "New password (8+ characters, letters and numbers)",
+  "passwordChangeConfirmHint": "Confirm new password",
+  "passwordChangeNote": "This device stays signed in. Other devices will need to sign in again.",
+  "passwordChangeAction": "Change password",
+  "passwordChangeDone": "Password changed",
+  "passwordChangeWrongCurrent": "Your current password is incorrect",
+  "passwordChangeSameAsCurrent": "Choose a password different from your current one",
+  "passwordChangeDemoTitle": "Demo accounts can't change passwords",
+  "passwordChangeDemoBody": "Demo mode has no server account. Sign in with a real account to change your password here.",
+  "passwordChangeSocialTitle": "This account has no password",
+  "passwordChangeSocialBody": "Accounts that sign in with Kakao or Google are managed by that service.",
+  "passwordTooManyAttempts": "Too many attempts. Please try again in a moment.",
+  "passwordTemporaryFailure": "Couldn't complete the request. Please try again shortly.",
+  "passwordResetTitle": "Reset password",
+  "passwordResetRequestSubtitle": "We'll email a reset code to the address you signed up with.",
+  "passwordResetSendAction": "Send code",
+  "passwordResetHaveCode": "I already have a code",
+  "passwordResetSentTitle": "Check your email",
+  "passwordResetSentBody": "If an account uses {email}, we've sent a code you can use once within {minutes} minutes.",
+  "@passwordResetSentBody": {
+    "description": "Shown after a reset request. Same text whether or not the account exists.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "passwordResetConfirmSubtitle": "Enter the code from the email and your new password.",
+  "passwordResetCodeHint": "16-character reset code",
+  "passwordResetCodeEmpty": "Enter the code",
+  "passwordResetCodeMalformed": "Enter the 16-character code from the email",
+  "passwordResetCodeInvalid": "This code is wrong or has expired. Request a new one.",
+  "passwordResetConfirmAction": "Save new password",
+  "passwordResetResend": "Send a new code",
+  "passwordResetDemoNote": "Demo mode doesn't send email. The code is filled in for you.",
+  "passwordResetUnavailable": "We can't send reset emails right now. Please contact support.",
+  "passwordResetDoneTitle": "Password reset",
+  "passwordResetDoneBody": "Sign in with your new password. You've been signed out on every device.",
+  "passwordResetBackToSignIn": "Go to sign in"
 }
