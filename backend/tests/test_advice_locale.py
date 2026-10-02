@@ -323,7 +323,7 @@ def _ex_days(*specs: tuple[int, dict[str, int]]) -> list[ExerciseDayTotals]:
          "Today: 30 min and 210 kcal, mostly cardio. Wrap up with a stretch."),
         (_ex_days((0, {"strength": 40})), WEEK,
          "이번 주는 40분 하루뿐이에요. 한 번 더 나가면 흐름이 이어져요.",
-         "Just one day this week (40 min). One more session keeps the flow going."),
+         "Just one day this week (40 min). One more workout keeps the flow going."),
         (_ex_days((0, {"cardio": 30}), (1, {"cardio": 30})), WEEK,
          "이번 주 2일 60분이 유산소에 몰렸어요. 근력도 섞어 볼까요?",
          "This week's 2 days and 60 min leaned on cardio. Mix in some strength?"),

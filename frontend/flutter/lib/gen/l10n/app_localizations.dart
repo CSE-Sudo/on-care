@@ -6436,13 +6436,13 @@ abstract class AppLocalizations {
   /// Title of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'PT session complete'**
+  /// **'PT complete'**
   String get demoAlertPtDoneTitle;
 
   /// Body of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'You finished PT session 12 with Trainer {trainerName} at 18:00 today!'**
+  /// **'You finished your 12th PT with Trainer {trainerName} at 18:00 today!'**
   String demoAlertPtDoneBody(String trainerName);
 
   /// Title of a demo notification shown in tour mode.
@@ -6706,7 +6706,7 @@ abstract class AppLocalizations {
   /// Exercise tab AI advice sentence `record_week_one_day` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'Just one day this week ({minutes} min). One more session keeps the flow going.'**
+  /// **'Just one day this week ({minutes} min). One more workout keeps the flow going.'**
   String exerciseAdviceRecordWeekOneDay(int minutes);
 
   /// Exercise tab AI advice sentence `record_week_skew` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.

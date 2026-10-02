@@ -659,7 +659,7 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
         {"member_name": "Alex", "cancelled_sessions": 1},
         (
             "Client disconnected",
-            "Alex ended their connection with you. 1 remaining session was cancelled.",
+            "Alex ended their connection with you. 1 remaining appointment was cancelled.",
         ),
     ),
     (

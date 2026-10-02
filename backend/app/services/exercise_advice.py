@@ -130,7 +130,7 @@ _EN: dict[str, str] = {
     "record_empty_week": "No workouts logged this week yet. How about a 10-minute walk to start?",
     "record_empty_all": "Once you log more, we'll show how your workout volume and types are trending.",
     "record_today": "Today: {minutes} min and {calories} kcal, mostly {type_en}. Wrap up with a stretch.",
-    "record_week_one_day": "Just one day this week ({minutes} min). One more session keeps the flow going.",
+    "record_week_one_day": "Just one day this week ({minutes} min). One more workout keeps the flow going.",
     "record_week_skew": "This week's {days_en} and {minutes} min leaned on {top_en}. Mix in some {missing_en}?",
     "record_week_balanced": "{days_en} and {minutes} min this week, with a good mix of types.",
     "record_all_up": "You've done more over the last 4 weeks than before. This approach suits you.",

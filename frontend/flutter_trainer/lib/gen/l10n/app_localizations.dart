@@ -2747,13 +2747,13 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodySessionsAll.
   ///
   /// In en, this message translates to:
-  /// **'You made all {booked} of your booked PT sessions.'**
+  /// **'For PT, you made all {booked} that were booked.'**
   String reportBodySessionsAll(int booked);
 
   /// No description provided for @reportBodySessionsSome.
   ///
   /// In en, this message translates to:
-  /// **'You made {done} of your {booked} booked PT sessions.'**
+  /// **'For PT, you made {done} of the {booked} that were booked.'**
   String reportBodySessionsSome(int booked, int done);
 
   /// No description provided for @reportBodySessionsNone.
@@ -2890,7 +2890,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportTipSessionsNone.
   ///
   /// In en, this message translates to:
-  /// **'Let\'s book next week\'s PT sessions together now.'**
+  /// **'Let\'s book next week\'s PT together now.'**
   String get reportTipSessionsNone;
 
   /// No description provided for @reportTipSessionsMissed.
@@ -2926,7 +2926,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedDeleteConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Delete the {time} PT session with {name}?'**
+  /// **'Delete {name}\'s {time} PT appointment?'**
   String schedDeleteConfirm(String time, String name);
 
   /// No description provided for @schedDeleteFailed.
@@ -4810,7 +4810,7 @@ abstract class AppLocalizations {
   /// No description provided for @personalRoutineTargetLoadFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load PT sessions'**
+  /// **'Couldn\'t load PT appointments'**
   String get personalRoutineTargetLoadFailed;
 
   /// No description provided for @personalRoutineStartPast.
@@ -7377,7 +7377,7 @@ abstract class AppLocalizations {
   /// No description provided for @programAssignConfirmChooseBody.
   ///
   /// In en, this message translates to:
-  /// **'{name} has several PT sessions on {date} that overlap the time you picked ({selected}). Choose the session to attach this program to. The picked time won\'t be applied.'**
+  /// **'{name} has several PT appointments on {date} that overlap the time you picked ({selected}). Choose which one to attach this program to. The picked time won\'t be applied.'**
   String programAssignConfirmChooseBody(
     String name,
     String date,
@@ -7387,7 +7387,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachAttachTargetChanged.
   ///
   /// In en, this message translates to:
-  /// **'The PT session to attach to has changed. Tap Add to schedule again to check'**
+  /// **'The PT appointment to attach to has changed. Tap Add to schedule again to check'**
   String get coachAttachTargetChanged;
 
   /// No description provided for @coachScheduleOverlap.
@@ -7482,7 +7482,7 @@ abstract class AppLocalizations {
   /// No description provided for @programAssignConfirmBody.
   ///
   /// In en, this message translates to:
-  /// **'A new PT session will be created for {name} on {date} at {time} with this program.'**
+  /// **'A new PT appointment will be created for {name} on {date} at {time} with this program.'**
   String programAssignConfirmBody(String name, String date, String time);
 
   /// No description provided for @programEditorSaveTemplate.
@@ -7962,13 +7962,13 @@ abstract class AppLocalizations {
   /// No description provided for @reportsPdfLabelSessions.
   ///
   /// In en, this message translates to:
-  /// **'PT sessions'**
+  /// **'PT'**
   String get reportsPdfLabelSessions;
 
   /// No description provided for @reportsPdfLabelSessionCount.
   ///
   /// In en, this message translates to:
-  /// **'PT sessions completed'**
+  /// **'PT completed'**
   String get reportsPdfLabelSessionCount;
 
   /// No description provided for @reportsPdfLabelSodiumOver.

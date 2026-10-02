@@ -2784,11 +2784,11 @@
       }
     }
   },
-  "demoAlertPtDoneTitle": "PT session complete",
+  "demoAlertPtDoneTitle": "PT complete",
   "@demoAlertPtDoneTitle": {
     "description": "Title of a demo notification shown in tour mode."
   },
-  "demoAlertPtDoneBody": "You finished PT session 12 with Trainer {trainerName} at 18:00 today!",
+  "demoAlertPtDoneBody": "You finished your 12th PT with Trainer {trainerName} at 18:00 today!",
   "@demoAlertPtDoneBody": {
     "description": "Body of a demo notification shown in tour mode.",
     "placeholders": {
@@ -2949,7 +2949,7 @@
       }
     }
   },
-  "exerciseAdviceRecordWeekOneDay": "Just one day this week ({minutes} min). One more session keeps the flow going.",
+  "exerciseAdviceRecordWeekOneDay": "Just one day this week ({minutes} min). One more workout keeps the flow going.",
   "@exerciseAdviceRecordWeekOneDay": {
     "description": "Exercise tab AI advice sentence `record_week_one_day` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {

@@ -1471,7 +1471,7 @@ bool isDemoReservationScheduleId(String id) =>
 // 데모 저장소가 서버와 같은 사유로 거절할 때 쓰는 문구 — 서버 `trainer_service`
 // 의 ScheduleConflict 문구와 같다. 화면은 한국어일 때 이 사유를 그대로 보인다.
 const String demoFinishedEditRejected =
-    '완료·취소·노쇼로 마무리된 세션은 메모·프로그램만 수정할 수 있습니다.';
+    '완료·취소·노쇼로 마무리된 PT는 메모·프로그램만 수정할 수 있습니다.';
 const String demoSentProgramEditRejected = '이미 보낸 프로그램은 수정할 수 없습니다.';
 const String demoReservationEditRejected =
     '예약으로 생성된 일정은 일반 일정 화면에서 수정할 수 없습니다.';
