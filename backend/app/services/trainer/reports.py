@@ -13,6 +13,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.locale import Locale, current_locale
+from app.core.week import monday_of
 from app.models.models import (
     ChatMessage, DietEntry, ExerciseSession, HealthProfile,
     TrainerReportGoal, RoutineHistory,
@@ -57,7 +58,7 @@ from app.services.trainer._common import (
 
 def week_start_of(day: date) -> date:
     """그 주의 월요일."""
-    return day - timedelta(days=day.weekday())
+    return monday_of(day)
 
 
 def build_weekly_report(

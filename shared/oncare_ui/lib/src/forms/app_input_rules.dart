@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 
+import 'package:oncare_ui/src/dates/wire_date.dart';
+
 /// 입력 칸 형식 검사의 결과 — 무엇이 잘못됐는가(#1784).
 ///
 /// 문구는 앱마다 로케일 파일에 있으므로 여기서는 종류만 돌려주고, 두 앱이
@@ -18,6 +20,9 @@ enum AppInputError {
 
   /// 이메일 형식이 아니다.
   emailInvalid,
+
+  /// 이메일이 저장 가능한 길이를 넘는다(#2908).
+  emailTooLong,
 
   /// 전화번호가 `010-0000-0000` 형식이 아니다(비어 있는 경우 포함).
   phoneInvalid,
@@ -99,6 +104,10 @@ abstract final class AppInputRules {
   /// 전화번호 숫자 개수(3 + 4 + 4).
   static const int phoneDigits = 11;
 
+  /// 저장 가능한 이메일 길이. 서버 `contact_format.EMAIL_MAX_LENGTH` 와 같다 —
+  /// `users.email` 컬럼(`String(255)`)이 그 기준이다(#2908).
+  static const int emailMaxLength = 255;
+
   /// 저장 가능한 이름 길이. 서버 `profile_format.NAME_MAX_LENGTH` 와 같다 —
   /// `users.name` 컬럼(`String(100)`)이 그 기준이다(#1887).
   static const int nameMaxLength = 100;
@@ -132,22 +141,23 @@ abstract final class AppInputRules {
     final DateTime? parsed = _birthDate.hasMatch(birthDate)
         ? DateTime.tryParse(birthDate)
         : null;
-    if (parsed == null || _asYmd(parsed) != birthDate) {
+    if (parsed == null || wireDate(parsed) != birthDate) {
       return AppInputError.birthDateInvalid;
     }
     return null;
   }
 
-  /// `YYYY-MM-DD`. 위에서 읽은 날짜를 다시 적을 때만 쓴다.
-  static String _asYmd(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-'
-      '${d.month.toString().padLeft(2, '0')}-'
-      '${d.day.toString().padLeft(2, '0')}';
-
   /// 이메일 — 앞뒤 공백은 보내기 전에 잘라내므로 잘라낸 값으로 본다.
+  ///
+  /// 길이를 형식보다 먼저 본다 — 서버(`contact_format.clean_email`)와 같은
+  /// 순서다. 전에는 상한이 서버에만 있어, 아주 긴 주소가 화면 검사를 통과한
+  /// 뒤 가입·프로필 저장에서 서버 오류 문구로 떨어졌다(#2908). 형식이 ASCII
+  /// 만 받으므로 형식을 통과할 수 있는 주소에서는 [String.length] 와 서버의
+  /// 글자 수가 같다.
   static AppInputError? email(String value) {
     final String email = value.trim();
     if (email.isEmpty) return AppInputError.emailEmpty;
+    if (email.length > emailMaxLength) return AppInputError.emailTooLong;
     final String local = email.split('@').first;
     // 점으로 시작·끝나거나 점이 이어진 로컬 부분은 정규식으로 적으면 읽기
     // 어려워 따로 본다.

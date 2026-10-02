@@ -23,13 +23,7 @@ import 'package:demo_fixture/demo_fixture.dart'
 import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_rules/oncare_rules.dart' show pyRound;
-import 'package:oncare_ui/oncare_ui.dart'
-    show
-        kGoalDefaultDailyCalories,
-        kGoalDefaultDailyProteinG,
-        kGoalDefaultDailySodiumMg,
-        kGoalDefaultDailySugarG,
-        kGoalDefaultProteinGPerKg;
+import 'package:oncare_ui/oncare_ui.dart';
 
 // 4주 추천 메뉴 리스트는 트레이너 웹 데모와 함께 쓴다(#2379) — 공유 픽스처로 옮겼다.
 export 'package:demo_fixture/demo_fixture.dart'
@@ -118,11 +112,6 @@ DateTime _day(String iso) {
   final List<String> p = iso.split('-');
   return DateTime(int.parse(p[0]), int.parse(p[1]), int.parse(p[2]));
 }
-
-String _iso(DateTime d) =>
-    '${d.year.toString().padLeft(4, '0')}-'
-    '${d.month.toString().padLeft(2, '0')}-'
-    '${d.day.toString().padLeft(2, '0')}';
 
 DateTime _plusDays(DateTime d, int days) =>
     DateTime(d.year, d.month, d.day + days);
@@ -353,7 +342,7 @@ const Map<String, String> _focusTips = <String, String>{
   DateTime today,
   int minutes,
 ) {
-  final DateTime monday = _plusDays(today, -(today.weekday - DateTime.monday));
+  final DateTime monday = mondayOf(today);
   final DateTime lastMonday = _plusDays(monday, -7);
   final Map<DateTime, _DayRecord> all = _dayRecords(
     entries.where((DemoDietEntry e) {
@@ -379,8 +368,8 @@ const Map<String, String> _focusTips = <String, String>{
         ..sort((_DayRecord a, _DayRecord b) => a.day.compareTo(b.day));
   if (days.isEmpty) {
     return (
-      from: _iso(start),
-      to: _iso(end),
+      from: wireDate(start),
+      to: wireDate(end),
       days: 0,
       analysis: _line('week_empty'),
       action: _line('week_empty_hint'),
@@ -447,8 +436,8 @@ const Map<String, String> _focusTips = <String, String>{
     }
   }
   return (
-    from: _iso(start),
-    to: _iso(end),
+    from: wireDate(start),
+    to: wireDate(end),
     days: days.length,
     analysis: analysis,
     action: _line(tip),
@@ -619,8 +608,8 @@ _Finding? _repeated(Map<DateTime, _DayRecord> records) {
     return !d.isBefore(start) && !d.isAfter(today);
   }).toList();
   final Map<DateTime, _DayRecord> records = _dayRecords(window);
-  final String from = _iso(start);
-  final String to = _iso(today);
+  final String from = wireDate(start);
+  final String to = wireDate(today);
   if (records.length < 7) {
     return (
       from: from,
@@ -690,7 +679,7 @@ Map<String, Object?> demoDietAdvice({
 }) {
   final DateTime today = DateTime(now.year, now.month, now.day);
   final int minutes = now.hour * 60 + now.minute;
-  final String todayIso = _iso(today);
+  final String todayIso = wireDate(today);
 
   late final String from;
   late final String to;

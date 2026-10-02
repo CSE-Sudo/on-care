@@ -10,7 +10,6 @@ import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/errors/app_error_message.dart';
-import 'package:oncare/core/utils/wire_date.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis_failure.dart';
@@ -233,23 +232,6 @@ String _recordDateLabel(BuildContext context, DateTime date) =>
 /// 역할 글자 + 색. 크기·굵기 숫자는 적지 않는다(#1690).
 TextStyle _text(BuildContext context, TextStyle role, Color color) =>
     context.oncare.text(role).copyWith(color: color);
-
-/// 줄이 바뀌지 않는 공백(U+00A0).
-const String _nbsp = '\u00A0';
-
-/// 폭 없는 줄바꿈 금지 문자(U+2060 WORD JOINER).
-const String _wordJoiner = '\u2060';
-
-/// 한 덩어리로 읽혀야 하는 글자를 줄이 바뀌지 않게 잇는다.
-///
-/// 공백만 붙는 공백으로 바꾸면 모자라다 — 한국어는 음절 사이 어디서든 줄이
-/// 바뀌어 `그래놀` / `라 토핑` 처럼 갈렸다. 글자 사이마다 폭 없는 줄바꿈 금지
-/// 문자를 끼운다.
-String _keepTogether(String text) => text
-    .replaceAll(' ', _nbsp)
-    .runes
-    .map(String.fromCharCode)
-    .join(_wordJoiner);
 
 /// 그램 수치 한 줄. 소수 첫째 자리까지만, 정수는 콤마만 — 칼로리·나트륨 행과
 /// 같은 서식이다. 당류와 탄·단·지가 이 함수를 같이 쓴다(#1564).
@@ -1239,11 +1221,11 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
                               // 이름 안·이름과 양 사이를 붙는 공백으로 잇고, 줄은
                               // ` · ` 에서만 바뀐다. `그래놀라` / `토핑 50g` 처럼
                               // 한 음식이 두 줄로 갈리면 다른 음식처럼 읽힌다.
-                              TextSpan(text: _keepTogether(r.foods[i].label)),
+                              TextSpan(text: keepTogether(r.foods[i].label)),
                               if (r.foods[i].amountG case final double grams)
                                 TextSpan(
-                                  text: _keepTogether(
-                                    '$_nbsp${_gramsText(grams)}${l.dietUnitG}',
+                                  text: keepTogether(
+                                    '$kNoBreakSpace${_gramsText(grams)}${l.dietUnitG}',
                                   ),
                                   style: OnCareTypography.numeric(
                                     _text(

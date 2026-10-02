@@ -12,7 +12,6 @@ import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/network/auth_token.dart';
 import 'package:oncare/core/observability/error_reporter.dart';
-import 'package:oncare/core/utils/wire_date.dart';
 import 'package:oncare/features/account/presentation/first_run_route.dart';
 import 'package:oncare/features/account/presentation/pages/onboarding_page.dart';
 import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';

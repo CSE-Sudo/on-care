@@ -620,6 +620,12 @@ abstract class AppLocalizations {
   /// **'Enter a valid email address'**
   String get authErrEmailInvalid;
 
+  /// Red text under the email field when the address is longer than the server limit (#2908). The limit matches the users.email column and EMAIL_MAX_LENGTH in contact_format.py.
+  ///
+  /// In en, this message translates to:
+  /// **'Email addresses can be up to 255 characters'**
+  String get authErrEmailTooLong;
+
   /// No description provided for @authErrPasswordEmpty.
   ///
   /// In en, this message translates to:

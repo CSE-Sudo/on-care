@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.core.pagination import DEFAULT_PAGE
+from app.core.week import monday_of
 from app.models.models import (
     ChatMessage, DietEntry, ExerciseSession, HealthProfile,
     RoutineHistory,
@@ -141,7 +142,7 @@ def build_roster(
 
     today = _today()
     today_str = today.isoformat()
-    monday = today - timedelta(days=today.weekday())
+    monday = monday_of(today)
     week_ago_str = (today - timedelta(days=6)).isoformat()
     monday_str = monday.isoformat()
 

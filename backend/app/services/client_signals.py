@@ -26,6 +26,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.core import clock
+from app.core.week import monday_of
 from app.models.models import (
     AiConversation,
     AiMessage,
@@ -345,7 +346,7 @@ def build_signals(
     today = clock.today()
     now = clock.now()
     lookback = today - timedelta(days=RECORD_LOOKBACK_DAYS)
-    monday = today - timedelta(days=today.weekday())
+    monday = monday_of(today)
 
     data = {
         m: _MemberData(diet_by_date={}, exercise_dates=set(), week_sessions=[])
@@ -368,7 +369,7 @@ def build_signals(
     for row in db.scalars(
         select(ExerciseSession).where(
             ExerciseSession.user_id.in_(member_ids),
-            ExerciseSession.week_start >= (lookback - timedelta(days=lookback.weekday())).isoformat(),
+            ExerciseSession.week_start >= monday_of(lookback).isoformat(),
         )
     ).all():
         day = exercise_activity.activity_date_of(row)
@@ -455,7 +456,7 @@ def build_signals(
             select(ExerciseSession).where(
                 ExerciseSession.assigned_routine_id.in_(routine_ids),
                 ExerciseSession.week_start
-                >= (window_start - timedelta(days=window_start.weekday())).isoformat(),
+                >= monday_of(window_start).isoformat(),
             )
         ).all():
             day = exercise_activity.activity_date_of(row)

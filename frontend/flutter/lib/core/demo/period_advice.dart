@@ -16,6 +16,7 @@ import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_rules/oncare_rules.dart'
     show endsWithHangul, normalizeExerciseType, normalizeExerciseTypeKo;
+import 'package:oncare_ui/oncare_ui.dart' show mondayOf;
 
 /// 하루치 운동 합계. **기록이 있는 날만** 들어온다 — 쉰 날과 적지 않은 날은 다르다.
 typedef ExerciseDayTotals = ({
@@ -291,7 +292,8 @@ DateTime routineAdviceFetchStart(String period, DateTime today) {
   final DateTime day = DateTime(today.year, today.month, today.day);
   if (period == kPeriodToday) return day;
   if (period == kPeriodWeek) {
-    return DateTime(day.year, day.month, day.day - (day.weekday - 1) - 7);
+    final DateTime monday = mondayOf(day);
+    return DateTime(monday.year, monday.month, monday.day - 7);
   }
   return DateTime(day.year, day.month, day.day - (kAllPeriodWeeks * 7 - 1));
 }
@@ -434,11 +436,7 @@ ExerciseAdvice _routineToday(RoutineAdviceDay day) {
 
 ExerciseAdvice _routineWeek(List<RoutineAdviceDay> days) {
   final DateTime today = _dateOnly(days.last.date);
-  final DateTime monday = DateTime.utc(
-    today.year,
-    today.month,
-    today.day - (today.weekday - 1),
-  );
+  final DateTime monday = _dateOnly(mondayOf(today));
   final DateTime lastMonday = DateTime.utc(
     monday.year,
     monday.month,

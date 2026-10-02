@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.core.locale import Locale
+from app.core.week import monday_of
 from app.models.models import ExerciseSession, TrainerSchedule
 from app.services import (
     exercise_activity, exercise_types, goal_defaults, period_window, routine_advice,
@@ -93,7 +94,7 @@ def first_session_date(db: Session, user_id: str) -> str | None:
 
 def monday_of_this_week_str() -> str:
     today = clock.today()
-    return (today - timedelta(days=today.weekday())).isoformat()
+    return monday_of(today).isoformat()
 
 
 def monday_of_str(day: str) -> str:
@@ -106,7 +107,7 @@ def monday_of_str(day: str) -> str:
         d = date.fromisoformat(day)
     except (TypeError, ValueError):
         return monday_of_this_week_str()
-    return (d - timedelta(days=d.weekday())).isoformat()
+    return monday_of(d).isoformat()
 
 
 def weekday_label_of(day: str) -> str:
@@ -430,7 +431,7 @@ def build_period(
 
 
 def _monday_of(day: date) -> date:
-    return day - timedelta(days=day.weekday())
+    return monday_of(day)
 
 
 def build_current_week(

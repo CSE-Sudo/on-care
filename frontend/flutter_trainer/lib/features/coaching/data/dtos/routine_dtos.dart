@@ -2,6 +2,7 @@ import 'package:oncare_rules/oncare_rules.dart' show normalizeExerciseTypeKo;
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_limits.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Valid routine types accepted by the backend (`RoutineType` literal).
 ///
@@ -131,7 +132,7 @@ Map<String, Object?> assignRoutineToJson(
         ? null
         : r.durationSeconds?.clamp(0, kMaxExerciseSeconds),
     'type': type,
-    'exercise_date': r.date == null ? null : _ymd(r.date!),
+    'exercise_date': r.date == null ? null : wireDate(r.date!),
     'intensity': normaliseRoutineIntensity(r.intensity),
     // 세트·횟수·중량은 근력에만 싣는다 — 서버도 다른 유형에서는 버린다.
     // (#1276, #1310)
@@ -148,12 +149,6 @@ Map<String, Object?> assignRoutineToJson(
     'client_request_id': ?clientRequestId,
   };
 }
-
-/// `YYYY-MM-DD` — 서버가 `date` 로 받는 형식.
-String _ymd(DateTime d) =>
-    '${d.year.toString().padLeft(4, '0')}-'
-    '${d.month.toString().padLeft(2, '0')}-'
-    '${d.day.toString().padLeft(2, '0')}';
 
 String _str(Object? v) => v is String ? v : '';
 
