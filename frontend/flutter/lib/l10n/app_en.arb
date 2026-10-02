@@ -1471,6 +1471,7 @@
   "myCancel": "Cancel",
   "myGymTrainerTitle": "My Gym & Trainer",
   "myConnectionDeleteTitle": "Remove Connection",
+  "myConnectionDeleteFailed": "Couldn't remove the connection. Please try again.",
   "myDelete": "Remove",
   "myGymDisconnectWithTrainerConfirm": "Disconnect {gym}?\nYour trainer link with {trainer} will also be removed.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged are not deleted, and you can see them again if you reconnect with the same trainer.",
   "@myGymDisconnectWithTrainerConfirm": {
@@ -1586,6 +1587,9 @@
     "description": "Button above the trainer chat thread that fetches the previous page (#1943)."
   },
   "coachChatLoadFailed": "Couldn't load the conversation",
+  "coachChatEmptyTitle": "Start a conversation with {trainer}",
+  "@coachChatEmptyTitle": {"placeholders": {"trainer": {"type": "String"}}},
+  "coachChatEmptyBody": "Send a photo of what you ate today or ask about your workouts",
   "coachChatSendFailed": "Couldn't send your message. Please try again",
   "coachPhotoAttach": "Send a photo",
   "@coachPhotoAttach": {
@@ -2135,6 +2139,7 @@
   "exGymConsultPickTrainer": "Choose a trainer",
   "exGymConsultPickTrainerHint": "Your request goes to one trainer.",
   "exGymConsultNoTrainers": "No trainers are affiliated yet.",
+  "exGymTrainersLoadError": "Couldn't load this gym's trainers.",
   "exTrainerConsultRequest": "Request a Trainer Consultation",
   "exConsultPendingCta": "Consultation Request Pending",
   "exConsultLinkedToOtherTrainer": "You're connected with your trainer. To request a consultation with another trainer, disconnect from your trainer first.",
@@ -2261,6 +2266,9 @@
   "exCancelConfirmTitle": "Cancel this booking?",
   "exCancelFailed": "Couldn't cancel the booking. Please try again in a moment",
   "exReservationPast": "Past booking",
+  "exReservationPastMore": "Show {count} more past bookings",
+  "@exReservationPastMore": {"placeholders": {"count": {"type": "int"}}},
+  "exReservationPastLess": "Hide past bookings",
   "exCancelConfirmBody": "The {when} booking is cancelled and the slot reopens.",
   "@exCancelConfirmBody": {
     "placeholders": {
@@ -2479,6 +2487,12 @@
       }
     }
   },
+  "guideSampleFoodScrambledEggs": "Scrambled eggs",
+  "guideSampleFoodWholeWheatToast": "Whole-wheat toast",
+  "guideSampleFoodChickenSalad": "Chicken breast salad",
+  "guideSampleFoodBrownRice": "Brown rice",
+  "guideSampleFoodGrilledSalmon": "Grilled salmon",
+  "guideSampleFoodRoastedVegetables": "Roasted vegetables",
   "onboardRequiredTag": "(required)",
   "@onboardRequiredTag": {
     "description": "Onboarding step 1: the basic info step must be filled in (#1830)."
@@ -3286,6 +3300,9 @@
   "@exConsultHistoryCancelAction": {
     "description": "Confirm button of the cancel-consultation dialog. Sits next to Keep, like Cancel booking (#2554)."
   },
+  "exConsultCancelFailed": "Couldn't cancel the consultation request. Please try again.",
+  "exConsultCancelStale": "This request was already handled. It now shows its latest status.",
+  "exConsultHistoryLoadError": "Couldn't load your consultation requests.",
   "exConsultHistoryCancelBody": "A cancelled request can't be restored.",
   "pointsRewardBadge": "+{points}P",
   "@pointsRewardBadge": {

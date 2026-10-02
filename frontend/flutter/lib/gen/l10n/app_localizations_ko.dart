@@ -2027,6 +2027,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myConnectionDeleteTitle => '연결 삭제';
 
   @override
+  String get myConnectionDeleteFailed => '연결을 해제하지 못했어요. 다시 시도해 주세요.';
+
+  @override
   String get myDelete => '삭제';
 
   @override
@@ -2224,6 +2227,14 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachChatLoadFailed => '대화를 불러오지 못했어요';
+
+  @override
+  String coachChatEmptyTitle(String trainer) {
+    return '$trainer님과 대화를 시작해 보세요';
+  }
+
+  @override
+  String get coachChatEmptyBody => '오늘 먹은 식단 사진이나 운동하며 궁금한 점을 보내 보세요';
 
   @override
   String get coachChatSendFailed => '메시지 전송에 실패했어요. 다시 시도해 주세요';
@@ -2703,6 +2714,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exGymConsultNoTrainers => '아직 소속 트레이너가 없어요.';
 
   @override
+  String get exGymTrainersLoadError => '소속 트레이너를 불러오지 못했어요.';
+
+  @override
   String get exTrainerConsultRequest => '트레이너 상담 요청하기';
 
   @override
@@ -2965,6 +2979,14 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exReservationPast => '지난 예약';
+
+  @override
+  String exReservationPastMore(int count) {
+    return '지난 예약 $count건 더 보기';
+  }
+
+  @override
+  String get exReservationPastLess => '지난 예약 접기';
 
   @override
   String exCancelConfirmBody(String when) {
@@ -3242,6 +3264,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String guidePointsBody(int diet, int exercise, int routine) {
     return '기록할 때마다 포인트가 쌓여요.\n식단 기록 +${diet}P, 운동 추가 +${exercise}P, 추천 운동 완료 +${routine}P\n모은 포인트는 MY › 포인트 사용처에서 써요';
   }
+
+  @override
+  String get guideSampleFoodScrambledEggs => '스크램블에그';
+
+  @override
+  String get guideSampleFoodWholeWheatToast => '통밀 토스트';
+
+  @override
+  String get guideSampleFoodChickenSalad => '닭가슴살 샐러드';
+
+  @override
+  String get guideSampleFoodBrownRice => '현미밥';
+
+  @override
+  String get guideSampleFoodGrilledSalmon => '연어구이';
+
+  @override
+  String get guideSampleFoodRoastedVegetables => '구운 채소';
 
   @override
   String get onboardRequiredTag => '(필수)';
@@ -3892,6 +3932,15 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exConsultHistoryCancelAction => '요청 취소';
+
+  @override
+  String get exConsultCancelFailed => '상담 요청을 취소하지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String get exConsultCancelStale => '이미 처리된 요청이에요. 최신 상태로 바꿨어요.';
+
+  @override
+  String get exConsultHistoryLoadError => '상담 요청을 불러오지 못했어요.';
 
   @override
   String get exConsultHistoryCancelBody => '취소한 요청은 다시 되돌릴 수 없어요.';
