@@ -232,7 +232,7 @@ void main() {
     expect(inCard(find.text(l.exDurationMinutes(50))), findsOneWidget);
     expect(inCard(find.byType(AppDivider)), findsOneWidget);
     expect(
-      inCard(find.text('PT 세션 · 4세트 · 10회 · 40kg · 보통')),
+      inCard(find.text('PT 세션 · 4세트 · 10회 · 40kg')),
       findsOneWidget,
       reason: '무슨 운동을 했는지가 종목 줄로 남는다',
     );
@@ -264,7 +264,7 @@ void main() {
     expect(
       find.descendant(
         of: card,
-        matching: find.text('코어 루틴 · 4세트 · 10회 · 40kg · 보통'),
+        matching: find.text('코어 루틴 · 4세트 · 10회 · 40kg'),
       ),
       findsOneWidget,
     );
@@ -287,7 +287,21 @@ void main() {
       ),
     ]);
 
-    expect(find.text('PT 세션 · 4세트 · 10회 · 40kg · 높음'), findsOneWidget);
+    // 종목 줄은 `이름 · 운동량`, 강도는 카드 머리 오른쪽 태그 하나다(#2507).
+    final Finder card = find.byKey(
+      const ValueKey<String>('exercise-pt-records'),
+    );
+    expect(
+      find.descendant(
+        of: card,
+        matching: find.text('PT 세션 · 4세트 · 10회 · 40kg'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: card, matching: find.text('높음')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('트레이너 쪽 기록이 직접 기록한 운동보다 위에 선다 (#2017)', (tester) async {
@@ -310,7 +324,7 @@ void main() {
         .getRect(find.text(l.exCompletedPtDayTitle))
         .top;
     final double itemTop = tester
-        .getRect(find.text('PT 세션 · 4세트 · 10회 · 40kg · 보통'))
+        .getRect(find.text('PT 세션 · 4세트 · 10회 · 40kg'))
         .top;
     final double ownTitleTop = tester.getRect(find.text(l.exOwnRecords)).top;
 
@@ -324,7 +338,7 @@ void main() {
 
     // 두 묶음이 붙어 보이지 않게 띄운다.
     final double ptBottom = tester
-        .getRect(find.text('PT 세션 · 4세트 · 10회 · 40kg · 보통'))
+        .getRect(find.text('PT 세션 · 4세트 · 10회 · 40kg'))
         .bottom;
     expect(ownTitleTop - ptBottom, greaterThanOrEqualTo(OnCareSpacing.s20));
   });
@@ -380,21 +394,21 @@ void main() {
     expect(
       find.descendant(
         of: ptCard,
-        matching: find.text('PT 세션 · 4세트 · 10회 · 40kg · 보통'),
+        matching: find.text('PT 세션 · 4세트 · 10회 · 40kg'),
       ),
       findsOneWidget,
     );
     expect(
       find.descendant(
         of: ptCard,
-        matching: find.text('코어 루틴 · 4세트 · 10회 · 40kg · 보통'),
+        matching: find.text('코어 루틴 · 4세트 · 10회 · 40kg'),
       ),
       findsNothing,
     );
     expect(
       find.descendant(
         of: routineCard,
-        matching: find.text('코어 루틴 · 4세트 · 10회 · 40kg · 보통'),
+        matching: find.text('코어 루틴 · 4세트 · 10회 · 40kg'),
       ),
       findsOneWidget,
     );
