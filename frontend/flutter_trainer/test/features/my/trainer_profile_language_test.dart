@@ -154,7 +154,7 @@ void main() {
       expect(gyms.map((TrainerGymCandidate g) => g.name), <String>[
         'OnCare Gym Sinchon',
         'OnCare Gym Gangnam',
-        'HighFit',
+        'OnCare Yeonhui Studio',
       ]);
       for (final TrainerGymCandidate gym in gyms) {
         expect(gym.address, isNot(matches(_hangul)));
