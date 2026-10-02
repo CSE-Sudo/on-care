@@ -4,7 +4,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # 개발 기본 시크릿(운영에서 그대로 쓰면 기동 차단)
@@ -44,6 +44,15 @@ class Settings(BaseSettings):
     # 기본은 꺼짐(#2821) — ENV 를 빠뜨린 채 뜬 서버가 로그인 없는 요청을 데모 회원으로
     # 처리하지 않게 한다. 로컬 개발은 .env.example 의 ALLOW_DEMO_FALLBACK=true 로 켠다.
     allow_demo_fallback: bool = False
+
+    # --- 감사 로그 (#2830) ---
+    # 트레이너의 회원 기록 열람(`trainer.client_read`)은 같은 (트레이너, 회원, 자원)
+    # 조합을 이 시간(분) 안에 한 번만 남긴다 — 화면을 넘길 때마다 쌓이지 않게.
+    audit_read_dedupe_minutes: int = 10
+    # 보존 기간(일). 지난 기록은 기동 시 정리한다. 0 이면 정리하지 않는다.
+    # 인증·계정 이벤트(접속 기록)는 1년, 건강정보 열람·동의·탈퇴 기록은 2년.
+    audit_retention_days: int = 365
+    audit_sensitive_retention_days: int = 730
 
     # --- 소셜 로그인 ---
     # Apple 로그인에서 허용할 `aud`(client_id) 목록, 콤마 구분.
@@ -194,6 +203,16 @@ class Settings(BaseSettings):
     security_headers: bool = True   # 보안 응답 헤더(HSTS·nosniff·frame deny 등)
     # 루트 로거 레벨. 허용값만(임의 문자열 금지 — 오타로 로깅이 조용히 죽는 것 방지).
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+
+    # --- 에러 추적(Sentry, #2839) ---
+    # 처리하지 못한 예외를 외부 에러 추적 도구로 보낸다. DSN 은 배포 환경변수로만 넣고
+    # 저장소에 두지 않는다. 비어 있거나 ENV=dev 면 초기화하지 않는다(개발·데모 오류는
+    # 보내지 않음). 요청 본문·헤더·쿼리·지역 변수는 보내지 않는다(app/core/error_tracking.py).
+    sentry_dsn: str = ""
+    # 비우면 ENV 값(staging·prod)을 그대로 쓴다.
+    sentry_environment: str = ""
+    # 오류 이벤트 표본 비율(0~1). 성능 추적(APM)은 켜지 않는다.
+    sentry_sample_rate: float = Field(default=1.0, ge=0.0, le=1.0)
 
     # --- Rate limit (인증 엔드포인트 브루트포스 방어) ---
     rate_limit_enabled: bool = True

@@ -364,14 +364,18 @@ class _PairedMemberCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: OnCareSpacing.s4),
-                    Flexible(
-                      child: Text(
-                        demographics,
-                        overflow: TextOverflow.ellipsis,
-                        style: clientDemographicsStyle(context),
+                    // 성별·나이가 모두 없으면 목록(ClientIdentityBlock)처럼
+                    // 칸을 그리지 않는다(#2814).
+                    if (demographics.isNotEmpty) ...<Widget>[
+                      const SizedBox(width: OnCareSpacing.s4),
+                      Flexible(
+                        child: Text(
+                          demographics,
+                          overflow: TextOverflow.ellipsis,
+                          style: clientDemographicsStyle(context),
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
                 if (paired.goal.isNotEmpty) ...<Widget>[

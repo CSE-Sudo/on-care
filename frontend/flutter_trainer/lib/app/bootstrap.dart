@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/app/app.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
+import 'package:oncare_trainer/core/observability/error_reporter.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/prefs_provider.dart';
@@ -20,6 +21,9 @@ Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final config = AppConfig.fromEnvironment();
+  // 처리하지 못한 오류 보고(#2839). 데모(목업)·개발 환경·DSN 없음이면 보내지 않는
+  // 보고기가 돌아오고, SDK 도 초기화하지 않는다.
+  final ErrorReporter errorReporter = await initErrorReporter(config);
   final prefs = await SharedPreferences.getInstance();
   // 데모 내용(회원 목표·대화·식단·상담·프로필)의 언어. 화면 언어와 같은 규칙으로
   // 한 번 정해 심고, 목 저장소도 같은 값을 읽는다 (#2304).
@@ -34,6 +38,13 @@ Future<void> bootstrap() async {
   final db = AppDatabase();
   await seedDemoStorage(config, db, prefs, demoLanguage);
 
+  // 전역 오류 처리기. 보고와 별개로 콘솔에도 남긴다.
+  installErrorHandlers(
+    reporter: errorReporter,
+    log: (String message, Object error, StackTrace? stack) =>
+        debugPrint('$message: $error\n$stack'),
+  );
+
   runApp(
     ProviderScope(
       overrides: <Override>[
@@ -41,6 +52,7 @@ Future<void> bootstrap() async {
         sharedPreferencesProvider.overrideWithValue(prefs),
         appDatabaseProvider.overrideWithValue(db),
         demoLanguageProvider.overrideWithValue(demoLanguage),
+        errorReporterProvider.overrideWithValue(errorReporter),
       ],
       child: const OncareTrainerApp(),
     ),
