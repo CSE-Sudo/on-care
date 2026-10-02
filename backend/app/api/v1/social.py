@@ -22,7 +22,7 @@ from app.services import auth_tokens
 from app.services.audit import client_ip, record as audit
 from app.services.contact_format import normalize_email
 from app.models.models import SocialAccount, User
-from app.schemas.user import SocialLoginRequest, Token
+from app.schemas.user import LoginToken, SocialLoginRequest
 from app.services.social.base import (
     SocialAuthError,
     SocialIdentity,
@@ -78,16 +78,20 @@ def _find_or_create_user(db: Session, identity: SocialIdentity) -> User:
     return user
 
 
-def _complete_login(db: Session, identity: SocialIdentity, ip: str | None, provider: str) -> Token:
+def _complete_login(
+    db: Session, identity: SocialIdentity, ip: str | None, provider: str
+) -> LoginToken:
     """검증된 신원으로 사용자를 찾거나 만들고 감사 기록 뒤 토큰을 낸다. 동기(#2835)."""
     user = _find_or_create_user(db, identity)
     audit(db, event="auth.social", user_id=user.id, ip=ip, success=True, detail=provider)
-    return auth_tokens.issue_token_pair(user)
+    # 소셜로 처음 들어온 계정은 가입 화면을 거치지 않아 동의 기록이 없다(#2819) —
+    # `consent_required` 가 참이 되어 앱이 가입 화면과 같은 동의 화면을 띄운다.
+    return auth_tokens.issue_login_tokens(db, user)
 
 
 @router.post(
     "/auth/social/{provider}",
-    response_model=Token,
+    response_model=LoginToken,
     dependencies=[Depends(rate_limit("auth-social"))],
 )
 async def social_login(
@@ -95,7 +99,7 @@ async def social_login(
     payload: SocialLoginRequest,
     request: Request,
     db: Annotated[Session, Depends(get_db)],
-) -> Token:
+) -> LoginToken:
     """소셜 토큰 검증 → 사용자 조회·생성 → 토큰 발급.
 
     외부 검증만 `await` 하고, 동기 DB 작업(사용자 조회·생성·감사 기록)은 스레드풀로

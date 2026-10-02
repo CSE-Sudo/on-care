@@ -87,6 +87,7 @@ class _AccountsAuthRepository implements TrainerAuthRepository {
     required String email,
     required String password,
     required String name,
+    List<String>? consents,
   }) async => const TrainerAuthTokens(access: 'a-reg', refresh: 'a-r-reg');
 
   @override

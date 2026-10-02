@@ -5,9 +5,11 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
+import 'package:oncare_trainer/features/auth/domain/entities/signup_consent.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare_trainer/features/auth/presentation/widgets/trainer_consent_block.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -35,6 +37,11 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
   final TextEditingController _passwordConfirm = TextEditingController();
   bool _obscure = true;
   bool _loading = false;
+
+  /// 체크한 동의 항목(#2819). 필수 항목이 모두 있어야 가입 버튼이 켜진다.
+  Set<String> _consents = <String>{};
+
+  bool get _consentsReady => TrainerSignupConsent.hasAllRequired(_consents);
 
   /// 칸 아래 오류 문구. 첫 제출 전에는 숨기고, 오류를 보인 칸은 입력하는 대로
   /// 다시 검사한다(#1784).
@@ -82,6 +89,8 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
 
   Future<void> _register() async {
     if (_loading) return;
+    // 버튼은 꺼져 있지만 확인 칸의 완료 키로도 여기 온다(#2819).
+    if (!_consentsReady) return;
     // 틀린 칸이 하나라도 있으면 요청을 보내지 않고 칸 아래에 알린다. 서버가
     // 돌려준 실패(이메일 중복 등)만 아래에서 토스트로 알린다.
     final bool valid = _errors.validate(<_Field>[
@@ -101,7 +110,12 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
     try {
       await ref
           .read(sessionControllerProvider.notifier)
-          .register(email: email, password: password, name: name);
+          .register(
+            email: email,
+            password: password,
+            name: name,
+            consents: TrainerSignupConsent.toPayload(_consents),
+          );
       // 계정이 만들어진 뒤에만 새 비밀번호를 브라우저에 저장하게 한다(#2295).
       // 가입이 끝나면 인증 게이트가 곧 이 화면을 걷어 내므로 `mounted` 를
       // 보기 전에 알린다 — 실패한 경로는 여기를 지나지 않는다.
@@ -213,34 +227,24 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
               onChanged: _onEdited,
               onSubmitted: (_) => _register(),
             ),
-            const SizedBox(height: OnCareSpacing.s24),
+            const SizedBox(height: OnCareSpacing.s20),
+            // 간주 동의 대신 항목마다 명시적으로 체크한다(#2819). 문서는
+            // 동의하기 전에 열 수 있다 — 세션 없이 열리는 라우트다(#968).
+            TrainerConsentBlock(
+              checked: _consents,
+              enabled: !_loading,
+              onChanged: (Set<String> next) => setState(() => _consents = next),
+            ),
+            const SizedBox(height: OnCareSpacing.s20),
             AppButton(
               key: const ValueKey<String>('trainer-signup-submit'),
               label: l.authSignUpAndStart,
-              onPressed: _register,
+              onPressed: _consentsReady ? _register : null,
               size: OnCareButtonSize.large,
               loading: _loading,
               fullWidth: true,
             ),
             const SizedBox(height: OnCareSpacing.s8),
-            // 동의 대상 문서는 동의하기 전에 열 수 있어야 한다 —
-            // 두 문서 모두 세션 없이 열리는 라우트다. (#968)
-            Wrap(
-              alignment: WrapAlignment.center,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: <Widget>[
-                Text(l.authLegalNotice, style: mutedStyle),
-                _LegalLink(
-                  label: l.myLegalTermsTitle,
-                  document: AppRoutes.legalTerms,
-                ),
-                _LegalLink(
-                  label: l.myLegalPrivacyTitle,
-                  document: AppRoutes.legalPrivacy,
-                ),
-              ],
-            ),
-            const SizedBox(height: OnCareSpacing.s4),
             // Row 가 아니라 Wrap — 영어 문구가 길어 좁은 폭에서
             // 넘친다(로그인 화면과 같은 이유). (#501)
             Wrap(
@@ -259,25 +263,6 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// 가입 화면의 약관 링크. 화면을 갈아치우지 않고 push 로 열어, 뒤로 누르면
-/// 입력하던 값이 그대로 남아 있게 한다. (#968)
-class _LegalLink extends StatelessWidget {
-  const _LegalLink({required this.label, required this.document});
-
-  final String label;
-  final String document;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppButton(
-      label: label,
-      onPressed: () => context.push(AppRoutes.legalDocument(document)),
-      variant: AppButtonVariant.text,
-      size: OnCareButtonSize.small,
     );
   }
 }

@@ -21,7 +21,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentUser, RequireMember
+from app.api.deps import CurrentUser, RequireMember, RequireUser
 from app.core import clock
 from app.core.config import get_settings
 from app.core.locale import get_request_locale
@@ -45,6 +45,8 @@ from app.db.session import get_db
 from app.models.models import AccountDeletionReason, HealthProfile, User
 from app.schemas.user import (
     AccountDeleteRequest,
+    ConsentStatus,
+    ConsentSubmit,
     MemberPasswordChange,
     PasswordChanged,
     PasswordResetConfirm,
@@ -53,6 +55,7 @@ from app.schemas.user import (
     PasswordResetRequested,
     HealthGoalsUpdate,
     HealthProfileBrief,
+    LoginToken,
     OnboardingRequest,
     PairingCodeOut,
     ProfileUpdate,
@@ -77,6 +80,7 @@ from app.services import (
     name_change,
     password_reset,
     reservation_service,
+    signup_consent,
     token_revocation,
     trainer_signup_service,
     weekly_challenge_service,
@@ -89,8 +93,48 @@ router = APIRouter(tags=["users"])
 
 
 @router.get("/users/me", response_model=UserMe)
-def get_me(current_user: CurrentUser) -> UserMe:
-    return UserMe(id=current_user.id, name=current_user.name, email=current_user.email)
+def get_me(
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> UserMe:
+    # 아직 동의하지 않은 필수 항목을 함께 준다(#2819). 앱은 이 값으로 다른
+    # 화면보다 먼저 동의 화면을 띄운다.
+    pending = signup_consent.pending_kinds(db, current_user)
+    return UserMe(
+        id=current_user.id,
+        name=current_user.name,
+        email=current_user.email,
+        consent_required=bool(pending),
+        consent_pending=pending,
+    )
+
+
+@router.post("/users/me/consents", response_model=ConsentStatus)
+def submit_consents(
+    payload: ConsentSubmit,
+    user: RequireUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> ConsentStatus:
+    """가입 뒤 동의 화면에서 받은 항목을 남긴다. (#2819)
+
+    동의 절차가 생기기 전에 가입한 계정, 소셜 로그인으로 처음 들어온 계정, 문서
+    버전이 올라간 계정이 다음 로그인 때 거치는 화면이 부른다. 회원·트레이너 모두
+    쓴다 — 필수 항목은 계정 역할로 고른다.
+
+    필수 항목이 하나라도 빠지면 아무것도 남기지 않고 422 다. 일부만 남기면
+    화면은 다시 뜨는데 어떤 항목은 이미 동의한 것으로 남아, 무엇에 언제 동의했는지
+    이력이 흐려진다.
+    """
+    missing = signup_consent.missing_required(user.role, payload.consents)
+    if missing:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "consent_required", "missing": missing},
+        )
+    signup_consent.record(db, user.id, payload.consents)
+    db.commit()
+    pending = signup_consent.pending_kinds(db, user)
+    return ConsentStatus(consent_required=bool(pending), consent_pending=pending)
 
 
 @router.get("/users/me/health", response_model=UserHealth)
@@ -546,6 +590,12 @@ def register(
     # 회원을 알아볼 방법도 없었다.
     if payload.phone:
         db.add(HealthProfile(user_id=user.id, phone=payload.phone))
+    # 가입 화면에서 체크한 동의를 계정과 **한 트랜잭션**으로 남긴다(#2819).
+    # 나눠 커밋하면 동의 기록 없는 계정이 남는다. 목록을 보내지 않은 옛 빌드는
+    # 기록 없이 만들어지고, 로그인 직후 동의 화면을 거친다.
+    if payload.consents is not None:
+        db.flush()
+        signup_consent.record(db, user.id, payload.consents)
     try:
         db.commit()
     except IntegrityError:
@@ -611,14 +661,14 @@ def _login_lock_key(username: str) -> str:
 
 @router.post(
     "/auth/login",
-    response_model=Token,
+    response_model=LoginToken,
     dependencies=[Depends(rate_limit("auth-login"))],
 )
 def login(
     request: Request,
     form: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[Session, Depends(get_db)],
-) -> Token:
+) -> LoginToken:
     """이메일·비밀번호 로그인.
 
     IP 한도(`auth-login`)에 더해 **이메일 단위 실패 잠금**을 건다(#2815). IP 를
@@ -654,7 +704,7 @@ def login(
         )
     clear_failures(lock_key)
     audit(db, event="auth.login", user_id=user.id, ip=client_ip(request), success=True)
-    return auth_tokens.issue_token_pair(user)
+    return auth_tokens.issue_login_tokens(db, user)
 
 
 @router.post(

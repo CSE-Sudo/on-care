@@ -4019,7 +4019,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachInviteExplain.
   ///
   /// In en, this message translates to:
-  /// **'Accepting lets this trainer see your meal and workout records.'**
+  /// **'Accepting lets this trainer see your meal records, workout records, body information and health goals. You\'ll be asked to agree to sharing before you accept.'**
   String get coachInviteExplain;
 
   /// No description provided for @coachInviteAccept.
@@ -4966,7 +4966,7 @@ abstract class AppLocalizations {
   /// No description provided for @exConsultDataSharingNotice.
   ///
   /// In en, this message translates to:
-  /// **'Your request details (name, exercise goal, and message) go to this trainer. Your meal and workout records are shared only if you register with a connection code after the consultation, with a separate consent.'**
+  /// **'Your request details (name, exercise goal, and message) go to this trainer for the consultation and stay with the request and its schedule after you send them. If you don\'t agree, you just can\'t send this request; everything else keeps working. Your meal and workout records are shared only if you register with a connection code after the consultation, with a separate consent.'**
   String get exConsultDataSharingNotice;
 
   /// No description provided for @exConsultDataSharingAgree.
@@ -5002,7 +5002,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachInviteConsentBody.
   ///
   /// In en, this message translates to:
-  /// **'Once {name} becomes your trainer, they can see your meal records, workout records, body information and health goals. Disconnecting also revokes that access.'**
+  /// **'Once {name} becomes your trainer, they can see your meal records, workout records, body information and health goals for coaching, consultations and writing reports. Disconnecting also revokes that access, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don\'t agree.'**
   String coachInviteConsentBody(String name);
 
   /// No description provided for @coachInviteConsentAgree.
@@ -5692,8 +5692,80 @@ abstract class AppLocalizations {
   /// No description provided for @trainerSyncConsent.
   ///
   /// In en, this message translates to:
-  /// **'Once the trainer who enters this code becomes your coach, they can see your diet log, exercise log, body info, and health goals. Disconnecting removes their access too.'**
+  /// **'Once the trainer who enters this code becomes your coach, they can see your meal records, workout records, body information and health goals for coaching, consultations and writing reports. Disconnecting removes their access too, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don\'t agree.'**
   String get trainerSyncConsent;
+
+  /// No description provided for @trainerShareDetailMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Show details'**
+  String get trainerShareDetailMore;
+
+  /// No description provided for @trainerShareDetailLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide details'**
+  String get trainerShareDetailLess;
+
+  /// No description provided for @trainerShareRecipientLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared with'**
+  String get trainerShareRecipientLabel;
+
+  /// No description provided for @trainerShareRecipient.
+  ///
+  /// In en, this message translates to:
+  /// **'The trainer connected as your coach'**
+  String get trainerShareRecipient;
+
+  /// No description provided for @trainerShareItemsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'What is shared'**
+  String get trainerShareItemsLabel;
+
+  /// No description provided for @trainerShareItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Meal records, workout records, body information and health goals'**
+  String get trainerShareItems;
+
+  /// No description provided for @trainerSharePurposeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Purpose'**
+  String get trainerSharePurposeLabel;
+
+  /// No description provided for @trainerSharePurpose.
+  ///
+  /// In en, this message translates to:
+  /// **'Coaching, consultations and writing reports'**
+  String get trainerSharePurpose;
+
+  /// No description provided for @trainerSharePeriodLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'How long'**
+  String get trainerSharePeriodLabel;
+
+  /// No description provided for @trainerSharePeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Until you withdraw consent by disconnecting. Deleting the trainer connection in the MY tab withdraws it, and the trainer can no longer see your new records. Conversations you had and reports already delivered before then are not deleted.'**
+  String get trainerSharePeriod;
+
+  /// No description provided for @trainerShareRefuseLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your right to refuse'**
+  String get trainerShareRefuseLabel;
+
+  /// No description provided for @trainerShareRefuse.
+  ///
+  /// In en, this message translates to:
+  /// **'You can say no. Without agreeing you can still use your personal records in the app; only the trainer connection won\'t be made.'**
+  String get trainerShareRefuse;
 
   /// No description provided for @trainerSyncAgree.
   ///
@@ -5748,6 +5820,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign-up failed. Please try again in a moment.'**
   String get signUpFailed;
+
+  /// No description provided for @consentAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree to all'**
+  String get consentAll;
+
+  /// No description provided for @consentRequiredTag.
+  ///
+  /// In en, this message translates to:
+  /// **'[Required]'**
+  String get consentRequiredTag;
+
+  /// No description provided for @consentOptionalTag.
+  ///
+  /// In en, this message translates to:
+  /// **'[Optional]'**
+  String get consentOptionalTag;
+
+  /// No description provided for @consentView.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get consentView;
+
+  /// No description provided for @consentTerms.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get consentTerms;
+
+  /// No description provided for @consentPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection and use of personal information'**
+  String get consentPrivacy;
+
+  /// No description provided for @consentHealth.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing of health information (sensitive data)'**
+  String get consentHealth;
+
+  /// No description provided for @consentHealthDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Covers your diet and exercise logs, body data such as weight, and health goals. We ask for this separately from other personal information.'**
+  String get consentHealthDetail;
+
+  /// No description provided for @consentAge14.
+  ///
+  /// In en, this message translates to:
+  /// **'I am 14 years of age or older'**
+  String get consentAge14;
+
+  /// No description provided for @consentAge14Detail.
+  ///
+  /// In en, this message translates to:
+  /// **'You must be 14 or older to sign up.'**
+  String get consentAge14Detail;
+
+  /// No description provided for @consentMarketing.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive marketing notifications'**
+  String get consentMarketing;
+
+  /// No description provided for @consentRequiredHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree to all required items to continue.'**
+  String get consentRequiredHint;
+
+  /// No description provided for @consentPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Agreements'**
+  String get consentPageTitle;
+
+  /// No description provided for @consentPageSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Please review and agree to the items below to keep using On-Care.'**
+  String get consentPageSubtitle;
+
+  /// No description provided for @consentPageAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree and continue'**
+  String get consentPageAction;
+
+  /// No description provided for @consentPageFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save your agreement. Please try again in a moment.'**
+  String get consentPageFailed;
 
   /// No description provided for @onboardSkip.
   ///
