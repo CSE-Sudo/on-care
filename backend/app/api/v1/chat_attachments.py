@@ -19,6 +19,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 from starlette.responses import StreamingResponse
 
 from app.api.deps import RequireUser
@@ -202,7 +203,14 @@ async def receive_chat_image(
 
     file_id: str | None = None
     try:
-        file_id, _, _ = chat_image_storage.save(data)
+        # 저장 전에 회전 적용·메타데이터(EXIF 위치 등) 제거·재인코딩을 거친다
+        # (#2829). Pillow 작업이라 이벤트 루프를 막지 않게 스레드로 넘긴다.
+        # 디코딩할 수 없는 파일은 저장하지 않고 415 다.
+        try:
+            stored = await run_in_threadpool(chat_image_storage.save, data)
+        except chat_image_storage.UnsupportedImage as exc:
+            raise HTTPException(status_code=415, detail=str(exc)) from exc
+        file_id = stored.file_id
         sent = trainer_service.send_message(
             db,
             trainer_id,
@@ -215,7 +223,8 @@ async def receive_chat_image(
             attachment_type="image",
             attachment_file_name=display_name,
             attachment_file_id=file_id,
-            attachment_file_size=len(data),
+            # 상대가 내려받는 것은 정리한 파일이다 — 크기도 그 값이다.
+            attachment_file_size=stored.size,
         )
         # 동시 재시도 두 건이 모두 사전 조회를 통과할 수 있다. DB 멱등키에서
         # 진 요청이 기존 메시지를 반환했다면, 그 요청이 쓴 여분 파일을 지운다.
