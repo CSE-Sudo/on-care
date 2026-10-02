@@ -4,6 +4,7 @@ import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/drift.dart';
 
 import 'package:oncare/core/demo/demo_ai_advice.dart';
+import 'package:oncare/core/demo/demo_alert_keys.dart';
 import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/utils/clock.dart';
@@ -84,6 +85,12 @@ Future<bool> _hadBenefitsSeed(AppDatabase db) async {
 Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
   final now = nowKst();
   final today = _fmtDate(now);
+
+  // 뺀 데모 알림(#2854)은 오늘 이미 시드된 설치에서도 걷어 낸다 — 날짜가
+  // 바뀌기를 기다리면 그날 하루 실서버에 없는 알림이 남는다.
+  await (db.delete(
+    db.notificationItems,
+  )..where((t) => t.id.isIn(kRetiredDemoAlertSeedIds))).go();
 
   final seedDate = await db.readValue(kSeedFlag);
   if (seedDate == today) {
@@ -193,20 +200,6 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
       // 백엔드 데모 계정 시드(`seed_notifications.py`)와 같은 목록·갈래다(#1812).
       // 데모 알림함은 인터셉터 `GET /notifications` 로 이 행을 읽는다(#2660).
       b.insertAll(db.notificationItems, <NotificationItemsCompanion>[
-        NotificationItemsCompanion.insert(
-          id: 'seed-noti-1',
-          createdAt: now.subtract(const Duration(minutes: 10)),
-          title: '나트륨 섭취 주의',
-          body: '점심 짬뽕으로 오늘 나트륨이 4,657mg까지 올랐어요. 물을 충분히 드세요.',
-          category: 'reminder',
-        ),
-        NotificationItemsCompanion.insert(
-          id: 'seed-noti-8',
-          createdAt: now.subtract(const Duration(minutes: 20)),
-          title: '저녁 식단을 기록해 주세요',
-          body: '오늘 저녁 식단이 아직 없어요. 사진 한 장이면 돼요.',
-          category: 'reminder',
-        ),
         NotificationItemsCompanion.insert(
           id: 'seed-noti-5',
           createdAt: now.subtract(const Duration(minutes: 30)),

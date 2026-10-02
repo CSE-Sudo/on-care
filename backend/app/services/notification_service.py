@@ -33,6 +33,9 @@ from app.services import notification_templates
 TRAINER_MESSAGE = "notif_trainer_message"
 EXERCISE = "notif_exercise_reminder"
 WEEKLY_REPORT = "notif_weekly_report"
+#: 식단 기록·AI 코칭 알림 키. **이 kind 로 만드는 알림은 없다**(#2854) — 회원 앱은
+#: 두 스위치를 더는 그리지도 보내지도 않는다. 이미 저장된 회원 설정 값과 예전 앱
+#: 버전이 깨지지 않도록 저장·응답에서는 당장 빼지 않는다.
 DIET_LOG = "notif_diet_log"
 AI_COACHING = "notif_ai_coaching"
 
@@ -149,7 +152,11 @@ def wants(db: Session, member_id: str, kind: str) -> bool:
     나면 세션이 실패 상태로 남아, 이어지는 `db.commit()`(메시지·루틴·일정을
     저장하는 그 커밋)까지 함께 죽는다. 설정을 못 읽었다는 이유로 메시지가 사라지면
     안 된다(리뷰). savepoint 를 되돌리면 바깥 트랜잭션은 멀쩡하다.
+
+    끌 수 없는 kind([ALWAYS_DELIVERED])는 설정을 읽지 않고 받는다(#2854).
     """
+    if kind in ALWAYS_DELIVERED:
+        return True
     try:
         with db.begin_nested():
             return get_settings(db, member_id).get(kind, True)
@@ -264,13 +271,18 @@ MEMBER_BENEFITS = "benefits"
 MEMBER_POINTS_SHOP = "points_shop"
 
 #: 포인트 쿠폰 알림의 kind. 회원 수신 설정 키가 아니다 — 설정 화면에 스위치가
-#: 없고 `wants` 는 모르는 kind 를 받는 쪽으로 둔다. 쿠폰 사용·취소는 회원의
-#: 포인트가 움직인 일이라 끌 수 있는 알림으로 두지 않는다.
+#: 없고 [ALWAYS_DELIVERED] 에 든다. 쿠폰 사용·취소는 회원의 포인트가 움직인
+#: 일이라 끌 수 있는 알림으로 두지 않는다.
 POINTS_COUPON = "points_coupon"
 
 #: 주간 운동 챌린지 결과 알림의 kind(#1789). 쿠폰 알림과 같은 이유로 수신 설정
 #: 스위치가 없다 — 건 포인트를 돌려받았는지·잃었는지 알려 주는 알림이다.
 WEEKLY_CHALLENGE = "weekly_challenge"
+
+#: 끌 수 없는 회원 알림 kind(#2854). 회원 수신 설정에 스위치가 없고, 설정과 무관하게
+#: 늘 만든다 — 모두 회원의 포인트가 움직인 일을 알리는 알림이다. 예전에는 `wants`
+#: 가 모르는 kind 를 받는 쪽으로 두는 기본값에 이 규칙이 숨어 있었다.
+ALWAYS_DELIVERED: frozenset[str] = frozenset({POINTS_COUPON, WEEKLY_CHALLENGE})
 
 MEMBER_COACH_INVITE = "coach_invite"
 #: 담당 트레이너가 회원 건강 목표를 바꿨다 → MY 건강 목표(#1832).

@@ -7,7 +7,8 @@
 ///
 ///  * 첫 조회가 끝나기 전, 목록이 비어 있으면 로딩 표시를 그린다.
 ///  * 서버가 빈 목록을 주면 그때 빈 상태를 그린다.
-///  * 첫 조회가 실패하면 로딩 표시를 내리고 재시도 배너와 빈 상태를 그린다.
+///  * 첫 조회가 실패하면 로딩 표시를 내리고 실패 안내와 재시도만 그린다 —
+///    빈 상태("알림이 없습니다")는 그리지 않는다(#2877).
 ///  * 한 번 받은 뒤의 새로고침은 빈 상태를 로딩 표시로 바꾸지 않는다.
 ///  * 목/데모 시드는 처음부터 받은 목록이다.
 library;
@@ -41,6 +42,7 @@ const AppConfig _mockConfig = AppConfig(
 
 const Key _firstLoading = Key('notificationFirstLoading');
 const Key _retryBanner = Key('notificationRetryBanner');
+const Key _firstLoadFailed = Key('notificationFirstLoadFailed');
 
 AlertItem _alert(String id) => AlertItem(
   id: id,
@@ -306,7 +308,7 @@ void main() {
       expect(find.byType(AppEmptyState), findsOneWidget);
     });
 
-    testWidgets('첫 조회가 실패하면 로딩 표시를 내리고 재시도 배너와 빈 상태를 그린다', (
+    testWidgets('첫 조회가 실패하면 로딩 표시를 내리고 실패 안내와 재시도만 그린다', (
       WidgetTester tester,
     ) async {
       final repo = _GatedRepo(<AlertItem>[])
@@ -320,8 +322,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(_firstLoading), findsNothing);
-      expect(find.byKey(_retryBanner), findsOneWidget);
-      expect(find.byType(AppEmptyState), findsOneWidget);
+      expect(find.byKey(_firstLoadFailed), findsOneWidget);
+      // 받아 본 적이 없는데 "없다" 고 말하지 않는다(#2877).
+      expect(find.text('알림이 없습니다'), findsNothing);
+      // 같은 안내를 배너로 한 번 더 얹지 않는다.
+      expect(find.byKey(_retryBanner), findsNothing);
     });
 
     testWidgets('받은 뒤 다시 조회하는 동안에는 빈 상태를 그대로 둔다', (WidgetTester tester) async {
