@@ -1,7 +1,9 @@
 """데모 회원(김민수) 알림 시드 — 회원앱 데모 알림과 같은 목록. (#1812)
 
 알림함은 트레이너와 이어진 서비스의 흐름(루틴 도착 · PT · 주간 리포트 · 기록 독려 ·
-운동 목표)을 보여 주는 자리다. 문구의 수치와 사건은 데모 픽스처·목업(식단 · 운동 ·
+운동 목표)을 보여 주는 자리다. 실서버가 만들지 않는 식단 알림(나트륨 주의 · 저녁 기록
+독려)은 뺐다 — 데모에서 본 알림이 실서비스에서 오지 않으면 기능이 사라진 것으로
+보인다(#2854). 문구의 수치와 사건은 데모 픽스처·목업(식단 · 운동 ·
 트레이너 채팅)에 실제로 있는 것만 쓴다. 예전 시드는 이전 타깃 문구(혈압 기록 · 건강검진
 예약)였고 앱 데모와도 달라, 둘러보기와 실서버 데모 계정이 다른 알림함을 보였다.
 
@@ -37,28 +39,12 @@ class DemoNotification:
     ago: timedelta
     read: bool = False
     #: 이 알림만의 목적지(#2690). 없으면 갈래별 표를 따른다. 회원 앱 데모 목록과
-    #: 같은 곳으로 가도록 둔다 — 나트륨·저녁 기록은 식단, 운동 목표·PT 는 운동.
+    #: 같은 곳으로 가도록 둔다 — 운동 목표·PT 는 운동.
     target: str | None = None
 
 
 #: 최신순. 안 읽은 알림이 위에 몰려 목록형 알림함의 옅은 파랑 줄이 보인다.
 DEMO_NOTIFICATIONS: tuple[DemoNotification, ...] = (
-    DemoNotification(
-        "noti-demo-1",
-        "나트륨 섭취 주의",
-        "점심 짬뽕으로 오늘 나트륨이 4,657mg까지 올랐어요. 물을 충분히 드세요.",
-        "reminder",
-        timedelta(minutes=10),
-        target="diet",
-    ),
-    DemoNotification(
-        "noti-demo-2",
-        "저녁 식단을 기록해 주세요",
-        "오늘 저녁 식단이 아직 없어요. 사진 한 장이면 돼요.",
-        "reminder",
-        timedelta(minutes=20),
-        target="diet",
-    ),
     DemoNotification(
         "noti-demo-3",
         "새 운동 루틴이 도착했어요",
@@ -114,9 +100,15 @@ DEMO_NOTIFICATIONS: tuple[DemoNotification, ...] = (
     ),
 )
 
-#: 이전 시드(혈압 기록 · 건강검진 예약 · 운동 목표)의 id. 이미 시드된 데모 DB 에서
-#: 이 행들을 걷어 내고 새 목록으로 바꾼다.
-LEGACY_DEMO_NOTIFICATION_IDS: tuple[str, ...] = ("noti-1", "noti-2", "noti-3")
+#: 이전 시드(혈압 기록 · 건강검진 예약 · 운동 목표)와 빠진 식단 알림(나트륨 주의 ·
+#: 저녁 기록 독려, #2854)의 id. 이미 시드된 데모 DB 에서 이 행들을 걷어 낸다.
+LEGACY_DEMO_NOTIFICATION_IDS: tuple[str, ...] = (
+    "noti-1",
+    "noti-2",
+    "noti-3",
+    "noti-demo-1",
+    "noti-demo-2",
+)
 
 
 def seed_demo_notifications(db: Session, user_id: str, *, now: datetime | None = None) -> int:

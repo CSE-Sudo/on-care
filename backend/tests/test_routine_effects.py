@@ -17,7 +17,7 @@ from app.core import clock
 from app.data import routine_effects
 from app.data.routine_effects import auto_routine_effect
 from app.models.models import HealthProfile, TrainerRoutine, TrainerSchedule
-from app.services import trainer_service
+from app.services.trainer import _common as trainer_common_service
 
 #: 문구표 원본. 트레이너 웹도 같은 파일과 비교한다.
 SHARED_PATH = (
@@ -276,7 +276,7 @@ def test_multi_exercise_session_has_no_auto_effect(db_session, member_goals):
         source="trainer",
         exercises_json=json.dumps(exercises, ensure_ascii=False),
     )
-    assert trainer_service._routine_effect(db_session, row) == ""
+    assert trainer_common_service._routine_effect(db_session, row) == ""
     # 트레이너가 적었다면 그것은 싣는다.
     row.effect = "하체 근력"
-    assert trainer_service._routine_effect(db_session, row) == "하체 근력"
+    assert trainer_common_service._routine_effect(db_session, row) == "하체 근력"

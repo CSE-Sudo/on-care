@@ -18,20 +18,20 @@ from app.core import clock
 from app.core import locale as locale_module
 from app.models.models import ExerciseSession
 from app.schemas.trainer_api import ProgramItem, RoutineHistoryExerciseOut, RoutineHistoryOut
-from app.services import trainer_service
-from app.services.trainer_service import (
+from app.services.trainer import _common as trainer_common_service
+from app.services.trainer._common import (
     ASSIGNED_HISTORY_FALLBACK_LABEL,
     PT_HISTORY_KIND_LABEL,
     _assigned_exercise_item,
     _assigned_history_out,
     _iso_day_or_none,
-    _program_history_entry,
     history_date_label,
     history_exercise_line,
     history_kind_code,
     parse_history_exercise,
     relative_day_label,
 )
+from app.services.trainer.schedule import _program_history_entry
 
 _FIXED_TODAY = date(2026, 9, 27)
 
@@ -39,7 +39,7 @@ _FIXED_TODAY = date(2026, 9, 27)
 @pytest.fixture()
 def fixed_today(monkeypatch):
     """'오늘'을 고정한다 — 라벨이 날짜 차이로 갈리므로 실행일에 기대지 않는다."""
-    monkeypatch.setattr(trainer_service, "_today", lambda: _FIXED_TODAY)
+    monkeypatch.setattr(trainer_common_service, "_today", lambda: _FIXED_TODAY)
     return _FIXED_TODAY
 
 

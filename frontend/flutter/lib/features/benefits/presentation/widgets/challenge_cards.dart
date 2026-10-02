@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/benefits/domain/entities/weekly_challenge.dart';
-import 'package:oncare/features/benefits/presentation/benefit_labels.dart';
 import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/benefits/presentation/widgets/benefit_cards.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';

@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.locale import current_locale, localized
+from app.db.session import release_connection
 from app.models.models import HealthProfile
 from app.services.coach import grounding, insights, prompt_safety
 from app.services.coach.llm import get_coach_llm
@@ -355,6 +356,10 @@ def answer(
         )
         return fallback
 
+    # LLM 응답(수 초~수십 초)을 기다리는 동안 DB 연결을 쥐지 않는다(#2836). 여기까지는
+    # 읽기뿐이라 트랜잭션을 끝내 연결을 풀로 돌려주고, 답을 저장할 때 새로 빌린다.
+    # 회원 AI 코치(`/ai-coach/chat`)와 트레이너 코치가 모두 이 길을 지난다.
+    release_connection(db)
     try:
         # `.text` 가 없거나 문자열이 아닌 응답도 provider 응답 계약 위반으로 센다.
         text = (llm.generate(_system_prompt(), prompt).text or "").strip()

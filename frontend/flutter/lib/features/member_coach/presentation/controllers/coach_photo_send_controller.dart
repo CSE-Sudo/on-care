@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:oncare/core/utils/request_id.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare_core/request_id.dart';
 
 /// 회원이 트레이너에게 보내는 사진 한 장의 전송 상태. (#1665)
 enum CoachPhotoSendStatus {

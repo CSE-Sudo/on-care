@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/app_icons.dart';
+import 'package:oncare/app/router/day_change_refresh.dart';
 import 'package:oncare/app/router/member_refresh_targets.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
@@ -26,6 +26,7 @@ import 'package:oncare/shared/services/record_span_provider.dart';
 import 'package:oncare/shared/widgets/coaching_sheet.dart';
 import 'package:oncare/shared/widgets/member_bottom_nav.dart';
 import 'package:oncare/shared/widgets/oni_fab.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// Persistent `Scaffold` hosting the bottom navigation bar. Icons and
@@ -55,6 +56,10 @@ class MainShell extends ConsumerStatefulWidget {
 class _MainShellState extends ConsumerState<MainShell>
     with WidgetsBindingObserver {
   late int _lastIndex = widget.navigationShell.currentIndex;
+
+  /// 마지막으로 갱신한 날(KST). 날이 바뀐 복귀·MY 재진입에서만 기록 그래프·
+  /// 보호권·주간 챌린지를 다시 읽는다(#2852).
+  final DayChangeRefresher _dayChange = DayChangeRefresher();
 
   StatefulNavigationShell get navigationShell => widget.navigationShell;
 
@@ -97,6 +102,18 @@ class _MainShellState extends ConsumerState<MainShell>
     // 앱을 떠난 사이 트레이너가 예약을 취소하거나 연결을 해제했을 수 있다
     // (#2856).
     refreshGymTabData(ref.invalidate);
+    // 앱을 켜 둔 채 자정을 넘겼으면 그래프의 "오늘" 칸과 보호 가능 구간이 새
+    // 날짜 기준이어야 한다(#2852).
+    _dayChange.refreshIfDayChanged(ref.invalidate);
+    _recheckCoach();
+  }
+
+  /// 앱을 떠난 사이 트레이너가 담당을 해제했을 수 있다 — 담당 코치를 다시 읽고,
+  /// 사라졌으면 헤더·홈 트레이너 카드·대화가 함께 바뀐다(#2843).
+  void _recheckCoach() {
+    unawaited(
+      recheckMemberCoach(ProviderScope.containerOf(context, listen: false)),
+    );
   }
 
   void _refreshBranch(int index) {
@@ -106,6 +123,7 @@ class _MainShellState extends ConsumerState<MainShell>
         // 되도록 함께 비운다 — 목록은 [kHomeReentryRefreshTargets](#2842).
         kHomeReentryRefreshTargets.forEach(ref.invalidate);
         unawaited(refreshProfileQuietly(ref.read(profileProvider.notifier)));
+        _recheckCoach();
         break;
       case 1:
         // 방금 저장한 끼니가 보이도록 그날 자료를 다시 읽는다 — 저장 전 캐시가
@@ -133,6 +151,10 @@ class _MainShellState extends ConsumerState<MainShell>
         // 한쪽만 새 값이면 엇갈린다. 다른 회원이 잡은 자리도 여기서 반영된다
         // (#2856).
         refreshGymTabData(ref.invalidate);
+        break;
+      case 3:
+        // MY 를 다시 열었을 때도 날이 바뀌었으면 기록 그래프를 새 날짜로(#2852).
+        _dayChange.refreshIfDayChanged(ref.invalidate);
         break;
       default:
         break;

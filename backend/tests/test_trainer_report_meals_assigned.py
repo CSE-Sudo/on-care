@@ -34,7 +34,7 @@ def _diet(day: str) -> SimpleNamespace:
 
 
 def test_meal_counts_counts_entries_per_weekday():
-    from app.services.trainer_service import _meal_counts
+    from app.services.trainer._common import _meal_counts
 
     monday = date(2026, 8, 3)
     rows = [
@@ -49,14 +49,14 @@ def test_meal_counts_counts_entries_per_weekday():
 
 
 def test_meal_counts_is_seven_zeros_without_records():
-    from app.services.trainer_service import _meal_counts
+    from app.services.trainer._common import _meal_counts
 
     assert _meal_counts([], date(2026, 8, 3)) == [0] * 7
 
 
 def test_meal_counts_ignores_entries_outside_the_week():
     """창은 칼로리·나트륨과 같다 — 앞뒤 주의 기록이 섞이지 않는다."""
-    from app.services.trainer_service import _meal_counts
+    from app.services.trainer._common import _meal_counts
 
     rows = [_diet("2026-08-02"), _diet("2026-08-10"), _diet("2026-08-04")]
 
@@ -64,7 +64,7 @@ def test_meal_counts_ignores_entries_outside_the_week():
 
 
 def test_week_days_carries_assigned_counts_per_weekday():
-    from app.services.trainer_service import _week_days
+    from app.services.trainer._common import _week_days
 
     assigned = [2, None, 3, None, None, None, None]
     days = _week_days([], [0] * 7, assigned)
@@ -74,7 +74,7 @@ def test_week_days_carries_assigned_counts_per_weekday():
 
 def test_week_days_without_assigned_leaves_every_day_unknown():
     """배정을 모르면 null — 화면이 실제로 한 운동 수로 되돌아간다(#2232)."""
-    from app.services.trainer_service import _week_days
+    from app.services.trainer._common import _week_days
 
     days = _week_days([], [0] * 7)
 
@@ -143,7 +143,7 @@ def _report(client, monday: date) -> dict:
 
 
 def test_report_carries_meal_counts_per_weekday(client, db_session):
-    from app.services.trainer_service import week_start_of
+    from app.services.trainer.reports import week_start_of
 
     last_week = week_start_of(clock.today()) - timedelta(days=7)
     _clear_last_week_diet(db_session, last_week)
@@ -166,7 +166,7 @@ def test_report_carries_meal_counts_per_weekday(client, db_session):
 
 def test_report_meal_counts_are_zero_on_a_week_without_meals(client, db_session):
     """기록 없는 주도 7칸이다 — 화면이 요일 자리를 잃지 않는다."""
-    from app.services.trainer_service import week_start_of
+    from app.services.trainer.reports import week_start_of
 
     last_week = week_start_of(clock.today()) - timedelta(days=7)
     _clear_last_week_diet(db_session, last_week)
@@ -178,7 +178,8 @@ def test_report_meal_counts_are_zero_on_a_week_without_meals(client, db_session)
 def test_report_counts_routines_active_on_each_day(client, db_session):
     """그날 걸려 있던 배정만 센다 — 기간 밖의 날은 늘지 않는다. (#2161)"""
     from app.models.models import TrainerRoutine
-    from app.services.trainer_service import get_member_trainer_id, week_start_of
+    from app.services.trainer._common import get_member_trainer_id
+    from app.services.trainer.reports import week_start_of
 
     last_week = week_start_of(clock.today()) - timedelta(days=7)
     trainer_id = get_member_trainer_id(db_session, MEMBER_ID)
@@ -223,7 +224,7 @@ def test_report_counts_routines_active_on_each_day(client, db_session):
 def test_report_ignores_another_trainers_routines(client, db_session):
     """다른 트레이너의 배정은 이 트레이너 리포트의 분모가 아니다."""
     from app.models.models import TrainerRoutine
-    from app.services.trainer_service import week_start_of
+    from app.services.trainer.reports import week_start_of
 
     last_week = week_start_of(clock.today()) - timedelta(days=7)
     before = [d["assigned"] for d in _report(client, last_week)["days"]]
@@ -255,7 +256,8 @@ def test_report_ignores_another_trainers_routines(client, db_session):
 def test_report_leaves_days_not_yet_arrived_unknown(client, db_session):
     """아직 오지 않은 요일은 배정이 걸려 있어도 null 이다 — 0 을 쓰지 않는다."""
     from app.models.models import TrainerRoutine
-    from app.services.trainer_service import get_member_trainer_id, week_start_of
+    from app.services.trainer._common import get_member_trainer_id
+    from app.services.trainer.reports import week_start_of
 
     today = clock.today()
     this_week = week_start_of(today)

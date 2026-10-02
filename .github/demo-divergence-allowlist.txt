@@ -20,3 +20,4 @@ frontend/flutter_trainer/lib/features/clients/presentation/widgets/chat_view.dar
 frontend/flutter_trainer/lib/features/clients/data/repositories/client_coach_repository.dart · supportsAsk · 데모에는 물어볼 근거 문서가 없어 AI 코칭 상담을 끈다 · #497
 frontend/flutter_trainer/lib/features/my/data/trainer_account_repository.dart · supportsPasswordChange · 데모에는 서버 계정이 없어 트레이너 비밀번호 변경을 끄고 이유를 보인다 · #376
 frontend/flutter_trainer/lib/features/my/data/trainer_account_repository.dart · supportsDeletion · 데모에는 서버 계정이 없어 트레이너 탈퇴를 끄고 이유를 보인다 · #505
+frontend/flutter/lib/features/auth/data/repositories/mock_password_repository.dart · supportsPasswordChange · 데모 계정에는 서버 비밀번호가 없어 회원 비밀번호 변경을 끄고 이유를 보인다(재설정은 데모 코드로 끝까지 진행된다) · #2824

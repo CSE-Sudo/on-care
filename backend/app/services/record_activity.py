@@ -16,6 +16,7 @@ from datetime import date, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.week import monday_of
 from app.models.models import DietEntry, ExerciseSession
 from app.services import exercise_activity
 
@@ -27,7 +28,7 @@ def has_record(db: Session, member_id: str, day: date) -> bool:
 
 def has_exercise(db: Session, member_id: str, day: date) -> bool:
     """그날 운동 기록이 있는가. 주간 집계와 같은 (주 시작, 요일) 로 찾는다."""
-    monday = day - timedelta(days=day.weekday())
+    monday = monday_of(day)
     return (
         db.scalar(
             select(ExerciseSession.id)
@@ -111,8 +112,8 @@ def exercise_days(db: Session, member_id: str, start: date, end: date) -> set[st
     운동은 (주 시작, 요일)로 저장한다 — 범위가 걸친 주를 모두 읽고 날짜로 되돌린
     뒤 범위 밖을 버린다.
     """
-    first_monday = start - timedelta(days=start.weekday())
-    last_monday = end - timedelta(days=end.weekday())
+    first_monday = monday_of(start)
+    last_monday = monday_of(end)
     rows = db.execute(
         select(ExerciseSession.week_start, ExerciseSession.day_label).where(
             ExerciseSession.user_id == member_id,

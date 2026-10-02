@@ -23,17 +23,18 @@ from app.models.models import (
     DietMenuPlan,
     HealthProfile,
 )
-from app.services import health_focus
+from app.services import goal_defaults, health_focus
 
 #: 개인 목표가 없을 때의 기본값. 나트륨은 WHO 권고, 당류는 2025 한국인 영양소
 #: 섭취기준의 첨가당 권고(총에너지 10% 이내)다 — 홈 추천 식단과 같은 값이다.
-DEFAULT_CALORIES = 2000
-DEFAULT_SODIUM_MG = 2000
-DEFAULT_SUGAR_G = 50
+#: 값은 목표 미설정 기본값 원본(`goal_defaults`) 한 곳에 있다(#2906).
+DEFAULT_CALORIES = goal_defaults.DAILY_CALORIES
+DEFAULT_SODIUM_MG = goal_defaults.DAILY_SODIUM_MG
+DEFAULT_SUGAR_G = goal_defaults.DAILY_SUGAR_G
 #: 단백질은 체중이 있으면 체중 × 1.2g, 없으면 60g. 근력 운동을 하는 PT 회원에게
 #: 일반 성인 권장(0.8g/kg)은 낮고, 개인 목표 칸은 비어 있는 경우가 많다.
-PROTEIN_G_PER_KG = 1.2
-DEFAULT_PROTEIN_G = 60
+PROTEIN_G_PER_KG = goal_defaults.PROTEIN_G_PER_KG
+DEFAULT_PROTEIN_G = goal_defaults.DAILY_PROTEIN_G
 
 #: 트레이너 메시지를 거슬러 읽는 날 수와 개수. 오래된 지시는 이미 바뀌었을 수 있고,
 #: 많이 넣으면 프롬프트가 대화 기록으로 채워진다.
@@ -54,17 +55,24 @@ def load_profile(db: Session, user_id: str) -> HealthProfile | None:
     return db.scalar(select(HealthProfile).where(HealthProfile.user_id == user_id))
 
 
+def effective_protein_g(profile: HealthProfile | None) -> int:
+    """실효 하루 단백질 목표 — 개인 목표 → 체중 × 1.2g → 60g. (#2898)
+
+    식단 분석·조언·추천 식단이 이 값으로 판단한다. 영양 카드·리포트 막대도 같은
+    분모를 쓰도록 프로필 응답이 `effective_daily_protein_g` 로 내려 준다.
+    """
+    if profile is not None and profile.daily_protein_g:
+        return profile.daily_protein_g
+    if profile is not None and profile.weight_kg:
+        return round(profile.weight_kg * PROTEIN_G_PER_KG)
+    return DEFAULT_PROTEIN_G
+
+
 def targets_of(profile: HealthProfile | None) -> DietTargets:
     """개인 목표를 먼저, 없으면 기본값."""
-    if profile is not None and profile.daily_protein_g:
-        protein = profile.daily_protein_g
-    elif profile is not None and profile.weight_kg:
-        protein = round(profile.weight_kg * PROTEIN_G_PER_KG)
-    else:
-        protein = DEFAULT_PROTEIN_G
     return DietTargets(
         calories=(profile.daily_calories if profile else None) or DEFAULT_CALORIES,
-        protein_g=protein,
+        protein_g=effective_protein_g(profile),
         sodium_mg=(profile.daily_sodium_mg if profile else None) or DEFAULT_SODIUM_MG,
         sugar_g=(profile.daily_sugar_g if profile else None) or DEFAULT_SUGAR_G,
     )
@@ -96,7 +104,7 @@ def trainer_notes(db: Session, member_id: str) -> list[str]:
     **회원이 이미 받은 것만** 읽는다 — 트레이너의 비공개 메모는 넣지 않는다. 조언이
     메모에서 나온 말을 하면 회원은 보지 못한 지시를 AI 에게서 듣게 된다.
     """
-    from app.services.trainer_service import get_member_trainer_id
+    from app.services.trainer._common import get_member_trainer_id
 
     trainer_id = get_member_trainer_id(db, member_id)
     if trainer_id is None:

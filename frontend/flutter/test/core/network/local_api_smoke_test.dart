@@ -9,10 +9,10 @@ import 'package:oncare/core/demo/demo_ai_advice.dart';
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
+import 'package:oncare_core/clock.dart';
 
 /// End-to-end smoke test for Stage 9: drift seeded → dio → LocalApi
 /// interceptor → JSON → fromJson factory. If any of these layers

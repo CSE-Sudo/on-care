@@ -42,6 +42,7 @@ from sqlalchemy.orm import Session
 from app.services.health_focus import normalize_conditions
 from app.core import clock
 from app.core.config import get_settings
+from app.core.week import monday_of
 from app.db.demo_fixture import FixtureRoutine, load_fixture
 from app.db.seed_roster import HISTORY_WEEKS
 from app.db.seed_trainer import TRAINER_ID, _MEMBERS
@@ -293,7 +294,8 @@ def _store_chat_file(file: _SeedChatFile) -> bool:
         if file.kind == "pdf":
             report_pdf_storage.save(data, file_id=file.file_id)
         else:
-            chat_image_storage.save(data, file_id=file.file_id)
+            # 번들 자산이라 정리하지 않는다 — 앱 번들과 바이트가 같아야 한다(#2829).
+            chat_image_storage.save(data, file_id=file.file_id, sanitize=False)
     except Exception:  # noqa: BLE001 — 첨부 하나 때문에 기동이 죽으면 안 된다.
         logger.warning("시드 대화 첨부 %s 를 저장하지 못했습니다.", file.source, exc_info=True)
         return False
@@ -756,7 +758,7 @@ def _seed_weekly_pt(db: Session, valid: set[str]) -> None:
     ) is None:
         return
     today = clock.today()
-    monday = today - timedelta(days=today.weekday())
+    monday = monday_of(today)
     names = {user_id: name for user_id, _email, name, *_ in _MEMBERS}
     # 예전 시드가 깐 김민수의 목요일 수업을 걷어 낸다 — 자리표에서 빠졌다(#2694).
     db.query(models.TrainerSchedule).filter(
@@ -1522,7 +1524,7 @@ def _seed_exercise(db: Session, member_id: str) -> None:
     if not week:
         return
     today = clock.today()
-    week_start = (today - timedelta(days=today.weekday())).isoformat()  # 이번 주 월요일
+    week_start = monday_of(today).isoformat()  # 이번 주 월요일
     added = False
     for day_label, ex_type, minutes, calories in week:
         idx = _WEEKDAY_INDEX.get(day_label)
@@ -1547,7 +1549,7 @@ def _seed_exercise(db: Session, member_id: str) -> None:
             # 그 요일의 시각을 함께 적는다 — 세 날짜 필드가 같은 날을 가리켜야
             # 시드 시각(`created_at`)이 최근 활동 판단에 새지 않는다. (#1264)
             completed_at=exercise_activity.noon(
-                today - timedelta(days=today.weekday() - idx)
+                monday_of(today) + timedelta(days=idx)
             ),
         ))
         added = True

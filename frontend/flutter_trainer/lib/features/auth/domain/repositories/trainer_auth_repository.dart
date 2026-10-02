@@ -70,10 +70,16 @@ abstract class TrainerAuthRepository {
   ///
   /// 소속 헬스장은 가입 때 정하지 않는다 — 가입 뒤 헬스장을 찾아 고른다
   /// (#1627). 예전에는 헬스장 초대 코드가 소속을 정했지만 발급 경로가 없었다.
+  ///
+  /// [consents] 는 가입 화면에서 체크한 동의 항목이다(#2819). 서버가 계정과 한
+  /// 트랜잭션으로 남기고, 필수 항목이 빠졌으면 계정을 만들지 않고 422 를 준다.
+  /// 넘기지 않으면(null) 칸을 싣지 않는다 — 계정은 동의 기록 없이 만들어지고
+  /// 로그인 직후 동의 화면을 거친다.
   Future<TrainerAuthTokens> register({
     required String email,
     required String password,
     required String name,
+    List<String>? consents,
   });
 
   /// Exchanges a provider (kakao/google) [token] for tokens

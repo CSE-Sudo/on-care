@@ -1,0 +1,30 @@
+# 비밀값 스캔 설정(#2837). PR gate 가 PR 의 새 커밋(base..head)만 이 설정으로 검사한다.
+#
+# gitleaks 기본 규칙(클라우드 키·토큰·개인 키 등)을 그대로 쓰고, 오탐만 아래에서 뺀다.
+# 허용 목록은 좁게 유지한다 — 넓게 열면 진짜 값도 같이 통과한다. 새 오탐은 먼저
+# 값을 자리표시자로 바꿀 수 없는지 보고, 정말 필요할 때만 여기에 이유와 함께 더한다.
+# 한 줄만 예외로 둘 때는 그 줄 끝에 `gitleaks:allow` 주석을 단다.
+title = "on-care gitleaks"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "예시 env 파일·문서의 자리표시자(실제 값이 아님을 이름으로 드러낸 값)"
+regexTarget = "secret"
+regexes = [
+  '''^CHANGE_ME[A-Za-z0-9_.-]*$''',
+  '''(?i)^(your|my)[_-][A-Za-z0-9_.-]*$''',
+  '''(?i)^[A-Za-z0-9_.-]*(placeholder|example|dummy)[A-Za-z0-9_.-]*$''',
+]
+
+
+[[allowlists]]
+description = "테스트 코드의 가짜 비밀번호(`signup-pw-1234` 처럼 `-pw-숫자` 로 끝나는 값) — 테스트 파일 안에서만"
+condition = "AND"
+regexTarget = "secret"
+regexes = ['''^[A-Za-z0-9]+(-[A-Za-z0-9]+)*-pw-[0-9]+$''']
+paths = [
+  '''^frontend/[^/]+/test/.+_test\.dart$''',
+  '''^backend/tests/.+\.py$''',
+]

@@ -174,9 +174,6 @@ void main() {
             gymFinderResultsProvider.overrideWith(
               (ref) async => const <Gym>[_gym],
             ),
-            recommendedTrainersProvider.overrideWith(
-              (ref) async => const <Trainer>[],
-            ),
             trainerSlotsProvider(_trainer.id).overrideWith((ref) async {
               slotLoads += 1;
               return <TrainerSlot>[_open];

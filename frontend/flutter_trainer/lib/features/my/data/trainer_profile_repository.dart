@@ -264,6 +264,9 @@ class MockTrainerProfileRepository implements TrainerProfileRepository {
 
   /// 데모 검색 결과. 앞 둘은 등록된 헬스장, 뒤는 카카오에서 찾은 곳이다 —
   /// 데모에서도 두 경로가 모두 보이게 한다. 좌표는 지도 핀용이다.
+  ///
+  /// 셋 다 가상 헬스장이다. 가상 트레이너(김태오)가 실재 업체를 소속으로 고르는
+  /// 장면이 되지 않도록 카카오 결과 자리에도 실재 상호·전화를 쓰지 않는다(#2811).
   List<TrainerGymCandidate> get _gyms => <TrainerGymCandidate>[
     TrainerGymCandidate(
       id: kDemoTrainerGymId,
@@ -286,15 +289,14 @@ class MockTrainerProfileRepository implements TrainerProfileRepository {
       phone: '02-9876-5432',
     ),
     TrainerGymCandidate(
-      id: '1558845892',
-      name: language.isEnglish ? 'HighFit' : '하이핏',
+      id: 'gym-demo-yeonhui',
+      name: language.isEnglish ? 'OnCare Yeonhui Studio' : '온케어 연희 스튜디오',
       address: language.isEnglish
-          ? '19 Yonsei-ro 4-gil, Seodaemun-gu, Seoul'
-          : '서울 서대문구 연세로4길 19',
+          ? '25 Yeonhui-ro, Seodaemun-gu, Seoul'
+          : '서울 서대문구 연희로 25',
       registered: false,
-      lat: 37.5574,
-      lng: 126.9378,
-      phone: '02-362-7822',
+      lat: 37.5665,
+      lng: 126.9300,
     ),
   ];
 

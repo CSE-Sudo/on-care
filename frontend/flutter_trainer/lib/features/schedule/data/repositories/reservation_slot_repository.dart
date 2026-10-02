@@ -4,12 +4,12 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/active_polling_stream.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart'
     show DemoConsultationRepository;
@@ -75,6 +75,7 @@ class DioReservationSlotRepository implements ReservationSlotRepository {
         load: list,
         interval: pollInterval,
         refreshes: _revisions.stream,
+        keepPollingWhileInactive: true,
       );
 
   void _bump() {
@@ -276,6 +277,7 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
         load: list,
         interval: null,
         refreshes: _revisions.stream,
+        keepPollingWhileInactive: true,
       );
 
   void _bump() {
