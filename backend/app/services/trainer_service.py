@@ -1762,6 +1762,25 @@ def _owned_routine(
     return routine
 
 
+def _routine_day(day: date | None) -> date:
+    """완료·되돌리기가 다룰 날. 비우면 오늘, 아직 오지 않은 날은 거절한다. (#2506)"""
+    today = clock.today()
+    if day is None:
+        return today
+    if day > today:
+        raise RoutineDayInFuture("아직 오지 않은 날입니다.")
+    return day
+
+
+def _active_on(routine: TrainerRoutine, day: date) -> bool:
+    """[routine] 이 [day] 에 회원 목록에 걸려 있었나 — [routine_active_on] 과 같은
+    규칙을 행 하나에 적용한다. (#2161, #2506)"""
+    iso = day.isoformat()
+    return routine.active_from <= iso and (
+        routine.ended_on is None or routine.ended_on > iso
+    )
+
+
 def _has_ended(routine: TrainerRoutine) -> bool:
     """오늘 목록에 이미 없는 배정인가. (#2161)"""
     return routine.ended_on is not None and routine.ended_on <= clock.today_iso()
@@ -2350,30 +2369,40 @@ def complete_assigned_routine(
     weight: float | None = None,
     intensity: str,
     duration_seconds: int | None = None,
+    day: date | None = None,
 ) -> RoutineCompleteOut:
-    """배정 하나를 **오늘의** 회원 운동 기록 한 건으로 완료한다.
+    """배정 하나를 [day](없으면 오늘)의 회원 운동 기록 한 건으로 완료한다.
 
     추천 개인운동은 매일 새로 체크하는 목록이라 같은 배정을 날마다 한 번씩
     완료한다(#2161). `(배정, 그날)` 유일 제약이 더블 탭·재전송을 같은 기록으로
     모은다. 이름은 스냅샷이라 이후 배정 수정·철회에 흔들리지 않는다.
 
-    지난 날짜는 완료할 수 없다 — 날짜를 받지 않고 늘 오늘로 적는다. 지난 날짜
-    화면은 그날 무엇을 했는지 보여 주는 읽기 전용이다.
+    **지난 날짜도 완료할 수 있다**(#2506) — 식단·직접 기록한 운동처럼 빠뜨린
+    체크를 나중에 한다. 그날 회원 목록에 걸려 있던 배정만 되고, 기록은 그날
+    정오에 놓인다. 실제로 누른 시각은 행의 `created_at` 에 남아 트레이너가
+    "다음 날 이후 체크" 를 가른다. 아직 오지 않은 날은 [RoutineDayInFuture] 다.
 
     포인트를 적립하고 그 결과를 응답에 싣는다(#1786). 재전송은
-    새로 적립하지 않고 처음 완료할 때 받은 값을 돌려준다.
+    새로 적립하지 않고 처음 완료할 때 받은 값을 돌려준다. 하루 한도는 **적립하는
+    날** 기준이라 지난 날짜를 몰아 체크해도 오늘 한 번만 받는다.
     """
-    routine = _owned_routine(db, trainer_id, member_id, routine_id)
+    target = _routine_day(day)
+    past = target != clock.today()
+    # 지난 날짜의 배정은 그 뒤에 내려왔을 수 있다 — 그날 걸려 있었는지로 본다.
+    routine = _owned_routine(
+        db, trainer_id, member_id, routine_id, include_ended=past
+    )
     # 승인되지 않은 후보는 회원에게 보이지도 않는다. id 를 알아내 직접 호출해도
     # 완료로 넘어가지 않게 여기서 막는다 — 조회만 거르면 경로가 하나 남는다(#790).
     if routine.status != ROUTINE_APPROVED:
         raise RoutineNotFound("루틴을 찾을 수 없습니다.")
-    completed_at = clock.now()
-    today = completed_at.date()
+    if past and not _active_on(routine, target):
+        raise RoutineNotFound("루틴을 찾을 수 없습니다.")
+    completed_at = exercise_activity.noon(target) if past else clock.now()
     existing = db.scalar(
         select(ExerciseSession).where(
             ExerciseSession.assigned_routine_id == routine_id,
-            *_completion_on(today),
+            *_completion_on(target),
         )
     )
     if existing is not None:
@@ -2408,8 +2437,8 @@ def complete_assigned_routine(
     row = ExerciseSession(
         id=f"assigned-ex-{uuid.uuid4().hex[:12]}",
         user_id=member_id,
-        week_start=exercise_service.monday_of_str(today.isoformat()),
-        day_label=exercise_service.weekday_label_of(today.isoformat()),
+        week_start=exercise_service.monday_of_str(target.isoformat()),
+        day_label=exercise_service.weekday_label_of(target.isoformat()),
         type=exercise_type,
         # 배정 이름이 곧 이 운동의 이름이다 — 회원이 따로 적지 않는다.
         name=routine.name,
@@ -2440,6 +2469,10 @@ def complete_assigned_routine(
         assigned_trainer_id=trainer_id,
         assigned_routine_name=routine.name,
         completed_at=completed_at,
+        # 실제로 누른 때 — 지난 날짜 체크면 `completed_at`(그날 정오)과 날이
+        # 갈린다(#2506). DB 시계가 아니라 서버 시계로 적어 `completed_at` 과
+        # 같은 기준으로 비교한다.
+        created_at=clock.now(),
     )
     db.add(row)
     try:
@@ -2458,7 +2491,7 @@ def complete_assigned_routine(
         existing = db.scalar(
             select(ExerciseSession).where(
                 ExerciseSession.assigned_routine_id == routine_id,
-                *_completion_on(today),
+                *_completion_on(target),
             )
         )
         if existing is None:
@@ -2510,17 +2543,20 @@ def uncomplete_assigned_routine(
     trainer_id: str | None,
     member_id: str,
     routine_id: str,
+    *,
+    day: date | None = None,
 ) -> RoutineOut:
-    """오늘의 완료 표시를 되돌린다 — 오늘 그 배정으로 만든 운동 기록을 지운다. (#1131)
+    """[day](없으면 오늘)의 완료 표시를 되돌린다 — 그날 그 배정으로 만든 운동
+    기록을 지운다. (#1131)
 
     회원이 체크를 잘못 눌렀을 때 되돌릴 방법이 없으면, 하지 않은 운동이 주간
     시간·칼로리에 영원히 남는다. 완료는 배정 하나당 하루 기록 하나라(#2161)
-    지울 대상도 하나다. 지난 날짜의 완료는 건드리지 않는다 — 지난 날짜 화면은
-    읽기 전용이다.
+    지울 대상도 하나다. 지난 날짜도 완료처럼 되돌릴 수 있다(#2506).
 
     아직 완료하지 않은 배정에 대해서는 아무 일도 하지 않고 현재 상태를 돌려준다 —
     같은 요청을 두 번 보내도 결과가 같다.
     """
+    target = _routine_day(day)
     # 오늘 철회된 배정이라도 오늘 남긴 완료는 되돌릴 수 있어야 한다.
     routine = _owned_routine(
         db, trainer_id, member_id, routine_id, include_ended=True
@@ -2529,7 +2565,7 @@ def uncomplete_assigned_routine(
         select(ExerciseSession).where(
             ExerciseSession.assigned_routine_id == routine_id,
             ExerciseSession.user_id == member_id,
-            *_completion_on(clock.today()),
+            *_completion_on(target),
         )
     )
     if row is None:
