@@ -4921,6 +4921,9 @@ class AppLocalizationsKo extends AppLocalizations {
       '실제 리포트 요약 API 연결 후 사용할 수 있어요. 현재 문구는 자동 생성하지 않습니다.';
 
   @override
+  String get reportsAiFailed => '요약을 만들지 못했어요. 다시 시도해 주세요.';
+
+  @override
   String get reportsPdfGenerationFailed => 'PDF를 생성하지 못했어요. 다시 시도해 주세요.';
 
   @override
