@@ -1,5 +1,5 @@
 """
-FastAPI 진입점 (STEP 1: 골격 재구성).
+FastAPI 진입점.
 
 프론트 계약에 맞춰 /v1 prefix 로 라우터를 마운트합니다.
 실행: uvicorn app.main:app --reload

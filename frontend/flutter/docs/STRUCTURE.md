@@ -7,8 +7,8 @@
 ## 1. 최상위 디렉토리
 
 ```
-oncare-flutter/
-├─ .github/             # GitHub 메타 (workflows, issue/pr templates)
+frontend/flutter/       # 모노레포 안의 회원 앱 (워크플로는 저장소 루트 .github/workflows/)
+├─ .github/             # 별도 저장소 시절의 잔재 — GitHub Actions 가 실행하지 않음
 ├─ android/             # Android 네이티브 (flutter create 산출)
 ├─ ios/                 # iOS 네이티브 (flutter create 산출)
 ├─ web/                 # 웹 진입 파일 (index.html, manifest.json, favicon)

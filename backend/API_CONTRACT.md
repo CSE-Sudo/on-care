@@ -1,9 +1,12 @@
-# On-Care 백엔드 API 계약 명세 (STEP 0)
+# On-Care 백엔드 API 계약 명세
 
-> 이 문서는 **프론트엔드(Flutter)의 `LocalApiInterceptor` 를 정답으로 삼아** 역으로 추출한
-> 백엔드 API 계약입니다. 백엔드는 이 명세에 맞춰 구현합니다.
-> 출처: `frontend/flutter/lib/core/network/interceptors/local_api_interceptor.dart`,
-> `core/storage/app_database.dart`, `core/network/case_mapper.dart`, `app_config.dart`
+> 회원 앱·트레이너 웹이 함께 쓰는 백엔드(`backend/app/api/v1/`)의 엔드포인트 계약입니다.
+> **백엔드가 계약의 기준**이고, 두 앱의 데모(목업) 경로 — 회원 앱
+> `frontend/flutter/lib/core/network/interceptors/local_api_interceptor.dart` 와 트레이너 웹 목업
+> 저장소 — 는 이 문서와 백엔드 응답을 따라갑니다. 엔드포인트를 더하거나 바꾸면 이 문서를 함께 고칩니다.
+>
+> 처음에는 회원 앱 프로토타입의 `LocalApiInterceptor` 에서 계약을 역으로 뽑아 시작했지만, 지금은
+> 방향이 반대입니다(목업이 백엔드를 따라감).
 
 ## 공통 규약
 
@@ -48,7 +51,7 @@
   집계 값(`/notifications/unread-count`, `/trainer/consultations/pending-count` 등)은
   쪽 나눔과 무관하게 **전체 기준**입니다.
 
-## 프론트에 실제 구현된 엔드포인트 (이번에 완성할 대상)
+## 엔드포인트
 
 ### 시스템
 
@@ -57,6 +60,16 @@
 | GET | `/ping` | `{ message }` |
 | GET | `/healthz` | `{ status, backend, env, demo_fallback, demo_seed, attachment_storage }` (#2821) |
 | GET | `/version` | `{ api_version, app_version }` |
+| GET | `/readyz` | `{ status: "ready" }` — DB 에 `SELECT 1` 까지 확인한다(3초 제한). 실패하면 **503** `{"detail": "서비스가 아직 준비되지 않았습니다."}`, 원인은 서버 로그에만 남긴다. `/healthz` 는 프로세스만 본다(liveness) |
+
+### 관리자 전용
+
+`ADMIN_EMAILS` 에 적은 계정만 쓴다(설정은 [`.env.example`](.env.example)). 미인증 401, 관리자가 아니면 403.
+
+| Method | Path | 응답 |
+|---|---|---|
+| GET | `/system/metrics` | AI 경로 성공·폴백 카운터 스냅숏(#583). 예: `routine_options.generated{by=ai}` 가 0 이면 AI 호출이 모두 폴백으로 떨어진 것이다 |
+| POST | `/coach/documents/public` | 입력 `{ content, domain, title, source? }` → **201** `{ ingested_chunks, domain, title }` — 공공 RAG 문서 적재. 본문이 비면 400, 임베딩을 쓸 수 없으면(키 미설정 등) 503, 그 밖의 적재 실패는 502. 오류 본문에 내부 상세를 싣지 않고, 상관은 `X-Request-ID` 로 한다 |
 
 ### 사용자
 
@@ -65,6 +78,14 @@
 | GET | `/users/me` | `{ id(str), name, email }` |
 | GET | `/users/me/health` | `{ profile, risk, activity_points, activity_rank, settings[] }` |
 | DELETE | `/users/me` | `{ status: "deleted" }` |
+| GET | `/users/me/profile` | `ProfileView` — `{ id, name, email, phone, birth_date, gender, height_cm, weight_kg, conditions, daily_calories, daily_sodium_mg, daily_sugar_g, daily_carbs_g, daily_protein_g, daily_fat_g, weekly_workout_goal, weekly_exercise_minutes_goal, weekly_burn_goal, daily_burn_kcal, weekly_cardio_minutes, weekly_strength_sets, weekly_flexibility_minutes, onboarded, focus_changed_by, focus_changed_at }` — MY 프로필 통합 뷰 |
+| PUT | `/users/me` | 부분 수정 `{ name?, email?, phone?, birth_date?, gender?, height_cm?, weight_kg? }` → `ProfileView`. 다른 계정이 쓰는 이메일은 409, 전화번호를 빈 값으로 보내면 422. 형식 규칙은 아래 "인증" 의 연락처·이름·생년월일 절과 같다 |
+| POST | `/users/me/onboarding` | 최초 온보딩 `{ name?, birth_date?, gender?, height_cm?, weight_kg?, conditions?, daily_*?, daily_burn_kcal?, weekly_cardio_minutes?, weekly_strength_sets?, weekly_flexibility_minutes? }` → `ProfileView`(`onboarded: true`). 보낸 필드만 반영한다 |
+| PUT | `/users/me/health-goals` | 건강 목표(식단 일일 6종 + 운동 7종) 부분 수정 → `ProfileView` |
+| GET | `/users/me/notification-settings` | `{ diet_log, exercise_reminder, trainer_message, ai_coaching, weekly_report }` — 회원 알림 수신 설정. 저장한 적이 없으면 서버 기본값(#489) |
+| PUT | `/users/me/notification-settings` | 위 다섯 키 중 보낸 것만 반영 → 같은 모양 |
+| POST | `/users/me/pairing-code` | `{ code, expires_at, expires_in_seconds }` — 트레이너에게 불러 줄 6자리 코드(#1634). **이 호출이 데이터 공유 동의다**(#1022). 유효한 코드가 남아 있으면 같은 코드를 돌려준다. 회원 전용, rate limit 적용 |
+| DELETE | `/users/me/pairing-code` | 204 — 띄워 둔 코드를 버린다(화면을 닫을 때) |
 
 `DELETE /users/me` 는 본문으로 `{ reasons: [코드] }` 를 받는다(#2019). 본문은 없어도 되고,
 사유는 탈퇴의 조건이 아니다 — 아는 코드만 `account_deletion_reasons` 에 사유와 시각으로만
@@ -139,11 +160,13 @@
 `indicators[]`: `{ label, current(float), max(int), unit, over_budget?(bool) }` — 칼로리/나트륨/당류 3종.
 `current` 는 당류가 소수(17.8g)라 float. 칼로리·나트륨은 정수 값이 그대로 실린다. 목표치(`max`)는 셋 다 정수.
 
-### 식단 (핵심: 나트륨·당류·고혈압 관점)
+### 식단 (칼로리·나트륨·당류·탄단지)
 
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
 | GET | `/diet/days/today` | `{ entries[], total_calories, total_sodium_mg, total_sugar_g, macros, ai_coach_message }` |
+| GET | `/diet/days/{date}` | `today` 와 같은 모양으로 그 날짜(`YYYY-MM-DD`) 하루. 형식이 깨지면 422 |
+| GET | `/diet/photos/{photo_id}` | 끼니 사진 바이트(이미지). `entries[].photo_url` 이 이 주소를 가리킨다. **남의 사진은 404** — 주소를 추측해도 열리지 않는다(#699) |
 | GET | `/diet/days?from=&to=` | `{ from_date, to_date, days[] }` — 날짜별 합계 `{ date, total_calories, total_sodium_mg, total_sugar_g, carbs_g, protein_g, fat_g }`. 기간 그래프가 쓰는 길이라 끼니·사진은 싣지 않는다. `from` 을 생략하면 **첫 기록일**부터, `to` 를 생략하면 오늘까지. 기록이 없는 날도 0 으로 채워 온다 (#2236) |
 | GET | `/diet/advice?period=&lang=` | `{ period, from_date, to_date, days_logged, message, analysis, analysis_key?, analysis_params, action, action_key?, action_params, action_source? }` — 식단 탭 AI 맞춤 조언. `period` 는 `today`(기본)·`week`·`all`, `lang` 은 `ko`(기본)·`en`. 규칙 한 줄(`analysis`) + 다음 할 일 한 문장(`action`)이다 (#1017, #2251) |
 | GET | `/diet/recommendations?use_llm=` | `{ items[{ key, reason_key, reason_text? }], basis?, personalized, source, days_with_data, avg_sodium_mg, sodium_limit_mg, trainer_pick? }` — 홈 `추천 식단`. `trainer_pick` 은 담당 트레이너가 확정한 추천 `{ slot, name, tag, keyword, trainer_name }` 이고 없거나 해소됐으면 null (#2378) |
@@ -206,6 +229,7 @@
 | POST | `/exercise/sessions` | 입력 `{ sessions: [항목 1~20개] }` — 항목은 `{ type, name, minutes(>0) 또는 duration_seconds(>0), calories, intensity(light\|moderate\|high), sets?, reps?, hold_seconds?, weight?, date? }` → `{ sessions[](요청 순서), points(합계) }`. **한 트랜잭션**이라 항목 하나라도 잘못되면 전체가 422 이고 아무것도 저장되지 않는다. 한 건도 목록으로 감싸 보낸다 — 감싸지 않은 단건 입력은 422 (#2544) |
 | PUT | `/exercise/sessions/{id}` | 입력은 위 **항목 하나**(부분 갱신) → 갱신된 항목(`points` 없음) |
 | DELETE | `/exercise/sessions/{id}` | `{ status: "deleted" }` — 그 기록으로 받은 포인트를 회수한다 |
+| GET | `/exercise/advice?period=` | `{ period, from_date, to_date, days_logged, message, advice_key?, advice_params }` — 운동 탭 AI 조언. `period` 는 `today`(기본)·`week`·`all`. 식단 조언과 같은 규칙이고, 문장은 트레이너 웹의 `/trainer/clients/{member_id}/exercise-advice` 와 같다(#1574, #1025). 앱은 `advice_key`·`advice_params` 로 자기 언어 문장을 그린다(#2210) |
 | POST | `/exercise/calories` | 입력 `{ type, name(필수), minutes(>0) 또는 duration_seconds(>0), intensity }` → `{ calories, source, matched_name, isometric }` — 초가 오면 분은 `/exercise/sessions` 와 같은 규칙으로 초에서 접는다 (#2547) |
 
 추천 개인운동(`GET /me/coach/routines`, 트레이너 쪽 `RoutineOut` 도 같다)은 `effect` 를 싣는다 — 운동 이름 아래 서는 효과 한 줄로, 트레이너가 적은 값이거나 비었으면 운동 유형 × 회원 첫 건강 목표 문구표의 값이다. 운동 여럿으로 짠 세션·`기타` 유형은 빈 문자열이다. 규칙은 [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) "추천 개인운동의 효과 한 줄" (#2570)
@@ -496,21 +520,6 @@ settled_at? }`. `status` 는 `active`|`succeeded`|`failed`, `rewarded` 는 받�
   `{ label: "포인트 사용처 보기", target: "points_shop" }` — 결과를 읽고 할 일(다음 주 참가·돌려받은 포인트 확인)이 그
   화면에 있다. 내 혜택은 교환해 **가진 것**(쿠폰·보호권)만 두므로 챌린지를 싣지 않는다. 수신 설정 스위치는 없다.
 
-### 일정 (캘린더 상세 CRUD)
-
-| Method | Path | 응답 |
-|---|---|---|
-| GET | `/schedule/events?date=YYYY-MM-DD` | `[{ id, date, time, title, category, emoji, color_hex }]` (배열) |
-| GET | `/schedule/events?month=YYYY-MM` | 그 달 전체(캘린더 뷰) |
-| GET | `/schedule/events/{id}` | 단건(없으면 404) |
-| POST | `/schedule/events` | 입력 `{ date, time?, title, category, emoji?, color_hex? }` → 생성 항목 |
-| PUT | `/schedule/events/{id}` | 부분 수정(본인 소유만, 아니면 404) |
-| DELETE | `/schedule/events/{id}` | 삭제 → `{ status: "deleted" }` |
-
-category: hospital|exercise|meal|medication|other
-- **검증**: `date`(YYYY-MM-DD)·`month`(YYYY-MM)·`time`(HH:MM 또는 빈값)·`color_hex`(#RGB/#RRGGBB)는
-  형식 위반 시 **422**. 특히 `month`는 미검증 시 `month=%` 같은 값이 LIKE 와일드카드로 새므로 필수.
-
 ### 알림 (액션)
 
 | Method | Path | 응답 |
@@ -629,6 +638,7 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 | GET | `/ai-coach/feedback` | `{ greeting, suggestions[{ tag, title, body }] }` — 식단·운동 두 건(#2706). 문장은 `Accept-Language` 로 한국어·영어(#2707) |
 | GET | `/ai-coach/insights` | `{ window_days, insights[{ message_id, created_at, kind, body_part, text }] }` — 최근 30일 회원 메시지의 통증·부정적 반응 감지 |
 | DELETE | `/ai-coach/insights/{message_id}` | `{ status }` — 그 줄의 감지를 기록에서 치움 |
+| GET | `/ai-coach/messages` | `{ messages[] }` — 저장된 대화 복원(재접속·다른 기기). 코치 답변은 `points_spent`·`balance_after` 를 함께 싣는다 |
 | GET | `/ai-coach/quota` | `{ free_limit, free_left, paid_limit, paid_left, cost, balance, next }` — 오늘 남은 대화(#2145) |
 | POST | `/ai-coach/chat` | 입력 `{ message, history?, pay_with_points?, client_request_id? }` → `{ reply, sources, user_insight, points_spent, balance_after, quota }` |
 
@@ -959,6 +969,142 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 실제 회원 User이고 트레이너 API는 회원의 실제 `diet_entries`·`routine_history`를 그대로
 읽어 집계한다.
 
+#### 경로 색인
+
+아래 두 표는 **어떤 경로가 있는지**의 목록이다. 응답 필드의 뜻과 규칙(동의·해제·노쇼·리포트 주 경계 등)은
+[`docs/TRAINER_DOMAIN.md`](docs/TRAINER_DOMAIN.md) 와 이 절의 뒤 문단이 기준이고, 여기서 다시 쓰지 않는다.
+공통 규칙:
+
+- `/trainer/*` 는 트레이너 계정만(회원 토큰 403), `/me/coach/*` 의 회원 동작(루틴 완료·취소, 요청 수락·거절)은 회원 계정만 받는다.
+- **담당이 아닌 회원·남의 id 는 404** 다 — 있는지 없는지를 알려 주지 않는다. 담당을 해제했거나 동의를 철회한
+  회원도 같은 404 다(#1631).
+- 일정이 겹치면 409 `schedule_overlap`(+`conflicts`) — 모양은 위 "공통 규약" 의 객체 `detail` 표.
+- 같은 동작을 두 번 보내도 한 번만 반영되는 쓰기는 `client_request_id` 를 받는다.
+
+**회원측 코치 미러 (`/me/coach/*`)**
+
+| Method | Path | 요청 → 응답 |
+|---|---|---|
+| GET | `/me/coach` | `{ trainer_id, name, specialty, career, intro, gym, goal }` — 내 담당 트레이너 요약. 없으면 404 |
+| DELETE | `/me/coach` | 204 — 헬스장과 담당을 함께 해제(MY 탭 헬스장 휴지통). 이미 없어도 204. 트레이너에게 알리고 데이터 공유 동의를 철회한다(#444, #2174, #1631) |
+| DELETE | `/me/coach/trainer` | 204 — 담당 트레이너만 해제, 헬스장 연결은 남는다. 위와 같이 멱등·동의 철회 |
+| GET | `/me/coach/routines?date=` | `RoutineOut[]` — 그날 걸린 추천 개인운동과 그날 완료(#2161). 날짜 형식이 깨지면 422 |
+| POST | `/me/coach/routines/{routine_id}/complete` | `{ minutes?, duration_seconds?, sets?, reps?, weight?, hold_seconds?, intensity? }` → `RoutineCompleteOut`(루틴 + 남긴 운동 기록·포인트). 없는 루틴 404 |
+| DELETE | `/me/coach/routines/{routine_id}/complete` | `RoutineOut` — 완료 표시를 되돌리고 그 완료로 남은 운동 기록을 지운다(#1131) |
+| DELETE | `/me/coach/routines/{routine_id}` | 204 — 내 개인운동 취소. **담당 트레이너가 있으면 403**(취소는 트레이너의 일), 없는 루틴 404 (#1020) |
+| GET | `/me/coach/sessions` | `ScheduleSessionOut[]` — 담당 트레이너 일정 중 나와 매칭된 것, 최신순(완료 회차 `session_number`) |
+| GET | `/me/coach/chat?limit=&before=&before_id=` | `ChatMessageOut[]`(오래된→최신, `sender` 는 `me`\|`trainer`). 담당이 없으면 404 |
+| POST | `/me/coach/chat` | `{ text, emote_id?, client_request_id? }` → **201** `ChatMessageOut`. 빈 메시지 400, 이모티콘 규칙은 위 "채팅 이모티콘" |
+| GET | `/me/coach/chat/unread` | `{ unread }` — 트레이너가 보낸 안 읽은 메시지 수 |
+| POST | `/me/coach/chat/read` | `{ marked_read }` — 트레이너 메시지를 읽음 처리 |
+| GET | `/me/coach/invites` | `[{ id, trainer_id, trainer_name, gym_name, message, status, created_at }]` — 나에게 온 대기 중인 담당 요청 |
+| POST | `/me/coach/invites/{invite_id}/accept` | `{ data_sharing_consent: true }` → 같은 모양. 동의가 없으면 400, 없는 요청 404, 이미 결정했거나 다른 담당이 있으면 409. 담당 링크가 여기서 생긴다(#1022) |
+| POST | `/me/coach/invites/{invite_id}/reject` | 같은 모양. 없는 요청 404, 이미 결정한 요청 409 |
+
+**트레이너 웹 (`/trainer/*`)** — 이 절 위아래 문단과 앞 절(예약 슬롯·상담·알림함)에 따로 적은 경로는 빠져 있다.
+
+| Method | Path | 요청 → 응답 |
+|---|---|---|
+| GET | `/trainer/me` | `TrainerMe` `{ id, name, email, phone, specialty, career, intro, certifications, gym }` |
+| PUT | `/trainer/me` | 부분 수정 `{ phone?, specialty?, career_years?, intro?, certifications?, gym_name?, gym_address?, gym_hours?, gym_phone? }` → `TrainerMe`. 이름·이메일은 바꾸지 않는다 |
+| DELETE | `/trainer/me` | 본문 `{ reasons? }` → `{ status: "deleted" }` — 탈퇴. 담당 회원에게 알린 뒤 계정과 딸린 데이터를 지운다(#505) |
+| DELETE | `/trainer/me/gym` | `TrainerMe` — 소속 해제. 원래 없어도 200 |
+| POST | `/trainer/me/password` | `{ current_password, new_password }` → `{ access_token, refresh_token, token_type, status }`. 아래 "비밀번호 변경과 토큰 세대" |
+| GET | `/trainer/me/settings` | `{ notify_new_message, notify_session_reminder, reminder_lead_minutes }` — 기본값은 서버가 정한다 |
+| PUT | `/trainer/me/settings` | 위 키 중 보낸 것만 → 같은 모양. 바꿀 칸이 하나도 없으면 400 |
+| GET | `/trainer/clients?limit=&after_id=` | `TrainerClientOut[]` — 담당 고객 로스터 한 쪽(`after_id` 커서, 위 "공통 규약") |
+| DELETE | `/trainer/clients/{member_id}` | 204 — 담당 관계만 해제. 회원 계정과 기록은 남는다 |
+| PUT | `/trainer/clients/{member_id}/registration` | 204 — 미등록으로 남은 고객을 다시 담당으로. 다른 트레이너가 담당 중이면 409 |
+| PUT | `/trainer/clients/{member_id}/status` | `{ active }` → `{ member_id, active }` — 활성·휴면 전환(#707) |
+| GET | `/trainer/clients/{member_id}/health-profile` | `MemberHealthProfileOut` — 키·체중·성별·건강 목표(회원 `ProfileView` 의 목표 칸과 같은 이름) |
+| PUT | `/trainer/clients/{member_id}/health-profile` | 같은 칸 부분 수정 → 같은 모양 |
+| GET | `/trainer/clients/{member_id}/diet?date=` | `ClientDietEntryOut[]` — 그날 끼니(회원이 기록한 실데이터). 날짜 형식 422 |
+| GET | `/trainer/clients/{member_id}/diet/days?from=&to=` | 회원 `GET /diet/days` 와 같은 모양·규칙 |
+| GET | `/trainer/clients/{member_id}/diet/photos/{photo_id}` | 담당 고객의 끼니 사진. 남의 회원·남의 사진 404 (#699) |
+| GET | `/trainer/clients/{member_id}/diet-advice?period=` | 회원 `GET /diet/advice` 모양 + `sentences` — 원인까지 짚는 서술형 식단 분석(#2379) |
+| GET | `/trainer/clients/{member_id}/diet-recommendations` | `{ needs, basis_days, pick, candidates }` — 추천할 AI 식단 후보와 지금 확정한 추천(#2378) |
+| PUT | `/trainer/clients/{member_id}/diet-recommendations` | `{ slot, name }` → 같은 모양. 회원 홈 `추천 식단` 첫 장(`trainer_pick`)이 된다 |
+| GET | `/trainer/clients/{member_id}/exercise/weeks?from=&to=` | 회원 `GET /exercise/weeks` 와 같은 모양·규칙 |
+| GET | `/trainer/clients/{member_id}/exercise-week?week_start=` | 회원 `GET /exercise/weeks/current` 모양의 한 주. `week_start` 형식이 깨지면 422 |
+| GET | `/trainer/clients/{member_id}/exercise-advice?period=` | 회원 `GET /exercise/advice` 와 같은 문장(#1025) |
+| GET | `/trainer/clients/{member_id}/records/span` | `{ diet_first_date, exercise_first_date }` — 회원 `GET /me/records/span` 과 같다 |
+| GET | `/trainer/clients/{member_id}/history` | `RoutineHistoryOut[]` — 운동 완료 기록(최신순). 다른 트레이너의 기록·메모는 뺀다 |
+| GET | `/trainer/clients/{member_id}/feedbacks` | `ClientFeedbackOut[]` — 그 회원과 주고받은 피드백 모아 보기(최신 먼저, 최근 90일). 완료 PT 피드백·보낸 주간 리포트·회원 주간 피드백. 읽기 전용, 해제·비담당 회원 404 (#2615) |
+| GET | `/trainer/chat/unread` | `{ "<member_id>": 안 읽은 수 }` — 로스터 배지용 |
+| GET | `/trainer/clients/{member_id}/chat?limit=&before=&before_id=` | `ChatMessageOut[]`(오래된→최신, 기본 최신 50건) |
+| POST | `/trainer/clients/{member_id}/chat` | `{ text, emote_id?, client_request_id? }` → **201** `ChatMessageOut`. 빈 메시지·모르는 이모티콘 400 |
+| POST | `/trainer/clients/{member_id}/chat/read` | `{ marked_read }` |
+| POST | `/trainer/clients/{member_id}/ai-coach` | `{ message }` → `{ member_id, reply, sources }` — 담당 고객 데이터를 근거로 한 AI 문답. 한도는 위 "AI 코치" 표 |
+| GET | `/trainer/clients/{member_id}/ai-coach` | `[{ role, content, sources }]` — 이 트레이너가 그 고객에 대해 나눈 문답(오래된→최신) |
+| GET | `/trainer/clients/{member_id}/memos` | `TrainerMemoOut[]`(최신 먼저) — 트레이너 혼자 보는 메모 |
+| POST | `/trainer/clients/{member_id}/memos` | `{ body, source?, insight_id?, insight_kind?, ref_id?, ref_date? }` → **201** `TrainerMemoOut` |
+| PUT | `/trainer/clients/{member_id}/memos/{memo_id}` | `{ body }` → `TrainerMemoOut` |
+| DELETE | `/trainer/clients/{member_id}/memos/{memo_id}` | `{ status: "deleted" }` |
+| GET | `/trainer/clients/{member_id}/follow-ups?include_completed=` | `TrainerFollowUpTaskOut[]`(예정일 순) |
+| POST | `/trainer/clients/{member_id}/follow-ups` | `{ title, due_date, context_type?, client_request_id? }` → **201** `TrainerFollowUpTaskOut` |
+| GET | `/trainer/follow-ups?scope=` | 내 할 일 전체(예정일 순, 지난 항목이 앞) |
+| PUT | `/trainer/follow-ups/{task_id}` | `{ title?, due_date? }` → `TrainerFollowUpTaskOut` |
+| POST | `/trainer/follow-ups/{task_id}/complete` | `TrainerFollowUpTaskOut` — 반복해도 성공, 완료 시각 유지 |
+| GET | `/trainer/dashboard/task-progress` | `{ first_saved_date, days[] }` — 대시보드 오늘 할 일 진행 상태(#1633) |
+| PUT | `/trainer/dashboard/task-progress/{day}` | `{ total, completed_today, completed_carried_over, pending_keys, dismissed_keys, completed_keys }` → 그날 한 칸. KST 오늘·어제만 받는다 |
+| POST | `/trainer/dashboard/task-progress/{day}/keys` | `TrainerTaskKeyChange` → 반영 뒤의 그날 한 칸. 할 일 키 하나만 체크·해제·삭제해 다른 탭·기기의 변경을 덮지 않는다. KST 오늘·어제만, 그 밖은 422 (#2886) |
+| GET | `/trainer/clients/{member_id}/routines` | `RoutineOut[]` — 배정한 루틴 |
+| POST | `/trainer/clients/{member_id}/routines` | `RoutineAssignRequest` → **201** `RoutineOut` — 루틴 배정. 이름 없음 400 |
+| PUT | `/trainer/clients/{member_id}/routines/{routine_id}` | `{ name?, minutes?, duration_seconds?, type?, reason? }` → `RoutineOut`(#504, #2547) |
+| DELETE | `/trainer/clients/{member_id}/routines/{routine_id}` | `{ status: "deleted" }` — 철회, 회원 앱에서도 사라진다 |
+| GET | `/trainer/clients/{member_id}/routines/unsent` | `RoutineOut[]` — PT 에 붙여 두고 아직 보내지 않은 개인운동(#2225) |
+| GET | `/trainer/clients/{member_id}/deliveries/latest` | 가장 최근에 보낸 묶음 하나 또는 `null` (#2225) |
+| GET | `/trainer/clients/{member_id}/routine-suggestions` | `RoutineOut[]` — 검토를 기다리는 AI 개인운동 제안 |
+| POST | `/trainer/clients/{member_id}/routine-suggestions` | 후보 `{ name, minutes\|duration_seconds, type, …, evidence?, client_request_id? }` → **201** `RoutineOut`. 회원에게는 아직 안 보인다 |
+| POST | `/trainer/routine-suggestions/{suggestion_id}/approve` | 고칠 칸만 → `RoutineOut` — 승인해 배정. 빈 이름 400, 없음 404, 이미 처리 409 |
+| POST | `/trainer/routine-suggestions/{suggestion_id}/dismiss` | `RoutineOut` — 추천하지 않음. 없음 404, 이미 처리 409 |
+| POST | `/trainer/clients/{member_id}/routine-options` | `{ available_minutes, intensity_preference, trainer_note?, sources? }` → `{ analysis, plan_a, plan_b, generated_by }` — AI 루틴 A/B 후보. 분당 한도 `ROUTINE_OPTIONS_PER_MINUTE` |
+| POST | `/trainer/clients/{member_id}/program` | `{ name, sessions[], client_request_id?, delivery_kind?, trainer_message?, start_date?, active_days?, suggestion_ids? }` → **201** `RoutineOut[]` — 다중 세션 프로그램 배정(#709) |
+| POST | `/trainer/clients/{member_id}/program-schedule` | 프로그램 + 날짜·시각(또는 붙일 `session_id`) → **201** `{ routines, session, attached_to_existing, personal_routines }` — 배정과 PT 일정 등록을 한 트랜잭션으로(#1580). 붙일 일정이 모호하면 409 `{ message, candidates }` |
+| GET | `/trainer/programs` | `[{ id, name, goal, period, session_count, exercise_count, updated_at }]` — 프로그램 초안 목록 |
+| POST | `/trainer/programs` | `{ name, goal?, period?, memo?, sessions[] }` → **201** 초안 |
+| GET | `/trainer/programs/{draft_id}` | 초안 상세(편집기로 불러올 때) |
+| PUT | `/trainer/programs/{draft_id}` | 부분 수정, `sessions` 는 통째로 교체 |
+| DELETE | `/trainer/programs/{draft_id}` | `{ status: "deleted" }` — 이미 배정한 루틴·일정은 남는다 |
+| GET | `/trainer/program-templates` | `[{ id, name, goal, exercises, updated_at }]` — 내 템플릿(없으면 시작 구성) |
+| POST | `/trainer/program-templates` | `{ name, goal?, exercises }` → **201**. 개수 상한을 넘으면 409 |
+| PUT | `/trainer/program-templates/{template_id}` | 부분 수정. 없음 404 |
+| DELETE | `/trainer/program-templates/{template_id}` | `{ status: "deleted" }`. 없음 404 |
+| GET | `/trainer/schedule?date=&from=&to=&member_id=` | `ScheduleSessionOut[]` — 기본 하루, `from`/`to` 면 그 구간 |
+| GET | `/trainer/schedule/booked-dates` | `["YYYY-MM-DD", …]` — 주간 스트립 점 표시용 |
+| POST | `/trainer/schedule` | `{ date, time, client_name?, member_id?, type, duration_minutes, note?, program?, client_request_id? }` → **201** `ScheduleSessionOut`(예정). 겹치면 409 |
+| POST | `/trainer/schedule/recurring/preview` | 반복 설정(`weekdays`, `count` 또는 `until`) → `{ dates, conflicts }` (#870) |
+| POST | `/trainer/schedule/recurring` | 같은 입력 → **201** `ScheduleSessionOut[]`. 겹치면 409 |
+| PUT | `/trainer/schedule/{session_id}` | 보낸 칸만 수정 → `ScheduleSessionOut`. 겹치면 409 |
+| DELETE | `/trainer/schedule/{session_id}` | `{ status: "deleted" }` — 잘못 만든 일정을 없앤다(취소와 다르다) |
+| POST | `/trainer/schedule/{session_id}/complete` | `{ note? }` → 예정→완료. 매칭된 회원이 있으면 운동 기록으로 남긴다 |
+| POST | `/trainer/schedule/{session_id}/cancel` | `{ source, reason? }` → 예정→취소, 기록으로 남는다(#871) |
+| POST | `/trainer/schedule/{session_id}/no-show` | 예정→노쇼(#871) |
+| POST | `/trainer/schedule/{session_id}/reopen` | `{ date, time, duration_minutes? }` → 완료를 앞날의 예정으로 되돌린다(#1396). 겹치면 409 |
+| POST | `/trainer/schedule/{session_id}/program/send` | `{ client_request_id? }` → `ScheduleSessionOut` — 완료한 수업의 프로그램을 회원에게 보낸다(#822). 같은 세션은 한 번만 배정 |
+| GET | `/trainer/schedule/{session_id}/routines` | `RoutineOut[]` — 그 PT 에 붙은, 아직 회원에게 가지 않은 개인운동(#2223) |
+| PUT | `/trainer/schedule/{session_id}/routines` | `{ personal_routines, suggestion_ids? }` → `RoutineOut[]` — 붙은 개인운동을 통째로 교체 |
+| POST | `/trainer/schedule/{session_id}/routines/send` | `{ personal_routines? }` → `RoutineOut[]` — 마무리된 PT 에 남은 개인운동을 보낸다(#2224). 상태가 맞지 않으면 400 |
+| POST | `/trainer/schedule/{session_id}/routines/dismiss` | `{ dismissed }` — 보내지 않기로 정리(#2224) |
+| GET | `/trainer/clients/{member_id}/report?week_start=` | `WeeklyReportOut` — 주간 리포트. 아무 요일을 줘도 그 주 월요일로 접는다 |
+| GET | `/trainer/clients/{member_id}/report/summary?week_start=` | `{ member_id, week_start, headline, points, generated_by }` |
+| GET | `/trainer/clients/{member_id}/report/feedback?week_start=` | `{ member_id, week_start, body, updated_at }` — 저장해 둔 피드백 초안. 없으면 빈 본문(오류 아님, #821) |
+| PUT | `/trainer/clients/{member_id}/report/feedback` | `{ week_start?, body }` → 같은 모양. 같은 주는 덮어쓰고, 회원에게는 아무것도 보내지 않는다 |
+| POST | `/trainer/clients/{member_id}/report/send` | `{ week_start?, message? }` → **201** `ChatMessageOut` — 리포트를 회원 채팅으로 보낸다 |
+| POST | `/trainer/pairing-code/preview` | `{ code }` → `{ member_id, name, gender, age, goal }` — 연결하지 않고 보여 준다(#1634) |
+| POST | `/trainer/pairing-code` | `{ code }` → 같은 모양 — 6자리 코드로 담당 관계를 바로 만든다 |
+| GET | `/trainer/client-invites?status=` | `TrainerClientInviteOut[]` — 보낸 담당 요청. `status` 는 `pending`(기본)\|`all` |
+| POST | `/trainer/client-invites` | `{ member_id, message? }` → **201** `TrainerClientInviteOut`. 없는 회원 404, 회원 계정이 아니면 422, 이미 담당 중이거나 대기 요청이 있으면 409 |
+| DELETE | `/trainer/client-invites/{invite_id}` | `{ status: "cancelled" }` — 보낸 요청을 거둔다. 없음 404, 이미 결정됨 409 |
+| GET | `/trainer/consultations?status=&limit=&before=&before_id=` | `TrainerConsultationOut[]` — 나를 지정한 상담 요청 한 쪽(기본 미처리, 최신 50건, #980) |
+| GET | `/trainer/consultations/pending-count` | `{ count }` — 인박스 배지(쪽 나눔과 무관한 전체 기준) |
+| POST | `/trainer/consultations/{consultation_id}/accept` | `{ note? }` → `TrainerConsultationOut` + `{ client_connected, schedule_created, schedule_id }` — 수락하고 회원이 고른 자리에 상담 일정을 잡는다. 겹치면 409 `schedule_overlap` |
+| POST | `/trainer/consultations/{consultation_id}/reject` | `{ note? }` → `TrainerConsultationOut`. 사유는 회원 알림 본문에 실린다 |
+| GET | `/trainer/reservation-slots?include_past=` | `TrainerSlotOut[]` `{ id, trainer_id, starts_at, duration_minutes, capacity, remaining, is_closed, session_type, booked_by_name, overlapped }` |
+| POST | `/trainer/reservation-slots` | `{ starts_at, duration_minutes, session_type }` → **201** `TrainerSlotOut`. 겹치면 409 `schedule_overlap` |
+| PUT | `/trainer/reservation-slots/{slot_id}` | `{ starts_at?, duration_minutes?, session_type?, is_closed? }` → `TrainerSlotOut`. 겹치면 409 |
+| DELETE | `/trainer/reservation-slots/{slot_id}` | `TrainerSlotOut` — 자리를 닫는다(행은 남는다) |
+
 **로스터 카드의 나이 (#2744)**: `GET /trainer/clients` 의 각 카드는 `age`(정수 또는 `null`)를 싣는다 —
 회원 건강 프로필의 `birth_date` 로 KST 오늘 기준 만 나이를 센 값이고, 생년월일이 없거나 날짜로 읽히지
 않으면 `null` 이다. 6자리 코드 연결 확인(`POST /trainer/pairing-code/preview`)의 `age` 와 같은 함수
@@ -1208,6 +1354,18 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 두 앱 모두 로그인과 토큰 저장이 붙어 있다(`session_controller.dart`, `secure_token_store.dart`,
 `auth_interceptor.dart`). 발급은 `POST /auth/login`·`POST /auth/refresh`·`POST /auth/social/{provider}`
 이고, 이후 요청은 `Authorization: Bearer <access>` 를 단다.
+
+| Method | Path | 요청 → 응답 |
+|---|---|---|
+| POST | `/auth/register` | `{ email, password, name, phone }` → **201** `{ id, name, email }` — 회원(`role=member`). 이미 가입된 이메일 409 |
+| POST | `/auth/trainer/register` | 같은 입력 → **201** `{ id, name, email }` — 트레이너(#475). 역할을 요청 필드로 가르지 않으려고 경로를 나눴다. 소속 헬스장은 가입 뒤 `PUT /trainer/me/gym` |
+| POST | `/auth/login` | form(`application/x-www-form-urlencoded`) `username`(이메일)·`password` → `{ access_token, refresh_token, token_type }`. 틀리면 401 |
+| POST | `/auth/refresh` | `{ refresh_token }` → 새 `{ access_token, refresh_token, token_type }`(회전). 무효·폐기된 토큰 401 |
+| POST | `/auth/logout` | `{ refresh_token }` → **204**. 그 refresh 토큰을 폐기한다. access 토큰은 요구하지 않고, 못 알아본 토큰에도 204 |
+| POST | `/auth/social/{provider}` | `{ token }` → `{ access_token, refresh_token, token_type }`. 실패 응답은 아래 절 |
+
+인증 엔드포인트는 IP·엔드포인트당 분당 한도(`RATE_LIMIT_AUTH_PER_MINUTE`)를 받는다. 비밀번호·연락처·이름 규칙은
+아래 절들에 있다.
 
 ### 소셜 로그인 실패 응답 (#1550)
 
