@@ -6,11 +6,12 @@ import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/data/kakao_gym_demo_profile.dart';
 import 'package:oncare/features/exercise/data/repositories/dio_exercise_repository.dart';
 import 'package:oncare/features/exercise/data/repositories/dio_gym_repository.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
+import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart'
+    show kExerciseMaxPeriodWeeks;
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/gym_search_area.dart';
@@ -28,6 +29,8 @@ import 'package:oncare/features/place/domain/entities/place.dart';
 import 'package:oncare/features/place/domain/entities/place_query.dart';
 import 'package:oncare/features/place/presentation/controllers/place_controller.dart';
 import 'package:oncare/shared/services/record_span_provider.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 // 타입을 적어 둔다 — 목업 코치 저장소와 서로를 읽어(추천 개인운동, #2161)
 // 추론이 둘 사이를 돈다.
@@ -123,6 +126,7 @@ int exerciseAllPeriodWeeks(DateTime? firstRecord, DateTime today) {
   final DateTime thisMonday = mondayOfWeek(today);
   if (!firstMonday.isBefore(thisMonday)) return kExerciseMinPeriodWeeks;
   final int weeks = thisMonday.difference(firstMonday).inDays ~/ 7 + 1;
+  if (weeks > kExerciseMaxPeriodWeeks) return kExerciseMaxPeriodWeeks;
   return weeks < kExerciseMinPeriodWeeks ? kExerciseMinPeriodWeeks : weeks;
 }
 
@@ -341,64 +345,6 @@ final trainerProvider = FutureProvider.family<Trainer?, String>((
 ) {
   return ref.watch(gymRepositoryProvider).fetchTrainer(trainerId);
 }, name: 'trainer');
-
-/// 이미 연결된 대상을 추천에서 빼기 위한 현재 연결 id. (#864)
-///
-/// 조회가 실패하면 `null` 을 돌려 **필터를 걸지 않는다**. 연결 정보 하나 때문에
-/// 추천 영역 전체가 실패하면, 고객은 탐색할 후보조차 못 본다 — 걸러지지 않은
-/// 목록이 아무것도 없는 화면보다 낫다.
-Future<String?> _connectedId(Future<Object?> lookup) async {
-  try {
-    final Object? connected = await lookup;
-    return switch (connected) {
-      final Gym gym => gym.id,
-      final Trainer trainer => trainer.id,
-      _ => null,
-    };
-  } on Object {
-    return null;
-  }
-}
-
-/// 추천 헬스장 — 지금 연결된 헬스장은 뺀다. (#864)
-///
-/// 추천 영역의 목적은 **새로 연결할 후보**를 보여 주는 것이다. 이미 연결된
-/// 헬스장이 거기 다시 서면 "연결이 된 것이 맞나" 를 되묻게 된다. 내 헬스장
-/// 카드에는 그대로 보이므로 정보가 사라지는 것은 아니다.
-///
-/// 이름이 아니라 **id 로 거른다.** 같은 이름의 다른 지점을 함께 지우거나,
-/// 표기가 조금 다른 같은 헬스장을 놓치지 않기 위해서다.
-///
-/// [nearbyGymsProvider] 자체는 그대로 둔다 — 상담 신청·트레이너 목록이 같은
-/// provider 를 읽고, 그 화면들에서는 연결된 헬스장도 후보로 남아야 한다.
-final recommendedGymsProvider = FutureProvider<List<Gym>>((ref) async {
-  final List<Gym> gyms = await ref.watch(nearbyGymsProvider.future);
-  // 연결 정보를 기다렸다가 거른다. 먼저 그려 두고 나중에 지우면 이미 연결된
-  // 헬스장이 한 번 깜빡이고 사라진다.
-  final String? connectedId = await _connectedId(
-    ref.watch(myGymProvider.future),
-  );
-  if (connectedId == null) return gyms;
-  return gyms.where((Gym gym) => gym.id != connectedId).toList(growable: false);
-}, name: 'recommendedGyms');
-
-/// 추천 트레이너 — 지금 담당인 트레이너는 뺀다. (#864)
-///
-/// 담당이 이미 지정돼 있는데 같은 사람이 `추천 트레이너` 에 다시 서는 것은
-/// 추천의 의미와 맞지 않는다. 같은 헬스장의 **다른** 트레이너는 그대로 후보다 —
-/// 담당이 있다고 그 헬스장 사람들을 모두 지우면 탐색이 막힌다.
-final recommendedTrainersProvider = FutureProvider<List<Trainer>>((ref) async {
-  final List<Trainer> trainers = await ref
-      .watch(gymRepositoryProvider)
-      .fetchRecommendedTrainers();
-  final String? connectedId = await _connectedId(
-    ref.watch(myTrainerProvider.future),
-  );
-  if (connectedId == null) return trainers;
-  return trainers
-      .where((Trainer trainer) => trainer.id != connectedId)
-      .toList(growable: false);
-}, name: 'recommendedTrainers');
 
 /// 한 트레이너의 예약 가능 시간. 트레이너별로 다르므로 family 로 둔다.
 /// 예약이 성사되면 이 provider 를 invalidate 해서 잔여 자리를 다시 읽는다.

@@ -28,10 +28,10 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
@@ -446,6 +446,7 @@ class _RealAuthRepository implements TrainerAuthRepository {
     required String email,
     required String password,
     required String name,
+    List<String>? consents,
   }) async => _tokens;
 
   @override

@@ -20,6 +20,10 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 않고 트레이너 버튼을 흐리게(비활성 모양) 그린 채, 눌렀을 때 왜 지금은 쓸 수
 /// 없는지 한 줄로 알린다. 예전에는 이 상태에서 `onTap: null` 만 넘겨서 모양은
 /// 그대로인 채 아무 반응도 없었다 — 고장 난 버튼으로 읽혔다(#786).
+///
+/// 조회 실패는 "담당이 없다" 가 아니다(#2843). 실패면 불러오지 못했다고 알리고
+/// 같은 탭으로 다시 읽는다. "아직 없어요" 는 서버가 404 로 없음을 확인했을 때의
+/// 몫인데, 그때는 이미 AI 입구로 바뀌어 있다.
 class TrainerChatHeaderButton extends ConsumerWidget {
   const TrainerChatHeaderButton({super.key});
 
@@ -51,8 +55,11 @@ class TrainerChatHeaderButton extends ConsumerWidget {
 
     // 아직 받아 오는 중인지, 받아 보지 못했는지는 다른 사정이다. 안내 문구도 달라야
     // 한다 — 로딩 중에 "트레이너가 없다" 고 말하면 거짓이 된다.
+    final bool failed = coachAsync.hasError && !coachAsync.isLoading;
     final String unavailableReason = coachAsync.isLoading
         ? l.coachTrainerLoading
+        : failed
+        ? l.coachTrainerRetrying
         : l.coachTrainerNone;
 
     return Semantics(
@@ -64,7 +71,12 @@ class TrainerChatHeaderButton extends ConsumerWidget {
       child: GestureDetector(
         key: const Key('trainerChatHeaderButton'),
         behavior: HitTestBehavior.opaque,
-        onTap: ready ? null : () => showAppToast(context, unavailableReason),
+        onTap: ready
+            ? null
+            : () {
+                showAppToast(context, unavailableReason);
+                if (failed) ref.invalidate(memberCoachProvider);
+              },
         child: Stack(
           clipBehavior: Clip.none,
           children: <Widget>[

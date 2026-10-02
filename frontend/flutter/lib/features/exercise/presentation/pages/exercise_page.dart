@@ -6,7 +6,6 @@ import 'package:intl/intl.dart' show DateFormat;
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/advice/exercise_advice.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/benefits/presentation/widgets/challenge_cards.dart';
 import 'package:oncare/features/diet/presentation/widgets/week_strip_label.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
@@ -26,6 +25,7 @@ import 'package:oncare/features/notification/presentation/controllers/notificati
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
 import 'package:oncare/shared/widgets/member_tab_header.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 하단 내비게이션 위로 남겨 두는 높이. 내비 막대가 내용을 가리지 않게 한다.
@@ -265,6 +265,16 @@ class _RecordTabState extends ConsumerState<_RecordTab> {
   late DateTime _selected = _today;
   int _weekShift = 0;
 
+  /// 이 화면이 마지막으로 그린 오늘 — 식단 탭과 같은 자정 넘김 규칙이다(#2882).
+  late DateTime _shownToday = _selected;
+
+  /// 날이 바뀌었으면, 회원이 날짜를 직접 고르지 않았을 때만 새 오늘로 옮긴다.
+  void _followMidnight(DateTime today) {
+    if (today == _shownToday) return;
+    if (_weekShift == 0 && _selected == _shownToday) _selected = today;
+    _shownToday = today;
+  }
+
   DateTime get _today {
     final DateTime n = nowKst();
     return DateTime(n.year, n.month, n.day);
@@ -278,6 +288,7 @@ class _RecordTabState extends ConsumerState<_RecordTab> {
       exerciseWeekViewProvider,
     );
     final DateTime today = _today;
+    _followMidnight(today);
     final DateTime center = today.add(Duration(days: _weekShift * 7));
     final bool atToday = _weekShift == 0 && _selected == today;
     return weekAsync.when(
@@ -452,9 +463,7 @@ class _ExerciseWeekStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     // 월요일에서 시작해 일요일로 끝난다 — 식단 탭과 같은 규칙이다. (#1059)
-    final DateTime monday = center.subtract(
-      Duration(days: center.weekday - DateTime.monday),
-    );
+    final DateTime monday = mondayOf(center);
     final List<DateTime> days = List<DateTime>.generate(
       7,
       (int i) => monday.add(Duration(days: i)),

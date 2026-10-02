@@ -16,8 +16,8 @@ import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/app_router.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/core/network/auth_token.dart';
 import 'package:oncare/core/network/dio_client.dart';
-import 'package:oncare/core/network/interceptors/auth_interceptor.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -89,7 +89,7 @@ Future<(ProviderContainer, TokenBackend)> _pump(
           ),
         );
         dio.httpClientAdapter = backend;
-        dio.interceptors.add(AuthInterceptor(ref, retryClient: dio));
+        dio.interceptors.add(authInterceptorFor(ref, retryClient: dio));
         return dio;
       }),
     ],

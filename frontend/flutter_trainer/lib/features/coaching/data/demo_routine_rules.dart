@@ -2,8 +2,14 @@
 /// 규칙을 데모로 옮긴 것. (#2704)
 ///
 /// 데모 A/B 생성(`MockTrainerRoutineOptionsRepository`)이 실서버 규칙형과 같은
-/// 구성을 내도록, 표와 판단을 서버와 같은 값으로 둔다. 서버 표를 고치면 여기도
-/// 함께 고친다 — 한쪽만 바뀌면 같은 회원에게 데모와 실서버가 다른 운동을 낸다.
+/// 구성을 내도록, 표와 판단을 서버와 같은 값으로 둔다 — 한쪽만 바뀌면 같은
+/// 회원에게 데모와 실서버가 다른 운동을 낸다.
+///
+/// 표와 판단 사례의 원본은 서버 스크립트(`backend/scripts/
+/// gen_routine_caution_cases.py`)가 만드는 `shared/oncare_rules/vectors/
+/// routine_caution_cases.json` 이다(#2906). 서버 pytest 와
+/// `test/features/coaching/routine_caution_cases_test.dart` 가 같은 파일과
+/// 대조하므로, 서버 표를 고치고 파일을 다시 만들면 여기가 어긋난 만큼 깨진다.
 library;
 
 /// 조심할 부위 · 그 부위를 가리키는 말 · 그 부위에 부담이 큰 운동 이름 조각.
@@ -31,7 +37,7 @@ const List<(String, List<String>, List<String>)> demoCautionRules =
 
 /// 이 말이 보이면 강도를 올리지 않고 전문가 확인을 권한다. 서버
 /// `_ESCALATION_KEYWORDS` 와 같다.
-const List<String> _escalationKeywords = <String>[
+const List<String> demoEscalationKeywords = <String>[
   '가슴 통증',
   '흉통',
   '호흡 곤란',
@@ -43,7 +49,7 @@ const List<String> _escalationKeywords = <String>[
 ];
 
 /// 주의 부위 이름의 영어. 근거 문장에만 쓴다(서버 `_EN_CAUTION_PARTS`).
-const Map<String, String> _enCautionParts = <String, String>{
+const Map<String, String> demoEnCautionParts = <String, String>{
   '무릎': 'knee',
   '허리': 'lower back',
   '어깨': 'shoulder',
@@ -52,7 +58,7 @@ const Map<String, String> _enCautionParts = <String, String>{
 
 /// 라이브러리 운동 이름의 영어(서버 `_EN_EXERCISE_NAMES`). 회원 기록에 적힌
 /// 반복 운동 이름은 여기 없어 원문 그대로다.
-const Map<String, String> _enExerciseNames = <String, String>{
+const Map<String, String> demoEnExerciseNames = <String, String>{
   '저강도 걷기': 'Low-intensity walk',
   '인터벌 러닝': 'Interval running',
   '스쿼트': 'Squat',
@@ -69,8 +75,8 @@ const (String, String) libStrength2 = ('플랭크', '근력');
 const (String, String) libStretch = ('코어 스트레칭', '스트레칭');
 const (String, String) libStretch2 = ('목·어깨 스트레칭', '스트레칭');
 
-const List<String> _stretchKeywords = <String>['스트레칭', '요가', '폼롤러'];
-const List<String> _cardioKeywords = <String>[
+const List<String> demoStretchKeywords = <String>['스트레칭', '요가', '폼롤러'];
+const List<String> demoCardioKeywords = <String>[
   '걷기',
   '러닝',
   '자전거',
@@ -97,7 +103,7 @@ List<String> cautionsIn(String conditions, List<String> messages) {
 /// 운동 구성으로 답할 수 없는 상태인가 — 서버 `needs_professional_check`.
 bool needsProfessionalCheck(String conditions, List<String> messages) {
   final String text = _cautionText(conditions, messages);
-  return _escalationKeywords.any(text.contains);
+  return demoEscalationKeywords.any(text.contains);
 }
 
 /// 이 운동이 조심할 부위에 부담을 주는가 — 서버 `_avoids`.
@@ -139,7 +145,7 @@ String cautionSuffix(List<String> cautions, bool escalate, {required bool en}) {
   if (cautions.isNotEmpty) {
     if (en) {
       final String names = cautions
-          .map((String c) => _enCautionParts[c] ?? c)
+          .map((String c) => demoEnCautionParts[c] ?? c)
           .join(', ');
       out.write(
         ' Cautions ($names) applied: removed movements that load those areas.',
@@ -160,12 +166,12 @@ String cautionSuffix(List<String> cautions, bool escalate, {required bool en}) {
 
 /// 라이브러리 운동 이름을 화면 언어로. 라이브러리 밖 이름은 그대로다.
 String libraryExerciseName(String name, {required bool en}) =>
-    en ? _enExerciseNames[name] ?? name : name;
+    en ? demoEnExerciseNames[name] ?? name : name;
 
 /// 반복 운동 이름으로 유형을 대략 짐작한다 — 서버 `_guess_type`.
 String guessExerciseType(String name) {
-  if (_stretchKeywords.any(name.contains)) return '스트레칭';
-  if (_cardioKeywords.any(name.contains)) return '유산소';
+  if (demoStretchKeywords.any(name.contains)) return '스트레칭';
+  if (demoCardioKeywords.any(name.contains)) return '유산소';
   return '근력';
 }
 

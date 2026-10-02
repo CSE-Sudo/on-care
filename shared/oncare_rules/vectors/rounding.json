@@ -1,0 +1,51 @@
+{
+  "_comment": "서버(Python round)와 두 앱(oncare_rules pyRound)이 같은 답을 내는지 보는 입력 표 (#2860). 백엔드 tests/test_shared_rules_vectors.py 와 두 앱·이 패키지의 테스트가 함께 읽는다. 값을 바꾸면 양쪽 테스트가 같이 움직인다.",
+  "py_round": [
+    [0, 0],
+    [2, 2],
+    [-3, -3],
+    [0.5, 0],
+    [1.5, 2],
+    [2.5, 2],
+    [3.5, 4],
+    [-0.5, 0],
+    [-1.5, -2],
+    [-2.5, -2],
+    [-0.4, 0],
+    [2.4999, 2],
+    [7.8, 8],
+    [8.5, 8],
+    [25.5, 26],
+    [42.5, 42]
+  ],
+  "minutes_from_seconds": [
+    [0, 0],
+    [1, 1],
+    [29, 1],
+    [30, 1],
+    [31, 1],
+    [59, 1],
+    [60, 1],
+    [89, 1],
+    [90, 2],
+    [91, 2],
+    [150, 2],
+    [210, 4],
+    [270, 4],
+    [330, 6],
+    [3600, 60]
+  ],
+  "fallback_calories": [
+    {"type": "cardio", "minutes": 10, "intensity": "light", "calories": 76},
+    {"type": "cardio", "minutes": 30, "intensity": "light", "calories": 230},
+    {"type": "cardio", "minutes": 30, "intensity": "moderate", "calories": 270},
+    {"type": "strength", "minutes": 5, "intensity": "light", "calories": 26},
+    {"type": "strength", "minutes": 12, "intensity": "high", "calories": 86},
+    {"type": "stretching", "minutes": 10, "intensity": "light", "calories": 26},
+    {"type": "stretching", "minutes": 30, "intensity": "light", "calories": 76},
+    {"type": "other", "minutes": 2, "intensity": "light", "calories": 8},
+    {"type": "other", "minutes": 10, "intensity": "light", "calories": 42},
+    {"type": "other", "minutes": 30, "intensity": "light", "calories": 128},
+    {"type": "other", "minutes": 0, "intensity": "moderate", "calories": 0}
+  ]
+}

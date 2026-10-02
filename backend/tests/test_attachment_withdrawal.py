@@ -302,7 +302,11 @@ def test_attachments_open_from_object_storage(client, db_session, s3_bucket, tmp
         assert response.status_code == 200, response.text
         assert response.headers["content-type"] == "image/png"
         assert response.headers["cache-control"] == "private, no-store"
-        assert response.content == _png()
+        # 저장 전에 메타데이터를 털고 다시 인코딩하므로(#2829) 바이트는 보낸 것과
+        # 다를 수 있다 — 버킷에 있는 그 파일을 내려 준다.
+        assert response.content == s3_bucket[
+            ("oncare-test", f"chat-attachments/chat-images/{file_id}.png")
+        ][0]
 
 
 def test_report_pdf_downloads_from_object_storage(client, db_session, s3_bucket):

@@ -14,8 +14,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare_trainer/core/config/app_config.dart';
+import 'package:oncare_trainer/core/network/auth_token.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
-import 'package:oncare_trainer/core/network/interceptors/auth_interceptor.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
@@ -186,6 +186,7 @@ class FakeTrainerAuthRepository implements TrainerAuthRepository {
     required String email,
     required String password,
     required String name,
+    List<String>? consents,
   }) async => _tokensFor(TestTrainer.fromEmail(email));
 
   @override
@@ -242,7 +243,7 @@ makeAccountSwitchContainer({
           ),
         );
         dio.httpClientAdapter = backend;
-        dio.interceptors.add(AuthInterceptor(ref));
+        dio.interceptors.add(authInterceptorFor(ref));
         return dio;
       }),
       ...extraOverrides,

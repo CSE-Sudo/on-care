@@ -8,6 +8,7 @@
   등 민감정보는 남기지 않는다).
 - 처리되지 않은 예외는 서버 로그에 stack trace 를 **한 번** 남기고, 클라이언트에는 내부
   상세를 감춘 공통 500 응답(request_id 포함)만 반환한다.
+- 에러 추적(Sentry)이 켜져 있으면 같은 예외를 요청 id 와 함께 보낸다(`error_tracking`).
 """
 from __future__ import annotations
 
@@ -20,6 +21,7 @@ from contextvars import ContextVar
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from app.core import error_tracking
 from app.core.locale import get_request_locale, localized
 
 # 로그·헤더에 그대로 싣기 안전한 request ID 형식(영숫자 . _ -, 1~64자). 그 외 입력은 신뢰하지 않는다.
@@ -94,6 +96,8 @@ def install(app: FastAPI) -> None:
         # contextvar 가 이미 리셋됐을 수 있으므로, 핸들러는 request.state 에서 rid 를 읽는다.
         request.state.request_id = rid
         token = request_id_ctx.set(rid)
+        # 에러 추적 이벤트에도 같은 요청 id 를 달아 서버 로그와 잇는다(#2839).
+        error_tracking.tag_request(rid)
         start = time.monotonic()
         # 액세스 로그·응답 헤더는 반드시 reset 이전에 처리한다 — reset 뒤에 로그하면
         # contextvar 가 이미 '-' 라 로그의 request_id 가 비어 상관관계가 끊긴다.
@@ -131,6 +135,8 @@ def install(app: FastAPI) -> None:
             )
         finally:
             request_id_ctx.reset(token)
+        # 에러 추적 도구로도 보낸다(요청 id 태그, 본문·헤더 제외). DSN 이 없으면 무시된다.
+        error_tracking.capture_unhandled(exc, request_id=rid)
         return JSONResponse(
             status_code=500,
             # 이 핸들러는 요청 언어 미들웨어 바깥에서 돌아 컨텍스트가 이미 되돌려졌을 수

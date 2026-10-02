@@ -87,7 +87,7 @@ void main() {
         _report(completionAvg: 81, sodiumAvg: 1500, sodiumOverDays: 0),
       );
 
-      expect(lines.any((line) => line.contains('PT 세션')), isFalse);
+      expect(lines.any((line) => line.contains('PT')), isFalse);
       expect(lines, contains('운동 이행률 평균 81%'));
     });
   });

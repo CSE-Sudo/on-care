@@ -41,6 +41,7 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
     required String email,
     required String password,
     required String name,
+    List<String>? consents,
   }) async {
     try {
       // 회원용 `/auth/register` 가 아니다 — 그쪽은 role='member' 를 만들어,
@@ -51,6 +52,9 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
           'email': email,
           'password': password,
           'name': name,
+          // 체크한 동의(#2819) — 계정과 한 트랜잭션으로 남는다. 넘기지 않으면
+          // 칸을 싣지 않는다(서버는 기록 없이 만들고 로그인 뒤 동의를 받는다).
+          'consents': ?consents,
         },
       );
     } on DioException catch (e) {

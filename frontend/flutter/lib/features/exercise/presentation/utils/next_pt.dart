@@ -12,11 +12,12 @@ import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 ///   있으면 그 시각이 [now] 이후여야 하고, 시각이 비었거나 읽을 수 없으면
 ///   날짜가 오늘 이후면 남긴다 — 시각을 모르는 오늘 일정을 지났다고 단정하지
 ///   않는다.
-/// * 예약: 취소할 수 있는(= 서버가 아직 오지 않았다고 본) 자리. **서버 판단을
-///   그대로 쓴다** — 예약 시각은 기기 로컬 시간으로 옮겨져 오므로 KST 벽시계인
-///   [now] 와 견주면 기기 타임존에 따라 어긋난다.
+/// * 예약: 취소할 수 있는(= 서버가 아직 오지 않았다고 본) 자리. 지남 여부는
+///   **서버 판단을 그대로 쓴다.**
 ///
-/// [now] 는 KST 벽시계다(`nowKst()`) — 기기 타임존에 매이지 않는다.
+/// [now] 와 두 후보는 모두 KST 벽시계다 — 트레이너 일정은 KST 날짜·시각 그대로,
+/// 예약 시각은 엔티티가 `toKst` 로 읽어 온다(#2876). 그래서 기기 타임존과
+/// 상관없이 한 리스트에서 정렬해도 같은 기준이다.
 DateTime? nextPtAt({
   required Iterable<CoachSession> sessions,
   required Iterable<MyReservation> reservations,

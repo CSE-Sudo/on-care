@@ -64,7 +64,11 @@ class ReportWorkbench extends StatelessWidget {
   /// 주 이동. 카드 제목 줄에 놓는다 — 옮기는 대상이 이 목록이다.
   final Widget weekNav;
 
-  /// 아직 수치를 읽는 중인가. 줄은 그대로 서고 수치 자리만 비운다.
+  /// 작업대 요약·전송 이력을 처음 읽는 중인가. (#2863)
+  ///
+  /// 그동안 미전송 상자는 줄 대신 로딩 하나만 그린다 — 줄마다 버튼을 잠그면
+  /// 회원 수만큼 잠긴 `열기` 가 서고, 이력이 오기 전의 줄은 이미 보낸 회원을
+  /// 미전송에 세울 수 있다. 요약이 오면 줄은 잠금 없이 바로 열린다.
   final bool loading;
 
   /// 서버의 전송 이력을 읽지 못했는가(#2288). 그때 `전송 완료` 열은 이번
@@ -240,7 +244,12 @@ class ReportWorkbench extends StatelessWidget {
         ),
       ),
     );
-    final Widget? empty = pending.isEmpty
+    final Widget? empty = loading
+        ? const AppLoading(
+            key: ValueKey<String>('reports-queue-loading'),
+            placement: AppStatePlacement.card,
+          )
+        : pending.isEmpty
         ? AppEmptyState(
             key: const ValueKey<String>('reports-queue-empty'),
             title: l.reportsQueueAllSent,
@@ -258,7 +267,6 @@ class ReportWorkbench extends StatelessWidget {
         for (final ReportQueueEntry entry in pending)
           _QueueRow(
             entry: entry,
-            loading: loading,
             onOpen: () => onOpen(entry),
             onHistory: () => onHistory(entry),
           ),
@@ -599,20 +607,17 @@ class ReportProgressRow extends StatelessWidget {
 class _QueueRow extends StatelessWidget {
   const _QueueRow({
     required this.entry,
-    required this.loading,
     required this.onOpen,
     required this.onHistory,
   });
 
   final ReportQueueEntry entry;
-  final bool loading;
   final VoidCallback onOpen;
   final VoidCallback onHistory;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final WeeklyReport? report = entry.report;
     final Widget identity = ClientPickerCard(
       key: ValueKey<String>('report-client-${entry.client.id}'),
       client: entry.client,
@@ -634,7 +639,8 @@ class _QueueRow extends StatelessWidget {
       onHistory: onHistory,
       primaryKey: ValueKey<String>('reports-open-${entry.client.id}'),
       primaryLabel: l.reportsOpenDraft,
-      onPrimary: loading && report == null ? null : onOpen,
+      // 수치가 없어도 연다 — 편집기가 그 회원 리포트를 따로 읽는다(#2863).
+      onPrimary: onOpen,
     );
 
     return AppCard(

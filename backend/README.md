@@ -40,6 +40,35 @@ docker compose up --build
 ```
 → http://localhost:8000/docs  (경로는 모두 /v1/...)
 
+## 의존성
+파이썬 버전과 의존성 버전은 **운영 이미지·CI·로컬이 모두 같은 값**을 씁니다(#2837).
+
+| 파일 | 역할 |
+| --- | --- |
+| `.python-version` | 파이썬 버전의 기준(현재 3.12). CI 가 이 파일을 읽고, `Dockerfile` 의 `ARG PYTHON_VERSION` 기본값이 같은지 검사합니다 |
+| `requirements.in` | 운영 직접 의존 목록(버전 범위만) |
+| `requirements.txt` | 위에서 만든 **잠금 파일**(전 패키지 버전·해시 고정). 이미지·CI 는 `--require-hashes` 로 이것만 설치합니다 |
+| `requirements-dev.in` / `requirements-dev.txt` | 테스트 전용 의존(pytest)과 그 잠금 파일. 운영 잠금 파일로 제약해 버전이 같습니다 |
+
+```bash
+pip install --require-hashes -r requirements-dev.txt   # 로컬 개발·테스트
+```
+
+의존성을 더하거나 범위를 바꿀 때는 `.in` 파일을 고친 뒤 잠금 파일을 다시 만듭니다.
+잠금 파일은 손으로 고치지 않습니다. 기존 버전은 유지되고 바뀐 것만 다시 풀립니다.
+
+```bash
+pip install uv
+uv pip compile --universal --python-version 3.12 --generate-hashes requirements.in -o requirements.txt
+uv pip compile --universal --python-version 3.12 --generate-hashes requirements-dev.in -o requirements-dev.txt
+# 전체를 최신으로 올릴 때만 --upgrade, 한 패키지만 올릴 때는 --upgrade-package <이름>
+```
+
+`--universal` 은 운영(리눅스)과 팀원 PC(macOS·Windows)에서 함께 쓰이는 잠금 파일을 만듭니다
+(예: `uvloop` 은 Windows 에서 빠지도록 조건이 붙습니다). Dependabot 이 매주 업데이트 PR 을
+올리고, 백엔드 CI 가 잠금 파일의 알려진 취약점(pip-audit)과 이미지 빌드·기동을 확인합니다.
+처리 규칙은 [docs/team_workflow.md](../docs/team_workflow.md) "의존성 업데이트 PR".
+
 ## DB 마이그레이션 (Alembic)
 스키마는 **Alembic 마이그레이션**으로 관리합니다(베이스라인: `migrations/versions/0001_baseline.py` + pgvector). 현재 head 는 `alembic heads` 로 확인하고, Backend CI 가 head 가 정확히 1개인지 검사합니다.
 DB URL 은 `.env` 의 `DATABASE_URL` 을 그대로 사용합니다(`migrations/env.py` 가 app 설정에서 읽음).
@@ -50,8 +79,9 @@ alembic upgrade head          # 최신 스키마로 반영 (운영/CI 는 이 �
 alembic revision --autogenerate -m "설명"   # 모델 변경 후 새 마이그레이션 생성
 alembic downgrade -1          # 한 단계 롤백
 ```
-> 개발 편의를 위해 앱 기동 시 `create_all()` 로도 테이블을 만들지만(멱등, `AUTO_CREATE_TABLES=true` 기본값), **운영은 `alembic upgrade head`** 를 정답으로 삼습니다.
-> 운영(`ENV=prod`)은 `AUTO_CREATE_TABLES=false` 여야 하며, `true` 면 기동이 차단됩니다(`app/core/config.py`).
+> 로컬 개발 편의를 위해 앱 기동 시 `create_all()` 로도 테이블을 만들지만(멱등, 기본 `AUTO_CREATE_TABLES=true`), **CI·운영은 `AUTO_CREATE_TABLES=false`** 로 두고 `alembic upgrade head` 만을 스키마의 정답으로 삼습니다(운영 `ENV=prod` 에서 `true` 면 기동을 거부합니다). 스키마 보정 코드는 앱에 두지 않고 마이그레이션으로만 합니다. (#2838)
+>
+> 백엔드 CI 는 `alembic upgrade head` 뒤에 `alembic check` 로 모델과 마이그레이션 결과가 같은지 확인합니다. 모델을 바꾸고 마이그레이션을 빠뜨리면 여기서 실패하므로, 모델을 고친 PR 은 로컬에서 빈 DB 에 `alembic upgrade head && alembic check` 를 한 번 돌려 보십시오.
 
 > **`alembic.ini` 에는 한글을 넣지 마십시오(ASCII 전용).** Alembic 이 그 파일을 로케일 인코딩으로 읽어서, 한국어 Windows(cp949)에서는 한글 한 글자만 있어도 위 세 명령이 전부 `UnicodeDecodeError` 로 죽습니다. 리눅스 CI 는 UTF-8 로케일이라 통과하므로 드러나지 않고, `PYTHONUTF8=1` 로도 잡히지 않습니다. 설명은 `migrations/env.py` 나 이 문서에 적습니다. (#2004)
 

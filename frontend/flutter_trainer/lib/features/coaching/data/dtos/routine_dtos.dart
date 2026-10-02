@@ -1,6 +1,8 @@
+import 'package:oncare_rules/oncare_rules.dart' show normalizeExerciseTypeKo;
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_limits.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Valid routine types accepted by the backend (`RoutineType` literal).
 ///
@@ -12,14 +14,6 @@ import 'package:oncare_trainer/shared/exercise_limits.dart';
 /// ("저강도 걷기"는 이름이 걷기이고 유형이 유산소다).
 const List<String> kRoutineTypes = <String>['유산소', '근력', '스트레칭', '기타'];
 
-/// 옛 유형 값 → 표준 유형. 화면이나 캐시에 남은 옛 값을 서버로 그대로 보내면
-/// 유형 하나 때문에 배정이 실패하거나 '근력'으로 뭉개진다. (#996)
-const Map<String, String> kLegacyRoutineTypes = <String, String>{
-  '걷기': '유산소',
-  '요가': '스트레칭',
-  '유연성': '스트레칭',
-};
-
 /// 운동 강도 계약값 — 회원 앱의 가벼움/보통/높음과 같다. (#1276)
 const List<String> kRoutineIntensities = <String>['light', 'moderate', 'high'];
 
@@ -27,12 +21,15 @@ const List<String> kRoutineIntensities = <String>['light', 'moderate', 'high'];
 String normaliseRoutineIntensity(String? intensity) =>
     kRoutineIntensities.contains(intensity) ? intensity! : 'moderate';
 
-/// 서버로 보낼 유형 하나. 모르는 값은 '근력'으로 떨어뜨린다 — 서버 Literal 이
-/// 거절하면 배정 자체가 실패하기 때문이다.
-String normaliseRoutineType(String type) {
-  final String folded = kLegacyRoutineTypes[type] ?? type;
-  return kRoutineTypes.contains(folded) ? folded : '근력';
-}
+/// 서버로 보낼 유형 하나 — 늘 [kRoutineTypes] 중 하나다(서버 Literal 이 거절하면
+/// 배정 자체가 실패하므로).
+///
+/// 서버 `exercise_types.normalize_ko` 와 같은 공용 표로 접는다(#2861). 영문 코드
+/// (`cardio`)·한글 라벨·옛 값(`걷기`·`walking`·`요가`)을 모두 받고, **모르는 값은
+/// `기타`** 다. 예전에는 모르는 값과 영문 코드를 `근력` 으로 떨어뜨려, 서버가
+/// 기타로 두는 값을 이 앱만 근력으로 보냈고 `cardio` 로 들어온 유산소의 kcal 을
+/// 근력 단가로 어림했다.
+String normaliseRoutineType(String type) => normalizeExerciseTypeKo(type);
 
 /// `RoutineOut` JSON → [AssignedRoutine].
 /// 저장된 계약값 → 화면 문구.
@@ -135,7 +132,7 @@ Map<String, Object?> assignRoutineToJson(
         ? null
         : r.durationSeconds?.clamp(0, kMaxExerciseSeconds),
     'type': type,
-    'exercise_date': r.date == null ? null : _ymd(r.date!),
+    'exercise_date': r.date == null ? null : wireDate(r.date!),
     'intensity': normaliseRoutineIntensity(r.intensity),
     // 세트·횟수·중량은 근력에만 싣는다 — 서버도 다른 유형에서는 버린다.
     // (#1276, #1310)
@@ -152,12 +149,6 @@ Map<String, Object?> assignRoutineToJson(
     'client_request_id': ?clientRequestId,
   };
 }
-
-/// `YYYY-MM-DD` — 서버가 `date` 로 받는 형식.
-String _ymd(DateTime d) =>
-    '${d.year.toString().padLeft(4, '0')}-'
-    '${d.month.toString().padLeft(2, '0')}-'
-    '${d.day.toString().padLeft(2, '0')}';
 
 String _str(Object? v) => v is String ? v : '';
 

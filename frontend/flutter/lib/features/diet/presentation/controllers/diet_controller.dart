@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/advice/diet_advice.dart';
+import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/features/diet/data/repositories/dio_diet_repository.dart';
 import 'package:oncare/features/diet/data/sources/image_picker_meal_photo_picker.dart';
@@ -129,9 +130,18 @@ typedef DietAdviceKey = ({String period, String lang});
 
 /// 홈 "AI 추천 식단" — GET /diet/recommendations.
 ///
-/// 홈 진입을 막지 않는 게 요구사항이라, 소비하는 쪽은 이 provider 가 값을 내기
-/// 전이나 실패했을 때 [MealRecommendations.fallback] 을 그린다. 그래서 여기서
-/// 로딩/에러 상태를 따로 표현하지 않는다(스켈레톤 없음 = 화면 깜빡임 없음).
+/// 홈 진입을 막지 않는 게 요구사항이라 이 provider 는 로딩·에러를 따로 감싸지
+/// 않는다. 데모에서는 소비하는 쪽이 값이 오기 전·실패에
+/// [MealRecommendations.fallback] 을 그리고, 실서버에서는 고정 추천 대신
+/// 로딩·오류 칸을 그린다(#2813).
 final dietRecommendationsProvider = FutureProvider<MealRecommendations>((ref) {
   return ref.watch(dietRepositoryProvider).fetchRecommendations();
 }, name: 'dietRecommendations');
+
+/// 추천을 받기 전·받지 못했을 때 [MealRecommendations.fallback] 으로 채워도
+/// 되는가. 데모(목업)만 그렇다 — 실서버에서 고정 5종을 `AI 추천` 으로 그리면
+/// 회원 기록과 무관한 추천이 개인화된 것처럼 보인다(#2813).
+final mealRecsDemoFallbackProvider = Provider<bool>(
+  (ref) => ref.watch(appConfigProvider).useMockApi,
+  name: 'mealRecsDemoFallback',
+);

@@ -339,7 +339,7 @@ features/dashboard/
 | Q8 | 지도(Place) | **google_maps_flutter** | iOS/Android/Web 모두 지원. API 키 3종(또는 통합 1종) 필요 — Stage 4.7 진입 전에 확보. |
 | Q9 | 푸시 알림 | **인앱 패널 + 가상 push 시뮬레이션** | `firebase_messaging` 미사용. `features/notification/`에 NotificationCenter 구현 — 타이머/이벤트로 알림 카드가 등장하는 형태. |
 | Q10 | Web URL 전략 | **Hash URL** | `main.dart` 부트스트랩에서 `setUrlStrategy(const HashUrlStrategy())`. GitHub Pages 404 fallback 불필요. |
-| Q11 | GitHub 레포 | **`barmi/oncare-flutter`** | base-href `/oncare-flutter/`. 라이브 URL: `https://barmi.github.io/oncare-flutter/`. |
+| Q11 | GitHub 레포 | **개인 저장소 `oncare-flutter`** (당시) | base-href `/oncare-flutter/`. *(지금은 팀 저장소 `CSE-Sudo/on-care` 의 `main` 에서 <https://ewhasudo.zapto.org/frontend/> 로 배포한다.)* |
 | Q12 | CI 자동화 | **Web만 자동화** | `.github/workflows/ci.yml`(검사) + `deploy-web.yml`(Pages). Android/iOS 릴리즈 빌드는 수동. |
 
 ### 9.2 §2 기술 스택 변경 영향

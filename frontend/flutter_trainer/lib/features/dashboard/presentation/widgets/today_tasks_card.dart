@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/kst_clock_provider.dart';
 import 'package:oncare_trainer/features/consultations/data/dtos/consultation_dtos.dart';
@@ -775,17 +775,21 @@ class _MissionRow extends StatelessWidget {
                           style: nameStyle,
                         ),
                       ),
-                      if (mission.client != null) ...<Widget>[
-                        const SizedBox(width: OnCareSpacing.s4),
-                        Flexible(
-                          child: Text(
-                            clientDemographicsLabel(context, mission.client!),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: captionStyle,
+                      // 성별·나이를 모두 모르면 그리지 않는다(#2870).
+                      if (mission.client case final TrainerClient client?)
+                        if (clientDemographicsLabel(context, client)
+                            case final String demographics
+                            when demographics.isNotEmpty) ...<Widget>[
+                          const SizedBox(width: OnCareSpacing.s4),
+                          Flexible(
+                            child: Text(
+                              demographics,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: captionStyle,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
                       if (mission.subtitle.isNotEmpty) ...<Widget>[
                         Text(' · ', style: captionStyle),
                         Flexible(

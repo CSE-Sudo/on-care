@@ -22,10 +22,15 @@ import 'package:demo_fixture/demo_fixture.dart'
     show DemoPlanMenu, kDemoMenuPlan;
 import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_rules/oncare_rules.dart' show pyRound;
+import 'package:oncare_ui/oncare_ui.dart';
 
 // 4주 추천 메뉴 리스트는 트레이너 웹 데모와 함께 쓴다(#2379) — 공유 픽스처로 옮겼다.
 export 'package:demo_fixture/demo_fixture.dart'
     show DemoPlanMenu, kDemoMenuPlan;
+// 서버와 같은 반올림은 공용 규칙 패키지 한 곳에 있다(#2860). 이 파일을 통해
+// 쓰던 자리가 그대로 읽히도록 다시 내보낸다.
+export 'package:oncare_rules/oncare_rules.dart' show pyRound;
 
 /// 끼니 한 행. 탄단지는 음식에서 되짚은 값이다.
 typedef DemoDietEntry = ({
@@ -49,26 +54,21 @@ typedef DemoDietTargets = ({
 });
 
 /// 개인 목표 → 하루 목표. 단백질은 목표 → 체중 × 1.2g → 60g 순이다.
+///
+/// 기본값은 공용 패키지 `oncare_ui` 의 `kGoalDefault…` 한 곳에 있다(#2906).
 DemoDietTargets demoDietTargets(Map<String, Object?> profile) {
   int? positive(Object? v) => v is num && v > 0 ? v.toInt() : null;
   final num? weight = profile['weight_kg'] as num?;
   return (
-    calories: positive(profile['daily_calories']) ?? 2000,
+    calories: positive(profile['daily_calories']) ?? kGoalDefaultDailyCalories,
     proteinG:
         positive(profile['daily_protein_g']) ??
-        (weight != null && weight > 0 ? pyRound(weight * 1.2) : 60),
-    sodiumMg: positive(profile['daily_sodium_mg']) ?? 2000,
-    sugarG: positive(profile['daily_sugar_g']) ?? 50,
+        (weight != null && weight > 0
+            ? pyRound(weight * kGoalDefaultProteinGPerKg)
+            : kGoalDefaultDailyProteinG),
+    sodiumMg: positive(profile['daily_sodium_mg']) ?? kGoalDefaultDailySodiumMg,
+    sugarG: positive(profile['daily_sugar_g']) ?? kGoalDefaultDailySugarG,
   );
-}
-
-/// 파이썬 `round()` 와 같은 반올림(0.5 는 짝수 쪽). 서버와 수치를 맞춘다.
-int pyRound(num x) {
-  final int f = x.floor();
-  final num diff = x - f;
-  if (diff > 0.5) return f + 1;
-  if (diff < 0.5) return f;
-  return f.isEven ? f : f + 1;
 }
 
 // ── 공통 ───────────────────────────────────────────────────────────────
@@ -112,11 +112,6 @@ DateTime _day(String iso) {
   final List<String> p = iso.split('-');
   return DateTime(int.parse(p[0]), int.parse(p[1]), int.parse(p[2]));
 }
-
-String _iso(DateTime d) =>
-    '${d.year.toString().padLeft(4, '0')}-'
-    '${d.month.toString().padLeft(2, '0')}-'
-    '${d.day.toString().padLeft(2, '0')}';
 
 DateTime _plusDays(DateTime d, int days) =>
     DateTime(d.year, d.month, d.day + days);
@@ -347,7 +342,7 @@ const Map<String, String> _focusTips = <String, String>{
   DateTime today,
   int minutes,
 ) {
-  final DateTime monday = _plusDays(today, -(today.weekday - DateTime.monday));
+  final DateTime monday = mondayOf(today);
   final DateTime lastMonday = _plusDays(monday, -7);
   final Map<DateTime, _DayRecord> all = _dayRecords(
     entries.where((DemoDietEntry e) {
@@ -373,8 +368,8 @@ const Map<String, String> _focusTips = <String, String>{
         ..sort((_DayRecord a, _DayRecord b) => a.day.compareTo(b.day));
   if (days.isEmpty) {
     return (
-      from: _iso(start),
-      to: _iso(end),
+      from: wireDate(start),
+      to: wireDate(end),
       days: 0,
       analysis: _line('week_empty'),
       action: _line('week_empty_hint'),
@@ -441,8 +436,8 @@ const Map<String, String> _focusTips = <String, String>{
     }
   }
   return (
-    from: _iso(start),
-    to: _iso(end),
+    from: wireDate(start),
+    to: wireDate(end),
     days: days.length,
     analysis: analysis,
     action: _line(tip),
@@ -613,8 +608,8 @@ _Finding? _repeated(Map<DateTime, _DayRecord> records) {
     return !d.isBefore(start) && !d.isAfter(today);
   }).toList();
   final Map<DateTime, _DayRecord> records = _dayRecords(window);
-  final String from = _iso(start);
-  final String to = _iso(today);
+  final String from = wireDate(start);
+  final String to = wireDate(today);
   if (records.length < 7) {
     return (
       from: from,
@@ -684,7 +679,7 @@ Map<String, Object?> demoDietAdvice({
 }) {
   final DateTime today = DateTime(now.year, now.month, now.day);
   final int minutes = now.hour * 60 + now.minute;
-  final String todayIso = _iso(today);
+  final String todayIso = wireDate(today);
 
   late final String from;
   late final String to;

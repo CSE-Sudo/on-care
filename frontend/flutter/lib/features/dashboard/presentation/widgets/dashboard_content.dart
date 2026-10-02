@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
@@ -26,6 +25,7 @@ import 'package:oncare/shared/widgets/chart_a11y_labels.dart';
 import 'package:oncare/shared/widgets/coaching_sheet.dart';
 import 'package:oncare/shared/widgets/member_tab_header.dart';
 import 'package:oncare/shared/widgets/metric_trend_chart.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// The Home tab, rebuilt to match the On-Care Figma redesign.
@@ -789,7 +789,7 @@ Map<String, _RecMeal> _recMealsByKey(AppLocalizations l) => <String, _RecMeal>{
     l.homeMealTagHighProtein,
   ),
   'tofu': _RecMeal(
-    'assets/images/rec-tofu-broccoli.png',
+    'assets/images/rec-tofu-broccoli.jpg',
     '🥦',
     l.homeMealTofu,
     l.homeMealReasonLowCal,
@@ -870,12 +870,21 @@ class _RecommendedMeals extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    // valueOrNull 이라 로딩·에러에서 기본 추천이 그대로 그려진다. 스켈레톤을 두면
-    // 홈 진입 때 카드가 한 번 비었다가 채워져 화면이 깜빡인다(목업 모드에서는
-    // 결과가 기본값과 같아 아예 아무 변화도 보이지 않는다).
-    final MealRecommendations recs =
-        ref.watch(dietRecommendationsProvider).valueOrNull ??
-        MealRecommendations.fallback;
+    final AsyncValue<MealRecommendations> async = ref.watch(
+      dietRecommendationsProvider,
+    );
+    // 데모(목업)는 지금처럼 로딩·에러에서도 기본 추천을 그린다 — 결과가 기본값과
+    // 같아 깜빡임도 없다. 실서버에서 고정 5종을 `AI 추천` 으로 그리면 회원 기록과
+    // 무관한 추천이 개인화된 것처럼 보이므로, 받기 전·실패에는 로딩·오류 칸을
+    // 둔다(#2813).
+    final MealRecommendations? loaded = async.valueOrNull;
+    if (loaded == null && !ref.watch(mealRecsDemoFallbackProvider)) {
+      return _RecommendedMealsState(
+        error: async.hasError && !async.isLoading,
+        onRetry: () => ref.invalidate(dietRecommendationsProvider),
+      );
+    }
+    final MealRecommendations recs = loaded ?? MealRecommendations.fallback;
     // 첫 장의 `트레이너 추천` 은 담당 트레이너가 실제로 골라 확정한 메뉴일 때만
     // 붙는다(#2380). 예전에는 담당이 있기만 하면 AI 카드 첫 장에 배지를 달았다.
     // 서버가 담당·동의를 이미 보지만, 담당이 없는 화면에 트레이너 추천이 새지
@@ -938,6 +947,52 @@ class _RecommendedMeals extends ConsumerWidget {
             ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// 실서버에서 추천을 받기 전·받지 못했을 때의 `추천 식단` 칸. (#2813)
+///
+/// 제목은 그대로 두고 카드 줄 자리에 로딩 또는 오류·다시 시도를 둔다 — 고정
+/// 추천을 `AI 추천` 으로 그리지 않는다.
+class _RecommendedMealsState extends StatelessWidget {
+  const _RecommendedMealsState({required this.error, required this.onRetry});
+
+  final bool error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    return Column(
+      key: const ValueKey<String>('home-rec-meals-state'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(
+          l.homeRecMealsTitle,
+          style: tokens
+              .text(OnCareTypography.titleSmall)
+              .copyWith(color: OnCareColors.textPrimary),
+        ),
+        const SizedBox(height: OnCareSpacing.s12),
+        AppCard(
+          child: error
+              ? AppErrorState(
+                  key: const ValueKey<String>('home-rec-meals-error'),
+                  title: l.homeRecMealsErrorTitle,
+                  retryLabel: l.actionRetry,
+                  retryKey: const ValueKey<String>('home-rec-meals-retry'),
+                  onRetry: onRetry,
+                  placement: AppStatePlacement.card,
+                )
+              : const AppLoading(
+                  key: ValueKey<String>('home-rec-meals-loading'),
+                  placement: AppStatePlacement.card,
+                ),
+        ),
+        const SizedBox(height: OnCareSpacing.s16),
       ],
     );
   }

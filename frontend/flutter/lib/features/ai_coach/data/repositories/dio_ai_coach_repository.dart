@@ -19,9 +19,19 @@ class DioAiCoachRepository implements AiCoachRepository {
   /// 뒤 다음에 채팅을 열었을 때 **본 적 없는 답변**을 발견하게 된다.
   static const Duration _chatTimeout = Duration(seconds: 60);
 
+  /// 코칭 피드백 응답 대기 시간. 전역 receiveTimeout(15초)으로는 모자란다.
+  ///
+  /// 서버는 식단·운동 코치를 차례로 두 번 부르고, 각 Gemini 호출의 상한이
+  /// 30초다. 15초에서 앱이 먼저 끊으면 정상 응답도 실패가 되어 시트가 오류에
+  /// 머문다(#2813). 두 호출의 상한에 네트워크 여유를 더한다.
+  static const Duration feedbackTimeout = Duration(seconds: 75);
+
   @override
   Future<AiCoachState> fetchState() async {
-    final res = await _dio.get<Map<String, Object?>>('/ai-coach/feedback');
+    final res = await _dio.get<Map<String, Object?>>(
+      '/ai-coach/feedback',
+      options: Options(receiveTimeout: feedbackTimeout),
+    );
     return AiCoachState.fromJson(res.data!);
   }
 

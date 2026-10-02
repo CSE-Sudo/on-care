@@ -103,7 +103,17 @@ void main() {
     final String id = await repository.create(_draft());
     await repository.cancel(id);
 
-    await expectLater(repository.cancel(id), throwsStateError);
+    await expectLater(
+      repository.cancel(id),
+      throwsA(isA<ConsultationNoLongerPending>()),
+    );
+  });
+
+  test('없는 신청을 취소하면 실서버의 404 와 같은 예외다 (#2858)', () async {
+    await expectLater(
+      repository.cancel('consult-unknown'),
+      throwsA(isA<ConsultationNotFound>()),
+    );
   });
 
   test('컨트롤러를 새로 만들어도 낸 신청이 복원된다', () async {

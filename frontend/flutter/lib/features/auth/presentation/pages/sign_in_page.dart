@@ -222,7 +222,21 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),
             ),
-            const SizedBox(height: OnCareSpacing.s24),
+            // 비밀번호를 잊은 회원이 메일로 되찾는 입구(#2824). 비밀번호 칸
+            // 바로 아래 오른쪽 — 막혔다는 걸 깨닫는 자리다.
+            Align(
+              alignment: Alignment.centerRight,
+              child: AppButton(
+                key: const ValueKey<String>('member-login-forgot-password'),
+                label: l.authForgotPassword,
+                onPressed: _loading
+                    ? null
+                    : () => context.push(AppRoutes.passwordReset),
+                variant: AppButtonVariant.text,
+                size: OnCareButtonSize.small,
+              ),
+            ),
+            const SizedBox(height: OnCareSpacing.s12),
             AppButton(
               key: const ValueKey<String>('member-login-submit'),
               label: l.authSignInAction,

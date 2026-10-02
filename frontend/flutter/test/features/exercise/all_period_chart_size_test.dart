@@ -13,7 +13,6 @@ import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/storage/app_database.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
@@ -21,6 +20,7 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
 import '../../helpers/demo_exercise.dart';
+import '../../helpers/mock_account_repository.dart';
 
 const AppConfig _config = AppConfig(
   environment: Environment.dev,

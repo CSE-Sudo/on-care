@@ -10,7 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
-import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
+import 'package:oncare_trainer/core/utils/poll_intervals.dart';
 import 'package:oncare_trainer/features/notifications/data/repositories/notification_repository.dart';
 import 'package:oncare_trainer/features/notifications/domain/entities/trainer_notification.dart';
 

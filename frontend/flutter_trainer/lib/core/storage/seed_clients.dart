@@ -17,6 +17,9 @@ part of 'seed_data.dart';
 ///  * 식단 차트(칼로리·나트륨·당류)는 주간 계열을 그대로 그린다.
 ///  * 배지(필터·상세·대시보드)는 수치에서 계산하지 않는다 — 서버가 계산하는
 ///    PT 관리 신호라 데모는 회원마다 `signals` 로 정해 둔다(아래).
+///    정해 둔 값은 서버 규칙에서 나올 수 있어야 한다 — 서버가 만든 사례 파일
+///    `shared/oncare_rules/vectors/client_signals_cases.json` 의 판정으로
+///    `test/shared/models/client_signals_cases_test.dart` 가 대조한다(#2906).
 ///
 /// 수치를 고칠 때 지켜야 하는 두 가지:
 ///

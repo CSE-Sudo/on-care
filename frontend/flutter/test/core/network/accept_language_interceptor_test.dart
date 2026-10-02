@@ -10,9 +10,9 @@ import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/network/auth_token.dart';
 import 'package:oncare/core/network/dio_client.dart';
-import 'package:oncare/core/network/interceptors/accept_language_interceptor.dart';
-import 'package:oncare/core/network/interceptors/auth_interceptor.dart';
 import 'package:oncare/shared/services/locale_provider.dart';
+import 'package:oncare_core/network/accept_language_interceptor.dart';
+import 'package:oncare_core/network/auth_interceptor.dart';
 
 /// 네트워크로 나가지 않고 요청만 받아 두는 어댑터.
 class _CapturingAdapter implements HttpClientAdapter {

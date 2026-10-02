@@ -5,12 +5,12 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
@@ -1439,7 +1439,7 @@ void main() {
       //
       // 메모는 더 이상 완료 처리에서 받지 않으므로(#1106) 그 문구로 찾지
       // 않는다 — 방금 생긴 PT 기록의 종류로 확인한다.
-      expect(find.text('PT 세션 · 트레이너 지도'), findsWidgets);
+      expect(find.text('PT · 트레이너 지도'), findsWidgets);
       // 날짜는 미션 카드가 아니라 그 줄이 말한다.
       const List<String> weekdays = <String>['월', '화', '수', '목', '금', '토', '일'];
       final DateTime today = nowKst();
