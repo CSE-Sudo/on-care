@@ -28,6 +28,25 @@ void main() {
       );
     });
 
+    test('password reset opens in every session state (#2824)', () {
+      // 메일 링크를 어느 상태에서 열어도 코드가 담긴 주소를 그대로 둔다.
+      for (final SessionStatus status in SessionStatus.values) {
+        expect(
+          sessionRedirect(status, AppRoutes.passwordReset),
+          isNull,
+          reason: status.name,
+        );
+        expect(
+          sessionRedirect(
+            status,
+            '${AppRoutes.passwordReset}?token=ABCDEFGHJKMNPQRS',
+          ),
+          isNull,
+          reason: status.name,
+        );
+      }
+    });
+
     test('signed-out stays on sign-in (no redirect loop)', () {
       expect(
         sessionRedirect(SessionStatus.signedOut, AppRoutes.signIn),

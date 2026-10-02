@@ -52,7 +52,7 @@ void main() {
     test('예시 하루(1,480kcal)와 같은 수치를 말한다', () {
       expect(
         kGuideSampleDietAdvice.analysis!.params['kcal'],
-        kGuideSampleDietDay.totalCalories,
+        guideSampleDietDay(ko).totalCalories,
       );
     });
   });
@@ -84,7 +84,7 @@ void main() {
   group('가이드 덮어쓰기', () {
     test('조언 provider 가 키가 있는 예시 조언을 돌려준다', () async {
       final ProviderContainer container = ProviderContainer(
-        overrides: guideSampleOverrides(),
+        overrides: guideSampleOverrides(en),
       );
       addTearDown(container.dispose);
 

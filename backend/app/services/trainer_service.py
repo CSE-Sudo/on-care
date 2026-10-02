@@ -82,6 +82,7 @@ from app.services import (
 )
 from app.schemas.points_api import PointsOut
 from app.services.coach import personal_ingest
+from app.services import trainer_verification_service
 from app.services.exercise_duration import format_duration, seconds_or_minutes
 from app.services import korean_josa
 
@@ -6965,6 +6966,7 @@ def build_trainer_me(trainer: User, profile: TrainerProfile) -> TrainerMe:
             hours=profile.gym_hours,
             phone=profile.gym_phone,
         ),
+        verification=trainer_verification_service.to_out(profile),
     )
 
 

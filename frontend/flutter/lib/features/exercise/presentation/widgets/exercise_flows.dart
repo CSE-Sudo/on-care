@@ -9,6 +9,7 @@ import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
+import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_refresh.dart';
 import 'package:oncare/features/exercise/presentation/widgets/own_exercise_records.dart';
@@ -532,9 +533,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
     // 모아 둔 운동이 있으면 폼은 이름이 찼을 때만 함께 싣는다 — 마지막 운동을
     // `운동 하나 더` 로 담은 뒤 곧바로 저장하는 흐름이 막히지 않는다. 모아 둔
     // 것이 없으면 지금까지처럼 폼의 한 건이 저장 대상이다.
-    final List<ExerciseSessionDraft> drafts = <ExerciseSessionDraft>[
-      ..._queue,
-    ];
+    final List<ExerciseSessionDraft> drafts = <ExerciseSessionDraft>[..._queue];
     if (_queue.isEmpty || _formHasName) {
       final ExerciseSessionDraft? draft = _draftFromForm();
       if (draft == null) return;
@@ -552,15 +551,20 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
     try {
       // 한 요청으로 보낸다 — 서버가 전부 저장하거나 하나도 저장하지 않는다.
       // 날짜는 모아 둔 것까지 지금 고른 날로 맞춘다.
+      // 저장이 성공하면 주간 그래프·조언 등을 비우는 것까지 runner 가 한다 —
+      // 저장 중에 시트를 내려도 빠지지 않는다(#2879).
       final ExerciseSessionsAdded added = await ref
-          .read(exerciseRepositoryProvider)
-          .addSessions(<ExerciseSessionDraft>[
-            for (final ExerciseSessionDraft d in drafts) d.withDate(_date),
-          ]);
-      // Sheet dismissed mid-save → don't pop the page below.
-      if (!mounted) return;
-      _refreshAfterSave();
-      navigator.pop(true);
+          .read(exerciseChangeRunnerProvider)
+          .run(
+            (ExerciseRepository repository) => repository.addSessions(
+              <ExerciseSessionDraft>[
+                for (final ExerciseSessionDraft d in drafts) d.withDate(_date),
+              ],
+            ),
+          );
+      // Sheet dismissed mid-save → don't pop the page below. 저장 알림(받은
+      // 포인트)은 앱 맨 위 오버레이에 뜨므로 시트가 없어도 띄운다.
+      if (mounted) navigator.pop(true);
       toast.show(
         drafts.length > 1 ? l.exLoggedCount(drafts.length) : l.exLogged,
         type: AppToastType.success,
@@ -573,11 +577,6 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
       toast.show(l.exSaveFailed, type: AppToastType.error);
     }
   }
-
-  /// 저장·수정 뒤에 다시 읽을 것들 — 삭제·추천 개인운동 완료와 같은 함수다
-  /// (#2634). 지난 주 날짜로 적거나 옮긴 기록(#2629), AI 조언(#2631), 날짜를
-  /// 옮긴 뒤의 주간 챌린지까지 함께 비운다.
-  void _refreshAfterSave() => refreshAfterExerciseChange(ref.invalidate);
 
   Future<void> _saveEdit() async {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -594,26 +593,29 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
 
     setState(() => _saving = true);
     try {
+      // 저장·수정 뒤에 다시 읽을 것들은 삭제·추천 개인운동 완료와 같은 함수로
+      // 비운다(#2634). 시트가 아니라 runner 가 비워 저장 중에 시트를 내려도
+      // 빠지지 않는다(#2879).
       await ref
-          .read(exerciseRepositoryProvider)
-          .updateSession(
-            id: editing.id!,
-            type: draft.type,
-            name: draft.name,
-            minutes: draft.minutes,
-            calories: draft.calories,
-            intensity: draft.intensity,
-            date: draft.date,
-            sets: draft.sets,
-            reps: draft.reps,
-            holdSeconds: draft.holdSeconds,
-            durationSeconds: draft.durationSeconds,
-            weight: draft.weight,
+          .read(exerciseChangeRunnerProvider)
+          .run(
+            (ExerciseRepository repository) => repository.updateSession(
+              id: editing.id!,
+              type: draft.type,
+              name: draft.name,
+              minutes: draft.minutes,
+              calories: draft.calories,
+              intensity: draft.intensity,
+              date: draft.date,
+              sets: draft.sets,
+              reps: draft.reps,
+              holdSeconds: draft.holdSeconds,
+              durationSeconds: draft.durationSeconds,
+              weight: draft.weight,
+            ),
           );
       // Sheet dismissed mid-save → don't pop the page below.
-      if (!mounted) return;
-      _refreshAfterSave();
-      navigator.pop(true);
+      if (mounted) navigator.pop(true);
       toast.show(l.exUpdated, type: AppToastType.success);
     } catch (_) {
       if (mounted) setState(() => _saving = false);

@@ -40,6 +40,7 @@ from app.services import (
     notification_templates,
     reservation_service,
     trainer_service,
+    trainer_verification_service,
 )
 
 
@@ -421,6 +422,9 @@ def _validate_target(db: Session, payload: ConsultationCreate) -> None:
 
     헬스장(`Place.category == 'fitness'`)에 소속된 활성 트레이너만 대상이다 — 소속이
     없으면 승인 뒤 회원을 연결할 헬스장도 없다.
+
+    운영자 승인을 받은 트레이너만 대상이다(#2825). 상담 신청은 회원의 이름·운동
+    목표·문의 내용을 그 계정에 넘기므로, 디렉터리와 같은 조건으로 막는다.
     """
     trainer = db.scalar(
         select(User)
@@ -431,6 +435,7 @@ def _validate_target(db: Session, payload: ConsultationCreate) -> None:
             User.role == "trainer",
             User.is_active.is_(True),
             Place.category == "fitness",
+            trainer_verification_service.approved_clause(),
         )
     )
     if trainer is None:
