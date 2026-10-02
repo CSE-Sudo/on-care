@@ -7,7 +7,7 @@
 자원이 빈 문자열이다 — 이 마이그레이션만으로 바뀌는 동작은 없다.
 
 Revision ID: 0137_audit_log_target
-Revises: 0131_health_notes_changed
+Revises: 0133_password_reset_tokens
 Create Date: 2026-10-01
 """
 from __future__ import annotations
@@ -18,7 +18,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0137_audit_log_target"
-down_revision: str | Sequence[str] | None = "0131_health_notes_changed"
+down_revision: str | Sequence[str] | None = "0133_password_reset_tokens"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
