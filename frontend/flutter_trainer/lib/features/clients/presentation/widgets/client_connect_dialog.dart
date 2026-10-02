@@ -366,8 +366,8 @@ class _PairedMemberCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // 성별·나이를 모두 모르면 그리지 않는다 — 연결 뒤 목록과
-                    // 같은 규칙(#2870).
+                    // 성별·나이를 모두 모르면 목록(ClientIdentityBlock)처럼
+                    // 칸을 그리지 않는다(#2814, #2870).
                     if (demographics.isNotEmpty) ...<Widget>[
                       const SizedBox(width: OnCareSpacing.s4),
                       Flexible(

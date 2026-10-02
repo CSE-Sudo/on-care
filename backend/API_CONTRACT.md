@@ -1278,6 +1278,12 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - **형식은 바이트로 판정한다** — JPG·PNG·WebP 만 받고 나머지는 **415**. 확장자와 `Content-Type` 은
   보내는 쪽이 자유롭게 적을 수 있어 참고하지 않는다. 용량 상한은 `max_chat_image_bytes`(6MB)이고
   넘으면 **413**. 두 경로가 같은 규약을 한 함수(`chat_attachments.receive_chat_image`)로 쓴다.
+- **저장 전에 사진을 정리한다(#2829).** 끝까지 디코딩해 EXIF 회전을 픽셀에 적용하고, EXIF(촬영
+  위치·기기)·XMP·주석·PNG 텍스트 같은 메타데이터를 버린 뒤 **원본 형식 그대로** 다시 인코딩한다
+  (PNG 투명도 유지, 색 프로필 ICC 만 유지). 장변은 2048px 로 줄인다. 매직 넘버만 맞고 디코딩할 수
+  없는 파일은 저장하지 않고 **415**. `file_size` 와 내려받는 파일은 정리한 뒤의 값이다. 끼니
+  사진(#699)도 같은 정리 함수(`image_sanitize`)를 쓴다. 이전에 쌓인 파일은
+  `python -m scripts.sanitize_chat_images --apply` 로 다시 쓴다(기본은 점검만).
 - **같은 `client_request_id` 재시도는 한 번만 보낸다.** 같은 키에 다른 글이나 사진이 아닌 메시지가
   있으면 **409**.
 - **내려받기는 서버가 권한을 확인한 뒤 흘려보낸다**(#2817). 바이트는 운영에서 객체 저장소(S3),
@@ -1307,7 +1313,8 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 
 - **동의 없이 살아 있는 링크**(철회 뒤 새 동의 없이 되살아난 링크)는 트레이너의
   `/trainer/clients/{member_id}/…` 회원 단위 요청이 전부 해제된 회원과 **같은 404·같은 문구**다.
-  로스터 카드는 남지만 식단·마지막 대화·루틴·주간 수행률·PT 관리 신호를 싣지 않는다. 채팅 첨부
+  로스터 카드는 남지만 식단·마지막 대화·루틴·주간 수행률·PT 관리 신호를 싣지 않는다. 성별·나이·건강
+  목표도 `gender=""`·`age=null`·`goal=""` 로 비운다(#2814) — 담당 해제(`registered=false`) 카드도 같다. 채팅 첨부
   (`/chat/attachments/{id}`)도 트레이너에게는 404. 해제·철회 전에 잡아 둔 일정을 id 로 여는
   쓰기(`/trainer/schedule/{id}` 의 `PUT`·`/complete`·`/reopen`·`/routines/send`)도 같은 404 이고
   회원 운동 기록·알림을 남기지 않는다. 취소·삭제는 그대로 열린다. 회원이 담당 요청을 수락하거나 연결 코드를 주면
@@ -1783,6 +1790,22 @@ CORS 와일드카드, 기본·짧은 `DEMO_LOGIN_PASSWORD` 로 켠 데모 시드
 ### 사용자 id
 
 **문자열**이다(`user-7d4e9a2c5f18`). 정수가 아니다. 데모 시드도 같은 규약을 따른다.
+
+### 감사 기록 (#2830)
+
+응답 형태는 바뀌지 않는다. 서버가 아래 행위를 `audit_logs` 에 남긴다(누가·누구의·무엇을·언제, 본문 없음).
+
+- `GET /trainer/clients/{member_id}/…` 중 회원의 건강정보를 읽는 경로 — `trainer.client_read`,
+  `resource` 는 `diet`(`/diet`·`/diet/days`·`/diet/photos/{id}`·`/diet-advice`·`/diet-recommendations`),
+  `exercise`(`/exercise/weeks`·`/exercise-week`·`/exercise-advice`·`/history`·`/records/span`),
+  `body`(`/health-profile`), `report`(`/report`·`/report/summary`·`/report/member-feedback`·`/report/goals`·`/reports/sent`).
+  같은 (트레이너, 회원, 자원)은 10분(설정 `AUDIT_READ_DEDUPE_MINUTES`) 안에 한 번만 남는다. 404 로 끝나는 요청은 남지 않는다.
+- 동의 발급 `consent.grant`(연결 코드 `pairing`·담당 요청 수락 `invite`·상담 신청 `consultation`),
+  철회 `consent.revoke`(`DELETE /me/coach`·`/me/coach/trainer` 는 회원, `DELETE /trainer/clients/{id}` 는 트레이너),
+  탈퇴 `account.withdraw`(`DELETE /users/me`·`DELETE /trainer/me`), 비밀번호 변경 `auth.password_change`
+  (`POST /trainer/me/password`). 본 작업과 같은 트랜잭션이고 계정이 지워져도 남는다.
+- 보존 기간: 접속 기록 365일(`AUDIT_RETENTION_DAYS`), 열람·동의·탈퇴 기록 730일
+  (`AUDIT_SENSITIVE_RETENTION_DAYS`). 서버 기동 때 지난 기록을 정리한다.
 
 ## 도메인 핵심 (놓치면 안 되는 차별점)
 

@@ -4,7 +4,7 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
 import '../helpers/client_factory.dart';
 
-/// 로스터 성별 — 저장된 값만 쓴다. 없으면 빈 값(미입력)이다(#2870).
+/// 로스터 성별 — 저장된 값만 쓴다. 없으면(미입력·서버가 가림) 빈 값이다(#2814, #2870).
 ///
 /// 예전에는 id 로 만든 값이 이름과 어긋나는 데모 회원 넷을 이름으로 고쳐 두는
 /// 표가 있었다(#960). 트레이너 웹 데모(#2667)와 실서버 시드가 모두 회원 성별을

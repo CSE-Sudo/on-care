@@ -15,6 +15,7 @@ DB 가 필요하므로 로컬에서는 skip 되고 CI(Postgres) 에서 실행된
 """
 from __future__ import annotations
 
+import io
 import struct
 import zlib
 from uuid import uuid4
@@ -58,8 +59,18 @@ def _png(width: int = 1, height: int = 1) -> bytes:
     )
 
 
-JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 32
-WEBP = b"RIFF\x00\x00\x00\x00WEBPVP8 " + b"\x00" * 16
+def _encoded(fmt: str) -> bytes:
+    """Pillow 로 만든 진짜 사진. 서버가 저장 전에 디코딩하므로(#2829) 매직 넘버만
+    맞춘 바이트는 이제 415 다."""
+    from PIL import Image
+
+    buffer = io.BytesIO()
+    Image.new("RGB", (4, 3), (40, 120, 200)).save(buffer, format=fmt)
+    return buffer.getvalue()
+
+
+JPEG = _encoded("JPEG")
+WEBP = _encoded("WEBP")
 
 
 @pytest.fixture(autouse=True)
@@ -171,6 +182,14 @@ def _send(
     )
 
 
+def _pixels(data: bytes) -> tuple[tuple[int, int], list]:
+    from PIL import Image
+
+    with Image.open(io.BytesIO(data)) as image:
+        rgb = image.convert("RGB")
+        return rgb.size, list(rgb.getdata())
+
+
 def _trainer_notifications(db_session, trainer_id: str) -> list[Notification]:
     db_session.expire_all()
     return (
@@ -199,7 +218,11 @@ def test_the_trainer_receives_the_members_photo_in_the_same_thread(
     attachment = body["attachment"]
     assert attachment["type"] == "image"
     assert attachment["file_name"] == "meal.png"
-    assert attachment["file_size"] == len(_png())
+    # 크기는 정리(#2829)한 뒤 저장한 파일의 바이트 수다 — 받은 바이트가 아니다.
+    download = client.get(
+        f"/v1/chat/attachments/{attachment['file_id']}", headers=_auth(member_token)
+    )
+    assert attachment["file_size"] == len(download.content)
     assert attachment["download_path"] == f"/chat/attachments/{attachment['file_id']}"
 
     thread = client.get(
@@ -601,7 +624,8 @@ def test_both_sides_of_the_thread_can_download_it(client, db_session):
         )
         assert response.status_code == 200, response.text
         assert response.headers["content-type"] == "image/png"
-        assert response.content == _png()
+        # 저장 전에 다시 인코딩하므로(#2829) 바이트가 아니라 그림이 같다.
+        assert _pixels(response.content) == _pixels(_png())
         # 사진은 대화 안에서 그려야 한다 — 내려받기로 처리되면 스레드에
         # 아무것도 보이지 않는다.
         assert "inline" in response.headers["content-disposition"]

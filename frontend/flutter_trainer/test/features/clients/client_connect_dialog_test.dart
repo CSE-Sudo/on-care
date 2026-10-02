@@ -173,10 +173,10 @@ void main() {
     expect(find.text('체지방 감량'), findsOneWidget);
   });
 
-  testWidgets('성별·나이를 안 넣은 회원은 구분 문구 없이 뜬다 (#2870)', (tester) async {
+  testWidgets('성별·나이를 안 넣은 회원은 구분 문구 없이 뜬다 (#2814, #2870)', (tester) async {
     // 확인 카드는 목록과 같은 표기를 쓴다. 성별·나이 모두 지어내지 않으므로
-    // (#2744·#2870) 구분 문구 자리가 아예 없다 — 목록도 같은 회원을 이름만으로
-    // 적는다.
+    // (#2744·#2814·#2870) 구분 문구 자리가 아예 없고 이름과 목표만 남는다 —
+    // 목록도 같은 회원을 똑같이 적는다.
     final repository = _FakeInviteRepository(
       paired: const PairedMember(
         memberId: 'user-8f2a41c9d6e3',
@@ -191,6 +191,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('이수아'), findsOneWidget);
+    expect(find.text('체지방 감량'), findsOneWidget);
     expect(find.textContaining(RegExp(r'남성|여성|기타')), findsNothing);
     expect(find.textContaining(RegExp(r'\d+세')), findsNothing);
     expect(

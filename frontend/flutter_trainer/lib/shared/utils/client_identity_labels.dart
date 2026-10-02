@@ -23,7 +23,8 @@ String clientDemographicsLabel(BuildContext context, TrainerClient client) =>
 ///
 /// 아는 값만 적는다 — 지어내지 않는다.
 /// - [age] 가 `null` 이면(회원이 생년월일을 넣지 않았다) 성별만(#2744).
-/// - 성별이 `male`/`female`/`other` 가 아니면(미입력) 나이만(#2870).
+/// - 성별이 `male`/`female`/`other` 가 아니면(미입력, 또는 담당 해제·동의 철회로
+///   서버가 비워 보냄 #2814) 나이만(#2870).
 /// - 둘 다 모르면 빈 문자열 — 부르는 쪽은 구분 문구 자리를 그리지 않는다.
 ///
 /// `other` 는 회원이 직접 고른 `기타` 다. 미입력을 `기타` 로 바꿔 적으면 회원이
@@ -43,7 +44,7 @@ String demographicsLabel(
     _ => null,
   };
   if (genderLabel == null) {
-    return age == null ? '' : l.coachClientAgeOnly(age);
+    return age == null ? '' : l.coachClientAge(age);
   }
   if (age == null) return genderLabel;
   return l.coachClientDemographics(genderLabel, age);
