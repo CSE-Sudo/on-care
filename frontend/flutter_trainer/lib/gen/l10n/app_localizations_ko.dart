@@ -2796,6 +2796,20 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachSwitchClientConfirm => '바꾸기';
 
   @override
+  String get coachDraftResumeTitle => '저장해 둔 작성 내용이 있어요';
+
+  @override
+  String coachDraftResumeBody(String name) {
+    return '$name 회원에게 짜던 프로그램이 자동으로 저장되어 있어요. 이어서 쓸까요?';
+  }
+
+  @override
+  String get coachDraftResume => '이어서 쓰기';
+
+  @override
+  String get coachDraftDiscard => '버리기';
+
+  @override
   String get personalRoutineTargetLoadFailed => 'PT 일정을 불러오지 못했어요';
 
   @override

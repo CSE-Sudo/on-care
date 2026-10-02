@@ -62,6 +62,9 @@ class LocalTrainerProgramDraftRepository
 
   static const String _key = 'trainer_program_drafts';
 
+  /// 이 실행에서 만든 초안의 순번.
+  static int _nextSeq = 0;
+
   List<Map<String, Object?>> _read() {
     final String? raw;
     try {
@@ -143,7 +146,9 @@ class LocalTrainerProgramDraftRepository
     final now = nowKst();
     final stored = <String, Object?>{
       ...payload,
-      'id': 'pgm-local-${now.microsecondsSinceEpoch}',
+      // 같은 순간에 둘을 만들어도(회원 둘의 자동 보관이 한 프레임에 겹치면)
+      // id 가 겹치지 않게 순번을 붙인다(#2873).
+      'id': 'pgm-local-${now.microsecondsSinceEpoch}-${_nextSeq++}',
       'updated_at': now.toIso8601String(),
     };
     await _write(<Map<String, Object?>>[...drafts, stored]);
