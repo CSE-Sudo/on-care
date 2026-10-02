@@ -500,7 +500,7 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
     final AsyncValue<DietDay> diet = atToday
         ? ref.watch(dietTodayProvider)
         : ref.watch(dietByDateProvider(_selected));
-    final UserProfile? profile = ref.watch(profileProvider).asData?.value;
+    final UserProfile? profile = ref.watch(profileProvider).valueOrNull;
 
     return AppPage(
       header: AppTabHeader(

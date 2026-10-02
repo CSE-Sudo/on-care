@@ -74,6 +74,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorUnknown => 'Something went wrong';
 
   @override
+  String get errorForbidden =>
+      'You don\'t have access to this feature. Please check the required consent or your trainer connection.';
+
+  @override
+  String get errorRateLimited =>
+      'Too many requests right now. Please try again in a moment.';
+
+  @override
   String get dashboardMetricCalories => 'Calories';
 
   @override
@@ -2571,19 +2579,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachChatInputHint => 'Message your trainer...';
 
   @override
-  String get coachChatDemoAnalyzed => 'AI analyzed your diet and exercise data';
+  String get coachChatRoutineReceived => 'Your trainer sent a workout';
 
   @override
-  String coachChatDemoReportSent(String trainer) {
-    return 'A summary report was sent to $trainer';
+  String get coachChatRoutineReceivedPt =>
+      'You received a PT program and personal workout';
+
+  @override
+  String get coachChatRoutineReceivedPersonal =>
+      'You received a personal workout';
+
+  @override
+  String get coachChatRoutineReceivedAfterCancel =>
+      'You received a personal workout in place of the cancelled PT';
+
+  @override
+  String get coachChatRoutineReceivedProgram =>
+      'You received a workout program';
+
+  @override
+  String coachChatRoutineReceivedMore(String names, int count) {
+    return '$names and $count more';
   }
-
-  @override
-  String get coachChatDemoRoutineReceived =>
-      'You received a personalized workout recommendation';
-
-  @override
-  String get coachChatDemoNotified => 'It was also delivered as a notification';
 
   @override
   String coachChatDateDivider(DateTime date) {
@@ -3568,7 +3585,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get healthNotesHint => 'e.g. Left knee surgery, herniated disc';
 
   @override
-  String get healthNotesHelper => 'Used when recommending workouts';
+  String get healthNotesHelper => 'Used for recommendations';
 
   @override
   String get healthFocusWeightLoss => 'Weight loss';

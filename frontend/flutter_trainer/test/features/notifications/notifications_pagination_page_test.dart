@@ -64,9 +64,6 @@ class _PagedRepo implements TrainerNotificationRepository {
   int get _total => _pages.fold<int>(0, (n, p) => n + p.length);
 
   @override
-  bool get supportsInbox => true;
-
-  @override
   Future<TrainerNotificationPage> fetch({
     TrainerNotificationCursor? before,
   }) async {

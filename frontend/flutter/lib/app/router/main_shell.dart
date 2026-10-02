@@ -5,8 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/app_icons.dart';
+import 'package:oncare/app/router/member_refresh_targets.dart';
 import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
+import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
@@ -88,20 +89,10 @@ class _MainShellState extends ConsumerState<MainShell>
     _refreshMemberData();
   }
 
+  /// 앱 복귀 때 비울 목록은 [memberResumeRefreshTargets] 한 곳에 있다(#2842).
   void _refreshMemberData() {
-    ref.invalidate(dashboardSummaryProvider);
-    // 홈의 AI 추천 식단도 함께 되짚는다. 무효화되는 곳이 세션 초기화 하나뿐이라,
-    // 앱을 켠 순간의 추천이 하루 종일 고정되고 첫 조회가 실패하면 기본 추천이
-    // 앱 수명 내내 남았다(#1938).
-    ref.invalidate(dietRecommendationsProvider);
-    // 식단 기간 집계와 기록 시작일은 autoDispose 가 아니다 — 앱을 떠난 사이
-    // 날이 바뀌거나 다른 기기에서 기록했으면 옛 그래프가 남는다(#2625).
-    ref.invalidate(dietPeriodProvider);
-    ref.invalidate(recordSpanProvider);
-    ref.invalidate(exerciseWeekProvider);
-    ref.invalidate(coachRoutinesProvider);
-    ref.invalidate(coachRoutinesOnDayProvider);
-    ref.invalidate(coachSessionsProvider);
+    memberResumeRefreshTargets(nowKst()).forEach(ref.invalidate);
+    unawaited(refreshProfileQuietly(ref.read(profileProvider.notifier)));
     // 헬스장 영역(내 헬스장·담당 트레이너·내 예약·예약 가능 시간)도 —
     // 앱을 떠난 사이 트레이너가 예약을 취소하거나 연결을 해제했을 수 있다
     // (#2856).
@@ -111,9 +102,10 @@ class _MainShellState extends ConsumerState<MainShell>
   void _refreshBranch(int index) {
     switch (index) {
       case 0:
-        ref.invalidate(dashboardSummaryProvider);
-        ref.invalidate(dietRecommendationsProvider);
-        ref.invalidate(coachSessionsProvider);
+        // 칼로리 목표(서버 요약)와 탄단지·운동 목표(프로필)가 같은 시점 값이
+        // 되도록 함께 비운다 — 목록은 [kHomeReentryRefreshTargets](#2842).
+        kHomeReentryRefreshTargets.forEach(ref.invalidate);
+        unawaited(refreshProfileQuietly(ref.read(profileProvider.notifier)));
         break;
       case 1:
         // 방금 저장한 끼니가 보이도록 그날 자료를 다시 읽는다 — 저장 전 캐시가

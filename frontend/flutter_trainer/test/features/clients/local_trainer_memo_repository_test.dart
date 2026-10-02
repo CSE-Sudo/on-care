@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -127,5 +128,50 @@ void main() {
     await repo.create('m1', body: 'm1 메모');
 
     await expectLater(repo.fetch('m2'), completion(isEmpty));
+  });
+
+  test('the demo keeps the category the server would (#2622)', () async {
+    final repo = await _repoWith(<String, Object>{});
+    final manual = await repo.create(
+      'm1',
+      body: '야식 줄이기',
+      category: TrainerMemoCategory.diet,
+    );
+    final exercise = await repo.create(
+      'm1',
+      body: '걷기 꾸준함',
+      source: TrainerMemoSource.exerciseMemo,
+      ref: const TrainerMemoRef(
+        kind: TrainerMemoRefKind.memberLog,
+        day: '2026-09-28',
+      ),
+    );
+    expect(manual.category, TrainerMemoCategory.diet);
+    // 운동 기록 메모는 언제나 운동이다 — 서버와 같은 규칙.
+    expect(exercise.category, TrainerMemoCategory.exercise);
+
+    final changed = await repo.update(
+      'm1',
+      manual.id,
+      manual.body,
+      category: TrainerMemoCategory.life,
+    );
+    expect(changed.category, TrainerMemoCategory.life);
+    // 다시 읽어도 남아 있다.
+    final stored = (await repo.fetch(
+      'm1',
+    )).firstWhere((m) => m.id == manual.id);
+    expect(stored.category, TrainerMemoCategory.life);
+
+    // 출처가 분류를 정한 메모는 바꿀 수 없다(실서버 400 과 같다).
+    expect(
+      repo.update(
+        'm1',
+        exercise.id,
+        exercise.body,
+        category: TrainerMemoCategory.diet,
+      ),
+      throwsA(isA<ValidationError>()),
+    );
   });
 }

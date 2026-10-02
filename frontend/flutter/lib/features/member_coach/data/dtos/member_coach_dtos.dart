@@ -172,6 +172,28 @@ CoachMessage coachMessageFromJson(Map<String, Object?> json) {
     attachment: _attachment(json['attachment']),
     reportWeekStart: _reportWeekStart(json['report_week_start']),
     emoteId: json['emote_id'] is String ? json['emote_id']! as String : null,
+    routineDelivery: _routineDelivery(json['routine_delivery']),
+  );
+}
+
+/// 루틴 전송 안내라면 그 전송. (#2672)
+///
+/// 리포트 안내([_reportWeekStart])처럼 모양이 어긋나면 안내를 포기하고 일반
+/// 메시지로 둔다 — 본문 한 줄(`운동을 보냈어요: …`)은 그대로 읽힌다.
+CoachRoutineDelivery? _routineDelivery(Object? value) {
+  if (value is! Map<String, Object?>) return null;
+  final Object? kind = value['kind'];
+  if (kind is! String) return null;
+  List<String> names(Object? raw) => raw is List
+      ? <String>[
+          for (final Object? name in raw)
+            if (name is String) name,
+        ]
+      : const <String>[];
+  return CoachRoutineDelivery(
+    kind: kind,
+    programNames: names(value['program_names']),
+    routineNames: names(value['routine_names']),
   );
 }
 

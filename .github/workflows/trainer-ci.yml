@@ -17,6 +17,8 @@ on:
       - "shared/oncare_kakao_map/**"
       # 두 앱이 함께 쓰는 주간 리포트 결과지(#2652).
       - "shared/oncare_report/**"
+      # 데모·실서버 진입점 비교 시험이 읽는 예외 목록 — 목록만 바뀌어도 돈다(#2792).
+      - ".github/demo-divergence-allowlist.txt"
       - ".github/workflows/trainer-ci.yml"
   push:
     branches: [main]
@@ -32,6 +34,8 @@ on:
       - "shared/oncare_kakao_map/**"
       # 두 앱이 함께 쓰는 주간 리포트 결과지(#2652).
       - "shared/oncare_report/**"
+      # 데모·실서버 진입점 비교 시험이 읽는 예외 목록 — 목록만 바뀌어도 돈다(#2792).
+      - ".github/demo-divergence-allowlist.txt"
       - ".github/workflows/trainer-ci.yml"
 
 permissions:
