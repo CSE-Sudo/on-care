@@ -2666,7 +2666,7 @@
   },
   "healthNotesLabel": "Health notes & cautions",
   "healthNotesHint": "e.g. Left knee surgery, herniated disc",
-  "healthNotesHelper": "Used when recommending workouts",
+  "healthNotesHelper": "Used for recommendations",
   "healthFocusWeightLoss": "Weight loss",
   "@healthFocusWeightLoss": {
     "description": "Health goal chip in onboarding and MY health goals."

@@ -704,6 +704,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get memberHealthConditions => '건강상태·주의사항';
 
   @override
+  String get memberHealthConditionsShared => '회원에게도 보여요 · 추천할 때 참고해요';
+
+  @override
+  String get memberHealthConditionsPrivateHint => '트레이너만 볼 내용은 메모에 남겨 주세요.';
+
+  @override
   String get memberHealthDietGoal => '식단 목표';
 
   @override

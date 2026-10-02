@@ -3543,7 +3543,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get healthNotesHint => 'e.g. Left knee surgery, herniated disc';
 
   @override
-  String get healthNotesHelper => 'Used when recommending workouts';
+  String get healthNotesHelper => 'Used for recommendations';
 
   @override
   String get healthFocusWeightLoss => 'Weight loss';

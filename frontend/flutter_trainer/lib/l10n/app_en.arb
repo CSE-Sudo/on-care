@@ -500,6 +500,8 @@
   "healthFocusExerciseHabit": "Exercise habit",
   "healthFocusBloodPressure": "Blood pressure care",
   "memberHealthConditions": "Conditions and cautions",
+  "memberHealthConditionsShared": "The member sees this too · Used for recommendations",
+  "memberHealthConditionsPrivateHint": "Keep trainer-only notes in Memo.",
   "memberHealthDietGoal": "Nutrition goals",
   "memberHealthExerciseGoal": "Exercise goals",
   "memberHealthGoalCalories": "Daily calories (kcal)",

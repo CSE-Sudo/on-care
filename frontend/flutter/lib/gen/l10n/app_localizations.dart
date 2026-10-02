@@ -6136,7 +6136,7 @@ abstract class AppLocalizations {
   /// No description provided for @healthNotesHelper.
   ///
   /// In en, this message translates to:
-  /// **'Used when recommending workouts'**
+  /// **'Used for recommendations'**
   String get healthNotesHelper;
 
   /// Health goal chip in onboarding and MY health goals.

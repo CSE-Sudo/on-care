@@ -611,6 +611,30 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
     );
   }
 
+  /// 제목·칸 이름 한 줄과 그 줄 끝의 회색 작은 글씨(#2942) — `마지막 변경` 기록이나
+  /// 메모 안내. [end] 가 없으면 제목만 그린다.
+  Widget _headedRow(Widget heading, String? end, Key endKey) {
+    if (end == null) return heading;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: <Widget>[
+        heading,
+        const SizedBox(width: OnCareSpacing.s8),
+        Expanded(
+          child: Text(
+            end,
+            key: endKey,
+            textAlign: TextAlign.end,
+            style: context.oncare
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
+        ),
+      ],
+    );
+  }
+
   /// 권장값 한 줄과 `권장값으로 채우기` — 회원 앱 MY 의 같은 자리(#1139)를
   /// 트레이너 창에 옮겼다. 누르면 이 묶음의 칸만 채우고, 저장은 따로 누른다.
   Widget _suggestionRow(
@@ -820,6 +844,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
         final TextStyle groupStyle = tokens
             .text(OnCareTypography.titleSmall)
             .copyWith(color: OnCareColors.textPrimary);
+        final String locale = Localizations.localeOf(context).toString();
         // 흐린 숫자가 무엇인지 — 회원 앱 MY 의 각주와 같은 말이다(#2331).
         final Widget defaultHint = Text(
           l.clientGoalDefaultHint,
@@ -889,7 +914,13 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
             number(1, l.clientBodyWeight, l.routineUnitKg),
           ],
           _HealthTab.focus => <Widget>[
-            Text(l.memberHealthFocus, style: groupStyle),
+            // 회원도 같은 목표를 고친다 — 누가 언제 바꿨는지 제목 줄 끝에
+            // 남긴다(#1832). 아래 주의사항과 같은 자리 규칙이다(#2942).
+            _headedRow(
+              Text(l.memberHealthFocus, style: groupStyle),
+              focusLastChangedLabel(l, profile, locale: locale),
+              const ValueKey<String>('client-focus-last-changed'),
+            ),
             const SizedBox(height: OnCareSpacing.s8),
             Wrap(
               spacing: OnCareSpacing.s8,
@@ -910,39 +941,46 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
                   ),
               ],
             ),
-            // 회원도 같은 목표를 고친다 — 누가 언제 바꿨는지 칩 아래에 남긴다(#1832).
-            if (focusLastChangedLabel(
-                  l,
-                  profile,
-                  locale: Localizations.localeOf(context).toString(),
-                )
-                case final String changed) ...<Widget>[
-              const SizedBox(height: OnCareSpacing.s8),
-              Text(
-                changed,
-                key: const ValueKey<String>('client-focus-last-changed'),
-                style: tokens
-                    .text(OnCareTypography.caption)
-                    .copyWith(color: OnCareColors.textTertiary),
-              ),
-            ],
             const SizedBox(height: OnCareSpacing.s8),
             // 목표 칩은 세지 않는다 — 서버도 칩을 뺀 글만 센다(#2618).
-            if (_editing)
+            //
+            // 이 글은 회원도 보고 고치는 공유 건강 정보다(#2619) — 트레이너만
+            // 볼 메모가 아니다. 쓰는 사람이 공개 범위를 알도록 칸 아래에
+            // 회원에게 보인다는 것과 AI 가 읽는다는 것을 밝힌다(#2518).
+            //
+            // 칸 이름 줄 끝은 보기 상태에서는 누가 언제 바꿨는지(#2942), 고치는
+            // 중에는 비공개 내용을 메모로 보내는 안내다 — 회색 줄이 글 아래에
+            // 겹겹이 쌓이지 않는다.
+            if (_editing) ...<Widget>[
+              _headedRow(
+                Text(
+                  l.memberHealthConditions,
+                  style: tokens
+                      .text(OnCareTypography.label)
+                      .copyWith(color: OnCareColors.textSecondary),
+                ),
+                l.memberHealthConditionsPrivateHint,
+                const ValueKey<String>('client-conditions-private-hint'),
+              ),
+              const SizedBox(height: OnCareSpacing.s8),
               AppTextField(
                 key: const ValueKey<String>('client-conditions-input'),
                 controller: _conditions,
-                label: l.memberHealthConditions,
+                helper: l.memberHealthConditionsShared,
                 maxLines: 2,
                 maxLength: AppTextLimits.entry,
                 showCounter: true,
-              )
-            else ...<Widget>[
-              Text(
-                l.memberHealthConditions,
-                style: tokens
-                    .text(OnCareTypography.caption)
-                    .copyWith(color: OnCareColors.textSecondary),
+              ),
+            ] else ...<Widget>[
+              _headedRow(
+                Text(
+                  l.memberHealthConditions,
+                  style: tokens
+                      .text(OnCareTypography.caption)
+                      .copyWith(color: OnCareColors.textSecondary),
+                ),
+                notesLastChangedLabel(l, profile, locale: locale),
+                const ValueKey<String>('client-conditions-last-changed'),
               ),
               const SizedBox(height: OnCareSpacing.s4),
               Text(
@@ -957,6 +995,14 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
                           ? OnCareColors.textTertiary
                           : OnCareColors.textPrimary,
                     ),
+              ),
+              const SizedBox(height: OnCareSpacing.s4),
+              Text(
+                l.memberHealthConditionsShared,
+                key: const ValueKey<String>('client-conditions-shared'),
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textTertiary),
               ),
             ],
             // `회원 목표` 글 칸은 없앴다(#2330) — 목표는 위 칩으로 고른다. 글
