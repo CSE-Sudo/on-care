@@ -28,8 +28,6 @@ dependencies:
     sdk: flutter
   intl: any
 
-  cupertino_icons: ^1.0.8
-
   # --- State management & DI ---
   # 사용자 앱(frontend/flutter)과 동일한 Riverpod 기반. 트레이너 앱은
   # 별도 프로젝트이므로 코드는 공유하지 않고 스택만 맞춘다.
@@ -102,7 +100,6 @@ dependencies:
   # 데이터를 영속 저장한다 (사용자 앱과 동일 스택, 코드는 공유하지 않음).
   drift: ^2.20.3
   drift_flutter: ^0.2.4
-  path: ^1.9.0
   package_info_plus: ^9.0.1
   web: ^1.1.1
   sentry_flutter: ^8.14.2

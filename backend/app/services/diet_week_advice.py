@@ -25,6 +25,7 @@ from datetime import date, datetime, time, timedelta
 from sqlalchemy.orm import Session
 
 from app.core import clock
+from app.core.week import monday_of
 from app.services import diet_ai_sentence
 from app.services import diet_coach_inputs as inputs
 from app.services.diet_advice_copy import SLOT_LABELS_KO, Line, ai_line, line
@@ -80,7 +81,7 @@ class DayRecord:
 
 def week_window(today: date, recorded: set[date]) -> tuple[str, date, date]:
     """(scope, 시작, 끝). 운동 조언의 월·화 회고와 같은 규칙이다."""
-    monday = today - timedelta(days=today.weekday())
+    monday = monday_of(today)
     this_week_days = sum(1 for d in recorded if monday <= d <= today)
     last_monday = monday - timedelta(days=7)
     has_last = any(last_monday <= d < monday for d in recorded)
@@ -256,7 +257,7 @@ def week_advice(
     if cached is not None:
         return cached
 
-    two_weeks = today - timedelta(days=today.weekday() + 7)
+    two_weeks = monday_of(today) - timedelta(days=7)
     entries = inputs.entries_between(db, user_id, two_weeks, today)
     profile = inputs.load_profile(db, user_id)
     targets = inputs.targets_of(profile)

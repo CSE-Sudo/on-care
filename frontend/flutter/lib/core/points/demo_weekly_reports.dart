@@ -1,6 +1,7 @@
 import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 데모의 포인트로 받는 주간 리포트. 서버 `weekly_report_purchase_service` 의 대역이다.
 /// (#2022)
@@ -61,11 +62,11 @@ class DemoWeeklyReportBook implements DemoPersistable {
       'reports': <Map<String, Object?>>[
         for (final DateTime week in weeks)
           <String, Object?>{
-            'week_start': _ymd(week),
+            'week_start': wireDate(week),
             'purchased_at': (_purchasedAt[week] ?? _now()).toIso8601String(),
           },
       ],
-      'next_week_start': _ymd(targetWeek),
+      'next_week_start': wireDate(targetWeek),
       'cost': cost,
     };
   }
@@ -121,15 +122,10 @@ class DemoWeeklyReportBook implements DemoPersistable {
 
   Map<String, Object?> _exchangeJson(DateTime week) => <String, Object?>{
     'coupon': null,
-    'weekly_report_week': _ymd(week),
+    'weekly_report_week': wireDate(week),
     'spent': cost,
     'balance': _ledger.balance,
   };
-
-  static String _ymd(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-'
-      '${d.month.toString().padLeft(2, '0')}-'
-      '${d.day.toString().padLeft(2, '0')}';
 
   static DemoCouponResult _error(int status, String detail) =>
       DemoCouponResult(status, <String, Object?>{'detail': detail});

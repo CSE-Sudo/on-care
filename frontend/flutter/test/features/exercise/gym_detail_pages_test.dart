@@ -85,7 +85,6 @@ void main() {
           gymFinderResultsProvider.overrideWith((ref) async => gyms),
           myGymProvider.overrideWith((ref) async => myGym),
           myTrainerProvider.overrideWith((ref) async => null),
-          recommendedTrainersProvider.overrideWith((ref) async => trainers),
           for (final Gym gym in gyms)
             gymTrainersProvider(gym.id).overrideWith(
               (ref) async => trainers

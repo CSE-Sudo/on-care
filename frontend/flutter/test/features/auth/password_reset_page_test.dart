@@ -12,7 +12,6 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/auth/data/repositories/mock_password_repository.dart';
 import 'package:oncare/features/auth/domain/repositories/password_repository.dart';
@@ -21,6 +20,8 @@ import 'package:oncare/features/auth/presentation/pages/password_reset_page.dart
 import 'package:oncare/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+
+import '../../helpers/mock_account_repository.dart';
 
 const String _code = 'ABCD-EFGH-JKMN-PQRS';
 const String _newPw = 'new-pass-2';
