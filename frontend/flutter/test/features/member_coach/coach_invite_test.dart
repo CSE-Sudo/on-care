@@ -272,7 +272,13 @@ void main() {
       expect(find.text('온케어짐 신촌점 소속'), findsOneWidget);
       expect(find.text('센터에서 뵀던 담당입니다.'), findsOneWidget);
       // 동의의 내용이 버튼 위에 적혀 있어야 한다.
-      expect(find.text('수락하면 내 식단·운동 기록을 이 트레이너가 볼 수 있어요.'), findsOneWidget);
+      expect(
+        find.text(
+          '수락하면 내 식단 기록·운동 기록·신체 정보와 건강 목표를 이 트레이너가 볼 수 있어요. '
+          '수락하기 전에 공유 동의를 받아요.',
+        ),
+        findsOneWidget,
+      );
 
       // 닫기 X·나중에 보기 없이 [거절][수락] 반반 두 버튼뿐이다. 수락은 파란 채움이다.
       expect(find.byType(AppCloseButton), findsNothing);
@@ -349,6 +355,77 @@ void main() {
       expect(repository.rejected, isEmpty);
       expect(find.byType(AppDialog), findsNothing);
       expect(find.text('김트레이너 트레이너가 담당으로 연결됐어요'), findsOneWidget);
+    });
+
+    testWidgets('동의창은 목적·기간·거부권을 말하고, 펼치면 다섯 항목이 모두 보인다 (#2826)', (
+      tester,
+    ) async {
+      final repository = _FakeCoachRepository(
+        invites: const <CoachInvite>[_invite],
+      );
+      await _pumpPrompter(tester, repository);
+
+      await tester.tap(_acceptButton('tci-1'));
+      await tester.pumpAndSettle();
+
+      // 짧은 본문만으로도 목적·철회 뒤 남는 기록·거부권이 드러난다.
+      final Finder body = find.textContaining('김트레이너 트레이너와 담당으로 연결되면');
+      expect(body, findsOneWidget);
+      final String text = tester.widget<Text>(body).data!;
+      expect(text, contains('코칭·상담·리포트 작성을 위해'));
+      expect(text, contains('식단 기록·운동 기록·신체 정보와 건강 목표'));
+      expect(text, contains('주고받은 대화와 전달된 리포트는 남아요'));
+      expect(text, contains('동의하지 않아도 개인 기록 기능은 그대로'));
+
+      // 자세히는 처음엔 접혀 있다.
+      expect(
+        find.byKey(const ValueKey<String>('trainer-share-details')),
+        findsNothing,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('trainer-share-details-toggle')),
+      );
+      await tester.pumpAndSettle();
+      for (final String label in <String>[
+        '받는 사람',
+        '공유 항목',
+        '이용 목적',
+        '이용 기간',
+        '거부할 권리',
+      ]) {
+        expect(find.text(label), findsOneWidget, reason: label);
+      }
+      expect(find.textContaining('MY 탭에서 담당 트레이너 연결을 삭제하면'), findsOneWidget);
+
+      // 펼쳐도 동의 버튼은 화면 안에 있고 눌린다.
+      final Finder agree = find.text('동의하고 연결');
+      expect(agree.hitTestable(), findsOneWidget);
+      await tester.tap(agree);
+      await tester.pumpAndSettle();
+      expect(repository.accepted, <String>['tci-1']);
+    });
+
+    testWidgets('작은 화면에서 펼쳐도 동의 버튼이 가려지지 않는다 (#2826)', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 568));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final repository = _FakeCoachRepository(
+        invites: const <CoachInvite>[_invite],
+      );
+      await _pumpPrompter(tester, repository);
+
+      await tester.tap(_acceptButton('tci-1'));
+      await tester.pumpAndSettle();
+      final Finder toggle = find.byKey(
+        const ValueKey<String>('trainer-share-details-toggle'),
+      );
+      await tester.ensureVisible(toggle);
+      await tester.pumpAndSettle();
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('동의하고 연결').hitTestable(), findsOneWidget);
+      expect(find.text('취소').hitTestable(), findsOneWidget);
     });
 
     testWidgets('동의창에서 취소하면 담당 요청 창으로 돌아온다 (#1022)', (tester) async {

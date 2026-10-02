@@ -19,7 +19,8 @@ import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fake_diet_repository.dart';
 
-/// 탄단지를 원하는 값으로 고정해 돌려주는 대역. 기본 목표는 275/100/55g 이다.
+/// 탄단지를 원하는 값으로 고정해 돌려주는 대역. 기본 목표는 275/60/55g 이다 —
+/// 체중도 목표도 없는 회원의 단백질은 식단 분석과 같은 60g 이다(#2898).
 class _MacroDietRepository extends FakeDietRepository {
   _MacroDietRepository({
     required this.carbsG,
@@ -135,7 +136,7 @@ void main() {
 
   testWidgets('목표와 정확히 같으면 초과가 아니다', (WidgetTester tester) async {
     // 경계는 다른 지표와 같다 — `>` 지, `>=` 가 아니다.
-    await pumpDiet(tester, carbsG: 275, proteinG: 100, fatG: 55);
+    await pumpDiet(tester, carbsG: 275, proteinG: 60, fatG: 55);
 
     for (final String label in <String>['탄수화물', '단백질', '지방']) {
       expect(

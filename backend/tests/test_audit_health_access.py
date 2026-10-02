@@ -452,7 +452,10 @@ def test_a_failed_password_change_is_not_recorded_as_a_change(client, db_session
     )
 
     assert response.status_code == 400
-    assert _rows(db_session, audit.PASSWORD_CHANGE, user_id=trainer.id) == []
+    # 바뀐 기록(success=True)은 없고, 틀린 시도는 실패로만 남는다(#2913 계정 단위 잠금).
+    assert _rows(db_session, audit.PASSWORD_CHANGE, user_id=trainer.id, success=True) == []
+    failed = _rows(db_session, audit.PASSWORD_CHANGE, user_id=trainer.id, success=False)
+    assert [row.detail for row in failed] == ["current_password_mismatch"]
 
 
 # ---- 보존 기간 ----

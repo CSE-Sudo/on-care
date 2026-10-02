@@ -199,7 +199,13 @@ def _trainer_query(*, require_gym: bool = True):
     `require_gym=False` 는 **이미 담당으로 배정된 트레이너를 그 회원이 읽을 때**만
     쓴다(`get_trainer`). 그 자리는 디렉터리 노출이 아니라 이미 맺어진 관계를 읽는
     것이라 소속·승인 조건이 맞지 않는다(#691) — 반려가 기존 담당을 끊지는 않는다.
+
+    데모 시드가 꺼진 서버(운영)에서는 데모 트레이너(`demo_ids`)도 뺀다(#2811).
+    예전 기본값으로 운영 DB 에 심긴 가상 트레이너가 실서비스 회원에게 노출되고
+    상담 신청까지 받는 것을 막는다. 정리 스크립트로 지우기 전에도 안전하다.
     """
+    from app.db import demo_ids
+
     query = (
         select(User, TrainerProfile)
         .join(TrainerProfile, TrainerProfile.trainer_id == User.id)
@@ -208,6 +214,8 @@ def _trainer_query(*, require_gym: bool = True):
             User.is_active.is_(True),
         )
     )
+    if not demo_ids.demo_data_enabled():
+        query = query.where(User.id.not_in(demo_ids.demo_trainer_ids()))
     if not require_gym:
         return query
     return query.join(Place, Place.id == TrainerProfile.gym_id).where(

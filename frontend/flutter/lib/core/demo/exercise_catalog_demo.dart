@@ -12,6 +12,8 @@
 /// 고치고 그 값을 옮긴다.
 library;
 
+import 'package:oncare_rules/oncare_rules.dart' show pyRound;
+
 /// 종목 한 줄 — 이름, 집계 유형, 단위체중당 소모 계수, 별칭, 버티는 운동 여부.
 class DemoExerciseActivity {
   const DemoExerciseActivity(
@@ -157,17 +159,17 @@ DemoExerciseActivity? matchDemoExercise(String name) {
 
 /// 종목 계수 × 체중 × 시간. 서버 `exercise_catalog.energy.from_catalog` 와 같은
 /// 식이다 — 계수는 체중 1kg·1시간당 kcal 이라 분으로 쓰려면 60 으로 나눈다.
+///
+/// 곱하는 순서(`met × 강도 × 체중 × (분 / 60)`)와 반올림(Python `round`)까지
+/// 서버와 같아야 데모의 kcal 이 실서버와 같은 값으로 떨어진다(#2860).
 int demoCatalogCalories(
   DemoExerciseActivity activity,
   int minutes,
   double intensityFactor,
   double weightKg,
-) => (activity.met *
-        intensityFactor *
-        weightKg *
-        (minutes < 0 ? 0 : minutes) /
-        60.0)
-    .round();
+) => pyRound(
+  activity.met * intensityFactor * weightKg * ((minutes < 0 ? 0 : minutes) / 60.0),
+);
 
 /// [name] 이 버티는 운동인가 — 폼이 `횟수` 대신 `초` 를 물을지의 **기본값**.
 ///

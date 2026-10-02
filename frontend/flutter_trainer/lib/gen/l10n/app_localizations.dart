@@ -476,17 +476,95 @@ abstract class AppLocalizations {
   /// **'Confirm password'**
   String get authPasswordConfirm;
 
-  /// No description provided for @authLegalNotice.
-  ///
-  /// In en, this message translates to:
-  /// **'By signing up you agree to'**
-  String get authLegalNotice;
-
   /// No description provided for @authSignUpAndStart.
   ///
   /// In en, this message translates to:
   /// **'Sign up and start'**
   String get authSignUpAndStart;
+
+  /// No description provided for @consentAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree to all'**
+  String get consentAll;
+
+  /// No description provided for @consentRequiredTag.
+  ///
+  /// In en, this message translates to:
+  /// **'[Required]'**
+  String get consentRequiredTag;
+
+  /// No description provided for @consentOptionalTag.
+  ///
+  /// In en, this message translates to:
+  /// **'[Optional]'**
+  String get consentOptionalTag;
+
+  /// No description provided for @consentView.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get consentView;
+
+  /// No description provided for @consentTerms.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get consentTerms;
+
+  /// No description provided for @consentPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection and use of personal information'**
+  String get consentPrivacy;
+
+  /// No description provided for @consentAge14.
+  ///
+  /// In en, this message translates to:
+  /// **'I am 14 years of age or older'**
+  String get consentAge14;
+
+  /// No description provided for @consentAge14Detail.
+  ///
+  /// In en, this message translates to:
+  /// **'You must be 14 or older to sign up.'**
+  String get consentAge14Detail;
+
+  /// No description provided for @consentMarketing.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive marketing notifications'**
+  String get consentMarketing;
+
+  /// No description provided for @consentRequiredHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree to all required items to continue.'**
+  String get consentRequiredHint;
+
+  /// No description provided for @consentPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Agreements'**
+  String get consentPageTitle;
+
+  /// No description provided for @consentPageSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Please review and agree to the items below to keep using On-Care.'**
+  String get consentPageSubtitle;
+
+  /// No description provided for @consentPageAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree and continue'**
+  String get consentPageAction;
+
+  /// No description provided for @consentPageFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save your agreement. Please try again in a moment.'**
+  String get consentPageFailed;
 
   /// No description provided for @authHasAccount.
   ///
@@ -1520,6 +1598,12 @@ abstract class AppLocalizations {
   /// **'That code is wrong or expired. Ask the member for a new one'**
   String get clientConnectCodeInvalid;
 
+  /// No description provided for @clientConnectAlreadyManaged.
+  ///
+  /// In en, this message translates to:
+  /// **'You already manage this member. Find them in your member list'**
+  String get clientConnectAlreadyManaged;
+
   /// No description provided for @clientInviteConnectAction.
   ///
   /// In en, this message translates to:
@@ -1759,6 +1843,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Day total'**
   String get clientDietDayTotal;
+
+  /// Shown under the day total when the expanded day's meals fail to load (#2892)
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this day\'s meals'**
+  String get clientDietDayMealsFailed;
 
   /// 트레이너 웹 식단 합계 kcal — 오늘 끼니 카드의 네 칸 오른쪽 끝과 펼친 날 하루 합계 줄 오른쪽 끝. 음식 kcal 과 구분되게 총을 붙인다. calories 는 천 단위 구분이 된 숫자. (#2421)
   ///
@@ -6895,6 +6985,12 @@ abstract class AppLocalizations {
   /// **'Logged by member'**
   String get workoutMemberLogTitle;
 
+  /// Shown in the expanded day when its workouts fail to load (#2892)
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this day\'s workouts'**
+  String get workoutDayExercisesFailed;
+
   /// No description provided for @workoutPendingCancel.
   ///
   /// In en, this message translates to:
@@ -8721,6 +8817,12 @@ abstract class AppLocalizations {
   /// **'Available after the report summary API is connected. No summary is generated now.'**
   String get reportsAiUnavailable;
 
+  /// No description provided for @reportsAiFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t create the summary. Please try again.'**
+  String get reportsAiFailed;
+
   /// No description provided for @reportsPdfGenerationFailed.
   ///
   /// In en, this message translates to:
@@ -9003,7 +9105,7 @@ abstract class AppLocalizations {
   /// **'{gender} · Age {age}'**
   String coachClientDemographics(String gender, int age);
 
-  /// Roster age label when the member's gender is not shown (#2814).
+  /// Age-only identity label when the member has no gender on file or the server hides it (#2814, #2870).
   ///
   /// In en, this message translates to:
   /// **'Age {age}'**

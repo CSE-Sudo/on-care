@@ -1,0 +1,8 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    # 두 앱과 같은 규칙 — 규칙 함수는 양쪽에서 그대로 읽히므로 스타일이
+    # 갈라지면 옮겨 붙일 때마다 진단이 뜬다.
+    always_declare_return_types: true
+    prefer_final_locals: true

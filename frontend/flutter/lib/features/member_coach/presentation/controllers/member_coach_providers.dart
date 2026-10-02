@@ -73,6 +73,42 @@ final memberCoachProvider = FutureProvider<MemberCoach?>((ref) {
   return ref.watch(memberCoachRepositoryProvider).fetchCoach();
 });
 
+/// 담당 코치에 딸린 화면 묶음 — 배정 운동·PT 일정·대화·미읽음. (#1865, #2843)
+///
+/// 담당이 끊기면 이 묶음도 함께 비워야 한다. 연결 해제(`confirmDisconnect`)와
+/// 앱 복귀 재확인([recheckMemberCoach])이 같은 목록을 쓰도록 한곳에 둔다 —
+/// 한쪽에만 항목을 더하면 다른 쪽에서 해제된 트레이너의 화면이 남는다.
+/// `WidgetRef.invalidate`·`Ref.invalidate`·`ProviderContainer.invalidate` 를
+/// 그대로 넘긴다.
+void invalidateCoachBoundData(void Function(ProviderOrFamily) invalidate) {
+  invalidate(coachRoutinesProvider);
+  invalidate(coachSessionsProvider);
+  invalidate(coachChatProvider);
+  invalidate(coachUnreadProvider);
+}
+
+/// 담당 코치를 다시 읽고, 있던 담당이 사라졌으면 딸린 묶음도 비운다. (#2843)
+///
+/// [memberCoachProvider] 는 앱을 켤 때 한 번 읽은 값을 계속 쓴다. 앱을 떠난
+/// 사이 트레이너가 웹에서 담당을 해제하면, 돌아와도 헤더가 트레이너 대화로 남고
+/// 홈 트레이너 카드도 그대로였다. 셸이 앱 복귀·홈 재진입에서 부른다.
+///
+/// 다시 읽다 실패하면 아무것도 비우지 않는다 — 실패는 해제가 아니다. 위젯이
+/// 사라져도 끝까지 돌도록 [ProviderContainer] 를 받는다.
+Future<void> recheckMemberCoach(ProviderContainer container) async {
+  final MemberCoach? before = container.read(memberCoachProvider).valueOrNull;
+  container.invalidate(memberCoachProvider);
+  final MemberCoach? after;
+  try {
+    after = await container.read(memberCoachProvider.future);
+  } on Object {
+    return;
+  }
+  if (before != null && after == null) {
+    invalidateCoachBoundData(container.invalidate);
+  }
+}
+
 /// 오늘의 추천 개인운동 — 오늘 걸려 있는 목록과 오늘 완료. (#2161)
 ///
 /// 매일 미완료로 다시 시작하는 목록이다. 날이 바뀌면 앱이 돌아올 때 다시 읽는다

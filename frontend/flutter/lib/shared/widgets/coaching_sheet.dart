@@ -33,13 +33,19 @@ Future<void> showCoachingSheet(BuildContext context, {WidgetRef? ref}) {
   );
 }
 
-/// 실제 제안을 받지 못했을 때 시트가 대신 그리는 기본 카드 수.
+/// 데모 모드에서 시트가 그리는 데모 카드 수.
 ///
 /// [_cardsOf] 의 길이와 같아야 한다 — 배지 숫자와 시트에 실제로 보이는 카드 수가
 /// 어긋나면 배지가 다시 거짓말을 한다. 위젯 테스트가 두 값을 맞춰 둔다.
+///
+/// 이 카드는 **데모 회원의 하루를 묘사한 고정 문구**다. 실서버에서는 쓰지 않는다
+/// — 기록이 없는 회원에게도 "점심으로 드신 짬뽕" 이 실제 분석처럼 보였다(#2813).
 const int kCoachFallbackCardCount = 2;
 
 /// 지금 코칭 시트가 보여 줄 카드 수. 배지와 시트가 같은 규칙을 읽는다.
+///
+/// 실서버에서는 **실제로 받은 제안 수만** 센다. 로딩·에러·빈 응답이면 시트에
+/// 볼 카드가 없으므로 0 이다 — 볼 것이 없는데 `새 제안 2` 가 뜨지 않게(#2813).
 final coachingSuggestionCountProvider = Provider<int>((ref) {
   if (ref.watch(appConfigProvider).useMockApi) return kCoachFallbackCardCount;
   final List<AiSuggestion>? live = ref
@@ -47,8 +53,7 @@ final coachingSuggestionCountProvider = Provider<int>((ref) {
       .asData
       ?.value
       .suggestions;
-  // 로딩·에러·빈 응답이면 시트가 기본 카드로 떨어지므로 수도 그것을 따른다.
-  return (live == null || live.isEmpty) ? kCoachFallbackCardCount : live.length;
+  return live?.length ?? 0;
 }, name: 'coachingSuggestionCount');
 
 /// 마지막으로 시트를 열어 확인한 카드 수.
@@ -109,26 +114,69 @@ _CoachCard _cardFromSuggestion(AppLocalizations l, AiSuggestion s) =>
       body: s.body,
     );
 
-class _CoachingSheet extends ConsumerWidget {
+class _CoachingSheet extends ConsumerStatefulWidget {
   const _CoachingSheet();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_CoachingSheet> createState() => _CoachingSheetState();
+}
+
+class _CoachingSheetState extends ConsumerState<_CoachingSheet> {
+  @override
+  void initState() {
+    super.initState();
+    // 조언 상태는 세션 내내 살아 있다. 한 번 실패하면 그 세션 내내 오류에
+    // 머물렀으므로, 시트를 열 때 오류 상태면 다시 받는다(#2813). 빌드 중에
+    // provider 를 건드리지 않도록 첫 프레임 뒤에 한다.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (ref.read(aiCoachStateProvider).hasError) {
+        ref.invalidate(aiCoachStateProvider);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    // 데모/목 모드는 기존 하드코딩 카드를 유지(둘러보기 화면 동일). 실모드에서만
-    // /ai-coach/feedback 의 실제 제안을 렌더하고, 로딩/에러/빈 응답은 기존 카드로 폴백.
-    final List<_CoachCard> cards;
+    // 데모/목 모드는 기존 데모 카드를 유지(둘러보기 화면 동일). 실서버에서는
+    // /ai-coach/feedback 의 실제 제안만 그리고, 로딩·오류·빈 응답은 각자의 상태로
+    // 보여 준다 — 데모 고정 문구로 채우지 않는다(#2813).
+    final Widget body;
     if (ref.watch(appConfigProvider).useMockApi) {
-      cards = _cardsOf(l);
+      body = _CoachCardList(cards: _cardsOf(l));
     } else {
-      final List<AiSuggestion>? live = ref
-          .watch(aiCoachStateProvider)
-          .asData
-          ?.value
-          .suggestions;
-      cards = (live == null || live.isEmpty)
-          ? _cardsOf(l)
-          : live.map((AiSuggestion s) => _cardFromSuggestion(l, s)).toList();
+      final AsyncValue<AiCoachState> state = ref.watch(aiCoachStateProvider);
+      final List<AiSuggestion>? live = state.asData?.value.suggestions;
+      if (live != null && live.isNotEmpty) {
+        body = _CoachCardList(
+          cards: <_CoachCard>[
+            for (final AiSuggestion s in live) _cardFromSuggestion(l, s),
+          ],
+        );
+      } else if (state.hasError && !state.isLoading) {
+        body = AppErrorState(
+          key: const Key('coachingSheetError'),
+          title: l.coachSheetErrorTitle,
+          message: l.coachSheetErrorBody,
+          retryLabel: l.actionRetry,
+          retryKey: const Key('coachingSheetRetry'),
+          onRetry: () => ref.invalidate(aiCoachStateProvider),
+          placement: AppStatePlacement.card,
+        );
+      } else if (state.isLoading) {
+        body = const AppLoading(
+          key: Key('coachingSheetLoading'),
+          placement: AppStatePlacement.card,
+        );
+      } else {
+        body = AppEmptyState(
+          key: const Key('coachingSheetEmpty'),
+          title: l.coachSheetEmptyTitle,
+          message: l.coachSheetEmptyBody,
+          placement: AppStatePlacement.card,
+        );
+      }
     }
 
     // 담당 트레이너가 있는 회원은 AI 챗봇을 쓰지 않는다(#1823). 같은 버튼이 그
@@ -176,12 +224,29 @@ class _CoachingSheet extends ConsumerWidget {
         children: <Widget>[
           const _CoachingSheetHeader(),
           const SizedBox(height: OnCareSpacing.s16),
-          for (final (int i, _CoachCard card) in cards.indexed) ...<Widget>[
-            if (i > 0) const SizedBox(height: OnCareSpacing.cardGap),
-            _CoachCardTile(card: card),
-          ],
+          body,
         ],
       ),
+    );
+  }
+}
+
+/// 코칭 카드 목록 — 카드 사이에 같은 간격을 둔다.
+class _CoachCardList extends StatelessWidget {
+  const _CoachCardList({required this.cards});
+
+  final List<_CoachCard> cards;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        for (final (int i, _CoachCard card) in cards.indexed) ...<Widget>[
+          if (i > 0) const SizedBox(height: OnCareSpacing.cardGap),
+          _CoachCardTile(card: card),
+        ],
+      ],
     );
   }
 }

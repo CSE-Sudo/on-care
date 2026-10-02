@@ -48,7 +48,12 @@ class ReportMacroBars extends StatelessWidget {
       _Macro(
         label: l.metricProtein,
         value: recordedMean(report.proteinWeek),
-        target: report.proteinTarget ?? proteinTargetG.toDouble(),
+        // 단백질은 식단 분석과 같은 실효 목표를 쓴다 — 개인 목표가 없으면 체중 ×
+        // 1.2g, 둘 다 없으면 60g(#2898). 옛 응답이면 공통 기본값이다.
+        target:
+            report.proteinTarget ??
+            report.effectiveProteinTarget ??
+            proteinTargetG.toDouble(),
         shade: 0.42,
       ),
       _Macro(

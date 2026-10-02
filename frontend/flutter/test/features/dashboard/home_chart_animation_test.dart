@@ -20,6 +20,7 @@ import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/dashboard/presentation/widgets/dashboard_content.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
@@ -92,6 +93,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
+          mealRecsDemoFallbackProvider.overrideWithValue(true),
           accountRepositoryProvider.overrideWithValue(
             MockAccountRepository(
               profile: const UserProfile(
@@ -218,6 +220,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
+          mealRecsDemoFallbackProvider.overrideWithValue(true),
           accountRepositoryProvider.overrideWithValue(
             MockAccountRepository(
               profile: const UserProfile(

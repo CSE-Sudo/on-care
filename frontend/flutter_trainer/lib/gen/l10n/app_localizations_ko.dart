@@ -207,10 +207,49 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authPasswordConfirm => '비밀번호 확인';
 
   @override
-  String get authLegalNotice => '가입하면 아래 문서에 동의하는 것으로 봅니다';
+  String get authSignUpAndStart => '가입하고 시작하기';
 
   @override
-  String get authSignUpAndStart => '가입하고 시작하기';
+  String get consentAll => '전체 동의';
+
+  @override
+  String get consentRequiredTag => '[필수]';
+
+  @override
+  String get consentOptionalTag => '[선택]';
+
+  @override
+  String get consentView => '보기';
+
+  @override
+  String get consentTerms => '이용약관 동의';
+
+  @override
+  String get consentPrivacy => '개인정보 수집·이용 동의';
+
+  @override
+  String get consentAge14 => '만 14세 이상이에요';
+
+  @override
+  String get consentAge14Detail => '만 14세 미만은 가입할 수 없어요.';
+
+  @override
+  String get consentMarketing => '마케팅 알림 수신';
+
+  @override
+  String get consentRequiredHint => '필수 항목에 모두 동의해야 다음으로 넘어갈 수 있어요.';
+
+  @override
+  String get consentPageTitle => '서비스 이용 동의';
+
+  @override
+  String get consentPageSubtitle => '계속 이용하려면 아래 항목을 확인하고 동의해 주세요.';
+
+  @override
+  String get consentPageAction => '동의하고 계속하기';
+
+  @override
+  String get consentPageFailed => '동의를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get authHasAccount => '이미 계정이 있으신가요?';
@@ -782,6 +821,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientConnectCodeInvalid => '코드가 맞지 않거나 만료됐어요. 회원에게 새 코드를 받아 주세요';
 
   @override
+  String get clientConnectAlreadyManaged => '이미 담당하고 있는 회원이에요. 회원 목록에서 찾아 주세요';
+
+  @override
   String get clientInviteConnectAction => '회원 등록';
 
   @override
@@ -904,6 +946,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get clientDietDayTotal => '하루 합계';
+
+  @override
+  String get clientDietDayMealsFailed => '끼니 기록을 불러오지 못했어요';
 
   @override
   String clientDietTotalCalories(String calories) {
@@ -3793,6 +3838,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get workoutMemberLogTitle => '직접 기록';
 
   @override
+  String get workoutDayExercisesFailed => '운동 기록을 불러오지 못했어요';
+
+  @override
   String get workoutPendingCancel => '배정 취소';
 
   @override
@@ -4871,6 +4919,9 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get reportsAiUnavailable =>
       '실제 리포트 요약 API 연결 후 사용할 수 있어요. 현재 문구는 자동 생성하지 않습니다.';
+
+  @override
+  String get reportsAiFailed => '요약을 만들지 못했어요. 다시 시도해 주세요.';
 
   @override
   String get reportsPdfGenerationFailed => 'PDF를 생성하지 못했어요. 다시 시도해 주세요.';

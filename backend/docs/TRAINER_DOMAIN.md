@@ -33,6 +33,11 @@
     엔드포인트로 새어들지 않도록** 트레이너 계정엔 403.
   - `RequireTrainer` / `require_trainer` — 트레이너 전용 라우터 가드(회원 계정 403).
   - `RequireMember` / `require_member` — 회원 전용 라우터 가드.
+- 가입 동의(#2819): 트레이너 가입은 이용약관·개인정보 수집·이용·만 14세 이상 확인에 항목별로
+  동의해야 끝난다(마케팅 알림은 선택). 회원에게만 있는 건강정보 처리 동의는 트레이너에게 묻지 않는다.
+  동의가 남은 트레이너 계정은 로그인 응답의 `consent_required` 로 알 수 있고, 트레이너 웹은
+  `POST /users/me/consents` 로 동의를 마칠 때까지 동의 화면에 붙든다. 항목·버전·422 규칙은
+  [API_CONTRACT.md](../API_CONTRACT.md) 의 `가입 동의 (#2819)` 가 기준이다.
 
 ## 3. 데이터 모델 (마이그레이션 `0012_trainer_domain`)
 
@@ -200,6 +205,11 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
   담당" 기준으로 읽으므로(`get_member_trainer_id`) 해제한 동안은 회원에게도 보이지 않고, 같은
   트레이너와 다시 연결하면 다시 보인다. 회원 운동 기록에 적재된 PT 는 회원의 기록이라 계속 보인다.
   회원 앱의 해제 확인 창(#2387)과 개인정보 처리방침(5항)이 같은 규칙을 안내한다.
+- **동의 받는 화면도 같은 범위를 말한다**(#2826). 회원 앱의 동기화 코드 시트와 담당 요청 수락
+  동의창은 공유 항목(식단 기록·운동 기록·신체 정보와 건강 목표), 이용 목적(코칭·상담·리포트 작성),
+  이용 기간(해제로 철회할 때까지 — 철회 전에 주고받은 대화와 전달된 리포트는 남음), 거부할 권리
+  (동의하지 않아도 개인 기록 기능은 그대로, 트레이너 연결만 안 됨)를 짧은 본문과 '자세히' 펼침으로
+  보여 준다. 공유 항목을 바꾸면 이 두 문구와 처리방침 5항을 함께 고친다.
 - 마이그레이션 `0097_data_consent_revocation` 이 이미 해제된 링크의 옛 동의를 비우고 철회 시각을 적는다.
 - **끊은 트레이너의 말이 AI 추천을 계속 정하지 않는다.** 식단 AI 조언·추천 메뉴는 담당 트레이너의
   최근 메시지(`diet_coach_inputs.trainer_notes`)를 넣어 만든 뒤 보관하므로, 담당이 끝나는 경로(회원
@@ -357,7 +367,7 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
 | GET | `/trainer/clients/{member_id}/chat?before=&before_id=` | 채팅 스레드(커서 페이지네이션) |
 | POST | `/trainer/clients/{member_id}/chat` | 메시지 전송 (`client_request_id?`) |
 | POST | `/trainer/clients/{member_id}/chat/read` | 읽음 처리 |
-| GET | `/trainer/chat/unread` | 회원별 미확인 수 |
+| GET | `/trainer/chat/unread` | 회원별 미확인 수 — 지금 담당 중이고 동의가 유효한 회원만(해제·동의 철회 회원 제외, #2868) |
 | GET | `/trainer/schedule?date=` | 하루 타임라인 |
 | GET | `/trainer/schedule?from=&to=&member_id=` | 구간 조회 / 회원 필터. 각 일정에 담당 회원 `member_id` 를 싣는다(가망 고객·공백은 null, #2586). 담당이 끊긴 회원의 일정은 `member_detached: true`·`해제 회원` 으로 가려 싣는다(#2589). 회원 예약 슬롯으로 생긴 일정은 `is_reservation: true` (#2756) |
 | GET | `/trainer/schedule/booked-dates` | 예약 있는 날짜 |
@@ -370,7 +380,8 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
 | PUT | `/trainer/dashboard/task-progress/{date}` | 그날 진행 상태 통째로 저장(KST 오늘·어제만) |
 | POST | `/trainer/dashboard/task-progress/{date}/keys` | 할 일 키 하나 체크·해제·삭제 — 그날 행에 그 키만 반영하고 합계는 서버가 다시 냄(KST 오늘·어제만, #2886) |
 | POST | `/trainer/clients/{member_id}/ai-coach` | 담당 회원 데이터 기반 AI 코칭 질의 |
-| GET | `/trainer/clients/{member_id}/report?week_start=` | 주간 리포트(어느 요일을 줘도 그 주 월요일로 정규화) |
+| GET | `/trainer/reports/queue?week_start=` | 리포트 작업대 요약 — 담당 회원 전원의 세션 예약·완료 수, 요일별·평균 이행률을 한 번에(#2863) |
+| GET | `/trainer/clients/{member_id}/report?week_start=` | 주간 리포트(어느 요일을 줘도 그 주 월요일로 정규화). 직전 4주 칼로리 평균 `calorie_baseline` 포함(#2863) |
 | GET | `/trainer/clients/{member_id}/report/summary?week_start=` | 주간 리포트 AI 요약(머리 문장 + 근거 최대 3줄) |
 | POST | `/trainer/clients/{member_id}/report/send` | 리포트를 회원 채팅 스레드로 전송 |
 | POST | `/trainer/clients/{member_id}/report/send-pdf` | 리포트 PDF 를 회원 채팅 스레드로 전송 — `message` 필수, 공백뿐이면 422 (#2771) |
@@ -462,6 +473,20 @@ range`)이었고, `-3000` 이나 주 100,000분(한 주는 10,080분이다) 같�
 값을 바꿀 때는 서버 모듈과 그 파일을 함께 고친다 — 한쪽만 고치면 화면은
 괜찮다는데 저장이 422 로 떨어지는 자리가 생긴다.
 
+
+### 실효 단백질 목표 (#2898)
+
+개인 단백질 목표 칸은 비어 있는 경우가 많다. 그때 식단 분석·조언·추천 식단은
+**체중 × 1.2g, 체중도 없으면 60g** 으로 판단한다(`diet_coach_inputs.effective_protein_g`).
+화면은 한동안 100g 을 분모로 써서, 하루 70g 을 먹은 날 카드는 "70 / 100g" 으로
+모자라 보이는데 바로 아래 분석은 목표를 채웠다고 말할 수 있었다.
+
+이제 서버가 같은 규칙으로 계산한 값을 내려 준다 — 트레이너 회원 건강 프로필의
+`effective_daily_protein_g`, 주간 리포트의 `effective_protein_target`. 트레이너 웹
+영양 요약 카드와 리포트 막대가 개인 목표가 없을 때 이 값을 쓰고, 옛 응답이면
+같은 규칙을 앱에서 계산한다. 개인 목표 필드(`daily_protein_g`·`protein_target`)는
+그대로 null 이라 '이 회원이 정한 목표'인지 기본값인지 계속 가를 수 있다.
+
 ### 알림 수신 설정 (`/trainer/me/settings`)
 
 기기 로컬이 아니라 **계정 단위** — 트레이너는 센터 PC 와 태블릿을 오간다. 값이 3개뿐이고
@@ -512,6 +537,12 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 데이터는 없다. **기록이 없는 항목은 0 이 아니라 `null`** 로 내려간다("이행률 0%"는
 "안 했다"는 거짓말이 되므로). 전송은 별도 리포트 함이 아니라 **회원이 이미 읽고 있는
 채팅 스레드**로 들어간다.
+
+**작업대 요약 (#2863)**: 트레이너 웹 리포트 첫 화면은 `GET /trainer/reports/queue` 하나로
+담당 회원 전원의 큐 값(세션 예약·완료 수, 요일별·평균 이행률)을 받는다. 값은 회원별
+`build_weekly_report` 와 같은 규칙이고, 회원 목록은 회원 단위 경로와 같은 접근 규칙(담당 연결
+활성 + 데이터 공유 동의 유효)으로 고른다 — 작업대에 서는 회원과 편집기를 열 수 있는 회원이 같다.
+리포트 응답의 `calorie_baseline` 은 그 주 앞 4주 동안 기록한 날의 하루 평균 칼로리다.
 
 **회원 본인 경로 (#2652)**: 회원 앱 결과지는 `GET /me/coach/weekly-report` 로 같은
 `build_weekly_report` 를 부른다 — 같은 회원·같은 주면 두 앱이 **같은 값**을 읽는다.

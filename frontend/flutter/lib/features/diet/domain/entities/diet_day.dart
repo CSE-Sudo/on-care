@@ -56,9 +56,20 @@ class FoodItem {
     this.proteinG = 0,
     this.fatG = 0,
     this.source = FoodSource.estimate,
+    this.displayName,
   });
+
+  /// 서버에 저장된 음식 이름. 사진 분석이면 공공 영양 DB 가 매칭하는 한국어
+  /// 이름이다 — 화면에는 [label] 을 쓴다.
   final String name;
   final int calories;
+
+  /// 화면 언어로 된 표시 이름(#2850). 영어 화면에서 분석한 음식에만 있다 —
+  /// 한국어 화면·수기 입력·이 필드 이전 기록은 null 이다.
+  final String? displayName;
+
+  /// 화면에 보일 이름 — 표시 이름이 있으면 그것, 없으면 [name].
+  String get label => displayName ?? name;
 
   /// 그 음식을 얼마나 먹었나(g) — 아래 영양이 **무엇을 재고 나온 값인가** 다.
   ///
@@ -94,8 +105,16 @@ class FoodItem {
     proteinG: (json['protein_g'] as num?)?.toDouble() ?? 0,
     fatG: (json['fat_g'] as num?)?.toDouble() ?? 0,
     source: FoodSource.fromJson(json['source']),
+    displayName: displayNameOf(json['display_name']),
   );
 }
+
+/// 서버 `display_name` 을 읽는다. 비었거나 문자열이 아니면 없는 것과 같다 —
+/// 빈 표시 이름이 원래 이름을 가리면 카드에 음식 이름이 사라진다. (#2850)
+String? displayNameOf(Object? value) => switch (value) {
+  final String s when s.trim().isNotEmpty => s.trim(),
+  _ => null,
+};
 
 class DietEntry {
   const DietEntry({

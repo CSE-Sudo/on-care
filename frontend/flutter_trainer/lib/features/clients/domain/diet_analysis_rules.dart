@@ -9,7 +9,12 @@
 /// 원인 음식·끼니를 붙여 트레이너가 읽기 좋은 서술로 말한다.
 library;
 
+import 'package:oncare_rules/oncare_rules.dart' show pyRound;
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
+
+// 서버와 같은 반올림은 공용 규칙 패키지 한 곳에 있다(#2860). 이 파일을 통해
+// 쓰던 자리가 그대로 읽히도록 다시 내보낸다.
+export 'package:oncare_rules/oncare_rules.dart' show pyRound;
 
 /// 음식 한 가지. 값이 없으면(옛 기록) null 이다.
 class DietRuleFood {
@@ -119,18 +124,6 @@ const int _frequentNameMax = 6;
 const double _repeatedShare = 0.25;
 const int _repeatedMinItems = 20;
 const int _topFoods = 2;
-
-/// 파이썬 `round` — 반올림이 짝수 쪽이다(`round(2.5) == 2`). 서버와 같은 수를 내려면
-/// Dart 의 `round()`(0 에서 먼 쪽) 대신 이것을 쓴다.
-int pyRound(num value) {
-  final double v = value.toDouble();
-  final double floor = v.floorToDouble();
-  final double diff = v - floor;
-  if (diff > 0.5) return floor.toInt() + 1;
-  if (diff < 0.5) return floor.toInt();
-  final int f = floor.toInt();
-  return f.isEven ? f : f + 1;
-}
 
 /// 파이썬 `f"{x:.1f}"` — 소수 첫째 자리까지.
 ///

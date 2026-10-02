@@ -37,6 +37,15 @@ const int kClientMinPeriodDays = 1;
 /// 회원 앱 `kExerciseMinPeriodWeeks` 와 같다.
 const int kClientMinExerciseWeeks = 1;
 
+/// `전체` 식단이 거슬러 올라가는 최대 날 수(약 3년). 서버 기간 집계의 상한
+/// (`diet_service.MAX_PERIOD_DAYS`, #2833)과 같다 — 날짜가 잘못 들어간 아주 오래된
+/// 기록 하나가 그래프를 수십만 칸으로 늘리지 않게 한다.
+const int kClientMaxPeriodDays = 1100;
+
+/// `전체` 운동이 거슬러 올라가는 최대 주 수(약 3년). 서버
+/// `exercise_service.MAX_PERIOD_WEEKS`(#2833)와 같다.
+const int kClientMaxExerciseWeeks = 160;
+
 /// [period] 가 덮는 날짜 범위. [exercise] 면 `전체` 가 운동 기준으로 길어진다.
 /// [firstRecord] 는 그 회원이 **처음 기록한 날**이다(#2079). `전체` 가 거기서
 /// 시작한다 — 없으면(기록이 없거나 아직 못 읽었으면) 식단은 오늘 하루, 운동은
@@ -75,12 +84,28 @@ ClientDateRange clientRangeFor(
         final DateTime firstMonday = first == null
             ? thisMonday
             : clientMondayOf(first);
+        // 서버와 같은 상한으로 자른다(#2833).
+        final DateTime floorMonday = DateTime(
+          thisMonday.year,
+          thisMonday.month,
+          thisMonday.day - (kClientMaxExerciseWeeks - 1) * 7,
+        );
         return (
-          from: firstMonday.isAfter(thisMonday) ? thisMonday : firstMonday,
+          from: firstMonday.isAfter(thisMonday)
+              ? thisMonday
+              : firstMonday.isBefore(floorMonday)
+              ? floorMonday
+              : firstMonday,
           to: day,
         );
       }
-      return (from: first == null || first.isAfter(day) ? day : first, to: day);
+      final DateTime floor = DateTime(
+        day.year,
+        day.month,
+        day.day - (kClientMaxPeriodDays - 1),
+      );
+      final DateTime from = first == null || first.isAfter(day) ? day : first;
+      return (from: from.isBefore(floor) ? floor : from, to: day);
   }
 }
 
