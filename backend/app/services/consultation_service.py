@@ -39,9 +39,10 @@ from app.services import (
     notification_service,
     notification_templates,
     reservation_service,
-    trainer_service,
     trainer_verification_service,
 )
+from app.services.trainer import _common as trainer_common_service
+from app.services.trainer import schedule as trainer_schedule_service
 
 
 class InvalidConsultationRequest(Exception):
@@ -313,7 +314,7 @@ def notify_trainers_of_account_deletion(
 
     # 담당 트레이너에게는 탈퇴 알림이 따로 간다(#2174).
     notified: set[str] = set()
-    coach_id = trainer_service.get_member_trainer_id(db, member.id)
+    coach_id = trainer_common_service.get_member_trainer_id(db, member.id)
     if coach_id is not None:
         notified.add(coach_id)
 
@@ -464,7 +465,7 @@ def create_consultation(
         )
 
     _validate_target(db, payload)
-    coach_id = trainer_service.get_member_trainer_id(db, member_id)
+    coach_id = trainer_common_service.get_member_trainer_id(db, member_id)
     if coach_id is not None and coach_id != payload.trainer_id:
         raise LinkedToOtherTrainer(
             "담당 트레이너 연결을 해제한 뒤 다른 트레이너에게 상담을 요청할 수 있습니다."
@@ -687,7 +688,7 @@ def _consultation_schedule_times(
             ).replace(tzinfo=SEOUL)
         except ValueError:
             continue
-        is_live = status != trainer_service.SCHEDULE_CANCELLED
+        is_live = status != trainer_common_service.SCHEDULE_CANCELLED
         if consultation_id in live and not is_live:
             continue
         out[consultation_id] = (starts_at, duration)
@@ -956,7 +957,7 @@ def pending_count_for_trainer(db: Session, trainer_id: str) -> int:
 
     배지는 페이지네이션과 무관하게 전체를 세므로 행을 가져와 파이썬에서 세면 곧
     전체 행 로드가 된다. 화면이 주기적으로 다시 읽는 경로라 DB 집계로 받는다 —
-    트레이너 알림 미읽음 수(`app/api/v1/trainer.py`)와 같은 형태다. (#1629)
+    트레이너 알림 미읽음 수(`app/api/v1/trainer/notifications.py`)와 같은 형태다. (#1629)
 
     목록과 같은 이유로 세기 전에 만료를 정리한다 — 그러지 않으면 배지가 이미 지난
     요청을 계속 세고, 트레이너는 인박스를 열어야만 그 수가 줄어든다. (#1873)
@@ -1191,7 +1192,7 @@ def accept(
     `pending` 에서만 진행한다. **수락은 시각을 정하지 않는다** — 날짜·시각·소요
     시간은 회원이 신청할 때 고른 자리가 이미 들고 있다(#1873). 그래도 겹침은
     본다(#2284). 자리를 연 뒤 신청이 기다리는 동안 트레이너가 그 시간에 다른
-    일정을 직접 잡을 수 있다 — 겹치면 [trainer_service.ScheduleOverlap] 으로 멈추고
+    일정을 직접 잡을 수 있다 — 겹치면 [trainer.schedule.ScheduleOverlap] 으로 멈추고
     아무것도 바꾸지 않는다.
 
     상태 전이·일정 생성·알림을 **한 트랜잭션**으로 커밋한다. 나눠 커밋하면 요청은
@@ -1219,7 +1220,7 @@ def accept(
 
     local = _aware(slot.starts_at).astimezone(SEOUL)
     # 상태 전이보다 먼저 본다 — 겹쳐서 멈출 때 반쪽 상태가 남지 않는다.
-    trainer_service.ensure_no_overlap(
+    trainer_schedule_service.ensure_no_overlap(
         db,
         trainer_id,
         date=local.date().isoformat(),

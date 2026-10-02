@@ -673,11 +673,13 @@ void main() {
       );
       expect(banner.tone, AppBannerTone.danger);
       expect(banner.density, AppBannerDensity.compact);
+      // 옮겨 적은 배너는 바탕만 하얗게 비운다(#2950).
+      expect(banner.resolved, isTrue);
       expect(
         tester.widget<Text>(find.text('메모 추가됨')).style?.color,
         OnCareColors.danger,
       );
-      expect(tester.widget<InkWell>(addButton).onTap, isNull);
+      expect(tester.widget<AppTag>(addButton).onTap, isNull);
       // 채팅에서 저장한 메모는 회원 상세가 읽는 것과 **같은** 메모 목록에 들어간다.
       final memos = await container
           .read(trainerMemoRepositoryProvider)

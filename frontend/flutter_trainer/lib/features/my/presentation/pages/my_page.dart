@@ -5,18 +5,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_kakao_map/oncare_kakao_map.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
 // Session은 앱 전역 상태라 예외적으로 auth feature 의 provider 를 직접
-// 사용한다 (라우터의 인증 게이트와 동일한 소비자). TODO: 실 백엔드
-// 도입 시 세션 계층을 core/session 으로 승격해 이 의존을 정리한다.
+// 사용한다 (라우터의 인증 게이트와 동일한 소비자).
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/core/utils/keep_words.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/core/web/leave_guard.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
@@ -1775,7 +1773,7 @@ class _CertsEditor extends StatelessWidget {
                 // 아이콘 하나뿐인 버튼이라 무엇을 지우는지 툴팁이 접근성
                 // 이름으로 말한다(#972).
                 AppIconButton(
-                  icon: AppIcons.close,
+                  icon: AppIcons.delete,
                   tooltip: l.a11yRemoveCertification,
                   color: OnCareColors.textTertiary,
                   onPressed: () => onRemove(i),

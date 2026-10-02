@@ -11,8 +11,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/core/network/auth_token.dart';
-import 'package:oncare/core/network/interceptors/auth_interceptor.dart';
-import 'package:oncare/core/network/session_refresh.dart';
+import 'package:oncare_core/network/auth_interceptor.dart';
+import 'package:oncare_core/network/session_refresh.dart';
 
 import '../../helpers/token_backend.dart';
 
@@ -64,7 +64,7 @@ class _Harness {
       dio.httpClientAdapter = backend;
       if (before != null) dio.interceptors.add(before);
       dio.interceptors.add(
-        AuthInterceptor(ref, retryClient: withRetry ? dio : null),
+        authInterceptorFor(ref, retryClient: withRetry ? dio : null),
       );
       return dio;
     });

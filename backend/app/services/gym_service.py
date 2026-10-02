@@ -117,7 +117,7 @@ def get_member_gym_id(db: Session, member_id: str) -> str | None:
     """회원이 직접 연결한 헬스장 id. 없으면 None.
 
     담당 트레이너의 소속에서 파생하지 않는다 — 트레이너만 해제해도 헬스장은 남아야
-    한다. 트레이너 소속으로의 폴백은 호출부(`trainer_service.build_member_coach`)가
+    한다. 트레이너 소속으로의 폴백은 호출부(`trainer.member_mirror.build_member_coach`)가
     아직 백필되지 않은 데이터를 위해 따로 처리한다.
     """
     return db.scalar(select(MemberGym.gym_id).where(MemberGym.member_id == member_id))
@@ -140,7 +140,7 @@ def unlink_member_gym(db: Session, member_id: str) -> bool:
     회원 헬스장 링크를 지우는 곳은 여기 하나다.
 
     **커밋하지 않는다.** 헬스장 해제는 담당 트레이너 해제와 함께 일어나므로
-    (`trainer_service.disconnect_member_gym`), 여기서 커밋하면 뒤 단계가 실패했을 때
+    (`trainer.member_mirror.disconnect_member_gym`), 여기서 커밋하면 뒤 단계가 실패했을 때
     헬스장만 끊기고 담당은 남는 반쪽 상태가 된다. 커밋은 호출부가 한 번만 한다.
     """
     link = db.get(MemberGym, member_id)
@@ -288,6 +288,6 @@ def get_trainer(
 
 def _is_my_coach(db: Session, member_id: str, trainer_id: str) -> bool:
     """`trainer_id` 가 이 회원의 현재 담당인가 — `/me/coach` 와 같은 기준(활성 링크)."""
-    from app.services import trainer_service
+    from app.services.trainer import _common as trainer_common_service
 
-    return trainer_service.get_member_trainer_id(db, member_id) == trainer_id
+    return trainer_common_service.get_member_trainer_id(db, member_id) == trainer_id

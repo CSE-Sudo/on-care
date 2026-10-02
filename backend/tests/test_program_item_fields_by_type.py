@@ -9,7 +9,7 @@
 """
 from __future__ import annotations
 
-from app.services.trainer_service import _amount_label
+from app.services.trainer._common import _amount_label
 from app.schemas.trainer_api import (
     ProgramDraftExercise,
     ProgramItem,

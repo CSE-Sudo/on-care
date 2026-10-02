@@ -7,6 +7,8 @@ library;
 
 export 'gen/l10n/report_sheet_localizations.dart';
 export 'src/demo_report_sheet.dart';
+export 'src/pdf_pages.dart';
+export 'src/pdf_pages_view.dart';
 export 'src/report_jpeg_encoder.dart' show encodeReportJpeg;
 export 'src/report_pdf_image.dart';
 export 'src/report_sheet.dart';

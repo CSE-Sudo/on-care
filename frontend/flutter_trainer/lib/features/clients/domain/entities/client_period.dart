@@ -1,4 +1,5 @@
-import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 트레이너가 고객 기록을 보는 기간 — 회원 앱 식단·운동 탭의 토글과 **같은
 /// 뜻·같은 순서**다(#914).
@@ -61,11 +62,7 @@ ClientDateRange clientRangeFor(
     case ClientPeriod.today:
       return (from: day, to: day);
     case ClientPeriod.week:
-      final DateTime monday = DateTime(
-        day.year,
-        day.month,
-        day.day - (day.weekday - 1),
-      );
+      final DateTime monday = mondayOf(day);
       return (
         from: monday,
         to: DateTime(monday.year, monday.month, monday.day + 6),
@@ -112,9 +109,9 @@ ClientDateRange clientRangeFor(
 /// [day] 가 속한 주의 월요일(시각은 0시).
 ///
 /// 서버도 데모도 운동·리포트 이력을 주 단위로 들고 있고, 그 키가 언제나
-/// 월요일이다. 읽는 쪽과 쓰는 쪽이 같은 함수를 써야 주가 어긋나지 않는다.
-DateTime clientMondayOf(DateTime day) =>
-    DateTime(day.year, day.month, day.day - (day.weekday - 1));
+/// 월요일이다. 읽는 쪽과 쓰는 쪽이 같은 함수를 써야 주가 어긋나지 않는다 —
+/// 두 앱이 함께 쓰는 `oncare_ui` 의 [mondayOf] 로 센다(#2908).
+DateTime clientMondayOf(DateTime day) => mondayOf(day);
 
 /// 범위가 덮는 모든 날짜(시작·끝 포함).
 List<DateTime> clientRangeDates(ClientDateRange range) {
@@ -133,16 +130,8 @@ List<DateTime> clientRangeDates(ClientDateRange range) {
 /// 서버도 데모도 운동·식단 이력을 **주 단위**로 읽는다. 한 달을 그리려면 그
 /// 달에 걸친 4~6개의 주를 각각 읽어 이어 붙인다.
 List<DateTime> clientRangeWeekStarts(ClientDateRange range) {
-  final DateTime first = DateTime(
-    range.from.year,
-    range.from.month,
-    range.from.day - (range.from.weekday - 1),
-  );
-  final DateTime last = DateTime(
-    range.to.year,
-    range.to.month,
-    range.to.day - (range.to.weekday - 1),
-  );
+  final DateTime first = mondayOf(range.from);
+  final DateTime last = mondayOf(range.to);
   final List<DateTime> out = <DateTime>[];
   DateTime cursor = first;
   while (!cursor.isAfter(last)) {

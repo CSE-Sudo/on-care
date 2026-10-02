@@ -20,6 +20,8 @@ from dataclasses import dataclass
 from datetime import date as date_type
 from datetime import timedelta
 
+from app.core.week import monday_of
+
 #: PT 를 가리키는 말. 이 말이 없으면 날짜·시각이 있어도 약속으로 보지 않는다 —
 #: "내일 오전 10시에 약 드세요" 를 PT 로 만들면 안 된다.
 _PT_WORDS = ("pt", "피티", "수업", "세션", "레슨")
@@ -81,7 +83,7 @@ def _resolve_date(text: str, sent_on: date_type) -> date_type | None:
         return sent_on if "오늘" in text else None
 
     # 3) 요일 — 이번 주는 월요일 기준, 다음 주는 그 다음 월요일 기준이다.
-    monday = sent_on - timedelta(days=sent_on.weekday())
+    monday = monday_of(sent_on)
     if "다음 주" in text or "다음주" in text or "담주" in text:
         return monday + timedelta(days=7 + weekday)
     if "이번 주" in text or "이번주" in text:

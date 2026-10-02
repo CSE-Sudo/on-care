@@ -3,7 +3,11 @@
 /// 백엔드 `points_service` 의 규칙과 같은 값이다. 앱 안에서는 목업 원장
 /// (`DemoPointsLedger`)의 적립·한도와 포인트 적립 안내창의 문구가 모두 여기서
 /// 숫자를 읽는다 — 안내창에 숫자를 따로 적으면 규칙을 바꿀 때 문구만 옛 값으로
-/// 남는다. 서버 규칙을 바꾸면 이 값도 함께 바꾼다.
+/// 남는다.
+///
+/// 원본은 `shared/oncare_rules/vectors/points_rules.json` 이다(#2906). 서버
+/// pytest 와 `test/core/points/points_rules_source_test.dart` 가 같은 파일과
+/// 대조하므로, 한쪽만 바꾸면 그쪽 테스트가 깨진다.
 ///
 /// 하루 한도는 KST 달력 날짜로 센다.
 enum PointsRule {

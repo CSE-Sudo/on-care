@@ -103,9 +103,9 @@ def make_trainer(client, db_session):
         row = db_session.get(models.User, trainer_id)
         if row is None:
             continue  # 테스트가 이미 지웠다 — 정상 경로.
-        from app.services import trainer_service
+        from app.services.trainer import profile as trainer_profile_service
 
-        trainer_service.delete_trainer_account(db_session, row)
+        trainer_profile_service.delete_trainer_account(db_session, row)
 
 
 def test_trainer_can_delete_their_account(client, db_session, gym_id, make_trainer):

@@ -56,18 +56,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionRetry => 'Retry';
 
   @override
-  String get errorNetwork => 'Network problem';
-
-  @override
-  String get errorUnauthorized => 'Sign in required';
-
-  @override
-  String get errorNotFound => 'Not found';
-
-  @override
-  String get errorServer => 'Server error';
-
-  @override
   String get errorCancelled => 'Cancelled';
 
   @override
@@ -134,9 +122,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Log today\'s meals and workouts, and we\'ll put together advice for your day.';
 
   @override
-  String get homeSodiumExceededBadge => 'Sodium over';
-
-  @override
   String get homeMacroCarbs => 'Carbs';
 
   @override
@@ -167,9 +152,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String homeWeeklyMetricTrend(String metric) {
     return 'Weekly $metric trend';
   }
-
-  @override
-  String get homeWeeklyExerciseTrend => 'Exercise trend';
 
   @override
   String get homeExerciseTrendUnavailable =>
@@ -259,16 +241,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeRecMealsErrorTitle => 'Couldn\'t load meal suggestions';
 
   @override
-  String get homeViewAll => 'View all';
-
-  @override
   String get unitKcal => 'kcal';
 
   @override
   String get unitMinutes => 'min';
-
-  @override
-  String get unitSets => 'sets';
 
   @override
   String unitKcalValue(int count) {
@@ -372,11 +348,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietPeriodEmpty => 'No meals were logged in this period.';
-
-  @override
-  String dietPeriodRange(String start, String end) {
-    return '$start - $end';
-  }
 
   @override
   String get dietPeriodNoRecord => 'No record';
@@ -703,24 +674,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exConnected => 'Connected';
 
   @override
-  String get exRecommendedGyms => 'Recommended Gyms';
-
-  @override
-  String get exRecommendedTrainers => 'Recommended Trainers';
-
-  @override
-  String get exSeeMore => 'See more';
-
-  @override
-  String get exNoConnectedGym => 'You don\'t have a connected gym yet.';
-
-  @override
-  String get exNoRecommendedGyms => 'No gym recommendations yet.';
-
-  @override
-  String get exNoRecommendedTrainers => 'No trainer recommendations yet.';
-
-  @override
   String get exTrainerAffiliation => 'Gym';
 
   @override
@@ -740,9 +693,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exNearbyGymsMapLabel => 'Gyms near me';
-
-  @override
-  String get exWeekSummary => 'This Week\'s Summary';
 
   @override
   String get exActivityTitle => 'Activity';
@@ -776,49 +726,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exPeriodAll => 'All';
 
   @override
-  String get exExerciseContent => 'What you did';
-
-  @override
-  String get exViewDetail => 'View details';
-
-  @override
-  String get exRegister => 'Register';
-
-  @override
-  String exGymRegistered(String gym) {
-    return 'Registered $gym';
-  }
-
-  @override
-  String exWeekNumber(int n) {
-    return 'Week $n';
-  }
-
-  @override
-  String get exTodayTotalTime => 'Today\'s total time';
-
-  @override
-  String get exRest => 'Rest';
-
-  @override
   String exRestSeconds(int seconds) {
     return 'Rest ${seconds}s';
   }
-
-  @override
-  String get exAiRecommendedExercise => 'AI recommended exercise';
-
-  @override
-  String get exStatTime => 'Time';
-
-  @override
-  String get exStatCalories => 'Calories';
-
-  @override
-  String get exStatStreak => 'Streak';
-
-  @override
-  String get exUnitStreakDays => 'day streak';
 
   @override
   String exStreakCheer(int days) {
@@ -875,9 +785,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exExerciseName => 'Exercise Name';
-
-  @override
-  String get exExerciseNameHint => 'e.g. Squat, Treadmill';
 
   @override
   String get exExerciseNameHintCardio => 'e.g. Treadmill, Indoor cycling';
@@ -1044,9 +951,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exRecordDetailTotalCalories => 'Total calories burned';
 
   @override
-  String get exOwnRecordSource => 'Self-logged';
-
-  @override
   String get exCompletedPtDayTitle => 'Completed PT';
 
   @override
@@ -1078,9 +982,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exTrainerDetailTitle => 'Trainer Details';
-
-  @override
-  String get exDistance => 'Distance';
 
   @override
   String get exRating => 'Rating';
@@ -1127,9 +1028,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exTrainersLoadError => 'Couldn\'t load trainers.';
 
   @override
-  String get exGymSearchHint => 'Search by gym or area';
-
-  @override
   String get exNearbyGyms => 'Nearby gyms';
 
   @override
@@ -1139,31 +1037,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exGymListExpand => 'Expand list';
 
   @override
-  String get exAiAnalysis => '✦ AI analysis';
-
-  @override
-  String exNoGymMatch(String query) {
-    return 'No gyms match \'$query\'';
-  }
-
-  @override
   String get exGymsLoadError => 'Couldn\'t load gyms.';
-
-  @override
-  String get exAiTopPick => '✦ AI top pick';
-
-  @override
-  String get exGymDetailHint => 'See trainers and request a consultation';
-
-  @override
-  String exReasonTrainer(String name, String role) {
-    return 'Personal trainer $name$role on site';
-  }
-
-  @override
-  String exReasonHours(String hours, String weekend) {
-    return 'Open $hours$weekend';
-  }
 
   @override
   String exGymWeekdayHours(String hours) {
@@ -1189,13 +1063,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get exSlotFull => 'Fully booked';
-
-  @override
   String get exSlotTypePersonalTraining => '1:1 PT';
-
-  @override
-  String get exSlotTypeConsultation => 'Consultation';
 
   @override
   String get exSlotsEmpty => 'No times available';
@@ -1224,12 +1092,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get exGymInfo => 'Gym Info';
-
-  @override
-  String get exConsultButton => '💬 1:1 Consult';
-
-  @override
   String get exAddress => 'Address';
 
   @override
@@ -1240,9 +1102,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exSpecialty => 'Specialties';
-
-  @override
-  String get exKakaoMapArea => 'Kakao Map area';
 
   @override
   String get myTabTitle => 'MY';
@@ -1732,9 +1591,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get challengeTitle => 'Weekly workout challenge';
 
   @override
-  String get challengeShort => 'Weekly challenge';
-
-  @override
   String challengeShortWithRange(String range) {
     return 'Weekly challenge · $range';
   }
@@ -1787,33 +1643,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String challengeAchieved(String reward) {
     return 'Goal reached! You get $reward when the week ends';
   }
-
-  @override
-  String challengeWeekTitle(String range) {
-    return 'Challenge $range';
-  }
-
-  @override
-  String get challengeStatusActive => 'In progress';
-
-  @override
-  String get challengeStatusSucceeded => 'Completed';
-
-  @override
-  String get challengeStatusFailed => 'Missed';
-
-  @override
-  String challengeResultSucceeded(int goal, int progress, String reward) {
-    return '$progress of $goal workouts · $reward earned';
-  }
-
-  @override
-  String challengeResultFailed(int goal, int progress, String stake) {
-    return '$progress of $goal workouts · $stake stake lost';
-  }
-
-  @override
-  String get challengeLoadFailed => 'Couldn\'t load challenges';
 
   @override
   String get myCouponStatusUsable => 'Available';
@@ -2214,9 +2043,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myFieldWeight => 'Weight (kg)';
 
   @override
-  String get myFieldGoals => 'Health and exercise goals';
-
-  @override
   String get myNotifExercise => 'Exercise reminder';
 
   @override
@@ -2239,14 +2065,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myLegalTermsBody =>
-      'Article 1 (Purpose)\nThese Terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and its members in connection with the use of the health management service (the \"Service\") the Company provides.\n\nArticle 2 (Effect and Amendment of the Terms)\n(1) These Terms apply to every member who uses the Service.\n(2) The Company may amend these Terms within the limits of applicable law. Any amendment is announced inside the Service together with its effective date and the reason for the change.\n\nArticle 3 (Provision of the Service)\nThe Company provides features that support a member\'s health management, including diet records, exercise records, health indicator tracking and AI coaching. The specific contents of the Service may change in line with the Company\'s policy.\n\nArticle 4 (Obligations of the Member)\nMembers must enter their own health information accurately. Information provided by the Service does not replace a medical diagnosis or treatment. If you have a health problem, please consult a qualified medical institution.\n\nArticle 5 (Limitation of Liability)\nTo the extent permitted by law, the Company is not liable for decisions a member makes on the basis of information obtained through the Service, nor for the consequences of those decisions.\n\nAddendum\nThese Terms take effect on 1 January 2026.\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.';
+      'Article 1 (Purpose)\nThese Terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and its members in connection with the use of the health management service (the \"Service\") the Company provides.\n\nArticle 2 (Effect and Amendment of the Terms)\n(1) These Terms apply to every member who uses the Service.\n(2) The Company may amend these Terms within the limits of applicable law. Any amendment is announced inside the Service together with its effective date and the reason for the change.\n\nArticle 3 (Provision of the Service)\nThe Company provides features that support a member\'s health management, including diet records, exercise records, health indicator tracking and AI coaching. The specific contents of the Service may change in line with the Company\'s policy.\n\nArticle 4 (Obligations of the Member)\nMembers must enter their own health information accurately. Information provided by the Service does not replace a medical diagnosis or treatment. If you have a health problem, please consult a qualified medical institution.\n\nArticle 5 (Limitation of Liability)\nTo the extent permitted by law, the Company is not liable for decisions a member makes on the basis of information obtained through the Service, nor for the consequences of those decisions.\n\nAddendum\nThese Terms take effect on 1 October 2026.\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.';
 
   @override
   String get myLegalPrivacyBody =>
-      'On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members\' personal information with care.\n\n1. Personal information collected\nFor membership registration and provision of the Service, the Company collects your name, email address, phone number and date of birth, together with health-related information such as diet, exercise and health indicators.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features, deliver personalised AI coaching, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nAs a rule, a member\'s personal information is destroyed without delay when the member withdraws from the Service. Where applicable law requires it to be retained, it is stored securely for the period the law prescribes.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member\'s consent, except where a law specifically provides otherwise.\n\n5. Sharing with your trainer and withdrawing consent\nWhen you agree to data sharing by requesting a consultation, accepting a coaching request or issuing a pairing code, your assigned trainer can see your meal records, workout records, body information and health goals. You can withdraw this consent at any time by removing your trainer or gym connection in the MY tab, and consent is also treated as withdrawn when the trainer ends the coaching relationship. The Company records when consent was given and when it was withdrawn. After you withdraw, the trainer can no longer see your new records, and reconnecting with the same trainer requires your consent again. Conversations you exchanged with the trainer and reports delivered before the withdrawal are not deleted.\n\n6. Rights of the user\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted.\n\n7. Personal information protection officer\nFor enquiries about personal information, please contact customer support (support@oncare.com).\n\nEffective date: 1 January 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.';
+      'On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members\' personal information with care.\n\n1. Personal information collected\n(1) Sign-up: email address, password (stored encrypted) and name. If you sign up with a social login (Kakao, Google, Naver or Apple), we receive the member identifier, email address and name that service passes on.\n(2) Profile and first setup: phone number, date of birth, gender, height, weight, health goals and diet and exercise targets.\n(3) Information you leave while using the Service: meal records and food photos, workout records, health indicators such as body weight, conversations with the AI coach, messages and attached photos exchanged with your trainer, and consultation and booking requests.\n(4) Information generated automatically: access logs such as sign-ins and password changes (time and IP address), and, when an error occurs, the error details, device type, operating system and app version.\n(5) Location: only if you allow your current location in gym search, we receive the device\'s current coordinates and use them to search nearby. They are not saved to your account.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features such as food photo analysis and nutrition calculation, deliver personalised AI coaching, connect you with a trainer, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nA member\'s personal information is kept until the member withdraws from the Service, and is then destroyed without delay following section 10. The following records are kept for the stated period and then destroyed.\n- Access logs such as sign-ins: one year (covering the three-month retention of sign-in records required by the Protection of Communications Secrets Act)\n- Records of trainers opening members\' health information, of data-sharing consent being given or withdrawn, and of account deletion: two years (processing records kept under the Standards for Personal Information Security Measures)\nA reason chosen when deleting an account is kept only as a reason code and a time, with no link to the member.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member\'s consent. Sharing with your trainer follows section 5, and processing entrusted to service providers follows sections 6 and 7. The exception is where a law specifically provides otherwise.\n\n5. Sharing with your trainer and withdrawing consent\nWhen you agree to data sharing by requesting a consultation, accepting a coaching request or issuing a pairing code, your assigned trainer can see your meal records, workout records, body information and health goals. You can withdraw this consent at any time by removing your trainer or gym connection in the MY tab, and consent is also treated as withdrawn when the trainer ends the coaching relationship. The Company records when consent was given and when it was withdrawn. After you withdraw, the trainer can no longer see your new records, and reconnecting with the same trainer requires your consent again. Conversations you exchanged with the trainer and reports delivered before the withdrawal are not deleted.\n\n6. Entrusted processing\nThe Company entrusts the following work to outside providers to deliver the Service. If a provider changes, this policy is updated to say so.\n- Amazon Web Services, Inc.: running the servers and storing chat photos and report PDFs\n- Neon: running the database (account information and all records)\n- Google LLC: food photo recognition, generating AI coach answers and recommendations, and building the search index the AI coach uses to look up your records (Gemini API)\n- Kakao Corp.: gym and place search and map display\n- Functional Software, Inc. (Sentry): collecting and analysing app and server errors\n\n7. Transfer of personal information overseas\nTo perform its contract with members, the Company has personal information processed and stored overseas as follows, and discloses this in this policy under Article 28-8(1)(3) of the Personal Information Protection Act. Each transfer happens over an encrypted network connection whenever the Service is used.\n(1) Amazon Web Services, Inc. / Singapore / member information and records in general, chat photo attachments and report PDFs / running the servers and storing files / until the member withdraws or the contract with the provider ends\n(2) Neon / Singapore / account, profile, diet, workout and health records and conversation records / running the database / until the member withdraws or the contract with the provider ends\n(3) Google LLC / the United States and other countries where Google operates data centres / food photos, the diet and workout records, body information and health goals needed for analysis, and conversations with the AI coach / AI analysis, answer generation and search indexing / for the period set in the provider\'s terms of service after the request is processed\n(4) Functional Software, Inc. (Sentry) / the United States / error details, device type, operating system and app version (name, email address, IP address and request contents are not sent) / error analysis / the provider\'s retention period\nEach time you save a meal or workout record, its contents are sent to (3) to build the AI coach\'s search index. If you do not want your information transferred overseas, you can refuse by deleting your account, but you will then be unable to use the Service.\n\n8. Processing of sensitive (health) information\nHealth information such as diet and workout records, body information and health goals is processed under Article 23 of the Personal Information Protection Act only with a separate consent obtained at sign-up, apart from other personal information. It is shared with your trainer only with the consent described in section 5.\n\n9. Children under 14\nThe Company does not accept sign-ups from children under 14, and confirms at sign-up that you are 14 or older.\n\n10. Destruction procedure and method\n(1) Procedure: when you delete your account in the MY tab, the Company immediately deletes the account together with your profile, meal and workout records and food photos, AI coach conversations and search index, notifications, social login links, and your trainer connection and conversations (including attached photos and report PDF files). Pending consultation requests and bookings are cancelled, and the trainers involved are told that you have left. Sessions already on a trainer\'s schedule keep your display name and the date and time as the trainer\'s work record. Records kept under section 3 are deleted automatically when their period ends.\n(2) Method: information held as electronic files is deleted from the database and file storage, and copies remaining in database recovery backups disappear when the backup retention period ends. The Company does not handle personal information on paper.\n\n11. Automatic collection tools\nThe Company does not use cookies or tracking tools for advertising or behavioural analysis. On the web, sign-in information is kept in browser storage to keep you signed in, and is removed when you sign out or clear your browser data.\n\n12. Safeguards\nThe Company stores passwords encrypted, encrypts traffic in transit, and limits trainers\' access to member information by assignment. When a trainer opens a member\'s health information, only the trainer, the member, the kind of information and the time are recorded, never the health information itself. Error reports are sent with names, email addresses, IP addresses and request contents removed.\n\n13. Rights of the user and how to exercise them\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted. You can edit your profile, delete your account and withdraw trainer-sharing consent in the MY tab. For any other request, contact the address in section 14 and it will be handled without delay.\n\n14. Personal information protection officer\nThe Company has appointed a personal information protection officer who oversees the processing of personal information and handles related complaints and remedies.\n- Position: Personal information protection officer, On-Care service operations team\n- Contact: support@oncare.com\n\n15. Remedies for infringement\nFor reports or advice about an infringement of personal information, you can contact the following bodies (in Korea).\n- Personal Information Dispute Mediation Committee: 1833-6972 (www.kopico.go.kr)\n- Personal Information Infringement Report Center: 118 (privacy.kisa.or.kr)\n- Supreme Prosecutors\' Office: 1301 (www.spo.go.kr)\n- Korean National Police Agency: 182 (ecrm.police.go.kr)\n\n16. Changes to this policy\nIf this policy changes, the Company announces it in the app before the effective date, and asks for consent again where the change requires it.\n- 3 October 2026: added entrusted processing, overseas transfer, sensitive information, children under 14, destruction procedure, automatic collection tools, safeguards, protection officer and remedies sections\n- 1 October 2026: first issued\n\nEffective date: 3 October 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.';
 
   @override
-  String get myLegalEffectiveDate => 'Effective Jan 1, 2026';
+  String get myLegalTermsEffectiveDate => 'Effective Oct 1, 2026';
+
+  @override
+  String get myLegalPrivacyEffectiveDate => 'Effective Oct 3, 2026';
 
   @override
   String get myAppVersion => 'On-Care · Version 1.0.0';
@@ -2333,9 +2162,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachChatSubtitle => 'Personal trainer';
 
   @override
-  String get coachChatBack => 'Back';
-
-  @override
   String get coachChatLoadOlder => 'Load older messages';
 
   @override
@@ -2411,229 +2237,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get coachChatReportOpenPdf => 'Open PDF';
-
-  @override
   String get coachChatReportPreviewPdf => 'Preview PDF';
-
-  @override
-  String get coachReportPdfDocTitle => 'Weekly report';
-
-  @override
-  String get coachReportPdfDocTitleContinued => 'Weekly report (cont.)';
-
-  @override
-  String coachReportPdfPeriod(String from, String to) {
-    return 'Period $from – $to';
-  }
-
-  @override
-  String get coachReportPdfSectionMetrics => 'Key metrics';
-
-  @override
-  String get coachReportPdfSectionTrend => 'Daily trend';
-
-  @override
-  String get coachReportPdfSectionDaily => 'Day by day';
 
   @override
   String coachReportPdfBullet(String label, String value) {
     return '· $label: $value';
   }
-
-  @override
-  String get coachReportPdfLabelWorkoutDays => 'Days trained';
-
-  @override
-  String get coachReportPdfLabelWorkoutMinutes => 'Total workout time';
-
-  @override
-  String get coachReportPdfLabelBurned => 'Calories burned';
-
-  @override
-  String get coachReportPdfLabelSessions => 'PT sessions';
-
-  @override
-  String get coachReportPdfLabelCalories => 'Average intake';
-
-  @override
-  String get coachReportPdfLabelSodium => 'Average sodium';
-
-  @override
-  String get coachReportPdfLabelSugar => 'Average sugar';
-
-  @override
-  String get coachReportPdfLabelMinutesShort => 'Workout time';
-
-  @override
-  String get coachReportPdfLabelCaloriesShort => 'Intake';
-
-  @override
-  String get coachReportPdfLabelSodiumShort => 'Sodium';
-
-  @override
-  String get coachReportPdfLabelSugarShort => 'Sugar';
-
-  @override
-  String coachReportPdfValueDays(String value) {
-    return '$value days';
-  }
-
-  @override
-  String coachReportPdfValueMinutes(String value) {
-    return '$value min';
-  }
-
-  @override
-  String coachReportPdfValueKcal(String value) {
-    return '$value kcal';
-  }
-
-  @override
-  String coachReportPdfValueMg(String value) {
-    return '$value mg';
-  }
-
-  @override
-  String coachReportPdfValueGram(String value) {
-    return '$value g';
-  }
-
-  @override
-  String coachReportPdfAttendance(String done, String booked) {
-    return '$done of $booked';
-  }
-
-  @override
-  String get coachReportPdfNoData => 'No data';
-
-  @override
-  String coachReportPdfDay(String weekday, String exercise, String intake) {
-    return '$weekday — workout $exercise, intake $intake';
-  }
-
-  @override
-  String get coachReportPdfSectionTrainerNote => 'Trainer feedback';
-
-  @override
-  String get coachReportPdfNoTrainerNote =>
-      'No feedback came with this report.';
-
-  @override
-  String get coachReportPdfSectionChange => 'Change from last week';
-
-  @override
-  String get coachReportPdfSectionMacros => 'Average macros';
-
-  @override
-  String get coachReportPdfLabelLoggedDays => 'Days with meals logged';
-
-  @override
-  String get coachReportPdfLabelSodiumOver => 'Days over the sodium goal';
-
-  @override
-  String get coachReportPdfLabelPtDone => 'PT sessions done';
-
-  @override
-  String coachReportPdfValueSessions(String value) {
-    return '$value sessions';
-  }
-
-  @override
-  String get coachReportPdfLabelCardio => 'Cardio';
-
-  @override
-  String get coachReportPdfLabelStrength => 'Strength';
-
-  @override
-  String get coachReportPdfLabelStretching => 'Stretching';
-
-  @override
-  String get coachReportPdfSectionTypes => 'Minutes by workout type';
-
-  @override
-  String get coachReportPdfNoSessions => 'None booked';
-
-  @override
-  String get coachReportPdfBandPeriod => 'Period';
-
-  @override
-  String get coachReportPdfSectionGoals => 'Against your goals';
-
-  @override
-  String get coachReportPdfColumnMetric => 'Metric';
-
-  @override
-  String get coachReportPdfColumnThisWeek => 'This week';
-
-  @override
-  String get coachReportPdfColumnLastWeek => 'Last week';
-
-  @override
-  String get coachReportPdfColumnChange => 'Change';
-
-  @override
-  String get coachReportPdfColumnWeekday => 'Day';
-
-  @override
-  String get coachReportPdfColumnWorkout => 'Workout';
-
-  @override
-  String get coachReportPdfColumnIntake => 'Intake';
-
-  @override
-  String get coachReportPdfUpcoming => 'Still to come';
-
-  @override
-  String coachReportPdfGoalOf(String value, String target) {
-    return '$value (goal $target)';
-  }
-
-  @override
-  String coachReportPdfChartTarget(String value) {
-    return 'goal $value';
-  }
-
-  @override
-  String coachReportPdfDayUpcoming(String weekday) {
-    return '$weekday — still to come';
-  }
-
-  @override
-  String coachReportPdfChange(
-    String label,
-    String current,
-    String previous,
-    String delta,
-  ) {
-    return '· $label: $current (last week $previous, $delta)';
-  }
-
-  @override
-  String coachReportPdfDeltaUp(String value) {
-    return '+$value';
-  }
-
-  @override
-  String coachReportPdfDeltaDown(String value) {
-    return '-$value';
-  }
-
-  @override
-  String get coachReportPdfDeltaSame => 'no change';
-
-  @override
-  String get coachReportPdfNoPreviousWeek =>
-      'There are no records from last week to compare with.';
-
-  @override
-  String coachReportPdfSodiumTargetNote(String target) {
-    return 'The sodium goal is the ${target}mg daily target you set on the MY screen.';
-  }
-
-  @override
-  String get coachReportPdfPreviewNote =>
-      'Built from your own records for the week the trainer\'s report covers.';
 
   @override
   String coachReportPdfFileName(String date) {
@@ -2694,9 +2303,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aicHeaderSubtitle => 'Ask me anytime';
-
-  @override
-  String get aicDatePillToday => 'Today';
 
   @override
   String get aicMedicalDisclaimer =>
@@ -3006,43 +2612,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exTimeFlexible => 'Discuss Later';
 
   @override
-  String get exTimeRangeTitle => 'Select time';
-
-  @override
-  String get exTimeRangeStartTime => 'Start time';
-
-  @override
-  String get exTimeRangeEndTime => 'End time';
-
-  @override
-  String get exTimeRangeStartHourStep => 'Start hour';
-
-  @override
-  String get exTimeRangeStartMinuteStep => 'Start minute';
-
-  @override
-  String get exTimeRangeEndHourStep => 'End hour';
-
-  @override
-  String get exTimeRangeEndMinuteStep => 'End minute';
-
-  @override
-  String get exSlotAm => 'AM';
-
-  @override
-  String get exSlotPm => 'PM';
-
-  @override
-  String get exTimeRangeInvalidEnd =>
-      'End time must be later than the start time.';
-
-  @override
-  String get exTimeRangePrevStep => 'Previous step';
-
-  @override
-  String get exTimeRangeNextStep => 'Next step';
-
-  @override
   String get exConsultMessage => 'Message';
 
   @override
@@ -3088,9 +2657,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exReturnExercise => 'Return to Exercise';
-
-  @override
-  String get exConsultStatusSection => 'Consultation Request Status';
 
   @override
   String get exConsultHistoryTitle => 'My Consultation Requests';
@@ -3206,6 +2772,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authEmailInvalid => 'Enter a valid email address';
+
+  @override
+  String get authEmailTooLong => 'Email addresses can be up to 255 characters';
 
   @override
   String get authPasswordEmpty => 'Enter your password';
@@ -3852,15 +3421,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGoalMacroApplySuggestion => 'Use suggested split';
 
   @override
-  String get myGoalWorkoutCount => 'Weekly workout count goal';
-
-  @override
-  String get myGoalWorkoutMinutes => 'Weekly workout minutes goal';
-
-  @override
-  String get myGoalWorkoutCalories => 'Weekly calories burned goal (kcal)';
-
-  @override
   String get myGoalUnsetHint =>
       'Dimmed values are the baseline used before you set a goal';
 
@@ -3917,9 +3477,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachAssignedTrainer => 'My trainer';
 
   @override
-  String get coachPointsTitle => 'This week\'s coaching points';
-
-  @override
   String get coachRoutineTitle => 'Recommended solo workouts';
 
   @override
@@ -3938,52 +3495,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get coachRoutineGone =>
       'This program no longer exists. Please refresh the list';
-
-  @override
-  String get routineEffectCardioDefault =>
-      'Builds fitness and helps prevent chronic disease';
-
-  @override
-  String get routineEffectStrengthDefault =>
-      'Builds strength and muscular endurance';
-
-  @override
-  String get routineEffectStretchDefault =>
-      'Improves flexibility and helps prevent injury';
-
-  @override
-  String get routineEffectBloodPressure => 'Helps manage blood pressure';
-
-  @override
-  String get routineEffectFatLoss => 'Helps reduce body fat';
-
-  @override
-  String get routineEffectCardioFitness => 'Improves cardiorespiratory fitness';
-
-  @override
-  String get routineEffectGentleRecovery => 'Rebuilds fitness without strain';
-
-  @override
-  String get routineEffectMuscleMass => 'Maintains and builds muscle mass';
-
-  @override
-  String get routineEffectStrength => 'Builds strength';
-
-  @override
-  String get routineEffectPostureMuscles =>
-      'Strengthens posture-supporting muscles';
-
-  @override
-  String get routineEffectHeartRate => 'Steadies blood pressure and heart rate';
-
-  @override
-  String get routineEffectMuscleRecovery => 'Helps muscles recover';
-
-  @override
-  String get routineEffectLoosen => 'Loosens tight muscles';
-
-  @override
-  String get routineEffectJointRange => 'Restores joint range of motion';
 
   @override
   String get coachRoutineNetworkError => 'Check your connection and try again';
@@ -4240,9 +3751,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get a11yRemoveFood => 'Remove food';
-
-  @override
-  String get a11yOpenCalendar => 'Open schedule calendar';
 
   @override
   String get a11yPrevWeek => 'Previous week';
@@ -5113,9 +4621,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get weeklyFeedbackLoadFailed =>
       'Couldn\'t load the weekly feedback you sent';
-
-  @override
-  String get coachReportOpen => 'Open report';
 
   @override
   String coachReportSentOn(int month, int day) {

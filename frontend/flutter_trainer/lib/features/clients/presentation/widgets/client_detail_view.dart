@@ -566,17 +566,11 @@ class _Header extends StatelessWidget {
                       const SizedBox(width: OnCareSpacing.s8),
                       Tooltip(
                         message: l.clientDormantActivate,
-                        child: Material(
-                          type: MaterialType.transparency,
-                          child: InkWell(
-                            key: const ValueKey<String>('client-status-toggle'),
-                            onTap: onActivate,
-                            borderRadius: OnCareRadius.pillAll,
-                            child: AppTag(
-                              label: l.clientDormant,
-                              icon: AppIcons.dormant,
-                            ),
-                          ),
+                        child: AppTag(
+                          key: const ValueKey<String>('client-status-toggle'),
+                          label: l.clientDormant,
+                          icon: AppIcons.dormant,
+                          onTap: onActivate,
                         ),
                       ),
                     ],

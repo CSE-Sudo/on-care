@@ -216,9 +216,7 @@ class _FakeServer implements HttpClientAdapter {
         'name': '김회원',
         'email': 'member@oncare.test',
       },
-      'risk': <String, Object?>{'title': '', 'body': '', 'level': 'low'},
       'activity_points': 120,
-      'settings': <Object?>[],
     },
     'GET /me/activity-calendar': <String, Object?>{
       'days': <Object?>[],

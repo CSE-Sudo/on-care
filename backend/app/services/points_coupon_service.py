@@ -272,10 +272,6 @@ class CouponNotUsable(CouponError):
         self.status = status
 
 
-def item_of(item_id: str) -> ShopItem | None:
-    return _ITEMS.get(item_id)
-
-
 def gym_benefits_enabled() -> bool:
     """헬스장 현장 혜택(PT 재등록·락커·식판)을 여는 서버인가(#2822).
 
@@ -306,10 +302,11 @@ def build_shop(db: Session, member_id: str) -> PointsShopOut:
     주간 리포트는 **담당 트레이너가 있는 회원에게는 싣지 않는다**(#2022) — 트레이너가
     등록해 주므로 살 이유가 없고, 막힌 카드로 남겨 두면 목록만 길어진다.
     """
-    from app.services import gym_service, trainer_service
+    from app.services import gym_service
+    from app.services.trainer import _common as trainer_common_service
 
     balance = points_service.balance(db, member_id)
-    has_trainer = trainer_service.get_member_trainer_id(db, member_id) is not None
+    has_trainer = trainer_common_service.get_member_trainer_id(db, member_id) is not None
     has_gym = gym_service.get_member_gym(db, member_id) is not None
     benefits_on = gym_benefits_enabled()
     now = clock.now()
@@ -446,7 +443,8 @@ def exchange(
     [option] 은 항목이 여러 갈래일 때 고른 갈래다 — 그래프 색(#2076)과 프로필 펫
     (#2021)이고, 다른 항목은 보지 않는다.
     """
-    from app.services import gym_service, trainer_service
+    from app.services import gym_service
+    from app.services.trainer import member_mirror as trainer_member_mirror_service
 
     item = _ITEMS.get(item_id) if item_id in _CATALOG_IDS else None
     if item is None:
@@ -485,7 +483,7 @@ def exchange(
     trainer_name = ""
     gym_name = ""
     if item.requires_trainer:
-        coach = trainer_service.build_member_coach(db, member_id)
+        coach = trainer_member_mirror_service.build_member_coach(db, member_id)
         if coach is None:
             raise TrainerRequired("담당 트레이너가 있어야 교환할 수 있어요.")
         trainer_id = coach.trainer_id

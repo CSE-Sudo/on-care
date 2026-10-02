@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'package:oncare/app/app_icons.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 import 'package:oncare/features/benefits/domain/entities/points_history.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 교환 항목·쿠폰의 화면 문구와 아이콘. (#1787)
 ///
@@ -184,21 +184,6 @@ String pointsDelta(AppLocalizations l, int delta) {
   if (delta < 0) return '−$amount';
   return amount;
 }
-
-/// 폭 없는 줄바꿈 금지 문자(U+2060 WORD JOINER).
-const String _wordJoiner = '\u2060';
-
-/// 줄이 **띄어쓰기에서만** 바뀌게 한다. 사용처 화면의 카드(분석용 식판 #2150,
-/// 주간 챌린지 #1789)가 설명·안내 줄에 쓴다.
-///
-/// 한 덩어리 Text 로 두면 한글은 음절 사이 어디서나 끊겨 `분석` / `에 맞춘`,
-/// `받아` / `요` 처럼 갈린다. 낱말 안의 글자 사이마다 줄바꿈 금지 문자를 끼워
-/// 낱말을 통째로 넘긴다(식단 화면의 `_keepTogether` 와 같은 방법을 낱말 단위로).
-/// 한 낱말이 한 줄보다 길면 Flutter 가 그 안에서 끊는다.
-String keepWords(String text) => text
-    .split(' ')
-    .map((String word) => word.runes.map(String.fromCharCode).join(_wordJoiner))
-    .join(' ');
 
 /// 쿠폰의 혜택 한 줄.
 String couponBenefit(AppLocalizations l, Coupon coupon) => switch (coupon.item) {

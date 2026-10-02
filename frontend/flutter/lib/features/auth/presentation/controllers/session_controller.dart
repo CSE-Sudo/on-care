@@ -5,10 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/network/auth_token.dart';
 import 'package:oncare/core/network/dio_client.dart';
-import 'package:oncare/core/network/session_refresh.dart';
 import 'package:oncare/core/session/session_feature_reset.dart';
 import 'package:oncare/core/storage/prefs_store.dart';
 import 'package:oncare/core/storage/secure_token_store.dart';
+import 'package:oncare_core/network/session_refresh.dart';
 
 enum SessionStatus { unknown, signedOut, demo, authenticated }
 

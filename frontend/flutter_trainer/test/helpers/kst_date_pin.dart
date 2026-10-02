@@ -11,8 +11,7 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 고정을 걷어 낸 실제 KST 시각.
 ///

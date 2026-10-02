@@ -6,6 +6,7 @@ GET /trainer/me 응답:
 """
 from __future__ import annotations
 
+import json
 from datetime import date as _date, datetime as _datetime
 from typing import Annotated, Any, ClassVar, Literal, TypeVar
 
@@ -887,6 +888,24 @@ def _check_program_total_exercises(
     return sessions
 
 
+#: 자동 보관 작성 상태(`workspace`)를 JSON 으로 옮긴 길이 상한(#2873). 위저드의
+#: A/B 후보·분석과 개인운동을 넉넉히 담고, 한 요청이 화면 상태라며 큰 덩어리를
+#: 밀어 넣는 것은 막는다.
+PROGRAM_WORKSPACE_MAX_CHARS = 64_000
+
+
+def _check_program_workspace(
+    workspace: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """작성 상태가 [PROGRAM_WORKSPACE_MAX_CHARS] 를 넘지 않는지 본다(#2873)."""
+    if workspace is not None and (
+        len(json.dumps(workspace, ensure_ascii=False))
+        > PROGRAM_WORKSPACE_MAX_CHARS
+    ):
+        raise ValueError("작성 상태가 너무 큽니다.")
+    return workspace
+
+
 class TrainerProgramDraftOut(BaseModel):
     """저장된 프로그램 초안. 세션은 저장한 순서 그대로 돌아온다."""
     id: str
@@ -895,6 +914,11 @@ class TrainerProgramDraftOut(BaseModel):
     period: str
     memo: str
     sessions: list[ProgramDraftSession]
+    #: 자동 보관한 회원(#2873). 회원 없는 초안(#708)은 비어 있다.
+    member_id: str | None = None
+    #: 편집기 밖의 작성 상태 — 위저드 단계·후보·개인운동(#2873). 화면이 쓰고
+    #: 화면이 읽는 값이라 서버는 해석하지 않는다.
+    workspace: dict[str, Any] = Field(default_factory=dict)
     created_at: _datetime
     updated_at: _datetime
 
@@ -911,6 +935,8 @@ class TrainerProgramDraftSummary(BaseModel):
     period: str
     session_count: int
     exercise_count: int
+    #: 자동 보관한 회원(#2873). 회원 없는 초안은 비어 있다.
+    member_id: str | None = None
     updated_at: _datetime
 
 
@@ -925,8 +951,13 @@ class TrainerProgramDraftCreate(BaseModel):
     sessions: list[ProgramDraftSession] = Field(
         default_factory=list, max_length=_PROGRAM_MAX_SESSIONS
     )
+    #: 코칭 화면이 자동 보관하는 회원(#2873). 담당 회원이 아니면 404 다.
+    #: 비우면 지금까지처럼 회원 없는 초안이다.
+    member_id: str | None = Field(default=None, min_length=1, max_length=64)
+    workspace: dict[str, Any] | None = None
 
     _v_total = field_validator("sessions")(_check_program_total_exercises)
+    _v_workspace = field_validator("workspace")(_check_program_workspace)
 
 
 class TrainerProgramDraftUpdate(PartialUpdate):
@@ -943,8 +974,12 @@ class TrainerProgramDraftUpdate(PartialUpdate):
     sessions: list[ProgramDraftSession] | None = Field(
         default=None, max_length=_PROGRAM_MAX_SESSIONS
     )
+    #: 작성 상태는 통째로 교체한다(#2873). 회원은 바꾸지 않는다 — 다른 회원에게
+    #: 짜던 내용이 되면 새 초안이다.
+    workspace: dict[str, Any] | None = None
 
     _v_total = field_validator("sessions")(_check_program_total_exercises)
+    _v_workspace = field_validator("workspace")(_check_program_workspace)
 
 
 class PersonalRoutineItem(BaseModel):
@@ -2020,6 +2055,10 @@ class WeeklyReportOut(BaseModel):
     fat_target: float | None = None
     #: 월→일 7칸. 이행률과 함께 그날의 운동 내역을 담는다(#754).
     days: list[WeeklyReportDayOut] = Field(default_factory=list)
+    #: 칼로리 `평소` — 직전 4주(28일)에 기록한 날의 하루 평균 kcal(#2863).
+    #: 편집기가 이번 주 칼로리를 견주는 기준이다. 예전에는 앱이 직전 4주
+    #: 리포트·회원 피드백을 통째로 다시 불러 계산했다. 기록이 없으면 null.
+    calorie_baseline: float | None = None
     message: str                 # 회원에게 전송될 본문(미리보기와 동일)
 
 
@@ -2136,6 +2175,26 @@ class ReportSendOut(BaseModel):
     has_pdf: bool
     #: 그 주 리포트를 몇 번 보냈는가. 다시 보낸 적이 있으면 2 이상이다.
     send_count: int = Field(ge=1)
+
+
+class ReportQueueItemOut(BaseModel):
+    """리포트 작업대 한 줄의 수치 — 담당 회원 한 명의 그 주. (#2863)
+
+    작업대가 줄 순서와 신호를 세우는 데 쓰는 값만 싣는다. 같은 회원의
+    `WeeklyReportOut` 과 **같은 규칙·같은 값**이다(`sessions_*`·`completion_avg`·
+    `week_completion`). 식단·회원 피드백은 편집기를 열 때 리포트가 따로 준다.
+    """
+    member_id: str
+    sessions_booked: int
+    sessions_done: int
+    completion_avg: int | None   # 기록이 없으면 null (0% 아님)
+    week_completion: list[int] = Field(default_factory=list)
+
+
+class ReportQueueOut(BaseModel):
+    """그 주 리포트 작업대 — 열람할 수 있는 담당 회원 전원의 요약. (#2863)"""
+    week_start: str              # YYYY-MM-DD (월요일)
+    items: list[ReportQueueItemOut] = Field(default_factory=list)
 
 
 class ReportSendsOut(BaseModel):

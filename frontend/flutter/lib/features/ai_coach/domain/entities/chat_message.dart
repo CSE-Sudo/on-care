@@ -1,6 +1,6 @@
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_chat_quota.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
+import 'package:oncare_core/clock.dart';
 
 enum ChatRole { user, coach }
 

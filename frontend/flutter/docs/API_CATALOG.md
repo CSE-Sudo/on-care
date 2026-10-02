@@ -38,20 +38,12 @@
 | GET | `/users/me/health` | `MyHealthState` payload | `MockMyHealthRepository.fetchState` |
 | GET | `/users/me/points` | `{ points, rank, leaderboard?[] }` | MyHealth `PointsCard` |
 
-`MyHealthState` payload (한 endpoint로 조합해 반환):
+`MyHealthState` payload (MY 계정 카드 — 필드 전체는 `backend/API_CONTRACT.md` 사용자 절):
 
 ```json
 {
-  "profile": { "name": "김민수", "email": "minsu@oncare.com" },
-  "risk":    { "title": "...", "body": "...", "level": "medium" },
-  "indicators": [
-    { "kind": "weight", "label": "체중", "latest_value": "68.2",
-      "unit": "kg", "delta_text": "-1.2kg (지난주 대비)",
-      "improving": true, "last_7_days": [0.95, 0.92, ...] }
-  ],
-  "activity_points": 1240,
-  "activity_rank": 14,
-  "settings": [{ "label": "개인 정보", "icon": "👤" }, ...]
+  "profile": { "id": "user-7d4e9a2c5f18", "name": "김민수", "email": "minsu@oncare.com" },
+  "activity_points": 1240
 }
 ```
 
@@ -267,8 +259,8 @@
 | GET | `/healthz` | `{status: "ok", version: "..."}` |
 | GET | `/version` | `{api_version, commit_sha}` |
 
-`MockApiInterceptor`의 `GET /ping → {message: "pong (mock)"}`도 dev/test
-용으로 살려두면 좋습니다.
+데모 모드(`USE_MOCK_API=true`)에서는 `LocalApiInterceptor` 가
+`GET /ping → {message: "pong (local)"}` 를 답합니다.
 
 ---
 

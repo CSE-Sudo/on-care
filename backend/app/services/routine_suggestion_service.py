@@ -1,6 +1,6 @@
 """담당 트레이너가 있는 회원의 AI 개인운동 후보를 준비한다. (#790)
 
-승인 흐름(`trainer_service.approve_routine_suggestion`)만으로는 검토할 것이
+승인 흐름(`trainer.routine_suggestions.approve_routine_suggestion`)만으로는 검토할 것이
 생기지 않는다. 트레이너가 매번 회원을 골라 직접 생성을 요청해야 후보가 나오면
 관리 부담이 줄지 않는다 — 이 이슈의 요구는 **AI 가 먼저 준비하고 트레이너는
 판단만 한다**는 것이다. 이 모듈이 그 '먼저 준비' 를 맡는다.
@@ -29,7 +29,7 @@
 **사유는 트레이너가 읽는 판단 재료다(#2579).** `reason` 은 "이 회원의 어떤
 기록 때문에 이 운동이 올라왔나" 를 기록 숫자(최근 2주 운동 시간·근력 비중·PT
 뒤 며칠)로 말한다. 회원에게 가지 않는다 — 회원 응답은 근거가 있는 행(= AI 제안)의
-사유를 비우고(`trainer_service._routine_out`), 회원 카드에는 효과 한 줄
+사유를 비우고(`trainer._common._routine_out`), 회원 카드에는 효과 한 줄
 (`effect`, #2570)이 선다.
 
 **언어(#2301).** 근거는 코드로 저장해 트레이너 웹이 화면 언어로 표시한다. 운동
@@ -57,7 +57,7 @@ from app.models.models import (
 )
 from app.services import exercise_activity, exercise_types
 
-#: 검토 대기 상태. 상수의 출처는 [app.services.trainer_service] 지만 그 모듈이 이
+#: 검토 대기 상태. 상수의 출처는 [app.services.trainer._common] 이지만 그 모듈이 이
 #: 모듈을 불러오므로 값을 여기서 다시 적는다(순환 import 회피) —
 #: `auto_routine_service` 가 `approved` 를 다시 적는 것과 같은 이유다. 어긋나면
 #: 검토 목록이 곧바로 비어서 드러난다.
@@ -107,7 +107,7 @@ EVIDENCE_CODES: tuple[str, ...] = (
 )
 
 #: 코드로 바꾸기 전(#2301)에 문장으로 저장된 근거 → 코드. 이미 준비된 검토 대기
-#: 후보가 영어 화면에서도 번역되게, 읽는 쪽(`trainer_service.suggestion_evidence`)이
+#: 후보가 영어 화면에서도 번역되게, 읽는 쪽(`trainer._common.suggestion_evidence`)이
 #: 이 표로 코드로 되돌린다. 모르는 문장은 원문 그대로 둔다.
 LEGACY_EVIDENCE_LABELS: dict[str, str] = {
     "최근 PT 피드백 반영": EV_RECENT_PT,

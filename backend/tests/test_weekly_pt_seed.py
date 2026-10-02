@@ -136,7 +136,7 @@ def test_report_sessions_booked_matches_the_schedule(client, db_session):
     from app.db.seed_member_data import _JOINED_WEEKS_AGO, _WEEKLY_PT, _valid_member_ids
     from app.db.seed_trainer import TRAINER_ID
     from app.models.models import TrainerSchedule
-    from app.services.trainer_service import build_weekly_report
+    from app.services.trainer.reports import build_weekly_report
 
     valid = _valid_member_ids(db_session)
     for member_id in _WEEKLY_PT:

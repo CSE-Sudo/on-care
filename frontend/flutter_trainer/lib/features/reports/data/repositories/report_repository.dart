@@ -1,25 +1,29 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/widgets.dart' show Locale, immutable;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_core/network/accept_language_interceptor.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
-import 'package:oncare_trainer/core/network/interceptors/accept_language_interceptor.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart'
     show seedLanguageKey;
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_summary.dart';
+import 'package:oncare_trainer/features/reports/data/repositories/calorie_baseline.dart'
+    show kCalorieBaselineWeeks;
 import 'package:oncare_trainer/features/reports/domain/member_report_history.dart';
 import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
+import 'package:oncare_trainer/features/reports/domain/report_queue_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/report_send_record.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
@@ -54,6 +58,20 @@ abstract interface class ReportRepository {
   /// source emits once (fetch → value), like the other API repositories.
   Stream<WeeklyReport> watch({
     required TrainerClient client,
+    required DateTime weekStart,
+  });
+
+  /// [clients] 의 [weekStart] 주 작업대 요약 — 회원 전원을 한 번에. (#2863)
+  ///
+  /// 작업대는 줄 순서·신호에 쓰는 몇 값만 있으면 된다. 회원마다 [watch] 로
+  /// 리포트 본문과 회원 피드백을 통째로 불러 큐를 세우면 회원 N명에 요청이
+  /// 2N개 나가고, 주를 옮길 때마다 다시 나간다. 실서버는
+  /// `GET /trainer/reports/queue` 한 번이고, 데모는 같은 값을 시드에서 낸다.
+  ///
+  /// 실서버의 회원 목록은 서버가 정한다(담당·동의가 유효한 회원). 화면은 받은
+  /// 값을 회원 id 로 명단에 붙이고, 값이 없는 회원은 수치 없이 줄만 세운다.
+  Stream<List<ReportQueueSummary>> watchQueue({
+    required List<TrainerClient> clients,
     required DateTime weekStart,
   });
 
@@ -170,9 +188,48 @@ class LocalReportRepository implements ReportRepository {
             // 회원 목표 — 실서버 응답의 `*_target` 과 같은 출처(건강 프로필)다.
             // 안 넘기면 판정·주간 표가 공통 상수를 써서 실서버와 다르게 읽힌다.
             targets: await _targets(client.id),
+            // ① 칼로리 `평소` — 실서버 `calorie_baseline` 과 같은 규칙(#2863).
+            calorieBaseline: await _calorieBaseline(client.id, start),
           ),
         );
   }
+
+  /// [monday] 앞 [kCalorieBaselineWeeks] 주 동안 칼로리를 기록한 날의 하루
+  /// 평균. 기록이 없으면 null. (#2863)
+  ///
+  /// 예전 화면이 직전 4주 리포트의 `caloriesWeek` 에서 0 을 빼고 평균하던 것과
+  /// 같은 값이다 — 그 배열도 이 표의 `calories` 를 날짜별로 담았다.
+  Future<double?> _calorieBaseline(String clientId, DateTime monday) async {
+    // 달력 날짜로 뺀다 — 서머타임 전환 주에 `Duration` 은 날짜를 어긋낸다(#2774).
+    final DateTime from = DateTime(
+      monday.year,
+      monday.month,
+      monday.day - 7 * kCalorieBaselineWeeks,
+    );
+    final DateTime to = DateTime(monday.year, monday.month, monday.day - 1);
+    final rows =
+        await (_db.select(_db.clientDailyMetrics)..where(
+              (t) =>
+                  t.clientId.equals(clientId) &
+                  t.date.isBiggerOrEqualValue(ymd(from)) &
+                  t.date.isSmallerOrEqualValue(ymd(to)),
+            ))
+            .get();
+    final List<int> recorded = <int>[
+      for (final ClientDailyMetricRow row in rows)
+        if (row.calories > 0) row.calories,
+    ];
+    if (recorded.isEmpty) return null;
+    return recorded.fold<int>(0, (int a, int b) => a + b) / recorded.length;
+  }
+
+  /// 데모 작업대 요약 — 회원별 리포트에서 같은 값을 뽑는다(#2863). 실서버
+  /// 요약도 회원별 리포트와 같은 규칙으로 센다.
+  @override
+  Stream<List<ReportQueueSummary>> watchQueue({
+    required List<TrainerClient> clients,
+    required DateTime weekStart,
+  }) => reportQueueFromReports(this, clients: clients, weekStart: weekStart);
 
   /// 데모 건강 프로필(`member_health_profile:<id>`)의 하루 목표.
   Future<ReportTargets> _targets(String clientId) async {
@@ -636,6 +693,32 @@ class DioReportRepository implements ReportRepository {
     }
   }
 
+  @override
+  Stream<List<ReportQueueSummary>> watchQueue({
+    required List<TrainerClient> clients,
+    required DateTime weekStart,
+  }) {
+    return Stream<List<ReportQueueSummary>>.fromFuture(_fetchQueue(weekStart));
+  }
+
+  /// 작업대 요약 한 번(#2863). 회원 목록은 서버가 정한다 — [clients] 를
+  /// 보내지 않는다.
+  Future<List<ReportQueueSummary>> _fetchQueue(DateTime weekStart) async {
+    try {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/trainer/reports/queue',
+        queryParameters: <String, String>{
+          'week_start': ymd(weekStartOf(weekStart)),
+        },
+      );
+      final json = res.data;
+      if (json == null) throw const ServerError();
+      return reportQueueFromJson(json);
+    } on DioException catch (e) {
+      throw AppError.fromDio(e);
+    }
+  }
+
   /// 회원이 그 주에 낸 세 문항. 안 냈거나 읽지 못하면 null. (#2286)
   ///
   /// 이 칸 하나 때문에 리포트 전체를 오류 화면으로 바꾸지 않는다 — 수치는
@@ -893,6 +976,8 @@ WeeklyReport weeklyReportFromJson(
           ),
     ],
     memberFeedback: memberFeedback,
+    // 직전 4주 칼로리 `평소`(#2863). 기록이 없으면 null 로 온다.
+    calorieBaseline: (json['calorie_baseline'] as num?)?.toDouble(),
   );
 }
 
@@ -901,6 +986,98 @@ WeeklyReport weeklyReportFromJson(
 /// `assignedCount` 와 같은 규칙).
 int? _assignedOf(Object? value) =>
     value is num && value > 0 ? value.toInt() : null;
+
+/// Decodes `ReportQueueOut`. (#2863)
+///
+/// 회원 id 를 읽지 못한 줄은 버린다 — 누구의 수치인지 모르는 값을 줄에 붙이지
+/// 않는다. 평균은 기록이 없으면 null 로 온다(0% 가 아니다).
+List<ReportQueueSummary> reportQueueFromJson(Map<String, dynamic> json) {
+  final Object? items = json['items'];
+  if (items is! List) return const <ReportQueueSummary>[];
+  int count(Object? value) => value is num && value >= 0 ? value.toInt() : 0;
+  return <ReportQueueSummary>[
+    for (final Object? item in items)
+      if (item is Map<String, dynamic> &&
+          item['member_id'] is String &&
+          (item['member_id']! as String).isNotEmpty)
+        ReportQueueSummary(
+          clientId: item['member_id']! as String,
+          sessionsBooked: count(item['sessions_booked']),
+          sessionsDone: count(item['sessions_done']),
+          completionAvg: (item['completion_avg'] as num?)?.toInt(),
+          weekCompletion:
+              (item['week_completion'] as List<Object?>? ?? const <Object?>[])
+                  .whereType<num>()
+                  .map((n) => n.toInt())
+                  .toList(growable: false),
+        ),
+  ];
+}
+
+/// 회원별 [ReportRepository.watch] 를 묶어 작업대 요약을 낸다(#2863).
+///
+/// 데모 저장소가 쓴다 — 데모는 요청이 없는 로컬 계산이라 회원마다 읽어도
+/// 비용이 없고, 회원별 리포트와 **같은 값**이 나온다는 것이 그대로 보장된다.
+/// 회원마다 첫 값(또는 오류)이 모두 온 뒤에 처음 내보내고, 그 뒤에는 한
+/// 회원의 리포트가 바뀔 때마다 다시 내보낸다. 리포트를 읽지 못한 회원은
+/// 빠진다 — 작업대는 그 회원 줄을 수치 없이 세운다.
+Stream<List<ReportQueueSummary>> reportQueueFromReports(
+  ReportRepository repository, {
+  required List<TrainerClient> clients,
+  required DateTime weekStart,
+}) {
+  final List<TrainerClient> unique = <TrainerClient>[
+    for (final MapEntry<String, TrainerClient> e in <String, TrainerClient>{
+      for (final TrainerClient c in clients) c.id: c,
+    }.entries)
+      e.value,
+  ];
+  if (unique.isEmpty) {
+    return Stream<List<ReportQueueSummary>>.value(const <ReportQueueSummary>[]);
+  }
+  final Map<String, ReportQueueSummary> latest = <String, ReportQueueSummary>{};
+  final Set<String> settled = <String>{};
+  final List<StreamSubscription<WeeklyReport>> subscriptions =
+      <StreamSubscription<WeeklyReport>>[];
+  late final StreamController<List<ReportQueueSummary>> controller;
+
+  void emit() {
+    if (settled.length < unique.length || controller.isClosed) return;
+    controller.add(<ReportQueueSummary>[
+      for (final TrainerClient c in unique) ?latest[c.id],
+    ]);
+  }
+
+  controller = StreamController<List<ReportQueueSummary>>(
+    onListen: () {
+      for (final TrainerClient c in unique) {
+        subscriptions.add(
+          repository
+              .watch(client: c, weekStart: weekStart)
+              .listen(
+                (WeeklyReport report) {
+                  latest[c.id] = ReportQueueSummary.fromReport(report);
+                  settled.add(c.id);
+                  emit();
+                },
+                onError: (Object _, StackTrace _) {
+                  latest.remove(c.id);
+                  settled.add(c.id);
+                  emit();
+                },
+              ),
+        );
+      }
+    },
+    onCancel: () async {
+      for (final StreamSubscription<WeeklyReport> s in subscriptions) {
+        await s.cancel();
+      }
+      unawaited(controller.close());
+    },
+  );
+  return controller.stream;
+}
 
 /// Decodes `ReportSendsOut`. (#2288)
 ///
@@ -1095,6 +1272,63 @@ final weeklyReportProvider = StreamProvider.autoDispose
       return ref
           .watch(reportRepositoryProvider)
           .watch(client: key.client, weekStart: key.weekStart);
+    });
+
+/// 작업대 요약을 찾는 열쇠 — 그 주와 명단. (#2863)
+///
+/// 명단은 회원 id·이름의 순서 목록으로만 같음을 가린다([ReportKey] 와 같은
+/// 까닭) — 실서버 명단은 30초마다 내용이 같은 새 객체로 다시 오는데, 그때마다
+/// 요약을 다시 부르면 작업대가 로딩으로 깜빡인다. 회원이 늘거나 빠지거나
+/// 이름이 바뀌면 새 열쇠다.
+@immutable
+class ReportQueueKey {
+  /// [clients] 의 [weekStart] 주.
+  ReportQueueKey({
+    required List<TrainerClient> clients,
+    required DateTime weekStart,
+  }) : clients = List<TrainerClient>.unmodifiable(clients),
+       weekStart = weekStartOf(weekStart),
+       _signature = <String>[
+         for (final TrainerClient c in clients) '${c.id}\u0000${c.name}',
+       ].join('\u0001');
+
+  /// 요약을 붙일 명단.
+  final List<TrainerClient> clients;
+
+  /// 그 주의 월요일.
+  final DateTime weekStart;
+
+  final String _signature;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ReportQueueKey &&
+      other.weekStart == weekStart &&
+      other._signature == _signature;
+
+  @override
+  int get hashCode => Object.hash(weekStart, _signature);
+
+  @override
+  String toString() =>
+      'ReportQueueKey(${clients.length}, ${weekStart.toIso8601String()})';
+}
+
+/// 작업대 요약 — `회원 id → 요약`. (#2863)
+///
+/// 작업대는 이것 하나만 구독한다. 회원별 리포트·피드백([weeklyReportProvider])
+/// 은 편집기·보낸 리포트를 열 때만 읽는다.
+final reportQueueProvider = StreamProvider.autoDispose
+    .family<Map<String, ReportQueueSummary>, ReportQueueKey>((ref, key) {
+      keepAliveForAccount(ref);
+      return ref
+          .watch(reportRepositoryProvider)
+          .watchQueue(clients: key.clients, weekStart: key.weekStart)
+          .map(
+            (List<ReportQueueSummary> items) => <String, ReportQueueSummary>{
+              for (final ReportQueueSummary s in items) s.clientId: s,
+            },
+          );
     });
 
 /// 그 주에 저장돼 있는 피드백 초안. (#821)

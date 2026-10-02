@@ -9,13 +9,13 @@ import 'package:dio/dio.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logger/logger.dart';
-
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/account/data/repositories/dio_account_repository.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/profile_update_rejected.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
+
+import '../../helpers/mock_account_repository.dart';
 
 Matcher _rejectedWith(ProfileUpdateRejection reason) => throwsA(
   isA<ProfileUpdateRejected>().having(
