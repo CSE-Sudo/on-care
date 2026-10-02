@@ -357,7 +357,7 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
 | GET | `/trainer/clients/{member_id}/chat?before=&before_id=` | 채팅 스레드(커서 페이지네이션) |
 | POST | `/trainer/clients/{member_id}/chat` | 메시지 전송 (`client_request_id?`) |
 | POST | `/trainer/clients/{member_id}/chat/read` | 읽음 처리 |
-| GET | `/trainer/chat/unread` | 회원별 미확인 수 |
+| GET | `/trainer/chat/unread` | 회원별 미확인 수 — 지금 담당 중이고 동의가 유효한 회원만(해제·동의 철회 회원 제외, #2868) |
 | GET | `/trainer/schedule?date=` | 하루 타임라인 |
 | GET | `/trainer/schedule?from=&to=&member_id=` | 구간 조회 / 회원 필터. 각 일정에 담당 회원 `member_id` 를 싣는다(가망 고객·공백은 null, #2586). 담당이 끊긴 회원의 일정은 `member_detached: true`·`해제 회원` 으로 가려 싣는다(#2589). 회원 예약 슬롯으로 생긴 일정은 `is_reservation: true` (#2756) |
 | GET | `/trainer/schedule/booked-dates` | 예약 있는 날짜 |

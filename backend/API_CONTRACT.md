@@ -1150,6 +1150,14 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 미수행, `days`) · `exercise_goal_low`(운동 목표 미달, `percent`) · `calorie_off`(칼로리 목표 이탈,
 `percent`·`direction` over|under) · `protein_low`(단백질 부족, `percent`) 일곱 가지다. 담당 해제·휴면
 회원은 빈 목록이다. 답장 대기는 여기 없다 — 앱이 `/trainer/chat/unread` 로 실시간으로 센다.
+
+**트레이너 안읽음 집계 범위 (#2868)**: `GET /trainer/chat/unread` 는 **지금 담당 중이고 데이터 공유
+동의가 유효한 회원**(`TrainerClient.active` 이고 동의가 철회되지 않았거나 새 동의가 있는 링크)의
+안읽음만 돌려준다. 담당 해제·동의 철회 회원은 읽음 처리(`POST /trainer/clients/{id}/chat/read`)가
+404 라 지울 수 없으므로 집계에서도 빠지고, 남의 회원과 같은 응답(키 없음)이다. 메시지 행의
+`read_at` 은 건드리지 않으므로 같은 트레이너와 다시 연결(새 동의 포함)되면 남아 있던 안읽음이
+다시 집계된다. 판단은 `data_consent_service.link_is_open`/`open_link_clause` 한 곳을
+`_require_client` 와 함께 쓴다.
 기준값과 예외 규칙은 [`docs/TRAINER_DOMAIN.md`](docs/TRAINER_DOMAIN.md) 의 "PT 관리 신호" 참조.
 
 **완료 PT 회차 (#2697)**: `GET /me/coach/sessions` 의 각 세션은 `session_number` 를 싣는다 —

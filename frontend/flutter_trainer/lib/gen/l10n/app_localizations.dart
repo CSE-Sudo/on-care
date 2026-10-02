@@ -1520,6 +1520,12 @@ abstract class AppLocalizations {
   /// **'That code is wrong or expired. Ask the member for a new one'**
   String get clientConnectCodeInvalid;
 
+  /// No description provided for @clientConnectAlreadyManaged.
+  ///
+  /// In en, this message translates to:
+  /// **'You already manage this member. Find them in your member list'**
+  String get clientConnectAlreadyManaged;
+
   /// No description provided for @clientInviteConnectAction.
   ///
   /// In en, this message translates to:
@@ -1759,6 +1765,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Day total'**
   String get clientDietDayTotal;
+
+  /// Shown under the day total when the expanded day's meals fail to load (#2892)
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this day\'s meals'**
+  String get clientDietDayMealsFailed;
 
   /// 트레이너 웹 식단 합계 kcal — 오늘 끼니 카드의 네 칸 오른쪽 끝과 펼친 날 하루 합계 줄 오른쪽 끝. 음식 kcal 과 구분되게 총을 붙인다. calories 는 천 단위 구분이 된 숫자. (#2421)
   ///
@@ -6895,6 +6907,12 @@ abstract class AppLocalizations {
   /// **'Logged by member'**
   String get workoutMemberLogTitle;
 
+  /// Shown in the expanded day when its workouts fail to load (#2892)
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this day\'s workouts'**
+  String get workoutDayExercisesFailed;
+
   /// No description provided for @workoutPendingCancel.
   ///
   /// In en, this message translates to:
@@ -9009,7 +9027,7 @@ abstract class AppLocalizations {
   /// **'{gender} · Age {age}'**
   String coachClientDemographics(String gender, int age);
 
-  /// Roster age label when the member's gender is not shown (#2814).
+  /// Age-only identity label when the member has no gender on file or the server hides it (#2814, #2870).
   ///
   /// In en, this message translates to:
   /// **'Age {age}'**
