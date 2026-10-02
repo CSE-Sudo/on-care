@@ -641,7 +641,7 @@ void main() {
     await tester.pumpAndSettle();
     // 운동 탭 본문에는 상담 요약을 다시 만들지 않는다(#1287). 내역 화면이
     // 요청 상태를 확인하는 한 곳이다.
-    expect(find.text(l.exConsultStatusSection), findsNothing);
+    expect(find.text('상담 요청 현황'), findsNothing);
     expect(find.text(l.exConsultPendingStatus), findsNothing);
 
     router.go(AppRoutes.consultationHistory);
