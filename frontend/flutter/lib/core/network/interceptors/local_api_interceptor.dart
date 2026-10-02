@@ -39,11 +39,14 @@ import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/ai_coach/domain/chat_insight_detector.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
+import 'package:oncare/features/auth/domain/signup_consent.dart';
+import 'package:oncare/features/diet/domain/entities/diet_period.dart'
+    show kDietAllPeriodMaxDays;
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart'
     show MealImageFormat;
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart'
-    show kMaxExerciseSessionsPerSave;
+    show kExerciseMaxPeriodWeeks, kMaxExerciseSessionsPerSave;
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
     show setsFromStrengthMinutes;
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
@@ -103,6 +106,12 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   /// AI 맞춤 조언(#2162)이 추천 운동을 보고 말하는 재료다. 없으면 빈 목록이다.
   /// (#2662)
   List<RoutineAdviceDay> Function(DateTime from, DateTime to)? routineDays;
+
+  /// 데모 인식기가 이 사진에서 음식을 찾았는지(#2848). 목업은 사진을 볼 수
+  /// 없어 기본은 "찾았다"(고정 요거트 볼)다. 실서버처럼 음식이 없는 사진을
+  /// 흉내 낼 때(테스트·시연) false 를 돌려주면 끼니·포인트 없이
+  /// 422 `no_food_detected` 로 거절한다.
+  bool Function(Uint8List? photoBytes)? demoPhotoHasFood;
 
   /// 연속 기록 보호권(#1788). 앱에서는 사용처(쿠폰 원장)와 같은 인스턴스를 받아
   /// 교환한 보호권이 기록 연속으로 이어진다. 주지 않으면
@@ -188,10 +197,12 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     'POST /auth/social/kakao': _authSocial,
     'POST /auth/social/google': _authSocial,
     'GET /users/me': _usersMe,
+    'POST /users/me/consents': _usersMeConsents,
     'GET /users/me/profile': _usersMeProfile,
     'PUT /users/me': _usersMeUpdate,
     'DELETE /users/me': _usersMeDelete,
     'POST /users/me/onboarding': _usersMeOnboarding,
+    'POST /users/me/onboarding/skip': _usersMeOnboardingSkip,
     'PUT /users/me/health-goals': _usersMeHealthGoals,
     'GET /users/me/health': _usersMeHealth,
     // 포인트 사용처·쿠폰 — 서버와 같은 규칙의 목업 원장(#1787).
@@ -1142,6 +1153,13 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     DateTime first =
         _queryDate(options, 'from') ?? await _firstDietDate() ?? last;
     if (first.isAfter(last)) first = last;
+    // 서버와 같은 구간 상한(`diet_service.MAX_PERIOD_DAYS`, #2833).
+    final DateTime floor = DateTime(
+      last.year,
+      last.month,
+      last.day - (kDietAllPeriodMaxDays - 1),
+    );
+    if (first.isBefore(floor)) first = floor;
 
     final Map<String, List<num>> totals = <String, List<num>>{};
     for (final row in await _db.select(_db.dietEntries).get()) {
@@ -1693,6 +1711,21 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       }
     }
 
+    // 음식이 없는 사진은 빈 끼니로 저장하지 않는다 — 실서버와 같은 422 와
+    // 코드로 거절하고, 끼니·사진·포인트를 남기지 않는다(#2848).
+    if (demoPhotoHasFood?.call(photoBytes) == false) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 422,
+        data: <String, Object?>{
+          'detail': <String, Object?>{
+            'code': 'no_food_detected',
+            'message': '사진에서 음식을 찾지 못했어요. 다른 사진을 고르거나 직접 입력해 주세요.',
+          },
+        },
+      );
+    }
+
     // 데모 인식 결과 — 무엇을 찍든 요거트 아이스크림 볼로 읽는다(#1564).
     // 백엔드 스텁 인식기(`recognizer/stub.py`)·영양 시드와 같은 값이다. 한쪽만
     // 고치면 로컬 데모와 서버 데모가 다른 수치를 보여 준다.
@@ -2086,6 +2119,13 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           : DateTime.parse(_mondayOfString((days.toList()..sort()).first));
     }
     if (firstMonday.isAfter(lastMonday)) firstMonday = lastMonday;
+    // 서버와 같은 구간 상한(`exercise_service.MAX_PERIOD_WEEKS`, #2833).
+    final DateTime floorMonday = DateTime(
+      lastMonday.year,
+      lastMonday.month,
+      lastMonday.day - (kExerciseMaxPeriodWeeks - 1) * 7,
+    );
+    if (firstMonday.isBefore(floorMonday)) firstMonday = floorMonday;
 
     const List<String> carried = <String>[
       'day_labels',
@@ -3723,6 +3763,24 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       AppInputError.passwordTooLong => 'password_too_long',
       _ => 'password_weak',
     };
+    // 동의 목록을 보냈다면 서버처럼 필수 항목을 본다(#2819). 보내지 않은 옛
+    // 빌드의 가입은 막지 않는다.
+    final List<String> missingConsents = _missingConsents(body['consents']);
+    if (missingConsents.isNotEmpty) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 422,
+        data: <String, Object?>{
+          'detail': <Object?>[
+            <String, Object?>{
+              'type': 'value_error',
+              'loc': <Object?>['body'],
+              'msg': 'consent_required: ${missingConsents.join(', ')}',
+            },
+          ],
+        },
+      );
+    }
     if (passwordCode != null) {
       return Response<Object?>(
         requestOptions: options,
@@ -3850,6 +3908,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     'weekly_strength_sets': null,
     'weekly_flexibility_minutes': null,
     'onboarded': true,
+    'onboarding_skipped': false,
   };
 
   /// 가입한 계정과 지금 로그인한 계정(#2665).
@@ -3908,6 +3967,44 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       'id': p['id'],
       'name': p['name'],
       'email': p['email'],
+      // 데모 회원은 동의를 마친 계정으로 둔다(#2819) — 데모 진입마다 동의
+      // 화면이 끼면 시연 흐름이 끊긴다.
+      'consent_required': false,
+      'consent_pending': const <String>[],
+    });
+  }
+
+  /// [raw] 가 목록이면 그 안에 없는 회원 필수 동의 항목, 목록이 아니면(안
+  /// 보냄) 빈 목록. 서버(`signup_consent.missing_required`)처럼 정렬해 준다.
+  static List<String> _missingConsents(Object? raw) {
+    if (raw is! List) return const <String>[];
+    final Set<String> given = <String>{for (final Object? k in raw) '$k'};
+    return SignupConsent.memberRequired.difference(given).toList()..sort();
+  }
+
+  /// POST /users/me/consents — 동의 화면의 저장(#2819). 서버처럼 필수 항목이
+  /// 빠지면 아무것도 남기지 않고 422 다. 데모에는 남길 기록이 없다.
+  Future<Response<Object?>> _usersMeConsents(RequestOptions options) async {
+    final body = _jsonBody(options);
+    final Object? raw = body['consents'];
+    final List<String> missing = raw is List
+        ? _missingConsents(raw)
+        : (SignupConsent.memberRequired.toList()..sort());
+    if (missing.isNotEmpty) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 422,
+        data: <String, Object?>{
+          'detail': <String, Object?>{
+            'code': 'consent_required',
+            'missing': missing,
+          },
+        },
+      );
+    }
+    return _ok(options, <String, Object?>{
+      'consent_required': false,
+      'consent_pending': const <String>[],
     });
   }
 
@@ -4115,6 +4212,15 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     await _stampMemberHealthChanges(patch);
     await _mergeProfileOverlay(patch);
     return _ok(options, await _profileView());
+  }
+
+  /// POST /users/me/onboarding/skip — 첫 설정 건너뛰기만 남긴다(#2855). 서버처럼
+  /// 다른 값은 건드리지 않고 `onboarded` 도 그대로 둔다.
+  Future<Response<Object?>> _usersMeOnboardingSkip(
+    RequestOptions options,
+  ) async {
+    await _mergeProfileOverlay(<String, Object?>{'onboarding_skipped': true});
+    return _ok(options, await _mergedProfile());
   }
 
   /// 데모 모드의 동기화 코드 — 김민수(데모 회원)의 고정 값이다. (#1634)

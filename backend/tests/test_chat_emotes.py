@@ -262,3 +262,59 @@ def test_spending_shows_in_points_history(client, db_session):
         emote_service.REASON_EMOTE_UNLOCK,
         -emote_service.COST,
     )
+
+
+# ── 응답 유실 뒤 재구매 (#2845) ─────────────────────────────────────────
+
+
+def test_retry_with_same_key_after_lost_response_spends_once_and_returns_200(
+    client, db_session
+):
+    """응답을 못 받은 앱이 같은 키로 다시 보내면 200 과 지금 상태가 온다."""
+    _, headers, _, _ = _with_trainer(client, db_session, points=1000)
+    key = uuid4().hex
+
+    first = _unlock(client, headers, client_request_id=key)
+    # 앱은 이 응답을 받지 못했다고 치고 같은 키로 다시 보낸다.
+    retry = _unlock(client, headers, client_request_id=key)
+
+    assert first.status_code == 200, first.text
+    assert retry.status_code == 200, retry.text
+    assert [u["emote_id"] for u in retry.json()["unlocked"]] == [EMOTE]
+    assert retry.json()["balance"] == 1000 - emote_service.COST
+    assert (
+        client.get("/v1/me/emotes", headers=headers).json()["balance"]
+        == 1000 - emote_service.COST
+    )
+
+
+def test_already_unlocked_with_other_key_is_409_with_code(client, db_session):
+    _, headers, _, _ = _with_trainer(client, db_session, points=1000)
+    _unlock(client, headers, client_request_id=uuid4().hex)
+
+    again = _unlock(client, headers, client_request_id=uuid4().hex)
+
+    assert again.status_code == 409
+    assert again.json()["detail"]["code"] == "already_unlocked"
+    assert again.json()["detail"]["message"]
+    # 다른 키로 와도 두 번 쓰지 않는다.
+    assert client.get("/v1/me/emotes", headers=headers).json()["balance"] == 950
+
+
+def test_trainer_required_is_409_with_its_own_code(client, db_session):
+    _, headers = _new_member(client, db_session, points=1000)
+
+    r = _unlock(client, headers, client_request_id=uuid4().hex)
+
+    assert r.status_code == 409
+    assert r.json()["detail"]["code"] == "trainer_required"
+    assert client.get("/v1/me/emotes", headers=headers).json()["balance"] == 1000
+
+
+def test_not_enough_points_has_insufficient_code(client, db_session):
+    _, headers, _, _ = _with_trainer(client, db_session, points=10)
+
+    r = _unlock(client, headers)
+
+    assert r.status_code == 400
+    assert r.json()["detail"]["code"] == "insufficient_points"

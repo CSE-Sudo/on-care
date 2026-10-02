@@ -30,6 +30,7 @@ from fastapi import (
 )
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app.api.deps import RequireApprovedTrainer, RequireTrainer
 from app.api.v1 import chat_attachments
@@ -37,7 +38,15 @@ from app.core import clock
 from app.core.config import get_settings
 from app.core.locale import Locale, RequestLocale
 from app.core.pagination import DEFAULT_PAGE, MAX_PAGE, parse_before
-from app.core.rate_limit import limiter, rate_limit
+from app.core.rate_limit import (
+    check_key,
+    clear_failures,
+    ensure_unlocked,
+    limiter,
+    password_change_fail_key,
+    rate_limit,
+    record_failure,
+)
 from app.core.security import hash_password, verify_password
 from app.db.session import get_db
 from app.models.models import (
@@ -204,11 +213,7 @@ def _require_client(db: Session, trainer_id: str, member_id: str) -> TrainerClie
             TrainerClient.member_id == member_id,
         )
     )
-    if (
-        link is None
-        or not link.active
-        or data_consent_service.blocks_access(link)
-    ):
+    if not data_consent_service.link_is_open(link):
         raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
     return link
 
@@ -361,9 +366,9 @@ async def trainer_set_kakao_gym(
     """카카오 검색 결과로 소속 설정. 처음 고른 헬스장은 이때 `places` 에 들어간다. (#2543)
 
     서버가 카카오를 다시 검색해 확인하므로, 헬스장이 아니거나 찾을 수 없으면 404,
-    카카오를 쓸 수 없으면 503 이다.
+    카카오를 쓸 수 없으면 503 이다. 동기 DB 조회는 스레드풀에서 한다(#2835).
     """
-    profile = _require_profile(db, trainer.id)
+    profile = await run_in_threadpool(_require_profile, db, trainer.id)
     try:
         me = await trainer_gym_search.select_kakao_gym(
             db, trainer, profile, payload.kakao_place_id, payload.name.strip()
@@ -390,23 +395,48 @@ def trainer_clear_gym(
     return trainer_service.clear_trainer_gym(db, trainer, profile)
 
 
-@router.post("/trainer/me/password", status_code=200, response_model=PasswordChanged)
+@router.post(
+    "/trainer/me/password",
+    status_code=200,
+    response_model=PasswordChanged,
+    dependencies=[Depends(rate_limit("trainer-password-change"))],
+)
 def trainer_change_password(
+    request: Request,
     payload: TrainerPasswordChange,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
-    request: Request,
 ) -> PasswordChanged:
     """비밀번호 변경. 현재 비밀번호가 맞아야 하고, 같은 값으로는 바꿀 수 없다.
 
     바꾸면 계정의 토큰 세대가 올라가 **다른 기기에 이미 나간 접근·refresh 토큰이
     모두 무효**가 된다(#2766) — 비밀번호를 바꾸는 이유는 대개 누가 계정을 쓰고
     있을지 모른다는 의심이다. 요청한 기기는 응답에 담긴 새 토큰으로 이어 쓴다.
+
+    시도 제한(#2913): IP 한도에 더해 **계정 단위 실패 잠금**을 건다. 접근 토큰을
+    손에 넣은 쪽이 현재 비밀번호를 맞혀 보면, 맞히는 순간 다른 기기 토큰까지 끊고
+    계정을 가져간다. 로그인 잠금과 같은 창(`login_lockout_seconds`) 안에
+    `password_change_max_failures` 번 틀리면 남은 시간 동안 429 이고, 틀린 시도는
+    감사 로그에 남는다. 잠금 판정은 비밀번호 확인보다 먼저 한다.
     """
+    settings = get_settings()
+    lock_key = password_change_fail_key(trainer.id)
+    lock_window = float(settings.login_lockout_seconds)
+    ensure_unlocked(lock_key, settings.password_change_max_failures, lock_window)
     if not verify_password(payload.current_password, trainer.hashed_password):
+        record_failure(lock_key, lock_window)
+        audit.record(
+            db,
+            event=audit.PASSWORD_CHANGE,
+            user_id=trainer.id,
+            ip=audit.client_ip(request),
+            success=False,
+            detail="current_password_mismatch",
+        )
         # 현재 비밀번호 불일치는 401 이 아니라 400 — 토큰은 유효하므로
         # 클라이언트가 로그아웃 처리로 오인하면 안 된다.
         raise HTTPException(status_code=400, detail="현재 비밀번호가 일치하지 않습니다.")
+    clear_failures(lock_key)
     if verify_password(payload.new_password, trainer.hashed_password):
         raise HTTPException(status_code=400, detail="현재와 다른 비밀번호를 입력해 주세요.")
     trainer.hashed_password = hash_password(payload.new_password)
@@ -729,6 +759,7 @@ def trainer_client_diet_period(
 
     트레이너 화면의 기간 그래프가 회원 앱과 같은 숫자를 그리려면 같은 집계를
     읽어야 한다(#2156). `from` 을 생략하면 그 회원의 첫 기록일부터다(#2079).
+    구간 상한(1100일, #2833)도 같다.
     """
     _require_client(db, trainer.id, member_id)
     return diet_service.build_period(db, member_id, start=from_date, end=to_date)
@@ -750,6 +781,7 @@ def trainer_client_exercise_period(
 
     `전체` 가 모든 기록을 그리므로(#2079) 주마다 부르면 왕복이 주 수만큼 늘어난다
     (#2247). 한 주를 펼쳐 볼 때는 그대로 `GET .../exercise-week?week_start=` 다.
+    구간 상한(160주, #2833)도 같다.
     """
     _require_client(db, trainer.id, member_id)
     profile = db.scalar(
@@ -1039,7 +1071,11 @@ def trainer_chat_unread(
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict[str, int]:
-    """회원별 미확인 메시지 수(회원 발신·미읽음). 고객 목록 배지용."""
+    """회원별 미확인 메시지 수(회원 발신·미읽음). 고객 목록 배지용.
+
+    지금 담당 중이고 동의가 유효한 회원만 센다 — 해제·동의 철회 회원은
+    읽음 처리(`_require_client`)가 404 라 지울 수 없는 숫자가 되기 때문이다(#2868).
+    """
     return trainer_service.unread_counts_for_trainer(db, trainer.id)
 
 
@@ -2690,7 +2726,7 @@ def trainer_send_report(
     response_model=ChatMessageOut,
     status_code=201,
 )
-async def trainer_send_report_pdf(
+def trainer_send_report_pdf(
     member_id: str,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
@@ -2704,6 +2740,9 @@ async def trainer_send_report_pdf(
     `message` 는 필수이고 공백뿐이면 422 다(#2771). 서버가 대신 채우던 한국어
     기본 문장은 트레이너·회원의 언어를 몰라, 영어로 쓰는 회원에게도 한국어가
     나갔다 — 회원이 받을 글은 앱이 그 언어로 만든다.
+
+    동기 라우트다(#2835). 멱등 조회·PDF 저장(`os.fsync`)·메시지 커밋이 모두 동기라
+    `async def` 로 두면 이벤트 루프를 막는다. 업로드도 `UploadFile.file` 로 읽는다.
     """
     _require_client(db, trainer.id, member_id)
     week = _report_week(week_start)
@@ -2727,7 +2766,7 @@ async def trainer_send_report_pdf(
     if pdf.content_type != "application/pdf":
         raise HTTPException(status_code=415, detail="PDF 파일만 전송할 수 있습니다.")
     settings = get_settings()
-    data = await pdf.read(settings.max_report_pdf_bytes + 1)
+    data = pdf.file.read(settings.max_report_pdf_bytes + 1)
     if len(data) > settings.max_report_pdf_bytes:
         raise HTTPException(status_code=413, detail="PDF 파일 용량이 너무 큽니다.")
     if not data.startswith(b"%PDF-") or b"%%EOF" not in data[-1024:]:
@@ -2785,7 +2824,7 @@ async def trainer_send_report_pdf(
     response_model=ChatMessageOut,
     status_code=201,
 )
-async def trainer_send_chat_image(
+def trainer_send_chat_image(
     member_id: str,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
@@ -2803,8 +2842,9 @@ async def trainer_send_chat_image(
     저장된다.
     """
     _require_client(db, trainer.id, member_id)
-    # 받는 규약은 회원 발신(#1665)과 한곳에서 나눠 쓴다.
-    return await chat_attachments.receive_chat_image(
+    # 받는 규약은 회원 발신(#1665)과 한곳에서 나눠 쓴다. 동기 라우트라 DB·파일
+    # 저장이 이벤트 루프가 아니라 스레드풀에서 돈다(#2835).
+    return chat_attachments.receive_chat_image(
         db,
         trainer_id=trainer.id,
         member_id=member_id,
@@ -2903,6 +2943,25 @@ def delete_trainer_program_template(
 # ---------------------------------------------------------------------------
 
 
+def _check_pairing_attempt(trainer_id: str) -> None:
+    """연결 코드 미리보기·사용의 트레이너 단위 한도. (#2815)
+
+    IP 버킷(`pairing-redeem`)은 요청마다 주소를 바꾸면 갈라진다. 트레이너 계정은
+    공개 가입이라 id 버킷 하나로도 부족해 하루 상한을 함께 둔다. 두 엔드포인트가
+    같은 키를 쓴다 — 미리보기도 코드를 맞혀 보는 시도다.
+    """
+    settings = get_settings()
+    check_key(
+        f"pairing-redeem:trainer:{trainer_id}",
+        settings.rate_limit_auth_per_minute,
+    )
+    check_key(
+        f"pairing-redeem-day:trainer:{trainer_id}",
+        settings.pairing_redeem_per_day,
+        24 * 60 * 60.0,
+    )
+
+
 @router.post(
     "/trainer/pairing-code/preview",
     response_model=PairedMemberOut,
@@ -2922,8 +2981,11 @@ def trainer_preview_pairing_code(
     회원이 코드를 다시 띄워야 할 이유가 없다. 연결(`POST /trainer/pairing-code`)
     이 쓰는 순간에만 사라진다.
 
-    소비와 같은 rate limit 버킷을 쓴다. 확인도 코드를 맞혀 보는 시도다.
+    소비와 같은 rate limit 버킷을 쓴다. 확인도 코드를 맞혀 보는 시도다. IP 버킷에
+    더해 트레이너 id 버킷(분·하루)을 함께 건다(#2815) — IP 를 바꿔도 한 트레이너의
+    시도는 한 곳에서 센다.
     """
+    _check_pairing_attempt(trainer.id)
     try:
         return trainer_client_invite_service.preview_pairing_code(
             db, trainer.id, payload.code
@@ -2959,6 +3021,7 @@ def trainer_redeem_pairing_code(
     코드가 틀렸는지·만료됐는지·이미 쓰였는지는 구분해 알려 주지 않는다(404).
     갈라 주면 어떤 코드가 존재하기는 했는지를 알려 주는 셈이다.
     """
+    _check_pairing_attempt(trainer.id)
     try:
         return trainer_client_invite_service.redeem_pairing_code(
             db, trainer.id, payload.code

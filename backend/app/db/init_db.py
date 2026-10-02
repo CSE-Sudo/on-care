@@ -97,6 +97,9 @@ def init_db() -> None:
         # 깔린 뒤라야 지난 수업에 메모를 달 수 있다.
         from app.db.seed_trainer_notes import seed_trainer_notes
         seed_trainer_notes()
+        # 데모 계정은 가입 동의를 마친 상태로 둔다(#2819). 동의 행이 없으면 로그인
+        # 직후 동의 화면에 붙잡혀 시연·E2E 가 그 뒤 화면으로 가지 못한다.
+        _seed_demo_consents()
         # 시드 기록을 개인 RAG 문서로 적재(#604). **모든 시드가 끝난 뒤**여야 한다 —
         # 확장 회원(4~15)의 기록은 바로 위에서 만들어지므로, 앞에서 훑으면 첫 기동에
         # 그들 문서가 통째로 빠지고 재기동해야 채워진다.
@@ -126,8 +129,63 @@ def _seed_demo_user() -> None:
         db.close()
 
 
+#: 데모 시드가 쓰는 이메일 도메인. 실제 가입 계정은 이 도메인을 쓰지 않는다.
+DEMO_EMAIL_DOMAINS = ("@oncare.com", "@oncare.demo")
+
+
+def _seed_demo_consents() -> None:
+    """데모 계정마다 역할별 필수 동의를 지금 버전으로 남긴다(멱등, #2819)."""
+    from app.services import signup_consent
+
+    db: Session = SessionLocal()
+    try:
+        users = db.scalars(select(models.User)).all()
+        for user in users:
+            email = (user.email or "").lower()
+            if not email.endswith(DEMO_EMAIL_DOMAINS):
+                continue
+            signup_consent.record(
+                db, user.id, signup_consent.required_for(user.role)
+            )
+        db.commit()
+    finally:
+        db.close()
+
+
+def admin_promotion_targets(
+    users: list[models.User], emails: set[str]
+) -> tuple[list[models.User], list[str]]:
+    """승격할 계정과 경고할 이메일을 가른다. (#2816)
+
+    `emails` 는 소문자로 정규화된 `ADMIN_EMAILS` 다. 한 관리자 이메일에 대해
+
+    - 저장된 이메일이 그 값과 **글자 그대로 같은** 계정이 정확히 하나면 승격한다.
+    - 대소문자만 같은 계정이 둘 이상이면 아무도 승격하지 않는다. 누가 진짜 주인인지
+      서버가 고를 수 없다 — 예전에는 둘 다 올렸다.
+    - 대소문자만 같고 글자는 다른 계정(정규화 전 값)도 승격하지 않는다.
+    """
+    by_email: dict[str, list[models.User]] = {}
+    for user in users:
+        by_email.setdefault(user.email.lower(), []).append(user)
+    targets: list[models.User] = []
+    skipped: list[str] = []
+    for email in sorted(emails):
+        matches = by_email.get(email, [])
+        if not matches:
+            continue
+        if len(matches) > 1 or matches[0].email != email:
+            skipped.append(email)
+            continue
+        targets.append(matches[0])
+    return targets, skipped
+
+
 def _promote_admins() -> None:
-    """ADMIN_EMAILS(콤마구분)에 있는 사용자를 관리자로 승격(멱등)."""
+    """ADMIN_EMAILS(콤마구분)에 있는 사용자를 관리자로 승격(멱등).
+
+    정규화된 이메일과 정확히 일치하는 한 계정만 올린다(#2816,
+    `admin_promotion_targets`). 애매하면 기동 로그에 경고하고 넘어간다.
+    """
     from sqlalchemy import func
 
     emails = get_settings().admin_email_set
@@ -138,8 +196,15 @@ def _promote_admins() -> None:
         users = db.scalars(
             select(models.User).where(func.lower(models.User.email).in_(emails))
         ).all()
+        targets, skipped = admin_promotion_targets(list(users), emails)
+        for email in skipped:
+            logger.warning(
+                "ADMIN_EMAILS 의 %s 와 대소문자만 같은 계정이 여럿이거나 표기가 달라 "
+                "관리자로 승격하지 않았습니다.",
+                email,
+            )
         changed = False
-        for u in users:
+        for u in targets:
             if not u.is_admin:
                 u.is_admin = True
                 changed = True

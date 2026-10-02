@@ -1313,6 +1313,21 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
       l.myHealthGoalsTitle,
       footer,
       <Widget>[
+        // 첫 설정을 건너뛴 회원에게 다시 들어갈 길을 둔다(#2855). 건너뛰기가
+        // 계정에 남아 로그인할 때 더는 첫 설정으로 끌려가지 않으므로, 기본
+        // 정보(생년월일·키·체중)를 넣을 자리는 여기다. 끝내면 사라진다.
+        if (!_editing &&
+            _base.onboardingSkipped &&
+            !_base.onboarded) ...<Widget>[
+          AppBanner(
+            key: const Key('firstRunPrompt'),
+            title: l.myFirstRunPromptTitle,
+            message: l.myFirstRunPromptBody,
+            actionLabel: l.myFirstRunPromptAction,
+            onAction: () => context.push<void>(AppRoutes.onboardingResume),
+          ),
+          const SizedBox(height: OnCareSpacing.sectionGap),
+        ],
         // 순서: 관리 초점 → 자유 입력 운동 목표 → 수치형 운동 목표 → 식단 목표
         // (#1471). 온보딩 2단계가 묻는 것과 같은 순서라, 두 화면이 같은 이야기를
         // 같은 차례로 한다.
@@ -1770,14 +1785,10 @@ class _MacroSuggestionRow extends StatelessWidget {
 /// Localized label for a notification toggle, keyed off its stable prefKey.
 String _notifLabel(AppLocalizations l, String prefKey) {
   switch (prefKey) {
-    case 'notif_diet_log':
-      return l.myNotifDietLog;
     case 'notif_exercise_reminder':
       return l.myNotifExercise;
     case 'notif_trainer_message':
       return l.myNotifTrainer;
-    case 'notif_ai_coaching':
-      return l.myNotifAiCoaching;
     case 'notif_weekly_report':
       return l.myNotifWeeklyReport;
     default:
@@ -1794,69 +1805,65 @@ Future<void> openNotificationSettingsPage(BuildContext context) {
   return context.push<void>(AppRoutes.mySettingsPath('notifications'));
 }
 
-class NotificationSettingsPage extends ConsumerStatefulWidget {
+class NotificationSettingsPage extends ConsumerWidget {
   const NotificationSettingsPage({super.key});
 
-  @override
-  ConsumerState<NotificationSettingsPage> createState() =>
-      _NotificationSettingsPageState();
-}
-
-class _NotificationSettingsPageState
-    extends ConsumerState<NotificationSettingsPage> {
-  /// 이 화면에서 바꾼 값. 서버 응답을 기다리는 동안에도 스위치가 즉시 움직여야
-  /// 한다 — 왕복을 기다리면 눌리지 않는 것처럼 보인다.
-  ///
-  /// 저장에 **성공한 값도 여기 남는다.** 지우면 최초 조회값으로 돌아가는데,
-  /// 서버에는 저장된 값이 남아 있어 화면과 어긋난다.
-  final Map<String, bool> _local = <String, bool>{};
-
-  /// 키별 최신 요청 번호. 늦게 도착한 옛 응답이 최신 상태를 덮어쓰는 것을 막는다.
-  final Map<String, int> _requestSeq = <String, int>{};
-
-  /// 화면에 그릴 값 — 내가 바꾼 값이 우선, 없으면 서버 값.
-  bool _valueOf(String key, Map<String, bool> saved, bool fallback) =>
-      _local[key] ?? saved[key] ?? fallback;
-
-  Future<void> _persist(String key, bool value, bool previous) async {
-    final int seq = (_requestSeq[key] ?? 0) + 1;
-    _requestSeq[key] = seq;
-    setState(() => _local[key] = value);
+  /// 바꾼 값과 되돌림은 [NotificationSettingsController] 가 맡는다(#2851).
+  /// 화면 State 에만 두면 화면을 닫는 순간 사라져, 다시 들어왔을 때 최초
+  /// 조회값이 보이고 회원이 다시 누르면 서버 값이 뒤집혔다.
+  Future<void> _persist(
+    BuildContext context,
+    WidgetRef ref,
+    String key,
+    bool value,
+  ) async {
     final AppToastHost toast = AppToastHost.of(context);
-    final AppLocalizations l = AppLocalizations.of(context);
-    try {
-      await ref
-          .read(notificationSettingsRepositoryProvider)
-          .setValue(key, value);
-    } on Object {
-      if (!mounted) return;
-      // 이 요청을 기다리는 사이 더 눌렀다면, 옛 실패로 최신 상태를 되돌리지
-      // 않는다(리뷰).
-      if (_requestSeq[key] != seq) return;
-      // 되돌릴 곳은 **직전 값**이지 최초 조회값이 아니다. 한 번 저장에 성공한 뒤
-      // 다음 저장이 실패하면 최초값으로 돌아가 서버와 어긋난다(리뷰).
-      setState(() => _local[key] = previous);
-      toast.show(l.myNotificationSaveFailed, type: AppToastType.error);
-    }
+    final String failed = AppLocalizations.of(context).myNotificationSaveFailed;
+    final bool saved = await ref
+        .read(notificationSettingsProvider.notifier)
+        .setValue(key, value);
+    if (!saved) toast.show(failed, type: AppToastType.error);
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final Map<String, bool> saved =
-        ref.watch(notificationSettingsProvider).valueOrNull ??
-        <String, bool>{
-          for (final NotificationSettingItem item in kNotificationSettingItems)
-            item.key: item.fallback,
-        };
+    final AsyncValue<NotificationSettingsState> async = ref.watch(
+      notificationSettingsProvider,
+    );
+    final NotificationSettingsState? settings = async.valueOrNull;
+    if (settings == null) {
+      // 첫 조회 중 — 기본값을 서버 값처럼 먼저 그리면, 응답이 오며 스위치가
+      // 뒤집혀 보인다.
+      return _shell(context, l.myNotifTitle, const <Widget>[
+        AppLoading(key: Key('notificationSettingsLoading')),
+      ]);
+    }
     return _shell(context, l.myNotifTitle, <Widget>[
+      if (settings.loadFailed) ...<Widget>[
+        // 기본값을 조용히 보여 주지 않는다 — 서버 값과 다를 수 있다는 것을
+        // 알리고 다시 읽을 길을 둔다. 토글은 그대로 쓸 수 있다(끌 방법이
+        // 사라지면 안 된다).
+        AppBanner(
+          key: const Key('notificationSettingsLoadFailed'),
+          tone: AppBannerTone.danger,
+          icon: AppIcons.offline,
+          title: l.myNotifLoadFailed,
+          message: l.myNotifLoadFailedBody,
+          actionLabel: l.actionRetry,
+          onAction: async.isLoading
+              ? null
+              : () => ref.invalidate(notificationSettingsProvider),
+        ),
+        const SizedBox(height: OnCareSpacing.s12),
+      ],
       _listCard(<Widget>[
         for (int i = 0; i < kNotificationSettingItems.length; i++) ...<Widget>[
           if (i > 0) const AppDivider(),
           AppListRow(
             title: _notifLabel(l, kNotificationSettingItems[i].key),
             // 스위치에 **이름을 붙인다**(#1942). 제목과 스위치가 따로 읽히면
-            // 음성 안내에는 정체 불명의 `switch, on` 이 다섯 개 이어져, 순서를
+            // 음성 안내에는 정체 불명의 `switch, on` 이 여러 개 이어져, 순서를
             // 외운 사람만 어느 알림을 끄는지 안다.
             trailing: Semantics(
               label: _notifLabel(l, kNotificationSettingItems[i].key),
@@ -1864,21 +1871,9 @@ class _NotificationSettingsPageState
               // 두 번 나온다.
               excludeSemantics: true,
               child: Switch(
-                value: _valueOf(
-                  kNotificationSettingItems[i].key,
-                  saved,
-                  kNotificationSettingItems[i].fallback,
-                ),
-                onChanged: (bool v) => _persist(
-                  kNotificationSettingItems[i].key,
-                  v,
-                  // 실패했을 때 돌아갈 곳 — 지금 화면에 보이는 값.
-                  _valueOf(
-                    kNotificationSettingItems[i].key,
-                    saved,
-                    kNotificationSettingItems[i].fallback,
-                  ),
-                ),
+                value: settings.valueOf(kNotificationSettingItems[i].key),
+                onChanged: (bool v) =>
+                    _persist(context, ref, kNotificationSettingItems[i].key, v),
               ),
             ),
           ),

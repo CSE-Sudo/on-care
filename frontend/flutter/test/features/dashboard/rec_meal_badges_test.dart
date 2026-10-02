@@ -92,6 +92,7 @@ Future<void> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: <Override>[
+        mealRecsDemoFallbackProvider.overrideWithValue(true),
         memberCoachProvider.overrideWith((Ref ref) async => coach),
         dashboardSummaryProvider.overrideWith((Ref ref) async => _summary),
         if (recs != null)

@@ -137,8 +137,21 @@
   "authName": "Name",
   "signUpPasswordHint": "Password (8+ characters, letters and numbers)",
   "authPasswordConfirm": "Confirm password",
-  "authLegalNotice": "By signing up you agree to",
   "authSignUpAndStart": "Sign up and start",
+  "consentAll": "Agree to all",
+  "consentRequiredTag": "[Required]",
+  "consentOptionalTag": "[Optional]",
+  "consentView": "View",
+  "consentTerms": "Terms of Service",
+  "consentPrivacy": "Collection and use of personal information",
+  "consentAge14": "I am 14 years of age or older",
+  "consentAge14Detail": "You must be 14 or older to sign up.",
+  "consentMarketing": "Receive marketing notifications",
+  "consentRequiredHint": "Agree to all required items to continue.",
+  "consentPageTitle": "Agreements",
+  "consentPageSubtitle": "Please review and agree to the items below to keep using On-Care.",
+  "consentPageAction": "Agree and continue",
+  "consentPageFailed": "Couldn't save your agreement. Please try again in a moment.",
   "authHasAccount": "Already have an account?",
   "authErrEmptyCredentials": "Enter your email and password",
   "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment.",
@@ -535,6 +548,7 @@
   "clientConnectCodeLabel": "Sync code",
   "clientConnectCodeRequired": "Enter all six digits",
   "clientConnectCodeInvalid": "That code is wrong or expired. Ask the member for a new one",
+  "clientConnectAlreadyManaged": "You already manage this member. Find them in your member list",
   "clientInviteConnectAction": "Register member",
   "clientInviteConnected": "Registered {name} as a member",
   "@clientInviteConnected": {
@@ -589,6 +603,10 @@
   "metricSugar": "Sugar",
   "clientDietMacrosMissing": "No carbs/protein/fat recorded",
   "clientDietDayTotal": "Day total",
+  "clientDietDayMealsFailed": "Couldn't load this day's meals",
+  "@clientDietDayMealsFailed": {
+    "description": "Shown under the day total when the expanded day's meals fail to load (#2892)"
+  },
   "clientDietTotalCalories": "Total {calories} kcal",
   "@clientDietTotalCalories": {
     "description": "트레이너 웹 식단 합계 kcal — 오늘 끼니 카드의 네 칸 오른쪽 끝과 펼친 날 하루 합계 줄 오른쪽 끝. 음식 kcal 과 구분되게 총을 붙인다. calories 는 천 단위 구분이 된 숫자. (#2421)",
@@ -2562,6 +2580,10 @@
   "workoutRoutineDoneToday": "Done today",
   "workoutUndatedTitle": "Records without a date",
   "workoutMemberLogTitle": "Logged by member",
+  "workoutDayExercisesFailed": "Couldn't load this day's workouts",
+  "@workoutDayExercisesFailed": {
+    "description": "Shown in the expanded day when its workouts fail to load (#2892)"
+  },
   "workoutPendingCancel": "Cancel assignment",
   "routineUpdateFailed": "Couldn't update the program. Please try again in a moment",
   "routineUpdated": "Program updated",
@@ -3614,7 +3636,7 @@
   },
   "coachClientAge": "Age {age}",
   "@coachClientAge": {
-    "description": "Roster age label when the member's gender is not shown (#2814).",
+    "description": "Age-only identity label when the member has no gender on file or the server hides it (#2814, #2870).",
     "placeholders": {
       "age": {
         "type": "int"

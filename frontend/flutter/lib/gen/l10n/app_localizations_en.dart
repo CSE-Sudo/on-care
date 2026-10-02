@@ -130,6 +130,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.';
 
   @override
+  String get homeAiAdviceNoRecord =>
+      'Log today\'s meals and workouts, and we\'ll put together advice for your day.';
+
+  @override
   String get homeSodiumExceededBadge => 'Sodium over';
 
   @override
@@ -250,6 +254,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeRecMealsTitle => 'Recommended meals';
+
+  @override
+  String get homeRecMealsErrorTitle => 'Couldn\'t load meal suggestions';
 
   @override
   String get homeViewAll => 'View all';
@@ -548,6 +555,22 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get dietAnalysisNotImplemented =>
       'Photo analysis is unavailable right now. Please log the meal manually.';
+
+  @override
+  String get dietAnalysisNoFood =>
+      'We couldn\'t find any food in this photo. Pick another photo or add the meal manually.';
+
+  @override
+  String get dietAnalysisDailyLimit =>
+      'You\'ve used today\'s photo analyses. They reset tomorrow — for now you can add the meal manually.';
+
+  @override
+  String get dietAnalysisRateLimited =>
+      'Too many photo analyses in a short time. Try again in a moment or add the meal manually.';
+
+  @override
+  String get dietAnalysisUnavailable =>
+      'Photo analysis is unavailable right now. Please add the meal manually.';
 
   @override
   String get dietAnalysisPickAnother => 'Pick another photo';
@@ -1226,6 +1249,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myDefaultUserName => 'User';
+
+  @override
+  String get myProfileLoadFailed => 'Couldn\'t load your profile';
+
+  @override
+  String get myPointsLoadFailed => 'Couldn\'t load your points balance';
 
   @override
   String get mySettingsTitle => 'Settings';
@@ -1989,6 +2018,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'We could not buy the emote. Please try again in a moment.';
 
   @override
+  String get emoteAlreadyUnlocked =>
+      'This emote is already unlocked. You can send it now';
+
+  @override
+  String get emoteTrainerRequired => 'You need a trainer to buy emotes';
+
+  @override
   String get emoteShortfall => 'Not enough points';
 
   @override
@@ -2181,16 +2217,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myFieldGoals => 'Health and exercise goals';
 
   @override
-  String get myNotifDietLog => 'Diet log reminder';
-
-  @override
   String get myNotifExercise => 'Exercise reminder';
 
   @override
   String get myNotifTrainer => 'Trainer message';
-
-  @override
-  String get myNotifAiCoaching => 'AI coaching tips';
 
   @override
   String get myNotifWeeklyReport => 'Weekly report';
@@ -2251,6 +2281,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachCardWaterTag => 'Hydration';
 
   @override
+  String get coachSheetErrorTitle => 'Couldn\'t load your advice';
+
+  @override
+  String get coachSheetErrorBody => 'Check your connection and try again.';
+
+  @override
+  String get coachSheetEmptyTitle => 'Advice will appear as you log more';
+
+  @override
+  String get coachSheetEmptyBody => 'Try logging today\'s meals and workouts.';
+
+  @override
   String get coachInviteTitle => 'A trainer wants to coach you';
 
   @override
@@ -2265,7 +2307,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachInviteExplain =>
-      'Accepting lets this trainer see your meal and workout records.';
+      'Accepting lets this trainer see your meal records, workout records, body information and health goals. You\'ll be asked to agree to sharing before you accept.';
 
   @override
   String get coachInviteAccept => 'Accept';
@@ -2298,6 +2340,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachChatLoadFailed => 'Couldn\'t load the conversation';
+
+  @override
+  String get coachChatUnassigned =>
+      'Your trainer is no longer assigned, so you can\'t send messages here';
 
   @override
   String coachChatEmptyTitle(String trainer) {
@@ -2835,7 +2881,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exConsultDataSharingNotice =>
-      'Your request details (name, exercise goal, and message) go to this trainer. Your meal and workout records are shared only if you register with a connection code after the consultation, with a separate consent.';
+      'Your request details (name, exercise goal, and message) go to this trainer for the consultation and stay with the request and its schedule after you send them. If you don\'t agree, you just can\'t send this request; everything else keeps working. Your meal and workout records are shared only if you register with a connection code after the consultation, with a separate consent.';
 
   @override
   String get exConsultDataSharingAgree =>
@@ -2858,7 +2904,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String coachInviteConsentBody(String name) {
-    return 'Once $name becomes your trainer, they can see your meal records, workout records, body information and health goals. Disconnecting also revokes that access.';
+    return 'Once $name becomes your trainer, they can see your meal records, workout records, body information and health goals for coaching, consultations and writing reports. Disconnecting also revokes that access, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don\'t agree.';
   }
 
   @override
@@ -3254,7 +3300,47 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trainerSyncConsent =>
-      'Once the trainer who enters this code becomes your coach, they can see your diet log, exercise log, body info, and health goals. Disconnecting removes their access too.';
+      'Once the trainer who enters this code becomes your coach, they can see your meal records, workout records, body information and health goals for coaching, consultations and writing reports. Disconnecting removes their access too, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don\'t agree.';
+
+  @override
+  String get trainerShareDetailMore => 'Show details';
+
+  @override
+  String get trainerShareDetailLess => 'Hide details';
+
+  @override
+  String get trainerShareRecipientLabel => 'Shared with';
+
+  @override
+  String get trainerShareRecipient => 'The trainer connected as your coach';
+
+  @override
+  String get trainerShareItemsLabel => 'What is shared';
+
+  @override
+  String get trainerShareItems =>
+      'Meal records, workout records, body information and health goals';
+
+  @override
+  String get trainerSharePurposeLabel => 'Purpose';
+
+  @override
+  String get trainerSharePurpose =>
+      'Coaching, consultations and writing reports';
+
+  @override
+  String get trainerSharePeriodLabel => 'How long';
+
+  @override
+  String get trainerSharePeriod =>
+      'Until you withdraw consent by disconnecting. Deleting the trainer connection in the MY tab withdraws it, and the trainer can no longer see your new records. Conversations you had and reports already delivered before then are not deleted.';
+
+  @override
+  String get trainerShareRefuseLabel => 'Your right to refuse';
+
+  @override
+  String get trainerShareRefuse =>
+      'You can say no. Without agreeing you can still use your personal records in the app; only the trainer connection won\'t be made.';
 
   @override
   String get trainerSyncAgree => 'Agree and get a code';
@@ -3286,6 +3372,58 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get signUpFailed => 'Sign-up failed. Please try again in a moment.';
+
+  @override
+  String get consentAll => 'Agree to all';
+
+  @override
+  String get consentRequiredTag => '[Required]';
+
+  @override
+  String get consentOptionalTag => '[Optional]';
+
+  @override
+  String get consentView => 'View';
+
+  @override
+  String get consentTerms => 'Terms of Service';
+
+  @override
+  String get consentPrivacy => 'Collection and use of personal information';
+
+  @override
+  String get consentHealth =>
+      'Processing of health information (sensitive data)';
+
+  @override
+  String get consentHealthDetail =>
+      'Covers your diet and exercise logs, body data such as weight, and health goals. We ask for this separately from other personal information.';
+
+  @override
+  String get consentAge14 => 'I am 14 years of age or older';
+
+  @override
+  String get consentAge14Detail => 'You must be 14 or older to sign up.';
+
+  @override
+  String get consentMarketing => 'Receive marketing notifications';
+
+  @override
+  String get consentRequiredHint => 'Agree to all required items to continue.';
+
+  @override
+  String get consentPageTitle => 'Agreements';
+
+  @override
+  String get consentPageSubtitle =>
+      'Please review and agree to the items below to keep using On-Care.';
+
+  @override
+  String get consentPageAction => 'Agree and continue';
+
+  @override
+  String get consentPageFailed =>
+      'Couldn\'t save your agreement. Please try again in a moment.';
 
   @override
   String get onboardSkip => 'Do this later';
@@ -3562,6 +3700,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Something went wrong. Please try again in a moment.';
 
   @override
+  String get aicResend => 'Send again';
+
+  @override
+  String get aicSendFailedMine => 'Not sent · Long-press to edit';
+
+  @override
   String get actionCancel => 'Cancel';
 
   @override
@@ -3578,6 +3722,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myHealthGoalsTitle => 'Health goals';
+
+  @override
+  String get myFirstRunPromptTitle => 'Enter your basics for tailored goals';
+
+  @override
+  String get myFirstRunPromptBody =>
+      'You skipped the first-time setup. Add your birth date, height and weight and we will suggest diet and exercise goals that fit you.';
+
+  @override
+  String get myFirstRunPromptAction => 'Enter basics';
 
   @override
   String get myGoalsFocusSection => 'What you want to focus on';
@@ -3727,6 +3881,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myNotificationSaveFailed => 'Couldn\'t save notification settings';
+
+  @override
+  String get myNotifLoadFailed => 'Couldn\'t load notification settings';
+
+  @override
+  String get myNotifLoadFailedBody =>
+      'These are default values and may differ from your saved settings';
 
   @override
   String get myPointsGuideTitle => 'How to earn points';
@@ -3895,6 +4056,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'You don\'t have a trainer yet. Connect a gym and trainer from the Exercise tab';
 
   @override
+  String get coachTrainerLoadFailed => 'Couldn\'t load your trainer';
+
+  @override
+  String get coachTrainerRetrying =>
+      'Couldn\'t load your trainer. Trying again';
+
+  @override
   String get alertCategoryReminder => 'Reminder';
 
   @override
@@ -3940,6 +4108,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alertLoadFailed => 'Couldn\'t load the latest notifications';
 
   @override
+  String get alertMarkAllReadFailed =>
+      'Couldn\'t mark all as read. Please try again shortly';
+
+  @override
+  String get alertCoachChatFailed =>
+      'Couldn\'t load your trainer, so the chat can\'t open. Please try again shortly';
+
+  @override
+  String get alertCoachChatNoTrainer =>
+      'You have no assigned trainer, so the chat can\'t open';
+
+  @override
   String get alertTimeJustNow => 'Just now';
 
   @override
@@ -3959,20 +4139,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String alertTimeDaysAgo(int days) {
     return '${days}d ago';
   }
-
-  @override
-  String get demoAlertSodiumTitle => 'Watch your sodium';
-
-  @override
-  String get demoAlertSodiumBody =>
-      'Lunch jjamppong pushed today\'s sodium to 4,657mg. Drink plenty of water.';
-
-  @override
-  String get demoAlertDinnerTitle => 'Log your dinner';
-
-  @override
-  String get demoAlertDinnerBody =>
-      'No dinner logged yet today. One photo is all it takes.';
 
   @override
   String get demoAlertRoutineTitle => 'A new workout routine arrived';

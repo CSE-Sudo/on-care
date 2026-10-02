@@ -18,3 +18,13 @@ regexes = [
   '''(?i)^[A-Za-z0-9_.-]*(placeholder|example|dummy)[A-Za-z0-9_.-]*$''',
 ]
 
+
+[[allowlists]]
+description = "테스트 코드의 가짜 비밀번호(`signup-pw-1234` 처럼 `-pw-숫자` 로 끝나는 값) — 테스트 파일 안에서만"
+condition = "AND"
+regexTarget = "secret"
+regexes = ['''^[A-Za-z0-9]+(-[A-Za-z0-9]+)*-pw-[0-9]+$''']
+paths = [
+  '''^frontend/[^/]+/test/.+_test\.dart$''',
+  '''^backend/tests/.+\.py$''',
+]

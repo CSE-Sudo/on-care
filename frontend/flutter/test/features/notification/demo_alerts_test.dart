@@ -1,8 +1,8 @@
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:intl/intl.dart';
 import 'package:oncare/core/demo/demo_alert_keys.dart';
 import 'package:oncare/core/storage/app_database.dart';
+import 'package:oncare/core/storage/seed_data.dart';
 import 'package:oncare/features/notification/data/repositories/dio_notification_repository.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 
@@ -23,8 +23,8 @@ void main() {
   AlertItem byTitle(String title) =>
       demoAlerts.singleWhere((AlertItem a) => a.title == title);
 
-  test('아홉 건이고 id 가 겹치지 않는다', () {
-    expect(demoAlerts, hasLength(9));
+  test('일곱 건이고 id 가 겹치지 않는다', () {
+    expect(demoAlerts, hasLength(7));
     final ids = demoAlerts.map((AlertItem a) => a.id).toSet();
     expect(ids, hasLength(demoAlerts.length));
   });
@@ -41,7 +41,7 @@ void main() {
     }
   });
 
-  test('안 읽은 알림 일곱 건이 위에 모여 있다', () {
+  test('안 읽은 알림 다섯 건이 위에 모여 있다', () {
     final reads = demoAlerts.map((AlertItem a) => a.read).toList();
     expect(reads.where((bool r) => !r), hasLength(kDemoUnreadNotifications));
     final int firstRead = reads.indexOf(true);
@@ -52,8 +52,6 @@ void main() {
   // 목적지는 서버 갈래별 표와 다를 수 있다(서버를 맞추는 일은 #2690).
   test('예시 알림은 예전 데모와 같은 갈래와 목적지로 이어진다', () {
     final expected = <String, (AlertCategory, AlertTarget)>{
-      '나트륨 섭취 주의': (AlertCategory.reminder, AlertTarget.diet),
-      '저녁 식단을 기록해 주세요': (AlertCategory.reminder, AlertTarget.diet),
       '새 운동 루틴이 도착했어요': (AlertCategory.routine, AlertTarget.exercise),
       // 서버 시드와 같은 갈래다(#2084·#2085).
       '이번 주 리포트가 등록됐어요': (AlertCategory.coachReport, AlertTarget.coachChat),
@@ -69,6 +67,47 @@ void main() {
     });
   });
 
+  // 실서버에는 식단 기록·나트륨 알림을 만드는 코드가 없다(#2854). 데모에서만
+  // 보이면 실서비스로 옮긴 회원에게 기능이 사라진 것으로 보인다.
+  test('실서버가 만들지 않는 식단 알림이 없다', () {
+    for (final AlertItem a in demoAlerts) {
+      for (final String word in <String>['나트륨', '저녁 식단']) {
+        expect('${a.title} ${a.body}', isNot(contains(word)), reason: a.id);
+      }
+      expect(a.action?.target, isNot(AlertTarget.diet), reason: a.id);
+    }
+    for (final String id in kRetiredDemoAlertSeedIds) {
+      expect(kDemoAlertKeyBySeedId, isNot(contains(id)));
+      expect(demoAlerts.map((AlertItem a) => a.id), isNot(contains(id)));
+    }
+  });
+
+  test('오늘 이미 시드된 설치에 남은 식단 알림도 걷어 낸다', () async {
+    // 날짜가 바뀌기 전에는 시드를 다시 깔지 않는다. 그 사이에도 뺀 알림이 남으면
+    // 안 된다.
+    final AppDatabase db = await seededDemoDatabase();
+    addTearDown(db.close);
+    await db
+        .into(db.notificationItems)
+        .insert(
+          NotificationItemsCompanion.insert(
+            id: 'seed-noti-1',
+            createdAt: DateTime(2026, 9, 15, 18),
+            title: '나트륨 섭취 주의',
+            body: '',
+            category: 'reminder',
+          ),
+        );
+
+    await seedIfEmpty(db);
+
+    final rows = await db.select(db.notificationItems).get();
+    expect(
+      rows.map((NotificationRow r) => r.id),
+      isNot(contains('seed-noti-1')),
+    );
+  });
+
   test('점검 공지만 목적지가 없다', () {
     expect(byTitle('서비스 점검 안내').action, isNull);
     expect(
@@ -80,8 +119,6 @@ void main() {
   // 언제 열어도 같은 시각으로 보인다 — 같은 날 안에서 흐르지 않는다(#2660).
   test('시각은 예전 데모 목록과 같다', () {
     expect(demoAlerts.map((AlertItem a) => a.timeAgo), <String>[
-      '10분 전',
-      '20분 전',
       '30분 전',
       '45분 전',
       '1시간 전',
@@ -102,8 +139,8 @@ void main() {
 
     expect(byId.keys.toSet(), kDemoAlertKeyBySeedId.keys.toSet());
     expect(kDemoAlertAgeBySeedId.keys.toSet(), byId.keys.toSet());
-    final DateTime newest = byId['seed-noti-1']!.createdAt;
-    final Duration base = kDemoAlertAgeBySeedId['seed-noti-1']!;
+    final DateTime newest = byId['seed-noti-5']!.createdAt;
+    final Duration base = kDemoAlertAgeBySeedId['seed-noti-5']!;
     kDemoAlertAgeBySeedId.forEach((String id, Duration age) {
       expect(newest.difference(byId[id]!.createdAt), age - base, reason: id);
       expect(byId[id]!.read, kDemoAlertReadSeedIds.contains(id), reason: id);
@@ -122,21 +159,6 @@ void main() {
     final DemoFixture fixture = DemoFixture.load();
     final List<FixtureDay> days = fixture.daysFor(DateTime(2026, 9, 15, 19));
     final FixtureDay today = days.last;
-
-    test('나트륨 알림의 수치가 오늘 식단 합계와 같다', () {
-      final String total = NumberFormat('#,###').format(today.sodiumMg);
-      expect(byTitle('나트륨 섭취 주의').body, contains('${total}mg'));
-    });
-
-    test('저녁 기록 알림은 저녁이 빈 오늘의 알림이다', () {
-      expect(
-        today.meals.map((FixtureMeal m) => m.mealType),
-        isNot(contains('dinner')),
-      );
-      final AlertItem dinner = byTitle('저녁 식단을 기록해 주세요');
-      expect(dinner.read, isFalse);
-      expect(dinner.timeAgo, endsWith('분 전'));
-    });
 
     test('루틴 알림은 픽스처에 있는 걷기 루틴을 말한다', () {
       expect(byTitle('새 운동 루틴이 도착했어요').body, contains('걷기'));

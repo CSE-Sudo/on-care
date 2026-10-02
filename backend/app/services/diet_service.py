@@ -60,12 +60,28 @@ def today_str() -> str:
 
 
 def load_foods(foods_json: str) -> list[dict]:
-    """저장된 foods_json → 표시용 음식 목록. 저장 대상 밖의 키는 버린다."""
-    foods = json.loads(foods_json) if foods_json else []
-    return [
-        {field: food[field] for field in _FOOD_STORAGE_FIELDS if field in food}
-        for food in foods
-    ]
+    """저장된 foods_json → 표시용 음식 목록. 저장 대상 밖의 키는 버린다.
+
+    항목이 딕셔너리라는 보장이 없다. `["김치찌개", 42, null]` 처럼 문자열·숫자가
+    섞인 기록이 있고(#724), 숫자 항목에서 `field in food` 가 TypeError 를 내 그 날의
+    식단 조회 전체가 500 이 됐다. 트레이너 쪽(`trainer_service._food_names`)과 같은
+    규칙으로 문자열은 이름으로 살리고, 나머지(숫자·null 등)는 건너뛴다.
+    """
+    try:
+        foods = json.loads(foods_json) if foods_json else []
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(foods, list):
+        return []
+    out: list[dict] = []
+    for food in foods:
+        if isinstance(food, dict):
+            out.append(
+                {field: food[field] for field in _FOOD_STORAGE_FIELDS if field in food}
+            )
+        elif isinstance(food, str) and food.strip():
+            out.append({"name": food.strip()})
+    return out
 
 
 def store_foods(foods: list[RecognizedFood]) -> list[dict]:
@@ -398,6 +414,13 @@ def build_today(db: Session, user_id: str) -> DietTodayResponse:
     return build_day(db, user_id, today_str())
 
 
+def period_floor(last: date_type) -> date_type:
+    """[last] 로 끝나는 기간 집계가 거슬러 올라갈 수 있는 가장 이른 날. (#2833)"""
+    if last.toordinal() <= MAX_PERIOD_DAYS:
+        return date_type.min
+    return last - timedelta(days=MAX_PERIOD_DAYS - 1)
+
+
 def first_entry_date(db: Session, user_id: str) -> str | None:
     """이 회원이 식단을 처음 남긴 날(YYYY-MM-DD). 기록이 없으면 None."""
     return db.scalar(
@@ -406,6 +429,15 @@ def first_entry_date(db: Session, user_id: str) -> str | None:
         .order_by(DietEntry.date.asc())
         .limit(1)
     )
+
+
+#: 기간 집계(`GET /diet/days`)가 한 번에 만드는 날의 최대 수(약 3년, #2833).
+#:
+#: 응답은 구간의 모든 날을 0 으로 채운 배열이라, `from=0001-01-01` 이나 기기 시계
+#: 오류로 아주 옛날 날짜에 남은 기록 하나가 수십만 칸을 만들어 워커를 묶는다.
+#: 구간이 이보다 길면 시작을 끝에서 이만큼으로 끌어올리고, 응답 `from_date` 에
+#: 실제 시작일을 싣는다(`activity_calendar_service.MAX_DAYS` 와 같은 방식).
+MAX_PERIOD_DAYS = 1100
 
 
 def build_period(
@@ -426,6 +458,9 @@ def build_period(
 
     [end] 가 오늘보다 뒤면 오늘로 당긴다 — 아직 오지 않은 날은 그래프의 칸이
     아니다(`activity_calendar_service.calendar` 와 같은 규칙).
+
+    구간은 끝에서 거슬러 [MAX_PERIOD_DAYS] 일까지다. 그보다 이른 시작(주어진 값이든
+    첫 기록일이든)은 그 하한으로 끌어올린다(#2833).
     """
     today = clock.today()
     last = min(end or today, today)
@@ -435,6 +470,7 @@ def build_period(
         first = date_type.fromisoformat(first_recorded) if first_recorded else last
     if first > last:
         first = last
+    first = max(first, period_floor(last))
 
     rows = db.scalars(
         select(DietEntry).where(

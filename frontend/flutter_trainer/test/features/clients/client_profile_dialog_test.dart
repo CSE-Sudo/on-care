@@ -277,6 +277,31 @@ Future<void> _startEditing(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('메모 시각은 브라우저 시간대가 아니라 KST 로 보인다 (#2893)', (tester) async {
+    final repository = _FakeMemoRepository();
+    // 서버가 준 UTC 9월 16일 15:30 = KST 9월 17일 00:30.
+    final DateTime at = DateTime.utc(2026, 9, 16, 15, 30);
+    repository._byClient['m1'] = <TrainerMemo>[
+      TrainerMemo.fromJson(<String, Object?>{
+        'id': 'memo-utc',
+        'body': '야간 통증 문의',
+        'source': 'trainer',
+        'created_at': at.toIso8601String(),
+        'updated_at': at.toIso8601String(),
+      }),
+    ];
+    await _pumpDialog(tester, repository);
+
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey<String>('client-memo-time-memo-utc')),
+          )
+          .data,
+      '2026.09.17 00:30',
+    );
+  });
+
   testWidgets('a saved memo shows in the list and survives a reopen', (
     tester,
   ) async {

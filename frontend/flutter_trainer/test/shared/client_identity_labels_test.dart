@@ -60,14 +60,37 @@ void main() {
       );
     });
 
-    testWidgets('모르는 성별 값은 기타로 읽는다', (tester) async {
+    testWidgets('성별 미입력은 기타가 아니라 나이만 적는다 (#2870)', (tester) async {
       expect(
-        await _label(tester, const Locale('en'), gender: 'x', age: 50),
-        'Other · Age 50',
+        await _label(tester, const Locale('en'), gender: '', age: 50),
+        'Age 50',
       );
       expect(
+        await _label(tester, const Locale('ko'), gender: '', age: 50),
+        '50세',
+      );
+      // 세 가지 밖의 값도 미입력으로 읽는다 — 기타로 지어내지 않는다.
+      expect(
         await _label(tester, const Locale('ko'), gender: 'unknown', age: 50),
-        '기타 · 50세',
+        '50세',
+      );
+    });
+
+    testWidgets('성별·나이 둘 다 모르면 빈 문구다 (#2870)', (tester) async {
+      expect(
+        await _label(tester, const Locale('ko'), gender: '', age: null),
+        '',
+      );
+      expect(
+        await _label(tester, const Locale('en'), gender: '', age: null),
+        '',
+      );
+    });
+
+    testWidgets('회원이 직접 고른 기타는 그대로 기타다', (tester) async {
+      expect(
+        await _label(tester, const Locale('ko'), gender: 'other', age: null),
+        '기타',
       );
     });
 
@@ -80,20 +103,6 @@ void main() {
         await _label(tester, const Locale('en'), gender: 'male', age: null),
         'Male',
       );
-    });
-
-    testWidgets('성별이 비면 성별을 적지 않는다 (#2814)', (tester) async {
-      expect(
-        await _label(tester, const Locale('ko'), gender: '', age: 50),
-        '50세',
-      );
-      expect(
-        await _label(tester, const Locale('en'), gender: '', age: 50),
-        'Age 50',
-      );
-      // 담당 해제·동의 철회 회원 — 서버가 둘 다 비워 보낸다.
-      expect(await _label(tester, const Locale('ko'), gender: '', age: null), '');
-      expect(await _label(tester, const Locale('en'), gender: ' ', age: null), '');
     });
 
     testWidgets('영어 문구에는 한글이 없다', (tester) async {

@@ -291,3 +291,18 @@ def test_unlinking_trainer_cancels_unclaimed_tray(client, db_session, trainer_id
     r = _claim(client, h)
     assert r.status_code == 201, r.text
     assert r.json()["coupon"]["id"] != coupon_id
+
+
+def test_meals_from_the_dev_stub_recognizer_are_not_photo_days(client, db_session, trainer_id):
+    """개발용 고정 식단 스텁(`stub`)으로 저장된 끼니는 사진 기록일이 아니다. (#2812)
+
+    스텁은 사진을 보지 않고 늘 같은 음식을 돌려준다 — 그 끼니로 식판 조건을 채우면
+    아무 사진이나 올려 보상을 받는다.
+    """
+    member_id, h = _new_member(client)
+    _link(db_session, member_id, trainer_id)
+    _add_meals(db_session, member_id, 10)
+    _add_meals(db_session, member_id, 10, start_ago=10, engine="stub")
+
+    assert _state(client, h)["photo_days"] == 10
+    assert diet_tray_service.photo_days(db_session, member_id) == 10

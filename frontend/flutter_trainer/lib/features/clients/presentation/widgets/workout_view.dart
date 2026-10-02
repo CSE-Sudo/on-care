@@ -11,6 +11,7 @@ import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dar
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_day_record_tile.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_exercise_status_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_section.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/day_fetch_failed_line.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/exercise_memo.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
@@ -442,9 +443,23 @@ class _DayDetail extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final AsyncValue<List<ClientExerciseItem>> async = ref.watch(
-      clientExercisesOnProvider((clientId: clientId, date: date)),
+    final ({String clientId, DateTime date}) dayKey = (
+      clientId: clientId,
+      date: date,
     );
+    final AsyncValue<List<ClientExerciseItem>> async = ref.watch(
+      clientExercisesOnProvider(dayKey),
+    );
+    // 실패는 빈 결과와 갈라 말한다(#2892). 이력 카드가 있든 없든 같은 줄이
+    // 선다 — 예전에는 실패하면 '직접 기록' 카드가 통째로 빠지거나(이력 있는
+    // 날) 빈 자리였다(없는 날). 다시 읽는 동안은 내린다.
+    final Widget? failed = async.hasError && !async.isLoading
+        ? DayFetchFailedLine(
+            key: ValueKey<String>('workout-day-failed-${ymd(date)}'),
+            message: l.workoutDayExercisesFailed,
+            onRetry: () => ref.invalidate(clientExercisesOnProvider(dayKey)),
+          )
+        : null;
     if (entries.isNotEmpty) {
       // 이력이 있는 날에도 회원이 **직접 적은** 운동은 따로 보여 준다(#2534).
       // 위 알약의 시간·칼로리에는 이미 더해져 있는데 이름이 빠지면, 트레이너는
@@ -459,6 +474,10 @@ class _DayDetail extends ConsumerWidget {
           children: <Widget>[
             for (final RoutineHistoryEntry entry in entries) ...<Widget>[
               _HistoryCard(clientId: clientId, entry: entry),
+              const SizedBox(height: OnCareSpacing.s8),
+            ],
+            if (failed != null) ...<Widget>[
+              failed,
               const SizedBox(height: OnCareSpacing.s8),
             ],
             if (own.isNotEmpty) ...<Widget>[
@@ -531,7 +550,13 @@ class _DayDetail extends ConsumerWidget {
           ),
         );
       },
-      orElse: () => const SizedBox.shrink(),
+      // 로딩은 지금처럼 비워 둔다 — 펼친 자리가 깜빡이지 않게.
+      orElse: () => failed == null
+          ? const SizedBox.shrink()
+          : Padding(
+              padding: const EdgeInsets.only(top: OnCareSpacing.s12),
+              child: failed,
+            ),
     );
   }
 

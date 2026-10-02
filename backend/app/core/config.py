@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -30,13 +30,30 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://oncare:oncare@localhost:5432/oncare"
     # DB 커넥션 인출(연결 수립) 상한(초) — 네트워크 파티션/무응답 시 스레드 무한 점유 방지.
     db_connect_timeout_seconds: int = 5
+    # 커넥션 풀(#2836). 기본값을 SQLAlchemy 에 맡기면 풀 대기가 30초라, 풀이 마르면
+    # 가벼운 조회도 30초 뒤에 500 이 된다. 짧게 실패시켜 클라이언트 재시도로 넘긴다.
+    # (pool_size + max_overflow) × 워커 수 × 인스턴스 수가 DB 연결 상한(Neon 플랜)
+    # 안에 들어와야 한다 — 값은 배포 문서(DEPLOY.md)에 계산법과 함께 적어 둔다.
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
+    db_pool_timeout_seconds: float = 10.0
+    # 유휴 연결 재활용 주기(초). 관리형 DB 가 오래 쉰 연결을 먼저 끊으면 다음 요청이
+    # 끊긴 연결을 받는다(pre_ping 이 잡지만 왕복이 하나 더 든다). 그보다 짧게 둔다.
+    db_pool_recycle_seconds: int = 300
+    # 쿼리 하나의 실행 상한(ms). 잘못된 쿼리·잠금 대기 하나가 연결을 무기한 쥐지
+    # 않게 한다. 0 이면 끈다. 마이그레이션(`scripts/migrate.py`·Alembic)은 별도
+    # 연결이라 이 값의 영향을 받지 않는다.
+    db_statement_timeout_ms: int = 10_000
     # 앱 기동 시 create_all() 로 테이블 생성 여부(개발 편의). 운영은 Alembic 을 정답으로 → false 권장.
     auto_create_tables: bool = True
 
     # --- JWT ---
     jwt_secret: str = DEFAULT_JWT_SECRET
     jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 60 * 24
+    # 접근 토큰 수명(#2913). 두 앱 모두 401 을 받으면 refresh 로 새 토큰을 받아 요청을
+    # 다시 보내므로 짧아도 사용자 체감이 없고, 새어 나간 토큰이 쓰일 수 있는 시간이
+    # 줄어든다. 데모·개발 환경은 ACCESS_TOKEN_EXPIRE_MINUTES 로 길게 둘 수 있다.
+    access_token_expire_minutes: int = 60
     refresh_token_expire_days: int = 30
     # 웹 클라이언트(`X-Client-Platform: web`)가 받는 refresh 토큰 수명(#2828). 웹은
     # 토큰을 탭 단위 저장소에만 두므로 오래 갈 필요가 없고, 브라우저에서 새어 나갔을
@@ -95,6 +112,11 @@ class Settings(BaseSettings):
     #: 사진 한 장의 상한. 휴대폰 카메라 원본을 그대로 올려도 걸리지 않을
     #: 정도이되, 대화 스레드가 파일 서버가 되지는 않을 정도.
     max_chat_image_bytes: int = 6 * 1024 * 1024
+    #: 채팅 사진·리포트 PDF 경로의 **요청 본문** 상한은 파일 상한에 이만큼을 더한
+    #: 값이다(#2832). multipart 경계·메시지 필드·client_request_id 가 함께 실려 오므로,
+    #: 파일 상한과 똑같이 두면 상한에 딱 맞는 파일이 413 을 맞는다. 파일 자체의
+    #: 상한은 핸들러가 바이트를 세어 따로 지킨다.
+    upload_body_slack_bytes: int = 512 * 1024
 
     #: 채팅 첨부(사진·리포트 PDF) 바이트 저장소(#2817). auto 는 버킷 이름이 있으면
     #: s3, 없으면 local(위 두 디렉터리). 컨테이너 디스크는 재배포·스케일 아웃에서
@@ -233,6 +255,14 @@ class Settings(BaseSettings):
     # UI 라 연타가 그대로 비용이 된다. 생성 왕복이 실측 3~6초라(#579) 사람이
     # 결과를 보고 조정하는 속도로는 분당 10회에 닿지 않는다.
     routine_options_per_minute: int = 10
+    # 식단 사진 분석 한도(#2827). 사진 한 장이 외부 비전 모델 호출 한 번이라 비용이
+    # 가장 큰 축이다. 분당 값은 재시도 루프·스크립트 폭주를 막고(사용자 id 버킷 —
+    # 같은 헬스장 Wi-Fi 의 회원끼리 한 버킷을 나눠 쓰지 않게), 하루 값은 한 회원의
+    # 하루 비용을 묶는다. 하루 값은 DB(`diet_analysis_usages`)에서 KST 날짜로 세므로
+    # 재기동·여러 인스턴스에서도 같다. 끼니 다섯 번에 재촬영 여유를 더한 값이다.
+    # 0 이면 그 한도를 끈다. RATE_LIMIT_ENABLED=false 면 둘 다 끈다.
+    diet_analyze_per_minute: int = 10
+    diet_analyze_per_day: int = 20
     # 상담 요청 생성 한도(#1628). 트래픽이 아니라 **남에게 주는 피해**를 막는 정책이다
     # — 답을 기다리는 요청 하나가 트레이너 자리 하나를 최대 24시간 잠그고(#1873),
     # 신청·취소를 되풀이하면 트레이너 알림함이 찬다. 둘 다 DB 에서 세므로 재기동이나
@@ -242,6 +272,51 @@ class Settings(BaseSettings):
     # 24시간에 만들 수 있는 요청 수(취소·거절·만료 포함). 넘으면 429 + Retry-After.
     # 다른 한도와 같이 RATE_LIMIT_ENABLED=false 면 끈다.
     consultation_create_per_day: int = 10
+    # 같은 이메일 로그인 연속 실패 잠금(#2815). IP 를 바꿔 가며 한 계정의 비밀번호를
+    # 맞혀 보는 것을 막는다 — IP 한도만으로는 요청마다 주소를 바꾸면 끝없이 시도할 수
+    # 있다. `login_lockout_seconds` 안에 `login_max_failures` 번 틀리면 그 이메일은
+    # 남은 시간 동안 429 다. 성공하면 실패 기록을 지운다.
+    login_max_failures: int = 5
+    login_lockout_seconds: int = 15 * 60
+    # 회원 연결 코드 미리보기·사용의 트레이너 하루 상한(#2815). 분당 한도(IP·트레이너
+    # id)에 더해, 트레이너 계정이 공개 가입이라 한 계정이 하루 종일 코드를 훑는 것을
+    # 막는다. 정상 사용(회원 한 명당 한두 번)으로는 닿지 않는 값.
+    pairing_redeem_per_day: int = 30
+    # 같은 이메일 가입 시도의 시간당 상한(#2913). 가입은 이미 있는 이메일에 409 를
+    # 주므로, IP 한도만으로는 IP 를 바꿔 가며 특정 이메일의 가입 여부를 계속 물을 수
+    # 있다. 회원·트레이너 가입이 한 버킷을 쓴다. 정상 가입(오타 몇 번)으로는 닿지 않는 값.
+    register_per_email_per_hour: int = 5
+    # 비밀번호 변경의 현재 비밀번호 연속 실패 잠금(#2913). 접근 토큰을 손에 넣은 쪽이
+    # 현재 비밀번호를 맞혀 보는 것을 사용자 id 단위로 막는다. 창은 로그인 잠금과 같다
+    # (`login_lockout_seconds`).
+    password_change_max_failures: int = 5
+
+    # --- 클라이언트 IP (#2815) ---
+    # rate limit 키·감사 로그 IP 를 정할 때 믿는 앞단 프록시 수. `X-Forwarded-For` 를
+    # 오른쪽에서 이 번째 값으로 읽는다(`app/core/client_ip.py`). 0 이면 헤더를 보지 않고
+    # 소켓 주소를 쓴다. 비워 두면 운영(prod)은 1, 그 밖은 0 — 운영 배포(App Runner·
+    # Railway·EC2+Nginx)는 모두 프록시 하나 뒤다. 프록시가 늘면 그 수로 맞춘다.
+    trusted_proxy_hops: Optional[int] = Field(default=None, ge=0, le=5)
+
+    @property
+    def effective_proxy_hops(self) -> int:
+        """실제로 쓰는 신뢰 프록시 홉 수(미설정이면 운영 1, 그 밖 0)."""
+        if self.trusted_proxy_hops is not None:
+            return self.trusted_proxy_hops
+        return 1 if self.is_prod else 0
+
+    #: API 문서(`/docs`·`/redoc`·`/openapi.json`) 공개 여부(#2834). 비워 두면 운영은
+    #: 끄고 그 밖은 켠다. 문서는 엔드포인트 전체 목록·스키마·docstring 의 내부 설계
+    #: 설명을 인증 없이 보여 준다 — 운영 스키마는 스테이징·로컬에서 본다. 꼭 운영에서
+    #: 켜야 하면 `EXPOSE_API_DOCS=true` 로 명시한다.
+    expose_api_docs: Optional[bool] = None
+
+    @property
+    def api_docs_enabled(self) -> bool:
+        """실제로 문서를 여는가(미설정이면 운영 끔, 그 밖 켬)."""
+        if self.expose_api_docs is not None:
+            return self.expose_api_docs
+        return not self.is_prod
 
     @property
     def admin_email_set(self) -> set[str]:
@@ -340,7 +415,48 @@ class Settings(BaseSettings):
                     "운영(env=prod)에서는 AUTO_CREATE_TABLES=false 로 두고 Alembic 을 스키마의 "
                     "유일한 소스로 삼아야 합니다."
                 )
+            # 사진 인식·임베딩은 키가 없으면 개발용 대체(고정 식단 스텁·해시 벡터)로
+            # 내려간다. 운영에서 그대로 뜨면 사진과 무관한 음식이 끼니로 저장되고
+            # 포인트까지 나가며, 의미 없는 벡터가 RAG 테이블에 섞인다(#2812).
+            # 조용히 뜨는 대신 기동을 거부해 배포 단계에서 바로 드러나게 한다.
+            problems = self.missing_ai_config()
+            if problems:
+                raise ValueError(
+                    "운영(env=prod)에서는 사진 인식·임베딩 키가 필요합니다: " + "; ".join(problems)
+                )
         return self
+
+    def recognizer_problem(self) -> str | None:
+        """설정된 식단 인식기를 실제로 쓸 수 없는 이유. 쓸 수 있으면 None. (#2812)"""
+        engine = self.recognizer.strip().lower()
+        if engine == "gemini":
+            return None if self.gemini_api_key else "RECOGNIZER=gemini 인데 GEMINI_API_KEY 가 비어 있음"
+        if engine == "claude":
+            if self.litellm_base_url and self.litellm_api_key:
+                return None
+            return "RECOGNIZER=claude 인데 LITELLM_BASE_URL·LITELLM_API_KEY 가 비어 있음"
+        if engine == "stub":
+            return "RECOGNIZER=stub 은 개발용 고정 식단이라 운영에서 쓸 수 없음"
+        return f"RECOGNIZER={engine} 는 운영에서 쓸 수 있는 인식기가 아님(gemini|claude)"
+
+    def embedder_problem(self) -> str | None:
+        """설정된 임베더를 실제로 쓸 수 없는 이유. 쓸 수 있으면 None. (#2812)"""
+        chosen = self.embedder.strip().lower()
+        if chosen == "gemini":
+            return None if self.gemini_api_key else "EMBEDDER=gemini 인데 GEMINI_API_KEY 가 비어 있음"
+        if chosen == "openai":
+            return None if self.openai_api_key else "EMBEDDER=openai 인데 OPENAI_API_KEY 가 비어 있음"
+        if chosen == "litellm":
+            if self.litellm_base_url and self.litellm_api_key and self.litellm_embed_model:
+                return None
+            return "EMBEDDER=litellm 인데 LITELLM_BASE_URL·LITELLM_API_KEY·LITELLM_EMBED_MODEL 중 빈 값이 있음"
+        if chosen == "hash":
+            return "EMBEDDER=hash 는 개발용 해시 벡터라 운영에서 쓸 수 없음"
+        return f"EMBEDDER={chosen} 는 알 수 없는 임베더"
+
+    def missing_ai_config(self) -> list[str]:
+        """운영 기동을 막는 AI 설정 문제 목록. 비어 있으면 통과."""
+        return [p for p in (self.recognizer_problem(), self.embedder_problem()) if p]
 
 
 @lru_cache

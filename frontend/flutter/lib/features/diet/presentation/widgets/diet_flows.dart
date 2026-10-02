@@ -602,6 +602,12 @@ Future<bool> showDietResultSheet(
     refreshDietRecords(container.invalidate, dates: <DateTime>[?_dayOf(date)]);
     invalidatePointsBalance(container.invalidate);
   }
+  // 사진으로는 기록할 수 없을 때(음식 없음·오늘 분석 다 씀 등)의 `직접 추가` —
+  // 그 화면에서 저장했으면 이 흐름도 저장 성공이다(#2848, #2827).
+  if (closedWith == _ResultSheetExit.manual) {
+    if (!root.mounted) return false;
+    return openDietManualAddPage(root);
+  }
   return outcome.resolve(closedWith);
 }
 
@@ -627,6 +633,9 @@ class DietResultOutcome {
 enum _ResultSheetExit {
   /// 분석 실패 화면의 `다른 사진 고르기` — 사진 선택부터 다시 연다.
   pickAnother,
+
+  /// 분석 실패 화면의 `직접 추가` — 사진 없이 적는 화면을 연다.
+  manual,
 }
 
 class _ResultSheet extends ConsumerStatefulWidget {
@@ -913,6 +922,10 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
   void _pickAnother() =>
       Navigator.of(context).pop(_ResultSheetExit.pickAnother);
 
+  /// 사진으로는 이 끼니를 기록할 수 없다 — 사진 없이 적는 화면으로 넘긴다.
+  /// 그 화면도 [showDietResultSheet] 가 이 시트가 닫힌 뒤 연다.
+  void _openManual() => Navigator.of(context).pop(_ResultSheetExit.manual);
+
   /// 아래 `닫기`. 기록은 분석 때 이미 저장됐으므로 `저장` 과 같이 저장 성공으로
   /// 닫는다 — 식단 탭 이동과 홈 요약 갱신이 똑같이 일어난다(#2627). 저장 알림은
   /// `저장` 에만 띄운다.
@@ -958,9 +971,13 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
           l.dietAnalysisUnsupportedFormat,
         DietAnalysisFailure.badRequest => l.dietAnalysisBadRequest,
         DietAnalysisFailure.unauthorized => l.dietAnalysisUnauthorized,
-        // 권한·동의 부족과 요청 한도는 어느 화면에서나 같은 뜻이라 공통
+        // 권한·동의 부족과 공통 요청 한도는 어느 화면에서나 같은 뜻이라 공통
         // 문구를 쓴다 — 403 에는 서버 사유가 있으면 한국어 화면에서 그것을
-        // 보인다(#2859).
+        // 보인다(#2859). 사진 분석 전용 분당 한도(`rate_limited`, #2827)만
+        // 직접 추가를 함께 권하는 분석 문구다.
+        DietAnalysisFailure.rateLimited
+            when _failureError is DietAnalysisRejected =>
+          l.dietAnalysisRateLimited,
         DietAnalysisFailure.forbidden ||
         DietAnalysisFailure.rateLimited => appErrorMessage(
           l,
@@ -968,6 +985,9 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
           fallback: l.dietAnalysisFailedBody,
         ),
         DietAnalysisFailure.notImplemented => l.dietAnalysisNotImplemented,
+        DietAnalysisFailure.noFood => l.dietAnalysisNoFood,
+        DietAnalysisFailure.dailyLimit => l.dietAnalysisDailyLimit,
+        DietAnalysisFailure.unavailable => l.dietAnalysisUnavailable,
         // 502 and transport failures share the "try again shortly" wording —
         // from the user's side both are "it broke, not your photo".
         DietAnalysisFailure.recognitionFailed ||
@@ -981,8 +1001,12 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
     if (failure.canRetry) return _run;
     return switch (failure) {
       DietAnalysisFailure.unsupportedFormat ||
-      DietAnalysisFailure.badRequest => _pickAnother,
+      DietAnalysisFailure.badRequest ||
+      DietAnalysisFailure.noFood => _pickAnother,
       DietAnalysisFailure.unauthorized => () => unawaited(_signInAgain()),
+      // 사진 길이 닫혔다(오늘 다 씀·분석 꺼짐) — 기록할 수 있는 길은 직접 추가다.
+      DietAnalysisFailure.dailyLimit ||
+      DietAnalysisFailure.unavailable => _openManual,
       _ => () => Navigator.of(context).pop(),
     };
   }
@@ -991,10 +1015,33 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
     if (failure.canRetry) return l.actionRetry;
     return switch (failure) {
       DietAnalysisFailure.unsupportedFormat ||
-      DietAnalysisFailure.badRequest => l.dietAnalysisPickAnother,
+      DietAnalysisFailure.badRequest ||
+      DietAnalysisFailure.noFood => l.dietAnalysisPickAnother,
       DietAnalysisFailure.unauthorized => l.dietAnalysisSignIn,
+      DietAnalysisFailure.dailyLimit ||
+      DietAnalysisFailure.unavailable => l.dietManualAdd,
       _ => l.dietAnalysisClose,
     };
+  }
+
+  /// 왼쪽 버튼. 직접 추가를 권하는 실패에서만 두 버튼이 된다(#2848, #2827).
+  /// 주 동작이 이미 `직접 추가` 면 왼쪽은 `닫기` 이고, 아니면(다른 사진·다시
+  /// 시도) 왼쪽이 `직접 추가` 다.
+  ({String label, VoidCallback onPressed})? _failureSecondary(
+    AppLocalizations l,
+    DietAnalysisFailure failure,
+  ) {
+    if (!failure.offersManualEntry) return null;
+    final bool manualIsPrimary =
+        failure == DietAnalysisFailure.dailyLimit ||
+        failure == DietAnalysisFailure.unavailable;
+    if (manualIsPrimary) {
+      return (
+        label: l.dietAnalysisClose,
+        onPressed: () => Navigator.of(context).pop(),
+      );
+    }
+    return (label: l.dietManualAdd, onPressed: _openManual);
   }
 
   /// `_result == null` without a classified failure shouldn't happen, but
@@ -1058,6 +1105,18 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
     if (_loading) return null;
     if (_failed || _result == null) {
       final DietAnalysisFailure failure = _shownFailure;
+      final ({String label, VoidCallback onPressed})? secondary =
+          _failureSecondary(l, failure);
+      if (secondary != null) {
+        return AppButtonPair(
+          cancelKey: const Key('dietAnalysisFailureSecondary'),
+          cancelLabel: secondary.label,
+          onCancel: secondary.onPressed,
+          confirmKey: const Key('dietAnalysisFailureAction'),
+          confirmLabel: _failureActionLabel(l, failure),
+          onConfirm: _failureAction(failure),
+        );
+      }
       return AppButton(
         key: const Key('dietAnalysisFailureAction'),
         label: _failureActionLabel(l, failure),

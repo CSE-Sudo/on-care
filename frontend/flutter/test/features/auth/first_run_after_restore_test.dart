@@ -45,6 +45,14 @@ const UserProfile _notDone = UserProfile(
   email: 'new@oncare.com',
 );
 
+/// 첫 설정을 건너뛴 계정(#2855).
+const UserProfile _skipped = UserProfile(
+  id: 'u3',
+  onboardingSkipped: true,
+  name: '',
+  email: 'skip@oncare.com',
+);
+
 const AppConfig _config = AppConfig(
   environment: Environment.dev,
   apiBaseUrl: 'https://dev.api.test',
@@ -164,6 +172,20 @@ void main() {
       final ProviderContainer container = containerWith(<Override>[
         await prefs(seen: false),
         profileProvider.overrideWith(() => _StubProfile(_done)),
+      ]);
+      final List<String> moves = <String>[];
+      await openFirstRunAfterRestore(
+        read: container.read,
+        go: moves.add,
+        stillSameSession: () => true,
+      );
+      expect(moves, isEmpty);
+    });
+
+    test('첫 설정을 건너뛴 계정은 앱을 다시 켜도 옮기지 않는다 (#2855)', () async {
+      final ProviderContainer container = containerWith(<Override>[
+        await prefs(seen: false),
+        profileProvider.overrideWith(() => _StubProfile(_skipped)),
       ]);
       final List<String> moves = <String>[];
       await openFirstRunAfterRestore(
