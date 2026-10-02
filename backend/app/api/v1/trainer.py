@@ -429,7 +429,7 @@ def trainer_change_password(
         record_failure(lock_key, lock_window)
         audit.record(
             db,
-            event="auth.password_change",
+            event=audit.PASSWORD_CHANGE,
             user_id=trainer.id,
             ip=audit.client_ip(request),
             success=False,
