@@ -2024,42 +2024,6 @@ abstract class AppLocalizations {
   /// **'Couldn\'t add the memo. Please try again.'**
   String get chatInsightMemoSaveFailed;
 
-  /// No description provided for @coachSheetTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Coaching for {name}'**
-  String coachSheetTitle(String name);
-
-  /// No description provided for @coachSheetSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Answers are grounded in this member\'s meals and workouts.'**
-  String get coachSheetSubtitle;
-
-  /// No description provided for @coachSheetHint.
-  ///
-  /// In en, this message translates to:
-  /// **'e.g. Sodium keeps running high — what meals should I suggest?'**
-  String get coachSheetHint;
-
-  /// No description provided for @coachSheetSources.
-  ///
-  /// In en, this message translates to:
-  /// **'Sources'**
-  String get coachSheetSources;
-
-  /// No description provided for @coachSheetAsk.
-  ///
-  /// In en, this message translates to:
-  /// **'Ask'**
-  String get coachSheetAsk;
-
-  /// No description provided for @coachSheetAskAgain.
-  ///
-  /// In en, this message translates to:
-  /// **'Ask again'**
-  String get coachSheetAskAgain;
-
   /// No description provided for @consultTitle.
   ///
   /// In en, this message translates to:
@@ -5809,30 +5773,6 @@ abstract class AppLocalizations {
   /// **'The response was empty.'**
   String get authErrEmptyResponse;
 
-  /// No description provided for @coachDemoUnavailable.
-  ///
-  /// In en, this message translates to:
-  /// **'AI coaching isn\'t available in demo mode'**
-  String get coachDemoUnavailable;
-
-  /// No description provided for @coachNotMyClient.
-  ///
-  /// In en, this message translates to:
-  /// **'That isn\'t one of your members'**
-  String get coachNotMyClient;
-
-  /// No description provided for @coachAskFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t send your question'**
-  String get coachAskFailed;
-
-  /// No description provided for @coachRateLimited.
-  ///
-  /// In en, this message translates to:
-  /// **'You\'ve sent too many questions. Please try again in a minute'**
-  String get coachRateLimited;
-
   /// No description provided for @slotFutureOnly.
   ///
   /// In en, this message translates to:
@@ -7183,71 +7123,11 @@ abstract class AppLocalizations {
   /// **'Follow-ups'**
   String get followUp;
 
-  /// No description provided for @followUpTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Follow-ups on {name}'**
-  String followUpTitle(String name);
-
-  /// No description provided for @followUpHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Note what you want to check again'**
-  String get followUpHint;
-
-  /// No description provided for @followUpAdd.
-  ///
-  /// In en, this message translates to:
-  /// **'Add follow-up'**
-  String get followUpAdd;
-
-  /// No description provided for @followUpDue.
-  ///
-  /// In en, this message translates to:
-  /// **'Check on'**
-  String get followUpDue;
-
   /// No description provided for @followUpOverdue.
   ///
   /// In en, this message translates to:
   /// **'Overdue'**
   String get followUpOverdue;
-
-  /// No description provided for @followUpContextGeneral.
-  ///
-  /// In en, this message translates to:
-  /// **'Member detail'**
-  String get followUpContextGeneral;
-
-  /// No description provided for @followUpContextDiet.
-  ///
-  /// In en, this message translates to:
-  /// **'Diet'**
-  String get followUpContextDiet;
-
-  /// No description provided for @followUpContextExercise.
-  ///
-  /// In en, this message translates to:
-  /// **'Workout'**
-  String get followUpContextExercise;
-
-  /// No description provided for @followUpContextMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Messages'**
-  String get followUpContextMessage;
-
-  /// No description provided for @followUpContextProgram.
-  ///
-  /// In en, this message translates to:
-  /// **'Program'**
-  String get followUpContextProgram;
-
-  /// No description provided for @followUpContextSchedule.
-  ///
-  /// In en, this message translates to:
-  /// **'Schedule'**
-  String get followUpContextSchedule;
 
   /// No description provided for @followUpComplete.
   ///
@@ -7261,12 +7141,6 @@ abstract class AppLocalizations {
   /// **'{count} left'**
   String followUpCount(int count);
 
-  /// No description provided for @followUpEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No follow-ups left.'**
-  String get followUpEmpty;
-
   /// No description provided for @followUpDashboardEmpty.
   ///
   /// In en, this message translates to:
@@ -7278,12 +7152,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load follow-ups. Please try again.'**
   String get followUpLoadFailed;
-
-  /// No description provided for @followUpSaveFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t save the follow-up. Please try again.'**
-  String get followUpSaveFailed;
 
   /// No description provided for @followUpCompleteFailed.
   ///

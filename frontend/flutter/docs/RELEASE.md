@@ -5,7 +5,6 @@ Android / iOS 릴리즈 절차와 버전 관리 정책을 정리합니다.
 
 > CI 자동화 범위: **Web만 자동**. Android/iOS는 수동.
 > 회원 앱은 모노레포 `frontend/flutter/` 이고, 워크플로는 저장소 **루트** `.github/workflows/` 에 있습니다.
-> `frontend/flutter/.github/` 아래 파일은 별도 저장소 시절의 것이라 GitHub Actions 가 실행하지 않습니다.
 
 ---
 

@@ -363,10 +363,6 @@ ExerciseAdvice? routineCoachAdvice(List<RoutineAdviceDay> days, String period) {
   return _routineAll(days);
 }
 
-/// [routineCoachAdvice] 의 한국어 문장.
-String? routineCoachMessage(List<RoutineAdviceDay> days, String period) =>
-    routineCoachAdvice(days, period)?.message;
-
 ExerciseAdvice _routineToday(RoutineAdviceDay day) {
   final List<String> pending = <String>[
     for (final RoutineAdviceItem i in day.routines)

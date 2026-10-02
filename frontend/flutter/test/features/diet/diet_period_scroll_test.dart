@@ -9,7 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
@@ -20,6 +19,7 @@ import 'package:oncare_core/clock.dart';
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/fixed_clock.dart';
+import '../../helpers/mock_account_repository.dart';
 import '../../helpers/record_span.dart';
 
 /// 날마다 다른 칼로리를 주는 저장소 — 고른 날의 숫자가 평균과 갈리는지 보려면

@@ -6,6 +6,8 @@ import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
 import 'package:oncare/features/ai_coach/domain/repositories/ai_coach_repository.dart';
 import 'package:oncare_core/clock.dart';
 
+/// 테스트 전용 AI 코치 저장소. 앱은 `DioAiCoachRepository` 를 쓰고, 테스트가
+/// `aiCoachRepositoryProvider` 를 이것으로 바꿔 끼운다.
 class MockAiCoachRepository implements AiCoachRepository {
   MockAiCoachRepository();
 

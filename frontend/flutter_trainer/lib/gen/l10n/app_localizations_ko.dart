@@ -1048,26 +1048,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatInsightMemoSaveFailed => '메모에 추가하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
-  String coachSheetTitle(String name) {
-    return '$name 코칭 상담';
-  }
-
-  @override
-  String get coachSheetSubtitle => '이 회원의 식단·운동 기록을 근거로 답해요.';
-
-  @override
-  String get coachSheetHint => '예) 나트륨이 계속 높은데 어떤 식단을 권할까요?';
-
-  @override
-  String get coachSheetSources => '근거';
-
-  @override
-  String get coachSheetAsk => '물어보기';
-
-  @override
-  String get coachSheetAskAgain => '다시 묻기';
-
-  @override
   String get consultTitle => '상담 요청';
 
   @override
@@ -3162,18 +3142,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrEmptyResponse => '응답이 비어 있어요.';
 
   @override
-  String get coachDemoUnavailable => '데모 모드에서는 AI 코칭을 사용할 수 없어요';
-
-  @override
-  String get coachNotMyClient => '담당 회원이 아니에요';
-
-  @override
-  String get coachAskFailed => '질문을 보낼 수 없어요';
-
-  @override
-  String get coachRateLimited => '질문을 너무 자주 보냈어요. 1분 뒤에 다시 물어봐 주세요';
-
-  @override
   String get slotFutureOnly => '현재보다 이후 시간만 예약 슬롯으로 설정할 수 있습니다.';
 
   @override
@@ -3954,39 +3922,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get followUp => '후속 관리';
 
   @override
-  String followUpTitle(String name) {
-    return '$name님 후속 관리';
-  }
-
-  @override
-  String get followUpHint => '다시 확인할 내용을 적어 주세요';
-
-  @override
-  String get followUpAdd => '후속 관리 추가';
-
-  @override
-  String get followUpDue => '확인 예정일';
-
-  @override
   String get followUpOverdue => '기한 지남';
-
-  @override
-  String get followUpContextGeneral => '회원 상세';
-
-  @override
-  String get followUpContextDiet => '식단';
-
-  @override
-  String get followUpContextExercise => '운동';
-
-  @override
-  String get followUpContextMessage => '메시지';
-
-  @override
-  String get followUpContextProgram => '프로그램';
-
-  @override
-  String get followUpContextSchedule => '일정';
 
   @override
   String get followUpComplete => '완료';
@@ -3997,16 +3933,10 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get followUpEmpty => '남은 후속 관리가 없어요.';
-
-  @override
   String get followUpDashboardEmpty => '오늘 처리할 후속 관리가 없어요.';
 
   @override
   String get followUpLoadFailed => '후속 관리를 불러오지 못했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String get followUpSaveFailed => '후속 관리를 저장하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String get followUpCompleteFailed => '완료 처리하지 못했어요. 잠시 후 다시 시도해 주세요';

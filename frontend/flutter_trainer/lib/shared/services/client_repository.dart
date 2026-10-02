@@ -1721,12 +1721,6 @@ final clientHistoryProvider = StreamProvider.autoDispose
       return ref.watch(clientRepositoryProvider).watchHistory(clientId);
     });
 
-final clientExerciseWeekProvider = FutureProvider.autoDispose
-    .family<ClientExerciseWeek, String>((ref, clientId) {
-      keepAliveForAccount(ref);
-      return ref.watch(clientRepositoryProvider).fetchExerciseWeek(clientId);
-    });
-
 /// 고객 기간 조회의 조회 키 — 누구의, 어느 기간을, **어느 날 기준으로**.
 ///
 /// [day] 가 키에 들어 있는 이유는 자정 때문이다. 범위를 provider 안에서

@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/domain/entities/diet_period.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
@@ -22,6 +21,7 @@ import 'package:oncare_core/clock.dart';
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/fixed_clock.dart';
+import '../../helpers/mock_account_repository.dart';
 import '../../helpers/record_span.dart';
 
 /// 월요일 — 이번 주에 지나간 날이 오늘 하루뿐이다.
