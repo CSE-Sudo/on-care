@@ -234,4 +234,44 @@ void main() {
       'DELETE /me/coach/trainer',
     ]);
   });
+
+  group('소속 트레이너 조회 (#2857)', () {
+    test('서버에 없는 헬스장(404)은 소속 트레이너가 없는 것과 같다', () async {
+      // 카카오로 찾은 헬스장은 서버 목록에 없다 — 화면이 이를 조회 실패로
+      // 보이면 그런 카드마다 오류가 뜬다.
+      final repo = DioGymRepository(_dio(_StubAdapter(<String, Object?>{})));
+      expect(await repo.fetchTrainersByGym('kakao-123'), isEmpty);
+    });
+
+    test('서버 오류는 그대로 올라가 화면이 다시 시도를 보인다', () async {
+      final repo = DioGymRepository(
+        Dio(BaseOptions(baseUrl: 'http://x/v1'))
+          ..httpClientAdapter = _StatusAdapter(500),
+      );
+      await expectLater(
+        repo.fetchTrainersByGym('gym-oncare-sinchon'),
+        throwsA(isA<DioException>()),
+      );
+    });
+  });
+}
+
+/// 모든 요청에 [status] 로 답하는 어댑터.
+class _StatusAdapter implements HttpClientAdapter {
+  _StatusAdapter(this.status);
+
+  final int status;
+
+  @override
+  Future<ResponseBody> fetch(RequestOptions options, _, _) async =>
+      ResponseBody.fromString(
+        '{"detail":"error"}',
+        status,
+        headers: <String, List<String>>{
+          Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+        },
+      );
+
+  @override
+  void close({bool force = false}) {}
 }

@@ -8,6 +8,7 @@ import 'package:oncare_trainer/app/shell/app_shell.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_consent_page.dart';
+import 'package:oncare_trainer/features/auth/presentation/pages/trainer_password_reset_page.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_sign_in_page.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_sign_up_page.dart';
 import 'package:oncare_trainer/features/clients/presentation/pages/clients_page.dart';
@@ -58,6 +59,9 @@ String? sessionRedirect(
   final path = Uri.tryParse(location)?.path ?? location;
   // 문서는 동의하기 전에 읽을 수 있어야 한다 — 동의 화면의 `보기` 도 여기로 온다.
   if (AppRoutes.isLegalPath(path)) return null;
+  // 재설정 메일의 링크는 어느 상태에서 열려도 그 자리에 둔다(#2824). 로그인
+  // 화면으로 보내면 주소의 코드를 잃는다.
+  if (path == AppRoutes.passwordReset) return null;
   // 동의가 남은 계정은 어느 주소로 가든 동의 화면에 붙든다(#2819). 데모에는
   // 계정이 없어 해당하지 않는다.
   if (status == SessionStatus.authenticated && consentRequired) {
@@ -315,6 +319,12 @@ GoRouter buildAppRouter({
       GoRoute(
         path: AppRoutes.consent,
         builder: (context, state) => const TrainerConsentPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.passwordReset,
+        builder: (context, state) => TrainerPasswordResetPage(
+          initialCode: state.uri.queryParameters['token'],
+        ),
       ),
     ],
   );

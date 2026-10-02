@@ -92,8 +92,11 @@ class _GymDetails extends ConsumerWidget {
   Future<void> _disconnect(BuildContext context, WidgetRef ref) async {
     final AppLocalizations l = AppLocalizations.of(context);
     // 아직 읽는 중이면 `valueOrNull` 은 null 이다 — 담당이 있는데도 없다고
-    // 보고 "트레이너도 함께 해제됩니다" 를 빠뜨린다.
-    final Trainer? trainer = await ref.read(myTrainerProvider.future);
+    // 보고 "트레이너도 함께 해제됩니다" 를 빠뜨린다. 조회가 실패하면 그 안내만
+    // 빼고 확인 창은 띄운다 — 버튼이 무반응이 되지 않게(#2857).
+    final Trainer? trainer = await readConnectionForConfirm(
+      ref.read(myTrainerProvider.future),
+    );
     if (!context.mounted) return;
     final bool removed = await confirmDisconnect(
       context,
@@ -317,40 +320,56 @@ class _TrainerPickerSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final List<Trainer> trainers =
-        ref.watch(gymTrainersProvider(gym.id)).valueOrNull ?? const <Trainer>[];
+    final AsyncValue<List<Trainer>> trainersAsync = ref.watch(
+      gymTrainersProvider(gym.id),
+    );
     final List<ConsultationRequest> requests = ref.watch(
       consultationRequestControllerProvider,
     );
 
+    // 읽는 중·실패를 '소속 트레이너 없음' 과 가른다(#2857). 예전에는 셋 다 빈
+    // 목록으로 읽혀, 트레이너가 있는 헬스장에서도 회원이 상담을 포기했다.
     return AppSheet(
       showClose: false,
       title: l.exGymConsultPickTrainer,
       subtitle: l.exGymConsultPickTrainerHint,
-      child: trainers.isEmpty
-          ? AppEmptyState(
-              title: l.exGymConsultNoTrainers,
-              icon: AppIcons.personOff,
-              placement: AppStatePlacement.card,
-            )
-          : Column(
-              key: const Key('gym-consult-trainer-picker'),
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                for (
-                  int index = 0;
-                  index < trainers.length;
-                  index++
-                ) ...<Widget>[
-                  if (index > 0)
-                    const Padding(
-                      padding: EdgeInsets.only(left: _trainerDividerIndent),
-                      child: AppDivider(),
-                    ),
-                  _pickerRow(context, trainers[index], requests, l),
+      child: trainersAsync.when(
+        loading: () => const AppLoading(
+          key: Key('gym-consult-trainer-loading'),
+          placement: AppStatePlacement.card,
+        ),
+        error: (Object _, StackTrace _) => AppErrorState(
+          key: const Key('gym-consult-trainer-error'),
+          title: l.exGymTrainersLoadError,
+          retryLabel: l.actionRetry,
+          onRetry: () => ref.invalidate(gymTrainersProvider(gym.id)),
+          placement: AppStatePlacement.card,
+        ),
+        data: (List<Trainer> trainers) => trainers.isEmpty
+            ? AppEmptyState(
+                title: l.exGymConsultNoTrainers,
+                icon: AppIcons.personOff,
+                placement: AppStatePlacement.card,
+              )
+            : Column(
+                key: const Key('gym-consult-trainer-picker'),
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  for (
+                    int index = 0;
+                    index < trainers.length;
+                    index++
+                  ) ...<Widget>[
+                    if (index > 0)
+                      const Padding(
+                        padding: EdgeInsets.only(left: _trainerDividerIndent),
+                        child: AppDivider(),
+                      ),
+                    _pickerRow(context, trainers[index], requests, l),
+                  ],
                 ],
-              ],
-            ),
+              ),
+      ),
     );
   }
 
@@ -389,6 +408,9 @@ class _TrainerPickerSheet extends ConsumerWidget {
 
 /// 이 헬스장에 소속된 트레이너 전원. 헬스장당 여러 명일 수 있으므로 목록으로
 /// 그리고, 한 명도 없으면 섹션 자체를 숨긴다.
+///
+/// 읽는 중에는 로딩을, 조회가 실패하면 오류와 다시 시도를 섹션 자리에 둔다
+/// (#2857). 예전에는 둘 다 '트레이너 없음' 처럼 섹션이 조용히 사라졌다.
 class _AffiliatedTrainers extends ConsumerWidget {
   const _AffiliatedTrainers({required this.gymId});
 
@@ -397,8 +419,33 @@ class _AffiliatedTrainers extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final List<Trainer> trainers =
-        ref.watch(gymTrainersProvider(gymId)).valueOrNull ?? const <Trainer>[];
+    final AsyncValue<List<Trainer>> trainersAsync = ref.watch(
+      gymTrainersProvider(gymId),
+    );
+    if (trainersAsync.hasError && !trainersAsync.isLoading) {
+      return _DetailSection(
+        icon: AppIcons.person,
+        title: l.exAffiliatedTrainer,
+        child: AppErrorState(
+          key: const Key('gym-detail-trainers-error'),
+          title: l.exGymTrainersLoadError,
+          retryLabel: l.actionRetry,
+          onRetry: () => ref.invalidate(gymTrainersProvider(gymId)),
+          placement: AppStatePlacement.inline,
+        ),
+      );
+    }
+    if (!trainersAsync.hasValue) {
+      return _DetailSection(
+        icon: AppIcons.person,
+        title: l.exAffiliatedTrainer,
+        child: const AppLoading(
+          key: Key('gym-detail-trainers-loading'),
+          placement: AppStatePlacement.inline,
+        ),
+      );
+    }
+    final List<Trainer> trainers = trainersAsync.requireValue;
     if (trainers.isEmpty) return const SizedBox.shrink();
 
     return _DetailSection(

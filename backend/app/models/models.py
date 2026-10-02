@@ -3,10 +3,10 @@ ORM 모델 — 프론트 계약(LocalApiInterceptor + drift 스키마)에 맞춤
 
 핵심 정렬 사항:
 - 사용자 id 는 문자열(예: 'user-7d4e9a2c5f18')
-- 식단은 나트륨(sodium_mg)·당류(sugar_g)를 1급 지표로 (고혈압·당뇨 특화)
+- 식단은 칼로리·탄단지와 함께 나트륨(sodium_mg)·당류(sugar_g)를 1급 지표로 둔다(섭취기준 대비 관리)
 - drift 테이블(diet_entries, exercise_sessions, notifications)과 1:1 대응
 
-이번 STEP 1 에서는 테이블 생성만 검증하고, 살은 이후 STEP 에서 채웁니다.
+스키마 변경은 Alembic 마이그레이션(backend/alembic)으로 한다.
 """
 
 from __future__ import annotations
@@ -88,7 +88,7 @@ class HealthProfile(Base):
     risk_level: Mapped[str] = mapped_column(
         String(20), default="low"
     )  # low|medium|high
-    conditions: Mapped[str] = mapped_column(Text, default="")  # "고혈압, 당뇨 전단계"
+    conditions: Mapped[str] = mapped_column(Text, default="")  # 건강 목표 칩 + 트레이너 메모, 예: "체중 감량, 근력 향상"
     # 자유 서술 회원 목표(`goals`)는 지웠다 — 목표는 건강 목표 칩(`conditions`)으로만
     # 고른다(#2358).
 
@@ -1074,10 +1074,10 @@ class MemberNotificationSetting(Base):
 
 
 class CoachDocument(Base):
-    """RAG 코치용 문서 + 임베딩 (STEP 7).
+    """RAG 코치용 문서 + 임베딩.
 
     두 종류의 문서가 공존:
-      - 개인 문서(환자 데이터): user_id = 특정 사용자  → 그 사용자만 검색됨
+      - 개인 문서(회원 기록 요약): user_id = 특정 회원  → 그 회원만 검색됨
       - 공공 문서(가이드라인 등): user_id = NULL        → 모든 사용자 공유
 
     검색 시 (user_id == 현재사용자 OR user_id IS NULL) 로 가져오면
@@ -1369,6 +1369,35 @@ class TrainerProfile(Base):
     )
     reminder_lead_minutes: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default="30", default=30
+    )
+    #: 운영자 승인 상태(#2825) — pending|approved|rejected. 승인 전에는 회원 앱
+    #: 디렉터리·상담 대상·담당 요청·연결 코드에서 빠진다
+    #: (`trainer_verification_service`).
+    #:
+    #: DB 기본값은 pending 이다 — ORM 을 거치지 않고 들어온 행은 노출되지 않는
+    #: 쪽으로 닫힌다. ORM 기본값이 approved 인 것은 시드·운영 스크립트처럼 운영자가
+    #: 직접 넣는 경로 때문이고, 공개 가입(`register_trainer`)은 pending 을 명시한다.
+    verification_status: Mapped[str] = mapped_column(
+        String(16),
+        CheckConstraint(
+            "verification_status IN ('pending', 'approved', 'rejected')",
+            name="ck_trainer_profiles_verification_status",
+        ),
+        nullable=False,
+        server_default="pending",
+        default="approved",
+        index=True,
+    )
+    #: 승인·반려를 처리한 시각과 운영자. 가입 직후(pending)·백필 행은 비어 있다.
+    verification_decided_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    verification_decided_by: Mapped[str | None] = mapped_column(
+        String(64), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    #: 반려 사유 — 트레이너 웹이 그대로 보여 준다. 승인이면 비운다.
+    verification_note: Mapped[str] = mapped_column(
+        String(300), nullable=False, server_default="", default=""
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -2332,6 +2361,33 @@ class RevokedRefreshToken(Base):
     #: 이 토큰이 스스로 만료되는 시각. 정리 기준.
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     revoked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class PasswordResetToken(Base):
+    """비밀번호 재설정 코드(#2824).
+
+    메일로 보낸 일회용 코드의 **해시만** 담는다 — 표가 새어도 그것으로 비밀번호를
+    바꿀 수 없다. 코드는 짧은 시간만 유효하고(`expires_at`), 한 번 쓰면
+    `used_at` 이 찍혀 다시 쓸 수 없다. 같은 계정으로 새 코드를 보내면 앞서 보낸
+    코드는 쓴 것으로 닫는다. 코드는 80비트 난수라 맞혀 볼 수 없고, 확인 요청은
+    IP 별 rate limit 을 따로 받는다.
+    """
+
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: 정규화한 코드의 SHA-256(16진수). 확인 요청은 이 값으로 찾는다.
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
 

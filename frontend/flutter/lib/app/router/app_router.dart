@@ -17,6 +17,7 @@ import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';
 import 'package:oncare/features/app_guide/presentation/pages/guide_tour_page.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/auth/presentation/pages/consent_page.dart';
+import 'package:oncare/features/auth/presentation/pages/password_reset_page.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_up_page.dart';
 import 'package:oncare/features/auth/presentation/pages/splash_page.dart';
@@ -36,6 +37,7 @@ import 'package:oncare/features/exercise/presentation/pages/gym_list_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/trainer_detail_page.dart';
 import 'package:oncare/features/member_coach/presentation/pages/coach_reports_page.dart';
 import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
+import 'package:oncare/features/my_health/presentation/pages/password_change_page.dart';
 import 'package:oncare/features/my_health/presentation/pages/withdraw_page.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/features/notification/presentation/pages/notification_page.dart';
@@ -59,6 +61,10 @@ String? sessionRedirect(
   String location, {
   bool consentRequired = false,
 }) {
+  // 재설정 메일의 링크는 어느 상태에서 열려도 그 자리에 둔다(#2824). 복구 중에
+  // 시작 화면으로 보내면 주소의 코드를 잃고, 로그인한 채 열었다고 홈으로 보내면
+  // 링크가 아무 일도 하지 않는다.
+  if (location == AppRoutes.passwordReset) return null;
   final onAuthRoute =
       location == AppRoutes.signIn || location == AppRoutes.signUp;
   // 동의가 남은 계정은 어느 주소로 가든 동의 화면에 붙든다(#2819). 데모에는
@@ -225,6 +231,7 @@ GoRouter buildAppRouter({
           'terms' => const LegalDocumentPage(document: 'terms'),
           'privacy' => const LegalDocumentPage(document: 'privacy'),
           'withdraw' => const WithdrawPage(),
+          AppRoutes.passwordSettingsSection => const PasswordChangePage(),
           _ => const SupportPage(),
         },
       ),
@@ -275,6 +282,11 @@ GoRouter buildAppRouter({
       GoRoute(
         path: AppRoutes.consent,
         builder: (context, state) => const ConsentPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.passwordReset,
+        builder: (context, state) =>
+            PasswordResetPage(initialCode: state.uri.queryParameters['token']),
       ),
       GoRoute(
         path: AppRoutes.onboarding,

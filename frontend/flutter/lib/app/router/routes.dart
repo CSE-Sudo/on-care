@@ -79,6 +79,14 @@ class AppRoutes {
   /// 가입 동의(#2819) — 동의가 남은 계정이 로그인하면 다른 화면보다 먼저 온다.
   static const String consent = '/auth/consent';
 
+  /// 비밀번호 재설정(#2824). 로그인 화면과 재설정 메일의 링크
+  /// (`?token=…`)가 연다. 세션 상태와 상관없이 열린다 — 복구 중이거나 로그인한
+  /// 채로 링크를 열어도 코드를 잃지 않는다.
+  static const String passwordReset = '/auth/password-reset';
+
+  /// MY → 비밀번호 변경(#2824)의 설정 구역 이름.
+  static const String passwordSettingsSection = 'password';
+
   // First-run onboarding (shown right after sign-up)
   static const String onboarding = '/onboarding';
 

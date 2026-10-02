@@ -323,6 +323,35 @@ class SessionController extends StateNotifier<SessionState>
     );
   }
 
+  /// 비밀번호를 바꾼 뒤 서버가 새로 준 토큰으로 **이 기기의 세션을 이어 간다.**
+  /// (#2824)
+  ///
+  /// 비밀번호 변경은 토큰 세대를 올려 그 전 토큰을 모든 기기에서 끊는다(#2766).
+  /// 바꾼 기기까지 다시 로그인시키지 않으려고 서버가 새 쌍을 돌려주고, 이 메서드가
+  /// 그것을 저장소와 메모리에 넣는다. 같은 계정이 이어지는 것이라 로그인과 달리
+  /// 화면 상태([_resetFeatureState])·첫 설정 기록은 건드리지 않는다.
+  ///
+  /// 로그인 상태가 아니면 아무것도 하지 않는다 — 느린 응답 사이에 로그아웃했다면
+  /// 뒤늦은 토큰으로 세션을 되살리면 안 된다. 접근 토큰이 비면 [StateError].
+  Future<void> adoptReissuedTokens({
+    required String access,
+    required String refresh,
+  }) async {
+    if (access.isEmpty) {
+      throw StateError('비밀번호 변경 응답에 토큰이 없습니다.');
+    }
+    if (!mounted || state.status != SessionStatus.authenticated) return;
+    try {
+      await _ref
+          .read(secureTokenStoreProvider)
+          .saveTokens(access: access, refresh: refresh);
+    } catch (_) {
+      // 저장에 실패해도 이번 실행은 메모리 토큰으로 이어 간다.
+    }
+    if (!mounted || state.status != SessionStatus.authenticated) return;
+    _setToken(access);
+  }
+
   /// Email/password login → POST /auth/login (OAuth2 form). Throws on failure.
   Future<void> login({required String email, required String password}) async {
     _userActionStarted = true;

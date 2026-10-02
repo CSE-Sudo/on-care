@@ -167,6 +167,68 @@ class PasswordChanged(Token):
     status: str = "changed"
 
 
+class MemberPasswordChange(BaseModel):
+    """회원 비밀번호 변경(`POST /users/me/password`, #2824).
+
+    트레이너 `TrainerPasswordChange` 와 같은 규약이다. 현재 비밀번호를 요구해
+    토큰만 빼앗긴 상태에서 계정까지 넘어가지 않게 한다.
+    """
+
+    #: 지금 비밀번호는 기준 이전에 만든 것일 수 있어 새 기준을 보지 않는다.
+    current_password: str = Field(min_length=1, max_length=200)
+    #: 가입과 같은 기준(`password_policy.check_new_password`, #1555).
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def _check_new_password(cls, value: str) -> str:
+        return check_new_password(value)
+
+
+class PasswordResetRequest(BaseModel):
+    """비밀번호 재설정 요청(`POST /auth/password-reset/request`, #2824).
+
+    형식 검사는 하지 않는다 — 형식이 틀린 주소는 어차피 계정이 없고, 422 와
+    202 가 갈리면 응답이 하나 더 생길 뿐이다. 길이만 막는다.
+    """
+
+    email: str = Field(min_length=1, max_length=255)
+
+    @field_validator("email")
+    @classmethod
+    def _strip(cls, value: str) -> str:
+        # 가입과 같이 앞뒤 공백만 자른다 — 소문자로 고치면 로그인 조회와 어긋난다.
+        return value.strip()
+
+
+class PasswordResetRequested(BaseModel):
+    """재설정 요청 응답. 계정이 있든 없든 **같다** — 가입 여부를 드러내지 않는다."""
+
+    status: str = "requested"
+    #: 코드 유효 시간(분). 화면이 "N분 안에 입력하세요" 를 그린다.
+    expires_in_minutes: int
+
+
+class PasswordResetConfirm(BaseModel):
+    """비밀번호 재설정 확인(`POST /auth/password-reset/confirm`, #2824)."""
+
+    #: 메일의 코드. 하이픈·공백·대소문자는 서버가 정규화한다.
+    token: str = Field(min_length=1, max_length=64)
+    #: 가입과 같은 기준(#1555).
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def _check_new_password(cls, value: str) -> str:
+        return check_new_password(value)
+
+
+class PasswordResetDone(BaseModel):
+    """재설정 완료. 토큰은 주지 않는다 — 새 비밀번호로 다시 로그인한다."""
+
+    status: str = "reset"
+
+
 class SocialLoginRequest(BaseModel):
     # provider 가 준 토큰 (kakao/naver=access_token, google=id_token)
     token: str
@@ -286,6 +348,9 @@ class ProfileView(BaseModel):
     weekly_strength_sets: Optional[int] = None
     weekly_flexibility_minutes: Optional[int] = None
     onboarded: bool = False
+    #: 이메일 비밀번호가 있는 계정인가(#2824). 소셜 로그인 전용 계정은 false 라
+    #: 앱이 MY 의 비밀번호 변경 대신 안내를 보여 준다.
+    has_password: bool = True
     #: 건강 목표를 마지막으로 바꾼 사람(`member`|`trainer`)과 시각. 바꾼 적이 없으면
     #: 둘 다 null 이다(#1832).
     focus_changed_by: Optional[str] = None
