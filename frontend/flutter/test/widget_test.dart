@@ -751,8 +751,6 @@ void main() {
       expect(en.coachCardExerciseTitle, '3 workouts this week');
       expect(en.homeAiAdviceTitle, "Today's combined AI advice");
       expect(ko.homeAiAdviceTitle, '오늘의 AI 통합 조언');
-      expect(en.homeSodiumExceededBadge, 'Sodium over');
-      expect(ko.homeSodiumExceededBadge, '나트륨 초과');
 
       // 영어 리소스에 한글이 남아 있지 않아야 한다.
       expect(hangul.hasMatch(en.coachCardDietBody), isFalse);
@@ -805,36 +803,6 @@ void main() {
     );
   });
 
-  test('운동 탭 UI 골격 문구가 로케일을 따른다 (#367)', () {
-    final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
-    final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-    final RegExp hangul = RegExp('[가-힣]');
-
-    // 회귀: 운동 현황 카드·도넛·툴팁의 골격 문구가 한국어로 굳어 있어
-    // 영어 로케일에서 지표 라벨만 영어로 나왔다.
-    expect(en.exTodayTotalTime, "Today's total time");
-    expect(ko.exTodayTotalTime, '오늘 총 운동 시간');
-    expect(en.exRest, 'Rest');
-    expect(ko.exRest, '휴식');
-    expect(en.exAiRecommendedExercise, 'AI recommended exercise');
-    expect(ko.exAiRecommendedExercise, 'AI 추천 운동');
-
-    // 이번 달 막대 차트의 주차 라벨.
-    expect(en.exWeekNumber(3), 'Week 3');
-    expect(ko.exWeekNumber(3), '3주');
-
-    for (final String s in <String>[
-      en.exTodayTotalTime,
-      en.exRest,
-      en.exAiRecommendedExercise,
-      en.exWeekNumber(1),
-      en.unitMinutes,
-      en.unitMinutesValue(8),
-    ]) {
-      expect(hangul.hasMatch(s), isFalse, reason: s);
-    }
-  });
-
   test('분 단위는 기존 공용 키를 재사용한다 (#367)', () {
     final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
     final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
@@ -851,26 +819,16 @@ void main() {
     final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
     final RegExp hangul = RegExp('[가-힣]');
 
-    // 신규 키 5개 — 나머지 17곳은 기존 키를 재사용했다.
+    // 화면에서 빠진 문구의 키는 ARB 에서 지웠다(#2905) — 지금 쓰는 키만 본다.
     // '운동 유형' 은 신규 키를 만들지 않고 기존 exExerciseType('운동 종류')으로
     // 합쳤다. exercise_flows 가 같은 개념에 이미 그 키를 쓰고 있어, 두 시트가
     // 서로 다른 말을 하던 것이 정리된다.
     expect(en.exExerciseType, 'Exercise Type');
     expect(ko.exExerciseType, '운동 종류');
-    expect(en.exExerciseContent, 'What you did');
-    expect(en.exViewDetail, 'View details');
-    expect(en.exRegister, 'Register');
-    expect(en.exGymRegistered('Gangnam Gym'), 'Registered Gangnam Gym');
-    expect(ko.exGymRegistered('강남 짐'), '강남 짐을(를) 등록했어요');
 
     for (final String s in <String>[
       en.exExerciseType,
-      en.exExerciseContent,
-      en.exViewDetail,
-      en.exRegister,
-      en.exGymRegistered('Gym'),
       // 재사용한 기존 키도 영문 값이 멀쩡한지 함께 본다.
-      en.exStatTime,
       en.exExerciseDuration,
       en.exEnterDuration,
       en.dietDeleteFailed,
