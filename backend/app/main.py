@@ -1,5 +1,5 @@
 """
-FastAPI 진입점 (STEP 1: 골격 재구성).
+FastAPI 진입점.
 
 프론트 계약에 맞춰 /v1 prefix 로 라우터를 마운트합니다.
 실행: uvicorn app.main:app --reload
@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import (
     activity,
+    admin_trainers,
     ai_coach,
     challenges,
     chat_attachments,
@@ -150,6 +151,7 @@ app.include_router(places.router, prefix=settings.api_v1_prefix)
 app.include_router(ai_coach.router, prefix=settings.api_v1_prefix)
 app.include_router(chat_attachments.router, prefix=settings.api_v1_prefix)
 app.include_router(coach_docs.router, prefix=settings.api_v1_prefix)
+app.include_router(admin_trainers.router, prefix=settings.api_v1_prefix)
 app.include_router(trainer.router, prefix=settings.api_v1_prefix)
 app.include_router(member_coach.router, prefix=settings.api_v1_prefix)
 app.include_router(points.router, prefix=settings.api_v1_prefix)

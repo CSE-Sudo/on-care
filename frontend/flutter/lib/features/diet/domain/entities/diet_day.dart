@@ -112,6 +112,7 @@ class DietEntry {
     this.aiComment = '',
     this.photoAsset,
     this.photoUrl,
+    this.thumbEmoji,
   });
 
   final String? id;
@@ -138,6 +139,12 @@ class DietEntry {
   /// for entries whose photo could not be read. Takes precedence over
   /// [photoAsset]: the demo asset is a stand-in for exactly this.
   final String? photoUrl;
+
+  /// 사진이 없을 때 그릴 이모지를 정해 둔 값(#2878). 사용 가이드의 예시 끼니처럼
+  /// 언어마다 음식 이름이 달라지는 자료가 쓴다 — 이모지 표는 한국어 이름으로
+  /// 고르므로, 영어 이름이면 끼니 기본 이모지로 떨어진다. 서버 응답에는 없고,
+  /// null 이면 음식 이름으로 고른다.
+  final String? thumbEmoji;
 
   factory DietEntry.fromJson(Map<String, Object?> json) => DietEntry(
     id: json['id'] as String?,
