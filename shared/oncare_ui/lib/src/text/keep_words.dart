@@ -2,10 +2,10 @@
 ///
 /// 보이지 않는 문자라 이스케이프로 적는다 — 글자 그대로 적으면 읽을 수도,
 /// 검색할 수도 없다.
-const String kWordJoiner = '⁠';
+const String kWordJoiner = '\u2060';
 
 /// 줄이 바뀌지 않는 공백(U+00A0).
-const String kNoBreakSpace = ' ';
+const String kNoBreakSpace = '\u00A0';
 
 /// 줄이 **띄어쓰기에서만** 바뀌게 한다(#2908).
 ///
@@ -14,11 +14,16 @@ const String kNoBreakSpace = ' ';
 /// 낱말을 통째로 넘긴다. 한 낱말이 한 줄보다 길면 Flutter 가 그 안에서 끊는다.
 ///
 /// 회원 앱(분석용 식판 #2150, 주간 챌린지 #1789)과 트레이너 웹(MY 안내 문구)이
-/// 같은 함수를 쓴다.
-String keepWords(String text) => text
+/// 같은 함수를 쓴다. 이미 거친 문장을 다시 넣어도 같다 — 공용 부품과 호출부가
+/// 함께 넣는 일이 있어서다.
+String keepWords(String text) => withoutWordJoiners(text)
     .split(' ')
     .map((String word) => word.runes.map(String.fromCharCode).join(kWordJoiner))
     .join(' ');
+
+/// [keepWords]·[keepTogether] 가 넣은 줄바꿈 금지 문자를 뗀다. 화면 글자를
+/// 원문과 비교하는 테스트가 쓴다.
+String withoutWordJoiners(String text) => text.replaceAll(kWordJoiner, '');
 
 /// 한 덩어리로 읽혀야 하는 글자를 **어디서도** 줄이 바뀌지 않게 잇는다(#2908).
 ///
@@ -26,7 +31,7 @@ String keepWords(String text) => text
 /// 이름처럼 `그래놀` / `라 토핑` 은 물론 `그래놀라` / `토핑` 으로도 갈리면 안
 /// 되는 짧은 글에 쓴다. 공백만 붙는 공백으로 바꾸면 모자라다 — 한국어는 음절
 /// 사이 어디서든 줄이 바뀌므로 글자 사이마다 [kWordJoiner] 를 끼운다.
-String keepTogether(String text) => text
+String keepTogether(String text) => withoutWordJoiners(text)
     .replaceAll(' ', kNoBreakSpace)
     .runes
     .map(String.fromCharCode)
