@@ -123,6 +123,9 @@ class AppLocalizationsKo extends AppLocalizations {
       '아침 식단과 저녁 PT는 완벽했습니다! 점심 짬뽕으로 나트륨이 높았으니 물을 충분히 마시고, 코치님이 강조하신 어깨 스트레칭으로 건강하게 마무리해 보세요.';
 
   @override
+  String get homeAiAdviceNoRecord => '오늘 식단과 운동을 기록하면 하루를 돌아보는 AI 조언을 드릴게요.';
+
+  @override
   String get homeSodiumExceededBadge => '나트륨 초과';
 
   @override
@@ -242,6 +245,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get homeRecMealsTitle => '추천 식단';
+
+  @override
+  String get homeRecMealsErrorTitle => '추천 식단을 불러오지 못했어요';
 
   @override
   String get homeViewAll => '전체 보기';
@@ -1178,6 +1184,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myDefaultUserName => '사용자';
 
   @override
+  String get myProfileLoadFailed => '내 정보를 불러오지 못했어요';
+
+  @override
+  String get myPointsLoadFailed => '포인트 잔액을 불러오지 못했어요';
+
+  @override
   String get mySettingsTitle => '설정';
 
   @override
@@ -1909,6 +1921,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get emoteBuyFailed => '이모티콘을 사지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
+  String get emoteAlreadyUnlocked => '이미 열려 있는 이모티콘이에요. 바로 보낼 수 있어요';
+
+  @override
+  String get emoteTrainerRequired => '담당 트레이너가 있어야 이모티콘을 살 수 있어요';
+
+  @override
   String get emoteShortfall => '포인트가 부족해요';
 
   @override
@@ -2097,16 +2115,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myFieldGoals => '건강·운동 목표';
 
   @override
-  String get myNotifDietLog => '식단 기록 알림';
-
-  @override
   String get myNotifExercise => '운동 리마인더';
 
   @override
   String get myNotifTrainer => '트레이너 메시지';
-
-  @override
-  String get myNotifAiCoaching => 'AI 코칭 조언';
 
   @override
   String get myNotifWeeklyReport => '주간 리포트';
@@ -2167,6 +2179,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachCardWaterTag => '수분';
 
   @override
+  String get coachSheetErrorTitle => '조언을 불러오지 못했어요';
+
+  @override
+  String get coachSheetErrorBody => '연결 상태를 확인하고 다시 시도해 주세요.';
+
+  @override
+  String get coachSheetEmptyTitle => '기록이 쌓이면 조언을 드릴게요';
+
+  @override
+  String get coachSheetEmptyBody => '오늘 먹은 음식과 운동을 기록해 보세요.';
+
+  @override
   String get coachInviteTitle => '담당 요청이 왔어요';
 
   @override
@@ -2213,6 +2237,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachChatLoadFailed => '대화를 불러오지 못했어요';
+
+  @override
+  String get coachChatUnassigned => '담당이 해제되어 더 이상 대화를 보낼 수 없어요';
 
   @override
   String coachChatEmptyTitle(String trainer) {
@@ -3413,6 +3440,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiCoachFailure => '앗, 잠시 문제가 생겼어요. 잠시 후 다시 시도해 주세요.';
 
   @override
+  String get aicResend => '다시 보내기';
+
+  @override
+  String get aicSendFailedMine => '보내지 못했어요 · 길게 누르면 고쳐 쓸 수 있어요';
+
+  @override
   String get actionCancel => '취소';
 
   @override
@@ -3429,6 +3462,16 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myHealthGoalsTitle => '건강 목표';
+
+  @override
+  String get myFirstRunPromptTitle => '기본 정보를 입력하면 맞춤 목표를 계산해요';
+
+  @override
+  String get myFirstRunPromptBody =>
+      '첫 설정을 건너뛰었어요. 생년월일·키·체중을 넣으면 식단·운동 목표를 몸에 맞게 추천해요.';
+
+  @override
+  String get myFirstRunPromptAction => '기본 정보 입력';
 
   @override
   String get myGoalsFocusSection => '주로 관리하고 싶은 항목';
@@ -3574,6 +3617,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myNotificationSaveFailed => '알림 설정을 저장하지 못했어요';
+
+  @override
+  String get myNotifLoadFailed => '알림 설정을 불러오지 못했어요';
+
+  @override
+  String get myNotifLoadFailedBody => '지금 보이는 값은 기본값이라 저장된 설정과 다를 수 있어요';
 
   @override
   String get myPointsGuideTitle => '포인트 적립 안내';
@@ -3729,6 +3778,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachTrainerNone => '담당 트레이너가 아직 없어요. 운동 탭에서 헬스장·트레이너를 연결해 보세요';
 
   @override
+  String get coachTrainerLoadFailed => '담당 트레이너 정보를 불러오지 못했어요';
+
+  @override
+  String get coachTrainerRetrying => '담당 트레이너 정보를 불러오지 못해 다시 불러오고 있어요';
+
+  @override
   String get alertCategoryReminder => '리마인더';
 
   @override
@@ -3774,6 +3829,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get alertLoadFailed => '최신 알림을 불러오지 못했어요';
 
   @override
+  String get alertMarkAllReadFailed => '모두 읽음 처리에 실패했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get alertCoachChatFailed =>
+      '트레이너 정보를 불러오지 못해 대화를 열 수 없어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get alertCoachChatNoTrainer => '담당 트레이너가 없어 대화를 열 수 없어요';
+
+  @override
   String get alertTimeJustNow => '방금';
 
   @override
@@ -3793,19 +3858,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String alertTimeDaysAgo(int days) {
     return '$days일 전';
   }
-
-  @override
-  String get demoAlertSodiumTitle => '나트륨 섭취 주의';
-
-  @override
-  String get demoAlertSodiumBody =>
-      '점심 짬뽕으로 오늘 나트륨이 4,657mg까지 올랐어요. 물을 충분히 드세요.';
-
-  @override
-  String get demoAlertDinnerTitle => '저녁 식단을 기록해 주세요';
-
-  @override
-  String get demoAlertDinnerBody => '오늘 저녁 식단이 아직 없어요. 사진 한 장이면 돼요.';
 
   @override
   String get demoAlertRoutineTitle => '새 운동 루틴이 도착했어요';

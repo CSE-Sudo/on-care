@@ -308,6 +308,12 @@ abstract class AppLocalizations {
   /// **'Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.'**
   String get homeAiAdviceBody;
 
+  /// No description provided for @homeAiAdviceNoRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Log today\'s meals and workouts, and we\'ll put together advice for your day.'**
+  String get homeAiAdviceNoRecord;
+
   /// No description provided for @homeSodiumExceededBadge.
   ///
   /// In en, this message translates to:
@@ -541,6 +547,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recommended meals'**
   String get homeRecMealsTitle;
+
+  /// No description provided for @homeRecMealsErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load meal suggestions'**
+  String get homeRecMealsErrorTitle;
 
   /// No description provided for @homeViewAll.
   ///
@@ -2222,6 +2234,18 @@ abstract class AppLocalizations {
   /// **'User'**
   String get myDefaultUserName;
 
+  /// No description provided for @myProfileLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your profile'**
+  String get myProfileLoadFailed;
+
+  /// No description provided for @myPointsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your points balance'**
+  String get myPointsLoadFailed;
+
   /// No description provided for @mySettingsTitle.
   ///
   /// In en, this message translates to:
@@ -3446,6 +3470,18 @@ abstract class AppLocalizations {
   /// **'We could not buy the emote. Please try again in a moment.'**
   String get emoteBuyFailed;
 
+  /// No description provided for @emoteAlreadyUnlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'This emote is already unlocked. You can send it now'**
+  String get emoteAlreadyUnlocked;
+
+  /// No description provided for @emoteTrainerRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'You need a trainer to buy emotes'**
+  String get emoteTrainerRequired;
+
   /// No description provided for @emoteShortfall.
   ///
   /// In en, this message translates to:
@@ -3794,12 +3830,6 @@ abstract class AppLocalizations {
   /// **'Health and exercise goals'**
   String get myFieldGoals;
 
-  /// No description provided for @myNotifDietLog.
-  ///
-  /// In en, this message translates to:
-  /// **'Diet log reminder'**
-  String get myNotifDietLog;
-
   /// No description provided for @myNotifExercise.
   ///
   /// In en, this message translates to:
@@ -3811,12 +3841,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Trainer message'**
   String get myNotifTrainer;
-
-  /// No description provided for @myNotifAiCoaching.
-  ///
-  /// In en, this message translates to:
-  /// **'AI coaching tips'**
-  String get myNotifAiCoaching;
 
   /// No description provided for @myNotifWeeklyReport.
   ///
@@ -3926,6 +3950,30 @@ abstract class AppLocalizations {
   /// **'Hydration'**
   String get coachCardWaterTag;
 
+  /// No description provided for @coachSheetErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your advice'**
+  String get coachSheetErrorTitle;
+
+  /// No description provided for @coachSheetErrorBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your connection and try again.'**
+  String get coachSheetErrorBody;
+
+  /// No description provided for @coachSheetEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Advice will appear as you log more'**
+  String get coachSheetEmptyTitle;
+
+  /// No description provided for @coachSheetEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Try logging today\'s meals and workouts.'**
+  String get coachSheetEmptyBody;
+
   /// No description provided for @coachInviteTitle.
   ///
   /// In en, this message translates to:
@@ -4009,6 +4057,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load the conversation'**
   String get coachChatLoadFailed;
+
+  /// Trainer chat notice shown instead of the thread once the server reports the assignment ended; the input is disabled (#2843).
+  ///
+  /// In en, this message translates to:
+  /// **'Your trainer is no longer assigned, so you can\'t send messages here'**
+  String get coachChatUnassigned;
 
   /// No description provided for @coachChatEmptyTitle.
   ///
@@ -6145,6 +6199,18 @@ abstract class AppLocalizations {
   /// **'Something went wrong. Please try again in a moment.'**
   String get aiCoachFailure;
 
+  /// No description provided for @aicResend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send again'**
+  String get aicResend;
+
+  /// No description provided for @aicSendFailedMine.
+  ///
+  /// In en, this message translates to:
+  /// **'Not sent · Long-press to edit'**
+  String get aicSendFailedMine;
+
   /// Generic cancel button in shared dialogs.
   ///
   /// In en, this message translates to:
@@ -6180,6 +6246,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Health goals'**
   String get myHealthGoalsTitle;
+
+  /// No description provided for @myFirstRunPromptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your basics for tailored goals'**
+  String get myFirstRunPromptTitle;
+
+  /// No description provided for @myFirstRunPromptBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You skipped the first-time setup. Add your birth date, height and weight and we will suggest diet and exercise goals that fit you.'**
+  String get myFirstRunPromptBody;
+
+  /// No description provided for @myFirstRunPromptAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter basics'**
+  String get myFirstRunPromptAction;
 
   /// No description provided for @myGoalsFocusSection.
   ///
@@ -6443,6 +6527,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t save notification settings'**
   String get myNotificationSaveFailed;
+
+  /// No description provided for @myNotifLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load notification settings'**
+  String get myNotifLoadFailed;
+
+  /// No description provided for @myNotifLoadFailedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'These are default values and may differ from your saved settings'**
+  String get myNotifLoadFailedBody;
 
   /// Title of the points guide dialog.
   ///
@@ -6732,6 +6828,18 @@ abstract class AppLocalizations {
   /// **'You don\'t have a trainer yet. Connect a gym and trainer from the Exercise tab'**
   String get coachTrainerNone;
 
+  /// Home trainer card title when the assigned-trainer lookup failed (not a confirmed 'no trainer') (#2843).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your trainer'**
+  String get coachTrainerLoadFailed;
+
+  /// Toast from the header chat button when the assigned-trainer lookup failed; tapping also retries (#2843).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your trainer. Trying again'**
+  String get coachTrainerRetrying;
+
   /// Notification category badge.
   ///
   /// In en, this message translates to:
@@ -6822,6 +6930,24 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the latest notifications'**
   String get alertLoadFailed;
 
+  /// No description provided for @alertMarkAllReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t mark all as read. Please try again shortly'**
+  String get alertMarkAllReadFailed;
+
+  /// No description provided for @alertCoachChatFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your trainer, so the chat can\'t open. Please try again shortly'**
+  String get alertCoachChatFailed;
+
+  /// No description provided for @alertCoachChatNoTrainer.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no assigned trainer, so the chat can\'t open'**
+  String get alertCoachChatNoTrainer;
+
   /// Relative time for a notification less than a minute old.
   ///
   /// In en, this message translates to:
@@ -6851,30 +6977,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{days}d ago'**
   String alertTimeDaysAgo(int days);
-
-  /// Title of a demo notification shown in tour mode.
-  ///
-  /// In en, this message translates to:
-  /// **'Watch your sodium'**
-  String get demoAlertSodiumTitle;
-
-  /// Body of a demo notification shown in tour mode.
-  ///
-  /// In en, this message translates to:
-  /// **'Lunch jjamppong pushed today\'s sodium to 4,657mg. Drink plenty of water.'**
-  String get demoAlertSodiumBody;
-
-  /// Title of a demo notification shown in tour mode.
-  ///
-  /// In en, this message translates to:
-  /// **'Log your dinner'**
-  String get demoAlertDinnerTitle;
-
-  /// Body of a demo notification shown in tour mode.
-  ///
-  /// In en, this message translates to:
-  /// **'No dinner logged yet today. One photo is all it takes.'**
-  String get demoAlertDinnerBody;
 
   /// Title of a demo notification shown in tour mode.
   ///

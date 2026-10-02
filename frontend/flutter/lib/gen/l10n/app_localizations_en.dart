@@ -130,6 +130,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.';
 
   @override
+  String get homeAiAdviceNoRecord =>
+      'Log today\'s meals and workouts, and we\'ll put together advice for your day.';
+
+  @override
   String get homeSodiumExceededBadge => 'Sodium over';
 
   @override
@@ -250,6 +254,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeRecMealsTitle => 'Recommended meals';
+
+  @override
+  String get homeRecMealsErrorTitle => 'Couldn\'t load meal suggestions';
 
   @override
   String get homeViewAll => 'View all';
@@ -1218,6 +1225,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myDefaultUserName => 'User';
 
   @override
+  String get myProfileLoadFailed => 'Couldn\'t load your profile';
+
+  @override
+  String get myPointsLoadFailed => 'Couldn\'t load your points balance';
+
+  @override
   String get mySettingsTitle => 'Settings';
 
   @override
@@ -1979,6 +1992,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'We could not buy the emote. Please try again in a moment.';
 
   @override
+  String get emoteAlreadyUnlocked =>
+      'This emote is already unlocked. You can send it now';
+
+  @override
+  String get emoteTrainerRequired => 'You need a trainer to buy emotes';
+
+  @override
   String get emoteShortfall => 'Not enough points';
 
   @override
@@ -2171,16 +2191,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myFieldGoals => 'Health and exercise goals';
 
   @override
-  String get myNotifDietLog => 'Diet log reminder';
-
-  @override
   String get myNotifExercise => 'Exercise reminder';
 
   @override
   String get myNotifTrainer => 'Trainer message';
-
-  @override
-  String get myNotifAiCoaching => 'AI coaching tips';
 
   @override
   String get myNotifWeeklyReport => 'Weekly report';
@@ -2241,6 +2255,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachCardWaterTag => 'Hydration';
 
   @override
+  String get coachSheetErrorTitle => 'Couldn\'t load your advice';
+
+  @override
+  String get coachSheetErrorBody => 'Check your connection and try again.';
+
+  @override
+  String get coachSheetEmptyTitle => 'Advice will appear as you log more';
+
+  @override
+  String get coachSheetEmptyBody => 'Try logging today\'s meals and workouts.';
+
+  @override
   String get coachInviteTitle => 'A trainer wants to coach you';
 
   @override
@@ -2288,6 +2314,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachChatLoadFailed => 'Couldn\'t load the conversation';
+
+  @override
+  String get coachChatUnassigned =>
+      'Your trainer is no longer assigned, so you can\'t send messages here';
 
   @override
   String coachChatEmptyTitle(String trainer) {
@@ -3552,6 +3582,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Something went wrong. Please try again in a moment.';
 
   @override
+  String get aicResend => 'Send again';
+
+  @override
+  String get aicSendFailedMine => 'Not sent · Long-press to edit';
+
+  @override
   String get actionCancel => 'Cancel';
 
   @override
@@ -3568,6 +3604,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myHealthGoalsTitle => 'Health goals';
+
+  @override
+  String get myFirstRunPromptTitle => 'Enter your basics for tailored goals';
+
+  @override
+  String get myFirstRunPromptBody =>
+      'You skipped the first-time setup. Add your birth date, height and weight and we will suggest diet and exercise goals that fit you.';
+
+  @override
+  String get myFirstRunPromptAction => 'Enter basics';
 
   @override
   String get myGoalsFocusSection => 'What you want to focus on';
@@ -3717,6 +3763,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myNotificationSaveFailed => 'Couldn\'t save notification settings';
+
+  @override
+  String get myNotifLoadFailed => 'Couldn\'t load notification settings';
+
+  @override
+  String get myNotifLoadFailedBody =>
+      'These are default values and may differ from your saved settings';
 
   @override
   String get myPointsGuideTitle => 'How to earn points';
@@ -3885,6 +3938,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'You don\'t have a trainer yet. Connect a gym and trainer from the Exercise tab';
 
   @override
+  String get coachTrainerLoadFailed => 'Couldn\'t load your trainer';
+
+  @override
+  String get coachTrainerRetrying =>
+      'Couldn\'t load your trainer. Trying again';
+
+  @override
   String get alertCategoryReminder => 'Reminder';
 
   @override
@@ -3930,6 +3990,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alertLoadFailed => 'Couldn\'t load the latest notifications';
 
   @override
+  String get alertMarkAllReadFailed =>
+      'Couldn\'t mark all as read. Please try again shortly';
+
+  @override
+  String get alertCoachChatFailed =>
+      'Couldn\'t load your trainer, so the chat can\'t open. Please try again shortly';
+
+  @override
+  String get alertCoachChatNoTrainer =>
+      'You have no assigned trainer, so the chat can\'t open';
+
+  @override
   String get alertTimeJustNow => 'Just now';
 
   @override
@@ -3949,20 +4021,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String alertTimeDaysAgo(int days) {
     return '${days}d ago';
   }
-
-  @override
-  String get demoAlertSodiumTitle => 'Watch your sodium';
-
-  @override
-  String get demoAlertSodiumBody =>
-      'Lunch jjamppong pushed today\'s sodium to 4,657mg. Drink plenty of water.';
-
-  @override
-  String get demoAlertDinnerTitle => 'Log your dinner';
-
-  @override
-  String get demoAlertDinnerBody =>
-      'No dinner logged yet today. One photo is all it takes.';
 
   @override
   String get demoAlertRoutineTitle => 'A new workout routine arrived';

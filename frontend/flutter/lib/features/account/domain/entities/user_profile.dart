@@ -1,3 +1,5 @@
+import 'package:oncare/core/utils/clock.dart';
+
 /// GET /users/me/profile — the consolidated profile the settings modals
 /// edit (내 프로필 + 건강 목표).
 class UserProfile {
@@ -15,6 +17,7 @@ class UserProfile {
   const UserProfile({
     required this.id,
     this.onboarded = false,
+    this.onboardingSkipped = false,
     required this.name,
     required this.email,
     this.phone = '',
@@ -48,6 +51,14 @@ class UserProfile {
   /// 첫 설정(온보딩)을 끝냈는가. 서버가 첫 저장 때 참으로 표시한다(#1927).
   /// 기기가 아니라 계정에 붙는 값이라, 기기를 바꿔도 다시 묻지 않는다.
   final bool onboarded;
+
+  /// 첫 설정을 **건너뛰었는가**(#2855). 건너뛴 회원은 다음 로그인·세션 복구 때
+  /// 첫 설정 화면으로 다시 가지 않는다. 이것도 계정에 붙는 값이라 기기를 바꿔도
+  /// 유지된다. 폼에서 앱을 닫은(건너뛰지 않은) 회원은 거짓이다.
+  final bool onboardingSkipped;
+
+  /// 첫 설정을 다시 묻지 않을 계정 — 끝냈거나 건너뛰었다(#2855).
+  bool get firstRunSettled => onboarded || onboardingSkipped;
 
   final String name;
   final String email;
@@ -115,6 +126,7 @@ class UserProfile {
 
   factory UserProfile.fromJson(Map<String, Object?> json) => UserProfile(
     onboarded: (json['onboarded'] as bool?) ?? false,
+    onboardingSkipped: (json['onboarding_skipped'] as bool?) ?? false,
     id: (json['id'] as String?) ?? '',
     name: (json['name'] as String?) ?? '',
     email: (json['email'] as String?) ?? '',
@@ -144,7 +156,10 @@ class UserProfile {
       _ => null,
     },
     focusChangedAt: switch (json['focus_changed_at']) {
-      final String at => DateTime.tryParse(at)?.toLocal(),
+      final String at => switch (DateTime.tryParse(at)) {
+        final DateTime t => toKst(t),
+        null => null,
+      },
       _ => null,
     },
     hasPassword: (json['has_password'] as bool?) ?? true,
@@ -153,7 +168,10 @@ class UserProfile {
       _ => null,
     },
     notesChangedAt: switch (json['notes_changed_at']) {
-      final String at => DateTime.tryParse(at)?.toLocal(),
+      final String at => switch (DateTime.tryParse(at)) {
+        final DateTime t => toKst(t),
+        null => null,
+      },
       _ => null,
     },
   );
