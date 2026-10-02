@@ -908,6 +908,57 @@ void main() {
     expect(find.text('건강상태·주의사항'), findsOneWidget);
   });
 
+  testWidgets('목표 칩과 주의사항의 마지막 변경은 제목 줄 끝에 따로 선다 (#2942)', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final clients = _SharedProfileRepository(db)
+      ..current = MemberHealthProfile(
+        memberId: 'm1',
+        memberName: '회원',
+        conditions: '체중 감량, 무릎 통증 주의',
+        focusChangedBy: MemberHealthProfile.focusChangedByTrainer,
+        focusChangedAt: DateTime(2026, 9, 30, 10),
+        notesChangedBy: MemberHealthProfile.focusChangedByMember,
+        notesChangedAt: DateTime(2026, 10, 2, 9),
+      );
+    await _pumpDialog(
+      tester,
+      _FakeMemoRepository(),
+      clients: clients,
+      section: ClientProfileSection.health,
+    );
+    await _openTab(tester, '건강 목표');
+
+    final Finder focus = find.byKey(
+      const ValueKey<String>('client-focus-last-changed'),
+    );
+    final Finder notes = find.byKey(
+      const ValueKey<String>('client-conditions-last-changed'),
+    );
+    expect(tester.widget<Text>(focus).data, '마지막 변경: 트레이너 · 9월 30일');
+    expect(tester.widget<Text>(notes).data, '마지막 변경: 회원 · 10월 2일');
+    // 각 기록은 자기 제목과 같은 줄이다.
+    expect(
+      tester.getCenter(focus).dy,
+      closeTo(tester.getCenter(find.text('건강 목표 (최대 2개)')).dy, 4),
+    );
+    expect(
+      tester.getCenter(notes).dy,
+      closeTo(tester.getCenter(find.text('건강상태·주의사항')).dy, 4),
+    );
+
+    // 고치는 중에는 주의사항 줄 끝이 메모 안내로 바뀐다. 칩 기록은 그대로다.
+    await _startEditing(tester);
+    expect(notes, findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('client-conditions-private-hint')),
+      findsOneWidget,
+    );
+    expect(focus, findsOneWidget);
+  });
+
   testWidgets('회원 앱과 같은 목표 필드를 읽고 저장한다 (#1449)', (tester) async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);

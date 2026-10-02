@@ -3949,6 +3949,19 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         patch['focus_changed_by'] = 'member';
         patch['focus_changed_at'] = nowKst().toIso8601String();
       }
+      // 건강상태·주의사항은 따로 남긴다 — 조각 순서만 바뀐 저장은 아니다(#2942).
+      Set<String> notes(String raw) => healthFocusNotes(
+        raw,
+      ).split(', ').where((String t) => t.isNotEmpty).toSet();
+      final Set<String> notesBefore = notes(
+        current['conditions'] as String? ?? '',
+      );
+      final Set<String> notesAfter = notes(next);
+      if (notesBefore.length != notesAfter.length ||
+          !notesBefore.containsAll(notesAfter)) {
+        patch['notes_changed_by'] = 'member';
+        patch['notes_changed_at'] = nowKst().toIso8601String();
+      }
     }
     await _mergeProfileOverlay(patch);
     return _ok(options, await _mergedProfile());

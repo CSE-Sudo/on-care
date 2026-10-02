@@ -156,6 +156,8 @@ def _profile_view(user: User) -> ProfileView:
         onboarded=p.onboarded if p else False,
         focus_changed_by=p.focus_changed_by if p else None,
         focus_changed_at=p.focus_changed_at if p else None,
+        notes_changed_by=p.notes_changed_by if p else None,
+        notes_changed_at=p.notes_changed_at if p else None,
     )
 
 
