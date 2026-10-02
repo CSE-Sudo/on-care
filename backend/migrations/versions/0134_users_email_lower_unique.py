@@ -9,8 +9,8 @@
 정해야 한다 — 자동으로 합치거나 지우면 남의 기록이 섞이거나 사라진다. 실패
 메시지에 겹치는 이메일과 계정 id 를 적으므로, 정리한 뒤 다시 올리면 된다.
 
-Revision ID: 0133_users_email_lower_unique
-Revises: 0131_health_notes_changed
+Revision ID: 0134_users_email_lower_unique
+Revises: 0133_password_reset_tokens
 Create Date: 2026-10-01
 """
 from __future__ import annotations
@@ -20,8 +20,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0133_users_email_lower_unique"
-down_revision: str | Sequence[str] | None = "0131_health_notes_changed"
+revision: str = "0134_users_email_lower_unique"
+down_revision: str | Sequence[str] | None = "0133_password_reset_tokens"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
