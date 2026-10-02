@@ -130,7 +130,6 @@ class _CoachingSheetState extends ConsumerState<_CoachingSheet> {
     // provider 를 건드리지 않도록 첫 프레임 뒤에 한다.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (ref.read(appConfigProvider).useMockApi) return;
       if (ref.read(aiCoachStateProvider).hasError) {
         ref.invalidate(aiCoachStateProvider);
       }
