@@ -709,7 +709,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
             child: Text(
               name,
               style: tokens
-                  .text(OnCareTypography.bodySmall)
+                  .text(OnCareTypography.body)
                   .copyWith(color: OnCareColors.textPrimary),
             ),
           ),
@@ -721,7 +721,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
               child: Text(
                 unit,
                 style: tokens
-                    .text(OnCareTypography.caption)
+                    .text(OnCareTypography.bodySmall)
                     .copyWith(color: OnCareColors.textSecondary),
               ),
             ),
@@ -753,7 +753,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
           textAlign: TextAlign.end,
           style:
               OnCareTypography.numeric(
-                context.oncare.text(OnCareTypography.bodySmall),
+                context.oncare.text(OnCareTypography.body),
               ).copyWith(
                 color: text.isEmpty
                     ? OnCareColors.textTertiary
@@ -872,7 +872,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
                       ),
                       textAlign: TextAlign.end,
                       style: tokens
-                          .text(OnCareTypography.bodySmall)
+                          .text(OnCareTypography.body)
                           .copyWith(
                             color: _gender.isEmpty
                                 ? OnCareColors.textTertiary

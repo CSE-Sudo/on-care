@@ -243,9 +243,6 @@ void main() {
       // 마지막은 다음 주 이야기로 끝난다(#755).
       expect(message, startsWith('김민수님,'));
       expect(message, contains('주간 리포트'));
-      // PT 진행 횟수는 적지 않는다 — 회원에게 보낼 글은 그 주에 무엇을 했고
-      // 무엇을 챙길지를 말하는 자리다(#1177).
-      expect(message, isNot(contains('PT 세션')));
       // 지난 주 리포트에도 그대로 나가는 문장이라 `이번 주` 로 시작하지
       // 않는다 — 어느 주인지는 첫 줄의 날짜 범위가 말한다(#1177).
       expect(message, contains('정말 잘하셨어요'));

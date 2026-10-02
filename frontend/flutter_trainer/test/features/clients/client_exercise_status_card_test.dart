@@ -653,7 +653,7 @@ void main() {
         withDate(ptToday(), DateTime(2026, 8, 20)),
       ]);
 
-      expect(find.text('8/20 (오늘) · PT 세션 · 트레이너 지도'), findsOneWidget);
+      expect(find.text('8/20 (오늘) · PT · 트레이너 지도'), findsOneWidget);
       expect(find.text('스쿼트 · 3세트 · 12회 · 40kg'), findsOneWidget);
       expect(find.text('걷기 · 30분 · 가벼움'), findsOneWidget);
     });
@@ -664,7 +664,7 @@ void main() {
       ]);
 
       expect(
-        find.text('8/19 (Yesterday) · PT session · Trainer-led'),
+        find.text('8/19 (Yesterday) · PT · Trainer-led'),
         findsOneWidget,
       );
       expect(find.textContaining('어제'), findsNothing);
