@@ -1537,7 +1537,7 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
               child: SizedBox(
                 height: tokens.density.inputMedium,
                 child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 150),
+                  duration: OnCareMotion.fast,
                   child: _category == TrainerMemoCategory.exercise
                       ? _recordPicker(l)
                       : const SizedBox.shrink(),
