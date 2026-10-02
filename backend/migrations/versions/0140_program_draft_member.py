@@ -12,7 +12,7 @@
 기존 행은 그대로다 — 이 마이그레이션만으로 바뀌는 동작은 없다.
 
 Revision ID: 0140_program_draft_member
-Revises: 0138_schema_model_alignment
+Revises: 0136_user_consents
 Create Date: 2026-10-02
 """
 from __future__ import annotations
@@ -23,7 +23,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0140_program_draft_member"
-down_revision: str | Sequence[str] | None = "0138_schema_model_alignment"
+down_revision: str | Sequence[str] | None = "0136_user_consents"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
