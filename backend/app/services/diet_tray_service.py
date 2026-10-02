@@ -13,6 +13,8 @@
   [REQUIRED_DAYS]일 이상이고, 담당 트레이너가 연결돼 있다.
   - 사진 분석으로 저장한 끼니(`diet_entries.engine` 이 있는 행)만 센다. 손으로 적은
     끼니는 세지 않는다 — 식판이 돕는 것이 사진 분석이다.
+  - 개발용 고정 식단 인식기(`stub`)로 저장된 끼니도 세지 않는다 — 사진을 보지 않고
+    늘 같은 음식을 돌려주므로 사진 기록이 아니다(#2812).
   - 하루에 여러 끼를 찍어도 하루다. 하루에 몰아 찍어서는 채울 수 없다.
   - 연속 기록 보호권(#1788)으로 이어 붙인 날은 식단 행이 없으므로 저절로 빠진다.
 - **받기** 회원이 식판 카드에서 `받기` 를 누르면 0P 쿠폰(`points_coupons`, 항목
@@ -43,6 +45,7 @@ from app.core import clock
 from app.models.models import DietEntry, PointsCoupon
 from app.schemas.diet_tray_api import DietTrayOut
 from app.services import points_coupon_service, points_service
+from app.services.recognizer.factory import STUB_ENGINE
 
 ITEM_ID = points_coupon_service.DIET_TRAY.id
 
@@ -94,6 +97,7 @@ def photo_days(db: Session, member_id: str, today: date | None = None) -> int:
         select(func.count(func.distinct(DietEntry.date))).where(
             DietEntry.user_id == member_id,
             DietEntry.engine != "",
+            DietEntry.engine != STUB_ENGINE,
             DietEntry.date >= first.isoformat(),
             DietEntry.date <= last.isoformat(),
         )

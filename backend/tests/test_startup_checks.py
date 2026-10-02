@@ -17,6 +17,11 @@ def _prod(**kw) -> Settings:
         cors_allow_origins="https://app.oncare.com",
         seed_demo_data=False,
         auto_create_tables=False,
+        # 운영은 사진 인식·임베딩 키가 필수다(#2812). conftest 가 EMBEDDER=hash 를
+        # 환경변수로 심으므로 운영 값을 명시한다.
+        gemini_api_key="test-gemini-key",
+        recognizer="gemini",
+        embedder="gemini",
     )
     base.update(kw)
     return Settings(**base)

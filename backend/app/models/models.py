@@ -2680,3 +2680,30 @@ class TrainerReportGoal(Base):
             "member_id", "week_start", name="uq_trainer_report_goals_member_week"
         ),
     )
+
+
+class DietAnalysisUsage(Base):
+    """식단 사진 분석이 외부 비전 모델을 부른 한 번 — 하루 상한을 센다. (#2827)
+
+    모델을 부르기 **직전에** 한 줄이 생긴다. 끼니(`diet_entries`)로 세지 않는 이유는
+    둘이다 — 음식을 못 찾은 사진(#2848)은 끼니를 남기지 않지만 모델 비용은 나가고,
+    끼니를 지우고 다시 찍으면 끼니 수로는 하루 상한이 다시 열린다. 같은 멱등키의
+    재전송은 모델을 부르지 않으므로 줄이 생기지 않는다. 모델 호출이 실패하면 그 줄을
+    지운다 — 회원 탓이 아닌 실패로 하루 상한을 깎지 않는다.
+    """
+
+    __tablename__ = "diet_analysis_usages"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: 부른 KST 날짜 `YYYY-MM-DD`. 하루 상한을 이 값으로 센다.
+    kst_date: Mapped[str] = mapped_column(String(10))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index("ix_diet_analysis_usages_user_date", "user_id", "kst_date"),
+    )

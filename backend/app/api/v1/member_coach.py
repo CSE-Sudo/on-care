@@ -304,7 +304,7 @@ def send_to_coach(
 @router.post(
     "/me/coach/chat/image", response_model=ChatMessageOut, status_code=201
 )
-async def send_image_to_coach(
+def send_image_to_coach(
     member: RequireMember,
     db: Annotated[Session, Depends(get_db)],
     image: UploadFile = File(...),
@@ -325,7 +325,8 @@ async def send_image_to_coach(
     형식은 아이콘 하나로만 남는다(`ChatAttachmentOut`).
     """
     trainer_id = _my_trainer_or_404(db, member.id)
-    return await chat_attachments.receive_chat_image(
+    # 동기 라우트 — DB·파일 저장을 스레드풀에서 처리한다(#2835).
+    return chat_attachments.receive_chat_image(
         db,
         trainer_id=trainer_id,
         member_id=member.id,
