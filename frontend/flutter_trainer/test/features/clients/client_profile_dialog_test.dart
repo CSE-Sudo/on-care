@@ -864,9 +864,8 @@ void main() {
     );
     await _openTab(tester, '건강 목표');
     await tester.enterText(
-      find.byWidgetPredicate(
-        (w) => w is AppTextField && w.label == '건강상태·주의사항',
-      ),
+      // 칸 이름은 메모 안내와 한 줄이라 입력칸 밖에 있다(#2518) — 키로 찾는다.
+      find.byKey(const ValueKey<String>('client-conditions-input')),
       '무릎 통증 주의, 러닝 자제',
     );
     await tester.tap(find.byKey(const ValueKey<String>('client-profile-save')));
@@ -875,6 +874,38 @@ void main() {
     expect(clients.sent, <String, Object?>{
       'conditions': '재활, 무릎 통증 주의, 러닝 자제',
     });
+  });
+
+  testWidgets('건강상태·주의사항은 회원에게도 보이는 칸이라고 밝히고, 비공개 글은 메모로 보낸다 (#2518)', (
+    tester,
+  ) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    await _pumpDialog(
+      tester,
+      _FakeMemoRepository(),
+      clients: _SharedProfileRepository(db),
+      section: ClientProfileSection.health,
+    );
+    await _openTab(tester, '건강 목표');
+
+    // 보기 상태 — 글 아래에 공개 범위·쓰임 한 줄. 메모 안내는 쓸 때만 선다.
+    expect(find.text('무릎 통증 주의'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('client-conditions-shared')),
+      findsOneWidget,
+    );
+    expect(find.text('회원에게도 보여요 · 추천할 때 참고해요'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('client-conditions-private-hint')),
+      findsNothing,
+    );
+
+    // 편집 상태 — 같은 한 줄이 입력칸 설명이 되고, 칸 이름 옆에 메모 안내.
+    await _startEditing(tester);
+    expect(find.text('회원에게도 보여요 · 추천할 때 참고해요'), findsOneWidget);
+    expect(find.text('트레이너만 볼 내용은 메모에 남겨 주세요.'), findsOneWidget);
+    expect(find.text('건강상태·주의사항'), findsOneWidget);
   });
 
   testWidgets('회원 앱과 같은 목표 필드를 읽고 저장한다 (#1449)', (tester) async {

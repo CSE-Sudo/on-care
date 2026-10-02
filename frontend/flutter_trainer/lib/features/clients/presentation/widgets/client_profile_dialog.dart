@@ -928,16 +928,48 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
             ],
             const SizedBox(height: OnCareSpacing.s8),
             // 목표 칩은 세지 않는다 — 서버도 칩을 뺀 글만 센다(#2618).
-            if (_editing)
+            //
+            // 이 글은 회원도 보고 고치는 공유 건강 정보다(#2619) — 트레이너만
+            // 볼 메모가 아니다. 쓰는 사람이 공개 범위를 알도록 칸 아래에
+            // 회원에게 보인다는 것과 AI 가 읽는다는 것을 밝히고, 비공개 내용은
+            // 메모로 보낸다(#2518). 메모 안내는 칸 이름 줄 오른쪽 끝에 둔다 —
+            // 칸 아래 설명과 겹쳐 쌓이지 않는다.
+            if (_editing) ...<Widget>[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: <Widget>[
+                  Text(
+                    l.memberHealthConditions,
+                    style: tokens
+                        .text(OnCareTypography.label)
+                        .copyWith(color: OnCareColors.textSecondary),
+                  ),
+                  const SizedBox(width: OnCareSpacing.s8),
+                  Expanded(
+                    child: Text(
+                      l.memberHealthConditionsPrivateHint,
+                      key: const ValueKey<String>(
+                        'client-conditions-private-hint',
+                      ),
+                      textAlign: TextAlign.end,
+                      style: tokens
+                          .text(OnCareTypography.caption)
+                          .copyWith(color: OnCareColors.textTertiary),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: OnCareSpacing.s8),
               AppTextField(
                 key: const ValueKey<String>('client-conditions-input'),
                 controller: _conditions,
-                label: l.memberHealthConditions,
+                helper: l.memberHealthConditionsShared,
                 maxLines: 2,
                 maxLength: AppTextLimits.entry,
                 showCounter: true,
-              )
-            else ...<Widget>[
+              ),
+            ] else ...<Widget>[
               Text(
                 l.memberHealthConditions,
                 style: tokens
@@ -957,6 +989,14 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
                           ? OnCareColors.textTertiary
                           : OnCareColors.textPrimary,
                     ),
+              ),
+              const SizedBox(height: OnCareSpacing.s4),
+              Text(
+                l.memberHealthConditionsShared,
+                key: const ValueKey<String>('client-conditions-shared'),
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textTertiary),
               ),
             ],
             // `회원 목표` 글 칸은 없앴다(#2330) — 목표는 위 칩으로 고른다. 글

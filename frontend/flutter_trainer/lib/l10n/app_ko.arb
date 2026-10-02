@@ -252,6 +252,8 @@
   "healthFocusExerciseHabit": "운동 습관",
   "healthFocusBloodPressure": "혈압 관리",
   "memberHealthConditions": "건강상태·주의사항",
+  "memberHealthConditionsShared": "회원에게도 보여요 · 추천할 때 참고해요",
+  "memberHealthConditionsPrivateHint": "트레이너만 볼 내용은 메모에 남겨 주세요.",
   "memberHealthDietGoal": "식단 목표",
   "memberHealthExerciseGoal": "운동 목표",
   "memberHealthGoalCalories": "일일 칼로리 제한 (kcal)",
