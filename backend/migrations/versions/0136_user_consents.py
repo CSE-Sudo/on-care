@@ -7,8 +7,8 @@
 없다. 행이 없는 계정은 `GET /users/me` 가 `consent_required: true` 로 알리고, 앱이
 다음 로그인 때 동의 화면을 띄운다.
 
-Revision ID: 0135_user_consents
-Revises: 0131_health_notes_changed
+Revision ID: 0136_user_consents
+Revises: 0133_password_reset_tokens
 Create Date: 2026-10-01
 """
 from __future__ import annotations
@@ -18,8 +18,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0135_user_consents"
-down_revision: str | Sequence[str] | None = "0131_health_notes_changed"
+revision: str = "0136_user_consents"
+down_revision: str | Sequence[str] | None = "0133_password_reset_tokens"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
