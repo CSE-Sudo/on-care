@@ -21,6 +21,8 @@ class ClientExerciseItem {
     this.done = true,
     this.source = '',
     this.assignedRoutineId,
+    this.sessionId,
+    this.calories,
   });
 
   /// 이름만 아는 옛 기록. 값이 이름 문자열에 섞여 있던 시절의 자료와, 이름만
@@ -105,6 +107,11 @@ class ClientExerciseItem {
           final String value when value.isNotEmpty => value,
           _ => null,
         },
+        sessionId: switch (json['session_id']) {
+          final String value when value.isNotEmpty => value,
+          _ => null,
+        },
+        calories: (json['calories'] as num?)?.toInt(),
       );
 
   final String name;
@@ -147,6 +154,14 @@ class ClientExerciseItem {
   /// `member` 로 둔 채 이 값만 채운다.
   final String? assignedRoutineId;
 
+  /// 하루치 `개인운동` 카드(#2510)의 한 줄이 가리키는 운동 기록 id. 트레이너
+  /// 메모가 줄마다 이 값으로 그 완료를 가리킨다(#2332). 하지 않은 줄은 비어 있다.
+  final String? sessionId;
+
+  /// 이 운동으로 소모한 kcal — 운동 기록 행만 싣는다. 펼친 날 줄마다 오른쪽에
+  /// 적는다(#2508). 이력 줄·옛 응답은 비어 있다.
+  final int? calories;
+
   /// 회원이 앱에서 **직접 적은** 기록인가. (#2534)
   ///
   /// PT 완료·배정 운동 완료로 생긴 행은 이력 카드가 이미 말한다 — 그 행까지
@@ -171,6 +186,8 @@ class ClientExerciseItem {
     if (!done) 'done': done,
     if (source.isNotEmpty) 'source': source,
     if (assignedRoutineId != null) 'assigned_routine_id': assignedRoutineId,
+    if (sessionId != null) 'session_id': sessionId,
+    if (calories != null) 'calories': calories,
   };
 }
 

@@ -492,11 +492,15 @@ class ReportPdfGenerator {
     );
   }
 
-  static String _series(AppLocalizations l, List<num> values, _Unit unit) {
-    if (values.length != 7 || values.every((value) => value == 0)) {
+  /// 요일 계열 한 줄. 0 과 null(이행률의 "걸린 것 없음", #2513)은 `-` 다.
+  static String _series(AppLocalizations l, List<num?> values, _Unit unit) {
+    if (values.length != 7 ||
+        values.every((value) => value == null || value == 0)) {
       return l.reportsPdfNoData;
     }
-    return values.map((value) => value == 0 ? '-' : unit('$value')).join(' / ');
+    return values
+        .map((value) => value == null || value == 0 ? '-' : unit('$value'))
+        .join(' / ');
   }
 
   /// 코드 유닛이 아니라 코드 포인트(`runes`) 단위로 자른다. `substring` 은 UTF-16

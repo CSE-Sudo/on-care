@@ -202,7 +202,7 @@ class DemoClientInviteRepository implements ClientInviteRepository {
               sodiumMg: 0,
               sugarG: 0,
               lastRoutine: '-',
-              weekCompletionJson: '[0,0,0,0,0,0,0]',
+              weekCompletionJson: '[null,null,null,null,null,null,null]',
               // 회원이 이미 등록해 둔 실제 값 — 트레이너가 지금 입력하는
               // 값이 아니다.
               gender: Value(prospect.gender),

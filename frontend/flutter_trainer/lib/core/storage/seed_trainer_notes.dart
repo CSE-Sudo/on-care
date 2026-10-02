@@ -90,7 +90,7 @@ Future<void> seedDemoTrainerNotes(
                 : TrainerMemoSource.trainer,
             ref: m.memberLog
                 ? TrainerMemoRef(
-                    kind: TrainerMemoRefKind.memberLog,
+                    kind: TrainerMemoRefKind.day,
                     day: ymd(daysFrom(m.daysAgo * -1)),
                   )
                 : null,

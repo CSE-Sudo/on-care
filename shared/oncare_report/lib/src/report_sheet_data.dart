@@ -132,7 +132,7 @@ abstract interface class ReportSheetWeek {
   bool get isCurrentWeek;
 
   /// 요일별 값(월→일).
-  List<int> get weekCompletion;
+  List<int?> get weekCompletion;
   List<int> get sodiumWeek;
   List<int> get caloriesWeek;
   List<double> get sugarWeek;

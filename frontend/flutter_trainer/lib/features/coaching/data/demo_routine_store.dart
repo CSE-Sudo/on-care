@@ -9,6 +9,7 @@ import 'package:oncare_trainer/features/coaching/data/dtos/program_draft_dtos.da
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/features/coaching/domain/routine_effects.dart';
 import 'package:oncare_trainer/shared/models/chat_preview.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/services/demo_chat_files.dart';
@@ -78,10 +79,36 @@ class DemoRoutineStore {
   /// 회원의 배정 목록. 남긴 적이 없으면 시드로 채워 남긴다.
   Future<List<AssignedRoutine>> assigned(String memberId) async {
     final List<AssignedRoutine>? stored = await readAssigned(memberId);
-    if (stored != null) return stored;
+    if (stored != null) return _withEffects(memberId, stored);
     final List<AssignedRoutine> seeded = await seedAssigned(memberId);
     await writeAssigned(memberId, seeded);
-    return seeded;
+    return _withEffects(memberId, seeded);
+  }
+
+  /// 효과가 빈 배정에 문구표 효과를 채운다 — 실서버가 응답 때 하는 일이다
+  /// (#2570). 채우지 않으면 데모에서만 트레이너가 효과를 적지 않은 줄이 회색
+  /// 한 줄 없이 서고, 시드는 회원 앱 효과와 다른 옛 사유를 보인다(#2951).
+  /// 서버처럼 `기타` 유형은 비워 둔다. 저장값은 건드리지 않고 읽을 때만 채운다.
+  Future<List<AssignedRoutine>> _withEffects(
+    String memberId,
+    List<AssignedRoutine> rows,
+  ) async {
+    if (!rows.any((AssignedRoutine r) => r.effect.isEmpty)) return rows;
+    final String goal =
+        (await (_db.select(
+          _db.trainerClients,
+        )..where((t) => t.id.equals(memberId))).getSingleOrNull())?.goal ??
+        '';
+    return <AssignedRoutine>[
+      for (final AssignedRoutine r in rows)
+        if (r.effect.isNotEmpty || r.type == '기타')
+          r
+        else
+          assignedRoutineFromJson(<String, Object?>{
+            ...assignedRoutineToStoreJson(r),
+            'effect': autoRoutineEffect(r.type, goal),
+          }),
+    ];
   }
 
   /// 회원의 배정 목록을 지켜본다 — 다른 저장소(스케줄의 PT 전송)가 남긴
@@ -389,6 +416,8 @@ List<AssignedRoutine> demoFixtureAssignedRoutines() => <AssignedRoutine>[
       type: r.type,
       reason: r.reason,
       source: r.source,
+      // 회원 앱과 같은 효과 줄이다(#2951).
+      effect: r.effect,
       // 근력은 세트·횟수·중량으로 읽는다(#1276).
       sets: r.sets,
       reps: r.reps,
@@ -413,6 +442,7 @@ AssignedRoutine assignedFromExercise(
     type: e.type,
     reason: e.reason,
     source: e.source == 'trainer' ? 'trainer' : 'ai',
+    effect: e.effect,
     date: date,
     durationSeconds: strength ? null : e.durationSeconds,
     sets: strength && e.sets > 0 ? e.sets : null,
@@ -436,6 +466,7 @@ Map<String, Object?> assignedRoutineToStoreJson(AssignedRoutine r) =>
       'type': r.type,
       'reason': r.reason,
       'source': r.source,
+      'effect': r.effect,
       'completed': r.completed,
       'exercise_date': r.date?.toIso8601String(),
       'intensity': r.intensity,

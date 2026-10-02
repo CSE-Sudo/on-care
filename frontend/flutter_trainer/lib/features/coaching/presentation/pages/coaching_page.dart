@@ -1803,7 +1803,8 @@ class _WeekCompletionBars extends StatelessWidget {
           : BarSeriesChart(
               key: const ValueKey<String>('program-week-completion-chart'),
               title: l.reportsCompletionByDay,
-              values: week,
+              // 걸린 것이 없던 날(null)은 아래 빈 칸으로 그린다(#2513).
+              values: <int>[for (final int? v in week) v ?? 0],
               labels: weekdayLabels(l),
               maxValue: 100,
               height: OnCareSize.avatarXLarge + OnCareSpacing.s16,
@@ -1812,10 +1813,11 @@ class _WeekCompletionBars extends StatelessWidget {
               // 로스터의 계열은 늘 이번 주다 — 아직 오지 않은 요일을 0% 로
               // 그리면 `0% 수행` 이라는 다른 뜻이 된다.
               pendingFromIndex: elapsedWeekdays(nowKst()),
-              // 지난 날인데 기록이 없는 요일도 0% 가 아니다.
+              // 지난 날인데 걸린 것이 없던 요일도 0% 가 아니다. 0 은 걸렸는데
+              // 하나도 안 한 날이라 0% 막대로 선다(#2513).
               missingIndices: <int>{
                 for (var i = 0; i < elapsedWeekdays(nowKst()); i++)
-                  if (i < week.length && week[i] == 0) i,
+                  if (i < week.length && week[i] == null) i,
               },
             ),
     );

@@ -437,10 +437,11 @@ class MockTrainerRoutineOptionsRepository
     )..where((t) => t.id.equals(memberId))).getSingleOrNull();
     if (client == null) return null;
 
-    // 이행률은 기록한 날만 평균낸다(`recordedCompletionMean`) — 0 은 기록 없음.
+    // 이행률은 걸린 것이 있던 날만 평균낸다(`recordedCompletionMean`) — null 은
+    // 걸린 것이 없던 날이다(#2513).
     final List<int> week = <int>[
       for (final Object? v in jsonDecode(client.weekCompletionJson) as List)
-        if (v is num && v > 0) v.toInt(),
+        if (v is num) v.toInt(),
     ];
     final int completion = week.isEmpty
         ? 0

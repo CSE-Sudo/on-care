@@ -158,7 +158,8 @@ DashboardSummary buildDashboardSummary({
 }
 
 /// Mean completion per weekday across every client that has a full week
-/// of data. Days no client recorded stay 0.
+/// of data. 그날 걸린 것이 있던 회원만 평균에 든다(null 은 빠진다, #2513).
+/// Days no client had anything assigned stay 0.
 List<int> _meanWeeklyCompletion(List<TrainerClient> clients) {
   final weeks = clients
       .map((c) => c.weekCompletion)
@@ -167,6 +168,13 @@ List<int> _meanWeeklyCompletion(List<TrainerClient> clients) {
   if (weeks.isEmpty) return const <int>[];
   return <int>[
     for (var day = 0; day < weekdayCount; day++)
-      (weeks.map((w) => w[day]).reduce((a, b) => a + b) / weeks.length).round(),
+      () {
+        final List<int> values = <int>[
+          for (final List<int?> w in weeks) ?w[day],
+        ];
+        return values.isEmpty
+            ? 0
+            : (values.reduce((a, b) => a + b) / values.length).round();
+      }(),
   ];
 }

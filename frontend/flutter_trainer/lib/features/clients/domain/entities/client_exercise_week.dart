@@ -147,6 +147,9 @@ class ClientExerciseWeek {
               final String value when value.isNotEmpty => value,
               _ => null,
             },
+            // 펼친 날 줄마다 오른쪽에 적는 소모 kcal(#2508). 합계 행이라 나눌 수
+            // 없는 옛 응답은 비운다.
+            calories: single ? (row['calories'] as num?)?.toInt() : null,
           ),
         );
       }
