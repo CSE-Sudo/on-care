@@ -17,6 +17,11 @@ class AppRoutes {
   /// Trainer 회원가입 screen (name/email/password).
   static const String signUp = '/auth/sign-up';
 
+  /// 비밀번호 재설정(#2824). 로그인 화면과 재설정 메일의 링크(`?token=…`)가
+  /// 연다. 세션 상태와 상관없이 열린다 — 링크를 어느 상태에서 열어도 코드를
+  /// 잃지 않는다.
+  static const String passwordReset = '/auth/password-reset';
+
   // --- Main navigation (StatefulShellRoute branches) ---
 
   /// 대시보드 — the console's home; what needs doing today.
