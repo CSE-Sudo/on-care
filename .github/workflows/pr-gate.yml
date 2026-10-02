@@ -45,7 +45,7 @@ jobs:
       - name: Check out the PR head with full history
         # 다른 워크플로와 같이 검토한 커밋 SHA 로 고정하고, 토큰을 .git/config 에
         # 남기지 않는다(#1554). 아래 `git fetch origin` 은 공개 저장소라 익명으로 된다.
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
