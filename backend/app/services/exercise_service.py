@@ -348,6 +348,20 @@ def _longest_streak(daily: list[int]) -> int:
     return best
 
 
+#: 기간 집계(`GET /exercise/weeks`)가 한 번에 만드는 주의 최대 수(약 3년, #2833).
+#: 식단 쪽 `diet_service.MAX_PERIOD_DAYS` 와 같은 이유로 둔다 — 아주 이른 `from` 이나
+#: 날짜가 잘못 들어간 기록 하나가 수만 주를 만들지 않게 한다.
+MAX_PERIOD_WEEKS = 160
+
+
+def period_floor_monday(last_monday: date) -> date:
+    """[last_monday] 주로 끝나는 기간 집계가 거슬러 올라갈 수 있는 가장 이른 월요일."""
+    span = timedelta(weeks=MAX_PERIOD_WEEKS - 1)
+    if last_monday - date.min < span:
+        return date.min  # 0001-01-01 은 월요일이다
+    return last_monday - span
+
+
 def build_period(
     db: Session,
     user_id: str,
@@ -367,6 +381,10 @@ def build_period(
 
     [start] 를 주지 않으면 **첫 기록이 있는 주**부터다. 기록이 하나도 없으면
     이번 주 한 칸이다. 월요일이 아닌 날짜는 그 주의 월요일로 맞춘다.
+
+    구간은 끝 주에서 거슬러 [MAX_PERIOD_WEEKS] 주까지다. 그보다 이른 시작(주어진
+    값이든 첫 기록 주든)은 그 하한으로 끌어올리고, 응답 `from_week` 가 실제 시작
+    주를 알린다(#2833).
     """
     today = clock.today()
     last_monday = _monday_of(min(end or today, today))
@@ -379,6 +397,7 @@ def build_period(
         )
     if first_monday > last_monday:
         first_monday = last_monday
+    first_monday = max(first_monday, period_floor_monday(last_monday))
 
     rows = db.scalars(
         select(ExerciseSession).where(

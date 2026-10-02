@@ -113,8 +113,20 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `RECOGNIZER_TIMEOUT_SECONDS` | 식단 사진 인식 한 건의 대기 한도(초, 기본 60, #2912) |
 | `MIGRATE_CONNECT_TIMEOUT` | 기동 마이그레이션의 DB 연결 한도(초, 기본 10, #2912) |
 | `KAKAO_REST_API_KEY` | 장소(O2O) 실검색. `PLACES_PROVIDER=auto` 기본. 데모 시드가 꺼진 서버는 카카오 0건이면 빈 목록, 실패면 503 이고 시드 장소로 채우지 않는다(#2914) |
+| `TRUSTED_PROXY_HOPS` | rate limit·감사 로그가 믿는 앞단 프록시 수(#2815). 비우면 운영 1. 프록시가 둘 이상 붙으면 그 수로 맞춘다 |
+| `FORWARDED_ALLOW_IPS` | uvicorn 프록시 헤더 신뢰 대역(`scripts/start.sh`, 기본 `*`). 고정 대역이 있으면 좁힌다. 클라이언트 IP 는 이 값과 무관하게 위 홉 수로 읽는다 |
+| `LOGIN_MAX_FAILURES`·`LOGIN_LOCKOUT_SECONDS` | 같은 이메일 로그인 연속 실패 잠금(기본 5회·900초) |
+| `PAIRING_REDEEM_PER_DAY` | 회원 연결 코드 미리보기·사용의 트레이너 하루 상한(기본 30) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | 접근 토큰 수명(분, #2913). 기본 60. 두 앱은 만료되면 refresh 로 이어 가므로 운영은 짧게 둔다. 데모·개발 환경만 길게 |
+| `REGISTER_PER_EMAIL_PER_HOUR` | 같은 이메일 가입 시도 시간당 상한(회원·트레이너 공용, 기본 5, #2913) |
+| `PASSWORD_CHANGE_MAX_FAILURES` | 비밀번호 변경의 현재 비밀번호 연속 실패 잠금(사용자 단위, 기본 5회, 창은 `LOGIN_LOCKOUT_SECONDS`, #2913) |
+| `EXPOSE_API_DOCS` | `/docs`·`/redoc`·`/openapi.json` 공개 여부(#2834). 비우면 운영은 닫힘(404). 스키마는 스테이징·로컬에서 본다 |
 | `SENTRY_DSN` | 에러 추적 수신 주소(#2839). 비우면 보내지 않음. 값은 #480 에서 채운다 |
 | `SENTRY_ENVIRONMENT` / `SENTRY_SAMPLE_RATE` | 선택. 비우면 `ENV` 값 / 기본 `1.0` |
+
+> **시도 제한은 인스턴스 메모리에 둔다**(`app/core/rate_limit.py`). App Runner 최소·최대 인스턴스가
+> 1 이 아니게 되면 한도가 인스턴스 수만큼 늘어나므로, 그때 공유 저장소(Redis 등) 구현으로 바꾼다.
+> 기동 로그에 `TRUSTED_PROXY_HOPS=0` 경고가 보이면 프록시 홉 수 설정을 확인한다.
 
 > 참고: 키가 없어도 인식/장소는 폴백으로 동작(기동은 됨). 운영 시크릿은 Secrets Manager/SSM 에 두고
 > App Runner 에 주입한다. 키 전체 목록과 형식은 `backend/.env.aws.example` 에 있다.
@@ -265,6 +277,15 @@ flutter build web --release \
 ```
 
 지도 핀은 프론트 카카오맵 **JS SDK**(JS키 + 도메인 등록) 담당. 백엔드는 좌표+정보만 제공한다.
+
+**운영 체크리스트 — 카카오 JavaScript 키 허용 도메인(#2913).** `KAKAO_JS_KEY` 는 웹 빌드에 들어가
+브라우저에 그대로 보인다. 키를 지키는 것은 카카오 개발자 콘솔의 **JavaScript SDK 도메인** 목록뿐이다.
+배포·도메인을 바꿀 때마다 아래를 확인한다.
+
+- 목록에 운영 회원 웹·트레이너 웹 주소만 있는가(`https://` 포함, 경로 없이 출처 단위).
+- 개발용 주소(`localhost` 등)·옛 배포 주소·임시 미리보기 주소가 남아 있지 않은가. 로컬 개발이
+  필요하면 운영 키가 아닌 개발용 앱 키를 따로 쓴다.
+- 확인한 날짜와 결과를 담당 이슈에 남긴다.
 
 ---
 
