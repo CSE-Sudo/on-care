@@ -1229,6 +1229,12 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   수(매일 리셋되는 목록, #2161). 배정이 없던 날과 아직 오지 않은 날은 `null` 이다 — 0 은
   쉬는 날과 구분되지 않아 쓰지 않는다(#2232, 데모와 같은 규칙).
 
+**칼로리 평소 기준 (#2863)**: 같은 `WeeklyReportOut` 에 `calorie_baseline: float | null` 이 실린다.
+그 주 월요일 앞 **4주(28일)** 동안 칼로리를 기록한 날(하루 `DietEntry.total_calories` 합이 0 보다 큰
+날)의 하루 평균이다. 기록한 날이 없으면 `null` 이고, 그 주 자신은 넣지 않는다. 트레이너 웹 ① 칼로리
+줄의 `지난 4주 평균` 이 이 값이다 — 예전에는 앱이 직전 4주 리포트(와 회원 피드백)를 다시 불러
+칼로리 배열만 꺼내 썼다. 데모는 drift 이력에서 같은 규칙으로 센다.
+
 **회원 주간 리포트 (#2652)**: 회원 앱 결과지가 트레이너 웹 결과지와 같은 한 장을 그리게
 하는 읽기 경로다. 응답은 트레이너의 `GET /trainer/clients/{member_id}/report` 와 같은
 `WeeklyReportOut` 이다.
@@ -1284,6 +1290,26 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   `max_report_pdf_bytes`(8MB) + `UPLOAD_BODY_SLACK_BYTES`(multipart 여유, 기본 512KB)를 넘으면 본문을 다
   받기 전에 **413** `{"detail": "PDF 용량이 너무 큽니다(최대 8MB)."}` 로 끊는다(#2832). 그 안쪽에서 파일만
   8MB 를 넘으면 핸들러가 413 을 낸다.
+
+**리포트 작업대 요약 (#2863)**: 트레이너 웹 리포트 첫 화면(작업대)의 큐를 세우는 값을 담당 회원
+전원에 대해 **한 번에** 준다. 예전에는 회원마다 `/report` 와 `/report/member-feedback` 를 불러 회원
+N명이면 첫 화면에서 요청이 2N개였다.
+
+| 메서드 | 경로 | 응답 |
+|---|---|---|
+| `GET` | `/trainer/reports/queue?week_start=` | `{ week_start, items: [{ member_id, sessions_booked, sessions_done, completion_avg, week_completion }] }` |
+
+- 각 값은 같은 회원·같은 주의 `GET /trainer/clients/{member_id}/report` 와 **같은 규칙**이다 —
+  `sessions_booked` 는 예정+완료(취소·노쇼·상담 제외), `sessions_done` 은 완료, `week_completion`
+  은 월→일 7칸 이행률, `completion_avg` 는 기록한 날의 평균이고 기록이 없으면 `null`(0 아님).
+  식단·요일별 운동·회원 피드백은 싣지 않는다 — 편집기를 열 때 그 회원 리포트로 읽는다.
+- 집계는 회원별 반복이 아니라 회원 id 목록으로 묶어 조회한다(세션 한 번, 이행 기록 한 번).
+- **담당이 살아 있고 데이터 공유 동의가 유효한 회원만** 싣는다(회원 단위 경로가 404 를 주는 회원은
+  빠진다). 다른 트레이너가 건 이행 기록은 세지 않는다. 담당 회원이 없으면 200 에 `items: []`.
+  순서는 `member_id` 순이고, 화면 순서는 앱이 정한다.
+- `week_start` 기본값은 이번 주이고, 주 중간 날짜는 그 주 월요일로 접힌다. 형식이 틀리거나
+  아직 오지 않은 주는 **422**(리포트 조회와 같은 규칙). 회원 계정은 **403**.
+- 데모(목업)는 같은 값을 회원별 리포트 계산에서 뽑는다 — 값이 실서버와 같은 규칙으로 나온다.
 
 **리포트 전송 이력 (#2288)**: 그 주 리포트가 이미 나간 담당 회원들이다. 트레이너 웹 리포트
 작업대가 `전송 완료` 열을 세우고, 이미 보낸 회원에게 다시 보내기 전에 확인을 받는 근거다.
