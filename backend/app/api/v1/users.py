@@ -17,7 +17,7 @@ from typing import Annotated
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -25,7 +25,15 @@ from app.api.deps import CurrentUser, RequireMember
 from app.core import clock
 from app.core.config import get_settings
 from app.core.locale import get_request_locale
-from app.core.rate_limit import limiter, rate_limit
+from app.core.rate_limit import (
+    check_key,
+    clear_failures,
+    ensure_unlocked,
+    limiter,
+    rate_limit,
+    record_failure,
+    register_email_key,
+)
 from app.services.audit import client_ip, record as audit
 from app.services.audit_email import masked_email
 from app.core.security import (
@@ -73,6 +81,7 @@ from app.services import (
     trainer_signup_service,
     weekly_challenge_service,
 )
+from app.services.contact_format import normalize_email
 from app.services.health_service import DEMO_SETTINGS
 from app.services.profile_format import name_from_email
 
@@ -260,7 +269,13 @@ def update_me(
 
     new_email = data.get("email")
     if new_email is not None and new_email != user.email:
-        dup = db.scalar(select(User).where(User.email == new_email, User.id != user.id))
+        # 대소문자만 다른 주소도 같은 이메일이다(#2816). `new_email` 은 스키마가
+        # 이미 소문자로 맞췄다.
+        dup = db.scalar(
+            select(User).where(
+                func.lower(User.email) == new_email, User.id != user.id
+            )
+        )
         if dup is not None:
             raise HTTPException(status_code=409, detail="이미 사용 중인 이메일입니다.")
         user.email = new_email
@@ -476,6 +491,21 @@ def change_my_password(
 # ---- 인증 (Stage 4 대비, 지금도 동작) ----
 
 
+def _check_register_email(email: str) -> None:
+    """같은 이메일 가입 시도 상한(#2913).
+
+    가입은 이미 있는 이메일에 409 를 주므로 IP 한도만으로는 IP 를 바꿔 가며 특정
+    이메일의 가입 여부를 계속 물을 수 있다. 이메일 단위로 한 시간에 몇 번까지만
+    받는다. 성공·실패를 가리지 않고 센다 — 세는 기준이 결과에 따라 갈리면 그 차이로
+    다시 가입 여부가 드러난다. 문구(409·429)는 그대로라 화면 변화는 없다.
+    """
+    check_key(
+        register_email_key(email),
+        get_settings().register_per_email_per_hour,
+        3600.0,
+    )
+
+
 @router.post(
     "/auth/register",
     response_model=UserMe,
@@ -487,7 +517,10 @@ def register(
     payload: UserRegister,
     db: Annotated[Session, Depends(get_db)],
 ) -> UserMe:
-    exists = db.scalar(select(User).where(User.email == payload.email))
+    _check_register_email(payload.email)
+    # `payload.email` 은 스키마가 소문자로 맞췄다. 대소문자만 다른 기존 주소도
+    # 같은 이메일로 보고 거절한다(#2816).
+    exists = db.scalar(select(User).where(func.lower(User.email) == payload.email))
     if exists:
         audit(
             db,
@@ -546,8 +579,9 @@ def register_trainer(
     소속 헬스장은 여기서 정하지 않는다 — 가입 뒤 `PUT /trainer/me/gym` 으로 고른다
     (#1627). 소속이 없는 동안에는 상담 대상이 아니다(#443·#451).
 
-    회원 가입과 같은 rate limit 버킷을 쓴다.
+    회원 가입과 같은 rate limit 버킷을 쓴다(IP·이메일 둘 다).
     """
+    _check_register_email(payload.email)
     try:
         trainer = trainer_signup_service.register_trainer(db, payload)
     except trainer_signup_service.TrainerEmailTaken as exc:
@@ -570,6 +604,11 @@ def register_trainer(
     return UserMe(id=trainer.id, name=trainer.name, email=trainer.email)
 
 
+def _login_lock_key(username: str) -> str:
+    """로그인 실패 잠금 버킷 키. 대소문자·앞뒤 공백만 다른 입력은 같은 계정이다."""
+    return f"login-fail:{normalize_email(username)}"
+
+
 @router.post(
     "/auth/login",
     response_model=Token,
@@ -580,12 +619,29 @@ def login(
     form: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[Session, Depends(get_db)],
 ) -> Token:
-    user = db.scalar(select(User).where(User.email == form.username))
+    """이메일·비밀번호 로그인.
+
+    IP 한도(`auth-login`)에 더해 **이메일 단위 실패 잠금**을 건다(#2815). IP 를
+    바꿔 가며 한 계정을 노리면 IP 버킷은 매번 새로 시작하지만, 이메일 버킷은 한
+    곳에 모인다. 잠금 판정은 비밀번호 확인보다 먼저 한다 — 잠긴 동안에는 맞는
+    비밀번호인지 여부도 응답에 드러나지 않는다. 없는 이메일도 똑같이 세고 잠가
+    가입 여부가 갈리지 않게 한다.
+    """
+    settings = get_settings()
+    lock_key = _login_lock_key(form.username)
+    lock_window = float(settings.login_lockout_seconds)
+    ensure_unlocked(lock_key, settings.login_max_failures, lock_window)
+    # 가입이 소문자로 저장하므로 입력도 같은 규칙으로 맞춰 찾는다(#2816) — 모바일
+    # 키보드가 첫 글자를 대문자로 바꿔도 같은 계정이다.
+    user = db.scalar(
+        select(User).where(func.lower(User.email) == normalize_email(form.username))
+    )
     if (
         not user
         or not user.is_active
         or not verify_password(form.password, user.hashed_password)
     ):
+        record_failure(lock_key, lock_window)
         audit(
             db,
             event="auth.login",
@@ -596,6 +652,7 @@ def login(
         raise HTTPException(
             status_code=401, detail="이메일 또는 비밀번호가 올바르지 않습니다."
         )
+    clear_failures(lock_key)
     audit(db, event="auth.login", user_id=user.id, ip=client_ip(request), success=True)
     return auth_tokens.issue_token_pair(user)
 

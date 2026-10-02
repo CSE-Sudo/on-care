@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -37,7 +37,9 @@ def register_trainer(db: Session, payload: TrainerRegister) -> User:
     계정 생성·프로필 생성을 **한 트랜잭션**으로 커밋한다. 나눠 커밋하면 프로필 없는
     트레이너가 남아 `/trainer/me` 가 실패한다.
     """
-    if db.scalar(select(User.id).where(User.email == payload.email)) is not None:
+    # 스키마가 소문자로 맞춘 값이다. 대소문자만 다른 기존 주소도 같은 이메일(#2816).
+    taken = db.scalar(select(User.id).where(func.lower(User.email) == payload.email))
+    if taken is not None:
         raise TrainerEmailTaken("이미 가입된 이메일입니다.")
 
     trainer = User(

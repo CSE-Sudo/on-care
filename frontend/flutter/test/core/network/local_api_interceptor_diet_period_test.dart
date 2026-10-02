@@ -18,6 +18,8 @@ import 'package:logger/logger.dart';
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare/features/diet/domain/entities/diet_period.dart';
+import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart';
 
 const List<String> _weekdayLabels = <String>['월', '화', '수', '목', '금', '토', '일'];
 
@@ -194,5 +196,81 @@ void main() {
 
     expect(res.data!['diet_first_date'], isNull);
     expect(res.data!['exercise_first_date'], isNull);
+  });
+
+  // 서버 기간 집계와 같은 구간 상한(#2833). 날짜가 잘못 들어간 아주 오래된 기록
+  // 하나가 데모 그래프를 수십만 칸으로 늘리지 않는다. "오늘" 은 KST 2026-09-17(목).
+  group('구간 상한(#2833)', () {
+    final DateTime fixedToday = DateTime(2026, 9, 17);
+    final DateTime dayFloor = DateTime(
+      2026,
+      9,
+      17 - (kDietAllPeriodMaxDays - 1),
+    );
+    final DateTime weekFloor = DateTime(
+      2026,
+      9,
+      14 - (kExerciseMaxPeriodWeeks - 1) * 7,
+    );
+
+    setUp(() => debugNowKstOverride = () => DateTime(2026, 9, 17, 10));
+    tearDown(() => debugNowKstOverride = null);
+
+    test('아주 이른 `from` 은 1100일 전으로 잘린다', () async {
+      final Response<Map<String, Object?>> res = await dio
+          .get<Map<String, Object?>>(
+            '/diet/days',
+            queryParameters: <String, String>{'from': '0001-01-01'},
+          );
+
+      expect(res.data!['from_date'], _ymd(dayFloor));
+      expect(res.data!['to_date'], _ymd(fixedToday));
+      expect(
+        res.data!['days']! as List<Object?>,
+        hasLength(kDietAllPeriodMaxDays),
+      );
+    });
+
+    test('`from` 없이 옛 기록 하나가 있어도 같은 상한이다', () async {
+      await addDiet(DateTime(1970));
+      await addDiet(DateTime(2026, 9, 14), calories: 700);
+
+      final Response<Map<String, Object?>> res = await dio
+          .get<Map<String, Object?>>('/diet/days');
+
+      expect(res.data!['from_date'], _ymd(dayFloor));
+      final List<Object?> days = res.data!['days']! as List<Object?>;
+      expect(days, hasLength(kDietAllPeriodMaxDays));
+      expect(
+        (days[days.length - 4]! as Map<String, Object?>)['total_calories'],
+        700,
+      );
+    });
+
+    test('상한 안쪽 구간은 그대로다', () async {
+      final DateTime from = DateTime(2025, 9, 18);
+      final Response<Map<String, Object?>> res = await dio
+          .get<Map<String, Object?>>(
+            '/diet/days',
+            queryParameters: <String, String>{'from': _ymd(from)},
+          );
+
+      expect(res.data!['from_date'], _ymd(from));
+      expect(res.data!['days']! as List<Object?>, hasLength(365));
+    });
+
+    test('운동 기간도 160주 전 월요일로 잘린다', () async {
+      await addExercise(DateTime(1970, 1, 7));
+
+      final Response<Map<String, Object?>> res = await dio
+          .get<Map<String, Object?>>('/exercise/weeks');
+
+      expect(res.data!['from_week'], _ymd(weekFloor));
+      expect(weekFloor.weekday, DateTime.monday);
+      expect(
+        res.data!['weeks']! as List<Object?>,
+        hasLength(kExerciseMaxPeriodWeeks),
+      );
+    });
   });
 }
