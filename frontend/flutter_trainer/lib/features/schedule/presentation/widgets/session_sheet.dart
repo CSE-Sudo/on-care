@@ -98,6 +98,31 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
   /// 예약 슬롯의 `typeLocked`와 같은 자리다: 값만 보여주고 잠근다(#1396).
   late bool _clientLocked;
 
+  /// 취소·노쇼로 끝난 세션인가 — 일정 칸을 모두 읽기 전용으로 그린다(#2889).
+  ///
+  /// 서버는 마무리된 세션의 메모·프로그램 밖의 변경을 409 로 거절한다. 메뉴가
+  /// 이미 `일정 수정` 을 잠그지만, 다른 진입로가 생겨도 같은 규칙이 되도록 창도
+  /// 스스로 잠근다.
+  bool get _endedLocked {
+    final e = widget.existing;
+    return e != null && (e.isCancelled || e.isNoShow);
+  }
+
+  /// 완료 세션인데 날짜를 앞으로 옮기지 않았는가(#2889).
+  ///
+  /// 완료 세션의 일정은 날짜를 미래로 옮겨 예정으로 되돌릴 때만 바꿀 수 있다
+  /// (#1396). 그 전에는 날짜 칸만 열고, 회원·종류·시각·반복은 잠근다 —
+  /// 그대로 저장하면 서버가 409 로 거절한다.
+  bool get _doneLocked {
+    final e = widget.existing;
+    if (e == null || !e.isDone) return false;
+    final String picked = ymd(_date);
+    return picked == e.date || picked.compareTo(ymd(todayKst())) <= 0;
+  }
+
+  /// 일정 칸(회원·종류·시각·반복)이 잠겼는가.
+  bool get _scheduleLocked => _endedLocked || _doneLocked;
+
   /// [base] plus [current] when it isn't already offered.
   static List<T> _withCurrent<T>(List<T> base, T? current) {
     if (current == null || base.contains(current)) return List<T>.of(base);
@@ -356,7 +381,9 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
     // 종료일까지 만든다.
     final until = _repeatUntil;
     if (until == null) return;
-    final nextStart = _date.add(const Duration(days: 1));
+    // 달력의 다음 날이다 — 24시간을 더하면 서머타임이 끝나는 날 같은 날
+    // 23:00 이 되어 첫 회차와 겹친다는 충돌로 저장이 막혔다(#2890).
+    final nextStart = addCalendarDays(_date, 1);
     if (nextStart.isAfter(until)) return;
     final rule = WeeklyRecurrence(weekdays: _repeatDays, until: until);
     final preview = await repo.previewRecurring(
@@ -475,7 +502,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
         context: context,
         initialRange: DateTimeRange(
           start: _date,
-          end: _repeatUntil ?? _date.add(const Duration(days: 56)),
+          end: _repeatUntil ?? addCalendarDays(_date, 56),
         ),
         firstDate: first.subtract(const Duration(days: 365)),
         lastDate: today.add(const Duration(days: 7 * maxSeriesOccurrences)),
@@ -522,7 +549,8 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
         confirmLabel: widget.existing == null
             ? l.schedAddAction
             : l.schedSaveAction,
-        onConfirm: _saving ? null : _save,
+        // 취소·노쇼 세션은 이 창에서 바꿀 수 있는 칸이 없다(#2889).
+        onConfirm: _saving || _endedLocked ? null : _save,
         confirmLoading: _saving,
       ),
       child: _fields(l),
@@ -530,10 +558,22 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
   }
 
   Widget _fields(AppLocalizations l) {
+    final bool locked = _scheduleLocked;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
+        // 끝난 세션은 왜 칸이 잠겼는지 먼저 말한다(#2889).
+        if (locked) ...<Widget>[
+          Text(
+            _endedLocked ? l.schedEndedLockedHint : l.schedDoneLockedHint,
+            key: const ValueKey<String>('session-sheet-locked-hint'),
+            style: context.oncare
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+        ],
         // 고객·유형은 같은 층위의 선택이라 한 줄에 묶는다 — 세로로
         // 나란한 두 드롭다운이 각자 한 줄을 다 쓸 이유가 없다(#1090).
         Row(
@@ -555,7 +595,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
                         child: Text(c.name),
                       ),
                 ],
-                onChanged: _clientLocked ? null : _pickClient,
+                onChanged: _clientLocked || locked ? null : _pickClient,
               ),
             ),
             const SizedBox(width: OnCareSpacing.s8),
@@ -571,7 +611,9 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
                       child: Text(sessionTypeLabel(l, t)),
                     ),
                 ],
-                onChanged: (v) => setState(() => _type = v ?? _type),
+                onChanged: locked
+                    ? null
+                    : (v) => setState(() => _type = v ?? _type),
               ),
             ),
           ],
@@ -591,68 +633,9 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
         ),
         const SizedBox(height: OnCareSpacing.s12),
         // 반복은 수정에서도 켤 수 있다(#1396) — 이 회차를 반복의 시작
-        // 회차로 삼고, 나머지는 새로 만든다(`_save` 참고).
-        _fieldLabel(l.schedRepeat),
-        const SizedBox(height: OnCareSpacing.s8),
-        // `반복 없음` 이 기본값이다 — `매주` 하나를 껐다 켰다 하는 토글로
-        // 둔다. 켜면 옆에 요일 칩이 붙는다.
-        Wrap(
-          spacing: OnCareSpacing.s4,
-          runSpacing: OnCareSpacing.s4,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: <Widget>[
-            AppChoiceChip(
-              key: const ValueKey<String>('repeat-weekly'),
-              label: l.schedRepeatWeekly,
-              selected: _repeatDays.isNotEmpty,
-              onSelected: (_) => setState(() {
-                if (_repeatDays.isNotEmpty) {
-                  _repeatDays.clear();
-                  _repeatUntil = null;
-                } else {
-                  // 켜는 순간의 기본값은 **시작일의 요일**이다. 빈 상태로
-                  // 켜면 "매주" 를 골랐는데 아무 회차도 없는 화면이 된다.
-                  _repeatDays.add(_date.weekday);
-                  // 종료일도 바로 채워 미리보기가 곧장 뜨게 한다 — 위 날짜
-                  // 필드를 눌러 언제든 다시 고를 수 있다.
-                  _repeatUntil ??= _date.add(const Duration(days: 56));
-                }
-              }),
-            ),
-            if (_repeatDays.isNotEmpty)
-              for (var day = 1; day <= 7; day++)
-                AppChoiceChip(
-                  key: ValueKey<String>('repeat-day-$day'),
-                  label: weekdayNames(l)[day - 1],
-                  selected: _repeatDays.contains(day),
-                  onSelected: (_) => setState(() {
-                    if (_repeatDays.contains(day)) {
-                      if (_repeatDays.length > 1) {
-                        // 마지막 요일까지 끄면 `매주` 인데 회차가 없는
-                        // 상태가 된다 — 끄려면 `매주` 를 다시 눌러 반복
-                        // 자체를 끈다.
-                        _repeatDays.remove(day);
-                      }
-                    } else {
-                      _repeatDays.add(day);
-                    }
-                  }),
-                ),
-          ],
-        ),
-        if (_repeatDays.isNotEmpty) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s8),
-          // 종료일은 위 날짜 필드에서 시작일과 함께 범위로 고른다 — 요일을
-          // 고르면 회차 수는 아래 미리보기가 그대로 계산해 준다.
-          SessionRepeatPreview(dates: _occurrences),
-          if (_conflicts.isNotEmpty) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s8),
-            SessionRepeatConflicts(
-              total: _occurrences.length,
-              conflicts: _conflicts,
-            ),
-          ],
-        ],
+        // 회차로 삼고, 나머지는 새로 만든다(`_save` 참고). 끝난 세션은
+        // 반복의 시작 회차가 될 수 없어 세우지 않는다(#2889).
+        if (!locked) ..._repeatFields(l),
         if (widget.existing == null) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s12),
           // PT 에 적는 글은 PT 를 마친 뒤 회원 앱에 가는 트레이너 피드백이고,
@@ -690,6 +673,71 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
     );
   }
 
+  /// 반복 칸 — 라벨·`매주` 토글·요일·미리보기. 끝난 세션에는 세우지 않는다(#2889).
+  List<Widget> _repeatFields(AppLocalizations l) => <Widget>[
+    _fieldLabel(l.schedRepeat),
+    const SizedBox(height: OnCareSpacing.s8),
+    // `반복 없음` 이 기본값이다 — `매주` 하나를 껐다 켰다 하는 토글로
+    // 둔다. 켜면 옆에 요일 칩이 붙는다.
+    Wrap(
+      spacing: OnCareSpacing.s4,
+      runSpacing: OnCareSpacing.s4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: <Widget>[
+        AppChoiceChip(
+          key: const ValueKey<String>('repeat-weekly'),
+          label: l.schedRepeatWeekly,
+          selected: _repeatDays.isNotEmpty,
+          onSelected: (_) => setState(() {
+            if (_repeatDays.isNotEmpty) {
+              _repeatDays.clear();
+              _repeatUntil = null;
+            } else {
+              // 켜는 순간의 기본값은 **시작일의 요일**이다. 빈 상태로
+              // 켜면 "매주" 를 골랐는데 아무 회차도 없는 화면이 된다.
+              _repeatDays.add(_date.weekday);
+              // 종료일도 바로 채워 미리보기가 곧장 뜨게 한다 — 위 날짜
+              // 필드를 눌러 언제든 다시 고를 수 있다.
+              _repeatUntil ??= addCalendarDays(_date, 56);
+            }
+          }),
+        ),
+        if (_repeatDays.isNotEmpty)
+          for (var day = 1; day <= 7; day++)
+            AppChoiceChip(
+              key: ValueKey<String>('repeat-day-$day'),
+              label: weekdayNames(l)[day - 1],
+              selected: _repeatDays.contains(day),
+              onSelected: (_) => setState(() {
+                if (_repeatDays.contains(day)) {
+                  if (_repeatDays.length > 1) {
+                    // 마지막 요일까지 끄면 `매주` 인데 회차가 없는
+                    // 상태가 된다 — 끄려면 `매주` 를 다시 눌러 반복
+                    // 자체를 끈다.
+                    _repeatDays.remove(day);
+                  }
+                } else {
+                  _repeatDays.add(day);
+                }
+              }),
+            ),
+      ],
+    ),
+    if (_repeatDays.isNotEmpty) ...<Widget>[
+      const SizedBox(height: OnCareSpacing.s8),
+      // 종료일은 위 날짜 필드에서 시작일과 함께 범위로 고른다 — 요일을
+      // 고르면 회차 수는 아래 미리보기가 그대로 계산해 준다.
+      SessionRepeatPreview(dates: _occurrences),
+      if (_conflicts.isNotEmpty) ...<Widget>[
+        const SizedBox(height: OnCareSpacing.s8),
+        SessionRepeatConflicts(
+          total: _occurrences.length,
+          conflicts: _conflicts,
+        ),
+      ],
+    ],
+  ];
+
   /// 필드 위 라벨 — `AppTextField`/`AppSelectField` 의 라벨과 같은 모양이다.
   Widget _fieldLabel(String text) {
     return Text(
@@ -708,12 +756,14 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
     required String value,
     required IconData icon,
     required VoidCallback onTap,
+    bool enabled = true,
   }) {
     final OnCareTokens tokens = context.oncare;
     return GestureDetector(
       key: key,
       behavior: HitTestBehavior.opaque,
-      onTap: onTap,
+      // 잠긴 칸은 눌러도 선택창을 열지 않는다(#2889).
+      onTap: enabled ? onTap : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
@@ -722,15 +772,21 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
           const SizedBox(height: OnCareSpacing.s8),
           InputDecorator(
             decoration: InputDecoration(
+              enabled: enabled,
               suffixIcon: AppIcon(icon, size: OnCareSize.iconSmall),
             ),
             child: Text(
               value,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: OnCareTypography.numeric(
-                tokens.text(OnCareTypography.body),
-              ).copyWith(color: OnCareColors.textPrimary),
+              style:
+                  OnCareTypography.numeric(
+                    tokens.text(OnCareTypography.body),
+                  ).copyWith(
+                    color: enabled
+                        ? OnCareColors.textPrimary
+                        : OnCareColors.textTertiary,
+                  ),
             ),
           ),
         ],
@@ -746,6 +802,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
       value: l.schedTimeRange(_time, _endTime),
       icon: AppIcons.clock,
       onTap: _pickTimeRange,
+      enabled: !_scheduleLocked,
     );
   }
 
@@ -769,6 +826,9 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
           : ymd(_date),
       icon: AppIcons.calendar,
       onTap: _pickDate,
+      // 완료 세션은 날짜를 앞으로 옮겨 예정으로 되돌릴 수 있다(#1396) —
+      // 취소·노쇼만 날짜까지 잠근다(#2889).
+      enabled: !_endedLocked,
     );
   }
 }

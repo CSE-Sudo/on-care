@@ -16,6 +16,14 @@ GitHub(main push) ──> Actions ──> ECR(이미지) ──> App Runner(:800
 가 여러 인스턴스를 동시에 띄워도 하나만 마이그레이션하고 나머지는 대기 후 no-op 이다(리뷰 #3).
 운영은 `AUTO_CREATE_TABLES=false` 로 두고 Alembic 을 스키마의 유일한 소스로 삼는다.
 
+> **DB 연결 한도**: `scripts/migrate.py` 는 `MIGRATE_CONNECT_TIMEOUT`(기본 10초) 안에 DB 에 붙지
+> 못하면 실패한다(#2912). 잘못된 호스트·막힌 보안 그룹에서 OS TCP 타임아웃(수 분)까지 기다려 헬스체크
+> 한도를 넘기지 않게 하려는 값이다.
+>
+> **확장 생성은 마이그레이션 몫**: 앱 기동의 `init_db` 는 `AUTO_CREATE_TABLES=true`(로컬 개발)일 때만
+> `CREATE EXTENSION vector` 를 부른다(#2912). 운영은 Alembic 첫 리비전이 확장을 만들므로, 앱 계정에
+> 확장 생성 권한이 없어도 기동 경고가 남지 않는다.
+>
 > **무거운 마이그레이션 주의**: lock 획득 대기 한도는 `MIGRATE_LOCK_TIMEOUT`(기본 120초)다.
 > 데이터가 쌓인 뒤 120초를 넘길 수 있는 마이그레이션을 배포하기 전에는, 동시에 뜬 다른 인스턴스가
 > fail-fast·재시작 루프에 빠지지 않도록 이 값을 넉넉히(예: `MIGRATE_LOCK_TIMEOUT=600`) 올려 둔다.
@@ -26,7 +34,10 @@ GitHub(main push) ──> Actions ──> ECR(이미지) ──> App Runner(:800
 실패 커밋이나 병합되지 않은 코드는 운영에 배포되지 않는다. Backend CI 는
 `alembic heads` 가 **정확히 1개**인지 검사해 마이그레이션 head 분기(선형화 누락)를 막는다.
 배포 잡은 `concurrency` 로 한 번에 하나만 돌고, `update-service`가 반환한 정확한 OperationId와
-`/v1/healthz` 를 폴링해 **실제 배포·기동 성공까지 확인**한 뒤 워크플로우를 통과시킨다.
+`/v1/healthz` 를 폴링해 **실제 배포·기동 성공까지 확인**한 뒤, healthz 가 싣는 설정(`env`·
+`demo_fallback`·`demo_seed`)이 운영 기대값인지 확인하고(#2821), `/v1/readyz` 로 **DB 까지 닿는지**
+확인하고 나서야 워크플로우를 통과시킨다(#2912). App Runner 헬스체크는 계속 healthz 다 — DB 일시
+장애로 인스턴스를 갈아 치우지 않게 프로세스 생존만 본다.
 
 **수동 실행**도 CI 게이트를 우회하지 않는다. `main`에서 워크플로우를 실행하며 배포할 40자리
 커밋 SHA를 입력해야 하고, 워크플로우가 GitHub Actions API에서 그 SHA의 `main` push에 대한
@@ -76,7 +87,8 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 | 키 | 값/설명 |
 |---|---|
-| `ENV` | `prod` (fail-fast 하드닝 활성) |
+| `ENV` | `prod` (fail-fast 하드닝 활성). **비우면 컨테이너가 뜨지 않는다**(`scripts/start.sh`, #2821) |
+| `ALLOW_DEMO_FALLBACK` | `false`(기본값). `ENV=prod` 면 값과 무관하게 꺼진다 |
 | `JWT_SECRET` | `openssl rand -hex 32` (기본값이면 기동 거부) |
 | `DATABASE_URL` | 위 Neon 접속 문자열(직접 엔드포인트) |
 | `AUTO_CREATE_TABLES` | `false` (Alembic 이 정답) |
@@ -86,10 +98,13 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `DEMO_LOGIN_PASSWORD` | 운영에서는 쓰지 않는다(데모 시드를 켠 환경 전용) |
 | `GYM_BENEFITS_ENABLED` | `false`(기본값). 제휴 헬스장이 생기면 `true` — PT 재등록 할인·락커 쿠폰·분석용 식판을 연다(#2822) |
 | `GEMINI_API_KEY` 또는 LiteLLM(`LITELLM_*`) | 식단 인식/코치. 없으면 stub 폴백 |
+| `GEMINI_MODEL` | 운영은 **고정 버전** 모델 이름(아래 "모델 고정"). 비우면 코드 기본 별칭 |
+| `RECOGNIZER_TIMEOUT_SECONDS` | 식단 사진 인식 한 건의 대기 한도(초, 기본 60, #2912) |
+| `MIGRATE_CONNECT_TIMEOUT` | 기동 마이그레이션의 DB 연결 한도(초, 기본 10, #2912) |
 | `KAKAO_REST_API_KEY` | 장소(O2O) 실검색. `PLACES_PROVIDER=auto` 기본. 데모 시드가 꺼진 서버는 카카오 0건이면 빈 목록, 실패면 503 이고 시드 장소로 채우지 않는다(#2914) |
 
 > 참고: 키가 없어도 인식/장소는 폴백으로 동작(기동은 됨). 운영 시크릿은 Secrets Manager/SSM 에 두고
-> App Runner 에 주입한다.
+> App Runner 에 주입한다. 키 전체 목록과 형식은 `backend/.env.aws.example` 에 있다.
 
 ## 4) App Runner 서비스
 
@@ -118,6 +133,102 @@ CREATE EXTENSION IF NOT EXISTS vector;
   신뢰 주체 `build.apprunner.amazonaws.com`, 정책은 `ecr:GetAuthorizationToken`(리소스 `*`) +
   `ecr:BatchGetImage`·`ecr:GetDownloadUrlForLayer`·`ecr:BatchCheckLayerAvailability`·`ecr:DescribeImages`
   (해당 리포 리소스). 이 역할이 없으면 배포/기동 시 이미지 pull 이 실패한다.
+
+## 5-1) 채팅 첨부 저장소 — S3 (#2817)
+
+채팅 사진과 주간 리포트 PDF 의 **바이트**는 DB 가 아니라 저장소에 둔다(메타데이터만 DB).
+App Runner 의 컨테이너 디스크는 재배포·재시작·스케일 아웃 때 비거나 인스턴스마다 달라서,
+운영은 S3 버킷을 쓴다. 로컬 개발·테스트는 지금처럼 디스크(`data/chat-images`,
+`data/report-pdfs`)에 쓴다.
+
+| 키 | 값/설명 |
+|---|---|
+| `ATTACHMENT_STORAGE` | `auto`(기본: 버킷 이름이 있으면 `s3`, 없으면 `local`) · `local` · `s3`. `s3` 인데 버킷이 비면 기동 거부 |
+| `ATTACHMENT_S3_BUCKET` | 첨부 버킷 이름. 비면 로컬 디스크(운영이면 기동 때 WARN) |
+| `ATTACHMENT_S3_REGION` | 버킷 리전. 비면 AWS 기본 체인(App Runner 리전) |
+| `ATTACHMENT_S3_PREFIX` | 키 접두사(기본 `chat-attachments`). 키는 `<접두사>/chat-images/<id>.<ext>`·`<접두사>/report-pdfs/<id>.pdf` |
+| `ATTACHMENT_S3_ENDPOINT_URL` | S3 호환 저장소를 쓸 때만. AWS 는 비운다 |
+
+- **자격 증명은 환경변수로 주지 않는다.** App Runner **인스턴스 역할**에 버킷 권한을 준다:
+  `s3:PutObject`·`s3:GetObject`·`s3:DeleteObject`(리소스 `arn:aws:s3:::<버킷>/<접두사>/*`)와
+  `s3:ListBucket`(리소스 `arn:aws:s3:::<버킷>`, 조건 `s3:prefix` = `<접두사>/*`).
+  **`ListBucket` 을 빼면 안 된다** — 없으면 S3 가 없는 키에 404 대신 403 을 주어, 사진의
+  확장자를 차례로 찾는 조회와 이전 스크립트의 존재 확인이 저장소 장애로 읽힌다.
+- 버킷은 **퍼블릭 접근 차단**을 켠다. 다운로드는 늘 백엔드가 권한(스레드의 두 사람·담당 링크·
+  동의)을 확인한 뒤 흘려보내므로 버킷을 공개할 이유가 없다. 서명 URL 도 쓰지 않는다.
+- 기본 암호화(SSE-S3)를 켜 둔다. 버전 관리를 켜면 탈퇴로 지운 객체가 이전 버전으로 남으니,
+  켤 경우 **이전 버전 만료 수명 주기 규칙**(예: 30일)을 함께 건다.
+- 탈퇴 시 그 계정이 낀 스레드의 첨부를 지운다. 삭제 실패는 `탈퇴 첨부 삭제 실패` 경고 로그에
+  `file_id` 와 함께 남으니, 로그 알림으로 받아 수동으로 지운다.
+
+### 전환 절차 (로컬 디스크 → S3)
+
+1. 버킷·인스턴스 역할 권한을 만든다(#480).
+2. 기존 파일이 있는 환경(지금 떠 있는 컨테이너 또는 그 디스크 사본)에서 DB 를 운영 값으로 두고
+   이전 스크립트로 옮긴다. **DB 가 가리키는 파일만** 옮기고, 이미 있는 키는 건너뛴다(여러 번 돌려도 같다).
+
+   ```bash
+   ATTACHMENT_S3_BUCKET=<버킷> ATTACHMENT_S3_REGION=<리전> \
+     python -m scripts.migrate_attachments --dry-run   # 옮길 목록·로컬에 없는 파일 확인
+   ATTACHMENT_S3_BUCKET=<버킷> ATTACHMENT_S3_REGION=<리전> \
+     python -m scripts.migrate_attachments
+   ```
+
+   `DB 에는 있는데 로컬에 없는 파일` 은 이미 재배포로 잃은 파일이라 복구할 수 없다.
+3. App Runner 서비스 환경변수에 `ATTACHMENT_S3_BUCKET`(필요하면 `ATTACHMENT_S3_REGION`)을 넣고
+   재배포한다. 배포 뒤 `/v1/healthz` 의 `attachment_storage` 가 `s3` 인지 확인한다.
+4. 대화방에서 예전 사진·리포트가 열리는지 확인한 뒤 컨테이너 쪽 사본을 지운다.
+
+데모 시드 첨부(#2788)는 기동마다 같은 `file_id` 로 다시 쓰므로 옮기지 않아도 된다.
+
+## 5-2) 운영 체크리스트 (#2821)
+
+배포 전에 한 번, 환경변수를 바꿀 때마다 다시 본다.
+
+- [ ] App Runner 환경변수가 `backend/.env.aws.example` 의 키를 모두 갖는다. `ENV=prod`,
+      `AUTO_CREATE_TABLES=false`, `SEED_DEMO_DATA=false`, `ALLOW_DEMO_FALLBACK=false`.
+- [ ] **운영 DB 와 데모 DB 가 다르다.** 운영 서비스의 `DATABASE_URL` 은 데모 시드가 한 번도
+      들어가지 않은 DB(또는 Neon 브랜치)를 가리킨다. 데모 시연이 필요하면 **별도 App Runner 서비스**
+      (`ENV=staging`, `SEED_DEMO_DATA=true`, 강한 `DEMO_LOGIN_PASSWORD`)를 **별도 DB** 로 띄운다.
+      같은 DB 를 쓰면 운영 화면에 데모 계정·기록이 섞이고, 데모 계정 비밀번호가 운영 자격 증명이 된다.
+- [ ] `JWT_SECRET` 은 서비스마다 다르다(데모 서비스에서 발급한 토큰이 운영에서 통하지 않게).
+- [ ] `CORS_ALLOW_ORIGINS` 는 실제 프론트 도메인만.
+- [ ] `ATTACHMENT_S3_BUCKET` 이 있다(아래 5-1). 없으면 기동 로그에 WARN.
+- [ ] 배포 뒤 워크플로의 `Verify running configuration` 단계가 통과했다 — `/v1/healthz` 가
+      `env=prod`·`demo_fallback=false`·`demo_seed=false` 를 돌려줘야 통과한다. 기대 환경은 저장소
+      변수 `BACKEND_EXPECTED_ENV`(기본 `prod`)다. 데모 서비스를 이 워크플로로 배포한다면 그 서비스용
+      설정에서 이 값을 `staging` 으로 둔다.
+- [ ] 기동 로그에 `[startup]` WARN 이 없다(데모 폴백·운영 데모 시드·로컬 첨부 저장소).
+
+## 5-3) 모델 고정 (#2912)
+
+코드 기본값 `GEMINI_MODEL=gemini-flash-latest` 는 **별칭**이라 제공자가 가리키는 모델을 바꾸면
+배포 없이 응답 품질·형식·비용이 바뀐다. 로컬·데모는 별칭으로 두되(핀 모델이 은퇴해 깨지는 일을
+피한다), 운영은 고정 버전을 넣는다.
+
+1. 제공자 문서에서 현재 별칭이 가리키는 고정 버전 이름과 은퇴 예정일을 확인한다.
+2. 데모(스테이징) 서비스의 `GEMINI_MODEL` 을 그 이름으로 바꿔 식단 사진 인식·코치 답변을 확인한다.
+3. 운영 App Runner 환경변수 `GEMINI_MODEL` 을 같은 값으로 바꾼다(재배포 없이 서비스 갱신).
+4. 은퇴 예정일 한 달 전에 같은 절차로 다음 버전으로 옮긴다. 담당자는 배포 담당(#480)이다.
+
+임베딩 설정(`EMBEDDER`·`EMBED_DIM` 등)은 바꾸면 저장된 벡터와 차원·공간이 어긋나므로 여기서 다루지
+않는다 — 바꿀 때는 재임베딩(`scripts/reembed`)이 함께 필요하다.
+
+## 5-4) 정기 운영 작업 (#2912)
+
+| 작업 | 주기 | 방법 | 담당 |
+|---|---|---|---|
+| 읽은 알림 정리 | 매월 1회 | `python -m scripts.purge_notifications --dry-run` 으로 대상 확인 → 같은 명령에서 `--dry-run` 을 빼고 실행. 읽은 알림 중 90일 지난 것만 지운다 | 배포 담당(#480) |
+| 모델 은퇴 확인 | 분기 1회 | 위 5-3 | 배포 담당(#480) |
+
+알림 정리는 되돌릴 수 없어 자동 스케줄로 돌리지 않는다. 운영 DB 를 향한 `DATABASE_URL` 로
+컨테이너(또는 같은 이미지의 일회성 작업)에서 실행한다.
+
+## 리전 (#2912)
+
+리전은 **아직 확정하지 않았다**(#480 에서 결정). 현재 설정은 백엔드 `ap-southeast-1`(Neon DB 와
+같은 리전, 위 1절), 프론트 정적 호스팅 `ap-northeast-2` 다. 첨부 저장소 S3 버킷은 **백엔드와 같은
+리전**에 둔다(`ATTACHMENT_S3_REGION`) — 다른 리전이면 업로드·다운로드마다 리전 간 전송 지연·요금이 붙는다.
 
 ## 6) 프론트 연결
 

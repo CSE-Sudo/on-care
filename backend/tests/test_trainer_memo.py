@@ -511,3 +511,123 @@ def test_memo_body_is_capped_at_500_chars(client, trainer_token, cleanup_memos):
         f"{url}/{ok['id']}", headers=_headers(trainer_token), json={"body": "나" * 501}
     )
     assert edited.status_code == 422, edited.text
+
+
+def test_manual_memo_category_is_saved_and_editable(
+    client, trainer_token, cleanup_memos
+):
+    """직접 쓴 메모는 분류를 골라 남기고, 수정에서 바꾸거나 지운다(#2622)."""
+    url = f"/v1/trainer/clients/{MEMBER_ID}/memos"
+    plain = _create_memo(client, trainer_token, body="분류 없음")
+    cleanup_memos.append(plain["id"])
+    # 고르지 않은 메모는 지금처럼 빈 분류다(태그 `직접 작성`).
+    assert plain["category"] == ""
+
+    memo = _create_memo(client, trainer_token, body="허리 디스크 이력", category="pain")
+    cleanup_memos.append(memo["id"])
+    assert memo["category"] == "pain"
+
+    changed = client.put(
+        f"{url}/{memo['id']}", headers=_headers(trainer_token), json={"category": "life"}
+    )
+    assert changed.status_code == 200, changed.text
+    # 분류만 바꿔도 본문은 그대로다.
+    assert changed.json()["category"] == "life"
+    assert changed.json()["body"] == "허리 디스크 이력"
+
+    cleared = client.put(
+        f"{url}/{memo['id']}", headers=_headers(trainer_token), json={"category": ""}
+    )
+    assert cleared.status_code == 200, cleared.text
+    assert cleared.json()["category"] == ""
+
+    listed = client.get(url, headers=_headers(trainer_token)).json()
+    assert next(m for m in listed if m["id"] == memo["id"])["category"] == ""
+
+
+def test_memo_category_outside_the_list_is_rejected(
+    client, trainer_token, cleanup_memos
+):
+    """허용 밖 분류는 작성·수정 모두 422 다(#2622)."""
+    url = f"/v1/trainer/clients/{MEMBER_ID}/memos"
+    bad = client.post(
+        url, headers=_headers(trainer_token), json={"body": "x", "category": "sleep"}
+    )
+    assert bad.status_code == 422, bad.text
+    memo = _create_memo(client, trainer_token, body="분류 수정 대상")
+    cleanup_memos.append(memo["id"])
+    bad_edit = client.put(
+        f"{url}/{memo['id']}", headers=_headers(trainer_token), json={"category": "sleep"}
+    )
+    assert bad_edit.status_code == 422, bad_edit.text
+    null_edit = client.put(
+        f"{url}/{memo['id']}", headers=_headers(trainer_token), json={"category": None}
+    )
+    assert null_edit.status_code == 422, null_edit.text
+
+
+def test_source_decides_the_category_of_other_memos(
+    client, db_session, trainer_token, cleanup_memos
+):
+    """운동 기록 메모는 늘 운동, 채팅 감지 메모는 분류가 없다 — 바꿀 수도 없다(#2622)."""
+    url = f"/v1/trainer/clients/{MEMBER_ID}/memos"
+    exercise = _create_memo(
+        client, trainer_token,
+        body="걷기 꾸준함", source="exercise_memo", ref_date="2026-09-21",
+    )
+    cleanup_memos.append(exercise["id"])
+    assert exercise["category"] == "exercise"
+
+    # 메모 창에서 `운동` 을 고르고 기록을 이은 경우도 같은 메모가 된다.
+    picked = _create_memo(
+        client, trainer_token,
+        body="걷기 속도 올리기", source="exercise_memo", ref_date="2026-09-21",
+        category="exercise",
+    )
+    cleanup_memos.append(picked["id"])
+    assert picked["category"] == "exercise"
+    assert picked["ref_kind"] == "member_log"
+
+    wrong = client.post(
+        url, headers=_headers(trainer_token),
+        json={"body": "x", "source": "exercise_memo", "ref_date": "2026-09-21",
+              "category": "diet"},
+    )
+    assert wrong.status_code == 422, wrong.text
+
+    insight_with_category = client.post(
+        url, headers=_headers(trainer_token),
+        json={"body": "x", "source": "chat_insight",
+              "insight_id": f"cat-{uuid4().hex[:8]}", "category": "pain"},
+    )
+    assert insight_with_category.status_code == 422, insight_with_category.text
+
+    locked = client.put(
+        f"{url}/{exercise['id']}", headers=_headers(trainer_token),
+        json={"category": "diet"},
+    )
+    assert locked.status_code == 400, locked.text
+    # 지금 값을 그대로 싣고 와 본문만 고치는 것은 된다.
+    same = client.put(
+        f"{url}/{exercise['id']}", headers=_headers(trainer_token),
+        json={"category": "exercise", "body": "걷기 꾸준함 (수정)"},
+    )
+    assert same.status_code == 200, same.text
+    assert same.json()["category"] == "exercise"
+
+
+def test_category_memo_still_hides_records_the_trainer_cannot_see(
+    client, trainer_token
+):
+    """메모 창에서 기록을 이을 때도 기존 권한 규칙이다 — 보이지 않는 기록은 404(#2622).
+
+    남의 PT 이력 404 는 위 `test_exercise_memo_rejects_records_the_trainer_cannot_see`
+    가 본다. 여기서는 분류를 함께 보내도 같은 길을 타는지만 본다.
+    """
+    for ref in ({"ref_id": f"missing-{uuid4().hex[:8]}"}, {"ref_date": "2999-01-01"}):
+        response = client.post(
+            f"/v1/trainer/clients/{MEMBER_ID}/memos",
+            headers=_headers(trainer_token),
+            json={"body": "x", "source": "exercise_memo", "category": "exercise", **ref},
+        )
+        assert response.status_code == 404, (ref, response.text)

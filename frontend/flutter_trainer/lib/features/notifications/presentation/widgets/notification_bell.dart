@@ -64,43 +64,18 @@ class _NotificationBellState extends ConsumerState<NotificationBell> {
             Positioned(
               top: -OnCareSpacing.s2,
               right: -OnCareSpacing.s2,
-              child: IgnorePointer(child: _Badge(count: unread)),
+              // 상담 요청·메시지 배지와 같은 공용 배지·같은 남색이다 —
+              // 예전 자체 배지는 흰 테두리가 둘려 같은 머리 줄의 상담 배지와
+              // 모양이 달랐다(#2808).
+              child: IgnorePointer(
+                child: AppCountBadge(
+                  key: const ValueKey<String>('notification-bell-badge'),
+                  count: unread,
+                  color: context.oncare.brand.primary,
+                ),
+              ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-/// 사이드바 배지와 같은 브랜드 알약 — 다른 메뉴의 숫자와 같은 모양이다.
-class _Badge extends StatelessWidget {
-  const _Badge({required this.count});
-
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Container(
-      key: const ValueKey<String>('notification-bell-badge'),
-      constraints: const BoxConstraints(
-        minWidth: OnCareSize.countBadgeMin,
-        minHeight: OnCareSize.countBadgeMin,
-      ),
-      padding: count < 10
-          ? EdgeInsets.zero
-          : const EdgeInsets.symmetric(horizontal: OnCareSpacing.s4),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: tokens.brand.primary,
-        borderRadius: OnCareRadius.pillAll,
-        border: Border.all(color: OnCareColors.surfaceCard, width: 2),
-      ),
-      child: Text(
-        count > 99 ? '99+' : '$count',
-        style: tokens
-            .text(OnCareTypography.strong(OnCareTypography.caption))
-            .copyWith(color: OnCareColors.textOnFill),
       ),
     );
   }
@@ -152,7 +127,7 @@ class _Panel extends ConsumerWidget {
                   label: l.notifReadAll,
                   variant: AppButtonVariant.text,
                   size: OnCareButtonSize.small,
-                  onPressed: () => NotificationsPage.readAll(context, ref),
+                  onPressed: () => NotificationsPage.readAll(context),
                 ),
             ],
           ),

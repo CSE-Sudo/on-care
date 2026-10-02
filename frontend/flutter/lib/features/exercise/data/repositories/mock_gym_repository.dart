@@ -434,12 +434,30 @@ class MockGymRepository implements GymRepository {
         booked: false,
         sessionType: '상담',
       ),
+      // 다른 회원이 신청해 대기 중인 상담 자리 둘(#2797) — 트레이너 웹 데모
+      // 상담함의 신청들이 고른 자리라 여기서는 마감이다. 빈 상담 자리
+      // (`slot-kim-3`·`slot-kim-5`)는 데모 사용자가 신청해 볼 수 있게 남긴다.
+      TrainerSlot(
+        id: 'slot-kim-6',
+        trainerId: 'trainer-kim',
+        startsAt: _at(today, 3, 22, 0),
+        booked: true,
+        sessionType: '상담',
+      ),
       TrainerSlot(
         id: 'slot-kim-4',
         trainerId: 'trainer-kim',
         startsAt: _at(today, 4, 6, 30),
         booked: false,
         sessionType: '1:1 PT',
+      ),
+      // 다른 회원의 재상담 신청이 잡은 자리(#2797).
+      TrainerSlot(
+        id: 'slot-kim-7',
+        trainerId: 'trainer-kim',
+        startsAt: _at(today, 5, 7, 0),
+        booked: true,
+        sessionType: '상담',
       ),
       TrainerSlot(
         id: 'slot-kim-5',

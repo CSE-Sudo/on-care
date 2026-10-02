@@ -6,6 +6,9 @@
 > 둘 다 `useMockApi` 기본값이 `true` 입니다. dart-define 없이 실행하면 각각
 > **자기 로컬 drift DB** 를 보기 때문에, 둘 다 잘 도는 것처럼 보여도 서로의
 > 데이터는 절대 보이지 않습니다. 상호작용을 확인하려면 아래 3단계를 모두 거쳐야 합니다.
+>
+> 배포 웹 빌드는 이 값을 워크플로가 명시해서 넘깁니다 — 운영은 실서버 고정, Pages 데모는
+> 목업입니다. [`frontend_deployment.md`](frontend_deployment.md#운영-빌드는-실서버를-봅니다) 참고.
 
 ## Flutter 버전 — 3.44.9
 
@@ -51,6 +54,10 @@ docker compose up -d --build
 ```
 
 → http://localhost:8000/docs (모든 경로는 `/v1/...`)
+
+예전에 만든 `.env` 를 그대로 쓴다면 두 줄을 확인합니다(#2821). 데모 폴백은 이제 기본이 꺼짐이라
+토큰 없이 데모 회원 화면을 보려면 `ALLOW_DEMO_FALLBACK=true` 가 있어야 하고, 컨테이너 기동
+스크립트는 `ENV` 가 비어 있으면 뜨지 않습니다(`.env.example` 은 둘 다 들어 있습니다).
 
 AI 키는 없어도 됩니다. `GEMINI_API_KEY` 가 비어 있으면 식단 인식이 오프라인 스텁으로
 폴백해서 `/v1/diet/analyze` 가 그대로 동작합니다(CI 와 같은 경로).
@@ -163,13 +170,15 @@ flutter build apk --debug
 
 받는 폰에서 **알 수 없는 앱 설치** 를 허용해야 합니다(설정 → 보안 및 개인 정보 보호 → 알 수
 없는 앱 설치 → APK 를 여는 앱에 허용). 디버그 키로 서명된 물건이라 스토어 배포에는 쓸 수
-없습니다.
+없습니다. 릴리스 빌드(`--release`)는 업로드 키가 든 `android/key.properties` 가 있어야 하며,
+없으면 빌드가 멈춥니다 — [mobile_release.md](mobile_release.md) 참고.
 
 **선언된 권한**
 
 `image_picker` 가 여는 두 경로 모두 안드로이드에서는 **런타임 권한이 필요 없습니다.** 사진
 선택은 시스템 사진 선택기(Android 13+)나 `ACTION_GET_CONTENT` 로 열리고, 촬영은
-`ACTION_IMAGE_CAPTURE` 로 기본 카메라 앱에 넘깁니다. 그래서 매니페스트에는 `INTERNET` 만
+`ACTION_IMAGE_CAPTURE` 로 기본 카메라 앱에 넘깁니다. 그래서 매니페스트에는 카메라·사진 권한이
+없고 `INTERNET` 과 헬스장 찾기용 위치 권한(`ACCESS_COARSE_LOCATION`·`ACCESS_FINE_LOCATION`)만
 있습니다.
 
 **그래서 Android 13 이상에서는 권한 다이얼로그가 아예 뜨지 않습니다.** 안 뜨는 것이 정상이고
@@ -184,8 +193,8 @@ flutter build apk --debug
 > `READ_MEDIA_IMAGES` 도 지금은 필요 없습니다. 앱 안에서 최근 사진 썸네일을 직접 읽는
 > #1845(카카오톡식 최근 사진 시트)를 착수할 때 `photo_manager` 도입과 함께 결정할 항목입니다.
 
-iOS 는 `ios/Runner/Info.plist` 에 `NSCameraUsageDescription`·`NSPhotoLibraryUsageDescription`
-문구가 이미 들어 있습니다(#526). 실기기 설치는 Mac 을 쓰는 팀원이 무료 Apple ID 로 진행하며,
+iOS 는 `ios/Runner/Info.plist` 에 `NSCameraUsageDescription`·`NSPhotoLibraryUsageDescription`·
+`NSLocationWhenInUseUsageDescription` 문구가 들어 있습니다(#526, #2823). 실기기 설치는 Mac 을 쓰는 팀원이 무료 Apple ID 로 진행하며,
 절차는 #1882 에 있습니다.
 
 ## 3. 트레이너 웹

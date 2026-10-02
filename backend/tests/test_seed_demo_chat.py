@@ -157,7 +157,7 @@ def test_trainer_files_are_seeded_in_the_same_places_as_the_apps(client, db_sess
 
     frontend = Path(__file__).resolve().parents[2] / "frontend" / "flutter"
     pdf, image = rows
-    pdf_bytes = report_pdf_storage.path_for(pdf.attachment_file_id).read_bytes()
+    pdf_bytes = report_pdf_storage.open_pdf(pdf.attachment_file_id).read_all()
     assert pdf_bytes.startswith(b"%PDF")
     assert pdf.attachment_file_size == len(pdf_bytes)
     # 앱 번들의 PDF 는 #2663 이 넣는다. 그 PR 이 들어온 뒤로는 바이트까지 같아야 한다.
@@ -165,9 +165,9 @@ def test_trainer_files_are_seeded_in_the_same_places_as_the_apps(client, db_sess
     if app_pdf.exists():
         assert pdf_bytes == app_pdf.read_bytes()
 
-    path, media_type = chat_image_storage.path_for(image.attachment_file_id)
+    blob, media_type = chat_image_storage.open_image(image.attachment_file_id)
     assert media_type == "image/jpeg"
-    image_bytes = path.read_bytes()
+    image_bytes = blob.read_all()
     assert image_bytes == (
         frontend / "assets" / "images" / "diet-doenjang-rice.jpeg"
     ).read_bytes()

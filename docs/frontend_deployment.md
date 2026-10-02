@@ -4,10 +4,12 @@
 
 프론트엔드 배포 경로는 **두 개**이고, 둘 다 `main` 브랜치 push 에 걸려 있습니다.
 
-| 배포 경로 | 워크플로 | 주소 | 비용 | 실행 조건 |
-| --- | --- | --- | --- | --- |
-| GitHub Pages | [`deploy.yml`](../.github/workflows/deploy.yml) | `ewhasudo.zapto.org` | 무료 | 조건 없음 — 항상 실행 |
-| AWS S3 · CloudFront | [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) | CloudFront 기본 도메인 | **발생** | `AWS_FRONTEND_DEPLOY_ENABLED` 가 `true` 일 때만 |
+| 배포 경로 | 워크플로 | 주소 | 두 웹이 보는 백엔드 | 비용 | 실행 조건 |
+| --- | --- | --- | --- | --- | --- |
+| GitHub Pages (**데모**) | [`deploy.yml`](../.github/workflows/deploy.yml) | `ewhasudo.zapto.org` | 목업(브라우저 drift DB). 수동 실행에서만 실서버 선택 가능 | 무료 | 조건 없음 — 항상 실행 |
+| AWS S3 · CloudFront (**운영**) | [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) | CloudFront 기본 도메인 | **실서버 고정** (`API_BASE_URL` 저장소 변수) | **발생** | `AWS_FRONTEND_DEPLOY_ENABLED` 가 `true` 일 때만 |
+
+두 웹 앱의 백엔드 설정은 [아래 절](#운영-빌드는-실서버를-봅니다)에 정리했습니다.
 
 사용자에게 제공하는 **커스텀 도메인은 여전히 GitHub Pages** 를 가리킵니다. AWS 경로는 도메인 전환 전 병행 검증용이며, 전환 절차는 [`aws-frontend-deployment.md`](aws-frontend-deployment.md) 를 따릅니다.
 
@@ -32,10 +34,11 @@
 
 1. 회원 앱과 트레이너 웹의 Flutter 의존성을 설치합니다.
 2. 두 앱에 필요한 drift WASM 파일을 내려받습니다.
-3. 회원 앱을 `/frontend/`, 트레이너 웹을 `/trainer/` base path로 빌드합니다.
-4. 루트 `index.html`과 두 앱의 빌드 결과를 `public/` 아래에 모읍니다.
-5. Pages artifact를 업로드하고 `github-pages` 환경에 배포합니다.
-6. 배포 action이 제한 시간 안에 완료를 확인하지 못하면 `version.txt`로 실제 반영 여부를 추가 검증합니다.
+3. 빌드 모드를 정합니다. `main` push 는 항상 `mock`(목업)이고, 수동 실행에서 `backend` 입력으로 `real` 을 고를 때만 실서버 빌드가 됩니다. `real` 이면 `API_BASE_URL` 저장소 변수를 먼저 검사합니다.
+4. 회원 앱을 `/frontend/`, 트레이너 웹을 `/trainer/` base path로 빌드합니다.
+5. 루트 `index.html`과 두 앱의 빌드 결과를 `public/` 아래에 모읍니다.
+6. Pages artifact를 업로드하고 `github-pages` 환경에 배포합니다.
+7. 배포 action이 제한 시간 안에 완료를 확인하지 못하면 `version.txt`로 실제 반영 여부를 추가 검증합니다.
 
 ## AWS 배포 스위치
 
@@ -88,20 +91,38 @@ Vercel 프로젝트가 이 Git 저장소와 연결되어 있으면 저장소 안
 
 > `vercel.json`은 자동 배포를 코드 수준에서 막는 안전장치입니다. Git 연결 해제와 프로젝트 삭제는 외부 서비스 설정이므로 저장소 변경만으로 실행되지 않습니다.
 
-## 배포된 앱은 목 데이터로 돕니다
+## 운영 빌드는 실서버를 봅니다
 
-지금 배포되는 회원 앱과 트레이너 웹은 **백엔드를 보지 않습니다.** 두 앱 모두 `USE_MOCK_API` 기본값이 `true` 인데, [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) 의 빌드 스텝이 그 값을 넘기지 않습니다.
+두 웹 앱은 `--dart-define` 을 받지 못하면 **목업·개발 설정으로** 빌드됩니다(`USE_MOCK_API` 기본 `true`, `ENV` 기본 `dev`, `API_BASE_URL` 기본은 자리표시자). 그래서 배포 워크플로가 이 세 값을 **명시해서** 넘깁니다(#2810).
 
-```yaml
-flutter build web --release --base-href "/frontend/"
---dart-define=KAKAO_JS_KEY=${{ secrets.KAKAO_JS_KEY }}
-```
+| 배포 | `USE_MOCK_API` | `API_BASE_URL` | `ENV` |
+| --- | --- | --- | --- |
+| 운영 — [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) | `false` | 저장소 변수 `vars.API_BASE_URL` | `prod` |
+| 데모 — [`deploy.yml`](../.github/workflows/deploy.yml), `main` push·수동 `mock` | `true` | 넘기지 않음 | `dev` |
+| 데모 — [`deploy.yml`](../.github/workflows/deploy.yml), 수동 `real` | `false` | 저장소 변수 `vars.API_BASE_URL` | `prod` |
 
-`API_BASE_URL` 기본값도 `https://dev.api.oncare.example.com` 이라는 자리표시자입니다. 그래서 [`backend-deploy.yml`](../.github/workflows/backend-deploy.yml) 이 App Runner 에 백엔드를 올려 두어도 배포된 프론트는 그것을 쓰지 않고, 각 브라우저의 drift DB 안에서만 돕니다.
+- **운영 경로는 실서버 고정입니다.** 목업으로 되돌리는 입력이 없습니다. 회원이 남긴 기록이 같은 백엔드를 거쳐 트레이너 웹에 보이고, 트레이너의 코칭·루틴이 회원 앱으로 돌아옵니다.
+- **`ENV=prod`** 이면 회원 앱의 GoRouter 진단 로그(`debugLogDiagnostics`)·provider 로그(`LoggingProviderObserver`)·화면 이동 로그와, 두 앱의 API 요청 로그 인터셉터가 꺼집니다. UI 카탈로그 경로도 열리지 않습니다.
+- **데모는 다른 주소·다른 워크플로로 분리했습니다.** `ewhasudo.zapto.org` 의 Pages 배포는 소개 페이지와 함께 목업 데모를 계속 올립니다. 브라우저마다 자기 drift DB 를 보므로 회원↔트레이너 연동은 데모 주소에서 확인되지 않습니다.
 
-**의도된 상태입니다** — 백엔드 없이도 화면을 보여 줄 수 있습니다. 대신 회원↔트레이너 연동은 배포 주소에서 확인되지 않습니다. 브라우저마다 자기 DB 를 보기 때문에, 트레이너 화면에서 회원이 올린 식단을 보려면 실 API 로 넘겨야 합니다.
+### `API_BASE_URL` 저장소 변수
 
-### 실 API 로 넘길 때 — 데모 데이터는 옮기지 않습니다
+- 위치: 저장소 `Settings` → `Secrets and variables` → `Actions` → `Variables`
+- 형식: `https://<운영 API 도메인>/v1` — **`/v1` 까지 포함하고 끝에 `/` 를 붙이지 않습니다.** 두 앱 모두 요청 경로를 `/auth/login` 처럼 `/v1` 없이 씁니다.
+- 주소는 워크플로에 적지 않고 이 변수에서만 읽습니다. 값을 바꾸면 다음 배포부터 반영됩니다.
+
+빌드 전에 [`check_web_api_base_url.sh`](../.github/scripts/check_web_api_base_url.sh) 가 값을 검사하고, 아래 경우 **빌드를 시작하지 않고 워크플로를 실패시킵니다.** 빈 값으로 빌드하면 빌드는 성공하지만 자리표시자 주소를 부르는 앱이 배포되기 때문입니다.
+
+- 변수가 없거나 비어 있음
+- `https://` 로 시작하지 않음 (배포 웹은 https 로 서빙되므로 http 주소는 브라우저가 막습니다)
+- `/v1` 로 끝나지 않음, 또는 끝에 `/` 가 붙음
+- 코드 기본값의 자리표시자 도메인(`example.com` 계열)
+
+검사 규칙 자체는 `bash .github/scripts/test_check_web_api_base_url.sh` 로 확인합니다.
+
+운영 백엔드가 이 프론트 주소의 요청을 받으려면 백엔드 `CORS_ALLOW_ORIGINS` 에 프론트 배포 도메인이 들어 있어야 합니다(아래 [`ENV=prod` 로 띄울 때 걸리는 것](#envprod-로-띄울-때-걸리는-것)).
+
+### 데모 데이터와 실서버
 
 김민수 계정의 데모 데이터는 **옮길 일이 없습니다.** 회원 앱의 목 데이터와 백엔드 시드가 이미 같은 픽스처를 읽습니다(#757).
 
@@ -112,21 +133,12 @@ flutter build web --release --base-href "/frontend/"
 | 회원 앱 | `demo_fixture` 패키지로 읽습니다 (`lib/core/storage/seed_data.dart`) |
 | 백엔드 | 같은 픽스처를 김민수(`user-7d4e9a2c5f18`) 계정의 DB 행으로 심습니다 |
 
-`USE_MOCK_API=false` 로 넘겨도 김민수로 로그인하면 목 모드에서 보던 값이 그대로 보입니다. 두 가지만 다릅니다.
+실서버 빌드에서 김민수로 로그인하면 목 모드에서 보던 값이 그대로 보입니다(백엔드가 시드를 심은 경우). 두 가지만 다릅니다.
 
 - **김민수만 픽스처입니다.** 이지수·박성호와 4~15번 회원은 `backend/app/db/seed_member_data.py` 의 상수가 만들어서, 목 모드 값과 반드시 일치하지 않습니다.
 - **목 모드에서 직접 만든 데이터는 따라오지 않습니다.** 브라우저나 폰에서 저장한 식단은 그 기기의 drift DB 에만 남습니다.
 
-넘기려면 빌드 스텝에 dart-define 두 개를 더합니다.
-
-```yaml
-flutter build web --release --base-href "/frontend/"
---dart-define=KAKAO_JS_KEY=${{ secrets.KAKAO_JS_KEY }}
---dart-define=USE_MOCK_API=false
---dart-define=API_BASE_URL=https://<App Runner 도메인>/v1
-```
-
-트레이너 웹 빌드 스텝에는 `KAKAO_JS_KEY` 만 있으므로(소속 헬스장 찾기 지도, #2543), 거기에도 위 두 값을 새로 줘야 합니다. 트레이너 웹 지도가 뜨려면 카카오 콘솔의 JavaScript SDK 도메인에 트레이너 웹 주소도 등록돼 있어야 합니다.
+트레이너 웹 지도(소속 헬스장 찾기, #2543)가 뜨려면 카카오 콘솔의 JavaScript SDK 도메인에 트레이너 웹 주소도 등록돼 있어야 합니다.
 
 실기기에 설치한 APK 는 **다시 빌드해야 합니다.** `String.fromEnvironment` 는 컴파일 타임 상수라서 dart-define 값이 APK 안에 박히고, 이미 설치된 앱의 서버 주소는 나중에 바꿀 수 없습니다. 절차는 [`local_fullstack.md`](local_fullstack.md) 의 안드로이드 실기기 절에 있습니다.
 
@@ -153,6 +165,12 @@ flutter build web --release --base-href "/frontend/"
 - 사용자 앱 `https://ewhasudo.zapto.org/frontend/`이 정상 응답하는지 확인
 - 트레이너 웹 `https://ewhasudo.zapto.org/trainer/`이 정상 응답하는지 확인
 - `https://ewhasudo.zapto.org/version.txt`의 값이 배포한 전체 커밋 SHA와 일치하는지 확인
+
+운영(AWS) 배포는 위 응답 확인에 더해 다음을 봅니다.
+
+- 회원 앱·트레이너 웹 모두 로그인 화면이 뜨고, 운영 계정으로 로그인한 뒤 브라우저 개발자 도구 Network 탭의 요청이 `API_BASE_URL` 로 나가는지 확인
+- 회원 앱에서 식단을 하나 기록하고, **다른 브라우저**의 트레이너 웹에서 담당 회원 화면에 그 기록이 보이는지 확인
+- 개발자 도구 Console 에 GoRouter 진단 로그·provider 로그·API 요청 로그가 찍히지 않는지 확인
 
 ## AWS 이전 원칙
 

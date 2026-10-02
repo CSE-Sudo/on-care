@@ -1,7 +1,7 @@
-/// 트레이너 알림함. (#503)
+/// 트레이너 알림함. (#503, #2628)
 ///
-/// 데모는 지금 그대로여야 한다 — 알림을 만드는 회원 백엔드가 없어 늘 비어 있을
-/// 행을 사이드바에 더하지 않는다(상담 요청과 같은 규칙).
+/// 알림은 사이드바 행이 아니라 화면 머리의 종이다. 데모·실서버 모두 종과
+/// 알림함을 보인다 — 데모는 로컬 시드의 과거 알림을 읽는다.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -11,6 +11,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/notifications/data/repositories/notification_repository.dart';
 import 'package:oncare_trainer/features/notifications/domain/entities/trainer_notification.dart';
 import 'package:oncare_trainer/features/notifications/presentation/pages/notifications_page.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -41,9 +42,6 @@ class _FakeNotificationRepository implements TrainerNotificationRepository {
   int fetchCalls = 0;
   final List<String> readCalls = <String>[];
   int readAllCalls = 0;
-
-  @override
-  bool get supportsInbox => true;
 
   @override
   Future<TrainerNotificationPage> fetch({
@@ -128,6 +126,39 @@ void main() {
         find.byKey(const ValueKey<String>('notification-bell-badge')),
         findsOneWidget,
       );
+    });
+  });
+
+  // 같은 머리 줄의 상담 요청 배지와 같은 공용 배지·같은 남색이다. 예전 자체
+  // 배지는 흰 테두리가 둘려 모양이 달랐다(#2808).
+  testWidgets('알림 종 배지는 상담 배지와 같은 테두리 없는 남색 배지다', (tester) async {
+    await withWideSurface(tester, () async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-token',
+        extraOverrides: <Override>[
+          trainerNotificationRepositoryProvider.overrideWithValue(
+            _FakeNotificationRepository(<TrainerNotification>[_notification()]),
+          ),
+        ],
+      );
+
+      final Finder badge = find.byKey(
+        const ValueKey<String>('notification-bell-badge'),
+      );
+      expect(tester.widget(badge), isA<AppCountBadge>());
+      final BoxDecoration fill =
+          tester
+                  .widget<Container>(
+                    find.descendant(
+                      of: badge,
+                      matching: find.byType(Container),
+                    ),
+                  )
+                  .decoration!
+              as BoxDecoration;
+      expect(fill.color, OnCareBrand.trainer.primary);
+      expect(fill.border, isNull);
     });
   });
 

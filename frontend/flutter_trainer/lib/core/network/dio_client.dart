@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare_trainer/core/config/app_config.dart';
+import 'package:oncare_trainer/core/network/client_platform.dart';
 import 'package:oncare_trainer/core/network/interceptors/accept_language_interceptor.dart';
 import 'package:oncare_trainer/core/network/interceptors/api_logging_interceptor.dart';
 import 'package:oncare_trainer/core/network/interceptors/auth_interceptor.dart';
@@ -24,6 +25,8 @@ final dioProvider = Provider<Dio>((ref) {
       receiveTimeout: const Duration(seconds: 15),
       sendTimeout: const Duration(seconds: 10),
       contentType: Headers.jsonContentType,
+      // 웹 빌드는 자기가 웹이라고 알린다 — 서버가 짧은 refresh 토큰을 준다(#2828).
+      headers: clientPlatformHeaders(),
       // Surface 4xx/5xx as DioException so callers react via try/catch
       // instead of dereferencing a null body in a fromJson factory.
       validateStatus: (int? status) => status != null && status < 400,
