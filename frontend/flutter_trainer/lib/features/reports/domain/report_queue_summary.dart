@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart' show immutable, listEquals;
-import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
