@@ -1141,7 +1141,9 @@ PT) ÷ (그날 걸린 개인운동 + 그날 잡힌 PT) 다. 개인운동은 그 
 `id: "personal-YYYY-MM-DD"`. `exercise_items[]` 는 그날 걸린 배정 순서이고 한 줄마다 `done` 과
 완료의 `session_id`(트레이너 메모 `ref_id` 로 쓴다)를 싣는다. 지난 날 하지 않은 것은 `done: false`,
 오늘 아직 안 한 것은 줄이 없다. 예전에는 완료 한 건마다 한 장(`assigned_routine_id` 를 단
-항목)이었다.
+항목)이었다. 강도(#2508): 한 줄의 `intensity` 는 회원이 고른 강도이고 `prescribed_intensity` 에
+트레이너가 처방한 강도를 함께 싣는다(둘이 다르면 트레이너 화면이 `수행 …` 을 붙인다). 하지 않은
+줄은 `intensity` 가 곧 처방 강도이고 `prescribed_intensity` 는 비어 있다.
 
 **완료 PT 회차 (#2697)**: `GET /me/coach/sessions` 의 각 세션은 `session_number` 를 싣는다 —
 완료(`status="완료"`)한 PT 가 현재 담당 트레이너와의 몇 번째 수업인지(1부터). 날짜·시각 순으로

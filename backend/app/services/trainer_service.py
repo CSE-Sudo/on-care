@@ -966,7 +966,7 @@ def _personal_day_history_out(
         session = by_id.get(item.session_id or "") or by_routine.get(item.routine_id)
         if session is not None:
             used.add(session.id)
-            items.append(_personal_done_item(session))
+            items.append(_personal_done_item(session, routines.get(item.routine_id)))
             lines.append(_assigned_history_out(session).exercises[0])
             continue
         if day >= today_iso:
@@ -979,7 +979,9 @@ def _personal_day_history_out(
     for session in sessions:
         if session.id in used:
             continue
-        items.append(_personal_done_item(session))
+        items.append(_personal_done_item(
+            session, routines.get(session.assigned_routine_id or "")
+        ))
         lines.append(_assigned_history_out(session).exercises[0])
     done = sum(1 for item in items if item.done)
     completed = [r.completed_at or r.created_at for r in sessions]
@@ -999,10 +1001,20 @@ def _personal_day_history_out(
     )
 
 
-def _personal_done_item(session: ExerciseSession) -> RoutineHistoryExerciseOut:
-    """한 개인운동 한 줄 — 수행 기록의 값과 그 기록 id. (#2510)"""
+def _personal_done_item(
+    session: ExerciseSession, routine: TrainerRoutine | None = None
+) -> RoutineHistoryExerciseOut:
+    """한 개인운동 한 줄 — 수행 기록의 값과 그 기록 id. (#2510)
+
+    강도는 회원이 고른 값이고, 처방한 강도는 따로 싣는다 — 둘이 다르면 트레이너
+    화면이 `수행 …` 을 붙인다(#2508).
+    """
     return _assigned_exercise_item(session).model_copy(
-        update={"session_id": session.id, "done": True}
+        update={
+            "session_id": session.id,
+            "done": True,
+            "prescribed_intensity": (routine.intensity or None) if routine else None,
+        }
     )
 
 
@@ -1011,6 +1023,7 @@ def _personal_missed_item(row: TrainerRoutine) -> RoutineHistoryExerciseOut:
 
     수행 기록이 없으니 트레이너가 보낸 처방을 그대로 적는다. 근력은 세트·횟수
     (또는 버틴 초)·중량, 나머지는 시간이다([_assigned_exercise_item] 과 같은 틀).
+    강도도 처방 그대로 싣는다. 소모 kcal 은 싣지 않는다 — 하지 않은 운동이다.
     """
     type_code = exercise_types.normalize(row.type)
     strength = type_code == exercise_types.STRENGTH and row.sets is not None
@@ -1023,6 +1036,8 @@ def _personal_missed_item(row: TrainerRoutine) -> RoutineHistoryExerciseOut:
         hold_seconds=row.hold_seconds if strength and row.hold_seconds else None,
         duration_seconds=None if strength else row.duration_seconds,
         weight=row.weight if strength else None,
+        # 처방한 강도 — 트레이너 화면이 안 한 줄에 회색 태그로 적는다(#2508).
+        intensity=row.intensity or None,
         done=False,
     )
 

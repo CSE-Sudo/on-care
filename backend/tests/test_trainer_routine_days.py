@@ -361,6 +361,9 @@ def test_history_groups_a_days_personal_routines_into_one_card(db_session, pair)
     plank = _routine(db_session, pair, "플랭크", active_from=MONDAY, ended_on=MONDAY + timedelta(days=7), order=3)
     walked = _done(db_session, pair, walk, tuesday)
     squatted = _done(db_session, pair, squat, tuesday)
+    # 처방은 보통인데 회원이 높음으로 했다.
+    squatted.intensity = "high"
+    db_session.commit()
     today_walk = _done(db_session, pair, walk, TODAY)
 
     history = trainer_service.build_client_history(db_session, pair.member_id, pair.trainer_id)
@@ -377,6 +380,11 @@ def test_history_groups_a_days_personal_routines_into_one_card(db_session, pair)
         ("플랭크", False, None),
     ]
     assert tue.completion_rate == 67
+    # 한 줄은 회원이 고른 강도와 처방 강도를 함께 싣는다 — 다르면 트레이너
+    # 화면이 `수행 …` 을 붙인다. 안 한 줄은 처방 강도만(회색 태그).
+    assert [
+        (i.intensity, i.prescribed_intensity) for i in tue.exercise_items
+    ] == [("moderate", "moderate"), ("high", "moderate"), ("moderate", None)]
     # 오늘 아직 안 한 것은 줄을 두지 않는다.
     assert [(i.name, i.session_id) for i in personal[0].exercise_items] == [
         ("걷기", today_walk.id)

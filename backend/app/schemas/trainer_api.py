@@ -327,6 +327,11 @@ class RoutineHistoryExerciseOut(BaseModel):
     weight: float | None = None
     #: `light` | `moderate` | `high`. 강도를 적은 기록(배정 수행)만 채운다.
     intensity: str | None = None
+    #: 하루치 `개인운동` 카드(#2510)의 **한** 줄에서 트레이너가 처방한 강도.
+    #: [intensity] 는 회원이 실제로 고른 강도라, 둘이 다르면 트레이너 화면이
+    #: 처방을 회색으로 두고 `수행 …` 을 붙인다(#2508). 안 한 줄은 [intensity]
+    #: 가 곧 처방이라 비운다.
+    prescribed_intensity: str | None = None
     #: 실제로 했는가(`✓`/`✗`). 표시가 없던 기록은 한 것으로 본다.
     done: bool = True
     #: 하루치 `개인운동` 카드(#2510)에서 한 줄이 가리키는 운동 기록 id. 트레이너
