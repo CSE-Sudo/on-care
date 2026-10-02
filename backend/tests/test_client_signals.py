@@ -231,10 +231,11 @@ def test_report_summary_uses_the_same_calorie_tolerance():
 
 
 def test_schedule_status_literals_match_the_schedule_contract():
-    from app.services import client_signals, trainer_service
+    from app.services import client_signals
+    from app.services.trainer import _common as trainer_common_service
 
-    assert client_signals._SCHEDULE_NO_SHOW == trainer_service.SCHEDULE_NO_SHOW
-    assert client_signals._SCHEDULE_CANCELLED == trainer_service.SCHEDULE_CANCELLED
+    assert client_signals._SCHEDULE_NO_SHOW == trainer_common_service.SCHEDULE_NO_SHOW
+    assert client_signals._SCHEDULE_CANCELLED == trainer_common_service.SCHEDULE_CANCELLED
 
 
 def test_calorie_off_target_is_symmetric():

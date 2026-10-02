@@ -485,11 +485,11 @@ def test_a_removed_ai_recommendation_does_not_come_back_the_same_day(
 
 
 def _days(start, end):
-    from app.services import trainer_service
+    from app.services.trainer import _common as trainer_common_service
 
     db = SessionLocal()
     try:
-        return trainer_service.member_routine_days(db, MEMBER_ID, start, end)
+        return trainer_common_service.member_routine_days(db, MEMBER_ID, start, end)
     finally:
         db.close()
 

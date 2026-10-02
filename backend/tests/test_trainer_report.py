@@ -27,7 +27,7 @@ def _auth(token: str) -> dict:
 # ---- 순수 로직 ----
 
 def test_week_start_of_normalises_any_day_to_monday():
-    from app.services.trainer_service import week_start_of
+    from app.services.trainer.reports import week_start_of
 
     monday = date(2026, 8, 3)
     for offset in range(7):
@@ -40,7 +40,7 @@ def test_meal_kr_labels_all_five_meal_types():
     키는 회원 앱 `MealType.name` 이다 — `lateNight` 만 camelCase 인 것은 그
     이름이 곧 전송값이기 때문이다.
     """
-    from app.services.trainer_service import _meal_kr
+    from app.services.trainer._common import _meal_kr
 
     assert _meal_kr("breakfast") == "아침"
     assert _meal_kr("lunch") == "점심"
@@ -51,7 +51,7 @@ def test_meal_kr_labels_all_five_meal_types():
 
 def test_meal_kr_does_not_fold_late_night_into_snack():
     """야식이 간식으로 접히면 밤늦게 먹은 것을 낮의 간식과 갈라 볼 수 없다."""
-    from app.services.trainer_service import _meal_kr
+    from app.services.trainer._common import _meal_kr
 
     assert _meal_kr("lateNight") != _meal_kr("snack")
 
@@ -59,7 +59,7 @@ def test_meal_kr_does_not_fold_late_night_into_snack():
 def test_meal_kr_passes_through_unknown_meal_types():
     """모르는 값은 간식으로 접지 않고 그대로 둔다 — 새 끼니가 조용히 섞이면
     트레이너가 틀린 근거로 코칭한다."""
-    from app.services.trainer_service import _meal_kr
+    from app.services.trainer._common import _meal_kr
 
     assert _meal_kr("brunch") == "brunch"
 
@@ -67,7 +67,7 @@ def test_meal_kr_passes_through_unknown_meal_types():
 def test_report_message_omits_figures_without_data():
     """기록이 없는 항목은 빈 값을 적지 않고 아예 뺀다 — '이행률 0%'는 거짓말."""
     from app.schemas.trainer_api import WeeklyReportOut
-    from app.services.trainer_service import report_message
+    from app.services.trainer.reports import report_message
 
     report = WeeklyReportOut(
         member_id="m", member_name="김민수",
@@ -84,7 +84,7 @@ def test_report_message_omits_figures_without_data():
 
 def test_report_message_praises_only_a_genuinely_good_week():
     from app.schemas.trainer_api import WeeklyReportOut
-    from app.services.trainer_service import report_message
+    from app.services.trainer.reports import report_message
 
     def message(completion: int, over_days: int) -> str:
         return report_message(WeeklyReportOut(
@@ -106,7 +106,7 @@ def test_report_message_praises_only_a_genuinely_good_week():
 def test_report_message_speaks_in_three_completion_bands():
     """좋음(80+)·보통(60~79)·낮음(<60) — 앱 초안과 같은 세 구간이다(#2345)."""
     from app.schemas.trainer_api import WeeklyReportOut
-    from app.services.trainer_service import report_message
+    from app.services.trainer.reports import report_message
 
     def message(completion: int, locale: str = "ko") -> str:
         return report_message(WeeklyReportOut(
@@ -719,7 +719,7 @@ def test_report_carries_the_requested_weeks_daily_series(client, db_session):
     import json
 
     from app.models.models import DietEntry, ExerciseSession, RoutineHistory
-    from app.services.trainer_service import week_start_of
+    from app.services.trainer.reports import week_start_of
 
     last_week = week_start_of(clock.today()) - timedelta(days=7)
     sunday = (last_week + timedelta(days=6)).isoformat()
@@ -824,7 +824,7 @@ def test_report_lists_exercise_a_member_logged_alone(client, db_session):
     볼 수 없었다.
     """
     from app.models.models import ExerciseSession, RoutineHistory
-    from app.services.trainer_service import week_start_of
+    from app.services.trainer.reports import week_start_of
 
     last_week = week_start_of(clock.today()) - timedelta(days=7)
     sunday = (last_week + timedelta(days=6)).isoformat()

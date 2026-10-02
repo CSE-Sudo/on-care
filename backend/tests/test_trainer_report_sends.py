@@ -15,7 +15,8 @@ from sqlalchemy import delete, select
 
 from app.core.security import create_access_token
 from app.models.models import ChatMessage, TrainerClient, User
-from app.services import trainer_service
+from app.services.trainer import _common as trainer_common_service
+from app.services.trainer import reports as trainer_reports_service
 
 TRAINER_ID = "trainer-demo"
 SENT = "/v1/trainer/reports/sent"
@@ -159,7 +160,7 @@ def test_service_folds_repeated_sends_into_the_latest_with_a_count(
         pdf=True,
     )
 
-    out = trainer_service.list_report_sends(
+    out = trainer_reports_service.list_report_sends(
         db_session, TRAINER_ID, date(2025, 10, 6)
     )
     [send] = [s for s in out.sends if s.member_id == member]
@@ -176,7 +177,7 @@ def test_service_normalises_a_mid_week_day_to_monday(client, db_session):
     member = _member(db_session)
     _message(db_session, member, week="2025-10-13")
 
-    out = trainer_service.list_report_sends(
+    out = trainer_reports_service.list_report_sends(
         db_session, TRAINER_ID, date(2025, 10, 16)
     )
 
@@ -192,7 +193,7 @@ def test_service_ignores_plain_chat_member_messages_and_other_weeks(
     _message(db_session, member, week="2025-10-20", sender="member")
     _message(db_session, member, week="2025-10-27", body="다음 주 리포트")
 
-    out = trainer_service.list_report_sends(
+    out = trainer_reports_service.list_report_sends(
         db_session, TRAINER_ID, date(2025, 10, 20)
     )
 
@@ -203,7 +204,7 @@ def test_service_skips_members_whose_assignment_ended(client, db_session):
     member = _member(db_session, active=False)
     _message(db_session, member, week="2025-11-03")
 
-    out = trainer_service.list_report_sends(
+    out = trainer_reports_service.list_report_sends(
         db_session, TRAINER_ID, date(2025, 11, 3)
     )
 
@@ -219,13 +220,13 @@ def test_service_keeps_trainers_apart(client, db_session):
 
     my_ids = {
         s.member_id
-        for s in trainer_service.list_report_sends(
+        for s in trainer_reports_service.list_report_sends(
             db_session, TRAINER_ID, date(2025, 11, 10)
         ).sends
     }
     their_ids = {
         s.member_id
-        for s in trainer_service.list_report_sends(
+        for s in trainer_reports_service.list_report_sends(
             db_session, other, date(2025, 11, 10)
         ).sends
     }
@@ -237,7 +238,7 @@ def test_service_keeps_trainers_apart(client, db_session):
 def test_service_answers_an_empty_list_for_a_week_with_no_sends(client, db_session):
     other = _trainer(db_session)
 
-    out = trainer_service.list_report_sends(db_session, other, date(2019, 2, 4))
+    out = trainer_reports_service.list_report_sends(db_session, other, date(2019, 2, 4))
 
     assert out.week_start == "2019-02-04"
     assert out.sends == []
@@ -360,8 +361,8 @@ def test_the_default_week_is_this_week(client, db_session):
     r = client.get(SENT, headers=_h(token))
 
     assert r.status_code == 200, r.text
-    this_monday = trainer_service.week_start_of(
-        date.fromisoformat(trainer_service.today_iso())
+    this_monday = trainer_reports_service.week_start_of(
+        date.fromisoformat(trainer_common_service.today_iso())
     )
     assert r.json()["week_start"] == this_monday.isoformat()
 
@@ -396,7 +397,7 @@ def test_a_malformed_week_is_rejected(client):
 
 def test_a_future_week_is_rejected(client):
     token = _trainer_tok(client)
-    future = date.fromisoformat(trainer_service.today_iso()) + timedelta(days=14)
+    future = date.fromisoformat(trainer_common_service.today_iso()) + timedelta(days=14)
     r = client.get(SENT, params={"week_start": future.isoformat()}, headers=_h(token))
     assert r.status_code == 422
 

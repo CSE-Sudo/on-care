@@ -23,7 +23,9 @@ from app.models.models import (
     User,
 )
 from app.schemas.trainer_api import WeeklyReportOut
-from app.services import exercise_types, trainer_service
+from app.services import exercise_types
+from app.services.trainer import _common as trainer_common_service
+from app.services.trainer import reports as trainer_reports_service
 
 #: 지난 날짜로 고정한 한 주(월요일).
 WEEK = date(2026, 2, 2)
@@ -120,7 +122,7 @@ def _week(db, member_id: str, sodium: list[int]) -> None:
     [(None, 2000), (0, 2000), (-5, 2000), (1500, 1500), (2300, 2300)],
 )
 def test_sodium_limit_is_the_members_target_or_the_common_default(target, limit):
-    assert trainer_service.sodium_limit_mg(target) == limit
+    assert trainer_reports_service.sodium_limit_mg(target) == limit
 
 
 # ---- 서비스: 초과일 ----
@@ -130,7 +132,7 @@ def test_target_1500_counts_an_1800mg_day_as_over(db_session):
     trainer, member = _linked_member(db_session, sodium_target=1500)
     _week(db_session, member, [1800, 1800, 1400, 0, 0, 0, 0])
 
-    report = trainer_service.build_weekly_report(db_session, trainer, member, WEEK)
+    report = trainer_reports_service.build_weekly_report(db_session, trainer, member, WEEK)
 
     assert report.sodium_target == 1500
     assert report.sodium_over_days == 2
@@ -140,7 +142,7 @@ def test_target_2300_keeps_a_2100mg_day_inside_the_target(db_session):
     trainer, member = _linked_member(db_session, sodium_target=2300)
     _week(db_session, member, [2100, 2100, 2400, 0, 0, 0, 0])
 
-    report = trainer_service.build_weekly_report(db_session, trainer, member, WEEK)
+    report = trainer_reports_service.build_weekly_report(db_session, trainer, member, WEEK)
 
     assert report.sodium_target == 2300
     # 2,000mg 로 셌다면 3일이다.
@@ -151,7 +153,7 @@ def test_member_without_a_target_is_counted_against_the_common_default(db_sessio
     trainer, member = _linked_member(db_session, sodium_target=None)
     _week(db_session, member, [2100, 1800, 0, 0, 0, 0, 0])
 
-    report = trainer_service.build_weekly_report(db_session, trainer, member, WEEK)
+    report = trainer_reports_service.build_weekly_report(db_session, trainer, member, WEEK)
 
     assert report.sodium_target is None
     assert report.sodium_over_days == 1
@@ -161,7 +163,7 @@ def test_draft_message_names_the_target_the_days_were_counted_against(db_session
     trainer, member = _linked_member(db_session, sodium_target=1500)
     _week(db_session, member, [1800, 1800, 1400, 0, 0, 0, 0])
 
-    report = trainer_service.build_weekly_report(db_session, trainer, member, WEEK)
+    report = trainer_reports_service.build_weekly_report(db_session, trainer, member, WEEK)
 
     assert "목표(1,500mg)를 넘긴 날이 2일" in report.message
     assert "2,000mg" not in report.message
@@ -201,24 +203,24 @@ def _report(**over) -> WeeklyReportOut:
 
 
 def test_korean_message_names_the_personal_target_when_over():
-    message = trainer_service.report_message(_report(sodium_target=1500), "ko")
+    message = trainer_reports_service.report_message(_report(sodium_target=1500), "ko")
     assert "목표(1,500mg)를 넘긴 날이 2일" in message
 
 
 def test_korean_message_names_the_personal_target_when_inside():
-    message = trainer_service.report_message(
+    message = trainer_reports_service.report_message(
         _report(sodium_target=2300, sodium_over_days=0, sodium_avg=2100), "ko"
     )
     assert "목표(2,300mg) 안에서" in message
 
 
 def test_english_message_names_the_personal_target():
-    message = trainer_service.report_message(_report(sodium_target=1500), "en")
+    message = trainer_reports_service.report_message(_report(sodium_target=1500), "en")
     assert "went over the 1,500mg target on 2 days." in message
 
 
 def test_message_without_a_target_keeps_the_common_default():
-    message = trainer_service.report_message(_report(), "ko")
+    message = trainer_reports_service.report_message(_report(), "ko")
     assert "목표(2,000mg)" in message
 
 
@@ -256,7 +258,7 @@ def _row(day: str, kind: str, name: str | None = None) -> SimpleNamespace:
 
 def test_english_report_day_uses_the_english_type_label(request_locale):
     request_locale("en")
-    days = trainer_service._week_days(
+    days = trainer_common_service._week_days(
         [_row("화", "strength"), _row("화", "cardio", "Running")], [0] * 7
     )
     assert days[1].exercises == ["Strength", "Running"]
@@ -264,11 +266,11 @@ def test_english_report_day_uses_the_english_type_label(request_locale):
 
 def test_korean_report_day_keeps_the_korean_type_label(request_locale):
     request_locale("ko")
-    days = trainer_service._week_days([_row("화", "strength")], [0] * 7)
+    days = trainer_common_service._week_days([_row("화", "strength")], [0] * 7)
     assert days[1].exercises == ["근력"]
 
 
 def test_named_records_keep_their_own_name_in_any_language(request_locale):
     request_locale("en")
-    days = trainer_service._week_days([_row("월", "strength", "스쿼트")], [0] * 7)
+    days = trainer_common_service._week_days([_row("월", "strength", "스쿼트")], [0] * 7)
     assert days[0].exercises == ["스쿼트"]

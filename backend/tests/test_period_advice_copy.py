@@ -29,7 +29,7 @@ from app.services import (
 )
 from app.services.diet_service import DietDayTotals
 from app.services.exercise_service import ExerciseDayTotals
-from app.services.trainer_service import RoutineDay, RoutineDayItem
+from app.services.trainer._common import RoutineDay, RoutineDayItem
 
 #: 한 문장 반. 이보다 길어지면 카드가 두 줄을 넘겨 화면이 밀린다.
 MAX_LEN = 45
