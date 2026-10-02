@@ -29,11 +29,12 @@ Flutter SDK 는 git 체크아웃이라 태그로 오갈 수 있습니다. 올리
 **iOS 를 맡은 Mac 팀원도 같습니다.** Flutter 버전은 플랫폼별이 아니라 SDK 하나라서,
 같은 `flutter` 로 iOS 를 빌드합니다. 다만 **CI 가 잡아 주지 않습니다** — 모든
 워크플로가 `ubuntu-latest` 라 iOS 잡이 아예 없고, 안드로이드도 빌드하지 않습니다.
-웹만 CI 가 지킵니다.
+웹 코드만 CI 가 지킵니다.
 
 | 플랫폼 | 버전이 어긋나면 CI 가 알려 주나 |
 | --- | --- |
-| 웹 (회원 앱·트레이너 웹) | 예 — analyze·test·build 를 돌립니다 |
+| 웹 — 회원 앱 | PR 에서는 analyze·test 만(`user-app-ci.yml`). 웹 빌드는 `main` 배포(`deploy.yml`)에서 처음 돕니다 |
+| 웹 — 트레이너 웹 | 예 — PR 에서 analyze·test·웹 빌드(`trainer-ci.yml`) |
 | 안드로이드 | 아니오 |
 | iOS | 아니오 — 잡 자체가 없습니다 |
 
@@ -177,9 +178,13 @@ flutter build apk --debug
 
 `image_picker` 가 여는 두 경로 모두 안드로이드에서는 **런타임 권한이 필요 없습니다.** 사진
 선택은 시스템 사진 선택기(Android 13+)나 `ACTION_GET_CONTENT` 로 열리고, 촬영은
-`ACTION_IMAGE_CAPTURE` 로 기본 카메라 앱에 넘깁니다. 그래서 매니페스트에는 카메라·사진 권한이
-없고 `INTERNET` 과 헬스장 찾기용 위치 권한(`ACCESS_COARSE_LOCATION`·`ACCESS_FINE_LOCATION`)만
-있습니다.
+`ACTION_IMAGE_CAPTURE` 로 기본 카메라 앱에 넘깁니다. 그래서 매니페스트에 카메라·사진 권한은
+없고, 선언된 권한은 아래 셋입니다.
+
+| 권한 | 쓰는 곳 |
+| --- | --- |
+| `INTERNET` | 실 API 호출·식단 사진 업로드 |
+| `ACCESS_COARSE_LOCATION` · `ACCESS_FINE_LOCATION` | 헬스장 찾기 화면이 현재 위치 기준으로 가까운 헬스장을 보여 줄 때(`geolocator`, `gym_location_controller.dart`). 화면에 들어가 위치를 쓸 때만 런타임 권한을 묻습니다 |
 
 **그래서 Android 13 이상에서는 권한 다이얼로그가 아예 뜨지 않습니다.** 안 뜨는 것이 정상이고
 앱이 깨진 것이 아닙니다. 확인할 것은 다이얼로그가 아니라 **취소했을 때 시트로 조용히

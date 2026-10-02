@@ -66,6 +66,7 @@ void main() {
     bool hasMyGym = true,
     Trainer? myTrainer = _kim,
     Size size = const Size(390, 844),
+    Future<List<Trainer>> Function()? loadGymTrainers,
   }) async {
     await tester.binding.setSurfaceSize(size);
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -85,9 +86,11 @@ void main() {
           ),
           myTrainerProvider.overrideWith((ref) async => myTrainer),
           trainerProvider(_kim.id).overrideWith((ref) async => _kim),
-          gymTrainersProvider(
-            _gym.id,
-          ).overrideWith((ref) async => const <Trainer>[_kim, _park]),
+          gymTrainersProvider(_gym.id).overrideWith(
+            (ref) =>
+                loadGymTrainers?.call() ??
+                Future<List<Trainer>>.value(const <Trainer>[_kim, _park]),
+          ),
           recommendedTrainersProvider.overrideWith(
             (ref) async => const <Trainer>[],
           ),
@@ -367,6 +370,53 @@ void main() {
       expect(find.textContaining('추천 이유:'), findsNothing);
       // 아직 아무와도 연결되지 않았다 — 배지는 뜨지 않는다.
       expect(find.text('연결됨'), findsNothing);
+    });
+
+    testWidgets('트레이너 조회가 실패하면 없음과 구분해 안내하고, 누르면 다시 읽는다 (#2857)', (
+      WidgetTester tester,
+    ) async {
+      int loads = 0;
+      await pumpGymTab(
+        tester,
+        hasMyGym: false,
+        loadGymTrainers: () {
+          loads++;
+          return loads <= 1
+              ? Future<List<Trainer>>.error(StateError('offline'))
+              : Future<List<Trainer>>.value(const <Trainer>[_kim]);
+        },
+      );
+
+      expect(find.byKey(Key('gym-trainers-failed-${_gym.id}')), findsOneWidget);
+      expect(find.text('소속 트레이너를 불러오지 못했어요.'), findsOneWidget);
+      expect(find.byKey(const Key('gym-trainer-trainer-kim')), findsNothing);
+
+      // 헬스장 이름은 지도 핀에도 적혀 있다 — 목록 카드 안의 것을 누른다.
+      await tester.tap(
+        find
+            .descendant(
+              of: find.byKey(const Key('gym-result-sheet')),
+              matching: find.text(_gym.name),
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
+
+      // 상세로 가면서 다시 읽었다.
+      expect(loads, 2);
+      expect(find.byType(GymDetailPage), findsOneWidget);
+    });
+
+    testWidgets('소속 트레이너가 정말 없으면 실패 안내도 없다 (#2857)', (
+      WidgetTester tester,
+    ) async {
+      await pumpGymTab(
+        tester,
+        hasMyGym: false,
+        loadGymTrainers: () => Future<List<Trainer>>.value(const <Trainer>[]),
+      );
+
+      expect(find.byKey(Key('gym-trainers-failed-${_gym.id}')), findsNothing);
     });
 
     testWidgets('트레이너마다 성씨 프로필로 선다 (#2154)', (WidgetTester tester) async {

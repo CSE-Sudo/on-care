@@ -1,6 +1,6 @@
 """
-STEP 6 스키마 — 일정 / 알림 / 장소 / AI 코치.
-프론트 계약(_scheduleEvents, _notifications, _placesNearby, _aiCoachFeedback) 정렬.
+알림 / 장소 / AI 코치 응답 스키마.
+회원 앱 계약(알림·장소·AI 코치 피드백·채팅)과 정렬.
 """
 from __future__ import annotations
 

@@ -40,7 +40,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 
 /// Stable identifiers for the settings rows, decoupled from their localized
 /// display labels so the switch never keys off a translated string.
-enum _MySetting { profile, goals, notif, guide, support }
+enum _MySetting { profile, password, goals, notif, guide, support }
 
 /// MY 탭 — 프로필 카드, 내 트레이너 · 헬스장 섹션, 활동 포인트 카드, 설정 목록과
 /// 로그아웃 순서다. 포인트 카드는 트레이너 · 헬스장 아래에 둔다(#1785).
@@ -58,6 +58,10 @@ class MyHealthPage extends ConsumerWidget {
     switch (id) {
       case _MySetting.profile:
         openProfilePage(context);
+      case _MySetting.password:
+        context.push<void>(
+          AppRoutes.mySettingsPath(AppRoutes.passwordSettingsSection),
+        );
       case _MySetting.goals:
         openGoalsPage(context);
       case _MySetting.notif:
@@ -1332,6 +1336,7 @@ class _Settings extends StatelessWidget {
 
   static const List<_SettingItem> _items = <_SettingItem>[
     _SettingItem(AppIcons.person, _MySetting.profile),
+    _SettingItem(AppIcons.lock, _MySetting.password),
     _SettingItem(AppIcons.goal, _MySetting.goals),
     _SettingItem(AppIcons.notifications, _MySetting.notif),
     _SettingItem(AppIcons.guide, _MySetting.guide),
@@ -1342,6 +1347,8 @@ class _Settings extends StatelessWidget {
     switch (id) {
       case _MySetting.profile:
         return l.myProfileTitle;
+      case _MySetting.password:
+        return l.passwordChangeTitle;
       case _MySetting.goals:
         return l.myHealthGoalsTitle;
       case _MySetting.notif:
