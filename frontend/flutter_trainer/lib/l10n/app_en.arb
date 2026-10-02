@@ -1721,6 +1721,18 @@
   "coachSwitchClientTitle": "Switch to another client?",
   "coachSwitchClientBody": "You have unsent work. Switching clients discards the program and personal exercises you are building.",
   "coachSwitchClientConfirm": "Switch",
+  "coachDraftResumeTitle": "You have saved work",
+  "coachDraftResumeBody": "The program you were building for {name} was saved automatically. Continue where you left off?",
+  "@coachDraftResumeBody": {
+    "description": "Body of the coaching screen's resume prompt for an autosaved draft.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "coachDraftResume": "Continue",
+  "coachDraftDiscard": "Discard",
   "personalRoutineTargetLoadFailed": "Couldn't load PT sessions",
   "personalRoutineStartPast": "The start date has passed, so it's now set to today. Check it and send again",
   "schedRoutinesReadFailed": "Couldn't check the attached personal exercises. Please try again",

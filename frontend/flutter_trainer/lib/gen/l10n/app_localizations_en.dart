@@ -2748,6 +2748,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachSwitchClientConfirm => 'Switch';
 
   @override
+  String get coachDraftResumeTitle => 'You have saved work';
+
+  @override
+  String coachDraftResumeBody(String name) {
+    return 'The program you were building for $name was saved automatically. Continue where you left off?';
+  }
+
+  @override
+  String get coachDraftResume => 'Continue';
+
+  @override
+  String get coachDraftDiscard => 'Discard';
+
+  @override
   String get personalRoutineTargetLoadFailed => 'Couldn\'t load PT sessions';
 
   @override
