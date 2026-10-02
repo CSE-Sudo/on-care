@@ -99,7 +99,8 @@ class MemberHealthProfile {
           _ => null,
         },
         focusChangedAt: switch (json['focus_changed_at']) {
-          final String at => DateTime.tryParse(at)?.toLocal(),
+          // UTC 순간 그대로 — 표시할 때 KST 날짜로 바꾼다(#2893).
+          final String at => DateTime.tryParse(at),
           _ => null,
         },
         notesChangedBy: switch (json['notes_changed_by']) {
