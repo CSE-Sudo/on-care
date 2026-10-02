@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 import 'package:oncare/shared/services/record_span_provider.dart';
+import 'package:oncare_core/clock.dart';
 
 /// provider 하나를 비우는 함수. `WidgetRef.invalidate`·`Ref.invalidate`·
 /// `ProviderContainer.invalidate` 가 모두 이 모양이라, 부르는 쪽이 무엇을

@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oncare/core/utils/request_id.dart';
 import 'package:oncare/features/member_coach/domain/entities/emote_state.dart';
 import 'package:oncare/features/member_coach/domain/repositories/emote_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/request_id.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 이모티콘을 고르는 창. 고른 id 를 돌려주고 닫는다. (#2020, #2153)

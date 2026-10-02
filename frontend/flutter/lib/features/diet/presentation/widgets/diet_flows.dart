@@ -10,7 +10,6 @@ import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/errors/app_error_message.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/core/utils/wire_date.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
@@ -23,6 +22,7 @@ import 'package:oncare/features/diet/presentation/controllers/diet_refresh.dart'
 import 'package:oncare/features/diet/presentation/widgets/meal_photo_view.dart';
 import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 

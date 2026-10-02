@@ -8,7 +8,7 @@ import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/demo_profile_pet.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/core/points/demo_weekly_reports.dart';
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 목업 API 의 포인트 사용처·쿠폰. 서버 `points_coupon_service` 의 대역이다. (#1787)
 ///

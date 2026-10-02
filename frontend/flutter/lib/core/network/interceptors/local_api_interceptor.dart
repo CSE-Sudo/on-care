@@ -35,7 +35,6 @@ import 'package:oncare/core/points/demo_weekly_challenge.dart';
 import 'package:oncare/core/points/points_award.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart' show kDietDayMessagesKey;
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/ai_coach/domain/chat_insight_detector.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
@@ -54,6 +53,7 @@ import 'package:oncare/features/exercise/domain/repositories/routine_session_log
 import 'package:oncare/features/member_coach/data/demo_coach_files.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart'
     show CoachAttachmentKind;
+import 'package:oncare_core/clock.dart';
 // 분·kcal 반올림·운동 유형 정규화는 실서버와 같은 공용 규칙을 쓴다(#2860, #2861).
 import 'package:oncare_rules/oncare_rules.dart'
     show

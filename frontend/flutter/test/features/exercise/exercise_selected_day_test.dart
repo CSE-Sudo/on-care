@@ -5,7 +5,6 @@ import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
@@ -19,6 +18,7 @@ import 'package:oncare/features/member_coach/data/repositories/mock_member_coach
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
 import '../../helpers/fixed_clock.dart';
 
 

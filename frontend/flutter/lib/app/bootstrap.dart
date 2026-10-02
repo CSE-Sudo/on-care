@@ -14,7 +14,7 @@ import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/prefs_store.dart';
 import 'package:oncare/core/storage/secure_token_store.dart';
 import 'package:oncare/core/storage/seed_data.dart';
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Single entry point used by `main.dart`. Initializes binding,

@@ -5,9 +5,9 @@ import 'package:logger/logger.dart';
 import 'package:oncare/core/demo/period_advice.dart' show exerciseTypeLabel;
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/storage/app_database.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
+import 'package:oncare_core/clock.dart';
 
 import '../../helpers/shared_rule_vectors.dart';
 
