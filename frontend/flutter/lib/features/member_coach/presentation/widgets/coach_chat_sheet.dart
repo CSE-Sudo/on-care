@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/app/app_icons.dart';
-import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/member_coach/data/repositories/chat_pdf_repository.dart';
@@ -85,18 +84,23 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
   ///
   /// 서버 응답 순서에 기대지 않고 발생 시각으로 정렬한다. 같은 시각에는 id를
   /// 보조 기준으로 써 새로고침할 때마다 순서가 바뀌지 않게 한다(#2127).
-  List<Widget> _chatChildren(
-    List<CoachMessage> messages, {
-    required bool showDemoBanners,
-  }) {
+  List<Widget> _chatChildren(List<CoachMessage> messages) {
     final List<CoachMessage> timeline = List<CoachMessage>.of(messages)
       ..sort((CoachMessage first, CoachMessage second) {
         final int byTime = first.createdAt.compareTo(second.createdAt);
         return byTime != 0 ? byTime : first.id.compareTo(second.id);
       });
-    return showDemoBanners
-        ? _withDemoBanners(timeline)
-        : _withoutDemoBanners(timeline);
+    final List<Widget> out = <Widget>[];
+    for (int i = 0; i < timeline.length; i++) {
+      final CoachMessage message = timeline[i];
+      if (i == 0 || !_sameDay(timeline[i - 1].createdAt, message.createdAt)) {
+        out
+          ..add(_dateDivider(message.createdAt))
+          ..add(const SizedBox(height: OnCareSpacing.s8));
+      }
+      out.add(_chatItem(message));
+    }
+    return out;
   }
 
   Widget _chatItem(CoachMessage message) {
@@ -116,68 +120,15 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
         weekStart: weekStart,
       );
     }
+    final CoachRoutineDelivery? delivery = message.routineDelivery;
+    if (delivery != null) {
+      return Padding(
+        key: ValueKey<String>('coach-routine-delivery-${message.id}'),
+        padding: const EdgeInsets.only(bottom: OnCareSpacing.s16),
+        child: CoachRoutineDeliveryNotice(delivery: delivery),
+      );
+    }
     return _MessageRow(message: message, trainerName: widget.trainerName);
-  }
-
-  /// 데모 안내 배너를 **하루 단위로** 끼워 넣은 목록을 만든다.
-  ///
-  /// 배너가 스레드 맨 앞·맨 뒤에 하나씩만 있으면, 사흘치 대화에서 "분석은 이
-  /// 대화가 시작되기 전에 딱 한 번 있었다"로 읽힌다. 실제로는 매일 그날 데이터를
-  /// 분석해 그 대화가 시작되고, 트레이너가 조정한 루틴을 보내며 끝난다 — 그래서
-  /// 날이 바뀌는 자리마다 앞뒤로 붙인다. (#543)
-  ///
-  /// 날짜 판정은 `createdAt` 으로 한다. `timeLabel` 은 화면에 보일 문자열일
-  /// 뿐이라 거기서 날짜를 파내면 표시 문구가 곧 로직이 된다.
-  ///
-  /// 시드 메시지에 대해서만 자른다. 데모 중에 내가 보낸 답장은 오늘 날짜라
-  /// 그대로 두면 내 말풍선 앞에 "분석했어요" 가 끼어든다.
-  List<Widget> _withDemoBanners(List<CoachMessage> messages) {
-    final List<Widget> out = <Widget>[];
-    final int lastSeeded = messages.lastIndexWhere(
-      (message) => message.id.startsWith('seed-'),
-    );
-    for (int i = 0; i < messages.length; i++) {
-      final CoachMessage m = messages[i];
-      final bool seeded = m.id.startsWith('seed-');
-      final bool newDay =
-          i == 0 || !_sameDay(messages[i - 1].createdAt, m.createdAt);
-      if (newDay) {
-        if (seeded && i > 0) {
-          out.add(
-            _ReceivedBanner(key: ValueKey<String>('received-before-${m.id}')),
-          );
-          out.add(const SizedBox(height: OnCareSpacing.s8));
-        }
-        out.add(_dateDivider(m.createdAt));
-        out.add(const SizedBox(height: OnCareSpacing.s8));
-        if (seeded) {
-          out.add(_AnalyzedBanner(trainerName: widget.trainerName));
-          out.add(const SizedBox(height: OnCareSpacing.s16));
-        }
-      }
-      out.add(_chatItem(m));
-      if (i == lastSeeded) {
-        out.add(const _ReceivedBanner());
-        if (i != messages.length - 1) {
-          out.add(const SizedBox(height: OnCareSpacing.s16));
-        }
-      }
-    }
-    return out;
-  }
-
-  List<Widget> _withoutDemoBanners(List<CoachMessage> messages) {
-    final List<Widget> out = <Widget>[];
-    for (int i = 0; i < messages.length; i++) {
-      final message = messages[i];
-      if (i == 0 || !_sameDay(messages[i - 1].createdAt, message.createdAt)) {
-        out
-          ..add(_dateDivider(message.createdAt))
-          ..add(const SizedBox(height: OnCareSpacing.s8));
-      }
-      out.add(_chatItem(message));
-    }
-    return out;
   }
 
   /// 날짜 구분선. 요일까지 로케일 형식(`yMMMMEEEEd`)으로 적는다.
@@ -404,7 +355,6 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
         ref.invalidate(sentReportNoticesProvider);
       }
     });
-    final bool showDemoBanners = ref.watch(appConfigProvider).useMockApi;
     return Scaffold(
       backgroundColor: OnCareColors.surfaceCard,
       body: SafeArea(
@@ -579,10 +529,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                                   ),
                           ),
                         ),
-                      ..._chatChildren(
-                        messages,
-                        showDemoBanners: showDemoBanners,
-                      ),
+                      ..._chatChildren(messages),
                       for (final PendingCoachPhoto photo in unsent)
                         _PendingPhotoRow(
                           key: ValueKey<String>(
@@ -619,44 +566,37 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
   }
 }
 
-/// 데모 전용 안내 배너 — 트레이너 앱의 같은 배너를 회원 시점으로 옮긴 것.
+/// 루틴 전송 안내 — 트레이너가 운동을 보낸 자리에 대화 가운데 안내로 선다. (#2672)
 ///
-/// 트레이너 화면은 "AI가 김민수님의 … 분석했어요 / 루틴이 김민수님에게
-/// 전송됐어요" 라고 말한다. 같은 사건을 받는 쪽에서 보면 "내 데이터를
-/// 분석했어요 / 루틴을 받았어요" 가 된다 — 내용은 같고 시점만 다르다. (#543)
-///
-/// 실 모드에서는 그리지 않는다. 서버가 실제로 그 순간을 알려주는 것이 아니라
-/// 데모 대화의 맥락을 설명하는 장치이기 때문이다.
-class _AnalyzedBanner extends StatelessWidget {
-  const _AnalyzedBanner({required this.trainerName});
+/// 알림과 함께 대화에도 남아, "어제 받은 루틴" 에 대한 이야기가 그 전송 바로
+/// 아래에 이어진다. 트레이너 웹의 같은 안내와 같은 제목·같은 이름 줄이다.
+class CoachRoutineDeliveryNotice extends StatelessWidget {
+  const CoachRoutineDeliveryNotice({required this.delivery, super.key});
 
-  final String trainerName;
+  final CoachRoutineDelivery delivery;
+
+  /// 이름으로 적는 운동 수. 나머지는 개수로 접는다 — 서버 본문과 같다.
+  static const int _shownNames = 3;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final List<String> names = <String>[
+      ...delivery.programNames,
+      ...delivery.routineNames,
+    ];
+    final String shown = names.take(_shownNames).join(' · ');
+    final int more = names.length - _shownNames;
     return CoachChatNotice(
-      icon: AppIcons.ai,
-      title: l.coachChatDemoAnalyzed,
-      subtitle: l.coachChatDemoReportSent(trainerName),
-    );
-  }
-}
-
-class _ReceivedBanner extends StatelessWidget {
-  const _ReceivedBanner({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    // #1239 이후로는 "완료" 배너를 두 앱이 함께 쓰는 완료 초록으로
-    // 칠했는데, 이 배너는 상태 완료가 아니라 "개인 추천운동을 받았다"는
-    // 안내다 — 위 [_AnalyzedBanner]와 같은 흐름의 다음 단계라, 초록이
-    // 아니라 그 배너와 같은 안내(info) 톤으로 맞춘다(#1379).
-    return CoachChatNotice(
-      icon: AppIcons.checkCircle,
-      title: l.coachChatDemoRoutineReceived,
-      subtitle: l.coachChatDemoNotified,
+      icon: AppIcons.routine,
+      title: switch (delivery.kind) {
+        'pt_with_routine' => l.coachChatRoutineReceivedPt,
+        'routine_only' => l.coachChatRoutineReceivedPersonal,
+        'cancelled_routine_only' => l.coachChatRoutineReceivedAfterCancel,
+        'program' => l.coachChatRoutineReceivedProgram,
+        _ => l.coachChatRoutineReceived,
+      },
+      subtitle: more > 0 ? l.coachChatRoutineReceivedMore(shown, more) : shown,
     );
   }
 }

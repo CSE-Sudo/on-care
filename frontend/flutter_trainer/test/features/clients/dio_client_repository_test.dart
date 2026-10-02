@@ -9,6 +9,8 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/features/clients/data/dtos/client_dtos.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/dio_client_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
 class _MockDio extends Mock implements Dio {}
@@ -509,5 +511,164 @@ void main() {
     await repo.removeClient('m1');
 
     verify(() => dio.delete<void>(path)).called(1);
+  });
+
+  group('기간 조회 — 서버 응답을 그대로 읽는다 (#2910)', () {
+    // 서버의 세 경로(`/diet/days`·`/exercise/weeks`·`/records/span`)는 회원
+    // 앱과 같은 본문을 준다(백엔드 대조 테스트). 여기서는 그 본문을 트레이너
+    // 화면의 모델로 옮기는 쪽 — 요청 구간과 필드 이름 — 을 본다.
+    const String member = 'm 1';
+    const String encoded = 'm%201';
+    final ClientDateRange range = (
+      from: DateTime(2026, 9, 2),
+      to: DateTime(2026, 9, 17),
+    );
+
+    Response<Map<String, Object?>> okMap(Map<String, Object?> body, String p) =>
+        Response<Map<String, Object?>>(
+          requestOptions: RequestOptions(path: p),
+          statusCode: 200,
+          data: body,
+        );
+
+    test('식단 기간: 구간을 그대로 보내고 날짜별 합계를 칸마다 옮긴다', () async {
+      const String path = '/trainer/clients/$encoded/diet/days';
+      Map<Object?, Object?>? sent;
+      when(
+        () => dio.get<Map<String, Object?>>(
+          path,
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer((invocation) async {
+        sent =
+            invocation.namedArguments[#queryParameters]
+                as Map<Object?, Object?>;
+        return okMap(<String, Object?>{
+          'from_date': '2026-09-02',
+          'to_date': '2026-09-17',
+          'days': <Object?>[
+            <String, Object?>{
+              'date': '2026-09-02',
+              'total_calories': 950,
+              'total_sodium_mg': 1300,
+              'total_sugar_g': 10.5,
+              'carbs_g': 80,
+              'protein_g': 40.5,
+              'fat_g': 20,
+            },
+            <String, Object?>{'date': '2026-09-16', 'total_calories': 520},
+          ],
+        }, path);
+      });
+
+      final ClientDietPeriod period = await repo.fetchDietPeriod(member, range);
+
+      expect(sent, <String, String>{'from': '2026-09-02', 'to': '2026-09-17'});
+      // 서버가 비운 날도 화면의 칸으로 채운다 — i 번째 칸이 i 번째 날이다.
+      expect(period.days, hasLength(16));
+      expect(period.days.first.date, DateTime(2026, 9, 2));
+      expect(period.days.first.calories, 950);
+      expect(period.days.first.sodiumMg, 1300);
+      expect(period.days.first.sugarG, 10.5);
+      expect(period.days.first.carbsG, 80);
+      expect(period.days.first.proteinG, 40.5);
+      expect(period.days.first.fatG, 20);
+      expect(period.days[1].logged, isFalse);
+      expect(period.days[14].calories, 520);
+      expect(period.loggedDays, 2);
+    });
+
+    test('운동 기간: from 을 그 주 월요일로 맞추고 주마다 목표까지 읽는다', () async {
+      const String path = '/trainer/clients/$encoded/exercise/weeks';
+      Map<Object?, Object?>? sent;
+      Map<String, Object?> week(String start, int minutes) => <String, Object?>{
+        'week_start': start,
+        'day_labels': <String>['월', '화', '수', '목', '금', '토', '일'],
+        'daily_minutes': <int>[0, minutes, 0, 0, 0, 0, 0],
+        'daily_calories': <int>[0, minutes * 5, 0, 0, 0, 0, 0],
+        'cardio_minutes': <int>[0, minutes, 0, 0, 0, 0, 0],
+        'strength_minutes': <int>[0, 0, 0, 0, 0, 0, 0],
+        'stretching_minutes': <int>[0, 0, 0, 0, 0, 0, 0],
+        'total_minutes': minutes,
+        'total_calories': minutes * 5,
+        'streak_days': minutes > 0 ? 1 : 0,
+        'weekly_goal_minutes': 210,
+        'weekly_goal_calories': 2100,
+      };
+      when(
+        () => dio.get<Map<String, Object?>>(
+          path,
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer((invocation) async {
+        sent =
+            invocation.namedArguments[#queryParameters]
+                as Map<Object?, Object?>;
+        return okMap(<String, Object?>{
+          'from_week': '2026-08-31',
+          'to_week': '2026-09-14',
+          'weeks': <Object?>[
+            week('2026-08-31', 40),
+            week('2026-09-07', 0),
+            week('2026-09-14', 25),
+          ],
+        }, path);
+      });
+
+      final List<ClientExercisePeriodWeek> weeks = await repo
+          .fetchExercisePeriod(member, range);
+
+      // 9/2(수)는 8/31(월) 주다 — 서버도 월요일로 맞추지만 요청부터 맞춘다.
+      expect(sent, <String, String>{'from': '2026-08-31', 'to': '2026-09-17'});
+      expect(weeks.map((w) => w.weekStart).toList(), <DateTime>[
+        DateTime(2026, 8, 31),
+        DateTime(2026, 9, 7),
+        DateTime(2026, 9, 14),
+      ]);
+      expect(weeks.first.week.totalMinutes, 40);
+      expect(weeks.first.week.dailyMinutes[1], 40);
+      expect(weeks[1].week.totalMinutes, 0);
+      expect(weeks.last.week.streakDays, 1);
+      // 목표선은 서버가 회원 프로필에서 읽어 준 값 그대로다.
+      expect(weeks.last.week.weeklyGoalMinutes, 210);
+      expect(weeks.last.week.weeklyGoalCalories, 2100);
+    });
+
+    test('기록 시작일: 식단·운동이 각자 제 날짜를, 없으면 null 을 갖는다', () async {
+      const String path = '/trainer/clients/$encoded/records/span';
+      when(() => dio.get<Map<String, Object?>>(path)).thenAnswer(
+        (_) async => okMap(<String, Object?>{
+          'diet_first_date': '2026-08-25',
+          'exercise_first_date': null,
+        }, path),
+      );
+
+      final ClientRecordSpan span = await repo.fetchRecordSpan(member);
+
+      expect(span.dietFirstDate, DateTime(2026, 8, 25));
+      expect(span.exerciseFirstDate, isNull);
+    });
+
+    test('담당이 아닌 회원(404)은 세 경로 모두 AppError 로 올라온다', () async {
+      when(
+        () => dio.get<Map<String, Object?>>(
+          any(),
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenThrow(_httpError(404, '/trainer/clients/$encoded/diet/days'));
+      when(
+        () => dio.get<Map<String, Object?>>(any()),
+      ).thenThrow(_httpError(404, '/trainer/clients/$encoded/records/span'));
+
+      await expectLater(
+        repo.fetchDietPeriod(member, range),
+        throwsA(isA<AppError>()),
+      );
+      await expectLater(
+        repo.fetchExercisePeriod(member, range),
+        throwsA(isA<AppError>()),
+      );
+      await expectLater(repo.fetchRecordSpan(member), throwsA(isA<AppError>()));
+    });
   });
 }

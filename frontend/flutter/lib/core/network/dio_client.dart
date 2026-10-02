@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
+import 'package:oncare/core/network/client_platform.dart';
 import 'package:oncare/core/network/interceptors/accept_language_interceptor.dart';
 import 'package:oncare/core/network/interceptors/api_logging_interceptor.dart';
 import 'package:oncare/core/network/interceptors/auth_interceptor.dart';
@@ -28,6 +29,8 @@ final dioProvider = Provider<Dio>((ref) {
       receiveTimeout: const Duration(seconds: 15),
       sendTimeout: const Duration(seconds: 10),
       contentType: Headers.jsonContentType,
+      // 웹 빌드는 자기가 웹이라고 알린다 — 서버가 짧은 refresh 토큰을 준다(#2828).
+      headers: clientPlatformHeaders(),
       // 4xx/5xx are normal API errors and should surface as DioException
       // so callers can react via try/catch, not slip past `res.data!`
       // straight into a misleading "Null check" failure in a fromJson

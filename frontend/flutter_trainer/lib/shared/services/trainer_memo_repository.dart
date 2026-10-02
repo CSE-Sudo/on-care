@@ -43,10 +43,18 @@ abstract interface class TrainerMemoRepository {
     String? insightId,
     String insightKind = '',
     TrainerMemoRef? ref,
+    TrainerMemoCategory category = TrainerMemoCategory.none,
   });
 
-  /// Rewrites a memo's body. Its source is never rewritten.
-  Future<TrainerMemo> update(String clientId, String memoId, String body);
+  /// Rewrites a memo's body, and its [category] when given (#2622). Its
+  /// source is never rewritten — nor the category of a memo whose source
+  /// fixes it (exercise record, chat insight).
+  Future<TrainerMemo> update(
+    String clientId,
+    String memoId,
+    String body, {
+    TrainerMemoCategory? category,
+  });
 
   Future<void> delete(String clientId, String memoId);
 }
@@ -109,6 +117,7 @@ class LocalTrainerMemoRepository implements TrainerMemoRepository {
     String? insightId,
     String insightKind = '',
     TrainerMemoRef? ref,
+    TrainerMemoCategory category = TrainerMemoCategory.none,
   }) async {
     final memos = _read(clientId);
     if (insightId != null) {
@@ -123,6 +132,12 @@ class LocalTrainerMemoRepository implements TrainerMemoRepository {
       insightId: insightId,
       insightKind: insightKind,
       ref: ref,
+      // 서버와 같은 규칙 — 출처가 분류를 정하면 그것을 쓴다(#2622).
+      category: switch (source) {
+        TrainerMemoSource.exerciseMemo => TrainerMemoCategory.exercise,
+        TrainerMemoSource.chatInsight => TrainerMemoCategory.none,
+        TrainerMemoSource.trainer => category,
+      },
       createdAt: now,
       updatedAt: now,
     );
@@ -134,15 +149,27 @@ class LocalTrainerMemoRepository implements TrainerMemoRepository {
   Future<TrainerMemo> update(
     String clientId,
     String memoId,
-    String body,
-  ) async {
+    String body, {
+    TrainerMemoCategory? category,
+  }) async {
     final memos = _read(clientId);
     final index = memos.indexWhere((memo) => memo.id == memoId);
     // 실서버 구현과 같은 도메인 오류로 던진다 — 리포지토리는 로케일을 모르므로
     // 사람이 읽을 문구는 화면이 붙인다(#501). 문구 없는 [NotFoundError] 는
     // 화면의 지역화된 기본 안내로 떨어진다.
     if (index < 0) throw const NotFoundError();
-    final updated = memos[index].copyWith(body: body, updatedAt: nowKst());
+    final TrainerMemo current = memos[index];
+    // 직접 쓴 메모만 분류를 바꾼다 — 실서버는 다른 출처의 변경을 400 으로 막는다.
+    if (category != null &&
+        category != current.category &&
+        current.source != TrainerMemoSource.trainer) {
+      throw const ValidationError();
+    }
+    final updated = current.copyWith(
+      body: body,
+      category: category,
+      updatedAt: nowKst(),
+    );
     memos[index] = updated;
     await _write(clientId, memos);
     return updated;

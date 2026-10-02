@@ -361,6 +361,12 @@ class DioTrainerProgramTemplateRepository
         throw ValidationError(message: detail is String ? detail : null);
       }
       throw AppError.fromDio(e);
+    } on AppError {
+      rethrow;
+    } on Object {
+      // 응답이 약속한 모양이 아니다(#2896) — 해석 오류를 그대로 올리면 화면이
+      // 어느 실패인지 가리지 못한다. 서버 쪽 실패로 묶어 올린다.
+      throw const ServerError();
     }
   }
 }
