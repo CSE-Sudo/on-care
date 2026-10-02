@@ -22,6 +22,7 @@ from app.services import (
     diet_recommendation_service,
     exercise_service,
     goal_defaults,
+    points_service,
     routine_ai,
     trainer_report_summary_service,
     trainer_service,
@@ -40,6 +41,7 @@ def _load(name: str) -> dict:
 
 GOAL_DEFAULTS = _load("goal_defaults")
 EXERCISE_ENERGY = _load("exercise_energy")
+POINTS_RULES = _load("points_rules")["rules"]
 
 
 # ── 목표 미설정 기본값 ────────────────────────────────────────────────────
@@ -103,3 +105,30 @@ def test_intensity_factor_matches_the_shared_original() -> None:
 def test_fallback_kcal_per_minute_matches_the_shared_original() -> None:
     """이름이 안 붙을 때의 유형별 분당 kcal 이 원본 표의 값이다."""
     assert energy.FALLBACK_KCAL_PER_MIN == EXERCISE_ENERGY["fallback_kcal_per_min"]
+
+
+# ── 활동 포인트 적립 규칙 ─────────────────────────────────────────────────
+
+
+def _server_earn_rules() -> dict[str, points_service.EarnRule]:
+    return {
+        r.reason: r
+        for r in vars(points_service).values()
+        if isinstance(r, points_service.EarnRule)
+    }
+
+
+def test_server_earn_rules_are_exactly_the_shared_original() -> None:
+    """서버에만 있는 적립 규칙이 없다 — 더하면 원본 표와 회원 앱에도 더한다."""
+    assert set(_server_earn_rules()) == set(POINTS_RULES)
+
+
+@pytest.mark.parametrize("reason", sorted(POINTS_RULES))
+def test_earn_rule_matches_the_shared_original(reason: str) -> None:
+    """적립 포인트·하루 한도·기록 종류가 회원 앱 안내창·목업 원장과 같은 값이다."""
+    rule = _server_earn_rules()[reason]
+    assert {
+        "source_type": rule.source_type,
+        "points": rule.points,
+        "daily_cap": rule.daily_cap,
+    } == POINTS_RULES[reason]
