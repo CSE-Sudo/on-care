@@ -488,3 +488,35 @@ def test_first_social_login_must_go_through_consent(client, monkeypatch):
 
     again = client.post("/v1/auth/social/kakao", json={"token": "fake"})
     assert again.json()["consent_required"] is False
+
+
+# ---- 데모 계정 시드 ----
+
+
+def test_seeded_demo_accounts_need_no_consent_screen(client, db_session):
+    """데모 회원·트레이너는 시드가 필수 동의를 남겨 로그인 뒤 바로 쓸 수 있다."""
+    from app.db.init_db import DEMO_USER_ID
+
+    member = db_session.get(User, DEMO_USER_ID)
+    trainer = db_session.scalar(select(User).where(User.email == "trainer@oncare.com"))
+    assert member is not None and trainer is not None
+    assert signup_consent.pending_kinds(db_session, member) == []
+    assert signup_consent.pending_kinds(db_session, trainer) == []
+
+
+def test_demo_consent_seed_leaves_real_accounts_alone(client, db_session):
+    """데모 도메인이 아닌 계정에는 동의를 대신 남기지 않는다."""
+    from app.db import init_db
+
+    email = f"consent-real-{uuid4().hex[:8]}@example.com"
+    res = client.post(
+        "/v1/auth/register",
+        json={"email": email, "password": PASSWORD, "name": "실사용자"},
+    )
+    assert res.status_code == 201, res.text
+
+    init_db._seed_demo_consents()
+
+    db_session.expire_all()
+    user = db_session.scalar(select(User).where(User.email == email))
+    assert signup_consent.pending_kinds(db_session, user) == sorted(MEMBER_REQUIRED)
