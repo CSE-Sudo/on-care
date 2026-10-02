@@ -2574,6 +2574,8 @@
   "@workoutLineBurned": {"placeholders": {"calories": {"type": "String"}}},
   "workoutLineEstimated": "Est. {calories} kcal burned",
   "@workoutLineEstimated": {"placeholders": {"calories": {"type": "String"}}},
+  "workoutIntensityPerformed": "Did {level}",
+  "@workoutIntensityPerformed": {"placeholders": {"level": {"type": "String"}}},
   "workoutDaySourcePt": "PT",
   "workoutPendingTitle": "Personal exercises",
   "workoutUndatedTitle": "Records without a date",
@@ -2809,7 +2811,7 @@
   "clientExerciseMemoHint": "Note what to remember from this workout",
   "clientExerciseMemoSaved": "Saved to memos.",
   "clientMemoTagManual": "Written by you",
-  "clientMemoTagPtSession": "PT session · {date}",
+  "clientMemoTagPtSession": "PT · {date}",
   "@clientMemoTagPtSession": {
     "placeholders": {
       "date": {
@@ -2836,7 +2838,7 @@
       }
     }
   },
-  "clientMemoTagMemberLog": "Member's log · {date}",
+  "clientMemoTagMemberLog": "Added by member · {date}",
   "@clientMemoTagMemberLog": {
     "placeholders": {
       "date": {
@@ -2876,7 +2878,7 @@
       }
     }
   },
-  "clientMemoRecordPtSession": "{date} PT session",
+  "clientMemoRecordPtSession": "{date} PT",
   "@clientMemoRecordPtSession": {
     "placeholders": {
       "date": {
@@ -2903,7 +2905,7 @@
       }
     }
   },
-  "clientMemoRecordMemberLog": "{date} Member log",
+  "clientMemoRecordMemberLog": "{date} Added by member",
   "@clientMemoRecordMemberLog": {
     "placeholders": {
       "date": {
@@ -2924,7 +2926,7 @@
   "clientFeedbackPrivate": "Feedback you and the member exchanged. Tap one to edit it where it was written.",
   "clientFeedbackToMember": "Trainer → member",
   "clientFeedbackFromMember": "Member → trainer",
-  "clientFeedbackSourcePt": "PT session · {date}",
+  "clientFeedbackSourcePt": "PT · {date}",
   "@clientFeedbackSourcePt": {
     "placeholders": {
       "date": {

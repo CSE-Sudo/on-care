@@ -3807,6 +3807,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String workoutIntensityPerformed(String level) {
+    return '수행 $level';
+  }
+
+  @override
   String get workoutDaySourcePt => 'PT';
 
   @override
@@ -4219,7 +4224,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String clientMemoTagPtSession(String date) {
-    return 'PT 세션 · $date';
+    return 'PT · $date';
   }
 
   @override
@@ -4234,7 +4239,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String clientMemoTagMemberLog(String date) {
-    return '회원 기록 · $date';
+    return '회원 추가 · $date';
   }
 
   @override
@@ -4279,7 +4284,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String clientMemoRecordPtSession(String date) {
-    return '$date PT 세션';
+    return '$date PT';
   }
 
   @override
@@ -4294,7 +4299,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String clientMemoRecordMemberLog(String date) {
-    return '$date 회원 기록';
+    return '$date 회원 추가';
   }
 
   @override
@@ -4319,7 +4324,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String clientFeedbackSourcePt(String date) {
-    return 'PT 세션 · $date';
+    return 'PT · $date';
   }
 
   @override

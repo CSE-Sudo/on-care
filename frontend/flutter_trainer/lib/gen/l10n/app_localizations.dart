@@ -6895,6 +6895,12 @@ abstract class AppLocalizations {
   /// **'Est. {calories} kcal burned'**
   String workoutLineEstimated(String calories);
 
+  /// No description provided for @workoutIntensityPerformed.
+  ///
+  /// In en, this message translates to:
+  /// **'Did {level}'**
+  String workoutIntensityPerformed(String level);
+
   /// No description provided for @workoutDaySourcePt.
   ///
   /// In en, this message translates to:
@@ -7642,7 +7648,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientMemoTagPtSession.
   ///
   /// In en, this message translates to:
-  /// **'PT session · {date}'**
+  /// **'PT · {date}'**
   String clientMemoTagPtSession(String date);
 
   /// No description provided for @clientMemoTagPersonal.
@@ -7660,7 +7666,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientMemoTagMemberLog.
   ///
   /// In en, this message translates to:
-  /// **'Member\'s log · {date}'**
+  /// **'Added by member · {date}'**
   String clientMemoTagMemberLog(String date);
 
   /// No description provided for @clientMemoTagDay.
@@ -7738,7 +7744,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientMemoRecordPtSession.
   ///
   /// In en, this message translates to:
-  /// **'{date} PT session'**
+  /// **'{date} PT'**
   String clientMemoRecordPtSession(String date);
 
   /// No description provided for @clientMemoRecordPersonal.
@@ -7756,7 +7762,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientMemoRecordMemberLog.
   ///
   /// In en, this message translates to:
-  /// **'{date} Member log'**
+  /// **'{date} Added by member'**
   String clientMemoRecordMemberLog(String date);
 
   /// No description provided for @clientMemoRecordExerciseDay.
@@ -7798,7 +7804,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientFeedbackSourcePt.
   ///
   /// In en, this message translates to:
-  /// **'PT session · {date}'**
+  /// **'PT · {date}'**
   String clientFeedbackSourcePt(String date);
 
   /// No description provided for @clientFeedbackSourceReport.

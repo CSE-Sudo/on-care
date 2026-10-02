@@ -1479,8 +1479,10 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
           ),
         for (final TrainerMemoRef option in refs)
           DropdownMenuItem<TrainerMemoRef?>(
+            // 한 날에 날짜로 가리키는 기록(개인운동·회원 추가)이 둘 설 수
+            // 있어 종류까지 키에 넣는다.
             key: ValueKey<String>(
-              'client-memo-record-${option.id ?? 'day-${option.day}'}',
+              'client-memo-record-${option.id ?? '${option.kind.wire}-${option.day}'}',
             ),
             value: option,
             child: Text(

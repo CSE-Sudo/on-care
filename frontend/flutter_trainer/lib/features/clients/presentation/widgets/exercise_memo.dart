@@ -76,12 +76,18 @@ String memoRecordOptionLabel(AppLocalizations l, TrainerMemoRef ref) {
   };
 }
 
-/// 운동 이력 카드 하나가 가리키는 기록 — 운동 탭 카드(`_HistoryCard`)와 같은
-/// 규칙이다. 같은 기록이면 어느 자리에서 남겨도 같은 메모가 된다.
+/// 운동 이력 한 건이 가리키는 기록 — 운동 탭 출처 줄(PT·개인운동)의 메모
+/// 자리와 메모 창 `운동 기록 연결` 이 같은 규칙을 쓴다. 같은 기록이면 어느
+/// 자리에서 남겨도 같은 메모가 된다.
 TrainerMemoRef memoRefForHistory(RoutineHistoryEntry entry) {
-  final DateTime? day = entry.date ?? entry.completedAt;
   // 데모 이력은 코드 없이 고정 이름만 갖는다 — 이름으로도 종류를 찾는다.
   final String? code = routineKindCode(entry.label, kind: entry.kind);
+  final DateTime? day = historyDayOf(entry);
+  // 하루치 개인운동은 날짜로 가리킨다 — `오늘` 개인운동 상자에서 남긴 메모가
+  // 지난 날 펼친 줄에서도 같은 자리에 보인다.
+  if (code == 'personal_routine' && day != null) {
+    return TrainerMemoRef(kind: TrainerMemoRefKind.personal, day: ymd(day));
+  }
   return TrainerMemoRef(
     kind: code == 'pt_session'
         ? TrainerMemoRefKind.ptSession
@@ -93,11 +99,12 @@ TrainerMemoRef memoRefForHistory(RoutineHistoryEntry entry) {
   );
 }
 
-/// 최근 [memoRecordLookbackDays] 일 동안 메모를 이을 수 있는 날, 최신 먼저.
-/// (#2622, #2508)
+/// 최근 [memoRecordLookbackDays] 일 동안 메모를 이을 수 있는 기록, 최신 날
+/// 먼저. (#2622, #2508)
 ///
-/// 운동 탭이 날짜 줄마다 메모 자리를 하나 두므로 기록 연결도 날짜 하나를
-/// 고른다 — PT 세션·개인운동 이력이 있거나 운동 기록 행이 있는 날이다.
+/// 운동 탭이 출처(개인운동·회원 추가·PT)마다 메모 자리를 두므로 기록 연결도
+/// 그 출처 하나를 고른다 — 한 날 안에서는 화면과 같은 순서(개인운동 → 회원
+/// 추가 → PT)다. 여기서 이은 메모는 운동 탭 그 줄의 메모 개수에 들어간다.
 final memoRecordOptionsProvider = FutureProvider.autoDispose
     .family<List<TrainerMemoRef>, String>((ref, clientId) async {
       final DateTime now = nowKst();
@@ -112,17 +119,22 @@ final memoRecordOptionsProvider = FutureProvider.autoDispose
         return !d.isBefore(from) && !d.isAfter(today);
       }
 
-      final Set<String> days = <String>{};
+      final Map<String, List<RoutineHistoryEntry>> entriesByDay =
+          <String, List<RoutineHistoryEntry>>{};
       final List<RoutineHistoryEntry> history = await ref.watch(
         clientHistoryProvider(clientId).future,
       );
       for (final RoutineHistoryEntry entry in history) {
-        final DateTime? day = entry.date ?? entry.completedAt;
-        if (day != null && inRange(day)) days.add(ymd(day));
+        final DateTime? day = historyDayOf(entry);
+        // id 를 잃은 옛 기록은 운동 탭에도 메모 자리가 없다.
+        if (day == null || !inRange(day) || entry.id.isEmpty) continue;
+        (entriesByDay[ymd(day)] ??= <RoutineHistoryEntry>[]).add(entry);
       }
 
-      // 회원 직접 기록·개인운동 완료 행은 주 단위 운동 조회에 실려 온다(운동
-      // 탭과 같은 출처).
+      // 회원 추가 기록은 주 단위 운동 조회에 실려 온다(운동 탭과 같은 출처).
+      // 이력이 이미 말하는 운동(PT 완료·개인운동 완료)은 뺀다 — 운동 탭
+      // `회원 추가` 줄과 같은 규칙이다.
+      final Set<String> memberLogDays = <String>{};
       final ClientRepository repo = ref.watch(clientRepositoryProvider);
       for (
         DateTime monday = weekStartOf(from);
@@ -140,15 +152,41 @@ final memoRecordOptionsProvider = FutureProvider.autoDispose
             monday.day + i,
           );
           if (!inRange(day)) continue;
+          final List<RoutineHistoryEntry> entries =
+              entriesByDay[ymd(day)] ?? const <RoutineHistoryEntry>[];
+          final Set<String> inHistory = <String>{
+            for (final RoutineHistoryEntry entry in entries)
+              for (final ClientExerciseItem item in entry.exercises)
+                item.name.trim(),
+          };
           final List<ClientExerciseItem> items =
               week.itemsByDayLabel[label] ?? const <ClientExerciseItem>[];
-          if (items.isNotEmpty) days.add(ymd(day));
+          if (items.any(
+            (ClientExerciseItem item) =>
+                item.isMemberLog && !inHistory.contains(item.name.trim()),
+          )) {
+            memberLogDays.add(ymd(day));
+          }
         }
       }
 
+      bool isPt(RoutineHistoryEntry entry) =>
+          routineKindCode(entry.label, kind: entry.kind) == 'pt_session';
+      final List<String> days = <String>{
+        ...entriesByDay.keys,
+        ...memberLogDays,
+      }.toList()..sort((a, b) => b.compareTo(a));
       return <TrainerMemoRef>[
-        for (final String day in days.toList()..sort((a, b) => b.compareTo(a)))
-          TrainerMemoRef(kind: TrainerMemoRefKind.day, day: day),
+        for (final String day in days) ...<TrainerMemoRef>[
+          for (final RoutineHistoryEntry entry
+              in entriesByDay[day] ?? const <RoutineHistoryEntry>[])
+            if (!isPt(entry)) memoRefForHistory(entry),
+          if (memberLogDays.contains(day))
+            TrainerMemoRef(kind: TrainerMemoRefKind.memberLog, day: day),
+          for (final RoutineHistoryEntry entry
+              in entriesByDay[day] ?? const <RoutineHistoryEntry>[])
+            if (isPt(entry)) memoRefForHistory(entry),
+        ],
       ];
     });
 
@@ -173,38 +211,25 @@ bool _isFor(TrainerMemo memo, TrainerMemoRef ref) {
 
 /// 운동 기록 메모 자리 — 아이콘과, 남긴 메모가 있으면 개수. (#2332)
 ///
-/// 운동 탭은 날짜마다 하나다(#2508) — 이번 주·전체는 날짜 바로 오른쪽, 오늘은
-/// 첫 상자 머리 오른쪽.
+/// 운동 탭은 출처(개인운동·회원 추가·PT)마다 알약 줄 오른쪽 끝에 하나다
+/// (#2508) — `오늘` 상자와 이번 주·전체 펼친 날이 같다.
 ///
 /// 헤더의 `메모` 버튼과 같은 아이콘이다. 여기서 남긴 메모는 그 창의 같은
 /// 목록에 들어간다 — 두 자리가 다른 그림이면 다른 것을 쓰는 곳처럼 보인다.
+///
+/// 메모가 없을 때 아이콘만 두면 무엇을 하는 버튼인지 읽히지 않는다 — 그때는
+/// `+ 메모 추가` 다.
 class ExerciseMemoButton extends ConsumerWidget {
   const ExerciseMemoButton({
     super.key,
     required this.clientId,
     required this.memoRef,
-    this.compact = false,
-    this.addWhenEmpty = true,
   });
 
   final String clientId;
 
   /// 이 카드가 가리키는 기록.
   final TrainerMemoRef memoRef;
-
-  /// 글 한 줄 옆에 설 때(날짜 줄) — 줄 높이만 차지해 줄을 키우지 않는다.
-  /// 누르는 자리는 위아래로 넘친다.
-  final bool compact;
-
-  /// 남긴 메모가 없을 때 `+ 메모 추가` 를 보이는가. false 면 아무것도 두지
-  /// 않는다 — 접힌 날짜 줄마다 빈 자리가 서지 않게.
-  ///
-  /// 메모가 없을 때 아이콘만 두면 무엇을 하는 버튼인지 읽히지 않는다. 개수와
-  /// 아이콘은 이미 메모를 남겨 본 자리에만 선다.
-  final bool addWhenEmpty;
-
-  /// [compact] 일 때 차지하는 높이 — 날짜 글씨 한 줄 높이.
-  static const double compactHeight = 22;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -218,51 +243,45 @@ class ExerciseMemoButton extends ConsumerWidget {
             ?.where((TrainerMemo memo) => _isFor(memo, memoRef))
             .length ??
         0;
-    final String key = memoRef.id ?? 'day-${memoRef.day}';
+    // 날짜로 가리킨 상자(개인운동·회원 추가)는 같은 날이라도 다른 자리다 —
+    // 키에 종류를 넣어 한 화면에서 겹치지 않게 한다.
+    final String key =
+        memoRef.id ??
+        (memoRef.kind == TrainerMemoRefKind.day
+            ? 'day-${memoRef.day}'
+            : '${memoRef.kind.wire}-${memoRef.day}');
     void open() =>
         showExerciseMemoDialog(context, clientId: clientId, memoRef: memoRef);
-    if (count == 0 && !addWhenEmpty) return const SizedBox.shrink();
-    final Widget button = count == 0
-        ? AppButton(
-            key: ValueKey<String>('exercise-memo-open-$key'),
-            onPressed: open,
-            variant: AppButtonVariant.text,
-            size: OnCareButtonSize.small,
-            leadingIcon: AppIcons.add,
-            label: l.clientTrainerMemoAdd,
-          )
-        : Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              if (count > 0)
-                Text(
-                  key: ValueKey<String>('exercise-memo-count-$key'),
-                  '$count',
-                  style: OnCareTypography.numeric(
-                    tokens.text(OnCareTypography.caption),
-                  ).copyWith(color: tokens.brand.primary),
-                ),
-              AppIconButton(
-                key: ValueKey<String>('exercise-memo-open-$key'),
-                icon: AppIcons.note,
-                tooltip: count > 0
-                    ? l.clientExerciseMemoCount(count)
-                    : l.clientExerciseMemoAdd,
-                // 남긴 메모가 있는 기록은 개수와 아이콘을 같은 브랜드 색으로 —
-                // 목록을 훑으며 어디에 적어 두었는지 찾을 수 있다.
-                color: count > 0
-                    ? tokens.brand.primary
-                    : OnCareColors.textSecondary,
-                onPressed: open,
-              ),
-            ],
-          );
-    if (!compact) return button;
-    return IntrinsicWidth(
-      child: SizedBox(
-        height: compactHeight,
-        child: OverflowBox(maxHeight: double.infinity, child: button),
-      ),
+    if (count == 0) {
+      return AppButton(
+        key: ValueKey<String>('exercise-memo-open-$key'),
+        onPressed: open,
+        variant: AppButtonVariant.text,
+        size: OnCareButtonSize.small,
+        leadingIcon: AppIcons.add,
+        label: l.clientTrainerMemoAdd,
+      );
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Text(
+          key: ValueKey<String>('exercise-memo-count-$key'),
+          '$count',
+          style: OnCareTypography.numeric(
+            tokens.text(OnCareTypography.caption),
+          ).copyWith(color: tokens.brand.primary),
+        ),
+        AppIconButton(
+          key: ValueKey<String>('exercise-memo-open-$key'),
+          icon: AppIcons.note,
+          tooltip: l.clientExerciseMemoCount(count),
+          // 남긴 메모가 있는 기록은 개수와 아이콘을 같은 브랜드 색으로 —
+          // 목록을 훑으며 어디에 적어 두었는지 찾을 수 있다.
+          color: tokens.brand.primary,
+          onPressed: open,
+        ),
+      ],
     );
   }
 }

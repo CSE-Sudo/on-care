@@ -1650,6 +1650,8 @@
   "@workoutLineBurned": {"placeholders": {"calories": {"type": "String"}}},
   "workoutLineEstimated": "예상 소모 {calories} kcal",
   "@workoutLineEstimated": {"placeholders": {"calories": {"type": "String"}}},
+  "workoutIntensityPerformed": "수행 {level}",
+  "@workoutIntensityPerformed": {"placeholders": {"level": {"type": "String"}}},
   "workoutDaySourcePt": "PT",
   "workoutPendingTitle": "개인운동",
   "workoutUndatedTitle": "날짜를 알 수 없는 기록",
@@ -1779,7 +1781,7 @@
   "clientExerciseMemoHint": "이 운동 기록에서 기억할 내용을 적어 주세요",
   "clientExerciseMemoSaved": "메모에 남겼어요.",
   "clientMemoTagManual": "직접 작성",
-  "clientMemoTagPtSession": "PT 세션 · {date}",
+  "clientMemoTagPtSession": "PT · {date}",
   "@clientMemoTagPtSession": {
     "placeholders": {
       "date": {
@@ -1806,7 +1808,7 @@
       }
     }
   },
-  "clientMemoTagMemberLog": "회원 기록 · {date}",
+  "clientMemoTagMemberLog": "회원 추가 · {date}",
   "@clientMemoTagMemberLog": {
     "placeholders": {
       "date": {
@@ -1846,7 +1848,7 @@
       }
     }
   },
-  "clientMemoRecordPtSession": "{date} PT 세션",
+  "clientMemoRecordPtSession": "{date} PT",
   "@clientMemoRecordPtSession": {
     "placeholders": {
       "date": {
@@ -1873,7 +1875,7 @@
       }
     }
   },
-  "clientMemoRecordMemberLog": "{date} 회원 기록",
+  "clientMemoRecordMemberLog": "{date} 회원 추가",
   "@clientMemoRecordMemberLog": {
     "placeholders": {
       "date": {
@@ -1894,7 +1896,7 @@
   "clientFeedbackPrivate": "회원과 주고받은 피드백이에요. 누르면 쓴 자리로 가서 고칠 수 있어요.",
   "clientFeedbackToMember": "트레이너 → 회원",
   "clientFeedbackFromMember": "회원 → 트레이너",
-  "clientFeedbackSourcePt": "PT 세션 · {date}",
+  "clientFeedbackSourcePt": "PT · {date}",
   "@clientFeedbackSourcePt": {
     "placeholders": {
       "date": {
