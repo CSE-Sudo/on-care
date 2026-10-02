@@ -1844,6 +1844,24 @@ abstract class AppLocalizations {
   /// **'No workouts logged'**
   String get exOwnRecordsEmpty;
 
+  /// Text link at the bottom of the self-logged workouts card — opens that day's workout detail; same wording as the home card link (#2507).
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get exRecordDetailOpen;
+
+  /// No description provided for @exRecordDetailInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout details'**
+  String get exRecordDetailInfo;
+
+  /// No description provided for @exRecordDetailTotalCalories.
+  ///
+  /// In en, this message translates to:
+  /// **'Total calories burned'**
+  String get exRecordDetailTotalCalories;
+
   /// No description provided for @exOwnRecordSource.
   ///
   /// In en, this message translates to:
@@ -6408,11 +6426,17 @@ abstract class AppLocalizations {
   /// **'AI recommended solo workouts'**
   String get coachRoutineAiTitle;
 
-  /// No description provided for @coachRoutinePastReadOnly.
+  /// Shown after tapping the pencil on a past day's recommended exercises — past checks are allowed and marked as late for the trainer (#2506).
   ///
   /// In en, this message translates to:
-  /// **'What you did that day. Past days can\'t be checked.'**
-  String get coachRoutinePastReadOnly;
+  /// **'You can add a missed check now. Your trainer will see it as checked later.'**
+  String get coachRoutinePastEditHint;
+
+  /// Leaves the past-day check editing mode (#2506).
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get coachRoutinePastEditDone;
 
   /// Shown after a routine is marked done.
   ///
@@ -6611,12 +6635,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Suggested {level}'**
   String coachRoutinePlannedIntensity(String level);
-
-  /// The intensity the member logged for a completed routine.
-  ///
-  /// In en, this message translates to:
-  /// **'Logged {level}'**
-  String coachRoutineDoneIntensity(String level);
 
   /// Submit button of the completion dialog.
   ///

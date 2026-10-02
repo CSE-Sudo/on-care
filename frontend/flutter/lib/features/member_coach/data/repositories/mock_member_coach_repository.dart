@@ -95,6 +95,12 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   /// 남겨 두어야 지난 날짜를 열었을 때 그날 걸려 있던 목록이 그대로 보인다.
   final Map<String, String> _endedOn = <String, String>{};
 
+  /// 지난 날짜에서 해제한 픽스처 완료 — `그날|루틴 id`. (#2506)
+  ///
+  /// 지난 날짜의 완료는 공유 픽스처가 정한다([_fixtureCompletion]). 회원이 그
+  /// 체크를 풀면 픽스처를 고칠 수 없으니 여기 적어 두고 그 완료를 덮는다.
+  final Set<String> _fixtureUndone = <String>{};
+
   static String _dayKey(DateTime day) => wireDate(day);
 
   /// 데모의 트레이너 배정이 걸리기 시작한 날 — 오늘 포함 4주의 첫날. (#2162)
@@ -463,7 +469,9 @@ class MockMemberCoachRepository implements MemberCoachRepository {
           in _hasCoach() ? _routines : _autoRoutines)
         if (_isListedOn(routine.id, key))
           done[routine.id] ??
-              (today ? routine : _fixtureCompletion(routine, key) ?? routine),
+              (today || _fixtureUndone.contains('$key|${routine.id}')
+                  ? routine
+                  : _fixtureCompletion(routine, key) ?? routine),
     ]);
   }
 
@@ -519,8 +527,16 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   );
 
   /// 오늘 목록의 [routineId]. 없으면(취소했거나 남의 것) 실서버처럼 못 찾는다.
-  CoachRoutine _todayRoutine(String routineId) {
-    final String key = _dayKey(todayKst());
+  CoachRoutine _todayRoutine(String routineId) =>
+      _routineOn(routineId, todayKst());
+
+  /// [day] 목록의 [routineId] — 그날 걸려 있지 않았으면 실서버처럼 못 찾는다.
+  /// (#2506)
+  CoachRoutine _routineOn(String routineId, DateTime day) {
+    final String key = _dayKey(day);
+    if (_hasCoach() && key.compareTo(_routineSinceKey()) < 0) {
+      throw StateError('Routine not found.');
+    }
     for (final CoachRoutine routine
         in _hasCoach() ? _routines : _autoRoutines) {
       if (routine.id == routineId && _isListedOn(routineId, key)) {
@@ -536,12 +552,18 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     required int minutes,
     int? durationSeconds,
     String intensity = 'moderate',
+    DateTime? day,
   }) async {
     await _restoreCompletions();
-    final CoachRoutine routine = _todayRoutine(routineId);
-    final String day = _dayKey(todayKst());
-    final String slot = '$day|$routineId';
-    final CoachRoutine? already = _doneByDay[day]?[routineId];
+    final DateTime target = _targetDay(day);
+    final CoachRoutine routine = _routineOn(routineId, target);
+    final String key = _dayKey(target);
+    final String slot = '$key|$routineId';
+    final CoachRoutine? already =
+        _doneByDay[key]?[routineId] ??
+        (_fixtureUndone.contains(slot) || target == todayKst()
+            ? null
+            : _fixtureCompletion(routine, key));
     if (already != null) {
       // 같은 날 재전송은 새로 적립하지 않고 처음 받은 값을 돌려준다 — 실서버와
       // 같다.
@@ -556,20 +578,26 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     final int? seconds = durationSeconds != null && durationSeconds > 0
         ? durationSeconds
         : null;
+    // 지난 날짜 기록은 그날 정오에 놓는다 — 실서버와 같다(#2506).
+    final DateTime at = target == todayKst()
+        ? nowKst()
+        : DateTime(target.year, target.month, target.day, 12);
     final CoachRoutine completed = routine.copyWith(
       completed: true,
-      completedAt: nowKst(),
+      completedAt: at,
       completedMinutes: minutes,
       completedDurationSeconds: seconds,
       completedIntensity: intensity,
     );
-    (_doneByDay[day] ??= <String, CoachRoutine>{})[routineId] = completed;
+    _fixtureUndone.remove(slot);
+    (_doneByDay[key] ??= <String, CoachRoutine>{})[routineId] = completed;
     await _logSession(
       completed,
       slot: slot,
       minutes: minutes,
       durationSeconds: seconds,
       intensity: intensity,
+      at: at,
     );
     final PointsAward? award = _awardCompletion(slot);
     return award == null ? completed : completed.copyWith(pointsAward: award);
@@ -587,19 +615,28 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   }
 
   @override
-  Future<CoachRoutine> uncompleteRoutine(String routineId) async {
+  Future<CoachRoutine> uncompleteRoutine(
+    String routineId, {
+    DateTime? day,
+  }) async {
     await _restoreCompletions();
     // 오늘 취소한 배정이라도 오늘 남긴 완료는 되돌릴 수 있다 — 실서버와 같다.
-    final String day = _dayKey(todayKst());
-    final CoachRoutine? done = _doneByDay[day]?.remove(routineId);
+    final DateTime target = _targetDay(day);
+    final String key = _dayKey(target);
+    final String slot = '$key|$routineId';
+    final CoachRoutine? done = _doneByDay[key]?.remove(routineId);
     final CoachRoutine base = <CoachRoutine>[..._routines, ..._autoRoutines]
         .firstWhere(
           (CoachRoutine routine) => routine.id == routineId,
           orElse: () => throw StateError('Routine not found.'),
         );
-    // 지난 날짜의 완료는 건드리지 않는다 — 지난 날짜는 읽기 전용이다.
+    // 지난 날짜의 픽스처 완료도 함께 푼다(#2506) — 픽스처는 고칠 수 없어 덮어
+    // 둔다. 회원이 다시 체크했다 푼 날도 같다: 그러지 않으면 푼 뒤에 픽스처의
+    // 완료가 되살아난다.
+    if (target != todayKst() && _fixtureCompletion(base, key) != null) {
+      _fixtureUndone.add(slot);
+    }
     if (done == null) return base;
-    final String slot = '$day|$routineId';
     // 이 완료로 받은 포인트를 회수한다(#1786).
     final String? source = _completionSources.remove(slot);
     if (source != null) {
@@ -621,6 +658,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     required String slot,
     required int minutes,
     required String intensity,
+    required DateTime at,
     int? durationSeconds,
   }) async {
     final RoutineSessionLog? exercise = _exercise;
@@ -638,11 +676,23 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       minutes: minutes,
       durationSeconds: durationSeconds,
       calories: estimateExerciseCalories(type, minutes, intensity: level),
-      date: nowKst(),
+      date: at,
       intensity: level,
     );
     final String? id = session.id;
     if (id != null) _completionSessions[slot] = id;
+  }
+
+  /// 완료·해제가 다룰 날. 비우면 오늘, 아직 오지 않은 날은 실서버처럼(422)
+  /// 거절한다. (#2506)
+  static DateTime _targetDay(DateTime? day) {
+    final DateTime today = todayKst();
+    if (day == null) return today;
+    final DateTime date = DateTime(day.year, day.month, day.day);
+    if (date.isAfter(today)) {
+      throw ArgumentError.value(day, 'day', '아직 오지 않은 날입니다.');
+    }
+    return date;
   }
 
   @override
