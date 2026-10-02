@@ -1429,11 +1429,13 @@ TrainerClient trainerClientFromRow(
   final sugarWeek = (jsonDecode(row.sugarWeekJson) as List<Object?>)
       .map((e) => (e as num).toDouble())
       .toList();
+  // 담당을 해제한 회원은 이름·상태만 남긴다(#2814) — 성별·나이·건강 목표는
+  // 동의 범위의 신체·건강 정보라 실서버 로스터(`build_roster`)처럼 비운다.
   return TrainerClient(
     id: row.id,
     name: row.name,
     avatar: row.avatar,
-    goal: row.goal,
+    goal: registered ? row.goal : '',
     lastMessage: row.lastMessage,
     lastTime: row.lastTime,
     active: row.active,
@@ -1452,10 +1454,9 @@ TrainerClient trainerClientFromRow(
     // 데모의 PT 관리 신호 — 서버 로스터와 같은 JSON 모양으로 저장한다(#2204).
     signals: clientSignalsFromJson(jsonDecode(row.signalsJson)),
     // 회원 ID로 연결한 고객만 채워진다 — 회원 본인의 실제 프로필 값이다.
-    // 성별이 비어 있으면 예전 행을 위한 표시용 폴백(rosterGender)이 대신
-    // 쓰이고, 나이가 비어 있으면 나이를 적지 않는다(#2744).
-    gender: row.gender ?? '',
-    age: row.age,
+    // 성별·나이가 비어 있으면 화면이 적지 않는다(#2744·#2814).
+    gender: registered ? row.gender ?? '' : '',
+    age: registered ? row.age : null,
   );
 }
 
