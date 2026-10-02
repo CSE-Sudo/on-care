@@ -7,8 +7,9 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 bool _isMidnight(DateTime d) =>
     d.hour == 0 && d.minute == 0 && d.second == 0 && d.millisecond == 0;

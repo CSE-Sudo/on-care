@@ -17,7 +17,6 @@ import 'package:oncare/features/exercise/presentation/widgets/own_exercise_recor
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/coach_routine_detail.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
-import 'package:oncare/features/member_coach/presentation/routine_effect_text.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -39,7 +38,31 @@ class CoachCard extends ConsumerWidget {
     final OnCareTokens tokens = context.oncare;
     final coachAsync = ref.watch(memberCoachProvider);
     final coach = coachAsync.valueOrNull;
-    if (coach == null) return const SizedBox.shrink();
+    if (coach == null) {
+      // 조회 실패와 담당 없음은 다르다(#2843). 실패한 채 카드를 숨기면 연결된
+      // 회원에게 트레이너가 사라진 것처럼 보인다 — 다시 시도할 자리를 둔다.
+      if (coachAsync.hasError && !coachAsync.isLoading) {
+        return Padding(
+          key: const Key('coachCardLoadFailed'),
+          padding: const EdgeInsets.fromLTRB(
+            OnCareSpacing.s24,
+            0,
+            OnCareSpacing.s24,
+            OnCareSpacing.s20,
+          ),
+          child: AppCard(
+            child: AppErrorState(
+              title: l.coachTrainerLoadFailed,
+              retryLabel: l.actionRetry,
+              retryKey: const Key('coachCardRetry'),
+              onRetry: () => ref.invalidate(memberCoachProvider),
+              placement: AppStatePlacement.card,
+            ),
+          ),
+        );
+      }
+      return const SizedBox.shrink();
+    }
     // 트레이너 상세는 이제 트레이너 id 로 라우팅한다 — 한 헬스장에
     // 여러 명이 있으므로 헬스장 id 로는 한 명을 특정할 수 없다.
     final assignedTrainer = ref.watch(myTrainerProvider).valueOrNull;
@@ -93,8 +116,12 @@ class CoachCard extends ConsumerWidget {
                                 )
                                 .copyWith(color: OnCareColors.textTertiary),
                           ),
+                          // 전문 분야를 비운 트레이너는 이름만 — 가운뎃점만
+                          // 남지 않게 한다(#2880, 트레이너 정보 한 줄 #2083).
                           Text(
-                            '${coach.name} · ${coach.specialty}',
+                            coach.specialty.trim().isEmpty
+                                ? coach.name
+                                : '${coach.name} · ${coach.specialty}',
                             style: tokens
                                 .text(OnCareTypography.titleSmall)
                                 .copyWith(color: OnCareColors.textPrimary),
@@ -139,22 +166,42 @@ class CoachCard extends ConsumerWidget {
 /// 추천 개인운동은 `추가 운동` 이 아니라 **PT 와 다음 PT 사이에 스스로 하는
 /// 운동**이다. 그래서 추천할 것이 없는 날은 빈 카드를 만들지 않고 코칭 포인트만
 /// 남긴다 — AI 가 매번 운동을 억지로 만들어 낼 이유가 없다.
-class AiCoachingCard extends ConsumerWidget {
+class AiCoachingCard extends ConsumerStatefulWidget {
   const AiCoachingCard({super.key, this.day});
 
   /// 지난 날짜를 볼 때 그날. 비어 있으면 오늘이다. (#2161)
   ///
   /// 추천 개인운동은 매일 새로 체크하는 목록이라, 지난 날짜에도 그날 걸려 있던
-  /// 목록과 그날 한 것을 오늘과 같은 모양으로 보여 준다. 다만 **체크할 수
-  /// 없다** — 지나간 날의 기록을 뒤늦게 고치면 트레이너가 본 기록과 갈린다.
+  /// 목록과 그날 한 것을 오늘과 같은 모양으로 보여 준다. 처음에는 **보기만**
+  /// 한다 — 머리의 연필을 눌러야 빠뜨린 체크를 고칠 수 있다(#2506). 식단·직접
+  /// 기록한 운동처럼 지난 날짜도 고칠 수 있게 하되, 지나간 날을 훑다가 잘못
+  /// 눌러 트레이너가 본 기록이 바뀌지 않게 한 번 더 손이 가게 한다.
   final DateTime? day;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AiCoachingCard> createState() => _AiCoachingCardState();
+}
+
+class _AiCoachingCardState extends ConsumerState<AiCoachingCard> {
+  /// 지난 날짜에서 연필을 눌러 체크를 고치는 중인가. (#2506)
+  bool _editing = false;
+
+  @override
+  void didUpdateWidget(AiCoachingCard old) {
+    super.didUpdateWidget(old);
+    // 다른 날로 옮기면 보기로 돌아간다 — 고치던 날이 아닌 날이 열린 채 남지
+    // 않게.
+    if (old.day != widget.day) _editing = false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    final DateTime? pastDay = day;
-    final bool readOnly = pastDay != null;
+    final DateTime? pastDay = widget.day;
+    final bool past = pastDay != null;
+    // 지난 날짜의 보기 상태 — 체크 박스 대신 표시만 둔다(#2506).
+    final bool readOnly = past && !_editing;
     // 트레이너 추천과 AI 추천을 한 목록으로 합친다. 회원에게는 "지금 무엇을
     // 하면 되는가" 라는 한 가지 질문이고, 누가 정했는지는 각 줄의 출처가 말한다.
     final List<CoachRoutine> routines =
@@ -180,7 +227,7 @@ class AiCoachingCard extends ConsumerWidget {
     if (routines.isEmpty) return const SizedBox.shrink();
 
     return AppCard(
-      key: Key(readOnly ? 'aiCoachingCardPast' : 'aiCoachingCard'),
+      key: Key(past ? 'aiCoachingCardPast' : 'aiCoachingCard'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -211,7 +258,7 @@ class AiCoachingCard extends ConsumerWidget {
               // 그 회원의 것이 아니다 — 서버도 403 으로 막는다(#1823).
               //
               // 지난 날짜는 그날 무엇을 했는지 보는 자리라 두지 않는다(#2161).
-              if (unassigned && !readOnly)
+              if (unassigned && !past)
                 AppButton(
                   key: const Key('routineInsightHistoryButton'),
                   label: l.aicInsightHistoryAction,
@@ -221,21 +268,42 @@ class AiCoachingCard extends ConsumerWidget {
                   variant: AppButtonVariant.brandOutline,
                   onPressed: () => showInsightHistorySheet(context, ref),
                 ),
+              // 지난 날짜는 연필을 눌러야 체크를 고친다(#2506). 식단 끼니
+              // 상세·MY 머리의 연필과 같은 크기·색이다 — "들어간 자리에서
+              // 고친다" 는 같은 뜻이다.
+              if (past && !_editing)
+                AppIconButton(
+                  key: const Key('coachRoutinePastEdit'),
+                  icon: AppIcons.edit,
+                  tooltip: l.actionEdit,
+                  size: AppIconButtonSize.small,
+                  // 연필은 앱 전체에서 회색이다 — 목록의 `›` 와 같은 색(#2507).
+                  color: OnCareColors.textTertiary,
+                  onPressed: () => setState(() => _editing = true),
+                ),
+              if (past && _editing)
+                AppButton(
+                  key: const Key('coachRoutinePastEditDone'),
+                  label: l.coachRoutinePastEditDone,
+                  size: OnCareButtonSize.small,
+                  variant: AppButtonVariant.text,
+                  onPressed: () => setState(() => _editing = false),
+                ),
             ],
           ),
           // 카드 제목이 이미 `추천 개인운동` 이라 안에 같은 말을 또 두지
           // 않는다. `PT 와 다음 PT 사이…` 안내도 뺐다 (#1130).
           //
-          // 지난 날짜는 체크 박스가 눌리지 않는 까닭을 한 줄로 말한다(#2161).
-          // 말없이 막히면 고장으로 읽힌다.
-          if (readOnly) ...<Widget>[
+          // 지난 날짜를 고치는 중에는 이 체크가 트레이너에게 어떻게 보이는지
+          // 한 줄로 말한다(#2506) — 모르고 몰아 체크하면 나중에 오해가 된다.
+          if (past && _editing) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s4),
             Text(
-              l.coachRoutinePastReadOnly,
-              key: const Key('coachRoutinePastReadOnly'),
+              l.coachRoutinePastEditHint,
+              key: const Key('coachRoutinePastEditHint'),
               style: tokens
                   .text(OnCareTypography.caption)
-                  .copyWith(color: OnCareColors.textTertiary),
+                  .copyWith(color: OnCareColors.textSecondary),
             ),
           ],
           const SizedBox(height: OnCareSpacing.s12),
@@ -278,8 +346,9 @@ class AiCoachingCard extends ConsumerWidget {
               routine: routine,
               // 담당이 배정한 것을 회원이 조용히 없애면 다음 상담에서 둘이
               // 서로 다른 기록을 본다. 담당이 없을 때만 스스로 물린다. (#1020)
-              cancellable: unassigned && !readOnly,
+              cancellable: unassigned && !past,
               readOnly: readOnly,
+              day: pastDay,
             ),
             const SizedBox(height: OnCareSpacing.s8),
           ],
@@ -305,7 +374,8 @@ class _RoutineCheckbox extends StatelessWidget {
   final bool done;
   final bool saving;
 
-  /// 누르면 할 일. 비어 있으면 읽기 전용이다 — 지난 날짜의 목록(#2161).
+  /// 누르면 할 일. 비어 있으면 보기 상태다 — 연필을 누르기 전의 지난 날짜
+  /// 목록(#2161, #2506).
   final VoidCallback? onCheck;
 
   @override
@@ -318,6 +388,25 @@ class _RoutineCheckbox extends StatelessWidget {
       child: Center(
         child: saving
             ? const AppLoading.inline()
+            // 보기 상태는 체크 박스가 아니라 **표시**다(#2506). 테마가 비활성
+            // 체크 박스를 켜진 것과 같은 모양으로 그려, 눌리지 않는 박스가
+            // 눌릴 것처럼 보였다.
+            : onCheck == null
+            ? Semantics(
+                checked: done,
+                label: l.coachRoutineDone,
+                child: done
+                    ? AppIcon(
+                        AppIcons.checkCircle,
+                        size: OnCareSize.iconLarge,
+                        color: context.oncare.brand.primary,
+                      )
+                    : const AppIcon(
+                        AppIcons.remove,
+                        size: OnCareSize.iconMedium,
+                        color: OnCareColors.textDisabled,
+                      ),
+              )
             : Semantics(
                 checked: done,
                 label: l.coachRoutineDone,
@@ -337,10 +426,16 @@ class _RecommendedExerciseRow extends ConsumerStatefulWidget {
     required this.routine,
     required this.cancellable,
     this.readOnly = false,
+    this.day,
   });
 
-  /// 지난 날짜의 줄 — 했는지만 보이고 체크할 수 없다. (#2161)
+  /// 보기 상태의 줄 — 했는지만 보이고 체크할 수 없다. 지난 날짜에서 연필을
+  /// 누르기 전이다. (#2161, #2506)
   final bool readOnly;
+
+  /// 지난 날짜의 줄이면 그날 — 체크·해제를 그날로 보낸다. 오늘이면 비어 있다.
+  /// (#2506)
+  final DateTime? day;
 
   final CoachRoutine routine;
 
@@ -422,12 +517,13 @@ class _RecommendedExerciseRowState
     try {
       await ref
           .read(memberCoachRepositoryProvider)
-          .uncompleteRoutine(routine.id);
+          .uncompleteRoutine(routine.id, day: widget.day);
       // 목록과 함께 운동 AI 조언도 다시 읽는다 — 조언이 오늘 한 추천 운동을
       // 보고 말한다(#2161, #2162).
       refreshCoachRoutines(ref);
       // 운동 기록 삭제와 같은 갱신이다(#2634) — 되돌린 완료의 적립 회수(#1786)와
-      // 함께 MY 기록 달력·보호권·주간 챌린지도 다시 읽는다.
+      // 함께 MY 기록 달력·보호권·주간 챌린지도 다시 읽는다. 지난 주도 비워
+      // 지난 날짜 해제(#2506)가 그 주 합계에 바로 반영된다.
       refreshAfterExerciseChange(ref.invalidate);
       if (mounted) {
         showAppToast(context, l.coachRoutineUndone, type: AppToastType.success);
@@ -474,12 +570,14 @@ class _RecommendedExerciseRowState
             // 되지 않게. 근력·옛 응답은 초가 없어 분만 간다.
             durationSeconds: routine.durationSeconds,
             intensity: input.intensity,
+            day: widget.day,
           );
       // 목록과 함께 운동 AI 조언도 다시 읽는다 — 조언이 오늘 한 추천 운동을
       // 보고 말한다(#2161, #2162).
       refreshCoachRoutines(ref);
       // 운동 기록 저장과 같은 갱신이다(#2634) — 보호권(#1788)·달력 칸(#2075)·
-      // 적립(#1786)·주간 챌린지를 함께 다시 읽는다.
+      // 적립(#1786)·주간 챌린지를 함께 다시 읽는다. 지난 주도 비워 지난 날짜
+      // 체크(#2506)가 그 주 합계에 바로 반영된다.
       refreshAfterExerciseChange(ref.invalidate);
       if (mounted) {
         showAppToast(
@@ -593,7 +691,11 @@ class _RecommendedExerciseRowState
                         const SizedBox(height: OnCareSpacing.s2),
                         Text(
                           // 공용 표의 자동 문구는 화면 언어로 옮긴다(#2725).
-                          routineEffectText(l, routine.effect),
+                          // 번역 표는 두 앱이 함께 쓰는 `oncare_ui` 한 벌이다(#2906).
+                          routineEffectText(
+                            routine.effect,
+                            languageCode: l.localeName,
+                          ),
                           key: ValueKey<String>('routine-effect-${routine.id}'),
                           style: detailStyle,
                         ),
@@ -684,8 +786,9 @@ class _RecommendedExerciseRowState
                               fit: BoxFit.scaleDown,
                               child: AppTag(
                                 key: Key('routineDoneIntensity-${routine.id}'),
-                                label: l.coachRoutineDoneIntensity(
-                                  exerciseIntensityLabel(l, _doneIntensity!),
+                                label: exerciseIntensityLabel(
+                                  l,
+                                  _doneIntensity!,
                                 ),
                                 tone: AppTagTone.brand,
                               ),

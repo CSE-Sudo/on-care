@@ -9,8 +9,6 @@ import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/storage/app_database.dart';
-import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
@@ -28,8 +26,10 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
+import 'package:oncare_core/clock.dart';
 
 import '../../helpers/demo_exercise.dart';
+import '../../helpers/mock_account_repository.dart';
 
 class _GoalSyncHost extends StatefulWidget {
   const _GoalSyncHost();
@@ -98,11 +98,14 @@ class _SessionMemberCoachRepository implements MemberCoachRepository {
     required int minutes,
     int? durationSeconds,
     String intensity = 'moderate',
+    DateTime? day,
   }) async => throw UnsupportedError('not used');
 
   @override
-  Future<CoachRoutine> uncompleteRoutine(String routineId) async =>
-      throw UnimplementedError();
+  Future<CoachRoutine> uncompleteRoutine(
+    String routineId, {
+    DateTime? day,
+  }) async => throw UnimplementedError();
 
   @override
   Future<void> deleteRoutine(String routineId) async {}
@@ -145,8 +148,9 @@ class _SessionMemberCoachRepository implements MemberCoachRepository {
   // 주간 피드백은 이 대역이 서는 화면의 관심사가 아니다 — 안 낸 주로 답한다.
   // (#2232)
   @override
-  Future<MemberWeeklyFeedback> fetchWeeklyFeedback({DateTime? weekStart}) async =>
-      MemberWeeklyFeedback.empty(weekStart ?? manualFeedbackWeek());
+  Future<MemberWeeklyFeedback> fetchWeeklyFeedback({
+    DateTime? weekStart,
+  }) async => MemberWeeklyFeedback.empty(weekStart ?? manualFeedbackWeek());
 
   @override
   Future<MemberWeeklyFeedback> saveWeeklyFeedback({
@@ -487,7 +491,19 @@ void main() {
       find.byKey(const Key('completedPtSessionCard')),
       400,
     );
-    expect(find.text('숄더 프레스 · 4세트 · 12회 · 10kg · 보통'), findsOneWidget);
+    // 종목 줄은 `이름 · 운동량`, 그날 강도는 카드 머리 오른쪽 태그 하나다(#2507).
+    final Finder card = find.byKey(const Key('completedPtSessionCard'));
+    expect(
+      find.descendant(
+        of: card,
+        matching: find.text('숄더 프레스 · 4세트 · 12회 · 10kg'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: card, matching: find.text('보통')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('완료한 PT 의 운동 시간은 초까지 적힌 만큼 읽힌다 (#2221)', (
@@ -598,14 +614,11 @@ void main() {
       ),
     );
 
-    await tester.scrollUntilVisible(
-      find.text('벤치프레스 · 4세트 · 10회 · 40kg · 보통'),
-      400,
-    );
+    await tester.scrollUntilVisible(find.text('벤치프레스 · 4세트 · 10회 · 40kg'), 400);
 
-    expect(find.text('벤치프레스 · 4세트 · 10회 · 40kg · 보통'), findsOneWidget);
-    expect(find.text('덤벨 숄더프레스 · 4세트 · 12회 · 10kg · 보통'), findsOneWidget);
-    expect(find.text('랫풀다운 · 4세트 · 12회 · 45kg · 보통'), findsOneWidget);
+    expect(find.text('벤치프레스 · 4세트 · 10회 · 40kg'), findsOneWidget);
+    expect(find.text('덤벨 숄더프레스 · 4세트 · 12회 · 10kg'), findsOneWidget);
+    expect(find.text('랫풀다운 · 4세트 · 12회 · 45kg'), findsOneWidget);
     expect(find.text('18:00 완료'), findsOneWidget);
     // 지난 11주 매주 한 번 + 오늘 — 어느 요일이든 12회차다.
     expect(find.text('12회차'), findsOneWidget);

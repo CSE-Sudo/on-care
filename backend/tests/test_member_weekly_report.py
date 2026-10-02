@@ -30,7 +30,7 @@ def _login(client, email: str, password: str = "oncare123") -> str:
 
 
 def _this_monday() -> date:
-    from app.services.trainer_service import week_start_of
+    from app.services.trainer.reports import week_start_of
 
     return week_start_of(clock.today())
 

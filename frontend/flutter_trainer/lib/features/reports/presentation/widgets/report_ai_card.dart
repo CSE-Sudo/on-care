@@ -51,13 +51,29 @@ class ReportAiCard extends ConsumerWidget {
     final summary = ref.watch(reportSummaryProvider(key));
     final Widget content = summary.when(
       loading: () => const AppLoading(placement: AppStatePlacement.card),
-      // 생성이 실패해도 카드가 비지 않는다 — 예전 안내문으로 되돌아가 그
-      // 자리에 무엇이 올지는 말해 준다.
-      error: (_, _) => Text(
-        l.reportsAiUnavailable,
-        style: tokens
-            .text(OnCareTypography.bodySmall)
-            .copyWith(color: OnCareColors.textSecondary),
+      // 생성이 실패해도 카드가 비지 않는다 — 실패를 말하고 그 자리에서 다시
+      // 시도하게 한다(#2885). 예전에는 안내문만 남아, 일시적 실패 뒤에는
+      // 화면을 나갔다 오는 것 말고 길이 없었다.
+      error: (_, _) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(
+            l.reportsAiFailed,
+            style: tokens
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textSecondary),
+          ),
+          const SizedBox(height: OnCareSpacing.s8),
+          AppButton(
+            key: const ValueKey<String>('reports-ai-retry'),
+            label: l.actionRetry,
+            leadingIcon: AppIcons.refresh,
+            variant: AppButtonVariant.text,
+            size: OnCareButtonSize.small,
+            onPressed: () => ref.invalidate(reportSummaryProvider(key)),
+          ),
+        ],
       ),
       data: (value) => _SummaryBody(
         summary: value,

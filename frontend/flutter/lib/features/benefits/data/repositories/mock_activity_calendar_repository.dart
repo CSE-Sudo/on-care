@@ -1,9 +1,10 @@
 import 'package:oncare/core/points/demo_streak_shields.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart';
 import 'package:oncare/features/benefits/domain/repositories/activity_calendar_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 데모 모드의 기록 그래프 저장소 — 목업 API 의 답에 **운동만 덧씌운다**.
 /// (#2075, #2076)
@@ -80,7 +81,7 @@ class MockActivityCalendarRepository implements ActivityCalendarRepository {
   Future<Set<String>> _exerciseDays(DateTime first, DateTime last) async {
     final List<DateTime> mondays = <DateTime>[
       for (
-        DateTime monday = _mondayOf(first);
+        DateTime monday = mondayOf(first);
         !monday.isAfter(last);
         monday = _shift(monday, 7)
       )
@@ -109,8 +110,6 @@ class MockActivityCalendarRepository implements ActivityCalendarRepository {
 
   static DateTime _shift(DateTime d, int days) =>
       DateTime(d.year, d.month, d.day + days);
-
-  static DateTime _mondayOf(DateTime d) => _shift(d, 1 - d.weekday);
 
   static String _key(DateTime d) => '${d.year}-${d.month}-${d.day}';
 }

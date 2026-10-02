@@ -4,12 +4,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_core/request_id.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/core/utils/request_id.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/core/web/leave_guard.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
@@ -18,15 +18,20 @@ import 'package:oncare_trainer/features/clients/presentation/widgets/client_exer
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_section.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/diet_view.dart'
     show ClientDietAnalysisPanel;
+import 'package:oncare_trainer/features/coaching/data/coaching_draft_autosaver.dart';
+import 'package:oncare_trainer/features/coaching/data/dtos/coaching_workspace_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/program_draft_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/ai_routine_repository.dart';
+import 'package:oncare_trainer/features/coaching/data/repositories/trainer_program_draft_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_program_template_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_suggestion_repository.dart';
+import 'package:oncare_trainer/features/coaching/domain/coaching_workspace_draft.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/ai_routine_item.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/trainer_program_draft.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_editor_state.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_template.dart';
 import 'package:oncare_trainer/features/coaching/presentation/pages/ai_routine_options_flow.dart';
@@ -238,9 +243,36 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   bool get _hasUnsentWork {
     final String? id = _clientId;
     if (id == null) return false;
-    if (_unsentWorkClients.contains(id)) return true;
-    return !_sent && (_personalRoutines[id]?.isNotEmpty ?? false);
+    return _hasUnsentWorkFor(id);
   }
+
+  /// [clientId] 에게 보내지 않은 작성 내용이 있는가. `_sent` 는 지금 회원의
+  /// 값이라, 다른 회원이면 개인운동만 본다.
+  bool _hasUnsentWorkFor(String clientId) {
+    if (_unsentWorkClients.contains(clientId)) return true;
+    final bool sent = _sent && clientId == _clientId;
+    return !sent && (_personalRoutines[clientId]?.isNotEmpty ?? false);
+  }
+
+  /// 작성 중 내용의 회원별 자동 보관(#2873). 저장소를 읽지 못하는 자리(저장소를
+  /// 붙이지 않은 위젯 테스트 등)에서는 없다 — 보관만 못 할 뿐 화면은 같다.
+  CoachingDraftAutosaver? _autosaver;
+
+  /// 회원별 마지막 위저드 작성 상태와 편집기 구성 — 자동 보관이 싣는다.
+  /// 위저드·편집기가 그리는 도중에 알려 오므로 다시 그리지 않고 적어 둔다.
+  final Map<String, AiRoutineWizardSnapshot> _wizardSnapshots =
+      <String, AiRoutineWizardSnapshot>{};
+  final Map<String, ProgramEditorState> _editorStates =
+      <String, ProgramEditorState>{};
+
+  /// `이어서 쓰기` 로 되살릴 편집기·위저드. 그 판번호의 편집기·위저드에만
+  /// 넘긴다 — 보낸 뒤 새로 서는 편집기·위저드는 빈 채로 선다.
+  ({String clientId, int revision, ProgramEditorState draft})? _restoredEditor;
+  ({String clientId, int revision, AiRoutineWizardSnapshot snapshot})?
+  _restoredWizard;
+
+  /// 자동 보관을 이미 살펴본 회원. 같은 회원을 다시 그릴 때마다 묻지 않는다.
+  String? _draftCheckedFor;
 
   @override
   void dispose() {
@@ -249,6 +281,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     _resetNotifier?.removeListener(_resetScroll);
     _sentTimer?.cancel();
     _wizardNav.dispose();
+    // 기다리던 보관은 거둔다. 탭을 옮겨도 이 화면은 남으므로, 사라지는 것은
+    // 로그아웃·계정 전환 때다 — 그때 앞 계정 앞으로 저장하면 안 된다.
+    _autosaver?.dispose();
     super.dispose();
   }
 
@@ -259,6 +294,170 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     // 보내지 않은 작성 내용이 있으면 새로 고침·탭 닫기 앞에서 브라우저가
     // 묻는다(#2873). 막을지는 떠나는 순간에 정한다.
     setLeaveGuard(this, () => mounted && _hasUnsentWork);
+    try {
+      _autosaver = CoachingDraftAutosaver(
+        ref.read(trainerProgramDraftRepositoryProvider),
+      );
+    } on Object {
+      _autosaver = null;
+    }
+  }
+
+  /// 지금 작성 내용을 [client] 의 자동 보관에 건다(#2873).
+  ///
+  /// 보내지 않은 작성 내용이 있을 때만 건다 — 이탈 경고와 같은 기준이다. 같은
+  /// 내용이면 보관기가 거른다. 다시 그리게 하지 않으므로 그리는 도중에도 부를
+  /// 수 있다 — 그래서 [fallbackName] 은 부르는 쪽이 미리 읽어 넘긴다.
+  void _scheduleAutosave(TrainerClient client, String fallbackName) {
+    final CoachingDraftAutosaver? saver = _autosaver;
+    if (saver == null || !mounted) return;
+    if (!_hasUnsentWorkFor(client.id)) return;
+    // 스케줄의 PT 에 붙이는 짧은 흐름은 그 PT 의 일이라 보관하지 않는다.
+    if (_draftAttachFor == client.id) return;
+    final CoachingWorkspaceDraft draft = CoachingWorkspaceDraft(
+      memberId: client.id,
+      phase: _aiWizardVisible
+          ? CoachingWorkspacePhase.wizard
+          : CoachingWorkspacePhase.editor,
+      editor: _editorStates[client.id],
+      wizard: _wizardSnapshots[client.id],
+      personalRoutines:
+          _personalRoutines[client.id] ?? const <RoutineExercise>[],
+      routineOnly: _routineOnlyClients.contains(client.id),
+      routineOnlyStart: _routineOnlyStart[client.id],
+    );
+    saver.schedule(
+      client.id,
+      coachingDraftPayload(draft, fallbackName: fallbackName),
+    );
+  }
+
+  /// 전송·템플릿 저장으로 작성 내용을 다 썼다 — 자동 보관을 지운다(#2873).
+  void _discardAutosave(String clientId) {
+    _editorStates.remove(clientId);
+    _wizardSnapshots.remove(clientId);
+    final CoachingDraftAutosaver? saver = _autosaver;
+    if (saver != null) unawaited(saver.discard(clientId));
+  }
+
+  /// [client] 를 처음 그릴 때 자동 보관해 둔 작성 내용이 있는지 본다(#2873).
+  ///
+  /// 그리는 도중에 불리므로 다음 프레임에 읽는다. 이미 이 화면에서 짜고 있거나
+  /// 스케줄에서 PT 에 붙이러 왔으면 묻지 않는다 — 그 작성 내용이 다음 보관에서
+  /// 앞 것을 덮는다.
+  void _checkAutosaveFor(TrainerClient client) {
+    if (_draftCheckedFor == client.id) return;
+    _draftCheckedFor = client.id;
+    final CoachingDraftAutosaver? saver = _autosaver;
+    if (saver == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_offerAutosave(saver, client));
+    });
+  }
+
+  /// 보내는 중인 회원도 묻지 않는다 — 전송이 끝나면 보관본을 지우고, 실패하면
+  /// 화면에 작성 내용이 그대로 남아 있다.
+  bool _autosavePromptBlocked(String clientId) =>
+      !mounted ||
+      _clientId != clientId ||
+      _hasUnsentWorkFor(clientId) ||
+      _sendingClientIds.contains(clientId) ||
+      _sendingRoutineOnly.contains(clientId) ||
+      _draftAttachFor != null ||
+      _returnToSchedule?.clientId == clientId;
+
+  Future<void> _offerAutosave(
+    CoachingDraftAutosaver saver,
+    TrainerClient client,
+  ) async {
+    if (_autosavePromptBlocked(client.id)) return;
+    final TrainerProgramDraft? stored = await saver.load(client.id);
+    if (!mounted) return;
+    if (stored == null || _autosavePromptBlocked(client.id)) return;
+    final AppLocalizations l = AppLocalizations.of(context);
+    final CoachingWorkspaceDraft? draft = coachingWorkspaceFromDraft(
+      stored,
+      fallbackSessionName: l.programEditorSessionNameTyped(kRoutineTypes.first),
+    );
+    if (draft == null || !draft.hasContent) {
+      // 되살릴 것이 없는 초안은 묻지 않고 지운다.
+      unawaited(saver.discard(client.id));
+      return;
+    }
+    final bool? resume = await showAppDialog<bool>(
+      context: context,
+      dismissible: false,
+      builder: (BuildContext dialogContext) => AppDialog(
+        key: const ValueKey<String>('coach-draft-resume-dialog'),
+        title: l.coachDraftResumeTitle,
+        showClose: false,
+        footer: AppButtonPair(
+          cancelKey: const ValueKey<String>('coach-draft-discard'),
+          cancelLabel: l.coachDraftDiscard,
+          onCancel: () => Navigator.pop(dialogContext, false),
+          confirmKey: const ValueKey<String>('coach-draft-resume'),
+          confirmLabel: l.coachDraftResume,
+          onConfirm: () => Navigator.pop(dialogContext, true),
+        ),
+        child: Text(l.coachDraftResumeBody(client.name)),
+      ),
+    );
+    if (!mounted) return;
+    if (resume != true || _clientId != client.id) {
+      if (resume == false) unawaited(saver.discard(client.id));
+      return;
+    }
+    _restoreAutosave(client, draft);
+  }
+
+  /// `이어서 쓰기` — 자동 보관한 작성 내용을 화면에 그대로 놓는다(#2873).
+  void _restoreAutosave(TrainerClient client, CoachingWorkspaceDraft draft) {
+    final String id = client.id;
+    setState(() {
+      final ProgramEditorState? editor = draft.editor;
+      if (editor != null) {
+        _editorRevision++;
+        _restoredEditor = (
+          clientId: id,
+          revision: _editorRevision,
+          draft: editor,
+        );
+        _editorStates[id] = editor;
+      }
+      final AiRoutineWizardSnapshot? wizard = draft.wizard;
+      if (wizard != null) {
+        _wizardRevision++;
+        _restoredWizard = (
+          clientId: id,
+          revision: _wizardRevision,
+          snapshot: wizard,
+        );
+        _wizardSnapshots[id] = wizard;
+      }
+      if (draft.personalRoutines.isEmpty) {
+        _personalRoutines.remove(id);
+      } else {
+        _personalRoutines[id] = List<RoutineExercise>.of(
+          draft.personalRoutines,
+        );
+      }
+      if (draft.routineOnly) {
+        _routineOnlyClients.add(id);
+        final DateTime? start = draft.routineOnlyStart;
+        if (start != null) _routineOnlyStart[id] = start;
+      } else {
+        _routineOnlyClients.remove(id);
+      }
+      _aiWizardVisible = draft.phase == CoachingWorkspacePhase.wizard;
+      _sent = false;
+      // 되살린 것도 아직 보내지 않은 작성 내용이다 — 떠날 때 다시 묻는다.
+      _unsentWorkClients.add(id);
+    });
+    if (draft.routineOnly) {
+      _routineOnlyCandidates.remove(id);
+      unawaited(_loadRoutineOnlyCandidates(client));
+    }
   }
 
   @override
@@ -310,8 +509,12 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
 
   void _selectClient(String id) {
     if (_clientId == id) return;
+    // 앞 회원의 기다리던 보관은 제 타이머대로 끝난다 — 다시 오면 `이어서
+    // 쓰기` 로 되살린다(#2873). 전환 확인에서 바꿨으면 이미 버렸다.
     setState(() {
       _clientId = id;
+      _restoredEditor = null;
+      _restoredWizard = null;
       _unresolvedClientId = null;
       // 앞 회원의 편집기·위저드는 새로 선다 — 작성 내용도 함께 사라진다.
       _unsentWorkClients.clear();
@@ -366,6 +569,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
         destructive: true,
       );
       if (!ok) return;
+      // 사라진다고 알리고 바꿨다 — 자동 보관도 함께 버린다(#2873).
+      if (current != null) _discardAutosave(current);
     }
     if (!mounted) return;
     context.go(AppRoutes.coachingFor(id));
@@ -438,7 +643,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       if (!mounted) return false;
       // 저장해 두었으니 떠나도 잃지 않는다(#2873).
       final String? savedFor = _clientId;
-      if (savedFor != null) _unsentWorkClients.remove(savedFor);
+      if (savedFor != null) {
+        _unsentWorkClients.remove(savedFor);
+        _discardAutosave(savedFor);
+      }
       setState(() => _savingTemplate = false);
       showAppToast(context, l.programDraftSaved, type: AppToastType.success);
       return true;
@@ -534,6 +742,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     }
     _sendRequests.remove(sentFor);
     _unsentWorkClients.remove(sentFor);
+    // 보냈다 — 자동 보관해 둔 작성 내용도 다 썼다(#2873).
+    _discardAutosave(sentFor);
     // 보낸 뒤에도 목록과 `개인운동만` 표시를 그대로 둔다 — 지우면 그 자리에
     // PT 편집기가 올라와, 방금 개인운동을 보낸 트레이너가 손댄 적 없는 PT
     // 프로그램 화면을 보게 된다. PT 모드가 보낸 뒤 프로그램 박스를 남기는
@@ -694,6 +904,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     }
     _sendRequests.remove(sentFor);
     _unsentWorkClients.remove(sentFor);
+    // 보냈다 — 자동 보관해 둔 작성 내용도 다 썼다(#2873).
+    _discardAutosave(sentFor);
     // 보냈다 — 같은 개인운동이 다음 전송에 다시 딸려 가지 않게 비운다.
     _personalRoutines.remove(sentFor);
     if (!mounted) return;
@@ -955,6 +1167,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
               _unresolvedClientId = _clientId;
               _clientId = selected.id;
             }
+            // 처음 그리는 회원이면 자동 보관해 둔 작성 내용을 살핀다(#2873).
+            _checkAutosaveFor(selected);
             return LayoutBuilder(
               builder: (context, constraints) {
                 final wide =
@@ -1318,6 +1532,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     if (!mounted) return;
     // 그 PT 에 붙였다 — 이 화면에만 있던 작성 내용이 아니다(#2873).
     _unsentWorkClients.remove(sentFor);
+    _discardAutosave(sentFor);
     // 스케줄 화면은 그동안 떠 있지 않았다 — 돌아가면 다시 읽게 한다.
     ref.read(scheduledRoutinesRevisionProvider.notifier).state++;
     // 전송 이력 위 `아직 보내지 않은 개인운동` 안내가 방금 붙인 것을 바로
@@ -1473,7 +1688,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   void _startManualProgram(String clientId) => setState(() {
     _generatedRecommendations.remove(clientId);
     // 빈 편집기에서 다시 시작한다 — 앞서 받은 후보는 버린 것이다(#2873).
+    // 자동 보관도 함께 버린다 — 빈 편집기는 되살릴 것이 아니다.
     _unsentWorkClients.remove(clientId);
+    _restoredEditor = null;
+    _discardAutosave(clientId);
     // 빈 편집기로 새로 시작한다 — 앞서 위저드에서 정한 개인운동도 함께 버린다.
     _personalRoutines.remove(clientId);
     _appliedTemplate = null;
@@ -1490,6 +1708,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 통해 호출부에서만 한다.
   List<Widget> _editorChildren(TrainerClient client) {
     final AppLocalizations l = AppLocalizations.of(context);
+    // 편집기를 세우기 전에 자동 보관하면 이 이름으로 싣는다(#2873).
+    final String draftName = l.programEditorDefaultName(client.goal);
     final routineArgs = (id: client.id, name: client.name);
     final routineAsync = ref.watch(aiRoutineProvider(routineArgs));
 
@@ -1530,6 +1750,15 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 // 스케줄의 `개인운동 추가` 에서 왔으면 `개인운동만 짜기` 를
                 // 고른 채로 연다(#2280).
                 startRoutineOnly: _routineOnlyWizardRevision == _wizardRevision,
+                initialSnapshot:
+                    _restoredWizard?.clientId == client.id &&
+                        _restoredWizard?.revision == _wizardRevision
+                    ? _restoredWizard?.snapshot
+                    : null,
+                onSnapshot: (AiRoutineWizardSnapshot snapshot) {
+                  _wizardSnapshots[client.id] = snapshot;
+                  _scheduleAutosave(client, draftName);
+                },
                 onReviewCompleted: (exercises, personalRoutines, kind) {
                   final bool routineOnly = kind == ProgramKind.routineOnly;
                   if (routineOnly) {
@@ -1550,6 +1779,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                   final bool rebuildEditor = _sentTimer?.isActive ?? false;
                   _sentTimer?.cancel();
                   setState(() {
+                    // 되살린 편집기도 새 구성을 받는다 — 되살린 구성을 넘기는
+                    // 동안에는 편집기가 새 후보를 덧붙이지 않는다(#2873).
+                    _restoredEditor = null;
                     _sent = false;
                     if (rebuildEditor) _editorRevision++;
                     _personalRoutines[client.id] = personalRoutines;
@@ -1588,7 +1820,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                   });
                 },
                 onManualCreate: () => _startManualProgram(client.id),
-                onGenerated: () => _unsentWorkClients.add(client.id),
+                onGenerated: () {
+                  _unsentWorkClients.add(client.id);
+                  _scheduleAutosave(client, draftName);
+                },
               ),
             ),
             if (!_aiWizardVisible)
@@ -1630,8 +1865,17 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                     template: _appliedTemplate,
                     templateRevision: _templateRevision,
                     onSend: (draft) => unawaited(_sendProgram(client, draft)),
+                    initialDraft:
+                        _restoredEditor?.clientId == client.id &&
+                            _restoredEditor?.revision == _editorRevision
+                        ? _restoredEditor?.draft
+                        : null,
                     onSave: _saveTemplate,
                     onEdited: () => _unsentWorkClients.add(client.id),
+                    onDraftChanged: (ProgramEditorState next) {
+                      _editorStates[client.id] = next;
+                      _scheduleAutosave(client, draftName);
+                    },
                     saving: _savingTemplate,
                     sending: _sendingClientIds.contains(client.id) || _sent,
                     sent: _sent && !_sendingClientIds.contains(client.id),

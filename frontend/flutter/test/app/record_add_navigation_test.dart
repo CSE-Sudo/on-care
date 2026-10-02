@@ -151,6 +151,7 @@ class _FailingDietRepository extends FakeDietRepository {
     required MealPhoto photo,
     required String mealType,
     String? idempotencyKey,
+    String? date,
   }) async => throw AppError.fromDio(
     DioException(
       requestOptions: RequestOptions(path: '/diet/analyze'),

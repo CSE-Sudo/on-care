@@ -1,0 +1,8 @@
+{
+  "_comment": "활동 포인트 적립 규칙(#2906) — 이 파일이 원본이다. 키는 서버 `EarnRule.reason`(하루 한도를 세는 단위)이다. 서버 `app/services/points_service.py` 의 `DIET_ENTRY`·`EXERCISE_MANUAL`·`ROUTINE_COMPLETE` 와 회원 앱 `PointsRule` 이 이 값을 들고, 서버 pytest·회원 앱 테스트가 이 파일과 같은지 본다. 하루 한도는 KST 달력 날짜로 센다.",
+  "rules": {
+    "diet_entry": {"source_type": "diet_entry", "points": 50, "daily_cap": 3},
+    "exercise_manual": {"source_type": "exercise_session", "points": 20, "daily_cap": 3},
+    "routine_complete": {"source_type": "exercise_session", "points": 50, "daily_cap": 1}
+  }
+}

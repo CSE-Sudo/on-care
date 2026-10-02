@@ -9,7 +9,6 @@ import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/features/ai_coach/data/repositories/mock_ai_coach_repository.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
@@ -22,6 +21,8 @@ import 'package:oncare/features/member_coach/presentation/widgets/coach_card.dar
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+
+import '../../helpers/mock_ai_coach_repository.dart';
 
 /// 코칭 포인트 — 운동 주간 데이터의 `aiCoachMessage` 자리에 들어가는 값.
 
@@ -84,6 +85,7 @@ class _SecondsRoutineRepository extends MockMemberCoachRepository {
     required int minutes,
     int? durationSeconds,
     String intensity = 'moderate',
+    DateTime? day,
   }) async {
     sentMinutes = minutes;
     sentDurationSeconds = durationSeconds;

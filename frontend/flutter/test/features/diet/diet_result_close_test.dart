@@ -64,6 +64,7 @@ class _FailThenSaveRepository extends FakeDietRepository {
     required MealPhoto photo,
     required String mealType,
     String? idempotencyKey,
+    String? date,
   }) async {
     attempts += 1;
     if (attempts <= failures) throw _httpError(status);

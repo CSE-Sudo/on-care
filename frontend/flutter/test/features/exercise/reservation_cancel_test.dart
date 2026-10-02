@@ -6,10 +6,10 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 지금 이후에 시작하는 자리 하나. 시드에 오늘 자리가 섞여 있어 실행 시각에
 /// 따라 목록이 달라지므로, 예약 가능한 것을 골라 쓴다.

@@ -7,11 +7,11 @@ library;
 
 import 'dart:typed_data';
 
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 담당 코치 하나와, 주마다의 답과, 대화 몇 줄.
 class FakeMemberCoachRepository implements MemberCoachRepository {
@@ -120,10 +120,11 @@ class FakeMemberCoachRepository implements MemberCoachRepository {
     required int minutes,
     int? durationSeconds,
     String intensity = 'moderate',
+    DateTime? day,
   }) => throw UnimplementedError();
 
   @override
-  Future<CoachRoutine> uncompleteRoutine(String routineId) =>
+  Future<CoachRoutine> uncompleteRoutine(String routineId, {DateTime? day}) =>
       throw UnimplementedError();
 
   @override

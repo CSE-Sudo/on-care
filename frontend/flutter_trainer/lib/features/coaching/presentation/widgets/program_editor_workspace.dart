@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/ai_routine_item.dart';
@@ -47,6 +47,7 @@ class ProgramEditorWorkspace extends StatefulWidget {
     this.initialDraft,
     this.onSave,
     this.onEdited,
+    this.onDraftChanged,
     this.saving = false,
     this.sending = false,
     this.sent = false,
@@ -90,6 +91,12 @@ class ProgramEditorWorkspace extends StatefulWidget {
   /// `didUpdateWidget`(그리는 도중)에서도 불리므로, 받는 쪽은 다시 그리게
   /// 하지 말고 값만 적어 둔다.
   final VoidCallback? onEdited;
+
+  /// 바뀐 구성 자체 — 바깥 화면이 회원별 자동 보관에 싣는다(#2873).
+  ///
+  /// [onEdited] 와 같은 때에 불리고, 같은 이유로 받는 쪽은 다시 그리게 하지
+  /// 말고 값만 적어 둔다.
+  final ValueChanged<ProgramEditorState>? onDraftChanged;
 
   /// A save is in flight — the button locks so a second click can't create
   /// a duplicate draft.
@@ -233,7 +240,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
               _editingProgramInfo = true;
             }),
             icon: AppIcons.edit,
-            color: OnCareColors.textTertiary,
+            color: OnCareColors.textSecondary,
           ),
         ],
       );
@@ -742,6 +749,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
   void _update(ProgramEditorState next) {
     setState(() => _draft = next);
     widget.onEdited?.call();
+    widget.onDraftChanged?.call(next);
   }
 
   void _replaceSession(int index, ProgramSessionDraft session) {

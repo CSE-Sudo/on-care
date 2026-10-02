@@ -7,8 +7,8 @@ AI 코치 라우터 — 프론트 계약 정렬.
   GET  /ai-coach/insights  -> 최근 30일 회원 메시지의 통증·부정적 반응 감지 기록 (#1824)
   DELETE /ai-coach/insights/{message_id} -> 그 줄의 감지를 기록에서 치움 (#1975)
 
-도메인(식단/운동)별 코치를 각각 생성해 합친 결과.
-STEP 7에서 내부가 RAG+LLM 으로 교체되지만 응답 형식은 동일.
+피드백은 도메인(식단/운동)별 코치를 각각 생성해 합친 결과다. 각 코치는 RAG+LLM 으로
+만들고, 키·자료가 없거나 실패하면 규칙 기반으로 폴백한다 — 어느 쪽이든 응답 형식은 같다.
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentUser
+from app.api.deps import CurrentUser, RequireMember
 from app.core.config import get_settings
 from app.core.rate_limit import rate_limit
 from app.db.session import get_db
@@ -38,7 +38,7 @@ from app.services import ai_chat_quota_service, points_service
 from app.services.coach import conversation, insights
 from app.services.coach.chat import answer
 from app.services.coach_service import build_feedback
-from app.services.trainer_service import get_member_trainer_id
+from app.services.trainer._common import get_member_trainer_id
 
 router = APIRouter(tags=["ai-coach"])
 
@@ -117,7 +117,7 @@ def ai_coach_quota(
 )
 def ai_coach_chat(
     payload: ChatRequest,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> ChatReply:
     """대화형 코칭: RAG 근거 기반 답변(개인/공공 격리). LLM 키 없으면 검색 기반 폴백.
@@ -256,7 +256,7 @@ def ai_coach_insights(
 @router.delete("/ai-coach/insights/{message_id}")
 def dismiss_ai_coach_insight(
     message_id: str,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     """그 줄에서 찾은 감지를 기록에서 치운다. (#1975)

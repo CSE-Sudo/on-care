@@ -14,6 +14,18 @@ import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dar
 /// 받아 온 건수가 이 값과 같으면 그 앞에 더 있을 수 있다(#1943).
 const int chatPageSize = 50;
 
+/// 담당이 해제되어 대화를 더는 읽거나 보낼 수 없다는 신호. (#2843)
+///
+/// 서버는 활성 담당이 없으면 대화 조회를 404 로 답한다. 이를 빈 목록으로 바꾸면
+/// 열려 있던 대화방이 안내 없이 비어 버려, 해제되었다는 사실을 알 수 없다.
+/// 루틴·PT 일정처럼 "없을 수 있는 목록" 의 404 는 그대로 빈 목록이다.
+class CoachUnassignedException implements Exception {
+  const CoachUnassignedException();
+
+  @override
+  String toString() => 'CoachUnassignedException';
+}
+
 abstract interface class MemberCoachRepository {
   /// The assigned coach, or `null` when the member has none yet (404).
   Future<MemberCoach?> fetchCoach();
@@ -26,11 +38,14 @@ abstract interface class MemberCoachRepository {
 
   /// [day] 에 걸려 있던 목록과 그날 완료 — 지난 날짜 화면이 읽는다. (#2161)
   ///
-  /// 읽기 전용이다. 완료·해제는 오늘에만 한다([completeRoutine]). 아직 오지 않은
-  /// 날은 오류다.
+  /// 지난 날짜의 체크·해제는 [completeRoutine]·[uncompleteRoutine] 에 그날을
+  /// 넘긴다(#2506). 아직 오지 않은 날은 오류다.
   Future<List<CoachRoutine>> fetchRoutinesOn(DateTime day);
 
-  /// 오늘의 운동 기록으로 완료한다 — 배정 하나당 하루 한 번. (#2161)
+  /// [day](없으면 오늘)의 운동 기록으로 완료한다 — 배정 하나당 하루 한 번. (#2161)
+  ///
+  /// 지난 날짜는 그날 걸려 있던 배정만 된다(#2506) — 빠뜨린 체크를 나중에
+  /// 한다. 포인트 하루 한도는 적립하는 날(오늘) 기준이다.
   ///
   /// [durationSeconds] 는 같은 시간을 초로 적은 값이다(#2221). 초로 배정된
   /// 운동(`45초`)을 [minutes] 로만 보내면 `1분` 기록이 된다. 근력처럼 초가 없는
@@ -40,14 +55,16 @@ abstract interface class MemberCoachRepository {
     required int minutes,
     int? durationSeconds,
     String intensity = 'moderate',
+    DateTime? day,
   });
 
-  /// 완료 표시를 되돌린다 — 그 배정으로 남은 운동 기록을 지운다. (#1131)
+  /// [day](없으면 오늘)의 완료 표시를 되돌린다 — 그 배정으로 남은 운동 기록을
+  /// 지운다. (#1131, #2506)
   ///
   /// 체크를 잘못 눌렀을 때 되돌릴 방법이 없으면, 하지 않은 운동이 주간 시간·
   /// 칼로리에 그대로 남는다. 배정 자체는 지우지 않는다 — 되돌리는 것은 `수행`
   /// 이지 `할 일` 이 아니다. 완료가 아닌 배정에 불러도 아무 일도 일어나지 않는다.
-  Future<CoachRoutine> uncompleteRoutine(String routineId);
+  Future<CoachRoutine> uncompleteRoutine(String routineId, {DateTime? day});
 
   /// 개인 운동을 삭제한다. **담당 트레이너가 없을 때만** 서버가 받아 준다 —
   /// 담당이 배정한 것을 회원이 조용히 없애면 다음 상담에서 둘이 서로 다른

@@ -33,10 +33,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # 이후 단계는 git 인증을 쓰지 않는다(토큰이 필요한 곳은 env 로 따로 받는다).
           persist-credentials: false
+
+      # 랜딩의 앱 바로가기는 상대 경로라 어느 배포에서든 같은 도메인의 /frontend/·/trainer/ 로
+      # 간다(#2841). 절대 주소가 다시 들어오면 운영(AWS) 방문자가 이 데모로 넘어오므로 빌드 전에 막는다.
+      - name: Check landing app links
+        run: bash .github/scripts/landing_site_url.sh check index.html
 
       - name: Set up Flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
@@ -166,11 +171,19 @@ jobs:
           echo "$GITHUB_SHA" > public/version.txt
           touch public/.nojekyll
 
+      # og:url·canonical 은 이 배포의 커스텀 도메인(CNAME)으로 채운다(#2841). AWS 배포는 자기
+      # 도메인으로 따로 채우므로 원본 index.html 에는 표시 줄만 있다.
+      - name: Stamp landing site URL
+        run: |
+          set -euo pipefail
+          domain="$(tr -d '[:space:]' < CNAME)"
+          bash .github/scripts/landing_site_url.sh stamp public/index.html "https://${domain}/"
+
       - name: Configure GitHub Pages
-        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
       - name: Upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: public
 
@@ -192,7 +205,7 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         continue-on-error: true
-        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
 
       - name: Verify the published site
         if: steps.deployment.outcome != 'success'
@@ -225,3 +238,22 @@ jobs:
           done
           echo "::error::Pages never served $GITHUB_SHA within 20 minutes. Check https://www.githubstatus.com before retrying."
           exit 1
+
+      # 배포 후 링크 확인(#2841): 실제로 서빙되는 랜딩의 바로가기가 상대 경로이고, canonical 이
+      # 이 배포 도메인이며, 같은 도메인의 /frontend/·/trainer/ 가 응답하는지 본다.
+      - name: Check out landing scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/scripts
+            CNAME
+          sparse-checkout-cone-mode: false
+
+      - name: Verify landing app links on the published site
+        env:
+          SITE_URL: ${{ steps.deployment.outputs.page_url || 'https://ewhasudo.zapto.org/' }}
+        run: |
+          set -euo pipefail
+          domain="$(tr -d '[:space:]' < CNAME)"
+          bash .github/scripts/landing_site_url.sh verify "$SITE_URL" "https://${domain}/" 600

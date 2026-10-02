@@ -3,27 +3,25 @@ AI 코치 서비스.
 
 설계(사용자 요구사항 반영):
 - 코칭을 '식단 코치'와 '운동 코치'로 도메인 분리해서 각각 생성한 뒤 합친다.
-- STEP 7에서 각 도메인 코치를 RAG 기반으로 교체한다:
-    * 검색 자료 = 개인 문서(환자 데이터, user_id=본인) + 공공 문서(user_id=NULL)
+- 각 도메인 코치는 RAG 로 만든다(`coach/domain_coaches.py`):
+    * 검색 자료 = 회원 개인 기록 요약(user_id=본인) + 공공 문서(user_id=NULL)
     * 식단 코치는 domain='diet' 자료를, 운동 코치는 domain='exercise' 자료를 위주로 검색
-    * 다른 사용자의 개인 문서는 절대 섞이지 않음 (user_id 격리)
+    * 다른 회원의 개인 문서는 절대 섞이지 않음 (user_id 격리)
 
-현재(STEP 6)는 RAG 전이라, 사용자의 실제 식단·운동 데이터를 읽어
-'규칙 기반'으로 제안을 생성한다. 구조(도메인 분리)는 STEP 7과 동일하게 유지하므로
-나중에 내부 구현만 LLM 호출로 바꾸면 된다.
+키·자료가 없거나 LLM 호출이 실패하면, 이 모듈의 규칙 기반 코치가 회원의 실제
+식단·운동 기록을 읽어 제안을 만든다(폴백). 두 경로의 응답 형식은 같다.
 
 인사말과 규칙 문구는 요청 언어(`Accept-Language`, #2297)로 만든다(#2707). 헤더가
 없으면 지금까지처럼 한국어다.
 """
 from __future__ import annotations
 
-from datetime import timedelta
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.core.locale import localized
+from app.core.week import monday_of
 from app.models.models import DietEntry, ExerciseSession
 from app.schemas.misc_api import AiCoachFeedback, CoachSuggestion
 from app.services import diet_service
@@ -39,7 +37,7 @@ _SODIUM_PATTERN_MIN_DAYS = 3
 def _week_bounds() -> tuple[str, str]:
     """이번 주(월~오늘, `YYYY-MM-DD`). 아직 오지 않은 날은 기록이 없어 의미가 없다."""
     today = clock.today()
-    monday = today - timedelta(days=today.weekday())
+    monday = monday_of(today)
     return monday.isoformat(), today.isoformat()
 
 
@@ -171,7 +169,7 @@ def _diet_weekly_or_default(db: Session, user_id: str) -> CoachSuggestion:
 
 
 def _diet_suggestion(db: Session, user_id: str) -> CoachSuggestion:
-    """식단 도메인 코치 (STEP 7에서 RAG+LLM 으로 교체) — 규칙 기반 폴백 전체.
+    """식단 도메인 코치의 규칙 기반 폴백 전체.
 
     오늘 우선 여부와 이번 주 패턴을 한 번에 판단하는 단독 진입점. `diet_coach()`
     는 오늘 조회를 한 번만 하려고 이 함수 대신 `_diet_today_priority()` +
@@ -185,7 +183,7 @@ def _diet_suggestion(db: Session, user_id: str) -> CoachSuggestion:
 
 
 def _exercise_suggestion(db: Session, user_id: str) -> CoachSuggestion:
-    """운동 도메인 코치 (STEP 7에서 RAG+LLM 으로 교체)."""
+    """운동 도메인 코치의 규칙 기반 폴백."""
     week = monday_of_this_week_str()
     rows = db.scalars(
         select(ExerciseSession)
@@ -229,8 +227,8 @@ def build_feedback(db: Session, user_id: str, user_name: str) -> AiCoachFeedback
     """
     도메인별 코치를 각각 호출해 합친다.
 
-    STEP 7: 식단·운동 코치는 RAG 기반(domain_coaches)으로 동작.
-    RAG 가 불가(키 미설정/자료 없음)하면 내부에서 STEP 6 규칙 기반으로 자동 폴백.
+    식단·운동 코치는 RAG 기반(domain_coaches)으로 동작한다.
+    RAG 가 불가(키 미설정/자료 없음/실패)하면 내부에서 규칙 기반으로 자동 폴백한다.
     """
     hour = clock.now().hour
     if hour < 11:

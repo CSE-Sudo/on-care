@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/app/app_icons.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/ai_coach/presentation/widgets/insight_history_sheet.dart';
@@ -14,6 +13,7 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_rep
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/features/member_coach/services/member_report_pdf_generator.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_report/oncare_report.dart' show ReportSheetInputs;
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -45,7 +45,7 @@ class _PurchasedReportCardState extends ConsumerState<PurchasedReportCard> {
     // 내 혜택의 다른 카드(쿠폰·보호권)와 같은 줄 모양이다. 채팅의 리포트 안내는
     // 대화 가운데 서는 배너라 목록에 두면 폭이 들쭉날쭉하다.
     return AppCard(
-      key: ValueKey<String>('purchased-report-${_ymd(widget.weekStart)}'),
+      key: ValueKey<String>('purchased-report-${wireDate(widget.weekStart)}'),
       child: Row(
         children: <Widget>[
           const BenefitIconTile(icon: AppIcons.document),
@@ -105,7 +105,7 @@ class _PurchasedReportCardState extends ConsumerState<PurchasedReportCard> {
       await openPdfPreviewPage(
         context,
         bytes,
-        l.coachReportPdfFileName(_ymd(widget.weekStart)),
+        l.coachReportPdfFileName(wireDate(widget.weekStart)),
       );
     } catch (_) {
       toast.show(l.coachChatPdfOpenFailed, type: AppToastType.error);
@@ -203,8 +203,3 @@ DateTime _kst(DateTime at) {
     seoul.second,
   );
 }
-
-String _ymd(DateTime value) =>
-    '${value.year.toString().padLeft(4, '0')}-'
-    '${value.month.toString().padLeft(2, '0')}-'
-    '${value.day.toString().padLeft(2, '0')}';

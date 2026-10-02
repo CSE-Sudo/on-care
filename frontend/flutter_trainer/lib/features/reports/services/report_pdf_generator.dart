@@ -332,8 +332,8 @@ class ReportPdfGenerator {
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
     image.dispose();
     picture.dispose();
-    // 화면에 뜨지 않는 내부 오류다 — 호출부가 잡아서 로케일이 붙은
-    // `reportsPdfGenerationFailed` 를 대신 보여 준다.
+    // 화면에 뜨지 않는 내부 오류다 — 호출부(리포트 전송)가 잡아서 로케일이
+    // 붙은 실패 토스트를 대신 보여 준다.
     if (data == null) throw StateError('failed to rasterize a PDF page');
     return data.buffer.asUint8List();
   }

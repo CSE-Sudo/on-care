@@ -12,10 +12,11 @@
 재인코딩은 덤으로 메타데이터도 털어 낸다. 휴대폰 사진의 EXIF 에는 촬영 위치가
 들어 있을 수 있는데, 끼니 사진을 트레이너와 공유하는 것이 **집 좌표**를 공유하는
 뜻이 되어서는 안 된다. 회전 정보만 픽셀에 적용하고 나머지는 버린다.
+
+정리 규칙은 채팅 사진과 같은 `image_sanitize` 한 곳에 있다(#2829).
 """
 from __future__ import annotations
 
-import io
 import logging
 import uuid
 
@@ -23,6 +24,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.models import DietPhoto
+from app.services import image_sanitize
 
 logger = logging.getLogger(__name__)
 
@@ -35,23 +37,14 @@ _JPEG_QUALITY = 82
 def _downscale_to_jpeg(image_bytes: bytes) -> tuple[bytes, int, int] | None:
     """축소·재인코딩한 JPEG 과 크기를 돌려준다. 읽을 수 없으면 None."""
     try:
-        from PIL import Image, ImageOps
-    except ImportError:  # pragma: no cover - 운영/CI 에는 항상 설치돼 있다
-        logger.warning("Pillow 가 없어 끼니 사진을 저장하지 못했습니다.")
-        return None
-
-    try:
-        with Image.open(io.BytesIO(image_bytes)) as source:
-            # EXIF 회전을 픽셀에 적용한 뒤 메타데이터는 버린다(위 주석 참고).
-            image = ImageOps.exif_transpose(source)
-            image = image.convert("RGB")
-            image.thumbnail((_MAX_EDGE, _MAX_EDGE), Image.LANCZOS)
-            buffer = io.BytesIO()
-            image.save(buffer, format="JPEG", quality=_JPEG_QUALITY, optimize=True)
-            return buffer.getvalue(), image.width, image.height
-    except Exception:  # noqa: BLE001 - 손상된 업로드는 여기서 끝난다
+        clean = image_sanitize.to_jpeg(
+            image_bytes, max_edge=_MAX_EDGE, quality=_JPEG_QUALITY
+        )
+    except image_sanitize.UndecodableImage:
+        # 손상된 업로드는 여기서 끝난다 — 끼니 기록은 사진 없이 남는다.
         logger.warning("끼니 사진을 읽지 못했습니다 — 사진 없이 저장합니다.", exc_info=True)
         return None
+    return clean.data, clean.width, clean.height
 
 
 def store_for_entry(

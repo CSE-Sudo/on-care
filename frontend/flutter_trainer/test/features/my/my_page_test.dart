@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/utils/keep_words.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/my/data/trainer_profile_repository.dart';
 import 'package:oncare_trainer/features/my/presentation/pages/my_page.dart';
@@ -504,8 +503,8 @@ void main() {
       await tester.tap(find.text('프로필 수정'));
       await settle(tester);
 
-      await searchGym(tester, '하이핏');
-      await tapResult(tester, '1558845892');
+      await searchGym(tester, '연희');
+      await tapResult(tester, 'gym-demo-yeonhui');
       await tester.tap(find.text('저장'));
       await settle(tester);
 
@@ -513,9 +512,9 @@ void main() {
           .read(sessionControllerProvider)
           .profile!
           .gym;
-      expect(gym.id, '1558845892');
-      expect(gym.name, '하이핏');
-      expect(gym.address, '서울 서대문구 연세로4길 19');
+      expect(gym.id, 'gym-demo-yeonhui');
+      expect(gym.name, '온케어 연희 스튜디오');
+      expect(gym.address, '서울 서대문구 연희로 25');
     });
 
     testWidgets('Enter 를 누르면 기다리지 않고 바로 찾는다', (tester) async {

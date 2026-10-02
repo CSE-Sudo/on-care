@@ -12,18 +12,59 @@ Starlette 이 이미 multipart 본문을 파싱해 스풀한 뒤다. 막으려�
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Sequence
+from dataclasses import dataclass, field
 
 from starlette.datastructures import Headers
+from starlette.exceptions import HTTPException
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
-class _BodyTooLarge(Exception):
-    """본문이 상한을 넘겼음을 receive 래퍼가 바깥으로 알리는 신호."""
+class _BodyTooLarge(HTTPException):
+    """본문이 상한을 넘겼음을 receive 래퍼가 바깥으로 알리는 신호.
+
+    HTTPException(413) 이어야 한다. FastAPI 는 본문(multipart·JSON)을 읽다 난 일반
+    예외를 400("There was an error parsing the body")으로 바꾸지만 HTTPException 은
+    그대로 올려보내, 앱의 예외 처리기가 같은 413 문구로 응답한다(#2832). 앱 밖에서
+    터지면 아래 미들웨어가 직접 413 을 쓴다.
+    """
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(status_code=413, detail=detail)
+
+
+@dataclass(frozen=True)
+class BodyLimitRule:
+    """경로 하나(또는 경로 모양 하나)에 거는 본문 상한. (#2832)
+
+    `path` 는 기본이 **접두사**다. `regex=True` 면 정규식 전체 일치로 본다 —
+    `/v1/trainer/clients/{member_id}/chat/image` 처럼 가운데에 id 가 들어가는
+    경로는 접두사로 지정할 수 없어서다.
+
+    `detail` 은 413 문구다. 비우면 업로드 기본 문구(최대 N MB)를 쓴다.
+    """
+
+    path: str
+    max_bytes: int
+    detail: str | None = None
+    regex: bool = False
+    _compiled: re.Pattern[str] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+
+    def __post_init__(self) -> None:
+        if self.regex:
+            object.__setattr__(self, "_compiled", re.compile(self.path))
+
+    def matches(self, path: str) -> bool:
+        if self._compiled is not None:
+            return self._compiled.fullmatch(path) is not None
+        return path.startswith(self.path)
 
 
 class RequestBodySizeLimitMiddleware:
-    """[protected_paths] 로 가는 본문이 [max_bytes] 를 넘으면 413 으로 끊는다.
+    """[rules] 의 경로로 가는 본문이 그 규칙의 상한을 넘으면 413 으로 끊는다.
 
     두 경로를 모두 막는다.
 
@@ -39,32 +80,50 @@ class RequestBodySizeLimitMiddleware:
     전역이 아니라 경로 목록을 받는 이유: 이 상한은 **업로드**를 겨냥한 값이다.
     모든 요청에 걸면 대량 텍스트를 본문으로 받는 JSON 엔드포인트(`/coach-docs`
     의 문서 적재 등)까지 같은 상한에 묶여, 의도치 않게 기능을 자른다. 업로드
-    엔드포인트가 늘어나면 여기에 경로를 추가한다. 상한이 다른 경로(AI 코치 채팅처럼
-    작은 JSON 본문, #1549)는 인스턴스를 따로 등록한다.
+    엔드포인트가 늘어나면 `rules` 에 경로를 추가한다 — 파일을 받는 라우트가 이
+    표에 없으면 `tests/test_upload_body_limit_guard.py` 가 실패한다.
+
+    경로마다 상한이 다르다(식단 사진·채팅 사진·리포트 PDF·AI 코치 채팅 JSON). 한
+    인스턴스가 경로→상한 표(`rules`)를 받아 **처음 맞는 규칙 하나**를 적용한다.
+    인스턴스를 여럿 등록하면 CORS 바깥 감싸기 순서를 경로마다 따로 지켜야 해서,
+    표 하나로 모았다(#2832). 예전 인자(`max_bytes`·`protected_paths`·`detail`)도
+    그대로 받는다 — 접두사 규칙 여러 개로 바꿔 넣는다.
     """
 
     def __init__(
         self,
         app: ASGIApp,
         *,
-        max_bytes: int,
-        protected_paths: Sequence[str],
+        rules: Sequence[BodyLimitRule] = (),
+        max_bytes: int | None = None,
+        protected_paths: Sequence[str] = (),
         detail: str | None = None,
     ) -> None:
         self.app = app
-        self.max_bytes = max_bytes
-        self.protected_paths = tuple(protected_paths)
-        # 413 문구. 주지 않으면 업로드용 기본 문구(최대 N MB)다. 업로드가 아닌 JSON
-        # 경로(AI 코치 채팅, #1549)는 "업로드 용량" 이라고 하면 틀린 말이라 따로 준다.
-        self.detail = detail
+        legacy: list[BodyLimitRule] = []
+        if protected_paths:
+            if max_bytes is None:
+                raise ValueError("protected_paths 를 주면 max_bytes 도 줘야 한다")
+            # 413 문구. 주지 않으면 업로드용 기본 문구(최대 N MB)다. 업로드가 아닌 JSON
+            # 경로(AI 코치 채팅, #1549)는 "업로드 용량" 이라고 하면 틀린 말이라 따로 준다.
+            legacy = [BodyLimitRule(p, max_bytes, detail) for p in protected_paths]
+        self.rules: tuple[BodyLimitRule, ...] = (*rules, *legacy)
+
+    def rule_for(self, path: str) -> BodyLimitRule | None:
+        """이 경로에 걸리는 규칙. 없으면 None(상한 없음)."""
+        for rule in self.rules:
+            if rule.matches(path):
+                return rule
+        return None
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http" or not self._is_protected(scope):
+        rule = self.rule_for(scope.get("path", "")) if scope["type"] == "http" else None
+        if rule is None:
             await self.app(scope, receive, send)
             return
 
-        if self._declared_too_large(scope):
-            await self._reject(send)
+        if self._declared_too_large(scope, rule.max_bytes):
+            await self._reject(send, rule)
             return
 
         received = 0
@@ -75,8 +134,8 @@ class RequestBodySizeLimitMiddleware:
             message = await receive()
             if message["type"] == "http.request":
                 received += len(message.get("body", b""))
-                if received > self.max_bytes:
-                    raise _BodyTooLarge
+                if received > rule.max_bytes:
+                    raise _BodyTooLarge(self._detail(rule))
             return message
 
         async def counting_send(message: Message) -> None:
@@ -93,31 +152,32 @@ class RequestBodySizeLimitMiddleware:
             # 어중간하게 남으므로 그대로 올려보낸다.
             if response_started:
                 raise
-            await self._reject(send)
+            await self._reject(send, rule)
 
-    def _is_protected(self, scope: Scope) -> bool:
-        """이 요청이 상한을 적용할 업로드 경로로 가는가."""
-        path = scope.get("path", "")
-        return any(path.startswith(p) for p in self.protected_paths)
-
-    def _declared_too_large(self, scope: Scope) -> bool:
+    @staticmethod
+    def _declared_too_large(scope: Scope, max_bytes: int) -> bool:
         """`Content-Length` 헤더만으로 상한 초과가 확정되는가."""
         raw = Headers(scope=scope).get("content-length")
         if raw is None:
             return False
         try:
-            return int(raw) > self.max_bytes
+            return int(raw) > max_bytes
         except ValueError:
             # 파싱 불가한 헤더는 신뢰하지 않는다 — 누적 카운터가 잡는다.
             return False
 
-    async def _reject(self, send: Send) -> None:
+    @staticmethod
+    def _detail(rule: BodyLimitRule) -> str:
+        """413 문구 — 규칙 문구가 없으면 업로드 기본 문구(최대 N MB)."""
+        limit_mb = rule.max_bytes / (1024 * 1024)
+        return rule.detail or f"업로드 용량이 너무 큽니다(최대 {limit_mb:.0f}MB)."
+
+    @classmethod
+    async def _reject(cls, send: Send, rule: BodyLimitRule) -> None:
         """413 을 직접 써 보낸다(앱을 거치지 않으므로 FastAPI 예외 경로가 없다)."""
         # 기존 415 처리와 같은 형태({"detail": ...})로 맞춘다.
-        limit_mb = self.max_bytes / (1024 * 1024)
-        detail = self.detail or f"업로드 용량이 너무 큽니다(최대 {limit_mb:.0f}MB)."
         body = json.dumps(
-            {"detail": detail},
+            {"detail": cls._detail(rule)},
             ensure_ascii=False,
         ).encode("utf-8")
         await send(

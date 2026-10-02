@@ -27,8 +27,9 @@ from app.models.models import (
     TrainerSchedule,
     User,
 )
-from app.services import trainer_service
-from app.services.trainer_service import (
+from app.services.trainer import _common as trainer_common_service
+from app.services.trainer import schedule as trainer_schedule_service
+from app.services.trainer.schedule import (
     SCHEDULE_OVERLAP_CODE,
     ScheduleOverlap,
     conflicting_sessions,
@@ -150,7 +151,7 @@ def _row(
     day: str = DAY,
     time: str,
     minutes: int = 60,
-    status: str = trainer_service.SCHEDULE_UPCOMING,
+    status: str = trainer_common_service.SCHEDULE_UPCOMING,
 ) -> str:
     """API 를 거치지 않고 일정 한 줄을 심는다(취소·노쇼·공백 같은 상태용)."""
     schedule_id = f"sched-{uuid4().hex[:12]}"
@@ -246,11 +247,11 @@ def test_zero_minute_sessions_occupy_their_start_minute(client, db_session):
 @pytest.mark.parametrize(
     ("status", "occupies"),
     [
-        (trainer_service.SCHEDULE_UPCOMING, True),
-        (trainer_service.SCHEDULE_DONE, True),
-        (trainer_service.SCHEDULE_CANCELLED, False),
-        (trainer_service.SCHEDULE_NO_SHOW, False),
-        (trainer_service.SCHEDULE_GAP, False),
+        (trainer_common_service.SCHEDULE_UPCOMING, True),
+        (trainer_common_service.SCHEDULE_DONE, True),
+        (trainer_common_service.SCHEDULE_CANCELLED, False),
+        (trainer_common_service.SCHEDULE_NO_SHOW, False),
+        (trainer_common_service.SCHEDULE_GAP, False),
     ],
 )
 def test_only_occupying_statuses_block(client, db_session, status, occupies):
@@ -360,10 +361,10 @@ def test_ensure_no_overlap_raises_with_conflicts_and_custom_message(
 
     assert str(caught.value) == "겹칩니다"
     assert [c.id for c in caught.value.conflicts] == [existing]
-    detail = trainer_service.overlap_detail(caught.value)
+    detail = trainer_schedule_service.overlap_detail(caught.value)
     assert detail["code"] == SCHEDULE_OVERLAP_CODE
     assert detail["conflicts"][0]["id"] == existing
-    hidden = trainer_service.overlap_detail(caught.value, include_conflicts=False)
+    hidden = trainer_schedule_service.overlap_detail(caught.value, include_conflicts=False)
     assert "conflicts" not in hidden
     # 비어 있으면 조용히 지나간다.
     ensure_no_overlap(
@@ -403,7 +404,7 @@ def test_create_is_allowed_over_a_cancelled_session(client, db_session):
         db_session,
         trainer_id,
         time="10:00",
-        status=trainer_service.SCHEDULE_CANCELLED,
+        status=trainer_common_service.SCHEDULE_CANCELLED,
     )
 
     assert _create(client, token, time="10:00").status_code == 201

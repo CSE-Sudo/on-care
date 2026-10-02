@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/dashboard/data/daily_task_progress_store.dart';
 import 'package:oncare_trainer/features/dashboard/data/demo_task_history.dart';
@@ -21,6 +21,7 @@ import 'package:oncare_trainer/features/dashboard/presentation/widgets/today_tim
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/widgets/trainer_verification_banner.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 대시보드 — the console's home: what needs doing today.
@@ -101,6 +102,10 @@ class DashboardPage extends ConsumerWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
+                    // 승인 대기·반려면 무엇이 막혔는지 맨 위에 적는다(#2825).
+                    const TrainerVerificationBanner(
+                      bottomGap: OnCareSpacing.s16,
+                    ),
                     _KpiRow(
                       summary: summary,
                       churnRisk: churnRisk,

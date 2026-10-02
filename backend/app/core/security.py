@@ -149,11 +149,6 @@ def decode_access_claims(token: str) -> AccessClaims:
     return AccessClaims(subject=str(sub), token_version=_token_version_of(payload))
 
 
-def decode_access_token(token: str) -> str:
-    """접근 토큰의 `sub` 만 필요할 때. 세대 확인이 필요하면 `decode_access_claims`."""
-    return decode_access_claims(token).subject
-
-
 @dataclass(frozen=True)
 class RefreshClaims:
     """refresh 토큰에서 폐기 판단에 필요한 값만 뽑은 것."""

@@ -27,6 +27,7 @@ from tests.fake_s3 import FakeS3
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 24
 JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 24
+# 저장소 동작만 보는 가짜 바이트라 디코딩·재인코딩(#2829)은 끄고 저장한다.
 PDF = b"%PDF-1.4\n" + b"0" * 64 + b"\n%%EOF"
 NAME = "0123456789abcdef0123456789abcdef.png"
 
@@ -211,7 +212,9 @@ def s3_settings(monkeypatch):
 
 
 def test_chat_image_round_trip_on_s3(s3_settings):
-    file_id, extension, media_type = chat_image_storage.save(JPEG)
+    file_id, extension, media_type, _ = chat_image_storage.save(
+        JPEG, sanitize=False
+    )
     assert (extension, media_type) == ("jpg", "image/jpeg")
     key = ("oncare-test", f"chat-attachments/chat-images/{file_id}.jpg")
     assert s3_settings[key] == (JPEG, "image/jpeg")
@@ -227,7 +230,7 @@ def test_chat_image_round_trip_on_s3(s3_settings):
 
 
 def test_chat_image_finds_the_extension_it_was_saved_with(s3_settings):
-    file_id, _, _ = chat_image_storage.save(PNG)
+    file_id = chat_image_storage.save(PNG, sanitize=False).file_id
     _, media_type = chat_image_storage.open_image(file_id)
     assert media_type == "image/png"
 
@@ -257,7 +260,7 @@ def test_storage_outage_is_reported_as_the_module_error(s3_settings, monkeypatch
     broken.fail_with = "SlowDown"
     monkeypatch.setattr(attachment_store, "_s3_client", lambda region, endpoint: broken)
     with pytest.raises(chat_image_storage.ImageStorageError):
-        chat_image_storage.save(PNG)
+        chat_image_storage.save(PNG, sanitize=False)
     with pytest.raises(report_pdf_storage.PdfStorageError):
         report_pdf_storage.save(PDF)
 
@@ -268,14 +271,14 @@ def test_opaque_ids_are_required(s3_settings):
     with pytest.raises(FileNotFoundError):
         report_pdf_storage.open_pdf("../../secret")
     with pytest.raises(chat_image_storage.ImageStorageError):
-        chat_image_storage.save(PNG, file_id="../x")
+        chat_image_storage.save(PNG, file_id="../x", sanitize=False)
 
 
 # ---- 5. 탈퇴 정리 ----
 
 
 def test_purge_deletes_each_kind_from_its_store(s3_settings):
-    image_id, _, _ = chat_image_storage.save(PNG)
+    image_id = chat_image_storage.save(PNG, sanitize=False).file_id
     pdf_id = report_pdf_storage.save(PDF)
 
     done = attachment_cleanup.purge(

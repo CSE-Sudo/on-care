@@ -106,6 +106,46 @@ void main() {
     expect(tester.widget<Icon>(icons).icon, AppIcons.chevronRight);
   });
 
+  testWidgets('코드 시트는 목적·기간·거부권을 말하고, 자세히를 펼쳐 볼 수 있다 (#2826)', (
+    tester,
+  ) async {
+    await pumpMyTab(tester);
+
+    await tester.tap(find.text('트레이너와 데이터 동기화'));
+    await tester.pumpAndSettle();
+
+    final Finder body = find.textContaining('이 코드를 입력한 트레이너가 담당이 되면');
+    expect(body, findsOneWidget);
+    final String text = tester.widget<Text>(body).data!;
+    expect(text, contains('코칭·상담·리포트 작성을 위해'));
+    expect(text, contains('주고받은 대화와 전달된 리포트는 남아요'));
+    expect(text, contains('동의하지 않아도 개인 기록 기능은 그대로'));
+
+    final Finder toggle = find.byKey(
+      const ValueKey<String>('trainer-share-details-toggle'),
+    );
+    expect(find.text('자세히 보기'), findsOneWidget);
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('trainer-share-details')),
+      findsOneWidget,
+    );
+    expect(find.text('거부할 권리'), findsOneWidget);
+    expect(find.text('접기'), findsOneWidget);
+    // 펼쳐도 동의 버튼에 닿는다 — 시트 본문은 스크롤된다.
+    final Finder agree = find.byKey(
+      const ValueKey<String>('trainer-sync-agree'),
+    );
+    await tester.ensureVisible(agree);
+    await tester.pumpAndSettle();
+    expect(agree.hitTestable(), findsOneWidget);
+    // 펼친 것만으로 발급하지 않는다 — 동의는 버튼이다.
+    expect(sync.issued, 0);
+  });
+
   testWidgets('공유 범위를 먼저 보여 주고, 동의해야 코드를 발급한다 (#2584)', (
     tester,
   ) async {

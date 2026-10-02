@@ -27,6 +27,7 @@ class DietTray {
     required this.windowDays,
     required this.hasTrainer,
     this.coupon,
+    this.enabled = true,
   });
 
   final DietTrayStatus status;
@@ -39,6 +40,10 @@ class DietTray {
 
   /// 받은 식판 수령 쿠폰 — [DietTrayStatus.issued]·[DietTrayStatus.received] 에만 있다.
   final Coupon? coupon;
+
+  /// 식판을 줄 수 있는 서버인가(#2822). 제휴 헬스장이 없는 실서비스는 거짓이고,
+  /// 화면은 카드를 그리지 않는다. 필드가 없는 응답(데모 목업)은 참으로 읽는다.
+  final bool enabled;
 
   /// 조건까지 남은 날. 채웠으면 0.
   int get daysLeft => photoDays >= requiredDays ? 0 : requiredDays - photoDays;
@@ -54,5 +59,6 @@ class DietTray {
             (json['coupon']! as Map<Object?, Object?>).cast<String, Object?>(),
           )
         : null,
+    enabled: json['enabled'] != false,
   );
 }

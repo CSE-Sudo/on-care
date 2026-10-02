@@ -357,19 +357,24 @@ class _Row extends StatelessWidget {
                                     style: nameStyle,
                                   ),
                                 ),
-                                const SizedBox(width: OnCareSpacing.s4),
-                                Flexible(
-                                  child: Text(
-                                    clientDemographicsLabel(context, client!),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: tokens
-                                        .text(OnCareTypography.caption)
-                                        .copyWith(
-                                          color: OnCareColors.textTertiary,
-                                        ),
+                                // 성별·나이를 모두 모르면 그리지 않는다(#2870).
+                                if (clientDemographicsLabel(context, client!)
+                                    case final String demographics
+                                    when demographics.isNotEmpty) ...<Widget>[
+                                  const SizedBox(width: OnCareSpacing.s4),
+                                  Flexible(
+                                    child: Text(
+                                      demographics,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: tokens
+                                          .text(OnCareTypography.caption)
+                                          .copyWith(
+                                            color: OnCareColors.textTertiary,
+                                          ),
+                                    ),
                                   ),
-                                ),
+                                ],
                               ],
                             ),
                     ),
