@@ -314,6 +314,22 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
 
 ## 4. 트레이너 API (`/v1/trainer/*`, RequireTrainer)
 
+### 코드 위치 (#2909)
+
+트레이너 도메인 코드는 영역별 모듈로 나뉘어 있다. 영역 모듈끼리 서로의 비공개 헬퍼를
+직접 부르지 않고 각 패키지의 `_common` 을 거친다.
+
+| 계층 | 위치 | 영역 모듈 |
+|---|---|---|
+| 서비스 | `app/services/trainer/` | `roster` · `chat` · `client_status` · `routines` · `routine_suggestions` · `memos` · `follow_ups` · `programs` · `schedule` · `member_mirror` · `profile` · `gym` · `reports` · `notification_settings` · `weekly_feedback` |
+| 라우터 | `app/api/v1/trainer/` | `profile` · `clients` · `chat` · `routines` · `routine_suggestions` · `memos` · `follow_ups` · `programs` · `task_progress` · `schedule` · `ai_coach` · `reports` · `client_invites` · `consultations` · `notifications` |
+
+영역 라우터는 `app/main.py` 가 `trainer.routers` 순서대로 같은 prefix 로 마운트한다.
+호환 단계 동안 예전 경로 `app.services.trainer_service`·`app.api.v1.trainer` 가 영역
+모듈의 이름을 같은 객체로 다시 내보낸다(`app.core.module_reexport`) — 아래 표와 본문의
+`trainer_service.X` 표기는 그 경로다. 라우트 Method·Path 집합은
+`tests/test_trainer_module_split.py` 의 스냅숏이 지킨다.
+
 | Method | Path | 설명 |
 |---|---|---|
 | GET | `/trainer/me` | 내 트레이너 프로필 |
