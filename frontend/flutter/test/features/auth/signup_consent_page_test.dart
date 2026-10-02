@@ -5,6 +5,7 @@
 library;
 
 import 'package:dio/dio.dart';
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -14,6 +15,7 @@ import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/network/dio_client.dart';
+import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/auth/presentation/pages/consent_page.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_up_page.dart';
@@ -74,9 +76,14 @@ Future<ProviderContainer> _pump(
 }) async {
   FlutterSecureStorage.setMockInitialValues(<String, String>{});
   addTearDown(server.dio.close);
+  // 로그인하면 세션 초기화가 로컬 DB 를 연다 — 기기 경로를 찾는 플러그인이
+  // 테스트에는 없으니 메모리 DB 로 대신한다.
+  final AppDatabase db = AppDatabase.forTesting(NativeDatabase.memory());
+  addTearDown(db.close);
   final ProviderContainer container = ProviderContainer(
     overrides: <Override>[
       appConfigProvider.overrideWithValue(_config),
+      appDatabaseProvider.overrideWithValue(db),
       dioProvider.overrideWithValue(server.dio),
       sessionFeatureResetOverride(),
     ],
@@ -240,7 +247,7 @@ void main() {
       );
       expect(doc.document, 'terms');
       // 문서를 연 것만으로 동의한 것은 아니다.
-      await tester.pageBack();
+      await tester.tap(find.byType(AppBackButton).last);
       await tester.pumpAndSettle();
       expect(_enabled(tester, submit), isFalse);
     });
@@ -262,7 +269,7 @@ void main() {
           'privacy',
           reason: id,
         );
-        await tester.pageBack();
+        await tester.tap(find.byType(AppBackButton).last);
         await tester.pumpAndSettle();
       }
       // 만 14세·마케팅은 문서가 없다.

@@ -119,11 +119,17 @@ Future<void> _agreeAll(WidgetTester tester) async {
 }
 
 /// 오류 문구가 늘어 버튼이 화면 밖으로 밀려도 누를 수 있게 끌어온다.
+///
+/// 동의 묶음까지 들어가 가입 화면이 테스트 창보다 길다. 방금 친 칸에 초점이
+/// 남아 있으면 그 칸이 커서를 보이려고 스크롤을 되돌려 버튼이 다시 화면 밖으로
+/// 나가므로, 초점을 먼저 거두고 스크롤이 멎은 뒤에 누른다.
 Future<void> _submit(WidgetTester tester, String key) async {
   await _agreeAll(tester);
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tester.pumpAndSettle();
   final Finder submit = find.byKey(ValueKey<String>(key));
   await tester.ensureVisible(submit);
-  await tester.pump();
+  await tester.pumpAndSettle();
   await tester.tap(submit);
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 300));
