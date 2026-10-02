@@ -11,6 +11,7 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/network/auth_token.dart';
+import 'package:oncare/core/observability/error_reporter.dart';
 import 'package:oncare/core/utils/wire_date.dart';
 import 'package:oncare/features/account/presentation/first_run_route.dart';
 import 'package:oncare/features/account/presentation/pages/onboarding_page.dart';
@@ -300,6 +301,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     readStatus: () => ref.read(sessionControllerProvider).status,
     refresh: refresh,
   );
+  // 오류 보고에 화면 경로 패턴(값이 빠진 `/diet/:id` 형태)을 태그로 단다(#2839).
+  ref
+      .read(errorReporterProvider)
+      .attachRouteResolver(
+        () => router.routerDelegate.currentConfiguration.fullPath,
+      );
   ref.listen<SessionState>(sessionControllerProvider, (
     SessionState? previous,
     SessionState next,

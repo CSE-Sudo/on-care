@@ -112,6 +112,8 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `RECOGNIZER_TIMEOUT_SECONDS` | 식단 사진 인식 한 건의 대기 한도(초, 기본 60, #2912) |
 | `MIGRATE_CONNECT_TIMEOUT` | 기동 마이그레이션의 DB 연결 한도(초, 기본 10, #2912) |
 | `KAKAO_REST_API_KEY` | 장소(O2O) 실검색. 없으면 시드 폴백. `PLACES_PROVIDER=auto` 기본 |
+| `SENTRY_DSN` | 에러 추적 수신 주소(#2839). 비우면 보내지 않음. 값은 #480 에서 채운다 |
+| `SENTRY_ENVIRONMENT` / `SENTRY_SAMPLE_RATE` | 선택. 비우면 `ENV` 값 / 기본 `1.0` |
 
 > 참고: 키가 없어도 인식/장소는 폴백으로 동작(기동은 됨). 운영 시크릿은 Secrets Manager/SSM 에 두고
 > App Runner 에 주입한다. 키 전체 목록과 형식은 `backend/.env.aws.example` 에 있다.

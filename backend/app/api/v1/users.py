@@ -62,6 +62,7 @@ from app.services import (
     attachment_cleanup,
     auth_tokens,
     consultation_service,
+    data_consent_service,
     health_goal_change,
     member_departure,
     member_pairing_service,
@@ -357,6 +358,7 @@ DELETION_REASONS: frozenset[str] = frozenset(
 def delete_me(
     user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
+    request: Request,
     payload: AccountDeleteRequest | None = None,
 ) -> dict:
     """회원 탈퇴. 예약 좌석을 복구한 뒤 프로필·식단·운동·일정·알림·
@@ -386,6 +388,8 @@ def delete_me(
     # 담당 링크는 회원과 함께 CASCADE 로 사라진다 — 지우기 전에 담당 트레이너에게
     # 알린다. 알림은 트레이너 계정에 달려 탈퇴 뒤에도 남는다(#2174).
     member_departure.notify_trainer(db, user, reason="withdrawn")
+    # 동의 종료·탈퇴를 감사 기록으로 남긴다 — 링크와 계정이 사라져도 남는다(#2830).
+    data_consent_service.stage_account_withdrawal(db, user, ip=client_ip(request))
     # 채팅 첨부의 바이트는 DB 밖에 있어 CASCADE 가 닿지 않는다 — 행이 사라지기
     # 전에 목록을 잡아 두고, 커밋이 끝난 뒤에 지운다(#2817).
     attachments = attachment_cleanup.files_in_threads(db, member_id=user.id)
