@@ -198,6 +198,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     'PUT /users/me': _usersMeUpdate,
     'DELETE /users/me': _usersMeDelete,
     'POST /users/me/onboarding': _usersMeOnboarding,
+    'POST /users/me/onboarding/skip': _usersMeOnboardingSkip,
     'PUT /users/me/health-goals': _usersMeHealthGoals,
     'GET /users/me/health': _usersMeHealth,
     // 포인트 사용처·쿠폰 — 서버와 같은 규칙의 목업 원장(#1787).
@@ -3799,6 +3800,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     'weekly_strength_sets': null,
     'weekly_flexibility_minutes': null,
     'onboarded': true,
+    'onboarding_skipped': false,
   };
 
   /// 가입한 계정과 지금 로그인한 계정(#2665).
@@ -4053,6 +4055,15 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     // 처음 고른 목표·적은 주의사항도 회원이 정한 것이다 — 실서버처럼 남긴다.
     await _stampMemberHealthChanges(patch);
     await _mergeProfileOverlay(patch);
+    return _ok(options, await _mergedProfile());
+  }
+
+  /// POST /users/me/onboarding/skip — 첫 설정 건너뛰기만 남긴다(#2855). 서버처럼
+  /// 다른 값은 건드리지 않고 `onboarded` 도 그대로 둔다.
+  Future<Response<Object?>> _usersMeOnboardingSkip(
+    RequestOptions options,
+  ) async {
+    await _mergeProfileOverlay(<String, Object?>{'onboarding_skipped': true});
     return _ok(options, await _mergedProfile());
   }
 
