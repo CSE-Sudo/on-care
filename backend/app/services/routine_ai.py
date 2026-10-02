@@ -64,6 +64,12 @@ _CARDIO_KEYWORDS = ("걷기", "러닝", "자전거", "유산소", "인터벌", "
 
 #: 주의사항·대화에서 찾는 부담 부위와, 그 부위에 부담이 큰 운동 이름의 조각.
 #: (#1440) 진단을 하지 않는다 — **무엇을 빼야 안전한가**만 안다.
+#:
+#: 이 표와 아래 낱말 표·라이브러리 운동은 트레이너 웹 데모 A/B
+#: (`demo_routine_rules.dart`)도 같은 값으로 든다. 바꾸면
+#: `scripts/gen_routine_caution_cases.py` 로 공유 사례 파일
+#: (`shared/oncare_rules/vectors/routine_caution_cases.json`)을 다시 만든다 —
+#: 서버·트레이너 웹 테스트가 그 파일과 대조한다(#2906).
 _CAUTION_RULES: tuple[tuple[str, tuple[str, ...], tuple[str, ...]], ...] = (
     (
         "무릎",
