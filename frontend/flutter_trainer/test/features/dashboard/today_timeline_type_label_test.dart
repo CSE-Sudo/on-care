@@ -101,8 +101,12 @@ void main() {
     });
 
     test('화면 문구나 부분 일치로는 상담이 되지 않는다', () {
-      ScheduleSession typed(String type) =>
-          _session(id: 'x', time: '10:00', type: type, clientName: '누군가');
+      ScheduleSession typed(String type) => _session(
+        id: 'x',
+        time: '10:00',
+        type: type,
+        clientName: '누군가',
+      );
       expect(typed('Consultation').isConsultation, isFalse);
       expect(typed('상담 후 PT').isConsultation, isFalse);
       expect(typed('').isConsultation, isFalse);

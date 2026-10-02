@@ -237,7 +237,10 @@ void main() {
         tester,
         FakeMemberCoachRepository(
           chat: <CoachMessage>[
-            reportNotice(_lastWeek, createdAt: DateTime(2026, 8, 16, 21)),
+            reportNotice(
+              _lastWeek,
+              createdAt: DateTime(2026, 8, 16, 21),
+            ),
           ],
         ),
       );
@@ -265,9 +268,7 @@ void main() {
       await _pump(
         tester,
         FakeMemberCoachRepository(
-          feedback: <DateTime, MemberWeeklyFeedback>{
-            _lastWeek: _sent(_lastWeek),
-          },
+          feedback: <DateTime, MemberWeeklyFeedback>{_lastWeek: _sent(_lastWeek)},
         ),
       );
 
@@ -356,9 +357,7 @@ void main() {
     testWidgets('영어에서 모든 자리가 번역되어 있다', (tester) async {
       await _pump(
         tester,
-        FakeMemberCoachRepository(
-          chat: <CoachMessage>[reportNotice(_lastWeek)],
-        ),
+        FakeMemberCoachRepository(chat: <CoachMessage>[reportNotice(_lastWeek)]),
         locale: 'en',
       );
 
@@ -376,24 +375,24 @@ void main() {
     testWidgets('영어 화면에 한글이 남아 있지 않다', (tester) async {
       await _pump(
         tester,
-        FakeMemberCoachRepository(
-          chat: <CoachMessage>[reportNotice(_lastWeek)],
-        ),
+        FakeMemberCoachRepository(chat: <CoachMessage>[reportNotice(_lastWeek)]),
         locale: 'en',
       );
 
       final RegExp hangul = RegExp(r'[가-힣]');
       for (final String t in _texts(tester)) {
-        expect(hangul.hasMatch(t), isFalse, reason: '영어 화면에 번역되지 않은 글이 있다: $t');
+        expect(
+          hangul.hasMatch(t),
+          isFalse,
+          reason: '영어 화면에 번역되지 않은 글이 있다: $t',
+        );
       }
     });
 
     testWidgets('좁은 폭에서도 넘치지 않는다', (tester) async {
       await _pump(
         tester,
-        FakeMemberCoachRepository(
-          chat: <CoachMessage>[reportNotice(_lastWeek)],
-        ),
+        FakeMemberCoachRepository(chat: <CoachMessage>[reportNotice(_lastWeek)]),
         size: const Size(320, 1400),
       );
 

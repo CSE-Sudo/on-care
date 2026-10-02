@@ -49,15 +49,17 @@ AppDatabase emptyDemoDatabase() {
 
 /// [db] 위의 로컬 목업 API 를 부르는 Dio — 앱의 목업 모드와 같은 연결이다.
 /// 호출을 세는 대역이 `DioExerciseRepository` 를 상속할 때 쓴다.
-Dio demoExerciseDio(AppDatabase db, {LocalApiInterceptor? api}) => Dio(
-  BaseOptions(baseUrl: 'https://example.test'),
-)..interceptors.add(api ?? LocalApiInterceptor(db, Logger(level: Level.off)));
+Dio demoExerciseDio(AppDatabase db, {LocalApiInterceptor? api}) =>
+    Dio(BaseOptions(baseUrl: 'https://example.test'))
+      ..interceptors.add(api ?? LocalApiInterceptor(db, Logger(level: Level.off)));
 
 /// 단위 시험용 — [db] 위의 로컬 목업 API 와 그것을 부르는 운동 저장소.
 ///
 /// [points] 를 주면 그 원장에 적립한다 — 앱에서는 목업 코치 저장소와 같은 원장이다.
-({LocalApiInterceptor api, DioExerciseRepository repository})
-demoExerciseBackend(AppDatabase db, {DemoPointsLedger? points}) {
+({LocalApiInterceptor api, DioExerciseRepository repository}) demoExerciseBackend(
+  AppDatabase db, {
+  DemoPointsLedger? points,
+}) {
   final LocalApiInterceptor api = LocalApiInterceptor(
     db,
     Logger(level: Level.off),

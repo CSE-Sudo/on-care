@@ -51,9 +51,7 @@ void main() {
             ),
           ),
           // 사용처 화면은 교환 목록을 읽는다(#1787) — 가짜 저장소로 채운다.
-          benefitsRepositoryProvider.overrideWithValue(
-            FakeBenefitsRepository(),
-          ),
+          benefitsRepositoryProvider.overrideWithValue(FakeBenefitsRepository()),
           // 사용처 화면은 주간 챌린지도 읽는다(#1789).
           challengeRepositoryProvider.overrideWithValue(
             FakeChallengeRepository(),
@@ -181,7 +179,9 @@ void main() {
     expect(arrow.color, OnCareColors.textOnFill);
   });
 
-  testWidgets('포인트 카드 바탕은 회원이 고른 기록 그래프 색을 따른다', (WidgetTester tester) async {
+  testWidgets('포인트 카드 바탕은 회원이 고른 기록 그래프 색을 따른다', (
+    WidgetTester tester,
+  ) async {
     await pumpHome(tester, const MyHealthPage(), graphColor: 'pink');
 
     final Material material = tester.widget<Material>(

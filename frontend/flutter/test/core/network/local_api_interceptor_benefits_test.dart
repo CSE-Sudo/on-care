@@ -61,7 +61,10 @@ void main() {
   Future<Response<Object?>> exchange(String item, {String? requestId}) =>
       dio.post<Object?>(
         '/me/points/exchange',
-        data: <String, Object?>{'item': item, 'client_request_id': ?requestId},
+        data: <String, Object?>{
+          'item': item,
+          'client_request_id': ?requestId,
+        },
       );
 
   Future<List<Map<String, Object?>>> coupons() async {
@@ -81,12 +84,8 @@ void main() {
   }
 
   Future<Map<String, ShopItem>> shopItems() async {
-    final PointsShop shop = await DioBenefitsRepository(
-      strictDioOf(dio),
-    ).fetchShop();
-    return <String, ShopItem>{
-      for (final ShopItem item in shop.items) item.id: item,
-    };
+    final PointsShop shop = await DioBenefitsRepository(strictDioOf(dio)).fetchShop();
+    return <String, ShopItem>{for (final ShopItem item in shop.items) item.id: item};
   }
 
   String idOf(List<Map<String, Object?>> rows, String item) =>
@@ -94,9 +93,7 @@ void main() {
           as String;
 
   test('교환 목록은 서버와 같은 순서·가격·막힌 이유를 준다', () async {
-    final PointsShop shop = await DioBenefitsRepository(
-      strictDioOf(dio),
-    ).fetchShop();
+    final PointsShop shop = await DioBenefitsRepository(strictDioOf(dio)).fetchShop();
 
     expect(shop.balance, 30000);
     expect(shop.hasTrainer, isTrue);
@@ -110,27 +107,18 @@ void main() {
       // MY 프로필 펫 이모지(#2021) — 7일 동안 이름 옆에 단다.
       'profile_pet',
     ]);
-    expect(shop.items.map((ShopItem i) => i.cost), <int>[
-      21000,
-      7000,
-      300,
-      150,
-      200,
-    ]);
-    expect(shop.items.map((ShopItem i) => i.requiresTrainer), <bool>[
-      true,
-      false,
-      false,
-      false,
-      false,
-    ]);
-    expect(shop.items.map((ShopItem i) => i.requiresGym), <bool>[
-      false,
-      true,
-      false,
-      false,
-      false,
-    ]);
+    expect(
+      shop.items.map((ShopItem i) => i.cost),
+      <int>[21000, 7000, 300, 150, 200],
+    );
+    expect(
+      shop.items.map((ShopItem i) => i.requiresTrainer),
+      <bool>[true, false, false, false, false],
+    );
+    expect(
+      shop.items.map((ShopItem i) => i.requiresGym),
+      <bool>[false, true, false, false, false],
+    );
     expect(shop.items.every((ShopItem i) => i.available), isTrue);
 
     book.endTrainerLink();
@@ -141,10 +129,7 @@ void main() {
     book.endGymLink();
     items = await shopItems();
     expect(items['locker_month']!.blockReason, ShopBlockReason.noGym);
-    expect(
-      (await DioBenefitsRepository(strictDioOf(dio)).fetchShop()).hasGym,
-      isFalse,
-    );
+    expect((await DioBenefitsRepository(strictDioOf(dio)).fetchShop()).hasGym, isFalse);
   });
 
   test('프로필 펫을 달면 이름 옆에 붙고 카드가 남은 기간을 싣는다 (#2021)', () async {
@@ -263,9 +248,7 @@ void main() {
     );
 
     // 써도 같은 달에는 다시 받을 수 없다.
-    await DioBenefitsRepository(
-      strictDioOf(dio),
-    ).useCoupon(idOf(await coupons(), 'locker_month'));
+    await DioBenefitsRepository(strictDioOf(dio)).useCoupon(idOf(await coupons(), 'locker_month'));
     expect(
       (await shopItems())['locker_month']!.blockReason,
       ShopBlockReason.monthlyLimit,
@@ -286,20 +269,12 @@ void main() {
   });
 
   test('같은 요청 id 로 다시 보내면 한 번만 쓴다', () async {
-    final Response<Object?> first = await exchange(
-      'locker_month',
-      requestId: 'req-1',
-    );
-    final Response<Object?> second = await exchange(
-      'locker_month',
-      requestId: 'req-1',
-    );
+    final Response<Object?> first = await exchange('locker_month', requestId: 'req-1');
+    final Response<Object?> second = await exchange('locker_month', requestId: 'req-1');
 
     expect(
-      ((second.data! as Map<Object?, Object?>)['coupon']!
-          as Map<Object?, Object?>)['id'],
-      ((first.data! as Map<Object?, Object?>)['coupon']!
-          as Map<Object?, Object?>)['id'],
+      ((second.data! as Map<Object?, Object?>)['coupon']! as Map<Object?, Object?>)['id'],
+      ((first.data! as Map<Object?, Object?>)['coupon']! as Map<Object?, Object?>)['id'],
     );
     expect(await balance(), 23000);
   });
@@ -307,12 +282,8 @@ void main() {
   test('락커·재등록 쿠폰 모두 회원 휴대폰에서 한 번 사용 처리한다', () async {
     await exchange('locker_month');
     final String locker = (await coupons()).single['id']! as String;
-    final Coupon used = await DioBenefitsRepository(
-      strictDioOf(dio),
-    ).useCoupon(locker);
-    final Coupon again = await DioBenefitsRepository(
-      strictDioOf(dio),
-    ).useCoupon(locker);
+    final Coupon used = await DioBenefitsRepository(strictDioOf(dio)).useCoupon(locker);
+    final Coupon again = await DioBenefitsRepository(strictDioOf(dio)).useCoupon(locker);
 
     expect(used.status, CouponStatus.used);
     expect(again.status, CouponStatus.used);
@@ -334,15 +305,9 @@ void main() {
     now = DateTime(2026, 10, 16, 0, 1);
 
     final List<Map<String, Object?>> rows = await coupons();
-    expect(
-      rows.every((Map<String, Object?> c) => c['status'] == 'expired'),
-      isTrue,
-    );
+    expect(rows.every((Map<String, Object?> c) => c['status'] == 'expired'), isTrue);
     final String locker = idOf(rows, 'locker_month');
-    expect(
-      (await dio.post<Object?>('/me/coupons/$locker/use')).statusCode,
-      409,
-    );
+    expect((await dio.post<Object?>('/me/coupons/$locker/use')).statusCode, 409);
 
     book
       ..endTrainerLink()
@@ -370,9 +335,7 @@ void main() {
     expect(await balance(), 23000);
     List<Map<String, Object?>> rows = await coupons();
     String statusOf(String item) =>
-        rows.firstWhere(
-              (Map<String, Object?> c) => c['item'] == item,
-            )['status']!
+        rows.firstWhere((Map<String, Object?> c) => c['item'] == item)['status']!
             as String;
     expect(statusOf('pt_renewal'), 'cancelled');
     expect(statusOf('locker_month'), 'issued');

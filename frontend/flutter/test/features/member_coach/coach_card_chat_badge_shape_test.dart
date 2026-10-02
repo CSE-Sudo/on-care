@@ -42,7 +42,9 @@ Future<void> _pump(WidgetTester tester, int unread) async {
         locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: const Scaffold(body: SingleChildScrollView(child: CoachCard())),
+        home: const Scaffold(
+          body: SingleChildScrollView(child: CoachCard()),
+        ),
       ),
     ),
   );

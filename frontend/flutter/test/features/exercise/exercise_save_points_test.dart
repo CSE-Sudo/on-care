@@ -179,8 +179,11 @@ void main() {
                       child: const Text('열기'),
                     ),
                     TextButton(
-                      onPressed: () =>
-                          confirmDeleteExerciseSession(context, ref, session!),
+                      onPressed: () => confirmDeleteExerciseSession(
+                        context,
+                        ref,
+                        session!,
+                      ),
                       child: const Text('지우기'),
                     ),
                   ],
@@ -237,7 +240,9 @@ void main() {
     await dismissToast(tester);
   });
 
-  testWidgets('하루 한도를 넘어 0 이면 표시 없이 저장 알림만 뜬다', (WidgetTester tester) async {
+  testWidgets('하루 한도를 넘어 0 이면 표시 없이 저장 알림만 뜬다', (
+    WidgetTester tester,
+  ) async {
     await pump(
       tester,
       _AwardingRepository(const PointsAward(awarded: 0, balance: 1300)),

@@ -20,10 +20,7 @@ import 'fake_benefits_repository.dart';
 import 'fake_challenge_repository.dart';
 
 void main() {
-  Future<void> pumpShop(
-    WidgetTester tester,
-    FakeBenefitsRepository repo,
-  ) async {
+  Future<void> pumpShop(WidgetTester tester, FakeBenefitsRepository repo) async {
     await tester.binding.setSurfaceSize(const Size(390, 1600));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(

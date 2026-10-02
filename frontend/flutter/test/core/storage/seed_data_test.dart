@@ -62,12 +62,11 @@ void main() {
       expect(diet.where((r) => r.date == _daysAgoString(3)), isNotEmpty);
       // 한 달을 거슬러 올라가도 대부분의 날에 기록이 있다. "모든 날"이 아닌 이유는
       // 픽스처가 기록 없는 날을 일부러 남겨 두기 때문이다.
-      final int loggedInLastMonth =
-          <int>[for (int offset = 3; offset < 33; offset++) offset].where((
-            int offset,
-          ) {
-            return diet.any((r) => r.date == _daysAgoString(offset));
-          }).length;
+      final int loggedInLastMonth = <int>[
+        for (int offset = 3; offset < 33; offset++) offset,
+      ].where((int offset) {
+        return diet.any((r) => r.date == _daysAgoString(offset));
+      }).length;
       expect(loggedInLastMonth, greaterThan(20));
       expect(
         diet.where((r) => r.date == _daysAgoString(_beyondFixture)),
@@ -188,9 +187,7 @@ void main() {
         // 운동은 **실제로 한** 항목만 쌓인다 — 이행률과 주간 운동 시간이 갈라지면
         // 안 된다.
         final int minutes = exercise
-            .where(
-              (r) => r.weekStart == day.weekStart && r.dayLabel == day.dayLabel,
-            )
+            .where((r) => r.weekStart == day.weekStart && r.dayLabel == day.dayLabel)
             .fold<int>(0, (int sum, r) => sum + r.minutes);
         expect(
           minutes,

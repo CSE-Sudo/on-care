@@ -169,7 +169,10 @@ void main() {
 
     final notifier = container.read(notificationControllerProvider.notifier);
     await _settle();
-    expect(container.read(notificationControllerProvider).failedToLoad, isTrue);
+    expect(
+      container.read(notificationControllerProvider).failedToLoad,
+      isTrue,
+    );
 
     repo.fetchThrows = false;
     await notifier.refresh();
@@ -195,7 +198,9 @@ void main() {
     await _settle();
     final int before = repo.unreadCalls;
 
-    await container.read(notificationControllerProvider.notifier).markRead('a');
+    await container
+        .read(notificationControllerProvider.notifier)
+        .markRead('a');
     await _settle();
 
     // 다음 폴링을 기다리면 목록과 배지가 잠시 어긋나 보인다.
@@ -243,6 +248,9 @@ void main() {
     await _settle();
 
     expect(repo.fetchCalls, greaterThan(before));
-    expect(container.read(notificationControllerProvider).items, isNotEmpty);
+    expect(
+      container.read(notificationControllerProvider).items,
+      isNotEmpty,
+    );
   });
 }

@@ -106,7 +106,9 @@ void main() {
     expect(tester.widget<Icon>(icons).icon, AppIcons.chevronRight);
   });
 
-  testWidgets('공유 범위를 먼저 보여 주고, 동의해야 코드를 발급한다 (#2584)', (tester) async {
+  testWidgets('공유 범위를 먼저 보여 주고, 동의해야 코드를 발급한다 (#2584)', (
+    tester,
+  ) async {
     await pumpMyTab(tester);
 
     await tester.tap(find.text('트레이너와 데이터 동기화'));
@@ -122,10 +124,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(sync.issued, 1);
-    expect(
-      find.byKey(const ValueKey<String>('trainer-sync-agree')),
-      findsNothing,
-    );
+    expect(find.byKey(const ValueKey<String>('trainer-sync-agree')), findsNothing);
     // 한 자리씩 상자에 담긴다 — 마주 앉아 불러 주는 값이라 글자가 갈려야 한다.
     final String shown = <String>[
       for (int i = 0; i < 6; i++)

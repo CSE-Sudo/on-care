@@ -27,10 +27,7 @@ class FakeStreakShieldRepository implements StreakShieldRepository {
       held: shields.held > 0 ? shields.held - 1 : 0,
       maxHeld: shields.maxHeld,
       cost: shields.cost,
-      used: <StreakShieldUse>[
-        StreakShieldUse(date: date),
-        ...shields.used,
-      ],
+      used: <StreakShieldUse>[StreakShieldUse(date: date), ...shields.used],
     );
     onUse?.call(date);
     return shields;

@@ -498,45 +498,42 @@ void main() {
       expect(find.text('오세라'), findsOneWidget);
     });
 
-    testWidgets(
-      'the detail revalidates the selected client on open and every 30s (#2330)',
-      (tester) async {
-        tester.binding.handleAppLifecycleStateChanged(
-          AppLifecycleState.resumed,
-        );
-        late _RecordingRefreshClientRepository repository;
+    testWidgets('the detail revalidates the selected client on open and every 30s (#2330)', (
+      tester,
+    ) async {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      late _RecordingRefreshClientRepository repository;
 
-        await pumpTrainerApp(
-          tester,
-          token: 'demo-trainer-token',
-          at: AppRoutes.clientDetail('seed-client-1', section: 'diet'),
-          extraOverrides: <Override>[
-            clientRepositoryProvider.overrideWith((ref) {
-              repository = _RecordingRefreshClientRepository(
-                ref.watch(appDatabaseProvider),
-              );
-              return repository;
-            }),
-          ],
-        );
-        expect(find.text('오늘 섭취 칼로리'), findsOneWidget);
-        // 새로고침 버튼은 없다 — 여는 순간 한 번 당기고, 열어 둔 동안 30초마다
-        // 다시 맞춘다.
-        expect(
-          find.byKey(const ValueKey<String>('client-data-refresh')),
-          findsNothing,
-        );
-        expect(repository.clientRefreshes, <String>['seed-client-1']);
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.clientDetail('seed-client-1', section: 'diet'),
+        extraOverrides: <Override>[
+          clientRepositoryProvider.overrideWith((ref) {
+            repository = _RecordingRefreshClientRepository(
+              ref.watch(appDatabaseProvider),
+            );
+            return repository;
+          }),
+        ],
+      );
+      expect(find.text('오늘 섭취 칼로리'), findsOneWidget);
+      // 새로고침 버튼은 없다 — 여는 순간 한 번 당기고, 열어 둔 동안 30초마다
+      // 다시 맞춘다.
+      expect(
+        find.byKey(const ValueKey<String>('client-data-refresh')),
+        findsNothing,
+      );
+      expect(repository.clientRefreshes, <String>['seed-client-1']);
 
-        await tester.pump(const Duration(seconds: 31));
-        await settle(tester);
-        expect(repository.clientRefreshes, <String>[
-          'seed-client-1',
-          'seed-client-1',
-        ]);
-        expect(find.text('오늘 섭취 칼로리'), findsOneWidget);
-      },
-    );
+      await tester.pump(const Duration(seconds: 31));
+      await settle(tester);
+      expect(repository.clientRefreshes, <String>[
+        'seed-client-1',
+        'seed-client-1',
+      ]);
+      expect(find.text('오늘 섭취 칼로리'), findsOneWidget);
+    });
 
     testWidgets('renders the roster with its size and priority order', (
       tester,

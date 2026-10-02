@@ -165,7 +165,9 @@ void main() {
   /// 트레이너가 데모 중에 보낸 리포트는 트레이너 쪽 로컬 DB 에만 남으므로,
   /// 회원 쪽에서 이 안내가 보이려면 시드가 들고 있어야 한다. (#1605)
   group('데모 대화의 리포트 등록 안내 (#1605)', () {
-    testWidgets('김민수 데모 스레드에 리포트 등록 카드가 있다', (WidgetTester tester) async {
+    testWidgets('김민수 데모 스레드에 리포트 등록 카드가 있다', (
+      WidgetTester tester,
+    ) async {
       await pumpChat(tester);
 
       expect(find.byType(CoachReportCard), findsOneWidget);
@@ -180,7 +182,9 @@ void main() {
       expect(find.text('PDF 미리보기'), findsOneWidget);
     });
 
-    testWidgets('데모 리포트 메시지는 표시만 갖고 첨부는 없다', (WidgetTester tester) async {
+    testWidgets('데모 리포트 메시지는 표시만 갖고 첨부는 없다', (
+      WidgetTester tester,
+    ) async {
       final List<CoachMessage> chat = await MockMemberCoachRepository()
           .fetchChat();
       final Iterable<CoachMessage> reports = chat.where(

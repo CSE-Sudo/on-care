@@ -40,10 +40,7 @@ Future<void> _pumpMy(
   final GoRouter router = GoRouter(
     initialLocation: AppRoutes.myHealth,
     routes: <RouteBase>[
-      GoRoute(
-        path: AppRoutes.myHealth,
-        builder: (_, _) => const MyHealthPage(),
-      ),
+      GoRoute(path: AppRoutes.myHealth, builder: (_, _) => const MyHealthPage()),
       GoRoute(
         path: AppRoutes.myCoachReports,
         builder: (_, _) => const Scaffold(body: Center(child: Text('리포트 목록'))),
@@ -106,16 +103,9 @@ void main() {
   });
 
   testWidgets('영어에서도 번역되어 있다', (tester) async {
-    await _pumpMy(
-      tester,
-      repository: FakeMemberCoachRepository(),
-      locale: 'en',
-    );
+    await _pumpMy(tester, repository: FakeMemberCoachRepository(), locale: 'en');
 
     expect(find.text('Trainer reports'), findsOneWidget);
-    expect(
-      find.text('Reports you received and feedback you sent'),
-      findsOneWidget,
-    );
+    expect(find.text('Reports you received and feedback you sent'), findsOneWidget);
   });
 }

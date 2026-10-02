@@ -117,7 +117,9 @@ void main() {
       container.read(notificationControllerProvider);
       await Future<void>.delayed(Duration.zero);
 
-      await container.read(notificationControllerProvider.notifier).loadMore();
+      await container
+          .read(notificationControllerProvider.notifier)
+          .loadMore();
 
       final AlertItem lastOfFirstPage = _item(notificationPageSize - 1);
       expect(repo.calls.last.before, lastOfFirstPage.createdAt);
@@ -140,7 +142,10 @@ void main() {
       final int callsAfterLastPage = repo.calls.length;
       await notifier.loadMore(); // 더 없는데 한 번 더 당겨 본다
 
-      expect(container.read(notificationControllerProvider).hasMore, isFalse);
+      expect(
+        container.read(notificationControllerProvider).hasMore,
+        isFalse,
+      );
       expect(repo.calls.length, callsAfterLastPage, reason: '헛된 요청을 내지 않는다');
       expect(
         container.read(notificationControllerProvider).items,
@@ -155,7 +160,9 @@ void main() {
       container.read(notificationControllerProvider);
       await Future<void>.delayed(Duration.zero);
 
-      await container.read(notificationControllerProvider.notifier).loadMore();
+      await container
+          .read(notificationControllerProvider.notifier)
+          .loadMore();
 
       final List<String> ids = container
           .read(notificationControllerProvider)
@@ -189,7 +196,9 @@ void main() {
       container.read(notificationControllerProvider);
       await Future<void>.delayed(Duration.zero);
 
-      await container.read(notificationControllerProvider.notifier).loadMore();
+      await container
+          .read(notificationControllerProvider.notifier)
+          .loadMore();
 
       expect(repo.calls, hasLength(2));
       expect(
@@ -260,30 +269,28 @@ void main() {
       final Dio dio = Dio(BaseOptions(baseUrl: 'https://example.test'));
       dio.interceptors.add(
         InterceptorsWrapper(
-          onRequest: (RequestOptions o, RequestInterceptorHandler h) =>
-              h.resolve(
-                Response<Object?>(
-                  requestOptions: o,
-                  statusCode: 200,
-                  data: <Map<String, Object?>>[
-                    <String, Object?>{
-                      'id': 'noti-1',
-                      'title': '제목',
-                      'body': '본문',
-                      'category': 'reminder',
-                      'read': false,
-                      'created_at': '2026-01-01T00:00:00+00:00',
-                      'time_ago': '방금 전',
-                    },
-                  ],
-                ),
-              ),
+          onRequest: (RequestOptions o, RequestInterceptorHandler h) => h.resolve(
+            Response<Object?>(
+              requestOptions: o,
+              statusCode: 200,
+              data: <Map<String, Object?>>[
+                <String, Object?>{
+                  'id': 'noti-1',
+                  'title': '제목',
+                  'body': '본문',
+                  'category': 'reminder',
+                  'read': false,
+                  'created_at': '2026-01-01T00:00:00+00:00',
+                  'time_ago': '방금 전',
+                },
+              ],
+            ),
+          ),
         ),
       );
 
-      final AlertItem item = (await DioNotificationRepository(
-        dio,
-      ).fetchPage()).single;
+      final AlertItem item =
+          (await DioNotificationRepository(dio).fetchPage()).single;
 
       // 다시 문자열로 만들면 표기가 미묘하게 달라져 커서 경계가 어긋난다.
       expect(item.createdAt, '2026-01-01T00:00:00+00:00');

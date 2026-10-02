@@ -30,9 +30,10 @@ void main() {
     await db.close();
   });
 
-  Future<List<ExerciseSessionRow>> routineRows() => (db.select(
-    db.exerciseSessions,
-  )..where((t) => t.source.equals('assigned_routine'))).get();
+  Future<List<ExerciseSessionRow>> routineRows() =>
+      (db.select(db.exerciseSessions)
+            ..where((t) => t.source.equals('assigned_routine')))
+          .get();
 
   CoachRoutine routineOf(List<CoachRoutine> list) =>
       list.firstWhere((CoachRoutine r) => r.id == routineId);

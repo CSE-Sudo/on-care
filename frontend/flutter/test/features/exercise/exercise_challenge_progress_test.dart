@@ -35,8 +35,9 @@ const ExerciseWeek _week = ExerciseWeek(
 
 class _FailingChallengeRepository extends FakeChallengeRepository {
   @override
-  Future<WeeklyChallenge> fetchWeekly() =>
-      Future<WeeklyChallenge>.error(StateError('network'));
+  Future<WeeklyChallenge> fetchWeekly() => Future<WeeklyChallenge>.error(
+    StateError('network'),
+  );
 }
 
 void main() {
@@ -95,7 +96,10 @@ void main() {
     );
     // 운동 현황 위젯 안에는 없다.
     expect(
-      find.descendant(of: find.byType(ExerciseActivityStatus), matching: line),
+      find.descendant(
+        of: find.byType(ExerciseActivityStatus),
+        matching: line,
+      ),
       findsNothing,
     );
     expect(

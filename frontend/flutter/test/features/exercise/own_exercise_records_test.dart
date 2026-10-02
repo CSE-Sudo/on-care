@@ -20,6 +20,7 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import '../../helpers/fixed_clock.dart';
 
+
 /// 직접 추가한 운동 기록이 운동 탭에 남는다. (#1428)
 ///
 /// 하단 `+` 로 저장한 기록은 주간 통계·그래프에만 반영되고 개별 기록을 볼 자리가

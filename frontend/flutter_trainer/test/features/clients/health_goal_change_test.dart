@@ -62,10 +62,7 @@ void main() {
       });
       expect(notice.kind, TrainerNotificationKind.healthGoal);
       final String? target = NotificationsPage.targetOf(notice);
-      expect(
-        target,
-        AppRoutes.clientDetail('user-jisu', openHealthNotes: true),
-      );
+      expect(target, AppRoutes.clientDetail('user-jisu', openHealthNotes: true));
       expect(Uri.parse(target!).queryParameters, <String, String>{
         AppRoutes.clientOpenParam: AppRoutes.clientOpenHealthNotes,
       });

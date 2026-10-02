@@ -248,7 +248,10 @@ void main() {
       calendar.isProtectable(dayOf(calendar, DateTime(2026, 8, 20))),
       isFalse,
     );
-    expect(calendar.isProtectable(dayOf(calendar, DateTime(2026, 7))), isFalse);
+    expect(
+      calendar.isProtectable(dayOf(calendar, DateTime(2026, 7))),
+      isFalse,
+    );
   });
 
   test('보호권이 없으면 누를 수 있는 칸이 없다', () async {

@@ -65,10 +65,7 @@ void main() {
     test('sign-up route is public like sign-in', () {
       // signed-out may reach it; already-in-app is bounced out. 복구 중에는
       // 시작 화면이 먼저다(#1944) — 복구가 끝난 뒤에 가입으로 갈 수 있다.
-      expect(
-        sessionRedirect(SessionStatus.signedOut, AppRoutes.signUp),
-        isNull,
-      );
+      expect(sessionRedirect(SessionStatus.signedOut, AppRoutes.signUp), isNull);
       expect(
         sessionRedirect(SessionStatus.unknown, AppRoutes.signUp),
         AppRoutes.splash,

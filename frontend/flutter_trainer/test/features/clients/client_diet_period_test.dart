@@ -160,7 +160,10 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.descendant(of: header, matching: find.byIcon(AppIcons.diet)),
+        find.descendant(
+          of: header,
+          matching: find.byIcon(AppIcons.diet),
+        ),
         findsOneWidget,
       );
 

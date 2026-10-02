@@ -130,10 +130,14 @@ void main() {
     await tester.tap(confirmUndo);
     await tester.pumpAndSettle();
 
-    expect(await weekCalories(tester), before, reason: '완료를 취소했는데 기록이 남아 있다');
-    final CoachRoutine after = (await routinesOf(
-      tester,
-    )).firstWhere((CoachRoutine r) => r.id == target.id);
+    expect(
+      await weekCalories(tester),
+      before,
+      reason: '완료를 취소했는데 기록이 남아 있다',
+    );
+    final CoachRoutine after = (await routinesOf(tester)).firstWhere(
+      (CoachRoutine r) => r.id == target.id,
+    );
     expect(after.completed, isFalse);
   });
 

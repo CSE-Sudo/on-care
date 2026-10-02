@@ -36,8 +36,7 @@ void main() {
             ? source.substring(start)
             : source.substring(start, builder);
         if (!args.contains('useRootNavigator')) {
-          final int line =
-              '\n'.allMatches(source.substring(0, start)).length + 1;
+          final int line = '\n'.allMatches(source.substring(0, start)).length + 1;
           offenders.add('${entity.path}:$line');
         }
       }

@@ -76,7 +76,9 @@ void main() {
   group('Dio(실모드) 저장소', () {
     test('접두사를 뗀 서버 필드를 읽는다', () async {
       when(
-        () => dio.get<Map<String, Object?>>('/users/me/notification-settings'),
+        () => dio.get<Map<String, Object?>>(
+          '/users/me/notification-settings',
+        ),
       ).thenAnswer(
         (_) async => _ok<Map<String, Object?>>(<String, Object?>{
           'diet_log': false,
@@ -97,7 +99,9 @@ void main() {
     test('서버가 모르는 항목은 기본값으로 둔다', () async {
       // 배포 시점이 어긋나 필드가 빠져 와도 토글이 사라지면 안 된다.
       when(
-        () => dio.get<Map<String, Object?>>('/users/me/notification-settings'),
+        () => dio.get<Map<String, Object?>>(
+          '/users/me/notification-settings',
+        ),
       ).thenAnswer(
         (_) async => _ok<Map<String, Object?>>(<String, Object?>{
           'trainer_message': false,
@@ -160,7 +164,9 @@ void main() {
     test('조회 실패해도 기본값으로 화면을 그린다', () async {
       // 설정을 못 읽었다고 토글을 감추면 사용자가 끌 방법이 사라진다.
       when(
-        () => dio.get<Map<String, Object?>>('/users/me/notification-settings'),
+        () => dio.get<Map<String, Object?>>(
+          '/users/me/notification-settings',
+        ),
       ).thenThrow(
         DioException(
           requestOptions: RequestOptions(

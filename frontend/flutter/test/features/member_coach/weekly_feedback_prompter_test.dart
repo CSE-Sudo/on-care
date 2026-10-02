@@ -117,9 +117,7 @@ void main() {
     await _pump(
       tester,
       FakeMemberCoachRepository(
-        feedback: <DateTime, MemberWeeklyFeedback>{
-          _askedWeek: _sent(_askedWeek),
-        },
+        feedback: <DateTime, MemberWeeklyFeedback>{_askedWeek: _sent(_askedWeek)},
       ),
     );
 
@@ -132,9 +130,7 @@ void main() {
     await _pump(
       tester,
       FakeMemberCoachRepository(
-        feedback: <DateTime, MemberWeeklyFeedback>{
-          _weekBefore: _sent(_weekBefore),
-        },
+        feedback: <DateTime, MemberWeeklyFeedback>{_weekBefore: _sent(_weekBefore)},
       ),
     );
 
@@ -212,9 +208,7 @@ void main() {
       find.byKey(const ValueKey<String>('weekly-feedback-intensity-right')),
     );
     await tester.pump();
-    await tester.tap(
-      find.byKey(const ValueKey<String>('weekly-feedback-send')),
-    );
+    await tester.tap(find.byKey(const ValueKey<String>('weekly-feedback-send')));
     await tester.pumpAndSettle();
 
     expect(_sheet, findsNothing);

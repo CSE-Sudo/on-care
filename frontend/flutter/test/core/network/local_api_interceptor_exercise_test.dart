@@ -22,7 +22,15 @@ String _ymd(DateTime d) =>
 /// 이번 주 `label` 요일의 날짜. 기록은 요일이 아니라 날짜로 보낸다 (#1276).
 String _day(String label) {
   final DateTime monday = DateTime.parse(_currentMonday());
-  final int index = <String>['월', '화', '수', '목', '금', '토', '일'].indexOf(label);
+  final int index = <String>[
+    '월',
+    '화',
+    '수',
+    '목',
+    '금',
+    '토',
+    '일',
+  ].indexOf(label);
   return _ymd(DateTime(monday.year, monday.month, monday.day + index));
 }
 
@@ -140,41 +148,42 @@ void main() {
     expect((body['sessions']! as List<Object?>), isEmpty);
   });
 
-  test(
-    'POST /exercise/sessions persists and shows up in weeks/current',
-    () async {
-      final add = await postExerciseSession(dio, <String, Object?>{
+  test('POST /exercise/sessions persists and shows up in weeks/current', () async {
+    final add = await postExerciseSession(
+      dio,
+      <String, Object?>{
         'type': 'cardio',
         'minutes': 40,
         'calories': 300,
         'date': _day('화'),
-      });
-      expect(add.statusCode, 200);
-      expect(add.data!['type'], 'cardio');
-      expect(add.data!['minutes'], 40);
-      expect(add.data!['day_label'], '화');
-      expect(add.data!['date_label'], isNotNull);
+      },
+    );
+    expect(add.statusCode, 200);
+    expect(add.data!['type'], 'cardio');
+    expect(add.data!['minutes'], 40);
+    expect(add.data!['day_label'], '화');
+    expect(add.data!['date_label'], isNotNull);
 
-      // 재조회 시 화요일(0→40) 반영, 합계 증가(135→175).
-      final res = await dio.get<Map<String, Object?>>(
-        '/exercise/weeks/current',
-      );
-      final daily = (res.data!['daily_minutes']! as List<Object?>)
-          .cast<num>()
-          .toList();
-      expect(daily, <num>[30, 40, 45, 0, 60, 0, 0]);
-      expect(res.data!['total_minutes'], 175);
-    },
-  );
+    // 재조회 시 화요일(0→40) 반영, 합계 증가(135→175).
+    final res = await dio.get<Map<String, Object?>>('/exercise/weeks/current');
+    final daily = (res.data!['daily_minutes']! as List<Object?>)
+        .cast<num>()
+        .toList();
+    expect(daily, <num>[30, 40, 45, 0, 60, 0, 0]);
+    expect(res.data!['total_minutes'], 175);
+  });
 
   test('POST/PUT /exercise/sessions round-trips intensity', () async {
-    final add = await postExerciseSession(dio, <String, Object?>{
-      'type': 'strength',
-      'minutes': 40,
-      'calories': 300,
-      'intensity': 'high',
-      'date': _day('화'),
-    });
+    final add = await postExerciseSession(
+      dio,
+      <String, Object?>{
+        'type': 'strength',
+        'minutes': 40,
+        'calories': 300,
+        'intensity': 'high',
+        'date': _day('화'),
+      },
+    );
     expect(add.data!['intensity'], 'high');
     final String id = add.data!['id']! as String;
 
@@ -200,19 +209,19 @@ void main() {
   });
 
   test('POST /exercise/sessions defaults intensity to moderate', () async {
-    final add = await postExerciseSession(dio, <String, Object?>{
-      'type': 'cardio',
-      'minutes': 20,
-      'date': _day('목'),
-    });
+    final add = await postExerciseSession(
+      dio,
+      <String, Object?>{'type': 'cardio', 'minutes': 20, 'date': _day('목')},
+    );
     expect(add.data!['intensity'], 'moderate');
   });
 
   test('POST /exercise/sessions rejects non-positive minutes', () async {
-    final res = await postExerciseSession(dio, <String, Object?>{
-      'type': 'cardio',
-      'minutes': 0,
-    }, options: Options(validateStatus: (int? s) => true));
+    final res = await postExerciseSession(
+      dio,
+      <String, Object?>{'type': 'cardio', 'minutes': 0},
+      options: Options(validateStatus: (int? s) => true),
+    );
     // 실 서버처럼 항목 검증 실패는 422 다(#2544).
     expect(res.statusCode, 422);
   });
@@ -274,9 +283,7 @@ void main() {
       options: Options(validateStatus: (int? s) => true),
     );
     expect(res.statusCode, 422);
-    final after = await dio.get<Map<String, Object?>>(
-      '/exercise/weeks/current',
-    );
+    final after = await dio.get<Map<String, Object?>>('/exercise/weeks/current');
     expect((after.data!['sessions']! as List<Object?>).length, count);
   });
 
@@ -428,16 +435,21 @@ void main() {
   // --- 근력 세트 (#1262) ------------------------------------------------
 
   test('POST /exercise/sessions 는 근력 세트를 그대로 저장한다', () async {
-    final res = await postExerciseSession(dio, <String, Object?>{
-      'type': 'strength',
-      'minutes': 36,
-      'sets': 12,
-      'calories': 216,
-      'date': _day('화'),
-    });
+    final res = await postExerciseSession(
+      dio,
+      <String, Object?>{
+        'type': 'strength',
+        'minutes': 36,
+        'sets': 12,
+        'calories': 216,
+        'date': _day('화'),
+      },
+    );
     expect(res.data!['sets'], 12);
 
-    final week = await dio.get<Map<String, Object?>>('/exercise/weeks/current');
+    final week = await dio.get<Map<String, Object?>>(
+      '/exercise/weeks/current',
+    );
     final sets = (week.data!['strength_sets']! as List).cast<num>();
     // 화요일에 방금 적은 12세트 + 수요일 시드(45분 → 15세트).
     expect(sets[1], 12);
@@ -445,40 +457,49 @@ void main() {
   });
 
   test('세트를 안 보낸 근력 기록은 분에서 환산해 센다', () async {
-    final res = await postExerciseSession(dio, <String, Object?>{
-      'type': 'strength',
-      'minutes': 30,
-      'calories': 180,
-      'date': _day('목'),
-    });
+    final res = await postExerciseSession(
+      dio,
+      <String, Object?>{
+        'type': 'strength',
+        'minutes': 30,
+        'calories': 180,
+        'date': _day('목'),
+      },
+    );
     expect(res.data!['sets'], isNull);
 
-    final week = await dio.get<Map<String, Object?>>('/exercise/weeks/current');
+    final week = await dio.get<Map<String, Object?>>(
+      '/exercise/weeks/current',
+    );
     final sets = (week.data!['strength_sets']! as List).cast<num>();
     expect(sets[3], 10); // 30분 ÷ 3분
   });
 
   test('근력이 아닌 기록에는 세트를 남기지 않는다', () async {
-    final res = await postExerciseSession(dio, <String, Object?>{
-      'type': 'cardio',
-      'minutes': 30,
-      'sets': 12,
-      'calories': 270,
-      'date': _day('토'),
-    });
+    final res = await postExerciseSession(
+      dio,
+      <String, Object?>{
+        'type': 'cardio',
+        'minutes': 30,
+        'sets': 12,
+        'calories': 270,
+        'date': _day('토'),
+      },
+    );
     expect(res.data!['sets'], isNull);
   });
 
   test('PUT 으로 유형을 바꾸면 세트가 지워진다', () async {
-    final id =
-        (await postExerciseSession(dio, <String, Object?>{
-              'type': 'strength',
-              'minutes': 36,
-              'sets': 12,
-              'calories': 216,
-              'date': _day('일'),
-            })).data!['id']!
-            as String;
+    final id = (await postExerciseSession(
+      dio,
+      <String, Object?>{
+        'type': 'strength',
+        'minutes': 36,
+        'sets': 12,
+        'calories': 216,
+        'date': _day('일'),
+      },
+    )).data!['id']! as String;
 
     final res = await dio.put<Map<String, Object?>>(
       '/exercise/sessions/$id',

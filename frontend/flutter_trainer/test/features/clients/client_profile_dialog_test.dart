@@ -910,7 +910,9 @@ void main() {
     expect(find.text('건강상태·주의사항'), findsOneWidget);
   });
 
-  testWidgets('목표 칩과 주의사항의 마지막 변경은 제목 줄 끝에 따로 선다 (#2942)', (tester) async {
+  testWidgets('목표 칩과 주의사항의 마지막 변경은 제목 줄 끝에 따로 선다 (#2942)', (
+    tester,
+  ) async {
     final db = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(db.close);
     final clients = _SharedProfileRepository(db)

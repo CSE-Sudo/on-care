@@ -205,10 +205,10 @@ void main() {
       final ExerciseRepository r = await _repo();
       // 기간 조회는 그래프용 요약만 싣는다(실서버 `/exercise/weeks` 와 같다) —
       // 기록 목록이 아니라 그 주 그날의 분이 늘었는지로 본다.
-      Future<ExerciseWeek> lastWeekOfPeriod() async => (await r.fetchPeriod(
-        from: _lastMonday,
-        to: _friday,
-      )).firstWhere((ExercisePeriodWeek w) => w.weekStart == _lastMonday).week;
+      Future<ExerciseWeek> lastWeekOfPeriod() async =>
+          (await r.fetchPeriod(from: _lastMonday, to: _friday))
+              .firstWhere((ExercisePeriodWeek w) => w.weekStart == _lastMonday)
+              .week;
       final ExerciseWeek before = await lastWeekOfPeriod();
 
       await _add(r, _lastThursday, minutes: 35);

@@ -63,8 +63,10 @@ void main() {
         overrides: <Override>[
           appConfigProvider.overrideWithValue(_real),
           aiCoachStateProvider.overrideWith(
-            (ref) async =>
-                const AiCoachState(greeting: '', suggestions: <AiSuggestion>[]),
+            (ref) async => const AiCoachState(
+              greeting: '',
+              suggestions: <AiSuggestion>[],
+            ),
           ),
         ],
       );

@@ -178,7 +178,9 @@ void main() {
     }
   });
 
-  testWidgets('설정 단계가 짚는 묶음 안에 안내가 말한 항목들이 있다', (WidgetTester tester) async {
+  testWidgets('설정 단계가 짚는 묶음 안에 안내가 말한 항목들이 있다', (
+    WidgetTester tester,
+  ) async {
     final ProviderContainer container = await pumpTour(tester);
     final GuideAnchors anchors = container.read(guideAnchorsProvider);
 

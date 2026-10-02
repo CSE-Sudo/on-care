@@ -16,22 +16,21 @@ import 'package:oncare/features/exercise/presentation/controllers/exercise_contr
 import '../../helpers/fixed_clock.dart';
 import '../../helpers/record_span.dart';
 
-ExerciseWeek _week({double minutes = 30, double calories = 200}) =>
-    ExerciseWeek(
-      sessions: const <ExerciseSession>[],
-      dailyMinutes: <double>[minutes, 0, 0, 0, 0, 0, 0],
-      dailyCalories: <double>[calories, 0, 0, 0, 0, 0, 0],
-      cardioMinutes: <double>[minutes, 0, 0, 0, 0, 0, 0],
-      strengthMinutes: const <double>[0, 0, 0, 0, 0, 0, 0],
-      stretchingMinutes: const <double>[0, 0, 0, 0, 0, 0, 0],
-      otherMinutes: const <double>[0, 0, 0, 0, 0, 0, 0],
-      strengthSets: const <double>[0, 0, 0, 0, 0, 0, 0],
-      dayLabels: const <String>['월', '화', '수', '목', '금', '토', '일'],
-      totalMinutes: minutes.round(),
-      totalCalories: calories.round(),
-      streakDays: 1,
-      aiCoachMessage: '',
-    );
+ExerciseWeek _week({double minutes = 30, double calories = 200}) => ExerciseWeek(
+  sessions: const <ExerciseSession>[],
+  dailyMinutes: <double>[minutes, 0, 0, 0, 0, 0, 0],
+  dailyCalories: <double>[calories, 0, 0, 0, 0, 0, 0],
+  cardioMinutes: <double>[minutes, 0, 0, 0, 0, 0, 0],
+  strengthMinutes: const <double>[0, 0, 0, 0, 0, 0, 0],
+  stretchingMinutes: const <double>[0, 0, 0, 0, 0, 0, 0],
+  otherMinutes: const <double>[0, 0, 0, 0, 0, 0, 0],
+  strengthSets: const <double>[0, 0, 0, 0, 0, 0, 0],
+  dayLabels: const <String>['월', '화', '수', '목', '금', '토', '일'],
+  totalMinutes: minutes.round(),
+  totalCalories: calories.round(),
+  streakDays: 1,
+  aiCoachMessage: '',
+);
 
 /// 부른 횟수와 구간을 적어 두는 대역.
 class _CountingRepository implements ExerciseRepository {

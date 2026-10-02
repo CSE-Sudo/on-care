@@ -58,6 +58,9 @@ void main() {
     const SessionState failed = SessionState(restoreFailed: true);
     expect(failed.status, SessionStatus.unknown);
     expect(failed.canEnterApp, isFalse);
-    expect(sessionRedirect(failed.status, AppRoutes.splash), isNull);
+    expect(
+      sessionRedirect(failed.status, AppRoutes.splash),
+      isNull,
+    );
   });
 }

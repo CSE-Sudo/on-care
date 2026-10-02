@@ -31,8 +31,9 @@ class _StubAdapter implements HttpClientAdapter {
 
 Dio _dioWith(_StubAdapter adapter) {
   // 전역 기본값을 앱과 같게 둔다 — 채팅만 더 긴 타임아웃을 쓰는지 확인해야 하므로.
-  final dio = Dio(BaseOptions(receiveTimeout: const Duration(seconds: 15)))
-    ..httpClientAdapter = adapter;
+  final dio = Dio(
+    BaseOptions(receiveTimeout: const Duration(seconds: 15)),
+  )..httpClientAdapter = adapter;
   return dio;
 }
 
@@ -58,9 +59,7 @@ void main() {
   });
 
   test('빈 히스토리도 정상 처리한다', () async {
-    final repo = DioAiCoachRepository(
-      _dioWith(_StubAdapter('{"messages":[]}')),
-    );
+    final repo = DioAiCoachRepository(_dioWith(_StubAdapter('{"messages":[]}')));
     expect(await repo.fetchHistory(), isEmpty);
   });
 

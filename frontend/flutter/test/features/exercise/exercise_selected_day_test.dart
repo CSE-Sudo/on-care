@@ -21,6 +21,7 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import '../../helpers/fixed_clock.dart';
 
+
 const List<String> _dayLabels = <String>['월', '화', '수', '목', '금', '토', '일'];
 
 /// 요일마다 [minutes] 분씩 채운 주. 0 을 주면 기록이 없는 주가 된다.
@@ -333,7 +334,9 @@ void main() {
     );
   });
 
-  testWidgets('다시 시도하면 그 주를 다시 받아 그날 기록을 그린다', (WidgetTester tester) async {
+  testWidgets('다시 시도하면 그 주를 다시 받아 그날 기록을 그린다', (
+    WidgetTester tester,
+  ) async {
     useFixedKstDate();
     tester.view.physicalSize = const Size(500, 1600);
     tester.view.devicePixelRatio = 1;

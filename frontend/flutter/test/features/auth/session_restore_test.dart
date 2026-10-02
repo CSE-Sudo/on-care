@@ -55,8 +55,7 @@ class _ScriptedDio {
               requests.add(options);
               if (delay > Duration.zero) await Future<void>.delayed(delay);
 
-              final String key =
-                  '${options.method.toUpperCase()} ${options.path}';
+              final String key = '${options.method.toUpperCase()} ${options.path}';
               final List<_Reply>? replies = _script[key];
               if (replies == null || replies.isEmpty) {
                 handler.reject(
@@ -162,9 +161,7 @@ void main() {
 
   test('저장된 토큰이 유효하면 확인하고 들어간다', () async {
     final script = _ScriptedDio(<String, List<_Reply>>{
-      'GET /users/me': <_Reply>[
-        const _Reply.ok(<String, Object?>{'id': 'u1'}),
-      ],
+      'GET /users/me': <_Reply>[const _Reply.ok(<String, Object?>{'id': 'u1'})],
     });
     final container = _container(script.build());
 
@@ -447,9 +444,7 @@ void main() {
 
   test('복구 중 사용자가 데모로 들어가면 복구가 그것을 덮지 않는다', () async {
     final script = _ScriptedDio(<String, List<_Reply>>{
-      'GET /users/me': <_Reply>[
-        const _Reply.ok(<String, Object?>{'id': 'u1'}),
-      ],
+      'GET /users/me': <_Reply>[const _Reply.ok(<String, Object?>{'id': 'u1'})],
     });
     // 복구가 아직 끝나지 않은 사이에 사용자가 버튼을 누르는 상황.
     final container = _container(

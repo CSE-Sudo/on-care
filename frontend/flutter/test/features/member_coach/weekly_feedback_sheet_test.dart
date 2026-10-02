@@ -61,7 +61,9 @@ Finder _condition(WeekCondition value) =>
 Finder _intensity(WeekIntensity value) =>
     find.byKey(ValueKey<String>('weekly-feedback-intensity-${value.wire}'));
 
-final Finder _send = find.byKey(const ValueKey<String>('weekly-feedback-send'));
+final Finder _send = find.byKey(
+  const ValueKey<String>('weekly-feedback-send'),
+);
 
 /// 보내기가 지금 눌리는가.
 bool _canSend(WidgetTester tester) =>
@@ -129,15 +131,11 @@ void main() {
     await tester.pump();
 
     expect(
-      tester
-          .widget<WeeklyConditionTile>(_condition(WeekCondition.good))
-          .selected,
+      tester.widget<WeeklyConditionTile>(_condition(WeekCondition.good)).selected,
       isTrue,
     );
     expect(
-      tester
-          .widget<WeeklyConditionTile>(_condition(WeekCondition.tired))
-          .selected,
+      tester.widget<WeeklyConditionTile>(_condition(WeekCondition.tired)).selected,
       isFalse,
     );
   });
@@ -289,9 +287,7 @@ void main() {
 
     // 빈 칸으로 열면 회원이 무엇을 보냈는지 모르는 채로 덮어쓴다.
     expect(
-      tester
-          .widget<WeeklyConditionTile>(_condition(WeekCondition.great))
-          .selected,
+      tester.widget<WeeklyConditionTile>(_condition(WeekCondition.great)).selected,
       isTrue,
     );
     expect(
@@ -329,9 +325,7 @@ void main() {
     final FakeMemberCoachRepository repo = await _pump(tester);
 
     await _answer(tester);
-    await tester.tap(
-      find.byKey(const ValueKey<String>('weekly-feedback-later')),
-    );
+    await tester.tap(find.byKey(const ValueKey<String>('weekly-feedback-later')));
     await tester.pumpAndSettle();
 
     expect(repo.saved, isEmpty);
@@ -355,7 +349,11 @@ void main() {
 
     final RegExp hangul = RegExp(r'[가-힣]');
     for (final String t in _texts(tester)) {
-      expect(hangul.hasMatch(t), isFalse, reason: '영어 화면에 번역되지 않은 글이 있다: $t');
+      expect(
+        hangul.hasMatch(t),
+        isFalse,
+        reason: '영어 화면에 번역되지 않은 글이 있다: $t',
+      );
     }
   });
 

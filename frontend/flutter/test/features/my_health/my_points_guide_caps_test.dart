@@ -27,9 +27,7 @@ void main() {
       ProviderScope(
         // 사용처 목록은 가짜 저장소로 채운다 — 이 테스트는 안내창만 본다(#1787).
         overrides: <Override>[
-          benefitsRepositoryProvider.overrideWithValue(
-            FakeBenefitsRepository(),
-          ),
+          benefitsRepositoryProvider.overrideWithValue(FakeBenefitsRepository()),
           // 사용처 화면은 주간 챌린지도 읽는다(#1789).
           challengeRepositoryProvider.overrideWithValue(
             FakeChallengeRepository(),
