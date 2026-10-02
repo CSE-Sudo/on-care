@@ -3,8 +3,8 @@
 비밀번호를 잊은 회원·트레이너가 계정을 되찾을 길이 없었다. 메일로 보낸 일회용
 코드의 해시와 만료·사용 시각을 담는다. 코드 원문은 저장하지 않는다.
 
-Revision ID: 0123_password_reset_tokens
-Revises: 0110_user_token_version
+Revision ID: 0132_password_reset_tokens
+Revises: 0131_health_notes_changed
 Create Date: 2026-10-01
 """
 from __future__ import annotations
@@ -14,8 +14,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0123_password_reset_tokens"
-down_revision: str | Sequence[str] | None = "0110_user_token_version"
+revision: str = "0132_password_reset_tokens"
+down_revision: str | Sequence[str] | None = "0131_health_notes_changed"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
