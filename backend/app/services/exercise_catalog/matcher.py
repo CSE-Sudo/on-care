@@ -86,10 +86,3 @@ def match_in_rows(rows, name: str):
         return next(iter(containing.values()))
 
     return None
-
-
-def match_exercise(db, name: str):
-    """참조표 전건에 매칭(작은 표라 전건 로드로 충분 — 로드는 캐시된다)."""
-    from app.services.exercise_catalog.table import load_rows
-
-    return match_in_rows(load_rows(db), name)
