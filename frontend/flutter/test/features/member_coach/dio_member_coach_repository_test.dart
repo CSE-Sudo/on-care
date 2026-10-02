@@ -7,6 +7,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/features/member_coach/data/repositories/dio_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 
 class _MockDio extends Mock implements Dio {}
 
@@ -267,6 +268,107 @@ void main() {
       expect(calls, 3);
     },
   );
+
+  // #2843: 대화의 404 는 담당 해제다. 빈 목록으로 바꾸면 열려 있던 대화방이
+  // 안내 없이 비어 버린다. 루틴·PT 일정의 404 는 그대로 빈 목록이다.
+  group('담당 해제(404)', () {
+    test('대화 404 는 빈 목록이 아니라 해제 신호다', () async {
+      when(
+        () => dio.get<List<dynamic>>('/me/coach/chat'),
+      ).thenThrow(_httpError(404, '/me/coach/chat'));
+
+      await expectLater(
+        repo.fetchChat(),
+        throwsA(isA<CoachUnassignedException>()),
+      );
+    });
+
+    test('옛 쪽을 받을 때의 404 도 해제 신호다', () async {
+      when(
+        () => dio.get<List<dynamic>>(
+          '/me/coach/chat',
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenThrow(_httpError(404, '/me/coach/chat'));
+
+      await expectLater(
+        repo.fetchChat(
+          before: CoachMessage(
+            id: 'm1',
+            sender: CoachSender.trainer,
+            body: '안녕',
+            timeLabel: '09:00',
+            createdAt: DateTime(2026, 8, 10, 9),
+          ),
+        ),
+        throwsA(isA<CoachUnassignedException>()),
+      );
+    });
+
+    test('루틴·PT 일정의 404 는 여전히 빈 목록이다', () async {
+      when(
+        () => dio.get<List<dynamic>>('/me/coach/routines'),
+      ).thenThrow(_httpError(404, '/me/coach/routines'));
+      when(
+        () => dio.get<List<dynamic>>('/me/coach/sessions'),
+      ).thenThrow(_httpError(404, '/me/coach/sessions'));
+
+      expect(await repo.fetchRoutines(), isEmpty);
+      expect(await repo.fetchSessions(), isEmpty);
+    });
+
+    test('대화의 다른 오류는 해제 신호가 아니다', () async {
+      when(
+        () => dio.get<List<dynamic>>('/me/coach/chat'),
+      ).thenThrow(_httpError(503, '/me/coach/chat'));
+
+      await expectLater(
+        repo.fetchChat(),
+        throwsA(
+          allOf(isA<AppError>(), isNot(isA<CoachUnassignedException>())),
+        ),
+      );
+    });
+
+    test('대화를 받던 중 해제되면 마지막 값을 붙들지 않고 알린다', () async {
+      var calls = 0;
+      when(() => dio.get<List<dynamic>>('/me/coach/chat')).thenAnswer((
+        _,
+      ) async {
+        calls += 1;
+        if (calls >= 2) throw _httpError(404, '/me/coach/chat');
+        return _ok<List<dynamic>>(<dynamic>[
+          <String, Object?>{
+            'id': 'before',
+            'sender': 'trainer',
+            'body': 'message',
+            'time_label': '09:00',
+            'created_at': '2026-08-10T09:00:00Z',
+          },
+        ], '/me/coach/chat');
+      });
+
+      final List<Object> events = <Object>[];
+      final Completer<void> unassigned = Completer<void>();
+      final StreamSubscription<List<CoachMessage>> sub =
+          DioMemberCoachRepository(
+            dio,
+            pollInterval: const Duration(milliseconds: 5),
+          ).watchChat().listen(
+            events.add,
+            onError: (Object error) {
+              events.add(error);
+              if (!unassigned.isCompleted) unassigned.complete();
+            },
+          );
+      addTearDown(sub.cancel);
+
+      await unassigned.future.timeout(const Duration(seconds: 1));
+
+      expect(events.first, isA<List<CoachMessage>>());
+      expect(events.last, isA<CoachUnassignedException>());
+    });
+  });
 
   test('fetchChat rejects a malformed list item', () async {
     when(() => dio.get<List<dynamic>>('/me/coach/chat')).thenAnswer(

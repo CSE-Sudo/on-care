@@ -77,6 +77,20 @@ void main() {
     expect(timeout! > const Duration(seconds: 15), isTrue);
   });
 
+  test('코칭 피드백은 서버의 두 코치 호출 상한보다 길게 기다린다', () async {
+    // #2813: 서버는 식단·운동 코치를 차례로 부르고 각 호출 상한이 30초다. 전역
+    // 15초에서 끊기면 정상 응답도 실패가 되어 코칭 시트가 오류에 머문다.
+    final adapter = _StubAdapter('{"greeting":"안녕하세요","suggestions":[]}');
+    final repo = DioAiCoachRepository(_dioWith(adapter));
+
+    await repo.fetchState();
+
+    expect(adapter.lastRequest?.path, '/ai-coach/feedback');
+    final timeout = adapter.lastRequest?.receiveTimeout;
+    expect(timeout, DioAiCoachRepository.feedbackTimeout);
+    expect(timeout! >= const Duration(seconds: 60), isTrue);
+  });
+
   test('코치 답변의 근거를 그대로 싣는다', () async {
     final adapter = _StubAdapter(
       '{"reply":"국물을 남겨보세요",'

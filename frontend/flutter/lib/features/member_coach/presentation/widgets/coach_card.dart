@@ -39,7 +39,31 @@ class CoachCard extends ConsumerWidget {
     final OnCareTokens tokens = context.oncare;
     final coachAsync = ref.watch(memberCoachProvider);
     final coach = coachAsync.valueOrNull;
-    if (coach == null) return const SizedBox.shrink();
+    if (coach == null) {
+      // 조회 실패와 담당 없음은 다르다(#2843). 실패한 채 카드를 숨기면 연결된
+      // 회원에게 트레이너가 사라진 것처럼 보인다 — 다시 시도할 자리를 둔다.
+      if (coachAsync.hasError && !coachAsync.isLoading) {
+        return Padding(
+          key: const Key('coachCardLoadFailed'),
+          padding: const EdgeInsets.fromLTRB(
+            OnCareSpacing.s24,
+            0,
+            OnCareSpacing.s24,
+            OnCareSpacing.s20,
+          ),
+          child: AppCard(
+            child: AppErrorState(
+              title: l.coachTrainerLoadFailed,
+              retryLabel: l.actionRetry,
+              retryKey: const Key('coachCardRetry'),
+              onRetry: () => ref.invalidate(memberCoachProvider),
+              placement: AppStatePlacement.card,
+            ),
+          ),
+        );
+      }
+      return const SizedBox.shrink();
+    }
     // 트레이너 상세는 이제 트레이너 id 로 라우팅한다 — 한 헬스장에
     // 여러 명이 있으므로 헬스장 id 로는 한 명을 특정할 수 없다.
     final assignedTrainer = ref.watch(myTrainerProvider).valueOrNull;

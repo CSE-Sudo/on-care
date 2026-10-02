@@ -308,6 +308,12 @@ abstract class AppLocalizations {
   /// **'Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.'**
   String get homeAiAdviceBody;
 
+  /// No description provided for @homeAiAdviceNoRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Log today\'s meals and workouts, and we\'ll put together advice for your day.'**
+  String get homeAiAdviceNoRecord;
+
   /// No description provided for @homeSodiumExceededBadge.
   ///
   /// In en, this message translates to:
@@ -541,6 +547,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recommended meals'**
   String get homeRecMealsTitle;
+
+  /// No description provided for @homeRecMealsErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load meal suggestions'**
+  String get homeRecMealsErrorTitle;
 
   /// No description provided for @homeViewAll.
   ///
@@ -3950,6 +3962,30 @@ abstract class AppLocalizations {
   /// **'Hydration'**
   String get coachCardWaterTag;
 
+  /// No description provided for @coachSheetErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your advice'**
+  String get coachSheetErrorTitle;
+
+  /// No description provided for @coachSheetErrorBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your connection and try again.'**
+  String get coachSheetErrorBody;
+
+  /// No description provided for @coachSheetEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Advice will appear as you log more'**
+  String get coachSheetEmptyTitle;
+
+  /// No description provided for @coachSheetEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Try logging today\'s meals and workouts.'**
+  String get coachSheetEmptyBody;
+
   /// No description provided for @coachInviteTitle.
   ///
   /// In en, this message translates to:
@@ -4033,6 +4069,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load the conversation'**
   String get coachChatLoadFailed;
+
+  /// Trainer chat notice shown instead of the thread once the server reports the assignment ended; the input is disabled (#2843).
+  ///
+  /// In en, this message translates to:
+  /// **'Your trainer is no longer assigned, so you can\'t send messages here'**
+  String get coachChatUnassigned;
 
   /// No description provided for @coachChatEmptyTitle.
   ///
@@ -6755,6 +6797,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You don\'t have a trainer yet. Connect a gym and trainer from the Exercise tab'**
   String get coachTrainerNone;
+
+  /// Home trainer card title when the assigned-trainer lookup failed (not a confirmed 'no trainer') (#2843).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your trainer'**
+  String get coachTrainerLoadFailed;
+
+  /// Toast from the header chat button when the assigned-trainer lookup failed; tapping also retries (#2843).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your trainer. Trying again'**
+  String get coachTrainerRetrying;
 
   /// Notification category badge.
   ///

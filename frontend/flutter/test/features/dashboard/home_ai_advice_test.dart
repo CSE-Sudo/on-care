@@ -173,7 +173,7 @@ void main() {
         );
 
         expect(aiAdviceBody(en, missing), missing.sodiumWarning);
-        expect(aiAdviceBody(en, wrongShape), en.homeAiAdviceBody);
+        expect(aiAdviceBody(en, wrongShape), en.homeAiAdviceNoRecord);
       });
     });
 
@@ -218,7 +218,32 @@ void main() {
 
       final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
 
-      expect(aiAdviceBody(ko, summary), ko.homeAiAdviceBody);
+      expect(aiAdviceBody(ko, summary), ko.homeAiAdviceNoRecord);
+    });
+
+    // #2813: 근거가 하나도 없을 때 데모 회원의 하루(짬뽕·저녁 PT)를 실제 분석처럼
+    // 보이던 폴백을 기록 안내로 바꿨다. 데모 문장은 데모 키로만 나온다.
+    test('키·서버 문장이 모두 없으면 데모 문장 대신 기록 안내를 보인다', () {
+      final DashboardSummary summary = _summary();
+
+      final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
+      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
+
+      expect(aiAdviceBody(ko, summary), ko.homeAiAdviceNoRecord);
+      expect(aiAdviceBody(ko, summary), isNot(ko.homeAiAdviceBody));
+      expect(aiAdviceBody(en, summary), en.homeAiAdviceNoRecord);
+      expect(aiAdviceBody(en, summary), isNot(matches(_hangul)));
+    });
+
+    test('기록 안내 문구는 특정 음식·일정을 단정하지 않는다', () {
+      final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
+      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
+
+      for (final String word in <String>['짬뽕', '나트륨', 'PT']) {
+        expect(ko.homeAiAdviceNoRecord, isNot(contains(word)), reason: word);
+      }
+      expect(ko.homeAiAdviceNoRecord, contains('기록'));
+      expect(en.homeAiAdviceNoRecord.toLowerCase(), contains('log'));
     });
   });
 

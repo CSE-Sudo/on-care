@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/ai_coach/domain/ai_coach_limits.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_chat_quota.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
@@ -416,8 +417,11 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
     final List<Widget> out = <Widget>[];
     DateTime? shown;
     for (final ChatMessage m in messages) {
-      final DateTime? at = m.at?.toLocal();
-      if (at != null && (shown == null || !_sameDay(shown, at))) {
+      final DateTime? at = switch (m.at) {
+        final DateTime t => toKst(t),
+        null => null,
+      };
+      if (at != null && (shown == null || !isSameKstDay(shown, at))) {
         shown = at;
         out
           ..add(
@@ -437,13 +441,13 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
     return out;
   }
 
-  static bool _sameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
-
   /// 말풍선 옆 시각(`18:13`). 주고받은 때를 모르는 말풍선(인사·실패 안내·기다리는
   /// 중)에는 붙이지 않는다.
   static String? _clock(ChatMessage m) {
-    final DateTime? at = m.at?.toLocal();
+    final DateTime? at = switch (m.at) {
+      final DateTime t => toKst(t),
+      null => null,
+    };
     if (at == null || m.pending) return null;
     return '${at.hour.toString().padLeft(2, '0')}:'
         '${at.minute.toString().padLeft(2, '0')}';

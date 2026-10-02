@@ -1,3 +1,5 @@
+import 'package:oncare/core/utils/clock.dart';
+
 /// GET /users/me/profile — the consolidated profile the settings modals
 /// edit (내 프로필 + 건강 목표).
 class UserProfile {
@@ -144,7 +146,10 @@ class UserProfile {
       _ => null,
     },
     focusChangedAt: switch (json['focus_changed_at']) {
-      final String at => DateTime.tryParse(at)?.toLocal(),
+      final String at => switch (DateTime.tryParse(at)) {
+        final DateTime t => toKst(t),
+        null => null,
+      },
       _ => null,
     },
     hasPassword: (json['has_password'] as bool?) ?? true,
@@ -153,7 +158,10 @@ class UserProfile {
       _ => null,
     },
     notesChangedAt: switch (json['notes_changed_at']) {
-      final String at => DateTime.tryParse(at)?.toLocal(),
+      final String at => switch (DateTime.tryParse(at)) {
+        final DateTime t => toKst(t),
+        null => null,
+      },
       _ => null,
     },
   );
