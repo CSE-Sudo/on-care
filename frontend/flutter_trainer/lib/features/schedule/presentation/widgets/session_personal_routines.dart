@@ -638,7 +638,7 @@ class _RoutineRow extends StatelessWidget {
             if (onRemove != null)
               AppIconButton(
                 key: ValueKey<String>('session-routine-remove-$index'),
-                icon: AppIcons.close,
+                icon: AppIcons.delete,
                 tooltip: AppLocalizations.of(context).actionDelete,
                 color: OnCareColors.textTertiary,
                 onPressed: onRemove,
