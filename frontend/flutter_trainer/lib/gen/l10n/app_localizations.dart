@@ -620,6 +620,12 @@ abstract class AppLocalizations {
   /// **'Enter a valid email address'**
   String get authErrEmailInvalid;
 
+  /// Red text under the email field when the address is longer than the server limit (#2908). The limit matches the users.email column and EMAIL_MAX_LENGTH in contact_format.py.
+  ///
+  /// In en, this message translates to:
+  /// **'Email addresses can be up to 255 characters'**
+  String get authErrEmailTooLong;
+
   /// No description provided for @authErrPasswordEmpty.
   ///
   /// In en, this message translates to:
@@ -4543,90 +4549,6 @@ abstract class AppLocalizations {
   /// **'e.g. Protect right shoulder'**
   String get routineFieldEffectHint;
 
-  /// No description provided for @routineEffectCardioDefault.
-  ///
-  /// In en, this message translates to:
-  /// **'Builds fitness and helps prevent chronic disease'**
-  String get routineEffectCardioDefault;
-
-  /// No description provided for @routineEffectStrengthDefault.
-  ///
-  /// In en, this message translates to:
-  /// **'Builds strength and muscular endurance'**
-  String get routineEffectStrengthDefault;
-
-  /// No description provided for @routineEffectStretchDefault.
-  ///
-  /// In en, this message translates to:
-  /// **'Improves flexibility and helps prevent injury'**
-  String get routineEffectStretchDefault;
-
-  /// No description provided for @routineEffectBloodPressure.
-  ///
-  /// In en, this message translates to:
-  /// **'Helps manage blood pressure'**
-  String get routineEffectBloodPressure;
-
-  /// No description provided for @routineEffectFatLoss.
-  ///
-  /// In en, this message translates to:
-  /// **'Helps reduce body fat'**
-  String get routineEffectFatLoss;
-
-  /// No description provided for @routineEffectCardioFitness.
-  ///
-  /// In en, this message translates to:
-  /// **'Improves cardiorespiratory fitness'**
-  String get routineEffectCardioFitness;
-
-  /// No description provided for @routineEffectGentleRecovery.
-  ///
-  /// In en, this message translates to:
-  /// **'Rebuilds fitness without strain'**
-  String get routineEffectGentleRecovery;
-
-  /// No description provided for @routineEffectMuscleMass.
-  ///
-  /// In en, this message translates to:
-  /// **'Maintains and builds muscle mass'**
-  String get routineEffectMuscleMass;
-
-  /// No description provided for @routineEffectStrength.
-  ///
-  /// In en, this message translates to:
-  /// **'Builds strength'**
-  String get routineEffectStrength;
-
-  /// No description provided for @routineEffectPostureMuscles.
-  ///
-  /// In en, this message translates to:
-  /// **'Strengthens posture-supporting muscles'**
-  String get routineEffectPostureMuscles;
-
-  /// No description provided for @routineEffectHeartRate.
-  ///
-  /// In en, this message translates to:
-  /// **'Steadies blood pressure and heart rate'**
-  String get routineEffectHeartRate;
-
-  /// No description provided for @routineEffectMuscleRecovery.
-  ///
-  /// In en, this message translates to:
-  /// **'Helps muscles recover'**
-  String get routineEffectMuscleRecovery;
-
-  /// No description provided for @routineEffectLoosen.
-  ///
-  /// In en, this message translates to:
-  /// **'Loosens tight muscles'**
-  String get routineEffectLoosen;
-
-  /// No description provided for @routineEffectJointRange.
-  ///
-  /// In en, this message translates to:
-  /// **'Restores joint range of motion'**
-  String get routineEffectJointRange;
-
   /// No description provided for @routineFieldSets.
   ///
   /// In en, this message translates to:
@@ -4770,6 +4692,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Switch'**
   String get coachSwitchClientConfirm;
+
+  /// No description provided for @coachDraftResumeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You have saved work'**
+  String get coachDraftResumeTitle;
+
+  /// Body of the coaching screen's resume prompt for an autosaved draft.
+  ///
+  /// In en, this message translates to:
+  /// **'The program you were building for {name} was saved automatically. Continue where you left off?'**
+  String coachDraftResumeBody(String name);
+
+  /// No description provided for @coachDraftResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get coachDraftResume;
+
+  /// No description provided for @coachDraftDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get coachDraftDiscard;
 
   /// No description provided for @personalRoutineTargetLoadFailed.
   ///

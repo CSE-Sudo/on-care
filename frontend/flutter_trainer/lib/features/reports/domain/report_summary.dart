@@ -38,7 +38,7 @@ class ReportSummary {
 }
 
 /// 하루 목표 — 백엔드 `trainer_report_summary_service` 와 같은 값이다.
-const int summarySodiumTargetMg = 2000;
+const int summarySodiumTargetMg = sodiumTargetMg;
 
 /// 목표를 이 날 수보다 많이 넘겼으면 주의로 본다 — [WeeklyReport.isGoodWeek]
 /// 와 같은 기준이다.
@@ -109,7 +109,9 @@ String _basis(AppLocalizations l, Object? personal) =>
 /// 그 주의 주의사항 전부. **판정은 여기 한 곳에서만 한다.**
 ///
 /// 백엔드 `trainer_report_summary_service.watchpoints` 와 같은 기준이다 —
-/// 데모에서 본 판정과 실서버에서 본 판정이 갈리지 않는다.
+/// 데모에서 본 판정과 실서버에서 본 판정이 갈리지 않는다. 서버 스크립트가 만든
+/// 사례 파일(`shared/oncare_rules/vectors/report_summary_cases.json`)로 두 쪽
+/// 테스트가 기준값과 판정을 대조한다(#2906).
 List<SummaryWatchpoint> summaryWatchpoints(
   AppLocalizations l,
   WeeklyReport report,

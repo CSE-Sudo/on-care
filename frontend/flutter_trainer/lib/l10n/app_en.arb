@@ -170,6 +170,10 @@
     "description": "Red text under the email field on sign-in/sign-up when it is empty (#1784)."
   },
   "authErrEmailInvalid": "Enter a valid email address",
+  "authErrEmailTooLong": "Email addresses can be up to 255 characters",
+  "@authErrEmailTooLong": {
+    "description": "Red text under the email field when the address is longer than the server limit (#2908). The limit matches the users.email column and EMAIL_MAX_LENGTH in contact_format.py."
+  },
   "authErrPasswordEmpty": "Enter your password",
   "authErrPasswordWeak": "Use at least 8 characters, including letters and numbers",
   "authErrPasswordTooLong": "Passwords can be up to 64 characters, or fewer if they include Korean or emoji",
@@ -1658,20 +1662,6 @@
     "description": "Label of the one-line benefit field on a personal routine row. Left empty, the auto-filled benefit (shown as the placeholder) is sent (#2570)."
   },
   "routineFieldEffectHint": "e.g. Protect right shoulder",
-  "routineEffectCardioDefault": "Builds fitness and helps prevent chronic disease",
-  "routineEffectStrengthDefault": "Builds strength and muscular endurance",
-  "routineEffectStretchDefault": "Improves flexibility and helps prevent injury",
-  "routineEffectBloodPressure": "Helps manage blood pressure",
-  "routineEffectFatLoss": "Helps reduce body fat",
-  "routineEffectCardioFitness": "Improves cardiorespiratory fitness",
-  "routineEffectGentleRecovery": "Rebuilds fitness without strain",
-  "routineEffectMuscleMass": "Maintains and builds muscle mass",
-  "routineEffectStrength": "Builds strength",
-  "routineEffectPostureMuscles": "Strengthens posture-supporting muscles",
-  "routineEffectHeartRate": "Steadies blood pressure and heart rate",
-  "routineEffectMuscleRecovery": "Helps muscles recover",
-  "routineEffectLoosen": "Loosens tight muscles",
-  "routineEffectJointRange": "Restores joint range of motion",
   "routineFieldSets": "Sets",
   "routineFieldReps": "Reps",
   "routineFieldHold": "Hold time",
@@ -1704,6 +1694,18 @@
   "coachSwitchClientTitle": "Switch to another client?",
   "coachSwitchClientBody": "You have unsent work. Switching clients discards the program and personal exercises you are building.",
   "coachSwitchClientConfirm": "Switch",
+  "coachDraftResumeTitle": "You have saved work",
+  "coachDraftResumeBody": "The program you were building for {name} was saved automatically. Continue where you left off?",
+  "@coachDraftResumeBody": {
+    "description": "Body of the coaching screen's resume prompt for an autosaved draft.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "coachDraftResume": "Continue",
+  "coachDraftDiscard": "Discard",
   "personalRoutineTargetLoadFailed": "Couldn't load PT sessions",
   "personalRoutineStartPast": "The start date has passed, so it's now set to today. Check it and send again",
   "schedRoutinesReadFailed": "Couldn't check the attached personal exercises. Please try again",

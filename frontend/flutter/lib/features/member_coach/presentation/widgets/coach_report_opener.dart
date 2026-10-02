@@ -19,6 +19,7 @@ import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_she
 import 'package:oncare/features/member_coach/services/member_report_pdf_generator.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_report/oncare_report.dart' show ReportSheetInputs;
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// [message] 가 실어 온 [weekStart] 주 리포트를 미리보기로 연다.
 ///
@@ -74,12 +75,6 @@ Future<CoachReportPdf> loadCoachReportPdf(
       // 문서 안에서 읽게 한다 — 트레이너 결과지의 `트레이너 피드백` 자리다.
       feedback: trainerReportFeedback(message.body),
     ),
-    fileName: l.coachReportPdfFileName(ymdOfReportWeek(weekStart)),
+    fileName: l.coachReportPdfFileName(wireDate(weekStart)),
   );
 }
-
-/// 파일 이름에 들어가는 `YYYY-MM-DD`.
-String ymdOfReportWeek(DateTime value) =>
-    '${value.year.toString().padLeft(4, '0')}-'
-    '${value.month.toString().padLeft(2, '0')}-'
-    '${value.day.toString().padLeft(2, '0')}';

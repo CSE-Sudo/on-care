@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 
 import 'package:oncare/core/errors/app_error.dart';
-import 'package:oncare/core/utils/wire_date.dart';
 import 'package:oncare/features/member_coach/data/dtos/member_coach_dtos.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
@@ -11,6 +10,7 @@ import 'package:oncare/features/member_coach/domain/repositories/member_coach_re
 import 'package:oncare_core/active_polling_stream.dart';
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_core/request_id.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Reads the member's coach + received routines + chat from the FastAPI
 /// backend. The chat thread is the same one the trainer app writes to, so

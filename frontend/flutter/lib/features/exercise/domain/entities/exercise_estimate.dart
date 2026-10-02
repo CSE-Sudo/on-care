@@ -6,14 +6,21 @@
 library;
 
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
-import 'package:oncare_rules/oncare_rules.dart' show pyRound;
+import 'package:oncare_rules/oncare_rules.dart'
+    show
+        fallbackExerciseCalories,
+        kExerciseIntensityFactor,
+        kExerciseTypeCardio,
+        kExerciseTypeOther,
+        kExerciseTypeStrength,
+        kExerciseTypeStretching;
 
-/// 강도별 배수 (가벼움 / 보통 / 높음).
-const Map<ExerciseIntensity, double> kIntensityFactor =
+/// 강도별 배수 (가벼움 / 보통 / 높음). 값은 서버 `exercise_catalog.energy` 와
+/// 함께 대조하는 공용 표(`oncare_rules` 의 `kExerciseIntensityFactor`)다(#2906).
+final Map<ExerciseIntensity, double> kIntensityFactor =
     <ExerciseIntensity, double>{
-      ExerciseIntensity.light: 0.85,
-      ExerciseIntensity.moderate: 1.0,
-      ExerciseIntensity.high: 1.2,
+      for (final ExerciseIntensity i in ExerciseIntensity.values)
+        i: kExerciseIntensityFactor[i.name] ?? 1.0,
     };
 
 /// 소모 칼로리 한 건과 그 근거. (#1312)
@@ -49,28 +56,29 @@ class ExerciseCalorieEstimate {
 }
 
 /// 유형별 분당 칼로리 — **이름이 붙지 않을 때의 폴백**이다. 백엔드
-/// `exercise_catalog.energy.fallback` 과 같은 값이어야 한다(#1312).
+/// `exercise_catalog.energy.fallback` 과 같은 공용 표(`oncare_rules`)를 쓴다
+/// (#1312, #2906).
 ///
 /// 이름이 있으면 서버가 종목 참조표와 회원 체중으로 계산한다. 이 표는 서버에
 /// 닿지 못하는 경로(데모)와 이름이 종목으로 접히지 않는 기록에 남는다 —
 /// 정확도가 아니라 화면 간 **일관성**이 목적이다(#1131). 반올림도 서버(Python
 /// `round`, 0.5 는 짝수 쪽)와 같아야 미리보기와 저장값이 갈리지 않는다(#2860).
+///
+/// 옛 유형 `walking`·`yoga` 는 서버처럼 유산소·스트레칭으로 접어 센다(#2861).
 int estimateExerciseCalories(
   ExerciseType type,
   int minutes, {
   ExerciseIntensity intensity = ExerciseIntensity.moderate,
-}) {
-  final double perMin = switch (type) {
-    ExerciseType.cardio => 9,
-    ExerciseType.strength => 6,
-    ExerciseType.walking => 4,
-    ExerciseType.stretching => 3,
-    ExerciseType.yoga => 3,
-    ExerciseType.other => 5,
-  };
-  final double factor = kIntensityFactor[intensity] ?? 1.0;
-  return pyRound(perMin * minutes * factor);
-}
+}) => fallbackExerciseCalories(
+  switch (type) {
+    ExerciseType.cardio || ExerciseType.walking => kExerciseTypeCardio,
+    ExerciseType.strength => kExerciseTypeStrength,
+    ExerciseType.stretching || ExerciseType.yoga => kExerciseTypeStretching,
+    ExerciseType.other => kExerciseTypeOther,
+  },
+  minutes,
+  intensity.name,
+);
 
 /// 루틴이 들고 오는 유형 표기(한글 라벨 또는 영문 코드)를 [ExerciseType] 으로.
 ///

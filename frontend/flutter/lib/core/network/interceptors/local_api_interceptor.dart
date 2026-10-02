@@ -54,16 +54,27 @@ import 'package:oncare/features/member_coach/data/demo_coach_files.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart'
     show CoachAttachmentKind;
 import 'package:oncare_core/clock.dart';
-// 분·kcal 반올림·운동 유형 정규화는 실서버와 같은 공용 규칙을 쓴다(#2860, #2861).
+// 분·kcal 반올림·운동 유형 정규화·칼로리 계수는 실서버와 같은 공용 규칙을
+// 쓴다(#2860, #2861, #2906).
 import 'package:oncare_rules/oncare_rules.dart'
     show
+        exerciseIntensityFactor,
+        fallbackExerciseCalories,
         kExerciseTypeCardio,
         kExerciseTypeStrength,
         kExerciseTypeStretching,
         minutesFromSeconds,
-        normalizeExerciseType,
-        pyRound;
-import 'package:oncare_ui/oncare_ui.dart' show AppInputError, AppInputRules;
+        normalizeExerciseType;
+import 'package:oncare_ui/oncare_ui.dart'
+    show
+        AppInputError,
+        AppInputRules,
+        kGoalDefaultDailyCalories,
+        kGoalDefaultDailySodiumMg,
+        kGoalDefaultDailySugarG,
+        mondayOf,
+        parseWireDate,
+        wireDate;
 
 /// A drift-backed dummy backend. Intercepts dio requests and serves
 /// them out of the local SQLite database so the app can run as a
@@ -887,10 +898,13 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     final today = _todayDateString();
     final profile = await _mergedProfile();
     final int calorieGoal =
-        (profile['daily_calories'] as num?)?.toInt() ?? 2000;
+        (profile['daily_calories'] as num?)?.toInt() ??
+        kGoalDefaultDailyCalories;
     final int sodiumGoal =
-        (profile['daily_sodium_mg'] as num?)?.toInt() ?? 2000;
-    final int sugarGoal = (profile['daily_sugar_g'] as num?)?.toInt() ?? 50;
+        (profile['daily_sodium_mg'] as num?)?.toInt() ??
+        kGoalDefaultDailySodiumMg;
+    final int sugarGoal =
+        (profile['daily_sugar_g'] as num?)?.toInt() ?? kGoalDefaultDailySugarG;
 
     // Diet aggregates.
     final dietRows = await (_db.select(
@@ -958,10 +972,10 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     // the indicator list now ends at 당류.)
 
     final now = nowKst();
-    final monday = DateTime(now.year, now.month, now.day - (now.weekday - 1));
+    final monday = mondayOf(now);
     final nutritionByDate = <String, Map<String, num>>{
       for (var index = 0; index < 7; index++)
-        _dateString(monday.add(Duration(days: index))): <String, num>{
+        wireDate(monday.add(Duration(days: index))): <String, num>{
           'calories': 0,
           'sodium_mg': 0,
           'sugar_g': 0.0,
@@ -979,7 +993,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       for (var index = 0; index < 7; index++)
         <String, Object?>{
           'label': _weekdayLabels[index],
-          ...nutritionByDate[_dateString(monday.add(Duration(days: index)))]!,
+          ...nutritionByDate[wireDate(monday.add(Duration(days: index)))]!,
         },
     ];
     final String? sodiumWarning = _homeSodiumWarning(
@@ -1192,7 +1206,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     final List<Map<String, Object?>> days = <Map<String, Object?>>[];
     DateTime cursor = first;
     while (!cursor.isAfter(last)) {
-      final String key = _dateString(cursor);
+      final String key = wireDate(cursor);
       final List<num> day = totals[key] ?? const <num>[0, 0, 0, 0, 0, 0];
       days.add(<String, Object?>{
         'date': key,
@@ -1206,8 +1220,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       cursor = DateTime(cursor.year, cursor.month, cursor.day + 1);
     }
     return _ok(options, <String, Object?>{
-      'from_date': _dateString(first),
-      'to_date': _dateString(last),
+      'from_date': wireDate(first),
+      'to_date': wireDate(last),
       'days': days,
     });
   }
@@ -1220,7 +1234,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         ? null
         : (exerciseDays.toList()..sort()).first;
     return _ok(options, <String, Object?>{
-      'diet_first_date': diet == null ? null : _dateString(diet),
+      'diet_first_date': diet == null ? null : wireDate(diet),
       'exercise_first_date': exercise,
     });
   }
@@ -1314,7 +1328,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     final DateTime now = nowKst();
     final DateTime today = DateTime(now.year, now.month, now.day);
     // 전체가 읽는 4주가 가장 길다 — 이번 주의 지난주 회고(최대 13일 전)도 그 안이다.
-    final String start = _dateString(
+    final String start = wireDate(
       DateTime(today.year, today.month, today.day - 27),
     );
     final rows =
@@ -1322,7 +1336,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
               ..where(
                 (t) =>
                     t.date.isBiggerOrEqualValue(start) &
-                    t.date.isSmallerOrEqualValue(_dateString(today)),
+                    t.date.isSmallerOrEqualValue(wireDate(today)),
               )
               ..orderBy(<OrderClauseGenerator<$DietEntriesTable>>[
                 (t) => OrderingTerm(expression: t.date),
@@ -1382,22 +1396,17 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     final DateTime now = nowKst();
     final DateTime today = DateTime(now.year, now.month, now.day);
     if (period == kPeriodToday) {
-      return (_dateString(today), _dateString(today));
+      return (wireDate(today), wireDate(today));
     }
     if (period == kPeriodWeek) {
-      final DateTime monday = DateTime(
-        today.year,
-        today.month,
-        today.day - (today.weekday - DateTime.monday),
-      );
-      return (_dateString(monday), _dateString(today));
+      return (wireDate(mondayOf(today)), wireDate(today));
     }
     final DateTime from = DateTime(
       today.year,
       today.month,
       today.day - (kAllPeriodWeeks * 7 - 1),
     );
-    return (_dateString(from), _dateString(today));
+    return (wireDate(from), wireDate(today));
   }
 
   /// GET /diet/recommendations — 홈 "AI 추천 식단".
@@ -1413,14 +1422,14 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   Future<Response<Object?>> _dietRecommendations(RequestOptions options) async {
     final DateTime now = nowKst();
     final DateTime today = DateTime(now.year, now.month, now.day);
-    final String start = _dateString(
+    final String start = wireDate(
       DateTime(today.year, today.month, today.day - (_recLookbackDays - 1)),
     );
     final rows =
         await (_db.select(_db.dietEntries)..where(
               (t) =>
                   t.date.isBiggerOrEqualValue(start) &
-                  t.date.isSmallerOrEqualValue(_dateString(today)),
+                  t.date.isSmallerOrEqualValue(wireDate(today)),
             ))
             .get();
 
@@ -1453,9 +1462,12 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
 
     final Map<String, Object?> profile = await _mergedProfile();
     int? positive(Object? v) => v is num && v > 0 ? v.toInt() : null;
-    final int sodiumLimit = positive(profile['daily_sodium_mg']) ?? 2000;
-    final int sugarLimit = positive(profile['daily_sugar_g']) ?? 50;
-    final int calorieLimit = positive(profile['daily_calories']) ?? 2000;
+    final int sodiumLimit =
+        positive(profile['daily_sodium_mg']) ?? kGoalDefaultDailySodiumMg;
+    final int sugarLimit =
+        positive(profile['daily_sugar_g']) ?? kGoalDefaultDailySugarG;
+    final int calorieLimit =
+        positive(profile['daily_calories']) ?? kGoalDefaultDailyCalories;
     final int proteinGoal = positive(profile['daily_protein_g']) ?? 0;
 
     final Set<String> signals = <String>{
@@ -1607,7 +1619,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   }
 
   /// 회원 나트륨 목표가 없을 때의 하루 상한. 서버 `SODIUM_LIMIT_MG` 와 같다.
-  static const int _kDefaultSodiumLimitMg = 2000;
+  static const int _kDefaultSodiumLimitMg = kGoalDefaultDailySodiumMg;
 
   /// 시드에 문장이 없는 날짜(또는 영어 화면)용 — 그날의 수치를 보고 만든 문구.
   ///
@@ -1974,19 +1986,10 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   }
 
   String _todayDateString() {
-    return _dateString(nowKst());
+    return wireDate(nowKst());
   }
 
-  String _dateString(DateTime date) =>
-      '${date.year.toString().padLeft(4, '0')}-'
-      '${date.month.toString().padLeft(2, '0')}-'
-      '${date.day.toString().padLeft(2, '0')}';
-
-  bool _isDateString(String value) {
-    if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(value)) return false;
-    final parsed = DateTime.tryParse(value);
-    return parsed != null && _dateString(parsed) == value;
-  }
+  bool _isDateString(String value) => parseWireDate(value) != null;
 
   // ---- Exercise ----
 
@@ -2028,7 +2031,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       final int index = _weekdayLabels.indexOf(r.dayLabel);
       if (index < 0) continue;
       final DateTime monday = DateTime.parse(r.weekStart);
-      final String date = _dateString(
+      final String date = wireDate(
         DateTime(monday.year, monday.month, monday.day + index),
       );
       if (date.compareTo(start) < 0 || date.compareTo(end) > 0) continue;
@@ -2081,7 +2084,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   /// 월요일부터 담는다 — 월요일이 구간 밖이어도 그 주의 기록은 구간 안에 있을
   /// 수 있다.
   List<String> _weekStartsCovering(String start, String end) {
-    final DateTime from = DateTime.parse(_mondayOfString(start));
+    final DateTime from = mondayOf(DateTime.parse(start));
     final DateTime to = DateTime.parse(end);
     final List<String> weeks = <String>[];
     for (
@@ -2089,7 +2092,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       !week.isAfter(to);
       week = DateTime(week.year, week.month, week.day + 7)
     ) {
-      weeks.add(_dateString(week));
+      weeks.add(wireDate(week));
     }
     return weeks;
   }
@@ -2107,22 +2110,20 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
         return _unprocessable(options, '\$key must be YYYY-MM-DD');
       }
     }
-    final DateTime thisMonday = DateTime.parse(_mondayOfThisWeekString());
+    final DateTime thisMonday = mondayOf(nowKst());
     DateTime lastMonday = _queryDate(options, 'to') == null
         ? thisMonday
-        : DateTime.parse(
-            _mondayOfString(_dateString(_queryDate(options, 'to')!)),
-          );
+        : mondayOf(_queryDate(options, 'to')!);
     if (lastMonday.isAfter(thisMonday)) lastMonday = thisMonday;
     final DateTime? fromQuery = _queryDate(options, 'from');
     DateTime firstMonday;
     if (fromQuery != null) {
-      firstMonday = DateTime.parse(_mondayOfString(_dateString(fromQuery)));
+      firstMonday = mondayOf(fromQuery);
     } else {
       final Set<String> days = await _exerciseDates();
       firstMonday = days.isEmpty
           ? lastMonday
-          : DateTime.parse(_mondayOfString((days.toList()..sort()).first));
+          : mondayOf(DateTime.parse((days.toList()..sort()).first));
     }
     if (firstMonday.isAfter(lastMonday)) firstMonday = lastMonday;
     // 서버와 같은 구간 상한(`exercise_service.MAX_PERIOD_WEEKS`, #2833).
@@ -2149,7 +2150,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     final List<Map<String, Object?>> weeks = <Map<String, Object?>>[];
     DateTime cursor = firstMonday;
     while (!cursor.isAfter(lastMonday)) {
-      final String monday = _dateString(cursor);
+      final String monday = wireDate(cursor);
       final Response<Object?> week = await _exerciseCurrentWeek(
         options.copyWith(
           queryParameters: <String, Object?>{'week_start': monday},
@@ -2164,8 +2165,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       cursor = DateTime(cursor.year, cursor.month, cursor.day + 7);
     }
     return _ok(options, <String, Object?>{
-      'from_week': _dateString(firstMonday),
-      'to_week': _dateString(lastMonday),
+      'from_week': wireDate(firstMonday),
+      'to_week': wireDate(lastMonday),
       'weeks': weeks,
     });
   }
@@ -2403,22 +2404,6 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     return (_mondayOf(day), _weekdayLabels[day.weekday - 1]);
   }
 
-  /// 강도 배수 — 서버 `exercise_catalog.energy.INTENSITY_FACTOR` 와 같은 값이다.
-  static const Map<String, double> _intensityFactor = <String, double>{
-    'light': 0.85,
-    'moderate': 1.0,
-    'high': 1.2,
-  };
-
-  /// 유형별 분당 kcal 폴백 — 이름이 종목표에 붙지 않을 때다. 서버
-  /// `exercise_catalog.energy.FALLBACK_KCAL_PER_MIN` 과 같은 값이어야 한다.
-  static const Map<String, double> _fallbackKcalPerMin = <String, double>{
-    'cardio': 9.0,
-    'strength': 6.0,
-    'stretching': 3.0,
-    'other': 5.0,
-  };
-
   /// POST /diet/nutrition — 음식 이름으로 공공 영양 DB 값. (#1896)
   ///
   /// 서버와 같은 순서다: 이름을 표에 붙이고, 붙었으면 **양으로 환산**해 돌려준다.
@@ -2525,18 +2510,17 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   }) async {
     // 유형 표기는 서버 `exercise_types.normalize` 와 같은 공용 표로 접는다 —
     // 한글 라벨(`유산소`)도 기타로 떨어지지 않는다(#2861).
-    final String normalized = normalizeExerciseType(type);
-    final double factor = _intensityFactor[intensity ?? 'moderate'] ?? 1.0;
+    // 강도 배수·유형별 분당 kcal 폴백은 서버 `exercise_catalog.energy` 와 같은
+    // 공용 표(`oncare_rules`)다(#2906).
+    final double factor = exerciseIntensityFactor(intensity);
     final DemoExerciseActivity? matched = matchDemoExercise(name);
     final double? weightKg = ((await _mergedProfile())['weight_kg'] as num?)
         ?.toDouble();
     // 체중을 모르면 참조표로 계산하지 않는다 — 기준 체중으로 낸 값은 이 회원의
     // 값이 아닌데 `db` 로 표시되면 실제보다 높은 신뢰 신호를 준다.
     if (matched == null || weightKg == null || weightKg <= 0) {
-      final double perMin =
-          _fallbackKcalPerMin[normalized] ?? _fallbackKcalPerMin['other']!;
       return (
-        calories: pyRound(perMin * minutes * factor),
+        calories: fallbackExerciseCalories(type, minutes, intensity),
         source: 'estimate',
         matchedName: '',
       );
@@ -2712,7 +2696,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       minutes: savedMinutes,
       intensity: intensity.name,
     );
-    final (String weekStart, String dayLabel) = _placement(_dateString(date));
+    final (String weekStart, String dayLabel) = _placement(wireDate(date));
     // `seed-` 가 아닌 접두라 다음 날 시드가 다시 깔려도 지워지지 않는다.
     final String id =
         'ex-routine-$routineId-${DateTime.now().microsecondsSinceEpoch}';
@@ -2856,10 +2840,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     final DateTime? monday = DateTime.tryParse(weekStart);
     final int index = _weekdayLabels.indexOf(dayLabel);
     if (monday == null || index < 0) return weekStart;
-    final DateTime d = DateTime(monday.year, monday.month, monday.day + index);
-    return '${d.year.toString().padLeft(4, '0')}-'
-        '${d.month.toString().padLeft(2, '0')}-'
-        '${d.day.toString().padLeft(2, '0')}';
+    return wireDate(DateTime(monday.year, monday.month, monday.day + index));
   }
 
   // ---- Schedule ----
@@ -4324,8 +4305,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   /// 사진이 붙은 끼니(시드 에셋이나 방금 올린 원본)로 센다 — 손으로 적은 끼니는
   /// 둘 다 비어 있다.
   Future<int> _dietTrayPhotoDays() async {
-    final String from = _dateString(_coupons.dietTrayWindowFrom());
-    final String to = _dateString(_coupons.dietTrayWindowTo());
+    final String from = wireDate(_coupons.dietTrayWindowFrom());
+    final String to = wireDate(_coupons.dietTrayWindowTo());
     return <String>{
       for (final row in await _db.select(_db.dietEntries).get())
         if ((row.photoAsset.isNotEmpty || row.photoBytes != null) &&
@@ -4364,7 +4345,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     return _ok(
       options,
       _shields.statusJson(
-        hasRecordOn: (DateTime day) => recorded.contains(_dateString(day)),
+        hasRecordOn: (DateTime day) => recorded.contains(wireDate(day)),
       ),
     );
   }
@@ -4384,7 +4365,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       if (index < 0) continue;
       final DateTime monday = DateTime.parse(row.weekStart);
       days.add(
-        _dateString(DateTime(monday.year, monday.month, monday.day + index)),
+        wireDate(DateTime(monday.year, monday.month, monday.day + index)),
       );
     }
     return days;
@@ -4397,7 +4378,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     if (index < 0) return;
     final DateTime monday = DateTime.parse(weekStart);
     _refundShieldOnDate(
-      _dateString(DateTime(monday.year, monday.month, monday.day + index)),
+      wireDate(DateTime(monday.year, monday.month, monday.day + index)),
     );
   }
 
@@ -4419,7 +4400,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       options,
       _shields.use(
         day,
-        hasRecordOn: (DateTime d) => recorded.contains(_dateString(d)),
+        hasRecordOn: (DateTime d) => recorded.contains(wireDate(d)),
       ),
     );
   }
@@ -4448,11 +4429,11 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     final Set<String> exercise = await _exerciseDates();
     final Set<String> recorded = <String>{...diet, ...exercise};
     final Map<String, Object?> shields = _shields.statusJson(
-      hasRecordOn: (DateTime day) => recorded.contains(_dateString(day)),
+      hasRecordOn: (DateTime day) => recorded.contains(wireDate(day)),
     );
     return _ok(options, <String, Object?>{
-      'from_date': _dateString(first),
-      'to_date': _dateString(last),
+      'from_date': wireDate(first),
+      'to_date': wireDate(last),
       'days': <Map<String, Object?>>[
         for (
           DateTime cursor = first;
@@ -4460,9 +4441,9 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           cursor = DateTime(cursor.year, cursor.month, cursor.day + 1)
         )
           <String, Object?>{
-            'date': _dateString(cursor),
-            'has_diet': diet.contains(_dateString(cursor)),
-            'has_exercise': exercise.contains(_dateString(cursor)),
+            'date': wireDate(cursor),
+            'has_diet': diet.contains(wireDate(cursor)),
+            'has_exercise': exercise.contains(wireDate(cursor)),
             'protected': _shields.isProtected(cursor),
           },
       ],
@@ -4496,7 +4477,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
       if (index < 0) continue;
       final DateTime monday = DateTime.parse(row.weekStart);
       days.add(
-        _dateString(DateTime(monday.year, monday.month, monday.day + index)),
+        wireDate(DateTime(monday.year, monday.month, monday.day + index)),
       );
     }
     return days;
@@ -4581,10 +4562,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     final Set<DateTime> Function(DateTime)? recorded = _challenges.recordedDays;
     if (recorded != null) return recorded(monday);
     const List<String> labels = <String>['월', '화', '수', '목', '금', '토', '일'];
-    final String weekStart =
-        '${monday.year.toString().padLeft(4, '0')}-'
-        '${monday.month.toString().padLeft(2, '0')}-'
-        '${monday.day.toString().padLeft(2, '0')}';
+    final String weekStart = wireDate(monday);
     final rows = await (_db.select(
       _db.exerciseSessions,
     )..where((t) => t.weekStart.equals(weekStart))).get();
@@ -4907,14 +4885,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   /// 형식은 호출 전에 검사한다([_isDateString]).
   String _mondayOfString(String date) => _mondayOf(DateTime.parse(date));
 
-  String _mondayOf(DateTime d) {
-    // 날짜 성분으로 뺀다 — Duration 으로 빼면 서머타임이 있는 지역에서 하루가
-    // 24시간이 아닌 날에 어긋난다.
-    final monday = DateTime(d.year, d.month, d.day - (d.weekday - 1));
-    return '${monday.year.toString().padLeft(4, '0')}-'
-        '${monday.month.toString().padLeft(2, '0')}-'
-        '${monday.day.toString().padLeft(2, '0')}';
-  }
+  String _mondayOf(DateTime d) => wireDate(mondayOf(d));
 
   // ---- helpers ----
 

@@ -279,6 +279,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrEmailInvalid => '이메일 형식이 올바르지 않아요';
 
   @override
+  String get authErrEmailTooLong => '이메일은 255자까지 입력할 수 있어요';
+
+  @override
   String get authErrPasswordEmpty => '비밀번호를 입력해 주세요';
 
   @override
@@ -2454,48 +2457,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get routineFieldEffectHint => '예) 오른쪽 어깨 보호';
 
   @override
-  String get routineEffectCardioDefault => '체력 향상·만성질환 예방';
-
-  @override
-  String get routineEffectStrengthDefault => '근력·근지구력 향상';
-
-  @override
-  String get routineEffectStretchDefault => '유연성·부상 예방';
-
-  @override
-  String get routineEffectBloodPressure => '혈압 관리에 도움';
-
-  @override
-  String get routineEffectFatLoss => '체지방 감량에 도움';
-
-  @override
-  String get routineEffectCardioFitness => '심폐 체력 향상';
-
-  @override
-  String get routineEffectGentleRecovery => '무리 없는 체력 회복';
-
-  @override
-  String get routineEffectMuscleMass => '근육량 유지·증가';
-
-  @override
-  String get routineEffectStrength => '근력 향상';
-
-  @override
-  String get routineEffectPostureMuscles => '자세 지지 근육 강화';
-
-  @override
-  String get routineEffectHeartRate => '혈압·심박 안정';
-
-  @override
-  String get routineEffectMuscleRecovery => '근육 회복';
-
-  @override
-  String get routineEffectLoosen => '굳은 근육 이완';
-
-  @override
-  String get routineEffectJointRange => '관절 가동 범위 회복';
-
-  @override
   String get routineFieldSets => '세트 수';
 
   @override
@@ -2574,6 +2535,20 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachSwitchClientConfirm => '바꾸기';
+
+  @override
+  String get coachDraftResumeTitle => '저장해 둔 작성 내용이 있어요';
+
+  @override
+  String coachDraftResumeBody(String name) {
+    return '$name 회원에게 짜던 프로그램이 자동으로 저장되어 있어요. 이어서 쓸까요?';
+  }
+
+  @override
+  String get coachDraftResume => '이어서 쓰기';
+
+  @override
+  String get coachDraftDiscard => '버리기';
 
   @override
   String get personalRoutineTargetLoadFailed => 'PT 일정을 불러오지 못했어요';
