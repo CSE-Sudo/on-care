@@ -26,6 +26,7 @@ _INTENTIONALLY_UNDOCUMENTED: dict[str, str] = {}
 # Settings 필드가 아니지만 예시 파일에 두는 키 — 사유와 함께 적는다.
 _NON_SETTINGS_KEYS: dict[str, str] = {
     "TZ": "프로세스 시간대(로그 타임스탬프). Settings 가 아니라 컨테이너 환경이 읽는다.",
+    "FORWARDED_ALLOW_IPS": "uvicorn --forwarded-allow-ips. Settings 가 아니라 scripts/start.sh 가 읽는다.",
 }
 
 

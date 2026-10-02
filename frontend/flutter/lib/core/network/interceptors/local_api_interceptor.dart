@@ -39,11 +39,13 @@ import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/ai_coach/domain/chat_insight_detector.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
+import 'package:oncare/features/diet/domain/entities/diet_period.dart'
+    show kDietAllPeriodMaxDays;
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart'
     show MealImageFormat;
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart'
-    show kMaxExerciseSessionsPerSave;
+    show kExerciseMaxPeriodWeeks, kMaxExerciseSessionsPerSave;
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
     show setsFromStrengthMinutes;
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
@@ -1142,6 +1144,13 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     DateTime first =
         _queryDate(options, 'from') ?? await _firstDietDate() ?? last;
     if (first.isAfter(last)) first = last;
+    // 서버와 같은 구간 상한(`diet_service.MAX_PERIOD_DAYS`, #2833).
+    final DateTime floor = DateTime(
+      last.year,
+      last.month,
+      last.day - (kDietAllPeriodMaxDays - 1),
+    );
+    if (first.isBefore(floor)) first = floor;
 
     final Map<String, List<num>> totals = <String, List<num>>{};
     for (final row in await _db.select(_db.dietEntries).get()) {
@@ -2036,6 +2045,13 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
           : DateTime.parse(_mondayOfString((days.toList()..sort()).first));
     }
     if (firstMonday.isAfter(lastMonday)) firstMonday = lastMonday;
+    // 서버와 같은 구간 상한(`exercise_service.MAX_PERIOD_WEEKS`, #2833).
+    final DateTime floorMonday = DateTime(
+      lastMonday.year,
+      lastMonday.month,
+      lastMonday.day - (kExerciseMaxPeriodWeeks - 1) * 7,
+    );
+    if (firstMonday.isBefore(floorMonday)) firstMonday = floorMonday;
 
     const List<String> carried = <String>[
       'day_labels',

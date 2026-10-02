@@ -25,7 +25,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
-from app.api.deps import CurrentUser
+from app.api.deps import CurrentUser, RequireMember
 from app.core import rate_limit
 from app.core.config import get_settings
 from app.db.session import get_db
@@ -109,6 +109,9 @@ def diet_period(
     기간 그래프가 쓰는 길이다 — 하루에 한 번씩 부르면 `전체`(모든 기록, #2079)가
     수백 번의 왕복이 된다. 끼니·사진은 싣지 않으므로 하루를 펼쳐 볼 때는 그대로
     `GET /diet/days/{date}` 를 쓴다.
+
+    구간은 끝에서 거슬러 최대 `MAX_PERIOD_DAYS`(1100일)다. 더 이른 `from`·첫 기록일은
+    그 하한으로 잘리고, 응답 `from_date` 가 실제 시작일이다(#2833).
     """
     return diet_service.build_period(db, current_user.id, start=from_date, end=to_date)
 
@@ -213,7 +216,7 @@ def diet_recommendations(
 @router.post("/diet/nutrition", response_model=FoodNutritionOut)
 def food_nutrition(
     payload: FoodNutritionRequest,
-    current_user: CurrentUser,  # noqa: ARG001 — 로그인한 회원만 쓰는 조회다
+    current_user: RequireMember,  # noqa: ARG001 — 로그인한 회원만 쓰는 조회다
     db: Annotated[Session, Depends(get_db)],
 ) -> FoodNutritionOut:
     """음식 이름으로 공공 영양 DB 값을 찾는다. (#1896)
@@ -253,7 +256,7 @@ def food_nutrition(
 
 @router.post("/diet/analyze", response_model=DietAnalyzeResponse)
 async def diet_analyze(
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
     image: UploadFile = File(..., description="음식 사진"),
     meal_type: str = Form("lunch", description="breakfast|lunch|dinner|snack|lateNight"),
@@ -467,7 +470,7 @@ def diet_photo(
 @router.post("/diet/entries", response_model=DietEntryOut, status_code=201)
 def create_entry(
     payload: DietEntryCreate,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> DietEntryOut:
     """사진 없이 회원이 직접 적은 끼니를 저장한다(#2151).
@@ -485,7 +488,7 @@ def create_entry(
 def update_entry(
     entry_id: str,
     payload: DietEntryUpdate,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> DietEntryOut:
     """식단 기록의 끼니 분류/시간·영양소 수정(본인 소유만, 아니면 404)."""
@@ -502,7 +505,7 @@ def update_entry(
 @router.delete("/diet/entries/{entry_id}")
 def delete_entry(
     entry_id: str,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     """식단 기록 삭제. 본인 소유 엔트리만 삭제 가능(아니면 404)."""

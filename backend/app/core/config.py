@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -50,7 +50,10 @@ class Settings(BaseSettings):
     # --- JWT ---
     jwt_secret: str = DEFAULT_JWT_SECRET
     jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 60 * 24
+    # 접근 토큰 수명(#2913). 두 앱 모두 401 을 받으면 refresh 로 새 토큰을 받아 요청을
+    # 다시 보내므로 짧아도 사용자 체감이 없고, 새어 나간 토큰이 쓰일 수 있는 시간이
+    # 줄어든다. 데모·개발 환경은 ACCESS_TOKEN_EXPIRE_MINUTES 로 길게 둘 수 있다.
+    access_token_expire_minutes: int = 60
     refresh_token_expire_days: int = 30
     # 웹 클라이언트(`X-Client-Platform: web`)가 받는 refresh 토큰 수명(#2828). 웹은
     # 토큰을 탭 단위 저장소에만 두므로 오래 갈 필요가 없고, 브라우저에서 새어 나갔을
@@ -109,6 +112,11 @@ class Settings(BaseSettings):
     #: 사진 한 장의 상한. 휴대폰 카메라 원본을 그대로 올려도 걸리지 않을
     #: 정도이되, 대화 스레드가 파일 서버가 되지는 않을 정도.
     max_chat_image_bytes: int = 6 * 1024 * 1024
+    #: 채팅 사진·리포트 PDF 경로의 **요청 본문** 상한은 파일 상한에 이만큼을 더한
+    #: 값이다(#2832). multipart 경계·메시지 필드·client_request_id 가 함께 실려 오므로,
+    #: 파일 상한과 똑같이 두면 상한에 딱 맞는 파일이 413 을 맞는다. 파일 자체의
+    #: 상한은 핸들러가 바이트를 세어 따로 지킨다.
+    upload_body_slack_bytes: int = 512 * 1024
 
     #: 채팅 첨부(사진·리포트 PDF) 바이트 저장소(#2817). auto 는 버킷 이름이 있으면
     #: s3, 없으면 local(위 두 디렉터리). 컨테이너 디스크는 재배포·스케일 아웃에서
@@ -264,6 +272,51 @@ class Settings(BaseSettings):
     # 24시간에 만들 수 있는 요청 수(취소·거절·만료 포함). 넘으면 429 + Retry-After.
     # 다른 한도와 같이 RATE_LIMIT_ENABLED=false 면 끈다.
     consultation_create_per_day: int = 10
+    # 같은 이메일 로그인 연속 실패 잠금(#2815). IP 를 바꿔 가며 한 계정의 비밀번호를
+    # 맞혀 보는 것을 막는다 — IP 한도만으로는 요청마다 주소를 바꾸면 끝없이 시도할 수
+    # 있다. `login_lockout_seconds` 안에 `login_max_failures` 번 틀리면 그 이메일은
+    # 남은 시간 동안 429 다. 성공하면 실패 기록을 지운다.
+    login_max_failures: int = 5
+    login_lockout_seconds: int = 15 * 60
+    # 회원 연결 코드 미리보기·사용의 트레이너 하루 상한(#2815). 분당 한도(IP·트레이너
+    # id)에 더해, 트레이너 계정이 공개 가입이라 한 계정이 하루 종일 코드를 훑는 것을
+    # 막는다. 정상 사용(회원 한 명당 한두 번)으로는 닿지 않는 값.
+    pairing_redeem_per_day: int = 30
+    # 같은 이메일 가입 시도의 시간당 상한(#2913). 가입은 이미 있는 이메일에 409 를
+    # 주므로, IP 한도만으로는 IP 를 바꿔 가며 특정 이메일의 가입 여부를 계속 물을 수
+    # 있다. 회원·트레이너 가입이 한 버킷을 쓴다. 정상 가입(오타 몇 번)으로는 닿지 않는 값.
+    register_per_email_per_hour: int = 5
+    # 비밀번호 변경의 현재 비밀번호 연속 실패 잠금(#2913). 접근 토큰을 손에 넣은 쪽이
+    # 현재 비밀번호를 맞혀 보는 것을 사용자 id 단위로 막는다. 창은 로그인 잠금과 같다
+    # (`login_lockout_seconds`).
+    password_change_max_failures: int = 5
+
+    # --- 클라이언트 IP (#2815) ---
+    # rate limit 키·감사 로그 IP 를 정할 때 믿는 앞단 프록시 수. `X-Forwarded-For` 를
+    # 오른쪽에서 이 번째 값으로 읽는다(`app/core/client_ip.py`). 0 이면 헤더를 보지 않고
+    # 소켓 주소를 쓴다. 비워 두면 운영(prod)은 1, 그 밖은 0 — 운영 배포(App Runner·
+    # Railway·EC2+Nginx)는 모두 프록시 하나 뒤다. 프록시가 늘면 그 수로 맞춘다.
+    trusted_proxy_hops: Optional[int] = Field(default=None, ge=0, le=5)
+
+    @property
+    def effective_proxy_hops(self) -> int:
+        """실제로 쓰는 신뢰 프록시 홉 수(미설정이면 운영 1, 그 밖 0)."""
+        if self.trusted_proxy_hops is not None:
+            return self.trusted_proxy_hops
+        return 1 if self.is_prod else 0
+
+    #: API 문서(`/docs`·`/redoc`·`/openapi.json`) 공개 여부(#2834). 비워 두면 운영은
+    #: 끄고 그 밖은 켠다. 문서는 엔드포인트 전체 목록·스키마·docstring 의 내부 설계
+    #: 설명을 인증 없이 보여 준다 — 운영 스키마는 스테이징·로컬에서 본다. 꼭 운영에서
+    #: 켜야 하면 `EXPOSE_API_DOCS=true` 로 명시한다.
+    expose_api_docs: Optional[bool] = None
+
+    @property
+    def api_docs_enabled(self) -> bool:
+        """실제로 문서를 여는가(미설정이면 운영 끔, 그 밖 켬)."""
+        if self.expose_api_docs is not None:
+            return self.expose_api_docs
+        return not self.is_prod
 
     @property
     def admin_email_set(self) -> set[str]:

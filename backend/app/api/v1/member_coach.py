@@ -59,7 +59,7 @@ def my_coach(
 
 @router.delete("/me/coach", status_code=204)
 def disconnect_my_coach(
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> None:
     """코치 관계 전체 해제 — MY 탭의 **헬스장** 휴지통.
@@ -82,7 +82,7 @@ def disconnect_my_coach(
 
 @router.delete("/me/coach/trainer", status_code=204)
 def disconnect_my_trainer(
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> None:
     """담당 트레이너만 해제 — 헬스장 연결은 남는다. MY 탭의 **트레이너** 휴지통.

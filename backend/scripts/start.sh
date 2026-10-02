@@ -49,8 +49,16 @@ WEB_CONCURRENCY=$((10#$WEB_CONCURRENCY))
 echo "[start] migrate (advisory-lock serialized)"
 python scripts/migrate.py
 
+# 프록시 헤더를 믿을 앞단 주소(#2815). uvicorn 은 여기 든 주소에서 온 요청의
+# X-Forwarded-Proto(HTTPS 판정)와 X-Forwarded-For 를 받아들인다. App Runner 처럼
+# 프록시 주소 대역이 고정되지 않은 플랫폼은 좁힐 수 없어 기본값을 "*" 로 둔다 —
+# 그래도 안전한 이유는 rate limit·감사 로그가 이 값으로 고쳐진 소켓 주소가 아니라
+# app/core/client_ip.py 가 X-Forwarded-For 를 오른쪽에서 TRUSTED_PROXY_HOPS 번째로
+# 읽은 값을 쓰기 때문이다. 프록시 대역이 고정된 환경은 그 대역으로 좁힌다.
+FORWARDED_ALLOW_IPS="${FORWARDED_ALLOW_IPS:-*}"
+
 echo "[start] launching uvicorn on :${PORT} (workers=${WEB_CONCURRENCY})"
 exec uvicorn app.main:app \
   --host 0.0.0.0 --port "${PORT}" \
   --workers "${WEB_CONCURRENCY}" \
-  --proxy-headers --forwarded-allow-ips="*"
+  --proxy-headers --forwarded-allow-ips="${FORWARDED_ALLOW_IPS}"
