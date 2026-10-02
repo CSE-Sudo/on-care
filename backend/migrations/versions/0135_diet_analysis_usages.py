@@ -5,7 +5,7 @@
 값이 같다.
 
 Revision ID: 0135_diet_analysis_usages
-Revises: 0139_onboarding_skipped
+Revises: 0134_users_email_lower_unique
 """
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0135_diet_analysis_usages"
-down_revision: str | Sequence[str] | None = "0139_onboarding_skipped"
+down_revision: str | Sequence[str] | None = "0134_users_email_lower_unique"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
