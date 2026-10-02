@@ -28,12 +28,12 @@ void main() {
 
   group('제목·본문', () {
     test('데모 알림은 키로 로케일 문장을 고른다', () {
-      final AlertItem sodium = demoAlerts.firstWhere(
-        (AlertItem a) => a.messageKey == kDemoAlertSodium,
+      final AlertItem feedback = demoAlerts.firstWhere(
+        (AlertItem a) => a.messageKey == kDemoAlertTrainerFeedback,
       );
-      expect(alertText(en, sodium).title, 'Watch your sodium');
-      expect(alertText(en, sodium).body, contains('4,657mg'));
-      expect(alertText(ko, sodium).title, '나트륨 섭취 주의');
+      expect(alertText(en, feedback).title, en.demoAlertTrainerFeedbackTitle);
+      expect(alertText(en, feedback).body, en.demoAlertTrainerFeedbackBody);
+      expect(alertText(ko, feedback).title, '트레이너 피드백 도착');
     });
 
     test('서버 알림과 모르는 키는 받은 문자열을 그대로 쓴다', () {

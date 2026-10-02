@@ -86,6 +86,9 @@ class AppRoutes {
   // First-run onboarding (shown right after sign-up)
   static const String onboarding = '/onboarding';
 
+  /// 첫 설정을 건너뛴 회원이 앱 안(MY 건강 목표)에서 다시 여는 첫 설정(#2855).
+  /// 끝내거나 그만두면 연 자리로 돌아간다 — 가입 직후처럼 가이드로 가지 않는다.
+  static const String onboardingResume = '/onboarding?from=app';
 
   /// 포인트 안내의 `시작하기` 뒤에 보는 사용 가이드(#1857) — 예시 자료로 채운
   /// 화면 위에서 주요 기능을 하나씩 밝게 짚는다.

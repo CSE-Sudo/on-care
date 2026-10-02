@@ -31,6 +31,14 @@ const UserProfile _notDone = UserProfile(
   email: 'minsu@oncare.com',
 );
 
+/// 첫 설정을 건너뛴 회원(#2855) — 값은 비어 있지만 다시 묻지 않는다.
+const UserProfile _skipped = UserProfile(
+  id: 'u1',
+  onboardingSkipped: true,
+  name: '',
+  email: 'minsu@oncare.com',
+);
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -69,6 +77,73 @@ void main() {
       ],
     );
     expect(route, AppRoutes.onboarding);
+  });
+
+  group('건너뛰기 (#2855)', () {
+    test('첫 설정을 건너뛴 회원은 홈으로 간다', () async {
+      final String route = await routeFor(
+        overrides: <Override>[
+          await prefs(seen: false),
+          profileProvider.overrideWith(() => _StubProfile(_skipped)),
+        ],
+      );
+      expect(route, AppRoutes.dashboard);
+    });
+
+    test('건너뛴 회원을 홈으로 보내면 이 기기에도 남긴다', () async {
+      final Override prefsOverride = await prefs(seen: false);
+      final ProviderContainer container = ProviderContainer(
+        overrides: <Override>[
+          prefsOverride,
+          profileProvider.overrideWith(() => _StubProfile(_skipped)),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await firstRouteAfterSignIn(container);
+
+      expect(container.read(appPrefsProvider).onboardingDone, isTrue);
+    });
+
+    test('끝내지도 건너뛰지도 않은 회원(폼에서 앱을 닫음)은 첫 설정으로 간다', () async {
+      // #2630 의 의도 — 건너뛰기를 누르지 않았으면 다시 데려온다.
+      expect(_notDone.onboarded, isFalse);
+      expect(_notDone.onboardingSkipped, isFalse);
+      final String route = await routeFor(
+        overrides: <Override>[
+          await prefs(seen: false),
+          profileProvider.overrideWith(() => _StubProfile(_notDone)),
+        ],
+      );
+      expect(route, AppRoutes.onboarding);
+    });
+
+    test('끝냈거나 건너뛰었으면 첫 설정이 정리된 계정이다', () {
+      expect(_done.firstRunSettled, isTrue);
+      expect(_skipped.firstRunSettled, isTrue);
+      expect(_notDone.firstRunSettled, isFalse);
+    });
+
+    test('프로필 응답의 onboarding_skipped 를 읽는다', () {
+      final UserProfile parsed = UserProfile.fromJson(<String, Object?>{
+        'id': 'u1',
+        'name': '',
+        'email': 'a@b.c',
+        'onboarded': false,
+        'onboarding_skipped': true,
+      });
+      expect(parsed.onboardingSkipped, isTrue);
+      expect(parsed.firstRunSettled, isTrue);
+      // 옛 서버 응답(칸 없음)은 건너뛰지 않은 것으로 읽는다.
+      expect(
+        UserProfile.fromJson(<String, Object?>{
+          'id': 'u1',
+          'name': '',
+          'email': 'a@b.c',
+        }).onboardingSkipped,
+        isFalse,
+      );
+    });
   });
 
   test('프로필을 못 받아 와도 이미 끝낸 기기면 홈으로 간다', () async {

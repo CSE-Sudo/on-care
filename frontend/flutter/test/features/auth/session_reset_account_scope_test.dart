@@ -129,18 +129,18 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    final Map<String, bool> before = await container.read(
+    final Map<String, bool> before = (await container.read(
       notificationSettingsProvider.future,
-    );
+    )).values;
     expect(before.values, everyElement(isTrue));
     expect(settings.fetchCalls, 1);
 
     settings.accountId = 'account-b';
     container.read(sessionFeatureResetProvider)();
 
-    final Map<String, bool> after = await container.read(
+    final Map<String, bool> after = (await container.read(
       notificationSettingsProvider.future,
-    );
+    )).values;
     // 앞 계정의 토글이 남으면 사용자가 끈 적 없는 알림이 켜져 있거나 그 반대가 된다.
     expect(after.values, everyElement(isFalse));
     expect(settings.fetchCalls, greaterThan(1));

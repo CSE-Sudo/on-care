@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
+import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/account/presentation/first_run_route.dart';
 import 'package:oncare/features/account/presentation/health_focus_label.dart';
@@ -28,7 +29,11 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// — 온보딩에서 정한 값이 홈·식단·운동 탭의 목표선으로 그대로 이어진다.
 /// 전에는 온보딩이 나트륨 한 칸만 받아, 첫 화면들이 전부 앱 기본값을 견줬다.
 class OnboardingPage extends ConsumerStatefulWidget {
-  const OnboardingPage({super.key});
+  const OnboardingPage({super.key, this.resumed = false});
+
+  /// 첫 설정을 건너뛴 회원이 앱 안에서 다시 열었는가(#2855). 그렇다면 끝내거나
+  /// 그만둘 때 가이드로 가지 않고 연 자리로 돌아간다 — 가이드는 이미 봤다.
+  final bool resumed;
 
   @override
   ConsumerState<OnboardingPage> createState() => _OnboardingPageState();
@@ -347,7 +352,47 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   /// 그 안내 화면의 `시작` 버튼이 가이드로 가는 **유일한 길**이었다. 화면을 걷어
   /// 내면서 홈으로 곧장 보내, 가입한 회원이 가이드를 한 번도 못 보게 됐다 —
   /// 온보딩의 끝은 홈이 아니라 가이드다. 가이드가 끝나면 홈으로 간다.
-  void _skip() => context.go(AppRoutes.guideTour);
+  ///
+  /// 건너뛴 사실은 **계정에 남긴다**(#2855). 예전에는 이동만 해서, 다음 로그인·
+  /// 세션 복구마다 같은 폼으로 다시 끌려갔다. 남기지 못해도(망 오류) 건너뛰기는
+  /// 막지 않는다 — 그때는 다음 진입에 다시 묻는 예전 동작이 될 뿐이다.
+  ///
+  /// 앱 안에서 다시 연 첫 설정([OnboardingPage.resumed])에서는 이미 건너뛴
+  /// 계정이라 남길 것이 없고, 연 자리로 돌아간다.
+  Future<void> _skip() async {
+    if (_saving) return;
+    if (widget.resumed) {
+      _leaveResumed();
+      return;
+    }
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
+    setState(() => _saving = true);
+    try {
+      final UserProfile skipped = await ref
+          .read(accountRepositoryProvider)
+          .skipOnboarding();
+      // 프로필을 못 받아 왔을 때의 보조 기록도 남긴다 — 끝낸 회원과 같은 판단이다.
+      await rememberFirstRunDone(container);
+      if (!mounted) return;
+      ref.read(profileProvider.notifier).applyUpdatedProfile(skipped);
+    } on Object {
+      // 위 설명대로 이동은 그대로 한다.
+    }
+    if (!mounted) return;
+    context.go(AppRoutes.guideTour);
+  }
+
+  /// 앱 안에서 다시 연 첫 설정을 닫고 연 자리로 돌아간다(#2855).
+  void _leaveResumed() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(AppRoutes.dashboard);
+    }
+  }
 
   /// 건강 상태 단계를 건너뛴다 — 이 단계에서 적은 것을 **비우고** 넘어간다.
   ///
@@ -401,6 +446,11 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       await rememberFirstRunDone(container);
       if (!mounted) return;
       ref.invalidate(profileProvider);
+      if (widget.resumed) {
+        // 앱 안에서 다시 연 첫 설정이다(#2855) — 가이드는 이미 봤다.
+        _leaveResumed();
+        return;
+      }
       // 포인트 안내는 앱 사용 가이드의 툴팁이 맡는다(#2012). 그 가이드로 간다.
       context.go(AppRoutes.guideTour);
     } catch (_) {
