@@ -54,18 +54,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get actionRetry => '다시 시도';
 
   @override
-  String get errorNetwork => '네트워크 문제';
-
-  @override
-  String get errorUnauthorized => '로그인이 필요합니다';
-
-  @override
-  String get errorNotFound => '찾을 수 없습니다';
-
-  @override
-  String get errorServer => '서버 오류';
-
-  @override
   String get errorCancelled => '취소됨';
 
   @override
@@ -126,9 +114,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeAiAdviceNoRecord => '오늘 식단과 운동을 기록하면 하루를 돌아보는 AI 조언을 드릴게요.';
 
   @override
-  String get homeSodiumExceededBadge => '나트륨 초과';
-
-  @override
   String get homeMacroCarbs => '탄수화물';
 
   @override
@@ -159,9 +144,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String homeWeeklyMetricTrend(String metric) {
     return '주간 $metric 추이';
   }
-
-  @override
-  String get homeWeeklyExerciseTrend => '운동 추이';
 
   @override
   String get homeExerciseTrendUnavailable => '주간 운동 기록을 불러오지 못했어요.';
@@ -250,16 +232,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeRecMealsErrorTitle => '추천 식단을 불러오지 못했어요';
 
   @override
-  String get homeViewAll => '전체 보기';
-
-  @override
   String get unitKcal => 'kcal';
 
   @override
   String get unitMinutes => '분';
-
-  @override
-  String get unitSets => '세트';
 
   @override
   String unitKcalValue(int count) {
@@ -362,11 +338,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get dietPeriodEmpty => '이 기간에 기록된 식단이 없어요.';
-
-  @override
-  String dietPeriodRange(String start, String end) {
-    return '$start ~ $end';
-  }
 
   @override
   String get dietPeriodNoRecord => '기록 없음';
@@ -679,24 +650,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exConnected => '연결됨';
 
   @override
-  String get exRecommendedGyms => '추천 헬스장';
-
-  @override
-  String get exRecommendedTrainers => '추천 트레이너';
-
-  @override
-  String get exSeeMore => '더보기';
-
-  @override
-  String get exNoConnectedGym => '아직 연결된 헬스장이 없어요.';
-
-  @override
-  String get exNoRecommendedGyms => '추천할 헬스장이 아직 없어요.';
-
-  @override
-  String get exNoRecommendedTrainers => '추천할 트레이너가 아직 없어요.';
-
-  @override
   String get exTrainerAffiliation => '소속 헬스장';
 
   @override
@@ -715,9 +668,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exNearbyGymsMapLabel => '내 주변 헬스장';
-
-  @override
-  String get exWeekSummary => '이번 주 운동 요약';
 
   @override
   String get exActivityTitle => '운동 현황';
@@ -751,49 +701,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exPeriodAll => '전체';
 
   @override
-  String get exExerciseContent => '운동 내용';
-
-  @override
-  String get exViewDetail => '상세보기';
-
-  @override
-  String get exRegister => '등록하기';
-
-  @override
-  String exGymRegistered(String gym) {
-    return '$gym을(를) 등록했어요';
-  }
-
-  @override
-  String exWeekNumber(int n) {
-    return '$n주';
-  }
-
-  @override
-  String get exTodayTotalTime => '오늘 총 운동 시간';
-
-  @override
-  String get exRest => '휴식';
-
-  @override
   String exRestSeconds(int seconds) {
     return '휴식 $seconds초';
   }
-
-  @override
-  String get exAiRecommendedExercise => 'AI 추천 운동';
-
-  @override
-  String get exStatTime => '시간';
-
-  @override
-  String get exStatCalories => '칼로리';
-
-  @override
-  String get exStatStreak => '연속';
-
-  @override
-  String get exUnitStreakDays => '일 연속';
 
   @override
   String exStreakCheer(int days) {
@@ -850,9 +760,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exExerciseName => '운동 이름';
-
-  @override
-  String get exExerciseNameHint => '예) 스쿼트, 러닝머신';
 
   @override
   String get exExerciseNameHintCardio => '예) 러닝머신, 실내 자전거';
@@ -1006,9 +913,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exRecordDetailTotalCalories => '총 소모 칼로리';
 
   @override
-  String get exOwnRecordSource => '직접 기록';
-
-  @override
   String get exCompletedPtDayTitle => '완료한 PT';
 
   @override
@@ -1040,9 +944,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exTrainerDetailTitle => '트레이너 상세';
-
-  @override
-  String get exDistance => '거리';
 
   @override
   String get exRating => '평점';
@@ -1083,9 +984,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exTrainersLoadError => '트레이너 정보를 불러오지 못했어요.';
 
   @override
-  String get exGymSearchHint => '헬스장, 지역으로 검색';
-
-  @override
   String get exNearbyGyms => '주변 헬스장';
 
   @override
@@ -1095,31 +993,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exGymListExpand => '목록 펼치기';
 
   @override
-  String get exAiAnalysis => '✦ AI 분석';
-
-  @override
-  String exNoGymMatch(String query) {
-    return '\'$query\'에 맞는 헬스장이 없어요';
-  }
-
-  @override
   String get exGymsLoadError => '헬스장을 불러오지 못했어요.';
-
-  @override
-  String get exAiTopPick => '✦ AI 추천 1순위';
-
-  @override
-  String get exGymDetailHint => '소속 트레이너 보고 상담 신청하기';
-
-  @override
-  String exReasonTrainer(String name, String role) {
-    return '전담 트레이너 $name$role 상주';
-  }
-
-  @override
-  String exReasonHours(String hours, String weekend) {
-    return '$hours$weekend 운영';
-  }
 
   @override
   String exGymWeekdayHours(String hours) {
@@ -1145,13 +1019,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get exSlotFull => '예약 마감';
-
-  @override
   String get exSlotTypePersonalTraining => '1:1 PT';
-
-  @override
-  String get exSlotTypeConsultation => '상담';
 
   @override
   String get exSlotsEmpty => '예약 가능한 시간이 없어요';
@@ -1178,12 +1046,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String exReserveConfirm(String slot) {
     return '$slot 예약 확정';
   }
-
-  @override
-  String get exGymInfo => '헬스장 정보';
-
-  @override
-  String get exConsultButton => '💬 1:1 상담';
 
   @override
   String get exAddress => '주소';
@@ -1664,9 +1526,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get challengeTitle => '주간 운동 챌린지';
 
   @override
-  String get challengeShort => '주간 챌린지';
-
-  @override
   String challengeShortWithRange(String range) {
     return '주간 챌린지 · $range';
   }
@@ -1719,33 +1578,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String challengeAchieved(String reward) {
     return '목표 달성! 주가 끝나면 $reward를 받아요';
   }
-
-  @override
-  String challengeWeekTitle(String range) {
-    return '$range 챌린지';
-  }
-
-  @override
-  String get challengeStatusActive => '진행 중';
-
-  @override
-  String get challengeStatusSucceeded => '성공';
-
-  @override
-  String get challengeStatusFailed => '실패';
-
-  @override
-  String challengeResultSucceeded(int goal, int progress, String reward) {
-    return '목표 $goal회 중 $progress회 · $reward 받음';
-  }
-
-  @override
-  String challengeResultFailed(int goal, int progress, String stake) {
-    return '목표 $goal회 중 $progress회 · 건 $stake 소멸';
-  }
-
-  @override
-  String get challengeLoadFailed => '챌린지를 불러오지 못했어요';
 
   @override
   String get myCouponStatusUsable => '사용 가능';
@@ -2135,9 +1967,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myFieldWeight => '체중 (kg)';
 
   @override
-  String get myFieldGoals => '건강·운동 목표';
-
-  @override
   String get myNotifExercise => '운동 리마인더';
 
   @override
@@ -2254,9 +2083,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachChatSubtitle => '담당 트레이너';
 
   @override
-  String get coachChatBack => '뒤로가기';
-
-  @override
   String get coachChatLoadOlder => '이전 메시지 더 보기';
 
   @override
@@ -2325,227 +2151,12 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get coachChatReportOpenPdf => 'PDF 열기';
-
-  @override
   String get coachChatReportPreviewPdf => 'PDF 미리보기';
-
-  @override
-  String get coachReportPdfDocTitle => '주간 리포트';
-
-  @override
-  String get coachReportPdfDocTitleContinued => '주간 리포트 (계속)';
-
-  @override
-  String coachReportPdfPeriod(String from, String to) {
-    return '기간 $from ~ $to';
-  }
-
-  @override
-  String get coachReportPdfSectionMetrics => '주요 지표';
-
-  @override
-  String get coachReportPdfSectionTrend => '요일별 추이';
-
-  @override
-  String get coachReportPdfSectionDaily => '요일별 상세';
 
   @override
   String coachReportPdfBullet(String label, String value) {
     return '· $label: $value';
   }
-
-  @override
-  String get coachReportPdfLabelWorkoutDays => '운동한 날';
-
-  @override
-  String get coachReportPdfLabelWorkoutMinutes => '총 운동 시간';
-
-  @override
-  String get coachReportPdfLabelBurned => '소모 칼로리';
-
-  @override
-  String get coachReportPdfLabelSessions => 'PT 세션';
-
-  @override
-  String get coachReportPdfLabelCalories => '평균 섭취 칼로리';
-
-  @override
-  String get coachReportPdfLabelSodium => '평균 나트륨';
-
-  @override
-  String get coachReportPdfLabelSugar => '평균 당류';
-
-  @override
-  String get coachReportPdfLabelMinutesShort => '운동 시간';
-
-  @override
-  String get coachReportPdfLabelCaloriesShort => '섭취 칼로리';
-
-  @override
-  String get coachReportPdfLabelSodiumShort => '나트륨';
-
-  @override
-  String get coachReportPdfLabelSugarShort => '당류';
-
-  @override
-  String coachReportPdfValueDays(String value) {
-    return '$value일';
-  }
-
-  @override
-  String coachReportPdfValueMinutes(String value) {
-    return '$value분';
-  }
-
-  @override
-  String coachReportPdfValueKcal(String value) {
-    return '${value}kcal';
-  }
-
-  @override
-  String coachReportPdfValueMg(String value) {
-    return '${value}mg';
-  }
-
-  @override
-  String coachReportPdfValueGram(String value) {
-    return '${value}g';
-  }
-
-  @override
-  String coachReportPdfAttendance(String done, String booked) {
-    return '$booked회 중 $done회';
-  }
-
-  @override
-  String get coachReportPdfNoData => '기록 없음';
-
-  @override
-  String coachReportPdfDay(String weekday, String exercise, String intake) {
-    return '$weekday요일 — 운동 $exercise, 섭취 $intake';
-  }
-
-  @override
-  String get coachReportPdfSectionTrainerNote => '트레이너 피드백';
-
-  @override
-  String get coachReportPdfNoTrainerNote => '함께 온 피드백이 없어요.';
-
-  @override
-  String get coachReportPdfSectionChange => '지난주 대비';
-
-  @override
-  String get coachReportPdfSectionMacros => '평균 탄단지';
-
-  @override
-  String get coachReportPdfLabelLoggedDays => '식단 기록한 날';
-
-  @override
-  String get coachReportPdfLabelSodiumOver => '나트륨 목표 초과';
-
-  @override
-  String get coachReportPdfLabelPtDone => '진행한 PT';
-
-  @override
-  String coachReportPdfValueSessions(String value) {
-    return '$value회';
-  }
-
-  @override
-  String get coachReportPdfLabelCardio => '유산소';
-
-  @override
-  String get coachReportPdfLabelStrength => '근력';
-
-  @override
-  String get coachReportPdfLabelStretching => '스트레칭';
-
-  @override
-  String get coachReportPdfSectionTypes => '운동 유형별 시간';
-
-  @override
-  String get coachReportPdfNoSessions => '잡힌 일정 없음';
-
-  @override
-  String get coachReportPdfBandPeriod => '기간';
-
-  @override
-  String get coachReportPdfSectionGoals => '목표 대비';
-
-  @override
-  String get coachReportPdfColumnMetric => '지표';
-
-  @override
-  String get coachReportPdfColumnThisWeek => '이번 주';
-
-  @override
-  String get coachReportPdfColumnLastWeek => '지난주';
-
-  @override
-  String get coachReportPdfColumnChange => '변화';
-
-  @override
-  String get coachReportPdfColumnWeekday => '요일';
-
-  @override
-  String get coachReportPdfColumnWorkout => '운동';
-
-  @override
-  String get coachReportPdfColumnIntake => '섭취';
-
-  @override
-  String get coachReportPdfUpcoming => '아직 지나지 않았어요';
-
-  @override
-  String coachReportPdfGoalOf(String value, String target) {
-    return '$value (목표 $target)';
-  }
-
-  @override
-  String coachReportPdfChartTarget(String value) {
-    return '목표 $value';
-  }
-
-  @override
-  String coachReportPdfDayUpcoming(String weekday) {
-    return '$weekday요일 — 아직 지나지 않았어요';
-  }
-
-  @override
-  String coachReportPdfChange(
-    String label,
-    String current,
-    String previous,
-    String delta,
-  ) {
-    return '· $label: $current (지난주 $previous, $delta)';
-  }
-
-  @override
-  String coachReportPdfDeltaUp(String value) {
-    return '+$value';
-  }
-
-  @override
-  String coachReportPdfDeltaDown(String value) {
-    return '-$value';
-  }
-
-  @override
-  String get coachReportPdfDeltaSame => '변화 없음';
-
-  @override
-  String get coachReportPdfNoPreviousWeek => '지난주 기록이 없어 견줄 값이 없어요.';
-
-  @override
-  String coachReportPdfSodiumTargetNote(String target) {
-    return '나트륨 목표는 회원님이 MY 화면에 적어 둔 하루 ${target}mg 기준이에요.';
-  }
-
-  @override
-  String get coachReportPdfPreviewNote =>
-      '트레이너 리포트가 보는 주를 회원님 기록으로 정리한 미리보기예요.';
 
   @override
   String coachReportPdfFileName(String date) {
@@ -2602,9 +2213,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aicHeaderSubtitle => '언제든 물어보세요';
-
-  @override
-  String get aicDatePillToday => '오늘';
 
   @override
   String get aicMedicalDisclaimer =>
@@ -2899,42 +2507,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exTimeFlexible => '시간 협의';
 
   @override
-  String get exTimeRangeTitle => '시간 선택';
-
-  @override
-  String get exTimeRangeStartTime => '시작 시간';
-
-  @override
-  String get exTimeRangeEndTime => '종료 시간';
-
-  @override
-  String get exTimeRangeStartHourStep => '시작 시';
-
-  @override
-  String get exTimeRangeStartMinuteStep => '시작 분';
-
-  @override
-  String get exTimeRangeEndHourStep => '종료 시';
-
-  @override
-  String get exTimeRangeEndMinuteStep => '종료 분';
-
-  @override
-  String get exSlotAm => '오전';
-
-  @override
-  String get exSlotPm => '오후';
-
-  @override
-  String get exTimeRangeInvalidEnd => '종료 시간은 시작 시간보다 늦어야 해요';
-
-  @override
-  String get exTimeRangePrevStep => '이전 단계';
-
-  @override
-  String get exTimeRangeNextStep => '다음 단계';
-
-  @override
   String get exConsultMessage => '문의 내용';
 
   @override
@@ -2975,9 +2547,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exReturnExercise => '운동 탭으로 돌아가기';
-
-  @override
-  String get exConsultStatusSection => '상담 요청 현황';
 
   @override
   String get exConsultHistoryTitle => '내 상담 요청';
@@ -3701,15 +3270,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGoalMacroApplySuggestion => '권장 비율로 채우기';
 
   @override
-  String get myGoalWorkoutCount => '주간 운동 횟수 목표 (회)';
-
-  @override
-  String get myGoalWorkoutMinutes => '주간 운동 시간 목표 (분)';
-
-  @override
-  String get myGoalWorkoutCalories => '주간 소모 칼로리 목표 (kcal)';
-
-  @override
   String get myGoalUnsetHint => '흐린 값은 목표를 세우기 전의 기본 기준이에요';
 
   @override
@@ -3754,9 +3314,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachAssignedTrainer => '담당 트레이너';
-
-  @override
-  String get coachPointsTitle => '이번 코칭 포인트';
 
   @override
   String get coachRoutineTitle => '추천 개인운동';
@@ -4066,9 +3623,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get a11yRemoveFood => '음식 지우기';
-
-  @override
-  String get a11yOpenCalendar => '일정 달력 열기';
 
   @override
   String get a11yPrevWeek => '지난 주';
@@ -4879,9 +4433,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get weeklyFeedbackLoadFailed => '보낸 주간 피드백을 불러오지 못했어요';
-
-  @override
-  String get coachReportOpen => '리포트 열기';
 
   @override
   String coachReportSentOn(int month, int day) {

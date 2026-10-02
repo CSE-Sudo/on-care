@@ -266,8 +266,8 @@ void main() {
     final AppLocalizations l = AppLocalizations.of(
       tester.element(find.byType(Scaffold).first),
     );
-    expect(find.text(l.exGymInfo), findsNothing);
-    expect(find.text(l.exConsultButton), findsNothing);
+    expect(find.text('헬스장 정보'), findsNothing);
+    expect(find.text('💬 1:1 상담'), findsNothing);
     expect(find.text(l.exViewConsultationRequest), findsNothing);
     expect(find.text(l.exMyGymSection), findsOneWidget);
     // 담당 트레이너 이름은 이제 카드 안에 한 줄로 있다 (#1187) — 예전에는
@@ -315,8 +315,8 @@ void main() {
       tester.element(find.byType(Scaffold).first),
     );
     expect(find.text(l.exViewConsultationRequest), findsNothing);
-    expect(find.text(l.exGymInfo), findsNothing);
-    expect(find.text(l.exConsultButton), findsNothing);
+    expect(find.text('헬스장 정보'), findsNothing);
+    expect(find.text('💬 1:1 상담'), findsNothing);
     expect(find.byKey(const Key('gymTrainerChatButton')), findsNothing);
 
     expect(find.text(l.exConsultPendingStatus), findsNothing);
