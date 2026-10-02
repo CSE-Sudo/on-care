@@ -14,6 +14,18 @@ import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dar
 /// 받아 온 건수가 이 값과 같으면 그 앞에 더 있을 수 있다(#1943).
 const int chatPageSize = 50;
 
+/// 담당이 해제되어 대화를 더는 읽거나 보낼 수 없다는 신호. (#2843)
+///
+/// 서버는 활성 담당이 없으면 대화 조회를 404 로 답한다. 이를 빈 목록으로 바꾸면
+/// 열려 있던 대화방이 안내 없이 비어 버려, 해제되었다는 사실을 알 수 없다.
+/// 루틴·PT 일정처럼 "없을 수 있는 목록" 의 404 는 그대로 빈 목록이다.
+class CoachUnassignedException implements Exception {
+  const CoachUnassignedException();
+
+  @override
+  String toString() => 'CoachUnassignedException';
+}
+
 abstract interface class MemberCoachRepository {
   /// The assigned coach, or `null` when the member has none yet (404).
   Future<MemberCoach?> fetchCoach();

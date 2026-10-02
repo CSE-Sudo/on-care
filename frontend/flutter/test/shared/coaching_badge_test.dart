@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -58,7 +60,7 @@ void main() {
       expect(c.read(coachingSuggestionCountProvider), 3);
     });
 
-    test('빈 응답이면 시트가 기본 카드로 떨어지므로 수도 그것을 따른다', () async {
+    test('빈 응답이면 볼 카드가 없으므로 0 이다', () async {
       final ProviderContainer c = ProviderContainer(
         overrides: <Override>[
           appConfigProvider.overrideWithValue(_real),
@@ -73,7 +75,42 @@ void main() {
       addTearDown(c.dispose);
       await c.read(aiCoachStateProvider.future);
 
-      expect(c.read(coachingSuggestionCountProvider), kCoachFallbackCardCount);
+      // 예전에는 기본 데모 카드 수(2)를 따라 `새 제안 2` 가 떴다(#2813).
+      expect(c.read(coachingSuggestionCountProvider), 0);
+      expect(c.read(coachingBadgeCountProvider), 0);
+    });
+
+    test('실서버에서 조언을 받지 못하면 배지가 뜨지 않는다', () async {
+      final ProviderContainer c = ProviderContainer(
+        overrides: <Override>[
+          appConfigProvider.overrideWithValue(_real),
+          aiCoachStateProvider.overrideWith(
+            (ref) async => throw Exception('timeout'),
+          ),
+        ],
+      );
+      addTearDown(c.dispose);
+      c.listen(aiCoachStateProvider, (_, _) {});
+      await expectLater(c.read(aiCoachStateProvider.future), throwsException);
+
+      expect(c.read(aiCoachStateProvider).hasError, isTrue);
+      expect(c.read(coachingSuggestionCountProvider), 0);
+      expect(c.read(coachingBadgeCountProvider), 0);
+    });
+
+    test('실서버에서 조언을 받는 중에는 배지가 뜨지 않는다', () {
+      final Completer<AiCoachState> never = Completer<AiCoachState>();
+      final ProviderContainer c = ProviderContainer(
+        overrides: <Override>[
+          appConfigProvider.overrideWithValue(_real),
+          aiCoachStateProvider.overrideWith((ref) => never.future),
+        ],
+      );
+      addTearDown(c.dispose);
+
+      expect(c.read(aiCoachStateProvider).isLoading, isTrue);
+      expect(c.read(coachingSuggestionCountProvider), 0);
+      expect(c.read(coachingBadgeCountProvider), 0);
     });
 
     test('다 보면 배지가 내려가고, 새 제안이 오면 그만큼 다시 뜬다', () {

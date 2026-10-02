@@ -1,3 +1,4 @@
+import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_chat_quota.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 
@@ -111,7 +112,11 @@ class ChatMessage {
         s.toString(),
     ],
     insight: ChatInsight.fromJson(json['insight']),
-    at: DateTime.tryParse((json['created_at'] as String?) ?? '')?.toLocal(),
+    // 서버 시각은 KST 벽시계로 읽는다 — 기기 시간대에 매이지 않게(#2876).
+    at: switch (DateTime.tryParse((json['created_at'] as String?) ?? '')) {
+      final DateTime t => toKst(t),
+      null => null,
+    },
     pointsSpent: (json['points_spent'] as num?)?.toInt() ?? 0,
     balanceAfter: (json['balance_after'] as num?)?.toInt(),
   );

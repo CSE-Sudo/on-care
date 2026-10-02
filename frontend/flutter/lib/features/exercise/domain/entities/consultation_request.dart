@@ -124,9 +124,9 @@ ConsultationRequest consultationFromJson(Map<String, Object?> j) {
     preferredTimeSlot: preferredTimeSlotFromWire(
       j['preferred_time_slot'] as String?,
     ),
-    slotStartsAt: DateTime.tryParse(
-      (j['slot_starts_at'] as String?) ?? '',
-    )?.toLocal(),
+    // 서버 시각은 KST 벽시계로 읽는다 — preferredDate 의 기본값(nowKst)과
+    // 같은 기준이어야 한다(#2876).
+    slotStartsAt: _kstOrNull(j['slot_starts_at']),
     slotDurationMinutes: (j['slot_duration_minutes'] as num?)?.toInt(),
     message: j['message'] as String?,
     status: switch (j['status']) {
@@ -147,3 +147,10 @@ ConsultationRequest consultationFromJson(Map<String, Object?> j) {
     cancelledByTrainer: j['cancelled_by_trainer'] == true,
   );
 }
+
+/// 서버가 준 시각 문자열을 KST 벽시계로 읽는다. 없거나 읽을 수 없으면 null.
+DateTime? _kstOrNull(Object? raw) =>
+    switch (DateTime.tryParse((raw as String?) ?? '')) {
+      final DateTime t => toKst(t),
+      null => null,
+    };
