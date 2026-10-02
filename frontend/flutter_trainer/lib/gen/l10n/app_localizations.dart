@@ -1370,6 +1370,18 @@ abstract class AppLocalizations {
   /// **'Conditions and cautions'**
   String get memberHealthConditions;
 
+  /// No description provided for @memberHealthConditionsShared.
+  ///
+  /// In en, this message translates to:
+  /// **'The member sees this too · Used for recommendations'**
+  String get memberHealthConditionsShared;
+
+  /// No description provided for @memberHealthConditionsPrivateHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep trainer-only notes in Memo.'**
+  String get memberHealthConditionsPrivateHint;
+
   /// No description provided for @memberHealthDietGoal.
   ///
   /// In en, this message translates to:
@@ -1862,29 +1874,41 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load earlier messages · Retry'**
   String get chatLoadOlderFailed;
 
-  /// No description provided for @chatDemoAnalyzed.
+  /// No description provided for @chatRoutineDelivered.
   ///
   /// In en, this message translates to:
-  /// **'AI analysed {name}\'s meals and workouts'**
-  String chatDemoAnalyzed(String name);
+  /// **'Workout sent'**
+  String get chatRoutineDelivered;
 
-  /// No description provided for @chatDemoReportSent.
+  /// No description provided for @chatRoutineDeliveredPt.
   ///
   /// In en, this message translates to:
-  /// **'A summary report was sent to you'**
-  String get chatDemoReportSent;
+  /// **'PT program and personal exercises sent'**
+  String get chatRoutineDeliveredPt;
 
-  /// No description provided for @chatDemoRoutineSent.
+  /// No description provided for @chatRoutineDeliveredPersonal.
   ///
   /// In en, this message translates to:
-  /// **'A personalized workout recommendation was sent to {name}'**
-  String chatDemoRoutineSent(String name);
+  /// **'Personal exercises sent'**
+  String get chatRoutineDeliveredPersonal;
 
-  /// No description provided for @chatDemoNotified.
+  /// No description provided for @chatRoutineDeliveredAfterCancel.
   ///
   /// In en, this message translates to:
-  /// **'The member app was notified'**
-  String get chatDemoNotified;
+  /// **'Personal exercises sent in place of the cancelled PT'**
+  String get chatRoutineDeliveredAfterCancel;
+
+  /// No description provided for @chatRoutineDeliveredProgram.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout program sent'**
+  String get chatRoutineDeliveredProgram;
+
+  /// No description provided for @chatRoutineDeliveredMore.
+  ///
+  /// In en, this message translates to:
+  /// **'{names} and {count} more'**
+  String chatRoutineDeliveredMore(String names, int count);
 
   /// No description provided for @chatInputHint.
   ///
@@ -6121,6 +6145,12 @@ abstract class AppLocalizations {
   /// **'Chat-detected memos'**
   String get aiSourceChatInsight;
 
+  /// Source the AI may read — the raw recent chat with the member (last 14 days, up to 10, #2794)
+  ///
+  /// In en, this message translates to:
+  /// **'Recent chat'**
+  String get aiSourceRecentChat;
+
   /// No description provided for @aiSourceWeeklyFeedback.
   ///
   /// In en, this message translates to:
@@ -7590,6 +7620,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No memos match your search.'**
   String get clientMemoSearchEmpty;
+
+  /// No description provided for @clientMemoCategoryExercise.
+  ///
+  /// In en, this message translates to:
+  /// **'Exercise'**
+  String get clientMemoCategoryExercise;
+
+  /// No description provided for @clientMemoCategoryDiet.
+  ///
+  /// In en, this message translates to:
+  /// **'Diet'**
+  String get clientMemoCategoryDiet;
+
+  /// No description provided for @clientMemoCategoryPain.
+  ///
+  /// In en, this message translates to:
+  /// **'Pain · injury'**
+  String get clientMemoCategoryPain;
+
+  /// No description provided for @clientMemoCategoryLife.
+  ///
+  /// In en, this message translates to:
+  /// **'Life · schedule'**
+  String get clientMemoCategoryLife;
+
+  /// No description provided for @clientMemoRecordLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Link a workout (optional)'**
+  String get clientMemoRecordLink;
+
+  /// No description provided for @clientMemoRecordNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No link'**
+  String get clientMemoRecordNone;
+
+  /// No description provided for @clientMemoRecordEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No workouts in the last 14 days'**
+  String get clientMemoRecordEmpty;
+
+  /// No description provided for @clientMemoRecordDay.
+  ///
+  /// In en, this message translates to:
+  /// **'{month}/{day} ({weekday})'**
+  String clientMemoRecordDay(String month, String day, String weekday);
+
+  /// No description provided for @clientMemoRecordPtSession.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} PT session'**
+  String clientMemoRecordPtSession(String date);
+
+  /// No description provided for @clientMemoRecordPersonal.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} Personal workout'**
+  String clientMemoRecordPersonal(String date);
+
+  /// No description provided for @clientMemoRecordPersonalNamed.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} Personal workout · {name}'**
+  String clientMemoRecordPersonalNamed(String date, String name);
+
+  /// No description provided for @clientMemoRecordMemberLog.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} Member log'**
+  String clientMemoRecordMemberLog(String date);
+
+  /// No description provided for @clientMemoTabMemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Memos'**
+  String get clientMemoTabMemo;
+
+  /// No description provided for @clientMemoTabFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback'**
+  String get clientMemoTabFeedback;
+
+  /// No description provided for @clientFeedbackPrivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback you and the member exchanged. Tap one to edit it where it was written.'**
+  String get clientFeedbackPrivate;
+
+  /// No description provided for @clientFeedbackToMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer → member'**
+  String get clientFeedbackToMember;
+
+  /// No description provided for @clientFeedbackFromMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Member → trainer'**
+  String get clientFeedbackFromMember;
+
+  /// No description provided for @clientFeedbackSourcePt.
+  ///
+  /// In en, this message translates to:
+  /// **'PT session · {date}'**
+  String clientFeedbackSourcePt(String date);
+
+  /// No description provided for @clientFeedbackSourceReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Report · week of {date}'**
+  String clientFeedbackSourceReport(String date);
+
+  /// No description provided for @clientFeedbackSourceWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly check-in · week of {date}'**
+  String clientFeedbackSourceWeekly(String date);
+
+  /// No description provided for @clientFeedbackWeeklyNoNote.
+  ///
+  /// In en, this message translates to:
+  /// **'No note'**
+  String get clientFeedbackWeeklyNoNote;
+
+  /// No description provided for @clientFeedbackEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No feedback exchanged yet.'**
+  String get clientFeedbackEmpty;
+
+  /// No description provided for @clientFeedbackLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load feedback. Try again in a moment'**
+  String get clientFeedbackLoadFailed;
+
+  /// No description provided for @clientFeedbackSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search feedback (text, source, direction)'**
+  String get clientFeedbackSearchHint;
+
+  /// No description provided for @clientFeedbackSearchEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No feedback matches your search.'**
+  String get clientFeedbackSearchEmpty;
 
   /// No description provided for @followUp.
   ///

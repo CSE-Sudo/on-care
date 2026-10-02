@@ -104,6 +104,13 @@
 이모티콘을 그리지 못하는 자리(알림·로스터의 마지막 메시지)가 읽을 글로 채워 둔다.
 그림과 목록은 앱이 들고 있다(공용 패키지 `oncare_ui` 의 에셋).
 
+운동을 보낸 일도 채팅에 남는다(#2672). 트레이너가 회원에게 운동을 보내면(`POST /trainer/clients/{id}/routines`
+단건 배정·AI 제안 승인·`/program` 의 `개인운동만`·PT 프로그램 보내기·취소 뒤 개인운동 보내기) 알림과 함께
+트레이너 발신 메시지가 하나 생기고, `ChatMessageOut.routine_delivery` 에
+`{ kind, program_names, routine_names }` 가 실린다. `kind` 는 `pt_with_routine` · `routine_only` ·
+`cancelled_routine_only` · `routine`(단건) · `program`. 두 앱은 리포트 안내(`report_week_start`)처럼 대화
+가운데 카드로 그리고, 본문은 카드를 못 그리는 자리(마지막 메시지)가 읽을 한 줄이다. 일반 메시지는 `null`.
+
 **기간이 끝나도 이미 보낸 이모티콘은 그대로 보인다.** 지난 대화는 기록이라
 새로 보내는 것만 막힌다.
 
@@ -717,6 +724,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - **`/trainers/recommended` 순서**: 회원마다 다르다. 회원의 건강 목표(`conditions`, 옛 질환 이름은 새 목표로 읽는다)·가장 최근 상담의 `exercise_goal`·내 헬스장(`MemberGym`)을 신호로 점수를 매겨 내림차순 정렬한다. 동점은 경력 → id 로 갈라 같은 회원이 새로고침해도 순서가 흔들리지 않는다. (#500)
 - **트레이너 화면의 회원 목표(`TrainerClientOut.goal`, `MemberCoachOut.goal`, 루틴 추천 분석의 `goal`)**: 회원 건강 목표(`conditions` 중 목표, 최대 2개)를 ` · ` 로 이은 값이다. 트레이너가 `PUT /trainer/clients/{id}/health-profile` 로 `conditions` 를 고치면 회원앱과 같은 칸이 바뀐다. 옛 질환 이름은 저장 때 정리하고, 목표가 아닌 글(건강상태·주의사항)은 남는다. 회원이 6자리 코드로 연결될 때(`POST /trainer/pairing-code`) 회원 목표가 비어 있으면 그 트레이너에게 수락된 가장 최근 상담의 `exercise_goal` 을 목표로 채운다(#1818). 상담 수락은 담당 연결이 아니라 채우지 않는다(#2584). 상담 운동 목표가 건강 목표 여덟 종과 1:1 이 되면서 `other` 를 뺀 모든 값이 빠짐없이 채워진다(#1992).
 - **회원 건강 목표 숫자의 범위**: 회원 경로(`PUT /users/me/health-goals`·`POST /users/me/onboarding`)와 트레이너 경로(`PUT /trainer/clients/{id}/health-profile`)가 **같은 범위**를 쓴다 — 같은 컬럼을 고치는 문들이라 기준이 갈라지면 한쪽으로 들어온 값을 다른 쪽이 고칠 수 없다. 범위는 `app/schemas/health_goal_ranges.py` 한 곳에 있고, 어긋나면 422 다. `null` 은 그대로 목표 해제다. 자세한 사정은 [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) 참조. (#1888)
+- **건강 목표·주의사항을 마지막으로 바꾼 사람**: `GET /users/me/profile`·`PUT /users/me`·`PUT /users/me/health-goals`·`POST /users/me/onboarding` 응답(`ProfileView`)과 `GET/PUT /trainer/clients/{id}/health-profile` 응답에 `focus_changed_by`·`focus_changed_at`(목표 칩, #1832)과 `notes_changed_by`·`notes_changed_at`(건강상태·주의사항, #2942)이 따로 실린다. `*_by` 는 `member`|`trainer`, 바꾼 적이 없으면 둘 다 `null` 이다. 목표 칩 집합이나 주의사항 조각이 실제로 달라진 저장에만 남는다(순서만 바뀐 저장은 아니다). 트레이너가 주의사항만 고치면 기록만 남고 회원 알림은 없다.
 - **신호가 없는 회원**(온보딩 전 등)은 운영자가 `recommend_reason` 을 적어 둔 트레이너만 **기존 순서 그대로** 받는다. 빈 목록을 주지 않는다.
 - **`reason`**: 운영자가 쓴 `recommend_reason` 이 우선이고, 비어 있을 때만 점수 근거에서 만든 문구가 채워진다(예: `회원님이 다니는 헬스장 소속 · 체중 감량 지도 경험`).
 

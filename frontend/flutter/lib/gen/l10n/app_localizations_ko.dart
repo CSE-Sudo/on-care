@@ -2485,18 +2485,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachChatInputHint => '트레이너에게 메시지 보내기...';
 
   @override
-  String get coachChatDemoAnalyzed => 'AI가 내 식단·운동 데이터를 분석했어요';
+  String get coachChatRoutineReceived => '트레이너가 운동을 보냈어요';
 
   @override
-  String coachChatDemoReportSent(String trainer) {
-    return '$trainer님께 요약 리포트가 전송됐어요';
+  String get coachChatRoutineReceivedPt => 'PT 프로그램과 개인운동을 받았어요';
+
+  @override
+  String get coachChatRoutineReceivedPersonal => '개인운동을 받았어요';
+
+  @override
+  String get coachChatRoutineReceivedAfterCancel => '취소된 PT 대신 개인운동을 받았어요';
+
+  @override
+  String get coachChatRoutineReceivedProgram => '운동 프로그램을 받았어요';
+
+  @override
+  String coachChatRoutineReceivedMore(String names, int count) {
+    return '$names 외 $count개';
   }
-
-  @override
-  String get coachChatDemoRoutineReceived => '개인 추천운동을 받았어요';
-
-  @override
-  String get coachChatDemoNotified => '알림으로도 전달됐어요';
 
   @override
   String coachChatDateDivider(DateTime date) {
@@ -3399,7 +3405,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get healthNotesHint => '예) 왼쪽 무릎 수술 이력, 허리 디스크';
 
   @override
-  String get healthNotesHelper => '운동을 추천할 때 참고해요';
+  String get healthNotesHelper => '추천할 때 참고해요';
 
   @override
   String get healthFocusWeightLoss => '체중 감량';
