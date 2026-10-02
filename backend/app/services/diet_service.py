@@ -2,7 +2,7 @@
 식단 도메인 서비스 — 라우터에서 분리한 집계·코칭·저장 로직.
 
 diet 라우터가 오늘 집계·나트륨 코칭·엔트리 저장/멱등을 직접 수행해 두꺼웠던 것을
-여기로 이관한다(exercise_service/health_service 와 일관성). 동작·응답 계약은 불변이며,
+여기로 이관한다(exercise_service 와 일관성). 동작·응답 계약은 불변이며,
 라우터는 HTTP 관심사(업로드·인식기 디스패치·에러 매핑)만 담당한다.
 """
 from __future__ import annotations
