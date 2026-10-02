@@ -32,7 +32,7 @@ int setsFromStrengthMinutes(double minutes) =>
 /// (2.3세트) 아무 뜻이 없는 숫자가 된다.
 class ExerciseLoadGoals {
   const ExerciseLoadGoals({
-    // 고혈압·당뇨 관리가 목적인 회원이 **매일** 닿을 수 있는 선으로 잡는다.
+    // PT 를 받는 회원이 수업이 없는 날에도 **매일** 닿을 수 있는 선으로 잡는다.
     // 500kcal(MY 기본값)은 하루 한 시간 넘게 움직여야 나오는 수라, 꾸준히 한
     // 주에도 목표선을 한 번도 못 넘어 그래프가 늘 '실패' 로만 읽혔다.
     this.dailyBurnKcal = 300,
