@@ -2233,7 +2233,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myLegalPrivacyBody =>
-      'On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members\' personal information with care.\n\n1. Personal information collected\nFor membership registration and provision of the Service, the Company collects your name, email address, phone number and date of birth, together with health-related information such as diet, exercise and health indicators.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features, deliver personalised AI coaching, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nAs a rule, a member\'s personal information is destroyed without delay when the member withdraws from the Service. Where applicable law requires it to be retained, it is stored securely for the period the law prescribes.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member\'s consent, except where a law specifically provides otherwise.\n\n5. Sharing with your trainer and withdrawing consent\nWhen you agree to data sharing by requesting a consultation, accepting a coaching request or issuing a pairing code, your assigned trainer can see your meal records, workout records, body information and health goals. You can withdraw this consent at any time by removing your trainer or gym connection in the MY tab, and consent is also treated as withdrawn when the trainer ends the coaching relationship. The Company records when consent was given and when it was withdrawn. After you withdraw, the trainer can no longer see your new records, and reconnecting with the same trainer requires your consent again. Conversations you exchanged with the trainer and reports delivered before the withdrawal are not deleted.\n\n6. Rights of the user\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted.\n\n7. Personal information protection officer\nFor enquiries about personal information, please contact customer support (support@oncare.com).\n\nEffective date: 1 January 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.';
+      'On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members\' personal information with care.\n\n1. Personal information collected\nFor membership registration and provision of the Service, the Company collects your name, email address, phone number and date of birth, together with health-related information such as diet, exercise and health indicators.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features, deliver personalised AI coaching, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nAs a rule, a member\'s personal information is destroyed without delay when the member withdraws from the Service. Where applicable law requires it to be retained, it is stored securely for the period the law prescribes.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member\'s consent, except where a law specifically provides otherwise.\n\n5. Sharing with your trainer and withdrawing consent\nWhen you agree to data sharing by requesting a consultation, accepting a coaching request or issuing a pairing code, your assigned trainer can see your meal records, workout records, body information, health goals, and health notes & cautions. You can withdraw this consent at any time by removing your trainer or gym connection in the MY tab, and consent is also treated as withdrawn when the trainer ends the coaching relationship. The Company records when consent was given and when it was withdrawn. After you withdraw, the trainer can no longer see your new records, and reconnecting with the same trainer requires your consent again. Conversations you exchanged with the trainer and reports delivered before the withdrawal are not deleted.\n\n6. Rights of the user\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted.\n\n7. Personal information protection officer\nFor enquiries about personal information, please contact customer support (support@oncare.com).\n\nEffective date: 1 January 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.';
 
   @override
   String get myLegalEffectiveDate => 'Effective Jan 1, 2026';
@@ -2297,7 +2297,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachInviteExplain =>
-      'Accepting lets this trainer see your meal records, workout records, body information and health goals. You\'ll be asked to agree to sharing before you accept.';
+      'Accepting lets this trainer see your meal records, workout records, body information, health goals, and health notes & cautions. You\'ll be asked to agree to sharing before you accept.';
 
   @override
   String get coachInviteAccept => 'Accept';
@@ -2894,7 +2894,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String coachInviteConsentBody(String name) {
-    return 'Once $name becomes your trainer, they can see your meal records, workout records, body information and health goals for coaching, consultations and writing reports. Disconnecting also revokes that access, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don\'t agree.';
+    return 'Once $name becomes your trainer, they can see your meal records, workout records, body information, health goals, and health notes & cautions for coaching, consultations and writing reports. Disconnecting also revokes that access, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don\'t agree.';
   }
 
   @override
@@ -3290,7 +3290,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trainerSyncConsent =>
-      'Once the trainer who enters this code becomes your coach, they can see your meal records, workout records, body information and health goals for coaching, consultations and writing reports. Disconnecting removes their access too, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don\'t agree.';
+      'Once the trainer who enters this code becomes your coach, they can see your meal records, workout records, body information, health goals, and health notes & cautions for coaching, consultations and writing reports. Disconnecting removes their access too, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don\'t agree.';
 
   @override
   String get trainerShareDetailMore => 'Show details';
@@ -3309,7 +3309,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trainerShareItems =>
-      'Meal records, workout records, body information and health goals';
+      'Meal records, workout records, body information, health goals, and health notes & cautions';
 
   @override
   String get trainerSharePurposeLabel => 'Purpose';
@@ -3387,7 +3387,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get consentHealthDetail =>
-      'Covers your diet and exercise logs, body data such as weight, and health goals. We ask for this separately from other personal information.';
+      'Covers your diet and exercise logs, body data such as weight, health goals, and health notes & cautions. We ask for this separately from other personal information.';
 
   @override
   String get consentAge14 => 'I am 14 years of age or older';
