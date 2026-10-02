@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 데모 알림함에 든 알림(JSON 배열)을 담는 키. (#2628)
 ///
@@ -28,10 +29,6 @@ Future<void> seedDemoNotifications(
   String? name(int id) => names['seed-client-$id'];
 
   final DateTime tomorrow = DateTime(now.year, now.month, now.day + 1, 19);
-  String ymd(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-'
-      '${d.month.toString().padLeft(2, '0')}-'
-      '${d.day.toString().padLeft(2, '0')}';
 
   Map<String, Object?> row({
     required String id,
@@ -86,10 +83,12 @@ Future<void> seedDemoNotifications(
       ago: const Duration(hours: 5),
       category: 'reservation',
       template: 'trainer_reservation_booked',
-      args: <String, Object?>{'starts_at': '${ymd(tomorrow)}T19:00:00+09:00'},
+      args: <String, Object?>{
+        'starts_at': '${wireDate(tomorrow)}T19:00:00+09:00',
+      },
       client: 4,
       title: '새 예약',
-      targetDate: ymd(tomorrow),
+      targetDate: wireDate(tomorrow),
     ),
     row(
       id: 'demo-noti-4',
@@ -108,7 +107,7 @@ Future<void> seedDemoNotifications(
       ago: const Duration(days: 2),
       category: 'consultation',
       template: 'trainer_consult_requested',
-      args: <String, Object?>{'preferred_date': ymd(tomorrow)},
+      args: <String, Object?>{'preferred_date': wireDate(tomorrow)},
       client: 6,
       title: '새 상담 요청이 도착했어요',
       read: true,

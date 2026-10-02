@@ -31,6 +31,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Protocol, Sequence
 
+from app.core.week import monday_of
 from app.services import exercise_types, period_window
 from app.services.exercise_advice import Advice, advice
 from app.services.korean_josa import ends_with_hangul
@@ -129,7 +130,7 @@ def fetch_start(period: str, today: date) -> date:
     if period == period_window.PERIOD_TODAY:
         return today
     if period == period_window.PERIOD_WEEK:
-        return today - timedelta(days=today.weekday() + 7)
+        return monday_of(today) - timedelta(days=7)
     return today - timedelta(days=period_window.ALL_PERIOD_DAYS - 1)
 
 
@@ -254,7 +255,7 @@ def _today(day: RoutineDayLike) -> Advice:
 
 def _week(days: Sequence[RoutineDayLike]) -> Advice:
     today = days[-1].date
-    monday = today - timedelta(days=today.weekday())
+    monday = monday_of(today)
     this_week = [d for d in days if d.date >= monday]
     last_week = [d for d in days if monday - timedelta(days=7) <= d.date < monday]
     done_days = sum(1 for d in this_week if any(i.done for i in d.routines))

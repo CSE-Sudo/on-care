@@ -24,6 +24,7 @@ from __future__ import annotations
 from datetime import date, datetime, time, timedelta
 
 from app.core import clock
+from app.core.week import monday_of
 
 #: 요일 라벨(월=0 … 일=6). `exercise_service.WEEKDAY_LABELS` 와 같은 순서다 —
 #: 이 모듈은 모델·서비스 어느 쪽도 import 하지 않아야 순환이 생기지 않는다.
@@ -90,8 +91,8 @@ def week_starts_covering(start: date, end: date) -> list[str]:
     여기에 걸리지 않으므로, 호출부가 `completed_at`·`created_at` 조건을 함께
     걸어 넓게 가져온 뒤 [activity_date_of] 로 최종 판정한다.
     """
-    first = start - timedelta(days=start.weekday())
-    last = end - timedelta(days=end.weekday())
+    first = monday_of(start)
+    last = monday_of(end)
     out: list[str] = []
     cursor = first
     while cursor <= last:

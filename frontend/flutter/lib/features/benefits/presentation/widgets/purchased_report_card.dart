@@ -45,7 +45,7 @@ class _PurchasedReportCardState extends ConsumerState<PurchasedReportCard> {
     // 내 혜택의 다른 카드(쿠폰·보호권)와 같은 줄 모양이다. 채팅의 리포트 안내는
     // 대화 가운데 서는 배너라 목록에 두면 폭이 들쭉날쭉하다.
     return AppCard(
-      key: ValueKey<String>('purchased-report-${_ymd(widget.weekStart)}'),
+      key: ValueKey<String>('purchased-report-${wireDate(widget.weekStart)}'),
       child: Row(
         children: <Widget>[
           const BenefitIconTile(icon: AppIcons.document),
@@ -105,7 +105,7 @@ class _PurchasedReportCardState extends ConsumerState<PurchasedReportCard> {
       await openPdfPreviewPage(
         context,
         bytes,
-        l.coachReportPdfFileName(_ymd(widget.weekStart)),
+        l.coachReportPdfFileName(wireDate(widget.weekStart)),
       );
     } catch (_) {
       toast.show(l.coachChatPdfOpenFailed, type: AppToastType.error);
@@ -203,8 +203,3 @@ DateTime _kst(DateTime at) {
     seoul.second,
   );
 }
-
-String _ymd(DateTime value) =>
-    '${value.year.toString().padLeft(4, '0')}-'
-    '${value.month.toString().padLeft(2, '0')}-'
-    '${value.day.toString().padLeft(2, '0')}';

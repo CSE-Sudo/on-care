@@ -16,13 +16,12 @@ AI 코치 서비스.
 """
 from __future__ import annotations
 
-from datetime import timedelta
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.core.locale import localized
+from app.core.week import monday_of
 from app.models.models import DietEntry, ExerciseSession
 from app.schemas.misc_api import AiCoachFeedback, CoachSuggestion
 from app.services import diet_service
@@ -38,7 +37,7 @@ _SODIUM_PATTERN_MIN_DAYS = 3
 def _week_bounds() -> tuple[str, str]:
     """이번 주(월~오늘, `YYYY-MM-DD`). 아직 오지 않은 날은 기록이 없어 의미가 없다."""
     today = clock.today()
-    monday = today - timedelta(days=today.weekday())
+    monday = monday_of(today)
     return monday.isoformat(), today.isoformat()
 
 

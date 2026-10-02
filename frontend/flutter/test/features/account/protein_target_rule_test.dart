@@ -10,7 +10,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/demo/diet_advice.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
@@ -19,6 +18,7 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/fixed_clock.dart';
+import '../../helpers/mock_account_repository.dart';
 
 UserProfile _profile({int? protein, double? weight, int? server}) =>
     UserProfile(

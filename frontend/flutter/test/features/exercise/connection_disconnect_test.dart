@@ -118,9 +118,6 @@ void main() {
             (ref) async =>
                 myTrainerFails ? throw StateError('offline') : myTrainer,
           ),
-          recommendedTrainersProvider.overrideWith(
-            (ref) async => const <Trainer>[_myTrainer],
-          ),
           gymTrainersProvider(
             _myGym.id,
           ).overrideWith((ref) async => const <Trainer>[_myTrainer]),

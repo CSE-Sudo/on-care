@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
+
+import '../../helpers/mock_account_repository.dart';
 
 void main() {
   test('mock onboarding and profile edits persist across fetches', () async {

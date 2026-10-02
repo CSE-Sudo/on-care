@@ -14,6 +14,7 @@ class TrainerProgramDraftSummary {
     required this.sessionCount,
     required this.exerciseCount,
     required this.updatedAt,
+    this.memberId,
   });
 
   final String id;
@@ -24,6 +25,9 @@ class TrainerProgramDraftSummary {
   final int exerciseCount;
   final DateTime updatedAt;
 
+  /// 코칭 화면이 자동 보관한 회원(#2873). 회원 없는 초안(#708)은 비어 있다.
+  final String? memberId;
+
   factory TrainerProgramDraftSummary.fromJson(Map<String, Object?> json) =>
       TrainerProgramDraftSummary(
         id: json['id']! as String,
@@ -33,6 +37,7 @@ class TrainerProgramDraftSummary {
         sessionCount: (json['session_count'] as num?)?.toInt() ?? 0,
         exerciseCount: (json['exercise_count'] as num?)?.toInt() ?? 0,
         updatedAt: DateTime.parse(json['updated_at']! as String),
+        memberId: json['member_id'] as String?,
       );
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -43,6 +48,7 @@ class TrainerProgramDraftSummary {
     'session_count': sessionCount,
     'exercise_count': exerciseCount,
     'updated_at': updatedAt.toIso8601String(),
+    'member_id': memberId,
   };
 }
 
@@ -59,6 +65,8 @@ class TrainerProgramDraft {
     required this.memo,
     required this.sessions,
     required this.updatedAt,
+    this.memberId,
+    this.workspace = const <String, Object?>{},
   });
 
   final String id;
@@ -68,6 +76,13 @@ class TrainerProgramDraft {
   final String memo;
   final List<ProgramSessionDraft> sessions;
   final DateTime updatedAt;
+
+  /// 코칭 화면이 자동 보관한 회원(#2873). 회원 없는 초안(#708)은 비어 있다.
+  final String? memberId;
+
+  /// 편집기 밖의 작성 상태 — 위저드 단계·후보·개인운동(#2873). 서버는 해석하지
+  /// 않고 그대로 돌려준다. 읽는 쪽은 `coachingWorkspaceFromJson` 이다.
+  final Map<String, Object?> workspace;
 
   factory TrainerProgramDraft.fromJson(Map<String, Object?> json) =>
       TrainerProgramDraft(
@@ -88,6 +103,11 @@ class TrainerProgramDraft {
         updatedAt: DateTime.parse(
           json['updated_at'] as String? ?? json['created_at']! as String,
         ),
+        memberId: json['member_id'] as String?,
+        workspace: switch (json['workspace']) {
+          final Map<Object?, Object?> map => map.cast<String, Object?>(),
+          _ => const <String, Object?>{},
+        },
       );
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -98,6 +118,8 @@ class TrainerProgramDraft {
     'memo': memo,
     'sessions': sessions.map(programSessionToJson).toList(),
     'updated_at': updatedAt.toIso8601String(),
+    'member_id': memberId,
+    'workspace': workspace,
   };
 
   /// Rebuilds the editor state so a reopened draft renders exactly as it was

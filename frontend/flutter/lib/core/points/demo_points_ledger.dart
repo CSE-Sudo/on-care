@@ -5,6 +5,7 @@ import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/points/points_award.dart';
 import 'package:oncare/core/points/points_rules.dart';
 import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 // 원장을 쓰는 목업들이 규칙도 함께 읽으므로 같이 내보낸다.
 export 'package:oncare/core/points/points_rules.dart';
@@ -60,7 +61,7 @@ class DemoPointsLedger implements DemoPersistable {
         kind: kind,
         reason: reason,
         delta: delta,
-        day: _day(at),
+        day: wireDate(at),
         at: at,
       ),
     );
@@ -121,7 +122,7 @@ class DemoPointsLedger implements DemoPersistable {
     if (existing != null) {
       return PointsAward(awarded: existing.liveDelta, balance: _balance);
     }
-    final String day = _day(_now());
+    final String day = wireDate(_now());
     final int live = _earned.values
         .where((_Earned e) => e.rule == rule && e.day == day && !e.revoked)
         .length;
@@ -282,11 +283,6 @@ class DemoPointsLedger implements DemoPersistable {
 
   static String _key(String sourceType, String sourceId) =>
       '$sourceType/$sourceId';
-
-  static String _day(DateTime at) =>
-      '${at.year.toString().padLeft(4, '0')}-'
-      '${at.month.toString().padLeft(2, '0')}-'
-      '${at.day.toString().padLeft(2, '0')}';
 }
 
 class _Entry {
