@@ -308,10 +308,12 @@ def test_update_rejects_null_workspace():
         TrainerProgramDraftUpdate.model_validate({"workspace": None})
 
 
-def test_migration_chains_after_schema_alignment():
-    """새 마이그레이션은 현재 머리(0138) 뒤에 붙는다."""
+def test_migration_defines_member_columns():
+    """새 마이그레이션이 회원·작성 상태 칸과 회원 인덱스를 만든다.
+
+    앞 리비전 연결(머리 1개)은 CI 의 Alembic head 검사가 따로 확인한다.
+    """
     text = MIGRATION.read_text(encoding="utf-8")
     assert 'revision: str = "0140_program_draft_member"' in text
-    assert 'down_revision: str | Sequence[str] | None = "0138_schema_model_alignment"' in text
     assert '"member_id"' in text and '"workspace_json"' in text
     assert "ix_trainer_program_drafts_member_id" in text
