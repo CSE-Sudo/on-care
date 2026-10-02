@@ -11,13 +11,27 @@ import 'package:flutter/widgets.dart';
 /// 콘솔을 종일 띄워 두는 트레이너에게 걸리는 요청 수가 더 중요하다. (#917)
 const Duration badgePollInterval = Duration(seconds: 20);
 
-/// Polls [load] while the stream has a listener and the application is in
-/// the foreground.
+/// Polls [load] while the stream has a listener and the console is
+/// **visible** on screen.
+///
+/// "보이는가" 가 기준이다(#2869). `resumed` 와 `inactive` 는 폴링을 이어 가고,
+/// `hidden`·`paused`·`detached` 에서만 멈춘다. Flutter 웹은 브라우저 창이
+/// 포커스만 잃어도(blur — 듀얼 모니터에서 다른 창을 누른 경우) `inactive` 를
+/// 보내는데, 그때도 트레이너 웹은 화면에 그대로 떠 있다. 예전처럼 `resumed`
+/// 만 전경으로 보면 "켜 두고 곁눈질하는" 콘솔에서 채팅·배지·명단·일정이
+/// 창을 다시 누를 때까지 멈췄다. 탭이 가려지거나 창이 최소화되면 웹은
+/// `hidden` 을 보내므로 그때 멈춘다. 모바일의 `inactive` 는 짧은 과도
+/// 상태라 이어 가도 비용이 거의 없다.
+///
+/// `resumed`↔`inactive` 오가기는 같은 '보임' 상태 안의 이동이라 아무것도
+/// 하지 않는다 — 타이머를 다시 걸거나 즉시 한 번 더 읽지 않으므로 창을
+/// 오가며 눌러도 요청이 겹치지 않는다. 가려졌다가 다시 보이면(`hidden` →
+/// `inactive`/`resumed`) 그때 즉시 한 번 읽는다.
 ///
 /// The first failure is surfaced so an initial loading error can be shown.
 /// Once a value has been emitted, transient failures are kept out of the
 /// stream: consumers continue showing the last good value while the next
-/// poll retries. Cancelling the subscription or backgrounding the app stops
+/// poll retries. Cancelling the subscription or hiding the console stops
 /// the timer immediately.
 Stream<T> activePollingStream<T>({
   required Future<T> Function() load,
@@ -123,8 +137,19 @@ Stream<T> activePollingStream<T>({
   return controller.stream;
 }
 
-bool _isForeground(AppLifecycleState? state) =>
-    state == null || state == AppLifecycleState.resumed;
+/// 폴링을 이어 갈 상태인가 — 화면에 보이는가. (#2869)
+///
+/// `null` 은 바인딩이 아직 상태를 받기 전(첫 프레임 전·테스트)이다.
+bool _isForeground(AppLifecycleState? state) => switch (state) {
+  null || AppLifecycleState.resumed || AppLifecycleState.inactive => true,
+  AppLifecycleState.hidden ||
+  AppLifecycleState.paused ||
+  AppLifecycleState.detached => false,
+};
+
+/// [_isForeground] 를 테스트에서 상태별로 확인하는 창.
+@visibleForTesting
+bool pollsWhileIn(AppLifecycleState? state) => _isForeground(state);
 
 class _LifecycleObserver with WidgetsBindingObserver {
   _LifecycleObserver(this.onChanged);
