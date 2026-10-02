@@ -530,6 +530,20 @@ class AppLocalizationsKo extends AppLocalizations {
       '지금은 사진 분석을 사용할 수 없어요. 직접 입력으로 기록해 주세요.';
 
   @override
+  String get dietAnalysisNoFood => '사진에서 음식을 찾지 못했어요. 다른 사진을 고르거나 직접 추가해 주세요.';
+
+  @override
+  String get dietAnalysisDailyLimit =>
+      '오늘 사진 분석 횟수를 다 썼어요. 내일 다시 쓸 수 있고, 지금은 직접 추가로 기록할 수 있어요.';
+
+  @override
+  String get dietAnalysisRateLimited =>
+      '사진 분석 요청이 너무 잦아요. 잠시 후 다시 시도하거나 직접 추가해 주세요.';
+
+  @override
+  String get dietAnalysisUnavailable => '지금은 사진 분석을 쓸 수 없어요. 직접 추가로 기록해 주세요.';
+
+  @override
   String get dietAnalysisPickAnother => '다른 사진 고르기';
 
   @override

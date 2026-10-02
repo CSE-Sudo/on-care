@@ -14,6 +14,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app.core.rate_limit import rate_limit
 from app.db.session import get_db
@@ -77,6 +78,17 @@ def _find_or_create_user(db: Session, identity: SocialIdentity) -> User:
     return user
 
 
+def _complete_login(
+    db: Session, identity: SocialIdentity, ip: str | None, provider: str
+) -> LoginToken:
+    """검증된 신원으로 사용자를 찾거나 만들고 감사 기록 뒤 토큰을 낸다. 동기(#2835)."""
+    user = _find_or_create_user(db, identity)
+    audit(db, event="auth.social", user_id=user.id, ip=ip, success=True, detail=provider)
+    # 소셜로 처음 들어온 계정은 가입 화면을 거치지 않아 동의 기록이 없다(#2819) —
+    # `consent_required` 가 참이 되어 앱이 가입 화면과 같은 동의 화면을 띄운다.
+    return auth_tokens.issue_login_tokens(db, user)
+
+
 @router.post(
     "/auth/social/{provider}",
     response_model=LoginToken,
@@ -88,6 +100,12 @@ async def social_login(
     request: Request,
     db: Annotated[Session, Depends(get_db)],
 ) -> LoginToken:
+    """소셜 토큰 검증 → 사용자 조회·생성 → 토큰 발급.
+
+    외부 검증만 `await` 하고, 동기 DB 작업(사용자 조회·생성·감사 기록)은 스레드풀로
+    넘긴다(#2835). 이벤트 루프에서 돌면 그동안 다른 요청이 모두 멈춘다.
+    """
+    ip = client_ip(request)
     try:
         verifier = get_verifier(provider)
     except ValueError:
@@ -101,10 +119,14 @@ async def social_login(
         # provider 가 200 에 HTML·깨진 JSON 등을 줬다. 토큰 문제가 아니므로 502.
         # 로그에는 예외 종류와 요약 메시지만 남긴다(토큰·응답 본문은 담지 않는다).
         logger.warning("소셜 로그인 provider 응답 형식 이상 provider=%s: %s", provider, exc)
-        audit(db, event="auth.social", ip=client_ip(request), success=False, detail=provider)
+        await run_in_threadpool(
+            audit, db, event="auth.social", ip=ip, success=False, detail=provider
+        )
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=_PROVIDER_BAD_RESPONSE)
     except SocialAuthError:
-        audit(db, event="auth.social", ip=client_ip(request), success=False, detail=provider)
+        await run_in_threadpool(
+            audit, db, event="auth.social", ip=ip, success=False, detail=provider
+        )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=_AUTH_FAILED)
     except Exception as exc:  # noqa: BLE001 — adapter 가 놓친 예외도 감사 없이 500 이 되면 안 된다
         # 예외 메시지에는 요청 URL(google 은 쿼리에 토큰)이 섞일 수 있어 종류만 남긴다.
@@ -112,11 +134,9 @@ async def social_login(
             "소셜 로그인 검증 중 예상 못 한 예외 provider=%s type=%s",
             provider, type(exc).__name__,
         )
-        audit(db, event="auth.social", ip=client_ip(request), success=False, detail=provider)
+        await run_in_threadpool(
+            audit, db, event="auth.social", ip=ip, success=False, detail=provider
+        )
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=_PROVIDER_BAD_RESPONSE)
 
-    user = _find_or_create_user(db, identity)
-    audit(db, event="auth.social", user_id=user.id, ip=client_ip(request), success=True, detail=provider)
-    # 소셜로 처음 들어온 계정은 가입 화면을 거치지 않아 동의 기록이 없다(#2819) —
-    # `consent_required` 가 참이 되어 앱이 가입 화면과 같은 동의 화면을 띄운다.
-    return auth_tokens.issue_login_tokens(db, user)
+    return await run_in_threadpool(_complete_login, db, identity, ip, provider)
