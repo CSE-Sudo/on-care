@@ -295,6 +295,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authErrEmailInvalid => 'Enter a valid email address';
 
   @override
+  String get authErrEmailTooLong =>
+      'Email addresses can be up to 255 characters';
+
+  @override
   String get authErrPasswordEmpty => 'Enter your password';
 
   @override

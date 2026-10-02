@@ -40,6 +40,7 @@ import 'package:oncare_trainer/shared/health_focus.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Reads a trainer's clients + their diet/history for the 고객 관리 tab.
 ///
@@ -944,10 +945,11 @@ class DriftClientRepository implements ClientRepository {
           todaySentences(entries, targets, now, avgProteinG: avg),
         );
       case ClientPeriod.week:
+        final DateTime thisMonday = mondayOf(today);
         final DateTime twoWeeks = DateTime(
-          today.year,
-          today.month,
-          today.day - (today.weekday - 1) - 7,
+          thisMonday.year,
+          thisMonday.month,
+          thisMonday.day - 7,
         );
         return ClientDietAnalysis(
           weekSentences(

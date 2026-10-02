@@ -171,6 +171,10 @@
     "description": "Red text under the email field on sign-in/sign-up when it is empty (#1784)."
   },
   "authErrEmailInvalid": "Enter a valid email address",
+  "authErrEmailTooLong": "Email addresses can be up to 255 characters",
+  "@authErrEmailTooLong": {
+    "description": "Red text under the email field when the address is longer than the server limit (#2908). The limit matches the users.email column and EMAIL_MAX_LENGTH in contact_format.py."
+  },
   "authErrPasswordEmpty": "Enter your password",
   "authErrPasswordWeak": "Use at least 8 characters, including letters and numbers",
   "authErrPasswordTooLong": "Passwords can be up to 64 characters, or fewer if they include Korean or emoji",

@@ -118,6 +118,7 @@
   "authErrNameTooLong": "이름은 100자까지 입력할 수 있어요",
   "authErrEmailEmpty": "이메일을 입력해 주세요",
   "authErrEmailInvalid": "이메일 형식이 올바르지 않아요",
+  "authErrEmailTooLong": "이메일은 255자까지 입력할 수 있어요",
   "authErrPasswordEmpty": "비밀번호를 입력해 주세요",
   "authErrPasswordWeak": "영문과 숫자를 포함해 8자 이상 입력해 주세요",
   "authErrPasswordTooLong": "비밀번호는 64자까지 입력할 수 있어요 (한글·이모지는 더 짧게)",

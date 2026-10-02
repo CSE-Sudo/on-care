@@ -19,6 +19,7 @@ import 'package:oncare_trainer/features/coaching/domain/routine_generate_limits.
 import 'package:oncare_trainer/shared/models/trainer_client.dart'
     show sodiumTargetMg;
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Generates A/B routine options for a member (the AI generation step). The
 /// result is *generated*, not assigned — the trainer picks/edits one and
@@ -560,11 +561,7 @@ class MockTrainerRoutineOptionsRepository
 
   /// 그 날이 속한 주(월요일) — 서로 다른 주를 세는 키.
   static String _weekKey(DateTime at) {
-    final DateTime monday = DateTime(
-      at.year,
-      at.month,
-      at.day,
-    ).subtract(Duration(days: at.weekday - 1));
+    final DateTime monday = mondayOf(at);
     return '${monday.year}-${monday.month}-${monday.day}';
   }
 
