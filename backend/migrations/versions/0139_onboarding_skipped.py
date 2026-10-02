@@ -5,7 +5,7 @@
 다시 묻지 않게 한다. 기존 행은 거짓이라 지금 판단(`onboarded`)은 그대로다.
 
 Revision ID: 0139_onboarding_skipped
-Revises: 0133_password_reset_tokens
+Revises: 0138_schema_model_alignment
 Create Date: 2026-10-01
 """
 from __future__ import annotations
@@ -16,7 +16,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0139_onboarding_skipped"
-down_revision: str | Sequence[str] | None = "0133_password_reset_tokens"
+down_revision: str | Sequence[str] | None = "0138_schema_model_alignment"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
