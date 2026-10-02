@@ -13,9 +13,9 @@ from app.db.seed_notifications import (
 from app.services import notification_service
 
 
-def test_seed_has_nine_unique_notifications_newest_first():
+def test_seed_has_seven_unique_notifications_newest_first():
     ids = [n.id for n in DEMO_NOTIFICATIONS]
-    assert len(ids) == 9
+    assert len(ids) == 7
     assert len(set(ids)) == len(ids)
     ages = [n.ago for n in DEMO_NOTIFICATIONS]
     assert ages == sorted(ages), "최신순이어야 목록 순서와 time_ago 가 맞는다"
@@ -31,7 +31,7 @@ def test_seed_drops_the_previous_target_wording():
 
 def test_unread_alerts_sit_on_top():
     reads = [n.read for n in DEMO_NOTIFICATIONS]
-    assert reads.count(False) == 7
+    assert reads.count(False) == 5
     first_read = reads.index(True)
     assert all(reads[first_read:]), "읽은 알림 뒤에 안 읽은 알림이 끼지 않는다"
 
@@ -44,9 +44,7 @@ def _target(title: str) -> str | None:
 
 def test_each_alert_opens_the_same_screen_as_the_app_demo():
     # 회원 앱 데모 목록(`demo_alert_keys.dart` 의 `kDemoAlertActionBySeedId`)과 같다.
-    # 같은 리마인더라도 나트륨·저녁 기록은 식단, 운동 목표는 운동이다(#2690).
-    assert _target("나트륨 섭취 주의") == "diet"
-    assert _target("저녁 식단을 기록해 주세요") == "diet"
+    # 리마인더라도 운동 목표는 운동이다(#2690).
     assert _target("새 운동 루틴이 도착했어요") == "exercise"
     assert _target("이번 주 리포트가 등록됐어요") == "coach_chat"
     assert _target("PT 수업 완료") == "exercise"
@@ -68,8 +66,6 @@ def test_alert_specific_target_keeps_the_category_label_when_it_matches():
 def test_demo_alerts_show_the_same_times_as_the_app_demo():
     # 회원 앱 데모와 같은 문구 — 하루 지난 알림은 "어제" 다(#2691).
     assert [demo_time_ago(n.ago, "ko") for n in DEMO_NOTIFICATIONS] == [
-        "10분 전",
-        "20분 전",
         "30분 전",
         "45분 전",
         "1시간 전",
@@ -119,16 +115,18 @@ def _body(title: str) -> str:
     return next(n.body for n in DEMO_NOTIFICATIONS if n.title == title)
 
 
-def test_sodium_alert_quotes_todays_fixture_total():
-    today = load_fixture().days_for(date(2026, 9, 15))[-1]
-    assert f"{today.sodium_mg:,}mg" in _body("나트륨 섭취 주의")
+def test_seed_has_no_diet_alerts_the_server_never_sends():
+    # 실서버에는 식단 기록·나트륨 알림을 만드는 코드가 없다(#2854). 데모에서만 보이면
+    # 실서비스로 옮긴 회원에게 기능이 사라진 것으로 보인다.
+    text = " ".join(f"{n.title} {n.body}" for n in DEMO_NOTIFICATIONS)
+    for word in ("나트륨", "저녁 식단"):
+        assert word not in text
+    assert all(n.target != "diet" for n in DEMO_NOTIFICATIONS)
 
 
-def test_dinner_reminder_is_for_a_day_without_dinner():
-    today = load_fixture().days_for(date(2026, 9, 15))[-1]
-    assert "dinner" not in {m.meal_type for m in today.meals}
-    item = next(n for n in DEMO_NOTIFICATIONS if n.title == "저녁 식단을 기록해 주세요")
-    assert not item.read and item.ago < timedelta(hours=1), "오늘 저녁 알림이다"
+def test_removed_diet_alerts_are_cleared_from_seeded_databases():
+    # 이미 시드된 데모 DB 에 남은 두 행을 다음 시드가 걷어 낸다.
+    assert {"noti-demo-1", "noti-demo-2"} <= set(LEGACY_DEMO_NOTIFICATION_IDS)
 
 
 def test_routine_alert_names_a_routine_in_the_fixture():

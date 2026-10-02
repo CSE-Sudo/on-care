@@ -3,35 +3,29 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_report/oncare_report.dart' show rasterPdfPages;
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
-import 'package:printing/printing.dart';
 
 /// PDF 한 부를 쪽마다 PNG 로 굽는다.
 typedef ReportPdfRasterizer = Future<List<Uint8List>> Function(Uint8List pdf);
 
 /// ③ 전송 미리보기가 PDF 를 쪽 그림으로 바꾸는 방법.
 ///
-/// 굽는 일은 `printing` 플러그인(웹에서는 pdf.js)이 한다. 위젯 테스트에는 그
-/// 플러그인이 없어 이 자리를 갈아 끼운다 — 미리보기에 무엇을 넘기는지는 그대로
-/// 검증된다.
+/// 굽는 일은 공용 [rasterPdfPages] 가 한다 — 웹은 pdf.js 를 직접, 네이티브는
+/// `printing` 플러그인이 부른다. 위젯 테스트에는 그 둘이 없어 이 자리를 갈아
+/// 끼운다 — 미리보기에 무엇을 넘기는지는 그대로 검증된다.
 final Provider<ReportPdfRasterizer> reportPdfRasterizerProvider =
     Provider<ReportPdfRasterizer>((_) => rasterReportPdf);
 
-/// 미리보기용 해상도. 한 쪽이 화면 폭을 넘지 않는 크기라 두 배 확대에도 글자가
-/// 뭉개지지 않을 만큼만 굽는다.
-const double _previewDpi = 144;
-
-/// [pdf] 의 모든 쪽을 PNG 로 굽는다.
-Future<List<Uint8List>> rasterReportPdf(Uint8List pdf) async {
-  final List<Uint8List> pages = <Uint8List>[];
-  await for (final PdfRaster page in Printing.raster(pdf, dpi: _previewDpi)) {
-    pages.add(await page.toPng());
-  }
-  return pages;
-}
+/// [pdf] 의 모든 쪽을 PNG 로 굽는다. 해상도는 공용 기본값(144dpi)이다 — 한
+/// 쪽이 화면 폭을 넘지 않는 크기라 두 배 확대에도 글자가 뭉개지지 않는다.
+///
+/// 웹에서 `printing` 의 `Printing.raster` 를 쓰지 않는다 — pdf.js 를
+/// `window.eval` 로 찾다가 CSP 에 막혀(#2828) 미리보기가 늘 실패했다.
+Future<List<Uint8List>> rasterReportPdf(Uint8List pdf) => rasterPdfPages(pdf);
 
 /// 편집기 ③ 전송 — 회원이 채팅으로 받을 리포트를 그대로 보여 준다(#2402).
 ///
@@ -256,10 +250,7 @@ class _RecipientCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          AppSectionHeader(
-            title: l.reportsPreviewTitle,
-            icon: AppIcons.file,
-          ),
+          AppSectionHeader(title: l.reportsPreviewTitle, icon: AppIcons.file),
           const SizedBox(height: OnCareSpacing.s12),
           AppKeyValueRow(
             valueKey: const ValueKey<String>('report-send-preview-recipient'),

@@ -84,19 +84,10 @@
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
   <!--
-    채팅 PDF 첨부 미리보기가 쓰는 pdf.js. 저장소에 함께 싣고 여기서 먼저 올린다.
-
-    `printing` 패키지는 웹에서 PDF 를 pdf.js 로 그리는데, 아무것도 안 두면 화면을
-    여는 순간 unpkg.com 에서 최신 빌드를 받아 온다. 데모가 남의 CDN 이 살아 있는지에
-    걸리고, 그 최신 빌드는 `Promise.withResolvers` 를 써서 Safari 17.4 아래에서는
-    아예 돌지 않는다. 게다가 pdf.js 를 못 올리면 `printing` 은 오류를 내는 대신
-    잠금을 쥔 채 멈춰서, 미리보기가 영영 스피너만 돈다.
-
-    그래서 오래된 사파리에서도 도는 3.x 레거시 빌드를 직접 싣고, `pdfjsLib` 를 미리
-    올려 둔다. 이러면 `printing` 은 자기 로더를 아예 건너뛴다.
+    PDF 미리보기용 pdf.js 를 올린 뒤 Flutter(`flutter_bootstrap.js`)를 띄운다(#2818).
+    버전·보안 설정·순서의 이유는 `js/pdfjs_loader.js` 에 있다. 인라인 스크립트로
+    두지 않는다(CSP).
   -->
-  <script src="pdfjs/pdf.min.js"></script>
-  <script src="js/pdfjs_worker.js"></script>
-  <script src="flutter_bootstrap.js" async></script>
+  <script type="module" src="js/pdfjs_loader.js"></script>
 </body>
 </html>

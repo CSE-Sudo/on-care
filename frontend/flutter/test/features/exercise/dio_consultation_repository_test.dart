@@ -178,4 +178,52 @@ void main() {
     expect(slots.single.durationMinutes, 30);
     expect(slots.single.booked, isFalse);
   });
+
+  group('취소 실패는 화면이 가를 수 있는 예외로 옮긴다 (#2858)', () {
+    test('204 는 조용히 끝난다', () async {
+      final repository = _repo(_StubAdapter(status: 204, body: null));
+
+      await expectLater(repository.cancel('consult-1'), completes);
+    });
+
+    test('이미 결정된 요청의 409 는 ConsultationNoLongerPending 이다', () async {
+      // 트레이너가 먼저 승인·거절했다. 화면은 다시 시도 대신 서버 목록으로 맞춘다.
+      final repository = _repo(
+        _StubAdapter(
+          status: 409,
+          body: <String, Object?>{'detail': '대기 중인 요청만 취소할 수 있습니다.'},
+        ),
+      );
+
+      await expectLater(
+        repository.cancel('consult-1'),
+        throwsA(isA<ConsultationNoLongerPending>()),
+      );
+    });
+
+    test('없는 요청의 404 는 ConsultationNotFound 다', () async {
+      final repository = _repo(
+        _StubAdapter(
+          status: 404,
+          body: <String, Object?>{'detail': 'Not Found'},
+        ),
+      );
+
+      await expectLater(
+        repository.cancel('consult-missing'),
+        throwsA(isA<ConsultationNotFound>()),
+      );
+    });
+
+    test('서버 오류는 그대로 올라가 화면이 실패로 안내한다', () async {
+      final repository = _repo(
+        _StubAdapter(status: 500, body: <String, Object?>{'detail': 'boom'}),
+      );
+
+      await expectLater(
+        repository.cancel('consult-1'),
+        throwsA(isA<DioException>()),
+      );
+    });
+  });
 }

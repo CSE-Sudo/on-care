@@ -46,6 +46,12 @@ DATABASE_URL = os.environ["DATABASE_URL"]
 #: 두 임베더가 `embed_dim` 을 공유해 벡터 차원은 달라지지 않는다.
 os.environ.setdefault("EMBEDDER", "hash")
 
+#: 식단 사진 분석 한도(#2827). 데모 회원 한 사람이 스위트 전체에서 수십 번
+#: 분석하므로 기본값(분당 10·하루 20)이면 뒤쪽 테스트가 429 로 깨진다. 한도 자체는
+#: 그 테스트가 설정을 낮춰 확인한다.
+os.environ.setdefault("DIET_ANALYZE_PER_DAY", "100000")
+os.environ.setdefault("DIET_ANALYZE_PER_MINUTE", "100000")
+
 #: 테스트는 로컬 개발 환경(`.env.example`)과 같이 데모 폴백을 켠 채 돈다.
 #:
 #: 설정 기본값은 꺼짐이다(#2821) — 환경변수를 빠뜨린 배포 서버가 로그인 없는 요청을
@@ -167,20 +173,38 @@ def _reset_rate_limiter():
     yield
 
 
+#: 테스트용 인식기 이름. 결과는 개발용 스텁과 같지만 이름이 `stub` 이 아니다.
+TEST_RECOGNIZER = "test-vision"
+
+
 @pytest.fixture(autouse=True)
 def _force_stub_recognizer(monkeypatch):
-    """테스트는 결정론적 오프라인 인식기(stub)를 사용한다.
+    """테스트는 결정론적 오프라인 인식기를 사용한다.
 
     로컬 .env 에 실제 GEMINI_API_KEY 가 있으면 팩토리가 gemini 인식기를 골라,
     가짜 테스트 이미지가 실제 Vision API 로 나가 400(Unable to process image)을
-    유발한다. CI(키 없음→stub)와 동일 경로로 고정해 테스트를 .env 독립적으로 만든다."""
+    유발한다. CI(키 없음)와 동일 경로로 고정해 테스트를 .env 독립적으로 만든다.
+
+    스텁과 같은 식단을 돌려주되 이름은 `test-vision` 이다. 개발용 스텁(`stub`)
+    결과는 포인트·식판 조건에 세지 않으므로(#2812), 이름까지 스텁이면 "실제 인식기로
+    저장한 끼니" 를 전제로 한 적립·식판 테스트가 모두 0 이 된다. 스텁 자체의 규칙은
+    그 테스트가 `recognizer` 를 `stub` 으로 다시 고정해 확인한다."""
     try:
         from app.core.config import get_settings
-        monkeypatch.setattr(get_settings(), "recognizer", "stub")
+        from app.services.recognizer import factory
+        from app.services.recognizer.stub import StubFoodRecognizer
+
+        class _TestVisionRecognizer(StubFoodRecognizer):
+            name = TEST_RECOGNIZER
+
+        factory._registry()
+        monkeypatch.setitem(factory._REGISTRY, TEST_RECOGNIZER, _TestVisionRecognizer)
+        factory._build.cache_clear()
+        monkeypatch.setattr(get_settings(), "recognizer", TEST_RECOGNIZER)
     except Exception:  # noqa: BLE001, S110
         import warnings
         warnings.warn(
-            "recognizer 를 stub 으로 강제하지 못했습니다 — 테스트가 실제 Gemini Vision API 를 호출할 수 있습니다.",
+            "recognizer 를 테스트 인식기로 강제하지 못했습니다 — 테스트가 실제 Gemini Vision API 를 호출할 수 있습니다.",
             stacklevel=2,
         )
     yield
@@ -193,16 +217,16 @@ def _pin_session_start_clock(monkeypatch):
     완료·노쇼는 시작 시각이 지나야 열린다. 많은 테스트가 오늘 저녁 시각의 PT 를
     만들어 완료하므로, 실제 시각을 쓰면 CI 가 도는 시간대에 따라 결과가 바뀐다.
     오늘 일정은 모두 시작한 것으로 두고, 시작 전 판정을 보는 테스트는 스스로
-    `trainer_service._now_kst` 를 다시 고정한다.
+    `trainer.schedule._now_kst` 를 다시 고정한다.
     """
     try:
         from app.core import clock
-        from app.services import trainer_service
+        from app.services.trainer import schedule as trainer_schedule_service
     except Exception:  # noqa: BLE001
         yield
         return
     monkeypatch.setattr(
-        trainer_service,
+        trainer_schedule_service,
         "_now_kst",
         lambda: clock.now().replace(hour=23, minute=59, second=0, microsecond=0),
     )

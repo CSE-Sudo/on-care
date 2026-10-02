@@ -350,6 +350,7 @@ class AppTag extends StatelessWidget {
     this.icon,
     this.accent,
     this.onTap,
+    this.onTint = false,
   });
 
   final String label;
@@ -370,6 +371,10 @@ class AppTag extends StatelessWidget {
   /// 채움은 톤과 같은 규칙으로 그 색의 8% 다.
   final Color? accent;
 
+  /// 같은 톤의 8% 바탕(배너 등) 위에 놓일 때 — 채움을 한 단계 진하게(16%)
+  /// 칠해 바탕과 구분한다. 채팅 감지 배너의 `메모 추가` 알약이 쓴다(#2950).
+  final bool onTint;
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
@@ -382,7 +387,9 @@ class AppTag extends StatelessWidget {
           AppTagTone.caution => OnCareColors.caution,
           AppTagTone.danger => OnCareColors.danger,
         };
-    final Color fill = this.accent != null
+    final Color fill = onTint
+        ? OnCareColors.onWhite(accent, OnCareAlpha.medium)
+        : this.accent != null
         ? OnCareColors.onWhite(accent, OnCareAlpha.subtle)
         : switch (tone) {
             AppTagTone.neutral => OnCareColors.surfaceInput,

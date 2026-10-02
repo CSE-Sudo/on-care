@@ -102,7 +102,8 @@ void main() {
 
     final (Set<String> seen, double peak) = await watch(tester);
 
-    expect(seen.difference(<String>{'—P', '1,240P'}), isEmpty);
+    // 첫 조회 중에는 잔액 자리가 비어 있다(#2853) — 가짜 잔액("—P")이 없다.
+    expect(seen.difference(<String>{'', '1,240P'}), isEmpty);
     expect(peak, 1);
     await tester.pumpAndSettle();
     expect(pointsText(tester), '1,240P');

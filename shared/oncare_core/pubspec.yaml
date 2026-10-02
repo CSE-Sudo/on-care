@@ -1,0 +1,22 @@
+name: oncare_core
+description: "회원 앱과 트레이너 웹이 함께 쓰는 네트워크·인증·시각 기반 — 토큰 갱신·인증/언어 헤더·요청 ID·폴링·KST 시계의 단일 원본."
+publish_to: 'none'
+version: 0.1.0
+
+# 회원 앱(^3.10.0)과 트레이너 앱(^3.12.0) 양쪽이 쓰므로 더 낮은 쪽에 맞춘다.
+environment:
+  sdk: ^3.10.0
+  flutter: '>=3.35.0'
+
+# 순수 클래스·함수만 둔다. Riverpod provider 는 두 앱의 `ProviderScope` 구성이
+# 달라 각 앱에 남기고, 이 패키지는 값을 읽는 함수만 받는다.
+dependencies:
+  flutter:
+    sdk: flutter
+  # 두 앱과 같은 범위.
+  dio: ^5.7.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

@@ -651,6 +651,7 @@ class AppBanner extends StatelessWidget {
     this.expandChild = false,
     this.density = AppBannerDensity.regular,
     this.placement = AppBannerPlacement.inline,
+    this.resolved = false,
   }) : assert(
          placement == AppBannerPlacement.inline ||
              (tone == AppBannerTone.info &&
@@ -681,6 +682,11 @@ class AppBanner extends StatelessWidget {
   final AppBannerDensity density;
   final AppBannerPlacement placement;
 
+  /// 처리를 마친 안내 — 채움을 비워 흰 바탕으로 두고 톤 테두리만 남긴다.
+  /// 긴 대화에서 어디까지 처리했는지 바탕색으로 가른다(채팅 감지 배너의
+  /// `메모 추가` 뒤, #2950).
+  final bool resolved;
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
@@ -690,7 +696,9 @@ class AppBanner extends StatelessWidget {
       AppBannerTone.caution => OnCareColors.caution,
       AppBannerTone.danger => OnCareColors.danger,
     };
-    final Color fill = tone == AppBannerTone.info
+    final Color fill = resolved
+        ? OnCareColors.surfaceCard
+        : tone == AppBannerTone.info
         ? tokens.brand.surface
         : OnCareColors.onWhite(accent, OnCareAlpha.subtle);
     final Color border = tone == AppBannerTone.info
@@ -790,7 +798,9 @@ class AppBanner extends StatelessWidget {
         ],
       );
     } else if (compact) {
-      content = Column(
+      // compact 의 [trailing] 은 제목 줄이 아니라 배너 전체 높이의 세로
+      // 가운데에 선다 — 제목·본문 두 줄 옆의 `메모 추가` 알약(#2950).
+      final Widget body = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: columnSize,
         children: <Widget>[
@@ -809,12 +819,19 @@ class AppBanner extends StatelessWidget {
                       .copyWith(color: accent),
                 ),
               ),
-              ...end(),
             ],
           ),
           ...below(OnCareSpacing.s2),
         ],
       );
+      content = trailing == null
+          ? body
+          : Row(
+              children: <Widget>[
+                Expanded(child: body),
+                ...end(),
+              ],
+            );
     } else {
       content = Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1092,6 +1109,7 @@ class AppEmptyState extends StatelessWidget {
         if (actionLabel != null) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s4),
           AppButton(
+            key: actionKey,
             label: actionLabel!,
             onPressed: onAction,
             variant: AppButtonVariant.text,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_report/oncare_report.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/reports/domain/report_trend.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 

@@ -312,7 +312,7 @@ def test_service_marks_only_matching_trainer_message_notifications(
     client, db_session, created_notifications
 ):
     """mark_thread_read(reader='trainer') 가 고르는 행을 직접 확인한다."""
-    from app.services import trainer_service
+    from app.services.trainer import chat as trainer_chat_service
 
     target = _insert(
         db_session, created_notifications,
@@ -327,7 +327,7 @@ def test_service_marks_only_matching_trainer_message_notifications(
         user_id=TRAINER_ID, category="reservation", subject_id=JISU,
     )
 
-    trainer_service.mark_thread_read(db_session, TRAINER_ID, JISU, "trainer")
+    trainer_chat_service.mark_thread_read(db_session, TRAINER_ID, JISU, "trainer")
 
     assert _row_by_id(db_session, target).read is True
     assert _row_by_id(db_session, other_member).read is False
@@ -338,14 +338,14 @@ def test_service_member_reader_does_not_touch_notifications(
     client, db_session, created_notifications
 ):
     """reader='member' 는 알림을 건드리지 않는다."""
-    from app.services import trainer_service
+    from app.services.trainer import chat as trainer_chat_service
 
     target = _insert(
         db_session, created_notifications,
         user_id=TRAINER_ID, category="message", subject_id=JISU,
     )
 
-    trainer_service.mark_thread_read(db_session, TRAINER_ID, JISU, "member")
+    trainer_chat_service.mark_thread_read(db_session, TRAINER_ID, JISU, "member")
 
     assert _row_by_id(db_session, target).read is False
 

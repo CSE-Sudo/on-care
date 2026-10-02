@@ -1,3 +1,5 @@
+import 'package:oncare_core/clock.dart';
+
 /// One bookable time on a trainer's calendar.
 ///
 /// Slots belong to a trainer, not to a gym: a gym employs several trainers and
@@ -51,7 +53,8 @@ class TrainerSlot {
 TrainerSlot trainerSlotFromJson(Map<String, Object?> j) => TrainerSlot(
   id: j['id']! as String,
   trainerId: (j['trainer_id'] as String?) ?? '',
-  startsAt: DateTime.parse(j['starts_at']! as String).toLocal(),
+  // KST 벽시계로 읽는다 — 기기 시간대가 달라도 고른 자리 시각이 같다(#2876).
+  startsAt: toKst(DateTime.parse(j['starts_at']! as String)),
   // 서버는 아직 좌석 수로 자리를 센다. 한 사람 몫뿐인 자리라 남은 좌석이
   // 0인지만 의미가 있으므로 여기서 예약 여부로 접고, 좌석 수는 앱 안으로
   // 들이지 않는다(#1072).

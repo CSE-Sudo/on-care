@@ -29,7 +29,7 @@ from sqlalchemy.orm import Session
 from app.core import clock
 from app.models.models import HealthProfile, Notification, User
 from app.services import health_focus, notification_service, notification_templates
-from app.services.trainer_service import get_member_trainer_id
+from app.services.trainer._common import get_member_trainer_id
 
 CHANGED_BY_MEMBER = "member"
 CHANGED_BY_TRAINER = "trainer"

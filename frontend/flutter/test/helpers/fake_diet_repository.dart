@@ -1,5 +1,4 @@
 import 'package:oncare/core/advice/diet_advice.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/entities/diet_period.dart';
@@ -7,6 +6,7 @@ import 'package:oncare/features/diet/domain/entities/food_nutrition_suggestion.d
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 테스트용 인메모리 식단 저장소.
 ///
@@ -142,11 +142,15 @@ class FakeDietRepository implements DietRepository {
   final Map<String, DietAnalysisResult> _analyzed =
       <String, DietAnalysisResult>{};
 
+  /// 분석 요청마다 실려 온 기록 날짜(#2849). 빠졌으면 null 이다.
+  final List<String?> analyzedDates = <String?>[];
+
   @override
   Future<DietAnalysisResult> analyze({
     required MealPhoto photo,
     required String mealType,
     String? idempotencyKey,
+    String? date,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 300));
     if (idempotencyKey != null && _analyzed.containsKey(idempotencyKey)) {
@@ -192,34 +196,40 @@ class FakeDietRepository implements DietRepository {
     // 행과 분석 결과가 같은 시각을 봐야 한다 — 서버도 한 시계 스냅샷에서
     // 뽑는다(`save_analyzed_entry`).
     final String timeLabel = _nowLabel();
-    _entries.add(
-      DietEntry(
-        id: id,
-        mealType: _mealTypeOf(mealType),
-        timeLabel: timeLabel,
-        totalCalories: cals,
-        sodiumMg: sodium,
-        sugarG: sugar,
-        carbsG: carbs,
-        proteinG: protein,
-        fatG: fat,
-        aiComment: coach,
-        foods: foods
-            .map(
-              (RecognizedFood f) => FoodItem(
-                name: f.name,
-                calories: f.calories,
-                sodiumMg: f.sodiumMg,
-                sugarG: f.sugarG.toDouble(),
-                carbsG: f.carbsG,
-                proteinG: f.proteinG,
-                fatG: f.fatG,
-                amountG: f.amountG,
-              ),
-            )
-            .toList(),
-      ),
+    final DietEntry entry = DietEntry(
+      id: id,
+      mealType: _mealTypeOf(mealType),
+      timeLabel: timeLabel,
+      totalCalories: cals,
+      sodiumMg: sodium,
+      sugarG: sugar,
+      carbsG: carbs,
+      proteinG: protein,
+      fatG: fat,
+      aiComment: coach,
+      foods: foods
+          .map(
+            (RecognizedFood f) => FoodItem(
+              name: f.name,
+              calories: f.calories,
+              sodiumMg: f.sodiumMg,
+              sugarG: f.sugarG.toDouble(),
+              carbsG: f.carbsG,
+              proteinG: f.proteinG,
+              fatG: f.fatG,
+              amountG: f.amountG,
+            ),
+          )
+          .toList(),
     );
+    analyzedDates.add(date);
+    final DateTime now = nowKst();
+    // 지난 날짜로 보낸 분석은 그 날에 남긴다 — 실서버와 같다(#2849).
+    if (date == null || date == _wire(DateTime(now.year, now.month, now.day))) {
+      _entries.add(entry);
+    } else {
+      movedEntries[id] = (date: date, entry: entry);
+    }
     final DietAnalysisResult result = DietAnalysisResult(
       entryId: id,
       foods: foods,

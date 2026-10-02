@@ -18,6 +18,7 @@ import time
 from app.core.config import get_settings
 from app.schemas.diet import DietAnalysis, RecognizedFood
 from app.services.recognizer.base import FoodRecognizer
+from app.services.recognizer.locale_prompt import display_name_of, localized_prompt
 
 _PROMPT = """당신은 전문 영양사입니다. 이 음식 사진을 분석해 아래 JSON 스키마로만 응답하세요.
 설명, 마크다운, 코드블록 없이 순수 JSON만 출력합니다.
@@ -29,6 +30,7 @@ _PROMPT = """당신은 전문 영양사입니다. 이 음식 사진을 분석해
   "coach_comment": "운동하는 회원의 식단 목표(칼로리·단백질·나트륨·당류) 관점 식단평. 넘치거나 모자란 영양을 짚고 개선 제안을 2~3문장 한국어로. 질환 이름을 꺼내거나 진단하지 마세요."
 }
 음식이 여러 개면 foods 에 모두. 모르는 값은 null.
+사진에 음식이 보이지 않으면(풍경·사람·빈 그릇 등) 지어내지 말고 foods 를 빈 배열 [] 로.
 
 amount_g 는 **사진에 실제로 담긴 양**을 그램으로 추정하세요(그릇 크기·조각 수를
 근거로). 공공 영양 DB 가 100g 당 값을 갖고 있어 이 값으로 환산합니다 — 영양
@@ -53,6 +55,8 @@ class LiteLLMVisionRecognizer(FoodRecognizer):
 
     async def recognize(self, image_bytes: bytes, mime_type: str) -> DietAnalysis:
         import asyncio
+        # 요청 언어는 컨텍스트 변수라 작업 스레드로 넘기기 전에 고른다. (#2850)
+        prompt = localized_prompt(_PROMPT)
         start = time.perf_counter()
         b64 = base64.b64encode(image_bytes).decode()
         data_url = f"data:{mime_type};base64,{b64}"
@@ -63,7 +67,7 @@ class LiteLLMVisionRecognizer(FoodRecognizer):
             messages=[{
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": _PROMPT},
+                    {"type": "text", "text": prompt},
                     {"type": "image_url", "image_url": {"url": data_url}},
                 ],
             }],
@@ -87,6 +91,7 @@ class LiteLLMVisionRecognizer(FoodRecognizer):
             for f in data.get("foods", []):
                 foods.append(RecognizedFood(
                     name=str(f.get("name", "알 수 없음")),
+                    display_name=display_name_of(f),
                     calories=_i(f.get("calories")), sodium_mg=_i(f.get("sodium_mg")),
                     carbs_g=_macro_f(f.get("carbs_g")),
                     protein_g=_macro_f(f.get("protein_g")),

@@ -13,6 +13,7 @@ import 'package:oncare_trainer/features/clients/presentation/widgets/client_diet
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_diet_period_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_meal_photo.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_section.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/day_fetch_failed_line.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/nutrition_summary_card.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -1199,8 +1200,12 @@ class _DayMeals extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final ({String clientId, DateTime date}) dayKey = (
+      clientId: clientId,
+      date: date,
+    );
     final AsyncValue<List<ClientDietEntry>> async = ref.watch(
-      clientDietOnProvider((clientId: clientId, date: date)),
+      clientDietOnProvider(dayKey),
     );
     final MealLimits limits = mealLimitsOf(
       ref.watch(memberHealthProfileProvider(clientId)).valueOrNull,
@@ -1243,6 +1248,17 @@ class _DayMeals extends ConsumerWidget {
         // 끼니가 안 오는 날이 있다 — 데모 픽스처가 끼니를 들고 있는 날이
         // 며칠뿐이라서다. 그때는 합계 줄만 선다. 읽는 동안·실패했을 때도
         // 합계 줄은 남아 펼친 자리가 흔들리지 않는다.
+        //
+        // 실패는 빈 결과와 갈라 말한다(#2892) — 합계만 남기면 "끼니 기록이
+        // 없는 날" 로 읽힌다. 다시 읽는 동안(재시도)은 실패 줄을 내린다.
+        if (async.hasError && !async.isLoading) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s12),
+          DayFetchFailedLine(
+            key: ValueKey<String>('client-diet-day-failed-${ymd(date)}'),
+            message: l.clientDietDayMealsFailed,
+            onRetry: () => ref.invalidate(clientDietOnProvider(dayKey)),
+          ),
+        ],
         for (final ClientDietEntry meal in meals) ...<Widget>[
           const Padding(
             padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s12),

@@ -159,7 +159,7 @@ def test_not_submitted_week_answers_with_defaults(client):
 
 def test_future_week_is_rejected(client):
     """오지 않은 주는 리포트 본문과 같은 규칙으로 막힌다."""
-    from app.services.trainer_service import week_start_of
+    from app.services.trainer.reports import week_start_of
 
     t = _trainer_tok(client)
     next_week = week_start_of(clock.today()) + timedelta(days=7)

@@ -6,13 +6,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/dashboard/presentation/widgets/dashboard_content.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
@@ -23,6 +23,8 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/member_tab_header.dart';
 import 'package:oncare/shared/widgets/metric_trend_chart.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+
+import '../../helpers/mock_account_repository.dart';
 
 void main() {
   const liveSummary = DashboardSummary(
@@ -94,6 +96,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
+          mealRecsDemoFallbackProvider.overrideWithValue(true),
           accountRepositoryProvider.overrideWithValue(
             MockAccountRepository(profile: profile),
           ),
@@ -334,7 +337,8 @@ void main() {
 
     // "탄수화물" - "203.6" - "/275g" 순으로 읽혀야 한다.
     expect(find.text('/275g'), findsOneWidget);
-    expect(find.text('/100g'), findsOneWidget);
+    // 체중도 목표도 없는 회원 — 식단 분석과 같은 60g(#2898).
+    expect(find.text('/60g'), findsOneWidget);
     expect(find.text('/55g'), findsOneWidget);
 
     // 라벨에는 단위를 달지 않는다 — 좁은 카드에서 라벨이 먼저 축소되던 문제.

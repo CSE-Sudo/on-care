@@ -199,15 +199,16 @@ void main() {
     });
 
     test('이어 받기는 마지막 예약의 (starts_at, id) 를 UTC 로 넘긴다', () async {
-      // 엔티티는 화면용 로컬 시각을 들고 있다. 그대로 보내면 서버가 UTC 로 읽어
-      // 쪽 경계가 시간대만큼 밀린다.
+      // 엔티티는 화면용 KST 벽시계를 들고 있다(#2876). 그대로 보내면 서버가
+      // UTC 로 읽어 쪽 경계가 9시간 밀린다.
       final adapter = _StubAdapter(<String, Object?>{
         '/reservations/me': _reservationsJson,
       });
 
       await DioGymRepository(_dio(adapter)).fetchMyReservations(
         limit: 10,
-        before: DateTime.utc(2026, 3, 2, 1).toLocal(),
+        // KST 2026-03-02 10:00 = 01:00Z
+        before: DateTime(2026, 3, 2, 10),
         beforeId: 'resv-1',
       );
 
@@ -234,4 +235,44 @@ void main() {
       'DELETE /me/coach/trainer',
     ]);
   });
+
+  group('소속 트레이너 조회 (#2857)', () {
+    test('서버에 없는 헬스장(404)은 소속 트레이너가 없는 것과 같다', () async {
+      // 카카오로 찾은 헬스장은 서버 목록에 없다 — 화면이 이를 조회 실패로
+      // 보이면 그런 카드마다 오류가 뜬다.
+      final repo = DioGymRepository(_dio(_StubAdapter(<String, Object?>{})));
+      expect(await repo.fetchTrainersByGym('kakao-123'), isEmpty);
+    });
+
+    test('서버 오류는 그대로 올라가 화면이 다시 시도를 보인다', () async {
+      final repo = DioGymRepository(
+        Dio(BaseOptions(baseUrl: 'http://x/v1'))
+          ..httpClientAdapter = _StatusAdapter(500),
+      );
+      await expectLater(
+        repo.fetchTrainersByGym('gym-oncare-sinchon'),
+        throwsA(isA<DioException>()),
+      );
+    });
+  });
+}
+
+/// 모든 요청에 [status] 로 답하는 어댑터.
+class _StatusAdapter implements HttpClientAdapter {
+  _StatusAdapter(this.status);
+
+  final int status;
+
+  @override
+  Future<ResponseBody> fetch(RequestOptions options, _, _) async =>
+      ResponseBody.fromString(
+        '{"detail":"error"}',
+        status,
+        headers: <String, List<String>>{
+          Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+        },
+      );
+
+  @override
+  void close({bool force = false}) {}
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
@@ -99,8 +100,10 @@ class ClientProfileDialog extends StatelessWidget {
       ),
       ClientProfileSection.memo => AppDialog(
         key: const ValueKey<String>('client-memo-dialog'),
-        title: l.clientTrainerMemo,
+        title: l.clientMemoDialogTitle,
         size: AppDialogSize.medium,
+        // 메모·피드백 탭을 오갈 때 창 높이가 바뀌지 않게 고정한다(#2955).
+        fixedHeight: true,
         child: _MemoDialogBody(clientId: clientId, clientName: clientName),
       ),
     };
@@ -466,7 +469,8 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       l.memberHealthGoalProtein,
       AppGoalRanges.dailyProteinG,
       true,
-      hint: '$proteinTargetG',
+      // 비워 두면 식단 분석이 쓰는 실효 목표(#2898)다 — 체중이 있으면 체중 × 1.2g.
+      hint: '${_base?.effectiveDailyProteinG ?? proteinTargetG}',
     ),
     _NumberField(
       'client-goal-fat',
@@ -707,7 +711,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
             child: Text(
               name,
               style: tokens
-                  .text(OnCareTypography.bodySmall)
+                  .text(OnCareTypography.body)
                   .copyWith(color: OnCareColors.textPrimary),
             ),
           ),
@@ -719,7 +723,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
               child: Text(
                 unit,
                 style: tokens
-                    .text(OnCareTypography.caption)
+                    .text(OnCareTypography.bodySmall)
                     .copyWith(color: OnCareColors.textSecondary),
               ),
             ),
@@ -751,7 +755,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
           textAlign: TextAlign.end,
           style:
               OnCareTypography.numeric(
-                context.oncare.text(OnCareTypography.bodySmall),
+                context.oncare.text(OnCareTypography.body),
               ).copyWith(
                 color: text.isEmpty
                     ? OnCareColors.textTertiary
@@ -806,6 +810,8 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       key: const ValueKey<String>('client-profile-dialog'),
       title: l.clientProfileSectionTitle,
       size: AppDialogSize.medium,
+      // 신체·목표 탭을 오갈 때 창 높이가 바뀌지 않게 고정한다(#2955).
+      fixedHeight: true,
       trailing: _editing || !_profileLoaded
           ? null
           : AppIconButton(
@@ -870,7 +876,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
                       ),
                       textAlign: TextAlign.end,
                       style: tokens
-                          .text(OnCareTypography.bodySmall)
+                          .text(OnCareTypography.body)
                           .copyWith(
                             color: _gender.isEmpty
                                 ? OnCareColors.textTertiary
@@ -1886,8 +1892,9 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
     }
   }
 
+  /// 메모 시각은 KST 벽시계로 보인다 — 브라우저 시간대와 상관없이(#2893).
   static String _dayLabel(DateTime at) {
-    final local = at.toLocal();
+    final DateTime local = toKst(at);
     String two(int v) => v.toString().padLeft(2, '0');
     return '${local.year}.${two(local.month)}.${two(local.day)} '
         '${two(local.hour)}:${two(local.minute)}';
