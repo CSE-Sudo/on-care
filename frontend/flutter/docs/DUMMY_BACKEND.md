@@ -136,7 +136,7 @@ SQL을 찍을 수 있어 디버깅이 편합니다.
 5. 인증 토큰은 `AuthInterceptor`(이미 stub)가 `SecureTokenStore`에서 읽어
    `Authorization: Bearer …` 헤더로 첨부.
 
-CORS는 FastAPI 측에서 `https://barmi.github.io`와 dev origin을 허용하면
+CORS는 FastAPI 측에서 웹 배포 출처와 dev origin을 허용하면
 됩니다. *(당시 검토 기준. 지금 허용 출처는 백엔드 `CORS_ALLOW_ORIGINS` 설정으로 정하며,
 `backend/.env.example`·`backend/docs/DEPLOY.md` 를 본다.)*
 

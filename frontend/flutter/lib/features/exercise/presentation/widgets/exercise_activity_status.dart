@@ -68,7 +68,7 @@ const double _kCapShadowInnerAlpha = 0.65;
 /// 없는 주의 그루터기 높이, 고르지 않은 막대의 흐림.
 const double _kWeekSlot = 26;
 const double _kBurnBarWidth = 12;
-const double _kBurnBarMinHeight = 3;
+const double _kBurnMinBarHeight = 3;
 const double _kBurnStubHeight = 4;
 const double _kDimmedBarOpacity = 0.35;
 
@@ -1233,7 +1233,7 @@ class _BurnBar extends StatelessWidget {
     );
     final double barHeight = math.max(
       (value / max).clamp(0.0, 1.0) * height,
-      _kBurnBarMinHeight,
+      _kBurnMinBarHeight,
     );
     final Widget fill = total <= 0
         ? ColoredBox(color: _burnColor(context))
