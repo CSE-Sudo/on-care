@@ -119,6 +119,10 @@ def test_prod_demo_seed_requires_strong_password():
         jwt_secret="a-strong-enough-production-secret-value-01234567",
         cors_allow_origins="https://app.example.com",
         auto_create_tables=False,  # 운영 스키마 가드(#288) 충족 — 이 테스트는 데모 비번 강도만 검증
+        gemini_api_key="test-gemini-key",  # 운영 AI 키 가드(#2812) 충족
+        # conftest 가 EMBEDDER=hash 를 환경변수로 심으므로 운영 값을 명시한다.
+        recognizer="gemini",
+        embedder="gemini",
     )
     # 기본값 + 데모 시드 → 기동 거부
     with pytest.raises(ValueError):

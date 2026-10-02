@@ -34,6 +34,9 @@ def _prod(**overrides) -> Settings:
         cors_allow_origins="https://oncare.example",
         seed_demo_data=False,
         auto_create_tables=False,
+        gemini_api_key="test-gemini-key",
+        recognizer="gemini",
+        embedder="gemini",
         **overrides,
     )
 

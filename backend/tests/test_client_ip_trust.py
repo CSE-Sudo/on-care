@@ -53,6 +53,9 @@ def test_proxy_hops_default_is_one_in_prod():
         cors_allow_origins="https://oncare.example",
         seed_demo_data=False,
         auto_create_tables=False,
+        gemini_api_key="test-gemini-key",
+        recognizer="gemini",
+        embedder="gemini",
     )
     assert prod.effective_proxy_hops == 1
 
@@ -65,6 +68,9 @@ def test_proxy_hops_explicit_value_wins():
         cors_allow_origins="https://oncare.example",
         seed_demo_data=False,
         auto_create_tables=False,
+        gemini_api_key="test-gemini-key",
+        recognizer="gemini",
+        embedder="gemini",
         trusted_proxy_hops=0,
     )
     assert prod.effective_proxy_hops == 0

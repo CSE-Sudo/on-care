@@ -107,7 +107,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `TZ` | `Asia/Seoul` (오늘/어제 라벨 KST 기준) |
 | `SEED_DEMO_DATA` | 운영 권장 `false`. 데이터 든 데모 계정을 두려면 `true` + `DEMO_LOGIN_PASSWORD` 필수 |
 | `DEMO_LOGIN_PASSWORD` | `SEED_DEMO_DATA=true` 일 때 12자+ 강한 값(아니면 기동 거부) |
-| `GEMINI_API_KEY` 또는 LiteLLM(`LITELLM_*`) | 식단 인식/코치. 없으면 stub 폴백 |
+| `GEMINI_API_KEY` 또는 LiteLLM(`LITELLM_*`) | 식단 인식/임베딩. **운영 필수** — `RECOGNIZER`·`EMBEDDER` 에 맞는 키가 없거나 `stub`·`hash` 면 기동 거부(#2812) |
 | `GEMINI_MODEL` | 운영은 **고정 버전** 모델 이름(아래 "모델 고정"). 비우면 코드 기본 별칭 |
 | `RECOGNIZER_TIMEOUT_SECONDS` | 식단 사진 인식 한 건의 대기 한도(초, 기본 60, #2912) |
 | `MIGRATE_CONNECT_TIMEOUT` | 기동 마이그레이션의 DB 연결 한도(초, 기본 10, #2912) |
@@ -124,10 +124,10 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `SENTRY_ENVIRONMENT` / `SENTRY_SAMPLE_RATE` | 선택. 비우면 `ENV` 값 / 기본 `1.0` |
 
 > **시도 제한은 인스턴스 메모리에 둔다**(`app/core/rate_limit.py`). App Runner 최소·최대 인스턴스가
-> 1 이 아니게 되면 한도가 인스턴스 수만큼 늘어나므로, 그때 공유 저장소(Redis 등) 구현으로 바꾼다.
+> 1 이 아니게 되거나 `WEB_CONCURRENCY` 를 늘리면 한도가 인스턴스·워커 수만큼 늘어나므로, 그때 공유 저장소(Redis 등) 구현으로 바꾼다.
 > 기동 로그에 `TRUSTED_PROXY_HOPS=0` 경고가 보이면 프록시 홉 수 설정을 확인한다.
 
-> 참고: 키가 없어도 인식/장소는 폴백으로 동작(기동은 됨). 운영 시크릿은 Secrets Manager/SSM 에 두고
+> 참고: 장소는 키가 없어도 시드 폴백으로 동작한다. 사진 인식·임베딩은 운영에서 폴백하지 않는다(#2812). 운영 시크릿은 Secrets Manager/SSM 에 두고
 > App Runner 에 주입한다. 키 전체 목록과 형식은 `backend/.env.aws.example` 에 있다.
 
 **운영에서 기본값을 그대로 두면 안 되는 키** — 기동은 되지만 개발용 동작이 남는다(#2840).
@@ -156,6 +156,41 @@ CREATE EXTENSION IF NOT EXISTS vector;
 - 헬스체크: HTTP `GET /v1/healthz`.
 - 환경변수: 위 표(민감값은 Secrets 참조).
 - 컨테이너가 기동 시 마이그레이션을 수행하므로 별도 마이그레이션 스텝 불필요.
+
+## 워커 수와 이벤트 루프 (#2835)
+
+- `WEB_CONCURRENCY` 로 uvicorn 워커 수를 정한다(`scripts/start.sh`, 기본 `1`, 1 이상 정수가
+  아니면 기동 거부). 실제 운영 값은 배포 설정에서 정한다(#480).
+- 워커를 늘릴 때의 영향:
+  - **인메모리 분당 한도**(로그인·AI 코치·사진 분석 분당 한도 등)는 워커마다 따로 센다 — 워커 N 개면
+    한 사용자가 최대 N 배까지 통과할 수 있다. DB 에서 세는 하루 상한(AI 챗봇·사진 분석)은 영향 없다.
+  - **`/v1/system/metrics`** 는 그 요청을 받은 워커 하나의 값만 보여 준다(합산되지 않는다).
+  - **DB 연결 수**가 워커 수만큼 곱해진다(아래 계산식).
+- `async def` 라우트 안에서 동기 DB·Pillow·파일 저장을 돌리지 않는다 — 이벤트 루프가 막혀 같은 워커의
+  다른 요청(헬스체크 포함)이 모두 멈춘다. 외부 호출만 `await` 하고 나머지는 `run_in_threadpool` 로
+  넘기거나 라우트를 `def` 로 둔다. `tests/test_async_route_guard.py` 가 이 규칙을 검사한다.
+
+## DB 커넥션 풀·쿼리 실행 상한 (#2836)
+
+| 키 | 기본값 | 설명 |
+|---|---|---|
+| `DB_POOL_SIZE` | `5` | 워커 하나가 유지하는 연결 수 |
+| `DB_MAX_OVERFLOW` | `10` | 붐빌 때 잠깐 더 여는 연결 수 |
+| `DB_POOL_TIMEOUT_SECONDS` | `10` | 풀이 말랐을 때 기다리는 상한. 기본값(30초)보다 짧게 실패시켜 클라이언트 재시도로 넘긴다 |
+| `DB_POOL_RECYCLE_SECONDS` | `300` | 유휴 연결 재활용 주기. 관리형 DB 가 유휴 연결을 먼저 끊는 시간보다 짧게 둔다 |
+| `DB_STATEMENT_TIMEOUT_MS` | `10000` | 쿼리 하나의 실행 상한. 연결 시작 옵션(`-c statement_timeout`)으로 건다. `0` 이면 끈다 |
+
+- **연결 수 계산:** `(DB_POOL_SIZE + DB_MAX_OVERFLOW) × WEB_CONCURRENCY × 인스턴스 수` 가 DB 플랜의
+  동시 연결 상한보다 작아야 한다. 기본값·워커 1·인스턴스 1 이면 최대 15 다. 마이그레이션은 기동 때
+  별도 연결 하나를 잠깐 더 쓴다.
+- 실행 상한은 앱 엔진에만 걸린다. 마이그레이션(`scripts/migrate.py`·Alembic)은 자기 엔진을 쓰므로 긴
+  DDL 이 끊기지 않는다. readiness(`/readyz`)는 따로 3초 상한을 건다.
+- 시작 옵션을 받지 않는 풀러 엔드포인트(PgBouncer 등)로 바꾸면 연결이 거부된다 — 그때는
+  `DB_STATEMENT_TIMEOUT_MS=0` 으로 끄고 DB 역할 쪽에 상한을 건다. 지금은 직접 엔드포인트를 쓴다.
+- AI 코치 채팅·홈 코칭은 LLM 응답을 기다리기 전에 읽기 트랜잭션을 끝내 연결을 풀로 돌려준다 —
+  LLM 대기(수 초~수십 초) 동안 연결을 쥐지 않는다.
+- 풀 상태는 관리자 전용 `GET /v1/system/metrics` 의 `db_pool`(`size`·`checked_out`·`overflow`)로
+  본다. `checked_out` 이 자주 `size + max_overflow` 에 닿으면 풀을 키우거나 느린 경로를 찾는다.
 
 ## 5) CI 용 GitHub Secrets & IAM 역할
 
