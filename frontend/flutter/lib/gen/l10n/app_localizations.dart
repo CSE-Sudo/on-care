@@ -188,30 +188,6 @@ abstract class AppLocalizations {
   /// **'Retry'**
   String get actionRetry;
 
-  /// No description provided for @errorNetwork.
-  ///
-  /// In en, this message translates to:
-  /// **'Network problem'**
-  String get errorNetwork;
-
-  /// No description provided for @errorUnauthorized.
-  ///
-  /// In en, this message translates to:
-  /// **'Sign in required'**
-  String get errorUnauthorized;
-
-  /// No description provided for @errorNotFound.
-  ///
-  /// In en, this message translates to:
-  /// **'Not found'**
-  String get errorNotFound;
-
-  /// No description provided for @errorServer.
-  ///
-  /// In en, this message translates to:
-  /// **'Server error'**
-  String get errorServer;
-
   /// No description provided for @errorCancelled.
   ///
   /// In en, this message translates to:
@@ -314,12 +290,6 @@ abstract class AppLocalizations {
   /// **'Log today\'s meals and workouts, and we\'ll put together advice for your day.'**
   String get homeAiAdviceNoRecord;
 
-  /// No description provided for @homeSodiumExceededBadge.
-  ///
-  /// In en, this message translates to:
-  /// **'Sodium over'**
-  String get homeSodiumExceededBadge;
-
   /// No description provided for @homeMacroCarbs.
   ///
   /// In en, this message translates to:
@@ -379,12 +349,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Weekly {metric} trend'**
   String homeWeeklyMetricTrend(String metric);
-
-  /// No description provided for @homeWeeklyExerciseTrend.
-  ///
-  /// In en, this message translates to:
-  /// **'Exercise trend'**
-  String get homeWeeklyExerciseTrend;
 
   /// No description provided for @homeExerciseTrendUnavailable.
   ///
@@ -554,12 +518,6 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load meal suggestions'**
   String get homeRecMealsErrorTitle;
 
-  /// No description provided for @homeViewAll.
-  ///
-  /// In en, this message translates to:
-  /// **'View all'**
-  String get homeViewAll;
-
   /// No description provided for @unitKcal.
   ///
   /// In en, this message translates to:
@@ -571,12 +529,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'min'**
   String get unitMinutes;
-
-  /// No description provided for @unitSets.
-  ///
-  /// In en, this message translates to:
-  /// **'sets'**
-  String get unitSets;
 
   /// No description provided for @unitKcalValue.
   ///
@@ -757,12 +709,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No meals were logged in this period.'**
   String get dietPeriodEmpty;
-
-  /// No description provided for @dietPeriodRange.
-  ///
-  /// In en, this message translates to:
-  /// **'{start} - {end}'**
-  String dietPeriodRange(String start, String end);
 
   /// No description provided for @dietPeriodNoRecord.
   ///
@@ -1334,42 +1280,6 @@ abstract class AppLocalizations {
   /// **'Connected'**
   String get exConnected;
 
-  /// No description provided for @exRecommendedGyms.
-  ///
-  /// In en, this message translates to:
-  /// **'Recommended Gyms'**
-  String get exRecommendedGyms;
-
-  /// No description provided for @exRecommendedTrainers.
-  ///
-  /// In en, this message translates to:
-  /// **'Recommended Trainers'**
-  String get exRecommendedTrainers;
-
-  /// No description provided for @exSeeMore.
-  ///
-  /// In en, this message translates to:
-  /// **'See more'**
-  String get exSeeMore;
-
-  /// No description provided for @exNoConnectedGym.
-  ///
-  /// In en, this message translates to:
-  /// **'You don\'t have a connected gym yet.'**
-  String get exNoConnectedGym;
-
-  /// No description provided for @exNoRecommendedGyms.
-  ///
-  /// In en, this message translates to:
-  /// **'No gym recommendations yet.'**
-  String get exNoRecommendedGyms;
-
-  /// No description provided for @exNoRecommendedTrainers.
-  ///
-  /// In en, this message translates to:
-  /// **'No trainer recommendations yet.'**
-  String get exNoRecommendedTrainers;
-
   /// No description provided for @exTrainerAffiliation.
   ///
   /// In en, this message translates to:
@@ -1405,12 +1315,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Gyms near me'**
   String get exNearbyGymsMapLabel;
-
-  /// No description provided for @exWeekSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'This Week\'s Summary'**
-  String get exWeekSummary;
 
   /// No description provided for @exActivityTitle.
   ///
@@ -1466,83 +1370,11 @@ abstract class AppLocalizations {
   /// **'All'**
   String get exPeriodAll;
 
-  /// No description provided for @exExerciseContent.
-  ///
-  /// In en, this message translates to:
-  /// **'What you did'**
-  String get exExerciseContent;
-
-  /// No description provided for @exViewDetail.
-  ///
-  /// In en, this message translates to:
-  /// **'View details'**
-  String get exViewDetail;
-
-  /// No description provided for @exRegister.
-  ///
-  /// In en, this message translates to:
-  /// **'Register'**
-  String get exRegister;
-
-  /// No description provided for @exGymRegistered.
-  ///
-  /// In en, this message translates to:
-  /// **'Registered {gym}'**
-  String exGymRegistered(String gym);
-
-  /// No description provided for @exWeekNumber.
-  ///
-  /// In en, this message translates to:
-  /// **'Week {n}'**
-  String exWeekNumber(int n);
-
-  /// No description provided for @exTodayTotalTime.
-  ///
-  /// In en, this message translates to:
-  /// **'Today\'s total time'**
-  String get exTodayTotalTime;
-
-  /// No description provided for @exRest.
-  ///
-  /// In en, this message translates to:
-  /// **'Rest'**
-  String get exRest;
-
   /// No description provided for @exRestSeconds.
   ///
   /// In en, this message translates to:
   /// **'Rest {seconds}s'**
   String exRestSeconds(int seconds);
-
-  /// No description provided for @exAiRecommendedExercise.
-  ///
-  /// In en, this message translates to:
-  /// **'AI recommended exercise'**
-  String get exAiRecommendedExercise;
-
-  /// No description provided for @exStatTime.
-  ///
-  /// In en, this message translates to:
-  /// **'Time'**
-  String get exStatTime;
-
-  /// No description provided for @exStatCalories.
-  ///
-  /// In en, this message translates to:
-  /// **'Calories'**
-  String get exStatCalories;
-
-  /// No description provided for @exStatStreak.
-  ///
-  /// In en, this message translates to:
-  /// **'Streak'**
-  String get exStatStreak;
-
-  /// No description provided for @exUnitStreakDays.
-  ///
-  /// In en, this message translates to:
-  /// **'day streak'**
-  String get exUnitStreakDays;
 
   /// No description provided for @exStreakCheer.
   ///
@@ -1639,12 +1471,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Exercise Name'**
   String get exExerciseName;
-
-  /// No description provided for @exExerciseNameHint.
-  ///
-  /// In en, this message translates to:
-  /// **'e.g. Squat, Treadmill'**
-  String get exExerciseNameHint;
 
   /// No description provided for @exExerciseNameHintCardio.
   ///
@@ -1916,12 +1742,6 @@ abstract class AppLocalizations {
   /// **'Total calories burned'**
   String get exRecordDetailTotalCalories;
 
-  /// No description provided for @exOwnRecordSource.
-  ///
-  /// In en, this message translates to:
-  /// **'Self-logged'**
-  String get exOwnRecordSource;
-
   /// No description provided for @exCompletedPtDayTitle.
   ///
   /// In en, this message translates to:
@@ -1987,12 +1807,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Trainer Details'**
   String get exTrainerDetailTitle;
-
-  /// No description provided for @exDistance.
-  ///
-  /// In en, this message translates to:
-  /// **'Distance'**
-  String get exDistance;
 
   /// No description provided for @exRating.
   ///
@@ -2066,12 +1880,6 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load trainers.'**
   String get exTrainersLoadError;
 
-  /// No description provided for @exGymSearchHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Search by gym or area'**
-  String get exGymSearchHint;
-
   /// No description provided for @exNearbyGyms.
   ///
   /// In en, this message translates to:
@@ -2090,47 +1898,11 @@ abstract class AppLocalizations {
   /// **'Expand list'**
   String get exGymListExpand;
 
-  /// No description provided for @exAiAnalysis.
-  ///
-  /// In en, this message translates to:
-  /// **'✦ AI analysis'**
-  String get exAiAnalysis;
-
-  /// No description provided for @exNoGymMatch.
-  ///
-  /// In en, this message translates to:
-  /// **'No gyms match \'{query}\''**
-  String exNoGymMatch(String query);
-
   /// No description provided for @exGymsLoadError.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t load gyms.'**
   String get exGymsLoadError;
-
-  /// No description provided for @exAiTopPick.
-  ///
-  /// In en, this message translates to:
-  /// **'✦ AI top pick'**
-  String get exAiTopPick;
-
-  /// No description provided for @exGymDetailHint.
-  ///
-  /// In en, this message translates to:
-  /// **'See trainers and request a consultation'**
-  String get exGymDetailHint;
-
-  /// No description provided for @exReasonTrainer.
-  ///
-  /// In en, this message translates to:
-  /// **'Personal trainer {name}{role} on site'**
-  String exReasonTrainer(String name, String role);
-
-  /// No description provided for @exReasonHours.
-  ///
-  /// In en, this message translates to:
-  /// **'Open {hours}{weekend}'**
-  String exReasonHours(String hours, String weekend);
 
   /// No description provided for @exGymWeekdayHours.
   ///
@@ -2162,23 +1934,11 @@ abstract class AppLocalizations {
   /// **'{date} {time}'**
   String exSlotWhen(String date, String time);
 
-  /// No description provided for @exSlotFull.
-  ///
-  /// In en, this message translates to:
-  /// **'Fully booked'**
-  String get exSlotFull;
-
   /// No description provided for @exSlotTypePersonalTraining.
   ///
   /// In en, this message translates to:
   /// **'1:1 PT'**
   String get exSlotTypePersonalTraining;
-
-  /// No description provided for @exSlotTypeConsultation.
-  ///
-  /// In en, this message translates to:
-  /// **'Consultation'**
-  String get exSlotTypeConsultation;
 
   /// No description provided for @exSlotsEmpty.
   ///
@@ -2221,18 +1981,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Confirm {slot}'**
   String exReserveConfirm(String slot);
-
-  /// No description provided for @exGymInfo.
-  ///
-  /// In en, this message translates to:
-  /// **'Gym Info'**
-  String get exGymInfo;
-
-  /// No description provided for @exConsultButton.
-  ///
-  /// In en, this message translates to:
-  /// **'💬 1:1 Consult'**
-  String get exConsultButton;
 
   /// No description provided for @exAddress.
   ///
@@ -3038,12 +2786,6 @@ abstract class AppLocalizations {
   /// **'Weekly workout challenge'**
   String get challengeTitle;
 
-  /// No description provided for @challengeShort.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly challenge'**
-  String get challengeShort;
-
   /// Title of the progress row in the exercise tab, naming the week it covers.
   ///
   /// In en, this message translates to:
@@ -3127,48 +2869,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Goal reached! You get {reward} when the week ends'**
   String challengeAchieved(String reward);
-
-  /// No description provided for @challengeWeekTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Challenge {range}'**
-  String challengeWeekTitle(String range);
-
-  /// No description provided for @challengeStatusActive.
-  ///
-  /// In en, this message translates to:
-  /// **'In progress'**
-  String get challengeStatusActive;
-
-  /// No description provided for @challengeStatusSucceeded.
-  ///
-  /// In en, this message translates to:
-  /// **'Completed'**
-  String get challengeStatusSucceeded;
-
-  /// No description provided for @challengeStatusFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Missed'**
-  String get challengeStatusFailed;
-
-  /// No description provided for @challengeResultSucceeded.
-  ///
-  /// In en, this message translates to:
-  /// **'{progress} of {goal} workouts · {reward} earned'**
-  String challengeResultSucceeded(int goal, int progress, String reward);
-
-  /// No description provided for @challengeResultFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'{progress} of {goal} workouts · {stake} stake lost'**
-  String challengeResultFailed(int goal, int progress, String stake);
-
-  /// No description provided for @challengeLoadFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load challenges'**
-  String get challengeLoadFailed;
 
   /// No description provided for @myCouponStatusUsable.
   ///
@@ -3866,12 +3566,6 @@ abstract class AppLocalizations {
   /// **'Weight (kg)'**
   String get myFieldWeight;
 
-  /// No description provided for @myFieldGoals.
-  ///
-  /// In en, this message translates to:
-  /// **'Health and exercise goals'**
-  String get myFieldGoals;
-
   /// No description provided for @myNotifExercise.
   ///
   /// In en, this message translates to:
@@ -4082,12 +3776,6 @@ abstract class AppLocalizations {
   /// **'Personal trainer'**
   String get coachChatSubtitle;
 
-  /// No description provided for @coachChatBack.
-  ///
-  /// In en, this message translates to:
-  /// **'Back'**
-  String get coachChatBack;
-
   /// Button above the trainer chat thread that fetches the previous page (#1943).
   ///
   /// In en, this message translates to:
@@ -4214,376 +3902,17 @@ abstract class AppLocalizations {
   /// **'{sm}/{sd} – {em}/{ed}'**
   String coachChatReportWeek(int sm, int sd, int em, int ed);
 
-  /// No description provided for @coachChatReportOpenPdf.
-  ///
-  /// In en, this message translates to:
-  /// **'Open PDF'**
-  String get coachChatReportOpenPdf;
-
   /// No description provided for @coachChatReportPreviewPdf.
   ///
   /// In en, this message translates to:
   /// **'Preview PDF'**
   String get coachChatReportPreviewPdf;
 
-  /// No description provided for @coachReportPdfDocTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly report'**
-  String get coachReportPdfDocTitle;
-
-  /// No description provided for @coachReportPdfDocTitleContinued.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly report (cont.)'**
-  String get coachReportPdfDocTitleContinued;
-
-  /// Week the previewed report covers, printed under the title.
-  ///
-  /// In en, this message translates to:
-  /// **'Period {from} – {to}'**
-  String coachReportPdfPeriod(String from, String to);
-
-  /// No description provided for @coachReportPdfSectionMetrics.
-  ///
-  /// In en, this message translates to:
-  /// **'Key metrics'**
-  String get coachReportPdfSectionMetrics;
-
-  /// No description provided for @coachReportPdfSectionTrend.
-  ///
-  /// In en, this message translates to:
-  /// **'Daily trend'**
-  String get coachReportPdfSectionTrend;
-
-  /// No description provided for @coachReportPdfSectionDaily.
-  ///
-  /// In en, this message translates to:
-  /// **'Day by day'**
-  String get coachReportPdfSectionDaily;
-
   /// One metric line in the previewed report.
   ///
   /// In en, this message translates to:
   /// **'· {label}: {value}'**
   String coachReportPdfBullet(String label, String value);
-
-  /// No description provided for @coachReportPdfLabelWorkoutDays.
-  ///
-  /// In en, this message translates to:
-  /// **'Days trained'**
-  String get coachReportPdfLabelWorkoutDays;
-
-  /// No description provided for @coachReportPdfLabelWorkoutMinutes.
-  ///
-  /// In en, this message translates to:
-  /// **'Total workout time'**
-  String get coachReportPdfLabelWorkoutMinutes;
-
-  /// No description provided for @coachReportPdfLabelBurned.
-  ///
-  /// In en, this message translates to:
-  /// **'Calories burned'**
-  String get coachReportPdfLabelBurned;
-
-  /// No description provided for @coachReportPdfLabelSessions.
-  ///
-  /// In en, this message translates to:
-  /// **'PT sessions'**
-  String get coachReportPdfLabelSessions;
-
-  /// No description provided for @coachReportPdfLabelCalories.
-  ///
-  /// In en, this message translates to:
-  /// **'Average intake'**
-  String get coachReportPdfLabelCalories;
-
-  /// No description provided for @coachReportPdfLabelSodium.
-  ///
-  /// In en, this message translates to:
-  /// **'Average sodium'**
-  String get coachReportPdfLabelSodium;
-
-  /// No description provided for @coachReportPdfLabelSugar.
-  ///
-  /// In en, this message translates to:
-  /// **'Average sugar'**
-  String get coachReportPdfLabelSugar;
-
-  /// No description provided for @coachReportPdfLabelMinutesShort.
-  ///
-  /// In en, this message translates to:
-  /// **'Workout time'**
-  String get coachReportPdfLabelMinutesShort;
-
-  /// No description provided for @coachReportPdfLabelCaloriesShort.
-  ///
-  /// In en, this message translates to:
-  /// **'Intake'**
-  String get coachReportPdfLabelCaloriesShort;
-
-  /// No description provided for @coachReportPdfLabelSodiumShort.
-  ///
-  /// In en, this message translates to:
-  /// **'Sodium'**
-  String get coachReportPdfLabelSodiumShort;
-
-  /// No description provided for @coachReportPdfLabelSugarShort.
-  ///
-  /// In en, this message translates to:
-  /// **'Sugar'**
-  String get coachReportPdfLabelSugarShort;
-
-  /// No description provided for @coachReportPdfValueDays.
-  ///
-  /// In en, this message translates to:
-  /// **'{value} days'**
-  String coachReportPdfValueDays(String value);
-
-  /// No description provided for @coachReportPdfValueMinutes.
-  ///
-  /// In en, this message translates to:
-  /// **'{value} min'**
-  String coachReportPdfValueMinutes(String value);
-
-  /// No description provided for @coachReportPdfValueKcal.
-  ///
-  /// In en, this message translates to:
-  /// **'{value} kcal'**
-  String coachReportPdfValueKcal(String value);
-
-  /// No description provided for @coachReportPdfValueMg.
-  ///
-  /// In en, this message translates to:
-  /// **'{value} mg'**
-  String coachReportPdfValueMg(String value);
-
-  /// No description provided for @coachReportPdfValueGram.
-  ///
-  /// In en, this message translates to:
-  /// **'{value} g'**
-  String coachReportPdfValueGram(String value);
-
-  /// PT sessions completed out of the ones booked that week.
-  ///
-  /// In en, this message translates to:
-  /// **'{done} of {booked}'**
-  String coachReportPdfAttendance(String done, String booked);
-
-  /// No description provided for @coachReportPdfNoData.
-  ///
-  /// In en, this message translates to:
-  /// **'No data'**
-  String get coachReportPdfNoData;
-
-  /// One weekday line in the previewed report.
-  ///
-  /// In en, this message translates to:
-  /// **'{weekday} — workout {exercise}, intake {intake}'**
-  String coachReportPdfDay(String weekday, String exercise, String intake);
-
-  /// Section heading for the message the trainer sent with the report.
-  ///
-  /// In en, this message translates to:
-  /// **'Trainer feedback'**
-  String get coachReportPdfSectionTrainerNote;
-
-  /// Shown under the trainer-message heading when the report arrived without a note.
-  ///
-  /// In en, this message translates to:
-  /// **'No feedback came with this report.'**
-  String get coachReportPdfNoTrainerNote;
-
-  /// Section heading comparing this week with the previous one.
-  ///
-  /// In en, this message translates to:
-  /// **'Change from last week'**
-  String get coachReportPdfSectionChange;
-
-  /// Section heading for average carbs / protein / fat.
-  ///
-  /// In en, this message translates to:
-  /// **'Average macros'**
-  String get coachReportPdfSectionMacros;
-
-  /// Metric label: how many days of the week have diet records.
-  ///
-  /// In en, this message translates to:
-  /// **'Days with meals logged'**
-  String get coachReportPdfLabelLoggedDays;
-
-  /// Metric label: days whose sodium exceeded the member's daily goal.
-  ///
-  /// In en, this message translates to:
-  /// **'Days over the sodium goal'**
-  String get coachReportPdfLabelSodiumOver;
-
-  /// Metric label used when only completed PT sessions are known.
-  ///
-  /// In en, this message translates to:
-  /// **'PT sessions done'**
-  String get coachReportPdfLabelPtDone;
-
-  /// A count of PT sessions with its unit.
-  ///
-  /// In en, this message translates to:
-  /// **'{value} sessions'**
-  String coachReportPdfValueSessions(String value);
-
-  /// Metric label for cardio minutes.
-  ///
-  /// In en, this message translates to:
-  /// **'Cardio'**
-  String get coachReportPdfLabelCardio;
-
-  /// Metric label for strength minutes.
-  ///
-  /// In en, this message translates to:
-  /// **'Strength'**
-  String get coachReportPdfLabelStrength;
-
-  /// Metric label for stretching minutes.
-  ///
-  /// In en, this message translates to:
-  /// **'Stretching'**
-  String get coachReportPdfLabelStretching;
-
-  /// Section heading breaking the week's minutes down by workout type.
-  ///
-  /// In en, this message translates to:
-  /// **'Minutes by workout type'**
-  String get coachReportPdfSectionTypes;
-
-  /// Shown for PT when nothing was booked and nothing was recorded.
-  ///
-  /// In en, this message translates to:
-  /// **'None booked'**
-  String get coachReportPdfNoSessions;
-
-  /// Header band cell title for the reported week.
-  ///
-  /// In en, this message translates to:
-  /// **'Period'**
-  String get coachReportPdfBandPeriod;
-
-  /// Section heading for the goal gauges.
-  ///
-  /// In en, this message translates to:
-  /// **'Against your goals'**
-  String get coachReportPdfSectionGoals;
-
-  /// Summary table column: the metric name.
-  ///
-  /// In en, this message translates to:
-  /// **'Metric'**
-  String get coachReportPdfColumnMetric;
-
-  /// Summary table column: this week's value.
-  ///
-  /// In en, this message translates to:
-  /// **'This week'**
-  String get coachReportPdfColumnThisWeek;
-
-  /// Summary table column: last week's value.
-  ///
-  /// In en, this message translates to:
-  /// **'Last week'**
-  String get coachReportPdfColumnLastWeek;
-
-  /// Summary table column: the difference between the two weeks.
-  ///
-  /// In en, this message translates to:
-  /// **'Change'**
-  String get coachReportPdfColumnChange;
-
-  /// Daily table column: the weekday.
-  ///
-  /// In en, this message translates to:
-  /// **'Day'**
-  String get coachReportPdfColumnWeekday;
-
-  /// Daily table column: what was done that day.
-  ///
-  /// In en, this message translates to:
-  /// **'Workout'**
-  String get coachReportPdfColumnWorkout;
-
-  /// Daily table column: calories eaten that day.
-  ///
-  /// In en, this message translates to:
-  /// **'Intake'**
-  String get coachReportPdfColumnIntake;
-
-  /// Daily table cell for a weekday that has not happened yet.
-  ///
-  /// In en, this message translates to:
-  /// **'Still to come'**
-  String get coachReportPdfUpcoming;
-
-  /// Text form of a gauge: the value and the goal it is measured against.
-  ///
-  /// In en, this message translates to:
-  /// **'{value} (goal {target})'**
-  String coachReportPdfGoalOf(String value, String target);
-
-  /// Label on a chart's dashed goal line.
-  ///
-  /// In en, this message translates to:
-  /// **'goal {value}'**
-  String coachReportPdfChartTarget(String value);
-
-  /// Daily line for a weekday that has not happened yet.
-  ///
-  /// In en, this message translates to:
-  /// **'{weekday} — still to come'**
-  String coachReportPdfDayUpcoming(String weekday);
-
-  /// One comparison line: this week's value, last week's, and the difference.
-  ///
-  /// In en, this message translates to:
-  /// **'· {label}: {current} (last week {previous}, {delta})'**
-  String coachReportPdfChange(
-    String label,
-    String current,
-    String previous,
-    String delta,
-  );
-
-  /// Difference when this week is higher.
-  ///
-  /// In en, this message translates to:
-  /// **'+{value}'**
-  String coachReportPdfDeltaUp(String value);
-
-  /// Difference when this week is lower.
-  ///
-  /// In en, this message translates to:
-  /// **'-{value}'**
-  String coachReportPdfDeltaDown(String value);
-
-  /// Difference when both weeks are equal.
-  ///
-  /// In en, this message translates to:
-  /// **'no change'**
-  String get coachReportPdfDeltaSame;
-
-  /// Shown under the comparison heading when the previous week has nothing.
-  ///
-  /// In en, this message translates to:
-  /// **'There are no records from last week to compare with.'**
-  String get coachReportPdfNoPreviousWeek;
-
-  /// Footnote naming the sodium goal the over-days count was measured against.
-  ///
-  /// In en, this message translates to:
-  /// **'The sodium goal is the {target}mg daily target you set on the MY screen.'**
-  String coachReportPdfSodiumTargetNote(String target);
-
-  /// No description provided for @coachReportPdfPreviewNote.
-  ///
-  /// In en, this message translates to:
-  /// **'Built from your own records for the week the trainer\'s report covers.'**
-  String get coachReportPdfPreviewNote;
 
   /// No description provided for @coachReportPdfFileName.
   ///
@@ -4674,12 +4003,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ask me anytime'**
   String get aicHeaderSubtitle;
-
-  /// No description provided for @aicDatePillToday.
-  ///
-  /// In en, this message translates to:
-  /// **'Today'**
-  String get aicDatePillToday;
 
   /// No description provided for @aicMedicalDisclaimer.
   ///
@@ -5185,78 +4508,6 @@ abstract class AppLocalizations {
   /// **'Discuss Later'**
   String get exTimeFlexible;
 
-  /// No description provided for @exTimeRangeTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Select time'**
-  String get exTimeRangeTitle;
-
-  /// No description provided for @exTimeRangeStartTime.
-  ///
-  /// In en, this message translates to:
-  /// **'Start time'**
-  String get exTimeRangeStartTime;
-
-  /// No description provided for @exTimeRangeEndTime.
-  ///
-  /// In en, this message translates to:
-  /// **'End time'**
-  String get exTimeRangeEndTime;
-
-  /// No description provided for @exTimeRangeStartHourStep.
-  ///
-  /// In en, this message translates to:
-  /// **'Start hour'**
-  String get exTimeRangeStartHourStep;
-
-  /// No description provided for @exTimeRangeStartMinuteStep.
-  ///
-  /// In en, this message translates to:
-  /// **'Start minute'**
-  String get exTimeRangeStartMinuteStep;
-
-  /// No description provided for @exTimeRangeEndHourStep.
-  ///
-  /// In en, this message translates to:
-  /// **'End hour'**
-  String get exTimeRangeEndHourStep;
-
-  /// No description provided for @exTimeRangeEndMinuteStep.
-  ///
-  /// In en, this message translates to:
-  /// **'End minute'**
-  String get exTimeRangeEndMinuteStep;
-
-  /// No description provided for @exSlotAm.
-  ///
-  /// In en, this message translates to:
-  /// **'AM'**
-  String get exSlotAm;
-
-  /// No description provided for @exSlotPm.
-  ///
-  /// In en, this message translates to:
-  /// **'PM'**
-  String get exSlotPm;
-
-  /// No description provided for @exTimeRangeInvalidEnd.
-  ///
-  /// In en, this message translates to:
-  /// **'End time must be later than the start time.'**
-  String get exTimeRangeInvalidEnd;
-
-  /// No description provided for @exTimeRangePrevStep.
-  ///
-  /// In en, this message translates to:
-  /// **'Previous step'**
-  String get exTimeRangePrevStep;
-
-  /// No description provided for @exTimeRangeNextStep.
-  ///
-  /// In en, this message translates to:
-  /// **'Next step'**
-  String get exTimeRangeNextStep;
-
   /// No description provided for @exConsultMessage.
   ///
   /// In en, this message translates to:
@@ -5340,12 +4591,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Return to Exercise'**
   String get exReturnExercise;
-
-  /// No description provided for @exConsultStatusSection.
-  ///
-  /// In en, this message translates to:
-  /// **'Consultation Request Status'**
-  String get exConsultStatusSection;
 
   /// No description provided for @exConsultHistoryTitle.
   ///
@@ -6684,24 +5929,6 @@ abstract class AppLocalizations {
   /// **'Use suggested split'**
   String get myGoalMacroApplySuggestion;
 
-  /// Health goal field label.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly workout count goal'**
-  String get myGoalWorkoutCount;
-
-  /// Health goal field label.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly workout minutes goal'**
-  String get myGoalWorkoutMinutes;
-
-  /// Health goal field label.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly calories burned goal (kcal)'**
-  String get myGoalWorkoutCalories;
-
   /// Footnote under a read-only health-goal card that has fields the member has never set. The number shown is the app-wide baseline in force, not the personalized recommendation the edit form offers.
   ///
   /// In en, this message translates to:
@@ -6785,12 +6012,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'My trainer'**
   String get coachAssignedTrainer;
-
-  /// Section title in the coaching card.
-  ///
-  /// In en, this message translates to:
-  /// **'This week\'s coaching points'**
-  String get coachPointsTitle;
 
   /// Section title in the coaching card.
   ///
@@ -7349,12 +6570,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove food'**
   String get a11yRemoveFood;
-
-  /// No description provided for @a11yOpenCalendar.
-  ///
-  /// In en, this message translates to:
-  /// **'Open schedule calendar'**
-  String get a11yOpenCalendar;
 
   /// No description provided for @a11yPrevWeek.
   ///
@@ -8254,12 +7469,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load the weekly feedback you sent'**
   String get weeklyFeedbackLoadFailed;
-
-  /// No description provided for @coachReportOpen.
-  ///
-  /// In en, this message translates to:
-  /// **'Open report'**
-  String get coachReportOpen;
 
   /// No description provided for @coachReportSentOn.
   ///
