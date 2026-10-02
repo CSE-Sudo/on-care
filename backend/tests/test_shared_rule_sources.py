@@ -26,6 +26,7 @@ from app.services import (
     trainer_report_summary_service,
     trainer_service,
 )
+from app.services.exercise_catalog import energy
 
 #: 원본 표 위치. 백엔드 이미지에는 없고 저장소에서 테스트할 때만 읽는다.
 SOURCES = Path(__file__).resolve().parents[2] / "shared/oncare_rules/vectors"
@@ -38,6 +39,7 @@ def _load(name: str) -> dict:
 
 
 GOAL_DEFAULTS = _load("goal_defaults")
+EXERCISE_ENERGY = _load("exercise_energy")
 
 
 # ── 목표 미설정 기본값 ────────────────────────────────────────────────────
@@ -88,3 +90,16 @@ def test_goal_defaults_module_has_no_value_missing_from_the_original() -> None:
 def test_every_server_default_reads_the_original(value: float, key: str) -> None:
     """모듈마다 남아 있던 기본값 이름이 모두 원본 값을 가리킨다."""
     assert value == GOAL_DEFAULTS[key]
+
+
+# ── 운동 칼로리 계수 ──────────────────────────────────────────────────────
+
+
+def test_intensity_factor_matches_the_shared_original() -> None:
+    """강도 배수가 회원 앱·트레이너 폼과 같은 원본 표의 값이다."""
+    assert energy.INTENSITY_FACTOR == EXERCISE_ENERGY["intensity_factor"]
+
+
+def test_fallback_kcal_per_minute_matches_the_shared_original() -> None:
+    """이름이 안 붙을 때의 유형별 분당 kcal 이 원본 표의 값이다."""
+    assert energy.FALLBACK_KCAL_PER_MIN == EXERCISE_ENERGY["fallback_kcal_per_min"]
