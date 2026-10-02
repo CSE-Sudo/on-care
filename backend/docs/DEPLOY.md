@@ -120,6 +120,8 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `REGISTER_PER_EMAIL_PER_HOUR` | 같은 이메일 가입 시도 시간당 상한(회원·트레이너 공용, 기본 5, #2913) |
 | `PASSWORD_CHANGE_MAX_FAILURES` | 비밀번호 변경의 현재 비밀번호 연속 실패 잠금(사용자 단위, 기본 5회, 창은 `LOGIN_LOCKOUT_SECONDS`, #2913) |
 | `EXPOSE_API_DOCS` | `/docs`·`/redoc`·`/openapi.json` 공개 여부(#2834). 비우면 운영은 닫힘(404). 스키마는 스테이징·로컬에서 본다 |
+| `SENTRY_DSN` | 에러 추적 수신 주소(#2839). 비우면 보내지 않음. 값은 #480 에서 채운다 |
+| `SENTRY_ENVIRONMENT` / `SENTRY_SAMPLE_RATE` | 선택. 비우면 `ENV` 값 / 기본 `1.0` |
 
 > **시도 제한은 인스턴스 메모리에 둔다**(`app/core/rate_limit.py`). App Runner 최소·최대 인스턴스가
 > 1 이 아니게 되면 한도가 인스턴스 수만큼 늘어나므로, 그때 공유 저장소(Redis 등) 구현으로 바꾼다.

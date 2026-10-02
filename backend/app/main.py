@@ -39,7 +39,7 @@ from app.api.v1 import (
     trainers,
     users,
 )
-from app.core import observability, startup_checks
+from app.core import error_tracking, observability, startup_checks
 from app.core.body_limit import BodyLimitRule, RequestBodySizeLimitMiddleware
 from app.core.client_ip import warn_if_untrusted_setup
 from app.core.client_platform import RequestClientPlatformMiddleware
@@ -47,11 +47,15 @@ from app.core.config import Settings, get_settings
 from app.core.locale import RequestLocaleMiddleware
 from app.core.security_headers import security_headers_for
 from app.db.init_db import init_db
+from app.services import audit
 from app.services import mailer
 
 settings = get_settings()
 # 로깅을 먼저 설정(요청 ID 포함 포맷). 이후 모듈 로거들이 이 설정을 따른다.
 observability.setup_logging(settings.log_level)
+# 에러 추적(#2839). SDK 가 FastAPI·Starlette 를 감싸므로 앱을 만들기 전에 초기화한다.
+# SENTRY_DSN 이 없거나 ENV=dev 면 아무것도 하지 않는다.
+error_tracking.init_error_tracking(settings)
 
 
 @asynccontextmanager
@@ -62,6 +66,8 @@ async def lifespan(app: FastAPI):
     # 프록시 뒤 운영에서 클라이언트 IP 를 소켓 주소로 읽게 설정됐으면 남긴다(#2815).
     warn_if_untrusted_setup(settings)
     init_db()
+    # 보존 기간이 지난 감사 기록 정리(#2830). 실패해도 기동은 계속된다.
+    audit.purge_expired_best_effort()
     # 메일 발송 수단이 없으면 기동 로그에 드러낸다 — 운영이면 재설정이 꺼진다(#2824).
     mailer.warn_if_disabled(settings)
     yield

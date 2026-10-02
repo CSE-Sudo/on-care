@@ -229,7 +229,9 @@ def redeem_pairing_code(
                 raise MemberAlreadyCoached("이미 담당하고 있는 회원이에요.")
             # 동의 없이 살아 있는 링크다. 회원이 코드를 띄운 것이 새 동의이므로
             # 그 시각을 적는다(#1631). 코드는 이미 소비됐다.
-            data_consent_service.grant(link, used.consented_at)
+            data_consent_service.grant(
+                link, used.consented_at, via=data_consent_service.VIA_PAIRING
+            )
             _close_pending_for_member(db, member.id, linked_trainer_id=trainer_id)
             db.commit()
             return _paired_out(db, member)
@@ -252,7 +254,11 @@ def redeem_pairing_code(
             )
 
         consultation_service.attach_member_to_trainer(
-            db, trainer_id, member.id, consented_at=used.consented_at
+            db,
+            trainer_id,
+            member.id,
+            consented_at=used.consented_at,
+            via=data_consent_service.VIA_PAIRING,
         )
         # 상담 뒤 현장에서 코드로 등록하는 것이 기본 흐름이다 — 상담에서 적은 운동
         # 목표를 이 연결로 잇는다. 상담 수락은 연결을 만들지 않는다(#2584).
@@ -429,11 +435,14 @@ def accept(
             row.trainer_id,
             member_id,
             consented_at=_now(),
+            via=data_consent_service.VIA_INVITE,
         )
         _flush_new_link(db)
     elif data_consent_service.blocks_access(existing):
         # 동의 없이 살아 있는 링크다 — 방금 받은 동의를 적는다. (#1631)
-        data_consent_service.grant(existing, _now())
+        data_consent_service.grant(
+            existing, _now(), via=data_consent_service.VIA_INVITE
+        )
     consultation_service.link_member_gym(
         db, member_id, consultation_service.trainer_gym_id(db, row.trainer_id)
     )

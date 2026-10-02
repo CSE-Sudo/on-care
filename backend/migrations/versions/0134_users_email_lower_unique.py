@@ -10,7 +10,7 @@
 메시지에 겹치는 이메일과 계정 id 를 적으므로, 정리한 뒤 다시 올리면 된다.
 
 Revision ID: 0134_users_email_lower_unique
-Revises: 0133_password_reset_tokens
+Revises: 0138_schema_model_alignment
 Create Date: 2026-10-01
 """
 from __future__ import annotations
@@ -21,7 +21,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0134_users_email_lower_unique"
-down_revision: str | Sequence[str] | None = "0133_password_reset_tokens"
+down_revision: str | Sequence[str] | None = "0138_schema_model_alignment"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

@@ -294,13 +294,24 @@ def test_audit_ip_ignores_spoofed_header(client, db_session):
 # ---- 연결 코드 트레이너 버킷 (DB) ----
 
 
-def _trainer_token(client) -> str:
+def _trainer_token(client, db_session) -> str:
+    from sqlalchemy import update
+
+    from app.models.models import TrainerProfile
+
     email = f"ip-trainer-{uuid4().hex[:10]}@oncare.com"
     response = client.post(
         "/v1/auth/trainer/register",
         json={"email": email, "password": PASSWORD, "name": "트레이너"},
     )
     assert response.status_code == 201, response.text
+    # 가입 직후는 승인 대기(#2825)라 트레이너 API 가 403 이다. 버킷만 보려고 바로 승인한다.
+    db_session.execute(
+        update(TrainerProfile)
+        .where(TrainerProfile.trainer_id == response.json()["id"])
+        .values(verification_status="approved")
+    )
+    db_session.commit()
     login = client.post("/v1/auth/login", data={"username": email, "password": PASSWORD})
     assert login.status_code == 200, login.text
     return login.json()["access_token"]
@@ -309,11 +320,11 @@ def _trainer_token(client) -> str:
 @pytest.mark.parametrize(
     "path", ["/v1/trainer/pairing-code/preview", "/v1/trainer/pairing-code"]
 )
-def test_trainer_daily_pairing_cap_survives_ip_rotation(client, monkeypatch, path):
+def test_trainer_daily_pairing_cap_survives_ip_rotation(client, db_session, monkeypatch, path):
     from app.core.config import get_settings
 
     monkeypatch.setattr(get_settings(), "pairing_redeem_per_day", 3)
-    token = _trainer_token(client)
+    token = _trainer_token(client, db_session)
     codes = []
     for i in range(5):
         response = client.post(
@@ -330,11 +341,11 @@ def test_trainer_daily_pairing_cap_survives_ip_rotation(client, monkeypatch, pat
     assert codes[3:] == [429, 429]
 
 
-def test_preview_and_redeem_share_trainer_bucket(client, monkeypatch):
+def test_preview_and_redeem_share_trainer_bucket(client, db_session, monkeypatch):
     from app.core.config import get_settings
 
     monkeypatch.setattr(get_settings(), "pairing_redeem_per_day", 2)
-    token = _trainer_token(client)
+    token = _trainer_token(client, db_session)
     headers = {"Authorization": f"Bearer {token}"}
     assert client.post(
         "/v1/trainer/pairing-code/preview", json={"code": "000000"}, headers=headers
@@ -347,13 +358,13 @@ def test_preview_and_redeem_share_trainer_bucket(client, monkeypatch):
     ).status_code == 429
 
 
-def test_trainer_bucket_is_per_trainer(client, monkeypatch):
+def test_trainer_bucket_is_per_trainer(client, db_session, monkeypatch):
     """한 트레이너가 한도를 다 써도 다른 트레이너는 시도할 수 있다."""
     from app.core.config import get_settings
 
     monkeypatch.setattr(get_settings(), "pairing_redeem_per_day", 1)
-    first = _trainer_token(client)
-    second = _trainer_token(client)
+    first = _trainer_token(client, db_session)
+    second = _trainer_token(client, db_session)
     path = "/v1/trainer/pairing-code/preview"
     assert client.post(
         path, json={"code": "000000"}, headers={"Authorization": f"Bearer {first}"}
