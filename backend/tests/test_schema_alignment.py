@@ -53,7 +53,7 @@ def test_init_db_has_no_schema_patch_code():
 
 def test_alignment_migration_backfills_before_not_null():
     """0127 은 남은 NULL 을 채운 뒤 제약을 건다 — 행을 지우지 않는다."""
-    text = (MIGRATIONS / "0127_schema_model_alignment.py").read_text(encoding="utf-8")
+    text = (MIGRATIONS / "0138_schema_model_alignment.py").read_text(encoding="utf-8")
     assert "IS NULL" in text
     assert text.index("UPDATE") < text.index("nullable=False")
     assert "DELETE" not in text

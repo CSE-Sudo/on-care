@@ -9,8 +9,8 @@ CI 가 테스트 기동 때 `create_all()` 로 스키마를 한 번 더 만들�
 - `coach_documents` 의 (user_id, source_ref) 인덱스는 0030 이 만든 것이 맞다. 모델에
   선언이 빠져 있던 쪽을 모델에서 고쳤으므로 여기서는 손대지 않는다.
 
-Revision ID: 0127_schema_model_alignment
-Revises: 0110_user_token_version
+Revision ID: 0138_schema_model_alignment
+Revises: 0131_health_notes_changed
 Create Date: 2026-10-01
 """
 from __future__ import annotations
@@ -20,8 +20,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0127_schema_model_alignment"
-down_revision: str | Sequence[str] | None = "0110_user_token_version"
+revision: str = "0138_schema_model_alignment"
+down_revision: str | Sequence[str] | None = "0131_health_notes_changed"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
