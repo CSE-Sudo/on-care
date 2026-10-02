@@ -25,6 +25,10 @@ def _prod(**kw) -> Settings:
         jwt_secret="a-strong-random-secret-value",
         cors_allow_origins="https://app.oncare.com",
         auto_create_tables=False,
+        # 운영 AI 키 가드(#2812) 충족 — conftest 의 EMBEDDER=hash 를 덮는다.
+        gemini_api_key="test-gemini-key",
+        recognizer="gemini",
+        embedder="gemini",
     )
     base.update(kw)
     return Settings(**base)
