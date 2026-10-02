@@ -1027,6 +1027,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | GET | `/trainer/clients/{member_id}/exercise-advice?period=` | 회원 `GET /exercise/advice` 와 같은 문장(#1025) |
 | GET | `/trainer/clients/{member_id}/records/span` | `{ diet_first_date, exercise_first_date }` — 회원 `GET /me/records/span` 과 같다 |
 | GET | `/trainer/clients/{member_id}/history` | `RoutineHistoryOut[]` — 운동 완료 기록(최신순). 다른 트레이너의 기록·메모는 뺀다 |
+| GET | `/trainer/clients/{member_id}/feedbacks` | `ClientFeedbackOut[]` — 그 회원과 주고받은 피드백 모아 보기(최신 먼저, 최근 90일). 완료 PT 피드백·보낸 주간 리포트·회원 주간 피드백. 읽기 전용, 해제·비담당 회원 404 (#2615) |
 | GET | `/trainer/chat/unread` | `{ "<member_id>": 안 읽은 수 }` — 로스터 배지용 |
 | GET | `/trainer/clients/{member_id}/chat?limit=&before=&before_id=` | `ChatMessageOut[]`(오래된→최신, 기본 최신 50건) |
 | POST | `/trainer/clients/{member_id}/chat` | `{ text, emote_id?, client_request_id? }` → **201** `ChatMessageOut`. 빈 메시지·모르는 이모티콘 400 |
@@ -1044,6 +1045,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/trainer/follow-ups/{task_id}/complete` | `TrainerFollowUpTaskOut` — 반복해도 성공, 완료 시각 유지 |
 | GET | `/trainer/dashboard/task-progress` | `{ first_saved_date, days[] }` — 대시보드 오늘 할 일 진행 상태(#1633) |
 | PUT | `/trainer/dashboard/task-progress/{day}` | `{ total, completed_today, completed_carried_over, pending_keys, dismissed_keys, completed_keys }` → 그날 한 칸. KST 오늘·어제만 받는다 |
+| POST | `/trainer/dashboard/task-progress/{day}/keys` | `TrainerTaskKeyChange` → 반영 뒤의 그날 한 칸. 할 일 키 하나만 체크·해제·삭제해 다른 탭·기기의 변경을 덮지 않는다. KST 오늘·어제만, 그 밖은 422 (#2886) |
 | GET | `/trainer/clients/{member_id}/routines` | `RoutineOut[]` — 배정한 루틴 |
 | POST | `/trainer/clients/{member_id}/routines` | `RoutineAssignRequest` → **201** `RoutineOut` — 루틴 배정. 이름 없음 400 |
 | PUT | `/trainer/clients/{member_id}/routines/{routine_id}` | `{ name?, minutes?, duration_seconds?, type?, reason? }` → `RoutineOut`(#504, #2547) |
