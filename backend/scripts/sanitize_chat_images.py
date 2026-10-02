@@ -57,12 +57,13 @@ def main(argv: list[str] | None = None) -> int:
             if file_id in skip:
                 skipped += 1
                 continue
+            # 로컬 디스크든 S3 든 저장소가 정한 자리에서 읽는다(#2817).
             try:
-                path, _ = chat_image_storage.path_for(file_id)
+                opened, _ = chat_image_storage.open_image(file_id)
             except FileNotFoundError:
                 missing += 1
                 continue
-            raw = path.read_bytes()
+            raw = opened.read_all()
             if not args.apply:
                 rewritten += 1
                 continue

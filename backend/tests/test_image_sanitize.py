@@ -204,8 +204,8 @@ def test_storage_save_writes_the_cleaned_bytes(tmp_path, monkeypatch):
 
     stored = chat_image_storage.save(_jpeg(exif=_exif()))
 
-    path, media_type = chat_image_storage.path_for(stored.file_id)
-    written = path.read_bytes()
+    opened, media_type = chat_image_storage.open_image(stored.file_id)
+    written = opened.read_all()
     assert media_type == "image/jpeg"
     assert stored.size == len(written)
     assert not dict(_open(written).getexif())
@@ -233,8 +233,8 @@ def test_seed_assets_can_skip_cleaning(tmp_path, monkeypatch):
         original, file_id="0" * 32, sanitize=False
     )
 
-    path, _ = chat_image_storage.path_for(stored.file_id)
-    assert path.read_bytes() == original
+    opened, _ = chat_image_storage.open_image(stored.file_id)
+    assert opened.read_all() == original
 
 
 # ---- 끼니 사진과 같은 함수 ----

@@ -289,13 +289,13 @@ def test_the_backfill_script_cleans_files_saved_before_the_fix(client, db_sessio
 
     # 점검만 — 아무것도 바꾸지 않는다.
     assert sanitize_chat_images.main([]) == 0
-    path, _ = chat_image_storage.path_for(stored.file_id)
-    assert path.read_bytes() == raw
+    opened, _ = chat_image_storage.open_image(stored.file_id)
+    assert opened.read_all() == raw
 
     assert sanitize_chat_images.main(["--apply"]) == 0
 
-    path, media_type = chat_image_storage.path_for(stored.file_id)
-    cleaned = path.read_bytes()
+    opened, media_type = chat_image_storage.open_image(stored.file_id)
+    cleaned = opened.read_all()
     assert media_type == "image/jpeg"
     assert not dict(_open(cleaned).getexif())
     db_session.expire_all()
