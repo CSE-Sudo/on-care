@@ -92,6 +92,7 @@ dependencies:
   pdf: ^3.11.3
   image_picker: ^1.2.3
   geolocator: ^14.0.2
+  sentry_flutter: ^8.14.2
 
   # NOTE: Social-login SDKs (sign_in_with_apple / google_sign_in /
   # kakao_flutter_sdk_user / flutter_naver_login) are added in Stage 4

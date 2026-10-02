@@ -38,7 +38,12 @@ void main() {
       tester.widget<Text>(find.text(data));
 
   testWidgets('밀도가 이름 글씨·아바타 크기를 정한다', (tester) async {
-    final TrainerClient client = makeClient(name: '가회원', goal: goal);
+    final TrainerClient client = makeClient(
+      name: '가회원',
+      goal: goal,
+      gender: 'female',
+      age: 29,
+    );
     for (final ClientRowDensity density in ClientRowDensity.values) {
       await pumpBlock(tester, ClientRow(client: client, density: density));
       final BuildContext context = tester.element(find.byType(ClientRow));
@@ -108,23 +113,42 @@ void main() {
   });
 
   testWidgets('둘째 줄은 바꾸거나 숨길 수 있고, 비면 줄을 만들지 않는다', (tester) async {
+    // 이름·성별/나이·둘째 줄을 센다 — 성별·나이가 빈 회원은 그 칸이 따로 빠진다(#2814).
     await pumpBlock(
       tester,
       Column(
         children: <Widget>[
           ClientIdentityBlock(
             key: const ValueKey<String>('detail'),
-            client: makeClient(id: 'a', name: '가회원', goal: goal),
+            client: makeClient(
+              id: 'a',
+              name: '가회원',
+              goal: goal,
+              gender: 'female',
+              age: 29,
+            ),
             detail: '9월 28일 전송',
           ),
           ClientIdentityBlock(
             key: const ValueKey<String>('hidden'),
-            client: makeClient(id: 'b', name: '나회원', goal: goal),
+            client: makeClient(
+              id: 'b',
+              name: '나회원',
+              goal: goal,
+              gender: 'female',
+              age: 29,
+            ),
             showDetail: false,
           ),
           ClientIdentityBlock(
             key: const ValueKey<String>('empty'),
-            client: makeClient(id: 'c', name: '다회원', goal: ''),
+            client: makeClient(
+              id: 'c',
+              name: '다회원',
+              goal: '',
+              gender: 'female',
+              age: 29,
+            ),
           ),
         ],
       ),

@@ -107,8 +107,11 @@ class ClientIdentityBlock extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       style: clientNameStyle(context, density),
     );
+    // 성별·나이가 모두 없으면(담당 해제·동의 철회 회원, #2814) 이 칸을 그리지
+    // 않는다 — 빈 글씨라도 이름 옆 간격이 남는다.
+    final String demographicsText = clientDemographicsLabel(context, client);
     final Widget demographics = Text(
-      clientDemographicsLabel(context, client),
+      demographicsText,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: clientDemographicsStyle(context),
@@ -121,15 +124,20 @@ class ClientIdentityBlock extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        if (stacked) ...<Widget>[name, demographics] else
+        if (stacked) ...<Widget>[
+          name,
+          if (demographicsText.isNotEmpty) demographics,
+        ] else
           Row(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: <Widget>[
               Flexible(child: name),
-              const SizedBox(width: OnCareSpacing.s4),
-              Flexible(child: demographics),
+              if (demographicsText.isNotEmpty) ...<Widget>[
+                const SizedBox(width: OnCareSpacing.s4),
+                Flexible(child: demographics),
+              ],
             ],
           ),
         if (second.trim().isNotEmpty)

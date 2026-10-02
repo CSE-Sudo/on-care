@@ -23,6 +23,10 @@ String clientDemographicsLabel(BuildContext context, TrainerClient client) =>
 ///
 /// [age] 가 `null` 이면(회원이 생년월일을 넣지 않았다) 성별만 적는다 — 나이를
 /// 지어내지 않는다(#2744).
+///
+/// [gender] 가 비어 있으면 성별을 적지 않는다(#2814) — 담당 해제·동의 철회
+/// 회원은 서버가 성별·나이를 비워 보내고, 둘 다 없으면 빈 문자열이다. 빈
+/// 값을 `기타` 로 읽으면 가린 자리에 성별이 있는 것처럼 보인다.
 String demographicsLabel(
   BuildContext context, {
   required String gender,
@@ -31,11 +35,16 @@ String demographicsLabel(
   // 성별·나이 문구는 ARB 가 정한다 (#2304) — 예전의 `korean ?` 분기는 두 언어만
   // 코드에 박아 두어, 로케일이 늘면 그 언어도 영어로 떨어졌다.
   final AppLocalizations l = AppLocalizations.of(context);
-  final genderLabel = switch (gender) {
-    'female' => l.memberHealthGenderFemale,
-    'male' => l.memberHealthGenderMale,
-    _ => l.memberHealthGenderOther,
-  };
+  final String? genderLabel = gender.trim().isEmpty
+      ? null
+      : switch (gender) {
+          'female' => l.memberHealthGenderFemale,
+          'male' => l.memberHealthGenderMale,
+          _ => l.memberHealthGenderOther,
+        };
+  if (genderLabel == null) {
+    return age == null ? '' : l.coachClientAge(age);
+  }
   if (age == null) return genderLabel;
   return l.coachClientDemographics(genderLabel, age);
 }

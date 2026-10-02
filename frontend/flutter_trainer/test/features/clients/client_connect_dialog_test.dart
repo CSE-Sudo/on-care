@@ -173,8 +173,8 @@ void main() {
   });
 
   testWidgets('성별·나이를 안 넣은 회원도 목록과 같은 표기로 뜬다', (tester) async {
-    // 확인 카드는 목록과 같은 표기를 쓴다. 나이는 지어내지 않으므로(#2744)
-    // 성별만 남는다 — 목록도 같은 회원을 똑같이 성별만으로 적는다.
+    // 확인 카드는 목록과 같은 표기를 쓴다. 나이도(#2744) 성별도(#2814)
+    // 지어내지 않으므로 이름과 목표만 남는다 — 목록도 같은 회원을 똑같이 적는다.
     final repository = _FakeInviteRepository(
       paired: const PairedMember(
         memberId: 'user-8f2a41c9d6e3',
@@ -188,7 +188,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.textContaining(RegExp(r'^(남성|여성|기타)$')), findsOneWidget);
+    expect(find.text('이수아'), findsOneWidget);
+    expect(find.text('체지방 감량'), findsOneWidget);
+    expect(find.textContaining(RegExp(r'^(남성|여성|기타)$')), findsNothing);
     expect(find.textContaining(RegExp(r'\d+세')), findsNothing);
   });
 
