@@ -46,6 +46,12 @@ dependencies:
   oncare_rules:
     path: ../../shared/oncare_rules
 
+  # --- 네트워크·인증·시각 기반 ---
+  # 토큰 갱신·인증/언어 헤더·요청 ID·폴링·KST 시계(#2907). 트레이너 웹과 같은
+  # 백엔드 인증 규칙을 상대하므로 한 벌을 함께 쓴다. provider 는 앱에 둔다.
+  oncare_core:
+    path: ../../shared/oncare_core
+
   # --- UI 규격 ---
   # 두 앱이 같은 토큰·테마·컴포넌트를 쓴다(#1690). 화면마다 크기·색을 적지 않는다.
   oncare_ui:

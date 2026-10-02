@@ -6,11 +6,11 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
+import 'package:oncare_core/clock.dart';
 
 import '../../helpers/fake_member_coach_repository.dart';
 

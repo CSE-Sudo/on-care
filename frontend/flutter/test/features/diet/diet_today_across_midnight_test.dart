@@ -8,8 +8,8 @@ library;
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare_core/clock.dart';
 
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/kst_date_pin.dart';

@@ -3,11 +3,12 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
+import 'package:oncare_core/active_polling_stream.dart';
 
-/// 폴링은 "화면에 보이는가" 로 멈춘다 — 창 포커스만 잃은(`inactive`) 동안은
-/// 이어 가고, 가려지거나(`hidden`) 최소화·백그라운드(`paused`)에서만 멈춘다.
-/// (#2869)
+/// 트레이너 웹(`keepPollingWhileInactive: true`)의 폴링은 "화면에 보이는가" 로
+/// 멈춘다 — 창 포커스만 잃은(`inactive`) 동안은 이어 가고, 가려지거나(`hidden`)
+/// 최소화·백그라운드(`paused`)에서만 멈춘다. (#2869) 회원 앱(기본값)은 예전처럼
+/// `resumed` 에서만 폴링한다.
 ///
 /// 기존 폴링 테스트처럼 `testWidgets` 가 아니라 `test` 로 돈다 — 이 스트림의
 /// 수명 관찰자를 `testWidgets` 안에서 붙였다 떼면 테스트 마무리가 끝나지 않는다.
@@ -24,14 +25,26 @@ void main() {
   /// 타이머가 끼어들지 않는 주기 — 즉시 읽기와 중복 요청을 셀 때.
   const Duration never = Duration(days: 1);
 
+  bool visible(AppLifecycleState? state) =>
+      pollsWhileIn(state, keepPollingWhileInactive: true);
+
   group('pollsWhileIn', () {
     test('보이는 상태(resumed·inactive)와 상태 전(null)은 폴링한다', () {
-      expect(pollsWhileIn(null), isTrue);
-      expect(pollsWhileIn(AppLifecycleState.resumed), isTrue);
-      expect(pollsWhileIn(AppLifecycleState.inactive), isTrue);
+      expect(visible(null), isTrue);
+      expect(visible(AppLifecycleState.resumed), isTrue);
+      expect(visible(AppLifecycleState.inactive), isTrue);
     });
 
     test('가려진 상태(hidden·paused·detached)는 멈춘다', () {
+      expect(visible(AppLifecycleState.hidden), isFalse);
+      expect(visible(AppLifecycleState.paused), isFalse);
+      expect(visible(AppLifecycleState.detached), isFalse);
+    });
+
+    test('기본값(회원 앱)은 resumed 와 상태 전(null)에서만 폴링한다', () {
+      expect(pollsWhileIn(null), isTrue);
+      expect(pollsWhileIn(AppLifecycleState.resumed), isTrue);
+      expect(pollsWhileIn(AppLifecycleState.inactive), isFalse);
       expect(pollsWhileIn(AppLifecycleState.hidden), isFalse);
       expect(pollsWhileIn(AppLifecycleState.paused), isFalse);
       expect(pollsWhileIn(AppLifecycleState.detached), isFalse);
@@ -40,12 +53,13 @@ void main() {
 
   /// 호출 수를 세는 폴링 스트림을 듣는다. 테스트 끝에 [stop] 으로 끊는다.
   ({List<int> emitted, int Function() calls, Future<void> Function() stop})
-  listen(Duration every) {
+  listen(Duration every, {bool keepPollingWhileInactive = true}) {
     var calls = 0;
     final List<int> emitted = <int>[];
     final StreamSubscription<int> subscription = activePollingStream<int>(
       load: () async => ++calls,
       interval: every,
+      keepPollingWhileInactive: keepPollingWhileInactive,
     ).listen(emitted.add);
     return (emitted: emitted, calls: () => calls, stop: subscription.cancel);
   }
@@ -165,6 +179,22 @@ void main() {
     setState(AppLifecycleState.inactive);
     await settle();
     expect(probe.calls(), 1);
+    await probe.stop();
+  });
+
+  test('기본값(회원 앱)은 inactive 에서 멈추고 resumed 로 돌아오면 즉시 읽는다', () async {
+    final probe = listen(interval, keepPollingWhileInactive: false);
+    await settle();
+    expect(probe.calls(), 1);
+
+    setState(AppLifecycleState.inactive);
+    final int before = probe.calls();
+    await Future<void>.delayed(interval * 5);
+    expect(probe.calls(), before);
+
+    setState(AppLifecycleState.resumed);
+    await settle();
+    expect(probe.calls(), before + 1);
     await probe.stop();
   });
 }

@@ -7,7 +7,6 @@ import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/points/demo_emote_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
-import 'package:oncare/core/utils/active_polling_stream.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
@@ -23,6 +22,7 @@ import 'package:oncare/features/member_coach/domain/entities/emote_state.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/emote_repository.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
+import 'package:oncare_core/active_polling_stream.dart';
 
 /// Selects the real Dio-backed coach repository against the FastAPI backend,
 /// or the in-memory demo for `USE_MOCK_API=true`. One mock instance per

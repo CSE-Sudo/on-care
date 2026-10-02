@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/app/app_icons.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/member_coach/data/repositories/chat_pdf_repository.dart';
 import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
@@ -22,6 +21,7 @@ import 'package:oncare/features/member_coach/presentation/widgets/coach_report_c
 import 'package:oncare/features/member_coach/presentation/widgets/coach_report_opener.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/emote_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_report/oncare_report.dart' show PdfPagesView;
 import 'package:oncare_ui/oncare_ui.dart';
 
