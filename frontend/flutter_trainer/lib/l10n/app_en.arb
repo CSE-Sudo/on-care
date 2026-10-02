@@ -2461,6 +2461,7 @@
   "clientQuickProgram": "Program",
   "clientQuickReport": "Report",
   "clientProfileSectionTitle": "Body and goals",
+  "clientMemoDialogTitle": "Memos & feedback",
   "clientTrainerMemo": "Memo",
   "clientHealthUnset": "Not set",
   "clientHealthTabBody": "Body",

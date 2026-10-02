@@ -3665,6 +3665,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientProfileSectionTitle => '신체·목표';
 
   @override
+  String get clientMemoDialogTitle => '메모·피드백';
+
+  @override
   String get clientTrainerMemo => '메모';
 
   @override

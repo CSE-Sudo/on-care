@@ -6685,6 +6685,12 @@ abstract class AppLocalizations {
   /// **'Body and goals'**
   String get clientProfileSectionTitle;
 
+  /// No description provided for @clientMemoDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Memos & feedback'**
+  String get clientMemoDialogTitle;
+
   /// No description provided for @clientTrainerMemo.
   ///
   /// In en, this message translates to:
