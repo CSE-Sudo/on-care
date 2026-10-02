@@ -92,14 +92,14 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Python
         # 이동 가능한 태그(@v5)는 쓰지 않는다 — 태그가 옮겨지면 검토하지 않은
         # action 코드가 CI 에서 돈다. 다른 스텝들과 같이 커밋 SHA 로 고정한다.
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           # 운영 이미지·백엔드 CI 와 같은 버전을 한 곳에서 읽는다(#2837).
           python-version-file: backend/.python-version

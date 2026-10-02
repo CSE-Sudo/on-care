@@ -2020,6 +2020,10 @@ class WeeklyReportOut(BaseModel):
     fat_target: float | None = None
     #: 월→일 7칸. 이행률과 함께 그날의 운동 내역을 담는다(#754).
     days: list[WeeklyReportDayOut] = Field(default_factory=list)
+    #: 칼로리 `평소` — 직전 4주(28일)에 기록한 날의 하루 평균 kcal(#2863).
+    #: 편집기가 이번 주 칼로리를 견주는 기준이다. 예전에는 앱이 직전 4주
+    #: 리포트·회원 피드백을 통째로 다시 불러 계산했다. 기록이 없으면 null.
+    calorie_baseline: float | None = None
     message: str                 # 회원에게 전송될 본문(미리보기와 동일)
 
 
@@ -2136,6 +2140,26 @@ class ReportSendOut(BaseModel):
     has_pdf: bool
     #: 그 주 리포트를 몇 번 보냈는가. 다시 보낸 적이 있으면 2 이상이다.
     send_count: int = Field(ge=1)
+
+
+class ReportQueueItemOut(BaseModel):
+    """리포트 작업대 한 줄의 수치 — 담당 회원 한 명의 그 주. (#2863)
+
+    작업대가 줄 순서와 신호를 세우는 데 쓰는 값만 싣는다. 같은 회원의
+    `WeeklyReportOut` 과 **같은 규칙·같은 값**이다(`sessions_*`·`completion_avg`·
+    `week_completion`). 식단·회원 피드백은 편집기를 열 때 리포트가 따로 준다.
+    """
+    member_id: str
+    sessions_booked: int
+    sessions_done: int
+    completion_avg: int | None   # 기록이 없으면 null (0% 아님)
+    week_completion: list[int] = Field(default_factory=list)
+
+
+class ReportQueueOut(BaseModel):
+    """그 주 리포트 작업대 — 열람할 수 있는 담당 회원 전원의 요약. (#2863)"""
+    week_start: str              # YYYY-MM-DD (월요일)
+    items: list[ReportQueueItemOut] = Field(default_factory=list)
 
 
 class ReportSendsOut(BaseModel):

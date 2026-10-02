@@ -3437,6 +3437,7 @@
   "reportsAiUseAsDraft": "Use as feedback",
   "reportsAiRegenerate": "Regenerate",
   "reportsAiUnavailable": "Available after the report summary API is connected. No summary is generated now.",
+  "reportsAiFailed": "Couldn't create the summary. Please try again.",
   "reportsPdfGenerationFailed": "Couldn't generate the PDF. Please try again.",
   "reportsPdfFallbackClient": "member",
   "reportsPdfDocTitle": "Weekly coaching report",

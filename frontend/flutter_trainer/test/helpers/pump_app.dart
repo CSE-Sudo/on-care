@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show DatabaseConnection;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -125,7 +126,19 @@ Future<ProviderContainer> pumpTrainerApp(
   tester.platformDispatcher.localesTestValue = <Locale>[locale];
   addTearDown(tester.platformDispatcher.clearLocalesTestValue);
 
-  final db = AppDatabase.forTesting(NativeDatabase.memory());
+  // drift 는 마지막 구독자가 떠난 쿼리 스트림을 한 이벤트 루프 뒤
+  // (`Timer.run`)에 치운다. 그 타이머는 구독을 끊는 자리의 zone 에 걸리는데,
+  // 여러 리포트를 묶는 작업대 요약(`reportQueueFromReports`, #2863)처럼
+  // StreamController 로 감싼 스트림은 끊기가 테스트 본문의 fake async zone 에서
+  // 돈다. 테스트가 끝난 뒤에는 그 zone 을 아무도 펌프하지 않아 타이머가 영영
+  // 울리지 않고, 정리 단계의 `db.close()` 가 그 타이머를 기다리며 멈춘다.
+  // 테스트에서는 바로 치우게 둔다 — drift 가 테스트용으로 둔 옵션이다.
+  final db = AppDatabase.forTesting(
+    DatabaseConnection(
+      NativeDatabase.memory(),
+      closeStreamsSynchronously: true,
+    ),
+  );
   if (seedClock != null) useFixedKstDate(seedClock);
   if (seed) await seedIfEmpty(db, clock: seedClock);
   addTearDown(() async => db.close());

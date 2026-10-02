@@ -84,6 +84,7 @@ class WeeklyReport implements ReportSheetWeek {
     this.days = const <ReportDay>[],
     this.mealCounts = const <int>[],
     this.memberFeedback,
+    this.calorieBaseline,
   });
 
   /// Who the report is about.
@@ -188,6 +189,14 @@ class WeeklyReport implements ReportSheetWeek {
   /// 그 둘은 다음 주 처방이 정반대라, 갈림길은 회원 본인의 답이 정한다.
   final MemberWeeklyFeedback? memberFeedback;
 
+  /// 직전 4주(`kCalorieBaselineWeeks`) 동안 기록한 날의 하루 평균 칼로리 — ①
+  /// 섭취 칼로리 줄이 견주는 `평소`. (#2232, #2863)
+  ///
+  /// 리포트와 함께 온다. 예전에는 화면이 직전 4주 리포트(와 회원 피드백)를
+  /// 통째로 다시 불러 칼로리 배열만 꺼내 썼다. 기록이 없으면 null 이고, 그때는
+  /// 비교 줄을 그리지 않는다 — `평소 0kcal` 은 굶었다는 뜻으로 읽힌다.
+  final double? calorieBaseline;
+
   @override
   String get memberName => client.name;
 
@@ -235,6 +244,7 @@ class WeeklyReport implements ReportSheetWeek {
       for (final ReportDay day in days)
         '${day.completion}:${day.assigned}:${day.exercises.join('␟')}',
       mealCounts.join(','),
+      calorieBaseline,
       if (member == null)
         '-'
       else
@@ -300,6 +310,11 @@ class WeeklyReport implements ReportSheetWeek {
   /// 당류 판정에 쓰는 하루 기준.
   double get sugarLimit => sugarTarget ?? sugarLimitG;
 
+  /// 나트륨 초과를 가르는 하루 기준(mg) — 회원 목표, 없으면 공통 기준.
+  /// [sodiumOverDays] 를 센 기준과 같다(#2885). 문장에 적는 목표가 이것과
+  /// 다르면 `목표 1,500mg` 옆에 2,000mg 기준 초과일이 선다.
+  int get sodiumLimit => sodiumLimitOf(sodiumTarget);
+
   /// 기록된 날의 하루 평균 당류. 기록이 없으면 null.
   double? get sugarMean => recordedMean(sugarWeek);
 
@@ -330,6 +345,7 @@ WeeklyReport buildWeeklyReport({
   WeekSeries? week,
   MemberWeeklyFeedback? memberFeedback,
   ReportTargets targets = const ReportTargets(),
+  double? calorieBaseline,
 }) {
   final start = weekStartOf(weekStart);
   final end = start.add(const Duration(days: 6));
@@ -359,7 +375,11 @@ WeeklyReport buildWeeklyReport({
     sessionsBooked: inWeek.length,
     sessionsDone: inWeek.where((s) => s.isDone).length,
     completionAvg: mean,
-    sodiumOverDays: series == null ? null : sodiumOverDaysOf(series.sodium),
+    // 초과일은 그 회원의 나트륨 목표로 센다 — 실서버 `sodium_over_days` 와
+    // 같은 기준이다(#2885).
+    sodiumOverDays: series == null
+        ? null
+        : sodiumOverDaysOf(series.sodium, sodiumLimitOf(targets.sodium)),
     sodiumAvg: series == null ? null : recordedMean(series.sodium)?.round(),
     weekCompletion: series?.completion ?? const <int>[],
     days: series?.days ?? const <ReportDay>[],
@@ -378,6 +398,7 @@ WeeklyReport buildWeeklyReport({
     effectiveProteinTarget: targets.effectiveProtein,
     fatTarget: targets.fat,
     memberFeedback: memberFeedback,
+    calorieBaseline: calorieBaseline,
   );
 }
 
@@ -495,9 +516,17 @@ class WeekSeries {
   final List<int> mealCounts;
 }
 
-/// 나트륨 목표를 넘긴 날 수.
-int sodiumOverDaysOf(List<int> sodium) =>
-    sodium.where((mg) => mg > sodiumTargetMg).length;
+/// 나트륨 초과를 가르는 하루 기준(mg) — 회원 목표 [target], 없거나 0 이하면
+/// 공통 기준. 실서버 `sodium_limit_mg` 와 같은 규칙이다(#2885).
+int sodiumLimitOf(int? target) =>
+    target != null && target > 0 ? target : sodiumTargetMg;
+
+/// 나트륨 하루 기준 [limit](기본: 공통 기준)을 넘긴 날 수.
+///
+/// 리포트는 회원 목표를 넘긴다(#2885) — 공통 기준으로 세면 목표가 1,500mg 인
+/// 회원의 1,800mg 날이 목표 안으로 읽힌다.
+int sodiumOverDaysOf(List<int> sodium, [int limit = sodiumTargetMg]) =>
+    sodium.where((mg) => mg > limit).length;
 
 /// The message body sent to the member's chat thread.
 ///
@@ -624,7 +653,8 @@ List<String> _dietSentences(AppLocalizations l, WeeklyReport report) {
   if (sodium != null) {
     final over = report.sodiumOverDays ?? 0;
     final String avg = formatNumber(sodium);
-    final String target = formatNumber(sodiumTargetMg);
+    // 초과일을 센 기준과 같은 목표를 적는다(#2885).
+    final String target = formatNumber(report.sodiumLimit);
     diet.add(
       over > 0
           ? l.reportBodySodiumOver(avg, target, over)
@@ -763,7 +793,12 @@ String exerciseBaseName(String line) {
   var name = line.replaceAll('✗', '').replaceAll('✓', '').trim();
   final cut = name.indexOf('·');
   if (cut > 0) name = name.substring(0, cut).trim();
-  final RegExp amount = RegExp(r'\s*\d+(?:\.\d+)?\s*(?:분|초|kg|km|회|세트)$');
+  // 영어 분량(`30 min`, `12 reps`)도 뗀다 — 영어 리포트에서 같은 운동이
+  // 분량마다 다른 운동으로 세어지지 않게(#2885).
+  final RegExp amount = RegExp(
+    r'\s*\d+(?:\.\d+)?\s*(?:분|초|kg|km|회|세트|mins?|secs?|reps?|sets?)$',
+    caseSensitive: false,
+  );
   while (amount.hasMatch(name)) {
     name = name.replaceAll(amount, '').trim();
   }
