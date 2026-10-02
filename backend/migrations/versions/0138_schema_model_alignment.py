@@ -10,7 +10,7 @@ CI 가 테스트 기동 때 `create_all()` 로 스키마를 한 번 더 만들�
   선언이 빠져 있던 쪽을 모델에서 고쳤으므로 여기서는 손대지 않는다.
 
 Revision ID: 0138_schema_model_alignment
-Revises: 0133_password_reset_tokens
+Revises: 0137_audit_log_target
 Create Date: 2026-10-01
 """
 from __future__ import annotations
@@ -21,7 +21,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0138_schema_model_alignment"
-down_revision: str | Sequence[str] | None = "0133_password_reset_tokens"
+down_revision: str | Sequence[str] | None = "0137_audit_log_target"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
