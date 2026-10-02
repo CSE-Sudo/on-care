@@ -28,17 +28,31 @@ class MockAiCoachRepository implements AiCoachRepository {
     String? clientRequestId,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 400));
+    // 같은 키의 재전송은 서버 `_replay` 처럼 저장한 답을 그대로 준다 — 다시 세지
+    // 않는다. (#2846)
+    final ChatMessage? replayed = clientRequestId == null
+        ? null
+        : _replies[clientRequestId];
+    if (replayed != null) return replayed;
     _sent.add((
       id: 'mock-user-${_sent.length + 1}',
       at: nowKst(),
       text: message,
     ));
-    return ChatMessage(
+    final ChatMessage reply = ChatMessage(
       role: ChatRole.coach,
       content: '기록을 보고 도와드릴게요. 식단·운동에 대해 더 구체적으로 물어봐 주세요.',
       replyToInsight: detectChatInsight(message),
     );
+    if (clientRequestId != null) _replies[clientRequestId] = reply;
+    return reply;
   }
+
+  /// 키별로 돌려준 답. 같은 키로 다시 오면 이것을 준다. (#2846)
+  final Map<String, ChatMessage> _replies = <String, ChatMessage>{};
+
+  /// 이 세션에 센 메시지 수 — 같은 키 재전송이 다시 세지 않는지 테스트가 본다.
+  int get sentCount => _sent.length;
 
   /// 회원이 치운 줄. 실서버의 `insight_dismissed` 에 해당한다(#1975).
   final Set<String> _dismissed = <String>{};

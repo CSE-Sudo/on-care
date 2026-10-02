@@ -775,6 +775,8 @@
   "exKakaoMapArea": "Kakao Map area",
   "myTabTitle": "MY",
   "myDefaultUserName": "User",
+  "myProfileLoadFailed": "Couldn't load your profile",
+  "myPointsLoadFailed": "Couldn't load your points balance",
   "mySettingsTitle": "Settings",
   "myProfileTitle": "My Profile",
   "myNotifTitle": "Notification Settings",
@@ -1428,6 +1430,8 @@
   "emoteBuyAction": "Buy",
   "emoteBought": "You can send this emote now",
   "emoteBuyFailed": "We could not buy the emote. Please try again in a moment.",
+  "emoteAlreadyUnlocked": "This emote is already unlocked. You can send it now",
+  "emoteTrainerRequired": "You need a trainer to buy emotes",
   "emoteShortfall": "Not enough points",
   "emoteLoadFailed": "We could not load the emotes",
   "emoteSendFailed": "We could not send the emote",
@@ -1522,10 +1526,8 @@
   "myFieldHeight": "Height (cm)",
   "myFieldWeight": "Weight (kg)",
   "myFieldGoals": "Health and exercise goals",
-  "myNotifDietLog": "Diet log reminder",
   "myNotifExercise": "Exercise reminder",
   "myNotifTrainer": "Trainer message",
-  "myNotifAiCoaching": "AI coaching tips",
   "myNotifWeeklyReport": "Weekly report",
   "mySupportFaq": "FAQ",
   "mySupportInquiry": "1:1 Inquiry",
@@ -2660,6 +2662,8 @@
   "@aiCoachFailure": {
     "description": "Bubble shown when the coach reply could not be fetched."
   },
+  "aicResend": "Send again",
+  "aicSendFailedMine": "Not sent · Long-press to edit",
   "actionCancel": "Cancel",
   "@actionCancel": {
     "description": "Generic cancel button in shared dialogs."
@@ -2700,6 +2704,9 @@
   "@myHealthGoalsTitle": {
     "description": "Title of the health goals sheet."
   },
+  "myFirstRunPromptTitle": "Enter your basics for tailored goals",
+  "myFirstRunPromptBody": "You skipped the first-time setup. Add your birth date, height and weight and we will suggest diet and exercise goals that fit you.",
+  "myFirstRunPromptAction": "Enter basics",
   "myGoalsFocusSection": "What you want to focus on",
   "myGoalsFocusHint": "Pick what you want to focus on in your health care. (up to 2)",
   "myGoalsFocusLastChanged": "Last changed by {who} · {date}",
@@ -2885,6 +2892,8 @@
   "@myNotificationSaveFailed": {
     "description": "Shown when saving notification settings fails."
   },
+  "myNotifLoadFailed": "Couldn't load notification settings",
+  "myNotifLoadFailedBody": "These are default values and may differ from your saved settings",
   "myPointsGuideTitle": "How to earn points",
   "@myPointsGuideTitle": {
     "description": "Title of the points guide dialog."
@@ -3148,6 +3157,9 @@
   "@alertLoadFailed": {
     "description": "Shown when the notification list fails to refresh."
   },
+  "alertMarkAllReadFailed": "Couldn't mark all as read. Please try again shortly",
+  "alertCoachChatFailed": "Couldn't load your trainer, so the chat can't open. Please try again shortly",
+  "alertCoachChatNoTrainer": "You have no assigned trainer, so the chat can't open",
   "alertTimeJustNow": "Just now",
   "@alertTimeJustNow": {
     "description": "Relative time for a notification less than a minute old."
@@ -3182,22 +3194,6 @@
         "type": "int"
       }
     }
-  },
-  "demoAlertSodiumTitle": "Watch your sodium",
-  "@demoAlertSodiumTitle": {
-    "description": "Title of a demo notification shown in tour mode."
-  },
-  "demoAlertSodiumBody": "Lunch jjamppong pushed today's sodium to 4,657mg. Drink plenty of water.",
-  "@demoAlertSodiumBody": {
-    "description": "Body of a demo notification shown in tour mode."
-  },
-  "demoAlertDinnerTitle": "Log your dinner",
-  "@demoAlertDinnerTitle": {
-    "description": "Title of a demo notification shown in tour mode."
-  },
-  "demoAlertDinnerBody": "No dinner logged yet today. One photo is all it takes.",
-  "@demoAlertDinnerBody": {
-    "description": "Body of a demo notification shown in tour mode."
   },
   "demoAlertRoutineTitle": "A new workout routine arrived",
   "@demoAlertRoutineTitle": {

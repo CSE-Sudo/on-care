@@ -348,6 +348,9 @@ class ProfileView(BaseModel):
     weekly_strength_sets: Optional[int] = None
     weekly_flexibility_minutes: Optional[int] = None
     onboarded: bool = False
+    #: 첫 설정을 건너뛰었는가(#2855). 앱은 `onboarded` 또는 이 값이 참이면 로그인·
+    #: 세션 복구 뒤 첫 설정 화면으로 보내지 않는다.
+    onboarding_skipped: bool = False
     #: 이메일 비밀번호가 있는 계정인가(#2824). 소셜 로그인 전용 계정은 false 라
     #: 앱이 MY 의 비밀번호 변경 대신 안내를 보여 준다.
     has_password: bool = True

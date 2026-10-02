@@ -11,12 +11,16 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/core/advice/diet_advice.dart';
+import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart';
+import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/entities/diet_period.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_refresh.dart';
+import 'package:oncare/features/exercise/domain/entities/streak_shield.dart';
+import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 import 'package:oncare/shared/services/record_span_provider.dart';
 
 import '../../helpers/fake_diet_repository.dart';
@@ -200,5 +204,63 @@ void main() {
     await container.read(dietByDateProvider(past).future);
 
     expect(repo.byDateCalls[past], before + 1);
+  });
+
+  // MY 기록 그래프는 "식단 또는 운동을 기록한 날" 을 칠한다. 운동만 비우고
+  // 식단은 빠져 있어, 오늘 식단만 적은 회원에게 연속 기록이 끊긴 것처럼
+  // 보였다(#2852).
+  group('MY 기록 그래프·보호권 (#2852)', () {
+    test('식단 갱신 대상에 기록 그래프와 보호권이 있다', () {
+      expect(kDietChangeRefreshTargets, contains(activityCalendarProvider));
+      expect(kDietChangeRefreshTargets, contains(myStreakShieldsProvider));
+      // 기존 대상도 그대로다.
+      expect(
+        kDietChangeRefreshTargets,
+        containsAll(<ProviderOrFamily>[
+          dietTodayProvider,
+          dietPeriodProvider,
+          dietAdviceProvider,
+          recordSpanProvider,
+          dashboardSummaryProvider,
+        ]),
+      );
+    });
+
+    test('식단이 바뀌면 그래프와 보호권을 다시 읽는다', () async {
+      int calendarCalls = 0;
+      int shieldCalls = 0;
+      final ProviderContainer c = ProviderContainer(
+        overrides: <Override>[
+          dietRepositoryProvider.overrideWithValue(repo),
+          activityCalendarProvider.overrideWith((Ref ref) async {
+            calendarCalls++;
+            return ActivityCalendar(
+              days: const <ActivityDay>[],
+              recordStreakDays: calendarCalls,
+              color: GraphColorState.base,
+            );
+          }),
+          myStreakShieldsProvider.overrideWith((Ref ref) async {
+            shieldCalls++;
+            return const StreakShields(held: 0, maxHeld: 2, cost: 100);
+          }),
+        ],
+      );
+      addTearDown(c.dispose);
+      c.listen(activityCalendarProvider, (_, _) {});
+      c.listen(myStreakShieldsProvider, (_, _) {});
+      await c.read(activityCalendarProvider.future);
+      await c.read(myStreakShieldsProvider.future);
+      expect((calendarCalls, shieldCalls), (1, 1));
+
+      refreshDietRecords(c.invalidate);
+      final ActivityCalendar after = await c.read(
+        activityCalendarProvider.future,
+      );
+      await c.read(myStreakShieldsProvider.future);
+
+      expect((calendarCalls, shieldCalls), (2, 2));
+      expect(after.recordStreakDays, 2, reason: '새로 읽은 값이 화면에 간다');
+    });
   });
 }

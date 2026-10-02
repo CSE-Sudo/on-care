@@ -102,6 +102,19 @@
 
 `risk`: `{ title, body, level(low|medium|high) }`
 
+#### 첫 설정 완료·건너뛰기 (#1927·#2855)
+
+| Method | Path | 응답 |
+|---|---|---|
+| GET | `/users/me/profile` | 프로필 통합 뷰 — `onboarded`(첫 설정 저장함)·`onboarding_skipped`(첫 설정 건너뜀) 포함 |
+| POST | `/users/me/onboarding` | 보낸 칸만 저장하고 `onboarded=true`. 응답은 프로필 통합 뷰 |
+| POST | `/users/me/onboarding/skip` | 본문 없음. `onboarding_skipped=true` 만 남기고 다른 값은 그대로(`onboarded` 도 그대로). 여러 번 불러도 같다. 응답은 프로필 통합 뷰. 회원 전용(트레이너 403) |
+
+앱은 `onboarded` 또는 `onboarding_skipped` 가 참이면 로그인·세션 복구 뒤 첫 설정
+화면으로 보내지 않는다. 둘 다 거짓이면(가입 직후 폼에서 앱을 닫은 회원) 다음 진입 때
+다시 첫 설정으로 보낸다(#2630). 건너뛴 회원은 MY `건강 목표` 화면의 안내 카드에서 첫
+설정을 다시 열 수 있다.
+
 ### 채팅 이모티콘 (#2020, #2153)
 
 | Method | Path | 응답 핵심 필드 |
@@ -114,7 +127,12 @@
 어긋나지 않는다. 모르는 id 는 404, 쓰고 있는 이모티콘을 또 사면 409, 포인트가 모자라면 400 이다.
 **담당 트레이너가 없으면 409 다**(#2142) — 이모티콘은 트레이너 채팅에만 있어서 사도 쓸 곳이 없다.
 이미 산 이모티콘은 쓰던 중 담당이 끊겨도 남은 기간을 그대로 둔다. `client_request_id` 가 같은 재시도는
-두 번 쓰지 않는다. 원장 사유는 `emote_unlock` 이다.
+두 번 쓰지 않는다(200, 지금 상태). 원장 사유는 `emote_unlock` 이다.
+
+409·400 의 `detail` 은 `{ code, message }` 다(#2845): `already_unlocked`(쓰고 있는 이모티콘 — 다른 키로
+다시 산 경우 포함), `trainer_required`(담당 없음), `insufficient_points`(400). 앱은 키를 **구매 시도마다
+한 번** 만들어 응답을 못 받은 재시도에 같은 키를 다시 보내고, `already_unlocked` 는 실패가 아니라
+"이미 열려 있음" 으로 안내한다.
 
 포인트 사용처에서는 팔지 않는다 — 무엇을 사는지는 채팅의 이모티콘 창에서 봐야 알 수 있다. 예전 24시간
 이용권(`emote_pass_24h`, `POST /me/emotes/pass`)은 없어졌고, 사용처 교환으로 보내면 404 다. 바뀌기 전에 산
@@ -533,6 +551,20 @@ settled_at? }`. `status` 는 `active`|`succeeded`|`failed`, `rewarded` 는 받�
 | DELETE | `/notifications/{id}` | 삭제 → `{ status: "deleted" }` |
 
 category: reminder|health_check|achievement|system|coach_chat|coach_report|routine|member_schedule|coach_invite|consultation_result|consult_decision|health_goals|benefits|points_shop
+
+#### 회원 알림 수신 설정 (#489·#2854)
+
+| 메서드 | 경로 | 응답 |
+| --- | --- | --- |
+| GET | `/users/me/notification-settings` | `{ diet_log, exercise_reminder, trainer_message, ai_coaching, weekly_report }` (bool) |
+| PUT | `/users/me/notification-settings` | 보낸 항목만 반영, 응답은 GET 과 같음 |
+
+- 회원 앱 스위치는 `exercise_reminder`·`trainer_message`·`weekly_report` 세 가지입니다.
+  `diet_log`·`ai_coaching` 은 **이 kind 로 만드는 알림이 없어** 앱이 더는 그리거나 보내지 않고,
+  이미 저장된 값과 예전 앱 버전을 위해 응답·저장에만 남아 있습니다.
+- **끌 수 없는 알림**: 포인트 쿠폰(`points_coupon`)·주간 챌린지 결과(`weekly_challenge`)는
+  설정과 무관하게 늘 만듭니다(`notification_service.ALWAYS_DELIVERED`). 새 회원 알림 kind 는
+  설정 키이거나 이 집합에 있어야 합니다.
 
 #### 알림 문장의 언어 (#2302)
 

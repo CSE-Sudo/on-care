@@ -130,6 +130,12 @@ class HealthProfile(Base):
 
     # 온보딩 완료 여부(프론트 온보딩 게이팅용)
     onboarded: Mapped[bool] = mapped_column(Boolean, default=False)
+    # 첫 설정을 **건너뛰었는가**(#2855). 건너뛴 회원은 다음 로그인·세션 복구 때
+    # 첫 설정 화면으로 다시 끌려가지 않는다. 폼에서 앱을 닫은(건너뛰지 않은)
+    # 회원은 거짓 그대로라 지금처럼 다시 첫 설정으로 간다(#2630).
+    onboarding_skipped: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
+    )
 
     # 건강 목표(`conditions` 의 목표 칩)를 마지막으로 바꾼 사람·시각 (#1832).
     # 회원과 담당 트레이너가 같은 칸을 고치므로, 승인 대신 기록과 알림으로 서로

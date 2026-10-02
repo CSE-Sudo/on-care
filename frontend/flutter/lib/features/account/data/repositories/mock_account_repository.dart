@@ -76,6 +76,7 @@ class MockAccountRepository implements AccountRepository {
     int? weeklyFlexibilityMinutes,
   }) async {
     _profile = _replaceProfile(
+      onboarded: true,
       birthDate: birthDate,
       gender: gender,
       // 온보딩은 첫 저장이라 '지움'이 없다 — 비운 칸은 손대지 않는다.
@@ -92,6 +93,13 @@ class MockAccountRepository implements AccountRepository {
       weeklyStrengthSets: weeklyStrengthSets,
       weeklyFlexibilityMinutes: weeklyFlexibilityMinutes,
     );
+    return _profile;
+  }
+
+  /// 실서버(`POST /users/me/onboarding/skip`)처럼 건너뛰었다는 표시만 남긴다(#2855).
+  @override
+  Future<UserProfile> skipOnboarding() async {
+    _profile = _replaceProfile(onboardingSkipped: true);
     return _profile;
   }
 
@@ -133,6 +141,8 @@ class MockAccountRepository implements AccountRepository {
   /// 넷이 빠져 있어, 내 프로필을 저장하기만 해도 온보딩·MY 에서 정한 운동
   /// 목표가 조용히 사라졌다.
   UserProfile _replaceProfile({
+    bool? onboarded,
+    bool? onboardingSkipped,
     String? name,
     String? email,
     String? phone,
@@ -152,6 +162,8 @@ class MockAccountRepository implements AccountRepository {
     int? weeklyFlexibilityMinutes,
   }) => UserProfile(
     id: _profile.id,
+    onboarded: onboarded ?? _profile.onboarded,
+    onboardingSkipped: onboardingSkipped ?? _profile.onboardingSkipped,
     name: name ?? _profile.name,
     email: email ?? _profile.email,
     phone: phone ?? _profile.phone,
@@ -199,6 +211,8 @@ class MockAccountRepository implements AccountRepository {
   }) async {
     _profile = UserProfile(
       id: _profile.id,
+      onboarded: _profile.onboarded,
+      onboardingSkipped: _profile.onboardingSkipped,
       name: _profile.name,
       email: _profile.email,
       phone: _profile.phone,
