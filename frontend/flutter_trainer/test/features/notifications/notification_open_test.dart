@@ -50,9 +50,6 @@ class _FakeNotificationRepository implements TrainerNotificationRepository {
   bool failRead = false;
 
   @override
-  bool get supportsInbox => true;
-
-  @override
   Future<TrainerNotificationPage> fetch({
     TrainerNotificationCursor? before,
   }) async => before == null

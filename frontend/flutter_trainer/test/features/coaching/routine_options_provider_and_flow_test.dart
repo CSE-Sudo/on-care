@@ -22,6 +22,7 @@ import 'package:oncare_trainer/features/coaching/domain/entities/routine_context
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
+import 'package:oncare_trainer/features/coaching/domain/routine_generate_limits.dart';
 import 'package:oncare_trainer/features/coaching/presentation/pages/ai_routine_options_flow.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -300,9 +301,12 @@ void main() {
     test('mock generator respects the requested time at both limits', () async {
       const repo = MockTrainerRoutineOptionsRepository();
 
-      // 5 는 RoutineMinutesSlider 의 실제 최소값이다 — 예전엔 A안 하한이 10 이라
-      // `clamp(10, 5)`로 죽었다.
-      for (final minutes in <int>[5, 10, 180]) {
+      // 10·180 은 서버가 받는 생성 조건 총 시간의 양 끝이다(#2871). 범위 밖
+      // 값은 데모도 실서버처럼 ValidationError 로 거절한다.
+      for (final minutes in <int>[
+        kRoutineGenerateMinMinutes,
+        kRoutineGenerateMaxMinutes,
+      ]) {
         final options = await repo.generate(
           'm1',
           availableMinutes: minutes,
@@ -1100,18 +1104,32 @@ void main() {
       expect(find.text('운동 직접 등록'), findsNothing);
     });
 
-    testWidgets('데모에서는 목표 기반 기본 추천 안내가 보이지 않는다', (tester) async {
-      // 데모 회원은 기록이 없어 생성기가 늘 template 상태를 돌려준다.
+    testWidgets('데모도 기록이 적은 회원에게 그 사실을 그대로 말한다 (#2674)', (tester) async {
+      // 예전에는 데모에서만 이 상태를 숨겼다(#1028). 이제 데모도 시드한 기록으로
+      // 상태를 세므로 실서버와 같게 보인다.
       await pumpFlow(tester, response: _templateOptions());
       await generate(tester);
 
-      expect(find.text('목표 기반 기본 추천'), findsNothing);
-      expect(find.text('목표 기반 추천안 생성'), findsNothing);
+      expect(find.text('목표 기반 기본 추천'), findsOneWidget);
 
-      // 데이터 기반 흐름의 문구만 남는다.
       await tester.tap(find.byKey(const ValueKey<String>('routine-stage-0')));
       await tester.pumpAndSettle();
-      expect(find.text('맞춤 추천안 후보 생성'), findsOneWidget);
+      expect(find.text('목표 기반 추천안 생성'), findsOneWidget);
+    });
+
+    testWidgets('규칙형도 참고한 최근 대화를 보여 준다 (#2674)', (tester) async {
+      // 규칙형은 대화에서 통증 부위를 읽어 동작을 뺀다(#1440) — 무엇을 봤는지
+      // 트레이너가 확인할 수 있어야 한다.
+      await pumpFlow(
+        tester,
+        response: _templateOptions(
+          recentMessages: const <String>['회원: 무릎이 아파요'],
+        ),
+      );
+      await generate(tester);
+
+      expect(find.text('참고한 최근 대화'), findsOneWidget);
+      expect(find.textContaining('무릎이 아파요'), findsOneWidget);
     });
 
     testWidgets('실 API 모드에서는 기록이 적은 회원에게 그 사실을 그대로 말한다', (tester) async {
@@ -1691,6 +1709,7 @@ void main() {
       await generateNow(tester);
 
       expect(repo.lastSources, <RoutineContextSource>{
+        RoutineContextSource.recentChat,
         RoutineContextSource.ptFeedback,
         RoutineContextSource.trainerMemo,
         RoutineContextSource.chatInsight,
@@ -1714,6 +1733,7 @@ void main() {
       await generateNow(tester);
 
       expect(repo.lastSources, <RoutineContextSource>{
+        RoutineContextSource.recentChat,
         RoutineContextSource.ptFeedback,
         RoutineContextSource.consultMemo,
         RoutineContextSource.trainerMemo,
@@ -1721,7 +1741,13 @@ void main() {
       });
       expect(
         prefs.getStringList('ai_routine_sources.trainer@oncare.com'),
-        <String>['pt_feedback', 'consult_memo', 'trainer_memo', 'chat_insight'],
+        <String>[
+          'recent_chat',
+          'pt_feedback',
+          'consult_memo',
+          'trainer_memo',
+          'chat_insight',
+        ],
       );
     });
 
@@ -1731,6 +1757,14 @@ void main() {
         account: 'trainer@oncare.com',
         stored: <String, Object>{
           'ai_routine_sources.trainer@oncare.com': <String>['chat_insight'],
+          'ai_routine_sources_seen.trainer@oncare.com': <String>[
+            'recent_chat',
+            'pt_feedback',
+            'consult_memo',
+            'trainer_memo',
+            'chat_insight',
+            'weekly_feedback',
+          ],
           // 다른 계정의 선택은 섞이지 않는다.
           'ai_routine_sources.other@oncare.com': <String>['consult_memo'],
         },
@@ -1743,6 +1777,42 @@ void main() {
       await generateNow(tester);
 
       expect(repo.lastSources, isEmpty);
+    });
+
+    testWidgets('최근 대화가 생기기 전에 저장한 선택은 최근 대화를 켠 채 시작한다 (#2794)', (
+      tester,
+    ) async {
+      // 예전 선택(다섯 가지만 보고 고른 것)에는 `recent_chat` 이 없다 — 그렇다고
+      // 꺼진 채 시작하면 업데이트만으로 대화가 AI 에서 빠진다.
+      final (repo, _) = await pumpWithPrefs(
+        tester,
+        account: 'trainer@oncare.com',
+        stored: <String, Object>{
+          'ai_routine_sources.trainer@oncare.com': <String>['chat_insight'],
+        },
+      );
+
+      await generateNow(tester);
+
+      expect(repo.lastSources, <RoutineContextSource>{
+        RoutineContextSource.recentChat,
+        RoutineContextSource.chatInsight,
+      });
+    });
+
+    testWidgets('최근 대화를 끄면 요청에서 빠진다 (#2794)', (tester) async {
+      final (repo, _) = await pumpWithPrefs(tester);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('ai-source-recent_chat')),
+      );
+      await tester.pump();
+      await generateNow(tester);
+
+      expect(
+        repo.lastSources,
+        isNot(contains(RoutineContextSource.recentChat)),
+      );
     });
   });
 }
@@ -1810,18 +1880,21 @@ class _CapturingOptionsRepository implements TrainerRoutineOptionsRepository {
 
 /// 기록이 거의 없는 회원의 응답 — 서버가 [RecommendationStatus.template] 을
 /// 돌려주는 상태 (#776). 데모는 언제나 이 상태다.
-RoutineOptions _templateOptions() {
-  const analysis = MemberAnalysis(
+RoutineOptions _templateOptions({
+  List<String> recentMessages = const <String>[],
+}) {
+  final analysis = MemberAnalysis(
     goal: '체중 감량',
     sodiumTodayMg: 1800,
     sodiumOverTarget: false,
     avgCompletionRate: 40,
     latestRoutine: '-',
     note: '',
+    recentMessages: recentMessages,
   );
-  return const RoutineOptions(
+  return RoutineOptions(
     analysis: analysis,
-    planA: RoutinePlan(
+    planA: const RoutinePlan(
       key: 'A',
       label: '회복·지속 중심',
       totalMinutes: 20,
@@ -1832,7 +1905,7 @@ RoutineOptions _templateOptions() {
       reason: '가볍게 시작',
       rationale: '목표 기준 기본 구성',
     ),
-    planB: RoutinePlan(
+    planB: const RoutinePlan(
       key: 'B',
       label: '강도·운동량 중심',
       totalMinutes: 30,
@@ -1991,11 +2064,16 @@ class _StaticMemoRepository implements TrainerMemoRepository {
     String? insightId,
     String insightKind = '',
     TrainerMemoRef? ref,
+    TrainerMemoCategory category = TrainerMemoCategory.none,
   }) async => throw UnsupportedError('not used');
 
   @override
-  Future<TrainerMemo> update(String clientId, String memoId, String body) =>
-      throw UnsupportedError('not used');
+  Future<TrainerMemo> update(
+    String clientId,
+    String memoId,
+    String body, {
+    TrainerMemoCategory? category,
+  }) => throw UnsupportedError('not used');
 
   @override
   Future<void> delete(String clientId, String memoId) async =>

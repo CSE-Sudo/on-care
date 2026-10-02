@@ -153,6 +153,10 @@
   "dashChurnRiskCheck": "이탈 신호 확인",
   "dashChurnRiskTitle": "이탈 위험 회원",
   "dashChurnRiskEmpty": "지금은 이탈 위험 신호가 없어요.",
+  "dashChurnRiskLoading": "최근 세션 확인 중",
+  "dashChurnRiskUnavailable": "확인할 수 없음 · 눌러서 다시 시도",
+  "dashActivityFeedbackLoading": "최근 세션을 확인하고 있어요.",
+  "dashActivityFeedbackUnavailable": "최근 세션을 불러오지 못해 활동 피드백을 확인할 수 없어요. 이탈 위험 카드를 눌러 다시 시도해 주세요.",
   "dashActivityDifficultyTitle": "운동 목표 미달·배정 루틴 미수행",
   "dashActivityDifficultyDesc": "{names} 회원이 이번 주 운동 목표에 못 미치거나 배정 루틴을 하지 않았어요. 다음 세션 전에 난이도를 낮추고 최근 피드백을 확인해 주세요.",
   "dashActivityInactiveTitle": "기록 끊김",
@@ -172,6 +176,8 @@
   "dashScheduleNowLabel": "지금 {time}",
   "dashScheduleNextSession": "다음 일정 {time} · {name}",
   "dashScheduleMinutesLeft": "{minutes}분 뒤",
+  "dashScheduleInProgress": "진행 중 {time} · {name}",
+  "dashScheduleMinutesToEnd": "{minutes}분 남음",
   "dashPreparePt": "PT 준비하기",
   "dashLeaveMemo": "메모 남기기",
   "dashLeaveFeedback": "피드백 남기기",
@@ -259,6 +265,8 @@
   "healthFocusExerciseHabit": "운동 습관",
   "healthFocusBloodPressure": "혈압 관리",
   "memberHealthConditions": "건강상태·주의사항",
+  "memberHealthConditionsShared": "회원에게도 보여요 · 추천할 때 참고해요",
+  "memberHealthConditionsPrivateHint": "트레이너만 볼 내용은 메모에 남겨 주세요.",
   "memberHealthDietGoal": "식단 목표",
   "memberHealthExerciseGoal": "운동 목표",
   "memberHealthGoalCalories": "일일 칼로리 제한 (kcal)",
@@ -389,10 +397,12 @@
   "chatPdfOpenFailed": "PDF를 열지 못했어요. 다시 시도해 주세요",
   "chatReportRegistered": "리포트가 등록되었어요",
   "chatReportOpenInReports": "리포트 탭으로 가기",
-  "chatDemoAnalyzed": "AI가 {name}님의 식단·운동 데이터를 분석했어요",
-  "chatDemoReportSent": "트레이너님께 요약 리포트가 전송됐어요",
-  "chatDemoRoutineSent": "개인 추천운동이 {name}님에게 전송됐어요",
-  "chatDemoNotified": "회원 앱에 알림이 전달됐어요",
+  "chatRoutineDelivered": "운동을 보냈어요",
+  "chatRoutineDeliveredPt": "PT 프로그램과 개인운동을 보냈어요",
+  "chatRoutineDeliveredPersonal": "개인운동을 보냈어요",
+  "chatRoutineDeliveredAfterCancel": "취소된 PT 대신 개인운동을 보냈어요",
+  "chatRoutineDeliveredProgram": "운동 프로그램을 보냈어요",
+  "chatRoutineDeliveredMore": "{names} 외 {count}개",
   "chatInputHint": "메시지 입력...",
   "chatInsightDiscomfortTitle": "{part} 불편 표현 감지",
   "@chatInsightDiscomfortTitle": {
@@ -861,6 +871,8 @@
   "schedDetachedMember": "해제 회원",
   "schedDetachedMemberHint": "담당이 끝난 회원이라 회원 정보는 볼 수 없어요",
   "schedReservationLockedHint": "회원이 예약한 일정이에요. 시간을 바꾸거나 지울 수 없고, 약속을 거두려면 취소해 주세요.",
+  "schedEndedLockedHint": "끝난 세션은 메모·프로그램만 고칠 수 있어요.",
+  "schedDoneLockedHint": "완료한 세션은 메모·프로그램만 고칠 수 있어요. 날짜를 앞으로 옮기면 예정으로 되돌릴 수 있어요.",
   "schedGroupPersonal": "개인운동",
   "schedRoutinesGoesOnComplete": "이 PT 의 프로그램을 보낼 때 회원에게 함께 가요.",
   "schedRoutinesNotSentYet": "아직 회원에게 가지 않았어요.",
@@ -877,6 +889,9 @@
   "schedRoutinesSent": "개인운동을 회원에게 보냈어요.",
   "schedRoutinesSendFailed": "개인운동을 보내지 못했어요. 잠시 후 다시 시도해 주세요.",
   "schedRoutinesSkipped": "보내지 않기로 했어요.",
+  "schedRoutinesSkipFailed": "보내지 않기로 처리하지 못했어요. 잠시 후 다시 시도해 주세요.",
+  "schedRoutinesLoadFailed": "개인운동을 불러오지 못했어요",
+  "schedClientUnresolved": "이 일정의 회원을 특정할 수 없어요. 회원을 골라 주세요.",
   "schedRoutinesUpdated": "개인운동을 고커어요.",
   "schedRoutinesUpdateFailed": "개인운동을 고치지 못했어요. 다시 시도해 주세요.",
   "schedAddRoutines": "개인운동 추가",
@@ -1033,6 +1048,7 @@
   "slotIntro": "회원이 예약할 시간을 엽니다. 아래에 앞으로 열린 슬롯이 날짜별로 모입니다.",
   "slotOpenAction": "열기",
   "slotReload": "다시 불러오기",
+  "slotLoadFailed": "예약 슬롯을 불러오지 못했어요",
   "slotEmpty": "열린 예약 슬롯이 없습니다.",
   "slotClosedSummary": "예약 닫힘",
   "slotBookedSummary": "예약됨",
@@ -1053,6 +1069,8 @@
   "myNotifications": "알림",
   "myNotifNewMessage": "새 메시지 알림",
   "myNotifNotReady": "곧 끌 수 있어요 — 지금은 항상 받아요",
+  "myNotifLoading": "알림 설정을 불러오는 중이에요",
+  "myNotifLoadFailed": "알림 설정을 불러오지 못했어요. 다시 시도해 주세요",
   "myNotifNewMessageHint": "회원이 메시지를 보내면 알림함과 사이드바 숫자로 알려드려요",
   "myLanguageApp": "화면 언어",
   "myLanguageHint": "고른 언어는 이 브라우저에만 저장돼요. 다른 기기에서는 그 브라우저 설정을 따라요.",
@@ -1240,6 +1258,12 @@
   "coachMemberSummary": "회원 요약",
   "reportsDataInsufficient": "데이터 부족",
   "coachSendFailed": "전송에 실패했어요. 다시 시도해 주세요",
+  "coachSwitchClientTitle": "다른 회원으로 바꿀까요?",
+  "coachSwitchClientBody": "아직 보내지 않은 작성 내용이 있어요. 회원을 바꾸면 지금 짠 프로그램과 개인운동이 사라져요.",
+  "coachSwitchClientConfirm": "바꾸기",
+  "personalRoutineTargetLoadFailed": "PT 일정을 불러오지 못했어요",
+  "personalRoutineStartPast": "시작일이 지나 오늘로 바꿨어요. 확인하고 다시 보내 주세요",
+  "schedRoutinesReadFailed": "붙어 있는 개인운동을 확인하지 못했어요. 다시 시도해 주세요",
   "coachScheduleFailed": "스케줄 등록에 실패했어요. 다시 시도해 주세요",
   "coachNoClients": "등록된 회원이 없어요",
   "coachRecommended": "AI 추천안",
@@ -1309,6 +1333,10 @@
   "aiOptionPush": "강화안",
   "aiOptionExisting": "기존안",
   "aiGenerateFailed": "AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요",
+  "aiGenerateInvalidConditions": "생성 조건을 확인해 주세요. 총 운동 시간은 {min}~{max}분 사이여야 해요",
+  "@aiGenerateInvalidConditions": {"placeholders": {"min": {"type": "int"}, "max": {"type": "int"}}},
+  "aiGenerateMinutesHelper": "{min}~{max}분 사이로 입력해 주세요",
+  "@aiGenerateMinutesHelper": {"placeholders": {"min": {"type": "int"}, "max": {"type": "int"}}},
   "aiGenerateRateLimited": "AI 생성을 너무 자주 요청했어요. 잠시 후 다시 시도해 주세요",
   "@aiGenerateRateLimited": {
     "description": "429 when the trainer taps 생성 repeatedly. Not a failure — it works again shortly (#582)."
@@ -1478,6 +1506,10 @@
   "aiSourceConsultMemo": "상담 메모",
   "aiSourceTrainerMemo": "회원 메모(직접 작성)",
   "aiSourceChatInsight": "채팅 감지 메모",
+  "aiSourceRecentChat": "최근 대화",
+  "@aiSourceRecentChat": {
+    "description": "AI 가 참고할 자료 — 회원과의 최근 대화 원문(최근 14일 · 최대 10건, #2794)"
+  },
   "aiSourceWeeklyFeedback": "회원 주간 피드백",
   "aiSourceRangeDays": "최근 {days}일 · 최대 {count}건",
   "@aiSourceRangeDays": {
@@ -1649,12 +1681,13 @@
   "dashTodoWorkout": "운동",
   "dashTodoProgram": "프로그램",
   "dashTodoReport": "리포트",
-  "dashTodoConsultationSubtitle": "{month}/{day} 상담 요청",
+  "dashTodoConsultationSubtitle": "희망 {when}",
   "dashTodoCarriedOverDemoSubtitle": "어제 남긴 식단 피드백",
   "dashTodoProgramSubtitle": "최근 등록한 프로그램 없음",
   "dashTodoReportSubtitle": "이번 주 리포트 작성 대상",
   "dashTaskSaveFailed": "할 일 상태를 저장하지 못했어요. 잠시 후 다시 시도해 주세요",
   "dashTaskLoadFailed": "할 일 상태를 불러오지 못했어요. 잠시 후 다시 시도해 주세요",
+  "dashTaskDayChanged": "날짜가 바뀌어 오늘 할 일로 새로 불러왔어요. 다시 눌러 주세요",
   "dashTaskDismissTitle": "이 항목을 삭제할까요?",
   "dashTaskDismissBody": "할 일 목록에서만 사라져요. 실제 처리(상담·프로그램·리포트)는 각 화면에서 해야 해요.",
   "dashTaskCarriedOverTitle": "지난 할 일",
@@ -1768,6 +1801,96 @@
   "clientMemoEdited": "수정됨",
   "clientMemoSearchHint": "메모 검색 (본문·태그)",
   "clientMemoSearchEmpty": "찾는 메모가 없어요.",
+  "clientMemoCategoryExercise": "운동",
+  "clientMemoCategoryDiet": "식단",
+  "clientMemoCategoryPain": "통증·부상",
+  "clientMemoCategoryLife": "생활·일정",
+  "clientMemoRecordLink": "운동 기록 연결 (선택)",
+  "clientMemoRecordNone": "연결 안 함",
+  "clientMemoRecordEmpty": "최근 14일 운동 기록이 없어요",
+  "clientMemoRecordDay": "{month}/{day} ({weekday})",
+  "@clientMemoRecordDay": {
+    "placeholders": {
+      "month": {
+        "type": "String"
+      },
+      "day": {
+        "type": "String"
+      },
+      "weekday": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoRecordPtSession": "{date} PT 세션",
+  "@clientMemoRecordPtSession": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoRecordPersonal": "{date} 개인 운동",
+  "@clientMemoRecordPersonal": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoRecordPersonalNamed": "{date} 개인 운동 · {name}",
+  "@clientMemoRecordPersonalNamed": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoRecordMemberLog": "{date} 회원 기록",
+  "@clientMemoRecordMemberLog": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoTabMemo": "메모",
+  "clientMemoTabFeedback": "피드백",
+  "clientFeedbackPrivate": "회원과 주고받은 피드백이에요. 누르면 쓴 자리로 가서 고칠 수 있어요.",
+  "clientFeedbackToMember": "트레이너 → 회원",
+  "clientFeedbackFromMember": "회원 → 트레이너",
+  "clientFeedbackSourcePt": "PT 세션 · {date}",
+  "@clientFeedbackSourcePt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientFeedbackSourceReport": "리포트 · {date} 주",
+  "@clientFeedbackSourceReport": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientFeedbackSourceWeekly": "주간 피드백 · {date} 주",
+  "@clientFeedbackSourceWeekly": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientFeedbackWeeklyNoNote": "한 줄 피드백 없음",
+  "clientFeedbackEmpty": "아직 주고받은 피드백이 없어요.",
+  "clientFeedbackLoadFailed": "피드백을 불러오지 못했어요. 잠시 후 다시 시도해 주세요",
+  "clientFeedbackSearchHint": "피드백 검색 (본문·출처·방향)",
+  "clientFeedbackSearchEmpty": "찾는 피드백이 없어요.",
   "followUp": "후속 관리",
   "followUpTitle": "{name}님 후속 관리",
   "@followUpTitle": {
@@ -1956,6 +2079,17 @@
       }
     }
   },
+  "programEditorAiReapplyTitle": "AI 운동을 새 안으로 바꿀까요?",
+  "programEditorAiReapplyBody": "앞서 반영한 AI 운동 {count}개를 새 안으로 바꿔요. 직접 추가하거나 고친 운동은 그대로 남아요.",
+  "@programEditorAiReapplyBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "programEditorAiReapplyReplace": "바꾸기",
+  "programEditorAiReapplyAppend": "뒤에 추가",
   "programEditorSessionNameTyped": "{type} 세션",
   "@programEditorSessionNameTyped": {"placeholders": {"type": {"type": "String"}}},
   "programEditorSessionNameNumbered": "{type} 세션 {index}",
