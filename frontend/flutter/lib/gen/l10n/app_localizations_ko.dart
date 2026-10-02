@@ -968,6 +968,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exOwnRecordsEmpty => '직접 기록한 운동이 없어요';
 
   @override
+  String get exRecordDetailOpen => '자세히';
+
+  @override
+  String get exRecordDetailInfo => '운동 정보';
+
+  @override
+  String get exRecordDetailTotalCalories => '총 소모 칼로리';
+
+  @override
   String get exOwnRecordSource => '직접 기록';
 
   @override
@@ -3665,11 +3674,6 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String coachRoutinePlannedIntensity(String level) {
     return '권장 $level';
-  }
-
-  @override
-  String coachRoutineDoneIntensity(String level) {
-    return '수행 $level';
   }
 
   @override

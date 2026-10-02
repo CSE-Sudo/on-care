@@ -1844,6 +1844,24 @@ abstract class AppLocalizations {
   /// **'No workouts logged'**
   String get exOwnRecordsEmpty;
 
+  /// Text link at the bottom of the self-logged workouts card — opens that day's workout detail; same wording as the home card link (#2507).
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get exRecordDetailOpen;
+
+  /// No description provided for @exRecordDetailInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout details'**
+  String get exRecordDetailInfo;
+
+  /// No description provided for @exRecordDetailTotalCalories.
+  ///
+  /// In en, this message translates to:
+  /// **'Total calories burned'**
+  String get exRecordDetailTotalCalories;
+
   /// No description provided for @exOwnRecordSource.
   ///
   /// In en, this message translates to:
@@ -6617,12 +6635,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Suggested {level}'**
   String coachRoutinePlannedIntensity(String level);
-
-  /// The intensity the member logged for a completed routine.
-  ///
-  /// In en, this message translates to:
-  /// **'Logged {level}'**
-  String coachRoutineDoneIntensity(String level);
 
   /// Submit button of the completion dialog.
   ///

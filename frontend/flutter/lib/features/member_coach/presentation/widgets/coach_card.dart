@@ -250,6 +250,8 @@ class _AiCoachingCardState extends ConsumerState<AiCoachingCard> {
                   icon: AppIcons.edit,
                   tooltip: l.actionEdit,
                   size: AppIconButtonSize.small,
+                  // 연필은 앱 전체에서 회색이다 — 목록의 `›` 와 같은 색(#2507).
+                  color: OnCareColors.textTertiary,
                   onPressed: () => setState(() => _editing = true),
                 ),
               if (past && _editing)
@@ -753,8 +755,9 @@ class _RecommendedExerciseRowState
                               fit: BoxFit.scaleDown,
                               child: AppTag(
                                 key: Key('routineDoneIntensity-${routine.id}'),
-                                label: l.coachRoutineDoneIntensity(
-                                  exerciseIntensityLabel(l, _doneIntensity!),
+                                label: exerciseIntensityLabel(
+                                  l,
+                                  _doneIntensity!,
                                 ),
                                 tone: AppTagTone.brand,
                               ),

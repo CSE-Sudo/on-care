@@ -1002,6 +1002,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exOwnRecordsEmpty => 'No workouts logged';
 
   @override
+  String get exRecordDetailOpen => 'Details';
+
+  @override
+  String get exRecordDetailInfo => 'Workout details';
+
+  @override
+  String get exRecordDetailTotalCalories => 'Total calories burned';
+
+  @override
   String get exOwnRecordSource => 'Self-logged';
 
   @override
@@ -3818,11 +3827,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String coachRoutinePlannedIntensity(String level) {
     return 'Suggested $level';
-  }
-
-  @override
-  String coachRoutineDoneIntensity(String level) {
-    return 'Logged $level';
   }
 
   @override

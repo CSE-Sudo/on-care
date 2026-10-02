@@ -15,6 +15,7 @@ import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/utils/next_pt.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_activity_status.dart';
+import 'package:oncare/features/exercise/presentation/widgets/exercise_record_line.dart';
 import 'package:oncare/features/exercise/presentation/widgets/gym_tab.dart';
 import 'package:oncare/features/exercise/presentation/widgets/own_exercise_records.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
@@ -29,9 +30,6 @@ import 'package:oncare_ui/oncare_ui.dart';
 
 /// 하단 내비게이션 위로 남겨 두는 높이. 내비 막대가 내용을 가리지 않게 한다.
 const double _bottomNavInset = 108;
-
-/// PT 일지의 종목 줄 앞 점.
-const double _programBulletSize = 6;
 
 /// 헬스장 서브탭에서 고른 예약 카드 — 탭을 벗어났다가 운동 탭에 다시 들어오면
 /// 선택이 풀려야 하는 임시 UI 상태라 Riverpod 에 둔다(#861). 실제 예약
@@ -652,6 +650,7 @@ class _ExerciseDayDetail extends ConsumerWidget {
               title: l.exCompletedPtDayTitle,
               icon: AppIcons.exercise,
               sessions: ptSessions,
+              intensityInHeader: true,
             ),
           if (ptSessions.isNotEmpty && hasRoutineBlock)
             const SizedBox(height: OnCareSpacing.s12),
@@ -717,7 +716,13 @@ class _DayRecordCard extends StatelessWidget {
     required this.title,
     required this.icon,
     required this.sessions,
+    this.intensityInHeader = false,
   });
+
+  /// 강도를 머리 오른쪽 한 번만 적는가 — PT 는 수업 하나에 강도가 하나라
+  /// 종목마다 되풀이하지 않는다(오늘 PT 카드와 같다, #2507). 개인운동은 운동마다
+  /// 강도가 달라 줄 끝에 적는다.
+  final bool intensityInHeader;
 
   /// 카드 제목 — `완료한 PT` 또는 `완료한 개인운동`.
   final String title;
@@ -728,29 +733,16 @@ class _DayRecordCard extends StatelessWidget {
   /// 이 묶음의 기록. 한 출처의 것만 들어온다.
   final List<ExerciseSession> sessions;
 
-  /// 카드에 적을 종목 줄 — `벤치프레스 · 4세트 · 10회 · 40kg`.
+  /// 세션 한 줄의 이름 — 회원이 적은 것 → 배정 루틴 이름 → 유형 순으로 고른다.
   ///
   /// 이름과 운동량을 **필드에서** 붙인다. 예전에는 `items`(이름 문자열)를 그대로
   /// 썼는데, 그러려면 픽스처가 세트·중량을 이름에 적어 넣어야 했다(#1902).
   /// 이제 기록 한 행이 운동 하나이므로 그 행의 값이 곧 그 종목의 값이다.
-  List<String> _lines(AppLocalizations l) => <String>[
-    for (final ExerciseSession s in sessions) _line(l, s),
-  ];
-
-  /// 세션 한 줄. 이름은 회원이 적은 것 → 배정 루틴 이름 → 유형 순으로 고른다.
-  ///
-  /// 끝에 **그날 한 강도**를 적는다(#2160). 직접 기록한 운동 줄은 강도를 태그로
-  /// 이미 말하는데 PT·추천 운동에서 파생된 기록만 빠져 있어, 회원이 지난 날짜를
-  /// 열어도 자기가 어느 강도로 했는지 다시 볼 수 없었다.
-  static String _line(AppLocalizations l, ExerciseSession s) {
-    final String name = s.name.isNotEmpty
-        ? s.name
-        : s.assignedRoutineName.isNotEmpty
-        ? s.assignedRoutineName
-        : exerciseTypeLabel(l, s.type);
-    return '$name · ${exerciseAmountLabel(l, s)} · '
-        '${exerciseIntensityLabel(l, s.intensity)}';
-  }
+  static String _name(AppLocalizations l, ExerciseSession s) => s.name.isNotEmpty
+      ? s.name
+      : s.assignedRoutineName.isNotEmpty
+      ? s.assignedRoutineName
+      : exerciseTypeLabel(l, s.type);
 
   @override
   Widget build(BuildContext context) {
@@ -772,7 +764,13 @@ class _DayRecordCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          AppSectionHeader(title: title, icon: icon),
+          AppSectionHeader(
+            title: title,
+            icon: icon,
+            trailing: intensityInHeader && sessions.isNotEmpty
+                ? exerciseIntensityTag(exerciseIntensityLabel(l, sessions.first.intensity))
+                : null,
+          ),
           const SizedBox(height: OnCareSpacing.s12),
           // 칩이 한 줄에 못 들어가면 다음 줄로 내린다(#995).
           Wrap(
@@ -806,58 +804,19 @@ class _DayRecordCard extends StatelessWidget {
           const AppDivider(),
           const SizedBox(height: OnCareSpacing.s12),
           // 무슨 운동을 했는지 — 유형만 적으면 `유산소 30분` 이 러닝인지
-          // 자전거인지 알 수 없다. (#1021) 유형별 합계는 바로 위 도넛 카드가
-          // 이미 말하므로 여기서 되풀이하지 않는다(#682).
-          for (final String line in _lines(l)) _ProgramLine(line),
-        ],
-      ),
-    );
-  }
-}
-
-/// PT 일지의 종목 한 줄 — 앞 점 + 줄바꿈되는 본문.
-class _ProgramLine extends StatelessWidget {
-  const _ProgramLine(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Padding(
-      padding: const EdgeInsets.only(
-        left: OnCareSpacing.s8,
-        top: OnCareSpacing.s2,
-        bottom: OnCareSpacing.s2,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Padding(
-            // 항목이 두 줄로 접히면 점이 가운데로 뜬다. 첫 줄 높이에
-            // 맞춰 위쪽에 고정한다.
-            padding: const EdgeInsets.only(top: OnCareSpacing.s8),
-            child: Container(
-              width: _programBulletSize,
-              height: _programBulletSize,
-              decoration: BoxDecoration(
-                color: tokens.brand.primary,
-                shape: BoxShape.circle,
-              ),
+          // 자전거인지 알 수 없다. (#1021) 줄은 직접 기록한 운동 카드와 같은
+          // `[유형] 이름 · 운동량 … [강도]` 이다(#2507). 그날 한 강도는
+          // 지난 날짜에도 다시 볼 수 있어야 한다(#2160).
+          for (final ExerciseSession s in sessions)
+            ExerciseRecordLine(
+              typeLabel: exerciseTypeLabel(l, s.type),
+              name: _name(l, s),
+              amount: exerciseAmountLabel(l, s),
+              trailing: <Widget>[
+                if (!intensityInHeader)
+                  exerciseIntensityTag(exerciseIntensityLabel(l, s.intensity)),
+              ],
             ),
-          ),
-          const SizedBox(width: OnCareSpacing.s8),
-          // 말줄임이 아니라 줄바꿈이다. `벤치프레스 4세트 · 10회 ·
-          // 40kg` 이 `벤치프레스 4세트 …` 가 되면 몇 회를 몇 kg 로
-          // 했는지가 사라진다 — 접혀도 뜻이 남아야 한다(#766).
-          Expanded(
-            child: Text(
-              text,
-              style: tokens
-                  .text(OnCareTypography.bodySmall)
-                  .copyWith(color: OnCareColors.textPrimary),
-            ),
-          ),
         ],
       ),
     );
@@ -932,18 +891,29 @@ class _PtLogCard extends ConsumerWidget {
     final ExerciseIntensity? intensity = todayPt
         .map((ExerciseSession s) => s.intensity)
         .firstOrNull;
+    // 종목 줄은 그날의 PT 운동 기록이 있으면 그것으로 적는다 — 기록에는 종목마다
+    // 유형이 있어 `[근력] 벤치프레스 · 4세트 …` 로 적을 수 있다. 아직 못 읽었으면
+    // 프로그램으로 적고 유형 태그는 비운다(#2507).
+    final List<_LineData> lines = todayPt.isNotEmpty
+        ? <_LineData>[
+            for (final ExerciseSession s in todayPt)
+              (
+                type: s.type,
+                name: s.name.isNotEmpty ? s.name : exerciseTypeLabel(l, s.type),
+                amount: exerciseAmountLabel(l, s),
+              ),
+          ]
+        : <_LineData>[
+            for (final CoachProgramItem item in session.program)
+              (type: null, name: item.name, amount: _ptProgramAmount(l, item)),
+          ];
     return _PtSessionCard(
       key: const Key('completedPtSessionCard'),
       time: session.time,
       sessionNumber: session.sessionNumber,
       minutes: session.durationMinutes,
-      lines: <String>[
-        for (final CoachProgramItem item in session.program)
-          intensity == null
-              ? _ptProgramLabel(l, item)
-              : '${_ptProgramLabel(l, item)} · '
-                    '${exerciseIntensityLabel(l, intensity)}',
-      ],
+      intensity: intensity,
+      lines: lines,
       emptyProgram: l.exCompletedPtNoProgram,
       coachName: coach?.name ?? l.exAssignedTrainer,
       feedback: session.note,
@@ -951,8 +921,11 @@ class _PtLogCard extends ConsumerWidget {
   }
 }
 
-/// PT 프로그램 한 줄 — `숄더 프레스 · 4세트 · 12회 · 10kg`.
-String _ptProgramLabel(AppLocalizations l, CoachProgramItem item) {
+/// PT 종목 한 줄의 값 — 유형(없으면 비움)·이름·운동량.
+typedef _LineData = ({ExerciseType? type, String name, String amount});
+
+/// PT 프로그램 한 줄의 운동량 — `4세트 · 12회 · 10kg`·`30분`.
+String _ptProgramAmount(AppLocalizations l, CoachProgramItem item) {
   // 서버 계약상 근력이 아닌 항목은 세트 대신 duration(분)을 갖는다. 이 값을
   // 버리면 러닝머신·스트레칭이 이름만 남아, 데모와 같은 회귀가 실 API에서도
   // 생긴다(#2126). 초(`duration_seconds`)가 있으면 그것으로 읽는다 — 트레이너가
@@ -964,7 +937,7 @@ String _ptProgramLabel(AppLocalizations l, CoachProgramItem item) {
       minutes: item.duration,
       durationSeconds: seconds,
     );
-    return '${item.name} · $time';
+    return time;
   }
   // 세트 → 횟수 → 중량. 입력 화면이 묻는 순서 그대로다 (#1310) — 트레이너가
   // 적은 순서와 회원이 읽는 순서가 다르면 같은 한 줄이 두 앱에서 달라 보인다.
@@ -973,7 +946,7 @@ String _ptProgramLabel(AppLocalizations l, CoachProgramItem item) {
     if (item.reps > 0) l.exRepsCount(item.reps),
     if (item.weight > 0) exerciseWeightLabel(l, item.weight),
   ].join(' · ');
-  return details.isEmpty ? item.name : '${item.name} · $details';
+  return details;
 }
 
 /// "오늘 완료한 PT" 카드 — 데모와 실서버가 같은 모양이다. (#2666)
@@ -994,8 +967,13 @@ class _PtSessionCard extends StatelessWidget {
     required this.lines,
     required this.coachName,
     required this.feedback,
+    this.intensity,
     this.emptyProgram,
   });
+
+  /// 그날 PT 를 한 강도 — 머리 오른쪽에 한 번 적는다(#2507). 기록을 아직 못
+  /// 읽었으면 비운다 — 없는 값을 지어내지 않는다(#2666).
+  final ExerciseIntensity? intensity;
 
   /// 수업 시각 `HH:MM`.
   final String time;
@@ -1008,7 +986,7 @@ class _PtSessionCard extends StatelessWidget {
 
   /// 종목 줄. 이름 문자열이 아니라 구조화된 값에서 운동량을 조립해야 픽스처와
   /// 실서버가 같은 모양으로 보인다(#2126).
-  final List<String> lines;
+  final List<_LineData> lines;
 
   /// 종목이 없을 때의 안내. null 이면 비워 둔다.
   final String? emptyProgram;
@@ -1037,6 +1015,7 @@ class _PtSessionCard extends StatelessWidget {
           AppSectionHeader(
             title: l.exCompletedPtTitle,
             icon: AppIcons.exercise,
+            trailing: intensity == null ? null : exerciseIntensityTag(exerciseIntensityLabel(l, intensity!)),
             titleBadge: number == null
                 ? null
                 : Flexible(
@@ -1086,7 +1065,14 @@ class _PtSessionCard extends StatelessWidget {
                   .copyWith(color: OnCareColors.textSecondary),
             )
           else
-            for (final String line in lines) _ProgramLine(line),
+            for (final _LineData line in lines)
+              ExerciseRecordLine(
+                typeLabel: line.type == null
+                    ? null
+                    : exerciseTypeLabel(l, line.type!),
+                name: line.name,
+                amount: line.amount,
+              ),
           const SizedBox(height: OnCareSpacing.s12),
           SizedBox(
             width: double.infinity,
