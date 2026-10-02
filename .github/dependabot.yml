@@ -68,3 +68,6 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # flutter_localizations(SDK)가 intl 버전을 고정한다 — 앱에서 따로 올리면 의존성
+      # 해석이 실패한다. Flutter SDK 를 올릴 때 함께 맞춘다.
+      - dependency-name: intl
