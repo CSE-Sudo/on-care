@@ -155,7 +155,6 @@ from app.services.exercise_service import (
     pt_session_times, weekly_goals,
 )
 from app.services.coach.chat import answer as coach_answer
-from app.services.audit import client_ip, record as audit
 
 router = APIRouter(tags=["trainer"])
 
@@ -409,7 +408,6 @@ def trainer_change_password(
     payload: TrainerPasswordChange,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
-    request: Request,
 ) -> PasswordChanged:
     """비밀번호 변경. 현재 비밀번호가 맞아야 하고, 같은 값으로는 바꿀 수 없다.
 
@@ -429,11 +427,11 @@ def trainer_change_password(
     ensure_unlocked(lock_key, settings.password_change_max_failures, lock_window)
     if not verify_password(payload.current_password, trainer.hashed_password):
         record_failure(lock_key, lock_window)
-        audit(
+        audit.record(
             db,
             event="auth.password_change",
             user_id=trainer.id,
-            ip=client_ip(request),
+            ip=audit.client_ip(request),
             success=False,
             detail="current_password_mismatch",
         )
