@@ -56,18 +56,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionRetry => 'Retry';
 
   @override
-  String get errorNetwork => 'Network problem';
-
-  @override
-  String get errorUnauthorized => 'Sign in required';
-
-  @override
-  String get errorNotFound => 'Not found';
-
-  @override
-  String get errorServer => 'Server error';
-
-  @override
   String get errorCancelled => 'Cancelled';
 
   @override
@@ -134,9 +122,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Log today\'s meals and workouts, and we\'ll put together advice for your day.';
 
   @override
-  String get homeSodiumExceededBadge => 'Sodium over';
-
-  @override
   String get homeMacroCarbs => 'Carbs';
 
   @override
@@ -167,9 +152,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String homeWeeklyMetricTrend(String metric) {
     return 'Weekly $metric trend';
   }
-
-  @override
-  String get homeWeeklyExerciseTrend => 'Exercise trend';
 
   @override
   String get homeExerciseTrendUnavailable =>
@@ -259,16 +241,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeRecMealsErrorTitle => 'Couldn\'t load meal suggestions';
 
   @override
-  String get homeViewAll => 'View all';
-
-  @override
   String get unitKcal => 'kcal';
 
   @override
   String get unitMinutes => 'min';
-
-  @override
-  String get unitSets => 'sets';
 
   @override
   String unitKcalValue(int count) {
@@ -372,11 +348,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietPeriodEmpty => 'No meals were logged in this period.';
-
-  @override
-  String dietPeriodRange(String start, String end) {
-    return '$start - $end';
-  }
 
   @override
   String get dietPeriodNoRecord => 'No record';
@@ -703,24 +674,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exConnected => 'Connected';
 
   @override
-  String get exRecommendedGyms => 'Recommended Gyms';
-
-  @override
-  String get exRecommendedTrainers => 'Recommended Trainers';
-
-  @override
-  String get exSeeMore => 'See more';
-
-  @override
-  String get exNoConnectedGym => 'You don\'t have a connected gym yet.';
-
-  @override
-  String get exNoRecommendedGyms => 'No gym recommendations yet.';
-
-  @override
-  String get exNoRecommendedTrainers => 'No trainer recommendations yet.';
-
-  @override
   String get exTrainerAffiliation => 'Gym';
 
   @override
@@ -740,9 +693,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exNearbyGymsMapLabel => 'Gyms near me';
-
-  @override
-  String get exWeekSummary => 'This Week\'s Summary';
 
   @override
   String get exActivityTitle => 'Activity';
@@ -776,49 +726,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exPeriodAll => 'All';
 
   @override
-  String get exExerciseContent => 'What you did';
-
-  @override
-  String get exViewDetail => 'View details';
-
-  @override
-  String get exRegister => 'Register';
-
-  @override
-  String exGymRegistered(String gym) {
-    return 'Registered $gym';
-  }
-
-  @override
-  String exWeekNumber(int n) {
-    return 'Week $n';
-  }
-
-  @override
-  String get exTodayTotalTime => 'Today\'s total time';
-
-  @override
-  String get exRest => 'Rest';
-
-  @override
   String exRestSeconds(int seconds) {
     return 'Rest ${seconds}s';
   }
-
-  @override
-  String get exAiRecommendedExercise => 'AI recommended exercise';
-
-  @override
-  String get exStatTime => 'Time';
-
-  @override
-  String get exStatCalories => 'Calories';
-
-  @override
-  String get exStatStreak => 'Streak';
-
-  @override
-  String get exUnitStreakDays => 'day streak';
 
   @override
   String exStreakCheer(int days) {
@@ -875,9 +785,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exExerciseName => 'Exercise Name';
-
-  @override
-  String get exExerciseNameHint => 'e.g. Squat, Treadmill';
 
   @override
   String get exExerciseNameHintCardio => 'e.g. Treadmill, Indoor cycling';
@@ -1044,9 +951,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exRecordDetailTotalCalories => 'Total calories burned';
 
   @override
-  String get exOwnRecordSource => 'Self-logged';
-
-  @override
   String get exCompletedPtDayTitle => 'Completed PT';
 
   @override
@@ -1078,9 +982,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exTrainerDetailTitle => 'Trainer Details';
-
-  @override
-  String get exDistance => 'Distance';
 
   @override
   String get exRating => 'Rating';
@@ -1127,9 +1028,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exTrainersLoadError => 'Couldn\'t load trainers.';
 
   @override
-  String get exGymSearchHint => 'Search by gym or area';
-
-  @override
   String get exNearbyGyms => 'Nearby gyms';
 
   @override
@@ -1139,31 +1037,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exGymListExpand => 'Expand list';
 
   @override
-  String get exAiAnalysis => '✦ AI analysis';
-
-  @override
-  String exNoGymMatch(String query) {
-    return 'No gyms match \'$query\'';
-  }
-
-  @override
   String get exGymsLoadError => 'Couldn\'t load gyms.';
-
-  @override
-  String get exAiTopPick => '✦ AI top pick';
-
-  @override
-  String get exGymDetailHint => 'See trainers and request a consultation';
-
-  @override
-  String exReasonTrainer(String name, String role) {
-    return 'Personal trainer $name$role on site';
-  }
-
-  @override
-  String exReasonHours(String hours, String weekend) {
-    return 'Open $hours$weekend';
-  }
 
   @override
   String exGymWeekdayHours(String hours) {
@@ -1189,13 +1063,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get exSlotFull => 'Fully booked';
-
-  @override
   String get exSlotTypePersonalTraining => '1:1 PT';
-
-  @override
-  String get exSlotTypeConsultation => 'Consultation';
 
   @override
   String get exSlotsEmpty => 'No times available';
@@ -1222,12 +1090,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String exReserveConfirm(String slot) {
     return 'Confirm $slot';
   }
-
-  @override
-  String get exGymInfo => 'Gym Info';
-
-  @override
-  String get exConsultButton => '💬 1:1 Consult';
 
   @override
   String get exAddress => 'Address';
@@ -1732,9 +1594,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get challengeTitle => 'Weekly workout challenge';
 
   @override
-  String get challengeShort => 'Weekly challenge';
-
-  @override
   String challengeShortWithRange(String range) {
     return 'Weekly challenge · $range';
   }
@@ -1787,33 +1646,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String challengeAchieved(String reward) {
     return 'Goal reached! You get $reward when the week ends';
   }
-
-  @override
-  String challengeWeekTitle(String range) {
-    return 'Challenge $range';
-  }
-
-  @override
-  String get challengeStatusActive => 'In progress';
-
-  @override
-  String get challengeStatusSucceeded => 'Completed';
-
-  @override
-  String get challengeStatusFailed => 'Missed';
-
-  @override
-  String challengeResultSucceeded(int goal, int progress, String reward) {
-    return '$progress of $goal workouts · $reward earned';
-  }
-
-  @override
-  String challengeResultFailed(int goal, int progress, String stake) {
-    return '$progress of $goal workouts · $stake stake lost';
-  }
-
-  @override
-  String get challengeLoadFailed => 'Couldn\'t load challenges';
 
   @override
   String get myCouponStatusUsable => 'Available';
@@ -2214,9 +2046,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myFieldWeight => 'Weight (kg)';
 
   @override
-  String get myFieldGoals => 'Health and exercise goals';
-
-  @override
   String get myNotifExercise => 'Exercise reminder';
 
   @override
@@ -2333,9 +2162,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachChatSubtitle => 'Personal trainer';
 
   @override
-  String get coachChatBack => 'Back';
-
-  @override
   String get coachChatLoadOlder => 'Load older messages';
 
   @override
@@ -2411,229 +2237,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get coachChatReportOpenPdf => 'Open PDF';
-
-  @override
   String get coachChatReportPreviewPdf => 'Preview PDF';
-
-  @override
-  String get coachReportPdfDocTitle => 'Weekly report';
-
-  @override
-  String get coachReportPdfDocTitleContinued => 'Weekly report (cont.)';
-
-  @override
-  String coachReportPdfPeriod(String from, String to) {
-    return 'Period $from – $to';
-  }
-
-  @override
-  String get coachReportPdfSectionMetrics => 'Key metrics';
-
-  @override
-  String get coachReportPdfSectionTrend => 'Daily trend';
-
-  @override
-  String get coachReportPdfSectionDaily => 'Day by day';
 
   @override
   String coachReportPdfBullet(String label, String value) {
     return '· $label: $value';
   }
-
-  @override
-  String get coachReportPdfLabelWorkoutDays => 'Days trained';
-
-  @override
-  String get coachReportPdfLabelWorkoutMinutes => 'Total workout time';
-
-  @override
-  String get coachReportPdfLabelBurned => 'Calories burned';
-
-  @override
-  String get coachReportPdfLabelSessions => 'PT sessions';
-
-  @override
-  String get coachReportPdfLabelCalories => 'Average intake';
-
-  @override
-  String get coachReportPdfLabelSodium => 'Average sodium';
-
-  @override
-  String get coachReportPdfLabelSugar => 'Average sugar';
-
-  @override
-  String get coachReportPdfLabelMinutesShort => 'Workout time';
-
-  @override
-  String get coachReportPdfLabelCaloriesShort => 'Intake';
-
-  @override
-  String get coachReportPdfLabelSodiumShort => 'Sodium';
-
-  @override
-  String get coachReportPdfLabelSugarShort => 'Sugar';
-
-  @override
-  String coachReportPdfValueDays(String value) {
-    return '$value days';
-  }
-
-  @override
-  String coachReportPdfValueMinutes(String value) {
-    return '$value min';
-  }
-
-  @override
-  String coachReportPdfValueKcal(String value) {
-    return '$value kcal';
-  }
-
-  @override
-  String coachReportPdfValueMg(String value) {
-    return '$value mg';
-  }
-
-  @override
-  String coachReportPdfValueGram(String value) {
-    return '$value g';
-  }
-
-  @override
-  String coachReportPdfAttendance(String done, String booked) {
-    return '$done of $booked';
-  }
-
-  @override
-  String get coachReportPdfNoData => 'No data';
-
-  @override
-  String coachReportPdfDay(String weekday, String exercise, String intake) {
-    return '$weekday — workout $exercise, intake $intake';
-  }
-
-  @override
-  String get coachReportPdfSectionTrainerNote => 'Trainer feedback';
-
-  @override
-  String get coachReportPdfNoTrainerNote =>
-      'No feedback came with this report.';
-
-  @override
-  String get coachReportPdfSectionChange => 'Change from last week';
-
-  @override
-  String get coachReportPdfSectionMacros => 'Average macros';
-
-  @override
-  String get coachReportPdfLabelLoggedDays => 'Days with meals logged';
-
-  @override
-  String get coachReportPdfLabelSodiumOver => 'Days over the sodium goal';
-
-  @override
-  String get coachReportPdfLabelPtDone => 'PT sessions done';
-
-  @override
-  String coachReportPdfValueSessions(String value) {
-    return '$value sessions';
-  }
-
-  @override
-  String get coachReportPdfLabelCardio => 'Cardio';
-
-  @override
-  String get coachReportPdfLabelStrength => 'Strength';
-
-  @override
-  String get coachReportPdfLabelStretching => 'Stretching';
-
-  @override
-  String get coachReportPdfSectionTypes => 'Minutes by workout type';
-
-  @override
-  String get coachReportPdfNoSessions => 'None booked';
-
-  @override
-  String get coachReportPdfBandPeriod => 'Period';
-
-  @override
-  String get coachReportPdfSectionGoals => 'Against your goals';
-
-  @override
-  String get coachReportPdfColumnMetric => 'Metric';
-
-  @override
-  String get coachReportPdfColumnThisWeek => 'This week';
-
-  @override
-  String get coachReportPdfColumnLastWeek => 'Last week';
-
-  @override
-  String get coachReportPdfColumnChange => 'Change';
-
-  @override
-  String get coachReportPdfColumnWeekday => 'Day';
-
-  @override
-  String get coachReportPdfColumnWorkout => 'Workout';
-
-  @override
-  String get coachReportPdfColumnIntake => 'Intake';
-
-  @override
-  String get coachReportPdfUpcoming => 'Still to come';
-
-  @override
-  String coachReportPdfGoalOf(String value, String target) {
-    return '$value (goal $target)';
-  }
-
-  @override
-  String coachReportPdfChartTarget(String value) {
-    return 'goal $value';
-  }
-
-  @override
-  String coachReportPdfDayUpcoming(String weekday) {
-    return '$weekday — still to come';
-  }
-
-  @override
-  String coachReportPdfChange(
-    String label,
-    String current,
-    String previous,
-    String delta,
-  ) {
-    return '· $label: $current (last week $previous, $delta)';
-  }
-
-  @override
-  String coachReportPdfDeltaUp(String value) {
-    return '+$value';
-  }
-
-  @override
-  String coachReportPdfDeltaDown(String value) {
-    return '-$value';
-  }
-
-  @override
-  String get coachReportPdfDeltaSame => 'no change';
-
-  @override
-  String get coachReportPdfNoPreviousWeek =>
-      'There are no records from last week to compare with.';
-
-  @override
-  String coachReportPdfSodiumTargetNote(String target) {
-    return 'The sodium goal is the ${target}mg daily target you set on the MY screen.';
-  }
-
-  @override
-  String get coachReportPdfPreviewNote =>
-      'Built from your own records for the week the trainer\'s report covers.';
 
   @override
   String coachReportPdfFileName(String date) {
@@ -2694,9 +2303,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aicHeaderSubtitle => 'Ask me anytime';
-
-  @override
-  String get aicDatePillToday => 'Today';
 
   @override
   String get aicMedicalDisclaimer =>
@@ -3006,43 +2612,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exTimeFlexible => 'Discuss Later';
 
   @override
-  String get exTimeRangeTitle => 'Select time';
-
-  @override
-  String get exTimeRangeStartTime => 'Start time';
-
-  @override
-  String get exTimeRangeEndTime => 'End time';
-
-  @override
-  String get exTimeRangeStartHourStep => 'Start hour';
-
-  @override
-  String get exTimeRangeStartMinuteStep => 'Start minute';
-
-  @override
-  String get exTimeRangeEndHourStep => 'End hour';
-
-  @override
-  String get exTimeRangeEndMinuteStep => 'End minute';
-
-  @override
-  String get exSlotAm => 'AM';
-
-  @override
-  String get exSlotPm => 'PM';
-
-  @override
-  String get exTimeRangeInvalidEnd =>
-      'End time must be later than the start time.';
-
-  @override
-  String get exTimeRangePrevStep => 'Previous step';
-
-  @override
-  String get exTimeRangeNextStep => 'Next step';
-
-  @override
   String get exConsultMessage => 'Message';
 
   @override
@@ -3088,9 +2657,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exReturnExercise => 'Return to Exercise';
-
-  @override
-  String get exConsultStatusSection => 'Consultation Request Status';
 
   @override
   String get exConsultHistoryTitle => 'My Consultation Requests';
@@ -3855,15 +3421,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGoalMacroApplySuggestion => 'Use suggested split';
 
   @override
-  String get myGoalWorkoutCount => 'Weekly workout count goal';
-
-  @override
-  String get myGoalWorkoutMinutes => 'Weekly workout minutes goal';
-
-  @override
-  String get myGoalWorkoutCalories => 'Weekly calories burned goal (kcal)';
-
-  @override
   String get myGoalUnsetHint =>
       'Dimmed values are the baseline used before you set a goal';
 
@@ -3918,9 +3475,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachAssignedTrainer => 'My trainer';
-
-  @override
-  String get coachPointsTitle => 'This week\'s coaching points';
 
   @override
   String get coachRoutineTitle => 'Recommended solo workouts';
@@ -4243,9 +3797,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get a11yRemoveFood => 'Remove food';
-
-  @override
-  String get a11yOpenCalendar => 'Open schedule calendar';
 
   @override
   String get a11yPrevWeek => 'Previous week';
@@ -5116,9 +4667,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get weeklyFeedbackLoadFailed =>
       'Couldn\'t load the weekly feedback you sent';
-
-  @override
-  String get coachReportOpen => 'Open report';
 
   @override
   String coachReportSentOn(int month, int day) {

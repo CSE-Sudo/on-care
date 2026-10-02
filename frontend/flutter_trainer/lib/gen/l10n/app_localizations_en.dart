@@ -133,9 +133,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionChange => 'Change';
 
   @override
-  String get actionBack => 'Back';
-
-  @override
   String get actionAdd => 'Add';
 
   @override
@@ -341,25 +338,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashActivityTabChat => 'Messages';
 
   @override
-  String get dashActivityTabDiet => 'Diet';
-
-  @override
   String get dashActivityTabClient => 'Member';
 
   @override
   String get dashLoadFailed => 'Couldn\'t load the dashboard';
 
   @override
-  String get dashTodayReservations => 'Today\'s bookings';
-
-  @override
   String get dashUnitCount => '';
 
   @override
   String get dashUnitPeople => '';
-
-  @override
-  String get dashSeeInSchedule => 'View in schedule';
 
   @override
   String get dashMyClients => 'My members';
@@ -459,17 +447,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get dashAiNoClients =>
       'No members yet. Once you add one, I\'ll gather their diet and workout data and point out what to coach.';
-
-  @override
-  String get dashAttentionTitle => 'Members to check';
-
-  @override
-  String dashMoreCount(int count) {
-    return '+$count';
-  }
-
-  @override
-  String get dashNoAttention => 'No one needs attention right now';
 
   @override
   String get dashTodaySchedule => 'Today\'s schedule';
@@ -588,11 +565,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientsFilterLabel => 'Filters';
-
-  @override
-  String clientsToolbarCount(int shown, int active) {
-    return '$shown members · $active active';
-  }
 
   @override
   String get clientsPickHint =>
@@ -811,18 +783,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memberHealthGoalFlexibilityWeekly => 'Weekly stretching (min)';
 
   @override
-  String get memberHealthWeeklyGoal => 'Weekly exercise goal';
-
-  @override
-  String get memberHealthWeeklyCount => 'Sessions';
-
-  @override
-  String get memberHealthWeeklyMinutes => 'Minutes';
-
-  @override
-  String get memberHealthWeeklyBurn => 'Calories burned';
-
-  @override
   String memberHealthRange(String min, String max) {
     return 'Enter a value between $min and $max.';
   }
@@ -890,9 +850,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachTemplateEdit => 'Edit template';
 
   @override
-  String get coachTemplateSaveAsMine => 'Save as my template';
-
-  @override
   String get coachTemplateDelete => 'Delete';
 
   @override
@@ -934,10 +891,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachTemplateLoadFailed => 'Couldn\'t load templates';
-
-  @override
-  String get coachTemplateStarterHint =>
-      'A starter block. Editing saves it as your own';
 
   @override
   String get chatEmoteLabel => 'Emote';
@@ -1003,9 +956,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get metricFat => 'Fat';
-
-  @override
-  String get clientActive => 'Active';
 
   @override
   String get clientDormant => 'Dormant';
@@ -1157,14 +1107,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get consultTitle => 'Consultation requests';
 
   @override
-  String consultPendingCount(int count) {
-    return '$count pending';
-  }
-
-  @override
-  String get consultNoPending => 'No pending requests';
-
-  @override
   String get consultFilterAll => 'All';
 
   @override
@@ -1208,21 +1150,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get consultRejected => 'Request declined';
 
   @override
-  String consultScheduleConflict(String name, String time) {
-    return 'Overlaps $name\'s $time session';
-  }
-
-  @override
   String get consultDecisionNote => 'Reason';
 
   @override
-  String get consultTargetTrainer => 'Direct request';
-
-  @override
   String get consultExerciseGoal => 'Training goal';
-
-  @override
-  String get consultHealthPurpose => 'Health management purpose';
 
   @override
   String get consultChosenSlot => 'Chosen time';
@@ -1289,16 +1220,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workoutEmpty => 'No workouts logged yet';
 
   @override
-  String get routinesAssigned => 'Assigned programs';
-
-  @override
-  String get routineNew => 'New program';
-
-  @override
   String get routinesLoadFailed => 'Couldn\'t load programs';
-
-  @override
-  String get routinesEmpty => 'No programs assigned to this member yet';
 
   @override
   String minutesShort(int minutes) {
@@ -1316,24 +1238,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get ptProgramHistory => 'PT program history';
-
-  @override
-  String get scheduleLoadFailed => 'Couldn\'t load the schedule';
-
-  @override
-  String get ptSessionsEmpty => 'No PT sessions yet';
-
-  @override
   String get labelToday => 'Today';
 
   @override
   String sessionTypeAndDuration(String type, int minutes) {
     return '$type · $minutes min';
   }
-
-  @override
-  String get programNone => 'No program recorded';
 
   @override
   String get legendDone => 'Done';
@@ -1360,9 +1270,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietDayEmpty => 'No record';
 
   @override
-  String get dietMacros => 'Macros';
-
-  @override
   String get clientNutritionSummary => 'Nutrition summary';
 
   @override
@@ -1370,16 +1277,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietAchieveRate => 'Progress';
-
-  @override
-  String dietAmountOver(String amount) {
-    return '$amount over the goal';
-  }
-
-  @override
-  String dietAmountRemaining(String amount) {
-    return '$amount remaining to the goal';
-  }
 
   @override
   String get consultStatusRejected => 'Declined';
@@ -1488,17 +1385,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unitMinutes => 'min';
 
   @override
-  String clientTrendWorkoutDaysValue(int days) {
-    String _temp0 = intl.Intl.pluralLogic(
-      days,
-      locale: localeName,
-      other: '$days days',
-      one: '1 day',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get clientPeriodToday => 'Today';
 
   @override
@@ -1518,12 +1404,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exBurnWeekTitle => 'Burned this week';
-
-  @override
-  String get exBurnMonthTitle => 'Burned this month';
-
-  @override
-  String get exBurnDayTitle => 'Burned';
 
   @override
   String get exBurnAllTitle => 'Average burned';
@@ -1551,21 +1431,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exTypeOther => 'Other';
 
   @override
-  String clientPeriodLoggedDays(int days) {
-    String _temp0 = intl.Intl.pluralLogic(
-      days,
-      locale: localeName,
-      other: '$days days logged',
-      one: '1 day logged',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get clientPeriodEmpty => 'Nothing was logged in this period';
-
-  @override
-  String get clientDietTrendTitle => 'Nutrition trend';
 
   @override
   String get unitKcal => 'kcal';
@@ -1581,22 +1447,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientTrendTodayEmpty => 'No workout logged today';
 
   @override
-  String get clientTrendTodayTotal => 'Today\'s total';
-
-  @override
-  String get clientTrendWorkoutDays => 'Active days';
-
-  @override
-  String get clientTrendWorkoutCount => 'Workouts';
-
-  @override
   String get clientTrendWorkoutMinutes => 'Exercise time';
 
   @override
   String get clientTrendCaloriesBurned => 'Calories burned';
-
-  @override
-  String get clientTrendSegmentTime => 'Time';
 
   @override
   String get reportsPickClient => 'Pick a member';
@@ -1607,39 +1461,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get reportsCompletionAvg => 'Workout completion';
-
-  @override
-  String get reportsWeeklyCompletion => 'Weekly completion';
-
-  @override
   String get reportsCompletionByDay => 'Weekly workout completion';
 
   @override
   String get reportsNoWorkoutsThisWeek => 'No workouts logged this week';
-
-  @override
-  String reportsMetricTrend(String metric) {
-    return '$metric trend';
-  }
-
-  @override
-  String reportsNoLastWeekMetricTrend(String metric) {
-    return 'No $metric trend for last week yet';
-  }
-
-  @override
-  String reportsNoMetricRecords(String metric) {
-    return 'No $metric logged this week yet';
-  }
-
-  @override
-  String get reportsDietTrend => 'Weekly diet trend';
-
-  @override
-  String workoutDoneOfTotal(int total, int done) {
-    return '$done of $total done';
-  }
 
   @override
   String get chartNoRecord => 'Not logged';
@@ -1976,11 +1801,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String schedBlockTime(String range, String duration) {
-    return '$range ($duration)';
-  }
-
-  @override
   String get schedEmptyWeek => 'Nothing scheduled this week.';
 
   @override
@@ -2015,28 +1835,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedFieldDate => 'Date';
 
   @override
-  String get schedFieldStartDate => 'Start date';
-
-  @override
   String get schedFieldDateRange => 'Start - end date';
 
   @override
   String get schedFieldTime => 'Time';
-
-  @override
-  String get schedHourSuffix => 'hr';
-
-  @override
-  String get schedMinuteSuffix => 'min';
-
-  @override
-  String get schedFieldDuration => 'Duration';
-
-  @override
-  String get schedFieldStart => 'Start';
-
-  @override
-  String get schedFieldEnd => 'End';
 
   @override
   String get schedEndBeforeStart => 'End time must be after the start time';
@@ -2060,9 +1862,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedTimeRangeConfirm => 'Confirm';
-
-  @override
-  String get schedTimeRangeInvalid => 'Enter a valid time (HH:mm)';
 
   @override
   String get schedTimePickerTimeLabel => 'Time';
@@ -2108,9 +1907,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedRepeatWeekly => 'Weekly';
-
-  @override
-  String get schedRepeatDays => 'Repeat on';
 
   @override
   String schedRepeatPreview(int count, String first, String last) {
@@ -2234,24 +2030,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get progDeleteExercise => 'Remove exercise';
 
   @override
-  String get progSets => 'Sets';
-
-  @override
-  String get progReps => 'Reps/time';
-
-  @override
-  String get progWeight => 'Weight';
-
-  @override
-  String get progType => 'Type';
-
-  @override
-  String get progDuration => 'Duration (min)';
-
-  @override
-  String get progOptional => 'Optional';
-
-  @override
   String progSetsValue(int sets) {
     String _temp0 = intl.Intl.pluralLogic(
       sets,
@@ -2303,13 +2081,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get slotOpened => 'Booking slot opened.';
 
   @override
-  String get slotEditTitle => 'Edit booking slot';
-
-  @override
   String get slotStartTime => 'Start time';
-
-  @override
-  String get slotUpdated => 'Booking slot updated.';
 
   @override
   String get slotCloseTitle => 'Close booking slot';
@@ -2349,9 +2121,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get slotBookedSummary => 'Booked';
-
-  @override
-  String get slotOpenSummary => 'Open';
 
   @override
   String get slotOverlappedSummary => 'Overlaps a session';
@@ -2448,9 +2217,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myLoginAccount => 'Signed in as';
 
   @override
-  String get myLegal => 'Terms & policies';
-
-  @override
   String get mySupportTitle => 'Customer Support';
 
   @override
@@ -2465,10 +2231,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get mySupportOpenFailed =>
       'Couldn\'t open the link. Please try again in a moment';
-
-  @override
-  String get mySupportEntryHint =>
-      'FAQ, inquiries, policies and account clean-up in one place';
 
   @override
   String myAppVersion(String version) {
@@ -2494,15 +2256,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get myLegalPrivacyBody =>
       'This English text is provided for convenience; the Korean original governs.\n\n1. Information collected\nFor trainer sign-up and service delivery, On-Care (the \"Company\") collects name, email and phone number, along with gym affiliation, certifications, career, speciality and service access logs.\n\n2. Purpose of collection and use\nThe information is used only to identify trainers and to let an operator check their gym affiliation and credentials (trainers are not shown to members until approved), to connect them with assigned members, to provide scheduling, messaging and reports, and to improve the service and answer enquiries.\n\n3. Access to and processing of member information\nA trainer may open the diet, workout and body-weight records of members they are assigned to, inside the Service. The Company is the controller of those records; the trainer processes them only for coaching and reports, within the scope the Company sets. Reports and messages a trainer sends are delivered to that member and kept in the Service as a record. When an assignment ends, the trainer\'s access is revoked immediately, and a member may withdraw consent to share their information at any time.\n\n4. Retention\nA trainer\'s personal information is destroyed without delay on account deletion, unless the law requires it to be kept, in which case it is stored securely for that period. Reports and messages already delivered belong to the member\'s record and follow the member\'s retention period.\n\n5. Provision to third parties\nThe Company does not provide personal information to outside parties without consent, except where the law specifically requires it.\n\n6. Safeguards\nAccess to member information is limited by assignment, and traffic is encrypted in transit. Sign-in and other access logs are kept for one year; records of trainers opening members\' health information, of consent being given or withdrawn, and of account deletion are kept for two years, then destroyed. An access record holds only the trainer, the member, the kind of information and the time, never the health information itself.\n\n7. Your rights\nA trainer may review or correct their personal information, or request that its processing stop and that it be deleted, at any time.\n\n8. Privacy officer\nFor privacy enquiries, contact customer support (support@oncare.com).\n\nEffective: January 1, 2026';
-
-  @override
-  String get myAppInfo => 'About';
-
-  @override
-  String get myService => 'Service';
-
-  @override
-  String get myVersion => 'Version';
 
   @override
   String get myPasswordChanged => 'Password changed';
@@ -2811,16 +2564,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'When a member changes goals or name, or disconnects';
 
   @override
-  String get routineTypeWalking => 'Walking';
-
-  @override
   String get routineTypeCardio => 'Cardio';
 
   @override
   String get routineTypeStrength => 'Strength';
-
-  @override
-  String get routineTypeYoga => 'Yoga';
 
   @override
   String get routineTypeStretching => 'Stretching';
@@ -2988,12 +2735,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Create, assign, and manage exercise programs for each member';
 
   @override
-  String get coachMemberSummary => 'Member summary';
-
-  @override
-  String get reportsDataInsufficient => 'Insufficient data';
-
-  @override
   String get coachSendFailed => 'Couldn\'t send. Please try again';
 
   @override
@@ -3018,17 +2759,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t check the attached personal exercises. Please try again';
 
   @override
-  String get coachScheduleFailed =>
-      'Couldn\'t add it to the schedule. Please try again';
-
-  @override
   String get coachNoClients => 'No members yet';
-
-  @override
-  String get coachRecommended => 'AI suggestions';
-
-  @override
-  String get coachBackToList => 'Back to suggestions';
 
   @override
   String get coachTrainerAdded => 'Added by trainer';
@@ -3049,26 +2780,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String coachRegisterOn(String date) {
-    return 'Add to the $date PT schedule';
-  }
-
-  @override
-  String get coachRegisterAction => 'Add to PT schedule';
-
-  @override
   String get coachGoToSchedule => 'Go to schedule';
 
   @override
   String get labelTomorrow => 'Tomorrow';
-
-  @override
-  String get coachRequestCustom => 'Ask AI for a custom suggestion';
-
-  @override
-  String coachRequestBlurb(String name) {
-    return 'We\'ll analyse $name\'s data, draft a recovery and a push option, and let you compare and edit them here.';
-  }
 
   @override
   String get coachTemplates => 'Program templates';
@@ -3122,18 +2837,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachHistoryEmpty => 'You haven\'t sent any programs yet';
 
   @override
-  String get coachHomework => 'Personal';
-
-  @override
-  String get coachPersonalTraining => 'PT';
-
-  @override
   String get coachTrainer => 'Trainer';
-
-  @override
-  String coachSessionProgramSummary(String name, int count) {
-    return '$name + $count more';
-  }
 
   @override
   String get aiReasonSodium =>
@@ -3192,16 +2896,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiKeepOneExercise => 'Keep at least one exercise';
 
   @override
-  String aiRoutineSent(String name) {
-    return 'Program sent to $name';
-  }
-
-  @override
-  String aiCustomRoutineNamed(String option) {
-    return 'AI custom suggestion ($option)';
-  }
-
-  @override
   String get aiCustomRoutineName => 'AI custom suggestion';
 
   @override
@@ -3223,9 +2917,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiGoal => 'Goal';
-
-  @override
-  String get aiTodaySodium => 'Sodium today';
 
   @override
   String get aiOverTarget => ' · over target';
@@ -3303,21 +2994,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiEditsApplied =>
       'Your choice and edits are now in the final suggestion list.';
-
-  @override
-  String aiGoToChat(String name) {
-    return 'Open chat with $name';
-  }
-
-  @override
-  String get aiSending => 'Sending…';
-
-  @override
-  String get aiSendToClient => 'Send to member';
-
-  @override
-  String get aiGoToChatHint =>
-      'Use the button below to jump into their chat and explain it.';
 
   @override
   String get aiApplyToTemplate => 'Apply to program';
@@ -3437,21 +3113,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiPersonalStepEmpty => 'No personal exercise yet. Add one below.';
 
   @override
-  String get aiPersonalStepNext => 'Next';
-
-  @override
   String get aiKeepOnePersonalRoutine => 'Keep at least one personal exercise.';
 
   @override
-  String get aiRoutineOnlyReviewTitle => 'Sending this to the member';
-
-  @override
   String get aiRoutineOnlyStartDate => 'Start date';
-
-  @override
-  String aiRoutineOnlyWeekRange(String start, String end) {
-    return 'Shown daily $start – $end';
-  }
 
   @override
   String get aiRoutineOnlyWeeklyHint =>
@@ -3465,10 +3130,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiRoutineOnlySent => 'Personal exercise sent to the member.';
-
-  @override
-  String get aiRoutineOnlySendFailed =>
-      'Could not send the personal exercise. Please try again shortly.';
 
   @override
   String get aiRoutineOnlyProgramName => 'This week\'s personal exercise';
@@ -3539,11 +3200,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get progPersonalRoutinesTitle => 'Personal exercise for this PT';
 
   @override
-  String progPersonalRoutinesCount(int count) {
-    return '$count personal exercises going with it';
-  }
-
-  @override
   String get aiStepperLabel => 'Custom suggestion progress';
 
   @override
@@ -3584,9 +3240,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiConditionsAutoHint =>
       'Leave blank to auto-fill from recent history or goals.';
-
-  @override
-  String get aiConditionsEditToggle => 'Edit recommended conditions';
 
   @override
   String get aiPromptTitle => 'Tell the AI what program you want';
@@ -3688,11 +3341,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterAll => 'All';
 
   @override
-  String metricOverBy(String unit) {
-    return '$unit over';
-  }
-
-  @override
   String get authErrInvalidCredentials =>
       'That email or password isn\'t right.';
 
@@ -3742,9 +3390,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Can\'t change the type of a slot that\'s already booked.';
 
   @override
-  String get slotSessionType => 'Type';
-
-  @override
   String get authErrNotTrainer => 'Please sign in with a trainer account.';
 
   @override
@@ -3766,19 +3411,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String aiBulletExercise(String name, int minutes) {
     return '· $name · $minutes min ';
   }
-
-  @override
-  String schedHourLabel(String hour) {
-    return '$hour:00';
-  }
-
-  @override
-  String schedMinuteLabel(String minute) {
-    return '$minute min';
-  }
-
-  @override
-  String get progDefaultReps => '10 reps';
 
   @override
   String get appTitleSpaced => 'On - Care Trainer';
@@ -4049,13 +3681,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workoutPendingCancel => 'Cancel assignment';
 
   @override
-  String get routineUpdateFailed =>
-      'Couldn\'t update the program. Please try again in a moment';
-
-  @override
-  String get routineUpdated => 'Program updated';
-
-  @override
   String get routineDeleteTitle => 'Delete this program?';
 
   @override
@@ -4064,35 +3689,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get routineDeleted => 'Program deleted';
-
-  @override
-  String get routineEdit => 'Edit program';
-
-  @override
-  String get routineDelete => 'Delete program';
-
-  @override
-  String get routineNameRequired => 'Enter a program name';
-
-  @override
-  String get routineNameTooLong => 'Keep the name to 100 characters or fewer';
-
-  @override
-  String get routineMinutesRange =>
-      'Duration must be between 0 and 600 minutes';
-
-  @override
-  String get routineReasonTooLong =>
-      'Keep the reason to 200 characters or fewer';
-
-  @override
-  String get routineFieldName => 'Program name';
-
-  @override
-  String get routineFieldMinutesLabel => 'Duration (min)';
-
-  @override
-  String get routineFieldReason => 'Reason (optional)';
 
   @override
   String routineDeleteBody(String name) {
@@ -4287,9 +3883,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String messagesFilterUnreadCount(int count) {
     return 'Unread $count';
   }
-
-  @override
-  String get messagesBackToList => 'Conversation list';
 
   @override
   String get messagesNoPreview => 'No messages yet';
@@ -4614,15 +4207,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get followUpDue => 'Check on';
 
   @override
-  String followUpDueOn(String date) {
-    return 'Check on $date';
-  }
-
-  @override
   String get followUpOverdue => 'Overdue';
-
-  @override
-  String get followUpContext => 'Opens';
 
   @override
   String get followUpContextGeneral => 'Member detail';
@@ -4677,40 +4262,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programEditorSaveUnsupported => 'Give the program a name first.';
 
   @override
-  String get programEditorSaveEdit => 'Save changes';
-
-  @override
-  String get programSavedTitle => 'Saved programs';
-
-  @override
-  String programSavedExerciseCount(int count) {
-    return '$count exercises';
-  }
-
-  @override
-  String get programSavedNew => 'New program';
-
-  @override
   String get programDraftSaved => 'Program saved.';
-
-  @override
-  String get programDraftSaveFailed =>
-      'Couldn\'t save the program. Please try again.';
-
-  @override
-  String get programDraftLoadFailed =>
-      'Couldn\'t open the saved program. Please try again.';
-
-  @override
-  String get programDraftDeleteFailed =>
-      'Couldn\'t delete the program. Please try again.';
-
-  @override
-  String get programDraftDeleteTitle => 'Delete this saved program?';
-
-  @override
-  String get programDraftDeleteBody =>
-      'Programs you already assigned and sessions you scheduled stay as they are.';
 
   @override
   String programAssignConfirmAttachBody(
@@ -4806,41 +4358,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programEditorAddSchedule => 'Add to schedule';
-
-  @override
-  String get programReviewTitle => 'Confirm & send';
-
-  @override
-  String programReviewBlurb(String name) {
-    return 'Exactly what you see below is what $name receives. Check it, then send.';
-  }
-
-  @override
-  String get programReviewBack => 'Back to the editor';
-
-  @override
-  String programReviewSessionSummary(int count) {
-    return '$count exercises';
-  }
-
-  @override
-  String get programEditorInfo => 'Program information';
-
-  @override
-  String get programEditorName => 'Program name';
-
-  @override
-  String get programEditorGoal => 'Goal (optional)';
-
-  @override
-  String get programEditorPeriod => 'Period (optional)';
-
-  @override
-  String get programEditorAiHint =>
-      'Apply AI coaching suggestions to the first session as a local draft.';
-
-  @override
-  String get programEditorApply => 'Apply to editor';
 
   @override
   String get programEditorExerciseConfig => 'Workout structure';
@@ -4939,24 +4456,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programEditorWeight => 'Weight kg';
 
   @override
-  String get programEditorDuration => 'Time min';
-
-  @override
-  String get programEditorDistance => 'Distance m';
-
-  @override
-  String reportsComparisonTitle(String week) {
-    return '$week vs last week';
-  }
-
-  @override
-  String get reportsGoThisWeek => 'Go to this week';
-
-  @override
-  String get reportsSummaryEmptyClient =>
-      'Select a member to see their weekly summary and coaching suggestions here';
-
-  @override
   String reportsDemoSummarySteadyThisWeek(String name) {
     return '$name kept workouts and meals on plan this week. Hold this rhythm and consider nudging the training intensity up next week.';
   }
@@ -5027,16 +4526,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get reportsLastWeek => 'Last week';
-
-  @override
-  String get reportsSelectedWeek => 'Selected week';
-
-  @override
   String get reportsBackToList => 'Member list';
-
-  @override
-  String get reportsPreviousLoadFailed => 'Couldn\'t load last week\'s data.';
 
   @override
   String get reportsAverageSodium => 'Average sodium';
@@ -5069,52 +4559,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsFeedbackHint => 'Write coaching feedback for the member.';
-
-  @override
-  String get reportsRecentWeeks => 'Last 4 weekly averages';
-
-  @override
-  String get reportsWeekTotal => 'Week total';
-
-  @override
-  String reportsGoalOf(String value) {
-    return 'Goal $value';
-  }
-
-  @override
-  String get reportsCompareWith => 'vs last week';
-
-  @override
-  String reportsMoreExercises(int count) {
-    return '+$count more';
-  }
-
-  @override
-  String reportsRecordedDays(int days) {
-    return '$days days logged';
-  }
-
-  @override
-  String reportsAdherenceChip(String value) {
-    return 'Adherence avg $value';
-  }
-
-  @override
-  String get reportsBurnByDay => 'Weekly calories burned';
-
-  @override
-  String get reportsBurnEstimateNote =>
-      'Calories burned are estimated from workout type, duration, and intensity.';
-
-  @override
-  String chartGoalLabel(String value) {
-    return 'Goal\n$value';
-  }
-
-  @override
-  String reportsWeeksAgo(int count) {
-    return '${count}w ago';
-  }
 
   @override
   String get reportsAiTitle => 'This week\'s summary';
@@ -5163,35 +4607,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsAiGenerated => 'AI generated';
 
   @override
-  String get reportsAiLoading => 'Writing this week\'s summary…';
-
-  @override
   String get reportsAiUseAsDraft => 'Use as feedback';
 
   @override
   String get reportsAiRegenerate => 'Regenerate';
 
   @override
-  String get reportsAiUnavailable =>
-      'Available after the report summary API is connected. No summary is generated now.';
-
-  @override
   String get reportsAiFailed =>
       'Couldn\'t create the summary. Please try again.';
-
-  @override
-  String get reportsPdfGenerationFailed =>
-      'Couldn\'t generate the PDF. Please try again.';
 
   @override
   String get reportsPdfFallbackClient => 'member';
 
   @override
   String get reportsPdfDocTitle => 'Weekly coaching report';
-
-  @override
-  String get reportsPdfDocTitleContinued =>
-      'Weekly coaching report (continued)';
 
   @override
   String reportsPdfClient(String name) {
@@ -5372,9 +4801,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get routineFormIncrease => 'Increase';
-
-  @override
-  String get reportsWorkbenchTitle => 'This week\'s reports';
 
   @override
   String get reportsPending => 'Not sent';
@@ -5663,11 +5089,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String reportsMacroNoValue(String name) {
-    return '$name not logged';
-  }
-
-  @override
   String reportsMacroShortfall(String name) {
     return '$name is well under target — worth raising in your feedback';
   }
@@ -5744,25 +5165,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsTrendNoGoal => 'No goal';
-
-  @override
-  String reportsTrendOfGoal(String value, String goal) {
-    return '$value / $goal';
-  }
-
-  @override
-  String get reportsTrendCompliance => 'Weekly completion';
-
-  @override
-  String get reportsTrendBurn => 'Weekly burn';
-
-  @override
-  String get reportsTrendStreak => 'Streak';
-
-  @override
-  String reportsTrendStreakDays(int days) {
-    return '$days days';
-  }
 
   @override
   String get reportsExerciseTrend => 'Workout trend';
@@ -6341,116 +5743,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'other': 'Snack',
     });
     return '$_temp0';
-  }
-
-  @override
-  String get reportsSheetInfoMember => 'Member';
-
-  @override
-  String get reportsSheetInfoPeriod => 'Period';
-
-  @override
-  String get reportsSheetInfoMealDays => 'Meal logs';
-
-  @override
-  String reportsSheetDaysOf(String days, String due) {
-    return '$days/$due days';
-  }
-
-  @override
-  String get reportsSheetDietTitle => 'Diet analysis';
-
-  @override
-  String get reportsSheetDietHint => 'Daily average vs. goal';
-
-  @override
-  String get reportsSheetExerciseTitle => 'Exercise analysis';
-
-  @override
-  String get reportsSheetExerciseHint => 'This week vs. goal';
-
-  @override
-  String get reportsSheetDailyTitle => 'Daily log';
-
-  @override
-  String get reportsSheetDailyCompletion => 'Done';
-
-  @override
-  String get reportsSheetDailyCalories => 'Calories';
-
-  @override
-  String get reportsSheetDailyMeals => 'Meals';
-
-  @override
-  String get reportsSheetDailyWorkouts => 'Workouts';
-
-  @override
-  String get reportsSheetTrendTitle => 'Trends';
-
-  @override
-  String get reportsSheetTrendWeekly => 'Weekly exercise achievement (8 weeks)';
-
-  @override
-  String get reportsSheetTrendDaily => 'Daily calories · goal line';
-
-  @override
-  String get reportsSheetBandUnder => 'Low';
-
-  @override
-  String get reportsSheetBandNormal => 'On target';
-
-  @override
-  String get reportsSheetBandOver => 'High';
-
-  @override
-  String reportsSheetGoal(String value) {
-    return 'Goal $value';
-  }
-
-  @override
-  String get reportsSheetAttendance => 'PT attendance';
-
-  @override
-  String get reportsSheetScoreTitle => 'Weekly care score';
-
-  @override
-  String get reportsSheetScoreUnit => '/100';
-
-  @override
-  String get reportsSheetScoreFormula =>
-      'Average of workout completion, PT attendance, meal logging and on-target calorie days. Items without records are left out.';
-
-  @override
-  String get reportsSheetScoreNone => 'No records to score yet';
-
-  @override
-  String get reportsSheetEvalTitle => 'Evaluation';
-
-  @override
-  String get reportsSheetAverageTitle => 'vs. 4-week average';
-
-  @override
-  String get reportsSheetAverageNow => 'This week';
-
-  @override
-  String get reportsSheetAverageBase => '4-wk avg';
-
-  @override
-  String get reportsSheetAverageChange => 'Change';
-
-  @override
-  String get reportsSheetMealDaysLabel => 'Meal log days';
-
-  @override
-  String get reportsSheetFootnote =>
-      'Ranges compare this week with the member\'s goals. Items without records show as Not measured.';
-
-  @override
-  String get reportsSheetCalorieDays => 'On-target calorie days';
-
-  @override
-  String reportsSheetPeriodValue(String start, String end) {
-    return '$start – $end';
   }
 
   @override
