@@ -130,7 +130,7 @@ class _FoodViewRow extends StatelessWidget {
                     style: OnCareTypography.numeric(
                       _text(
                         context,
-                        OnCareTypography.caption,
+                        OnCareTypography.bodySmall,
                         OnCareColors.textSecondary,
                       ),
                     ),
@@ -155,7 +155,7 @@ class _FoodViewRow extends StatelessWidget {
             l.unitKcal,
             style: _text(
               context,
-              OnCareTypography.caption,
+              OnCareTypography.bodySmall,
               OnCareColors.textSecondary,
             ),
           ),
@@ -414,7 +414,7 @@ class _FoodEditBlock extends StatelessWidget {
                   '↳',
                   style: _text(
                     context,
-                    OnCareTypography.bodySmall,
+                    OnCareTypography.body,
                     OnCareColors.textTertiary,
                   ),
                 ),
@@ -425,7 +425,7 @@ class _FoodEditBlock extends StatelessWidget {
                   label,
                   style: _text(
                     context,
-                    OnCareTypography.bodySmall,
+                    OnCareTypography.body,
                     OnCareColors.textSecondary,
                   ),
                 ),
@@ -456,7 +456,7 @@ class _FoodEditBlock extends StatelessWidget {
                 unit,
                 style: _text(
                   context,
-                  OnCareTypography.caption,
+                  OnCareTypography.bodySmall,
                   OnCareColors.textSecondary,
                 ),
               ),
@@ -515,7 +515,7 @@ class _NutrientRow extends StatelessWidget {
               '↳',
               style: _text(
                 context,
-                OnCareTypography.bodySmall,
+                OnCareTypography.body,
                 OnCareColors.textTertiary,
               ),
             ),
@@ -526,7 +526,7 @@ class _NutrientRow extends StatelessWidget {
               label,
               style: _text(
                 context,
-                OnCareTypography.strong(OnCareTypography.bodySmall),
+                OnCareTypography.strong(OnCareTypography.body),
                 OnCareColors.textPrimary,
               ),
             ),
