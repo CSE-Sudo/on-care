@@ -1704,6 +1704,7 @@
   "clientQuickProgram": "프로그램",
   "clientQuickReport": "리포트",
   "clientProfileSectionTitle": "신체·목표",
+  "clientMemoDialogTitle": "메모·피드백",
   "clientTrainerMemo": "메모",
   "clientHealthUnset": "미입력",
   "clientHealthTabBody": "신체",

@@ -4241,6 +4241,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientProfileSectionTitle => 'Body and goals';
 
   @override
+  String get clientMemoDialogTitle => 'Memos & feedback';
+
+  @override
   String get clientTrainerMemo => 'Memo';
 
   @override
