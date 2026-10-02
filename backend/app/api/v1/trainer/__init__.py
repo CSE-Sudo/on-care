@@ -24,13 +24,11 @@
 | `consultations` | 상담 인박스 |
 | `notifications` | 알림함 |
 
-예전 단일 모듈의 이름(`trainer.trainer_me`, `trainer.NEXT_BEFORE_HEADER` 등)은 호환
-단계 동안 이 패키지에서 같은 객체로 다시 내보낸다(`app.core.module_reexport`).
+이 패키지는 [routers] 만 낸다. 엔드포인트·상수는 각 영역 모듈에서 가져온다.
 """
 from __future__ import annotations
 
 from app.api.v1.trainer import (
-    _common,
     ai_coach,
     chat,
     client_invites,
@@ -47,7 +45,6 @@ from app.api.v1.trainer import (
     schedule,
     task_progress,
 )
-from app.core.module_reexport import reexport
 
 #: 마운트 순서. 영역 안의 라우트 순서는 그대로이고, 영역 사이 순서는 나누기 전
 #: 단일 파일에서 각 영역이 처음 나오던 순서를 따른다.
@@ -69,25 +66,3 @@ routers = (
     notifications.router,
 )
 
-reexport(
-    __name__,
-    (
-        _common,
-        profile,
-        clients,
-        chat,
-        routines,
-        routine_suggestions,
-        memos,
-        follow_ups,
-        programs,
-        task_progress,
-        schedule,
-        ai_coach,
-        reports,
-        client_invites,
-        consultations,
-        notifications,
-    ),
-    skip=("router",),
-)
