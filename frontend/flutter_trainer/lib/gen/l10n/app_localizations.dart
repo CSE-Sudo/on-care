@@ -1370,6 +1370,18 @@ abstract class AppLocalizations {
   /// **'Conditions and cautions'**
   String get memberHealthConditions;
 
+  /// No description provided for @memberHealthConditionsShared.
+  ///
+  /// In en, this message translates to:
+  /// **'The member sees this too · Used for recommendations'**
+  String get memberHealthConditionsShared;
+
+  /// No description provided for @memberHealthConditionsPrivateHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep trainer-only notes in Memo.'**
+  String get memberHealthConditionsPrivateHint;
+
   /// No description provided for @memberHealthDietGoal.
   ///
   /// In en, this message translates to:

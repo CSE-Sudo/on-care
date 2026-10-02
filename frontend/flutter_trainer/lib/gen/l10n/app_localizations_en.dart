@@ -722,6 +722,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memberHealthConditions => 'Conditions and cautions';
 
   @override
+  String get memberHealthConditionsShared =>
+      'The member sees this too · Used for recommendations';
+
+  @override
+  String get memberHealthConditionsPrivateHint =>
+      'Keep trainer-only notes in Memo.';
+
+  @override
   String get memberHealthDietGoal => 'Nutrition goals';
 
   @override

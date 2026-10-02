@@ -211,6 +211,9 @@ class MemberHealthProfileOut(BaseModel):
     #: 건강 목표를 마지막으로 바꾼 사람(`member`|`trainer`)과 시각(#1832).
     focus_changed_by: str | None = None
     focus_changed_at: _datetime | None = None
+    #: 건강상태·주의사항을 마지막으로 바꾼 사람과 시각(#2942). 목표 칩 기록과 따로다.
+    notes_changed_by: str | None = None
+    notes_changed_at: _datetime | None = None
 
 
 class MemberHealthProfileUpdate(PartialUpdate):
