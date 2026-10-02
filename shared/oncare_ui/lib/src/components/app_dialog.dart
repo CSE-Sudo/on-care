@@ -35,6 +35,7 @@ class AppDialog extends StatelessWidget {
     this.showClose,
     this.bodyPadding,
     this.trailing,
+    this.fixedHeight = false,
   });
 
   final String? title;
@@ -57,6 +58,10 @@ class AppDialog extends StatelessWidget {
   /// 생기는 목록 끝 가운데에 둔다(#2476).
   final Widget? trailing;
 
+  /// 창 높이를 최대 높이로 고정할지. 탭으로 본문이 바뀌는 창에서 탭을 오갈 때
+  /// 창 크기가 덜컹거리지 않게 한다(#2955).
+  final bool fixedHeight;
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
@@ -71,6 +76,7 @@ class AppDialog extends StatelessWidget {
     final bool showClose =
         this.showClose ?? !(tokens.density.isWeb && footer != null);
     final bool hasHeader = title != null || showClose || trailing != null;
+    final double maxHeight = screen.height * OnCareLayout.dialogMaxHeightFactor;
 
     return Dialog(
       clipBehavior: Clip.antiAlias,
@@ -78,7 +84,8 @@ class AppDialog extends StatelessWidget {
         constraints: BoxConstraints(
           maxWidth: maxWidth,
           minWidth: tokens.density.isWeb ? maxWidth : 0,
-          maxHeight: screen.height * OnCareLayout.dialogMaxHeightFactor,
+          minHeight: fixedHeight ? maxHeight : 0,
+          maxHeight: maxHeight,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
