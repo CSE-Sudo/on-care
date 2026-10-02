@@ -88,12 +88,29 @@ flutter build ipa --release \
   --dart-define=API_BASE_URL=<운영 API 주소>
 ```
 
-## 4. 첫 제출 전에 확정할 것
+## 4. 앱 ID·앱 이름 (확정값)
 
-아래 값은 스토어 등록 뒤 바꿀 수 없거나 바꾸기 어렵습니다. 결정 후 Android·iOS·외부 콘솔
-(카카오 개발자 콘솔 등)에 함께 반영합니다(#2823).
+아래 값은 스토어 등록 뒤 바꿀 수 없거나 바꾸기 어렵습니다. 첫 제출 전에 아래처럼 확정했습니다(#2823).
 
-- 앱 ID: Android `applicationId`·`namespace`·Kotlin 패키지 경로, iOS 번들 ID(Runner·RunnerTests).
-  현재 `com.barmi.oncare`.
-- 홈 화면 앱 이름: Android `android:label`, iOS `CFBundleDisplayName`, 웹 `manifest.json`.
-  현재 각각 `oncare`, `Oncare`, `On-Care` 로 다릅니다.
+| 항목 | 값 | 반영 위치 |
+| --- | --- | --- |
+| 앱 ID | `com.csesudo.oncare` | Android `applicationId`·`namespace`(`android/app/build.gradle.kts`), Kotlin 패키지 경로 `android/app/src/main/kotlin/com/csesudo/oncare/`, iOS 번들 ID Runner `com.csesudo.oncare`·RunnerTests `com.csesudo.oncare.RunnerTests`(`ios/Runner.xcodeproj/project.pbxproj`) |
+| 홈 화면 앱 이름 | `On-Care` | Android `android:label`(`AndroidManifest.xml`), iOS `CFBundleDisplayName`·`CFBundleName`(`Info.plist`), 웹 `manifest.json` `name`·`short_name`, `index.html` `apple-mobile-web-app-title` |
+
+- 앱 ID 는 서비스 이름(`oncare`) 앞에 팀 조직(GitHub 조직 `CSE-Sudo`)을 붙였습니다. 앱 이름은
+  소개 페이지·웹 앱과 같은 `On-Care` 하나로 쓰고, ko·en 에서 같은 표기라 따로 현지화하지 않습니다.
+- `tool/ci/check_mobile_app_identity.py` 가 위 위치들이 같은 값인지, 릴리스 빌드가 디버그 키가
+  아닌 `key.properties` 서명을 쓰는지 검사합니다. 회원 앱 CI(`user-app-ci.yml` 의
+  `Mobile release config`)는 이 검사와 함께 `key.properties` 없이 `flutter build appbundle --release`
+  가 서명 가드에서 멈추는지, 일회용 키로 서명 설정을 채우면 릴리스 작업이 가드를 통과하는지 확인합니다.
+- 값을 바꿔야 하면 위 반영 위치와 검사 스크립트의 `EXPECTED_APP_ID`·`EXPECTED_APP_NAME` 을 한
+  PR 에서 함께 고칩니다. 스토어에 한 번 등록한 뒤에는 앱 ID 를 바꾸지 않습니다.
+
+### 외부 콘솔에 등록할 때
+
+앱 ID 를 쓰는 외부 등록은 위 값 그대로 합니다. 저장소에 값·파일을 남기지 않는 것은 서명 키와 같습니다.
+
+- Play Console 앱 생성(패키지 이름), App Store Connect 앱 생성과 Apple Developer 의 App ID(번들 ID).
+- 모바일에서 카카오·네이버 등 네이티브 소셜 로그인 SDK 를 붙이면(#330) 각 개발자 콘솔에 패키지 이름·
+  번들 ID 와 업로드 키·Play 앱 서명 키의 키 해시를 등록합니다. 지금 회원 앱 모바일 빌드는 이런 네이티브
+  SDK 를 쓰지 않습니다(카카오 지도는 웹 전용).

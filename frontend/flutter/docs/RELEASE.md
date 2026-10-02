@@ -78,7 +78,7 @@ flutter build apk --release \
 
 ### 2.3 사전 점검
 
-- [ ] `applicationId` = `com.barmi.oncare` (Stage 1.1에서 설정됨)
+- [ ] `applicationId` = `com.csesudo.oncare` (확정값·검사: `docs/mobile_release.md` §4)
 - [ ] 권한 — 현재는 마이크/카메라 등 추가 권한 없음. 새 기능 추가 시 `AndroidManifest.xml` 갱신.
 - [ ] 소셜 SDK 통합 시 `AndroidManifest.xml` placeholder
   (`KAKAO_NATIVE_KEY`, `NAVER_CLIENT_ID`)와 `--dart-define` 동기화.
@@ -89,7 +89,7 @@ flutter build apk --release \
 
 ### 3.1 설정 (1회)
 
-1. Apple Developer 계정 / Bundle ID `com.barmi.oncare` 생성.
+1. Apple Developer 계정 / Bundle ID `com.csesudo.oncare` 생성.
 2. App Store Connect 앱 등록.
 3. Xcode → Runner → Signing & Capabilities → Team + Provisioning Profile.
 
