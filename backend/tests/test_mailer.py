@@ -30,6 +30,7 @@ _PROD = dict(
     cors_allow_origins="https://app.example.com",
     seed_demo_data=False,
     auto_create_tables=False,
+    gemini_api_key="test-gemini-key",  # 운영 AI 키 가드(#2812) 충족
 )
 
 _SMTP = dict(smtp_host="smtp.example.com", mail_from="On-Care <no-reply@example.com>")
