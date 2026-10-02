@@ -155,6 +155,7 @@ class _MyPageState extends ConsumerState<MyPage> {
     if (want == _leaveGuarded) return;
     _leaveGuarded = want;
     setLeaveGuard(
+      this,
       want
           ? () => mounted && _section == _MySection.edit && !_saving && _isDirty
           : null,
@@ -163,7 +164,7 @@ class _MyPageState extends ConsumerState<MyPage> {
 
   @override
   void dispose() {
-    if (_leaveGuarded) setLeaveGuard(null);
+    if (_leaveGuarded) setLeaveGuard(this, null);
     for (final c in _fields.values) {
       c.dispose();
     }
@@ -782,9 +783,14 @@ class _MyPageState extends ConsumerState<MyPage> {
   /// 상담·예약·담당 회원 소식은 서버에 설정 칸이 생기기 전에는 값이 `null` 이라
   /// 스위치를 막고 그렇다고 말한다 — 눌러도 서버가 켜짐으로 되돌려 보내면
   /// 저장된 것처럼 보이다가 조용히 되돌아간다.
+  ///
+  /// 서버 값을 받기 전·받지 못했을 때는 모든 스위치를 끔으로 막고, 맨 위 줄에
+  /// 불러오는 중 또는 실패와 다시 시도를 둔다(#2883). 기본값(켬)을 보여 주면
+  /// 꺼 둔 알림이 켜진 것처럼 보이고, 그 상태로 누르면 서버 값을 덮어썼다.
   Widget _notificationCard() {
     final AppLocalizations l = AppLocalizations.of(context);
-    final settings = ref.watch(trainerSettingsProvider);
+    final AsyncValue<TrainerSettings> load = ref.watch(trainerSettingsProvider);
+    final TrainerSettings? settings = load.valueOrNull;
     final controller = ref.read(trainerSettingsProvider.notifier);
     Widget row({
       required String key,
@@ -793,10 +799,11 @@ class _MyPageState extends ConsumerState<MyPage> {
       required bool? value,
       required Future<void> Function(bool) onChanged,
     }) {
-      final bool ready = value != null;
+      final bool loaded = settings != null;
+      final bool ready = loaded && value != null;
       return AppListRow(
         title: title,
-        subtitle: ready ? hint : l.myNotifNotReady,
+        subtitle: !loaded || value != null ? hint : l.myNotifNotReady,
         // 스위치에 이름을 붙인다 — 제목과 따로 읽히면 음성 안내에는
         // 정체 불명의 `switch, on` 만 남는다(회원 앱 #1942).
         trailing: Semantics(
@@ -804,7 +811,7 @@ class _MyPageState extends ConsumerState<MyPage> {
           excludeSemantics: true,
           child: Switch(
             key: ValueKey<String>('my-notif-$key'),
-            value: value ?? true,
+            value: loaded && (value ?? true),
             onChanged: ready ? (v) => _applySetting(() => onChanged(v)) : null,
           ),
         ),
@@ -813,32 +820,51 @@ class _MyPageState extends ConsumerState<MyPage> {
 
     return _SettingsCard(
       rows: <Widget>[
+        if (load.hasError && settings == null)
+          AppListRow(
+            key: const ValueKey<String>('my-notif-load-failed'),
+            title: l.myNotifLoadFailed,
+            trailing: AppButton(
+              key: const ValueKey<String>('my-notif-retry'),
+              label: l.actionRetry,
+              leadingIcon: AppIcons.refresh,
+              variant: AppButtonVariant.secondary,
+              size: OnCareButtonSize.small,
+              onPressed: controller.reload,
+            ),
+          )
+        else if (settings == null)
+          AppListRow(
+            key: const ValueKey<String>('my-notif-loading'),
+            title: l.myNotifLoading,
+            trailing: const AppLoading.inline(),
+          ),
         row(
           key: 'new-message',
           title: l.myNotifNewMessage,
           hint: l.myNotifNewMessageHint,
-          value: settings.newMessageAlerts,
+          value: settings?.newMessageAlerts,
           onChanged: controller.setNewMessageAlerts,
         ),
         row(
           key: 'consultation',
           title: l.myNotifConsultation,
           hint: l.myNotifConsultationHint,
-          value: settings.consultationAlerts,
+          value: settings?.consultationAlerts,
           onChanged: controller.setConsultationAlerts,
         ),
         row(
           key: 'reservation',
           title: l.myNotifReservation,
           hint: l.myNotifReservationHint,
-          value: settings.reservationAlerts,
+          value: settings?.reservationAlerts,
           onChanged: controller.setReservationAlerts,
         ),
         row(
           key: 'member-updates',
           title: l.myNotifMemberUpdates,
           hint: l.myNotifMemberUpdatesHint,
-          value: settings.memberUpdateAlerts,
+          value: settings?.memberUpdateAlerts,
           onChanged: controller.setMemberUpdateAlerts,
         ),
       ],

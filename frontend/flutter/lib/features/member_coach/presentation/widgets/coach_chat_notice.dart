@@ -8,9 +8,9 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 뜬다. 첫 줄은 아이콘 + 메인 색 굵은 제목, 둘째 줄은 회색 보조 문구, 필요하면
 /// 셋째 줄에 메인 색 글자 링크 하나를 둔다.
 ///
-/// 바탕은 두 가지다. 데모 흐름 안내(`분석했어요`·`개인 추천운동을 받았어요`)는
-/// 옅은 메인 색 채움 + 옅은 테두리([CoachChatNoticeStyle.tinted]), 리포트 등록
-/// 안내는 흰 바탕 + 메인 색 테두리([CoachChatNoticeStyle.outlined])다.
+/// 바탕은 두 가지다. 루틴 전송 안내(`개인운동을 받았어요`, #2672)는 옅은 메인
+/// 색 채움 + 옅은 테두리([CoachChatNoticeStyle.tinted]), 리포트 등록 안내는 흰
+/// 바탕 + 메인 색 테두리([CoachChatNoticeStyle.outlined])다.
 class CoachChatNotice extends StatelessWidget {
   /// Creates the notice.
   const CoachChatNotice({

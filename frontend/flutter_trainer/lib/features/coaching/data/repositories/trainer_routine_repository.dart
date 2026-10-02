@@ -12,6 +12,7 @@ import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routin
 import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
 
 /// Assigns a routine to a member and reads their assigned routines.
@@ -180,6 +181,14 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
       added,
       ...await _listFor(memberId),
     ]);
+    // 채팅에도 남긴다(#2672) — 실서버 단건 배정·제안 승인과 같다.
+    await _store?.postDeliveryCard(
+      memberId,
+      RoutineDeliveryNotice(
+        kind: 'routine',
+        routineNames: <String>[added.name],
+      ),
+    );
   }
 
   @override

@@ -505,7 +505,13 @@ def build_member_analysis(
         avg_completion_rate=round(float(completion or 0)),
         latest_routine=latest.name if latest is not None else "-",
         note=request.trainer_note.strip(),
-        recent_messages=_recent_chat_lines(db, trainer_id, member_id, today_date),
+        # 최근 대화 원문도 트레이너가 고르는 자료다(#2794) — 끄면 프롬프트에도,
+        # 규칙 폴백의 통증 판단에도 실리지 않는다. 예전에는 늘 실렸다.
+        recent_messages=(
+            _recent_chat_lines(db, trainer_id, member_id, today_date)
+            if "recent_chat" in sources
+            else []
+        ),
         insight_memos=(
             _recent_insight_memos(db, trainer_id, member_id, today_date)
             if "chat_insight" in sources
@@ -627,6 +633,15 @@ def _recent_trainer_memos(
     )
 
 
+#: 메모 분류(#2622) → 프롬프트에 붙이는 이름. 메모 창 칩과 같은 말이다.
+_MEMO_CATEGORY_LABELS = {
+    "exercise": "운동",
+    "diet": "식단",
+    "pain": "통증·부상",
+    "life": "생활·일정",
+}
+
+
 def _recent_memos(
     db: Session,
     trainer_id: str,
@@ -639,6 +654,9 @@ def _recent_memos(
 ) -> list[str]:
     """본인이 남긴 회원 메모 중 [sources] 의 최근 것을 `"MM.dd 본문"` 줄로(최신 먼저).
 
+    분류가 있는 메모는 `"MM.dd [통증·부상] 본문"` 처럼 분류를 앞에 붙인다(#2622) —
+    AI 가 운동과 무관한 일정 메모를 운동 지시로 읽지 않게 돕는다.
+
     `created_at` 은 timestamptz 라 KST 자정을 실제 시각으로 환산해 비교한다 —
     [_recent_chat_lines] 와 같은 이유다.
     """
@@ -648,7 +666,11 @@ def _recent_memos(
         tzinfo=clock.SEOUL,
     )
     rows = db.execute(
-        select(TrainerClientMemo.created_at, TrainerClientMemo.body)
+        select(
+            TrainerClientMemo.created_at,
+            TrainerClientMemo.body,
+            TrainerClientMemo.category,
+        )
         .where(
             TrainerClientMemo.trainer_id == trainer_id,
             TrainerClientMemo.member_id == member_id,
@@ -661,12 +683,14 @@ def _recent_memos(
     ).all()
 
     lines: list[str] = []
-    for created_at, body in rows:
+    for created_at, body, category in rows:
         text = _clip(body)
         if not text:
             continue
         local = created_at.astimezone(clock.SEOUL)
-        lines.append(f"{local:%m.%d} {text}")
+        label = _MEMO_CATEGORY_LABELS.get(category or "")
+        prefix = f"[{label}] " if label else ""
+        lines.append(f"{local:%m.%d} {prefix}{text}")
     return lines
 
 
@@ -794,7 +818,12 @@ def _resolve_sources(request: RoutineOptionsRequest) -> list[RoutineContextSourc
         ROUTINE_DEFAULT_SOURCES if request.sources is None else request.sources
     )
     order: tuple[RoutineContextSource, ...] = (
-        "pt_feedback", "consult_memo", "trainer_memo", "chat_insight", "weekly_feedback",
+        "recent_chat",
+        "pt_feedback",
+        "consult_memo",
+        "trainer_memo",
+        "chat_insight",
+        "weekly_feedback",
     )
     return [source for source in order if source in chosen]
 

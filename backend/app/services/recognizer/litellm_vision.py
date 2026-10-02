@@ -46,7 +46,9 @@ class LiteLLMVisionRecognizer(FoodRecognizer):
         from openai import OpenAI
         # 타임아웃을 둬서 지연 응답이 작업 스레드를 오래 점유하지 않게 함
         self._client = OpenAI(
-            api_key=s.litellm_api_key, base_url=f"{s.litellm_base_url}/v1", timeout=60.0
+            api_key=s.litellm_api_key,
+            base_url=f"{s.litellm_base_url}/v1",
+            timeout=s.recognizer_timeout_seconds,
         )
         self._model = s.litellm_vision_model
 

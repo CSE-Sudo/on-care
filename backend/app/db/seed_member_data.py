@@ -285,8 +285,8 @@ _CHAT_FILES: dict[str, _SeedChatFile] = {
 def _store_chat_file(file: _SeedChatFile) -> bool:
     """첨부 바이트를 저장소에 쓴다. 못 쓰면 False — 메시지는 글만 남긴다.
 
-    로컬 디스크 저장소라 컨테이너가 바뀌면 비지만, 시드는 서버가 뜰 때마다 돌아
-    다시 채운다.
+    저장소가 로컬 디스크면 컨테이너가 바뀔 때 비지만, 시드는 서버가 뜰 때마다
+    돌아 다시 채운다. 운영 저장소(S3, #2817)에서는 같은 키를 덮어쓴다.
     """
     try:
         data = file.read()

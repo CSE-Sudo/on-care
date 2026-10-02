@@ -239,7 +239,7 @@ class _DietNutritionCard extends ConsumerWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     // 탄단지 목표는 식단 탭 하루 요약과 **같은 값**을 쓴다. 홈만 따로 기본값을
     // 들고 있으면 회원이 목표를 고쳤을 때 두 화면이 다른 목표를 말한다.
-    final UserProfile? profile = ref.watch(profileProvider).asData?.value;
+    final UserProfile? profile = ref.watch(profileProvider).valueOrNull;
     final _NutData cfg = _calorieWeek(summary);
     final List<String> days = weekDayLabels(l);
     final int todayIdx = _todayIndex();
@@ -418,11 +418,9 @@ class _MetricStatCard extends StatelessWidget {
 
 /// 이번 주의 시작(월요일). 운동 탭과 같은 기준으로 잘라야 홈이 같은 한 주를
 /// 말한다.
-DateTime _thisMonday() {
-  final DateTime n = nowKst();
-  final DateTime d = DateTime(n.year, n.month, n.day);
-  return d.subtract(Duration(days: d.weekday - 1));
-}
+///
+/// 달력으로 센다 — 24시간 단위로 빼면 서머타임 시간대에서 하루 어긋난다(#2890).
+DateTime _thisMonday() => mondayOf(todayKst());
 
 /// 홈의 운동 카드 — 제목 줄 아래에 운동 탭 `운동 현황 · 이번 주` 와 **같은
 /// 카드**를 그린다 (#1183).

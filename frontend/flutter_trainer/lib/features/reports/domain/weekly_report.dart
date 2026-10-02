@@ -9,6 +9,7 @@ import 'package:oncare_report/oncare_report.dart'
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/korean_josa.dart';
+import 'package:oncare_trainer/core/utils/korean_josa_l10n.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
 import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
     show elapsedWeekdays, weekdayCount;
@@ -23,6 +24,8 @@ export 'package:oncare_report/oncare_report.dart'
     show calorieTolerance, recordedMean, sugarLimitG;
 export 'package:oncare_trainer/core/utils/korean_josa.dart'
     show hasFinalConsonant;
+export 'package:oncare_trainer/core/utils/korean_josa_l10n.dart'
+    show withParticle;
 
 /// Monday of the week containing [day], stripped to a date.
 DateTime weekStartOf(DateTime day) {
@@ -770,15 +773,3 @@ String exerciseBaseName(String line) {
 /// `은`/`는` 을 받침에 맞춰 붙인다. 규칙은 [withTopicJosa] 에 있다.
 String _topicParticle(AppLocalizations l, String word) =>
     withParticle(l, word, '은', '는');
-
-/// 한국어일 때만 받침에 맞는 조사를 붙인다. 다른 언어에는 조사가 없다 —
-/// 영어 문장에 `Squat은` 이 남으면 안 된다.
-String withParticle(
-  AppLocalizations l,
-  String word,
-  String afterConsonant,
-  String afterVowel,
-) {
-  if (l.localeName != 'ko') return word;
-  return '$word${hasFinalConsonant(word) ? afterConsonant : afterVowel}';
-}

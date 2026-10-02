@@ -21,6 +21,7 @@ ClientChatMessage chatMessageFromJson(Map<String, Object?> json) {
     attachment: _attachment(json['attachment']),
     reportWeekStart: _reportWeekStart(json['report_week_start']),
     emoteId: json['emote_id'] is String ? json['emote_id']! as String : null,
+    routineDelivery: RoutineDeliveryNotice.fromJson(json['routine_delivery']),
   );
 }
 

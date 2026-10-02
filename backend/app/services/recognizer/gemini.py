@@ -58,10 +58,13 @@ class GeminiVisionRecognizer(FoodRecognizer):
         settings = get_settings()
         if not settings.gemini_api_key:
             raise RuntimeError("GEMINI_API_KEY 가 설정되지 않았습니다. .env 를 확인하세요.")
-        # 타임아웃(ms). 지연 응답이 작업 스레드를 오래 점유하지 않게 함
+        # 타임아웃(ms). 지연 응답이 작업 스레드를 오래 점유하지 않게 함. 값은 설정에서
+        # 읽는다 — 운영 중 조정하려고 배포할 일이 없게(#2912).
         self._client = genai.Client(
             api_key=settings.gemini_api_key,
-            http_options=types.HttpOptions(timeout=60_000),
+            http_options=types.HttpOptions(
+                timeout=int(settings.recognizer_timeout_seconds * 1000)
+            ),
         )
         self._model = settings.gemini_model
 

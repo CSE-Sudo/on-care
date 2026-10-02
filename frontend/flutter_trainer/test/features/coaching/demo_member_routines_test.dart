@@ -526,8 +526,8 @@ void main() {
         ),
         isTrue,
       );
-      // 추천 상태는 템플릿 그대로다 — 데모의 템플릿 배너는 따로 정한다.
-      expect(o.analysis.recommendationStatus, RecommendationStatus.template);
+      // 추천 상태는 시드 기록으로 센다(#2674) — 오세라는 기록 2회라 학습 중이다.
+      expect(o.analysis.recommendationStatus, RecommendationStatus.learning);
 
       final RoutineOptions other = await generate('seed-client-5');
       expect(other.analysis.goal, isNot(o.analysis.goal));

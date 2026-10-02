@@ -6,6 +6,7 @@
 """
 from __future__ import annotations
 
+from app.core.client_platform import is_web_client
 from app.core.security import create_access_token, create_refresh_token
 from app.models.models import User
 from app.schemas.user import Token
@@ -21,12 +22,18 @@ def is_current(user: User, token_version: int) -> bool:
     return token_version == current_version(user)
 
 
-def issue_token_pair(user: User) -> Token:
-    """지금 세대로 접근·refresh 토큰 한 쌍을 만든다."""
+def issue_token_pair(user: User, *, web: bool = False) -> Token:
+    """지금 세대로 접근·refresh 토큰 한 쌍을 만든다.
+
+    웹 클라이언트(요청 헤더 `X-Client-Platform: web`, 또는 ``web=True`` — 웹으로 발급된
+    refresh 토큰의 회전)에는 짧은 수명의 refresh 토큰을 준다(#2828).
+    """
     version = current_version(user)
     return Token(
         access_token=create_access_token(user.id, token_version=version),
-        refresh_token=create_refresh_token(user.id, token_version=version),
+        refresh_token=create_refresh_token(
+            user.id, token_version=version, web=web or is_web_client()
+        ),
     )
 
 

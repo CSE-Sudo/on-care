@@ -8,6 +8,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' show DateFormat, NumberFormat;
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/core/errors/app_error.dart';
+import 'package:oncare/core/errors/app_error_message.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/core/utils/wire_date.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
@@ -651,6 +653,10 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
   bool _loading = true;
   DietAnalysisFailure? _failure;
 
+  /// [_failure] 를 만든 원래 오류. 403·429 의 공통 문구와 서버 사유를 고를 때
+  /// 쓴다(#2859).
+  Object? _failureError;
+
   /// 이 기록이 놓인 날. 식단 탭에서 지난 날짜를 보며 연 추가면 그 날이고
   /// (#2849), 아니면 오늘이다. 다른 날 먹은 식사의 사진이면 `날짜 변경` 으로
   /// 실제로 먹은 날로 옮긴다(#1241).
@@ -699,6 +705,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
     setState(() {
       _loading = true;
       _failure = null;
+      _failureError = null;
     });
     final Stopwatch elapsed = Stopwatch()..start();
     // 분석 중에 시트를 끌어내려 닫아도 요청은 끝까지 가고 서버는 저장한다
@@ -743,6 +750,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
       setState(() {
         _loading = false;
         _failure = DietAnalysisFailure.fromError(error);
+        _failureError = error;
       });
     }
   }
@@ -950,6 +958,15 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
           l.dietAnalysisUnsupportedFormat,
         DietAnalysisFailure.badRequest => l.dietAnalysisBadRequest,
         DietAnalysisFailure.unauthorized => l.dietAnalysisUnauthorized,
+        // 권한·동의 부족과 요청 한도는 어느 화면에서나 같은 뜻이라 공통
+        // 문구를 쓴다 — 403 에는 서버 사유가 있으면 한국어 화면에서 그것을
+        // 보인다(#2859).
+        DietAnalysisFailure.forbidden ||
+        DietAnalysisFailure.rateLimited => appErrorMessage(
+          l,
+          _failureError ?? const UnknownError(),
+          fallback: l.dietAnalysisFailedBody,
+        ),
         DietAnalysisFailure.notImplemented => l.dietAnalysisNotImplemented,
         // 502 and transport failures share the "try again shortly" wording —
         // from the user's side both are "it broke, not your photo".
