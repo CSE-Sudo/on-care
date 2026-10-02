@@ -2,7 +2,7 @@
 사용자 라우터 — 프론트 계약 정렬.
 
   GET  /users/me           -> { id, name, email }
-  GET  /users/me/health    -> { profile, risk, activity_points, activity_rank, settings[] }
+  GET  /users/me/health    -> { profile, activity_points }
   POST /auth/login         -> { access_token, token_type }   (Stage 4 대비)
   POST /auth/register      -> { id, name, email }             (Stage 4 대비)
 
@@ -61,8 +61,6 @@ from app.schemas.user import (
     ProfileUpdate,
     ProfileView,
     RefreshRequest,
-    RiskInfo,
-    SettingItem,
     Token,
     TrainerRegister,
     UserHealth,
@@ -87,7 +85,6 @@ from app.services import (
 )
 from app.services.diet_coach_inputs import effective_protein_g
 from app.services.contact_format import normalize_email
-from app.services.health_service import DEMO_SETTINGS
 from app.services.profile_format import name_from_email
 
 router = APIRouter(tags=["users"])
@@ -147,22 +144,8 @@ def get_my_health(
     weekly_challenge_service.settle_quietly(db, current_user.id)
     profile = current_user.health_profile
 
-    # risk: 저장된 프로필 있으면 사용, 없으면 기본 문구(프론트 mock 과 동일).
-    # 기본 문구는 질환을 말하지 않는다 — 예전에는 프로필이 없는 모든 회원에게
-    # "고혈압·당뇨 위험 주의" 를 지어 보냈다. 폐기된 이전 타깃의 흔적이고,
-    # 회원의 기록과 무관한 건강 경고다.
-    if profile and profile.risk_title:
-        risk = RiskInfo(
-            title=profile.risk_title, body=profile.risk_body, level=profile.risk_level
-        )
-        rank = profile.activity_rank
-    else:
-        risk = RiskInfo(
-            title="이번 주 관리 포인트",
-            body="식단·운동 기록을 꾸준히 이어 가면 트레이너가 더 정확하게 도와줄 수 있어요.",
-            level="medium",
-        )
-        rank = 14
+    # 위험 문구·활동 순위·설정 메뉴는 싣지 않는다(#2903). 앱이 읽지 않는 자리에
+    # 고정 문구·고정 순위 14·데모 설정 목록을 채워 보냈다.
 
     # 포인트는 위험도와 따로 읽는다(#1786). 예전에는 위험 문구가 없는 프로필에
     # 데모 숫자 1240 을 돌려줘, 기록으로 적립해도 화면의 잔액이 움직이지 않았다.
@@ -173,10 +156,7 @@ def get_my_health(
         profile=HealthProfileBrief(
             id=current_user.id, name=current_user.name, email=current_user.email
         ),
-        risk=risk,
         activity_points=points,
-        activity_rank=rank,
-        settings=[SettingItem(**s) for s in DEMO_SETTINGS],
     )
 
 

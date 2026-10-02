@@ -23,10 +23,7 @@ import '../benefits/fake_benefits_repository.dart';
 
 const MyHealthState _state = MyHealthState(
   profile: UserProfile(name: '김민수', email: 'minsu@oncare.com'),
-  risk: RiskAlert(title: '', body: '', level: RiskLevel.low),
   activityPoints: 1240,
-  activityRank: null,
-  settings: <SettingsItem>[],
 );
 
 /// 응답마다 성공·실패·대기를 테스트가 정하는 대역.
@@ -226,10 +223,7 @@ void main() {
     repo.script.add(
       const MyHealthState(
         profile: UserProfile(name: '', email: ''),
-        risk: RiskAlert(title: '', body: '', level: RiskLevel.low),
         activityPoints: 0,
-        activityRank: null,
-        settings: <SettingsItem>[],
       ),
     );
     await pumpMy(tester);
