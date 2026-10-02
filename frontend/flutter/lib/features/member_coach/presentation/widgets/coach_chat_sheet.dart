@@ -20,8 +20,8 @@ import 'package:oncare/features/member_coach/presentation/widgets/coach_report_c
 import 'package:oncare/features/member_coach/presentation/widgets/coach_report_opener.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/emote_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_report/oncare_report.dart' show PdfPagesView;
 import 'package:oncare_ui/oncare_ui.dart';
-import 'package:printing/printing.dart';
 
 /// 루트 화면 위에 채팅 페이지를 열어 하단 내비게이션과 플로팅 버튼을 가린다.
 Future<void> openTrainerChatPage(
@@ -810,11 +810,8 @@ Future<void> openPdfPreviewPage(
 
 /// [openPdfPreviewPage] 가 여는 화면 — 머리에 파일 이름과 `<`, 아래는 미리보기.
 ///
-/// `build` 는 **부를 때마다 복사본**을 준다. 웹에서 미리보기는 pdf.js 로 그리는데,
-/// pdf.js 는 받은 바이트의 버퍼를 워커로 넘기면서(transfer) 원본을 비워 버린다.
-/// 같은 바이트를 그대로 다시 주면 두 번째 렌더가 `ArrayBuffer ... is already
-/// detached` 로 죽고, 그리다 만 미리보기가 스피너만 도는 채로 남는다. 미리보기는
-/// 화면 크기·용지 설정이 바뀔 때마다 다시 그리므로 두 번째 호출은 반드시 온다.
+/// 쪽을 굽는 일은 공용 [PdfPagesView] 가 한다 — 웹에서 `printing` 의
+/// `PdfPreview` 는 CSP 에 막혀 스피너만 돌았다(#2828).
 class PdfPreviewPage extends StatelessWidget {
   const PdfPreviewPage({
     required this.bytes,
@@ -830,29 +827,10 @@ class PdfPreviewPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
     return Scaffold(
       key: pageKey,
       appBar: AppTopBar(title: fileName),
-      body: PdfPreview(
-        build: (_) async => Uint8List.fromList(bytes),
-        pdfFileName: fileName,
-        allowSharing: false,
-        // 미리보기가 실패했을 때 스피너를 계속 돌리면 회원은 느린 것과
-        // 안 되는 것을 구별할 수 없다.
-        onError: (_, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(OnCareSpacing.s24),
-            child: Text(
-              l.coachChatPdfOpenFailed,
-              textAlign: TextAlign.center,
-              style: tokens
-                  .text(OnCareTypography.bodySmall)
-                  .copyWith(color: OnCareColors.textSecondary),
-            ),
-          ),
-        ),
-      ),
+      body: PdfPagesView(pdf: bytes, failedText: l.coachChatPdfOpenFailed),
     );
   }
 }
