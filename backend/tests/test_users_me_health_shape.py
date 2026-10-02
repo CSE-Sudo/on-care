@@ -53,6 +53,10 @@ def test_stored_risk_and_rank_are_not_exposed(client, db_session):
     profile = db_session.scalar(
         select(HealthProfile).where(HealthProfile.user_id == member_id)
     )
+    if profile is None:
+        # 가입만 한 회원은 프로필 행이 아직 없을 수 있다.
+        profile = HealthProfile(user_id=member_id)
+        db_session.add(profile)
     profile.risk_title = "주의"
     profile.risk_body = "관리 필요"
     profile.activity_rank = 3
