@@ -333,4 +333,41 @@ void main() {
       expect(h.refresher.staleTokens, isEmpty);
     });
   });
+
+  // 서버가 회원 쓰기·삭제를 데모 폴백 없이 받게 되면서(#2831) 만료 토큰으로 보낸
+  // 저장·삭제는 401 이 된다. 데모 계정에 쌓이는 대신 갱신 뒤 본인 토큰으로 다시
+  // 나가야 한다 — 메서드마다 한 번씩 확인한다.
+  group('회원 쓰기·삭제 경로의 401 → 갱신 → 재시도(#2831)', () {
+    final List<(String, String)> writes = <(String, String)>[
+      ('POST', '/diet/entries'),
+      ('PUT', '/diet/entries/diet-1'),
+      ('DELETE', '/diet/entries/diet-1'),
+      ('POST', '/exercise/sessions'),
+      ('PUT', '/exercise/sessions/ex-1'),
+      ('DELETE', '/exercise/sessions/ex-1'),
+      ('POST', '/notifications/read-all'),
+      ('DELETE', '/notifications/noti-1'),
+      ('POST', '/ai-coach/chat'),
+      ('DELETE', '/me/coach/trainer'),
+    ];
+
+    for (final (String method, String path) in writes) {
+      test('$method $path 는 새 토큰으로 한 번 다시 나간다', () async {
+        final Response<Object?> res = await h.dio.request<Object?>(
+          path,
+          data: method == 'DELETE' ? null : <String, Object?>{'k': 1},
+          options: Options(method: method),
+        );
+
+        expect(res.statusCode, 200);
+        expect(h.refresher.staleTokens, <String>['stale']);
+        final List<RecordedRequest> sent = h.backend.requestsTo(path);
+        expect(sent.map((RecordedRequest r) => r.bearer), <String?>[
+          'stale',
+          'fresh-1',
+        ]);
+        expect(sent.every((RecordedRequest r) => r.method == method), isTrue);
+      });
+    }
+  });
 }

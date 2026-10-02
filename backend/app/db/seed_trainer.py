@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -221,7 +221,9 @@ def _demo_password_hash() -> str:
 def _email_taken_by_other(db: Session, email: str, user_id: str) -> bool:
     """이 이메일을 가진 '다른 id' 의 사용자가 이미 있으면 True(유니크 충돌 예방)."""
     other = db.scalar(
-        select(models.User.id).where(models.User.email == email, models.User.id != user_id)
+        select(models.User.id).where(
+            func.lower(models.User.email) == email.lower(), models.User.id != user_id
+        )
     )
     return other is not None
 

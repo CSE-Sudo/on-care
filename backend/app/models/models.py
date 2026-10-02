@@ -73,6 +73,12 @@ class User(Base):
     )
 
 
+# 이메일은 대소문자를 무시하고 하나다(#2816). 저장은 소문자로 하지만, 정규화 전에 들어온
+# 값이나 다른 경로로 쓴 값이 대소문자만 다른 계정을 만들지 못하게 DB 가 마지막으로 막는다.
+# 마이그레이션 `0134_users_email_lower_unique` 와 같은 이름·식이다.
+Index("uq_users_email_lower", func.lower(User.email), unique=True)
+
+
 class HealthProfile(Base):
     """건강 위험 정보 — /users/me/health 의 risk + 메타."""
 
