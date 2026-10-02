@@ -87,9 +87,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('포인트로 보낼 때마다 묻고, 창에 지금 보유 포인트를 보여 준다 (#2217)', (
-    tester,
-  ) async {
+  testWidgets('포인트로 보낼 때마다 묻고, 창에 지금 보유 포인트를 보여 준다 (#2217)', (tester) async {
     final _PaidRepository repo = _PaidRepository(
       _quota(paidLeft: 10, balance: 200),
     );

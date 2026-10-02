@@ -169,13 +169,14 @@ void main() {
 
     // 같은 날을 다시 보호해도 보호권을 더 쓰지 않는다.
     expect((await use(_yesterday)).statusCode, 200);
-    final StreakShields status = await DioStreakShieldRepository(strictDioOf(dio)).fetch();
+    final StreakShields status = await DioStreakShieldRepository(
+      strictDioOf(dio),
+    ).fetch();
     expect(status.held, 1);
     expect((status.maxHeld, status.cost), (4, 300));
-    expect(
-      status.used.map((StreakShieldUse u) => u.date),
-      <DateTime>[DateTime(2026, 9, 16)],
-    );
+    expect(status.used.map((StreakShieldUse u) => u.date), <DateTime>[
+      DateTime(2026, 9, 16),
+    ]);
   });
 
   test('창 밖의 날과 운동한 어제는 보호하지 않는다', () async {
@@ -217,7 +218,9 @@ void main() {
           ),
         );
 
-    final StreakShields status = await DioStreakShieldRepository(strictDioOf(dio)).fetch();
+    final StreakShields status = await DioStreakShieldRepository(
+      strictDioOf(dio),
+    ).fetch();
     // 월·화·수(식단)·목 — 식단 한 끼가 연속을 이었다.
     expect(status.recordStreakDays, 4);
     expect((await use(_yesterday)).statusCode, 409);
@@ -226,7 +229,9 @@ void main() {
   });
 
   test('보호권이 없어도 보호할 날의 창은 오고, 사용은 409 다', () async {
-    final StreakShields status = await DioStreakShieldRepository(strictDioOf(dio)).fetch();
+    final StreakShields status = await DioStreakShieldRepository(
+      strictDioOf(dio),
+    ).fetch();
     // 창은 보유 수와 상관없이 온다 — 그래프가 교환과 사용을 한 번에 잇는다.
     expect((status.held, status.protectableFrom), (0, DateTime(2026, 8, 18)));
     expect(status.protectableTo, DateTime(2026, 9, 16));
@@ -261,7 +266,9 @@ void main() {
     expect(shields.held, 5);
     expect((await shieldItem()).blockReason, ShopBlockReason.shieldLimit);
     expect((await exchange()).statusCode, 409);
-    final StreakShields status = await DioStreakShieldRepository(strictDioOf(dio)).fetch();
+    final StreakShields status = await DioStreakShieldRepository(
+      strictDioOf(dio),
+    ).fetch();
     expect(status.held, 5);
     expect(status.used, isEmpty);
 
@@ -283,7 +290,11 @@ void main() {
 
     final Response<Object?> moved = await dio.put<Object?>(
       '/exercise/sessions/ex-thu',
-      data: <String, Object?>{'type': 'cardio', 'minutes': 20, 'date': _yesterday},
+      data: <String, Object?>{
+        'type': 'cardio',
+        'minutes': 20,
+        'date': _yesterday,
+      },
     );
 
     expect(moved.statusCode, 200);
@@ -295,7 +306,9 @@ void main() {
     now = DateTime(2026, 9, 21, 10);
     await exchange();
 
-    final StreakShields status = await DioStreakShieldRepository(strictDioOf(dio)).fetch();
+    final StreakShields status = await DioStreakShieldRepository(
+      strictDioOf(dio),
+    ).fetch();
     expect(status.protectableTo, DateTime(2026, 9, 20));
     expect((await use('2026-09-20')).statusCode, 200);
     expect(shields.held, 0);

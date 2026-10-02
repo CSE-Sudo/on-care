@@ -32,12 +32,17 @@ PointsShop _shop({required bool full}) => PointsShop(
 );
 
 void main() {
-  Future<void> pumpShop(WidgetTester tester, FakeBenefitsRepository repo) async {
+  Future<void> pumpShop(
+    WidgetTester tester,
+    FakeBenefitsRepository repo,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(390, 1600));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       ProviderScope(
-        overrides: <Override>[benefitsRepositoryProvider.overrideWithValue(repo)],
+        overrides: <Override>[
+          benefitsRepositoryProvider.overrideWithValue(repo),
+        ],
         child: MaterialApp(
           theme: AppTheme.light(),
           locale: const Locale('ko'),
@@ -64,7 +69,10 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('동안 사용'), findsNothing);
-    expect(tester.widget<AppButton>(find.byKey(exchangeKey)).onPressed, isNotNull);
+    expect(
+      tester.widget<AppButton>(find.byKey(exchangeKey)).onPressed,
+      isNotNull,
+    );
   });
 
   testWidgets('보호권을 네 개 가지고 있으면 버튼을 막고 이유를 적는다', (tester) async {

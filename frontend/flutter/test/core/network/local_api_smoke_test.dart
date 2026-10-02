@@ -75,17 +75,23 @@ void main() {
     final String monday = _dateString(
       DateTime(now.year, now.month, now.day - (now.weekday - 1)),
     );
-    final int expectedMinutes = DemoFixture.parse(
-      File('../../shared/demo_fixture/assets/kim_minsu.json').readAsStringSync(),
-    ).daysFor(now).where((FixtureDay d) => d.weekStart == monday).fold<int>(
-      0,
-      (int sum, FixtureDay d) =>
-          sum +
-          d.doneExercises.fold<int>(
-            0,
-            (int m, FixtureExercise e) => m + e.minutes,
-          ),
-    );
+    final int expectedMinutes =
+        DemoFixture.parse(
+              File(
+                '../../shared/demo_fixture/assets/kim_minsu.json',
+              ).readAsStringSync(),
+            )
+            .daysFor(now)
+            .where((FixtureDay d) => d.weekStart == monday)
+            .fold<int>(
+              0,
+              (int sum, FixtureDay d) =>
+                  sum +
+                  d.doneExercises.fold<int>(
+                    0,
+                    (int m, FixtureExercise e) => m + e.minutes,
+                  ),
+            );
     expect(week.totalMinutes, expectedMinutes);
     expect(expectedMinutes, greaterThan(0), reason: '이번 주 운동이 하나도 없으면 검증이 빈다');
     // 홈 '주간 추이' 차트가 데모 상수로 폴백하지 않도록 일별 칼로리도 내려준다.
@@ -107,12 +113,15 @@ void main() {
       DateTime(now.year, now.month, now.day - (now.weekday - 1)),
     );
     final DemoFixture fixture = DemoFixture.parse(
-      File('../../shared/demo_fixture/assets/kim_minsu.json').readAsStringSync(),
+      File(
+        '../../shared/demo_fixture/assets/kim_minsu.json',
+      ).readAsStringSync(),
     );
     final List<int> expected = List<int>.filled(7, 0);
-    for (final FixtureDay day in fixture
-        .daysFor(now)
-        .where((FixtureDay d) => d.weekStart == monday)) {
+    for (final FixtureDay day
+        in fixture
+            .daysFor(now)
+            .where((FixtureDay d) => d.weekStart == monday)) {
       final int index = DateTime.parse(day.date).weekday - 1;
       for (final FixtureExercise e in day.doneExercises) {
         if (e.type == 'strength') expected[index] += e.sets ?? 0;

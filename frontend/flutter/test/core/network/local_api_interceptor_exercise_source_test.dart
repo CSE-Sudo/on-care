@@ -142,7 +142,10 @@ void main() {
       }
     }
 
-    expect(await status(dio.delete<Object?>('/exercise/sessions/seed-ex-pt')), 409);
+    expect(
+      await status(dio.delete<Object?>('/exercise/sessions/seed-ex-pt')),
+      409,
+    );
     expect(
       await status(
         dio.put<Object?>(

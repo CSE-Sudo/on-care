@@ -258,7 +258,7 @@ void main() {
       expect(card.caption, '최근 세션 확인 중');
       expect(card.toneColor, isNull, reason: '확정 전에는 빨강·초록을 칠하지 않는다');
       expect(card.onTap, isNull);
-      expect(find.text('최근 세션을 확인하고 있어요.'), findsOneWidget);
+      expect(find.text(keepWords('최근 세션을 확인하고 있어요.')), findsOneWidget);
 
       pending.complete(const <ScheduleSession>[]);
       await settle(tester);
@@ -279,7 +279,7 @@ void main() {
       expect(card.caption, '확인할 수 없음 · 눌러서 다시 시도');
       expect(card.toneColor, isNull);
       expect(
-        find.textContaining('활동 피드백을 확인할 수 없어요'),
+        find.textContaining(keepWords('활동 피드백을 확인할 수 없어요')),
         findsOneWidget,
         reason: '활동 피드백도 "담당 회원 없음" 으로 읽히지 않는다',
       );

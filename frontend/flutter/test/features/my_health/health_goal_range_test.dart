@@ -131,9 +131,7 @@ String _rangeText(AppLocalizations l, AppGoalRange range) =>
     l.myGoalRange(range.min, range.max);
 
 void main() {
-  testWidgets('상한을 넘긴 칼로리는 보내지 않고 칸 아래에 범위를 알린다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('상한을 넘긴 칼로리는 보내지 않고 칸 아래에 범위를 알린다', (WidgetTester tester) async {
     final (AppLocalizations l, _CountingAccountRepository repo) =
         await _openGoals(tester);
 
@@ -147,9 +145,7 @@ void main() {
     expect(repo.saves, 0, reason: '서버에서 422 가 될 값은 보내지 않는다');
   });
 
-  testWidgets('하한 아래 칼로리도 막는다 — 굶는 목표는 셀 수 없다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('하한 아래 칼로리도 막는다 — 굶는 목표는 셀 수 없다', (WidgetTester tester) async {
     final (AppLocalizations l, _CountingAccountRepository repo) =
         await _openGoals(tester);
 
@@ -194,16 +190,11 @@ void main() {
     );
     await _save(tester);
 
-    expect(
-      find.text(_rangeText(l, AppGoalRanges.dailyCalories)),
-      findsNothing,
-    );
+    expect(find.text(_rangeText(l, AppGoalRanges.dailyCalories)), findsNothing);
     expect(repo.saves, 1);
   });
 
-  testWidgets('빈 칸은 오류가 아니다 — 목표 해제는 할 수 있는 일이다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('빈 칸은 오류가 아니다 — 목표 해제는 할 수 있는 일이다', (WidgetTester tester) async {
     final (AppLocalizations l, _CountingAccountRepository repo) =
         await _openGoals(tester);
 

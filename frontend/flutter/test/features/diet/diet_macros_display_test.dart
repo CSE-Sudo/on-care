@@ -362,7 +362,7 @@ void main() {
     await _selectDaysAgo(tester);
 
     expect(find.text('과거 식사'), findsOneWidget);
-    expect(find.text('선택한 날짜의 피드백'), findsOneWidget);
+    expect(find.text(keepWords('선택한 날짜의 피드백')), findsOneWidget);
     expect(find.textContaining('420'), findsWidgets);
   });
 

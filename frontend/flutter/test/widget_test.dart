@@ -676,7 +676,9 @@ void main() {
     // 한국어로 노출됐다. 이제 ARB 를 거쳐 영어로 나오고 한국어 리터럴은 없어야 한다.
     expect(find.text("Today's combined AI advice"), findsAtLeastNWidgets(1));
     expect(
-      find.text(lookupAppLocalizations(const Locale('en')).homeAiAdviceBody),
+      find.text(
+        keepWords(lookupAppLocalizations(const Locale('en')).homeAiAdviceBody),
+      ),
       findsOneWidget,
     );
     expect(find.text('오늘의 AI 통합 조언'), findsNothing);

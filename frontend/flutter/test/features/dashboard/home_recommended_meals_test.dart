@@ -77,9 +77,7 @@ void main() {
             ),
           ),
           dashboardSummaryProvider.overrideWith((ref) async => summary),
-          dietRecommendationsProvider.overrideWith(
-            (ref) => recommendations(),
-          ),
+          dietRecommendationsProvider.overrideWith((ref) => recommendations()),
           memberCoachRepositoryProvider.overrideWithValue(
             MockMemberCoachRepository(),
           ),
@@ -101,12 +99,15 @@ void main() {
   /// (그렇게 짰다가 서버 정렬 반영을 검증하지 못했다). 가로 캐러셀이므로 각 제목
   /// 위젯의 x 좌표로 정렬해 화면 순서를 그대로 얻는다.
   List<String> renderedMealNames(WidgetTester tester) {
-    final List<({String name, double dx})> found = <({String name, double dx})>[
-      for (final String name in demoOrder)
-        if (find.text(name).evaluate().isNotEmpty)
-          (name: name, dx: tester.getTopLeft(find.text(name)).dx),
-    ]..sort((({String name, double dx}) a, ({String name, double dx}) b) =>
-        a.dx.compareTo(b.dx));
+    final List<({String name, double dx})> found =
+        <({String name, double dx})>[
+          for (final String name in demoOrder)
+            if (find.text(name).evaluate().isNotEmpty)
+              (name: name, dx: tester.getTopLeft(find.text(name)).dx),
+        ]..sort(
+          (({String name, double dx}) a, ({String name, double dx}) b) =>
+              a.dx.compareTo(b.dx),
+        );
     return <String>[for (final entry in found) entry.name];
   }
 
@@ -244,10 +245,7 @@ void main() {
     final TextStyle name = tester.widget<Text>(find.text('닭가슴살 샐러드')).style!;
 
     final OnCareTokens tokens = AppTheme.light().extension<OnCareTokens>()!;
-    expect(
-      reason.fontSize,
-      tokens.text(OnCareTypography.caption).fontSize,
-    );
+    expect(reason.fontSize, tokens.text(OnCareTypography.caption).fontSize);
     expect(reason.fontSize, lessThan(name.fontSize!));
     expect(reason.color, OnCareColors.textTertiary);
     expect(name.color, OnCareColors.textPrimary);

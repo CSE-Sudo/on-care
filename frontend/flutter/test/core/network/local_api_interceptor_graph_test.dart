@@ -110,10 +110,9 @@ void main() {
     data: <String, Object?>{'item': 'graph_color', 'option': ?color},
   );
 
-  Future<List<String>> shopIds() async =>
-      (await DioBenefitsRepository(strictDioOf(dio)).fetchShop()).items
-          .map((ShopItem i) => i.id)
-          .toList();
+  Future<List<String>> shopIds() async => (await DioBenefitsRepository(
+    strictDioOf(dio),
+  ).fetchShop()).items.map((ShopItem i) => i.id).toList();
 
   test('구간을 주지 않으면 오늘로 끝나는 371일이다', () async {
     final ActivityCalendar calendar = await repo.fetch();
@@ -124,7 +123,10 @@ void main() {
     expect(calendar.days.first.date, DateTime(2025, 9, 12));
     expect(calendar.days.last.date, _today);
     // 오늘 이후 날짜는 싣지 않는다.
-    expect(calendar.days.every((ActivityDay d) => !d.date.isAfter(_today)), isTrue);
+    expect(
+      calendar.days.every((ActivityDay d) => !d.date.isAfter(_today)),
+      isTrue,
+    );
   });
 
   test('칸은 식단·운동을 따로 싣는다 — 없음 / 하나만 / 둘 다', () async {
@@ -182,7 +184,10 @@ void main() {
     expect(calendar.protectableFrom, DateTime(2026, 8, 18));
     // 어제뿐 아니라 창 안의 다른 빈 날도 누를 수 있다.
     expect(calendar.isProtectable(dayOf(calendar, _yesterday)), isTrue);
-    expect(calendar.isProtectable(dayOf(calendar, DateTime(2026, 9, 5))), isTrue);
+    expect(
+      calendar.isProtectable(dayOf(calendar, DateTime(2026, 9, 5))),
+      isTrue,
+    );
     // 기록이 있는 날(화요일 운동)과 오늘은 아니다.
     expect(calendar.isProtectable(dayOf(calendar, _tuesday)), isFalse);
     expect(calendar.isProtectable(dayOf(calendar, _today)), isFalse);

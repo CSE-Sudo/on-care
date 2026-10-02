@@ -52,9 +52,7 @@ Future<AppLocalizations> _pump(
 }
 
 void main() {
-  testWidgets('담당 조회가 실패하면 담당 없는 회원의 모양을 쓰지 않는다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('담당 조회가 실패하면 담당 없는 회원의 모양을 쓰지 않는다', (WidgetTester tester) async {
     final AppLocalizations l = await _pump(
       tester,
       () async => throw Exception('offline'),
@@ -66,13 +64,14 @@ void main() {
     expect(find.byKey(const Key('cancelRoutine-r-trainer')), findsNothing);
   });
 
-  testWidgets('담당이 없다고 확인되면 AI 제목·기록·취소가 선다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('담당이 없다고 확인되면 AI 제목·기록·취소가 선다', (WidgetTester tester) async {
     final AppLocalizations l = await _pump(tester, () async => null);
 
     expect(find.text(l.coachRoutineAiTitle), findsOneWidget);
-    expect(find.byKey(const Key('routineInsightHistoryButton')), findsOneWidget);
+    expect(
+      find.byKey(const Key('routineInsightHistoryButton')),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('cancelRoutine-r-trainer')), findsOneWidget);
   });
 }

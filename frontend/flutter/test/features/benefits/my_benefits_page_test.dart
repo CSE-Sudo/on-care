@@ -140,7 +140,10 @@ void main() {
       ),
     );
 
-    expect(find.byKey(const ValueKey<String>('streak-shield-summary')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('streak-shield-summary')),
+      findsOneWidget,
+    );
     final AppTag held = tester.widget<AppTag>(
       find.byKey(const ValueKey<String>('streak-shield-held')),
     );
@@ -152,9 +155,7 @@ void main() {
     expect(find.text('보호권으로 이어짐'), findsNWidgets(2));
   });
 
-  testWidgets('운동한 날의 보호권을 돌려받아 최대를 넘으면 개수만 적는다 (#1788)', (
-    tester,
-  ) async {
+  testWidgets('운동한 날의 보호권을 돌려받아 최대를 넘으면 개수만 적는다 (#1788)', (tester) async {
     await pumpAt(
       tester,
       FakeBenefitsRepository(),
@@ -222,7 +223,9 @@ void main() {
     expect(renewalTag.tone, AppTagTone.brand);
     expect(
       tester
-          .widget<AppTag>(find.byKey(const ValueKey<String>('coupon-status-c-locker')))
+          .widget<AppTag>(
+            find.byKey(const ValueKey<String>('coupon-status-c-locker')),
+          )
           .label,
       'D-day',
     );
@@ -263,10 +266,7 @@ void main() {
     );
     // 직원에게 보여 주라는 안내는 버튼 위 직원 안내 줄과 겹쳐 따로 두지 않는다.
     expect(find.textContaining('직원에게 보여 주세요'), findsNothing);
-    expect(
-      find.byKey(const Key('couponExpireNotice')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const Key('couponExpireNotice')), findsOneWidget);
     expect(find.text('만료되면 포인트는 돌려받을 수 없어요.'), findsOneWidget);
     expect(find.byIcon(AppIcons.info), findsNothing);
 
@@ -362,9 +362,7 @@ void main() {
     await drainToast(tester);
   });
 
-  testWidgets('개인 락커 쿠폰은 헬스장만 보여 주고 헬스장 직원 확인 뒤 사용 완료를 누른다', (
-    tester,
-  ) async {
+  testWidgets('개인 락커 쿠폰은 헬스장만 보여 주고 헬스장 직원 확인 뒤 사용 완료를 누른다', (tester) async {
     final FakeBenefitsRepository repo = FakeBenefitsRepository(
       coupons: <Coupon>[couponOf(id: 'c-locker', item: 'locker_month')],
     );

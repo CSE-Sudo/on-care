@@ -54,9 +54,7 @@ void main() {
     expect(find.text('회원가입'), findsWidgets);
   });
 
-  testWidgets('SHOW_DEMO_ENTRY 를 켜면 데모 진입이 돌아온다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('SHOW_DEMO_ENTRY 를 켜면 데모 진입이 돌아온다', (WidgetTester tester) async {
     await _pumpSignIn(tester, showDemo: true);
 
     expect(find.byKey(const Key('demoEnterButton')), findsOneWidget);

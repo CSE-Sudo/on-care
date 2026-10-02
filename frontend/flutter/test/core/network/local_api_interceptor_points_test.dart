@@ -97,7 +97,11 @@ void main() {
           data: <String, Object?>{
             'sessions': <Map<String, Object?>>[
               for (int i = 0; i < 5; i++)
-                <String, Object?>{'type': 'cardio', 'name': '걷기', 'minutes': 10},
+                <String, Object?>{
+                  'type': 'cardio',
+                  'name': '걷기',
+                  'minutes': 10,
+                },
             ],
           },
         );
@@ -112,10 +116,7 @@ void main() {
     final Map<String, Object?> retried = await analyze(key: 'retry-1');
 
     expect(retried['entry_id'], first['entry_id']);
-    expect(points(retried), <String, Object?>{
-      'awarded': 50,
-      'balance': 1290,
-    });
+    expect(points(retried), <String, Object?>{'awarded': 50, 'balance': 1290});
     expect(await balance(), 1290);
   });
 

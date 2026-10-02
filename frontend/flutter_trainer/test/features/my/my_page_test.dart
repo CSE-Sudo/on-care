@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/utils/keep_words.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/my/data/trainer_profile_repository.dart';
 import 'package:oncare_trainer/features/my/presentation/pages/my_page.dart';
@@ -139,9 +138,7 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('회원 관리 검색은 이름으로만 목록을 거르고 지우면 전체로 돌아간다', (
-      tester,
-    ) async {
+    testWidgets('회원 관리 검색은 이름으로만 목록을 거르고 지우면 전체로 돌아간다', (tester) async {
       await openClientManagement(tester);
       final int all = managedRows().evaluate().length;
       expect(all, greaterThan(1));
@@ -192,7 +189,10 @@ void main() {
       await tester.tap(find.byTooltip('연결 해제').first);
       await tester.pumpAndSettle();
       await tester.tap(
-        find.descendant(of: find.byType(AppDialog), matching: find.text('연결 해제')),
+        find.descendant(
+          of: find.byType(AppDialog),
+          matching: find.text('연결 해제'),
+        ),
       );
       await tester.pumpAndSettle();
 

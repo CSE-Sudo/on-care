@@ -81,9 +81,7 @@ void main() {
     );
   });
 
-  testWidgets('꺼진 버튼은 회색 상자 없이 회색 아이콘만 남고 탭은 받는다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('꺼진 버튼은 회색 상자 없이 회색 아이콘만 남고 탭은 받는다', (WidgetTester tester) async {
     await pumpButtons(tester);
 
     const String key = 'disabledHeaderButton';

@@ -71,9 +71,9 @@ void main() {
   test('buildWeeklyReport — 데모 회원의 이번 주 PT 는 0회가 아니다', () async {
     final DriftScheduleRepository schedule = DriftScheduleRepository(db);
     for (final TrainerClient client in clients) {
-      final List<ScheduleSession> sessions = await schedule
-          .watchClientSessions((id: client.id, name: client.name))
-          .first;
+      final List<ScheduleSession> sessions = await schedule.watchClientSessions(
+        (id: client.id, name: client.name),
+      ).first;
       final WeeklyReport report = buildWeeklyReport(
         client: client,
         sessions: sessions,
@@ -91,9 +91,9 @@ void main() {
       // 김민수의 수업 날은 공유 픽스처가 정한다 — 비워 둔 날이 겹친 주는 0회다.
       // 그의 수업 날은 주간 PT 시드 시험이 픽스처와 맞춰 본다(#2694).
       if (client.id == 'seed-client-1') continue;
-      final List<ScheduleSession> sessions = await schedule
-          .watchClientSessions((id: client.id, name: client.name))
-          .first;
+      final List<ScheduleSession> sessions = await schedule.watchClientSessions(
+        (id: client.id, name: client.name),
+      ).first;
       for (int back = 1; back < demoReportHistoryWeeks; back++) {
         final WeeklyReport report = buildWeeklyReport(
           client: client,
@@ -163,18 +163,18 @@ void main() {
       DriftChatRepository(db),
       db,
     );
-    final int before = (await reports
-        .watch(client: client, weekStart: weekAgo(1))
-        .first).sessionsBooked;
+    final int before =
+        (await reports.watch(client: client, weekStart: weekAgo(1)).first)
+            .sessionsBooked;
 
     final List<ScheduleSession> lastWeek = await scheduleWeek(client.id, 1);
     await (db.delete(
       db.trainerScheduleEntries,
     )..where((t) => t.id.equals(lastWeek.first.id))).go();
 
-    final int after = (await reports
-        .watch(client: client, weekStart: weekAgo(1))
-        .first).sessionsBooked;
+    final int after =
+        (await reports.watch(client: client, weekStart: weekAgo(1)).first)
+            .sessionsBooked;
     expect(after, before - 1);
   });
 

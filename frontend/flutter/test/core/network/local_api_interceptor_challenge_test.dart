@@ -74,21 +74,24 @@ void main() {
   );
 
   Future<List<Map<String, Object?>>> history() async => <Map<String, Object?>>[
-    for (final Object? row
-        in (await dio.get<List<Object?>>('/me/challenges')).data!)
+    for (final Object? row in (await dio.get<List<Object?>>(
+      '/me/challenges',
+    )).data!)
       asMap(row),
   ];
 
   Future<int> balance() async =>
-      asMap((await dio.get<Object?>('/users/me/health')).data)['activity_points']!
+      asMap(
+            (await dio.get<Object?>('/users/me/health')).data,
+          )['activity_points']!
           as int;
 
   Future<List<Map<String, Object?>>> resultNotices() async =>
       <Map<String, Object?>>[
-        for (final Object? row
-            in (await dio.get<List<Object?>>('/notifications')).data!)
-          if ((asMap(row)['title']! as String).startsWith('주간 챌린지'))
-            asMap(row),
+        for (final Object? row in (await dio.get<List<Object?>>(
+          '/notifications',
+        )).data!)
+          if ((asMap(row)['title']! as String).startsWith('주간 챌린지')) asMap(row),
       ];
 
   Future<void> setGoal(int? goal) => dio.put<Object?>(
@@ -142,7 +145,9 @@ void main() {
     await setGoal(4);
     expect((await weekly())['goal'], 4);
 
-    final ChallengeJoin joined = await DioChallengeRepository(strictDioOf(dio)).join();
+    final ChallengeJoin joined = await DioChallengeRepository(
+      strictDioOf(dio),
+    ).join();
     expect(joined.spent, 100);
     expect(joined.balance, 900);
     expect(joined.challenge.goal, 4);
@@ -151,7 +156,9 @@ void main() {
     expect(joined.challenge.status, ChallengeStatus.active);
 
     await setGoal(2);
-    final WeeklyChallenge state = await DioChallengeRepository(strictDioOf(dio)).fetchWeekly();
+    final WeeklyChallenge state = await DioChallengeRepository(
+      strictDioOf(dio),
+    ).fetchWeekly();
     expect(state.goal, 4);
     expect(state.challenge!.goal, 4);
   });
@@ -184,7 +191,9 @@ void main() {
     };
     now = _day(2);
 
-    WeeklyChallenge state = await DioChallengeRepository(strictDioOf(dio)).fetchWeekly();
+    WeeklyChallenge state = await DioChallengeRepository(
+      strictDioOf(dio),
+    ).fetchWeekly();
     expect(state.progress, 2);
     expect(state.challenge!.progress, 2);
     expect(state.challenge!.achieved, isFalse);
@@ -259,7 +268,11 @@ void main() {
   test('운동 저장소가 붙지 않았으면 목업 API 의 운동 기록으로 센다', () async {
     challenge.recordedDays = null;
     expect((await join()).statusCode, 201);
-    for (final String date in <String>['2026-09-14', '2026-09-14', '2026-09-15']) {
+    for (final String date in <String>[
+      '2026-09-14',
+      '2026-09-14',
+      '2026-09-15',
+    ]) {
       final Response<Object?> r = await postExerciseSession(
         dio,
         <String, Object?>{
@@ -273,7 +286,9 @@ void main() {
     }
     now = _day(2);
 
-    final WeeklyChallenge state = await DioChallengeRepository(strictDioOf(dio)).fetchWeekly();
+    final WeeklyChallenge state = await DioChallengeRepository(
+      strictDioOf(dio),
+    ).fetchWeekly();
     expect(state.progress, 2);
     expect(state.challenge!.progress, 2);
   });

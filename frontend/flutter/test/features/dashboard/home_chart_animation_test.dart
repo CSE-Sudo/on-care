@@ -182,9 +182,7 @@ void main() {
     expect(painterIn(tester, exerciseRings).shouldRepaint(settled), isFalse);
   });
 
-  testWidgets('영양 추이 그래프는 한 번 그려지고 멈춘다 (#1879)', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('영양 추이 그래프는 한 번 그려지고 멈춘다 (#1879)', (WidgetTester tester) async {
     await pumpHome(tester);
     await tester.pumpAndSettle();
 

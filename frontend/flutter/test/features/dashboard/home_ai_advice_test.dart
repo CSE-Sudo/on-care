@@ -20,6 +20,7 @@ import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/locale_provider.dart';
+import 'package:oncare_ui/oncare_ui.dart' show keepWords;
 
 import '../../helpers/fake_dashboard_repository.dart';
 import '../../helpers/fake_diet_repository.dart';
@@ -294,7 +295,7 @@ void main() {
 
       final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
       expect(find.text(ko.homeAiAdviceTitle), findsOneWidget);
-      expect(find.text(ko.homeAiAdviceBody), findsOneWidget);
+      expect(find.text(keepWords(ko.homeAiAdviceBody)), findsOneWidget);
     });
 
     testWidgets('영어 로케일 조언 본문에 한글이 없다 (#435)', (WidgetTester tester) async {
@@ -302,7 +303,7 @@ void main() {
 
       final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
       expect(find.text(en.homeAiAdviceTitle), findsOneWidget);
-      expect(find.text(en.homeAiAdviceBody), findsOneWidget);
+      expect(find.text(keepWords(en.homeAiAdviceBody)), findsOneWidget);
 
       // 제목 아래 본문이 한국어로 새지 않는지 — 카드 전체를 훑는다.
       final Finder card = find.ancestor(

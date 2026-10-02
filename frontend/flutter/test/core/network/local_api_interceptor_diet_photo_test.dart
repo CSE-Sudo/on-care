@@ -56,10 +56,7 @@ void main() {
 
   Future<Response<Map<String, Object?>>> analyze({Uint8List? photo}) {
     final FormData form = FormData.fromMap(<String, Object?>{
-      'image': MultipartFile.fromBytes(
-        photo ?? _jpeg,
-        filename: 'meal.jpg',
-      ),
+      'image': MultipartFile.fromBytes(photo ?? _jpeg, filename: 'meal.jpg'),
       'meal_type': 'lunch',
     });
     return dio.post<Map<String, Object?>>(
@@ -135,9 +132,7 @@ void main() {
       return dio.post<Map<String, Object?>>(
         '/diet/analyze',
         data: form,
-        options: Options(
-          extra: <String, Object?>{kMealPhotoBytesExtra: _jpeg},
-        ),
+        options: Options(extra: <String, Object?>{kMealPhotoBytesExtra: _jpeg}),
       );
     }
 

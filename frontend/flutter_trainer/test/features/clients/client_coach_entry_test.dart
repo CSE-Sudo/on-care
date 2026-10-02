@@ -124,7 +124,7 @@ void main() {
     await settle(tester);
 
     expect(repo.asked.single.$2, '나트륨이 높아요');
-    expect(find.text('국물을 남기도록 안내해 보세요.'), findsOneWidget);
+    expect(find.text(keepWords('국물을 남기도록 안내해 보세요.')), findsOneWidget);
     // 근거 없이 답만 보여 주면 트레이너가 믿어도 되는지 판단할 수 없다.
     expect(find.text('· 고혈압 식이 가이드'), findsOneWidget);
   });
@@ -201,7 +201,7 @@ void main() {
 
       expect(repo.asked.map((e) => e.$2), <String>['무릎 괜찮을까요?', '무릎 괜찮을까요?']);
       expect(find.text('질문을 너무 자주 보냈어요. 1분 뒤에 다시 물어봐 주세요'), findsNothing);
-      expect(find.text('ok'), findsOneWidget);
+      expect(find.text(keepWords('ok')), findsOneWidget);
     });
 
     testWidgets('영어 화면에도 한국어 서버 문구가 새지 않는다', (WidgetTester tester) async {
@@ -257,7 +257,7 @@ void main() {
 
     expect(repo.restored.single, _minsuId);
     expect(find.text('무릎 상태 어떻게 볼까요?'), findsOneWidget);
-    expect(find.text('저충격 위주로 가시죠.'), findsOneWidget);
+    expect(find.text(keepWords('저충격 위주로 가시죠.')), findsOneWidget);
     expect(find.text('· 관절 운동 가이드'), findsOneWidget);
     // 이어서 묻는 버튼이어야 한다 — 빈 스레드가 아니다.
     expect(find.text('다시 묻기'), findsOneWidget);
@@ -282,7 +282,7 @@ void main() {
     // 앞 문답이 밀려나지 않는다.
     expect(find.text('첫 질문입니다'), findsOneWidget);
     expect(find.text('두 번째 질문입니다'), findsOneWidget);
-    expect(find.text('두 번째 답변입니다'), findsOneWidget);
+    expect(find.text(keepWords('두 번째 답변입니다')), findsOneWidget);
   });
 
   testWidgets('지난 문답을 복원하는 동안에는 새 질문을 보낼 수 없다', (WidgetTester tester) async {
@@ -334,6 +334,6 @@ void main() {
     await tester.tap(find.text('물어보기'));
     await settle(tester);
 
-    expect(find.text('답변은 됩니다'), findsOneWidget);
+    expect(find.text(keepWords('답변은 됩니다')), findsOneWidget);
   });
 }

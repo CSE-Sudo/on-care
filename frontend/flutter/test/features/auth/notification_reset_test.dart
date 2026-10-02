@@ -85,7 +85,8 @@ void main() {
     addTearDown(container.dispose);
 
     // 듣는 사람이 있어야 무효화가 다시 읽기로 이어진다.
-    final int before = container.read(notificationUnreadProvider).valueOrNull ?? 0;
+    final int before =
+        container.read(notificationUnreadProvider).valueOrNull ?? 0;
     container.read(sessionFeatureResetProvider)();
 
     // 값 자체가 아니라 "되짚혔는가" 를 본다 — 되짚지 않으면 다음 폴링까지 앞

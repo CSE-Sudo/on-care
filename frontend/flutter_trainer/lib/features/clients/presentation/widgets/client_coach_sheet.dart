@@ -225,6 +225,12 @@ class _Turn extends StatelessWidget {
         : tokens
               .text(OnCareTypography.body)
               .copyWith(color: OnCareColors.textPrimary);
-    return AppTile(child: Text(turn.content, style: style));
+    // AI 답은 여러 문장이다 — 낱말 중간에서 줄을 바꾸지 않는다(#2969).
+    return AppTile(
+      child: Text(
+        turn.isTrainer ? turn.content : keepWords(turn.content),
+        style: style,
+      ),
+    );
   }
 }

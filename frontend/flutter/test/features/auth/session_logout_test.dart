@@ -101,7 +101,8 @@ void main() {
 
     expect(recorder.logoutCalls, hasLength(1));
     expect(
-      (recorder.logoutCalls.single.data as Map<String, Object?>)['refresh_token'],
+      (recorder.logoutCalls.single.data
+          as Map<String, Object?>)['refresh_token'],
       'stored-refresh',
     );
     // 폐기는 지우기 전에 나가야 한다 — 지운 뒤에는 보낼 토큰이 없다.

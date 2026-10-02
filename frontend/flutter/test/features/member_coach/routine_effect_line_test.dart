@@ -8,6 +8,7 @@ import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_card.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart' show keepWords;
 
 /// 추천 개인운동의 효과 한 줄 (#2570).
 ///
@@ -82,11 +83,11 @@ void main() {
       ),
     ]);
 
-    expect(find.text('체력 향상·만성질환 예방'), findsOneWidget);
+    expect(find.text(keepWords('체력 향상·만성질환 예방')), findsOneWidget);
     expect(find.textContaining('대화할 수 있는 속도로'), findsNothing);
     // 이름 바로 아래다.
     expect(
-      tester.getTopLeft(find.text('체력 향상·만성질환 예방')).dy,
+      tester.getTopLeft(find.text(keepWords('체력 향상·만성질환 예방'))).dy,
       greaterThan(tester.getTopLeft(find.text('저강도 걷기')).dy),
     );
   });
@@ -132,7 +133,7 @@ void main() {
         source: 'trainer',
       ),
     ]);
-    expect(find.text('허리 부담 완화'), findsOneWidget);
+    expect(find.text(keepWords('허리 부담 완화')), findsOneWidget);
   });
 
   test('목업은 픽스처의 효과를 싣는다 — 트레이너가 고친 줄까지', () async {

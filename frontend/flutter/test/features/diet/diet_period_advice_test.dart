@@ -19,6 +19,7 @@ import 'package:oncare/features/diet/presentation/controllers/diet_controller.da
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
+import 'package:oncare_ui/oncare_ui.dart' show withoutWordJoiners;
 
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
@@ -76,7 +77,7 @@ void main() {
           .widgetList<Text>(
             find.descendant(of: card, matching: find.byType(Text)),
           )
-          .map((Text t) => t.data ?? '')
+          .map((Text t) => withoutWordJoiners(t.data ?? ''))
           .join(' ');
     }
 
@@ -150,5 +151,5 @@ String _shellText(WidgetTester tester) => tester
         matching: find.byType(Text),
       ),
     )
-    .map((Text t) => t.data ?? '')
+    .map((Text t) => withoutWordJoiners(t.data ?? ''))
     .join(' ');

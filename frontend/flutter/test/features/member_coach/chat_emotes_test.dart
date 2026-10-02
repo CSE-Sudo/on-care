@@ -101,9 +101,7 @@ Future<void> _openSheet(WidgetTester tester, AppLocalizations l) async {
 }
 
 void main() {
-  testWidgets('입력칸과 보내기 사이에 같은 높이의 이모티콘 버튼이 있다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('입력칸과 보내기 사이에 같은 높이의 이모티콘 버튼이 있다', (WidgetTester tester) async {
     final AppLocalizations l = await _pumpChat(
       tester,
       emotes: _FakeEmoteRepository(),
@@ -123,9 +121,7 @@ void main() {
     );
   });
 
-  testWidgets('안 산 이모티콘도 보이고, 누르면 보내지 않고 사기를 묻는다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('안 산 이모티콘도 보이고, 누르면 보내지 않고 사기를 묻는다', (WidgetTester tester) async {
     final _FakeEmoteRepository emotes = _FakeEmoteRepository();
     final _RecordingCoachRepository coach = _RecordingCoachRepository();
     final AppLocalizations l = await _pumpChat(
@@ -191,7 +187,9 @@ void main() {
 
     await _openSheet(tester, l);
     // 강아지는 원래 목록 아래쪽이지만, 산 것은 맨 앞이라 끌어 올리지 않아도 보인다.
-    final Offset dog = tester.getTopLeft(find.byKey(const Key('emote-dog_love')));
+    final Offset dog = tester.getTopLeft(
+      find.byKey(const Key('emote-dog_love')),
+    );
     final Offset first = tester.getTopLeft(
       find.byKey(const Key('emote-oni_owoon')),
     );

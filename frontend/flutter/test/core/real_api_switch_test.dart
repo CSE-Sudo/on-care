@@ -44,7 +44,11 @@ void main() {
         ('GET', '/diet/days/today'),
         ('GET', '/dashboard/summary'),
       ]) {
-        expect(config.isRealApi(method, path), isFalse, reason: '$method $path');
+        expect(
+          config.isRealApi(method, path),
+          isFalse,
+          reason: '$method $path',
+        );
       }
     });
 
@@ -110,7 +114,11 @@ void main() {
           in kRealApiFeatures.entries) {
         expect(entry.value, isNotEmpty, reason: '${entry.key} 에 엔드포인트가 없다');
         for (final RealApiRoute route in entry.value) {
-          expect(route.pathPrefix.startsWith('/'), isTrue, reason: route.pathPrefix);
+          expect(
+            route.pathPrefix.startsWith('/'),
+            isTrue,
+            reason: route.pathPrefix,
+          );
           expect(
             route.method,
             equals(route.method.toUpperCase()),
@@ -129,7 +137,8 @@ void main() {
           expect(
             _writeMethods,
             contains(route.method),
-            reason: '${entry.key} 가 조회(${route.method} ${route.pathPrefix})를 연다',
+            reason:
+                '${entry.key} 가 조회(${route.method} ${route.pathPrefix})를 연다',
           );
         }
       }
@@ -186,7 +195,10 @@ class _RecordingHandler extends RequestInterceptorHandler {
   final void Function() onResolve;
 
   @override
-  void resolve(Response<dynamic> response, [bool callFollowingResponseInterceptor = false]) {
+  void resolve(
+    Response<dynamic> response, [
+    bool callFollowingResponseInterceptor = false,
+  ]) {
     onResolve();
   }
 

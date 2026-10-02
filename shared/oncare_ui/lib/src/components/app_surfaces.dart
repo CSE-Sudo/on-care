@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:oncare_ui/src/components/app_button.dart';
 import 'package:oncare_ui/src/components/app_icon.dart';
+import 'package:oncare_ui/src/text/keep_words.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
 import 'package:oncare_ui/src/tokens/density.dart';
@@ -724,7 +725,9 @@ class AppBanner extends StatelessWidget {
     final Widget? messageText = message == null
         ? null
         : Text(
-            message,
+            // 카드 자리는 AI 요약·분석처럼 여러 문장이다 — 낱말 중간에서 줄을
+            // 바꾸지 않는다(#2969). 안내 한 줄짜리 inline 은 그대로 둔다.
+            card ? keepWords(message) : message,
             style: tokens
                 .text(
                   compact

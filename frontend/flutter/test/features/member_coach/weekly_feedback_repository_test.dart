@@ -142,8 +142,10 @@ void main() {
     });
 
     test('공백만 적은 아픈 곳은 통증이 아니다', () {
-      expect(memberWeeklyFeedbackFromJson(_wire(painArea: '   ')).hasPain,
-          isFalse);
+      expect(
+        memberWeeklyFeedbackFromJson(_wire(painArea: '   ')).hasPain,
+        isFalse,
+      );
     });
 
     test('낸 시각이 있으면 읽는다', () {
@@ -409,8 +411,9 @@ void main() {
       );
 
       expect(
-        (await repo.fetchWeeklyFeedback(weekStart: DateTime(2026, 9, 14)))
-            .painOn,
+        (await repo.fetchWeeklyFeedback(
+          weekStart: DateTime(2026, 9, 14),
+        )).painOn,
         isNull,
       );
     });

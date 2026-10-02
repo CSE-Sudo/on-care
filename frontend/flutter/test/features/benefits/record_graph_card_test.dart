@@ -64,7 +64,8 @@ BoxDecoration _cellBox(WidgetTester tester, DateTime day) =>
     tester.widget<Container>(find.byKey(_cellKey(day))).decoration!
         as BoxDecoration;
 
-Color _cellColor(WidgetTester tester, DateTime day) => _cellBox(tester, day).color!;
+Color _cellColor(WidgetTester tester, DateTime day) =>
+    _cellBox(tester, day).color!;
 
 AppTag _streakTag(WidgetTester tester) =>
     tester.widget<AppTag>(find.byKey(const Key('recordGraphStreak')));
@@ -119,7 +120,8 @@ void main() {
       find.descendant(
         of: find.byKey(const Key('recordGraphCard')),
         matching: find.byWidgetPredicate(
-          (Widget w) => w is Scrollable && w.axisDirection == AxisDirection.right,
+          (Widget w) =>
+              w is Scrollable && w.axisDirection == AxisDirection.right,
         ),
       ),
     );
@@ -225,7 +227,8 @@ void main() {
       findsOneWidget,
     );
     // 방패만으로는 한 해치를 훑을 때 눈에 걸리지 않는다 — 테두리를 함께 두른다.
-    final BorderSide side = (_cellBox(tester, _yesterday).border! as Border).top;
+    final BorderSide side =
+        (_cellBox(tester, _yesterday).border! as Border).top;
     expect(side.color, OnCareRecordColors.base.full);
     expect(side.width, 2);
 
@@ -258,7 +261,8 @@ void main() {
     );
 
     final BorderSide open = (_cellBox(tester, empty).border! as Border).top;
-    final BorderSide done = (_cellBox(tester, _yesterday).border! as Border).top;
+    final BorderSide done =
+        (_cellBox(tester, _yesterday).border! as Border).top;
     expect(open.color, OnCareRecordColors.base.partial);
     expect(done.color, OnCareRecordColors.base.full);
     expect(open.width, lessThan(done.width));
@@ -334,10 +338,7 @@ void main() {
     final DateTime empty = DateTime(2026, 8, 5);
     await pump(
       tester,
-      _graph(
-        protectableFrom: DateTime(2026, 7, 21),
-        protectableTo: _yesterday,
-      ),
+      _graph(protectableFrom: DateTime(2026, 7, 21), protectableTo: _yesterday),
       onProtect: (DateTime d) => asked = d,
     );
 

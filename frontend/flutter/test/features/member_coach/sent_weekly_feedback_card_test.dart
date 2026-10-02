@@ -108,10 +108,7 @@ void main() {
   testWidgets('직전 주만 보여 준다고 말한다', (tester) async {
     await _pump(tester);
 
-    expect(
-      _texts(tester).any((String t) => t.contains('직전 주에 보낸 답만')),
-      isTrue,
-    );
+    expect(_texts(tester).any((String t) => t.contains('직전 주에 보낸 답만')), isTrue);
   });
 
   testWidgets('아프지 않았으면 없음이라고 적는다', (tester) async {
@@ -251,7 +248,11 @@ void main() {
   });
 
   testWidgets('영어에서는 통증도 영어 날짜로 적는다', (tester) async {
-    await _pump(tester, locale: 'en', feedback: _feedback(painArea: 'knee'));
+    await _pump(
+      tester,
+      locale: 'en',
+      feedback: _feedback(painArea: 'knee'),
+    );
 
     expect(_answer(tester, 'pain').text, 'knee (9/17)');
   });
@@ -278,11 +279,7 @@ void main() {
 
     final RegExp hangul = RegExp(r'[가-힣]');
     for (final String t in _texts(tester)) {
-      expect(
-        hangul.hasMatch(t),
-        isFalse,
-        reason: '영어 화면에 번역되지 않은 글이 있다: $t',
-      );
+      expect(hangul.hasMatch(t), isFalse, reason: '영어 화면에 번역되지 않은 글이 있다: $t');
     }
   });
 

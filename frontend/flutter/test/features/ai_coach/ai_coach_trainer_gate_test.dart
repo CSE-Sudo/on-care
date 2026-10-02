@@ -148,9 +148,7 @@ void main() {
       expect(find.text('참고 기록'), findsNWidgets(2));
       // 머리 줄 자체의 오른쪽 끝을 기준으로 잰다.
       final Rect header = tester.getRect(
-        find
-            .ancestor(of: button, matching: find.byType(ColoredBox))
-            .first,
+        find.ancestor(of: button, matching: find.byType(ColoredBox)).first,
       );
       final double rightGap = header.right - tester.getBottomRight(button).dx;
       expect(rightGap, greaterThanOrEqualTo(OnCareSpacing.s8));

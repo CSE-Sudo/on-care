@@ -143,7 +143,9 @@ class FakeBenefitsRepository implements BenefitsRepository {
     used.add(couponId);
     coupons = <Coupon>[
       for (final Coupon c in coupons)
-        c.id == couponId ? couponOf(id: c.id, item: c.item, status: CouponStatus.used) : c,
+        c.id == couponId
+            ? couponOf(id: c.id, item: c.item, status: CouponStatus.used)
+            : c,
     ];
     _refreshShop(shop.balance);
     return coupons.firstWhere((Coupon c) => c.id == couponId);
