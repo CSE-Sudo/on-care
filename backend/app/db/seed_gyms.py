@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -198,7 +198,8 @@ def _seed_trainers(db: Session) -> int:
         if db.get(models.User, trainer_id) is None:
             taken = db.scalar(
                 select(models.User).where(
-                    models.User.email == email, models.User.id != trainer_id
+                    func.lower(models.User.email) == email.lower(),
+                    models.User.id != trainer_id,
                 )
             )
             if taken is not None:

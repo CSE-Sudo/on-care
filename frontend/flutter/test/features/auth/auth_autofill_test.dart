@@ -220,6 +220,15 @@ void main() {
       expect(_field(tester, password).obscureText, isTrue);
     });
 
+    testWidgets('이메일 칸은 자동 대문자·자동 고침이 꺼져 있다(#2816)', (tester) async {
+      await pumpSignIn(tester);
+
+      final TextField field = _field(tester, email);
+      expect(field.textCapitalization, TextCapitalization.none);
+      expect(field.autocorrect, isFalse);
+      expect(field.enableSuggestions, isFalse);
+    });
+
     testWidgets('두 칸이 같은 AutofillGroup 하나에 묶이고, 떠날 때는 취소한다', (tester) async {
       await pumpSignIn(tester);
 
@@ -401,6 +410,15 @@ void main() {
       );
       await _type(tester, phone, '01012345678');
       expect(_field(tester, phone).controller!.text, '010-1234-5678');
+    });
+
+    testWidgets('이메일 칸은 자동 대문자·자동 고침이 꺼져 있다(#2816)', (tester) async {
+      await pumpSignUp(tester);
+
+      final TextField field = _field(tester, email);
+      expect(field.textCapitalization, TextCapitalization.none);
+      expect(field.autocorrect, isFalse);
+      expect(field.enableSuggestions, isFalse);
     });
 
     testWidgets('다섯 칸이 같은 AutofillGroup 하나에 묶이고, 떠날 때는 취소한다', (tester) async {

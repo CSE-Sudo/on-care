@@ -12,13 +12,14 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.rate_limit import rate_limit
 from app.db.session import get_db
 from app.services import auth_tokens
 from app.services.audit import client_ip, record as audit
+from app.services.contact_format import normalize_email
 from app.models.models import SocialAccount, User
 from app.schemas.user import LoginToken, SocialLoginRequest
 from app.services.social.base import (
@@ -48,13 +49,18 @@ def _find_or_create_user(db: Session, identity: SocialIdentity) -> User:
         return db.scalar(select(User).where(User.id == account.user_id))
 
     # 2) 같은 이메일의 기존 사용자에 연결, 없으면 새 사용자 생성
+    # 이메일은 가입과 같은 규칙(소문자)으로 맞춰 찾고 저장한다(#2816).
+    email = normalize_email(identity.email or "")
     user: User | None = None
-    if identity.email:
-        user = db.scalar(select(User).where(User.email == identity.email))
+    if email:
+        user = db.scalar(select(User).where(func.lower(User.email) == email))
     if user is None:
         user = User(
             id=f"user-{uuid.uuid4().hex[:12]}",
-            email=identity.email or f"{identity.provider}_{identity.provider_user_id}@social.oncare",
+            email=email
+            or normalize_email(
+                f"{identity.provider}_{identity.provider_user_id}@social.oncare"
+            ),
             name=identity.name or identity.provider,
             hashed_password="",  # 소셜 계정은 비밀번호 없음
         )
