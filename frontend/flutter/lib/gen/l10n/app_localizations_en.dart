@@ -2093,6 +2093,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myConnectionDeleteTitle => 'Remove Connection';
 
   @override
+  String get myConnectionDeleteFailed =>
+      'Couldn\'t remove the connection. Please try again.';
+
+  @override
   String get myDelete => 'Remove';
 
   @override
@@ -2307,6 +2311,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get coachChatUnassigned =>
       'Your trainer is no longer assigned, so you can\'t send messages here';
+
+  @override
+  String coachChatEmptyTitle(String trainer) {
+    return 'Start a conversation with $trainer';
+  }
+
+  @override
+  String get coachChatEmptyBody =>
+      'Send a photo of what you ate today or ask about your workouts';
 
   @override
   String get coachChatSendFailed =>
@@ -2806,6 +2819,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exGymConsultNoTrainers => 'No trainers are affiliated yet.';
 
   @override
+  String get exGymTrainersLoadError => 'Couldn\'t load this gym\'s trainers.';
+
+  @override
   String get exTrainerConsultRequest => 'Request a Trainer Consultation';
 
   @override
@@ -3082,6 +3098,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exReservationPast => 'Past booking';
+
+  @override
+  String exReservationPastMore(int count) {
+    return 'Show $count more past bookings';
+  }
+
+  @override
+  String get exReservationPastLess => 'Hide past bookings';
 
   @override
   String exCancelConfirmBody(String when) {
@@ -3384,6 +3408,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String guidePointsBody(int diet, int exercise, int routine) {
     return 'Every log earns points.\nLog a meal +${diet}P, log a workout +${exercise}P, finish a recommended workout +${routine}P\nSpend them in MY › Use Points';
   }
+
+  @override
+  String get guideSampleFoodScrambledEggs => 'Scrambled eggs';
+
+  @override
+  String get guideSampleFoodWholeWheatToast => 'Whole-wheat toast';
+
+  @override
+  String get guideSampleFoodChickenSalad => 'Chicken breast salad';
+
+  @override
+  String get guideSampleFoodBrownRice => 'Brown rice';
+
+  @override
+  String get guideSampleFoodGrilledSalmon => 'Grilled salmon';
+
+  @override
+  String get guideSampleFoodRoastedVegetables => 'Roasted vegetables';
 
   @override
   String get onboardRequiredTag => '(required)';
@@ -4067,6 +4109,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exConsultHistoryCancelAction => 'Cancel request';
+
+  @override
+  String get exConsultCancelFailed =>
+      'Couldn\'t cancel the consultation request. Please try again.';
+
+  @override
+  String get exConsultCancelStale =>
+      'This request was already handled. It now shows its latest status.';
+
+  @override
+  String get exConsultHistoryLoadError =>
+      'Couldn\'t load your consultation requests.';
 
   @override
   String get exConsultHistoryCancelBody =>

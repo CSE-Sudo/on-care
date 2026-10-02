@@ -92,8 +92,17 @@ class DioGymRepository implements GymRepository {
       _list('/gyms', _gym, query: <String, Object?>{'lat': lat, 'lng': lng});
 
   @override
-  Future<List<Trainer>> fetchTrainersByGym(String gymId) =>
-      _list('/gyms/$gymId/trainers', _trainer);
+  Future<List<Trainer>> fetchTrainersByGym(String gymId) async {
+    try {
+      return await _list('/gyms/$gymId/trainers', _trainer);
+    } on DioException catch (e) {
+      // 카카오로 찾은 헬스장처럼 서버에 없는 헬스장은 404 다 — 소속 트레이너가
+      // 없는 것과 같다. 화면이 조회 실패(다시 시도)와 '없음' 을 가르므로(#2857),
+      // 여기서 빈 목록으로 옮기지 않으면 그런 카드마다 오류가 뜬다.
+      if (e.response?.statusCode == 404) return const <Trainer>[];
+      rethrow;
+    }
+  }
 
   @override
   Future<List<Trainer>> fetchAllTrainers() => _list('/trainers', _trainer);

@@ -287,10 +287,12 @@ def test_trainer_me_response_contract_is_unchanged(client, trainer):
     body = client.get("/v1/trainer/me", headers=_auth(token)).json()
     assert set(body) == {
         "id", "name", "email", "phone", "specialty", "career", "intro",
-        "certifications", "gym",
+        "certifications", "gym", "verification",
     }
     # 트레이너 웹의 gym 계약 — 필드가 사라지면 화면이 빈다.
     assert set(body["gym"]) == {"id", "name", "address", "hours", "phone"}
+    # 승인 상태(#2825) — 트레이너 웹이 승인 대기·반려 안내를 고른다.
+    assert set(body["verification"]) == {"status", "decided_at", "note"}
 
 
 def test_affiliated_trainer_shows_up_under_that_gym(client, trainer):

@@ -3650,6 +3650,12 @@ abstract class AppLocalizations {
   /// **'Remove Connection'**
   String get myConnectionDeleteTitle;
 
+  /// No description provided for @myConnectionDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t remove the connection. Please try again.'**
+  String get myConnectionDeleteFailed;
+
   /// No description provided for @myDelete.
   ///
   /// In en, this message translates to:
@@ -4045,6 +4051,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your trainer is no longer assigned, so you can\'t send messages here'**
   String get coachChatUnassigned;
+
+  /// No description provided for @coachChatEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a conversation with {trainer}'**
+  String coachChatEmptyTitle(String trainer);
+
+  /// No description provided for @coachChatEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a photo of what you ate today or ask about your workouts'**
+  String get coachChatEmptyBody;
 
   /// No description provided for @coachChatSendFailed.
   ///
@@ -4855,6 +4873,12 @@ abstract class AppLocalizations {
   /// **'No trainers are affiliated yet.'**
   String get exGymConsultNoTrainers;
 
+  /// No description provided for @exGymTrainersLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this gym\'s trainers.'**
+  String get exGymTrainersLoadError;
+
   /// No description provided for @exTrainerConsultRequest.
   ///
   /// In en, this message translates to:
@@ -5340,6 +5364,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Past booking'**
   String get exReservationPast;
+
+  /// No description provided for @exReservationPastMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Show {count} more past bookings'**
+  String exReservationPastMore(int count);
+
+  /// No description provided for @exReservationPastLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide past bookings'**
+  String get exReservationPastLess;
 
   /// No description provided for @exCancelConfirmBody.
   ///
@@ -5868,6 +5904,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a recommended workout +{routine}P\nSpend them in MY › Use Points'**
   String guidePointsBody(int diet, int exercise, int routine);
+
+  /// No description provided for @guideSampleFoodScrambledEggs.
+  ///
+  /// In en, this message translates to:
+  /// **'Scrambled eggs'**
+  String get guideSampleFoodScrambledEggs;
+
+  /// No description provided for @guideSampleFoodWholeWheatToast.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole-wheat toast'**
+  String get guideSampleFoodWholeWheatToast;
+
+  /// No description provided for @guideSampleFoodChickenSalad.
+  ///
+  /// In en, this message translates to:
+  /// **'Chicken breast salad'**
+  String get guideSampleFoodChickenSalad;
+
+  /// No description provided for @guideSampleFoodBrownRice.
+  ///
+  /// In en, this message translates to:
+  /// **'Brown rice'**
+  String get guideSampleFoodBrownRice;
+
+  /// No description provided for @guideSampleFoodGrilledSalmon.
+  ///
+  /// In en, this message translates to:
+  /// **'Grilled salmon'**
+  String get guideSampleFoodGrilledSalmon;
+
+  /// No description provided for @guideSampleFoodRoastedVegetables.
+  ///
+  /// In en, this message translates to:
+  /// **'Roasted vegetables'**
+  String get guideSampleFoodRoastedVegetables;
 
   /// Onboarding step 1: the basic info step must be filled in (#1830).
   ///
@@ -7049,6 +7121,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel request'**
   String get exConsultHistoryCancelAction;
+
+  /// No description provided for @exConsultCancelFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t cancel the consultation request. Please try again.'**
+  String get exConsultCancelFailed;
+
+  /// No description provided for @exConsultCancelStale.
+  ///
+  /// In en, this message translates to:
+  /// **'This request was already handled. It now shows its latest status.'**
+  String get exConsultCancelStale;
+
+  /// No description provided for @exConsultHistoryLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your consultation requests.'**
+  String get exConsultHistoryLoadError;
 
   /// No description provided for @exConsultHistoryCancelBody.
   ///
