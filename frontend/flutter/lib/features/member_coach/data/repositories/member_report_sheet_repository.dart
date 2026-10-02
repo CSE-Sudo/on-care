@@ -16,10 +16,10 @@ library;
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:dio/dio.dart';
 import 'package:oncare/core/errors/app_error.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/core/utils/wire_date.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_report/oncare_report.dart';
 
 /// 결과지 한 장의 자료를 읽는 곳.

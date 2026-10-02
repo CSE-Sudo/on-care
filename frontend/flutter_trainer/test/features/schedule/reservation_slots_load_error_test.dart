@@ -9,9 +9,9 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/active_polling_stream.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/reservation_slot_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/reservation_slot.dart';
 
@@ -31,7 +31,11 @@ class _FlakySlotRepository implements ReservationSlotRepository {
 
   @override
   Stream<List<ReservationSlot>> watch() =>
-      activePollingStream<List<ReservationSlot>>(load: list, interval: null);
+      activePollingStream<List<ReservationSlot>>(
+        load: list,
+        interval: null,
+        keepPollingWhileInactive: true,
+      );
 
   @override
   Future<ReservationSlot> create({

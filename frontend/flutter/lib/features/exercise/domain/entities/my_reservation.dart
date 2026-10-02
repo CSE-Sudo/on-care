@@ -5,7 +5,7 @@
 /// 알 수 없다.
 library;
 
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 
 class MyReservation {
   const MyReservation({

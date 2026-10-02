@@ -12,7 +12,7 @@
 /// (포인트 교환, #2022)와는 다른 길이라 그 경로와 섞지 않는다.
 library;
 
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 한 주 컨디션. 좋은 쪽에서 나쁜 쪽 순서다 — 화면이 이 순서대로 줄을 세운다.
 enum WeekCondition {

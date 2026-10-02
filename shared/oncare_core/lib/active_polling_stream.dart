@@ -2,42 +2,53 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
-/// 배지 숫자(안읽음 메시지·알림·상담 요청)를 다시 읽는 주기.
-///
-/// 한 자리에 모아 두는 이유는 세 배지가 같은 사이드바에 나란히 서 있어서다 —
-/// 주기가 제각각이면 같은 순간에 본 세 숫자의 기준 시각이 달라진다. 열려 있는
-/// 채팅 스레드(3초)·스케줄(5초)보다 느슨한 것은 의도다. 배지는 지금 보고 있는
-/// 내용이 아니라 **다른 곳에서 일어난 변화**를 알리는 자리라, 몇 초의 지연보다
-/// 콘솔을 종일 띄워 두는 트레이너에게 걸리는 요청 수가 더 중요하다. (#917)
-const Duration badgePollInterval = Duration(seconds: 20);
-
-/// Polls [load] while the stream has a listener and the console is
-/// **visible** on screen.
-///
-/// "보이는가" 가 기준이다(#2869). `resumed` 와 `inactive` 는 폴링을 이어 가고,
-/// `hidden`·`paused`·`detached` 에서만 멈춘다. Flutter 웹은 브라우저 창이
-/// 포커스만 잃어도(blur — 듀얼 모니터에서 다른 창을 누른 경우) `inactive` 를
-/// 보내는데, 그때도 트레이너 웹은 화면에 그대로 떠 있다. 예전처럼 `resumed`
-/// 만 전경으로 보면 "켜 두고 곁눈질하는" 콘솔에서 채팅·배지·명단·일정이
-/// 창을 다시 누를 때까지 멈췄다. 탭이 가려지거나 창이 최소화되면 웹은
-/// `hidden` 을 보내므로 그때 멈춘다. 모바일의 `inactive` 는 짧은 과도
-/// 상태라 이어 가도 비용이 거의 없다.
-///
-/// `resumed`↔`inactive` 오가기는 같은 '보임' 상태 안의 이동이라 아무것도
-/// 하지 않는다 — 타이머를 다시 걸거나 즉시 한 번 더 읽지 않으므로 창을
-/// 오가며 눌러도 요청이 겹치지 않는다. 가려졌다가 다시 보이면(`hidden` →
-/// `inactive`/`resumed`) 그때 즉시 한 번 읽는다.
+/// Polls [load] while the stream has a listener and the application is in
+/// the foreground.
 ///
 /// The first failure is surfaced so an initial loading error can be shown.
 /// Once a value has been emitted, transient failures are kept out of the
 /// stream: consumers continue showing the last good value while the next
-/// poll retries. Cancelling the subscription or hiding the console stops
+/// poll retries. Cancelling the subscription or backgrounding the app stops
 /// the timer immediately.
+///
+/// 회원 앱과 트레이너 웹이 이 함수 하나를 함께 쓴다(#2907). 주기는 각 앱이
+/// 상수로 넘긴다(예: 트레이너 웹 배지의 `badgePollInterval`).
+///
+/// [interval] 이 null 이면 주기 폴링 없이 구독할 때·다시 보일 때·[refreshes] 가
+/// 올 때만 읽는다.
+///
+/// [refreshes] 에 이벤트가 오면 주기를 기다리지 않고 바로 다시 읽는다(읽는
+/// 중이면 끝난 뒤 한 번 더).
+///
+/// [surfaceError] 가 참인 오류는 값을 받은 뒤에도 흘려보낸다 — 잠깐의 실패가
+/// 아니라 상태가 바뀌었다는 신호(예: 담당 해제로 대화가 404, #2843)라 마지막
+/// 값을 붙들고 있으면 안 되는 경우다.
+///
+/// [keepPollingWhileInactive] 는 "전경" 의 기준을 고른다(#2869).
+///
+///  * 거짓(기본, 회원 앱): `resumed` 일 때만 폴링한다.
+///  * 참(트레이너 웹): "화면에 보이는가" 가 기준이다. `resumed` 와 `inactive` 는
+///    폴링을 이어 가고, `hidden`·`paused`·`detached` 에서만 멈춘다. Flutter 웹은
+///    브라우저 창이 포커스만 잃어도(blur — 듀얼 모니터에서 다른 창을 누른 경우)
+///    `inactive` 를 보내는데, 그때도 콘솔은 화면에 그대로 떠 있다. `resumed` 만
+///    전경으로 보면 "켜 두고 곁눈질하는" 콘솔에서 채팅·배지·명단·일정이 창을
+///    다시 누를 때까지 멈췄다. 탭이 가려지거나 창이 최소화되면 웹은 `hidden` 을
+///    보내므로 그때 멈춘다. `resumed`↔`inactive` 오가기는 같은 '보임' 상태 안의
+///    이동이라 아무것도 하지 않는다 — 타이머를 다시 걸거나 즉시 한 번 더 읽지
+///    않으므로 창을 오가며 눌러도 요청이 겹치지 않는다. 가려졌다가 다시
+///    보이면(`hidden` → `inactive`/`resumed`) 그때 즉시 한 번 읽는다.
 Stream<T> activePollingStream<T>({
   required Future<T> Function() load,
   required Duration? interval,
   Stream<void>? refreshes,
+  bool Function(Object error)? surfaceError,
+  bool keepPollingWhileInactive = false,
 }) {
+  bool isForeground(AppLifecycleState? state) => pollsWhileIn(
+    state,
+    keepPollingWhileInactive: keepPollingWhileInactive,
+  );
+
   late final StreamController<T> controller;
   late final _LifecycleObserver lifecycleObserver;
   Timer? timer;
@@ -47,7 +58,7 @@ Stream<T> activePollingStream<T>({
   bool refreshPending = false;
   bool hasValue = false;
   int lifecycleGeneration = 0;
-  bool foreground = _isForeground(WidgetsBinding.instance.lifecycleState);
+  bool foreground = isForeground(WidgetsBinding.instance.lifecycleState);
 
   late void Function() scheduleNext;
 
@@ -67,7 +78,7 @@ Stream<T> activePollingStream<T>({
       if (!cancelled &&
           foreground &&
           requestGeneration == lifecycleGeneration &&
-          !hasValue) {
+          (!hasValue || (surfaceError?.call(error) ?? false))) {
         controller.addError(error, stackTrace);
       }
     } finally {
@@ -90,7 +101,7 @@ Stream<T> activePollingStream<T>({
   };
 
   void handleLifecycle(AppLifecycleState state) {
-    final bool nextForeground = _isForeground(state);
+    final bool nextForeground = isForeground(state);
     if (foreground == nextForeground) return;
     foreground = nextForeground;
     timer?.cancel();
@@ -119,7 +130,7 @@ Stream<T> activePollingStream<T>({
   lifecycleObserver = _LifecycleObserver(handleLifecycle);
   controller = StreamController<T>(
     onListen: () {
-      foreground = _isForeground(WidgetsBinding.instance.lifecycleState);
+      foreground = isForeground(WidgetsBinding.instance.lifecycleState);
       WidgetsBinding.instance.addObserver(lifecycleObserver);
       refreshSubscription = refreshes?.listen((_) => refreshNow());
       if (foreground) unawaited(poll());
@@ -137,19 +148,21 @@ Stream<T> activePollingStream<T>({
   return controller.stream;
 }
 
-/// 폴링을 이어 갈 상태인가 — 화면에 보이는가. (#2869)
+/// 폴링을 이어 갈 상태인가. [activePollingStream] 의 `keepPollingWhileInactive`
+/// 와 같은 기준이다.
 ///
 /// `null` 은 바인딩이 아직 상태를 받기 전(첫 프레임 전·테스트)이다.
-bool _isForeground(AppLifecycleState? state) => switch (state) {
-  null || AppLifecycleState.resumed || AppLifecycleState.inactive => true,
+@visibleForTesting
+bool pollsWhileIn(
+  AppLifecycleState? state, {
+  bool keepPollingWhileInactive = false,
+}) => switch (state) {
+  null || AppLifecycleState.resumed => true,
+  AppLifecycleState.inactive => keepPollingWhileInactive,
   AppLifecycleState.hidden ||
   AppLifecycleState.paused ||
   AppLifecycleState.detached => false,
 };
-
-/// [_isForeground] 를 테스트에서 상태별로 확인하는 창.
-@visibleForTesting
-bool pollsWhileIn(AppLifecycleState? state) => _isForeground(state);
 
 class _LifecycleObserver with WidgetsBindingObserver {
   _LifecycleObserver(this.onChanged);
