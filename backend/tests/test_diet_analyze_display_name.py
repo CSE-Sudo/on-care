@@ -22,6 +22,38 @@ _JPEG = b"\xff\xd8\xff\xe0\x00\x10JFIF fake-image-bytes"
 _NOW = datetime(2026, 8, 20, 12, 0, tzinfo=clock.SEOUL)
 
 
+@pytest.fixture(autouse=True)
+def _demo_member_auth(request):
+    """이 모듈의 엔드포인트 검사는 데모 회원의 기록을 쓰고 읽는다.
+
+    쓰기·삭제 라우트는 데모 폴백 없이 회원 토큰을 요구하므로(#2831), 토큰 없이
+    보내던 요청에 데모 회원 토큰을 기본 헤더로 붙인다. 요청마다 `headers=` 를 준
+    검사는 그 값이 우선한다. DB 가 필요 없는 순수 검사는 건드리지 않는다.
+    """
+    if "client" not in request.fixturenames:
+        yield
+        return
+    from app.core.security import create_access_token
+    from app.db.init_db import DEMO_USER_ID
+    from app.db.session import SessionLocal
+    from app.models.models import User
+
+    client = request.getfixturevalue("client")
+    with SessionLocal() as db:
+        version = db.get(User, DEMO_USER_ID).token_version
+    previous = client.headers.get("Authorization")
+    client.headers["Authorization"] = (
+        f"Bearer {create_access_token(DEMO_USER_ID, token_version=version)}"
+    )
+    try:
+        yield
+    finally:
+        if previous is None:
+            client.headers.pop("Authorization", None)
+        else:
+            client.headers["Authorization"] = previous
+
+
 @pytest.fixture
 def frozen_today(monkeypatch):
     monkeypatch.setattr(clock, "now", lambda: _NOW)
