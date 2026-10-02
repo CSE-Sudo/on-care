@@ -7,6 +7,7 @@ import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/logging/logging_provider_observer.dart';
+import 'package:oncare/core/observability/error_reporter.dart';
 import 'package:oncare/core/points/demo_benefits_seed.dart';
 import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/storage/app_database.dart';
@@ -29,6 +30,9 @@ Future<void> bootstrap() async {
   logger.i(
     'oncare boot env=${config.environment.name} api=${config.apiBaseUrl}',
   );
+
+  // 에러 추적(#2839). DSN 이 없거나 데모(목업)·개발 환경이면 보내지 않는 보고기가 온다.
+  final ErrorReporter errorReporter = await initErrorReporter(config);
 
   final prefs = await SharedPreferences.getInstance();
 
@@ -71,19 +75,12 @@ Future<void> bootstrap() async {
         )
       : DemoBenefitsStore.memory();
 
-  FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.presentError(details);
-    logger.e(
-      'FlutterError',
-      error: details.exception,
-      stackTrace: details.stack,
-    );
-  };
-  WidgetsBinding.instance.platformDispatcher.onError =
-      (Object error, StackTrace stack) {
-        logger.e('Uncaught platform error', error: error, stackTrace: stack);
-        return true;
-      };
+  // 전역 오류 처리기: 기기 로그에 남기고, 보고기가 켜져 있으면 에러 추적으로도 보낸다.
+  installErrorHandlers(
+    reporter: errorReporter,
+    log: (String message, Object error, StackTrace? stack) =>
+        logger.e(message, error: error, stackTrace: stack),
+  );
 
   // Provider observers — log lifecycle events outside prod.
   final observers = <ProviderObserver>[
@@ -96,6 +93,7 @@ Future<void> bootstrap() async {
       overrides: <Override>[
         appConfigProvider.overrideWithValue(config),
         appLoggerProvider.overrideWithValue(logger),
+        errorReporterProvider.overrideWithValue(errorReporter),
         sharedPreferencesProvider.overrideWithValue(prefs),
         appDatabaseProvider.overrideWithValue(db),
         demoBenefitsStoreProvider.overrideWithValue(benefits),

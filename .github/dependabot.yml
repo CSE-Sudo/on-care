@@ -1,0 +1,66 @@
+# 의존성 업데이트 PR 을 주 1회 받는다(#2837).
+#
+# 생태계마다 업데이트를 한 묶음(groups)으로 모아 PR 수를 줄인다 — 매주 많아야
+# 생태계당 하나다. 주 버전 변경은 따로 떼어 내 리뷰가 묻히지 않게 한다.
+# PR 처리 규칙은 docs/team_workflow.md "의존성 업데이트 PR" 을 따른다.
+version: 2
+
+updates:
+  # 백엔드: requirements.in(직접 의존) → requirements.txt / requirements-dev.txt(잠금 파일).
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Seoul
+    open-pull-requests-limit: 3
+    labels: [chore]
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      backend-minor-patch:
+        update-types: [minor, patch]
+      backend-major:
+        update-types: [major]
+
+  # 워크플로의 action. 커밋 SHA 고정(#1554·#2340)을 유지한 채 SHA 와 버전 주석을 함께 올린다.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Seoul
+    open-pull-requests-limit: 2
+    labels: [chore]
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  # 회원 앱·트레이너 웹(pubspec.lock). 공용 패키지(shared/*)는 두 앱이 경로로 물고 있어
+  # 앱 쪽 잠금 파일에서 함께 올라간다. tool/ui_guard 는 analyzer 버전을 일부러 고정해
+  # 두었으므로 넣지 않는다.
+  - package-ecosystem: pub
+    directories:
+      - /frontend/flutter
+      - /frontend/flutter_trainer
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Seoul
+    open-pull-requests-limit: 2
+    labels: [chore]
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      flutter-minor-patch:
+        update-types: [minor, patch]
+      flutter-major:
+        update-types: [major]
