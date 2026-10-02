@@ -1,0 +1,1059 @@
+{
+ "thresholds": {
+  "low_completion": 60,
+  "good_completion": 80,
+  "calorie_tolerance": 0.15,
+  "sodium_over_days": 2,
+  "sugar_over_days": 2,
+  "macro_tolerance": 0.25,
+  "max_points": 3,
+  "sodium_target_mg": 2000,
+  "calorie_target_kcal": 2000,
+  "sugar_target_g": 50
+ },
+ "cases": [
+  {
+   "name": "조용한 주 — 주의 없음",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 85,
+    "sodium_over_days": 0,
+    "sodium_avg": 1800,
+    "calories_week": [
+     2000,
+     1950,
+     2050,
+     0,
+     2000,
+     0,
+     0
+    ],
+    "sugar_week": [
+     30,
+     35,
+     25,
+     0,
+     30,
+     0,
+     0
+    ],
+    "days": [],
+    "message": ""
+   },
+   "expected": {
+    "watchpoints": [],
+    "skipped": []
+   }
+  },
+  {
+   "name": "기록 없는 주 — 판정할 값이 없다",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": null,
+    "sodium_over_days": 0,
+    "sodium_avg": null,
+    "calories_week": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "sugar_week": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "days": [],
+    "message": ""
+   },
+   "expected": {
+    "watchpoints": [],
+    "skipped": []
+   }
+  },
+  {
+   "name": "이행률 기준 미만",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 55,
+    "sodium_over_days": 0,
+    "sodium_avg": 1800,
+    "calories_week": [
+     2000,
+     1950,
+     2050,
+     0,
+     2000,
+     0,
+     0
+    ],
+    "sugar_week": [
+     30,
+     35,
+     25,
+     0,
+     30,
+     0,
+     0
+    ],
+    "days": [],
+    "message": ""
+   },
+   "expected": {
+    "watchpoints": [
+     {
+      "kind": "completion",
+      "severity": 90
+     }
+    ],
+    "skipped": []
+   }
+  },
+  {
+   "name": "이행률 기준과 같으면 주의 아님",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 60,
+    "sodium_over_days": 0,
+    "sodium_avg": 1800,
+    "calories_week": [
+     2000,
+     1950,
+     2050,
+     0,
+     2000,
+     0,
+     0
+    ],
+    "sugar_week": [
+     30,
+     35,
+     25,
+     0,
+     30,
+     0,
+     0
+    ],
+    "days": [],
+    "message": ""
+   },
+   "expected": {
+    "watchpoints": [],
+    "skipped": []
+   }
+  },
+  {
+   "name": "나트륨 평균은 목표 안이지만 초과 사흘",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 85,
+    "sodium_over_days": 3,
+    "sodium_avg": 1900,
+    "calories_week": [
+     2000,
+     1950,
+     2050,
+     0,
+     2000,
+     0,
+     0
+    ],
+    "sugar_week": [
+     30,
+     35,
+     25,
+     0,
+     30,
+     0,
+     0
+    ],
+    "days": [],
+    "message": ""
+   },
+   "expected": {
+    "watchpoints": [
+     {
+      "kind": "sodium",
+      "severity": 85
+     }
+    ],
+    "skipped": []
+   }
+  },
+  {
+   "name": "나트륨 초과 이틀은 주의 아님",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 85,
+    "sodium_over_days": 2,
+    "sodium_avg": 1900,
+    "calories_week": [
+     2000,
+     1950,
+     2050,
+     0,
+     2000,
+     0,
+     0
+    ],
+    "sugar_week": [
+     30,
+     35,
+     25,
+     0,
+     30,
+     0,
+     0
+    ],
+    "days": [],
+    "message": ""
+   },
+   "expected": {
+    "watchpoints": [],
+    "skipped": []
+   }
+  },
+  {
+   "name": "나트륨 평균이 목표 초과",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 85,
+    "sodium_over_days": 1,
+    "sodium_avg": 2100,
+    "calories_week": [
+     2000,
+     1950,
+     2050,
+     0,
+     2000,
+     0,
+     0
+    ],
+    "sugar_week": [
+     30,
+     35,
+     25,
+     0,
+     30,
+     0,
+     0
+    ],
+    "days": [],
+    "message": ""
+   },
+   "expected": {
+    "watchpoints": [
+     {
+      "kind": "sodium",
+      "severity": 85
+     }
+    ],
+    "skipped": []
+   }
+  },
+  {
+   "name": "나트륨 개인 목표",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 85,
+    "sodium_over_days": 1,
+    "sodium_avg": 1700,
+    "calories_week": [
+     2000,
+     1950,
+     2050,
+     0,
+     2000,
+     0,
+     0
+    ],
+    "sugar_week": [
+     30,
+     35,
+     25,
+     0,
+     30,
+     0,
+     0
+    ],
+    "days": [],
+    "message": "",
+    "sodium_target": 1500
+   },
+   "expected": {
+    "watchpoints": [
+     {
+      "kind": "sodium",
+      "severity": 85
+     }
+    ],
+    "skipped": []
+   }
+  },
+  {
+   "name": "당류 초과 사흘",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 85,
+    "sodium_over_days": 0,
+    "sodium_avg": 1800,
+    "calories_week": [
+     2000,
+     1950,
+     2050,
+     0,
+     2000,
+     0,
+     0
+    ],
+    "sugar_week": [
+     60,
+     55,
+     52,
+     10,
+     10,
+     0,
+     0
+    ],
+    "days": [],
+    "message": ""
+   },
+   "expected": {
+    "watchpoints": [
+     {
+      "kind": "sugar",
+      "severity": 80
+     }
+    ],
+    "skipped": []
+   }
+  },
+  {
+   "name": "당류 초과 이틀·평균 목표 안",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 85,
+    "sodium_over_days": 0,
+    "sodium_avg": 1800,
+    "calories_week": [
+     2000,
+     1950,
+     2050,
+     0,
+     2000,
+     0,
+     0
+    ],
+    "sugar_week": [
+     60,
+     55,
+     20,
+     10,
+     10,
+     0,
+     0
+    ],
+    "days": [],
+    "message": ""
+   },
+   "expected": {
+    "watchpoints": [],
+    "skipped": []
+   }
+  },
+  {
+   "name": "당류 평균만 목표 초과",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 85,
+    "sodium_over_days": 0,
+    "sodium_avg": 1800,
+    "calories_week": [
+     2000,
+     1950,
+     2050,
+     0,
+     2000,
+     0,
+     0
+    ],
+    "sugar_week": [
+     90,
+     30,
+     40,
+     0,
+     0,
+     0,
+     0
+    ],
+    "days": [],
+    "message": ""
+   },
+   "expected": {
+    "watchpoints": [
+     {
+      "kind": "sugar",
+      "severity": 80
+     }
+    ],
+    "skipped": []
+   }
+  },
+  {
+   "name": "당류 개인 목표",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 85,
+    "sodium_over_days": 0,
+    "sodium_avg": 1800,
+    "calories_week": [
+     2000,
+     1950,
+     2050,
+     0,
+     2000,
+     0,
+     0
+    ],
+    "sugar_week": [
+     35,
+     34,
+     20,
+     0,
+     0,
+     0,
+     0
+    ],
+    "days": [],
+    "message": "",
+    "sugar_target": 25
+   },
+   "expected": {
+    "watchpoints": [
+     {
+      "kind": "sugar",
+      "severity": 80
+     }
+    ],
+    "skipped": []
+   }
+  },
+  {
+   "name": "칼로리 20% 초과",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 85,
+    "sodium_over_days": 0,
+    "sodium_avg": 1800,
+    "calories_week": [
+     2400,
+     2400,
+     2400,
+     0,
+     0,
+     0,
+     0
+    ],
+    "sugar_week": [
+     30,
+     35,
+     25,
+     0,
+     30,
+     0,
+     0
+    ],
+    "days": [],
+    "message": ""
+   },
+   "expected": {
+    "watchpoints": [
+     {
+      "kind": "calories",
+      "severity": 75
+     }
+    ],
+    "skipped": []
+   }
+  },
+  {
+   "name": "칼로리 15% 정확히 — 허용 폭 안",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 85,
+    "sodium_over_days": 0,
+    "sodium_avg": 1800,
+    "calories_week": [
+     2300,
+     2300,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "sugar_week": [
+     30,
+     35,
+     25,
+     0,
+     30,
+     0,
+     0
+    ],
+    "days": [],
+    "message": ""
+   },
+   "expected": {
+    "watchpoints": [],
+    "skipped": []
+   }
+  },
+  {
+   "name": "칼로리 부족",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 85,
+    "sodium_over_days": 0,
+    "sodium_avg": 1800,
+    "calories_week": [
+     1200,
+     1300,
+     1400,
+     0,
+     0,
+     0,
+     0
+    ],
+    "sugar_week": [
+     30,
+     35,
+     25,
+     0,
+     30,
+     0,
+     0
+    ],
+    "days": [],
+    "message": ""
+   },
+   "expected": {
+    "watchpoints": [
+     {
+      "kind": "calories",
+      "severity": 75
+     }
+    ],
+    "skipped": []
+   }
+  },
+  {
+   "name": "칼로리 개인 목표",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 85,
+    "sodium_over_days": 0,
+    "sodium_avg": 1800,
+    "calories_week": [
+     2000,
+     2000,
+     2000,
+     0,
+     0,
+     0,
+     0
+    ],
+    "sugar_week": [
+     30,
+     35,
+     25,
+     0,
+     30,
+     0,
+     0
+    ],
+    "days": [],
+    "message": "",
+    "calorie_target": 1600
+   },
+   "expected": {
+    "watchpoints": [
+     {
+      "kind": "calories",
+      "severity": 75
+     }
+    ],
+    "skipped": []
+   }
+  },
+  {
+   "name": "탄수화물 개인 목표 초과",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 85,
+    "sodium_over_days": 0,
+    "sodium_avg": 1800,
+    "calories_week": [
+     2000,
+     1950,
+     2050,
+     0,
+     2000,
+     0,
+     0
+    ],
+    "sugar_week": [
+     30,
+     35,
+     25,
+     0,
+     30,
+     0,
+     0
+    ],
+    "days": [],
+    "message": "",
+    "carbs_week": [
+     320,
+     300,
+     310,
+     0,
+     0,
+     0,
+     0
+    ],
+    "carbs_target": 200
+   },
+   "expected": {
+    "watchpoints": [
+     {
+      "kind": "macro",
+      "severity": 60
+     }
+    ],
+    "skipped": []
+   }
+  },
+  {
+   "name": "단백질 개인 목표 부족·지방 허용 폭 안",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 85,
+    "sodium_over_days": 0,
+    "sodium_avg": 1800,
+    "calories_week": [
+     2000,
+     1950,
+     2050,
+     0,
+     2000,
+     0,
+     0
+    ],
+    "sugar_week": [
+     30,
+     35,
+     25,
+     0,
+     30,
+     0,
+     0
+    ],
+    "days": [],
+    "message": "",
+    "protein_week": [
+     40,
+     50,
+     45,
+     0,
+     0,
+     0,
+     0
+    ],
+    "protein_target": 100,
+    "fat_week": [
+     60,
+     55,
+     50,
+     0,
+     0,
+     0,
+     0
+    ],
+    "fat_target": 55
+   },
+   "expected": {
+    "watchpoints": [
+     {
+      "kind": "macro",
+      "severity": 60
+     }
+    ],
+    "skipped": []
+   }
+  },
+  {
+   "name": "탄단지 목표 없으면 보지 않는다",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 85,
+    "sodium_over_days": 0,
+    "sodium_avg": 1800,
+    "calories_week": [
+     2000,
+     1950,
+     2050,
+     0,
+     2000,
+     0,
+     0
+    ],
+    "sugar_week": [
+     30,
+     35,
+     25,
+     0,
+     30,
+     0,
+     0
+    ],
+    "days": [],
+    "message": "",
+    "carbs_week": [
+     500,
+     500,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "protein_week": [
+     5,
+     5,
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   "expected": {
+    "watchpoints": [],
+    "skipped": []
+   }
+  },
+  {
+   "name": "건너뛴 운동 — 같은 운동은 한 번",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 85,
+    "sodium_over_days": 0,
+    "sodium_avg": 1800,
+    "calories_week": [
+     2000,
+     1950,
+     2050,
+     0,
+     2000,
+     0,
+     0
+    ],
+    "sugar_week": [
+     30,
+     35,
+     25,
+     0,
+     30,
+     0,
+     0
+    ],
+    "days": [
+     {
+      "completion": 50,
+      "exercises": [
+       "스쿼트 3세트 ✗",
+       "러닝 20분 ✓"
+      ]
+     },
+     {
+      "completion": 50,
+      "exercises": [
+       "스쿼트 3세트 ✗"
+      ]
+     },
+     {
+      "completion": 50,
+      "exercises": [
+       "플랭크 60초 ✗"
+      ]
+     }
+    ],
+    "message": ""
+   },
+   "expected": {
+    "watchpoints": [
+     {
+      "kind": "skipped",
+      "severity": 70
+     }
+    ],
+    "skipped": [
+     "스쿼트",
+     "플랭크"
+    ]
+   }
+  },
+  {
+   "name": "건너뛴 운동은 셋까지",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 85,
+    "sodium_over_days": 0,
+    "sodium_avg": 1800,
+    "calories_week": [
+     2000,
+     1950,
+     2050,
+     0,
+     2000,
+     0,
+     0
+    ],
+    "sugar_week": [
+     30,
+     35,
+     25,
+     0,
+     30,
+     0,
+     0
+    ],
+    "days": [
+     {
+      "completion": 50,
+      "exercises": [
+       "스쿼트 3세트 ✗",
+       "런지 2세트 ✗"
+      ]
+     },
+     {
+      "completion": 50,
+      "exercises": [
+       "플랭크 60초 ✗",
+       "버피 10회 ✗"
+      ]
+     }
+    ],
+    "message": ""
+   },
+   "expected": {
+    "watchpoints": [
+     {
+      "kind": "skipped",
+      "severity": 70
+     }
+    ],
+    "skipped": [
+     "스쿼트",
+     "런지",
+     "플랭크"
+    ]
+   }
+  },
+  {
+   "name": "모든 주의 — 심각도 순",
+   "report": {
+    "member_id": "m-1",
+    "member_name": "김회원",
+    "week_start": "2026-09-21",
+    "week_end": "2026-09-27",
+    "sessions_booked": 2,
+    "sessions_done": 2,
+    "completion_avg": 40,
+    "sodium_over_days": 5,
+    "sodium_avg": 2600,
+    "calories_week": [
+     2800,
+     2800,
+     2800,
+     0,
+     0,
+     0,
+     0
+    ],
+    "sugar_week": [
+     70,
+     70,
+     70,
+     70,
+     0,
+     0,
+     0
+    ],
+    "days": [
+     {
+      "completion": 50,
+      "exercises": [
+       "스쿼트 3세트 ✗"
+      ]
+     }
+    ],
+    "message": "",
+    "carbs_week": [
+     400,
+     400,
+     400,
+     0,
+     0,
+     0,
+     0
+    ],
+    "carbs_target": 250
+   },
+   "expected": {
+    "watchpoints": [
+     {
+      "kind": "completion",
+      "severity": 90
+     },
+     {
+      "kind": "sodium",
+      "severity": 85
+     },
+     {
+      "kind": "sugar",
+      "severity": 80
+     },
+     {
+      "kind": "calories",
+      "severity": 75
+     },
+     {
+      "kind": "skipped",
+      "severity": 70
+     },
+     {
+      "kind": "macro",
+      "severity": 60
+     }
+    ],
+    "skipped": [
+     "스쿼트"
+    ]
+   }
+  }
+ ]
+}

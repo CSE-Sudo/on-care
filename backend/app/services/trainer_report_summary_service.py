@@ -264,6 +264,10 @@ def watchpoints(
 ) -> list[Watchpoint]:
     """그 주의 주의사항 전부. **판정은 여기 한 곳에서만 한다.**
 
+    트레이너 웹 데모(`report_summary.dart` 의 `summaryWatchpoints`)가 같은 판정을
+    옮겨 들고 있다. 기준이나 판정을 바꾸면 `scripts/gen_report_summary_cases.py`
+    로 공유 사례 파일을 다시 만든다 — 두 쪽 테스트가 그 파일과 대조한다(#2906).
+
     운동 이행률·건너뛴 운동·나트륨·당류·칼로리·탄단지를 같은 기준으로 본다.
     LLM 입력과 규칙 기반 대체 요약, 다음 주 조치가 이 목록을 함께 쓴다.
 
