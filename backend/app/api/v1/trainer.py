@@ -1674,9 +1674,21 @@ def trainer_complete_follow_up(
 def trainer_program_drafts(
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
+    member_id: str | None = Query(
+        None,
+        min_length=1,
+        max_length=64,
+        description="이 회원에게 자동 보관한 초안만(#2873)",
+    ),
 ) -> list[TrainerProgramDraftSummary]:
-    """내가 저장한 프로그램 초안 목록(최근 수정 먼저, 운동 구성 제외)."""
-    return trainer_service.build_program_drafts(db, trainer.id)
+    """내가 저장한 프로그램 초안 목록(최근 수정 먼저, 운동 구성 제외).
+
+    `member_id` 를 주면 코칭 화면이 그 회원에게 자동 보관한 것만 돌려준다
+    (#2873). 내 초안만 거르므로 남의 회원 id 로는 빈 목록이다.
+    """
+    return trainer_service.build_program_drafts(
+        db, trainer.id, member_id=member_id
+    )
 
 
 @router.post(
@@ -1689,10 +1701,16 @@ def trainer_create_program_draft(
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
 ) -> TrainerProgramDraftOut:
-    """프로그램 초안 저장. 세션이 여러 개여도, 비어 있어도 저장된다."""
+    """프로그램 초안 저장. 세션이 여러 개여도, 비어 있어도 저장된다.
+
+    `member_id` 를 주면 코칭 화면의 자동 보관이다(#2873) — 살아 있는 담당
+    회원이 아니면 다른 회원 경로와 같은 404 다.
+    """
     name = payload.name.strip()
     if not name:
         raise HTTPException(status_code=400, detail="프로그램 이름이 필요합니다.")
+    if payload.member_id is not None:
+        _require_client(db, trainer.id, payload.member_id)
     return trainer_service.create_program_draft(
         db, trainer.id,
         name=name,
@@ -1700,6 +1718,8 @@ def trainer_create_program_draft(
         period=payload.period.strip(),
         memo=payload.memo,
         sessions=payload.sessions,
+        member_id=payload.member_id,
+        workspace=payload.workspace,
     )
 
 

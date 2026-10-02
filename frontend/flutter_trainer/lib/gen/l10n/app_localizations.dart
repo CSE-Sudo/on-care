@@ -4807,6 +4807,30 @@ abstract class AppLocalizations {
   /// **'Switch'**
   String get coachSwitchClientConfirm;
 
+  /// No description provided for @coachDraftResumeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You have saved work'**
+  String get coachDraftResumeTitle;
+
+  /// Body of the coaching screen's resume prompt for an autosaved draft.
+  ///
+  /// In en, this message translates to:
+  /// **'The program you were building for {name} was saved automatically. Continue where you left off?'**
+  String coachDraftResumeBody(String name);
+
+  /// No description provided for @coachDraftResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get coachDraftResume;
+
+  /// No description provided for @coachDraftDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get coachDraftDiscard;
+
   /// No description provided for @personalRoutineTargetLoadFailed.
   ///
   /// In en, this message translates to:
