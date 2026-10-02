@@ -45,6 +45,7 @@ from app.core.config import get_settings
 from app.core.locale import RequestLocaleMiddleware
 from app.core.security_headers import security_headers_for
 from app.db.init_db import init_db
+from app.services import mailer
 
 settings = get_settings()
 # 로깅을 먼저 설정(요청 ID 포함 포맷). 이후 모듈 로거들이 이 설정을 따른다.
@@ -57,6 +58,8 @@ async def lifespan(app: FastAPI):
     # 경고로 남긴다(#2817·#2821).
     startup_checks.check(settings)
     init_db()
+    # 메일 발송 수단이 없으면 기동 로그에 드러낸다 — 운영이면 재설정이 꺼진다(#2824).
+    mailer.warn_if_disabled(settings)
     yield
 
 

@@ -4999,4 +4999,122 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get weeklyFeedbackNowButton => 'Send feedback now';
+
+  @override
+  String get authForgotPassword => 'Forgot your password?';
+
+  @override
+  String get passwordChangeTitle => 'Change password';
+
+  @override
+  String get passwordChangeCurrentHint => 'Current password';
+
+  @override
+  String get passwordChangeNewHint =>
+      'New password (8+ characters, letters and numbers)';
+
+  @override
+  String get passwordChangeConfirmHint => 'Confirm new password';
+
+  @override
+  String get passwordChangeNote =>
+      'This device stays signed in. Other devices will need to sign in again.';
+
+  @override
+  String get passwordChangeAction => 'Change password';
+
+  @override
+  String get passwordChangeDone => 'Password changed';
+
+  @override
+  String get passwordChangeWrongCurrent => 'Your current password is incorrect';
+
+  @override
+  String get passwordChangeSameAsCurrent =>
+      'Choose a password different from your current one';
+
+  @override
+  String get passwordChangeDemoTitle => 'Demo accounts can\'t change passwords';
+
+  @override
+  String get passwordChangeDemoBody =>
+      'Demo mode has no server account. Sign in with a real account to change your password here.';
+
+  @override
+  String get passwordChangeSocialTitle => 'This account has no password';
+
+  @override
+  String get passwordChangeSocialBody =>
+      'Accounts that sign in with Kakao or Google are managed by that service.';
+
+  @override
+  String get passwordTooManyAttempts =>
+      'Too many attempts. Please try again in a moment.';
+
+  @override
+  String get passwordTemporaryFailure =>
+      'Couldn\'t complete the request. Please try again shortly.';
+
+  @override
+  String get passwordResetTitle => 'Reset password';
+
+  @override
+  String get passwordResetRequestSubtitle =>
+      'We\'ll email a reset code to the address you signed up with.';
+
+  @override
+  String get passwordResetSendAction => 'Send code';
+
+  @override
+  String get passwordResetHaveCode => 'I already have a code';
+
+  @override
+  String get passwordResetSentTitle => 'Check your email';
+
+  @override
+  String passwordResetSentBody(String email, int minutes) {
+    return 'If an account uses $email, we\'ve sent a code you can use once within $minutes minutes.';
+  }
+
+  @override
+  String get passwordResetConfirmSubtitle =>
+      'Enter the code from the email and your new password.';
+
+  @override
+  String get passwordResetCodeHint => '16-character reset code';
+
+  @override
+  String get passwordResetCodeEmpty => 'Enter the code';
+
+  @override
+  String get passwordResetCodeMalformed =>
+      'Enter the 16-character code from the email';
+
+  @override
+  String get passwordResetCodeInvalid =>
+      'This code is wrong or has expired. Request a new one.';
+
+  @override
+  String get passwordResetConfirmAction => 'Save new password';
+
+  @override
+  String get passwordResetResend => 'Send a new code';
+
+  @override
+  String get passwordResetDemoNote =>
+      'Demo mode doesn\'t send email. The code is filled in for you.';
+
+  @override
+  String get passwordResetUnavailable =>
+      'We can\'t send reset emails right now. Please contact support.';
+
+  @override
+  String get passwordResetDoneTitle => 'Password reset';
+
+  @override
+  String get passwordResetDoneBody =>
+      'Sign in with your new password. You\'ve been signed out on every device.';
+
+  @override
+  String get passwordResetBackToSignIn => 'Go to sign in';
 }

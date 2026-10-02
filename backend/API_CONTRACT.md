@@ -86,6 +86,7 @@
 | PUT | `/users/me/notification-settings` | 위 다섯 키 중 보낸 것만 반영 → 같은 모양 |
 | POST | `/users/me/pairing-code` | `{ code, expires_at, expires_in_seconds }` — 트레이너에게 불러 줄 6자리 코드(#1634). **이 호출이 데이터 공유 동의다**(#1022). 유효한 코드가 남아 있으면 같은 코드를 돌려준다. 회원 전용, rate limit 적용 |
 | DELETE | `/users/me/pairing-code` | 204 — 띄워 둔 코드를 버린다(화면을 닫을 때) |
+| POST | `/users/me/password` | `{ current_password, new_password }` → `PasswordChanged`(새 토큰 한 쌍) — 회원 비밀번호 변경(#2824). 아래 [회원 비밀번호 변경](#회원-비밀번호-변경-2824) |
 
 `DELETE /users/me` 는 본문으로 `{ reasons: [코드] }` 를 받는다(#2019). 본문은 없어도 되고,
 사유는 탈퇴의 조건이 아니다 — 아는 코드만 `account_deletion_reasons` 에 사유와 시각으로만
@@ -1365,6 +1366,8 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/auth/refresh` | `{ refresh_token }` → 새 `{ access_token, refresh_token, token_type }`(회전). 무효·폐기된 토큰 401 |
 | POST | `/auth/logout` | `{ refresh_token }` → **204**. 그 refresh 토큰을 폐기한다. access 토큰은 요구하지 않고, 못 알아본 토큰에도 204 |
 | POST | `/auth/social/{provider}` | `{ token }` → `{ access_token, refresh_token, token_type }`. 실패 응답은 아래 절 |
+| POST | `/auth/password-reset/request` | `{ email }` → **202** `{ status: "requested", expires_in_minutes }` — 계정 유무와 무관하게 같은 응답(#2824). 아래 [비밀번호 재설정](#비밀번호-재설정-2824) |
+| POST | `/auth/password-reset/confirm` | `{ token, new_password }` → `{ status: "reset" }`. 코드 없음·만료·사용됨은 400 `invalid_reset_token`(#2824) |
 
 인증 엔드포인트는 IP·엔드포인트당 분당 한도(`RATE_LIMIT_AUTH_PER_MINUTE`)를 받는다. 비밀번호·연락처·이름 규칙은
 아래 절들에 있다.
@@ -1421,8 +1424,8 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은
 `0502-5552-4212`)가 섞여 있어 휴대전화 3-4-4 를 걸면 정상 번호가 422 로 막힌다.
 
 `PUT /users/me`(프로필 수정)도 **같은 기준**이다(#1883). 전에는 이 경로만 비어 있어, 이메일을
-`asdf` 로 고친 회원이 원래 주소로 다시 로그인할 수 없었다(비밀번호 찾기 경로가 없어 스스로
-되돌릴 수도 없다). 전화번호도 여기서 정리가 되돌려졌다.
+`asdf` 로 고친 회원이 원래 주소로 다시 로그인할 수 없었다(재설정 메일도 그 주소로 가므로
+스스로 되돌릴 수 없다). 전화번호도 여기서 정리가 되돌려졌다.
 
 여기에 한 가지가 더 붙는다: **있던 전화번호는 지울 수 없다**(422). 회원 가입 화면이 전화번호를
 필수로 받는데(#1634) 이 화면에서 비울 수 있으면 그 필수가 무의미해지고, 트레이너가 담당 회원에게
@@ -1490,8 +1493,8 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은
 | `POST /auth/register` | `password` |
 | `POST /auth/trainer/register` | `password` |
 | `POST /trainer/me/password` | `new_password` (`current_password` 는 기준을 타지 않는다) |
-
-회원 비밀번호 변경·재설정 엔드포인트는 아직 없다. 생기면 같은 함수를 건다.
+| `POST /users/me/password` | `new_password` (`current_password` 는 기준을 타지 않는다) (#2824) |
+| `POST /auth/password-reset/confirm` | `new_password` (#2824) |
 
 **어긋나면 422** 이고, `detail[].type` 에 코드가 실린다. 앱은 문장(`msg`)이 아니라 이 코드로
 자기 로케일의 문구를 고른다. 검사 순서는 빈 값 → 상한 → 약함이다.
@@ -1646,7 +1649,7 @@ CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 �
 (그 `jti` 는 폐기 표에도 적는다). `tv` 가 없는 예전 토큰은 0세대로 읽으므로 배포만으로
 끊기는 세션은 없다. 정수가 아닌 `tv` 는 거부한다.
 
-`POST /trainer/me/password` 가 성공하면 세대를 1 올려 **그 전에 발급된 이 계정의 토큰이 모두
+`POST /trainer/me/password` · `POST /users/me/password`(회원, #2824) 가 성공하면 세대를 1 올려 **그 전에 발급된 이 계정의 토큰이 모두
 무효**가 된다. 요청한 기기도 예외가 아니어서, 응답에 새 세대 토큰 한 쌍을 담는다.
 
 ```json
@@ -1654,9 +1657,84 @@ CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 �
 ```
 
 클라이언트는 이 토큰으로 저장소를 바꿔야 로그아웃되지 않는다(트레이너 웹
-`TrainerPasswordChangeResult`). 다른 기기는 다음 요청에서 401 → refresh 401 → 세션 만료
+`TrainerPasswordChangeResult`, 회원 앱 `SessionController.adoptReissuedTokens`). 다른 기기는 다음 요청에서 401 → refresh 401 → 세션 만료
 안내와 함께 로그인 화면으로 간다. 변경이 실패하면(400·422) 세대는 그대로다.
-세대 비교는 회원·트레이너 공통이라, 회원 비밀번호 변경·재설정이 생기면 같은 칸을 올리면 된다.
+비밀번호 재설정(`POST /auth/password-reset/confirm`)도 같은 칸을 올린다 — 다만 새 토큰은
+주지 않고 새 비밀번호로 다시 로그인하게 한다(아래).
+
+### 회원 비밀번호 변경 (#2824)
+
+`POST /users/me/password` (`RequireMember`, rate limit 버킷 `member-password-change`)
+
+```json
+{ "current_password": "…", "new_password": "…" }
+```
+
+트레이너 `POST /trainer/me/password` 와 같은 규약이다. 응답도 같은 `PasswordChanged`(위).
+
+| 상황 | 응답 |
+|---|---|
+| 성공 | 200 + 새 토큰 한 쌍. 세대 +1 |
+| 현재 비밀번호 불일치 | **400** `현재 비밀번호가 일치하지 않습니다.` (401 이 아니다 — 토큰은 유효) |
+| 새 비밀번호가 지금과 같음 | 400 |
+| 새 비밀번호 기준 미달 | 422 `password_weak`·`password_too_long`·`password_empty` |
+| 소셜 로그인 전용 계정(비밀번호 없음) | **409** |
+
+`GET /users/me/profile` 의 `has_password`(bool)가 false 면 소셜 로그인 전용 계정이다. 회원 앱은
+이 값으로 MY 의 비밀번호 변경 대신 안내를 보여 준다.
+
+### 비밀번호 재설정 (#2824)
+
+로그아웃 상태에서 메일로 계정을 되찾는 길. 회원·트레이너 공용이다.
+
+**1) 요청** — `POST /auth/password-reset/request`
+
+```json
+{ "email": "member@example.com" }
+```
+
+→ **202** `{ "status": "requested", "expires_in_minutes": 30 }`
+
+- **계정이 있든 없든 응답이 같다.** 가입되지 않은 이메일·쉬는 계정·소셜 로그인 전용 계정에는
+  아무것도 보내지 않지만 응답으로는 구분할 수 없다(이메일 열거 방지). 실제로 보냈는지는 감사
+  로그 `auth.password_reset_request` 의 `success` 에만 남는다.
+- 메일에는 일회용 코드(`XXXX-XXXX-XXXX-XXXX`, 헷갈리는 글자를 뺀 32글자 16자 = 80비트)와,
+  화면 주소가 설정돼 있으면 링크(`<PASSWORD_RESET_MEMBER_URL|PASSWORD_RESET_TRAINER_URL>?token=<코드>`)가
+  실린다. 계정 역할로 주소를 고른다.
+- 코드는 `PASSWORD_RESET_TOKEN_MINUTES`(기본 30분) 동안 한 번만 쓸 수 있다. 서버는 해시만
+  저장한다(`password_reset_tokens`). 새로 요청하면 앞서 보낸 코드는 닫힌다.
+- 시도 제한: IP 별 분당 한도(버킷 `auth-password-reset-request`) + 이메일 하나당
+  `PASSWORD_RESET_EMAIL_PER_WINDOW`회/`PASSWORD_RESET_EMAIL_WINDOW_MINUTES`분(기본 3회/15분).
+  이메일 한도는 계정이 없는 주소도 똑같이 세므로 429 로 가입 여부가 드러나지 않는다.
+- 서버가 메일을 보낼 수 없으면 **503**(아래 메일 발송 설정).
+
+**2) 확인** — `POST /auth/password-reset/confirm` (버킷 `auth-password-reset-confirm`)
+
+```json
+{ "token": "ABCD-EFGH-JKMN-PQRS", "new_password": "…" }
+```
+
+→ 200 `{ "status": "reset" }`
+
+- 코드의 하이픈·공백·대소문자는 서버가 정규화한다.
+- 코드가 없음·만료·이미 사용 → 모두 **400** `{"detail": {"code": "invalid_reset_token", "message": "…"}}`.
+- 새 비밀번호는 가입과 같은 기준(422).
+- 성공하면 세대가 1 올라 **모든 기기의 세션이 끊긴다**(#2766). 새 토큰은 주지 않는다 — 새 비밀번호로
+  다시 로그인한다.
+
+**메일 발송 설정**
+
+| 환경변수 | 기본 | 뜻 |
+|---|---|---|
+| `MAIL_PROVIDER` | `auto` | `smtp`·`log`·`auto`(SMTP_HOST 와 MAIL_FROM 이 있으면 smtp, 없으면 log) |
+| `MAIL_FROM` | — | 발신 주소(`On-Care <no-reply@…>` 형식 가능) |
+| `SMTP_HOST`·`SMTP_PORT`·`SMTP_USERNAME`·`SMTP_PASSWORD` | —·587·—·— | SMTP 서버. AWS SES 는 SES SMTP 엔드포인트·SMTP 자격 증명을 넣는다 |
+| `SMTP_STARTTLS`·`SMTP_SSL` | true·false | 587 STARTTLS / 465 TLS |
+| `PASSWORD_RESET_MEMBER_URL`·`PASSWORD_RESET_TRAINER_URL` | — | 메일 링크가 여는 재설정 화면. 비우면 코드만 보낸다 |
+
+`log` 는 보내지 않고 서버 로그에 남긴다(코드 본문은 DEBUG). 개발·스테이징에서는 이것으로도
+재설정이 켜지지만, **운영(`ENV=prod`)에서 발송 수단이 없으면 재설정 요청은 503** 이고 기동 로그에
+오류가 남는다. `MAIL_PROVIDER=smtp` 인데 `SMTP_HOST`·`MAIL_FROM` 이 비면 설정 오류로 기동이 멈춘다.
 
 ### 의존성 네 갈래
 

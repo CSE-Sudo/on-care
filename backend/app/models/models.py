@@ -2332,6 +2332,33 @@ class RevokedRefreshToken(Base):
     )
 
 
+class PasswordResetToken(Base):
+    """비밀번호 재설정 코드(#2824).
+
+    메일로 보낸 일회용 코드의 **해시만** 담는다 — 표가 새어도 그것으로 비밀번호를
+    바꿀 수 없다. 코드는 짧은 시간만 유효하고(`expires_at`), 한 번 쓰면
+    `used_at` 이 찍혀 다시 쓸 수 없다. 같은 계정으로 새 코드를 보내면 앞서 보낸
+    코드는 쓴 것으로 닫는다. 코드는 80비트 난수라 맞혀 볼 수 없고, 확인 요청은
+    IP 별 rate limit 을 따로 받는다.
+    """
+
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: 정규화한 코드의 SHA-256(16진수). 확인 요청은 이 값으로 찾는다.
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
 class AiConversation(Base):
     """AI 코치(온이)와의 대화 스레드.
 
