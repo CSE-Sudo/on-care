@@ -62,8 +62,9 @@ enum TrainerMemoCategory {
   static const List<TrainerMemoCategory> picks = <TrainerMemoCategory>[
     TrainerMemoCategory.exercise,
     TrainerMemoCategory.diet,
-    TrainerMemoCategory.pain,
     TrainerMemoCategory.life,
+    // 통증·부상은 따로 챙길 신호라 맨 끝에, 고르면 빨강이다.
+    TrainerMemoCategory.pain,
   ];
 }
 

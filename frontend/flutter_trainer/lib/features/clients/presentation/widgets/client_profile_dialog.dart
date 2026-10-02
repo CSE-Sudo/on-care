@@ -1387,6 +1387,7 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
             key: ValueKey<String>('$keyPrefix-${category.wire}'),
             label: memoCategoryLabel(l, category),
             selected: selected == category,
+            danger: category == TrainerMemoCategory.pain,
             onSelected: _busy
                 ? null
                 : (bool on) =>
@@ -1407,14 +1408,15 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
     final TrainerMemoRef? picked = _record == null
         ? null
         : refs.where((r) => sameMemoRecord(r, _record!)).firstOrNull;
+    // 분류 칩 옆에 서므로 위 라벨을 두지 않는다 — 칩과 높이가 어긋난다.
+    // 무엇을 고르는 칸인지는 비어 있을 때의 힌트가 말한다.
     return AppSelectField<TrainerMemoRef?>(
       key: const ValueKey<String>('client-memo-record'),
-      label: l.clientMemoRecordLink,
       hint: options.isLoading
           ? null
           : refs.isEmpty
           ? l.clientMemoRecordEmpty
-          : l.clientMemoRecordNone,
+          : l.clientMemoRecordLink,
       value: picked,
       onChanged: _busy || refs.isEmpty
           ? null
@@ -1422,7 +1424,9 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
       // 고를 기록이 없으면 항목을 비운다 — `연결 안 함` 항목이 남아 있으면
       // 그것이 선택된 값으로 그려져 빈 이유(힌트)가 보이지 않는다.
       items: <DropdownMenuItem<TrainerMemoRef?>>[
-        if (refs.isNotEmpty)
+        // `연결 안 함` 은 무언가 고른 뒤에만 둔다 — 처음부터 있으면 그것이
+        // 선택된 값으로 그려져 무엇을 고르는 칸인지(힌트)가 가려진다.
+        if (picked != null)
           DropdownMenuItem<TrainerMemoRef?>(
             key: const ValueKey<String>('client-memo-record-none'),
             child: Text(l.clientMemoRecordNone),
@@ -1515,19 +1519,33 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
         const SizedBox(height: OnCareSpacing.s8),
         // 분류 칩 한 줄(#2622). 안내·글자 수 줄은 입력칸에 대한 말이라 입력칸에
         // 붙여 두고, 분류는 그 아래 `메모 추가` 바로 위에서 고른다.
-        _categoryChips(
-          keyPrefix: 'client-memo-category',
-          selected: _category,
-          onChanged: (TrainerMemoCategory category) => setState(() {
-            _category = category;
-            // 기록 연결은 `운동` 일 때만 뜻이 있다.
-            if (category != TrainerMemoCategory.exercise) _record = null;
-          }),
+        // 기록 연결은 칩 줄 오른쪽 빈칸에 선다. 자리는 늘 잡아 두어 칸이
+        // 생기고 사라져도 칩과 `메모 추가` 가 밀리지 않는다.
+        Row(
+          children: <Widget>[
+            _categoryChips(
+              keyPrefix: 'client-memo-category',
+              selected: _category,
+              onChanged: (TrainerMemoCategory category) => setState(() {
+                _category = category;
+                // 기록 연결은 `운동` 일 때만 뜻이 있다.
+                if (category != TrainerMemoCategory.exercise) _record = null;
+              }),
+            ),
+            const SizedBox(width: OnCareSpacing.s12),
+            Expanded(
+              child: SizedBox(
+                height: tokens.density.inputMedium,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 150),
+                  child: _category == TrainerMemoCategory.exercise
+                      ? _recordPicker(l)
+                      : const SizedBox.shrink(),
+                ),
+              ),
+            ),
+          ],
         ),
-        if (_category == TrainerMemoCategory.exercise) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s8),
-          _recordPicker(l),
-        ],
         const SizedBox(height: OnCareSpacing.s8),
         AppActionRow(
           actions: <Widget>[
@@ -1666,7 +1684,7 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
                       ),
                     // 분류를 고른 직접 메모(#2622). `운동` 은 기록을 이은 운동
                     // 메모와 같은 색·아이콘이라 둘이 한 갈래로 읽힌다. 나머지
-                    // 분류는 `직접 작성` 과 같은 기본 톤에 이름만 바뀐다.
+                    // 분류(통증 제외)는 `직접 작성` 과 같은 기본 톤에 이름만 바뀐다.
                     _ when memo.category == TrainerMemoCategory.exercise =>
                       AppTag(
                         key: ValueKey<String>(
@@ -1676,6 +1694,14 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
                         tone: AppTagTone.brand,
                         icon: AppIcons.exercise,
                       ),
+                    // `통증·부상` 은 채팅의 `신체 불편 표현 감지` 와 같은 사실이라
+                    // 같은 빨강·경고 아이콘이다.
+                    _ when memo.category == TrainerMemoCategory.pain => AppTag(
+                      key: ValueKey<String>('client-memo-category-${memo.id}'),
+                      label: _sourceLabel(l, memo),
+                      tone: AppTagTone.danger,
+                      icon: AppIcons.warning,
+                    ),
                     _ when memo.category != TrainerMemoCategory.none => AppTag(
                       key: ValueKey<String>('client-memo-category-${memo.id}'),
                       label: _sourceLabel(l, memo),
@@ -1697,7 +1723,8 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
                   icon: AppIcons.edit,
                   tooltip: l.actionEdit,
                   size: AppIconButtonSize.small,
-                  color: OnCareColors.textSecondary,
+                  // 휴지통과 같은 색 — 둘 다 본문보다 물러서 있는 보조 동작이다.
+                  color: OnCareColors.textTertiary,
                   onPressed: _busy || _editingId != null
                       ? null
                       : () => setState(() {
@@ -1740,11 +1767,19 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
               ),
             ],
           ] else
-            Text(
-              memo.body,
-              style: tokens
-                  .text(OnCareTypography.body)
-                  .copyWith(color: OnCareColors.textPrimary),
+            // 본문·날짜는 태그 글자와 같은 선에서 시작한다 — 태그 배경 끝에
+            // 붙으면 글이 왼쪽으로 쏠려 보인다.
+            Padding(
+              // 태그 안쪽 여백(`AppTag` 의 좌우 8)만큼.
+              padding: const EdgeInsetsDirectional.only(
+                start: OnCareSpacing.s8,
+              ),
+              child: Text(
+                memo.body,
+                style: tokens
+                    .text(OnCareTypography.body)
+                    .copyWith(color: OnCareColors.textPrimary),
+              ),
             ),
           const SizedBox(height: OnCareSpacing.s4),
           Row(
@@ -1752,14 +1787,19 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
               Expanded(
                 // 언제 남겼는지를 적는다(#2516). 예전에는 수정 시각만 보여
                 // 처음 남긴 날도, 고친 적이 있는지도 알 수 없었다.
-                child: Text(
-                  key: ValueKey<String>('client-memo-time-${memo.id}'),
-                  memo.isEdited
-                      ? '${_dayLabel(memo.createdAt)} · ${l.clientMemoEdited}'
-                      : _dayLabel(memo.createdAt),
-                  style: OnCareTypography.numeric(
-                    tokens.text(OnCareTypography.caption),
-                  ).copyWith(color: OnCareColors.textTertiary),
+                child: Padding(
+                  padding: EdgeInsetsDirectional.only(
+                    start: editing ? 0 : OnCareSpacing.s8,
+                  ),
+                  child: Text(
+                    key: ValueKey<String>('client-memo-time-${memo.id}'),
+                    memo.isEdited
+                        ? '${_dayLabel(memo.createdAt)} · ${l.clientMemoEdited}'
+                        : _dayLabel(memo.createdAt),
+                    style: OnCareTypography.numeric(
+                      tokens.text(OnCareTypography.caption),
+                    ).copyWith(color: OnCareColors.textTertiary),
+                  ),
                 ),
               ),
               if (editing) ...<Widget>[
