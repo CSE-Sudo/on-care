@@ -1862,6 +1862,30 @@ abstract class AppLocalizations {
   /// **'Total calories burned'**
   String get exRecordDetailTotalCalories;
 
+  /// No description provided for @exBurnedPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Burned'**
+  String get exBurnedPrefix;
+
+  /// No description provided for @exRecordDateChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change date'**
+  String get exRecordDateChange;
+
+  /// Confirmation after moving a day's self-logged workouts to another day.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved to {date}'**
+  String exRecordDateMoved(String date);
+
+  /// No description provided for @exRecordDateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t change the date. Please try again shortly.'**
+  String get exRecordDateFailed;
+
   /// No description provided for @exOwnRecordSource.
   ///
   /// In en, this message translates to:
