@@ -1,4 +1,14 @@
+import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
+
+/// 이미 담당하고 있는 회원의 동기화 코드다. (#2893)
+///
+/// 데모 저장소가 문장 대신 이 타입을 던지고, 연결 창이 로케일에 맞는 문구로
+/// 바꿔 보여 준다. 예전에는 한국어 문장을 [ValidationError.message] 에 담아,
+/// 영어 화면에서는 이유를 잃고 일반 실패 문구만 보였다.
+class AlreadyManagedError extends ValidationError {
+  const AlreadyManagedError();
+}
 
 /// 이메일 완전 일치로 찾은 회원 한 명.
 ///
@@ -90,10 +100,9 @@ class PairedMember {
 
   /// 화면에 쓸 성별·나이 — 고객 목록과 **같은 규칙**이다 (#1634).
   ///
-  /// 회원이 프로필에 성별·생년월일을 넣지 않았으면 목록과 마찬가지로 id 에서
-  /// 만든 고정 값이 선다. 목록은 `남성 · 23세` 라고 하는데 확인 카드만 아무
-  /// 말이 없으면, 트레이너가 지금 잇는 사람이 목록의 그 사람인지 견줄 수 없다.
-  String get rosterGender => rosterGenderFor(id: memberId, gender: gender);
+  /// 회원이 프로필에 성별을 넣지 않았으면 목록과 마찬가지로 빈 문자열이다 —
+  /// 지어내지 않는다(#2870). 연결 뒤 목록도 같은 규칙이라 두 곳의 표기가 같다.
+  String get rosterGender => rosterGenderFor(gender: gender);
 
   /// 나이는 생년월일이 없으면 `null` 이다 — 지어내지 않는다(#2744).
   int? get rosterAge => rosterAgeFor(age: age);
@@ -158,7 +167,9 @@ class ClientInvite {
     // 보냈는지가 트레이너가 기다릴지 다시 보낼지를 정하는 값이라, 틀린 값보다
     // 실패가 낫다(다른 응답 파서와 같은 규약).
     createdAt:
-        DateTime.tryParse(json['created_at'] as String? ?? '')?.toLocal() ??
+        // UTC 순간 그대로 — 브라우저 시간대로 옮기지 않는다(#2893). 보여 줄
+        // 때는 `toKst` 로 읽는다.
+        DateTime.tryParse(json['created_at'] as String? ?? '') ??
         (throw const FormatException('Invalid client invite created_at.')),
     message: json['message'] as String?,
   );

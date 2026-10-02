@@ -253,6 +253,68 @@ void main() {
       expect(find.text('8월 16일 보냄'), findsOneWidget);
     });
 
+    // 서버 시각은 UTC 순간으로 온다. KST 오전 8시(= 전날 23:00Z)에 보낸
+    // 리포트가 전날로 찍히면 회원은 지난주에 받은 것으로 읽는다(#2844).
+    testWidgets('KST 오전에 보낸 리포트는 그날 날짜로 적는다', (tester) async {
+      await _pump(
+        tester,
+        FakeMemberCoachRepository(
+          chat: <CoachMessage>[
+            reportNotice(_lastWeek, createdAt: DateTime.utc(2026, 8, 16, 23)),
+          ],
+        ),
+      );
+
+      expect(find.text('8월 17일 보냄'), findsOneWidget);
+      expect(find.text('8월 16일 보냄'), findsNothing);
+    });
+
+    testWidgets('KST 자정 직후에 보낸 리포트도 그날 날짜다', (tester) async {
+      await _pump(
+        tester,
+        FakeMemberCoachRepository(
+          chat: <CoachMessage>[
+            // KST 2026-08-17 00:00
+            reportNotice(_lastWeek, createdAt: DateTime.utc(2026, 8, 16, 15)),
+          ],
+        ),
+      );
+
+      expect(find.text('8월 17일 보냄'), findsOneWidget);
+    });
+
+    testWidgets('KST 오전 9시 이후에 보낸 리포트는 날짜가 그대로다', (tester) async {
+      await _pump(
+        tester,
+        FakeMemberCoachRepository(
+          chat: <CoachMessage>[
+            // KST 2026-08-17 10:00
+            reportNotice(_lastWeek, createdAt: DateTime.utc(2026, 8, 17, 1)),
+          ],
+        ),
+      );
+
+      expect(find.text('8월 17일 보냄'), findsOneWidget);
+    });
+
+    testWidgets('영어에서도 KST 날짜로 적는다', (tester) async {
+      await _pump(
+        tester,
+        FakeMemberCoachRepository(
+          chat: <CoachMessage>[
+            reportNotice(_lastWeek, createdAt: DateTime.utc(2026, 8, 16, 23)),
+          ],
+        ),
+        locale: 'en',
+      );
+
+      expect(
+        _texts(tester).any((String t) => t.contains('8/17')),
+        isTrue,
+        reason: '영어 화면의 보낸 날이 KST 날짜가 아니다',
+      );
+    });
+
     testWidgets('받은 리포트가 없으면 빈 자리를 설명한다', (tester) async {
       await _pump(tester, FakeMemberCoachRepository());
 

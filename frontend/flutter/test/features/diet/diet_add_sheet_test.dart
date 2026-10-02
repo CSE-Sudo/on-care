@@ -60,6 +60,7 @@ class _RecordingDietRepository extends FakeDietRepository {
     required MealPhoto photo,
     required String mealType,
     String? idempotencyKey,
+    String? date,
   }) {
     uploaded = photo;
     return super.analyze(
@@ -407,6 +408,7 @@ class _FailingOnceDietRepository extends FakeDietRepository {
     required MealPhoto photo,
     required String mealType,
     String? idempotencyKey,
+    String? date,
   }) {
     calls += 1;
     if (calls == 1) throw StateError('network down');

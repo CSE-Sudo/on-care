@@ -79,6 +79,7 @@ class WeeklyReport implements ReportSheetWeek {
     this.sugarTarget,
     this.carbsTarget,
     this.proteinTarget,
+    this.effectiveProteinTarget,
     this.fatTarget,
     this.days = const <ReportDay>[],
     this.mealCounts = const <int>[],
@@ -161,6 +162,11 @@ class WeeklyReport implements ReportSheetWeek {
   final double? carbsTarget;
   @override
   final double? proteinTarget;
+
+  /// 개인 목표가 없어도 채워지는 실효 단백질 목표(#2898) — 식단 분석과 같은
+  /// 규칙(개인 목표 → 체중 × 1.2g → 60g). 리포트 막대 분모다. 판정은 여전히
+  /// [proteinTarget] 만 본다 — 지어낸 기준으로 균형을 나무라지 않는다.
+  final double? effectiveProteinTarget;
   @override
   final double? fatTarget;
 
@@ -224,6 +230,7 @@ class WeeklyReport implements ReportSheetWeek {
       sugarTarget,
       carbsTarget,
       proteinTarget,
+      effectiveProteinTarget,
       fatTarget,
       for (final ReportDay day in days)
         '${day.completion}:${day.assigned}:${day.exercises.join('␟')}',
@@ -368,6 +375,7 @@ WeeklyReport buildWeeklyReport({
     sugarTarget: targets.sugar,
     carbsTarget: targets.carbs,
     proteinTarget: targets.protein,
+    effectiveProteinTarget: targets.effectiveProtein,
     fatTarget: targets.fat,
     memberFeedback: memberFeedback,
   );
@@ -386,6 +394,7 @@ class ReportTargets {
     this.sugar,
     this.carbs,
     this.protein,
+    this.effectiveProtein,
     this.fat,
   });
 
@@ -394,6 +403,9 @@ class ReportTargets {
   final double? sugar;
   final double? carbs;
   final double? protein;
+
+  /// 실효 단백질 목표(#2898) — [WeeklyReport.effectiveProteinTarget].
+  final double? effectiveProtein;
   final double? fat;
 }
 

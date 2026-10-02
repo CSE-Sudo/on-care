@@ -93,8 +93,21 @@
   "authName": "이름",
   "signUpPasswordHint": "비밀번호 (영문·숫자 포함 8자 이상)",
   "authPasswordConfirm": "비밀번호 확인",
-  "authLegalNotice": "가입하면 아래 문서에 동의하는 것으로 봅니다",
   "authSignUpAndStart": "가입하고 시작하기",
+  "consentAll": "전체 동의",
+  "consentRequiredTag": "[필수]",
+  "consentOptionalTag": "[선택]",
+  "consentView": "보기",
+  "consentTerms": "이용약관 동의",
+  "consentPrivacy": "개인정보 수집·이용 동의",
+  "consentAge14": "만 14세 이상이에요",
+  "consentAge14Detail": "만 14세 미만은 가입할 수 없어요.",
+  "consentMarketing": "마케팅 알림 수신",
+  "consentRequiredHint": "필수 항목에 모두 동의해야 다음으로 넘어갈 수 있어요.",
+  "consentPageTitle": "서비스 이용 동의",
+  "consentPageSubtitle": "계속 이용하려면 아래 항목을 확인하고 동의해 주세요.",
+  "consentPageAction": "동의하고 계속하기",
+  "consentPageFailed": "동의를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.",
   "authHasAccount": "이미 계정이 있으신가요?",
   "authErrEmptyCredentials": "이메일과 비밀번호를 입력해 주세요",
   "authSocialSignInFailed": "소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요.",
@@ -287,6 +300,7 @@
   "clientConnectCodeLabel": "동기화 코드",
   "clientConnectCodeRequired": "6자리를 모두 입력해 주세요",
   "clientConnectCodeInvalid": "코드가 맞지 않거나 만료됐어요. 회원에게 새 코드를 받아 주세요",
+  "clientConnectAlreadyManaged": "이미 담당하고 있는 회원이에요. 회원 목록에서 찾아 주세요",
   "clientInviteConnectAction": "회원 등록",
   "clientInviteConnected": "{name}님을 회원으로 등록했어요",
   "@clientInviteConnected": {
@@ -341,6 +355,10 @@
   "metricSugar": "당류",
   "clientDietMacrosMissing": "탄·단·지 기록 없음",
   "clientDietDayTotal": "하루 합계",
+  "clientDietDayMealsFailed": "끼니 기록을 불러오지 못했어요",
+  "@clientDietDayMealsFailed": {
+    "description": "회원 상세 식단 기록에서 펼친 날의 끼니 조회 실패 안내 (#2892)"
+  },
   "clientDietTotalCalories": "총 {calories} kcal",
   "@clientDietTotalCalories": {
     "description": "트레이너 웹 식단 합계 kcal — 오늘 끼니 카드의 네 칸 오른쪽 끝과 펼친 날 하루 합계 줄 오른쪽 끝. 음식 kcal 과 구분되게 총을 붙인다. calories 는 천 단위 구분이 된 숫자. (#2421)",
@@ -1631,6 +1649,10 @@
   "workoutRoutineDoneToday": "오늘 완료",
   "workoutUndatedTitle": "날짜를 알 수 없는 기록",
   "workoutMemberLogTitle": "직접 기록",
+  "workoutDayExercisesFailed": "운동 기록을 불러오지 못했어요",
+  "@workoutDayExercisesFailed": {
+    "description": "회원 상세 운동 기록에서 펼친 날의 운동 조회 실패 안내 (#2892)"
+  },
   "workoutPendingCancel": "배정 취소",
   "routineUpdateFailed": "프로그램을 수정하지 못했어요. 잠시 후 다시 시도해 주세요",
   "routineUpdated": "프로그램을 수정했어요",
@@ -2395,7 +2417,7 @@
   },
   "coachClientAge": "{age}세",
   "@coachClientAge": {
-    "description": "Roster age label when the member's gender is not shown (#2814).",
+    "description": "성별이 없거나(미입력) 서버가 가린 회원의 구분 문구 — 나이만 (#2814, #2870)",
     "placeholders": {
       "age": {
         "type": "int"

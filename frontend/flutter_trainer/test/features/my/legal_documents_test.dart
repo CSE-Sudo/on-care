@@ -110,7 +110,8 @@ void main() {
     testWidgets('가입 화면에서 약관을 열어 보고 돌아올 수 있다', (tester) async {
       await pumpTrainerApp(tester, bootAt: AppRoutes.signUp);
 
-      final link = find.text('이용약관');
+      // 간주 동의 문구의 링크 대신 동의 목록의 `보기` 다(#2819).
+      final link = find.byKey(const ValueKey<String>('consent-view-terms'));
       expect(link, findsOneWidget, reason: '동의할 문서를 가입 화면에서 열 수 없다');
       await tester.ensureVisible(link);
       await tester.tap(link);

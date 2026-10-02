@@ -140,6 +140,8 @@ Vercel 프로젝트가 이 Git 저장소와 연결되어 있으면 저장소 안
 
 트레이너 웹 지도(소속 헬스장 찾기, #2543)가 뜨려면 카카오 콘솔의 JavaScript SDK 도메인에 트레이너 웹 주소도 등록돼 있어야 합니다.
 
+`KAKAO_JS_KEY` 는 웹 빌드에 들어가 브라우저에 그대로 보이므로, 이 허용 도메인 목록이 키를 지키는 유일한 장치입니다(#2913). 배포·도메인을 바꿀 때마다 목록에 **운영 회원 웹·트레이너 웹 주소만** 남아 있는지, 개발용(`localhost` 등)·옛 배포·임시 미리보기 주소가 지워졌는지 확인합니다. 체크리스트는 [`backend/docs/DEPLOY.md`](../backend/docs/DEPLOY.md) 의 "프론트 연결" 절에 있습니다.
+
 실기기에 설치한 APK 는 **다시 빌드해야 합니다.** `String.fromEnvironment` 는 컴파일 타임 상수라서 dart-define 값이 APK 안에 박히고, 이미 설치된 앱의 서버 주소는 나중에 바꿀 수 없습니다. 절차는 [`local_fullstack.md`](local_fullstack.md) 의 안드로이드 실기기 절에 있습니다.
 
 ### 에러 추적(Sentry, #2839)
@@ -160,11 +162,11 @@ Vercel 프로젝트가 이 Git 저장소와 연결되어 있으면 저장소 안
 | 항목 | `.env.example` | prod 요구 |
 | --- | --- | --- |
 | `CORS_ALLOW_ORIGINS` | `*` | 와일드카드 금지 — 배포 도메인을 명시 |
-| `DEMO_LOGIN_PASSWORD` | `oncare123` | `SEED_DEMO_DATA=true` 면 기본값이 아닌 12자 이상 |
+| `SEED_DEMO_DATA` | `true` | `false` — 켜면 기동 거부(#2811) |
 | `JWT_SECRET` | 기본값 | 안전한 값 필수 |
 | `AUTO_CREATE_TABLES` | — | `false` — Alembic 을 스키마의 유일한 경로로 둡니다 |
 
-시연용으로 `SEED_DEMO_DATA=true` 를 켜면 `DEMO_LOGIN_PASSWORD` 를 바꿔야 하고, 그러면 [`local_fullstack.md`](local_fullstack.md) 의 데모 계정 표(`oncare123`)와 갈리므로 그쪽도 함께 손봅니다.
+운영에서는 데모 시드를 켤 수 없습니다. 시연용 데모 계정이 필요하면 데모 전용 DB 를 둔 별도 환경(`ENV=dev`·`staging`)에서 켭니다. 예전 기본값으로 운영 DB 에 데모 데이터가 이미 심겼다면 [`backend/docs/DEPLOY.md`](../backend/docs/DEPLOY.md) 의 데모 데이터 정리 절차를 따릅니다.
 
 `ENV` 를 `dev`·`staging` 으로 두면 이 가드가 걸리지 않는 대신 **CORS 가 `*` 로 열린 채 배포됩니다.**
 

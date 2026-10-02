@@ -75,7 +75,8 @@
 
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
-| GET | `/users/me` | `{ id(str), name, email }` |
+| GET | `/users/me` | `{ id(str), name, email, consent_required, consent_pending[] }` (아래 "가입 동의" 참고, #2819) |
+| POST | `/users/me/consents` | `{ consents: [항목] }` → `{ consent_required, consent_pending[] }` (#2819) |
 | GET | `/users/me/health` | `{ profile, risk, activity_points, activity_rank, settings[] }` |
 | DELETE | `/users/me` | `{ status: "deleted" }` |
 | GET | `/users/me/profile` | `ProfileView` — `{ id, name, email, phone, birth_date, gender, height_cm, weight_kg, conditions, daily_calories, daily_sodium_mg, daily_sugar_g, daily_carbs_g, daily_protein_g, daily_fat_g, weekly_workout_goal, weekly_exercise_minutes_goal, weekly_burn_goal, daily_burn_kcal, weekly_cardio_minutes, weekly_strength_sets, weekly_flexibility_minutes, onboarded, focus_changed_by, focus_changed_at }` — MY 프로필 통합 뷰 |
@@ -101,6 +102,19 @@
 
 `risk`: `{ title, body, level(low|medium|high) }`
 
+#### 첫 설정 완료·건너뛰기 (#1927·#2855)
+
+| Method | Path | 응답 |
+|---|---|---|
+| GET | `/users/me/profile` | 프로필 통합 뷰 — `onboarded`(첫 설정 저장함)·`onboarding_skipped`(첫 설정 건너뜀) 포함 |
+| POST | `/users/me/onboarding` | 보낸 칸만 저장하고 `onboarded=true`. 응답은 프로필 통합 뷰 |
+| POST | `/users/me/onboarding/skip` | 본문 없음. `onboarding_skipped=true` 만 남기고 다른 값은 그대로(`onboarded` 도 그대로). 여러 번 불러도 같다. 응답은 프로필 통합 뷰. 회원 전용(트레이너 403) |
+
+앱은 `onboarded` 또는 `onboarding_skipped` 가 참이면 로그인·세션 복구 뒤 첫 설정
+화면으로 보내지 않는다. 둘 다 거짓이면(가입 직후 폼에서 앱을 닫은 회원) 다음 진입 때
+다시 첫 설정으로 보낸다(#2630). 건너뛴 회원은 MY `건강 목표` 화면의 안내 카드에서 첫
+설정을 다시 열 수 있다.
+
 ### 채팅 이모티콘 (#2020, #2153)
 
 | Method | Path | 응답 핵심 필드 |
@@ -113,7 +127,12 @@
 어긋나지 않는다. 모르는 id 는 404, 쓰고 있는 이모티콘을 또 사면 409, 포인트가 모자라면 400 이다.
 **담당 트레이너가 없으면 409 다**(#2142) — 이모티콘은 트레이너 채팅에만 있어서 사도 쓸 곳이 없다.
 이미 산 이모티콘은 쓰던 중 담당이 끊겨도 남은 기간을 그대로 둔다. `client_request_id` 가 같은 재시도는
-두 번 쓰지 않는다. 원장 사유는 `emote_unlock` 이다.
+두 번 쓰지 않는다(200, 지금 상태). 원장 사유는 `emote_unlock` 이다.
+
+409·400 의 `detail` 은 `{ code, message }` 다(#2845): `already_unlocked`(쓰고 있는 이모티콘 — 다른 키로
+다시 산 경우 포함), `trainer_required`(담당 없음), `insufficient_points`(400). 앱은 키를 **구매 시도마다
+한 번** 만들어 응답을 못 받은 재시도에 같은 키를 다시 보내고, `already_unlocked` 는 실패가 아니라
+"이미 열려 있음" 으로 안내한다.
 
 포인트 사용처에서는 팔지 않는다 — 무엇을 사는지는 채팅의 이모티콘 창에서 봐야 알 수 있다. 예전 24시간
 이용권(`emote_pass_24h`, `POST /me/emotes/pass`)은 없어졌고, 사용처 교환으로 보내면 404 다. 바뀌기 전에 산
@@ -168,14 +187,23 @@
 | GET | `/diet/days/today` | `{ entries[], total_calories, total_sodium_mg, total_sugar_g, macros, ai_coach_message }` |
 | GET | `/diet/days/{date}` | `today` 와 같은 모양으로 그 날짜(`YYYY-MM-DD`) 하루. 형식이 깨지면 422 |
 | GET | `/diet/photos/{photo_id}` | 끼니 사진 바이트(이미지). `entries[].photo_url` 이 이 주소를 가리킨다. **남의 사진은 404** — 주소를 추측해도 열리지 않는다(#699) |
-| GET | `/diet/days?from=&to=` | `{ from_date, to_date, days[] }` — 날짜별 합계 `{ date, total_calories, total_sodium_mg, total_sugar_g, carbs_g, protein_g, fat_g }`. 기간 그래프가 쓰는 길이라 끼니·사진은 싣지 않는다. `from` 을 생략하면 **첫 기록일**부터, `to` 를 생략하면 오늘까지. 기록이 없는 날도 0 으로 채워 온다 (#2236) |
+| GET | `/diet/days?from=&to=` | `{ from_date, to_date, days[] }` — 날짜별 합계 `{ date, total_calories, total_sodium_mg, total_sugar_g, carbs_g, protein_g, fat_g }`. 기간 그래프가 쓰는 길이라 끼니·사진은 싣지 않는다. `from` 을 생략하면 **첫 기록일**부터, `to` 를 생략하면 오늘까지. 기록이 없는 날도 0 으로 채워 온다 (#2236). 구간은 끝(`to`, 오늘 이후면 오늘)에서 거슬러 **최대 1100일**(`diet_service.MAX_PERIOD_DAYS`)이고, 더 이른 `from`·첫 기록일은 그 하한으로 잘린다 — 응답 `from_date` 가 실제 시작일이다 (#2833). `from > to` 면 `to` 하루다 |
 | GET | `/diet/advice?period=&lang=` | `{ period, from_date, to_date, days_logged, message, analysis, analysis_key?, analysis_params, action, action_key?, action_params, action_source? }` — 식단 탭 AI 맞춤 조언. `period` 는 `today`(기본)·`week`·`all`, `lang` 은 `ko`(기본)·`en`. 규칙 한 줄(`analysis`) + 다음 할 일 한 문장(`action`)이다 (#1017, #2251) |
 | GET | `/diet/recommendations?use_llm=` | `{ items[{ key, reason_key, reason_text? }], basis?, personalized, source, days_with_data, avg_sodium_mg, sodium_limit_mg, trainer_pick? }` — 홈 `추천 식단`. `trainer_pick` 은 담당 트레이너가 확정한 추천 `{ slot, name, tag, keyword, trainer_name }` 이고 없거나 해소됐으면 null (#2378) |
-| POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립) |
+| POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key?, date? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립). `date`(`YYYY-MM-DD`)는 기록을 남길 날로, 지난 날짜 화면에서 연 추가가 싣는다(#2849). 없으면 저장하는 날(KST), 앞날·작년 1월 1일 이전·형식 오류는 인식 전에 422. 포인트 하루 한도는 지금처럼 적립 시점 기준이다. `meal_type` 이 다섯 값 밖이면 인식 전에 422(#2882) |
 | POST | `/diet/entries` | `{ date?, meal_type, foods[](1개 이상, 이름 필수), idempotency_key? }` → 201, 새 `entries[]` 항목 하나 — 사진 없이 회원이 직접 적은 끼니(#2151). 합계는 음식에서 내고, **포인트는 적립하지 않는다.** `date` 가 없으면 오늘(KST), 앞날은 422. 당류 > 탄수화물인 음식이 있으면 422 |
-| PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나 |
+| PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나. `meal_type` 은 다섯 값, `time_label` 은 `HH:MM` 또는 빈 문자열(그 밖은 422, #2882) |
 | DELETE | `/diet/entries/{id}` | `{ status: "deleted" }` — 그 끼니로 받은 포인트를 회수한다 |
 | POST | `/diet/nutrition` | `{ name(필수), amount_g? }` → `{ matched_name?, match(exact\|similar)?, source, amount_g?, calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` — 이름으로 찾은 공공 DB 값(#1896). 못 찾았거나 양을 정할 수 없으면 `matched_name`·`match` 가 null |
+
+**`POST /diet/analyze` 거절 응답.** 앱은 `detail.code` 로 일반 실패와 구분해 안내한다. 아래 거절은 끼니·포인트·사진을 남기지 않는다.
+
+- `503 { code: "analysis_unavailable", message }` — 사진 인식을 쓸 수 없는 설정(운영에서 인식 키 없음). 고정 식단으로 저장하지 않는다(#2812). 운영은 키가 없으면 기동부터 거부하므로 정상 배포에서는 나오지 않는다.
+- `422 { code: "no_food_detected", message }` — 사진에서 음식을 하나도 찾지 못했다. 0kcal 끼니를 저장하지 않고 포인트도 없으며, 멱등키도 쓰지 않아 같은 키로 다른 사진을 다시 보낼 수 있다(#2848).
+- `415` — 바이트가 JPG·PNG·WebP 가 아니다. 요청의 `Content-Type` 과 무관하게 바이트 시그니처로 판정하며, 모델을 부르기 전에 거절한다(#2827).
+- `429 { code: "rate_limited", message }` — 한 회원의 분당 분석 한도(`DIET_ANALYZE_PER_MINUTE`, 기본 10) 초과. `Retry-After` 헤더가 붙는다. 회원 id 로 세므로 같은 Wi-Fi 의 다른 회원에게 번지지 않는다(#2827).
+- `429 { code: "daily_limit", message }` — 한 회원의 하루(KST) 분석 상한(`DIET_ANALYZE_PER_DAY`, 기본 20) 도달. KST 자정 뒤 다시 열린다. 모델을 부르기 직전에 세며, 같은 멱등키 재전송(모델 호출 없음)과 모델 호출 실패(502·501)는 세지 않는다. 음식을 못 찾은 사진(422)은 모델을 불렀으므로 센다(#2827).
+- `engine` 쿼리는 비교실험용이다. 운영에서는 관리자만 적용되고 회원이 붙이면 무시한다. 개발용 스텁(`engine: "stub"`) 결과는 끼니로는 남지만 포인트·분석용 식판 조건에 세지 않는다(#2812).
 
 `GET /diet/advice` 는 **규칙 한 줄 + 다음 할 일 한 문장**이다(#2251). 수치는 규칙이 계산하고, 두 문장을 합쳐 45자 안이다.
 
@@ -196,15 +224,17 @@
 - 담당이 아니거나 해제·동의 철회된 회원은 다른 트레이너 경로와 같은 404. 담당을 해제하면 그 트레이너의 추천도 지운다.
 
 `entries[]`: `{ id(str), meal_type(breakfast|lunch|dinner|snack|lateNight), time_label, foods[], total_calories(int), sodium_mg(int), sugar_g(float), ai_comment(str), photo_url(str?) }`
-`meal_type` 값은 회원 앱 `MealType.name` 그대로다 — 그래서 `lateNight`(야식, #1988)만 camelCase 다. DB 는 `String(20)` 자유 문자열이라 이 값을 검증하지 않으므로, 앱이 이름과 다른 문자열을 보내면 조용히 저장되고 트레이너 웹에서 다른 끼니로 읽힌다. 새 끼니를 더할 때도 enum 이름과 전송값을 일치시킨다.
+`meal_type` 값은 회원 앱 `MealType.name` 그대로다 — 그래서 `lateNight`(야식, #1988)만 camelCase 다. DB 는 `String(20)` 자유 문자열이지만 **API 가 다섯 값만 받는다** — 직접 기록·사진 분석(인식 전)·수정 모두 다섯 값 밖이면 422 다(#2882, `MealTypeLiteral`). 새 끼니를 더할 때는 enum 이름·전송값·`MealTypeLiteral` 을 함께 고친다. `PUT` 의 `time_label` 은 `HH:MM`(24시간)이거나 빈 문자열이고, 그 밖은 422 다.
 `lateNight` 이전에 저장된 `snack` 은 그대로 `snack` 이다 — 백필하지 않는다. 앱은 모르는 `meal_type` 을 간식으로 접어 읽고 죽지 않는다.
 `ai_comment` 는 사진 분석이 만든 식단평이다(#1932). 손으로 고쳐 만든 끼니와 분석이 식단평을 내지 못한 끼니는 빈 문자열이고, 앱은 비어 있으면 그 줄을 그리지 않는다.
 당류만 소수다 — 항목 단위 당류가 6.3g·8.5g 처럼 소수로 들어오고 합계도 절삭 없이 유지된다(`total_sugar_g` 도 float).
-`foods[]`: `[{ name, amount_g(float?), calories(int?), sodium_mg(int?), sugar_g(float?), carbs_g(float?), protein_g(float?), fat_g(float?), source(db|estimate|mixed|member) }]` — 음식별 영양은 회원이 식단 상세에서 고칠 수 있는 값이고, 그대로 저장된다(#1856, #1892).
+`foods[]`: `[{ name, display_name(str?), amount_g(float?), calories(int?), sodium_mg(int?), sugar_g(float?), carbs_g(float?), protein_g(float?), fat_g(float?), source(db|estimate|mixed|member) }]` — 음식별 영양은 회원이 식단 상세에서 고칠 수 있는 값이고, 그대로 저장된다(#1856, #1892).
 
 `source` 는 그 음식의 숫자가 어디서 왔나다. `db`(공공 DB × 양) · `mixed`(DB 행에 탄단지가 비어 인식기 값을 남김) · `estimate`(매칭이나 양이 없어 인식기 추정 그대로) · `member`(회원이 수정 화면에서 영양 칸을 직접 고침, #2105). **`PUT` 의 `foods[].source` 는 앱이 정해 보낸다** — 손대지 않은 음식과 섭취량만 바꾼 음식은 원래 값을, 공공 DB 값으로 채운 음식은 `db` 를, 영양 칸을 고친 음식은 `member` 를 싣는다. 네 값 밖은 422 이고, **빠지면 `member` 로 저장한다**(인식기 쪽 기본값 `estimate` 를 쓰면 수정 경로로 들어온 숫자를 인식기 추정이라 부르게 된다). 이 필드 이전 기록은 `source` 가 없을 수 있고, 읽는 쪽은 `estimate` 로 읽는다.
 
 `POST /diet/nutrition` 의 `match` 는 찾은 음식이 **같은 음식**(`exact` — 이름·별칭·양 표기를 뗀 이름·`계란`→`달걀` 표기 변형이 표 이름과 같다)인지, 이름 끝말로 붙은 **비슷한 음식**(`similar` — `야채비빔밥` → `비빔밥`)인지다(#2107). 수정 화면은 이름을 바꾼 음식이 같은 음식에 붙으면 곧바로 그 값으로 채우고, 비슷한 음식이면 제안만 한다. 매칭은 사진 분석 보정과 같은 것이다.
+
+`display_name` 은 화면 언어로 된 표시 이름이다(#2850). `Accept-Language: en` 으로 사진을 분석하면 인식기가 영어 이름을 함께 내고, `name` 은 공공 DB 매칭용이라 **한국어 그대로** 둔다 — 영양 보정은 화면 언어와 상관없이 같다. 같은 요청의 식단평(`analysis.coach_comment`, 저장되는 `ai_comment`)도 영어로 쓴다. 한국어 화면·수기 입력·이 필드 이전 기록에는 키가 없고, 읽는 쪽은 `display_name` 이 있으면 그것을, 없으면 `name` 을 보인다. `PUT` 은 앱이 이름을 바꾸지 않은 음식에만 되돌려 싣는다(바꾼 이름이 회원이 쓴 표시 이름이다). 저장된 식단평은 분석 당시 언어로 남는다.
 
 `amount_g` 는 **그 영양이 무엇을 재고 나온 값인가** 다. 공공 DB 는 100g 기준이라 보정이 이 양으로 환산하며, 환산에 실제로 쓴 값(인식기 추정 또는 알려진 1회 섭취량)이 그대로 실린다. 양을 못 얻어 추정치를 그대로 둔 음식과 이 필드 이전 기록은 `null` 이다 — 읽는 쪽이 null 을 견뎌야 한다. 앱은 이 값으로 나머지 여섯 값을 비례 환산한다(#1876).
 
@@ -226,7 +256,7 @@
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
 | GET | `/exercise/weeks/current` | 질의 `?week_start=YYYY-MM-DD`(생략 시 이번 주) → `{ sessions[], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], stretching_minutes[7], day_labels[7], total_minutes, total_calories, streak_days, ai_coach_message }` — `streak_days` 는 **운동만** 센다(식단도 세는 기록 연속은 아래 "연속 기록 보호권" 절) |
-| GET | `/exercise/weeks?from=&to=` | `{ from_week, to_week, weeks[] }` — 구간이 걸친 주들. 한 칸은 `{ week_start, day_labels[7], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], strength_sets[7], stretching_minutes[7], other_minutes[7], total_minutes, total_calories, streak_days, weekly_goal_minutes, weekly_goal_calories }` 다. 기간 그래프가 쓰는 길이라 `sessions` 와 코칭 문구는 싣지 않는다 — 한 주를 펼쳐 볼 때는 위 `weeks/current` 다. `from` 생략 시 **첫 기록 주**부터, `to` 생략 시 이번 주까지. 월요일이 아닌 날짜는 그 주의 월요일로 맞춘다. 기록이 없는 주도 0 으로 채워 온다 (#2247) |
+| GET | `/exercise/weeks?from=&to=` | `{ from_week, to_week, weeks[] }` — 구간이 걸친 주들. 한 칸은 `{ week_start, day_labels[7], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], strength_sets[7], stretching_minutes[7], other_minutes[7], total_minutes, total_calories, streak_days, weekly_goal_minutes, weekly_goal_calories }` 다. 기간 그래프가 쓰는 길이라 `sessions` 와 코칭 문구는 싣지 않는다 — 한 주를 펼쳐 볼 때는 위 `weeks/current` 다. `from` 생략 시 **첫 기록 주**부터, `to` 생략 시 이번 주까지. 월요일이 아닌 날짜는 그 주의 월요일로 맞춘다. 기록이 없는 주도 0 으로 채워 온다 (#2247). 구간은 끝 주에서 거슬러 **최대 160주**(`exercise_service.MAX_PERIOD_WEEKS`)이고, 더 이른 `from`·첫 기록 주는 그 하한으로 잘린다 — 응답 `from_week` 가 실제 시작 주다 (#2833) |
 | POST | `/exercise/sessions` | 입력 `{ sessions: [항목 1~20개] }` — 항목은 `{ type, name, minutes(>0) 또는 duration_seconds(>0), calories, intensity(light\|moderate\|high), sets?, reps?, hold_seconds?, weight?, date? }` → `{ sessions[](요청 순서), points(합계) }`. **한 트랜잭션**이라 항목 하나라도 잘못되면 전체가 422 이고 아무것도 저장되지 않는다. 한 건도 목록으로 감싸 보낸다 — 감싸지 않은 단건 입력은 422 (#2544) |
 | PUT | `/exercise/sessions/{id}` | 입력은 위 **항목 하나**(부분 갱신) → 갱신된 항목(`points` 없음) |
 | DELETE | `/exercise/sessions/{id}` | `{ status: "deleted" }` — 그 기록으로 받은 포인트를 회수한다 |
@@ -281,7 +311,7 @@
 
 | Method | Path | 권한 | 응답 |
 |---|---|---|---|
-| GET | `/me/points/shop` | 회원(데모 폴백) | `{ balance, has_trainer, has_gym, items[] }` |
+| GET | `/me/points/shop` | 회원(데모 폴백) | `{ balance, has_trainer, has_gym, gym_benefits_enabled, items[] }` |
 | POST | `/me/points/exchange` | 회원 | 입력 `{ item, option?, client_request_id? }` → **201** `{ coupon, spent, balance }` |
 | GET | `/me/coupons` | 회원(데모 폴백) | `coupon[]` — 사용 가능 먼저, 그다음 최신순(최대 100) |
 | GET | `/me/points/history?before=` | 회원(데모 폴백) | `{ balance, items[], next_before }` — 포인트 내역(#2146) |
@@ -316,6 +346,12 @@ available, blocked_reason, shortfall, active_option, active_until, remaining_sec
 `insufficient_points` 순으로 하나만, 교환할 수 있으면 null. `shortfall` 은 모자란
 포인트(모자라지 않으면 0). `has_gym` 은 회원 헬스장 링크(`member_gyms`)가 있는지다. 교환 응답은 쿠폰이면 `coupon`,
 보호권이면 `coupon: null` 과 `shield`, 그래프 색이면 `graph_color` 다(아래 두 절).
+
+**헬스장 혜택 기능 플래그**(#2822): `pt_renewal`·`locker_month`·분석용 식판은 헬스장이 현장에서 주는 혜택이다.
+서버 설정 `GYM_BENEFITS_ENABLED` 가 거짓이고 데모 시드도 꺼진 서버(제휴 확정 전 실서비스)는 `gym_benefits_enabled:
+false` 를 주고 `items[]` 에서 두 항목을 **뺀다**. 이때 두 항목을 교환하면 404, 식판 받기는 409 다. 데모 시드가
+켜진 서버는 플래그와 상관없이 연다. 이미 발급된 쿠폰은 `scripts/cancel_gym_benefit_coupons.py` 로 취소·반환한다
+(알림 까닭 `service`, `backend/docs/DEPLOY.md` 참고).
 
 `active_option`·`active_until`·`remaining_seconds` 는 기간제 항목을 쓰고 있을 때 고른 갈래·끝나는 시각·남은 초다 —
 지금은 `profile_pet` 이 달고 있는 펫과 남은 기간을 싣는다(카드가 `강아지 · 5일 남음` 을 적는다). 아니면 null·null·0.
@@ -362,7 +398,7 @@ expires_at, expires_on, days_left, no_expiry, used_at?, cancelled_at? }`. `no_ex
 
 | Method | Path | 권한 | 응답 |
 |---|---|---|---|
-| GET | `/me/diet-tray` | 회원(데모 폴백) | `{ status, photo_days, required_days, window_days, window_from, window_to, has_trainer, coupon? }` |
+| GET | `/me/diet-tray` | 회원(데모 폴백) | `{ status, photo_days, required_days, window_days, window_from, window_to, has_trainer, coupon?, enabled }` |
 | POST | `/me/diet-tray/claim` | 회원 | 입력 `{ client_request_id? }` → **201** 같은 모양(받은 뒤) |
 
 식단 사진 분석에 맞춘 **규격 식판**을 사진 기록을 꾸준히 남긴 회원에게 무료로 준다. 포인트 교환이 아니라 달성
@@ -371,6 +407,8 @@ expires_at, expires_on, days_left, no_expiry, used_at?, cancelled_at? }`. `no_ex
 - **조건** 최근 `window_days`(28)일(KST, 오늘 포함 — `window_from`~`window_to`) 중 식단 사진을 남긴 날(`photo_days`)이
   `required_days`(20)일 이상이고 활성 담당이 있다. 사진 분석으로 저장한 끼니(`diet_entries.engine` 이 빈 값이 아님)만
   세고, 하루 여러 끼도 하루다. 손으로 적은 끼니와 보호권으로 이은 날은 세지 않는다.
+- **`enabled`** 식판을 줄 수 있는 서버인가(#2822, 위 헬스장 혜택 기능 플래그). 거짓이면 `status` 가 `claimable` 이
+  되지 않고 받기는 409, 회원 앱은 카드를 그리지 않는다. 이미 받은 쿠폰은 `coupon` 에 그대로 온다.
 - **`status`** `progress`(조건을 채우는 중이거나 담당 없음) · `claimable`(지금 받을 수 있음) · `issued`(수령 쿠폰을
   받았고 아직 쓰지 않음) · `received`(식판을 받음). `coupon` 은 `issued`·`received` 일 때의 쿠폰, 그 밖에는 null.
 - **받기** 조건을 서버가 다시 확인하고 `coupon`(item `diet_tray`, `cost` 0, **기한 없음** — `no_expiry: true`)을
@@ -532,6 +570,20 @@ settled_at? }`. `status` 는 `active`|`succeeded`|`failed`, `rewarded` 는 받�
 | DELETE | `/notifications/{id}` | 삭제 → `{ status: "deleted" }` |
 
 category: reminder|health_check|achievement|system|coach_chat|coach_report|routine|member_schedule|coach_invite|consultation_result|consult_decision|health_goals|benefits|points_shop
+
+#### 회원 알림 수신 설정 (#489·#2854)
+
+| 메서드 | 경로 | 응답 |
+| --- | --- | --- |
+| GET | `/users/me/notification-settings` | `{ diet_log, exercise_reminder, trainer_message, ai_coaching, weekly_report }` (bool) |
+| PUT | `/users/me/notification-settings` | 보낸 항목만 반영, 응답은 GET 과 같음 |
+
+- 회원 앱 스위치는 `exercise_reminder`·`trainer_message`·`weekly_report` 세 가지입니다.
+  `diet_log`·`ai_coaching` 은 **이 kind 로 만드는 알림이 없어** 앱이 더는 그리거나 보내지 않고,
+  이미 저장된 값과 예전 앱 버전을 위해 응답·저장에만 남아 있습니다.
+- **끌 수 없는 알림**: 포인트 쿠폰(`points_coupon`)·주간 챌린지 결과(`weekly_challenge`)는
+  설정과 무관하게 늘 만듭니다(`notification_service.ALWAYS_DELIVERED`). 새 회원 알림 kind 는
+  설정 키이거나 이 집합에 있어야 합니다.
 
 #### 알림 문장의 언어 (#2302)
 
@@ -702,7 +754,11 @@ tag: diet|exercise (피드백은 식단·운동 두 건, #2706)
 
 category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - **공급자**: `places_provider` 설정에 따라 **카카오 Local 실검색**(서버가 키를 쥐고 프록시,
-  60초 TTL 캐시) 또는 **시드 폴백**. 키가 없거나 호출 실패 시 자동으로 시드로 폴백.
+  60초 TTL 캐시) 또는 **DB 장소**(키가 없을 때).
+- **시드 폴백은 데모 서버에서만**(#2914): 데모 시드가 켜진 서버는 카카오 결과가 0건이거나
+  호출이 실패하면 DB 시드 장소로 채운다. 실서버(데모 시드 꺼짐)는 0건이면 **빈 배열**,
+  실패하면 **503** 을 돌려주고 시드 장소를 섞지 않는다. 키 없이 DB 장소를 읽을 때도
+  실서버는 데모 시드 장소(가상 헬스장·데모 장소 id)를 뺀다.
 - **무카테고리**: `category` 생략 시 네 카테고리를 **모두 검색·병합**하고 각 결과를 해당
   카테고리로 태깅한다(공급자 간 의미 일치, 빈 category 없음).
 - **검증**: `lat`(-90~90)·`lng`(-180~180)·`category`(허용값)는 위반 시 **422**.
@@ -721,9 +777,9 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   트레이너 노출 경로(`/trainers`, `/trainers/recommended`, `/gyms/{id}/trainers`)는 이 값을
   보지 않고, 소속 장소가 `category='fitness'` 인 활성 트레이너인지로 판단한다. 따라서
   비제휴 헬스장의 트레이너에게도 상담을 걸 수 있다. (#1626)
-- **`partner_only` 기본값은 `false`** 다. 지정하지 않으면 카카오 검색으로 발견한 비제휴
-  헬스장(`app/db/seed_gyms.py`)도 함께 온다 — 회원이 다니는 헬스장이 목록에 없으면 상담
-  자체를 시작할 수 없기 때문이다.
+- **`partner_only` 기본값은 `false`** 다. 지정하지 않으면 비제휴 헬스장(트레이너가 소속
+  헬스장 찾기로 등록한 곳, 데모 서버에서는 가상 비제휴 헬스장 `app/db/seed_gyms.py`)도 함께
+  온다 — 회원이 다니는 헬스장이 목록에 없으면 상담 자체를 시작할 수 없기 때문이다.
 
 ### 트레이너 디렉터리 (회원앱 탐색)
 
@@ -734,10 +790,12 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | GET | `/trainers/{trainer_id}` | 단건(없으면 404) |
 
 - **노출 조건**: 소속(`gym_id`)이 있고 그 장소가 `category='fitness'` 인 트레이너만. 상담 요청 시의 대상 검증과 같은 조건이라, 목록에 뜬 트레이너는 상담을 걸 수 있다. (#451)
+- **데모 트레이너 제외**: 데모 시드가 꺼진 서버(`SEED_DEMO_DATA=false`, 운영은 항상)에서는 데모 시드 트레이너(`app/db/demo_ids.py`)가 목록·추천·상세(404)·헬스장별 목록에 나오지 않고, `POST /consultations` 도 대상 없음(404)으로 막는다. 예전 기본값으로 운영 DB 에 심긴 가상 트레이너를 정리 스크립트(`scripts/purge_demo_data.py`)로 지우기 전에도 노출되지 않게 하는 장치다. (#2811)
 - **운영자 승인**: 위 조건에 더해 `verification_status='approved'` 인 트레이너만 목록·추천·상세에 나오고 상담 대상이 된다(승인 전 상세는 404, 상담 요청은 404). 이미 담당인 회원이 자기 트레이너를 읽는 상세는 예외다(#691). 아래 [트레이너 운영자 승인](#트레이너-운영자-승인-2825) 참고. (#2825)
 - **`/trainers/recommended` 순서**: 회원마다 다르다. 회원의 건강 목표(`conditions`, 옛 질환 이름은 새 목표로 읽는다)·가장 최근 상담의 `exercise_goal`·내 헬스장(`MemberGym`)을 신호로 점수를 매겨 내림차순 정렬한다. 동점은 경력 → id 로 갈라 같은 회원이 새로고침해도 순서가 흔들리지 않는다. (#500)
 - **트레이너 화면의 회원 목표(`TrainerClientOut.goal`, `MemberCoachOut.goal`, 루틴 추천 분석의 `goal`)**: 회원 건강 목표(`conditions` 중 목표, 최대 2개)를 ` · ` 로 이은 값이다. 트레이너가 `PUT /trainer/clients/{id}/health-profile` 로 `conditions` 를 고치면 회원앱과 같은 칸이 바뀐다. 옛 질환 이름은 저장 때 정리하고, 목표가 아닌 글(건강상태·주의사항)은 남는다. 회원이 6자리 코드로 연결될 때(`POST /trainer/pairing-code`) 회원 목표가 비어 있으면 그 트레이너에게 수락된 가장 최근 상담의 `exercise_goal` 을 목표로 채운다(#1818). 상담 수락은 담당 연결이 아니라 채우지 않는다(#2584). 상담 운동 목표가 건강 목표 여덟 종과 1:1 이 되면서 `other` 를 뺀 모든 값이 빠짐없이 채워진다(#1992).
 - **회원 건강 목표 숫자의 범위**: 회원 경로(`PUT /users/me/health-goals`·`POST /users/me/onboarding`)와 트레이너 경로(`PUT /trainer/clients/{id}/health-profile`)가 **같은 범위**를 쓴다 — 같은 컬럼을 고치는 문들이라 기준이 갈라지면 한쪽으로 들어온 값을 다른 쪽이 고칠 수 없다. 범위는 `app/schemas/health_goal_ranges.py` 한 곳에 있고, 어긋나면 422 다. `null` 은 그대로 목표 해제다. 자세한 사정은 [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) 참조. (#1888)
+- **실효 단백질 목표(`effective_daily_protein_g`, 주간 리포트는 `effective_protein_target`)**: 회원이 하루 단백질 목표를 정하지 않아도 채워지는 값이다 — 개인 목표 → 체중 × 1.2g → 60g(`diet_coach_inputs.effective_protein_g`). 식단 분석·기간/주간/전체 조언·추천 식단이 이 값으로 판단하므로 두 앱의 영양 카드·리포트 막대도 개인 목표가 없으면 이 값을 분모로 쓴다. `GET /users/me/profile`(`ProfileView`), `GET·PUT /trainer/clients/{id}/health-profile`(`MemberHealthProfileOut`), `WeeklyReportOut` 에 실린다. 개인 목표 필드(`daily_protein_g`·`protein_target`)는 그대로 null 을 유지해 '이 회원의 목표'와 기본값을 가른다. 예전에는 카드가 100g, 분석이 60g 을 써 같은 날을 서로 다르게 판단했다. (#2898)
 - **건강 목표·주의사항을 마지막으로 바꾼 사람**: `GET /users/me/profile`·`PUT /users/me`·`PUT /users/me/health-goals`·`POST /users/me/onboarding` 응답(`ProfileView`)과 `GET/PUT /trainer/clients/{id}/health-profile` 응답에 `focus_changed_by`·`focus_changed_at`(목표 칩, #1832)과 `notes_changed_by`·`notes_changed_at`(건강상태·주의사항, #2942)이 따로 실린다. `*_by` 는 `member`|`trainer`, 바꾼 적이 없으면 둘 다 `null` 이다. 목표 칩 집합이나 주의사항 조각이 실제로 달라진 저장에만 남는다(순서만 바뀐 저장은 아니다). 트레이너가 주의사항만 고치면 기록만 남고 회원 알림은 없다.
 - **신호가 없는 회원**(온보딩 전 등)은 운영자가 `recommend_reason` 을 적어 둔 트레이너만 **기존 순서 그대로** 받는다. 빈 목록을 주지 않는다.
 - **`reason`**: 운영자가 쓴 `recommend_reason` 이 우선이고, 비어 있을 때만 점수 근거에서 만든 문구가 채워진다(예: `회원님이 다니는 헬스장 소속 · 체중 감량 지도 경험`).
@@ -1118,6 +1176,14 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 미수행, `days`) · `exercise_goal_low`(운동 목표 미달, `percent`) · `calorie_off`(칼로리 목표 이탈,
 `percent`·`direction` over|under) · `protein_low`(단백질 부족, `percent`) 일곱 가지다. 담당 해제·휴면
 회원은 빈 목록이다. 답장 대기는 여기 없다 — 앱이 `/trainer/chat/unread` 로 실시간으로 센다.
+
+**트레이너 안읽음 집계 범위 (#2868)**: `GET /trainer/chat/unread` 는 **지금 담당 중이고 데이터 공유
+동의가 유효한 회원**(`TrainerClient.active` 이고 동의가 철회되지 않았거나 새 동의가 있는 링크)의
+안읽음만 돌려준다. 담당 해제·동의 철회 회원은 읽음 처리(`POST /trainer/clients/{id}/chat/read`)가
+404 라 지울 수 없으므로 집계에서도 빠지고, 남의 회원과 같은 응답(키 없음)이다. 메시지 행의
+`read_at` 은 건드리지 않으므로 같은 트레이너와 다시 연결(새 동의 포함)되면 남아 있던 안읽음이
+다시 집계된다. 판단은 `data_consent_service.link_is_open`/`open_link_clause` 한 곳을
+`_require_client` 와 함께 쓴다.
 기준값과 예외 규칙은 [`docs/TRAINER_DOMAIN.md`](docs/TRAINER_DOMAIN.md) 의 "PT 관리 신호" 참조.
 
 **완료 PT 회차 (#2697)**: `GET /me/coach/sessions` 의 각 세션은 `session_number` 를 싣는다 —
@@ -1214,7 +1280,10 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   한국어가 나갔다 — 회원이 받을 글은 앱이 그 언어로 만든다.
 - 같은 `client_request_id` 재시도는 처음 메시지를 그대로 돌려준다(한 번 전송). 같은 키에 **다른 본문**이면
   **409** 다. 트레이너 웹은 보낼 문구가 바뀌면 새 키를 쓴다(#2773).
-- 담당이 아니거나 해제된 회원은 **404**, PDF 가 아니면 **415**, 용량 초과는 **413**.
+- 담당이 아니거나 해제된 회원은 **404**, PDF 가 아니면 **415**, 용량 초과는 **413**. 요청 본문이
+  `max_report_pdf_bytes`(8MB) + `UPLOAD_BODY_SLACK_BYTES`(multipart 여유, 기본 512KB)를 넘으면 본문을 다
+  받기 전에 **413** `{"detail": "PDF 용량이 너무 큽니다(최대 8MB)."}` 로 끊는다(#2832). 그 안쪽에서 파일만
+  8MB 를 넘으면 핸들러가 413 을 낸다.
 
 **리포트 전송 이력 (#2288)**: 그 주 리포트가 이미 나간 담당 회원들이다. 트레이너 웹 리포트
 작업대가 `전송 완료` 열을 세우고, 이미 보낸 회원에게 다시 보내기 전에 확인을 받는 근거다.
@@ -1270,6 +1339,8 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - **형식은 바이트로 판정한다** — JPG·PNG·WebP 만 받고 나머지는 **415**. 확장자와 `Content-Type` 은
   보내는 쪽이 자유롭게 적을 수 있어 참고하지 않는다. 용량 상한은 `max_chat_image_bytes`(6MB)이고
   넘으면 **413**. 두 경로가 같은 규약을 한 함수(`chat_attachments.receive_chat_image`)로 쓴다.
+  요청 본문이 6MB + `UPLOAD_BODY_SLACK_BYTES`(multipart 여유, 기본 512KB)를 넘으면 본문을 다 받기 전에
+  **413** `{"detail": "사진 용량이 너무 큽니다(최대 6MB)."}` 로 끊는다(#2832). 이 413 에도 CORS 헤더가 붙는다.
 - **저장 전에 사진을 정리한다(#2829).** 끝까지 디코딩해 EXIF 회전을 픽셀에 적용하고, EXIF(촬영
   위치·기기)·XMP·주석·PNG 텍스트 같은 메타데이터를 버린 뒤 **원본 형식 그대로** 다시 인코딩한다
   (PNG 투명도 유지, 색 프로필 ICC 만 유지). 장변은 2048px 로 줄인다. 매직 넘버만 맞고 디코딩할 수
@@ -1391,6 +1462,35 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - 401·502 모두 실패 감사 로그(`auth.social`, `success=false`, `detail`=provider)를 남긴다.
   감사·서버 로그·응답 어디에도 토큰과 provider 응답 본문은 남기지 않는다.
 
+### 가입 동의 (#2819)
+
+두 앱의 가입은 약관·개인정보 수집·이용·만 14세 이상 확인에 **명시적으로** 동의해야 끝난다.
+회원은 여기에 **건강정보(민감정보) 처리** 동의가 따로 하나 더 있다. 마케팅 알림 수신은 선택이다.
+항목마다 `user_consents` 에 `kind`·`version`·`agreed_at`(·`revoked_at`) 한 행이 남는다.
+
+| 항목(`kind`) | 회원 | 트레이너 |
+|---|---|---|
+| `terms` 이용약관 | 필수 | 필수 |
+| `privacy` 개인정보 수집·이용 | 필수 | 필수 |
+| `health` 건강정보(민감정보) 처리 | 필수 | — |
+| `age14` 만 14세 이상 | 필수 | 필수 |
+| `marketing` 마케팅 알림 수신 | 선택 | 선택 |
+
+- `POST /auth/register`·`POST /auth/trainer/register` 는 `consents: [항목]` 을 받는다. 보냈다면 그
+  역할의 필수 항목이 모두 있어야 하고, 빠졌거나(빈 목록 포함) 모르는 항목이면 **422** 다 — 계정은
+  만들어지지 않는다. **보내지 않으면(`null`) 막지 않는다**: 동의 화면이 없는 옛 빌드의 가입이며,
+  기록 없이 계정만 만들어진다.
+- `POST /auth/login`·`POST /auth/social/{provider}` 응답에 `consent_required: bool` 이 붙는다.
+  `GET /users/me` 는 같은 값과 아직 동의하지 않은 필수 항목 목록(`consent_pending`)을 준다.
+  기록이 없는 계정(동의 절차 이전 가입·옛 빌드 가입·소셜 첫 가입)과, 문서 버전이 올라 지금 버전에
+  동의하지 않은 계정이 `true` 다. 앱은 이때 다른 화면보다 먼저 동의 화면을 띄운다.
+- `POST /users/me/consents`(토큰 필수, 회원·트레이너 공통)가 그 화면의 저장이다. 필수 항목이
+  하나라도 빠지면 아무것도 남기지 않고 **422** `{ detail: { code: "consent_required", missing: [...] } }`.
+  이미 지금 버전에 동의한 항목은 다시 쓰지 않는다 — 처음 동의한 시각이 남는다.
+- 문서 버전은 `services/signup_consent.CURRENT_VERSIONS` 한 곳이 정한다. 약관·처리방침 본문을
+  고치면(#2820) 그 항목의 버전을 올린다.
+- 국외 이전 동의는 아직 항목에 없다 — 필요 여부를 처리방침 정비(#2820)에서 정한 뒤 더한다.
+
 ### 가입 연락처 형식 (#1780)
 
 `POST /auth/register` 와 `POST /auth/trainer/register` 는 `email`·`phone` 의 **형식을 서버가
@@ -1400,16 +1500,24 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 
 | 필드 | 기준 | 저장 |
 |---|---|---|
-| `email` | `AppInputRules.email` 과 **같은 규칙**(로컬@도메인.최상위, 최대 255자) | 앞뒤 공백만 잘라낸 **입력 그대로** |
+| `email` | `AppInputRules.email` 과 **같은 규칙**(로컬@도메인.최상위, 최대 255자) | 앞뒤 공백을 잘라낸 **소문자**(#2816) |
 | `phone` | `010` 으로 시작하는 숫자 11자리. 하이픈·공백은 세지 않는다. 빈 값 허용(선택) | `010-1234-5678` 한 가지 표기 |
 
 `email-validator`(`EmailStr`)를 쓰지 않는다. 그쪽은 RFC 2606 이 시험용으로 비워 둔 최상위
 도메인(`.test`·`.invalid`·`localhost`)을 막는데, 앱은 통과시키므로 기준이 갈라진다 — 실 API
 E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은 **함께 고쳐야 한다.**
 
-이메일을 소문자로 고치지 않는 이유는 로그인 조회와 중복 확인이 `users.email` 을 그대로
-비교하기 때문이다 — 저장만 정규화하면 대문자 도메인으로 가입한 사람이 자기가 친 주소로
-로그인하지 못한다(정규화는 그 조회까지 함께 옮겨야 하는 별개의 일, #1551).
+**이메일은 대소문자를 구분하지 않는다(#2816).** 가입·이메일 변경은 소문자로 저장하고,
+로그인·가입 중복 확인·이메일 변경 중복 확인·소셜 로그인 이메일 연결·트레이너 가입은 입력을
+같은 규칙(`contact_format.normalize_email`: 앞뒤 공백 제거·소문자)으로 맞춘 뒤 `lower(email)`
+로 비교한다. 그래서 `Admin@…` 로 가입하면 `admin@…` 과 같은 이메일로 보고 409 이고,
+`Member@ONCARE.com` 으로 가입한 사람은 `member@oncare.com` 으로도 로그인된다. DB 에도
+`lower(email)` 유니크 인덱스(`uq_users_email_lower`)가 있다. 마이그레이션 `0120` 이 기존 행을
+소문자로 바꾸는데, 대소문자만 다른 계정이 이미 있으면 바꾸지 않고 겹치는 이메일·계정 id 를
+출력하며 멈춘다(자동 병합 없음).
+
+`ADMIN_EMAILS` 승격도 같은 규칙이다. 소문자로 맞춘 관리자 이메일과 **저장값이 정확히 같은
+계정 하나**만 올리고, 대소문자만 같은 계정이 여럿이면 기동 로그에 경고하고 아무도 올리지 않는다.
 
 전화번호는 `01012345678` 처럼 하이픈 없이 보내도 받는다. **표기에 대해서만** 앱보다 느슨한
 쪽이라 앱을 통과한 값이 서버에서 막히는 일은 생기지 않는다. 시드와 기존 프로필이 이미 하이픈
@@ -1734,6 +1842,31 @@ CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 �
 재설정이 켜지지만, **운영(`ENV=prod`)에서 발송 수단이 없으면 재설정 요청은 503** 이고 기동 로그에
 오류가 남는다. `MAIL_PROVIDER=smtp` 인데 `SMTP_HOST`·`MAIL_FROM` 이 비면 설정 오류로 기동이 멈춘다.
 
+접근 토큰 수명은 기본 **60분**(`ACCESS_TOKEN_EXPIRE_MINUTES`, #2913), refresh 는 30일이다. 두 앱은
+401 을 받으면 `POST /auth/refresh` 로 새 쌍을 받아 요청을 다시 보내므로 수명이 짧아도 화면은 끊기지
+않는다.
+
+### 시도 제한과 클라이언트 IP (#2815)
+
+IP 단위 한도와 감사 로그 IP 는 같은 함수(`app/core/client_ip.py`)로 읽는다. 요청자가 넣은
+`X-Forwarded-For` 는 믿지 않고, 앞단 프록시가 **덧붙인** 값만 본다 — 헤더를 오른쪽에서
+`TRUSTED_PROXY_HOPS` 번째 값이 클라이언트 IP 다(미설정이면 운영 1, 그 밖 0 = 소켓 주소).
+헤더 왼쪽을 바꿔 보내도 한도 버킷과 감사 로그 IP 가 바뀌지 않는다.
+
+IP 를 바꿔 가며 한 계정을 노리는 시도는 계정 쪽 버킷이 막는다. 모두 기존과 같은
+**429** `{"detail": "요청이 너무 많습니다. …"}` + `Retry-After` 다.
+
+| 대상 | 버킷 | 한도 |
+|---|---|---|
+| `POST /auth/login` | IP | 분당 `RATE_LIMIT_AUTH_PER_MINUTE`(10) |
+| `POST /auth/login` | **이메일(대소문자 무시) 연속 실패** | `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `LOGIN_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429. 잠긴 동안에는 비밀번호를 확인하지 않는다. 성공하면 실패 기록을 지운다. 없는 이메일도 같이 센다 |
+| `POST /trainer/pairing-code/preview`·`POST /trainer/pairing-code` | IP + **트레이너 id** | 각각 분당 10, 트레이너 id 는 하루 `PAIRING_REDEEM_PER_DAY`(30) 도 함께. 두 엔드포인트가 한 버킷 |
+| `POST /auth/register`·`POST /auth/trainer/register` | IP + **이메일(대소문자 무시)** | IP 는 분당 10. 같은 이메일은 시간당 `REGISTER_PER_EMAIL_PER_HOUR`(5) — 성공·409 를 가리지 않고 세고, 두 가입이 한 버킷이다(#2913). 409 문구는 그대로 |
+| `POST /trainer/me/password` | IP + **사용자 id 연속 실패** | IP 는 분당 10. 현재 비밀번호를 `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `PASSWORD_CHANGE_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429(잠긴 동안 비밀번호를 확인하지 않는다). 틀린 시도는 감사 로그 `auth.password_change`(실패)에 남고, 성공하면 실패 기록을 지운다(#2913) |
+
+한도 저장소는 프로세스 메모리라 인스턴스가 여럿이면 한도도 그 배수가 된다. 운영 인스턴스가
+하나를 넘게 되면 공유 저장소 구현으로 바꾼다(`app/core/rate_limit.py`).
+
 ### 의존성 네 갈래
 
 엔드포인트가 어떤 의존성을 쓰느냐로 동작이 갈린다 (`app/api/deps.py`).
@@ -1751,6 +1884,12 @@ CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 �
 `RequireTrainer` 를 쓴다. **데모 폴백이 있는 것은 `CurrentUser` 하나뿐**이고 나머지는 모두
 유효 토큰을 요구한다 — 회원 데모 사용자가 트레이너 엔드포인트나 쓰기 경로로 새어 들어가지
 않게 하기 위해서다.
+
+회원의 `POST`·`PUT`·`PATCH`·`DELETE` 는 저장하지 않는 계산 요청(`POST /diet/nutrition`,
+`POST /exercise/calories`, `POST /diet/analyze`)까지 포함해 전부 `RequireMember` 다(#2831).
+만료된 토큰으로 기록을 저장하면 데모 계정에 쌓이는 대신 **401** 이 나고, 회원 앱은 refresh 뒤
+같은 요청을 다시 보낸다. 새 쓰기 라우트가 `CurrentUser` 를 쓰면
+`tests/test_write_route_auth_guard.py` 가 실패한다(예외는 그 파일의 목록에 이유와 함께 적는다).
 
 ### 데모 폴백은 환경으로 갈린다
 

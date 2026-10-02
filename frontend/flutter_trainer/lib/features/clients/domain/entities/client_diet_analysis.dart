@@ -114,12 +114,12 @@ class ClientDietPick {
     tag: (json['tag'] as String?) ?? '',
     keyword: (json['keyword'] as String?) ?? '',
     resolved: json['status'] == 'resolved',
+    // 서버 시각은 UTC 순간 그대로 둔다 — 표시하는 자리에서 KST 날짜로
+    // 바꾼다(#2893). 여기서 `toLocal()` 하면 브라우저 시간대의 날짜가 된다.
     confirmedAt:
-        DateTime.tryParse((json['confirmed_at'] as String?) ?? '')?.toLocal() ??
-        DateTime.fromMillisecondsSinceEpoch(0),
-    resolvedAt: DateTime.tryParse(
-      (json['resolved_at'] as String?) ?? '',
-    )?.toLocal(),
+        DateTime.tryParse((json['confirmed_at'] as String?) ?? '') ??
+        DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+    resolvedAt: DateTime.tryParse((json['resolved_at'] as String?) ?? ''),
   );
 
   final String slot;

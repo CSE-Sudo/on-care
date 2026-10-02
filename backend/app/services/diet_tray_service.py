@@ -13,6 +13,8 @@
   [REQUIRED_DAYS]일 이상이고, 담당 트레이너가 연결돼 있다.
   - 사진 분석으로 저장한 끼니(`diet_entries.engine` 이 있는 행)만 센다. 손으로 적은
     끼니는 세지 않는다 — 식판이 돕는 것이 사진 분석이다.
+  - 개발용 고정 식단 인식기(`stub`)로 저장된 끼니도 세지 않는다 — 사진을 보지 않고
+    늘 같은 음식을 돌려주므로 사진 기록이 아니다(#2812).
   - 하루에 여러 끼를 찍어도 하루다. 하루에 몰아 찍어서는 채울 수 없다.
   - 연속 기록 보호권(#1788)으로 이어 붙인 날은 식단 행이 없으므로 저절로 빠진다.
 - **받기** 회원이 식판 카드에서 `받기` 를 누르면 0P 쿠폰(`points_coupons`, 항목
@@ -27,6 +29,9 @@
   취소된 쿠폰은 식판을 받은 것이 아니므로, 새 담당이 생기고 조건을 채우고 있으면
   다시 받는다.
 - **담당이 끊기면** 받지 않은 식판 쿠폰을 취소한다(`cancel_renewal_coupons`).
+- **헬스장 혜택이 닫힌 서버**(`points_coupon_service.gym_benefits_enabled`, #2822)는
+  받기를 [TraysUnavailable] 로 거부하고, 상태 응답의 `enabled` 를 거짓으로 준다 —
+  식판을 줄 제휴 헬스장이 없다.
 - 받기는 잔액 행을 잠근 채 조건을 다시 확인한다 — 같은 회원의 받기가 겹쳐도 한
   장이다. 사용 가능한 쿠폰 한 장은 partial unique index 가 마지막 방어선이다.
 """
@@ -43,6 +48,7 @@ from app.core import clock
 from app.models.models import DietEntry, PointsCoupon
 from app.schemas.diet_tray_api import DietTrayOut
 from app.services import points_coupon_service, points_service
+from app.services.recognizer.factory import STUB_ENGINE
 
 ITEM_ID = points_coupon_service.DIET_TRAY.id
 
@@ -59,6 +65,10 @@ RECEIVED = "received"
 
 class DietTrayError(Exception):
     """식판 받기 규칙 위반. 라우터가 409 로 옮긴다."""
+
+
+class TraysUnavailable(DietTrayError):
+    """헬스장 혜택이 닫힌 서버다(#2822)."""
 
 
 class TrainerRequired(DietTrayError):
@@ -94,6 +104,7 @@ def photo_days(db: Session, member_id: str, today: date | None = None) -> int:
         select(func.count(func.distinct(DietEntry.date))).where(
             DietEntry.user_id == member_id,
             DietEntry.engine != "",
+            DietEntry.engine != STUB_ENGINE,
             DietEntry.date >= first.isoformat(),
             DietEntry.date <= last.isoformat(),
         )
@@ -119,6 +130,8 @@ def claim(
 
     if client_request_id and _by_request(db, member_id, client_request_id):
         return _state_out(db, member_id)
+    if not points_coupon_service.gym_benefits_enabled():
+        raise TraysUnavailable("지금은 식판을 받을 수 없어요.")
 
     points_service.lock_balance(db, member_id)
     points_coupon_service.expire_stale(db, member_id)
@@ -168,6 +181,7 @@ def _state_out(db: Session, member_id: str) -> DietTrayOut:
     from app.services import trainer_service
 
     has_trainer = trainer_service.get_member_trainer_id(db, member_id) is not None
+    enabled = points_coupon_service.gym_benefits_enabled()
     first, last = window()
     days = photo_days(db, member_id)
     received = _received(db, member_id)
@@ -176,7 +190,7 @@ def _state_out(db: Session, member_id: str) -> DietTrayOut:
         status = RECEIVED
     elif active is not None:
         status = ISSUED
-    elif has_trainer and days >= REQUIRED_DAYS:
+    elif enabled and has_trainer and days >= REQUIRED_DAYS:
         status = CLAIMABLE
     else:
         status = PROGRESS
@@ -190,6 +204,7 @@ def _state_out(db: Session, member_id: str) -> DietTrayOut:
         window_to=last.isoformat(),
         has_trainer=has_trainer,
         coupon=points_coupon_service.coupon_out(row) if row is not None else None,
+        enabled=enabled,
     )
 
 

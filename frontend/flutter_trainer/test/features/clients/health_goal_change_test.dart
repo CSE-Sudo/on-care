@@ -127,9 +127,43 @@ void main() {
             'focus_changed_at': '2026-09-16T01:30:00Z',
           });
       expect(profile.focusChangedBy, MemberHealthProfile.focusChangedByMember);
+      // UTC 순간 그대로 둔다 — 브라우저 시간대로 옮기지 않는다(#2893).
+      expect(profile.focusChangedAt, DateTime.utc(2026, 9, 16, 1, 30));
+      expect(profile.focusChangedAt!.isUtc, isTrue);
+    });
+
+    test('마지막 변경일은 브라우저 시간대가 아니라 KST 날짜로 보인다', () {
+      final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
+      final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
+      // UTC 9월 16일 15:30 = KST 9월 17일 00:30. 미국 서부 브라우저라면
+      // `toLocal()` 이 9월 16일 아침으로 읽었다.
+      final MemberHealthProfile lateNight =
+          MemberHealthProfile.fromJson(<String, Object?>{
+            'member_id': 'user-jisu',
+            'member_name': '지수',
+            'focus_changed_by': 'member',
+            'focus_changed_at': '2026-09-16T15:30:00Z',
+          });
       expect(
-        profile.focusChangedAt,
-        DateTime.utc(2026, 9, 16, 1, 30).toLocal(),
+        focusLastChangedLabel(ko, lateNight, locale: 'ko'),
+        '마지막 변경: 회원 · 9월 17일',
+      );
+      expect(
+        focusLastChangedLabel(en, lateNight, locale: 'en'),
+        'Last changed by Member · Sep 17',
+      );
+
+      // KST 오전 8시 59분(UTC 전날 23:59)도 KST 날짜다.
+      final MemberHealthProfile morning =
+          MemberHealthProfile.fromJson(<String, Object?>{
+            'member_id': 'user-jisu',
+            'member_name': '지수',
+            'focus_changed_by': 'trainer',
+            'focus_changed_at': '2026-09-15T23:59:00+00:00',
+          });
+      expect(
+        focusLastChangedLabel(ko, morning, locale: 'ko'),
+        '마지막 변경: 트레이너 · 9월 16일',
       );
     });
 

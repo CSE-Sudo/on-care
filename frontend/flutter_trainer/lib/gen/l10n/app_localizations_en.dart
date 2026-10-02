@@ -214,10 +214,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authPasswordConfirm => 'Confirm password';
 
   @override
-  String get authLegalNotice => 'By signing up you agree to';
+  String get authSignUpAndStart => 'Sign up and start';
 
   @override
-  String get authSignUpAndStart => 'Sign up and start';
+  String get consentAll => 'Agree to all';
+
+  @override
+  String get consentRequiredTag => '[Required]';
+
+  @override
+  String get consentOptionalTag => '[Optional]';
+
+  @override
+  String get consentView => 'View';
+
+  @override
+  String get consentTerms => 'Terms of Service';
+
+  @override
+  String get consentPrivacy => 'Collection and use of personal information';
+
+  @override
+  String get consentAge14 => 'I am 14 years of age or older';
+
+  @override
+  String get consentAge14Detail => 'You must be 14 or older to sign up.';
+
+  @override
+  String get consentMarketing => 'Receive marketing notifications';
+
+  @override
+  String get consentRequiredHint => 'Agree to all required items to continue.';
+
+  @override
+  String get consentPageTitle => 'Agreements';
+
+  @override
+  String get consentPageSubtitle =>
+      'Please review and agree to the items below to keep using On-Care.';
+
+  @override
+  String get consentPageAction => 'Agree and continue';
+
+  @override
+  String get consentPageFailed =>
+      'Couldn\'t save your agreement. Please try again in a moment.';
 
   @override
   String get authHasAccount => 'Already have an account?';
@@ -804,6 +845,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'That code is wrong or expired. Ask the member for a new one';
 
   @override
+  String get clientConnectAlreadyManaged =>
+      'You already manage this member. Find them in your member list';
+
+  @override
   String get clientInviteConnectAction => 'Register member';
 
   @override
@@ -932,6 +977,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientDietDayTotal => 'Day total';
+
+  @override
+  String get clientDietDayMealsFailed => 'Couldn\'t load this day\'s meals';
 
   @override
   String clientDietTotalCalories(String calories) {
@@ -3989,6 +4037,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get workoutMemberLogTitle => 'Logged by member';
+
+  @override
+  String get workoutDayExercisesFailed => 'Couldn\'t load this day\'s workouts';
 
   @override
   String get workoutPendingCancel => 'Cancel assignment';

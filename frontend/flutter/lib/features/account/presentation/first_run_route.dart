@@ -31,15 +31,18 @@ Future<String> firstRouteAfterSignIn(ProviderContainer ref) =>
 /// 쓰도록 판단을 이 모양으로 받는다(#2630).
 typedef ProviderRead = T Function<T>(ProviderListenable<T> provider);
 
-/// 첫 설정을 아직 안 한 계정이면 [AppRoutes.onboarding], 아니면
-/// [AppRoutes.dashboard]. 판단 규칙은 [firstRouteAfterSignIn] 을 따른다.
+/// 첫 설정을 아직 안 했고 건너뛰지도 않은 계정이면 [AppRoutes.onboarding],
+/// 아니면 [AppRoutes.dashboard]. 판단 규칙은 [firstRouteAfterSignIn] 을 따른다.
 Future<String> firstRunRoute(ProviderRead read) async {
   try {
     // 되짚지(`refresh`) 않는다 — 로그인이 끝나면서 세션 리셋이 이미 이 provider
     // 를 비웠다(`session_feature_reset`). 여기서 한 번 더 비우면 방금 대시보드가
     // 시작한 조회를 버리고 같은 요청을 다시 보낸다.
     final UserProfile profile = await read(profileProvider.future);
-    if (profile.onboarded) {
+    // 끝냈거나 **건너뛴** 계정은 다시 묻지 않는다(#2855). 건너뛰기도 계정에
+    // 남으므로 기기를 바꿔도 같다. 둘 다 아니면(폼에서 앱을 닫은 회원) 지금처럼
+    // 첫 설정으로 보낸다(#2630).
+    if (profile.firstRunSettled) {
       await _remember(read);
       return AppRoutes.dashboard;
     }

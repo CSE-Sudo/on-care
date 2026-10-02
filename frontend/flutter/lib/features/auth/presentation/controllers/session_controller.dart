@@ -16,8 +16,18 @@ class SessionState {
   const SessionState({
     this.status = SessionStatus.unknown,
     this.restoreFailed = false,
+    this.consentRequired = false,
   });
   final SessionStatus status;
+
+  /// 로그인은 됐지만 가입 동의가 남았다 — 다른 화면보다 먼저 동의 화면을
+  /// 거친다. (#2819)
+  ///
+  /// 동의 절차가 생기기 전에 가입한 계정, 소셜 로그인으로 처음 들어온 계정,
+  /// 문서 버전이 올라간 계정이 여기 해당한다. 서버가 로그인 응답과
+  /// `GET /users/me` 의 `consent_required` 로 알린다. 데모에는 계정이 없어
+  /// 언제나 거짓이다.
+  final bool consentRequired;
 
   /// 저장된 세션을 되살리려다 **일시적인 이유로** 끝내지 못했다. (#1944)
   ///
@@ -146,7 +156,7 @@ class SessionController extends StateNotifier<SessionState>
     try {
       // 아직 세션에 넣지 않은 토큰으로 찔러 본다. 유효한지 모르는 토큰을 먼저
       // 세션에 넣으면 그 사이 앱이 만료된 토큰으로 로그인 상태가 된다.
-      await _ref
+      final res = await _ref
           .read(dioProvider)
           .get<Map<String, Object?>>(
             '/users/me',
@@ -156,7 +166,12 @@ class SessionController extends StateNotifier<SessionState>
           );
       if (!mounted || _userActionStarted) return;
       _setToken(access);
-      state = const SessionState(status: SessionStatus.authenticated);
+      // 저장된 세션으로 돌아온 계정도 동의가 남았으면 동의 화면부터 거친다
+      // (#2819) — 기존 가입자가 "다음 로그인" 을 기다리지 않게 한다.
+      state = SessionState(
+        status: SessionStatus.authenticated,
+        consentRequired: consentRequiredIn(res.data),
+      );
     } on DioException catch (e) {
       if (!mounted || _userActionStarted) return;
       final int? code = e.response?.statusCode;
@@ -302,7 +317,10 @@ class SessionController extends StateNotifier<SessionState>
     _setToken(access);
     _resetFeatureState();
     _ref.read(sessionExpiredNoticeProvider.notifier).state = false;
-    state = const SessionState(status: SessionStatus.authenticated);
+    state = SessionState(
+      status: SessionStatus.authenticated,
+      consentRequired: consentRequiredIn(data),
+    );
   }
 
   /// 비밀번호를 바꾼 뒤 서버가 새로 준 토큰으로 **이 기기의 세션을 이어 간다.**
@@ -373,6 +391,7 @@ class SessionController extends StateNotifier<SessionState>
     required String password,
     String name = '',
     String phone = '',
+    List<String>? consents,
   }) async {
     _userActionStarted = true;
     final dio = _ref.read(dioProvider);
@@ -383,6 +402,9 @@ class SessionController extends StateNotifier<SessionState>
         'password': password,
         'name': name,
         'phone': phone,
+        // 가입 화면에서 체크한 동의(#2819). 서버가 계정과 한 트랜잭션으로
+        // 남기고, 필수 항목이 빠졌으면 계정을 만들지 않고 422 를 준다.
+        'consents': ?consents,
       },
     );
     // 여기부터는 **계정이 이미 만들어진 뒤**다. 로그인만 실패한 것을 가입 실패로
@@ -393,6 +415,26 @@ class SessionController extends StateNotifier<SessionState>
     } on Object catch (error, stack) {
       Error.throwWithStackTrace(AccountCreatedSignInFailed(error), stack);
     }
+  }
+
+  /// 동의 화면에서 체크한 항목을 남긴다 → `POST /users/me/consents`. (#2819)
+  ///
+  /// 성공하면 서버가 돌려준 `consent_required` 로 상태를 바꾼다 — 거짓이면
+  /// 라우터 가드가 동의 화면을 풀어 준다. 실패는 그대로 던진다(화면이 알린다).
+  /// 그 사이 로그아웃·다른 계정 로그인이 있었다면 결과를 버린다.
+  Future<void> submitConsents(List<String> consents) async {
+    final String? token = _ref.read(authAccessTokenProvider);
+    final res = await _ref
+        .read(dioProvider)
+        .post<Map<String, Object?>>(
+          '/users/me/consents',
+          data: <String, Object?>{'consents': consents},
+        );
+    if (!mounted || token == null || !_holdsToken(token)) return;
+    state = SessionState(
+      status: SessionStatus.authenticated,
+      consentRequired: consentRequiredIn(res.data),
+    );
   }
 
   /// Skip auth — demo mode. No token; the backend demo-fallback serves data.
@@ -547,6 +589,13 @@ class SessionController extends StateNotifier<SessionState>
     }
   }
 }
+
+/// 서버 응답의 `consent_required` 를 읽는다. (#2819)
+///
+/// 칸이 없으면 거짓이다 — 동의 절차가 없던 서버를 상대할 때 막혀 들어가지 못하는
+/// 쪽보다, 지금처럼 들어가는 쪽이 낫다. 서버가 동의를 요구하면 이 칸이 항상 있다.
+bool consentRequiredIn(Map<String, Object?>? data) =>
+    data?['consent_required'] == true;
 
 /// 실행 중 세션이 만료되어 로그인 화면으로 보냈다 — 로그인 화면이 한 번 안내하고
 /// 거둔다. (#1546)
