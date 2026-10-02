@@ -6,8 +6,8 @@
 `(target_user_id, created_at)`·`created_at` 인덱스를 둔다. 기존 행은 대상이 비고
 자원이 빈 문자열이다 — 이 마이그레이션만으로 바뀌는 동작은 없다.
 
-Revision ID: 0125_audit_log_target
-Revises: 0110_user_token_version
+Revision ID: 0137_audit_log_target
+Revises: 0131_health_notes_changed
 Create Date: 2026-10-01
 """
 from __future__ import annotations
@@ -17,8 +17,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0125_audit_log_target"
-down_revision: str | Sequence[str] | None = "0110_user_token_version"
+revision: str = "0137_audit_log_target"
+down_revision: str | Sequence[str] | None = "0131_health_notes_changed"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

@@ -228,7 +228,7 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
 
 링크의 두 칸(`data_consent_at`·`data_consent_revoked_at`)은 다시 연결하면 덮어써지고 탈퇴하면
 행째 사라진다. "해제했는데 계속 봤다"·"동의한 적 없다" 같은 문의에 답하려면 따로 남는 이력이
-필요해, `audit_logs`(마이그레이션 `0125_audit_log_target` — `target_user_id`·`resource` 칸)에 남긴다.
+필요해, `audit_logs`(마이그레이션 `0137_audit_log_target` — `target_user_id`·`resource` 칸)에 남긴다.
 감사 로그에는 FK 가 없어 링크·계정이 지워져도 기록은 유지된다.
 
 | 이벤트 | 언제 | `user_id`(행위자) | `target_user_id` | `resource`·`detail` |
