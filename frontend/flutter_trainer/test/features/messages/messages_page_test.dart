@@ -655,7 +655,7 @@ void main() {
 
       expect(find.text('무릎 불편 표현 감지'), findsOneWidget);
       final addButton = find.byKey(
-        const ValueKey<String>('chat-insight-add-seed-chat-1-16:discomfort'),
+        const ValueKey<String>('chat-insight-add-seed-chat-1-18:discomfort'),
       );
       await tester.ensureVisible(addButton);
       await tester.tap(addButton);
@@ -668,7 +668,7 @@ void main() {
       // 말한다.
       final banner = tester.widget<AppBanner>(
         find.byKey(
-          const ValueKey<String>('chat-insight-banner-seed-chat-1-16'),
+          const ValueKey<String>('chat-insight-banner-seed-chat-1-18'),
         ),
       );
       expect(banner.tone, AppBannerTone.danger);

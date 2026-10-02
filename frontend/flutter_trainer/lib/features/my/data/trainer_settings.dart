@@ -53,9 +53,16 @@ class TrainerSettings {
 /// broken — but **rolls back and surfaces the error** if the write
 /// fails. Silently keeping a value the server rejected is how a settings
 /// screen starts lying about itself.
-class TrainerSettingsController extends StateNotifier<TrainerSettings> {
+///
+/// 상태는 "아직 모름(로딩) / 받음 / 실패" 를 가른다(#2883). 예전에는 기본값(모두
+/// 켬)에서 출발해, 받기 전·실패 뒤에도 스위치가 켬으로 보이고 눌렸다. 그때
+/// 다른 스위치를 누르면 기본값이 섞인 전체 상태가 저장돼, 꺼 둔 새 메시지
+/// 알림이 켬으로 덮어써졌다. 이제 값을 받기 전에는 쓰기를 받지 않는다.
+class TrainerSettingsController
+    extends StateNotifier<AsyncValue<TrainerSettings>> {
   /// Creates the controller and loads the stored settings.
-  TrainerSettingsController(this._repository) : super(const TrainerSettings()) {
+  TrainerSettingsController(this._repository)
+    : super(const AsyncLoading<TrainerSettings>()) {
     _load();
   }
 
@@ -67,37 +74,50 @@ class TrainerSettingsController extends StateNotifier<TrainerSettings> {
 
   Future<void> _load() async {
     try {
-      state = await _repository.load();
-    } catch (_) {
-      // Keep the defaults on screen — an unreachable settings endpoint
-      // shouldn't block the rest of the page.
+      final TrainerSettings loaded = await _repository.load();
+      if (mounted) state = AsyncData<TrainerSettings>(loaded);
+    } catch (error, stackTrace) {
+      // 기본값으로 채우지 않는다 — 화면은 실패를 알리고 다시 시도를 둔다.
+      if (mounted) state = AsyncError<TrainerSettings>(error, stackTrace);
     }
+  }
+
+  /// 불러오기에 실패했을 때 다시 읽는다. 이미 받았거나 읽는 중이면 그대로 둔다.
+  Future<void> reload() async {
+    if (!state.hasError) return;
+    state = const AsyncLoading<TrainerSettings>();
+    await _load();
   }
 
   /// Toggles new-message notifications.
   Future<void> setNewMessageAlerts(bool value) =>
-      _apply(state.copyWith(newMessageAlerts: value));
+      _apply((s) => s.copyWith(newMessageAlerts: value));
 
   /// 상담 요청 알림을 켜고 끈다.
   Future<void> setConsultationAlerts(bool value) =>
-      _apply(state.copyWith(consultationAlerts: value));
+      _apply((s) => s.copyWith(consultationAlerts: value));
 
   /// 예약 알림을 켜고 끈다.
   Future<void> setReservationAlerts(bool value) =>
-      _apply(state.copyWith(reservationAlerts: value));
+      _apply((s) => s.copyWith(reservationAlerts: value));
 
   /// 담당 회원 소식 알림을 켜고 끈다.
   Future<void> setMemberUpdateAlerts(bool value) =>
-      _apply(state.copyWith(memberUpdateAlerts: value));
+      _apply((s) => s.copyWith(memberUpdateAlerts: value));
 
-  Future<void> _apply(TrainerSettings next) async {
-    final previous = state;
-    state = next;
+  /// 받은 값에만 얹어 저장한다. 받기 전·실패 뒤에는 아무것도 보내지 않는다 —
+  /// 보내면 서버 값을 기본값으로 덮어쓴다(#2883).
+  Future<void> _apply(TrainerSettings Function(TrainerSettings) change) async {
+    final AsyncValue<TrainerSettings> previous = state;
+    if (previous is! AsyncData<TrainerSettings>) return;
+    final TrainerSettings next = change(previous.value);
+    state = AsyncData<TrainerSettings>(next);
     lastError = false;
     try {
-      state = await _repository.save(next);
+      final TrainerSettings saved = await _repository.save(next);
+      if (mounted) state = AsyncData<TrainerSettings>(saved);
     } catch (_) {
-      state = previous;
+      if (mounted) state = previous;
       // 문구가 아니라 '실패했다'는 사실만 남긴다 — 컨트롤러는 로케일을
       // 모르고, 화면이 자기 언어로 문구를 붙인다. (#501)
       lastError = true;
@@ -109,8 +129,13 @@ class TrainerSettingsController extends StateNotifier<TrainerSettings> {
 }
 
 /// The trainer's notification settings.
+///
+/// 받기 전은 [AsyncLoading], 실패는 [AsyncError] 다(#2883).
 final trainerSettingsProvider =
-    StateNotifierProvider<TrainerSettingsController, TrainerSettings>((ref) {
+    StateNotifierProvider<
+      TrainerSettingsController,
+      AsyncValue<TrainerSettings>
+    >((ref) {
       return TrainerSettingsController(
         ref.watch(trainerSettingsRepositoryProvider),
       );

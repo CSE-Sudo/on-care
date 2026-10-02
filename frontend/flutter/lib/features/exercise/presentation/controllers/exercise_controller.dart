@@ -94,10 +94,10 @@ final exerciseAdviceProvider = FutureProvider.family<ExerciseAdvice, String>((
 }, name: 'exerciseAdvice');
 
 /// 그 주의 월요일. 주 단위 조회의 키다.
-DateTime mondayOfWeek(DateTime date) {
-  final DateTime d = DateTime(date.year, date.month, date.day);
-  return d.subtract(Duration(days: d.weekday - 1));
-}
+///
+/// 홈과 같은 [mondayOf] 로 센다 — 24시간 단위로 빼면 서머타임 시간대에서
+/// 하루 어긋난다(#2890).
+DateTime mondayOfWeek(DateTime date) => mondayOf(date);
 
 /// 지난 주 운동 기록. 이번 주는 [exerciseWeekViewProvider] 가 담당하므로 여기서
 /// 다루지 않는다 — 같은 주를 두 벌로 읽으면 화면마다 다른 수치를 갖게 된다(#671).

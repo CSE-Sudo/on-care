@@ -38,11 +38,13 @@ from app.api.v1 import (
     trainers,
     users,
 )
-from app.core import observability
+from app.core import observability, startup_checks
 from app.core.body_limit import BodyLimitRule, RequestBodySizeLimitMiddleware
 from app.core.client_ip import warn_if_untrusted_setup
+from app.core.client_platform import RequestClientPlatformMiddleware
 from app.core.config import Settings, get_settings
 from app.core.locale import RequestLocaleMiddleware
+from app.core.security_headers import security_headers_for
 from app.db.init_db import init_db
 
 settings = get_settings()
@@ -52,6 +54,9 @@ observability.setup_logging(settings.log_level)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # 설정끼리 어긋나면 DB 를 건드리기 전에 멈추고, 운영에서 위험한 상태는
+    # 경고로 남긴다(#2817·#2821).
+    startup_checks.check(settings)
     # 프록시 뒤 운영에서 클라이언트 IP 를 소켓 주소로 읽게 설정됐으면 남긴다(#2815).
     warn_if_untrusted_setup(settings)
     init_db()
@@ -150,14 +155,17 @@ if settings.security_headers:
     @app.middleware("http")
     async def _security_headers(request: Request, call_next):
         response = await call_next(request)
-        response.headers.setdefault("X-Content-Type-Options", "nosniff")
-        response.headers.setdefault("X-Frame-Options", "DENY")
-        response.headers.setdefault("Referrer-Policy", "no-referrer")
-        if settings.is_prod or settings.force_https:
-            response.headers.setdefault(
-                "Strict-Transport-Security", "max-age=63072000; includeSubDomains"
-            )
+        # 값과 대상 경로는 app/core/security_headers.py 에 모았다(#2828).
+        for name, value in security_headers_for(
+            request.url.path, hsts=settings.is_prod or settings.force_https
+        ).items():
+            response.headers.setdefault(name, value)
         return response
+
+
+# 클라이언트 종류(#2828): 웹 빌드가 보내는 `X-Client-Platform: web` 을 읽어, 웹 로그인·
+# 회전에는 짧은 refresh 토큰을 준다(`services/auth_tokens.py`).
+app.add_middleware(RequestClientPlatformMiddleware)
 
 
 # 요청 언어(#2297): `Accept-Language` 를 읽어 `current_locale()` 을 채운다. 서버가 만드는

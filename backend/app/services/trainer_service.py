@@ -56,6 +56,7 @@ from app.schemas.trainer_api import (
     TrainerGymOut, TrainerMe, TrainerMemoOut, TrainerNotificationSettings,
     TrainerProgramDraftOut, TrainerProgramDraftSummary, WeeklyReportDayOut,
     WeeklyReportOut,
+    RoutineDeliveryCardOut,
 )
 from app.data import routine_effects
 from app.services import health_focus
@@ -301,7 +302,7 @@ def relative_time_label(ts: datetime) -> str:
     if ts.tzinfo is None:
         ts = ts.replace(tzinfo=timezone.utc)
     local = clock.to_seoul(ts)
-    today = clock.to_seoul(datetime.now(timezone.utc)).date()
+    today = clock.today()
     days = (today - local.date()).days
     if days <= 0:
         return local.strftime("%H:%M")
@@ -924,6 +925,66 @@ def chat_message_out(msg: ChatMessage, viewer: str) -> ChatMessageOut:
         attachment=attachment,
         emote_id=msg.emote_id,
         report_week_start=msg.report_week_start,
+        routine_delivery=_routine_delivery_out(msg.routine_delivery_json),
+    )
+
+
+def _routine_delivery_out(raw: str | None) -> RoutineDeliveryCardOut | None:
+    """저장한 루틴 전송 안내 JSON → 응답. 깨진 값은 안내가 없는 것으로 읽는다."""
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+        return RoutineDeliveryCardOut(**data)
+    except (TypeError, ValueError):
+        return None
+
+
+#: 루틴 전송 안내 카드가 이름으로 적는 운동 수. 나머지는 개수로 접는다.
+_DELIVERY_CARD_NAMES = 3
+
+
+def post_routine_delivery(
+    db: Session,
+    trainer_id: str,
+    member_id: str,
+    *,
+    kind: str,
+    program_names: Sequence[str] = (),
+    routine_names: Sequence[str] = (),
+) -> None:
+    """회원에게 운동을 보낸 일을 채팅에 안내로 남긴다(커밋 없음). (#2672)
+
+    알림은 "지금 왔다" 를 알리고 지나가지만, 채팅은 두 사람이 함께 보는
+    기록이다 — "어제 보낸 루틴 해 보셨어요?" 가 그 전송 바로 아래에 이어진다.
+    주간 리포트 전송 안내(#1600)와 같은 자리·같은 규칙(트레이너가 보낸 메시지라
+    회원에게 안 읽음으로 잡힌다)이다. 알림은 따로 그대로 간다.
+
+    본문은 안내 카드를 그리지 못하는 자리(로스터·대화 목록의 마지막 메시지)가
+    읽는 한 줄이고, 카드는 [routine_delivery_json] 으로 두 앱이 화면 언어에
+    맞춰 그린다.
+    """
+    names = [*program_names, *routine_names]
+    if not names:
+        return
+    shown = ", ".join(names[:_DELIVERY_CARD_NAMES])
+    more = len(names) - _DELIVERY_CARD_NAMES
+    if current_locale() == "en":
+        body = f"Sent a workout: {shown}" + (f" and {more} more" if more > 0 else "")
+    else:
+        body = f"운동을 보냈어요: {shown}" + (f" 외 {more}개" if more > 0 else "")
+    send_message(
+        db,
+        trainer_id,
+        member_id,
+        "trainer",
+        body,
+        routine_delivery={
+            "kind": kind,
+            "program_names": list(program_names),
+            "routine_names": list(routine_names),
+        },
+        commit=False,
     )
 
 
@@ -1023,6 +1084,8 @@ def send_message(
     attachment_file_size: int | None = None,
     report_week_start: str | None = None,
     emote_id: str | None = None,
+    routine_delivery: dict[str, object] | None = None,
+    commit: bool = True,
 ) -> ChatMessageOut:
     """스레드에 메시지 추가(sender: 'trainer'|'member'). 로스터 last_message 는
     build_roster 가 최신 메시지를 읽어 자동 반영하므로 별도 비정규화가 없다.
@@ -1062,6 +1125,12 @@ def send_message(
         # 이모티콘 메시지(#2020). 본문은 이모티콘을 못 그리는 자리(알림·로스터의
         # 마지막 메시지)가 읽을 글이고, 그림은 이 id 가 고른다.
         emote_id=emote_id,
+        # 루틴 전송 안내(#2672) — 호출자가 정한다.
+        routine_delivery_json=(
+            json.dumps(routine_delivery, ensure_ascii=False)
+            if routine_delivery
+            else None
+        ),
         created_at=datetime.now(timezone.utc),
     )
     db.add(msg)
@@ -1079,7 +1148,8 @@ def send_message(
                 return _existing_message_out(existing, text=text, viewer=viewer)
         raise
 
-    if sender == "trainer":
+    # 전송 안내는 트레이너가 쓴 글이 아니다 — 일정 문구로 읽지 않는다.
+    if sender == "trainer" and routine_delivery is None:
         _schedule_from_chat(db, trainer_id, member_id, text, msg.created_at)
 
     if sender == "member":
@@ -1128,6 +1198,11 @@ def send_message(
                 else notification_service.MEMBER_COACH_CHAT
             ),
         )
+    # 다른 저장과 한 트랜잭션으로 묶는 호출자(루틴 전송 안내, #2672)는 커밋을
+    # 스스로 한다. 안내는 대화가 아니라 개인화 적재(RAG)에도 싣지 않는다.
+    if not commit:
+        db.flush()
+        return chat_message_out(msg, viewer)
     db.commit()
     db.refresh(msg)
     out = chat_message_out(msg, viewer)
@@ -1328,7 +1403,9 @@ def remove_client(db: Session, link: TrainerClient) -> None:
     담당이 끝나므로 회원의 PT 재등록 쿠폰을 취소하고 포인트를 돌려준다(#1787).
 
     트레이너가 끊어도 담당 해제는 데이터 공유 동의 철회다(#1631) — 동의를 비우고
-    철회 시각을 남긴다. 이미 주고받은 기록은 위와 같이 그대로 둔다.
+    철회 시각을 남긴다. 이미 주고받은 기록은 위와 같이 그대로 둔다. 회원 메모도
+    출처와 상관없이 남기고 `_require_client` 가 열람만 막는다(#2520) — 회원의 새
+    동의로 다시 이어져야 다시 보인다.
 
     아직 시작하지 않은 PT 는 취소하고(#2589), 회원에게는 해제 사실과 취소한
     일정 수를 알림 한 건으로 알린다 — 일정마다 알리면 반복 PT 수만큼 쏟아진다.
@@ -1387,7 +1464,16 @@ def restore_client(db: Session, link: TrainerClient) -> None:
         raise ClientLinkDetached("이미 다른 트레이너가 담당 중인 회원입니다.")
     link.active = True
     link.dormant = False
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # 위 조회와 커밋 사이에 다른 복구·담당 요청 수락이 먼저 들어왔다 —
+        # 회원당 활성 담당 1명 부분 유일 인덱스(`uq_trainer_client_active_member`)
+        # 에 걸린 것이다. 500 대신 조회로 막았을 때와 같은 409 로 옮긴다(#2911).
+        db.rollback()
+        raise ClientLinkDetached(
+            "이미 다른 트레이너가 담당 중인 회원입니다."
+        ) from None
 
 
 def set_client_active(
@@ -1612,9 +1698,14 @@ def build_routines(
                 )
             ).all()
         }
+    prefetch = _routine_prefetch(db, rows)
     return [
         _routine_out(
-            db, row, completed.get(row.id), include_evidence=not for_member
+            db,
+            row,
+            completed.get(row.id),
+            include_evidence=not for_member,
+            prefetch=prefetch,
         )
         for row in rows
     ]
@@ -1664,6 +1755,25 @@ def _owned_routine(
     if routine is None or (not include_ended and _has_ended(routine)):
         raise RoutineNotFound("루틴을 찾을 수 없습니다.")
     return routine
+
+
+def _routine_day(day: date | None) -> date:
+    """완료·되돌리기가 다룰 날. 비우면 오늘, 아직 오지 않은 날은 거절한다. (#2506)"""
+    today = clock.today()
+    if day is None:
+        return today
+    if day > today:
+        raise RoutineDayInFuture("아직 오지 않은 날입니다.")
+    return day
+
+
+def _active_on(routine: TrainerRoutine, day: date) -> bool:
+    """[routine] 이 [day] 에 회원 목록에 걸려 있었나 — [routine_active_on] 과 같은
+    규칙을 행 하나에 적용한다. (#2161, #2506)"""
+    iso = day.isoformat()
+    return routine.active_from <= iso and (
+        routine.ended_on is None or routine.ended_on > iso
+    )
 
 
 def _has_ended(routine: TrainerRoutine) -> bool:
@@ -1821,7 +1931,51 @@ def _member_goals(db: Session, member_id: str) -> str:
     )
 
 
-def _routine_effect(db: Session, rt: TrainerRoutine) -> str:
+@dataclass
+class _RoutineOutPrefetch:
+    """목록 응답에서 행마다 다시 읽던 회원 값을 한 번에 읽어 둔 것. (#2911)
+
+    [_routine_out] 은 행마다 회원 체중(예상 소모 칼로리)과 건강 목표(효과 문구)를
+    읽는다. 한 일정·한 회원의 목록인데 행 수만큼 같은 조회가 반복됐다. 목록
+    경로는 [_routine_prefetch] 로 회원별 값을 `IN (...)` 한 번씩 읽어 넘긴다.
+    같은 이름·유형·시간·강도·체중의 예상 칼로리도 한 번만 계산한다.
+    """
+
+    goals: dict[str, str]
+    weights: dict[str, float | None]
+    estimates: dict[tuple, Any]
+
+
+def _routine_prefetch(
+    db: Session, rows: Sequence[TrainerRoutine]
+) -> _RoutineOutPrefetch:
+    member_ids = sorted({rt.member_id for rt in rows if rt.member_id})
+    goals: dict[str, str] = {member_id: "" for member_id in member_ids}
+    weights: dict[str, float | None] = {member_id: None for member_id in member_ids}
+    if member_ids:
+        for user_id, conditions, weight_kg in db.execute(
+            select(
+                HealthProfile.user_id,
+                HealthProfile.conditions,
+                HealthProfile.weight_kg,
+            ).where(HealthProfile.user_id.in_(member_ids))
+        ).all():
+            goals[user_id] = conditions or ""
+            weights[user_id] = weight_kg
+    return _RoutineOutPrefetch(goals=goals, weights=weights, estimates={})
+
+
+def _routine_outs(
+    db: Session, rows: Sequence[TrainerRoutine]
+) -> list[RoutineOut]:
+    """여러 행의 응답 — 회원 값은 한 번만 읽는다(#2911)."""
+    prefetch = _routine_prefetch(db, rows)
+    return [_routine_out(db, rt, prefetch=prefetch) for rt in rows]
+
+
+def _routine_effect(
+    db: Session, rt: TrainerRoutine, goals: str | None = None
+) -> str:
     """배정 한 건의 효과 한 줄 — 적힌 값, 없으면 문구표. (#2570)
 
     저장은 트레이너가 적은 것만 한다. 자동 문구를 저장해 두지 않고 응답 때
@@ -1837,7 +1991,7 @@ def _routine_effect(db: Session, rt: TrainerRoutine) -> str:
     if len(draft_exercises(rt.exercises_json)) > 1:
         return ""
     return routine_effects.auto_routine_effect(
-        rt.type, _member_goals(db, rt.member_id)
+        rt.type, goals if goals is not None else _member_goals(db, rt.member_id)
     )
 
 
@@ -1847,6 +2001,7 @@ def _routine_out(
     completion: ExerciseSession | None = None,
     *,
     include_evidence: bool = True,
+    prefetch: _RoutineOutPrefetch | None = None,
 ) -> RoutineOut:
     """루틴 한 건의 응답.
 
@@ -1861,18 +2016,31 @@ def _routine_out(
     회원 앱과 같은 한 곳(`exercise_service.estimate`)을 쓴다.
     """
     intensity = getattr(rt, "intensity", None) or "moderate"
-    estimated = exercise_service.estimate(
-        db,
-        name=rt.name,
-        type_=rt.type,
-        minutes=rt.minutes,
-        intensity=intensity,
-        weight_kg=exercise_service.member_weight_kg(db, rt.member_id),
-        # 목록을 그릴 때마다 루틴 수만큼 외부 호출이 일어나면 트레이너 화면이
-        # 멈춘다. 이름 해석은 회원이 저장할 때 이미 캐시에 들어가므로, 여기서는
-        # 표 매칭과 캐시까지만 본다.
-        use_ai=False,
+    if prefetch is not None and rt.member_id in prefetch.weights:
+        weight_kg = prefetch.weights[rt.member_id]
+        goals: str | None = prefetch.goals[rt.member_id]
+    else:
+        weight_kg = exercise_service.member_weight_kg(db, rt.member_id)
+        goals = None
+    estimate_key = (rt.name, rt.type, rt.minutes, intensity, weight_kg)
+    estimated = (
+        prefetch.estimates.get(estimate_key) if prefetch is not None else None
     )
+    if estimated is None:
+        estimated = exercise_service.estimate(
+            db,
+            name=rt.name,
+            type_=rt.type,
+            minutes=rt.minutes,
+            intensity=intensity,
+            weight_kg=weight_kg,
+            # 목록을 그릴 때마다 루틴 수만큼 외부 호출이 일어나면 트레이너 화면이
+            # 멈춘다. 이름 해석은 회원이 저장할 때 이미 캐시에 들어가므로, 여기서는
+            # 표 매칭과 캐시까지만 본다.
+            use_ai=False,
+        )
+        if prefetch is not None:
+            prefetch.estimates[estimate_key] = estimated
     return RoutineOut(
         id=rt.id, name=rt.name, minutes=rt.minutes, type=rt.type,
         exercise_date=getattr(rt, "exercise_date", None),
@@ -1894,7 +2062,7 @@ def _routine_out(
             else ""
         ),
         source=rt.source,
-        effect=_routine_effect(db, rt),
+        effect=_routine_effect(db, rt, goals),
         program_name=rt.program_name,
         session_name=rt.session_name,
         session_order=rt.session_order,
@@ -2030,7 +2198,7 @@ def list_routine_suggestions(
         )
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.created_at)
     ).all()
-    return [_routine_out(db, row) for row in rows]
+    return _routine_outs(db, rows)
 
 
 def _pending_suggestion(
@@ -2127,6 +2295,10 @@ def approve_routine_suggestion(
             weight=row.weight,
         ),
     )
+    # 채팅에도 남긴다(#2672) — 알림은 지나가지만 대화는 남는 기록이다.
+    post_routine_delivery(
+        db, trainer_id, row.member_id, kind="routine", routine_names=[row.name]
+    )
     db.commit()
     db.refresh(row)
     return _routine_out(db, row)
@@ -2192,30 +2364,40 @@ def complete_assigned_routine(
     weight: float | None = None,
     intensity: str,
     duration_seconds: int | None = None,
+    day: date | None = None,
 ) -> RoutineCompleteOut:
-    """배정 하나를 **오늘의** 회원 운동 기록 한 건으로 완료한다.
+    """배정 하나를 [day](없으면 오늘)의 회원 운동 기록 한 건으로 완료한다.
 
     추천 개인운동은 매일 새로 체크하는 목록이라 같은 배정을 날마다 한 번씩
     완료한다(#2161). `(배정, 그날)` 유일 제약이 더블 탭·재전송을 같은 기록으로
     모은다. 이름은 스냅샷이라 이후 배정 수정·철회에 흔들리지 않는다.
 
-    지난 날짜는 완료할 수 없다 — 날짜를 받지 않고 늘 오늘로 적는다. 지난 날짜
-    화면은 그날 무엇을 했는지 보여 주는 읽기 전용이다.
+    **지난 날짜도 완료할 수 있다**(#2506) — 식단·직접 기록한 운동처럼 빠뜨린
+    체크를 나중에 한다. 그날 회원 목록에 걸려 있던 배정만 되고, 기록은 그날
+    정오에 놓인다. 실제로 누른 시각은 행의 `created_at` 에 남아 트레이너가
+    "다음 날 이후 체크" 를 가른다. 아직 오지 않은 날은 [RoutineDayInFuture] 다.
 
     포인트를 적립하고 그 결과를 응답에 싣는다(#1786). 재전송은
-    새로 적립하지 않고 처음 완료할 때 받은 값을 돌려준다.
+    새로 적립하지 않고 처음 완료할 때 받은 값을 돌려준다. 하루 한도는 **적립하는
+    날** 기준이라 지난 날짜를 몰아 체크해도 오늘 한 번만 받는다.
     """
-    routine = _owned_routine(db, trainer_id, member_id, routine_id)
+    target = _routine_day(day)
+    past = target != clock.today()
+    # 지난 날짜의 배정은 그 뒤에 내려왔을 수 있다 — 그날 걸려 있었는지로 본다.
+    routine = _owned_routine(
+        db, trainer_id, member_id, routine_id, include_ended=past
+    )
     # 승인되지 않은 후보는 회원에게 보이지도 않는다. id 를 알아내 직접 호출해도
     # 완료로 넘어가지 않게 여기서 막는다 — 조회만 거르면 경로가 하나 남는다(#790).
     if routine.status != ROUTINE_APPROVED:
         raise RoutineNotFound("루틴을 찾을 수 없습니다.")
-    completed_at = clock.now()
-    today = completed_at.date()
+    if past and not _active_on(routine, target):
+        raise RoutineNotFound("루틴을 찾을 수 없습니다.")
+    completed_at = exercise_activity.noon(target) if past else clock.now()
     existing = db.scalar(
         select(ExerciseSession).where(
             ExerciseSession.assigned_routine_id == routine_id,
-            *_completion_on(today),
+            *_completion_on(target),
         )
     )
     if existing is not None:
@@ -2250,8 +2432,8 @@ def complete_assigned_routine(
     row = ExerciseSession(
         id=f"assigned-ex-{uuid.uuid4().hex[:12]}",
         user_id=member_id,
-        week_start=exercise_service.monday_of_str(today.isoformat()),
-        day_label=exercise_service.weekday_label_of(today.isoformat()),
+        week_start=exercise_service.monday_of_str(target.isoformat()),
+        day_label=exercise_service.weekday_label_of(target.isoformat()),
         type=exercise_type,
         # 배정 이름이 곧 이 운동의 이름이다 — 회원이 따로 적지 않는다.
         name=routine.name,
@@ -2282,6 +2464,10 @@ def complete_assigned_routine(
         assigned_trainer_id=trainer_id,
         assigned_routine_name=routine.name,
         completed_at=completed_at,
+        # 실제로 누른 때 — 지난 날짜 체크면 `completed_at`(그날 정오)과 날이
+        # 갈린다(#2506). DB 시계가 아니라 서버 시계로 적어 `completed_at` 과
+        # 같은 기준으로 비교한다.
+        created_at=clock.now(),
     )
     db.add(row)
     try:
@@ -2300,7 +2486,7 @@ def complete_assigned_routine(
         existing = db.scalar(
             select(ExerciseSession).where(
                 ExerciseSession.assigned_routine_id == routine_id,
-                *_completion_on(today),
+                *_completion_on(target),
             )
         )
         if existing is None:
@@ -2352,17 +2538,20 @@ def uncomplete_assigned_routine(
     trainer_id: str | None,
     member_id: str,
     routine_id: str,
+    *,
+    day: date | None = None,
 ) -> RoutineOut:
-    """오늘의 완료 표시를 되돌린다 — 오늘 그 배정으로 만든 운동 기록을 지운다. (#1131)
+    """[day](없으면 오늘)의 완료 표시를 되돌린다 — 그날 그 배정으로 만든 운동
+    기록을 지운다. (#1131)
 
     회원이 체크를 잘못 눌렀을 때 되돌릴 방법이 없으면, 하지 않은 운동이 주간
     시간·칼로리에 영원히 남는다. 완료는 배정 하나당 하루 기록 하나라(#2161)
-    지울 대상도 하나다. 지난 날짜의 완료는 건드리지 않는다 — 지난 날짜 화면은
-    읽기 전용이다.
+    지울 대상도 하나다. 지난 날짜도 완료처럼 되돌릴 수 있다(#2506).
 
     아직 완료하지 않은 배정에 대해서는 아무 일도 하지 않고 현재 상태를 돌려준다 —
     같은 요청을 두 번 보내도 결과가 같다.
     """
+    target = _routine_day(day)
     # 오늘 철회된 배정이라도 오늘 남긴 완료는 되돌릴 수 있어야 한다.
     routine = _owned_routine(
         db, trainer_id, member_id, routine_id, include_ended=True
@@ -2371,7 +2560,7 @@ def uncomplete_assigned_routine(
         select(ExerciseSession).where(
             ExerciseSession.assigned_routine_id == routine_id,
             ExerciseSession.user_id == member_id,
-            *_completion_on(clock.today()),
+            *_completion_on(target),
         )
     )
     if row is None:
@@ -2548,6 +2737,9 @@ def assign_routine(
             duration_seconds=rt.duration_seconds,
         ),
     )
+    post_routine_delivery(  # 채팅 안내(#2672)
+        db, trainer_id, member_id, kind="routine", routine_names=[rt.name]
+    )
     db.commit()
     db.refresh(rt)
     return _routine_out(db, rt)
@@ -2627,8 +2819,13 @@ def assign_program(
     start_date: date | None = None,
     active_days: int | None = None,
     suggestion_ids: Sequence[str] = (),
+    chat_card: bool = True,
 ) -> list[RoutineOut]:
     """다중 세션 프로그램을 회원에게 배정한다. 세션 하나가 루틴 한 건이 된다. (#709)
+
+    보낸 일은 채팅에도 안내로 남긴다(#2672). [chat_card] 를 끄는 것은 이
+    배정을 더 큰 전송의 일부로 쓰는 호출자다 — PT 프로그램 보내기는 프로그램과
+    개인운동을 카드 하나로 남긴다.
 
     세션이 하나뿐이면 예전 단일 배정과 같은 모양이다 — 루틴 이름은 프로그램
     이름이고 `session_name` 이 비어 회원 화면에 없던 세션 라벨이 생기지 않는다.
@@ -2691,6 +2888,23 @@ def assign_program(
             if existing:
                 return [_routine_out(db, rt) for rt in existing]
         raise
+    if chat_card:
+        exercise_names = [
+            exercise.name
+            for session in sessions
+            for exercise in session.exercises
+            if exercise.name
+        ]
+        if delivery_kind == DELIVERY_ROUTINE_ONLY:
+            post_routine_delivery(
+                db, trainer_id, member_id,
+                kind=DELIVERY_ROUTINE_ONLY, routine_names=exercise_names,
+            )
+        else:
+            post_routine_delivery(
+                db, trainer_id, member_id,
+                kind=delivery_kind or "program", program_names=exercise_names,
+            )
     db.commit()
     for rt in created:
         db.refresh(rt)
@@ -2874,6 +3088,10 @@ class MemoNotFound(Exception):
     """그 트레이너·회원 쌍에 그 id 의 메모가 없다(라우터가 404 로 변환)."""
 
 
+class MemoCategoryLocked(Exception):
+    """직접 쓴 메모가 아니라 분류를 바꿀 수 없다(라우터가 400 으로 변환). (#2622)"""
+
+
 def _memo_out(memo: TrainerClientMemo) -> TrainerMemoOut:
     return TrainerMemoOut(
         id=memo.id,
@@ -2885,6 +3103,7 @@ def _memo_out(memo: TrainerClientMemo) -> TrainerMemoOut:
         ref_id=memo.ref_id,
         ref_date=memo.ref_date,
         ref_name=memo.ref_name or "",
+        category=memo.category or "",
         created_at=memo.created_at,
         updated_at=memo.updated_at,
     )
@@ -3008,6 +3227,7 @@ def create_memo(
     body: str, source: str = "trainer",
     insight_id: str | None = None, insight_kind: str = "",
     ref_id: str | None = None, ref_date: date | None = None,
+    category: str = "",
 ) -> TrainerMemoOut:
     """회원 메모를 남긴다.
 
@@ -3018,6 +3238,9 @@ def create_memo(
     운동 기록 메모(`exercise_memo`)는 [ref_id]·[ref_date] 로 가리킨 기록을 찾아
     출처 표시 값을 채운다. 한 기록에 메모를 여러 개 남길 수 있다 — 직접 쓴
     메모와 같은 규칙이다.
+
+    분류(#2622)는 직접 쓴 메모가 고른 값을 그대로 두고, 운동 기록 메모는 늘
+    `exercise`, 채팅 감지 메모는 비운다 — 출처가 이미 무엇에 대한 메모인지 말한다.
     """
     if insight_id:
         existing = find_memo_by_insight(db, trainer_id, member_id, insight_id)
@@ -3043,6 +3266,7 @@ def create_memo(
         ref_id=ref.ref_id if ref else None,
         ref_date=ref.day if ref else None,
         ref_name=ref.name if ref else "",
+        category=_memo_category(source, category),
         created_at=now,
         updated_at=now,
     )
@@ -3084,11 +3308,28 @@ def _owned_memo(
     return memo
 
 
+def _memo_category(source: str, category: str) -> str:
+    """저장할 분류 — 출처가 정하는 분류가 있으면 그것을 쓴다. (#2622)"""
+    if source == "exercise_memo":
+        return "exercise"
+    if source == "chat_insight":
+        return ""
+    return category
+
+
 def update_memo(
     db: Session, trainer_id: str, member_id: str, memo_id: str, fields: dict
 ) -> TrainerMemoOut:
-    """메모 본문을 고친다. 출처(`source`/`insight_id`)는 그대로 둔다."""
+    """메모 본문과 분류를 고친다. 출처(`source`/`insight_id`)는 그대로 둔다.
+
+    분류는 직접 쓴 메모만 바꾼다(#2622). 다른 출처는 출처가 분류를 정하므로
+    같은 값을 다시 보내는 것만 받는다 — 수정 창이 지금 값을 싣고 와도 된다.
+    """
     memo = _owned_memo(db, trainer_id, member_id, memo_id)
+    if "category" in fields and fields["category"] != (memo.category or ""):
+        if memo.source != "trainer":
+            raise MemoCategoryLocked("직접 쓴 메모만 분류를 바꿀 수 있습니다.")
+        memo.category = fields["category"]
     if "body" in fields:
         memo.body = fields["body"]
     memo.updated_at = datetime.now(timezone.utc)
@@ -4557,6 +4798,9 @@ class AttachTargetConflict(Exception):
     후보가 아니다. 라우터가 409 와 함께 후보를 싣는다.
     """
 
+    #: 409 `detail.code` — 객체 `detail` 은 모두 `code` 를 단다(#2911).
+    code = "attach_target_conflict"
+
     def __init__(self, message: str, candidates: Sequence[TrainerSchedule]):
         super().__init__(message)
         self.candidates = [_schedule_out(s) for s in candidates]
@@ -4825,7 +5069,7 @@ def latest_delivery(
         kind=kind,
         sent_on=date.fromisoformat(sent_on) if sent_on else None,
         session=_schedule_out(session) if session is not None else None,
-        routines=[_routine_out(db, r) for r in personal],
+        routines=_routine_outs(db, personal),
     )
 
 
@@ -4857,11 +5101,12 @@ def unsent_personal_routines(
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
     ).all()
     out: list[RoutineOut] = []
+    prefetch = _routine_prefetch(db, [row for row, _ in rows])
     for row, schedule_date in rows:
         # 보내는 자리는 스케줄 탭의 그 일정 상세다. 날짜를 함께 줘야 그 주를
         # 열 수 있다 — 일정 id 만으로는 이번 주에서 찾지 못한다. (#2225)
         out.append(
-            _routine_out(db, row).model_copy(
+            _routine_out(db, row, prefetch=prefetch).model_copy(
                 update={"schedule_date": schedule_date}
             )
         )
@@ -4895,7 +5140,8 @@ def list_scheduled_routines(
         )
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
     ).all()
-    return [_routine_out(db, row) for row in rows]
+    # 한 일정의 개인운동은 한 회원의 것이다 — 회원 값은 한 번만 읽는다(#2911).
+    return _routine_outs(db, rows)
 
 
 #: PT 완료로 보낸 개인운동이 회원 목록에 걸려 있는 날 수 — 보낸 날을 1일로 센다.
@@ -5106,8 +5352,13 @@ def send_scheduled_routines(
         else DELIVERY_PT_WITH_ROUTINE
     )
     sent = _send_scheduled_routines(db, trainer_id, s, delivery_kind=kind)
+    if s.member_id:
+        post_routine_delivery(  # 채팅 안내(#2672)
+            db, trainer_id, s.member_id,
+            kind=kind, routine_names=[row.name for row in sent],
+        )
     db.commit()
-    return [_routine_out(db, row) for row in sent]
+    return _routine_outs(db, sent)
 
 
 def _rewrite_scheduled_routines(
@@ -5989,6 +6240,8 @@ def send_session_program(
             name=f"{s.date} {s.type}".strip() or s.date,
             sessions=[ProgramDraftSession(id=s.id, name="", exercises=exercises)],
             client_request_id=client_request_id,
+            # 아래에서 개인운동과 함께 카드 하나로 남긴다(#2672).
+            chat_card=False,
         )
     # 개인운동은 **이 전송에 함께 실린다**(#2224) — 회원은 "오늘 한 것" 과
     # "혼자 할 것" 을 한 번에 받는다. 프로그램과 같은 트랜잭션이라 둘 다
@@ -5998,8 +6251,15 @@ def send_session_program(
     # **붙은 것이 없어도 막지 않는다.** 개인운동을 필수로 받는 자리는 프로그램
     # 만들기다(#2223) — 스케줄에서 연필로 바로 짠 프로그램에는 붙을 자리가
     # 없어, 여기서 막으면 그 길로 짠 프로그램을 보낼 수 없게 된다.
-    _send_scheduled_routines(
+    routines_sent = _send_scheduled_routines(
         db, trainer_id, s, delivery_kind=DELIVERY_PT_WITH_ROUTINE
+    )
+    # 프로그램과 함께 간 개인운동을 채팅 안내 하나로 남긴다(#2672).
+    post_routine_delivery(
+        db, trainer_id, s.member_id,
+        kind=DELIVERY_PT_WITH_ROUTINE,
+        program_names=[item.name for item in items if item.name],
+        routine_names=[row.name for row in routines_sent],
     )
     # 배정이 커밋된 뒤에만 보낸 것으로 남긴다. 반대 순서면 배정에 실패한 세션이
     # 화면에서 '전송됨' 이 되어 다시 보낼 수 없다.
