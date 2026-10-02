@@ -845,6 +845,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'That code is wrong or expired. Ask the member for a new one';
 
   @override
+  String get clientConnectAlreadyManaged =>
+      'You already manage this member. Find them in your member list';
+
+  @override
   String get clientInviteConnectAction => 'Register member';
 
   @override
@@ -973,6 +977,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientDietDayTotal => 'Day total';
+
+  @override
+  String get clientDietDayMealsFailed => 'Couldn\'t load this day\'s meals';
 
   @override
   String clientDietTotalCalories(String calories) {
@@ -4030,6 +4037,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get workoutMemberLogTitle => 'Logged by member';
+
+  @override
+  String get workoutDayExercisesFailed => 'Couldn\'t load this day\'s workouts';
 
   @override
   String get workoutPendingCancel => 'Cancel assignment';

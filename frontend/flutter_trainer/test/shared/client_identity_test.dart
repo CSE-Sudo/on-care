@@ -38,11 +38,11 @@ void main() {
       tester.widget<Text>(find.text(data));
 
   testWidgets('밀도가 이름 글씨·아바타 크기를 정한다', (tester) async {
+    // 성별·나이를 모두 모르면 그 글자를 그리지 않으므로(#2870) 성별을 준다.
     final TrainerClient client = makeClient(
       name: '가회원',
       goal: goal,
       gender: 'female',
-      age: 29,
     );
     for (final ClientRowDensity density in ClientRowDensity.values) {
       await pumpBlock(tester, ClientRow(client: client, density: density));
@@ -112,8 +112,9 @@ void main() {
     expect(find.text('남성'), findsOneWidget);
   });
 
+  // 줄 수를 세는 테스트라 성별을 준다 — 성별·나이를 모두 모르면 그 글자는
+  // 그리지 않는다(#2870).
   testWidgets('둘째 줄은 바꾸거나 숨길 수 있고, 비면 줄을 만들지 않는다', (tester) async {
-    // 이름·성별/나이·둘째 줄을 센다 — 성별·나이가 빈 회원은 그 칸이 따로 빠진다(#2814).
     await pumpBlock(
       tester,
       Column(
@@ -125,7 +126,6 @@ void main() {
               name: '가회원',
               goal: goal,
               gender: 'female',
-              age: 29,
             ),
             detail: '9월 28일 전송',
           ),
@@ -135,8 +135,7 @@ void main() {
               id: 'b',
               name: '나회원',
               goal: goal,
-              gender: 'female',
-              age: 29,
+              gender: 'male',
             ),
             showDetail: false,
           ),
@@ -147,7 +146,6 @@ void main() {
               name: '다회원',
               goal: '',
               gender: 'female',
-              age: 29,
             ),
           ),
         ],

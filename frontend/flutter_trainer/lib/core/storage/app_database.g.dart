@@ -797,9 +797,8 @@ class TrainerClientRow extends DataClass
 
   /// 회원이 자기 프로필에 등록한 성별(`male`/`female`/`other`). 트레이너가
   /// 신규 등록 시 입력하는 값이 아니다 — 회원 ID로 연결할 때 회원의 실제
-  /// 프로필에서 그대로 옮겨 온다. 비어 있으면 [TrainerClient.rosterGender] 가
-  /// 예전 행을 위한 표시용 폴백을 쓴다(#960) — 새로 연결되는 회원은 이 값이
-  /// 항상 채워지므로 폴백을 타지 않는다.
+  /// 프로필에서 그대로 옮겨 온다. 비어 있으면(회원이 성별을 적지 않았다)
+  /// [TrainerClient.rosterGender] 도 비고, 화면은 성별을 적지 않는다(#2870).
   final String? gender;
 
   /// 회원의 실제 나이 — 연결 시점에 회원 프로필의 생년월일로 계산해 저장한다.

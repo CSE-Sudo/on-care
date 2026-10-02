@@ -821,6 +821,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientConnectCodeInvalid => '코드가 맞지 않거나 만료됐어요. 회원에게 새 코드를 받아 주세요';
 
   @override
+  String get clientConnectAlreadyManaged => '이미 담당하고 있는 회원이에요. 회원 목록에서 찾아 주세요';
+
+  @override
   String get clientInviteConnectAction => '회원 등록';
 
   @override
@@ -943,6 +946,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get clientDietDayTotal => '하루 합계';
+
+  @override
+  String get clientDietDayMealsFailed => '끼니 기록을 불러오지 못했어요';
 
   @override
   String clientDietTotalCalories(String calories) {
@@ -3830,6 +3836,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get workoutMemberLogTitle => '직접 기록';
+
+  @override
+  String get workoutDayExercisesFailed => '운동 기록을 불러오지 못했어요';
 
   @override
   String get workoutPendingCancel => '배정 취소';
