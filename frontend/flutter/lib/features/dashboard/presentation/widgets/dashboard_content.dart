@@ -789,7 +789,7 @@ Map<String, _RecMeal> _recMealsByKey(AppLocalizations l) => <String, _RecMeal>{
     l.homeMealTagHighProtein,
   ),
   'tofu': _RecMeal(
-    'assets/images/rec-tofu-broccoli.png',
+    'assets/images/rec-tofu-broccoli.jpg',
     '🥦',
     l.homeMealTofu,
     l.homeMealReasonLowCal,
