@@ -199,6 +199,9 @@ class MemberHealthProfileOut(BaseModel):
     daily_sugar_g: int | None = None
     daily_carbs_g: int | None = None
     daily_protein_g: int | None = None
+    #: 식단 분석이 실제로 쓰는 하루 단백질 목표(#2898) — 개인 목표 → 체중 × 1.2g
+    #: → 60g. 영양 요약 카드 분모가 이 값이다.
+    effective_daily_protein_g: int | None = None
     daily_fat_g: int | None = None
     #: 운동 탭이 실제로 견주는 목표 (#1139) — 회원 앱 마이페이지가 쓰는 값이다.
     #: 트레이너 화면도 같은 필드를 읽고 저장해야 한 쪽에서 고친 목표가 다른
@@ -2045,6 +2048,10 @@ class WeeklyReportOut(BaseModel):
     sugar_target: float | None = None
     carbs_target: float | None = None
     protein_target: float | None = None
+    #: 개인 단백질 목표가 없어도 채워지는 실효 목표(#2898) — 식단 분석과 같은
+    #: 규칙(개인 목표 → 체중 × 1.2g → 60g). 리포트 막대 분모가 이 값이다.
+    #: `protein_target` 은 '이 회원의 목표'와 기본값을 가르려고 그대로 둔다.
+    effective_protein_target: float | None = None
     fat_target: float | None = None
     #: 월→일 7칸. 이행률과 함께 그날의 운동 내역을 담는다(#754).
     days: list[WeeklyReportDayOut] = Field(default_factory=list)

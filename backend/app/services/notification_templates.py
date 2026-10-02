@@ -602,6 +602,11 @@ _COUPON_CANCELLED_TITLE: dict[str, tuple[str, str]] = {
 _COUPON_CANCEL_REASON: dict[str, tuple[str, str]] = {
     "trainer": ("담당 트레이너 연결이 해제되어", "your trainer connection ended"),
     "gym": ("헬스장 연결이 해제되어", "your gym connection ended"),
+    # 헬스장 혜택 제공을 멈춤(#2822) — `scripts/cancel_gym_benefit_coupons.py`.
+    "service": (
+        "헬스장 혜택 제공을 잠시 멈추게 되어",
+        "gym benefits are paused for now",
+    ),
 }
 
 

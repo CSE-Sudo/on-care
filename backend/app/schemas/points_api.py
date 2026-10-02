@@ -51,6 +51,9 @@ class PointsShopOut(BaseModel):
     balance: int
     has_trainer: bool
     has_gym: bool
+    #: 헬스장 현장 혜택(PT 재등록·락커·분석용 식판)을 여는 서버인가(#2822). 거짓이면
+    #: `items` 에 두 항목이 없고, 앱은 식판 카드도 내린다.
+    gym_benefits_enabled: bool = True
     items: list[ShopItemOut]
 
 

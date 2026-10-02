@@ -432,6 +432,9 @@ class DriftClientRepository implements ClientRepository {
       weightKg: (saved['weight_kg'] as num?)?.toDouble(),
       // 성별은 로스터가 이미 말하고 있는 값을 따른다. 고정 'male' 을 두던
       // 시절에는 헤더가 '여성'인 회원의 대화상자가 '남성'으로 열렸다(#818).
+      // 로스터는 저장된 성별만 말한다 — 없으면 빈 값이라 대화상자가 `선택 안
+      // 함` 으로 열린다. 예전에는 id 로 지어낸 성별이 여기 채워져, 트레이너가
+      // 그대로 저장하면 지어낸 값이 실제 값으로 굳었다(#2870).
       gender: saved['gender'] as String? ?? _toEntity(row).rosterGender,
       // 저장한 적이 없으면 로스터 목표에서 건강 목표를 읽는다(#1818).
       conditions:
@@ -961,14 +964,10 @@ class DriftClientRepository implements ClientRepository {
   }
 
   /// 회원 목표 → 규칙이 쓰는 하루 목표. 서버 `diet_coach_inputs.targets_of` 와 같은
-  /// 순서(목표 → 체중 × 1.2g)다. 둘 다 없으면 데모 회원의 목표 [_demoProteinG] 다.
+  /// 순서(목표 → 체중 × 1.2g → 60g)다 — 영양 요약 카드와 같은 분모다(#2898).
   DietRuleTargets _dietTargets(MemberHealthProfile p) => (
     calories: p.dailyCalories ?? 2000,
-    proteinG:
-        p.dailyProteinG ??
-        (p.weightKg != null && p.weightKg! > 0
-            ? pyRound(p.weightKg! * 1.2)
-            : _demoProteinG),
+    proteinG: p.effectiveDailyProteinG,
     sodiumMg: p.dailySodiumMg ?? sodiumTargetMg,
     sugarG: p.dailySugarG ?? sugarTargetG,
   );
@@ -1032,11 +1031,6 @@ class DriftClientRepository implements ClientRepository {
     carbsG: e.carbsG,
     fatG: e.fatG,
   );
-
-  /// 데모 회원의 하루 단백질 목표. 같은 화면의 영양 요약 카드(`proteinTargetG`)·
-  /// 회원 앱 목 프로필·백엔드 시드(`daily_protein_g: 100`)와 같다 — 서버 기본값(60g)을
-  /// 쓰면 요약 카드는 `/ 100g` 인데 분석은 목표를 채웠다고 말한다.
-  static const int _demoProteinG = 100;
 
   static String _demoPickKey(String clientId) => 'demo_diet_pick:$clientId';
 
@@ -1454,7 +1448,8 @@ TrainerClient trainerClientFromRow(
     // 데모의 PT 관리 신호 — 서버 로스터와 같은 JSON 모양으로 저장한다(#2204).
     signals: clientSignalsFromJson(jsonDecode(row.signalsJson)),
     // 회원 ID로 연결한 고객만 채워진다 — 회원 본인의 실제 프로필 값이다.
-    // 성별·나이가 비어 있으면 화면이 적지 않는다(#2744·#2814).
+    // 성별·나이가 비어 있으면 화면은 그 값을 적지 않는다 — 지어내지
+    // 않는다(#2744, #2814, #2870).
     gender: registered ? row.gender ?? '' : '',
     age: registered ? row.age : null,
   );

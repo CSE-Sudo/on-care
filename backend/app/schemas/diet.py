@@ -13,6 +13,12 @@ from pydantic import BaseModel, Field
 
 class RecognizedFood(BaseModel):
     name: str = Field(..., description="음식 이름(한국어)")
+    # 화면 언어로 된 표시 이름(#2850). `name` 은 공공 영양 DB 가 한국어로 매칭하는
+    # 키라 그대로 두고, 영어 화면에서 분석한 음식에만 영어 이름을 함께 싣는다.
+    # 없으면 앱이 `name` 을 보인다(한국어 화면·수기 입력·이 필드 이전 기록).
+    display_name: Optional[str] = Field(
+        None, max_length=80, description="화면 언어 표시 이름"
+    )
     calories: Optional[int] = Field(None, description="칼로리 kcal")
     carbs_g: Optional[float] = Field(
         None, ge=0, allow_inf_nan=False, description="탄수화물 g"

@@ -7,7 +7,9 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
+import 'package:oncare_trainer/features/my/presentation/pages/legal_document_page.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -15,6 +17,7 @@ import '../../helpers/pump_app.dart';
 class _RecordingAuthRepository implements TrainerAuthRepository {
   String? email;
   String? name;
+  List<String>? consents;
   int registerCalls = 0;
 
   /// 가입이 거절될 때 던질 실패. 비밀번호 기준(#1555) 거절을 흉내 낸다.
@@ -36,8 +39,10 @@ class _RecordingAuthRepository implements TrainerAuthRepository {
     required String email,
     required String password,
     required String name,
+    List<String>? consents,
   }) async {
     registerCalls++;
+    this.consents = consents;
     this.email = email;
     this.name = name;
     if (error != null) throw error!;
@@ -141,13 +146,40 @@ Future<void> _type(
   await tester.pump();
 }
 
+/// 필수 동의가 하나라도 꺼져 있으면 전체 동의를 누른다(#2819) — 필수 동의
+/// 없이는 가입 버튼이 꺼져 있어, 이 묶음의 형식 검사까지 닿지 않는다. 필수를
+/// 이미 다 켠 테스트의 선택 항목은 건드리지 않는다.
+Future<void> _agreeAll(WidgetTester tester) async {
+  bool on(String id) => tester
+      .widget<Checkbox>(
+        find.descendant(
+          of: find.byKey(ValueKey<String>('consent-$id')),
+          matching: find.byType(Checkbox),
+        ),
+      )
+      .value!;
+  if (<String>['terms', 'privacy', 'age14'].every(on)) return;
+  final Finder all = find.byKey(const ValueKey<String>('consent-all'));
+  await tester.ensureVisible(all);
+  await tester.pump();
+  await tester.tap(all);
+  await tester.pump();
+}
+
 /// 오류 문구가 늘어 버튼이 화면 밖으로 밀려도 누를 수 있게 끌어온다.
+///
+/// 동의 묶음까지 들어가 가입 화면이 테스트 창보다 길다. 방금 친 칸에 초점이
+/// 남아 있으면 그 칸이 커서를 보이려고 스크롤을 되돌리는 동안 화면이 누름을
+/// 받지 않으므로, 초점을 먼저 거두고 스크롤이 멎은 뒤에 누른다.
 Future<void> _submit(WidgetTester tester) async {
+  await _agreeAll(tester);
+  FocusManager.instance.primaryFocus?.unfocus();
+  await settle(tester);
   final Finder submit = find.byKey(
     const ValueKey<String>('trainer-signup-submit'),
   );
   await tester.ensureVisible(submit);
-  await tester.pump();
+  await settle(tester);
   await tester.tap(submit);
   await settle(tester);
 }
@@ -155,6 +187,11 @@ Future<void> _submit(WidgetTester tester) async {
 /// [key] 칸 **안에**(입력창 아래 오류 자리) [message] 가 그려졌는가.
 Finder _errorUnder(ValueKey<String> key, String message) =>
     find.descendant(of: find.byKey(key), matching: find.text(message));
+
+/// 지금 열려 있는 문서. 주소가 아니라 화면을 본다 — `push` 로 쌓은 라우트는
+/// 라우터가 아래 화면의 주소를 그대로 들고 있어 URL 로는 구분되지 않는다.
+String? _shownDocument(WidgetTester tester) =>
+    tester.widget<LegalDocumentPage>(find.byType(LegalDocumentPage)).document;
 
 void main() {
   testWidgets('가입 화면에 초대 코드 입력이 없다', (WidgetTester tester) async {
@@ -351,10 +388,116 @@ void main() {
   testWidgets('데모에서도 같은 칸으로 가입이 진행된다', (WidgetTester tester) async {
     final repo = await _pumpSignUp(tester, demo: true);
     await _fill(tester);
+    await _agreeAll(tester);
 
     await tester.tap(find.text('가입하고 시작하기'));
     await settle(tester);
 
     expect(repo.registerCalls, 1);
+  });
+
+  // --- 가입 동의 (#2819) ---------------------------------------------------
+
+  bool submitEnabled(WidgetTester tester) =>
+      tester
+          .widget<AppButton>(
+            find.byKey(const ValueKey<String>('trainer-signup-submit')),
+          )
+          .onPressed !=
+      null;
+
+  Future<void> tapKey(WidgetTester tester, String key) async {
+    final Finder target = find.byKey(ValueKey<String>(key));
+    await tester.ensureVisible(target);
+    await tester.pump();
+    await tester.tap(target);
+    await tester.pump();
+  }
+
+  testWidgets('간주 동의 문구 대신 항목마다 체크가 있다 — 건강정보 항목은 없다', (
+    WidgetTester tester,
+  ) async {
+    await _pumpSignUp(tester);
+
+    expect(find.text('가입하면 아래 문서에 동의하는 것으로 봅니다'), findsNothing);
+    expect(find.text('전체 동의'), findsOneWidget);
+    expect(find.text('[필수] 이용약관 동의'), findsOneWidget);
+    expect(find.text('[필수] 개인정보 수집·이용 동의'), findsOneWidget);
+    expect(find.text('[필수] 만 14세 이상이에요'), findsOneWidget);
+    expect(find.text('[선택] 마케팅 알림 수신'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('consent-health')), findsNothing);
+  });
+
+  testWidgets('필수 동의 전에는 가입 버튼이 꺼져 있어 보내지 않는다', (WidgetTester tester) async {
+    final repo = await _pumpSignUp(tester);
+    await _fill(tester);
+
+    expect(submitEnabled(tester), isFalse);
+    expect(
+      find.byKey(const ValueKey<String>('consent-required-hint')),
+      findsOneWidget,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('trainer-signup-submit')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('trainer-signup-submit')),
+    );
+    await tester.pump();
+    expect(repo.registerCalls, 0);
+  });
+
+  testWidgets('전체 동의는 켜고 끄며, 필수를 하나라도 끄면 버튼이 꺼진다', (WidgetTester tester) async {
+    await _pumpSignUp(tester);
+
+    await tapKey(tester, 'consent-all');
+    expect(submitEnabled(tester), isTrue);
+
+    await tapKey(tester, 'consent-marketing');
+    expect(submitEnabled(tester), isTrue, reason: '마케팅은 선택이다');
+
+    for (final String id in <String>['terms', 'privacy', 'age14']) {
+      await tapKey(tester, 'consent-$id');
+      expect(submitEnabled(tester), isFalse, reason: id);
+      await tapKey(tester, 'consent-$id');
+    }
+
+    await tapKey(tester, 'consent-all'); // 일부만 켜져 있으면 전부 켠다
+    await tapKey(tester, 'consent-all'); // 전부 켜져 있으면 전부 끈다
+    expect(submitEnabled(tester), isFalse);
+  });
+
+  testWidgets('체크한 항목을 화면 순서대로 가입 요청에 싣는다', (WidgetTester tester) async {
+    final repo = await _pumpSignUp(tester);
+    await _fill(tester);
+    for (final String id in <String>['age14', 'privacy', 'terms']) {
+      await tapKey(tester, 'consent-$id');
+    }
+
+    await _submit(tester);
+
+    expect(repo.registerCalls, 1);
+    expect(repo.consents, <String>['terms', 'privacy', 'age14']);
+  });
+
+  testWidgets('처리방침 보기는 문서를 열고, 돌아오면 체크가 그대로다', (WidgetTester tester) async {
+    await _pumpSignUp(tester);
+    await tapKey(tester, 'consent-terms');
+
+    await tapKey(tester, 'consent-view-privacy');
+    await settle(tester);
+    expect(_shownDocument(tester), AppRoutes.legalPrivacy);
+
+    await tester.tap(find.byTooltip('뒤로'));
+    await settle(tester);
+    expect(find.byType(LegalDocumentPage), findsNothing);
+    expect(currentLocation(tester), AppRoutes.signUp);
+    final Checkbox terms = tester.widget<Checkbox>(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('consent-terms')),
+        matching: find.byType(Checkbox),
+      ),
+    );
+    expect(terms.value, isTrue);
   });
 }

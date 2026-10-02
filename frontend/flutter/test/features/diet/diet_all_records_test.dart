@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/features/diet/domain/entities/diet_period.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
+import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 
 import '../../helpers/fake_diet_repository.dart';
@@ -99,6 +100,64 @@ void main() {
       expect(
         exerciseAllPeriodWeeks(DateTime(2026, 9, 15), DateTime(2026, 9, 17)),
         1,
+      );
+    });
+  });
+
+  // 서버 기간 집계와 같은 상한(#2833) — 날짜가 잘못 들어간 옛 기록 하나가 그래프를
+  // 수십만 칸으로 늘리지 않는다.
+  group('`전체` 구간 상한(#2833)', () {
+    test('식단은 오늘에서 거슬러 1100일까지다', () {
+      final DietDateRange r = dietRangeForTab(
+        DietPeriodTab.month,
+        DateTime(2026, 9, 17),
+        firstRecord: DateTime(1970),
+      );
+
+      expect(r.from, DateTime(2026, 9, 17 - (kDietAllPeriodMaxDays - 1)));
+      expect(r.to, DateTime(2026, 9, 17));
+      expect(dietRangeDates(r), hasLength(kDietAllPeriodMaxDays));
+    });
+
+    test('상한에 딱 맞는 첫 기록일은 그대로다', () {
+      final DateTime first = DateTime(
+        2026,
+        9,
+        17 - (kDietAllPeriodMaxDays - 1),
+      );
+      final DietDateRange r = dietRangeForTab(
+        DietPeriodTab.month,
+        DateTime(2026, 9, 17),
+        firstRecord: first,
+      );
+
+      expect(r.from, first);
+    });
+
+    test('운동은 160주까지다', () {
+      expect(
+        exerciseAllPeriodWeeks(DateTime(1970), DateTime(2026, 9, 17)),
+        kExerciseMaxPeriodWeeks,
+      );
+    });
+
+    test('상한 안쪽의 주 수는 그대로다', () {
+      // 2026-09-14(월)에서 159주 전 월요일.
+      final DateTime firstMonday = DateTime(
+        2026,
+        9,
+        14 - (kExerciseMaxPeriodWeeks - 1) * 7,
+      );
+      expect(
+        exerciseAllPeriodWeeks(firstMonday, DateTime(2026, 9, 17)),
+        kExerciseMaxPeriodWeeks,
+      );
+      expect(
+        exerciseAllPeriodWeeks(
+          DateTime(firstMonday.year, firstMonday.month, firstMonday.day + 7),
+          DateTime(2026, 9, 17),
+        ),
+        kExerciseMaxPeriodWeeks - 1,
       );
     });
   });

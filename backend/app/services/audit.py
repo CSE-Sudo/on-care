@@ -20,11 +20,15 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta
 
-from fastapi import Request
 from sqlalchemy import and_, delete, or_, select
 from sqlalchemy.orm import Session
 
 from app.core import clock
+
+# 감사 로그 IP 는 rate limit 과 **같은 함수**로 읽는다(#2815). 예전에는 여기서
+# `X-Forwarded-For` 첫 값(요청자가 쓴 값)을 그대로 적어 로그인 기록 IP 를 위조할 수
+# 있었다. 호출부가 `audit.client_ip` 로 부르므로 이름을 그대로 내보낸다.
+from app.core.client_ip import client_ip  # noqa: F401
 from app.core.config import get_settings
 from app.models.models import AuditLog
 
@@ -46,14 +50,6 @@ PASSWORD_CHANGE = "auth.password_change"
 SENSITIVE_EVENTS: frozenset[str] = frozenset(
     {CLIENT_READ, CONSENT_GRANT, CONSENT_REVOKE, ACCOUNT_WITHDRAW}
 )
-
-
-def client_ip(request: Request) -> str:
-    """클라이언트 IP. 프록시 뒤면 X-Forwarded-For 첫 IP 사용."""
-    xff = request.headers.get("x-forwarded-for")
-    if xff:
-        return xff.split(",")[0].strip()[:64]
-    return (request.client.host if request.client else "")[:64]
 
 
 def _entry(

@@ -113,10 +113,10 @@ void main() {
     const sinchonLat = 37.5559;
     const sinchonLng = 126.9368;
     const expected = <String, int>{
-      '휘트니스에이든': 126,
-      '빌드업짐 PT 신촌점': 133,
-      '신인규피티스튜디오': 177,
-      '하이핏': 186,
+      '온케어 핏스튜디오': 126,
+      '온케어 PT랩': 133,
+      '온케어 1:1 스튜디오': 177,
+      '온케어 무브랩': 186,
     };
 
     final res = await dio.get<List<Object?>>(
