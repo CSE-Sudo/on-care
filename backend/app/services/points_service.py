@@ -347,7 +347,11 @@ def _live_delta(db: Session, earned: PointsLedger) -> int:
 
 
 def _live_awards_on(db: Session, user_id: str, reason: str, day: str) -> int:
-    """그날 [reason] 으로 받은 적립 중 회수되지 않은 건수."""
+    """그날 [reason] 으로 받은 적립 중 전액 회수되지 않은 건수. (#3084)
+
+    잔액이 모자라 0P·일부만 회수된 적립은 한도 한 칸을 계속 차지한다 — 받은
+    포인트를 먼저 쓰고 기록을 지웠다 다시 남기는 반복으로 한도를 넘지 못하게.
+    """
     revoked = aliased(PointsLedger)
     still_live = ~(
         select(revoked.id)
@@ -356,6 +360,7 @@ def _live_awards_on(db: Session, user_id: str, reason: str, day: str) -> int:
             revoked.kind == REVOKE,
             revoked.source_type == PointsLedger.source_type,
             revoked.source_id == PointsLedger.source_id,
+            revoked.delta == -PointsLedger.delta,
         )
         .exists()
     )
