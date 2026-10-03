@@ -5,12 +5,15 @@
 ///  * 실패하면 실패 안내와 `다시 시도` 버튼이 선다.
 ///  * 버튼을 누르면 요약을 다시 묻고, 성공하면 요약 본문으로 바뀐다.
 ///  * 성공한 카드에는 `다시 시도` 가 없다(그 자리는 `다시 생성` 이다).
+///  * 오늘 AI 몫을 다 쓴 실패(429 `daily_limit`, #3032)는 다시 시도 버튼 없이
+///    하루 한도만 알린다 — 눌러도 오늘은 같은 결과다.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
+import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
@@ -45,6 +48,7 @@ void main() {
     WidgetTester tester, {
     required int failures,
     Locale locale = const Locale('ko'),
+    Object Function()? failure,
   }) async {
     final List<int> calls = <int>[];
     await tester.pumpWidget(
@@ -53,7 +57,7 @@ void main() {
           reportSummaryProvider.overrideWith((ref, key) async {
             calls.add(calls.length + 1);
             if (calls.length <= failures) {
-              throw StateError('summary provider down');
+              throw failure?.call() ?? StateError('summary provider down');
             }
             return summary;
           }),
@@ -126,5 +130,50 @@ void main() {
 
     expect(find.text(en.reportsAiFailed), findsOneWidget);
     expect(find.text(en.actionRetry), findsOneWidget);
+  });
+
+  final Finder dailyLimit = find.byKey(
+    const ValueKey<String>('reports-ai-daily-limit'),
+  );
+
+  testWidgets('하루 상한이면 다시 시도 없이 하루 한도만 알린다 (#3032)', (tester) async {
+    final List<int> calls = await pumpCard(
+      tester,
+      failures: 1,
+      failure: () => const RateLimitedError(code: RateLimitedError.dailyLimitCode),
+    );
+    final AppLocalizations l = lookupAppLocalizations(const Locale('ko'));
+
+    expect(dailyLimit, findsOneWidget);
+    expect(find.text(l.reportsAiDailyLimit), findsOneWidget);
+    expect(find.text(l.reportsAiFailed), findsNothing);
+    expect(retry, findsNothing);
+    expect(calls, hasLength(1));
+  });
+
+  testWidgets('분당 한도 429 는 기존처럼 실패와 다시 시도다 (#3032)', (tester) async {
+    await pumpCard(
+      tester,
+      failures: 1,
+      failure: () => const RateLimitedError(),
+    );
+    final AppLocalizations l = lookupAppLocalizations(const Locale('ko'));
+
+    expect(find.text(l.reportsAiFailed), findsOneWidget);
+    expect(retry, findsOneWidget);
+    expect(dailyLimit, findsNothing);
+  });
+
+  testWidgets('영어 화면은 영어로 하루 한도를 알린다 (#3032)', (tester) async {
+    await pumpCard(
+      tester,
+      failures: 1,
+      locale: const Locale('en'),
+      failure: () => const RateLimitedError(code: RateLimitedError.dailyLimitCode),
+    );
+    final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
+
+    expect(find.text(en.reportsAiDailyLimit), findsOneWidget);
+    expect(retry, findsNothing);
   });
 }

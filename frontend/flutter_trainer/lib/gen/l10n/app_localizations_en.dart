@@ -2697,7 +2697,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachDraftDiscard => 'Discard';
 
   @override
-  String get personalRoutineTargetLoadFailed => 'Couldn\'t load PT appointments';
+  String get personalRoutineTargetLoadFailed =>
+      'Couldn\'t load PT appointments';
 
   @override
   String get personalRoutineStartPast =>
@@ -2837,6 +2838,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiGenerateRateLimited =>
       'Too many generation requests. Please try again shortly';
+
+  @override
+  String get aiGenerateDailyLimit =>
+      'You\'ve used today\'s AI limit. Please try again tomorrow';
 
   @override
   String get aiExerciseNameRequired => 'Enter an exercise name';
@@ -4514,6 +4519,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get reportsAiFailed =>
       'Couldn\'t create the summary. Please try again.';
+
+  @override
+  String get reportsAiDailyLimit =>
+      'You\'ve used today\'s AI limit. Please try again tomorrow.';
 
   @override
   String get reportsPdfFallbackClient => 'member';
