@@ -20,7 +20,7 @@ import pytest
 from app.core import locale as locale_mod
 from app.schemas.trainer_api import WeeklyReportDayOut, WeeklyReportOut
 from app.services import trainer_report_summary_service as svc
-from app.services import trainer_service
+from app.services.trainer import reports as trainer_reports_service
 
 _HANGUL = re.compile(r"[가-힣]")
 
@@ -252,7 +252,7 @@ def _outputs(report: WeeklyReportOut, locale: str | None) -> dict:
         "headline": summary.headline,
         "points": summary.points,
         "topics": [w.topic for w in svc.watchpoints(report, *args)],
-        "message": trainer_service.report_message(report, *args),
+        "message": trainer_reports_service.report_message(report, *args),
     }
 
 
@@ -565,7 +565,7 @@ def fake_week(monkeypatch):
     """DB 없이 generate_summary 를 돌린다 — 리포트 조립만 바꿔 끼운다."""
     report = _report()
     monkeypatch.setattr(
-        trainer_service, "build_weekly_report", lambda *a, **k: report
+        trainer_reports_service, "build_weekly_report", lambda *a, **k: report
     )
     return report
 
@@ -644,7 +644,7 @@ def test_generate_summary_falls_back_on_broken_json(monkeypatch, fake_week):
 
 def test_generate_summary_skips_the_model_for_an_empty_week(monkeypatch):
     report = _report(**CASES["empty"])
-    monkeypatch.setattr(trainer_service, "build_weekly_report", lambda *a, **k: report)
+    monkeypatch.setattr(trainer_reports_service, "build_weekly_report", lambda *a, **k: report)
     llm = _install(monkeypatch, _FakeLLM(_first_evidence))
     out = svc.generate_summary(None, "t", "m", None, "en")
     assert llm.calls == []
@@ -656,7 +656,7 @@ def test_generate_summary_skips_the_model_for_an_empty_week(monkeypatch):
 # ---- 영어: 리포트 본문 초안 ----
 
 def test_english_draft_for_a_week_that_needs_work():
-    assert trainer_service.report_message(_report(), "en") == (
+    assert trainer_reports_service.report_message(_report(), "en") == (
         "Hi 김민수, here's your weekly report for 8/10 – 8/16.\n\n"
         "You kept up well — 87% of your workouts done. One thing — 풀업 got skipped. "
         "If that was down to how you were feeling, tell me at our next PT and "
@@ -670,7 +670,7 @@ def test_english_draft_for_a_week_that_needs_work():
 
 
 def test_english_draft_for_a_good_week():
-    message = trainer_service.report_message(_en_report(**CASES["steady"]), "en")
+    message = trainer_reports_service.report_message(_en_report(**CASES["steady"]), "en")
     assert message == (
         "Hi Alex, here's your weekly report for 8/10 – 8/16.\n\n"
         "You kept up well — 90% of your workouts done.\n\n"
@@ -681,7 +681,7 @@ def test_english_draft_for_a_good_week():
 
 
 def test_english_draft_for_a_week_without_records():
-    message = trainer_service.report_message(_en_report(**CASES["empty"]), "en")
+    message = trainer_reports_service.report_message(_en_report(**CASES["empty"]), "en")
     assert message == (
         "Hi Alex, here's your weekly report for 8/10 – 8/16.\n\n"
         "There's nothing logged for this week, so nothing to sum up. "
@@ -690,7 +690,7 @@ def test_english_draft_for_a_week_without_records():
 
 
 def test_english_draft_low_completion_and_single_day():
-    message = trainer_service.report_message(
+    message = trainer_reports_service.report_message(
         _en_report(**CASES["good_sodium_over1"]), "en"
     )
     assert "Workout completion came in at 50%. Sounds like a busy week." in message
@@ -698,7 +698,7 @@ def test_english_draft_low_completion_and_single_day():
 
 
 def test_english_draft_spans_a_month_boundary():
-    message = trainer_service.report_message(
+    message = trainer_reports_service.report_message(
         _en_report(week_start="2026-08-31", week_end="2026-09-06"), "en"
     )
     assert message.startswith("Hi Alex, here's your weekly report for 8/31 – 9/6.")
@@ -707,8 +707,8 @@ def test_english_draft_spans_a_month_boundary():
 def test_english_draft_keeps_the_same_paragraphs_as_korean():
     for case, over in CASES.items():
         report = _report(**over)
-        ko = trainer_service.report_message(report, "ko")
-        en = trainer_service.report_message(report, "en")
+        ko = trainer_reports_service.report_message(report, "ko")
+        en = trainer_reports_service.report_message(report, "en")
         assert en.count("\n\n") == ko.count("\n\n"), case
 
 
@@ -804,7 +804,7 @@ def test_summary_endpoint_matches_the_service_for_both_languages(
     """엔드포인트가 낸 문장 = 같은 주를 서비스가 그 언어로 만든 문장."""
     from app.core import clock as app_clock
 
-    week = trainer_service.week_start_of(app_clock.today())
+    week = trainer_reports_service.week_start_of(app_clock.today())
     trainer_id = client.get(
         "/v1/trainer/me", headers=_headers(client)
     ).json()["id"]

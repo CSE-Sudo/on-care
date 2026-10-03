@@ -9,7 +9,6 @@ import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/features/ai_coach/data/repositories/mock_ai_coach_repository.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
@@ -22,6 +21,8 @@ import 'package:oncare/features/member_coach/presentation/widgets/coach_card.dar
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+
+import '../../helpers/mock_ai_coach_repository.dart';
 
 /// 코칭 포인트 — 운동 주간 데이터의 `aiCoachMessage` 자리에 들어가는 값.
 
@@ -352,7 +353,11 @@ void main() {
     // 남은 줄은 검정 그대로 — 다음에 할 것이 먼저 읽혀야 한다.
     expect(colorOf(_aiRoutine.name), OnCareColors.textPrimary);
     expect(colorOf(done.name), isNot(OnCareColors.textPrimary));
-    expect(colorOf(done.reason), isNot(colorOf(_aiRoutine.reason)));
+    // 이유 줄은 낱말 단위로 줄을 바꾼다(#2969) — 화면 글자도 그렇게 찾는다.
+    expect(
+      colorOf(keepWords(done.reason)),
+      isNot(colorOf(keepWords(_aiRoutine.reason))),
+    );
   });
 
   testWidgets('추천 개인운동 카드가 한 영역에 트레이너·AI 추천을 함께 담는다 (#782)', (
@@ -560,7 +565,7 @@ void main() {
       findsNothing,
     );
     expect(
-      find.descendant(of: coaching, matching: find.text('허리 부담 완화')),
+      find.descendant(of: coaching, matching: find.text(keepWords('허리 부담 완화'))),
       findsOneWidget,
     );
   });

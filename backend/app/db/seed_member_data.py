@@ -42,6 +42,7 @@ from sqlalchemy.orm import Session
 from app.services.health_focus import normalize_conditions
 from app.core import clock
 from app.core.config import get_settings
+from app.core.week import monday_of
 from app.db.demo_fixture import FixtureRoutine, load_fixture
 from app.db.seed_roster import HISTORY_WEEKS
 from app.db.seed_trainer import TRAINER_ID, _MEMBERS
@@ -757,7 +758,7 @@ def _seed_weekly_pt(db: Session, valid: set[str]) -> None:
     ) is None:
         return
     today = clock.today()
-    monday = today - timedelta(days=today.weekday())
+    monday = monday_of(today)
     names = {user_id: name for user_id, _email, name, *_ in _MEMBERS}
     # 예전 시드가 깐 김민수의 목요일 수업을 걷어 낸다 — 자리표에서 빠졌다(#2694).
     db.query(models.TrainerSchedule).filter(
@@ -1523,7 +1524,7 @@ def _seed_exercise(db: Session, member_id: str) -> None:
     if not week:
         return
     today = clock.today()
-    week_start = (today - timedelta(days=today.weekday())).isoformat()  # 이번 주 월요일
+    week_start = monday_of(today).isoformat()  # 이번 주 월요일
     added = False
     for day_label, ex_type, minutes, calories in week:
         idx = _WEEKDAY_INDEX.get(day_label)
@@ -1548,7 +1549,7 @@ def _seed_exercise(db: Session, member_id: str) -> None:
             # 그 요일의 시각을 함께 적는다 — 세 날짜 필드가 같은 날을 가리켜야
             # 시드 시각(`created_at`)이 최근 활동 판단에 새지 않는다. (#1264)
             completed_at=exercise_activity.noon(
-                today - timedelta(days=today.weekday() - idx)
+                monday_of(today) + timedelta(days=idx)
             ),
         ))
         added = True

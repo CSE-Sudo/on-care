@@ -14,6 +14,7 @@ import 'package:oncare/features/ai_coach/domain/repositories/ai_coach_repository
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart' show keepWords;
 
 import 'free_quota.dart';
 
@@ -153,7 +154,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text(l.aicGeneratingReply), findsNothing);
-    expect(find.text('닭가슴살 채소구이를 추천해요'), findsOneWidget);
+    expect(find.text(keepWords('닭가슴살 채소구이를 추천해요')), findsOneWidget);
   });
 
   testWidgets('살아 있는 버튼은 그대로 남는다', (WidgetTester tester) async {

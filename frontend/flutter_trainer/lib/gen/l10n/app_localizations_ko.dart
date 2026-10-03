@@ -279,6 +279,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrEmailInvalid => '이메일 형식이 올바르지 않아요';
 
   @override
+  String get authErrEmailTooLong => '이메일은 255자까지 입력할 수 있어요';
+
+  @override
   String get authErrPasswordEmpty => '비밀번호를 입력해 주세요';
 
   @override
@@ -1043,26 +1046,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get chatInsightMemoSaveFailed => '메모에 추가하지 못했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String coachSheetTitle(String name) {
-    return '$name 코칭 상담';
-  }
-
-  @override
-  String get coachSheetSubtitle => '이 회원의 식단·운동 기록을 근거로 답해요.';
-
-  @override
-  String get coachSheetHint => '예) 나트륨이 계속 높은데 어떤 식단을 권할까요?';
-
-  @override
-  String get coachSheetSources => '근거';
-
-  @override
-  String get coachSheetAsk => '물어보기';
-
-  @override
-  String get coachSheetAskAgain => '다시 묻기';
 
   @override
   String get consultTitle => '상담 요청';
@@ -2129,15 +2112,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myLegalPrivacyTitle => '개인정보 처리방침';
 
   @override
-  String get myLegalEffectiveDate => '시행일 2026. 01. 01.';
+  String get myLegalTermsEffectiveDate => '시행일 2026. 10. 01.';
+
+  @override
+  String get myLegalPrivacyEffectiveDate => '시행일 2026. 10. 03.';
 
   @override
   String get myLegalTermsBody =>
-      '제1조 (목적)\n이 약관은 On-Care(이하 \"회사\")가 제공하는 트레이너 콘솔(이하 \"서비스\")의 이용과 관련하여 회사와 트레이너 회원(이하 \"트레이너\") 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.\n\n제2조 (약관의 효력 및 변경)\n① 이 약관은 서비스를 이용하는 모든 트레이너에게 효력이 발생합니다.\n② 회사는 관련 법령을 위반하지 않는 범위에서 이 약관을 변경할 수 있으며, 변경 시 적용일자와 변경 사유를 명시하여 서비스 내에 공지합니다.\n\n제3조 (서비스의 제공)\n회사는 담당 회원 관리, 식단·운동 기록 열람, 일정 관리, 메시지, AI 코칭 프로그램 생성, 리포트 작성 및 전송 등 트레이너의 지도 업무를 돕는 기능을 제공합니다. 서비스의 구체적인 내용은 회사의 정책에 따라 변경될 수 있습니다.\n\n제4조 (계정)\n① 트레이너 계정과 회원 계정은 분리되어 있으며, 하나의 계정으로 두 서비스를 함께 이용할 수 없습니다.\n② 트레이너는 자격증·경력 등 프로필 정보를 사실대로 입력하여야 하며, 계정 정보의 관리 책임은 트레이너에게 있습니다.\n\n제5조 (회원 정보 취급 의무)\n① 트레이너는 담당 관계가 성립한 회원의 식단·운동·건강 기록에 한하여 열람할 수 있습니다.\n② 열람한 정보는 상담·코칭·리포트 작성 목적으로만 이용하여야 하며, 이를 외부에 게시하거나 제3자에게 제공·유출해서는 안 됩니다.\n③ 담당 관계가 종료되면 해당 회원 정보에 대한 열람 권한도 함께 종료됩니다.\n\n제6조 (금지 행위)\n트레이너는 의료 행위에 해당하는 진단·처방을 하거나, 회원의 동의 없이 회원 정보를 서비스 밖으로 옮기는 행위를 하여서는 안 됩니다.\n\n제7조 (책임의 제한)\n서비스가 제공하는 AI 코칭 결과와 통계는 지도를 돕기 위한 참고 자료입니다. 회원에게 전달하는 지도 내용에 대한 최종 판단과 책임은 트레이너에게 있으며, 회사는 법령이 허용하는 범위 내에서 그 결과에 대하여 책임을 부담하지 않습니다.\n\n제8조 (이용 계약의 해지)\n트레이너는 언제든지 탈퇴할 수 있습니다. 탈퇴 시 담당 회원과의 연결과 예정된 일정이 함께 종료되며, 해당 회원에게 그 사실이 안내됩니다.\n\n부칙\n이 약관은 2026년 1월 1일부터 시행합니다.';
+      '제1조 (목적)\n이 약관은 On-Care(이하 \"회사\")가 제공하는 트레이너 콘솔(이하 \"서비스\")의 이용과 관련하여 회사와 트레이너 회원(이하 \"트레이너\") 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.\n\n제2조 (약관의 효력 및 변경)\n① 이 약관은 서비스를 이용하는 모든 트레이너에게 효력이 발생합니다.\n② 회사는 관련 법령을 위반하지 않는 범위에서 이 약관을 변경할 수 있으며, 변경 시 적용일자와 변경 사유를 명시하여 서비스 내에 공지합니다.\n\n제3조 (서비스의 제공)\n회사는 담당 회원 관리, 식단·운동 기록 열람, 일정 관리, 메시지, AI 코칭 프로그램 생성, 리포트 작성 및 전송 등 트레이너의 지도 업무를 돕는 기능을 제공합니다. 서비스의 구체적인 내용은 회사의 정책에 따라 변경될 수 있습니다.\n\n제4조 (계정)\n① 트레이너 계정과 회원 계정은 분리되어 있으며, 하나의 계정으로 두 서비스를 함께 이용할 수 없습니다.\n② 트레이너는 자격증·경력 등 프로필 정보를 사실대로 입력하여야 하며, 계정 정보의 관리 책임은 트레이너에게 있습니다.\n\n제5조 (회원 정보 취급 의무)\n① 트레이너는 담당 관계가 성립한 회원의 식단·운동·건강 기록에 한하여 열람할 수 있습니다.\n② 열람한 정보는 상담·코칭·리포트 작성 목적으로만 이용하여야 하며, 이를 외부에 게시하거나 제3자에게 제공·유출해서는 안 됩니다.\n③ 담당 관계가 종료되면 해당 회원 정보에 대한 열람 권한도 함께 종료됩니다.\n\n제6조 (금지 행위)\n트레이너는 의료 행위에 해당하는 진단·처방을 하거나, 회원의 동의 없이 회원 정보를 서비스 밖으로 옮기는 행위를 하여서는 안 됩니다.\n\n제7조 (책임의 제한)\n서비스가 제공하는 AI 코칭 결과와 통계는 지도를 돕기 위한 참고 자료입니다. 회원에게 전달하는 지도 내용에 대한 최종 판단과 책임은 트레이너에게 있으며, 회사는 법령이 허용하는 범위 내에서 그 결과에 대하여 책임을 부담하지 않습니다.\n\n제8조 (이용 계약의 해지)\n트레이너는 언제든지 탈퇴할 수 있습니다. 탈퇴 시 담당 회원과의 연결과 예정된 일정이 함께 종료되며, 해당 회원에게 그 사실이 안내됩니다.\n\n부칙\n이 약관은 2026년 10월 1일부터 시행합니다.';
 
   @override
   String get myLegalPrivacyBody =>
-      'On-Care(이하 \"회사\")는 「개인정보 보호법」 등 관련 법령을 준수하며, 트레이너와 회원의 개인정보를 소중히 보호합니다.\n\n1. 수집하는 개인정보 항목\n회사는 트레이너 가입 및 서비스 제공을 위하여 이름, 이메일, 연락처와 함께 소속 헬스장, 자격증, 경력, 전문 분야 등 프로필 정보와 서비스 접속 기록을 수집합니다.\n\n2. 개인정보의 수집 및 이용 목적\n수집한 정보는 트레이너 식별과 운영자의 소속·자격 확인(승인 전에는 회원에게 노출되지 않음), 담당 회원 연결, 일정·메시지·리포트 기능 제공, 서비스 개선 및 문의 응대의 목적으로만 이용됩니다.\n\n3. 담당 회원 정보의 열람과 처리\n① 트레이너는 담당 관계가 성립한 회원에 한하여 그 회원이 기록한 식단·운동·체중 등 건강 정보를 서비스 안에서 열람할 수 있습니다.\n② 이 정보의 개인정보처리자는 회사이며, 트레이너는 회사가 정한 범위 안에서 코칭과 리포트 작성 목적으로만 이를 처리합니다.\n③ 트레이너가 작성해 전송한 리포트와 메시지는 해당 회원에게 전달되고 서비스에 기록으로 남습니다.\n④ 담당 관계가 종료되면 해당 회원 정보에 대한 열람 권한은 즉시 회수되며, 회원은 자신의 정보 제공에 대한 동의를 언제든지 철회할 수 있습니다.\n\n4. 개인정보의 보유 및 이용 기간\n트레이너의 개인정보는 원칙적으로 탈퇴 시 지체 없이 파기합니다. 다만 관련 법령에 따라 보존할 필요가 있는 경우 해당 기간 동안 안전하게 보관합니다. 회원에게 전송된 리포트와 메시지는 회원의 기록이므로 회원의 보관 기간을 따릅니다.\n\n5. 개인정보의 제3자 제공\n회사는 트레이너와 회원의 동의 없이 개인정보를 외부에 제공하지 않습니다. 다만 법령에 특별한 규정이 있는 경우는 예외로 합니다.\n\n6. 안전성 확보 조치\n회사는 회원 정보에 대한 접근 권한을 담당 관계를 기준으로 제한하고, 전송 구간을 암호화합니다. 로그인 등 접속 기록은 1년, 트레이너의 회원 건강정보 열람 기록과 정보 제공 동의·철회 및 탈퇴 기록은 2년간 보관한 뒤 파기합니다. 열람 기록에는 열람한 트레이너, 대상 회원, 정보의 종류와 시각만 남기며 건강정보의 내용은 담지 않습니다.\n\n7. 이용자의 권리\n트레이너는 언제든지 자신의 개인정보를 조회·수정하거나 처리 정지 및 삭제를 요청할 수 있습니다.\n\n8. 개인정보 보호책임자\n개인정보와 관련한 문의는 고객 지원(support@oncare.com)으로 연락하실 수 있습니다.\n\n시행일: 2026년 1월 1일';
+      'On-Care(이하 \"회사\")는 「개인정보 보호법」 등 관련 법령을 준수하며, 트레이너와 회원의 개인정보를 소중히 보호합니다.\n\n1. 수집하는 개인정보 항목\n① 트레이너 가입: 이메일, 비밀번호(암호화하여 저장), 이름, 연락처.\n② 프로필과 자격 확인: 소속 헬스장, 자격증, 경력, 전문 분야 등 프로필 정보.\n③ 서비스 이용 중 남기는 정보: 회원에게 보낸 메시지와 첨부 사진, 리포트와 코칭 내용, 일정·예약 정보, 회원 메모.\n④ 자동으로 생성되는 정보: 로그인·비밀번호 변경 등 접속 기록(일시, IP 주소)과, 오류가 났을 때의 오류 내용·브라우저와 운영체제 종류·앱 버전.\n\n2. 개인정보의 수집 및 이용 목적\n수집한 정보는 트레이너 식별과 운영자의 소속·자격 확인(승인 전에는 회원에게 노출되지 않음), 담당 회원 연결, 일정·메시지·리포트 기능 제공, 서비스 개선 및 문의 응대의 목적으로만 이용됩니다.\n\n3. 담당 회원 정보의 열람과 처리\n① 트레이너는 담당 관계가 성립한 회원에 한하여 그 회원이 기록한 식단·운동·체중 등 건강 정보를 서비스 안에서 열람할 수 있습니다.\n② 이 정보의 개인정보처리자는 회사이며, 트레이너는 회사가 정한 범위 안에서 코칭과 리포트 작성 목적으로만 이를 처리합니다. 회원의 건강정보는 민감정보로서 회원의 별도 동의와 데이터 공유 동의가 있을 때만 열람할 수 있습니다.\n③ 트레이너가 작성해 전송한 리포트와 메시지는 해당 회원에게 전달되고 서비스에 기록으로 남습니다.\n④ 담당 관계가 종료되면 해당 회원 정보에 대한 열람 권한은 즉시 회수되며, 회원은 자신의 정보 제공에 대한 동의를 언제든지 철회할 수 있습니다.\n\n4. 개인정보의 보유 및 이용 기간\n트레이너의 개인정보는 탈퇴 시까지 보유·이용하며, 탈퇴하면 8항의 절차에 따라 지체 없이 파기합니다. 다만 다음 기록은 정해진 기간 동안 보관한 뒤 파기합니다.\n- 로그인 등 접속 기록: 1년(「통신비밀보호법」상 로그인 기록 보존 의무 3개월 포함)\n- 트레이너의 회원 건강정보 열람 기록, 정보 제공 동의·철회 기록, 탈퇴 기록: 2년(「개인정보의 안전성 확보조치 기준」에 따른 처리 기록 보관)\n회원에게 전송된 리포트와 메시지는 회원의 기록이므로 회원의 보관 기간을 따릅니다.\n\n5. 개인정보의 제3자 제공\n회사는 트레이너와 회원의 동의 없이 개인정보를 외부에 제공하지 않습니다. 업무 처리를 맡기는 위탁은 6항과 7항을 따릅니다. 다만 법령에 특별한 규정이 있는 경우는 예외로 합니다.\n\n6. 개인정보 처리의 위탁\n회사는 서비스 제공을 위해 다음 업무를 외부 업체에 위탁합니다. 수탁자가 바뀌면 이 처리방침을 고쳐 알립니다.\n- Amazon Web Services, Inc.: 서버 운영, 채팅 사진·리포트 PDF 파일 보관\n- Neon: 데이터베이스 운영(계정 정보와 모든 기록 보관)\n- Google LLC: AI 코칭 프로그램·루틴 후보와 리포트 요약 생성(Gemini API)\n- 주식회사 카카오: 헬스장 검색과 지도 표시\n- Functional Software, Inc.(Sentry): 웹·서버 오류 수집과 분석\n\n7. 개인정보의 국외 이전\n회사는 트레이너와의 계약을 이행하기 위해 다음과 같이 개인정보를 국외에서 처리·보관하도록 위탁하며, 「개인정보 보호법」 제28조의8 제1항 제3호에 따라 이 처리방침으로 알립니다. 이전은 서비스를 이용할 때마다 암호화된 네트워크로 전송하는 방법으로 이루어집니다.\n① Amazon Web Services, Inc. / 싱가포르 / 트레이너 정보와 기록 전반, 채팅 첨부 사진과 리포트 PDF / 서버 운영과 파일 보관 / 탈퇴 또는 위탁 계약 종료 시까지\n② Neon / 싱가포르 / 계정·프로필, 메시지·리포트·일정 기록 / 데이터베이스 운영 / 탈퇴 또는 위탁 계약 종료 시까지\n③ Google LLC / 미국 등 Google이 운영하는 데이터센터 소재 국가 / AI 기능을 쓸 때 입력한 코칭 조건과 담당 회원의 운동 기록·주간 리포트 수치 / AI 프로그램·요약 생성 / 요청 처리 후 수탁자의 서비스 약관에서 정한 기간\n④ Functional Software, Inc.(Sentry) / 미국 / 오류 내용, 브라우저와 운영체제 종류·앱 버전(이름·이메일·IP 주소·요청 내용은 보내지 않음) / 오류 분석 / 수탁자의 보관 기간\n국외 이전을 원하지 않으면 탈퇴로 거부할 수 있으나, 이 경우 서비스를 이용할 수 없습니다.\n\n8. 개인정보의 파기 절차 및 방법\n① 절차: 트레이너가 탈퇴하면 즉시 계정과 함께 프로필, 담당 회원과의 연결과 대화(첨부 사진·리포트 PDF 파일 포함), 루틴·프로그램, 일정과 예약 가능 시간, 알림을 삭제하고, 담당 회원과 예약한 회원에게 그 사실을 알립니다. 회원이 보낸 상담 요청은 회원의 기록이므로 트레이너 정보만 지운 채 남습니다. 4항에 따라 보관하는 기록은 기간이 지나면 자동으로 삭제합니다.\n② 방법: 전자적 파일 형태의 정보는 데이터베이스와 파일 저장소에서 삭제하며, 데이터베이스 복구용 백업에 남은 사본은 백업 보관 기간이 지나면 함께 사라집니다. 회사는 개인정보를 종이 문서로 처리하지 않습니다.\n\n9. 개인정보 자동 수집 장치의 설치·운영 및 거부\n회사는 광고·행태 분석을 위한 쿠키나 추적 도구를 쓰지 않습니다. 로그인 상태를 유지하기 위해 브라우저 저장소에 인증 정보를 보관하며, 로그아웃하거나 브라우저 데이터를 지우면 삭제됩니다.\n\n10. 안전성 확보 조치\n회사는 비밀번호를 암호화하여 저장하고, 회원 정보에 대한 접근 권한을 담당 관계를 기준으로 제한하며, 전송 구간을 암호화합니다. 열람 기록에는 열람한 트레이너, 대상 회원, 정보의 종류와 시각만 남기며 건강정보의 내용은 담지 않습니다. 오류 보고에서는 이름·이메일·IP 주소와 요청 내용을 지우고 보냅니다.\n\n11. 만 14세 미만 아동의 개인정보\n회사는 만 14세 미만 아동의 가입을 받지 않으며, 가입할 때 만 14세 이상인지 확인합니다.\n\n12. 이용자의 권리\n트레이너는 언제든지 자신의 개인정보를 조회·수정하거나 처리 정지 및 삭제를 요청할 수 있습니다. 프로필 수정과 탈퇴는 MY 메뉴에서 할 수 있고, 그 밖의 요청은 13항의 연락처로 보내 주시면 지체 없이 조치합니다.\n\n13. 개인정보 보호책임자\n회사는 개인정보 처리에 관한 업무를 총괄하고 관련 불만 처리와 피해 구제를 위해 개인정보 보호책임자를 지정하고 있습니다.\n- 직책: On-Care 서비스 운영팀 개인정보 보호책임자\n- 연락처: support@oncare.com\n\n14. 권익침해 구제 방법\n개인정보 침해에 대한 신고나 상담이 필요하면 다음 기관에 문의할 수 있습니다.\n- 개인정보분쟁조정위원회: 국번없이 1833-6972 (www.kopico.go.kr)\n- 개인정보침해신고센터: 국번없이 118 (privacy.kisa.or.kr)\n- 대검찰청: 국번없이 1301 (www.spo.go.kr)\n- 경찰청: 국번없이 182 (ecrm.police.go.kr)\n\n15. 처리방침의 변경\n이 처리방침을 바꾸면 시행일 전에 서비스 안에 알리며, 동의가 필요한 변경은 다시 동의를 받습니다.\n- 2026년 10월 3일: 처리 위탁·국외 이전·파기 절차·자동 수집 장치·만 14세 미만·보호책임자·권익침해 구제 항목 추가\n- 2026년 10월 1일: 제정\n\n시행일: 2026년 10월 3일';
 
   @override
   String get myPasswordChanged => '비밀번호를 변경했어요';
@@ -2474,48 +2460,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get routineFieldEffectHint => '예) 오른쪽 어깨 보호';
 
   @override
-  String get routineEffectCardioDefault => '체력 향상·만성질환 예방';
-
-  @override
-  String get routineEffectStrengthDefault => '근력·근지구력 향상';
-
-  @override
-  String get routineEffectStretchDefault => '유연성·부상 예방';
-
-  @override
-  String get routineEffectBloodPressure => '혈압 관리에 도움';
-
-  @override
-  String get routineEffectFatLoss => '체지방 감량에 도움';
-
-  @override
-  String get routineEffectCardioFitness => '심폐 체력 향상';
-
-  @override
-  String get routineEffectGentleRecovery => '무리 없는 체력 회복';
-
-  @override
-  String get routineEffectMuscleMass => '근육량 유지·증가';
-
-  @override
-  String get routineEffectStrength => '근력 향상';
-
-  @override
-  String get routineEffectPostureMuscles => '자세 지지 근육 강화';
-
-  @override
-  String get routineEffectHeartRate => '혈압·심박 안정';
-
-  @override
-  String get routineEffectMuscleRecovery => '근육 회복';
-
-  @override
-  String get routineEffectLoosen => '굳은 근육 이완';
-
-  @override
-  String get routineEffectJointRange => '관절 가동 범위 회복';
-
-  @override
   String get routineFieldSets => '세트 수';
 
   @override
@@ -2594,6 +2538,20 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachSwitchClientConfirm => '바꾸기';
+
+  @override
+  String get coachDraftResumeTitle => '저장해 둔 작성 내용이 있어요';
+
+  @override
+  String coachDraftResumeBody(String name) {
+    return '$name 회원에게 짜던 프로그램이 자동으로 저장되어 있어요. 이어서 쓸까요?';
+  }
+
+  @override
+  String get coachDraftResume => '이어서 쓰기';
+
+  @override
+  String get coachDraftDiscard => '버리기';
 
   @override
   String get personalRoutineTargetLoadFailed => 'PT 일정을 불러오지 못했어요';
@@ -3187,18 +3145,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrEmptyResponse => '응답이 비어 있어요.';
 
   @override
-  String get coachDemoUnavailable => '데모 모드에서는 AI 코칭을 사용할 수 없어요';
-
-  @override
-  String get coachNotMyClient => '담당 회원이 아니에요';
-
-  @override
-  String get coachAskFailed => '질문을 보낼 수 없어요';
-
-  @override
-  String get coachRateLimited => '질문을 너무 자주 보냈어요. 1분 뒤에 다시 물어봐 주세요';
-
-  @override
   String get slotFutureOnly => '현재보다 이후 시간만 예약 슬롯으로 설정할 수 있습니다.';
 
   @override
@@ -3719,6 +3665,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientProfileSectionTitle => '신체·목표';
 
   @override
+  String get clientMemoDialogTitle => '메모·피드백';
+
+  @override
   String get clientTrainerMemo => '메모';
 
   @override
@@ -3979,39 +3928,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get followUp => '후속 관리';
 
   @override
-  String followUpTitle(String name) {
-    return '$name님 후속 관리';
-  }
-
-  @override
-  String get followUpHint => '다시 확인할 내용을 적어 주세요';
-
-  @override
-  String get followUpAdd => '후속 관리 추가';
-
-  @override
-  String get followUpDue => '확인 예정일';
-
-  @override
   String get followUpOverdue => '기한 지남';
-
-  @override
-  String get followUpContextGeneral => '회원 상세';
-
-  @override
-  String get followUpContextDiet => '식단';
-
-  @override
-  String get followUpContextExercise => '운동';
-
-  @override
-  String get followUpContextMessage => '메시지';
-
-  @override
-  String get followUpContextProgram => '프로그램';
-
-  @override
-  String get followUpContextSchedule => '일정';
 
   @override
   String get followUpComplete => '완료';
@@ -4022,16 +3939,10 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get followUpEmpty => '남은 후속 관리가 없어요.';
-
-  @override
   String get followUpDashboardEmpty => '오늘 처리할 후속 관리가 없어요.';
 
   @override
   String get followUpLoadFailed => '후속 관리를 불러오지 못했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String get followUpSaveFailed => '후속 관리를 저장하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String get followUpCompleteFailed => '완료 처리하지 못했어요. 잠시 후 다시 시도해 주세요';
@@ -5341,6 +5252,35 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String clientDietAnalysisWeekBreakfastSnackFood(String food, int count) {
+    return '아침 대신 먹은 것은 $food $count번이 가장 많았어요.';
+  }
+
+  @override
+  String clientDietAnalysisWeekProteinAvg(String value) {
+    return '모자란 날은 하루 평균 $value 정도였어요.';
+  }
+
+  @override
+  String clientDietAnalysisWeekGoodAvg(String kcal, String protein) {
+    return '하루 평균 $kcal, 단백질 $protein을 드셨어요.';
+  }
+
+  @override
+  String clientDietAnalysisWeekVsLast(
+    int prevLogged,
+    int prevDays,
+    String way,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(way, {
+      'more': '보다 늘었어요',
+      'less': '보다 줄었어요',
+      'other': '와 비슷해요',
+    });
+    return '지난주($prevLogged일 중 $prevDays일)$_temp0.';
+  }
+
+  @override
   String clientDietAnalysisAllFew(int days) {
     return '최근 4주 기록이 $days일이라, 7일이 넘으면 흐름을 짚어 드릴게요.';
   }
@@ -5435,7 +5375,13 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get clientDietRecNo => '아니오';
+  String get clientDietRecNo => '아니요';
+
+  @override
+  String get clientDietRecPrev => '이전 추천';
+
+  @override
+  String get clientDietRecForward => '다음 추천';
 
   @override
   String get clientDietRecYes => '예, 추천할게요';

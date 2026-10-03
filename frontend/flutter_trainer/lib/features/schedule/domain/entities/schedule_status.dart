@@ -2,7 +2,7 @@
 ///
 /// `TrainerSchedule.status`(`예정`|`완료`|`공백`)와 `type`(`1:1 PT`|`상담`)은 화면
 /// 문구처럼 보이지만 실제로는 **DB 에 저장되고 서버로 나가는 값**이다. 백엔드가
-/// `status == '예정'` 인 행만 완료 처리하고(`trainer_service.complete_session`)
+/// `status == '예정'` 인 행만 완료 처리하고(`trainer.schedule.complete_session`)
 /// drift 쿼리도 이 문자열로 거른다.
 ///
 /// 다국어를 넣으면서 가장 쉽게 저지를 수 있는 사고가 이 값을 화면 문구로 착각해

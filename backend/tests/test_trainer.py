@@ -490,7 +490,7 @@ def test_history_excludes_other_trainers_records(client, db_session):
     """다른 트레이너가 작성한 기록/메모는 이 트레이너의 조회에 노출되지 않는다(PR 250-#1)."""
     from app.db.seed_trainer import TRAINER_ID
     from app.models.models import RoutineHistory, User
-    from app.services.trainer_service import build_client_history
+    from app.services.trainer.roster import build_client_history
 
     db_session.add(
         User(

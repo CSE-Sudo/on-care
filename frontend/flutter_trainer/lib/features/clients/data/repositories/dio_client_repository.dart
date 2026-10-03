@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:ui' show Locale;
 
 import 'package:dio/dio.dart';
+import 'package:oncare_core/active_polling_stream.dart';
+import 'package:oncare_core/network/accept_language_interceptor.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/network/interceptors/accept_language_interceptor.dart';
-import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/data/dtos/client_dtos.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
@@ -62,6 +62,7 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
         load: _fetchClients,
         interval: pollInterval,
         refreshes: _refreshesFor(null),
+        keepPollingWhileInactive: true,
       );
 
   /// The roster endpoint carries no chat-recency signal, so priority
@@ -77,6 +78,7 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
         load: () => _fetchDiet(clientId),
         interval: pollInterval,
         refreshes: _refreshesFor(clientId),
+        keepPollingWhileInactive: true,
       );
 
   @override
@@ -85,6 +87,7 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
         load: () => _fetchHistory(clientId),
         interval: pollInterval,
         refreshes: _refreshesFor(clientId),
+        keepPollingWhileInactive: true,
       );
 
   Stream<void> _refreshesFor(String? clientId) => _refreshes.stream

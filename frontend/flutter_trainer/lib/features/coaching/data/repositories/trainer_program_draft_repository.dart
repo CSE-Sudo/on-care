@@ -1,11 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/prefs_provider.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_program_draft_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/trainer_program_draft.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,9 +22,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// A draft is not assigned to anyone. Assigning or scheduling it stays the
 /// separate action it already is — the trainer reopens a draft and then uses
 /// the existing buttons.
+///
+/// 코칭 화면의 자동 보관(#2873)도 같은 저장소를 쓴다. 그때는 payload 에
+/// `member_id` 와 `workspace`(편집기 밖의 작성 상태)가 함께 실리고, 회원별로
+/// [list] 의 `memberId` 로 찾는다. 배정과 무관하다는 점은 그대로다 — 보내는
+/// 것은 여전히 코칭 화면의 기존 버튼이다.
 abstract interface class TrainerProgramDraftRepository {
   /// Saved drafts, most recently updated first.
-  Future<List<TrainerProgramDraftSummary>> list();
+  ///
+  /// [memberId] 를 주면 그 회원에게 자동 보관한 것만 돌려준다(#2873).
+  Future<List<TrainerProgramDraftSummary>> list({String? memberId});
 
   /// One draft with its exercises, for loading back into the editor.
   Future<TrainerProgramDraft> read(String id);
@@ -43,6 +50,10 @@ abstract interface class TrainerProgramDraftRepository {
 /// The demo has no account behind it, so there is nowhere else to put them —
 /// but a save that silently discarded the work would be worse than the
 /// disabled button it replaces.
+///
+/// 웹에서 prefs 는 브라우저 저장소다. 사생활 보호 창·저장소 차단·용량 초과면
+/// 읽기·쓰기가 던질 수 있다 — 읽기는 빈 목록으로, 쓰기는 [StateError] 로
+/// 바꿔 부르는 쪽(자동 보관은 조용히 넘긴다)이 한 가지 예외만 다루게 한다.
 class LocalTrainerProgramDraftRepository
     implements TrainerProgramDraftRepository {
   const LocalTrainerProgramDraftRepository(this._prefs);
@@ -51,8 +62,16 @@ class LocalTrainerProgramDraftRepository
 
   static const String _key = 'trainer_program_drafts';
 
+  /// 이 실행에서 만든 초안의 순번.
+  static int _nextSeq = 0;
+
   List<Map<String, Object?>> _read() {
-    final raw = _prefs.getString(_key);
+    final String? raw;
+    try {
+      raw = _prefs.getString(_key);
+    } on Object {
+      return <Map<String, Object?>>[];
+    }
     if (raw == null) return <Map<String, Object?>>[];
     try {
       return (jsonDecode(raw) as List<Object?>)
@@ -66,12 +85,22 @@ class LocalTrainerProgramDraftRepository
     }
   }
 
-  Future<void> _write(List<Map<String, Object?>> drafts) =>
-      _prefs.setString(_key, jsonEncode(drafts));
+  Future<void> _write(List<Map<String, Object?>> drafts) async {
+    final bool ok;
+    try {
+      ok = await _prefs.setString(_key, jsonEncode(drafts));
+    } on Object catch (error) {
+      throw StateError('program drafts could not be stored: $error');
+    }
+    if (!ok) throw StateError('program drafts could not be stored');
+  }
 
   @override
-  Future<List<TrainerProgramDraftSummary>> list() async {
+  Future<List<TrainerProgramDraftSummary>> list({String? memberId}) async {
     final drafts = _read()
+      ..removeWhere(
+        (draft) => memberId != null && draft['member_id'] != memberId,
+      )
       ..sort(
         (a, b) =>
             (b['updated_at']! as String).compareTo(a['updated_at']! as String),
@@ -98,6 +127,7 @@ class LocalTrainerProgramDraftRepository
                               .length,
                     ),
             updatedAt: DateTime.parse(draft['updated_at']! as String),
+            memberId: draft['member_id'] as String?,
           ),
         )
         .toList(growable: false);
@@ -116,7 +146,9 @@ class LocalTrainerProgramDraftRepository
     final now = nowKst();
     final stored = <String, Object?>{
       ...payload,
-      'id': 'pgm-local-${now.microsecondsSinceEpoch}',
+      // 같은 순간에 둘을 만들어도(회원 둘의 자동 보관이 한 프레임에 겹치면)
+      // id 가 겹치지 않게 순번을 붙인다(#2873).
+      'id': 'pgm-local-${now.microsecondsSinceEpoch}-${_nextSeq++}',
       'updated_at': now.toIso8601String(),
     };
     await _write(<Map<String, Object?>>[...drafts, stored]);
@@ -134,6 +166,8 @@ class LocalTrainerProgramDraftRepository
     final stored = <String, Object?>{
       ...drafts[index],
       ...payload,
+      // 회원은 바꾸지 않는다 — 서버(`TrainerProgramDraftUpdate`)와 같다(#2873).
+      'member_id': drafts[index]['member_id'],
       'id': id,
       'updated_at': nowKst().toIso8601String(),
     };
@@ -162,10 +196,3 @@ final trainerProgramDraftRepositoryProvider =
       }
       return DioTrainerProgramDraftRepository(ref.watch(dioProvider));
     }, name: 'trainerProgramDraftRepository');
-
-/// The trainer's saved drafts, most recently updated first. Invalidate
-/// after a save or a delete.
-final trainerProgramDraftsProvider =
-    FutureProvider.autoDispose<List<TrainerProgramDraftSummary>>((ref) {
-      return ref.watch(trainerProgramDraftRepositoryProvider).list();
-    });

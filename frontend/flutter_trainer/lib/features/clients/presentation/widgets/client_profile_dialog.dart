@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
@@ -100,8 +100,10 @@ class ClientProfileDialog extends StatelessWidget {
       ),
       ClientProfileSection.memo => AppDialog(
         key: const ValueKey<String>('client-memo-dialog'),
-        title: l.clientTrainerMemo,
+        title: l.clientMemoDialogTitle,
         size: AppDialogSize.medium,
+        // 메모·피드백 탭을 오갈 때 창 높이가 바뀌지 않게 고정한다(#2955).
+        fixedHeight: true,
         child: _MemoDialogBody(clientId: clientId, clientName: clientName),
       ),
     };
@@ -709,7 +711,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
             child: Text(
               name,
               style: tokens
-                  .text(OnCareTypography.bodySmall)
+                  .text(OnCareTypography.body)
                   .copyWith(color: OnCareColors.textPrimary),
             ),
           ),
@@ -721,7 +723,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
               child: Text(
                 unit,
                 style: tokens
-                    .text(OnCareTypography.caption)
+                    .text(OnCareTypography.bodySmall)
                     .copyWith(color: OnCareColors.textSecondary),
               ),
             ),
@@ -753,7 +755,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
           textAlign: TextAlign.end,
           style:
               OnCareTypography.numeric(
-                context.oncare.text(OnCareTypography.bodySmall),
+                context.oncare.text(OnCareTypography.body),
               ).copyWith(
                 color: text.isEmpty
                     ? OnCareColors.textTertiary
@@ -808,6 +810,8 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       key: const ValueKey<String>('client-profile-dialog'),
       title: l.clientProfileSectionTitle,
       size: AppDialogSize.medium,
+      // 신체·목표 탭을 오갈 때 창 높이가 바뀌지 않게 고정한다(#2955).
+      fixedHeight: true,
       trailing: _editing || !_profileLoaded
           ? null
           : AppIconButton(
@@ -872,7 +876,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
                       ),
                       textAlign: TextAlign.end,
                       style: tokens
-                          .text(OnCareTypography.bodySmall)
+                          .text(OnCareTypography.body)
                           .copyWith(
                             color: _gender.isEmpty
                                 ? OnCareColors.textTertiary

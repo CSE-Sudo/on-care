@@ -2,12 +2,12 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/kst_clock_provider.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
@@ -1468,7 +1468,7 @@ bool isDemoReservationScheduleId(String id) =>
     id.startsWith(demoReservationScheduleIdPrefix) ||
     id.startsWith('seed-$demoReservationScheduleIdPrefix');
 
-// 데모 저장소가 서버와 같은 사유로 거절할 때 쓰는 문구 — 서버 `trainer_service`
+// 데모 저장소가 서버와 같은 사유로 거절할 때 쓰는 문구 — 서버 `trainer.schedule`
 // 의 ScheduleConflict 문구와 같다. 화면은 한국어일 때 이 사유를 그대로 보인다.
 const String demoFinishedEditRejected =
     '완료·취소·노쇼로 마무리된 PT는 메모·프로그램만 수정할 수 있습니다.';

@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 날짜(KST)가 바뀌면 다시 읽을 것들. (#2852)
 ///

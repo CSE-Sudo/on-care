@@ -18,6 +18,7 @@ import 'package:oncare/features/diet/presentation/controllers/diet_controller.da
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart' show keepWords;
 
 import '../../helpers/fake_diet_repository.dart';
 
@@ -93,7 +94,7 @@ void main() {
       0,
       (int sum, DietEntry e) => sum + e.sodiumMg,
     );
-    expect(find.text(_sodiumLine(total)), findsOneWidget);
+    expect(find.text(keepWords(_sodiumLine(total))), findsOneWidget);
     final int callsBefore = repo.adviceCalls;
 
     // 아침 첫 음식(스크램블 에그)의 나트륨을 900 으로 고쳐 저장한다.
@@ -122,7 +123,10 @@ void main() {
       greaterThan(callsBefore),
       reason: '저장 뒤 조언을 다시 받는다',
     );
-    expect(find.text(_sodiumLine(total - eggSodium + 900)), findsOneWidget);
-    expect(find.text(_sodiumLine(total)), findsNothing);
+    expect(
+      find.text(keepWords(_sodiumLine(total - eggSodium + 900))),
+      findsOneWidget,
+    );
+    expect(find.text(keepWords(_sodiumLine(total))), findsNothing);
   });
 }

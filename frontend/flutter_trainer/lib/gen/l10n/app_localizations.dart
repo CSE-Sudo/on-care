@@ -620,6 +620,12 @@ abstract class AppLocalizations {
   /// **'Enter a valid email address'**
   String get authErrEmailInvalid;
 
+  /// Red text under the email field when the address is longer than the server limit (#2908). The limit matches the users.email column and EMAIL_MAX_LENGTH in contact_format.py.
+  ///
+  /// In en, this message translates to:
+  /// **'Email addresses can be up to 255 characters'**
+  String get authErrEmailTooLong;
+
   /// No description provided for @authErrPasswordEmpty.
   ///
   /// In en, this message translates to:
@@ -2017,42 +2023,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t add the memo. Please try again.'**
   String get chatInsightMemoSaveFailed;
-
-  /// No description provided for @coachSheetTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Coaching for {name}'**
-  String coachSheetTitle(String name);
-
-  /// No description provided for @coachSheetSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Answers are grounded in this member\'s meals and workouts.'**
-  String get coachSheetSubtitle;
-
-  /// No description provided for @coachSheetHint.
-  ///
-  /// In en, this message translates to:
-  /// **'e.g. Sodium keeps running high — what meals should I suggest?'**
-  String get coachSheetHint;
-
-  /// No description provided for @coachSheetSources.
-  ///
-  /// In en, this message translates to:
-  /// **'Sources'**
-  String get coachSheetSources;
-
-  /// No description provided for @coachSheetAsk.
-  ///
-  /// In en, this message translates to:
-  /// **'Ask'**
-  String get coachSheetAsk;
-
-  /// No description provided for @coachSheetAskAgain.
-  ///
-  /// In en, this message translates to:
-  /// **'Ask again'**
-  String get coachSheetAskAgain;
 
   /// No description provided for @consultTitle.
   ///
@@ -3925,22 +3895,28 @@ abstract class AppLocalizations {
   /// **'Privacy Policy'**
   String get myLegalPrivacyTitle;
 
-  /// No description provided for @myLegalEffectiveDate.
+  /// No description provided for @myLegalTermsEffectiveDate.
   ///
   /// In en, this message translates to:
-  /// **'Effective Jan 1, 2026'**
-  String get myLegalEffectiveDate;
+  /// **'Effective Oct 1, 2026'**
+  String get myLegalTermsEffectiveDate;
+
+  /// No description provided for @myLegalPrivacyEffectiveDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Effective Oct 3, 2026'**
+  String get myLegalPrivacyEffectiveDate;
 
   /// No description provided for @myLegalTermsBody.
   ///
   /// In en, this message translates to:
-  /// **'This English text is provided for convenience; the Korean original governs.\n\n1. Purpose\nThese terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and trainers using the On-Care trainer console (the \"Service\").\n\n2. Effect and amendment\nThese terms apply to every trainer using the Service. The Company may amend them within the limits of applicable law, announcing the effective date and the reason inside the Service.\n\n3. The Service\nThe Company provides member management, access to diet and workout records, scheduling, messaging, AI coaching programs, and report writing and delivery. The details may change with Company policy.\n\n4. Accounts\nTrainer accounts and member accounts are separate; one account cannot be used for both. Trainers must enter certification and career details truthfully and are responsible for keeping their credentials safe.\n\n5. Handling member information\nTrainers may open the diet, workout and health records only of members they are assigned to. Those records may be used solely for coaching, consultation and reports, and must never be published or handed to a third party. When an assignment ends, the access ends with it.\n\n6. Prohibited conduct\nTrainers must not make medical diagnoses or prescriptions, and must not move member information outside the Service without that member\'s consent.\n\n7. Limitation of liability\nAI coaching output and statistics are reference material. The final judgement about the guidance given to a member rests with the trainer, and the Company bears no liability for that outcome to the extent permitted by law.\n\n8. Termination\nA trainer may delete their account at any time. Doing so ends their member assignments and upcoming sessions, and the affected members are notified.\n\nAddendum\nThese terms take effect on January 1, 2026.'**
+  /// **'This English text is provided for convenience; the Korean original governs.\n\n1. Purpose\nThese terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and trainers using the On-Care trainer console (the \"Service\").\n\n2. Effect and amendment\nThese terms apply to every trainer using the Service. The Company may amend them within the limits of applicable law, announcing the effective date and the reason inside the Service.\n\n3. The Service\nThe Company provides member management, access to diet and workout records, scheduling, messaging, AI coaching programs, and report writing and delivery. The details may change with Company policy.\n\n4. Accounts\nTrainer accounts and member accounts are separate; one account cannot be used for both. Trainers must enter certification and career details truthfully and are responsible for keeping their credentials safe.\n\n5. Handling member information\nTrainers may open the diet, workout and health records only of members they are assigned to. Those records may be used solely for coaching, consultation and reports, and must never be published or handed to a third party. When an assignment ends, the access ends with it.\n\n6. Prohibited conduct\nTrainers must not make medical diagnoses or prescriptions, and must not move member information outside the Service without that member\'s consent.\n\n7. Limitation of liability\nAI coaching output and statistics are reference material. The final judgement about the guidance given to a member rests with the trainer, and the Company bears no liability for that outcome to the extent permitted by law.\n\n8. Termination\nA trainer may delete their account at any time. Doing so ends their member assignments and upcoming sessions, and the affected members are notified.\n\nAddendum\nThese terms take effect on October 1, 2026.'**
   String get myLegalTermsBody;
 
   /// No description provided for @myLegalPrivacyBody.
   ///
   /// In en, this message translates to:
-  /// **'This English text is provided for convenience; the Korean original governs.\n\n1. Information collected\nFor trainer sign-up and service delivery, On-Care (the \"Company\") collects name, email and phone number, along with gym affiliation, certifications, career, speciality and service access logs.\n\n2. Purpose of collection and use\nThe information is used only to identify trainers and to let an operator check their gym affiliation and credentials (trainers are not shown to members until approved), to connect them with assigned members, to provide scheduling, messaging and reports, and to improve the service and answer enquiries.\n\n3. Access to and processing of member information\nA trainer may open the diet, workout and body-weight records of members they are assigned to, inside the Service. The Company is the controller of those records; the trainer processes them only for coaching and reports, within the scope the Company sets. Reports and messages a trainer sends are delivered to that member and kept in the Service as a record. When an assignment ends, the trainer\'s access is revoked immediately, and a member may withdraw consent to share their information at any time.\n\n4. Retention\nA trainer\'s personal information is destroyed without delay on account deletion, unless the law requires it to be kept, in which case it is stored securely for that period. Reports and messages already delivered belong to the member\'s record and follow the member\'s retention period.\n\n5. Provision to third parties\nThe Company does not provide personal information to outside parties without consent, except where the law specifically requires it.\n\n6. Safeguards\nAccess to member information is limited by assignment, and traffic is encrypted in transit. Sign-in and other access logs are kept for one year; records of trainers opening members\' health information, of consent being given or withdrawn, and of account deletion are kept for two years, then destroyed. An access record holds only the trainer, the member, the kind of information and the time, never the health information itself.\n\n7. Your rights\nA trainer may review or correct their personal information, or request that its processing stop and that it be deleted, at any time.\n\n8. Privacy officer\nFor privacy enquiries, contact customer support (support@oncare.com).\n\nEffective: January 1, 2026'**
+  /// **'This English text is provided for convenience; the Korean original governs.\n\n1. Information collected\n(1) Trainer sign-up: email, password (stored encrypted), name and phone number.\n(2) Profile and credential check: gym affiliation, certifications, career, speciality and other profile details.\n(3) Information you leave while using the Service: messages and attached photos sent to members, reports and coaching content, schedules and bookings, and member notes.\n(4) Information generated automatically: access logs such as sign-ins and password changes (time and IP address), and, when an error occurs, the error details, browser and operating system type and app version.\n\n2. Purpose of collection and use\nThe information is used only to identify trainers and to let an operator check their gym affiliation and credentials (trainers are not shown to members until approved), to connect them with assigned members, to provide scheduling, messaging and reports, and to improve the service and answer enquiries.\n\n3. Access to and processing of member information\nA trainer may open the diet, workout and body-weight records of members they are assigned to, inside the Service. The Company is the controller of those records; the trainer processes them only for coaching and reports, within the scope the Company sets. Members\' health information is sensitive information and can be opened only with the member\'s separate consent and data-sharing consent. Reports and messages a trainer sends are delivered to that member and kept in the Service as a record. When an assignment ends, the trainer\'s access is revoked immediately, and a member may withdraw consent to share their information at any time.\n\n4. Retention\nA trainer\'s personal information is kept until account deletion, and is then destroyed without delay following section 8. The following records are kept for the stated period and then destroyed.\n- Access logs such as sign-ins: one year (covering the three-month retention of sign-in records required by the Protection of Communications Secrets Act)\n- Records of trainers opening members\' health information, of consent being given or withdrawn, and of account deletion: two years (processing records kept under the Standards for Personal Information Security Measures)\nReports and messages already delivered belong to the member\'s record and follow the member\'s retention period.\n\n5. Provision to third parties\nThe Company does not provide personal information to outside parties without consent. Processing entrusted to service providers follows sections 6 and 7. The exception is where the law specifically requires it.\n\n6. Entrusted processing\nThe Company entrusts the following work to outside providers to deliver the Service. If a provider changes, this policy is updated to say so.\n- Amazon Web Services, Inc.: running the servers and storing chat photos and report PDFs\n- Neon: running the database (account information and all records)\n- Google LLC: generating AI coaching programs, routine suggestions and report summaries (Gemini API)\n- Kakao Corp.: gym search and map display\n- Functional Software, Inc. (Sentry): collecting and analysing web and server errors\n\n7. Transfer of personal information overseas\nTo perform its contract with trainers, the Company has personal information processed and stored overseas as follows, and discloses this in this policy under Article 28-8(1)(3) of the Personal Information Protection Act. Each transfer happens over an encrypted network connection whenever the Service is used.\n(1) Amazon Web Services, Inc. / Singapore / trainer information and records in general, chat photo attachments and report PDFs / running the servers and storing files / until account deletion or the end of the contract with the provider\n(2) Neon / Singapore / account and profile, message, report and schedule records / running the database / until account deletion or the end of the contract with the provider\n(3) Google LLC / the United States and other countries where Google operates data centres / coaching conditions entered when using AI features, and assigned members\' workout records and weekly report figures / generating AI programs and summaries / for the period set in the provider\'s terms of service after the request is processed\n(4) Functional Software, Inc. (Sentry) / the United States / error details, browser and operating system type and app version (name, email address, IP address and request contents are not sent) / error analysis / the provider\'s retention period\nIf you do not want your information transferred overseas, you can refuse by deleting your account, but you will then be unable to use the Service.\n\n8. Destruction procedure and method\n(1) Procedure: when a trainer deletes their account, the Company immediately deletes the account together with the profile, member connections and conversations (including attached photos and report PDF files), routines and programs, schedules and bookable times, and notifications, and tells assigned and booked members. Consultation requests sent by members belong to the members\' records and remain with the trainer\'s details removed. Records kept under section 4 are deleted automatically when their period ends.\n(2) Method: information held as electronic files is deleted from the database and file storage, and copies remaining in database recovery backups disappear when the backup retention period ends. The Company does not handle personal information on paper.\n\n9. Automatic collection tools\nThe Company does not use cookies or tracking tools for advertising or behavioural analysis. Sign-in information is kept in browser storage to keep you signed in, and is removed when you sign out or clear your browser data.\n\n10. Safeguards\nPasswords are stored encrypted, access to member information is limited by assignment, and traffic is encrypted in transit. An access record holds only the trainer, the member, the kind of information and the time, never the health information itself. Error reports are sent with names, email addresses, IP addresses and request contents removed.\n\n11. Children under 14\nThe Company does not accept sign-ups from children under 14, and confirms at sign-up that you are 14 or older.\n\n12. Your rights\nA trainer may review or correct their personal information, or request that its processing stop and that it be deleted, at any time. You can edit your profile and delete your account from the MY menu; for any other request, contact the address in section 13 and it will be handled without delay.\n\n13. Privacy officer\nThe Company has appointed a personal information protection officer who oversees the processing of personal information and handles related complaints and remedies.\n- Position: Personal information protection officer, On-Care service operations team\n- Contact: support@oncare.com\n\n14. Remedies for infringement\nFor reports or advice about an infringement of personal information, you can contact the following bodies (in Korea).\n- Personal Information Dispute Mediation Committee: 1833-6972 (www.kopico.go.kr)\n- Personal Information Infringement Report Center: 118 (privacy.kisa.or.kr)\n- Supreme Prosecutors\' Office: 1301 (www.spo.go.kr)\n- Korean National Police Agency: 182 (ecrm.police.go.kr)\n\n15. Changes to this policy\nIf this policy changes, the Company announces it in the Service before the effective date, and asks for consent again where the change requires it.\n- October 3, 2026: added entrusted processing, overseas transfer, destruction procedure, automatic collection tools, children under 14, protection officer and remedies sections\n- October 1, 2026: first issued\n\nEffective: October 3, 2026'**
   String get myLegalPrivacyBody;
 
   /// No description provided for @myPasswordChanged.
@@ -4579,90 +4555,6 @@ abstract class AppLocalizations {
   /// **'e.g. Protect right shoulder'**
   String get routineFieldEffectHint;
 
-  /// No description provided for @routineEffectCardioDefault.
-  ///
-  /// In en, this message translates to:
-  /// **'Builds fitness and helps prevent chronic disease'**
-  String get routineEffectCardioDefault;
-
-  /// No description provided for @routineEffectStrengthDefault.
-  ///
-  /// In en, this message translates to:
-  /// **'Builds strength and muscular endurance'**
-  String get routineEffectStrengthDefault;
-
-  /// No description provided for @routineEffectStretchDefault.
-  ///
-  /// In en, this message translates to:
-  /// **'Improves flexibility and helps prevent injury'**
-  String get routineEffectStretchDefault;
-
-  /// No description provided for @routineEffectBloodPressure.
-  ///
-  /// In en, this message translates to:
-  /// **'Helps manage blood pressure'**
-  String get routineEffectBloodPressure;
-
-  /// No description provided for @routineEffectFatLoss.
-  ///
-  /// In en, this message translates to:
-  /// **'Helps reduce body fat'**
-  String get routineEffectFatLoss;
-
-  /// No description provided for @routineEffectCardioFitness.
-  ///
-  /// In en, this message translates to:
-  /// **'Improves cardiorespiratory fitness'**
-  String get routineEffectCardioFitness;
-
-  /// No description provided for @routineEffectGentleRecovery.
-  ///
-  /// In en, this message translates to:
-  /// **'Rebuilds fitness without strain'**
-  String get routineEffectGentleRecovery;
-
-  /// No description provided for @routineEffectMuscleMass.
-  ///
-  /// In en, this message translates to:
-  /// **'Maintains and builds muscle mass'**
-  String get routineEffectMuscleMass;
-
-  /// No description provided for @routineEffectStrength.
-  ///
-  /// In en, this message translates to:
-  /// **'Builds strength'**
-  String get routineEffectStrength;
-
-  /// No description provided for @routineEffectPostureMuscles.
-  ///
-  /// In en, this message translates to:
-  /// **'Strengthens posture-supporting muscles'**
-  String get routineEffectPostureMuscles;
-
-  /// No description provided for @routineEffectHeartRate.
-  ///
-  /// In en, this message translates to:
-  /// **'Steadies blood pressure and heart rate'**
-  String get routineEffectHeartRate;
-
-  /// No description provided for @routineEffectMuscleRecovery.
-  ///
-  /// In en, this message translates to:
-  /// **'Helps muscles recover'**
-  String get routineEffectMuscleRecovery;
-
-  /// No description provided for @routineEffectLoosen.
-  ///
-  /// In en, this message translates to:
-  /// **'Loosens tight muscles'**
-  String get routineEffectLoosen;
-
-  /// No description provided for @routineEffectJointRange.
-  ///
-  /// In en, this message translates to:
-  /// **'Restores joint range of motion'**
-  String get routineEffectJointRange;
-
   /// No description provided for @routineFieldSets.
   ///
   /// In en, this message translates to:
@@ -4806,6 +4698,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Switch'**
   String get coachSwitchClientConfirm;
+
+  /// No description provided for @coachDraftResumeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You have saved work'**
+  String get coachDraftResumeTitle;
+
+  /// Body of the coaching screen's resume prompt for an autosaved draft.
+  ///
+  /// In en, this message translates to:
+  /// **'The program you were building for {name} was saved automatically. Continue where you left off?'**
+  String coachDraftResumeBody(String name);
+
+  /// No description provided for @coachDraftResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get coachDraftResume;
+
+  /// No description provided for @coachDraftDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get coachDraftDiscard;
 
   /// No description provided for @personalRoutineTargetLoadFailed.
   ///
@@ -5863,30 +5779,6 @@ abstract class AppLocalizations {
   /// **'The response was empty.'**
   String get authErrEmptyResponse;
 
-  /// No description provided for @coachDemoUnavailable.
-  ///
-  /// In en, this message translates to:
-  /// **'AI coaching isn\'t available in demo mode'**
-  String get coachDemoUnavailable;
-
-  /// No description provided for @coachNotMyClient.
-  ///
-  /// In en, this message translates to:
-  /// **'That isn\'t one of your members'**
-  String get coachNotMyClient;
-
-  /// No description provided for @coachAskFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t send your question'**
-  String get coachAskFailed;
-
-  /// No description provided for @coachRateLimited.
-  ///
-  /// In en, this message translates to:
-  /// **'You\'ve sent too many questions. Please try again in a minute'**
-  String get coachRateLimited;
-
   /// No description provided for @slotFutureOnly.
   ///
   /// In en, this message translates to:
@@ -6793,6 +6685,12 @@ abstract class AppLocalizations {
   /// **'Body and goals'**
   String get clientProfileSectionTitle;
 
+  /// No description provided for @clientMemoDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Memos & feedback'**
+  String get clientMemoDialogTitle;
+
   /// No description provided for @clientTrainerMemo.
   ///
   /// In en, this message translates to:
@@ -7237,71 +7135,11 @@ abstract class AppLocalizations {
   /// **'Follow-ups'**
   String get followUp;
 
-  /// No description provided for @followUpTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Follow-ups on {name}'**
-  String followUpTitle(String name);
-
-  /// No description provided for @followUpHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Note what you want to check again'**
-  String get followUpHint;
-
-  /// No description provided for @followUpAdd.
-  ///
-  /// In en, this message translates to:
-  /// **'Add follow-up'**
-  String get followUpAdd;
-
-  /// No description provided for @followUpDue.
-  ///
-  /// In en, this message translates to:
-  /// **'Check on'**
-  String get followUpDue;
-
   /// No description provided for @followUpOverdue.
   ///
   /// In en, this message translates to:
   /// **'Overdue'**
   String get followUpOverdue;
-
-  /// No description provided for @followUpContextGeneral.
-  ///
-  /// In en, this message translates to:
-  /// **'Member detail'**
-  String get followUpContextGeneral;
-
-  /// No description provided for @followUpContextDiet.
-  ///
-  /// In en, this message translates to:
-  /// **'Diet'**
-  String get followUpContextDiet;
-
-  /// No description provided for @followUpContextExercise.
-  ///
-  /// In en, this message translates to:
-  /// **'Workout'**
-  String get followUpContextExercise;
-
-  /// No description provided for @followUpContextMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Messages'**
-  String get followUpContextMessage;
-
-  /// No description provided for @followUpContextProgram.
-  ///
-  /// In en, this message translates to:
-  /// **'Program'**
-  String get followUpContextProgram;
-
-  /// No description provided for @followUpContextSchedule.
-  ///
-  /// In en, this message translates to:
-  /// **'Schedule'**
-  String get followUpContextSchedule;
 
   /// No description provided for @followUpComplete.
   ///
@@ -7315,12 +7153,6 @@ abstract class AppLocalizations {
   /// **'{count} left'**
   String followUpCount(int count);
 
-  /// No description provided for @followUpEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No follow-ups left.'**
-  String get followUpEmpty;
-
   /// No description provided for @followUpDashboardEmpty.
   ///
   /// In en, this message translates to:
@@ -7332,12 +7164,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load follow-ups. Please try again.'**
   String get followUpLoadFailed;
-
-  /// No description provided for @followUpSaveFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t save the follow-up. Please try again.'**
-  String get followUpSaveFailed;
 
   /// No description provided for @followUpCompleteFailed.
   ///
@@ -9238,6 +9064,30 @@ abstract class AppLocalizations {
   /// **'All {days} logged days {scope, select, last{last week} other{this week}} stayed within the goals.'**
   String clientDietAnalysisWeekGood(String scope, int days);
 
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.
+  ///
+  /// In en, this message translates to:
+  /// **'{food} replaced breakfast most often ({count} times).'**
+  String clientDietAnalysisWeekBreakfastSnackFood(String food, int count);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.
+  ///
+  /// In en, this message translates to:
+  /// **'Those days averaged {value} a day.'**
+  String clientDietAnalysisWeekProteinAvg(String value);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.
+  ///
+  /// In en, this message translates to:
+  /// **'Averaged {kcal} and {protein} protein a day.'**
+  String clientDietAnalysisWeekGoodAvg(String kcal, String protein);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.
+  ///
+  /// In en, this message translates to:
+  /// **'{way, select, more{Up from last week} less{Down from last week} other{About the same as last week}} ({prevDays} of {prevLogged} days).'**
+  String clientDietAnalysisWeekVsLast(int prevLogged, int prevDays, String way);
+
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
   /// In en, this message translates to:
@@ -9265,13 +9115,13 @@ abstract class AppLocalizations {
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
   /// In en, this message translates to:
-  /// **'Days meeting the protein goal rose from {before} to {after} over the last 2 weeks.'**
+  /// **'Days meeting the protein goal rose from {before} in the prior 2 weeks to {after} in the last 2 weeks.'**
   String clientDietAnalysisAllProteinTrendUp(int before, int after);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
   /// In en, this message translates to:
-  /// **'Days meeting the protein goal fell from {before} to {after} over the last 2 weeks.'**
+  /// **'Days meeting the protein goal fell from {before} in the prior 2 weeks to {after} in the last 2 weeks.'**
   String clientDietAnalysisAllProteinTrendDown(int before, int after);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
@@ -9332,6 +9182,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No'**
   String get clientDietRecNo;
+
+  /// AI 식단 추천 카운터 왼쪽 꺾쇠 툴팁 — 같은 묶음 안 앞 후보로.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous pick'**
+  String get clientDietRecPrev;
+
+  /// AI 식단 추천 카운터 오른쪽 꺾쇠 툴팁 — 같은 묶음 안 다음 후보로(거절 아님).
+  ///
+  /// In en, this message translates to:
+  /// **'Next pick'**
+  String get clientDietRecForward;
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///

@@ -23,7 +23,8 @@ from app.models.models import (
     TrainerSchedule,
     User,
 )
-from app.services import trainer_service
+from app.services.trainer import _common as trainer_common_service
+from app.services.trainer import reports as trainer_reports_service
 
 QUEUE = "/v1/trainer/reports/queue"
 
@@ -171,17 +172,17 @@ def test_queue_matches_each_members_weekly_report(client, db_session):
     trainer = _trainer(db_session)
     busy = _member(db_session, trainer)
     quiet = _member(db_session, trainer)
-    _session(db_session, trainer, busy, _day(0), status=trainer_service.SCHEDULE_DONE)
-    _session(db_session, trainer, busy, _day(2), status=trainer_service.SCHEDULE_UPCOMING)
+    _session(db_session, trainer, busy, _day(0), status=trainer_common_service.SCHEDULE_DONE)
+    _session(db_session, trainer, busy, _day(2), status=trainer_common_service.SCHEDULE_UPCOMING)
     _history(db_session, busy, _day(0), 90, trainer_id=trainer)
     _history(db_session, busy, _day(0), 60)  # 같은 날 여럿이면 최댓값
     _history(db_session, busy, _day(4), 40)
 
     queue = _items(
-        trainer_service.build_report_queue(db_session, trainer, WEEK).model_dump()
+        trainer_reports_service.build_report_queue(db_session, trainer, WEEK).model_dump()
     )
     for member_id in (busy, quiet):
-        report = trainer_service.build_weekly_report(
+        report = trainer_reports_service.build_weekly_report(
             db_session, trainer, member_id, WEEK
         )
         item = queue[member_id]
@@ -203,19 +204,19 @@ def test_queue_skips_cancelled_no_show_and_consultation_sessions(client, db_sess
     """리포트처럼 취소·노쇼·상담은 예약 수에 넣지 않는다(#871, #2741)."""
     trainer = _trainer(db_session)
     member = _member(db_session, trainer)
-    _session(db_session, trainer, member, _day(0), status=trainer_service.SCHEDULE_DONE)
-    _session(db_session, trainer, member, _day(1), status=trainer_service.SCHEDULE_CANCELLED)
-    _session(db_session, trainer, member, _day(2), status=trainer_service.SCHEDULE_NO_SHOW)
+    _session(db_session, trainer, member, _day(0), status=trainer_common_service.SCHEDULE_DONE)
+    _session(db_session, trainer, member, _day(1), status=trainer_common_service.SCHEDULE_CANCELLED)
+    _session(db_session, trainer, member, _day(2), status=trainer_common_service.SCHEDULE_NO_SHOW)
     _session(
         db_session,
         trainer,
         member,
         _day(3),
-        status=trainer_service.SCHEDULE_UPCOMING,
+        status=trainer_common_service.SCHEDULE_UPCOMING,
         kind="상담",
     )
     item = _items(
-        trainer_service.build_report_queue(db_session, trainer, WEEK).model_dump()
+        trainer_reports_service.build_report_queue(db_session, trainer, WEEK).model_dump()
     )[member]
     assert item["sessions_booked"] == 1
     assert item["sessions_done"] == 1
@@ -235,7 +236,7 @@ def test_queue_leaves_out_members_the_trainer_cannot_read(client, db_session):
 
     ids = set(
         _items(
-            trainer_service.build_report_queue(db_session, trainer, WEEK).model_dump()
+            trainer_reports_service.build_report_queue(db_session, trainer, WEEK).model_dump()
         )
     )
     assert ids == {mine}
@@ -248,14 +249,14 @@ def test_queue_does_not_count_another_trainers_guided_history(client, db_session
     member = _member(db_session, trainer)
     _history(db_session, member, _day(1), 70, trainer_id=other)
     item = _items(
-        trainer_service.build_report_queue(db_session, trainer, WEEK).model_dump()
+        trainer_reports_service.build_report_queue(db_session, trainer, WEEK).model_dump()
     )[member]
     assert item["completion_avg"] is None
 
 
 def test_queue_is_empty_for_a_trainer_without_members(client, db_session):
     trainer = _trainer(db_session)
-    out = trainer_service.build_report_queue(db_session, trainer, WEEK)
+    out = trainer_reports_service.build_report_queue(db_session, trainer, WEEK)
     assert out.week_start == WEEK.isoformat()
     assert out.items == []
 
@@ -264,7 +265,7 @@ def test_queue_normalises_a_mid_week_day_to_monday(client, db_session):
     trainer = _trainer(db_session)
     member = _member(db_session, trainer)
     _history(db_session, member, _day(3), 50)
-    out = trainer_service.build_report_queue(db_session, trainer, _day(5))
+    out = trainer_reports_service.build_report_queue(db_session, trainer, _day(5))
     assert out.week_start == WEEK.isoformat()
     assert _items(out.model_dump())[member]["week_completion"][3] == 50
 
@@ -279,10 +280,10 @@ def test_queue_ignores_records_outside_the_week(client, db_session):
         trainer,
         member,
         WEEK + timedelta(days=7),
-        status=trainer_service.SCHEDULE_DONE,
+        status=trainer_common_service.SCHEDULE_DONE,
     )
     item = _items(
-        trainer_service.build_report_queue(db_session, trainer, WEEK).model_dump()
+        trainer_reports_service.build_report_queue(db_session, trainer, WEEK).model_dump()
     )[member]
     assert item["completion_avg"] is None
     assert item["sessions_booked"] == 0
@@ -319,8 +320,8 @@ def test_endpoint_defaults_to_this_week(client, db_session):
     trainer = _trainer(db_session)
     r = client.get(QUEUE, headers=_h(create_access_token(trainer)))
     assert r.status_code == 200, r.text
-    assert r.json()["week_start"] == trainer_service.week_start_of(
-        date.fromisoformat(trainer_service.today_iso())
+    assert r.json()["week_start"] == trainer_reports_service.week_start_of(
+        date.fromisoformat(trainer_common_service.today_iso())
     ).isoformat()
 
 
@@ -336,7 +337,7 @@ def test_endpoint_rejects_a_malformed_week(client, db_session):
 
 def test_endpoint_rejects_a_future_week(client, db_session):
     trainer = _trainer(db_session)
-    future = date.fromisoformat(trainer_service.today_iso()) + timedelta(days=14)
+    future = date.fromisoformat(trainer_common_service.today_iso()) + timedelta(days=14)
     r = client.get(
         QUEUE,
         params={"week_start": future.isoformat()},
@@ -380,7 +381,7 @@ def test_calorie_baseline_averages_recorded_days_of_the_four_weeks_before(
     _meal(db_session, member, WEEK - timedelta(days=29), 9000)
     _meal(db_session, member, WEEK, 9000)
 
-    report = trainer_service.build_weekly_report(db_session, trainer, member, WEEK)
+    report = trainer_reports_service.build_weekly_report(db_session, trainer, member, WEEK)
     assert report.calorie_baseline == pytest.approx(1500)
 
 
@@ -388,7 +389,7 @@ def test_calorie_baseline_is_null_without_records(client, db_session):
     trainer = _trainer(db_session)
     member = _member(db_session, trainer)
     _meal(db_session, member, WEEK, 2000)  # 이번 주 기록만 있다
-    report = trainer_service.build_weekly_report(db_session, trainer, member, WEEK)
+    report = trainer_reports_service.build_weekly_report(db_session, trainer, member, WEEK)
     assert report.calorie_baseline is None
 
 
@@ -398,7 +399,7 @@ def test_calorie_baseline_skips_zero_calorie_days(client, db_session):
     member = _member(db_session, trainer)
     _meal(db_session, member, WEEK - timedelta(days=3), 0)
     _meal(db_session, member, WEEK - timedelta(days=4), 1800)
-    report = trainer_service.build_weekly_report(db_session, trainer, member, WEEK)
+    report = trainer_reports_service.build_weekly_report(db_session, trainer, member, WEEK)
     assert report.calorie_baseline == pytest.approx(1800)
 
 

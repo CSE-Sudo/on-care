@@ -5,6 +5,7 @@ import 'dart:ui' show Locale;
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_rules/oncare_rules.dart'
     show
         kExerciseTypeCardio,
@@ -17,7 +18,6 @@ import 'package:oncare_trainer/core/network/interceptors/client_access_intercept
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_menu_plans.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/data/dtos/client_dtos.dart'
     show
@@ -40,6 +40,7 @@ import 'package:oncare_trainer/shared/health_focus.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Reads a trainer's clients + their diet/history for the 고객 관리 tab.
 ///
@@ -399,7 +400,7 @@ class DriftClientRepository implements ClientRepository {
   Future<void> removeClient(String id) async {
     // 삭제 확인창이 트레이너에게 하는 약속(스케줄·루틴·리포트·메시지가
     // **트레이너 화면에서만** 사라지고, 원본은 지워지지 않는다)은 실
-    // 백엔드(`trainer_service.remove_client`)와 같아야 한다. 예전에는 여기서
+    // 백엔드(`trainer.client_status.remove_client`)와 같아야 한다. 예전에는 여기서
     // 스케줄·AI 루틴·운동 기록·채팅·리포트 피드백 행을 실제로 지웠는데, 그
     // 대가가 재등록 때 드러났다 — 카드의 주간 이행률(`weekCompletionJson`)은
     // 캐시라 손대지 않은 채 남는데 근거가 되는 `clientRoutineHistory` 는 이미
@@ -944,10 +945,11 @@ class DriftClientRepository implements ClientRepository {
           todaySentences(entries, targets, now, avgProteinG: avg),
         );
       case ClientPeriod.week:
+        final DateTime thisMonday = mondayOf(today);
         final DateTime twoWeeks = DateTime(
-          today.year,
-          today.month,
-          today.day - (today.weekday - 1) - 7,
+          thisMonday.year,
+          thisMonday.month,
+          thisMonday.day - 7,
         );
         return ClientDietAnalysis(
           weekSentences(
@@ -974,7 +976,7 @@ class DriftClientRepository implements ClientRepository {
   /// 회원 목표 → 규칙이 쓰는 하루 목표. 서버 `diet_coach_inputs.targets_of` 와 같은
   /// 순서(목표 → 체중 × 1.2g → 60g)다 — 영양 요약 카드와 같은 분모다(#2898).
   DietRuleTargets _dietTargets(MemberHealthProfile p) => (
-    calories: p.dailyCalories ?? 2000,
+    calories: p.dailyCalories ?? calorieTargetKcal,
     proteinG: p.effectiveDailyProteinG,
     sodiumMg: p.dailySodiumMg ?? sodiumTargetMg,
     sugarG: p.dailySugarG ?? sugarTargetG,
@@ -1717,12 +1719,6 @@ final clientHistoryProvider = StreamProvider.autoDispose
     .family<List<RoutineHistoryEntry>, String>((ref, clientId) {
       keepAliveForAccount(ref);
       return ref.watch(clientRepositoryProvider).watchHistory(clientId);
-    });
-
-final clientExerciseWeekProvider = FutureProvider.autoDispose
-    .family<ClientExerciseWeek, String>((ref, clientId) {
-      keepAliveForAccount(ref);
-      return ref.watch(clientRepositoryProvider).fetchExerciseWeek(clientId);
     });
 
 /// 고객 기간 조회의 조회 키 — 누구의, 어느 기간을, **어느 날 기준으로**.

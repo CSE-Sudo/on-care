@@ -157,7 +157,10 @@ void main() {
     // 여는 것만으로는 발급하지 않는다 — 무엇에 동의하는지 읽기 전에 동의가
     // 끝나면 안 된다. 서버는 발급 시각을 동의 시각으로 적는다.
     expect(sync.issued, 0);
-    expect(find.textContaining('식단 기록·운동 기록·신체 정보와 건강 목표'), findsOneWidget);
+    expect(
+      find.textContaining('식단 기록·운동 기록·신체 정보, 건강 목표와 건강상태·주의사항'),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey<String>('sync-digit-0')), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey<String>('trainer-sync-agree')));
@@ -197,7 +200,10 @@ void main() {
       expect((box.border! as Border).top.color, OnCareColors.lineStrong);
     }
     // 코드와 함께 공유 범위가 남아 있다 — 무엇에 동의했는지 계속 보인다.
-    expect(find.textContaining('식단 기록·운동 기록·신체 정보와 건강 목표'), findsOneWidget);
+    expect(
+      find.textContaining('식단 기록·운동 기록·신체 정보, 건강 목표와 건강상태·주의사항'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('동의하지 않고 닫으면 발급도 취소도 없다 (#2584)', (tester) async {

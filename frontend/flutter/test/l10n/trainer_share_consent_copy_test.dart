@@ -15,9 +15,9 @@ void main() {
   final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
   final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
-  const String koScope = '식단 기록·운동 기록·신체 정보와 건강 목표';
+  const String koScope = '식단 기록·운동 기록·신체 정보, 건강 목표와 건강상태·주의사항';
   const String enScope =
-      'meal records, workout records, body information and health goals';
+      'meal records, workout records, body information, health goals, and health notes & cautions';
 
   group('한국어', () {
     final Map<String, String> consents = <String, String>{

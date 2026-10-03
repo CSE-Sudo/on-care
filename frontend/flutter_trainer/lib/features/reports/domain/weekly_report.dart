@@ -1,3 +1,4 @@
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_report/oncare_report.dart'
     show
         ReportSheetAnswers,
@@ -6,7 +7,6 @@ import 'package:oncare_report/oncare_report.dart'
         calorieTolerance,
         recordedMean,
         sugarLimitG;
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/korean_josa.dart';
 import 'package:oncare_trainer/core/utils/korean_josa_l10n.dart';
@@ -19,6 +19,7 @@ import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 export 'package:oncare_report/oncare_report.dart'
     show calorieTolerance, recordedMean, sugarLimitG;
@@ -28,15 +29,10 @@ export 'package:oncare_trainer/core/utils/korean_josa_l10n.dart'
     show withParticle;
 
 /// Monday of the week containing [day], stripped to a date.
-DateTime weekStartOf(DateTime day) {
-  // 달력 날짜로 뺀다 — `Duration` 으로 빼면 서머타임이 있는 곳에서 자정이
-  // 한 시간 밀려 전날 23시가 된다.
-  return DateTime(
-    day.year,
-    day.month,
-    day.day - (day.weekday - DateTime.monday),
-  );
-}
+///
+/// 두 앱이 함께 쓰는 `oncare_ui` 의 [mondayOf] 로 센다(#2908) — 리포트 주 키가
+/// 회원 앱·서버와 같은 날을 같은 주로 묶는다.
+DateTime weekStartOf(DateTime day) => mondayOf(day);
 
 /// [weekStart] 가 속한 주의 월요일에서 [weeks] 주 옮긴 월요일. 음수면 앞 주다.
 ///

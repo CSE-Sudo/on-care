@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/ai_coach/domain/ai_coach_limits.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_chat_quota.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
@@ -16,6 +15,7 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 회원 AI 챗봇 대화를 보관하는 기간(일). 서버 `HISTORY_RETENTION_DAYS` 와 같다(#1823).
@@ -575,7 +575,9 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
                           ),
                         ],
                       )
-                    : Text(text),
+                    // AI 답은 여러 문장이다 — 낱말 중간에서 줄을 바꾸지
+                    // 않는다(#2969).
+                    : Text(keepWords(text)),
               ),
               if (!m.pending && m.sources.isNotEmpty)
                 Padding(

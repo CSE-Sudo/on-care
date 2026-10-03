@@ -548,7 +548,6 @@ class _SendPersonalRoutinesDialogState
       title: widget.editOnly
           ? l.schedEditRoutinesTitle
           : l.schedRoutinesSendTitle,
-      showClose: false,
       footer: AppButtonPair(
         cancelLabel: l.actionCancel,
         onCancel: () => Navigator.of(context).pop(),
@@ -638,7 +637,7 @@ class _RoutineRow extends StatelessWidget {
             if (onRemove != null)
               AppIconButton(
                 key: ValueKey<String>('session-routine-remove-$index'),
-                icon: AppIcons.close,
+                icon: AppIcons.delete,
                 tooltip: AppLocalizations.of(context).actionDelete,
                 color: OnCareColors.textTertiary,
                 onPressed: onRemove,

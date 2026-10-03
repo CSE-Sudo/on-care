@@ -76,6 +76,41 @@ void main() {
       expect(body, contains('담당 관계가 종료되면'));
     });
 
+    testWidgets('처리방침 화면에 위탁·국외 이전·파기·보호책임자 절과 그 시행일이 보인다 (#2820)', (
+      tester,
+    ) async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.legalDocument('privacy'),
+      );
+
+      final body = _bodyText(tester);
+      for (final heading in <String>[
+        '6. 개인정보 처리의 위탁',
+        '7. 개인정보의 국외 이전',
+        '8. 개인정보의 파기 절차 및 방법',
+        '13. 개인정보 보호책임자',
+      ]) {
+        expect(body, contains(heading));
+      }
+      expect(body, isNot(contains('2026년 1월 1일')));
+      // 머리글 부제와 본문 아래 두 곳 모두 처리방침의 시행일이다.
+      expect(find.text('시행일 2026. 10. 03.'), findsWidgets);
+      expect(find.text('시행일 2026. 10. 01.'), findsNothing);
+    });
+
+    testWidgets('약관 화면은 약관 시행일을 단다', (tester) async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.legalDocument('terms'),
+      );
+
+      expect(find.text('시행일 2026. 10. 01.'), findsWidgets);
+      expect(find.text('시행일 2026. 10. 03.'), findsNothing);
+    });
+
     testWidgets('영어 로케일에서도 두 문서가 뜬다', (tester) async {
       await pumpTrainerApp(
         tester,

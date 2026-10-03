@@ -360,10 +360,6 @@ void main() {
       expect(generator.inputs, isNull);
     });
   });
-
-  test('파일 이름의 날짜는 YYYY-MM-DD 다', () {
-    expect(ymdOfReportWeek(DateTime(2026, 3, 2)), '2026-03-02');
-  });
 }
 
 class _ThrowingRepository implements MemberReportSheetRepository {

@@ -1,4 +1,4 @@
-import 'package:oncare/core/utils/wire_date.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Centralised route paths. Anything that needs to navigate imports
 /// this rather than another feature module — see STRUCTURE.md §4.

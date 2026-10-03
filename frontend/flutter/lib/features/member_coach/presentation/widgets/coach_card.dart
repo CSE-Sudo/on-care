@@ -17,7 +17,6 @@ import 'package:oncare/features/exercise/presentation/widgets/own_exercise_recor
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/coach_routine_detail.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
-import 'package:oncare/features/member_coach/presentation/routine_effect_text.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -692,7 +691,13 @@ class _RecommendedExerciseRowState
                         const SizedBox(height: OnCareSpacing.s2),
                         Text(
                           // 공용 표의 자동 문구는 화면 언어로 옮긴다(#2725).
-                          routineEffectText(l, routine.effect),
+                          // 번역 표는 두 앱이 함께 쓰는 `oncare_ui` 한 벌이다(#2906).
+                          keepWords(
+                            routineEffectText(
+                              routine.effect,
+                              languageCode: l.localeName,
+                            ),
+                          ),
                           key: ValueKey<String>('routine-effect-${routine.id}'),
                           style: detailStyle,
                         ),
@@ -721,7 +726,7 @@ class _RecommendedExerciseRowState
                           routine.effect.isEmpty &&
                           routine.reason.isNotEmpty) ...<Widget>[
                         const SizedBox(height: OnCareSpacing.s2),
-                        Text(routine.reason, style: detailStyle),
+                        Text(keepWords(routine.reason), style: detailStyle),
                       ],
                       // 줄마다 출처(`트레이너 직접 추천` 등)를 붙이지 않는다
                       // (#2566). 담당이 있으면 내려오는 운동은 모두 트레이너가

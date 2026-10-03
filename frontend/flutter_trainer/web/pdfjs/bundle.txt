@@ -2,4 +2,4 @@ version=4.10.38
 source=pdfjs-dist@4.10.38 legacy/build
 integrity=sha512-/Y3fcFrXEAsMjJXeL9J8+ZG9U01LbuWaYypvDW2ycW1jL269L3js3DVBjDJ0Up9Np1uqDXsDrRihHANhZOlwdQ==
 pdf.min.js=44ec6f011027ee77791386b66c14876a5fc29e20bf0433c07c6726fff7212b72
-pdf.worker.min.js=bd88805178a26c729db8c0107a5b630cb900ec070f4d8c7529a3e45530afd41d
+pdf.worker.min.js=849793ceb1065b3028c4267103f3054d072a4651988d4bf924d8c159fdd32cf9

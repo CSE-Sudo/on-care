@@ -4,7 +4,8 @@ DB 없이 규칙만 본다. 보는 것:
 
 1. 오늘 — 넘친 영양은 가장 많이 채운 음식과 목표 대비 배수로, 모자란 단백질은
    부족분과 4주 평균으로, 지난 끼니 마감이 지났는데 없으면 그 끼니를 말한다.
-2. 이번 주·전체는 회원 앱과 같은 판정(`decide_week`·`decide_all`)에 원인을 붙인다.
+2. 이번 주·전체는 회원 앱과 같은 판정 선으로 문제를 두 가지까지 말하고 원인을
+   붙인다. 이번 주는 첫 문제를 지난주와 견주고, 모두 합쳐 4문장을 넘지 않는다.
 3. 모든 키에 한국어·영어 틀이 있고, 값이 틀을 빠짐없이 채운다.
 """
 from __future__ import annotations
@@ -132,9 +133,64 @@ def test_week_over_names_the_biggest_meal():
                               sodium_mg=sodium, protein_g=40, total_calories=700))
     start, end, logged, out = svc.week_sentences(entries, TARGETS, _at(today, 20))
     assert (start, end, logged) == (monday, today, 4)
-    assert [s.key for s in out] == ["tr_week_over", "tr_week_cause"]
+    # 나트륨·단백질이 모두 사흘 — 같으면 과잉이 먼저고, 둘째 문제도 근거와 함께 말한다.
+    assert [s.key for s in out] == [
+        "tr_week_over", "tr_week_cause", "tr_week_protein_short", "tr_week_protein_avg",
+    ]
     assert out[0].text == "이번 주 기록한 4일 중 3일 나트륨이 목표를 넘었어요."
     assert out[1].text == "월요일 점심에 먹은 짬뽕(4,286mg) 영향이 가장 컸어요."
+    assert out[2].text == "이번 주 기록한 4일 중 3일 단백질이 목표의 80%에 못 미쳤어요."
+    assert out[3].text == "모자란 날은 하루 평균 70g 정도였어요."
+
+
+def test_week_compares_the_first_finding_with_last_week_and_caps_at_four():
+    # 목요일 — 지난주 기록이 있으면 첫 문제를 지난주와 견주고, 넘치는 근거는 버린다.
+    today = date(2026, 10, 1)
+    monday = today - timedelta(days=today.weekday())
+    entries = []
+    for i in range(-7, 4):
+        d = monday + timedelta(days=i)
+        sodium = 2500 if (i >= 0 and i != 3) or i in (-7, -6) else 900
+        entries.append(_entry(d, "breakfast", [{"name": "토스트"}],
+                              sodium_mg=300, protein_g=30, total_calories=400))
+        entries.append(_entry(d, "lunch", [{"name": "라면"}],
+                              sodium_mg=sodium, protein_g=40, total_calories=700))
+    _, _, _, out = svc.week_sentences(entries, TARGETS, _at(today, 20))
+    assert [s.key for s in out] == [
+        "tr_week_over", "tr_week_vs_last_more", "tr_week_cause", "tr_week_protein_short",
+    ]
+    # 비교는 첫 문제 바로 뒤 — 무엇을 견주는지 읽히게.
+    assert out[1].text == "지난주(7일 중 2일)보다 늘었어요."
+    assert len(out) == svc.MAX_SENTENCES
+
+
+def test_week_breakfast_snack_names_what_replaced_breakfast():
+    today = date(2026, 10, 1)
+    monday = today - timedelta(days=today.weekday())
+    entries = []
+    for i in range(4):
+        d = monday + timedelta(days=i)
+        entries.append(_entry(d, "snack", [{"name": "빵" if i else "과자"}],
+                              protein_g=40, total_calories=300))
+        entries.append(_entry(d, "lunch", [{"name": "샐러드"}],
+                              protein_g=50, total_calories=600))
+    _, _, _, out = svc.week_sentences(entries, TARGETS, _at(today, 20))
+    assert [s.key for s in out[:2]] == [
+        "tr_week_skip_breakfast_snack", "tr_week_breakfast_snack_food",
+    ]
+    assert out[1].text == "아침 대신 먹은 것은 빵 3번이 가장 많았어요."
+
+
+def test_week_good_adds_the_daily_average():
+    today = date(2026, 10, 1)
+    monday = today - timedelta(days=today.weekday())
+    entries = [
+        _entry(monday + timedelta(days=i), slot, [], protein_g=50, total_calories=900)
+        for i in range(3) for slot in ("breakfast", "lunch")
+    ]
+    _, _, _, out = svc.week_sentences(entries, TARGETS, _at(today, 20))
+    assert [s.key for s in out] == ["tr_week_good", "tr_week_good_avg"]
+    assert out[1].text == "하루 평균 1,800kcal, 단백질 100g을 드셨어요."
 
 
 def test_week_empty():
@@ -160,9 +216,11 @@ def test_all_slot_sodium_names_the_foods():
                               total_calories=500))
     logged, out = svc.all_sentences(entries, TARGETS, today)
     assert logged == 10
-    assert [s.key for s in out] == ["tr_all_slot_sodium", "tr_foods_two"]
+    # 회원 앱은 하나만 말하지만, 트레이너 웹은 다음 후보(자주 먹은 메뉴)까지 말한다.
+    assert [s.key for s in out] == ["tr_all_slot_sodium", "tr_foods_two", "tr_all_frequent"]
     assert out[0].text == "최근 4주 동안 점심 나트륨이 10번 목표의 절반을 넘었어요."
     assert out[1].text == "김치찌개 5번, 짬뽕 3번이 대부분이에요."
+    assert out[2].text == "최근 4주 동안 저녁 메뉴로 닭가슴살 10번이 가장 많았어요."
 
 
 def test_all_few_records():
@@ -184,7 +242,7 @@ def test_every_key_has_korean_and_english_with_the_same_values(key):
     assert key in svc._EN
     # 두 언어가 같은 값(수치·이름)을 쓴다 — 말이 다르면 번역이 뜻을 바꾼 것이다.
     raw = {"food", "food1", "food2", "count", "count1", "count2", "days", "logged",
-           "snack_days", "pct", "before", "after", "ratio"}
+           "snack_days", "pct", "before", "after", "ratio", "prev_logged", "prev_days"}
     assert _fields(svc._KO[key]) & raw == _fields(svc._EN[key]) & raw
 
 

@@ -13,6 +13,7 @@ String? authInputErrorText(AppLocalizations l, AppInputError? error) =>
       AppInputError.nameTooLong => l.signUpNameTooLong,
       AppInputError.emailEmpty => l.authEmailEmpty,
       AppInputError.emailInvalid => l.authEmailInvalid,
+      AppInputError.emailTooLong => l.authEmailTooLong,
       AppInputError.phoneInvalid => l.signUpPhoneFormatInvalid,
       AppInputError.passwordEmpty => l.authPasswordEmpty,
       AppInputError.passwordWeak => l.signUpPasswordWeak,

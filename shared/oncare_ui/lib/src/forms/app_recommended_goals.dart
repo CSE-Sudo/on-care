@@ -38,10 +38,27 @@ const String _focusRehab = '재활';
 const String _focusEating = '식습관 개선';
 const String _focusExerciseHabit = '운동 습관';
 
-/// 목표를 세우지 않은 회원의 기준선 — 회원 앱 `UserProfile.defaultDailyCalories`·
-/// `kDefaultExerciseLoadGoals`, 트레이너 웹 `calorieTargetKcal`·`kDailyBurnKcal`
-/// 과 같은 값이다. 회원 앱 테스트가 어긋나지 않는지 확인한다.
+/// 목표를 세우지 않은 회원의 기준선 — 두 앱이 읽는 **단 하나의 정의**다(#2906).
+///
+/// 회원 앱 `UserProfile.defaultDaily…`·`kDefaultExerciseLoadGoals`, 트레이너 웹
+/// `calorieTargetKcal`·`sodiumTargetMg`·`kDailyBurnKcal`, 결과지 `kReport…Target`
+/// 이 모두 이 값을 가리킨다. 서버(`app/services/goal_defaults.py`)와는 원본 표
+/// `shared/oncare_rules/vectors/goal_defaults.json` 으로 대조한다 — 이 패키지·
+/// 두 앱·서버 테스트가 같은 파일을 읽는다.
+///
+/// 아래 [recommendedGoalsFor] 의 권장값과는 다르다. 권장값은 온보딩이 **미리
+/// 채워 주는 칸**이고, 이 값은 회원이 칸을 비워 둔 채로 저장했을 때 화면이
+/// 견주는 선이다.
 const int kGoalDefaultDailyCalories = 2000;
+const int kGoalDefaultDailySodiumMg = 2000;
+const int kGoalDefaultDailySugarG = 50;
+const int kGoalDefaultDailyCarbsG = 275;
+
+/// 체중도 개인 목표도 없을 때의 단백질 목표(g). 체중이 있으면 체중 ×
+/// [kGoalDefaultProteinGPerKg] 다 — 서버 식단 분석과 같은 실효 목표(#2898).
+const int kGoalDefaultDailyProteinG = 60;
+const double kGoalDefaultProteinGPerKg = 1.2;
+const int kGoalDefaultDailyFatG = 55;
 const int kGoalDefaultDailyBurnKcal = 300;
 const int kGoalDefaultWeeklyCardioMinutes = 150;
 const int kGoalDefaultWeeklyStrengthSets = 21;

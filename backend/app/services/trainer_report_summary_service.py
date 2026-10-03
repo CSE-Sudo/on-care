@@ -31,7 +31,8 @@ from sqlalchemy.orm import Session
 
 from app.core.locale import Locale, current_locale, localized
 from app.schemas.trainer_api import ReportSummaryOut, WeeklyReportOut
-from app.services import client_signals, korean_josa, trainer_service
+from app.services import client_signals, goal_defaults, korean_josa
+from app.services.trainer import reports as trainer_reports_service
 from app.services.coach import prompt_safety
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
 
@@ -41,9 +42,10 @@ logger = logging.getLogger(__name__)
 #: 먼저다(#1430) — 같은 1,900kcal 이 어떤 회원에게는 부족이고 어떤 회원에게는
 #: 초과다. 적어 둔 것이 없을 때만 이 값을 쓰고, 근거 문장에 어느 기준을 썼는지
 #: 함께 적는다.
-SODIUM_TARGET_MG = 2000
-CALORIE_TARGET_KCAL = 2000
-SUGAR_TARGET_G = 50
+#: 값은 목표 미설정 기본값 원본(`goal_defaults`) 한 곳에 있다(#2906).
+SODIUM_TARGET_MG = goal_defaults.DAILY_SODIUM_MG
+CALORIE_TARGET_KCAL = goal_defaults.DAILY_CALORIES
+SUGAR_TARGET_G = goal_defaults.DAILY_SUGAR_G
 
 #: 칼로리가 목표에서 이만큼 벗어나면 주의로 본다. 하루하루가 목표에 딱 맞는
 #: 주는 없으므로 좁게 잡으면 매주 주의가 뜬다. 회원 목록의 `칼로리 목표 이탈`
@@ -140,7 +142,7 @@ def generate_summary(
     요청 컨텍스트를 보지 못하므로, 언어는 여기서 한 번 정해 끝까지 넘긴다.
     """
     locale = locale or current_locale()
-    report = trainer_service.build_weekly_report(db, trainer_id, member_id, week)
+    report = trainer_reports_service.build_weekly_report(db, trainer_id, member_id, week)
     evidence = _evidence(report, locale)
     fallback = _rule_summary(report, evidence, locale)
     if not evidence:
@@ -262,6 +264,10 @@ def watchpoints(
     report: WeeklyReportOut, locale: Locale | None = None
 ) -> list[Watchpoint]:
     """그 주의 주의사항 전부. **판정은 여기 한 곳에서만 한다.**
+
+    트레이너 웹 데모(`report_summary.dart` 의 `summaryWatchpoints`)가 같은 판정을
+    옮겨 들고 있다. 기준이나 판정을 바꾸면 `scripts/gen_report_summary_cases.py`
+    로 공유 사례 파일을 다시 만든다 — 두 쪽 테스트가 그 파일과 대조한다(#2906).
 
     운동 이행률·건너뛴 운동·나트륨·당류·칼로리·탄단지를 같은 기준으로 본다.
     LLM 입력과 규칙 기반 대체 요약, 다음 주 조치가 이 목록을 함께 쓴다.
@@ -482,7 +488,7 @@ def _skipped_exercises(report: WeeklyReportOut) -> list[str]:
             if "✗" in line:
                 # 분량을 뗀 이름으로 묶는다 — 같은 운동을 요일마다 건너뛴 것이
                 # 서로 다른 운동 셋으로 읽히면 안 된다(#1177).
-                name = trainer_service.exercise_base_name(line)
+                name = trainer_reports_service.exercise_base_name(line)
                 if name and name not in names:
                     names.append(name)
     return names[:MAX_POINTS]

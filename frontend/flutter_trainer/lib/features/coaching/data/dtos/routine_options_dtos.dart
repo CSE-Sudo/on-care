@@ -18,6 +18,48 @@ RoutineOptions routineOptionsFromJson(Map<String, Object?> json) {
   return options;
 }
 
+/// [RoutineOptions] → `RoutineOptionsOut` JSON — [routineOptionsFromJson] 의
+/// 반대 방향이다.
+///
+/// 받은 후보를 코칭 화면의 자동 보관(#2873)에 그대로 담아 두었다가, 새로 고침
+/// 뒤 같은 후보로 위저드를 다시 연다. 같은 읽기 함수를 지나므로 형식이 하나다.
+Map<String, Object?> routineOptionsToJson(RoutineOptions options) =>
+    <String, Object?>{
+      'analysis': _analysisToJson(options.analysis),
+      'plan_a': _planToJson(options.planA),
+      'plan_b': _planToJson(options.planB),
+      'generated_by': options.generatedBy,
+    };
+
+Map<String, Object?> _analysisToJson(MemberAnalysis a) => <String, Object?>{
+  'goal': a.goal,
+  'sodium_today_mg': a.sodiumTodayMg,
+  'sodium_over_target': a.sodiumOverTarget,
+  'avg_completion_rate': a.avgCompletionRate,
+  'latest_routine': a.latestRoutine,
+  'note': a.note,
+  'recent_messages': a.recentMessages,
+  'recommendation_status': a.recommendationStatus.name,
+  'history_session_count': a.historySessionCount,
+  'analysis_period_days': a.analysisPeriodDays,
+  'frequent_exercises': a.frequentExercises,
+  'suggested_available_minutes': a.suggestedAvailableMinutes,
+  'suggested_intensity': a.suggestedIntensity,
+};
+
+Map<String, Object?> _planToJson(RoutinePlan plan) => <String, Object?>{
+  'key': plan.key,
+  'label': plan.label,
+  'total_minutes': plan.totalMinutes,
+  'intensity': plan.intensity,
+  'exercises': <Map<String, Object?>>[
+    for (final RoutineExercise e in plan.exercises)
+      <String, Object?>{'name': e.name, 'minutes': e.minutes, 'type': e.type},
+  ],
+  'reason': plan.reason,
+  'rationale': plan.rationale,
+};
+
 MemberAnalysis _analysis(Object? v) {
   final m = _requiredMap(v, 'analysis');
   return MemberAnalysis(

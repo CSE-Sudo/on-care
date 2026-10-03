@@ -26,9 +26,13 @@ from app.schemas.exercise_api import (
 )
 from app.schemas.points_api import PointsOut
 from app.services import (
-    exercise_activity, exercise_service, exercise_types, points_service,
-    streak_shield_service, trainer_service,
+    exercise_activity,
+    exercise_service,
+    exercise_types,
+    points_service,
+    streak_shield_service,
 )
+from app.services.trainer import member_mirror as trainer_member_mirror_service
 from app.services.coach import personal_ingest
 from app.services.exercise_service import (
     weekly_goals,
@@ -159,7 +163,7 @@ def exercise_advice(
     (#2162) — 읽는 구간은 트레이너웹과 같은 함수가 정한다.
     """
     start, end, days = exercise_service.period_days(db, current_user.id, period)
-    routine_days = trainer_service.advice_routine_days(db, current_user.id, period)
+    routine_days = trainer_member_mirror_service.advice_routine_days(db, current_user.id, period)
     advice = exercise_service.period_advice(days, period, routine_days)
     return ExerciseAdviceResponse(
         period=period,
