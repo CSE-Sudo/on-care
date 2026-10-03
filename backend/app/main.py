@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api import ai_call_errors
 from app.api.v1 import (
     activity,
     admin_trainers,
@@ -114,6 +115,13 @@ def body_limit_rules(s: Settings) -> tuple[BodyLimitRule, ...]:
             s.coach_chat_max_body_bytes,
             "요청이 너무 큽니다. 질문과 대화 기록을 줄여 다시 보내 주세요.",
         ),
+        # 트레이너 AI 코칭(#3032). 회원 AI 코치와 같은 필드 제한이라 같은 상한을 쓴다.
+        BodyLimitRule(
+            rf"{v1}/trainer/clients/[^/]+/ai-coach",
+            s.coach_chat_max_body_bytes,
+            "요청이 너무 큽니다. 질문과 대화 기록을 줄여 다시 보내 주세요.",
+            regex=True,
+        ),
         # 채팅 사진 — 회원 → 트레이너, 트레이너 → 회원.
         BodyLimitRule(
             rf"{v1}/me/coach/chat/image", chat_image, image_detail, regex=True
@@ -190,6 +198,9 @@ app.add_middleware(RequestLocaleMiddleware)
 # 관측성: request-id 미들웨어(가장 바깥 — 컨텍스트를 먼저 세팅) + 액세스 로그 + 전역 500 핸들러.
 # 보안 헤더 미들웨어 뒤에 설치해 request-id 미들웨어가 최외곽에서 감싸게 한다.
 observability.install(app)
+
+# 하루 AI 호출 상한(#3032) → 429 `daily_limit`(트레이너)·503 `ai_capacity`(서버 전체).
+ai_call_errors.install(app)
 
 # /v1 prefix 로 마운트 (프론트 base URL 이 /v1 을 포함하는 계약)
 app.include_router(system.router, prefix=settings.api_v1_prefix)
