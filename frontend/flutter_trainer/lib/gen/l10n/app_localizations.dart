@@ -566,12 +566,6 @@ abstract class AppLocalizations {
   /// **'You must be 14 or older to sign up.'**
   String get consentAge14Detail;
 
-  /// No description provided for @consentMarketing.
-  ///
-  /// In en, this message translates to:
-  /// **'Receive marketing notifications'**
-  String get consentMarketing;
-
   /// No description provided for @consentRequiredHint.
   ///
   /// In en, this message translates to:
@@ -1165,6 +1159,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No members yet'**
   String get clientsEmpty;
+
+  /// No description provided for @clientsEmptyConnectHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect members with the code they show you or by sending a coaching request. Consultation requests from members also appear in your inbox.'**
+  String get clientsEmptyConnectHint;
 
   /// No description provided for @clientsEmptyForFilter.
   ///

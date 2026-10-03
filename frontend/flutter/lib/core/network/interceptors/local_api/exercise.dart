@@ -36,6 +36,9 @@ extension _LocalApiExercise on LocalApiInterceptor {
     if (existing == null) return _notFound(options, '운동 기록을 찾을 수 없습니다.');
     if (existing.source != 'member') return _derivedExercise(options);
     final body = _jsonBody(options);
+    // 앞날로 옮기는 수정은 실서버처럼 422 — 원래 날짜가 그대로 남는다(#3042).
+    final String? dateError = _exerciseDateError(body['date']);
+    if (dateError != null) return _unprocessable(options, dateError);
     final type = (body['type'] as String? ?? existing.type).trim();
     final durationSeconds = body.containsKey('duration_seconds')
         ? (body['duration_seconds'] as num?)?.toInt()
@@ -619,6 +622,11 @@ extension _LocalApiExercise on LocalApiInterceptor {
     if (items.length != raw.length || items.any((i) => _minutesOf(i) <= 0)) {
       return _unprocessable(options, 'minutes must be > 0');
     }
+    // 한 항목이라도 앞날이면 아무것도 넣지 않는다 — 실서버와 같은 422(#3042).
+    for (final Map<String, Object?> item in items) {
+      final String? dateError = _exerciseDateError(item['date']);
+      if (dateError != null) return _unprocessable(options, dateError);
+    }
     final String batch = '${DateTime.now().microsecondsSinceEpoch}';
     final List<Map<String, Object?>> sessions = <Map<String, Object?>>[];
     int awarded = 0;
@@ -779,4 +787,13 @@ extension _LocalApiExercise on LocalApiInterceptor {
     if (monday == null || index < 0) return weekStart;
     return wireDate(DateTime(monday.year, monday.month, monday.day + index));
   }
+}
+
+/// 운동 기록 날짜 검사(#3042). 실서버 `ExerciseSessionCreate.date` 와 같은
+/// 규칙이다 — 생략하면 오늘이고, 형식이 틀리거나 아직 오지 않은 날은 받지
+/// 않는다. 문구는 식단 기록(`_entryDateError`)과 같다.
+String? _exerciseDateError(Object? raw) {
+  if (raw == null) return null;
+  if (raw is! String) return 'date 는 YYYY-MM-DD 형식이어야 합니다.';
+  return _entryDateError(raw);
 }

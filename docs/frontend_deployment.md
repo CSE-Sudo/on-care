@@ -25,10 +25,21 @@
 | `https://ewhasudo.zapto.org/frontend/` | 사용자 앱 | `public/frontend/` |
 | `https://ewhasudo.zapto.org/trainer/` | 트레이너 웹 | `public/trainer/` |
 
+- 검색 색인: 랜딩만 색인합니다. 두 앱의 `web/index.html` 은 `<meta name="robots" content="noindex, nofollow">` 로 색인에서 빠집니다(로그인해야 쓰는 화면, #3015). 운영 정적 호스팅에서 응답 헤더(`X-Robots-Tag`)로 같은 정책을 거는 일은 배포 설정 몫입니다(#480).
 - 배포 워크플로: [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml)
 - 커스텀 도메인 설정: [`CNAME`](../CNAME)
 - 자동 배포 조건: `main` 브랜치 push
 - 수동 배포: GitHub Actions의 `Deploy GitHub Pages` → `Run workflow`
+
+### 한 출처를 쓰는 두 앱의 브라우저 저장소 규칙 (#3054)
+
+두 앱은 경로만 다를 뿐 **같은 출처**(`https://ewhasudo.zapto.org`)라, 브라우저의 `sessionStorage`·`localStorage`·IndexedDB 를 함께 봅니다. 경로(`/frontend/`, `/trainer/`)로는 나뉘지 않습니다.
+
+- 브라우저 저장소에 쓰는 키에는 **앱 이름공간을 붙입니다.** 토큰 키는 `oncare.member.*`(회원 앱)·`oncare.trainer.*`(트레이너 웹)이고, 정의는 `shared/oncare_core/lib/storage/token_keys.dart` 한 곳에 둡니다.
+- 한 앱의 로그아웃·세션 만료는 **자기 이름공간의 키만** 지웁니다. 저장소 전체 비우기(`clear()`)는 쓰지 않습니다.
+- 예전 빌드가 쓰던 이름공간 없는 키(`access_token`·`refresh_token`)는 처음 읽을 때 자기 이름공간으로 옮기고 지웁니다. 웹에서는 그 토큰이 어느 앱 것인지 모르므로 세션 복원에서 역할을 확인합니다(회원 앱: `GET /users/me` 의 `role`, 403 이면 갱신 없이 이 앱만 로그아웃 / 트레이너 웹: `GET /trainer/me`).
+- 키 이름이 바뀌는 변경은 **두 앱을 같은 배포로** 내보냅니다. 같은 Pages artifact 로 묶여 있어 기본 배포는 이 조건을 지킵니다.
+- 경로나 하위 도메인을 나눠 출처를 분리하더라도 이 규칙은 그대로 둡니다(모바일 빌드도 같은 키 이름을 씁니다).
 
 ## GitHub Pages 배포 과정
 

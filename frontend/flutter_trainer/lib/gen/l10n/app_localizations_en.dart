@@ -263,9 +263,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get consentAge14Detail => 'You must be 14 or older to sign up.';
 
   @override
-  String get consentMarketing => 'Receive marketing notifications';
-
-  @override
   String get consentRequiredHint => 'Agree to all required items to continue.';
 
   @override
@@ -597,6 +594,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientsEmpty => 'No members yet';
+
+  @override
+  String get clientsEmptyConnectHint =>
+      'Connect members with the code they show you or by sending a coaching request. Consultation requests from members also appear in your inbox.';
 
   @override
   String clientsEmptyForFilter(String filter) {

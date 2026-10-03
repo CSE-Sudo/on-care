@@ -1531,7 +1531,6 @@
   "consentHealthDetail": "식단·운동 기록, 체중 같은 신체 정보, 건강 목표와 건강상태·주의사항이 여기에 해당해요. 다른 개인정보와 따로 동의를 받아요.",
   "consentAge14": "만 14세 이상이에요",
   "consentAge14Detail": "만 14세 미만은 가입할 수 없어요.",
-  "consentMarketing": "마케팅 알림 수신",
   "consentRequiredHint": "필수 항목에 모두 동의해야 다음으로 넘어갈 수 있어요.",
   "consentPageTitle": "서비스 이용 동의",
   "consentPageSubtitle": "계속 이용하려면 아래 항목을 확인하고 동의해 주세요.",

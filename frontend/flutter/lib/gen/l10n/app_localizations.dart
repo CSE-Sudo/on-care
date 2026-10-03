@@ -5234,12 +5234,6 @@ abstract class AppLocalizations {
   /// **'You must be 14 or older to sign up.'**
   String get consentAge14Detail;
 
-  /// No description provided for @consentMarketing.
-  ///
-  /// In en, this message translates to:
-  /// **'Receive marketing notifications'**
-  String get consentMarketing;
-
   /// No description provided for @consentRequiredHint.
   ///
   /// In en, this message translates to:

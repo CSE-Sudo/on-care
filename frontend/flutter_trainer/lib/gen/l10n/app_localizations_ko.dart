@@ -256,9 +256,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get consentAge14Detail => '만 14세 미만은 가입할 수 없어요.';
 
   @override
-  String get consentMarketing => '마케팅 알림 수신';
-
-  @override
   String get consentRequiredHint => '필수 항목에 모두 동의해야 다음으로 넘어갈 수 있어요.';
 
   @override
@@ -578,6 +575,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get clientsEmpty => '아직 담당 회원이 없어요';
+
+  @override
+  String get clientsEmptyConnectHint =>
+      '연결 코드를 받거나 담당 요청을 보내 회원을 연결하세요. 회원이 상담을 신청하면 상담 요청함에도 표시돼요.';
 
   @override
   String clientsEmptyForFilter(String filter) {

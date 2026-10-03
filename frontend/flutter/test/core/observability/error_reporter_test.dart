@@ -20,6 +20,7 @@ class _FakeReporter extends ErrorReporter {
     Object error,
     StackTrace? stackTrace, {
     required String source,
+    Map<String, String> tags = const <String, String>{},
   }) async {
     reports.add((error, stackTrace, source));
   }
