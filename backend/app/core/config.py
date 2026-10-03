@@ -37,7 +37,13 @@ class Settings(BaseSettings):
     git_sha: str = "unknown"
 
     # --- Database ---
-    database_url: str = "postgresql+psycopg://oncare:oncare@localhost:5432/oncare"
+    # 비밀값(접속 비밀번호·키·DSN)은 `repr=False` 로 둔다(#3090) — 설정 객체를 로그·
+    # 오류 화면·디버거에서 찍어도 값이 나오지 않는다. 타입은 `str` 그대로라 사용처는
+    # 바뀌지 않는다(`SecretStr` 은 모든 사용처·테스트가 `.get_secret_value()` 를
+    # 거쳐야 해 이번 범위에서 고르지 않았다).
+    database_url: str = Field(
+        "postgresql+psycopg://oncare:oncare@localhost:5432/oncare", repr=False
+    )
     # DB 커넥션 인출(연결 수립) 상한(초) — 네트워크 파티션/무응답 시 스레드 무한 점유 방지.
     db_connect_timeout_seconds: int = 5
     # 커넥션 풀(#2836). 기본값을 SQLAlchemy 에 맡기면 풀 대기가 30초라, 풀이 마르면
@@ -58,7 +64,7 @@ class Settings(BaseSettings):
     auto_create_tables: bool = True
 
     # --- JWT ---
-    jwt_secret: str = DEFAULT_JWT_SECRET
+    jwt_secret: str = Field(DEFAULT_JWT_SECRET, repr=False)
     jwt_algorithm: str = "HS256"
     # 접근 토큰 수명(#2913). 두 앱 모두 401 을 받으면 refresh 로 새 토큰을 받아 요청을
     # 다시 보내므로 짧아도 사용자 체감이 없고, 새어 나간 토큰이 쓰일 수 있는 시간이
@@ -92,7 +98,7 @@ class Settings(BaseSettings):
 
     # --- 장소(O2O) ---
     # 카카오 Local REST 키. 있으면 실검색, 없으면 시드 폴백(recognizer 팩토리와 같은 철학).
-    kakao_rest_api_key: str = ""
+    kakao_rest_api_key: str = Field("", repr=False)
     # auto: 키 있으면 kakao, 없으면 seed. 강제하려면 kakao|seed.
     places_provider: Literal["auto", "kakao", "seed"] = "auto"
     kakao_timeout_seconds: float = 3.0
@@ -153,7 +159,7 @@ class Settings(BaseSettings):
     #: 매칭만 쓰고, 안 붙는 이름은 유형 평균으로 떨어진다 — 인식기와 같은 규약이라
     #: 키가 없으면 이 값과 무관하게 조용히 폴백한다.
     exercise_name_ai: bool = True
-    gemini_api_key: str = ""
+    gemini_api_key: str = Field("", repr=False)
     gemini_model: str = "gemini-flash-latest"  # 챗·인식 공용. 핀 버전은 은퇴로 404 → latest 별칭 사용
     # Gemini HTTP 타임아웃(초). 걸지 않으면 무응답 시 호출 스레드가 무기한 묶여
     # 워커 풀이 고갈된다(추천 경로는 스레드 풀에서 돈다).
@@ -162,7 +168,7 @@ class Settings(BaseSettings):
     # gemini_timeout_seconds 와 따로 둔다. Gemini·LiteLLM 비전 인식기가 함께 쓴다.
     recognizer_timeout_seconds: float = 60.0
     coach_llm: str = "gemini"         # openai | gemini | litellm
-    openai_api_key: str = ""
+    openai_api_key: str = Field("", repr=False)
     openai_chat_model: str = "gpt-4o"
     embedder: str = "gemini"          # openai | gemini | litellm
     openai_embed_model: str = "text-embedding-3-small"
@@ -171,7 +177,7 @@ class Settings(BaseSettings):
     # 하나의 Virtual Key 로 뒤의 여러 모델(claude 등)을 호출.
     # base_url 을 넣으면 OpenAI SDK 가 이 프록시를 바라봄.
     litellm_base_url: str = ""
-    litellm_api_key: str = ""                       # Virtual Key
+    litellm_api_key: str = Field("", repr=False)  # Virtual Key
     litellm_chat_model: str = "claude-sonnet-4-6"   # 코치/인식용 채팅 모델
     litellm_embed_model: str = ""                   # 프록시에 임베딩 모델 있으면 지정
     litellm_vision_model: str = "claude-sonnet-4-6" # 식단 인식(이미지)용
@@ -205,7 +211,7 @@ class Settings(BaseSettings):
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_username: str = ""
-    smtp_password: str = ""
+    smtp_password: str = Field("", repr=False)
     # true: 평문 연결 뒤 STARTTLS(587). false 면 smtp_ssl 을 본다.
     smtp_starttls: bool = True
     # true: 처음부터 TLS(465). starttls 와 함께 켜면 ssl 이 우선한다.
@@ -231,7 +237,7 @@ class Settings(BaseSettings):
     # 에서 명시적으로 켠다. 운영(env=prod)에서는 켤 수 없다(아래 가드).
     seed_demo_data: bool = False
     # 데모 계정(트레이너/회원 시드) 로그인 비밀번호. 데모 시드를 켠 환경에서만 쓰인다.
-    demo_login_password: str = DEFAULT_DEMO_PASSWORD
+    demo_login_password: str = Field(DEFAULT_DEMO_PASSWORD, repr=False)
     # 헬스장 현장 혜택(PT 재등록 할인·락커 쿠폰·분석용 식판)을 실제로 열지(#2822).
     # 제휴 헬스장이 없는 동안은 꺼 둔다. 데모 시드가 켜진 서버는 이 값과 상관없이 연다.
     gym_benefits_enabled: bool = False
@@ -248,7 +254,7 @@ class Settings(BaseSettings):
     # 처리하지 못한 예외를 외부 에러 추적 도구로 보낸다. DSN 은 배포 환경변수로만 넣고
     # 저장소에 두지 않는다. 비어 있거나 ENV=dev 면 초기화하지 않는다(개발·데모 오류는
     # 보내지 않음). 요청 본문·헤더·쿼리·지역 변수는 보내지 않는다(app/core/error_tracking.py).
-    sentry_dsn: str = ""
+    sentry_dsn: str = Field("", repr=False)
     # 비우면 ENV 값(staging·prod)을 그대로 쓴다.
     sentry_environment: str = ""
     # 오류 이벤트 표본 비율(0~1). 성능 추적(APM)은 켜지 않는다.
