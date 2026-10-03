@@ -264,6 +264,10 @@ class ExerciseSessionsCreate(BaseModel):
     sessions: list[ExerciseSessionCreate] = Field(
         min_length=1, max_length=MAX_EXERCISE_SESSIONS_PER_REQUEST
     )
+    #: 저장 시도 단위 멱등키(선택, #3095). 응답을 잃은 뒤 같은 목록을 같은 키로
+    #: 다시 보내면 새로 저장·적립하지 않고 처음 결과를 돌려준다. 같은 키에 다른
+    #: 목록이 오면 409 다. 없으면 지금처럼 매번 새로 저장한다.
+    client_request_id: str | None = Field(default=None, min_length=1, max_length=64)
 
 
 class ExerciseCalorieRequest(BaseModel):

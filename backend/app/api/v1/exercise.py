@@ -13,6 +13,7 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser, RequireMember
@@ -306,28 +307,51 @@ def add_sessions(
     저장되지 않는다 — 몇 개만 남은 채 실패하면 다시 시도한 회원이 중복 기록을
     만든다. 항목 검증은 모두 `ExerciseSessionCreate` 의 제약에서 422 로 걸리므로
     (#1903), 라우터에 닿은 요청은 행을 만드는 일만 남는다.
+
+    `client_request_id` 가 있으면 재시도를 알아본다(#3095). 같은 키로 저장한
+    기록이 있으면 새로 저장·적립·적재하지 않고 처음 결과를 다시 만들어 돌려주고,
+    목록이 다르면 409 다. 그 키의 기록이 모두 지워졌으면 처음 보는 키처럼 새로
+    저장한다 — 남은 것이 없으니 비교할 것도 없다.
     """
+    key = payload.client_request_id
+    if key:
+        replay = _replay_sessions(db, current_user.id, key, payload)
+        if replay is not None:
+            return replay
     rows: list[ExerciseSession] = []
     awarded = 0
     balance = 0
-    for item in payload.sessions:
-        rows.append(row := _new_member_session(db, current_user.id, item))
-        db.add(row)
-        # 회원이 직접 추가한 운동은 포인트를 받는다(#1786). 기록과 같은 트랜잭션이라
-        # 기록만 남고 적립이 빠지거나 그 반대가 되지 않는다. 적립이 행을 참조하므로
-        # 먼저 flush 한다. 하루 한도는 항목마다 센다 — 다섯 개를 한 번에 저장해도
-        # 한도(3회)만큼만 받는다.
-        db.flush()
-        points = points_service.award(
-            db, current_user.id, points_service.EXERCISE_MANUAL, row.id
+    try:
+        for index, item in enumerate(payload.sessions):
+            rows.append(row := _new_member_session(db, current_user.id, item))
+            if key:
+                row.client_request_id = key
+                row.client_request_index = index
+            db.add(row)
+            # 회원이 직접 추가한 운동은 포인트를 받는다(#1786). 기록과 같은
+            # 트랜잭션이라 기록만 남고 적립이 빠지거나 그 반대가 되지 않는다.
+            # 적립이 행을 참조하므로 먼저 flush 한다. 하루 한도는 항목마다 센다 —
+            # 다섯 개를 한 번에 저장해도 한도(3회)만큼만 받는다.
+            db.flush()
+            points = points_service.award(
+                db, current_user.id, points_service.EXERCISE_MANUAL, row.id
+            )
+            awarded += points.awarded
+            balance = points.balance
+            # 보호권으로 이어 붙인 날에 운동 기록이 생기면 그 보호권을 되돌린다(#1788).
+            streak_shield_service.refund_for_record(
+                db, current_user.id, exercise_activity.activity_date_of(row)
+            )
+        db.commit()
+    except IntegrityError:
+        # 같은 키로 동시에 온 재시도가 먼저 넣었다. 그쪽 결과로 수렴한다.
+        db.rollback()
+        replay = (
+            _replay_sessions(db, current_user.id, key, payload) if key else None
         )
-        awarded += points.awarded
-        balance = points.balance
-        # 보호권으로 이어 붙인 날에 운동 기록이 생기면 그 보호권을 되돌린다(#1788).
-        streak_shield_service.refund_for_record(
-            db, current_user.id, exercise_activity.activity_date_of(row)
-        )
-    db.commit()
+        if replay is not None:
+            return replay
+        raise
     for row in rows:
         db.refresh(row)
 
@@ -355,6 +379,74 @@ def add_sessions(
     for one in ingests:
         personal_ingest.record_exercise(db, current_user.id, **one)
     return out
+
+
+def _replay_sessions(
+    db: Session, user_id: str, key: str, payload: ExerciseSessionsCreate
+) -> ExerciseSessionsCreatedOut | None:
+    """같은 키로 이미 저장한 기록의 처음 응답. 그런 기록이 없으면 None. (#3095)
+
+    목록이 처음과 다르면 409 다 — 같은 키는 같은 저장 시도라는 약속이라, 다른
+    내용을 처음 결과로 받아 주면 회원이 고친 내용이 조용히 버려진다. 적립은
+    기록마다 처음 받은 값을 다시 더한다(새로 적립하지 않는다).
+    """
+    rows = list(
+        db.scalars(
+            select(ExerciseSession)
+            .where(
+                ExerciseSession.user_id == user_id,
+                ExerciseSession.client_request_id == key,
+            )
+            .order_by(ExerciseSession.client_request_index)
+        )
+    )
+    if not rows:
+        return None
+    if len(rows) != len(payload.sessions) or not all(
+        row.client_request_index == index and _same_session(row, item)
+        for index, (row, item) in enumerate(zip(rows, payload.sessions))
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="같은 client_request_id에 다른 운동 기록을 보낼 수 없습니다.",
+        )
+    awarded = 0
+    for row in rows:
+        awarded += points_service.awarded_for(
+            db, user_id, points_service.EXERCISE_MANUAL, row.id
+        ).awarded
+    return ExerciseSessionsCreatedOut(
+        sessions=[
+            ExerciseSessionOut(**build_current_week([row])["sessions"][0])
+            for row in rows
+        ],
+        points=PointsOut(awarded=awarded, balance=points_service.balance(db, user_id)),
+    )
+
+
+def _same_session(row: ExerciseSession, item: ExerciseSessionCreate) -> bool:
+    """저장된 행이 이 항목을 저장한 결과인가. 서버가 내는 값(칼로리)은 보지 않는다.
+
+    날짜가 빠진 항목은 "저장한 날" 이라 재시도가 자정을 넘으면 다른 날이 된다 —
+    그래서 날짜는 보낸 경우에만 비교한다.
+    """
+    normalized = exercise_types.normalize(item.type)
+    reps, hold_seconds = _reps_and_hold(normalized, item)
+    if item.date is not None:
+        week_start, day_label, _ = _placement(item.date)
+        if (row.week_start, row.day_label) != (week_start, day_label):
+            return False
+    return (
+        row.type == normalized
+        and row.name == item.name.strip()
+        and row.minutes == item.minutes
+        and row.duration_seconds == item.duration_seconds
+        and row.sets == _strength_only(normalized, item.sets)
+        and row.reps == reps
+        and row.hold_seconds == hold_seconds
+        and row.weight == _weight_for(normalized, item.weight)
+        and row.intensity == item.intensity
+    )
 
 
 def _new_member_session(
