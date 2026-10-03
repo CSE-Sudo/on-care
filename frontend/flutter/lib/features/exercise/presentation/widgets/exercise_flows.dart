@@ -572,7 +572,9 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
         rewardLabel: pointsRewardLabel(l, added.points),
       );
     } catch (_) {
-      // 모아 둔 목록은 그대로 남는다 — 저장은 전부 안 됐으니 다시 누르면 된다.
+      // 모아 둔 목록은 그대로 남는다. 응답만 잃고 서버에는 저장됐을 수 있지만,
+      // 같은 목록을 다시 누르면 같은 멱등키로 나가 서버가 처음 결과를 돌려준다
+      // (#3095) — 기록·포인트가 두 벌 생기지 않는다.
       if (mounted) setState(() => _saving = false);
       toast.show(l.exSaveFailed, type: AppToastType.error);
     }
