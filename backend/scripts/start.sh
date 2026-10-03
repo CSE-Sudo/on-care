@@ -2,7 +2,7 @@
 # 운영 컨테이너 기동 엔트리포인트.
 # 1) 스키마를 Alembic head 까지 마이그레이션(운영은 AUTO_CREATE_TABLES=false 권장 →
 #    Alembic 이 유일한 스키마 소스). 2) uvicorn 시작.
-# App Runner/프록시 뒤이므로 --proxy-headers 로 X-Forwarded-Proto 를 신뢰(HTTPS 판정).
+# 로드 밸런서(프록시) 뒤이므로 --proxy-headers 로 X-Forwarded-Proto 를 신뢰(HTTPS 판정).
 set -euo pipefail
 
 # ENV 는 반드시 명시한다(#2821). 백엔드의 운영 안전장치(JWT·CORS·데모 비밀번호 검사,
@@ -17,7 +17,7 @@ fi
 echo "[start] ENV=${ENV_TRIMMED}"
 
 # 포트: Railway 등 일부 플랫폼은 동적 $PORT 를 주입한다. 없거나 비어 있으면
-# (App Runner·로컬·docker-compose) 8000 으로 폴백 → 한 이미지가 두 플랫폼 모두에서
+# (ECS·로컬·docker-compose) 8000 으로 폴백 → 한 이미지가 두 플랫폼 모두에서
 # 그대로 뜬다. 검증은 마이그레이션보다 먼저 한다 — DB 가 unavailable 할 때 포트
 # 오류가 마이그레이션 오류에 가려지지 않고 "명확한 포트 검증"이 먼저 작동하도록.
 PORT="${PORT:-8000}"
@@ -50,7 +50,7 @@ echo "[start] migrate (advisory-lock serialized)"
 python scripts/migrate.py
 
 # 프록시 헤더를 믿을 앞단 주소(#2815). uvicorn 은 여기 든 주소에서 온 요청의
-# X-Forwarded-Proto(HTTPS 판정)와 X-Forwarded-For 를 받아들인다. App Runner 처럼
+# X-Forwarded-Proto(HTTPS 판정)와 X-Forwarded-For 를 받아들인다. 관리형 ALB 처럼
 # 프록시 주소 대역이 고정되지 않은 플랫폼은 좁힐 수 없어 기본값을 "*" 로 둔다 —
 # 그래도 안전한 이유는 rate limit·감사 로그가 이 값으로 고쳐진 소켓 주소가 아니라
 # app/core/client_ip.py 가 X-Forwarded-For 를 오른쪽에서 TRUSTED_PROXY_HOPS 번째로
