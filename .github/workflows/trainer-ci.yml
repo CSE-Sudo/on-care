@@ -23,6 +23,8 @@ on:
       - "shared/oncare_core/**"
       # 데모·실서버 진입점 비교 시험이 읽는 예외 목록 — 목록만 바뀌어도 돈다(#2792).
       - ".github/demo-divergence-allowlist.txt"
+      # 웹 빌드가 받는 drift WASM 의 공용 다운로드 스크립트와 SHA-256 표(#3089).
+      - "tool/drift_wasm/**"
       - ".github/workflows/trainer-ci.yml"
   push:
     branches: [main]
@@ -44,6 +46,8 @@ on:
       - "shared/oncare_core/**"
       # 데모·실서버 진입점 비교 시험이 읽는 예외 목록 — 목록만 바뀌어도 돈다(#2792).
       - ".github/demo-divergence-allowlist.txt"
+      # 웹 빌드가 받는 drift WASM 의 공용 다운로드 스크립트와 SHA-256 표(#3089).
+      - "tool/drift_wasm/**"
       - ".github/workflows/trainer-ci.yml"
 
 permissions:
