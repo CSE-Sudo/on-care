@@ -361,3 +361,36 @@ def test_deleting_the_account_deletes_the_photos(client, db_session):
 
     db_session.expire_all()
     assert db_session.scalar(select(DietPhoto).where(DietPhoto.id == photo_id)) is None
+
+
+def test_a_meal_photo_over_the_pixel_cap_is_never_stored(
+    client, member_token, monkeypatch
+):
+    """펼칠 픽셀이 상한을 넘는 사진은 펼치지도 저장하지도 않는다. (#3040)
+
+    서버 오류가 아니다. 저장 단계에서 걸리면 끼니는 사진 없이 남고, 인식 전 정리
+    단계(#3041)에서 걸리면 415 로 끝난다 — 어느 쪽이든 사진은 남지 않는다.
+    """
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "max_image_decode_pixels", 100_000)
+    res = _analyze(client, member_token, _photo_bytes((2400, 1600), fmt="PNG"))
+
+    assert res.status_code in (200, 415), res.text
+    if res.status_code == 200:
+        assert res.json()["entry_id"]
+        assert res.json()["photo_url"] is None
+
+
+def test_a_large_jpeg_meal_photo_is_reduced_while_decoding(
+    client, member_token, monkeypatch
+):
+    """JPEG 은 축소 디코딩한 크기로 센다 — 같은 상한에서도 사진이 저장된다. (#3040)"""
+    from app.core.config import get_settings
+
+    # 원본 3200×2400(768만 픽셀)이지만 1/2 로 펼치면 192만이다.
+    monkeypatch.setattr(get_settings(), "max_image_decode_pixels", 2_000_000)
+    res = _analyze(client, member_token, _photo_bytes((3200, 2400)))
+
+    assert res.status_code == 200, res.text
+    assert res.json()["photo_url"]

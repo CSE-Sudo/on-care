@@ -88,4 +88,5 @@ def test_healthz_does_not_leak_secrets(client):
         "demo_fallback",
         "demo_seed",
         "attachment_storage",
+        "commit_sha",
     }
