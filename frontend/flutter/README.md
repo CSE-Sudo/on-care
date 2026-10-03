@@ -34,7 +34,8 @@ flutter run -d chrome \
 # Web (배포본과 같은 경로로 로컬 확인 — 배포 인자는 docs/frontend_deployment.md)
 flutter build web --release \
   --base-href "/frontend/" \
-  --dart-define=KAKAO_JS_KEY=<카카오 JavaScript 키>
+  --dart-define=KAKAO_JS_KEY=<카카오 JavaScript 키> \
+  --dart-define=DEMO_BUILD=true   # 목업 릴리스 빌드는 데모 표시가 있어야 뜬다(#3022)
 
 # 기능별 실 백엔드 전환 (REAL_API)
 # USE_MOCK_API 는 전역이라 끄면 로그인·홈·식단·운동·채팅이 한꺼번에 실서버로 넘어간다.
@@ -48,11 +49,13 @@ flutter run -d chrome \
 
 # Android
 flutter run -d <android-device>  # debug
-flutter build appbundle --release  # android/key.properties 필요(docs/mobile_release.md)
+# 스토어 빌드 — android/key.properties 와 config/release.json 필요(docs/mobile_release.md)
+bash tool/check_release_defines.sh config/release.json
+flutter build appbundle --release --dart-define-from-file=config/release.json
 
 # iOS
 flutter run -d <ios-device>      # debug
-flutter build ios --release      # Xcode에서 archive
+flutter build ios --release --dart-define-from-file=config/release.json  # Xcode에서 archive
 ```
 
 ## CI / CD
