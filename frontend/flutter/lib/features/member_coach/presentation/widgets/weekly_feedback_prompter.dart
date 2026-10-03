@@ -73,6 +73,9 @@ class _WeeklyFeedbackPrompterState
     _showing = true;
     final bool? sent = await openWeeklyFeedbackSheet(context, weekStart: week);
     _showing = false;
+    // 로그아웃으로 셸이 치워지며 시트가 닫혔으면 이 화면의 `ref` 는 더 쓸 수
+    // 없다(#3096). 다음 세션은 묻기를 처음부터 다시 정한다.
+    if (!mounted) return;
     // 보내지 않고 닫았으면 이 세션에서는 다시 묻지 않는다. 같은 날 앱을 몇 번
     // 열어도 매번 창이 뜨면, 회원은 답하기보다 닫는 법을 먼저 익힌다.
     if (sent != true) {

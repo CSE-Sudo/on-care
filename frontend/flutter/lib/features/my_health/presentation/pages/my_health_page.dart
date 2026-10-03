@@ -719,6 +719,11 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
   /// 두 교환이 겹치면 잔액 표시가 어느 쪽 응답을 따를지 알 수 없다.
   String? _exchanging;
 
+  // 이 화면의 요청 뒤 갱신은 화면 `ref` 가 아니라 요청 전에 잡은 컨테이너로
+  // 한다(#3096). 잔액·펫·달력·보호권 provider 는 autoDispose 가 아니라, 화면을
+  // 떠난 뒤 갱신을 건너뛰면 MY 가 옛 값을 계속 보인다. 토스트·setState 만
+  // `mounted` 로 거른다.
+
   Future<void> _exchange(ShopItem item) async {
     if (item.id == kGraphColorItem) {
       // 색은 하나씩 연다(#2076) — 어느 색을 열지 먼저 고르고 나서 확인창이다.
@@ -749,6 +754,10 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     final bool isPet = item.id == kProfilePetItem && option != null;
     // 주간 리포트(#2022)는 어느 주를 받는지 말한다 — 지난주다.
     final bool isReport = item.id == kWeeklyReportItem;
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.myPointsExchangeConfirmTitle,
@@ -777,29 +786,33 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     if (!ok || !mounted || _exchanging != null) return;
     setState(() => _exchanging = item.id);
     try {
-      await ref
+      await container
           .read(benefitsRepositoryProvider)
           .exchange(
             item.id,
             option: option,
             clientRequestId: newClientRequestId(),
           );
-      if (!mounted) return;
       // 잔액·교환 가능 여부·보유 쿠폰이 함께 바뀌었다. MY 잔액도 다시 읽는다.
-      ref
+      container
         ..invalidate(pointsShopProvider)
         ..invalidate(myCouponsProvider)
         ..invalidate(myHealthStateProvider);
       if (item.id == kStreakShieldItem) {
         // 보호권(#1788)은 내 혜택의 보유 수와 기록 그래프의 `보호권 쓰기` 를 바꾼다.
-        ref
+        container
           ..invalidate(myStreakShieldsProvider)
           ..invalidate(exerciseWeekProvider)
           ..invalidate(activityCalendarProvider);
       }
+      // 받은 리포트는 내 혜택에서 연다 — 트레이너 리포트와 같은 문서다.
+      if (isReport) container.invalidate(myWeeklyReportsProvider);
+      // 단 펫은 MY 프로필 이름 옆에 바로 보인다(#2021).
+      if (isPet) container.invalidate(profilePetProvider);
+      // 연 색은 그 자리에서 그래프 색이 된다(#2076).
+      if (isColor) container.invalidate(activityCalendarProvider);
+      if (!mounted) return;
       if (isReport) {
-        // 받은 리포트는 내 혜택에서 연다 — 트레이너 리포트와 같은 문서다.
-        ref.invalidate(myWeeklyReportsProvider);
         showAppToast(
           context,
           l.myWeeklyReportDone,
@@ -810,15 +823,12 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         return;
       }
       if (isPet) {
-        // 단 펫은 MY 프로필 이름 옆에 바로 보인다(#2021). 내 혜택으로 보낼 것이 없다.
-        ref.invalidate(profilePetProvider);
+        // 내 혜택으로 보낼 것이 없다.
         showAppToast(context, l.myProfilePetDone, type: AppToastType.success);
         return;
       }
       if (isColor) {
-        // 연 색은 그 자리에서 그래프 색이 된다(#2076). 쿠폰이 아니라 내 혜택으로
-        // 보낼 것이 없으므로 안내만 띄운다.
-        ref.invalidate(activityCalendarProvider);
+        // 쿠폰이 아니라 내 혜택으로 보낼 것이 없으므로 안내만 띄운다.
         showAppToast(
           context,
           l.myGraphColorUnlocked,
@@ -834,10 +844,10 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         onAction: () => context.push<void>(AppRoutes.myBenefits),
       );
     } on Object {
-      if (!mounted) return;
       // 그사이 조건이 바뀌었을 수 있다(다른 기기에서 교환 등) — 목록을 다시 읽어
       // 막힌 이유를 카드에 보여 준다.
-      ref.invalidate(pointsShopProvider);
+      container.invalidate(pointsShopProvider);
+      if (!mounted) return;
       showAppToast(context, l.myPointsExchangeFailed, type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _exchanging = null);
@@ -866,6 +876,10 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
   /// 그래프 카드의 팔레트 버튼 — 연 색은 바로 바꾸고, 열지 않은 색은 교환으로 잇는다.
   Future<void> _changeGraphColor() async {
     final AppLocalizations l = AppLocalizations.of(context);
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     final GraphColorChoice? choice = await _pickGraphColor();
     if (choice == null || !mounted) return;
     if (choice.unlock) {
@@ -881,11 +895,11 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
       return;
     }
     try {
-      await ref
+      await container
           .read(activityCalendarRepositoryProvider)
           .selectColor(choice.color);
+      container.invalidate(activityCalendarProvider);
       if (!mounted) return;
-      ref.invalidate(activityCalendarProvider);
       showAppToast(context, l.myGraphColorDone, type: AppToastType.success);
     } on Object {
       if (!mounted) return;
@@ -905,6 +919,10 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
       await _buyAndUseShield(date);
       return;
     }
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.myGraphProtectConfirmTitle,
@@ -919,18 +937,18 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     if (!ok || !mounted || _usingShield) return;
     setState(() => _usingShield = true);
     try {
-      await ref.read(streakShieldRepositoryProvider).use(date);
-      if (!mounted) return;
+      await container.read(streakShieldRepositoryProvider).use(date);
       // 달력 칸·연속·보유 수가 함께 바뀌었다. 내 혜택의 보호한 날도 다시 읽는다.
-      ref
+      container
         ..invalidate(activityCalendarProvider)
         ..invalidate(myStreakShieldsProvider)
         ..invalidate(pointsShopProvider);
+      if (!mounted) return;
       showAppToast(context, l.myGraphProtectDone, type: AppToastType.success);
     } on Object {
-      if (!mounted) return;
       // 그사이 날이 바뀌었거나 그날 기록이 생겼을 수 있다 — 다시 읽어 상태를 맞춘다.
-      ref.invalidate(activityCalendarProvider);
+      container.invalidate(activityCalendarProvider);
+      if (!mounted) return;
       showAppToast(context, l.myGraphProtectFailed, type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _usingShield = false);
@@ -976,14 +994,18 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
       cancelLabel: l.myCancel,
     );
     if (!ok || !mounted || _usingShield || _exchanging != null) return;
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     setState(() => _usingShield = true);
     bool bought = false;
     try {
-      await ref
+      await container
           .read(benefitsRepositoryProvider)
           .exchange(kStreakShieldItem, clientRequestId: newClientRequestId());
       bought = true;
-      await ref.read(streakShieldRepositoryProvider).use(date);
+      await container.read(streakShieldRepositoryProvider).use(date);
       if (!mounted) return;
       showAppToast(context, l.myGraphProtectDone, type: AppToastType.success);
     } on Object {
@@ -995,16 +1017,14 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
       );
     } finally {
       // 잔액·보유 수·달력 칸·연속이 함께 바뀌었다(교환만 됐어도 잔액과 보유 수는
-      // 바뀌었다). MY 잔액도 다시 읽는다.
-      if (mounted) {
-        ref
-          ..invalidate(activityCalendarProvider)
-          ..invalidate(myStreakShieldsProvider)
-          ..invalidate(exerciseWeekProvider)
-          ..invalidate(pointsShopProvider)
-          ..invalidate(myHealthStateProvider);
-        setState(() => _usingShield = false);
-      }
+      // 바뀌었다). MY 잔액도 다시 읽는다. 화면을 떠났어도 비운다(#3096).
+      container
+        ..invalidate(activityCalendarProvider)
+        ..invalidate(myStreakShieldsProvider)
+        ..invalidate(exerciseWeekProvider)
+        ..invalidate(pointsShopProvider)
+        ..invalidate(myHealthStateProvider);
+      if (mounted) setState(() => _usingShield = false);
     }
   }
 
@@ -1015,6 +1035,10 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
   /// 받는지와 1인 1회를 밝힌 뒤 받는다. 포인트는 쓰지 않는다.
   Future<void> _claimTray() async {
     final AppLocalizations l = AppLocalizations.of(context);
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.myDietTrayClaimConfirmTitle,
@@ -1025,14 +1049,14 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     if (!ok || !mounted || _claimingTray) return;
     setState(() => _claimingTray = true);
     try {
-      await ref
+      await container
           .read(benefitsRepositoryProvider)
           .claimDietTray(clientRequestId: newClientRequestId());
-      if (!mounted) return;
       // 카드 상태와 내 혜택의 쿠폰이 함께 바뀌었다.
-      ref
+      container
         ..invalidate(dietTrayProvider)
         ..invalidate(myCouponsProvider);
+      if (!mounted) return;
       showAppToast(
         context,
         l.myDietTrayClaimDone,
@@ -1041,9 +1065,9 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         onAction: () => context.push<void>(AppRoutes.myBenefits),
       );
     } on Object {
-      if (!mounted) return;
       // 그사이 날이 넘어가 조건이 바뀌었거나 담당이 끊겼을 수 있다 — 다시 읽는다.
-      ref.invalidate(dietTrayProvider);
+      container.invalidate(dietTrayProvider);
+      if (!mounted) return;
       showAppToast(context, l.myDietTrayClaimFailed, type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _claimingTray = false);
@@ -1056,6 +1080,10 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
   /// 주간 챌린지 참가 — 파란 2열 확인창에서 건 포인트·목표·보상을 밝힌 뒤 건다.
   Future<void> _joinChallenge(WeeklyChallenge state) async {
     final AppLocalizations l = AppLocalizations.of(context);
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.challengeJoinConfirmTitle,
@@ -1070,15 +1098,15 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     if (!ok || !mounted || _joiningChallenge || _exchanging != null) return;
     setState(() => _joiningChallenge = true);
     try {
-      await ref
+      await container
           .read(challengeRepositoryProvider)
           .join(clientRequestId: newClientRequestId());
-      if (!mounted) return;
       // 참가 기록·잔액·교환 가능 여부가 함께 바뀌었다. MY 잔액도 다시 읽는다.
-      ref
+      container
         ..invalidate(weeklyChallengeProvider)
         ..invalidate(pointsShopProvider)
         ..invalidate(myHealthStateProvider);
+      if (!mounted) return;
       showAppToast(
         context,
         l.challengeJoinDone,
@@ -1087,9 +1115,9 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         onAction: () => context.push<void>(AppRoutes.myBenefits),
       );
     } on Object {
-      if (!mounted) return;
       // 그사이 요일이 넘어갔거나 잔액이 바뀌었을 수 있다 — 다시 읽어 이유를 보여 준다.
-      ref.invalidate(weeklyChallengeProvider);
+      container.invalidate(weeklyChallengeProvider);
+      if (!mounted) return;
       showAppToast(context, l.challengeJoinFailed, type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _joiningChallenge = false);
@@ -1114,7 +1142,7 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         !_usingShield &&
         !_claimingTray;
     final int? balance = shop.valueOrNull?.balance ?? widget.points;
-    return AppPage(
+    final Widget page = AppPage(
       key: const Key('pointsBenefitsPage'),
       bottomInset: MediaQuery.paddingOf(context).bottom,
       header: AppTopBar(
@@ -1282,6 +1310,9 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         ),
       ],
     );
+    // 교환·보호권·식판·챌린지 요청 중에는 뒤로 가기로 떠나지 않는다 — 결과 안내를
+    // 놓친 회원이 다시 눌러 이중 차감을 의심하게 된다(#3096).
+    return PopScope(canPop: idle, child: page);
   }
 }
 

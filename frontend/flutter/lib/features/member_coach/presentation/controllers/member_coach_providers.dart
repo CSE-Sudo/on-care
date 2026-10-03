@@ -13,6 +13,7 @@ import 'package:oncare/features/exercise/domain/repositories/exercise_repository
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
 import 'package:oncare/features/exercise/domain/repositories/routine_session_log.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/controllers/exercise_refresh.dart';
 import 'package:oncare/features/member_coach/data/repositories/dio_emote_repository.dart';
 import 'package:oncare/features/member_coach/data/repositories/dio_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_emote_repository.dart';
@@ -135,11 +136,13 @@ DateTime dateOnly(DateTime value) =>
 /// 오늘 목록, 지난 날짜 목록, 그리고 **운동 AI 맞춤 조언**. 조언은 추천 개인운동
 /// 중 무엇을 했는지를 읽고 말하므로(#2162), 체크한 뒤에도 옛 조언이 남으면
 /// "다음 운동" 이 방금 끝낸 운동을 가리킨다.
-void refreshCoachRoutines(WidgetRef ref) {
-  ref
-    ..invalidate(coachRoutinesProvider)
-    ..invalidate(coachRoutinesOnDayProvider)
-    ..invalidate(exerciseAdviceProvider);
+///
+/// 요청 뒤에 부르는 곳은 화면 `ref` 가 아니라 컨테이너의 `invalidate` 를
+/// 넘긴다 — 요청 중에 그 줄이 치워져도 갱신이 빠지지 않는다(#3096).
+void refreshCoachRoutines(ProviderInvalidator invalidate) {
+  invalidate(coachRoutinesProvider);
+  invalidate(coachRoutinesOnDayProvider);
+  invalidate(exerciseAdviceProvider);
 }
 
 /// 트레이너가 잡아 준 PT 일정. 담당이 없거나 잡힌 일정이 없으면 빈 목록이라,
