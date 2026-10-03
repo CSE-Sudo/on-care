@@ -5,8 +5,8 @@
     "display": "standalone",
     "background_color": "#F5F7FA",
     "theme_color": "#235C88",
-    "description": "On-Care 트레이너 앱 — 트레이너용 회원 관리 / AI 루틴 / 스케줄 (Android / iOS / Web).",
-    "orientation": "portrait-primary",
+    "description": "On-Care 트레이너 웹 — PT 담당 회원의 식단·운동 기록 확인과 코칭·루틴·스케줄 관리.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

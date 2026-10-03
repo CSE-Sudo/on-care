@@ -10,21 +10,32 @@ import 'package:oncare/core/storage/token_session_storage.dart';
 /// 키체인 항목을 이 기기가 잠금 해제된 뒤에만 읽고, **기기 밖으로 백업되지
 /// 않게** 둔다(#1944). 기본값(`unlocked`)은 iCloud 키체인을 타고 다른 기기로
 /// 넘어갈 수 있는데, 여기 담기는 것은 이 기기의 세션이다.
-const IOSOptions _iosOptions = IOSOptions(
+const IOSOptions memberSecureStorageIOSOptions = IOSOptions(
   accessibility: KeychainAccessibility.first_unlock_this_device,
 );
 
 /// 안드로이드는 암호화된 저장소를 쓴다 — 평문 SharedPreferences 에 토큰을
 /// 남기지 않는다(#1944).
-const AndroidOptions _androidOptions = AndroidOptions(
+///
+/// `resetOnError` 를 켠다(#3049). 값을 푸는 Keystore 키는 기기 밖으로 나가지
+/// 않아서, 백업·기기 이전으로 암호문만 넘어온 저장소는 읽기·쓰기 모두 예외를
+/// 던진다. 그대로 두면 다시 로그인해도 토큰을 저장하지 못한다. 풀 수 없는 값은
+/// 어차피 쓸 수 없으니 비우고 새로 쓴다. 백업 자체는 매니페스트에서 막는다
+/// (`android/app/src/main/res/xml/data_extraction_rules.xml`).
+const AndroidOptions memberSecureStorageAndroidOptions = AndroidOptions(
   encryptedSharedPreferences: true,
+  resetOnError: true,
+);
+
+/// 회원 앱이 토큰을 두는 보안 저장소. 옵션이 다르면 같은 키를 다른 방식으로
+/// 열게 되므로, 저장소를 여는 곳(provider·새 설치 정리)은 모두 이 값을 쓴다.
+const FlutterSecureStorage memberSecureStorage = FlutterSecureStorage(
+  iOptions: memberSecureStorageIOSOptions,
+  aOptions: memberSecureStorageAndroidOptions,
 );
 
 final secureStorageProvider = Provider<FlutterSecureStorage>(
-  (ref) => const FlutterSecureStorage(
-    iOptions: _iosOptions,
-    aOptions: _androidOptions,
-  ),
+  (ref) => memberSecureStorage,
   name: 'secureStorage',
 );
 
