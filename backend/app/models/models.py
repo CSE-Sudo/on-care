@@ -724,7 +724,7 @@ class AccountDeletionReason(Base):
 class UserConsent(Base):
     """가입 동의 한 항목 — 누가 어느 문서의 어느 버전에 언제 동의했는가. (#2819)
 
-    항목(`kind`)은 `terms`·`privacy`·`health`·`age14`·`marketing` 이고, 버전은
+    항목(`kind`)은 `terms`·`privacy`·`health`·`age14` 이고, 버전은
     `services/signup_consent.CURRENT_VERSIONS` 가 정한다. 문서가 바뀌면 새 버전의
     행이 더해질 뿐 옛 행은 지우지 않는다 — 그때 무엇에 동의했는지가 이력이다.
 
@@ -741,8 +741,10 @@ class UserConsent(Base):
     kind: Mapped[str] = mapped_column(String(20))
     version: Mapped[str] = mapped_column(String(20))
     agreed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    #: 철회한 시각. 지금은 철회 화면이 없어 비어 있다 — 선택 항목(마케팅)을
-    #: 끄는 화면이 생기면 여기에 적는다.
+    #: 철회한 시각. 지금 받는 항목은 모두 필수라 철회 화면이 없다. 더는 받지
+    #: 않는 마케팅 수신 동의(#3007)의 옛 행은 마이그레이션 0141 이 이 값을 채웠다
+    #: — 행은 지우지 않아 언제 동의했고 언제 거둬졌는지가 남는다. 선택 항목이
+    #: 다시 생기면 그것을 끄는 화면이 여기에 적는다.
     revoked_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

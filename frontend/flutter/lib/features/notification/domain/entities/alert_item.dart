@@ -19,6 +19,10 @@ enum AlertCategory {
   /// PT 일정 등록·변경·취소(`member_schedule`).
   schedule,
 
+  /// 트레이너가 PT 를 완료했다·완료 PT 에 피드백을 적었다(`pt_done`, #3027).
+  /// 앞으로의 약속(일정)이 아니라 끝난 수업의 기록이라 갈래를 나눴다.
+  ptDone,
+
   /// 담당 트레이너 요청·연결·해제(`coach_invite`·`consultation_result`).
   trainerLink,
 
