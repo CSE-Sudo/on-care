@@ -1,6 +1,6 @@
 // 회원 상세 식단 `오늘` 의 AI 식단 추천 (#2379).
 //
-// 분석 한 문단 아래에서 AI 후보를 하나씩 묻는다 — `아니오` 는 다음 후보, 세 개를 다
+// 분석 한 문단 아래에서 AI 후보를 하나씩 묻는다 — `아니요` 는 다음 후보, 세 개를 다
 // 넘기면 `처음부터 다시 보기`/`다른 메뉴 보기`, `예` 로 확정하면 추천 중인 메뉴와
 // `바꾸기`, 회원이 먹었으면 그 사실과 `다음 추천 보기`. 채울 점이 없으면 묻지 않는다.
 import 'package:drift/drift.dart' show Value;
@@ -158,7 +158,7 @@ void main() {
     expect(find.text('AI 식단 추천'), findsNothing);
   });
 
-  testWidgets('아니오는 다음 후보, 세 개를 넘기면 다시 보기·다른 메뉴', (tester) async {
+  testWidgets('아니요는 다음 후보, 세 개를 넘기면 다시 보기·다른 메뉴', (tester) async {
     await _pump(
       tester,
       ClientDietRecommendations(

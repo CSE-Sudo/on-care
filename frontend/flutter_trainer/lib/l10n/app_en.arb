@@ -4037,6 +4037,14 @@
   "@clientDietRecNo": {
     "description": "트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379)."
   },
+  "clientDietRecPrev": "Previous pick",
+  "@clientDietRecPrev": {
+    "description": "AI 식단 추천 카운터 왼쪽 꺾쇠 툴팁 — 같은 묶음 안 앞 후보로."
+  },
+  "clientDietRecForward": "Next pick",
+  "@clientDietRecForward": {
+    "description": "AI 식단 추천 카운터 오른쪽 꺾쇠 툴팁 — 같은 묶음 안 다음 후보로(거절 아님)."
+  },
   "clientDietRecYes": "Yes, recommend",
   "@clientDietRecYes": {
     "description": "트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379)."
