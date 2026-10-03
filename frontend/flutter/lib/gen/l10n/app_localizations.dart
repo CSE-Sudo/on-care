@@ -134,6 +134,42 @@ abstract class AppLocalizations {
   /// **'Go to sign in'**
   String get notFoundGoSignIn;
 
+  /// Title of the full-screen page shown when this build is older than the server's minimum supported version (#3045).
+  ///
+  /// In en, this message translates to:
+  /// **'A new version is available'**
+  String get updateRequiredTitle;
+
+  /// No description provided for @updateRequiredMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Please update On-Care to keep using it.'**
+  String get updateRequiredMessage;
+
+  /// Current and minimum versions on the update page (#3045).
+  ///
+  /// In en, this message translates to:
+  /// **'Your version {current} · Required {min}'**
+  String updateRequiredVersions(String current, String min);
+
+  /// Button on the update page; opens the store page of the app.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get updateRequiredAction;
+
+  /// Shown instead of the button when there is no store link to open (App Store ID not configured).
+  ///
+  /// In en, this message translates to:
+  /// **'Please update On-Care from the App Store.'**
+  String get updateRequiredStoreHint;
+
+  /// No description provided for @updateRequiredOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the store. Please update On-Care from the store app.'**
+  String get updateRequiredOpenFailed;
+
   /// Heading of the startup screen shown instead of the app when a release build was made with development or demo settings.
   ///
   /// In en, this message translates to:
@@ -3710,11 +3746,17 @@ abstract class AppLocalizations {
   /// **'Effective Oct 3, 2026'**
   String get myLegalPrivacyEffectiveDate;
 
-  /// No description provided for @myAppVersion.
+  /// Footer of the support page. The version is read from the build (pubspec.yaml), never hard-coded (#3047).
   ///
   /// In en, this message translates to:
-  /// **'On-Care · Version 1.0.0'**
-  String get myAppVersion;
+  /// **'On-Care · Version {version}'**
+  String myAppVersion(String version);
+
+  /// Support page footer when the build version cannot be read — the app name only (#3047).
+  ///
+  /// In en, this message translates to:
+  /// **'On-Care'**
+  String get myAppName;
 
   /// No description provided for @coachHeaderPill.
   ///

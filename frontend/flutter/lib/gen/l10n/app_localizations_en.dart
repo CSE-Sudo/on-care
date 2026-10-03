@@ -29,6 +29,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notFoundGoSignIn => 'Go to sign in';
 
   @override
+  String get updateRequiredTitle => 'A new version is available';
+
+  @override
+  String get updateRequiredMessage => 'Please update On-Care to keep using it.';
+
+  @override
+  String updateRequiredVersions(String current, String min) {
+    return 'Your version $current · Required $min';
+  }
+
+  @override
+  String get updateRequiredAction => 'Update';
+
+  @override
+  String get updateRequiredStoreHint =>
+      'Please update On-Care from the App Store.';
+
+  @override
+  String get updateRequiredOpenFailed =>
+      'Couldn\'t open the store. Please update On-Care from the store app.';
+
+  @override
   String get misconfiguredBuildTitle => 'This build is misconfigured';
 
   @override
@@ -2127,7 +2149,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myLegalPrivacyEffectiveDate => 'Effective Oct 3, 2026';
 
   @override
-  String get myAppVersion => 'On-Care · Version 1.0.0';
+  String myAppVersion(String version) {
+    return 'On-Care · Version $version';
+  }
+
+  @override
+  String get myAppName => 'On-Care';
 
   @override
   String get coachHeaderPill => 'AI Health Assistant';

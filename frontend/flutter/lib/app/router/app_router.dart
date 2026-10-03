@@ -8,6 +8,7 @@ import 'package:oncare/app/router/main_shell.dart';
 import 'package:oncare/app/router/nav_logger_observer.dart';
 import 'package:oncare/app/router/not_found_page.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/core/app_version/app_version_gate.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/network/auth_token.dart';
@@ -16,6 +17,7 @@ import 'package:oncare/features/account/presentation/first_run_route.dart';
 import 'package:oncare/features/account/presentation/pages/onboarding_page.dart';
 import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';
 import 'package:oncare/features/app_guide/presentation/pages/guide_tour_page.dart';
+import 'package:oncare/features/app_update/presentation/pages/update_required_page.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/auth/presentation/pages/consent_page.dart';
 import 'package:oncare/features/auth/presentation/pages/password_reset_page.dart';
@@ -56,12 +58,31 @@ import 'package:oncare_ui/oncare_ui.dart';
 ///   until the account agrees (#2819); the consent screen is off-limits
 ///   otherwise.
 ///
+/// - [updateRequired] (#3045) → held on the update screen whatever the
+///   session is; the update screen is off-limits otherwise.
+///
 /// Returning `null` means "no redirect — stay put".
 String? sessionRedirect(
   SessionStatus status,
   String location, {
   bool consentRequired = false,
+  bool updateRequired = false,
 }) {
+  // 최소 지원 버전보다 낮은 빌드는 어느 주소·어느 세션 상태에서든 업데이트 화면에
+  // 붙든다(#3045). 옛 빌드가 바뀐 응답을 읽어 화면마다 오류를 내지 않게 가장
+  // 앞에서 막는다.
+  if (updateRequired) {
+    return location == AppRoutes.updateRequired
+        ? null
+        : AppRoutes.updateRequired;
+  }
+  if (location == AppRoutes.updateRequired) {
+    return switch (status) {
+      SessionStatus.unknown => AppRoutes.splash,
+      SessionStatus.signedOut => AppRoutes.signIn,
+      SessionStatus.demo || SessionStatus.authenticated => AppRoutes.dashboard,
+    };
+  }
   // 재설정 메일의 링크는 어느 상태에서 열려도 그 자리에 둔다(#2824). 복구 중에
   // 시작 화면으로 보내면 주소의 코드를 잃고, 로그인한 채 열었다고 홈으로 보내면
   // 링크가 아무 일도 하지 않는다.
@@ -119,6 +140,7 @@ GoRouter buildAppRouter({
   NavigatorObserver? observer,
   SessionStatus Function()? readStatus,
   bool Function()? readConsentRequired,
+  bool Function()? readUpdateRequired,
   Listenable? refresh,
 }) {
   GoRouter.optionURLReflectsImperativeAPIs = true;
@@ -137,6 +159,7 @@ GoRouter buildAppRouter({
             readStatus(),
             state.matchedLocation,
             consentRequired: readConsentRequired?.call() ?? false,
+            updateRequired: readUpdateRequired?.call() ?? false,
           ),
     routes: <RouteBase>[
       StatefulShellRoute.indexedStack(
@@ -299,6 +322,10 @@ GoRouter buildAppRouter({
         ),
       ),
       GoRoute(
+        path: AppRoutes.updateRequired,
+        builder: (context, state) => const UpdateRequiredPage(),
+      ),
+      GoRoute(
         path: AppRoutes.splash,
         builder: (context, state) => const SplashPage(),
       ),
@@ -332,7 +359,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     readStatus: () => ref.read(sessionControllerProvider).status,
     readConsentRequired: () =>
         ref.read(sessionControllerProvider).consentRequired,
+    readUpdateRequired: () => ref.read(appVersionGateProvider).updateRequired,
     refresh: refresh,
+  );
+  // 최소 지원 버전 확인(#3045)이 끝나거나 다시 확인해 결과가 바뀌면 가드를 다시
+  // 돌린다. 이 listen 이 확인을 시작한다(켜진 빌드에서만).
+  ref.listen<AppVersionGateState>(
+    appVersionGateProvider,
+    (AppVersionGateState? previous, AppVersionGateState next) =>
+        refresh.value++,
   );
   // 오류 보고에 화면 경로 패턴(값이 빠진 `/diet/:id` 형태)을 태그로 단다(#2839).
   ref
