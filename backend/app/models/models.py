@@ -1076,9 +1076,9 @@ class MemberNotificationSetting(Base):
     ai_coaching: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=true(), default=True
     )
-    #: 주간 리포트만 기본 꺼짐 — 앱의 현재 기본값과 같다.
+    #: 트레이너 주간 리포트 알림. 다른 항목과 같이 기본 켜짐이다(#3025).
     weekly_report: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default=false(), default=False
+        Boolean, nullable=False, server_default=true(), default=True
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

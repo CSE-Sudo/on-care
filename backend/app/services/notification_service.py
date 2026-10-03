@@ -49,13 +49,17 @@ AI_COACHING = "notif_ai_coaching"
 #: 조용히 비는 쪽이 알림 하나 더 받는 쪽보다 나쁘다.
 PT_LINK_NOTICE = "pt_link_notice"
 
-#: 설정 키 → 기본값. 사용자 앱의 현재 기본값과 같다(주간 리포트만 꺼짐).
+#: 설정 키 → 기본값. 모두 켜짐이다.
+#:
+#: 트레이너 주간 리포트도 켜 둔다(#3025). 예전에는 리포트 알림이 없던 시기의
+#: 앱 하드코딩 값(`false`)을 그대로 옮겨 꺼져 있었고, 트레이너가 한 주를 정리해
+#: 보낸 리포트가 회원 알림함에 아무 흔적 없이 도착했다.
 DEFAULTS: dict[str, bool] = {
     DIET_LOG: True,
     EXERCISE: True,
     TRAINER_MESSAGE: True,
     AI_COACHING: True,
-    WEEKLY_REPORT: False,
+    WEEKLY_REPORT: True,
 }
 
 #: 알림 종류 → 목록에 실릴 기본 category.
