@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 
 from app.core.config import Settings
-from app.services import attachment_store
+from app.services import attachment_store, password_reset
 
 logger = logging.getLogger("app.startup")
 
@@ -48,6 +48,22 @@ def check(settings: Settings) -> list[str]:
         )
     # 운영 + 데모 시드는 경고가 아니라 설정 단계에서 기동을 거부한다(#2811) —
     # 이 검사까지 오지 않는다.
+
+    # --- 비밀번호 재설정 메일 링크(#3033) ---
+    # 링크 없이도 메일 속 코드로 재설정은 되므로 막지 않는다. 다만 경로형·http 주소는
+    # 링크를 눌러도 앱이 코드를 받지 못해 "메일 링크가 안 된다" 로 드러난다.
+    if settings.is_prod:
+        for key, url in (
+            ("PASSWORD_RESET_MEMBER_URL", settings.password_reset_member_url),
+            ("PASSWORD_RESET_TRAINER_URL", settings.password_reset_trainer_url),
+        ):
+            problem = password_reset.reset_url_problem(url)
+            if problem:
+                warnings.append(
+                    f"{key} 형식이 맞지 않습니다({problem}) — 메일 링크를 눌러도 재설정 "
+                    "화면에 코드가 채워지지 않습니다. 해시형 주소를 넣으세요 "
+                    "(예: https://<도메인>/frontend/#/auth/password-reset)."
+                )
 
     for message in warnings:
         logger.warning("[startup] %s", message)
