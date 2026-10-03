@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/features/account/domain/entities/account_reauth.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
@@ -14,11 +15,15 @@ import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/account/presentation/focus_change_label.dart';
 import 'package:oncare/features/account/presentation/health_focus_label.dart';
+import 'package:oncare/features/auth/domain/repositories/password_repository.dart'
+    show ReissuedTokens;
 import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
+import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/my_health/domain/support_links.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
+import 'package:oncare/features/my_health/presentation/widgets/account_reauth_dialog.dart';
 import 'package:oncare/features/notification/data/repositories/notification_settings_repository.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -512,8 +517,12 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
       toast.show(l.myProfileSaved, type: AppToastType.success);
       return;
     }
-    setState(() => _saving = true);
-    try {
+    // 이메일을 바꿀 때만 본인 확인을 거친다(#3039). 대소문자만 다른 것은 같은
+    // 주소다 — 서버도 그렇게 비교한다.
+    final bool emailChanged =
+        email != null &&
+        email.toLowerCase() != _base.email.trim().toLowerCase();
+    Future<void> send({AccountReauth? reauth}) async {
       _base = await ref
           .read(accountRepositoryProvider)
           .updateProfile(
@@ -524,31 +533,85 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
             gender: gender,
             heightCm: heightCm,
             weightKg: weightKg,
+            reauth: reauth,
+            // 이메일이 바뀌면 다른 기기의 세션이 끊기고 이 기기에 새 토큰이
+            // 온다 — 비밀번호 변경과 같이 받아 넣어야 로그인이 이어진다.
+            onTokensReissued: _adoptTokens,
             // 자유 입력 운동 목표는 `건강 목표` 화면으로 옮겼다(#1471) —
             // 여기서 보내지 않으므로 그 화면에서 정한 값이 덮이지 않는다.
           );
-      // Sheet dismissed mid-save → don't touch ref/pop the page below.
+    }
+
+    if (emailChanged) {
+      setState(() => _saving = true);
+      final AccountReauthDialogOutcome outcome = await showAccountReauthDialog(
+        context: context,
+        message: l.reauthEmailMessage,
+        confirmLabel: l.mySave,
+        hasPassword: _base.hasPassword,
+        onSubmit: (AccountReauth reauth) => send(reauth: reauth),
+      );
       if (!mounted) return;
-      // MY 카드의 이름·이메일은 `/users/me/health` 에서 온다. 프로필만 되짚으면
-      // "저장되었어요" 를 보고 돌아온 화면이 옛 이름 그대로다(#1930).
+      switch (outcome.result) {
+        case AccountReauthDialogResult.done:
+          _onSaved(toast, l);
+        case AccountReauthDialogResult.cancelled:
+          // 취소하면 편집 상태 그대로 둔다 — 바꾼 값을 다시 고칠 수 있다.
+          setState(() => _saving = false);
+        case AccountReauthDialogResult.failed:
+          _onSaveFailed(outcome.error, toast, l);
+      }
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await send();
+    } on Object catch (e) {
+      _onSaveFailed(e, toast, l);
+      return;
+    }
+    _onSaved(toast, l);
+  }
+
+  /// 이메일 변경으로 새로 받은 토큰을 세션에 넣는다(#3039).
+  ///
+  /// 이미 저장은 끝났다 — 넣다가 실패해도 실패로 알리지 않는다. 이 기기는 다음
+  /// 요청의 401 에서 만료 안내와 함께 다시 로그인한다(비밀번호 변경과 같다).
+  void _adoptTokens(ReissuedTokens tokens) {
+    unawaited(
       ref
-        ..invalidate(profileProvider)
-        ..invalidate(myHealthStateProvider);
-      setState(() {
-        _saving = false;
-        _editing = false;
-      });
-      toast.show(l.myProfileSaved, type: AppToastType.success);
-    } on ProfileUpdateRejected catch (e) {
+          .read(sessionControllerProvider.notifier)
+          .adoptReissuedTokens(access: tokens.access, refresh: tokens.refresh)
+          .catchError((Object _) {}),
+    );
+  }
+
+  void _onSaved(AppToastHost toast, AppLocalizations l) {
+    // Sheet dismissed mid-save → don't touch ref/pop the page below.
+    if (!mounted) return;
+    // MY 카드의 이름·이메일은 `/users/me/health` 에서 온다. 프로필만 되짚으면
+    // "저장되었어요" 를 보고 돌아온 화면이 옛 이름 그대로다(#1930).
+    ref
+      ..invalidate(profileProvider)
+      ..invalidate(myHealthStateProvider);
+    setState(() {
+      _saving = false;
+      _editing = false;
+    });
+    toast.show(l.myProfileSaved, type: AppToastType.success);
+  }
+
+  void _onSaveFailed(Object? error, AppToastHost toast, AppLocalizations l) {
+    if (error is ProfileUpdateRejected) {
       // 다시 눌러도 같은 값이면 또 막힌다 — "잠시 후 다시" 대신 무엇을 고칠지
       // 말한다. 편집 상태는 그대로 두어 바로 고칠 수 있게 한다(#2639).
       if (!mounted) return;
-      final String message = _showRejection(e.reason, l);
+      final String message = _showRejection(error.reason, l);
       toast.show(message, type: AppToastType.error);
-    } catch (_) {
-      if (mounted) setState(() => _saving = false);
-      toast.show(l.mySaveFailed, type: AppToastType.error);
+      return;
     }
+    if (mounted) setState(() => _saving = false);
+    toast.show(l.mySaveFailed, type: AppToastType.error);
   }
 
   /// 거절 사유를 해당 칸 아래에 걸고, 토스트로 띄울 문구를 돌려준다.

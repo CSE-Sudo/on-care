@@ -386,9 +386,14 @@ class SessionController extends StateNotifier<SessionState>
   /// [phone] 은 가입 시점에 프로필을 채우기 위해 함께 보낸다 (#1634). 예전에는
   /// MY 탭 프로필 편집에서만 넣을 수 있어 가입 직후에는 연락처가 비어 있었다.
   /// 비워 보내도 계정은 만들어지고, 회원이 MY 탭에서 언제든 넣을 수 있다.
+  ///
+  /// [emailCode] 는 그 이메일로 받은 6자리 인증 코드다(#3038). 틀리면 서버가
+  /// 계정을 만들지 않고 400 `invalid_email_code` 를 준다 — 가입 실패이므로
+  /// 로그인은 시도하지 않는다.
   Future<void> register({
     required String email,
     required String password,
+    required String emailCode,
     String name = '',
     String phone = '',
     List<String>? consents,
@@ -402,6 +407,7 @@ class SessionController extends StateNotifier<SessionState>
         'password': password,
         'name': name,
         'phone': phone,
+        'email_code': emailCode,
         // 가입 화면에서 체크한 동의(#2819). 서버가 계정과 한 트랜잭션으로
         // 남기고, 필수 항목이 빠졌으면 계정을 만들지 않고 422 를 준다.
         'consents': ?consents,

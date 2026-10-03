@@ -7709,6 +7709,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Go to sign in'**
   String get passwordResetBackToSignIn;
+
+  /// No description provided for @signUpEmailCodeSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send code'**
+  String get signUpEmailCodeSend;
+
+  /// No description provided for @signUpEmailCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification code'**
+  String get signUpEmailCodeHint;
+
+  /// No description provided for @signUpEmailCodeResend.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend'**
+  String get signUpEmailCodeResend;
+
+  /// Resend button while the cooldown runs (#3038)
+  ///
+  /// In en, this message translates to:
+  /// **'Resend in {seconds}s'**
+  String signUpEmailCodeResendIn(int seconds);
+
+  /// Helper under the sign-up code field with the time left, m:ss (#3038)
+  ///
+  /// In en, this message translates to:
+  /// **'6-digit code from the email · expires in {time}'**
+  String signUpEmailCodeRemaining(String time);
+
+  /// No description provided for @signUpEmailCodeExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'This code has expired. Request a new one.'**
+  String get signUpEmailCodeExpired;
+
+  /// No description provided for @signUpEmailCodeEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-digit code'**
+  String get signUpEmailCodeEmpty;
+
+  /// No description provided for @signUpEmailCodeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This code is wrong or has expired. Request a new one.'**
+  String get signUpEmailCodeInvalid;
+
+  /// Demo-only hint with the code the mock accepts (#3038)
+  ///
+  /// In en, this message translates to:
+  /// **'Demo mode doesn\'t send email. Enter {code} as the code.'**
+  String signUpEmailCodeDemoNote(String code);
+
+  /// No description provided for @signUpEmailCodeUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'We can\'t send verification emails right now. Please try again later.'**
+  String get signUpEmailCodeUnavailable;
+
+  /// No description provided for @reauthTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm it\'s you'**
+  String get reauthTitle;
+
+  /// Re-auth dialog text before an email change (#3039)
+  ///
+  /// In en, this message translates to:
+  /// **'Changing your email changes your sign-in ID and the address password reset emails go to.'**
+  String get reauthEmailMessage;
+
+  /// No description provided for @reauthPasswordPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your current password to continue.'**
+  String get reauthPasswordPrompt;
+
+  /// No description provided for @reauthPasswordRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your current password'**
+  String get reauthPasswordRequired;
+
+  /// No description provided for @reauthSocialPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'This account has no password. Sign in again with the social account you signed up with.'**
+  String get reauthSocialPrompt;
+
+  /// No description provided for @reauthSocialAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in again with a social account'**
+  String get reauthSocialAction;
+
+  /// No description provided for @reauthSocialConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Social account confirmed'**
+  String get reauthSocialConfirmed;
+
+  /// No description provided for @reauthSocialRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in again with your social account'**
+  String get reauthSocialRequired;
+
+  /// No description provided for @reauthSocialInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t confirm your social account. Please sign in again.'**
+  String get reauthSocialInvalid;
+
+  /// No description provided for @reauthSocialUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Social sign-in isn\'t available in this version yet. Please contact support.'**
+  String get reauthSocialUnavailable;
 }
 
 class _AppLocalizationsDelegate

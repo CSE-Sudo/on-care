@@ -24,7 +24,68 @@ extension _LocalApiProfile on LocalApiInterceptor {
     return <String, Object?>{
       ...profile,
       'effective_daily_protein_g': demoDietTargets(profile).proteinG,
+      // 소셜로 든 데모 회원은 비밀번호 없는 계정처럼 보인다(#3039) — 본인 확인을
+      // 소셜 재로그인으로 해 볼 수 있다.
+      'has_password': await _hasDemoPassword(),
     };
+  }
+
+  /// 지금 계정에 확인할 비밀번호가 있는가. 가입 계정은 늘 있고, 데모 회원은
+  /// 소셜로 들어오지 않았으면 있다(#3039).
+  Future<bool> _hasDemoPassword() async {
+    if (await _accounts.current() != null) return true;
+    return (await _accounts.demoLogin()).socialProvider == null;
+  }
+
+  /// 이메일 변경·탈퇴 앞의 본인 확인(#3039) — 서버(`reauth`)와 같은 규칙·400
+  /// 코드다. 통과하면 null, 막히면 그 400 응답.
+  ///
+  ///  * 비밀번호 계정: `current_password` 가 가입 계정의 비밀번호(데모 회원은
+  ///    들어올 때 친 비밀번호)와 같아야 한다. 없으면 `reauth_required`, 다르면
+  ///    `invalid_current_password`.
+  ///  * 소셜로 든 데모 회원: `social_provider` 가 들어온 provider 이고
+  ///    `social_token` 이 그 데모 토큰(`demo-<provider>-token`)이어야 한다. 없으면
+  ///    `reauth_required`, 다르면 `invalid_reauth`.
+  ///
+  /// 400 인 이유: 토큰은 멀쩡하다 — 401 이면 앱이 세션 만료로 오인한다.
+  Future<Response<Object?>?> _reauthRejection(
+    RequestOptions options,
+    Map<String, Object?> body,
+  ) async {
+    Response<Object?> reject(String code, String message) => Response<Object?>(
+      requestOptions: options,
+      statusCode: 400,
+      data: <String, Object?>{
+        'detail': <String, Object?>{'code': code, 'message': message},
+      },
+    );
+    final Map<String, Object?>? account = await _accounts.current();
+    final ({String? password, String? socialProvider}) login = await _accounts
+        .demoLogin();
+    if (account == null && login.socialProvider != null) {
+      final String provider = (body['social_provider'] as String? ?? '').trim();
+      final String token = (body['social_token'] as String? ?? '').trim();
+      if (provider.isEmpty || token.isEmpty) {
+        return reject('reauth_required', '본인 확인을 위해 소셜 계정으로 다시 로그인해 주세요.');
+      }
+      if (provider != login.socialProvider || token != 'demo-$provider-token') {
+        return reject('invalid_reauth', '소셜 계정 확인에 실패했습니다. 다시 로그인해 주세요.');
+      }
+      return null;
+    }
+    final String password = body['current_password'] as String? ?? '';
+    if (password.isEmpty) {
+      return reject('reauth_required', '본인 확인을 위해 현재 비밀번호를 입력해 주세요.');
+    }
+    // 로그인 없이 둘러보는 데모 회원은 비교할 비밀번호가 없다 — 데모 로그인처럼
+    // 비어 있지 않은 값이면 받는다.
+    final String? expected = account != null
+        ? account['password'] as String?
+        : login.password;
+    if (expected != null && expected != password) {
+      return reject('invalid_current_password', '현재 비밀번호가 일치하지 않습니다.');
+    }
+    return null;
   }
 
   Future<void> _mergeProfileOverlay(Map<String, Object?> patch) async {
@@ -79,9 +140,13 @@ extension _LocalApiProfile on LocalApiInterceptor {
     return _ok(options, await _profileView());
   }
 
-  /// PUT /users/me — 서버(`update_me`)와 같은 두 거절을 먼저 본다(#2639).
+  /// PUT /users/me — 서버(`update_me`)와 같은 거절을 먼저 본다(#2639).
   ///
-  ///  * 다른 계정이 쓰는 이메일 → 409. 자기 이메일 그대로면 통과한다.
+  ///  * 이메일을 바꾸면 본인 확인(#3039) → 막히면 400. 대소문자만 다르면 바꾼
+  ///    것이 아니다. 통과하면 응답에 새 토큰 한 쌍을 싣는다 — 서버가 다른
+  ///    기기의 세션을 끊고 이 기기에 새 쌍을 주는 것과 같은 모양이다.
+  ///  * 다른 계정이 쓰는 이메일 → 409. 자기 이메일 그대로면 통과한다. 본인 확인
+  ///    뒤에 본다.
   ///  * 있던 연락처를 비움 → 422. 서버처럼 `detail` 을 문장으로 준다.
   ///
   /// 거절하면 아무것도 저장하지 않는다.
@@ -92,7 +157,12 @@ extension _LocalApiProfile on LocalApiInterceptor {
     final String currentEmail = ((current['email'] as String?) ?? '')
         .trim()
         .toLowerCase();
-    if (email != null && email != currentEmail && await _isTakenEmail(email)) {
+    final bool emailChanged = email != null && email != currentEmail;
+    if (emailChanged) {
+      final Response<Object?>? rejected = await _reauthRejection(options, body);
+      if (rejected != null) return rejected;
+    }
+    if (email != null && emailChanged && await _isTakenEmail(email)) {
       return Response<Object?>(
         requestOptions: options,
         statusCode: 409,
@@ -125,10 +195,16 @@ extension _LocalApiProfile on LocalApiInterceptor {
     }
     await _mergeProfileOverlay(patch);
     // 가입 계정은 바꾼 이메일로 다음에 로그인한다 — 서버도 같은 사용자 행이다.
-    if (email != null && email != currentEmail) {
+    if (email != null && emailChanged) {
       await _accounts.renameCurrent(email);
     }
-    return _ok(options, await _profileView());
+    return _ok(options, <String, Object?>{
+      ...await _profileView(),
+      'access_token': emailChanged
+          ? 'demo-access-${DateTime.now().microsecondsSinceEpoch}'
+          : null,
+      'refresh_token': emailChanged ? 'demo-refresh' : null,
+    });
   }
 
   /// PUT /users/me/health-goals — 식단 일일 목표(6종) + 운동 목표(7종)를
@@ -205,12 +281,21 @@ extension _LocalApiProfile on LocalApiInterceptor {
   ///
   /// 가입 계정이 탈퇴하면 계정째 지운다(#2665) — 같은 이메일로 다시 가입할 수
   /// 있고, 그 비밀번호로는 더 로그인되지 않는다.
+  ///
+  /// 탈퇴는 언제나 본인 확인을 거친다(#3039) — 막히면 400 이고 아무것도 지우지
+  /// 않는다.
   Future<Response<Object?>> _usersMeDelete(RequestOptions options) async {
+    final Response<Object?>? rejected = await _reauthRejection(
+      options,
+      _jsonBody(options),
+    );
+    if (rejected != null) return rejected;
     if (await _accounts.current() != null) {
       await _accounts.removeCurrent();
       return _ok(options, <String, Object?>{'status': 'deleted'});
     }
     await _db.putValue(DemoAccounts.demoProfileKey, '');
+    await _accounts.rememberDemoLogin();
     return _ok(options, <String, Object?>{'status': 'deleted'});
   }
 

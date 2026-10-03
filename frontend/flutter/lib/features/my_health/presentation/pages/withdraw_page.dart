@@ -4,8 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/storage/prefs_store.dart';
+import 'package:oncare/features/account/domain/entities/account_reauth.dart';
+import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare/features/my_health/presentation/widgets/account_reauth_dialog.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -76,34 +79,51 @@ class _WithdrawPageState extends ConsumerState<WithdrawPage> {
 
   /// 되돌릴 수 없는 동작 앞의 마지막 확인이다. 확인창은 #1935 의 것 그대로 —
   /// 무엇이 사라지는지 말하고, 빨간 채움 버튼에서 확정한다.
+  ///
+  /// 그 창에서 본인 확인도 한다(#3039). 잠기지 않은 폰을 누가 잠깐 집어 들어도
+  /// 기록 전체를 지우지 못하게, 현재 비밀번호(소셜 전용 계정은 다시 로그인)를
+  /// 거쳐야 빨간 버튼이 켜진다. 비밀번호가 틀리면 창 안에 알리고 세션은 그대로다.
   Future<void> _confirmAndDelete() async {
     final AppLocalizations l = AppLocalizations.of(context);
     final AppToastHost toast = AppToastHost.of(context);
     // 세션을 비우면 이 화면은 그 자리에서 사라진다 — 옮길 곳을 먼저 붙들어 둔다.
     final GoRouter? router = GoRouter.maybeOf(context);
-    final bool ok = await showAppConfirmDialog(
+    final List<String> reasons = <String>[
+      for (final WithdrawReason r in WithdrawReason.values)
+        if (_picked.contains(r)) r.code,
+    ];
+    setState(() => _busy = true);
+    // 비밀번호 칸을 보일지, 소셜 다시 로그인을 보일지. 프로필을 못 읽으면
+    // 비밀번호 계정으로 본다 — 대부분이 그렇고, 소셜 전용 계정이면 서버가
+    // `reauth_required` 로 알려 준다.
+    bool hasPassword = true;
+    try {
+      final UserProfile profile = await ref.read(profileProvider.future);
+      hasPassword = profile.hasPassword;
+    } on Object {
+      // 위 주석 참고.
+    }
+    if (!mounted) return;
+    final AccountReauthDialogOutcome outcome = await showAccountReauthDialog(
       context: context,
-      title: l.myWithdrawTitle,
       message: l.myWithdrawConfirm,
       confirmLabel: l.myWithdrawAction,
-      cancelLabel: l.myCancel,
+      hasPassword: hasPassword,
       destructive: true,
-    );
-    if (!ok) return;
-    setState(() => _busy = true);
-    try {
-      await ref
+      onSubmit: (AccountReauth reauth) => ref
           .read(accountRepositoryProvider)
-          .deleteAccount(
-            reasons: <String>[
-              for (final WithdrawReason r in WithdrawReason.values)
-                if (_picked.contains(r)) r.code,
-            ],
-          );
-    } on Object {
-      if (mounted) setState(() => _busy = false);
-      toast.show(l.myWithdrawFailed, type: AppToastType.error);
-      return;
+          .deleteAccount(reasons: reasons, reauth: reauth),
+    );
+    switch (outcome.result) {
+      case AccountReauthDialogResult.done:
+        break;
+      case AccountReauthDialogResult.cancelled:
+        if (mounted) setState(() => _busy = false);
+        return;
+      case AccountReauthDialogResult.failed:
+        if (mounted) setState(() => _busy = false);
+        toast.show(l.myWithdrawFailed, type: AppToastType.error);
+        return;
     }
     // 계정이 사라졌으니 계정에 매인 기기 기록도 남기지 않는다. 언어 설정은
     // 기기의 것이라 그대로 둔다.
