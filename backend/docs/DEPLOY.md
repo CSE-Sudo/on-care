@@ -12,7 +12,7 @@ GitHub(main push) ──> Actions ──> ECR(이미지) ──> App Runner(:800
                                                         └── Neon Postgres (CREATE EXTENSION vector)
 ```
 
-기동 흐름: 컨테이너가 `scripts/start.sh` 로 **마이그레이션 → uvicorn(--proxy-headers)**.
+기동 흐름: 컨테이너가 `scripts/start.sh` 로 **마이그레이션 → uvicorn(--proxy-headers --no-access-log)**.
 마이그레이션은 `scripts/migrate.py` 가 **PostgreSQL advisory lock 으로 직렬화**하므로, App Runner
 가 여러 인스턴스를 동시에 띄워도 하나만 마이그레이션하고 나머지는 대기 후 no-op 이다(리뷰 #3).
 운영은 `AUTO_CREATE_TABLES=false` 로 두고 Alembic 을 스키마의 유일한 소스로 삼는다.
@@ -170,6 +170,16 @@ CREATE EXTENSION IF NOT EXISTS vector;
 - `async def` 라우트 안에서 동기 DB·Pillow·파일 저장을 돌리지 않는다 — 이벤트 루프가 막혀 같은 워커의
   다른 요청(헬스체크 포함)이 모두 멈춘다. 외부 호출만 `await` 하고 나머지는 `run_in_threadpool` 로
   넘기거나 라우트를 `def` 로 둔다. `tests/test_async_route_guard.py` 가 이 규칙을 검사한다.
+
+## 요청 로그 (#3031)
+
+컨테이너 표준 출력(App Runner → CloudWatch Logs)에 남는 요청 로그는 앱의 `app.access` 한 곳이다 —
+`GET '/v1/places/nearby' -> 200 (12.3ms)` 처럼 method·경로(쿼리 제외)·상태·소요시간과 줄 앞의
+request_id 만 남긴다. uvicorn 기본 액세스 로그는 `scripts/start.sh` 가 `--no-access-log` 로 끈다.
+그 로그는 쿼리를 포함한 요청 줄 전체와 프록시 헤더로 읽은 사용자 IP 를 남겨, 헬스장 찾기의
+위치 좌표(`lat`·`lng`)·검색어가 IP 와 함께 쌓이기 때문이다(처리방침은 위치를 "저장 안 함"으로 적는다).
+Backend CI 가 컨테이너를 띄워 좌표 쿼리 요청 뒤 로그에 좌표·IP 가 없는지 확인한다. 로그 그룹의
+보관 기간·열람 권한은 인프라 설정(#480)이다.
 
 ## DB 커넥션 풀·쿼리 실행 상한 (#2836)
 
