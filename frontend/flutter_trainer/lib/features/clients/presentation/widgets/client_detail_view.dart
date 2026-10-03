@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_core/visible_periodic_timer.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
@@ -100,7 +101,10 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
   bool _statusSaving = false;
 
   /// 열어 둔 동안 기간 집계·신체 목표를 다시 읽는 타이머(#2330).
-  Timer? _sync;
+  ///
+  /// 탭이 가려지면 멈추고 다시 보이면 곧바로 한 번 읽는다 — 저장소 스트림
+  /// (`activePollingStream`)과 같은 보임 기준이다(#3013).
+  VisiblePeriodicTimer? _sync;
 
   @override
   void initState() {
@@ -116,7 +120,7 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
 
   @override
   void dispose() {
-    _sync?.cancel();
+    _sync?.dispose();
     super.dispose();
   }
 
@@ -129,22 +133,33 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
   /// (#2746) — 서버의 규칙 문장과 저장된 후보를 읽을 뿐 AI 를 부르지 않아, 다시
   /// 불러도 문장이 흔들리지 않는다. 예전에는 처음 연 순간의 문장이 끼니가
   /// 늘어도 그대로 남아, 같은 화면의 끼니 목록과 다른 날의 상태를 보였다.
+  ///
+  /// 트레이너 웹 탭이 가려지거나 창이 최소화되면 주기를 멈춘다(#3013). 콘솔은
+  /// 몇 시간씩 열려 있는 화면이라, 보지 않는 동안 회원 한 명당 여러 요청을
+  /// 30초마다 보내면 부하만 쌓인다. 창이 포커스만 잃은(`inactive`) 동안은 화면에
+  /// 그대로 보이므로 이어 간다.
   void _startSync() {
-    _sync?.cancel();
+    _sync?.dispose();
     final String clientId = widget.clientId;
     _revalidateStreams(clientId);
-    _sync = Timer.periodic(_clientDetailSyncInterval, (_) {
-      if (!mounted) return;
-      _revalidateStreams(clientId);
-      ref
-        ..invalidate(clientRecordSpanProvider(clientId))
-        ..invalidate(clientDietPeriodProvider)
-        ..invalidate(clientExercisePeriodProvider)
-        ..invalidate(clientDietOnProvider)
-        ..invalidate(clientExercisesOnProvider)
-        ..invalidate(memberHealthProfileProvider(clientId));
-      refreshClientDietInsights(ref);
-    });
+    _sync = VisiblePeriodicTimer(
+      interval: _clientDetailSyncInterval,
+      keepPollingWhileInactive: true,
+      onTick: () => _resync(clientId),
+    )..start();
+  }
+
+  void _resync(String clientId) {
+    if (!mounted) return;
+    _revalidateStreams(clientId);
+    ref
+      ..invalidate(clientRecordSpanProvider(clientId))
+      ..invalidate(clientDietPeriodProvider)
+      ..invalidate(clientExercisePeriodProvider)
+      ..invalidate(clientDietOnProvider)
+      ..invalidate(clientExercisesOnProvider)
+      ..invalidate(memberHealthProfileProvider(clientId));
+    refreshClientDietInsights(ref);
   }
 
   void _revalidateStreams(String clientId) {

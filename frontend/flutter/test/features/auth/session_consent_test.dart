@@ -363,13 +363,8 @@ void main() {
 
       final Map<String, Object?> body =
           server.last('/auth/register').data as Map<String, Object?>;
-      expect(body['consents'], <String>[
-        'terms',
-        'privacy',
-        'health',
-        'age14',
-        'marketing',
-      ]);
+      // 화면에 없는 마케팅(#3007) 같은 모르는 값은 싣지 않는다.
+      expect(body['consents'], <String>['terms', 'privacy', 'health', 'age14']);
       expect(
         container.read(sessionControllerProvider).consentRequired,
         isFalse,

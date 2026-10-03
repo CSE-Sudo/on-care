@@ -152,7 +152,9 @@ Stream<T> activePollingStream<T>({
 /// 와 같은 기준이다.
 ///
 /// `null` 은 바인딩이 아직 상태를 받기 전(첫 프레임 전·테스트)이다.
-@visibleForTesting
+///
+/// 스트림이 아닌 주기 작업도 같은 기준을 써야 한다 — `VisiblePeriodicTimer`
+/// 가 이 함수로 멈추고 다시 건다(#3013).
 bool pollsWhileIn(
   AppLifecycleState? state, {
   bool keepPollingWhileInactive = false,

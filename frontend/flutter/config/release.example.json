@@ -1,0 +1,6 @@
+{
+  "ENV": "prod",
+  "USE_MOCK_API": "false",
+  "API_BASE_URL": "https://<운영 API 도메인>/v1",
+  "SENTRY_DSN": "https://<공개 키>@<조직>.ingest.sentry.io/<회원 앱 프로젝트 번호>"
+}
