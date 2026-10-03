@@ -6,8 +6,10 @@
 # 1) /v1/healthz — 프로세스가 떴는지, 그 환경의 기대 설정인지(backend_health_check.sh)
 # 2) /v1/readyz  — DB 까지 닿는지. 헬스체크 경로는 healthz 라 DB 일시 장애로 태스크를
 #                  갈아 치우지 않으므로, DB 연결은 배포 직후 여기서 따로 본다.
-# 3) /v1/version — 응답에 commit_sha 가 있으면 배포한 커밋과 같은지 본다. 필드가 아직
-#                  없는 이미지(백엔드 쪽 노출 전)면 확인을 건너뛰고 알림만 남긴다.
+# 3) /v1/version — 커밋 SHA 를 넘기면 응답의 commit_sha 가 그 커밋인지 본다(#3029).
+#                  판정은 verify_backend_health.sh version 에 맡긴다. 필드가 없거나 다르면
+#                  실패다 — 이미지가 GIT_SHA 를 못 받았거나 옛 태스크가 요청을 받는 상태다.
+#                  롤백 확인처럼 SHA 를 넘기지 않으면 이 단계는 건너뛴다.
 #
 # 재시도 횟수·간격은 VERIFY_ATTEMPTS(기본 10)·VERIFY_SLEEP(기본 10초)로 바꾼다.
 set -euo pipefail
@@ -62,15 +64,19 @@ fi
 echo "readyz OK"
 
 if [ -n "$expected_sha" ]; then
-  version_body="$(curl -fsS --max-time 10 "$base/version" || true)"
-  served="$(printf '%s' "$version_body" |
-    jq -r 'if type == "object" and has("commit_sha") then (.commit_sha | tostring) else "" end' 2> /dev/null || true)"
-  if [ -z "$served" ]; then
-    echo "::notice::/v1/version 에 commit_sha 가 없어 커밋 대조를 건너뜁니다."
-  elif [ "$served" != "$expected_sha" ]; then
-    echo "::error::서비스가 다른 커밋을 돌리고 있습니다: commit_sha=$served (기대 $expected_sha)"
+  version_body=""
+  for i in $(seq 1 "$attempts"); do
+    if version_body="$(curl -fsS --max-time 10 "$base/version")"; then
+      break
+    fi
+    version_body=""
+    echo "version not ready, retry $i"
+    sleep "$pause"
+  done
+  if [ -z "$version_body" ]; then
+    echo "::error::배포 후 /v1/version 이 응답하지 않습니다."
     exit 1
-  else
-    echo "version OK: commit_sha=$served"
   fi
+  echo "version: $version_body"
+  printf '%s' "$version_body" | bash "$here/verify_backend_health.sh" version "$expected_sha"
 fi

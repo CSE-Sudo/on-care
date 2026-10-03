@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# backend_verify_service.sh 검사(#3019). curl 을 가짜 실행 파일로 바꿔 응답을 정한다.
+# backend_verify_service.sh 검사(#3019, #3029). curl 을 가짜 실행 파일로 바꿔 응답을 정한다.
 # 사용: bash .github/scripts/test_backend_verify_service.sh
 set -uo pipefail
 
@@ -49,8 +49,9 @@ check() {
 export FAKE_HEALTHZ="$PROD" FAKE_READYZ="$READY" FAKE_VERSION="{\"api_version\":\"v1\",\"commit_sha\":\"$SHA\"}"
 check "정상 배포" pass api.example.on.aws prod "$SHA"
 check "커밋 대조 없이" pass api.example.on.aws prod
-FAKE_VERSION='{"api_version":"v1","app_version":"0.1.0"}' check "commit_sha 없음은 건너뜀" pass api.example.on.aws prod "$SHA"
-FAKE_VERSION=FAIL check "version 응답 없음은 건너뜀" pass api.example.on.aws prod "$SHA"
+FAKE_VERSION='{"api_version":"v1","app_version":"0.1.0"}' check "commit_sha 없음" fail api.example.on.aws prod "$SHA"
+FAKE_VERSION=FAIL check "version 무응답" fail api.example.on.aws prod "$SHA"
+FAKE_VERSION=FAIL check "SHA 없이 부르면 version 은 보지 않음" pass api.example.on.aws prod
 FAKE_VERSION='{"commit_sha":"ffffffffffffffffffffffffffffffffffffffff"}' check "다른 커밋" fail api.example.on.aws prod "$SHA"
 FAKE_HEALTHZ=FAIL check "healthz 무응답" fail api.example.on.aws prod
 FAKE_HEALTHZ='{"env":"prod","demo_fallback":true,"demo_seed":false,"attachment_storage":"s3"}' check "운영 데모 폴백" fail api.example.on.aws prod
