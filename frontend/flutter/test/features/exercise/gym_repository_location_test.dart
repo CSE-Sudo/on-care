@@ -1,7 +1,8 @@
 /// 실서버 헬스장 저장소가 기준 좌표의 출처를 따르는가(#3044).
 ///
 /// 회원 위치를 얻기 전에는 `/me/gym` 에 좌표를 싣지 않는다 — 기본 검색 영역(신촌)은
-/// 회원의 위치가 아니다.
+/// 회원의 위치가 아니다. 데모 세션(목업 빌드·실서버 데모)은 예전처럼 신촌 좌표를
+/// 싣는다 — 데모 데이터가 신촌 기준이다.
 library;
 
 import 'package:dio/dio.dart';
@@ -10,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/network/dio_client.dart';
+import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/exercise/data/repositories/dio_gym_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/gym_search_area.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
@@ -63,4 +65,29 @@ void main() {
     expect(repo.lat, 35.1);
     expect(repo.lng, 129.1);
   });
+
+  group('데모 세션 (실서버)', () {
+    test('데모로 들어오기 전에는 데모가 아니다', () {
+      expect(container.read(gymDemoSessionProvider), isFalse);
+      expect(
+        container.read(gymSearchAreaProvider),
+        const GymSearchArea.defaultArea(),
+      );
+    });
+
+    test('데모로 들어오면 신촌을 회원 위치처럼 쓰고 /me/gym 에 신촌 좌표를 싣는다', () {
+      container.read(gymRepositoryProvider);
+      container.read(sessionControllerProvider.notifier).enterDemo();
+
+      expect(container.read(gymDemoSessionProvider), isTrue);
+      final GymSearchArea area = container.read(gymSearchAreaProvider);
+      expect(area, const GymSearchArea.demoArea());
+      expect(area.isUserLocation, isTrue);
+      final DioGymRepository repo =
+          container.read(gymRepositoryProvider) as DioGymRepository;
+      expect(repo.lat, kGymDefaultAreaLat);
+      expect(repo.lng, kGymDefaultAreaLng);
+    });
+  });
 }
+

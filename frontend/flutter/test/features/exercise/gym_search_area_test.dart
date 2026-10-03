@@ -4,6 +4,8 @@ library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/core/config/app_config.dart';
+
 import 'package:oncare/features/exercise/domain/entities/gym_search_area.dart';
 import 'package:oncare/features/exercise/presentation/controllers/gym_location_controller.dart';
 import 'package:oncare/features/place/domain/entities/place.dart';
@@ -49,5 +51,31 @@ void main() {
     final ProviderContainer c = ProviderContainer();
     addTearDown(c.dispose);
     expect(c.read(gymSearchAreaProvider), const GymSearchArea.defaultArea());
+  });
+
+  test('데모 영역은 신촌이고 회원 위치처럼 다룬다', () {
+    const GymSearchArea area = GymSearchArea.demoArea();
+    expect(area.lat, kGymDefaultAreaLat);
+    expect(area.lng, kGymDefaultAreaLng);
+    expect(area.origin, GymSearchOrigin.demoArea);
+    expect(area.isUserLocation, isTrue);
+    expect(area == const GymSearchArea.defaultArea(), isFalse);
+  });
+
+  test('목업 빌드는 데모 세션이라 데모 영역에서 시작한다', () {
+    final ProviderContainer c = ProviderContainer(
+      overrides: <Override>[
+        appConfigProvider.overrideWithValue(
+          const AppConfig(
+            environment: Environment.dev,
+            apiBaseUrl: 'http://localhost',
+            useMockApi: true,
+          ),
+        ),
+      ],
+    );
+    addTearDown(c.dispose);
+    expect(c.read(gymDemoSessionProvider), isTrue);
+    expect(c.read(gymSearchAreaProvider), const GymSearchArea.demoArea());
   });
 }

@@ -2,7 +2,10 @@
 ///
 /// 이미 허용된 권한이면 화면을 열 때 권한 창 없이 위치를 얻는다. 얻지 못했으면
 /// "신촌 주변 결과" 안내와 [위치 사용] 버튼을 두고, 카드의 거리를 감추고, 거리순을
-/// 고를 수 없게 한다. 데모(목업)도 같은 규칙이다.
+/// 고를 수 없게 한다 — 실사용자 경로만 그렇다.
+///
+/// 데모 세션(목업 빌드·실서버 데모)은 데모 데이터가 신촌 기준이라 예전 화면
+/// 그대로다: 기준은 신촌, 권한 확인·안내 줄 없음, 거리·거리순 그대로.
 library;
 
 import 'dart:async';
@@ -82,6 +85,7 @@ Future<ProviderContainer> _pump(
   WidgetTester tester,
   _FakeLocationService service, {
   Locale locale = const Locale('ko'),
+  bool demo = false,
 }) async {
   await tester.binding.setSurfaceSize(const Size(390, 844));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -97,6 +101,9 @@ Future<ProviderContainer> _pump(
           useMockApi: true,
         ),
       ),
+      // 목업 저장소로 그리되, 실사용자 경로인지 데모 세션인지는 여기서 정한다.
+      // 데모 세션 판별 자체는 아래 `데모 세션 판별` 묶음이 따로 본다.
+      if (!demo) gymDemoSessionProvider.overrideWithValue(false),
     ],
   );
   addTearDown(container.dispose);
@@ -351,6 +358,72 @@ void main() {
     await tester.pumpAndSettle();
     expect(service.locates, 1);
     expect(find.byKey(_notice), findsNothing);
+  });
+
+  group('데모 세션은 예전 화면 그대로', () {
+    testWidgets('목업 빌드는 권한을 보지 않고 신촌을 회원 위치처럼 쓴다', (
+      WidgetTester tester,
+    ) async {
+      final _FakeLocationService service = _FakeLocationService(
+        access: GymLocationAccess.granted,
+      );
+      final ProviderContainer c = await _pump(tester, service, demo: true);
+
+      expect(service.checks, 0, reason: '데모는 권한 상태를 보지 않는다');
+      expect(service.locates, 0, reason: '데모는 조용히 위치를 얻지 않는다');
+      expect(c.read(gymSearchAreaProvider), const GymSearchArea.demoArea());
+      expect(c.read(gymSearchAreaProvider).lat, kGymDefaultAreaLat);
+      expect(c.read(gymSearchAreaProvider).lng, kGymDefaultAreaLng);
+      expect(find.byKey(_notice), findsNothing);
+      expect(find.text(_ko.gymDefaultAreaTitle), findsNothing);
+      // 거리는 예전처럼 신촌 기준으로 적는다.
+      expect(find.byKey(_firstDistance), findsOneWidget);
+    });
+
+    testWidgets('목업 빌드는 거리순이 바로 동작한다', (WidgetTester tester) async {
+      await _pump(tester, _FakeLocationService(), demo: true);
+
+      await _openSort(tester);
+      await tester.tap(find.byKey(const ValueKey<String>('gym-sort-distance')));
+      await tester.pumpAndSettle();
+
+      final AppButton sort = tester.widget<AppButton>(
+        find.byKey(const ValueKey<String>('gym-sort-menu')),
+      );
+      expect(sort.label, _ko.exSortDistance);
+      expect(find.text(_ko.gymDistanceSortNeedsLocation), findsNothing);
+    });
+
+    testWidgets('백그라운드에서 돌아와도 권한을 보지 않는다', (WidgetTester tester) async {
+      final _FakeLocationService service = _FakeLocationService(
+        access: GymLocationAccess.granted,
+      );
+      await _pump(tester, service, demo: true);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+
+      expect(service.checks, 0);
+      expect(service.locates, 0);
+    });
+
+    testWidgets('영어로도 안내 줄이 없다', (WidgetTester tester) async {
+      final AppLocalizationsEn en = AppLocalizationsEn();
+      await _pump(
+        tester,
+        _FakeLocationService(),
+        locale: const Locale('en'),
+        demo: true,
+      );
+
+      expect(find.text(en.gymDefaultAreaTitle), findsNothing);
+      expect(find.text(en.gymUseLocation), findsNothing);
+    });
   });
 
   test('기본 영역 상수는 신촌이다', () {
