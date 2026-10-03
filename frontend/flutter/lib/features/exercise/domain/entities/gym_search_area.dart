@@ -26,6 +26,10 @@ enum GymSearchOrigin {
 
   /// 위치를 얻기 전의 기본 검색 영역. 거리는 회원과 무관한 값이다.
   defaultArea,
+
+  /// 데모 세션의 기준(신촌). 데모의 헬스장·트레이너·예약이 신촌 기준으로 짜여
+  /// 있어 회원 위치처럼 쓴다 — 거리·거리순을 그대로 보인다.
+  demoArea,
 }
 
 /// 헬스장 찾기의 기준 좌표와 그 출처.
@@ -47,6 +51,17 @@ class GymSearchArea {
         GymSearchOrigin.defaultArea,
       );
 
+  /// 데모 세션의 기준(신촌). 좌표는 [GymSearchArea.defaultArea] 와 같다.
+  const GymSearchArea.demoArea()
+    : this._(
+        const PlaceQuery(
+          lat: kGymDefaultAreaLat,
+          lng: kGymDefaultAreaLng,
+          category: PlaceCategory.fitness,
+        ),
+        GymSearchOrigin.demoArea,
+      );
+
   /// 기기에서 얻은 회원 위치.
   const GymSearchArea.userLocation(PlaceQuery query)
     : this._(query, GymSearchOrigin.userLocation);
@@ -58,8 +73,11 @@ class GymSearchArea {
   double get lat => query.lat;
   double get lng => query.lng;
 
-  /// 회원 위치 기준인가 — 거리 표시·거리순·`/me/gym` 좌표가 이 값을 본다.
-  bool get isUserLocation => origin == GymSearchOrigin.userLocation;
+  /// 회원 위치 기준으로 다루는가 — 거리 표시·거리순·`/me/gym` 좌표가 이 값을
+  /// 본다. 데모 영역도 여기 든다(데모는 신촌을 회원 위치로 친다).
+  bool get isUserLocation =>
+      origin == GymSearchOrigin.userLocation ||
+      origin == GymSearchOrigin.demoArea;
 
   @override
   bool operator ==(Object other) =>

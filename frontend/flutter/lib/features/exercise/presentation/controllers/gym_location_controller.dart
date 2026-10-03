@@ -1,16 +1,43 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/gym_search_area.dart';
 import 'package:oncare/features/place/domain/entities/place.dart';
 import 'package:oncare/features/place/domain/entities/place_query.dart';
+
+/// 데모 세션인가 — 목업 빌드(`USE_MOCK_API=true`)이거나, 실서버에서 데모로
+/// 들어온 세션([SessionStatus.demo], 서버의 데모 회원으로 응답받는다)이다.
+///
+/// 데모의 헬스장·트레이너·예약은 신촌을 기준으로 짜여 있다. 그래서 데모에서는
+/// 헬스장 찾기 기준을 신촌으로 고정하고 화면도 예전 그대로 둔다(#3044).
+///
+/// 앱 설정을 읽지 못하면(설정을 넣지 않은 테스트) 실사용자로 본다.
+final gymDemoSessionProvider = Provider<bool>((ref) {
+  try {
+    if (ref.watch(appConfigProvider).useMockApi) return true;
+  } on Object {
+    return false;
+  }
+  return ref.watch(
+    sessionControllerProvider.select(
+      (SessionState s) => s.status == SessionStatus.demo,
+    ),
+  );
+}, name: 'gymDemoSession');
 
 /// 검색과 지도가 공유하는 기준 좌표와 그 출처(#3044).
 ///
 /// 회원 위치를 얻기 전에는 기본 검색 영역(신촌)이다. 화면은 이때 "신촌 주변
 /// 결과" 안내를 두고 거리를 감춘다. 위치를 얻으면 앱이 켜져 있는 동안 그 좌표를
 /// 유지한다 — 저장하지는 않는다.
+///
+/// 데모 세션([gymDemoSessionProvider])은 신촌을 회원 위치처럼 쓰는 데모 영역에서
+/// 시작한다 — 안내 줄·조용한 위치 획득 없이 거리·거리순을 그대로 보인다.
 final gymSearchAreaProvider = StateProvider<GymSearchArea>(
-  (ref) => const GymSearchArea.defaultArea(),
+  (ref) => ref.watch(gymDemoSessionProvider)
+      ? const GymSearchArea.demoArea()
+      : const GymSearchArea.defaultArea(),
 );
 
 final gymLocationServiceProvider = Provider((ref) => GymLocationService());
