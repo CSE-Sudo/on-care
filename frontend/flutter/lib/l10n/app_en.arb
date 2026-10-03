@@ -2653,6 +2653,10 @@
   "@alertCategorySchedule": {
     "description": "Notification category label for screen readers."
   },
+  "alertCategoryPtDone": "PT record",
+  "@alertCategoryPtDone": {
+    "description": "Notification category label for screen readers: a finished PT session or the trainer's feedback on it (#3027)."
+  },
   "alertCategoryTrainer": "Trainer",
   "@alertCategoryTrainer": {
     "description": "Notification category label for screen readers."
@@ -2893,6 +2897,10 @@
   "gymLocationUnavailable": "Could not get your location. Please try again.",
   "gymLocateAction": "Find near my location",
   "gymLocationSettings": "Settings",
+  "gymDefaultAreaTitle": "Showing gyms around Sinchon",
+  "gymDefaultAreaMessage": "Allow location access to see gyms near you.",
+  "gymUseLocation": "Use location",
+  "gymDistanceSortNeedsLocation": "Sort by distance needs your current location.",
   "exGymCopyPhone": "Copy phone number",
   "exGymPhoneCopied": "Phone number copied.",
   "exerciseAdviceRecordEmptyToday": "No workout logged today yet. How about a 10-minute walk to start?",

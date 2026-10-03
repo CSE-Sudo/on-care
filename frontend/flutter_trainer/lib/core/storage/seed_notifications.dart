@@ -56,7 +56,28 @@ Future<void> seedDemoNotifications(
     'target_date': ?targetDate,
   };
 
+  final DateTime thisMonday = mondayOf(DateTime(now.year, now.month, now.day));
+
   final List<Map<String, Object?>> rows = <Map<String, Object?>>[
+    // 회원이 이번 주 피드백을 냈다(#3026) — 데모 김민수(1)의 이번 주 답(통증 있음)과
+    // 같은 값이다(`seed_data.dart` 의 `_demoFeedback`). 누르면 메모 창 `피드백`
+    // 탭이 바로 열린다. 아픈 곳 글은 알림에 싣지 않는다.
+    row(
+      id: 'demo-noti-7',
+      ago: const Duration(minutes: 20),
+      category: 'weekly_feedback',
+      template: 'trainer_member_weekly_feedback',
+      args: const <String, Object?>{
+        'condition': 'ok',
+        'intensity': 'too_hard',
+        'pain': true,
+        'revised': false,
+      },
+      client: 1,
+      title: '회원이 통증을 알렸어요',
+      body: '컨디션 보통이었어요 · 운동 강도 너무 힘들었어요 · 통증 있음',
+      targetDate: wireDate(thisMonday),
+    ),
     // 회원이 건강상태·주의사항을 고쳤다(#2619) — 누르면 신체·목표 창의 `건강
     // 목표` 탭이 바로 열린다.
     row(

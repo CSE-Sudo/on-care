@@ -120,6 +120,7 @@ class DioNotificationRepository implements NotificationRepository {
     'coach_report' => AlertCategory.coachReport,
     'routine' => AlertCategory.routine,
     'member_schedule' => AlertCategory.schedule,
+    'pt_done' => AlertCategory.ptDone,
     'coach_invite' || 'consultation_result' => AlertCategory.trainerLink,
     'consult_decision' => AlertCategory.consultDecision,
     'health_goals' => AlertCategory.healthGoals,

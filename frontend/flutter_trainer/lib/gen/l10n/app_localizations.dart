@@ -6103,6 +6103,42 @@ abstract class AppLocalizations {
   /// **'Sent a photo'**
   String get notifTplMemberPhotoBody;
 
+  /// Trainer notification title when a member submits their weekly feedback (#3026).
+  ///
+  /// In en, this message translates to:
+  /// **'{name} sent their weekly feedback'**
+  String notifTplWeeklyFeedbackTitle(String name);
+
+  /// Title when a member re-submits weekly feedback the trainer has already read (#3026).
+  ///
+  /// In en, this message translates to:
+  /// **'{name} updated their weekly feedback'**
+  String notifTplWeeklyFeedbackRevisedTitle(String name);
+
+  /// Title when the weekly feedback reports pain. The pain area itself is never shown in the notification (#3026).
+  ///
+  /// In en, this message translates to:
+  /// **'{name} reported pain'**
+  String notifTplWeeklyFeedbackPainTitle(String name);
+
+  /// No description provided for @notifTplWeeklyFeedbackCondition.
+  ///
+  /// In en, this message translates to:
+  /// **'Condition: {value}'**
+  String notifTplWeeklyFeedbackCondition(String value);
+
+  /// No description provided for @notifTplWeeklyFeedbackIntensity.
+  ///
+  /// In en, this message translates to:
+  /// **'Intensity: {value}'**
+  String notifTplWeeklyFeedbackIntensity(String value);
+
+  /// No description provided for @notifTplWeeklyFeedbackPain.
+  ///
+  /// In en, this message translates to:
+  /// **'Pain reported'**
+  String get notifTplWeeklyFeedbackPain;
+
   /// No description provided for @notifAllRead.
   ///
   /// In en, this message translates to:

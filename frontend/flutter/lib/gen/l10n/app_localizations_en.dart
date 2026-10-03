@@ -3638,6 +3638,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alertCategorySchedule => 'PT schedule';
 
   @override
+  String get alertCategoryPtDone => 'PT record';
+
+  @override
   String get alertCategoryTrainer => 'Trainer';
 
   @override
@@ -3859,6 +3862,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gymLocationSettings => 'Settings';
+
+  @override
+  String get gymDefaultAreaTitle => 'Showing gyms around Sinchon';
+
+  @override
+  String get gymDefaultAreaMessage =>
+      'Allow location access to see gyms near you.';
+
+  @override
+  String get gymUseLocation => 'Use location';
+
+  @override
+  String get gymDistanceSortNeedsLocation =>
+      'Sort by distance needs your current location.';
 
   @override
   String get exGymCopyPhone => 'Copy phone number';

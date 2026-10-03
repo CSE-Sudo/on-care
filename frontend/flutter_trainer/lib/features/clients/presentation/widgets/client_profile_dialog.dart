@@ -42,6 +42,7 @@ Future<void> showClientProfileDialog(
   int? ageYears,
   ClientProfileSection section = ClientProfileSection.health,
   bool openHealthNotes = false,
+  bool openFeedback = false,
 }) => showAppDialog<void>(
   context: context,
   builder: (_) => ClientProfileDialog(
@@ -50,6 +51,7 @@ Future<void> showClientProfileDialog(
     ageYears: ageYears,
     section: section,
     openHealthNotes: openHealthNotes,
+    openFeedback: openFeedback,
   ),
 );
 
@@ -66,6 +68,7 @@ class ClientProfileDialog extends StatelessWidget {
     this.ageYears,
     this.section = ClientProfileSection.health,
     this.openHealthNotes = false,
+    this.openFeedback = false,
   });
 
   /// The client whose profile or memos are shown.
@@ -83,6 +86,9 @@ class ClientProfileDialog extends StatelessWidget {
 
   /// 신체·목표 창을 건강상태·주의사항이 있는 `건강 목표` 탭으로 연다(#2619).
   final bool openHealthNotes;
+
+  /// 메모 창을 회원과 주고받은 글이 있는 `피드백` 탭으로 연다(#3026).
+  final bool openFeedback;
 
   @override
   Widget build(BuildContext context) {
@@ -104,7 +110,11 @@ class ClientProfileDialog extends StatelessWidget {
         size: AppDialogSize.medium,
         // 메모·피드백 탭을 오갈 때 창 높이가 바뀌지 않게 고정한다(#2955).
         fixedHeight: true,
-        child: _MemoDialogBody(clientId: clientId, clientName: clientName),
+        child: _MemoDialogBody(
+          clientId: clientId,
+          clientName: clientName,
+          openFeedback: openFeedback,
+        ),
       ),
     };
   }
@@ -1255,17 +1265,22 @@ enum _MemoTab { memo, feedback }
 /// 규칙). 헤더의 `메모` 버튼은 하나 그대로 두고 창 안에서 나눈다 — "이 회원에
 /// 대해 남긴 것" 을 찾는 자리가 둘로 갈라지지 않게.
 class _MemoDialogBody extends StatefulWidget {
-  const _MemoDialogBody({required this.clientId, required this.clientName});
+  const _MemoDialogBody({
+    required this.clientId,
+    required this.clientName,
+    this.openFeedback = false,
+  });
 
   final String clientId;
   final String clientName;
+  final bool openFeedback;
 
   @override
   State<_MemoDialogBody> createState() => _MemoDialogBodyState();
 }
 
 class _MemoDialogBodyState extends State<_MemoDialogBody> {
-  _MemoTab _tab = _MemoTab.memo;
+  late _MemoTab _tab = widget.openFeedback ? _MemoTab.feedback : _MemoTab.memo;
 
   @override
   Widget build(BuildContext context) {

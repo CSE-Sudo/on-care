@@ -27,6 +27,10 @@ _INTENTIONALLY_UNDOCUMENTED: dict[str, str] = {}
 _NON_SETTINGS_KEYS: dict[str, str] = {
     "TZ": "프로세스 시간대(로그 타임스탬프). Settings 가 아니라 컨테이너 환경이 읽는다.",
     "FORWARDED_ALLOW_IPS": "uvicorn --forwarded-allow-ips. Settings 가 아니라 scripts/start.sh 가 읽는다.",
+    "WEB_CONCURRENCY": "uvicorn 워커 수. Settings 가 아니라 scripts/start.sh 가 읽는다.",
+    "MIGRATE_LOCK_TIMEOUT": "기동 마이그레이션 잠금 대기. scripts/migrate.py 가 읽는다.",
+    "MIGRATE_LOCK_RETRY_INTERVAL": "기동 마이그레이션 잠금 재시도 간격. scripts/migrate.py 가 읽는다.",
+    "MIGRATE_CONNECT_TIMEOUT": "기동 마이그레이션 DB 연결 한도. scripts/migrate.py 가 읽는다.",
 }
 
 
