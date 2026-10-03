@@ -54,7 +54,7 @@
   },
   "reportsPdfDocTitle": "Weekly coaching report",
   "reportsPdfLabelCompletion": "Workout completion",
-  "reportsPdfLabelSessions": "PT sessions",
+  "reportsPdfLabelSessions": "PT",
   "reportsPdfNoData": "Not measured",
   "reportsPdfNoFeedback": "No feedback",
   "reportsPdfValueDays": "{value} days",

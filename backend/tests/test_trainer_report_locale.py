@@ -113,7 +113,7 @@ KO_GOLDEN: dict[str, dict] = {'default': {'evidence': ['나트륨 평균 2,288mg
              'topics': ['나트륨 목표 초과 4일', '칼로리 부족', '건너뛴 운동 1가지'],
              'message': '김민수님, 8월 10일 – 8월 16일 주간 리포트 정리해서 보내드려요.\n'
                         '\n'
-                        '운동은 평균 87%로 잘 따라오셨어요. 다만 풀업은 건너뛰셨더라고요. 컨디션 때문이었다면 다음 세션 때 말씀해 '
+                        '운동은 평균 87%로 잘 따라오셨어요. 다만 풀업은 건너뛰셨더라고요. 컨디션 때문이었다면 다음 PT 때 말씀해 '
                         '주세요. 대체 동작으로 바꿔 둘게요.\n'
                         '\n'
                         '나트륨은 하루 평균 2,288mg이었고, 목표(2,000mg)를 넘긴 날이 4일이었어요. 국물을 절반만 '
@@ -188,7 +188,7 @@ KO_GOLDEN: dict[str, dict] = {'default': {'evidence': ['나트륨 평균 2,288mg
           'message': '김민수님, 8월 10일 – 8월 16일 주간 리포트 정리해서 보내드려요.\n'
                      '\n'
                      '운동 이행률은 평균 55%였어요. 많이 바쁘셨나 봐요. 다만 스쿼트, 런지, 플랭크는 건너뛰셨더라고요. 컨디션 '
-                     '때문이었다면 다음 세션 때 말씀해 주세요. 대체 동작으로 바꿔 둘게요.\n'
+                     '때문이었다면 다음 PT 때 말씀해 주세요. 대체 동작으로 바꿔 둘게요.\n'
                      '\n'
                      '나트륨은 하루 평균 2,600mg이었고, 목표(2,300mg)를 넘긴 날이 5일이었어요. 국물을 절반만 남기셔도 '
                      '하루 400~500mg은 줄어듭니다. 칼로리는 하루 평균 2,600kcal이에요.\n'
@@ -659,7 +659,7 @@ def test_english_draft_for_a_week_that_needs_work():
     assert trainer_reports_service.report_message(_report(), "en") == (
         "Hi 김민수, here's your weekly report for 8/10 – 8/16.\n\n"
         "You kept up well — 87% of your workouts done. One thing — 풀업 got skipped. "
-        "If that was down to how you were feeling, tell me at the next session and "
+        "If that was down to how you were feeling, tell me at our next PT and "
         "I'll swap in an alternative.\n\n"
         "Sodium averaged 2,288mg a day, and went over the 2,000mg target on 4 days. "
         "Leaving half the broth behind saves 400–500mg a day. "

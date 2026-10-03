@@ -1706,7 +1706,7 @@ def assign_program_with_schedule(
         target = next((s for s in candidates if s.id == session_id), None)
         if target is None:
             raise AttachTargetConflict(
-                "고른 PT 일정이 더는 이 시간대의 예정 세션이 아닙니다. 다시 확인해 주세요.",
+                "고른 PT 일정이 더는 이 시간대의 예정 PT가 아닙니다. 다시 확인해 주세요.",
                 candidates,
             )
     elif len(candidates) > 1:
@@ -1894,7 +1894,7 @@ def update_session(
         # 메모·아직 보내지 않은 프로그램은 그 약속을 바꾸지 않아 연다 — 수업이
         # 끝난 뒤 기록을 남기는 것이 가장 자연스러운 흐름이다(#2754).
         raise ScheduleConflict(
-            "완료·취소·노쇼로 마무리된 세션은 메모·프로그램만 수정할 수 있습니다."
+            "완료·취소·노쇼로 마무리된 PT는 메모·프로그램만 수정할 수 있습니다."
         )
     if (
         "program" in fields
@@ -2048,7 +2048,7 @@ def reopen_session(
             "예약으로 생성된 일정은 일반 일정 화면에서 되돌릴 수 없습니다."
         )
     if s.status != SCHEDULE_DONE:
-        raise ScheduleConflict("완료된 세션만 예정으로 되돌릴 수 있습니다.")
+        raise ScheduleConflict("완료된 PT만 예정으로 되돌릴 수 있습니다.")
     if new_date <= today_iso():
         raise ScheduleConflict("미래 날짜로만 되돌릴 수 있습니다.")
     new_time = time if time is not None else s.time
@@ -2351,7 +2351,7 @@ def complete_session(
         # 진행되지 않은 것으로 마무리한 세션을 완료로 되돌리면 하지 않은 PT 가
         # 회원 운동 기록으로 적재된다.
         raise ScheduleConflict(
-            "취소·노쇼로 마무리된 세션은 완료할 수 없습니다."
+            "취소·노쇼로 마무리된 PT는 완료할 수 없습니다."
         )
 
     # 조건부 전환(예정 → 완료). rowcount==1 인 호출만 '방금 전환한' 것이므로 그 호출만
@@ -2452,7 +2452,7 @@ def cancel_session(
         return _schedule_out(s)
     if s.status in SCHEDULE_TERMINAL:
         raise ScheduleConflict(
-            "완료·노쇼로 마무리된 세션은 취소할 수 없습니다."
+            "완료·노쇼로 마무리된 PT는 취소할 수 없습니다."
         )
     if source not in CANCELLATION_SOURCES:
         raise ScheduleError("취소 주체가 올바르지 않습니다.")
@@ -2527,7 +2527,7 @@ def mark_session_no_show(
         return _schedule_out(s)  # 멱등 no-op
     if s.status in SCHEDULE_TERMINAL:
         raise ScheduleConflict(
-            "완료·취소로 마무리된 세션은 노쇼 처리할 수 없습니다."
+            "완료·취소로 마무리된 PT는 노쇼 처리할 수 없습니다."
         )
 
     changed = db.execute(

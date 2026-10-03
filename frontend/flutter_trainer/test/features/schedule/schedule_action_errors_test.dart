@@ -242,13 +242,13 @@ void main() {
       await openSession(tester, '박성호');
       repo.cancelError = const ServerError(
         statusCode: 409,
-        message: '완료·노쇼로 마무리된 세션은 취소할 수 없습니다',
+        message: '완료·노쇼로 마무리된 PT는 취소할 수 없습니다',
       );
       final int before = repo.rangeReads;
 
       await cancelWith(tester, 'cancel-source-member');
 
-      expect(find.text('완료·노쇼로 마무리된 세션은 취소할 수 없습니다'), findsOneWidget);
+      expect(find.text('완료·노쇼로 마무리된 PT는 취소할 수 없습니다'), findsOneWidget);
       expect(find.text('취소 처리하지 못했어요. 잠시 후 다시 시도해 주세요'), findsNothing);
       expect(repo.rangeReads, greaterThan(before));
     });

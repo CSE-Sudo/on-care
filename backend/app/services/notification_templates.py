@@ -251,7 +251,7 @@ def _trainer_member_disconnected(args: Args, locale: Locale) -> Rendered:
     body = f"{name or 'A member'} ended their connection with you."
     if cancelled:
         body += (
-            f" {_plural(cancelled, 'remaining session was', 'remaining sessions were')}"
+            f" {_plural(cancelled, 'remaining appointment was', 'remaining appointments were')}"
             " cancelled."
         )
     return "Client disconnected", body

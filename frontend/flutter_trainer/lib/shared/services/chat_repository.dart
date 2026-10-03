@@ -455,7 +455,7 @@ class DemoRepliesChatRepository extends DriftChatRepository {
       '알겠습니다 🙂 해 보고 다시 말씀드릴게요',
       "Okay 🙂 I'll try it and let you know how it goes",
     ),
-    ('감사합니다! 다음 PT 때 뵐게요', 'Thank you! See you at the next PT session'),
+    ('감사합니다! 다음 PT 때 뵐게요', 'Thank you! See you at the next PT'),
   ];
 
   int _replySeq = 0;

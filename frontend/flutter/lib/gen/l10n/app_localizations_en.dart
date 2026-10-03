@@ -3692,11 +3692,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get demoAlertPtDoneTitle => 'PT session complete';
+  String get demoAlertPtDoneTitle => 'PT complete';
 
   @override
   String demoAlertPtDoneBody(String trainerName) {
-    return 'You finished PT session 12 with Trainer $trainerName at 18:00 today!';
+    return 'You finished your 12th PT with Trainer $trainerName at 18:00 today!';
   }
 
   @override
@@ -3866,7 +3866,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String exerciseAdviceRecordWeekOneDay(int minutes) {
-    return 'Just one day this week ($minutes min). One more session keeps the flow going.';
+    return 'Just one day this week ($minutes min). One more workout keeps the flow going.';
   }
 
   @override

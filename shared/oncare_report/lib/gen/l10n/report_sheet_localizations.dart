@@ -230,7 +230,7 @@ abstract class ReportSheetLocalizations {
   /// No description provided for @reportsPdfLabelSessions.
   ///
   /// In en, this message translates to:
-  /// **'PT sessions'**
+  /// **'PT'**
   String get reportsPdfLabelSessions;
 
   /// No description provided for @reportsPdfNoData.

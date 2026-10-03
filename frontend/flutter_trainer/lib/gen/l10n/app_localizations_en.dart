@@ -1517,12 +1517,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportBodySessionsAll(int booked) {
-    return 'You made all $booked of your booked PT sessions.';
+    return 'For PT, you made all $booked that were booked.';
   }
 
   @override
   String reportBodySessionsSome(int booked, int done) {
-    return 'You made $done of your $booked booked PT sessions.';
+    return 'For PT, you made $done of the $booked that were booked.';
   }
 
   @override
@@ -1623,7 +1623,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportTipSessionsNone =>
-      'Let\'s book next week\'s PT sessions together now.';
+      'Let\'s book next week\'s PT together now.';
 
   @override
   String get reportTipSessionsMissed =>
@@ -1644,7 +1644,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String schedDeleteConfirm(String time, String name) {
-    return 'Delete the $time PT session with $name?';
+    return 'Delete $name\'s $time PT appointment?';
   }
 
   @override
@@ -2697,7 +2697,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachDraftDiscard => 'Discard';
 
   @override
-  String get personalRoutineTargetLoadFailed => 'Couldn\'t load PT sessions';
+  String get personalRoutineTargetLoadFailed => 'Couldn\'t load PT appointments';
 
   @override
   String get personalRoutineStartPast =>
@@ -4179,12 +4179,12 @@ class AppLocalizationsEn extends AppLocalizations {
     String date,
     String selected,
   ) {
-    return '$name has several PT sessions on $date that overlap the time you picked ($selected). Choose the session to attach this program to. The picked time won\'t be applied.';
+    return '$name has several PT appointments on $date that overlap the time you picked ($selected). Choose which one to attach this program to. The picked time won\'t be applied.';
   }
 
   @override
   String get coachAttachTargetChanged =>
-      'The PT session to attach to has changed. Tap Add to schedule again to check';
+      'The PT appointment to attach to has changed. Tap Add to schedule again to check';
 
   @override
   String get coachScheduleOverlap =>
@@ -4249,7 +4249,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String programAssignConfirmBody(String name, String date, String time) {
-    return 'A new PT session will be created for $name on $date at $time with this program.';
+    return 'A new PT appointment will be created for $name on $date at $time with this program.';
   }
 
   @override
@@ -4557,10 +4557,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsPdfLabelCompletion => 'Workout completion';
 
   @override
-  String get reportsPdfLabelSessions => 'PT sessions';
+  String get reportsPdfLabelSessions => 'PT';
 
   @override
-  String get reportsPdfLabelSessionCount => 'PT sessions completed';
+  String get reportsPdfLabelSessionCount => 'PT completed';
 
   @override
   String get reportsPdfLabelSodiumOver => 'Days over sodium target';

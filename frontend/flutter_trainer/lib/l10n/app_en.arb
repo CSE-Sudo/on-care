@@ -1057,7 +1057,7 @@
   "reportBodyPraise": "Great work — let's keep this pace next week!",
   "reportBodyEncourage": "Take those one at a time and you'll see it come together. I'll adjust your program and send it over.",
   "reportBodyNoRecords": "There's nothing logged for this week, so nothing to sum up. Let's plan next week's start together.",
-  "reportBodySessionsAll": "You made all {booked} of your booked PT sessions.",
+  "reportBodySessionsAll": "For PT, you made all {booked} that were booked.",
   "@reportBodySessionsAll": {
     "placeholders": {
       "booked": {
@@ -1065,7 +1065,7 @@
       }
     }
   },
-  "reportBodySessionsSome": "You made {done} of your {booked} booked PT sessions.",
+  "reportBodySessionsSome": "For PT, you made {done} of the {booked} that were booked.",
   "@reportBodySessionsSome": {
     "placeholders": {
       "booked": {
@@ -1206,13 +1206,13 @@
   "reportTipSodium": "Keep takeout and processed foods to twice a week.",
   "reportTipWorkout": "Aim to get three workouts in first, even if each is only 20 minutes.",
   "reportTipMeals": "Log every meal, even with just a photo, so I can give you sharper feedback.",
-  "reportTipSessionsNone": "Let's book next week's PT sessions together now.",
+  "reportTipSessionsNone": "Let's book next week's PT together now.",
   "reportTipSessionsMissed": "I'll set up make-up slots next week for the PT we missed.",
   "reportTipKeep": "Keep the current routine as it is, and I'll raise the intensity step by step.",
   "schedTitle": "Schedule",
   "schedDetailTitle": "Session detail",
   "schedDeleteTitle": "Delete session",
-  "schedDeleteConfirm": "Delete the {time} PT session with {name}?",
+  "schedDeleteConfirm": "Delete {name}'s {time} PT appointment?",
   "@schedDeleteConfirm": {
     "placeholders": {
       "time": {
@@ -1707,7 +1707,7 @@
   },
   "coachDraftResume": "Continue",
   "coachDraftDiscard": "Discard",
-  "personalRoutineTargetLoadFailed": "Couldn't load PT sessions",
+  "personalRoutineTargetLoadFailed": "Couldn't load PT appointments",
   "personalRoutineStartPast": "The start date has passed, so it's now set to today. Check it and send again",
   "schedRoutinesReadFailed": "Couldn't check the attached personal exercises. Please try again",
   "coachNoClients": "No members yet",
@@ -2679,7 +2679,7 @@
       }
     }
   },
-  "programAssignConfirmChooseBody": "{name} has several PT sessions on {date} that overlap the time you picked ({selected}). Choose the session to attach this program to. The picked time won't be applied.",
+  "programAssignConfirmChooseBody": "{name} has several PT appointments on {date} that overlap the time you picked ({selected}). Choose which one to attach this program to. The picked time won't be applied.",
   "@programAssignConfirmChooseBody": {
     "placeholders": {
       "name": {
@@ -2693,7 +2693,7 @@
       }
     }
   },
-  "coachAttachTargetChanged": "The PT session to attach to has changed. Tap Add to schedule again to check",
+  "coachAttachTargetChanged": "The PT appointment to attach to has changed. Tap Add to schedule again to check",
   "coachScheduleOverlap": "Another session is already booked at that time, so nothing was added. Pick a different time and try again",
   "programEditorNoExercises": "Add at least one exercise",
   "programEditorExerciseNameInvalid": "An exercise name is empty or longer than 100 characters",
@@ -2738,7 +2738,7 @@
     }
   },
   "programAssignConfirmTitle": "Add to the schedule?",
-  "programAssignConfirmBody": "A new PT session will be created for {name} on {date} at {time} with this program.",
+  "programAssignConfirmBody": "A new PT appointment will be created for {name} on {date} at {time} with this program.",
   "@programAssignConfirmBody": {
     "placeholders": {
       "name": {
@@ -3042,8 +3042,8 @@
     }
   },
   "reportsPdfLabelCompletion": "Workout completion",
-  "reportsPdfLabelSessions": "PT sessions",
-  "reportsPdfLabelSessionCount": "PT sessions completed",
+  "reportsPdfLabelSessions": "PT",
+  "reportsPdfLabelSessionCount": "PT completed",
   "reportsPdfLabelSodiumOver": "Days over sodium target",
   "reportsPdfLabelCalories": "Average calories",
   "reportsPdfLabelSugar": "Average sugar",

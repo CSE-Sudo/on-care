@@ -835,11 +835,11 @@ const Map<String, String> _seedEnglish = <String, String>{
   '출산 후 코어 재활 4주차. 복직근 이개 1.5cm.':
       'Week 4 of postpartum core rehab. Diastasis recti at 1.5cm.',
   '수업 시간대 바꾸고 싶다고 함. 상담 잡기로.':
-      'Wants to change the session time. Scheduling a consultation.',
+      'Wants to change the PT time slot. Scheduling a consultation.',
   '식습관 상담. 회식이 주 2회라 야식 빈도부터 줄이기로 함.':
       'Eating-habit consultation. Work dinners twice a week, so we start by cutting late-night snacks.',
   '혈압 관리 상담. 가정 혈압 기록을 PT 전에 공유하기로 함.':
-      'Blood pressure consultation. Agreed to share home readings before each PT session.',
+      'Blood pressure consultation. Agreed to share home readings before each PT.',
   '재활 목표 재설정 상담. 병원 소견상 무릎 굴곡은 120°까지.':
       'Consultation to reset rehab goals. Per the doctor, knee flexion is limited to 120°.',
 };
