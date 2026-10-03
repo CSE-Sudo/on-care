@@ -9392,6 +9392,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t complete the request. Please try again shortly.'**
   String get passwordResetTemporaryFailure;
+
+  /// Title of the banner shown when a newer web release has been deployed while this tab is open (#3023).
+  ///
+  /// In en, this message translates to:
+  /// **'A new version is available'**
+  String get releaseUpdateTitle;
+
+  /// Body of the new-release banner.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload to get the latest version. Save anything you\'re working on first.'**
+  String get releaseUpdateMessage;
+
+  /// Button that reloads the page to load the new release.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload'**
+  String get releaseUpdateReload;
+
+  /// Tooltip of the button that hides the new-release banner for this release.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get releaseUpdateDismiss;
 }
 
 class _AppLocalizationsDelegate

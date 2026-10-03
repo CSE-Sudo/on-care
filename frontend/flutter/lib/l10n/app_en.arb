@@ -3874,5 +3874,13 @@
   "passwordResetUnavailable": "We can't send reset emails right now. Please contact support.",
   "passwordResetDoneTitle": "Password reset",
   "passwordResetDoneBody": "Sign in with your new password. You've been signed out on every device.",
-  "passwordResetBackToSignIn": "Go to sign in"
+  "passwordResetBackToSignIn": "Go to sign in",
+  "releaseUpdateTitle": "A new version is available",
+  "@releaseUpdateTitle": {"description": "Title of the banner shown when a newer web release has been deployed while this tab is open (#3023)."},
+  "releaseUpdateMessage": "Reload to get the latest version. Save anything you're working on first.",
+  "@releaseUpdateMessage": {"description": "Body of the new-release banner."},
+  "releaseUpdateReload": "Reload",
+  "@releaseUpdateReload": {"description": "Button that reloads the page to load the new release."},
+  "releaseUpdateDismiss": "Dismiss",
+  "@releaseUpdateDismiss": {"description": "Tooltip of the button that hides the new-release banner for this release."}
 }

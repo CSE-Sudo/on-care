@@ -5509,4 +5509,17 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get passwordResetTemporaryFailure => '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get releaseUpdateTitle => '새 버전이 배포되었어요';
+
+  @override
+  String get releaseUpdateMessage =>
+      '새로고침하면 최신 화면으로 바뀌어요. 작성 중인 내용이 있으면 먼저 저장해 주세요.';
+
+  @override
+  String get releaseUpdateReload => '새로고침';
+
+  @override
+  String get releaseUpdateDismiss => '안내 닫기';
 }

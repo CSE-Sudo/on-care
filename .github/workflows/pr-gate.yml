@@ -157,6 +157,13 @@ jobs:
           bash .github/scripts/test_landing_site_url.sh
           bash .github/scripts/landing_site_url.sh check index.html
 
+      - name: Test the web cache header rules
+        # 운영 웹 업로드가 진입 파일에 no-cache 를, 나머지에 짧은 max-age 를 주는지와 업로드 뒤
+        # 헤더 검증의 경계를 가짜 aws 명령으로 확인한다(#3023).
+        run: |
+          set -euo pipefail
+          bash .github/scripts/test_web_cache_headers.sh
+
       - name: Test the demo divergence checker
         # 아래 검사가 오탐하면 필수 검사인 이 job 이 PR 병합을 막는다. 임시 저장소의
         # 가짜 diff 로 걸림·안 걸림·예외 통과를 먼저 확인한다(#2791).
