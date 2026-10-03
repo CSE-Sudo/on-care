@@ -1124,6 +1124,12 @@ abstract class AppLocalizations {
   /// **'No members yet'**
   String get clientsEmpty;
 
+  /// No description provided for @clientsEmptyConnectHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect members with the code they show you or by sending a coaching request. Consultation requests from members also appear in your inbox.'**
+  String get clientsEmptyConnectHint;
+
   /// No description provided for @clientsEmptyForFilter.
   ///
   /// In en, this message translates to:
