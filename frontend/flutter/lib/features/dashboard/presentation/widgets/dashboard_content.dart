@@ -183,7 +183,7 @@ class _CoachingBanner extends StatelessWidget {
         color: tokens.brand.primary,
       ),
       child: Text(
-        aiAdviceBody(l, summary),
+        keepWords(aiAdviceBody(l, summary)),
         style: tokens
             .text(OnCareTypography.bodySmall)
             .copyWith(color: OnCareColors.textPrimary),

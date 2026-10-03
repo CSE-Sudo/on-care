@@ -495,65 +495,26 @@ class RoutineDateField extends StatelessWidget {
               .copyWith(color: OnCareColors.textSecondary),
         ),
         const SizedBox(height: OnCareSpacing.s8),
-        // 입력창과 같은 모양(채움·테두리·반경 12)의 누르는 칸.
-        Material(
-          color: OnCareColors.surfaceCard,
-          shape: const RoundedRectangleBorder(
-            borderRadius: OnCareRadius.mdAll,
-            side: BorderSide(color: OnCareColors.lineStrong),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            key: ValueKey<String>(keyPrefix),
-            onTap: () async {
-              final DateTime now = nowKst();
-              final DateTime? picked = await showAppDatePicker(
-                context: context,
-                initialDate: date,
-                firstDate: DateTime(now.year - 2),
-                // 프로그램은 앞으로 할 운동도 잡는다 — 회원 기록과 달리 미래를
-                // 막지 않는다.
-                lastDate: DateTime(now.year + 2),
-              );
-              if (picked != null) {
-                onChanged(DateTime(picked.year, picked.month, picked.day));
-              }
-            },
-            child: Container(
-              constraints: BoxConstraints(
-                minHeight: tokens.density.inputMedium,
-              ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: OnCareSpacing.s12,
-                vertical: OnCareSpacing.s8,
-              ),
-              child: Row(
-                children: <Widget>[
-                  AppIcon(
-                    AppIcons.calendar,
-                    size: OnCareSize.iconSmall,
-                    color: tokens.brand.primary,
-                  ),
-                  const SizedBox(width: OnCareSpacing.s8),
-                  Expanded(
-                    child: Text(
-                      // 로케일이 정하는 날짜 문구 — 하드코딩하면 영어 화면에도
-                      // 한국식 표기가 남는다.
-                      MaterialLocalizations.of(context).formatFullDate(date),
-                      style: tokens
-                          .text(OnCareTypography.body)
-                          .copyWith(color: OnCareColors.textPrimary),
-                    ),
-                  ),
-                  const AppIcon(
-                    AppIcons.expandMore,
-                    size: OnCareSize.iconMedium,
-                    color: OnCareColors.textTertiary,
-                  ),
-                ],
-              ),
-            ),
-          ),
+        AppPickerField(
+          key: ValueKey<String>(keyPrefix),
+          icon: AppIcons.calendar,
+          // 로케일이 정하는 날짜 문구 — 하드코딩하면 영어 화면에도 한국식
+          // 표기가 남는다.
+          value: MaterialLocalizations.of(context).formatFullDate(date),
+          onTap: () async {
+            final DateTime now = nowKst();
+            final DateTime? picked = await showAppDatePicker(
+              context: context,
+              initialDate: date,
+              firstDate: DateTime(now.year - 2),
+              // 프로그램은 앞으로 할 운동도 잡는다 — 회원 기록과 달리 미래를
+              // 막지 않는다.
+              lastDate: DateTime(now.year + 2),
+            );
+            if (picked != null) {
+              onChanged(DateTime(picked.year, picked.month, picked.day));
+            }
+          },
         ),
       ],
     );

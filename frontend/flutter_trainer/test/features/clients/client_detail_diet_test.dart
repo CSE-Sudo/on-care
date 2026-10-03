@@ -375,11 +375,11 @@ void main() {
           '점심에 먹은 짬뽕(4,286mg) 때문에 오늘 나트륨이 4,657mg까지 올라 '
           '목표 2,000mg의 2.3배가 됐어요.';
       await tester.scrollUntilVisible(
-        find.textContaining(cause),
+        find.textContaining(keepWords(cause)),
         150,
         scrollable: detailScrollable('seed-client-1'),
       );
-      expect(find.textContaining(cause), findsOneWidget);
+      expect(find.textContaining(keepWords(cause)), findsOneWidget);
     });
 
     testWidgets('목표를 넘긴 날은 링을 채우되 100%라고 적지 않는다 (#820)', (tester) async {
@@ -468,7 +468,7 @@ void main() {
       // 토·일에만 깨졌다(#2090 에서 토요일에 드러났다).
       await openDiet(tester, '김민수', seedClock: DateTime(2026, 8, 13, 10));
       await tester.scrollUntilVisible(
-        find.textContaining('때문에 오늘 나트륨이'),
+        find.textContaining(keepWords('때문에 오늘 나트륨이')),
         150,
         scrollable: detailScrollable('seed-client-1'),
       );
@@ -478,13 +478,13 @@ void main() {
 
       // 오늘 문장은 사라지고, 그 자리에 이번 주를 읽은 문장이 온다 — 회원 앱과 같은
       // 이번 주 판정에 가장 큰 끼니를 붙인다. 목요일이라 지난주 회고가 아니다.
-      expect(find.textContaining('때문에 오늘 나트륨이'), findsNothing);
+      expect(find.textContaining(keepWords('때문에 오늘 나트륨이')), findsNothing);
       await tester.scrollUntilVisible(
-        find.textContaining('이번 주 기록한'),
+        find.textContaining(keepWords('이번 주 기록한')),
         150,
         scrollable: detailScrollable('seed-client-1'),
       );
-      expect(find.textContaining('이번 주 기록한'), findsOneWidget);
+      expect(find.textContaining(keepWords('이번 주 기록한')), findsOneWidget);
       // 이번 주·전체에는 추천을 묻지 않는다.
       expect(
         find.byKey(const ValueKey<String>('diet-recommendation')),
@@ -632,11 +632,11 @@ void main() {
       // Under target in the diet summary.
       expect(find.text('mg 초과'), findsNothing);
       await tester.scrollUntilVisible(
-        find.textContaining('목표 안에서 고르게 드셨어요'),
+        find.textContaining(keepWords('목표 안에서 고르게 드셨어요')),
         150,
         scrollable: detailScrollable('seed-client-2'),
       );
-      expect(find.textContaining('목표 안에서 고르게 드셨어요'), findsOneWidget);
+      expect(find.textContaining(keepWords('목표 안에서 고르게 드셨어요')), findsOneWidget);
     });
   });
 }

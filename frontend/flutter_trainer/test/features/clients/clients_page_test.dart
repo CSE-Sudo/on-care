@@ -894,11 +894,11 @@ void main() {
       // 신규 회원 등록과 활성/휴면은 다른 권한이다 (#707) — 백엔드 로스터에는
       // 회원을 더하는 경로가 없지만 관리 상태 전환은 있다. 한 플래그로 묶여
       // 있던 동안에는 이 배지가 실 API 에서 계속 읽기 전용이었다.
-      final statusInkWell = find.byKey(
+      final statusTag = find.byKey(
         const ValueKey<String>('client-status-toggle'),
       );
-      expect(statusInkWell, findsOneWidget);
-      expect(tester.widget<InkWell>(statusInkWell).onTap, isNotNull);
+      expect(statusTag, findsOneWidget);
+      expect(tester.widget<AppTag>(statusTag).onTap, isNotNull);
     });
 
     /// 필터 패널을 열어 [filter] 칩을 누르고 닫는다.
