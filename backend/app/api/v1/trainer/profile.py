@@ -15,14 +15,7 @@ from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
 from app.api.deps import RequireTrainer
-from app.core.config import get_settings
-from app.core.rate_limit import (
-    clear_failures,
-    ensure_unlocked,
-    password_change_fail_key,
-    rate_limit,
-    record_failure,
-)
+from app.core.rate_limit import PasswordChangeGuard, rate_limit
 from app.core.security import hash_password, verify_password
 from app.db.session import get_db
 from app.models.models import (
@@ -188,12 +181,10 @@ def trainer_change_password(
     `password_change_max_failures` 번 틀리면 남은 시간 동안 429 이고, 틀린 시도는
     감사 로그에 남는다. 잠금 판정은 비밀번호 확인보다 먼저 한다.
     """
-    settings = get_settings()
-    lock_key = password_change_fail_key(trainer.id)
-    lock_window = float(settings.login_lockout_seconds)
-    ensure_unlocked(lock_key, settings.password_change_max_failures, lock_window)
+    guard = PasswordChangeGuard(trainer.id)
+    guard.ensure_unlocked()
     if not verify_password(payload.current_password, trainer.hashed_password):
-        record_failure(lock_key, lock_window)
+        guard.record_failure()
         audit.record(
             db,
             event=audit.PASSWORD_CHANGE,
@@ -205,7 +196,7 @@ def trainer_change_password(
         # 현재 비밀번호 불일치는 401 이 아니라 400 — 토큰은 유효하므로
         # 클라이언트가 로그아웃 처리로 오인하면 안 된다.
         raise HTTPException(status_code=400, detail="현재 비밀번호가 일치하지 않습니다.")
-    clear_failures(lock_key)
+    guard.clear()
     if verify_password(payload.new_password, trainer.hashed_password):
         raise HTTPException(status_code=400, detail="현재와 다른 비밀번호를 입력해 주세요.")
     trainer.hashed_password = hash_password(payload.new_password)

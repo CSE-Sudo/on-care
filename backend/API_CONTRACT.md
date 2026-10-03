@@ -87,7 +87,7 @@
 | PUT | `/users/me/notification-settings` | 위 다섯 키 중 보낸 것만 반영 → 같은 모양 |
 | POST | `/users/me/pairing-code` | `{ code, expires_at, expires_in_seconds }` — 트레이너에게 불러 줄 6자리 코드(#1634). **이 호출이 데이터 공유 동의다**(#1022). 유효한 코드가 남아 있으면 같은 코드를 돌려준다. 회원 전용, rate limit 적용 |
 | DELETE | `/users/me/pairing-code` | 204 — 띄워 둔 코드를 버린다(화면을 닫을 때) |
-| POST | `/users/me/password` | `{ current_password, new_password }` → `PasswordChanged`(새 토큰 한 쌍) — 회원 비밀번호 변경(#2824). 아래 [회원 비밀번호 변경](#회원-비밀번호-변경-2824) |
+| POST | `/users/me/password` | `{ current_password, new_password }` → `PasswordChanged`(새 토큰 한 쌍) — 회원 비밀번호 변경(#2824). 현재 비밀번호를 연달아 틀리면 계정 단위 잠금 429(#3087). 아래 [회원 비밀번호 변경](#회원-비밀번호-변경-2824) |
 
 `DELETE /users/me` 는 본문으로 `{ reasons: [코드] }` 를 받는다(#2019). 본문은 없어도 되고,
 사유는 탈퇴의 조건이 아니다 — 아는 코드만 `account_deletion_reasons` 에 사유와 시각으로만
@@ -1817,7 +1817,12 @@ CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 �
 | 현재 비밀번호 불일치 | **400** `현재 비밀번호가 일치하지 않습니다.` (401 이 아니다 — 토큰은 유효) |
 | 새 비밀번호가 지금과 같음 | 400 |
 | 새 비밀번호 기준 미달 | 422 `password_weak`·`password_too_long`·`password_empty` |
-| 소셜 로그인 전용 계정(비밀번호 없음) | **409** |
+| 소셜 로그인 전용 계정(비밀번호 없음) | **409** (실패 잠금에 세지 않는다) |
+| 현재 비밀번호를 `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `PASSWORD_CHANGE_MAX_FAILURES`(5)번 틀림 | 남은 시간 동안 **429** + `Retry-After`. 잠긴 동안에는 맞는 비밀번호도 확인하지 않는다(#3087) |
+
+실패 잠금은 사용자 id 단위라 IP 를 바꿔도 같은 버킷이고, 트레이너와 같은 키·설정값을 쓴다
+(`PasswordChangeGuard`). 틀린 시도는 감사 로그 `auth.password_change`(실패, `current_password_mismatch`)에
+남고, 현재 비밀번호가 맞으면 실패 기록을 지운다. 회원 앱은 429 를 "시도가 너무 많아요" 안내로 보여 준다.
 
 `GET /users/me/profile` 의 `has_password`(bool)가 false 면 소셜 로그인 전용 계정이다. 회원 앱은
 이 값으로 MY 의 비밀번호 변경 대신 안내를 보여 준다.
@@ -1895,7 +1900,7 @@ IP 를 바꿔 가며 한 계정을 노리는 시도는 계정 쪽 버킷이 막�
 | `POST /auth/login` | **이메일(대소문자 무시) 연속 실패** | `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `LOGIN_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429. 잠긴 동안에는 비밀번호를 확인하지 않는다. 성공하면 실패 기록을 지운다. 없는 이메일도 같이 센다 |
 | `POST /trainer/pairing-code/preview`·`POST /trainer/pairing-code` | IP + **트레이너 id** | 각각 분당 10, 트레이너 id 는 하루 `PAIRING_REDEEM_PER_DAY`(30) 도 함께. 두 엔드포인트가 한 버킷 |
 | `POST /auth/register`·`POST /auth/trainer/register` | IP + **이메일(대소문자 무시)** | IP 는 분당 10. 같은 이메일은 시간당 `REGISTER_PER_EMAIL_PER_HOUR`(5) — 성공·409 를 가리지 않고 세고, 두 가입이 한 버킷이다(#2913). 409 문구는 그대로 |
-| `POST /trainer/me/password` | IP + **사용자 id 연속 실패** | IP 는 분당 10. 현재 비밀번호를 `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `PASSWORD_CHANGE_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429(잠긴 동안 비밀번호를 확인하지 않는다). 틀린 시도는 감사 로그 `auth.password_change`(실패)에 남고, 성공하면 실패 기록을 지운다(#2913) |
+| `POST /trainer/me/password`·`POST /users/me/password` | IP + **사용자 id 연속 실패** | IP 는 분당 10. 현재 비밀번호를 `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `PASSWORD_CHANGE_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429(잠긴 동안 비밀번호를 확인하지 않는다). 틀린 시도는 감사 로그 `auth.password_change`(실패)에 남고, 성공하면 실패 기록을 지운다(#2913). 회원·트레이너가 같은 키 규칙·설정값을 쓴다(#3087) |
 
 한도 저장소는 프로세스 메모리라 인스턴스가 여럿이면 한도도 그 배수가 된다. 운영 인스턴스가
 하나를 넘게 되면 공유 저장소 구현으로 바꾼다(`app/core/rate_limit.py`).
