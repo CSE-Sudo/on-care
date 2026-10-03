@@ -93,6 +93,9 @@ class TrainerMe(BaseModel):
     gym: TrainerGymOut
     #: 운영자 승인 상태(#2825). 트레이너 웹이 승인 대기·반려 안내를 고른다.
     verification: TrainerVerificationOut
+    #: 운영자 계정인가(#3008). 트레이너 웹이 `트레이너 승인` 메뉴를 보일지 정한다 —
+    #: 실제 차단은 `/admin/*` 의 `RequireAdmin` 이 한다.
+    is_admin: bool = False
 
 
 class ClientSignalOut(BaseModel):

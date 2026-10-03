@@ -136,6 +136,7 @@ def build_trainer_me(trainer: User, profile: TrainerProfile) -> TrainerMe:
             phone=profile.gym_phone,
         ),
         verification=trainer_verification_service.to_out(profile),
+        is_admin=bool(trainer.is_admin),
     )
 
 
