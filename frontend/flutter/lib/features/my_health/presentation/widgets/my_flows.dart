@@ -1796,6 +1796,23 @@ String _notifLabel(AppLocalizations l, String prefKey) {
   }
 }
 
+/// 스위치 아래 한 줄 설명 — 그 스위치가 **실제로 끄는 알림**을 말한다(#3024).
+///
+/// 이름만 있을 때는 '운동 리마인더'를 끄면 PT 취소 알림까지 끊기는지, '주간
+/// 리포트'가 포인트로 만드는 리포트인지 알 수 없었다(#3025).
+String? _notifDescription(AppLocalizations l, String prefKey) {
+  switch (prefKey) {
+    case 'notif_exercise_reminder':
+      return l.myNotifExerciseDesc;
+    case 'notif_trainer_message':
+      return l.myNotifTrainerDesc;
+    case 'notif_weekly_report':
+      return l.myNotifWeeklyReportDesc;
+    default:
+      return null;
+  }
+}
+
 /// 알림 수신 설정.
 ///
 /// 실모드는 계정 단위로 서버에 저장한다 — 기기를 바꿔도 유지되고, 무엇보다
@@ -1862,6 +1879,7 @@ class NotificationSettingsPage extends ConsumerWidget {
           if (i > 0) const AppDivider(),
           AppListRow(
             title: _notifLabel(l, kNotificationSettingItems[i].key),
+            subtitle: _notifDescription(l, kNotificationSettingItems[i].key),
             // 스위치에 **이름을 붙인다**(#1942). 제목과 스위치가 따로 읽히면
             // 음성 안내에는 정체 불명의 `switch, on` 이 여러 개 이어져, 순서를
             // 외운 사람만 어느 알림을 끄는지 안다.
@@ -1879,6 +1897,20 @@ class NotificationSettingsPage extends ConsumerWidget {
           ),
         ],
       ]),
+      const SizedBox(height: OnCareSpacing.s12),
+      // 끌 수 없는 알림을 밝혀 둔다(#3024) — PT 일정과 담당 관계 알림은
+      // 서버가 스위치와 상관없이 보낸다. 스위치 목록만 보면 이것도 끌 수
+      // 있는 것처럼 읽힌다.
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s4),
+        child: Text(
+          l.myNotifAlwaysSent,
+          key: const Key('notificationSettingsAlwaysSent'),
+          style: context.oncare
+              .text(OnCareTypography.caption)
+              .copyWith(color: OnCareColors.textTertiary),
+        ),
+      ),
     ]);
   }
 }
