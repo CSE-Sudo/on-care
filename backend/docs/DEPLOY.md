@@ -2,8 +2,14 @@
 
 컨테이너 + Postgres(pgvector) 구조라 컴퓨트는 **Amazon ECS Express Mode**(Fargate·ALB·HTTPS
 주소를 서비스 하나로 만들어 준다), DB 는 **Neon Postgres(pgvector)** 를 쓴다(#3016). App Runner 는
-신규 고객을 받지 않아 대상에서 뺐다. DB 를 컴퓨트와 분리해 두었으므로 컴퓨트를 바꿔도
-`DATABASE_URL` 을 그대로 옮기면 된다.
+신규 고객을 받지 않고 ECS Express Mode 로 옮기기를 권하므로
+([App Runner availability change](https://docs.aws.amazon.com/apprunner/latest/dg/apprunner-availability-change.html))
+대상에서 뺐다. 리전은 Neon DB 와 같은 `ap-southeast-1` 이다(아래 "리전"). DB 를 컴퓨트와 분리해
+두었으므로 컴퓨트를 바꿔도 `DATABASE_URL` 을 그대로 옮기면 된다.
+
+배포는 ECS 전용 배포 action 대신 **서비스 스택(CloudFormation)의 이미지 파라미터만 바꾸는 방식**으로 한다.
+서비스를 스택과 action 이 함께 고치면 스택이 실제 서비스와 어긋나(drift) 다음 스택 적용이 배포를 되돌리기
+때문이다.
 
 배포가 켜져 있으면(저장소 변수 `BACKEND_DEPLOY_ENABLED=true`) `main` 의 Backend CI 가 성공할 때
 그 커밋 이미지를 ECR 에 한 번 올리고, **staging → production** 순서로 같은 불변 digest 를 배포한다
