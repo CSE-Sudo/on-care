@@ -11,6 +11,9 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/core/errors/app_error.dart';
+import 'package:oncare/core/observability/error_reporter.dart';
+import 'package:oncare/core/observability/handled_error.dart';
 import 'package:oncare/features/account/domain/entities/account_deletion_preview.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
@@ -149,6 +152,33 @@ void main() {
   });
 
   group('loadWithdrawPreview', () {
+    test('잡은 실패는 처리한 오류 창구로 위치 이름과 함께 보낸다', () async {
+      final _RecordingReporter sink = _RecordingReporter();
+      await loadWithdrawPreview(
+        () async => throw StateError('boom'),
+        reporter: HandledErrorReporter(reporter: sink),
+      );
+      expect(sink.reports, hasLength(1));
+      expect(sink.reports.single.$1, isA<StateError>());
+      expect(sink.reports.single.$2, HandledErrorReporter.source);
+      expect(
+        sink.reports.single.$3['handled_context'],
+        'account.withdrawPreview',
+      );
+    });
+
+    test('연결 끊김은 예상된 실패라 보고하지 않고 null 만 돌려준다', () async {
+      final _RecordingReporter sink = _RecordingReporter();
+      expect(
+        await loadWithdrawPreview(
+          () async => throw const NetworkError(),
+          reporter: HandledErrorReporter(reporter: sink),
+        ),
+        isNull,
+      );
+      expect(sink.reports, isEmpty);
+    });
+
     test('읽은 값을 그대로 돌려준다', () async {
       expect(
         await loadWithdrawPreview(
@@ -238,4 +268,23 @@ void main() {
       );
     });
   });
+}
+
+/// 보고 내용을 모으는 보고기.
+class _RecordingReporter extends ErrorReporter {
+  final List<(Object, String, Map<String, String>)> reports =
+      <(Object, String, Map<String, String>)>[];
+
+  @override
+  bool get isEnabled => true;
+
+  @override
+  Future<void> report(
+    Object error,
+    StackTrace? stackTrace, {
+    required String source,
+    Map<String, String> tags = const <String, String>{},
+  }) async {
+    reports.add((error, source, tags));
+  }
 }

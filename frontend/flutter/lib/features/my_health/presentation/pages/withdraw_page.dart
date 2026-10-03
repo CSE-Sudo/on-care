@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/core/observability/handled_error.dart';
 import 'package:oncare/core/storage/prefs_store.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
@@ -89,6 +90,7 @@ class _WithdrawPageState extends ConsumerState<WithdrawPage> {
     setState(() => _busy = true);
     final preview = await loadWithdrawPreview(
       ref.read(withdrawPreviewLoaderProvider),
+      reporter: ref.read(handledErrorReporterProvider),
     );
     if (!mounted) return;
     setState(() => _busy = false);

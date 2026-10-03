@@ -6,9 +6,9 @@
 /// 예약이 확인창에서 0건으로 보이지 않게.
 library;
 
-import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/core/observability/handled_error.dart';
 import 'package:oncare/features/account/domain/entities/account_deletion_preview.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
@@ -76,14 +76,18 @@ String withdrawConfirmMessage(
 }
 
 /// 확인창 앞에서 미리보기를 읽는다. 어떤 실패든 `null` — 탈퇴는 막지 않는다.
+///
+/// 잡은 실패는 [reporter](처리한 오류 창구)로 남긴다. 연결 끊김 같은 예상된
+/// 실패는 창구가 로그만 남기고 보고하지 않는다.
 Future<AccountDeletionPreview?> loadWithdrawPreview(
   WithdrawPreviewLoader load, {
   Duration timeout = withdrawPreviewTimeout,
+  HandledErrorReporter? reporter,
 }) async {
   try {
     return await load().timeout(timeout);
-  } on Object catch (e) {
-    debugPrint('withdraw preview unavailable: $e');
+  } on Object catch (e, st) {
+    reporter?.report(e, st, context: 'account.withdrawPreview');
     return null;
   }
 }
