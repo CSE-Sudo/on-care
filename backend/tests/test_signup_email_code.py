@@ -84,7 +84,7 @@ def test_prod_refuses_to_turn_verification_off():
 
 def test_migration_creates_table_and_column():
     text = _MIGRATION.read_text(encoding="utf-8")
-    assert 'down_revision: str | Sequence[str] | None = "0140_program_draft_member"' in text
+    assert 'down_revision: str | Sequence[str] | None = "0141_retire_marketing_consent"' in text
     assert '"email_verification_codes"' in text
     assert '"email_verified_at"' in text
     # 기존 행을 지우거나 고치지 않는다.
