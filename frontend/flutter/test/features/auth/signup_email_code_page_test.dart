@@ -203,8 +203,11 @@ void main() {
     expect(_button(tester, signupCodeResendKey).onPressed, isNotNull);
 
     await tester.tap(find.byKey(signupCodeResendKey));
-    await tester.pump();
-    await tester.pump();
+    // 응답이 돌아오기까지 몇 번의 비동기 단계를 거친다. 1초보다 짧게 흘려 남은
+    // 초는 바뀌지 않게 둔다([tapSignupCodeSend] 와 같은 이유).
+    for (int i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
     expect(server.to(signupCodePath), hasLength(2));
     // 새 코드라 대기 시간이 다시 시작한다.
     expect(find.text(l.signUpEmailCodeResendIn(60)), findsOneWidget);
