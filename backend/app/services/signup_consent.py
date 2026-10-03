@@ -48,7 +48,9 @@ ALL_KINDS: tuple[Kind, ...] = (TERMS, PRIVACY, HEALTH, AGE14, MARKETING)
 #: 항목마다 지금 동의받는 문서의 버전. 본문을 고치면 그 항목만 올린다.
 #: 만 14세 확인·마케팅 수신은 문서가 아니지만, 문구가 바뀌면 같은 방식으로 올린다.
 CURRENT_VERSIONS: dict[str, str] = {
-    TERMS: "2026-10-01",
+    # 포인트·쿠폰·예약·해지 효과·분쟁 해결 조항 추가(#3006). 두 앱 약관 부칙의
+    # 시행일과 같은 날짜다 — tests/test_terms_version.py 가 맞물림을 본다.
+    TERMS: "2026-10-03",
     # 처리 위탁·국외 이전·파기 절차·보호책임자 절 추가(#2820). 두 앱 처리방침의
     # 시행일과 같은 날짜다 — tests/test_privacy_policy_version.py 가 맞물림을 본다.
     PRIVACY: "2026-10-03",

@@ -45,6 +45,7 @@ from app.db.session import get_db
 from app.models.models import AccountDeletionReason, HealthProfile, User
 from app.schemas.user import (
     AccountDeleteRequest,
+    AccountDeletionPreview,
     ConsentStatus,
     ConsentSubmit,
     MemberPasswordChange,
@@ -68,6 +69,7 @@ from app.schemas.user import (
     UserRegister,
 )
 from app.services import (
+    account_deletion_preview,
     attachment_cleanup,
     auth_tokens,
     consultation_service,
@@ -410,6 +412,19 @@ DELETION_REASONS: frozenset[str] = frozenset(
         "other",
     }
 )
+
+
+@router.get("/users/me/deletion-preview", response_model=AccountDeletionPreview)
+def get_deletion_preview(
+    user: RequireMember,
+    db: Annotated[Session, Depends(get_db)],
+) -> AccountDeletionPreview:
+    """탈퇴하면 사라지는 포인트·쿠폰과 취소되는 예약·상담 요청의 수(#3006).
+
+    탈퇴 확인창이 연다. [delete_me] 가 실제로 지우는 범위를 숫자로 미리 보여 줄
+    뿐이고, 아무것도 바꾸지 않는다. 트레이너 계정은 403 이다(회원 전용).
+    """
+    return account_deletion_preview.preview(db, user.id)
 
 
 @router.delete("/users/me")
