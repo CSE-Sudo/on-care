@@ -27,6 +27,31 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notFoundGoSignIn => '로그인하러 가기';
 
   @override
+  String get misconfiguredBuildTitle => '이 빌드는 잘못 구성됐어요';
+
+  @override
+  String get misconfiguredBuildMessage =>
+      '실제 사용자에게 쓸 수 없는 설정으로 빌드되어 앱을 열지 않았어요. 배포 담당자에게 아래 내용을 알려 주세요.';
+
+  @override
+  String get misconfiguredBuildDetailsTitle => '고쳐야 할 빌드 설정';
+
+  @override
+  String get misconfiguredBuildDevEnvironment => 'ENV 가 prod 또는 staging 이 아니에요';
+
+  @override
+  String get misconfiguredBuildMockWithoutDemo =>
+      '데모 빌드 표시 없이 데모 데이터를 쓰고 있어요 (USE_MOCK_API, DEMO_BUILD)';
+
+  @override
+  String get misconfiguredBuildPlaceholderApiUrl =>
+      'API 주소가 예시·로컬 주소예요 (API_BASE_URL)';
+
+  @override
+  String get misconfiguredBuildInsecureApiUrl =>
+      'API 주소가 https:// 로 시작하지 않아요 (API_BASE_URL)';
+
+  @override
   String get navDashboard => '홈';
 
   @override
@@ -2877,9 +2902,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get consentAge14Detail => '만 14세 미만은 가입할 수 없어요.';
 
   @override
-  String get consentMarketing => '마케팅 알림 수신';
-
-  @override
   String get consentRequiredHint => '필수 항목에 모두 동의해야 다음으로 넘어갈 수 있어요.';
 
   @override
@@ -3463,6 +3485,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get alertCategorySchedule => 'PT 일정';
 
   @override
+  String get alertCategoryPtDone => 'PT 기록';
+
+  @override
   String get alertCategoryTrainer => '담당 트레이너';
 
   @override
@@ -3670,6 +3695,18 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get gymLocationSettings => '설정';
+
+  @override
+  String get gymDefaultAreaTitle => '신촌 주변 결과예요';
+
+  @override
+  String get gymDefaultAreaMessage => '현재 위치를 허용하면 내 주변으로 바뀌어요.';
+
+  @override
+  String get gymUseLocation => '위치 사용';
+
+  @override
+  String get gymDistanceSortNeedsLocation => '거리순은 현재 위치를 쓸 때 볼 수 있어요.';
 
   @override
   String get exGymCopyPhone => '전화번호 복사';
