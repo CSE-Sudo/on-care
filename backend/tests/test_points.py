@@ -12,7 +12,7 @@ import pytest
 from sqlalchemy import delete, select
 from tests.exercise_helpers import post_exercise
 
-_JPEG = b"\xff\xd8\xff\xe0\x00\x10JFIF fake-image-bytes"
+from tests.image_fixtures import JPEG as _JPEG  # 진짜 JPEG — 분석 전 정리가 픽셀을 읽는다(#3041)
 
 
 def _register(client) -> dict[str, str]:
