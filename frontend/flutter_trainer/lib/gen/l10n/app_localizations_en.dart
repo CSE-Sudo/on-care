@@ -3851,6 +3851,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientProfileSectionTitle => 'Body and goals';
 
   @override
+  String get clientMemoDialogTitle => 'Memos & feedback';
+
+  @override
   String get clientTrainerMemo => 'Memo';
 
   @override
@@ -5606,6 +5609,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientDietRecNo => 'No';
+
+  @override
+  String get clientDietRecPrev => 'Previous pick';
+
+  @override
+  String get clientDietRecForward => 'Next pick';
 
   @override
   String get clientDietRecYes => 'Yes, recommend';

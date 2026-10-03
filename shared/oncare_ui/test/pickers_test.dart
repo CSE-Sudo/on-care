@@ -155,13 +155,13 @@ void main() {
           tester.getSize(surface).width,
           lessThanOrEqualTo(OnCareLayout.dialogSmall),
         );
-        // 모바일은 X 를 두고, 웹은 하단 `취소` 가 있어 X 를 두지 않는다(#2465).
+        // 하단 `취소` 와 함께 X 도 둔다(#2983).
         expect(
           find.descendant(
             of: dialog,
             matching: find.byIcon(Icons.close_rounded),
           ),
-          density.isWeb ? findsNothing : findsOneWidget,
+          findsOneWidget,
         );
         // 전환 없이 입력창과 달력이 항상 같이 보인다.
         expect(find.byKey(AppDatePickerDialog.inputKey), findsOneWidget);

@@ -3665,6 +3665,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientProfileSectionTitle => '신체·목표';
 
   @override
+  String get clientMemoDialogTitle => '메모·피드백';
+
+  @override
   String get clientTrainerMemo => '메모';
 
   @override
@@ -5372,7 +5375,13 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get clientDietRecNo => '아니오';
+  String get clientDietRecNo => '아니요';
+
+  @override
+  String get clientDietRecPrev => '이전 추천';
+
+  @override
+  String get clientDietRecForward => '다음 추천';
 
   @override
   String get clientDietRecYes => '예, 추천할게요';

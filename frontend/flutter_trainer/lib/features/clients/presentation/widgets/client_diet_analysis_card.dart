@@ -56,7 +56,7 @@ const int kDietRecPageSize = 3;
 /// `오늘` 식단 분석 아래 이어지는 `AI 식단 추천`. (#2379)
 ///
 /// AI 가 회원의 4주 추천 메뉴 리스트에서 고른 후보를 하나씩 묻는다 —
-/// `아니오` 는 다음 후보, 세 개를 다 넘기면 `처음부터 다시 보기`/`다른 메뉴 보기`.
+/// `아니요` 는 다음 후보, 세 개를 다 넘기면 `처음부터 다시 보기`/`다른 메뉴 보기`.
 /// `예` 로 확정하면 회원 앱 홈 `추천 식단` 첫 장이 된다. 확정한 뒤에는 추천 중인
 /// 메뉴와 `바꾸기`, 회원이 그 메뉴를 먹었으면 그 사실과 `다음 추천 보기` 를 보인다.
 /// 채울 점이 없으면(후보 없음) 아무것도 그리지 않는다 — 분석만 남는다.
@@ -64,7 +64,7 @@ const int kDietRecPageSize = 3;
 /// **트레이너가 메뉴를 직접 적는 칸은 두지 않는다.** PT 트레이너의 일은 운동 지도가
 /// 중심이고, 끼니마다 무엇을 먹으라고 정해 주는 식단 추천은 거의 하지 않는다. 그래서
 /// 메뉴를 짓는 일은 회원의 4주 기록을 읽은 AI 가 맡고, 트레이너는 그 후보를 보고
-/// 회원에게 권할지만 `예`/`아니오` 로 정한다 — 식단 코칭이 트레이너의 짐이 되지
+/// 회원에게 권할지만 `예`/`아니요` 로 정한다 — 식단 코칭이 트레이너의 짐이 되지
 /// 않으면서, 회원에게는 트레이너가 확인한 추천으로 닿는다. 서버도 지금 후보 리스트에
 /// 없는 메뉴는 확정하지 않는다(`diet_trainer_pick.confirm`).
 class ClientDietRecommendationSection extends ConsumerStatefulWidget {
@@ -119,6 +119,13 @@ class _ClientDietRecommendationSectionState
       }
     });
   }
+
+  /// 카운터 옆 꺾쇠 — 같은 묶음 안에서만 오간다. 비교하려고 앞 후보로 돌아가는
+  /// 길이며, `아니요` 와 달리 끝에 닿아도 `모두 넘겼어요` 로 가지 않는다.
+  void _step(int delta) => setState(() {
+    _index += delta;
+    _failed = false;
+  });
 
   void _restart() => setState(() {
     _index = _index ~/ kDietRecPageSize * kDietRecPageSize;
@@ -200,6 +207,12 @@ class _ClientDietRecommendationSectionState
         pageSize: (candidates.length - pageStart).clamp(1, kDietRecPageSize),
         saving: _saving,
         failed: _failed,
+        onPrev: index > pageStart ? () => _step(-1) : null,
+        onForward:
+            index + 1 < pageStart + kDietRecPageSize &&
+                index + 1 < candidates.length
+            ? () => _step(1)
+            : null,
         onNo: () => _no(candidates.length),
         onYes: () => _yes(candidates[index]),
       );
@@ -282,6 +295,8 @@ class _Question extends StatelessWidget {
     required this.pageSize,
     required this.saving,
     required this.failed,
+    required this.onPrev,
+    required this.onForward,
     required this.onNo,
     required this.onYes,
   });
@@ -292,6 +307,10 @@ class _Question extends StatelessWidget {
   final int pageSize;
   final bool saving;
   final bool failed;
+
+  /// 묶음의 첫·끝에서는 null — 꺾쇠를 흐리게 둔다(숨기면 카운터가 흔들린다).
+  final VoidCallback? onPrev;
+  final VoidCallback? onForward;
   final VoidCallback onNo;
   final VoidCallback onYes;
 
@@ -314,12 +333,30 @@ class _Question extends StatelessWidget {
               ),
             ),
             const SizedBox(width: OnCareSpacing.s8),
-            Text(
-              l.clientDietRecCounter(position, pageSize),
-              key: const ValueKey<String>('diet-recommendation-counter'),
-              style: tokens
-                  .text(OnCareTypography.caption)
-                  .copyWith(color: OnCareColors.textTertiary),
+            // 질문이 두 줄로 접혀도 꺾쇠·카운터는 첫 줄에 한 덩어리로 가운데 맞춘다.
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                _Step(
+                  key: const ValueKey<String>('diet-recommendation-prev'),
+                  icon: AppIcons.chevronLeft,
+                  tooltip: l.clientDietRecPrev,
+                  onPressed: saving ? null : onPrev,
+                ),
+                Text(
+                  l.clientDietRecCounter(position, pageSize),
+                  key: const ValueKey<String>('diet-recommendation-counter'),
+                  style: tokens
+                      .text(OnCareTypography.caption)
+                      .copyWith(color: OnCareColors.textTertiary),
+                ),
+                _Step(
+                  key: const ValueKey<String>('diet-recommendation-forward'),
+                  icon: AppIcons.chevronRight,
+                  tooltip: l.clientDietRecForward,
+                  onPressed: saving ? null : onForward,
+                ),
+              ],
             ),
           ],
         ),
@@ -362,6 +399,32 @@ class _Question extends StatelessWidget {
   }
 }
 
+/// 카운터 옆 꺾쇠. 묶음 끝에서는 흐리게 남긴다 — 숨기면 카운터 자리가 흔들린다.
+class _Step extends StatelessWidget {
+  const _Step({
+    super.key,
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) => Opacity(
+    opacity: onPressed == null ? 0.3 : 1,
+    child: AppIconButton(
+      icon: icon,
+      tooltip: tooltip,
+      size: AppIconButtonSize.small,
+      color: OnCareColors.textSecondary,
+      onPressed: onPressed,
+    ),
+  );
+}
+
 class _Exhausted extends StatelessWidget {
   const _Exhausted({
     required this.count,
@@ -399,7 +462,7 @@ class _Exhausted extends StatelessWidget {
 
 /// 내용 오른쪽 끝에 버튼을 한 줄로 — 좁으면 버튼을 아래 줄 오른쪽으로 내린다.
 ///
-/// 버튼만 따로 한 줄을 차지하면 카드가 그만큼 길어지고, 무엇에 대한 `예`·`아니오`
+/// 버튼만 따로 한 줄을 차지하면 카드가 그만큼 길어지고, 무엇에 대한 `예`·`아니요`
 /// 인지가 한 줄 떨어져 읽힌다.
 class _WithActions extends StatelessWidget {
   const _WithActions({required this.content, required this.actions});

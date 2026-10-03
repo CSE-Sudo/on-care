@@ -6685,6 +6685,12 @@ abstract class AppLocalizations {
   /// **'Body and goals'**
   String get clientProfileSectionTitle;
 
+  /// No description provided for @clientMemoDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Memos & feedback'**
+  String get clientMemoDialogTitle;
+
   /// No description provided for @clientTrainerMemo.
   ///
   /// In en, this message translates to:
@@ -9176,6 +9182,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No'**
   String get clientDietRecNo;
+
+  /// AI 식단 추천 카운터 왼쪽 꺾쇠 툴팁 — 같은 묶음 안 앞 후보로.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous pick'**
+  String get clientDietRecPrev;
+
+  /// AI 식단 추천 카운터 오른쪽 꺾쇠 툴팁 — 같은 묶음 안 다음 후보로(거절 아님).
+  ///
+  /// In en, this message translates to:
+  /// **'Next pick'**
+  String get clientDietRecForward;
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///

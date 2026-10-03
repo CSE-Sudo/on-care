@@ -51,7 +51,7 @@ void main() {
     }
   });
 
-  testWidgets('웹 창은 하단 버튼이 있으면 X 를 두지 않는다, 모바일은 둔다 (#2465)', (tester) async {
+  testWidgets('창은 하단 버튼이 있어도 X 를 둔다, 확인창은 끈다 (#2983)', (tester) async {
     Future<void> open(OnCareDensity density, {Widget? footer}) async {
       final BuildContext context = await _pump(tester, density: density);
       showAppDialog<void>(
@@ -69,8 +69,9 @@ void main() {
       onConfirm: () {},
     );
 
+    // 입력 창은 X 와 하단 `취소`·`저장` 을 함께 둔다.
     await open(OnCareDensity.web, footer: footer);
-    expect(find.byType(AppCloseButton), findsNothing);
+    expect(find.byType(AppCloseButton), findsOneWidget);
     Navigator.pop(tester.element(find.text('본문')));
     await tester.pumpAndSettle();
 
@@ -82,6 +83,15 @@ void main() {
 
     await open(OnCareDensity.mobile, footer: footer);
     expect(find.byType(AppCloseButton), findsOneWidget);
+    Navigator.pop(tester.element(find.text('본문')));
+    await tester.pumpAndSettle();
+
+    // 확인창은 하단 버튼으로만 답한다.
+    final BuildContext context = await _pump(tester);
+    showAppConfirmDialog(context: context, title: '삭제할까요?', confirmLabel: '삭제');
+    await tester.pumpAndSettle();
+    expect(find.text('삭제할까요?'), findsOneWidget);
+    expect(find.byType(AppCloseButton), findsNothing);
   });
 
   testWidgets('창 제목 오른쪽에 trailing 을 둔다 (#2465)', (tester) async {
