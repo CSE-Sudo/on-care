@@ -9,7 +9,7 @@
 새 표만 만든다 — 이 마이그레이션만으로 바뀌는 동작은 없다.
 
 Revision ID: 0144_ai_call_usages
-Revises: 0140_program_draft_member
+Revises: 0143_member_weekly_report_on
 Create Date: 2026-10-03
 """
 from __future__ import annotations
@@ -20,7 +20,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0144_ai_call_usages"
-down_revision: str | Sequence[str] | None = "0140_program_draft_member"
+down_revision: str | Sequence[str] | None = "0143_member_weekly_report_on"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

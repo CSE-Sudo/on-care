@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import threading
 from datetime import datetime
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -28,6 +29,12 @@ from app.models.models import AiCallUsage, User
 from app.services import ai_call_quota as quota
 
 KST = clock.SEOUL
+MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "versions"
+    / "0144_ai_call_usages.py"
+)
 
 
 @pytest.fixture
@@ -304,3 +311,18 @@ def test_rejections_are_counted_by_reason(caps, usage, trainers, monkeypatch):
     assert delta("ai_calls.rejected{feature=coach_chat,reason=global_cap}") == 1
     assert delta("ai_calls.acquired{feature=routine_options}") == 1
     assert delta("ai_calls.acquired{feature=coach_chat}") == 1
+
+
+def test_migration_follows_the_weekly_report_revision():
+    """0144 는 0143(주간 리포트 기본 켜짐) 바로 뒤에 붙는다 — 머리 1개 체인.
+
+    머리 개수는 CI 의 Alembic head 검사가 따로 확인한다.
+    """
+    text_ = MIGRATION.read_text(encoding="utf-8")
+    assert 'revision: str = "0144_ai_call_usages"' in text_
+    assert (
+        'down_revision: str | Sequence[str] | None = "0143_member_weekly_report_on"'
+        in text_
+    )
+    assert "Revises: 0143_member_weekly_report_on" in text_
+    assert '"ai_call_usages"' in text_
