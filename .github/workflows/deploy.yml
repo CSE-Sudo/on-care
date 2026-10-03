@@ -10,7 +10,9 @@ on:
         # 이 워크플로는 데모 배포다(#2810). 운영 배포(실서버 고정)는
         # aws-frontend-deploy.yml 이 맡는다. main push 는 입력이 없으므로 항상 목업으로
         # 빌드되고, 실서버로 한 번 올려 보고 싶을 때만 수동 실행에서 real 을 고른다.
-        description: '두 웹이 볼 백엔드 — mock(브라우저 drift 목업, 기본) 또는 real(저장소 변수 API_BASE_URL)'
+        # real 은 staging 백엔드다(#3020) — 데모 사이트가 운영 DB 에 기록을 남기지 않게,
+        # 운영 주소(API_BASE_URL)와 같으면 빌드 전에 멈춘다.
+        description: '두 웹이 볼 백엔드 — mock(브라우저 drift 목업, 기본) 또는 real(저장소 변수 STAGING_API_BASE_URL)'
         type: choice
         options:
           - mock
@@ -71,7 +73,7 @@ jobs:
               ;;
             real)
               echo "WEB_USE_MOCK_API=false" >> "$GITHUB_ENV"
-              echo "WEB_ENV=prod" >> "$GITHUB_ENV"
+              echo "WEB_ENV=staging" >> "$GITHUB_ENV"
               ;;
             *)
               echo "::error::알 수 없는 backend 입력: $BACKEND"
@@ -82,10 +84,12 @@ jobs:
 
       # real 일 때만 주소를 요구한다. 비어 있는 채로 실서버 빌드를 하면 자리표시자
       # 주소를 부르는 앱이 그대로 배포된다.
-      - name: Require API base URL for a real-backend build
+      - name: Require staging API base URL for a real-backend build
         if: env.WEB_USE_MOCK_API == 'false'
         env:
-          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          API_BASE_URL: ${{ vars.STAGING_API_BASE_URL }}
+          API_BASE_URL_NAME: STAGING_API_BASE_URL
+          FORBIDDEN_API_BASE_URL: ${{ vars.API_BASE_URL }}
         run: bash .github/scripts/check_web_api_base_url.sh
 
       - name: Install Flutter dependencies
@@ -110,7 +114,7 @@ jobs:
         # API_BASE_URL 을 넘기지 않는다(목업은 네트워크를 쓰지 않는다).
         env:
           KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
-          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          API_BASE_URL: ${{ vars.STAGING_API_BASE_URL }}
         run: |
           set -euo pipefail
           args=(
@@ -142,7 +146,7 @@ jobs:
         # 백엔드 모드는 회원 앱과 같다 — 둘이 갈리면 회원 기록이 트레이너에게 안 보인다.
         env:
           KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
-          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          API_BASE_URL: ${{ vars.STAGING_API_BASE_URL }}
         run: |
           set -euo pipefail
           args=(
