@@ -609,7 +609,7 @@ def _member_trainer_left_booking(args: Args, locale: Locale) -> Rendered:
 
 
 def _session_number(args: Args) -> int | None:
-    """완료 PT 의 회차(`member_mirror._done_pt_numbers` 와 같은 번호). 없으면 ``None``."""
+    """완료 PT 의 회차(`trainer._common._done_pt_numbers` 와 같은 번호). 없으면 ``None``."""
     try:
         n = int(args.get("session_number") or 0)
     except (TypeError, ValueError):

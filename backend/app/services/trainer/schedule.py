@@ -53,6 +53,7 @@ from app.services.trainer._common import (
     _add_program_routines,
     _clock_minutes,
     _consume_routine_suggestions,
+    _done_pt_numbers,
     _ensure_session_member_linked,
     _exercise_seconds,
     _is_consultation_booking,
@@ -1869,7 +1870,7 @@ def _notify_pt_done(
 
     [feedback_only] 는 완료 뒤 처음 피드백을 적은 경우다 — 완료 알림은 이미 갔다.
     상담 일정·회원 없는 슬롯은 부르는 쪽이 거른다. 회차는 회원 앱 PT 카드와 같은
-    번호(`member_mirror._done_pt_numbers`)다.
+    번호(`_common._done_pt_numbers`)다.
     """
     if session.member_id is None or session.type == "상담":
         return
@@ -1888,8 +1889,6 @@ def _notify_pt_done(
             body=text,
         )
         return
-    from app.services.trainer.member_mirror import _done_pt_numbers
-
     number = _done_pt_numbers(db, session.member_id, trainer_id).get(session.id)
     notification_service.queue(
         db,
