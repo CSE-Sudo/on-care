@@ -34,10 +34,6 @@ enum TrainerNotificationKind {
   /// 회원이 탈퇴해 대기 중이던 상담 요청이 함께 사라졌다(#1632) — 상담 요청함으로
   /// 간다. 떠난 회원의 상세는 열 수 없어 회원을 가리키지 않는다.
   consultationWithdrawn,
-
-  /// 운영자가 계정을 승인·반려했다(#3010). 승인은 대시보드로, 반려는 사유를
-  /// 다시 보고 프로필을 고칠 MY 로 간다. 수신 설정과 무관하게 온다.
-  verification,
   other,
 }
 
@@ -51,7 +47,6 @@ TrainerNotificationKind _kindFrom(String? raw) => switch (raw) {
   'invite_accepted' => TrainerNotificationKind.inviteAccepted,
   'invite_rejected' => TrainerNotificationKind.inviteRejected,
   'consult_withdrawn' => TrainerNotificationKind.consultationWithdrawn,
-  'verification' => TrainerNotificationKind.verification,
   // 서버가 새 종류를 추가했는데 앱이 모르는 경우. 목록에서 빼지 않고 이동만
   // 하지 않는다 — 안 보이는 알림보다 갈 곳 없는 알림이 낫다.
   _ => TrainerNotificationKind.other,

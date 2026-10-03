@@ -21,7 +21,6 @@ import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/client_identity.dart';
 import 'package:oncare_trainer/shared/widgets/client_signal_badges.dart';
-import 'package:oncare_trainer/shared/widgets/trainer_verification_banner.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 목표 글이 배지 줄과 나눠 쓰는 폭 중 목표 몫의 상한.
@@ -309,12 +308,6 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
                 key: ValueKey<String>('client-detail-tabs-${widget.clientId}'),
                 padding: const EdgeInsets.all(OnCareSpacing.s16),
                 children: <Widget>[
-                  // 반려된 동안에는 서버가 이 회원의 기록을 잠근다(#3009) — 아래
-                  // 오류가 왜 나는지 먼저 말한다.
-                  const TrainerVerificationBanner(
-                    scope: TrainerVerificationScope.records,
-                    bottomGap: OnCareSpacing.s12,
-                  ),
                   _sectionTabs(l, section),
                   const SizedBox(height: OnCareSpacing.s12),
                   content,

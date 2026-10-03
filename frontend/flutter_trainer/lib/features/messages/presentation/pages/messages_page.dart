@@ -15,7 +15,6 @@ import 'package:oncare_trainer/shared/utils/roster_unread.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/client_identity.dart';
 import 'package:oncare_trainer/shared/widgets/client_signal_badges.dart';
-import 'package:oncare_trainer/shared/widgets/trainer_verification_banner.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 enum _ConversationFilter {
@@ -102,7 +101,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             builder: (context, constraints) {
               final narrow =
                   constraints.maxWidth < OnCareLayout.splitBreakpoint;
-              final Widget split = AppSplitView(
+              return AppSplitView(
                 showDetailWhenNarrow: selected != null,
                 list: _ConversationList(
                   clients: filtered,
@@ -128,17 +127,6 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                           AppRoutes.messagesFor(null, filter: widget.filter),
                         ),
                       ),
-              );
-              // 반려된 동안에는 서버가 채팅도 잠근다(#3009) — 목록 위에 이유를 둔다.
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  const TrainerVerificationBanner(
-                    scope: TrainerVerificationScope.records,
-                    bottomGap: OnCareSpacing.s12,
-                  ),
-                  Expanded(child: split),
-                ],
               );
             },
           );
@@ -538,7 +526,10 @@ class _EmptyThread extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return AppCard(
-      child: AppEmptyState(title: l.messagesSelectPrompt, icon: AppIcons.chat),
+      child: AppEmptyState(
+        title: l.messagesSelectPrompt,
+        icon: AppIcons.chat,
+      ),
     );
   }
 }
