@@ -954,6 +954,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exBurnedPrefix => 'Burned';
 
   @override
+  String get exRecordMaxWeight => 'Heaviest yet';
+
+  @override
+  String get exRecordLongest => 'Longest yet';
+
+  @override
+  String get exRecordFirst => 'First time';
+
+  @override
   String get exRecordDateChange => 'Change date';
 
   @override

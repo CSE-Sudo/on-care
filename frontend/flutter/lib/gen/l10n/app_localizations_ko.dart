@@ -916,6 +916,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exBurnedPrefix => '소모';
 
   @override
+  String get exRecordMaxWeight => '최고 중량';
+
+  @override
+  String get exRecordLongest => '최장 시간';
+
+  @override
+  String get exRecordFirst => '첫 기록';
+
+  @override
   String get exRecordDateChange => '날짜 변경';
 
   @override
