@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/network/auth_token.dart';
+import 'package:oncare/core/network/consent_gate.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/core/session/session_feature_reset.dart';
 import 'package:oncare/core/storage/prefs_store.dart';
@@ -62,15 +63,20 @@ class SessionController extends StateNotifier<SessionState>
   SessionController(this._ref) : super(const SessionState()) {
     // 실행 중 401 을 받은 인터셉터가 이 컨트롤러로 토큰을 회전한다(#1546).
     _refreshBridge = _ref.read(sessionRefreshBridgeProvider)..attach(this);
+    // 실행 중 데이터 요청이 403 consent_required 를 받으면 알려 온다(#3088).
+    _consentBridge = _ref.read(consentGateBridgeProvider)
+      ..attach(markConsentRequired);
     _restore();
   }
 
   final Ref _ref;
   late final SessionRefreshBridge _refreshBridge;
+  late final ConsentGateBridge _consentBridge;
 
   @override
   void dispose() {
     _refreshBridge.detach(this);
+    _consentBridge.detach(markConsentRequired);
     super.dispose();
   }
 
@@ -434,6 +440,21 @@ class SessionController extends StateNotifier<SessionState>
     state = SessionState(
       status: SessionStatus.authenticated,
       consentRequired: consentRequiredIn(res.data),
+    );
+  }
+
+  /// [token] 으로 나간 데이터 요청을 서버가 "필수 동의가 남았다" 며 거절했다.
+  /// (#3088)
+  ///
+  /// 앱을 쓰는 사이 문서 버전이 올랐거나 동의가 철회된 경우다. 세션을 동의가
+  /// 남은 상태로 바꾸면 라우터 가드가 동의 화면으로 보내고, 동의를 제출하면
+  /// [submitConsents] 가 풀어 준다. 그 사이 로그아웃·다른 계정 로그인이 있었다면
+  /// 뒤늦은 응답이므로 무시한다.
+  void markConsentRequired(String token) {
+    if (!_holdsToken(token) || state.consentRequired) return;
+    state = const SessionState(
+      status: SessionStatus.authenticated,
+      consentRequired: true,
     );
   }
 
