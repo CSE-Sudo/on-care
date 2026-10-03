@@ -117,6 +117,9 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `RECOGNIZER_TIMEOUT_SECONDS` | 식단 사진 인식 한 건의 대기 한도(초, 기본 60, #2912) |
 | `MIGRATE_CONNECT_TIMEOUT` | 기동 마이그레이션의 DB 연결 한도(초, 기본 10, #2912) |
 | `KAKAO_REST_API_KEY` | 장소(O2O) 실검색. `PLACES_PROVIDER=auto` 기본. 데모 시드가 꺼진 서버는 카카오 0건이면 빈 목록, 실패면 503 이고 시드 장소로 채우지 않는다(#2914) |
+| `GOOGLE_CLIENT_IDS` | Google 로그인 허용 `aud`(iOS·Android·웹 client_id, 콤마 구분, #3035). **비우면 Google 로그인 거부(401)** |
+| `KAKAO_APP_ID` | 카카오 로그인 허용 앱 ID(콘솔의 숫자 앱 ID, `KAKAO_REST_API_KEY` 와 다른 값, #3035). **비우면 카카오 로그인 거부(401)** |
+| `APPLE_CLIENT_IDS` | Apple 로그인 허용 `aud`(번들 ID·Service ID, 콤마 구분). **비우면 Apple 로그인 거부(401)**. 네이버 로그인은 서버 측 코드 교환 전까지 501 로 닫혀 있어 설정이 없다 |
 | `TRUSTED_PROXY_HOPS` | rate limit·감사 로그가 믿는 앞단 프록시 수(#2815). 비우면 운영 1. 프록시가 둘 이상 붙으면 그 수로 맞춘다 |
 | `FORWARDED_ALLOW_IPS` | uvicorn 프록시 헤더 신뢰 대역(`scripts/start.sh`, 기본 `*`). 고정 대역이 있으면 좁힌다. 클라이언트 IP 는 이 값과 무관하게 위 홉 수로 읽는다 |
 | `LOGIN_MAX_FAILURES`·`LOGIN_LOCKOUT_SECONDS` | 같은 이메일 로그인 연속 실패 잠금(기본 5회·900초) |
@@ -138,6 +141,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 > **시도 제한은 인스턴스 메모리에 둔다**(`app/core/rate_limit.py`). App Runner 최소·최대 인스턴스가
 > 1 이 아니게 되거나 `WEB_CONCURRENCY` 를 늘리면 한도가 인스턴스·워커 수만큼 늘어나므로, 그때 공유 저장소(Redis 등) 구현으로 바꾼다.
 > 기동 로그에 `TRUSTED_PROXY_HOPS=0` 경고가 보이면 프록시 홉 수 설정을 확인한다.
+> 기동 로그에 `소셜 로그인 허용 앱 설정이 비어` 경고가 보이면, 거기 적힌 provider 의 로그인은 모두 401 이다.
 
 > 참고: 장소는 시드로 채우지 않는다(#2914). 운영에서 `KAKAO_REST_API_KEY` 가 없으면 DB 장소에서 데모 시드 장소를 빼고 읽어 헬스장 찾기가 사실상 비고, 키가 있어도 카카오 0건이면 빈 목록·실패면 503 이다. 사진 인식·임베딩은 운영에서 폴백하지 않고 키가 없으면 기동을 거부한다(#2812). 운영 시크릿은 Secrets Manager/SSM 에 두고
 > App Runner 에 주입한다. 키 전체 목록과 형식은 `backend/.env.aws.example` 에 있다.
@@ -369,6 +373,11 @@ flutter build web --release \
 - 개발용 주소(`localhost` 등)·옛 배포 주소·임시 미리보기 주소가 남아 있지 않은가. 로컬 개발이
   필요하면 운영 키가 아닌 개발용 앱 키를 따로 쓴다.
 - 확인한 날짜와 결과를 담당 이슈에 남긴다.
+
+운영 프론트 도메인을 붙이거나 바꿀 때 함께 바꾸는 곳(카카오 SDK 도메인, 이 서비스의 `CORS_ALLOW_ORIGINS`,
+CloudFront 스택 파라미터)은 [`docs/aws-frontend-deployment.md`](../../docs/aws-frontend-deployment.md#운영-도메인을-바꿀-때-함께-바꾸는-곳)
+표에 모아 두었다. 데모 사이트 도메인은 운영 도메인이 아니다(#3021). 운영 API 주소를 바꾸면 프론트 스택의
+`ApiOrigin`(응답 헤더 CSP 의 `connect-src`)도 함께 바꾼다(#3017).
 
 ---
 
