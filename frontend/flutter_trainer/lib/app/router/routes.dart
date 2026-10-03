@@ -173,11 +173,15 @@ class AppRoutes {
   ///
   /// [openHealthNotes] 는 들어가자마자 신체·목표 창의 `건강 목표` 탭을 연다 —
   /// 주의사항 알림에서 온 길이다(#2619).
+  ///
+  /// [openFeedback] 은 메모 창의 `피드백` 탭을 연다 — 회원 주간 피드백 알림에서
+  /// 온 길이다(#3026). 둘 다 주면 [openHealthNotes] 가 이긴다(한 번에 창 하나).
   static String clientDetail(
     String id, {
     String? section,
     String? filter,
     bool openHealthNotes = false,
+    bool openFeedback = false,
   }) {
     final safeSection = clientSections.contains(section)
         ? section!
@@ -185,12 +189,15 @@ class AppRoutes {
     final path = '$clients/${Uri.encodeComponent(id)}/$safeSection';
     // 빈 맵을 넘기면 `?` 만 붙은 주소가 나온다 — 필터가 없을 때는 쿼리 자체를
     // 만들지 않는다.
-    if (filter == null && !openHealthNotes) return path;
+    if (filter == null && !openHealthNotes && !openFeedback) return path;
     return Uri(
       path: path,
       queryParameters: <String, String>{
         'f': ?filter,
-        if (openHealthNotes) clientOpenParam: clientOpenHealthNotes,
+        if (openHealthNotes)
+          clientOpenParam: clientOpenHealthNotes
+        else if (openFeedback)
+          clientOpenParam: clientOpenFeedback,
       },
     ).toString();
   }
@@ -198,6 +205,7 @@ class AppRoutes {
   /// [clientDetail] 이 창을 열라고 알리는 쿼리 이름과 값.
   static const String clientOpenParam = 'open';
   static const String clientOpenHealthNotes = 'health-notes';
+  static const String clientOpenFeedback = 'feedback';
 
   /// Builds the 고객 list filtered to a preset. Used by the dashboard
   /// KPI cards (`unread` = 답장 필요, `attention` = 주의 고객).

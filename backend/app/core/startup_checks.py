@@ -13,13 +13,33 @@ from __future__ import annotations
 import logging
 
 from app.core.config import Settings
-from app.services import attachment_store
+from app.services import attachment_store, password_reset
 
 logger = logging.getLogger("app.startup")
 
 
 class StartupConfigError(RuntimeError):
     """설정이 서로 맞지 않아 기동하면 안 된다."""
+
+
+#: (provider, 설정 이름, 값이 있는가) — 발급 앱을 확인하는 provider 의 허용 설정.
+_SOCIAL_APP_SETTINGS = (
+    ("google", "GOOGLE_CLIENT_IDS", lambda s: bool(s.google_client_id_list)),
+    ("kakao", "KAKAO_APP_ID", lambda s: bool(s.kakao_app_id_value)),
+    ("apple", "APPLE_CLIENT_IDS", lambda s: bool(s.apple_client_id_list)),
+)
+
+
+def unconfigured_social_providers(settings: Settings) -> list[str]:
+    """허용 앱 설정이 비어 로그인을 거부하는 provider 목록(`google(GOOGLE_CLIENT_IDS)` 꼴).
+
+    네이버는 설정과 무관하게 서버 측 코드 교환 전까지 닫혀 있어(501) 여기 넣지 않는다.
+    """
+    return [
+        f"{provider}({name})"
+        for provider, name, configured in _SOCIAL_APP_SETTINGS
+        if not configured(settings)
+    ]
 
 
 def check(settings: Settings) -> list[str]:
@@ -58,6 +78,33 @@ def check(settings: Settings) -> list[str]:
         )
     # 운영 + 데모 시드는 경고가 아니라 설정 단계에서 기동을 거부한다(#2811) —
     # 이 검사까지 오지 않는다.
+
+    # --- 소셜 로그인 발급 앱 확인(#3035) ---
+    # 허용 앱 설정이 빈 provider 는 로그인을 거부한다(조용히 통과시키지 않는다). 막는
+    # 쪽이 안전하지만, 운영에서 빠뜨리면 "소셜 로그인이 전부 401" 로만 보이므로 남긴다.
+    missing = unconfigured_social_providers(settings)
+    if missing:
+        warnings.append(
+            "소셜 로그인 허용 앱 설정이 비어 다음 로그인을 거부합니다: "
+            + ", ".join(missing)
+            + ". 각 provider 개발자 콘솔의 값을 넣으세요."
+        )
+
+    # --- 비밀번호 재설정 메일 링크(#3033) ---
+    # 링크 없이도 메일 속 코드로 재설정은 되므로 막지 않는다. 다만 경로형·http 주소는
+    # 링크를 눌러도 앱이 코드를 받지 못해 "메일 링크가 안 된다" 로 드러난다.
+    if settings.is_prod:
+        for key, url in (
+            ("PASSWORD_RESET_MEMBER_URL", settings.password_reset_member_url),
+            ("PASSWORD_RESET_TRAINER_URL", settings.password_reset_trainer_url),
+        ):
+            problem = password_reset.reset_url_problem(url)
+            if problem:
+                warnings.append(
+                    f"{key} 형식이 맞지 않습니다({problem}) — 메일 링크를 눌러도 재설정 "
+                    "화면에 코드가 채워지지 않습니다. 해시형 주소를 넣으세요 "
+                    "(예: https://<도메인>/frontend/#/auth/password-reset)."
+                )
 
     for message in warnings:
         logger.warning("[startup] %s", message)

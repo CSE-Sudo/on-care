@@ -29,6 +29,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notFoundGoSignIn => 'Go to sign in';
 
   @override
+  String get misconfiguredBuildTitle => 'This build is misconfigured';
+
+  @override
+  String get misconfiguredBuildMessage =>
+      'This build was made with settings that can\'t be used for real users, so the app didn\'t open. Please share the details below with whoever released it.';
+
+  @override
+  String get misconfiguredBuildDetailsTitle => 'Build settings to fix';
+
+  @override
+  String get misconfiguredBuildDevEnvironment => 'ENV is not prod or staging';
+
+  @override
+  String get misconfiguredBuildMockWithoutDemo =>
+      'It uses demo data without the demo build flag (USE_MOCK_API, DEMO_BUILD)';
+
+  @override
+  String get misconfiguredBuildPlaceholderApiUrl =>
+      'The API address is an example or local address (API_BASE_URL)';
+
+  @override
+  String get misconfiguredBuildInsecureApiUrl =>
+      'The API address does not start with https:// (API_BASE_URL)';
+
+  @override
   String get navDashboard => 'Home';
 
   @override
@@ -3007,9 +3032,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get consentAge14Detail => 'You must be 14 or older to sign up.';
 
   @override
-  String get consentMarketing => 'Receive marketing notifications';
-
-  @override
   String get consentRequiredHint => 'Agree to all required items to continue.';
 
   @override
@@ -3621,6 +3643,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alertCategorySchedule => 'PT schedule';
 
   @override
+  String get alertCategoryPtDone => 'PT record';
+
+  @override
   String get alertCategoryTrainer => 'Trainer';
 
   @override
@@ -3842,6 +3867,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gymLocationSettings => 'Settings';
+
+  @override
+  String get gymDefaultAreaTitle => 'Showing gyms around Sinchon';
+
+  @override
+  String get gymDefaultAreaMessage =>
+      'Allow location access to see gyms near you.';
+
+  @override
+  String get gymUseLocation => 'Use location';
+
+  @override
+  String get gymDistanceSortNeedsLocation =>
+      'Sort by distance needs your current location.';
 
   @override
   String get exGymCopyPhone => 'Copy phone number';

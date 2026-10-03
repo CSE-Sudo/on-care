@@ -55,7 +55,7 @@ void main() {
       '새 운동 루틴이 도착했어요': (AlertCategory.routine, AlertTarget.exercise),
       // 서버 시드와 같은 갈래다(#2084·#2085).
       '이번 주 리포트가 등록됐어요': (AlertCategory.coachReport, AlertTarget.coachChat),
-      'PT 수업 완료': (AlertCategory.achievement, AlertTarget.exercise),
+      'PT 수업 완료': (AlertCategory.ptDone, AlertTarget.exercise),
       '트레이너 피드백 도착': (AlertCategory.coachChat, AlertTarget.coachChat),
       '이번 주 운동 목표까지 조금 남았어요': (AlertCategory.reminder, AlertTarget.exercise),
       '식단 기록을 꾸준히 이어가고 있어요': (AlertCategory.achievement, AlertTarget.dashboard),
@@ -213,6 +213,8 @@ void main() {
         'coach_report': AlertCategory.coachReport,
         'routine': AlertCategory.routine,
         'member_schedule': AlertCategory.schedule,
+        // 끝난 PT 의 기록은 앞으로의 일정과 다른 갈래다(#3027).
+        'pt_done': AlertCategory.ptDone,
         'coach_invite': AlertCategory.trainerLink,
         'consultation_result': AlertCategory.trainerLink,
         // 상담 요청의 승인·거절·만료(#2067).

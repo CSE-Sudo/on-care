@@ -117,6 +117,9 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `RECOGNIZER_TIMEOUT_SECONDS` | 식단 사진 인식 한 건의 대기 한도(초, 기본 60, #2912) |
 | `MIGRATE_CONNECT_TIMEOUT` | 기동 마이그레이션의 DB 연결 한도(초, 기본 10, #2912) |
 | `KAKAO_REST_API_KEY` | 장소(O2O) 실검색. `PLACES_PROVIDER=auto` 기본. 데모 시드가 꺼진 서버는 카카오 0건이면 빈 목록, 실패면 503 이고 시드 장소로 채우지 않는다(#2914) |
+| `GOOGLE_CLIENT_IDS` | Google 로그인 허용 `aud`(iOS·Android·웹 client_id, 콤마 구분, #3035). **비우면 Google 로그인 거부(401)** |
+| `KAKAO_APP_ID` | 카카오 로그인 허용 앱 ID(콘솔의 숫자 앱 ID, `KAKAO_REST_API_KEY` 와 다른 값, #3035). **비우면 카카오 로그인 거부(401)** |
+| `APPLE_CLIENT_IDS` | Apple 로그인 허용 `aud`(번들 ID·Service ID, 콤마 구분). **비우면 Apple 로그인 거부(401)**. 네이버 로그인은 서버 측 코드 교환 전까지 501 로 닫혀 있어 설정이 없다 |
 | `TRUSTED_PROXY_HOPS` | rate limit·감사 로그가 믿는 앞단 프록시 수(#2815). 비우면 운영 1. 프록시가 둘 이상 붙으면 그 수로 맞춘다 |
 | `FORWARDED_ALLOW_IPS` | uvicorn 프록시 헤더 신뢰 대역(`scripts/start.sh`, 기본 `*`). 고정 대역이 있으면 좁힌다. 클라이언트 IP 는 이 값과 무관하게 위 홉 수로 읽는다 |
 | `LOGIN_MAX_FAILURES`·`LOGIN_LOCKOUT_SECONDS` | 같은 이메일 로그인 연속 실패 잠금(기본 5회·900초) |
@@ -124,6 +127,12 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | 접근 토큰 수명(분, #2913). 기본 60. 두 앱은 만료되면 refresh 로 이어 가므로 운영은 짧게 둔다. 데모·개발 환경만 길게 |
 | `REGISTER_PER_EMAIL_PER_HOUR` | 같은 이메일 가입 시도 시간당 상한(회원·트레이너 공용, 기본 5, #2913) |
 | `PASSWORD_CHANGE_MAX_FAILURES` | 비밀번호 변경의 현재 비밀번호 연속 실패 잠금(사용자 단위, 기본 5회, 창은 `LOGIN_LOCKOUT_SECONDS`, #2913) |
+| `MAIL_PROVIDER` | `smtp`(운영은 `auto` 대신 명시, #3033). `smtp` 인데 `SMTP_HOST`·`MAIL_FROM` 이 비면 기동 거부라 빠뜨린 것이 바로 드러난다. `auto` 로 두고 비우면 기동은 되지만 비밀번호 재설정 요청이 503 으로 꺼진다 |
+| `MAIL_FROM` | 발신 주소(`no-reply@<운영 도메인>` 또는 `OnCare <no-reply@…>`). 업체·도메인 인증은 #480 |
+| `SMTP_HOST`·`SMTP_PORT`·`SMTP_STARTTLS`·`SMTP_SSL` | 업체 SMTP 엔드포인트(SES 는 `email-smtp.<리전>.amazonaws.com`). 587 은 STARTTLS(기본), 465 는 `SMTP_SSL=true`·`SMTP_STARTTLS=false` |
+| `SMTP_USERNAME`·`SMTP_PASSWORD` | SMTP 자격 증명. **Secrets Manager/SSM 참조**로 넣는다(SES 는 IAM 에서 만든 SMTP 자격 증명, #480) |
+| `PASSWORD_RESET_MEMBER_URL` | 회원 앱 재설정 화면 — **해시형** `https://<운영 도메인>/frontend/#/auth/password-reset`. 서버가 `…#/auth/password-reset?token=…` 꼴로 토큰을 붙인다. 비우면 메일에 코드만 보낸다 |
+| `PASSWORD_RESET_TRAINER_URL` | 트레이너 웹 재설정 화면 — **해시형** `https://<운영 도메인>/trainer/#/auth/password-reset`. 두 앱은 해시 URL 전략·하위 경로 배포라 해시 없는 경로형(`/auth/password-reset`)은 정적 경로를 가리켜 코드가 버려진다. 운영에서 경로형·`http://` 면 기동 로그에 WARN(#3033) |
 | `EXPOSE_API_DOCS` | `/docs`·`/redoc`·`/openapi.json` 공개 여부(#2834). 비우면 운영은 닫힘(404). 스키마는 스테이징·로컬에서 본다 |
 | `AI_GLOBAL_CALLS_PER_DAY` | 서버 전체 하루 AI 호출 합(#3032). DB 에서 KST 날짜로 센다. 0 이면 끔(기본). 공급자 하루 예산 ÷ 호출당 비용으로 정한다. 넘으면 폴백이 있는 기능은 규칙형 폴백, AI 코치 채팅·사진 분석은 503 `ai_capacity` + `Retry-After` |
 | `TRAINER_AI_CALLS_PER_DAY` | 트레이너 한 계정의 하루 AI 호출(고객 AI 코치·루틴 후보·리포트 요약 합, 기본 200, #3032). 넘으면 429 `daily_limit` + `Retry-After` |
@@ -134,8 +143,9 @@ CREATE EXTENSION IF NOT EXISTS vector;
 > **시도 제한은 인스턴스 메모리에 둔다**(`app/core/rate_limit.py`). App Runner 최소·최대 인스턴스가
 > 1 이 아니게 되거나 `WEB_CONCURRENCY` 를 늘리면 한도가 인스턴스·워커 수만큼 늘어나므로, 그때 공유 저장소(Redis 등) 구현으로 바꾼다.
 > 기동 로그에 `TRUSTED_PROXY_HOPS=0` 경고가 보이면 프록시 홉 수 설정을 확인한다.
+> 기동 로그에 `소셜 로그인 허용 앱 설정이 비어` 경고가 보이면, 거기 적힌 provider 의 로그인은 모두 401 이다.
 
-> 참고: 장소는 키가 없어도 시드 폴백으로 동작한다. 사진 인식·임베딩은 운영에서 폴백하지 않는다(#2812). 운영 시크릿은 Secrets Manager/SSM 에 두고
+> 참고: 장소는 시드로 채우지 않는다(#2914). 운영에서 `KAKAO_REST_API_KEY` 가 없으면 DB 장소에서 데모 시드 장소를 빼고 읽어 헬스장 찾기가 사실상 비고, 키가 있어도 카카오 0건이면 빈 목록·실패면 503 이다. 사진 인식·임베딩은 운영에서 폴백하지 않고 키가 없으면 기동을 거부한다(#2812). 운영 시크릿은 Secrets Manager/SSM 에 두고
 > App Runner 에 주입한다. 키 전체 목록과 형식은 `backend/.env.aws.example` 에 있다.
 
 **운영에서 기본값을 그대로 두면 안 되는 키** — 기동은 되지만 개발용 동작이 남는다(#2840).
@@ -147,7 +157,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `FORCE_HTTPS` | `true` | HTTP 요청이 HTTPS 로 넘어가지 않는다 |
 | `ALLOW_DEMO_FALLBACK` | `false` | `ENV=prod` 면 어차피 꺼지지만, 스테이징·시연 서버를 `ENV=dev` 로 띄우면 토큰 없는 요청이 데모 계정으로 처리된다 |
 | `ADMIN_EMAILS` | 운영 담당자 이메일(콤마 구분) | 관리자가 없어 공공 RAG 문서 적재·`/v1/system/metrics` 를 쓸 수 없다 |
-| `REPORT_PDF_STORAGE_DIR`·`CHAT_IMAGE_STORAGE_DIR` | 영속 저장소를 붙인 경로 | 컨테이너 안 `data/` 에 쌓인다. 영속 디스크가 없는 컴퓨트(App Runner 등)에서는 재배포·재시작 때 주간 리포트 PDF·채팅 사진이 사라진다(저장소 구성은 #480 범위) |
+| `REPORT_PDF_STORAGE_DIR`·`CHAT_IMAGE_STORAGE_DIR` | 영속 저장소를 붙인 경로 | 첨부를 S3(`ATTACHMENT_STORAGE=s3`, 아래 5-1, #2817)에 두면 이 두 경로는 쓰지 않는다. 로컬 디스크로 둘 때만 컨테이너 안 `data/` 에 쌓여 영속 디스크가 없는 컴퓨트(App Runner 등)에서 재배포·재시작 때 주간 리포트 PDF·채팅 사진이 사라진다 |
 | `SECURITY_HEADERS`·`RATE_LIMIT_ENABLED` | `true`(기본값 유지) | 끄면 보안 헤더·시도 제한이 빠진다 |
 | `LOG_LEVEL` | `INFO` | — |
 
@@ -275,8 +285,12 @@ App Runner 의 컨테이너 디스크는 재배포·재시작·스케일 아웃 
 
 배포 전에 한 번, 환경변수를 바꿀 때마다 다시 본다.
 
-- [ ] App Runner 환경변수가 `backend/.env.aws.example` 의 키를 모두 갖는다. `ENV=prod`,
-      `AUTO_CREATE_TABLES=false`, `SEED_DEMO_DATA=false`, `ALLOW_DEMO_FALLBACK=false`.
+- [ ] `backend/.env.aws.example` 의 **활성 키(`KEY=값`)를 모두 채웠고**, 주석 키(`# KEY=값`)는 기본값이 이
+      서비스에 맞는지 확인했다(#3034). `ENV=prod`, `AUTO_CREATE_TABLES=false`, `SEED_DEMO_DATA=false`,
+      `ALLOW_DEMO_FALLBACK=false`. 템플릿에 없는 설정 키는 기본값이 운영값이다(사유는
+      `backend/tests/test_env_aws_example.py`).
+- [ ] **비밀번호 재설정 메일이 실제로 온다(#3033).** 회원·트레이너 계정으로 재설정을 한 번씩 요청해 메일을
+      받고, 링크를 눌러 두 앱 재설정 화면이 **코드가 채워진 채** 열리는지 본다. 기동 로그에 `PASSWORD_RESET_` WARN 이 없다.
 - [ ] **운영 DB 와 데모 DB 가 다르다.** 운영 서비스의 `DATABASE_URL` 은 데모 시드가 한 번도
       들어가지 않은 DB(또는 Neon 브랜치)를 가리킨다. 데모 시연이 필요하면 **별도 App Runner 서비스**
       (`ENV=staging`, `SEED_DEMO_DATA=true`, 강한 `DEMO_LOGIN_PASSWORD`)를 **별도 DB** 로 띄운다.
@@ -330,9 +344,13 @@ App Runner 의 컨테이너 디스크는 재배포·재시작·스케일 아웃 
 
 ```bash
 flutter build web --release \
+  --dart-define=ENV=prod \
   --dart-define=USE_MOCK_API=false \
   --dart-define=API_BASE_URL=https://<apprunner-domain>/v1
 ```
+
+`ENV=prod` 를 빠뜨리면 릴리스 빌드가 기동할 때 구성 오류 안내만 띄운다(#3022). 운영 웹은
+`aws-frontend-deploy.yml` 이 위 값과 `SENTRY_DSN` 을 함께 넘긴다.
 
 지도 핀은 프론트 카카오맵 **JS SDK**(JS키 + 도메인 등록) 담당. 백엔드는 좌표+정보만 제공한다.
 
@@ -344,6 +362,11 @@ flutter build web --release \
 - 개발용 주소(`localhost` 등)·옛 배포 주소·임시 미리보기 주소가 남아 있지 않은가. 로컬 개발이
   필요하면 운영 키가 아닌 개발용 앱 키를 따로 쓴다.
 - 확인한 날짜와 결과를 담당 이슈에 남긴다.
+
+운영 프론트 도메인을 붙이거나 바꿀 때 함께 바꾸는 곳(카카오 SDK 도메인, 이 서비스의 `CORS_ALLOW_ORIGINS`,
+CloudFront 스택 파라미터)은 [`docs/aws-frontend-deployment.md`](../../docs/aws-frontend-deployment.md#운영-도메인을-바꿀-때-함께-바꾸는-곳)
+표에 모아 두었다. 데모 사이트 도메인은 운영 도메인이 아니다(#3021). 운영 API 주소를 바꾸면 프론트 스택의
+`ApiOrigin`(응답 헤더 CSP 의 `connect-src`)도 함께 바꾼다(#3017).
 
 ---
 

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'package:oncare/core/storage/token_session_storage.dart';
+import 'package:oncare_core/storage/token_keys.dart';
 
 /// `FlutterSecureStorage` is platform-backed (Keychain / Keystore /
 /// localStorage on web — 그래서 웹 토큰은 [SecureTokenStore] 가
@@ -55,8 +56,16 @@ class SecureTokenStore {
   /// 이 인스턴스가 예전 웹 빌드가 localStorage 에 남긴 토큰을 이미 지웠는가.
   bool _legacyPurged = false;
 
-  static const String _kAccessToken = 'access_token';
-  static const String _kRefreshToken = 'refresh_token';
+  /// 이 인스턴스가 이름공간 없던 옛 키를 이미 옮겼는가(#3054).
+  bool _keysMigrated = false;
+
+  /// 진행 중인 옛 키 옮기기. 동시에 부른 쪽이 같은 작업을 기다린다 — 옮기는
+  /// 도중 [clear] 가 끼면 옮기던 옛 토큰이 지운 뒤에 다시 써진다.
+  Future<void>? _migration;
+
+  /// 토큰 키 이름공간(#3054). 회원 앱과 트레이너 웹은 한 출처에 배포돼 같은
+  /// 브라우저 저장소를 보므로, 키에 앱 이름을 붙여 서로의 토큰을 건드리지 않는다.
+  static const TokenKeyspace keyspace = TokenKeyspace.member;
 
   /// 토큰을 탭 단위 저장소에만 두는가(웹).
   bool get isSessionScoped => _session != null;
@@ -65,22 +74,24 @@ class SecureTokenStore {
     required String access,
     required String refresh,
   }) async {
+    await _migrateLegacyKeys();
     final TokenSessionStorage? session = _session;
     if (session != null) {
       session
-        ..write(_kAccessToken, access)
-        ..write(_kRefreshToken, refresh);
+        ..write(keyspace.accessKey, access)
+        ..write(keyspace.refreshKey, refresh);
       await _purgeLegacyPersistedTokens();
       return;
     }
-    await _storage.write(key: _kAccessToken, value: access);
-    await _storage.write(key: _kRefreshToken, value: refresh);
+    await _storage.write(key: keyspace.accessKey, value: access);
+    await _storage.write(key: keyspace.refreshKey, value: refresh);
   }
 
-  Future<String?> readAccessToken() => _read(_kAccessToken);
-  Future<String?> readRefreshToken() => _read(_kRefreshToken);
+  Future<String?> readAccessToken() => _read(keyspace.accessKey);
+  Future<String?> readRefreshToken() => _read(keyspace.refreshKey);
 
   Future<String?> _read(String key) async {
+    await _migrateLegacyKeys();
     final TokenSessionStorage? session = _session;
     if (session == null) return _storage.read(key: key);
     // 예전 빌드가 영구 저장소에 남긴 토큰은 **읽지 않고** 지운다 — 읽어 이어 쓰면
@@ -89,27 +100,69 @@ class SecureTokenStore {
     return session.read(key);
   }
 
+  /// 이 앱의 토큰을 지운다. 웹은 이 앱 키만 지운다 — 같은 탭 저장소를 쓰는 다른
+  /// 앱의 토큰은 남긴다. 모바일 저장소는 이 앱만 쓰므로 옛 키도 함께 지운다.
   Future<void> clear() async {
+    // 세션 복원이 옛 키를 옮기는 중이면 끝난 뒤에 지운다 — 먼저 지우면 옮기던
+    // 앞 계정 토큰이 새 키로 되살아난다.
+    await _migrateLegacyKeys();
     final TokenSessionStorage? session = _session;
     if (session != null) {
       session
-        ..remove(_kAccessToken)
-        ..remove(_kRefreshToken);
+        ..remove(keyspace.accessKey)
+        ..remove(keyspace.refreshKey);
       _legacyPurged = false;
       await _purgeLegacyPersistedTokens();
       return;
     }
-    await _storage.delete(key: _kAccessToken);
-    await _storage.delete(key: _kRefreshToken);
+    await _storage.delete(key: keyspace.accessKey);
+    await _storage.delete(key: keyspace.refreshKey);
+    await _storage.delete(key: legacyAccessTokenKey);
+    await _storage.delete(key: legacyRefreshTokenKey);
+  }
+
+  /// 이름공간 없던 옛 키의 토큰을 한 번 옮긴다(#3054).
+  ///
+  /// 모바일은 이 앱만 쓰는 저장소라 옮긴 토큰이 이 앱의 것이다 — 업데이트한
+  /// 회원이 다시 로그인하지 않아도 된다. 웹 탭 저장소의 옛 키는 어느 앱 것인지
+  /// 모르므로, 옮긴 토큰은 세션 복원의 역할 확인을 통과해야 세션이 된다.
+  /// 실패하면 다음 호출에서 다시 시도한다.
+  Future<void> _migrateLegacyKeys() {
+    if (_keysMigrated) return Future<void>.value();
+    return _migration ??= _runMigration().whenComplete(() => _migration = null);
+  }
+
+  Future<void> _runMigration() async {
+    final TokenSessionStorage? session = _session;
+    final TokenKeyValueAccess access = session != null
+        ? TokenKeyValueAccess(
+            read: (String key) async => session.read(key),
+            write: (String key, String value) async =>
+                session.write(key, value),
+            delete: (String key) async => session.remove(key),
+          )
+        : TokenKeyValueAccess(
+            read: (String key) => _storage.read(key: key),
+            write: (String key, String value) =>
+                _storage.write(key: key, value: value),
+            delete: (String key) => _storage.delete(key: key),
+          );
+    try {
+      await migrateLegacyTokenKeys(access, keyspace);
+      _keysMigrated = true;
+    } on Object {
+      // 저장소를 지금 쓸 수 없다 — 이어지는 읽기·쓰기가 같은 실패를 알린다.
+    }
   }
 
   /// 웹에서 영구 저장소(localStorage)에 남은 토큰을 지운다. 실패해도 세션 동작은
-  /// 막지 않는다 — 다음 호출에서 다시 시도한다.
+  /// 막지 않는다 — 다음 호출에서 다시 시도한다. 예전 빌드는 옛 이름으로만
+  /// 썼으므로 옛 이름을 지운다.
   Future<void> _purgeLegacyPersistedTokens() async {
     if (_legacyPurged) return;
     try {
-      await _storage.delete(key: _kAccessToken);
-      await _storage.delete(key: _kRefreshToken);
+      await _storage.delete(key: legacyAccessTokenKey);
+      await _storage.delete(key: legacyRefreshTokenKey);
       _legacyPurged = true;
     } on Object {
       // 저장소를 쓸 수 없는 브라우저 — 남은 값도 없다고 보고 다음에 다시 본다.

@@ -5,7 +5,7 @@
   GET  /diet/days?from=&to=      -> 기간의 날짜별 합계(그래프용, 끼니·사진 없음)
   GET  /diet/days/{date}         -> 지정 날짜 식단 집계
   GET  /diet/recommendations     -> 홈 AI 추천 식단(카탈로그에서 개인화 선택)
-  POST /diet/analyze             -> 사진 → 인식 → diet_entries 저장(+ 사진 축소본, 포인트 적립)
+  POST /diet/analyze             -> 사진 정리(EXIF 제거) → 인식 → diet_entries 저장(+ 사진 축소본, 포인트 적립)
   POST /diet/analyze?engine=yolo -> 엔진 강제(비교실험 — 운영에서는 관리자만, #2812)
   GET  /diet/photos/{photo_id}   -> 내 끼니 사진 원본 바이트(본인만)
   POST /diet/entries             -> 사진 없이 직접 적은 끼니 저장(포인트 없음)
@@ -59,6 +59,7 @@ from app.services import (
     diet_service,
     diet_trainer_pick,
     diet_week_advice,
+    image_sanitize,
     points_service,
 )
 from app.services.coach import personal_ingest
@@ -91,6 +92,10 @@ _NO_FOOD_DETECTED = {
     "code": "no_food_detected",
     "message": "사진에서 음식을 찾지 못했어요. 다른 사진을 고르거나 직접 입력해 주세요.",
 }
+
+#: 형식은 맞지만 픽셀을 읽을 수 없는 사진의 415 본문(#3041). 형식 판정 415 와 같은
+#: 문자열 모양이라 앱은 같은 "지원하지 않는 사진" 안내를 띄운다.
+_UNREADABLE_IMAGE = "이미지를 읽을 수 없습니다. 다른 사진을 골라 주세요."
 
 
 @router.get("/diet/days/today", response_model=DietTodayResponse)
@@ -299,7 +304,7 @@ async def diet_analyze(
     # 형식은 바이트로 판정한다 — 요청 헤더의 Content-Type 은 보내는 쪽이 적어 준 값일
     # 뿐이라, 이미지가 아닌 본문이 그 말만 믿고 외부 모델 호출까지 가면 안 된다(#2827).
     try:
-        _, media_type = chat_image_storage.sniff(image_bytes)
+        chat_image_storage.sniff(image_bytes)
     except chat_image_storage.UnsupportedImage as e:
         raise HTTPException(status_code=415, detail=str(e)) from e
 
@@ -331,10 +336,25 @@ async def diet_analyze(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
+    # 외부 모델에 보내기 전에 사진을 정리한다(#3041). 휴대폰 사진의 EXIF 에는 촬영
+    # 위치·시각·기기가 들어 있어, 원본을 그대로 보내면 집 좌표가 인식 업체로 나간다.
+    # 저장도 같은 정리본에서 만든다 — 원본 바이트는 이 지점 뒤로 쓰지 않는다.
+    # 읽을 수 없는 사진은 하루 분석 한도를 예약하기 전에 415 로 끝낸다.
+    try:
+        clean = await run_in_threadpool(
+            image_sanitize.to_jpeg,
+            image_bytes,
+            max_edge=image_sanitize.RECOGNITION_MAX_EDGE,
+            quality=image_sanitize.RECOGNITION_JPEG_QUALITY,
+        )
+    except image_sanitize.UndecodableImage as e:
+        raise HTTPException(status_code=415, detail=_UNREADABLE_IMAGE) from e
+    del image_bytes
+
     usage_id = await run_in_threadpool(_reserve_analysis, db, user_id)
 
     try:
-        analysis = await recognizer.recognize(image_bytes, media_type)
+        analysis = await recognizer.recognize(clean.data, clean.media_type)
     except NotImplementedError as e:
         await run_in_threadpool(diet_analysis_quota_service.release, db, usage_id)
         raise HTTPException(status_code=501, detail=str(e)) from e
@@ -359,7 +379,7 @@ async def diet_analyze(
         raise HTTPException(status_code=422, detail=_NO_FOOD_DETECTED)
 
     return await run_in_threadpool(
-        _persist_analysis, db, user_id, meal_type, analysis, idempotency_key, image_bytes,
+        _persist_analysis, db, user_id, meal_type, analysis, idempotency_key, clean.data,
         entry_date,
     )
 

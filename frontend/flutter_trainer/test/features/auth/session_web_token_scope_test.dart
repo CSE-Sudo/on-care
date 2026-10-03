@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare_core/storage/token_keys.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/storage/secure_token_store.dart';
 import 'package:oncare_trainer/core/storage/token_session_storage.dart';
@@ -24,6 +25,10 @@ const FlutterSecureStorage _secure = FlutterSecureStorage();
 
 Future<void> _settle() =>
     Future<void>.delayed(const Duration(milliseconds: 60));
+
+/// 이 앱의 토큰 키(#3054). 두 앱이 같은 탭 저장소를 써서 키에 앱 이름이 붙는다.
+final String _access = TokenKeyspace.trainer.accessKey;
+final String _refresh = TokenKeyspace.trainer.refreshKey;
 
 void main() {
   late InMemoryTokenSessionStorage tab;
@@ -59,15 +64,15 @@ void main() {
       c.read(sessionControllerProvider).status,
       SessionStatus.authenticated,
     );
-    expect(tab.read('access_token'), isNotNull);
-    expect(tab.read('refresh_token'), isNotNull);
+    expect(tab.read(_access), isNotNull);
+    expect(tab.read(_refresh), isNotNull);
     expect(await _secure.readAll(), isEmpty);
   });
 
   test('restores a session kept in the same tab', () async {
     tab
-      ..write('access_token', 'demo-existing')
-      ..write('refresh_token', 'demo-existing-refresh');
+      ..write(_access, 'demo-existing')
+      ..write(_refresh, 'demo-existing-refresh');
     final ProviderContainer c = container();
 
     c.read(sessionControllerProvider.notifier);
@@ -107,8 +112,82 @@ void main() {
     await _settle();
 
     expect(c.read(sessionControllerProvider).status, SessionStatus.signedOut);
-    expect(tab.read('access_token'), isNull);
-    expect(tab.read('refresh_token'), isNull);
+    expect(tab.read(_access), isNull);
+    expect(tab.read(_refresh), isNull);
     expect(await c.read(secureTokenStoreProvider).readRefreshToken(), isNull);
+  });
+
+  group('same origin as the member app (#3054)', () {
+    final String memberAccess = TokenKeyspace.member.accessKey;
+    final String memberRefresh = TokenKeyspace.member.refreshKey;
+
+    test('login leaves the member app tokens in the tab alone', () async {
+      tab
+        ..write(memberAccess, 'member-access')
+        ..write(memberRefresh, 'member-refresh');
+      final ProviderContainer c = container();
+      final SessionController controller = c.read(
+        sessionControllerProvider.notifier,
+      );
+      await _settle();
+
+      await controller.login(email: 'coach@example.test', password: 'pw');
+
+      expect(tab.read(_access), isNotNull);
+      expect(tab.read(_access), isNot('member-access'));
+      expect(tab.read(memberAccess), 'member-access');
+      expect(tab.read(memberRefresh), 'member-refresh');
+    });
+
+    test('sign-out clears only the trainer keys', () async {
+      tab
+        ..write(memberAccess, 'member-access')
+        ..write(memberRefresh, 'member-refresh');
+      final ProviderContainer c = container();
+      final SessionController controller = c.read(
+        sessionControllerProvider.notifier,
+      );
+      await _settle();
+      await controller.login(email: 'coach@example.test', password: 'pw');
+
+      await controller.signOut();
+      await _settle();
+
+      expect(tab.read(_access), isNull);
+      expect(tab.read(_refresh), isNull);
+      expect(tab.read(memberAccess), 'member-access');
+      expect(tab.read(memberRefresh), 'member-refresh');
+    });
+
+    test('a member session in the tab is not restored as a trainer', () async {
+      tab
+        ..write(memberAccess, 'member-access')
+        ..write(memberRefresh, 'member-refresh');
+      final ProviderContainer c = container();
+
+      c.read(sessionControllerProvider.notifier);
+      await _settle();
+
+      expect(c.read(sessionControllerProvider).status, SessionStatus.signedOut);
+      expect(tab.read(memberAccess), 'member-access');
+    });
+
+    test('a pre-namespace tab session moves to the trainer keys', () async {
+      tab
+        ..write('access_token', 'demo-existing')
+        ..write('refresh_token', 'demo-existing-refresh');
+      final ProviderContainer c = container();
+
+      c.read(sessionControllerProvider.notifier);
+      await _settle();
+
+      expect(
+        c.read(sessionControllerProvider).status,
+        SessionStatus.authenticated,
+      );
+      expect(tab.read(_access), 'demo-existing');
+      expect(tab.read('access_token'), isNull);
+      expect(tab.read('refresh_token'), isNull);
+    });
   });
 }

@@ -1,4 +1,8 @@
 import 'package:oncare_trainer/features/notifications/domain/entities/trainer_notification.dart';
+import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart'
+    show WeekCondition, WeekIntensity;
+import 'package:oncare_trainer/features/reports/presentation/widgets/member_feedback_card.dart'
+    show conditionLabel, intensityLabel;
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/health_focus.dart';
 import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
@@ -135,6 +139,33 @@ TrainerNotificationText? _assemble(
         body: args['photo_only'] == true
             ? l.notifTplMemberPhotoBody
             : storedBody,
+      );
+    // 회원 주간 피드백(#3026). 통증이 있으면 제목이 달라진다 — 다음 PT 를 바꿔야
+    // 할 수 있는 답이다. 아픈 곳(회원이 쓴 글)은 서버도 싣지 않는다.
+    case 'trainer_member_weekly_feedback':
+      if (name == null) return null;
+      final Object? rawCondition = args['condition'];
+      final Object? rawIntensity = args['intensity'];
+      final WeekCondition? condition = rawCondition is String
+          ? WeekCondition.parse(rawCondition)
+          : null;
+      final WeekIntensity? intensity = rawIntensity is String
+          ? WeekIntensity.parse(rawIntensity)
+          : null;
+      // 모르는 답(서버가 새 값을 더했다)은 저장된 문장으로 돌아간다.
+      if (condition == null || intensity == null) return null;
+      final bool pain = args['pain'] == true;
+      return (
+        title: pain
+            ? l.notifTplWeeklyFeedbackPainTitle(name)
+            : args['revised'] == true
+            ? l.notifTplWeeklyFeedbackRevisedTitle(name)
+            : l.notifTplWeeklyFeedbackTitle(name),
+        body: <String>[
+          l.notifTplWeeklyFeedbackCondition(conditionLabel(l, condition)),
+          l.notifTplWeeklyFeedbackIntensity(intensityLabel(l, intensity)),
+          if (pain) l.notifTplWeeklyFeedbackPain,
+        ].join(' · '),
       );
   }
   return null;

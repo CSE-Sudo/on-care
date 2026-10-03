@@ -10,10 +10,13 @@ from sqlalchemy.orm import Session
 
 from app.models.models import (
     MemberWeeklyFeedback,
+    Notification,
+    User,
 )
 from app.schemas.trainer_api import (
     MemberWeeklyFeedbackOut,
 )
+from app.services import notification_service, notification_templates
 
 
 # ── 회원 주간 피드백 (#2232) ────────────────────────────────────────────────
@@ -55,8 +58,13 @@ def save_member_weekly_feedback(
     pain_area: str = "",
     pain_on: str = "",
     note: str = "",
+    trainer_id: str | None = None,
 ) -> MemberWeeklyFeedbackOut:
     """회원의 그 주 답을 저장한다. 같은 주에 다시 보내면 덮어쓴다.
+
+    [trainer_id] 가 있으면 그 담당 트레이너에게 알린다(#3026) — 저장과 같은
+    트랜잭션이라 함께 성사된다. 예전에는 저장만 해서 트레이너가 리포트 화면을 직접
+    열어야 답이 왔는지 알았다.
 
     한 주에 대한 회원의 말은 마지막 것 하나다 — 고쳐 보낸 답이 먼저 보낸 답
     옆에 나란히 서면 트레이너는 둘 중 무엇을 믿을지 알 수 없다.
@@ -71,6 +79,7 @@ def save_member_weekly_feedback(
     area = pain_area.strip()
     on = pain_on.strip() if area else ""
     row = _member_weekly_feedback_row(db, member_id, week)
+    resubmitted = row is not None
     now = datetime.now(timezone.utc)
     if row is None:
         row = MemberWeeklyFeedback(
@@ -93,9 +102,85 @@ def save_member_weekly_feedback(
         row.pain_on = on
         row.note = note.strip()
         row.updated_at = now
+    if trainer_id is not None:
+        _notify_trainer(
+            db,
+            trainer_id=trainer_id,
+            member_id=member_id,
+            week=week,
+            row=row,
+            resubmitted=resubmitted,
+            now=now,
+        )
     db.commit()
     db.refresh(row)
     return _member_weekly_feedback_out(row, week)
+
+
+def _notify_trainer(
+    db: Session,
+    *,
+    trainer_id: str,
+    member_id: str,
+    week: date,
+    row: MemberWeeklyFeedback,
+    resubmitted: bool,
+    now: datetime,
+) -> Notification | None:
+    """담당 트레이너에게 주간 피드백 도착을 알린다. **커밋하지 않는다.** (#3026)
+
+    같은 주에 고쳐 내면:
+
+    - 트레이너가 아직 읽지 않은 그 주 알림이 있으면 **새로 만들지 않고** 그 행을
+      최신 답으로 고쳐 쓰고 맨 위로 올린다. 답을 고칠 때마다 같은 회원 줄이
+      알림함에 쌓이면 무엇이 최신인지 읽을 수 없다.
+    - 이미 읽었으면 "피드백을 수정했어요" 로 한 건 더 만든다 — 트레이너가 본 답과
+      달라졌다는 것을 알려야 한다.
+    """
+    member_name = db.scalar(select(User.name).where(User.id == member_id)) or ""
+    week_iso = week.isoformat()
+    args = {
+        "member_name": member_name.strip(),
+        "condition": row.condition,
+        "intensity": row.intensity,
+        "pain": bool(row.pain_area),
+    }
+    unread = db.scalar(
+        select(Notification)
+        .where(
+            Notification.user_id == trainer_id,
+            Notification.category == notification_service.TRAINER_WEEKLY_FEEDBACK_KIND,
+            Notification.subject_id == member_id,
+            Notification.target_date == week_iso,
+            Notification.read.is_(False),
+        )
+        .order_by(Notification.created_at.desc(), Notification.id.desc())
+        .limit(1)
+    )
+    if unread is not None:
+        # 읽지 않은 첫 알림을 고쳐 쓰는 것이라 '수정' 여부는 그 알림의 것을 따른다 —
+        # 트레이너는 아직 먼저 낸 답을 보지 않았다.
+        previous = unread.template_args or {}
+        args["revised"] = bool(previous.get("revised"))
+        cols = notification_service.texts(
+            title=None,
+            template=notification_templates.TRAINER_MEMBER_WEEKLY_FEEDBACK,
+            template_args=args,
+        )
+        for key, value in cols.items():
+            setattr(unread, key, value)
+        unread.created_at = now
+        return unread
+    args["revised"] = resubmitted
+    return notification_service.queue_for_trainer(
+        db,
+        trainer_id=trainer_id,
+        kind=notification_service.TRAINER_WEEKLY_FEEDBACK_KIND,
+        template=notification_templates.TRAINER_MEMBER_WEEKLY_FEEDBACK,
+        template_args=args,
+        subject_id=member_id,
+        target_date=week_iso,
+    )
 
 
 def _member_weekly_feedback_out(

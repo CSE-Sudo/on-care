@@ -24,6 +24,11 @@ def _prod(**kw) -> Settings:
         embedder="gemini",
         # 운영은 첨부를 S3 에 둬야 기동한다(#3029).
         attachment_s3_bucket="oncare-prod",
+        # 운영은 소셜 토큰의 발급 앱을 확인한다(#3035). 비우면 그 provider 로그인을
+        # 거부한다는 경고가 뜬다.
+        google_client_ids="test-google-client.apps.googleusercontent.com",
+        kakao_app_id="1234567",
+        apple_client_ids="com.example.oncare",
     )
     base.update(kw)
     return Settings(**base)
@@ -109,3 +114,58 @@ def test_prod_without_demo_seed_has_no_demo_warning():
     warnings = startup_checks.check(_prod())
     # 운영에서는 폴백이 늘 꺼지고 시드도 켤 수 없어 데모 경고가 없다.
     assert not any("데모" in w for w in warnings)
+
+
+# --- 비밀번호 재설정 메일 링크(#3033) ---
+
+_MEMBER_HASH_URL = "https://oncare.example/frontend/#/auth/password-reset"
+_TRAINER_HASH_URL = "https://oncare.example/trainer/#/auth/password-reset"
+
+
+def _reset_warnings(settings: Settings) -> list[str]:
+    return [w for w in startup_checks.check(settings) if "PASSWORD_RESET_" in w]
+
+
+def test_prod_path_style_reset_url_is_warned(caplog):
+    settings = _prod(
+        attachment_s3_bucket="oncare-prod",
+        password_reset_member_url="https://oncare.example/auth/password-reset",
+        password_reset_trainer_url=_TRAINER_HASH_URL,
+    )
+    with caplog.at_level(logging.WARNING, logger="app.startup"):
+        warnings = _reset_warnings(settings)
+    assert len(warnings) == 1
+    assert "PASSWORD_RESET_MEMBER_URL" in warnings[0]
+    assert "PASSWORD_RESET_MEMBER_URL" in caplog.text
+
+
+def test_prod_plain_http_reset_url_is_warned():
+    settings = _prod(
+        attachment_s3_bucket="oncare-prod",
+        password_reset_trainer_url="http://oncare.example/trainer/#/auth/password-reset",
+    )
+    warnings = _reset_warnings(settings)
+    assert len(warnings) == 1
+    assert "PASSWORD_RESET_TRAINER_URL" in warnings[0]
+
+
+def test_prod_hash_style_reset_urls_are_not_warned():
+    settings = _prod(
+        attachment_s3_bucket="oncare-prod",
+        password_reset_member_url=_MEMBER_HASH_URL,
+        password_reset_trainer_url=_TRAINER_HASH_URL,
+    )
+    assert _reset_warnings(settings) == []
+
+
+def test_prod_empty_reset_urls_are_not_warned():
+    """비어 있으면 코드만 보내는 정상 동작이다."""
+    assert _reset_warnings(_prod(attachment_s3_bucket="oncare-prod")) == []
+
+
+def test_dev_reset_urls_are_not_checked():
+    settings = Settings(
+        _env_file=None,
+        password_reset_member_url="http://localhost:5173/auth/password-reset",
+    )
+    assert _reset_warnings(settings) == []
