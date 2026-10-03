@@ -27,6 +27,27 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notFoundGoSignIn => '로그인하러 가기';
 
   @override
+  String get updateRequiredTitle => '새 버전이 나왔어요';
+
+  @override
+  String get updateRequiredMessage => '계속 쓰려면 On-Care 를 업데이트해 주세요.';
+
+  @override
+  String updateRequiredVersions(String current, String min) {
+    return '지금 버전 $current · 필요한 버전 $min';
+  }
+
+  @override
+  String get updateRequiredAction => '업데이트';
+
+  @override
+  String get updateRequiredStoreHint => 'App Store 에서 On-Care 를 업데이트해 주세요.';
+
+  @override
+  String get updateRequiredOpenFailed =>
+      '스토어를 열지 못했어요. 스토어 앱에서 On-Care 를 업데이트해 주세요.';
+
+  @override
   String get navDashboard => '홈';
 
   @override
@@ -2022,7 +2043,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myLegalPrivacyEffectiveDate => '시행일 2026. 10. 03.';
 
   @override
-  String get myAppVersion => 'On-Care · 버전 1.0.0';
+  String myAppVersion(String version) {
+    return 'On-Care · 버전 $version';
+  }
+
+  @override
+  String get myAppName => 'On-Care';
 
   @override
   String get coachHeaderPill => 'AI 건강 도우미';
