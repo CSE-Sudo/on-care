@@ -180,12 +180,23 @@ Future<void> _requestCode(WidgetTester tester) async {
   await tester.pump();
 }
 
+/// 코드 칸에 [code] 를 넣는다.
+///
+/// [_submit] 이 초점을 거둔 뒤 같은 칸에 다시 치면 `enterText` 는 이미 그 칸을
+/// 입력 대상으로 알고 있어 키보드를 다시 붙이지 않는다 — 입력이 칸에 닿지 않는다.
+/// 그래서 칸이 직접 키보드를 다시 청하게 한다.
 Future<void> _enterCode(WidgetTester tester, String code) async {
   final Finder field = find.descendant(
     of: find.byKey(_codeKey),
     matching: find.byType(TextField),
   );
   await tester.ensureVisible(field);
+  await tester.pump();
+  tester
+      .state<EditableTextState>(
+        find.descendant(of: field, matching: find.byType(EditableText)),
+      )
+      .requestKeyboard();
   await tester.pump();
   await tester.enterText(field, code);
   await tester.pump();
@@ -456,7 +467,9 @@ void main() {
     final String tooLong = '${'a' * (256 - domain.length)}$domain';
     final String atLimit = '${'a' * (255 - domain.length)}$domain';
 
-    await _fill(tester, email: tooLong);
+    // 코드 요청이 막혀 코드 칸이 열리지 않으니 코드 없이 채우고 직접 누른다.
+    await _fill(tester, email: tooLong, code: null);
+    await _requestCode(tester);
 
     expect(_errorUnder(_emailKey, '이메일은 255자까지 입력할 수 있어요'), findsOneWidget);
     expect(find.text('이메일 형식이 올바르지 않아요'), findsNothing);
