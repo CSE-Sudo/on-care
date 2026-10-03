@@ -143,6 +143,7 @@ void main() {
           DietAnalysisFailure.dailyLimit,
           DietAnalysisFailure.rateLimited,
           DietAnalysisFailure.unavailable,
+          DietAnalysisFailure.aiCapacity,
         },
       );
     });
