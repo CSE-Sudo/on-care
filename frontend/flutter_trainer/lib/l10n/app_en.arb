@@ -1592,6 +1592,123 @@
   },
   "verifyConnectDisabled": "You can connect members once an operator approves your account. New member registration is off until then.",
   "verifyConsultDisabled": "Members can request consultations once an operator approves your account.",
+  "verifyRecordsLocked": "While your account is not approved, your members' diet, workout, health and chat records stay locked. Your members stay connected, so everything reopens once you are approved again.",
+  "notifTplVerificationApprovedTitle": "Your trainer account is approved",
+  "notifTplVerificationApprovedBody": "You now appear in Find a trainer and can take consultations and connect members.",
+  "notifTplVerificationRejectedTitle": "Your trainer account was not approved",
+  "notifTplVerificationRejectedBody": "Check your profile and gym in MY.",
+  "navAdminGroup": "Admin",
+  "navAdminTrainers": "Trainer approvals",
+  "adminTrainersTitle": "Trainer approvals",
+  "adminTrainersSubtitle": "Review new trainers' profiles and gyms, then approve or reject them.",
+  "adminRefresh": "Refresh",
+  "adminFilterAll": "All",
+  "adminStatusPending": "Pending",
+  "adminStatusApproved": "Approved",
+  "adminStatusRejected": "Rejected",
+  "adminStatusSuspended": "Suspended",
+  "adminTrainersLoadFailed": "Couldn't load trainers",
+  "adminActionRetryLater": "Please try again in a moment.",
+  "adminTrainersEmptyPending": "No trainers are waiting for approval",
+  "adminTrainersEmpty": "No trainers here",
+  "adminTrainerUnnamed": "Unnamed trainer",
+  "adminFieldEmail": "Email",
+  "adminFieldSpecialty": "Specialty",
+  "adminFieldCareer": "Experience",
+  "adminFieldCertifications": "Certificates",
+  "adminFieldGym": "Gym",
+  "adminFieldSignedUp": "Signed up",
+  "adminFieldDecided": "Decided",
+  "adminFieldNote": "Reason",
+  "adminValueNone": "None",
+  "adminGymNone": "No gym yet",
+  "adminGymNotFitness": "The workplace is not a gym",
+  "adminGymNotListed": "Even if approved, this trainer won't appear in Find a trainer yet.",
+  "adminApprove": "Approve",
+  "adminReject": "Reject",
+  "adminSuspend": "Suspend account",
+  "adminUnsuspend": "Lift suspension",
+  "adminApproveTitle": "Approve {name}?",
+  "@adminApproveTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "adminApproveBody": "Once approved, they appear in Find a trainer and can take consultations and connect members. They'll get a notification.",
+  "adminRejectTitle": "Reject {name}",
+  "@adminRejectTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "adminRejectBody": "Once rejected, they leave the member app and can't take new consultations or connect members. Records of members they already coach stay locked until approved again. The reason you write is shown to the trainer as is.",
+  "adminRejectHint": "Reason (optional)",
+  "adminSuspendTitle": "Suspend {name}'s account?",
+  "@adminSuspendTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "adminSuspendBody": "They are signed out right away and can't sign in again. All member connections end, members are notified, and upcoming PT sessions are cancelled. Lifting the suspension does not restore those connections.",
+  "adminUnsuspendTitle": "Lift {name}'s suspension?",
+  "@adminUnsuspendTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "adminUnsuspendBody": "They can sign in again. Ended member connections only come back when the member agrees again.",
+  "adminApproved": "Approved {name}",
+  "@adminApproved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "adminRejected": "Rejected {name}",
+  "@adminRejected": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "adminSuspended": "Suspended {name}'s account",
+  "@adminSuspended": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "adminSuspendedReleased": "Suspended {name}'s account and ended {count} member connections",
+  "@adminSuspendedReleased": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminUnsuspended": "Lifted {name}'s suspension",
+  "@adminUnsuspended": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "adminActionFailed": "Couldn't complete that. Please try again in a moment.",
   "myGymEditHint": "Search by name and pick your gym. Members find you through this gym.",
   "mySignOut": "Sign out",
   "myPwCurrentRequired": "Enter your current password",

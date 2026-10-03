@@ -4189,6 +4189,312 @@ abstract class AppLocalizations {
   /// **'Members can request consultations once an operator approves your account.'**
   String get verifyConsultDisabled;
 
+  /// No description provided for @verifyRecordsLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'While your account is not approved, your members\' diet, workout, health and chat records stay locked. Your members stay connected, so everything reopens once you are approved again.'**
+  String get verifyRecordsLocked;
+
+  /// No description provided for @notifTplVerificationApprovedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your trainer account is approved'**
+  String get notifTplVerificationApprovedTitle;
+
+  /// No description provided for @notifTplVerificationApprovedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You now appear in Find a trainer and can take consultations and connect members.'**
+  String get notifTplVerificationApprovedBody;
+
+  /// No description provided for @notifTplVerificationRejectedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your trainer account was not approved'**
+  String get notifTplVerificationRejectedTitle;
+
+  /// No description provided for @notifTplVerificationRejectedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your profile and gym in MY.'**
+  String get notifTplVerificationRejectedBody;
+
+  /// No description provided for @navAdminGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin'**
+  String get navAdminGroup;
+
+  /// No description provided for @navAdminTrainers.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer approvals'**
+  String get navAdminTrainers;
+
+  /// No description provided for @adminTrainersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer approvals'**
+  String get adminTrainersTitle;
+
+  /// No description provided for @adminTrainersSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review new trainers\' profiles and gyms, then approve or reject them.'**
+  String get adminTrainersSubtitle;
+
+  /// No description provided for @adminRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get adminRefresh;
+
+  /// No description provided for @adminFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get adminFilterAll;
+
+  /// No description provided for @adminStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get adminStatusPending;
+
+  /// No description provided for @adminStatusApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved'**
+  String get adminStatusApproved;
+
+  /// No description provided for @adminStatusRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected'**
+  String get adminStatusRejected;
+
+  /// No description provided for @adminStatusSuspended.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspended'**
+  String get adminStatusSuspended;
+
+  /// No description provided for @adminTrainersLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load trainers'**
+  String get adminTrainersLoadFailed;
+
+  /// No description provided for @adminActionRetryLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Please try again in a moment.'**
+  String get adminActionRetryLater;
+
+  /// No description provided for @adminTrainersEmptyPending.
+  ///
+  /// In en, this message translates to:
+  /// **'No trainers are waiting for approval'**
+  String get adminTrainersEmptyPending;
+
+  /// No description provided for @adminTrainersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No trainers here'**
+  String get adminTrainersEmpty;
+
+  /// No description provided for @adminTrainerUnnamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unnamed trainer'**
+  String get adminTrainerUnnamed;
+
+  /// No description provided for @adminFieldEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get adminFieldEmail;
+
+  /// No description provided for @adminFieldSpecialty.
+  ///
+  /// In en, this message translates to:
+  /// **'Specialty'**
+  String get adminFieldSpecialty;
+
+  /// No description provided for @adminFieldCareer.
+  ///
+  /// In en, this message translates to:
+  /// **'Experience'**
+  String get adminFieldCareer;
+
+  /// No description provided for @adminFieldCertifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Certificates'**
+  String get adminFieldCertifications;
+
+  /// No description provided for @adminFieldGym.
+  ///
+  /// In en, this message translates to:
+  /// **'Gym'**
+  String get adminFieldGym;
+
+  /// No description provided for @adminFieldSignedUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed up'**
+  String get adminFieldSignedUp;
+
+  /// No description provided for @adminFieldDecided.
+  ///
+  /// In en, this message translates to:
+  /// **'Decided'**
+  String get adminFieldDecided;
+
+  /// No description provided for @adminFieldNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason'**
+  String get adminFieldNote;
+
+  /// No description provided for @adminValueNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get adminValueNone;
+
+  /// No description provided for @adminGymNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No gym yet'**
+  String get adminGymNone;
+
+  /// No description provided for @adminGymNotFitness.
+  ///
+  /// In en, this message translates to:
+  /// **'The workplace is not a gym'**
+  String get adminGymNotFitness;
+
+  /// No description provided for @adminGymNotListed.
+  ///
+  /// In en, this message translates to:
+  /// **'Even if approved, this trainer won\'t appear in Find a trainer yet.'**
+  String get adminGymNotListed;
+
+  /// No description provided for @adminApprove.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve'**
+  String get adminApprove;
+
+  /// No description provided for @adminReject.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get adminReject;
+
+  /// No description provided for @adminSuspend.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspend account'**
+  String get adminSuspend;
+
+  /// No description provided for @adminUnsuspend.
+  ///
+  /// In en, this message translates to:
+  /// **'Lift suspension'**
+  String get adminUnsuspend;
+
+  /// No description provided for @adminApproveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve {name}?'**
+  String adminApproveTitle(String name);
+
+  /// No description provided for @adminApproveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Once approved, they appear in Find a trainer and can take consultations and connect members. They\'ll get a notification.'**
+  String get adminApproveBody;
+
+  /// No description provided for @adminRejectTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject {name}'**
+  String adminRejectTitle(String name);
+
+  /// No description provided for @adminRejectBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Once rejected, they leave the member app and can\'t take new consultations or connect members. Records of members they already coach stay locked until approved again. The reason you write is shown to the trainer as is.'**
+  String get adminRejectBody;
+
+  /// No description provided for @adminRejectHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason (optional)'**
+  String get adminRejectHint;
+
+  /// No description provided for @adminSuspendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspend {name}\'s account?'**
+  String adminSuspendTitle(String name);
+
+  /// No description provided for @adminSuspendBody.
+  ///
+  /// In en, this message translates to:
+  /// **'They are signed out right away and can\'t sign in again. All member connections end, members are notified, and upcoming PT sessions are cancelled. Lifting the suspension does not restore those connections.'**
+  String get adminSuspendBody;
+
+  /// No description provided for @adminUnsuspendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Lift {name}\'s suspension?'**
+  String adminUnsuspendTitle(String name);
+
+  /// No description provided for @adminUnsuspendBody.
+  ///
+  /// In en, this message translates to:
+  /// **'They can sign in again. Ended member connections only come back when the member agrees again.'**
+  String get adminUnsuspendBody;
+
+  /// No description provided for @adminApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved {name}'**
+  String adminApproved(String name);
+
+  /// No description provided for @adminRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected {name}'**
+  String adminRejected(String name);
+
+  /// No description provided for @adminSuspended.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspended {name}\'s account'**
+  String adminSuspended(String name);
+
+  /// No description provided for @adminSuspendedReleased.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspended {name}\'s account and ended {count} member connections'**
+  String adminSuspendedReleased(String name, int count);
+
+  /// No description provided for @adminUnsuspended.
+  ///
+  /// In en, this message translates to:
+  /// **'Lifted {name}\'s suspension'**
+  String adminUnsuspended(String name);
+
+  /// No description provided for @adminActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t complete that. Please try again in a moment.'**
+  String get adminActionFailed;
+
   /// No description provided for @myGymEditHint.
   ///
   /// In en, this message translates to:

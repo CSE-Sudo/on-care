@@ -7,6 +7,7 @@ import 'package:oncare_trainer/core/network/auth_token.dart';
 import 'package:oncare_trainer/core/network/client_platform.dart';
 import 'package:oncare_trainer/core/network/interceptors/api_logging_interceptor.dart';
 import 'package:oncare_trainer/core/network/interceptors/client_access_interceptor.dart';
+import 'package:oncare_trainer/core/network/interceptors/verification_denied_interceptor.dart';
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
 
 /// App-wide `Dio` instance, wired with language + auth + logging interceptors from
@@ -44,6 +45,10 @@ final dioProvider = Provider<Dio>((ref) {
   // 담당이 해제된 회원의 404 를 로스터 재검증으로 잇는다(#2281).
   dio.interceptors.add(
     ClientAccessInterceptor(ref.watch(clientAccessLostProvider).report),
+  );
+  // 승인된 줄 알던 세션이 반려 403 을 받으면 프로필을 다시 읽게 한다(#3010).
+  dio.interceptors.add(
+    VerificationDeniedInterceptor(ref.watch(verificationDeniedProvider).report),
   );
   if (!config.isProd) {
     dio.interceptors.add(const ApiLoggingInterceptor());

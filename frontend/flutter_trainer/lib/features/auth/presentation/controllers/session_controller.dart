@@ -342,6 +342,42 @@ class SessionController extends StateNotifier<SessionState>
     );
   }
 
+  /// 진행 중인 [refreshProfile] — 같은 신호가 겹쳐도 `/trainer/me` 는 한 번만 읽는다.
+  Future<void>? _profileRefresh;
+
+  /// 로그인한 채로 `GET /trainer/me` 를 다시 읽어 프로필을 바꾼다 (#3010).
+  ///
+  /// 운영자 승인·반려는 다른 사람이 서버에서 바꾸는 값이라, 로그인할 때 받은 프로필은
+  /// 그 뒤로 낡는다. 승인 알림이 들어올 때, 승인 전 탭이 다시 보일 때, 승인된 줄 아는
+  /// 세션이 `trainer_not_approved` 403 을 받을 때 부른다 — 다시 로그인하지 않아도
+  /// 배너·버튼이 서버 상태를 따른다.
+  ///
+  /// 로그인 세션이 아니면(데모·로그아웃) 아무것도 하지 않는다. 읽기 실패는 조용히
+  /// 넘긴다 — 다음 신호가 다시 부르고, 실제 차단은 서버가 한다. 읽는 사이 로그아웃·
+  /// 다른 계정 로그인이 있었으면 결과를 버린다. 계정 경계가 아니므로 계정 범위
+  /// provider 는 다시 만들지 않는다([replaceProfile] 과 같다).
+  Future<void> refreshProfile() {
+    return _profileRefresh ??= _refreshProfileOnce().whenComplete(() {
+      _profileRefresh = null;
+    });
+  }
+
+  Future<void> _refreshProfileOnce() async {
+    if (state.status != SessionStatus.authenticated) return;
+    final String? access = _ref.read(authAccessTokenProvider);
+    if (access == null) return;
+    final TrainerProfile profile;
+    try {
+      profile = await _repo.fetchProfile(access);
+    } catch (_) {
+      return;
+    }
+    if (!_holdsToken(access)) return;
+    final String? mine = _accountKey(state.profile?.email);
+    if (mine != null && _accountKey(profile.email) != mine) return;
+    replaceProfile(profile);
+  }
+
   /// 동의 화면에서 체크한 항목을 남긴다 → `POST /users/me/consents`. (#2819)
   ///
   /// 서버가 남은 동의가 없다고 하면 들고 있던 토큰을 그제야 저장하고 동의 요구를

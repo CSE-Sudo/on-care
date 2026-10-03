@@ -87,6 +87,7 @@ class TrainerProfile {
     required this.certifications,
     required this.gym,
     this.verification = TrainerVerification.approved,
+    this.isAdmin = false,
   });
 
   /// Display name (e.g. "김태오").
@@ -119,6 +120,12 @@ class TrainerProfile {
   /// 운영자 승인 상태 (#2825). 데모 프로필은 승인 상태다.
   final TrainerVerification verification;
 
+  /// 운영자 계정인가 — `GET /trainer/me` 의 `is_admin` (#3008).
+  ///
+  /// 사이드바의 `트레이너 승인` 메뉴와 `/admin/trainers` 화면을 열지만, 실제 권한은
+  /// 서버가 `/admin/*` 에서 따로 확인한다. 데모 프로필은 운영자가 아니다.
+  final bool isAdmin;
+
   /// Returns a copy with the given fields replaced. Used by 회원가입 to
   /// reflect the submitted name/email on the (otherwise seed) demo profile.
   TrainerProfile copyWith({
@@ -131,6 +138,7 @@ class TrainerProfile {
     List<String>? certifications,
     TrainerGym? gym,
     TrainerVerification? verification,
+    bool? isAdmin,
   }) {
     return TrainerProfile(
       name: name ?? this.name,
@@ -142,6 +150,7 @@ class TrainerProfile {
       certifications: certifications ?? this.certifications,
       gym: gym ?? this.gym,
       verification: verification ?? this.verification,
+      isAdmin: isAdmin ?? this.isAdmin,
     );
   }
 }

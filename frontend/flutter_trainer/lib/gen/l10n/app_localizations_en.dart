@@ -2402,6 +2402,190 @@ class AppLocalizationsEn extends AppLocalizations {
       'Members can request consultations once an operator approves your account.';
 
   @override
+  String get verifyRecordsLocked =>
+      'While your account is not approved, your members\' diet, workout, health and chat records stay locked. Your members stay connected, so everything reopens once you are approved again.';
+
+  @override
+  String get notifTplVerificationApprovedTitle =>
+      'Your trainer account is approved';
+
+  @override
+  String get notifTplVerificationApprovedBody =>
+      'You now appear in Find a trainer and can take consultations and connect members.';
+
+  @override
+  String get notifTplVerificationRejectedTitle =>
+      'Your trainer account was not approved';
+
+  @override
+  String get notifTplVerificationRejectedBody =>
+      'Check your profile and gym in MY.';
+
+  @override
+  String get navAdminGroup => 'Admin';
+
+  @override
+  String get navAdminTrainers => 'Trainer approvals';
+
+  @override
+  String get adminTrainersTitle => 'Trainer approvals';
+
+  @override
+  String get adminTrainersSubtitle =>
+      'Review new trainers\' profiles and gyms, then approve or reject them.';
+
+  @override
+  String get adminRefresh => 'Refresh';
+
+  @override
+  String get adminFilterAll => 'All';
+
+  @override
+  String get adminStatusPending => 'Pending';
+
+  @override
+  String get adminStatusApproved => 'Approved';
+
+  @override
+  String get adminStatusRejected => 'Rejected';
+
+  @override
+  String get adminStatusSuspended => 'Suspended';
+
+  @override
+  String get adminTrainersLoadFailed => 'Couldn\'t load trainers';
+
+  @override
+  String get adminActionRetryLater => 'Please try again in a moment.';
+
+  @override
+  String get adminTrainersEmptyPending =>
+      'No trainers are waiting for approval';
+
+  @override
+  String get adminTrainersEmpty => 'No trainers here';
+
+  @override
+  String get adminTrainerUnnamed => 'Unnamed trainer';
+
+  @override
+  String get adminFieldEmail => 'Email';
+
+  @override
+  String get adminFieldSpecialty => 'Specialty';
+
+  @override
+  String get adminFieldCareer => 'Experience';
+
+  @override
+  String get adminFieldCertifications => 'Certificates';
+
+  @override
+  String get adminFieldGym => 'Gym';
+
+  @override
+  String get adminFieldSignedUp => 'Signed up';
+
+  @override
+  String get adminFieldDecided => 'Decided';
+
+  @override
+  String get adminFieldNote => 'Reason';
+
+  @override
+  String get adminValueNone => 'None';
+
+  @override
+  String get adminGymNone => 'No gym yet';
+
+  @override
+  String get adminGymNotFitness => 'The workplace is not a gym';
+
+  @override
+  String get adminGymNotListed =>
+      'Even if approved, this trainer won\'t appear in Find a trainer yet.';
+
+  @override
+  String get adminApprove => 'Approve';
+
+  @override
+  String get adminReject => 'Reject';
+
+  @override
+  String get adminSuspend => 'Suspend account';
+
+  @override
+  String get adminUnsuspend => 'Lift suspension';
+
+  @override
+  String adminApproveTitle(String name) {
+    return 'Approve $name?';
+  }
+
+  @override
+  String get adminApproveBody =>
+      'Once approved, they appear in Find a trainer and can take consultations and connect members. They\'ll get a notification.';
+
+  @override
+  String adminRejectTitle(String name) {
+    return 'Reject $name';
+  }
+
+  @override
+  String get adminRejectBody =>
+      'Once rejected, they leave the member app and can\'t take new consultations or connect members. Records of members they already coach stay locked until approved again. The reason you write is shown to the trainer as is.';
+
+  @override
+  String get adminRejectHint => 'Reason (optional)';
+
+  @override
+  String adminSuspendTitle(String name) {
+    return 'Suspend $name\'s account?';
+  }
+
+  @override
+  String get adminSuspendBody =>
+      'They are signed out right away and can\'t sign in again. All member connections end, members are notified, and upcoming PT sessions are cancelled. Lifting the suspension does not restore those connections.';
+
+  @override
+  String adminUnsuspendTitle(String name) {
+    return 'Lift $name\'s suspension?';
+  }
+
+  @override
+  String get adminUnsuspendBody =>
+      'They can sign in again. Ended member connections only come back when the member agrees again.';
+
+  @override
+  String adminApproved(String name) {
+    return 'Approved $name';
+  }
+
+  @override
+  String adminRejected(String name) {
+    return 'Rejected $name';
+  }
+
+  @override
+  String adminSuspended(String name) {
+    return 'Suspended $name\'s account';
+  }
+
+  @override
+  String adminSuspendedReleased(String name, int count) {
+    return 'Suspended $name\'s account and ended $count member connections';
+  }
+
+  @override
+  String adminUnsuspended(String name) {
+    return 'Lifted $name\'s suspension';
+  }
+
+  @override
+  String get adminActionFailed =>
+      'Couldn\'t complete that. Please try again in a moment.';
+
+  @override
   String get myGymEditHint =>
       'Search by name and pick your gym. Members find you through this gym.';
 
@@ -2697,7 +2881,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachDraftDiscard => 'Discard';
 
   @override
-  String get personalRoutineTargetLoadFailed => 'Couldn\'t load PT appointments';
+  String get personalRoutineTargetLoadFailed =>
+      'Couldn\'t load PT appointments';
 
   @override
   String get personalRoutineStartPast =>

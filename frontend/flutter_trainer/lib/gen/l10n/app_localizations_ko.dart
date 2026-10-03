@@ -2273,6 +2273,183 @@ class AppLocalizationsKo extends AppLocalizations {
   String get verifyConsultDisabled => '운영자 승인 뒤부터 회원 앱에서 상담을 신청할 수 있어요.';
 
   @override
+  String get verifyRecordsLocked =>
+      '승인이 반려된 동안에는 담당 회원의 식단·운동·건강 정보·채팅 기록을 열 수 없어요. 담당 연결은 그대로라 다시 승인되면 바로 열려요.';
+
+  @override
+  String get notifTplVerificationApprovedTitle => '운영자 승인이 완료되었어요';
+
+  @override
+  String get notifTplVerificationApprovedBody =>
+      '이제 회원 앱 트레이너 찾기에 보이고 상담 요청·회원 연결을 받을 수 있어요.';
+
+  @override
+  String get notifTplVerificationRejectedTitle => '운영자 승인이 반려되었어요';
+
+  @override
+  String get notifTplVerificationRejectedBody => 'MY 에서 프로필과 소속 헬스장을 확인해 주세요.';
+
+  @override
+  String get navAdminGroup => '운영';
+
+  @override
+  String get navAdminTrainers => '트레이너 승인';
+
+  @override
+  String get adminTrainersTitle => '트레이너 승인';
+
+  @override
+  String get adminTrainersSubtitle => '가입한 트레이너의 프로필과 소속을 확인하고 승인하거나 반려해요.';
+
+  @override
+  String get adminRefresh => '새로고침';
+
+  @override
+  String get adminFilterAll => '전체';
+
+  @override
+  String get adminStatusPending => '승인 대기';
+
+  @override
+  String get adminStatusApproved => '승인';
+
+  @override
+  String get adminStatusRejected => '반려';
+
+  @override
+  String get adminStatusSuspended => '정지됨';
+
+  @override
+  String get adminTrainersLoadFailed => '트레이너 목록을 불러오지 못했어요';
+
+  @override
+  String get adminActionRetryLater => '잠시 뒤 다시 시도해 주세요.';
+
+  @override
+  String get adminTrainersEmptyPending => '승인을 기다리는 트레이너가 없어요';
+
+  @override
+  String get adminTrainersEmpty => '해당하는 트레이너가 없어요';
+
+  @override
+  String get adminTrainerUnnamed => '이름 없는 트레이너';
+
+  @override
+  String get adminFieldEmail => '이메일';
+
+  @override
+  String get adminFieldSpecialty => '전문 분야';
+
+  @override
+  String get adminFieldCareer => '경력';
+
+  @override
+  String get adminFieldCertifications => '자격증';
+
+  @override
+  String get adminFieldGym => '소속';
+
+  @override
+  String get adminFieldSignedUp => '가입일';
+
+  @override
+  String get adminFieldDecided => '처리일';
+
+  @override
+  String get adminFieldNote => '반려 사유';
+
+  @override
+  String get adminValueNone => '없음';
+
+  @override
+  String get adminGymNone => '소속 헬스장이 없어요';
+
+  @override
+  String get adminGymNotFitness => '소속 장소가 헬스장이 아니에요';
+
+  @override
+  String get adminGymNotListed => '이대로 승인해도 회원 앱 트레이너 찾기에는 나오지 않아요.';
+
+  @override
+  String get adminApprove => '승인';
+
+  @override
+  String get adminReject => '반려';
+
+  @override
+  String get adminSuspend => '계정 정지';
+
+  @override
+  String get adminUnsuspend => '정지 해제';
+
+  @override
+  String adminApproveTitle(String name) {
+    return '$name 트레이너를 승인할까요?';
+  }
+
+  @override
+  String get adminApproveBody =>
+      '승인하면 회원 앱 트레이너 찾기에 나오고 상담 요청과 회원 연결을 받을 수 있어요. 트레이너에게 알림이 가요.';
+
+  @override
+  String adminRejectTitle(String name) {
+    return '$name 트레이너 반려';
+  }
+
+  @override
+  String get adminRejectBody =>
+      '반려하면 회원 앱에서 빠지고 새 상담·회원 연결을 받을 수 없어요. 이미 담당한 회원의 기록도 다시 승인할 때까지 잠겨요. 적은 사유는 트레이너에게 그대로 보여요.';
+
+  @override
+  String get adminRejectHint => '반려 사유 (선택)';
+
+  @override
+  String adminSuspendTitle(String name) {
+    return '$name 계정을 정지할까요?';
+  }
+
+  @override
+  String get adminSuspendBody =>
+      '정지하면 바로 로그아웃되고 다시 로그인할 수 없어요. 담당 회원 연결은 모두 해제되어 회원에게 알림이 가고, 시작 전 PT 일정은 취소돼요. 정지를 풀어도 연결은 돌아오지 않아요.';
+
+  @override
+  String adminUnsuspendTitle(String name) {
+    return '$name 계정 정지를 풀까요?';
+  }
+
+  @override
+  String get adminUnsuspendBody =>
+      '다시 로그인할 수 있어요. 해제된 담당 회원 연결은 회원이 다시 동의해야 이어져요.';
+
+  @override
+  String adminApproved(String name) {
+    return '$name 트레이너를 승인했어요';
+  }
+
+  @override
+  String adminRejected(String name) {
+    return '$name 트레이너를 반려했어요';
+  }
+
+  @override
+  String adminSuspended(String name) {
+    return '$name 계정을 정지했어요';
+  }
+
+  @override
+  String adminSuspendedReleased(String name, int count) {
+    return '$name 계정을 정지하고 담당 회원 $count명의 연결을 해제했어요';
+  }
+
+  @override
+  String adminUnsuspended(String name) {
+    return '$name 계정 정지를 풀었어요';
+  }
+
+  @override
+  String get adminActionFailed => '처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.';
+
+  @override
   String get myGymEditHint => '이름으로 찾아 소속 헬스장을 골라 주세요. 회원은 이 헬스장으로 트레이너님을 찾아요.';
 
   @override
