@@ -344,7 +344,8 @@ class _AlertTile extends StatelessWidget {
   final bool navigable;
   final VoidCallback? onTap;
 
-  /// 이 알림이 말하는 화면으로 가는 중이다 — 줄 오른쪽에 작은 로딩 표시(#3097).
+  /// 이 알림이 말하는 화면으로 가는 중이다 — 갈래 아이콘 자리에 작은 로딩
+  /// 표시(#3097). 줄 오른쪽에 붙이면 본문 폭이 줄어 줄 높이가 튄다.
   final bool opening;
 
   @override
@@ -362,7 +363,12 @@ class _AlertTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _CategoryBadge(icon: display.icon),
+          _CategoryBadge(
+            icon: display.icon,
+            loadingKey: opening
+                ? ValueKey<String>('notification-opening-${item.id}')
+                : null,
+          ),
           const SizedBox(width: OnCareSpacing.s16),
           Expanded(
             child: Column(
@@ -398,12 +404,6 @@ class _AlertTile extends StatelessWidget {
               ],
             ),
           ),
-          if (opening) ...<Widget>[
-            const SizedBox(width: OnCareSpacing.s12),
-            AppLoading.inline(
-              key: ValueKey<String>('notification-opening-${item.id}'),
-            ),
-          ],
         ],
       ),
     );
@@ -435,8 +435,11 @@ class _AlertTile extends StatelessWidget {
 /// 원이 있던 때와 같게 두어 제목·본문이 시작하는 위치는 그대로다. 색은 본문과 같은
 /// 회색이라 글 흐름에 섞이고, 읽음 상태는 아이콘이 아니라 줄 바탕이 말한다.
 class _CategoryBadge extends StatelessWidget {
-  const _CategoryBadge({required this.icon});
+  const _CategoryBadge({required this.icon, this.loadingKey});
   final IconData icon;
+
+  /// 있으면 아이콘 대신 이 키로 작은 로딩 표시를 그린다(#3097).
+  final Key? loadingKey;
 
   @override
   Widget build(BuildContext context) {
@@ -444,11 +447,13 @@ class _CategoryBadge extends StatelessWidget {
       width: OnCareSize.avatarLarge,
       height: OnCareSize.avatarLarge,
       child: Center(
-        child: AppIcon(
-          icon,
-          size: OnCareSize.iconMedium,
-          color: OnCareColors.textSecondary,
-        ),
+        child: loadingKey != null
+            ? AppLoading.inline(key: loadingKey)
+            : AppIcon(
+                icon,
+                size: OnCareSize.iconMedium,
+                color: OnCareColors.textSecondary,
+              ),
       ),
     );
   }
