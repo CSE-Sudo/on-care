@@ -16,8 +16,12 @@
 가입·로그인·프로필 작성은 그대로 된다. 트레이너는 승인을 기다리는 동안 프로필과
 소속을 채워 둘 수 있어야 운영자가 그 내용을 보고 판단할 수 있다.
 
-증빙(자격증 사본) 업로드와 운영자 관리 화면은 이 단계 밖이다 — 운영자는 관리자
-엔드포인트(`/admin/trainers*`)로 처리한다.
+운영자는 트레이너 웹의 `트레이너 승인` 화면(#3008, 관리자 계정에만 보인다)에서
+관리자 엔드포인트(`/admin/trainers*`)로 처리한다. 증빙(자격증 사본) 업로드는 이
+단계 밖이다.
+
+승인·반려가 상태를 실제로 바꾸면 트레이너에게 알림을 남긴다(#3010) — 트레이너 웹이
+그 알림을 받아 로그인한 채로 승인 상태를 다시 읽는다.
 """
 from __future__ import annotations
 
@@ -28,6 +32,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.models import Place, TrainerProfile, User
+from app.services import notification_service, notification_templates
 from app.schemas.trainer_verification import (
     AdminTrainerVerificationOut,
     TrainerVerificationOut,
@@ -38,6 +43,10 @@ APPROVED = "approved"
 REJECTED = "rejected"
 
 STATUSES = (PENDING, APPROVED, REJECTED)
+
+#: 승인받지 않은 트레이너에게 주는 403 의 `detail.code`. 연결 경로와 담당 회원
+#: 기록 열람이 같은 값을 쓴다 — 트레이너 웹이 이 값 하나로 승인 안내를 고른다.
+NOT_APPROVED_CODE = "trainer_not_approved"
 
 
 class TrainerNotFound(Exception):
@@ -107,6 +116,7 @@ def _admin_out(
         decided_by=profile.verification_decided_by,
         note=profile.verification_note or "",
         created_at=user.created_at,
+        is_active=bool(user.is_active),
     )
 
 
@@ -142,13 +152,39 @@ def _decide(
     note: str,
 ) -> AdminTrainerVerificationOut:
     user, profile = _require_profile(db, trainer_id)
+    changed = profile.verification_status != status
     profile.verification_status = status
     profile.verification_decided_at = _now()
     profile.verification_decided_by = admin_id
     profile.verification_note = note
+    if changed:
+        _queue_decision_notice(db, trainer_id, status=status, note=note)
     db.commit()
     db.refresh(profile)
     return _admin_out(db, user, profile)
+
+
+def _queue_decision_notice(
+    db: Session, trainer_id: str, *, status: str, note: str
+) -> None:
+    """승인·반려 알림(#3010). 같은 상태로 다시 처리하면 부르지 않는다 — 사유만
+    고친 반려가 알림을 한 건 더 만들면 트레이너는 무엇이 바뀌었는지 모른다."""
+    if status == APPROVED:
+        notification_service.queue_for_trainer(
+            db,
+            trainer_id=trainer_id,
+            kind=notification_service.TRAINER_VERIFICATION_KIND,
+            template=notification_templates.TRAINER_VERIFICATION_APPROVED,
+        )
+        return
+    notification_service.queue_for_trainer(
+        db,
+        trainer_id=trainer_id,
+        kind=notification_service.TRAINER_VERIFICATION_KIND,
+        template=notification_templates.TRAINER_VERIFICATION_REJECTED,
+        template_args={"has_note": bool(note)},
+        body=note,
+    )
 
 
 def approve(
@@ -163,9 +199,10 @@ def reject(
 ) -> AdminTrainerVerificationOut:
     """반려. 승인했던 트레이너도 반려할 수 있다.
 
-    반려는 **새 연결을 막을 뿐** 이미 맺어진 담당 관계를 끊지 않는다. 끊기는 회원
-    쪽에 알림·동의 철회 같은 별도 절차가 필요하고, 그건 계정 정지·탈퇴 경로의
-    일이다.
+    반려는 새 연결을 막고, 이미 맺은 담당 회원의 기록 열람도 잠근다(#3009,
+    `_require_client`). 담당 관계는 끊지 않는다 — 끊으면 회원 쪽 알림·동의 철회가
+    따라오고 되돌릴 수 없다. 다시 승인하면 담당과 열람이 그대로 돌아온다. 관계까지
+    끊어야 하면 계정 정지(`account_suspension_service`)를 쓴다.
     """
     return _decide(
         db,

@@ -58,6 +58,10 @@ TRAINER_INVITE_ACCEPTED = "trainer_invite_accepted"
 TRAINER_INVITE_REJECTED = "trainer_invite_rejected"
 TRAINER_RESERVATION_BOOKED = "trainer_reservation_booked"
 TRAINER_RESERVATION_CANCELLED = "trainer_reservation_cancelled"
+#: 운영자가 트레이너를 승인했다·반려했다(#3010). 반려 사유는 운영자가 쓴 글이라
+#: 번역하지 않고 저장된 본문을 그대로 쓴다.
+TRAINER_VERIFICATION_APPROVED = "trainer_verification_approved"
+TRAINER_VERIFICATION_REJECTED = "trainer_verification_rejected"
 TRAINER_MEMBER_MESSAGE = "trainer_member_message"
 
 # 트레이너가 한 일로 회원이 받는 알림.
@@ -300,6 +304,34 @@ def _trainer_invite_rejected(args: Args, locale: Locale) -> Rendered:
     if locale == "ko":
         return "담당 요청이 거절되었어요", f"{name or '회원'} 회원이 담당 요청을 거절했어요."
     return "Coaching request declined", f"{name or 'A member'} declined your coaching request."
+
+
+@_template(TRAINER_VERIFICATION_APPROVED)
+def _trainer_verification_approved(args: Args, locale: Locale) -> Rendered:
+    if locale == "ko":
+        return (
+            "운영자 승인이 완료되었어요",
+            "이제 회원 앱 트레이너 찾기에 보이고 상담 요청·회원 연결을 받을 수 있어요.",
+        )
+    return (
+        "Your trainer account is approved",
+        "You now appear in Find a trainer and can take consultations and connect members.",
+    )
+
+
+@_template(TRAINER_VERIFICATION_REJECTED)
+def _trainer_verification_rejected(args: Args, locale: Locale) -> Rendered:
+    # 반려 사유를 적었으면 본문은 그 사유 그대로다.
+    has_note = bool(args.get("has_note"))
+    if locale == "ko":
+        return (
+            "운영자 승인이 반려되었어요",
+            None if has_note else "MY 에서 프로필과 소속 헬스장을 확인해 주세요.",
+        )
+    return (
+        "Your trainer account was not approved",
+        None if has_note else "Check your profile and gym in MY.",
+    )
 
 
 @_template(TRAINER_RESERVATION_BOOKED)

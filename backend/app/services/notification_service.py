@@ -312,6 +312,10 @@ TRAINER_CONSULT_WITHDRAWN_KIND = "consult_withdrawn"
 TRAINER_INVITE_ACCEPTED_KIND = "invite_accepted"
 #: 회원이 담당 요청을 거절했다 → 고객 목록. 담당이 아니라 상세는 열 수 없다(#2292).
 TRAINER_INVITE_REJECTED_KIND = "invite_rejected"
+#: 운영자가 이 트레이너를 승인·반려했다(#3010). 승인 → 대시보드, 반려 → MY(사유
+#: 확인). 수신 설정 스위치를 두지 않는다 — 계정 상태가 바뀐 일이라 끌 수 있는
+#: 알림이 아니고, [_TRAINER_SETTING_COLUMN] 에 넣지 않으므로 늘 보낸다.
+TRAINER_VERIFICATION_KIND = "verification"
 
 #: 종류별 트레이너 수신 설정 컬럼. 없으면 항상 보낸다 — 상담 요청·예약은 끄면
 #: 트레이너가 놓쳐도 되는 종류가 아니고, 설정 화면에도 그 스위치가 없다.
