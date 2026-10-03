@@ -210,11 +210,14 @@
 | DELETE | `/diet/entries/{id}` | `{ status: "deleted" }` — 그 끼니로 받은 포인트를 회수한다 |
 | POST | `/diet/nutrition` | `{ name(필수), amount_g? }` → `{ matched_name?, match(exact\|similar)?, source, amount_g?, calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` — 이름으로 찾은 공공 DB 값(#1896). 못 찾았거나 양을 정할 수 없으면 `matched_name`·`match` 가 null |
 
+**`POST /diet/analyze` 사진 정리.** 받은 사진은 인식 전에 한 번 정리한다(#3041) — EXIF 회전을 픽셀에 적용하고, EXIF(촬영 위치·시각·기기)·XMP 등 메타데이터를 모두 버린 장변 1600px 이하 JPEG(품질 85, 앱 업로드 크기와 같음)이다. 외부 인식 모델(Gemini·LiteLLM 비전)은 **원본이 아니라 이 정리본만** 받고, 끼니 사진 저장(`photo_url`, 장변 1024px)도 같은 정리본에서 만든다. PNG·WebP 도 정리본은 JPEG 이다. 같은 멱등키 재전송은 정리·인식 없이 기존 결과를 준다.
+
 **`POST /diet/analyze` 거절 응답.** 앱은 `detail.code` 로 일반 실패와 구분해 안내한다. 아래 거절은 끼니·포인트·사진을 남기지 않는다.
 
 - `503 { code: "analysis_unavailable", message }` — 사진 인식을 쓸 수 없는 설정(운영에서 인식 키 없음). 고정 식단으로 저장하지 않는다(#2812). 운영은 키가 없으면 기동부터 거부하므로 정상 배포에서는 나오지 않는다.
 - `422 { code: "no_food_detected", message }` — 사진에서 음식을 하나도 찾지 못했다. 0kcal 끼니를 저장하지 않고 포인트도 없으며, 멱등키도 쓰지 않아 같은 키로 다른 사진을 다시 보낼 수 있다(#2848).
 - `415` — 바이트가 JPG·PNG·WebP 가 아니다. 요청의 `Content-Type` 과 무관하게 바이트 시그니처로 판정하며, 모델을 부르기 전에 거절한다(#2827).
+- `415` — 형식은 맞지만 픽셀을 읽을 수 없는 사진(매직 넘버만 맞춘 손상·위장 파일). 인식 모델을 부르기 전, 하루 분석 한도를 예약하기 전에 거절하므로 한도를 깎지 않는다(#3041).
 - `429 { code: "rate_limited", message }` — 한 회원의 분당 분석 한도(`DIET_ANALYZE_PER_MINUTE`, 기본 10) 초과. `Retry-After` 헤더가 붙는다. 회원 id 로 세므로 같은 Wi-Fi 의 다른 회원에게 번지지 않는다(#2827).
 - `429 { code: "daily_limit", message }` — 한 회원의 하루(KST) 분석 상한(`DIET_ANALYZE_PER_DAY`, 기본 20) 도달. KST 자정 뒤 다시 열린다. 모델을 부르기 직전에 세며, 같은 멱등키 재전송(모델 호출 없음)과 모델 호출 실패(502·501)는 세지 않는다. 음식을 못 찾은 사진(422)은 모델을 불렀으므로 센다(#2827).
 - `engine` 쿼리는 비교실험용이다. 운영에서는 관리자만 적용되고 회원이 붙이면 무시한다. 개발용 스텁(`engine: "stub"`) 결과는 끼니로는 남지만 포인트·분석용 식판 조건에 세지 않는다(#2812).
@@ -1539,7 +1542,7 @@ N명이면 첫 화면에서 요청이 2N개였다.
 
 ### 소셜 로그인 실패 응답 (#1550)
 
-`POST /auth/social/{provider}` 는 provider(google·kakao·naver·apple)에 토큰을 확인한 뒤
+`POST /auth/social/{provider}` 는 provider(google·kakao·apple, naver 는 아래 #3035 절)에 토큰을 확인한 뒤
 결과에 따라 아래처럼 답한다. **500 은 내지 않는다** — provider 점검 페이지·WAF 차단 화면처럼
 200 에 HTML 이 오거나, JSON 이 깨졌거나, 약속한 필드의 타입이 달라도 마찬가지다.
 
@@ -1557,6 +1560,25 @@ N명이면 첫 화면에서 요청이 2N개였다.
   저장한다.
 - 401·502 모두 실패 감사 로그(`auth.social`, `success=false`, `detail`=provider)를 남긴다.
   감사·서버 로그·응답 어디에도 토큰과 provider 응답 본문은 남기지 않는다.
+
+### 소셜 토큰 발급 앱 확인 (#3035)
+
+provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 앞으로** 발급된 것이어야 로그인된다.
+다른 앱이 받은 같은 사람의 토큰으로는 계정이 만들어지거나 같은 이메일의 기존 계정에 연결되지 않는다.
+
+| provider | 서버가 확인하는 것 | 허용 설정 |
+|---|---|---|
+| google | tokeninfo 의 `aud` 가 허용 목록 안, `iss` 가 `accounts.google.com`·`https://accounts.google.com`, `exp` 가 미래 | `GOOGLE_CLIENT_IDS`(콤마 구분) |
+| kakao | `GET /v1/user/access_token_info` 의 `app_id` 가 설정값과 같고, 그 `id` 가 `/v2/user/me` 의 `id` 와 같음(토큰 정보가 맞을 때만 사용자 정보를 부른다) | `KAKAO_APP_ID` |
+| apple | id_token 서명(JWKS)·`aud`·`iss`·`exp` | `APPLE_CLIENT_IDS`(콤마 구분) |
+| naver | 앱이 보낸 access_token 의 발급 앱을 확인할 수단이 없다. 서버 측 코드 교환 전까지 **501** `아직 지원하지 않는 소셜 로그인입니다.`(네이버로 요청도 보내지 않는다) | — |
+
+- 발급 앱·발급자 불일치, 만료, 두 응답의 id 불일치는 위 표의 **401** `소셜 인증에 실패했습니다.` 와 같다.
+  어느 검사에서 떨어졌는지는 서버 로그에만 남기고, 값(토큰·client_id·응답 본문)은 남기지 않는다.
+- 허용 설정이 비어 있으면 그 provider 는 외부 호출 없이 **401** 이다(조용히 통과시키지 않는다). 기동
+  점검이 비어 있는 provider 를 경고 로그로 남긴다.
+- 발급 정보 필드의 타입이 약속과 다르면(예: `aud` 가 배열, `exp` 가 숫자가 아닌 문자열, `app_id` 가 bool)
+  형식 이상 **502** 다.
 
 ### 가입 동의 (#2819)
 

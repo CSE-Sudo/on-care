@@ -25,15 +25,30 @@ from app.core import observability
 from app.services.social.base import SocialAuthError, SocialProviderResponseError
 from tests.social_provider_fakes import (
     BODY_MARKER,
+    GOOGLE_CLAIMS,
+    KAKAO_TOKEN_INFO_PATH,
+    OPEN_PROVIDERS,
+    OTHER_GOOGLE_CLIENT_ID,
+    OTHER_KAKAO_APP_ID,
     PROVIDERS,
     SECRET_TOKEN,
     install_transport,
+    kakao_token_info,
     respond_json,
+    respond_kakao,
     respond_raw,
+    use_app_ids,
 )
 
 PROVIDER_NAMES = sorted(PROVIDERS)
+#: API 로 로그인이 열린 provider(네이버는 코드 교환 전까지 501, #3035).
+API_PROVIDER_NAMES = sorted(OPEN_PROVIDERS)
 HTTP_CLIENT_LOGGERS = ("httpx", "httpcore")
+
+
+@pytest.fixture(autouse=True)
+def _app_ids(monkeypatch):
+    use_app_ids(monkeypatch)
 
 
 @pytest.fixture
@@ -65,7 +80,7 @@ def real_logging():
 
 
 def _verify(provider: str, token: str = SECRET_TOKEN):
-    return asyncio.run(PROVIDERS[provider].verifier().verify(token))
+    return asyncio.run(PROVIDERS[provider].read(token))
 
 
 def _assert_clean(out: str) -> None:
@@ -211,11 +226,49 @@ def test_header_providers_keep_token_out_of_url(monkeypatch, provider):
     seen = respond_json(monkeypatch, PROVIDERS[provider].valid_body("uid"))
     _verify(provider)
 
-    [req] = seen
-    assert req.method == "GET"
-    assert req.url.query == b""
-    assert SECRET_TOKEN not in str(req.url)
-    assert req.headers["authorization"] == f"Bearer {SECRET_TOKEN}"
+    # 카카오는 토큰 정보 조회(#3035)가 앞에 붙는다. 그 요청도 헤더로만 보낸다.
+    assert len(seen) == (2 if provider == "kakao" else 1)
+    for req in seen:
+        assert req.method == "GET"
+        assert req.url.query == b""
+        assert SECRET_TOKEN not in str(req.url)
+        assert req.headers["authorization"] == f"Bearer {SECRET_TOKEN}"
+
+
+# ── 발급 앱 불일치(#3035): 거부 사유는 남기되 토큰·응답 값은 남기지 않는다 ──────
+
+
+def test_google_audience_mismatch_logs_reason_only(real_logging, monkeypatch):
+    out = real_logging("DEBUG")
+    respond_json(
+        monkeypatch,
+        {**GOOGLE_CLAIMS, "aud": OTHER_GOOGLE_CLIENT_ID, "sub": BODY_MARKER, "email": "x@oncare.com"},
+    )
+    with pytest.raises(SocialAuthError) as info:
+        _verify("google")
+    text = out.getvalue()
+    _assert_clean(text)
+    assert OTHER_GOOGLE_CLIENT_ID not in text
+    assert "aud" in text
+    assert SECRET_TOKEN not in str(info.value)
+
+
+def test_kakao_app_mismatch_logs_reason_only(real_logging, monkeypatch):
+    out = real_logging("DEBUG")
+    seen = respond_kakao(
+        monkeypatch,
+        token_info=kakao_token_info(BODY_MARKER, app_id=OTHER_KAKAO_APP_ID),
+        user={"id": BODY_MARKER},
+    )
+    with pytest.raises(SocialAuthError) as info:
+        _verify("kakao")
+    text = out.getvalue()
+    _assert_clean(text)
+    assert OTHER_KAKAO_APP_ID not in text
+    assert "app_id" in text
+    assert SECRET_TOKEN not in str(info.value)
+    # 다른 앱 토큰이면 사용자 정보는 부르지도 않는다.
+    assert [r.url.path for r in seen] == [KAKAO_TOKEN_INFO_PATH]
 
 
 # ── 운영 로깅 설정에서 adapter 전체 로그 ─────────────────────────────
@@ -284,7 +337,7 @@ def _login(client, provider: str):
     return client.post(f"/v1/auth/social/{provider}", json={"token": SECRET_TOKEN})
 
 
-@pytest.mark.parametrize("provider", PROVIDER_NAMES)
+@pytest.mark.parametrize("provider", API_PROVIDER_NAMES)
 def test_api_login_success_leaves_no_token_in_any_log(client, real_logging, monkeypatch, provider):
     out = real_logging("INFO")
     respond_json(monkeypatch, PROVIDERS[provider].valid_body(f"{provider}-2351-ok"))
@@ -307,7 +360,7 @@ def test_api_login_success_leaves_no_token_in_any_log(client, real_logging, monk
         pytest.param(lambda mp: respond_json(mp, {}), id="missing_id"),
     ],
 )
-@pytest.mark.parametrize("provider", PROVIDER_NAMES)
+@pytest.mark.parametrize("provider", API_PROVIDER_NAMES)
 def test_api_login_failure_leaves_no_token_in_any_log(client, real_logging, monkeypatch, provider, respond):
     out = real_logging("INFO")
     respond(monkeypatch)
@@ -319,7 +372,7 @@ def test_api_login_failure_leaves_no_token_in_any_log(client, real_logging, monk
     assert SECRET_TOKEN not in r.text
 
 
-@pytest.mark.parametrize("provider", PROVIDER_NAMES)
+@pytest.mark.parametrize("provider", API_PROVIDER_NAMES)
 def test_api_transport_error_leaves_no_token_in_any_log(client, real_logging, monkeypatch, provider):
     out = real_logging("DEBUG")
 
@@ -344,3 +397,16 @@ def test_api_google_login_sends_post_without_token_in_url(client, real_logging, 
     assert req.method == "POST"
     assert SECRET_TOKEN not in str(req.url)
     assert parse_qs(req.content.decode()) == {"id_token": [SECRET_TOKEN]}
+
+
+def test_api_naver_login_is_closed_without_calling_naver(client, real_logging, monkeypatch):
+    """네이버는 501 로 닫혀 있고(#3035), 앱이 보낸 토큰을 네이버로 보내지도 남기지도 않는다."""
+    out = real_logging("DEBUG")
+    seen = respond_json(monkeypatch, PROVIDERS["naver"].valid_body("naver-3035"))
+
+    r = _login(client, "naver")
+
+    assert r.status_code == 501, r.text
+    assert seen == []
+    _assert_clean(out.getvalue())
+    assert SECRET_TOKEN not in r.text
