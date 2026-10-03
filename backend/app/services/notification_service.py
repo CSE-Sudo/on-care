@@ -186,6 +186,22 @@ def texts(
     return {"title": title, "body": body}
 
 
+#: 회원 앱이 아는 알림 목적지(`action.target`). 회원 앱
+#: `DioNotificationRepository._targetFrom` 과 같은 목록이다(#3028). [queue] 의
+#: `action_target` 은 이 안에서만 받는다 — 앱이 모르는 값을 저장하면 그 알림은 목록에
+#: 실리지만 눌러도 아무 데도 가지 않는다.
+MEMBER_ACTION_TARGETS: frozenset[str] = frozenset({
+    "dashboard",
+    "coach_chat",
+    "exercise",
+    "diet",
+    "my_benefits",
+    "points_shop",
+    "health_goals",
+    "consultations",
+})
+
+
 def queue(
     db: Session,
     *,
@@ -196,6 +212,7 @@ def queue(
     category: str | None = None,
     template: str | None = None,
     template_args: Mapping[str, Any] | None = None,
+    action_target: str | None = None,
 ) -> Notification | None:
     """알림을 세션에 **추가만** 한다(커밋하지 않는다). 꺼져 있으면 None.
 
@@ -213,7 +230,16 @@ def queue(
 
     [template] 을 주면 [title] 대신 문장 틀로 한국어 제목·본문을 만들고 틀과
     인자를 함께 남긴다(#2302, [texts] 참고).
+
+    [action_target] 은 **이 알림 한 건의 목적지**다(#3028). 주면
+    `Notification.action_target` 에 남아 갈래별 액션 표보다 우선한다 — 갈래(아이콘)는
+    같은데 갈 곳만 다른 알림을 갈래를 바꿔 끼우지 않고 나타낸다. 예전에는 이 칸을
+    데모 시드만 채웠다(#2690). 회원 앱이 모르는 값([MEMBER_ACTION_TARGETS] 밖)은
+    호출부의 실수라 저장 전에 `ValueError` 로 막는다. 수신 설정 확인보다 먼저 보므로
+    꺼져 있는 회원이어도 같은 오류가 난다.
     """
+    if action_target is not None and action_target not in MEMBER_ACTION_TARGETS:
+        raise ValueError(f"회원 앱이 모르는 알림 목적지입니다: {action_target!r}")
     if not wants(db, member_id, kind):
         return None
     notification = Notification(
@@ -221,6 +247,7 @@ def queue(
         user_id=member_id,
         category=category or _CATEGORY.get(kind, "system"),
         read=False,
+        action_target=action_target,
         **texts(title=title, body=body, template=template, template_args=template_args),
     )
     db.add(notification)
@@ -270,6 +297,13 @@ MEMBER_BENEFITS = "benefits"
 #: `notifications.category` 가 `String(20)` 이라 20자를 넘기면 안 된다.
 MEMBER_POINTS_SHOP = "points_shop"
 
+#: 트레이너가 회원 PT 를 완료했다 / 완료 PT 에 피드백을 적었다 → 운동 탭의 PT 기록
+#: (#3027). 일정 갈래(달력 아이콘)와 나눈 까닭은 회원 앱 알림함이 갈래로 아이콘을
+#: 고르기 때문이다 — 끝난 수업의 기록은 앞으로의 약속과 다른 말이다. 수신 설정 키는
+#: 회원 운동 기록에 관한 알림이라 [EXERCISE] 를 쓴다.
+#: `notifications.category` 가 `String(20)` 이라 20자를 넘기면 안 된다.
+MEMBER_PT_DONE = "pt_done"
+
 #: 포인트 쿠폰 알림의 kind. 회원 수신 설정 키가 아니다 — 설정 화면에 스위치가
 #: 없고 [ALWAYS_DELIVERED] 에 든다. 쿠폰 사용·취소는 회원의 포인트가 움직인
 #: 일이라 끌 수 있는 알림으로 두지 않는다.
@@ -312,6 +346,11 @@ TRAINER_CONSULT_WITHDRAWN_KIND = "consult_withdrawn"
 TRAINER_INVITE_ACCEPTED_KIND = "invite_accepted"
 #: 회원이 담당 요청을 거절했다 → 고객 목록. 담당이 아니라 상세는 열 수 없다(#2292).
 TRAINER_INVITE_REJECTED_KIND = "invite_rejected"
+#: 담당 회원이 주간 피드백(컨디션·강도·통증)을 냈다 → 그 회원 메모 창 '피드백' 탭
+#: (`subject_id`·`target_date`=주 시작, #3026). 같은 주의 안 읽은 알림이 있으면 새로
+#: 만들지 않고 그 행을 고쳐 쓴다(`trainer.weekly_feedback`). 수신 설정 스위치는
+#: 아직 없다 — 종류별 설정은 #2420 몫이다.
+TRAINER_WEEKLY_FEEDBACK_KIND = "weekly_feedback"
 
 #: 종류별 트레이너 수신 설정 컬럼. 없으면 항상 보낸다 — 상담 요청·예약은 끄면
 #: 트레이너가 놓쳐도 되는 종류가 아니고, 설정 화면에도 그 스위치가 없다.

@@ -34,6 +34,10 @@ enum TrainerNotificationKind {
   /// 회원이 탈퇴해 대기 중이던 상담 요청이 함께 사라졌다(#1632) — 상담 요청함으로
   /// 간다. 떠난 회원의 상세는 열 수 없어 회원을 가리키지 않는다.
   consultationWithdrawn,
+
+  /// 담당 회원이 주간 피드백(컨디션·운동 강도·통증)을 냈다 — 그 회원 메모 창의
+  /// `피드백` 탭으로 간다(#3026). [TrainerNotification.targetDate] 는 그 주 월요일.
+  weeklyFeedback,
   other,
 }
 
@@ -47,6 +51,7 @@ TrainerNotificationKind _kindFrom(String? raw) => switch (raw) {
   'invite_accepted' => TrainerNotificationKind.inviteAccepted,
   'invite_rejected' => TrainerNotificationKind.inviteRejected,
   'consult_withdrawn' => TrainerNotificationKind.consultationWithdrawn,
+  'weekly_feedback' => TrainerNotificationKind.weeklyFeedback,
   // 서버가 새 종류를 추가했는데 앱이 모르는 경우. 목록에서 빼지 않고 이동만
   // 하지 않는다 — 안 보이는 알림보다 갈 곳 없는 알림이 낫다.
   _ => TrainerNotificationKind.other,

@@ -150,6 +150,16 @@ Map<String, Object?>? _demoActionFor(String category) => switch (category) {
     'target': 'coach_chat',
   },
   'routine' => const <String, Object?>{'label': '운동 보기', 'target': 'exercise'},
+  // PT 일정 — 운동 탭의 다음 PT 배지·헬스장 패널 예약(#3028).
+  'member_schedule' => const <String, Object?>{
+    'label': '일정 보기',
+    'target': 'exercise',
+  },
+  // PT 수업 완료·피드백 — 운동 탭의 PT 기록(#3027).
+  'pt_done' => const <String, Object?>{
+    'label': 'PT 기록 보기',
+    'target': 'exercise',
+  },
   'benefits' => const <String, Object?>{
     'label': '내 혜택 보기',
     'target': 'my_benefits',

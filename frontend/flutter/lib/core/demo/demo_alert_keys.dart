@@ -52,7 +52,8 @@ const Map<String, ({String label, String target})> kDemoAlertActionBySeedId =
     <String, ({String label, String target})>{
       'seed-noti-5': (label: '운동 보기', target: 'exercise'),
       'seed-noti-7': (label: '리포트 보기', target: 'coach_chat'),
-      'seed-noti-2': (label: '운동 기록 보기', target: 'exercise'),
+      // 서버 `pt_done` 갈래의 라벨과 같다(#3027).
+      'seed-noti-2': (label: 'PT 기록 보기', target: 'exercise'),
       'seed-noti-3': (label: '대화 보기', target: 'coach_chat'),
       'seed-noti-6': (label: '운동 보기', target: 'exercise'),
       'seed-noti-9': (label: '홈 보기', target: 'dashboard'),

@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.core import clock
 from app.models.models import (
     ExerciseSession, RoutineHistory,
-    TrainerClient, TrainerReservation, TrainerRoutine, TrainerSchedule,
+    TrainerClient, TrainerReservation, TrainerRoutine, TrainerSchedule, User,
 )
 from app.schemas.trainer_api import (
     DeliveryOut,
@@ -53,6 +53,7 @@ from app.services.trainer._common import (
     _add_program_routines,
     _clock_minutes,
     _consume_routine_suggestions,
+    _done_pt_numbers,
     _ensure_session_member_linked,
     _exercise_seconds,
     _is_consultation_booking,
@@ -1853,6 +1854,58 @@ def _notify_schedule_changed(
         )
 
 
+def _notify_pt_done(
+    db: Session,
+    *,
+    session: TrainerSchedule,
+    trainer_id: str,
+    note: str,
+    feedback_only: bool,
+) -> None:
+    """마친 PT 를 회원에게 알린다. **커밋하지 않는다.** (#3027)
+
+    완료 처리는 회원 운동 기록에 PT 를 적재하고 피드백을 운동 탭 PT 카드에 띄우지만,
+    알림이 없어 회원이 운동 탭을 열기 전에는 기록도 트레이너의 말도 몰랐다. 수업
+    직후가 피드백을 실천할 가장 좋은 때다.
+
+    [feedback_only] 는 완료 뒤 처음 피드백을 적은 경우다 — 완료 알림은 이미 갔다.
+    상담 일정·회원 없는 슬롯은 부르는 쪽이 거른다. 회차는 회원 앱 PT 카드와 같은
+    번호(`_common._done_pt_numbers`)다.
+    """
+    if session.member_id is None or session.type == "상담":
+        return
+    trainer_name = (
+        db.scalar(select(User.name).where(User.id == trainer_id)) or ""
+    ).strip()
+    text = (note or "").strip()
+    if feedback_only:
+        notification_service.queue(
+            db,
+            member_id=session.member_id,
+            kind=notification_service.EXERCISE,
+            category=notification_service.MEMBER_PT_DONE,
+            template=notification_templates.MEMBER_PT_FEEDBACK,
+            template_args={"trainer_name": trainer_name, "date": session.date},
+            body=text,
+        )
+        return
+    number = _done_pt_numbers(db, session.member_id, trainer_id).get(session.id)
+    notification_service.queue(
+        db,
+        member_id=session.member_id,
+        kind=notification_service.EXERCISE,
+        category=notification_service.MEMBER_PT_DONE,
+        template=notification_templates.MEMBER_PT_COMPLETED,
+        template_args={
+            "trainer_name": trainer_name,
+            "session_number": number,
+            "has_note": bool(text),
+            "date": session.date,
+        },
+        body=text,
+    )
+
+
 #: 완료·취소·노쇼로 마무리된 세션에서도 고칠 수 있는 필드(#2754). 둘 다 그
 #: 약속(시각·회원·종류·길이)을 바꾸지 않는다. 프로그램은 아직 보내지 않았을 때만.
 _TERMINAL_EDITABLE_FIELDS = frozenset({"program", "note"})
@@ -1876,6 +1929,8 @@ def update_session(
     # 일정의 취소 알림에는 옛 시각을 써야 회원이 어느 약속인지 안다.
     before_member_id = s.member_id
     before_slot = _member_visible_slot(s)
+    # 완료 PT 에 피드백이 처음 생기는지 보려면 바꾸기 전 메모가 필요하다(#3027).
+    before_note = (s.note or "").strip()
     # A reservation owns the booking coordinates and lifecycle, so changing
     # its time/member/type/duration through the general schedule API would
     # desynchronise the slot and remaining count. The trainer may still add
@@ -1959,6 +2014,18 @@ def update_session(
         before_member_id=before_member_id,
         before_slot=before_slot,
     )
+    # 수업이 끝난 뒤 피드백을 적는 흐름(#2754)도 회원에게 알린다(#3027). **비어 있다가
+    # 처음 채워질 때만** — 이미 있던 피드백을 고칠 때마다 알리면 오타 하나 고친 것도
+    # 알림이 된다. 예정 PT 에 미리 적는 메모는 회원에게 보이지 않아 알리지 않는다.
+    if (
+        "note" in fields
+        and s.status == SCHEDULE_DONE
+        and not before_note
+        and (s.note or "").strip()
+    ):
+        _notify_pt_done(
+            db, session=s, trainer_id=trainer_id, note=s.note, feedback_only=True
+        )
     db.commit()
     db.refresh(s)
     return _schedule_out(s)
@@ -2384,6 +2451,16 @@ def complete_session(
             trainer_note=note,
         ))
         exercise_log = _add_member_exercise_log(db, s)
+        # 방금 전환한 이 호출만 알린다(#3027) — 멱등 재호출·동시 호출은 위에서
+        # 돌아가 알림도 한 번뿐이다. 완료 요청에 메모가 없으면 미리 적어 둔 메모가
+        # 회원에게 보이는 피드백이다(`member_mirror._member_schedule_out`).
+        _notify_pt_done(
+            db,
+            session=s,
+            trainer_id=trainer_id,
+            note=note or (s.note or ""),
+            feedback_only=False,
+        )
     db.commit()
     db.refresh(s)
     out = _schedule_out(s)

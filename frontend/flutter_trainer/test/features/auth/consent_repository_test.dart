@@ -29,6 +29,11 @@ void main() {
       expect(TrainerSignupConsent.required, isNot(contains('marketing')));
     });
 
+    test('화면 항목은 모두 필수다 — 마케팅 수신 동의는 뺐다 (#3007)', () {
+      expect(TrainerSignupConsent.kinds, isNot(contains('marketing')));
+      expect(TrainerSignupConsent.kinds.toSet(), TrainerSignupConsent.required);
+    });
+
     test('필수가 하나라도 빠지면 거짓', () {
       expect(
         TrainerSignupConsent.hasAllRequired(<String>{
@@ -58,7 +63,7 @@ void main() {
           'terms',
           'privacy',
         }),
-        <String>['terms', 'privacy', 'age14', 'marketing'],
+        <String>['terms', 'privacy', 'age14'],
       );
       expect(TrainerSignupConsent.toPayload(<String>{}), isEmpty);
     });
