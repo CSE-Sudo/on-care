@@ -12,7 +12,7 @@ approved 로 바꾼다. `verification_*` 칸은 이력 보존용으로 남긴다
 (trainer, reporter) 부분 유니크를 건다. 처리된 뒤 다시 신고하는 것은 된다.
 
 Revision ID: 0145_trainer_reports_no_approval
-Revises: 0140_program_draft_member
+Revises: 0144_ai_call_usages
 Create Date: 2026-10-03
 """
 from __future__ import annotations
@@ -23,7 +23,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0145_trainer_reports_no_approval"
-down_revision: str | Sequence[str] | None = "0140_program_draft_member"
+down_revision: str | Sequence[str] | None = "0144_ai_call_usages"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

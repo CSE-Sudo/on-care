@@ -402,6 +402,13 @@ def test_migration_backfills_before_changing_the_default():
     assert "drop_column" not in upgrade
 
 
+def test_migration_0145_follows_0144_ai_call_usages():
+    """0140 → 0141 → 0142 → 0143 → 0144 → 0145 한 줄 체인의 끝이다 — head 하나."""
+    module, source = _migration_0145()
+    assert module.down_revision == "0144_ai_call_usages"
+    assert "Revises: 0144_ai_call_usages" in source
+
+
 def test_db_default_is_approved(client):
     """ORM 을 거치지 않고 들어온 행도 승인 상태다 — 0145 의 DB 기본값."""
     from sqlalchemy import inspect
