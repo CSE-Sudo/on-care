@@ -72,6 +72,21 @@ def is_approved(db: Session, trainer_id: str) -> bool:
     return status == APPROVED
 
 
+def records_locked(db: Session, trainer_id: str) -> bool:
+    """반려된 트레이너라 담당 회원의 기록이 잠겼는가(#3009).
+
+    `is_approved` 와 달리 프로필이 없거나 대기면 잠그지 않는다. 대기 트레이너는
+    연결 경로가 이미 막혀 담당이 생길 수 없고, 프로필 없이 운영자가 직접 넣은 계정의
+    기존 담당은 그대로 열어 둔다. 잠금은 운영자가 명시적으로 반려한 경우뿐이다.
+    """
+    status = db.scalar(
+        select(TrainerProfile.verification_status).where(
+            TrainerProfile.trainer_id == trainer_id
+        )
+    )
+    return status == REJECTED
+
+
 def to_out(profile: TrainerProfile) -> TrainerVerificationOut:
     """`GET /trainer/me` 에 싣는 승인 상태."""
     return TrainerVerificationOut(

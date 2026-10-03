@@ -204,7 +204,7 @@ def build_roster(
     signals_by_member = client_signals.build_signals(db, trainer_id, list(links))
     # 반려된 트레이너는 담당 회원의 이름·연결 상태만 본다(#3009). 수치·미리보기는
     # 동의 철회와 같은 방식으로 비운다 — 무엇이 잠겼는지는 알 수 있어야 한다.
-    approved = trainer_verification_service.is_approved(db, trainer_id)
+    unlocked = not trainer_verification_service.records_locked(db, trainer_id)
 
     out: list[TrainerClientOut] = []
     for link in links:
@@ -215,7 +215,7 @@ def build_roster(
         # 보존하되 트레이너에게 다시 노출하지 않는다. 동의가 철회된 뒤 새 동의
         # 없이 살아 있는 링크도 같다(#1631).
         readable = (
-            approved
+            unlocked
             and link.active
             and not data_consent_service.blocks_access(link)
         )

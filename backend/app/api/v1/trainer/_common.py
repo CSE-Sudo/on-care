@@ -69,13 +69,13 @@ def _require_client(db: Session, trainer_id: str, member_id: str) -> TrainerClie
     (#1631). 담당 해제가 곧 동의 철회이고, 링크를 되살려도 회원의 새 동의가
     없으면 기록은 열리지 않는다.
 
-    운영자 승인을 받지 않은 트레이너는 링크를 보기 전에 403
-    `trainer_not_approved` 다(#3009). 반려는 새 연결뿐 아니라 이미 맺은 담당 회원의
+    운영자가 반려한 트레이너는 링크를 보기 전에 403 `trainer_not_approved`
+    다(#3009, `records_locked`). 반려는 새 연결뿐 아니라 이미 맺은 담당 회원의
     식단·운동·건강 정보·채팅·메모·리포트·루틴·일정까지 잠근다 — 링크는 지우지
     않으므로 다시 승인하면 그대로 열린다. 이 검사가 링크 확인보다 먼저인 것은
     응답이 회원이 아니라 트레이너 자신의 상태만 말하게 하려는 것이다.
     """
-    if not trainer_verification_service.is_approved(db, trainer_id):
+    if trainer_verification_service.records_locked(db, trainer_id):
         raise trainer_not_approved(
             "운영자 승인 뒤에 담당 회원의 기록을 볼 수 있습니다."
         )
@@ -126,7 +126,7 @@ def _audit_client_read(resource: str):
         ):
             return
         # 반려된 트레이너는 본문이 403 으로 끝낸다(#3009) — 열람이 아니다.
-        if not trainer_verification_service.is_approved(db, trainer.id):
+        if trainer_verification_service.records_locked(db, trainer.id):
             return
         audit.record_client_read(
             db,

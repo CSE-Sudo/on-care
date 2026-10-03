@@ -4,6 +4,7 @@
 
   * 반려된 트레이너는 이미 맺은 담당 회원의 기록 API 에서 403 `trainer_not_approved`.
   * 승인 트레이너는 그대로 200, 다시 승인하면 다시 200(링크는 그대로).
+  * 대기·프로필 없는 트레이너의 기존 담당은 잠그지 않는다(반려만 잠근다).
   * 로스터에는 이름·연결 상태만 남고 수치·미리보기는 빈다.
   * 정지 API — 관리자만, 정지 뒤 기존 토큰 401·로그인 401, 트레이너면 담당 해제·
     회원 알림·PT 일정 취소·대기 담당 요청 거둠, 해제는 계정만 되살림, 감사 로그.
@@ -24,6 +25,7 @@ from app.models.models import (
     Notification,
     TrainerClient,
     TrainerClientInvite,
+    TrainerProfile,
     TrainerSchedule,
     User,
 )
@@ -213,6 +215,22 @@ def test_rejected_trainer_sees_member_sessions_anonymised(client, db_session):
     assert rows, "일정은 스케줄에 남는다"
     assert all(row.get("member_id") != member_id for row in rows)
     assert all(row.get("member_detached") for row in rows)
+
+
+def test_only_rejection_locks_records(client, db_session):
+    """잠금은 반려뿐이다 — 대기·프로필 없는 트레이너의 기존 담당은 그대로 열린다."""
+    trainer, trainer_token, member_id, _ = _linked_pair(client, db_session)
+    url = f"/v1/trainer/clients/{member_id}/memos"
+    profile = db_session.scalar(
+        select(TrainerProfile).where(TrainerProfile.trainer_id == trainer.id)
+    )
+    profile.verification_status = "pending"
+    db_session.commit()
+    assert client.get(url, headers=_auth(trainer_token)).status_code == 200
+
+    db_session.delete(profile)
+    db_session.commit()
+    assert client.get(url, headers=_auth(trainer_token)).status_code == 200
 
 
 def test_rejected_trainer_keeps_profile_endpoints(client, db_session):

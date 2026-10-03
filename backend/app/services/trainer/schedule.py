@@ -198,12 +198,12 @@ def _linked_member_ids(
     [has_active_client_link] 를 여러 회원에 한 번에 묻는 것이다 — 주간 스케줄이
     일정마다 따로 물으면 요청 하나에 쿼리가 일정 수만큼 늘어난다.
 
-    승인받지 않은(반려된) 트레이너에게는 아무도 담당 경계 안이 아니다(#3009) —
+    운영자가 반려한 트레이너에게는 아무도 담당 경계 안이 아니다(#3009) —
     스케줄은 남지만 회원 일정은 해제된 회원처럼 익명으로 보인다.
     """
     if not member_ids:
         return set()
-    if not trainer_verification_service.is_approved(db, trainer_id):
+    if trainer_verification_service.records_locked(db, trainer_id):
         return set()
     return set(
         db.scalars(

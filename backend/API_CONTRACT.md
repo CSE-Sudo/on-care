@@ -1695,9 +1695,9 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은
 | 연결 코드 `POST /trainer/pairing-code/preview`·`POST /trainer/pairing-code` | **403** `detail={ code: "trainer_not_approved", message }` — 코드는 소비되지 않는다 |
 | 담당 요청 `POST /trainer/client-invites` | **403** 같은 모양 |
 | 담당 요청 수락 `POST /me/coach/invites/{id}/accept` | 보낸 트레이너가 지금 승인 상태가 아니면 404 |
-| 이미 맺은 담당 회원의 기록 `/trainer/clients/{id}/…`(식단·운동·건강 정보·채팅·메모·리포트·루틴·후속 관리·AI 코치 등, `member_id` 를 붙인 일정 조회·등록) | **403** 같은 모양(#3009) — 담당 관계는 그대로, 다시 승인하면 열린다 |
-| 로스터 `GET /trainer/clients` | 이름·연결 상태만 남고 수치·미리보기·신호는 빈다(동의 철회와 같은 방식, #3009) |
-| 트레이너 스케줄·일정 id 로 여는 쓰기 | 회원 일정은 해제된 회원처럼 익명(`member_detached`)이고, 회원에게 닿는 쓰기는 404(#3009) |
+| (반려 상태일 때만) 이미 맺은 담당 회원의 기록 `/trainer/clients/{id}/…`(식단·운동·건강 정보·채팅·메모·리포트·루틴·후속 관리·AI 코치 등, `member_id` 를 붙인 일정 조회·등록) | **403** 같은 모양(#3009) — 담당 관계는 그대로, 다시 승인하면 열린다 |
+| (반려 상태일 때만) 로스터 `GET /trainer/clients` | 이름·연결 상태만 남고 수치·미리보기·신호는 빈다(동의 철회와 같은 방식, #3009) |
+| (반려 상태일 때만) 트레이너 스케줄·일정 id 로 여는 쓰기 | 회원 일정은 해제된 회원처럼 익명(`member_detached`)이고, 회원에게 닿는 쓰기는 404(#3009) |
 
 `GET /trainer/me`(및 같은 모양을 돌려주는 `PUT /trainer/me`·`PUT /trainer/me/gym*`)는
 `verification: { status: "pending"|"approved"|"rejected", decided_at: datetime|null, note: string }`

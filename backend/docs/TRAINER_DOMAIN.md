@@ -307,7 +307,7 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
 - 프로필·소속·비밀번호·탈퇴 같은 계정 관리는 승인과 무관하게 열려 있다 — 운영자가 판단할
   내용을 채워 두는 시간이다.
 - 반려는 새 연결을 막고 **이미 맺은 담당 회원의 기록도 잠근다**(#3009). `_require_client`·
-  `has_active_client_link`·스케줄 익명 처리(`_linked_member_ids`)가 승인 여부를 먼저 보고, 로스터는
+  `has_active_client_link`·스케줄 익명 처리(`_linked_member_ids`)가 반려 여부(`records_locked`)를 먼저 보고, 로스터는
   이름·연결 상태만 남긴다. 담당 관계·동의는 그대로라 다시 승인하면 그대로 열린다.
 - 관계까지 끊어야 하면 운영자가 계정을 정지한다(`POST /admin/users/{id}/suspend`,
   `account_suspension_service`). 트레이너가 직접 해제할 때와 같은 `remove_client` 로 모든 담당을
