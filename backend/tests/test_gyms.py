@@ -657,3 +657,33 @@ def test_disconnect_clears_every_active_link(client, db_session):
             TrainerClient.member_id == member_id
         ).delete()
         db_session.commit()
+
+
+def test_my_gym_without_coordinates_answers_without_distance(client, connected_member):
+    """좌표 없이 불러도 200 이고 거리는 0 이다 (#3044).
+
+    회원 앱은 회원 위치를 얻기 전에는 `/me/gym` 에 좌표를 싣지 않는다. 예전처럼
+    기본 검색 영역(신촌) 좌표를 보내면 회원과 무관한 거리가 돌아왔다.
+    """
+    from tests.test_consultations import _auth
+
+    _member_id, token = connected_member()
+
+    bare = client.get("/v1/me/gym", headers=_auth(token))
+    assert bare.status_code == 200
+    assert bare.json()["distance_km"] == 0
+
+    far = client.get(
+        "/v1/me/gym", headers=_auth(token), params={"lat": 35.1, "lng": 129.1}
+    )
+    assert far.status_code == 200
+    assert far.json()["distance_km"] > 100, "좌표를 주면 그 지점에서 잰다"
+
+
+def test_my_gym_rejects_half_a_coordinate(client, connected_member):
+    """좌표는 둘 다 주거나 둘 다 빼야 한다 — 하나만 오면 422."""
+    from tests.test_consultations import _auth
+
+    _member_id, token = connected_member()
+    res = client.get("/v1/me/gym", headers=_auth(token), params={"lat": 35.1})
+    assert res.status_code == 422
