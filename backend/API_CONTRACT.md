@@ -570,7 +570,7 @@ settled_at? }`. `status` 는 `active`|`succeeded`|`failed`, `rewarded` 는 받�
 
 category: reminder|health_check|achievement|system|coach_chat|coach_report|routine|member_schedule|coach_invite|consultation_result|consult_decision|health_goals|benefits|points_shop
 
-#### 회원 알림 수신 설정 (#489·#2854)
+#### 회원 알림 수신 설정 (#489·#2854·#3024·#3025)
 
 | 메서드 | 경로 | 응답 |
 | --- | --- | --- |
@@ -580,9 +580,27 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 - 회원 앱 스위치는 `exercise_reminder`·`trainer_message`·`weekly_report` 세 가지입니다.
   `diet_log`·`ai_coaching` 은 **이 kind 로 만드는 알림이 없어** 앱이 더는 그리거나 보내지 않고,
   이미 저장된 값과 예전 앱 버전을 위해 응답·저장에만 남아 있습니다.
-- **끌 수 없는 알림**: 포인트 쿠폰(`points_coupon`)·주간 챌린지 결과(`weekly_challenge`)는
-  설정과 무관하게 늘 만듭니다(`notification_service.ALWAYS_DELIVERED`). 새 회원 알림 kind 는
-  설정 키이거나 이 집합에 있어야 합니다.
+- 각 키가 끄는 알림과 기본값(저장한 적이 없을 때). 키 이름은 서버·앱 계약이라 화면 라벨이
+  바뀌어도 그대로입니다.
+
+  | 키 | 회원 앱 라벨 | 끄는 알림 | 기본값 |
+  | --- | --- | --- | --- |
+  | `exercise_reminder` | 운동 루틴 | 트레이너의 운동 루틴·프로그램 배정(`routine`) | 켬 |
+  | `trainer_message` | 트레이너 메시지 | 코치 채팅 메시지(`coach_chat`) | 켬 |
+  | `weekly_report` | 트레이너 주간 리포트 | 담당 트레이너가 보낸 주간 리포트(`coach_report`) | 켬 (#3025, 예전 끔) |
+
+  `weekly_report` 기본값은 마이그레이션 0143 에서 켬으로 바뀌었고, 그때 저장돼 있던 `false` 도
+  한 번 `true` 로 바꿨습니다(그 전까지 앱에서 끌 이유가 된 알림이 없었습니다). 그 뒤 회원이 끈
+  값은 그대로 지킵니다. 포인트로 만드는 '주간 리포트'(`/me/points/exchange`)와는 다른 알림입니다.
+- **끌 수 없는 알림**: 포인트 쿠폰(`points_coupon`)·주간 챌린지 결과(`weekly_challenge`)와
+  **PT 일정·담당 관계 알림**(`pt_link_notice`, #3024)은 설정과 무관하게 늘 만듭니다
+  (`notification_service.ALWAYS_DELIVERED`). `pt_link_notice` 는 PT 일정 등록·변경·취소·삭제·
+  인계(`member_schedule`), 담당 연결(`consultation_result`)·담당 요청(`coach_invite`),
+  담당 해제·트레이너 탈퇴와 그로 인한 예약 취소에 씁니다. 예전에는 이 알림이 `exercise_reminder`·
+  `trainer_message` 를 따라, 회원이 루틴 알림을 끄면 PT 취소 알림까지 끊겼습니다.
+  트레이너 탈퇴 알림은 **활성 담당 회원**에게만 가고, 담당이 끝난 회원은 예약이 남아 있을 때만
+  '예약한 수업이 취소되었어요' 알림을 받습니다. 새 회원 알림 kind 는 설정 키이거나 이 집합에
+  있어야 합니다.
 
 #### 알림 문장의 언어 (#2302)
 
