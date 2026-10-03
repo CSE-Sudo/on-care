@@ -75,7 +75,7 @@
 
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
-| GET | `/users/me` | `{ id(str), name, email, consent_required, consent_pending[] }` (아래 "가입 동의" 참고, #2819) |
+| GET | `/users/me` | `{ id(str), name, email, role, consent_required, consent_pending[] }` (아래 "가입 동의" 참고, #2819). `role` 은 계정 역할 — 이 API 는 회원 전용이라 늘 `member` 이고 트레이너 토큰은 403. 회원 앱은 세션 복원 때 `role` 이 있으면 `member` 인지 확인하고, 없으면(옛 서버) 그대로 들어간다(#3054) |
 | POST | `/users/me/consents` | `{ consents: [항목] }` → `{ consent_required, consent_pending[] }` (#2819) |
 | GET | `/users/me/health` | `{ profile: { id, name, email }, activity_points }` — MY 계정 카드. 위험 문구(`risk`)·활동 순위(`activity_rank`)·설정 메뉴(`settings[]`)는 앱이 읽지 않는 고정값이라 뺐다(#2903) |
 | DELETE | `/users/me` | `{ status: "deleted" }` |
@@ -255,8 +255,8 @@
 |---|---|---|
 | GET | `/exercise/weeks/current` | 질의 `?week_start=YYYY-MM-DD`(생략 시 이번 주) → `{ sessions[], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], stretching_minutes[7], day_labels[7], total_minutes, total_calories, streak_days, ai_coach_message }` — `streak_days` 는 **운동만** 센다(식단도 세는 기록 연속은 아래 "연속 기록 보호권" 절) |
 | GET | `/exercise/weeks?from=&to=` | `{ from_week, to_week, weeks[] }` — 구간이 걸친 주들. 한 칸은 `{ week_start, day_labels[7], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], strength_sets[7], stretching_minutes[7], other_minutes[7], total_minutes, total_calories, streak_days, weekly_goal_minutes, weekly_goal_calories }` 다. 기간 그래프가 쓰는 길이라 `sessions` 와 코칭 문구는 싣지 않는다 — 한 주를 펼쳐 볼 때는 위 `weeks/current` 다. `from` 생략 시 **첫 기록 주**부터, `to` 생략 시 이번 주까지. 월요일이 아닌 날짜는 그 주의 월요일로 맞춘다. 기록이 없는 주도 0 으로 채워 온다 (#2247). 구간은 끝 주에서 거슬러 **최대 160주**(`exercise_service.MAX_PERIOD_WEEKS`)이고, 더 이른 `from`·첫 기록 주는 그 하한으로 잘린다 — 응답 `from_week` 가 실제 시작 주다 (#2833) |
-| POST | `/exercise/sessions` | 입력 `{ sessions: [항목 1~20개] }` — 항목은 `{ type, name, minutes(>0) 또는 duration_seconds(>0), calories, intensity(light\|moderate\|high), sets?, reps?, hold_seconds?, weight?, date? }` → `{ sessions[](요청 순서), points(합계) }`. **한 트랜잭션**이라 항목 하나라도 잘못되면 전체가 422 이고 아무것도 저장되지 않는다. 한 건도 목록으로 감싸 보낸다 — 감싸지 않은 단건 입력은 422 (#2544) |
-| PUT | `/exercise/sessions/{id}` | 입력은 위 **항목 하나**(부분 갱신) → 갱신된 항목(`points` 없음) |
+| POST | `/exercise/sessions` | 입력 `{ sessions: [항목 1~20개] }` — 항목은 `{ type, name, minutes(>0) 또는 duration_seconds(>0), calories, intensity(light\|moderate\|high), sets?, reps?, hold_seconds?, weight?, date? }` → `{ sessions[](요청 순서), points(합계) }`. **한 트랜잭션**이라 항목 하나라도 잘못되면 전체가 422 이고 아무것도 저장되지 않는다. 한 건도 목록으로 감싸 보낸다 — 감싸지 않은 단건 입력은 422 (#2544). `date` 는 생략하면 오늘(KST)이고, **오늘보다 뒤 날짜는 422**(`date 는 오늘보다 뒤일 수 없습니다.` — 식단 기록과 같은 문구, #3042). 기록·포인트·코치 적재·보호권 환급을 하나도 남기지 않는다 |
+| PUT | `/exercise/sessions/{id}` | 입력은 위 **항목 하나**(부분 갱신) → 갱신된 항목(`points` 없음). `date` 를 주지 않으면 원래 날짜를 그대로 두고, 오늘보다 뒤로 옮기면 422 다 — 원래 날짜가 남는다(#3042) |
 | DELETE | `/exercise/sessions/{id}` | `{ status: "deleted" }` — 그 기록으로 받은 포인트를 회수한다 |
 | GET | `/exercise/advice?period=` | `{ period, from_date, to_date, days_logged, message, advice_key?, advice_params }` — 운동 탭 AI 조언. `period` 는 `today`(기본)·`week`·`all`. 식단 조언과 같은 규칙이고, 문장은 트레이너 웹의 `/trainer/clients/{member_id}/exercise-advice` 와 같다(#1574, #1025). 앱은 `advice_key`·`advice_params` 로 자기 언어 문장을 그린다(#2210) |
 | POST | `/exercise/calories` | 입력 `{ type, name(필수), minutes(>0) 또는 duration_seconds(>0), intensity }` → `{ calories, source, matched_name, isometric }` — 초가 오면 분은 `/exercise/sessions` 와 같은 규칙으로 초에서 접는다 (#2547) |
@@ -551,6 +551,8 @@ settled_at? }`. `status` 는 `active`|`succeeded`|`failed`, `rewarded` 는 받�
 - **판정** 주가 끝난 뒤 한 번. 일요일까지 목표를 채웠으면 200P 를 `earn`(`reason: challenge_reward`)으로 적립하고,
   못 채웠으면 건 포인트는 사라진다. 주 중간에 목표를 채워도 보상은 주가 끝나야 받는다(`achieved: true`,
   `status: active`). 판정 때 센 날 수를 남겨, 판정 뒤 지난 주 기록이 바뀌어도 결과는 그대로다.
+  판정은 **미리 적은 기록**(기록 날짜가 저장된 날(`created_at` 의 KST 날짜)보다 뒤인 것)을 세지 않는다 — 운동 기록 API 가
+  앞날을 받기 전에 저장된 기록으로 성공하지 못한다. 그날 적은 기록과 지난 날을 뒤늦게 적은 기록은 센다(#3042).
 - **늦은 판정** 스케줄러가 없어 `GET /me/challenges/weekly`, `GET /me/challenges`, `POST /me/challenges/weekly/join`,
   `GET /me/points/shop`, `GET /users/me/health`, `GET /notifications` 를 부를 때 끝난 주의 진행 중 챌린지를 판정한다.
   조건부 UPDATE 한 번이라 보상·결과 알림은 챌린지마다 한 번뿐이다.
@@ -769,8 +771,12 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | GET | `/gyms?lat=&lng=&partner_only=` | `[GymOut]` — 좌표를 주면 거리순, 없으면 이름순 |
 | GET | `/gyms/{gym_id}` | 단건(없으면 404) |
 | GET | `/gyms/{gym_id}/trainers` | 그 헬스장 소속 트레이너 |
-| GET | `/me/gym` | 내 헬스장(`member_gyms`) |
+| GET | `/me/gym?lat=&lng=` | 내 헬스장(`member_gyms`) — `GymOut`. 연결이 없으면 404 |
 
+- **`lat`·`lng` 는 둘 다 주거나 둘 다 뺀다**(하나만 오면 422). 좌표가 없으면 `distance_km` 는
+  `0` 이고 **뜻이 없는 값**이다 — 거리로 그리지 않는다. 회원 앱은 회원 위치를 얻었을 때만 `/me/gym` 에
+  좌표를 싣는다. `/gyms` 는 검색 중심이 필요해 위치를 얻기 전에는 기본 검색 영역(신촌) 좌표를 보내고,
+  그 거리는 화면에 그리지 않는다(#3044).
 - **`is_partner` 는 표시 값이다.** `GymOut` 으로 내려가고 `partner_only=true` 로 목록을
   좁히는 기준이 된다(현재 두 앱은 이 값을 읽지 않는다). **접근 제어가 아니다** — 상담 대상 검증과
   트레이너 노출 경로(`/trainers`, `/trainers/recommended`, `/gyms/{id}/trainers`)는 이 값을
@@ -1459,8 +1465,8 @@ N명이면 첫 화면에서 요청이 2N개였다.
 
 | Method | Path | 요청 → 응답 |
 |---|---|---|
-| POST | `/auth/register` | `{ email, password, name, phone }` → **201** `{ id, name, email }` — 회원(`role=member`). 이미 가입된 이메일 409 |
-| POST | `/auth/trainer/register` | 같은 입력 → **201** `{ id, name, email }` — 트레이너(#475). 역할을 요청 필드로 가르지 않으려고 경로를 나눴다. 소속 헬스장은 가입 뒤 `PUT /trainer/me/gym` |
+| POST | `/auth/register` | `{ email, password, name, phone }` → **201** `{ id, name, email, role: "member" }` — 회원(`role=member`). 이미 가입된 이메일 409 |
+| POST | `/auth/trainer/register` | 같은 입력 → **201** `{ id, name, email, role: "trainer" }` — 트레이너(#475). 역할을 요청 필드로 가르지 않으려고 경로를 나눴다. 소속 헬스장은 가입 뒤 `PUT /trainer/me/gym` |
 | POST | `/auth/login` | form(`application/x-www-form-urlencoded`) `username`(이메일)·`password` → `{ access_token, refresh_token, token_type }`. 틀리면 401 |
 | POST | `/auth/refresh` | `{ refresh_token }` → 새 `{ access_token, refresh_token, token_type }`(회전). 무효·폐기된 토큰 401 |
 | POST | `/auth/logout` | `{ refresh_token }` → **204**. 그 refresh 토큰을 폐기한다. access 토큰은 요구하지 않고, 못 알아본 토큰에도 204 |
@@ -1495,7 +1501,7 @@ N명이면 첫 화면에서 요청이 2N개였다.
 ### 가입 동의 (#2819)
 
 두 앱의 가입은 약관·개인정보 수집·이용·만 14세 이상 확인에 **명시적으로** 동의해야 끝난다.
-회원은 여기에 **건강정보(민감정보) 처리** 동의가 따로 하나 더 있다. 마케팅 알림 수신은 선택이다.
+회원은 여기에 **건강정보(민감정보) 처리** 동의가 따로 하나 더 있다. 선택 항목은 없다.
 항목마다 `user_consents` 에 `kind`·`version`·`agreed_at`(·`revoked_at`) 한 행이 남는다.
 
 | 항목(`kind`) | 회원 | 트레이너 |
@@ -1504,7 +1510,11 @@ N명이면 첫 화면에서 요청이 2N개였다.
 | `privacy` 개인정보 수집·이용 | 필수 | 필수 |
 | `health` 건강정보(민감정보) 처리 | 필수 | — |
 | `age14` 만 14세 이상 | 필수 | 필수 |
-| `marketing` 마케팅 알림 수신 | 선택 | 선택 |
+
+`marketing`(마케팅 알림 수신)은 **더는 받지 않는다**(#3007) — 보내는 기능도, 거두는 화면도, 처리방침의
+이용 목적도 없었다. 옛 앱 빌드가 이 값을 실어 보내도 422 가 아니며 **기록하지 않는다**. 이미 남은
+`marketing` 행은 마이그레이션 0141 이 `revoked_at` 을 채웠고(행은 이력으로 남음), 동의 상태 계산에는
+끼지 않는다.
 
 - `POST /auth/register`·`POST /auth/trainer/register` 는 `consents: [항목]` 을 받는다. 보냈다면 그
   역할의 필수 항목이 모두 있어야 하고, 빠졌거나(빈 목록 포함) 모르는 항목이면 **422** 다 — 계정은

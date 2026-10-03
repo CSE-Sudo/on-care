@@ -134,6 +134,48 @@ abstract class AppLocalizations {
   /// **'Go to sign in'**
   String get notFoundGoSignIn;
 
+  /// Heading of the startup screen shown instead of the app when a release build was made with development or demo settings.
+  ///
+  /// In en, this message translates to:
+  /// **'This build is misconfigured'**
+  String get misconfiguredBuildTitle;
+
+  /// No description provided for @misconfiguredBuildMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This build was made with settings that can\'t be used for real users, so the app didn\'t open. Please share the details below with whoever released it.'**
+  String get misconfiguredBuildMessage;
+
+  /// No description provided for @misconfiguredBuildDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Build settings to fix'**
+  String get misconfiguredBuildDetailsTitle;
+
+  /// No description provided for @misconfiguredBuildDevEnvironment.
+  ///
+  /// In en, this message translates to:
+  /// **'ENV is not prod or staging'**
+  String get misconfiguredBuildDevEnvironment;
+
+  /// No description provided for @misconfiguredBuildMockWithoutDemo.
+  ///
+  /// In en, this message translates to:
+  /// **'It uses demo data without the demo build flag (USE_MOCK_API, DEMO_BUILD)'**
+  String get misconfiguredBuildMockWithoutDemo;
+
+  /// No description provided for @misconfiguredBuildPlaceholderApiUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'The API address is an example or local address (API_BASE_URL)'**
+  String get misconfiguredBuildPlaceholderApiUrl;
+
+  /// No description provided for @misconfiguredBuildInsecureApiUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'The API address does not start with https:// (API_BASE_URL)'**
+  String get misconfiguredBuildInsecureApiUrl;
+
   /// No description provided for @navDashboard.
   ///
   /// In en, this message translates to:
@@ -5192,12 +5234,6 @@ abstract class AppLocalizations {
   /// **'You must be 14 or older to sign up.'**
   String get consentAge14Detail;
 
-  /// No description provided for @consentMarketing.
-  ///
-  /// In en, this message translates to:
-  /// **'Receive marketing notifications'**
-  String get consentMarketing;
-
   /// No description provided for @consentRequiredHint.
   ///
   /// In en, this message translates to:
@@ -6630,6 +6666,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Settings'**
   String get gymLocationSettings;
+
+  /// No description provided for @gymDefaultAreaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing gyms around Sinchon'**
+  String get gymDefaultAreaTitle;
+
+  /// No description provided for @gymDefaultAreaMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow location access to see gyms near you.'**
+  String get gymDefaultAreaMessage;
+
+  /// No description provided for @gymUseLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Use location'**
+  String get gymUseLocation;
+
+  /// No description provided for @gymDistanceSortNeedsLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by distance needs your current location.'**
+  String get gymDistanceSortNeedsLocation;
 
   /// No description provided for @exGymCopyPhone.
   ///

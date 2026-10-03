@@ -32,7 +32,10 @@
 - 공공 식품영양성분 DB: 서버에 적재한 참조표(`food_nutrients`)를 조회할 뿐 외부로 보내지 않는다.
 - OpenAI·LiteLLM: 설정으로 고를 수 있지만 운영 기본값과 `backend/.env.aws.example` 은 Gemini 다.
   운영에서 바꾸면 이 표와 처리방침에 수탁자를 더한다.
-- 메일 발송(비밀번호 재설정): `mail_provider` 의 실제 발송 업체가 아직 정해지지 않았다. 정해지면 표에 더한다.
+- 메일 발송(비밀번호 재설정): `mail_provider` 의 실제 발송 업체가 아직 정해지지 않았다(#480). 정해지면 표에 더한다.
+  미리 정해 둔 행 — 위탁 업무 "비밀번호 재설정 메일 발송", 이전 항목 **수신 이메일 주소·재설정 코드(재설정 링크)**,
+  근거 `backend/app/services/mailer.py`·`services/password_reset.py`, `backend/.env.aws.example` 메일 블록(#3033).
+  업체 이름·이전 국가·보유 기간만 채우면 된다.
 
 ## 2. 보관 기간
 

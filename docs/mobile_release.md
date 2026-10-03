@@ -39,13 +39,12 @@ keyPassword=<키 비밀번호>
 - `key.properties`·`*.jks`·`*.keystore` 는 `frontend/flutter/android/.gitignore` 로 제외되어
   있습니다. `git status` 에 보이면 커밋하지 말고 제외 설정부터 확인합니다.
 
-빌드:
+빌드(define 파일은 [5절](#5-릴리스-빌드-설정-define-파일)):
 
 ```bash
 cd frontend/flutter
-flutter build appbundle --release \
-  --dart-define=USE_MOCK_API=false \
-  --dart-define=API_BASE_URL=<운영 API 주소>
+bash tool/check_release_defines.sh config/release.json
+flutter build appbundle --release --dart-define-from-file=config/release.json
 # → build/app/outputs/bundle/release/app-release.aab
 ```
 
@@ -124,9 +123,8 @@ Play Console 데이터 보안 양식의 백업 관련 항목은 이 정책(백�
 
 ```bash
 cd frontend/flutter
-flutter build ipa --release \
-  --dart-define=USE_MOCK_API=false \
-  --dart-define=API_BASE_URL=<운영 API 주소>
+bash tool/check_release_defines.sh config/release.json
+flutter build ipa --release --dart-define-from-file=config/release.json
 ```
 
 ## 3-1. 화면 방향 정책 (#3050)
@@ -170,3 +168,33 @@ flutter build ipa --release \
 - 모바일에서 카카오·네이버 등 네이티브 소셜 로그인 SDK 를 붙이면(#330) 각 개발자 콘솔에 패키지 이름·
   번들 ID 와 업로드 키·Play 앱 서명 키의 키 해시를 등록합니다. 지금 회원 앱 모바일 빌드는 이런 네이티브
   SDK 를 쓰지 않습니다(카카오 지도는 웹 전용).
+
+## 5. 릴리스 빌드 설정 (define 파일)
+
+앱의 컴파일 타임 기본값은 로컬 개발용입니다(`ENV=dev`·`USE_MOCK_API=true`·예시 API 주소).
+`--dart-define` 을 하나씩 적으면 하나를 빠뜨려도 빌드는 성공하고, 그 앱은 **개발 환경으로 판정된
+운영 앱**(요청 로그·개발용 화면이 켜지고 오류 보고가 꺼짐)이나 **목업 데이터로 도는 앱**이 됩니다(#3022).
+그래서 스토어 빌드는 define 파일 하나로만 합니다.
+
+1. `frontend/flutter/config/release.example.json` 을 같은 폴더의 `release.json` 으로 복사하고 값을 채웁니다.
+   `release.json` 은 `.gitignore` 로 제외되어 있습니다 — 커밋하지 않습니다.
+
+   | 키 | 값 |
+   | --- | --- |
+   | `ENV` | `prod`(스토어). 내부 배포 빌드만 `staging` |
+   | `USE_MOCK_API` | `false` |
+   | `API_BASE_URL` | `https://<운영 API 도메인>/v1` — `/v1` 까지, 끝 `/` 없이 |
+   | `SENTRY_DSN` | 회원 앱 Sentry 프로젝트의 DSN(`https://…`) |
+
+2. 빌드 전에 `bash tool/check_release_defines.sh config/release.json` 을 돌립니다. 키가 빠졌거나 형식이
+   틀리면(`ENV` 가 `prod`·`staging` 이 아님, 목업, `http://`·예시·로컬 주소, DSN 없음, 데모 전용 스위치
+   `DEMO_BUILD`·`SHOW_DEMO_ENTRY`·`REAL_API` 가 남음) 빌드하지 말라는 오류와 함께 멈춥니다.
+3. `flutter build appbundle|ipa --release --dart-define-from-file=config/release.json` 으로 빌드합니다.
+
+빌드 단계를 건너뛰어도 앱이 한 번 더 막습니다. 릴리스 모드에서 `ENV` 가 `prod`·`staging` 이 아니거나,
+데모 빌드 표시(`DEMO_BUILD=true`) 없이 목업이거나, API 주소가 `https://` 가 아니거나 예시·로컬
+주소면 기동할 때 기능 화면 대신 **"이 빌드는 잘못 구성됐어요"** 안내와 고칠 설정 목록을 띄웁니다
+(`AppConfig.releaseProblems`). `flutter run`(디버그)·테스트에는 적용되지 않습니다.
+
+- `DEMO_BUILD=true` 는 데모 Pages 빌드(`.github/workflows/deploy.yml`)만 넘깁니다. 스토어 빌드에는 넣지 않습니다.
+- Sentry 프로젝트 생성·DSN 발급은 #480 에서 합니다. 값은 팀 비밀번호 관리자에 두고 `release.json` 에만 적습니다.
