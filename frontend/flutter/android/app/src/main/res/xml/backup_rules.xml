@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11(API 30) 이하의 자동 백업 규칙: 앱 데이터를 싣지 않는다(#3049).
+     allowBackup=false 와 같은 뜻을 한 번 더 적어, 백업을 켜는 기기 정책이 있어도
+     토큰 저장소·설치 표식이 나가지 않게 한다. -->
+<full-backup-content>
+    <exclude domain="root" path="." />
+    <exclude domain="file" path="." />
+    <exclude domain="database" path="." />
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="external" path="." />
+</full-backup-content>

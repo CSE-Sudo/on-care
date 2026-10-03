@@ -87,6 +87,11 @@ docker compose ps             # app, db 모두 Up
 docker compose logs app       # alembic upgrade 성공 후 uvicorn 기동
 ```
 
+요청 로그는 `app.access: GET '/v1/...' -> 200 (…ms)` 처럼 경로만 남습니다. 컨테이너는 운영과 같은
+`scripts/start.sh` 로 떠서 uvicorn 기본 액세스 로그(쿼리·IP 포함)를 끕니다(#3031). 컨테이너 없이
+`uvicorn app.main:app --reload` 로 직접 띄울 때도 위치 좌표를 로그에 남기고 싶지 않으면
+`--no-access-log` 를 더합니다(개발에서는 선택).
+
 ## 2. 회원 앱 (모바일)
 
 로컬 검증은 Chrome 으로 띄우는 편이 빠릅니다. 실제 배포 타깃은 iOS/Android 입니다.

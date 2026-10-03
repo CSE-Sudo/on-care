@@ -32,7 +32,7 @@ from app.services.contact_format import clean_email, normalize_phone
 from app.services.password_policy import check_new_password
 from app.services.profile_format import clean_birth_date, clean_name
 from app.services.health_focus import normalize_conditions
-from app.services.signup_consent import Kind as ConsentKind, missing_required
+from app.services.signup_consent import SubmittedKind as ConsentKind, missing_required
 
 
 # ---- GET /users/me ----
