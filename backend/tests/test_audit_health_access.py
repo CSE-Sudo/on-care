@@ -390,7 +390,10 @@ def test_member_withdrawal_is_kept_after_the_account_is_gone(
     trainer, member = pair
     member_id = member.id
 
-    response = client.request("DELETE", "/v1/users/me", headers=_auth(member))
+    response = client.request(
+        "DELETE", "/v1/users/me", json={"current_password": PASSWORD},
+        headers=_auth(member),
+    )
 
     assert response.status_code == 200, response.text
     db_session.expire_all()
@@ -416,7 +419,10 @@ def test_trainer_withdrawal_records_each_live_consent(client, db_session):
           data_consent_revoked_at=clock.now() - timedelta(days=1))
     trainer_id = trainer.id
 
-    response = client.request("DELETE", "/v1/trainer/me", headers=_auth(trainer))
+    response = client.request(
+        "DELETE", "/v1/trainer/me", json={"current_password": PASSWORD},
+        headers=_auth(trainer),
+    )
 
     assert response.status_code == 200, response.text
     (withdraw,) = _rows(db_session, audit.ACCOUNT_WITHDRAW, user_id=trainer_id)

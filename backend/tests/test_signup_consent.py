@@ -436,7 +436,11 @@ def test_consents_are_deleted_with_the_account(client, db_session):
     user_id = reg.json()["id"]
     token = _login(client, email)["access_token"]
 
-    assert client.delete("/v1/users/me", headers=_auth(token)).status_code == 200
+    deleted = client.request(
+        "DELETE", "/v1/users/me", json={"current_password": PASSWORD},
+        headers=_auth(token),
+    )
+    assert deleted.status_code == 200, deleted.text
 
     db_session.expire_all()
     assert (

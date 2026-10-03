@@ -155,7 +155,7 @@ def _member(client) -> tuple[str, str]:
 
 
 def _admin(client, db_session) -> tuple[str, str]:
-    """관리자 하나. 운영에선 ADMIN_EMAILS 가 부팅 때 승격한다."""
+    """관리자 하나. 운영에선 scripts/grant_admin.py 로 지정한다(#3037)."""
     member_id, _ = _member(client)
     user = db_session.get(User, member_id)
     user.is_admin = True

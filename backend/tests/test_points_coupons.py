@@ -15,7 +15,7 @@ import pytest
 from sqlalchemy import func, select, update
 
 from app.core import clock
-from app.core.security import create_access_token
+from app.core.security import create_access_token, hash_password
 from app.models.models import (
     AuditLog,
     HealthProfile,
@@ -752,7 +752,14 @@ def test_trainer_account_deletion_refunds_renewal_coupon(
     assert r.json()["coupon"]["gym_name"] == GYM_NAME
     coupon_id = r.json()["coupon"]["id"]
 
-    deleted = client.delete("/v1/trainer/me", headers=_headers(trainer_id))
+    # 이 파일의 트레이너는 비밀번호 없이 만든다 — 탈퇴 본인 확인(#3039)용으로 하나 준다.
+    trainer = db_session.get(User, trainer_id)
+    trainer.hashed_password = hash_password("coupon-pw-1234")
+    db_session.commit()
+    deleted = client.request(
+        "DELETE", "/v1/trainer/me", json={"current_password": "coupon-pw-1234"},
+        headers=_headers(trainer_id),
+    )
     assert deleted.status_code == 200, deleted.text
 
     assert _balance(client, h) == 21000
