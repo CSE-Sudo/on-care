@@ -228,6 +228,8 @@
 당류만 소수다 — 항목 단위 당류가 6.3g·8.5g 처럼 소수로 들어오고 합계도 절삭 없이 유지된다(`total_sugar_g` 도 float).
 `foods[]`: `[{ name, display_name(str?), amount_g(float?), calories(int?), sodium_mg(int?), sugar_g(float?), carbs_g(float?), protein_g(float?), fat_g(float?), source(db|estimate|mixed|member) }]` — 음식별 영양은 회원이 식단 상세에서 고칠 수 있는 값이고, 그대로 저장된다(#1856, #1892).
 
+**사진 분석 값의 범위(#3090).** 인식 모델의 응답은 외부 입력으로 보고 서버가 걸러 저장한다. 음식 한 항목에서 `calories` 는 0~5000, `sodium_mg` 는 0~20000, `carbs_g`·`protein_g`·`fat_g`·`sugar_g` 는 0~1000, `amount_g` 는 0 초과~5000 이다. 음수·비유한값·숫자가 아닌 값·이 범위를 넘는 값은 모름(`null`)으로 저장하고 그 음식은 남긴다 — 앱은 `—` 로 보인다. 그래도 읽을 수 없는 항목(예: 확신도가 0~1 밖)은 그 항목만 빼고, 남은 음식이 없으면 `no_food_detected` 422 다. `name` 은 공백을 한 칸으로 접어 80자, `coach_comment` 는 300자까지 받고, 음식은 한 사진에 20개까지다. 비거나 문자열이 아닌 이름은 `알 수 없음` 이다. 공공 DB 보정(`source=db`·`mixed`)이 DB 밀도 × 양으로 다시 낸 값은 이 상한을 거치지 않는다. 음식별 `calories`·`sodium_mg` 는 수정 경로(`PUT`)를 포함해 음수면 422 다.
+
 `source` 는 그 음식의 숫자가 어디서 왔나다. `db`(공공 DB × 양) · `mixed`(DB 행에 탄단지가 비어 인식기 값을 남김) · `estimate`(매칭이나 양이 없어 인식기 추정 그대로) · `member`(회원이 수정 화면에서 영양 칸을 직접 고침, #2105). **`PUT` 의 `foods[].source` 는 앱이 정해 보낸다** — 손대지 않은 음식과 섭취량만 바꾼 음식은 원래 값을, 공공 DB 값으로 채운 음식은 `db` 를, 영양 칸을 고친 음식은 `member` 를 싣는다. 네 값 밖은 422 이고, **빠지면 `member` 로 저장한다**(인식기 쪽 기본값 `estimate` 를 쓰면 수정 경로로 들어온 숫자를 인식기 추정이라 부르게 된다). 이 필드 이전 기록은 `source` 가 없을 수 있고, 읽는 쪽은 `estimate` 로 읽는다.
 
 `POST /diet/nutrition` 의 `match` 는 찾은 음식이 **같은 음식**(`exact` — 이름·별칭·양 표기를 뗀 이름·`계란`→`달걀` 표기 변형이 표 이름과 같다)인지, 이름 끝말로 붙은 **비슷한 음식**(`similar` — `야채비빔밥` → `비빔밥`)인지다(#2107). 수정 화면은 이름을 바꾼 음식이 같은 음식에 붙으면 곧바로 그 값으로 채우고, 비슷한 음식이면 제안만 한다. 매칭은 사진 분석 보정과 같은 것이다.
@@ -1146,7 +1148,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/trainer/schedule/{session_id}/routines/send` | `{ personal_routines? }` → `RoutineOut[]` — 마무리된 PT 에 남은 개인운동을 보낸다(#2224). 상태가 맞지 않으면 400 |
 | POST | `/trainer/schedule/{session_id}/routines/dismiss` | `{ dismissed }` — 보내지 않기로 정리(#2224) |
 | GET | `/trainer/clients/{member_id}/report?week_start=` | `WeeklyReportOut` — 주간 리포트. 아무 요일을 줘도 그 주 월요일로 접는다 |
-| GET | `/trainer/clients/{member_id}/report/summary?week_start=` | `{ member_id, week_start, headline, points, generated_by }` |
+| GET | `/trainer/clients/{member_id}/report/summary?week_start=` | `{ member_id, week_start, headline, points, generated_by }` — `headline` 은 한 문장이다. AI 가 쓴 문장이 200자를 넘으면 계약 위반으로 보고 규칙 기반 요약(`generated_by: "rule"`)으로 바꾼다. 응답 상한은 400자(#3090) |
 | GET | `/trainer/clients/{member_id}/report/feedback?week_start=` | `{ member_id, week_start, body, updated_at }` — 저장해 둔 피드백 초안. 없으면 빈 본문(오류 아님, #821) |
 | PUT | `/trainer/clients/{member_id}/report/feedback` | `{ week_start?, body }` → 같은 모양. 같은 주는 덮어쓰고, 회원에게는 아무것도 보내지 않는다 |
 | POST | `/trainer/clients/{member_id}/report/send` | `{ week_start?, message? }` → **201** `ChatMessageOut` — 리포트를 회원 채팅으로 보낸다 |
