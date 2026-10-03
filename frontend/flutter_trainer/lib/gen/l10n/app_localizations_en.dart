@@ -399,17 +399,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashChurnRiskEmpty => 'No members are at churn risk right now.';
 
   @override
-  String get dashChurnRiskLoading => 'Checking recent sessions';
+  String get dashChurnRiskLoading => 'Checking recent workouts';
 
   @override
   String get dashChurnRiskUnavailable => 'Unavailable · Tap to retry';
 
   @override
-  String get dashActivityFeedbackLoading => 'Checking recent sessions.';
+  String get dashActivityFeedbackLoading => 'Checking recent workouts.';
 
   @override
   String get dashActivityFeedbackUnavailable =>
-      'Couldn\'t load recent sessions, so activity feedback is unavailable. Tap the churn risk card to retry.';
+      'Couldn\'t load recent workouts, so activity feedback is unavailable. Tap the churn risk card to retry.';
 
   @override
   String get dashActivityDifficultyTitle =>
@@ -417,7 +417,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String dashActivityDifficultyDesc(String names) {
-    return '$names are behind this week\'s exercise goal or skipped an assigned routine. Lower the difficulty before the next session and check recent feedback.';
+    return '$names are behind this week\'s exercise goal or skipped an assigned routine. Lower the difficulty before the next PT and check recent feedback.';
   }
 
   @override
@@ -1233,7 +1233,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workoutKindAiPersonal => 'AI personal exercise';
 
   @override
-  String get workoutKindPtSession => 'PT session · Trainer-led';
+  String get workoutKindPtSession => 'PT · Trainer-led';
 
   @override
   String get workoutKindAssignedRoutine => 'Assigned routine';
@@ -1354,7 +1354,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsScheduleWarning =>
-      'This week\'s schedule didn\'t load, so session counts may be missing';
+      'This week\'s schedule didn\'t load, so PT counts may be missing';
 
   @override
   String get unitTimes => '';
@@ -1490,7 +1490,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportBodySkipped(String names) {
-    return 'One thing — $names got skipped. If that was a condition thing, tell me at the next session and I\'ll swap in an alternative.';
+    return 'One thing — $names got skipped. If that was a condition thing, tell me at our next PT and I\'ll swap in an alternative.';
   }
 
   @override
@@ -1526,7 +1526,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get reportBodySessionsNone => 'There were no PT sessions this week.';
+  String get reportBodySessionsNone => 'There was no PT this week.';
 
   @override
   String reportBodyExerciseCount(int total, int done) {
@@ -1580,7 +1580,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportBodyMemberPain(String area) {
-    return 'You mentioned pain in your $area. Let me know how it feels before the next session — I\'ll ease off that area.';
+    return 'You mentioned pain in your $area. Let me know how it feels before our next PT — I\'ll ease off that area.';
   }
 
   @override
@@ -1627,7 +1627,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportTipSessionsMissed =>
-      'I\'ll set up make-up slots next week for the sessions we missed.';
+      'I\'ll set up make-up slots next week for the PT we missed.';
 
   @override
   String get reportTipKeep =>
@@ -1656,7 +1656,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String schedCompleteConfirm(String time, String name) {
-    return 'Mark the $time session with $name as complete?';
+    return 'Mark $name\'s $time PT as complete?';
   }
 
   @override
@@ -1679,11 +1679,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedEndedLockedHint =>
-      'Finished sessions can only have their note and program edited.';
+      'A finished PT can only have its note and program edited.';
 
   @override
   String get schedDoneLockedHint =>
-      'Completed sessions can only have their note and program edited. Move the date forward to reopen it as upcoming.';
+      'A completed PT can only have its note and program edited. Move the date forward to reopen it as upcoming.';
 
   @override
   String get schedGroupPersonal => 'Personal exercise';
@@ -1826,14 +1826,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedReopenBody =>
-      'Moving a completed session forward switches it back to upcoming, and the workout log it created will be removed.';
+      'Moving a completed PT forward switches it back to upcoming, and the workout log it created will be removed.';
 
   @override
   String get schedReopenConfirm => 'Switch to upcoming';
 
   @override
   String get schedReopenPastBlocked =>
-      'A completed session can only move to a future date';
+      'A completed PT can only move to a future date';
 
   @override
   String get schedTimeRangeTitle => 'Select time';
@@ -2321,7 +2321,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myBasicInfo => 'Basic info';
 
   @override
-  String get myStatSessionsDone => 'Sessions done';
+  String get myStatSessionsDone => 'PT done';
 
   @override
   String get myStatRoutinesSent => 'Programs sent';
@@ -2725,7 +2725,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String coachRegisteredAttachedExisting(String date) {
-    return 'There was already a session planned on $date, so the program was only attached to it — the time range you picked wasn\'t applied';
+    return 'There was already a PT planned on $date, so the program was only attached to it — the time range you picked wasn\'t applied';
   }
 
   @override
@@ -3298,7 +3298,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authErrSessionExpired =>
-      'Your session expired. Please sign in again.';
+      'Your sign-in expired. Please sign in again.';
 
   @override
   String get authErrNoSocialToken => 'No social sign-in token';
@@ -3849,6 +3849,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientProfileSectionTitle => 'Body and goals';
+
+  @override
+  String get clientMemoDialogTitle => 'Memos & feedback';
 
   @override
   String get clientTrainerMemo => 'Memo';
@@ -4486,7 +4489,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsActionSkipped(String names) {
-    return 'Prepare alternatives for $names for the next session.';
+    return 'Prepare alternatives for $names for the next PT.';
   }
 
   @override
@@ -4938,7 +4941,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsPreviewZoomOut => 'Zoom out';
 
   @override
-  String get reportsGridPtSession => 'PT sessions';
+  String get reportsGridPtSession => 'PT';
 
   @override
   String reportsGridPtPerWeek(int count) {
@@ -5481,6 +5484,35 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String clientDietAnalysisWeekBreakfastSnackFood(String food, int count) {
+    return '$food replaced breakfast most often ($count times).';
+  }
+
+  @override
+  String clientDietAnalysisWeekProteinAvg(String value) {
+    return 'Those days averaged $value a day.';
+  }
+
+  @override
+  String clientDietAnalysisWeekGoodAvg(String kcal, String protein) {
+    return 'Averaged $kcal and $protein protein a day.';
+  }
+
+  @override
+  String clientDietAnalysisWeekVsLast(
+    int prevLogged,
+    int prevDays,
+    String way,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(way, {
+      'more': 'Up from last week',
+      'less': 'Down from last week',
+      'other': 'About the same as last week',
+    });
+    return '$_temp0 ($prevDays of $prevLogged days).';
+  }
+
+  @override
   String clientDietAnalysisAllFew(int days) {
     return 'Only $days days logged in the last 4 weeks. The trend shows after 7.';
   }
@@ -5509,12 +5541,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String clientDietAnalysisAllProteinTrendUp(int before, int after) {
-    return 'Days meeting the protein goal rose from $before to $after over the last 2 weeks.';
+    return 'Days meeting the protein goal rose from $before in the prior 2 weeks to $after in the last 2 weeks.';
   }
 
   @override
   String clientDietAnalysisAllProteinTrendDown(int before, int after) {
-    return 'Days meeting the protein goal fell from $before to $after over the last 2 weeks.';
+    return 'Days meeting the protein goal fell from $before in the prior 2 weeks to $after in the last 2 weeks.';
   }
 
   @override
@@ -5577,6 +5609,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientDietRecNo => 'No';
+
+  @override
+  String get clientDietRecPrev => 'Previous pick';
+
+  @override
+  String get clientDietRecForward => 'Next pick';
 
   @override
   String get clientDietRecYes => 'Yes, recommend';

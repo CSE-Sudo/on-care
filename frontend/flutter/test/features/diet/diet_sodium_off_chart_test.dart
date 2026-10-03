@@ -19,6 +19,7 @@ import 'package:oncare/features/diet/presentation/controllers/diet_controller.da
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
+import 'package:oncare_ui/oncare_ui.dart' show withoutWordJoiners;
 
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
@@ -57,7 +58,7 @@ void main() {
           matching: find.byType(Text),
         ),
       )
-      .map((Text t) => t.data ?? '')
+      .map((Text t) => withoutWordJoiners(t.data ?? ''))
       .join(' ');
 
   testWidgets('오늘 카드에 나트륨 줄이 없다 — 대신 조언이 말한다', (WidgetTester tester) async {

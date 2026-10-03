@@ -229,12 +229,12 @@
   "dashChurnRiskCheck": "Review churn signals",
   "dashChurnRiskTitle": "Members at churn risk",
   "dashChurnRiskEmpty": "No members are at churn risk right now.",
-  "dashChurnRiskLoading": "Checking recent sessions",
+  "dashChurnRiskLoading": "Checking recent workouts",
   "dashChurnRiskUnavailable": "Unavailable · Tap to retry",
-  "dashActivityFeedbackLoading": "Checking recent sessions.",
-  "dashActivityFeedbackUnavailable": "Couldn't load recent sessions, so activity feedback is unavailable. Tap the churn risk card to retry.",
+  "dashActivityFeedbackLoading": "Checking recent workouts.",
+  "dashActivityFeedbackUnavailable": "Couldn't load recent workouts, so activity feedback is unavailable. Tap the churn risk card to retry.",
   "dashActivityDifficultyTitle": "Behind exercise goal / routine skipped",
-  "dashActivityDifficultyDesc": "{names} are behind this week's exercise goal or skipped an assigned routine. Lower the difficulty before the next session and check recent feedback.",
+  "dashActivityDifficultyDesc": "{names} are behind this week's exercise goal or skipped an assigned routine. Lower the difficulty before the next PT and check recent feedback.",
   "@dashActivityDifficultyDesc": {
     "placeholders": {
       "names": {
@@ -781,7 +781,7 @@
   "legendDone": "Done",
   "clientFeedback": "Member feedback",
   "workoutKindAiPersonal": "AI personal exercise",
-  "workoutKindPtSession": "PT session · Trainer-led",
+  "workoutKindPtSession": "PT · Trainer-led",
   "@workoutKindPtSession": {
     "description": "Workout history kind for a completed PT session (server kind code pt_session)."
   },
@@ -906,7 +906,7 @@
       }
     }
   },
-  "reportsScheduleWarning": "This week's schedule didn't load, so session counts may be missing",
+  "reportsScheduleWarning": "This week's schedule didn't load, so PT counts may be missing",
   "unitTimes": "",
   "unitMinutes": "min",
   "clientPeriodToday": "Today",
@@ -1021,7 +1021,7 @@
       }
     }
   },
-  "reportBodySkipped": "One thing — {names} got skipped. If that was a condition thing, tell me at the next session and I'll swap in an alternative.",
+  "reportBodySkipped": "One thing — {names} got skipped. If that was a condition thing, tell me at our next PT and I'll swap in an alternative.",
   "@reportBodySkipped": {
     "placeholders": {
       "names": {
@@ -1076,7 +1076,7 @@
       }
     }
   },
-  "reportBodySessionsNone": "There were no PT sessions this week.",
+  "reportBodySessionsNone": "There was no PT this week.",
   "reportBodyExerciseCount": "You finished {done} of the {total} assigned exercises.",
   "@reportBodyExerciseCount": {
     "placeholders": {
@@ -1188,7 +1188,7 @@
       }
     }
   },
-  "reportBodyMemberPain": "You mentioned pain in your {area}. Let me know how it feels before the next session — I'll ease off that area.",
+  "reportBodyMemberPain": "You mentioned pain in your {area}. Let me know how it feels before our next PT — I'll ease off that area.",
   "@reportBodyMemberPain": {
     "placeholders": {
       "area": {
@@ -1207,7 +1207,7 @@
   "reportTipWorkout": "Aim to get three workouts in first, even if each is only 20 minutes.",
   "reportTipMeals": "Log every meal, even with just a photo, so I can give you sharper feedback.",
   "reportTipSessionsNone": "Let's book next week's PT sessions together now.",
-  "reportTipSessionsMissed": "I'll set up make-up slots next week for the sessions we missed.",
+  "reportTipSessionsMissed": "I'll set up make-up slots next week for the PT we missed.",
   "reportTipKeep": "Keep the current routine as it is, and I'll raise the intensity step by step.",
   "schedTitle": "Schedule",
   "schedDetailTitle": "Session detail",
@@ -1225,7 +1225,7 @@
   },
   "schedDeleteFailed": "Couldn't delete the session. Please try again",
   "schedCompleteTitle": "Complete session",
-  "schedCompleteConfirm": "Mark the {time} session with {name} as complete?",
+  "schedCompleteConfirm": "Mark {name}'s {time} PT as complete?",
   "@schedCompleteConfirm": {
     "placeholders": {
       "time": {
@@ -1247,8 +1247,8 @@
   "@schedReservationLockedHint": {
     "description": "Hint on a session card for a session the member booked through a reservation slot (#2756). Edit schedule and Delete are disabled."
   },
-  "schedEndedLockedHint": "Finished sessions can only have their note and program edited.",
-  "schedDoneLockedHint": "Completed sessions can only have their note and program edited. Move the date forward to reopen it as upcoming.",
+  "schedEndedLockedHint": "A finished PT can only have its note and program edited.",
+  "schedDoneLockedHint": "A completed PT can only have its note and program edited. Move the date forward to reopen it as upcoming.",
   "schedGroupPersonal": "Personal exercise",
   "schedRoutinesGoesOnComplete": "Goes to the member together with this PT's program.",
   "schedRoutinesNotSentYet": "Not sent to the member yet.",
@@ -1302,9 +1302,9 @@
   "schedFieldTime": "Time",
   "schedEndBeforeStart": "End time must be after the start time",
   "schedReopenTitle": "Switch back to upcoming?",
-  "schedReopenBody": "Moving a completed session forward switches it back to upcoming, and the workout log it created will be removed.",
+  "schedReopenBody": "Moving a completed PT forward switches it back to upcoming, and the workout log it created will be removed.",
   "schedReopenConfirm": "Switch to upcoming",
-  "schedReopenPastBlocked": "A completed session can only move to a future date",
+  "schedReopenPastBlocked": "A completed PT can only move to a future date",
   "schedTimeRangeTitle": "Select time",
   "schedTimeRangeConfirm": "Confirm",
   "schedTimePickerTimeLabel": "Time",
@@ -1561,7 +1561,7 @@
   "myClientManagementEmpty": "No members assigned",
   "myClientManagementSearchHint": "Search members by name",
   "myBasicInfo": "Basic info",
-  "myStatSessionsDone": "Sessions done",
+  "myStatSessionsDone": "PT done",
   "myStatRoutinesSent": "Programs sent",
   "myGymName": "Gym name",
   "myGymAddress": "Address",
@@ -1728,7 +1728,7 @@
       }
     }
   },
-  "coachRegisteredAttachedExisting": "There was already a session planned on {date}, so the program was only attached to it — the time range you picked wasn't applied",
+  "coachRegisteredAttachedExisting": "There was already a PT planned on {date}, so the program was only attached to it — the time range you picked wasn't applied",
   "@coachRegisteredAttachedExisting": {
     "placeholders": {
       "date": {
@@ -2035,7 +2035,7 @@
   "filterAll": "All",
   "authErrInvalidCredentials": "That email or password isn't right.",
   "authErrEmailTaken": "That email is already registered.",
-  "authErrSessionExpired": "Your session expired. Please sign in again.",
+  "authErrSessionExpired": "Your sign-in expired. Please sign in again.",
   "authErrNoSocialToken": "No social sign-in token",
   "authErrNetwork": "Please check your network connection.",
   "authErrGeneric": "Something went wrong signing in. Please try again in a moment.",
@@ -2461,6 +2461,7 @@
   "clientQuickProgram": "Program",
   "clientQuickReport": "Report",
   "clientProfileSectionTitle": "Body and goals",
+  "clientMemoDialogTitle": "Memos & feedback",
   "clientTrainerMemo": "Memo",
   "clientHealthUnset": "Not set",
   "clientHealthTabBody": "Body",
@@ -2962,7 +2963,7 @@
   },
   "reportsActionLowCompletion": "Drop the program a notch so they finish it first.",
   "reportsActionHighCompletion": "Good pace. Add a set or a little weight next week.",
-  "reportsActionSkipped": "Prepare alternatives for {names} for the next session.",
+  "reportsActionSkipped": "Prepare alternatives for {names} for the next PT.",
   "@reportsActionSkipped": {
     "placeholders": {
       "names": {
@@ -3383,7 +3384,7 @@
   "reportsPreviewNextPage": "Next page",
   "reportsPreviewZoomIn": "Zoom in",
   "reportsPreviewZoomOut": "Zoom out",
-  "reportsGridPtSession": "PT sessions",
+  "reportsGridPtSession": "PT",
   "reportsGridPtPerWeek": "{count}/week",
   "@reportsGridPtPerWeek": {
     "placeholders": {
@@ -3878,6 +3879,54 @@
       }
     }
   },
+  "clientDietAnalysisWeekBreakfastSnackFood": "{food} replaced breakfast most often ({count} times).",
+  "@clientDietAnalysisWeekBreakfastSnackFood": {
+    "description": "트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.",
+    "placeholders": {
+      "food": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "clientDietAnalysisWeekProteinAvg": "Those days averaged {value} a day.",
+  "@clientDietAnalysisWeekProteinAvg": {
+    "description": "트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "clientDietAnalysisWeekGoodAvg": "Averaged {kcal} and {protein} protein a day.",
+  "@clientDietAnalysisWeekGoodAvg": {
+    "description": "트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.",
+    "placeholders": {
+      "kcal": {
+        "type": "String"
+      },
+      "protein": {
+        "type": "String"
+      }
+    }
+  },
+  "clientDietAnalysisWeekVsLast": "{way, select, more{Up from last week} less{Down from last week} other{About the same as last week}} ({prevDays} of {prevLogged} days).",
+  "@clientDietAnalysisWeekVsLast": {
+    "description": "트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.",
+    "placeholders": {
+      "prevLogged": {
+        "type": "int"
+      },
+      "prevDays": {
+        "type": "int"
+      },
+      "way": {
+        "type": "String"
+      }
+    }
+  },
   "clientDietAnalysisAllFew": "Only {days} days logged in the last 4 weeks. The trend shows after 7.",
   "@clientDietAnalysisAllFew": {
     "description": "트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).",
@@ -3917,7 +3966,7 @@
       }
     }
   },
-  "clientDietAnalysisAllProteinTrendUp": "Days meeting the protein goal rose from {before} to {after} over the last 2 weeks.",
+  "clientDietAnalysisAllProteinTrendUp": "Days meeting the protein goal rose from {before} in the prior 2 weeks to {after} in the last 2 weeks.",
   "@clientDietAnalysisAllProteinTrendUp": {
     "description": "트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).",
     "placeholders": {
@@ -3929,7 +3978,7 @@
       }
     }
   },
-  "clientDietAnalysisAllProteinTrendDown": "Days meeting the protein goal fell from {before} to {after} over the last 2 weeks.",
+  "clientDietAnalysisAllProteinTrendDown": "Days meeting the protein goal fell from {before} in the prior 2 weeks to {after} in the last 2 weeks.",
   "@clientDietAnalysisAllProteinTrendDown": {
     "description": "트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).",
     "placeholders": {
@@ -4035,6 +4084,14 @@
   "clientDietRecNo": "No",
   "@clientDietRecNo": {
     "description": "트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379)."
+  },
+  "clientDietRecPrev": "Previous pick",
+  "@clientDietRecPrev": {
+    "description": "AI 식단 추천 카운터 왼쪽 꺾쇠 툴팁 — 같은 묶음 안 앞 후보로."
+  },
+  "clientDietRecForward": "Next pick",
+  "@clientDietRecForward": {
+    "description": "AI 식단 추천 카운터 오른쪽 꺾쇠 툴팁 — 같은 묶음 안 다음 후보로(거절 아님)."
   },
   "clientDietRecYes": "Yes, recommend",
   "@clientDietRecYes": {

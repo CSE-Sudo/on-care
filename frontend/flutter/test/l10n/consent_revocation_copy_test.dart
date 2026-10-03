@@ -153,19 +153,22 @@ void main() {
       // 연결할 때 보여 준 범위와 처리방침의 범위가 갈리면 안 된다.
       expect(
         ko.coachInviteConsentBody('김코치'),
-        contains('식단 기록·운동 기록·신체 정보와 건강 목표'),
+        contains('식단 기록·운동 기록·신체 정보, 건강 목표와 건강상태·주의사항'),
       );
-      expect(ko.myLegalPrivacyBody, contains('식단 기록·운동 기록·신체 정보와 건강 목표'));
+      expect(
+        ko.myLegalPrivacyBody,
+        contains('식단 기록·운동 기록·신체 정보, 건강 목표와 건강상태·주의사항'),
+      );
       expect(
         en.coachInviteConsentBody('Kim'),
         contains(
-          'meal records, workout records, body information and health goals',
+          'meal records, workout records, body information, health goals, and health notes & cautions',
         ),
       );
       expect(
         en.myLegalPrivacyBody,
         contains(
-          'meal records, workout records, body information and health goals',
+          'meal records, workout records, body information, health goals, and health notes & cautions',
         ),
       );
     });

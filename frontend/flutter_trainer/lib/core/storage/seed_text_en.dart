@@ -77,7 +77,7 @@ const Map<String, String> _seedEnglish = <String, String>{
       'The run was tough but I finished it all! I was really out of breath',
   '심폐지구력 향상 중. 다음 주 런닝 강도 소폭 올릴 예정.':
       'Cardio endurance improving. Will raise running intensity slightly next week.',
-  'PT 세션 · 트레이너 지도': 'PT session · Trainer-led',
+  'PT 세션 · 트레이너 지도': 'PT · Trainer-led',
   '데드리프트 3세트 · 8회 · 55kg': 'Deadlift · 3 sets · 8 reps · 55kg',
   '런지 3세트 · 12회 · 10kg': 'Lunge · 3 sets · 12 reps · 10kg',
   '코어 서킷 2세트 · 12회 · 0kg': 'Core circuit · 2 sets · 12 reps · 0kg',

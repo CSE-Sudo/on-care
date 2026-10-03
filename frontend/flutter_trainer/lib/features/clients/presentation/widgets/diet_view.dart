@@ -803,7 +803,7 @@ String _grams(double value) => value == value.roundToDouble()
 /// 대체 문구를 지어내면 서버와 다른 기준으로 말하게 된다(#2271).
 ///
 /// 프로그램 탭 식단 칸도 같은 카드를 쓴다 — 트레이너가 회원 상세까지 들어오지
-/// 않아도 추천에 `예`/`아니오` 를 답할 수 있다. 오늘 기록이 없으면 회원 상세처럼
+/// 않아도 추천에 `예`/`아니요` 를 답할 수 있다. 오늘 기록이 없으면 회원 상세처럼
 /// 카드를 세우지 않는다: 빈 하루를 두고 한 판정을 읽히지 않는다.
 class ClientDietAnalysisPanel extends ConsumerWidget {
   const ClientDietAnalysisPanel({
