@@ -58,7 +58,7 @@ TextStyle _caption(BuildContext context, {Color? color}) => context.oncare
 /// `개인운동 이행` — [start] 부터 7칸. (#2508, #2509)
 ///
 /// 칸마다 `완료 수/그날 걸린 수`(기한 없는 따로 배정 포함)를 적고 완료 비율로
-/// 진하기를 준다(`전체` 달력과 같은 단계). 오늘은 테두리를 두르고 한 만큼만
+/// 진하기를 준다(`전체` 달력과 같은 단계). 오늘은 요일 알약으로 알리고 한 만큼만
 /// 칠하며(아직 0개면 빈칸, 빨강 없음), 오지 않은 날은
 /// 빈칸이다.
 ///
@@ -295,8 +295,8 @@ class _AdherenceCell extends StatelessWidget {
     final int done = day?.completed ?? 0;
     final RoutineLevel level = routineLevelOf(day);
     // 오늘은 끝나지 않았다 — 한 만큼은 같은 단계로 칠하되 `하나도 안 함`
-    // (빨강)은 쓰지 않는다. 아침의 0개는 안 한 것이 아니라 아직이다. 테두리가
-    // 오늘임을 알린다.
+    // (빨강)은 쓰지 않는다. 아침의 0개는 안 한 것이 아니라 아직이다. 오늘은
+    // 요일 알약이 알린다.
     final bool blank =
         future ||
         (isToday && (level == RoutineLevel.none || level == RoutineLevel.zero));
@@ -311,7 +311,7 @@ class _AdherenceCell extends StatelessWidget {
       decoration: BoxDecoration(
         color: fill,
         borderRadius: OnCareRadius.smAll,
-        // 오늘이 아직 비어 있으면 빈칸 테두리 — 오늘 표시는 바깥 고리가 한다.
+        // 아직 칠할 것이 없는 칸(오지 않은 날·0개인 오늘)은 옅은 테두리.
         border: future || (isToday && blank)
             ? Border.all(color: OnCareColors.lineSubtle)
             : null,
@@ -334,39 +334,35 @@ class _AdherenceCell extends StatelessWidget {
               ),
             ),
     );
-    // 오늘은 요일 글자와 같은 브랜드색 고리를 한 칸 띄워 두른다 — 칸에 바로
-    // 그으면 진하게 칠한 칸(모두 완료)에 묻힌다.
-    final Widget marked = isToday
-        ? Container(
-            key: ValueKey<String>('$keyPrefix-today-ring'),
-            padding: const EdgeInsets.all(OnCareSpacing.s2),
-            decoration: BoxDecoration(
-              borderRadius: OnCareRadius.smAll,
-              border: Border.all(
-                color: context.oncare.brand.primary,
-                width: OnCareSize.focusBorder,
-              ),
-            ),
-            child: cell,
-          )
-        : cell;
     final double? height = this.height;
     final Widget box = height == null
-        ? AspectRatio(aspectRatio: 1, child: marked)
-        : SizedBox(height: height, child: marked);
+        ? AspectRatio(aspectRatio: 1, child: cell)
+        : SizedBox(height: height, child: cell);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        // 오늘 칸도 칠하므로 테두리만으로는 오늘이 안 보인다 — 요일 글자로
-        // 알린다.
-        Text(
-          weekdayLabels(l)[date.weekday - 1],
-          style: isToday
-              ? context.oncare
-                    .text(OnCareTypography.strong(OnCareTypography.caption))
-                    .copyWith(color: context.oncare.brand.primary)
-              : _caption(context, color: OnCareColors.textTertiary),
-        ),
+        // 오늘은 요일을 브랜드색 알약으로 — 달력의 오늘처럼. 칸에 테두리를
+        // 두르면 같은 파랑으로 다 칠한 칸(모두 완료)에 묻힌다.
+        if (isToday)
+          Container(
+            key: ValueKey<String>('$keyPrefix-today'),
+            padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s8),
+            decoration: BoxDecoration(
+              color: context.oncare.brand.primary,
+              borderRadius: OnCareRadius.pillAll,
+            ),
+            child: Text(
+              weekdayLabels(l)[date.weekday - 1],
+              style: context.oncare
+                  .text(OnCareTypography.strong(OnCareTypography.caption))
+                  .copyWith(color: OnCareColors.textOnFill),
+            ),
+          )
+        else
+          Text(
+            weekdayLabels(l)[date.weekday - 1],
+            style: _caption(context, color: OnCareColors.textTertiary),
+          ),
         const SizedBox(height: OnCareSpacing.s4),
         if (text == null)
           box

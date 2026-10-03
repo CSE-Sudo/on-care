@@ -229,11 +229,9 @@ void main() {
         find.byKey(const ValueKey<String>('workout-routine-adherence-8-23')),
         findsOneWidget,
       );
-      // 오늘(1/3)도 한 만큼 칠하고, 바깥 고리가 오늘을 알린다.
+      // 오늘(1/3)도 한 만큼 칠하고, 요일 알약이 오늘을 알린다.
       expect(
-        find.byKey(
-          const ValueKey<String>('workout-routine-adherence-today-ring'),
-        ),
+        find.byKey(const ValueKey<String>('workout-routine-adherence-today')),
         findsOneWidget,
       );
       final BoxDecoration today =
