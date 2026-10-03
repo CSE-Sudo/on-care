@@ -8,7 +8,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare_kakao_map/oncare_kakao_map.dart';
+import 'package:oncare_kakao_map/src/kakao_map_config.dart';
 import 'package:oncare_kakao_map/src/kakao_map_platform_mobile.dart';
 import 'package:oncare_kakao_map/src/kakao_map_script.dart';
 
@@ -213,7 +213,45 @@ void main() {
     });
   });
 
-  test('모바일 문서의 출처는 콘솔에 등록할 http://localhost 다', () {
-    expect(kKakaoMapMobileBaseUrl, 'http://localhost');
+  test('모바일 문서의 출처는 따로 주지 않으면 로컬 개발용 http://localhost 다', () {
+    expect(kakaoMapMobileOrigin, 'http://localhost');
+  });
+
+  test('배포 출처를 주면 그 출처 안에서만 머문다', () {
+    const String origin = 'https://member.example.org';
+    expect(
+      kakaoMobileMapAllowsNavigation(
+        'https://member.example.org/',
+        isMainFrame: true,
+        origin: origin,
+      ),
+      isTrue,
+    );
+    expect(
+      kakaoMobileMapAllowsNavigation(
+        'http://localhost/',
+        isMainFrame: true,
+        origin: origin,
+      ),
+      isFalse,
+    );
+    expect(
+      kakaoMobileMapAllowsNavigation(
+        'https://member.example.org.evil.test/',
+        isMainFrame: true,
+        origin: origin,
+      ),
+      isFalse,
+      reason: '접두어만 같은 다른 출처',
+    );
+    expect(
+      kakaoMobileMapAllowsNavigation(
+        'http://member.example.org/',
+        isMainFrame: true,
+        origin: origin,
+      ),
+      isFalse,
+      reason: '스킴이 다르다',
+    );
   });
 }

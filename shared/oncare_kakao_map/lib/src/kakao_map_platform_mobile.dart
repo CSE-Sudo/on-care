@@ -56,12 +56,23 @@ bool kakaoMobileMapSupported({
 }
 
 /// 지도 문서 안에서 머물러도 되는 주소인가. 지도 아래 카카오 로고 등을 눌러
-/// 다른 페이지로 넘어가면 지도 자리가 웹 페이지로 바뀐다 — 본 문서와 하위
-/// 프레임만 둔다.
+/// 다른 페이지로 넘어가면 지도 자리가 웹 페이지로 바뀐다 — 본 문서([origin] 과
+/// 같은 출처)와 하위 프레임만 둔다.
 @visibleForTesting
-bool kakaoMobileMapAllowsNavigation(String url, {required bool isMainFrame}) {
+bool kakaoMobileMapAllowsNavigation(
+  String url, {
+  required bool isMainFrame,
+  String origin = kakaoMapMobileOrigin,
+}) {
   if (!isMainFrame) return true;
-  return url.startsWith(kKakaoMapMobileBaseUrl) || url.startsWith('about:');
+  if (url.startsWith('about:')) return true;
+  final Uri? target = Uri.tryParse(url);
+  final Uri? home = Uri.tryParse(origin);
+  if (target == null || home == null || !target.hasScheme) return false;
+  // 접두어 비교는 `https://운영주소.다른곳` 같은 주소도 통과시킨다 — 출처를 비교한다.
+  return target.scheme == home.scheme &&
+      target.host == home.host &&
+      target.port == home.port;
 }
 
 /// WebView 에 띄운 카카오맵. [kakaoMapHtml] 문서를 한 번 불러오고, 그 뒤 중심·
@@ -80,6 +91,7 @@ class KakaoMobileMap extends StatefulWidget {
     this.onMarkerTap,
     this.onUnavailable,
     this.readyTimeout = kKakaoMapSdkTimeout,
+    this.origin = kakaoMapMobileOrigin,
   });
 
   final String appKey;
@@ -93,6 +105,9 @@ class KakaoMobileMap extends StatefulWidget {
 
   /// 이 시간 안에 지도 준비 소식이 오지 않으면 폴백으로 떨어진다.
   final Duration readyTimeout;
+
+  /// 지도 문서의 출처([kakaoMapMobileOrigin]).
+  final String origin;
 
   @override
   State<KakaoMobileMap> createState() => _KakaoMobileMapState();
@@ -126,6 +141,7 @@ class _KakaoMobileMapState extends State<KakaoMobileMap> {
               kakaoMobileMapAllowsNavigation(
                 request.url,
                 isMainFrame: request.isMainFrame,
+                origin: widget.origin,
               )
               ? NavigationDecision.navigate
               : NavigationDecision.prevent,
@@ -146,7 +162,7 @@ class _KakaoMobileMapState extends State<KakaoMobileMap> {
           level: widget.level,
           markers: widget.markers,
         ),
-        baseUrl: kKakaoMapMobileBaseUrl,
+        baseUrl: widget.origin,
       );
     } on Object {
       _fail();

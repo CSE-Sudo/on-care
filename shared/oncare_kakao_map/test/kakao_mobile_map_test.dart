@@ -129,6 +129,7 @@ void main() {
     ValueChanged<KakaoMapMarker>? onMarkerTap,
     VoidCallback? onUnavailable,
     Duration readyTimeout = const Duration(seconds: 10),
+    String origin = 'http://localhost',
   }) async {
     await tester.pumpWidget(
       Directionality(
@@ -143,6 +144,7 @@ void main() {
           onMarkerTap: onMarkerTap,
           onUnavailable: onUnavailable,
           readyTimeout: readyTimeout,
+          origin: origin,
         ),
       ),
     );
@@ -171,6 +173,13 @@ void main() {
     );
     expect(c.loads.single.html, contains('"lat":37.5559'));
     expect(c.loads.single.html, contains('온케어 신촌'));
+    await unmount(tester);
+  });
+
+  testWidgets('배포 출처를 주면 그 주소로 문서를 불러온다', (WidgetTester tester) async {
+    await pumpMap(tester, origin: 'https://member.example.org');
+
+    expect(platform.last.loads.single.baseUrl, 'https://member.example.org');
     await unmount(tester);
   });
 

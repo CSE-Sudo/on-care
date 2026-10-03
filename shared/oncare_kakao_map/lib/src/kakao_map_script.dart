@@ -10,13 +10,6 @@ const String kKakaoMapSdkUrl = 'https://dapi.kakao.com/v2/maps/sdk.js';
 /// (프록시 지연·네트워크 블랙홀 등) 지도가 영영 빈 채로 남지 않게 한다.
 const Duration kKakaoMapSdkTimeout = Duration(seconds: 10);
 
-/// 모바일 WebView 가 지도 문서를 띄우는 출처(#3043).
-///
-/// 카카오 JS 키는 **Web 플랫폼 도메인 등록**으로 보호된다. WebView 는 이 주소를
-/// 출처로 SDK 를 부르므로, 카카오 콘솔의 같은 앱에 이 도메인을 등록해야 지도가
-/// 뜬다(docs/mobile_release.md). 실제로 이 주소에 요청을 보내지는 않는다.
-const String kKakaoMapMobileBaseUrl = 'http://localhost';
-
 /// 모바일 지도 문서가 Dart 로 소식을 보내는 JavaScript 채널 이름.
 const String kKakaoMapChannel = 'OnCareKakaoMap';
 
