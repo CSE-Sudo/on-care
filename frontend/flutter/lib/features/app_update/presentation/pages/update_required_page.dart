@@ -17,6 +17,13 @@ final storeLauncherProvider = Provider<Future<bool> Function(Uri)>(
   name: 'storeLauncher',
 );
 
+/// 스토어 주소를 고르는 기준 플랫폼. 테스트는 이 provider 를 덮어 안드로이드·
+/// iOS 를 고른다 — 전역 디버그 변수를 바꾸면 테스트 사이에 값이 남는다.
+final storeTargetPlatformProvider = Provider<TargetPlatform>(
+  (ref) => defaultTargetPlatform,
+  name: 'storeTargetPlatform',
+);
+
 /// 업데이트 필요 화면(#3045).
 ///
 /// 이 빌드가 서버의 최소 지원 버전보다 낮을 때 라우터 가드가 어느 주소에서든
@@ -37,7 +44,7 @@ class UpdateRequiredPage extends ConsumerWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final AppVersionGateState gate = ref.watch(appVersionGateProvider);
     final List<Uri> uris = storeUrisFor(
-      platform: defaultTargetPlatform,
+      platform: ref.watch(storeTargetPlatformProvider),
       iosAppStoreId: _iosAppStoreId(ref),
     );
     final String? current = gate.currentVersion;

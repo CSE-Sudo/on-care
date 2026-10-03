@@ -4,7 +4,6 @@
 /// 스토어의 On-Care 페이지를 연다. 열 주소가 없으면 버튼 대신 안내 문구를 둔다.
 library;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -49,12 +48,11 @@ Future<void> _pump(
   List<Uri>? opened,
   bool Function(Uri)? launchResult,
 }) async {
-  debugDefaultTargetPlatformOverride = platform;
-  addTearDown(() => debugDefaultTargetPlatformOverride = null);
   await tester.pumpWidget(
     ProviderScope(
       overrides: <Override>[
         appVersionGateProvider.overrideWith((ref) => _FixedGate(gate)),
+        storeTargetPlatformProvider.overrideWithValue(platform),
         appConfigProvider.overrideWithValue(
           AppConfig(
             environment: Environment.dev,

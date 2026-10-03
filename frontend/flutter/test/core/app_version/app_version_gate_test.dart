@@ -241,6 +241,12 @@ void main() {
   });
 
   group('appVersionGateProvider', () {
+    // 실제 이벤트 루프에서 돈다 — provider 를 만들 때 시작하는 /version 요청이
+    // testWidgets 의 가짜 시간 안에 묶이면 끝나지 않는다. 앱 수명 주기 소식은
+    // 초기화한 테스트 바인딩으로 보낸다.
+    final TestWidgetsFlutterBinding binding =
+        TestWidgetsFlutterBinding.ensureInitialized();
+
     late List<String> calls;
     Map<String, Object?>? Function() reply = () => null;
 
@@ -263,7 +269,7 @@ void main() {
       return c;
     }
 
-    testWidgets('기본은 꺼져 있다 — /version 을 부르지 않는다', (WidgetTester tester) async {
+    test('기본은 꺼져 있다 — /version 을 부르지 않는다', () async {
       final ProviderContainer c = ProviderContainer(
         overrides: <Override>[
           appVersionProvider.overrideWith((ref) async => '0.4.0'),
@@ -275,14 +281,14 @@ void main() {
       addTearDown(c.dispose);
 
       expect(c.read(appVersionGateProvider).status, AppVersionStatus.unknown);
-      await tester.runAsync(_drain);
+      await _drain();
       expect(calls, isEmpty);
     });
 
-    testWidgets('켜면 만들 때 한 번 확인한다', (WidgetTester tester) async {
+    test('켜면 만들 때 한 번 확인한다', () async {
       final ProviderContainer c = container(enabled: true);
       c.read(appVersionGateProvider);
-      await tester.runAsync(_drain);
+      await _drain();
 
       expect(calls, <String>['GET /version']);
       expect(
@@ -292,31 +298,31 @@ void main() {
       expect(c.read(appVersionGateProvider).minVersion, '0.5.0');
     });
 
-    testWidgets('/version 이 실패해도 unknown 이다', (WidgetTester tester) async {
+    test('/version 이 실패해도 unknown 이다', () async {
       reply = () => null;
       final ProviderContainer c = container(enabled: true);
       c.read(appVersionGateProvider);
-      await tester.runAsync(_drain);
+      await _drain();
 
       expect(c.read(appVersionGateProvider).status, AppVersionStatus.unknown);
     });
 
-    testWidgets('백그라운드에서 돌아오면 다시 확인한다', (WidgetTester tester) async {
+    test('백그라운드에서 돌아오면 다시 확인한다', () async {
       reply = () => <String, Object?>{'min_app_version': null};
       final ProviderContainer c = container(enabled: true);
       c.read(appVersionGateProvider);
-      await tester.runAsync(_drain);
+      await _drain();
       expect(calls, hasLength(1));
       expect(c.read(appVersionGateProvider).status, AppVersionStatus.supported);
 
       reply = () => <String, Object?>{'min_app_version': '0.5.0'};
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-      await tester.runAsync(_drain);
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await _drain();
 
       expect(calls, hasLength(2));
       expect(
