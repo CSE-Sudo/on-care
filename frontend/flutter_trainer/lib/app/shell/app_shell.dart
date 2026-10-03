@@ -6,6 +6,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/app_sidebar.dart';
 import 'package:oncare_trainer/app/shell/nav_destinations.dart';
 import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
+import 'package:oncare_trainer/features/auth/presentation/widgets/trainer_verification_sync.dart';
 import 'package:oncare_trainer/features/notifications/presentation/widgets/notification_bell.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -46,6 +47,9 @@ class AppShell extends StatefulWidget {
   /// 끼우면 `myBranchIndex` 가 밀려 푸터 선택이 조용히 깨진다. (#503)
   static int get notificationsBranchIndex => myBranchIndex + 1;
 
+  /// Branch index of 트레이너 승인 — 운영자 전용, 알림함 뒤 (#3008).
+  static int get adminTrainersBranchIndex => adminBranchIndex;
+
   /// Root location of branch [index] — what a sidebar tap opens when there
   /// is no [StatefulNavigationShell] to switch (the 404 page sits outside
   /// the shell route). Out-of-range indexes fall back to the 대시보드.
@@ -55,6 +59,7 @@ class AppShell extends StatefulWidget {
     }
     if (index == myBranchIndex) return AppRoutes.my;
     if (index == notificationsBranchIndex) return AppRoutes.notifications;
+    if (index == adminTrainersBranchIndex) return AppRoutes.adminTrainers;
     return AppRoutes.dashboard;
   }
 
@@ -107,9 +112,12 @@ class _AppShellState extends State<AppShell> {
           widget.navigationShell.currentIndex == AppShell.myBranchIndex,
       onSelect: _goBranch,
       onHome: _goDashboard,
-      body: PageScrollResetScope(
-        notifier: _scrollReset,
-        child: widget.navigationShell,
+      // 운영자 승인 상태를 로그인한 채로 따라간다(#3010).
+      body: TrainerVerificationSync(
+        child: PageScrollResetScope(
+          notifier: _scrollReset,
+          child: widget.navigationShell,
+        ),
       ),
     );
   }

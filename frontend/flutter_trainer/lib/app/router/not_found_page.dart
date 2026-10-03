@@ -70,27 +70,43 @@ class NotFoundPage extends ConsumerWidget {
       currentIndex: -1,
       onSelect: (index) => context.go(AppShell.branchRoot(index)),
       onHome: () => context.go(AppRoutes.dashboard),
-      body: Center(
-        key: bodyKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(OnCareSpacing.s24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              AppEmptyState(
-                icon: icon,
-                title: l.notFoundTitle,
-                message: l.notFoundMessage,
-                placement: AppStatePlacement.card,
-              ),
-              const SizedBox(height: OnCareSpacing.s16),
-              AppButton(
-                key: actionKey,
-                label: l.notFoundGoDashboard,
-                onPressed: () => context.go(AppRoutes.dashboard),
-              ),
-            ],
-          ),
+      body: const NotFoundBody(),
+    );
+  }
+}
+
+/// 콘솔 안에서 그리는 찾을 수 없음 본문 — 안내 카드와 `대시보드로` 버튼.
+///
+/// [NotFoundPage] 가 셸 틀 안에 넣고, 셸 안의 화면이 "이 계정에는 없는 화면" 을
+/// 말할 때도 그대로 쓴다(운영자 전용 화면, #3008) — 주소만으로 열린 화면이 있다는
+/// 사실을 따로 알리지 않는다.
+class NotFoundBody extends StatelessWidget {
+  /// Creates the in-console 404 body.
+  const NotFoundBody({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return Center(
+      key: NotFoundPage.bodyKey,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(OnCareSpacing.s24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            AppEmptyState(
+              icon: AppIcons.disconnect,
+              title: l.notFoundTitle,
+              message: l.notFoundMessage,
+              placement: AppStatePlacement.card,
+            ),
+            const SizedBox(height: OnCareSpacing.s16),
+            AppButton(
+              key: NotFoundPage.actionKey,
+              label: l.notFoundGoDashboard,
+              onPressed: () => context.go(AppRoutes.dashboard),
+            ),
+          ],
         ),
       ),
     );
