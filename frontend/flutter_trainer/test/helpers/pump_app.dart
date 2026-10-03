@@ -264,9 +264,6 @@ class _StillClientRepository implements ClientRepository {
   const _StillClientRepository();
 
   @override
-  bool get supportsRosterMutations => false;
-
-  @override
   Stream<List<TrainerClient>> watchClients() =>
       Stream<List<TrainerClient>>.value(const <TrainerClient>[]);
 
@@ -350,14 +347,6 @@ class _StillClientRepository implements ClientRepository {
     String clientId,
     ClientDateRange range,
   ) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
-
-  @override
-  Future<bool> clientNameExists(String name) =>
-      throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
-
-  @override
-  Future<bool> addClient({required String name, required String goal}) =>
-      throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 
   @override
   Future<void> setClientActive(String id, bool active) =>

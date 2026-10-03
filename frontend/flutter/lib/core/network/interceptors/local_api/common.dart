@@ -14,6 +14,8 @@ extension _LocalApiCommon on LocalApiInterceptor {
     return _ok(options, <String, Object?>{
       'status': 'ok',
       'backend': 'drift-local',
+      // 서버 응답과 같은 키(#3029). 목업 빌드에는 배포 커밋이 없다.
+      'commit_sha': 'unknown',
     });
   }
 
@@ -23,8 +25,9 @@ extension _LocalApiCommon on LocalApiInterceptor {
   Future<Response<Object?>> _version(RequestOptions options) async {
     return _ok(options, <String, Object?>{
       'api_version': 'v1',
-      'app_version': 'drift-local',
+      'app_version': '0.2.0+2',
       'min_app_version': null,
+      'commit_sha': 'unknown',
     });
   }
 

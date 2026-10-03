@@ -1,15 +1,16 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logger/logger.dart';
 import 'package:oncare/app/app.dart';
+import 'package:oncare/app/misconfigured_build_page.dart';
 import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/app_version/app_version_gate.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/logging/logging_provider_observer.dart';
 import 'package:oncare/core/observability/error_reporter.dart';
+import 'package:oncare/core/platform/orientation_policy.dart';
 import 'package:oncare/core/points/demo_benefits_seed.dart';
 import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/storage/app_database.dart';
@@ -26,12 +27,27 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// the app inside a [ProviderScope].
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // 휴대폰은 세로로 고정한다. 태블릿·웹은 그대로 둔다(#3050).
+  await applyPhoneOrientationLock();
 
   final config = AppConfig.fromEnvironment();
   final logger = Logger(level: config.isProd ? Level.info : Level.debug);
   logger.i(
     'oncare boot env=${config.environment.name} api=${config.apiBaseUrl}',
   );
+
+  // 릴리스 기본값 가드(#3022). 개발·목업 기본값 그대로 나간 릴리스 빌드는 저장소·
+  // 토큰·오류 보고를 건드리기 전에 멈추고 구성 오류 안내만 띄운다.
+  final List<ReleaseProblem> problems = releaseGuardProblems(config);
+  if (problems.isNotEmpty) {
+    logger.e(
+      'oncare release build misconfigured: ${problems.map((p) => p.name).join(',')}',
+    );
+    // 안내 화면은 provider 를 읽지 않지만, 앱 루트는 늘 ProviderScope 아래에 둔다
+    // (riverpod_lint missing_provider_scope).
+    runApp(ProviderScope(child: MisconfiguredBuildApp(problems: problems)));
+    return;
+  }
 
   // 에러 추적(#2839). DSN 이 없거나 데모(목업)·개발 환경이면 보내지 않는 보고기가 온다.
   final ErrorReporter errorReporter = await initErrorReporter(config);
@@ -131,14 +147,7 @@ Future<DemoBenefitsStore> prepareDemoStorage(
 Future<void> _clearTokensOnFreshInstall(AppPrefs prefs, Logger logger) async {
   if (prefs.installed) return;
   try {
-    await SecureTokenStore(
-      const FlutterSecureStorage(
-        iOptions: IOSOptions(
-          accessibility: KeychainAccessibility.first_unlock_this_device,
-        ),
-        aOptions: AndroidOptions(encryptedSharedPreferences: true),
-      ),
-    ).clear();
+    await SecureTokenStore(memberSecureStorage).clear();
   } catch (e, st) {
     logger.w('새 설치 토큰 정리 실패', error: e, stackTrace: st);
   }

@@ -263,6 +263,65 @@ def test_a_truncated_photo_is_refused(client, db_session):
     assert response.status_code == 415
 
 
+def _flat_png(size) -> bytes:
+    """압축이 잘 되는 단색 PNG — 파일은 작아도 펼치면 크다."""
+    buffer = io.BytesIO()
+    Image.new("RGB", size, (0, 0, 0)).save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+def test_a_photo_over_the_pixel_cap_is_refused_in_both_directions(
+    client, db_session, monkeypatch
+):
+    """펼칠 픽셀 수가 상한을 넘으면 디코딩하지 않고 415 다. (#3040)"""
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "max_image_decode_pixels", 1_000_000)
+    member_id, member_token, trainer_id, trainer_token = _pair(client, db_session)
+    data = _flat_png((2000, 2000))
+    assert len(data) < get_settings().max_chat_image_bytes
+
+    from_member = _member_sends(client, member_token, data, name="flat.png")
+    from_trainer = _trainer_sends(client, trainer_token, member_id, data)
+
+    assert from_member.status_code == 415, from_member.text
+    assert from_trainer.status_code == 415, from_trainer.text
+    db_session.expire_all()
+    assert (
+        db_session.query(ChatMessage)
+        .filter(
+            ChatMessage.member_id == member_id,
+            ChatMessage.trainer_id == trainer_id,
+        )
+        .count()
+        == 0
+    )
+
+
+def test_a_very_long_image_is_refused(client, db_session, monkeypatch):
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "max_image_decode_edge", 1_000)
+    _, member_token, _, _ = _pair(client, db_session)
+
+    response = _member_sends(
+        client, member_token, _flat_png((1_200, 4)), name="long.png"
+    )
+
+    assert response.status_code == 415
+
+
+def test_a_photo_under_the_cap_is_still_sent(client, db_session, monkeypatch):
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "max_image_decode_pixels", 1_000_000)
+    _, member_token, _, _ = _pair(client, db_session)
+
+    response = _member_sends(client, member_token, _gps_jpeg(size=(800, 600)))
+
+    assert response.status_code == 201, response.text
+
+
 # ---- 이미 쌓인 파일 재처리 ----
 
 
