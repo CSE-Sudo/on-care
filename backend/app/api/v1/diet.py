@@ -506,6 +506,8 @@ def create_entry(
         return diet_service.save_manual_entry(db, current_user.id, payload)
     except diet_service.NutritionInconsistentError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
+    except diet_service.IdempotencyConflictError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
 
 
 @router.put("/diet/entries/{entry_id}", response_model=DietEntryOut)
