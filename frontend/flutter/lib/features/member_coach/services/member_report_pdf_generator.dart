@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare/core/observability/handled_error.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_report/oncare_report.dart';
 import 'package:pdf/pdf.dart';
@@ -58,6 +59,7 @@ class MemberReportPdfGenerator {
     this.capture = captureReportWidget,
     this.encodeImage = platformReportJpegEncoder,
     this.yieldFrame = yieldToFrame,
+    this.onFallback,
   });
 
   /// 위젯을 그림으로 굽는 방법. 테스트가 갈아 끼운다.
@@ -68,6 +70,11 @@ class MemberReportPdfGenerator {
 
   /// 긴 계산 사이에 이벤트 루프에 양보하는 방법.
   final ReportFrameYield yieldFrame;
+
+  /// 결과지를 굽지 못해 글자 문서로 물러섰을 때 부른다(#3051). 앱은 처리된 오류
+  /// 창구(`handledErrorReporterProvider`)를 연결한다 — 회원에게는 그래프 없는
+  /// 리포트가 열리므로 조용히 삼키면 안 된다. 비어 있으면 아무것도 하지 않는다.
+  final void Function(Object error, StackTrace stackTrace)? onFallback;
 
   static const int _pageWidth = 1240;
   static const int _pageHeight = 1754;
@@ -88,10 +95,13 @@ class MemberReportPdfGenerator {
         yieldFrame: yieldFrame,
       );
     } catch (error, stack) {
-      // 결과지를 굽지 못했다 — 글자만 담은 문서로 물러선다. 원인은 개발 로그에
+      // 결과지를 굽지 못했다 — 글자만 담은 문서로 물러선다. 원인은 처리된 오류로
       // 남긴다: 회원에게는 그래프 없는 리포트가 열리므로 조용히 삼키면 안 된다.
-      debugPrint('member report pdf: sheet failed, text fallback: $error');
-      debugPrintStack(stackTrace: stack, maxFrames: 8);
+      try {
+        onFallback?.call(error, stack);
+      } catch (_) {
+        // 보고가 실패해도 글자 문서는 연다.
+      }
       return _textPdf(l, inputs, feedback);
     }
   }
@@ -328,7 +338,12 @@ class _Line {
 }
 
 /// 앱이 쓰는 생성기. 테스트가 굽기·인코딩을 갈아 끼운다.
-final memberReportPdfGeneratorProvider = Provider<MemberReportPdfGenerator>(
-  (ref) => const MemberReportPdfGenerator(),
-  name: 'memberReportPdfGenerator',
-);
+final memberReportPdfGeneratorProvider = Provider<MemberReportPdfGenerator>((
+  ref,
+) {
+  final HandledErrorReporter handled = ref.watch(handledErrorReporterProvider);
+  return MemberReportPdfGenerator(
+    onFallback: (Object error, StackTrace stack) =>
+        handled.report(error, stack, context: 'report.memberPdfSheet'),
+  );
+}, name: 'memberReportPdfGenerator');
