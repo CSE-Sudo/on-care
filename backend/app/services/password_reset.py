@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
@@ -32,6 +32,7 @@ from app.core.locale import Locale, localized
 from app.core.security import hash_password
 from app.models.models import PasswordResetToken, User
 from app.services import auth_tokens
+from app.services.contact_format import normalize_email
 from app.services.mailer import (
     Mailer,
     MailDeliveryError,
@@ -182,7 +183,10 @@ def request_reset(
     settings = settings or get_settings()
     if not settings.mail_enabled:
         raise ResetUnavailable()
-    user = db.scalar(select(User).where(User.email == email))
+    # 로그인과 같은 규칙으로 찾는다 — 키보드가 첫 글자를 대문자로 바꿔도 같은 계정이다
+    # (#3094). 스키마를 거치지 않고 부르는 자리도 같은 결과가 나오게 여기서도 맞춘다.
+    email = normalize_email(email)
+    user = db.scalar(select(User).where(func.lower(User.email) == email))
     if user is None or not user.is_active:
         return None
     if not user.hashed_password:

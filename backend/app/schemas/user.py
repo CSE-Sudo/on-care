@@ -28,7 +28,7 @@ from app.schemas.health_goal_ranges import (
     WeeklyWorkoutGoal,
 )
 from app.schemas.partial_update import PartialUpdate
-from app.services.contact_format import clean_email, normalize_phone
+from app.services.contact_format import clean_email, normalize_email, normalize_phone
 from app.services.password_policy import check_new_password
 from app.services.profile_format import clean_birth_date, clean_name
 from app.services.health_focus import normalize_conditions
@@ -188,9 +188,10 @@ class PasswordResetRequest(BaseModel):
 
     @field_validator("email")
     @classmethod
-    def _strip(cls, value: str) -> str:
-        # 가입과 같이 앞뒤 공백만 자른다 — 소문자로 고치면 로그인 조회와 어긋난다.
-        return value.strip()
+    def _normalize(cls, value: str) -> str:
+        # 로그인과 같이 공백을 자르고 소문자로 맞춘다(#2816·#3094) — 이메일은 소문자로
+        # 저장되므로 그대로 두면 `Hong@…` 로 친 요청이 계정을 찾지 못한다.
+        return normalize_email(value)
 
 
 class PasswordResetRequested(BaseModel):

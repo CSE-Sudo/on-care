@@ -817,7 +817,7 @@ def request_password_reset(
     settings = get_settings()
     if settings.rate_limit_enabled:
         limiter.check(
-            f"pw-reset-email:{payload.email.lower()}",
+            f"pw-reset-email:{normalize_email(payload.email)}",
             settings.password_reset_email_per_window,
             settings.password_reset_email_window_minutes * 60.0,
         )
