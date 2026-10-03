@@ -50,6 +50,10 @@ const AppConfig kTestAppConfigWithDemoEntry = AppConfig(
   showDemoEntry: true,
 );
 
+/// 테스트가 빌드 정보로 주입하는 버전 이름(#3047). `pubspec.yaml` 의 실제 버전과
+/// 일부러 다르게 둔다 — 화면이 버전을 문구에 박지 않고 빌드에서 읽는지 본다.
+const String kTestBuildVersion = '9.8.7';
+
 /// Pumps the full trainer app for a widget test, backed by a fresh
 /// in-memory (seeded) drift DB and an optional persisted session token.
 ///
@@ -106,7 +110,7 @@ Future<ProviderContainer> pumpTrainerApp(
   PackageInfo.setMockInitialValues(
     appName: 'oncare_trainer',
     packageName: 'oncare_trainer',
-    version: '0.1.0',
+    version: kTestBuildVersion,
     buildNumber: '1',
     buildSignature: '',
   );
