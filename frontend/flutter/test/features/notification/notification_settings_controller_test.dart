@@ -64,14 +64,14 @@ void main() {
 
     final Future<bool> saving = c
         .read(notificationSettingsProvider.notifier)
-        .setValue('notif_weekly_report', true);
+        .setValue('notif_weekly_report', false);
     repo.pending.single.complete();
     await saving;
 
     final NotificationSettingsState again = await c.read(
       notificationSettingsProvider.future,
     );
-    expect(again.valueOf('notif_weekly_report'), isTrue);
+    expect(again.valueOf('notif_weekly_report'), isFalse);
     // 다시 읽는다고 서버를 또 부르지 않는다 — 저장 결과가 곧 최신값이다.
     expect(repo.fetchCalls, 1);
   });
@@ -82,16 +82,16 @@ void main() {
     await c.read(notificationSettingsProvider.future);
     final notifier = c.read(notificationSettingsProvider.notifier);
 
-    // 1) 성공: 꺼짐 → 켜짐.
-    final Future<bool> first = notifier.setValue('notif_weekly_report', true);
+    // 1) 성공: 켜짐 → 꺼짐(주간 리포트는 기본 켜짐, #3025).
+    final Future<bool> first = notifier.setValue('notif_weekly_report', false);
     repo.pending[0].complete();
     expect(await first, isTrue);
-    // 2) 실패: 켜짐 → 꺼짐. 돌아갈 곳은 최초값(꺼짐)이 아니라 직전 값(켜짐).
-    final Future<bool> second = notifier.setValue('notif_weekly_report', false);
+    // 2) 실패: 꺼짐 → 켜짐. 돌아갈 곳은 최초값(켜짐)이 아니라 직전 값(꺼짐).
+    final Future<bool> second = notifier.setValue('notif_weekly_report', true);
     repo.pending[1].completeError(StateError('write failed'));
 
     expect(await second, isFalse);
-    expect(_value(c, 'notif_weekly_report'), isTrue);
+    expect(_value(c, 'notif_weekly_report'), isFalse);
   });
 
   test('연속으로 바꾸면 늦게 온 옛 실패가 최신 값을 되돌리지 않는다', () async {
@@ -124,13 +124,13 @@ void main() {
     final notifier = c.read(notificationSettingsProvider.notifier);
 
     final Future<bool> a = notifier.setValue('notif_trainer_message', false);
-    final Future<bool> b = notifier.setValue('notif_weekly_report', true);
+    final Future<bool> b = notifier.setValue('notif_weekly_report', false);
     repo.pending[1].complete();
     repo.pending[0].completeError(StateError('write failed'));
     await Future.wait(<Future<bool>>[a, b]);
 
     expect(_value(c, 'notif_trainer_message'), isTrue);
-    expect(_value(c, 'notif_weekly_report'), isTrue);
+    expect(_value(c, 'notif_weekly_report'), isFalse);
   });
 
   test('조회가 실패하면 기본값과 실패 표시를 돌려준다', () async {
@@ -169,14 +169,14 @@ void main() {
 
     final Future<bool> saving = c
         .read(notificationSettingsProvider.notifier)
-        .setValue('notif_weekly_report', true);
+        .setValue('notif_weekly_report', false);
     repo.pending.single.complete();
     await saving;
 
     final NotificationSettingsState state = c
         .read(notificationSettingsProvider)
         .requireValue;
-    expect(state.valueOf('notif_weekly_report'), isTrue);
+    expect(state.valueOf('notif_weekly_report'), isFalse);
     expect(state.loadFailed, isTrue);
   });
 }
