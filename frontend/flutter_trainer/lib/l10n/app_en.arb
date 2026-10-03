@@ -2246,6 +2246,50 @@
   "@notifTplMemberPhotoBody": {
     "description": "Body of the new-message notification when a member sent only a photo in the coach chat."
   },
+  "notifTplWeeklyFeedbackTitle": "{name} sent their weekly feedback",
+  "@notifTplWeeklyFeedbackTitle": {
+    "description": "Trainer notification title when a member submits their weekly feedback (#3026).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplWeeklyFeedbackRevisedTitle": "{name} updated their weekly feedback",
+  "@notifTplWeeklyFeedbackRevisedTitle": {
+    "description": "Title when a member re-submits weekly feedback the trainer has already read (#3026).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplWeeklyFeedbackPainTitle": "{name} reported pain",
+  "@notifTplWeeklyFeedbackPainTitle": {
+    "description": "Title when the weekly feedback reports pain. The pain area itself is never shown in the notification (#3026).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplWeeklyFeedbackCondition": "Condition: {value}",
+  "@notifTplWeeklyFeedbackCondition": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplWeeklyFeedbackIntensity": "Intensity: {value}",
+  "@notifTplWeeklyFeedbackIntensity": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "notifTplWeeklyFeedbackPain": "Pain reported",
   "notifAllRead": "All caught up",
   "notifReadAllFailed": "Couldn't mark them read. Please try again in a moment",
   "notifUnreadCount": "{count} unread",

@@ -6301,6 +6301,12 @@ abstract class AppLocalizations {
   /// **'PT schedule'**
   String get alertCategorySchedule;
 
+  /// Notification category label for screen readers: a finished PT session or the trainer's feedback on it (#3027).
+  ///
+  /// In en, this message translates to:
+  /// **'PT record'**
+  String get alertCategoryPtDone;
+
   /// Notification category label for screen readers.
   ///
   /// In en, this message translates to:

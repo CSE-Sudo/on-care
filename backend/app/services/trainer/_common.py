@@ -1638,3 +1638,28 @@ def member_routine_days(
 
 class RoutineDayInFuture(Exception):
     """아직 오지 않은 날의 개인운동 목록을 물었다. (#2161)"""
+
+
+def _done_pt_numbers(db: Session, member_id: str, trainer_id: str) -> dict[str, int]:
+    """이 회원이 이 트레이너와 마친 PT 의 회차 — 세션 id → 1부터의 순번. (#2697)
+
+    회원 일정 응답(`member_mirror`)과 PT 완료 알림(`schedule`, #3027)이 같은 번호를 쓴다.
+
+    목록은 최근 100건만 내리지만 회차는 처음부터 센다. 상담은 수업이 아니라 세지
+    않는다. 같은 날·같은 시각이면 id 로 순서를 고정해 응답마다 번호가 바뀌지 않게 한다.
+    """
+    ids = db.scalars(
+        select(TrainerSchedule.id)
+        .where(
+            TrainerSchedule.member_id == member_id,
+            TrainerSchedule.trainer_id == trainer_id,
+            TrainerSchedule.status == SCHEDULE_DONE,
+            TrainerSchedule.type != "상담",
+        )
+        .order_by(
+            TrainerSchedule.date.asc(),
+            TrainerSchedule.time.asc(),
+            TrainerSchedule.id.asc(),
+        )
+    ).all()
+    return {sid: i for i, sid in enumerate(ids, start=1)}

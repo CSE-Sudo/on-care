@@ -127,10 +127,14 @@ Future<void> openAlertTarget(
       unawaited(context.push(AppRoutes.consultationHistory));
     case AlertTarget.exercise:
       // 요청 ID가 없는 과거 알림은 기존 목록 갱신과 운동 탭 이동을 유지한다.
+      // PT 일정·완료 알림(#3028·#3027)도 여기로 온다 — 다음 PT 배지(트레이너 일정)와
+      // 헬스장 패널의 내 예약을 다시 읽어야 알림과 화면이 같은 말을 한다.
       ref
         ..invalidate(exerciseWeekProvider)
         ..invalidate(coachRoutinesProvider)
-        ..invalidate(coachInvitesProvider);
+        ..invalidate(coachInvitesProvider)
+        ..invalidate(coachSessionsProvider)
+        ..invalidate(myReservationsProvider);
       if (!context.mounted) return;
       context.go(AppRoutes.exercise);
     case AlertTarget.dashboard:

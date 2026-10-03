@@ -3473,6 +3473,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get alertCategorySchedule => 'PT 일정';
 
   @override
+  String get alertCategoryPtDone => 'PT 기록';
+
+  @override
   String get alertCategoryTrainer => '담당 트레이너';
 
   @override
