@@ -59,7 +59,7 @@
 |---|---|---|
 | GET | `/ping` | `{ message }` |
 | GET | `/healthz` | `{ status, backend, env, demo_fallback, demo_seed, attachment_storage }` (#2821) |
-| GET | `/version` | `{ api_version, app_version }` |
+| GET | `/version` | `{ api_version, app_version, min_app_version }` — `app_version` 은 서버 버전. `min_app_version` 은 회원 모바일 앱 최소 지원 버전(`MAJOR.MINOR.PATCH`, 설정 `MIN_MEMBER_APP_VERSION`), 비어 있으면 `null` 이고 앱은 검사하지 않는다. 인증 없음 (#3045) |
 | GET | `/readyz` | `{ status: "ready" }` — DB 에 `SELECT 1` 까지 확인한다(3초 제한). 실패하면 **503** `{"detail": "서비스가 아직 준비되지 않았습니다."}`, 원인은 서버 로그에만 남긴다. `/healthz` 는 프로세스만 본다(liveness) |
 
 ### 관리자 전용

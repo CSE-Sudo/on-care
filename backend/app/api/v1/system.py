@@ -77,8 +77,18 @@ def readyz(db: Annotated[Session, Depends(get_db)]) -> dict[str, str]:
 
 
 @router.get("/version")
-def version() -> dict[str, str]:
-    return {"api_version": "v1", "app_version": settings.app_version}
+def version() -> dict[str, str | None]:
+    """서버 버전과 회원 앱 최소 지원 버전(#3045).
+
+    `app_version` 은 이 서버의 버전이다. 회원 앱은 `min_app_version` 을 자기 빌드
+    버전과 비교해 낮으면 업데이트 화면을 띄운다. 설정이 비면 `null` — 검사하지 않는다.
+    인증 없이 부른다(로그인 전에 확인한다).
+    """
+    return {
+        "api_version": "v1",
+        "app_version": settings.app_version,
+        "min_app_version": settings.min_member_app_version or None,
+    }
 
 
 @router.get("/system/metrics")

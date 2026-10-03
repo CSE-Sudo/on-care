@@ -116,3 +116,37 @@ def test_demo_fallback_gated_by_env():
 def test_sqlalchemy_database_url_normalizes_to_psycopg_v3(raw: str, expected: str):
     s = Settings(_env_file=None, database_url=raw)
     assert s.sqlalchemy_database_url == expected
+
+
+# --- 회원 앱 최소 지원 버전(#3045) ---
+
+
+def test_min_member_app_version_defaults_to_empty(monkeypatch):
+    monkeypatch.delenv("MIN_MEMBER_APP_VERSION", raising=False)
+    assert Settings(_env_file=None).min_member_app_version == ""
+
+
+@pytest.mark.parametrize("value", ["1.2.0", "0.3.0", "10.20.30", " 1.0.0 "])
+def test_min_member_app_version_accepts_semver(value):
+    s = Settings(_env_file=None, min_member_app_version=value)
+    assert s.min_member_app_version == value.strip()
+
+
+@pytest.mark.parametrize(
+    "value", ["1.2", "1.2.0+3", "v1.2.0", "1.2.0-beta", "latest", "1..0", "1.2.x"]
+)
+def test_min_member_app_version_rejects_bad_format(value):
+    """오타 하나로 모든 회원이 막히지 않게 기동에서 실패한다."""
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, min_member_app_version=value)
+
+
+def test_min_member_app_version_from_env(monkeypatch):
+    monkeypatch.setenv("MIN_MEMBER_APP_VERSION", "2.0.1")
+    assert Settings(_env_file=None).min_member_app_version == "2.0.1"
+
+
+def test_min_member_app_version_bad_env_fails(monkeypatch):
+    monkeypatch.setenv("MIN_MEMBER_APP_VERSION", "2.0")
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)
