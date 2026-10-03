@@ -13,7 +13,7 @@ import pytest
 
 from app.core import clock
 
-_JPEG = b"\xff\xd8\xff\xe0\x00\x10JFIF fake-image-bytes"
+from tests.image_fixtures import JPEG as _JPEG  # 진짜 JPEG — 분석 전 정리가 픽셀을 읽는다(#3041)
 
 #: 오늘은 2026-08-20(목) 12:00 KST 로 고정한다.
 _NOW = datetime(2026, 8, 20, 12, 0, tzinfo=clock.SEOUL)
