@@ -388,9 +388,10 @@ def test_a_large_jpeg_meal_photo_is_reduced_while_decoding(
     """JPEG 은 축소 디코딩한 크기로 센다 — 같은 상한에서도 사진이 저장된다. (#3040)"""
     from app.core.config import get_settings
 
-    # 원본 3200×2400(768만 픽셀)이지만 1/2 로 펼치면 192만이다.
-    monkeypatch.setattr(get_settings(), "max_image_decode_pixels", 2_000_000)
-    res = _analyze(client, member_token, _photo_bytes((3200, 2400)))
+    # 분석은 먼저 인식용 정리본(장변 1600)을 만든다(#3041). 원본 4800×3600
+    # (1728만 픽셀)은 두 변이 1600 이상으로 남는 1/2 로 펼쳐 432만이다.
+    monkeypatch.setattr(get_settings(), "max_image_decode_pixels", 5_000_000)
+    res = _analyze(client, member_token, _photo_bytes((4800, 3600)))
 
     assert res.status_code == 200, res.text
     assert res.json()["photo_url"]
