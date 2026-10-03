@@ -362,7 +362,7 @@ def test_only_the_previous_plan_is_kept(db_session, member, monkeypatch):
 
 def test_trainer_notes_only_trainer_sent_recent_messages(db_session):
     from app.models.models import ChatMessage
-    from app.services.trainer_service import get_member_trainer_id
+    from app.services.trainer._common import get_member_trainer_id
 
     member_id = "user-7d4e9a2c5f18"  # 데모 김민수 — 담당 트레이너가 있다
     trainer_id = get_member_trainer_id(db_session, member_id)

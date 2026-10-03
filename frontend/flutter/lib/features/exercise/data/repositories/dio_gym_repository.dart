@@ -6,6 +6,7 @@ import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 헬스장·트레이너 디렉터리 실 API. (#324)
 ///
@@ -169,9 +170,10 @@ class DioGymRepository implements GymRepository {
     MyReservation.fromJson,
     query: <String, Object?>{
       'limit': limit,
-      // 커서는 서버가 준 시각 그대로여야 한다 — 엔티티는 화면용으로 로컬 시각을
-      // 들고 있으므로 UTC 로 되돌려 보낸다.
-      if (before != null) 'before': before.toUtc().toIso8601String(),
+      // 커서는 서버가 준 시각 그대로여야 한다 — 엔티티는 화면용으로 KST 벽시계를
+      // 들고 있으므로 UTC 로 되돌려 보낸다. `toUtc()` 는 기기 시간대로 읽어
+      // KST 가 아닌 기기에서 어긋난다(#2876).
+      if (before != null) 'before': kstWallToUtc(before).toIso8601String(),
       'before_id': ?beforeId,
     },
   );

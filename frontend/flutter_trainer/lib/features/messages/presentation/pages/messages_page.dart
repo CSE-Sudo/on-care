@@ -11,6 +11,7 @@ import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/utils/roster_unread.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/client_identity.dart';
 import 'package:oncare_trainer/shared/widgets/client_signal_badges.dart';
@@ -109,6 +110,11 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                   // 분할일 때만 한 칸 비워 둔다 — 회원 탭 목록과 같다.
                   trailingPadding: narrow ? 0 : OnCareSpacing.s8,
                   unread: unread,
+                  // 칩은 걸러진 목록이 아니라 명단 전체에서 센다(#2868).
+                  unreadConversations: rosterUnreadOf(
+                    rosterIds: clients.map((client) => client.id),
+                    unread: unread,
+                  ).conversations,
                   filter: filter,
                   onFilterChanged: _setFilter,
                   onSelected: _selectClient,
@@ -144,6 +150,7 @@ class _ConversationList extends StatelessWidget {
     required this.selectedId,
     required this.trailingPadding,
     required this.unread,
+    required this.unreadConversations,
     required this.filter,
     required this.onFilterChanged,
     required this.onSelected,
@@ -153,6 +160,9 @@ class _ConversationList extends StatelessWidget {
   final String? selectedId;
   final double trailingPadding;
   final Map<String, int> unread;
+
+  /// `안 읽음 N` 칩의 N — 명단 회원 중 안읽음이 있는 회원 수.
+  final int unreadConversations;
   final _ConversationFilter filter;
   final ValueChanged<_ConversationFilter> onFilterChanged;
   final ValueChanged<String> onSelected;
@@ -170,9 +180,7 @@ class _ConversationList extends StatelessWidget {
               for (final item in _ConversationFilter.values) ...<Widget>[
                 AppChoiceChip(
                   label: item == _ConversationFilter.unread
-                      ? l.messagesFilterUnreadCount(
-                          unread.values.where((n) => n > 0).length,
-                        )
+                      ? l.messagesFilterUnreadCount(unreadConversations)
                       : item.label(l),
                   selected: filter == item,
                   onSelected: (_) => onFilterChanged(item),

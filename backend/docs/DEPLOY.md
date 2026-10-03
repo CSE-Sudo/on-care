@@ -105,15 +105,30 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `AUTO_CREATE_TABLES` | `false` (Alembic 이 정답) |
 | `CORS_ALLOW_ORIGINS` | 회원 앱·트레이너 웹이 실제로 서비스되는 도메인(콤마 구분). `*` 면 기동 거부 |
 | `TZ` | `Asia/Seoul` (오늘/어제 라벨 KST 기준) |
-| `SEED_DEMO_DATA` | 운영 권장 `false`. 데이터 든 데모 계정을 두려면 `true` + `DEMO_LOGIN_PASSWORD` 필수 |
-| `DEMO_LOGIN_PASSWORD` | `SEED_DEMO_DATA=true` 일 때 12자+ 강한 값(아니면 기동 거부) |
-| `GEMINI_API_KEY` 또는 LiteLLM(`LITELLM_*`) | 식단 인식/코치. 없으면 stub 폴백 |
+| `SEED_DEMO_DATA` | `false`(기본값). 운영에서 `true` 면 기동 거부 — 시연은 데모 전용 DB 를 둔 별도 환경에서 |
+| `DEMO_LOGIN_PASSWORD` | 운영에서는 쓰지 않는다(데모 시드를 켠 환경 전용) |
+| `GYM_BENEFITS_ENABLED` | `false`(기본값). 제휴 헬스장이 생기면 `true` — PT 재등록 할인·락커 쿠폰·분석용 식판을 연다(#2822) |
+| `GEMINI_API_KEY` 또는 LiteLLM(`LITELLM_*`) | 식단 인식/임베딩. **운영 필수** — `RECOGNIZER`·`EMBEDDER` 에 맞는 키가 없거나 `stub`·`hash` 면 기동 거부(#2812) |
 | `GEMINI_MODEL` | 운영은 **고정 버전** 모델 이름(아래 "모델 고정"). 비우면 코드 기본 별칭 |
 | `RECOGNIZER_TIMEOUT_SECONDS` | 식단 사진 인식 한 건의 대기 한도(초, 기본 60, #2912) |
 | `MIGRATE_CONNECT_TIMEOUT` | 기동 마이그레이션의 DB 연결 한도(초, 기본 10, #2912) |
-| `KAKAO_REST_API_KEY` | 장소(O2O) 실검색. 없으면 시드 폴백. `PLACES_PROVIDER=auto` 기본 |
+| `KAKAO_REST_API_KEY` | 장소(O2O) 실검색. `PLACES_PROVIDER=auto` 기본. 데모 시드가 꺼진 서버는 카카오 0건이면 빈 목록, 실패면 503 이고 시드 장소로 채우지 않는다(#2914) |
+| `TRUSTED_PROXY_HOPS` | rate limit·감사 로그가 믿는 앞단 프록시 수(#2815). 비우면 운영 1. 프록시가 둘 이상 붙으면 그 수로 맞춘다 |
+| `FORWARDED_ALLOW_IPS` | uvicorn 프록시 헤더 신뢰 대역(`scripts/start.sh`, 기본 `*`). 고정 대역이 있으면 좁힌다. 클라이언트 IP 는 이 값과 무관하게 위 홉 수로 읽는다 |
+| `LOGIN_MAX_FAILURES`·`LOGIN_LOCKOUT_SECONDS` | 같은 이메일 로그인 연속 실패 잠금(기본 5회·900초) |
+| `PAIRING_REDEEM_PER_DAY` | 회원 연결 코드 미리보기·사용의 트레이너 하루 상한(기본 30) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | 접근 토큰 수명(분, #2913). 기본 60. 두 앱은 만료되면 refresh 로 이어 가므로 운영은 짧게 둔다. 데모·개발 환경만 길게 |
+| `REGISTER_PER_EMAIL_PER_HOUR` | 같은 이메일 가입 시도 시간당 상한(회원·트레이너 공용, 기본 5, #2913) |
+| `PASSWORD_CHANGE_MAX_FAILURES` | 비밀번호 변경의 현재 비밀번호 연속 실패 잠금(사용자 단위, 기본 5회, 창은 `LOGIN_LOCKOUT_SECONDS`, #2913) |
+| `EXPOSE_API_DOCS` | `/docs`·`/redoc`·`/openapi.json` 공개 여부(#2834). 비우면 운영은 닫힘(404). 스키마는 스테이징·로컬에서 본다 |
+| `SENTRY_DSN` | 에러 추적 수신 주소(#2839). 비우면 보내지 않음. 값은 #480 에서 채운다 |
+| `SENTRY_ENVIRONMENT` / `SENTRY_SAMPLE_RATE` | 선택. 비우면 `ENV` 값 / 기본 `1.0` |
 
-> 참고: 키가 없어도 인식/장소는 폴백으로 동작(기동은 됨). 운영 시크릿은 Secrets Manager/SSM 에 두고
+> **시도 제한은 인스턴스 메모리에 둔다**(`app/core/rate_limit.py`). App Runner 최소·최대 인스턴스가
+> 1 이 아니게 되거나 `WEB_CONCURRENCY` 를 늘리면 한도가 인스턴스·워커 수만큼 늘어나므로, 그때 공유 저장소(Redis 등) 구현으로 바꾼다.
+> 기동 로그에 `TRUSTED_PROXY_HOPS=0` 경고가 보이면 프록시 홉 수 설정을 확인한다.
+
+> 참고: 장소는 키가 없어도 시드 폴백으로 동작한다. 사진 인식·임베딩은 운영에서 폴백하지 않는다(#2812). 운영 시크릿은 Secrets Manager/SSM 에 두고
 > App Runner 에 주입한다. 키 전체 목록과 형식은 `backend/.env.aws.example` 에 있다.
 
 **운영에서 기본값을 그대로 두면 안 되는 키** — 기동은 되지만 개발용 동작이 남는다(#2840).
@@ -142,6 +157,41 @@ CREATE EXTENSION IF NOT EXISTS vector;
 - 헬스체크: HTTP `GET /v1/healthz`.
 - 환경변수: 위 표(민감값은 Secrets 참조).
 - 컨테이너가 기동 시 마이그레이션을 수행하므로 별도 마이그레이션 스텝 불필요.
+
+## 워커 수와 이벤트 루프 (#2835)
+
+- `WEB_CONCURRENCY` 로 uvicorn 워커 수를 정한다(`scripts/start.sh`, 기본 `1`, 1 이상 정수가
+  아니면 기동 거부). 실제 운영 값은 배포 설정에서 정한다(#480).
+- 워커를 늘릴 때의 영향:
+  - **인메모리 분당 한도**(로그인·AI 코치·사진 분석 분당 한도 등)는 워커마다 따로 센다 — 워커 N 개면
+    한 사용자가 최대 N 배까지 통과할 수 있다. DB 에서 세는 하루 상한(AI 챗봇·사진 분석)은 영향 없다.
+  - **`/v1/system/metrics`** 는 그 요청을 받은 워커 하나의 값만 보여 준다(합산되지 않는다).
+  - **DB 연결 수**가 워커 수만큼 곱해진다(아래 계산식).
+- `async def` 라우트 안에서 동기 DB·Pillow·파일 저장을 돌리지 않는다 — 이벤트 루프가 막혀 같은 워커의
+  다른 요청(헬스체크 포함)이 모두 멈춘다. 외부 호출만 `await` 하고 나머지는 `run_in_threadpool` 로
+  넘기거나 라우트를 `def` 로 둔다. `tests/test_async_route_guard.py` 가 이 규칙을 검사한다.
+
+## DB 커넥션 풀·쿼리 실행 상한 (#2836)
+
+| 키 | 기본값 | 설명 |
+|---|---|---|
+| `DB_POOL_SIZE` | `5` | 워커 하나가 유지하는 연결 수 |
+| `DB_MAX_OVERFLOW` | `10` | 붐빌 때 잠깐 더 여는 연결 수 |
+| `DB_POOL_TIMEOUT_SECONDS` | `10` | 풀이 말랐을 때 기다리는 상한. 기본값(30초)보다 짧게 실패시켜 클라이언트 재시도로 넘긴다 |
+| `DB_POOL_RECYCLE_SECONDS` | `300` | 유휴 연결 재활용 주기. 관리형 DB 가 유휴 연결을 먼저 끊는 시간보다 짧게 둔다 |
+| `DB_STATEMENT_TIMEOUT_MS` | `10000` | 쿼리 하나의 실행 상한. 연결 시작 옵션(`-c statement_timeout`)으로 건다. `0` 이면 끈다 |
+
+- **연결 수 계산:** `(DB_POOL_SIZE + DB_MAX_OVERFLOW) × WEB_CONCURRENCY × 인스턴스 수` 가 DB 플랜의
+  동시 연결 상한보다 작아야 한다. 기본값·워커 1·인스턴스 1 이면 최대 15 다. 마이그레이션은 기동 때
+  별도 연결 하나를 잠깐 더 쓴다.
+- 실행 상한은 앱 엔진에만 걸린다. 마이그레이션(`scripts/migrate.py`·Alembic)은 자기 엔진을 쓰므로 긴
+  DDL 이 끊기지 않는다. readiness(`/readyz`)는 따로 3초 상한을 건다.
+- 시작 옵션을 받지 않는 풀러 엔드포인트(PgBouncer 등)로 바꾸면 연결이 거부된다 — 그때는
+  `DB_STATEMENT_TIMEOUT_MS=0` 으로 끄고 DB 역할 쪽에 상한을 건다. 지금은 직접 엔드포인트를 쓴다.
+- AI 코치 채팅·홈 코칭은 LLM 응답을 기다리기 전에 읽기 트랜잭션을 끝내 연결을 풀로 돌려준다 —
+  LLM 대기(수 초~수십 초) 동안 연결을 쥐지 않는다.
+- 풀 상태는 관리자 전용 `GET /v1/system/metrics` 의 `db_pool`(`size`·`checked_out`·`overflow`)로
+  본다. `checked_out` 이 자주 `size + max_overflow` 에 닿으면 풀을 키우거나 느린 경로를 찾는다.
 
 ## 5) CI 용 GitHub Secrets & IAM 역할
 
@@ -263,7 +313,61 @@ flutter build web --release \
 
 지도 핀은 프론트 카카오맵 **JS SDK**(JS키 + 도메인 등록) 담당. 백엔드는 좌표+정보만 제공한다.
 
+**운영 체크리스트 — 카카오 JavaScript 키 허용 도메인(#2913).** `KAKAO_JS_KEY` 는 웹 빌드에 들어가
+브라우저에 그대로 보인다. 키를 지키는 것은 카카오 개발자 콘솔의 **JavaScript SDK 도메인** 목록뿐이다.
+배포·도메인을 바꿀 때마다 아래를 확인한다.
+
+- 목록에 운영 회원 웹·트레이너 웹 주소만 있는가(`https://` 포함, 경로 없이 출처 단위).
+- 개발용 주소(`localhost` 등)·옛 배포 주소·임시 미리보기 주소가 남아 있지 않은가. 로컬 개발이
+  필요하면 운영 키가 아닌 개발용 앱 키를 따로 쓴다.
+- 확인한 날짜와 결과를 담당 이슈에 남긴다.
+
 ---
+
+## 데모 데이터 정리 (#2811)
+
+예전에는 `SEED_DEMO_DATA` 기본값이 켜져 있어, 값을 빠뜨린 채 띄운 서버가 데모 계정·데모 회원
+기록·가상 트레이너·가상 헬스장을 DB 에 심었습니다. 지금은 기본값이 꺼져 있고 운영에서는 켤 수도
+없지만, 이미 심긴 행은 그대로 남습니다. 회원 앱 트레이너 찾기·추천·상세와 상담 신청은 데모가 꺼진
+서버에서 데모 트레이너를 거르므로 노출은 막혀 있고, 행 자체는 아래 절차로 지웁니다.
+
+1. 서버 설정이 `SEED_DEMO_DATA=false`(또는 미지정)인지 확인합니다. 켜진 채 재기동하면 지운
+   데이터가 다시 심깁니다.
+2. DB 백업을 떠 둡니다(Neon 이면 브랜치 생성).
+3. 미리보기로 건수를 확인합니다. 아무것도 지우지 않습니다.
+   ```bash
+   cd backend && DATABASE_URL=<운영 DB> python -m scripts.purge_demo_data
+   ```
+   데모 사용자 id 목록, 예약 건수(그중 실제 회원의 예약), `users.id` 를 참조하는 표별 행 수,
+   지울 데모 장소와 **남기는 장소**(실제 트레이너 소속·실제 회원 연결이 있는 곳)가 나옵니다.
+4. 건수가 맞으면 `--apply` 를 붙여 지웁니다.
+   ```bash
+   cd backend && DATABASE_URL=<운영 DB> python -m scripts.purge_demo_data --apply
+   ```
+
+지우는 대상은 시드 id 목록(`app/db/demo_ids.py`)뿐이고, 카카오에서 찾은 실재 업체 행은 지우지
+않습니다. 데모 사용자의 식단·운동·채팅·알림·포인트는 `users.id` CASCADE 로 함께 지워집니다.
+
+## 헬스장 혜택 쿠폰 정리 (#2822)
+
+PT 재등록 할인·개인 락커·분석용 식판은 헬스장이 현장에서 주는 혜택입니다. 제휴 헬스장이 없는
+동안에는 `GYM_BENEFITS_ENABLED=false`(기본값)로 닫아 둡니다. 닫힌 서버는 사용처 목록에서 두
+항목을 빼고, 교환(404)과 식판 받기(409)를 거부하며, 회원 앱은 식판 카드를 그리지 않습니다.
+
+닫기 전에 이미 발급된 쿠폰은 아래 절차로 취소하고 포인트를 돌려줍니다. 담당·헬스장 해제 때와
+같은 취소 경로라 포인트 내역에 `refund` 로 남고 회원에게 쿠폰 취소 알림이 갑니다. 기한이 지난
+쿠폰은 돌려주지 않고 만료로 내립니다.
+
+1. 서버 설정이 `GYM_BENEFITS_ENABLED=false`·`SEED_DEMO_DATA=false` 인지 확인합니다. 혜택이 열린
+   서버에서는 `--apply` 가 거부됩니다.
+2. 미리보기로 대상 회원 수·항목별 장수·돌려줄 포인트를 확인합니다.
+   ```bash
+   cd backend && DATABASE_URL=<운영 DB> python -m scripts.cancel_gym_benefit_coupons
+   ```
+3. 건수가 맞으면 `--apply` 를 붙여 취소합니다. 두 번 돌려도 같습니다.
+   ```bash
+   cd backend && DATABASE_URL=<운영 DB> python -m scripts.cancel_gym_benefit_coupons --apply
+   ```
 
 ## 마이그레이션 head 선형화 (머지 순서 주의)
 

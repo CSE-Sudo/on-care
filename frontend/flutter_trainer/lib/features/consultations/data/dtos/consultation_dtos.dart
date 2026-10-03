@@ -1,4 +1,4 @@
-import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 

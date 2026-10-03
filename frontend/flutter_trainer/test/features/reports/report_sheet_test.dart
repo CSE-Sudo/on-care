@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare_trainer/features/reports/domain/report_sheet.dart';
+import 'package:oncare_report/oncare_report.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/nutrition_summary_card.dart'
+    show proteinTargetG;
 import 'package:oncare_trainer/features/reports/domain/report_trend.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
@@ -224,12 +226,14 @@ void main() {
       final ReportSheet sheet = ReportSheet.of(
         _report(
           calorieTarget: null,
-          proteinWeek: const <double>[50, 0, 0, 0, 0, 0, 0],
+          proteinWeek: const <double>[30, 0, 0, 0, 0, 0, 0],
         ),
       );
 
       expect(sheet.diet[SheetDietItem.calories]!.target, calorieTargetKcal);
-      expect(sheet.diet[SheetDietItem.protein]!.value, 50);
+      // 단백질 기준선은 영양 카드·서버와 같은 공통 기본값이다(#2906).
+      expect(sheet.diet[SheetDietItem.protein]!.target, proteinTargetG);
+      expect(sheet.diet[SheetDietItem.protein]!.value, 30);
       expect(sheet.diet[SheetDietItem.protein]!.band, SheetBand.under);
     });
 

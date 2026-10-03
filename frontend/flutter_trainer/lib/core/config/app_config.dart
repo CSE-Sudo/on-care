@@ -16,6 +16,7 @@ class AppConfig {
     required this.apiBaseUrl,
     required this.useMockApi,
     this.showDemoEntry = false,
+    this.sentryDsn,
   });
 
   final Environment environment;
@@ -38,7 +39,15 @@ class AppConfig {
   /// 다시 열 때: `--dart-define=SHOW_DEMO_ENTRY=true`
   final bool showDemoEntry;
 
+  /// 에러 추적(Sentry) 수신 주소. 비어 있으면 보내지 않는다 (#2839).
+  ///
+  /// 배포 빌드가 `--dart-define=SENTRY_DSN=...` 으로 넣는다. 데모(목업)·개발
+  /// 환경에서는 값이 있어도 보내지 않는다 — `shouldReportErrors` 참고.
+  final String? sentryDsn;
+
   bool get isProd => environment == Environment.prod;
+
+  bool get isDev => environment == Environment.dev;
 
   factory AppConfig.fromEnvironment() {
     const envStr = String.fromEnvironment('ENV', defaultValue: 'dev');
@@ -55,6 +64,7 @@ class AppConfig {
     // real web build opts in with USE_MOCK_API=false.
     const useMockApi = bool.fromEnvironment('USE_MOCK_API', defaultValue: true);
     const showDemoEntry = bool.fromEnvironment('SHOW_DEMO_ENTRY');
+    const sentryDsn = String.fromEnvironment('SENTRY_DSN');
     return AppConfig(
       environment: env,
       apiBaseUrl: apiBaseUrl,
@@ -63,6 +73,7 @@ class AppConfig {
       // 여기서 값이 갈린다.
       // ignore: avoid_redundant_argument_values
       showDemoEntry: showDemoEntry,
+      sentryDsn: sentryDsn.isEmpty ? null : sentryDsn,
     );
   }
 }

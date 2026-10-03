@@ -17,6 +17,10 @@ on:
       - "shared/oncare_kakao_map/**"
       # 두 앱이 함께 쓰는 주간 리포트 결과지(#2652).
       - "shared/oncare_report/**"
+      # 서버와 두 앱이 같은 값을 내야 하는 계산 규칙과 그 입력 표(#2860).
+      - "shared/oncare_rules/**"
+      # 두 앱이 함께 쓰는 인증·네트워크·시계 기반(#2907).
+      - "shared/oncare_core/**"
       # 데모·실서버 진입점 비교 시험이 읽는 예외 목록 — 목록만 바뀌어도 돈다(#2792).
       - ".github/demo-divergence-allowlist.txt"
       - ".github/workflows/trainer-ci.yml"
@@ -34,6 +38,10 @@ on:
       - "shared/oncare_kakao_map/**"
       # 두 앱이 함께 쓰는 주간 리포트 결과지(#2652).
       - "shared/oncare_report/**"
+      # 서버와 두 앱이 같은 값을 내야 하는 계산 규칙과 그 입력 표(#2860).
+      - "shared/oncare_rules/**"
+      # 두 앱이 함께 쓰는 인증·네트워크·시계 기반(#2907).
+      - "shared/oncare_core/**"
       # 데모·실서버 진입점 비교 시험이 읽는 예외 목록 — 목록만 바뀌어도 돈다(#2792).
       - ".github/demo-divergence-allowlist.txt"
       - ".github/workflows/trainer-ci.yml"
@@ -60,7 +68,7 @@ jobs:
         working-directory: frontend/flutter_trainer
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -112,7 +120,7 @@ jobs:
         working-directory: frontend/flutter_trainer
     steps:
       - name: Checkout repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 

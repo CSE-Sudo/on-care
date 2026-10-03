@@ -5,13 +5,19 @@ import 'dart:ui' show Locale;
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_rules/oncare_rules.dart'
+    show
+        kExerciseTypeCardio,
+        kExerciseTypeStrength,
+        kExerciseTypeStretching,
+        normalizeExerciseType;
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/network/interceptors/client_access_interceptor.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_menu_plans.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/data/dtos/client_dtos.dart'
     show
@@ -34,6 +40,7 @@ import 'package:oncare_trainer/shared/health_focus.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Reads a trainer's clients + their diet/history for the 고객 관리 tab.
 ///
@@ -393,7 +400,7 @@ class DriftClientRepository implements ClientRepository {
   Future<void> removeClient(String id) async {
     // 삭제 확인창이 트레이너에게 하는 약속(스케줄·루틴·리포트·메시지가
     // **트레이너 화면에서만** 사라지고, 원본은 지워지지 않는다)은 실
-    // 백엔드(`trainer_service.remove_client`)와 같아야 한다. 예전에는 여기서
+    // 백엔드(`trainer.client_status.remove_client`)와 같아야 한다. 예전에는 여기서
     // 스케줄·AI 루틴·운동 기록·채팅·리포트 피드백 행을 실제로 지웠는데, 그
     // 대가가 재등록 때 드러났다 — 카드의 주간 이행률(`weekCompletionJson`)은
     // 캐시라 손대지 않은 채 남는데 근거가 되는 `clientRoutineHistory` 는 이미
@@ -432,6 +439,9 @@ class DriftClientRepository implements ClientRepository {
       weightKg: (saved['weight_kg'] as num?)?.toDouble(),
       // 성별은 로스터가 이미 말하고 있는 값을 따른다. 고정 'male' 을 두던
       // 시절에는 헤더가 '여성'인 회원의 대화상자가 '남성'으로 열렸다(#818).
+      // 로스터는 저장된 성별만 말한다 — 없으면 빈 값이라 대화상자가 `선택 안
+      // 함` 으로 열린다. 예전에는 id 로 지어낸 성별이 여기 채워져, 트레이너가
+      // 그대로 저장하면 지어낸 값이 실제 값으로 굳었다(#2870).
       gender: saved['gender'] as String? ?? _toEntity(row).rosterGender,
       // 저장한 적이 없으면 로스터 목표에서 건강 목표를 읽는다(#1818).
       conditions:
@@ -621,15 +631,17 @@ class DriftClientRepository implements ClientRepository {
       for (final FixtureExercise e in day.doneExercises) {
         minutes[i] += e.minutes;
         calories[i] += e.calories;
-        switch (e.type) {
-          case 'strength':
+        // 서버 `exercise_types.normalize` 와 같은 공용 표로 칸을 고른다 — 한글
+        // 라벨(`유산소`)·옛 값도 제 칸에 들어간다(#2861).
+        switch (normalizeExerciseType(e.type)) {
+          case kExerciseTypeStrength:
             strength[i] += e.minutes;
             strengthCal[i] += e.calories;
             sets[i] += e.sets ?? setsFromStrengthMinutes(e.minutes);
-          case 'flexibility' || 'stretching' || 'yoga':
+          case kExerciseTypeStretching:
             stretching[i] += e.minutes;
             stretchingCal[i] += e.calories;
-          case 'cardio' || 'walking':
+          case kExerciseTypeCardio:
             cardio[i] += e.minutes;
             cardioCal[i] += e.calories;
           default:
@@ -933,10 +945,11 @@ class DriftClientRepository implements ClientRepository {
           todaySentences(entries, targets, now, avgProteinG: avg),
         );
       case ClientPeriod.week:
+        final DateTime thisMonday = mondayOf(today);
         final DateTime twoWeeks = DateTime(
-          today.year,
-          today.month,
-          today.day - (today.weekday - 1) - 7,
+          thisMonday.year,
+          thisMonday.month,
+          thisMonday.day - 7,
         );
         return ClientDietAnalysis(
           weekSentences(
@@ -961,14 +974,10 @@ class DriftClientRepository implements ClientRepository {
   }
 
   /// 회원 목표 → 규칙이 쓰는 하루 목표. 서버 `diet_coach_inputs.targets_of` 와 같은
-  /// 순서(목표 → 체중 × 1.2g)다. 둘 다 없으면 데모 회원의 목표 [_demoProteinG] 다.
+  /// 순서(목표 → 체중 × 1.2g → 60g)다 — 영양 요약 카드와 같은 분모다(#2898).
   DietRuleTargets _dietTargets(MemberHealthProfile p) => (
-    calories: p.dailyCalories ?? 2000,
-    proteinG:
-        p.dailyProteinG ??
-        (p.weightKg != null && p.weightKg! > 0
-            ? pyRound(p.weightKg! * 1.2)
-            : _demoProteinG),
+    calories: p.dailyCalories ?? calorieTargetKcal,
+    proteinG: p.effectiveDailyProteinG,
     sodiumMg: p.dailySodiumMg ?? sodiumTargetMg,
     sugarG: p.dailySugarG ?? sugarTargetG,
   );
@@ -1032,11 +1041,6 @@ class DriftClientRepository implements ClientRepository {
     carbsG: e.carbsG,
     fatG: e.fatG,
   );
-
-  /// 데모 회원의 하루 단백질 목표. 같은 화면의 영양 요약 카드(`proteinTargetG`)·
-  /// 회원 앱 목 프로필·백엔드 시드(`daily_protein_g: 100`)와 같다 — 서버 기본값(60g)을
-  /// 쓰면 요약 카드는 `/ 100g` 인데 분석은 목표를 채웠다고 말한다.
-  static const int _demoProteinG = 100;
 
   static String _demoPickKey(String clientId) => 'demo_diet_pick:$clientId';
 
@@ -1429,11 +1433,13 @@ TrainerClient trainerClientFromRow(
   final sugarWeek = (jsonDecode(row.sugarWeekJson) as List<Object?>)
       .map((e) => (e as num).toDouble())
       .toList();
+  // 담당을 해제한 회원은 이름·상태만 남긴다(#2814) — 성별·나이·건강 목표는
+  // 동의 범위의 신체·건강 정보라 실서버 로스터(`build_roster`)처럼 비운다.
   return TrainerClient(
     id: row.id,
     name: row.name,
     avatar: row.avatar,
-    goal: row.goal,
+    goal: registered ? row.goal : '',
     lastMessage: row.lastMessage,
     lastTime: row.lastTime,
     active: row.active,
@@ -1452,10 +1458,10 @@ TrainerClient trainerClientFromRow(
     // 데모의 PT 관리 신호 — 서버 로스터와 같은 JSON 모양으로 저장한다(#2204).
     signals: clientSignalsFromJson(jsonDecode(row.signalsJson)),
     // 회원 ID로 연결한 고객만 채워진다 — 회원 본인의 실제 프로필 값이다.
-    // 성별이 비어 있으면 예전 행을 위한 표시용 폴백(rosterGender)이 대신
-    // 쓰이고, 나이가 비어 있으면 나이를 적지 않는다(#2744).
-    gender: row.gender ?? '',
-    age: row.age,
+    // 성별·나이가 비어 있으면 화면은 그 값을 적지 않는다 — 지어내지
+    // 않는다(#2744, #2814, #2870).
+    gender: registered ? row.gender ?? '' : '',
+    age: registered ? row.age : null,
   );
 }
 
@@ -1713,12 +1719,6 @@ final clientHistoryProvider = StreamProvider.autoDispose
     .family<List<RoutineHistoryEntry>, String>((ref, clientId) {
       keepAliveForAccount(ref);
       return ref.watch(clientRepositoryProvider).watchHistory(clientId);
-    });
-
-final clientExerciseWeekProvider = FutureProvider.autoDispose
-    .family<ClientExerciseWeek, String>((ref, clientId) {
-      keepAliveForAccount(ref);
-      return ref.watch(clientRepositoryProvider).fetchExerciseWeek(clientId);
     });
 
 /// 고객 기간 조회의 조회 키 — 누구의, 어느 기간을, **어느 날 기준으로**.

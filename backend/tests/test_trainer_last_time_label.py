@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import timedelta, timezone
 
 from app.core import clock
-from app.services.trainer_service import relative_time_label
+from app.services.trainer._common import relative_time_label
 
 
 def test_today_shows_the_clock() -> None:

@@ -98,8 +98,8 @@ void main() {
 
     expect(find.textContaining('/ 1,600 kcal', findRichText: true), findsOne);
     expect(barColor(tester, '탄수화물'), OnCareColors.danger);
-    // 비어 있는 칸은 회원 앱 기본값 — 단백질 100g, 지방 55g.
-    expect(find.textContaining('/ 100g', findRichText: true), findsOne);
+    // 비어 있는 칸은 회원 앱 기본값 — 단백질 60g(식단 분석 기준, #2898), 지방 55g.
+    expect(find.textContaining('/ 60g', findRichText: true), findsOne);
     expect(find.textContaining('/ 55g', findRichText: true), findsOne);
     expect(barColor(tester, '지방'), isNot(OnCareColors.danger));
   });

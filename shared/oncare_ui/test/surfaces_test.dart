@@ -339,7 +339,7 @@ void main() {
       // 머리는 카드 제목과 같고, 본문은 아이콘 밑에서 시작한다.
       expect(find.byType(AppSectionHeader), findsOneWidget);
       expect(
-        tester.getTopLeft(find.text('본문')).dx,
+        tester.getTopLeft(find.text(keepWords('본문'))).dx,
         tester.getTopLeft(find.byType(AppSectionHeader)).dx,
       );
     });

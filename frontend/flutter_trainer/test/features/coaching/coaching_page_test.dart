@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_repository.dart'
     show trainerAuthRepositoryProvider;
@@ -536,6 +536,7 @@ class _FakeTrainerAuthRepository implements TrainerAuthRepository {
     required String email,
     required String password,
     required String name,
+    List<String>? consents,
   }) async => _tokens;
 
   @override
@@ -2153,7 +2154,7 @@ void main() {
       // 오전 10시)은 적용되지 않는다. 그래서 성공 문구가 아니라 경고가
       // 뜬다.
       expect(
-        find.text('오늘에 이미 예정된 세션이 있어 그 세션에 프로그램만 추가됐어요 — 고른 시간 범위는 적용되지 않았어요'),
+        find.text('오늘에 이미 예정된 PT가 있어 그 PT에 프로그램만 추가됐어요 — 고른 시간 범위는 적용되지 않았어요'),
         findsOneWidget,
       );
       expect(find.text('오늘 스케줄에 등록됐어요'), findsNothing);
@@ -3199,7 +3200,7 @@ void main() {
         // 뜬다.
         expect(
           find.text(
-            '오늘에 이미 예정된 세션이 있어 그 세션에 프로그램만 추가됐어요 — 고른 시간 범위는 적용되지 않았어요',
+            '오늘에 이미 예정된 PT가 있어 그 PT에 프로그램만 추가됐어요 — 고른 시간 범위는 적용되지 않았어요',
           ),
           findsOneWidget,
         );

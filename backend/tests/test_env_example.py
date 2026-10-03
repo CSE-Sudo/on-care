@@ -26,6 +26,7 @@ _INTENTIONALLY_UNDOCUMENTED: dict[str, str] = {}
 # Settings 필드가 아니지만 예시 파일에 두는 키 — 사유와 함께 적는다.
 _NON_SETTINGS_KEYS: dict[str, str] = {
     "TZ": "프로세스 시간대(로그 타임스탬프). Settings 가 아니라 컨테이너 환경이 읽는다.",
+    "FORWARDED_ALLOW_IPS": "uvicorn --forwarded-allow-ips. Settings 가 아니라 scripts/start.sh 가 읽는다.",
 }
 
 
@@ -128,6 +129,8 @@ def test_prod_recommended_values_pass_guard():
         allow_demo_fallback=False,
         seed_rag_ingest=False,
         force_https=True,
+        # 운영은 사진 인식·임베딩 키가 필수다(#2812). 예시 파일은 비워 둔다.
+        gemini_api_key="test-gemini-key",
     )
     assert s.is_prod is True
     assert s.demo_fallback_enabled is False

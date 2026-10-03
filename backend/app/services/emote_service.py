@@ -146,7 +146,7 @@ def unlock(
     [UnknownEmote], 담당 트레이너가 없으면 [TrainerRequired], 쓰고 있는 이모티콘이면
     [AlreadyUnlocked], 잔액이 모자라면 [points_service.InsufficientPoints] 다.
     """
-    from app.services import trainer_service
+    from app.services.trainer import _common as trainer_common_service
 
     if not is_known(emote_id):
         raise UnknownEmote("없는 이모티콘이에요.")
@@ -160,7 +160,7 @@ def unlock(
         if existing is not None:
             return state(db, member_id)
 
-    if trainer_service.get_member_trainer_id(db, member_id) is None:
+    if trainer_common_service.get_member_trainer_id(db, member_id) is None:
         raise TrainerRequired("담당 트레이너가 있어야 쓸 수 있어요.")
     points_service.lock_balance(db, member_id)
     current = _unlocked_until(db, member_id).get(emote_id)

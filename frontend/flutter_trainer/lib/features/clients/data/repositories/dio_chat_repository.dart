@@ -1,8 +1,9 @@
 import 'package:dio/dio.dart';
+import 'package:oncare_core/active_polling_stream.dart';
+import 'package:oncare_core/request_id.dart';
 
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
-import 'package:oncare_trainer/core/utils/request_id.dart';
+import 'package:oncare_trainer/core/utils/poll_intervals.dart';
 import 'package:oncare_trainer/features/clients/data/dtos/chat_dtos.dart';
 import 'package:oncare_trainer/features/clients/domain/chat_thread_paging.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
@@ -39,6 +40,7 @@ class DioChatRepository implements ChatRepository {
       activePollingStream<List<ClientChatMessage>>(
         load: () => _fetchThread(clientId),
         interval: pollInterval,
+        keepPollingWhileInactive: true,
       );
 
   /// 이전 페이지. (#2749)
@@ -139,6 +141,7 @@ class DioChatRepository implements ChatRepository {
       activePollingStream<Map<String, int>>(
         load: _fetchUnread,
         interval: unreadPollInterval,
+        keepPollingWhileInactive: true,
       );
 
   Future<Map<String, int>> _fetchUnread() async {

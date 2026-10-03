@@ -59,6 +59,12 @@ abstract class AccountRepository {
     int? weeklyFlexibilityMinutes,
   });
 
+  /// POST /users/me/onboarding/skip — 첫 설정 건너뛰기를 계정에 남긴다(#2855).
+  ///
+  /// 값은 아무것도 저장하지 않는다. 응답 프로필의 [UserProfile.onboardingSkipped]
+  /// 가 참이 되고, 다음 로그인·세션 복구에서 첫 설정으로 다시 보내지 않는다.
+  Future<UserProfile> skipOnboarding();
+
   /// PUT /users/me — update basic profile (name/email/phone/birth).
   ///
   /// 키·몸무게는 [MeasureUpdate] 로 받는다 — 인자를 주지 않으면 손대지 않고,

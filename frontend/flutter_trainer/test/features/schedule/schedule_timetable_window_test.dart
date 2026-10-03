@@ -7,9 +7,9 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
 
 import '../../helpers/pump_app.dart';

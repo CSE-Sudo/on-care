@@ -13,6 +13,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -112,7 +113,7 @@ void main() {
     expect(find.descendant(of: _badge, matching: find.text('휴면')), findsOne);
 
     // 배지는 다시 눌리는 상태다(잠긴 채로 남지 않는다).
-    expect(tester.widget<InkWell>(_badge).onTap, isNotNull);
+    expect(tester.widget<AppTag>(_badge).onTap, isNotNull);
   });
 
   testWidgets('저장 중 다시 탭해도 요청은 한 번만 나간다', (tester) async {

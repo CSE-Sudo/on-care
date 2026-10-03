@@ -115,10 +115,8 @@ void main() {
         _row(status: 'accepted', slotStartsAt: '2031-04-14T01:00:00Z'),
       );
 
-      expect(
-        request.slotStartsAt!.isAtSameMomentAs(DateTime.utc(2031, 4, 14, 1)),
-        isTrue,
-      );
+      // 01:00Z 는 KST 10:00 이다 — 엔티티는 KST 벽시계를 든다(#2876).
+      expect(request.slotStartsAt, DateTime(2031, 4, 14, 10));
     });
   });
 

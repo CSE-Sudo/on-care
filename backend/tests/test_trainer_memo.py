@@ -340,7 +340,7 @@ def _exercise_rows(db_session):
     """트레이너 화면에 보이는 PT 이력·배정 수행과, 보이지 않는 남의 PT 이력을 만든다."""
     from app.models.models import ExerciseSession, RoutineHistory
     from app.services.exercise_service import WEEKDAY_LABELS, monday_of_this_week_str
-    from app.services.trainer_service import PT_HISTORY_KIND_LABEL
+    from app.services.trainer._common import PT_HISTORY_KIND_LABEL
 
     suffix = uuid4().hex[:8]
     mine = RoutineHistory(

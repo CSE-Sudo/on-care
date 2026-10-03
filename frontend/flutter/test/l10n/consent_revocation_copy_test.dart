@@ -128,23 +128,24 @@ void main() {
     });
 
     List<int> numbers(String body) => RegExp(
-      r'^(\d)\. ',
+      r'^(\d+)\. ',
       multiLine: true,
     ).allMatches(body).map((RegExpMatch m) => int.parse(m.group(1)!)).toList();
 
     test('조항 번호가 1부터 빠짐없이 이어진다 — 두 언어가 같다', () {
-      final List<int> expected = <int>[1, 2, 3, 4, 5, 6, 7];
+      // 위탁·국외 이전·파기 절차 등이 더해져 16개 조항이다(#2820).
+      final List<int> expected = List<int>.generate(16, (int i) => i + 1);
       expect(numbers(ko.myLegalPrivacyBody), expected);
       expect(numbers(en.myLegalPrivacyBody), expected);
     });
 
     test('기존 조항은 뒤로 밀렸을 뿐 그대로 있다', () {
-      expect(ko.myLegalPrivacyBody, contains('6. 이용자의 권리'));
-      expect(ko.myLegalPrivacyBody, contains('7. 개인정보 보호책임자'));
-      expect(en.myLegalPrivacyBody, contains('6. Rights of the user'));
+      expect(ko.myLegalPrivacyBody, contains('13. 이용자의 권리'));
+      expect(ko.myLegalPrivacyBody, contains('14. 개인정보 보호책임자'));
+      expect(en.myLegalPrivacyBody, contains('13. Rights of the user'));
       expect(
         en.myLegalPrivacyBody,
-        contains('7. Personal information protection officer'),
+        contains('14. Personal information protection officer'),
       );
     });
 
@@ -152,19 +153,22 @@ void main() {
       // 연결할 때 보여 준 범위와 처리방침의 범위가 갈리면 안 된다.
       expect(
         ko.coachInviteConsentBody('김코치'),
-        contains('식단 기록·운동 기록·신체 정보와 건강 목표'),
+        contains('식단 기록·운동 기록·신체 정보, 건강 목표와 건강상태·주의사항'),
       );
-      expect(ko.myLegalPrivacyBody, contains('식단 기록·운동 기록·신체 정보와 건강 목표'));
+      expect(
+        ko.myLegalPrivacyBody,
+        contains('식단 기록·운동 기록·신체 정보, 건강 목표와 건강상태·주의사항'),
+      );
       expect(
         en.coachInviteConsentBody('Kim'),
         contains(
-          'meal records, workout records, body information and health goals',
+          'meal records, workout records, body information, health goals, and health notes & cautions',
         ),
       );
       expect(
         en.myLegalPrivacyBody,
         contains(
-          'meal records, workout records, body information and health goals',
+          'meal records, workout records, body information, health goals, and health notes & cautions',
         ),
       );
     });

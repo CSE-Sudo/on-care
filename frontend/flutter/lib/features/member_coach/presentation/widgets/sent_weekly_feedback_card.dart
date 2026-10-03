@@ -12,6 +12,7 @@ import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 import 'package:oncare/features/member_coach/presentation/weekly_feedback_labels.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 보낸 답 한 장. 아직 안 낸 주면 안내와 함께 빈 카드가 선다.
@@ -106,9 +107,11 @@ class SentWeeklyFeedbackCard extends StatelessWidget {
             if (feedback.submittedAt != null) ...<Widget>[
               const SizedBox(height: OnCareSpacing.s8),
               Text(
+                // 표시 직전에 KST 로 바꾼다 — KST 오전 0~9시에 보낸 피드백이
+                // 전날로 보이지 않게(#2844).
                 l.myWeeklyFeedbackSentAt(
-                  feedback.submittedAt!.month,
-                  feedback.submittedAt!.day,
+                  toKst(feedback.submittedAt!).month,
+                  toKst(feedback.submittedAt!).day,
                 ),
                 style: tokens
                     .text(OnCareTypography.caption)

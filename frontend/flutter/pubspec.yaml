@@ -17,8 +17,6 @@ dependencies:
   flutter_web_plugins:
     sdk: flutter
 
-  cupertino_icons: ^1.0.8
-
   # --- State management & DI ---
   # 코드 생성(@riverpod)과 hooks 는 쓰지 않는다 — provider 를 직접 선언한다.
   flutter_riverpod: ^2.6.1
@@ -40,6 +38,18 @@ dependencies:
   demo_fixture:
     path: ../../shared/demo_fixture
 
+  # --- 서버와 같은 계산 규칙 ---
+  # 반올림·운동 유형 정규화·한국어 조사처럼 서버와 두 앱이 같은 값을 내야 하는
+  # 규칙의 단일 원본(#2860, #2861, #2897). 앱마다 따로 적지 않는다.
+  oncare_rules:
+    path: ../../shared/oncare_rules
+
+  # --- 네트워크·인증·시각 기반 ---
+  # 토큰 갱신·인증/언어 헤더·요청 ID·폴링·KST 시계(#2907). 트레이너 웹과 같은
+  # 백엔드 인증 규칙을 상대하므로 한 벌을 함께 쓴다. provider 는 앱에 둔다.
+  oncare_core:
+    path: ../../shared/oncare_core
+
   # --- UI 규격 ---
   # 두 앱이 같은 토큰·테마·컴포넌트를 쓴다(#1690). 화면마다 크기·색을 적지 않는다.
   oncare_ui:
@@ -55,14 +65,10 @@ dependencies:
   drift: ^2.20.3
   drift_flutter: ^0.2.4
   sqlite3_flutter_libs: ^0.5.24
-  path_provider: ^2.1.4
-  path: ^1.9.0
   flutter_secure_storage: ^9.2.2
   shared_preferences: ^2.3.2
 
-  # --- UI / charts / animation ---
-  fl_chart: ^0.69.2
-  flutter_animate: ^4.5.0
+  # --- UI ---
   # 회원앱 아이콘은 Material Symbols Rounded 한 세트에서만 고른다(#1803). 목록은
   # lib/app/app_icons.dart 한 곳이다. 가변 글꼴 축(채움·굵기)을 쓰므로 버전을 묶는다.
   material_symbols_icons: 4.2960.0
@@ -86,6 +92,7 @@ dependencies:
   pdf: ^3.11.3
   image_picker: ^1.2.3
   geolocator: ^14.0.2
+  sentry_flutter: ^8.14.2
 
   # NOTE: Social-login SDKs (sign_in_with_apple / google_sign_in /
   # kakao_flutter_sdk_user / flutter_naver_login) are added in Stage 4

@@ -45,6 +45,7 @@ from app.services import (
     notification_service,
     notification_templates,
     profile_format,
+    trainer_verification_service,
 )
 
 
@@ -162,9 +163,14 @@ def preview_pairing_code(
     조회만으로 코드를 태우지 않는 이유는, 확인하고 그만두는 것이 정상 흐름이기
     때문이다. 확인만으로 코드가 사라지면 회원은 아무 잘못 없이 다시 띄워야 한다.
 
-    그래서 이 자리가 열거에 열린다 — 다만 여섯 자리(100만 가지)에 5분 만료,
-    분당 10회 제한이면 한 코드가 살아 있는 동안 시도할 수 있는 것은 쉰 번
-    남짓이다. 오입력으로 남의 기록이 열리는 쪽이 훨씬 무겁다.
+    그래서 이 자리가 열거에 열린다 — 다만 여섯 자리(100만 가지)에 5분 만료이고,
+    라우터가 사용과 같은 버킷으로 시도를 센다(#2815): IP 분당 한도, **트레이너 id
+    분당 한도와 하루 상한**(`pairing_redeem_per_day`). IP 는 신뢰 프록시가 붙인
+    값으로만 읽으므로(`app/core/client_ip.py`) `X-Forwarded-For` 를 바꿔도 버킷이
+    갈라지지 않고, 트레이너 버킷은 IP 와 무관하다. 한 계정이 하루에 맞혀 볼 수
+    있는 것은 하루 상한만큼이라 100만 조합 대비 무시할 만하다. 트레이너는 공개
+    가입이라 계정을 여럿 만들면 그만큼 늘지만, 그 경우에도 가입 IP 한도와 IP
+    분당 한도가 함께 걸린다. 오입력으로 남의 기록이 열리는 쪽이 훨씬 무겁다.
 
     이미 담당이 있는 회원이면 여기서 막는다. 확인 화면까지 갔다가 마지막에
     거절당하면 트레이너는 무엇이 잘못됐는지 알 수 없다.
@@ -223,7 +229,9 @@ def redeem_pairing_code(
                 raise MemberAlreadyCoached("이미 담당하고 있는 회원이에요.")
             # 동의 없이 살아 있는 링크다. 회원이 코드를 띄운 것이 새 동의이므로
             # 그 시각을 적는다(#1631). 코드는 이미 소비됐다.
-            data_consent_service.grant(link, used.consented_at)
+            data_consent_service.grant(
+                link, used.consented_at, via=data_consent_service.VIA_PAIRING
+            )
             _close_pending_for_member(db, member.id, linked_trainer_id=trainer_id)
             db.commit()
             return _paired_out(db, member)
@@ -246,7 +254,11 @@ def redeem_pairing_code(
             )
 
         consultation_service.attach_member_to_trainer(
-            db, trainer_id, member.id, consented_at=used.consented_at
+            db,
+            trainer_id,
+            member.id,
+            consented_at=used.consented_at,
+            via=data_consent_service.VIA_PAIRING,
         )
         # 상담 뒤 현장에서 코드로 등록하는 것이 기본 흐름이다 — 상담에서 적은 운동
         # 목표를 이 연결로 잇는다. 상담 수락은 연결을 만들지 않는다(#2584).
@@ -403,6 +415,10 @@ def accept(
         )
 
     row = _require_member_row(db, member_id, invite_id)
+    if not trainer_verification_service.is_approved(db, row.trainer_id):
+        # 보낸 뒤 반려된 트레이너다(#2825). 승인 전에는 요청을 보낼 수 없지만,
+        # 승인된 뒤 보낸 요청이 반려 후에도 남아 있으면 그 수락이 회원 기록을 연다.
+        raise InviteNotFound("지금은 이 트레이너와 연결할 수 없어요.")
 
     existing = db.scalar(
         select(TrainerClient).where(
@@ -419,11 +435,14 @@ def accept(
             row.trainer_id,
             member_id,
             consented_at=_now(),
+            via=data_consent_service.VIA_INVITE,
         )
         _flush_new_link(db)
     elif data_consent_service.blocks_access(existing):
         # 동의 없이 살아 있는 링크다 — 방금 받은 동의를 적는다. (#1631)
-        data_consent_service.grant(existing, _now())
+        data_consent_service.grant(
+            existing, _now(), via=data_consent_service.VIA_INVITE
+        )
     consultation_service.link_member_gym(
         db, member_id, consultation_service.trainer_gym_id(db, row.trainer_id)
     )

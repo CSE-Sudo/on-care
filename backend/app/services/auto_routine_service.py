@@ -25,7 +25,7 @@ from app.core import clock
 from app.models.models import ExerciseSession, TrainerRoutine
 from app.services.coach import insights
 
-#: 검토 상태 상수는 [app.services.trainer_service] 가 갖고 있지만, 그 모듈이 이
+#: 검토 상태 상수는 [app.services.trainer._common] 이 갖고 있지만, 그 모듈이 이
 #: 모듈을 import 하므로 값을 여기서 다시 적는다(순환 import 회피). 문자열 하나라
 #: 어긋날 여지가 작고, 어긋나면 회원 조회에서 곧바로 빈 목록으로 드러난다.
 ROUTINE_APPROVED = "approved"

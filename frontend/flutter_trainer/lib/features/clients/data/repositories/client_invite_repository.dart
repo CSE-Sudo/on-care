@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
@@ -9,7 +10,6 @@ import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/demo_member_directory.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_invite.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart'
@@ -239,7 +239,7 @@ class DemoClientInviteRepository implements ClientInviteRepository {
 
     final MemberLookup found = await lookup(memberId);
     if (!found.canInvite) {
-      throw const ValidationError(message: '이미 담당하고 있는 회원이에요.');
+      throw const AlreadyManagedError();
     }
     return (memberId, found);
   }
