@@ -274,7 +274,7 @@ void main() {
       // 동의의 내용이 버튼 위에 적혀 있어야 한다.
       expect(
         find.text(
-          '수락하면 내 식단 기록·운동 기록·신체 정보와 건강 목표를 이 트레이너가 볼 수 있어요. '
+          '수락하면 내 식단 기록·운동 기록·신체 정보, 건강 목표와 건강상태·주의사항을 이 트레이너가 볼 수 있어요. '
           '수락하기 전에 공유 동의를 받아요.',
         ),
         findsOneWidget,
@@ -373,7 +373,7 @@ void main() {
       expect(body, findsOneWidget);
       final String text = tester.widget<Text>(body).data!;
       expect(text, contains('코칭·상담·리포트 작성을 위해'));
-      expect(text, contains('식단 기록·운동 기록·신체 정보와 건강 목표'));
+      expect(text, contains('식단 기록·운동 기록·신체 정보, 건강 목표와 건강상태·주의사항'));
       expect(text, contains('주고받은 대화와 전달된 리포트는 남아요'));
       expect(text, contains('동의하지 않아도 개인 기록 기능은 그대로'));
 
