@@ -125,6 +125,8 @@ jobs:
           if [ "$WEB_USE_MOCK_API" = "false" ]; then
             args+=(--dart-define=API_BASE_URL="$API_BASE_URL")
           fi
+          # 열린 탭의 새 버전 안내가 비교할 릴리스 SHA(#3023).
+          args+=(--dart-define=RELEASE_SHA="$GITHUB_SHA")
           flutter build web "${args[@]}"
 
       - name: Install Flutter dependencies (trainer)
@@ -158,6 +160,8 @@ jobs:
           if [ "$WEB_USE_MOCK_API" = "false" ]; then
             args+=(--dart-define=API_BASE_URL="$API_BASE_URL")
           fi
+          # 열린 탭의 새 버전 안내가 비교할 릴리스 SHA(#3023).
+          args+=(--dart-define=RELEASE_SHA="$GITHUB_SHA")
           flutter build web "${args[@]}"
 
       - name: Prepare GitHub Pages files
@@ -174,6 +178,9 @@ jobs:
           # Deploy marker: lets the verify step below tell which commit is live.
           echo "$GITHUB_SHA" > public/version.txt
           touch public/.nojekyll
+          # 두 앱은 자기 `<base href>version.txt` 를 읽어 새 배포를 알아챈다(#3023).
+          cp public/version.txt public/frontend/version.txt
+          cp public/version.txt public/trainer/version.txt
 
       # og:url·canonical 은 이 배포의 커스텀 도메인(CNAME)으로 채운다(#2841). AWS 배포는 자기
       # 도메인으로 따로 채우므로 원본 index.html 에는 표시 줄만 있다.
