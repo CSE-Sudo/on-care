@@ -311,12 +311,14 @@ class _AdherenceCell extends StatelessWidget {
       decoration: BoxDecoration(
         color: fill,
         borderRadius: OnCareRadius.smAll,
-        border: isToday || future
+        // 오늘은 굵고 진한 테두리 — 칠한 칸 위에서도 오늘이 보이게.
+        border: isToday
             ? Border.all(
-                color: isToday
-                    ? OnCareColors.lineStrong
-                    : OnCareColors.lineSubtle,
+                color: OnCareColors.textPrimary,
+                width: OnCareSize.focusBorder,
               )
+            : future
+            ? Border.all(color: OnCareColors.lineSubtle)
             : null,
       ),
       child: text == null
