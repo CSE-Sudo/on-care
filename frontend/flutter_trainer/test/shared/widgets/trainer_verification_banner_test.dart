@@ -120,6 +120,43 @@ void main() {
     );
   });
 
+  // 담당 회원 기록 잠금(#3009) — 서버는 반려만 잠그므로 배너도 반려에만 뜬다.
+  testWidgets('records scope speaks only for a rejected trainer', (
+    tester,
+  ) async {
+    await _pump(tester, _rejected, scope: TrainerVerificationScope.records);
+    final AppBanner banner = tester.widget<AppBanner>(
+      find.byKey(const ValueKey<String>('trainer-verification-records')),
+    );
+    expect(banner.tone, AppBannerTone.danger);
+    expect(banner.message, contains(ko.verifyRecordsLocked));
+    expect(
+      banner.message,
+      contains(ko.verifyRejectedReason('소속 헬스장을 확인할 수 없어요')),
+    );
+
+    await _pump(tester, _pending, scope: TrainerVerificationScope.records);
+    expect(find.byType(AppBanner), findsNothing);
+
+    await _pump(
+      tester,
+      TrainerVerification.approved,
+      scope: TrainerVerificationScope.records,
+    );
+    expect(find.byType(AppBanner), findsNothing);
+  });
+
+  testWidgets('records scope is translated', (tester) async {
+    await _pump(
+      tester,
+      _rejected,
+      scope: TrainerVerificationScope.records,
+      locale: const Locale('en'),
+    );
+    final AppBanner banner = tester.widget<AppBanner>(find.byType(AppBanner));
+    expect(banner.message, contains(en.verifyRecordsLocked));
+  });
+
   testWidgets('the English UI shows English copy', (tester) async {
     await _pump(tester, _pending, locale: const Locale('en'));
 
