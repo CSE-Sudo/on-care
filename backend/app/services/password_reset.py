@@ -22,7 +22,7 @@ import secrets
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
@@ -86,13 +86,46 @@ def hash_code(value: str) -> str:
     return hashlib.sha256(normalize_code(value).encode("ascii", "ignore")).hexdigest()
 
 
+def _joiner(part: str) -> str:
+    """쿼리를 이어 붙일 구분자. 이미 `?`·`&` 로 끝나면 더 붙이지 않는다."""
+    if part.endswith(("?", "&")):
+        return ""
+    return "&" if "?" in part else "?"
+
+
 def reset_link(base_url: str, code: str) -> str:
-    """설정한 화면 주소에 `token` 을 붙인다. 주소가 비면 빈 문자열(링크 없음)."""
+    """설정한 화면 주소에 `token` 을 붙인다. 주소가 비면 빈 문자열(링크 없음).
+
+    두 앱은 해시 URL 전략이라 화면 경로와 쿼리가 `#` 뒤에 있다
+    (`https://<도메인>/trainer/#/auth/password-reset`, #3033). 주소에 `#` 가 있으면
+    토큰을 **해시 안의 쿼리**에 붙인다 — 해시 앞에 쿼리가 있어도
+    (`…/trainer/?ref=mail#/auth/password-reset`) 토큰이 앱이 읽는 자리로 간다.
+    """
     base = base_url.strip()
     if not base:
         return ""
-    joiner = "&" if "?" in base else "?"
-    return f"{base}{joiner}{urlencode({'token': code})}"
+    token = urlencode({"token": code})
+    head, hashed, fragment = base.partition("#")
+    if hashed:
+        return f"{head}#{fragment}{_joiner(fragment)}{token}"
+    return f"{base}{_joiner(base)}{token}"
+
+
+def reset_url_problem(url: str) -> str | None:
+    """운영 재설정 화면 주소의 형식 문제(#3033). 비었거나 문제가 없으면 None.
+
+    비어 있으면 메일에 코드만 보내는 정상 동작이다. 두 앱은 해시 URL 전략·하위 경로
+    배포라 `#/` 가 없는 경로형 주소는 앱이 아닌 정적 경로를 가리켜 코드가 버려진다.
+    """
+    value = url.strip()
+    if not value:
+        return None
+    parts = urlsplit(value)
+    if parts.scheme.lower() != "https" or not parts.netloc:
+        return "https:// 주소가 아님"
+    if not parts.fragment.startswith("/"):
+        return "해시 경로(#/auth/password-reset)가 없음"
+    return None
 
 
 def _link_base(settings: Settings, user: User) -> str:
