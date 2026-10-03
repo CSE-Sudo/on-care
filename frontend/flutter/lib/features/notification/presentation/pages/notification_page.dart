@@ -44,6 +44,11 @@ import 'package:oncare_ui/oncare_ui.dart';
     label: l.alertCategorySchedule,
     icon: AppIcons.eventAvailable,
   ),
+  // 끝난 PT 의 기록 — 운동 기록과 같은 기록 아이콘(#3027).
+  AlertCategory.ptDone => (
+    label: l.alertCategoryPtDone,
+    icon: AppIcons.exerciseLog,
+  ),
   AlertCategory.trainerLink => (
     label: l.alertCategoryTrainer,
     icon: AppIcons.person,

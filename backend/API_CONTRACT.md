@@ -586,7 +586,44 @@ settled_at? }`. `status` 는 `active`|`succeeded`|`failed`, `rewarded` 는 받�
 | POST | `/notifications/read-all` | 전체 읽음 → `{ marked_read(int) }` |
 | DELETE | `/notifications/{id}` | 삭제 → `{ status: "deleted" }` |
 
-category: reminder|health_check|achievement|system|coach_chat|coach_report|routine|member_schedule|coach_invite|consultation_result|consult_decision|health_goals|benefits|points_shop
+category: reminder|health_check|achievement|system|coach_chat|coach_report|routine|member_schedule|pt_done|coach_invite|consultation_result|consult_decision|health_goals|benefits|points_shop
+
+`action` 은 `{ label, target }` 또는 `null`(읽음 처리만 하는 알림)입니다. `label` 은 요청 언어(`Accept-Language`)이고
+`target` 은 회원 앱이 아는 목적지(`dashboard`|`coach_chat`|`exercise`|`diet`|`my_benefits`|`points_shop`|`health_goals`|
+`consultations`)입니다.
+
+- **알림별 목적지 우선(#2690·#3028)**: 알림 행의 `action_target` 이 있으면 그 목적지, 없으면 아래 갈래별 표를 씁니다.
+  서버는 `notification_service.queue(action_target=...)` 로 이 칸을 채웁니다 — 갈래(아이콘)는 같은데 갈 곳만 다른 알림에
+  씁니다. 허용 목록(`MEMBER_ACTION_TARGETS`) 밖의 값은 저장 전에 거부합니다.
+- **갈래별 액션** (한국어 / 영어 → target)
+
+  | category | label | target |
+  | --- | --- | --- |
+  | `reminder`·`health_check` | 기록하러 가기 / Log now | `dashboard` |
+  | `achievement` | 대시보드 보기 / View dashboard | `dashboard` |
+  | `coach_chat` | 대화 보기 / View chat | `coach_chat` |
+  | `coach_report` | 리포트 보기 / View report | `coach_chat` |
+  | `routine` | 운동 보기 / View workouts | `exercise` |
+  | `member_schedule` | 일정 보기 / View schedule | `exercise` (#3028) |
+  | `pt_done` | PT 기록 보기 / View PT record | `exercise` (#3027) |
+  | `coach_invite` | 요청 확인 / View request | `exercise` |
+  | `consultation_result` | 트레이너 보기 / View trainer | `exercise` |
+  | `consult_decision` | 상담 요청 보기 / View consultation requests | `consultations` |
+  | `benefits` | 내 혜택 보기 / View my benefits | `my_benefits` |
+  | `points_shop` | 포인트 사용처 보기 / View points shop | `points_shop` |
+  | `health_goals` | 목표 보기 / View goals | `health_goals` |
+  | `system`·그 밖 | 없음 | — |
+
+  `member_schedule`(PT 일정 등록·변경·취소·인계, 담당 해제·트레이너 탈퇴로 취소된 일정)은 예전에 회원 앱에 일정 화면이
+  없어(#1928) 액션이 없었습니다. 이제 운동 탭이 트레이너 일정과 회원 예약을 합친 다음 PT 배지와 헬스장 패널 예약을
+  보여 줍니다. 이미 저장된 일정 알림도 응답 때 액션을 만들어 바로 버튼이 보입니다.
+- **PT 수업 완료·피드백(#3027)**: 트레이너가 회원 PT 를 완료(`POST /trainer/schedule/{session_id}/complete`)하면
+  `pt_done` 알림 한 건 — 틀 `member_pt_completed`(인자 `trainer_name`·`session_number`(회원 앱 PT 카드와 같은 회차,
+  없으면 생략)·`has_note`·`date`), 본문은 트레이너 피드백이 있으면 그 글, 없으면 "운동 기록에 남겼어요". 완료 뒤 PT 메모가
+  **비어 있다가 처음 채워지면** `member_pt_feedback` 한 건 더(본문 = 피드백). 완료 재호출·동시 호출·상담 일정·회원 없는 슬롯·
+  이미 있던 피드백 수정·예정 PT 메모에는 알림이 없습니다. 수신 설정 키는 `exercise_reminder` 입니다.
+  회원 앱은 `pt_done` 을 일정(`member_schedule`)과 다른 'PT 기록' 갈래로 보여 주고, 두 알림 모두 운동 탭으로 가면서
+  다음 PT 일정·내 예약을 다시 읽습니다. 데모(목 모드)도 같은 버튼을 붙입니다.
 
 #### 회원 알림 수신 설정 (#489·#2854)
 
@@ -787,8 +824,12 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | GET | `/gyms?lat=&lng=&partner_only=` | `[GymOut]` — 좌표를 주면 거리순, 없으면 이름순 |
 | GET | `/gyms/{gym_id}` | 단건(없으면 404) |
 | GET | `/gyms/{gym_id}/trainers` | 그 헬스장 소속 트레이너 |
-| GET | `/me/gym` | 내 헬스장(`member_gyms`) |
+| GET | `/me/gym?lat=&lng=` | 내 헬스장(`member_gyms`) — `GymOut`. 연결이 없으면 404 |
 
+- **`lat`·`lng` 는 둘 다 주거나 둘 다 뺀다**(하나만 오면 422). 좌표가 없으면 `distance_km` 는
+  `0` 이고 **뜻이 없는 값**이다 — 거리로 그리지 않는다. 회원 앱은 회원 위치를 얻었을 때만 `/me/gym` 에
+  좌표를 싣는다. `/gyms` 는 검색 중심이 필요해 위치를 얻기 전에는 기본 검색 영역(신촌) 좌표를 보내고,
+  그 거리는 화면에 그리지 않는다(#3044).
 - **`is_partner` 는 표시 값이다.** `GymOut` 으로 내려가고 `partner_only=true` 로 목록을
   좁히는 기준이 된다(현재 두 앱은 이 값을 읽지 않는다). **접근 제어가 아니다** — 상담 대상 검증과
   트레이너 노출 경로(`/trainers`, `/trainers/recommended`, `/gyms/{id}/trainers`)는 이 값을
@@ -999,7 +1040,14 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/trainer/notifications/read-all` | `{ marked_read(int) }` |
 
 - **회원용 `/notifications` 를 재사용하지 않습니다.** `get_current_user` 가 트레이너 계정을 **403** 으로 막는 회원 전용 경로입니다(역할 분리). 저장되는 행은 같은 `notifications` 테이블이고 `user_id` 가 일반 사용자 FK라 스키마 변경은 없습니다. (#503)
-- `category` 는 트레이너 전용 값입니다 — `message`|`consultation`|`reservation`|`health_goal`|`member_name`|`member_left`|`invite_accepted`|`invite_rejected`|`consult_withdrawn`. 회원 알림의 집합(`reminder|health_check|achievement|system`)과 겹치지 않습니다. 한 테이블을 공유하지만 읽는 화면과 이동할 곳이 다릅니다. `health_goal`·`member_name` 은 `subject_id` 에 그 회원 id 를 실어 회원 상세로 갑니다. `health_goal` 중 틀이 `trainer_health_notes` 인 알림(회원이 건강상태·주의사항을 고침, 인자 `member_name`·`with_focus`)은 글을 싣지 않고, 앱은 회원 상세에서 신체·목표 창의 `건강 목표` 탭을 바로 엽니다. (#2619) `member_left` 는 담당 회원이 탈퇴(`DELETE /users/me`)했거나 담당 연결을 끊었을 때(`DELETE /me/coach`, `DELETE /me/coach/trainer`) 남고, 회원이 이미 목록에서 빠져 `subject_id` 없이 확인만 합니다. (#2174) `consult_withdrawn` 은 회원이 탈퇴(`DELETE /users/me`)하면서 대기 중(`pending`)이던 상담 요청이 함께 사라졌을 때 그 요청을 받은 트레이너에게 남습니다 — 틀 `trainer_consult_withdrawn`, 인자 `member_name`(탈퇴 직전 이름)·`preferred_date`, `target_date` 는 희망 날짜입니다. 처리된 요청과 만료 시각이 지난 요청은 알리지 않고, 담당 트레이너는 `member_left` 만 받습니다. 떠난 회원을 가리키지 않도록 `subject_id` 는 없고 앱은 상담 요청함으로 갑니다. (#1632)
+- `category` 는 트레이너 전용 값입니다 — `message`|`consultation`|`reservation`|`health_goal`|`member_name`|`member_left`|`invite_accepted`|`invite_rejected`|`consult_withdrawn`|`weekly_feedback`. 회원 알림의 집합(`reminder|health_check|achievement|system`)과 겹치지 않습니다. 한 테이블을 공유하지만 읽는 화면과 이동할 곳이 다릅니다. `health_goal`·`member_name` 은 `subject_id` 에 그 회원 id 를 실어 회원 상세로 갑니다. `health_goal` 중 틀이 `trainer_health_notes` 인 알림(회원이 건강상태·주의사항을 고침, 인자 `member_name`·`with_focus`)은 글을 싣지 않고, 앱은 회원 상세에서 신체·목표 창의 `건강 목표` 탭을 바로 엽니다. (#2619) `member_left` 는 담당 회원이 탈퇴(`DELETE /users/me`)했거나 담당 연결을 끊었을 때(`DELETE /me/coach`, `DELETE /me/coach/trainer`) 남고, 회원이 이미 목록에서 빠져 `subject_id` 없이 확인만 합니다. (#2174) `consult_withdrawn` 은 회원이 탈퇴(`DELETE /users/me`)하면서 대기 중(`pending`)이던 상담 요청이 함께 사라졌을 때 그 요청을 받은 트레이너에게 남습니다 — 틀 `trainer_consult_withdrawn`, 인자 `member_name`(탈퇴 직전 이름)·`preferred_date`, `target_date` 는 희망 날짜입니다. 처리된 요청과 만료 시각이 지난 요청은 알리지 않고, 담당 트레이너는 `member_left` 만 받습니다. 떠난 회원을 가리키지 않도록 `subject_id` 는 없고 앱은 상담 요청함으로 갑니다. (#1632)
+- **회원 주간 피드백(#3026)**: 회원이 `PUT /me/coach/weekly-feedback` 로 그 주 답을 내면 담당 트레이너에게
+  `weekly_feedback` 알림 — 틀 `trainer_member_weekly_feedback`, 인자 `member_name`·`condition`·`intensity`(저장 값)·
+  `pain`(통증 유무)·`revised`(고쳐 낸 답), `subject_id` = 회원, `target_date` = 그 주 월요일. 통증이 있으면 제목이
+  "{회원} 회원이 통증을 알렸어요"로 바뀝니다. 아픈 곳(회원이 쓴 글)은 알림에 싣지 않습니다(`trainer_health_notes` 와 같은
+  이유, #2619). 같은 주에 다시 내면 트레이너가 **아직 읽지 않은** 그 주 알림을 최신 답으로 고쳐 맨 위로 올리고(건수 그대로),
+  이미 읽었으면 `revised: true` 알림을 한 건 더 만듭니다. 앱은 그 회원 상세의 메모 창을 '피드백' 탭으로 엽니다. 수신 설정
+  스위치는 아직 없습니다(종류별 설정은 #2420).
 - **이동 목적지(#2292)**: `reservation` 은 `subject_id`(예약한 회원)와 `target_date`(수업 날짜, KST `YYYY-MM-DD`)를 실어 그 날짜의 스케줄로, `consultation` 은 `subject_id`(신청 회원)와 `target_date`(희망 날짜)를 실어 상담 요청함으로 갑니다. 담당 요청의 결과는 상담이 아니라 별도 종류입니다 — `invite_accepted` 는 `subject_id` 의 새 담당 회원 상세로, `invite_rejected` 는 고객 목록으로 갑니다. 대상이 기록되기 전의 옛 알림은 `subject_id`·`target_date` 가 `null` 이고 앱이 전처럼 오늘 스케줄로 보냅니다.
 - **생성 지점**: 회원의 새 메시지(`POST /me/coach/chat`, 사진은 `POST /me/coach/chat/image` — #1665), 새 상담 요청(`POST /consultations` — 지정된 트레이너 한 사람), 새 예약·예약 취소, 담당 회원의 건강 목표 변경(#1832)·건강상태·주의사항 변경(#2619), 담당 회원의 이름 변경(`PUT /users/me`·`POST /users/me/onboarding`, #2065).
 - **언어**: 제목·본문은 요청 언어로 조립합니다. 트레이너 웹은 `template`·`args` 로 ARB 문장을 직접 조립합니다 — 규칙은 위 [알림 문장의 언어](#알림-문장의-언어-2302) 와 같습니다. (#2302)

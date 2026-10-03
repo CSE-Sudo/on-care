@@ -509,6 +509,78 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         "9월 28일~10월 4일 목표 4회 중 2회 운동해 건 1,000P는 사라졌어요. "
         "다음 주 월·화요일에 다시 참가할 수 있어요.",
     ),
+    # 회원 주간 피드백(#3026) — 새 틀이라 예전 문장이 없다. 확정 문장을 적는다.
+    (
+        nt.TRAINER_MEMBER_WEEKLY_FEEDBACK,
+        {"member_name": "지수", "condition": "good", "intensity": "right",
+         "pain": False, "revised": False},
+        "",
+        "지수 회원이 주간 피드백을 보냈어요",
+        "컨디션 좋았어요 · 운동 강도 적당했어요",
+    ),
+    (
+        nt.TRAINER_MEMBER_WEEKLY_FEEDBACK,
+        {"member_name": "지수", "condition": "tired", "intensity": "too_hard",
+         "pain": True, "revised": False},
+        "",
+        "지수 회원이 통증을 알렸어요",
+        "컨디션 지쳤어요 · 운동 강도 너무 힘들었어요 · 통증 있음",
+    ),
+    (
+        nt.TRAINER_MEMBER_WEEKLY_FEEDBACK,
+        {"member_name": "지수", "condition": "great", "intensity": "too_easy",
+         "pain": False, "revised": True},
+        "",
+        "지수 회원이 주간 피드백을 수정했어요",
+        "컨디션 아주 좋았어요 · 운동 강도 너무 쉬웠어요",
+    ),
+    (
+        # 통증은 수정보다 먼저 보인다 — 다음 PT 를 바꿔야 할 수 있는 답이다.
+        nt.TRAINER_MEMBER_WEEKLY_FEEDBACK,
+        {"member_name": "지수", "condition": "bad", "intensity": "hard",
+         "pain": True, "revised": True},
+        "",
+        "지수 회원이 통증을 알렸어요",
+        "컨디션 많이 힘들었어요 · 운동 강도 힘들었어요 · 통증 있음",
+    ),
+    (
+        nt.TRAINER_MEMBER_WEEKLY_FEEDBACK,
+        {"member_name": "", "condition": "ok", "intensity": "right", "pain": False},
+        "",
+        "회원이 주간 피드백을 보냈어요",
+        "컨디션 보통이었어요 · 운동 강도 적당했어요",
+    ),
+    # PT 완료·피드백(#3027). 본문은 트레이너가 쓴 글 그대로다.
+    (
+        nt.MEMBER_PT_COMPLETED,
+        {"trainer_name": "박코치", "session_number": 3, "has_note": True,
+         "date": "2026-10-01"},
+        "스쿼트 무릎 방향 좋아졌어요",
+        "박코치 트레이너와 3회차 PT를 마쳤어요",
+        "스쿼트 무릎 방향 좋아졌어요",
+    ),
+    (
+        nt.MEMBER_PT_COMPLETED,
+        {"trainer_name": "박코치", "session_number": 1, "has_note": False,
+         "date": "2026-10-01"},
+        "",
+        "박코치 트레이너와 1회차 PT를 마쳤어요",
+        "운동 기록에 남겼어요",
+    ),
+    (
+        nt.MEMBER_PT_COMPLETED,
+        {"trainer_name": "", "session_number": None, "has_note": False},
+        "",
+        "담당 트레이너와 PT를 마쳤어요",
+        "운동 기록에 남겼어요",
+    ),
+    (
+        nt.MEMBER_PT_FEEDBACK,
+        {"trainer_name": "박코치", "date": "2026-10-01"},
+        "다음엔 데드리프트 무게를 올려 봐요",
+        "트레이너 피드백이 도착했어요",
+        "다음엔 데드리프트 무게를 올려 봐요",
+    ),
 ]
 
 
@@ -958,6 +1030,50 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
             "You logged 2 of 4 workouts for 9/28–10/4, so the 1,000P you staked is "
             "gone. You can join again next Monday or Tuesday.",
         ),
+    ),
+    (
+        nt.TRAINER_MEMBER_WEEKLY_FEEDBACK,
+        {"member_name": "Alex", "condition": "good", "intensity": "right",
+         "pain": False, "revised": False},
+        ("Alex sent their weekly feedback", "Condition: Good · Intensity: About right"),
+    ),
+    (
+        nt.TRAINER_MEMBER_WEEKLY_FEEDBACK,
+        {"member_name": "Alex", "condition": "tired", "intensity": "too_hard",
+         "pain": True, "revised": True},
+        (
+            "Alex reported pain",
+            "Condition: Worn out · Intensity: Too hard · Pain reported",
+        ),
+    ),
+    (
+        nt.TRAINER_MEMBER_WEEKLY_FEEDBACK,
+        {"member_name": "", "condition": "great", "intensity": "too_easy",
+         "pain": False, "revised": True},
+        (
+            "A member updated their weekly feedback",
+            "Condition: Great · Intensity: Too easy",
+        ),
+    ),
+    (
+        nt.MEMBER_PT_COMPLETED,
+        {"trainer_name": "Coach Park", "session_number": 3, "has_note": True},
+        ("You finished PT session 3 with Coach Park", None),
+    ),
+    (
+        nt.MEMBER_PT_COMPLETED,
+        {"trainer_name": "", "session_number": 0, "has_note": False},
+        ("You finished a PT session with your trainer", "Saved to your workout log"),
+    ),
+    (
+        nt.MEMBER_PT_FEEDBACK,
+        {"trainer_name": "Coach Park"},
+        ("New PT feedback from Coach Park", None),
+    ),
+    (
+        nt.MEMBER_PT_FEEDBACK,
+        {"trainer_name": ""},
+        ("New PT feedback from your trainer", None),
     ),
 ]
 
@@ -1422,3 +1538,70 @@ def test_time_ago_english_matches_what_the_member_app_parses():
     for ago in (timedelta(0), timedelta(minutes=7), timedelta(hours=1),
                 timedelta(hours=5), timedelta(days=1), timedelta(days=9)):
         assert shape.match(notification_service.time_ago(NOW - ago, "en", now=NOW))
+
+
+# --------------------------------------------------------------------------
+# 회원 주간 피드백·PT 완료 틀 (#3026, #3027)
+# --------------------------------------------------------------------------
+
+
+def test_weekly_feedback_labels_cover_every_stored_value():
+    """저장 값이 늘면 알림 문장도 함께 늘어야 한다 — 빠지면 영어에 저장 값이 그대로 보인다."""
+    from app.services.trainer.weekly_feedback import (
+        _WEEKLY_FEEDBACK_CONDITIONS,
+        _WEEKLY_FEEDBACK_INTENSITIES,
+    )
+
+    assert set(nt._FEEDBACK_CONDITION) == set(_WEEKLY_FEEDBACK_CONDITIONS)
+    assert set(nt._FEEDBACK_INTENSITY) == set(_WEEKLY_FEEDBACK_INTENSITIES)
+
+
+def test_weekly_feedback_never_carries_the_pain_area():
+    """아픈 곳은 회원이 쓴 건강 정보다 — 알림 미리보기에 싣지 않는다(#2619 와 같은 규칙)."""
+    args = {"member_name": "지수", "condition": "ok", "intensity": "hard",
+            "pain": True, "pain_area": "왼쪽 어깨"}
+    for locale in ("ko", "en"):
+        title, body = nt.render(nt.TRAINER_MEMBER_WEEKLY_FEEDBACK, args, locale)
+        assert "어깨" not in title
+        assert "어깨" not in (body or "")
+
+
+def test_weekly_feedback_unknown_value_stays_as_stored():
+    title, body = _en(
+        nt.TRAINER_MEMBER_WEEKLY_FEEDBACK,
+        {"member_name": "Alex", "condition": "sleepy", "intensity": ""},
+    )
+    assert title == "Alex sent their weekly feedback"
+    assert body == "Condition: sleepy"
+
+
+def test_weekly_feedback_without_answers_has_an_empty_body():
+    title, body = _ko(nt.TRAINER_MEMBER_WEEKLY_FEEDBACK, {"member_name": "지수"})
+    assert title == "지수 회원이 주간 피드백을 보냈어요"
+    assert body == ""
+
+
+@pytest.mark.parametrize("bad", ["three", -2, None, [], "0"])
+def test_pt_completed_ignores_a_broken_session_number(bad):
+    title, _ = _ko(nt.MEMBER_PT_COMPLETED, {"trainer_name": "박코치", "session_number": bad})
+    assert title == "박코치 트레이너와 PT를 마쳤어요"
+
+
+def test_pt_completed_note_is_not_translated():
+    """트레이너가 쓴 피드백은 번역하지 않는다 — 영어 화면에서도 저장된 글이 본문이다."""
+    title, body = nt.localize(
+        title="박코치 트레이너와 2회차 PT를 마쳤어요",
+        body="허리 각도 신경 써 주세요",
+        template=nt.MEMBER_PT_COMPLETED,
+        template_args={"trainer_name": "Coach Park", "session_number": 2, "has_note": True},
+        locale="en",
+    )
+    assert title == "You finished PT session 2 with Coach Park"
+    assert body == "허리 각도 신경 써 주세요"
+
+
+def test_pt_codes_are_member_templates():
+    """회원이 받는 틀이라 트레이너 웹 조립 목록(`trainer_`)에 들지 않는다."""
+    assert not nt.MEMBER_PT_COMPLETED.startswith("trainer_")
+    assert not nt.MEMBER_PT_FEEDBACK.startswith("trainer_")
+    assert nt.TRAINER_MEMBER_WEEKLY_FEEDBACK.startswith("trainer_")
