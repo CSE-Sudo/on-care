@@ -323,9 +323,13 @@ App Runner 의 컨테이너 디스크는 재배포·재시작·스케일 아웃 
 
 ```bash
 flutter build web --release \
+  --dart-define=ENV=prod \
   --dart-define=USE_MOCK_API=false \
   --dart-define=API_BASE_URL=https://<apprunner-domain>/v1
 ```
+
+`ENV=prod` 를 빠뜨리면 릴리스 빌드가 기동할 때 구성 오류 안내만 띄운다(#3022). 운영 웹은
+`aws-frontend-deploy.yml` 이 위 값과 `SENTRY_DSN` 을 함께 넘긴다.
 
 지도 핀은 프론트 카카오맵 **JS SDK**(JS키 + 도메인 등록) 담당. 백엔드는 좌표+정보만 제공한다.
 
