@@ -67,6 +67,34 @@ flutter build appbundle --release \
 
 키 보관 담당자와 금고 위치는 팀이 정해 이 절에 이름(값이 아닌 위치)만 적습니다.
 
+### 앱 데이터 백업 정책 (#3049)
+
+회원 앱 데이터는 **Google 자동 백업과 기기 간 이전(새 폰으로 옮기기)에 싣지 않습니다.**
+
+| 위치 | 내용 |
+| --- | --- |
+| `android/app/src/main/AndroidManifest.xml` `<application>` | `android:allowBackup="false"`, `android:fullBackupContent="@xml/backup_rules"`(Android 11 이하), `android:dataExtractionRules="@xml/data_extraction_rules"`(Android 12 이상) |
+| `android/app/src/main/res/xml/data_extraction_rules.xml` | `<cloud-backup>`·`<device-transfer>` 두 절 모두 `root`·`file`·`database`·`sharedpref`·`external` 제외 |
+| `android/app/src/main/res/xml/backup_rules.xml` | 같은 영역 제외 |
+| `lib/core/storage/secure_token_store.dart` | 토큰 저장소 옵션 한 곳(`memberSecureStorage`), 안드로이드 `resetOnError: true` |
+
+이유:
+
+- 회원의 기록·프로필은 모두 서버에 있고, 기기에는 세션 토큰·화면 설정·데모 데이터만 남습니다. 백업으로 얻는 것이 없습니다.
+- 토큰 저장소는 Android Keystore 키로 암호화되는데, 이 키는 기기 밖으로 나가지 않습니다. 새 기기에는 풀 수 없는 암호문만 넘어와 읽기·쓰기가 실패합니다. 새 설치 표식(SharedPreferences)까지 복원되면 새 설치 토큰 정리도 건너뜁니다.
+- Android 12 이상의 기기 간 이전은 `allowBackup="false"` 만으로 막히지 않아 `data_extraction_rules.xml` 이 따로 필요합니다.
+- 이미 복원된 기기에서도 `resetOnError` 가 풀 수 없는 저장소를 비우므로, 다시 로그인하면 토큰이 정상 저장됩니다.
+
+릴리스 전 확인(실기기 또는 에뮬레이터, 릴리스 빌드 설치 후):
+
+```bash
+adb shell bmgr enable true
+adb shell bmgr backupnow com.csesudo.oncare
+# → 앱 데이터가 백업 대상이 아니라는 결과(백업 안 함)가 나와야 합니다.
+```
+
+Play Console 데이터 보안 양식의 백업 관련 항목은 이 정책(백업하지 않음)에 맞춰 적습니다.
+
 ## 3. iOS 제출 설정
 
 | 항목 | 위치 | 내용 |
