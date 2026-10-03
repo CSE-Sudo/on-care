@@ -47,6 +47,9 @@ def test_model_and_service_agree_on_every_column():
 def test_migration_turns_the_column_and_stored_rows_on():
     text = MIGRATION.read_text(encoding="utf-8")
     assert 'revision: str = "0143_member_weekly_report_on"' in text
+    # 체인: 0140 → 0141 → 0142_email_verification → 0143 (#3080 다음).
+    assert 'down_revision: str | Sequence[str] | None = "0142_email_verification"' in text
+    assert "Revises: 0142_email_verification" in text
     assert "server_default=sa.true()" in text
     # 기존 행의 물려받은 `false` 를 한 번 켠다.
     assert "SET weekly_report = TRUE WHERE weekly_report = FALSE" in text

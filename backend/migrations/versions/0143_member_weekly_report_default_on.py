@@ -15,7 +15,7 @@ downgrade 는 컬럼 기본값만 되돌린다. 누가 바뀌었는지 구별할
 않는다.
 
 Revision ID: 0143_member_weekly_report_on
-Revises: 0140_program_draft_member
+Revises: 0142_email_verification
 Create Date: 2026-10-03
 """
 from __future__ import annotations
@@ -26,7 +26,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0143_member_weekly_report_on"
-down_revision: str | Sequence[str] | None = "0140_program_draft_member"
+down_revision: str | Sequence[str] | None = "0142_email_verification"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
