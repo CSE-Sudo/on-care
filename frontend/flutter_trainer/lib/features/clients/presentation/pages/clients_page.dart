@@ -208,6 +208,13 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                         unread: unread,
                         filter: activeFilter,
                         managementFilters: view.filters,
+                        // 담당 회원이 0명일 때 빈 상태가 연결 방법을 알린다
+                        // (#3012). 승인 전이면 버튼 없이 안내만 — 이유는 위
+                        // 승인 배너가 적는다.
+                        canConnect: canConnect,
+                        onConnect: canConnect && approved
+                            ? () => _openConnectDialog(context)
+                            : null,
                         // 목록 카드의 오른쪽 테두리·그림자가 스크롤 영역에
                         // 잘리지 않게, 분할일 때만 한 칸 비워 둔다.
                         trailingPadding: wide ? OnCareSpacing.s8 : 0,
@@ -650,6 +657,8 @@ class _RosterList extends StatelessWidget {
     required this.managementFilters,
     required this.trailingPadding,
     required this.onOpen,
+    this.canConnect = false,
+    this.onConnect,
   });
 
   final List<TrainerClient> clients;
@@ -660,19 +669,35 @@ class _RosterList extends StatelessWidget {
   final double trailingPadding;
   final ValueChanged<String> onOpen;
 
+  /// 이 빌드에 회원 연결 경로가 있는가([clientInvitesEnabledProvider]).
+  final bool canConnect;
+
+  /// 빈 상태의 `신규 회원 등록` — 툴바 버튼과 같은 연결 창을 연다(#3012).
+  /// 승인 전·연결 비활성이면 null 이라 버튼을 그리지 않는다.
+  final VoidCallback? onConnect;
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    // 걸러서 0명이 아니라 정말 담당 회원이 없을 때만 연결 방법을 알린다 —
+    // 필터로 빈 목록은 툴바가 빠져나가는 길을 맡는다(#2205).
+    final bool noMembers =
+        filter == ClientFilter.all && managementFilters.isEmpty;
     return ListView(
       padding: EdgeInsets.only(right: trailingPadding),
       children: <Widget>[
         // 걸러져 있다는 표시와 빠져나가는 길은 툴바의 파란 글자가 맡는다(#2205).
         if (clients.isEmpty)
           AppEmptyState(
+            key: const ValueKey<String>('clients-empty'),
             title: filter == ClientFilter.all
                 ? l.clientsEmpty
                 : l.clientsEmptyForFilter(filter.label(l)),
+            message: noMembers && canConnect ? l.clientsEmptyConnectHint : null,
             icon: AppIcons.clients,
+            actionLabel: noMembers && onConnect != null ? l.clientsNew : null,
+            onAction: noMembers ? onConnect : null,
+            actionKey: const ValueKey<String>('clients-empty-connect'),
             placement: AppStatePlacement.card,
           )
         else

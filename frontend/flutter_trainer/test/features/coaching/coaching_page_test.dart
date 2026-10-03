@@ -234,9 +234,6 @@ class _FixedClientRepository implements ClientRepository {
   final List<TrainerClient> _clients;
 
   @override
-  bool get supportsRosterMutations => false;
-
-  @override
   Stream<List<TrainerClient>> watchClients() => Stream.value(_clients);
 
   @override
@@ -326,13 +323,6 @@ class _FixedClientRepository implements ClientRepository {
     String clientId,
     ClientDateRange range,
   ) async => ClientDietPeriod(range: range, days: const <ClientDietDay>[]);
-
-  @override
-  Future<bool> clientNameExists(String name) async => false;
-
-  @override
-  Future<bool> addClient({required String name, required String goal}) async =>
-      false;
 
   @override
   Future<void> setClientActive(String id, bool active) async {}
