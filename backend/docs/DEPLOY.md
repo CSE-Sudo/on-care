@@ -108,7 +108,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `SEED_DEMO_DATA` | `false`(기본값). 운영에서 `true` 면 기동 거부 — 시연은 데모 전용 DB 를 둔 별도 환경에서 |
 | `DEMO_LOGIN_PASSWORD` | 운영에서는 쓰지 않는다(데모 시드를 켠 환경 전용) |
 | `GYM_BENEFITS_ENABLED` | `false`(기본값). 제휴 헬스장이 생기면 `true` — PT 재등록 할인·락커 쿠폰·분석용 식판을 연다(#2822) |
-| `GEMINI_API_KEY` 또는 LiteLLM(`LITELLM_*`) | 식단 인식/임베딩. **운영 필수** — `RECOGNIZER`·`EMBEDDER` 에 맞는 키가 없거나 `stub`·`hash` 면 기동 거부(#2812) |
+| `GEMINI_API_KEY` 또는 LiteLLM(`LITELLM_*`) | 식단 인식/임베딩. **운영 필수** — `RECOGNIZER`·`EMBEDDER` 에 맞는 키가 없거나 `stub`·`hash` 면 기동 거부(#2812). Gemini 는 **결제가 연결된 프로젝트의 키(유료 등급)만** 쓴다(#3032) — 무료 등급은 입력(회원 음식 사진·건강 기록·코치 대화)이 제공자의 서비스 개선에 쓰일 수 있고 한도가 낮다. 결제 연결은 #480 |
 | `GEMINI_MODEL` | 운영은 **고정 버전** 모델 이름(아래 "모델 고정"). 비우면 코드 기본 별칭 |
 | `RECOGNIZER_TIMEOUT_SECONDS` | 식단 사진 인식 한 건의 대기 한도(초, 기본 60, #2912) |
 | `MIGRATE_CONNECT_TIMEOUT` | 기동 마이그레이션의 DB 연결 한도(초, 기본 10, #2912) |
@@ -121,6 +121,9 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `REGISTER_PER_EMAIL_PER_HOUR` | 같은 이메일 가입 시도 시간당 상한(회원·트레이너 공용, 기본 5, #2913) |
 | `PASSWORD_CHANGE_MAX_FAILURES` | 비밀번호 변경의 현재 비밀번호 연속 실패 잠금(사용자 단위, 기본 5회, 창은 `LOGIN_LOCKOUT_SECONDS`, #2913) |
 | `EXPOSE_API_DOCS` | `/docs`·`/redoc`·`/openapi.json` 공개 여부(#2834). 비우면 운영은 닫힘(404). 스키마는 스테이징·로컬에서 본다 |
+| `AI_GLOBAL_CALLS_PER_DAY` | 서버 전체 하루 AI 호출 합(#3032). DB 에서 KST 날짜로 센다. 0 이면 끔(기본). 공급자 하루 예산 ÷ 호출당 비용으로 정한다. 넘으면 폴백이 있는 기능은 규칙형 폴백, AI 코치 채팅·사진 분석은 503 `ai_capacity` + `Retry-After` |
+| `TRAINER_AI_CALLS_PER_DAY` | 트레이너 한 계정의 하루 AI 호출(고객 AI 코치·루틴 후보·리포트 요약 합, 기본 200, #3032). 넘으면 429 `daily_limit` + `Retry-After` |
+| `LLM_MAX_OUTPUT_TOKENS` | LLM 호출 한 번의 출력 토큰 천장(기본 4096, #3032). 호출처는 필요한 길이에 맞춰 더 작게 넘긴다. 잘린 응답은 폴백 |
 | `SENTRY_DSN` | 에러 추적 수신 주소(#2839). 비우면 보내지 않음. 값은 #480 에서 채운다 |
 | `SENTRY_ENVIRONMENT` / `SENTRY_SAMPLE_RATE` | 선택. 비우면 `ENV` 값 / 기본 `1.0` |
 
@@ -272,6 +275,10 @@ App Runner 의 컨테이너 디스크는 재배포·재시작·스케일 아웃 
       변수 `BACKEND_EXPECTED_ENV`(기본 `prod`)다. 데모 서비스를 이 워크플로로 배포한다면 그 서비스용
       설정에서 이 값을 `staging` 으로 둔다.
 - [ ] 기동 로그에 `[startup]` WARN 이 없다(데모 폴백·운영 데모 시드·로컬 첨부 저장소).
+- [ ] **AI 비용 상한이 정해져 있다(#3032).** `GEMINI_API_KEY` 가 결제가 연결된 프로젝트의 키다
+      (무료 등급 금지). 공급자 콘솔에 예산 알림을 걸고, 그 예산으로 `AI_GLOBAL_CALLS_PER_DAY` 를 0 이
+      아닌 값으로 둔다. 운영 중에는 `ai_calls.rejected{reason=global_cap}` 메트릭이 늘면 상한이나
+      예산을 다시 본다(`backend/README.md` 메트릭 표).
 
 ## 5-3) 모델 고정 (#2912)
 
