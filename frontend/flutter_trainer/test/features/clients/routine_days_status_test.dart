@@ -229,7 +229,11 @@ void main() {
         find.byKey(const ValueKey<String>('workout-routine-adherence-8-23')),
         findsOneWidget,
       );
-      // 오늘(1/3)도 한 만큼 칠한다 — 테두리는 그대로 오늘을 알린다.
+      // 오늘(1/3)도 한 만큼 칠하고, 요일 알약이 오늘을 알린다.
+      expect(
+        find.byKey(const ValueKey<String>('workout-routine-adherence-today')),
+        findsOneWidget,
+      );
       final BoxDecoration today =
           tester
                   .widget<Container>(
@@ -240,7 +244,6 @@ void main() {
                   .decoration!
               as BoxDecoration;
       expect(today.color, isNot(Colors.transparent));
-      expect(today.border, isNotNull);
       // 요약은 칸 아래가 아니라 카드 제목 줄의 몫이다.
       expect(find.textContaining('모두 완료'), findsNothing);
       // 폭을 채운다 — 칸 일곱이 줄 끝까지 닿는다.
