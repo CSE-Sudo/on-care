@@ -1,0 +1,156 @@
+name: Backend Deploy Service
+
+# 한 환경(production·staging)의 ECS Express Mode 서비스 스택에 이미지 digest 를 배포하고
+# 검증한다. 검증에 실패하면 직전 이미지로 되돌린다(#3019). backend-deploy.yml 이 부른다.
+#
+# 서비스 스택(infra/backend-service.yml)은 #480 에서 먼저 만들어 둔다. 여기서는 만들지 않는다.
+# GitHub Environment 이름이 곧 OIDC subject(environment:<name>)라서, 환경별 배포 역할은
+# 그 환경에서 돈 job 만 맡을 수 있다. 운영 승인자는 Environment 보호 규칙으로 정한다.
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: GitHub Environment 이름(production 또는 staging)
+        required: true
+        type: string
+      expected_env:
+        description: 배포 뒤 /v1/healthz 의 env 기대값(prod 또는 staging)
+        required: true
+        type: string
+      image:
+        description: 배포할 ECR 이미지(digest 형식)
+        required: true
+        type: string
+      sha:
+        description: 배포하는 커밋 SHA
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ${{ vars.AWS_BACKEND_REGION || 'ap-southeast-1' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ steps.endpoint.outputs.url }}
+    env:
+      STACK_NAME: ${{ vars.BACKEND_STACK_NAME || format('oncare-backend-{0}', inputs.environment) }}
+      TEMPLATE: infra/backend-service.yml
+      IMAGE: ${{ inputs.image }}
+      SHA: ${{ inputs.sha }}
+      EXPECTED_ENV: ${{ inputs.expected_env }}
+      CFN_ROLE_ARN: ${{ vars.AWS_BACKEND_CFN_ROLE_ARN }}
+    steps:
+      - name: Check deploy inputs
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          DEPLOY_ROLE: ${{ vars.AWS_BACKEND_DEPLOY_ROLE_ARN }}
+        run: |
+          set -euo pipefail
+          case "$ENVIRONMENT:$EXPECTED_ENV" in
+            production:prod|staging:staging) ;;
+            *) echo "::error::환경과 기대 env 가 맞지 않습니다: $ENVIRONMENT / $EXPECTED_ENV"; exit 1 ;;
+          esac
+          if [ -z "$DEPLOY_ROLE" ] || [ -z "$CFN_ROLE_ARN" ]; then
+            echo "::error::Environment '$ENVIRONMENT' 에 AWS_BACKEND_DEPLOY_ROLE_ARN·AWS_BACKEND_CFN_ROLE_ARN 변수가 없습니다(infra/backend-environment.yml 출력, #480)."
+            exit 1
+          fi
+
+      # 템플릿과 스크립트는 배포하는 커밋의 것을 쓴다.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.sha }}
+          persist-credentials: false
+
+      - name: Configure AWS credentials (environment deploy role)
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_BACKEND_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Record rollback point
+        id: previous
+        run: |
+          set -euo pipefail
+          PREVIOUS=$(bash .github/scripts/backend_service_stack.sh current-image "$STACK_NAME")
+          echo "image=$PREVIOUS" >> "$GITHUB_OUTPUT"
+          echo "Rollback point: $PREVIOUS"
+
+      - name: Deploy image
+        id: deploy
+        run: |
+          set -euo pipefail
+          # 여기서부터 실패하면 되돌린다.
+          echo "started=true" >> "$GITHUB_OUTPUT"
+          bash .github/scripts/backend_service_stack.sh deploy \
+            "$STACK_NAME" "$TEMPLATE" "$CFN_ROLE_ARN" "$IMAGE"
+
+      - name: Resolve service endpoint
+        id: endpoint
+        run: |
+          set -euo pipefail
+          HOST=$(bash .github/scripts/backend_service_stack.sh endpoint "$STACK_NAME")
+          {
+            echo "host=$HOST"
+            echo "url=https://$HOST"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Verify service (healthz, readyz, version)
+        env:
+          HOST: ${{ steps.endpoint.outputs.host }}
+        run: bash .github/scripts/backend_verify_service.sh "$HOST" "$EXPECTED_ENV" "$SHA"
+
+      # 스택 갱신이 실패하면 CloudFormation 이 스스로 직전 상태로 돌아가고, 아래 배포는 빈
+      # 변경으로 끝난다. 갱신은 됐는데 검증에서 떨어지면 여기서 직전 digest 로 되돌린다.
+      # 마이그레이션은 되돌리지 않는다 — 그래서 스키마 변경은 직전 이미지와도 맞아야 한다
+      # (DEPLOY.md "마이그레이션 호환").
+      - name: Roll back to previous image
+        id: rollback
+        if: >-
+          ${{ failure() &&
+              steps.deploy.outputs.started == 'true' &&
+              steps.previous.outputs.image != '' &&
+              steps.previous.outputs.image != inputs.image }}
+        env:
+          PREVIOUS: ${{ steps.previous.outputs.image }}
+        run: |
+          set -euo pipefail
+          echo "::warning::배포 검증 실패 — 직전 이미지로 되돌립니다: $PREVIOUS"
+          bash .github/scripts/backend_service_stack.sh deploy \
+            "$STACK_NAME" "$TEMPLATE" "$CFN_ROLE_ARN" "$PREVIOUS"
+          HOST=$(bash .github/scripts/backend_service_stack.sh endpoint "$STACK_NAME")
+          bash .github/scripts/backend_verify_service.sh "$HOST" "$EXPECTED_ENV"
+          echo "done=true" >> "$GITHUB_OUTPUT"
+
+      - name: Summary
+        if: ${{ always() }}
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          PREVIOUS: ${{ steps.previous.outputs.image }}
+          URL: ${{ steps.endpoint.outputs.url }}
+          OUTCOME: ${{ job.status }}
+          ROLLED_BACK: ${{ steps.rollback.outputs.done }}
+          ROLLBACK_OUTCOME: ${{ steps.rollback.outcome }}
+        run: |
+          {
+            echo "### Backend deploy: $ENVIRONMENT"
+            echo ""
+            echo "| 항목 | 값 |"
+            echo "| --- | --- |"
+            echo "| 커밋 | \`$SHA\` |"
+            echo "| 이미지 | \`$IMAGE\` |"
+            echo "| 직전 이미지 | \`${PREVIOUS:-없음}\` |"
+            echo "| 주소 | ${URL:-확인 전} |"
+            echo "| 결과 | $OUTCOME |"
+            if [ "$ROLLED_BACK" = "true" ]; then
+              echo "| 되돌리기 | 직전 이미지로 복구·검증 완료 |"
+            elif [ "$ROLLBACK_OUTCOME" = "failure" ]; then
+              echo "| 되돌리기 | **실패 — 바로 확인 필요** |"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
