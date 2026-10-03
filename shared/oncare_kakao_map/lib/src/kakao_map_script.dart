@@ -26,11 +26,11 @@ String kakaoMapSdkSrc(String appKey) =>
 /// 않는다 — 헬스장 이름에 그 글자가 들어 있으면 문서가 거기서 끊긴다. `<` 와
 /// 줄 구분 문자(U+2028·U+2029)를 이스케이프해 둔다.
 String kakaoMapJsLiteral(Object? value) => jsonEncode(value)
-    .replaceAll('<', r'<')
-    .replaceAll('>', r'>')
-    .replaceAll('&', r'&')
-    .replaceAll(' ', r' ')
-    .replaceAll(' ', r' ');
+    .replaceAll('<', r'\u003c')
+    .replaceAll('>', r'\u003e')
+    .replaceAll('&', r'\u0026')
+    .replaceAll('\u2028', r'\u2028')
+    .replaceAll('\u2029', r'\u2029');
 
 /// 좌표가 유한한 수인가. NaN·무한대는 JSON 으로 옮길 수 없고 지도도 그릴 수 없다.
 bool _finite(double v) => v.isFinite;

@@ -167,9 +167,8 @@ void main() {
     expect(c.loads.single.baseUrl, 'http://localhost');
     expect(
       c.loads.single.html,
-      contains(
-        'https://dapi.kakao.com/v2/maps/sdk.js?appkey=test-key&autoload=false',
-      ),
+      // 문자열 리터럴 안의 & 는 \u0026 으로 옮겨 적는다 — JS 가 읽는 값은 같다.
+      contains(kakaoMapJsLiteral(kakaoMapSdkSrc('test-key'))),
     );
     expect(c.loads.single.html, contains('"lat":37.5559'));
     expect(c.loads.single.html, contains('온케어 신촌'));

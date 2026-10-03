@@ -37,11 +37,11 @@ void main() {
     });
 
     test('줄 구분 문자와 & 도 이스케이프한다', () {
-      final String literal = kakaoMapJsLiteral('a b c&d');
-      expect(literal, isNot(contains(' ')));
-      expect(literal, isNot(contains(' ')));
+      final String literal = kakaoMapJsLiteral('a\u2028b\u2029c&d');
+      expect(literal, isNot(contains('\u2028')));
+      expect(literal, isNot(contains('\u2029')));
       expect(literal, isNot(contains('&')));
-      expect(jsonDecode(literal), 'a b c&d');
+      expect(jsonDecode(literal), 'a\u2028b\u2029c&d');
     });
   });
 
@@ -132,11 +132,11 @@ void main() {
         );
 
     test('SDK 를 appkey 와 autoload=false 로 부른다', () {
+      expect(html(), isNot(contains('appkey=test-key&autoload')));
       expect(
         html(),
-        contains(
-          'https://dapi.kakao.com/v2/maps/sdk.js?appkey=test-key&autoload=false',
-        ),
+        // 문자열 리터럴 안의 & 는 \u0026 으로 옮겨 적는다 — JS 가 읽는 값은 같다.
+        contains(kakaoMapJsLiteral(kakaoMapSdkSrc('test-key'))),
       );
     });
 

@@ -7,8 +7,6 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
-import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/gym_search_area.dart';
@@ -923,18 +921,13 @@ class _GymListCard extends ConsumerWidget {
 
 /// 지도를 띄우지 못했을 때 예전 그림 지도([_GymMiniMap])를 쓸지(#3043).
 ///
-/// 데모 세션 — 목업 빌드(`USE_MOCK_API=true`)이거나 실서버에서 데모로 들어온
-/// 세션([SessionStatus.demo]) — 만 그렇다. 데모 화면은 바꾸지 않는다. 앱에 이미
-/// 있는 두 판별을 합친 값이다(식단 추천의 `mealRecsDemoFallbackProvider` 와 같은
-/// 방식).
-final gymMapDemoFallbackProvider = Provider<bool>((ref) {
-  if (ref.watch(appConfigProvider).useMockApi) return true;
-  return ref.watch(
-    sessionControllerProvider.select(
-      (SessionState s) => s.status == SessionStatus.demo,
-    ),
-  );
-}, name: 'gymMapDemoFallback');
+/// 데모 세션 — 목업 빌드이거나 실서버에서 데모로 들어온 세션 — 만 그렇다. 데모
+/// 화면은 바꾸지 않는다. 판별은 헬스장 찾기 기준 좌표와 같은
+/// [gymDemoSessionProvider](#3044)를 그대로 따른다.
+final gymMapDemoFallbackProvider = Provider<bool>(
+  (ref) => ref.watch(gymDemoSessionProvider),
+  name: 'gymMapDemoFallback',
+);
 
 /// 목록에 보이는 헬스장을 카카오맵 핀으로 찍는다. 웹은 `HtmlElementView`,
 /// 안드로이드·iOS 는 WebView 로 같은 카카오 지도를 띄운다(#3043).
