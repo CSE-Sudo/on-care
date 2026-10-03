@@ -54,9 +54,6 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
       StreamController<String?>.broadcast(sync: true);
 
   @override
-  bool get supportsRosterMutations => false;
-
-  @override
   Stream<List<TrainerClient>> watchClients() =>
       activePollingStream<List<TrainerClient>>(
         load: _fetchClients,
@@ -429,15 +426,6 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
       throw AppError.fromDio(e);
     }
   }
-
-  @override
-  Future<bool> clientNameExists(String name) => throw UnsupportedError(
-    'clientNameExists is demo-only (no backend endpoint).',
-  );
-
-  @override
-  Future<bool> addClient({required String name, required String goal}) =>
-      throw UnsupportedError('addClient is demo-only (no backend endpoint).');
 
   /// Flips the trainer's 활성/휴면 management state for [id] (#707).
   ///
