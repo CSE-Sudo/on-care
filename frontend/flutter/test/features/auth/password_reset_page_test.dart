@@ -5,6 +5,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -64,6 +65,27 @@ class _FakeReset implements PasswordRepository {
 }
 
 Finder _key(String k) => find.byKey(ValueKey<String>(k));
+
+/// 앱이 브라우저 주소창에 알리는 주소(`routeInformationUpdated`)를 적는다.
+List<Map<Object?, Object?>> _recordAddressReports(WidgetTester tester) {
+  final List<Map<Object?, Object?>> reports = <Map<Object?, Object?>>[];
+  tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+    SystemChannels.navigation,
+    (MethodCall call) async {
+      if (call.method == 'routeInformationUpdated') {
+        reports.add(call.arguments as Map<Object?, Object?>);
+      }
+      return null;
+    },
+  );
+  addTearDown(
+    () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.navigation,
+      null,
+    ),
+  );
+  return reports;
+}
 
 Future<AppLocalizations> _pump(
   WidgetTester tester, {
@@ -244,6 +266,7 @@ void main() {
   });
 
   testWidgets('메일 링크의 코드로 들어오면 코드 칸이 채워진 채 시작한다', (tester) async {
+    final List<Map<Object?, Object?>> reports = _recordAddressReports(tester);
     await _pump(
       tester,
       repository: _FakeReset(),
@@ -251,6 +274,22 @@ void main() {
     );
     expect(find.byKey(const Key('passwordResetConfirmStep')), findsOneWidget);
     expect(find.text(_code), findsOneWidget);
+
+    // 주소에서는 코드를 지운다(#3089) — 화면은 코드를 든 채 남는다.
+    final GoRouter router = GoRouter.of(
+      tester.element(find.byType(PasswordResetPage)),
+    );
+    expect(
+      router.routerDelegate.currentConfiguration.uri.toString(),
+      AppRoutes.passwordReset,
+    );
+    expect(reports.last['uri'], AppRoutes.passwordReset);
+    // 새 기록 항목을 쌓지 않고 지금 항목을 바꾼다 — 코드가 든 항목이 뒤에 남지 않는다.
+    expect(reports.last['replace'], isTrue);
+    expect(
+      reports.where((Map<Object?, Object?> r) => r['replace'] == false),
+      isEmpty,
+    );
   });
 
   testWidgets('발송 수단이 없는 서버면 알리고 요청 단계에 머문다', (tester) async {
