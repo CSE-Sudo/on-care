@@ -2754,3 +2754,31 @@ class DietAnalysisUsage(Base):
     __table_args__ = (
         Index("ix_diet_analysis_usages_user_date", "user_id", "kst_date"),
     )
+
+
+class AiCallUsage(Base):
+    """하루 AI 호출 수 — 서버 전체·트레이너 계정 단위 상한을 센다. (#3032)
+
+    `bucket` 하나에 하루 한 행이다. `global` 은 서버 전체, `trainer:<id>` 는 그
+    트레이너의 고객 AI 코치·루틴 후보·리포트 요약 합이다. 외부 모델을 **실제로 부르기
+    직전에** `INSERT … ON CONFLICT DO UPDATE … WHERE calls < 상한` 으로 한 번에 더해,
+    여러 인스턴스가 동시에 불러도 상한을 넘지 않는다. 기능별 건수는 행으로 나누지 않고
+    메트릭(`ai_calls.*`)으로 본다 — 상한 판정을 한 행에서 끝내기 위해서다.
+    """
+
+    __tablename__ = "ai_call_usages"
+
+    #: KST 날짜 `YYYY-MM-DD`. 자정이 지나면 새 행에서 다시 센다.
+    kst_date: Mapped[str] = mapped_column(String(10), primary_key=True)
+    #: `global` 또는 `trainer:<트레이너 id>`.
+    bucket: Mapped[str] = mapped_column(String(80), primary_key=True)
+    #: 트레이너 버킷의 주인. 전역 버킷은 비어 있다. 트레이너가 탈퇴하면 함께 지운다.
+    trainer_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    calls: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0", default=0
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
