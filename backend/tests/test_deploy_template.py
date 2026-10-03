@@ -23,6 +23,8 @@ AWS_EXAMPLE = BACKEND_DIR / ".env.aws.example"
 _NON_SETTINGS_KEYS: dict[str, str] = {
     "TZ": "프로세스 시간대(로그 타임스탬프). 컨테이너 환경이 읽는다.",
     "WEB_CONCURRENCY": "uvicorn 워커 수. Settings 가 아니라 scripts/start.sh 가 읽는다.",
+    "MIGRATE_LOCK_TIMEOUT": "기동 마이그레이션 lock 대기 한도. Settings 가 아니라 scripts/migrate.py 가 읽는다.",
+    "MIGRATE_CONNECT_TIMEOUT": "기동 마이그레이션 DB 연결 한도. Settings 가 아니라 scripts/migrate.py 가 읽는다.",
 }
 
 # 템플릿에는 있지만 운영 예시 파일에 두지 않는 키.
