@@ -41,6 +41,11 @@ final DemoFixture _fixture = DemoFixture.parse(
 /// 위해 고정 금요일(2024-01-05, weekday=금 → index 4)을 주입한다.
 final DateTime _friday = DateTime(2024, 1, 5);
 
+/// 기록을 더하는 검증의 오늘. 앞날 기록은 거절되므로(#3042) 이번 주의 빈 날이
+/// 오늘보다 앞에 있어야 한다 — 금요일에는 월~금이 모두 차 있어 빈 날이 토요일
+/// (앞날)이 된다. 일요일이면 수요일이 빈 날이다.
+final DateTime _sunday = DateTime(2024, 1, 7);
+
 /// [today] 를 오늘로 두고 픽스처로 시드한 데모 DB 위의 저장소.
 Future<ExerciseRepository> _repo({DateTime? today}) async {
   useFixedKstDate(today ?? _friday);
@@ -175,14 +180,18 @@ void main() {
 
   group('추가·수정·삭제가 주간 합계·그래프에 반영된다 (#294)', () {
     test('addSession persists and updates totals/chart/count', () async {
-      final ExerciseRepository r = await _repo();
+      final ExerciseRepository r = await _repo(today: _sunday);
       final ExerciseWeek before = await r.fetchThisWeek();
       // 아직 기록이 없는 요일을 골라 새 활성일이 하나 느는 것을 본다.
       final int restDay = before.dailyMinutes.indexOf(0);
-      expect(restDay, greaterThanOrEqualTo(0), reason: '이번 주가 이미 꽉 찼다');
+      expect(
+        restDay,
+        inInclusiveRange(0, _sunday.weekday - 1),
+        reason: '오늘까지 빈 날이 없다',
+      );
 
-      final DateTime monday = _friday.subtract(
-        Duration(days: _friday.weekday - 1),
+      final DateTime monday = _sunday.subtract(
+        Duration(days: _sunday.weekday - 1),
       );
       final ExerciseSession added = (await r.addSessions(<ExerciseSessionDraft>[
         ExerciseSessionDraft(
@@ -208,13 +217,14 @@ void main() {
     });
 
     test('deleteSession removes it and restores the totals', () async {
-      final ExerciseRepository r = await _repo();
+      final ExerciseRepository r = await _repo(today: _sunday);
       // 지울 수 있는 것은 회원이 적은 기록뿐이다 — 픽스처 기록은 PT·배정
       // 루틴에서 온 파생 기록이라 이 경로로 사라지지 않는다.
-      final DateTime monday = _friday.subtract(
-        Duration(days: _friday.weekday - 1),
+      final DateTime monday = _sunday.subtract(
+        Duration(days: _sunday.weekday - 1),
       );
       final int day = (await r.fetchThisWeek()).dailyMinutes.indexOf(0);
+      expect(day, inInclusiveRange(0, _sunday.weekday - 1));
       final ExerciseSession target =
           (await r.addSessions(<ExerciseSessionDraft>[
             ExerciseSessionDraft(
@@ -247,7 +257,7 @@ void main() {
     });
 
     test('없는 기록을 지우면 404 로 거절되고 주간은 그대로다', () async {
-      final ExerciseRepository r = await _repo();
+      final ExerciseRepository r = await _repo(today: _sunday);
       final ExerciseWeek before = await r.fetchThisWeek();
       await expectLater(r.deleteSession('does-not-exist'), _rejectedWith(404));
       final ExerciseWeek after = await r.fetchThisWeek();
@@ -256,11 +266,12 @@ void main() {
     });
 
     test('updateSession edits a session and re-derives totals', () async {
-      final ExerciseRepository r = await _repo();
-      final DateTime monday = _friday.subtract(
-        Duration(days: _friday.weekday - 1),
+      final ExerciseRepository r = await _repo(today: _sunday);
+      final DateTime monday = _sunday.subtract(
+        Duration(days: _sunday.weekday - 1),
       );
       final int day = (await r.fetchThisWeek()).dailyMinutes.indexOf(0);
+      expect(day, inInclusiveRange(0, _sunday.weekday - 1));
       final ExerciseSession target =
           (await r.addSessions(<ExerciseSessionDraft>[
             ExerciseSessionDraft(
