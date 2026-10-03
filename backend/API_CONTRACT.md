@@ -981,8 +981,8 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/trainer/notifications/read-all` | `{ marked_read(int) }` |
 
 - **회원용 `/notifications` 를 재사용하지 않습니다.** `get_current_user` 가 트레이너 계정을 **403** 으로 막는 회원 전용 경로입니다(역할 분리). 저장되는 행은 같은 `notifications` 테이블이고 `user_id` 가 일반 사용자 FK라 스키마 변경은 없습니다. (#503)
-- `category` 는 트레이너 전용 값입니다 — `message`|`consultation`|`reservation`|`health_goal`|`member_name`|`member_left`|`invite_accepted`|`invite_rejected`|`consult_withdrawn`. 회원 알림의 집합(`reminder|health_check|achievement|system`)과 겹치지 않습니다. 한 테이블을 공유하지만 읽는 화면과 이동할 곳이 다릅니다. `health_goal`·`member_name` 은 `subject_id` 에 그 회원 id 를 실어 회원 상세로 갑니다. `health_goal` 중 틀이 `trainer_health_notes` 인 알림(회원이 건강상태·주의사항을 고침, 인자 `member_name`·`with_focus`)은 글을 싣지 않고, 앱은 회원 상세에서 신체·목표 창의 `건강 목표` 탭을 바로 엽니다. (#2619) `member_left` 는 담당 회원이 탈퇴(`DELETE /users/me`)했거나 담당 연결을 끊었을 때(`DELETE /me/coach`, `DELETE /me/coach/trainer`) 남고, 회원이 이미 목록에서 빠져 `subject_id` 없이 확인만 합니다. (#2174) `consult_withdrawn` 은 회원이 탈퇴(`DELETE /users/me`)하면서 대기 중(`pending`)이던 상담 요청이 함께 사라졌을 때 그 요청을 받은 트레이너에게 남습니다 — 틀 `trainer_consult_withdrawn`, 인자 `member_name`(탈퇴 직전 이름)·`preferred_date`, `target_date` 는 희망 날짜입니다. 처리된 요청과 만료 시각이 지난 요청은 알리지 않고, 담당 트레이너는 `member_left` 만 받습니다. 떠난 회원을 가리키지 않도록 `subject_id` 는 없고 앱은 상담 요청함으로 갑니다. (#1632)
-- **이동 목적지(#2292)**: `reservation` 은 `subject_id`(예약한 회원)와 `target_date`(수업 날짜, KST `YYYY-MM-DD`)를 실어 그 날짜의 스케줄로, `consultation` 은 `subject_id`(신청 회원)와 `target_date`(희망 날짜)를 실어 상담 요청함으로 갑니다. 담당 요청의 결과는 상담이 아니라 별도 종류입니다 — `invite_accepted` 는 `subject_id` 의 새 담당 회원 상세로, `invite_rejected` 는 고객 목록으로 갑니다. 대상이 기록되기 전의 옛 알림은 `subject_id`·`target_date` 가 `null` 이고 앱이 전처럼 오늘 스케줄로 보냅니다.
+- `category` 는 트레이너 전용 값입니다 — `message`|`consultation`|`reservation`|`health_goal`|`member_name`|`member_left`|`invite_accepted`|`invite_rejected`|`consult_withdrawn`|`verification`. 회원 알림의 집합(`reminder|health_check|achievement|system`)과 겹치지 않습니다. 한 테이블을 공유하지만 읽는 화면과 이동할 곳이 다릅니다. `health_goal`·`member_name` 은 `subject_id` 에 그 회원 id 를 실어 회원 상세로 갑니다. `health_goal` 중 틀이 `trainer_health_notes` 인 알림(회원이 건강상태·주의사항을 고침, 인자 `member_name`·`with_focus`)은 글을 싣지 않고, 앱은 회원 상세에서 신체·목표 창의 `건강 목표` 탭을 바로 엽니다. (#2619) `member_left` 는 담당 회원이 탈퇴(`DELETE /users/me`)했거나 담당 연결을 끊었을 때(`DELETE /me/coach`, `DELETE /me/coach/trainer`) 남고, 회원이 이미 목록에서 빠져 `subject_id` 없이 확인만 합니다. (#2174) `consult_withdrawn` 은 회원이 탈퇴(`DELETE /users/me`)하면서 대기 중(`pending`)이던 상담 요청이 함께 사라졌을 때 그 요청을 받은 트레이너에게 남습니다 — 틀 `trainer_consult_withdrawn`, 인자 `member_name`(탈퇴 직전 이름)·`preferred_date`, `target_date` 는 희망 날짜입니다. 처리된 요청과 만료 시각이 지난 요청은 알리지 않고, 담당 트레이너는 `member_left` 만 받습니다. 떠난 회원을 가리키지 않도록 `subject_id` 는 없고 앱은 상담 요청함으로 갑니다. (#1632)
+- **이동 목적지(#2292)**: `reservation` 은 `subject_id`(예약한 회원)와 `target_date`(수업 날짜, KST `YYYY-MM-DD`)를 실어 그 날짜의 스케줄로, `consultation` 은 `subject_id`(신청 회원)와 `target_date`(희망 날짜)를 실어 상담 요청함으로 갑니다. 담당 요청의 결과는 상담이 아니라 별도 종류입니다 — `invite_accepted` 는 `subject_id` 의 새 담당 회원 상세로, `invite_rejected` 는 고객 목록으로 갑니다. `verification`(운영자 승인·반려, #3010)은 승인이면 대시보드, 반려면 MY(사유 확인)로 갑니다. 대상이 기록되기 전의 옛 알림은 `subject_id`·`target_date` 가 `null` 이고 앱이 전처럼 오늘 스케줄로 보냅니다.
 - **생성 지점**: 회원의 새 메시지(`POST /me/coach/chat`, 사진은 `POST /me/coach/chat/image` — #1665), 새 상담 요청(`POST /consultations` — 지정된 트레이너 한 사람), 새 예약·예약 취소, 담당 회원의 건강 목표 변경(#1832)·건강상태·주의사항 변경(#2619), 담당 회원의 이름 변경(`PUT /users/me`·`POST /users/me/onboarding`, #2065).
 - **언어**: 제목·본문은 요청 언어로 조립합니다. 트레이너 웹은 `template`·`args` 로 ARB 문장을 직접 조립합니다 — 규칙은 위 [알림 문장의 언어](#알림-문장의-언어-2302) 와 같습니다. (#2302)
 - **이름은 알림을 만든 순간의 것입니다.** 제목·본문을 완성된 글자로 저장하므로, 이름을 바꿔도 이미 받은 알림은 그때 이름으로 남고 바꾼 뒤의 알림부터 새 이름을 씁니다(받은 순간의 기록이라 고쳐 쓰지 않습니다). 대신 담당 회원이 이름을 바꾸면 트레이너에게 `member_name` 알림(`{옛 이름} 회원이 이름을 바꿨어요: {새 이름}`)을 한 번 보내 옛 이름과 새 이름을 잇습니다. 트레이너는 아직 이름을 바꿀 길이 없고(`PUT /trainer/me` 는 이름을 받지 않음), 그 길을 열 때 담당 회원에게 같은 알림을 보냅니다. (#2065)
@@ -1064,7 +1064,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 
 | Method | Path | 요청 → 응답 |
 |---|---|---|
-| GET | `/trainer/me` | `TrainerMe` `{ id, name, email, phone, specialty, career, intro, certifications, gym }` |
+| GET | `/trainer/me` | `TrainerMe` `{ id, name, email, phone, specialty, career, intro, certifications, gym, verification, is_admin }` — `is_admin` 은 운영자 계정인지(#3008) |
 | PUT | `/trainer/me` | 부분 수정 `{ phone?, specialty?, career_years?, intro?, certifications?, gym_name?, gym_address?, gym_hours?, gym_phone? }` → `TrainerMe`. 이름·이메일은 바꾸지 않는다 |
 | DELETE | `/trainer/me` | 본문 `{ reasons? }` → `{ status: "deleted" }` — 탈퇴. 담당 회원에게 알린 뒤 계정과 딸린 데이터를 지운다(#505) |
 | DELETE | `/trainer/me/gym` | `TrainerMe` — 소속 해제. 원래 없어도 200 |
@@ -1695,10 +1695,22 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은
 | 연결 코드 `POST /trainer/pairing-code/preview`·`POST /trainer/pairing-code` | **403** `detail={ code: "trainer_not_approved", message }` — 코드는 소비되지 않는다 |
 | 담당 요청 `POST /trainer/client-invites` | **403** 같은 모양 |
 | 담당 요청 수락 `POST /me/coach/invites/{id}/accept` | 보낸 트레이너가 지금 승인 상태가 아니면 404 |
+| 이미 맺은 담당 회원의 기록 `/trainer/clients/{id}/…`(식단·운동·건강 정보·채팅·메모·리포트·루틴·후속 관리·AI 코치 등, `member_id` 를 붙인 일정 조회·등록) | **403** 같은 모양(#3009) — 담당 관계는 그대로, 다시 승인하면 열린다 |
+| 로스터 `GET /trainer/clients` | 이름·연결 상태만 남고 수치·미리보기·신호는 빈다(동의 철회와 같은 방식, #3009) |
+| 트레이너 스케줄·일정 id 로 여는 쓰기 | 회원 일정은 해제된 회원처럼 익명(`member_detached`)이고, 회원에게 닿는 쓰기는 404(#3009) |
 
 `GET /trainer/me`(및 같은 모양을 돌려주는 `PUT /trainer/me`·`PUT /trainer/me/gym*`)는
 `verification: { status: "pending"|"approved"|"rejected", decided_at: datetime|null, note: string }`
 을 싣는다. `note` 는 반려 사유(승인·대기면 빈 문자열)이고, 트레이너 웹이 그대로 보여 준다.
+같은 응답의 `is_admin: bool` 은 운영자 계정인지다(#3008) — 트레이너 웹이 `트레이너 승인`
+메뉴를 보일지 정하고, 실제 차단은 `RequireAdmin` 이 한다. 운영자는 `ADMIN_EMAILS` 로 승격된
+트레이너 계정을 쓴다(트레이너 웹 로그인은 트레이너 역할만 받는다).
+
+승인·반려가 상태를 **실제로 바꾸면** 트레이너에게 알림 한 건을 남긴다(#3010) — 종류
+`verification`, 틀 `trainer_verification_approved`(인자 없음)·`trainer_verification_rejected`
+(인자 `has_note`, 사유가 있으면 본문은 그 사유 그대로). 같은 상태로 다시 처리하면(사유만 고친
+반려 포함) 알림이 늘지 않는다. 수신 설정과 무관하게 보낸다. 트레이너 웹은 이 알림을 받으면
+`GET /trainer/me` 를 다시 읽어 로그인한 채로 승인 상태를 바꾼다.
 
 운영자 엔드포인트(모두 `RequireAdmin` — 비관리자 403, 미인증 401, 처리 결과는 감사 로그
 `admin.trainer_approve`/`admin.trainer_reject`):
@@ -1710,15 +1722,36 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은
 | POST | `/admin/trainers/{trainer_id}/reject` | `{ reason?: string(≤300) }` → `AdminTrainerVerificationOut` |
 
 `AdminTrainerVerificationOut = { trainer_id, name, email, specialty, career_years, certifications[],
-gym_id, gym_name, gym_address, gym_is_fitness, status, decided_at, decided_by, note, created_at }`.
-트레이너 계정이 아니거나 없으면 404.
+gym_id, gym_name, gym_address, gym_is_fitness, status, decided_at, decided_by, note, created_at,
+is_active }`. `is_active` 는 계정 정지 여부다(정지면 false). 트레이너 계정이 아니거나 없으면 404.
 
-- **반려는 새 연결만 막는다.** 이미 맺어진 담당 관계·받은 상담은 그대로 둔다 — 끊으려면 회원 쪽
-  알림·동의 철회가 따라야 하고, 그건 계정 정지·탈퇴 경로의 일이다.
+- **반려는 새 연결을 막고 기존 담당 회원의 기록도 잠근다**(#3009). 담당 관계·받은 상담은 그대로
+  둔다 — 끊으면 회원 쪽 알림·동의 철회가 따라오고 되돌릴 수 없다. 끊어야 하면 계정을 정지한다.
+
+계정 정지·해제(#3009, `RequireAdmin`, 감사 로그 `admin.user_suspend`/`admin.user_unsuspend`,
+`target_user_id` 에 대상):
+
+| Method | Path | Response |
+|---|---|---|
+| POST | `/admin/users/{user_id}/suspend` | `AdminUserStatusOut` — 없는 계정 404, 운영자 계정(자신 포함) 409 |
+| POST | `/admin/users/{user_id}/unsuspend` | `AdminUserStatusOut` — 없는 계정 404 |
+
+`AdminUserStatusOut = { user_id, role, is_active, released_clients }`.
+
+- 정지는 `is_active=false` 와 토큰 세대 올리기다 — 기존 접근·refresh 토큰이 바로 401 이 되고
+  로그인도 401 이다.
+- 트레이너를 정지하면 살아 있는 담당을 모두 해제한다. 트레이너가 직접 해제할 때(`DELETE
+  /trainer/clients/{id}`)와 같은 경로라 회원에게 `member_trainer_disconnected` 알림이 가고, 아직
+  시작하지 않은 PT 일정이 취소되고, PT 재등록 쿠폰이 환불된다. 대기 중 담당 요청은 `cancelled` 로
+  거둔다. `released_clients` 는 이번에 해제한 수다.
+- 이미 정지된 계정을 다시 정지하면 토큰 세대는 그대로이고, 남은 담당이 있을 때만 마저 해제한다.
+- 해제는 계정만 되살린다. 해제했던 담당 관계는 복구하지 않는다 — 회원의 새 동의가 필요하다.
+- 회원 계정을 정지해도 그 회원의 담당 관계는 건드리지 않는다.
 - 마이그레이션(`0132_trainer_verification`)은 **기존 트레이너를 모두 `approved` 로 채운다.**
   DB 기본값은 `pending` 이라 ORM 밖에서 넣은 행은 노출되지 않는다. ORM 기본값은 `approved`
   (시드·운영 스크립트 경로)이고, 공개 가입만 `pending` 을 명시한다.
-- 자격증 사본 등 증빙 업로드와 운영자 관리 화면은 아직 없다.
+- 운영 화면은 트레이너 웹 `/admin/trainers`(운영자 계정에만 메뉴가 보인다, #3008)다. 자격증 사본
+  등 증빙 업로드는 아직 없다.
 
 **로그인에는 걸지 않는다.** 이 기준 이전에 만든 계정은 비밀번호가 기준에 못 미쳐도 그대로
 로그인되고, 트레이너는 `POST /trainer/me/password` 로 기준에 맞는 값으로 옮길 수 있다. 로그인에
@@ -1905,7 +1938,7 @@ IP 를 바꿔 가며 한 계정을 노리는 시도는 계정 쪽 버킷이 막�
 | `RequireUser` | 401 | 없음 |
 | `RequireMember` | 401 | 회원만. 트레이너면 403 |
 | `RequireTrainer` | 401 | 트레이너만. 회원이면 403 |
-| `RequireApprovedTrainer` | 401 | 운영자 승인을 받은 트레이너만. 승인 전이면 403 `trainer_not_approved` (#2825) |
+| `RequireApprovedTrainer` | 401 | 운영자 승인을 받은 트레이너만. 승인 전이면 403 `trainer_not_approved` (#2825) — 담당 회원 기록 경로(`_require_client`)도 같은 403 을 준다 (#3009) |
 | `RequireAdmin` | 401 | `is_admin` 아니면 403 |
 
 읽기 화면은 `CurrentUser`, 쓰기·삭제는 `RequireMember`, 트레이너 앱(`/v1/trainer/*`)은

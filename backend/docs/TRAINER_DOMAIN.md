@@ -306,7 +306,16 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
   회원이 수락할 수 없다(404).
 - 프로필·소속·비밀번호·탈퇴 같은 계정 관리는 승인과 무관하게 열려 있다 — 운영자가 판단할
   내용을 채워 두는 시간이다.
-- 반려는 **새 연결만** 막는다. 이미 맺은 담당·받은 상담은 그대로다.
+- 반려는 새 연결을 막고 **이미 맺은 담당 회원의 기록도 잠근다**(#3009). `_require_client`·
+  `has_active_client_link`·스케줄 익명 처리(`_linked_member_ids`)가 승인 여부를 먼저 보고, 로스터는
+  이름·연결 상태만 남긴다. 담당 관계·동의는 그대로라 다시 승인하면 그대로 열린다.
+- 관계까지 끊어야 하면 운영자가 계정을 정지한다(`POST /admin/users/{id}/suspend`,
+  `account_suspension_service`). 트레이너가 직접 해제할 때와 같은 `remove_client` 로 모든 담당을
+  해제하고(알림·일정 취소·쿠폰 환불·동의 철회), 대기 담당 요청을 거둔다. 정지 해제는 계정만
+  되살린다.
+- 승인·반려로 상태가 바뀌면 트레이너에게 `verification` 알림이 간다(#3010).
+- 운영 화면은 트레이너 웹 `/admin/trainers` 다(#3008). `GET /trainer/me` 의 `is_admin` 이 참인
+  운영자 트레이너 계정에만 메뉴가 보인다.
 - 처리 시각·처리자·반려 사유는 `verification_decided_at`·`verification_decided_by`·
   `verification_note` 에 남고, `GET /trainer/me` 의 `verification` 으로 트레이너 웹에 간다.
 - 기존 트레이너와 시드 트레이너는 `approved` 다(마이그레이션 백필·ORM 기본값). DB 기본값은
