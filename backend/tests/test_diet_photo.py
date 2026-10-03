@@ -205,6 +205,34 @@ def test_a_meal_without_a_readable_photo_is_still_recorded(client, member_token)
     assert res.json()["photo_url"] is None
 
 
+def test_a_meal_photo_over_the_pixel_cap_is_dropped_but_the_meal_is_kept(
+    client, member_token, monkeypatch
+):
+    """펼칠 픽셀이 상한을 넘는 사진은 저장하지 않는다. 끼니 기록은 남는다. (#3040)"""
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "max_image_decode_pixels", 100_000)
+    res = _analyze(client, member_token, _photo_bytes((2400, 1600), fmt="PNG"))
+
+    assert res.status_code == 200, res.text
+    assert res.json()["entry_id"]
+    assert res.json()["photo_url"] is None
+
+
+def test_a_large_jpeg_meal_photo_is_reduced_while_decoding(
+    client, member_token, monkeypatch
+):
+    """JPEG 은 축소 디코딩한 크기로 센다 — 같은 상한에서도 사진이 저장된다. (#3040)"""
+    from app.core.config import get_settings
+
+    # 원본 3200×2400(768만 픽셀)이지만 1/2 로 펼치면 192만이다.
+    monkeypatch.setattr(get_settings(), "max_image_decode_pixels", 2_000_000)
+    res = _analyze(client, member_token, _photo_bytes((3200, 2400)))
+
+    assert res.status_code == 200, res.text
+    assert res.json()["photo_url"]
+
+
 def test_another_member_cannot_open_someone_elses_photo(client, member_token):
     photo_url = _analyze(client, member_token, _photo_bytes()).json()["photo_url"]
 
