@@ -2697,7 +2697,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachDraftDiscard => 'Discard';
 
   @override
-  String get personalRoutineTargetLoadFailed => 'Couldn\'t load PT appointments';
+  String get personalRoutineTargetLoadFailed =>
+      'Couldn\'t load PT appointments';
 
   @override
   String get personalRoutineStartPast =>
@@ -5752,4 +5753,17 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get passwordResetTemporaryFailure =>
       'Couldn\'t complete the request. Please try again shortly.';
+
+  @override
+  String get releaseUpdateTitle => 'A new version is available';
+
+  @override
+  String get releaseUpdateMessage =>
+      'Reload to get the latest version. Save anything you\'re working on first.';
+
+  @override
+  String get releaseUpdateReload => 'Reload';
+
+  @override
+  String get releaseUpdateDismiss => 'Dismiss';
 }
