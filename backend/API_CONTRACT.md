@@ -58,8 +58,8 @@
 | Method | Path | 응답 |
 |---|---|---|
 | GET | `/ping` | `{ message }` |
-| GET | `/healthz` | `{ status, backend, env, demo_fallback, demo_seed, attachment_storage }` (#2821) |
-| GET | `/version` | `{ api_version, app_version }` |
+| GET | `/healthz` | `{ status, backend, env, demo_fallback, demo_seed, attachment_storage, commit_sha }` (#2821·#3029). `attachment_storage` 는 `local`·`s3`·`misconfigured` |
+| GET | `/version` | `{ api_version, app_version, commit_sha }` — `commit_sha` 는 이미지를 만든 커밋 SHA(40자), 빌드 인자 없이 만든 이미지는 `"unknown"`(#3029) |
 | GET | `/readyz` | `{ status: "ready" }` — DB 에 `SELECT 1` 까지 확인한다(3초 제한). 실패하면 **503** `{"detail": "서비스가 아직 준비되지 않았습니다."}`, 원인은 서버 로그에만 남긴다. `/healthz` 는 프로세스만 본다(liveness) |
 
 ### 관리자 전용

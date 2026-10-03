@@ -25,6 +25,13 @@ COPY alembic.ini ./alembic.ini
 COPY scripts ./scripts
 RUN chmod +x scripts/start.sh
 
+# 이 이미지를 만든 커밋(#3029). 배포 워크플로·CI 가 `--build-arg GIT_SHA=<커밋>` 로
+# 넣고 앱은 같은 이름의 환경변수로 읽는다(`/v1/version`·`/v1/healthz` 의 commit_sha,
+# Sentry release). 커밋마다 바뀌는 값이라 의존성 설치·앱 복사 뒤에 둬 캐시를 덜 깬다.
+# 넘기지 않은 로컬 빌드는 unknown.
+ARG GIT_SHA=unknown
+ENV GIT_SHA=${GIT_SHA}
+
 # 비루트 유저로 실행 (컨테이너 탈출 시 피해 범위 축소)
 RUN useradd --create-home --uid 10001 appuser && chown -R appuser:appuser /code
 USER appuser
