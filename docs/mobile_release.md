@@ -73,11 +73,14 @@ flutter build appbundle --release \
 | --- | --- | --- |
 | 수출 규정 | `ios/Runner/Info.plist` `ITSAppUsesNonExemptEncryption=false` | 표준 HTTPS 와 OS 키체인만 쓰고 자체 암호화가 없다. 암호화 라이브러리를 추가하면 다시 판단 |
 | 개인정보 매니페스트 | `ios/Runner/PrivacyInfo.xcprivacy` | 추적 없음, 필수 사유 API(UserDefaults), 수집 데이터 유형 |
-| 권한 문구 | `ios/Runner/Info.plist` | 카메라·사진(식단 사진·트레이너 채팅 사진), 위치(주변 헬스장 찾기) |
+| 지원 언어 | `ios/Runner/Info.plist` `CFBundleLocalizations` = `ko`, `en` · `project.pbxproj` `knownRegions` | 앱 안 지원 언어(`AppLocalizations.supportedLocales`)와 같게. 개발 언어(`developmentRegion`)는 `en` — 앱 안 문구의 폴백과 같다 |
+| 권한 문구 | `ios/Runner/ko.lproj/InfoPlist.strings`, `ios/Runner/en.lproj/InfoPlist.strings`, `Info.plist`(영어 폴백) | 카메라·사진(식단 사진·트레이너 채팅 사진), 위치(주변 헬스장 찾기) |
 
 - App Store Connect 의 **개인정보 라벨**은 `PrivacyInfo.xcprivacy` 의 수집 항목과 같게 적습니다.
   수집 항목·플러그인이 바뀌면 두 곳을 함께 고칩니다.
 - 권한 문구는 실제로 그 권한을 쓰는 화면과 맞아야 합니다. 새 용도가 생기면 문구도 고칩니다.
+- **권한 문구는 세 곳을 함께 고칩니다**(#3048): `ko.lproj/InfoPlist.strings`, `en.lproj/InfoPlist.strings`, `Info.plist` 본문(영어 폴백). 권한 키를 새로 더할 때(예: 푸시 알림 #474)도 같습니다. 한 곳이라도 빠지면 `test/platform/ios_localizations_test.dart` 가 실패합니다.
+- 릴리스 전에 기기 언어를 한국어·영어로 바꿔 가며 카메라·사진·위치 권한 창의 설명과 버튼이 그 언어로 뜨는지, 설정 → On-Care 에 언어 항목(한국어·영어)이 보이는지 확인합니다.
 - iOS 빌드·서명은 Mac 과 Apple Developer 계정이 필요합니다. 서명 인증서·프로비저닝은
   Xcode 의 자동 서명(팀 계정)으로 하고, 인증서 파일도 저장소에 올리지 않습니다.
 
