@@ -62,6 +62,7 @@ ExerciseSession _memberSession({
   int? sets,
   int? reps,
   double? weight,
+  ExerciseRecord? record,
 }) => ExerciseSession(
   id: id,
   dayLabel: _labelOf(date),
@@ -73,6 +74,7 @@ ExerciseSession _memberSession({
   sets: sets,
   reps: reps,
   weight: weight,
+  record: record,
 );
 
 /// 저장·삭제 호출을 받아 두는 대역. 주간 자료는 저장한 기록을 반영한다.
@@ -380,6 +382,93 @@ void main() {
     expect(valueOf('exercise-detail-calories-own-run'), '200 ${l.unitKcal}');
     expect(valueOf('exercise-detail-calories'), '410 ${l.unitKcal}');
     expect(find.text(l.exRecordDetailTotalCalories), findsOneWidget);
+  });
+
+  testWidgets('운동 탭 목록에는 개인 기록만 붙고 첫 기록은 붙지 않는다 (#2971)', (tester) async {
+    useFixedKstDate();
+    await pumpExercise(
+      tester,
+      _RecordingRepository(<ExerciseSession>[
+        _memberSession(
+          id: 'own-heavy',
+          date: today(),
+          name: '스쿼트',
+          type: ExerciseType.strength,
+          sets: 5,
+          reps: 5,
+          weight: 80,
+          record: ExerciseRecord.maxWeight,
+        ),
+        _memberSession(
+          id: 'own-new',
+          date: today(),
+          name: '폼롤러',
+          record: ExerciseRecord.first,
+        ),
+      ]),
+    );
+    final AppLocalizations l = AppLocalizations.of(
+      tester.element(find.byType(ExercisePage)),
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey<String>('exercise-own-record-badge-own-heavy'),
+        ),
+        matching: find.text(l.exRecordMaxWeight),
+      ),
+      findsOneWidget,
+    );
+    // 새 운동마다 붙는 `첫 기록` 은 목록을 붐비게 해 상세에서만 보인다.
+    expect(
+      find.byKey(const ValueKey<String>('exercise-own-record-badge-own-new')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('상세 보기의 운동 줄에 개인 기록 태그가 붙는다 (#2971)', (tester) async {
+    useFixedKstDate();
+    await pumpExercise(
+      tester,
+      _RecordingRepository(<ExerciseSession>[
+        _memberSession(
+          id: 'own-heavy',
+          date: today(),
+          name: '스쿼트',
+          type: ExerciseType.strength,
+          sets: 5,
+          reps: 5,
+          weight: 80,
+          record: ExerciseRecord.maxWeight,
+        ),
+        _memberSession(id: 'own-plain', date: today()),
+      ]),
+    );
+    final AppLocalizations l = AppLocalizations.of(
+      tester.element(find.byType(ExercisePage)),
+    );
+    final Finder open = find.byKey(
+      const ValueKey<String>('exercise-own-records-open'),
+    );
+    await tester.ensureVisible(open);
+    await tester.pumpAndSettle();
+    await tester.tap(open);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey<String>('exercise-detail-record-own-heavy'),
+        ),
+        matching: find.text(l.exRecordMaxWeight),
+      ),
+      findsOneWidget,
+    );
+    // 서버가 태그를 주지 않은 기록에는 아무것도 붙지 않는다.
+    expect(
+      find.byKey(const ValueKey<String>('exercise-detail-record-own-plain')),
+      findsNothing,
+    );
   });
 
   testWidgets('운동 탭 안의 추가 버튼은 하단 + 와 같은 시트를 연다', (tester) async {

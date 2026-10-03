@@ -1748,6 +1748,24 @@ abstract class AppLocalizations {
   /// **'Burned'**
   String get exBurnedPrefix;
 
+  /// No description provided for @exRecordMaxWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Heaviest yet'**
+  String get exRecordMaxWeight;
+
+  /// No description provided for @exRecordLongest.
+  ///
+  /// In en, this message translates to:
+  /// **'Longest yet'**
+  String get exRecordLongest;
+
+  /// No description provided for @exRecordFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'First time'**
+  String get exRecordFirst;
+
   /// No description provided for @exRecordDateChange.
   ///
   /// In en, this message translates to:

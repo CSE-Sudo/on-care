@@ -582,6 +582,9 @@
   "exRecordDetailInfo": "Workout details",
   "exRecordDetailTotalCalories": "Total calories burned",
   "exBurnedPrefix": "Burned",
+  "exRecordMaxWeight": "Heaviest yet",
+  "exRecordLongest": "Longest yet",
+  "exRecordFirst": "First time",
   "exRecordDateChange": "Change date",
   "exRecordDateMoved": "Moved to {date}",
   "@exRecordDateMoved": {

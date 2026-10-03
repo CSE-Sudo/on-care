@@ -65,6 +65,10 @@ class ExerciseSessionOut(BaseModel):
     source: str = "member"
     assigned_routine_id: str | None = None
     assigned_routine_name: str = ""
+    #: 개인 기록 태그 — max_weight(같은 근력 운동 최고 중량) | longest(같은 운동
+    #: 최장 시간) | first(처음 적은 운동) | None. 직접 기록한 운동만, 한 기록에
+    #: 하나다. 평가가 아니라 사실만 알린다. (#2971)
+    record: str | None = None
     #: 개인 운동 피드백은 회원(#1825)·트레이너(#2517) 모두 없앴다. 늘 빈
     #: 문자열이며, 이 칸을 읽는 옛 앱을 위해 모양만 남긴다.
     member_note: str = ""
