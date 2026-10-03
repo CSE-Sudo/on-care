@@ -2,7 +2,7 @@
 
 Flutter 회원 앱과 트레이너 웹을 하나의 private S3 버킷에 올리고 CloudFront로 제공합니다. GitHub Actions는 장기 액세스 키 대신 OIDC 임시 자격 증명을 사용합니다.
 
-이 변경을 `main`에 병합해도 AWS 배포는 즉시 시작되지 않습니다. `AWS_FRONTEND_DEPLOY_ENABLED` 저장소 변수가 정확히 `true`일 때만 별도 AWS 워크플로가 실행되며, 전환 검증이 끝날 때까지 기존 GitHub Pages 배포와 커스텀 도메인을 유지합니다.
+이 변경을 `main`에 병합해도 AWS 배포는 즉시 시작되지 않습니다. `AWS_FRONTEND_DEPLOY_ENABLED` 저장소 변수가 정확히 `true`일 때만 별도 AWS 워크플로가 실행됩니다. GitHub Pages 데모 사이트는 이 배포와 별개로 계속 운영됩니다 — **데모와 운영은 서로 다른 도메인**입니다([5절](#5-데모pages와-운영cloudfront)).
 
 > **현재 상태(2026-09-16): AWS 배포는 꺼져 있습니다.** 아래 1~3단계(인프라 생성·변수 등록)와 4단계(첫 활성화)는 이미 끝냈습니다. 지금은 회원 앱 UI 정리와 트레이너 웹 수정이 진행 중이라 작업 기간의 배포 비용을 줄이려고 `AWS_FRONTEND_DEPLOY_ENABLED` 를 `false` 로 되돌려 둔 상태입니다. 다시 켜는 기준은 [`frontend_deployment.md`](frontend_deployment.md#aws-배포-스위치) 에 정리했습니다.
 
@@ -65,11 +65,15 @@ aws iam list-open-id-connect-providers \
 
 ## 2. AWS 리소스 생성
 
+`ApiOrigin` 은 필수입니다. 운영 API 출처(`API_BASE_URL` 에서 `/v1` 을 뺀 값, 예 `https://<운영 API 도메인>`)를 넣습니다. 응답 헤더 CSP 의 `connect-src` 가 이 값으로 좁혀지므로 틀리면 두 앱이 API 를 부르지 못합니다([9절](#9-응답-보안-헤더-3017)).
+
 ```bash
 aws cloudformation deploy \
   --template-file infra/frontend-hosting.yml \
   --stack-name oncare-frontend \
   --capabilities CAPABILITY_IAM \
+  --parameter-overrides \
+    ApiOrigin=https://<운영 API 도메인> \
   --region ap-northeast-2
 ```
 
@@ -81,9 +85,12 @@ aws cloudformation deploy \
   --stack-name oncare-frontend \
   --capabilities CAPABILITY_IAM \
   --parameter-overrides \
+    ApiOrigin=https://<운영 API 도메인> \
     ExistingGitHubOidcProviderArn=arn:aws:iam::<ACCOUNT_ID>:oidc-provider/token.actions.githubusercontent.com \
   --region ap-northeast-2
 ```
+
+이미 있는 스택을 이 템플릿으로 처음 갱신할 때도 `ApiOrigin` 을 함께 넘겨야 합니다(기존 값이 없는 새 파라미터라 생략하면 실패합니다).
 
 > **이미 생성된 스택을 갱신하는 경우 주의합니다.** `aws cloudformation deploy`는 `--parameter-overrides`에 없는 기존 파라미터 값을 유지합니다. 조직명은 `CSE-Sudo-26`에서 `CSE-Sudo`로, 저장소명은 `sudo-capstone-project`에서 `on-care`로 바뀌었습니다. 템플릿 기본값 변경만으로 이미 배포된 스택의 `GitHubOwner`와 `GitHubRepository`가 갱신되지는 않습니다. 최신 템플릿 전체를 적용할 때는 아래처럼 값을 명시하고 변경 세트를 먼저 검토합니다. 조직명만 복구할 때는 아래의 **기존 템플릿을 유지하는 복구 절차**를 사용합니다.
 >
@@ -182,7 +189,7 @@ CloudFormation 스택과 세 변수를 확인하고 배포할 `main` 커밋이 �
 이 단계는 이미 완료했습니다. 이후 작업 기간의 비용을 줄이려고 변수를 다시 `false`로 두었으므로, 아래 확인 절차는 **꺼 둔 배포를 다시 켤 때의 점검 절차**로도 그대로 사용합니다.
 
 1. GitHub Actions에서 `Deploy Frontend to AWS`를 엽니다.
-2. `Run workflow`에서 `main`을 선택합니다.
+2. `Run workflow`에서 `main`을 고르고 배포할 커밋의 전체 SHA 를 넣습니다. 그 커밋의 CI 판정과 백엔드 선후 확인([8절](#8-배포-순서--ci-판정과-백엔드-선후-3018))을 먼저 거칩니다.
 3. 워크플로가 출력한 CloudFront 기본 도메인을 확인합니다.
 
 ```text
@@ -194,26 +201,58 @@ https://<DistributionDomainName>/version.txt
 
 세 서비스 경로가 정상 응답하고 `version.txt`가 배포한 전체 커밋 SHA와 일치해야 합니다. 카카오맵을 CloudFront 기본 도메인에서도 검증하려면 해당 도메인을 카카오 JavaScript SDK 허용 도메인에 임시 등록해야 합니다.
 
-## 5. Pages와 병행 운영
+## 5. 데모(Pages)와 운영(CloudFront)
 
-초기 AWS 검증 중에는 다음 상태를 유지합니다.
+두 배포는 **목적도 도메인도 다릅니다.** 이 모델 하나만 따릅니다(#3021).
 
-- `.github/workflows/deploy.yml`: 기존 GitHub Pages 배포 계속 실행
-- `.github/workflows/aws-frontend-deploy.yml`: 활성화 변수가 `true`일 때만 AWS에도 병행 배포(두 워크플로 모두 `main` push 에 걸려 있음)
-- `ewhasudo.zapto.org`: 계속 GitHub Pages를 가리킴
-- CloudFront 기본 도메인: AWS 배포 검증에만 사용
+| | 데모 | 운영 |
+| --- | --- | --- |
+| 워크플로 | `.github/workflows/deploy.yml` | `.github/workflows/aws-frontend-deploy.yml` |
+| 호스팅 | GitHub Pages | S3 + CloudFront |
+| 백엔드 | 목업(브라우저 drift DB). 수동 `real` 은 staging 백엔드 | 운영 백엔드 고정 |
+| 도메인 | 지금의 데모 도메인(`ewhasudo.zapto.org`) — 계속 Pages | **운영 도메인**(팀이 소유·갱신 책임을 지는 도메인). 정하기 전에는 CloudFront 기본 도메인 |
+| 응답 헤더 | 바꿀 수 없음 — 앱 `index.html` 의 meta CSP 만 | 템플릿의 응답 헤더 정책(9절) |
 
-AWS 배포에 문제가 생기거나 작업 기간 동안 배포 비용을 멈추고 싶으면 `AWS_FRONTEND_DEPLOY_ENABLED=false`로 변경해 추가 배포를 즉시 중단할 수 있습니다. Pages와 현재 커스텀 도메인은 영향을 받지 않습니다. **현재가 이 상태이며**, 다시 켜는 기준은 [`frontend_deployment.md`](frontend_deployment.md#aws-배포-스위치)에 있습니다.
+- 데모 도메인은 사람이 주기적으로 갱신해야 살아 있는 무료 DNS 라(#2000) **운영 도메인·운영 인증서의 근거로 쓰지 않습니다.** CloudFront 로 옮기지도 않고, Pages 배포를 중단하는 단계도 없습니다.
+- 운영 도메인을 무엇으로 할지는 #2000 에서 정합니다. 이 문서와 템플릿은 그 값을 받을 자리만 둡니다(6절).
+- AWS 배포에 문제가 생기거나 작업 기간 동안 배포 비용을 멈추고 싶으면 `AWS_FRONTEND_DEPLOY_ENABLED=false`로 변경해 추가 배포를 즉시 중단할 수 있습니다. 데모 사이트는 영향을 받지 않습니다. **현재가 이 상태이며**, 다시 켜는 기준은 [`frontend_deployment.md`](frontend_deployment.md#aws-배포-스위치)에 있습니다.
 
-## 6. 커스텀 도메인 전환
+## 6. 운영 도메인 연결
 
-CloudFront 검증이 끝난 뒤 별도 변경으로 진행합니다.
+운영 도메인이 정해진 뒤 스택 파라미터만 바꿔 붙입니다. 콘솔에서 distribution 을 직접 고치지 않습니다(다음 스택 적용이 되돌립니다).
 
-1. `us-east-1`에서 `ewhasudo.zapto.org`용 ACM 인증서 발급 및 DNS 검증
-2. CloudFront distribution에 인증서와 alternate domain name 연결
-3. DNS를 GitHub Pages에서 CloudFront로 전환
-4. 전환 후 랜딩페이지, 두 앱, SPA 새로고침, 카카오맵 확인. 2번에서 연결한 대체 도메인은 다음 배포부터 랜딩의 og:url·canonical 에 자동으로 들어간다([랜딩 바로가기와 og:url·canonical](frontend_deployment.md#랜딩-바로가기와-ogurlcanonical))
-5. 롤백 가능 여부를 확인한 뒤 GitHub Pages 배포 중단
+1. `us-east-1`(CloudFront 규칙상 이 리전만 됩니다)에서 `<운영 도메인>` 용 ACM 인증서를 요청하고 **DNS 검증**으로 발급합니다. 도메인의 DNS 를 팀이 관리할 수 있어야 하고, 인증서 갱신도 같은 DNS 검증 레코드로 자동으로 됩니다.
+2. 스택을 갱신합니다. 두 값은 함께 채우거나 함께 비웁니다(템플릿 `Rules` 가 한쪽만 채우면 막습니다).
+
+   ```bash
+   aws cloudformation deploy \
+     --template-file infra/frontend-hosting.yml \
+     --stack-name oncare-frontend \
+     --capabilities CAPABILITY_IAM \
+     --parameter-overrides \
+       AlternateDomainName=<운영 도메인> \
+       AcmCertificateArn=arn:aws:acm:us-east-1:<ACCOUNT_ID>:certificate/<ID> \
+     --no-execute-changeset \
+     --region ap-northeast-2
+   ```
+
+   변경 세트에서 `FrontendDistribution` 의 `Aliases`·`ViewerCertificate` 만 바뀌는지 확인한 뒤 실행합니다.
+3. `<운영 도메인>` 의 DNS 를 스택 출력 `DistributionDomainName` 으로 향하게 합니다(CNAME 또는 별칭 레코드).
+4. 아래 "함께 바꾸는 곳" 을 모두 반영합니다.
+5. 다음 배포를 돌려 랜딩·두 앱·SPA 새로고침·카카오맵을 운영 도메인에서 확인합니다. 랜딩의 og:url·canonical 은 대체 도메인을 자동으로 씁니다([랜딩 바로가기와 og:url·canonical](frontend_deployment.md#랜딩-바로가기와-ogurlcanonical)).
+
+되돌리려면 두 파라미터를 빈 값으로 다시 적용합니다. CloudFront 기본 도메인·기본 인증서로 돌아갑니다.
+
+### 운영 도메인을 바꿀 때 함께 바꾸는 곳
+
+| 위치 | 바꿀 값 | 담당 |
+| --- | --- | --- |
+| 카카오 개발자 콘솔 JavaScript SDK 도메인 | `https://<운영 도메인>` 추가, 옛 주소·임시 주소 제거([`backend/docs/DEPLOY.md`](../backend/docs/DEPLOY.md) "프론트 연결" 체크리스트) | #480 |
+| 백엔드 `CORS_ALLOW_ORIGINS` | `https://<운영 도메인>` | #480 |
+| 이 스택 `AlternateDomainName`·`AcmCertificateArn` | 위 2번 | #480 |
+| 응답 헤더 CSP | 바꿀 것 없음 — 앱이 같은 출처에서 서빙되므로 `'self'` 로 충분합니다. API 주소가 바뀌면 `ApiOrigin` 을 바꿉니다 | #480 |
+| 랜딩 og:url·canonical | 바꿀 것 없음 — 배포가 대체 도메인을 읽어 채웁니다 | 자동 |
+| 비밀번호 재설정 메일 링크(쓰는 경우) | 백엔드 `PASSWORD_RESET_*_URL` | #480 |
 
 ## 7. 릴리스 전환과 롤백
 
@@ -224,6 +263,7 @@ CloudFront 검증이 끝난 뒤 별도 변경으로 진행합니다.
 | 빌드 · 업로드 · 릴리스 사전 검증 | 전환하지 않고 종료 — 운영은 직전 릴리스 유지 |
 | origin path 전환 | 롤백 단계가 직전 origin path로 되돌리고 무효화 |
 | 무효화 후 smoke check | 같음 — 자동 롤백 후 워크플로 실패 처리 |
+| 응답 보안 헤더 확인([9절](#9-응답-보안-헤더-3017)) | 같음 — 헤더 정책은 스택 쪽이라 되돌린 뒤 스택 파라미터(`ApiOrigin`)를 확인 |
 
 - 릴리스 보관: 최신 5개를 남기고 그보다 오래된 prefix는 배포 성공 시 정리합니다. 현재 릴리스와 직전 릴리스는 개수와 무관하게 항상 보존합니다.
 - 버킷 버전 관리가 켜져 있어 실수로 덮어쓰거나 지운 객체도 30일 안에는 복구할 수 있습니다.
@@ -237,6 +277,54 @@ aws cloudfront get-distribution-config --id <DISTRIBUTION_ID> \
 > **이 방식은 스택 갱신이 선행되어야 합니다.** 릴리스 전환에는 `cloudfront:GetDistributionConfig`·`cloudfront:UpdateDistribution` 권한이 필요하고, 버전 관리·수명 주기 규칙도 템플릿에 새로 들어갔습니다. 이 변경을 병합한 뒤 배포를 켜기 전에 `aws cloudformation deploy`를 한 번 더 실행해 주세요.
 >
 > 첫 전환 이후에는 버킷 루트에 남아 있는 옛 배포 파일이 더 이상 서비스되지 않습니다. 다만 그 시점의 롤백 대상이 루트이므로, 다음 릴리스가 정상 서비스되는 것을 확인한 뒤에 수동으로 정리하는 편이 안전합니다.
+
+## 8. 배포 순서 — CI 판정과 백엔드 선후 (#3018)
+
+운영 프론트 배포는 `main` push 에 바로 걸리지 않고 **같은 커밋의 E2E CI 가 성공으로 끝난 뒤** 시작합니다(`workflow_run`). E2E CI 는 paths 필터가 없어 모든 `main` push 에서 한 번씩 끝나므로 이것을 신호로 씁니다. 그다음 `gate` job 이 두 가지를 확인하고, 통과해야 `build-and-deploy` 가 돕니다.
+
+1. **CI 판정**([`frontend_ci_gate.sh`](../.github/scripts/frontend_ci_gate.sh)) — 대상 커밋의 `main` push 실행을 읽습니다.
+
+   | 워크플로 | 실행 없음 | 진행 중 | 성공 | 실패·취소 |
+   | --- | --- | --- | --- | --- |
+   | E2E CI | 기다림 | 기다림 | 통과 | **멈춤** |
+   | User App CI·Trainer CI(paths 필터) | 통과(경로 밖) | 기다림 | 통과 | **멈춤** |
+
+   최대 30분 기다립니다. 넘기면 실패하고, CI 가 끝난 뒤 수동으로 다시 실행합니다.
+2. **백엔드 선후**([`frontend_backend_order.sh`](../.github/scripts/frontend_backend_order.sh)) — 운영 백엔드 `GET <API_BASE_URL>/version` 의 `commit_sha` 와 대상 커밋을 비교합니다.
+
+   | 상태 | 뜻 | 결과 |
+   | --- | --- | --- |
+   | `same`·`no-backend-change` | 백엔드가 같은 커밋이거나, 그 뒤 `backend/` 변경이 없음 | 진행 |
+   | `backend-ahead` | 백엔드가 더 새 커밋(백엔드 API 는 하위 호환을 지킴) | 진행 |
+   | `pending` | 대상 커밋에 운영에 아직 없는 `backend/` 변경이 있음 | 백엔드 배포를 최대 45분 기다림. `BACKEND_DEPLOY_ENABLED` 가 꺼져 있으면 바로 멈춤 |
+   | `unknown` | 백엔드가 `commit_sha` 를 알려 주지 않음 | 멈춤 — 사람이 확인한 뒤 수동 실행에서 `skip_backend_order_check` 를 켬 |
+
+   백엔드 운영 배포가 GitHub Environment 승인을 기다리는 동안은 `pending` 으로 남습니다. 45분을 넘기면 실패하므로, 승인 뒤 프론트 배포를 다시 실행합니다.
+
+수동 실행(`Run workflow`)은 배포할 `main` 커밋 SHA 를 받아 같은 확인을 거칩니다. 결과(확인한 CI, 백엔드 커밋, 선후 상태)는 실행의 Step Summary 에 남습니다.
+
+> `commit_sha` 는 백엔드가 빌드 인자 `GIT_SHA` 로 받아 `/v1/version` 에 싣는 값입니다(백엔드 기동 검증 이슈 #3029). 그 변경이 운영 백엔드에 올라가기 전에는 상태가 `unknown` 이라 자동 배포가 멈춥니다.
+
+## 9. 응답 보안 헤더 (#3017)
+
+CloudFront 가 모든 응답에 보안 헤더를 붙입니다. meta 태그로는 걸리지 않는 HSTS·`frame-ancestors` 를 여기서 처리합니다.
+
+| 경로 | 정책 | 내용 |
+| --- | --- | --- |
+| `/frontend/*`, `/trainer/*` | `FrontendAppResponseHeadersPolicy` | HSTS 1년(`includeSubDomains`), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`(카메라·위치만 자기 출처), CSP — 두 앱 `web/index.html` 의 meta CSP 와 같은 지시어 + `frame-ancestors 'none'`, `connect-src` 는 `'self'`·`ApiOrigin`·CanvasKit·글꼴·카카오 SDK 출처만 |
+| 그 밖(`/`, `version.txt` 등) | `FrontendLandingResponseHeadersPolicy` | 같은 보안 헤더 + 소개 페이지용 CSP(인라인 스크립트 허용, 외부 요청 `connect-src 'self'` 만) |
+
+- 브라우저는 meta CSP 와 헤더 CSP 를 **둘 다** 적용하므로 운영에서는 헤더 쪽이 실제 한도입니다. meta 의 `connect-src https: localhost` 는 로컬 개발·데모용으로 남겨 둡니다.
+- 지시어를 바꿀 때는 템플릿과 두 `index.html` 을 같이 바꿉니다. PR Gate 의 `tool/ci/test_frontend_csp.py` 가 둘이 어긋나면 막습니다.
+- 웹에서 오류 보고(Sentry)를 켜면 수집 출처를 `ExtraConnectSources` 에 넣습니다(예 `https://o123.ingest.us.sentry.io`).
+- `/frontend`·`/trainer`(끝 `/` 없음)는 `/` 를 붙인 주소로 301 이동합니다. 앱 헤더 정책이 `/frontend/*`·`/trainer/*` 에만 걸리기 때문입니다.
+- 배포 뒤 검증 단계가 [`frontend_security_headers.sh`](../.github/scripts/frontend_security_headers.sh) 로 세 경로의 헤더를 보고, 빠졌거나 `connect-src` 가 `API_BASE_URL` 출처로 좁혀져 있지 않으면 실패 → 직전 릴리스로 되돌립니다. 손으로 볼 때는 다음과 같습니다.
+
+  ```bash
+  curl -sI https://<배포 주소>/frontend/ | grep -iE 'strict-transport|x-frame|content-security|referrer|x-content-type'
+  ```
+
+- HSTS preload 목록 등록은 운영 도메인이 정해진 뒤 따로 판단합니다(지금은 `preload` 없음).
 
 ## 비용 및 삭제 주의사항
 

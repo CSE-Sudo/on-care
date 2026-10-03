@@ -116,6 +116,10 @@ def test_sensitive_values_come_from_secrets():
     assert not sensitive & plain
 
 
+# 스택 파라미터가 비면 아예 넣지 않는 키(!If). 운영 가드 검사에서는 빈 값과 같다.
+_OPTIONAL_PARAMETER_KEYS = {"ADMIN_EMAILS", "APPLE_CLIENT_IDS", "GOOGLE_CLIENT_IDS", "KAKAO_APP_ID"}
+
+
 def _production_values() -> dict[str, object]:
     """템플릿의 운영 값. 파라미터·비밀 자리는 형식에 맞는 시험 값으로 채운다."""
     mapping = _template()["Mappings"]["EnvironmentSettings"]["production"]
@@ -140,7 +144,7 @@ def _production_values() -> dict[str, object]:
     values: dict[str, object] = {}
     for item in _entries("Environment"):
         name, value = item["Name"], item["Value"]
-        if name in _NON_SETTINGS_KEYS or name in {"ADMIN_EMAILS", "APPLE_CLIENT_IDS"}:
+        if name in _NON_SETTINGS_KEYS or name in _OPTIONAL_PARAMETER_KEYS:
             continue
         if isinstance(value, dict) and "!FindInMap" in value:
             value = mapping[value["!FindInMap"][2]]

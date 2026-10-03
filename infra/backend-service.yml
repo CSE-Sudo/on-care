@@ -58,6 +58,14 @@ Parameters:
   AppleClientIds:
     Type: String
     Default: ''
+  # 소셜 로그인 허용 aud(#3035). 비우면 그 공급자 로그인은 401 로 거부된다.
+  GoogleClientIds:
+    Type: String
+    Default: ''
+  KakaoAppId:
+    Type: String
+    Default: ''
+    AllowedPattern: '^[0-9]*$'
   AllowDemoFallback:
     Type: String
     Default: 'false'
@@ -104,6 +112,8 @@ Conditions:
   IsStaging: !Equals [!Ref EnvironmentName, staging]
   HasAdminEmails: !Not [!Equals [!Ref AdminEmails, '']]
   HasAppleClientIds: !Not [!Equals [!Ref AppleClientIds, '']]
+  HasGoogleClientIds: !Not [!Equals [!Ref GoogleClientIds, '']]
+  HasKakaoAppId: !Not [!Equals [!Ref KakaoAppId, '']]
   HasMail: !Not [!Equals [!Ref MailFrom, '']]
   HasMemberResetUrl: !Not [!Equals [!Ref PasswordResetMemberUrl, '']]
   HasTrainerResetUrl: !Not [!Equals [!Ref PasswordResetTrainerUrl, '']]
@@ -222,6 +232,16 @@ Resources:
             - HasAppleClientIds
             - Name: APPLE_CLIENT_IDS
               Value: !Ref AppleClientIds
+            - !Ref AWS::NoValue
+          - !If
+            - HasGoogleClientIds
+            - Name: GOOGLE_CLIENT_IDS
+              Value: !Ref GoogleClientIds
+            - !Ref AWS::NoValue
+          - !If
+            - HasKakaoAppId
+            - Name: KAKAO_APP_ID
+              Value: !Ref KakaoAppId
             - !Ref AWS::NoValue
           - !If
             - HasMail

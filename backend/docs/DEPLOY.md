@@ -202,7 +202,7 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
 6. 저장소 변수 `BACKEND_DEPLOY_ENABLED=true`(staging 을 쓰면 `BACKEND_STAGING_DEPLOY_ENABLED=true`).
    다음 `main` 병합부터 자동으로 배포된다.
 
-선택 파라미터: `Cpu`(기본 1024)·`Memory`(기본 2048), `AdminEmails`, `AppleClientIds`, 메일
+선택 파라미터: `Cpu`(기본 1024)·`Memory`(기본 2048), `AdminEmails`, `AppleClientIds`·`GoogleClientIds`·`KakaoAppId`(#3035), 메일
 (`MailFrom`·`SmtpHost`·`SmtpPort`·`PasswordResetMemberUrl`·`PasswordResetTrainerUrl`), staging 전용
 `AllowDemoFallback`, 기본 VPC 가 아닌 곳에 둘 때 `SubnetIds`·`SecurityGroupIds`.
 
@@ -263,6 +263,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `ACCESS_TOKEN_EXPIRE_MINUTES`·`REFRESH_TOKEN_EXPIRE_DAYS`·`WEB_REFRESH_TOKEN_EXPIRE_DAYS` | `60`·`30`·`7`(#2913·#2828) — 데모 서비스에서 길게 바꾼 값이 운영으로 복사되지 않게 |
 | `AUDIT_RETENTION_DAYS`·`AUDIT_SENSITIVE_RETENTION_DAYS` | `365`·`730`(#2830) — 처리방침 보관 기간과 묶여 있다 |
 | `MAIL_PROVIDER`·`SMTP_STARTTLS`·`SMTP_SSL` | `smtp`·`true`·`false` — `MailFrom` 파라미터를 채웠을 때만 들어간다(#3033). `smtp` 라 서버·발신 주소가 비면 기동이 거부돼 빠뜨린 것이 바로 드러난다. 587 STARTTLS 기준 |
+| `GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID`·`APPLE_CLIENT_IDS` | 스택 파라미터(`GoogleClientIds`·`KakaoAppId`·`AppleClientIds`). 소셜 로그인 허용 `aud`(#3035) — Google 은 iOS·Android·웹 client_id(콤마 구분), 카카오는 콘솔의 숫자 앱 ID(`KAKAO_REST_API_KEY` 와 다른 값), Apple 은 번들 ID·Service ID. **비우면 그 로그인은 401 로 거부**. 네이버 로그인은 서버 측 코드 교환 전까지 501 로 닫혀 있어 설정이 없다 |
 
 위 값 중 코드 기본값과 같은 것도 템플릿에 못 박는다(#3034) — 데모 서비스에서 바꾼 값이 운영으로
 복사되지 않게 하고, 운영에서 무엇이 들어가는지 `.env.aws.example` 한 곳에서 보이게 한다.
@@ -278,7 +279,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `PASSWORD_RESET_TRAINER_URL` | 트레이너 웹 재설정 화면 — **해시형** `https://<운영 도메인>/trainer/#/auth/password-reset`. 해시 없는 경로형(`/auth/password-reset`)은 정적 경로를 가리켜 코드가 버려진다. 운영에서 경로형·`http://` 면 기동 로그에 WARN(#3033) |
 
 **스택 파라미터로 정하는 값**: `CORS_ALLOW_ORIGINS`(https 만, `*`·빈 값·localhost 금지 — 운영 기동 거부, #3029), `GEMINI_MODEL`(아래 5-3),
-`ADMIN_EMAILS`, `APPLE_CLIENT_IDS`, 메일(`MAIL_FROM`·`SMTP_HOST`·`SMTP_PORT`·`PASSWORD_RESET_*_URL`).
+`ADMIN_EMAILS`, 소셜 로그인 `aud`(`APPLE_CLIENT_IDS`·`GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` — 비우면 그 로그인은 401, #3035), 메일(`MAIL_FROM`·`SMTP_HOST`·`SMTP_PORT`·`PASSWORD_RESET_*_URL`).
 
 그 밖의 키(`LOGIN_MAX_FAILURES` 같은 시도 제한·`SENTRY_ENVIRONMENT`·DB 풀 등)는 코드 기본값이 운영 값이라
 템플릿에 넣지 않았다(사유는 `tests/test_env_aws_example.py`, #3034). 바꿔야 하면 템플릿에 키를 더하고
@@ -288,6 +289,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 > **시도 제한은 태스크 메모리에 둔다**(`app/core/rate_limit.py`). 태스크가 1 이 아니게 되거나
 > `WEB_CONCURRENCY` 를 늘리면 한도가 그 수만큼 늘어나므로, 그때 공유 저장소(Redis 등) 구현으로 바꾼다.
 > 기동 로그에 `TRUSTED_PROXY_HOPS=0` 경고가 보이면 프록시 홉 수 설정을 확인한다.
+> 기동 로그에 `소셜 로그인 허용 앱 설정이 비어` 경고가 보이면, 거기 적힌 provider 의 로그인은 모두 401 이다.
 
 > 참고: 장소는 시드로 채우지 않는다(#2914). 운영에서 `KAKAO_REST_API_KEY` 가 없으면 DB 장소에서 데모 시드 장소를 빼고 읽어 헬스장 찾기가 사실상 비고, 키가 있어도 카카오 0건이면 빈 목록·실패면 503 이다. 사진 인식·임베딩은 운영에서 폴백하지 않고 키가 없으면 기동을 거부한다(#2812).
 
@@ -475,6 +477,11 @@ flutter build web --release \
 - 개발용 주소(`localhost` 등)·옛 배포 주소·임시 미리보기 주소가 남아 있지 않은가. 로컬 개발이
   필요하면 운영 키가 아닌 개발용 앱 키를 따로 쓴다.
 - 확인한 날짜와 결과를 담당 이슈에 남긴다.
+
+운영 프론트 도메인을 붙이거나 바꿀 때 함께 바꾸는 곳(카카오 SDK 도메인, 이 서비스의 `CORS_ALLOW_ORIGINS`,
+CloudFront 스택 파라미터)은 [`docs/aws-frontend-deployment.md`](../../docs/aws-frontend-deployment.md#운영-도메인을-바꿀-때-함께-바꾸는-곳)
+표에 모아 두었다. 데모 사이트 도메인은 운영 도메인이 아니다(#3021). 운영 API 주소를 바꾸면 프론트 스택의
+`ApiOrigin`(응답 헤더 CSP 의 `connect-src`)도 함께 바꾼다(#3017).
 
 ---
 
