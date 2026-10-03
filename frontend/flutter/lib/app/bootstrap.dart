@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logger/logger.dart';
 import 'package:oncare/app/app.dart';
 import 'package:oncare/app/session_feature_reset.dart';
+import 'package:oncare/core/app_version/app_version_gate.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/logging/logging_provider_observer.dart';
@@ -79,6 +81,10 @@ Future<void> bootstrap() async {
         appDatabaseProvider.overrideWithValue(db),
         demoBenefitsStoreProvider.overrideWithValue(benefits),
         sessionFeatureResetOverride(),
+        // 최소 지원 버전 확인(#3045)은 모바일 빌드만 — 웹은 배포하면 곧 새 빌드다.
+        appVersionCheckEnabledProvider.overrideWithValue(
+          appVersionCheckEnabledFor(isWeb: kIsWeb),
+        ),
       ],
       child: const OncareApp(),
     ),

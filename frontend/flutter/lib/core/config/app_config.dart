@@ -62,6 +62,7 @@ class AppConfig {
     this.sentryDsn,
     this.realApiFeatures = const <String>{},
     this.showDemoEntry = false,
+    this.iosAppStoreId,
   });
 
   final Environment environment;
@@ -119,6 +120,13 @@ class AppConfig {
   /// 다시 열 때: `--dart-define=SHOW_DEMO_ENTRY=true`
   final bool showDemoEntry;
 
+  /// App Store 의 앱 ID(숫자, `https://apps.apple.com/app/id<ID>`). (#3045)
+  ///
+  /// 앱을 App Store Connect 에 등록해야 정해지므로 `--dart-define=IOS_APP_STORE_ID`
+  /// 로 넣는다. 없으면 업데이트 화면이 버튼 대신 App Store 에서 업데이트하라는
+  /// 안내만 보인다.
+  final String? iosAppStoreId;
+
   bool get isProd => environment == Environment.prod;
   bool get isDev => environment == Environment.dev;
 
@@ -143,6 +151,7 @@ class AppConfig {
     // 매칭되는 경로가 없으면 아무 일도 일어나지 않는다).
     const realApi = String.fromEnvironment('REAL_API');
     const showDemoEntry = bool.fromEnvironment('SHOW_DEMO_ENTRY');
+    const iosAppStoreId = String.fromEnvironment('IOS_APP_STORE_ID');
     return AppConfig(
       environment: env,
       apiBaseUrl: apiBaseUrl,
@@ -156,6 +165,7 @@ class AppConfig {
       // 여기서 값이 갈린다.
       // ignore: avoid_redundant_argument_values
       showDemoEntry: showDemoEntry,
+      iosAppStoreId: iosAppStoreId.trim().isEmpty ? null : iosAppStoreId.trim(),
     );
   }
 }
