@@ -101,9 +101,38 @@ def test_categories_are_known_backend_categories():
         notification_service.MEMBER_ROUTINE,
         notification_service.MEMBER_SCHEDULE,
         notification_service.MEMBER_CONSULTATION,
+        notification_service.MEMBER_PT_DONE,
     }
     assert {n.category for n in DEMO_NOTIFICATIONS} <= known
     assert all(len(n.category) <= 20 for n in DEMO_NOTIFICATIONS), "컬럼 길이 20"
+
+
+def test_pt_completion_alert_uses_the_same_category_as_the_server():
+    """실서버가 PT 완료 때 만드는 알림과 같은 갈래다(#3027) — 아이콘·라벨이 같아야 한다."""
+    by_title = {n.title: n for n in DEMO_NOTIFICATIONS}
+    item = by_title["PT 수업 완료"]
+    assert item.category == notification_service.MEMBER_PT_DONE
+    assert item.target == "exercise"
+
+
+def test_pt_done_action_reads_as_a_pt_record():
+    assert _action_for(notification_service.MEMBER_PT_DONE, "ko", None).label == "PT 기록 보기"
+    assert _action_for(notification_service.MEMBER_PT_DONE, "en", None).label == "View PT record"
+    # 데모 알림처럼 목적지가 갈래 표와 같으면 갈래 라벨을 그대로 쓴다.
+    assert (
+        _action_for(notification_service.MEMBER_PT_DONE, "ko", "exercise").label
+        == "PT 기록 보기"
+    )
+
+
+def test_recategorised_demo_alerts_are_backfilled_for_seeded_databases():
+    from app.db.seed_notifications import _LEGACY_CATEGORY_BY_ID
+
+    ids = {n.id for n in DEMO_NOTIFICATIONS}
+    assert set(_LEGACY_CATEGORY_BY_ID) <= ids
+    by_id = {n.id: n.category for n in DEMO_NOTIFICATIONS}
+    for nid, legacy in _LEGACY_CATEGORY_BY_ID.items():
+        assert by_id[nid] != legacy, "옮긴 뒤 갈래가 예전과 같으면 표에 둘 까닭이 없다"
 
 
 # ── 문구가 데모 픽스처(김민수)와 같은 사실을 말하는지 ──────────────────────
