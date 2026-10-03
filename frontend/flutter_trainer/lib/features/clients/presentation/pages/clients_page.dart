@@ -193,10 +193,10 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                         filter: activeFilter,
                         managementFilters: view.filters,
                         // 담당 회원이 0명일 때 빈 상태가 연결 방법을 알린다
-                        // (#3012). 승인 전이면 버튼 없이 안내만 — 이유는 위
-                        // 승인 배너가 적는다.
+                        // (#3012). 운영자 승인 단계가 없어(#3008) 가입한
+                        // 트레이너는 바로 연결 창을 연다.
                         canConnect: canConnect,
-                        onConnect: canConnect && approved
+                        onConnect: canConnect
                             ? () => _openConnectDialog(context)
                             : null,
                         // 목록 카드의 오른쪽 테두리·그림자가 스크롤 영역에
@@ -656,7 +656,7 @@ class _RosterList extends StatelessWidget {
   final bool canConnect;
 
   /// 빈 상태의 `신규 회원 등록` — 툴바 버튼과 같은 연결 창을 연다(#3012).
-  /// 승인 전·연결 비활성이면 null 이라 버튼을 그리지 않는다.
+  /// 연결 경로가 꺼진 빌드면 null 이라 버튼을 그리지 않는다.
   final VoidCallback? onConnect;
 
   @override
