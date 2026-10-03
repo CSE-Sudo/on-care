@@ -58,8 +58,8 @@
 | Method | Path | 응답 |
 |---|---|---|
 | GET | `/ping` | `{ message }` |
-| GET | `/healthz` | `{ status, backend, env, demo_fallback, demo_seed, attachment_storage }` (#2821) |
-| GET | `/version` | `{ api_version, app_version }` |
+| GET | `/healthz` | `{ status, backend, env, demo_fallback, demo_seed, attachment_storage, commit_sha }` (#2821·#3029). `attachment_storage` 는 `local`·`s3`·`misconfigured` |
+| GET | `/version` | `{ api_version, app_version, commit_sha }` — `commit_sha` 는 이미지를 만든 커밋 SHA(40자), 빌드 인자 없이 만든 이미지는 `"unknown"`(#3029) |
 | GET | `/readyz` | `{ status: "ready" }` — DB 에 `SELECT 1` 까지 확인한다(3초 제한). 실패하면 **503** `{"detail": "서비스가 아직 준비되지 않았습니다."}`, 원인은 서버 로그에만 남긴다. `/healthz` 는 프로세스만 본다(liveness) |
 
 ### 관리자 전용
@@ -1372,6 +1372,11 @@ N명이면 첫 화면에서 요청이 2N개였다.
   없는 파일은 저장하지 않고 **415**. `file_size` 와 내려받는 파일은 정리한 뒤의 값이다. 끼니
   사진(#699)도 같은 정리 함수(`image_sanitize`)를 쓴다. 이전에 쌓인 파일은
   `python -m scripts.sanitize_chat_images --apply` 로 다시 쓴다(기본은 점검만).
+- **펼치기 전에 크기를 본다(#3040).** 헤더의 장변이 `MAX_IMAGE_DECODE_EDGE`(기본 12,000px)를 넘거나,
+  실제로 펼칠 픽셀 수가 `MAX_IMAGE_DECODE_PIXELS`(기본 4,000만)를 넘으면 디코딩하지 않고 읽을 수 없는
+  사진과 같은 **415** 다. JPEG 은 결과 크기 근처까지 축소 디코딩한 뒤의 크기로 센다. 애니메이션은 첫
+  프레임만 쓰고, 프레임이 100장을 넘으면 받지 않는다. 끼니 사진도 같은 상한을 쓴다 — 넘는 사진은
+  기록을 막지 않고 사진 없이 저장된다.
 - **같은 `client_request_id` 재시도는 한 번만 보낸다.** 같은 키에 다른 글이나 사진이 아닌 메시지가
   있으면 **409**.
 - **내려받기는 서버가 권한을 확인한 뒤 흘려보낸다**(#2817). 바이트는 운영에서 객체 저장소(S3),
@@ -1490,7 +1495,7 @@ N명이면 첫 화면에서 요청이 2N개였다.
 ### 가입 동의 (#2819)
 
 두 앱의 가입은 약관·개인정보 수집·이용·만 14세 이상 확인에 **명시적으로** 동의해야 끝난다.
-회원은 여기에 **건강정보(민감정보) 처리** 동의가 따로 하나 더 있다. 마케팅 알림 수신은 선택이다.
+회원은 여기에 **건강정보(민감정보) 처리** 동의가 따로 하나 더 있다. 선택 항목은 없다.
 항목마다 `user_consents` 에 `kind`·`version`·`agreed_at`(·`revoked_at`) 한 행이 남는다.
 
 | 항목(`kind`) | 회원 | 트레이너 |
@@ -1499,7 +1504,11 @@ N명이면 첫 화면에서 요청이 2N개였다.
 | `privacy` 개인정보 수집·이용 | 필수 | 필수 |
 | `health` 건강정보(민감정보) 처리 | 필수 | — |
 | `age14` 만 14세 이상 | 필수 | 필수 |
-| `marketing` 마케팅 알림 수신 | 선택 | 선택 |
+
+`marketing`(마케팅 알림 수신)은 **더는 받지 않는다**(#3007) — 보내는 기능도, 거두는 화면도, 처리방침의
+이용 목적도 없었다. 옛 앱 빌드가 이 값을 실어 보내도 422 가 아니며 **기록하지 않는다**. 이미 남은
+`marketing` 행은 마이그레이션 0141 이 `revoked_at` 을 채웠고(행은 이력으로 남음), 동의 상태 계산에는
+끼지 않는다.
 
 - `POST /auth/register`·`POST /auth/trainer/register` 는 `consents: [항목]` 을 받는다. 보냈다면 그
   역할의 필수 항목이 모두 있어야 하고, 빠졌거나(빈 목록 포함) 모르는 항목이면 **422** 다 — 계정은
