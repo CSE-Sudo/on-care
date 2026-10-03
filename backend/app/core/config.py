@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from typing import Literal, Optional
+from urllib.parse import urlsplit
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -12,6 +13,13 @@ DEFAULT_JWT_SECRET = "CHANGE_ME_dev_only_secret_key_please_replace_in_prod"
 # 데모 계정(트레이너/회원 시드) 기본 로그인 비밀번호. 데모 시드는 운영(env=prod)에서
 # 켤 수 없으므로(아래 _guard_prod_secrets, #2811) 로컬·데모 환경에서만 쓰인다.
 DEFAULT_DEMO_PASSWORD = "oncare123"
+# 운영 JWT 서명 키 최소 길이(바이트, #3029). HS256 은 키가 해시 출력(32바이트)보다
+# 짧으면 안전 여유가 줄어든다. `openssl rand -hex 32`(64자)는 그대로 통과한다.
+MIN_PROD_JWT_SECRET_BYTES = 32
+# CORS 허용 출처 코드 기본값(로컬 개발용). 운영에서 이 값 그대로면 키를 빠뜨린 것이다.
+DEFAULT_CORS_ALLOW_ORIGINS = "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000"
+# 운영 CORS 출처에 있으면 안 되는 개발 호스트(#3029).
+_LOCAL_CORS_HOSTS = ("localhost", "127.0.0.1", "[::1]")
 
 
 class Settings(BaseSettings):
@@ -23,6 +31,10 @@ class Settings(BaseSettings):
     # --- API ---
     api_v1_prefix: str = "/v1"
     app_version: str = "0.4.0"
+    # 이 이미지를 만든 커밋 SHA(#3029). 배포 워크플로가 `docker build --build-arg
+    # GIT_SHA=…` 로 넣고 Dockerfile 이 같은 이름의 환경변수로 옮긴다. 로컬·테스트는
+    # `unknown`. `/version`·`/healthz` 와 Sentry release 가 이 값을 쓴다.
+    git_sha: str = "unknown"
 
     # --- Database ---
     database_url: str = "postgresql+psycopg://oncare:oncare@localhost:5432/oncare"
@@ -207,7 +219,7 @@ class Settings(BaseSettings):
     password_reset_trainer_url: str = ""
 
     # --- 기타 ---
-    cors_allow_origins: str = "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000"
+    cors_allow_origins: str = DEFAULT_CORS_ALLOW_ORIGINS
     # 데모 시드(데모 계정·회원 기록·가상 트레이너·가상 헬스장). 기본은 끔이다(#2811) —
     # 환경변수를 빠뜨린 채 띄운 서버가 데모 데이터를 심지 않도록. 로컬은 `.env.example`
     # 에서 명시적으로 켠다. 운영(env=prod)에서는 켤 수 없다(아래 가드).
@@ -352,6 +364,36 @@ class Settings(BaseSettings):
         return "*" in self.cors_origin_list
 
     @property
+    def commit_sha(self) -> str:
+        """응답에 싣는 커밋 SHA. 비었거나 공백이면 `unknown`."""
+        return self.git_sha.strip() or "unknown"
+
+    def cors_prod_problem(self) -> str | None:
+        """운영 CORS 출처 목록의 문제(#3029). 문제가 없으면 None.
+
+        와일드카드는 따로 막는다(`_guard_prod_secrets`). 여기서는 키를 빠뜨려 개발
+        기본값으로 뜬 경우, 개발 호스트·평문 HTTP 출처가 섞인 경우, 목록이 빈 경우를 본다.
+        """
+        origins = self.cors_origin_list
+        if not origins:
+            return "CORS_ALLOW_ORIGINS 가 비어 있음"
+        if origins == [o.strip() for o in DEFAULT_CORS_ALLOW_ORIGINS.split(",")]:
+            return "CORS_ALLOW_ORIGINS 가 개발 기본값(localhost 목록) 그대로임"
+        for origin in origins:
+            if origin == "*":
+                continue
+            parts = urlsplit(origin.lower())
+            if parts.scheme != "https" or not parts.netloc:
+                return f"CORS 출처 {origin!r} 가 https:// 가 아님"
+            # urlsplit 은 IPv6 대괄호를 벗긴다 — 비교 목록과 같은 모양으로 되돌린다.
+            hostname = parts.hostname or ""
+            if ":" in hostname:
+                hostname = f"[{hostname}]"
+            if hostname in _LOCAL_CORS_HOSTS:
+                return f"CORS 출처 {origin!r} 가 개발 호스트임"
+        return None
+
+    @property
     def is_prod(self) -> bool:
         return self.env.strip().lower() in ("prod", "production")
 
@@ -395,9 +437,23 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "운영(env=prod)에서는 JWT_SECRET 을 안전한 값으로 반드시 설정해야 합니다."
                 )
+            # 개발 기본값만 아니면 `abc` 도 통과하던 빈틈(#3029).
+            if len(self.jwt_secret.encode("utf-8")) < MIN_PROD_JWT_SECRET_BYTES:
+                raise ValueError(
+                    f"운영(env=prod)에서는 JWT_SECRET 이 {MIN_PROD_JWT_SECRET_BYTES}바이트 이상이어야 "
+                    "합니다(예: openssl rand -hex 32)."
+                )
             if self.is_cors_wildcard:
                 raise ValueError(
                     "운영(env=prod)에서는 CORS 허용 출처를 명시해야 합니다(와일드카드 '*' 금지)."
+                )
+            # 키를 빠뜨리면 localhost 목록으로 떠서 운영 프론트 요청이 브라우저에서 모두
+            # 막힌다. 조용히 뜨지 않고 기동에서 드러낸다(#3029).
+            cors_problem = self.cors_prod_problem()
+            if cors_problem:
+                raise ValueError(
+                    "운영(env=prod)에서는 CORS 허용 출처를 실제 프론트 도메인(https://)으로 "
+                    f"설정해야 합니다: {cors_problem}"
                 )
             # 운영 DB 에 데모 데이터(가상 트레이너·데모 회원 기록)가 섞이면 회원 앱
             # 트레이너 찾기에 실존하지 않는 사람이 노출되고 통계가 오염된다(#2811).
