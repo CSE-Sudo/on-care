@@ -65,9 +65,10 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
         keepPollingWhileInactive: true,
       );
 
-  /// The roster endpoint carries no chat-recency signal, so priority
-  /// ordering falls back to the server's own order. Emitting an empty map
-  /// (not nothing) lets the ordering resolve immediately.
+  /// 실서버는 채팅 시각을 따로 흘리지 않는다 — 로스터의 회원마다
+  /// `last_message_at`([TrainerClient.lastMessageAt])이 실려 오고, 정렬
+  /// 함수가 그 값으로 폴백한다(#3011). 같은 값을 두 길로 흘리지 않도록 빈
+  /// 맵을 내보낸다(아무것도 내보내지 않으면 정렬이 그 값을 기다린다).
   @override
   Stream<Map<String, DateTime>> watchLastChatAt() =>
       Stream<Map<String, DateTime>>.value(const <String, DateTime>{});
