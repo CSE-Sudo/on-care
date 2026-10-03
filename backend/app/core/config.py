@@ -193,6 +193,24 @@ class Settings(BaseSettings):
     # true: 처음부터 TLS(465). starttls 와 함께 켜면 ssl 이 우선한다.
     smtp_ssl: bool = False
     smtp_timeout_seconds: float = 10.0
+    # 메일 끝에 적는 문의처(#3038·#3039). 비어 있으면 문의 줄을 넣지 않는다.
+    # 발송 업체(SMTP/SES)·발신 주소(MAIL_FROM)와 함께 팀이 정할 값이다 — 메일 관련
+    # 팀 결정 값은 이 절에만 둔다.
+    mail_support_contact: str = ""
+
+    # --- 가입 이메일 확인(#3038) ---
+    # 회원·트레이너 가입 전에 그 주소로 보낸 6자리 코드를 확인한다. 끄면 가입이 코드를
+    # 보지 않는다 — 기존 테스트·E2E(로그 발송)용이며, 운영(env=prod)에서는 끌 수 없다.
+    signup_email_verification: bool = True
+    # 코드 유효 시간(분)과 다시 받기까지 기다리는 시간(초).
+    signup_email_code_minutes: int = 10
+    signup_email_code_resend_seconds: int = 60
+    # 한 코드로 틀릴 수 있는 횟수. 6자리라 이 값이 경우의 수를 묶는 유일한 장치다.
+    signup_email_code_max_attempts: int = 5
+    # 같은 이메일로 코드를 보낼 수 있는 횟수(아래 창 안에서). IP 버킷과 별개다 — 여러
+    # IP 에서 한 사람에게 메일 폭탄을 보내는 것을 막는다.
+    signup_email_code_per_window: int = 5
+    signup_email_code_window_minutes: int = 60
 
     # --- 비밀번호 재설정(#2824) ---
     # 재설정 코드 유효 시간(분). 메일을 열어 바로 쓰는 일회용이라 짧게 둔다.
@@ -217,7 +235,9 @@ class Settings(BaseSettings):
     # 헬스장 현장 혜택(PT 재등록 할인·락커 쿠폰·분석용 식판)을 실제로 열지(#2822).
     # 제휴 헬스장이 없는 동안은 꺼 둔다. 데모 시드가 켜진 서버는 이 값과 상관없이 연다.
     gym_benefits_enabled: bool = False
-    # 관리자 이메일(콤마구분) — 기동 시 해당 사용자를 is_admin=True 로 승격
+    # 예전 관리자 이메일 목록. 기동 때 이 주소의 계정을 관리자로 올리던 동작은 없앴다
+    # (#3037) — 그 주소로 먼저 가입한 사람이 관리자가 됐다. 관리자 지정은
+    # `scripts/grant_admin.py` 로만 한다. 값이 남아 있으면 기동 로그가 경고한다.
     admin_emails: str = ""
 
     # --- 운영 배포 하드닝 ---
@@ -322,10 +342,6 @@ class Settings(BaseSettings):
         return not self.is_prod
 
     @property
-    def admin_email_set(self) -> set[str]:
-        return {e.strip().lower() for e in self.admin_emails.split(",") if e.strip()}
-
-    @property
     def sqlalchemy_database_url(self) -> str:
         """SQLAlchemy 엔진용 DB URL(psycopg v3 드라이버를 명시).
 
@@ -402,6 +418,12 @@ class Settings(BaseSettings):
             # 운영 DB 에 데모 데이터(가상 트레이너·데모 회원 기록)가 섞이면 회원 앱
             # 트레이너 찾기에 실존하지 않는 사람이 노출되고 통계가 오염된다(#2811).
             # 비밀번호 강도와 상관없이 막는다 — 시연이 필요하면 데모 전용 DB 를 쓴다.
+            # 가입 이메일 확인을 끄면 남의 이메일로 계정을 선점할 수 있다(#3038).
+            if not self.signup_email_verification:
+                raise ValueError(
+                    "운영(env=prod)에서는 가입 이메일 확인을 끌 수 없습니다"
+                    "(SIGNUP_EMAIL_VERIFICATION=true)."
+                )
             if self.seed_demo_data:
                 raise ValueError(
                     "운영(env=prod)에서는 데모 시드를 켤 수 없습니다(SEED_DEMO_DATA=false). "
