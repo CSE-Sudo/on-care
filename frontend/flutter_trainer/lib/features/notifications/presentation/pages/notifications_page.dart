@@ -89,6 +89,11 @@ class NotificationsPage extends ConsumerStatefulWidget {
       final String id => AppRoutes.clientDetail(id),
       null => AppRoutes.clients,
     },
+    // 회원 주간 피드백은 그 답이 모인 메모 창 `피드백` 탭까지 연다(#3026).
+    TrainerNotificationKind.weeklyFeedback => switch (notification.subjectId) {
+      final String id => AppRoutes.clientDetail(id, openFeedback: true),
+      null => AppRoutes.clients,
+    },
     // 떠난 회원의 상세는 더 열 수 없다(#2174).
     TrainerNotificationKind.memberLeft || TrainerNotificationKind.other => null,
   };
@@ -159,7 +164,8 @@ enum NotificationGroup {
     NotificationGroup.members => switch (n.kind) {
       TrainerNotificationKind.healthGoal ||
       TrainerNotificationKind.memberName ||
-      TrainerNotificationKind.memberLeft => true,
+      TrainerNotificationKind.memberLeft ||
+      TrainerNotificationKind.weeklyFeedback => true,
       _ => false,
     },
   };
@@ -405,6 +411,8 @@ class NotificationTile extends StatelessWidget {
     TrainerNotificationKind.inviteAccepted => AppIcons.inviteAccepted,
     TrainerNotificationKind.inviteRejected => AppIcons.personOff,
     TrainerNotificationKind.consultationWithdrawn => AppIcons.eventBusy,
+    // 메모 창 피드백 목록의 주간 피드백 줄과 같은 아이콘이다.
+    TrainerNotificationKind.weeklyFeedback => AppIcons.note,
     TrainerNotificationKind.other => AppIcons.notifications,
   };
 

@@ -476,7 +476,7 @@ def save_my_weekly_feedback(
     현재 값으로 그 주의 답을 통째로 바꾸는 동작이라 여러 번 눌러도 결과가
     같다. 통신이 끊겨 다시 보낸 답이 두 줄로 남지 않는다.
     """
-    _my_trainer_or_404(db, user.id)
+    trainer_id = _my_trainer_or_404(db, user.id)
     return trainer_weekly_feedback_service.save_member_weekly_feedback(
         db,
         user.id,
@@ -486,6 +486,8 @@ def save_my_weekly_feedback(
         pain_area=payload.pain_area,
         pain_on=payload.pain_on,
         note=payload.note,
+        # 담당 트레이너에게 알린다(#3026).
+        trainer_id=trainer_id,
     )
 
 

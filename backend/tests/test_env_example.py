@@ -27,6 +27,10 @@ _INTENTIONALLY_UNDOCUMENTED: dict[str, str] = {}
 _NON_SETTINGS_KEYS: dict[str, str] = {
     "TZ": "프로세스 시간대(로그 타임스탬프). Settings 가 아니라 컨테이너 환경이 읽는다.",
     "FORWARDED_ALLOW_IPS": "uvicorn --forwarded-allow-ips. Settings 가 아니라 scripts/start.sh 가 읽는다.",
+    "WEB_CONCURRENCY": "uvicorn 워커 수. Settings 가 아니라 scripts/start.sh 가 읽는다.",
+    "MIGRATE_LOCK_TIMEOUT": "기동 마이그레이션 잠금 대기. scripts/migrate.py 가 읽는다.",
+    "MIGRATE_LOCK_RETRY_INTERVAL": "기동 마이그레이션 잠금 재시도 간격. scripts/migrate.py 가 읽는다.",
+    "MIGRATE_CONNECT_TIMEOUT": "기동 마이그레이션 DB 연결 한도. scripts/migrate.py 가 읽는다.",
 }
 
 
@@ -115,14 +119,14 @@ def test_env_example_loads_as_dev_settings():
 def test_dev_example_copied_to_prod_is_blocked():
     """개발 예시를 ENV=prod 로만 바꿔 옮기면 운영 가드가 기동을 막는다."""
     with pytest.raises(ValidationError):
-        _settings_from_example(env="prod", jwt_secret="a-strong-random-secret-value")
+        _settings_from_example(env="prod", jwt_secret="a-strong-random-secret-value-for-prod-tests")
 
 
 def test_prod_recommended_values_pass_guard():
     """예시 주석의 운영 권장값으로 바꾸면 운영 가드를 통과한다."""
     s = _settings_from_example(
         env="prod",
-        jwt_secret="a-strong-random-secret-value",
+        jwt_secret="a-strong-random-secret-value-for-prod-tests",
         auto_create_tables=False,
         cors_allow_origins="https://app.example.com",
         seed_demo_data=False,

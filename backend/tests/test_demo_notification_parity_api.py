@@ -132,3 +132,28 @@ def test_removed_diet_alerts_leave_the_demo_inbox(client, db_session):
     inbox = _inbox(client)
     assert "noti-demo-1" not in inbox
     assert "noti-demo-2" not in inbox
+
+
+def test_seed_moves_the_pt_alert_off_its_old_category(db_session):
+    """PT 완료 데모 알림이 `achievement` 로 시드된 DB 도 실서버 갈래로 옮겨진다(#3027)."""
+    db_session.execute(
+        update(Notification)
+        .where(Notification.id == "noti-demo-5")
+        .values(category="achievement")
+    )
+    db_session.commit()
+
+    assert seed_demo_notifications(db_session, DEMO_USER_ID) == 0
+
+    db_session.expire_all()
+    assert db_session.get(Notification, "noti-demo-5").category == "pt_done"
+
+
+def test_pt_alert_reads_as_a_pt_record_in_the_demo_inbox(client, db_session):
+    seed_demo_notifications(db_session, DEMO_USER_ID)
+    inbox = _inbox(client)
+    action = inbox["noti-demo-5"]["action"]
+    assert inbox["noti-demo-5"]["category"] == "pt_done"
+    assert action == {"label": "PT 기록 보기", "target": "exercise"}
+    en = _inbox(client, {"Accept-Language": "en"})
+    assert en["noti-demo-5"]["action"]["label"] == "View PT record"
