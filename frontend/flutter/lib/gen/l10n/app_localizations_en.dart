@@ -544,6 +544,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Photo analysis is unavailable right now. Please add the meal manually.';
 
   @override
+  String get dietAnalysisAiCapacity =>
+      'AI features are taking a break due to high demand. They reopen tomorrow — for now you can add the meal manually.';
+
+  @override
   String get dietAnalysisPickAnother => 'Pick another photo';
 
   @override
@@ -2354,6 +2358,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aicQuotaExhausted =>
       'You\'ve used today\'s chats. They reopen tomorrow';
+
+  @override
+  String get aicAiCapacity =>
+      'AI features are taking a break due to high demand. Please try again tomorrow';
 
   @override
   String get aicQuotaFindTrainer => 'Find a trainer';

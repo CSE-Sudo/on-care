@@ -335,6 +335,23 @@ void main() {
     expect(_secondaryLabel(tester), '닫기');
   });
 
+  testWidgets('서버 전체 AI 상한은 직접 추가로 안내한다 (#3032)', (WidgetTester tester) async {
+    final _RejectingDietRepository repo = _RejectingDietRepository(
+      DietAnalysisFailure.aiCapacity,
+    );
+    await _openResultSheet(tester, repo);
+
+    expect(find.textContaining('지금은 AI 기능 이용이 많아 잠시 쉬어요'), findsOneWidget);
+    expect(_actionLabel(tester), '직접 추가');
+    expect(_secondaryLabel(tester), '닫기');
+    expect(find.text('다시 시도'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('dietAnalysisFailureAction')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('mealCreatePage')), findsOneWidget);
+    expect(repo.attempts, 1, reason: '같은 사진을 다시 보내지 않는다');
+  });
+
   testWidgets('직접 추가를 권하지 않는 실패는 버튼 하나 그대로다', (WidgetTester tester) async {
     final _FailingDietRepository repo = _FailingDietRepository(415);
     await _openResultSheet(tester, repo);

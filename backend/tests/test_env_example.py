@@ -135,3 +135,27 @@ def test_prod_recommended_values_pass_guard():
     assert s.is_prod is True
     assert s.demo_fallback_enabled is False
     assert s.force_https is True
+
+
+@pytest.mark.parametrize(
+    "key", ["AI_GLOBAL_CALLS_PER_DAY", "TRAINER_AI_CALLS_PER_DAY", "LLM_MAX_OUTPUT_TOKENS"]
+)
+def test_ai_cost_caps_are_in_both_examples(key):
+    """하루 AI 상한·출력 토큰 상한(#3032)은 개발·배포 예시 둘 다에 값과 함께 있다.
+
+    배포 예시에 빈 값으로 두면 정수 설정이라 기동이 실패한다 — 숫자를 둔다.
+    """
+    active, _ = _parse()
+    assert active.get(key, "").isdigit(), key
+
+    aws = ENV_EXAMPLE.with_name(".env.aws.example").read_text(encoding="utf-8")
+    values = [m.group(2) for line in aws.splitlines() if (m := _ACTIVE.match(line.rstrip()))
+              and m.group(1) == key]
+    assert values and values[0].isdigit(), key
+
+
+def test_deploy_example_requires_a_paid_gemini_key():
+    """운영 키 줄 바로 위에 유료 등급 요구가 적혀 있다(#3032)."""
+    aws = ENV_EXAMPLE.with_name(".env.aws.example").read_text(encoding="utf-8")
+    before_key = aws.split("\nGEMINI_API_KEY=", 1)[0]
+    assert "유료 등급" in before_key.rsplit("\n\n", 1)[-1]

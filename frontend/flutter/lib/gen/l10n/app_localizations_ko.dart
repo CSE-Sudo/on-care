@@ -524,6 +524,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietAnalysisUnavailable => '지금은 사진 분석을 쓸 수 없어요. 직접 추가로 기록해 주세요.';
 
   @override
+  String get dietAnalysisAiCapacity =>
+      '지금은 AI 기능 이용이 많아 잠시 쉬어요. 내일 다시 쓸 수 있고, 지금은 직접 추가로 기록할 수 있어요.';
+
+  @override
   String get dietAnalysisPickAnother => '다른 사진 고르기';
 
   @override
@@ -2256,6 +2260,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aicQuotaExhausted => '오늘 대화를 다 썼어요. 내일 다시 열려요';
+
+  @override
+  String get aicAiCapacity => '지금은 AI 기능 이용이 많아 잠시 쉬어요. 내일 다시 이용해 주세요';
 
   @override
   String get aicQuotaFindTrainer => '트레이너 찾기';

@@ -18,7 +18,7 @@
 | --- | --- | --- | --- | --- | --- |
 | Amazon Web Services, Inc. | 서버 운영(App Runner), 채팅 사진·리포트 PDF 보관(S3) | 싱가포르(`ap-southeast-1`) | 서버가 처리하는 회원·트레이너 정보 전반, 채팅 첨부 사진·리포트 PDF | 탈퇴 또는 위탁 계약 종료 시까지 | `.github/workflows/backend-deploy.yml` `AWS_REGION`, `backend/app/core/config.py` `attachment_storage`·`attachment_s3_*`, `backend/docs/DEPLOY.md` 5-1·리전 |
 | Neon | 데이터베이스 운영(Postgres + pgvector) | 싱가포르(App Runner 와 같은 리전) | 계정·프로필·식단(음식 사진 축소본 포함)·운동·건강 기록, 대화 기록, 검색 색인 | 탈퇴 또는 위탁 계약 종료 시까지 | `backend/docs/DEPLOY.md` 1·2절, `backend/.env.aws.example` `DATABASE_URL` |
-| Google LLC (Gemini API) | 음식 사진 인식, AI 코치 답변·추천, 개인 기록 검색 색인(임베딩), 트레이너 AI 프로그램·루틴 후보·리포트 요약 | 미국 등 Google 데이터센터 소재 국가 | 음식 사진, 분석에 필요한 식단·운동 기록·신체 정보·건강 목표, AI 코치 대화, 트레이너가 입력한 코칭 조건과 담당 회원 운동 기록·주간 리포트 수치 | 요청 처리 후 수탁자 약관에서 정한 기간 | `config.py` `recognizer`·`coach_llm`·`embedder` 기본값 `gemini`, `rag_auto_ingest=True`(식단·운동 저장 때마다 색인), `services/trainer_report_summary_service.py`, `services/trainer_routine_options_service.py` |
+| Google LLC (Gemini API) | 음식 사진 인식, AI 코치 답변·추천, 개인 기록 검색 색인(임베딩), 트레이너 AI 프로그램·루틴 후보·리포트 요약 | 미국 등 Google 데이터센터 소재 국가 | 음식 사진, 분석에 필요한 식단·운동 기록·신체 정보·건강 목표, AI 코치 대화, 트레이너가 입력한 코칭 조건과 담당 회원 운동 기록·주간 리포트 수치 | 요청 처리 후 수탁자 약관에서 정한 기간. **유료 등급 키 사용 전제**(#3032) — 무료 등급은 입력이 제공자의 서비스 개선에 쓰일 수 있어 이 표의 위탁 범위를 넘는다 | `config.py` `recognizer`·`coach_llm`·`embedder` 기본값 `gemini`, `backend/docs/DEPLOY.md` 3절 `GEMINI_API_KEY`, `rag_auto_ingest=True`(식단·운동 저장 때마다 색인), `services/trainer_report_summary_service.py`, `services/trainer_routine_options_service.py` |
 | Functional Software, Inc. (Sentry) | 앱·서버 오류 수집 | 미국 | 오류 내용, 기기·브라우저·운영체제 종류, 앱 버전. 이름·이메일·IP·헤더·쿠키·요청 본문·지역 변수는 보내기 전에 지운다 | 수탁자 보관 기간 | `backend/app/core/error_tracking.py`(`send_default_pii=False`, `scrub_event`), `frontend/flutter/lib/core/observability/error_reporter.dart`, 화면이 잡아서 처리한 오류도 같은 항목·같은 정리로 보낸다(`source=handled`, `frontend/flutter/lib/core/observability/handled_error.dart`, 연결 끊김·이미 지워진 항목 같은 예상된 실패는 보내지 않음), 트레이너 웹 `sentry_flutter` |
 | 주식회사 카카오 | 헬스장·장소 검색, 지도 표시 | 대한민국(국외 이전 아님) | 장소 검색 좌표(회원이 현재 위치를 허용한 경우 그 좌표), 검색어 | 수탁자 보관 기간 | `backend/app/services/places/kakao.py`, `services/trainer_gym_search.py`, `shared/oncare_kakao_map`, 두 앱 `web/index.html` CSP |
 
@@ -98,6 +98,7 @@ DB 복구용 기록(Neon 의 복원 기간)에 남은 사본은 그 기간이 �
 - [ ] 백엔드·S3·Neon 최종 리전(현재 싱가포르). 바뀌면 1절과 처리방침 7항의 국가를 고친다.
 - [ ] Sentry 데이터 보관 지역(미국/EU)과 보관 기간 — `SENTRY_DSN` 을 만들 때 정해진다.
 - [ ] 수탁자 정식 법인명·연락처(특히 Neon), Gemini API 의 입력 보관 기간 — 계약·약관 확인.
+- [ ] Gemini 결제 연결 확인 — 운영 `GEMINI_API_KEY` 가 결제가 연결된 프로젝트(유료 등급)의 키인지 본다(#3032). 무료 등급이면 1절 Gemini 행의 전제가 깨진다.
 - [ ] 메일 발송 업체.
 
 ## 7. 본문을 고칠 때

@@ -4963,6 +4963,12 @@ abstract class AppLocalizations {
   /// **'Too many generation requests. Please try again shortly'**
   String get aiGenerateRateLimited;
 
+  /// No description provided for @aiGenerateDailyLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve used today\'s AI limit. Please try again tomorrow'**
+  String get aiGenerateDailyLimit;
+
   /// No description provided for @aiExerciseNameRequired.
   ///
   /// In en, this message translates to:
@@ -7724,6 +7730,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t create the summary. Please try again.'**
   String get reportsAiFailed;
+
+  /// No description provided for @reportsAiDailyLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve used today\'s AI limit. Please try again tomorrow.'**
+  String get reportsAiDailyLimit;
 
   /// No description provided for @reportsPdfFallbackClient.
   ///

@@ -2692,6 +2692,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiGenerateRateLimited => 'AI 생성을 너무 자주 요청했어요. 잠시 후 다시 시도해 주세요';
 
   @override
+  String get aiGenerateDailyLimit => '오늘 AI 생성 한도를 다 썼어요. 내일 다시 이용해 주세요';
+
+  @override
   String get aiExerciseNameRequired => '운동 이름을 입력해 주세요';
 
   @override
@@ -4300,6 +4303,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportsAiFailed => '요약을 만들지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String get reportsAiDailyLimit => '오늘 AI 생성 한도를 다 썼어요. 내일 다시 이용해 주세요.';
 
   @override
   String get reportsPdfFallbackClient => '회원';
