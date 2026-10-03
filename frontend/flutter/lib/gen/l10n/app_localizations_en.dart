@@ -951,6 +951,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exRecordDetailTotalCalories => 'Total calories burned';
 
   @override
+  String get exBurnedPrefix => 'Burned';
+
+  @override
+  String get exRecordDateChange => 'Change date';
+
+  @override
+  String exRecordDateMoved(String date) {
+    return 'Moved to $date';
+  }
+
+  @override
+  String get exRecordDateFailed =>
+      'Couldn\'t change the date. Please try again shortly.';
+
+  @override
   String get exCompletedPtDayTitle => 'Completed PT';
 
   @override

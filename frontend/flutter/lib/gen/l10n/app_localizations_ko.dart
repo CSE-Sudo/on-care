@@ -913,6 +913,20 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exRecordDetailTotalCalories => '총 소모 칼로리';
 
   @override
+  String get exBurnedPrefix => '소모';
+
+  @override
+  String get exRecordDateChange => '날짜 변경';
+
+  @override
+  String exRecordDateMoved(String date) {
+    return '$date 운동으로 옮겼어요';
+  }
+
+  @override
+  String get exRecordDateFailed => '날짜를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
   String get exCompletedPtDayTitle => '완료한 PT';
 
   @override

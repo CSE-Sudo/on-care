@@ -581,6 +581,18 @@
   },
   "exRecordDetailInfo": "Workout details",
   "exRecordDetailTotalCalories": "Total calories burned",
+  "exBurnedPrefix": "Burned",
+  "exRecordDateChange": "Change date",
+  "exRecordDateMoved": "Moved to {date}",
+  "@exRecordDateMoved": {
+    "description": "Confirmation after moving a day's self-logged workouts to another day.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "exRecordDateFailed": "Couldn't change the date. Please try again shortly.",
   "exCompletedPtDayTitle": "Completed PT",
   "exCompletedRoutineDayTitle": "Completed solo workout",
   "exDeleteExercise": "Delete workout",

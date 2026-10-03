@@ -21,7 +21,6 @@ import 'package:oncare_core/clock.dart';
 import '../../helpers/fixed_clock.dart';
 import '../../helpers/mock_account_repository.dart';
 
-
 /// 직접 추가한 운동 기록이 운동 탭에 남는다. (#1428)
 ///
 /// 하단 `+` 로 저장한 기록은 주간 통계·그래프에만 반영되고 개별 기록을 볼 자리가
@@ -318,7 +317,7 @@ void main() {
     );
   });
 
-  testWidgets('자세히를 누르면 그날 기록 전체를 운동마다 상자로 본다 (#2507)', (tester) async {
+  testWidgets('자세히를 누르면 그날 기록 전체를 운동마다 한 줄로 본다 (#2507, #2964)', (tester) async {
     useFixedKstDate();
     await pumpExercise(
       tester,
@@ -366,16 +365,14 @@ void main() {
       valueOf('exercise-detail-amount-own-strength'),
       '${l.exSetsCount(5)} · ${l.exRepsCount(12)} · 60${l.exUnitKg}',
     );
+    // 강도는 운동 탭 목록 줄이 보여 준다 — 상세 보기에는 두지 않는다(#2964).
     expect(
-      find.descendant(
-        of: find.byKey(
-          const ValueKey<String>('exercise-detail-intensity-own-strength'),
-        ),
-        matching: find.text(l.exLevelModerate),
+      find.byKey(
+        const ValueKey<String>('exercise-detail-intensity-own-strength'),
       ),
-      findsOneWidget,
+      findsNothing,
     );
-    // 운동마다 칼로리는 이름 옆, 합계는 맨 아래 `총 소모 칼로리`.
+    // 운동마다 칼로리는 줄 오른쪽, 합계는 카드 맨 아래 `총 소모 칼로리`.
     expect(
       valueOf('exercise-detail-calories-own-strength'),
       '210 ${l.unitKcal}',
@@ -442,8 +439,8 @@ void main() {
     ]);
     await pumpExercise(tester, repo);
 
-    // 자세히 → 그날 상세(보기) → 그 운동 상자의 연필 → 같은 수정 시트가 그
-    // 기록으로 열린다.
+    // 자세히 → 그날 상세(보기) → `운동 정보` 머리의 연필 → 시트가 아니라 이
+    // 화면 안에서 그 기록의 폼이 펼쳐진다(#2964).
     final Finder open = find.byKey(
       const ValueKey<String>('exercise-own-records-open'),
     );
@@ -451,23 +448,31 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(open);
     await tester.pumpAndSettle();
-    final Finder edit = find.byKey(
-      const ValueKey<String>('exercise-detail-edit-own-1'),
-    );
+    final Finder edit = find.byKey(const Key('exercise-detail-edit'));
     await tester.tap(edit);
     await tester.pumpAndSettle();
+    expect(find.byKey(const Key('exerciseAddSheet')), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('exercise-detail-editor-own-1')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('exerciseDateField')), findsNothing);
+
+    // 취소하면 화면을 나가지 않고 보기로 돌아간다.
+    await tester.tap(find.byKey(const Key('exerciseCancelButton')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('exerciseRecordDetailPage')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('exercise-detail-editor-own-1')),
+      findsNothing,
+    );
     // 상세가 운동 탭 위에 올라와 있어 탭은 화면 밖(offstage)이다.
     final AppLocalizations l = AppLocalizations.of(
       tester.element(find.byType(ExercisePage, skipOffstage: false)),
     );
-    expect(find.text(l.exEditExercise), findsOneWidget);
-    Navigator.of(
-      tester.element(find.byKey(const Key('exerciseAddContent'))),
-    ).pop();
-    await tester.pumpAndSettle();
 
-    // 삭제 — 목록 줄이 아니라 수정 시트 맨 아래에서, 확인창을 거친 뒤에만
-    // 지운다(#1523). 다시 연필을 눌러 시트를 연다.
+    // 삭제 — 목록 줄이 아니라 수정 모드의 폼 맨 아래에서, 확인창을 거친
+    // 뒤에만 지운다(#1523). 다시 연필을 눌러 수정 모드로 들어간다.
     await tester.tap(edit);
     await tester.pumpAndSettle();
     final Finder remove = find.byKey(const Key('exerciseDeleteButton'));

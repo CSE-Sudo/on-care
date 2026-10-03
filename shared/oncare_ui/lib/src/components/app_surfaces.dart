@@ -312,12 +312,18 @@ class AppSectionHeader extends StatelessWidget {
           );
     final Widget? end = trailing;
     if (end != null && trailingFit == AppSectionTrailingFit.wrap) {
-      return Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: OnCareSpacing.s12,
-        runSpacing: OnCareSpacing.s8,
-        children: <Widget>[titleBlock, end],
+      // `Wrap` 은 내용 폭만큼만 서서, 왼쪽 정렬 `Column` 안에서는
+      // `spaceBetween` 이 먹지 않고 끝 요소가 제목 바로 옆(왼쪽)에 붙었다.
+      // 폭을 꽉 채워 끝 요소를 오른쪽 끝으로 보낸다.
+      return SizedBox(
+        width: double.infinity,
+        child: Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: OnCareSpacing.s12,
+          runSpacing: OnCareSpacing.s8,
+          children: <Widget>[titleBlock, end],
+        ),
       );
     }
     return Row(
