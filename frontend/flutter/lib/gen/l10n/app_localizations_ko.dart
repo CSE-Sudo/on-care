@@ -670,6 +670,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exNearbyGymsMapLabel => '내 주변 헬스장';
 
   @override
+  String get exGymMapUnavailable => '지도를 불러오지 못했어요';
+
+  @override
   String get exActivityTitle => '운동 현황';
 
   @override

@@ -8,6 +8,8 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
@@ -758,12 +760,27 @@ class _GymListCard extends ConsumerWidget {
   }
 }
 
-/// 목록에 보이는 헬스장을 카카오맵 핀으로 찍는다. `KAKAO_JS_KEY` 가 없거나
-/// SDK 로드가 실패하면 [_GymMiniMap] 그래픽으로 폴백한다(#329).
+/// 목록에 보이는 헬스장을 카카오맵 핀으로 찍는다. 웹은 `HtmlElementView`,
+/// 안드로이드·iOS 는 WebView 로 같은 카카오 지도를 띄운다(#3043).
+///
+/// `KAKAO_JS_KEY` 가 없거나 SDK 로드가 실패하면 폴백으로 떨어진다(#329). 실사용자
+/// 경로의 폴백은 핀 없는 자리 표시([_GymMapUnavailable])다 — 좌표와 무관한 핀은
+/// 회원이 헬스장 위치로 읽는다. 데모 세션은 데모 화면을 바꾸지 않으려 예전 그림
+/// 지도([_GymMiniMap])를 그대로 쓴다.
 class _GymMap extends ConsumerWidget {
   const _GymMap({required this.gyms});
 
   final List<Gym> gyms;
+
+  /// 데모 세션인가 — 목업 빌드이거나 실서버에서 데모로 들어온 세션.
+  static bool _demoSession(WidgetRef ref) {
+    if (ref.watch(appConfigProvider).useMockApi) return true;
+    return ref.watch(
+      sessionControllerProvider.select(
+        (SessionState s) => s.status == SessionStatus.demo,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -786,7 +803,9 @@ class _GymMap extends ConsumerWidget {
           for (final Gym g in located)
             KakaoMapMarker(lat: g.lat!, lng: g.lng!, title: g.name),
         ],
-        fallback: _GymMiniMap(pinCount: located.isEmpty ? 3 : located.length),
+        fallback: _demoSession(ref)
+            ? _GymMiniMap(pinCount: located.isEmpty ? 3 : located.length)
+            : const _GymMapUnavailable(),
       ),
     );
   }
@@ -795,6 +814,9 @@ class _GymMap extends ConsumerWidget {
 /// Lightweight illustrative map for the 헬스장 찾기 페이지 — a soft map backdrop
 /// with [pinCount] location pins (헬스장 하나당 핀 하나) and a center "내 위치"
 /// dot. Purely decorative (no real map/tiles/network) for the demo.
+///
+/// **데모 세션 전용이다**(#3043). 핀 자리가 고정이라 실제 헬스장 좌표와 대응하지
+/// 않는다 — 실사용자 경로는 [_GymMapUnavailable] 을 쓴다.
 class _GymMiniMap extends StatelessWidget {
   const _GymMiniMap({required this.pinCount});
 
@@ -840,6 +862,68 @@ class _GymMiniMap extends StatelessWidget {
                   style: tokens
                       .text(OnCareTypography.strong(OnCareTypography.caption))
                       .copyWith(color: OnCareColors.textSecondary),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 지도를 띄우지 못했을 때의 자리 표시(#3043) — 실사용자 경로의 폴백.
+///
+/// 지도와 같은 자리를 차지하되(#1362), 핀·"내 위치" 점을 그리지 않는다. 고정
+/// 자리의 핀은 회원이 실제 헬스장 위치로 읽기 때문이다. 대신 지도를 불러오지
+/// 못했다고 한 줄로 알린다. 헬스장은 아래 목록에서 그대로 고를 수 있다.
+class _GymMapUnavailable extends StatelessWidget {
+  const _GymMapUnavailable();
+
+  /// 자리 표시 본문의 Key.
+  static const Key bodyKey = ValueKey<String>('gym-map-unavailable');
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    return DecoratedBox(
+      key: bodyKey,
+      decoration: const BoxDecoration(color: OnCareColors.surfaceInput),
+      child: SizedBox.expand(
+        child: Stack(
+          children: <Widget>[
+            Positioned.fill(child: CustomPaint(painter: _MapRoadsPainter())),
+            Align(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: OnCareSpacing.s12,
+                  vertical: OnCareSpacing.s4,
+                ),
+                decoration: const BoxDecoration(
+                  color: OnCareColors.surfaceCard,
+                  borderRadius: OnCareRadius.pillAll,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    const AppIcon(
+                      AppIcons.location,
+                      size: OnCareSize.iconSmall,
+                      color: OnCareColors.textTertiary,
+                    ),
+                    const SizedBox(width: OnCareSpacing.s4),
+                    Flexible(
+                      child: Text(
+                        l.exGymMapUnavailable,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: tokens
+                            .text(OnCareTypography.caption)
+                            .copyWith(color: OnCareColors.textSecondary),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
