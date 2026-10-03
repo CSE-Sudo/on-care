@@ -26,7 +26,11 @@ Response<Object?> signupCodeAccepted(RequestOptions options) =>
       },
     );
 
-/// "인증 코드 받기" 를 누른다.
+/// "인증 코드 받기" 를 누르고 요청이 돌아올 때까지 흘려보낸다.
+///
+/// 요청은 Dio 를 거쳐 몇 차례 비동기로 돌아온다 — 프레임 두 번으로는 응답이
+/// 화면에 닿지 않는다. 다시 받기 카운트다운(1초)이 흐르기 전에 끝나도록 짧게
+/// 나눠 흘린다.
 Future<void> tapSignupCodeSend(WidgetTester tester) async {
   final Finder send = find.byKey(signupCodeSendKey);
   FocusManager.instance.primaryFocus?.unfocus();
@@ -34,8 +38,9 @@ Future<void> tapSignupCodeSend(WidgetTester tester) async {
   await tester.ensureVisible(send);
   await tester.pump();
   await tester.tap(send);
-  await tester.pump();
-  await tester.pump();
+  for (int i = 0; i < 10; i++) {
+    await tester.pump(const Duration(milliseconds: 20));
+  }
 }
 
 /// 코드 칸에 [code] 를 넣는다.
