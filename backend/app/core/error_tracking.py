@@ -100,6 +100,18 @@ def scrub_breadcrumb(
     return crumb
 
 
+def release_name(settings: Settings) -> str:
+    """Sentry release 이름(#3029). 배포마다 오류가 따로 모이도록 커밋 SHA 앞 12자를 붙인다.
+
+    SHA 를 모르는 빌드(로컬·테스트)는 앱 버전만 쓴다.
+    """
+    base = f"oncare-backend@{settings.app_version}"
+    sha = settings.commit_sha
+    if sha == "unknown":
+        return base
+    return f"{base}+{sha[:12]}"
+
+
 def init_error_tracking(settings: Settings, *, transport: Any = None) -> bool:
     """설정이 허락하면 Sentry 를 초기화하고 True 를 돌려준다.
 
@@ -111,7 +123,7 @@ def init_error_tracking(settings: Settings, *, transport: Any = None) -> bool:
     sentry_sdk.init(
         dsn=settings.sentry_dsn.strip(),
         environment=settings.sentry_environment.strip() or settings.env,
-        release=f"oncare-backend@{settings.app_version}",
+        release=release_name(settings),
         sample_rate=settings.sentry_sample_rate,
         # 성능 추적(APM)은 범위 밖 — 트랜잭션을 만들지 않는다.
         traces_sample_rate=None,

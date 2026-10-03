@@ -55,8 +55,6 @@ class _StreamingClientRepository implements ClientRepository {
   final StreamController<List<TrainerClient>> _controller;
 
   @override
-  bool get supportsRosterMutations => false;
-  @override
   Stream<List<TrainerClient>> watchClients() => _controller.stream;
   @override
   Stream<Map<String, DateTime>> watchLastChatAt() =>
@@ -141,11 +139,6 @@ class _StreamingClientRepository implements ClientRepository {
     String clientId,
     ClientDateRange range,
   ) async => ClientDietPeriod(range: range, days: const <ClientDietDay>[]);
-  @override
-  Future<bool> clientNameExists(String name) async => false;
-  @override
-  Future<bool> addClient({required String name, required String goal}) async =>
-      false;
   @override
   Future<void> setClientActive(String id, bool active) async {}
 
@@ -423,6 +416,68 @@ void main() {
     expect(emissions, <List<String>>[
       <String>['a'],
       <String>['over', 'a'], // proves the second emission was reflected
+    ]);
+  });
+
+  test('실서버 메시지 탭은 로스터가 갱신되면 새 대화를 맨 위로 올린다 (#3011)', () async {
+    // 실서버 저장소는 채팅 시각 맵을 비워 둔다(`watchLastChatAt` 빈 맵).
+    // 차례는 로스터의 `last_message_at` 이 정한다 — 회원이 새 메시지를 보낸
+    // 뒤 로스터가 다시 읽히면 그 회원이 위로 와야 한다.
+    final controller = StreamController<List<TrainerClient>>();
+    addTearDown(controller.close);
+    final container = _containerFor(
+      useMockApi: false,
+      extraOverrides: <Override>[
+        clientRepositoryProvider.overrideWithValue(
+          _StreamingClientRepository(controller),
+        ),
+      ],
+    );
+    TrainerClient talked(String id, DateTime at) => TrainerClient(
+      id: id,
+      name: id,
+      avatar: id.substring(0, 1),
+      goal: '',
+      lastMessage: '',
+      lastTime: '',
+      lastMessageAt: at,
+      active: true,
+      calories: 0,
+      sodiumMg: 0,
+      sugarG: 0,
+      lastRoutine: '',
+      weekCompletion: const <int>[],
+      sodiumWeek: const <int>[],
+    );
+    final DateTime nine = DateTime.utc(2026, 10, 3);
+    final DateTime ten = DateTime.utc(2026, 10, 3, 1);
+    final DateTime eleven = DateTime.utc(2026, 10, 3, 2);
+
+    final emissions = <List<String>>[];
+    final gotFirst = Completer<void>();
+    final gotSecond = Completer<void>();
+    final sub = container.listen(recentlyMessagedClientsProvider, (_, next) {
+      next.whenData((clients) {
+        emissions.add(clients.map((c) => c.id).toList());
+        if (emissions.length == 1) {
+          gotFirst.complete();
+        } else if (emissions.length == 2) {
+          gotSecond.complete();
+        }
+      });
+    });
+    addTearDown(sub.close);
+
+    // 서버 차례(a, b)와 달리 b 가 더 최근에 말했다.
+    controller.add(<TrainerClient>[talked('a', nine), talked('b', ten)]);
+    await gotFirst.future.timeout(const Duration(seconds: 5));
+    // a 가 새 메시지를 보냈다 — 다음 로스터에서 a 의 시각이 가장 새롭다.
+    controller.add(<TrainerClient>[talked('a', eleven), talked('b', ten)]);
+    await gotSecond.future.timeout(const Duration(seconds: 5));
+
+    expect(emissions, <List<String>>[
+      <String>['b', 'a'],
+      <String>['a', 'b'],
     ]);
   });
 
