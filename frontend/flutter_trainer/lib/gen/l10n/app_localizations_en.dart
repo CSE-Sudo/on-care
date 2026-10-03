@@ -910,6 +910,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t send the photo. Please try again';
 
   @override
+  String get chatImageAlreadySent =>
+      'An earlier send of this photo already went through. Please check the conversation.';
+
+  @override
   String get clientTabDiet => 'Meals';
 
   @override
