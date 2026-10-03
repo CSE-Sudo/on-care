@@ -22,7 +22,7 @@ def _prod(**kw) -> Settings:
     base = dict(
         _env_file=None,
         env="prod",
-        jwt_secret="a-strong-random-secret-value",
+        jwt_secret="a-strong-random-secret-value-for-prod-tests",
         cors_allow_origins="https://app.oncare.com",
         auto_create_tables=False,
         # 운영 AI 키 가드(#2812) 충족 — conftest 의 EMBEDDER=hash 를 덮는다.

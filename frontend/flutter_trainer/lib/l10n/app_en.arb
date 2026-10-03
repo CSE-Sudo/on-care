@@ -359,6 +359,7 @@
   "clientsFilterLabel": "Filters",
   "clientsPickHint": "Pick a member on the left to open\ntheir chat, meals and workouts here",
   "clientsEmpty": "No members yet",
+  "clientsEmptyConnectHint": "Connect members with the code they show you or by sending a coaching request. Consultation requests from members also appear in your inbox.",
   "clientsEmptyForFilter": "No members match {filter}",
   "@clientsEmptyForFilter": {
     "placeholders": {

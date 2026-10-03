@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -76,6 +77,86 @@ def test_access_log_carries_request_id_on_success(client):
         access.removeHandler(handler)
     out = stream.getvalue()
     assert "[trace-log-1]" in out  # reset 이전에 로그 → rid 가 '-' 가 아님
+
+
+# ---------- 위치 좌표·IP 가 요청 로그에 남지 않음 (#3031) ----------
+
+# 일부러 흔하지 않은 자릿수로 고른 좌표·IP — 로그에 우연히 같은 문자열이 섞일 일이 없다.
+_LAT = "37.5665123"
+_LNG = "126.9780456"
+_FORWARDED_IP = "203.0.113.77"
+_SEARCH_WORD = "zz-gangnam-probe"
+
+_COORDINATE_REQUESTS = [
+    f"/v1/places/nearby?lat={_LAT}&lng={_LNG}&category=fitness",
+    f"/v1/gyms?lat={_LAT}&lng={_LNG}",
+    f"/v1/gyms/1?lat={_LAT}&lng={_LNG}",
+    f"/v1/trainer/gyms/search?query={_SEARCH_WORD}&lat={_LAT}&lng={_LNG}",
+]
+
+
+def _capture_access_log(client, url: str) -> tuple[str, list]:
+    """한 요청의 `app.access` 출력(포맷된 줄)과 레코드를 함께 돌려준다."""
+    import io
+    import logging
+
+    from app.core.observability import RequestIdLogFilter
+
+    stream = io.StringIO()
+    handler = logging.StreamHandler(stream)
+    handler.setFormatter(logging.Formatter("[%(request_id)s] %(name)s: %(message)s"))
+    handler.addFilter(RequestIdLogFilter())
+    records: list = []
+
+    class _Keep(logging.Handler):
+        def emit(self, record):
+            records.append(record)
+
+    keep = _Keep()
+    access = logging.getLogger("app.access")
+    access.addHandler(handler)
+    access.addHandler(keep)
+    access.setLevel(logging.INFO)
+    try:
+        client.get(url, headers={"X-Forwarded-For": _FORWARDED_IP})
+    finally:
+        access.removeHandler(handler)
+        access.removeHandler(keep)
+    return stream.getvalue(), records
+
+
+@pytest.mark.parametrize("url", _COORDINATE_REQUESTS)
+def test_access_log_omits_coordinates(client, url):
+    """좌표를 쿼리로 받는 경로도 로그에는 경로만 남는다 — 인증 실패 응답이어도 같다."""
+    out, records = _capture_access_log(client, url)
+    assert records, "요청 로그가 한 줄은 남아야 한다"
+    for needle in ("lat=", "lng=", "query=", "category=", _LAT, _LNG, _SEARCH_WORD, "?"):
+        assert needle not in out, f"{needle!r} 가 액세스 로그에 남았다: {out!r}"
+
+
+@pytest.mark.parametrize("url", _COORDINATE_REQUESTS)
+def test_access_log_omits_client_ip(client, url):
+    """프록시가 넘긴 사용자 IP(X-Forwarded-For)도, 테스트 클라이언트 주소도 남지 않는다."""
+    out, records = _capture_access_log(client, url)
+    assert _FORWARDED_IP not in out
+    assert "testclient" not in out
+    for record in records:
+        assert _FORWARDED_IP not in record.getMessage()
+        assert all(_FORWARDED_IP not in str(arg) for arg in record.args or ())
+
+
+def test_access_log_keeps_method_path_status_and_request_id(client):
+    """좌표를 빼도 운영 가시성(method·경로·상태·소요시간·request_id)은 그대로다."""
+    import logging
+
+    out, records = _capture_access_log(client, _COORDINATE_REQUESTS[0])
+    assert len(records) == 1
+    assert records[0].levelno == logging.INFO
+    line = records[0].getMessage()
+    assert line.startswith("GET '/v1/places/nearby' -> ")
+    assert re.search(r"-> \d{3} \(\d+\.\dms\)$", line)
+    # X-Request-ID 를 주지 않았으니 새로 만든 32자리 요청 id 가 줄 앞에 붙는다.
+    assert re.match(r"\[[0-9a-f]{32}\] app\.access: GET ", out)
 
 
 def test_readyz_ok(client):
