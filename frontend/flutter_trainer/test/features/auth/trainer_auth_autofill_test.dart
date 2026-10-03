@@ -13,8 +13,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_repository.dart';
+import 'package:oncare_trainer/features/auth/data/repositories/signup_email_code_repositories.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
+import 'package:oncare_trainer/features/auth/domain/repositories/signup_email_code_repository.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_sign_in_page.dart';
@@ -92,6 +94,16 @@ class _AuthRepository implements TrainerAuthRepository {
         certifications: <String>[],
         gym: TrainerGym(name: '', address: '', hours: '', phone: ''),
       );
+}
+
+/// 가입 인증 코드 요청을 늘 받아 주는 페이크(#3038). 실 서버처럼 데모 코드는
+/// 주지 않는다.
+class _CodeRepository implements SignupEmailCodeRepository {
+  const _CodeRepository();
+
+  @override
+  Future<SignupEmailCodeSent> request({required String email}) async =>
+      const SignupEmailCodeSent(expiresInMinutes: 10, resendAfterSeconds: 60);
 }
 
 /// 실 API 모드.
@@ -362,6 +374,9 @@ void main() {
             appConfigProvider.overrideWithValue(_realConfig),
             ...stillBadges(),
             stillRoster(),
+            signupEmailCodeRepositoryProvider.overrideWithValue(
+              const _CodeRepository(),
+            ),
           ],
           trainerAuthRepositoryProvider.overrideWithValue(repo),
         ],
@@ -370,9 +385,19 @@ void main() {
       return repo;
     }
 
-    Future<void> fill(WidgetTester tester) async {
+    Future<void> fill(WidgetTester tester, {bool demo = false}) async {
       await _type(tester, name, '김신규');
       await _type(tester, email, 'new@oncare.com');
+      // 코드 6자리가 없으면 가입 버튼이 꺼져 있다(#3038). 데모는 데모 코드만
+      // 통과시킨다.
+      FocusManager.instance.primaryFocus?.unfocus();
+      await settle(tester);
+      await _tapKey(tester, 'trainer-signup-code-send');
+      await _type(
+        tester,
+        'trainer-signup-code',
+        demo ? MockSignupEmailCodeRepository.demoCode : '123456',
+      );
       await _type(tester, password, 'signup-pw-1234');
       await _type(tester, confirm, 'signup-pw-1234');
       // 필수 동의 없이는 가입 버튼이 꺼져 있다(#2819).
@@ -453,7 +478,7 @@ void main() {
 
     testWidgets('데모 가입에 성공해도 한 번 저장을 알린다', (tester) async {
       final _AuthRepository repo = await pumpSignUp(tester, demo: true);
-      await fill(tester);
+      await fill(tester, demo: true);
 
       await _tapKey(tester, submit);
 

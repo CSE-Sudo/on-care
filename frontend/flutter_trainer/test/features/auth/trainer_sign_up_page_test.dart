@@ -162,12 +162,19 @@ const ValueKey<String> _codeResendKey = ValueKey<String>(
 /// 실 서버 코드처럼 생긴 6자리. 데모 코드(000000)와 다르게 둔다.
 const String _validCode = '123456';
 
-/// `인증 코드 받기` 를 누른다(#3038). 남은 시간을 정확히 보려고 시간을 흘리지
-/// 않는 펌프만 쓴다 — [settle] 은 2초를 흘린다.
+/// `인증 코드 받기` 를 누른다(#3038).
+///
+/// 방금 친 이메일 칸에 초점이 남아 있으면 그 칸이 커서를 보이려고 스크롤하는
+/// 동안 화면이 누름을 받지 않는다([_submit] 과 같은 이유). 그래서 초점을 먼저
+/// 거두고 스크롤이 멎은 뒤에 누른다. 코드를 받기 전에는 남은 시간이 없어 여기서
+/// 시간을 흘려도 되고, 누른 뒤에는 남은 시간을 정확히 보려고 시간을 흘리지 않는
+/// 펌프만 쓴다.
 Future<void> _requestCode(WidgetTester tester) async {
+  FocusManager.instance.primaryFocus?.unfocus();
+  await settle(tester);
   final Finder send = find.byKey(_codeSendKey);
   await tester.ensureVisible(send);
-  await tester.pump();
+  await settle(tester);
   await tester.tap(send);
   await tester.pump();
   await tester.pump();
