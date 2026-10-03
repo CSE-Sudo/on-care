@@ -12,7 +12,7 @@ from sqlalchemy import func, select
 
 from app.schemas.diet import DietAnalysis, RecognizedFood
 
-_JPEG = b"\xff\xd8\xff\xe0\x00\x10JFIF fake-image-bytes"
+from tests.image_fixtures import JPEG as _JPEG  # 진짜 JPEG — 분석 전 정리가 픽셀을 읽는다(#3041)
 
 
 # ---------- 프롬프트 ----------

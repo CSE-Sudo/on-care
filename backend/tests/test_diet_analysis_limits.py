@@ -15,9 +15,10 @@ from fastapi import HTTPException
 
 from app.schemas.diet import DietAnalysis, RecognizedFood
 
-_JPEG = b"\xff\xd8\xff\xe0\x00\x10JFIF fake-image-bytes"
-_PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 16
-_WEBP = b"RIFF\x00\x00\x00\x00WEBPVP8 " + b"\x00" * 8
+# 진짜 이미지 — 분석 전 정리가 픽셀을 읽는다(#3041).
+from tests.image_fixtures import JPEG as _JPEG
+from tests.image_fixtures import PNG as _PNG
+from tests.image_fixtures import WEBP as _WEBP
 
 
 # ---------- rate limiter: 사용자 id 버킷 ----------
@@ -344,17 +345,21 @@ def test_non_image_bytes_are_refused_before_the_model_whatever_the_header(
         (_WEBP, "image/png", "image/webp"),
     ],
 )
-def test_the_model_receives_the_sniffed_media_type(
+def test_a_real_image_is_accepted_by_its_bytes_whatever_the_header(
     client, recognizer, kst_day, body, header, sniffed
 ):
-    """헤더는 참고만 한다 — 실제 바이트 형식을 모델에 넘긴다."""
+    """헤더는 참고만 한다 — 바이트가 받는 형식이면 통과한다. 모델에는 형식과 무관하게
+    정리된 JPEG 이 간다(#3041)."""
+    from app.services import chat_image_storage
+
+    assert chat_image_storage.sniff(body)[1] == sniffed
     rec = recognizer()
     _, h = _register(client)
 
     r = _analyze(client, h, body=body, mime=header)
 
     assert r.status_code == 200, r.text
-    assert rec.media_types == [sniffed]
+    assert rec.media_types == ["image/jpeg"]
 
 
 def test_no_usage_rows_when_rate_limiting_is_disabled(

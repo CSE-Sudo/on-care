@@ -164,6 +164,17 @@ jobs:
           set -euo pipefail
           bash .github/scripts/test_web_cache_headers.sh
 
+      - name: Test the frontend deploy checks
+        # 운영 프론트 배포의 CI 판정·백엔드 선후·응답 보안 헤더 확인 스크립트(#3017, #3018).
+        # 배포 때만 도는 스크립트라 여기서 경계를 미리 확인한다. 네트워크 대신 가짜 gh·curl 과
+        # 임시 git 저장소를 쓴다. CloudFront 헤더 정책과 두 앱 meta CSP 의 일치는 위의
+        # tool/ci 테스트(test_frontend_csp.py)가 본다.
+        run: |
+          set -euo pipefail
+          bash .github/scripts/test_frontend_ci_gate.sh
+          bash .github/scripts/test_frontend_backend_order.sh
+          bash .github/scripts/test_frontend_security_headers.sh
+
       - name: Test the backend health verifier
         # 배포 뒤 healthz·version 판정(#2821·#3029)이 오탐하면 운영 배포가 막히고, 놓치면
         # 잘못 뜬 서버가 통과한다. 통과·실패 경계를 병합 전에 확인한다.

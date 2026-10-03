@@ -8,6 +8,10 @@ SocialAuthError 계열로 바뀌는지 본다.
 - 형식 이상 → `SocialProviderResponseError` → 라우터 502
 
 DB 가 필요 없다. 네트워크 대신 `httpx.MockTransport` 로 응답을 흉내 낸다.
+
+발급 앱 확인(#3035) 뒤에도 같은 규칙이 지켜지는지 본다. 구글 본문에는 우리 앱 발급
+정보가, 카카오에는 토큰 정보 조회가 더해졌고, 네이버는 코드 교환 뒤에 쓸 프로필
+읽기(`read_profile`)를 검사한다. 발급 앱 검사 자체는 `test_social_token_audience.py`.
 """
 from __future__ import annotations
 
@@ -26,18 +30,26 @@ from app.services.social.base import (
 )
 from tests.social_provider_fakes import (
     BODY_MARKER,
+    GOOGLE_CLAIMS,
+    KAKAO_TOKEN_INFO_PATH,
     NON_OBJECT_BODIES,
     PROVIDERS,
     SECRET_TOKEN,
     respond_json,
     respond_raw,
+    use_app_ids,
 )
 
 PROVIDER_NAMES = sorted(PROVIDERS)
 
 
+@pytest.fixture(autouse=True)
+def _app_ids(monkeypatch):
+    use_app_ids(monkeypatch)
+
+
 def _verify(provider: str, token: str = SECRET_TOKEN) -> SocialIdentity:
-    return asyncio.run(PROVIDERS[provider].verifier().verify(token))
+    return asyncio.run(PROVIDERS[provider].read(token))
 
 
 def _assert_clean(exc: BaseException) -> None:
@@ -88,7 +100,7 @@ def test_naver_empty_name_falls_back_to_nickname(monkeypatch):
 
 
 def test_google_optional_fields_absent(monkeypatch):
-    respond_json(monkeypatch, {"sub": "g-1"})
+    respond_json(monkeypatch, {**GOOGLE_CLAIMS, "sub": "g-1"})
     identity = _verify("google")
     assert (identity.email, identity.name) == ("", "")
 
@@ -103,6 +115,14 @@ def test_id_is_trimmed(monkeypatch, provider):
 def test_token_is_sent_to_provider(monkeypatch, provider):
     seen = respond_json(monkeypatch, PROVIDERS[provider].valid_body("uid"))
     _verify(provider)
+    if provider == "kakao":
+        # 토큰 정보 조회(발급 앱 확인) → 사용자 정보 조회 순서, 둘 다 헤더로만 (#3035).
+        assert [r.url.path for r in seen] == [KAKAO_TOKEN_INFO_PATH, "/v2/user/me"]
+        for req in seen:
+            assert req.method == "GET"
+            assert SECRET_TOKEN not in str(req.url)
+            assert req.headers["authorization"] == f"Bearer {SECRET_TOKEN}"
+        return
     assert len(seen) == 1
     req = seen[0]
     if provider == "google":
@@ -209,10 +229,10 @@ def test_wrong_id_type_is_provider_response_error(monkeypatch, provider, uid):
 @pytest.mark.parametrize(
     "provider,body",
     [
-        ("google", {"sub": "g", "email": 1}),
-        ("google", {"sub": "g", "email": ["a@b.c"]}),
-        ("google", {"sub": "g", "name": {"first": "a"}}),
-        ("google", {"sub": "g", "name": False}),
+        ("google", {**GOOGLE_CLAIMS, "sub": "g", "email": 1}),
+        ("google", {**GOOGLE_CLAIMS, "sub": "g", "email": ["a@b.c"]}),
+        ("google", {**GOOGLE_CLAIMS, "sub": "g", "name": {"first": "a"}}),
+        ("google", {**GOOGLE_CLAIMS, "sub": "g", "name": False}),
         ("kakao", {"id": 1, "kakao_account": []}),
         ("kakao", {"id": 1, "kakao_account": "account"}),
         ("kakao", {"id": 1, "kakao_account": 3}),
