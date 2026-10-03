@@ -27,7 +27,7 @@ from app.core.security import decode_access_claims
 from app.db.init_db import DEMO_USER_ID
 from app.db.session import get_db
 from app.models.models import User
-from app.services import auth_tokens, trainer_verification_service
+from app.services import auth_tokens
 
 
 def _extract_bearer(request: Request) -> Optional[str]:
@@ -131,34 +131,6 @@ def require_trainer(
     return user
 
 
-def trainer_not_approved(message: str) -> HTTPException:
-    """승인받지 않은 트레이너에게 주는 403(#2825). `detail.code` 로 일반 권한
-    오류와 구분한다 — 트레이너 웹이 이 코드를 보고 승인 안내를 띄운다."""
-    return HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail={
-            "code": trainer_verification_service.NOT_APPROVED_CODE,
-            "message": message,
-        },
-    )
-
-
-def require_approved_trainer(
-    user: Annotated[User, Depends(require_trainer)],
-    db: Annotated[Session, Depends(get_db)],
-) -> User:
-    """운영자 승인을 받은 트레이너만(#2825). 회원 데이터로 이어지는 연결 경로
-    (연결 코드 확인·사용, 담당 요청 발송)에 건다.
-
-    승인 전이면 403 과 함께 `detail.code='trainer_not_approved'` 를 돌려준다 —
-    트레이너 웹이 일반 권한 오류와 구분해 승인 대기 안내를 띄운다. 이미 맺은 담당
-    회원의 기록은 `_require_client` 가 같은 코드로 막는다(#3009).
-    """
-    if not trainer_verification_service.is_approved(db, user.id):
-        raise trainer_not_approved("운영자 승인 뒤에 회원을 연결할 수 있습니다.")
-    return user
-
-
 def require_member(
     user: Annotated[User, Depends(require_auth)],
 ) -> User:
@@ -179,5 +151,3 @@ RequireMember = Annotated[User, Depends(require_member)]
 RequireAdmin = Annotated[User, Depends(require_admin)]
 # 트레이너 전용(트레이너 앱 엔드포인트)
 RequireTrainer = Annotated[User, Depends(require_trainer)]
-# 승인된 트레이너 전용(회원 연결 경로, #2825)
-RequireApprovedTrainer = Annotated[User, Depends(require_approved_trainer)]

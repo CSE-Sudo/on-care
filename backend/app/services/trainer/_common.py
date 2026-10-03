@@ -41,7 +41,6 @@ from app.services import (
     notification_service,
     notification_templates,
     routine_suggestion_service,
-    trainer_verification_service,
 )
 from app.services.exercise_duration import format_duration, seconds_or_minutes
 
@@ -479,12 +478,7 @@ def has_active_client_link(db: Session, trainer_id: str, member_id: str) -> bool
 
     동의가 철회된 뒤 새 동의 없이 살아 있는 링크도 `_require_client` 처럼
     막는다(#1631) — 한쪽만 동의를 보면 같은 회원이 경로에 따라 열리고 닫힌다.
-
-    운영자가 반려한 트레이너도 `_require_client` 처럼 막는다
-    (#3009). 링크는 그대로라 다시 승인하면 열린다.
     """
-    if trainer_verification_service.records_locked(db, trainer_id):
-        return False
     return db.scalar(
         select(TrainerClient.id).where(
             TrainerClient.trainer_id == trainer_id,

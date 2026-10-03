@@ -187,27 +187,6 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         "지수 회원이 담당 요청을 거절했어요.",
     ),
     (
-        nt.TRAINER_VERIFICATION_APPROVED,
-        {},
-        "",
-        "운영자 승인이 완료되었어요",
-        "이제 회원 앱 트레이너 찾기에 보이고 상담 요청·회원 연결을 받을 수 있어요.",
-    ),
-    (
-        nt.TRAINER_VERIFICATION_REJECTED,
-        {"has_note": True},
-        "서류 보완",
-        "운영자 승인이 반려되었어요",
-        "서류 보완",
-    ),
-    (
-        nt.TRAINER_VERIFICATION_REJECTED,
-        {"has_note": False},
-        "",
-        "운영자 승인이 반려되었어요",
-        "MY 에서 프로필과 소속 헬스장을 확인해 주세요.",
-    ),
-    (
         nt.TRAINER_RESERVATION_BOOKED,
         {"member_name": "지수", "starts_at": STARTS.isoformat()},
         "",
@@ -728,24 +707,6 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
         nt.TRAINER_INVITE_REJECTED,
         {"member_name": "Alex"},
         ("Coaching request declined", "Alex declined your coaching request."),
-    ),
-    (
-        nt.TRAINER_VERIFICATION_APPROVED,
-        {},
-        (
-            "Your trainer account is approved",
-            "You now appear in Find a trainer and can take consultations and connect members.",
-        ),
-    ),
-    (
-        nt.TRAINER_VERIFICATION_REJECTED,
-        {"has_note": True},
-        ("Your trainer account was not approved", None),
-    ),
-    (
-        nt.TRAINER_VERIFICATION_REJECTED,
-        {"has_note": False},
-        ("Your trainer account was not approved", "Check your profile and gym in MY."),
     ),
     (
         nt.TRAINER_RESERVATION_BOOKED,

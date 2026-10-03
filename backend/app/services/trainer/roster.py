@@ -32,7 +32,6 @@ from app.services import (
     diet_photo_service,
     exercise_activity,
     profile_format,
-    trainer_verification_service,
 )
 from app.services.trainer._common import (
     _assigned_history_out,
@@ -202,9 +201,6 @@ def build_roster(
         age_by_member[member_id] = profile_format.age_on(birth_date, today_for_age)
     # PT 관리 신호(#2203) — 기준과 계산은 client_signals 한 곳에 있다.
     signals_by_member = client_signals.build_signals(db, trainer_id, list(links))
-    # 반려된 트레이너는 담당 회원의 이름·연결 상태만 본다(#3009). 수치·미리보기는
-    # 동의 철회와 같은 방식으로 비운다 — 무엇이 잠겼는지는 알 수 있어야 한다.
-    unlocked = not trainer_verification_service.records_locked(db, trainer_id)
 
     out: list[TrainerClientOut] = []
     for link in links:
@@ -214,11 +210,7 @@ def build_roster(
         # 미등록 관계는 고객 관리의 이름·상태만 남긴다. 회원 원본 데이터는
         # 보존하되 트레이너에게 다시 노출하지 않는다. 동의가 철회된 뒤 새 동의
         # 없이 살아 있는 링크도 같다(#1631).
-        readable = (
-            unlocked
-            and link.active
-            and not data_consent_service.blocks_access(link)
-        )
+        readable = link.active and not data_consent_service.blocks_access(link)
         diet_rows = diet_by_member.get(link.member_id, []) if readable else []
         calories, sodium_mg, sugar_g, carbs_g, protein_g, fat_g = _today_totals(
             diet_rows, today_str
