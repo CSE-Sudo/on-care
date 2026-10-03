@@ -13,16 +13,16 @@ from __future__ import annotations
 
 import asyncio
 import json
-import math
 import time
 
 from google import genai
 from google.genai import types
 
 from app.core.config import get_settings
-from app.schemas.diet import DietAnalysis, RecognizedFood
+from app.schemas.diet import DietAnalysis
 from app.services.recognizer.base import FoodRecognizer
-from app.services.recognizer.locale_prompt import display_name_of, localized_prompt
+from app.services.recognizer.locale_prompt import localized_prompt
+from app.services.recognizer.parse import parse_payload
 
 _PROMPT = """당신은 전문 영양사입니다. 업로드된 음식 사진을 분석해 아래 JSON 스키마로만 응답하세요.
 설명, 마크다운, 코드블록 없이 순수 JSON만 출력합니다.
@@ -90,28 +90,11 @@ class GeminiVisionRecognizer(FoodRecognizer):
         return self._parse(response.text or "", latency_ms)
 
     def _parse(self, raw: str, latency_ms: int) -> DietAnalysis:
-        foods: list[RecognizedFood] = []
-        coach_comment = ""
+        # 값 검사·상한은 두 인식기가 같은 규칙을 쓴다(#3090, `parse.py`).
         try:
-            data = json.loads(raw)
-            coach_comment = str(data.get("coach_comment", "") or "")
-            for f in data.get("foods", []):
-                foods.append(
-                    RecognizedFood(
-                        name=str(f.get("name", "알 수 없음")),
-                        display_name=display_name_of(f),
-                        amount_g=_as_amount_g(f.get("amount_g")),
-                        calories=_as_int(f.get("calories")),
-                        carbs_g=_as_macro_float(f.get("carbs_g")),
-                        protein_g=_as_macro_float(f.get("protein_g")),
-                        fat_g=_as_macro_float(f.get("fat_g")),
-                        sodium_mg=_as_int(f.get("sodium_mg")),
-                        sugar_g=_as_int(f.get("sugar_g")),
-                        confidence=_as_float(f.get("confidence")),
-                    )
-                )
-        except (json.JSONDecodeError, AttributeError):
-            pass
+            foods, coach_comment = parse_payload(json.loads(raw))
+        except json.JSONDecodeError:
+            foods, coach_comment = [], ""
 
         return DietAnalysis(
             engine=self.name,
@@ -120,47 +103,3 @@ class GeminiVisionRecognizer(FoodRecognizer):
             latency_ms=latency_ms,
             raw_model_output=raw,
         ).compute_totals()
-
-
-def _as_int(v) -> int | None:
-    if v is None:
-        return None
-    try:
-        return int(round(float(v)))
-    except (TypeError, ValueError):
-        return None
-
-
-def _as_float(v) -> float | None:
-    if v is None:
-        return None
-    try:
-        return float(v)
-    except (TypeError, ValueError):
-        return None
-
-
-def _as_amount_g(v) -> float | None:
-    """사진에 담긴 양(g). 0·음수·비유한값은 "모름"(None)으로 눕힌다. (#2090)
-
-    `RecognizedFood.amount_g` 는 `gt=0` 이라 0 을 그대로 넘기면 검증 오류로 응답
-    파싱 전체가 깨진다. 모델이 0 을 줬다는 건 양을 모른다는 뜻이다 — 보정이
-    알려진 1회 섭취량으로 폴백하거나 추정치를 유지한다(`litellm_vision` 과 같은 규칙).
-    """
-    if v is None:
-        return None
-    try:
-        value = float(v)
-    except (TypeError, ValueError):
-        return None
-    return value if math.isfinite(value) and value > 0 else None
-
-
-def _as_macro_float(v) -> float | None:
-    if v is None:
-        return None
-    try:
-        value = float(v)
-    except (TypeError, ValueError):
-        return None
-    return value if math.isfinite(value) and value >= 0 else None

@@ -11,14 +11,14 @@ from __future__ import annotations
 
 import base64
 import json
-import math
 import re
 import time
 
 from app.core.config import get_settings
-from app.schemas.diet import DietAnalysis, RecognizedFood
+from app.schemas.diet import DietAnalysis
 from app.services.recognizer.base import FoodRecognizer
-from app.services.recognizer.locale_prompt import display_name_of, localized_prompt
+from app.services.recognizer.locale_prompt import localized_prompt
+from app.services.recognizer.parse import parse_payload
 
 _PROMPT = """당신은 전문 영양사입니다. 이 음식 사진을 분석해 아래 JSON 스키마로만 응답하세요.
 설명, 마크다운, 코드블록 없이 순수 JSON만 출력합니다.
@@ -83,71 +83,13 @@ class LiteLLMVisionRecognizer(FoodRecognizer):
         # 선행 ```lang 펜스와 후행 ``` 만 제거 (본문의 'json' 은 건드리지 않음)
         text = re.sub(r"^```[a-zA-Z]*\s*", "", text)
         text = re.sub(r"\s*```$", "", text).strip()
-        foods: list[RecognizedFood] = []
-        coach = ""
+        # 값 검사·상한은 두 인식기가 같은 규칙을 쓴다(#3090, `parse.py`).
         try:
-            data = json.loads(text)
-            coach = str(data.get("coach_comment", "") or "")
-            for f in data.get("foods", []):
-                foods.append(RecognizedFood(
-                    name=str(f.get("name", "알 수 없음")),
-                    display_name=display_name_of(f),
-                    calories=_i(f.get("calories")), sodium_mg=_i(f.get("sodium_mg")),
-                    carbs_g=_macro_f(f.get("carbs_g")),
-                    protein_g=_macro_f(f.get("protein_g")),
-                    fat_g=_macro_f(f.get("fat_g")), sugar_g=_i(f.get("sugar_g")),
-                    # 보정이 100g 기준 값을 이 양으로 환산한다 — 안 넘기면
-                    # 프롬프트가 요구해도 항상 None 이라 폴백만 탄다.
-                    amount_g=_amount_g(f.get("amount_g")),
-                    confidence=_f(f.get("confidence")),
-                ))
-        except (json.JSONDecodeError, AttributeError):
-            pass
+            foods, coach = parse_payload(json.loads(text))
+        except json.JSONDecodeError:
+            foods, coach = [], ""
         return DietAnalysis(
             engine=self.name, foods=foods, coach_comment=coach,
             latency_ms=latency_ms, raw_model_output=raw,
         ).compute_totals()
 
-
-def _i(v):
-    if v is None:
-        return None
-    try:
-        return int(round(float(v)))
-    except (TypeError, ValueError):
-        return None
-
-
-def _f(v):
-    if v is None:
-        return None
-    try:
-        return float(v)
-    except (TypeError, ValueError):
-        return None
-
-
-def _amount_g(v):
-    """추정 섭취량(g). 0·음수·비유한값은 "모름"으로 눕힌다.
-
-    `RecognizedFood.amount_g` 는 `gt=0` 이라 0 을 그대로 넘기면 검증 오류로
-    응답 파싱 전체가 깨진다. 모델이 0 을 줬다는 건 양을 모른다는 뜻이므로
-    None 이 맞다(보정이 폴백을 타거나 추정치를 유지한다).
-    """
-    if v is None:
-        return None
-    try:
-        value = float(v)
-    except (TypeError, ValueError):
-        return None
-    return value if math.isfinite(value) and value > 0 else None
-
-
-def _macro_f(v):
-    if v is None:
-        return None
-    try:
-        value = float(v)
-    except (TypeError, ValueError):
-        return None
-    return value if math.isfinite(value) and value >= 0 else None
