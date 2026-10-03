@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar, Literal, Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.schemas.health_goal_ranges import (
@@ -221,6 +221,33 @@ class PasswordResetDone(BaseModel):
     status: str = "reset"
 
 
+class SignupEmailCodeRequest(BaseModel):
+    """가입 이메일 인증 코드 요청(`POST /auth/register/email-code`, #3038).
+
+    이메일은 가입과 같은 규칙으로 검사·정규화한다(`clean_email`, 소문자) — 코드는
+    정규화한 주소에 묶이므로 가입 요청과 같은 값이어야 맞는다.
+    """
+
+    email: str
+    purpose: Literal["member_signup", "trainer_signup"]
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _check_email(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return clean_email(value)
+        return value
+
+
+class SignupEmailCodeSent(BaseModel):
+    """코드 요청 응답. 이미 가입된 주소여도 **같다** — 가입 여부를 드러내지 않는다."""
+
+    #: 코드 유효 시간(분).
+    expires_in_minutes: int
+    #: 다시 받기까지 기다리는 시간(초). 화면이 "다시 받기" 버튼을 이만큼 잠근다.
+    resend_after_seconds: int
+
+
 class SocialLoginRequest(BaseModel):
     # provider 가 준 토큰 (kakao/naver=access_token, google=id_token)
     token: str
@@ -258,6 +285,11 @@ class UserRegister(BaseModel):
     #: 가입은 되고, 동의 행이 없으므로 로그인 직후 동의 화면을 거친다. 빈
     #: 목록(`[]`)은 '보냈는데 아무것도 체크하지 않았다'라 422 다.
     consents: Optional[list[ConsentKind]] = None
+    #: 가입 전에 이 이메일로 받은 6자리 인증 코드(#3038,
+    #: `POST /auth/register/email-code`). 빠지면 핸들러가 422 `email_code_required`
+    #: 를 준다 — 스키마에서 막으면 FastAPI 목록 detail 이 되어 화면이 코드를 가를 수
+    #: 없다. `SIGNUP_EMAIL_VERIFICATION=false` 인 서버(테스트·E2E)는 보지 않는다.
+    email_code: Optional[str] = Field(default=None, max_length=16)
 
     #: 필수 항목을 고르는 역할. 트레이너 가입은 건강정보 동의가 없다.
     REQUIRED_CONSENTS_ROLE: ClassVar[str] = "member"
@@ -356,6 +388,11 @@ class ProfileView(BaseModel):
     #: 건강상태·주의사항을 마지막으로 바꾼 사람과 시각(#2942). 목표 칩 기록과 따로다.
     notes_changed_by: Optional[str] = None
     notes_changed_at: Optional[datetime] = None
+    #: 로그인 이메일을 바꾼 저장(`PUT /users/me`)에만 채운다(#3039). 바꾸면 토큰 세대가
+    #: 올라 다른 기기가 모두 로그아웃되고, 이 기기는 이 새 한 쌍으로 이어 쓴다
+    #: (`POST /users/me/password` 와 같은 규약). 그 밖의 응답에서는 null 이다.
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
 
 
 class HealthGoalsUpdate(BaseModel):
@@ -465,11 +502,25 @@ class OnboardingRequest(BaseModel):
         return value
 
 
-class AccountDeleteRequest(BaseModel):
-    """DELETE /users/me 본문 — 회원이 고른 탈퇴 사유. (#2019)
+class ReauthFields(BaseModel):
+    """민감한 계정 변경 전 본인 확인 값(#3039, `app/services/reauth.py`).
 
-    본문 없이 불러도 된다. 사유는 탈퇴를 막는 조건이 아니라 물어보는 자리다.
-    고른 것 중 서버가 아는 값만 남는다.
+    접근 토큰만으로는 탈퇴·로그인 이메일 변경을 하지 않는다 — 토큰이 새거나 잠금 없는
+    기기를 남이 들면 계정을 지우거나 가져갈 수 있다. 비밀번호가 있는 계정은
+    `current_password`, 소셜 로그인 전용 계정은 방금 다시 로그인해 받은 provider 토큰
+    (`social_provider`·`social_token`)을 보낸다.
+    """
+
+    current_password: Optional[str] = Field(default=None, max_length=256)
+    social_provider: Optional[str] = Field(default=None, max_length=20)
+    social_token: Optional[str] = Field(default=None, max_length=4096)
+
+
+class AccountDeleteRequest(ReauthFields):
+    """DELETE /users/me·/trainer/me 본문 — 탈퇴 사유와 본인 확인. (#2019, #3039)
+
+    사유는 탈퇴를 막는 조건이 아니라 물어보는 자리다. 고른 것 중 서버가 아는 값만
+    남는다. 본인 확인 값은 늘 필요하다(#3039) — 본문이 없으면 400 `reauth_required`.
     """
 
     reasons: list[str] = Field(default_factory=list, max_length=10)
@@ -482,7 +533,9 @@ class ProfileUpdate(PartialUpdate):
     핸들러가 `is not None` 으로 걸러 조용히 무시했다 — 저장된 줄 알게 된다(#495).
     """
 
-    nullable_fields: ClassVar[frozenset[str]] = frozenset({"height_cm", "weight_kg"})
+    nullable_fields: ClassVar[frozenset[str]] = frozenset(
+        {"height_cm", "weight_kg", "current_password", "social_provider", "social_token"}
+    )
 
     #: 가입과 같은 기준으로 본다(#1887) — 비울 수 없고, 컬럼에 들어가는
     #: 길이여야 한다. 전에는 `{"name": ""}` 가 200 으로 저장돼, 가입에서 필수로
@@ -509,6 +562,11 @@ class ProfileUpdate(PartialUpdate):
     gender: Optional[str] = Field(default=None, pattern="^(male|female|other|)$")
     height_cm: Optional[float] = Field(default=None, ge=50, le=300)
     weight_kg: Optional[float] = Field(default=None, ge=20, le=500)
+    #: 로그인 이메일을 **실제로** 바꿀 때만 보는 본인 확인 값(#3039, `ReauthFields`
+    #: 와 같은 뜻). 이름·연락처만 고치는 저장에는 필요 없다. 저장할 항목이 아니다.
+    current_password: Optional[str] = Field(default=None, max_length=256)
+    social_provider: Optional[str] = Field(default=None, max_length=20)
+    social_token: Optional[str] = Field(default=None, max_length=4096)
 
     # 가입(`UserRegister`)과 같은 함수를 부른다. 두 경로가 다른 기준을 쓰면
     # 한쪽이 정리한 값을 다른 쪽이 되돌린다.
