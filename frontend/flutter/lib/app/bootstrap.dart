@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logger/logger.dart';
 import 'package:oncare/app/app.dart';
 import 'package:oncare/app/session_feature_reset.dart';
@@ -8,6 +7,7 @@ import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/logging/logging_provider_observer.dart';
 import 'package:oncare/core/observability/error_reporter.dart';
+import 'package:oncare/core/platform/orientation_policy.dart';
 import 'package:oncare/core/points/demo_benefits_seed.dart';
 import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/storage/app_database.dart';
@@ -24,6 +24,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// the app inside a [ProviderScope].
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // 휴대폰은 세로로 고정한다. 태블릿·웹은 그대로 둔다(#3050).
+  await applyPhoneOrientationLock();
 
   final config = AppConfig.fromEnvironment();
   final logger = Logger(level: config.isProd ? Level.info : Level.debug);
@@ -125,14 +127,7 @@ Future<DemoBenefitsStore> prepareDemoStorage(
 Future<void> _clearTokensOnFreshInstall(AppPrefs prefs, Logger logger) async {
   if (prefs.installed) return;
   try {
-    await SecureTokenStore(
-      const FlutterSecureStorage(
-        iOptions: IOSOptions(
-          accessibility: KeychainAccessibility.first_unlock_this_device,
-        ),
-        aOptions: AndroidOptions(encryptedSharedPreferences: true),
-      ),
-    ).clear();
+    await SecureTokenStore(memberSecureStorage).clear();
   } catch (e, st) {
     logger.w('새 설치 토큰 정리 실패', error: e, stackTrace: st);
   }
