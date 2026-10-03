@@ -268,7 +268,9 @@ def test_only_live_pending_consultations_are_counted(db_session):
     _consultation(db_session, member, trainer)
     _consultation(db_session, member, trainer, status="accepted")
     _consultation(db_session, member, trainer, status="rejected")
-    _consultation(db_session, member, trainer, created_ago=timedelta(hours=30))
+    # 같은 트레이너에게 대기 요청은 하나뿐이라(부분 유일 인덱스) 만료 요청은 다른 트레이너에게 둔다.
+    other_trainer = _user(db_session, role="trainer")
+    _consultation(db_session, member, other_trainer, created_ago=timedelta(hours=30))
 
     assert _preview(db_session, member).pending_consultations == 1
 

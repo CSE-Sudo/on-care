@@ -324,7 +324,8 @@ void main() {
           scrollable: find.byType(Scrollable).first,
         );
         expect(find.text(l.myLegalPrivacyEffectiveDate), findsOneWidget);
-        expect(find.text(l.myLegalTermsEffectiveDate), findsNothing);
+        // 약관 개정(#3006)으로 두 문서의 시행일이 같은 날이 됐다 — 본문으로 구분한다.
+        expect(find.text(l.myLegalTermsBody), findsNothing);
         expect(tester.takeException(), isNull);
       });
 
@@ -340,7 +341,12 @@ void main() {
           scrollable: find.byType(Scrollable).first,
         );
         expect(find.text(l.myLegalTermsEffectiveDate), findsOneWidget);
-        expect(find.text(l.myLegalPrivacyEffectiveDate), findsNothing);
+        // 두 문서의 시행일이 같아(#3006) 날짜 대신 본문으로 약관 화면임을 본다.
+        expect(find.text(l.myLegalTermsBody), findsOneWidget);
+        expect(
+          find.text(l.myLegalPrivacyBody(LegalContact.privacyOfficerEmail)),
+          findsNothing,
+        );
       });
     }
   });
