@@ -194,11 +194,14 @@
 | DELETE | `/diet/entries/{id}` | `{ status: "deleted" }` — 그 끼니로 받은 포인트를 회수한다 |
 | POST | `/diet/nutrition` | `{ name(필수), amount_g? }` → `{ matched_name?, match(exact\|similar)?, source, amount_g?, calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` — 이름으로 찾은 공공 DB 값(#1896). 못 찾았거나 양을 정할 수 없으면 `matched_name`·`match` 가 null |
 
+**`POST /diet/analyze` 사진 정리.** 받은 사진은 인식 전에 한 번 정리한다(#3041) — EXIF 회전을 픽셀에 적용하고, EXIF(촬영 위치·시각·기기)·XMP 등 메타데이터를 모두 버린 장변 1600px 이하 JPEG(품질 85, 앱 업로드 크기와 같음)이다. 외부 인식 모델(Gemini·LiteLLM 비전)은 **원본이 아니라 이 정리본만** 받고, 끼니 사진 저장(`photo_url`, 장변 1024px)도 같은 정리본에서 만든다. PNG·WebP 도 정리본은 JPEG 이다. 같은 멱등키 재전송은 정리·인식 없이 기존 결과를 준다.
+
 **`POST /diet/analyze` 거절 응답.** 앱은 `detail.code` 로 일반 실패와 구분해 안내한다. 아래 거절은 끼니·포인트·사진을 남기지 않는다.
 
 - `503 { code: "analysis_unavailable", message }` — 사진 인식을 쓸 수 없는 설정(운영에서 인식 키 없음). 고정 식단으로 저장하지 않는다(#2812). 운영은 키가 없으면 기동부터 거부하므로 정상 배포에서는 나오지 않는다.
 - `422 { code: "no_food_detected", message }` — 사진에서 음식을 하나도 찾지 못했다. 0kcal 끼니를 저장하지 않고 포인트도 없으며, 멱등키도 쓰지 않아 같은 키로 다른 사진을 다시 보낼 수 있다(#2848).
 - `415` — 바이트가 JPG·PNG·WebP 가 아니다. 요청의 `Content-Type` 과 무관하게 바이트 시그니처로 판정하며, 모델을 부르기 전에 거절한다(#2827).
+- `415` — 형식은 맞지만 픽셀을 읽을 수 없는 사진(매직 넘버만 맞춘 손상·위장 파일). 인식 모델을 부르기 전, 하루 분석 한도를 예약하기 전에 거절하므로 한도를 깎지 않는다(#3041).
 - `429 { code: "rate_limited", message }` — 한 회원의 분당 분석 한도(`DIET_ANALYZE_PER_MINUTE`, 기본 10) 초과. `Retry-After` 헤더가 붙는다. 회원 id 로 세므로 같은 Wi-Fi 의 다른 회원에게 번지지 않는다(#2827).
 - `429 { code: "daily_limit", message }` — 한 회원의 하루(KST) 분석 상한(`DIET_ANALYZE_PER_DAY`, 기본 20) 도달. KST 자정 뒤 다시 열린다. 모델을 부르기 직전에 세며, 같은 멱등키 재전송(모델 호출 없음)과 모델 호출 실패(502·501)는 세지 않는다. 음식을 못 찾은 사진(422)은 모델을 불렀으므로 센다(#2827).
 - `engine` 쿼리는 비교실험용이다. 운영에서는 관리자만 적용되고 회원이 붙이면 무시한다. 개발용 스텁(`engine: "stub"`) 결과는 끼니로는 남지만 포인트·분석용 식판 조건에 세지 않는다(#2812).
