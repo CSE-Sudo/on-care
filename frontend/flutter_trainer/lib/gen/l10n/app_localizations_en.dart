@@ -3495,6 +3495,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifTplMemberPhotoBody => 'Sent a photo';
 
   @override
+  String notifTplWeeklyFeedbackTitle(String name) {
+    return '$name sent their weekly feedback';
+  }
+
+  @override
+  String notifTplWeeklyFeedbackRevisedTitle(String name) {
+    return '$name updated their weekly feedback';
+  }
+
+  @override
+  String notifTplWeeklyFeedbackPainTitle(String name) {
+    return '$name reported pain';
+  }
+
+  @override
+  String notifTplWeeklyFeedbackCondition(String value) {
+    return 'Condition: $value';
+  }
+
+  @override
+  String notifTplWeeklyFeedbackIntensity(String value) {
+    return 'Intensity: $value';
+  }
+
+  @override
+  String get notifTplWeeklyFeedbackPain => 'Pain reported';
+
+  @override
   String get notifAllRead => 'All caught up';
 
   @override

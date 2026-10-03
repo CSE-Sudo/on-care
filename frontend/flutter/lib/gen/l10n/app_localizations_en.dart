@@ -3613,6 +3613,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alertCategorySchedule => 'PT schedule';
 
   @override
+  String get alertCategoryPtDone => 'PT record';
+
+  @override
   String get alertCategoryTrainer => 'Trainer';
 
   @override
