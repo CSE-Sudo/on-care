@@ -17,6 +17,8 @@ import 'package:oncare/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_up_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
+import '../../helpers/signup_email_code.dart';
+
 const AppConfig _config = AppConfig(
   environment: Environment.dev,
   apiBaseUrl: 'https://dev.api.test',
@@ -33,10 +35,18 @@ class _FakeServer {
   final Object? body;
   final List<RequestOptions> requests = <RequestOptions>[];
 
+  /// 가입 인증 코드 요청(#3038). 늘 받아 준다 — 이 파일은 칸 검사를 본다.
+  final List<RequestOptions> codeRequests = <RequestOptions>[];
+
   late final Dio dio = Dio(BaseOptions(baseUrl: _config.apiBaseUrl))
     ..interceptors.add(
       InterceptorsWrapper(
         onRequest: (RequestOptions options, RequestInterceptorHandler handler) {
+          if (options.path == signupCodePath) {
+            codeRequests.add(options);
+            handler.resolve(signupCodeAccepted(options));
+            return;
+          }
           requests.add(options);
           handler.reject(
             DioException(
@@ -125,6 +135,9 @@ Future<void> _agreeAll(WidgetTester tester) async {
 /// 나가므로, 초점을 먼저 거두고 스크롤이 멎은 뒤에 누른다.
 Future<void> _submit(WidgetTester tester, String key) async {
   await _agreeAll(tester);
+  // 가입 버튼은 인증 코드 여섯 자리를 넣어야 켜진다(#3038). 이메일 칸이 틀렸으면
+  // 코드를 받지 못하고 이메일 칸 아래에 이유가 붙는다.
+  await passSignupCode(tester);
   FocusManager.instance.primaryFocus?.unfocus();
   await tester.pumpAndSettle();
   final Finder submit = find.byKey(ValueKey<String>(key));
@@ -277,6 +290,18 @@ void main() {
       expect(find.text(phoneHelper), findsOneWidget);
     });
 
+    testWidgets('이메일이 비었으면 코드를 받지 않고 이메일 칸 아래에 알린다 (#3038)', (
+      WidgetTester tester,
+    ) async {
+      final _FakeServer server = await _pump(tester, const SignUpPage());
+
+      await tapSignupCodeSend(tester);
+
+      expect(_errorUnder(email, _emailEmpty), findsOneWidget);
+      expect(find.byKey(signupCodeFieldKey), findsNothing);
+      expect(server.codeRequests, isEmpty);
+    });
+
     testWidgets('빈칸으로 제출하면 칸마다 아래에 문구를 보이고 요청하지 않는다', (
       WidgetTester tester,
     ) async {
@@ -285,10 +310,12 @@ void main() {
       // 제출하기 전에는 이름 칸에도 오류가 없다.
       expect(find.text(_nameEmpty), findsNothing);
 
+      // 가입 버튼은 코드를 넣어야 켜진다(#3038) — 이메일만 채워 코드를 받는다.
+      await _type(tester, email, 'minsu@oncare.com');
       await _submit(tester, submit);
 
       expect(_errorUnder(name, _nameEmpty), findsOneWidget);
-      expect(_errorUnder(email, _emailEmpty), findsOneWidget);
+      expect(find.text(_emailEmpty), findsNothing);
       expect(_errorUnder(phone, _phoneInvalid), findsOneWidget);
       expect(_errorUnder(password, _passwordEmpty), findsOneWidget);
       // 둘 다 비어 있으면 서로 같다 — 확인 칸은 조용하다.
@@ -417,13 +444,19 @@ void main() {
     testWidgets('형식이 틀린 칸마다 문구를 보이고 요청하지 않는다', (WidgetTester tester) async {
       final _FakeServer server = await _pump(tester, const SignUpPage());
 
+      // 이메일 형식은 코드를 받을 때 먼저 본다(#3038).
       await _type(tester, email, 'minsu@oncare');
+      await tapSignupCodeSend(tester);
+      expect(_errorUnder(email, _emailInvalid), findsOneWidget);
+      expect(server.codeRequests, isEmpty);
+
+      await _type(tester, email, 'minsu@oncare.com');
       await _type(tester, phone, '0101234');
       await _type(tester, password, 'abcdefgh');
       await _type(tester, confirm, 'abcdefgh1');
       await _submit(tester, submit);
 
-      expect(_errorUnder(email, _emailInvalid), findsOneWidget);
+      expect(find.text(_emailInvalid), findsNothing);
       expect(_errorUnder(phone, _phoneInvalid), findsOneWidget);
       expect(_errorUnder(password, _passwordWeak), findsOneWidget);
       expect(_errorUnder(confirm, _mismatch), findsOneWidget);
@@ -442,13 +475,15 @@ void main() {
       await _type(tester, phone, '0101234');
       await _type(tester, password, '12345678');
       await _type(tester, confirm, '12345678');
-      await _submit(tester, submit);
+      // 틀린 이메일로는 코드를 받지 못한다(#3038) — 이메일 칸 아래에 알린다.
+      await tapSignupCodeSend(tester);
       expect(find.text(_emailInvalid), findsOneWidget);
-      expect(find.text(_phoneInvalid), findsOneWidget);
-      expect(find.text(_passwordWeak), findsOneWidget);
 
       await _type(tester, email, 'minsu@oncare.com');
       expect(find.text(_emailInvalid), findsNothing);
+      await _submit(tester, submit);
+      expect(find.text(_phoneInvalid), findsOneWidget);
+      expect(find.text(_passwordWeak), findsOneWidget);
 
       await _type(tester, phone, '01012345678');
       expect(find.text(_phoneInvalid), findsNothing);
@@ -476,6 +511,8 @@ void main() {
       expect(data['email'], 'minsu@oncare.com');
       expect(data['phone'], '010-1234-5678');
       expect(data['password'], '1234567a');
+      // 받은 인증 코드가 가입 본문에 실린다(#3038).
+      expect(data['email_code'], '000000');
       // 이메일 중복은 서버가 알려 주는 실패라 예전처럼 토스트다.
       expect(find.text('이미 가입된 이메일이에요. 로그인해 주세요.'), findsOneWidget);
     });

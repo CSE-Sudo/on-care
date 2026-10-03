@@ -15,10 +15,14 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/app/session_feature_reset.dart';
+import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/core/storage/prefs_store.dart';
+import 'package:oncare/features/account/domain/entities/account_reauth.dart';
+import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/my_health/presentation/pages/withdraw_page.dart';
+import 'package:oncare/features/my_health/presentation/widgets/account_reauth_dialog.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -26,21 +30,36 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/mock_account_repository.dart';
 
+/// 본인 확인에서 맞다고 보는 현재 비밀번호(#3039). 테스트 전용 값이다.
+const String _currentPassword = 'pw-current-1';
+
 /// 탈퇴 요청을 받아 적고, 원하면 실패시키는 저장소.
 class _CountingAccountRepository extends MockAccountRepository {
-  _CountingAccountRepository({this.fails = false});
+  _CountingAccountRepository({this.fails = false, super.profile})
+    : super(currentPassword: _currentPassword);
 
   final bool fails;
   int deletes = 0;
   List<String> lastReasons = const <String>[];
 
   @override
-  Future<void> deleteAccount({List<String> reasons = const <String>[]}) async {
+  Future<void> deleteAccount({
+    List<String> reasons = const <String>[],
+    AccountReauth? reauth,
+  }) async {
     deletes++;
     lastReasons = reasons;
     if (fails) throw Exception('offline');
+    // 본인 확인 판정은 대역의 것 그대로다 — 틀리면 400 처럼 거절한다.
+    await super.deleteAccount(reasons: reasons, reauth: reauth);
   }
 }
+
+const AppConfig _mockConfig = AppConfig(
+  environment: Environment.dev,
+  apiBaseUrl: 'https://example.test',
+  useMockApi: true,
+);
 
 Finder _reason(String code) =>
     find.byKey(ValueKey<String>('withdrawReason-$code'));
@@ -52,6 +71,7 @@ Finder _continue() =>
 Future<(AppLocalizations, _CountingAccountRepository, AppPrefs)> _pumpWithdraw(
   WidgetTester tester, {
   bool fails = false,
+  bool hasPassword = true,
 }) async {
   await tester.binding.setSurfaceSize(const Size(390, 1200));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -84,9 +104,21 @@ Future<(AppLocalizations, _CountingAccountRepository, AppPrefs)> _pumpWithdraw(
     'locale_code': 'ko',
   });
   final SharedPreferences prefs = await SharedPreferences.getInstance();
-  final _CountingAccountRepository repository = _CountingAccountRepository(
-    fails: fails,
-  );
+  final _CountingAccountRepository repository = hasPassword
+      ? _CountingAccountRepository(fails: fails)
+      : _CountingAccountRepository(
+          fails: fails,
+          // 비밀번호 없이 소셜로만 가입한 회원(#3039).
+          profile: const UserProfile(
+            id: 'user-social',
+            name: '김민수',
+            email: 'minsu@oncare.com',
+            phone: '010-1234-5678',
+            birthDate: '1990-01-15',
+            gender: 'male',
+            hasPassword: false,
+          ),
+        );
 
   final GoRouter router = GoRouter(
     initialLocation: AppRoutes.mySettingsPath('support'),
@@ -115,6 +147,8 @@ Future<(AppLocalizations, _CountingAccountRepository, AppPrefs)> _pumpWithdraw(
         sharedPreferencesProvider.overrideWithValue(prefs),
         dioProvider.overrideWithValue(dio),
         accountRepositoryProvider.overrideWithValue(repository),
+        // 소셜 다시 로그인은 기기 안 목업 설정에서만 열린다.
+        appConfigProvider.overrideWithValue(_mockConfig),
         sessionFeatureResetOverride(),
       ],
       child: MaterialApp.router(
@@ -146,6 +180,23 @@ Future<void> _reachConfirm(WidgetTester tester) async {
   await tester.pumpAndSettle();
   await tester.tap(_continue());
   await tester.pumpAndSettle();
+}
+
+Finder _reauthPassword() =>
+    find.byKey(const ValueKey<String>('reauth-password'));
+Finder _reauthConfirm() => find.byKey(const ValueKey<String>('reauth-confirm'));
+
+AppButton _confirmButton(WidgetTester tester) =>
+    tester.widget<AppButton>(_reauthConfirm());
+
+/// 확인창에 현재 비밀번호를 적고 빨간 버튼을 누른다(#3039).
+Future<void> _confirmWithPassword(
+  WidgetTester tester, [
+  String password = _currentPassword,
+]) async {
+  await tester.enterText(_reauthPassword(), password);
+  await tester.pump();
+  await tester.tap(_reauthConfirm());
 }
 
 /// 탈퇴는 서버 요청 → 기기 기록 정리 → 세션 비우기를 차례로 기다린다.
@@ -243,12 +294,15 @@ void main() {
     await tester.tap(_reason('hard_to_use'));
     await tester.pumpAndSettle();
     await _reachConfirm(tester);
-    await tester.tap(find.text(l.myWithdrawAction));
+    await _confirmWithPassword(tester);
     await _settleDeletion(tester);
 
     expect(repo.deletes, 1);
     // 화면 글이 아니라 서버가 받는 코드로 보낸다 — 번역이 바뀌어도 집계는 잇는다.
     expect(repo.lastReasons, <String>['hard_to_use']);
+    // 적은 현재 비밀번호가 본인 확인으로 함께 나간다(#3039).
+    expect(repo.lastReauth?.currentPassword, _currentPassword);
+    expect(repo.lastReauth?.socialToken, isNull);
     expect(prefs.onboardingDone, isFalse);
     expect(prefs.homeGuideDone, isFalse);
     // 언어는 기기 설정이라 남는다.
@@ -268,7 +322,7 @@ void main() {
     await _openWithdraw(tester, l);
 
     await _reachConfirm(tester);
-    await tester.tap(find.text(l.myWithdrawAction));
+    await _confirmWithPassword(tester);
     await _settleDeletion(tester);
 
     expect(repo.deletes, 1);
@@ -276,6 +330,101 @@ void main() {
     // 계정이 남아 있는데 기기 기록만 지우면 다음 로그인에서 첫 설정을 다시 묻는다.
     expect(prefs.onboardingDone, isTrue);
     expect(find.byType(WithdrawPage), findsOneWidget);
+  });
+
+  testWidgets('현재 비밀번호를 적기 전에는 빨간 버튼이 꺼져 있다 (#3039)', (
+    WidgetTester tester,
+  ) async {
+    final (AppLocalizations l, _CountingAccountRepository repo, _) =
+        await _pumpWithdraw(tester);
+    await _openWithdraw(tester, l);
+    await _reachConfirm(tester);
+
+    expect(_reauthPassword(), findsOneWidget);
+    expect(find.text(l.reauthPasswordPrompt), findsOneWidget);
+    expect(_confirmButton(tester).onPressed, isNull);
+
+    await tester.tap(_reauthConfirm(), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(repo.deletes, 0);
+
+    await tester.enterText(_reauthPassword(), 'x');
+    await tester.pump();
+    expect(_confirmButton(tester).onPressed, isNotNull);
+
+    await tester.enterText(_reauthPassword(), '');
+    await tester.pump();
+    expect(_confirmButton(tester).onPressed, isNull);
+  });
+
+  testWidgets('비밀번호가 틀리면 창 안에 알리고 로그아웃하지 않는다 (#3039)', (
+    WidgetTester tester,
+  ) async {
+    final (
+      AppLocalizations l,
+      _CountingAccountRepository repo,
+      AppPrefs prefs,
+    ) = await _pumpWithdraw(
+      tester,
+    );
+    await _openWithdraw(tester, l);
+    await _reachConfirm(tester);
+
+    await _confirmWithPassword(tester, 'wrong-password');
+    await _settleDeletion(tester);
+
+    // 창은 그대로 열려 있고, 칸 아래에 이유가 붙는다.
+    expect(find.byType(AccountReauthDialog), findsOneWidget);
+    expect(find.text(l.passwordChangeWrongCurrent), findsOneWidget);
+    // 400 은 세션 문제가 아니다 — 기기 기록도 세션도 그대로다.
+    expect(prefs.onboardingDone, isTrue);
+    expect(find.text('로그인 화면'), findsNothing);
+    expect(find.byType(WithdrawPage), findsOneWidget);
+
+    // 다시 적으면 이유는 걷히고, 맞는 비밀번호로는 끝까지 간다.
+    await tester.enterText(_reauthPassword(), _currentPassword);
+    await tester.pump();
+    expect(find.text(l.passwordChangeWrongCurrent), findsNothing);
+    await tester.tap(_reauthConfirm());
+    await _settleDeletion(tester);
+    expect(repo.lastReauth?.currentPassword, _currentPassword);
+    expect(find.text('로그인 화면'), findsOneWidget);
+  });
+
+  testWidgets('소셜 전용 계정은 비밀번호 칸 대신 다시 로그인 버튼이다 (#3039)', (
+    WidgetTester tester,
+  ) async {
+    final (AppLocalizations l, _CountingAccountRepository repo, _) =
+        await _pumpWithdraw(tester, hasPassword: false);
+    await _openWithdraw(tester, l);
+    await _reachConfirm(tester);
+
+    expect(_reauthPassword(), findsNothing);
+    expect(find.text(l.reauthSocialAction), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('reauth-social-kakao')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('reauth-social-google')),
+      findsOneWidget,
+    );
+    // 다시 로그인하기 전에는 지울 수 없다.
+    expect(_confirmButton(tester).onPressed, isNull);
+
+    await tester.tap(find.byKey(const ValueKey<String>('reauth-social-kakao')));
+    await tester.pumpAndSettle();
+    expect(find.text(l.reauthSocialConfirmed), findsOneWidget);
+    expect(_confirmButton(tester).onPressed, isNotNull);
+
+    await tester.tap(_reauthConfirm());
+    await _settleDeletion(tester);
+
+    expect(repo.deletes, 1);
+    expect(repo.lastReauth?.socialProvider, 'kakao');
+    expect(repo.lastReauth?.socialToken, 'demo-kakao-token');
+    expect(repo.lastReauth?.currentPassword, isNull);
+    expect(find.text('로그인 화면'), findsOneWidget);
   });
 
   testWidgets('계속 쓰기로 하면 고객 지원으로 돌아간다', (WidgetTester tester) async {

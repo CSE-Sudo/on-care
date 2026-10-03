@@ -33,6 +33,7 @@ void main() {
           'email': 'new@oncare.com',
           'password': 'password123',
           'name': '홍길동',
+          'email_code': '000000',
           'consents': ?consents,
         },
         options: anyStatus,

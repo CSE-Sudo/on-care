@@ -1,8 +1,11 @@
+import 'package:oncare/features/account/domain/entities/account_reauth.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
 import 'package:oncare/features/account/domain/entities/profile_update_rejected.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/domain/repositories/account_repository.dart';
+import 'package:oncare/features/auth/domain/repositories/password_repository.dart'
+    show ReissuedTokens;
 
 /// 테스트 전용 계정 저장소. 앱은 `DioAccountRepository`(데모에서는 drift 기반
 /// LocalApiInterceptor)를 쓰고, 테스트가 `accountRepositoryProvider` 를 이것으로
@@ -11,8 +14,41 @@ class MockAccountRepository implements AccountRepository {
   MockAccountRepository({
     UserProfile profile = _demo,
     Set<String> takenEmails = const <String>{},
+    this.currentPassword,
   }) : _profile = profile,
        _takenEmails = takenEmails;
+
+  /// 본인 확인에서 맞다고 볼 현재 비밀번호(#3039). null 이면 비어 있지 않은
+  /// 비밀번호는 무엇이든 받는다.
+  final String? currentPassword;
+
+  /// 마지막으로 받은 본인 확인. 대역이 무엇을 받았는지 테스트가 확인한다.
+  AccountReauth? lastReauth;
+
+  /// 이메일을 바꾼 저장이 넘긴 새 토큰 받을 자리(#3039).
+  void Function(ReissuedTokens tokens)? lastTokensReissued;
+
+  /// 실서버의 본인 확인 판정을 흉내 낸다(#3039).
+  void _checkReauth(AccountReauth? reauth) {
+    lastReauth = reauth;
+    if (reauth == null) {
+      throw const AccountReauthRejected(AccountReauthFailure.required);
+    }
+    final String? password = reauth.currentPassword;
+    if (password != null) {
+      if (password.isEmpty) {
+        throw const AccountReauthRejected(AccountReauthFailure.required);
+      }
+      if (currentPassword != null && password != currentPassword) {
+        throw const AccountReauthRejected(AccountReauthFailure.wrongPassword);
+      }
+      return;
+    }
+    final String? provider = reauth.socialProvider;
+    if (provider == null || reauth.socialToken != 'demo-$provider-token') {
+      throw const AccountReauthRejected(AccountReauthFailure.invalidSocial);
+    }
+  }
 
   /// 다른 계정이 이미 쓰는 이메일. 여기 있는 주소로 바꾸면 실서버처럼 이메일
   /// 중복으로 거절한다(#2639). 기본은 비어 있다.
@@ -54,7 +90,12 @@ class MockAccountRepository implements AccountRepository {
   List<String> deletedWithReasons = const <String>[];
 
   @override
-  Future<void> deleteAccount({List<String> reasons = const <String>[]}) async {
+  Future<void> deleteAccount({
+    List<String> reasons = const <String>[],
+    AccountReauth? reauth,
+  }) async {
+    // 탈퇴는 언제나 본인 확인을 거친다(#3039).
+    _checkReauth(reauth);
     deletedWithReasons = reasons;
   }
 
@@ -113,11 +154,16 @@ class MockAccountRepository implements AccountRepository {
     String? gender,
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
+    AccountReauth? reauth,
+    void Function(ReissuedTokens tokens)? onTokensReissued,
   }) async {
     // 실서버(`PUT /users/me`)와 같은 판정 — 자기 이메일 그대로면 통과한다.
     final String? nextEmail = email?.trim().toLowerCase();
-    if (nextEmail != null &&
-        nextEmail != _profile.email.trim().toLowerCase() &&
+    final bool emailChanged =
+        nextEmail != null && nextEmail != _profile.email.trim().toLowerCase();
+    // 이메일을 바꿀 때만 본인 확인이 먼저다 — 중복 검사는 그 뒤다(#3039).
+    if (emailChanged) _checkReauth(reauth);
+    if (emailChanged &&
         _takenEmails.any((String e) => e.trim().toLowerCase() == nextEmail)) {
       throw const ProfileUpdateRejected(ProfileUpdateRejection.emailTaken);
     }
@@ -133,6 +179,10 @@ class MockAccountRepository implements AccountRepository {
       heightCm: heightCm,
       weightKg: weightKg,
     );
+    // 이메일이 바뀌면 실서버는 새 토큰 한 쌍을 준다(#3039). 대역은 부르지 않고
+    // 받아 둔다 — 부르면 세션 컨트롤러가 깨어나 저장소·네트워크를 찾는다.
+    // 화면이 토큰을 받을 자리를 넘겼는지는 테스트가 이것으로 본다.
+    if (emailChanged) lastTokensReissued = onTokensReissued;
     return _profile;
   }
 
@@ -171,12 +221,8 @@ class MockAccountRepository implements AccountRepository {
     birthDate: birthDate ?? _profile.birthDate,
     gender: gender ?? _profile.gender,
     // 인자를 주지 않으면 손대지 않고, 값이 null 이면 지운다(#1941).
-    heightCm: heightCm == null
-        ? _profile.heightCm
-        : heightCm.value?.toDouble(),
-    weightKg: weightKg == null
-        ? _profile.weightKg
-        : weightKg.value?.toDouble(),
+    heightCm: heightCm == null ? _profile.heightCm : heightCm.value?.toDouble(),
+    weightKg: weightKg == null ? _profile.weightKg : weightKg.value?.toDouble(),
     dailyCalories: dailyCalories ?? _profile.dailyCalories,
     dailySodiumMg: dailySodiumMg ?? _profile.dailySodiumMg,
     dailySugarG: dailySugarG ?? _profile.dailySugarG,

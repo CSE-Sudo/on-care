@@ -12,6 +12,7 @@ import 'package:logger/logger.dart';
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/account/data/repositories/dio_account_repository.dart';
+import 'package:oncare/features/account/domain/entities/account_reauth.dart';
 import 'package:oncare/features/account/domain/entities/profile_update_rejected.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 
@@ -56,6 +57,10 @@ DioAccountRepository _serverRepo(int status, Object? body) {
   addTearDown(dio.close);
   return DioAccountRepository(dio);
 }
+
+/// 이메일을 바꾸는 저장은 본인 확인을 함께 보낸다(#3039). 데모 회원은 로그인
+/// 없이 둘러보는 중이라 비어 있지 않은 비밀번호면 받는다. 테스트 전용 값이다.
+const AccountReauth _reauth = AccountReauth.password('pw-current-1');
 
 void main() {
   group('ProfileUpdateRejected.fromResponse', () {
@@ -181,14 +186,18 @@ void main() {
 
     test('데모 세계의 다른 계정 이메일이면 이메일 중복으로 올린다', () async {
       await expectLater(
-        repo.updateProfile(email: 'trainer@oncare.com'),
+        repo.updateProfile(email: 'trainer@oncare.com', reauth: _reauth),
         _rejectedWith(ProfileUpdateRejection.emailTaken),
       );
     });
 
     test('거절된 저장은 아무것도 바꾸지 않는다', () async {
       await expectLater(
-        repo.updateProfile(name: '바뀐 이름', email: 'jisu@oncare.com'),
+        repo.updateProfile(
+          name: '바뀐 이름',
+          email: 'jisu@oncare.com',
+          reauth: _reauth,
+        ),
         _rejectedWith(ProfileUpdateRejection.emailTaken),
       );
       final UserProfile after = await repo.fetchProfile();
@@ -208,6 +217,7 @@ void main() {
     test('아무도 쓰지 않는 새 이메일이면 저장된다', () async {
       final UserProfile saved = await repo.updateProfile(
         email: 'minsu.new@oncare.com',
+        reauth: _reauth,
       );
       expect(saved.email, 'minsu.new@oncare.com');
     });
@@ -245,18 +255,27 @@ void main() {
     }
 
     test('다른 계정 이메일은 서버와 같은 409 와 문장 detail', () async {
-      final res = await put(<String, Object?>{'email': 'trainer@oncare.com'});
+      final res = await put(<String, Object?>{
+        'email': 'trainer@oncare.com',
+        ..._reauth.toJson(),
+      });
       expect(res.statusCode, 409);
       expect((res.data! as Map)['detail'], isA<String>());
     });
 
     test('대소문자·앞뒤 공백이 달라도 같은 이메일로 본다', () async {
-      final res = await put(<String, Object?>{'email': ' Trainer@OnCare.com '});
+      final res = await put(<String, Object?>{
+        'email': ' Trainer@OnCare.com ',
+        ..._reauth.toJson(),
+      });
       expect(res.statusCode, 409);
     });
 
     test('담당 회원 명단의 이메일도 409 다', () async {
-      final res = await put(<String, Object?>{'email': 'hayun@oncare.demo'});
+      final res = await put(<String, Object?>{
+        'email': 'hayun@oncare.demo',
+        ..._reauth.toJson(),
+      });
       expect(res.statusCode, 409);
     });
 
@@ -279,7 +298,7 @@ void main() {
         takenEmails: const <String>{'trainer@oncare.com'},
       );
       await expectLater(
-        repo.updateProfile(email: 'TRAINER@oncare.com'),
+        repo.updateProfile(email: 'TRAINER@oncare.com', reauth: _reauth),
         _rejectedWith(ProfileUpdateRejection.emailTaken),
       );
       expect((await repo.fetchProfile()).email, 'minsu@oncare.com');
@@ -289,6 +308,7 @@ void main() {
       final repo = MockAccountRepository();
       final UserProfile saved = await repo.updateProfile(
         email: 'trainer@oncare.com',
+        reauth: _reauth,
       );
       expect(saved.email, 'trainer@oncare.com');
     });
