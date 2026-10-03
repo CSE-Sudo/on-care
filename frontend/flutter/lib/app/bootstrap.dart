@@ -39,7 +39,9 @@ Future<void> bootstrap() async {
     logger.e(
       'oncare release build misconfigured: ${problems.map((p) => p.name).join(',')}',
     );
-    runApp(MisconfiguredBuildApp(problems: problems));
+    // 안내 화면은 provider 를 읽지 않지만, 앱 루트는 늘 ProviderScope 아래에 둔다
+    // (riverpod_lint missing_provider_scope).
+    runApp(ProviderScope(child: MisconfiguredBuildApp(problems: problems)));
     return;
   }
 
