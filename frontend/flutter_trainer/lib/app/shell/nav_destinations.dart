@@ -79,7 +79,7 @@ String navLabel(AppLocalizations l, NavLabel label) => switch (label) {
   NavLabel.consultations => l.navConsultations,
 };
 
-/// 운영 화면(트레이너 승인) 갈래 번호 — 내 정보·알림함 뒤에 붙는다 (#3008).
+/// 운영 화면(신고·계정 관리) 갈래 번호 — 내 정보·알림함 뒤에 붙는다 (#3008).
 ///
 /// 운영자 계정에만 사이드바 행이 생기므로 [navDestinations] 에 넣지 않는다 —
 /// 넣으면 모든 트레이너의 갈래 순서가 운영자 여부에 따라 달라진다.

@@ -1,55 +1,50 @@
+import 'package:oncare_trainer/features/admin/domain/entities/admin_report.dart';
 import 'package:oncare_trainer/features/admin/domain/entities/admin_trainer.dart';
-import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 
-/// `AdminTrainerVerificationOut` → [AdminTrainer] (#3008).
+/// `AdminTrainerOut` → [AdminTrainer] (#3008).
 ///
-/// 모양: `{ trainer_id, name, email, specialty, career_years, certifications[],
-/// gym_id, gym_name, gym_address, gym_is_fitness, status, decided_at,
-/// decided_by, note, created_at, is_active }`. `is_active` 가 없는 예전 서버는
-/// 살아 있는 계정으로 읽는다 — 정지 기능 이전에는 정지된 계정이 없었다.
-AdminTrainer adminTrainerFromJson(Map<String, Object?> json) {
-  final Object? certs = json['certifications'];
-  final Object? gymId = json['gym_id'];
-  return AdminTrainer(
-    trainerId: _str(json['trainer_id']),
-    name: _str(json['name']).trim(),
-    email: _str(json['email']),
-    specialty: _str(json['specialty']).trim(),
-    careerYears: switch (json['career_years']) {
-      final num years => years.toInt(),
-      _ => 0,
-    },
-    certifications: certs is List
-        ? certs
-              .whereType<String>()
-              .map((String c) => c.trim())
-              .where((String c) => c.isNotEmpty)
-              .toList(growable: false)
-        : const <String>[],
-    gymName: _str(json['gym_name']).trim(),
-    gymAddress: _str(json['gym_address']).trim(),
-    gymIsFitness: json['gym_is_fitness'] == true,
-    hasGym: gymId is String && gymId.isNotEmpty,
-    status: TrainerVerificationStatus.fromWire(json['status']),
-    note: _str(json['note']).trim(),
-    isActive: json['is_active'] != false,
-    decidedAt: _date(json['decided_at']),
-    createdAt: _date(json['created_at']),
-  );
-}
+/// 모양: `{ trainer_id, name, email, gym_name, gym_address, is_active,
+/// created_at, open_reports }`. `is_active` 가 없으면 살아 있는 계정으로 읽는다.
+AdminTrainer adminTrainerFromJson(Map<String, Object?> json) => AdminTrainer(
+  trainerId: _str(json['trainer_id']),
+  name: _str(json['name']).trim(),
+  email: _str(json['email']),
+  gymName: _str(json['gym_name']).trim(),
+  gymAddress: _str(json['gym_address']).trim(),
+  isActive: json['is_active'] != false,
+  openReports: _int(json['open_reports']),
+  createdAt: _date(json['created_at']),
+);
 
-/// `AdminUserStatusOut` → [AdminUserStatus] (#3009).
+/// `AdminTrainerReportOut` → [AdminTrainerReport] (#3008).
+///
+/// 모양: `{ id, trainer_id, trainer_name, trainer_email, trainer_is_active,
+/// reason, memo, status, created_at, resolved_at }`.
+AdminTrainerReport adminTrainerReportFromJson(Map<String, Object?> json) =>
+    AdminTrainerReport(
+      id: _str(json['id']),
+      trainerId: _str(json['trainer_id']),
+      trainerName: _str(json['trainer_name']).trim(),
+      trainerEmail: _str(json['trainer_email']),
+      trainerIsActive: json['trainer_is_active'] != false,
+      reason: AdminReportReason.fromWire(json['reason']),
+      memo: _str(json['memo']).trim(),
+      status: AdminReportStatus.fromWire(json['status']),
+      createdAt: _date(json['created_at']),
+      resolvedAt: _date(json['resolved_at']),
+    );
+
+/// `AdminUserStatusOut` → [AdminUserStatus].
 AdminUserStatus adminUserStatusFromJson(Map<String, Object?> json) =>
     AdminUserStatus(
       userId: _str(json['user_id']),
       isActive: json['is_active'] == true,
-      releasedClients: switch (json['released_clients']) {
-        final num n => n.toInt(),
-        _ => 0,
-      },
+      releasedClients: _int(json['released_clients']),
     );
 
 String _str(Object? value) => value is String ? value : '';
+
+int _int(Object? value) => value is num ? value.toInt() : 0;
 
 DateTime? _date(Object? value) =>
     value is String ? DateTime.tryParse(value)?.toLocal() : null;

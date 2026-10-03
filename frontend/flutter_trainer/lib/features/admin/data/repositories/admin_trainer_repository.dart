@@ -4,27 +4,32 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/features/admin/data/dtos/admin_trainer_dtos.dart';
+import 'package:oncare_trainer/features/admin/domain/entities/admin_report.dart';
 import 'package:oncare_trainer/features/admin/domain/entities/admin_trainer.dart';
 
-/// 반려 사유 최대 길이 — 서버 `TrainerRejectIn.reason` 의 `max_length` 와 같다.
-const int kTrainerRejectReasonMaxLength = 300;
-
-/// 운영 화면의 트레이너 승인·반려·계정 정지 (#3008·#3009).
+/// 운영 화면 `신고·계정 관리` 의 서버 경로 (#3008).
 ///
-/// 서버 `/admin/*` 경로를 그대로 부른다. 권한은 서버가 `RequireAdmin` 으로 따로
-/// 확인한다 — 이 화면이 운영자에게만 보이는 것은 편의일 뿐 차단이 아니다.
+/// 회원 신고 목록·처리, 트레이너 검색, 계정 정지·해제. 서버 `/admin/*` 경로를
+/// 그대로 부른다. 권한은 서버가 `RequireAdmin` 으로 따로 확인한다 — 이 화면이
+/// 운영자에게만 보이는 것은 편의일 뿐 차단이 아니다.
 ///
 /// 데모 구현은 없다. 데모 프로필은 운영자가 아니라 사이드바에 메뉴가 없고, 주소로
 /// 열어도 화면이 찾을 수 없음 안내로 끝난다.
 abstract interface class AdminTrainerRepository {
-  /// [filter] 상태의 트레이너. 서버 순서(가입 순)를 그대로 둔다.
-  Future<List<AdminTrainer>> fetch(AdminTrainerFilter filter);
+  /// [filter] 상태의 신고. 서버 순서(최근 순)를 그대로 둔다.
+  Future<List<AdminTrainerReport>> fetchReports(AdminReportFilter filter);
 
-  /// 승인한다. 이미 승인이면 그대로다.
-  Future<AdminTrainer> approve(String trainerId);
+  /// 신고를 닫는다 — 조치함 또는 넘김. 계정 상태는 바꾸지 않는다.
+  Future<AdminTrainerReport> closeReport(
+    String reportId,
+    AdminReportOutcome outcome,
+  );
 
-  /// 반려한다. [reason] 은 트레이너 웹에 그대로 보인다(빈 값 가능).
-  Future<AdminTrainer> reject(String trainerId, {String reason = ''});
+  /// 트레이너 목록. [query] 는 이름·이메일 부분 일치(빈 값이면 전체).
+  Future<List<AdminTrainer>> fetchTrainers({
+    String query = '',
+    AdminTrainerState state = AdminTrainerState.all,
+  });
 
   /// 계정을 정지한다 — 로그아웃·담당 해제까지 서버가 한다.
   Future<AdminUserStatus> suspend(String userId);
@@ -41,15 +46,17 @@ class DioAdminTrainerRepository implements AdminTrainerRepository {
   final Dio _dio;
 
   @override
-  Future<List<AdminTrainer>> fetch(AdminTrainerFilter filter) async {
+  Future<List<AdminTrainerReport>> fetchReports(
+    AdminReportFilter filter,
+  ) async {
     try {
       final Response<List<dynamic>> res = await _dio.get<List<dynamic>>(
-        '/admin/trainers',
+        '/admin/trainer-reports',
         queryParameters: <String, String>{'status': filter.wire},
       );
       return (res.data ?? const <dynamic>[])
           .whereType<Map<String, Object?>>()
-          .map(adminTrainerFromJson)
+          .map(adminTrainerReportFromJson)
           .toList(growable: false);
     } on DioException catch (e) {
       throw AppError.fromDio(e);
@@ -57,25 +64,44 @@ class DioAdminTrainerRepository implements AdminTrainerRepository {
   }
 
   @override
-  Future<AdminTrainer> approve(String trainerId) =>
-      _decide('/admin/trainers/$trainerId/approve');
-
-  @override
-  Future<AdminTrainer> reject(String trainerId, {String reason = ''}) =>
-      _decide(
-        '/admin/trainers/$trainerId/reject',
-        body: <String, Object?>{'reason': reason.trim()},
-      );
-
-  Future<AdminTrainer> _decide(String path, {Object? body}) async {
+  Future<AdminTrainerReport> closeReport(
+    String reportId,
+    AdminReportOutcome outcome,
+  ) async {
     try {
       final Response<Map<String, Object?>> res = await _dio
-          .post<Map<String, Object?>>(path, data: body);
+          .post<Map<String, Object?>>(
+            '/admin/trainer-reports/$reportId/close',
+            data: <String, Object?>{'outcome': outcome.wire},
+          );
       final Map<String, Object?>? data = res.data;
       if (data == null) {
-        throw const ServerError(message: 'empty admin trainer response');
+        throw const ServerError(message: 'empty admin report response');
       }
-      return adminTrainerFromJson(data);
+      return adminTrainerReportFromJson(data);
+    } on DioException catch (e) {
+      throw AppError.fromDio(e);
+    }
+  }
+
+  @override
+  Future<List<AdminTrainer>> fetchTrainers({
+    String query = '',
+    AdminTrainerState state = AdminTrainerState.all,
+  }) async {
+    final String q = query.trim();
+    try {
+      final Response<List<dynamic>> res = await _dio.get<List<dynamic>>(
+        '/admin/trainers',
+        queryParameters: <String, String>{
+          if (q.isNotEmpty) 'q': q,
+          'state': state.wire,
+        },
+      );
+      return (res.data ?? const <dynamic>[])
+          .whereType<Map<String, Object?>>()
+          .map(adminTrainerFromJson)
+          .toList(growable: false);
     } on DioException catch (e) {
       throw AppError.fromDio(e);
     }
@@ -110,17 +136,53 @@ final adminTrainerRepositoryProvider = Provider<AdminTrainerRepository>((ref) {
   return DioAdminTrainerRepository(ref.watch(dioProvider));
 }, name: 'adminTrainerRepository');
 
-/// 운영 화면의 상태 칩. 기본은 처리할 것이 있는 승인 대기다.
-final adminTrainerFilterProvider =
-    StateProvider.autoDispose<AdminTrainerFilter>(
-      (ref) => AdminTrainerFilter.pending,
-      name: 'adminTrainerFilter',
-    );
+/// 운영 화면의 두 갈래 — 신고와 트레이너.
+enum AdminSection {
+  /// 회원 신고(기본).
+  reports,
 
-/// 고른 칩의 트레이너 목록. 처리한 뒤에는 화면이 다시 읽는다.
+  /// 트레이너 찾기·정지.
+  trainers,
+}
+
+/// 지금 보는 갈래.
+final adminSectionProvider = StateProvider.autoDispose<AdminSection>(
+  (ref) => AdminSection.reports,
+  name: 'adminSection',
+);
+
+/// 신고 목록의 상태 칩. 기본은 처리할 것이 있는 처리 전이다.
+final adminReportFilterProvider = StateProvider.autoDispose<AdminReportFilter>(
+  (ref) => AdminReportFilter.open,
+  name: 'adminReportFilter',
+);
+
+/// 고른 칩의 신고 목록. 처리한 뒤에는 화면이 다시 읽는다.
+final adminReportsProvider =
+    FutureProvider.autoDispose<List<AdminTrainerReport>>((ref) {
+      final AdminReportFilter filter = ref.watch(adminReportFilterProvider);
+      return ref.watch(adminTrainerRepositoryProvider).fetchReports(filter);
+    }, name: 'adminReports');
+
+/// 트레이너 목록의 검색어 — 검색창에서 보내기(엔터)를 누를 때 바뀐다.
+final adminTrainerQueryProvider = StateProvider.autoDispose<String>(
+  (ref) => '',
+  name: 'adminTrainerQuery',
+);
+
+/// 트레이너 목록의 상태 칩.
+final adminTrainerStateProvider = StateProvider.autoDispose<AdminTrainerState>(
+  (ref) => AdminTrainerState.all,
+  name: 'adminTrainerState',
+);
+
+/// 검색어·상태 칩에 맞는 트레이너 목록.
 final adminTrainersProvider = FutureProvider.autoDispose<List<AdminTrainer>>((
   ref,
 ) {
-  final AdminTrainerFilter filter = ref.watch(adminTrainerFilterProvider);
-  return ref.watch(adminTrainerRepositoryProvider).fetch(filter);
+  final String query = ref.watch(adminTrainerQueryProvider);
+  final AdminTrainerState state = ref.watch(adminTrainerStateProvider);
+  return ref
+      .watch(adminTrainerRepositoryProvider)
+      .fetchTrainers(query: query, state: state);
 }, name: 'adminTrainers');

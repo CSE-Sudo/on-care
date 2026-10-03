@@ -6,7 +6,7 @@ import 'package:oncare_trainer/app/router/not_found_page.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/app_shell.dart';
 import 'package:oncare_trainer/core/observability/error_reporter.dart';
-import 'package:oncare_trainer/features/admin/presentation/pages/admin_trainers_page.dart';
+import 'package:oncare_trainer/features/admin/presentation/pages/admin_reports_page.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_consent_page.dart';
@@ -122,7 +122,7 @@ String? clientChatRedirect(String? id, String? section) {
 /// behind an auth gate, plus the auth routes.
 ///
 /// Branches 0–5 are the sidebar destinations in [navDestinations] order;
-/// branch 6 is 내 정보, branch 7 is 알림함 and branch 8 is 트레이너 승인
+/// branch 6 is 내 정보, branch 7 is 알림함 and branch 8 is 신고·계정 관리
 /// (운영자 전용, #3008). 상담 요청은 스케줄 branch의
 /// 하위 페이지라, 열어 둔 동안에도 사이드바는 스케줄을 현재 작업 공간으로
 /// 표시한다(#1228).
@@ -291,8 +291,8 @@ GoRouter buildAppRouter({
           StatefulShellBranch(
             routes: <RouteBase>[
               GoRoute(
-                path: AppRoutes.adminTrainers,
-                builder: (context, state) => const AdminTrainersPage(),
+                path: AppRoutes.adminReports,
+                builder: (context, state) => const AdminReportsPage(),
               ),
             ],
           ),

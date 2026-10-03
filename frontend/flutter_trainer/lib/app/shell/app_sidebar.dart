@@ -6,7 +6,7 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/nav_destinations.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
-import 'package:oncare_trainer/features/admin/presentation/pages/admin_trainers_page.dart';
+import 'package:oncare_trainer/features/admin/presentation/pages/admin_reports_page.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/my/data/trainer_settings.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -297,7 +297,7 @@ class _NavTile extends StatelessWidget {
   }
 }
 
-/// 트레이너 승인 — 운영자 전용 행 (#3008). [_NavTile] 과 같은 부품이다.
+/// 신고·계정 관리 — 운영자 전용 행 (#3008). [_NavTile] 과 같은 부품이다.
 class _AdminTile extends StatelessWidget {
   const _AdminTile({
     required this.selected,
@@ -316,9 +316,9 @@ class _AdminTile extends StatelessWidget {
       child: Semantics(
         inMutuallyExclusiveGroup: true,
         child: AppSidebarItem(
-          key: const ValueKey<String>('sidebar-${AppRoutes.adminTrainers}'),
-          icon: AppIcons.verified,
-          label: AppLocalizations.of(context).navAdminTrainers,
+          key: const ValueKey<String>('sidebar-${AppRoutes.adminReports}'),
+          icon: AppIcons.attention,
+          label: AppLocalizations.of(context).navAdminReports,
           selected: selected,
           collapsed: !expanded,
           onTap: onTap,

@@ -2123,7 +2123,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myLegalPrivacyBody =>
-      'On-Care(이하 \"회사\")는 「개인정보 보호법」 등 관련 법령을 준수하며, 트레이너와 회원의 개인정보를 소중히 보호합니다.\n\n1. 수집하는 개인정보 항목\n① 트레이너 가입: 이메일, 비밀번호(암호화하여 저장), 이름, 연락처.\n② 프로필과 자격 확인: 소속 헬스장, 자격증, 경력, 전문 분야 등 프로필 정보.\n③ 서비스 이용 중 남기는 정보: 회원에게 보낸 메시지와 첨부 사진, 리포트와 코칭 내용, 일정·예약 정보, 회원 메모.\n④ 자동으로 생성되는 정보: 로그인·비밀번호 변경 등 접속 기록(일시, IP 주소)과, 오류가 났을 때의 오류 내용·브라우저와 운영체제 종류·앱 버전.\n\n2. 개인정보의 수집 및 이용 목적\n수집한 정보는 트레이너 식별과 운영자의 소속·자격 확인(승인 전에는 회원에게 노출되지 않음), 담당 회원 연결, 일정·메시지·리포트 기능 제공, 서비스 개선 및 문의 응대의 목적으로만 이용됩니다.\n\n3. 담당 회원 정보의 열람과 처리\n① 트레이너는 담당 관계가 성립한 회원에 한하여 그 회원이 기록한 식단·운동·체중 등 건강 정보를 서비스 안에서 열람할 수 있습니다.\n② 이 정보의 개인정보처리자는 회사이며, 트레이너는 회사가 정한 범위 안에서 코칭과 리포트 작성 목적으로만 이를 처리합니다. 회원의 건강정보는 민감정보로서 회원의 별도 동의와 데이터 공유 동의가 있을 때만 열람할 수 있습니다.\n③ 트레이너가 작성해 전송한 리포트와 메시지는 해당 회원에게 전달되고 서비스에 기록으로 남습니다.\n④ 담당 관계가 종료되면 해당 회원 정보에 대한 열람 권한은 즉시 회수되며, 회원은 자신의 정보 제공에 대한 동의를 언제든지 철회할 수 있습니다.\n\n4. 개인정보의 보유 및 이용 기간\n트레이너의 개인정보는 탈퇴 시까지 보유·이용하며, 탈퇴하면 8항의 절차에 따라 지체 없이 파기합니다. 다만 다음 기록은 정해진 기간 동안 보관한 뒤 파기합니다.\n- 로그인 등 접속 기록: 1년(「통신비밀보호법」상 로그인 기록 보존 의무 3개월 포함)\n- 트레이너의 회원 건강정보 열람 기록, 정보 제공 동의·철회 기록, 탈퇴 기록: 2년(「개인정보의 안전성 확보조치 기준」에 따른 처리 기록 보관)\n회원에게 전송된 리포트와 메시지는 회원의 기록이므로 회원의 보관 기간을 따릅니다.\n\n5. 개인정보의 제3자 제공\n회사는 트레이너와 회원의 동의 없이 개인정보를 외부에 제공하지 않습니다. 업무 처리를 맡기는 위탁은 6항과 7항을 따릅니다. 다만 법령에 특별한 규정이 있는 경우는 예외로 합니다.\n\n6. 개인정보 처리의 위탁\n회사는 서비스 제공을 위해 다음 업무를 외부 업체에 위탁합니다. 수탁자가 바뀌면 이 처리방침을 고쳐 알립니다.\n- Amazon Web Services, Inc.: 서버 운영, 채팅 사진·리포트 PDF 파일 보관\n- Neon: 데이터베이스 운영(계정 정보와 모든 기록 보관)\n- Google LLC: AI 코칭 프로그램·루틴 후보와 리포트 요약 생성(Gemini API)\n- 주식회사 카카오: 헬스장 검색과 지도 표시\n- Functional Software, Inc.(Sentry): 웹·서버 오류 수집과 분석\n\n7. 개인정보의 국외 이전\n회사는 트레이너와의 계약을 이행하기 위해 다음과 같이 개인정보를 국외에서 처리·보관하도록 위탁하며, 「개인정보 보호법」 제28조의8 제1항 제3호에 따라 이 처리방침으로 알립니다. 이전은 서비스를 이용할 때마다 암호화된 네트워크로 전송하는 방법으로 이루어집니다.\n① Amazon Web Services, Inc. / 싱가포르 / 트레이너 정보와 기록 전반, 채팅 첨부 사진과 리포트 PDF / 서버 운영과 파일 보관 / 탈퇴 또는 위탁 계약 종료 시까지\n② Neon / 싱가포르 / 계정·프로필, 메시지·리포트·일정 기록 / 데이터베이스 운영 / 탈퇴 또는 위탁 계약 종료 시까지\n③ Google LLC / 미국 등 Google이 운영하는 데이터센터 소재 국가 / AI 기능을 쓸 때 입력한 코칭 조건과 담당 회원의 운동 기록·주간 리포트 수치 / AI 프로그램·요약 생성 / 요청 처리 후 수탁자의 서비스 약관에서 정한 기간\n④ Functional Software, Inc.(Sentry) / 미국 / 오류 내용, 브라우저와 운영체제 종류·앱 버전(이름·이메일·IP 주소·요청 내용은 보내지 않음) / 오류 분석 / 수탁자의 보관 기간\n국외 이전을 원하지 않으면 탈퇴로 거부할 수 있으나, 이 경우 서비스를 이용할 수 없습니다.\n\n8. 개인정보의 파기 절차 및 방법\n① 절차: 트레이너가 탈퇴하면 즉시 계정과 함께 프로필, 담당 회원과의 연결과 대화(첨부 사진·리포트 PDF 파일 포함), 루틴·프로그램, 일정과 예약 가능 시간, 알림을 삭제하고, 담당 회원과 예약한 회원에게 그 사실을 알립니다. 회원이 보낸 상담 요청은 회원의 기록이므로 트레이너 정보만 지운 채 남습니다. 4항에 따라 보관하는 기록은 기간이 지나면 자동으로 삭제합니다.\n② 방법: 전자적 파일 형태의 정보는 데이터베이스와 파일 저장소에서 삭제하며, 데이터베이스 복구용 백업에 남은 사본은 백업 보관 기간이 지나면 함께 사라집니다. 회사는 개인정보를 종이 문서로 처리하지 않습니다.\n\n9. 개인정보 자동 수집 장치의 설치·운영 및 거부\n회사는 광고·행태 분석을 위한 쿠키나 추적 도구를 쓰지 않습니다. 로그인 상태를 유지하기 위해 브라우저 저장소에 인증 정보를 보관하며, 로그아웃하거나 브라우저 데이터를 지우면 삭제됩니다.\n\n10. 안전성 확보 조치\n회사는 비밀번호를 암호화하여 저장하고, 회원 정보에 대한 접근 권한을 담당 관계를 기준으로 제한하며, 전송 구간을 암호화합니다. 열람 기록에는 열람한 트레이너, 대상 회원, 정보의 종류와 시각만 남기며 건강정보의 내용은 담지 않습니다. 오류 보고에서는 이름·이메일·IP 주소와 요청 내용을 지우고 보냅니다.\n\n11. 만 14세 미만 아동의 개인정보\n회사는 만 14세 미만 아동의 가입을 받지 않으며, 가입할 때 만 14세 이상인지 확인합니다.\n\n12. 이용자의 권리\n트레이너는 언제든지 자신의 개인정보를 조회·수정하거나 처리 정지 및 삭제를 요청할 수 있습니다. 프로필 수정과 탈퇴는 MY 메뉴에서 할 수 있고, 그 밖의 요청은 13항의 연락처로 보내 주시면 지체 없이 조치합니다.\n\n13. 개인정보 보호책임자\n회사는 개인정보 처리에 관한 업무를 총괄하고 관련 불만 처리와 피해 구제를 위해 개인정보 보호책임자를 지정하고 있습니다.\n- 직책: On-Care 서비스 운영팀 개인정보 보호책임자\n- 연락처: support@oncare.com\n\n14. 권익침해 구제 방법\n개인정보 침해에 대한 신고나 상담이 필요하면 다음 기관에 문의할 수 있습니다.\n- 개인정보분쟁조정위원회: 국번없이 1833-6972 (www.kopico.go.kr)\n- 개인정보침해신고센터: 국번없이 118 (privacy.kisa.or.kr)\n- 대검찰청: 국번없이 1301 (www.spo.go.kr)\n- 경찰청: 국번없이 182 (ecrm.police.go.kr)\n\n15. 처리방침의 변경\n이 처리방침을 바꾸면 시행일 전에 서비스 안에 알리며, 동의가 필요한 변경은 다시 동의를 받습니다.\n- 2026년 10월 3일: 처리 위탁·국외 이전·파기 절차·자동 수집 장치·만 14세 미만·보호책임자·권익침해 구제 항목 추가\n- 2026년 10월 1일: 제정\n\n시행일: 2026년 10월 3일';
+      'On-Care(이하 \"회사\")는 「개인정보 보호법」 등 관련 법령을 준수하며, 트레이너와 회원의 개인정보를 소중히 보호합니다.\n\n1. 수집하는 개인정보 항목\n① 트레이너 가입: 이메일, 비밀번호(암호화하여 저장), 이름, 연락처.\n② 프로필과 자격 확인: 소속 헬스장, 자격증, 경력, 전문 분야 등 프로필 정보.\n③ 서비스 이용 중 남기는 정보: 회원에게 보낸 메시지와 첨부 사진, 리포트와 코칭 내용, 일정·예약 정보, 회원 메모.\n④ 자동으로 생성되는 정보: 로그인·비밀번호 변경 등 접속 기록(일시, IP 주소)과, 오류가 났을 때의 오류 내용·브라우저와 운영체제 종류·앱 버전.\n\n2. 개인정보의 수집 및 이용 목적\n수집한 정보는 트레이너 식별과 운영자의 신고 처리와 계정 관리, 담당 회원 연결, 일정·메시지·리포트 기능 제공, 서비스 개선 및 문의 응대의 목적으로만 이용됩니다.\n\n3. 담당 회원 정보의 열람과 처리\n① 트레이너는 담당 관계가 성립한 회원에 한하여 그 회원이 기록한 식단·운동·체중 등 건강 정보를 서비스 안에서 열람할 수 있습니다.\n② 이 정보의 개인정보처리자는 회사이며, 트레이너는 회사가 정한 범위 안에서 코칭과 리포트 작성 목적으로만 이를 처리합니다. 회원의 건강정보는 민감정보로서 회원의 별도 동의와 데이터 공유 동의가 있을 때만 열람할 수 있습니다.\n③ 트레이너가 작성해 전송한 리포트와 메시지는 해당 회원에게 전달되고 서비스에 기록으로 남습니다.\n④ 담당 관계가 종료되면 해당 회원 정보에 대한 열람 권한은 즉시 회수되며, 회원은 자신의 정보 제공에 대한 동의를 언제든지 철회할 수 있습니다.\n\n4. 개인정보의 보유 및 이용 기간\n트레이너의 개인정보는 탈퇴 시까지 보유·이용하며, 탈퇴하면 8항의 절차에 따라 지체 없이 파기합니다. 다만 다음 기록은 정해진 기간 동안 보관한 뒤 파기합니다.\n- 로그인 등 접속 기록: 1년(「통신비밀보호법」상 로그인 기록 보존 의무 3개월 포함)\n- 트레이너의 회원 건강정보 열람 기록, 정보 제공 동의·철회 기록, 탈퇴 기록: 2년(「개인정보의 안전성 확보조치 기준」에 따른 처리 기록 보관)\n회원에게 전송된 리포트와 메시지는 회원의 기록이므로 회원의 보관 기간을 따릅니다.\n\n5. 개인정보의 제3자 제공\n회사는 트레이너와 회원의 동의 없이 개인정보를 외부에 제공하지 않습니다. 업무 처리를 맡기는 위탁은 6항과 7항을 따릅니다. 다만 법령에 특별한 규정이 있는 경우는 예외로 합니다.\n\n6. 개인정보 처리의 위탁\n회사는 서비스 제공을 위해 다음 업무를 외부 업체에 위탁합니다. 수탁자가 바뀌면 이 처리방침을 고쳐 알립니다.\n- Amazon Web Services, Inc.: 서버 운영, 채팅 사진·리포트 PDF 파일 보관\n- Neon: 데이터베이스 운영(계정 정보와 모든 기록 보관)\n- Google LLC: AI 코칭 프로그램·루틴 후보와 리포트 요약 생성(Gemini API)\n- 주식회사 카카오: 헬스장 검색과 지도 표시\n- Functional Software, Inc.(Sentry): 웹·서버 오류 수집과 분석\n\n7. 개인정보의 국외 이전\n회사는 트레이너와의 계약을 이행하기 위해 다음과 같이 개인정보를 국외에서 처리·보관하도록 위탁하며, 「개인정보 보호법」 제28조의8 제1항 제3호에 따라 이 처리방침으로 알립니다. 이전은 서비스를 이용할 때마다 암호화된 네트워크로 전송하는 방법으로 이루어집니다.\n① Amazon Web Services, Inc. / 싱가포르 / 트레이너 정보와 기록 전반, 채팅 첨부 사진과 리포트 PDF / 서버 운영과 파일 보관 / 탈퇴 또는 위탁 계약 종료 시까지\n② Neon / 싱가포르 / 계정·프로필, 메시지·리포트·일정 기록 / 데이터베이스 운영 / 탈퇴 또는 위탁 계약 종료 시까지\n③ Google LLC / 미국 등 Google이 운영하는 데이터센터 소재 국가 / AI 기능을 쓸 때 입력한 코칭 조건과 담당 회원의 운동 기록·주간 리포트 수치 / AI 프로그램·요약 생성 / 요청 처리 후 수탁자의 서비스 약관에서 정한 기간\n④ Functional Software, Inc.(Sentry) / 미국 / 오류 내용, 브라우저와 운영체제 종류·앱 버전(이름·이메일·IP 주소·요청 내용은 보내지 않음) / 오류 분석 / 수탁자의 보관 기간\n국외 이전을 원하지 않으면 탈퇴로 거부할 수 있으나, 이 경우 서비스를 이용할 수 없습니다.\n\n8. 개인정보의 파기 절차 및 방법\n① 절차: 트레이너가 탈퇴하면 즉시 계정과 함께 프로필, 담당 회원과의 연결과 대화(첨부 사진·리포트 PDF 파일 포함), 루틴·프로그램, 일정과 예약 가능 시간, 알림을 삭제하고, 담당 회원과 예약한 회원에게 그 사실을 알립니다. 회원이 보낸 상담 요청은 회원의 기록이므로 트레이너 정보만 지운 채 남습니다. 4항에 따라 보관하는 기록은 기간이 지나면 자동으로 삭제합니다.\n② 방법: 전자적 파일 형태의 정보는 데이터베이스와 파일 저장소에서 삭제하며, 데이터베이스 복구용 백업에 남은 사본은 백업 보관 기간이 지나면 함께 사라집니다. 회사는 개인정보를 종이 문서로 처리하지 않습니다.\n\n9. 개인정보 자동 수집 장치의 설치·운영 및 거부\n회사는 광고·행태 분석을 위한 쿠키나 추적 도구를 쓰지 않습니다. 로그인 상태를 유지하기 위해 브라우저 저장소에 인증 정보를 보관하며, 로그아웃하거나 브라우저 데이터를 지우면 삭제됩니다.\n\n10. 안전성 확보 조치\n회사는 비밀번호를 암호화하여 저장하고, 회원 정보에 대한 접근 권한을 담당 관계를 기준으로 제한하며, 전송 구간을 암호화합니다. 열람 기록에는 열람한 트레이너, 대상 회원, 정보의 종류와 시각만 남기며 건강정보의 내용은 담지 않습니다. 오류 보고에서는 이름·이메일·IP 주소와 요청 내용을 지우고 보냅니다.\n\n11. 만 14세 미만 아동의 개인정보\n회사는 만 14세 미만 아동의 가입을 받지 않으며, 가입할 때 만 14세 이상인지 확인합니다.\n\n12. 이용자의 권리\n트레이너는 언제든지 자신의 개인정보를 조회·수정하거나 처리 정지 및 삭제를 요청할 수 있습니다. 프로필 수정과 탈퇴는 MY 메뉴에서 할 수 있고, 그 밖의 요청은 13항의 연락처로 보내 주시면 지체 없이 조치합니다.\n\n13. 개인정보 보호책임자\n회사는 개인정보 처리에 관한 업무를 총괄하고 관련 불만 처리와 피해 구제를 위해 개인정보 보호책임자를 지정하고 있습니다.\n- 직책: On-Care 서비스 운영팀 개인정보 보호책임자\n- 연락처: support@oncare.com\n\n14. 권익침해 구제 방법\n개인정보 침해에 대한 신고나 상담이 필요하면 다음 기관에 문의할 수 있습니다.\n- 개인정보분쟁조정위원회: 국번없이 1833-6972 (www.kopico.go.kr)\n- 개인정보침해신고센터: 국번없이 118 (privacy.kisa.or.kr)\n- 대검찰청: 국번없이 1301 (www.spo.go.kr)\n- 경찰청: 국번없이 182 (ecrm.police.go.kr)\n\n15. 처리방침의 변경\n이 처리방침을 바꾸면 시행일 전에 서비스 안에 알리며, 동의가 필요한 변경은 다시 동의를 받습니다.\n- 2026년 10월 3일: 처리 위탁·국외 이전·파기 절차·자동 수집 장치·만 14세 미만·보호책임자·권익침해 구제 항목 추가\n- 2026년 10월 1일: 제정\n\n시행일: 2026년 10월 3일';
 
   @override
   String get myPasswordChanged => '비밀번호를 변경했어요';
@@ -2247,74 +2247,117 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGymHiddenAction => '헬스장 설정';
 
   @override
-  String get verifyPendingTitle => '운영자 승인을 기다리고 있어요';
-
-  @override
-  String get verifyPendingBody =>
-      '승인 전에는 회원 앱 트레이너 찾기에 나오지 않고, 상담 요청과 회원 연결을 받을 수 없어요. 그동안 프로필과 소속 헬스장을 채워 두면 승인 확인에 쓰여요.';
-
-  @override
-  String get verifyRejectedTitle => '승인이 반려됐어요';
-
-  @override
-  String get verifyRejectedBody =>
-      '회원 앱에 나오지 않고 상담 요청과 회원 연결을 받을 수 없어요. 프로필을 고친 뒤 고객 지원으로 다시 확인을 요청해 주세요.';
-
-  @override
-  String verifyRejectedReason(String reason) {
-    return '반려 사유: $reason';
-  }
-
-  @override
-  String get verifyConnectDisabled =>
-      '운영자 승인 뒤에 회원을 연결할 수 있어요. 그때까지 신규 회원 등록이 꺼져 있어요.';
-
-  @override
-  String get verifyConsultDisabled => '운영자 승인 뒤부터 회원 앱에서 상담을 신청할 수 있어요.';
-
-  @override
-  String get verifyRecordsLocked =>
-      '승인이 반려된 동안에는 담당 회원의 식단·운동·건강 정보·채팅 기록을 열 수 없어요. 담당 연결은 그대로라 다시 승인되면 바로 열려요.';
-
-  @override
-  String get notifTplVerificationApprovedTitle => '운영자 승인이 완료되었어요';
-
-  @override
-  String get notifTplVerificationApprovedBody =>
-      '이제 회원 앱 트레이너 찾기에 보이고 상담 요청·회원 연결을 받을 수 있어요.';
-
-  @override
-  String get notifTplVerificationRejectedTitle => '운영자 승인이 반려되었어요';
-
-  @override
-  String get notifTplVerificationRejectedBody => 'MY 에서 프로필과 소속 헬스장을 확인해 주세요.';
-
-  @override
   String get navAdminGroup => '운영';
 
   @override
-  String get navAdminTrainers => '트레이너 승인';
+  String get navAdminReports => '신고·계정 관리';
 
   @override
-  String get adminTrainersTitle => '트레이너 승인';
+  String get adminReportsTitle => '신고·계정 관리';
 
   @override
-  String get adminTrainersSubtitle => '가입한 트레이너의 프로필과 소속을 확인하고 승인하거나 반려해요.';
+  String get adminReportsSubtitle =>
+      '회원이 보낸 트레이너 신고를 확인하고, 필요하면 트레이너 계정을 정지하거나 풀어요.';
+
+  @override
+  String get adminSectionReports => '신고';
+
+  @override
+  String get adminSectionTrainers => '트레이너';
+
+  @override
+  String get adminReportFilterOpen => '처리 전';
+
+  @override
+  String get adminReportFilterClosed => '처리됨';
+
+  @override
+  String get adminReportStatusResolved => '조치함';
+
+  @override
+  String get adminReportStatusDismissed => '넘김';
+
+  @override
+  String get adminReasonImpersonation => '소속·신원 사칭';
+
+  @override
+  String get adminReasonInappropriateMessage => '부적절한 메시지';
+
+  @override
+  String get adminReasonOther => '기타';
+
+  @override
+  String get adminFieldTarget => '대상';
+
+  @override
+  String get adminFieldReason => '사유';
+
+  @override
+  String get adminFieldMemo => '내용';
+
+  @override
+  String get adminFieldReportedAt => '신고일';
+
+  @override
+  String get adminFieldResolvedAt => '처리일';
+
+  @override
+  String get adminFieldOpenReports => '처리 전 신고';
+
+  @override
+  String adminOpenReportsCount(int count) {
+    return '$count건';
+  }
+
+  @override
+  String get adminReportsLoadFailed => '신고 목록을 불러오지 못했어요';
+
+  @override
+  String get adminReportsEmptyOpen => '처리할 신고가 없어요';
+
+  @override
+  String get adminReportsEmpty => '해당하는 신고가 없어요';
+
+  @override
+  String get adminTrainerSearchHint => '이름이나 이메일로 찾기';
+
+  @override
+  String get adminStateActive => '이용 중';
+
+  @override
+  String get adminResolve => '조치함';
+
+  @override
+  String get adminDismiss => '넘김';
+
+  @override
+  String adminResolveTitle(String name) {
+    return '$name 신고를 조치함으로 닫을까요?';
+  }
+
+  @override
+  String get adminResolveBody =>
+      '계정 정지 같은 조치를 마친 신고를 닫아요. 신고를 닫아도 계정 상태는 바뀌지 않아요.';
+
+  @override
+  String adminDismissTitle(String name) {
+    return '$name 신고를 넘길까요?';
+  }
+
+  @override
+  String get adminDismissBody => '조치가 필요 없는 신고를 닫아요. 계정 상태는 바뀌지 않아요.';
+
+  @override
+  String get adminReportResolved => '신고를 조치함으로 닫았어요';
+
+  @override
+  String get adminReportDismissed => '신고를 넘겼어요';
 
   @override
   String get adminRefresh => '새로고침';
 
   @override
   String get adminFilterAll => '전체';
-
-  @override
-  String get adminStatusPending => '승인 대기';
-
-  @override
-  String get adminStatusApproved => '승인';
-
-  @override
-  String get adminStatusRejected => '반려';
 
   @override
   String get adminStatusSuspended => '정지됨';
@@ -2326,9 +2369,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get adminActionRetryLater => '잠시 뒤 다시 시도해 주세요.';
 
   @override
-  String get adminTrainersEmptyPending => '승인을 기다리는 트레이너가 없어요';
-
-  @override
   String get adminTrainersEmpty => '해당하는 트레이너가 없어요';
 
   @override
@@ -2338,25 +2378,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get adminFieldEmail => '이메일';
 
   @override
-  String get adminFieldSpecialty => '전문 분야';
-
-  @override
-  String get adminFieldCareer => '경력';
-
-  @override
-  String get adminFieldCertifications => '자격증';
-
-  @override
   String get adminFieldGym => '소속';
 
   @override
   String get adminFieldSignedUp => '가입일';
-
-  @override
-  String get adminFieldDecided => '처리일';
-
-  @override
-  String get adminFieldNote => '반려 사유';
 
   @override
   String get adminValueNone => '없음';
@@ -2365,43 +2390,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get adminGymNone => '소속 헬스장이 없어요';
 
   @override
-  String get adminGymNotFitness => '소속 장소가 헬스장이 아니에요';
-
-  @override
-  String get adminGymNotListed => '이대로 승인해도 회원 앱 트레이너 찾기에는 나오지 않아요.';
-
-  @override
-  String get adminApprove => '승인';
-
-  @override
-  String get adminReject => '반려';
-
-  @override
   String get adminSuspend => '계정 정지';
 
   @override
   String get adminUnsuspend => '정지 해제';
-
-  @override
-  String adminApproveTitle(String name) {
-    return '$name 트레이너를 승인할까요?';
-  }
-
-  @override
-  String get adminApproveBody =>
-      '승인하면 회원 앱 트레이너 찾기에 나오고 상담 요청과 회원 연결을 받을 수 있어요. 트레이너에게 알림이 가요.';
-
-  @override
-  String adminRejectTitle(String name) {
-    return '$name 트레이너 반려';
-  }
-
-  @override
-  String get adminRejectBody =>
-      '반려하면 회원 앱에서 빠지고 새 상담·회원 연결을 받을 수 없어요. 이미 담당한 회원의 기록도 다시 승인할 때까지 잠겨요. 적은 사유는 트레이너에게 그대로 보여요.';
-
-  @override
-  String get adminRejectHint => '반려 사유 (선택)';
 
   @override
   String adminSuspendTitle(String name) {
@@ -2420,16 +2412,6 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get adminUnsuspendBody =>
       '다시 로그인할 수 있어요. 해제된 담당 회원 연결은 회원이 다시 동의해야 이어져요.';
-
-  @override
-  String adminApproved(String name) {
-    return '$name 트레이너를 승인했어요';
-  }
-
-  @override
-  String adminRejected(String name) {
-    return '$name 트레이너를 반려했어요';
-  }
 
   @override
   String adminSuspended(String name) {

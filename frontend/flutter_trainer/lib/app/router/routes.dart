@@ -94,10 +94,10 @@ class AppRoutes {
   static const String legacyConsultations = '/consultations';
   static const String legacyScheduleConsultations = '$schedule/consultations';
 
-  /// 트레이너 승인 — 운영자 계정에만 보이는 운영 화면 (#3008).
+  /// 신고·계정 관리 — 운영자 계정에만 보이는 운영 화면 (#3008).
   ///
   /// 운영자가 아니면 주소로 열어도 찾을 수 없음 안내만 그린다.
-  static const String adminTrainers = '/admin/trainers';
+  static const String adminReports = '/admin/reports';
 
   /// 알림함 — 놓친 변화를 나중에 확인하는 자리. (#503)
   ///
