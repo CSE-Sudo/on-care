@@ -769,8 +769,12 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | GET | `/gyms?lat=&lng=&partner_only=` | `[GymOut]` — 좌표를 주면 거리순, 없으면 이름순 |
 | GET | `/gyms/{gym_id}` | 단건(없으면 404) |
 | GET | `/gyms/{gym_id}/trainers` | 그 헬스장 소속 트레이너 |
-| GET | `/me/gym` | 내 헬스장(`member_gyms`) |
+| GET | `/me/gym?lat=&lng=` | 내 헬스장(`member_gyms`) — `GymOut`. 연결이 없으면 404 |
 
+- **`lat`·`lng` 는 둘 다 주거나 둘 다 뺀다**(하나만 오면 422). 좌표가 없으면 `distance_km` 는
+  `0` 이고 **뜻이 없는 값**이다 — 거리로 그리지 않는다. 회원 앱은 회원 위치를 얻었을 때만 `/me/gym` 에
+  좌표를 싣는다. `/gyms` 는 검색 중심이 필요해 위치를 얻기 전에는 기본 검색 영역(신촌) 좌표를 보내고,
+  그 거리는 화면에 그리지 않는다(#3044).
 - **`is_partner` 는 표시 값이다.** `GymOut` 으로 내려가고 `partner_only=true` 로 목록을
   좁히는 기준이 된다(현재 두 앱은 이 값을 읽지 않는다). **접근 제어가 아니다** — 상담 대상 검증과
   트레이너 노출 경로(`/trainers`, `/trainers/recommended`, `/gyms/{id}/trainers`)는 이 값을
