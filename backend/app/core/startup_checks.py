@@ -4,7 +4,8 @@
 막는다. 여기는 그보다 넓다 — 여러 값을 엮어 보거나, 막기에는 이르지만 사람이 알아야
 하는 상태를 경고로 남긴다. 앱 lifespan 이 DB 초기화 전에 부른다.
 
-- 막는다(`StartupConfigError`): 잘못 적은 설정이라 고치지 않으면 기능이 틀리게 도는 것.
+- 막는다(`StartupConfigError`): 잘못 적은 설정이라 고치지 않으면 기능이 틀리게 도는 것,
+  그리고 운영에서 데이터를 잃는 설정(운영 + 로컬 첨부 저장소, #3029).
 - 경고한다(WARN 로그): 개발에서는 정상이지만 운영이라면 사고인 것.
 """
 from __future__ import annotations
@@ -51,9 +52,18 @@ def check(settings: Settings) -> list[str]:
     except RuntimeError as exc:
         raise StartupConfigError(str(exc)) from exc
     if backend == "local" and settings.is_prod:
-        warnings.append(
-            "운영(env=prod)인데 채팅 첨부를 컨테이너 로컬 디스크에 저장합니다 — "
+        # 운영은 경고가 아니라 기동 거부다(#3029). 경고만 남기면 키를 빠뜨린 배포가
+        # 배포 검증까지 통과하고, 다음 재배포 때 사진·리포트 PDF 가 사라진다.
+        raise StartupConfigError(
+            "운영(env=prod)에서는 채팅 첨부를 컨테이너 로컬 디스크에 저장할 수 없습니다 — "
             "재배포·스케일 아웃 때 사진·리포트 PDF 가 사라집니다. "
+            "ATTACHMENT_STORAGE=s3 와 ATTACHMENT_S3_BUCKET 을 설정하세요."
+        )
+    if backend == "local" and settings.env.strip().lower() == "staging":
+        # 시연 서버는 막지 않되, 첨부가 재배포 때 사라진다는 사실은 남긴다.
+        warnings.append(
+            "스테이징(env=staging)인데 채팅 첨부를 컨테이너 로컬 디스크에 저장합니다 — "
+            "재배포 때 사진·리포트 PDF 가 사라집니다. 오래 쓸 시연이면 "
             "ATTACHMENT_S3_BUCKET 을 설정하세요."
         )
 
