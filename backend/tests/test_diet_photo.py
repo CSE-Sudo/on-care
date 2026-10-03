@@ -173,13 +173,15 @@ def test_analyze_stores_the_photo_and_the_member_can_read_it(client, member_toke
 
 
 def test_the_day_view_carries_the_photo_of_the_meal_that_has_one(client, member_token):
-    # 사진이 붙지 않은 끼니도 한 건 만든다 — 사진 저장(#699) 이전 기록이 그렇다.
+    # 사진이 붙지 않은 끼니도 한 건 만든다 — 사진 저장(#699) 이전 기록·직접 기록이
+    # 그렇다. 읽을 수 없는 사진은 이제 분석 전에 415 라(#3041) 직접 기록으로 만든다.
     without = client.post(
-        "/v1/diet/analyze",
-        files={"image": ("food.jpg", b"\xff\xd8\xff\xe0 unreadable", "image/jpeg")},
-        data={"meal_type": "breakfast"},
+        "/v1/diet/entries",
+        json={"meal_type": "breakfast", "foods": [{"name": "바나나"}]},
         headers=_auth(member_token),
-    ).json()
+    )
+    assert without.status_code == 201, without.text
+    without_id = without.json()["id"]
     res = _analyze(client, member_token, _photo_bytes(), meal_type="snack")
     assert res.status_code == 200, res.text
     entry_id, photo_url = res.json()["entry_id"], res.json()["photo_url"]
@@ -188,17 +190,32 @@ def test_the_day_view_carries_the_photo_of_the_meal_that_has_one(client, member_
     assert day.status_code == 200
     entries = {e["id"]: e for e in day.json()["entries"]}
     assert entries[entry_id]["photo_url"] == photo_url
-    assert entries[without["entry_id"]]["photo_url"] is None
+    assert entries[without_id]["photo_url"] is None
 
 
-def test_a_meal_without_a_readable_photo_is_still_recorded(client, member_token):
-    """사진을 못 읽어도 끼니 기록은 남는다 — 사진은 기록의 부속이다."""
+def test_an_unreadable_photo_is_refused_before_anything_is_recorded(client, member_token):
+    """매직 넘버만 맞춘 파일은 인식 전에 415 — 끼니도 사진도 남지 않는다(#3041)."""
+    before = client.get("/v1/diet/days/today", headers=_auth(member_token)).json()
     res = client.post(
         "/v1/diet/analyze",
         files={"image": ("food.jpg", b"\xff\xd8\xff\xe0 not really a jpeg", "image/jpeg")},
         data={"meal_type": "dinner"},
         headers=_auth(member_token),
     )
+
+    assert res.status_code == 415, res.text
+    after = client.get("/v1/diet/days/today", headers=_auth(member_token)).json()
+    assert len(after["entries"]) == len(before["entries"])
+
+
+def test_a_meal_is_still_recorded_when_storing_its_photo_fails(
+    client, member_token, monkeypatch
+):
+    """사진 저장이 실패해도 끼니 기록은 남는다 — 사진은 기록의 부속이다."""
+    from app.services import diet_photo_service
+
+    monkeypatch.setattr(diet_photo_service, "_downscale_to_jpeg", lambda _data: None)
+    res = _analyze(client, member_token, _photo_bytes(), meal_type="dinner")
 
     assert res.status_code == 200, res.text
     assert res.json()["entry_id"]
