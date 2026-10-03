@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
@@ -43,7 +43,11 @@
   <style>
     html, body { background-color: #F5F7FA; }
   </style>
-  <meta name="description" content="On-Care 트레이너 앱 — 트레이너용 회원 관리 / AI 루틴 / 스케줄 (Android / iOS / Web).">
+  <!-- 로그인해야 쓰는 앱이라 검색 색인에서 뺀다(#3015). 검색에 걸려야 하는 것은
+       저장소 루트의 소개 페이지뿐이다 — 앱 주소가 수집되면 빈 로그인 화면이
+       검색 결과에 뜬다. -->
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="On-Care 트레이너 웹 — PT 담당 회원의 식단·운동 기록 확인과 코칭·루틴·스케줄 관리.">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
