@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/features/account/domain/entities/account_reauth.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
@@ -11,6 +12,8 @@ import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/domain/repositories/account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/account/presentation/pages/onboarding_page.dart';
+import 'package:oncare/features/auth/domain/repositories/password_repository.dart'
+    show ReissuedTokens;
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -75,8 +78,10 @@ class _RecordingRepository implements AccountRepository {
   Future<UserProfile> skipOnboarding() => _inner.skipOnboarding();
 
   @override
-  Future<void> deleteAccount({List<String> reasons = const <String>[]}) =>
-      _inner.deleteAccount(reasons: reasons);
+  Future<void> deleteAccount({
+    List<String> reasons = const <String>[],
+    AccountReauth? reauth,
+  }) => _inner.deleteAccount(reasons: reasons, reauth: reauth);
 
   @override
   Future<UserProfile> updateProfile({
@@ -87,6 +92,8 @@ class _RecordingRepository implements AccountRepository {
     String? gender,
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
+    AccountReauth? reauth,
+    void Function(ReissuedTokens tokens)? onTokensReissued,
   }) => _inner.updateProfile(
     name: name,
     email: email,
@@ -95,6 +102,8 @@ class _RecordingRepository implements AccountRepository {
     gender: gender,
     heightCm: heightCm,
     weightKg: weightKg,
+    reauth: reauth,
+    onTokensReissued: onTokensReissued,
   );
 
   @override
@@ -660,8 +669,8 @@ void main() {
   testWidgets('범위 밖 식단 목표를 넣으면 3단계에 머물고 그 칸에 알려 준다', (tester) async {
     await _open(tester);
     await _fillBasics(tester);
-    await _tapNext(tester);  // 2단계
-    await _tapNext(tester);  // 3단계 식단 목표
+    await _tapNext(tester); // 2단계
+    await _tapNext(tester); // 3단계 식단 목표
 
     await tester.enterText(_field('onboardKcalField'), '99999');
     await _tapNext(tester);
@@ -681,7 +690,7 @@ void main() {
     await _fillBasics(tester);
     await _tapNext(tester);
     await _tapNext(tester);
-    await _tapNext(tester);  // 4단계 운동 목표
+    await _tapNext(tester); // 4단계 운동 목표
 
     // 한 주는 10,080분이다.
     await tester.enterText(_field('onboardCardioField'), '100000');

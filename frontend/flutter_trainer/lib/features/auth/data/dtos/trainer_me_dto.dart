@@ -6,7 +6,7 @@ import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 ///
 /// Shape: `{ id, name, email, phone, specialty, career, intro,
 /// certifications[], gym { name, address, hours, phone },
-/// verification { status, decided_at, note } }`. Missing
+/// verification { status, decided_at, note }, has_password }`. Missing
 /// scalar fields fall back to `''`; a missing/invalid `gym` yields an
 /// empty gym; `certifications` keeps only string entries.
 TrainerProfile trainerProfileFromJson(Map<String, Object?> json) {
@@ -36,6 +36,11 @@ TrainerProfile trainerProfileFromJson(Map<String, Object?> json) {
     certifications: certifications,
     gym: gym,
     verification: trainerVerificationFromJson(json['verification']),
+    // 칸이 없으면 비밀번호 계정으로 읽는다 — 서버 기본값과 같다(#3039).
+    hasPassword: switch (json['has_password']) {
+      final bool value => value,
+      _ => true,
+    },
   );
 }
 

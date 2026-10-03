@@ -43,6 +43,8 @@ const List<String> _exactRoutes = <String>[
   'GET /ai-coach/messages',
   'POST /auth/login',
   'POST /auth/register',
+  // 가입 이메일 인증 코드(#3038).
+  'POST /auth/register/email-code',
   'POST /auth/logout',
   'POST /auth/refresh',
   'POST /auth/social/kakao',

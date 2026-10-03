@@ -39,6 +39,7 @@ import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/ai_coach/domain/chat_insight_detector.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/auth/domain/signup_consent.dart';
+import 'package:oncare/features/auth/domain/signup_email_code.dart';
 import 'package:oncare/features/diet/domain/entities/diet_period.dart'
     show kDietAllPeriodMaxDays;
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart'
@@ -212,6 +213,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     'GET /ai-coach/messages': _aiCoachHistory,
     'POST /auth/login': _authLogin,
     'POST /auth/register': _authRegister,
+    // 가입 이메일 인증 코드 — 데모는 고정 코드만 받는다(#3038).
+    'POST /auth/register/email-code': _authRegisterEmailCode,
     'POST /auth/logout': _authLogout,
     'POST /auth/refresh': _authRefresh,
     'POST /auth/social/kakao': _authSocial,

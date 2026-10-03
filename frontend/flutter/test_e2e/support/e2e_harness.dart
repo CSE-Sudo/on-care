@@ -203,9 +203,12 @@ class E2eApi {
   /// **일정은 따라 지워지지 않는다** — `trainer_schedule.member_id` 는 SET NULL 이라
   /// 승인이 만든 상담 일정이 주인 없이 남는다. 그것은 [deleteTrainerSession] 으로
   /// 트레이너 쪽에서 따로 지운다.
+  ///
+  /// 탈퇴는 본인 확인을 받는다(#3039) — 가입 때 쓴 [demoPassword] 를 함께 보낸다.
   Future<void> deleteMe() async {
     final Response<Object?> res = await _dio.delete<Object?>(
       '/users/me',
+      data: <String, Object>{'current_password': demoPassword},
       options: _auth,
     );
     expect(res.statusCode, 200, reason: '계정 삭제 실패: ${res.data}');

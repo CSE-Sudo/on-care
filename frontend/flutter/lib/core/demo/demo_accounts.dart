@@ -20,6 +20,7 @@ class DemoAccounts {
 
   static const String _accountsKey = 'demo_accounts';
   static const String _currentKey = 'demo_current_account';
+  static const String _demoLoginKey = 'demo_member_login';
 
   /// 데모 회원(김민수)의 프로필 오버레이 키. 예전부터 쓰던 이름 그대로다.
   static const String demoProfileKey = 'profile_overlay';
@@ -107,6 +108,44 @@ class DemoAccounts {
     await _save(all);
     await _db.deleteValue(profileKeyOf(account));
     await signIn(null);
+  }
+
+  /// 데모 회원으로 들어온 방법을 남긴다(#3039) — 이메일 변경·탈퇴의 본인 확인이
+  /// 이 값을 본다. 데모 회원은 아무 비밀번호로나 들어오므로 "확인할 비밀번호" 는
+  /// 들어올 때 친 그 값이다. 소셜로 들어왔으면 [socialProvider] 만 남는다 —
+  /// 비밀번호 없는 계정처럼 그 provider 로 다시 로그인해 확인한다.
+  Future<void> rememberDemoLogin({
+    String? password,
+    String? socialProvider,
+  }) async {
+    if (password == null && socialProvider == null) {
+      await _db.deleteValue(_demoLoginKey);
+      return;
+    }
+    await _db.putValue(
+      _demoLoginKey,
+      jsonEncode(<String, Object?>{
+        'password': ?password,
+        'social_provider': ?socialProvider,
+      }),
+    );
+  }
+
+  /// 데모 회원으로 들어온 방법. 남긴 것이 없으면 둘 다 null 이다(로그인 없이
+  /// 둘러보기·옛 데이터).
+  Future<({String? password, String? socialProvider})> demoLogin() async {
+    final String? raw = await _db.readValue(_demoLoginKey);
+    if (raw == null || raw.isEmpty) {
+      return (password: null, socialProvider: null);
+    }
+    final Object? decoded = jsonDecode(raw);
+    if (decoded is! Map) return (password: null, socialProvider: null);
+    final Object? password = decoded['password'];
+    final Object? provider = decoded['social_provider'];
+    return (
+      password: password is String ? password : null,
+      socialProvider: provider is String ? provider : null,
+    );
   }
 
   /// [account] 의 프로필 오버레이 키. null 이면 데모 회원의 것이다.

@@ -60,6 +60,13 @@ docker compose up -d --build
 토큰 없이 데모 회원 화면을 보려면 `ALLOW_DEMO_FALLBACK=true` 가 있어야 하고, 컨테이너 기동
 스크립트는 `ENV` 가 비어 있으면 뜨지 않습니다(`.env.example` 은 둘 다 들어 있습니다).
 
+가입에는 이메일 인증 코드가 필요합니다(#3038). 로컬은 메일을 실제로 보내지 않고 서버 로그에
+코드를 찍습니다(본문은 DEBUG 로그라 `.env` 에 `LOG_LEVEL=DEBUG` 를 두고 `docker compose logs app` 에서
+6자리 코드를 읽습니다). 화면 확인만 할 때는
+`.env` 에 `SIGNUP_EMAIL_VERIFICATION=false` 를 두면 코드 없이 가입됩니다(운영에서는 끌 수 없습니다).
+앱을 데모 모드(`USE_MOCK_API=true`)로 띄우면 코드는 `000000` 입니다. 탈퇴와 로그인 이메일 변경은
+현재 비밀번호를 한 번 더 묻습니다(#3039).
+
 AI 키는 없어도 됩니다. `GEMINI_API_KEY` 가 비어 있으면 식단 인식이 오프라인 스텁으로
 폴백해서 `/v1/diet/analyze` 가 그대로 동작합니다(CI 와 같은 경로).
 
@@ -432,6 +439,9 @@ bash tool/run_consultation_e2e.sh
 시드 회원 셋은 **이미 `trainer-demo` 담당**입니다. 그 회원으로는 "승인이 담당 연결을
 만든다"를 검증할 수 없고, 한 번 승인해 버리면 다음 실행이 같은 상태에서 시작하지 못합니다.
 그래서 실행마다 `POST /auth/register` 로 새로 만들고 끝나면 `DELETE /users/me` 로 지웁니다.
+가입 이메일 인증(#3038)은 러너에서 받을 메일함이 없어 `e2e-ci.yml` 이 `SIGNUP_EMAIL_VERIFICATION=false`
+로 끄고, 탈퇴 본인 확인(#3039)은 하네스가 가입 때 쓴 비밀번호를 함께 보냅니다. 로컬에서 돌릴 때도
+백엔드 `.env` 에 같은 값을 둡니다.
 
 승인 사이클과 거절 사이클이 서로를 막으므로(승인 뒤에는 담당이 생깁니다) 계정을 둘 씁니다.
 

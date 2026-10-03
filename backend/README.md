@@ -141,7 +141,8 @@ curl -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:8000/v1/system/met
 쌓이는데 `avg_ms` 가 `LLM_TIMEOUT_SEC` 에 못 미치면 몇 건이 유난히 느린 것이므로
 `max_ms` 를 본다.
 
-관리자는 `.env` 의 `ADMIN_EMAILS` 로 지정한다.
+관리자는 `python -m scripts.grant_admin --email … --confirm-id …` 로 지정한다(#3037,
+[DEPLOY.md](docs/DEPLOY.md) "관리자 지정"). `ADMIN_EMAILS` 는 더 이상 쓰지 않는다.
 값은 프로세스 메모리에 있어 재시작하면 사라진다(단일 인스턴스 기준).
 
 ## 프론트 연동 (실서버 전환)

@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 from typing import Annotated
 
 import jwt
@@ -34,6 +35,7 @@ from app.core.rate_limit import (
     record_failure,
     register_email_key,
 )
+from app.services import audit as audit_service
 from app.services.audit import client_ip, record as audit
 from app.services.audit_email import masked_email
 from app.core.security import (
@@ -53,6 +55,8 @@ from app.schemas.user import (
     PasswordResetDone,
     PasswordResetRequest,
     PasswordResetRequested,
+    SignupEmailCodeRequest,
+    SignupEmailCodeSent,
     HealthGoalsUpdate,
     HealthProfileBrief,
     LoginToken,
@@ -68,6 +72,7 @@ from app.schemas.user import (
     UserRegister,
 )
 from app.services import (
+    account_notice,
     attachment_cleanup,
     auth_tokens,
     consultation_service,
@@ -77,8 +82,10 @@ from app.services import (
     member_pairing_service,
     name_change,
     password_reset,
+    reauth,
     reservation_service,
     signup_consent,
+    signup_email_code,
     token_revocation,
     trainer_signup_service,
     weekly_challenge_service,
@@ -289,11 +296,32 @@ def update_me(
     payload: ProfileUpdate,
     user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
+    request: Request,
 ) -> ProfileView:
-    """내 프로필 모달 저장: 이름/이메일(중복검사)/전화/생년월일."""
+    """내 프로필 모달 저장: 이름/이메일(중복검사)/전화/생년월일.
+
+    로그인 이메일을 **실제로** 바꾸는 저장만 본인 확인을 거친다(#3039,
+    `services/reauth.py`). 바꾸면 토큰 세대가 올라 다른 기기가 모두 로그아웃되고,
+    응답의 새 토큰 한 쌍으로 이 기기가 이어 쓴다. 예전 주소로 변경 안내 메일이 간다
+    — 본인이 아니면 알아챌 수 있다. 이름·연락처만 고치는 저장은 예전과 같다.
+    """
     data = payload.model_dump(exclude_unset=True)
 
     new_email = data.get("email")
+    email_changed = new_email is not None and new_email != user.email.lower()
+    old_email = user.email
+    if email_changed:
+        # 중복 확인(409)보다 먼저 본다 — 확인 없이 409 를 받으면 아무 주소나 넣어 가입
+        # 여부를 알아낼 수 있다.
+        reauth.require(
+            db,
+            user,
+            action=reauth.CHANGE_EMAIL,
+            ip=client_ip(request),
+            current_password=payload.current_password,
+            social_provider=payload.social_provider,
+            social_token=payload.social_token,
+        )
     if new_email is not None and new_email != user.email:
         # 대소문자만 다른 주소도 같은 이메일이다(#2816). `new_email` 은 스키마가
         # 이미 소문자로 맞췄다.
@@ -345,9 +373,28 @@ def update_me(
         if field in data:
             setattr(profile, field, data[field])
 
+    if email_changed:
+        # 이메일과 세대는 한 트랜잭션이다 — 이메일만 바뀌면 옛 기기가 계속 로그인돼
+        # 있고, 세대만 오르면 이메일은 그대로인데 모든 기기가 끊긴다.
+        auth_tokens.bump_version(user)
+        audit_service.stage(
+            db,
+            event=audit_service.EMAIL_CHANGE,
+            user_id=user.id,
+            target_user_id=user.id,
+            ip=client_ip(request),
+        )
     db.commit()
     db.refresh(user)
-    return _profile_view(user)
+    view = _profile_view(user)
+    if email_changed:
+        account_notice.send_email_changed(
+            old_email, new_email or "", locale=get_request_locale(request)
+        )
+        tokens = auth_tokens.issue_token_pair(user)
+        view.access_token = tokens.access_token
+        view.refresh_token = tokens.refresh_token
+    return view
 
 
 # ---- 트레이너와 데이터 동기화 (#1634) ----
@@ -428,7 +475,18 @@ def delete_me(
     시각뿐이다.
 
     사유는 없어도 된다. 탈퇴를 막는 조건이 아니라 물어보는 자리일 뿐이다.
+    본인 확인은 늘 필요하다(#3039) — 현재 비밀번호, 소셜 전용 계정은 다시 로그인한
+    provider 토큰.
     """
+    reauth.require(
+        db,
+        user,
+        action=reauth.DELETE_ACCOUNT,
+        ip=client_ip(request),
+        current_password=payload.current_password if payload else None,
+        social_provider=payload.social_provider if payload else None,
+        social_token=payload.social_token if payload else None,
+    )
     for reason in sorted(set(payload.reasons if payload else []) & DELETION_REASONS):
         db.add(
             AccountDeletionReason(
@@ -532,6 +590,109 @@ def _check_register_email(email: str) -> None:
     )
 
 
+#: 가입 인증 코드 오류 문구(#3038). 화면은 `code` 로 가르고 `message` 를 그대로 보인다.
+_EMAIL_CODE_REQUIRED = {
+    "code": "email_code_required",
+    "message": "이메일 인증 코드를 입력해 주세요.",
+}
+_INVALID_EMAIL_CODE = {
+    "code": "invalid_email_code",
+    "message": "인증 코드가 맞지 않거나 만료되었습니다. 코드를 다시 받아 주세요.",
+}
+
+
+def _consume_signup_code(
+    db: Session, request: Request, *, email: str, code: str | None, purpose: str
+) -> datetime | None:
+    """가입 요청의 인증 코드를 확인하고 쓴 것으로 표시한다(#3038).
+
+    확인한 시각(`users.email_verified_at`)을 돌려준다. 서버가 확인을 끈 경우
+    (`SIGNUP_EMAIL_VERIFICATION=false`, 테스트·E2E)는 보지 않고 None. 코드 사용 표시는
+    커밋하지 않는다 — 계정 생성과 한 트랜잭션이라, 가입이 실패하면 코드도 살아 있다.
+    """
+    if not get_settings().signup_email_verification:
+        return None
+    if not (code or "").strip():
+        raise HTTPException(status_code=422, detail=_EMAIL_CODE_REQUIRED)
+    now = clock.now()
+    try:
+        signup_email_code.consume(db, email, purpose, code or "", now=now)
+    except signup_email_code.InvalidEmailCode:
+        audit(
+            db,
+            event="auth.signup_code_verify",
+            ip=client_ip(request),
+            success=False,
+            detail=masked_email(email),
+        )
+        raise HTTPException(status_code=400, detail=_INVALID_EMAIL_CODE) from None
+    return now
+
+
+@router.post(
+    "/auth/register/email-code",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=SignupEmailCodeSent,
+    dependencies=[Depends(rate_limit("auth-signup-code"))],
+)
+def request_signup_email_code(
+    payload: SignupEmailCodeRequest,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+) -> SignupEmailCodeSent:
+    """가입 전에 그 이메일로 6자리 인증 코드를 보낸다. 회원·트레이너 공용(#3038).
+
+    **응답은 가입 여부와 무관하게 같다**(202). 이미 가입된 주소에는 코드 대신
+    "이미 계정이 있다"는 안내 메일이 간다 — 주인만 그 차이를 안다.
+
+    시도 제한은 세 겹이다. IP 별 분당 한도(`auth-signup-code`), 한 이메일로 보내는
+    메일 수(`SIGNUP_EMAIL_CODE_PER_WINDOW`, 여러 IP 에서 한 사람에게 메일을 쏟아붓는 것을
+    막는다), 같은 (이메일, 용도)의 다시 받기 간격(`SIGNUP_EMAIL_CODE_RESEND_SECONDS`).
+    가입된 주소도 똑같이 세므로 429 로 가입 여부가 드러나지 않는다.
+
+    서버에 메일 발송 수단이 없으면(운영인데 SMTP 설정이 비었을 때) 503 이다.
+    """
+    settings = get_settings()
+    if settings.rate_limit_enabled:
+        limiter.check(
+            f"signup-code-email:{payload.email}",
+            settings.signup_email_code_per_window,
+            settings.signup_email_code_window_minutes * 60.0,
+        )
+        if settings.signup_email_code_resend_seconds > 0:
+            limiter.check(
+                f"signup-code-resend:{payload.purpose}:{payload.email}",
+                1,
+                float(settings.signup_email_code_resend_seconds),
+            )
+    try:
+        issued = signup_email_code.request_code(
+            db,
+            payload.email,
+            payload.purpose,
+            now=clock.now(),
+            settings=settings,
+            locale=get_request_locale(request),
+        )
+    except signup_email_code.CodeUnavailable:
+        raise HTTPException(
+            status_code=503,
+            detail="지금은 인증 메일을 보낼 수 없습니다. 잠시 후 다시 시도해 주세요.",
+        ) from None
+    audit(
+        db,
+        event="auth.signup_code_request",
+        ip=client_ip(request),
+        # 응답과 달리 감사 로그에는 실제로 코드를 만들었는지 남긴다(운영자만 본다).
+        success=issued is not None,
+        detail=masked_email(payload.email),
+    )
+    return SignupEmailCodeSent(
+        expires_in_minutes=settings.signup_email_code_minutes,
+        resend_after_seconds=settings.signup_email_code_resend_seconds,
+    )
+
+
 @router.post(
     "/auth/register",
     response_model=UserMe,
@@ -556,9 +717,19 @@ def register(
             detail=masked_email(payload.email),
         )
         raise HTTPException(status_code=409, detail="이미 가입된 이메일입니다.")
+    # 중복 확인 뒤에 코드를 본다 — 가입된 주소는 코드를 받을 수 없으므로(안내 메일만
+    # 간다) 순서를 바꾸면 409 대신 400 이 되어 원인을 알 수 없다.
+    verified_at = _consume_signup_code(
+        db,
+        request,
+        email=payload.email,
+        code=payload.email_code,
+        purpose=signup_email_code.MEMBER_SIGNUP,
+    )
     user = User(
         id=f"user-{uuid.uuid4().hex[:12]}",
         email=payload.email,
+        email_verified_at=verified_at,
         # 이름을 보내지 않으면 이메일 로컬 파트로 채운다. 컬럼 길이(100)에
         # 맞춰 자르는 것이 `name_from_email` 의 몫이다 — 이메일은 255자까지
         # 받으므로(#1780), 자르지 않으면 이름을 안 보냈을 뿐인데 가입이 500 으로
@@ -615,7 +786,18 @@ def register_trainer(
     """
     _check_register_email(payload.email)
     try:
-        trainer = trainer_signup_service.register_trainer(db, payload)
+        # 중복 확인(409)이 코드 확인보다 먼저다 — 회원 가입과 같은 순서.
+        trainer_signup_service.ensure_email_available(db, payload.email)
+        verified_at = _consume_signup_code(
+            db,
+            request,
+            email=payload.email,
+            code=payload.email_code,
+            purpose=signup_email_code.TRAINER_SIGNUP,
+        )
+        trainer = trainer_signup_service.register_trainer(
+            db, payload, email_verified_at=verified_at
+        )
     except trainer_signup_service.TrainerEmailTaken as exc:
         audit(
             db,
