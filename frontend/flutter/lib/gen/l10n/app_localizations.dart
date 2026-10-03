@@ -6667,6 +6667,30 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get gymLocationSettings;
 
+  /// No description provided for @gymDefaultAreaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing gyms around Sinchon'**
+  String get gymDefaultAreaTitle;
+
+  /// No description provided for @gymDefaultAreaMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow location access to see gyms near you.'**
+  String get gymDefaultAreaMessage;
+
+  /// No description provided for @gymUseLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Use location'**
+  String get gymUseLocation;
+
+  /// No description provided for @gymDistanceSortNeedsLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by distance needs your current location.'**
+  String get gymDistanceSortNeedsLocation;
+
   /// No description provided for @exGymCopyPhone.
   ///
   /// In en, this message translates to:
