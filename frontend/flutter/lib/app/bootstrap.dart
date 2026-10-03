@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logger/logger.dart';
 import 'package:oncare/app/app.dart';
 import 'package:oncare/app/session_feature_reset.dart';
@@ -125,14 +124,7 @@ Future<DemoBenefitsStore> prepareDemoStorage(
 Future<void> _clearTokensOnFreshInstall(AppPrefs prefs, Logger logger) async {
   if (prefs.installed) return;
   try {
-    await SecureTokenStore(
-      const FlutterSecureStorage(
-        iOptions: IOSOptions(
-          accessibility: KeychainAccessibility.first_unlock_this_device,
-        ),
-        aOptions: AndroidOptions(encryptedSharedPreferences: true),
-      ),
-    ).clear();
+    await SecureTokenStore(memberSecureStorage).clear();
   } catch (e, st) {
     logger.w('새 설치 토큰 정리 실패', error: e, stackTrace: st);
   }
