@@ -53,7 +53,11 @@ void main() {
     final AppDatabase exerciseDb = await seededDemoDatabase(tester);
     await tester.binding.setSurfaceSize(const Size(430, 2400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    tester.view.padding = const FakeViewPadding(top: _topInset);
+    // FakeViewPadding 은 물리 픽셀이다. 테스트 뷰의 픽셀 비율(기본 3)을 곱해야 논리
+    // 픽셀로 _topInset 이 된다.
+    tester.view.padding = FakeViewPadding(
+      top: _topInset * tester.view.devicePixelRatio,
+    );
     addTearDown(tester.view.resetPadding);
 
     router = buildAppRouter(config: _config);
