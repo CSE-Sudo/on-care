@@ -436,6 +436,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
         DietAnalysisFailure.noFood => l.dietAnalysisNoFood,
         DietAnalysisFailure.dailyLimit => l.dietAnalysisDailyLimit,
         DietAnalysisFailure.unavailable => l.dietAnalysisUnavailable,
+        DietAnalysisFailure.aiCapacity => l.dietAnalysisAiCapacity,
         // 502 and transport failures share the "try again shortly" wording —
         // from the user's side both are "it broke, not your photo".
         DietAnalysisFailure.recognitionFailed ||
@@ -452,9 +453,10 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
       DietAnalysisFailure.badRequest ||
       DietAnalysisFailure.noFood => _pickAnother,
       DietAnalysisFailure.unauthorized => () => unawaited(_signInAgain()),
-      // 사진 길이 닫혔다(오늘 다 씀·분석 꺼짐) — 기록할 수 있는 길은 직접 추가다.
+      // 사진 길이 닫혔다(오늘 다 씀·분석 꺼짐·서버 AI 상한) — 기록할 수 있는 길은 직접 추가다.
       DietAnalysisFailure.dailyLimit ||
-      DietAnalysisFailure.unavailable => _openManual,
+      DietAnalysisFailure.unavailable ||
+      DietAnalysisFailure.aiCapacity => _openManual,
       _ => () => Navigator.of(context).pop(),
     };
   }
@@ -467,7 +469,8 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
       DietAnalysisFailure.noFood => l.dietAnalysisPickAnother,
       DietAnalysisFailure.unauthorized => l.dietAnalysisSignIn,
       DietAnalysisFailure.dailyLimit ||
-      DietAnalysisFailure.unavailable => l.dietManualAdd,
+      DietAnalysisFailure.unavailable ||
+      DietAnalysisFailure.aiCapacity => l.dietManualAdd,
       _ => l.dietAnalysisClose,
     };
   }
@@ -482,7 +485,8 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
     if (!failure.offersManualEntry) return null;
     final bool manualIsPrimary =
         failure == DietAnalysisFailure.dailyLimit ||
-        failure == DietAnalysisFailure.unavailable;
+        failure == DietAnalysisFailure.unavailable ||
+        failure == DietAnalysisFailure.aiCapacity;
     if (manualIsPrimary) {
       return (
         label: l.dietAnalysisClose,

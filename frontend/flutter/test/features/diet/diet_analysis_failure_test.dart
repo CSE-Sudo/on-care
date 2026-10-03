@@ -166,6 +166,10 @@ void main() {
         DietAnalysisFailure.fromCode('analysis_unavailable'),
         DietAnalysisFailure.unavailable,
       );
+      expect(
+        DietAnalysisFailure.fromCode('ai_capacity'),
+        DietAnalysisFailure.aiCapacity,
+      );
       expect(DietAnalysisFailure.fromCode('unknown'), isNull);
       expect(DietAnalysisFailure.fromCode(null), isNull);
       expect(DietAnalysisFailure.fromCode(42), isNull);
@@ -256,5 +260,10 @@ void main() {
         DietAnalysisFailure.unauthorized,
       );
     });
+  });
+
+  test('서버 전체 AI 상한은 다시 시도 대신 직접 추가를 권한다 (#3032)', () {
+    expect(DietAnalysisFailure.aiCapacity.canRetry, isFalse);
+    expect(DietAnalysisFailure.aiCapacity.offersManualEntry, isTrue);
   });
 }
