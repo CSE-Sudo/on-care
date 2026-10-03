@@ -24,6 +24,11 @@ def _prod(**kw) -> Settings:
         embedder="gemini",
         # 운영은 첨부를 S3 에 둬야 기동한다(#3029).
         attachment_s3_bucket="oncare-prod",
+        # 운영은 소셜 토큰의 발급 앱을 확인한다(#3035). 비우면 그 provider 로그인을
+        # 거부한다는 경고가 뜬다.
+        google_client_ids="test-google-client.apps.googleusercontent.com",
+        kakao_app_id="1234567",
+        apple_client_ids="com.example.oncare",
     )
     base.update(kw)
     return Settings(**base)
