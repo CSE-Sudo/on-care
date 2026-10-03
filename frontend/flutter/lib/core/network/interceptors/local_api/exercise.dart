@@ -602,8 +602,13 @@ extension _LocalApiExercise on LocalApiInterceptor {
   /// 실 서버처럼 **전부 되거나 전부 안 된다** — 항목을 모두 먼저 검사하고,
   /// 하나라도 잘못되면 아무것도 넣지 않는다. 적립은 기록마다 하고(하루 한도도
   /// 기록마다 센다) 응답에는 합계 한 벌을 싣는다.
+  ///
+  /// `client_request_id` 도 실서버와 같다(#3095). 같은 키로 만든 기록이 남아
+  /// 있으면 새로 넣지 않고 처음 결과를 돌려주고, 목록이 다르면 409 다. 그 기록이
+  /// 모두 지워졌으면 처음 보는 키처럼 새로 넣는다.
   Future<Response<Object?>> _exerciseAddSession(RequestOptions options) async {
-    final Object? raw = _payloadOf(options.data)['sessions'];
+    final Map<String, Object?> payload = _payloadOf(options.data);
+    final Object? raw = payload['sessions'];
     if (raw is! List ||
         raw.isEmpty ||
         raw.length > kMaxExerciseSessionsPerSave) {
@@ -619,6 +624,15 @@ extension _LocalApiExercise on LocalApiInterceptor {
     if (items.length != raw.length || items.any((i) => _minutesOf(i) <= 0)) {
       return _unprocessable(options, 'minutes must be > 0');
     }
+    final String? key = (payload['client_request_id'] as String?)?.trim();
+    if (key != null && key.isNotEmpty) {
+      final Response<Object?>? replay = await _replayExerciseAdd(
+        options,
+        key,
+        items,
+      );
+      if (replay != null) return replay;
+    }
     final String batch = '${DateTime.now().microsecondsSinceEpoch}';
     final List<Map<String, Object?>> sessions = <Map<String, Object?>>[];
     int awarded = 0;
@@ -630,10 +644,117 @@ extension _LocalApiExercise on LocalApiInterceptor {
       awarded += saved.points.awarded;
       balance = saved.points.balance;
     }
+    if (key != null && key.isNotEmpty) {
+      _exerciseRequestIds[key] = <String>[
+        for (final Map<String, Object?> s in sessions) s['id']! as String,
+      ];
+    }
     return _ok(options, <String, Object?>{
       'sessions': sessions,
       'points': PointsAward(awarded: awarded, balance: balance).toJson(),
     });
+  }
+
+  /// 같은 키로 이미 넣은 기록의 처음 응답. 그런 기록이 없으면 null. (#3095)
+  ///
+  /// 실서버 `_replay_sessions` 와 같은 규칙이다. 적립은 기록마다 처음 받은 값을
+  /// 다시 더할 뿐 새로 적립하지 않는다.
+  Future<Response<Object?>?> _replayExerciseAdd(
+    RequestOptions options,
+    String key,
+    List<Map<String, Object?>> items,
+  ) async {
+    final List<String> ids = _exerciseRequestIds[key] ?? const <String>[];
+    final List<ExerciseSessionRow> found = await (_db.select(
+      _db.exerciseSessions,
+    )..where((t) => t.id.isIn(ids))).get();
+    if (found.isEmpty) {
+      _exerciseRequestIds.remove(key);
+      return null;
+    }
+    final Map<String, ExerciseSessionRow> byId = <String, ExerciseSessionRow>{
+      for (final ExerciseSessionRow r in found) r.id: r,
+    };
+    final List<ExerciseSessionRow> rows = <ExerciseSessionRow>[
+      for (final String id in ids)
+        if (byId[id] != null) byId[id]!,
+    ];
+    bool same = rows.length == items.length;
+    for (int i = 0; same && i < rows.length; i++) {
+      same = _sameExerciseSession(rows[i], items[i]);
+    }
+    if (!same) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 409,
+        data: <String, Object?>{
+          'detail': '같은 client_request_id에 다른 운동 기록을 보낼 수 없습니다.',
+        },
+      );
+    }
+    int awarded = 0;
+    for (final ExerciseSessionRow r in rows) {
+      awarded += _points.awardedFor(PointsRule.exerciseManual, r.id).awarded;
+    }
+    final double? weightKg = ((await _mergedProfile())['weight_kg'] as num?)
+        ?.toDouble();
+    return _ok(options, <String, Object?>{
+      'sessions': <Map<String, Object?>>[
+        for (final ExerciseSessionRow r in rows)
+          _sessionJson(
+            id: r.id,
+            weekStart: r.weekStart,
+            dayLabel: r.dayLabel,
+            type: r.type,
+            name: r.name,
+            minutes: r.minutes,
+            sets: r.sets,
+            reps: r.reps,
+            holdSeconds: r.holdSeconds,
+            durationSeconds: r.durationSeconds,
+            weight: r.weight,
+            calories: r.calories,
+            intensity: r.intensity,
+            calorieSource:
+                matchDemoExercise(r.name) != null &&
+                    weightKg != null &&
+                    weightKg > 0
+                ? 'db'
+                : 'estimate',
+          ),
+      ],
+      'points': PointsAward(
+        awarded: awarded,
+        balance: _points.balance,
+      ).toJson(),
+    });
+  }
+
+  /// 저장된 기록이 이 항목을 넣은 결과인가. 칼로리처럼 서버가 내는 값은 보지
+  /// 않고, 날짜는 보낸 경우에만 비교한다 — 실서버 `_same_session` 과 같다.
+  bool _sameExerciseSession(ExerciseSessionRow row, Map<String, Object?> item) {
+    final String type = (item['type'] as String?) ?? 'cardio';
+    final int? holdSeconds = _strengthOnly(
+      type,
+      (item['hold_seconds'] as num?)?.toInt(),
+    );
+    final int? reps = holdSeconds != null
+        ? null
+        : _strengthOnly(type, (item['reps'] as num?)?.toInt());
+    if (item['date'] != null) {
+      final (String weekStart, String dayLabel) = _placement(item['date']);
+      if (row.weekStart != weekStart || row.dayLabel != dayLabel) return false;
+    }
+    return row.type == type &&
+        row.name == ((item['name'] as String?) ?? '').trim() &&
+        row.minutes == _minutesOf(item) &&
+        row.durationSeconds == (item['duration_seconds'] as num?)?.toInt() &&
+        row.sets == _strengthOnly(type, (item['sets'] as num?)?.toInt()) &&
+        row.reps == reps &&
+        row.holdSeconds == holdSeconds &&
+        row.weight ==
+            _strengthOnly(type, (item['weight'] as num?)?.toDouble()) &&
+        row.intensity == ((item['intensity'] as String?) ?? 'moderate');
   }
 
   /// 기록 한 건의 분. 초가 오면 그쪽이 맞고 분은 여기서 파생된다 — 실 서버
