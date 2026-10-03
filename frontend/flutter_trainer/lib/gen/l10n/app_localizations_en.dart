@@ -574,6 +574,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientsEmpty => 'No members yet';
 
   @override
+  String get clientsEmptyConnectHint =>
+      'Connect members with the code they show you or by sending a coaching request. Consultation requests from members also appear in your inbox.';
+
+  @override
   String clientsEmptyForFilter(String filter) {
     return 'No members match $filter';
   }

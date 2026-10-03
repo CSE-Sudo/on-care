@@ -555,6 +555,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientsEmpty => '아직 담당 회원이 없어요';
 
   @override
+  String get clientsEmptyConnectHint =>
+      '연결 코드를 받거나 담당 요청을 보내 회원을 연결하세요. 회원이 상담을 신청하면 상담 요청함에도 표시돼요.';
+
+  @override
   String clientsEmptyForFilter(String filter) {
     return '$filter에 해당하는 회원이 없어요';
   }

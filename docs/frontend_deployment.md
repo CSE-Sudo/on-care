@@ -25,6 +25,7 @@
 | `https://ewhasudo.zapto.org/frontend/` | 사용자 앱 | `public/frontend/` |
 | `https://ewhasudo.zapto.org/trainer/` | 트레이너 웹 | `public/trainer/` |
 
+- 검색 색인: 랜딩만 색인합니다. 두 앱의 `web/index.html` 은 `<meta name="robots" content="noindex, nofollow">` 로 색인에서 빠집니다(로그인해야 쓰는 화면, #3015). 운영 정적 호스팅에서 응답 헤더(`X-Robots-Tag`)로 같은 정책을 거는 일은 배포 설정 몫입니다(#480).
 - 배포 워크플로: [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml)
 - 커스텀 도메인 설정: [`CNAME`](../CNAME)
 - 자동 배포 조건: `main` 브랜치 push
