@@ -3968,6 +3968,34 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String workoutRoutineWeekSummary(int days, int full) {
+    return 'All done $full of $days days';
+  }
+
+  @override
+  String workoutRoutineWeekLate(String weekday, int count) {
+    return '$count late on $weekday';
+  }
+
+  @override
+  String get workoutRoutineWeekFirstDay => 'Starts today';
+
+  @override
+  String workoutRoutineWeekSent(String date, String names) {
+    return 'Sent $date · $names';
+  }
+
+  @override
+  String workoutRoutineWeekOngoing(String names) {
+    return 'Ongoing · $names';
+  }
+
+  @override
+  String workoutRoutineWeekMore(String names, int count) {
+    return '$names +$count more';
+  }
+
+  @override
   String get coachRoutineAdherenceTitle => 'Personal exercise follow-through';
 
   @override

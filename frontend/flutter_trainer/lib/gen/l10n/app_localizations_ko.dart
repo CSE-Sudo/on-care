@@ -3771,6 +3771,34 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String workoutRoutineWeekSummary(int days, int full) {
+    return '$days일 중 모두 완료 $full일';
+  }
+
+  @override
+  String workoutRoutineWeekLate(String weekday, int count) {
+    return '$weekday $count건 늦게';
+  }
+
+  @override
+  String get workoutRoutineWeekFirstDay => '오늘 시작';
+
+  @override
+  String workoutRoutineWeekSent(String date, String names) {
+    return '$date 보냄 · $names';
+  }
+
+  @override
+  String workoutRoutineWeekOngoing(String names) {
+    return '계속 · $names';
+  }
+
+  @override
+  String workoutRoutineWeekMore(String names, int count) {
+    return '$names 외 $count개';
+  }
+
+  @override
   String get coachRoutineAdherenceTitle => '개인운동 이행';
 
   @override

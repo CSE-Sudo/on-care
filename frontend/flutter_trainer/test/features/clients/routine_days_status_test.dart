@@ -209,6 +209,89 @@ void main() {
     });
   });
 
+  group('운동 탭 이번 주 개인운동 이행', () {
+    testWidgets('월~일 7칸 — 프로그램 화면과 같은 단계, 걸린 날만 센다', (tester) async {
+      await tester.pumpWidget(
+        _host(
+          ClientRoutineAdherenceStrip.week(
+            days: _days(),
+            monday: _d(17),
+            today: _today,
+          ),
+          width: 900,
+        ),
+      );
+
+      expect(find.text('0/1'), findsOneWidget); // 월 — 따로 배정만
+      expect(find.text('3/3'), findsOneWidget); // 화
+      expect(find.text('1/3'), findsNWidgets(2)); // 수 · 오늘(목)
+      expect(
+        find.byKey(const ValueKey<String>('workout-routine-adherence-8-23')),
+        findsOneWidget,
+      );
+      // 오늘(1/3)도 한 만큼 칠한다 — 테두리는 그대로 오늘을 알린다.
+      final BoxDecoration today =
+          tester
+                  .widget<Container>(
+                    find.byKey(
+                      const ValueKey<String>('workout-routine-adherence-8-20'),
+                    ),
+                  )
+                  .decoration!
+              as BoxDecoration;
+      expect(today.color, isNot(Colors.transparent));
+      expect(today.border, isNotNull);
+      // 요약은 칸 아래가 아니라 카드 제목 줄의 몫이다.
+      expect(find.textContaining('모두 완료'), findsNothing);
+      // 폭을 채운다 — 칸 일곱이 줄 끝까지 닿는다.
+      final double right = tester
+          .getRect(
+            find.byKey(
+              const ValueKey<String>('workout-routine-adherence-8-23'),
+            ),
+          )
+          .right;
+      expect(
+        right,
+        closeTo(
+          tester
+              .getRect(
+                find.byKey(const ValueKey<String>('workout-routine-adherence')),
+              )
+              .right,
+          0.5,
+        ),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('제목 줄 요약은 짧게, 칸 아래는 보낸 묶음마다 한 줄', (tester) async {
+      late AppLocalizations l;
+      await tester.pumpWidget(
+        _host(
+          Builder(
+            builder: (BuildContext context) {
+              l = AppLocalizations.of(context);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+      final RoutineDays days = _days();
+      expect(
+        routineWeekSummary(l, days, _d(17), _today),
+        '3일 중 모두 완료 1일 · 수 1건 늦게',
+      );
+      // 화요일에 보낸 개인운동이 위, 기한 없는 따로 배정은 `계속` 으로 아래.
+      expect(routineWeekSentLines(l, days, _d(17), _today), <String>[
+        '8/18(화) 보냄 · 빠르게 걷기 · 스쿼트',
+        '계속 · 스트레칭',
+      ]);
+      // 월요일이 오늘이면 지난 날이 없다.
+      expect(routineWeekSummary(l, days, _d(17), _d(17)), '오늘 시작');
+    });
+  });
+
   group('운동 탭 (데모)', () {
     testWidgets('오늘 개인운동 구획과 식단 같은 펼친 날, 오지 않은 날 줄이 없다', (tester) async {
       tester.view.devicePixelRatio = 1;
@@ -277,10 +360,15 @@ void main() {
       );
       await tester.tap(segment('이번 주'));
       await settle(tester);
-      // 이번 주·전체의 매일 완료 현황은 아직 붙지 않았다 — 구획은 오늘에만 선다.
+      // 오늘 개인운동 상자는 오늘에만 서고, 이번 주는 프로그램 화면과 같은
+      // `개인운동 이행` 칸이 선다.
       expect(
         find.byKey(const ValueKey<String>('workout-pending-routines')),
         findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('workout-routine-adherence-card')),
+        findsOneWidget,
       );
       // 금·토·일(오지 않은 날)은 운동 기록 줄을 그리지 않는다(#2512).
       expect(

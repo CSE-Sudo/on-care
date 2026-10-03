@@ -6847,6 +6847,42 @@ abstract class AppLocalizations {
   /// **'Sent {sent} · until {end}'**
   String workoutRoutineSentUntil(String sent, String end);
 
+  /// No description provided for @workoutRoutineWeekSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'All done {full} of {days} days'**
+  String workoutRoutineWeekSummary(int days, int full);
+
+  /// No description provided for @workoutRoutineWeekLate.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} late on {weekday}'**
+  String workoutRoutineWeekLate(String weekday, int count);
+
+  /// No description provided for @workoutRoutineWeekFirstDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Starts today'**
+  String get workoutRoutineWeekFirstDay;
+
+  /// No description provided for @workoutRoutineWeekSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent {date} · {names}'**
+  String workoutRoutineWeekSent(String date, String names);
+
+  /// No description provided for @workoutRoutineWeekOngoing.
+  ///
+  /// In en, this message translates to:
+  /// **'Ongoing · {names}'**
+  String workoutRoutineWeekOngoing(String names);
+
+  /// No description provided for @workoutRoutineWeekMore.
+  ///
+  /// In en, this message translates to:
+  /// **'{names} +{count} more'**
+  String workoutRoutineWeekMore(String names, int count);
+
   /// No description provided for @coachRoutineAdherenceTitle.
   ///
   /// In en, this message translates to:

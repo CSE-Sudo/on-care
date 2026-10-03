@@ -75,6 +75,8 @@ class _WorkoutViewState extends ConsumerState<WorkoutView> {
       // 운동 탭에는 AI 분석 카드를 두지 않는다(#2329) — 현황과 날짜별 기록이
       // 이미 같은 기간을 말하고 있어, 한 문장 해석이 기록을 밀어내기만 했다.
       const SizedBox(height: OnCareSpacing.s16),
+      if (_period == ClientPeriod.week)
+        _WeekRoutineAdherence(clientId: client.id),
       // 기록은 이 목록 하나다. 예전에는 날짜별 목록 아래에 `운동 기록` 카드
       // 목록이 또 있어, 이번 주·전체에서 같은 날의 같은 운동이 두 벌로
       // 나왔다(#1025). 미션 카드는 버리지 않고 이 목록의 펼친 자리로 들어왔다.
@@ -90,6 +92,80 @@ class _WorkoutViewState extends ConsumerState<WorkoutView> {
     return ListView(
       padding: const EdgeInsets.all(OnCareSpacing.s16),
       children: children,
+    );
+  }
+}
+
+/// `이번 주` 개인운동 이행 — 프로그램 화면 `개인운동 이행` 카드와 같은 그림을
+/// 이번 주 월~일 7칸으로 그린다. (#2508)
+///
+/// 위 링은 유형별 시간이 목표에 닿았는지를 말할 뿐, "보낸 개인운동을 했나" 는
+/// 펼친 날을 하나씩 열어야 알았다. 두 화면이 같은 단계 색으로 같은 말을 한다.
+/// 이번 주 오늘까지 걸린 개인운동이 하나도 없으면 두지 않는다.
+class _WeekRoutineAdherence extends ConsumerWidget {
+  const _WeekRoutineAdherence({required this.clientId});
+
+  final String clientId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final RoutineDaysKey key = routineDaysKeyNow(clientId);
+    final RoutineDays? days = ref
+        .watch(clientRoutineDaysProvider(key))
+        .valueOrNull;
+    final DateTime monday = clientMondayOf(key.day);
+    if (days == null ||
+        !days
+            .between(monday, key.day)
+            .any((RoutineDay d) => d.items.isNotEmpty)) {
+      return const SizedBox.shrink();
+    }
+    final TextStyle caption = context.oncare
+        .text(OnCareTypography.caption)
+        .copyWith(color: OnCareColors.textSecondary);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s16),
+      child: AppCard(
+        key: const ValueKey<String>('workout-routine-adherence-card'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            // 했나(요약)는 제목 줄 오른쪽, 무엇을 보냈나는 칸 아래 — 두 말을
+            // 한 줄에 잇지 않는다. 좁으면 요약이 다음 줄로 넘어간다.
+            AppSectionHeader(
+              title: l.coachRoutineAdherenceTitle,
+              icon: AppIcons.personalRoutine,
+              trailingFit: AppSectionTrailingFit.wrap,
+              trailing: Text(
+                routineWeekSummary(l, days, monday, key.day),
+                key: const ValueKey<String>(
+                  'workout-routine-adherence-summary',
+                ),
+                style: caption,
+              ),
+            ),
+            const SizedBox(height: OnCareSpacing.s12),
+            ClientRoutineAdherenceStrip.week(
+              days: days,
+              monday: monday,
+              today: key.day,
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            for (final (int i, String line) in routineWeekSentLines(
+              l,
+              days,
+              monday,
+              key.day,
+            ).indexed)
+              Text(
+                line,
+                key: ValueKey<String>('workout-routine-adherence-sent-$i'),
+                style: caption,
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
