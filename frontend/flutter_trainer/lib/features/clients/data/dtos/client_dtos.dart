@@ -156,8 +156,9 @@ List<TrainerClient> prioritizeClients(
     if (attention != 0) return attention;
     // Ties break on who spoke most recently — when two clients both need
     // attention, the one mid-conversation is the one to open first.
-    // Absent when the source has no chat signal (the real API's roster
-    // endpoint doesn't carry one), which degrades to the incoming order.
+    // 데모는 [lastChatAt] 이, 실서버는 로스터의 `last_message_at`
+    // ([TrainerClient.lastMessageAt]) 이 이 신호를 준다. 둘 다 없으면 들어온
+    // 차례를 지킨다.
     final chat = (lastChatAt[b.$1.id] ?? b.$1.lastMessageAt ?? epoch).compareTo(
       lastChatAt[a.$1.id] ?? a.$1.lastMessageAt ?? epoch,
     );
@@ -173,10 +174,11 @@ List<TrainerClient> prioritizeClients(
 /// 나트륨이 넘쳤는지는 그 대화를 열지 말지를 정하는 기준이 아니고, 그
 /// 판단이 필요한 사람은 `관리 필요` 로 좁혀 본다([prioritizeClients]).
 ///
-/// [lastChatAt] 이 없는 고객은 뒤로 간다(대화가 없다는 뜻이다). 값이 같으면
-/// 들어온 차례를 지킨다 — 정렬이 흔들리면 목록이 매번 다시 배열된다.
-/// 실 API 의 로스터 엔드포인트는 아직 채팅 시각을 주지 않아 그 모드에서는
-/// 들어온 차례 그대로다([prioritizeClients] 와 같은 한계다).
+/// 마지막 대화 시각은 [lastChatAt](데모의 채팅 표)에서 먼저 찾고, 없으면
+/// 로스터가 실어 온 [TrainerClient.lastMessageAt](실서버 `last_message_at`)을
+/// 쓴다 — [prioritizeClients] 와 같은 규칙이다(#3011). 둘 다 없는 고객은 뒤로
+/// 간다(대화가 없다는 뜻이다). 값이 같으면 들어온 차례를 지킨다 — 정렬이
+/// 흔들리면 목록이 매번 다시 배열된다.
 List<TrainerClient> sortByLatestMessage(
   List<TrainerClient> clients, {
   Map<String, DateTime> lastChatAt = const <String, DateTime>{},
@@ -186,8 +188,8 @@ List<TrainerClient> sortByLatestMessage(
   ];
   final epoch = DateTime.utc(1970);
   decorated.sort((a, b) {
-    final chat = (lastChatAt[b.$1.id] ?? epoch).compareTo(
-      lastChatAt[a.$1.id] ?? epoch,
+    final chat = (lastChatAt[b.$1.id] ?? b.$1.lastMessageAt ?? epoch).compareTo(
+      lastChatAt[a.$1.id] ?? a.$1.lastMessageAt ?? epoch,
     );
     if (chat != 0) return chat;
     return a.$2.compareTo(b.$2);

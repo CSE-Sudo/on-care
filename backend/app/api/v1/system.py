@@ -3,8 +3,8 @@
 
 프론트 기대 응답:
   GET /ping     -> { "message": "pong (...)" }
-  GET /healthz  -> { "status": "ok", "backend": "...", env·demo_fallback·demo_seed·attachment_storage }
-  GET /version  -> { "api_version": "v1", "app_version": "..." }
+  GET /healthz  -> { "status": "ok", "backend": "...", env·demo_fallback·demo_seed·attachment_storage·commit_sha }
+  GET /version  -> { "api_version": "v1", "app_version": "...", "commit_sha": "..." }
 """
 from __future__ import annotations
 
@@ -39,6 +39,8 @@ def healthz() -> dict[str, object]:
     대부분 `ENV=prod` 일 때만 켜지는데, 그 값이 실제로 들어갔는지 확인할 길이
     없었다. 배포 워크플로가 이 응답의 `env`·`demo_fallback`·`demo_seed` 를 보고
     운영 기대값과 다르면 실패로 처리한다. 비밀은 싣지 않는다 — 공개 엔드포인트다.
+    `attachment_storage` 는 운영에서 `s3` 여야 하고(#3029), `commit_sha` 는 이 프로세스를
+    띄운 이미지의 커밋이다(공개 저장소에 이미 공개된 값).
     """
     current = get_settings()
     try:
@@ -52,6 +54,7 @@ def healthz() -> dict[str, object]:
         "demo_fallback": current.demo_fallback_enabled,
         "demo_seed": current.seed_demo_data,
         "attachment_storage": storage,
+        "commit_sha": current.commit_sha,
     }
 
 
@@ -78,7 +81,17 @@ def readyz(db: Annotated[Session, Depends(get_db)]) -> dict[str, str]:
 
 @router.get("/version")
 def version() -> dict[str, str]:
-    return {"api_version": "v1", "app_version": settings.app_version}
+    """API·앱 버전과 이 이미지를 만든 커밋 SHA(#3029).
+
+    배포 워크플로가 `commit_sha` 를 배포한 SHA 와 대조해, 실제로 요청을 받는 프로세스가
+    새 코드인지 확인한다. 로컬·테스트 빌드는 `unknown`.
+    """
+    current = get_settings()
+    return {
+        "api_version": "v1",
+        "app_version": current.app_version,
+        "commit_sha": current.commit_sha,
+    }
 
 
 @router.get("/system/metrics")

@@ -19,7 +19,7 @@
 | Amazon Web Services, Inc. | 서버 운영(App Runner), 채팅 사진·리포트 PDF 보관(S3) | 싱가포르(`ap-southeast-1`) | 서버가 처리하는 회원·트레이너 정보 전반, 채팅 첨부 사진·리포트 PDF | 탈퇴 또는 위탁 계약 종료 시까지 | `.github/workflows/backend-deploy.yml` `AWS_REGION`, `backend/app/core/config.py` `attachment_storage`·`attachment_s3_*`, `backend/docs/DEPLOY.md` 5-1·리전 |
 | Neon | 데이터베이스 운영(Postgres + pgvector) | 싱가포르(App Runner 와 같은 리전) | 계정·프로필·식단(음식 사진 축소본 포함)·운동·건강 기록, 대화 기록, 검색 색인 | 탈퇴 또는 위탁 계약 종료 시까지 | `backend/docs/DEPLOY.md` 1·2절, `backend/.env.aws.example` `DATABASE_URL` |
 | Google LLC (Gemini API) | 음식 사진 인식, AI 코치 답변·추천, 개인 기록 검색 색인(임베딩), 트레이너 AI 프로그램·루틴 후보·리포트 요약 | 미국 등 Google 데이터센터 소재 국가 | 음식 사진, 분석에 필요한 식단·운동 기록·신체 정보·건강 목표, AI 코치 대화, 트레이너가 입력한 코칭 조건과 담당 회원 운동 기록·주간 리포트 수치 | 요청 처리 후 수탁자 약관에서 정한 기간 | `config.py` `recognizer`·`coach_llm`·`embedder` 기본값 `gemini`, `rag_auto_ingest=True`(식단·운동 저장 때마다 색인), `services/trainer_report_summary_service.py`, `services/trainer_routine_options_service.py` |
-| Functional Software, Inc. (Sentry) | 앱·서버 오류 수집 | 미국 | 오류 내용, 기기·브라우저·운영체제 종류, 앱 버전. 이름·이메일·IP·헤더·쿠키·요청 본문·지역 변수는 보내기 전에 지운다 | 수탁자 보관 기간 | `backend/app/core/error_tracking.py`(`send_default_pii=False`, `scrub_event`), `frontend/flutter/lib/core/observability/error_reporter.dart`, 트레이너 웹 `sentry_flutter` |
+| Functional Software, Inc. (Sentry) | 앱·서버 오류 수집 | 미국 | 오류 내용, 기기·브라우저·운영체제 종류, 앱 버전. 이름·이메일·IP·헤더·쿠키·요청 본문·지역 변수는 보내기 전에 지운다 | 수탁자 보관 기간 | `backend/app/core/error_tracking.py`(`send_default_pii=False`, `scrub_event`), `frontend/flutter/lib/core/observability/error_reporter.dart`, 화면이 잡아서 처리한 오류도 같은 항목·같은 정리로 보낸다(`source=handled`, `frontend/flutter/lib/core/observability/handled_error.dart`, 연결 끊김·이미 지워진 항목 같은 예상된 실패는 보내지 않음), 트레이너 웹 `sentry_flutter` |
 | 주식회사 카카오 | 헬스장·장소 검색, 지도 표시 | 대한민국(국외 이전 아님) | 장소 검색 좌표(회원이 현재 위치를 허용한 경우 그 좌표), 검색어 | 수탁자 보관 기간 | `backend/app/services/places/kakao.py`, `services/trainer_gym_search.py`, `shared/oncare_kakao_map`, 두 앱 `web/index.html` CSP |
 
 국외 이전 동의는 따로 받지 않는다. 모두 계약 이행을 위한 처리 위탁·보관이라 「개인정보 보호법」
@@ -81,8 +81,9 @@ DB 복구용 기록(Neon 의 복원 기간)에 남은 사본은 그 기간이 �
 | 음식 사진 | ○ | — | `diet_photos` |
 | 채팅 첨부 사진·리포트 PDF | ○ | ○ | `chat_messages`, `config.py` `chat_image_storage_dir`·`report_pdf_storage_dir` |
 | 접속 기록(일시·IP) | ○ | ○ | `audit_logs.ip` |
-| 현재 위치 | 헬스장 찾기에서 허용한 경우만, 저장 안 함 | — | `frontend/flutter/.../gym_location_controller.dart`, `GET /places/nearby` |
+| 현재 위치 | 헬스장 찾기에서 허용한 경우만, 저장 안 함(서버 요청 로그에도 남지 않음) | — | `frontend/flutter/.../gym_location_controller.dart`, `GET /places/nearby` |
 | 상담·예약 신청 내용(운동 목표·희망 일시·문의 내용) | ○ | ○(받는 쪽) | `consultation_requests`, `trainer_reservations` · iOS 매니페스트 `NSPrivacyCollectedDataTypeOtherUserContent`(계정 연결) |
+| 서버 요청 로그 | method·경로(쿼리 제외)·상태·소요시간·요청 id 만. IP·쿼리(위치 좌표·검색어)·본문은 없음 | 같음 | `app/core/observability.py` `app.access`, `scripts/start.sh` `--no-access-log`(#3031) |
 | 오류 정보 | ○ | ○ | Sentry(1절) · iOS 매니페스트 `NSPrivacyCollectedDataTypeCrashData`·`NSPrivacyCollectedDataTypeOtherDiagnosticData`(세션 추적·기기 종류·운영체제·앱 버전, 계정 미연결) |
 | 광고·분석 쿠키 | 없음 | 없음 | 두 앱 `pubspec.yaml`, `web/index.html` CSP |
 
