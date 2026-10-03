@@ -46,6 +46,8 @@ _AWS_INTENTIONALLY_OMITTED: dict[str, str] = {
     "MAX_CHAT_IMAGE_BYTES": _UPLOAD,
     "MAX_REPORT_PDF_BYTES": _UPLOAD,
     "UPLOAD_BODY_SLACK_BYTES": _UPLOAD,
+    "MAX_IMAGE_DECODE_PIXELS": _UPLOAD,
+    "MAX_IMAGE_DECODE_EDGE": _UPLOAD,
     "CHUNK_WINDOW": _RAG_TUNING,
     "CHUNK_OVERLAP": _RAG_TUNING,
     "RETRIEVE_PUBLIC_K": _RAG_TUNING,
@@ -257,7 +259,7 @@ def test_template_with_secrets_filled_passes_prod_guard():
     }
     values.update(
         database_url="postgresql+psycopg://u:p@db.example/oncare",
-        jwt_secret="a-strong-random-secret-value",
+        jwt_secret="a-strong-random-secret-value-for-prod-tests",
         cors_allow_origins="https://app.oncare.example,https://trainer.oncare.example",
         gemini_api_key="test-gemini-key",
         attachment_s3_bucket="oncare-prod",
