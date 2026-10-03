@@ -75,6 +75,10 @@ flutter build appbundle --release \
 | 개인정보 매니페스트 | `ios/Runner/PrivacyInfo.xcprivacy` | 추적 없음, 필수 사유 API(UserDefaults), 수집 데이터 유형 |
 | 권한 문구 | `ios/Runner/Info.plist` | 카메라·사진(식단 사진·트레이너 채팅 사진), 위치(주변 헬스장 찾기) |
 
+- 두 스토어의 **개인정보처리방침 URL** 은 운영 도메인의 `/legal/privacy.html`, 이용약관이 필요한 칸에는
+  `/legal/terms.html` 을 적습니다. 로그인 없이 열리는 정적 페이지로, 앱 안 문서와 같은 원본에서
+  만들어집니다([privacy_processing.md](privacy_processing.md) 8절, #3005). 운영 도메인이 정해지기 전에는
+  콘솔에 적지 않습니다(#480).
 - App Store Connect 의 **개인정보 라벨**은 `PrivacyInfo.xcprivacy` 의 수집 항목과 같게 적습니다.
   수집 항목·플러그인이 바뀌면 두 곳을 함께 고칩니다.
 - 권한 문구는 실제로 그 권한을 쓰는 화면과 맞아야 합니다. 새 용도가 생기면 문구도 고칩니다.

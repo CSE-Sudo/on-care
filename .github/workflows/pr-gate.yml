@@ -157,6 +157,15 @@ jobs:
           bash .github/scripts/test_landing_site_url.sh
           bash .github/scripts/landing_site_url.sh check index.html
 
+      - name: Check public legal pages
+        # 공개 처리방침·약관(legal/*.html)은 두 앱 ARB 의 문서에서 만든다(#3005). 앱 문서·
+        # 연락처 상수·랜딩 토큰을 고치고 페이지를 다시 만들지 않으면 스토어에 적은 주소와
+        # 앱 안의 글이 갈라지므로 병합 전에 막는다. 생성기의 테스트를 먼저 돌린다.
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tool/legal -p 'test_*.py' -v
+          python3 tool/legal/build_legal_pages.py --check
+
       - name: Test the demo divergence checker
         # 아래 검사가 오탐하면 필수 검사인 이 job 이 PR 병합을 막는다. 임시 저장소의
         # 가짜 diff 로 걸림·안 걸림·예외 통과를 먼저 확인한다(#2791).
