@@ -27,6 +27,31 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notFoundGoSignIn => '로그인하러 가기';
 
   @override
+  String get misconfiguredBuildTitle => '이 빌드는 잘못 구성됐어요';
+
+  @override
+  String get misconfiguredBuildMessage =>
+      '실제 사용자에게 쓸 수 없는 설정으로 빌드되어 앱을 열지 않았어요. 배포 담당자에게 아래 내용을 알려 주세요.';
+
+  @override
+  String get misconfiguredBuildDetailsTitle => '고쳐야 할 빌드 설정';
+
+  @override
+  String get misconfiguredBuildDevEnvironment => 'ENV 가 prod 또는 staging 이 아니에요';
+
+  @override
+  String get misconfiguredBuildMockWithoutDemo =>
+      '데모 빌드 표시 없이 데모 데이터를 쓰고 있어요 (USE_MOCK_API, DEMO_BUILD)';
+
+  @override
+  String get misconfiguredBuildPlaceholderApiUrl =>
+      'API 주소가 예시·로컬 주소예요 (API_BASE_URL)';
+
+  @override
+  String get misconfiguredBuildInsecureApiUrl =>
+      'API 주소가 https:// 로 시작하지 않아요 (API_BASE_URL)';
+
+  @override
   String get navDashboard => '홈';
 
   @override

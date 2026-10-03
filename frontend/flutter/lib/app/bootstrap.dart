@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logger/logger.dart';
 import 'package:oncare/app/app.dart';
+import 'package:oncare/app/misconfigured_build_page.dart';
 import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
@@ -30,6 +31,17 @@ Future<void> bootstrap() async {
   logger.i(
     'oncare boot env=${config.environment.name} api=${config.apiBaseUrl}',
   );
+
+  // 릴리스 기본값 가드(#3022). 개발·목업 기본값 그대로 나간 릴리스 빌드는 저장소·
+  // 토큰·오류 보고를 건드리기 전에 멈추고 구성 오류 안내만 띄운다.
+  final List<ReleaseProblem> problems = releaseGuardProblems(config);
+  if (problems.isNotEmpty) {
+    logger.e(
+      'oncare release build misconfigured: ${problems.map((p) => p.name).join(',')}',
+    );
+    runApp(MisconfiguredBuildApp(problems: problems));
+    return;
+  }
 
   // 에러 추적(#2839). DSN 이 없거나 데모(목업)·개발 환경이면 보내지 않는 보고기가 온다.
   final ErrorReporter errorReporter = await initErrorReporter(config);
