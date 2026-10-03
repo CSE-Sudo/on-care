@@ -2643,6 +2643,10 @@
   "@alertCategorySchedule": {
     "description": "Notification category label for screen readers."
   },
+  "alertCategoryPtDone": "PT record",
+  "@alertCategoryPtDone": {
+    "description": "Notification category label for screen readers: a finished PT session or the trainer's feedback on it (#3027)."
+  },
   "alertCategoryTrainer": "Trainer",
   "@alertCategoryTrainer": {
     "description": "Notification category label for screen readers."

@@ -1725,6 +1725,7 @@
   "alertCategoryCoachReport": "주간 리포트",
   "alertCategoryRoutine": "운동 루틴",
   "alertCategorySchedule": "PT 일정",
+  "alertCategoryPtDone": "PT 기록",
   "alertCategoryTrainer": "담당 트레이너",
   "alertCategoryConsultation": "상담 요청",
   "alertCategoryHealthGoals": "건강 목표",
