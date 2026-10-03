@@ -12,7 +12,7 @@ from app.core.config import Settings
 def test_prod_blocks_wildcard_cors():
     """운영에서 CORS 와일드카드('*')면 기동이 막혀야 한다."""
     with pytest.raises(ValidationError):
-        Settings(_env_file=None, env="prod", jwt_secret="strong", cors_allow_origins="*")
+        Settings(_env_file=None, env="prod", jwt_secret="x" * 40, cors_allow_origins="*")
 
 
 def test_cors_origin_list_parsing():

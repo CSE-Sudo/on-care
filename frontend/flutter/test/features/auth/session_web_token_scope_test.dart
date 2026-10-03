@@ -15,6 +15,11 @@ import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/core/storage/secure_token_store.dart';
 import 'package:oncare/core/storage/token_session_storage.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare_core/storage/token_keys.dart';
+
+/// 이 앱의 토큰 키(#3054). 두 앱이 같은 탭 저장소를 써서 키에 앱 이름이 붙는다.
+final String _access = TokenKeyspace.member.accessKey;
+final String _refresh = TokenKeyspace.member.refreshKey;
 
 /// `METHOD /path` → 순서대로 줄 (상태 코드, 본문). 마지막 답은 반복한다.
 Dio _scriptedDio(
@@ -98,8 +103,8 @@ void main() {
 
   test('restores a session kept in the tab', () async {
     tab
-      ..write('access_token', 'tab-access')
-      ..write('refresh_token', 'tab-refresh');
+      ..write(_access, 'tab-access')
+      ..write(_refresh, 'tab-refresh');
     final ProviderContainer c = container(
       <String, List<(int, Map<String, Object?>)>>{
         'GET /users/me': <(int, Map<String, Object?>)>[
@@ -141,8 +146,8 @@ void main() {
 
   test('rotation stores the new pair in the tab only', () async {
     tab
-      ..write('access_token', 'expired-access')
-      ..write('refresh_token', 'tab-refresh');
+      ..write(_access, 'expired-access')
+      ..write(_refresh, 'tab-refresh');
     final ProviderContainer c = container(
       <String, List<(int, Map<String, Object?>)>>{
         'GET /users/me': <(int, Map<String, Object?>)>[
@@ -168,15 +173,15 @@ void main() {
       c.read(sessionControllerProvider).status,
       SessionStatus.authenticated,
     );
-    expect(tab.read('access_token'), 'rotated-access');
-    expect(tab.read('refresh_token'), 'rotated-refresh');
+    expect(tab.read(_access), 'rotated-access');
+    expect(tab.read(_refresh), 'rotated-refresh');
     expect(await secure.readAll(), isEmpty);
   });
 
   test('a dead refresh token clears the tab', () async {
     tab
-      ..write('access_token', 'expired-access')
-      ..write('refresh_token', 'dead-refresh');
+      ..write(_access, 'expired-access')
+      ..write(_refresh, 'dead-refresh');
     final ProviderContainer c = container(
       <String, List<(int, Map<String, Object?>)>>{
         'GET /users/me': <(int, Map<String, Object?>)>[
@@ -192,7 +197,139 @@ void main() {
     await _settle(c);
 
     expect(c.read(sessionControllerProvider).status, SessionStatus.signedOut);
-    expect(tab.read('access_token'), isNull);
-    expect(tab.read('refresh_token'), isNull);
+    expect(tab.read(_access), isNull);
+    expect(tab.read(_refresh), isNull);
+  });
+
+  group('same origin as the trainer web (#3054)', () {
+    final String trainerAccess = TokenKeyspace.trainer.accessKey;
+    final String trainerRefresh = TokenKeyspace.trainer.refreshKey;
+
+    void seedTrainer() => tab
+      ..write(trainerAccess, 'trainer-access')
+      ..write(trainerRefresh, 'trainer-refresh');
+
+    test('a trainer role on /users/me ends the session', () async {
+      tab
+        ..write(_access, 'tab-access')
+        ..write(_refresh, 'tab-refresh');
+      seedTrainer();
+      final ProviderContainer c = container(
+        <String, List<(int, Map<String, Object?>)>>{
+          'GET /users/me': <(int, Map<String, Object?>)>[
+            (200, <String, Object?>{'id': 'u1', 'role': 'trainer'}),
+          ],
+        },
+      );
+
+      c.read(sessionControllerProvider.notifier);
+      await _settle(c);
+
+      expect(c.read(sessionControllerProvider).status, SessionStatus.signedOut);
+      expect(tab.read(_access), isNull);
+      expect(tab.read(_refresh), isNull);
+      // 트레이너 웹의 세션은 그대로다.
+      expect(tab.read(trainerAccess), 'trainer-access');
+      expect(tab.read(trainerRefresh), 'trainer-refresh');
+    });
+
+    test('a member role restores the session', () async {
+      tab
+        ..write(_access, 'tab-access')
+        ..write(_refresh, 'tab-refresh');
+      final ProviderContainer c = container(
+        <String, List<(int, Map<String, Object?>)>>{
+          'GET /users/me': <(int, Map<String, Object?>)>[
+            (200, <String, Object?>{'id': 'u1', 'role': 'member'}),
+          ],
+        },
+      );
+
+      c.read(sessionControllerProvider.notifier);
+      await _settle(c);
+
+      expect(
+        c.read(sessionControllerProvider).status,
+        SessionStatus.authenticated,
+      );
+    });
+
+    test('403 clears this app only and never rotates', () async {
+      tab
+        ..write(_access, 'tab-access')
+        ..write(_refresh, 'tab-refresh');
+      seedTrainer();
+      final ProviderContainer c = container(
+        <String, List<(int, Map<String, Object?>)>>{
+          'GET /users/me': <(int, Map<String, Object?>)>[
+            (403, <String, Object?>{}),
+          ],
+          'POST /auth/refresh': <(int, Map<String, Object?>)>[
+            (
+              200,
+              <String, Object?>{
+                'access_token': 'should-not-happen',
+                'refresh_token': 'should-not-happen',
+              },
+            ),
+          ],
+        },
+      );
+
+      c.read(sessionControllerProvider.notifier);
+      await _settle(c);
+
+      expect(c.read(sessionControllerProvider).status, SessionStatus.signedOut);
+      expect(calls, isNot(contains('POST /auth/refresh')));
+      expect(tab.read(_access), isNull);
+      expect(tab.read(trainerAccess), 'trainer-access');
+      expect(tab.read(trainerRefresh), 'trainer-refresh');
+    });
+
+    test('a pre-namespace tab session moves to the member keys', () async {
+      tab
+        ..write('access_token', 'old-access')
+        ..write('refresh_token', 'old-refresh');
+      final ProviderContainer c = container(
+        <String, List<(int, Map<String, Object?>)>>{
+          'GET /users/me': <(int, Map<String, Object?>)>[
+            (200, <String, Object?>{'id': 'u1', 'role': 'member'}),
+          ],
+        },
+      );
+
+      c.read(sessionControllerProvider.notifier);
+      await _settle(c);
+
+      expect(
+        c.read(sessionControllerProvider).status,
+        SessionStatus.authenticated,
+      );
+      expect(tab.read(_access), 'old-access');
+      expect(tab.read(_refresh), 'old-refresh');
+      expect(tab.read('access_token'), isNull);
+      expect(tab.read('refresh_token'), isNull);
+    });
+
+    test('a pre-namespace trainer token is not let in', () async {
+      tab
+        ..write('access_token', 'trainer-old-access')
+        ..write('refresh_token', 'trainer-old-refresh');
+      final ProviderContainer c = container(
+        <String, List<(int, Map<String, Object?>)>>{
+          'GET /users/me': <(int, Map<String, Object?>)>[
+            (403, <String, Object?>{}),
+          ],
+        },
+      );
+
+      c.read(sessionControllerProvider.notifier);
+      await _settle(c);
+
+      expect(c.read(sessionControllerProvider).status, SessionStatus.signedOut);
+      expect(calls, isNot(contains('POST /auth/refresh')));
+      expect(tab.read(_access), isNull);
+      expect(tab.read(_refresh), isNull);
+    });
   });
 }

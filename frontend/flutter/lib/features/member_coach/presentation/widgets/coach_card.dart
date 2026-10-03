@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/errors/app_error.dart';
+import 'package:oncare/core/observability/handled_error.dart';
 import 'package:oncare/features/ai_coach/presentation/widgets/insight_history_sheet.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart'
     show exerciseTypeFromLabel;
@@ -529,7 +530,9 @@ class _RecommendedExerciseRowState
         showAppToast(context, l.coachRoutineUndone, type: AppToastType.success);
       }
     } on Object catch (error, stackTrace) {
-      debugPrint('uncompleteRoutine failed: $error\n$stackTrace');
+      ref
+          .read(handledErrorReporterProvider)
+          .report(error, stackTrace, context: 'coach.uncompleteRoutine');
       if (mounted) {
         showAppToast(
           context,
@@ -589,7 +592,9 @@ class _RecommendedExerciseRowState
         );
       }
     } catch (error, stackTrace) {
-      debugPrint('completeRoutine failed: $error\n$stackTrace');
+      ref
+          .read(handledErrorReporterProvider)
+          .report(error, stackTrace, context: 'coach.completeRoutine');
       if (mounted) {
         if (error is NotFoundError) {
           refreshCoachRoutines(ref);
