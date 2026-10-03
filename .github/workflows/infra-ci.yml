@@ -1,0 +1,96 @@
+name: Infra CI
+
+# 배포 템플릿·워크플로·배포 스크립트를 병합 전에 검사한다(#3016, #3019, #3020).
+# 배포 워크플로는 main 에서만 돌고 처음엔 꺼져 있어, 틀린 곳이 있어도 스위치를 켠 뒤에야
+# 드러난다. 여기서는 AWS 에 닿지 않고 문법·규칙만 본다.
+#
+#  - cfn-lint: CloudFormation 문법·리소스 스키마(ECS Express Mode 포함)
+#  - infra/tests: 이 서비스가 정한 규칙(태스크 1 고정, 첨부 버킷 접두사, OIDC subject·PassRole 범위)
+#  - actionlint: 배포 워크플로 식·job 의존·재사용 워크플로 입력
+#  - 배포 스크립트 셸 검사: 헬스 판정·스택 갱신·되돌리기 지점·API 주소 가드
+on:
+  push:
+    branches: [main]
+    paths:
+      - "infra/**"
+      - ".github/scripts/**"
+      - ".github/workflows/backend-deploy.yml"
+      - ".github/workflows/backend-deploy-service.yml"
+      - ".github/workflows/aws-frontend-deploy.yml"
+      - ".github/workflows/deploy.yml"
+      - ".github/workflows/infra-ci.yml"
+  pull_request:
+    paths:
+      - "infra/**"
+      - ".github/scripts/**"
+      - ".github/workflows/backend-deploy.yml"
+      - ".github/workflows/backend-deploy-service.yml"
+      - ".github/workflows/aws-frontend-deploy.yml"
+      - ".github/workflows/deploy.yml"
+      - ".github/workflows/infra-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: infra-ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  templates:
+    name: CloudFormation templates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: infra/requirements-ci.txt
+
+      - name: Install tools
+        run: pip install -r infra/requirements-ci.txt
+
+      - name: cfn-lint
+        run: cfn-lint infra/*.yml
+
+      - name: Template rules
+        working-directory: infra/tests
+        run: python -m pytest -q
+
+  workflows:
+    name: Deploy workflows and scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # 이미지는 digest 로 고정한다(태그는 바뀔 수 있다).
+      - name: actionlint
+        run: >-
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo" -w /repo
+          rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+          -color
+          .github/workflows/backend-deploy.yml
+          .github/workflows/backend-deploy-service.yml
+          .github/workflows/aws-frontend-deploy.yml
+          .github/workflows/deploy.yml
+          .github/workflows/infra-ci.yml
+
+      # 랜딩 링크·데모 분기 검사는 PR gate 가 이미 돌린다.
+      - name: Deploy script checks
+        run: |
+          set -euo pipefail
+          for test in \
+            .github/scripts/test_backend_health_check.sh \
+            .github/scripts/test_backend_service_stack.sh \
+            .github/scripts/test_backend_verify_service.sh \
+            .github/scripts/test_check_web_api_base_url.sh; do
+            echo "::group::$test"
+            bash "$test"
+            echo "::endgroup::"
+          done

@@ -102,11 +102,28 @@ aws cloudformation deploy \
 >   --region ap-northeast-2
 > ```
 
+### GitHub Environment 전환 (#3019)
+
+배포 job 에 `environment: production` 이 붙으면 OIDC 토큰의 `sub` 가
+`repo:CSE-Sudo@<id>/on-care@<id>:ref:refs/heads/main` 에서 `…:environment:production` 으로 바뀝니다.
+신뢰 정책이 브랜치 형식만 허용하면 워크플로를 바꾸는 순간 배포가 인증 단계에서 실패하므로, 아래 순서를 지킵니다.
+
+1. **스택 먼저**: 최신 `infra/frontend-hosting.yml` 로 스택을 갱신합니다. 새 파라미터 `GitHubEnvironment`(기본
+   `production`)·`AllowBranchOidcSubject`(기본 `true`)가 생기고, 역할은 Environment 형식과 브랜치 형식을 **둘 다**
+   믿습니다. 변경 세트에서 `GitHubFrontendDeployRole` 의 신뢰 정책·설명만 바뀌는지 확인합니다.
+2. 저장소 Settings → Environments 에서 `production`(이미 있는 `Production` 이 같은 환경입니다)의 배포 브랜치를
+   `main` 으로 두고, 필요하면 승인자를 지정합니다. 승인자를 두면 프런트·백엔드 운영 배포가 같은 승인을 기다립니다.
+3. 이 워크플로를 `main` 에서 한 번 돌려 `Configure AWS credentials` 가 통과하는지 봅니다.
+4. **브랜치 형식 제거**: `AllowBranchOidcSubject=false` 로 스택을 다시 적용합니다. 이제 Environment 밖에서 돈
+   job 은 이 역할을 맡을 수 없습니다.
+
+Environment 이름은 대소문자를 가리지 않으므로 신뢰 정책은 `StringEqualsIgnoreCase` 로 비교합니다.
+
 ### 조직명 변경으로 OIDC 인증이 실패할 때
 
 `Could not assume role with OIDC: Not authorized to perform sts:AssumeRoleWithWebIdentity`가
 발생하면 `AWS_FRONTEND_DEPLOY_ROLE_ARN`이 가리키는 IAM 역할의 **신뢰 관계**를 확인합니다.
-`aud`는 `sts.amazonaws.com`, `sub`는 현재 저장소와 실행 브랜치에 맞아야 합니다.
+`aud`는 `sts.amazonaws.com`, `sub`는 현재 저장소와 실행 Environment(전환 기간에는 브랜치도)에 맞아야 합니다.
 
 조직명만 변경된 기존 스택은 다음 순서로 복구합니다.
 
@@ -160,7 +177,7 @@ CloudFormation 스택과 세 변수를 확인하고 배포할 `main` 커밋이 �
 | --- | --- |
 | `AWS_FRONTEND_DEPLOY_ENABLED` | `true` |
 
-OIDC 역할은 `main` 브랜치만 신뢰하므로 AWS 워크플로의 첫 실행도 `main`에서 진행합니다.
+배포 job 은 GitHub Environment `production` 에서 돌고(아래 "GitHub Environment 전환"), Environment 의 배포 브랜치를 `main` 으로 묶으므로 AWS 워크플로의 첫 실행도 `main`에서 진행합니다.
 
 이 단계는 이미 완료했습니다. 이후 작업 기간의 비용을 줄이려고 변수를 다시 `false`로 두었으므로, 아래 확인 절차는 **꺼 둔 배포를 다시 켤 때의 점검 절차**로도 그대로 사용합니다.
 
