@@ -11,9 +11,15 @@ from pydantic import BaseModel, Field
 
 # ---- 알림 ----
 class NotificationAction(BaseModel):
-    """알림에서 바로 갈 수 있는 액션(카테고리에서 파생). 프론트가 target 으로 이동."""
+    """알림에서 바로 갈 수 있는 액션. 프론트가 target 으로 이동.
+
+    알림에 목적지(`action_target`, #2690·#3028)가 있으면 그 값, 없으면 카테고리에서
+    파생한다. PT 일정(`member_schedule`)은 운동 탭(`exercise`)이다(#3028).
+    """
     label: str         # "기록하러 가기" / "Log now" — 요청 언어(#2302)
-    target: str        # 프론트 라우트 힌트: schedule|dashboard
+    # 프론트 라우트 힌트: dashboard|coach_chat|exercise|diet|my_benefits|points_shop|
+    # health_goals|consultations (`notification_service.MEMBER_ACTION_TARGETS`)
+    target: str
 
 
 class NotificationOut(BaseModel):

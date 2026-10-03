@@ -3344,6 +3344,34 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notifTplMemberPhotoBody => '사진을 보냈어요';
 
   @override
+  String notifTplWeeklyFeedbackTitle(String name) {
+    return '$name 회원이 주간 피드백을 보냈어요';
+  }
+
+  @override
+  String notifTplWeeklyFeedbackRevisedTitle(String name) {
+    return '$name 회원이 주간 피드백을 수정했어요';
+  }
+
+  @override
+  String notifTplWeeklyFeedbackPainTitle(String name) {
+    return '$name 회원이 통증을 알렸어요';
+  }
+
+  @override
+  String notifTplWeeklyFeedbackCondition(String value) {
+    return '컨디션 $value';
+  }
+
+  @override
+  String notifTplWeeklyFeedbackIntensity(String value) {
+    return '운동 강도 $value';
+  }
+
+  @override
+  String get notifTplWeeklyFeedbackPain => '통증 있음';
+
+  @override
   String get notifAllRead => '모두 확인했어요';
 
   @override
