@@ -170,6 +170,46 @@ void main() {
       expect(await store.readRefreshToken(), 'new-r');
     });
 
+    test(
+      'clear during a legacy migration does not bring the old token back',
+      () async {
+        // 세션 복원이 옛 키를 옮기는 사이 로그인이 토큰을 지우는 순서다.
+        FlutterSecureStorage.setMockInitialValues(<String, String>{
+          'access_token': 'old-access',
+          'refresh_token': 'old-refresh',
+        });
+        final SecureTokenStore store = SecureTokenStore(secure);
+
+        final Future<String?> restoring = store.readAccessToken();
+        final Future<void> clearing = store.clear();
+        await Future.wait(<Future<Object?>>[restoring, clearing]);
+
+        expect(await store.readAccessToken(), isNull);
+        expect(await store.readRefreshToken(), isNull);
+        expect(await persisted(), isEmpty);
+      },
+    );
+
+    test('concurrent reads share one migration', () async {
+      FlutterSecureStorage.setMockInitialValues(<String, String>{
+        'access_token': 'legacy-a',
+        'refresh_token': 'legacy-r',
+      });
+      final SecureTokenStore store = SecureTokenStore(secure);
+
+      final List<String?> read = await Future.wait(<Future<String?>>[
+        store.readAccessToken(),
+        store.readRefreshToken(),
+        store.readAccessToken(),
+      ]);
+
+      expect(read, <String?>['legacy-a', 'legacy-r', 'legacy-a']);
+      expect(await persisted(), <String, String>{
+        access: 'legacy-a',
+        refresh: 'legacy-r',
+      });
+    });
+
     test('web moves a pre-namespace tab session to this app keys', () async {
       final InMemoryTokenSessionStorage session = InMemoryTokenSessionStorage()
         ..write('access_token', 'old-a')

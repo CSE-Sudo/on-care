@@ -32,6 +32,10 @@ class SecureTokenStore {
   /// 이 인스턴스가 이름공간 없던 옛 키를 이미 옮겼는가(#3054).
   bool _keysMigrated = false;
 
+  /// 진행 중인 옛 키 옮기기. 동시에 부른 쪽이 같은 작업을 기다린다 — 옮기는
+  /// 도중 [clear] 가 끼면 옮기던 옛 토큰이 지운 뒤에 다시 써진다.
+  Future<void>? _migration;
+
   /// 토큰 키 이름공간(#3054). 회원 앱과 트레이너 웹은 한 출처에 배포돼 같은
   /// 브라우저 저장소를 보므로, 키에 앱 이름을 붙여 서로의 토큰을 건드리지 않는다.
   static const TokenKeyspace keyspace = TokenKeyspace.trainer;
@@ -72,6 +76,9 @@ class SecureTokenStore {
   /// 이 앱의 토큰을 지운다. 웹은 이 앱 키만 지운다 — 같은 탭 저장소를 쓰는 다른
   /// 앱의 토큰은 남긴다. 모바일 저장소는 이 앱만 쓰므로 옛 키도 함께 지운다.
   Future<void> clear() async {
+    // 세션 복원이 옛 키를 옮기는 중이면 끝난 뒤에 지운다 — 먼저 지우면 옮기던
+    // 앞 계정 토큰이 새 키로 되살아난다.
+    await _migrateLegacyKeys();
     final TokenSessionStorage? session = _session;
     if (session != null) {
       session
@@ -93,8 +100,12 @@ class SecureTokenStore {
   /// 회원이 다시 로그인하지 않아도 된다. 웹 탭 저장소의 옛 키는 어느 앱 것인지
   /// 모르므로, 옮긴 토큰은 세션 복원의 역할 확인을 통과해야 세션이 된다.
   /// 실패하면 다음 호출에서 다시 시도한다.
-  Future<void> _migrateLegacyKeys() async {
-    if (_keysMigrated) return;
+  Future<void> _migrateLegacyKeys() {
+    if (_keysMigrated) return Future<void>.value();
+    return _migration ??= _runMigration().whenComplete(() => _migration = null);
+  }
+
+  Future<void> _runMigration() async {
     final TokenSessionStorage? session = _session;
     final TokenKeyValueAccess access = session != null
         ? TokenKeyValueAccess(
