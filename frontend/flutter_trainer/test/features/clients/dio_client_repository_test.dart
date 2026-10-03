@@ -116,11 +116,43 @@ void main() {
       ], '/trainer/clients'),
     );
 
-    // Ordering is one shared pure function now; the API source has no
-    // chat-recency signal to feed it.
+    // 정렬은 공용 순수 함수 하나다. 실서버는 채팅 시각을 따로 흘리지 않고
+    // 로스터의 `last_message_at` 으로 폴백한다(#3011).
     final clients = prioritizeClients(await repo.watchClients().first);
     expect(clients.first.id, 'over');
     expect(await repo.watchLastChatAt().first, isEmpty);
+  });
+
+  test('메시지 탭 차례는 로스터의 last_message_at 최신순이다 (#3011)', () async {
+    // 실서버 저장소는 채팅 시각 맵을 비워 둔다. 그래도 메시지 탭은 로스터가
+    // 실어 온 마지막 메시지 시각으로 최신 대화를 위로 올려야 한다 — 예전에는
+    // 서버 차례 그대로 고정이었다.
+    when(
+      () => dio.get<List<dynamic>>(
+        '/trainer/clients',
+        queryParameters: any(named: 'queryParameters'),
+      ),
+    ).thenAnswer(
+      (_) async => _okList(<dynamic>[
+        <String, Object?>{
+          'id': 'old',
+          'name': '어제 대화',
+          'last_message_at': '2026-10-02T09:00:00+09:00',
+        },
+        <String, Object?>{'id': 'none', 'name': '대화 없음'},
+        <String, Object?>{
+          'id': 'new',
+          'name': '방금 대화',
+          'last_message_at': '2026-10-03T10:30:00+09:00',
+        },
+      ], '/trainer/clients'),
+    );
+
+    final roster = await repo.watchClients().first;
+    final lastChat = await repo.watchLastChatAt().first;
+    final sorted = sortByLatestMessage(roster, lastChatAt: lastChat);
+
+    expect(sorted.map((c) => c.id), <String>['new', 'old', 'none']);
   });
 
   test('watchDiet parses the meals', () async {
