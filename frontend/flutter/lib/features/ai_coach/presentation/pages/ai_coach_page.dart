@@ -575,7 +575,9 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
                           ),
                         ],
                       )
-                    : Text(text),
+                    // AI 답은 여러 문장이다 — 낱말 중간에서 줄을 바꾸지
+                    // 않는다(#2969).
+                    : Text(keepWords(text)),
               ),
               if (!m.pending && m.sources.isNotEmpty)
                 Padding(

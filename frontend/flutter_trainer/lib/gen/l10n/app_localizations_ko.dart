@@ -5252,6 +5252,35 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String clientDietAnalysisWeekBreakfastSnackFood(String food, int count) {
+    return '아침 대신 먹은 것은 $food $count번이 가장 많았어요.';
+  }
+
+  @override
+  String clientDietAnalysisWeekProteinAvg(String value) {
+    return '모자란 날은 하루 평균 $value 정도였어요.';
+  }
+
+  @override
+  String clientDietAnalysisWeekGoodAvg(String kcal, String protein) {
+    return '하루 평균 $kcal, 단백질 $protein을 드셨어요.';
+  }
+
+  @override
+  String clientDietAnalysisWeekVsLast(
+    int prevLogged,
+    int prevDays,
+    String way,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(way, {
+      'more': '보다 늘었어요',
+      'less': '보다 줄었어요',
+      'other': '와 비슷해요',
+    });
+    return '지난주($prevLogged일 중 $prevDays일)$_temp0.';
+  }
+
+  @override
   String clientDietAnalysisAllFew(int days) {
     return '최근 4주 기록이 $days일이라, 7일이 넘으면 흐름을 짚어 드릴게요.';
   }

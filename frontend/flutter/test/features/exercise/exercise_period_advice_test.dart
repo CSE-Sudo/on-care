@@ -30,6 +30,7 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/features/member_coach/presentation/widgets/coach_card.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
+import 'package:oncare_ui/oncare_ui.dart' show withoutWordJoiners;
 
 import '../../helpers/mock_account_repository.dart';
 
@@ -165,7 +166,7 @@ String _adviceText(WidgetTester tester) => tester
         matching: find.byType(Text),
       ),
     )
-    .map((Text t) => t.data ?? '')
+    .map((Text t) => withoutWordJoiners(t.data ?? ''))
     .join(' ');
 
 Future<void> _pump(

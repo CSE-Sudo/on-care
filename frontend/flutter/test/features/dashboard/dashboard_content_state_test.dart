@@ -449,7 +449,7 @@ void main() {
       expect(find.text('운동 추이 (kcal)'), findsNothing);
       // 오늘의 일정 카드는 화면에서 내려 뒀다 (#1055).
       expect(find.text('병원 정기검진'), findsNothing);
-      expect(find.textContaining('김치찌개·배추김치'), findsOneWidget);
+      expect(find.textContaining(keepWords('김치찌개·배추김치')), findsOneWidget);
       expect(
         find.byKey(const ValueKey<String>('dashboard-nutrition-chart')),
         findsOneWidget,

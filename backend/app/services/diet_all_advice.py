@@ -238,6 +238,21 @@ def choose(candidates: list[Finding], last_kind: str | None) -> Finding | None:
     return (fresh or candidates or [None])[0]
 
 
+def candidates(
+    entries, records: dict[date, DayRecord], targets: inputs.DietTargets, today: date
+) -> list[Finding]:
+    """말할 수 있는 것 전부, 말할 순서대로. 트레이너 `식단 분석` 도 이것을 쓴다."""
+    return [
+        f for f in (
+            slot_sodium(records, targets),
+            macro(entries),
+            trend(records, targets, today),
+            frequent(records),
+            repeated(records),
+        ) if f is not None
+    ]
+
+
 def decide_all(
     entries, targets: inputs.DietTargets, today: date, last_kind: str | None
 ) -> tuple[dict[date, DayRecord], Line, Finding | None]:
@@ -249,16 +264,7 @@ def decide_all(
     records = day_records(entries)
     if len(records) < MIN_DAYS:
         return records, line("all_few_records", days=len(records)), None
-    candidates = [
-        f for f in (
-            slot_sodium(records, targets),
-            macro(entries),
-            trend(records, targets, today),
-            frequent(records),
-            repeated(records),
-        ) if f is not None
-    ]
-    finding = choose(candidates, last_kind)
+    finding = choose(candidates(entries, records, targets, today), last_kind)
     if finding is None:
         return records, line("all_good", days=len(records)), None
     return records, finding.analysis, finding

@@ -710,6 +710,21 @@
        "food_value": 4286,
        "nutrient": "sodium"
       }
+     },
+     {
+      "key": "tr_week_protein_short",
+      "params": {
+       "scope": "this",
+       "logged": 4,
+       "days": 3
+      }
+     },
+     {
+      "key": "tr_week_protein_avg",
+      "params": {
+       "nutrient": "protein",
+       "value": 70
+      }
      }
     ]
    }
@@ -843,6 +858,13 @@
        "logged": 4,
        "days": 4,
        "snack_days": 3
+      }
+     },
+     {
+      "key": "tr_week_breakfast_snack_food",
+      "params": {
+       "food": "과자",
+       "count": 3
       }
      }
     ]
@@ -1006,6 +1028,13 @@
        "scope": "this",
        "days": 3
       }
+     },
+     {
+      "key": "tr_week_good_avg",
+      "params": {
+       "kcal": 1500,
+       "protein": 120
+      }
      }
     ]
    }
@@ -1167,6 +1196,292 @@
       "params": {
        "scope": "this",
        "logged": 3,
+       "days": 3
+      }
+     },
+     {
+      "key": "tr_week_protein_avg",
+      "params": {
+       "nutrient": "protein",
+       "value": 45
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "week_vs_last",
+   "period": "week",
+   "now": "2026-09-24T20:00:00",
+   "targets": {
+    "calories": 2000,
+    "protein_g": 100,
+    "sodium_mg": 2000,
+    "sugar_g": 50
+   },
+   "entries": [
+    {
+     "date": "2026-09-21",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "토스트"
+      }
+     ],
+     "kcal": 400,
+     "protein_g": 30,
+     "sodium_mg": 300,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-21",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "짬뽕"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 4286,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-22",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "토스트"
+      }
+     ],
+     "kcal": 400,
+     "protein_g": 30,
+     "sodium_mg": 300,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-22",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "라면"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 2500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-23",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "토스트"
+      }
+     ],
+     "kcal": 400,
+     "protein_g": 30,
+     "sodium_mg": 300,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-23",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "라면"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 2500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-24",
+     "meal_type": "breakfast",
+     "foods": [
+      {
+       "name": "토스트"
+      }
+     ],
+     "kcal": 400,
+     "protein_g": 30,
+     "sodium_mg": 300,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-24",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "라면"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 1500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-14",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "라면"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 2500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-15",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "라면"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 2500,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-16",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "라면"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 900,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-17",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "라면"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 900,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-18",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "라면"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 900,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-19",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "라면"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 900,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    },
+    {
+     "date": "2026-09-20",
+     "meal_type": "lunch",
+     "foods": [
+      {
+       "name": "라면"
+      }
+     ],
+     "kcal": 700,
+     "protein_g": 40,
+     "sodium_mg": 900,
+     "sugar_g": 5,
+     "carbs_g": 60,
+     "fat_g": 15
+    }
+   ],
+   "expected": {
+    "from": "2026-09-21",
+    "to": "2026-09-24",
+    "logged": 4,
+    "sentences": [
+     {
+      "key": "tr_week_over",
+      "params": {
+       "scope": "this",
+       "logged": 4,
+       "days": 3,
+       "nutrient": "sodium"
+      }
+     },
+     {
+      "key": "tr_week_vs_last_more",
+      "params": {
+       "prev_logged": 7,
+       "prev_days": 2
+      }
+     },
+     {
+      "key": "tr_week_cause",
+      "params": {
+       "weekday": 0,
+       "slot": "lunch",
+       "food": "짬뽕",
+       "food_value": 4286,
+       "nutrient": "sodium"
+      }
+     },
+     {
+      "key": "tr_week_protein_short",
+      "params": {
+       "scope": "this",
+       "logged": 4,
        "days": 3
       }
      }
@@ -1640,6 +1955,14 @@
        "count1": 5,
        "food2": "짬뽕",
        "count2": 3
+      }
+     },
+     {
+      "key": "tr_all_frequent",
+      "params": {
+       "slot": "dinner",
+       "food": "닭가슴살",
+       "count": 10
       }
      }
     ]
@@ -2570,6 +2893,60 @@
    "en": "All 3 logged days this week stayed within the goals."
   },
   {
+   "key": "tr_week_breakfast_snack_food",
+   "params": {
+    "food": "과자",
+    "count": 3
+   },
+   "ko": "아침 대신 먹은 것은 과자 3번이 가장 많았어요.",
+   "en": "과자 replaced breakfast most often (3 times)."
+  },
+  {
+   "key": "tr_week_protein_avg",
+   "params": {
+    "nutrient": "protein",
+    "value": 45
+   },
+   "ko": "모자란 날은 하루 평균 45g 정도였어요.",
+   "en": "Those days averaged 45g a day."
+  },
+  {
+   "key": "tr_week_good_avg",
+   "params": {
+    "kcal": 1500,
+    "protein": 120
+   },
+   "ko": "하루 평균 1,500kcal, 단백질 120g을 드셨어요.",
+   "en": "Averaged 1,500kcal and 120g protein a day."
+  },
+  {
+   "key": "tr_week_vs_last_more",
+   "params": {
+    "prev_logged": 7,
+    "prev_days": 2
+   },
+   "ko": "지난주(7일 중 2일)보다 늘었어요.",
+   "en": "Up from last week (2 of 7 days)."
+  },
+  {
+   "key": "tr_week_vs_last_less",
+   "params": {
+    "prev_logged": 7,
+    "prev_days": 5
+   },
+   "ko": "지난주(7일 중 5일)보다 줄었어요.",
+   "en": "Down from last week (5 of 7 days)."
+  },
+  {
+   "key": "tr_week_vs_last_same",
+   "params": {
+    "prev_logged": 6,
+    "prev_days": 3
+   },
+   "ko": "지난주(6일 중 3일)와 비슷해요.",
+   "en": "About the same as last week (3 of 6 days)."
+  },
+  {
    "key": "tr_all_few",
    "params": {
     "days": 3
@@ -2609,7 +2986,7 @@
     "after": 6
    },
    "ko": "단백질 목표를 채운 날이 앞선 2주 2일에서 최근 2주 6일로 늘었어요.",
-   "en": "Days meeting the protein goal rose from 2 to 6 over the last 2 weeks."
+   "en": "Days meeting the protein goal rose from 2 in the prior 2 weeks to 6 in the last 2 weeks."
   },
   {
    "key": "tr_all_protein_trend_down",
@@ -2618,7 +2995,7 @@
     "after": 2
    },
    "ko": "단백질 목표를 채운 날이 앞선 2주 6일에서 최근 2주 2일로 줄었어요.",
-   "en": "Days meeting the protein goal fell from 6 to 2 over the last 2 weeks."
+   "en": "Days meeting the protein goal fell from 6 in the prior 2 weeks to 2 in the last 2 weeks."
   },
   {
    "key": "tr_all_frequent",

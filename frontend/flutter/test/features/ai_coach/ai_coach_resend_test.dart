@@ -15,6 +15,7 @@ import 'package:oncare/features/ai_coach/domain/repositories/ai_coach_repository
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart' show keepWords;
 
 import 'free_quota.dart';
 
@@ -113,7 +114,7 @@ void main() {
 
     expect(repo.keys, hasLength(2));
     expect(repo.keys.first, repo.keys.last);
-    expect(find.text('도착한 답'), findsOneWidget);
+    expect(find.text(keepWords('도착한 답')), findsOneWidget);
     expect(find.byKey(const Key('aiCoachFailedLabel')), findsNothing);
     expect(find.byKey(const Key('aiCoachResend')), findsNothing);
     expect(find.text(l.aiCoachFailure), findsNothing);

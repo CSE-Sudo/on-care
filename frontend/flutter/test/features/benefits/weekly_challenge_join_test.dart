@@ -73,7 +73,9 @@ void main() {
       tester.getTopLeft(find.byKey(const Key('weeklyChallengeCard'))).dy,
       lessThan(
         tester
-            .getTopLeft(find.byKey(const ValueKey<String>('shop-item-pt_renewal')))
+            .getTopLeft(
+              find.byKey(const ValueKey<String>('shop-item-pt_renewal')),
+            )
             .dy,
       ),
     );

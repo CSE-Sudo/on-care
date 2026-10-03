@@ -9064,6 +9064,30 @@ abstract class AppLocalizations {
   /// **'All {days} logged days {scope, select, last{last week} other{this week}} stayed within the goals.'**
   String clientDietAnalysisWeekGood(String scope, int days);
 
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.
+  ///
+  /// In en, this message translates to:
+  /// **'{food} replaced breakfast most often ({count} times).'**
+  String clientDietAnalysisWeekBreakfastSnackFood(String food, int count);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.
+  ///
+  /// In en, this message translates to:
+  /// **'Those days averaged {value} a day.'**
+  String clientDietAnalysisWeekProteinAvg(String value);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.
+  ///
+  /// In en, this message translates to:
+  /// **'Averaged {kcal} and {protein} protein a day.'**
+  String clientDietAnalysisWeekGoodAvg(String kcal, String protein);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.
+  ///
+  /// In en, this message translates to:
+  /// **'{way, select, more{Up from last week} less{Down from last week} other{About the same as last week}} ({prevDays} of {prevLogged} days).'**
+  String clientDietAnalysisWeekVsLast(int prevLogged, int prevDays, String way);
+
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
   /// In en, this message translates to:
@@ -9091,13 +9115,13 @@ abstract class AppLocalizations {
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
   /// In en, this message translates to:
-  /// **'Days meeting the protein goal rose from {before} to {after} over the last 2 weeks.'**
+  /// **'Days meeting the protein goal rose from {before} in the prior 2 weeks to {after} in the last 2 weeks.'**
   String clientDietAnalysisAllProteinTrendUp(int before, int after);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
   /// In en, this message translates to:
-  /// **'Days meeting the protein goal fell from {before} to {after} over the last 2 weeks.'**
+  /// **'Days meeting the protein goal fell from {before} in the prior 2 weeks to {after} in the last 2 weeks.'**
   String clientDietAnalysisAllProteinTrendDown(int before, int after);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
