@@ -6,15 +6,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/features/auth/domain/signup_consent.dart';
 
 void main() {
-  test('회원 필수 항목은 약관·개인정보·건강정보·만 14세다 — 마케팅은 선택', () {
+  test('회원 필수 항목은 약관·개인정보·건강정보·만 14세다', () {
     expect(SignupConsent.memberRequired, <String>{
       'terms',
       'privacy',
       'health',
       'age14',
     });
-    expect(SignupConsent.isRequired('marketing'), isFalse);
-    expect(SignupConsent.memberKinds, contains('marketing'));
+  });
+
+  test('마케팅 수신 동의는 더는 묻지 않는다 — 화면 항목은 모두 필수다 (#3007)', () {
+    expect(SignupConsent.memberKinds, isNot(contains('marketing')));
+    expect(SignupConsent.memberKinds.toSet(), SignupConsent.memberRequired);
+    for (final String kind in SignupConsent.memberKinds) {
+      expect(SignupConsent.isRequired(kind), isTrue, reason: kind);
+    }
   });
 
   test('건강정보 동의는 개인정보 동의와 별개 항목이다', () {
@@ -34,7 +40,7 @@ void main() {
     expect(SignupConsent.hasAllRequired(<String>{}), isFalse);
   });
 
-  test('선택 항목은 필수 충족에 영향이 없다', () {
+  test('모르는 값이 섞여도 필수 충족에 영향이 없다', () {
     expect(SignupConsent.hasAllRequired(SignupConsent.memberRequired), isTrue);
     expect(
       SignupConsent.hasAllRequired(<String>{
@@ -48,7 +54,7 @@ void main() {
   test('보낼 목록은 화면 순서이고 모르는 값은 빠진다', () {
     expect(
       SignupConsent.toPayload(<String>{'marketing', 'age14', 'terms', 'bogus'}),
-      <String>['terms', 'age14', 'marketing'],
+      <String>['terms', 'age14'],
     );
     expect(SignupConsent.toPayload(<String>{}), isEmpty);
   });
