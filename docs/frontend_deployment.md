@@ -6,12 +6,12 @@
 
 | 배포 경로 | 워크플로 | 주소 | 두 웹이 보는 백엔드 | 비용 | 실행 조건 |
 | --- | --- | --- | --- | --- | --- |
-| GitHub Pages (**데모**) | [`deploy.yml`](../.github/workflows/deploy.yml) | `ewhasudo.zapto.org` | 목업(브라우저 drift DB). 수동 실행에서만 실서버 선택 가능 | 무료 | 조건 없음 — 항상 실행 |
-| AWS S3 · CloudFront (**운영**) | [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) | CloudFront 기본 도메인 | **실서버 고정** (`API_BASE_URL` 저장소 변수) | **발생** | `AWS_FRONTEND_DEPLOY_ENABLED` 가 `true` 일 때만 |
+| GitHub Pages (**데모**) | [`deploy.yml`](../.github/workflows/deploy.yml) | 데모 도메인 `ewhasudo.zapto.org` | 목업(브라우저 drift DB). 수동 실행에서만 실서버 선택 가능 | 무료 | 조건 없음 — 항상 실행 |
+| AWS S3 · CloudFront (**운영**) | [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) | 운영 도메인(#2000 에서 확정 — 그 전에는 CloudFront 기본 도메인) | **실서버 고정** (`API_BASE_URL` 저장소 변수) | **발생** | `AWS_FRONTEND_DEPLOY_ENABLED` 가 `true` 일 때만 |
 
 두 웹 앱의 백엔드 설정은 [아래 절](#운영-빌드는-실서버를-봅니다)에 정리했습니다.
 
-사용자에게 제공하는 **커스텀 도메인은 여전히 GitHub Pages** 를 가리킵니다. AWS 경로는 도메인 전환 전 병행 검증용이며, 전환 절차는 [`aws-frontend-deployment.md`](aws-frontend-deployment.md) 를 따릅니다.
+**데모와 운영은 서로 다른 도메인입니다(#3021).** 데모 도메인은 계속 GitHub Pages 를 가리키고 운영 근거로 쓰지 않습니다 — 사람이 주기적으로 갱신해야 살아 있는 무료 DNS 라서다(#2000). 운영은 팀이 소유·갱신 책임을 지는 별도 도메인을 CloudFront 에 붙이며, 붙이는 절차와 함께 바꿀 곳은 [`aws-frontend-deployment.md`](aws-frontend-deployment.md#6-운영-도메인-연결) 에 있습니다. 데모 Pages 배포를 중단하는 단계는 없습니다.
 
 > **현재 AWS 배포는 꺼져 있습니다.** 이유와 다시 켜는 기준은 아래 [AWS 배포 스위치](#aws-배포-스위치) 를 참고합니다.
 
@@ -27,7 +27,7 @@
 
 - 검색 색인: 랜딩만 색인합니다. 두 앱의 `web/index.html` 은 `<meta name="robots" content="noindex, nofollow">` 로 색인에서 빠집니다(로그인해야 쓰는 화면, #3015). 운영 정적 호스팅에서 응답 헤더(`X-Robots-Tag`)로 같은 정책을 거는 일은 배포 설정 몫입니다(#480).
 - 배포 워크플로: [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml)
-- 커스텀 도메인 설정: [`CNAME`](../CNAME)
+- 데모 도메인 설정: [`CNAME`](../CNAME) — 운영 도메인이 아닙니다([위](#현재-운영-환경))
 - 자동 배포 조건: `main` 브랜치 push
 - 수동 배포: GitHub Actions의 `Deploy GitHub Pages` → `Run workflow`
 
@@ -92,7 +92,7 @@ gh api repos/CSE-Sudo/on-care/actions/variables --jq '.variables[] | "\(.name)=\
 
 GitHub Pages 배포는 무료이므로 그대로 두고, 작업 중 확인은 `ewhasudo.zapto.org` 에서 합니다.
 
-AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배포를 즉시 중단할 수 있습니다. Pages 와 커스텀 도메인은 영향을 받지 않습니다.
+AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배포를 즉시 중단할 수 있습니다. 데모 사이트(Pages)는 영향을 받지 않습니다.
 
 ### 다시 켜는 기준
 
@@ -102,7 +102,7 @@ AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배�
 2. 남아 있는 트레이너 웹 수정이 머지되었다.
 3. GitHub Pages 에서 랜딩페이지·회원 앱·트레이너 웹 전체를 아래 [배포 확인](#배포-확인) 절차로 확인했다.
 
-되돌린 뒤에는 `Deploy Frontend to AWS` 를 `main` 에서 한 번 실행해 CloudFront 기본 도메인의 세 경로와 `version.txt` 가 정상인지 확인합니다.
+되돌린 뒤에는 `Deploy Frontend to AWS` 를 `main` 에서 배포할 커밋 SHA 로 한 번 실행해 운영 주소의 세 경로와 `version.txt`, 응답 보안 헤더가 정상인지 확인합니다. 켜 둔 동안 자동 배포는 `main` push 마다가 아니라 **같은 커밋의 E2E CI 가 성공한 뒤** 시작하고, 앱 CI 결과와 운영 백엔드 커밋을 먼저 확인합니다([배포 순서](aws-frontend-deployment.md#8-배포-순서--ci-판정과-백엔드-선후-3018)).
 
 ## Vercel 자동 배포 정리
 
@@ -217,7 +217,7 @@ Vercel 프로젝트가 이 Git 저장소와 연결되어 있으면 저장소 안
 
 ## 배포 확인
 
-배포 완료 후 다음 항목을 확인합니다.
+데모(Pages) 배포 완료 후 다음 항목을 확인합니다. 운영(AWS)은 같은 항목을 운영 주소에서 봅니다.
 
 - 랜딩페이지 `https://ewhasudo.zapto.org/`가 정상 응답하는지 확인
 - 사용자 앱 `https://ewhasudo.zapto.org/frontend/`이 정상 응답하는지 확인
@@ -230,18 +230,43 @@ Vercel 프로젝트가 이 Git 저장소와 연결되어 있으면 저장소 안
 - 회원 앱·트레이너 웹 모두 로그인 화면이 뜨고, 운영 계정으로 로그인한 뒤 브라우저 개발자 도구 Network 탭의 요청이 `API_BASE_URL` 로 나가는지 확인
 - 회원 앱에서 식단을 하나 기록하고, **다른 브라우저**의 트레이너 웹에서 담당 회원 화면에 그 기록이 보이는지 확인
 - 개발자 도구 Console 에 GoRouter 진단 로그·provider 로그·API 요청 로그가 찍히지 않는지 확인
+- 개발자 도구 Console 에 CSP 위반(`Refused to connect`·`Refused to load`)이 없는지, 카카오 지도·사진 업로드·리포트 PDF 인쇄가 동작하는지 확인(응답 헤더 CSP 가 meta 보다 좁습니다 — [응답 보안 헤더](#응답-보안-헤더3017))
 
-## AWS 이전 원칙
+## 캐시 헤더와 새 버전 안내 (#3023)
 
-AWS 이전은 Vercel 정리와 별도 이슈 및 PR로 진행합니다.
+Flutter 웹 산출물의 진입 파일은 이름에 해시가 없습니다. 모든 파일에 같은 `max-age` 를 주면 배포 뒤에도 브라우저가 옛 `index.html`·`flutter_bootstrap.js`·`main.dart.js` 를 들고 있고, 서로 다른 릴리스의 진입 파일이 섞일 수 있습니다. 이미 열려 있는 탭은 아예 옛 번들을 계속 실행합니다.
 
-구체적인 인프라 생성, 비활성 배포 설정, 병행 검증 절차는 [`aws-frontend-deployment.md`](aws-frontend-deployment.md)를 따릅니다.
+### 캐시 헤더 (운영 AWS)
 
-1. GitHub Pages 배포를 유지한 상태에서 S3, CloudFront, OIDC 인프라를 준비합니다.
-2. CloudFront 기본 도메인으로 랜딩페이지와 두 Flutter 앱을 검증합니다.
-3. 검증이 끝난 뒤 커스텀 도메인의 DNS를 CloudFront로 전환합니다.
-4. 전환과 롤백 가능 여부를 확인한 다음 GitHub Pages 배포를 중단합니다.
+`Upload release to S3` 단계는 [`.github/scripts/web_cache_headers.sh`](../.github/scripts/web_cache_headers.sh) 로 두 번에 나눠 올립니다. 규칙은 이 스크립트 한 곳에 있습니다.
 
-이 순서를 따르면 AWS 준비 중에도 현재 서비스 주소를 계속 사용할 수 있습니다.
+| 파일 | `Cache-Control` |
+| --- | --- |
+| 진입 파일 — `index.html`·`flutter_bootstrap.js`·`flutter.js`·`main.dart.js`(`.mjs`·`.wasm`)·`version.json`·`version.txt`·`manifest.json`·`drift_worker.js`·`sqlite3.wasm` (폴더 무관) | `no-cache` — 매번 재검증하고, 바뀌지 않았으면 304 |
+| 그 밖 — `canvaskit/`·`assets/`·글꼴·아이콘 | `public,max-age=300` |
 
-현재는 1번이 끝나고 2번 검증 단계에 있습니다. 회원 앱 UI 정리와 트레이너 웹 수정이 끝날 때까지 [AWS 배포 스위치](#aws-배포-스위치)를 꺼 둔 상태로 멈춰 있고, 3번 이후는 아직 시작하지 않았습니다.
+업로드 뒤 `Verify cache headers of the uploaded release` 단계가 대표 파일(두 앱의 `index.html`·`flutter_bootstrap.js`·`main.dart.js`·`version.txt`·`canvaskit/canvaskit.wasm`)의 헤더를 확인하고, 다르면 트래픽을 전환하지 않고 멈춥니다. CloudFront 캐시 정책은 `MinTTL: 0` 이라 오리진의 `no-cache` 를 따릅니다. GitHub Pages(데모)는 응답 헤더를 바꿀 수 없어 아래 새 버전 안내만 적용됩니다.
+
+### 새 버전 안내
+
+- 두 웹 빌드는 `--dart-define=RELEASE_SHA=<커밋 SHA>` 로 자기 릴리스를 내장합니다(운영·데모 모두). 로컬 실행·테스트 빌드에는 값이 없어 확인이 꺼집니다.
+- 배포는 루트 `version.txt` 를 두 앱 폴더에도 복사합니다(`/frontend/version.txt`·`/trainer/version.txt`).
+- 앱은 자기 `<base href>version.txt` 를 `cache: no-store` 로 읽어 내장 SHA 와 비교합니다. 시점은 시작 직후 한 번, 탭이 다시 보일 때, 그 밖에는 10분 간격입니다. 읽기 실패·SHA 가 아닌 응답은 조용히 넘깁니다.
+- 다르면 트레이너 웹은 콘텐츠 영역 맨 위, 회원 웹은 셸 맨 위에 정보 배너 "새 버전이 배포되었어요 · 새로고침" 이 뜹니다. `새로고침` 은 페이지를 다시 읽고(트레이너 웹은 작성 중인 폼이 있으면 브라우저 확인창이 먼저 뜹니다), 닫기(X)는 같은 배포에 대해 그 탭에서 다시 띄우지 않습니다. 자동 새로고침은 하지 않습니다.
+- 모바일 앱 빌드는 확인 자체가 없습니다.
+
+배포 뒤 확인: 브라우저 개발자 도구 Network 탭에서 `/trainer/main.dart.js` 응답의 `Cache-Control: no-cache` 와 `/trainer/version.txt` 의 SHA 를 봅니다. 배포 전부터 열어 둔 탭은 다시 보이게 하면 배너가 떠야 합니다.
+
+## 운영 도메인과 보안 헤더
+
+AWS 이전은 Vercel 정리와 별도 이슈 및 PR로 진행합니다. 인프라 생성·배포 설정·검증 절차는 [`aws-frontend-deployment.md`](aws-frontend-deployment.md)를 따릅니다.
+
+1. S3, CloudFront, OIDC 인프라를 준비하고 CloudFront 기본 도메인으로 랜딩페이지와 두 Flutter 앱을 검증합니다.
+2. 운영 도메인이 정해지면(#2000) `us-east-1` ACM 인증서를 발급해 스택 파라미터 `AlternateDomainName`·`AcmCertificateArn` 으로 붙이고, 카카오 SDK 허용 도메인·백엔드 CORS 를 함께 바꿉니다([운영 도메인 연결](aws-frontend-deployment.md#6-운영-도메인-연결)).
+3. 데모 사이트(Pages)는 그대로 둡니다.
+
+현재는 1번 검증 단계에 있습니다. 회원 앱 UI 정리와 트레이너 웹 수정이 끝날 때까지 [AWS 배포 스위치](#aws-배포-스위치)를 꺼 둔 상태로 멈춰 있습니다.
+
+### 응답 보안 헤더(#3017)
+
+운영 CloudFront 는 HSTS·`X-Frame-Options: DENY`·`frame-ancestors 'none'`·`nosniff`·Referrer-Policy 와, 두 앱 `web/index.html` 의 meta CSP 에서 `connect-src` 만 운영 API 출처로 좁힌 CSP 를 응답 헤더로 붙입니다. 브라우저는 meta 와 헤더 CSP 를 함께 적용합니다. **GitHub Pages 데모는 응답 헤더를 바꿀 수 없어 meta CSP 만 적용됩니다**(HSTS·`frame-ancestors` 없음 — 데모는 목업이라 실제 회원 데이터가 없습니다). 자세한 내용과 확인 방법은 [`aws-frontend-deployment.md`](aws-frontend-deployment.md#9-응답-보안-헤더-3017) 에 있습니다.
