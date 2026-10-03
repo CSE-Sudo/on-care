@@ -27,7 +27,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.models import TrainerClient, TrainerClientInvite, User
-from app.schemas.trainer_verification import AdminUserStatusOut
+from app.schemas.admin_ops import AdminUserStatusOut
 from app.services import auth_tokens
 from app.services.trainer import client_status
 

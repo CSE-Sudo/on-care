@@ -1,13 +1,15 @@
-"""반려 트레이너의 담당 회원 기록 잠금과 운영자 계정 정지. (#3009)
+"""운영자 계정 정지·해제. (#3008)
+
+트레이너 운영자 승인 절차를 없앤 뒤 남은 운영 경로다. 회원 신고를 보고 운영자가
+트레이너 계정을 정지한다.
 
 여기서 보는 것:
 
-  * 반려된 트레이너는 이미 맺은 담당 회원의 기록 API 에서 403 `trainer_not_approved`.
-  * 승인 트레이너는 그대로 200, 다시 승인하면 다시 200(링크는 그대로).
-  * 대기·프로필 없는 트레이너의 기존 담당은 잠그지 않는다(반려만 잠근다).
-  * 로스터에는 이름·연결 상태만 남고 수치·미리보기는 빈다.
-  * 정지 API — 관리자만, 정지 뒤 기존 토큰 401·로그인 401, 트레이너면 담당 해제·
-    회원 알림·PT 일정 취소·대기 담당 요청 거둠, 해제는 계정만 되살림, 감사 로그.
+  * 정지 API 는 관리자만(회원·트레이너 403, 미인증 401), 없는 계정 404, 운영자 409.
+  * 정지 뒤 기존 토큰 401·로그인 401.
+  * 트레이너면 담당 해제·회원 알림·PT 일정 취소·대기 담당 요청 거둠.
+  * 두 번 정지해도 알림은 한 번, 해제는 계정만 되살린다.
+  * 감사 로그, 운영 목록의 정지 표시.
 
 DB 가 필요하므로 로컬에서는 skip 되고 CI(Postgres) 에서 실행된다.
 """
@@ -25,22 +27,18 @@ from app.models.models import (
     Notification,
     TrainerClient,
     TrainerClientInvite,
-    TrainerProfile,
     TrainerSchedule,
     User,
 )
 from app.services import notification_templates
-from tests.test_trainer_verification import (  # noqa: F401 — 자동 정리 픽스처
+from tests.test_trainer_no_approval import (  # noqa: F401 — 자동 정리 픽스처
     PASSWORD,
     _admin,
-    _approve,
-    _assert_not_approved,
     _auth,
     _cleanup,
     _gym,
     _login,
     _member,
-    _reject,
     _seeded_trainer,
 )
 
@@ -51,17 +49,17 @@ def _cleanup_records(_cleanup, db_session):
     yield
     db_session.rollback()
     db_session.query(TrainerSchedule).filter(
-        TrainerSchedule.id.like("lock-schedule-%")
+        TrainerSchedule.id.like("susp-schedule-%")
     ).delete(synchronize_session=False)
     db_session.query(ChatMessage).filter(
-        ChatMessage.id.like("lock-chat-%")
+        ChatMessage.id.like("susp-chat-%")
     ).delete(synchronize_session=False)
     db_session.commit()
 
 
 def _link(db_session, trainer_id: str, member_id: str) -> TrainerClient:
     link = TrainerClient(
-        id=f"lock-link-{uuid4().hex[:12]}",
+        id=f"susp-link-{uuid4().hex[:12]}",
         trainer_id=trainer_id,
         member_id=member_id,
         active=True,
@@ -73,7 +71,7 @@ def _link(db_session, trainer_id: str, member_id: str) -> TrainerClient:
 
 
 def _linked_pair(client, db_session):
-    """승인된 트레이너 + 담당 회원 + 관리자. (trainer, trainer_token, member_id, admin_token)"""
+    """트레이너 + 담당 회원 + 관리자. (trainer, trainer_token, member_id, admin_token)"""
     gym = _gym(db_session)
     trainer, email = _seeded_trainer(db_session, gym)
     trainer_token = _login(client, email)
@@ -92,181 +90,8 @@ def _admin_id(db_session) -> str:
     )
 
 
-#: 담당 회원 기록 경로 — 식단·운동·건강 정보·채팅·메모·리포트·루틴·후속 관리·일정.
-_RECORD_PATHS = (
-    "health-profile",
-    "records/span",
-    "history",
-    "chat",
-    "memos",
-    "feedbacks",
-    "routines",
-    "deliveries/latest",
-    "follow-ups",
-    "report/goals",
-    "exercise-week",
-)
-
-
-@pytest.mark.parametrize("path", _RECORD_PATHS)
-def test_rejected_trainer_cannot_read_existing_client_records(
-    client, db_session, path
-):
-    trainer, trainer_token, member_id, admin_token = _linked_pair(client, db_session)
-    url = f"/v1/trainer/clients/{member_id}/{path}"
-
-    before = client.get(url, headers=_auth(trainer_token))
-    assert before.status_code == 200, before.text
-
-    assert _reject(client, admin_token, trainer.id, "자격 확인 불가").status_code == 200
-    _assert_not_approved(client.get(url, headers=_auth(trainer_token)))
-
-
-def test_rejected_trainer_cannot_write_to_existing_clients(client, db_session):
-    trainer, trainer_token, member_id, admin_token = _linked_pair(client, db_session)
-    assert _reject(client, admin_token, trainer.id).status_code == 200
-
-    _assert_not_approved(
-        client.post(
-            f"/v1/trainer/clients/{member_id}/chat",
-            json={"text": "안녕하세요"},
-            headers=_auth(trainer_token),
-        )
-    )
-    _assert_not_approved(
-        client.post(
-            f"/v1/trainer/clients/{member_id}/memos",
-            json={"body": "메모"},
-            headers=_auth(trainer_token),
-        )
-    )
-
-
-def test_reapproval_reopens_the_same_link(client, db_session):
-    trainer, trainer_token, member_id, admin_token = _linked_pair(client, db_session)
-    url = f"/v1/trainer/clients/{member_id}/health-profile"
-
-    assert _reject(client, admin_token, trainer.id).status_code == 200
-    _assert_not_approved(client.get(url, headers=_auth(trainer_token)))
-    assert _approve(client, admin_token, trainer.id).status_code == 200
-
-    reopened = client.get(url, headers=_auth(trainer_token))
-    assert reopened.status_code == 200, reopened.text
-    link = db_session.scalar(
-        select(TrainerClient).where(
-            TrainerClient.trainer_id == trainer.id,
-            TrainerClient.member_id == member_id,
-        )
-    )
-    db_session.refresh(link)
-    # 반려는 담당 관계를 끊지 않는다 — 동의도 그대로다.
-    assert link.active is True
-    assert link.data_consent_at is not None
-
-
-def test_rejected_roster_keeps_names_but_hides_numbers(client, db_session):
-    trainer, trainer_token, member_id, admin_token = _linked_pair(client, db_session)
-    db_session.add(
-        ChatMessage(
-            id=f"lock-chat-{uuid4().hex[:12]}",
-            trainer_id=trainer.id,
-            member_id=member_id,
-            sender="member",
-            body="오늘 식단 봐 주세요",
-        )
-    )
-    db_session.commit()
-
-    before = client.get("/v1/trainer/clients", headers=_auth(trainer_token))
-    row = next(r for r in before.json() if r["id"] == member_id)
-    assert row["last_message"] == "오늘 식단 봐 주세요"
-
-    assert _reject(client, admin_token, trainer.id).status_code == 200
-    after = client.get("/v1/trainer/clients", headers=_auth(trainer_token))
-    assert after.status_code == 200, after.text
-    row = next(r for r in after.json() if r["id"] == member_id)
-    assert row["name"] == "승인 회원"
-    assert row["registered"] is True
-    assert row["last_message"] != "오늘 식단 봐 주세요"
-    assert row["last_message_at"] is None
-    assert row["signals"] == []
-
-
-def test_rejected_trainer_sees_member_sessions_anonymised(client, db_session):
-    trainer, trainer_token, member_id, admin_token = _linked_pair(client, db_session)
-    day = clock.today().isoformat()
-    db_session.add(
-        TrainerSchedule(
-            id=f"lock-schedule-{uuid4().hex[:12]}",
-            trainer_id=trainer.id,
-            member_id=member_id,
-            date=day,
-            time="23:30",
-        )
-    )
-    db_session.commit()
-
-    assert _reject(client, admin_token, trainer.id).status_code == 200
-    listed = client.get(
-        f"/v1/trainer/schedule?date={day}", headers=_auth(trainer_token)
-    )
-    assert listed.status_code == 200, listed.text
-    rows = listed.json()
-    assert rows, "일정은 스케줄에 남는다"
-    assert all(row.get("member_id") != member_id for row in rows)
-    assert all(row.get("member_detached") for row in rows)
-
-
-def test_only_rejection_locks_records(client, db_session):
-    """잠금은 반려뿐이다 — 대기·프로필 없는 트레이너의 기존 담당은 그대로 열린다."""
-    trainer, trainer_token, member_id, _ = _linked_pair(client, db_session)
-    url = f"/v1/trainer/clients/{member_id}/memos"
-    profile = db_session.scalar(
-        select(TrainerProfile).where(TrainerProfile.trainer_id == trainer.id)
-    )
-    profile.verification_status = "pending"
-    db_session.commit()
-    assert client.get(url, headers=_auth(trainer_token)).status_code == 200
-
-    db_session.delete(profile)
-    db_session.commit()
-    assert client.get(url, headers=_auth(trainer_token)).status_code == 200
-
-
-def test_rejected_trainer_keeps_profile_endpoints(client, db_session):
-    trainer, trainer_token, _, admin_token = _linked_pair(client, db_session)
-    assert _reject(client, admin_token, trainer.id).status_code == 200
-
-    me = client.get("/v1/trainer/me", headers=_auth(trainer_token))
-    assert me.status_code == 200, me.text
-    assert me.json()["verification"]["status"] == "rejected"
-    assert client.get(
-        "/v1/trainer/notifications", headers=_auth(trainer_token)
-    ).status_code == 200
-
-
-def test_rejected_read_is_not_audited_as_a_client_read(client, db_session):
-    trainer, trainer_token, member_id, admin_token = _linked_pair(client, db_session)
-    assert _reject(client, admin_token, trainer.id).status_code == 200
-
-    client.get(
-        f"/v1/trainer/clients/{member_id}/health-profile",
-        headers=_auth(trainer_token),
-    )
-    assert (
-        db_session.scalar(
-            select(AuditLog).where(
-                AuditLog.event == "trainer.client_read",
-                AuditLog.user_id == trainer.id,
-                AuditLog.target_user_id == member_id,
-            )
-        )
-        is None
-    )
-
-
 # ---------------------------------------------------------------------------
-# 계정 정지
+# 정지·해제
 # ---------------------------------------------------------------------------
 
 
@@ -321,7 +146,7 @@ def test_suspended_trainer_is_logged_out_and_cannot_log_in(client, db_session):
 def test_suspending_a_trainer_releases_clients_and_tells_them(client, db_session):
     trainer, _, member_id, admin_token = _linked_pair(client, db_session)
     future = TrainerSchedule(
-        id=f"lock-schedule-{uuid4().hex[:12]}",
+        id=f"susp-schedule-{uuid4().hex[:12]}",
         trainer_id=trainer.id,
         member_id=member_id,
         date="2099-01-05",
@@ -329,7 +154,7 @@ def test_suspending_a_trainer_releases_clients_and_tells_them(client, db_session
     )
     other_member_id, _ = _member(client)
     invite = TrainerClientInvite(
-        id=f"lock-invite-{uuid4().hex[:12]}",
+        id=f"susp-invite-{uuid4().hex[:12]}",
         trainer_id=trainer.id,
         member_id=other_member_id,
         status="pending",
@@ -436,7 +261,7 @@ def test_admin_list_reports_suspension(client, db_session):
     assert _suspend(client, admin_token, trainer.id).status_code == 200
 
     listed = client.get(
-        "/v1/admin/trainers?status=all", headers=_auth(admin_token)
+        "/v1/admin/trainers?state=all", headers=_auth(admin_token)
     )
     row = next(r for r in listed.json() if r["trainer_id"] == trainer.id)
     assert row["is_active"] is False
