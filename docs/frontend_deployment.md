@@ -234,6 +234,31 @@ Vercel 프로젝트가 이 Git 저장소와 연결되어 있으면 저장소 안
 - 개발자 도구 Console 에 GoRouter 진단 로그·provider 로그·API 요청 로그가 찍히지 않는지 확인
 - 개발자 도구 Console 에 CSP 위반(`Refused to connect`·`Refused to load`)이 없는지, 카카오 지도·사진 업로드·리포트 PDF 인쇄가 동작하는지 확인(응답 헤더 CSP 가 meta 보다 좁습니다 — [응답 보안 헤더](#응답-보안-헤더3017))
 
+## 캐시 헤더와 새 버전 안내 (#3023)
+
+Flutter 웹 산출물의 진입 파일은 이름에 해시가 없습니다. 모든 파일에 같은 `max-age` 를 주면 배포 뒤에도 브라우저가 옛 `index.html`·`flutter_bootstrap.js`·`main.dart.js` 를 들고 있고, 서로 다른 릴리스의 진입 파일이 섞일 수 있습니다. 이미 열려 있는 탭은 아예 옛 번들을 계속 실행합니다.
+
+### 캐시 헤더 (운영 AWS)
+
+`Upload release to S3` 단계는 [`.github/scripts/web_cache_headers.sh`](../.github/scripts/web_cache_headers.sh) 로 두 번에 나눠 올립니다. 규칙은 이 스크립트 한 곳에 있습니다.
+
+| 파일 | `Cache-Control` |
+| --- | --- |
+| 진입 파일 — `index.html`·`flutter_bootstrap.js`·`flutter.js`·`main.dart.js`(`.mjs`·`.wasm`)·`version.json`·`version.txt`·`manifest.json`·`drift_worker.js`·`sqlite3.wasm` (폴더 무관) | `no-cache` — 매번 재검증하고, 바뀌지 않았으면 304 |
+| 그 밖 — `canvaskit/`·`assets/`·글꼴·아이콘 | `public,max-age=300` |
+
+업로드 뒤 `Verify cache headers of the uploaded release` 단계가 대표 파일(두 앱의 `index.html`·`flutter_bootstrap.js`·`main.dart.js`·`version.txt`·`canvaskit/canvaskit.wasm`)의 헤더를 확인하고, 다르면 트래픽을 전환하지 않고 멈춥니다. CloudFront 캐시 정책은 `MinTTL: 0` 이라 오리진의 `no-cache` 를 따릅니다. GitHub Pages(데모)는 응답 헤더를 바꿀 수 없어 아래 새 버전 안내만 적용됩니다.
+
+### 새 버전 안내
+
+- 두 웹 빌드는 `--dart-define=RELEASE_SHA=<커밋 SHA>` 로 자기 릴리스를 내장합니다(운영·데모 모두). 로컬 실행·테스트 빌드에는 값이 없어 확인이 꺼집니다.
+- 배포는 루트 `version.txt` 를 두 앱 폴더에도 복사합니다(`/frontend/version.txt`·`/trainer/version.txt`).
+- 앱은 자기 `<base href>version.txt` 를 `cache: no-store` 로 읽어 내장 SHA 와 비교합니다. 시점은 시작 직후 한 번, 탭이 다시 보일 때, 그 밖에는 10분 간격입니다. 읽기 실패·SHA 가 아닌 응답은 조용히 넘깁니다.
+- 다르면 트레이너 웹은 콘텐츠 영역 맨 위, 회원 웹은 셸 맨 위에 정보 배너 "새 버전이 배포되었어요 · 새로고침" 이 뜹니다. `새로고침` 은 페이지를 다시 읽고(트레이너 웹은 작성 중인 폼이 있으면 브라우저 확인창이 먼저 뜹니다), 닫기(X)는 같은 배포에 대해 그 탭에서 다시 띄우지 않습니다. 자동 새로고침은 하지 않습니다.
+- 모바일 앱 빌드는 확인 자체가 없습니다.
+
+배포 뒤 확인: 브라우저 개발자 도구 Network 탭에서 `/trainer/main.dart.js` 응답의 `Cache-Control: no-cache` 와 `/trainer/version.txt` 의 SHA 를 봅니다. 배포 전부터 열어 둔 탭은 다시 보이게 하면 배너가 떠야 합니다.
+
 ## 운영 도메인과 보안 헤더
 
 AWS 이전은 Vercel 정리와 별도 이슈 및 PR로 진행합니다. 인프라 생성·배포 설정·검증 절차는 [`aws-frontend-deployment.md`](aws-frontend-deployment.md)를 따릅니다.
