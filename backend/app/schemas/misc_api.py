@@ -56,7 +56,7 @@ class AiCoachFeedback(BaseModel):
 
 
 # ---- AI 코치 챗봇 (대화형) ----
-#: 회원 질문 한 건의 최대 길이(#1549). 트레이너 고객 AI 코치(`ClientCoachRequest`)와 같다.
+#: 회원 질문 한 건의 최대 길이(#1549).
 COACH_MESSAGE_MAX_CHARS = 1000
 #: `history` 한 턴의 최대 길이. 코치 답변도 실려 오므로 질문보다 넉넉히 잡는다 —
 #: 회원 앱은 이 길이로 잘라 보낸다.
