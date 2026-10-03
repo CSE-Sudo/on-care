@@ -60,8 +60,7 @@ def _allowed_audiences() -> list[str]:
 
     iOS 앱은 번들 ID, 웹은 Service ID 로 서로 다른 aud 를 받기 때문에 복수를 허용한다.
     """
-    raw = get_settings().apple_client_ids or ""
-    return [v.strip() for v in raw.split(",") if v.strip()]
+    return get_settings().apple_client_id_list
 
 
 class AppleVerifier(SocialVerifier):
