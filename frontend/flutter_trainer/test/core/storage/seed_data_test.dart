@@ -49,7 +49,7 @@ void main() {
       expect(
         clients.map((c) => c.name).toSet().length,
         15,
-        reason: '이름이 겹치면 addClient 의 중복 검사와 스케줄 폴백이 어긋난다',
+        reason: '일정 이름 폴백(lower(trim(name)))은 시드 회원 이름이 겹치지 않는다는 전제다',
       );
 
       // Every client must be coachable and chartable, whatever else their

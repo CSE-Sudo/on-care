@@ -13,15 +13,14 @@ abstract final class SignupConsent {
 
   /// 만 14세 이상 확인. 그 미만은 법정대리인 동의 절차가 없어 가입을 막는다.
   static const String age14 = 'age14';
-  static const String marketing = 'marketing';
 
-  /// 화면에 그리는 순서.
+  /// 화면에 그리는 순서. 모두 필수다 — 선택 항목이던 마케팅 알림 수신은
+  /// 보내는 기능도, 거두는 화면도 없이 받기만 해 뺐다(#3007).
   static const List<String> memberKinds = <String>[
     terms,
     privacy,
     health,
     age14,
-    marketing,
   ];
 
   /// 회원이 체크해야만 다음으로 갈 수 있는 항목.

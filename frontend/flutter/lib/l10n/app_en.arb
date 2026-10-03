@@ -18,6 +18,16 @@
   "@notFoundGoSignIn": {
     "description": "404 page button when nobody is signed in; goes to the sign-in screen."
   },
+  "misconfiguredBuildTitle": "This build is misconfigured",
+  "@misconfiguredBuildTitle": {
+    "description": "Heading of the startup screen shown instead of the app when a release build was made with development or demo settings."
+  },
+  "misconfiguredBuildMessage": "This build was made with settings that can't be used for real users, so the app didn't open. Please share the details below with whoever released it.",
+  "misconfiguredBuildDetailsTitle": "Build settings to fix",
+  "misconfiguredBuildDevEnvironment": "ENV is not prod or staging",
+  "misconfiguredBuildMockWithoutDemo": "It uses demo data without the demo build flag (USE_MOCK_API, DEMO_BUILD)",
+  "misconfiguredBuildPlaceholderApiUrl": "The API address is an example or local address (API_BASE_URL)",
+  "misconfiguredBuildInsecureApiUrl": "The API address does not start with https:// (API_BASE_URL)",
   "navDashboard": "Home",
   "navDiet": "Diet",
   "navExercise": "Exercise",
@@ -2005,7 +2015,6 @@
   "consentHealthDetail": "Covers your diet and exercise logs, body data such as weight, health goals, and health notes & cautions. We ask for this separately from other personal information.",
   "consentAge14": "I am 14 years of age or older",
   "consentAge14Detail": "You must be 14 or older to sign up.",
-  "consentMarketing": "Receive marketing notifications",
   "consentRequiredHint": "Agree to all required items to continue.",
   "consentPageTitle": "Agreements",
   "consentPageSubtitle": "Please review and agree to the items below to keep using On-Care.",

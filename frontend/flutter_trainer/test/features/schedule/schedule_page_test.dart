@@ -414,9 +414,9 @@ void main() {
       expect(history.where((h) => h.id.startsWith('hist-')), isEmpty);
     });
 
-    test('client sessions match on the same normalisation as the uniqueness '
-        'guard (trim + lowercase)', () async {
-      // addClient blocks duplicates on lower(trim(name)) but addSession
+    test('client sessions match on the same normalisation as the seeded '
+        'name uniqueness (trim + lowercase)', () async {
+      // Seeded names are unique on lower(trim(name)) but addSession
       // stores the trainer's raw input. An exact compare here returned
       // nothing for a name saved with stray whitespace, and the weekly
       // report then showed 0 sessions with no error (CodeRabbit #377).
