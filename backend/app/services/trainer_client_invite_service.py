@@ -45,7 +45,6 @@ from app.services import (
     notification_service,
     notification_templates,
     profile_format,
-    trainer_verification_service,
 )
 
 
@@ -415,10 +414,6 @@ def accept(
         )
 
     row = _require_member_row(db, member_id, invite_id)
-    if not trainer_verification_service.is_approved(db, row.trainer_id):
-        # 보낸 뒤 반려된 트레이너다(#2825). 승인 전에는 요청을 보낼 수 없지만,
-        # 승인된 뒤 보낸 요청이 반려 후에도 남아 있으면 그 수락이 회원 기록을 연다.
-        raise InviteNotFound("지금은 이 트레이너와 연결할 수 없어요.")
 
     existing = db.scalar(
         select(TrainerClient).where(

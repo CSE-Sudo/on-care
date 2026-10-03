@@ -11,7 +11,6 @@ import 'package:oncare_trainer/features/schedule/domain/entities/schedule_sessio
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_overlap_banner.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
-import 'package:oncare_trainer/shared/widgets/trainer_verification_banner.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 카드 필드 라벨 열 폭 — `운동 목표`·`희망 일시` 가 한 줄에 들어가는 폭.
@@ -96,11 +95,6 @@ class _Inbox extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        // 승인 전에는 회원 앱에 나오지 않아 요청이 오지 않는다 — 빈 함의 이유(#2825).
-        const TrainerVerificationBanner(
-          scope: TrainerVerificationScope.consultations,
-          bottomGap: OnCareSpacing.s16,
-        ),
         // 메시지 탭 고객 리스트 상단의 `전체 / 읽지 않음 N` 칩과 같은 언어다 —
         // 글자 토글(`전체 보기`/`대기 중만`) 대신 두 상태를 한눈에 본다.
         Row(

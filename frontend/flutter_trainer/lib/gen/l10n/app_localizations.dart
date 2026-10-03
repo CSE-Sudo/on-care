@@ -3922,7 +3922,7 @@ abstract class AppLocalizations {
   /// No description provided for @myLegalPrivacyBody.
   ///
   /// In en, this message translates to:
-  /// **'This English text is provided for convenience; the Korean original governs.\n\n1. Information collected\n(1) Trainer sign-up: email, password (stored encrypted), name and phone number.\n(2) Profile and credential check: gym affiliation, certifications, career, speciality and other profile details.\n(3) Information you leave while using the Service: messages and attached photos sent to members, reports and coaching content, schedules and bookings, and member notes.\n(4) Information generated automatically: access logs such as sign-ins and password changes (time and IP address), and, when an error occurs, the error details, browser and operating system type and app version.\n\n2. Purpose of collection and use\nThe information is used only to identify trainers and to let an operator check their gym affiliation and credentials (trainers are not shown to members until approved), to connect them with assigned members, to provide scheduling, messaging and reports, and to improve the service and answer enquiries.\n\n3. Access to and processing of member information\nA trainer may open the diet, workout and body-weight records of members they are assigned to, inside the Service. The Company is the controller of those records; the trainer processes them only for coaching and reports, within the scope the Company sets. Members\' health information is sensitive information and can be opened only with the member\'s separate consent and data-sharing consent. Reports and messages a trainer sends are delivered to that member and kept in the Service as a record. When an assignment ends, the trainer\'s access is revoked immediately, and a member may withdraw consent to share their information at any time.\n\n4. Retention\nA trainer\'s personal information is kept until account deletion, and is then destroyed without delay following section 8. The following records are kept for the stated period and then destroyed.\n- Access logs such as sign-ins: one year (covering the three-month retention of sign-in records required by the Protection of Communications Secrets Act)\n- Records of trainers opening members\' health information, of consent being given or withdrawn, and of account deletion: two years (processing records kept under the Standards for Personal Information Security Measures)\nReports and messages already delivered belong to the member\'s record and follow the member\'s retention period.\n\n5. Provision to third parties\nThe Company does not provide personal information to outside parties without consent. Processing entrusted to service providers follows sections 6 and 7. The exception is where the law specifically requires it.\n\n6. Entrusted processing\nThe Company entrusts the following work to outside providers to deliver the Service. If a provider changes, this policy is updated to say so.\n- Amazon Web Services, Inc.: running the servers and storing chat photos and report PDFs\n- Neon: running the database (account information and all records)\n- Google LLC: generating AI coaching programs, routine suggestions and report summaries (Gemini API)\n- Kakao Corp.: gym search and map display\n- Functional Software, Inc. (Sentry): collecting and analysing web and server errors\n\n7. Transfer of personal information overseas\nTo perform its contract with trainers, the Company has personal information processed and stored overseas as follows, and discloses this in this policy under Article 28-8(1)(3) of the Personal Information Protection Act. Each transfer happens over an encrypted network connection whenever the Service is used.\n(1) Amazon Web Services, Inc. / Singapore / trainer information and records in general, chat photo attachments and report PDFs / running the servers and storing files / until account deletion or the end of the contract with the provider\n(2) Neon / Singapore / account and profile, message, report and schedule records / running the database / until account deletion or the end of the contract with the provider\n(3) Google LLC / the United States and other countries where Google operates data centres / coaching conditions entered when using AI features, and assigned members\' workout records and weekly report figures / generating AI programs and summaries / for the period set in the provider\'s terms of service after the request is processed\n(4) Functional Software, Inc. (Sentry) / the United States / error details, browser and operating system type and app version (name, email address, IP address and request contents are not sent) / error analysis / the provider\'s retention period\nIf you do not want your information transferred overseas, you can refuse by deleting your account, but you will then be unable to use the Service.\n\n8. Destruction procedure and method\n(1) Procedure: when a trainer deletes their account, the Company immediately deletes the account together with the profile, member connections and conversations (including attached photos and report PDF files), routines and programs, schedules and bookable times, and notifications, and tells assigned and booked members. Consultation requests sent by members belong to the members\' records and remain with the trainer\'s details removed. Records kept under section 4 are deleted automatically when their period ends.\n(2) Method: information held as electronic files is deleted from the database and file storage, and copies remaining in database recovery backups disappear when the backup retention period ends. The Company does not handle personal information on paper.\n\n9. Automatic collection tools\nThe Company does not use cookies or tracking tools for advertising or behavioural analysis. Sign-in information is kept in browser storage to keep you signed in, and is removed when you sign out or clear your browser data.\n\n10. Safeguards\nPasswords are stored encrypted, access to member information is limited by assignment, and traffic is encrypted in transit. An access record holds only the trainer, the member, the kind of information and the time, never the health information itself. Error reports are sent with names, email addresses, IP addresses and request contents removed.\n\n11. Children under 14\nThe Company does not accept sign-ups from children under 14, and confirms at sign-up that you are 14 or older.\n\n12. Your rights\nA trainer may review or correct their personal information, or request that its processing stop and that it be deleted, at any time. You can edit your profile and delete your account from the MY menu; for any other request, contact the address in section 13 and it will be handled without delay.\n\n13. Privacy officer\nThe Company has appointed a personal information protection officer who oversees the processing of personal information and handles related complaints and remedies.\n- Position: Personal information protection officer, On-Care service operations team\n- Contact: support@oncare.com\n\n14. Remedies for infringement\nFor reports or advice about an infringement of personal information, you can contact the following bodies (in Korea).\n- Personal Information Dispute Mediation Committee: 1833-6972 (www.kopico.go.kr)\n- Personal Information Infringement Report Center: 118 (privacy.kisa.or.kr)\n- Supreme Prosecutors\' Office: 1301 (www.spo.go.kr)\n- Korean National Police Agency: 182 (ecrm.police.go.kr)\n\n15. Changes to this policy\nIf this policy changes, the Company announces it in the Service before the effective date, and asks for consent again where the change requires it.\n- October 3, 2026: added entrusted processing, overseas transfer, destruction procedure, automatic collection tools, children under 14, protection officer and remedies sections\n- October 1, 2026: first issued\n\nEffective: October 3, 2026'**
+  /// **'This English text is provided for convenience; the Korean original governs.\n\n1. Information collected\n(1) Trainer sign-up: email, password (stored encrypted), name and phone number.\n(2) Profile and credential check: gym affiliation, certifications, career, speciality and other profile details.\n(3) Information you leave while using the Service: messages and attached photos sent to members, reports and coaching content, schedules and bookings, and member notes.\n(4) Information generated automatically: access logs such as sign-ins and password changes (time and IP address), and, when an error occurs, the error details, browser and operating system type and app version.\n\n2. Purpose of collection and use\nThe information is used only to identify trainers and to let an operator handle reports and manage accounts, to connect them with assigned members, to provide scheduling, messaging and reports, and to improve the service and answer enquiries.\n\n3. Access to and processing of member information\nA trainer may open the diet, workout and body-weight records of members they are assigned to, inside the Service. The Company is the controller of those records; the trainer processes them only for coaching and reports, within the scope the Company sets. Members\' health information is sensitive information and can be opened only with the member\'s separate consent and data-sharing consent. Reports and messages a trainer sends are delivered to that member and kept in the Service as a record. When an assignment ends, the trainer\'s access is revoked immediately, and a member may withdraw consent to share their information at any time.\n\n4. Retention\nA trainer\'s personal information is kept until account deletion, and is then destroyed without delay following section 8. The following records are kept for the stated period and then destroyed.\n- Access logs such as sign-ins: one year (covering the three-month retention of sign-in records required by the Protection of Communications Secrets Act)\n- Records of trainers opening members\' health information, of consent being given or withdrawn, and of account deletion: two years (processing records kept under the Standards for Personal Information Security Measures)\nReports and messages already delivered belong to the member\'s record and follow the member\'s retention period.\n\n5. Provision to third parties\nThe Company does not provide personal information to outside parties without consent. Processing entrusted to service providers follows sections 6 and 7. The exception is where the law specifically requires it.\n\n6. Entrusted processing\nThe Company entrusts the following work to outside providers to deliver the Service. If a provider changes, this policy is updated to say so.\n- Amazon Web Services, Inc.: running the servers and storing chat photos and report PDFs\n- Neon: running the database (account information and all records)\n- Google LLC: generating AI coaching programs, routine suggestions and report summaries (Gemini API)\n- Kakao Corp.: gym search and map display\n- Functional Software, Inc. (Sentry): collecting and analysing web and server errors\n\n7. Transfer of personal information overseas\nTo perform its contract with trainers, the Company has personal information processed and stored overseas as follows, and discloses this in this policy under Article 28-8(1)(3) of the Personal Information Protection Act. Each transfer happens over an encrypted network connection whenever the Service is used.\n(1) Amazon Web Services, Inc. / Singapore / trainer information and records in general, chat photo attachments and report PDFs / running the servers and storing files / until account deletion or the end of the contract with the provider\n(2) Neon / Singapore / account and profile, message, report and schedule records / running the database / until account deletion or the end of the contract with the provider\n(3) Google LLC / the United States and other countries where Google operates data centres / coaching conditions entered when using AI features, and assigned members\' workout records and weekly report figures / generating AI programs and summaries / for the period set in the provider\'s terms of service after the request is processed\n(4) Functional Software, Inc. (Sentry) / the United States / error details, browser and operating system type and app version (name, email address, IP address and request contents are not sent) / error analysis / the provider\'s retention period\nIf you do not want your information transferred overseas, you can refuse by deleting your account, but you will then be unable to use the Service.\n\n8. Destruction procedure and method\n(1) Procedure: when a trainer deletes their account, the Company immediately deletes the account together with the profile, member connections and conversations (including attached photos and report PDF files), routines and programs, schedules and bookable times, and notifications, and tells assigned and booked members. Consultation requests sent by members belong to the members\' records and remain with the trainer\'s details removed. Records kept under section 4 are deleted automatically when their period ends.\n(2) Method: information held as electronic files is deleted from the database and file storage, and copies remaining in database recovery backups disappear when the backup retention period ends. The Company does not handle personal information on paper.\n\n9. Automatic collection tools\nThe Company does not use cookies or tracking tools for advertising or behavioural analysis. Sign-in information is kept in browser storage to keep you signed in, and is removed when you sign out or clear your browser data.\n\n10. Safeguards\nPasswords are stored encrypted, access to member information is limited by assignment, and traffic is encrypted in transit. An access record holds only the trainer, the member, the kind of information and the time, never the health information itself. Error reports are sent with names, email addresses, IP addresses and request contents removed.\n\n11. Children under 14\nThe Company does not accept sign-ups from children under 14, and confirms at sign-up that you are 14 or older.\n\n12. Your rights\nA trainer may review or correct their personal information, or request that its processing stop and that it be deleted, at any time. You can edit your profile and delete your account from the MY menu; for any other request, contact the address in section 13 and it will be handled without delay.\n\n13. Privacy officer\nThe Company has appointed a personal information protection officer who oversees the processing of personal information and handles related complaints and remedies.\n- Position: Personal information protection officer, On-Care service operations team\n- Contact: support@oncare.com\n\n14. Remedies for infringement\nFor reports or advice about an infringement of personal information, you can contact the following bodies (in Korea).\n- Personal Information Dispute Mediation Committee: 1833-6972 (www.kopico.go.kr)\n- Personal Information Infringement Report Center: 118 (privacy.kisa.or.kr)\n- Supreme Prosecutors\' Office: 1301 (www.spo.go.kr)\n- Korean National Police Agency: 182 (ecrm.police.go.kr)\n\n15. Changes to this policy\nIf this policy changes, the Company announces it in the Service before the effective date, and asks for consent again where the change requires it.\n- October 3, 2026: added entrusted processing, overseas transfer, destruction procedure, automatic collection tools, children under 14, protection officer and remedies sections\n- October 1, 2026: first issued\n\nEffective: October 3, 2026'**
   String get myLegalPrivacyBody;
 
   /// No description provided for @myPasswordChanged.
@@ -4153,47 +4153,335 @@ abstract class AppLocalizations {
   /// **'Set gym'**
   String get myGymHiddenAction;
 
-  /// No description provided for @verifyPendingTitle.
+  /// No description provided for @navAdminGroup.
   ///
   /// In en, this message translates to:
-  /// **'Waiting for approval'**
-  String get verifyPendingTitle;
+  /// **'Admin'**
+  String get navAdminGroup;
 
-  /// No description provided for @verifyPendingBody.
+  /// No description provided for @navAdminReports.
   ///
   /// In en, this message translates to:
-  /// **'Until an operator approves your account, you won\'t appear in the member app\'s trainer finder and can\'t receive consultation requests or connect members. Fill in your profile and gym meanwhile — they\'re used for the review.'**
-  String get verifyPendingBody;
+  /// **'Reports & accounts'**
+  String get navAdminReports;
 
-  /// No description provided for @verifyRejectedTitle.
+  /// No description provided for @adminReportsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Your approval was declined'**
-  String get verifyRejectedTitle;
+  /// **'Reports & accounts'**
+  String get adminReportsTitle;
 
-  /// No description provided for @verifyRejectedBody.
+  /// No description provided for @adminReportsSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'You don\'t appear in the member app and can\'t receive consultation requests or connect members. Update your profile, then ask support to review it again.'**
-  String get verifyRejectedBody;
+  /// **'Review members\' reports about trainers, and suspend or restore trainer accounts when needed.'**
+  String get adminReportsSubtitle;
 
-  /// No description provided for @verifyRejectedReason.
+  /// No description provided for @adminSectionReports.
   ///
   /// In en, this message translates to:
-  /// **'Reason: {reason}'**
-  String verifyRejectedReason(String reason);
+  /// **'Reports'**
+  String get adminSectionReports;
 
-  /// No description provided for @verifyConnectDisabled.
+  /// No description provided for @adminSectionTrainers.
   ///
   /// In en, this message translates to:
-  /// **'You can connect members once an operator approves your account. New member registration is off until then.'**
-  String get verifyConnectDisabled;
+  /// **'Trainers'**
+  String get adminSectionTrainers;
 
-  /// No description provided for @verifyConsultDisabled.
+  /// No description provided for @adminReportFilterOpen.
   ///
   /// In en, this message translates to:
-  /// **'Members can request consultations once an operator approves your account.'**
-  String get verifyConsultDisabled;
+  /// **'Open'**
+  String get adminReportFilterOpen;
+
+  /// No description provided for @adminReportFilterClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get adminReportFilterClosed;
+
+  /// No description provided for @adminReportStatusResolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Actioned'**
+  String get adminReportStatusResolved;
+
+  /// No description provided for @adminReportStatusDismissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismissed'**
+  String get adminReportStatusDismissed;
+
+  /// No description provided for @adminReasonImpersonation.
+  ///
+  /// In en, this message translates to:
+  /// **'Impersonation'**
+  String get adminReasonImpersonation;
+
+  /// No description provided for @adminReasonInappropriateMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Inappropriate messages'**
+  String get adminReasonInappropriateMessage;
+
+  /// No description provided for @adminReasonOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get adminReasonOther;
+
+  /// No description provided for @adminFieldTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer'**
+  String get adminFieldTarget;
+
+  /// No description provided for @adminFieldReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason'**
+  String get adminFieldReason;
+
+  /// No description provided for @adminFieldMemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get adminFieldMemo;
+
+  /// No description provided for @adminFieldReportedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Reported'**
+  String get adminFieldReportedAt;
+
+  /// No description provided for @adminFieldResolvedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get adminFieldResolvedAt;
+
+  /// No description provided for @adminFieldOpenReports.
+  ///
+  /// In en, this message translates to:
+  /// **'Open reports'**
+  String get adminFieldOpenReports;
+
+  /// No description provided for @adminOpenReportsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 report} other{{count} reports}}'**
+  String adminOpenReportsCount(int count);
+
+  /// No description provided for @adminReportsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load reports'**
+  String get adminReportsLoadFailed;
+
+  /// No description provided for @adminReportsEmptyOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'No reports to review'**
+  String get adminReportsEmptyOpen;
+
+  /// No description provided for @adminReportsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching reports'**
+  String get adminReportsEmpty;
+
+  /// No description provided for @adminTrainerSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name or email'**
+  String get adminTrainerSearchHint;
+
+  /// No description provided for @adminStateActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get adminStateActive;
+
+  /// No description provided for @adminResolve.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark actioned'**
+  String get adminResolve;
+
+  /// No description provided for @adminDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get adminDismiss;
+
+  /// No description provided for @adminResolveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Close the report on {name} as actioned?'**
+  String adminResolveTitle(String name);
+
+  /// No description provided for @adminResolveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Close a report once you\'ve taken action, such as suspending the account. Closing it doesn\'t change the account.'**
+  String get adminResolveBody;
+
+  /// No description provided for @adminDismissTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss the report on {name}?'**
+  String adminDismissTitle(String name);
+
+  /// No description provided for @adminDismissBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Close a report that needs no action. The account doesn\'t change.'**
+  String get adminDismissBody;
+
+  /// No description provided for @adminReportResolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Report closed as actioned'**
+  String get adminReportResolved;
+
+  /// No description provided for @adminReportDismissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Report dismissed'**
+  String get adminReportDismissed;
+
+  /// No description provided for @adminRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get adminRefresh;
+
+  /// No description provided for @adminFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get adminFilterAll;
+
+  /// No description provided for @adminStatusSuspended.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspended'**
+  String get adminStatusSuspended;
+
+  /// No description provided for @adminTrainersLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load trainers'**
+  String get adminTrainersLoadFailed;
+
+  /// No description provided for @adminActionRetryLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Please try again in a moment.'**
+  String get adminActionRetryLater;
+
+  /// No description provided for @adminTrainersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No trainers here'**
+  String get adminTrainersEmpty;
+
+  /// No description provided for @adminTrainerUnnamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unnamed trainer'**
+  String get adminTrainerUnnamed;
+
+  /// No description provided for @adminFieldEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get adminFieldEmail;
+
+  /// No description provided for @adminFieldGym.
+  ///
+  /// In en, this message translates to:
+  /// **'Gym'**
+  String get adminFieldGym;
+
+  /// No description provided for @adminFieldSignedUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed up'**
+  String get adminFieldSignedUp;
+
+  /// No description provided for @adminValueNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get adminValueNone;
+
+  /// No description provided for @adminGymNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No gym yet'**
+  String get adminGymNone;
+
+  /// No description provided for @adminSuspend.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspend account'**
+  String get adminSuspend;
+
+  /// No description provided for @adminUnsuspend.
+  ///
+  /// In en, this message translates to:
+  /// **'Lift suspension'**
+  String get adminUnsuspend;
+
+  /// No description provided for @adminSuspendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspend {name}\'s account?'**
+  String adminSuspendTitle(String name);
+
+  /// No description provided for @adminSuspendBody.
+  ///
+  /// In en, this message translates to:
+  /// **'They are signed out right away and can\'t sign in again. All member connections end, members are notified, and upcoming PT sessions are cancelled. Lifting the suspension does not restore those connections.'**
+  String get adminSuspendBody;
+
+  /// No description provided for @adminUnsuspendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Lift {name}\'s suspension?'**
+  String adminUnsuspendTitle(String name);
+
+  /// No description provided for @adminUnsuspendBody.
+  ///
+  /// In en, this message translates to:
+  /// **'They can sign in again. Ended member connections only come back when the member agrees again.'**
+  String get adminUnsuspendBody;
+
+  /// No description provided for @adminSuspended.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspended {name}\'s account'**
+  String adminSuspended(String name);
+
+  /// No description provided for @adminSuspendedReleased.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspended {name}\'s account and ended {count} member connections'**
+  String adminSuspendedReleased(String name, int count);
+
+  /// No description provided for @adminUnsuspended.
+  ///
+  /// In en, this message translates to:
+  /// **'Lifted {name}\'s suspension'**
+  String adminUnsuspended(String name);
+
+  /// No description provided for @adminActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t complete that. Please try again in a moment.'**
+  String get adminActionFailed;
 
   /// No description provided for @myGymEditHint.
   ///

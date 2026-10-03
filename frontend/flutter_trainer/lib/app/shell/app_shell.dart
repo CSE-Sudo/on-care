@@ -46,6 +46,9 @@ class AppShell extends StatefulWidget {
   /// 끼우면 `myBranchIndex` 가 밀려 푸터 선택이 조용히 깨진다. (#503)
   static int get notificationsBranchIndex => myBranchIndex + 1;
 
+  /// Branch index of 신고·계정 관리 — 운영자 전용, 알림함 뒤 (#3008).
+  static int get adminReportsBranchIndex => adminBranchIndex;
+
   /// Root location of branch [index] — what a sidebar tap opens when there
   /// is no [StatefulNavigationShell] to switch (the 404 page sits outside
   /// the shell route). Out-of-range indexes fall back to the 대시보드.
@@ -55,6 +58,7 @@ class AppShell extends StatefulWidget {
     }
     if (index == myBranchIndex) return AppRoutes.my;
     if (index == notificationsBranchIndex) return AppRoutes.notifications;
+    if (index == adminReportsBranchIndex) return AppRoutes.adminReports;
     return AppRoutes.dashboard;
   }
 
