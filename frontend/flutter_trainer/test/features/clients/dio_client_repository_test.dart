@@ -393,22 +393,6 @@ void main() {
     },
   );
 
-  group('adding clients stays demo-only against the real API', () {
-    test('advertises the roster as closed to additions', () {
-      expect(repo.supportsRosterMutations, isFalse);
-    });
-
-    test('addClient throws UnsupportedError', () {
-      expect(
-        () => repo.addClient(name: 'x', goal: 'y'),
-        throwsUnsupportedError,
-      );
-    });
-    test('clientNameExists throws UnsupportedError', () {
-      expect(() => repo.clientNameExists('x'), throwsUnsupportedError);
-    });
-  });
-
   group('활성/휴면 management state (#707)', () {
     const String path = '/trainer/clients/m1/status';
 

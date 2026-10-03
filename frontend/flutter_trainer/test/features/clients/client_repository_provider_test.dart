@@ -55,8 +55,6 @@ class _StreamingClientRepository implements ClientRepository {
   final StreamController<List<TrainerClient>> _controller;
 
   @override
-  bool get supportsRosterMutations => false;
-  @override
   Stream<List<TrainerClient>> watchClients() => _controller.stream;
   @override
   Stream<Map<String, DateTime>> watchLastChatAt() =>
@@ -141,11 +139,6 @@ class _StreamingClientRepository implements ClientRepository {
     String clientId,
     ClientDateRange range,
   ) async => ClientDietPeriod(range: range, days: const <ClientDietDay>[]);
-  @override
-  Future<bool> clientNameExists(String name) async => false;
-  @override
-  Future<bool> addClient({required String name, required String goal}) async =>
-      false;
   @override
   Future<void> setClientActive(String id, bool active) async {}
 
