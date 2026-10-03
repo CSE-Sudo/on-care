@@ -119,7 +119,8 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `PAIRING_REDEEM_PER_DAY` | 회원 연결 코드 미리보기·사용의 트레이너 하루 상한(기본 30) |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | 접근 토큰 수명(분, #2913). 기본 60. 두 앱은 만료되면 refresh 로 이어 가므로 운영은 짧게 둔다. 데모·개발 환경만 길게 |
 | `REGISTER_PER_EMAIL_PER_HOUR` | 같은 이메일 가입 시도 시간당 상한(회원·트레이너 공용, 기본 5, #2913) |
-| `PASSWORD_CHANGE_MAX_FAILURES` | 비밀번호 변경의 현재 비밀번호 연속 실패 잠금(사용자 단위, 기본 5회, 창은 `LOGIN_LOCKOUT_SECONDS`, #2913) |
+| `PASSWORD_CHANGE_MAX_FAILURES` | 비밀번호 변경의 현재 비밀번호 연속 실패 잠금(사용자 단위, 기본 5회, 창은 `LOGIN_LOCKOUT_SECONDS`, #2913). 탈퇴·이메일 변경 본인 확인도 같은 한도(#3039) |
+| `SIGNUP_EMAIL_CODE_*` | 가입 인증 코드 유효 시간(10분)·재요청 간격(60초)·코드당 틀린 횟수(5)·이메일당 요청 수(60분에 5번, #3038) |
 | `EXPOSE_API_DOCS` | `/docs`·`/redoc`·`/openapi.json` 공개 여부(#2834). 비우면 운영은 닫힘(404). 스키마는 스테이징·로컬에서 본다 |
 | `SENTRY_DSN` | 에러 추적 수신 주소(#2839). 비우면 보내지 않음. 값은 #480 에서 채운다 |
 | `SENTRY_ENVIRONMENT` / `SENTRY_SAMPLE_RATE` | 선택. 비우면 `ENV` 값 / 기본 `1.0` |
@@ -139,10 +140,27 @@ CREATE EXTENSION IF NOT EXISTS vector;
 |---|---|---|
 | `FORCE_HTTPS` | `true` | HTTP 요청이 HTTPS 로 넘어가지 않는다 |
 | `ALLOW_DEMO_FALLBACK` | `false` | `ENV=prod` 면 어차피 꺼지지만, 스테이징·시연 서버를 `ENV=dev` 로 띄우면 토큰 없는 요청이 데모 계정으로 처리된다 |
-| `ADMIN_EMAILS` | 운영 담당자 이메일(콤마 구분) | 관리자가 없어 공공 RAG 문서 적재·`/v1/system/metrics` 를 쓸 수 없다 |
+| `SIGNUP_EMAIL_VERIFICATION` | `true`(기본값 유지) | 운영은 끌 수 없다 — `false` 면 기동 거부(#3038). 가입 인증 코드는 아래 메일 발송 설정으로 나간다 |
+| `MAIL_SUPPORT_CONTACT` | 팀이 정한 문의 주소 | 가입 안내·이메일 변경 안내 메일 끝에 문의처 줄이 빠진다(#3038·#3039, **결정 필요**) |
 | `REPORT_PDF_STORAGE_DIR`·`CHAT_IMAGE_STORAGE_DIR` | 영속 저장소를 붙인 경로 | 컨테이너 안 `data/` 에 쌓인다. 영속 디스크가 없는 컴퓨트(App Runner 등)에서는 재배포·재시작 때 주간 리포트 PDF·채팅 사진이 사라진다(저장소 구성은 #480 범위) |
 | `SECURITY_HEADERS`·`RATE_LIMIT_ENABLED` | `true`(기본값 유지) | 끄면 보안 헤더·시도 제한이 빠진다 |
 | `LOG_LEVEL` | `INFO` | — |
+
+### 관리자 지정 (#3037)
+
+관리자는 환경 변수로 정하지 않는다. 예전 `ADMIN_EMAILS` 는 기동할 때 그 주소로 가입된 계정을
+올려, 운영자보다 **먼저 그 주소로 가입한 사람**이 관리자가 됐다. 이제 값이 남아 있으면 기동 로그에
+경고만 하고 아무도 올리지 않는다. 운영 DB 에 붙은 셸에서 다음 순서로 지정한다.
+
+```bash
+python -m scripts.grant_admin --email ops@example.com                       # 1) 조회만: id·가입일·역할·인증 시각
+python -m scripts.grant_admin --email ops@example.com --confirm-id user-…   # 2) 본인 계정 id 가 맞을 때만 지정
+python -m scripts.grant_admin --email ops@example.com --confirm-id user-… --revoke   # 해제
+```
+
+1) 에서 가입일·인증 시각이 운영자가 직접 만든 계정과 맞는지 먼저 본다. id 가 다르면 바꾸지 않고
+종료 코드 4, 없는 주소 2, 대소문자만 같은 계정이 여럿이면 3. 지정·해제는 감사 로그
+`admin.grant`·`admin.revoke` 에 남는다. 운영 셸 접근 경로는 #480 범위다.
 
 ## 4) App Runner 서비스
 
