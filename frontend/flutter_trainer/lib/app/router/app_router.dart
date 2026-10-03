@@ -203,6 +203,10 @@ GoRouter buildAppRouter({
                             state.uri.queryParameters[AppRoutes
                                 .clientOpenParam] ==
                             AppRoutes.clientOpenHealthNotes,
+                        openFeedback:
+                            state.uri.queryParameters[AppRoutes
+                                .clientOpenParam] ==
+                            AppRoutes.clientOpenFeedback,
                       ),
                     ),
                   ),

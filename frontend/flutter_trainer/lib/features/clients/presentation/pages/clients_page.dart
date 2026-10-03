@@ -38,6 +38,7 @@ class ClientsPage extends ConsumerStatefulWidget {
     this.section,
     this.filter,
     this.openHealthNotes = false,
+    this.openFeedback = false,
   });
 
   /// Client whose detail is open, or null for the plain list.
@@ -51,6 +52,9 @@ class ClientsPage extends ConsumerStatefulWidget {
 
   /// 주의사항 알림에서 왔다 — 상세가 신체·목표 창의 `건강 목표` 탭을 연다(#2619).
   final bool openHealthNotes;
+
+  /// 회원 주간 피드백 알림에서 왔다 — 상세가 메모 창의 `피드백` 탭을 연다(#3026).
+  final bool openFeedback;
 
   @override
   ConsumerState<ClientsPage> createState() => _ClientsPageState();
@@ -225,6 +229,7 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                               section: widget.section,
                               showBack: !wide,
                               openHealthNotes: widget.openHealthNotes,
+                              openFeedback: widget.openFeedback,
                               // 한 번 열었으면 주소에서 지운다 — 새로 고칠 때마다
                               // 창이 다시 뜨지 않게.
                               onHealthNotesOpened: () => context.replace(

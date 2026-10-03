@@ -44,6 +44,7 @@ class ClientDetailView extends ConsumerStatefulWidget {
     this.onClose,
     this.filter,
     this.openHealthNotes = false,
+    this.openFeedback = false,
     this.onHealthNotesOpened,
   });
 
@@ -70,6 +71,13 @@ class ClientDetailView extends ConsumerStatefulWidget {
   /// 들어오자마자 신체·목표 창의 `건강 목표` 탭을 연다 — 주의사항 알림에서 온
   /// 길이다(#2619). 연 뒤에는 [onHealthNotesOpened] 로 알린다.
   final bool openHealthNotes;
+
+  /// 들어오자마자 메모 창의 `피드백` 탭을 연다 — 회원 주간 피드백 알림에서 온
+  /// 길이다(#3026). 연 뒤에는 [onHealthNotesOpened] 로 알린다(주소의 `open` 을
+  /// 지우는 같은 일이다).
+  final bool openFeedback;
+
+  /// 알림에서 온 창([openHealthNotes]·[openFeedback])을 연 뒤 부른다.
   final VoidCallback? onHealthNotesOpened;
 
   /// The section actually being shown; unknown values fall back to the
@@ -150,12 +158,19 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
   bool _openedHealthNotes = false;
 
   void _openHealthNotesOnce(TrainerClient client) {
-    if (!widget.openHealthNotes || _openedHealthNotes) return;
+    final bool health = widget.openHealthNotes;
+    final bool feedback = !health && widget.openFeedback;
+    if (!(health || feedback) || _openedHealthNotes) return;
     _openedHealthNotes = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       widget.onHealthNotesOpened?.call();
-      _openDialog(client, ClientProfileSection.health, openHealthNotes: true);
+      if (health) {
+        _openDialog(client, ClientProfileSection.health, openHealthNotes: true);
+      } else {
+        // 주간 피드백 알림 — 회원의 답이 있는 메모 창 `피드백` 탭(#3026).
+        _openDialog(client, ClientProfileSection.memo, openFeedback: true);
+      }
     });
   }
 
@@ -163,6 +178,7 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
     TrainerClient client,
     ClientProfileSection section, {
     bool openHealthNotes = false,
+    bool openFeedback = false,
   }) => showClientProfileDialog(
     context,
     clientId: client.id,
@@ -171,6 +187,7 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
     ageYears: client.age,
     section: section,
     openHealthNotes: openHealthNotes,
+    openFeedback: openFeedback,
   );
 
   /// 배지를 누르면 그 신호의 근거가 있는 곳으로 간다(#2330) — 대시보드 할
