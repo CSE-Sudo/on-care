@@ -166,16 +166,15 @@ void main() {
       expect(find.text('[필수] 개인정보 수집·이용 동의'), findsOneWidget);
       expect(find.text('[필수] 건강정보(민감정보) 처리 동의'), findsOneWidget);
       expect(find.text('[필수] 만 14세 이상이에요'), findsOneWidget);
-      expect(find.text('[선택] 마케팅 알림 수신'), findsOneWidget);
-      for (final String id in <String>[
-        'terms',
-        'privacy',
-        'health',
-        'age14',
-        'marketing',
-      ]) {
+      for (final String id in <String>['terms', 'privacy', 'health', 'age14']) {
         expect(find.byKey(ValueKey<String>('consent-$id')), findsOneWidget);
       }
+      // 마케팅 수신 동의는 더는 묻지 않는다(#3007) — 선택 항목이 없다.
+      expect(
+        find.byKey(const ValueKey<String>('consent-marketing')),
+        findsNothing,
+      );
+      expect(find.textContaining('[선택]'), findsNothing);
     });
 
     testWidgets('필수 동의 전에는 가입 버튼이 꺼져 있고 이유를 알린다', (tester) async {
@@ -211,7 +210,7 @@ void main() {
       expect(_enabled(tester, submit), isFalse);
     });
 
-    testWidgets('선택 항목을 꺼도 가입할 수 있지만, 필수를 하나라도 끄면 못 한다', (tester) async {
+    testWidgets('전체 동의 뒤 필수를 하나라도 끄면 가입할 수 없다', (tester) async {
       await _pump(
         tester,
         const SignUpPage(),
@@ -219,8 +218,6 @@ void main() {
       );
       await _withCode(tester);
       await _tap(tester, 'consent-all');
-
-      await _tap(tester, 'consent-marketing');
       expect(_enabled(tester, submit), isTrue);
 
       for (final String id in <String>['terms', 'privacy', 'health', 'age14']) {
@@ -307,13 +304,9 @@ void main() {
         await tester.tap(find.byType(AppBackButton).last);
         await tester.pumpAndSettle();
       }
-      // 만 14세·마케팅은 문서가 없다.
+      // 만 14세 확인은 문서가 없다.
       expect(
         find.byKey(const ValueKey<String>('consent-view-age14')),
-        findsNothing,
-      );
-      expect(
-        find.byKey(const ValueKey<String>('consent-view-marketing')),
         findsNothing,
       );
     });
@@ -366,10 +359,7 @@ void main() {
         find.text('[Required] I am 14 years of age or older'),
         findsOneWidget,
       );
-      expect(
-        find.text('[Optional] Receive marketing notifications'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('[Optional]'), findsNothing);
     });
   });
 

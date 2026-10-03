@@ -2268,8 +2268,11 @@ class TrainerNotificationOut(BaseModel):
     """트레이너 알림함 항목. (#503)
 
     `category` 는 회원 알림의 집합(reminder|health_check|achievement|system)이 아니라
-    트레이너 전용 값이다 — `message`|`consultation`|`reservation`. 한 테이블을
-    공유하지만 읽는 화면과 이동할 곳이 다르다.
+    트레이너 전용 값이다 — `message`|`consultation`|`reservation`|`health_goal`|
+    `member_name`|`member_left`|`consult_withdrawn`|`invite_accepted`|
+    `invite_rejected`|`weekly_feedback`(#3026, 회원 주간 피드백 → 그 회원 메모 창
+    '피드백' 탭, `subject_id`·`target_date`=주 시작). 한 테이블을 공유하지만 읽는
+    화면과 이동할 곳이 다르다.
     """
 
     id: str

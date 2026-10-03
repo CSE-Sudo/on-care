@@ -366,13 +366,8 @@ void main() {
           server.last('/auth/register').data as Map<String, Object?>;
       // 가입 이메일 인증 코드도 같은 본문에 실린다(#3038).
       expect(body['email_code'], '123456');
-      expect(body['consents'], <String>[
-        'terms',
-        'privacy',
-        'health',
-        'age14',
-        'marketing',
-      ]);
+      // 화면에 없는 마케팅(#3007) 같은 모르는 값은 싣지 않는다.
+      expect(body['consents'], <String>['terms', 'privacy', 'health', 'age14']);
       expect(
         container.read(sessionControllerProvider).consentRequired,
         isFalse,

@@ -103,6 +103,8 @@ extension _LocalApiProfile on LocalApiInterceptor {
       'id': p['id'],
       'name': p['name'],
       'email': p['email'],
+      // 서버와 같은 모양(#3054). 데모 계정은 회원이다.
+      'role': 'member',
       // 데모 회원은 동의를 마친 계정으로 둔다(#2819) — 데모 진입마다 동의
       // 화면이 끼면 시연 흐름이 끊긴다.
       'consent_required': false,

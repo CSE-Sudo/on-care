@@ -71,6 +71,25 @@ def test_every_kind_has_a_current_version():
         assert signup_consent.CURRENT_VERSIONS[kind]
 
 
+def test_marketing_is_retired_and_no_longer_versioned():
+    """마케팅 수신 동의는 더는 받지 않는다(#3007) — 기록할 버전도 없다."""
+    assert "marketing" not in signup_consent.ALL_KINDS
+    assert "marketing" in signup_consent.RETIRED_KINDS
+    assert "marketing" not in signup_consent.CURRENT_VERSIONS
+
+
+def test_every_received_kind_is_required_for_someone():
+    """받는 항목 가운데 어느 역할에도 필수가 아닌 것(=선택)이 없다."""
+    required = set().union(*signup_consent.REQUIRED_BY_ROLE.values())
+    assert set(signup_consent.ALL_KINDS) == required
+
+
+def test_missing_required_ignores_retired_marketing():
+    with_mkt = [*MEMBER_REQUIRED, "marketing"]
+    assert signup_consent.missing_required("member", with_mkt) == []
+    assert signup_consent.missing_required("trainer", [*TRAINER_REQUIRED, "marketing"]) == []
+
+
 # ---- 스키마 (DB 불필요) ----
 
 
@@ -84,8 +103,24 @@ def test_register_without_consent_list_is_accepted():
 
 
 def test_register_with_all_member_items_is_accepted():
+    body = UserRegister(**_register_body(consents=MEMBER_REQUIRED))
+    assert set(body.consents or []) == set(MEMBER_REQUIRED)
+
+
+def test_register_from_old_build_with_marketing_is_still_accepted():
+    """옛 빌드는 더는 받지 않는 마케팅 항목을 함께 보낸다(#3007) — 막지 않는다."""
     body = UserRegister(**_register_body(consents=[*MEMBER_REQUIRED, "marketing"]))
-    assert set(body.consents or []) == {*MEMBER_REQUIRED, "marketing"}
+    assert "marketing" in (body.consents or [])
+
+
+def test_trainer_register_from_old_build_with_marketing_is_still_accepted():
+    body = TrainerRegister(**_register_body(consents=[*TRAINER_REQUIRED, "marketing"]))
+    assert "marketing" in (body.consents or [])
+
+
+def test_consent_submit_from_old_build_with_marketing_is_accepted():
+    body = ConsentSubmit(consents=[*MEMBER_REQUIRED, "marketing"])
+    assert "marketing" in body.consents
 
 
 @pytest.mark.parametrize("dropped", MEMBER_REQUIRED)
@@ -144,7 +179,7 @@ def test_member_register_records_each_item_with_version(client, db_session):
             "email": email,
             "password": PASSWORD,
             "name": "동의회원",
-            "consents": [*MEMBER_REQUIRED, "marketing"],
+            "consents": MEMBER_REQUIRED,
         },
     )
     assert r.status_code == 201, r.text
@@ -153,18 +188,25 @@ def test_member_register_records_each_item_with_version(client, db_session):
     rows = db_session.scalars(
         select(UserConsent).where(UserConsent.user_id == user_id)
     ).all()
-    assert {row.kind for row in rows} == {*MEMBER_REQUIRED, "marketing"}
+    assert {row.kind for row in rows} == set(MEMBER_REQUIRED)
     for row in rows:
         assert row.version == signup_consent.CURRENT_VERSIONS[row.kind]
         assert row.agreed_at is not None
         assert row.revoked_at is None
 
 
-def test_member_register_without_marketing_records_only_required(client, db_session):
+def test_member_register_with_retired_marketing_records_only_required(
+    client, db_session
+):
+    """옛 빌드가 마케팅을 실어 보내도 가입은 되고, 마케팅 행은 남지 않는다(#3007)."""
     email = _email("nomkt")
     r = client.post(
         "/v1/auth/register",
-        json={"email": email, "password": PASSWORD, "consents": MEMBER_REQUIRED},
+        json={
+            "email": email,
+            "password": PASSWORD,
+            "consents": [*MEMBER_REQUIRED, "marketing"],
+        },
     )
     assert r.status_code == 201, r.text
     kinds = set(
@@ -311,8 +353,9 @@ def test_submitting_twice_keeps_the_first_agreement_time(client, db_session):
     rows = db_session.scalars(
         select(UserConsent).where(UserConsent.user_id == user_id)
     ).all()
-    # 필수 항목은 다시 쓰지 않고, 처음 선택하지 않았던 마케팅만 더해진다.
-    assert len(rows) == len(MEMBER_REQUIRED) + 1
+    # 필수 항목은 다시 쓰지 않고, 옛 빌드가 실어 보낸 마케팅은 남기지 않는다(#3007).
+    assert len(rows) == len(MEMBER_REQUIRED)
+    assert "marketing" not in {row.kind for row in rows}
     for row in rows:
         if row.kind in first:
             assert row.agreed_at == first[row.kind]
@@ -579,3 +622,67 @@ def test_demo_consent_seed_leaves_real_accounts_alone(client, db_session):
     db_session.expire_all()
     user = db_session.scalar(select(User).where(User.email == email))
     assert signup_consent.pending_kinds(db_session, user) == sorted(MEMBER_REQUIRED)
+
+
+# ---- 더는 받지 않는 마케팅 동의 (#3007) ----
+
+
+def test_record_drops_retired_marketing(client, db_session):
+    email = _email("record-mkt")
+    reg = client.post("/v1/auth/register", json={"email": email, "password": PASSWORD})
+    user_id = reg.json()["id"]
+
+    signup_consent.record(db_session, user_id, [*MEMBER_REQUIRED, "marketing"])
+    db_session.commit()
+
+    kinds = set(
+        db_session.scalars(select(UserConsent.kind).where(UserConsent.user_id == user_id))
+    )
+    assert kinds == set(MEMBER_REQUIRED)
+
+
+def test_trainer_register_with_retired_marketing_records_only_required(
+    client, db_session
+):
+    email = _email("trainer-mkt")
+    r = client.post(
+        "/v1/auth/trainer/register",
+        json={
+            "email": email,
+            "password": PASSWORD,
+            "name": "옛빌드트레이너",
+            "consents": [*TRAINER_REQUIRED, "marketing"],
+        },
+    )
+    assert r.status_code == 201, r.text
+    kinds = set(
+        db_session.scalars(
+            select(UserConsent.kind).where(UserConsent.user_id == r.json()["id"])
+        )
+    )
+    assert kinds == set(TRAINER_REQUIRED)
+
+
+def test_old_marketing_row_does_not_affect_consent_status(client, db_session):
+    """예전에 남은 마케팅 행은 동의 상태 계산에 끼지 않는다."""
+    email = _email("old-mkt")
+    reg = client.post(
+        "/v1/auth/register",
+        json={"email": email, "password": PASSWORD, "consents": MEMBER_REQUIRED},
+    )
+    user_id = reg.json()["id"]
+    db_session.add(
+        UserConsent(
+            user_id=user_id,
+            kind="marketing",
+            version="2026-10-01",
+            agreed_at=FIXED_NOW,
+        )
+    )
+    db_session.commit()
+
+    assert "marketing" not in signup_consent.agreed_kinds(db_session, user_id)
+    me = client.get("/v1/users/me", headers=_auth(_login(client, email)["access_token"]))
+    assert me.status_code == 200, me.text
+    assert me.json()["consent_required"] is False
+    assert "marketing" not in me.json()["consent_pending"]

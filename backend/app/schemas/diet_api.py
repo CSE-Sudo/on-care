@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.core import clock
 from app.schemas.points_api import PointsOut
+from app.schemas.record_dates import not_after_today
 
 #: 계약 날짜 표기. `2026-08-01` 만 받는다.
 _YMD = re.compile(r"\d{4}-\d{2}-\d{2}")
@@ -128,9 +129,7 @@ def _past_or_today(value: str | None) -> str | None:
         parsed = _date.fromisoformat(value)
     except ValueError as e:
         raise ValueError("date 는 YYYY-MM-DD 형식이어야 합니다.") from e
-    if parsed > clock.today():
-        raise ValueError("date 는 오늘보다 뒤일 수 없습니다.")
-    return parsed.isoformat()
+    return not_after_today(parsed).isoformat()
 
 
 def analyze_record_date(value: str | None) -> _date | None:

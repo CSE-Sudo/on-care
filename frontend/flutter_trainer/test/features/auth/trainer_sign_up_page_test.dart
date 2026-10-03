@@ -569,7 +569,7 @@ void main() {
     expect(find.text('[필수] 이용약관 동의'), findsOneWidget);
     expect(find.text('[필수] 개인정보 수집·이용 동의'), findsOneWidget);
     expect(find.text('[필수] 만 14세 이상이에요'), findsOneWidget);
-    expect(find.text('[선택] 마케팅 알림 수신'), findsOneWidget);
+    expect(find.text('[선택] 마케팅 알림 수신'), findsNothing);
     expect(find.byKey(const ValueKey<String>('consent-health')), findsNothing);
   });
 
@@ -600,18 +600,32 @@ void main() {
     await tapKey(tester, 'consent-all');
     expect(submitEnabled(tester), isTrue);
 
-    await tapKey(tester, 'consent-marketing');
-    expect(submitEnabled(tester), isTrue, reason: '마케팅은 선택이다');
-
     for (final String id in <String>['terms', 'privacy', 'age14']) {
       await tapKey(tester, 'consent-$id');
       expect(submitEnabled(tester), isFalse, reason: id);
       await tapKey(tester, 'consent-$id');
     }
 
+    await tapKey(tester, 'consent-terms');
     await tapKey(tester, 'consent-all'); // 일부만 켜져 있으면 전부 켠다
+    expect(submitEnabled(tester), isTrue);
     await tapKey(tester, 'consent-all'); // 전부 켜져 있으면 전부 끈다
     expect(submitEnabled(tester), isFalse);
+  });
+
+  testWidgets('마케팅 수신 동의는 더는 묻지 않는다 — 선택 항목이 없다 (#3007)', (
+    WidgetTester tester,
+  ) async {
+    await _pumpSignUp(tester);
+
+    expect(
+      find.byKey(const ValueKey<String>('consent-marketing')),
+      findsNothing,
+    );
+    expect(find.textContaining('[선택]'), findsNothing);
+    for (final String id in <String>['terms', 'privacy', 'age14']) {
+      expect(find.byKey(ValueKey<String>('consent-$id')), findsOneWidget);
+    }
   });
 
   testWidgets('체크한 항목을 화면 순서대로 가입 요청에 싣는다', (WidgetTester tester) async {

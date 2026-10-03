@@ -46,6 +46,16 @@ void main() {
         'privacy',
         'health',
         'age14',
+      ]);
+      expect(res.statusCode, 201);
+    });
+
+    test('옛 빌드가 더는 받지 않는 마케팅 항목을 실어 보내도 가입된다 (#3007)', () async {
+      final res = await register(<String>[
+        'terms',
+        'privacy',
+        'health',
+        'age14',
         'marketing',
       ]);
       expect(res.statusCode, 201);

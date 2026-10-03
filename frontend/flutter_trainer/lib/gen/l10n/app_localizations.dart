@@ -368,6 +368,48 @@ abstract class AppLocalizations {
   /// **'Go to sign in'**
   String get notFoundGoSignIn;
 
+  /// Heading of the startup screen shown instead of the app when a release build was made with development or demo settings.
+  ///
+  /// In en, this message translates to:
+  /// **'This build is misconfigured'**
+  String get misconfiguredBuildTitle;
+
+  /// No description provided for @misconfiguredBuildMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This build was made with settings that can\'t be used for real users, so the app didn\'t open. Please share the details below with whoever released it.'**
+  String get misconfiguredBuildMessage;
+
+  /// No description provided for @misconfiguredBuildDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Build settings to fix'**
+  String get misconfiguredBuildDetailsTitle;
+
+  /// No description provided for @misconfiguredBuildDevEnvironment.
+  ///
+  /// In en, this message translates to:
+  /// **'ENV is not prod or staging'**
+  String get misconfiguredBuildDevEnvironment;
+
+  /// No description provided for @misconfiguredBuildMockWithoutDemo.
+  ///
+  /// In en, this message translates to:
+  /// **'It uses demo data without the demo build flag (USE_MOCK_API, DEMO_BUILD)'**
+  String get misconfiguredBuildMockWithoutDemo;
+
+  /// No description provided for @misconfiguredBuildPlaceholderApiUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'The API address is an example or local address (API_BASE_URL)'**
+  String get misconfiguredBuildPlaceholderApiUrl;
+
+  /// No description provided for @misconfiguredBuildInsecureApiUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'The API address does not start with https:// (API_BASE_URL)'**
+  String get misconfiguredBuildInsecureApiUrl;
+
   /// Second word of the sidebar wordmark, rendered in the navy primary next to 'On-Care'.
   ///
   /// In en, this message translates to:
@@ -523,12 +565,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You must be 14 or older to sign up.'**
   String get consentAge14Detail;
-
-  /// No description provided for @consentMarketing.
-  ///
-  /// In en, this message translates to:
-  /// **'Receive marketing notifications'**
-  String get consentMarketing;
 
   /// No description provided for @consentRequiredHint.
   ///
@@ -6066,6 +6102,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sent a photo'**
   String get notifTplMemberPhotoBody;
+
+  /// Trainer notification title when a member submits their weekly feedback (#3026).
+  ///
+  /// In en, this message translates to:
+  /// **'{name} sent their weekly feedback'**
+  String notifTplWeeklyFeedbackTitle(String name);
+
+  /// Title when a member re-submits weekly feedback the trainer has already read (#3026).
+  ///
+  /// In en, this message translates to:
+  /// **'{name} updated their weekly feedback'**
+  String notifTplWeeklyFeedbackRevisedTitle(String name);
+
+  /// Title when the weekly feedback reports pain. The pain area itself is never shown in the notification (#3026).
+  ///
+  /// In en, this message translates to:
+  /// **'{name} reported pain'**
+  String notifTplWeeklyFeedbackPainTitle(String name);
+
+  /// No description provided for @notifTplWeeklyFeedbackCondition.
+  ///
+  /// In en, this message translates to:
+  /// **'Condition: {value}'**
+  String notifTplWeeklyFeedbackCondition(String value);
+
+  /// No description provided for @notifTplWeeklyFeedbackIntensity.
+  ///
+  /// In en, this message translates to:
+  /// **'Intensity: {value}'**
+  String notifTplWeeklyFeedbackIntensity(String value);
+
+  /// No description provided for @notifTplWeeklyFeedbackPain.
+  ///
+  /// In en, this message translates to:
+  /// **'Pain reported'**
+  String get notifTplWeeklyFeedbackPain;
 
   /// No description provided for @notifAllRead.
   ///
