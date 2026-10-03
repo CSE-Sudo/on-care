@@ -28,6 +28,10 @@ enum TrainerVerificationScope {
 
   /// 상담 요청함 — 상담 요청이 오지 않는 이유.
   consultations,
+
+  /// 담당 회원 상세·메시지 — 기록이 잠긴 이유 (#3009). 반려일 때만 보인다:
+  /// 서버는 반려만 기록을 잠그고, 승인 대기 트레이너에게는 담당 회원이 없다.
+  records,
 }
 
 /// 승인 대기·반려 안내 배너 (#2825). 승인된 트레이너에게는 아무것도 그리지 않는다.
@@ -59,11 +63,15 @@ class TrainerVerificationBanner extends ConsumerWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final bool rejected =
         verification.status == TrainerVerificationStatus.rejected;
+    if (scope == TrainerVerificationScope.records && !rejected) {
+      return const SizedBox.shrink();
+    }
     final String body = switch (scope) {
       TrainerVerificationScope.overview =>
         rejected ? l.verifyRejectedBody : l.verifyPendingBody,
       TrainerVerificationScope.connect => l.verifyConnectDisabled,
       TrainerVerificationScope.consultations => l.verifyConsultDisabled,
+      TrainerVerificationScope.records => l.verifyRecordsLocked,
     };
     final String note = verification.note.trim();
     final Widget banner = AppBanner(
