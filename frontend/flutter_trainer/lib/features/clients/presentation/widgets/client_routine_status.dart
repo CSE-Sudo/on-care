@@ -311,13 +311,8 @@ class _AdherenceCell extends StatelessWidget {
       decoration: BoxDecoration(
         color: fill,
         borderRadius: OnCareRadius.smAll,
-        // 오늘은 굵고 진한 테두리 — 칠한 칸 위에서도 오늘이 보이게.
-        border: isToday
-            ? Border.all(
-                color: OnCareColors.textPrimary,
-                width: OnCareSize.focusBorder,
-              )
-            : future
+        // 오늘이 아직 비어 있으면 빈칸 테두리 — 오늘 표시는 바깥 고리가 한다.
+        border: future || (isToday && blank)
             ? Border.all(color: OnCareColors.lineSubtle)
             : null,
       ),
@@ -339,10 +334,26 @@ class _AdherenceCell extends StatelessWidget {
               ),
             ),
     );
+    // 오늘은 요일 글자와 같은 브랜드색 고리를 한 칸 띄워 두른다 — 칸에 바로
+    // 그으면 진하게 칠한 칸(모두 완료)에 묻힌다.
+    final Widget marked = isToday
+        ? Container(
+            key: ValueKey<String>('$keyPrefix-today-ring'),
+            padding: const EdgeInsets.all(OnCareSpacing.s2),
+            decoration: BoxDecoration(
+              borderRadius: OnCareRadius.smAll,
+              border: Border.all(
+                color: context.oncare.brand.primary,
+                width: OnCareSize.focusBorder,
+              ),
+            ),
+            child: cell,
+          )
+        : cell;
     final double? height = this.height;
     final Widget box = height == null
-        ? AspectRatio(aspectRatio: 1, child: cell)
-        : SizedBox(height: height, child: cell);
+        ? AspectRatio(aspectRatio: 1, child: marked)
+        : SizedBox(height: height, child: marked);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
