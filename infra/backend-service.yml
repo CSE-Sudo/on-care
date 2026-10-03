@@ -189,6 +189,30 @@ Resources:
             Value: '120'
           - Name: MIGRATE_CONNECT_TIMEOUT
             Value: '10'
+          - Name: MIGRATE_LOCK_RETRY_INTERVAL
+            Value: '2'
+          # 아래는 코드 기본값과 같지만 운영 값으로 못 박는다(#3034) — 데모 서비스에서 바꾼 값이
+          # 운영으로 복사되지 않게 한다. 하드닝 스위치·혜택·API 문서·토큰 수명·감사 로그 보존.
+          - Name: SECURITY_HEADERS
+            Value: 'true'
+          - Name: RATE_LIMIT_ENABLED
+            Value: 'true'
+          - Name: GYM_BENEFITS_ENABLED
+            Value: 'false'
+          - Name: EXPOSE_API_DOCS
+            Value: 'false'
+          - Name: PLACES_PROVIDER
+            Value: auto
+          - Name: ACCESS_TOKEN_EXPIRE_MINUTES
+            Value: '60'
+          - Name: REFRESH_TOKEN_EXPIRE_DAYS
+            Value: '30'
+          - Name: WEB_REFRESH_TOKEN_EXPIRE_DAYS
+            Value: '7'
+          - Name: AUDIT_RETENTION_DAYS
+            Value: '365'
+          - Name: AUDIT_SENSITIVE_RETENTION_DAYS
+            Value: '730'
           - !If
             - HasAdminEmails
             - Name: ADMIN_EMAILS
@@ -218,6 +242,17 @@ Resources:
             - HasMail
             - Name: SMTP_PORT
               Value: !Ref SmtpPort
+            - !Ref AWS::NoValue
+          # 587 은 STARTTLS(기본), 465 는 SMTP_SSL=true·SMTP_STARTTLS=false. 지금은 587 고정이다.
+          - !If
+            - HasMail
+            - Name: SMTP_STARTTLS
+              Value: 'true'
+            - !Ref AWS::NoValue
+          - !If
+            - HasMail
+            - Name: SMTP_SSL
+              Value: 'false'
             - !Ref AWS::NoValue
           - !If
             - HasMemberResetUrl

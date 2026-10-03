@@ -235,7 +235,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `DATABASE_URL` | 그 환경 DB 의 직접 엔드포인트 | 예 |
 | `JWT_SECRET` | `openssl rand -hex 32`. **환경마다 다르게**. 32바이트 미만이면 운영 기동 거부(#3029) | 예 |
 | `GEMINI_API_KEY` | 사진 인식·임베딩. 운영은 없으면 기동 거부(#2812) | 예 |
-| `KAKAO_REST_API_KEY` | 장소 실검색. 빈 값이면 시드 폴백 | 키는 있어야 함 |
+| `KAKAO_REST_API_KEY` | 장소 실검색. 빈 값이면 헬스장 찾기가 사실상 빈다(시드로 채우지 않음, #2914) | 키는 있어야 함 |
 | `SENTRY_DSN` | 오류 수집(#2839). 빈 값이면 꺼짐 | 키는 있어야 함 |
 | `SMTP_USERNAME`·`SMTP_PASSWORD` | `MailFrom` 파라미터를 채웠을 때만 읽는다 | 메일을 켤 때 |
 | `DEMO_LOGIN_PASSWORD` | staging 만. 강한 값 | staging |
@@ -256,19 +256,53 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `RECOGNIZER`·`COACH_LLM`·`EMBEDDER` | `gemini` |
 | `GEMINI_TIMEOUT_SECONDS`·`RECOGNIZER_TIMEOUT_SECONDS` | `30`·`60`(#2912) |
 | `EMBED_DIM` | `768` |
-| `MIGRATE_LOCK_TIMEOUT`·`MIGRATE_CONNECT_TIMEOUT` | `120`·`10`(#2912) |
+| `MIGRATE_LOCK_TIMEOUT`·`MIGRATE_LOCK_RETRY_INTERVAL`·`MIGRATE_CONNECT_TIMEOUT` | `120`·`2`·`10`(#2912) |
+| `SECURITY_HEADERS`·`RATE_LIMIT_ENABLED` | `true`·`true` — 끄면 보안 헤더·시도 제한이 빠진다 |
+| `GYM_BENEFITS_ENABLED`·`EXPOSE_API_DOCS` | `false`·`false` — 제휴 헬스장 전까지 혜택을 닫고(#2822) 운영 API 문서를 닫는다(#2834) |
+| `PLACES_PROVIDER` | `auto` — `KAKAO_REST_API_KEY` 가 있으면 카카오(#2914) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES`·`REFRESH_TOKEN_EXPIRE_DAYS`·`WEB_REFRESH_TOKEN_EXPIRE_DAYS` | `60`·`30`·`7`(#2913·#2828) — 데모 서비스에서 길게 바꾼 값이 운영으로 복사되지 않게 |
+| `AUDIT_RETENTION_DAYS`·`AUDIT_SENSITIVE_RETENTION_DAYS` | `365`·`730`(#2830) — 처리방침 보관 기간과 묶여 있다 |
+| `MAIL_PROVIDER`·`SMTP_STARTTLS`·`SMTP_SSL` | `smtp`·`true`·`false` — `MailFrom` 파라미터를 채웠을 때만 들어간다(#3033). `smtp` 라 서버·발신 주소가 비면 기동이 거부돼 빠뜨린 것이 바로 드러난다. 587 STARTTLS 기준 |
+
+위 값 중 코드 기본값과 같은 것도 템플릿에 못 박는다(#3034) — 데모 서비스에서 바꾼 값이 운영으로
+복사되지 않게 하고, 운영에서 무엇이 들어가는지 `.env.aws.example` 한 곳에서 보이게 한다.
+
+**메일·재설정 값**(#3033)
+
+| 키 | 설명 |
+|---|---|
+| `MAIL_FROM` | 발신 주소(`no-reply@<운영 도메인>` 또는 `OnCare <no-reply@…>`). 업체·도메인 인증은 #480 |
+| `SMTP_HOST`·`SMTP_PORT` | 업체 SMTP 엔드포인트(SES 는 `email-smtp.<리전>.amazonaws.com`)·`587` |
+| `SMTP_USERNAME`·`SMTP_PASSWORD` | SMTP 자격 증명. 비밀 JSON 에 넣는다(SES 는 IAM 에서 만든 SMTP 자격 증명, #480) |
+| `PASSWORD_RESET_MEMBER_URL` | 회원 앱 재설정 화면 — **해시형** `https://<운영 도메인>/frontend/#/auth/password-reset`. 서버가 `…#/auth/password-reset?token=…` 꼴로 토큰을 붙인다. 비우면 메일에 코드만 보낸다 |
+| `PASSWORD_RESET_TRAINER_URL` | 트레이너 웹 재설정 화면 — **해시형** `https://<운영 도메인>/trainer/#/auth/password-reset`. 해시 없는 경로형(`/auth/password-reset`)은 정적 경로를 가리켜 코드가 버려진다. 운영에서 경로형·`http://` 면 기동 로그에 WARN(#3033) |
 
 **스택 파라미터로 정하는 값**: `CORS_ALLOW_ORIGINS`(https 만, `*`·빈 값·localhost 금지 — 운영 기동 거부, #3029), `GEMINI_MODEL`(아래 5-3),
 `ADMIN_EMAILS`, `APPLE_CLIENT_IDS`, 메일(`MAIL_FROM`·`SMTP_HOST`·`SMTP_PORT`·`PASSWORD_RESET_*_URL`).
 
-그 밖의 키(`LOGIN_MAX_FAILURES`·`ACCESS_TOKEN_EXPIRE_MINUTES`·`EXPOSE_API_DOCS`·`GYM_BENEFITS_ENABLED`·
-`SENTRY_ENVIRONMENT` 등)는 코드 기본값이 운영 값이라 템플릿에 넣지 않았다. 바꿔야 하면 템플릿에 키를
-더하고 `.env.aws.example` 에도 같은 키를 적는다. 전체 키와 기본값은 `backend/.env.example` 이
+그 밖의 키(`LOGIN_MAX_FAILURES` 같은 시도 제한·`SENTRY_ENVIRONMENT`·DB 풀 등)는 코드 기본값이 운영 값이라
+템플릿에 넣지 않았다(사유는 `tests/test_env_aws_example.py`, #3034). 바꿔야 하면 템플릿에 키를 더하고
+`.env.aws.example` 에서 그 키의 주석을 푼다. 전체 키와 기본값은 `backend/.env.example` 이
 `config.py` 와 1:1 로 갖고 있다(`tests/test_env_example.py`).
 
 > **시도 제한은 태스크 메모리에 둔다**(`app/core/rate_limit.py`). 태스크가 1 이 아니게 되거나
 > `WEB_CONCURRENCY` 를 늘리면 한도가 그 수만큼 늘어나므로, 그때 공유 저장소(Redis 등) 구현으로 바꾼다.
 > 기동 로그에 `TRUSTED_PROXY_HOPS=0` 경고가 보이면 프록시 홉 수 설정을 확인한다.
+
+> 참고: 장소는 시드로 채우지 않는다(#2914). 운영에서 `KAKAO_REST_API_KEY` 가 없으면 DB 장소에서 데모 시드 장소를 빼고 읽어 헬스장 찾기가 사실상 비고, 키가 있어도 카카오 0건이면 빈 목록·실패면 503 이다. 사진 인식·임베딩은 운영에서 폴백하지 않고 키가 없으면 기동을 거부한다(#2812).
+
+**운영에서 기본값을 그대로 두면 안 되는 키** — 기동은 되지만 개발용 동작이 남는다(#2840).
+전체 키와 기본값·운영 권장값은 `backend/.env.example` 이 `config.py` 와 1:1 로 갖고 있다
+(`tests/test_env_example.py` 가 빠진 키를 잡는다).
+
+| 키 | 운영 값 | 기본값 그대로면 |
+|---|---|---|
+| `FORCE_HTTPS` | `true` | HTTP 요청이 HTTPS 로 넘어가지 않는다 |
+| `ALLOW_DEMO_FALLBACK` | `false` | `ENV=prod` 면 어차피 꺼지지만, 스테이징·시연 서버를 `ENV=dev` 로 띄우면 토큰 없는 요청이 데모 계정으로 처리된다 |
+| `ADMIN_EMAILS` | 운영 담당자 이메일(콤마 구분) | 관리자가 없어 공공 RAG 문서 적재·`/v1/system/metrics` 를 쓸 수 없다 |
+| `REPORT_PDF_STORAGE_DIR`·`CHAT_IMAGE_STORAGE_DIR` | 쓰지 않음 | 운영 첨부는 S3(`ATTACHMENT_STORAGE=s3`, 아래 5-1, #2817)다. 로컬 디스크로 두면 컨테이너 안 `data/` 에 쌓여 재배포·재시작 때 주간 리포트 PDF·채팅 사진이 사라진다 |
+| `SECURITY_HEADERS`·`RATE_LIMIT_ENABLED` | `true`(기본값 유지) | 끄면 보안 헤더·시도 제한이 빠진다 |
+| `LOG_LEVEL` | `INFO` | — |
 
 ## 워커 수와 이벤트 루프 (#2835)
 
@@ -368,7 +402,10 @@ Fargate 태스크의 디스크는 재배포·재시작 때 비므로 운영은 S
 
 - [ ] 서비스 스택이 `infra/backend-service.yml` 로 만들어졌고 `EnvironmentName` 이 맞다.
       `ENV`·`SEED_DEMO_DATA`·`ALLOW_DEMO_FALLBACK`·`AUTO_CREATE_TABLES` 는 템플릿이 정한다.
+      `backend/.env.aws.example` 의 주석 키(`# KEY=값`)는 기본값이 이 서비스에 맞는지 확인했다(#3034).
 - [ ] 비밀 `oncare/backend/<environment>` 이 위 "비밀 키" 표의 키를 모두 갖는다(빈 값이라도).
+- [ ] **비밀번호 재설정 메일이 실제로 온다(#3033).** 회원·트레이너 계정으로 재설정을 한 번씩 요청해 메일을
+      받고, 링크를 눌러 두 앱 재설정 화면이 **코드가 채워진 채** 열리는지 본다. 기동 로그에 `PASSWORD_RESET_` WARN 이 없다.
 - [ ] **운영 DB 와 staging(데모) DB 가 다르다.** 운영 `DATABASE_URL` 은 데모 시드가 한 번도 들어가지
       않은 DB(또는 Neon 브랜치)를 가리킨다. 같은 DB 를 쓰면 운영 화면에 데모 계정·기록이 섞이고,
       데모 계정 비밀번호가 운영 자격 증명이 된다.

@@ -63,7 +63,9 @@ DEMO_NOTIFICATIONS: tuple[DemoNotification, ...] = (
         "noti-demo-5",
         "PT 수업 완료",
         f"오늘 18:00 {TRAINER_NAME} 트레이너와 12회차 PT를 마쳤어요!",
-        "achievement",
+        # 실서버가 PT 완료 때 만드는 알림과 같은 갈래다(#3027). 목적지는 갈래별 표와
+        # 같은 운동 탭이라 그대로 둔다(#2690 때 채운 값).
+        notification_service.MEMBER_PT_DONE,
         timedelta(hours=1),
         target="exercise",
     ),
@@ -111,6 +113,13 @@ LEGACY_DEMO_NOTIFICATION_IDS: tuple[str, ...] = (
 )
 
 
+#: 갈래가 바뀐 데모 알림 → 예전 갈래(#3027). 이미 시드된 DB 에서 예전 갈래로 남은
+#: 행만 새 갈래로 옮긴다 — 회원 앱 알림함 아이콘이 갈래로 정해진다.
+_LEGACY_CATEGORY_BY_ID: dict[str, str] = {
+    "noti-demo-5": "achievement",
+}
+
+
 def seed_demo_notifications(db: Session, user_id: str, *, now: datetime | None = None) -> int:
     """[user_id] 의 데모 알림을 채운다. 넣은 건수를 돌려준다(이미 있으면 0).
 
@@ -139,6 +148,18 @@ def seed_demo_notifications(db: Session, user_id: str, *, now: datetime | None =
                     models.Notification.action_target.is_(None),
                 )
                 .values(action_target=item.target)
+            )
+        for item in DEMO_NOTIFICATIONS:
+            legacy = _LEGACY_CATEGORY_BY_ID.get(item.id)
+            if legacy is None:
+                continue
+            db.execute(
+                update(models.Notification)
+                .where(
+                    models.Notification.id == item.id,
+                    models.Notification.category == legacy,
+                )
+                .values(category=item.category)
             )
         db.commit()
         return 0
