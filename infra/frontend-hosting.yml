@@ -21,13 +21,6 @@ Parameters:
   GitHubBranch:
     Type: String
     Default: main
-  UseImmutableGitHubOidcSubject:
-    Type: String
-    Default: 'true'
-    AllowedValues:
-      - 'true'
-      - 'false'
-    Description: Use GitHub's owner-ID and repository-ID based OIDC subject format
   ExistingGitHubOidcProviderArn:
     Type: String
     Default: ''
@@ -35,7 +28,6 @@ Parameters:
 
 Conditions:
   CreateGitHubOidcProvider: !Equals [!Ref ExistingGitHubOidcProviderArn, '']
-  UseImmutableGitHubOidcSubjectCondition: !Equals [!Ref UseImmutableGitHubOidcSubject, 'true']
 
 Resources:
   FrontendBucket:
@@ -211,10 +203,9 @@ Resources:
             Condition:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                token.actions.githubusercontent.com:sub: !If
-                  - UseImmutableGitHubOidcSubjectCondition
-                  - !Sub 'repo:${GitHubOwner}@${GitHubOwnerId}/${GitHubRepository}@${GitHubRepositoryId}:ref:refs/heads/${GitHubBranch}'
-                  - !Sub 'repo:${GitHubOwner}/${GitHubRepository}:ref:refs/heads/${GitHubBranch}'
+                # ID 기반 subject 하나만 신뢰한다(#3089). 이름 기반(repo:<소유자>/<저장소>)은
+                # 같은 이름을 다시 쓰는 다른 저장소도 맞출 수 있어 두지 않는다 — 백엔드 역할과 같다.
+                token.actions.githubusercontent.com:sub: !Sub 'repo:${GitHubOwner}@${GitHubOwnerId}/${GitHubRepository}@${GitHubRepositoryId}:ref:refs/heads/${GitHubBranch}'
       Policies:
         - PolicyName: deploy-frontend
           PolicyDocument:
