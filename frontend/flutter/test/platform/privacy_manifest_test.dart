@@ -40,13 +40,23 @@ void main() {
     return m == null ? null : m.group(1) == 'true';
   }
 
+  /// [key] 다음 배열의 안쪽. 배열 안에 배열이 들어 있어도(수집 항목마다 목적 배열)
+  /// 짝이 맞는 닫는 태그까지 읽는다 — 가장 가까운 `</array>` 에서 끊으면 첫 항목의
+  /// 목적 배열에서 멈춘다.
   String arrayAfter(String body, String key) {
     final RegExpMatch? m = RegExp(
-      '<key>${RegExp.escape(key)}</key>\\s*(<array/>|<array>(.*?)</array>)',
-      dotAll: true,
+      '<key>${RegExp.escape(key)}</key>\\s*(<array/>|<array>)',
     ).firstMatch(body);
     expect(m, isNotNull, reason: '$key 가 없다');
-    return m!.group(2) ?? '';
+    if (m!.group(1) == '<array/>') return '';
+    final RegExp tag = RegExp('<array/>|<array>|</array>');
+    int depth = 1;
+    for (final RegExpMatch t in tag.allMatches(body, m.end)) {
+      if (t.group(0) == '<array>') depth++;
+      if (t.group(0) == '</array>') depth--;
+      if (depth == 0) return body.substring(m.end, t.start);
+    }
+    fail('$key 배열이 닫히지 않았다');
   }
 
   List<_CollectedType> collected() {
