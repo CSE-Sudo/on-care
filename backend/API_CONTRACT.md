@@ -712,16 +712,15 @@ tag: diet|exercise (피드백은 식단·운동 두 건, #2706)
 
 | 한도 | 값 | 넘으면 |
 | --- | --- | --- |
-| `message` 길이 | 1000자 (트레이너 고객 AI 코치와 같음) | **422** |
+| `message` 길이 | 1000자 | **422** |
 | `history` 턴 수 | 20 | **422** |
 | `history[].content` 길이 | 2000자 (`role` 은 16자) | **422** |
 | 요청 본문 전체 | 256KiB (`COACH_CHAT_MAX_BODY_BYTES`) | **413** `{"detail": "요청이 너무 큽니다. …"}` — 본문을 다 읽기 전에 끊는다 |
 | 분당 요청 수 — 회원 `POST /ai-coach/chat` | 20 / IP (`COACH_CHAT_PER_MINUTE`) | **429** `{"detail": "요청이 너무 많습니다. …"}` + `Retry-After: 60` |
-| 분당 요청 수 — 트레이너 `POST /trainer/clients/{member_id}/ai-coach` | 20 / **트레이너 id** (같은 설정) | 같은 429. 같은 IP 의 다른 트레이너와 버킷을 나누지 않고, 한 트레이너가 여러 고객에게 물어도 한 버킷이다. 담당이 아닌 회원은 한도를 세기 전에 404 |
 
 길이는 글자(유니코드 코드 포인트) 수다. 회원 앱은 입력칸을 1000자로 막고, `history` 는 최근 20턴·턴당 2000자로 잘라 보낸다(서버는
 저장된 대화를 먼저 쓰고 프롬프트에는 최근 몇 턴만 넣으므로 답이 달라지지 않는다). 분당 한도(429 `detail` 이 문자열)는 하루 한도의
-429 `daily_limit`(`detail` 이 객체)와 모양으로 구분된다. 트레이너 웹은 이 429 를 "1분 뒤 다시 물어봐 주세요" 로 보이고 쓰던 질문을 남긴다.
+429 `daily_limit`(`detail` 이 객체)와 모양으로 구분된다.
 
 **생성 실패 로그(#1559).** LLM 대신 검색 기반 대체 답으로 내려갈 때마다 `app.services.coach.chat` 로거가 `event=coach_llm_fallback` 레코드를
 남긴다. 필드는 `fallback_reason`(`llm_unavailable` 설정·키 문제 / `provider_error` 호출 실패 / `empty_reply` 빈 응답 — 셋은 WARNING,
@@ -729,6 +728,8 @@ tag: diet|exercise (피드백은 식단·운동 두 건, #2706)
 `request_id` 로 잇는다. 예외 메시지·프롬프트·건강정보·질문은 남기지 않는다. 응답 계약은 그대로다.
 
 `DELETE /ai-coach/insights/{message_id}` 는 **메시지를 지우지 않는다**(#1975). 감지는 저장하지 않고 대화에서 매번 계산하므로 지울 행이 없다 — 그 줄에 `더 보지 않음` 표시만 남기고 `GET` 이 건너뛴다. 회원이 쓴 말은 대화에 그대로 남고 AI 가 맥락으로 읽는 것도 그대로다. 이미 치운 줄을 다시 눌러도 200 이고, 남의 대화·없는 id 는 404 다.
+
+감지(`GET /ai-coach/insights`·치우기·AI 코치 프롬프트의 불편 요약·자동 추천 루틴·트레이너 회원 목록의 통증 신호)는 **회원 본인 대화**(`ai_conversations.trainer_id IS NULL`)만 읽는다(#3085). 예전 트레이너 AI 코칭(`/trainer/clients/{member_id}/ai-coach`, 삭제됨)이 남긴 스레드의 트레이너 질문이 회원 발화로 읽히지 않게 하기 위해서다. 그 스레드의 메시지 id 로 치우기를 부르면 404 다.
 
 ### 바이탈 (체중/혈압/혈당) — 제거됨
 
@@ -1093,8 +1094,6 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | GET | `/trainer/clients/{member_id}/chat?limit=&before=&before_id=` | `ChatMessageOut[]`(오래된→최신, 기본 최신 50건) |
 | POST | `/trainer/clients/{member_id}/chat` | `{ text, emote_id?, client_request_id? }` → **201** `ChatMessageOut`. 빈 메시지·모르는 이모티콘 400 |
 | POST | `/trainer/clients/{member_id}/chat/read` | `{ marked_read }` |
-| POST | `/trainer/clients/{member_id}/ai-coach` | `{ message }` → `{ member_id, reply, sources }` — 담당 고객 데이터를 근거로 한 AI 문답. 한도는 위 "AI 코치" 표 |
-| GET | `/trainer/clients/{member_id}/ai-coach` | `[{ role, content, sources }]` — 이 트레이너가 그 고객에 대해 나눈 문답(오래된→최신) |
 | GET | `/trainer/clients/{member_id}/memos` | `TrainerMemoOut[]`(최신 먼저) — 트레이너 혼자 보는 메모 |
 | POST | `/trainer/clients/{member_id}/memos` | `{ body, source?, insight_id?, insight_kind?, ref_id?, ref_date? }` → **201** `TrainerMemoOut` |
 | PUT | `/trainer/clients/{member_id}/memos/{memo_id}` | `{ body }` → `TrainerMemoOut` |

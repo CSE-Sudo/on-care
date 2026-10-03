@@ -322,7 +322,7 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
 | 계층 | 위치 | 영역 모듈 |
 |---|---|---|
 | 서비스 | `app/services/trainer/` | `roster` · `chat` · `client_status` · `routines` · `routine_suggestions` · `memos` · `follow_ups` · `programs` · `schedule` · `member_mirror` · `profile` · `gym` · `reports` · `notification_settings` · `weekly_feedback` |
-| 라우터 | `app/api/v1/trainer/` | `profile` · `clients` · `chat` · `routines` · `routine_suggestions` · `memos` · `follow_ups` · `programs` · `task_progress` · `schedule` · `ai_coach` · `reports` · `client_invites` · `consultations` · `notifications` |
+| 라우터 | `app/api/v1/trainer/` | `profile` · `clients` · `chat` · `routines` · `routine_suggestions` · `memos` · `follow_ups` · `programs` · `task_progress` · `schedule` · `reports` · `client_invites` · `consultations` · `notifications` |
 
 영역 라우터는 `app/main.py` 가 `trainer.routers` 순서대로 같은 prefix 로 마운트한다.
 호출부는 이름을 정의한 영역 모듈에서 바로 가져온다 — 예전 단일 모듈 경로와 재수출
@@ -395,7 +395,6 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
 | GET | `/trainer/dashboard/task-progress` | 오늘 할 일 진행 상태 — 보관 기간(63일) 안의 날짜별 기록 |
 | PUT | `/trainer/dashboard/task-progress/{date}` | 그날 진행 상태 통째로 저장(KST 오늘·어제만) |
 | POST | `/trainer/dashboard/task-progress/{date}/keys` | 할 일 키 하나 체크·해제·삭제 — 그날 행에 그 키만 반영하고 합계는 서버가 다시 냄(KST 오늘·어제만, #2886) |
-| POST | `/trainer/clients/{member_id}/ai-coach` | 담당 회원 데이터 기반 AI 코칭 질의 |
 | GET | `/trainer/reports/queue?week_start=` | 리포트 작업대 요약 — 담당 회원 전원의 세션 예약·완료 수, 요일별·평균 이행률을 한 번에(#2863) |
 | GET | `/trainer/clients/{member_id}/report?week_start=` | 주간 리포트(어느 요일을 줘도 그 주 월요일로 정규화). 직전 4주 칼로리 평균 `calorie_baseline` 포함(#2863) |
 | GET | `/trainer/clients/{member_id}/report/summary?week_start=` | 주간 리포트 AI 요약(머리 문장 + 근거 최대 3줄) |
@@ -535,16 +534,18 @@ range`)이었고, `-3000` 이나 주 100,000분(한 주는 10,080분이다) 같�
 - 미션 키(`report-<id>` 등)는 앱이 만들고 서버는 해석하지 않는다.
 - 데모(`USE_MOCK_API=true`)는 계정이 없어 기기 로컬에 둔다.
 
-### 트레이너용 AI 코칭 (`/trainer/clients/{id}/ai-coach`)
+### 트레이너 AI 입력 경계 — 루틴 후보의 `trainer_note` 뿐 (#3085)
 
-회원 앱의 `/ai-coach/chat` 과 **같은 RAG 파이프라인**(`services/coach/chat.answer`)을
-쓰되, 검색 스코프가 호출자(트레이너)가 아니라 **담당 회원**이다. 트레이너가 자기
-자신의(비어 있는) 기록으로 코칭받는 일을 막기 위한 구분이며, 접근 경계는 담당 링크
-확인(`_require_client`) — 남의 회원이면 404 로 존재조차 드러내지 않는다.
+트레이너가 AI 에 자유 입력을 넣는 곳은 루틴 후보 생성(`POST /trainer/clients/{id}/routine-options`)의
+`trainer_note`(500자) 하나다. 담당 회원에 대해 AI 에게 자유 질문하던
+`/trainer/clients/{id}/ai-coach`(#588)는 트레이너 웹 어디에서도 부르지 않아 지웠다(이제 404).
+그 API 는 회원 AI 코치의 회원 스코프 RAG·회원용 프롬프트를 그대로 써, 담당이 바뀐 뒤 새 트레이너에게
+이전 트레이너와의 채팅이 근거로 닿을 수 있었다.
 
-LLM 비용 가드로 **트레이너 id 단위 분당 한도**(`COACH_CHAT_PER_MINUTE`, 기본 20)가 걸린다(#1548).
-넘기면 429 + `Retry-After` 다. 버킷이 IP 가 아니라 트레이너라 같은 헬스장의 다른 트레이너가
-한도를 대신 소진하지 않는다. 질문은 1000자까지다(회원 AI 코치와 같음).
+그 API 가 남긴 스레드(`ai_conversations.trainer_id` 있음)는 마이그레이션 `0146_drop_trainer_ai_threads`
+가 지운다. 회원 대화를 읽는 곳(복원·보관 정리·감지·감지 치우기·회원 목록 통증 신호)은 모두
+`conversation.member_thread_clause()`(`trainer_id IS NULL`)를 함께 걸어, 트레이너 질문이 회원 발화로
+읽히지 않는다. `trainer_id` 칼럼은 남겨 두었다.
 
 ### 주간 리포트 (`/trainer/clients/{id}/report`)
 
