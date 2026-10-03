@@ -126,6 +126,20 @@ TrainerNotificationText? _assemble(
         title: l.notifTplReservationCancelledTitle,
         body: l.notifTplMemberWithDetail(name, when),
       );
+    // 운영자 승인·반려(#3010). 회원 이름이 없는 알림이다. 반려 사유가 있으면
+    // 본문은 운영자가 쓴 사유 그대로다.
+    case 'trainer_verification_approved':
+      return (
+        title: l.notifTplVerificationApprovedTitle,
+        body: l.notifTplVerificationApprovedBody,
+      );
+    case 'trainer_verification_rejected':
+      return (
+        title: l.notifTplVerificationRejectedTitle,
+        body: args['has_note'] == true && storedBody.trim().isNotEmpty
+            ? storedBody
+            : l.notifTplVerificationRejectedBody,
+      );
     case 'trainer_member_message':
       if (name == null) return null;
       // 본문은 회원이 쓴 메시지 그대로다. 글 없이 사진만 보냈으면 서버가

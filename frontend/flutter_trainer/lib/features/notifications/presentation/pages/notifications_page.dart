@@ -77,6 +77,12 @@ class NotificationsPage extends ConsumerStatefulWidget {
     // 요청은 사라졌지만 남은 요청을 이어 볼 자리다(#1632). 떠난 회원 상세는
     // 열 수 없어 회원으로 가지 않는다.
     TrainerNotificationKind.consultationWithdrawn => AppRoutes.consultations,
+    // 승인은 막혔던 기능이 열린 대시보드로, 반려는 사유를 보고 프로필을 고칠
+    // MY 로 간다(#3010). 틀을 모르는 알림은 대시보드다 — 거기 배너가 상태를 말한다.
+    TrainerNotificationKind.verification =>
+      notification.template == 'trainer_verification_rejected'
+          ? AppRoutes.my
+          : AppRoutes.dashboard,
     // 주의사항 알림은 글이 있는 신체·목표 창의 `건강 목표` 탭까지 연다(#2619).
     TrainerNotificationKind.healthGoal
         when notification.template == 'trainer_health_notes' =>
@@ -405,6 +411,7 @@ class NotificationTile extends StatelessWidget {
     TrainerNotificationKind.inviteAccepted => AppIcons.inviteAccepted,
     TrainerNotificationKind.inviteRejected => AppIcons.personOff,
     TrainerNotificationKind.consultationWithdrawn => AppIcons.eventBusy,
+    TrainerNotificationKind.verification => AppIcons.verified,
     TrainerNotificationKind.other => AppIcons.notifications,
   };
 
