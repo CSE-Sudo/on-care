@@ -207,6 +207,50 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
     'Message from 지수',
     'Sent a photo',
   ),
+  // 회원 주간 피드백(#3026). 서버 `LEGACY_KO`·`ENGLISH` 와 같은 문장이다.
+  (
+    'trainer_member_weekly_feedback',
+    <String, Object?>{
+      'member_name': '지수',
+      'condition': 'good',
+      'intensity': 'right',
+      'pain': false,
+      'revised': false,
+    },
+    '지수 회원이 주간 피드백을 보냈어요',
+    '컨디션 좋았어요 · 운동 강도 적당했어요',
+    '지수 sent their weekly feedback',
+    'Condition: Good · Intensity: About right',
+  ),
+  // 통증은 수정보다 먼저 보인다 — 다음 PT 를 바꿔야 할 수 있는 답이다.
+  (
+    'trainer_member_weekly_feedback',
+    <String, Object?>{
+      'member_name': '지수',
+      'condition': 'tired',
+      'intensity': 'too_hard',
+      'pain': true,
+      'revised': true,
+    },
+    '지수 회원이 통증을 알렸어요',
+    '컨디션 지쳤어요 · 운동 강도 너무 힘들었어요 · 통증 있음',
+    '지수 reported pain',
+    'Condition: Worn out · Intensity: Too hard · Pain reported',
+  ),
+  (
+    'trainer_member_weekly_feedback',
+    <String, Object?>{
+      'member_name': '지수',
+      'condition': 'great',
+      'intensity': 'too_easy',
+      'pain': false,
+      'revised': true,
+    },
+    '지수 회원이 주간 피드백을 수정했어요',
+    '컨디션 아주 좋았어요 · 운동 강도 너무 쉬웠어요',
+    '지수 updated their weekly feedback',
+    'Condition: Great · Intensity: Too easy',
+  ),
 ];
 
 /// 서버가 아는 트레이너 틀 전부. 백엔드 테스트가 이 코드들이 조립 파일에 있는지
@@ -225,6 +269,7 @@ const Set<String> _trainerTemplates = <String>{
   'trainer_reservation_booked',
   'trainer_reservation_cancelled',
   'trainer_member_message',
+  'trainer_member_weekly_feedback',
 };
 
 final RegExp _hangul = RegExp('[가-힣]');
@@ -277,6 +322,9 @@ void main() {
           'focus': <String>['근력 향상', '혈압 관리'],
           'preferred_date': '2026-10-01',
           'starts_at': _starts,
+          'condition': 'bad',
+          'intensity': 'hard',
+          'pain': true,
         }, body: 'See you'),
       );
       expect(text.title, isNot(matches(_hangul)), reason: template);
@@ -501,6 +549,67 @@ void main() {
         }),
       );
       expect(() => n.args['member_name'] = 'x', throwsUnsupportedError);
+    });
+  });
+
+  group('회원 주간 피드백 (#3026)', () {
+    test('모르는 답이면 저장된 문장으로 돌아간다', () {
+      for (final Map<String, Object?> args in <Map<String, Object?>>[
+        <String, Object?>{
+          'member_name': '지수',
+          'condition': 'sleepy',
+          'intensity': 'right',
+        },
+        <String, Object?>{
+          'member_name': '지수',
+          'condition': 'good',
+          'intensity': 'max',
+        },
+        <String, Object?>{'member_name': '지수'},
+        <String, Object?>{
+          'member_name': '지수',
+          'condition': 3,
+          'intensity': true,
+        },
+        <String, Object?>{'condition': 'good', 'intensity': 'right'},
+      ]) {
+        for (final AppLocalizations l in <AppLocalizations>[_ko, _en]) {
+          final TrainerNotificationText text = _text(
+            l,
+            _n('trainer_member_weekly_feedback', args),
+          );
+          expect(text.title, _storedTitle, reason: '$args');
+          expect(text.body, _storedBody, reason: '$args');
+        }
+      }
+    });
+
+    test('아픈 곳 글은 인자에 있어도 싣지 않는다', () {
+      final TrainerNotificationText text = _text(
+        _ko,
+        _n('trainer_member_weekly_feedback', <String, Object?>{
+          'member_name': '지수',
+          'condition': 'ok',
+          'intensity': 'hard',
+          'pain': true,
+          'pain_area': '왼쪽 어깨',
+        }),
+      );
+      expect(text.title, isNot(contains('어깨')));
+      expect(text.body, isNot(contains('어깨')));
+    });
+
+    test('같은 답 이름은 리포트 화면의 회원 피드백 칸과 같다', () {
+      final TrainerNotificationText text = _text(
+        _ko,
+        _n('trainer_member_weekly_feedback', <String, Object?>{
+          'member_name': '지수',
+          'condition': 'bad',
+          'intensity': 'too_easy',
+        }),
+      );
+      expect(text.body, contains(_ko.reportsMemberFeedbackConditionBad));
+      expect(text.body, contains(_ko.reportsMemberFeedbackIntensityTooEasy));
     });
   });
 }
