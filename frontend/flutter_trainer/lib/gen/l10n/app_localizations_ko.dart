@@ -231,9 +231,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get consentAge14Detail => '만 14세 미만은 가입할 수 없어요.';
 
   @override
-  String get consentMarketing => '마케팅 알림 수신';
-
-  @override
   String get consentRequiredHint => '필수 항목에 모두 동의해야 다음으로 넘어갈 수 있어요.';
 
   @override

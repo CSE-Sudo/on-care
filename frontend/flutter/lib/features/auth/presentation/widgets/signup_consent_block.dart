@@ -78,11 +78,6 @@ class SignupConsentBlock extends StatelessWidget {
               required: true,
               detail: l.consentAge14Detail,
             ),
-            AppConsentItem(
-              id: SignupConsent.marketing,
-              label: l.consentMarketing,
-              required: false,
-            ),
           ],
         ),
         // 버튼이 왜 꺼져 있는지 그 자리에서 말해 준다.
