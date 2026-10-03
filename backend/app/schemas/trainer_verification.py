@@ -38,6 +38,19 @@ class AdminTrainerVerificationOut(BaseModel):
     decided_by: str | None
     note: str
     created_at: datetime | None
+    #: 계정이 살아 있는가. 운영자가 정지하면 false(#3009) — 운영 화면이 정지·해제
+    #: 버튼을 고른다.
+    is_active: bool = True
+
+
+class AdminUserStatusOut(BaseModel):
+    """계정 정지·해제 결과. (#3009)"""
+
+    user_id: str
+    role: str
+    is_active: bool
+    #: 이번 정지로 해제한 담당 회원 수. 해제·회원 계정은 0.
+    released_clients: int = 0
 
 
 class TrainerRejectIn(BaseModel):

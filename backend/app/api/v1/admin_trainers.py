@@ -1,8 +1,10 @@
-"""운영자 — 트레이너 승인·반려. (#2825)
+"""운영자 — 트레이너 승인·반려(#2825)와 계정 정지·해제(#3009).
 
 공개 가입으로 생긴 트레이너는 승인 전까지 회원 앱 디렉터리·상담 대상·담당 요청·
-연결 코드에서 빠진다(`trainer_verification_service`). 운영자는 여기서 대기 목록을
-보고 승인하거나 반려한다. 관리 화면은 아직 없다 — 엔드포인트만 둔다.
+연결 코드에서 빠진다(`trainer_verification_service`). 운영자는 트레이너 웹의
+`트레이너 승인` 화면(#3008)에서 대기 목록을 보고 승인하거나 반려한다. 반려는 이미
+맺은 담당 회원의 기록 열람도 잠근다. 관계까지 끊어야 하면 계정을 정지한다
+(`account_suspension_service`).
 
 모두 관리자 전용이다(비관리자 403, 미인증 401). 처리 결과는 감사 로그에 남긴다.
 """
@@ -17,9 +19,10 @@ from app.api.deps import RequireAdmin
 from app.db.session import get_db
 from app.schemas.trainer_verification import (
     AdminTrainerVerificationOut,
+    AdminUserStatusOut,
     TrainerRejectIn,
 )
-from app.services import trainer_verification_service
+from app.services import account_suspension_service, trainer_verification_service
 from app.services.audit import client_ip, record as audit
 
 router = APIRouter(tags=["admin"])
@@ -94,5 +97,62 @@ def admin_reject_trainer(
         ip=client_ip(request),
         success=True,
         detail=trainer_id,
+    )
+    return out
+
+
+@router.post(
+    "/admin/users/{user_id}/suspend", response_model=AdminUserStatusOut
+)
+def admin_suspend_user(
+    user_id: str,
+    request: Request,
+    admin: RequireAdmin,
+    db: Annotated[Session, Depends(get_db)],
+) -> AdminUserStatusOut:
+    """계정 정지 — 즉시 로그아웃되고 다시 로그인할 수 없다.
+
+    트레이너면 담당 관계를 모두 해제하고(회원에게 담당 해제 알림, 잡힌 PT 일정 취소)
+    대기 중 담당 요청을 거둔다. 운영자 계정은 정지할 수 없다(409).
+    """
+    try:
+        out = account_suspension_service.suspend(db, user_id, admin_id=admin.id)
+    except account_suspension_service.UserNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except account_suspension_service.SuspensionNotAllowed as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    audit(
+        db,
+        event="admin.user_suspend",
+        user_id=admin.id,
+        target_user_id=user_id,
+        ip=client_ip(request),
+        success=True,
+        detail=f"released={out.released_clients}",
+    )
+    return out
+
+
+@router.post(
+    "/admin/users/{user_id}/unsuspend", response_model=AdminUserStatusOut
+)
+def admin_unsuspend_user(
+    user_id: str,
+    request: Request,
+    admin: RequireAdmin,
+    db: Annotated[Session, Depends(get_db)],
+) -> AdminUserStatusOut:
+    """정지 해제 — 계정만 되살린다. 해제했던 담당 관계는 복구하지 않는다."""
+    try:
+        out = account_suspension_service.unsuspend(db, user_id)
+    except account_suspension_service.UserNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    audit(
+        db,
+        event="admin.user_unsuspend",
+        user_id=admin.id,
+        target_user_id=user_id,
+        ip=client_ip(request),
+        success=True,
     )
     return out
