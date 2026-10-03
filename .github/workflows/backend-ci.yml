@@ -206,6 +206,36 @@ jobs:
           docker logs oncare-backend || true
           exit 1
 
+      - name: Request logs carry no coordinates or client IP
+        # uvicorn 기본 액세스 로그는 쿼리(헬스장 찾기 lat·lng)와 사용자 IP 를 남긴다(#3031).
+        # start.sh 가 그 로그를 끄고 app.access 만 남기는지 실제 컨테이너 출력으로 본다.
+        # 인증이 없어 401 이어도 요청 로그는 남으므로 결과 코드는 보지 않는다.
+        run: |
+          set -euo pipefail
+          LAT=37.5665123
+          LNG=126.9780456
+          PROBE_IP=203.0.113.77
+          for path in \
+            "/v1/places/nearby?lat=${LAT}&lng=${LNG}&category=fitness" \
+            "/v1/gyms?lat=${LAT}&lng=${LNG}"; do
+            curl --silent --show-error --output /dev/null --max-time 5 \
+              -H "X-Forwarded-For: ${PROBE_IP}" "http://localhost:8000${path}"
+          done
+          sleep 1
+          docker logs oncare-backend > container.log 2>&1
+          leaked=0
+          for needle in "${LAT}" "${LNG}" "${PROBE_IP}" "lat=" "lng="; do
+            if grep -F -- "${needle}" container.log; then
+              echo "::error::컨테이너 로그에 '${needle}' 가 남았습니다."
+              leaked=1
+            fi
+          done
+          if ! grep -F "app.access: GET '/v1/places/nearby'" container.log; then
+            echo "::error::app.access 요청 로그가 보이지 않습니다."
+            leaked=1
+          fi
+          exit "${leaked}"
+
       - name: Container logs
         if: always()
         run: docker logs oncare-backend 2>&1 | tail -n 200 || true
