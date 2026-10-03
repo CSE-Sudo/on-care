@@ -352,6 +352,11 @@ flutter build web --release \
   필요하면 운영 키가 아닌 개발용 앱 키를 따로 쓴다.
 - 확인한 날짜와 결과를 담당 이슈에 남긴다.
 
+운영 프론트 도메인을 붙이거나 바꿀 때 함께 바꾸는 곳(카카오 SDK 도메인, 이 서비스의 `CORS_ALLOW_ORIGINS`,
+CloudFront 스택 파라미터)은 [`docs/aws-frontend-deployment.md`](../../docs/aws-frontend-deployment.md#운영-도메인을-바꿀-때-함께-바꾸는-곳)
+표에 모아 두었다. 데모 사이트 도메인은 운영 도메인이 아니다(#3021). 운영 API 주소를 바꾸면 프론트 스택의
+`ApiOrigin`(응답 헤더 CSP 의 `connect-src`)도 함께 바꾼다(#3017).
+
 ---
 
 ## 데모 데이터 정리 (#2811)
