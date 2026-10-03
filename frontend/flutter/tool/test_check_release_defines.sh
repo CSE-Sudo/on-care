@@ -39,6 +39,10 @@ expect pass '운영 prod' "$(good)"
 expect pass '내부 staging' "$(good staging)"
 expect pass 'USE_MOCK_API 를 JSON false 로' "$(good prod false)"
 expect pass '모르는 키는 경고만' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"EXTRA":"1"')"
+expect pass '지도 출처 운영 주소' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"KAKAO_MAP_ORIGIN":"https://app.oncare.kr"')"
+expect fail '지도 출처 localhost' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"KAKAO_MAP_ORIGIN":"http://localhost"')"
+expect fail '지도 출처 https localhost' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"KAKAO_MAP_ORIGIN":"https://localhost"')"
+expect fail '지도 출처 경로 포함' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"KAKAO_MAP_ORIGIN":"https://app.oncare.kr/frontend"')"
 
 # 필수 키 누락
 expect fail 'ENV 누락' "{\"USE_MOCK_API\":\"false\",\"API_BASE_URL\":\"$GOOD_URL\",\"SENTRY_DSN\":\"$GOOD_DSN\"}"

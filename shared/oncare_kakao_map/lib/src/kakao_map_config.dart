@@ -10,6 +10,22 @@
 /// 않는다. 서버 전용인 REST API 키(`KAKAO_REST_API_KEY`)와 절대 섞지 말 것.
 const String kakaoJsKey = String.fromEnvironment('KAKAO_JS_KEY');
 
+/// 모바일 WebView 가 지도 문서를 띄우는 출처(#3043).
+///
+/// 카카오 JS 키는 콘솔의 **JavaScript SDK 도메인** 목록으로만 보호된다(#2913).
+/// WebView 는 이 주소를 출처로 SDK 를 부르므로, 이 값은 목록에 이미 있는 주소여야
+/// 지도가 뜬다. 배포 빌드는 운영 회원 웹 주소를 넣는다 — 운영 목록에 `localhost`
+/// 를 더하지 않기 위해서다:
+///
+///   flutter build appbundle --dart-define=KAKAO_JS_KEY=xxxx \
+///     --dart-define=KAKAO_MAP_ORIGIN=https://<운영 회원 웹 주소>
+///
+/// 비우면 로컬 개발용 `http://localhost` 다. 실제로 이 주소에 요청을 보내지는 않는다.
+const String kakaoMapMobileOrigin = String.fromEnvironment(
+  'KAKAO_MAP_ORIGIN',
+  defaultValue: 'http://localhost',
+);
+
 /// 키가 없으면 지도를 시도하지 않고 폴백 그래픽을 그린다(#329).
 bool get isKakaoMapConfigured => kakaoJsKey.isNotEmpty;
 

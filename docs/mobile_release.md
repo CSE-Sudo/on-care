@@ -157,7 +157,25 @@ flutter build ipa --release --dart-define-from-file=config/release.json
 - Play Console 앱 생성(패키지 이름), App Store Connect 앱 생성과 Apple Developer 의 App ID(번들 ID).
 - 모바일에서 카카오·네이버 등 네이티브 소셜 로그인 SDK 를 붙이면(#330) 각 개발자 콘솔에 패키지 이름·
   번들 ID 와 업로드 키·Play 앱 서명 키의 키 해시를 등록합니다. 지금 회원 앱 모바일 빌드는 이런 네이티브
-  SDK 를 쓰지 않습니다(카카오 지도는 웹 전용).
+  SDK 를 쓰지 않습니다.
+
+### 헬스장 찾기 지도 (#3043)
+
+모바일 빌드도 웹과 같은 카카오맵 JavaScript SDK 를 앱 안 WebView 로 띄웁니다. 네이티브 지도 SDK 가
+아니므로 패키지 이름·키 해시 등록은 필요 없고, 웹과 같은 **JavaScript 키와 JavaScript SDK 도메인**
+목록을 그대로 씁니다. 두 값은 5절의 `config/release.json` 에 `KAKAO_JS_KEY`·`KAKAO_MAP_ORIGIN` 키로
+넣습니다(`check_release_defines.sh` 는 `KAKAO_MAP_ORIGIN` 이 경로 없는 `https://` 출처가 아니거나 로컬 주소면 멈춥니다).
+
+- `KAKAO_JS_KEY` 를 빼고 빌드하면 지도를 띄우지 않습니다. 헬스장 목록은 그대로 쓸 수 있고, 지도 자리에는
+  "지도를 불러오지 못했어요" 안내만 둡니다(위치와 무관한 핀을 그리지 않습니다).
+- WebView 는 지도 문서를 `KAKAO_MAP_ORIGIN` 출처로 띄우고 그 출처로 SDK 를 부릅니다. 운영 빌드는
+  **이미 허용 목록에 있는 운영 회원 웹 주소**(`https://` 포함, 경로 없이)를 넣습니다. 그래야 운영 키의
+  허용 목록에 `localhost` 같은 개발용 주소를 더하지 않습니다(#2913, `backend/docs/DEPLOY.md`).
+  앱이 실제로 그 주소에 요청을 보내지는 않습니다.
+- 값을 비우면 로컬 개발용 `http://localhost` 입니다. 이 값은 개발용 카카오 앱 키와 함께만 씁니다.
+- 지도가 뜨지 않으면(도메인 미등록·키 오류·네트워크 차단, 10초 제한) 같은 안내로 돌아갑니다.
+- 데모 세션(`USE_MOCK_API=true` 빌드·실서버 데모 입장)은 키가 없을 때 예전 그림 지도를 그대로 씁니다.
+- Android 는 `INTERNET` 권한이 이미 있고, iOS 는 SDK 가 `https` 라 ATS 예외가 필요 없습니다.
 
 ## 5. 릴리스 빌드 설정 (define 파일)
 

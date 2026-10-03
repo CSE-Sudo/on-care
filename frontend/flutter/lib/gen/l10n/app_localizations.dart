@@ -1358,6 +1358,12 @@ abstract class AppLocalizations {
   /// **'Gyms near me'**
   String get exNearbyGymsMapLabel;
 
+  /// No description provided for @exGymMapUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the map'**
+  String get exGymMapUnavailable;
+
   /// No description provided for @exActivityTitle.
   ///
   /// In en, this message translates to:

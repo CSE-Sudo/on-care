@@ -408,6 +408,7 @@
   "exTrainerCertifications": "Certifications",
   "exTrainerRecommendationReason": "A great fit for reaching my health goals",
   "exNearbyGymsMapLabel": "Gyms near me",
+  "exGymMapUnavailable": "Couldn't load the map",
   "exActivityTitle": "Activity",
   "exBurnWeekOfMonthTitle": "Burned in week {week}, {month}/",
   "@exBurnWeekOfMonthTitle": {
