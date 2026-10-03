@@ -39,13 +39,12 @@ keyPassword=<키 비밀번호>
 - `key.properties`·`*.jks`·`*.keystore` 는 `frontend/flutter/android/.gitignore` 로 제외되어
   있습니다. `git status` 에 보이면 커밋하지 말고 제외 설정부터 확인합니다.
 
-빌드:
+빌드(define 파일은 [5절](#5-릴리스-빌드-설정-define-파일)):
 
 ```bash
 cd frontend/flutter
-flutter build appbundle --release \
-  --dart-define=USE_MOCK_API=false \
-  --dart-define=API_BASE_URL=<운영 API 주소>
+bash tool/check_release_defines.sh config/release.json
+flutter build appbundle --release --dart-define-from-file=config/release.json
 # → build/app/outputs/bundle/release/app-release.aab
 ```
 
@@ -67,13 +66,42 @@ flutter build appbundle --release \
 
 키 보관 담당자와 금고 위치는 팀이 정해 이 절에 이름(값이 아닌 위치)만 적습니다.
 
+### 앱 데이터 백업 정책 (#3049)
+
+회원 앱 데이터는 **Google 자동 백업과 기기 간 이전(새 폰으로 옮기기)에 싣지 않습니다.**
+
+| 위치 | 내용 |
+| --- | --- |
+| `android/app/src/main/AndroidManifest.xml` `<application>` | `android:allowBackup="false"`, `android:fullBackupContent="@xml/backup_rules"`(Android 11 이하), `android:dataExtractionRules="@xml/data_extraction_rules"`(Android 12 이상) |
+| `android/app/src/main/res/xml/data_extraction_rules.xml` | `<cloud-backup>`·`<device-transfer>` 두 절 모두 `root`·`file`·`database`·`sharedpref`·`external` 제외 |
+| `android/app/src/main/res/xml/backup_rules.xml` | 같은 영역 제외 |
+| `lib/core/storage/secure_token_store.dart` | 토큰 저장소 옵션 한 곳(`memberSecureStorage`), 안드로이드 `resetOnError: true` |
+
+이유:
+
+- 회원의 기록·프로필은 모두 서버에 있고, 기기에는 세션 토큰·화면 설정·데모 데이터만 남습니다. 백업으로 얻는 것이 없습니다.
+- 토큰 저장소는 Android Keystore 키로 암호화되는데, 이 키는 기기 밖으로 나가지 않습니다. 새 기기에는 풀 수 없는 암호문만 넘어와 읽기·쓰기가 실패합니다. 새 설치 표식(SharedPreferences)까지 복원되면 새 설치 토큰 정리도 건너뜁니다.
+- Android 12 이상의 기기 간 이전은 `allowBackup="false"` 만으로 막히지 않아 `data_extraction_rules.xml` 이 따로 필요합니다.
+- 이미 복원된 기기에서도 `resetOnError` 가 풀 수 없는 저장소를 비우므로, 다시 로그인하면 토큰이 정상 저장됩니다.
+
+릴리스 전 확인(실기기 또는 에뮬레이터, 릴리스 빌드 설치 후):
+
+```bash
+adb shell bmgr enable true
+adb shell bmgr backupnow com.csesudo.oncare
+# → 앱 데이터가 백업 대상이 아니라는 결과(백업 안 함)가 나와야 합니다.
+```
+
+Play Console 데이터 보안 양식의 백업 관련 항목은 이 정책(백업하지 않음)에 맞춰 적습니다.
+
 ## 3. iOS 제출 설정
 
 | 항목 | 위치 | 내용 |
 | --- | --- | --- |
 | 수출 규정 | `ios/Runner/Info.plist` `ITSAppUsesNonExemptEncryption=false` | 표준 HTTPS 와 OS 키체인만 쓰고 자체 암호화가 없다. 암호화 라이브러리를 추가하면 다시 판단 |
 | 개인정보 매니페스트 | `ios/Runner/PrivacyInfo.xcprivacy` | 추적 없음, 필수 사유 API(UserDefaults), 수집 데이터 유형 |
-| 권한 문구 | `ios/Runner/Info.plist` | 카메라·사진(식단 사진·트레이너 채팅 사진), 위치(주변 헬스장 찾기) |
+| 지원 언어 | `ios/Runner/Info.plist` `CFBundleLocalizations` = `ko`, `en` · `project.pbxproj` `knownRegions` | 앱 안 지원 언어(`AppLocalizations.supportedLocales`)와 같게. 개발 언어(`developmentRegion`)는 `en` — 앱 안 문구의 폴백과 같다 |
+| 권한 문구 | `ios/Runner/ko.lproj/InfoPlist.strings`, `ios/Runner/en.lproj/InfoPlist.strings`, `Info.plist`(영어 폴백) | 카메라·사진(식단 사진·트레이너 채팅 사진), 위치(주변 헬스장 찾기) |
 
 - 두 스토어의 **개인정보처리방침 URL** 은 운영 도메인의 `/legal/privacy.html`, 이용약관이 필요한 칸에는
   `/legal/terms.html` 을 적습니다. 로그인 없이 열리는 정적 페이지로, 앱 안 문서와 같은 원본에서
@@ -82,15 +110,31 @@ flutter build appbundle --release \
 - App Store Connect 의 **개인정보 라벨**은 `PrivacyInfo.xcprivacy` 의 수집 항목과 같게 적습니다.
   수집 항목·플러그인이 바뀌면 두 곳을 함께 고칩니다.
 - 권한 문구는 실제로 그 권한을 쓰는 화면과 맞아야 합니다. 새 용도가 생기면 문구도 고칩니다.
+- **권한 문구는 세 곳을 함께 고칩니다**(#3048): `ko.lproj/InfoPlist.strings`, `en.lproj/InfoPlist.strings`, `Info.plist` 본문(영어 폴백). 권한 키를 새로 더할 때(예: 푸시 알림 #474)도 같습니다. 한 곳이라도 빠지면 `test/platform/ios_localizations_test.dart` 가 실패합니다.
+- 릴리스 전에 기기 언어를 한국어·영어로 바꿔 가며 카메라·사진·위치 권한 창의 설명과 버튼이 그 언어로 뜨는지, 설정 → On-Care 에 언어 항목(한국어·영어)이 보이는지 확인합니다.
 - iOS 빌드·서명은 Mac 과 Apple Developer 계정이 필요합니다. 서명 인증서·프로비저닝은
   Xcode 의 자동 서명(팀 계정)으로 하고, 인증서 파일도 저장소에 올리지 않습니다.
 
 ```bash
 cd frontend/flutter
-flutter build ipa --release \
-  --dart-define=USE_MOCK_API=false \
-  --dart-define=API_BASE_URL=<운영 API 주소>
+bash tool/check_release_defines.sh config/release.json
+flutter build ipa --release --dart-define-from-file=config/release.json
 ```
+
+## 3-1. 화면 방향 정책 (#3050)
+
+| 기기 | 정책 | 위치 |
+| --- | --- | --- |
+| iPhone | 세로만 | `ios/Runner/Info.plist` `UISupportedInterfaceOrientations` = `UIInterfaceOrientationPortrait` 하나 |
+| 안드로이드 휴대폰 | 세로만(앱 시작 시 런타임 고정) | `lib/core/platform/orientation_policy.dart`, `lib/app/bootstrap.dart` |
+| iPad | 모든 방향 | `UISupportedInterfaceOrientations~ipad` 네 방향 유지 |
+| 안드로이드 태블릿 | 모든 방향 | 런타임 고정을 적용하지 않음 |
+| 웹 | 브라우저가 정함 | 적용하지 않음 |
+
+- 휴대폰 판별: 기기 **화면**(분할 화면의 창 크기가 아님)의 짧은 변이 600 논리 픽셀 미만이면 휴대폰입니다(안드로이드 `sw600dp` 와 같은 경계). 크기를 알 수 없으면 고정하지 않습니다.
+- 안드로이드 매니페스트의 `screenOrientation="portrait"` 는 태블릿까지 세로로 묶어 쓰지 않습니다.
+- 태블릿을 모든 방향으로 두는 이유: 회원 앱 화면은 폭을 휴대폰 폭(`OnCareLayout.mobileContentMaxWidth`)으로 제한해 가운데 정렬하므로 가로에서도 쓸 수 있고, iPad 멀티태스킹(Split View)은 네 방향 지원을 요구합니다. 방향을 막으려면 `UIRequiresFullScreen` 까지 켜야 합니다.
+- 대안(팀 결정 대기): `TARGETED_DEVICE_FAMILY = "1"`(iPhone 전용)로 내면 iPad 에서는 iPhone 호환 모드로 돌고 iPad 스크린샷 제출도 필요 없습니다. 다만 **iPad 지원으로 한 번 출시하면 되돌릴 수 없으므로** 첫 출시 전에만 고를 수 있습니다.
 
 ## 4. 앱 ID·앱 이름 (확정값)
 
@@ -118,3 +162,33 @@ flutter build ipa --release \
 - 모바일에서 카카오·네이버 등 네이티브 소셜 로그인 SDK 를 붙이면(#330) 각 개발자 콘솔에 패키지 이름·
   번들 ID 와 업로드 키·Play 앱 서명 키의 키 해시를 등록합니다. 지금 회원 앱 모바일 빌드는 이런 네이티브
   SDK 를 쓰지 않습니다(카카오 지도는 웹 전용).
+
+## 5. 릴리스 빌드 설정 (define 파일)
+
+앱의 컴파일 타임 기본값은 로컬 개발용입니다(`ENV=dev`·`USE_MOCK_API=true`·예시 API 주소).
+`--dart-define` 을 하나씩 적으면 하나를 빠뜨려도 빌드는 성공하고, 그 앱은 **개발 환경으로 판정된
+운영 앱**(요청 로그·개발용 화면이 켜지고 오류 보고가 꺼짐)이나 **목업 데이터로 도는 앱**이 됩니다(#3022).
+그래서 스토어 빌드는 define 파일 하나로만 합니다.
+
+1. `frontend/flutter/config/release.example.json` 을 같은 폴더의 `release.json` 으로 복사하고 값을 채웁니다.
+   `release.json` 은 `.gitignore` 로 제외되어 있습니다 — 커밋하지 않습니다.
+
+   | 키 | 값 |
+   | --- | --- |
+   | `ENV` | `prod`(스토어). 내부 배포 빌드만 `staging` |
+   | `USE_MOCK_API` | `false` |
+   | `API_BASE_URL` | `https://<운영 API 도메인>/v1` — `/v1` 까지, 끝 `/` 없이 |
+   | `SENTRY_DSN` | 회원 앱 Sentry 프로젝트의 DSN(`https://…`) |
+
+2. 빌드 전에 `bash tool/check_release_defines.sh config/release.json` 을 돌립니다. 키가 빠졌거나 형식이
+   틀리면(`ENV` 가 `prod`·`staging` 이 아님, 목업, `http://`·예시·로컬 주소, DSN 없음, 데모 전용 스위치
+   `DEMO_BUILD`·`SHOW_DEMO_ENTRY`·`REAL_API` 가 남음) 빌드하지 말라는 오류와 함께 멈춥니다.
+3. `flutter build appbundle|ipa --release --dart-define-from-file=config/release.json` 으로 빌드합니다.
+
+빌드 단계를 건너뛰어도 앱이 한 번 더 막습니다. 릴리스 모드에서 `ENV` 가 `prod`·`staging` 이 아니거나,
+데모 빌드 표시(`DEMO_BUILD=true`) 없이 목업이거나, API 주소가 `https://` 가 아니거나 예시·로컬
+주소면 기동할 때 기능 화면 대신 **"이 빌드는 잘못 구성됐어요"** 안내와 고칠 설정 목록을 띄웁니다
+(`AppConfig.releaseProblems`). `flutter run`(디버그)·테스트에는 적용되지 않습니다.
+
+- `DEMO_BUILD=true` 는 데모 Pages 빌드(`.github/workflows/deploy.yml`)만 넘깁니다. 스토어 빌드에는 넣지 않습니다.
+- Sentry 프로젝트 생성·DSN 발급은 #480 에서 합니다. 값은 팀 비밀번호 관리자에 두고 `release.json` 에만 적습니다.

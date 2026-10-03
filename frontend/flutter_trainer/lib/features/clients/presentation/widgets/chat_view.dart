@@ -13,6 +13,7 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/chat_pdf_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
+import 'package:oncare_trainer/features/clients/domain/repositories/client_data_refresher.dart';
 import 'package:oncare_trainer/features/clients/presentation/controllers/chat_scroll.dart';
 import 'package:oncare_trainer/features/clients/presentation/controllers/chat_thread_history.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/chat_image_attachment.dart';
@@ -22,6 +23,7 @@ import 'package:oncare_trainer/features/notifications/data/repositories/notifica
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
+import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -182,6 +184,17 @@ class _ChatViewState extends ConsumerState<ChatView> {
     if (!ref.read(appConfigProvider).useMockApi) {
       ref.invalidate(chatThreadProvider(widget.clientId));
       ref.invalidate(unreadCountsProvider);
+      _refreshRosterAfterSend();
+    }
+  }
+
+  /// 보낸 뒤 로스터를 한 번 다시 읽는다 — 메시지 탭 목록은 로스터의
+  /// `last_message_at` 으로 최신순을 정하므로, 다음 폴링(30초)까지 기다리면
+  /// 방금 대화한 회원이 제자리에 남는다(#3011).
+  void _refreshRosterAfterSend() {
+    final ClientRepository repository = ref.read(clientRepositoryProvider);
+    if (repository case final ClientDataRefresher refresher) {
+      refresher.refreshClientData(widget.clientId);
     }
   }
 
@@ -224,6 +237,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
     if (!ref.read(appConfigProvider).useMockApi) {
       ref.invalidate(chatThreadProvider(widget.clientId));
       ref.invalidate(unreadCountsProvider);
+      _refreshRosterAfterSend();
     }
   }
 

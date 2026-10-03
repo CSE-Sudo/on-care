@@ -35,18 +35,29 @@ from app.core import clock
 from app.models.models import User, UserConsent
 
 #: 동의 항목. 앱과 같은 철자다.
-Kind = Literal["terms", "privacy", "health", "age14", "marketing"]
+Kind = Literal["terms", "privacy", "health", "age14"]
+
+#: 더는 받지 않는 항목(#3007). 마케팅 알림 수신 동의는 보내는 기능도, 거두는
+#: 화면도, 처리방침의 이용 목적도 없이 받기만 했다. 이제 받지 않는다.
+#:
+#: 옛 앱 빌드는 가입·재동의 때 이 값을 계속 보낸다. 모르는 항목은 422 이므로
+#: 그 가입을 막지 않도록 **받되 기록하지 않는다**([record] 는 [CURRENT_VERSIONS]
+#: 에 없는 항목을 버린다). 이미 남은 행은 마이그레이션 0141 이 철회 시각을 채웠다.
+RetiredKind = Literal["marketing"]
+
+#: 요청 본문이 받을 수 있는 항목 — 지금 항목과 더는 받지 않는 항목.
+SubmittedKind = Literal["terms", "privacy", "health", "age14", "marketing"]
 
 TERMS: Kind = "terms"
 PRIVACY: Kind = "privacy"
 HEALTH: Kind = "health"
 AGE14: Kind = "age14"
-MARKETING: Kind = "marketing"
 
-ALL_KINDS: tuple[Kind, ...] = (TERMS, PRIVACY, HEALTH, AGE14, MARKETING)
+ALL_KINDS: tuple[Kind, ...] = (TERMS, PRIVACY, HEALTH, AGE14)
+RETIRED_KINDS: tuple[RetiredKind, ...] = ("marketing",)
 
 #: 항목마다 지금 동의받는 문서의 버전. 본문을 고치면 그 항목만 올린다.
-#: 만 14세 확인·마케팅 수신은 문서가 아니지만, 문구가 바뀌면 같은 방식으로 올린다.
+#: 만 14세 확인은 문서가 아니지만, 문구가 바뀌면 같은 방식으로 올린다.
 CURRENT_VERSIONS: dict[str, str] = {
     # 포인트·쿠폰·예약·해지 효과·분쟁 해결 조항 추가(#3006). 두 앱 약관 부칙의
     # 시행일과 같은 날짜다 — tests/test_terms_version.py 가 맞물림을 본다.
@@ -56,10 +67,9 @@ CURRENT_VERSIONS: dict[str, str] = {
     PRIVACY: "2026-10-03",
     HEALTH: "2026-10-01",
     AGE14: "2026-10-01",
-    MARKETING: "2026-10-01",
 }
 
-#: 역할별 필수 항목. 마케팅 수신은 어느 쪽에서도 선택이다.
+#: 역할별 필수 항목. 지금은 선택 항목이 없다 — 받는 항목은 모두 필수다.
 REQUIRED_BY_ROLE: dict[str, frozenset[str]] = {
     "member": frozenset({TERMS, PRIVACY, HEALTH, AGE14}),
     "trainer": frozenset({TERMS, PRIVACY, AGE14}),

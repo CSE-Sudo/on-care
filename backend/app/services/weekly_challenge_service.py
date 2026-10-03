@@ -23,6 +23,10 @@
   회원이 챌린지·포인트 사용처·포인트 잔액(`/users/me/health`)·알림함을 읽을 때 지난
   주의 진행 중 챌린지를 판정한다. 판정은 `active` 일 때만 바꾸는 조건부 UPDATE 한
   번이라, 두 경로가 동시에 읽어도 보상과 결과 알림은 한 번뿐이다.
+- **판정은 미리 적은 기록을 세지 않는다(#3042).** 운동 기록 API 는 앞날을 받지 않지만,
+  그 검증 전에 저장된 앞날 기록이 남아 있을 수 있다. 판정은 기록 날짜가 저장된 날
+  (`created_at` 의 KST 날짜)보다 뒤인 기록 — 월요일에 화~일을 미리 적어 둔 것 — 을
+  뺀다. 그날그날 적은 기록과 지난 날을 뒤늦게 적은 기록은 그대로 센다.
 """
 from __future__ import annotations
 
@@ -159,13 +163,29 @@ def goal_for(db: Session, member_id: str) -> int:
     return min(value, MAX_GOAL)
 
 
+def written_in_advance(row: ExerciseSession, day: date) -> bool:
+    """기록 날짜 [day] 가 저장된 날(KST)보다 뒤인가 — 미리 적은 기록. (#3042)
+
+    저장 시각을 모르는 행(아직 flush 전)은 미리 적은 것으로 보지 않는다.
+    """
+    if row.created_at is None:
+        return False
+    return day > clock.to_seoul(row.created_at).date()
+
+
 def progress_days(
-    db: Session, member_id: str, monday: date, *, until: date | None = None
+    db: Session,
+    member_id: str,
+    monday: date,
+    *,
+    until: date | None = None,
+    exclude_written_in_advance: bool = False,
 ) -> int:
     """[monday] 주에 운동 기록이 있는 날 수. [until](기본 오늘)까지만 센다.
 
     같은 날 기록이 여러 건이어도 하루다. 아직 오지 않은 날에 적어 둔 기록은 한 운동이
     아니라 세지 않는다 — 주가 끝난 뒤 판정할 때는 일요일까지 모두 센다.
+    [exclude_written_in_advance] 면 저장된 날보다 뒤 날짜의 기록을 뺀다(판정용, #3042).
     """
     sunday = monday + timedelta(days=6)
     last = min(sunday, until if until is not None else clock.today())
@@ -182,6 +202,7 @@ def progress_days(
         for row in rows
         if (day := exercise_activity.activity_date_of(row)) is not None
         and monday <= day <= last
+        and not (exclude_written_in_advance and written_in_advance(row, day))
     }
     return len(days)
 
@@ -280,7 +301,14 @@ def settle_due(db: Session, member_id: str) -> int:
     settled = 0
     for row in due:
         start = date.fromisoformat(row.week_start)
-        days = progress_days(db, member_id, start, until=start + timedelta(days=6))
+        # 미리 적어 둔 기록으로 성공하지 못한다(#3042).
+        days = progress_days(
+            db,
+            member_id,
+            start,
+            until=start + timedelta(days=6),
+            exclude_written_in_advance=True,
+        )
         succeeded = days >= row.goal
         claimed = db.execute(
             update(WeeklyChallenge)

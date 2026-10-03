@@ -1,8 +1,10 @@
 """운동 기록 추가/조회 — DB 필요(로컬 skip, CI 실행)."""
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 from uuid import uuid4
+
+import pytest
 
 from app.core import clock
 from app.services.exercise_service import WEEKDAY_LABELS
@@ -14,6 +16,20 @@ def _day(label: str) -> str:
     today = clock.today()
     monday = today - timedelta(days=today.weekday())
     return (monday + timedelta(days=WEEKDAY_LABELS.index(label))).isoformat()
+
+
+@pytest.fixture(autouse=True)
+def _sunday_evening(monkeypatch):
+    """이번 주 일요일 저녁으로 시계를 둔다(#3042).
+
+    `_day` 는 이번 주 요일의 날짜다. 운동 기록은 앞날을 받지 않으므로(422) 시계를
+    실제 요일에 두면 실행 요일에 따라 "목"·"금" 이 앞날이 된다. 일요일이면 그 주
+    월~일이 모두 오늘까지다.
+    """
+    today = clock.today()
+    sunday = today + timedelta(days=6 - today.weekday())
+    moment = datetime.combine(sunday, time(20, 0), tzinfo=clock.SEOUL)
+    monkeypatch.setattr(clock, "now", lambda: moment)
 
 
 def _login(client) -> dict:

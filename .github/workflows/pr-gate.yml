@@ -166,6 +166,13 @@ jobs:
           python3 -m unittest discover -s tool/legal -p 'test_*.py' -v
           python3 tool/legal/build_legal_pages.py --check
 
+      - name: Test the backend health verifier
+        # 배포 뒤 healthz·version 판정(#2821·#3029)이 오탐하면 운영 배포가 막히고, 놓치면
+        # 잘못 뜬 서버가 통과한다. 통과·실패 경계를 병합 전에 확인한다.
+        run: |
+          set -euo pipefail
+          bash .github/scripts/test_verify_backend_health.sh
+
       - name: Test the demo divergence checker
         # 아래 검사가 오탐하면 필수 검사인 이 job 이 PR 병합을 막는다. 임시 저장소의
         # 가짜 diff 로 걸림·안 걸림·예외 통과를 먼저 확인한다(#2791).

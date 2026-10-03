@@ -20,6 +20,7 @@ class _FakeReporter extends ErrorReporter {
     Object error,
     StackTrace? stackTrace, {
     required String source,
+    Map<String, String> tags = const <String, String>{},
   }) async {
     reports.add((error, stackTrace, source));
   }
@@ -62,6 +63,28 @@ void main() {
         shouldReportErrors(_config(environment: Environment.dev)),
         isFalse,
       );
+    });
+
+    // 릴리스 가드(#3022)를 통과하는 두 종류의 배포 빌드 — 운영은 보내고 데모는 보내지
+    // 않는다. 운영 웹·스토어 빌드가 SENTRY_DSN 을 넘기면 실제로 켜지는 조합이다.
+    test('릴리스 가드를 통과한 운영 빌드는 보내고, 데모 빌드는 보내지 않는다', () {
+      const AppConfig prod = AppConfig(
+        environment: Environment.prod,
+        apiBaseUrl: 'https://api.oncare.kr/v1',
+        useMockApi: false,
+        sentryDsn: _dsn,
+      );
+      const AppConfig demo = AppConfig(
+        environment: Environment.dev,
+        apiBaseUrl: 'https://api.oncare.kr/v1',
+        useMockApi: true,
+        demoBuild: true,
+        sentryDsn: _dsn,
+      );
+      expect(prod.releaseProblems(), isEmpty);
+      expect(demo.releaseProblems(), isEmpty);
+      expect(shouldReportErrors(prod), isTrue);
+      expect(shouldReportErrors(demo), isFalse);
     });
   });
 
@@ -123,7 +146,9 @@ void main() {
           method: 'POST',
           url: 'https://api.example.invalid/v1/diet/analyze?token=dummy',
           queryString: 'token=dummy',
-          headers: const <String, String>{'Authorization': 'Bearer dummy-token'},
+          headers: const <String, String>{
+            'Authorization': 'Bearer dummy-token',
+          },
           data: const <String, dynamic>{'note': 'dummy-health-note'},
         ),
       );
@@ -137,7 +162,9 @@ void main() {
     });
 
     test('요청이 없는 이벤트는 그대로 둔다', () {
-      final SentryEvent event = SentryEvent(message: const SentryMessage('boom'));
+      final SentryEvent event = SentryEvent(
+        message: const SentryMessage('boom'),
+      );
       final SentryEvent out = scrubSentryEvent(event, Hint())!;
       expect(out.request, isNull);
       expect(out.message!.formatted, 'boom');

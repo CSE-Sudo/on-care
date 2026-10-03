@@ -3,11 +3,16 @@
 <plist version="1.0">
 <dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>현재 위치 주변의 헬스장을 찾고 지도에 표시하기 위해 위치를 사용합니다.</string>
+	<string>On-Care uses your location to find gyms near you and show them on the map.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>ko</string>
+		<string>en</string>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>On-Care</string>
 	<key>CFBundleExecutable</key>
@@ -31,9 +36,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>식단 기록용 음식 사진과 트레이너 채팅에 보낼 사진을 촬영할 때 카메라를 사용합니다. 음식 사진은 식단 기록과 AI 식단 분석에, 채팅 사진은 담당 트레이너와의 대화에만 쓰입니다.</string>
+	<string>On-Care uses the camera to take food photos for your meal log and photos to send in trainer chat. Food photos are used only for your meal log and AI meal analysis, and chat photos only for conversations with your trainer.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>식단 기록용 음식 사진과 트레이너 채팅에 보낼 사진을 보관함에서 고를 때 사용합니다. 음식 사진은 식단 기록과 AI 식단 분석에, 채팅 사진은 담당 트레이너와의 대화에만 쓰입니다.</string>
+	<string>On-Care uses your photo library when you choose food photos for your meal log or photos to send in trainer chat. Food photos are used only for your meal log and AI meal analysis, and chat photos only for conversations with your trainer.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -66,8 +71,6 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>

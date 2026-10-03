@@ -210,6 +210,11 @@ jobs:
         working-directory: .
         run: python3 tool/ci/check_mobile_app_identity.py
 
+      # 스토어 릴리스 define 파일 검사기(#3022). 실제 release.json 은 저장소에 없으므로
+      # 검사기의 통과·실패 경계와 예시 파일의 키 구성을 본다.
+      - name: Test the release define checker
+        run: bash tool/test_check_release_defines.sh
+
       - name: Set up Flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:

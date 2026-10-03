@@ -132,7 +132,9 @@ jobs:
         run: |
           set -euo pipefail
           TAGGED_IMAGE="$REGISTRY/$ECR_REPOSITORY:$SHA"
-          docker build -t "$TAGGED_IMAGE" .
+          # 커밋 SHA 를 이미지에 넣는다(#3029) — /v1/version·/v1/healthz 의 commit_sha 와
+          # Sentry release 가 이 값을 쓰고, 아래 검증 단계가 배포한 SHA 와 대조한다.
+          docker build --build-arg "GIT_SHA=$SHA" -t "$TAGGED_IMAGE" .
           docker push "$TAGGED_IMAGE"
 
           DIGEST=$(aws ecr describe-images \
@@ -230,6 +232,8 @@ jobs:
       # ENV 를 빠뜨려도 기동은 되므로 healthz 응답만으로는 알 수 없었다.
       # 기대 환경은 저장소 변수 BACKEND_EXPECTED_ENV(기본 prod)로 정한다 — 데모 시연
       # 서비스를 따로 이 워크플로로 배포한다면 그 저장소 변수를 staging 으로 둔다.
+      # 운영이면 채팅 첨부 저장소가 s3 인지도 본다(#3029). 판정은 스크립트 하나에 모아
+      # PR 게이트가 경계를 시험한다(.github/scripts/test_verify_backend_health.sh).
       - name: Verify running configuration (healthz)
         env:
           URL: ${{ steps.apprunner.outputs.url }}
@@ -250,32 +254,19 @@ jobs:
             exit 1
           fi
           echo "healthz: $BODY"
+          printf '%s' "$BODY" | bash .github/scripts/verify_backend_health.sh healthz "$EXPECTED_ENV"
 
-          # jq 의 `//` 는 false 도 빈 값으로 보므로 has() 로 있는지부터 가린다.
-          field() {
-            printf '%s' "$BODY" |
-              jq -r --arg k "$1" 'if has($k) then (.[$k] | tostring) else "missing" end'
-          }
-          ACTUAL_ENV=$(field env)
-          DEMO_FALLBACK=$(field demo_fallback)
-          DEMO_SEED=$(field demo_seed)
-          FAILED=0
-          if [ "$ACTUAL_ENV" != "$EXPECTED_ENV" ]; then
-            echo "::error::서비스 env=$ACTUAL_ENV (기대값 $EXPECTED_ENV). App Runner 환경변수 ENV 를 확인하세요."
-            FAILED=1
-          fi
-          if [ "$DEMO_FALLBACK" != "false" ]; then
-            echo "::error::데모 폴백이 꺼져 있지 않습니다(demo_fallback=$DEMO_FALLBACK) — 토큰 없는 요청이 데모 회원으로 처리됩니다."
-            FAILED=1
-          fi
-          if [ "$EXPECTED_ENV" = "prod" ] && [ "$DEMO_SEED" != "false" ]; then
-            echo "::error::운영 서비스에 데모 시드가 켜져 있습니다(demo_seed=$DEMO_SEED). SEED_DEMO_DATA=false 로 두고 데모는 별도 서비스·DB 로 띄우세요."
-            FAILED=1
-          fi
-          if [ "$FAILED" -ne 0 ]; then
-            exit 1
-          fi
-          echo "healthz OK: env=$ACTUAL_ENV demo_fallback=false demo_seed=$DEMO_SEED"
+      # 이미지 digest 가 맞아도 요청을 받는 프로세스가 옛 인스턴스일 수 있다. 실제 응답의
+      # commit_sha 가 배포한 커밋인지 본다(#3029).
+      - name: Verify deployed commit (version)
+        env:
+          URL: ${{ steps.apprunner.outputs.url }}
+          SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          set -euo pipefail
+          BODY=$(curl -fsS --max-time 10 "https://$URL/v1/version")
+          echo "version: $BODY"
+          printf '%s' "$BODY" | bash .github/scripts/verify_backend_health.sh version "$SHA"
 
       # healthz 는 프로세스만 본다(App Runner 헬스체크도 healthz 다 — DB 일시 장애로
       # 인스턴스를 갈아 치우지 않게). DB 까지 닿는지는 배포 직후 readyz 로 따로 본다(#2912).
