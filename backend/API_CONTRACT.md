@@ -75,7 +75,7 @@
 
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
-| GET | `/users/me` | `{ id(str), name, email, consent_required, consent_pending[] }` (아래 "가입 동의" 참고, #2819) |
+| GET | `/users/me` | `{ id(str), name, email, role, consent_required, consent_pending[] }` (아래 "가입 동의" 참고, #2819). `role` 은 계정 역할 — 이 API 는 회원 전용이라 늘 `member` 이고 트레이너 토큰은 403. 회원 앱은 세션 복원 때 `role` 이 있으면 `member` 인지 확인하고, 없으면(옛 서버) 그대로 들어간다(#3054) |
 | POST | `/users/me/consents` | `{ consents: [항목] }` → `{ consent_required, consent_pending[] }` (#2819) |
 | GET | `/users/me/health` | `{ profile: { id, name, email }, activity_points }` — MY 계정 카드. 위험 문구(`risk`)·활동 순위(`activity_rank`)·설정 메뉴(`settings[]`)는 앱이 읽지 않는 고정값이라 뺐다(#2903) |
 | DELETE | `/users/me` | `{ status: "deleted" }` |
@@ -1461,8 +1461,8 @@ N명이면 첫 화면에서 요청이 2N개였다.
 
 | Method | Path | 요청 → 응답 |
 |---|---|---|
-| POST | `/auth/register` | `{ email, password, name, phone }` → **201** `{ id, name, email }` — 회원(`role=member`). 이미 가입된 이메일 409 |
-| POST | `/auth/trainer/register` | 같은 입력 → **201** `{ id, name, email }` — 트레이너(#475). 역할을 요청 필드로 가르지 않으려고 경로를 나눴다. 소속 헬스장은 가입 뒤 `PUT /trainer/me/gym` |
+| POST | `/auth/register` | `{ email, password, name, phone }` → **201** `{ id, name, email, role: "member" }` — 회원(`role=member`). 이미 가입된 이메일 409 |
+| POST | `/auth/trainer/register` | 같은 입력 → **201** `{ id, name, email, role: "trainer" }` — 트레이너(#475). 역할을 요청 필드로 가르지 않으려고 경로를 나눴다. 소속 헬스장은 가입 뒤 `PUT /trainer/me/gym` |
 | POST | `/auth/login` | form(`application/x-www-form-urlencoded`) `username`(이메일)·`password` → `{ access_token, refresh_token, token_type }`. 틀리면 401 |
 | POST | `/auth/refresh` | `{ refresh_token }` → 새 `{ access_token, refresh_token, token_type }`(회전). 무효·폐기된 토큰 401 |
 | POST | `/auth/logout` | `{ refresh_token }` → **204**. 그 refresh 토큰을 폐기한다. access 토큰은 요구하지 않고, 못 알아본 토큰에도 204 |
