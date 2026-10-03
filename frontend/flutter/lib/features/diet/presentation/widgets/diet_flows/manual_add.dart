@@ -46,10 +46,6 @@ class _MealCreatePageState extends ConsumerState<_MealCreatePage>
   /// `음식을 하나 이상 적어 주세요` — 저장을 눌렀는데 이름 적힌 음식이 없을 때.
   bool _showEmpty = false;
 
-  /// 저장 한 번에 하나. 응답을 잃고 다시 누른 저장이 끼니를 둘 만들지 않는다.
-  final String _idempotencyKey =
-      'manual-${DateTime.now().microsecondsSinceEpoch}';
-
   @override
   void initState() {
     super.initState();
@@ -89,13 +85,15 @@ class _MealCreatePageState extends ConsumerState<_MealCreatePage>
       _showEmpty = false;
     });
     try {
+      // 멱등키는 저장소가 본문 지문으로 붙인다(#3095). 응답을 잃고 같은 끼니를
+      // 다시 누르면 같은 키라 끼니가 둘 생기지 않고, 고쳐 누르면 새 키라 고친
+      // 내용이 처음 기록으로 바뀌어 버려지지 않는다.
       await ref
           .read(dietRepositoryProvider)
           .createEntry(
             date: wireDate(_date),
             mealType: _type.name,
             foods: foods,
-            idempotencyKey: _idempotencyKey,
           );
       if (!mounted) return;
       // 지난 날짜로 적었으면 그 날도 비운다.
@@ -104,6 +102,18 @@ class _MealCreatePageState extends ConsumerState<_MealCreatePage>
       navigator.pop(true);
       if (!toastContext.mounted) return;
       showAppToast(toastContext, l.dietSaved, type: AppToastType.success);
+    } on DietEntryKeyConflict {
+      // 응답을 잃은 저장이 다른 내용으로 이미 남아 있다. 기록을 다시 읽어
+      // 그 끼니가 보이게 하고, 적던 내용은 그대로 둔다.
+      refreshDietRecords(ref.invalidate, dates: <DateTime>[_date]);
+      if (mounted) setState(() => _busy = false);
+      if (toastContext.mounted) {
+        showAppToast(
+          toastContext,
+          l.dietManualAlreadySaved,
+          type: AppToastType.error,
+        );
+      }
     } catch (_) {
       if (mounted) setState(() => _busy = false);
       if (toastContext.mounted) {

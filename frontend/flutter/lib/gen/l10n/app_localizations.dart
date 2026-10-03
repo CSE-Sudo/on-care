@@ -1076,6 +1076,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t save. Please try again in a moment.'**
   String get dietSaveFailed;
 
+  /// No description provided for @dietManualAlreadySaved.
+  ///
+  /// In en, this message translates to:
+  /// **'An earlier version of this meal was already saved. Please check your records.'**
+  String get dietManualAlreadySaved;
+
   /// No description provided for @dietDeleteTitle.
   ///
   /// In en, this message translates to:

@@ -350,6 +350,7 @@
   "dietNutritionResult": "Nutrition Result",
   "dietSaved": "Meal saved",
   "dietSaveFailed": "Couldn't save. Please try again in a moment.",
+  "dietManualAlreadySaved": "An earlier version of this meal was already saved. Please check your records.",
   "dietDeleteTitle": "Delete Meal Record",
   "dietDeleteConfirm": "Delete this meal record?",
   "dietDeleteWhenEmpty": "No food is left. Delete this meal record?",

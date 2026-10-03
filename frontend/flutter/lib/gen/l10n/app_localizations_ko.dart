@@ -548,6 +548,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietSaveFailed => '저장에 실패했어요. 잠시 후 다시 시도해 주세요';
 
   @override
+  String get dietManualAlreadySaved => '앞서 보낸 끼니가 이미 저장돼 있어요. 기록을 확인해 주세요';
+
+  @override
   String get dietDeleteTitle => '식단 기록 삭제';
 
   @override
