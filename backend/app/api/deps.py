@@ -131,6 +131,18 @@ def require_trainer(
     return user
 
 
+def trainer_not_approved(message: str) -> HTTPException:
+    """승인받지 않은 트레이너에게 주는 403(#2825). `detail.code` 로 일반 권한
+    오류와 구분한다 — 트레이너 웹이 이 코드를 보고 승인 안내를 띄운다."""
+    return HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail={
+            "code": trainer_verification_service.NOT_APPROVED_CODE,
+            "message": message,
+        },
+    )
+
+
 def require_approved_trainer(
     user: Annotated[User, Depends(require_trainer)],
     db: Annotated[Session, Depends(get_db)],
@@ -139,16 +151,11 @@ def require_approved_trainer(
     (연결 코드 확인·사용, 담당 요청 발송)에 건다.
 
     승인 전이면 403 과 함께 `detail.code='trainer_not_approved'` 를 돌려준다 —
-    트레이너 웹이 일반 권한 오류와 구분해 승인 대기 안내를 띄운다.
+    트레이너 웹이 일반 권한 오류와 구분해 승인 대기 안내를 띄운다. 이미 맺은 담당
+    회원의 기록은 `_require_client` 가 같은 코드로 막는다(#3009).
     """
     if not trainer_verification_service.is_approved(db, user.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "code": "trainer_not_approved",
-                "message": "운영자 승인 뒤에 회원을 연결할 수 있습니다.",
-            },
-        )
+        raise trainer_not_approved("운영자 승인 뒤에 회원을 연결할 수 있습니다.")
     return user
 
 
