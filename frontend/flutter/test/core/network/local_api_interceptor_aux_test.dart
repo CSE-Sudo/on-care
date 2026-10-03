@@ -152,6 +152,19 @@ void main() {
     expect(res.statusCode, 200);
     expect(res.data!['status'], 'ok');
     expect(res.data!['backend'], 'drift-local');
+    expect(res.data!['commit_sha'], 'unknown');
+  });
+
+  test('GET /version matches the server keys including commit_sha', () async {
+    final res = await dio.get<Map<String, Object?>>('/version');
+    expect(res.statusCode, 200);
+    expect(res.data!['api_version'], 'v1');
+    expect(res.data!.keys.toSet(), <String>{
+      'api_version',
+      'app_version',
+      'commit_sha',
+    });
+    expect(res.data!['commit_sha'], 'unknown');
   });
 
   test('POST /ai-coach/chat returns a grounded reply with sources', () async {

@@ -160,9 +160,6 @@ class _RealClientRepository implements ClientRepository {
   const _RealClientRepository();
 
   @override
-  bool get supportsRosterMutations => false;
-
-  @override
   Stream<List<TrainerClient>> watchClients() =>
       Stream<List<TrainerClient>>.value(const <TrainerClient>[_client]);
 
@@ -272,13 +269,6 @@ class _RealClientRepository implements ClientRepository {
   @override
   Future<ClientRecordSpan> fetchRecordSpan(String clientId) async =>
       testClientRecordSpan();
-
-  @override
-  Future<bool> clientNameExists(String name) async => false;
-
-  @override
-  Future<bool> addClient({required String name, required String goal}) async =>
-      false;
 
   @override
   Future<void> setClientActive(String id, bool active) async {}

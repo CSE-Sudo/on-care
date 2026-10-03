@@ -517,8 +517,8 @@ class DriftScheduleRepository implements ScheduleRepository {
   /// 그걸 그대로 회원에게 전송할 수 있었다.
   ///
   /// v3 이전에 저장된 행은 `client_id` 가 null 이라 예전처럼 정규화된 이름으로
-  /// 폴백한다. 폴백은 `lower(trim(name))` — `addClient` 의 유일성 가드와 같은
-  /// 정규화라, 저장/조회 기준이 어긋나지 않는다.
+  /// 폴백한다. 폴백은 `lower(trim(name))` — 시드 회원 이름 유일성 검사
+  /// (`seed_data_test`)와 같은 정규화라, 저장/조회 기준이 어긋나지 않는다.
   @override
   Stream<List<ScheduleSession>> watchClientSessions(ScheduleClientKey client) {
     final query = _db.select(_db.trainerScheduleEntries)

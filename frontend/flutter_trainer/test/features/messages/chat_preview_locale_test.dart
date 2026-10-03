@@ -7,9 +7,11 @@ import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_invite_repository.dart';
 import 'package:oncare_trainer/shared/models/chat_preview.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
-import 'package:oncare_trainer/shared/services/client_repository.dart';
 
 import '../../helpers/pump_app.dart';
+
+/// 데모 명부에서 아직 연결되지 않은 회원 — 연결 직후 대화가 없는 행이다.
+const String _connectedMemberId = 'user-8f2a41c9d6e3';
 
 /// 목록 미리보기가 한국어 문구를 저장하지 않고, 화면이 로케일로 그리는지
 /// 본다 (#2303). 저장소 층은 코드·빈 값을, 화면 층은 그 문구를 확인한다.
@@ -81,16 +83,6 @@ void main() {
       expect(after.lastTime, before.lastTime);
     });
 
-    test('새로 추가한 고객은 미리보기를 비워 둔다', () async {
-      final DriftClientRepository repo = DriftClientRepository(db);
-      expect(await repo.addClient(name: 'Alex Kim', goal: ''), isTrue);
-      final TrainerClientRow row = await (db.select(
-        db.trainerClients,
-      )..where((t) => t.name.equals('Alex Kim'))).getSingle();
-      expect(row.lastMessage, isEmpty);
-      expect(row.lastTime, '-');
-    });
-
     test('데모 담당 요청으로 연결한 회원도 미리보기를 비워 둔다', () async {
       final DemoClientInviteRepository demo = DemoClientInviteRepository(db);
       final found = await demo.lookup('user-1c7b93f04a58');
@@ -111,7 +103,7 @@ void main() {
         text: '',
         emoteId: 'dog_love',
       );
-      await DriftClientRepository(db).addClient(name: 'Sam Lee', goal: '');
+      await DemoClientInviteRepository(db).invite(_connectedMemberId);
       final List<TrainerClientRow> rows = await db
           .select(db.trainerClients)
           .get();
@@ -145,9 +137,9 @@ void main() {
             text: '',
             emoteId: 'dog_love',
           );
-          await container
-              .read(clientRepositoryProvider)
-              .addClient(name: 'Jordan Park', goal: '');
+          await DemoClientInviteRepository(
+            container.read(appDatabaseProvider),
+          ).invite(_connectedMemberId);
           await goTo(tester, AppRoutes.messages);
 
           final Finder emoteTile = find.byKey(
@@ -166,9 +158,10 @@ void main() {
           final AppDatabase db = container.read(appDatabaseProvider);
           final TrainerClientRow added =
               await tester.runAsync(
-                    () => (db.select(
-                      db.trainerClients,
-                    )..where((t) => t.name.equals('Jordan Park'))).getSingle(),
+                    () =>
+                        (db.select(db.trainerClients)
+                              ..where((t) => t.id.equals(_connectedMemberId)))
+                            .getSingle(),
                   )
                   as TrainerClientRow;
           final Finder emptyPreview = find.byKey(
