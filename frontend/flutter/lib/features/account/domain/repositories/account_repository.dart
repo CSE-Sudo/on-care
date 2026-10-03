@@ -1,3 +1,4 @@
+import 'package:oncare/features/account/domain/entities/account_deletion_preview.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
@@ -11,6 +12,10 @@ abstract class AccountRepository {
   /// 고른 탈퇴 사유를 함께 보낸다(#2019). 사유는 탈퇴를 막는 조건이 아니라
   /// 물어보는 자리라, 비어 있어도 탈퇴는 그대로 진행된다.
   Future<void> deleteAccount({List<String> reasons = const <String>[]});
+
+  /// GET /users/me/deletion-preview — 탈퇴하면 사라지는 포인트·쿠폰과 취소되는
+  /// 예약·상담 요청의 건수(#3006). 탈퇴 확인창이 이 숫자로 무엇을 잃는지 말한다.
+  Future<AccountDeletionPreview> fetchDeletionPreview();
 
   /// PUT /users/me/health-goals — 건강 목표(식단 일일 6종 + 주간 운동 3종).
   ///

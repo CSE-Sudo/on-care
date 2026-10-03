@@ -135,10 +135,12 @@ jobs:
       - name: Prepare deploy files
         run: |
           set -euo pipefail
-          mkdir -p public/frontend public/trainer
+          mkdir -p public/frontend public/trainer public/legal
           cp index.html public/index.html
           cp -R frontend/flutter/build/web/. public/frontend/
           cp -R frontend/flutter_trainer/build/web/. public/trainer/
+          # 공개 정책 페이지(#3005). 스토어·가입 전 안내가 여는 처리방침·약관 주소다.
+          cp legal/*.html public/legal/
           find public -name '*.js.symbols' -delete
           echo "$GITHUB_SHA" > public/version.txt
 
@@ -196,7 +198,7 @@ jobs:
             exit 1
           fi
 
-          for key in index.html frontend/index.html trainer/index.html; do
+          for key in index.html frontend/index.html trainer/index.html legal/privacy.html legal/terms.html; do
             SIZE=$(aws s3api head-object --bucket "$BUCKET" --key "$PREFIX/$key" \
               --query 'ContentLength' --output text)
             if [ "${SIZE:-0}" -le 0 ]; then
