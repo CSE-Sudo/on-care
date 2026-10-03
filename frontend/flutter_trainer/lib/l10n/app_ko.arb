@@ -2649,5 +2649,9 @@
   "passwordResetDoneBody": "새 비밀번호로 다시 로그인해 주세요. 모든 기기의 로그인이 끝났어요.",
   "passwordResetBackToSignIn": "로그인하러 가기",
   "passwordResetTooMany": "시도가 너무 많아요. 잠시 후 다시 시도해 주세요.",
-  "passwordResetTemporaryFailure": "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요."
+  "passwordResetTemporaryFailure": "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.",
+  "releaseUpdateTitle": "새 버전이 배포되었어요",
+  "releaseUpdateMessage": "새로고침하면 최신 화면으로 바뀌어요. 작성 중인 내용이 있으면 먼저 저장해 주세요.",
+  "releaseUpdateReload": "새로고침",
+  "releaseUpdateDismiss": "안내 닫기"
 }

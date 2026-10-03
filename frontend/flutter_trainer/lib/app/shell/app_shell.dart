@@ -8,6 +8,7 @@ import 'package:oncare_trainer/app/shell/nav_destinations.dart';
 import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
 import 'package:oncare_trainer/features/notifications/presentation/widgets/notification_bell.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/widgets/release_update_banner.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// Persistent console shell: a left [AppSidebar] plus the active branch.
@@ -107,9 +108,19 @@ class _AppShellState extends State<AppShell> {
           widget.navigationShell.currentIndex == AppShell.myBranchIndex,
       onSelect: _goBranch,
       onHome: _goDashboard,
-      body: PageScrollResetScope(
-        notifier: _scrollReset,
-        child: widget.navigationShell,
+      // 새 배포 안내는 콘텐츠 영역 맨 위에 선다(#3023). 안내가 없으면 높이 0 이라
+      // 화면이 그대로다 — 자리는 늘 두어 브랜치 화면의 상태가 다시 만들어지지 않는다.
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          const ReleaseUpdateBanner(),
+          Expanded(
+            child: PageScrollResetScope(
+              notifier: _scrollReset,
+              child: widget.navigationShell,
+            ),
+          ),
+        ],
       ),
     );
   }
