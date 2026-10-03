@@ -165,6 +165,14 @@ class SessionController extends StateNotifier<SessionState>
             ),
           );
       if (!mounted || _userActionStarted) return;
+      // 회원 계정인지 확인한다(#3054). 회원 앱과 트레이너 웹은 한 출처의 브라우저
+      // 저장소를 같이 써서, 옛 키에서 옮겨 온 토큰이 트레이너 것일 수 있다. 서버가
+      // 역할을 주지 않으면(배포 전 백엔드) 지금처럼 들어간다 — 앱이 먼저 나가도
+      // 회원이 막히지 않게.
+      if (!isMemberRole(res.data)) {
+        await _expire();
+        return;
+      }
       _setToken(access);
       // 저장된 세션으로 돌아온 계정도 동의가 남았으면 동의 화면부터 거친다
       // (#2819) — 기존 가입자가 "다음 로그인" 을 기다리지 않게 한다.
@@ -175,7 +183,14 @@ class SessionController extends StateNotifier<SessionState>
     } on DioException catch (e) {
       if (!mounted || _userActionStarted) return;
       final int? code = e.response?.statusCode;
-      if (code == 401 || code == 403) {
+      // 403 은 회원 전용 API 를 다른 역할(트레이너) 토큰으로 부른 것이다(#3054).
+      // 갱신해도 역할은 그대로라 회전하지 않고 이 앱의 저장소만 비운다 — 다른
+      // 앱의 갱신 토큰을 돌려 그쪽 세션까지 흔들지 않는다.
+      if (code == 403) {
+        await _expire();
+        return;
+      }
+      if (code == 401) {
         if (allowRefresh && refresh.isNotEmpty) {
           await _refreshAndResolve(refresh);
         } else {
@@ -596,6 +611,17 @@ class SessionController extends StateNotifier<SessionState>
 /// 쪽보다, 지금처럼 들어가는 쪽이 낫다. 서버가 동의를 요구하면 이 칸이 항상 있다.
 bool consentRequiredIn(Map<String, Object?>? data) =>
     data?['consent_required'] == true;
+
+/// `GET /users/me` 응답이 회원 계정인가. (#3054)
+///
+/// 칸이 없거나 비었으면 회원으로 본다 — 역할을 주지 않던 서버를 상대할 때
+/// 막혀 들어가지 못하는 쪽보다 지금처럼 들어가는 쪽이 낫다. 서버는 트레이너
+/// 토큰에 이 API 를 403 으로 거절하므로, 역할 칸은 그 위에 한 겹 더 두는 확인이다.
+bool isMemberRole(Map<String, Object?>? data) {
+  final Object? role = data?['role'];
+  if (role is! String || role.isEmpty) return true;
+  return role == 'member';
+}
 
 /// 실행 중 세션이 만료되어 로그인 화면으로 보냈다 — 로그인 화면이 한 번 안내하고
 /// 거둔다. (#1546)

@@ -102,6 +102,7 @@ def get_me(
         id=current_user.id,
         name=current_user.name,
         email=current_user.email,
+        role=current_user.role,
         consent_required=bool(pending),
         consent_pending=pending,
     )
@@ -589,7 +590,7 @@ def register(
     audit(
         db, event="auth.register", user_id=user.id, ip=client_ip(request), success=True
     )
-    return UserMe(id=user.id, name=user.name, email=user.email)
+    return UserMe(id=user.id, name=user.name, email=user.email, role=user.role)
 
 
 @router.post(
@@ -633,7 +634,9 @@ def register_trainer(
         ip=client_ip(request),
         success=True,
     )
-    return UserMe(id=trainer.id, name=trainer.name, email=trainer.email)
+    return UserMe(
+        id=trainer.id, name=trainer.name, email=trainer.email, role=trainer.role
+    )
 
 
 def _login_lock_key(username: str) -> str:
