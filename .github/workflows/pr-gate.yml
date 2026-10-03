@@ -157,6 +157,17 @@ jobs:
           bash .github/scripts/test_landing_site_url.sh
           bash .github/scripts/landing_site_url.sh check index.html
 
+      - name: Test the frontend deploy checks
+        # 운영 프론트 배포의 CI 판정·백엔드 선후·응답 보안 헤더 확인 스크립트(#3017, #3018).
+        # 배포 때만 도는 스크립트라 여기서 경계를 미리 확인한다. 네트워크 대신 가짜 gh·curl 과
+        # 임시 git 저장소를 쓴다. CloudFront 헤더 정책과 두 앱 meta CSP 의 일치는 위의
+        # tool/ci 테스트(test_frontend_csp.py)가 본다.
+        run: |
+          set -euo pipefail
+          bash .github/scripts/test_frontend_ci_gate.sh
+          bash .github/scripts/test_frontend_backend_order.sh
+          bash .github/scripts/test_frontend_security_headers.sh
+
       - name: Test the demo divergence checker
         # 아래 검사가 오탐하면 필수 검사인 이 job 이 PR 병합을 막는다. 임시 저장소의
         # 가짜 diff 로 걸림·안 걸림·예외 통과를 먼저 확인한다(#2791).
