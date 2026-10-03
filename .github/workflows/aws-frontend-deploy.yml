@@ -1,14 +1,33 @@
 name: Deploy Frontend to AWS
 
+# 운영 프론트(S3 + CloudFront) 배포. Repository Variable AWS_FRONTEND_DEPLOY_ENABLED=true 일 때만 돈다.
+#
+# 배포 순서(#3018)
+#   main push → E2E CI 완료(workflow_run) → gate(같은 커밋의 CI 판정 → 백엔드 선후 확인)
+#     → build-and-deploy(빌드 → 업로드 → 검증 → CloudFront 전환 → 배포 후 검증)
+#   E2E CI 는 paths 필터가 없어 모든 main push 에서 한 번씩 끝나므로 그 완료를 신호로 삼고,
+#   paths 필터가 있는 User App CI·Trainer CI 는 실행이 있을 때만 성공을 요구한다.
+#   백엔드 변경이 들어 있는 커밋은 운영 백엔드가 그 변경을 담은 뒤에만 전환한다.
+#   판정 규칙과 대기 시간은 docs/aws-frontend-deployment.md "배포 순서" 에 있다.
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: ["E2E CI"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
+    inputs:
+      sha:
+        description: "배포할 main 커밋의 전체 SHA(40자). 같은 검증(CI·백엔드 선후)을 거친다"
+        required: true
+        type: string
+      skip_backend_order_check:
+        description: "백엔드 선후 확인을 건너뛴다(운영 백엔드가 commit_sha 를 알려 주지 않을 때 등 — 사람이 판단한 경우만)"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: frontend-aws-deploy
@@ -18,15 +37,154 @@ env:
   AWS_REGION: ap-northeast-2
 
 jobs:
+  gate:
+    name: Check CI and backend order
+    if: >-
+      ${{ vars.AWS_FRONTEND_DEPLOY_ENABLED == 'true' &&
+          ((github.event_name == 'workflow_run' &&
+            github.event.workflow_run.conclusion == 'success' &&
+            github.event.workflow_run.event == 'push' &&
+            github.event.workflow_run.head_branch == 'main' &&
+            github.event.workflow_run.head_repository.full_name == github.repository) ||
+           (github.event_name == 'workflow_dispatch' &&
+            github.ref == 'refs/heads/main')) }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      sha: ${{ steps.target.outputs.sha }}
+    steps:
+      - name: Resolve deploy commit
+        id: target
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          MANUAL_SHA: ${{ inputs.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            TARGET_SHA="$WORKFLOW_RUN_SHA"
+          else
+            TARGET_SHA="$MANUAL_SHA"
+          fi
+          TARGET_SHA=$(printf '%s' "$TARGET_SHA" | tr '[:upper:]' '[:lower:]')
+          if ! [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::배포 SHA는 40자리 전체 커밋 SHA여야 합니다."
+            exit 1
+          fi
+          echo "sha=$TARGET_SHA" >> "$GITHUB_OUTPUT"
+          echo "Deploy commit: $TARGET_SHA"
+
+      # 백엔드 선후 확인이 커밋 사이 diff 를 보므로 전체 이력이 필요하다.
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.target.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      # 수동 실행은 main 에 있는 커밋만 받는다.
+      - name: Require a main commit
+        env:
+          SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin main
+          if ! git merge-base --is-ancestor "$SHA" FETCH_HEAD; then
+            echo "::error::$SHA 는 main 이력에 없는 커밋입니다."
+            exit 1
+          fi
+
+      # E2E 는 반드시 성공, 경로 필터 CI 는 실행이 있으면 성공. 아직 도는 CI 는 기다린다.
+      - name: Check CI results for the commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.target.outputs.sha }}
+          WAIT_SECONDS: '1800'
+        run: |
+          set -uo pipefail
+          deadline=$(( $(date +%s) + WAIT_SECONDS ))
+          while :; do
+            bash .github/scripts/frontend_ci_gate.sh "$SHA" > ci-gate.txt
+            code=$?
+            cat ci-gate.txt
+            [ "$code" -ne 10 ] && break
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "::error::CI 가 ${WAIT_SECONDS}초 안에 끝나지 않았습니다. 끝난 뒤 수동으로 다시 실행하세요."
+              code=1
+              break
+            fi
+            sleep 30
+          done
+          {
+            echo "### Frontend deploy gate"
+            echo "- Commit: \`$SHA\`"
+            grep '^- ' ci-gate.txt || true
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$code"
+
+      # 이 커밋에 운영 백엔드가 아직 담지 않은 backend/ 변경이 있으면 백엔드 배포를 기다린다.
+      # 백엔드 자동 배포가 꺼져 있으면 기다려도 오지 않으므로 바로 멈추고 사람에게 맡긴다.
+      - name: Check backend deploy order
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          SHA: ${{ steps.target.outputs.sha }}
+          SKIP: ${{ github.event_name == 'workflow_dispatch' && inputs.skip_backend_order_check }}
+          BACKEND_DEPLOY_ENABLED: ${{ vars.BACKEND_DEPLOY_ENABLED }}
+          WAIT_SECONDS: '2700'
+        run: |
+          set -uo pipefail
+          if [ "$SKIP" = "true" ]; then
+            echo "::warning::수동 실행에서 백엔드 선후 확인을 건너뛰었습니다."
+            echo "- Backend order: 건너뜀(수동 판단)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          bash .github/scripts/check_web_api_base_url.sh || exit 1
+          deadline=$(( $(date +%s) + WAIT_SECONDS ))
+          while :; do
+            bash .github/scripts/frontend_backend_order.sh "$API_BASE_URL" "$SHA" > order.txt
+            code=$?
+            cat order.txt
+            [ "$code" -ne 10 ] && break
+            if [ "$BACKEND_DEPLOY_ENABLED" != "true" ]; then
+              echo "::error::운영 백엔드에 아직 없는 backend/ 변경이 있는데 백엔드 자동 배포(BACKEND_DEPLOY_ENABLED)가 꺼져 있습니다. 백엔드를 먼저 배포한 뒤 다시 실행하세요."
+              code=1
+              break
+            fi
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "::error::운영 백엔드가 ${WAIT_SECONDS}초 안에 이 변경을 담지 않았습니다. Backend Deploy 결과(승인 대기 포함)를 확인한 뒤 다시 실행하세요."
+              code=1
+              break
+            fi
+            sleep 60
+          done
+          if [ "$code" -eq 11 ]; then
+            echo "::error::운영 백엔드가 commit_sha 를 알려 주지 않아 선후를 판단할 수 없습니다. 사람이 확인한 뒤 수동 실행에서 skip_backend_order_check 를 켜세요."
+            code=1
+          fi
+          {
+            echo "- Backend commit: \`$(sed -n 's/^backend_sha=//p' order.txt)\`"
+            echo "- Backend order: $(sed -n 's/^state=//p' order.txt)"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$code"
+
   build-and-deploy:
     name: Build and deploy Flutter web apps
-    if: ${{ vars.AWS_FRONTEND_DEPLOY_ENABLED == 'true' }}
+    needs: gate
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      # workflow_run 에서는 GITHUB_SHA 가 main 의 최신 커밋이다. 배포 대상은 gate 가 고른 커밋이다.
+      RELEASE_SHA: ${{ needs.gate.outputs.sha }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.gate.outputs.sha }}
           persist-credentials: false
 
       # 랜딩의 앱 바로가기는 상대 경로라 이 배포에서는 같은 도메인의 /frontend/·/trainer/ 로
@@ -140,7 +298,7 @@ jobs:
           cp -R frontend/flutter/build/web/. public/frontend/
           cp -R frontend/flutter_trainer/build/web/. public/trainer/
           find public -name '*.js.symbols' -delete
-          echo "$GITHUB_SHA" > public/version.txt
+          echo "$RELEASE_SHA" > public/version.txt
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
@@ -176,7 +334,7 @@ jobs:
         run: |
           set -euo pipefail
           # `--delete` 는 이 prefix 안에서만 작용한다(재실행이 남긴 잔여 파일 정리).
-          aws s3 sync public/ "s3://$BUCKET/releases/$GITHUB_SHA/" \
+          aws s3 sync public/ "s3://$BUCKET/releases/$RELEASE_SHA/" \
             --delete \
             --cache-control "public,max-age=300"
 
@@ -185,7 +343,7 @@ jobs:
           BUCKET: ${{ vars.AWS_FRONTEND_BUCKET }}
         run: |
           set -euo pipefail
-          PREFIX="releases/$GITHUB_SHA"
+          PREFIX="releases/$RELEASE_SHA"
 
           # 파일 이름을 박아 두는 대신 개수로 본다 — Flutter 산출물 이름이 버전에
           # 따라 바뀌어도 "빌드한 것이 전부 올라갔는가" 는 그대로 검증된다.
@@ -206,8 +364,8 @@ jobs:
           done
 
           UPLOADED_SHA=$(aws s3 cp "s3://$BUCKET/$PREFIX/version.txt" - | tr -d '[:space:]')
-          if [ "$UPLOADED_SHA" != "$GITHUB_SHA" ]; then
-            echo "::error::Release version mismatch: expected=$GITHUB_SHA actual=$UPLOADED_SHA"
+          if [ "$UPLOADED_SHA" != "$RELEASE_SHA" ]; then
+            echo "::error::Release version mismatch: expected=$RELEASE_SHA actual=$UPLOADED_SHA"
             exit 1
           fi
 
@@ -226,7 +384,7 @@ jobs:
           PREVIOUS=$(printf '%s' "$CONFIG" \
             | jq -r --arg id "$ORIGIN_ID" \
               '.DistributionConfig.Origins.Items[] | select(.Id == $id) | .OriginPath')
-          NEW="/releases/$GITHUB_SHA"
+          NEW="/releases/$RELEASE_SHA"
 
           {
             echo "origin_id=$ORIGIN_ID"
@@ -259,6 +417,7 @@ jobs:
         env:
           DISTRIBUTION_ID: ${{ vars.AWS_FRONTEND_DISTRIBUTION_ID }}
           SITE_URL: ${{ steps.site.outputs.site_url }}
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
         run: |
           set -euo pipefail
           INVALIDATION_ID=$(aws cloudfront create-invalidation \
@@ -280,8 +439,8 @@ jobs:
             curl --fail --silent --show-error "$BASE_URL$path" > /dev/null
           done
           LIVE_SHA=$(curl --fail --silent --show-error "$BASE_URL/version.txt" | tr -d '[:space:]')
-          if [ "$LIVE_SHA" != "$GITHUB_SHA" ]; then
-            echo "::error::CloudFront version mismatch: expected=$GITHUB_SHA actual=$LIVE_SHA"
+          if [ "$LIVE_SHA" != "$RELEASE_SHA" ]; then
+            echo "::error::CloudFront version mismatch: expected=$RELEASE_SHA actual=$LIVE_SHA"
             exit 1
           fi
 
@@ -289,12 +448,17 @@ jobs:
           # /frontend/·/trainer/ 로 가는지, canonical 이 위에서 채운 이 배포 주소인지 본다.
           bash .github/scripts/landing_site_url.sh verify "$BASE_URL" "$SITE_URL" 120
 
+          # 응답 보안 헤더(#3017): 스택의 헤더 정책이 붙어 있고 connect-src 가 이 빌드의 API
+          # 출처로 좁혀져 있는지 본다. 어긋나면 실패 → 아래 되돌리기 단계가 돈다.
+          API_ORIGIN=$(printf '%s' "$API_BASE_URL" | sed -E 's#^(https://[^/]+).*#\1#')
+          bash .github/scripts/frontend_security_headers.sh "$BASE_URL" "$API_ORIGIN"
+
           {
             echo "### AWS frontend deployment"
             echo "- URL: $BASE_URL/"
             echo "- Landing canonical: $SITE_URL"
-            echo "- Commit: $GITHUB_SHA"
-            echo "- Release: /releases/$GITHUB_SHA"
+            echo "- Commit: $RELEASE_SHA"
+            echo "- Release: /releases/$RELEASE_SHA"
           } >> "$GITHUB_STEP_SUMMARY"
 
       # 전환 이후 검증이 깨진 경우에만 돈다. 직전 릴리스 객체를 지운 적이 없으므로
@@ -332,7 +496,7 @@ jobs:
           echo "::error::Deployment verification failed. Rolled back to '${PREVIOUS_ORIGIN_PATH:-/}'."
           {
             echo "### AWS frontend deployment rolled back"
-            echo "- Failed release: /releases/$GITHUB_SHA"
+            echo "- Failed release: /releases/$RELEASE_SHA"
             echo "- Restored origin path: ${PREVIOUS_ORIGIN_PATH:-/}"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -345,7 +509,7 @@ jobs:
           PREVIOUS_ORIGIN_PATH: ${{ steps.switch.outputs.previous_origin_path }}
         run: |
           set -euo pipefail
-          KEEP_PREFIXES=" releases/$GITHUB_SHA/ "
+          KEEP_PREFIXES=" releases/$RELEASE_SHA/ "
           if [ -n "$PREVIOUS_ORIGIN_PATH" ]; then
             KEEP_PREFIXES="$KEEP_PREFIXES${PREVIOUS_ORIGIN_PATH#/}/ "
           fi
