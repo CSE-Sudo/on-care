@@ -543,7 +543,8 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     }
 
     if (emailChanged) {
-      setState(() => _saving = true);
+      // 저장 버튼의 진행 표시는 켜지 않는다 — 창이 떠 있는 동안 진행 중인 것은
+      // 창 안의 확정 버튼이고, 창 뒤에서 도는 표시는 회원에게 보이지도 않는다.
       final AccountReauthDialogOutcome outcome = await showAccountReauthDialog(
         context: context,
         message: l.reauthEmailMessage,
@@ -557,7 +558,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
           _onSaved(toast, l);
         case AccountReauthDialogResult.cancelled:
           // 취소하면 편집 상태 그대로 둔다 — 바꾼 값을 다시 고칠 수 있다.
-          setState(() => _saving = false);
+          return;
         case AccountReauthDialogResult.failed:
           _onSaveFailed(outcome.error, toast, l);
       }
