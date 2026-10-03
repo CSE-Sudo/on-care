@@ -39,12 +39,15 @@ abstract class ErrorReporter {
     }
   }
 
-  /// [error] 를 보낸다. [source] 는 어느 처리기에서 왔는지(`flutter`·`platform`).
+  /// [error] 를 보낸다. [source] 는 어디서 왔는지 — 전역 처리기(`flutter`·
+  /// `platform`)이거나, 화면이 잡아서 처리한 오류(`handled`, #3051)다. [tags] 는
+  /// 이벤트에 덧붙일 태그(`handled_context` 등)로, 값에 개인정보를 담지 않는다.
   /// 실패해도 예외를 던지지 않는다 — 오류 보고가 앱을 다시 깨뜨리면 안 된다.
   Future<void> report(
     Object error,
     StackTrace? stackTrace, {
     required String source,
+    Map<String, String> tags = const <String, String>{},
   });
 }
 
@@ -58,6 +61,7 @@ class NoopErrorReporter extends ErrorReporter {
     Object error,
     StackTrace? stackTrace, {
     required String source,
+    Map<String, String> tags = const <String, String>{},
   }) async {}
 }
 
@@ -71,6 +75,7 @@ class SentryErrorReporter extends ErrorReporter {
     Object error,
     StackTrace? stackTrace, {
     required String source,
+    Map<String, String> tags = const <String, String>{},
   }) async {
     try {
       final String? route = currentRoute();
@@ -79,6 +84,9 @@ class SentryErrorReporter extends ErrorReporter {
         stackTrace: stackTrace,
         withScope: (Scope scope) async {
           await scope.setTag('source', source);
+          for (final MapEntry<String, String> tag in tags.entries) {
+            await scope.setTag(tag.key, tag.value);
+          }
           if (route != null) await scope.setTag('route', route);
         },
       );

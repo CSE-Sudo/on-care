@@ -115,14 +115,14 @@ def test_env_example_loads_as_dev_settings():
 def test_dev_example_copied_to_prod_is_blocked():
     """개발 예시를 ENV=prod 로만 바꿔 옮기면 운영 가드가 기동을 막는다."""
     with pytest.raises(ValidationError):
-        _settings_from_example(env="prod", jwt_secret="a-strong-random-secret-value")
+        _settings_from_example(env="prod", jwt_secret="a-strong-random-secret-value-for-prod-tests")
 
 
 def test_prod_recommended_values_pass_guard():
     """예시 주석의 운영 권장값으로 바꾸면 운영 가드를 통과한다."""
     s = _settings_from_example(
         env="prod",
-        jwt_secret="a-strong-random-secret-value",
+        jwt_secret="a-strong-random-secret-value-for-prod-tests",
         auto_create_tables=False,
         cors_allow_origins="https://app.example.com",
         seed_demo_data=False,

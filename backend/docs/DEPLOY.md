@@ -12,7 +12,7 @@ GitHub(main push) ──> Actions ──> ECR(이미지) ──> App Runner(:800
                                                         └── Neon Postgres (CREATE EXTENSION vector)
 ```
 
-기동 흐름: 컨테이너가 `scripts/start.sh` 로 **마이그레이션 → uvicorn(--proxy-headers)**.
+기동 흐름: 컨테이너가 `scripts/start.sh` 로 **마이그레이션 → uvicorn(--proxy-headers --no-access-log)**.
 마이그레이션은 `scripts/migrate.py` 가 **PostgreSQL advisory lock 으로 직렬화**하므로, App Runner
 가 여러 인스턴스를 동시에 띄워도 하나만 마이그레이션하고 나머지는 대기 후 no-op 이다(리뷰 #3).
 운영은 `AUTO_CREATE_TABLES=false` 로 두고 Alembic 을 스키마의 유일한 소스로 삼는다.
@@ -46,8 +46,12 @@ Backend CI 만 돌고 **배포 잡은 건너뛴다(skipped)** — 자동 배포�
 `alembic heads` 가 **정확히 1개**인지 검사해 마이그레이션 head 분기(선형화 누락)를 막는다.
 배포 잡은 `concurrency` 로 한 번에 하나만 돌고, `update-service`가 반환한 정확한 OperationId와
 `/v1/healthz` 를 폴링해 **실제 배포·기동 성공까지 확인**한 뒤, healthz 가 싣는 설정(`env`·
-`demo_fallback`·`demo_seed`)이 운영 기대값인지 확인하고(#2821), `/v1/readyz` 로 **DB 까지 닿는지**
-확인하고 나서야 워크플로우를 통과시킨다(#2912). App Runner 헬스체크는 계속 healthz 다 — DB 일시
+`demo_fallback`·`demo_seed`·운영이면 `attachment_storage=s3`)이 운영 기대값인지 확인하고(#2821·#3029),
+`/v1/version` 의 `commit_sha` 가 배포한 커밋인지 확인하고(#3029), `/v1/readyz` 로 **DB 까지 닿는지**
+확인하고 나서야 워크플로우를 통과시킨다(#2912). 판정은 `.github/scripts/verify_backend_health.sh`
+하나에 모여 있고, PR 게이트가 그 경계를 시험한다. 이미지는 `docker build --build-arg GIT_SHA=<커밋>`
+으로 만들어 커밋 SHA 를 품는다 — Sentry release 도 `oncare-backend@<APP_VERSION>+<SHA 앞 12자>` 로
+배포마다 나뉜다. App Runner 헬스체크는 계속 healthz 다 — DB 일시
 장애로 인스턴스를 갈아 치우지 않게 프로세스 생존만 본다.
 
 **수동 실행**(workflow_dispatch)도 `BACKEND_DEPLOY_ENABLED=true` 가 필요하고 CI 게이트를 우회하지 않는다. `main`에서 워크플로우를 실행하며 배포할 40자리
@@ -100,10 +104,10 @@ CREATE EXTENSION IF NOT EXISTS vector;
 |---|---|
 | `ENV` | `prod` (fail-fast 하드닝 활성). **비우면 컨테이너가 뜨지 않는다**(`scripts/start.sh`, #2821) |
 | `ALLOW_DEMO_FALLBACK` | `false`(기본값). `ENV=prod` 면 값과 무관하게 꺼진다 |
-| `JWT_SECRET` | `openssl rand -hex 32` (기본값이면 기동 거부) |
+| `JWT_SECRET` | `openssl rand -hex 32` (기본값이거나 32바이트 미만이면 기동 거부, #3029) |
 | `DATABASE_URL` | 위 Neon 접속 문자열(직접 엔드포인트) |
 | `AUTO_CREATE_TABLES` | `false` (Alembic 이 정답) |
-| `CORS_ALLOW_ORIGINS` | 회원 앱·트레이너 웹이 실제로 서비스되는 도메인(콤마 구분). `*` 면 기동 거부 |
+| `CORS_ALLOW_ORIGINS` | 회원 앱·트레이너 웹이 실제로 서비스되는 도메인(`https://`, 콤마 구분). `*`·빈 값·개발 기본값(localhost 목록)·`localhost`/`127.0.0.1`/`[::1]`·`http://` 출처면 기동 거부(#3029) |
 | `TZ` | `Asia/Seoul` (오늘/어제 라벨 KST 기준) |
 | `SEED_DEMO_DATA` | `false`(기본값). 운영에서 `true` 면 기동 거부 — 시연은 데모 전용 DB 를 둔 별도 환경에서 |
 | `DEMO_LOGIN_PASSWORD` | 운영에서는 쓰지 않는다(데모 시드를 켠 환경 전용) |
@@ -174,6 +178,16 @@ CREATE EXTENSION IF NOT EXISTS vector;
   다른 요청(헬스체크 포함)이 모두 멈춘다. 외부 호출만 `await` 하고 나머지는 `run_in_threadpool` 로
   넘기거나 라우트를 `def` 로 둔다. `tests/test_async_route_guard.py` 가 이 규칙을 검사한다.
 
+## 요청 로그 (#3031)
+
+컨테이너 표준 출력(App Runner → CloudWatch Logs)에 남는 요청 로그는 앱의 `app.access` 한 곳이다 —
+`GET '/v1/places/nearby' -> 200 (12.3ms)` 처럼 method·경로(쿼리 제외)·상태·소요시간과 줄 앞의
+request_id 만 남긴다. uvicorn 기본 액세스 로그는 `scripts/start.sh` 가 `--no-access-log` 로 끈다.
+그 로그는 쿼리를 포함한 요청 줄 전체와 프록시 헤더로 읽은 사용자 IP 를 남겨, 헬스장 찾기의
+위치 좌표(`lat`·`lng`)·검색어가 IP 와 함께 쌓이기 때문이다(처리방침은 위치를 "저장 안 함"으로 적는다).
+Backend CI 가 컨테이너를 띄워 좌표 쿼리 요청 뒤 로그에 좌표·IP 가 없는지 확인한다. 로그 그룹의
+보관 기간·열람 권한은 인프라 설정(#480)이다.
+
 ## DB 커넥션 풀·쿼리 실행 상한 (#2836)
 
 | 키 | 기본값 | 설명 |
@@ -220,7 +234,7 @@ App Runner 의 컨테이너 디스크는 재배포·재시작·스케일 아웃 
 | 키 | 값/설명 |
 |---|---|
 | `ATTACHMENT_STORAGE` | `auto`(기본: 버킷 이름이 있으면 `s3`, 없으면 `local`) · `local` · `s3`. `s3` 인데 버킷이 비면 기동 거부 |
-| `ATTACHMENT_S3_BUCKET` | 첨부 버킷 이름. 비면 로컬 디스크(운영이면 기동 때 WARN) |
+| `ATTACHMENT_S3_BUCKET` | 첨부 버킷 이름. 비면 로컬 디스크 — 운영(`ENV=prod`)이면 기동 거부, 스테이징이면 기동 때 WARN(#3029) |
 | `ATTACHMENT_S3_REGION` | 버킷 리전. 비면 AWS 기본 체인(App Runner 리전) |
 | `ATTACHMENT_S3_PREFIX` | 키 접두사(기본 `chat-attachments`). 키는 `<접두사>/chat-images/<id>.<ext>`·`<접두사>/report-pdfs/<id>.pdf` |
 | `ATTACHMENT_S3_ENDPOINT_URL` | S3 호환 저장소를 쓸 때만. AWS 는 비운다 |
@@ -268,13 +282,15 @@ App Runner 의 컨테이너 디스크는 재배포·재시작·스케일 아웃 
       (`ENV=staging`, `SEED_DEMO_DATA=true`, 강한 `DEMO_LOGIN_PASSWORD`)를 **별도 DB** 로 띄운다.
       같은 DB 를 쓰면 운영 화면에 데모 계정·기록이 섞이고, 데모 계정 비밀번호가 운영 자격 증명이 된다.
 - [ ] `JWT_SECRET` 은 서비스마다 다르다(데모 서비스에서 발급한 토큰이 운영에서 통하지 않게).
-- [ ] `CORS_ALLOW_ORIGINS` 는 실제 프론트 도메인만.
-- [ ] `ATTACHMENT_S3_BUCKET` 이 있다(아래 5-1). 없으면 기동 로그에 WARN.
+- [ ] `CORS_ALLOW_ORIGINS` 는 실제 프론트 도메인(`https://`)만. 비우면 개발 기본값으로 떠서 기동이 거부된다.
+- [ ] `ATTACHMENT_S3_BUCKET` 이 있다(아래 5-1). 없으면 운영 기동이 거부된다(#3029).
 - [ ] 배포 뒤 워크플로의 `Verify running configuration` 단계가 통과했다 — `/v1/healthz` 가
-      `env=prod`·`demo_fallback=false`·`demo_seed=false` 를 돌려줘야 통과한다. 기대 환경은 저장소
+      `env=prod`·`demo_fallback=false`·`demo_seed=false`·`attachment_storage=s3` 를 돌려줘야 통과한다.
+- [ ] `Verify deployed commit` 단계가 통과했다 — `/v1/version` 의 `commit_sha` 가 배포한 커밋과 같다. 기대 환경은 저장소
       변수 `BACKEND_EXPECTED_ENV`(기본 `prod`)다. 데모 서비스를 이 워크플로로 배포한다면 그 서비스용
       설정에서 이 값을 `staging` 으로 둔다.
-- [ ] 기동 로그에 `[startup]` WARN 이 없다(데모 폴백·운영 데모 시드·로컬 첨부 저장소).
+- [ ] 기동 로그에 `[startup]` WARN 이 없다(데모 폴백, 스테이징의 로컬 첨부 저장소). 운영 데모 시드·운영 로컬 첨부
+      저장소는 WARN 이 아니라 기동 거부다.
 - [ ] **AI 비용 상한이 정해져 있다(#3032).** `GEMINI_API_KEY` 가 결제가 연결된 프로젝트의 키다
       (무료 등급 금지). 공급자 콘솔에 예산 알림을 걸고, 그 예산으로 `AI_GLOBAL_CALLS_PER_DAY` 를 0 이
       아닌 값으로 둔다. 운영 중에는 `ai_calls.rejected{reason=global_cap}` 메트릭이 늘면 상한이나

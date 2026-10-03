@@ -201,6 +201,7 @@
   "clientsFilterLabel": "필터",
   "clientsPickHint": "왼쪽에서 회원을 선택하면\n대화·식단·운동 기록이 여기에 열려요",
   "clientsEmpty": "아직 담당 회원이 없어요",
+  "clientsEmptyConnectHint": "연결 코드를 받거나 담당 요청을 보내 회원을 연결하세요. 회원이 상담을 신청하면 상담 요청함에도 표시돼요.",
   "clientsEmptyForFilter": "{filter}에 해당하는 회원이 없어요",
   "clientsMemberCount": "{total}명",
   "clientsMemberCountFiltered": "{total}명 중 {shown}명",

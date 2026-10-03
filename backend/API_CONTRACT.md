@@ -70,8 +70,8 @@
 | Method | Path | 응답 |
 |---|---|---|
 | GET | `/ping` | `{ message }` |
-| GET | `/healthz` | `{ status, backend, env, demo_fallback, demo_seed, attachment_storage }` (#2821) |
-| GET | `/version` | `{ api_version, app_version }` |
+| GET | `/healthz` | `{ status, backend, env, demo_fallback, demo_seed, attachment_storage, commit_sha }` (#2821·#3029). `attachment_storage` 는 `local`·`s3`·`misconfigured` |
+| GET | `/version` | `{ api_version, app_version, commit_sha }` — `commit_sha` 는 이미지를 만든 커밋 SHA(40자), 빌드 인자 없이 만든 이미지는 `"unknown"`(#3029) |
 | GET | `/readyz` | `{ status: "ready" }` — DB 에 `SELECT 1` 까지 확인한다(3초 제한). 실패하면 **503** `{"detail": "서비스가 아직 준비되지 않았습니다."}`, 원인은 서버 로그에만 남긴다. `/healthz` 는 프로세스만 본다(liveness) |
 
 ### 관리자 전용
@@ -1386,6 +1386,11 @@ N명이면 첫 화면에서 요청이 2N개였다.
   없는 파일은 저장하지 않고 **415**. `file_size` 와 내려받는 파일은 정리한 뒤의 값이다. 끼니
   사진(#699)도 같은 정리 함수(`image_sanitize`)를 쓴다. 이전에 쌓인 파일은
   `python -m scripts.sanitize_chat_images --apply` 로 다시 쓴다(기본은 점검만).
+- **펼치기 전에 크기를 본다(#3040).** 헤더의 장변이 `MAX_IMAGE_DECODE_EDGE`(기본 12,000px)를 넘거나,
+  실제로 펼칠 픽셀 수가 `MAX_IMAGE_DECODE_PIXELS`(기본 4,000만)를 넘으면 디코딩하지 않고 읽을 수 없는
+  사진과 같은 **415** 다. JPEG 은 결과 크기 근처까지 축소 디코딩한 뒤의 크기로 센다. 애니메이션은 첫
+  프레임만 쓰고, 프레임이 100장을 넘으면 받지 않는다. 끼니 사진도 같은 상한을 쓴다 — 넘는 사진은
+  기록을 막지 않고 사진 없이 저장된다.
 - **같은 `client_request_id` 재시도는 한 번만 보낸다.** 같은 키에 다른 글이나 사진이 아닌 메시지가
   있으면 **409**.
 - **내려받기는 서버가 권한을 확인한 뒤 흘려보낸다**(#2817). 바이트는 운영에서 객체 저장소(S3),

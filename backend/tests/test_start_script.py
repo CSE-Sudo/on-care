@@ -71,6 +71,39 @@ def test_explicit_env_migrates_then_serves(tmp_path):
     assert "[start] ENV=prod" in result.stdout
 
 
+def _uvicorn_args(calls: str) -> list[str]:
+    line = next(line for line in calls.splitlines() if line.startswith("uvicorn "))
+    return line.split()
+
+
+def test_uvicorn_access_log_is_off(tmp_path):
+    """uvicorn 기본 액세스 로그는 쿼리(위치 좌표)와 사용자 IP 를 남기므로 끈다(#3031)."""
+    result, calls = _run(tmp_path, ENV="prod")
+    assert result.returncode == 0, result.stderr
+    assert "--no-access-log" in _uvicorn_args(calls)
+
+
+def test_uvicorn_keeps_proxy_and_worker_flags(tmp_path):
+    """액세스 로그를 끄면서 기존 프록시·워커 인자는 그대로 넘긴다."""
+    result, calls = _run(
+        tmp_path, ENV="prod", WEB_CONCURRENCY="3", FORWARDED_ALLOW_IPS="10.0.0.0/8"
+    )
+    assert result.returncode == 0, result.stderr
+    args = _uvicorn_args(calls)
+    assert "--proxy-headers" in args
+    assert "--forwarded-allow-ips=10.0.0.0/8" in args
+    assert args[args.index("--workers") + 1] == "3"
+    assert args[args.index("--host") + 1] == "0.0.0.0"
+
+
+@pytest.mark.parametrize("env", ["staging", "dev"])
+def test_access_log_off_in_every_env(tmp_path, env):
+    """스테이징·개발 컨테이너도 같은 엔트리포인트라 똑같이 끈다."""
+    result, calls = _run(tmp_path, ENV=env)
+    assert result.returncode == 0, result.stderr
+    assert "--no-access-log" in _uvicorn_args(calls)
+
+
 def test_env_check_runs_before_port_validation(tmp_path):
     """두 값이 모두 틀리면 ENV 를 먼저 알린다 — 더 위험한 쪽이다."""
     result, _ = _run(tmp_path, PORT="not-a-port")

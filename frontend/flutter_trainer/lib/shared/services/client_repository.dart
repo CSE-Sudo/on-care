@@ -53,18 +53,6 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// Dio source emits a single fetched value (loading/error surface through
 /// the consuming `AsyncValue`).
 abstract interface class ClientRepository {
-  /// Whether this source can **add** clients to the roster.
-  ///
-  /// The real roster is defined by trainer↔member links created through
-  /// consultation approval, and there is no add-client endpoint — so the
-  /// 신규 고객 등록 entry stays demo-only.
-  ///
-  /// This no longer gates [setClientActive]: the 활성/휴면 state is a
-  /// trainer-side management flag that both sources support (#707). The two
-  /// used to share one flag, which kept the status badge read-only against
-  /// the real API.
-  bool get supportsRosterMutations;
-
   Stream<List<TrainerClient>> watchClients();
 
   /// Most recent chat activity per client id — the tiebreak used by
@@ -159,11 +147,6 @@ abstract interface class ClientRepository {
   /// (`GET /me/records/span`)와 같은 응답을 트레이너용으로 읽는다(#2236).
   Future<ClientRecordSpan> fetchRecordSpan(String clientId);
 
-  /// Demo-only roster additions — the backend roster comes from
-  /// trainer↔member links, so these are unsupported against the real API.
-  Future<bool> clientNameExists(String name);
-  Future<bool> addClient({required String name, required String goal});
-
   /// Moves [id] between 활성 and 휴면.
   ///
   /// Supported by both sources. This is the trainer's own management state,
@@ -256,9 +239,6 @@ class DriftClientRepository implements ClientRepository {
 
   final AppDatabase _db;
 
-  @override
-  bool get supportsRosterMutations => true;
-
   /// All clients, ordered as seeded (sortOrder).
   @override
   Stream<List<TrainerClient>> watchClients() {
@@ -304,87 +284,6 @@ class DriftClientRepository implements ClientRepository {
         if (id != null && at != null) out[id] = at;
       }
       return out;
-    });
-  }
-
-  /// Whether a client with this display name already exists
-  /// (whitespace- and case-insensitive). Counts in SQL rather than
-  /// loading every row into memory (review PR 243).
-  @override
-  Future<bool> clientNameExists(String name) async {
-    final key = name.trim().toLowerCase();
-    if (key.isEmpty) return false;
-    return _nameTaken(key);
-  }
-
-  /// SQL `COUNT(*)` of clients whose normalised name matches [key]
-  /// (already trimmed + lower-cased). Runs inside the caller's
-  /// transaction when there is one, so `addClient` can check-then-insert
-  /// atomically.
-  Future<bool> _nameTaken(String key) async {
-    final row = await _db
-        .customSelect(
-          'SELECT COUNT(*) AS c FROM trainer_clients '
-          'WHERE lower(trim(name)) = ?1',
-          variables: <Variable<Object>>[Variable<String>(key)],
-          readsFrom: <ResultSetImplementation<Object?, Object?>>{
-            _db.trainerClients,
-          },
-        )
-        .getSingle();
-    return row.read<int>('c') > 0;
-  }
-
-  /// Registers a new client (e.g. after a 상담) with a fresh, empty
-  /// profile. The non-`seed-` id survives the daily re-seed.
-  ///
-  /// Returns `false` — writing nothing — when the name is blank or
-  /// already taken. Schedule rows reference a client by NAME (the chat
-  /// shortcut and completion logging both look up `clientName`), so a
-  /// duplicate name would attribute one client's chat/운동기록 to
-  /// another. Keeping names unique closes that path until schedules
-  /// carry a clientId (review PR 243).
-  ///
-  /// The duplicate check and the insert run in ONE transaction, so two
-  /// concurrent adds of the same name can't both pass the check and both
-  /// insert — exactly one wins, the other returns `false` (review 243).
-  @override
-  Future<bool> addClient({required String name, required String goal}) async {
-    final trimmedName = name.trim();
-    if (trimmedName.isEmpty) return false;
-    return _db.transaction(() async {
-      if (await _nameTaken(trimmedName.toLowerCase())) return false;
-      final now = nowKst();
-      await _db
-          .into(_db.trainerClients)
-          .insert(
-            TrainerClientsCompanion.insert(
-              id: 'client-${now.microsecondsSinceEpoch}',
-              name: trimmedName,
-              // runes.first survives surrogate pairs without pulling the
-              // characters package into this pure-Dart service.
-              avatar: String.fromCharCode(trimmedName.runes.first),
-              // 목표는 건강 목표만 남긴다 — 고르지 않았으면 비어 있다(#1818).
-              goal: healthFocusGoal(goal),
-              // 대화가 없으면 비워 둔다 — 화면이 로케일에 맞춰
-              // "아직 대화가 없어요" 를 그린다.
-              lastMessage: '',
-              lastTime: '-',
-              active: const Value(true),
-              caloriesToday: 0,
-              sodiumMg: 0,
-              sugarG: 0,
-              carbsG: const Value(0),
-              proteinG: const Value(0),
-              fatG: const Value(0),
-              lastRoutine: '-',
-              weekCompletionJson: '[0,0,0,0,0,0,0]',
-              sodiumWeekJson: const Value('[]'),
-              // Large key appends new clients after the seeded roster.
-              sortOrder: Value(now.millisecondsSinceEpoch),
-            ),
-          );
-      return true;
     });
   }
 
