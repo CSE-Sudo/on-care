@@ -82,10 +82,11 @@ final Provider<ReleaseProbe?> releaseProbeProvider = Provider<ReleaseProbe?>(
   name: 'releaseProbe',
 );
 
-/// 주기 확인 간격. 테스트가 줄여 넣는다.
-final Provider<Duration> releaseCheckIntervalProvider = Provider<Duration>(
-  (ref) => kReleaseCheckInterval,
-  name: 'releaseCheckInterval',
+/// 주기 확인 신호 — [kReleaseCheckInterval] 마다 한 번. 듣는 동안만 타이머가 돈다.
+/// 테스트는 손으로 쏘는 스트림을 넣는다.
+final Provider<Stream<void>> releaseCheckTicksProvider = Provider<Stream<void>>(
+  (ref) => Stream<void>.periodic(kReleaseCheckInterval),
+  name: 'releaseCheckTicks',
 );
 
 /// 새 버전 안내 컨트롤러(#3023).
@@ -104,15 +105,14 @@ class ReleaseUpdateController extends Notifier<ReleaseUpdateState> {
     if (probe == null || normalizeReleaseSha(current) == null) {
       return const ReleaseUpdateState();
     }
-    final Timer timer = Timer.periodic(
-      ref.watch(releaseCheckIntervalProvider),
-      (_) => unawaited(check()),
-    );
+    final StreamSubscription<void> ticks = ref
+        .watch(releaseCheckTicksProvider)
+        .listen((_) => unawaited(check()));
     final StreamSubscription<void> visible = probe.onVisible.listen(
       (_) => unawaited(check()),
     );
     ref.onDispose(() {
-      timer.cancel();
+      unawaited(ticks.cancel());
       unawaited(visible.cancel());
     });
     Future<void>.microtask(check);
