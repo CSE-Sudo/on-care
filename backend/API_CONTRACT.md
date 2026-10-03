@@ -1473,7 +1473,7 @@ N명이면 첫 화면에서 요청이 2N개였다.
 
 ### 소셜 로그인 실패 응답 (#1550)
 
-`POST /auth/social/{provider}` 는 provider(google·kakao·naver·apple)에 토큰을 확인한 뒤
+`POST /auth/social/{provider}` 는 provider(google·kakao·apple, naver 는 아래 #3035 절)에 토큰을 확인한 뒤
 결과에 따라 아래처럼 답한다. **500 은 내지 않는다** — provider 점검 페이지·WAF 차단 화면처럼
 200 에 HTML 이 오거나, JSON 이 깨졌거나, 약속한 필드의 타입이 달라도 마찬가지다.
 
@@ -1491,6 +1491,25 @@ N명이면 첫 화면에서 요청이 2N개였다.
   저장한다.
 - 401·502 모두 실패 감사 로그(`auth.social`, `success=false`, `detail`=provider)를 남긴다.
   감사·서버 로그·응답 어디에도 토큰과 provider 응답 본문은 남기지 않는다.
+
+### 소셜 토큰 발급 앱 확인 (#3035)
+
+provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 앞으로** 발급된 것이어야 로그인된다.
+다른 앱이 받은 같은 사람의 토큰으로는 계정이 만들어지거나 같은 이메일의 기존 계정에 연결되지 않는다.
+
+| provider | 서버가 확인하는 것 | 허용 설정 |
+|---|---|---|
+| google | tokeninfo 의 `aud` 가 허용 목록 안, `iss` 가 `accounts.google.com`·`https://accounts.google.com`, `exp` 가 미래 | `GOOGLE_CLIENT_IDS`(콤마 구분) |
+| kakao | `GET /v1/user/access_token_info` 의 `app_id` 가 설정값과 같고, 그 `id` 가 `/v2/user/me` 의 `id` 와 같음(토큰 정보가 맞을 때만 사용자 정보를 부른다) | `KAKAO_APP_ID` |
+| apple | id_token 서명(JWKS)·`aud`·`iss`·`exp` | `APPLE_CLIENT_IDS`(콤마 구분) |
+| naver | 앱이 보낸 access_token 의 발급 앱을 확인할 수단이 없다. 서버 측 코드 교환 전까지 **501** `아직 지원하지 않는 소셜 로그인입니다.`(네이버로 요청도 보내지 않는다) | — |
+
+- 발급 앱·발급자 불일치, 만료, 두 응답의 id 불일치는 위 표의 **401** `소셜 인증에 실패했습니다.` 와 같다.
+  어느 검사에서 떨어졌는지는 서버 로그에만 남기고, 값(토큰·client_id·응답 본문)은 남기지 않는다.
+- 허용 설정이 비어 있으면 그 provider 는 외부 호출 없이 **401** 이다(조용히 통과시키지 않는다). 기동
+  점검이 비어 있는 provider 를 경고 로그로 남긴다.
+- 발급 정보 필드의 타입이 약속과 다르면(예: `aud` 가 배열, `exp` 가 숫자가 아닌 문자열, `app_id` 가 bool)
+  형식 이상 **502** 다.
 
 ### 가입 동의 (#2819)
 
