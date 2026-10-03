@@ -474,11 +474,16 @@ class _TrainerSyncRow extends ConsumerWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () async {
+          // 시트가 닫힐 때 이 줄이 이미 치워졌어도 비울 수 있게 먼저 잡는다(#3096).
+          final ProviderContainer container = ProviderScope.containerOf(
+            context,
+            listen: false,
+          );
           await showTrainerSyncSheet(context);
           // 시트를 여는 동안 트레이너가 코드를 쓰면 서버에는 담당·헬스장 연결이
           // 생긴다. 셋 다 폴링 없는 provider 라 다시 읽지 않으면, 벨 알림은
           // 연결됐다고 하는데 바로 아래 섹션은 `없음` 으로 남는다(#1931).
-          ref
+          container
             ..invalidate(myGymProvider)
             ..invalidate(myTrainerProvider)
             ..invalidate(memberCoachProvider);
