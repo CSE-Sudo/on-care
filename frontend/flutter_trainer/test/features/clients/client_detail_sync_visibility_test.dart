@@ -153,7 +153,9 @@ void main() {
   testWidgets('상세를 닫으면 주기가 남지 않는다', (tester) async {
     final repository = await _pumpDetail(tester);
 
-    await goTo(tester, AppRoutes.dashboard);
+    // 회원 목록으로 돌아가 상세를 닫는다. 다른 탭(대시보드)으로 옮기면 셸이
+    // 고객 탭 가지를 그대로 붙들고 있어 상세가 닫히지 않는다.
+    await goTo(tester, AppRoutes.clients);
     final int afterClose = repository.clientRefreshes.length;
     await _wait(tester, _cycle);
 
