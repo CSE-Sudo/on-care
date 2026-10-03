@@ -194,7 +194,8 @@ jobs:
             echo "이미 올라간 이미지를 씁니다: $SHA"
           elif grep -q ImageNotFoundException "$RUNNER_TEMP/describe.err"; then
             TAGGED_IMAGE="$REGISTRY/$ECR_REPOSITORY:$SHA"
-            # GIT_SHA 는 이미지가 자기 커밋을 알게 하는 값이다. 응답에 싣는 것은 백엔드 쪽 일이다.
+            # 커밋 SHA 를 이미지에 넣는다(#3029) — /v1/version·/v1/healthz 의 commit_sha 와
+            # Sentry release 가 이 값을 쓰고, 배포 뒤 검증 단계가 배포한 SHA 와 대조한다.
             docker build \
               --build-arg GIT_SHA="$SHA" \
               --label org.opencontainers.image.revision="$SHA" \

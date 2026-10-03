@@ -57,8 +57,14 @@ python scripts/migrate.py
 # 읽은 값을 쓰기 때문이다. 프록시 대역이 고정된 환경은 그 대역으로 좁힌다.
 FORWARDED_ALLOW_IPS="${FORWARDED_ALLOW_IPS:-*}"
 
+# uvicorn 기본 액세스 로그는 끈다(#3031). 그 로그는 요청 줄 전체(쿼리 포함)와 위의
+# 프록시 헤더로 읽은 실제 사용자 IP 를 한 줄에 남겨, 헬스장 찾기의 lat·lng 같은 위치
+# 좌표가 IP 와 함께 서버 로그에 쌓인다. 요청 로그는 앱의 `app.access`
+# (app/core/observability.py)가 method·경로(쿼리 제외)·상태·소요시간·request_id 만
+# 남기므로 가시성은 그대로다.
 echo "[start] launching uvicorn on :${PORT} (workers=${WEB_CONCURRENCY})"
 exec uvicorn app.main:app \
   --host 0.0.0.0 --port "${PORT}" \
   --workers "${WEB_CONCURRENCY}" \
-  --proxy-headers --forwarded-allow-ips="${FORWARDED_ALLOW_IPS}"
+  --proxy-headers --forwarded-allow-ips="${FORWARDED_ALLOW_IPS}" \
+  --no-access-log

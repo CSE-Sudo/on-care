@@ -24,7 +24,7 @@ GitHub(main push) ─> Backend CI ─> backend-deploy.yml
                                                                  └── Neon Postgres (CREATE EXTENSION vector)
 ```
 
-기동 흐름: 컨테이너가 `scripts/start.sh` 로 **마이그레이션 → uvicorn(--proxy-headers)**.
+기동 흐름: 컨테이너가 `scripts/start.sh` 로 **마이그레이션 → uvicorn(--proxy-headers --no-access-log)**.
 마이그레이션은 `scripts/migrate.py` 가 **PostgreSQL advisory lock 으로 직렬화**하므로, 배포 중 새
 태스크와 옛 태스크가 잠깐 함께 떠도 하나만 마이그레이션하고 나머지는 대기 후 no-op 이다(리뷰 #3).
 운영은 `AUTO_CREATE_TABLES=false` 로 두고 Alembic 을 스키마의 유일한 소스로 삼는다.
@@ -108,15 +108,17 @@ staging → `staging`).
 - 배포는 `concurrency` 로 한 번에 하나만 돈다.
 - **build**: 커밋 SHA 태그(`oncare-backend:<sha>`)로 한 번 빌드·푸시하고 digest 를 얻는다. 같은 커밋을
   다시 배포하면(되돌리기 포함) 새로 빌드하지 않고 있는 이미지의 digest 를 쓴다. 빌드 때
-  `--build-arg GIT_SHA=<sha>` 를 넘긴다(응답에 커밋을 싣는 일은 백엔드 쪽 `/v1/version` 의
-  `commit_sha` 몫이다).
+  `--build-arg GIT_SHA=<sha>` 를 넘겨 이미지가 자기 커밋을 품는다 — `/v1/version`·`/v1/healthz` 의
+  `commit_sha` 와 Sentry release(`oncare-backend@<APP_VERSION>+<SHA 앞 12자>`)가 이 값을 쓴다(#3029).
 - **deploy-staging**(`BACKEND_STAGING_DEPLOY_ENABLED=true` 일 때) → **deploy-production**. staging 이
   실패·취소되면 운영으로 가지 않는다. 두 환경은 같은 digest 를 쓴다.
 - 각 환경 배포(`backend-deploy-service.yml`)는
   1. 스택이 지금 선언한 이미지(되돌릴 지점)를 기록하고,
   2. `aws cloudformation deploy --role-arn <서비스 역할>` 로 `ImageIdentifier` 만 바꾸고,
   3. `/v1/healthz` 가 그 환경의 기대 설정인지(아래 표), `/v1/readyz` 로 **DB 까지 닿는지**, `/v1/version`
-     에 `commit_sha` 가 있으면 배포한 커밋과 같은지 확인한다(`.github/scripts/backend_verify_service.sh`).
+     의 `commit_sha` 가 배포한 커밋과 같은지 확인한다(`.github/scripts/backend_verify_service.sh`). healthz·
+     version 판정은 `.github/scripts/verify_backend_health.sh`(#3029)와 같은 규칙이고, 필드가 없거나
+     다르면 실패다. PR 게이트·Infra CI 가 두 스크립트의 경계를 시험한다.
   4. 검증에서 떨어지면 **직전 digest 로 스택을 되돌리고** 다시 검증한다. 잡은 실패로 남는다.
 
 | healthz 필드 | production | staging |
@@ -231,7 +233,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | 키 | 값 | 필수 |
 |---|---|---|
 | `DATABASE_URL` | 그 환경 DB 의 직접 엔드포인트 | 예 |
-| `JWT_SECRET` | `openssl rand -hex 32`. **환경마다 다르게** | 예 |
+| `JWT_SECRET` | `openssl rand -hex 32`. **환경마다 다르게**. 32바이트 미만이면 운영 기동 거부(#3029) | 예 |
 | `GEMINI_API_KEY` | 사진 인식·임베딩. 운영은 없으면 기동 거부(#2812) | 예 |
 | `KAKAO_REST_API_KEY` | 장소 실검색. 빈 값이면 시드 폴백 | 키는 있어야 함 |
 | `SENTRY_DSN` | 오류 수집(#2839). 빈 값이면 꺼짐 | 키는 있어야 함 |
@@ -256,7 +258,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `EMBED_DIM` | `768` |
 | `MIGRATE_LOCK_TIMEOUT`·`MIGRATE_CONNECT_TIMEOUT` | `120`·`10`(#2912) |
 
-**스택 파라미터로 정하는 값**: `CORS_ALLOW_ORIGINS`(https 만, `*` 금지), `GEMINI_MODEL`(아래 5-3),
+**스택 파라미터로 정하는 값**: `CORS_ALLOW_ORIGINS`(https 만, `*`·빈 값·localhost 금지 — 운영 기동 거부, #3029), `GEMINI_MODEL`(아래 5-3),
 `ADMIN_EMAILS`, `APPLE_CLIENT_IDS`, 메일(`MAIL_FROM`·`SMTP_HOST`·`SMTP_PORT`·`PASSWORD_RESET_*_URL`).
 
 그 밖의 키(`LOGIN_MAX_FAILURES`·`ACCESS_TOKEN_EXPIRE_MINUTES`·`EXPOSE_API_DOCS`·`GYM_BENEFITS_ENABLED`·
@@ -280,6 +282,16 @@ CREATE EXTENSION IF NOT EXISTS vector;
 - `async def` 라우트 안에서 동기 DB·Pillow·파일 저장을 돌리지 않는다 — 이벤트 루프가 막혀 같은 워커의
   다른 요청(헬스체크 포함)이 모두 멈춘다. 외부 호출만 `await` 하고 나머지는 `run_in_threadpool` 로
   넘기거나 라우트를 `def` 로 둔다. `tests/test_async_route_guard.py` 가 이 규칙을 검사한다.
+
+## 요청 로그 (#3031)
+
+컨테이너 표준 출력(ECS 태스크 → CloudWatch Logs)에 남는 요청 로그는 앱의 `app.access` 한 곳이다 —
+`GET '/v1/places/nearby' -> 200 (12.3ms)` 처럼 method·경로(쿼리 제외)·상태·소요시간과 줄 앞의
+request_id 만 남긴다. uvicorn 기본 액세스 로그는 `scripts/start.sh` 가 `--no-access-log` 로 끈다.
+그 로그는 쿼리를 포함한 요청 줄 전체와 프록시 헤더로 읽은 사용자 IP 를 남겨, 헬스장 찾기의
+위치 좌표(`lat`·`lng`)·검색어가 IP 와 함께 쌓이기 때문이다(처리방침은 위치를 "저장 안 함"으로 적는다).
+Backend CI 가 컨테이너를 띄워 좌표 쿼리 요청 뒤 로그에 좌표·IP 가 없는지 확인한다. 로그 그룹의
+보관 기간·열람 권한은 인프라 설정(#480)이다.
 
 ## DB 커넥션 풀·쿼리 실행 상한 (#2836)
 
@@ -313,7 +325,7 @@ Fargate 태스크의 디스크는 재배포·재시작 때 비므로 운영은 S
 | 키 | 값/설명 |
 |---|---|
 | `ATTACHMENT_STORAGE` | `auto`(기본: 버킷 이름이 있으면 `s3`, 없으면 `local`) · `local` · `s3`. `s3` 인데 버킷이 비면 기동 거부 |
-| `ATTACHMENT_S3_BUCKET` | 첨부 버킷 이름. 비면 로컬 디스크(운영이면 기동 때 WARN) |
+| `ATTACHMENT_S3_BUCKET` | 첨부 버킷 이름. 비면 로컬 디스크 — 운영(`ENV=prod`)이면 기동 거부, 스테이징이면 기동 때 WARN(#3029) |
 | `ATTACHMENT_S3_REGION` | 버킷 리전. 비면 AWS 기본 체인(서비스 리전) |
 | `ATTACHMENT_S3_PREFIX` | 키 접두사(기본 `chat-attachments`). 키는 `<접두사>/chat-images/<id>.<ext>`·`<접두사>/report-pdfs/<id>.pdf` |
 | `ATTACHMENT_S3_ENDPOINT_URL` | S3 호환 저장소를 쓸 때만. AWS 는 비운다 |
@@ -360,13 +372,16 @@ Fargate 태스크의 디스크는 재배포·재시작 때 비므로 운영은 S
 - [ ] **운영 DB 와 staging(데모) DB 가 다르다.** 운영 `DATABASE_URL` 은 데모 시드가 한 번도 들어가지
       않은 DB(또는 Neon 브랜치)를 가리킨다. 같은 DB 를 쓰면 운영 화면에 데모 계정·기록이 섞이고,
       데모 계정 비밀번호가 운영 자격 증명이 된다.
-- [ ] `JWT_SECRET` 은 환경마다 다르다(staging 에서 발급한 토큰이 운영에서 통하지 않게).
-- [ ] `CorsAllowOrigins` 는 그 환경의 실제 프런트 도메인만.
+- [ ] `JWT_SECRET` 은 환경마다 다르고(staging 에서 발급한 토큰이 운영에서 통하지 않게) 32바이트 이상이다
+      (짧으면 운영 기동 거부, #3029).
+- [ ] `CorsAllowOrigins` 는 그 환경의 실제 프런트 도메인(`https://`)만. 비우거나 localhost·`http://`
+      출처가 섞이면 운영 기동이 거부된다(#3029).
 - [ ] 프런트 저장소 변수 `API_BASE_URL`(운영)과 `STAGING_API_BASE_URL`(데모 사이트 real 빌드)이 다르다.
       같으면 두 프런트 배포 워크플로가 빌드 전에 멈춘다.
-- [ ] 배포 뒤 워크플로의 `Verify service` 단계가 통과했다(2절 표). 실패했다면 `Roll back to previous
-      image` 단계 결과와 잡 요약을 본다.
-- [ ] 기동 로그에 `[startup]` WARN 이 없다(데모 폴백·운영 데모 시드·로컬 첨부 저장소).
+- [ ] 배포 뒤 워크플로의 `Verify service` 단계가 통과했다(2절 표 + `/v1/version` 의 `commit_sha` 가
+      배포한 커밋). 실패했다면 `Roll back to previous image` 단계 결과와 잡 요약을 본다.
+- [ ] 기동 로그에 `[startup]` WARN 이 없다(데모 폴백, staging 의 로컬 첨부 저장소). 운영 데모 시드·운영
+      로컬 첨부 저장소는 WARN 이 아니라 기동 거부다.
 
 ## 5-3) 모델 고정 (#2912)
 
@@ -405,9 +420,13 @@ Fargate 태스크의 디스크는 재배포·재시작 때 비므로 운영은 S
 
 ```bash
 flutter build web --release \
+  --dart-define=ENV=prod \
   --dart-define=USE_MOCK_API=false \
   --dart-define=API_BASE_URL=https://<서비스 주소>/v1
 ```
+
+`ENV=prod` 를 빠뜨리면 릴리스 빌드가 기동할 때 구성 오류 안내만 띄운다(#3022). 운영 웹은
+`aws-frontend-deploy.yml` 이 위 값과 `SENTRY_DSN` 을 함께 넘긴다.
 
 지도 핀은 프론트 카카오맵 **JS SDK**(JS키 + 도메인 등록) 담당. 백엔드는 좌표+정보만 제공한다.
 

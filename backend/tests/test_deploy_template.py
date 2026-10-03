@@ -124,7 +124,7 @@ def _production_values() -> dict[str, object]:
         "ATTACHMENT_S3_BUCKET": "oncare-attachments-test",
         "ATTACHMENT_S3_REGION": "ap-southeast-1",
         "DATABASE_URL": "postgresql+psycopg://user:pass@db.example.com/oncare",
-        "JWT_SECRET": "a-strong-random-secret-value",
+        "JWT_SECRET": "a-strong-random-secret-value-for-prod-tests",
         "GEMINI_API_KEY": "test-gemini-key",
         "KAKAO_REST_API_KEY": "",
         "SENTRY_DSN": "",

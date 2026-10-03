@@ -107,6 +107,35 @@ def test_init_applies_privacy_options(reset_sentry):
     assert options["release"].startswith("oncare-backend@")
 
 
+# --- release 이름(#3029) -------------------------------------------------------
+
+SAMPLE_SHA = "0123456789abcdef0123456789abcdef01234567"
+
+
+def test_release_name_without_sha_is_app_version_only():
+    assert error_tracking.release_name(_settings(app_version="1.2.3", git_sha="unknown")) == (
+        "oncare-backend@1.2.3"
+    )
+
+
+def test_release_name_appends_short_sha():
+    name = error_tracking.release_name(_settings(app_version="1.2.3", git_sha=SAMPLE_SHA))
+    assert name == "oncare-backend@1.2.3+0123456789ab"
+
+
+def test_release_name_differs_per_commit():
+    a = error_tracking.release_name(_settings(git_sha=SAMPLE_SHA))
+    b = error_tracking.release_name(_settings(git_sha="f" * 40))
+    assert a != b
+
+
+def test_init_uses_release_with_sha(reset_sentry):
+    assert error_tracking.init_error_tracking(
+        _settings(git_sha=SAMPLE_SHA), transport=_CaptureTransport()
+    )
+    assert sentry_sdk.get_client().options["release"].endswith("+0123456789ab")
+
+
 def test_capture_is_noop_when_disabled(reset_sentry):
     # 초기화하지 않은 상태에서 불러도 예외 없이 지나간다.
     error_tracking.tag_request("rid-1")

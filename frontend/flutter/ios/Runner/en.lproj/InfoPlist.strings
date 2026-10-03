@@ -1,0 +1,6 @@
+/* Permission descriptions — English (#3048).
+   When a description changes, update ko.lproj/InfoPlist.strings and the Info.plist fallback too. */
+
+"NSLocationWhenInUseUsageDescription" = "On-Care uses your location to find gyms near you and show them on the map.";
+"NSCameraUsageDescription" = "On-Care uses the camera to take food photos for your meal log and photos to send in trainer chat. Food photos are used only for your meal log and AI meal analysis, and chat photos only for conversations with your trainer.";
+"NSPhotoLibraryUsageDescription" = "On-Care uses your photo library when you choose food photos for your meal log or photos to send in trainer chat. Food photos are used only for your meal log and AI meal analysis, and chat photos only for conversations with your trainer.";

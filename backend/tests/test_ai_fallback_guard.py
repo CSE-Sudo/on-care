@@ -20,7 +20,7 @@ def _prod(**kw) -> Settings:
     base = dict(
         _env_file=None,
         env="prod",
-        jwt_secret="a-strong-random-secret-value",
+        jwt_secret="a-strong-random-secret-value-for-prod-tests",
         cors_allow_origins="https://app.oncare.com",
         seed_demo_data=False,
         auto_create_tables=False,

@@ -173,7 +173,9 @@ jobs:
         run: |
           set -euo pipefail
           PYTHON_VERSION=$(tr -d '[:space:]' < .python-version)
-          docker build --build-arg "PYTHON_VERSION=${PYTHON_VERSION}" -t oncare-backend:ci .
+          # 배포와 같은 빌드 인자로 커밋 SHA 를 넣는다(#3029). 아래 기동 단계가 /v1/version 으로 확인한다.
+          docker build --build-arg "PYTHON_VERSION=${PYTHON_VERSION}" \
+            --build-arg "GIT_SHA=${GITHUB_SHA}" -t oncare-backend:ci .
 
       - name: Boot the container and probe health
         # 운영과 같은 엔트리포인트(scripts/start.sh → 마이그레이션 → uvicorn)로 띄운다.
@@ -192,6 +194,9 @@ jobs:
               echo "healthz ok after ${i} tries"
               curl --fail --silent --show-error --max-time 5 http://localhost:8000/v1/readyz
               echo
+              VERSION=$(curl --fail --silent --show-error --max-time 5 http://localhost:8000/v1/version)
+              echo "version: ${VERSION}"
+              printf '%s' "${VERSION}" | bash ../.github/scripts/verify_backend_health.sh version "${GITHUB_SHA}"
               exit 0
             fi
             if [ "$(docker inspect -f '{{.State.Running}}' oncare-backend)" != "true" ]; then
@@ -204,6 +209,36 @@ jobs:
           echo "::error::컨테이너가 3분 안에 /v1/healthz 에 응답하지 않았습니다."
           docker logs oncare-backend || true
           exit 1
+
+      - name: Request logs carry no coordinates or client IP
+        # uvicorn 기본 액세스 로그는 쿼리(헬스장 찾기 lat·lng)와 사용자 IP 를 남긴다(#3031).
+        # start.sh 가 그 로그를 끄고 app.access 만 남기는지 실제 컨테이너 출력으로 본다.
+        # 인증이 없어 401 이어도 요청 로그는 남으므로 결과 코드는 보지 않는다.
+        run: |
+          set -euo pipefail
+          LAT=37.5665123
+          LNG=126.9780456
+          PROBE_IP=203.0.113.77
+          for path in \
+            "/v1/places/nearby?lat=${LAT}&lng=${LNG}&category=fitness" \
+            "/v1/gyms?lat=${LAT}&lng=${LNG}"; do
+            curl --silent --show-error --output /dev/null --max-time 5 \
+              -H "X-Forwarded-For: ${PROBE_IP}" "http://localhost:8000${path}"
+          done
+          sleep 1
+          docker logs oncare-backend > container.log 2>&1
+          leaked=0
+          for needle in "${LAT}" "${LNG}" "${PROBE_IP}" "lat=" "lng="; do
+            if grep -F -- "${needle}" container.log; then
+              echo "::error::컨테이너 로그에 '${needle}' 가 남았습니다."
+              leaked=1
+            fi
+          done
+          if ! grep -F "app.access: GET '/v1/places/nearby'" container.log; then
+            echo "::error::app.access 요청 로그가 보이지 않습니다."
+            leaked=1
+          fi
+          exit "${leaked}"
 
       - name: Container logs
         if: always()
