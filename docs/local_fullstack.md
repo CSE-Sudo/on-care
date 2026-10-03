@@ -99,6 +99,21 @@ flutter run -d chrome \
   --dart-define=API_BASE_URL=http://localhost:8000/v1
 ```
 
+헬스장 찾기 지도를 에뮬레이터·시뮬레이터에서 보려면 **개발용** 카카오 앱의 JavaScript 키를 넣습니다
+(#3043). 모바일은 지도 문서를 `http://localhost` 출처로 띄우므로, 개발용 앱의 JavaScript SDK 도메인에
+`http://localhost` 가 있어야 합니다. 운영 키의 허용 목록에는 넣지 않습니다(#2913).
+
+```bash
+flutter run -d <에뮬레이터·시뮬레이터 id> \
+  --dart-define=USE_MOCK_API=false \
+  --dart-define=API_BASE_URL=http://10.0.2.2:8000/v1 \
+  --dart-define=KAKAO_JS_KEY=<개발용 카카오 JavaScript 키>
+```
+
+키가 없거나 지도를 불러오지 못하면 지도 자리에 "지도를 불러오지 못했어요" 만 보이고 목록은 그대로
+쓸 수 있습니다. 데모(`USE_MOCK_API=true`)는 예전 그림 지도를 그대로 씁니다. `10.0.2.2` 는 안드로이드
+에뮬레이터에서 본 PC 의 주소이고, iOS 시뮬레이터는 `localhost` 를 그대로 씁니다.
+
 ### 안드로이드 실기기에서 실행 (#1882)
 
 카메라·사진 권한 다이얼로그와 촬영 흐름은 Chrome 에서 확인할 수 없습니다. 안드로이드는 USB
