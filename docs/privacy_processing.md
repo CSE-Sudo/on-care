@@ -82,7 +82,8 @@ DB 복구용 기록(Neon 의 복원 기간)에 남은 사본은 그 기간이 �
 | 채팅 첨부 사진·리포트 PDF | ○ | ○ | `chat_messages`, `config.py` `chat_image_storage_dir`·`report_pdf_storage_dir` |
 | 접속 기록(일시·IP) | ○ | ○ | `audit_logs.ip` |
 | 현재 위치 | 헬스장 찾기에서 허용한 경우만, 저장 안 함 | — | `frontend/flutter/.../gym_location_controller.dart`, `GET /places/nearby` |
-| 오류 정보 | ○ | ○ | Sentry(1절) |
+| 상담·예약 신청 내용(운동 목표·희망 일시·문의 내용) | ○ | ○(받는 쪽) | `consultation_requests`, `trainer_reservations` · iOS 매니페스트 `NSPrivacyCollectedDataTypeOtherUserContent`(계정 연결) |
+| 오류 정보 | ○ | ○ | Sentry(1절) · iOS 매니페스트 `NSPrivacyCollectedDataTypeCrashData`·`NSPrivacyCollectedDataTypeOtherDiagnosticData`(세션 추적·기기 종류·운영체제·앱 버전, 계정 미연결) |
 | 광고·분석 쿠키 | 없음 | 없음 | 두 앱 `pubspec.yaml`, `web/index.html` CSP |
 
 ## 5. 보호책임자
