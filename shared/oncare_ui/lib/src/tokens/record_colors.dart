@@ -99,3 +99,19 @@ class OnCareRecordColors {
   /// 단계 색을 쓴다(#1788, #2075).
   static Color shieldOn(OnCareRecordRamp ramp) => ramp.full;
 }
+
+/// 개인운동 하루 완료 단계의 진하기(#2508) — 흰 바탕에 계열 색을 얹는 비율.
+///
+/// 트레이너 웹 `개인운동 이행` 칸이 그날 완료 비율로 진하기를 가른다: 하나도
+/// 안 함(빨강) · 일부 · 절반 이상(브랜드) · 모두(브랜드 그대로). 칸은 흰 카드
+/// 위에 서므로 [OnCareColors.onWhite] 로 불투명 색을 만든다.
+abstract final class OnCareRoutineLevelAlpha {
+  /// 하나도 안 한 날 — 빨강 계열.
+  static const double none = 0.2;
+
+  /// 일부만 한 날.
+  static const double some = 0.25;
+
+  /// 절반 이상 한 날.
+  static const double half = 0.55;
+}

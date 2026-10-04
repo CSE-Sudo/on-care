@@ -36,9 +36,18 @@ Color routineLevelFill(BuildContext context, RoutineLevel level) {
   final Color brand = context.oncare.brand.primary;
   return switch (level) {
     RoutineLevel.none => OnCareRecordColors.empty,
-    RoutineLevel.zero => OnCareColors.danger.withValues(alpha: 0.2),
-    RoutineLevel.some => brand.withValues(alpha: 0.25),
-    RoutineLevel.half => brand.withValues(alpha: 0.55),
+    RoutineLevel.zero => OnCareColors.onWhite(
+      OnCareColors.danger,
+      OnCareRoutineLevelAlpha.none,
+    ),
+    RoutineLevel.some => OnCareColors.onWhite(
+      brand,
+      OnCareRoutineLevelAlpha.some,
+    ),
+    RoutineLevel.half => OnCareColors.onWhite(
+      brand,
+      OnCareRoutineLevelAlpha.half,
+    ),
     RoutineLevel.all => brand,
   };
 }
