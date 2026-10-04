@@ -44,7 +44,7 @@ class _FakeAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
-const String _guard = '담당 회원을 찾을 수 없습니다.';
+const String _guard = '담당 회원을 찾을 수 없어요.';
 
 Dio _dioWith(_FakeAdapter adapter, void Function(String) onLost) {
   final Dio dio = Dio(
@@ -311,7 +311,7 @@ void main() {
         if (o.uri.path == '/v1/trainer/clients') {
           return (200, <Object?>[_rosterRow('m1')]);
         }
-        return (404, <String, Object?>{'detail': '일정을 찾을 수 없습니다.'});
+        return (404, <String, Object?>{'detail': '일정을 찾을 수 없어요.'});
       });
       final ProviderContainer container = ProviderContainer(
         overrides: <Override>[appConfigProvider.overrideWithValue(realApi)],

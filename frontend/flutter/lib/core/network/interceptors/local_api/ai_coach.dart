@@ -254,7 +254,7 @@ extension _LocalApiAiCoach on LocalApiInterceptor {
     final int index = rows.indexWhere(
       (Map<String, Object?> row) => row['id'] == messageId,
     );
-    if (index < 0) return _notFound(options, '감지 기록을 찾을 수 없습니다.');
+    if (index < 0) return _notFound(options, '감지 기록을 찾을 수 없어요.');
     rows[index] = <String, Object?>{...rows[index], 'insight_dismissed': true};
     await _db.putValue(_aiCoachMessagesKey, jsonEncode(rows));
     return _ok(options, <String, Object?>{'status': 'dismissed'});

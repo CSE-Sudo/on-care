@@ -107,7 +107,7 @@ extension _LocalApiNotifications on LocalApiInterceptor {
     final int n =
         await (_db.update(_db.notificationItems)..where((t) => t.id.equals(id)))
             .write(const NotificationItemsCompanion(read: Value(true)));
-    if (n == 0) return _notFound(options, '알림을 찾을 수 없습니다.');
+    if (n == 0) return _notFound(options, '알림을 찾을 수 없어요.');
     return _ok(options, <String, Object?>{'id': id, 'read': true});
   }
 

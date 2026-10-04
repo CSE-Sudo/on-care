@@ -150,7 +150,7 @@ class DioTrainerProfileRepository implements TrainerProfileRepository {
       final response = await call();
       final data = response.data;
       if (data == null) {
-        throw const ServerError(message: '프로필 응답이 비어 있습니다.');
+        throw const ServerError(message: '프로필 응답이 비어 있어요.');
       }
       return trainerProfileFromJson(data);
     } on DioException catch (error) {
@@ -171,7 +171,7 @@ class DioTrainerProfileRepository implements TrainerProfileRepository {
       );
     }
     if (code == 404) {
-      return NotFoundError(message: detail ?? '헬스장을 찾을 수 없습니다.');
+      return NotFoundError(message: detail ?? '헬스장을 찾을 수 없어요.');
     }
     return AppError.fromDio(error);
   }
