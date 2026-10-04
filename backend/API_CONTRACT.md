@@ -1851,6 +1851,18 @@ refresh 토큰은 **일회용**이다. `POST /auth/refresh` 는 회전할 때 �
 발급된 access 토큰 자체는 남은 수명(기본 하루)까지 유효하다. 상태 없는 JWT 의 성질이며,
 로그아웃이 끊는 것은 **세션을 계속 되살리는 능력**이다.
 
+### 재사용 감지 뒤 세션 전체 폐기 · 세션 절대 수명 (#3086)
+
+refresh 토큰에는 로그인 세션 이름 `sid`(무작위)와 최초 인증 시각 `auth_time`(epoch 초)이 실린다. 로그인·소셜 로그인·비밀번호 변경(`POST /users/me/password`·`POST /trainer/me/password`)은 새 세션을 열고, `POST /auth/refresh` 는 두 값을 **그대로 이어** 새 토큰에 싣는다. 같은 계정이라도 로그인마다(기기마다) `sid` 가 다르다.
+
+- **재사용 감지 = 세션 폐기.** 회전으로 폐기된 토큰이 `REFRESH_REUSE_GRACE_SECONDS`(기본 30초)를 넘겨 다시 오면, 정상 사용자와 탈취자 중 누가 먼저 회전했는지 알 수 없으므로 그 `sid` 를 `revoked_sessions` 에 적는다. 이후 그 세션의 refresh 토큰은 모두 401 이고 `auth.refresh_session_revoked` 감사 로그가 남는다. 재사용 요청의 `auth.refresh_reuse` 감사 로그 `detail` 은 `session revoked: <sid>` 다. 다른 `sid`(다른 기기)는 영향이 없다.
+- **동시 갱신 유예.** 웹 탭 두 개나 응답을 받기 전에 앱이 꺼진 경우처럼 정상 사용자도 같은 토큰을 두 번 보낼 수 있다. 회전된 지 유예 안에 다시 온 토큰은 그 요청만 401 이고 세션은 이어진다(`detail`: `within grace`).
+- **로그아웃·옛 세대로 폐기된 토큰의 재사용**은 이미 끊긴 세션이라 세션을 따로 폐기하지 않는다(`detail`: `already revoked: logout`·`already revoked: stale`). 폐기 사유는 `revoked_refresh_tokens.reason`(`rotated`·`logout`·`stale`)에 남는다.
+- **절대 수명.** `auth_time` 으로부터 `SESSION_MAX_DAYS`(모바일, 기본 90일)·`WEB_SESSION_MAX_DAYS`(웹, 기본 30일)가 지나면 `POST /auth/refresh` 는 401 + `auth.refresh_session_expired` 감사 로그다. 회전이 내는 refresh 토큰의 만료도 이 상한을 넘지 않게 잘린다. 두 앱은 지금처럼 refresh 401 → 세션 만료 안내 → 로그인 화면으로 간다.
+- **배포 전 토큰.** `sid`·`auth_time` 이 없는 토큰은 끊기지 않고 첫 회전에서 새 `sid` 와 `auth_time=지금`을 받는다.
+- 접근 토큰에는 `sid` 를 싣지 않는다. 세션이 끊겨도 이미 발급된 접근 토큰은 남은 수명(`ACCESS_TOKEN_EXPIRE_MINUTES`)까지 유효하다.
+- `revoked_sessions` 의 `expires_at` 은 그 세션의 절대 수명이 끝나는 시각이고, 새 폐기가 생길 때마다 만료된 행을 정리한다.
+
 ### 웹 클라이언트의 짧은 refresh 토큰 (#2828)
 
 회원 앱 웹·트레이너 웹 빌드는 **모든 요청**에 `X-Client-Platform: web` 을 싣는다(모바일은

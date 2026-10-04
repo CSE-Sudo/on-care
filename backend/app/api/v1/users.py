@@ -918,7 +918,11 @@ def refresh(
         # 회전해 주면 비밀번호를 바꾼 의미가 없다. 폐기 표에도 적어 같은 토큰이
         # 다시 와도 같은 결과가 되게 한다(세대 칸이 되돌려져도 살아나지 않게).
         token_revocation.revoke(
-            db, jti=claims.jti, user_id=user.id, expires_at=claims.expires_at
+            db,
+            jti=claims.jti,
+            user_id=user.id,
+            expires_at=claims.expires_at,
+            reason=token_revocation.REASON_STALE,
         )
         audit(
             db,
@@ -928,21 +932,61 @@ def refresh(
             success=False,
         )
         raise invalid
+    if claims.session_id is not None and token_revocation.is_session_revoked(
+        db, claims.session_id
+    ):
+        # 재사용으로 탈취가 의심돼 끊긴 세션의 토큰(#3086).
+        audit(
+            db,
+            event="auth.refresh_session_revoked",
+            user_id=user.id,
+            ip=client_ip(request),
+            success=False,
+        )
+        raise invalid
+    if auth_tokens.session_expired(claims):
+        # 최초 로그인으로부터 세션 절대 수명이 지났다 — 다시 로그인한다(#3086).
+        audit(
+            db,
+            event="auth.refresh_session_expired",
+            user_id=user.id,
+            ip=client_ip(request),
+            success=False,
+        )
+        raise invalid
     first_use = token_revocation.revoke(
-        db, jti=claims.jti, user_id=user.id, expires_at=claims.expires_at
+        db,
+        jti=claims.jti,
+        user_id=user.id,
+        expires_at=claims.expires_at,
+        reason=token_revocation.REASON_ROTATED,
     )
     if not first_use:
-        # 로그아웃된 토큰이거나 이미 회전에 쓰인 토큰이다. 어느 쪽이든 여기서 끝난다.
+        # 로그아웃된 토큰이거나 이미 회전에 쓰인 토큰이다. 이 요청은 여기서 끝나고,
+        # 유예를 넘긴 회전 토큰이면 그 세션 전체를 끊는다(#3086).
         audit(
             db,
             event="auth.refresh_reuse",
             user_id=user.id,
             ip=client_ip(request),
             success=False,
+            detail=token_revocation.handle_reuse(
+                db,
+                jti=claims.jti,
+                user_id=user.id,
+                session_id=claims.session_id,
+                session_expires_at=auth_tokens.session_expires_at(claims),
+            ),
         )
         raise invalid
     # 웹으로 발급된 토큰은 헤더가 없어도 웹 수명으로 회전한다(#2828).
-    return auth_tokens.issue_token_pair(user, web=claims.web)
+    # 로그인 세션 이름·최초 인증 시각은 그대로 이어 받는다(#3086).
+    return auth_tokens.issue_token_pair(
+        user,
+        web=claims.web,
+        session_id=claims.session_id,
+        auth_time=claims.auth_time,
+    )
 
 
 @router.post(
@@ -976,7 +1020,11 @@ def logout(
         )
         return None
     token_revocation.revoke(
-        db, jti=claims.jti, user_id=claims.subject, expires_at=claims.expires_at
+        db,
+        jti=claims.jti,
+        user_id=claims.subject,
+        expires_at=claims.expires_at,
+        reason=token_revocation.REASON_LOGOUT,
     )
     audit(
         db,
