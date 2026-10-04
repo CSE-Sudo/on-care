@@ -290,11 +290,14 @@ Future<Map<String, String>> demoTodayAssignedRoutines(
   String memberId,
 ) async {
   final DateTime today = _dayOf(nowKst());
-  final List<AssignedRoutine> assigned = await DemoRoutineStore(
-    db,
-  ).assigned(memberId);
+  final DemoRoutineStore store = DemoRoutineStore(db);
+  final List<AssignedRoutine> assigned = await store.assigned(memberId);
   final Map<String, String> byName = <String, String>{};
-  for (final RoutineDayRoutine r in demoRoutineWindows(assigned, today)) {
+  for (final RoutineDayRoutine r in demoRoutineWindows(
+    assigned,
+    today,
+    retired: await store.readRetired(memberId),
+  )) {
     if (r.activeOn(today)) byName.putIfAbsent(r.name.trim(), () => r.id);
   }
   return byName;
@@ -313,9 +316,15 @@ List<RoutineDayRoutine> demoRoutineWindows(
   Map<String, DateTime> sentOn = const <String, DateTime>{},
 }) {
   final DateTime seedSince = today.subtract(const Duration(days: 27));
+  // 시작일에 교대할 개인운동은 목록과 내린 기록에 함께 있다 — 끝난 날을 아는
+  // 내린 기록 쪽을 쓴다.
+  final Set<String> retiredIds = <String>{
+    for (final (AssignedRoutine r, DateTime _) in retired) r.id,
+  };
   final List<(AssignedRoutine, DateTime?)> rows =
       <(AssignedRoutine, DateTime?)>[
-        for (final AssignedRoutine r in assigned) (r, null),
+        for (final AssignedRoutine r in assigned)
+          if (!retiredIds.contains(r.id)) (r, null),
         for (final (AssignedRoutine r, DateTime end) in retired) (r, end),
       ];
   return <RoutineDayRoutine>[

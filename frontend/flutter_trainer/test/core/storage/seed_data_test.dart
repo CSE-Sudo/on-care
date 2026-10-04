@@ -141,12 +141,14 @@ void main() {
           (jsonDecode(c.sodiumWeekJson) as List<Object?>)
               .map((e) => (e! as num).toInt())
               .toList();
-      List<int> week(TrainerClientRow c) =>
+      // 걸린 것이 없는 날은 null 이다(#2513).
+      List<int?> week(TrainerClientRow c) =>
           (jsonDecode(c.weekCompletionJson) as List<Object?>)
-              .map((e) => e! as int)
+              .map((e) => (e as num?)?.toInt())
               .toList();
+      // 앱과 같은 규칙 — 걸린 날만 평균내고, 0 은 걸렸는데 안 한 날이라 센다.
       bool low(TrainerClientRow c) {
-        final recorded = week(c).where((d) => d > 0).toList();
+        final recorded = week(c).whereType<int>().toList();
         if (recorded.isEmpty) return false;
         return recorded.reduce((a, b) => a + b) / recorded.length < 60;
       }

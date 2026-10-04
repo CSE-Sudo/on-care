@@ -472,7 +472,9 @@ class _ExerciseMemoDialogState extends ConsumerState<_ExerciseMemoDialog> {
 
 /// 메모를 남긴 때 — 회원 메모 창 목록과 같은 `2026.09.23 14:05`.
 String _memoTime(DateTime at) {
-  final DateTime local = at.toLocal();
+  // 회원 메모 창과 같은 KST 벽시계다(#2893) — 브라우저 시간대를 따르면 두
+  // 창이 같은 메모를 다른 시각으로 보인다.
+  final DateTime local = toKst(at);
   String two(int v) => v.toString().padLeft(2, '0');
   return '${local.year}.${two(local.month)}.${two(local.day)} '
       '${two(local.hour)}:${two(local.minute)}';

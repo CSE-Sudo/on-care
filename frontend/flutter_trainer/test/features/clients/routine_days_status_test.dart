@@ -9,6 +9,7 @@ import 'package:oncare_trainer/features/clients/domain/entities/routine_days.dar
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_routine_status.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 
 import '../../helpers/fixed_clock.dart';
@@ -577,6 +578,26 @@ void main() {
       token: 'demo-trainer-token',
       seedClock: kMidWeekKst,
     );
+    Map<String, Object?> send(String start, String name) => <String, Object?>{
+      'name': '개인운동',
+      'delivery_kind': 'routine_only',
+      'start_date': start,
+      'active_days': 7,
+      'sessions': <Object?>[
+        <String, Object?>{
+          'name': name,
+          'exercises': <Object?>[
+            <String, Object?>{'name': name, 'type': '유산소', 'duration': 30},
+          ],
+        },
+      ],
+    };
+    // 8/18(화)에 보낸 개인운동이 걸려 있다.
+    debugNowKstOverride = () => DateTime(2026, 8, 18, 13);
+    await c
+        .read(trainerRoutineRepositoryProvider)
+        .assignProgram('seed-client-2', send('2026-08-18', '런지'));
+    debugNowKstOverride = () => kMidWeekKst;
     // 8/20(목)에 8/22(토) 시작으로 보낸다.
     await c.read(trainerRoutineRepositoryProvider).assignProgram(
       'seed-client-2',
@@ -604,6 +625,20 @@ void main() {
         .read(trainerRoutineRepositoryProvider)
         .fetchLatestDelivery('seed-client-2');
     expect(latest?.sentOn, DateTime(2026, 8, 20));
+    // 시작일 전까지는 이전 개인운동이 그대로 걸려 있다 — 서버 목록처럼.
+    List<String> names(List<AssignedRoutine> rows) => <String>[
+      for (final AssignedRoutine r in rows)
+        if (r.deliveryKind != null) r.name,
+    ];
+    expect(
+      names(
+        await c
+            .read(trainerRoutineRepositoryProvider)
+            .watchAssignedRoutines('seed-client-2')
+            .first,
+      ),
+      <String>['런지'],
+    );
 
     // 시작일이 지난 뒤에도 날짜별 이행의 보낸 날은 8/20 이다.
     debugNowKstOverride = () => DateTime(2026, 8, 24, 13);
@@ -611,10 +646,24 @@ void main() {
         .read(routineDaysRepositoryProvider)
         .fetch('seed-client-2');
     final RoutineDayRoutine walk = days.routines.firstWhere(
-      (RoutineDayRoutine r) => r.personal,
+      (RoutineDayRoutine r) => r.name == '빠르게 걷기',
     );
     expect(walk.activeFrom, DateTime(2026, 8, 22));
     expect(walk.sentOn, DateTime(2026, 8, 20));
+    // 이전 개인운동은 새 시작일 전날(8/21)까지 걸렸다 — 빈 날이 없다.
+    final RoutineDayRoutine lunge = days.routines.firstWhere(
+      (RoutineDayRoutine r) => r.name == '런지',
+    );
+    expect(lunge.lastDay, DateTime(2026, 8, 21));
+    expect(
+      names(
+        await c
+            .read(trainerRoutineRepositoryProvider)
+            .watchAssignedRoutines('seed-client-2')
+            .first,
+      ),
+      <String>['빠르게 걷기'],
+    );
     debugNowKstOverride = () => kMidWeekKst;
   });
 

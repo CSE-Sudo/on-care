@@ -394,6 +394,26 @@ def test_history_groups_a_days_personal_routines_into_one_card(db_session, pair)
     assert plank.id  # 지난 날 ✗ 줄의 출처
 
 
+def test_history_skips_a_day_cut_by_the_read_limit(db_session, pair):
+    """완료 기록을 [limit] 건만 읽어 일부만 읽힌 가장 오래된 날은 카드로 만들지
+    않는다 — 만들면 한 운동이 ✗ 로 그려진다."""
+    monday, tuesday = MONDAY, MONDAY + timedelta(days=1)
+    walk = _routine(db_session, pair, "걷기", active_from=MONDAY, ended_on=MONDAY + timedelta(days=7))
+    squat = _routine(db_session, pair, "스쿼트", active_from=MONDAY, ended_on=MONDAY + timedelta(days=7), order=2)
+    for day in (monday, tuesday):
+        _done(db_session, pair, walk, day)
+        _done(db_session, pair, squat, day)
+
+    # 4건 중 최근 3건만 읽는다 — 화요일 둘과 월요일 하나.
+    history = trainer_roster_service.build_client_history(
+        db_session, pair.member_id, pair.trainer_id, limit=3
+    )
+    personal = [h for h in history if h.kind == "personal_routine"]
+
+    assert [h.date for h in personal] == [tuesday.isoformat()]
+    assert all(i.done for i in personal[0].exercise_items)
+
+
 # ─────────────────────────────── #2656 미래 시작일 ─────────────────────────
 
 

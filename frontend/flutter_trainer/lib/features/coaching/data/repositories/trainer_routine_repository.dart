@@ -269,6 +269,8 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
           routines: added,
         ),
         replacing: previous,
+        // 미래 시작일이면 이전 개인운동은 그날 교대한다 — 서버와 같다(#2656).
+        retireOn: personal ? date : null,
       );
       if (personal) await store.writePersonalIds(memberId, newIds);
       return;

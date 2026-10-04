@@ -411,6 +411,11 @@ def build_client_history(
             or clock.to_seoul(completed_at).date()
         ).isoformat()
         by_day.setdefault(day, []).append(r)
+    # 완료 기록은 최근 [limit] 건만 읽는다. 꽉 찼으면 가장 오래된 날은 일부만
+    # 읽혔을 수 있다 — 그날 카드를 만들면 한 운동이 ✗ 로 그려진다. 그날은 빼고
+    # 온전히 읽힌 날만 카드로 만든다.
+    if len(assigned_rows) >= limit and len(by_day) > 1:
+        del by_day[min(by_day)]
     if by_day:
         routine_days = {
             routine_day.date.isoformat(): routine_day
@@ -477,7 +482,9 @@ def _personal_day_history_out(
             items.append(_personal_done_item(session, routines.get(item.routine_id)))
             lines.append(_assigned_history_out(session).exercises[0])
             continue
-        if day >= today_iso:
+        # 완료로 판정됐는데 그 기록을 읽지 못했다면 ✗ 로 그리지 않는다 — 회원이
+        # 한 운동을 안 한 것으로 보이게 된다.
+        if item.done or day >= today_iso:
             continue
         row = routines.get(item.routine_id)
         if row is None:

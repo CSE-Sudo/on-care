@@ -123,7 +123,29 @@ class DemoRoutineStore {
         // 그대로면 흘려보내지 않는다.
         .map((row) => row?.value)
         .distinct()
-        .asyncMap((_) => assigned(memberId));
+        .asyncMap((_) => _assignedToday(memberId));
+  }
+
+  /// 오늘 회원 목록에 걸린 배정 — 서버의 배정 목록과 같은 규칙이다(#2656).
+  ///
+  /// 미래 시작일로 보낸 `개인운동만` 은 시작일까지 아직 뜨지 않고, 그 사이
+  /// 이전 개인운동이 그대로 걸려 있다가 시작일에 내려간다. 저장된 목록에는
+  /// 둘이 함께 있으므로 보일 때 거른다.
+  Future<List<AssignedRoutine>> _assignedToday(String memberId) async {
+    final DateTime now = nowKst();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    final Map<String, DateTime> ends = <String, DateTime>{
+      for (final (AssignedRoutine r, DateTime end) in await readRetired(
+        memberId,
+      ))
+        r.id: end,
+    };
+    return <AssignedRoutine>[
+      for (final AssignedRoutine r in await assigned(memberId))
+        if (!(ends[r.id]?.isAfter(today) == false) &&
+            !(r.deliveryKind != null && (r.date?.isAfter(today) ?? false)))
+          r,
+    ];
   }
 
   /// 회원의 **처음** 배정 — 시드가 정한다.
@@ -165,24 +187,31 @@ class DemoRoutineStore {
     StoredDelivery delivery, {
     Set<String> replacing = const <String>{},
     List<String> programNames = const <String>[],
+    DateTime? retireOn,
   }) async {
+    // 이전 개인운동이 끝나는 날 — 서버처럼 오늘, `개인운동만` 을 미래 시작일로
+    // 보냈으면 그 시작일이다(#2656). 그 전날까지는 이전 것이 그대로 걸린다.
+    final DateTime now = nowKst();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    final DateTime end = retireOn == null || !retireOn.isAfter(today)
+        ? today
+        : DateTime(retireOn.year, retireOn.month, retireOn.day);
+    final bool later = end.isAfter(today);
     final List<AssignedRoutine> before = await assigned(memberId);
     await writeAssigned(memberId, <AssignedRoutine>[
       ...delivery.routines,
+      // 시작일에 교대하면 그때까지 목록에 남긴다 — 보일 때 끝난 날로 거른다.
       for (final AssignedRoutine r in before)
-        if (!replacing.contains(r.id)) r,
+        if (later || !replacing.contains(r.id)) r,
     ]);
     // 내린 개인운동은 목록에서는 빠져도 지난 날의 이행으로는 남는다 — 실서버가
-    // 지우지 않고 끝난 날(`ended_on`)을 두는 것과 같다(#2508). 서버처럼 보낸
-    // 그날 끝난다 — 아직 시작하지 않은 것은 시작일에 끝나 하루도 걸리지 않는다.
+    // 지우지 않고 끝난 날(`ended_on`)을 두는 것과 같다(#2508). 아직 시작하지
+    // 않은 것은 시작일에 끝나 하루도 걸리지 않는다.
     final List<AssignedRoutine> retired = <AssignedRoutine>[
       for (final AssignedRoutine r in before)
         if (replacing.contains(r.id)) r,
     ];
-    if (retired.isNotEmpty) {
-      final DateTime now = nowKst();
-      await _retire(memberId, retired, DateTime(now.year, now.month, now.day));
-    }
+    if (retired.isNotEmpty) await _retire(memberId, retired, end);
     await writeDelivery(memberId, delivery);
     // 배정마다 보낸 날 — 날짜별 이행이 `8/18(화) 보냄` 을 이 값으로 적는다.
     // 시작일(`date`)과 다를 수 있다(#2656, 미래 시작일).
