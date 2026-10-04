@@ -3653,7 +3653,7 @@ abstract class AppLocalizations {
   /// No description provided for @myConnectionDeleteTitle.
   ///
   /// In en, this message translates to:
-  /// **'Disconnect'**
+  /// **'End connection'**
   String get myConnectionDeleteTitle;
 
   /// No description provided for @myConnectionDeleteFailed.

@@ -1451,7 +1451,7 @@
   "myWithdrawContinue": "Continue deleting",
   "myCancel": "Cancel",
   "myGymTrainerTitle": "My Gym & Trainer",
-  "myConnectionDeleteTitle": "Disconnect",
+  "myConnectionDeleteTitle": "End connection",
   "myConnectionDeleteFailed": "Couldn't disconnect. Please try again.",
   "myDelete": "Disconnect",
   "myGymDisconnectWithTrainerConfirm": "Disconnect {gym}?\nYour connection with trainer {trainer} will also end.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged are not deleted, and you can see them again if you reconnect with the same trainer.",

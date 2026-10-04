@@ -2130,7 +2130,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGymTrainerTitle => 'My Gym & Trainer';
 
   @override
-  String get myConnectionDeleteTitle => 'Disconnect';
+  String get myConnectionDeleteTitle => 'End connection';
 
   @override
   String get myConnectionDeleteFailed =>
