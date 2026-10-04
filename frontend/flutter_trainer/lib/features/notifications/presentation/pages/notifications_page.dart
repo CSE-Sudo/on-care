@@ -3,12 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
-import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/utils/server_message.dart';
+import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/features/notifications/data/repositories/notification_repository.dart';
 import 'package:oncare_trainer/features/notifications/domain/entities/trainer_notification.dart';
 import 'package:oncare_trainer/features/notifications/presentation/trainer_notification_text.dart';
@@ -229,11 +227,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
           loading: () => const AppLoading(),
           error: (error, _) => AppErrorState(
             retryKey: const ValueKey<String>('notifications-retry'),
-            title: serverDetailOr(
-              l,
-              error is AppError ? error.message : null,
-              l.notifLoadFailed,
-            ),
+            title: appErrorMessage(l, error, fallback: l.notifLoadFailed),
             retryLabel: l.actionRetry,
             onRetry: notifications.isLoading
                 ? null
