@@ -67,20 +67,21 @@ def test_dev_log_backend_keeps_reset_enabled():
     assert Settings(_env_file=None).mail_enabled is True
 
 
-def test_prod_without_mail_disables_reset_but_boots():
-    """운영에서 발송 수단이 없으면 재설정만 꺼진다. 기동은 막지 않는다."""
-    s = Settings(**_PROD)
-    assert s.mail_backend == "log"
-    assert s.mail_enabled is False
+def test_prod_without_mail_refuses_to_boot():
+    """운영에서 발송 수단이 없으면 가입 코드를 못 보내 가입이 막힌다 — 기동을 거부한다(#3131)."""
+    with pytest.raises(ValidationError, match="SMTP_HOST"):
+        Settings(**_PROD)
 
 
 def test_prod_with_smtp_enables_reset():
     assert Settings(**_PROD, **_SMTP).mail_enabled is True
 
 
-def test_prod_forced_log_is_disabled():
-    """운영에서 log 를 고르면 꺼진다 — 로그를 읽는 사람이 계정을 되찾게 된다."""
-    assert Settings(**_PROD, **_SMTP, mail_provider="log").mail_enabled is False
+def test_prod_forced_log_refuses_to_boot():
+    """운영에서 log 를 고르면 메일이 꺼진다 — 로그를 읽는 사람이 계정을 되찾게 되므로
+    켜 주지 않고, 꺼진 채로도 뜨지 않는다(#3131)."""
+    with pytest.raises(ValidationError, match="MAIL_PROVIDER"):
+        Settings(**_PROD, **_SMTP, mail_provider="log")
 
 
 @pytest.mark.parametrize(
@@ -115,9 +116,15 @@ def test_get_mailer_picks_backend():
 
 
 def test_warn_if_disabled_logs_error_in_prod(caplog):
+    """검증을 거치지 않고 메일 값이 빠진 운영 설정 객체 — 마지막 확인으로 오류를 남긴다."""
+    # model_copy 는 검증기를 다시 돌리지 않는다. 운영 가드(#3131)를 지난 뒤 값이 빠진 상태를 만든다.
+    settings = Settings(**_PROD, **_SMTP).model_copy(update={"smtp_host": "", "mail_from": ""})
     with caplog.at_level(logging.ERROR, logger=mailer.__name__):
-        assert warn_if_disabled(Settings(**_PROD)) is False
-    assert any(r.levelno == logging.ERROR for r in caplog.records)
+        assert warn_if_disabled(settings) is False
+    errors = [r.getMessage() for r in caplog.records if r.levelno == logging.ERROR]
+    assert errors
+    # 재설정만이 아니라 가입 인증 코드도 막힌다는 사실을 알린다.
+    assert "가입 인증 코드" in errors[0]
 
 
 def test_warn_if_disabled_ok_with_smtp(caplog):
