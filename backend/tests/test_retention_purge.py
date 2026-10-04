@@ -116,6 +116,23 @@ def test_steps_receive_the_pinned_time(sqlite_engine):
     assert seen == [pinned]
 
 
+def test_notification_step_leaves_demo_seed_notifications_to_the_seed(monkeypatch):
+    """데모 시드 알림은 시드가 관리한다 — 정리 단계가 그 id 를 뺀다."""
+    from app.db.seed_notifications import DEMO_AGO_BY_ID
+
+    seen: dict = {}
+
+    def capture(db, **kwargs):
+        seen.update(kwargs)
+        return 0
+
+    monkeypatch.setattr(notification_service, "purge_expired", capture)
+    retention._purge_read_notifications(None, None)
+
+    assert set(seen["exclude_ids"]) == set(DEMO_AGO_BY_ID)
+    assert seen["exclude_ids"]
+
+
 # ---- DB 없이: 주기 실행 ----
 
 
@@ -344,6 +361,21 @@ def test_purge_deletes_just_past_the_deadline_and_keeps_just_before(
     assert not _notification_alive(db_session, noti_expired)
     assert _notification_alive(db_session, noti_kept)
     assert _notification_alive(db_session, noti_unread)
+
+
+def test_excluded_ids_survive_the_purge(engine, db_session, member_id):
+    now = clock.now()
+    old = now - timedelta(days=200)
+    kept = _notification(db_session, member_id, old, read=True)
+    gone = _notification(db_session, member_id, old, read=True)
+
+    removed = notification_service.purge_expired(
+        db_session, now=now, user_id=member_id, exclude_ids={kept}
+    )
+
+    assert removed == 1
+    assert _notification_alive(db_session, kept)
+    assert not _notification_alive(db_session, gone)
 
 
 def test_second_run_has_nothing_left(engine, db_session, member_id, retention_days):

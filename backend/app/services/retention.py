@@ -57,7 +57,14 @@ def _purge_audit_logs(db: Session, now: datetime | None) -> int:
 
 
 def _purge_read_notifications(db: Session, now: datetime | None) -> int:
-    return notification_service.purge_expired(db, now=now)
+    # 데모 시드 알림(스테이징)은 시드가 관리한다. 목록을 열 때 오늘로 옮겨지지만
+    # (`slide_demo_notifications`), 아무도 열지 않은 채 90일이 지나면 읽은 데모 알림만
+    # 사라지고 시드는 이미 있다고 보고 다시 넣지 않는다 — 데모 화면이 비지 않게 뺀다.
+    from app.db.seed_notifications import DEMO_AGO_BY_ID
+
+    return notification_service.purge_expired(
+        db, now=now, exclude_ids=frozenset(DEMO_AGO_BY_ID)
+    )
 
 
 STEPS: tuple[tuple[str, PurgeStep], ...] = (
