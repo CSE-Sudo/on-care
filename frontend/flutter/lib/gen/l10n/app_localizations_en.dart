@@ -3000,6 +3000,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Social sign-in is coming soon. Please sign in with your email';
 
   @override
+  String get authTrainerAccountTitle => 'This is a trainer account';
+
+  @override
+  String get authTrainerAccountMessage =>
+      'The member app is for member accounts. Please sign in to the trainer web with your trainer account';
+
+  @override
+  String get authTrainerAccountOpenWeb => 'Open trainer web';
+
+  @override
   String get signUpTitle => 'Sign up';
 
   @override

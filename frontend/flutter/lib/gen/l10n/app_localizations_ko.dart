@@ -2850,6 +2850,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authSocialComingSoon => '소셜 로그인은 준비 중이에요. 이메일로 로그인해 주세요';
 
   @override
+  String get authTrainerAccountTitle => '트레이너 계정이에요';
+
+  @override
+  String get authTrainerAccountMessage =>
+      '회원 앱은 회원 계정으로 이용해요. 트레이너 계정은 트레이너 웹에서 로그인해 주세요';
+
+  @override
+  String get authTrainerAccountOpenWeb => '트레이너 웹 열기';
+
+  @override
   String get signUpTitle => '회원가입';
 
   @override
