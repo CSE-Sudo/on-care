@@ -80,7 +80,7 @@
   "homeDashboardLoadError": "Could not load the dashboard.",
   "homeDashboardEmpty": "No records yet today. Add a meal or workout to get started.",
   "homeAiAdviceTitle": "Today's combined AI advice",
-  "homeAdviceSodiumOver": "You went over the sodium target today. Try keeping the rest of your meals light.",
+  "homeAdviceSodiumOver": "You went over your sodium goal today. Try keeping the rest of your meals light.",
   "@homeAdviceSodiumOver": {
     "description": "Home AI advice when today's sodium is over the goal (#1943)."
   },
@@ -181,7 +181,7 @@
       }
     }
   },
-  "homeRecBasisOverLimit": "over the daily limit",
+  "homeRecBasisOverLimit": "over the daily goal",
   "homeRecMealsTitle": "Recommended meals",
   "homeRecMealsErrorTitle": "Couldn't load meal suggestions",
   "@homeScheduleDate": {
@@ -272,7 +272,7 @@
   "dietMealLunch": "Lunch",
   "dietMealDinner": "Dinner",
   "dietMealSnack": "Snack",
-  "dietMealLateNight": "Late-night",
+  "dietMealLateNight": "Late-night snack",
   "dietMealSheetTitle": "{meal}",
   "dietFoodDbMatch": "Public DB · {name}",
   "@dietFoodDbMatch": {
@@ -386,7 +386,7 @@
   "dietAnalysisClose": "Close",
   "dietRecognizedFood": "Recognized Food",
   "dietNoRecognizedFood": "No food recognized",
-  "dietNutritionResult": "Nutrition Result",
+  "dietNutritionResult": "AI Nutrition Result",
   "dietSaved": "Meal saved",
   "dietSaveFailed": "Couldn't save. Please try again in a moment.",
   "dietManualAlreadySaved": "An earlier version of this meal was already saved. Please check your records.",
@@ -2510,27 +2510,27 @@
   "@myGoalsExerciseSection": {
     "description": "Section label in the health goals sheet."
   },
-  "myGoalCalories": "Daily calorie limit (kcal)",
+  "myGoalCalories": "Daily calorie goal (kcal)",
   "@myGoalCalories": {
     "description": "Health goal field label."
   },
-  "myGoalSodium": "Daily sodium limit (mg)",
+  "myGoalSodium": "Daily sodium goal (mg)",
   "@myGoalSodium": {
     "description": "Health goal field label."
   },
-  "myGoalSugar": "Daily sugar limit (g)",
+  "myGoalSugar": "Daily sugar goal (g)",
   "@myGoalSugar": {
     "description": "Health goal field label."
   },
-  "myGoalCarbs": "Daily carbohydrate limit (g)",
+  "myGoalCarbs": "Daily carbs goal (g)",
   "@myGoalCarbs": {
     "description": "Health goal field label."
   },
-  "myGoalProtein": "Daily protein limit (g)",
+  "myGoalProtein": "Daily protein goal (g)",
   "@myGoalProtein": {
     "description": "Health goal field label."
   },
-  "myGoalFat": "Daily fat limit (g)",
+  "myGoalFat": "Daily fat goal (g)",
   "@myGoalFat": {
     "description": "Health goal field label."
   },
@@ -2559,7 +2559,7 @@
       }
     }
   },
-  "myGoalMacroApplySuggestion": "Use suggested split",
+  "myGoalMacroApplySuggestion": "Use suggested goals",
   "@myGoalMacroApplySuggestion": {
     "description": "Button that fills the macro fields with the suggested grams."
   },
@@ -3559,7 +3559,7 @@
   "@dietAdviceTodayMissingMeal": {
     "description": "Diet tab AI advice sentence `today_missing_meal` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text."
   },
-  "dietAdviceTodaySodiumOver": "Sodium **{sodiumMg}mg**, over the limit.",
+  "dietAdviceTodaySodiumOver": "Sodium **{sodiumMg}mg**, over your goal.",
   "@dietAdviceTodaySodiumOver": {
     "description": "Diet tab AI advice sentence `today_sodium_over` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
     "placeholders": {

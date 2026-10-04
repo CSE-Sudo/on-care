@@ -413,7 +413,7 @@ void main() {
               )
               .label,
       ];
-      expect(labels, <String>['통증·불편', '운동 목표 28%', '칼로리 24% 과다']);
+      expect(labels, <String>['통증·불편', '운동 목표 28%', '칼로리 24% 초과']);
       // 배지는 이름 줄이 아니라 이름·목표 오른쪽 빈자리에, 그 두 줄의 세로
       // 가운데로 선다(#2375) — 이름 줄에 붙으면 배지만 위로 쏠렸다.
       final Rect name = tester.getRect(

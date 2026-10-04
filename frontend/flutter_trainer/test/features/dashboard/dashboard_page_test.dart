@@ -323,7 +323,7 @@ void main() {
     expect(findMissionRow('feedback-calorie_off'), findsNWidgets(5));
     expect(findMissionRow('feedback-protein_low'), findsOneWidget);
     // 할 일은 목록 배지보다 자세히 — 근거 수치를 붙인다.
-    expect(find.textContaining('칼로리 20% 과다'), findsNWidgets(5));
+    expect(find.textContaining('칼로리 20% 초과'), findsNWidgets(5));
     expect(find.textContaining('단백질 목표의 60%'), findsOneWidget);
     expect(find.textContaining('나트륨'), findsNothing);
     expect(find.text('답장 대기'), findsNothing);

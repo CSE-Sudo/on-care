@@ -193,8 +193,8 @@ String? _homeSodiumWarning({
   final bool en = lang == 'en';
   if (sourceNames.isEmpty) {
     return en
-        ? 'Sodium is at ${totalSodium}mg today, over your target (${sodiumGoal}mg).'
-        : '오늘 나트륨이 ${totalSodium}mg 으로 권장량(${sodiumGoal}mg)을 넘었어요.';
+        ? 'Sodium is at ${totalSodium}mg today, over your goal (${sodiumGoal}mg).'
+        : '오늘 나트륨이 ${totalSodium}mg 으로 목표(${sodiumGoal}mg)를 넘었어요.';
   }
   return en
       ? 'Sodium is high from ${sourceNames.join(' and ')}.'

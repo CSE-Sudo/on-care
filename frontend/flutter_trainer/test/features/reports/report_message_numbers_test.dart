@@ -195,7 +195,7 @@ void main() {
         _ko,
         _week(sugar: const <double>[70, 70, 70, 70, 20, 20, 20]),
       );
-      expect(message, contains('당류는 하루 평균 49g이었고, 기준(50g)을 넘긴 날이 4일'));
+      expect(message, contains('당류는 하루 평균 49g이었고, 목표(50g)를 넘긴 날이 4일'));
       expect(message, contains('단 음료와 디저트는 하루 한 번까지만'));
     });
 
@@ -296,7 +296,7 @@ void main() {
   group('reportMessage — 영어', () {
     test('칼로리를 넘긴 주를 영어로도 같은 판정으로 적는다', () {
       final message = reportMessage(_en, _overWeek());
-      expect(message, contains('36% above your 2,000kcal target'));
+      expect(message, contains('36% above your 2,000kcal goal'));
       expect(message, contains('There was no PT this week.'));
       expect(message, isNot(contains('Great work')));
       expect(message, isNot(contains('은 ')));

@@ -434,11 +434,11 @@ def _report_message_en(report: WeeklyReportOut) -> str:
     if report.sodium_avg is not None:
         diet.append(
             f"Sodium averaged {report.sodium_avg:,}mg a day, and went over the "
-            f"{sodium_limit:,}mg target on {_plural_days(report.sodium_over_days)}. "
+            f"{sodium_limit:,}mg goal on {_plural_days(report.sodium_over_days)}. "
             "Leaving half the broth behind saves 400–500mg a day."
             if report.sodium_over_days > 0
             else f"Sodium averaged {report.sodium_avg:,}mg a day — comfortably "
-            f"inside the {sodium_limit:,}mg target."
+            f"inside the {sodium_limit:,}mg goal."
         )
     recorded = [v for v in report.calories_week if v > 0]
     if recorded:

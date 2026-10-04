@@ -223,10 +223,10 @@
   "clientsSignalExerciseGoalLow": "운동 목표 미달",
   "clientsSignalExerciseGoalLowPercent": "운동 목표 {percent}%",
   "clientsSignalCalorieOff": "칼로리 목표 이탈",
-  "clientsSignalCalorieOver": "칼로리 과다",
+  "clientsSignalCalorieOver": "칼로리 초과",
   "clientsSignalCalorieUnder": "칼로리 부족",
   "clientsSignalProteinLow": "단백질 부족",
-  "clientsSignalCalorieOverPercent": "칼로리 {percent}% 과다",
+  "clientsSignalCalorieOverPercent": "칼로리 {percent}% 초과",
   "clientsSignalCalorieUnderPercent": "칼로리 {percent}% 부족",
   "clientsSignalProteinPercent": "단백질 목표의 {percent}%",
   "clientsSignalRoutineMissedDays": "개인운동 {days}일 미수행",
@@ -259,13 +259,13 @@
   "memberHealthConditionsPrivateHint": "트레이너만 볼 내용은 메모에 남겨 주세요.",
   "memberHealthDietGoal": "식단 목표",
   "memberHealthExerciseGoal": "운동 목표",
-  "memberHealthGoalCalories": "일일 칼로리 제한 (kcal)",
-  "memberHealthGoalSodium": "일일 나트륨 제한 (mg)",
-  "memberHealthGoalSugar": "일일 당류 제한 (g)",
-  "memberHealthGoalCarbs": "일일 탄수화물 제한 (g)",
-  "memberHealthGoalProtein": "일일 단백질 제한 (g)",
-  "memberHealthGoalFat": "일일 지방 제한 (g)",
-  "memberHealthGoalBurnDaily": "일일 소모 칼로리 (kcal)",
+  "memberHealthGoalCalories": "하루 칼로리 목표 (kcal)",
+  "memberHealthGoalSodium": "하루 나트륨 목표 (mg)",
+  "memberHealthGoalSugar": "하루 당류 목표 (g)",
+  "memberHealthGoalCarbs": "하루 탄수화물 목표 (g)",
+  "memberHealthGoalProtein": "하루 단백질 목표 (g)",
+  "memberHealthGoalFat": "하루 지방 목표 (g)",
+  "memberHealthGoalBurnDaily": "하루 소모 칼로리 (kcal)",
   "memberHealthGoalCardioWeekly": "주간 유산소 (분)",
   "memberHealthGoalStrengthWeekly": "주간 근력 (세트)",
   "memberHealthGoalFlexibilityWeekly": "주간 스트레칭 (분)",
@@ -339,7 +339,7 @@
   "metricCalories": "칼로리",
   "metricSodium": "나트륨",
   "metricSugar": "당류",
-  "clientDietMacrosMissing": "탄·단·지 기록 없음",
+  "clientDietMacrosMissing": "탄단지 기록 없음",
   "clientDietDayTotal": "하루 합계",
   "clientDietDayMealsFailed": "끼니 기록을 불러오지 못했어요",
   "@clientDietDayMealsFailed": {
@@ -702,7 +702,7 @@
       }
     }
   },
-  "reportBodySugarOver": "당류는 하루 평균 {avg}g이었고, 기준({target}g)을 넘긴 날이 {days}일이었어요.",
+  "reportBodySugarOver": "당류는 하루 평균 {avg}g이었고, 목표({target}g)를 넘긴 날이 {days}일이었어요.",
   "@reportBodySugarOver": {
     "placeholders": {
       "avg": {
@@ -716,7 +716,7 @@
       }
     }
   },
-  "reportBodySugarOk": "당류는 하루 평균 {avg}g으로 기준({target}g) 안이었어요.",
+  "reportBodySugarOk": "당류는 하루 평균 {avg}g으로 목표({target}g) 안이었어요.",
   "@reportBodySugarOk": {
     "placeholders": {
       "avg": {

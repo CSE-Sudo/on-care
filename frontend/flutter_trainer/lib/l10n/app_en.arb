@@ -506,12 +506,12 @@
   "memberHealthConditionsPrivateHint": "Keep trainer-only notes in Memo.",
   "memberHealthDietGoal": "Nutrition goals",
   "memberHealthExerciseGoal": "Exercise goals",
-  "memberHealthGoalCalories": "Daily calories (kcal)",
-  "memberHealthGoalSodium": "Daily sodium (mg)",
-  "memberHealthGoalSugar": "Daily sugar (g)",
-  "memberHealthGoalCarbs": "Daily carbs (g)",
-  "memberHealthGoalProtein": "Daily protein (g)",
-  "memberHealthGoalFat": "Daily fat (g)",
+  "memberHealthGoalCalories": "Daily calorie goal (kcal)",
+  "memberHealthGoalSodium": "Daily sodium goal (mg)",
+  "memberHealthGoalSugar": "Daily sugar goal (g)",
+  "memberHealthGoalCarbs": "Daily carbs goal (g)",
+  "memberHealthGoalProtein": "Daily protein goal (g)",
+  "memberHealthGoalFat": "Daily fat goal (g)",
   "memberHealthGoalBurnDaily": "Daily burn (kcal)",
   "memberHealthGoalCardioWeekly": "Weekly cardio (min)",
   "memberHealthGoalStrengthWeekly": "Weekly strength (sets)",
@@ -578,7 +578,7 @@
   "chatImageUnavailable": "Couldn't load the photo",
   "chatImageSendFailed": "Couldn't send the photo. Please try again",
   "chatImageAlreadySent": "An earlier send of this photo already went through. Please check the conversation.",
-  "clientTabDiet": "Meals",
+  "clientTabDiet": "Diet",
   "clientTabWorkout": "Workouts",
   "clientNotFound": "Member not found",
   "clientBackToList": "Back to members",
@@ -1042,7 +1042,7 @@
       }
     }
   },
-  "reportBodySodiumOver": "Sodium averaged {avg}mg a day, and went over the {target}mg target on {days} days. Leaving half the broth behind saves 400-500mg a day.",
+  "reportBodySodiumOver": "Sodium averaged {avg}mg a day, and went over the {target}mg goal on {days} days. Leaving half the broth behind saves 400-500mg a day.",
   "@reportBodySodiumOver": {
     "placeholders": {
       "avg": {
@@ -1056,7 +1056,7 @@
       }
     }
   },
-  "reportBodySodiumOk": "Sodium averaged {avg}mg a day — comfortably inside the {target}mg target.",
+  "reportBodySodiumOk": "Sodium averaged {avg}mg a day — comfortably inside the {target}mg goal.",
   "@reportBodySodiumOk": {
     "placeholders": {
       "avg": {
@@ -1120,7 +1120,7 @@
       }
     }
   },
-  "reportBodyCaloriesOver": "Calories averaged {avg}kcal a day — {pct}% above your {target}kcal target, and over it on {days} days.",
+  "reportBodyCaloriesOver": "Calories averaged {avg}kcal a day — {pct}% above your {target}kcal goal, and over it on {days} days.",
   "@reportBodyCaloriesOver": {
     "placeholders": {
       "avg": {
@@ -1137,7 +1137,7 @@
       }
     }
   },
-  "reportBodyCaloriesUnder": "Calories averaged {avg}kcal a day — {pct}% below your {target}kcal target. Eating too little tends to cost muscle first.",
+  "reportBodyCaloriesUnder": "Calories averaged {avg}kcal a day — {pct}% below your {target}kcal goal. Eating too little tends to cost muscle first.",
   "@reportBodyCaloriesUnder": {
     "placeholders": {
       "avg": {
@@ -1151,7 +1151,7 @@
       }
     }
   },
-  "reportBodyCaloriesNearOver": "Calories averaged {avg}kcal a day, close to your {target}kcal target, but went over it on {days} days.",
+  "reportBodyCaloriesNearOver": "Calories averaged {avg}kcal a day, close to your {target}kcal goal, but went over it on {days} days.",
   "@reportBodyCaloriesNearOver": {
     "placeholders": {
       "avg": {
@@ -1165,7 +1165,7 @@
       }
     }
   },
-  "reportBodyCaloriesOk": "Calories averaged {avg}kcal a day — right around your {target}kcal target.",
+  "reportBodyCaloriesOk": "Calories averaged {avg}kcal a day — right around your {target}kcal goal.",
   "@reportBodyCaloriesOk": {
     "placeholders": {
       "avg": {
@@ -1176,7 +1176,7 @@
       }
     }
   },
-  "reportBodySugarOver": "Sugar averaged {avg}g a day and went over the {target}g limit on {days} days.",
+  "reportBodySugarOver": "Sugar averaged {avg}g a day and went over the {target}g goal on {days} days.",
   "@reportBodySugarOver": {
     "placeholders": {
       "avg": {
@@ -1190,7 +1190,7 @@
       }
     }
   },
-  "reportBodySugarOk": "Sugar averaged {avg}g a day, inside the {target}g limit.",
+  "reportBodySugarOk": "Sugar averaged {avg}g a day, inside the {target}g goal.",
   "@reportBodySugarOk": {
     "placeholders": {
       "avg": {
@@ -2707,7 +2707,7 @@
   "@clientGoalSuggestionExercise": { "placeholders": { "burn": { "type": "int" }, "cardio": { "type": "int" }, "strength": { "type": "int" }, "flexibility": { "type": "int" } } },
   "clientGoalSuggestionPersonal": "Based on age, sex, height, weight, and health goals (2020 KDRIs and WHO guidelines)",
   "clientGoalSuggestionFallback": "Age, height, or weight is missing, so only the health goals adjust the defaults",
-  "clientGoalApplySuggestion": "Fill with suggestion",
+  "clientGoalApplySuggestion": "Use suggested goals",
   "clientTrainerMemoHint": "Note what you want to remember about this member",
   "clientTrainerMemoPrivate": "Only you can see this memo. It's hidden from the member.",
   "clientTrainerMemoAdd": "Add memo",

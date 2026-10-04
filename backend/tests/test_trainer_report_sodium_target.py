@@ -216,7 +216,7 @@ def test_korean_message_names_the_personal_target_when_inside():
 
 def test_english_message_names_the_personal_target():
     message = trainer_reports_service.report_message(_report(sodium_target=1500), "en")
-    assert "went over the 1,500mg target on 2 days." in message
+    assert "went over the 1,500mg goal on 2 days." in message
 
 
 def test_message_without_a_target_keeps_the_common_default():

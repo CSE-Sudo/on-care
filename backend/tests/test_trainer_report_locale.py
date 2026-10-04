@@ -661,7 +661,7 @@ def test_english_draft_for_a_week_that_needs_work():
         "You kept up well — 87% of your workouts done. One thing — 풀업 got skipped. "
         "If that was down to how you were feeling, tell me at our next PT and "
         "I'll swap in an alternative.\n\n"
-        "Sodium averaged 2,288mg a day, and went over the 2,000mg target on 4 days. "
+        "Sodium averaged 2,288mg a day, and went over the 2,000mg goal on 4 days. "
         "Leaving half the broth behind saves 400–500mg a day. "
         "Calories averaged 1,624kcal a day.\n\n"
         "Let's focus on just these things next week. "
@@ -674,7 +674,7 @@ def test_english_draft_for_a_good_week():
     assert message == (
         "Hi Alex, here's your weekly report for 8/10 – 8/16.\n\n"
         "You kept up well — 90% of your workouts done.\n\n"
-        "Sodium averaged 1,500mg a day — comfortably inside the 2,000mg target. "
+        "Sodium averaged 1,500mg a day — comfortably inside the 2,000mg goal. "
         "Calories averaged 2,000kcal a day.\n\n"
         "Great work — let's keep this pace next week!"
     )
@@ -694,7 +694,7 @@ def test_english_draft_low_completion_and_single_day():
         _en_report(**CASES["good_sodium_over1"]), "en"
     )
     assert "Workout completion rate came in at 50%. Sounds like a busy week." in message
-    assert "went over the 2,000mg target on 1 day." in message
+    assert "went over the 2,000mg goal on 1 day." in message
 
 
 def test_english_draft_spans_a_month_boundary():
