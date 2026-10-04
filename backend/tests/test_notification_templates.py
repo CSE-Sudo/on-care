@@ -395,8 +395,8 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         nt.MEMBER_TRAINER_LEFT_BOOKING,
         {"trainer_name": "박코치"},
         "",
-        "예약한 수업이 취소되었어요",
-        "박코치 트레이너가 서비스를 떠나 예약이 취소되었습니다.",
+        "예약한 PT가 취소됐어요",
+        "박코치 트레이너가 서비스를 떠나 예약이 취소됐어요.",
     ),
     # 트레이너가 담당을 해제했다(#2589). 남은 일정이 없으면 일정 언급 없이 끝난다.
     (
@@ -924,7 +924,7 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
         nt.MEMBER_TRAINER_LEFT_BOOKING,
         {"trainer_name": "Coach Park"},
         (
-            "Your booked session was cancelled",
+            "Your booked PT was cancelled",
             "Coach Park left the service, so your booking was cancelled.",
         ),
     ),
@@ -934,7 +934,7 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
         (
             "Your trainer connection ended",
             "Your connection with Coach Park has ended."
-            " 2 remaining PT sessions were cancelled too.",
+            " 2 remaining PT appointments were cancelled too.",
         ),
     ),
     (
@@ -945,27 +945,27 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
     (
         nt.MEMBER_SCHEDULE_ADDED,
         {"date": "2026-10-01", "time": "09:00", "type": "1:1 PT"},
-        ("New session scheduled", "2026-10-01 09:00 · 1:1 PT"),
+        ("New appointment scheduled", "2026-10-01 09:00 · 1:1 PT"),
     ),
     (
         nt.MEMBER_SCHEDULE_CHANGED,
         {"date": "2026-10-02", "time": "18:30", "type": "상담"},
-        ("Session rescheduled", "2026-10-02 18:30 · Consultation"),
+        ("Appointment rescheduled", "2026-10-02 18:30 · Consultation"),
     ),
     (
         nt.MEMBER_SCHEDULE_CANCELLED,
         {"date": "2026-10-02", "time": "18:30", "type": "Stretching class"},
-        ("Session cancelled", "2026-10-02 18:30 · Stretching class"),
+        ("Appointment cancelled", "2026-10-02 18:30 · Stretching class"),
     ),
     (
         nt.MEMBER_SCHEDULE_SERIES,
         {"first": "2026-10-01", "last": "2026-11-19", "time": "09:00", "count": 8},
-        ("Recurring sessions scheduled", "2026-10-01 ~ 2026-11-19 · 09:00 · 8 sessions"),
+        ("Recurring appointments scheduled", "2026-10-01 ~ 2026-11-19 · 09:00 · 8 appointments"),
     ),
     (
         nt.MEMBER_SCHEDULE_SERIES,
         {"first": "2026-10-01", "last": "2026-10-01", "time": "09:00", "count": 1},
-        ("Recurring sessions scheduled", "2026-10-01 ~ 2026-10-01 · 09:00 · 1 session"),
+        ("Recurring appointments scheduled", "2026-10-01 ~ 2026-10-01 · 09:00 · 1 appointment"),
     ),
     (
         nt.MEMBER_COUPON_EXPIRING,
@@ -1073,12 +1073,12 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
     (
         nt.MEMBER_PT_COMPLETED,
         {"trainer_name": "Coach Park", "session_number": 3, "has_note": True},
-        ("You finished PT session 3 with Coach Park", None),
+        ("You finished PT #3 with Coach Park", None),
     ),
     (
         nt.MEMBER_PT_COMPLETED,
         {"trainer_name": "", "session_number": 0, "has_note": False},
-        ("You finished a PT session with your trainer", "Saved to your workout log"),
+        ("You finished PT with your trainer", "Saved to your workout log"),
     ),
     (
         nt.MEMBER_PT_FEEDBACK,
@@ -1611,7 +1611,7 @@ def test_pt_completed_note_is_not_translated():
         template_args={"trainer_name": "Coach Park", "session_number": 2, "has_note": True},
         locale="en",
     )
-    assert title == "You finished PT session 2 with Coach Park"
+    assert title == "You finished PT #2 with Coach Park"
     assert body == "허리 각도 신경 써 주세요"
 
 

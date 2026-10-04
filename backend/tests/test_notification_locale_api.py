@@ -504,8 +504,8 @@ def test_schedule_added_and_cancelled_reach_the_member_in_english(client, db_ses
     assert removed.status_code in (200, 204), removed.text
 
     en = {n["title"]: n for n in _member_inbox(client, member_token, EN)}
-    assert en["New session scheduled"]["body"] == f"{day} 19:00 · Consultation"
-    assert en["Session cancelled"]["body"] == f"{day} 19:00 · Consultation"
+    assert en["New appointment scheduled"]["body"] == f"{day} 19:00 · Consultation"
+    assert en["Appointment cancelled"]["body"] == f"{day} 19:00 · Consultation"
     ko = {n["title"]: n for n in _member_inbox(client, member_token, KO)}
     assert ko["새 일정이 등록되었어요"]["body"] == f"{day} 19:00 · 상담"
     assert ko["일정이 취소되었어요"]["body"] == f"{day} 19:00 · 상담"

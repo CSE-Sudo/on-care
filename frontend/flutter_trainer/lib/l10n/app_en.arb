@@ -17,7 +17,7 @@
   "schedCancel": "Cancel",
   "schedNoShow": "Mark no-show",
   "schedCancelTitle": "Cancel this PT?",
-  "schedCancelConfirm": "The {time} session with {name} will be recorded as cancelled. The entry stays.",
+  "schedCancelConfirm": "The {time} PT with {name} will be recorded as cancelled. The entry stays.",
   "@schedCancelConfirm": {
     "placeholders": {
       "time": {
@@ -33,9 +33,9 @@
   "schedCancelByTrainer": "Trainer",
   "schedCancelByOther": "Other",
   "schedCancelReasonHint": "Reason (optional, only you see it)",
-  "schedCancelFailed": "Couldn't cancel the session. Please try again.",
+  "schedCancelFailed": "Couldn't cancel the appointment. Please try again.",
   "schedNoShowTitle": "Record as a no-show?",
-  "schedNoShowConfirm": "The {time} session with {name} will be recorded as a no-show.",
+  "schedNoShowConfirm": "The {time} appointment with {name} will be recorded as a no-show.",
   "@schedNoShowConfirm": {
     "placeholders": {
       "time": {
@@ -59,7 +59,7 @@
     }
   },
   "schedDeleteMeansRemove": "Deleting erases the record. Use cancel or no-show for a PT that didn't happen.",
-  "schedDeleteMeansRemoveFinished": "Deleting erases the record. This session is already complete and can't be undone.",
+  "schedDeleteMeansRemoveFinished": "Deleting erases the record. This appointment is already complete and can't be undone.",
   "scheduleStatusGap": "Open",
   "@scheduleStatusGap": {
     "description": "Display label for an empty slot in the trainer's day."
@@ -165,7 +165,7 @@
   "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment.",
   "authSocialComingSoon": "Social sign-in is coming soon. Please sign in with your email.",
   "authErrSignInFailed": "Sign-in failed. Please try again in a moment.",
-  "authSessionExpired": "Your session has expired. Please sign in again.",
+  "authSessionExpired": "Your sign-in has expired. Please sign in again.",
   "authErrNameEmpty": "Enter your name",
   "authErrNameTooLong": "Names can be up to 100 characters",
   "@authErrNameTooLong": {
@@ -705,7 +705,7 @@
   "consultEmptyHistory": "No consultation history",
   "consultEmptyHint": "Requests appear here when a member asks for a consultation with your gym or with you",
   "consultActionFailed": "Couldn't process the request",
-  "consultApproved": "{name}'s request was approved. Add a session from the Schedule tab.",
+  "consultApproved": "{name}'s request was approved. Add an appointment from the Schedule tab.",
   "@consultApproved": {
     "placeholders": {
       "name": {
@@ -713,7 +713,7 @@
       }
     }
   },
-  "consultScheduleCreated": "Added a consultation session for {name}",
+  "consultScheduleCreated": "Added a consultation appointment for {name}",
   "@consultScheduleCreated": {
     "placeholders": {
       "name": {
@@ -734,7 +734,7 @@
     }
   },
   "consultStatusCancelled": "Cancelled",
-  "consultStatusCancelledByTrainer": "Withdrawn (session cancelled)",
+  "consultStatusCancelledByTrainer": "Withdrawn (appointment cancelled)",
   "consultStatusExpired": "Expired",
   "consultPreferredTime": "Preferred time",
   "consultMessage": "Message",
@@ -1223,8 +1223,8 @@
   "reportTipSessionsMissed": "I'll set up make-up slots next week for the PT we missed.",
   "reportTipKeep": "Keep the current routine as it is, and I'll raise the intensity step by step.",
   "schedTitle": "Schedule",
-  "schedDetailTitle": "Session detail",
-  "schedDeleteTitle": "Delete session",
+  "schedDetailTitle": "Appointment details",
+  "schedDeleteTitle": "Delete appointment",
   "schedDeleteConfirm": "Delete {name}'s {time} PT appointment?",
   "@schedDeleteConfirm": {
     "placeholders": {
@@ -1236,8 +1236,8 @@
       }
     }
   },
-  "schedDeleteFailed": "Couldn't delete the session. Please try again",
-  "schedCompleteTitle": "Complete session",
+  "schedDeleteFailed": "Couldn't delete the appointment. Please try again",
+  "schedCompleteTitle": "Complete appointment",
   "schedCompleteConfirm": "Mark {name}'s {time} PT as complete?",
   "@schedCompleteConfirm": {
     "placeholders": {
@@ -1280,7 +1280,7 @@
   "schedRoutinesSkipped": "Marked as not sent.",
   "schedRoutinesSkipFailed": "Couldn't mark the personal exercise as not sent. Please try again.",
   "schedRoutinesLoadFailed": "Couldn't load personal exercises",
-  "schedClientUnresolved": "Couldn't tell which member this session is for. Please pick the member.",
+  "schedClientUnresolved": "Couldn't tell which member this appointment is for. Please pick the member.",
   "schedRoutinesUpdated": "Personal exercise updated.",
   "schedRoutinesUpdateFailed": "Couldn't update the personal exercise. Please try again.",
   "schedAddRoutines": "Add personal exercise",
@@ -1302,12 +1302,12 @@
   },
   "schedEmptyWeek": "Nothing scheduled this week.",
   "schedSlots": "Booking slots",
-  "schedNewSession": "New session",
+  "schedNewSession": "New appointment",
   "schedLoadFailed": "Couldn't load the schedule",
-  "schedEmptyDay": "Nothing scheduled for this day.\nUse New session above to add one.",
-  "schedSaveFailed": "Couldn't save the session. Please try again",
-  "schedAddTitle": "Add a session",
-  "schedEditTitle": "Edit session",
+  "schedEmptyDay": "Nothing scheduled for this day.\nUse New appointment above to add one.",
+  "schedSaveFailed": "Couldn't save the appointment. Please try again",
+  "schedAddTitle": "Add an appointment",
+  "schedEditTitle": "Edit appointment",
   "schedFieldClient": "Member",
   "schedFieldType": "Type",
   "schedFieldDate": "Date",
@@ -1341,7 +1341,7 @@
   },
   "schedRepeat": "Repeat",
   "schedRepeatWeekly": "Weekly",
-  "schedRepeatPreview": "{count} sessions · {first} – {last}",
+  "schedRepeatPreview": "{count} appointments · {first} – {last}",
   "@schedRepeatPreview": {
     "placeholders": {
       "count": {
@@ -1357,7 +1357,7 @@
   },
   "schedRepeatNeedsDays": "Pick at least one weekday.",
   "schedRepeatNeedsEndDate": "Pick an end date for the repeat.",
-  "schedRepeatConflictTitle": "{count} of {total} sessions clash",
+  "schedRepeatConflictTitle": "{count} of {total} appointments clash",
   "@schedRepeatConflictTitle": {
     "placeholders": {
       "total": {
@@ -1382,11 +1382,11 @@
       }
     }
   },
-  "schedRepeatConflictHint": "Nothing was created. Change the time, or clear the sessions that clash.",
-  "schedOverlapTitle": "This time overlaps another session",
-  "schedOverlapHint": "Nothing was saved. Change the time or move the overlapping session, then save again.",
-  "slotOverlapHint": "The slot wasn't opened. Pick another time or move the overlapping session.",
-  "consultOverlapHint": "The member's chosen time is already booked, so the request wasn't approved. Move the overlapping session, then approve again.",
+  "schedRepeatConflictHint": "Nothing was created. Change the time, or clear the appointments that clash.",
+  "schedOverlapTitle": "This time overlaps another appointment",
+  "schedOverlapHint": "Nothing was saved. Change the time or move the overlapping appointment, then save again.",
+  "slotOverlapHint": "The slot wasn't opened. Pick another time or move the overlapping appointment.",
+  "consultOverlapHint": "The member's chosen time is already booked, so the request wasn't approved. Move the overlapping appointment, then approve again.",
   "schedNote": "Trainer feedback",
   "schedEditNote": "Edit feedback",
   "schedAddNote": "Add feedback",
@@ -1469,8 +1469,8 @@
   "slotEmpty": "No booking slots are open.",
   "slotClosedSummary": "Closed",
   "slotBookedSummary": "Booked",
-  "slotOverlappedSummary": "Overlaps a session",
-  "slotOverlappedHint": "Another session is booked at this time, so members see it as full. Close it if you will not use it.",
+  "slotOverlappedSummary": "Overlaps an appointment",
+  "slotOverlappedHint": "Another appointment is booked at this time, so members see it as full. Close it if you will not use it.",
   "slotCloseAction": "Close bookings",
   "myCareerInvalid": "Enter years of experience between 0 and 80.",
   "myProfileSaveFailed": "Couldn't save your profile.",
@@ -1678,7 +1678,7 @@
       }
     }
   },
-  "adminSuspendBody": "They are signed out right away and can't sign in again. All member connections end, members are notified, and upcoming PT sessions are cancelled. Lifting the suspension does not restore those connections.",
+  "adminSuspendBody": "They are signed out right away and can't sign in again. All member connections end, members are notified, and upcoming PT appointments are cancelled. Lifting the suspension does not restore those connections.",
   "adminUnsuspendTitle": "Lift {name}'s suspension?",
   "@adminUnsuspendTitle": {
     "placeholders": {
@@ -1763,7 +1763,7 @@
   "myNotifConsultation": "Consultation requests",
   "myNotifConsultationHint": "When a member requests a consultation or answers your invite",
   "myNotifReservation": "Bookings",
-  "myNotifReservationHint": "When a member books or changes a session",
+  "myNotifReservationHint": "When a member books or changes an appointment",
   "myNotifMemberUpdates": "Member updates",
   "myNotifMemberUpdatesHint": "When a member changes goals or name, or disconnects",
   "routineTypeCardio": "Cardio",
@@ -1872,7 +1872,7 @@
   "@coachDeliveryOn": {"placeholders": {"date": {"type": "String"}}},
   "coachUnsentRoutines": "{count} personal exercise(s) not sent yet",
   "@coachUnsentRoutines": {"placeholders": {"count": {"type": "int"}}},
-  "coachUnsentRoutinesBody": "The PT has ended but this has not reached the member yet. Open that session in the schedule to send it.",
+  "coachUnsentRoutinesBody": "The PT has ended but this has not reached the member yet. Open that PT in the schedule to send it.",
   "coachSendUnsentRoutines": "Open in schedule",
   "coachDeliveryProgramSection": "Program",
   "coachDeliveryRoutineSection": "Personal exercises",
@@ -2051,7 +2051,7 @@
   },
   "progPersonalRoutinesWhen": "Goes to the member when you complete this PT.",
   "progNoRoutinesRegisterTitle": "Add to schedule without personal exercise?",
-  "progNoRoutinesRegisterBody": "Each PT should come with at least one personal exercise. If you skip it now, you can still add it from the session details in Schedule before sending the PT program.",
+  "progNoRoutinesRegisterBody": "Each PT should come with at least one personal exercise. If you skip it now, you can still add it from the appointment details in Schedule before sending the PT program.",
   "progNoRoutinesRegisterSkip": "Add without it",
   "progPersonalRoutinesEmpty": "No personal exercise yet. Add at least one for each PT.",
   "aiAttachTargetPt": "Personal exercise for the PT you are putting together.",
@@ -2138,7 +2138,7 @@
   "aiStatusLearningTitle": "Personalizing (learning)",
   "aiStatusLearningBody": "Recent workouts were used, but there isn't a clear repeated pattern yet.",
   "aiStatusPersonalizedTitle": "Personalized from recent patterns",
-  "aiStatusPersonalizedBody": "Based on {count} sessions over the last {days} days.",
+  "aiStatusPersonalizedBody": "Based on {count} workout records over the last {days} days.",
   "@aiStatusPersonalizedBody": {
     "placeholders": {
       "count": {
@@ -2562,7 +2562,7 @@
       }
     }
   },
-  "searchDetailNextSession": "Next session {date} {time}",
+  "searchDetailNextSession": "Next appointment {date} {time}",
   "@searchDetailNextSession": {
     "placeholders": {
       "date": {
@@ -2916,7 +2916,7 @@
     }
   },
   "coachAttachTargetChanged": "The PT appointment to attach to has changed. Tap Add to schedule again to check",
-  "coachScheduleOverlap": "Another session is already booked at that time, so nothing was added. Pick a different time and try again",
+  "coachScheduleOverlap": "Another appointment is already booked at that time, so nothing was added. Pick a different time and try again",
   "programEditorNoExercises": "Add at least one exercise",
   "programEditorExerciseNameInvalid": "An exercise name is empty or longer than 100 characters",
   "programEditorRegisterDatePast": "That date has passed. Pick today or a later date",

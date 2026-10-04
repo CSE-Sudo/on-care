@@ -175,7 +175,7 @@ Map<String, Object?>? _demoActionFor(String category) => switch (category) {
     'label': '일정 보기',
     'target': 'exercise',
   },
-  // PT 수업 완료·피드백 — 운동 탭의 PT 기록(#3027).
+  // PT 완료·피드백 — 운동 탭의 PT 기록(#3027).
   'pt_done' => const <String, Object?>{
     'label': 'PT 기록 보기',
     'target': 'exercise',

@@ -374,7 +374,7 @@
   "dietAnalysisFailedBody": "Analysis failed. Please try again in a moment.",
   "dietAnalysisUnsupportedFormat": "This photo format can't be analyzed. Please pick a JPG or PNG photo instead.",
   "dietAnalysisBadRequest": "The photo couldn't be read. Please pick a different one.",
-  "dietAnalysisUnauthorized": "Your session expired. Please sign in again to log this meal.",
+  "dietAnalysisUnauthorized": "Your sign-in expired. Please sign in again to log this meal.",
   "dietAnalysisNotImplemented": "Photo analysis is unavailable right now. Please log the meal manually.",
   "dietAnalysisNoFood": "We couldn't find any food in this photo. Pick another photo or add the meal manually.",
   "dietAnalysisDailyLimit": "You've used today's photo analyses. They reset tomorrow — for now you can add the meal manually.",
@@ -494,7 +494,7 @@
       }
     }
   },
-  "exPtSessionNumber": "Session {count}",
+  "exPtSessionNumber": "PT #{count}",
   "@exPtSessionNumber": {
     "description": "PT card chip — which session with the assigned trainer this was (#2666).",
     "placeholders": {
@@ -1510,7 +1510,7 @@
   "myNotifExerciseDesc": "When your trainer sends personal exercises or a PT program, or leaves a PT record or feedback",
   "myNotifTrainerDesc": "When your trainer sends you a chat message",
   "myNotifWeeklyReportDesc": "When your trainer sends your weekly report",
-  "myNotifAlwaysSent": "PT session bookings, changes and cancellations, and trainer connect or disconnect notices are always sent",
+  "myNotifAlwaysSent": "PT bookings, changes and cancellations, and trainer connect or disconnect notices are always sent",
   "mySupportFaq": "FAQ",
   "mySupportInquiry": "1:1 Inquiry",
   "myLegalTermsTitle": "Terms of Service",
@@ -2010,11 +2010,11 @@
   "@mySupportExternalHint": {
     "description": "Shown under the FAQ / 1:1 inquiry rows so it is clear the tap leaves the app."
   },
-  "authRestoring": "Restoring your session",
+  "authRestoring": "Restoring your sign-in",
   "@authRestoring": {
     "description": "Splash message while the saved session is being restored (#1944)."
   },
-  "authRestoreFailed": "We could not restore your session — the connection looks unstable.",
+  "authRestoreFailed": "Couldn't restore your sign-in — the connection looks unstable.",
   "authRestoreRetry": "Try again",
   "authRestoreSignIn": "Go to sign in",
   "authTagline": "Log your meals and workouts — and get coaching back",
@@ -2043,7 +2043,7 @@
   "authSignInFailed": "Sign-in failed. Check your email and password",
   "authSignInNetworkFailed": "Check your internet connection and try again",
   "authSignInUnavailable": "Can't sign in right now. Please try again in a moment",
-  "authSessionExpired": "Your session has expired. Please sign in again",
+  "authSessionExpired": "Your sign-in has expired. Please sign in again",
   "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment",
   "authSocialComingSoon": "Social sign-in is coming soon. Please sign in with your email",
   "signUpTitle": "Sign up",
@@ -2860,11 +2860,11 @@
       }
     }
   },
-  "demoAlertPtDoneTitle": "PT complete",
+  "demoAlertPtDoneTitle": "You finished PT #12",
   "@demoAlertPtDoneTitle": {
     "description": "Title of a demo notification shown in tour mode."
   },
-  "demoAlertPtDoneBody": "You finished your 12th PT with Trainer {trainerName} at 18:00 today!",
+  "demoAlertPtDoneBody": "Your PT with Trainer {trainerName} at 18:00 today is saved to your workout log.",
   "@demoAlertPtDoneBody": {
     "description": "Body of a demo notification shown in tour mode.",
     "placeholders": {

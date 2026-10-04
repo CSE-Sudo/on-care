@@ -47,7 +47,7 @@ def test_each_alert_opens_the_same_screen_as_the_app_demo():
     # 리마인더라도 운동 목표는 운동이다(#2690).
     assert _target("새 개인운동이 왔어요") == "exercise"
     assert _target("주간 리포트가 도착했어요") == "coach_chat"
-    assert _target("PT 수업 완료") == "exercise"
+    assert _target("12회차 PT를 마쳤어요") == "exercise"
     assert _target("트레이너 피드백 도착") == "coach_chat"
     assert _target("이번 주 운동 목표까지 조금 남았어요") == "exercise"
     assert _target("식단 기록을 꾸준히 이어가고 있어요") == "dashboard"
@@ -110,7 +110,7 @@ def test_categories_are_known_backend_categories():
 def test_pt_completion_alert_uses_the_same_category_as_the_server():
     """실서버가 PT 완료 때 만드는 알림과 같은 갈래다(#3027) — 아이콘·라벨이 같아야 한다."""
     by_title = {n.title: n for n in DEMO_NOTIFICATIONS}
-    item = by_title["PT 수업 완료"]
+    item = by_title["12회차 PT를 마쳤어요"]
     assert item.category == notification_service.MEMBER_PT_DONE
     assert item.target == "exercise"
 

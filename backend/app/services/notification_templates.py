@@ -620,7 +620,7 @@ def _member_trainer_disconnected(args: Args, locale: Locale) -> Rendered:
     body = f"Your connection with {name or 'your trainer'} has ended."
     if cancelled:
         body += (
-            f" {_plural(cancelled, 'remaining PT session was', 'remaining PT sessions were')}"
+            f" {_plural(cancelled, 'remaining PT appointment was', 'remaining PT appointments were')}"
             " cancelled too."
         )
     return "Your trainer connection ended", body
@@ -631,17 +631,17 @@ def _member_trainer_left_booking(args: Args, locale: Locale) -> Rendered:
     name = _text(args, "trainer_name")
     if locale == "ko":
         return (
-            "예약한 수업이 취소되었어요",
-            f"{name or '트레이너'} 트레이너가 서비스를 떠나 예약이 취소되었습니다.",
+            "예약한 PT가 취소됐어요",
+            f"{name or '트레이너'} 트레이너가 서비스를 떠나 예약이 취소됐어요.",
         )
     return (
-        "Your booked session was cancelled",
+        "Your booked PT was cancelled",
         f"{name or 'Your trainer'} left the service, so your booking was cancelled.",
     )
 
 
 # --------------------------------------------------------------------------
-# PT 수업 완료·피드백 — 트레이너가 마친 수업을 회원에게 (#3027)
+# PT 완료·피드백 — 트레이너가 마친 PT를 회원에게 (#3027)
 # --------------------------------------------------------------------------
 
 
@@ -666,9 +666,9 @@ def _member_pt_completed(args: Args, locale: Locale) -> Rendered:
         return title, None if has_note else "운동 기록에 남겼어요"
     who = name or "your trainer"
     title = (
-        f"You finished PT session {n} with {who}"
+        f"You finished PT #{n} with {who}"
         if n
-        else f"You finished a PT session with {who}"
+        else f"You finished PT with {who}"
     )
     return title, None if has_note else "Saved to your workout log"
 
@@ -704,19 +704,19 @@ def _slot(args: Args, locale: Locale) -> str:
 
 @_template(MEMBER_SCHEDULE_ADDED)
 def _member_schedule_added(args: Args, locale: Locale) -> Rendered:
-    title = "새 일정이 등록되었어요" if locale == "ko" else "New session scheduled"
+    title = "새 일정이 등록되었어요" if locale == "ko" else "New appointment scheduled"
     return title, _slot(args, locale)
 
 
 @_template(MEMBER_SCHEDULE_CHANGED)
 def _member_schedule_changed(args: Args, locale: Locale) -> Rendered:
-    title = "일정이 변경되었어요" if locale == "ko" else "Session rescheduled"
+    title = "일정이 변경되었어요" if locale == "ko" else "Appointment rescheduled"
     return title, _slot(args, locale)
 
 
 @_template(MEMBER_SCHEDULE_CANCELLED)
 def _member_schedule_cancelled(args: Args, locale: Locale) -> Rendered:
-    title = "일정이 취소되었어요" if locale == "ko" else "Session cancelled"
+    title = "일정이 취소되었어요" if locale == "ko" else "Appointment cancelled"
     return title, _slot(args, locale)
 
 
@@ -727,8 +727,8 @@ def _member_schedule_series(args: Args, locale: Locale) -> Rendered:
     if locale == "ko":
         return "반복 일정이 등록되었어요", f"{first} ~ {last} · {time} · {count}회"
     return (
-        "Recurring sessions scheduled",
-        f"{first} ~ {last} · {time} · {_plural(count, 'session', 'sessions')}",
+        "Recurring appointments scheduled",
+        f"{first} ~ {last} · {time} · {_plural(count, 'appointment', 'appointments')}",
     )
 
 

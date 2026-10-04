@@ -934,7 +934,7 @@ void main() {
         expect(find.text('벤치프레스'), findsOneWidget);
         expect(find.text('플랭크 60초'), findsOneWidget);
         expect(find.text('트레이너 피드백'), findsOneWidget);
-        expect(find.text('무릎 가동범위 체크 필요. 다음 세션 중량 조절 예정.'), findsOneWidget);
+        expect(find.text('무릎 가동범위 체크 필요. 다음 PT 중량 조절 예정.'), findsOneWidget);
 
         // 예전에는 이 자리가 눌리지 않는 안내였다("전송 API가 아직 없어…").
         expect(find.text('김민수님에게 전송됨'), findsNothing);

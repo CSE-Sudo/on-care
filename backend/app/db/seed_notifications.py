@@ -61,8 +61,8 @@ DEMO_NOTIFICATIONS: tuple[DemoNotification, ...] = (
     ),
     DemoNotification(
         "noti-demo-5",
-        "PT 수업 완료",
-        f"오늘 18:00 {TRAINER_NAME} 트레이너와 12회차 PT를 마쳤어요!",
+        "12회차 PT를 마쳤어요",
+        f"오늘 18:00 {TRAINER_NAME} 트레이너와 한 PT를 운동 기록에 남겼어요.",
         # 실서버가 PT 완료 때 만드는 알림과 같은 갈래다(#3027). 목적지는 갈래별 표와
         # 같은 운동 탭이라 그대로 둔다(#2690 때 채운 값).
         notification_service.MEMBER_PT_DONE,

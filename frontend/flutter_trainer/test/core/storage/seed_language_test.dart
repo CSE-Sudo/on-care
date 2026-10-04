@@ -345,7 +345,7 @@ void main() {
       )..where((t) => t.id.equals('seed-schedule-0'))).getSingle();
       expect(
         today.note,
-        'Knee range of motion needs checking. Adjust weights next session.',
+        'Knee range of motion needs checking. Adjust weights at the next PT.',
       );
       final program = jsonDecode(today.programJson) as List<Object?>;
       final first = program.first! as Map<String, Object?>;

@@ -59,7 +59,7 @@ _ACTION_BY_CATEGORY: dict[str, tuple[str, str, str]] = {
     # 목록을 함께 보여 주는 곳이다. 예전에는 회원 앱에 일정을 볼 자리가 없어(#1928)
     # 액션을 달지 않았고, 일정 알림만 눌러도 아무 화면이 열리지 않았다.
     notification_service.MEMBER_SCHEDULE: ("일정 보기", "View schedule", "exercise"),
-    # PT 수업 완료·피드백 도착 — 운동 탭의 PT 기록(완료 PT 카드와 피드백)(#3027).
+    # PT 완료·피드백 도착 — 운동 탭의 PT 기록(완료 PT 카드와 피드백)(#3027).
     notification_service.MEMBER_PT_DONE: ("PT 기록 보기", "View PT record", "exercise"),
     notification_service.MEMBER_COACH_INVITE: ("요청 확인", "View request", "exercise"),
     notification_service.MEMBER_CONSULTATION: ("트레이너 보기", "View trainer", "exercise"),

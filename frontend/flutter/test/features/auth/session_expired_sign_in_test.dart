@@ -158,7 +158,7 @@ Future<void> _drainToast(WidgetTester tester) async {
 void main() {
   for (final (Locale locale, String message) in <(Locale, String)>[
     (const Locale('ko'), '로그인이 만료되었어요. 다시 로그인해 주세요'),
-    (const Locale('en'), 'Your session has expired. Please sign in again'),
+    (const Locale('en'), 'Your sign-in has expired. Please sign in again'),
   ]) {
     testWidgets('갱신이 거부되면 로그인 화면으로 가고 안내한다 (${locale.languageCode})', (
       WidgetTester tester,

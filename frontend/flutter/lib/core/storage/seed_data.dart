@@ -218,8 +218,8 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
         NotificationItemsCompanion.insert(
           id: 'seed-noti-2',
           createdAt: now.subtract(const Duration(hours: 1)),
-          title: 'PT 수업 완료',
-          body: '오늘 18:00 $kDemoTrainerName 트레이너와 12회차 PT를 마쳤어요!',
+          title: '12회차 PT를 마쳤어요',
+          body: '오늘 18:00 $kDemoTrainerName 트레이너와 한 PT를 운동 기록에 남겼어요.',
           // 실서버가 PT 완료 때 만드는 알림과 같은 갈래다(#3027).
           category: 'pt_done',
         ),
