@@ -266,7 +266,7 @@ https://<DistributionDomainName>/version.txt
 | 무효화 후 smoke check | 같음 — 자동 롤백 후 워크플로 실패 처리 |
 | 응답 보안 헤더 확인([9절](#9-응답-보안-헤더-3017)) | 같음 — 헤더 정책은 스택 쪽이라 되돌린 뒤 스택 파라미터(`ApiOrigin`)를 확인 |
 
-- 릴리스 보관: 최신 5개를 남기고 그보다 오래된 prefix는 배포 성공 시 정리합니다. 현재 릴리스와 직전 릴리스는 개수와 무관하게 항상 보존합니다.
+- 릴리스 보관: 최신 5개 릴리스를 남기고 그보다 오래된 릴리스는 배포 성공 시 정리합니다. 현재 릴리스와 직전 릴리스는 개수와 무관하게 항상 보존합니다. 릴리스는 `releases/<sha>/` 루트 하나로 세며(앱 폴더의 `frontend/version.txt`·`trainer/version.txt` 를 따로 세지 않음), 삭제도 언제나 루트 단위로만 합니다. 규칙은 [`.github/scripts/frontend_release_prune.sh`](../.github/scripts/frontend_release_prune.sh) 에 있고, PR gate 가 가짜 키 목록으로 경계를 검사합니다.
 - 버킷 버전 관리가 켜져 있어 실수로 덮어쓰거나 지운 객체도 30일 안에는 복구할 수 있습니다.
 - 수동 롤백이 필요하면 distribution의 origin path를 되돌릴 릴리스로 바꾸고 `/*`를 무효화합니다.
 
