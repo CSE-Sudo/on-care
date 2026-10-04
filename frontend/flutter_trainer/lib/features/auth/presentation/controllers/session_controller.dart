@@ -5,6 +5,7 @@ import 'package:oncare_core/network/session_refresh.dart';
 
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/auth_token.dart';
+import 'package:oncare_trainer/core/network/consent_gate.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/secure_token_store.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/consent_repositories.dart';
@@ -30,15 +31,20 @@ class SessionController extends StateNotifier<SessionState>
     addListener(_syncAccountScope, fireImmediately: false);
     // 실행 중 401 을 받은 인터셉터가 이 컨트롤러로 토큰을 회전한다(#1546).
     _refreshBridge = _ref.read(sessionRefreshBridgeProvider)..attach(this);
+    // 실행 중 트레이너 API 가 403 consent_required 를 주면 알려 온다(#3155).
+    _consentBridge = _ref.read(consentGateBridgeProvider)
+      ..attach(markConsentRequired);
     _restore();
   }
 
   final Ref _ref;
   late final SessionRefreshBridge _refreshBridge;
+  late final ConsentGateBridge _consentBridge;
 
   @override
   void dispose() {
     _refreshBridge.detach(this);
+    _consentBridge.detach(markConsentRequired);
     super.dispose();
   }
 
@@ -375,6 +381,22 @@ class SessionController extends StateNotifier<SessionState>
       status: state.status,
       profile: state.profile,
       consentRequired: stillRequired,
+    );
+  }
+
+  /// 서버가 [token] 세션에 필수 동의가 남았다고 했다 → 동의 화면으로. (#3155)
+  ///
+  /// 로그인 응답으로 알게 된 경우([_establish])와 달리 토큰은 이미 저장돼 있다
+  /// (복구한 세션이거나 쓰는 사이 문서 버전이 올랐다). 그대로 두어도 된다 —
+  /// 새로고침으로 복구해도 서버가 다시 403 을 주어 이 길로 돌아온다. 프로필은
+  /// 남겨 동의 화면 뒤에서도 같은 계정임을 지킨다. 이미 로그아웃했거나 다른
+  /// 계정으로 바뀐 뒤 늦게 온 응답은 버린다.
+  void markConsentRequired(String token) {
+    if (!_holdsToken(token) || state.consentRequired) return;
+    state = SessionState(
+      status: SessionStatus.authenticated,
+      profile: state.profile,
+      consentRequired: true,
     );
   }
 
