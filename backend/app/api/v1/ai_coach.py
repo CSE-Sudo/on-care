@@ -278,10 +278,11 @@ def dismiss_ai_coach_insight(
         .where(
             AiMessage.id == message_id,
             AiConversation.user_id == current_user.id,
+            conversation.member_thread_clause(),
             AiMessage.role == "user",
         )
     )
-    # 남의 대화는 물론이고 없는 id 도 404 다 — 있는지 없는지를 알려 주지 않는다.
+    # 남의 대화·트레이너 스레드(#3085)는 물론이고 없는 id 도 404 다 — 있는지 없는지를 알려 주지 않는다.
     if message is None:
         raise HTTPException(status_code=404, detail="감지 기록을 찾을 수 없습니다.")
     message.insight_dismissed = True

@@ -136,13 +136,13 @@ def test_rejected_sentence_is_not_logged_at_info(monkeypatch, caplog):
     assert "len=" in message
 
 
-def test_rejected_sentence_raw_text_only_at_debug(monkeypatch, caplog):
+def test_rejected_sentence_raw_text_is_never_logged(monkeypatch, caplog):
+    # LLM 출력 원문은 DEBUG 로도 남기지 않는다(#3090) — 회원 기록이 섞인 문장이 로그로
+    # 새지 않게, 탈락 사유·길이·지표 이름만 남긴다.
     caplog.set_level(logging.DEBUG, logger=_ai().logger.name)
     _generate_rejected(monkeypatch)
 
-    raw = [r for r in caplog.records if _SECRET_MENU in r.getMessage()]
-    assert raw, "원문은 DEBUG 로는 남아 있어야 한다(개발 중 원인 확인용)"
-    assert all(r.levelno == logging.DEBUG for r in raw)
+    assert not [r for r in caplog.records if _SECRET_MENU in r.getMessage()]
 
 
 # ---- 같은 이메일 가입 반복 (DB) ----

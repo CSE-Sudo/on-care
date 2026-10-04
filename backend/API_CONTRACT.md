@@ -27,7 +27,7 @@
     앞선 조회로 막았을 때와 같은 409 로 돌려준다.
 - **AI 하루 호출 상한(#3032).** 회원 한도(AI 코치 대화·사진 분석) 위에 두 상한을 더 둔다. 둘 다 DB 에서 KST 날짜로 세고
   (인스턴스 수와 무관), 모델을 **부르기 직전에** 센다 — 키가 없어 모델을 부르지 않는 폴백은 세지 않는다. 문구는 `Accept-Language` 를 따른다.
-  - **트레이너 한 계정**(`TRAINER_AI_CALLS_PER_DAY`, 기본 200): `POST /trainer/clients/{member_id}/ai-coach`·
+  - **트레이너 한 계정**(`TRAINER_AI_CALLS_PER_DAY`, 기본 200):
     `POST /trainer/clients/{member_id}/routine-options`·`GET /trainer/clients/{member_id}/report/summary` 의 AI 호출 합.
     넘으면 **429** `detail = { code: "daily_limit", message }` + `Retry-After`(다음 KST 자정까지 초). 분당 한도의 429(`detail` 이
     문자열)와 모양으로 구분된다. 트레이너 웹은 루틴 후보는 토스트로, 리포트 요약은 다시 시도 없이 "내일 다시" 안내로 보인다.
@@ -263,6 +263,8 @@
 `ai_comment` 는 사진 분석이 만든 식단평이다(#1932). 손으로 고쳐 만든 끼니와 분석이 식단평을 내지 못한 끼니는 빈 문자열이고, 앱은 비어 있으면 그 줄을 그리지 않는다.
 당류만 소수다 — 항목 단위 당류가 6.3g·8.5g 처럼 소수로 들어오고 합계도 절삭 없이 유지된다(`total_sugar_g` 도 float).
 `foods[]`: `[{ name, display_name(str?), amount_g(float?), calories(int?), sodium_mg(int?), sugar_g(float?), carbs_g(float?), protein_g(float?), fat_g(float?), source(db|estimate|mixed|member) }]` — 음식별 영양은 회원이 식단 상세에서 고칠 수 있는 값이고, 그대로 저장된다(#1856, #1892).
+
+**사진 분석 값의 범위(#3090).** 인식 모델의 응답은 외부 입력으로 보고 서버가 걸러 저장한다. 음식 한 항목에서 `calories` 는 0~5000, `sodium_mg` 는 0~20000, `carbs_g`·`protein_g`·`fat_g`·`sugar_g` 는 0~1000, `amount_g` 는 0 초과~5000 이다. 음수·비유한값·숫자가 아닌 값·이 범위를 넘는 값은 모름(`null`)으로 저장하고 그 음식은 남긴다 — 앱은 `—` 로 보인다. 그래도 읽을 수 없는 항목(예: 확신도가 0~1 밖)은 그 항목만 빼고, 남은 음식이 없으면 `no_food_detected` 422 다. `name` 은 공백을 한 칸으로 접어 80자, `coach_comment` 는 300자까지 받고, 음식은 한 사진에 20개까지다. 비거나 문자열이 아닌 이름은 `알 수 없음` 이다. 공공 DB 보정(`source=db`·`mixed`)이 DB 밀도 × 양으로 다시 낸 값은 이 상한을 거치지 않는다. 음식별 `calories`·`sodium_mg` 는 수정 경로(`PUT`)를 포함해 음수면 422 다.
 
 `source` 는 그 음식의 숫자가 어디서 왔나다. `db`(공공 DB × 양) · `mixed`(DB 행에 탄단지가 비어 인식기 값을 남김) · `estimate`(매칭이나 양이 없어 인식기 추정 그대로) · `member`(회원이 수정 화면에서 영양 칸을 직접 고침, #2105). **`PUT` 의 `foods[].source` 는 앱이 정해 보낸다** — 손대지 않은 음식과 섭취량만 바꾼 음식은 원래 값을, 공공 DB 값으로 채운 음식은 `db` 를, 영양 칸을 고친 음식은 `member` 를 싣는다. 네 값 밖은 422 이고, **빠지면 `member` 로 저장한다**(인식기 쪽 기본값 `estimate` 를 쓰면 수정 경로로 들어온 숫자를 인식기 추정이라 부르게 된다). 이 필드 이전 기록은 `source` 가 없을 수 있고, 읽는 쪽은 `estimate` 로 읽는다.
 
@@ -806,16 +808,15 @@ tag: diet|exercise (피드백은 식단·운동 두 건, #2706)
 
 | 한도 | 값 | 넘으면 |
 | --- | --- | --- |
-| `message` 길이 | 1000자 (트레이너 고객 AI 코치와 같음) | **422** |
+| `message` 길이 | 1000자 | **422** |
 | `history` 턴 수 | 20 | **422** |
 | `history[].content` 길이 | 2000자 (`role` 은 16자) | **422** |
 | 요청 본문 전체 — 회원·트레이너 AI 코치 공용(트레이너는 #3032) | 256KiB (`COACH_CHAT_MAX_BODY_BYTES`) | **413** `{"detail": "요청이 너무 큽니다. …"}` — 본문을 다 읽기 전에 끊는다 |
 | 분당 요청 수 — 회원 `POST /ai-coach/chat` | 20 / IP (`COACH_CHAT_PER_MINUTE`) | **429** `{"detail": "요청이 너무 많습니다. …"}` + `Retry-After: 60` |
-| 분당 요청 수 — 트레이너 `POST /trainer/clients/{member_id}/ai-coach` | 20 / **트레이너 id** (같은 설정) | 같은 429. 같은 IP 의 다른 트레이너와 버킷을 나누지 않고, 한 트레이너가 여러 고객에게 물어도 한 버킷이다. 담당이 아닌 회원은 한도를 세기 전에 404 |
 
 길이는 글자(유니코드 코드 포인트) 수다. 회원 앱은 입력칸을 1000자로 막고, `history` 는 최근 20턴·턴당 2000자로 잘라 보낸다(서버는
 저장된 대화를 먼저 쓰고 프롬프트에는 최근 몇 턴만 넣으므로 답이 달라지지 않는다). 분당 한도(429 `detail` 이 문자열)는 하루 한도의
-429 `daily_limit`(`detail` 이 객체)와 모양으로 구분된다. 트레이너 웹은 이 429 를 "1분 뒤 다시 물어봐 주세요" 로 보이고 쓰던 질문을 남긴다.
+429 `daily_limit`(`detail` 이 객체)와 모양으로 구분된다.
 
 **생성 실패 로그(#1559).** LLM 대신 검색 기반 대체 답으로 내려갈 때마다 `app.services.coach.chat` 로거가 `event=coach_llm_fallback` 레코드를
 남긴다. 필드는 `fallback_reason`(`llm_unavailable` 설정·키 문제 / `provider_error` 호출 실패 / `empty_reply` 빈 응답 — 셋은 WARNING,
@@ -823,6 +824,8 @@ tag: diet|exercise (피드백은 식단·운동 두 건, #2706)
 `request_id` 로 잇는다. 예외 메시지·프롬프트·건강정보·질문은 남기지 않는다. 응답 계약은 그대로다.
 
 `DELETE /ai-coach/insights/{message_id}` 는 **메시지를 지우지 않는다**(#1975). 감지는 저장하지 않고 대화에서 매번 계산하므로 지울 행이 없다 — 그 줄에 `더 보지 않음` 표시만 남기고 `GET` 이 건너뛴다. 회원이 쓴 말은 대화에 그대로 남고 AI 가 맥락으로 읽는 것도 그대로다. 이미 치운 줄을 다시 눌러도 200 이고, 남의 대화·없는 id 는 404 다.
+
+감지(`GET /ai-coach/insights`·치우기·AI 코치 프롬프트의 불편 요약·자동 추천 루틴·트레이너 회원 목록의 통증 신호)는 **회원 본인 대화**(`ai_conversations.trainer_id IS NULL`)만 읽는다(#3085). 예전 트레이너 AI 코칭(`/trainer/clients/{member_id}/ai-coach`, 삭제됨)이 남긴 스레드의 트레이너 질문이 회원 발화로 읽히지 않게 하기 위해서다. 그 스레드의 메시지 id 로 치우기를 부르면 404 다.
 
 ### 바이탈 (체중/혈압/혈당) — 제거됨
 
@@ -1199,8 +1202,6 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | GET | `/trainer/clients/{member_id}/chat?limit=&before=&before_id=` | `ChatMessageOut[]`(오래된→최신, 기본 최신 50건) |
 | POST | `/trainer/clients/{member_id}/chat` | `{ text, emote_id?, client_request_id? }` → **201** `ChatMessageOut`. 빈 메시지·모르는 이모티콘 400 |
 | POST | `/trainer/clients/{member_id}/chat/read` | `{ marked_read }` |
-| POST | `/trainer/clients/{member_id}/ai-coach` | `{ message }` → `{ member_id, reply, sources }` — 담당 고객 데이터를 근거로 한 AI 문답. 한도는 위 "AI 코치" 표, 하루 상한은 공통 규약 "AI 하루 호출 상한"(429 `daily_limit`·503 `ai_capacity`) |
-| GET | `/trainer/clients/{member_id}/ai-coach` | `[{ role, content, sources }]` — 이 트레이너가 그 고객에 대해 나눈 문답(오래된→최신) |
 | GET | `/trainer/clients/{member_id}/memos` | `TrainerMemoOut[]`(최신 먼저) — 트레이너 혼자 보는 메모 |
 | POST | `/trainer/clients/{member_id}/memos` | `{ body, source?, insight_id?, insight_kind?, ref_id?, ref_date? }` → **201** `TrainerMemoOut` |
 | PUT | `/trainer/clients/{member_id}/memos/{memo_id}` | `{ body }` → `TrainerMemoOut` |
@@ -1252,7 +1253,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/trainer/schedule/{session_id}/routines/send` | `{ personal_routines? }` → `RoutineOut[]` — 마무리된 PT 에 남은 개인운동을 보낸다(#2224). 상태가 맞지 않으면 400 |
 | POST | `/trainer/schedule/{session_id}/routines/dismiss` | `{ dismissed }` — 보내지 않기로 정리(#2224) |
 | GET | `/trainer/clients/{member_id}/report?week_start=` | `WeeklyReportOut` — 주간 리포트. 아무 요일을 줘도 그 주 월요일로 접는다 |
-| GET | `/trainer/clients/{member_id}/report/summary?week_start=` | `{ member_id, week_start, headline, points, generated_by }`. AI 로 만들 때 트레이너 하루 상한 429 `daily_limit`(서버 전체 상한은 규칙형 요약으로 폴백, #3032) |
+| GET | `/trainer/clients/{member_id}/report/summary?week_start=` | `{ member_id, week_start, headline, points, generated_by }` — `headline` 은 한 문장이다. AI 가 쓴 문장이 200자를 넘으면 계약 위반으로 보고 규칙 기반 요약(`generated_by: "rule"`)으로 바꾼다. 응답 상한은 400자(#3090). AI 로 만들 때 트레이너 하루 상한 429 `daily_limit`(서버 전체 상한은 규칙형 요약으로 폴백, #3032). |
 | GET | `/trainer/clients/{member_id}/report/feedback?week_start=` | `{ member_id, week_start, body, updated_at }` — 저장해 둔 피드백 초안. 없으면 빈 본문(오류 아님, #821) |
 | PUT | `/trainer/clients/{member_id}/report/feedback` | `{ week_start?, body }` → 같은 모양. 같은 주는 덮어쓰고, 회원에게는 아무것도 보내지 않는다 |
 | POST | `/trainer/clients/{member_id}/report/send` | `{ week_start?, message? }` → **201** `ChatMessageOut` — 리포트를 회원 채팅으로 보낸다 |

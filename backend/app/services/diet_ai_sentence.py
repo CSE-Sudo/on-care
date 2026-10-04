@@ -29,6 +29,7 @@ from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
 from app.services.coach.llm_base import is_truncated, output_cap
 from app.services.coach.prompt_safety import FOOD_NAME_GUARD, TRAINER_DIET_GUARD
 from app.services.diet_advice_copy import plain
+from app.services.ai_log import log_ai_fallback
 
 logger = logging.getLogger(__name__)
 
@@ -220,20 +221,21 @@ def generate(
             metrics.incr(f"{metric}.fallback", reason="timeout")
             logger.warning("%s LLM timeout (%.1fs)", metric, LLM_TIMEOUT_SEC)
             return None
-        except Exception:  # noqa: BLE001 - AI 장애 종류와 무관하게 카드는 떠야 한다
+        except Exception as exc:  # noqa: BLE001 - AI 장애 종류와 무관하게 카드는 떠야 한다
             metrics.incr(f"{metric}.fallback", reason="error")
-            logger.warning("%s LLM 실패", metric, exc_info=True)
+            # 예외 메시지·스택은 남기지 않는다 — 프롬프트·모델 출력이 실린다(#3090).
+            log_ai_fallback(logger, metric, "error", exc=exc)
             return None
         reason = rejection_reason(text, limit)
         if reason is None:
             metrics.incr(f"{metric}.generated", by="llm")
             return text
-        # 문장에는 회원이 먹은 메뉴·수치가 들어 있다(#2913). 운영 로그(INFO)에는
-        # 메트릭 이름·사유·길이만 남기고, 원문은 DEBUG 로만 본다.
+        # 문장에는 회원이 먹은 메뉴·수치가 들어 있다(#2913). 메트릭 이름·사유·길이만
+        # 남긴다. 원문은 DEBUG 로도 남기지 않는다 — 로그 수준은 운영 중에 바뀔 수
+        # 있고, 그때 회원 식단이 그대로 쌓인다(#3090).
         logger.info(
             "%s LLM 문장 검사 탈락: reason=%s len=%d limit=%d",
             metric, reason, len(plain(text)), limit,
         )
-        logger.debug("%s LLM 탈락 문장 원문: %r", metric, text)
     metrics.incr(f"{metric}.fallback", reason="invalid")
     return None

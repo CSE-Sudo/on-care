@@ -44,6 +44,7 @@ from app.services import diet_coach_inputs as inputs
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
 from app.services.coach.llm_base import is_truncated, output_cap
 from app.services.coach.prompt_safety import FOOD_NAME_GUARD, TRAINER_DIET_GUARD
+from app.services.ai_log import log_ai_fallback
 
 logger = logging.getLogger(__name__)
 
@@ -392,9 +393,10 @@ def _generate(
         except FutureTimeout:
             metrics.incr("diet_menu_plan.fallback", reason="timeout")
             logger.warning("diet menu plan LLM timeout (%.1fs) — 카탈로그로 채움", LLM_TIMEOUT_SEC)
-        except Exception:  # noqa: BLE001 - AI 장애 종류와 무관하게 리스트는 있어야 한다
+        except Exception as exc:  # noqa: BLE001 - AI 장애 종류와 무관하게 리스트는 있어야 한다
             metrics.incr("diet_menu_plan.fallback", reason="error")
-            logger.warning("diet menu plan LLM 실패 — 카탈로그로 채움", exc_info=True)
+            # 카탈로그로 채운다. 예외 메시지·스택은 남기지 않는다(#3090).
+            log_ai_fallback(logger, "diet_menu_plan", "error", exc=exc)
     return "rules", rules_plan(lang=lang, needs=needs, excluded=excluded)
 
 

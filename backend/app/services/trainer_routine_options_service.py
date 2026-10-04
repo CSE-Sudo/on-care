@@ -56,6 +56,7 @@ from app.schemas.trainer_api import (
 from app.services import exercise_types, routine_ai
 from app.services.coach import prompt_safety
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
+from app.services.ai_log import log_ai_fallback
 from app.services.coach.llm_base import is_truncated, output_cap
 
 logger = logging.getLogger(__name__)
@@ -1070,26 +1071,27 @@ def generate_routine_options(
             LLM_TIMEOUT_SEC, trainer_id, member_id,
         )
         return fallback
+    # 아래 두 폴백은 예외 메시지·스택을 남기지 않는다 — 계약 위반 메시지는 모델
+    # 출력을(`input_value=`), 공급자 오류는 프롬프트를 되풀이할 수 있다(#3090).
     except (ValidationError, RoutineContractError) as exc:
         # 계약 위반 — 공급자는 살아 있는데 응답이 규격에 안 맞는다. 프롬프트나
         # 스키마를 손볼 신호라 인프라 장애와 섞으면 안 된다.
         # 넓은 ValueError 가 아니라 이 두 타입만 잡는다 — COACH_LLM 오타 같은
         # 설정 오류도 ValueError 라, 그것까지 계약 위반으로 세면 지표가 엉킨다.
         _record(started, reason="contract", had_chat_context=had_chat)
-        logger.warning(
-            "맞춤 루틴 LLM 계약 위반 — 규칙 기반 폴백 사용 "
-            "(trainer_id=%s, member_id=%s): %s",
-            trainer_id, member_id, exc,
+        log_ai_fallback(
+            logger, "routine_options", "contract", exc=exc,
+            trainer_id=trainer_id, member_id=member_id,
         )
         return fallback
-    except Exception:  # noqa: BLE001 — 키 미설정·설정 오타·네트워크·5xx, 우리 쪽 버그
-        # 이쪽은 stack trace 를 남긴다. 예전엔 한 덩어리로 삼켜서, 스키마 필드
-        # 이름을 잘못 쓴 버그도 조용히 규칙형으로 내려가 아무도 몰랐다.
+    except Exception as exc:  # noqa: BLE001 — 키 미설정·설정 오타·네트워크·5xx, 우리 쪽 버그
+        # 이쪽은 ERROR 로, 예외 유형과 발생 위치를 남긴다. 예전엔 한 덩어리로
+        # 삼켜서, 스키마 필드 이름을 잘못 쓴 버그도 조용히 규칙형으로 내려가
+        # 아무도 몰랐다.
         _record(started, reason="infra", had_chat_context=had_chat)
-        logger.exception(
-            "맞춤 루틴 LLM 호출 실패 — 규칙 기반 폴백 사용 "
-            "(trainer_id=%s, member_id=%s)",
-            trainer_id, member_id,
+        log_ai_fallback(
+            logger, "routine_options", "infra", exc=exc, level=logging.ERROR,
+            trainer_id=trainer_id, member_id=member_id,
         )
         return fallback
 

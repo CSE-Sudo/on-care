@@ -42,7 +42,6 @@ GLOBAL_BUCKET = "global"
 #: 기능 키 — 메트릭 라벨로 쓴다. 카디널리티가 낮은 고정 값만 둔다.
 FEATURE_COACH_CHAT = "coach_chat"
 FEATURE_COACH_FEEDBACK = "coach_feedback"
-FEATURE_TRAINER_COACH = "trainer_coach"
 FEATURE_ROUTINE_OPTIONS = "routine_options"
 FEATURE_REPORT_SUMMARY = "report_summary"
 FEATURE_DIET_PHOTO = "diet_photo"
