@@ -4457,5 +4457,9 @@
   "releaseUpdateReload": "Reload",
   "@releaseUpdateReload": {"description": "Button that reloads the page to load the new release."},
   "releaseUpdateDismiss": "Dismiss",
-  "@releaseUpdateDismiss": {"description": "Tooltip of the button that hides the new-release banner for this release."}
+  "@releaseUpdateDismiss": {"description": "Tooltip of the button that hides the new-release banner for this release."},
+  "errorNetworkUnstable": "The connection is unstable. Please check your network and try again.",
+  "@errorNetworkUnstable": {"description": "Shown in error toasts and error states when a request failed because of a network error or timeout, instead of the HTTP library's own English message."},
+  "errorServerTemporary": "The server is having a temporary problem. Please try again in a moment.",
+  "@errorServerTemporary": {"description": "Shown in error toasts and error states when the server answered with a 5xx status and gave no reason of its own."}
 }

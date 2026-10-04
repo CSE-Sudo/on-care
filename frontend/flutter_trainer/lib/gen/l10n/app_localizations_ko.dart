@@ -5899,4 +5899,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get releaseUpdateDismiss => '안내 닫기';
+
+  @override
+  String get errorNetworkUnstable => '연결이 불안정합니다. 네트워크를 확인하고 다시 시도해 주세요.';
+
+  @override
+  String get errorServerTemporary => '서버에 일시적인 문제가 있습니다. 잠시 후 다시 시도해 주세요.';
 }

@@ -2775,5 +2775,7 @@
   "releaseUpdateTitle": "새 버전이 배포되었어요",
   "releaseUpdateMessage": "새로고침하면 최신 화면으로 바뀌어요. 작성 중인 내용이 있으면 먼저 저장해 주세요.",
   "releaseUpdateReload": "새로고침",
-  "releaseUpdateDismiss": "안내 닫기"
+  "releaseUpdateDismiss": "안내 닫기",
+  "errorNetworkUnstable": "연결이 불안정합니다. 네트워크를 확인하고 다시 시도해 주세요.",
+  "errorServerTemporary": "서버에 일시적인 문제가 있습니다. 잠시 후 다시 시도해 주세요."
 }

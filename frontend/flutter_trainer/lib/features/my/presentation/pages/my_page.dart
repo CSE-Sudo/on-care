@@ -13,6 +13,7 @@ import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
 // Session은 앱 전역 상태라 예외적으로 auth feature 의 provider 를 직접
 // 사용한다 (라우터의 인증 게이트와 동일한 소비자).
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
@@ -294,7 +295,7 @@ class _MyPageState extends ConsumerState<MyPage> {
           ? l.myGymChangeFailed
           : '${l.myGymChangeFailed} $localizedDetail';
     }
-    return serverDetailOr(l, detail, l.myProfileSaveFailed);
+    return appErrorMessage(l, error, fallback: l.myProfileSaveFailed);
   }
 
   void _applySavedProfile(TrainerProfile saved) {
@@ -1337,7 +1338,7 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
       final AppLocalizations l = AppLocalizations.of(context);
       setState(() {
         _busy = false;
-        _error = serverDetailOr(l, e.message, l.myDeleteFailed);
+        _error = appErrorMessage(l, e, fallback: l.myDeleteFailed);
       });
       return;
     } on Object {
@@ -2532,7 +2533,7 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
         final AppLocalizations l = AppLocalizations.of(context);
         _fail(
           _PasswordField.current,
-          serverDetailOr(l, e.message, l.myPwChangeFailed),
+          appErrorMessage(l, e, fallback: l.myPwChangeFailed),
         );
       }
       return;
