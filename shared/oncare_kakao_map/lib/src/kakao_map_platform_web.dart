@@ -5,13 +5,15 @@ import 'dart:ui_web' as ui_web;
 
 import 'package:flutter/widgets.dart';
 import 'package:oncare_kakao_map/src/kakao_map_config.dart';
+import 'package:oncare_kakao_map/src/kakao_map_script.dart';
 import 'package:web/web.dart' as web;
 
 /// 카카오맵 JS SDK 를 `HtmlElementView` 로 얹는다.
 ///
 /// 카카오는 Flutter 지도 SDK 가 없어 웹에서는 JS SDK 가 유일한 경로다. 서드파티
 /// 플러그인(`kakao_map_plugin`)은 WebView 래퍼라 web 을 지원하지 않으므로 쓰지 않고,
-/// 플랫폼 뷰에 직접 붙인다.
+/// 플랫폼 뷰에 직접 붙인다. 모바일은 같은 SDK 를 WebView 로 띄운다
+/// (`kakao_map_platform_mobile.dart`, #3043).
 Widget? buildKakaoMap({
   required double centerLat,
   required double centerLng,
@@ -33,11 +35,8 @@ Widget? buildKakaoMap({
   );
 }
 
-const String _sdkUrl = 'https://dapi.kakao.com/v2/maps/sdk.js';
-
-/// SDK 로드 제한 시간. 스크립트가 load/error 어느 이벤트도 내지 않는 경우
-/// (프록시 지연·네트워크 블랙홀 등) 지도가 영영 빈 채로 남지 않게 한다.
-const Duration _sdkTimeout = Duration(seconds: 10);
+/// SDK 주소·제한 시간은 모바일 WebView 구현과 함께 쓴다(`kakao_map_script.dart`).
+const Duration _sdkTimeout = kKakaoMapSdkTimeout;
 
 Future<void>? _sdkReady;
 
@@ -50,7 +49,7 @@ Future<void> _ensureSdkLoaded() {
   final Completer<void> completer = Completer<void>();
   final web.HTMLScriptElement script =
       web.document.createElement('script') as web.HTMLScriptElement
-        ..src = '$_sdkUrl?appkey=$kakaoJsKey&autoload=false'
+        ..src = kakaoMapSdkSrc(kakaoJsKey)
         ..async = true;
 
   script.addEventListener(
