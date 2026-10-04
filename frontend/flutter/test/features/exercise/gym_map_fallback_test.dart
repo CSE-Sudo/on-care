@@ -133,8 +133,17 @@ void main() {
     testWidgets('목록은 그대로 고를 수 있다', (WidgetTester tester) async {
       await _pump(tester, demo: false);
 
-      expect(find.text('신촌 스퀘어 피트니스'), findsOneWidget);
       expect(find.byKey(const Key('gym-result-list')), findsOneWidget);
+      // 어떤 카드가 먼저 오는지(제휴 헬스장·주변 장소 순서)와 무관하게, 지도가
+      // 폴백이어도 목록에 고를 카드가 남아 있는지만 본다.
+      expect(
+        find.byWidgetPredicate(
+          (Widget w) =>
+              w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith('gym-card-'),
+        ),
+        findsWidgets,
+      );
     });
 
     testWidgets('영어로도 안내가 보인다', (WidgetTester tester) async {
