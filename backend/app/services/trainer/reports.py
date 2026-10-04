@@ -75,7 +75,7 @@ def build_weekly_report(
     monday_str, sunday_str = monday.isoformat(), sunday.isoformat()
 
     member = db.get(User, member_id)
-    member_name = member.name if member else "고객"
+    member_name = member.name if member else "회원"
 
     # 취소·노쇼는 세지 않는다(#871). `sessions_booked` 는 "이번 주에 잡혀 있던
     # 수업" 이고 리포트는 그 분모로 이행을 읽는다 — 진행되지 않은 약속을 분모에

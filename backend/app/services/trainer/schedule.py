@@ -2454,7 +2454,7 @@ def send_session_program(
         raise ScheduleError("회원이 연결되지 않은 일정입니다.")
     # 해제 전에 잡아 둔 일정이라도 해제 뒤에는 회원에게 루틴을 보내지 않는다. (#2281)
     if not has_active_client_link(db, trainer_id, s.member_id):
-        raise ClientLinkDetached("담당 고객을 찾을 수 없습니다.")
+        raise ClientLinkDetached("담당 회원을 찾을 수 없습니다.")
     if s.status != "완료":
         raise ScheduleError("완료한 일정만 보낼 수 있습니다.")
     items = _program_items(s.program_json)

@@ -244,7 +244,7 @@ def test_deleting_does_not_notify_past_clients(
 ):
     """담당이 이미 끝난 회원에게는 탈퇴 알림을 보내지 않는다(#3024).
 
-    오래전에 끝난 관계를 "담당 트레이너 연결이 해제되었어요" 로 다시 들으면
+    오래전에 끝난 관계를 "담당 트레이너 연결이 해제됐어요" 로 다시 들으면
     지금 담당이 끊긴 것으로 읽힌다.
     """
     token, trainer_id = make_trainer(gym_id)
@@ -273,7 +273,7 @@ def test_deleting_notifies_active_clients_even_with_switches_off(
 
     assert _delete_me(client, token).status_code == 200
 
-    assert "담당 트레이너 연결이 해제되었어요" in _member_titles(db_session, member_id)
+    assert "담당 트레이너 연결이 해제됐어요" in _member_titles(db_session, member_id)
 
 
 def test_a_past_client_with_a_booking_hears_only_about_the_booking(
@@ -349,7 +349,7 @@ def test_an_active_client_with_a_booking_gets_one_notice(
 
     titles = _member_titles(db_session, member_id)
     assert len(titles) == before + 1
-    assert "담당 트레이너 연결이 해제되었어요" in titles
+    assert "담당 트레이너 연결이 해제됐어요" in titles
 
 
 def test_deleting_a_trainer_with_bookings_clears_them(

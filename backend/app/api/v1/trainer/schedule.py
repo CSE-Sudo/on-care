@@ -267,7 +267,7 @@ def trainer_assign_program_with_schedule(
             },
         ) from exc
     if result is None:
-        raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="담당 회원을 찾을 수 없습니다.")
     return result
 
 

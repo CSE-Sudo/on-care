@@ -613,7 +613,7 @@ def _ensure_session_member_linked(
     if _is_consultation_booking(s):
         return
     if s.member_id and not has_active_client_link(db, trainer_id, s.member_id):
-        raise ClientLinkDetached("담당 고객을 찾을 수 없습니다.")
+        raise ClientLinkDetached("담당 회원을 찾을 수 없습니다.")
 
 
 #: 담당 해제로 거둔 일정에 남기는 취소 사유(#2589). 트레이너만 보는 기록이다.
