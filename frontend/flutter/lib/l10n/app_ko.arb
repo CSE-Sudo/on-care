@@ -223,6 +223,7 @@
   "dietAnalysisDailyLimit": "오늘 사진 분석 횟수를 다 썼어요. 내일 다시 쓸 수 있고, 지금은 직접 추가로 기록할 수 있어요.",
   "dietAnalysisRateLimited": "사진 분석 요청이 너무 잦아요. 잠시 후 다시 시도하거나 직접 추가해 주세요.",
   "dietAnalysisUnavailable": "지금은 사진 분석을 쓸 수 없어요. 직접 추가로 기록해 주세요.",
+  "dietAnalysisAiCapacity": "지금은 AI 기능 이용이 많아 잠시 쉬어요. 내일 다시 쓸 수 있고, 지금은 직접 추가로 기록할 수 있어요.",
   "dietAnalysisPickAnother": "다른 사진 고르기",
   "dietAnalysisSignIn": "다시 로그인",
   "dietAnalysisClose": "닫기",
@@ -1296,6 +1297,7 @@
     }
   },
   "aicQuotaExhausted": "오늘 대화를 다 썼어요. 내일 다시 열려요",
+  "aicAiCapacity": "지금은 AI 기능 이용이 많아 잠시 쉬어요. 내일 다시 이용해 주세요",
   "aicQuotaFindTrainer": "트레이너 찾기",
   "aicPaidConfirmTitle": "포인트로 대화를 이어갈까요?",
   "aicPaidConfirmMessage": "오늘 무료 대화를 다 썼어요. 이 대화를 보내면 {cost}가 차감돼요 (오늘 {limit}회까지).\n\n현재 포인트 {balance}",

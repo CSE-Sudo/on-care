@@ -3033,6 +3033,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Too many generation requests. Please try again shortly';
 
   @override
+  String get aiGenerateDailyLimit =>
+      'You\'ve used today\'s AI limit. Please try again tomorrow';
+
+  @override
   String get aiExerciseNameRequired => 'Enter an exercise name';
 
   @override
@@ -4761,6 +4765,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get reportsAiFailed =>
       'Couldn\'t create the summary. Please try again.';
+
+  @override
+  String get reportsAiDailyLimit =>
+      'You\'ve used today\'s AI limit. Please try again tomorrow.';
 
   @override
   String get reportsPdfFallbackClient => 'member';

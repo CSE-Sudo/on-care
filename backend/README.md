@@ -126,11 +126,15 @@ curl -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:8000/v1/system/met
 | `routine_options.fallback{reason=timeout}` | `LLM_TIMEOUT_SEC` 초과 → 아래 `llm_ms` 와 함께 본다 |
 | `routine_options.fallback{reason=contract}` | 응답 규격 위반 → 프롬프트·스키마를 본다 |
 | `routine_options.fallback{reason=infra}` | 키 미설정·설정 오타·네트워크·5xx |
+| `routine_options.fallback{reason=global_cap}` | 서버 전체 하루 AI 상한(`AI_GLOBAL_CALLS_PER_DAY`) 도달(#3032) |
 | `routine_options.with_chat_context` | 채팅 근거가 실린 채 AI 가 성공한 횟수(#580) |
 | `diet_recommendations.generated{by=llm}` | LLM 이 만든 추천 |
 | `diet_recommendations.generated{by=rules}` | LLM 실패 후 규칙으로 만든 추천 |
 | `diet_recommendations.generated{by=no_data}` | 근거가 없어 LLM 을 부르지 않음(신규 가입자) |
 | `diet_recommendations.fallback{reason=busy\|timeout\|error}` | 동시 호출 한도·타임아웃·그 외 실패 |
+| `diet_recommendations.fallback{reason=global_cap}` | 서버 전체 하루 AI 상한 도달(#3032) |
+| `ai_calls.acquired{feature=…}` | 하루 상한 안에서 모델을 부른 횟수(기능별, #3032). 기능 키는 `ai_call_quota.FEATURE_*` |
+| `ai_calls.rejected{feature=…,reason=trainer_daily\|global_cap}` | 하루 상한에 걸려 모델을 부르지 않은 횟수 — 트레이너 한 계정(429)·서버 전체 |
 
 사유가 넷인 이유는 볼 곳이 다르기 때문이다. `busy`·`timeout` 은 **공급자는 멀쩡한데
 우리 쪽 상한에 걸린 것**이라 동시성·타임아웃 설정을 조정할 신호이고, `contract` 는

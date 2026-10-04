@@ -19,11 +19,23 @@
   - **문자열**: `{"detail": "문장"}` — 대부분의 오류. 앱은 그대로 보여 준다(한국어 화면).
   - **객체**: `{"detail": {"code", "message", …추가 필드}}` — 화면이 분기해야 하는 오류만. **`code` 는 반드시 있다.**
     예: 일정 겹침 `schedule_overlap`(+`conflicts`), 프로그램을 붙일 회차 미정 `attach_target_conflict`(+`candidates`),
-    상담 `too_many_pending`·`slot_unavailable`, AI 코치 `points_required`·`daily_limit`·`insufficient_points`.
+    상담 `too_many_pending`·`slot_unavailable`, AI 코치 `points_required`·`daily_limit`·`insufficient_points`,
+    AI 하루 상한 `daily_limit`(트레이너)·`ai_capacity`(서버 전체).
     앱 공용 처리(트레이너 웹 `serverDetailText`)는 문자열이면 그 문장, 객체면 `message` 를 읽는다.
   - 예외는 FastAPI 스키마 검증 422 의 목록형 `detail`(`[{loc, msg, type}]`) 하나다.
   - 경쟁 상황(같은 이메일로 동시에 바꾸기, 같은 회원 담당 복구·수락·연결 코드가 겹침)도 DB 제약 위반을 500 이 아니라
     앞선 조회로 막았을 때와 같은 409 로 돌려준다.
+- **AI 하루 호출 상한(#3032).** 회원 한도(AI 코치 대화·사진 분석) 위에 두 상한을 더 둔다. 둘 다 DB 에서 KST 날짜로 세고
+  (인스턴스 수와 무관), 모델을 **부르기 직전에** 센다 — 키가 없어 모델을 부르지 않는 폴백은 세지 않는다. 문구는 `Accept-Language` 를 따른다.
+  - **트레이너 한 계정**(`TRAINER_AI_CALLS_PER_DAY`, 기본 200): `POST /trainer/clients/{member_id}/ai-coach`·
+    `POST /trainer/clients/{member_id}/routine-options`·`GET /trainer/clients/{member_id}/report/summary` 의 AI 호출 합.
+    넘으면 **429** `detail = { code: "daily_limit", message }` + `Retry-After`(다음 KST 자정까지 초). 분당 한도의 429(`detail` 이
+    문자열)와 모양으로 구분된다. 트레이너 웹은 루틴 후보는 토스트로, 리포트 요약은 다시 시도 없이 "내일 다시" 안내로 보인다.
+  - **서버 전체**(`AI_GLOBAL_CALLS_PER_DAY`, 기본 0 = 끔): 모든 AI 기능의 합. 넘으면 규칙형 폴백이 있는 기능(식단 조언·추천·메뉴,
+    루틴 후보, 리포트 요약, 코치 피드백, 운동 이름 접기)은 폴백으로 답하고 응답 모양은 그대로다. 대안이 없는 **AI 코치 대화**
+    (회원·트레이너)와 **사진 분석**만 **503** `detail = { code: "ai_capacity", message }` + `Retry-After` 를 받는다. 이때 회원 하루
+    몫·포인트·끼니는 남기지 않는다.
+  - 호출 한 번의 출력 토큰은 `LLM_MAX_OUTPUT_TOKENS`(기본 4096) 이하이고, 기능별로 더 작게 묶는다. 잘린 응답은 폴백(사진 분석은 502)이다.
 - **언어(`Accept-Language`, #2297)**: 회원 앱·트레이너 웹은 **모든 요청**에 지금 화면 언어를
   `Accept-Language: ko` 또는 `Accept-Language: en` 으로 보냅니다(호출부가 직접 넣은 값은 덮지 않음).
   서버는 `app/core/locale.py` 에서 이 값을 읽어 **`ko` 또는 `en` 하나**로 정합니다.
@@ -219,6 +231,7 @@
 **`POST /diet/analyze` 거절 응답.** 앱은 `detail.code` 로 일반 실패와 구분해 안내한다. 아래 거절은 끼니·포인트·사진을 남기지 않는다.
 
 - `503 { code: "analysis_unavailable", message }` — 사진 인식을 쓸 수 없는 설정(운영에서 인식 키 없음). 고정 식단으로 저장하지 않는다(#2812). 운영은 키가 없으면 기동부터 거부하므로 정상 배포에서는 나오지 않는다.
+- `503 { code: "ai_capacity", message }` + `Retry-After` — 서버 전체의 오늘 AI 호출 상한 도달(위 "AI 하루 호출 상한", #3032). 모델을 부르지 않았고 회원 하루 분석 횟수도 돌려준다. 앱은 다시 시도 대신 직접 추가로 안내한다.
 - `422 { code: "no_food_detected", message }` — 사진에서 음식을 하나도 찾지 못했다. 0kcal 끼니를 저장하지 않고 포인트도 없으며, 멱등키도 쓰지 않아 같은 키로 다른 사진을 다시 보낼 수 있다(#2848).
 - `415` — 바이트가 JPG·PNG·WebP 가 아니다. 요청의 `Content-Type` 과 무관하게 바이트 시그니처로 판정하며, 모델을 부르기 전에 거절한다(#2827).
 - `415` — 형식은 맞지만 픽셀을 읽을 수 없는 사진(매직 넘버만 맞춘 손상·위장 파일). 인식 모델을 부르기 전, 하루 분석 한도를 예약하기 전에 거절하므로 한도를 깎지 않는다(#3041).
@@ -782,7 +795,8 @@ tag: diet|exercise (피드백은 식단·운동 두 건, #2706)
 - `next` 는 다음 대화가 무엇으로 나가는가 — `free` · `paid` · `exhausted`.
 - 무료를 넘겨 보내려면 `pay_with_points: true` 가 있어야 한다. 앱은 무료를 다 쓴 뒤 처음 한 번만 확인창을 띄운다.
 - 거절은 `detail: { code, message }` 다. 동의 없음 402 `points_required`, 오늘 다 씀 429 `daily_limit`, 잔액 부족 409
-  `insufficient_points`(+`shortfall`).
+  `insufficient_points`(+`shortfall`). 서버 전체 AI 상한에 걸리면 503 `ai_capacity` + `Retry-After`(#3032) — 무료 횟수·포인트를
+  쓰지 않고 대화도 저장하지 않는다. 앱은 보낸 말을 거두고 입력칸에 되돌려 안내한다.
 - **AI 가 답했을 때만 센다.** 검색 기반 대체 답은 무료 횟수도 포인트도 쓰지 않는다. 포인트로 산 답은 원장에 `ai_chat` 사용 줄로 남고,
   `points_spent`·`balance_after` 가 답변 아래 차감 표시(`−50P · 남은 포인트`)를 채운다. `GET /ai-coach/messages` 의 코치 답변도 같은
   두 값을 싣는다.
@@ -795,7 +809,7 @@ tag: diet|exercise (피드백은 식단·운동 두 건, #2706)
 | `message` 길이 | 1000자 (트레이너 고객 AI 코치와 같음) | **422** |
 | `history` 턴 수 | 20 | **422** |
 | `history[].content` 길이 | 2000자 (`role` 은 16자) | **422** |
-| 요청 본문 전체 | 256KiB (`COACH_CHAT_MAX_BODY_BYTES`) | **413** `{"detail": "요청이 너무 큽니다. …"}` — 본문을 다 읽기 전에 끊는다 |
+| 요청 본문 전체 — 회원·트레이너 AI 코치 공용(트레이너는 #3032) | 256KiB (`COACH_CHAT_MAX_BODY_BYTES`) | **413** `{"detail": "요청이 너무 큽니다. …"}` — 본문을 다 읽기 전에 끊는다 |
 | 분당 요청 수 — 회원 `POST /ai-coach/chat` | 20 / IP (`COACH_CHAT_PER_MINUTE`) | **429** `{"detail": "요청이 너무 많습니다. …"}` + `Retry-After: 60` |
 | 분당 요청 수 — 트레이너 `POST /trainer/clients/{member_id}/ai-coach` | 20 / **트레이너 id** (같은 설정) | 같은 429. 같은 IP 의 다른 트레이너와 버킷을 나누지 않고, 한 트레이너가 여러 고객에게 물어도 한 버킷이다. 담당이 아닌 회원은 한도를 세기 전에 404 |
 
@@ -1185,7 +1199,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | GET | `/trainer/clients/{member_id}/chat?limit=&before=&before_id=` | `ChatMessageOut[]`(오래된→최신, 기본 최신 50건) |
 | POST | `/trainer/clients/{member_id}/chat` | `{ text, emote_id?, client_request_id? }` → **201** `ChatMessageOut`. 빈 메시지·모르는 이모티콘 400 |
 | POST | `/trainer/clients/{member_id}/chat/read` | `{ marked_read }` |
-| POST | `/trainer/clients/{member_id}/ai-coach` | `{ message }` → `{ member_id, reply, sources }` — 담당 고객 데이터를 근거로 한 AI 문답. 한도는 위 "AI 코치" 표 |
+| POST | `/trainer/clients/{member_id}/ai-coach` | `{ message }` → `{ member_id, reply, sources }` — 담당 고객 데이터를 근거로 한 AI 문답. 한도는 위 "AI 코치" 표, 하루 상한은 공통 규약 "AI 하루 호출 상한"(429 `daily_limit`·503 `ai_capacity`) |
 | GET | `/trainer/clients/{member_id}/ai-coach` | `[{ role, content, sources }]` — 이 트레이너가 그 고객에 대해 나눈 문답(오래된→최신) |
 | GET | `/trainer/clients/{member_id}/memos` | `TrainerMemoOut[]`(최신 먼저) — 트레이너 혼자 보는 메모 |
 | POST | `/trainer/clients/{member_id}/memos` | `{ body, source?, insight_id?, insight_kind?, ref_id?, ref_date? }` → **201** `TrainerMemoOut` |
@@ -1209,7 +1223,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/trainer/clients/{member_id}/routine-suggestions` | 후보 `{ name, minutes\|duration_seconds, type, …, evidence?, client_request_id? }` → **201** `RoutineOut`. 회원에게는 아직 안 보인다 |
 | POST | `/trainer/routine-suggestions/{suggestion_id}/approve` | 고칠 칸만 → `RoutineOut` — 승인해 배정. 빈 이름 400, 없음 404, 이미 처리 409 |
 | POST | `/trainer/routine-suggestions/{suggestion_id}/dismiss` | `RoutineOut` — 추천하지 않음. 없음 404, 이미 처리 409 |
-| POST | `/trainer/clients/{member_id}/routine-options` | `{ available_minutes, intensity_preference, trainer_note?, sources? }` → `{ analysis, plan_a, plan_b, generated_by }` — AI 루틴 A/B 후보. 분당 한도 `ROUTINE_OPTIONS_PER_MINUTE` |
+| POST | `/trainer/clients/{member_id}/routine-options` | `{ available_minutes, intensity_preference, trainer_note?, sources? }` → `{ analysis, plan_a, plan_b, generated_by }` — AI 루틴 A/B 후보. 분당 한도 `ROUTINE_OPTIONS_PER_MINUTE`, 트레이너 하루 상한 429 `daily_limit`(서버 전체 상한은 규칙형 후보로 폴백, #3032) |
 | POST | `/trainer/clients/{member_id}/program` | `{ name, sessions[], client_request_id?, delivery_kind?, trainer_message?, start_date?, active_days?, suggestion_ids? }` → **201** `RoutineOut[]` — 다중 세션 프로그램 배정(#709) |
 | POST | `/trainer/clients/{member_id}/program-schedule` | 프로그램 + 날짜·시각(또는 붙일 `session_id`) → **201** `{ routines, session, attached_to_existing, personal_routines }` — 배정과 PT 일정 등록을 한 트랜잭션으로(#1580). 붙일 일정이 모호하면 409 `{ message, candidates }` |
 | GET | `/trainer/programs?member_id=` | `[{ id, name, goal, period, session_count, exercise_count, member_id, updated_at }]` — 프로그램 초안 목록. `member_id` 를 주면 그 회원에게 자동 보관한 것만(#2873) |
@@ -1238,7 +1252,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/trainer/schedule/{session_id}/routines/send` | `{ personal_routines? }` → `RoutineOut[]` — 마무리된 PT 에 남은 개인운동을 보낸다(#2224). 상태가 맞지 않으면 400 |
 | POST | `/trainer/schedule/{session_id}/routines/dismiss` | `{ dismissed }` — 보내지 않기로 정리(#2224) |
 | GET | `/trainer/clients/{member_id}/report?week_start=` | `WeeklyReportOut` — 주간 리포트. 아무 요일을 줘도 그 주 월요일로 접는다 |
-| GET | `/trainer/clients/{member_id}/report/summary?week_start=` | `{ member_id, week_start, headline, points, generated_by }` |
+| GET | `/trainer/clients/{member_id}/report/summary?week_start=` | `{ member_id, week_start, headline, points, generated_by }`. AI 로 만들 때 트레이너 하루 상한 429 `daily_limit`(서버 전체 상한은 규칙형 요약으로 폴백, #3032) |
 | GET | `/trainer/clients/{member_id}/report/feedback?week_start=` | `{ member_id, week_start, body, updated_at }` — 저장해 둔 피드백 초안. 없으면 빈 본문(오류 아님, #821) |
 | PUT | `/trainer/clients/{member_id}/report/feedback` | `{ week_start?, body }` → 같은 모양. 같은 주는 덮어쓰고, 회원에게는 아무것도 보내지 않는다 |
 | POST | `/trainer/clients/{member_id}/report/send` | `{ week_start?, message? }` → **201** `ChatMessageOut` — 리포트를 회원 채팅으로 보낸다 |

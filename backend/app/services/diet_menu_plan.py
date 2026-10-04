@@ -39,8 +39,10 @@ from sqlalchemy.orm import Session
 from app.core import clock, metrics
 from app.data import diet_menu_catalog as catalog
 from app.models.models import DietMenuPlan
+from app.services import ai_call_quota
 from app.services import diet_coach_inputs as inputs
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
+from app.services.coach.llm_base import is_truncated, output_cap
 from app.services.coach.prompt_safety import FOOD_NAME_GUARD, TRAINER_DIET_GUARD
 
 logger = logging.getLogger(__name__)
@@ -67,6 +69,8 @@ _SODIUM_RANGE = (0, 4000)
 #: 조금 기다려도 되지만, 요청 스레드를 오래 잡지 않도록 끊는다.
 LLM_TIMEOUT_SEC = 15.0
 LLM_MAX_CONCURRENCY = 2
+#: 출력 토큰 상한(#3032). 끼니별 메뉴 키 목록과 사고 예산이 들어가는 값.
+LLM_MAX_OUTPUT_TOKENS = 1536
 
 _executor = ThreadPoolExecutor(
     max_workers=LLM_MAX_CONCURRENCY, thread_name_prefix="diet-menu-plan-llm"
@@ -382,6 +386,9 @@ def _generate(
         except LLMBusyError:
             metrics.incr("diet_menu_plan.fallback", reason="busy")
             logger.info("diet menu plan LLM 포화 — 카탈로그로 채움")
+        except ai_call_quota.AiCapacityReached:
+            metrics.incr("diet_menu_plan.fallback", reason="global_cap")
+            logger.info("diet menu plan 서버 AI 상한 도달 — 카탈로그로 채움")
         except FutureTimeout:
             metrics.incr("diet_menu_plan.fallback", reason="timeout")
             logger.warning("diet menu plan LLM timeout (%.1fs) — 카탈로그로 채움", LLM_TIMEOUT_SEC)
@@ -547,16 +554,29 @@ def parse_items(
 def _call_llm(system: str, user: str) -> str:
     if not _llm_slots.acquire(blocking=False):
         raise LLMBusyError("LLM 동시 호출 한도 초과")
+    try:
+        # 공급자를 고른 뒤에 센다 — 키가 없어 부르지 못하는 호출은 하루 상한(#3032)에 세지 않는다.
+        llm = get_coach_llm()
+        # 서버 전체 하루 상한(#3032). 넘으면 카탈로그로 채운다.
+        ai_call_quota.acquire(ai_call_quota.FEATURE_DIET_MENU_PLAN)
+    except BaseException:
+        _llm_slots.release()
+        raise
 
     def _call():
         try:
-            return get_coach_llm().generate(
+            return llm.generate(
                 system, user, json_mode=True,
                 thinking_budget=DEFAULT_THINKING_BUDGET,
                 timeout_seconds=LLM_TIMEOUT_SEC,
+                max_output_tokens=output_cap(LLM_MAX_OUTPUT_TOKENS),
             )
         finally:
             _llm_slots.release()
 
     future = _executor.submit(_call)
-    return future.result(timeout=LLM_TIMEOUT_SEC).text
+    result = future.result(timeout=LLM_TIMEOUT_SEC)
+    if is_truncated(result):
+        # 끊긴 JSON 은 계약 위반 — 호출부의 일반 실패 길로 카탈로그를 쓴다.
+        raise ValueError("메뉴 계획 LLM 응답이 출력 상한에 걸려 끊김")
+    return result.text

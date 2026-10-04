@@ -1236,6 +1236,10 @@
   "@aiGenerateRateLimited": {
     "description": "429 when the trainer taps 생성 repeatedly. Not a failure — it works again shortly (#582)."
   },
+  "aiGenerateDailyLimit": "오늘 AI 생성 한도를 다 썼어요. 내일 다시 이용해 주세요",
+  "@aiGenerateDailyLimit": {
+    "description": "429 daily_limit — the trainer used today's AI calls (coach, routine options, report summary). Opens again at KST midnight (#3032)."
+  },
   "aiExerciseNameRequired": "운동 이름을 입력해 주세요",
   "aiKeepOneExercise": "운동을 하나 이상 남겨 주세요",
   "aiCustomRoutineName": "AI 맞춤 추천안",
@@ -1961,6 +1965,10 @@
   "reportsAiUseAsDraft": "피드백으로 가져오기",
   "reportsAiRegenerate": "다시 생성",
   "reportsAiFailed": "요약을 만들지 못했어요. 다시 시도해 주세요.",
+  "reportsAiDailyLimit": "오늘 AI 생성 한도를 다 썼어요. 내일 다시 이용해 주세요.",
+  "@reportsAiDailyLimit": {
+    "description": "Report AI card when the summary returns 429 daily_limit. No retry button — retrying gives the same result today (#3032)."
+  },
   "reportsPdfFallbackClient": "회원",
   "reportsPdfDocTitle": "주간 코칭 리포트",
   "reportsPdfClient": "회원  {name}",

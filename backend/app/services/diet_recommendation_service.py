@@ -32,7 +32,8 @@ from app.data.meal_catalog import CATALOG, DEFAULT_ORDER, RECOMMENDATION_COUNT, 
 from app.models.models import DietEntry, HealthProfile
 from app.schemas.diet_api import DietRecommendationItem, DietRecommendationsResponse
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
-from app.services import goal_defaults, health_focus
+from app.services.coach.llm_base import is_truncated, output_cap
+from app.services import ai_call_quota, goal_defaults, health_focus
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,8 @@ LLM_TIMEOUT_SEC = 6.0
 #: Gemini 사고 토큰 상한. 근거와 값은 `coach/llm.py` 로 승격했다 — 지연을 지배하는
 #: 값이라 호출부마다 따로 두면 한쪽만 누락돼 조용히 느려진다(#579).
 LLM_THINKING_BUDGET = DEFAULT_THINKING_BUDGET
+#: 출력 토큰 상한(#3032). 카드 몇 장의 key·이유 한 줄과 사고 예산이 들어가는 값.
+LLM_MAX_OUTPUT_TOKENS = 1024
 
 #: 추천 캐시 TTL(초). 홈 진입마다 LLM 을 부르면 비용·지연이 커진다. 같은 사용자의
 #: 같은 신호 조합이면 결과가 같으므로 짧게 캐시한다.
@@ -380,13 +383,21 @@ def _llm_items(ctx: NutritionContext) -> list[DietRecommendationItem]:
     """
     if not _llm_slots.acquire(blocking=False):
         raise LLMBusyError("LLM 동시 호출 한도 초과 — 규칙 폴백")
-
-    system, user = _build_prompt(ctx)
+    try:
+        # 공급자를 고른 뒤에 센다 — 키가 없어 부르지 못하는 호출은 하루 상한(#3032)에 세지 않는다.
+        llm = get_coach_llm()
+        # 서버 전체 하루 상한(#3032). 넘으면 규칙 추천으로 내린다.
+        ai_call_quota.acquire(ai_call_quota.FEATURE_DIET_RECOMMENDATION)
+        system, user = _build_prompt(ctx)
+    except BaseException:
+        _llm_slots.release()
+        raise
 
     def _call():
         try:
-            return get_coach_llm().generate(
-                system, user, json_mode=True, thinking_budget=LLM_THINKING_BUDGET
+            return llm.generate(
+                system, user, json_mode=True, thinking_budget=LLM_THINKING_BUDGET,
+                max_output_tokens=output_cap(LLM_MAX_OUTPUT_TOKENS),
             )
         finally:
             # 타임아웃으로 호출부가 떠난 뒤라도 작업이 끝나면 자리를 반드시 돌려준다.
@@ -394,6 +405,8 @@ def _llm_items(ctx: NutritionContext) -> list[DietRecommendationItem]:
 
     future = _executor.submit(_call)
     result = future.result(timeout=LLM_TIMEOUT_SEC)
+    if is_truncated(result):
+        raise ValueError("추천 LLM 응답이 출력 상한에 걸려 끊김")
     return _parse_llm_items(result.text, ctx)
 
 
@@ -442,6 +455,9 @@ def build_recommendations(
         except LLMBusyError:
             metrics.incr("diet_recommendations.fallback", reason="busy")
             logger.info("diet recommendation LLM 포화 — 규칙 폴백")
+        except ai_call_quota.AiCapacityReached:
+            metrics.incr("diet_recommendations.fallback", reason="global_cap")
+            logger.info("diet recommendation 서버 AI 상한 도달 — 규칙 폴백")
         except FutureTimeout:
             metrics.incr("diet_recommendations.fallback", reason="timeout")
             logger.warning("diet recommendation LLM timeout (%.1fs) — 규칙 폴백", LLM_TIMEOUT_SEC)
