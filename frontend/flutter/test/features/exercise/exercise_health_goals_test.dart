@@ -357,7 +357,15 @@ void main() {
     expect(find.text('오른쪽 어깨 가동 범위를 확인해 주세요.'), findsOneWidget);
     // 회차를 모르는 응답이면 회차 칩은 서지 않고, 수업 시간 칩은 선다.
     expect(find.textContaining('회차'), findsNothing);
-    expect(find.text('50분'), findsOneWidget);
+    // 카드 안에서 찾는다 — 오늘 50분 PT 가 주의 첫날(월요일)이면 이번 주 운동
+    // 합계도 `50분` 이라 화면 전체에서는 둘이 된다.
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('completedPtSessionCard')),
+        matching: find.text('50분'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('회차는 제목 옆, 칩은 좁은 폰에서도 한 줄이다 (#2666)', (
@@ -401,7 +409,11 @@ void main() {
     final Finder title = find.text('오늘 완료한 PT');
     final Finder number = find.text('12회차');
     final Finder done = find.text('18:00 완료');
-    final Finder minutes = find.text('50분');
+    // 카드 안의 칩만 — 월요일이면 이번 주 합계도 `50분` 이다.
+    final Finder minutes = find.descendant(
+      of: card,
+      matching: find.text('50분'),
+    );
     expect(number, findsOneWidget);
     expect(done, findsOneWidget);
     expect(minutes, findsOneWidget);
