@@ -545,7 +545,7 @@ range`)이었고, `-3000` 이나 주 100,000분(한 주는 10,080분이다) 같�
 그 API 는 회원 AI 코치의 회원 스코프 RAG·회원용 프롬프트를 그대로 써, 담당이 바뀐 뒤 새 트레이너에게
 이전 트레이너와의 채팅이 근거로 닿을 수 있었다.
 
-그 API 가 남긴 스레드(`ai_conversations.trainer_id` 있음)는 마이그레이션 `0146_drop_trainer_ai_threads`
+그 API 가 남긴 스레드(`ai_conversations.trainer_id` 있음)는 마이그레이션 `0144_drop_trainer_ai_threads`
 가 지운다. 회원 대화를 읽는 곳(복원·보관 정리·감지·감지 치우기·회원 목록 통증 신호)은 모두
 `conversation.member_thread_clause()`(`trainer_id IS NULL`)를 함께 걸어, 트레이너 질문이 회원 발화로
 읽히지 않는다. `trainer_id` 칼럼은 남겨 두었다.
