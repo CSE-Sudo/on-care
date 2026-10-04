@@ -11,7 +11,7 @@
 기존 행은 둘 다 NULL 이라 이 마이그레이션만으로 바뀌는 동작은 없다.
 
 Revision ID: 0148_exercise_client_request
-Revises: 0145_trainer_reports_no_approval
+Revises: 0147_drop_trainer_ai_threads
 Create Date: 2026-10-04
 """
 from __future__ import annotations
@@ -22,7 +22,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0148_exercise_client_request"
-down_revision: str | Sequence[str] | None = "0145_trainer_reports_no_approval"
+down_revision: str | Sequence[str] | None = "0147_drop_trainer_ai_threads"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
