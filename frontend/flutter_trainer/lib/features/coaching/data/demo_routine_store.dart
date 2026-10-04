@@ -38,6 +38,7 @@ class DemoRoutineStore {
   static String _personalKey(String memberId) => '${prefix}personal/$memberId';
   static String _deliveryKey(String memberId) => '${prefix}delivery/$memberId';
   static String _retiredKey(String memberId) => '${prefix}retired/$memberId';
+  static String _sentKey(String memberId) => '${prefix}sent/$memberId';
   static String _sessionKey(String sessionId) => '${prefix}session/$sessionId';
 
   /// 이 저장소의 값을 모두 지운다 — 시드를 다시 심을 때 부른다.
@@ -183,6 +184,13 @@ class DemoRoutineStore {
       await _retire(memberId, retired, DateTime(now.year, now.month, now.day));
     }
     await writeDelivery(memberId, delivery);
+    // 배정마다 보낸 날 — 날짜별 이행이 `8/18(화) 보냄` 을 이 값으로 적는다.
+    // 시작일(`date`)과 다를 수 있다(#2656, 미래 시작일).
+    if (delivery.sentOn case final DateTime day) {
+      await _recordSentOn(memberId, <String>[
+        for (final AssignedRoutine r in delivery.routines) r.id,
+      ], day);
+    }
     await postDeliveryCard(
       memberId,
       RoutineDeliveryNotice(
@@ -238,6 +246,33 @@ class DemoRoutineStore {
     });
   }
 
+  // ---- 보낸 날 ----
+
+  /// 배정 id → 보낸 날. 남긴 적이 없는 배정(시드)은 빠진다.
+  Future<Map<String, DateTime>> readSentOn(String memberId) async {
+    final Object? raw = await _read(_sentKey(memberId));
+    return <String, DateTime>{
+      if (raw is Map<String, Object?>)
+        for (final MapEntry<String, Object?> e in raw.entries)
+          if (DateTime.tryParse((e.value as String?) ?? '')
+              case final DateTime day)
+            e.key: day,
+    };
+  }
+
+  Future<void> _recordSentOn(
+    String memberId,
+    List<String> ids,
+    DateTime day,
+  ) async {
+    final Map<String, DateTime> before = await readSentOn(memberId);
+    await _write(_sentKey(memberId), <String, Object?>{
+      for (final MapEntry<String, DateTime> e in before.entries)
+        e.key: e.value.toIso8601String(),
+      for (final String id in ids) id: day.toIso8601String(),
+    });
+  }
+
   // ---- 내린 개인운동 ----
 
   /// 새 개인운동에 밀려 목록에서 내려간 개인운동과 그 끝난 날(그날은 걸리지
@@ -268,7 +303,7 @@ class DemoRoutineStore {
           in <(AssignedRoutine, DateTime)>[
             ...before,
             for (final AssignedRoutine r in rows)
-          (r, _laterOf(endedOn, r.date)),
+              (r, _laterOf(endedOn, r.date)),
           ])
         <String, Object?>{
           'routine': assignedRoutineToStoreJson(r),

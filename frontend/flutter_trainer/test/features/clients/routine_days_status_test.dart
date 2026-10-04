@@ -571,6 +571,53 @@ void main() {
     });
   });
 
+  testWidgets('데모 — 미래 시작일로 보내도 보낸 날은 전송한 날이다 (#2656)', (tester) async {
+    final ProviderContainer c = await pumpTrainerApp(
+      tester,
+      token: 'demo-trainer-token',
+      seedClock: kMidWeekKst,
+    );
+    // 8/20(목)에 8/22(토) 시작으로 보낸다.
+    await c.read(trainerRoutineRepositoryProvider).assignProgram(
+      'seed-client-2',
+      <String, Object?>{
+        'name': '개인운동',
+        'delivery_kind': 'routine_only',
+        'start_date': '2026-08-22',
+        'active_days': 7,
+        'sessions': <Object?>[
+          <String, Object?>{
+            'name': '빠르게 걷기',
+            'exercises': <Object?>[
+              <String, Object?>{
+                'name': '빠르게 걷기',
+                'type': '유산소',
+                'duration': 30,
+              },
+            ],
+          },
+        ],
+      },
+    );
+    // 서버처럼 전송 이력의 보낸 날은 오늘이다 — 시작일이 아니다.
+    final latest = await c
+        .read(trainerRoutineRepositoryProvider)
+        .fetchLatestDelivery('seed-client-2');
+    expect(latest?.sentOn, DateTime(2026, 8, 20));
+
+    // 시작일이 지난 뒤에도 날짜별 이행의 보낸 날은 8/20 이다.
+    debugNowKstOverride = () => DateTime(2026, 8, 24, 13);
+    final RoutineDays days = await c
+        .read(routineDaysRepositoryProvider)
+        .fetch('seed-client-2');
+    final RoutineDayRoutine walk = days.routines.firstWhere(
+      (RoutineDayRoutine r) => r.personal,
+    );
+    expect(walk.activeFrom, DateTime(2026, 8, 22));
+    expect(walk.sentOn, DateTime(2026, 8, 20));
+    debugNowKstOverride = () => kMidWeekKst;
+  });
+
   test('배정 응답의 효과 한 줄을 읽는다 (#2951)', () {
     final routine = assignedRoutineFromJson(<String, Object?>{
       'id': 'r',

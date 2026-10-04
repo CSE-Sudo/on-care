@@ -146,6 +146,7 @@ class MockRoutineDaysRepository implements RoutineDaysRepository {
       assigned,
       today,
       retired: retired,
+      sentOn: await store.readSentOn(memberId),
     );
     DateTime start = from == null
         ? routines
@@ -309,6 +310,7 @@ List<RoutineDayRoutine> demoRoutineWindows(
   DateTime today, {
   List<(AssignedRoutine, DateTime)> retired =
       const <(AssignedRoutine, DateTime)>[],
+  Map<String, DateTime> sentOn = const <String, DateTime>{},
 }) {
   final DateTime seedSince = today.subtract(const Duration(days: 27));
   final List<(AssignedRoutine, DateTime?)> rows =
@@ -336,7 +338,12 @@ List<RoutineDayRoutine> demoRoutineWindows(
           endedOn: personal
               ? _earlier(from.add(const Duration(days: 7)), retiredOn)
               : retiredOn,
-          sentOn: from.isAfter(today) ? today : from,
+          // 보낸 날은 전송한 날이다 — 서버처럼 시작일이 아니다(#2656).
+          // 남긴 적이 없는 시드 배정만 걸린 첫날로 본다.
+          sentOn: _earlier(
+            sentOn[r.id] ?? (from.isAfter(today) ? today : from),
+            from,
+          ),
           personal: personal,
           minutes: r.minutes,
           durationSeconds: r.durationSeconds,
