@@ -3,7 +3,7 @@
 트레이너가 회원에 대해 AI 에게 묻던 `/trainer/clients/{id}/ai-coach`(#588)는 트레이너
 웹 어디에서도 부르지 않아 지웠다. 그 API 가 남긴 스레드는 `AiConversation(user_id=회원,
 trainer_id=트레이너)` 에 트레이너 질문을 `role="user"` 로 담고 있어, 회원 대화를 읽는
-곳이 `user_id` 만 보면 트레이너가 한 말이 회원 발화로 읽혔다. 마이그레이션 0144 이
+곳이 `user_id` 만 보면 트레이너가 한 말이 회원 발화로 읽혔다. 마이그레이션 0145 이
 그 스레드를 지우지만, 지우기 전이나 다른 경로로 생겨도 새지 않게 조회에서도 막는다.
 
 LLM 은 호출하지 않는다.
@@ -31,7 +31,7 @@ _MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
     / "versions"
-    / "0144_drop_trainer_ai_threads.py"
+    / "0145_drop_trainer_ai_threads.py"
 )
 
 
@@ -182,11 +182,11 @@ def test_member_own_thread_is_still_detected(client, db_session):
     assert "무릎: 1회" in _insight_context(db_session, member_id)
 
 
-# ---- 마이그레이션 0144 ----
+# ---- 마이그레이션 0145 ----
 
 
 def _load_migration():
-    spec = importlib.util.spec_from_file_location("m0144", _MIGRATION)
+    spec = importlib.util.spec_from_file_location("m0145", _MIGRATION)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)
