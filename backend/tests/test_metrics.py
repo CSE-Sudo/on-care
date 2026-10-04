@@ -117,6 +117,7 @@ def _stub_llm(monkeypatch, behaviour):
             *,
             json_mode: bool = False,
             thinking_budget: int | None = None,
+            **_: object,
         ) -> LLMResult:
             if isinstance(behaviour, Exception):
                 raise behaviour

@@ -144,17 +144,22 @@ def trainer_preview_recurring_sessions(
     """
     if payload.member_id:
         _require_client(db, trainer.id, payload.member_id)
-    dates, conflicts = trainer_schedule_service.preview_recurring_sessions(
-        db,
-        trainer.id,
-        start=payload.date,
-        time=payload.time,
-        weekdays=payload.weekdays,
-        count=payload.count,
-        until=payload.until,
-        duration_minutes=payload.duration_minutes,
+    dates, conflicts, already_created = (
+        trainer_schedule_service.preview_recurring_sessions(
+            db,
+            trainer.id,
+            start=payload.date,
+            time=payload.time,
+            weekdays=payload.weekdays,
+            count=payload.count,
+            until=payload.until,
+            duration_minutes=payload.duration_minutes,
+            client_request_id=payload.client_request_id,
+        )
     )
-    return ScheduleRecurringPreviewOut(dates=dates, conflicts=conflicts)
+    return ScheduleRecurringPreviewOut(
+        dates=dates, conflicts=conflicts, already_created=already_created
+    )
 
 
 @router.post(

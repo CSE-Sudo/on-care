@@ -106,6 +106,13 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
   /// 그대로 보인다.
   static const double _loadMoreThreshold = 320;
 
+  /// 이동이 진행 중인 알림 id(#3097).
+  ///
+  /// 대화 알림은 코치 정보를 새로 받은 뒤에 대화 화면을 연다. 그 사이 같은 줄을
+  /// 한 번 더 누르면 대화 화면이 두 겹 쌓여 뒤로 가기를 두 번 해야 했다. 이동이
+  /// 끝날 때까지 다른 줄 탭을 받지 않고, 누른 줄에 작은 로딩 표시를 단다.
+  String? _openingId;
+
   @override
   void initState() {
     super.initState();
@@ -145,6 +152,20 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
       AppLocalizations.of(context).alertMarkAllReadFailed,
       type: AppToastType.error,
     );
+  }
+
+  /// 알림이 말하는 화면으로 간다. 이동이 끝날 때까지 다른 줄 탭은 무시한다(#3097).
+  Future<void> _open(AlertItem item) async {
+    if (_openingId != null) return;
+    setState(() => _openingId = item.id);
+    // 읽음 처리를 기다리지 않고 이동한다 — 서버 왕복 동안 화면이 멈춰 있으면
+    // 누른 것이 먹지 않은 것처럼 보인다.
+    ref.read(notificationControllerProvider.notifier).markRead(item.id);
+    try {
+      await openAlertTarget(context, ref, item);
+    } finally {
+      if (mounted) setState(() => _openingId = null);
+    }
   }
 
   /// 바닥 근처면 다음 쪽을 잇는다. 중복 호출·더 없음은 컨트롤러가 막는다.
@@ -290,18 +311,16 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
                 return _AlertTile(
                   item: item,
                   navigable: navigable,
-                  // 읽음 처리를 기다리지 않고 이동한다 — 서버 왕복 동안 화면이
-                  // 멈춰 있으면 누른 것이 먹지 않은 것처럼 보인다.
+                  opening: _openingId == item.id,
                   onTap: navigable
-                      ? () {
-                          notifier.markRead(item.id);
-                          openAlertTarget(context, ref, item);
-                        }
+                      ? () => _open(item)
                       // 갈 곳이 없는 알림은 안 읽었을 때만 눌러 읽음으로 바꾼다.
                       // 줄 바탕이 흰색으로 바뀌는 것이 반응이다(#2877).
                       : item.read
                       ? null
-                      : () => notifier.markRead(item.id),
+                      : () {
+                          if (_openingId == null) notifier.markRead(item.id);
+                        },
                 );
               },
             ),
@@ -324,10 +343,15 @@ class _AlertTile extends StatelessWidget {
     required this.item,
     required this.navigable,
     required this.onTap,
+    this.opening = false,
   });
   final AlertItem item;
   final bool navigable;
   final VoidCallback? onTap;
+
+  /// 이 알림이 말하는 화면으로 가는 중이다 — 갈래 아이콘 자리에 작은 로딩
+  /// 표시(#3097). 줄 오른쪽에 붙이면 본문 폭이 줄어 줄 높이가 튄다.
+  final bool opening;
 
   @override
   Widget build(BuildContext context) {
@@ -344,7 +368,12 @@ class _AlertTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _CategoryBadge(icon: display.icon),
+          _CategoryBadge(
+            icon: display.icon,
+            loadingKey: opening
+                ? ValueKey<String>('notification-opening-${item.id}')
+                : null,
+          ),
           const SizedBox(width: OnCareSpacing.s16),
           Expanded(
             child: Column(
@@ -411,8 +440,11 @@ class _AlertTile extends StatelessWidget {
 /// 원이 있던 때와 같게 두어 제목·본문이 시작하는 위치는 그대로다. 색은 본문과 같은
 /// 회색이라 글 흐름에 섞이고, 읽음 상태는 아이콘이 아니라 줄 바탕이 말한다.
 class _CategoryBadge extends StatelessWidget {
-  const _CategoryBadge({required this.icon});
+  const _CategoryBadge({required this.icon, this.loadingKey});
   final IconData icon;
+
+  /// 있으면 아이콘 대신 이 키로 작은 로딩 표시를 그린다(#3097).
+  final Key? loadingKey;
 
   @override
   Widget build(BuildContext context) {
@@ -420,11 +452,13 @@ class _CategoryBadge extends StatelessWidget {
       width: OnCareSize.avatarLarge,
       height: OnCareSize.avatarLarge,
       child: Center(
-        child: AppIcon(
-          icon,
-          size: OnCareSize.iconMedium,
-          color: OnCareColors.textSecondary,
-        ),
+        child: loadingKey != null
+            ? AppLoading.inline(key: loadingKey)
+            : AppIcon(
+                icon,
+                size: OnCareSize.iconMedium,
+                color: OnCareColors.textSecondary,
+              ),
       ),
     );
   }

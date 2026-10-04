@@ -18,7 +18,6 @@ from app.services import (
     notification_templates,
     points_coupon_service,
 )
-from app.services import trainer_verification_service
 
 
 def delete_trainer_account(db: Session, trainer: User) -> None:
@@ -36,13 +35,6 @@ def delete_trainer_account(db: Session, trainer: User) -> None:
     나머지(프로필·채팅·루틴·일정·슬롯·이력·알림)는 `users.id` CASCADE 가 처리한다.
     상담 요청의 `trainer_id`·`decided_by` 는 SET NULL 이라 요청 이력은 남는다.
     """
-    member_ids = list(
-        db.scalars(
-            select(TrainerClient.member_id).where(
-                TrainerClient.trainer_id == trainer.id
-            )
-        ).all()
-    )
 
     # 이 트레이너의 슬롯에 걸린 예약을 먼저 치운다. 좌석을 되돌릴 필요는 없다 —
     # 슬롯 자체가 함께 사라진다.
@@ -64,12 +56,17 @@ def delete_trainer_account(db: Session, trainer: User) -> None:
 
     # 지금 담당 중인 회원의 PT 재등록 쿠폰은 쓸 트레이너가 사라지므로 취소하고
     # 포인트를 돌려준다(#1787). 과거 담당(휴면 링크) 회원은 이미 해제 때 처리됐다.
-    active_member_ids = db.scalars(
-        select(TrainerClient.member_id).where(
-            TrainerClient.trainer_id == trainer.id,
-            TrainerClient.active.is_(True),
-        )
-    ).all()
+    #
+    # 탈퇴 알림도 이 회원들에게만 간다(#3024). 담당이 이미 끝난 회원에게 "담당
+    # 트레이너 연결이 해제되었어요" 를 보내면 오래전에 끝난 관계를 새 소식으로 읽는다.
+    active_member_ids = list(
+        db.scalars(
+            select(TrainerClient.member_id).where(
+                TrainerClient.trainer_id == trainer.id,
+                TrainerClient.active.is_(True),
+            )
+        ).all()
+    )
     for member_id in active_member_ids:
         points_coupon_service.cancel_renewal_coupons(db, member_id)
         # 탈퇴한 트레이너의 메시지로 만든 식단 AI 보관물도 내려놓는다(#1631).
@@ -77,22 +74,23 @@ def delete_trainer_account(db: Session, trainer: User) -> None:
 
     # 이름이 없으면 틀이 대신 적는 말(`트레이너`)을 고른다(#2302).
     trainer_name = trainer.name or ""
-    for member_id in member_ids:
+    for member_id in active_member_ids:
         notification_service.queue(
             db,
             member_id=member_id,
-            kind=notification_service.TRAINER_MESSAGE,
+            kind=notification_service.PT_LINK_NOTICE,
             # 새 트레이너를 찾는 화면으로 보낸다.
             category=notification_service.MEMBER_CONSULTATION,
             template=notification_templates.MEMBER_TRAINER_LEFT,
             template_args={"trainer_name": trainer_name},
         )
-    # 예약만 있고 담당은 아닌 회원에게도 알린다 — 잡아 둔 수업이 사라진다.
-    for member_id in booked_member_ids - set(member_ids):
+    # 예약만 있고 지금 담당은 아닌 회원에게도 알린다 — 잡아 둔 수업이 사라진다.
+    # 담당이 끝난 과거 회원이라도 예약이 남아 있으면 여기서 받는다(#3024).
+    for member_id in sorted(booked_member_ids - set(active_member_ids)):
         notification_service.queue(
             db,
             member_id=member_id,
-            kind=notification_service.TRAINER_MESSAGE,
+            kind=notification_service.PT_LINK_NOTICE,
             category=notification_service.MEMBER_SCHEDULE,
             template=notification_templates.MEMBER_TRAINER_LEFT_BOOKING,
             template_args={"trainer_name": trainer_name},
@@ -135,7 +133,7 @@ def build_trainer_me(trainer: User, profile: TrainerProfile) -> TrainerMe:
             hours=profile.gym_hours,
             phone=profile.gym_phone,
         ),
-        verification=trainer_verification_service.to_out(profile),
+        is_admin=bool(trainer.is_admin),
         has_password=bool(trainer.hashed_password),
     )
 

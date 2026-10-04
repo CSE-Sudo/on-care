@@ -11,9 +11,11 @@ import 'package:oncare/features/exercise/data/repositories/dio_consultation_repo
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
+import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 import 'package:oncare/features/exercise/domain/repositories/consultation_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 김트레이너의 내일 07:00 `1:1 PT` 자리 — 어느 시각에 돌려도 아직 오지 않았다.
 const String _slotId = 'slot-kim-1';
@@ -125,5 +127,93 @@ void main() {
     await controller.restore();
 
     expect(controller.hasPending(trainerId: 'trainer-kim'), isTrue);
+  });
+
+  // 실서버는 답을 기다리는 요청이 `consultation_max_pending`(3) 건이면 409
+  // `too_many_pending` 이다 — 데모도 같은 자리에서 막는다(#3099).
+  test('서로 다른 트레이너 셋에게 대기 중이면 넷째 신청은 상한에 막힌다', () async {
+    final List<({String trainerId, String slotId})> targets =
+        <({String trainerId, String slotId})>[];
+    for (final Trainer trainer in await gym.fetchAllTrainers()) {
+      final List<TrainerSlot> slots = await repository.fetchSlots(trainer.id);
+      if (slots.isEmpty) continue;
+      targets.add((trainerId: trainer.id, slotId: slots.first.id));
+      if (targets.length == kConsultationMaxPending + 1) break;
+    }
+    expect(targets, hasLength(kConsultationMaxPending + 1));
+
+    ConsultationDraft draftFor(({String trainerId, String slotId}) t) =>
+        ConsultationDraft(
+          trainerId: t.trainerId,
+          exerciseGoal: ExerciseGoal.bloodPressure,
+          healthPurposeType: HealthPurposeType.chronic,
+          healthPurposeDetail: null,
+          slotId: t.slotId,
+          message: '상담 받고 싶어요',
+          dataSharingConsent: true,
+        );
+    for (final ({String trainerId, String slotId}) t in targets.take(
+      kConsultationMaxPending,
+    )) {
+      await repository.create(draftFor(t));
+    }
+
+    await expectLater(
+      repository.create(draftFor(targets.last)),
+      throwsA(
+        isA<TooManyPendingConsultations>().having(
+          (TooManyPendingConsultations e) => e.limit,
+          'limit',
+          kConsultationMaxPending,
+        ),
+      ),
+    );
+    expect(await repository.fetchMine(), hasLength(kConsultationMaxPending));
+    expect(
+      gym.slotById(targets.last.slotId)!.booked,
+      isFalse,
+      reason: '막힌 신청은 자리를 잠그지 않는다',
+    );
+  });
+
+  // 실서버는 신청하는 순간에도 시작 4시간 전까지의 자리만 받는다
+  // (`slot_visibility_cutoff`). 폼을 연 채 시간이 지난 경우다(#3099).
+  group('시작까지 남은 시간', () {
+    // `slot-kim-today` 는 그날 20:00 자리다.
+    final DateTime base = DateTime(2026, 10, 5, 9);
+
+    setUp(() {
+      debugNowKstOverride = () => base;
+      gym = MockGymRepository();
+      repository = MockConsultationRepository(gym);
+      // 자리는 처음 읽을 때의 오늘로 깔린다 — 시계를 옮기기 전에 깔아 둔다.
+      expect(
+        gym.slotById('slot-kim-today')!.startsAt,
+        DateTime(2026, 10, 5, 20),
+      );
+    });
+
+    tearDown(() => debugNowKstOverride = null);
+
+    test('3시간 59분 남은 자리는 잡을 수 없다', () async {
+      debugNowKstOverride = () => DateTime(2026, 10, 5, 16, 1);
+
+      await expectLater(
+        repository.create(_draft(slotId: 'slot-kim-today')),
+        throwsA(isA<ConsultationSlotTaken>()),
+      );
+      expect(await repository.fetchMine(), isEmpty);
+      expect(gym.slotById('slot-kim-today')!.booked, isFalse);
+    });
+
+    test('4시간 1분 남은 자리는 잡는다', () async {
+      debugNowKstOverride = () => DateTime(2026, 10, 5, 15, 59);
+
+      expect(
+        await repository.create(_draft(slotId: 'slot-kim-today')),
+        isNotEmpty,
+      );
+      expect(gym.slotById('slot-kim-today')!.booked, isTrue);
+    });
   });
 }

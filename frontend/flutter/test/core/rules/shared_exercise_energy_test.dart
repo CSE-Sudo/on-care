@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
+import 'package:oncare_rules/oncare_rules.dart' show kExerciseIntensityFactor;
 
 import '../../helpers/shared_rule_vectors.dart';
 
@@ -17,9 +18,11 @@ void main() {
   final Map<String, Object?> perMinute =
       original['fallback_kcal_per_min']! as Map<String, Object?>;
 
+  // 앱은 강도 이름(`ExerciseIntensity.name`)으로 공용 표를 찾는다 — 이름이
+  // 어긋나면 배수가 1.0 으로 떨어지므로, 앱의 모든 강도가 원본 값으로 읽히는지 본다.
   test('강도 배수가 원본 표와 같다', () {
     for (final ExerciseIntensity i in ExerciseIntensity.values) {
-      expect(kIntensityFactor[i], factor[i.name], reason: i.name);
+      expect(kExerciseIntensityFactor[i.name], factor[i.name], reason: i.name);
     }
   });
 

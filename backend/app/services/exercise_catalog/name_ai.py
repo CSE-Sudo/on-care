@@ -25,10 +25,15 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 
 from app.core.config import get_settings
+from app.services.ai_log import log_ai_fallback
 
 log = logging.getLogger(__name__)
+
+#: 출력 토큰 상한(#3032). `{"match": …, "confidence": …}` 한 줄이면 충분하다.
+LLM_MAX_OUTPUT_TOKENS = 256
 
 _PROMPT = """너는 운동 기록 앱의 분류기다. 사용자가 적은 운동 이름을 아래 종목 목록 중 하나로 접어라.
 
@@ -78,6 +83,20 @@ def resolve_name(name: str, candidates: list[str]) -> tuple[str, float] | None:
     if client is None:
         return None
 
+    from app.services import ai_call_quota
+    from app.services.coach.llm import gemini_truncated
+    from app.services.coach.llm_base import output_cap
+
+    try:
+        # 서버 전체 하루 상한(#3032). 넘으면 다른 실패와 같이 유형 표로 떨어진다.
+        ai_call_quota.acquire(ai_call_quota.FEATURE_EXERCISE_NAME)
+    except ai_call_quota.AiCapacityReached:
+        log.info("서버 AI 하루 상한 도달 — 운동 이름은 유형 표로 폴백합니다.")
+        return None
+    except Exception:  # noqa: BLE001 — 세기 실패로 운동 저장을 막지 않는다
+        log.warning("AI 호출 상한 확인 실패 — 유형 표로 폴백합니다.", exc_info=True)
+        return None
+
     try:
         from google.genai import types
 
@@ -91,18 +110,28 @@ def resolve_name(name: str, candidates: list[str]) -> tuple[str, float] | None:
                 # 같은 이름에 같은 종목이 나오게. 캐시가 값을 굳혀 주지만, 캐시가
                 # 비워진 뒤에도 같은 답이 나오는 편이 낫다.
                 temperature=0.0,
+                max_output_tokens=output_cap(LLM_MAX_OUTPUT_TOKENS),
             ),
         )
+        if gemini_truncated(response):
+            raise ValueError("운동 이름 해석 응답이 출력 상한에 걸려 끊김")
         data = json.loads(response.text or "{}")
-    except Exception:  # noqa: BLE001 — 어떤 실패든 폴백이 답이다
-        log.warning("운동 이름 해석 실패 — 유형 표로 폴백합니다.", exc_info=True)
+    except Exception as exc:  # noqa: BLE001 — 어떤 실패든 폴백이 답이다
+        # 유형 표로 폴백한다. 예외 메시지·스택은 남기지 않는다(#3090).
+        log_ai_fallback(log, "exercise_name", "error", exc=exc)
         return None
 
+    # JSON 이어도 객체가 아닐 수 있다(`null`·`[]`·`"x"`). 여기서 `.get` 이 터지면
+    # 운동 기록 저장·칼로리 미리보기·트레이너 루틴 추정이 500 이 된다(#3090).
+    if not isinstance(data, dict):
+        return None
     matched = data.get("match")
     if not isinstance(matched, str) or matched not in candidates:
         return None
     try:
         confidence = float(data.get("confidence") or 0)
     except (TypeError, ValueError):
+        return None
+    if not math.isfinite(confidence):
         return None
     return matched, max(0.0, min(1.0, confidence))

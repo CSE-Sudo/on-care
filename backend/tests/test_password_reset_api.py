@@ -16,6 +16,7 @@ import pytest
 from app.core import clock
 from app.core.config import get_settings
 from app.models import models
+from app.schemas.user import PasswordResetRequest
 from app.services import password_reset
 from app.services.mailer import MailDeliveryError, OutgoingMail
 
@@ -219,6 +220,67 @@ def test_per_email_limit_ignores_case(client, monkeypatch, outbox, member):
     monkeypatch.setattr(get_settings(), "password_reset_email_per_window", 1)
     assert _request(client, member).status_code == 202
     assert _request(client, member.upper()).status_code == 429
+
+
+@pytest.mark.parametrize(
+    "typed",
+    [
+        lambda e: e[0].upper() + e[1:],
+        str.upper,
+        lambda e: f"  {e.upper()} ",
+    ],
+    ids=["first-capital", "all-caps", "padded"],
+)
+def test_request_ignores_email_case(client, outbox, member, typed):
+    """키보드가 첫 글자를 대문자로 바꿔도 가입한 주소로 메일이 간다(#3094)."""
+    res = _request(client, typed(member))
+    assert res.status_code == 202, res.text
+    assert res.json() == {"status": "requested", "expires_in_minutes": 30}
+    assert [m.to for m in outbox.sent] == [member]
+
+
+def test_code_from_capitalized_request_resets_password(client, outbox, member):
+    _request(client, member.upper())
+    assert _confirm(client, outbox.code_for(member)).status_code == 200
+    assert _login(client, member, _NEW_PW).status_code == 200
+
+
+def test_unknown_email_differing_only_in_case_gets_no_mail(client, outbox):
+    ghost = f"Ghost-{uuid4().hex[:8]}@OnCare.com"
+    res = _request(client, ghost)
+    assert res.status_code == 202
+    assert res.json() == {"status": "requested", "expires_in_minutes": 30}
+    assert outbox.sent == []
+
+
+def test_inactive_account_gets_no_mail_by_capitalized_email(
+    client, db_session, outbox, member
+):
+    user = db_session.query(models.User).filter(models.User.email == member).one()
+    user.is_active = False
+    db_session.commit()
+    assert _request(client, member.upper()).status_code == 202
+    assert outbox.sent == []
+
+
+def test_social_only_account_gets_no_mail_by_capitalized_email(client, db_session, outbox):
+    user = models.User(
+        id=f"user-{uuid.uuid4().hex[:12]}",
+        email=f"kakao_{uuid4().hex[:8]}@social.oncare",
+        name="소셜",
+        hashed_password="",
+    )
+    db_session.add(user)
+    db_session.commit()
+    try:
+        assert _request(client, user.email.upper()).status_code == 202
+        assert outbox.sent == []
+    finally:
+        _cleanup(db_session, user.id)
+
+
+def test_request_schema_normalizes_email():
+    assert PasswordResetRequest(email=" Hong@Example.com ").email == "hong@example.com"
 
 
 def test_ip_bucket_limits_requests(client, outbox):

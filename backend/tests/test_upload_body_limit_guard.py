@@ -101,6 +101,14 @@ def test_main_rules_cover_every_upload_path_with_its_own_limit():
     # JSON 으로 대량 텍스트를 받는 경로와 일반 쓰기 경로는 묶지 않는다.
     for path in ("/v1/coach-docs", "/v1/me/coach/chat", "/v1/trainer/clients/u/chat"):
         assert mw.rule_for(path) is None, path
+    # 정규식은 전체 일치다 — 한 단계 더 깊은 경로나 빈 id 는 묶지 않는다.
+    for path in (
+        "/v1/trainer/clients/u/chat/image/extra",
+        "/v1/trainer/clients//chat/image",
+    ):
+        assert mw.rule_for(path) is None, path
+    # 트레이너 AI 코칭 API 는 지웠다(#3085) — 상한 규칙도 함께 없앴다.
+    assert mw.rule_for("/v1/trainer/clients/user-1/ai-coach") is None
 
 
 def test_main_rules_follow_the_settings():
@@ -299,3 +307,4 @@ def test_each_rule_uses_its_own_limit(mini):
 
 def test_unmatched_path_is_not_limited(mini):
     assert mini.post("/clients/abc/note", content=b"x" * 1000).status_code == 200
+

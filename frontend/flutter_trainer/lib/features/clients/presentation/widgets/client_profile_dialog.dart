@@ -552,6 +552,13 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       _saving = true;
       _saved = false;
     });
+    // 저장 중 창을 닫아도 갱신은 마친다 — await 전에 앱의 컨테이너를 잡아 둔다
+    // (#3103). 사라진 위젯의 `ref` 는 `StateError` 를 던져 명단·그래프 목표선
+    // 갱신이 빠졌다.
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     try {
       final Map<String, Object?> changed = await _changedValues();
       if (changed.isEmpty) {
@@ -565,16 +572,16 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
         });
         return;
       }
-      final MemberHealthProfile saved = await ref
+      final MemberHealthProfile saved = await container
           .read(clientRepositoryProvider)
           .updateHealthProfile(widget.clientId, changed);
       _base = saved;
       // 저장한 값이 이 화면에도 바로 남는다 — 다음에 창을 열 때 서버에서 다시
       // 읽는다(#1449).
-      ref.invalidate(clientsProvider);
+      container.invalidate(clientsProvider);
       // 식단·운동 그래프의 목표선도 이 프로필을 본다(#2156) — 트레이너가 고친
       // 목표가 창을 닫자마자 그래프에 그어진다.
-      ref.invalidate(memberHealthProfileProvider(widget.clientId));
+      container.invalidate(memberHealthProfileProvider(widget.clientId));
       if (!mounted) return;
       // 저장한 값이 곧 보기 상태의 값이다(#2596).
       setState(() {

@@ -33,15 +33,18 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, timedelta
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, text
 from sqlalchemy.orm import Session
 
 from app.core import clock, metrics
 from app.data import diet_menu_catalog as catalog
 from app.models.models import DietMenuPlan
+from app.services import ai_call_quota
 from app.services import diet_coach_inputs as inputs
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
+from app.services.coach.llm_base import is_truncated, output_cap
 from app.services.coach.prompt_safety import FOOD_NAME_GUARD, TRAINER_DIET_GUARD
+from app.services.ai_log import log_ai_fallback
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +70,8 @@ _SODIUM_RANGE = (0, 4000)
 #: 조금 기다려도 되지만, 요청 스레드를 오래 잡지 않도록 끊는다.
 LLM_TIMEOUT_SEC = 15.0
 LLM_MAX_CONCURRENCY = 2
+#: 출력 토큰 상한(#3032). 끼니별 메뉴 키 목록과 사고 예산이 들어가는 값.
+LLM_MAX_OUTPUT_TOKENS = 1536
 
 _executor = ThreadPoolExecutor(
     max_workers=LLM_MAX_CONCURRENCY, thread_name_prefix="diet-menu-plan-llm"
@@ -109,11 +114,33 @@ class MenuPlan:
 
 
 def _latest(db: Session, user_id: str) -> DietMenuPlan | None:
+    # 잠금을 기다린 뒤 다시 읽을 때 다른 요청이 고친 행(재시도로 채운 행)이 이
+    # 세션에 예전 값으로 남아 있지 않게 DB 값으로 덮어 읽는다(#3092).
     return db.scalar(
         select(DietMenuPlan)
         .where(DietMenuPlan.user_id == user_id)
         .order_by(DietMenuPlan.created_at.desc())
         .limit(1)
+        .execution_options(populate_existing=True)
+    )
+
+
+def _lock_user(db: Session, user_id: str) -> None:
+    """이 회원의 리스트 만들기를 트랜잭션 끝까지 직렬화한다. (#3092)
+
+    AI 호출이 최대 [LLM_TIMEOUT_SEC] 걸려 그 사이 같은 회원의 두 번째 조회
+    (새로고침, 기록 저장 뒤 조언 다시 읽기, 트레이너 웹 추천 후보)가 들어오기
+    쉽다. 잠금이 없으면 둘 다 "다시 만들 때" 로 보고 각자 AI 를 불러 새 행을
+    하나씩 넣는다 — 비용이 두 번 들고, 정리 삭제가 상대의 새 행을 보지 못해
+    남기며, 다음 재생성이 그 쌍둥이를 "직전 리스트" 로 읽는다.
+
+    AI 를 부르는 동안 잠금을 쥐지만 기다리는 것은 같은 회원의 리스트 조회뿐이다.
+    회원 행(`FOR UPDATE`)을 잠그면 식단 분석 한도·프로필 저장까지 그동안 멈추므로
+    자문 잠금을 쓴다. 커밋·롤백과 함께 풀린다.
+    """
+    db.execute(
+        text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
+        {"key": f"diet_menu_plan:{user_id}"},
     )
 
 
@@ -185,11 +212,13 @@ def get_plan(
     entries = inputs.entries_between(db, user_id, start, today)
     recent = inputs.digest(entries)
 
-    reason = regeneration_reason(
-        row, lang=lang, today=today, fingerprint=fingerprint,
-        recent_days=recent.days_logged,
-    )
-    if reason is None:
+    def due(row: DietMenuPlan | None) -> str | None:
+        reason = regeneration_reason(
+            row, lang=lang, today=today, fingerprint=fingerprint,
+            recent_days=recent.days_logged,
+        )
+        if reason is not None:
+            return reason
         assert row is not None
         retry_due = (
             use_llm
@@ -197,9 +226,21 @@ def get_plan(
             and row.retry_after is not None
             and _aware(row.retry_after) <= now
         )
-        if not retry_due:
-            return _to_plan(row)
-        reason = "retry"
+        return "retry" if retry_due else None
+
+    if due(row) is None:
+        assert row is not None
+        return _to_plan(row)
+
+    # 만들 때다 — 잠그고 다시 판정한다(#3092). 기다리는 동안 다른 요청이 만들거나
+    # 다시 채웠으면 그 리스트를 그대로 돌려준다: AI 를 한 번만 부르고 두 요청이
+    # 같은 리스트를 받는다.
+    _lock_user(db, user_id)
+    row = _latest(db, user_id)
+    reason = due(row)
+    if reason is None:
+        assert row is not None
+        return _to_plan(row)
 
     previous = _load_items(row) if row is not None and reason != "retry" else ()
     if reason == "retry":
@@ -382,12 +423,16 @@ def _generate(
         except LLMBusyError:
             metrics.incr("diet_menu_plan.fallback", reason="busy")
             logger.info("diet menu plan LLM 포화 — 카탈로그로 채움")
+        except ai_call_quota.AiCapacityReached:
+            metrics.incr("diet_menu_plan.fallback", reason="global_cap")
+            logger.info("diet menu plan 서버 AI 상한 도달 — 카탈로그로 채움")
         except FutureTimeout:
             metrics.incr("diet_menu_plan.fallback", reason="timeout")
             logger.warning("diet menu plan LLM timeout (%.1fs) — 카탈로그로 채움", LLM_TIMEOUT_SEC)
-        except Exception:  # noqa: BLE001 - AI 장애 종류와 무관하게 리스트는 있어야 한다
+        except Exception as exc:  # noqa: BLE001 - AI 장애 종류와 무관하게 리스트는 있어야 한다
             metrics.incr("diet_menu_plan.fallback", reason="error")
-            logger.warning("diet menu plan LLM 실패 — 카탈로그로 채움", exc_info=True)
+            # 카탈로그로 채운다. 예외 메시지·스택은 남기지 않는다(#3090).
+            log_ai_fallback(logger, "diet_menu_plan", "error", exc=exc)
     return "rules", rules_plan(lang=lang, needs=needs, excluded=excluded)
 
 
@@ -547,16 +592,29 @@ def parse_items(
 def _call_llm(system: str, user: str) -> str:
     if not _llm_slots.acquire(blocking=False):
         raise LLMBusyError("LLM 동시 호출 한도 초과")
+    try:
+        # 공급자를 고른 뒤에 센다 — 키가 없어 부르지 못하는 호출은 하루 상한(#3032)에 세지 않는다.
+        llm = get_coach_llm()
+        # 서버 전체 하루 상한(#3032). 넘으면 카탈로그로 채운다.
+        ai_call_quota.acquire(ai_call_quota.FEATURE_DIET_MENU_PLAN)
+    except BaseException:
+        _llm_slots.release()
+        raise
 
     def _call():
         try:
-            return get_coach_llm().generate(
+            return llm.generate(
                 system, user, json_mode=True,
                 thinking_budget=DEFAULT_THINKING_BUDGET,
                 timeout_seconds=LLM_TIMEOUT_SEC,
+                max_output_tokens=output_cap(LLM_MAX_OUTPUT_TOKENS),
             )
         finally:
             _llm_slots.release()
 
     future = _executor.submit(_call)
-    return future.result(timeout=LLM_TIMEOUT_SEC).text
+    result = future.result(timeout=LLM_TIMEOUT_SEC)
+    if is_truncated(result):
+        # 끊긴 JSON 은 계약 위반 — 호출부의 일반 실패 길로 카탈로그를 쓴다.
+        raise ValueError("메뉴 계획 LLM 응답이 출력 상한에 걸려 끊김")
+    return result.text

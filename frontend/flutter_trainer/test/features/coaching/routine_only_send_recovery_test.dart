@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_core/clock.dart';
@@ -63,6 +65,9 @@ class _FlakyScheduleRepository extends DriftScheduleRepository {
   AppError? updateFailure;
   final List<String> updatedFor = <String>[];
 
+  /// 다음 붙이기를 이 완료자가 끝낼 때까지 붙잡는다.
+  Completer<void>? holdUpdate;
+
   @override
   Stream<List<ScheduleSession>> watchClientSessions(ScheduleClientKey client) {
     sessionReads++;
@@ -85,6 +90,9 @@ class _FlakyScheduleRepository extends DriftScheduleRepository {
     String id,
     List<RoutineExercise> items,
   ) async {
+    final Completer<void>? hold = holdUpdate;
+    holdUpdate = null;
+    if (hold != null) await hold.future;
     if (updateFailure case final AppError error) throw error;
     updatedFor.add(id);
   }
@@ -362,6 +370,69 @@ void main() {
 
       expect(find.text('시작일이 지나 오늘로 바꿨어요. 확인하고 다시 보내 주세요'), findsNothing);
       expect(repo.updatedFor, <String>['past-pt']);
+    });
+  });
+  group('붙이기가 늦게 끝날 때 (#3101)', () {
+    String attachRoute() => AppRoutes.coachingAttach(
+      'seed-client-1',
+      sessionId: _todayPt.id,
+      date: _todayPt.date,
+      requestId: 'r-3101',
+    );
+
+    Future<(_FlakyScheduleRepository, Completer<void>)> attachHeld(
+      WidgetTester tester,
+    ) async {
+      final repo = await _open(
+        tester,
+        at: attachRoute(),
+        candidates: const <ScheduleSession>[_todayPt],
+      );
+      await _completePersonalStep(tester);
+      expect(tester.widget<AppButton>(_send).label, 'PT에 반영');
+      final Completer<void> hold = Completer<void>();
+      repo.holdUpdate = hold;
+      await Scrollable.ensureVisible(tester.element(_send), alignment: 0.5);
+      await tester.pump();
+      await tester.tap(_send);
+      await tester.pump();
+      return (repo, hold);
+    }
+
+    testWidgets('그사이 다른 회원을 골랐으면 스케줄로 끌고 가지 않는다', (tester) async {
+      final (repo, hold) = await attachHeld(tester);
+
+      // 붙이는 중이라 묻지 않고 바로 옮긴다.
+      await _tapCentered(
+        tester,
+        find.byKey(const ValueKey<String>('program-client-seed-client-2')),
+      );
+      expect(
+        Uri.parse(currentLocation(tester)).queryParameters['client'],
+        'seed-client-2',
+      );
+
+      hold.complete();
+      await settle(tester);
+
+      expect(repo.updatedFor, <String>['today-pt']);
+      expect(find.text('개인운동을 붙였어요.'), findsOneWidget);
+      final Uri location = Uri.parse(currentLocation(tester));
+      expect(location.path, AppRoutes.coaching);
+      expect(location.queryParameters['client'], 'seed-client-2');
+    });
+
+    testWidgets('그 회원 그대로면 지금처럼 그 일정으로 돌아간다', (tester) async {
+      final (repo, hold) = await attachHeld(tester);
+
+      hold.complete();
+      await settle(tester);
+
+      expect(repo.updatedFor, <String>['today-pt']);
+      expect(
+        currentLocation(tester),
+        AppRoutes.scheduleAt(date: _todayPt.date, sessionId: _todayPt.id),
+      );
     });
   });
 }

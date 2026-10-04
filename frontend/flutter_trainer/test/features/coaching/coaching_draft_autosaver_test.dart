@@ -223,6 +223,46 @@ void main() {
     expect(repo.calls.last, 'delete pgm-1');
   });
 
+  testWidgets('보관이 도는 중에 버렸으면 같은 내용을 다시 보관한다 (#3101)', (tester) async {
+    setUpSaver();
+    final Completer<void> hold = Completer<void>();
+    repo.holdCreate = hold;
+    saver.schedule('m1', _payload('하나'));
+    await tester.pump(_delay);
+    final Future<void> discarding = saver.discard('m1');
+    hold.complete();
+    await discarding;
+    expect(repo.rows, isEmpty);
+
+    // 끝난 보관이 `보관했다` 고 적어 두면 같은 내용은 건너뛴다 — 서버에는 없다.
+    saver.schedule('m1', _payload('하나'));
+    expect(saver.hasPending('m1'), isTrue);
+    await tester.pump(_delay);
+
+    expect(repo.calls.last, 'create pgm-2 하나');
+    expect(repo.rows.keys, <String>['pgm-2']);
+  });
+
+  testWidgets('버린 뒤 끝난 덮어쓰기는 지운 초안 id 를 남기지 않는다 (#3101)', (tester) async {
+    setUpSaver();
+    saver.schedule('m1', _payload('하나'));
+    await tester.pump(_delay);
+    expect(repo.calls.last, 'create pgm-1 하나');
+
+    // 덮어쓰기가 줄에 올라간 뒤 버린다.
+    saver.schedule('m1', _payload('둘'));
+    final Future<void> flushing = saver.flush('m1');
+    final Future<void> discarding = saver.discard('m1');
+    await flushing;
+    await discarding;
+    expect(repo.rows, isEmpty);
+
+    // 지운 pgm-1 을 덮어쓰지 않고 새로 만든다.
+    saver.schedule('m1', _payload('둘'));
+    await tester.pump(_delay);
+    expect(repo.calls.last, 'create pgm-2 둘');
+  });
+
   testWidgets('지운 다음 다시 쓰면 새 초안을 만든다', (tester) async {
     setUpSaver();
     saver.schedule('m1', _payload('하나'));

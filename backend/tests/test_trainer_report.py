@@ -504,43 +504,6 @@ def test_gym_phone_keeps_every_shape_a_gym_number_takes(gym_phone):
     assert TrainerMeUpdate(gym_phone=gym_phone).gym_phone == gym_phone
 
 
-# ---- 고객 AI 코칭 ----
-
-def test_client_ai_coach_answers_about_the_member(client):
-    token = _trainer_token(client)
-    r = client.post(
-        "/v1/trainer/clients/user-jisu/ai-coach",
-        json={"message": "이번 주 식단에서 뭘 조정하면 좋을까요?"},
-        headers=_auth(token),
-    )
-    # LLM 키가 없어도 검색 기반 폴백이 답을 돌려준다.
-    assert r.status_code == 200, r.text
-    body = r.json()
-    assert body["member_id"] == "user-jisu"
-    assert body["reply"]
-
-
-def test_client_ai_coach_rejects_an_empty_message(client):
-    token = _trainer_token(client)
-    r = client.post(
-        "/v1/trainer/clients/user-jisu/ai-coach",
-        json={"message": "   "},
-        headers=_auth(token),
-    )
-    assert r.status_code == 400
-
-
-def test_client_ai_coach_of_someone_elses_client_is_404(client):
-    """남의 고객이면 존재조차 드러내지 않는다(권한 경계)."""
-    token = _trainer_token(client)
-    r = client.post(
-        "/v1/trainer/clients/user-nobody/ai-coach",
-        json={"message": "안녕하세요"},
-        headers=_auth(token),
-    )
-    assert r.status_code == 404
-
-
 # ---- 비밀번호 변경 ----
 
 def test_password_change_requires_the_current_password(client):

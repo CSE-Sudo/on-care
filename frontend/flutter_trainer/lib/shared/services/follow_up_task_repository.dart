@@ -32,12 +32,6 @@ abstract interface class FollowUpTaskRepository {
     bool includeCompleted = false,
   });
 
-  /// 오늘까지 처리해야 할 미완료 할 일 — 오늘 예정과 **기한이 지난** 항목.
-  ///
-  /// 지난 항목을 빼면 하루만 지나도 화면에서 사라져, 놓치지 않으려고 만든
-  /// 기능이 놓치는 경로가 된다.
-  Future<List<FollowUpTask>> fetchDue();
-
   /// 할 일을 등록한다.
   ///
   /// [clientRequestId] 를 넘기면 그 시도에 대해 멱등하다 — 저장 응답을 못 받고
@@ -119,23 +113,6 @@ class LocalFollowUpTaskRepository implements FollowUpTaskRepository {
           ).where((task) => includeCompleted || !task.isCompleted).toList()
           ..sort(_byDueDate);
     return tasks;
-  }
-
-  @override
-  Future<List<FollowUpTask>> fetchDue() async {
-    final today = todayKst();
-    final due = <FollowUpTask>[];
-    for (final key in _prefs.getKeys()) {
-      if (!key.startsWith(_prefix)) continue;
-      due.addAll(
-        _read(key.substring(_prefix.length)).where(
-          (task) =>
-              !task.isCompleted &&
-              !task.dueDate.isAfter(today), // 오늘 + 기한이 지난 항목
-        ),
-      );
-    }
-    return due..sort(_byDueDate);
   }
 
   @override
@@ -239,15 +216,3 @@ final followUpTaskRepositoryProvider = Provider<FollowUpTaskRepository>((ref) {
   return DioFollowUpTaskRepository(ref.watch(dioProvider));
 });
 
-/// 그 고객의 미완료 후속 관리(예정일 순). 쓰기 뒤에는 invalidate 한다.
-final clientFollowUpsProvider = FutureProvider.autoDispose
-    .family<List<FollowUpTask>, String>((ref, clientId) async {
-      return ref.watch(followUpTaskRepositoryProvider).fetchForClient(clientId);
-    });
-
-/// 오늘까지 처리해야 할 내 미완료 할 일(지난 항목 포함). 대시보드가 읽는다.
-final dueFollowUpsProvider = FutureProvider.autoDispose<List<FollowUpTask>>((
-  ref,
-) async {
-  return ref.watch(followUpTaskRepositoryProvider).fetchDue();
-});

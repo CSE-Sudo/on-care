@@ -502,6 +502,26 @@ void main() {
     expect(find.text(l.exGymDetailTitle), findsOneWidget);
   });
 
+  // 지운 홈 코치 카드(#3104)의 `프로필 → 트레이너 상세` 단언을, 같은 이동을
+  // 실제로 맡는 내 헬스장 카드의 담당 트레이너 줄로 옮겼다.
+  testWidgets('담당 트레이너 줄은 트레이너 상세 경로로 이동한다', (WidgetTester tester) async {
+    await pumpGymTab(tester);
+    await scrollToCard(tester);
+
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const Key('gym-trainer-line-mine')),
+        matching: find.text(_trainer.name),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routerDelegate.currentConfiguration.last.matchedLocation,
+      AppRoutes.trainerDetailPath(_trainer.id),
+    );
+  });
+
   testWidgets('담당 트레이너가 없으면 예약 패널을 감춘다', (WidgetTester tester) async {
     await pumpGymTab(tester, trainer: null);
     await scrollToCard(tester);

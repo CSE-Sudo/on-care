@@ -13,6 +13,9 @@ AI 코치 대화 영속화.
   실패해도 폴백 문구가 반환되므로 "질문만 남고 답이 없는" 상태는 생기지 않는다.
 - 근거 문서 제목(sources)은 답변과 함께 저장한다. 복원했을 때 근거가 사라지면
   왜 그렇게 답했는지 되짚을 수 없다.
+- 스레드는 회원 본인 대화(`trainer_id IS NULL`)만 만든다. 트레이너가 회원에 대해
+  AI 에게 묻던 API(#588)는 지웠고(#3085), 남아 있을 수 있는 그 스레드는 회원
+  대화를 읽는 모든 조회가 [member_thread_clause] 로 건너뛴다.
 """
 from __future__ import annotations
 
@@ -34,8 +37,6 @@ MAX_HISTORY_MESSAGES = 50
 #: 회원 본인 AI 챗봇 대화를 보관하는 기간(일). (#1823)
 #:
 #: 이보다 오래된 메시지는 복원·프롬프트에 쓰지 않고, 새 대화를 저장할 때 지운다.
-#: 트레이너가 회원에 대해 AI 에게 묻는 스레드(`trainer_id` 있음)는 대상이 아니다 —
-#: 그 기록은 트레이너 쪽 기능이라 회원 챗봇의 보관 규칙을 따르지 않는다.
 HISTORY_RETENTION_DAYS = 30
 
 ROLE_USER = "user"
@@ -56,7 +57,7 @@ def purge_expired_messages(
     저장이 실패하는 반쪽 상태를 만들지 않는다.
     """
     own_threads = select(AiConversation.id).where(
-        AiConversation.user_id == user_id, AiConversation.trainer_id.is_(None)
+        AiConversation.user_id == user_id, member_thread_clause()
     )
     result = db.execute(
         delete(AiMessage)
@@ -73,54 +74,52 @@ def _new_id(prefix: str) -> str:
     return f"{prefix}-{uuid.uuid4().hex[:16]}"
 
 
-def _active_thread_filter(user_id: str, trainer_id: str | None):
-    """스레드 식별 조건 — (회원, 화자) 쌍이 스레드를 가른다(#588).
+def member_thread_clause():
+    """회원 본인 대화 스레드인지 — `trainer_id` 가 NULL 이다(#588, #3085).
 
-    `trainer_id` 가 NULL 인 스레드가 회원 본인의 대화다. 이 조건을 한 곳에 모아
-    두는 이유: 조회와 생성이 조건을 다르게 쓰면 매 요청이 새 스레드를 만들거나,
-    더 나쁘게는 트레이너 질의가 회원 대화에 섞인다.
+    예전에는 트레이너가 회원에 대해 AI 에게 물은 문답이 `user_id=회원`,
+    `trainer_id=트레이너` 스레드에 `role="user"` 로 남았다. 회원 대화를 읽는 곳
+    (복원·보관 정리·불편 감지·감지 치우기·트레이너 통증 신호)이 `user_id` 만 보면
+    트레이너가 한 말이 회원 발화로 읽힌다. 그래서 모두 이 조건을 함께 건다.
     """
-    owner = (
-        AiConversation.trainer_id.is_(None)
-        if trainer_id is None
-        else AiConversation.trainer_id == trainer_id
-    )
+    return AiConversation.trainer_id.is_(None)
+
+
+def _active_thread_filter(user_id: str):
+    """회원 활성 스레드 식별 조건.
+
+    조회와 생성이 조건을 다르게 쓰면 매 요청이 새 스레드를 만들거나, 다른 스레드의
+    말이 회원 대화에 섞인다. 그래서 한 곳에 모은다.
+    """
     return (
         AiConversation.user_id == user_id,
-        owner,
+        member_thread_clause(),
         AiConversation.archived_at.is_(None),
     )
 
 
-def get_or_create_active(
-    db: Session, user_id: str, *, trainer_id: str | None = None
-) -> AiConversation:
-    """활성 대화 스레드. 없으면 만든다.
-
-    [trainer_id] 가 있으면 그 트레이너가 이 회원에 대해 묻는 전용 스레드다.
-    """
+def get_or_create_active(db: Session, user_id: str) -> AiConversation:
+    """회원의 활성 대화 스레드. 없으면 만든다."""
     convo = db.scalar(
         select(AiConversation)
-        .where(*_active_thread_filter(user_id, trainer_id))
+        .where(*_active_thread_filter(user_id))
         .order_by(AiConversation.created_at.desc())
         .limit(1)
     )
     if convo is not None:
         return convo
 
-    convo = AiConversation(
-        id=_new_id("aiconv"), user_id=user_id, trainer_id=trainer_id
-    )
+    convo = AiConversation(id=_new_id("aiconv"), user_id=user_id)
     db.add(convo)
     try:
         db.commit()
     except IntegrityError:
-        # 같은 (회원, 트레이너) 요청이 동시에 생성되면 부분 유니크 인덱스에서
+        # 같은 회원의 요청이 동시에 생성되면 부분 유니크 인덱스에서
         # 한쪽만 이긴다. 실패한 세션을 정리한 뒤 승자가 만든 스레드를 반환한다.
         db.rollback()
         winner = db.scalar(
             select(AiConversation)
-            .where(*_active_thread_filter(user_id, trainer_id))
+            .where(*_active_thread_filter(user_id))
             .order_by(AiConversation.created_at.desc())
             .limit(1)
         )
@@ -132,32 +131,32 @@ def get_or_create_active(
     return convo
 
 
-def load_messages(
-    db: Session, user_id: str, *, trainer_id: str | None = None
-) -> list[AiMessage]:
+def load_messages(db: Session, user_id: str) -> list[AiMessage]:
     """활성 대화의 메시지를 시간순으로. 대화가 없으면 빈 목록.
 
     스레드를 만들지 않는 조회 전용 경로다. 채팅 화면을 열기만 하고 아무 말도 하지
     않은 사용자에게 빈 대화 레코드를 남기지 않는다.
 
-    회원 본인 스레드는 보관 기간(`HISTORY_RETENTION_DAYS`) 안의 메시지만 준다(#1823).
+    보관 기간(`HISTORY_RETENTION_DAYS`) 안의 메시지만 준다(#1823).
     지우는 일은 저장 경로가 하지만, 한동안 말을 걸지 않은 회원에게도 지난 대화가
     복원·프롬프트에 섞이지 않게 조회에서도 같은 선을 긋는다.
     """
     convo = db.scalar(
         select(AiConversation)
-        .where(*_active_thread_filter(user_id, trainer_id))
+        .where(*_active_thread_filter(user_id))
         .order_by(AiConversation.created_at.desc())
         .limit(1)
     )
     if convo is None:
         return []
 
-    conditions = [AiMessage.conversation_id == convo.id]
-    if trainer_id is None:
-        conditions.append(AiMessage.created_at >= retention_cutoff())
     rows = db.scalars(
-        select(AiMessage).where(*conditions).order_by(AiMessage.seq.asc())
+        select(AiMessage)
+        .where(
+            AiMessage.conversation_id == convo.id,
+            AiMessage.created_at >= retention_cutoff(),
+        )
+        .order_by(AiMessage.seq.asc())
     ).all()
     return list(rows)[-MAX_HISTORY_MESSAGES:]
 
@@ -169,7 +168,6 @@ def append_exchange(
     question: str,
     reply: str,
     sources: list[str],
-    trainer_id: str | None = None,
 ) -> AiConversation:
     """질문과 답변을 한 번에 저장한다.
 
@@ -178,7 +176,7 @@ def append_exchange(
     now() 는 트랜잭션 시각이라 같은 커밋의 두 줄이 **동일한 created_at** 을 갖고,
     그러면 정렬이 랜덤한 id 순으로 무너져 답변이 질문보다 먼저 보인다.
     """
-    convo = get_or_create_active(db, user_id, trainer_id=trainer_id)
+    convo = get_or_create_active(db, user_id)
     # 대화 한 행을 순번 할당용 mutex 로 쓴다. PostgreSQL 에서는 같은 스레드의
     # 동시 append 가 여기서 직렬화되므로 max(seq)를 읽고 두 메시지를 커밋할 때까지
     # 다른 요청이 같은 순번을 가져갈 수 없다.
@@ -216,9 +214,8 @@ def append_exchange(
             sources_json=json.dumps(sources, ensure_ascii=False),
         )
     )
-    if trainer_id is None:
-        # 회원 본인 대화는 한 달만 남긴다(#1823). 저장과 같은 커밋으로 지운다.
-        purge_expired_messages(db, user_id)
+    # 회원 대화는 한 달만 남긴다(#1823). 저장과 같은 커밋으로 지운다.
+    purge_expired_messages(db, user_id)
     db.commit()
     return convo
 

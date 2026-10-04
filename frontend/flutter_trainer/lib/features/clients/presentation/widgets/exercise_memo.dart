@@ -327,9 +327,15 @@ class _ExerciseMemoDialogState extends ConsumerState<_ExerciseMemoDialog> {
     final String body = _draft.text.trim();
     if (body.isEmpty || _busy) return;
     final AppLocalizations l = AppLocalizations.of(context);
+    // 저장 중 창이 사라져도 메모 목록 갱신은 마친다 — await 전에 앱의
+    // 컨테이너를 잡아 둔다(#3103). 사라진 위젯의 `ref` 는 `StateError` 를 던진다.
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     setState(() => _busy = true);
     try {
-      await ref
+      await container
           .read(trainerMemoRepositoryProvider)
           .create(
             widget.clientId,
@@ -337,7 +343,7 @@ class _ExerciseMemoDialogState extends ConsumerState<_ExerciseMemoDialog> {
             source: TrainerMemoSource.exerciseMemo,
             ref: widget.memoRef,
           );
-      ref.invalidate(trainerMemosProvider(widget.clientId));
+      container.invalidate(trainerMemosProvider(widget.clientId));
       if (!mounted) return;
       Navigator.of(context).pop();
       showAppToast(context, l.clientExerciseMemoSaved);

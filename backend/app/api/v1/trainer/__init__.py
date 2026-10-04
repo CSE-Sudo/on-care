@@ -18,7 +18,6 @@
 | `programs` | 프로그램 초안·템플릿 |
 | `task_progress` | 대시보드 오늘 할 일 진행 상태 |
 | `schedule` | 스케줄 |
-| `ai_coach` | AI 코칭 |
 | `reports` | 주간 리포트 |
 | `client_invites` | 담당 요청·연결 코드 |
 | `consultations` | 상담 인박스 |
@@ -29,7 +28,6 @@
 from __future__ import annotations
 
 from app.api.v1.trainer import (
-    ai_coach,
     chat,
     client_invites,
     clients,
@@ -59,7 +57,6 @@ routers = (
     programs.router,
     task_progress.router,
     schedule.router,
-    ai_coach.router,
     reports.router,
     client_invites.router,
     consultations.router,

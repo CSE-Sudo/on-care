@@ -282,6 +282,13 @@ class _ChatViewState extends ConsumerState<ChatView> {
             fileName: picked.name,
             message: caption,
           );
+    } on ChatImageAlreadySent {
+      // 응답을 잃은 전송이 다른 한마디로 이미 갔다. 대화를 다시 읽어 그 사진을
+      // 보여 주고, 입력란은 그대로 둔다(#3095).
+      ref.invalidate(chatThreadProvider(widget.clientId));
+      if (!mounted) return;
+      showAppToast(context, l.chatImageAlreadySent, type: AppToastType.error);
+      return;
     } on AppError catch (error) {
       if (!mounted) return;
       // 용량·형식 거절은 서버가 이유를 문장으로 준다. 그 문장이 트레이너가

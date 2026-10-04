@@ -411,6 +411,7 @@ void main() {
             (429, 'daily_limit'): DietAnalysisFailure.dailyLimit,
             (429, 'rate_limited'): DietAnalysisFailure.rateLimited,
             (503, 'analysis_unavailable'): DietAnalysisFailure.unavailable,
+            (503, 'ai_capacity'): DietAnalysisFailure.aiCapacity,
           };
       for (final MapEntry<(int, String), DietAnalysisFailure> c
           in cases.entries) {

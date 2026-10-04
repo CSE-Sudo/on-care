@@ -1421,14 +1421,6 @@ final clientRepositoryProvider = Provider<ClientRepository>((ref) {
   return repository;
 });
 
-/// Streams the client list for the 고객 관리 tab.
-final managedClientsProvider = StreamProvider.autoDispose<List<TrainerClient>>((
-  ref,
-) {
-  keepAliveForAccount(ref);
-  return ref.watch(clientRepositoryProvider).watchClients();
-});
-
 final clientsProvider = StreamProvider.autoDispose<List<TrainerClient>>((ref) {
   keepAliveForAccount(ref);
   return ref
@@ -1533,9 +1525,13 @@ final todayPendingSessionCountProvider = Provider<AsyncValue<int>>((ref) {
 });
 
 /// Streams a client's meals for the 식단 sub-tab.
+///
+/// **화면이 보는 동안만** 산다(#3103). 실서버 스트림은 30초마다 다시 읽는
+/// 폴링이라, 계정 동안 붙잡아 두면(`keepAliveForAccount`) 한 번 연 회원마다
+/// 로그아웃할 때까지 요청이 나갔다. 알림 목록(#2767)과 같은 처리다. 계정
+/// 경계는 저장소 provider 가 [accountScopeProvider] 를 보므로 그대로 지켜진다.
 final clientDietProvider = StreamProvider.autoDispose
     .family<List<ClientDietEntry>, String>((ref, clientId) {
-      keepAliveForAccount(ref);
       return ref.watch(clientRepositoryProvider).watchDiet(clientId);
     });
 
@@ -1652,9 +1648,10 @@ final clientExercisesOnProvider = FutureProvider.autoDispose
     });
 
 /// Streams a client's workout history for the 운동 sub-tab.
+///
+/// [clientDietProvider] 와 같이 **화면이 보는 동안만** 산다(#3103).
 final clientHistoryProvider = StreamProvider.autoDispose
     .family<List<RoutineHistoryEntry>, String>((ref, clientId) {
-      keepAliveForAccount(ref);
       return ref.watch(clientRepositoryProvider).watchHistory(clientId);
     });
 

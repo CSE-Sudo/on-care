@@ -62,7 +62,41 @@ void main() {
     expect(list.first['id'], 'n-1');
     expect(list.first['time_ago'], '10분 전');
     expect(list[1]['time_ago'], '1시간 전');
-    expect(list[2]['time_ago'], '어제');
+    // 시드 밖 알림은 서버 `time_ago` 처럼 `1일 전` 이다 — `어제` 는 데모 시드
+    // 알림에만 쓴다(#3099).
+    expect(list[2]['time_ago'], '1일 전');
+  });
+
+  // 데모와 실서버가 같은 문구를 낸다 — 시드 밖 알림은 서버 일반 문구, 시드 알림은
+  // 서버 `demo_time_ago` 문구다(#3099).
+  test('하루 지난 알림은 시드 밖이면 `1일 전`, 시드면 `어제` 다', () async {
+    final now = nowKst();
+    await db.batch((b) {
+      b.insertAll(db.notificationItems, <NotificationItemsCompanion>[
+        NotificationItemsCompanion.insert(
+          id: 'n-30h',
+          createdAt: now.subtract(const Duration(hours: 30)),
+          title: '트레이너가 루틴을 보냈어요',
+          body: '새 개인운동이 도착했어요.',
+          category: 'system',
+        ),
+        NotificationItemsCompanion.insert(
+          id: 'seed-noti-9',
+          createdAt: now,
+          title: '시드 알림',
+          body: '시드 알림',
+          category: 'system',
+        ),
+      ]);
+    });
+
+    final list = (await dio.get<List<Object?>>(
+      '/notifications',
+    )).data!.cast<Map<String, Object?>>();
+    String ago(String id) =>
+        list.firstWhere((e) => e['id'] == id)['time_ago']! as String;
+    expect(ago('n-30h'), '1일 전');
+    expect(ago('seed-noti-9'), '어제');
   });
 
   // 데모 시드 알림은 문구 키를 함께 준다. 화면이 로케일 문장을 고른다(#1812).

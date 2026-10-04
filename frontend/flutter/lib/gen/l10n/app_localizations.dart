@@ -1106,6 +1106,12 @@ abstract class AppLocalizations {
   /// **'Photo analysis is unavailable right now. Please add the meal manually.'**
   String get dietAnalysisUnavailable;
 
+  /// No description provided for @dietAnalysisAiCapacity.
+  ///
+  /// In en, this message translates to:
+  /// **'AI features are taking a break due to high demand. They reopen tomorrow — for now you can add the meal manually.'**
+  String get dietAnalysisAiCapacity;
+
   /// No description provided for @dietAnalysisPickAnother.
   ///
   /// In en, this message translates to:
@@ -1153,6 +1159,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t save. Please try again in a moment.'**
   String get dietSaveFailed;
+
+  /// No description provided for @dietManualAlreadySaved.
+  ///
+  /// In en, this message translates to:
+  /// **'An earlier version of this meal was already saved. Please check your records.'**
+  String get dietManualAlreadySaved;
 
   /// No description provided for @dietDeleteTitle.
   ///
@@ -1963,6 +1975,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t find this trainer.'**
   String get exTrainerNotFound;
+
+  /// No description provided for @exTrainerReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Report trainer'**
+  String get exTrainerReport;
+
+  /// No description provided for @exTrainerReportShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Report'**
+  String get exTrainerReportShort;
+
+  /// No description provided for @exTrainerReportReasonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason'**
+  String get exTrainerReportReasonLabel;
+
+  /// No description provided for @exTrainerReportReasonImpersonation.
+  ///
+  /// In en, this message translates to:
+  /// **'Impersonation'**
+  String get exTrainerReportReasonImpersonation;
+
+  /// No description provided for @exTrainerReportReasonInappropriateMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Inappropriate message'**
+  String get exTrainerReportReasonInappropriateMessage;
+
+  /// No description provided for @exTrainerReportReasonOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get exTrainerReportReasonOther;
+
+  /// No description provided for @exTrainerReportMemoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get exTrainerReportMemoLabel;
+
+  /// No description provided for @exTrainerReportMemoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us what happened'**
+  String get exTrainerReportMemoHint;
+
+  /// No description provided for @exTrainerReportMemoRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Add details to report for another reason'**
+  String get exTrainerReportMemoRequired;
+
+  /// No description provided for @exTrainerReportNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Only operators see reports. The trainer isn\'t told who reported them.'**
+  String get exTrainerReportNotice;
+
+  /// No description provided for @exTrainerReportSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit report'**
+  String get exTrainerReportSubmit;
+
+  /// No description provided for @exTrainerReportSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Report received. An operator will review it.'**
+  String get exTrainerReportSubmitted;
+
+  /// No description provided for @exTrainerReportAlreadyOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have an open report. An operator is reviewing it.'**
+  String get exTrainerReportAlreadyOpen;
+
+  /// No description provided for @exTrainerSelfRegisteredAffiliation.
+  ///
+  /// In en, this message translates to:
+  /// **'Affiliation registered by the trainer'**
+  String get exTrainerSelfRegisteredAffiliation;
 
   /// No description provided for @exGymSearchPlaceholder.
   ///
@@ -3713,7 +3809,7 @@ abstract class AppLocalizations {
   /// No description provided for @myNotifExercise.
   ///
   /// In en, this message translates to:
-  /// **'Exercise reminder'**
+  /// **'Workout routines'**
   String get myNotifExercise;
 
   /// No description provided for @myNotifTrainer.
@@ -3725,8 +3821,32 @@ abstract class AppLocalizations {
   /// No description provided for @myNotifWeeklyReport.
   ///
   /// In en, this message translates to:
-  /// **'Weekly report'**
+  /// **'Trainer weekly report'**
   String get myNotifWeeklyReport;
+
+  /// No description provided for @myNotifExerciseDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When your trainer sends a workout routine or program'**
+  String get myNotifExerciseDesc;
+
+  /// No description provided for @myNotifTrainerDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When your trainer sends you a chat message'**
+  String get myNotifTrainerDesc;
+
+  /// No description provided for @myNotifWeeklyReportDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When your trainer sends your weekly report'**
+  String get myNotifWeeklyReportDesc;
+
+  /// No description provided for @myNotifAlwaysSent.
+  ///
+  /// In en, this message translates to:
+  /// **'PT session bookings, changes and cancellations, and trainer connect or disconnect notices are always sent'**
+  String get myNotifAlwaysSent;
 
   /// No description provided for @mySupportFaq.
   ///
@@ -4189,6 +4309,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You\'ve used today\'s chats. They reopen tomorrow'**
   String get aicQuotaExhausted;
+
+  /// No description provided for @aicAiCapacity.
+  ///
+  /// In en, this message translates to:
+  /// **'AI features are taking a break due to high demand. Please try again tomorrow'**
+  String get aicAiCapacity;
 
   /// No description provided for @aicQuotaFindTrainer.
   ///
@@ -6163,12 +6289,6 @@ abstract class AppLocalizations {
   /// **'{action} ({count, plural, =1{once a day} other{up to {count} times a day}})'**
   String myPointsRuleWithDailyCap(String action, int count);
 
-  /// Header of the assigned trainer card.
-  ///
-  /// In en, this message translates to:
-  /// **'My trainer'**
-  String get coachAssignedTrainer;
-
   /// Section title in the coaching card.
   ///
   /// In en, this message translates to:
@@ -6330,12 +6450,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You don\'t have a trainer yet. Connect a gym and trainer from the Exercise tab'**
   String get coachTrainerNone;
-
-  /// Home trainer card title when the assigned-trainer lookup failed (not a confirmed 'no trainer') (#2843).
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load your trainer'**
-  String get coachTrainerLoadFailed;
 
   /// Toast from the header chat button when the assigned-trainer lookup failed; tapping also retries (#2843).
   ///

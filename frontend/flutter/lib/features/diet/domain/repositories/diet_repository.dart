@@ -84,8 +84,9 @@ abstract class DietRepository {
   ///
   /// 합계는 서버가 [foods] 에서 낸다. 포인트는 적립되지 않는다 — 적립은 사진
   /// 분석 저장만 한다. [date] 는 `YYYY-MM-DD` 이고 비우면 오늘이다.
-  /// [idempotencyKey] 는 [analyze] 와 같다 — 저장 한 번에 하나 만들어 재시도에
-  /// 그대로 쓴다.
+  /// [idempotencyKey] 는 [analyze] 와 같다 — 저장 한 번(화면을 연 동안)에
+  /// 하나 만들어 재시도에 그대로 쓴다. 같은 키에 다른 끼니가 이미 저장돼
+  /// 있으면(409, #3095) [DietEntryKeyConflict] 를 던진다.
   Future<DietEntry> createEntry({
     required String date,
     required String mealType,

@@ -94,6 +94,11 @@ class AppRoutes {
   static const String legacyConsultations = '/consultations';
   static const String legacyScheduleConsultations = '$schedule/consultations';
 
+  /// 신고·계정 관리 — 운영자 계정에만 보이는 운영 화면 (#3008).
+  ///
+  /// 운영자가 아니면 주소로 열어도 찾을 수 없음 안내만 그린다.
+  static const String adminReports = '/admin/reports';
+
   /// 알림함 — 놓친 변화를 나중에 확인하는 자리. (#503)
   ///
   /// 들어오는 길은 화면 머리의 알림 종이다(#2628). 사이드바 탭이 아니다.
@@ -325,25 +330,6 @@ class AppRoutes {
       queryParameters: <String, String>{'d': ?date, 'session': ?sessionId},
     ).toString();
   }
-
-  /// 후속 관리 할 일이 열어야 할 화면. (#869)
-  ///
-  /// 새 deep-link 체계를 만들지 않고 **이미 있는 route 를 고른다** — 할 일은
-  /// "이 고객의 무엇을 다시 볼 것인가"라서, 그 무엇은 이미 화면을 갖고 있다.
-  ///
-  /// [contextWire] 는 서버 계약값(`context_type`)이다. 도메인 타입 대신 문자열을
-  /// 받아 라우트 표가 특정 feature 의 enum 에 매이지 않게 둔다. 모르는 값은 고객
-  /// 상세로 보낸다 — 갈 곳이 없다고 아무 데도 가지 않는 것보다, 그 고객 화면까지
-  /// 데려다주는 편이 낫다.
-  static String followUpTarget(String clientId, String contextWire) =>
-      switch (contextWire) {
-        'message' => messagesFor(clientId),
-        'program' => coachingFor(clientId),
-        'schedule' => scheduleAt(),
-        'diet' => clientDetail(clientId, section: 'diet'),
-        'exercise' => clientDetail(clientId, section: 'workout'),
-        _ => clientDetail(clientId),
-      };
 
   /// Builds the 내 정보 page on a given [tab] (`profile` | `settings`).
   static String mySection(String tab) =>

@@ -100,13 +100,21 @@ Future<bool> showExerciseAddSheet(
 /// 목록에서 바로 지울 수 있어야 추가한 기록을 되돌릴 자리가 생긴다. 서버가 준
 /// id 가 없는 기록(데모 시드의 옛 행)은 지울 수 없다 — 조용히 실패하는 대신
 /// 그렇다고 말한다.
+///
+/// 지우기와 갱신은 저장(#2879)처럼 앱 수명의 [ExerciseChangeRunner] 가 한다
+/// (#3096). 요청 중에 부른 화면이 닫혀도 [ref] 를 다시 쓰지 않으므로, 서버가
+/// 지웠는데 `삭제하지 못했어요` 가 뜨거나 목록·그래프가 옛 값으로 남지 않는다.
+/// [onDeleteStart] 는 확인 뒤 요청을 보내기 직전에 부른다 — 부른 화면이 그동안
+/// 닫히지 않게 막는 자리다.
 Future<bool> confirmDeleteExerciseSession(
   BuildContext context,
   WidgetRef ref,
-  ExerciseSession session,
-) async {
+  ExerciseSession session, {
+  VoidCallback? onDeleteStart,
+}) async {
   final AppLocalizations l = AppLocalizations.of(context);
   final AppToastHost toast = AppToastHost.of(context);
+  final ExerciseChangeRunner runner = ref.read(exerciseChangeRunnerProvider);
   final String? id = session.id;
   if (id == null) {
     toast.show(l.exCannotDelete, type: AppToastType.error);
@@ -122,12 +130,12 @@ Future<bool> confirmDeleteExerciseSession(
     destructive: true,
   );
   if (!confirmed) return false;
+  onDeleteStart?.call();
   try {
-    await ref.read(exerciseRepositoryProvider).deleteSession(id);
     // 추가 경로와 같은 갱신이다(#2634) — 이번 주·지난 주 목록과 그래프, AI
     // 조언, MY 기록 달력·보호권, 회수된 적립(#1786)과 주간 챌린지가 함께
     // 최신이 된다.
-    refreshAfterExerciseChange(ref.invalidate);
+    await runner.run((ExerciseRepository r) => r.deleteSession(id));
     toast.show(l.exDeleted, type: AppToastType.success);
     return true;
   } on Object {
@@ -385,12 +393,22 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
   Future<void> _delete() async {
     final ExerciseSession? session = widget.session;
     if (session == null || _saving) return;
+    // 지우는 동안 `_saving` 을 세워 뒤로 가기·바깥 탭으로 시트가 닫히지 않게
+    // 한다(#3096).
     final bool deleted = await confirmDeleteExerciseSession(
       context,
       ref,
       session,
+      onDeleteStart: () {
+        if (mounted) setState(() => _saving = true);
+      },
     );
-    if (deleted && mounted) Navigator.of(context).pop(true);
+    if (!mounted) return;
+    if (deleted) {
+      Navigator.of(context).pop(true);
+    } else {
+      setState(() => _saving = false);
+    }
   }
 
   Future<void> _pickDate() async {
@@ -572,7 +590,9 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
         rewardLabel: pointsRewardLabel(l, added.points),
       );
     } catch (_) {
-      // 모아 둔 목록은 그대로 남는다 — 저장은 전부 안 됐으니 다시 누르면 된다.
+      // 모아 둔 목록은 그대로 남는다. 응답만 잃고 서버에는 저장됐을 수 있지만,
+      // 같은 목록을 다시 누르면 같은 멱등키로 나가 서버가 처음 결과를 돌려준다
+      // (#3095) — 기록·포인트가 두 벌 생기지 않는다.
       if (mounted) setState(() => _saving = false);
       toast.show(l.exSaveFailed, type: AppToastType.error);
     }

@@ -18,7 +18,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.core import clock
@@ -116,16 +116,38 @@ def _existing_for(
 
     유니크 제약(`trainer_id`, `member_id`, `client_request_id`)에 기대지 않는다 —
     `trainer_id` 가 NULL 이면 Postgres 는 그 행들을 서로 다른 것으로 보아 제약이
-    걸리지 않는다. 그래서 여기서 직접 확인한다.
+    걸리지 않는다. 그래서 여기서 직접 확인한다 — [_lock_member] 를 잡은 뒤에.
+
+    잠금을 기다리는 동안 다른 요청이 고친 행이 이 세션에 이미 올라와 있을 수
+    있으므로 DB 값으로 덮어 읽는다.
     """
     return list(
         db.scalars(
-            select(TrainerRoutine).where(
+            select(TrainerRoutine)
+            .where(
                 TrainerRoutine.member_id == member_id,
                 TrainerRoutine.trainer_id.is_(None),
                 TrainerRoutine.client_request_id == key,
             )
+            .execution_options(populate_existing=True)
         ).all()
+    )
+
+
+def _lock_member(db: Session, member_id: str) -> None:
+    """이 회원의 자동 추천 준비를 트랜잭션 끝까지 직렬화한다. (#3092)
+
+    운동 탭은 오늘 개인운동과 기간 조언을 함께 읽고, 두 요청이 모두 여기로
+    온다. 잠금이 없으면 둘 다 "오늘 만든 것이 없다" 를 보고 각자 넣어 같은
+    추천이 두 벌 생긴다. 유니크 제약은 위에 적은 대로 막지 못한다.
+
+    회원 행 잠금(`FOR UPDATE`) 대신 자문 잠금을 쓴다 — 회원 행을 잠그는 다른
+    경로(식단 분석 한도)나 프로필 저장과 서로 기다리지 않는다. 커밋·롤백과 함께
+    풀리고, 키에 회원 id 가 들어가 다른 회원과는 서로 기다리지 않는다.
+    """
+    db.execute(
+        text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
+        {"key": f"auto_routine:{member_id}"},
     )
 
 
@@ -143,6 +165,9 @@ def ensure_auto_routines(db: Session, member_id: str) -> None:
 
     알림을 보내지 않는다 — 회원이 직접 열어 본 화면에서 이미 보고 있다.
     """
+    # 확인하고 고치는 사이에 같은 회원의 다른 요청이 끼지 않게 한다(#3092).
+    # 두 번째 요청은 첫 요청이 커밋한 뒤에 읽어 "바뀐 것 없음" 으로 돌아간다.
+    _lock_member(db, member_id)
     today = clock.now().date()
     key = _key_for(today)
     # 대화에서 찾은 불편을 반영해 좁힌다(#2016).
