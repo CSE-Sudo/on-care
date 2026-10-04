@@ -71,7 +71,7 @@
 |---|---|---|
 | GET | `/ping` | `{ message }` |
 | GET | `/healthz` | `{ status, backend, env, demo_fallback, demo_seed, attachment_storage, commit_sha }` (#2821·#3029). `attachment_storage` 는 `local`·`s3`·`misconfigured` |
-| GET | `/version` | `{ api_version, app_version, commit_sha }` — `commit_sha` 는 이미지를 만든 커밋 SHA(40자), 빌드 인자 없이 만든 이미지는 `"unknown"`(#3029) |
+| GET | `/version` | `{ api_version, app_version, min_app_version, commit_sha }` — `app_version` 은 서버 버전. `min_app_version` 은 회원 모바일 앱 최소 지원 버전(`MAJOR.MINOR.PATCH`, 설정 `MIN_MEMBER_APP_VERSION`), 비어 있으면 `null` 이고 앱은 검사하지 않는다(#3045). `commit_sha` 는 이미지를 만든 커밋 SHA(40자), 빌드 인자 없이 만든 이미지는 `"unknown"`(#3029). 인증 없음 |
 | GET | `/readyz` | `{ status: "ready" }` — DB 에 `SELECT 1` 까지 확인한다(3초 제한). 실패하면 **503** `{"detail": "서비스가 아직 준비되지 않았습니다."}`, 원인은 서버 로그에만 남긴다. `/healthz` 는 프로세스만 본다(liveness) |
 
 ### 관리자 전용
@@ -91,6 +91,7 @@
 | POST | `/users/me/consents` | `{ consents: [항목] }` → `{ consent_required, consent_pending[] }` (#2819) |
 | GET | `/users/me/health` | `{ profile: { id, name, email }, activity_points }` — MY 계정 카드. 위험 문구(`risk`)·활동 순위(`activity_rank`)·설정 메뉴(`settings[]`)는 앱이 읽지 않는 고정값이라 뺐다(#2903) |
 | DELETE | `/users/me` | `{ status: "deleted" }` |
+| GET | `/users/me/deletion-preview` | `{ points, active_coupons, upcoming_reservations, pending_consultations }` — 탈퇴하면 사라지거나 취소되는 것의 수(#3006). 아래 [탈퇴 미리보기](#탈퇴-미리보기-3006). 회원 전용(트레이너 403) |
 | GET | `/users/me/profile` | `ProfileView` — `{ id, name, email, phone, birth_date, gender, height_cm, weight_kg, conditions, daily_calories, daily_sodium_mg, daily_sugar_g, daily_carbs_g, daily_protein_g, daily_fat_g, weekly_workout_goal, weekly_exercise_minutes_goal, weekly_burn_goal, daily_burn_kcal, weekly_cardio_minutes, weekly_strength_sets, weekly_flexibility_minutes, onboarded, focus_changed_by, focus_changed_at }` — MY 프로필 통합 뷰 |
 | PUT | `/users/me` | 부분 수정 `{ name?, email?, phone?, birth_date?, gender?, height_cm?, weight_kg? }` → `ProfileView`. 다른 계정이 쓰는 이메일은 409, 전화번호를 빈 값으로 보내면 422. 형식 규칙은 아래 "인증" 의 연락처·이름·생년월일 절과 같다 |
 | POST | `/users/me/onboarding` | 최초 온보딩 `{ name?, birth_date?, gender?, height_cm?, weight_kg?, conditions?, daily_*?, daily_burn_kcal?, weekly_cardio_minutes?, weekly_strength_sets?, weekly_flexibility_minutes? }` → `ProfileView`(`onboarded: true`). 보낸 필드만 반영한다 |
@@ -111,6 +112,21 @@
 스레드 행이 CASCADE 로 사라지므로 남긴 파일은 열 수 없는 고아가 된다. 트레이너 탈퇴
 (`DELETE /trainer/me`)도 그 트레이너의 스레드 첨부를 같은 규칙으로 지운다. 파일 삭제는 커밋
 뒤에 하고, 실패해도 응답은 `deleted` 다(서버 로그에 남겨 다시 지운다).
+
+#### 탈퇴 미리보기 (#3006)
+
+회원 탈퇴 마지막 확인창이 열 때 읽는다. 아무것도 바꾸지 않는다.
+
+| 필드 | 뜻 | 세는 기준 |
+|---|---|---|
+| `points` | 남은 포인트 | `GET /users/me/health` 의 `activity_points` 와 같은 값 |
+| `active_coupons` | 아직 쓸 수 있는 쿠폰 | `issued` 이고 `expires_at` 이 지나지 않은 것. 사용·취소·만료 제외, 종류 무관(식판 쿠폰 포함) |
+| `upcoming_reservations` | 취소되는 예정 PT 예약 | `booked` 이고 시작 전인 것. 트레이너가 일정을 취소한 예약 제외 — `GET /reservations/me` 의 예정 예약과 같다 |
+| `pending_consultations` | 취소되는 대기 상담 요청 | `pending` 이고 만료 시각(신청 24시간 뒤·자리 시작 2시간 전 중 이른 쪽)이 지나지 않은 것 |
+
+앱은 0 인 항목을 보여 주지 않는다. 읽기에 실패하면 숫자 없이 "남은 포인트와 쿠폰이 사라지고
+예정된 예약·대기 중 상담 요청이 취소된다" 는 고정 문구로 알린다. 보유 보호권·이모티콘·프로필
+펫도 탈퇴와 함께 사라지지만 숫자로 세지 않는다(약관 해지 조항이 함께 고지한다).
 
 #### 첫 설정 완료·건너뛰기 (#1927·#2855)
 

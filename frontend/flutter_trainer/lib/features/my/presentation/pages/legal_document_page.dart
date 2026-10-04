@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_core/legal_contact.dart';
 
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
@@ -31,7 +32,9 @@ class LegalDocumentPage extends StatelessWidget {
     final String title = isPrivacy
         ? l.myLegalPrivacyTitle
         : l.myLegalTermsTitle;
-    final String body = isPrivacy ? l.myLegalPrivacyBody : l.myLegalTermsBody;
+    final String body = isPrivacy
+        ? l.myLegalPrivacyBody(LegalContact.privacyOfficerEmail)
+        : l.myLegalTermsBody;
     // 두 문서는 시행일이 따로 간다 — 처리방침만 고쳐도 약관 날짜는 그대로다(#2820).
     final String effectiveDate = isPrivacy
         ? l.myLegalPrivacyEffectiveDate
