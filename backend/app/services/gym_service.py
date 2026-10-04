@@ -14,11 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.models.models import GymProfile, MemberGym, Place, TrainerProfile, User
 from app.schemas.gym_api import GymOut, TrainerOut
-from app.services import (
-    points_coupon_service,
-    trainer_recommendation,
-    trainer_verification_service,
-)
+from app.services import points_coupon_service, trainer_recommendation
 
 
 def _haversine_m(lat1: float, lng1: float, lat2: float, lng2: float) -> int:
@@ -193,12 +189,14 @@ def _trainer_query(*, require_gym: bool = True):
     남기면 회원은 고를 수 있는데 마지막 단계에서만 막히고, 트레이너 앱이 소속을
     채우면(#452) 그대로 다시 노출된다.
 
-    - 운영자 승인 전(pending)이거나 반려된 트레이너(#2825). 공개 가입은 누구나 할
-      수 있고 소속도 직접 고르므로, 승인 없이는 소속을 사칭한 계정이 그대로 노출된다.
+    운영자 승인 단계는 두지 않는다(#3008). 트레이너는 가입하고 카카오 검색으로
+    실재하는 헬스장을 고르면 바로 노출된다 — 소속은 트레이너가 직접 고른 값이라
+    회원 앱이 그 사실을 함께 적고, 사칭 같은 문제는 회원 신고와 운영자의 계정
+    정지로 다룬다.
 
     `require_gym=False` 는 **이미 담당으로 배정된 트레이너를 그 회원이 읽을 때**만
     쓴다(`get_trainer`). 그 자리는 디렉터리 노출이 아니라 이미 맺어진 관계를 읽는
-    것이라 소속·승인 조건이 맞지 않는다(#691) — 반려가 기존 담당을 끊지는 않는다.
+    것이라 소속 조건이 맞지 않는다(#691).
 
     데모 시드가 꺼진 서버(운영)에서는 데모 트레이너(`demo_ids`)도 뺀다(#2811).
     예전 기본값으로 운영 DB 에 심긴 가상 트레이너가 실서비스 회원에게 노출되고
@@ -220,7 +218,6 @@ def _trainer_query(*, require_gym: bool = True):
         return query
     return query.join(Place, Place.id == TrainerProfile.gym_id).where(
         Place.category == "fitness",
-        trainer_verification_service.approved_clause(),
     )
 
 

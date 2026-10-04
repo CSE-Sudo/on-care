@@ -301,23 +301,12 @@ def test_audit_ip_ignores_spoofed_header(client, db_session):
 
 
 def _trainer_token(client, db_session) -> str:
-    from sqlalchemy import update
-
-    from app.models.models import TrainerProfile
-
     email = f"ip-trainer-{uuid4().hex[:10]}@oncare.com"
     response = client.post(
         "/v1/auth/trainer/register",
         json={"email": email, "password": PASSWORD, "name": "트레이너"},
     )
     assert response.status_code == 201, response.text
-    # 가입 직후는 승인 대기(#2825)라 트레이너 API 가 403 이다. 버킷만 보려고 바로 승인한다.
-    db_session.execute(
-        update(TrainerProfile)
-        .where(TrainerProfile.trainer_id == response.json()["id"])
-        .values(verification_status="approved")
-    )
-    db_session.commit()
     login = client.post("/v1/auth/login", data={"username": email, "password": PASSWORD})
     assert login.status_code == 200, login.text
     return login.json()["access_token"]

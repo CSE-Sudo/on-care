@@ -25,7 +25,7 @@ from app.services.coach import grounding, insights, prompt_safety
 from app.services.coach.llm import get_coach_llm
 from app.services.coach.rag import retrieve
 from app.services.coach_service import diet_period_context
-from app.services import ai_log, health_focus
+from app.services import ai_call_quota, ai_log, health_focus
 
 _SYSTEM = (
     # 대상 집단을 스타트 단계의 `고혈압·당뇨 위험군` 으로 소개하고 있었다(#2026).
@@ -305,6 +305,11 @@ def answer(
     세 번째 값이 거짓이면 검색 기반 대체 답이다 — 회원 챗봇의 하루 한도는 LLM 이
     답한 대화만 센다(#2145). 대체 답으로 내려갈 때마다 사유를 구조화 로그로
     남긴다(#1559) — 예전에는 조용히 삼켜 provider 장애가 정상 폴백과 구별되지 않았다.
+
+    **하루 호출 상한(#3032)** — 모델을 부르기 직전에 서버 전체 몫을 잡는다. 상한에
+    걸리면 대체 답으로 내려가지 않고 `ai_call_quota.AiCapacityReached` 를 그대로
+    올린다 — 라우터가 503 `ai_capacity` 로 옮긴다. 회원 하루 한도·포인트는
+    답을 받은 뒤에만 세므로 차감되지 않는다.
     """
     history = history or []
     hits = _safe_retrieve(db, user_id, message)
@@ -350,8 +355,9 @@ def answer(
 
     # LLM 응답(수 초~수십 초)을 기다리는 동안 DB 연결을 쥐지 않는다(#2836). 여기까지는
     # 읽기뿐이라 트랜잭션을 끝내 연결을 풀로 돌려주고, 답을 저장할 때 새로 빌린다.
-    # 회원 AI 코치(`/ai-coach/chat`)와 트레이너 코치가 모두 이 길을 지난다.
+    # 회원 AI 코치(`/ai-coach/chat`)만 이 길을 지난다(트레이너 AI 코칭은 #3085 로 삭제).
     release_connection(db)
+    ai_call_quota.acquire(ai_call_quota.FEATURE_COACH_CHAT)
     try:
         # `.text` 가 없거나 문자열이 아닌 응답도 provider 응답 계약 위반으로 센다.
         text = (llm.generate(_system_prompt(), prompt).text or "").strip()

@@ -121,6 +121,10 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
       }
     }
 
+    // 서버 전체 AI 상한(#3032) — 인식기를 부르기 전에 거절한다. 끼니·포인트는
+    // 남기지 않는다. 같은 멱등키의 재시도(위)는 모델을 부르지 않아 그대로 답한다.
+    if (demoAiCapacityReached) return _aiCapacity(options);
+
     // 음식이 없는 사진은 빈 끼니로 저장하지 않는다 — 실서버와 같은 422 와
     // 코드로 거절하고, 끼니·사진·포인트를 남기지 않는다(#2848).
     if (demoPhotoHasFood?.call(photoBytes) == false) {

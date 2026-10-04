@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from app.core.locale import current_locale, localized
 from app.db.session import release_connection
 from app.schemas.misc_api import CoachSuggestion
+from app.services import ai_call_quota
 from app.services.coach import grounding, prompt_safety
 from app.services.coach.llm import get_coach_llm
 from app.services.coach.rag import retrieve_context
@@ -102,10 +103,15 @@ def _rag_suggestion(
         user_prompt = f"{combined}\n\n{ask}"
         # LLM 을 기다리는 동안 DB 연결을 쥐지 않는다(#2836) — 여기까지는 읽기뿐이다.
         release_connection(db)
+        # 서버 전체 하루 상한(#3032). 넘으면 규칙 기반 카드로 내려간다.
+        ai_call_quota.acquire(ai_call_quota.FEATURE_COACH_FEEDBACK)
         result = llm.generate(_system_prompt(system_prompt), user_prompt)
         if not result.text.strip():
             return fallback
         return CoachSuggestion(tag=tag, title=title, body=result.text.strip())
+    except ai_call_quota.AiCapacityReached:
+        logger.info("RAG 코칭 서버 AI 상한 도달 (domain=%s) → 규칙 기반 폴백 사용", domain)
+        return fallback
     except Exception as exc:  # noqa: BLE001
         # 키 미설정/네트워크/모델 오류 → 안전하게 규칙 기반 폴백 (단, 로그는 남긴다).
         # 예외 메시지·스택은 남기지 않는다 — 프롬프트(회원 기록)가 실린다(#3090).

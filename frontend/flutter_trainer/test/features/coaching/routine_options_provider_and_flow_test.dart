@@ -2039,6 +2039,28 @@ void _rateLimitMessageTests() {
     expect(find.text('AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요'), findsNothing);
   });
 
+  testWidgets('하루 상한(429 daily_limit)은 내일 다시라고 안내한다 (#3032)', (tester) async {
+    // 오늘 몫을 다 쓴 것이라 "잠시 후" 라고 하면 트레이너가 계속 다시 누른다.
+    await _pumpFlowWithOptionsError(
+      tester,
+      const RateLimitedError(code: RateLimitedError.dailyLimitCode),
+    );
+
+    expect(find.text('오늘 AI 생성 한도를 다 썼어요. 내일 다시 이용해 주세요'), findsOneWidget);
+    expect(find.text('AI 생성을 너무 자주 요청했어요. 잠시 후 다시 시도해 주세요'), findsNothing);
+    expect(find.text('AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요'), findsNothing);
+  });
+
+  testWidgets('코드가 다른 429 는 기존 "잠시 후" 문구다 (#3032)', (tester) async {
+    await _pumpFlowWithOptionsError(
+      tester,
+      const RateLimitedError(code: 'rate_limited'),
+    );
+
+    expect(find.text('AI 생성을 너무 자주 요청했어요. 잠시 후 다시 시도해 주세요'), findsOneWidget);
+    expect(find.text('오늘 AI 생성 한도를 다 썼어요. 내일 다시 이용해 주세요'), findsNothing);
+  });
+
   testWidgets('그 밖의 실패는 기존 문구를 그대로 쓴다 (#582)', (tester) async {
     await _pumpFlowWithOptionsError(tester, const ServerError(statusCode: 500));
 

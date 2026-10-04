@@ -14,6 +14,7 @@ import 'package:oncare/features/exercise/presentation/utils/gym_phone.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connection_disconnect.dart';
 import 'package:oncare/features/exercise/presentation/widgets/consult_linked_notice.dart';
 import 'package:oncare/features/exercise/presentation/widgets/trainer_reason_badges.dart';
+import 'package:oncare/features/exercise/presentation/widgets/trainer_report_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -463,8 +464,20 @@ class _AffiliatedTrainers extends ConsumerWidget {
             _AffiliatedTrainerRow(
               trainer: trainers[i],
               reasonKeyPrefix: 'gym-detail-trainer-${trainers[i].id}',
+              showReport: true,
             ),
           ],
+          // 소속은 트레이너가 직접 고른 것이다(#3008) — 운영자가 확인하지 않는다.
+          const AppDivider(),
+          const Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: OnCareSpacing.cardPadding,
+              vertical: OnCareSpacing.s12,
+            ),
+            child: SelfRegisteredAffiliationNote(
+              key: Key('gym-detail-self-registered'),
+            ),
+          ),
         ],
       ),
     );
@@ -477,10 +490,15 @@ class _AffiliatedTrainerRow extends StatelessWidget {
     required this.reasonKeyPrefix,
     this.onTap,
     this.trailingLabel,
+    this.showReport = false,
     super.key,
   });
 
   final Trainer trainer;
+
+  /// 제목 아래에 `신고` 버튼을 둘지 (#3008). 소속 트레이너 섹션만 켠다 —
+  /// 상담 트레이너 선택 시트는 고르는 자리라 다른 동작을 섞지 않는다.
+  final bool showReport;
 
   /// 추천 이유 태그의 키 접두어. 소속 트레이너 섹션과 상담 트레이너 시트가 한
   /// 트리에 함께 서므로(시트는 상세 위에 뜬다) 부르는 쪽이 제 이름을 준다.
@@ -492,6 +510,32 @@ class _AffiliatedTrainerRow extends StatelessWidget {
 
   /// 오른쪽 화살표 대신 보여 줄 상태 문구(예: "상담 요청 대기 중").
   final String? trailingLabel;
+
+  /// 제목 아래 줄 — 추천 이유 태그와 `신고` 버튼 (#3008).
+  ///
+  /// 신고 버튼은 화살표 옆이 아니라 여기 둔다. 오른쪽에 붙이면 제목 칸이 좁아져
+  /// 추천 이유 태그가 넘친다. 버튼이 탭을 먼저 받으므로 행의 상세 이동과 겹치지 않는다.
+  Widget? _below() {
+    final Widget? badges = trainer.reasons.isEmpty
+        ? null
+        : TrainerReasonBadges(
+            reasons: trainer.reasons,
+            keyPrefix: reasonKeyPrefix,
+          );
+    if (!showReport) return badges;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        ?badges,
+        TrainerReportButton(
+          key: Key('gym-detail-trainer-report-${trainer.id}'),
+          trainer: trainer,
+          compact: true,
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -511,12 +555,7 @@ class _AffiliatedTrainerRow extends StatelessWidget {
       leading: AppAvatar(name: trainer.name, size: AppAvatarSize.large),
       // 여기가 상담할 트레이너를 고르는 자리다 — 헬스장 찾기에서 봤던 근거를
       // 정작 고르는 화면에서 다시 찾게 두지 않는다 (#1881).
-      below: trainer.reasons.isEmpty
-          ? null
-          : TrainerReasonBadges(
-              reasons: trainer.reasons,
-              keyPrefix: reasonKeyPrefix,
-            ),
+      below: _below(),
       trailing: trailingLabel != null
           ? Text(
               trailingLabel!,

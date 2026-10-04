@@ -93,6 +93,27 @@ extension _LocalApiCommon on LocalApiInterceptor {
     );
   }
 
+  /// 서버 전체 AI 하루 상한(#3032) — 실서버 `ai_call_errors` 와 같은 503 본문.
+  /// 다음 자정까지 남은 초 대신 고정 값을 싣는다(목업은 시각을 흉내 내지 않는다).
+  Response<Object?> _aiCapacity(RequestOptions options) {
+    final bool english = _prefersEnglish(options);
+    return Response<Object?>(
+      requestOptions: options,
+      statusCode: 503,
+      headers: Headers.fromMap(<String, List<String>>{
+        'retry-after': <String>['3600'],
+      }),
+      data: <String, Object?>{
+        'detail': <String, Object?>{
+          'code': 'ai_capacity',
+          'message': english
+              ? 'AI features are taking a break due to high demand. Please try again tomorrow.'
+              : '지금은 AI 기능 이용이 많아 잠시 쉬어요. 내일 다시 이용해 주세요.',
+        },
+      },
+    );
+  }
+
   Response<Object?> _notFound(RequestOptions options, String message) {
     return Response<Object?>(
       requestOptions: options,

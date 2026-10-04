@@ -20,7 +20,10 @@ from google.genai import types
 
 from app.core.config import get_settings
 from app.schemas.diet import DietAnalysis
-from app.services.recognizer.base import FoodRecognizer
+from app.services import ai_call_quota
+from app.services.coach.llm import gemini_truncated
+from app.services.coach.llm_base import output_cap
+from app.services.recognizer.base import RECOGNIZER_MAX_OUTPUT_TOKENS, FoodRecognizer
 from app.services.recognizer.locale_prompt import localized_prompt
 from app.services.recognizer.parse import parse_payload
 
@@ -73,6 +76,9 @@ class GeminiVisionRecognizer(FoodRecognizer):
     async def recognize(self, image_bytes: bytes, mime_type: str) -> DietAnalysis:
         # 요청 언어는 컨텍스트 변수라 작업 스레드로 넘기기 전에 고른다. (#2850)
         prompt = localized_prompt(_PROMPT)
+        # 서버 전체 하루 상한(#3032). 사진 분석은 규칙형 대안이 없어, 넘으면 라우터가
+        # 503 `ai_capacity` 로 답하고 회원의 하루 몫을 돌려준다.
+        await asyncio.to_thread(ai_call_quota.acquire, ai_call_quota.FEATURE_DIET_PHOTO)
         start = time.perf_counter()
         response = await asyncio.to_thread(
             self._client.models.generate_content,
@@ -84,9 +90,14 @@ class GeminiVisionRecognizer(FoodRecognizer):
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 temperature=0.2,
+                # 출력 토큰 상한(#3032).
+                max_output_tokens=output_cap(RECOGNIZER_MAX_OUTPUT_TOKENS),
             ),
         )
         latency_ms = int((time.perf_counter() - start) * 1000)
+        if gemini_truncated(response):
+            # 끊긴 JSON 은 음식 일부만 저장될 수 있다 — 인식 실패(502)로 돌린다.
+            raise RuntimeError("식단 인식 응답이 출력 상한에 걸려 끊김")
         return self._parse(response.text or "", latency_ms)
 
     def _parse(self, raw: str, latency_ms: int) -> DietAnalysis:

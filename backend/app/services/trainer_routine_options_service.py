@@ -21,7 +21,7 @@ from pydantic import ValidationError
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.services import health_focus
+from app.services import ai_call_quota, health_focus
 from app.core import clock, metrics
 from app.core.locale import Locale, current_locale
 from app.core.week import monday_of
@@ -57,6 +57,7 @@ from app.services import exercise_types, routine_ai
 from app.services.coach import prompt_safety
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
 from app.services.ai_log import log_ai_fallback
+from app.services.coach.llm_base import is_truncated, output_cap
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +118,9 @@ LLM_TIMEOUT_SEC = 12.0
 
 #: 사고 예산. 지연을 지배하는 값이라 호출부마다 따로 두지 않는다(#579).
 LLM_THINKING_BUDGET = DEFAULT_THINKING_BUDGET
+#: 출력 토큰 상한(#3032). 두 후보(A·B)와 종목 몇 개, 사고 예산이 들어가는 값이다.
+#: 끊긴 JSON 은 계약 위반으로 보고 규칙형으로 내린다.
+LLM_MAX_OUTPUT_TOKENS = 2048
 
 #: 동시에 진행할 LLM 호출 수.
 LLM_MAX_CONCURRENCY = 4
@@ -907,7 +911,9 @@ def _decode_json_object(text: str) -> dict:
     return parsed
 
 
-def _call_llm(prompt: str, system: str = _SYSTEM_PROMPT):
+def _call_llm(
+    prompt: str, system: str = _SYSTEM_PROMPT, *, trainer_id: str | None = None
+):
     """LLM 호출 + 타임아웃. 실패는 호출부가 잡아 규칙 폴백으로 내린다.
 
     [system] 은 부르는 쪽이 요청 언어로 골라 넘긴다(#2301). 워커 스레드에서는
@@ -927,16 +933,28 @@ def _call_llm(prompt: str, system: str = _SYSTEM_PROMPT):
     slots = _llm_slots
     if not slots.acquire(blocking=False):
         raise LLMBusyError("LLM 동시 호출 한도 초과 — 규칙 폴백")
+    try:
+        # 공급자를 고른 뒤에 센다 — 키가 없어 부르지 못하는 호출은 하루 상한(#3032)에 세지 않는다.
+        llm = get_coach_llm()
+        # 트레이너·서버 전체 하루 상한(#3032). 포화로 부르지 않은 호출은 세지 않게 자리를
+        # 잡은 뒤에 센다. 트레이너 상한은 호출부가 429 로, 전역 상한은 규칙형으로 옮긴다.
+        ai_call_quota.acquire(
+            ai_call_quota.FEATURE_ROUTINE_OPTIONS, trainer_id=trainer_id
+        )
+    except BaseException:
+        slots.release()
+        raise
 
     def _call():
         try:
             # json_mode 와 사고 예산은 **반드시 함께** 넘긴다. 기본값(사고 켜짐)으로는
             # 이 짧은 JSON 하나에도 10초 이상 걸려 클라이언트가 먼저 끊고 규칙형만
             # 보게 된다. json_mode 만 켜면 오히려 더 느려진다(실측은 coach/llm.py).
-            return get_coach_llm().generate(
+            return llm.generate(
                 system, prompt,
                 json_mode=True,
                 thinking_budget=LLM_THINKING_BUDGET,
+                max_output_tokens=output_cap(LLM_MAX_OUTPUT_TOKENS),
             )
         finally:
             # 타임아웃으로 호출부가 떠난 뒤라도 작업이 끝나면 자리를 반드시 돌려준다.
@@ -957,6 +975,8 @@ def _generate_with_llm(
     analysis: RoutineOptionAnalysisOut,
     request: RoutineOptionsRequest,
     locale: Locale = "ko",
+    *,
+    trainer_id: str | None = None,
 ) -> RoutineOptionsOut:
     prompt = json.dumps(
         {
@@ -967,7 +987,10 @@ def _generate_with_llm(
         },
         ensure_ascii=False,
     )
-    result = _call_llm(prompt, system_prompt(locale))
+    result = _call_llm(prompt, system_prompt(locale), trainer_id=trainer_id)
+    if is_truncated(result):
+        # 출력 상한에 끊긴 JSON 은 앞부분만으로도 파싱될 수 있어 따로 막는다(#3032).
+        raise RoutineContractError("LLM 응답이 출력 상한에 걸려 끊겼습니다.")
     payload = _decode_json_object(result.text)
     payload["analysis"] = analysis.model_dump()
     payload["generated_by"] = "ai"
@@ -1016,7 +1039,18 @@ def generate_routine_options(
     started = time.monotonic()
     had_chat = bool(analysis.recent_messages)
     try:
-        options = _generate_with_llm(analysis, request, locale)
+        options = _generate_with_llm(analysis, request, locale, trainer_id=trainer_id)
+    except ai_call_quota.TrainerAiDailyLimitReached:
+        # 이 트레이너의 오늘 몫을 다 썼다 — 규칙형으로 덮지 않고 429 로 알린다(#3032).
+        # 규칙형 후보를 주면 "AI 가 만든 것" 과 구분이 안 돼 한도를 모른 채 계속 누른다.
+        raise
+    except ai_call_quota.AiCapacityReached:
+        # 서버 전체 상한 — 이 트레이너 탓이 아니다. 규칙형 후보로 화면을 이어 준다.
+        _record(started, reason="global_cap", had_chat_context=had_chat)
+        logger.info(
+            "맞춤 루틴 서버 AI 상한 도달 — 규칙 기반 폴백 사용 (trainer_id=%s)", trainer_id
+        )
+        return fallback
     except LLMBusyError:
         # 포화 — 장애가 아니다. 부르지 않았으니 stack trace 도 남길 게 없다.
         # 이 값이 자주 오르면 늘릴 것은 타임아웃이 아니라 동시성 한도다.

@@ -536,10 +536,15 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         return;
       }
       // 한도 초과는 고장이 아니라 잠시 뒤 되는 상태다. 다른 오류와 같은 문구를
-      // 쓰면 트레이너가 기능이 깨진 것으로 읽는다(#582).
+      // 쓰면 트레이너가 기능이 깨진 것으로 읽는다(#582). 하루 상한은 "잠시 후"
+      // 가 아니라 내일이라 문구를 따로 둔다(#3032).
       showAppToast(
         context,
-        e is RateLimitedError ? l.aiGenerateRateLimited : l.aiGenerateFailed,
+        switch (e) {
+          RateLimitedError(isDailyLimit: true) => l.aiGenerateDailyLimit,
+          RateLimitedError() => l.aiGenerateRateLimited,
+          _ => l.aiGenerateFailed,
+        },
         type: AppToastType.error,
       );
     } finally {

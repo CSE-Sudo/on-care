@@ -4,20 +4,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_invite_repository.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_connect_dialog.dart';
-import 'package:oncare_trainer/shared/models/trainer_profile.dart';
-import 'package:oncare_trainer/shared/widgets/trainer_verification_banner.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
 /// 담당 회원 0명 빈 상태의 회원 연결 안내 (#3012).
 ///
-/// 막 승인받은 트레이너의 첫 화면이 빈 카드 하나면 다음 행동을 모른다. 빈 상태가
-/// 연결 방법을 적고, 툴바와 같은 연결 창을 여는 버튼을 단다.
+/// 막 가입한 트레이너의 첫 화면이 빈 카드 하나면 다음 행동을 모른다. 빈 상태가
+/// 연결 방법을 적고, 툴바와 같은 연결 창을 여는 버튼을 단다. 운영자 승인 단계가
+/// 없어(#3008) 가입 직후에도 버튼이 켜져 있다.
 const ValueKey<String> _empty = ValueKey<String>('clients-empty');
 const ValueKey<String> _emptyConnect = ValueKey<String>(
   'clients-empty-connect',
 );
+/// 승인 절차가 있던 때의 연결 안내 배너. 이제 어디에도 서지 않는다(#3008).
 const ValueKey<String> _connectBanner = ValueKey<String>(
   'trainer-verification-connect',
 );
@@ -41,7 +41,7 @@ Future<void> _pumpEmpty(
 }
 
 void main() {
-  testWidgets('승인 + 연결 가능 + 0명: 안내 문구와 신규 회원 등록 버튼', (tester) async {
+  testWidgets('연결 가능 + 0명: 안내 문구와 신규 회원 등록 버튼', (tester) async {
     await _pumpEmpty(tester);
 
     expect(find.byKey(_empty), findsOneWidget);
@@ -70,36 +70,16 @@ void main() {
     expect(find.byType(ClientConnectDialog), findsOneWidget);
   });
 
-  testWidgets('승인 대기: 버튼 없이 안내만, 이유는 승인 배너가 적는다', (tester) async {
-    await _pumpEmpty(
-      tester,
-      extra: <Override>[
-        trainerVerificationProvider.overrideWithValue(
-          const TrainerVerification(status: TrainerVerificationStatus.pending),
-        ),
-      ],
+  testWidgets('승인 단계가 없어 가입 직후에도 버튼이 켜져 있고 승인 안내는 없다', (
+    tester,
+  ) async {
+    await _pumpEmpty(tester);
+
+    expect(
+      tester.widget<AppButton>(find.byKey(_emptyConnect)).onPressed,
+      isNotNull,
     );
-
-    expect(find.byKey(_empty), findsOneWidget);
-    expect(find.byKey(_emptyConnect), findsNothing);
-    expect(find.byKey(_connectBanner), findsOneWidget);
-  });
-
-  testWidgets('반려: 버튼 없이 안내만', (tester) async {
-    await _pumpEmpty(
-      tester,
-      extra: <Override>[
-        trainerVerificationProvider.overrideWithValue(
-          const TrainerVerification(
-            status: TrainerVerificationStatus.rejected,
-            note: '자격 확인 불가',
-          ),
-        ),
-      ],
-    );
-
-    expect(find.byKey(_emptyConnect), findsNothing);
-    expect(find.byKey(_connectBanner), findsOneWidget);
+    expect(find.byKey(_connectBanner), findsNothing);
   });
 
   testWidgets('연결 경로가 꺼진 빌드: 버튼도 안내 문구도 없다', (tester) async {

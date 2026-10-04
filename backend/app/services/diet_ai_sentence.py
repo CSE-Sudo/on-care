@@ -24,7 +24,9 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 
 from app.core import metrics
+from app.services import ai_call_quota
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
+from app.services.coach.llm_base import is_truncated, output_cap
 from app.services.coach.prompt_safety import FOOD_NAME_GUARD, TRAINER_DIET_GUARD
 from app.services.diet_advice_copy import plain
 from app.services.ai_log import log_ai_fallback
@@ -36,6 +38,8 @@ LLM_TIMEOUT_SEC = 8.0
 LLM_MAX_CONCURRENCY = 4
 #: 한 번 더 받아 보는 횟수. 길이·수치 검사에 걸리면 다시 받는다.
 MAX_ATTEMPTS = 2
+#: 출력 토큰 상한(#3032). `{"sentence": "…"}` 한 줄과 사고 예산이 들어가는 값.
+LLM_MAX_OUTPUT_TOKENS = 512
 
 #: 카드의 두 문장 한도. 한국어는 한 문장 반(#1574), 영어는 같은 폭에 드는 길이다.
 CARD_MAX = {"ko": 45, "en": 90}
@@ -57,6 +61,10 @@ _MEASURE_UNIT = re.compile(r"(?:(?:mg|kcal|cal|g)(?![a-z])|%|㎎|킬로|칼로�
 
 class LLMBusyError(RuntimeError):
     """동시 호출 한도가 차서 AI 를 부르지 않았다."""
+
+
+class LLMTruncatedError(ValueError):
+    """출력 상한에 걸려 JSON 이 끊겼다 — 규칙 문장으로 내린다(#3032)."""
 
 
 def sentence_limit(lang: str, analysis_text: str) -> int:
@@ -152,18 +160,31 @@ def build_prompt(
 def _call_llm(system: str, user: str) -> str:
     if not _llm_slots.acquire(blocking=False):
         raise LLMBusyError("LLM 동시 호출 한도 초과")
+    try:
+        # 공급자를 고른 뒤에 센다 — 키가 없어 부르지 못하는 호출은 하루 상한(#3032)에 세지 않는다.
+        llm = get_coach_llm()
+        # 서버 전체 하루 상한(#3032). 자리를 잡은 뒤에 세야 포화로 부르지 않은 호출을
+        # 세지 않는다.
+        ai_call_quota.acquire(ai_call_quota.FEATURE_DIET_ADVICE)
+    except BaseException:
+        _llm_slots.release()
+        raise
 
     def _call():
         try:
-            return get_coach_llm().generate(
+            return llm.generate(
                 system, user, json_mode=True,
                 thinking_budget=DEFAULT_THINKING_BUDGET,
                 timeout_seconds=LLM_TIMEOUT_SEC,
+                max_output_tokens=output_cap(LLM_MAX_OUTPUT_TOKENS),
             )
         finally:
             _llm_slots.release()
 
-    return _executor.submit(_call).result(timeout=LLM_TIMEOUT_SEC).text
+    result = _executor.submit(_call).result(timeout=LLM_TIMEOUT_SEC)
+    if is_truncated(result):
+        raise LLMTruncatedError("출력 상한에 걸려 응답이 끊김")
+    return result.text
 
 
 def generate(
@@ -188,6 +209,13 @@ def generate(
             text = clean(_call_llm(system, user))
         except LLMBusyError:
             metrics.incr(f"{metric}.fallback", reason="busy")
+            return None
+        except ai_call_quota.AiCapacityReached:
+            metrics.incr(f"{metric}.fallback", reason="global_cap")
+            return None
+        except LLMTruncatedError:
+            metrics.incr(f"{metric}.fallback", reason="truncated")
+            logger.info("%s LLM 응답이 출력 상한에 끊김", metric)
             return None
         except FutureTimeout:
             metrics.incr(f"{metric}.fallback", reason="timeout")

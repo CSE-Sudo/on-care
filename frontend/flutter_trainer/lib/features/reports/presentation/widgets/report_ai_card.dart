@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
+import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
@@ -54,7 +55,18 @@ class ReportAiCard extends ConsumerWidget {
       // 생성이 실패해도 카드가 비지 않는다 — 실패를 말하고 그 자리에서 다시
       // 시도하게 한다(#2885). 예전에는 안내문만 남아, 일시적 실패 뒤에는
       // 화면을 나갔다 오는 것 말고 길이 없었다.
-      error: (_, _) => Column(
+      //
+      // 단, 오늘 AI 몫을 다 쓴 경우(429 `daily_limit`, #3032)는 다시 눌러도 같은
+      // 결과라 다시 시도 버튼 없이 하루 한도만 알린다.
+      error: (error, _) => error is RateLimitedError && error.isDailyLimit
+          ? Text(
+              key: const ValueKey<String>('reports-ai-daily-limit'),
+              l.reportsAiDailyLimit,
+              style: tokens
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textSecondary),
+            )
+          : Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[

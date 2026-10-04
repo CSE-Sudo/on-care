@@ -670,8 +670,13 @@ def test_slot_is_returned_when_scheduling_fails(monkeypatch):
             raise RuntimeError("cannot schedule new futures after shutdown")
 
     monkeypatch.setattr(trainer_routine_options_service, "_executor", _DeadExecutor())
+    # 공급자 고르기는 자리를 잡은 뒤에 한다(#3032). 키 없는 환경의 "공급자 없음" 오류로
+    # 우연히 통과하지 않게, 실제로 `submit()` 까지 가는 가짜 공급자를 둔다.
+    monkeypatch.setattr(
+        trainer_routine_options_service, "get_coach_llm", lambda: _FakeLlm("{}")
+    )
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError, match="cannot schedule"):
         trainer_routine_options_service._call_llm("prompt")
 
     assert slots.acquire(blocking=False), "스케줄링 실패로 자리가 누수됐다"

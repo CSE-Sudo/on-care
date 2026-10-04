@@ -195,6 +195,12 @@ Resources:
             Value: '60'
           - Name: EMBED_DIM
             Value: '768'
+          - Name: AI_GLOBAL_CALLS_PER_DAY
+            Value: '0'
+          - Name: TRAINER_AI_CALLS_PER_DAY
+            Value: '200'
+          - Name: LLM_MAX_OUTPUT_TOKENS
+            Value: '4096'
           - Name: MIGRATE_LOCK_TIMEOUT
             Value: '120'
           - Name: MIGRATE_CONNECT_TIMEOUT

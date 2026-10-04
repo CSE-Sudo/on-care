@@ -191,6 +191,11 @@ class Settings(BaseSettings):
     # Gemini HTTP 타임아웃(초). 걸지 않으면 무응답 시 호출 스레드가 무기한 묶여
     # 워커 풀이 고갈된다(추천 경로는 스레드 풀에서 돈다).
     gemini_timeout_seconds: float = 30.0
+    # LLM 한 번의 출력 토큰 상한(#3032). 호출처는 필요한 길이(한 문장 조언·JSON 후보
+    # 등)에 맞춰 이보다 작게 넘기고, 넘기지 않는 호출(AI 코치 답변)은 이 값을 쓴다.
+    # Gemini 는 사고 토큰도 이 안에서 쓰므로 너무 작게 잡으면 답이 비거나 잘린다.
+    # 잘린 JSON 응답은 계약 위반으로 보고 규칙형 폴백을 탄다. 0 이면 상한을 넘기지 않는다.
+    llm_max_output_tokens: int = 4096
     # 식단 사진 인식 HTTP 타임아웃(초, #2912). 사진 분석은 글 응답보다 오래 걸려
     # gemini_timeout_seconds 와 따로 둔다. Gemini·LiteLLM 비전 인식기가 함께 쓴다.
     recognizer_timeout_seconds: float = 60.0
@@ -337,6 +342,18 @@ class Settings(BaseSettings):
     # 0 이면 그 한도를 끈다. RATE_LIMIT_ENABLED=false 면 둘 다 끈다.
     diet_analyze_per_minute: int = 10
     diet_analyze_per_day: int = 20
+    # 서버 전체·트레이너 계정의 하루 AI 호출 상한(#3032). 위 값들은 **한 회원**을
+    # 묶을 뿐이라, 가입자가 늘면 그 합만큼 비용이 열린다. 두 값 모두 DB
+    # (`ai_call_usages`)에서 KST 날짜로 세므로 재기동·워커 수·인스턴스 수와 상관없이
+    # 같다. 0 이면 그 상한을 끈다. RATE_LIMIT_ENABLED=false 면 둘 다 끈다.
+    # - 전역: 외부 LLM·비전 모델을 실제로 부르는 모든 기능의 합. 넘으면 규칙형 폴백이
+    #   있는 기능은 폴백으로, 없는 기능(AI 코치 채팅·사진 분석)은 503 `ai_capacity` 로
+    #   답한다. 기본값 0(끔) — 운영 값은 배포 설정에서 정한다(DEPLOY.md 3절).
+    # - 트레이너: 한 트레이너 계정의 고객 AI 코치·루틴 후보·리포트 요약 합. 넘으면
+    #   429 `daily_limit` + `Retry-After`(KST 자정까지). 공개 가입 계정 하나가 분당
+    #   한도 안에서 하루 종일 부르는 것을 막는다.
+    ai_global_calls_per_day: int = 0
+    trainer_ai_calls_per_day: int = 200
     # 상담 요청 생성 한도(#1628). 트래픽이 아니라 **남에게 주는 피해**를 막는 정책이다
     # — 답을 기다리는 요청 하나가 트레이너 자리 하나를 최대 24시간 잠그고(#1873),
     # 신청·취소를 되풀이하면 트레이너 알림함이 찬다. 둘 다 DB 에서 세므로 재기동이나

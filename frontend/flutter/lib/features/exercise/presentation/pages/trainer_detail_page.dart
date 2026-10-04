@@ -13,6 +13,7 @@ import 'package:oncare/features/exercise/presentation/controllers/exercise_contr
 import 'package:oncare/features/exercise/presentation/widgets/connection_disconnect.dart';
 import 'package:oncare/features/exercise/presentation/widgets/consult_linked_notice.dart';
 import 'package:oncare/features/exercise/presentation/widgets/trainer_reason_badges.dart';
+import 'package:oncare/features/exercise/presentation/widgets/trainer_report_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -310,6 +311,15 @@ class _TrainerDetails extends ConsumerWidget {
                 onTap: () => _disconnect(context, ref),
               ),
             ],
+            // 운영자 승인 없이 활동하는 트레이너라(#3008) 사칭·부적절한 메시지를
+            // 회원이 알릴 길을 둔다. 상담·연결 동작보다 앞서지 않게 맨 아래다.
+            const SizedBox(height: OnCareSpacing.s12),
+            Center(
+              child: TrainerReportButton(
+                key: const Key('trainer-detail-report'),
+                trainer: trainer,
+              ),
+            ),
           ],
         ),
       ),
@@ -328,7 +338,7 @@ class _AffiliatedGymRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
-    return Material(
+    final Widget row = Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () => context.push(AppRoutes.gymDetailPath(gym.id)),
@@ -374,6 +384,25 @@ class _AffiliatedGymRow extends StatelessWidget {
           ],
         ),
       ),
+    );
+    // 소속은 트레이너가 가입할 때 직접 고른 것이고 운영자가 확인하지 않는다
+    // (#3008). 회원이 그 사실을 알고 판단하도록 헬스장 이름과 같은 세로선에서
+    // 한 줄 덧붙인다.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        row,
+        const SizedBox(height: OnCareSpacing.s4),
+        const Padding(
+          padding: EdgeInsets.only(
+            left: OnCareSize.iconSmall + OnCareSpacing.s8,
+          ),
+          child: SelfRegisteredAffiliationNote(
+            key: Key('trainer-detail-self-registered'),
+          ),
+        ),
+      ],
     );
   }
 }

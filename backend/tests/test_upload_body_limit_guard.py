@@ -89,6 +89,8 @@ def test_main_rules_cover_every_upload_path_with_its_own_limit():
     expected = {
         "/v1/diet/analyze": s.max_upload_bytes,
         "/v1/ai-coach/chat": s.coach_chat_max_body_bytes,
+        # 트레이너 AI 코칭도 회원 AI 코치와 같은 상한이다(#3032).
+        "/v1/trainer/clients/user-1/ai-coach": s.coach_chat_max_body_bytes,
         "/v1/me/coach/chat/image": s.max_chat_image_bytes + slack,
         "/v1/trainer/clients/user-1/chat/image": s.max_chat_image_bytes + slack,
         "/v1/trainer/clients/user-1/report/send-pdf": s.max_report_pdf_bytes + slack,
@@ -100,6 +102,12 @@ def test_main_rules_cover_every_upload_path_with_its_own_limit():
 
     # JSON 으로 대량 텍스트를 받는 경로와 일반 쓰기 경로는 묶지 않는다.
     for path in ("/v1/coach-docs", "/v1/me/coach/chat", "/v1/trainer/clients/u/chat"):
+        assert mw.rule_for(path) is None, path
+    # 정규식은 전체 일치다 — 한 단계 더 깊은 경로나 빈 id 는 묶지 않는다.
+    for path in (
+        "/v1/trainer/clients/u/ai-coach/extra",
+        "/v1/trainer/clients//ai-coach",
+    ):
         assert mw.rule_for(path) is None, path
 
 
@@ -299,3 +307,20 @@ def test_each_rule_uses_its_own_limit(mini):
 
 def test_unmatched_path_is_not_limited(mini):
     assert mini.post("/clients/abc/note", content=b"x" * 1000).status_code == 200
+
+
+def test_oversized_trainer_ai_coach_body_is_413_before_auth(app_client):
+    """트레이너 AI 코칭도 수 MB 짜리 JSON 은 파싱 전에 끊는다(#3032).
+
+    인증·담당 확인보다 먼저라 토큰이 가짜여도 413 이다.
+    """
+    path = "/v1/trainer/clients/user-1/ai-coach"
+    body = b'{"message": "' + b"x" * (_limit_for(path) + 1) + b'"}'
+    r = app_client.post(
+        path,
+        content=body,
+        headers={"Content-Type": "application/json", "Authorization": "Bearer not-checked"},
+    )
+    assert r.status_code == 413, r.text
+    assert "질문" in r.json()["detail"]
+
