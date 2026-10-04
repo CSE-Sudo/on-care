@@ -2159,13 +2159,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myFieldWeight => 'Weight (kg)';
 
   @override
-  String get myNotifExercise => 'Exercise reminder';
+  String get myNotifExercise => 'Workout routines';
 
   @override
   String get myNotifTrainer => 'Trainer message';
 
   @override
-  String get myNotifWeeklyReport => 'Weekly report';
+  String get myNotifWeeklyReport => 'Trainer weekly report';
+
+  @override
+  String get myNotifExerciseDesc =>
+      'When your trainer sends a workout routine or program';
+
+  @override
+  String get myNotifTrainerDesc => 'When your trainer sends you a chat message';
+
+  @override
+  String get myNotifWeeklyReportDesc =>
+      'When your trainer sends your weekly report';
+
+  @override
+  String get myNotifAlwaysSent =>
+      'PT session bookings, changes and cancellations, and trainer connect or disconnect notices are always sent';
 
   @override
   String get mySupportFaq => 'FAQ';
