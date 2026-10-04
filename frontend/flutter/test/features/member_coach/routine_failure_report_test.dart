@@ -85,6 +85,20 @@ class _FailingCoachRepository extends MockMemberCoachRepository {
   }
 }
 
+/// 데모 저장소 그대로 — 목록을 다시 읽은 횟수만 센다. 담당이 끊기면 배정
+/// 루틴이 목록에서 사라진다(`linked`).
+class _CountingCoachRepository extends MockMemberCoachRepository {
+  _CountingCoachRepository({required super.exercise, required super.linked});
+
+  int fetches = 0;
+
+  @override
+  Future<List<CoachRoutine>> fetchRoutines() {
+    fetches += 1;
+    return super.fetchRoutines();
+  }
+}
+
 void main() {
   late _FakeReporter reporter;
 
@@ -193,6 +207,31 @@ void main() {
     await complete(tester, await firstOpenRoutine(tester, coach));
 
     expect(find.text(l10n(tester).coachRoutineGone), findsOneWidget);
+    expect(reporter.reports, isEmpty);
+    await drainToasts(tester);
+  });
+
+  // 데모 저장소가 사라진 루틴을 실서버처럼 404([NotFoundError])로 알린다 —
+  // 화면은 실서버 경로와 같은 안내를 하고 목록을 다시 읽는다(#3099).
+  testWidgets('데모에서 사라진 루틴을 완료하면 실서버와 같은 안내 뒤 목록을 다시 읽는다', (
+    WidgetTester tester,
+  ) async {
+    bool linked = true;
+    final _CountingCoachRepository coach = _CountingCoachRepository(
+      exercise: demoExerciseBackend(emptyDemoDatabase()).api,
+      linked: () => linked,
+    );
+    await pumpCard(tester, coach);
+    final CoachRoutine target = await firstOpenRoutine(tester, coach);
+    final int before = coach.fetches;
+
+    // 화면에 떠 있는 동안 담당이 끊겨 배정 루틴이 사라졌다.
+    linked = false;
+    await complete(tester, target);
+
+    expect(find.text(l10n(tester).coachRoutineGone), findsOneWidget);
+    expect(find.text(l10n(tester).coachRoutineLogFailed), findsNothing);
+    expect(coach.fetches, greaterThan(before), reason: '목록을 다시 읽어야 한다');
     expect(reporter.reports, isEmpty);
     await drainToasts(tester);
   });
