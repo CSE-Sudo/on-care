@@ -46,7 +46,10 @@ class _MealCreatePageState extends ConsumerState<_MealCreatePage>
   /// `음식을 하나 이상 적어 주세요` — 저장을 눌렀는데 이름 적힌 음식이 없을 때.
   bool _showEmpty = false;
 
-  /// 저장 한 번에 하나. 응답을 잃고 다시 누른 저장이 끼니를 둘 만들지 않는다.
+  /// 화면을 연 동안 하나. 응답을 잃고 다시 누른 저장이 끼니를 둘 만들지 않는다.
+  /// 그 사이 내용을 고쳐 다시 누르면 서버가 같은 키·다른 끼니로 보고 409 를
+  /// 주고, 화면은 이미 저장된 끼니가 있다고 알린다(#3095). 저장해 화면을 닫으면
+  /// 함께 사라진다.
   final String _idempotencyKey =
       'manual-${DateTime.now().microsecondsSinceEpoch}';
 
@@ -104,6 +107,19 @@ class _MealCreatePageState extends ConsumerState<_MealCreatePage>
       navigator.pop(true);
       if (!toastContext.mounted) return;
       showAppToast(toastContext, l.dietSaved, type: AppToastType.success);
+    } on DietEntryKeyConflict {
+      // 응답을 잃은 저장이 다른 내용으로 이미 남아 있다(#3095). 기록을 다시
+      // 읽어 그 끼니가 보이게 하고, 적던 내용은 그대로 둔다.
+      if (toastContext.mounted) {
+        showAppToast(
+          toastContext,
+          l.dietManualAlreadySaved,
+          type: AppToastType.error,
+        );
+      }
+      if (!mounted) return;
+      refreshDietRecords(ref.invalidate, dates: <DateTime>[_date]);
+      setState(() => _busy = false);
     } catch (_) {
       if (mounted) setState(() => _busy = false);
       if (toastContext.mounted) {

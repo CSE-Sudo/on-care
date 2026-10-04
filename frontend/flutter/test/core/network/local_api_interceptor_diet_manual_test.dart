@@ -116,6 +116,30 @@ void main() {
     expect(first.data!['id'], second.data!['id']);
   });
 
+  test('같은 멱등키에 다른 끼니는 409 이고 처음 끼니만 남는다 (#3095)', () async {
+    final Map<String, Object?> body = <String, Object?>{
+      'date': today,
+      'meal_type': 'dinner',
+      'foods': foods,
+      'idempotency_key': 'manual-2',
+    };
+    final first = await create(body);
+    for (final Map<String, Object?> changed in <Map<String, Object?>>[
+      <String, Object?>{...body, 'meal_type': 'lunch'},
+      <String, Object?>{
+        ...body,
+        'foods': <Object?>[
+          <String, Object?>{...foods.first, 'calories': 500},
+        ],
+      },
+    ]) {
+      final r = await create(changed);
+      expect(r.statusCode, 409);
+    }
+    final entries = await db.select(db.dietEntries).get();
+    expect(entries.map((e) => e.id), <String>[first.data!['id']! as String]);
+  });
+
   test('틀린 요청은 422', () async {
     final DateTime tomorrow = DateTime(now.year, now.month, now.day + 1);
     for (final Map<String, Object?> body in <Map<String, Object?>>[

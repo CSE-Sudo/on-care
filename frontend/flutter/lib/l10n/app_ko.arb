@@ -231,6 +231,7 @@
   "dietNutritionResult": "영양 분석 결과",
   "dietSaved": "식단이 저장되었어요",
   "dietSaveFailed": "저장에 실패했어요. 잠시 후 다시 시도해 주세요",
+  "dietManualAlreadySaved": "앞서 보낸 끼니가 이미 저장돼 있어요. 기록을 확인해 주세요",
   "dietDeleteTitle": "식단 기록 삭제",
   "dietDeleteConfirm": "이 식단 기록을 삭제할까요?",
   "dietDeleteWhenEmpty": "음식이 하나도 남지 않았어요. 이 식단 기록을 삭제할까요?",

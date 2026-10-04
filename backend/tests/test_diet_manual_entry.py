@@ -119,6 +119,42 @@ def test_manual_entry_idempotency_key_dedupes_retry(client):
     assert len(client.get("/v1/diet/days/today", headers=h).json()["entries"]) == 1
 
 
+@pytest.mark.parametrize(
+    "changed",
+    [
+        {"meal_type": "dinner"},
+        {"foods": [{**_FOODS[0], "amount_g": 300}]},
+        {"date": (clock.today() - timedelta(days=1)).isoformat()},
+    ],
+    ids=["meal_type", "foods", "date"],
+)
+def test_manual_entry_same_key_with_other_body_is_409(client, changed):
+    """응답을 잃은 뒤 고쳐 보낸 끼니가 처음 기록으로 조용히 바뀌지 않는다(#3095)."""
+    h = _register(client)
+    key = uuid4().hex
+    first = _create(client, h, idempotency_key=key)
+    assert first.status_code == 201, first.text
+
+    retry = _create(client, h, idempotency_key=key, **changed)
+    assert retry.status_code == 409, retry.text
+
+    # 처음 기록은 그대로이고 새 기록은 생기지 않았다.
+    entries = client.get("/v1/diet/days/today", headers=h).json()["entries"]
+    assert [(e["id"], e["meal_type"]) for e in entries] == [
+        (first.json()["id"], "lunch")
+    ]
+
+
+def test_manual_entry_same_key_same_explicit_date_returns_first(client):
+    h = _register(client)
+    key = uuid4().hex
+    today = clock.today().isoformat()
+    first = _create(client, h, idempotency_key=key, date=today)
+    second = _create(client, h, idempotency_key=key, date=today)
+    assert second.status_code == 201, second.text
+    assert second.json()["id"] == first.json()["id"]
+
+
 def test_manual_entry_can_be_edited_and_deleted(client):
     h = _register(client)
     entry_id = _create(client, h).json()["id"]

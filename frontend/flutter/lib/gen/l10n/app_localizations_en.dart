@@ -615,6 +615,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietSaveFailed => 'Couldn\'t save. Please try again in a moment.';
 
   @override
+  String get dietManualAlreadySaved =>
+      'An earlier version of this meal was already saved. Please check your records.';
+
+  @override
   String get dietDeleteTitle => 'Delete Meal Record';
 
   @override

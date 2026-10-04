@@ -901,6 +901,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatImageSendFailed => '사진을 보내지 못했어요. 다시 시도해 주세요';
 
   @override
+  String get chatImageAlreadySent => '앞서 보낸 사진이 이미 전송돼 있어요. 대화를 확인해 주세요';
+
+  @override
   String get clientTabDiet => '식단';
 
   @override

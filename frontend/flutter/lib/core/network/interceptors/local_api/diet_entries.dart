@@ -26,16 +26,12 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
   /// 실서버와 같은 규칙이다. 합계는 음식에서 내고, 출처가 빠진 음식은 회원 값
   /// (`member`)이며, **포인트는 적립하지 않는다.** 기록이므로 보호한 날이면
   /// 보호권은 돌려준다.
+  ///
+  /// 같은 멱등키로 다시 오면 처음 기록을 돌려주고, 끼니·날짜·음식이 다르면
+  /// 409 다(#3095) — 고쳐 보낸 끼니가 처음 기록으로 조용히 바뀌지 않는다.
   Future<Response<Object?>> _dietCreate(RequestOptions options) async {
     final body = _jsonBody(options);
     final String? idempotencyKey = (body['idempotency_key'] as String?)?.trim();
-    if (idempotencyKey != null && idempotencyKey.isNotEmpty) {
-      final existing =
-          await (_db.select(_db.dietEntries)
-                ..where((t) => t.idempotencyKey.equals(idempotencyKey)))
-              .getSingleOrNull();
-      if (existing != null) return _created(options, _dietEntryJson(existing));
-    }
     final String? date = (body['date'] as String?)?.trim();
     if (body.containsKey('date')) {
       final String? error = _entryDateError(date);
@@ -77,6 +73,28 @@ extension _LocalApiDietEntries on LocalApiInterceptor {
           options,
           '${i + 1}번째 음식(${food['name']})의 당류는 탄수화물보다 클 수 없습니다.',
         );
+      }
+    }
+    if (idempotencyKey != null && idempotencyKey.isNotEmpty) {
+      final existing =
+          await (_db.select(_db.dietEntries)
+                ..where((t) => t.idempotencyKey.equals(idempotencyKey)))
+              .getSingleOrNull();
+      if (existing != null) {
+        final bool same =
+            existing.mealType == mealType &&
+            (date == null || existing.date == date) &&
+            existing.foodsJson == jsonEncode(foods);
+        if (!same) {
+          return Response<Object?>(
+            requestOptions: options,
+            statusCode: 409,
+            data: <String, Object?>{
+              'detail': '같은 idempotency_key로 다른 끼니를 저장할 수 없습니다.',
+            },
+          );
+        }
+        return _created(options, _dietEntryJson(existing));
       }
     }
     final now = nowKst();
