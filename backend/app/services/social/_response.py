@@ -64,6 +64,24 @@ def optional_str(provider: str, data: dict[str, Any], key: str) -> str:
     return value
 
 
+def optional_flag(provider: str, data: dict[str, Any], key: str) -> bool:
+    """선택 참/거짓 필드(#1551). 없거나 null 이면 거짓, 형식이 틀리면 형식 이상.
+
+    google tokeninfo 는 `email_verified` 를 문자열("true"/"false")로, kakao 는 bool 로
+    준다. 둘 다 받는다. 그 밖의 값(숫자·"yes"·객체 등)은 참으로 넘겨짚지 않는다.
+    """
+    value = data.get(key)
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str) and value.strip().lower() in ("true", "false"):
+        return value.strip().lower() == "true"
+    raise SocialProviderResponseError(
+        f"{provider} 응답의 {key} 형식 이상({type(value).__name__})"
+    )
+
+
 def required_id(provider: str, data: dict[str, Any], key: str) -> str:
     """필수 사용자 식별자. 없거나 비면 인증 실패(401), 타입이 틀리면 형식 이상(502).
 

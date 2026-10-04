@@ -14,6 +14,12 @@ provider 를 열어 두는 것보다 낫다.
 
 `read_profile` 은 코드 교환으로 얻은 **우리 앱의** access_token 으로 프로필을 읽는
 뒷부분이다. 교환이 들어오면 그대로 이어 쓴다.
+
+네이버 프로필의 `email` 은 **미확인 이메일로 다룬다**(#1551). 프로필 API 응답에는 이메일
+소유 확인 여부를 알려 주는 필드가 없고, 문서는 이 값이 기본값 `네이버ID@naver.com` 이거나
+"사용자가 다른 외부메일로 변경했을 경우" 그 주소라고만 적는다. 외부 주소의 소유를 네이버가
+확인했다는 보증이 없으므로 같은 이메일의 기존 계정에 자동 연결하지 않는다.
+https://developers.naver.com/docs/login/profile/profile.md
 """
 from __future__ import annotations
 
@@ -61,4 +67,6 @@ class NaverVerifier(SocialVerifier):
             email=optional_str("naver", profile, "email"),
             name=optional_str("naver", profile, "name")
             or optional_str("naver", profile, "nickname"),
+            # 공식 검증 플래그가 없다 — 위 모듈 설명 참고.
+            email_verified=False,
         )

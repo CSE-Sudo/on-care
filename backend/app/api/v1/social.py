@@ -38,6 +38,11 @@ _AUTH_FAILED = "소셜 인증에 실패했습니다."
 _PROVIDER_BAD_RESPONSE = "소셜 로그인 제공자의 응답을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요."
 
 
+def _placeholder_email(identity: SocialIdentity) -> str:
+    """확인된 이메일이 없을 때 쓰는 대체 이메일. provider 신원마다 하나라 겹치지 않는다."""
+    return normalize_email(f"{identity.provider}_{identity.provider_user_id}@social.oncare")
+
+
 def _find_or_create_user(db: Session, identity: SocialIdentity) -> User:
     # 1) 이미 연결된 소셜 계정이면 그 사용자
     account = db.scalar(
@@ -51,17 +56,21 @@ def _find_or_create_user(db: Session, identity: SocialIdentity) -> User:
 
     # 2) 같은 이메일의 기존 사용자에 연결, 없으면 새 사용자 생성
     # 이메일은 가입과 같은 규칙(소문자)으로 맞춰 찾고 저장한다(#2816).
-    email = normalize_email(identity.email or "")
+    #
+    # provider 가 소유를 확인한 이메일일 때만 그 이메일을 쓴다(#1551). 확인되지 않은
+    # 이메일로 기존 계정을 찾으면, 남의 주소를 provider 계정에 적어 넣는 것만으로 그
+    # 사람 계정에 로그인된다. 새 계정의 이메일로도 쓰지 않는다 — 계정 이메일은 재설정
+    # 메일·가입 중복 확인이 믿는 값이라, 확인 안 된 주소를 넣으면 주인이 그 주소로
+    # 가입하지 못하고(409) 주소를 선점당한다. 이때는 provider 신원으로 만든 대체
+    # 이메일로 새 계정을 만든다(이메일이 없을 때와 같다).
+    email = normalize_email(identity.email or "") if identity.email_verified else ""
     user: User | None = None
     if email:
         user = db.scalar(select(User).where(func.lower(User.email) == email))
     if user is None:
         user = User(
             id=f"user-{uuid.uuid4().hex[:12]}",
-            email=email
-            or normalize_email(
-                f"{identity.provider}_{identity.provider_user_id}@social.oncare"
-            ),
+            email=email or _placeholder_email(identity),
             name=identity.name or identity.provider,
             hashed_password="",  # 소셜 계정은 비밀번호 없음
         )

@@ -63,6 +63,17 @@ def _allowed_audiences() -> list[str]:
     return get_settings().apple_client_id_list
 
 
+def _claim_true(value: object) -> bool:
+    """Apple 의 참/거짓 클레임(#1551). 문자열("true")·bool 둘 다 온다.
+
+    Apple 문서는 `email_verified` 를 "string or Boolean" 으로 적는다. 그 밖의 값은
+    참으로 넘겨짚지 않는다(서명이 맞는 토큰이므로 형식 이상으로 막지는 않는다).
+    """
+    if isinstance(value, bool):
+        return value
+    return isinstance(value, str) and value.strip().lower() == "true"
+
+
 class AppleVerifier(SocialVerifier):
     provider = "apple"
 
@@ -113,11 +124,11 @@ class AppleVerifier(SocialVerifier):
 
         # Apple 은 이름을 토큰에 담지 않는다. 최초 로그인 때 클라이언트가 별도로 한 번만
         # 받으므로, 서버는 이름을 비워 두고 이메일만 취한다.
-        # `email_verified`/`is_private_email` 은 문자열("true")로 오는 경우가 있어
-        # 값 비교 대신 존재 여부만 쓴다.
+        email = str(claims.get("email") or "")
         return SocialIdentity(
             provider="apple",
             provider_user_id=uid,
-            email=str(claims.get("email") or ""),
+            email=email,
             name="",
+            email_verified=bool(email) and _claim_true(claims.get("email_verified")),
         )

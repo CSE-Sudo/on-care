@@ -7,6 +7,12 @@
 읽는다. 두 응답의 사용자 `id` 가 같은지도 본다.
 
 `KAKAO_APP_ID` 가 비면 Apple·Google 과 같이 **거부**한다.
+
+이메일은 `kakao_account.is_email_valid` 와 `is_email_verified` 가 **둘 다 참**일 때만
+확인된 것으로 넘긴다(#1551). 카카오 문서의 정의로 `is_email_valid=false` 는 "이메일이
+다른 카카오계정에 사용돼 만료", `is_email_verified=false` 는 "인증되지 않은 이메일"이다.
+둘 중 하나라도 거짓이면 그 주소의 주인이 이 카카오 사용자라고 볼 수 없다.
+https://developers.kakao.com/docs/latest/ko/kakaologin/rest-api#req-user-info
 """
 from __future__ import annotations
 
@@ -17,6 +23,7 @@ import httpx
 from app.core.config import get_settings
 from app.services.social._response import (
     json_object,
+    optional_flag,
     optional_object,
     optional_str,
     required_id,
@@ -85,9 +92,15 @@ class KakaoVerifier(SocialVerifier):
 
         account = optional_object("kakao", data, "kakao_account")
         profile = optional_object("kakao", account, "profile")
+        email = optional_str("kakao", account, "email")
+        verified = (
+            optional_flag("kakao", account, "is_email_valid")
+            and optional_flag("kakao", account, "is_email_verified")
+        )
         return SocialIdentity(
             provider="kakao",
             provider_user_id=uid,
-            email=optional_str("kakao", account, "email"),
+            email=email,
             name=optional_str("kakao", profile, "nickname"),
+            email_verified=bool(email) and verified,
         )
