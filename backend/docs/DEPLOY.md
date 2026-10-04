@@ -276,11 +276,12 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `MAIL_FROM` | 발신 주소(`no-reply@<운영 도메인>` 또는 `OnCare <no-reply@…>`). 업체·도메인 인증은 #480 |
 | `SMTP_HOST`·`SMTP_PORT` | 업체 SMTP 엔드포인트(SES 는 `email-smtp.<리전>.amazonaws.com`)·`587` |
 | `SMTP_USERNAME`·`SMTP_PASSWORD` | SMTP 자격 증명. 비밀 JSON 에 넣는다(SES 는 IAM 에서 만든 SMTP 자격 증명, #480) |
+| `MAIL_SUPPORT_CONTACT` | 가입 안내·이메일 변경 안내 메일 끝의 문의처(#3038·#3039, **결정 필요**). 비우면 문의처 줄이 빠진다 |
 | `PASSWORD_RESET_MEMBER_URL` | 회원 앱 재설정 화면 — **해시형** `https://<운영 도메인>/frontend/#/auth/password-reset`. 서버가 `…#/auth/password-reset?token=…` 꼴로 토큰을 붙인다. 비우면 메일에 코드만 보낸다 |
 | `PASSWORD_RESET_TRAINER_URL` | 트레이너 웹 재설정 화면 — **해시형** `https://<운영 도메인>/trainer/#/auth/password-reset`. 해시 없는 경로형(`/auth/password-reset`)은 정적 경로를 가리켜 코드가 버려진다. 운영에서 경로형·`http://` 면 기동 로그에 WARN(#3033) |
 
 **스택 파라미터로 정하는 값**: `CORS_ALLOW_ORIGINS`(https 만, `*`·빈 값·localhost 금지 — 운영 기동 거부, #3029), `GEMINI_MODEL`(아래 5-3),
-`ADMIN_EMAILS`, 소셜 로그인 `aud`(`APPLE_CLIENT_IDS`·`GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` — 비우면 그 로그인은 401, #3035), 메일(`MAIL_FROM`·`SMTP_HOST`·`SMTP_PORT`·`PASSWORD_RESET_*_URL`).
+`ADMIN_EMAILS`(쓰지 않음 — 비워 둔다, 아래 "관리자 지정", #3037), 소셜 로그인 `aud`(`APPLE_CLIENT_IDS`·`GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` — 비우면 그 로그인은 401, #3035), 메일(`MAIL_FROM`·`SMTP_HOST`·`SMTP_PORT`·`PASSWORD_RESET_*_URL`).
 
 그 밖의 키(`LOGIN_MAX_FAILURES` 같은 시도 제한·`SENTRY_ENVIRONMENT`·DB 풀 등)는 코드 기본값이 운영 값이라
 템플릿에 넣지 않았다(사유는 `tests/test_env_aws_example.py`, #3034). 바꿔야 하면 템플릿에 키를 더하고
@@ -302,10 +303,27 @@ CREATE EXTENSION IF NOT EXISTS vector;
 |---|---|---|
 | `FORCE_HTTPS` | `true` | HTTP 요청이 HTTPS 로 넘어가지 않는다 |
 | `ALLOW_DEMO_FALLBACK` | `false` | `ENV=prod` 면 어차피 꺼지지만, 스테이징·시연 서버를 `ENV=dev` 로 띄우면 토큰 없는 요청이 데모 계정으로 처리된다 |
-| `ADMIN_EMAILS` | 운영 담당자 이메일(콤마 구분) | 관리자가 없어 공공 RAG 문서 적재·`/v1/system/metrics` 를 쓸 수 없다 |
+| `SIGNUP_EMAIL_VERIFICATION` | `true`(기본값 유지) | 운영은 끌 수 없다 — `false` 면 기동 거부(#3038). 가입 인증 코드는 아래 메일 발송 설정으로 나간다 |
+| `MAIL_SUPPORT_CONTACT` | 팀이 정한 문의 주소 | 가입 안내·이메일 변경 안내 메일 끝에 문의처 줄이 빠진다(#3038·#3039, **결정 필요**) |
 | `REPORT_PDF_STORAGE_DIR`·`CHAT_IMAGE_STORAGE_DIR` | 쓰지 않음 | 운영 첨부는 S3(`ATTACHMENT_STORAGE=s3`, 아래 5-1, #2817)다. 로컬 디스크로 두면 컨테이너 안 `data/` 에 쌓여 재배포·재시작 때 주간 리포트 PDF·채팅 사진이 사라진다 |
 | `SECURITY_HEADERS`·`RATE_LIMIT_ENABLED` | `true`(기본값 유지) | 끄면 보안 헤더·시도 제한이 빠진다 |
 | `LOG_LEVEL` | `INFO` | — |
+
+### 관리자 지정 (#3037)
+
+관리자는 환경 변수로 정하지 않는다. 예전 `ADMIN_EMAILS` 는 기동할 때 그 주소로 가입된 계정을
+올려, 운영자보다 **먼저 그 주소로 가입한 사람**이 관리자가 됐다. 이제 값이 남아 있으면 기동 로그에
+경고만 하고 아무도 올리지 않는다. 운영 DB 에 붙은 셸에서 다음 순서로 지정한다.
+
+```bash
+python -m scripts.grant_admin --email ops@example.com                       # 1) 조회만: id·가입일·역할·인증 시각
+python -m scripts.grant_admin --email ops@example.com --confirm-id user-…   # 2) 본인 계정 id 가 맞을 때만 지정
+python -m scripts.grant_admin --email ops@example.com --confirm-id user-… --revoke   # 해제
+```
+
+1) 에서 가입일·인증 시각이 운영자가 직접 만든 계정과 맞는지 먼저 본다. id 가 다르면 바꾸지 않고
+종료 코드 4, 없는 주소 2, 대소문자만 같은 계정이 여럿이면 3. 지정·해제는 감사 로그
+`admin.grant`·`admin.revoke` 에 남는다. 운영 셸 접근 경로는 #480 범위다.
 
 ## 워커 수와 이벤트 루프 (#2835)
 

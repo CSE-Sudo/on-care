@@ -4928,6 +4928,79 @@ class AppLocalizationsEn extends AppLocalizations {
   String get passwordResetBackToSignIn => 'Go to sign in';
 
   @override
+  String get signUpEmailCodeSend => 'Send code';
+
+  @override
+  String get signUpEmailCodeHint => 'Verification code';
+
+  @override
+  String get signUpEmailCodeResend => 'Resend';
+
+  @override
+  String signUpEmailCodeResendIn(int seconds) {
+    return 'Resend in ${seconds}s';
+  }
+
+  @override
+  String signUpEmailCodeRemaining(String time) {
+    return '6-digit code from the email · expires in $time';
+  }
+
+  @override
+  String get signUpEmailCodeExpired =>
+      'This code has expired. Request a new one.';
+
+  @override
+  String get signUpEmailCodeEmpty => 'Enter the 6-digit code';
+
+  @override
+  String get signUpEmailCodeInvalid =>
+      'This code is wrong or has expired. Request a new one.';
+
+  @override
+  String signUpEmailCodeDemoNote(String code) {
+    return 'Demo mode doesn\'t send email. Enter $code as the code.';
+  }
+
+  @override
+  String get signUpEmailCodeUnavailable =>
+      'We can\'t send verification emails right now. Please try again later.';
+
+  @override
+  String get reauthTitle => 'Confirm it\'s you';
+
+  @override
+  String get reauthEmailMessage =>
+      'Changing your email changes your sign-in ID and the address password reset emails go to.';
+
+  @override
+  String get reauthPasswordPrompt => 'Enter your current password to continue.';
+
+  @override
+  String get reauthPasswordRequired => 'Enter your current password';
+
+  @override
+  String get reauthSocialPrompt =>
+      'This account has no password. Sign in again with the social account you signed up with.';
+
+  @override
+  String get reauthSocialAction => 'Sign in again with a social account';
+
+  @override
+  String get reauthSocialConfirmed => 'Social account confirmed';
+
+  @override
+  String get reauthSocialRequired => 'Sign in again with your social account';
+
+  @override
+  String get reauthSocialInvalid =>
+      'We couldn\'t confirm your social account. Please sign in again.';
+
+  @override
+  String get reauthSocialUnavailable =>
+      'Social sign-in isn\'t available in this version yet. Please contact support.';
+
+  @override
   String get releaseUpdateTitle => 'A new version is available';
 
   @override

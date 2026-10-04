@@ -197,7 +197,12 @@ void main() {
       ).thenThrow(_httpError(409, path));
 
       await expectLater(
-        repo.register(email: 'e@x.com', password: 'pw', name: '김'),
+        repo.register(
+          email: 'e@x.com',
+          password: 'pw',
+          name: '김',
+          emailCode: '123456',
+        ),
         throwsA(
           isA<AuthException>().having(
             (e) => e.failure,
@@ -222,7 +227,12 @@ void main() {
       ).thenThrow(_httpError(422, path, body: body));
 
       await expectLater(
-        repo.register(email: 'e@x.com', password: 'pw', name: '김'),
+        repo.register(
+          email: 'e@x.com',
+          password: 'pw',
+          name: '김',
+          emailCode: '123456',
+        ),
         throwsA(
           isA<AuthException>().having((e) => e.failure, 'failure', failure),
         ),
@@ -307,7 +317,12 @@ void main() {
 
       // 409 로 끝나지만, 여기서 확인하려는 것은 나간 payload 다.
       await expectLater(
-        repo.register(email: 'e@x.com', password: 'pw', name: '김'),
+        repo.register(
+          email: 'e@x.com',
+          password: 'pw',
+          name: '김',
+          emailCode: '123456',
+        ),
         throwsA(isA<AuthException>()),
       );
 
@@ -322,6 +337,95 @@ void main() {
               as Map<String, Object?>;
       expect(data.containsKey('invite_code'), isFalse);
       expect(data['name'], '김');
+    });
+
+    // --- 이메일 인증 코드 (#3038) ----------------------------------------
+
+    test('sends the email code as a string in the register body', () async {
+      when(
+        () => dio.post<Map<String, Object?>>(
+          path,
+          data: any(named: 'data'),
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(_httpError(409, path));
+
+      await expectLater(
+        repo.register(
+          email: 'e@x.com',
+          password: 'pw',
+          name: '김',
+          emailCode: '012345',
+        ),
+        throwsA(isA<AuthException>()),
+      );
+
+      final data =
+          verify(
+                () => dio.post<Map<String, Object?>>(
+                  path,
+                  data: captureAny(named: 'data'),
+                  options: any(named: 'options'),
+                ),
+              ).captured.first
+              as Map<String, Object?>;
+      // 앞자리 0 을 잃지 않게 숫자가 아니라 문자열로 싣는다.
+      expect(data['email_code'], '012345');
+      expect(data['email'], 'e@x.com');
+    });
+
+    Future<void> expectCodeFailure(
+      int status,
+      Object? body,
+      AuthFailure failure,
+    ) async {
+      when(
+        () => dio.post<Map<String, Object?>>(
+          path,
+          data: any(named: 'data'),
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(_httpError(status, path, body: body));
+
+      await expectLater(
+        repo.register(
+          email: 'e@x.com',
+          password: 'pw',
+          name: '김',
+          emailCode: '999999',
+        ),
+        throwsA(
+          isA<AuthException>().having((e) => e.failure, 'failure', failure),
+        ),
+      );
+    }
+
+    test('maps 400 invalid_email_code to emailCodeInvalid', () {
+      return expectCodeFailure(400, <String, Object?>{
+        'detail': <String, Object?>{
+          'code': 'invalid_email_code',
+          'message': '인증 코드가 맞지 않거나 만료되었습니다. 코드를 다시 받아 주세요.',
+        },
+      }, AuthFailure.emailCodeInvalid);
+    });
+
+    test('maps 422 email_code_required to emailCodeRequired', () {
+      return expectCodeFailure(422, <String, Object?>{
+        'detail': <String, Object?>{
+          'code': 'email_code_required',
+          'message': '이메일 인증 코드를 입력해 주세요.',
+        },
+      }, AuthFailure.emailCodeRequired);
+    });
+
+    test('a 400 without the code stays an unknown failure', () {
+      return expectCodeFailure(400, <String, Object?>{
+        'detail': '잘못된 요청',
+      }, AuthFailure.unknown);
+    });
+
+    test('409 duplicate email still wins over the code', () {
+      return expectCodeFailure(409, null, AuthFailure.emailTaken);
     });
   });
 

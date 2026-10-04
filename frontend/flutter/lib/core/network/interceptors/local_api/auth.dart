@@ -25,6 +25,11 @@ extension _LocalApiAuth on LocalApiInterceptor {
       );
     }
     await _accounts.signIn(account == null ? null : username);
+    // 데모 회원으로 든 비밀번호를 남긴다 — 이메일 변경·탈퇴의 본인 확인이 이 값을
+    // 본다(#3039). 가입 계정은 가입한 비밀번호를 본다.
+    await _accounts.rememberDemoLogin(
+      password: account == null ? body['password'] as String? : null,
+    );
     await _resetDemoNotificationReads();
     return _ok(options, <String, Object?>{
       'access_token': 'demo-access-${DateTime.now().microsecondsSinceEpoch}',
@@ -101,6 +106,33 @@ extension _LocalApiAuth on LocalApiInterceptor {
         data: <String, Object?>{'detail': '이미 가입된 이메일입니다.'},
       );
     }
+    // 이메일 인증 코드(#3038) — 서버처럼 중복 확인 뒤에 본다. 데모는 메일을
+    // 보내지 않으므로 고정 코드 하나만 받는다.
+    final String code = (body['email_code'] as String? ?? '').trim();
+    if (code.isEmpty) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 422,
+        data: <String, Object?>{
+          'detail': <String, Object?>{
+            'code': 'email_code_required',
+            'message': '이메일 인증 코드를 입력해 주세요.',
+          },
+        },
+      );
+    }
+    if (code != SignupEmailCode.demoCode) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 400,
+        data: <String, Object?>{
+          'detail': <String, Object?>{
+            'code': 'invalid_email_code',
+            'message': '인증 코드가 맞지 않거나 만료되었습니다. 코드를 다시 받아 주세요.',
+          },
+        },
+      );
+    }
     // 서버 계정 id 와 같은 `user-<12자리 hex>` 모양이다.
     final String hex = DateTime.now().microsecondsSinceEpoch
         .toRadixString(16)
@@ -118,6 +150,47 @@ extension _LocalApiAuth on LocalApiInterceptor {
       requestOptions: options,
       statusCode: 201,
       data: <String, Object?>{'id': id, 'name': savedName, 'email': email},
+    );
+  }
+
+  /// POST /auth/register/email-code — 가입 인증 코드 요청(#3038).
+  ///
+  /// 서버처럼 이메일이 가입돼 있든 아니든 같은 202 다. 데모는 메일을 보내지 않고,
+  /// 가입은 [SignupEmailCode.demoCode] 를 받는다. 형식이 틀린 이메일·모르는
+  /// 용도는 서버와 같은 422 목록이다.
+  Future<Response<Object?>> _authRegisterEmailCode(
+    RequestOptions options,
+  ) async {
+    final body = _jsonBody(options);
+    final String email = (body['email'] as String? ?? '').trim();
+    final Object? purpose = body['purpose'];
+    final bool knownPurpose =
+        purpose == 'member_signup' || purpose == 'trainer_signup';
+    if (AppInputRules.email(email) != null || !knownPurpose) {
+      return Response<Object?>(
+        requestOptions: options,
+        statusCode: 422,
+        data: <String, Object?>{
+          'detail': <Object?>[
+            <String, Object?>{
+              'type': 'value_error',
+              'loc': <Object?>[
+                'body',
+                if (knownPurpose) 'email' else 'purpose',
+              ],
+              'msg': 'invalid',
+            },
+          ],
+        },
+      );
+    }
+    return Response<Object?>(
+      requestOptions: options,
+      statusCode: 202,
+      data: <String, Object?>{
+        'expires_in_minutes': 10,
+        'resend_after_seconds': 60,
+      },
     );
   }
 
@@ -168,6 +241,11 @@ extension _LocalApiAuth on LocalApiInterceptor {
     }
     // 데모의 소셜 로그인은 데모 회원으로 든다 — 가입 계정에서 바꿔 들어와도.
     await _accounts.signIn(null);
+    // 소셜로 든 데모 회원은 비밀번호 없는 계정처럼 본인 확인을 소셜 재로그인으로
+    // 한다(#3039). 어느 provider 로 들었는지 남겨 그 provider 만 받는다.
+    await _accounts.rememberDemoLogin(
+      socialProvider: options.path.split('/').last,
+    );
     await _resetDemoNotificationReads();
     return _ok(options, <String, Object?>{
       'access_token': 'demo-social-${DateTime.now().microsecondsSinceEpoch}',

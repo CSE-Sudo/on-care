@@ -104,9 +104,12 @@ def test_logout_after_account_deletion_does_not_fail(client):
         "/v1/auth/login", data={"username": email, "password": password}
     )
     tokens = login.json()
-    deleted = client.delete(
+    # 탈퇴는 현재 비밀번호로 본인을 확인한다(#3039).
+    deleted = client.request(
+        "DELETE",
         "/v1/users/me",
         headers={"Authorization": f"Bearer {tokens['access_token']}"},
+        json={"current_password": password},
     )
     assert deleted.status_code == 200, deleted.text
 

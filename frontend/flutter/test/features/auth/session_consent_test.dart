@@ -351,6 +351,7 @@ void main() {
           .register(
             email: 'new@example.com',
             password: 'pw-12345678',
+            emailCode: '123456',
             name: '김민수',
             consents: SignupConsent.toPayload(<String>{
               'age14',
@@ -363,6 +364,8 @@ void main() {
 
       final Map<String, Object?> body =
           server.last('/auth/register').data as Map<String, Object?>;
+      // 가입 이메일 인증 코드도 같은 본문에 실린다(#3038).
+      expect(body['email_code'], '123456');
       // 화면에 없는 마케팅(#3007) 같은 모르는 값은 싣지 않는다.
       expect(body['consents'], <String>['terms', 'privacy', 'health', 'age14']);
       expect(
@@ -381,7 +384,11 @@ void main() {
 
       await container
           .read(sessionControllerProvider.notifier)
-          .register(email: 'new@example.com', password: 'pw-12345678');
+          .register(
+            email: 'new@example.com',
+            password: 'pw-12345678',
+            emailCode: '123456',
+          );
 
       final Map<String, Object?> body =
           server.last('/auth/register').data as Map<String, Object?>;

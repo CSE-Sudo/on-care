@@ -400,7 +400,10 @@ def test_member_account_deletion_restores_slot_and_removes_schedule(
     schedule_id = schedule.id
     slot_id = slot.id
 
-    deleted = client.delete("/v1/users/me", headers=_headers(member_token))
+    deleted = client.request(
+        "DELETE", "/v1/users/me", json={"current_password": password},
+        headers=_headers(member_token),
+    )
 
     assert deleted.status_code == 200, deleted.text
     db_session.expire_all()

@@ -9,6 +9,7 @@ import 'package:oncare/features/account/presentation/first_run_route.dart';
 import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/auth/presentation/sign_in_failure.dart';
+import 'package:oncare/features/auth/presentation/social_provider_token.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -146,10 +147,16 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     setState(() => _loading = true);
     try {
       // #330: 실제 SDK 연동 시 provider 토큰 교환으로 바꾼다. 그 전에는 목업
-      // 설정만 이 길을 탄다(실 인증 설정은 버튼이 꺼져 있다).
+      // 설정만 이 길을 탄다(실 인증 설정은 버튼이 꺼져 있다). 본인 확인
+      // 창(#3039)도 같은 함수로 토큰을 받는다.
+      final String? token = await obtainSocialProviderToken(
+        ref.read(appConfigProvider),
+        provider,
+      );
+      if (token == null) throw StateError('소셜 로그인을 쓸 수 없는 설정입니다.');
       await ref
           .read(sessionControllerProvider.notifier)
-          .socialLogin(provider: provider, token: 'demo-$provider-token');
+          .socialLogin(provider: provider, token: token);
       final String next = await firstRouteAfterSignIn(container);
       if (next != AppRoutes.dashboard) router?.go(next);
     } catch (_) {

@@ -180,6 +180,25 @@ def _reset_rate_limiter():
     yield
 
 
+@pytest.fixture(autouse=True)
+def _signup_email_verification_off(monkeypatch):
+    """가입 이메일 인증(#3038)은 끈 채 돈다.
+
+    가입을 거치는 수많은 테스트가 인증 코드 단계와 무관한 것을 확인한다 — 켜 두면
+    테스트마다 코드 요청·메일 가로채기를 붙여야 한다. 환경변수가 아니라 앱이 쓰는 설정
+    객체만 바꾼다: 환경변수로 끄면 테스트가 직접 만드는 운영(prod) 설정이 "운영은 끌 수
+    없다" 가드에 걸린다. 설정 기본값은 켜짐이고, 인증 흐름은 `test_signup_email_code`
+    가 다시 켜서 확인한다.
+    """
+    try:
+        from app.core.config import get_settings
+    except Exception:  # noqa: BLE001
+        yield
+        return
+    monkeypatch.setattr(get_settings(), "signup_email_verification", False)
+    yield
+
+
 #: 테스트용 인식기 이름. 결과는 개발용 스텁과 같지만 이름이 `stub` 이 아니다.
 TEST_RECOGNIZER = "test-vision"
 

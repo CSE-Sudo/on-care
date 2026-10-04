@@ -44,6 +44,13 @@ CONSENT_REVOKE = "consent.revoke"
 ACCOUNT_WITHDRAW = "account.withdraw"
 #: 비밀번호 변경.
 PASSWORD_CHANGE = "auth.password_change"
+#: 로그인 이메일 변경(#3039). `detail` 에 이메일 본문은 남기지 않는다.
+EMAIL_CHANGE = "account.email_change"
+#: 탈퇴·이메일 변경 전 본인 확인 실패(#3039, `detail` 의 `via=`·`action=`).
+REAUTH_FAILED = "account.reauth_failed"
+#: 관리자 지정·해제(#3037). 운영자가 `scripts/grant_admin.py` 로만 한다.
+ADMIN_GRANT = "admin.grant"
+ADMIN_REVOKE = "admin.revoke"
 
 #: 민감정보(건강정보) 처리 기록 — [audit_sensitive_retention_days] 동안 보관한다.
 #: 나머지 이벤트(로그인 등 접속 기록)는 [audit_retention_days].

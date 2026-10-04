@@ -6,13 +6,18 @@ library;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare_trainer/features/auth/data/repositories/mock_trainer_auth_repository.dart';
+import 'package:oncare_trainer/features/auth/data/repositories/signup_email_code_repositories.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
 
 void main() {
   const MockTrainerAuthRepository repo = MockTrainerAuthRepository();
 
-  Future<void> register(String password) =>
-      repo.register(email: 'new@oncare.com', password: password, name: '김신규');
+  Future<void> register(String password) => repo.register(
+    email: 'new@oncare.com',
+    password: password,
+    name: '김신규',
+    emailCode: MockSignupEmailCodeRepository.demoCode,
+  );
 
   Matcher failsWith(AuthFailure failure) => throwsA(
     isA<AuthException>().having((e) => e.failure, 'failure', failure),
@@ -56,6 +61,7 @@ void main() {
         email: 'new@oncare.com',
         password: ok,
         name: '김신규',
+        emailCode: MockSignupEmailCodeRepository.demoCode,
       );
       expect(tokens.access, isNotEmpty);
     });

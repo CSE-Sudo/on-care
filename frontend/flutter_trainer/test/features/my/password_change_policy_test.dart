@@ -59,7 +59,10 @@ class _FakeAccountRepository implements TrainerAccountRepository {
   }
 
   @override
-  Future<void> deleteAccount({List<String> reasons = const <String>[]}) async {}
+  Future<void> deleteAccount({
+    required TrainerReauth reauth,
+    List<String> reasons = const <String>[],
+  }) async {}
 }
 
 Future<_FakeAccountRepository> _openDialog(
