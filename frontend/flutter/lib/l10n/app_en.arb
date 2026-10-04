@@ -56,6 +56,14 @@
   "misconfiguredBuildMockWithoutDemo": "It uses demo data without the demo build flag (USE_MOCK_API, DEMO_BUILD)",
   "misconfiguredBuildPlaceholderApiUrl": "The API address is an example or local address (API_BASE_URL)",
   "misconfiguredBuildInsecureApiUrl": "The API address does not start with https:// (API_BASE_URL)",
+  "misconfiguredBuildDemoEntry": "The demo entry is shown on the sign-in screen without the demo build flag (SHOW_DEMO_ENTRY, DEMO_BUILD)",
+  "@misconfiguredBuildDemoEntry": {
+    "description": "Startup guard item: a release build without DEMO_BUILD turned on the sign-in screen's demo entry button. Keep the define names in parentheses as-is."
+  },
+  "misconfiguredBuildRealApi": "The partial real-API switch is left on without the demo build flag (REAL_API, DEMO_BUILD)",
+  "@misconfiguredBuildRealApi": {
+    "description": "Startup guard item: a release build without DEMO_BUILD still has REAL_API, a demo-only switch that sends some mock-build requests to the real server. Keep the define names in parentheses as-is."
+  },
   "navDashboard": "Home",
   "navDiet": "Diet",
   "navExercise": "Exercise",

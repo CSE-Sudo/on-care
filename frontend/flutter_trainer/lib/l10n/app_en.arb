@@ -112,6 +112,10 @@
   "misconfiguredBuildMockWithoutDemo": "It uses demo data without the demo build flag (USE_MOCK_API, DEMO_BUILD)",
   "misconfiguredBuildPlaceholderApiUrl": "The API address is an example or local address (API_BASE_URL)",
   "misconfiguredBuildInsecureApiUrl": "The API address does not start with https:// (API_BASE_URL)",
+  "misconfiguredBuildDemoEntry": "The demo entry is shown on the sign-in screen without the demo build flag (SHOW_DEMO_ENTRY, DEMO_BUILD)",
+  "@misconfiguredBuildDemoEntry": {
+    "description": "Startup guard item: a release build without DEMO_BUILD turned on the sign-in screen's demo entry button. Keep the define names in parentheses as-is."
+  },
   "appWordmarkTrainer": "Trainer",
   "@appWordmarkTrainer": {
     "description": "Second word of the sidebar wordmark, rendered in the navy primary next to 'On-Care'."

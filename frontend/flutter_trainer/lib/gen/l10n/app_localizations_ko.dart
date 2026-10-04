@@ -176,6 +176,10 @@ class AppLocalizationsKo extends AppLocalizations {
       'API 주소가 https:// 로 시작하지 않아요 (API_BASE_URL)';
 
   @override
+  String get misconfiguredBuildDemoEntry =>
+      '데모 빌드 표시 없이 로그인 화면에 데모 진입이 켜져 있어요 (SHOW_DEMO_ENTRY, DEMO_BUILD)';
+
+  @override
   String get appWordmarkTrainer => '트레이너';
 
   @override
