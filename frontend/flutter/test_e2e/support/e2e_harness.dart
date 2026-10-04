@@ -964,9 +964,21 @@ Future<void> dismissLocationConsentSheet(WidgetTester tester) async {
     await tester.pump(const Duration(milliseconds: 100));
   }
   if (sheet.evaluate().isEmpty) return;
-  await tester.tap(
-    find.byKey(const ValueKey<String>('location-consent-decline')),
+  // 시트는 아래에서 올라온다. 다 올라오기 전에 누르면 버튼이 화면 밖이라 그
+  // 자리의 다른 위젯이 눌린다 — 버튼이 화면 안에 들어올 때까지 돌린다.
+  final Finder decline = find.byKey(
+    const ValueKey<String>('location-consent-decline'),
   );
+  final double screenHeight =
+      tester.view.physicalSize.height / tester.view.devicePixelRatio;
+  final DateTime settleBy = DateTime.now().add(const Duration(seconds: 5));
+  while (DateTime.now().isBefore(settleBy) &&
+      (decline.evaluate().isEmpty ||
+          tester.getRect(decline).bottom > screenHeight)) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  await tester.pump(const Duration(milliseconds: 400));
+  await tester.tap(decline);
   // 지도 화면은 settle 하지 않을 수 있어 시트가 닫히는 시간만큼만 돌린다.
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 500));
