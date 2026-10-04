@@ -124,7 +124,7 @@ def test_moving_a_booked_slot_notifies_the_member(unit) -> None:
     assert len(unit.queued) == 1
     row = unit.queued[0]
     assert row["member_id"] == "unit-member"
-    assert row["kind"] == notification_service.EXERCISE
+    assert row["kind"] == notification_service.PT_LINK_NOTICE
     assert row["category"] == notification_service.MEMBER_SCHEDULE
     assert _mentions(row, date, time)
     unit.db.commit.assert_called_once()
