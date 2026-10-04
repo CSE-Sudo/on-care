@@ -1185,6 +1185,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | PUT | `/trainer/clients/{member_id}/routines/{routine_id}` | `{ name?, minutes?, duration_seconds?, type?, reason? }` → `RoutineOut`(#504, #2547) |
 | DELETE | `/trainer/clients/{member_id}/routines/{routine_id}` | `{ status: "deleted" }` — 철회, 회원 앱에서도 사라진다 |
 | GET | `/trainer/clients/{member_id}/routines/unsent` | `RoutineOut[]` — PT 에 붙여 두고 아직 보내지 않은 개인운동(#2225) |
+| GET | `/trainer/clients/{member_id}/routine-days` | `?from=&to=` → 날짜별 개인운동 이행(#2508) — 날마다 그날 걸린 배정과 결과(done/late/missed/pending), 배정 묶음. from 을 비우면 처음 걸린 날부터, 최대 371일. 담당 해제 회원 404 |
 | GET | `/trainer/clients/{member_id}/deliveries/latest` | 가장 최근에 보낸 묶음 하나 또는 `null` (#2225) |
 | GET | `/trainer/clients/{member_id}/routine-suggestions` | `RoutineOut[]` — 검토를 기다리는 AI 개인운동 제안 |
 | POST | `/trainer/clients/{member_id}/routine-suggestions` | 후보 `{ name, minutes\|duration_seconds, type, …, evidence?, client_request_id? }` → **201** `RoutineOut`. 회원에게는 아직 안 보인다 |
