@@ -160,8 +160,8 @@
   "dashChurnRiskUnavailable": "확인할 수 없음 · 눌러서 다시 시도",
   "dashActivityFeedbackLoading": "최근 운동 기록을 확인하고 있어요.",
   "dashActivityFeedbackUnavailable": "최근 운동 기록을 불러오지 못해 활동 피드백을 확인할 수 없어요. 이탈 위험 카드를 눌러 다시 시도해 주세요.",
-  "dashActivityDifficultyTitle": "운동 목표 미달·배정 루틴 미수행",
-  "dashActivityDifficultyDesc": "{names} 회원이 이번 주 운동 목표에 못 미치거나 배정 루틴을 하지 않았어요. 다음 PT 전에 난이도를 낮추고 최근 피드백을 확인해 주세요.",
+  "dashActivityDifficultyTitle": "운동 목표 미달·개인운동 미수행",
+  "dashActivityDifficultyDesc": "{names} 회원이 이번 주 운동 목표에 못 미치거나 개인운동을 하지 않았어요. 다음 PT 전에 난이도를 낮추고 최근 피드백을 확인해 주세요.",
   "dashActivityInactiveTitle": "기록 끊김",
   "dashActivityInactiveDesc": "{names} 회원이 며칠째 식단·운동 기록이 없어요. 이탈로 이어지기 전에 먼저 연락해서 재참여를 유도해 보세요.",
   "dashActivityDietFeedbackTitle": "식단 피드백 미완료",
@@ -219,7 +219,7 @@
   "clientsSignalRecordGapLong": "30일 넘게 기록 없음",
   "clientsSignalNoShow": "노쇼·취소 반복",
   "clientsSignalNoShowCount": "노쇼·취소 {count}회",
-  "clientsSignalRoutineMissed": "배정 루틴 미수행",
+  "clientsSignalRoutineMissed": "개인운동 미수행",
   "clientsSignalExerciseGoalLow": "운동 목표 미달",
   "clientsSignalExerciseGoalLowPercent": "운동 목표 {percent}%",
   "clientsSignalCalorieOff": "칼로리 목표 이탈",
@@ -229,7 +229,7 @@
   "clientsSignalCalorieOverPercent": "칼로리 {percent}% 과다",
   "clientsSignalCalorieUnderPercent": "칼로리 {percent}% 부족",
   "clientsSignalProteinPercent": "단백질 목표의 {percent}%",
-  "clientsSignalRoutineMissedDays": "배정 루틴 {days}일 미수행",
+  "clientsSignalRoutineMissedDays": "개인운동 {days}일 미수행",
   "clientsSignalUnanswered": "답장 대기",
   "clientsAttentionClear": "주의 회원 보기 해제",
   "memberHealthLoadFailed": "회원 정보를 불러오지 못했어요. 다시 시도해 주세요",
@@ -391,7 +391,7 @@
   "chatRoutineDeliveredPt": "PT 프로그램과 개인운동을 보냈어요",
   "chatRoutineDeliveredPersonal": "개인운동을 보냈어요",
   "chatRoutineDeliveredAfterCancel": "취소된 PT 대신 개인운동을 보냈어요",
-  "chatRoutineDeliveredProgram": "운동 프로그램을 보냈어요",
+  "chatRoutineDeliveredProgram": "PT 프로그램을 보냈어요",
   "chatRoutineDeliveredMore": "{names} 외 {count}개",
   "chatInputHint": "메시지 입력...",
   "chatInsightDiscomfortTitle": "{part} 불편 표현 감지",
@@ -483,7 +483,7 @@
   "legendDone": "완료",
   "clientFeedback": "회원 피드백",
   "workoutKindPtSession": "PT · 트레이너 지도",
-  "workoutKindAssignedRoutine": "배정 루틴 수행",
+  "workoutKindAssignedRoutine": "개인운동 수행",
   "dietLoadFailed": "식단을 불러오지 못했어요",
   "dietEmpty": "아직 기록된 식단이 없어요",
   "dietDayEmpty": "기록 없음",
@@ -616,7 +616,7 @@
     }
   },
   "reportBodySessionsNone": "이 주에는 진행한 PT가 없었어요.",
-  "reportBodyExerciseCount": "배정된 개인 운동 {total}개 중 {done}개를 완료하셨어요.",
+  "reportBodyExerciseCount": "배정된 개인운동 {total}개 중 {done}개를 완료하셨어요.",
   "@reportBodyExerciseCount": {
     "placeholders": {
       "total": {
@@ -998,7 +998,7 @@
       }
     }
   },
-  "myClientRemoveBody": "연결을 해제하면 이 회원의 스케줄, 프로그램·루틴, 리포트, 메시지, 메모가 트레이너 화면에서 보이지 않아요. 회원 계정과 회원 앱의 기록은 그대로 남아요.",
+  "myClientRemoveBody": "연결을 해제하면 이 회원의 스케줄, 프로그램·개인운동, 리포트, 메시지, 메모가 트레이너 화면에서 보이지 않아요. 회원 계정과 회원 앱의 기록은 그대로 남아요.",
   "myClientRemoveSuccess": "회원과 연결을 해제했어요",
   "myClientRemoveFailed": "연결을 해제하지 못했어요. 잠시 후 다시 시도해 주세요",
   "myClientManagementEmpty": "담당 회원이 없어요",
@@ -1486,7 +1486,7 @@
   "myDeleteAction": "탈퇴",
   "myDeleteDemo": "데모 모드에는 지울 계정이 없어요",
   "myDeleteTitle": "계정을 탈퇴할까요?",
-  "myDeleteBody": "프로필과 회원과의 대화, 배정한 루틴, 일정과 예약 가능 시간이 지워지고, 담당 회원 연결과 예정된 예약이 종료되며 회원에게 알림이 전달돼요. 담당 회원의 사용 전 PT 재등록 쿠폰은 취소되고 포인트가 회원에게 돌아가요. 이 작업은 되돌릴 수 없어요.",
+  "myDeleteBody": "프로필과 회원과의 대화, 보낸 PT 프로그램·개인운동, 일정과 예약 가능 시간이 지워지고, 담당 회원 연결과 예정된 예약이 종료되며 회원에게 알림이 전달돼요. 담당 회원의 사용 전 PT 재등록 쿠폰은 취소되고 포인트가 회원에게 돌아가요. 이 작업은 되돌릴 수 없어요.",
   "myDeleteFailed": "탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요",
   "myDeleteReauthPrompt": "본인 확인을 위해 현재 비밀번호를 입력해 주세요",
   "myDeleteReauthWrongPassword": "현재 비밀번호가 일치하지 않아요",

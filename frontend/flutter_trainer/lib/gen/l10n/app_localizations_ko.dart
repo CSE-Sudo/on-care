@@ -417,11 +417,11 @@ class AppLocalizationsKo extends AppLocalizations {
       '최근 운동 기록을 불러오지 못해 활동 피드백을 확인할 수 없어요. 이탈 위험 카드를 눌러 다시 시도해 주세요.';
 
   @override
-  String get dashActivityDifficultyTitle => '운동 목표 미달·배정 루틴 미수행';
+  String get dashActivityDifficultyTitle => '운동 목표 미달·개인운동 미수행';
 
   @override
   String dashActivityDifficultyDesc(String names) {
-    return '$names 회원이 이번 주 운동 목표에 못 미치거나 배정 루틴을 하지 않았어요. 다음 PT 전에 난이도를 낮추고 최근 피드백을 확인해 주세요.';
+    return '$names 회원이 이번 주 운동 목표에 못 미치거나 개인운동을 하지 않았어요. 다음 PT 전에 난이도를 낮추고 최근 피드백을 확인해 주세요.';
   }
 
   @override
@@ -624,7 +624,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get clientsSignalRoutineMissed => '배정 루틴 미수행';
+  String get clientsSignalRoutineMissed => '개인운동 미수행';
 
   @override
   String get clientsSignalExerciseGoalLow => '운동 목표 미달';
@@ -663,7 +663,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String clientsSignalRoutineMissedDays(int days) {
-    return '배정 루틴 $days일 미수행';
+    return '개인운동 $days일 미수행';
   }
 
   @override
@@ -1012,7 +1012,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatRoutineDeliveredAfterCancel => '취소된 PT 대신 개인운동을 보냈어요';
 
   @override
-  String get chatRoutineDeliveredProgram => '운동 프로그램을 보냈어요';
+  String get chatRoutineDeliveredProgram => 'PT 프로그램을 보냈어요';
 
   @override
   String chatRoutineDeliveredMore(String names, int count) {
@@ -1228,7 +1228,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get workoutKindPtSession => 'PT · 트레이너 지도';
 
   @override
-  String get workoutKindAssignedRoutine => '배정 루틴 수행';
+  String get workoutKindAssignedRoutine => '개인운동 수행';
 
   @override
   String get dietLoadFailed => '식단을 불러오지 못했어요';
@@ -1505,7 +1505,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportBodyExerciseCount(int total, int done) {
-    return '배정된 개인 운동 $total개 중 $done개를 완료하셨어요.';
+    return '배정된 개인운동 $total개 중 $done개를 완료하셨어요.';
   }
 
   @override
@@ -2215,7 +2215,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myClientRemoveBody =>
-      '연결을 해제하면 이 회원의 스케줄, 프로그램·루틴, 리포트, 메시지, 메모가 트레이너 화면에서 보이지 않아요. 회원 계정과 회원 앱의 기록은 그대로 남아요.';
+      '연결을 해제하면 이 회원의 스케줄, 프로그램·개인운동, 리포트, 메시지, 메모가 트레이너 화면에서 보이지 않아요. 회원 계정과 회원 앱의 기록은 그대로 남아요.';
 
   @override
   String get myClientRemoveSuccess => '회원과 연결을 해제했어요';
@@ -3564,7 +3564,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myDeleteBody =>
-      '프로필과 회원과의 대화, 배정한 루틴, 일정과 예약 가능 시간이 지워지고, 담당 회원 연결과 예정된 예약이 종료되며 회원에게 알림이 전달돼요. 담당 회원의 사용 전 PT 재등록 쿠폰은 취소되고 포인트가 회원에게 돌아가요. 이 작업은 되돌릴 수 없어요.';
+      '프로필과 회원과의 대화, 보낸 PT 프로그램·개인운동, 일정과 예약 가능 시간이 지워지고, 담당 회원 연결과 예정된 예약이 종료되며 회원에게 알림이 전달돼요. 담당 회원의 사용 전 PT 재등록 쿠폰은 취소되고 포인트가 회원에게 돌아가요. 이 작업은 되돌릴 수 없어요.';
 
   @override
   String get myDeleteFailed => '탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요';

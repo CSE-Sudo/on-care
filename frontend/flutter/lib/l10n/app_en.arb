@@ -638,7 +638,7 @@
   },
   "exRecordDateFailed": "Couldn't change the date. Please try again shortly.",
   "exCompletedPtDayTitle": "Completed PT",
-  "exCompletedRoutineDayTitle": "Completed solo workout",
+  "exCompletedRoutineDayTitle": "Completed personal exercises",
   "exDeleteExercise": "Delete workout",
   "exDeleteExerciseBody": "Deleting this record cannot be undone.",
   "exDeleted": "Workout deleted",
@@ -1504,10 +1504,10 @@
   "myFieldGender": "Gender",
   "myFieldHeight": "Height (cm)",
   "myFieldWeight": "Weight (kg)",
-  "myNotifExercise": "Workout routines",
+  "myNotifExercise": "Exercises & programs",
   "myNotifTrainer": "Trainer message",
   "myNotifWeeklyReport": "Trainer weekly report",
-  "myNotifExerciseDesc": "When your trainer sends a workout routine or program",
+  "myNotifExerciseDesc": "When your trainer sends personal exercises or a PT program, or leaves a PT record or feedback",
   "myNotifTrainerDesc": "When your trainer sends you a chat message",
   "myNotifWeeklyReportDesc": "When your trainer sends your weekly report",
   "myNotifAlwaysSent": "PT session bookings, changes and cancellations, and trainer connect or disconnect notices are always sent",
@@ -1669,10 +1669,10 @@
   },
   "coachChatInputHint": "Message your trainer...",
   "coachChatRoutineReceived": "Your trainer sent a workout",
-  "coachChatRoutineReceivedPt": "You received a PT program and personal workout",
-  "coachChatRoutineReceivedPersonal": "You received a personal workout",
-  "coachChatRoutineReceivedAfterCancel": "You received a personal workout in place of the cancelled PT",
-  "coachChatRoutineReceivedProgram": "You received a workout program",
+  "coachChatRoutineReceivedPt": "You received a PT program and personal exercises",
+  "coachChatRoutineReceivedPersonal": "You received personal exercises",
+  "coachChatRoutineReceivedAfterCancel": "You received personal exercises in place of the cancelled PT",
+  "coachChatRoutineReceivedProgram": "You received a PT program",
   "coachChatRoutineReceivedMore": "{names} and {count} more",
   "@coachChatRoutineReceivedMore": {
     "description": "Routine delivery notice: first names, then how many more.",
@@ -2223,7 +2223,7 @@
   "@guidePointsTitle": {
     "description": "Spotlight guide step: the MY tab points card (#1857)."
   },
-  "guidePointsBody": "Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a recommended workout +{routine}P\nSpend them in MY › Use Points",
+  "guidePointsBody": "Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use Points",
   "@guidePointsBody": {
     "description": "Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).",
     "placeholders": {
@@ -2625,8 +2625,8 @@
       }
     }
   },
-  "coachRoutineTitle": "Recommended solo workouts",
-  "coachRoutineAiTitle": "AI recommended solo workouts",
+  "coachRoutineTitle": "Recommended personal exercises",
+  "coachRoutineAiTitle": "AI-recommended personal exercises",
   "coachRoutinePastEditHint": "You can add a missed check now. Your trainer will see it as checked later.",
   "@coachRoutinePastEditHint": {
     "description": "Shown after tapping the pencil on a past day's recommended exercises — past checks are allowed and marked as late for the trainer (#2506)."
@@ -2669,7 +2669,7 @@
   },
   "coachRoutineUndone": "Completion undone",
   "coachRoutineUndoFailed": "Could not undo the completion.",
-  "coachRoutineCancel": "Delete this workout",
+  "coachRoutineCancel": "Delete this personal exercise",
   "coachRoutineCancelConfirm": "Remove '{name}' from the list? Anything you already logged stays.",
   "@coachRoutineCancelConfirm": {
     "placeholders": {
@@ -2682,7 +2682,7 @@
   "@coachCardRoutineUndoTitle": {
     "description": "Title of the dialog confirming undoing a completed recommended workout."
   },
-  "coachCardRoutineCancelTitle": "Delete this workout?",
+  "coachCardRoutineCancelTitle": "Delete this personal exercise?",
   "@coachCardRoutineCancelTitle": {
     "description": "Title of the dialog confirming removal of a recommended workout."
   },
@@ -2690,8 +2690,8 @@
   "@coachRoutineKeep": {
     "description": "Left button of the cancel/undo confirmation dialogs for a recommended workout; closes the dialog and keeps it as is."
   },
-  "coachRoutineCancelled": "Workout deleted",
-  "coachRoutineCancelFailed": "Couldn't delete the workout",
+  "coachRoutineCancelled": "Personal exercise deleted",
+  "coachRoutineCancelFailed": "Couldn't delete the personal exercise",
   "@coachRoutineDone": {
     "description": "Marks a routine as completed."
   },
@@ -2744,7 +2744,7 @@
   "@alertCategoryCoachReport": {
     "description": "Notification category label for screen readers."
   },
-  "alertCategoryRoutine": "Workout routine",
+  "alertCategoryRoutine": "Exercises & programs",
   "@alertCategoryRoutine": {
     "description": "Notification category label for screen readers."
   },
@@ -2834,11 +2834,11 @@
       }
     }
   },
-  "demoAlertRoutineTitle": "A new workout routine arrived",
+  "demoAlertRoutineTitle": "New personal exercises",
   "@demoAlertRoutineTitle": {
     "description": "Title of a demo notification shown in tour mode."
   },
-  "demoAlertRoutineBody": "Trainer {trainerName} adjusted it to a walking routine for your knee.",
+  "demoAlertRoutineBody": "Trainer {trainerName} adjusted them to walking-focused exercises for your knee.",
   "@demoAlertRoutineBody": {
     "description": "Body of a demo notification shown in tour mode.",
     "placeholders": {
@@ -3091,7 +3091,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineTodayAllDone": "You finished {count, plural, =1{your recommended workout} other{all {count} recommended workouts}} today. Great job!",
+  "exerciseAdviceRoutineTodayAllDone": "You finished {count, plural, =1{your personal exercise} other{all {count} personal exercises}} today. Great job!",
   "@exerciseAdviceRoutineTodayAllDone": {
     "description": "Exercise tab AI advice sentence `routine_today_all_done` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3154,7 +3154,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineTodayLeft": "{count, plural, =1{1 recommended workout left} other{{count} recommended workouts left}}. Go down the list in order.",
+  "exerciseAdviceRoutineTodayLeft": "{count, plural, =1{1 personal exercise left} other{{count} personal exercises left}}. Go down the list in order.",
   "@exerciseAdviceRoutineTodayLeft": {
     "description": "Exercise tab AI advice sentence `routine_today_left` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3163,7 +3163,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineTodayStartOrder": "Start today's recommended workouts with {next} → {then}.",
+  "exerciseAdviceRoutineTodayStartOrder": "Start today's personal exercises with {next} → {then}.",
   "@exerciseAdviceRoutineTodayStartOrder": {
     "description": "Exercise tab AI advice sentence `routine_today_start_order` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3184,7 +3184,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineWeekNoneToday": "No recommended workouts this week yet. Start with {next} today?",
+  "exerciseAdviceRoutineWeekNoneToday": "You haven't done your personal exercises this week yet. Start with {next} today?",
   "@exerciseAdviceRoutineWeekNoneToday": {
     "description": "Exercise tab AI advice sentence `routine_week_none_today` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3193,7 +3193,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineWeekNoneNext": "No recommended workouts this week yet. Try {next} first.",
+  "exerciseAdviceRoutineWeekNoneNext": "You haven't done your personal exercises this week yet. Try {next} first.",
   "@exerciseAdviceRoutineWeekNoneNext": {
     "description": "Exercise tab AI advice sentence `routine_week_none_next` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3202,7 +3202,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineWeekNone": "No recommended workouts this week yet. Try one today.",
+  "exerciseAdviceRoutineWeekNone": "You haven't done your personal exercises this week yet. Try one today.",
   "@exerciseAdviceRoutineWeekNone": {
     "description": "Exercise tab AI advice sentence `routine_week_none` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
   },
@@ -3230,7 +3230,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineWeekSkew": "{share}% of this week's recommended workouts were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. {rest, select, next_week{Next week} other{For the rest of the week}}, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
+  "exerciseAdviceRoutineWeekSkew": "{share}% of this week's personal exercises were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. {rest, select, next_week{Next week} other{For the rest of the week}}, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
   "@exerciseAdviceRoutineWeekSkew": {
     "description": "Exercise tab AI advice sentence `routine_week_skew` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3248,7 +3248,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineWeekSkewShort": "{share}% of this week's recommended workouts were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
+  "exerciseAdviceRoutineWeekSkewShort": "{share}% of this week's personal exercises were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
   "@exerciseAdviceRoutineWeekSkewShort": {
     "description": "Exercise tab AI advice sentence `routine_week_skew_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3260,7 +3260,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineWeekPraise": "You kept up with this week's recommended workouts {how, select, even{across the board} other{steadily}}. Keep it going!",
+  "exerciseAdviceRoutineWeekPraise": "You kept up with this week's personal exercises {how, select, even{across the board} other{steadily}}. Keep it going!",
   "@exerciseAdviceRoutineWeekPraise": {
     "description": "Exercise tab AI advice sentence `routine_week_praise` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3269,7 +3269,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineWeekCountsToday": "You did {completed} of {assigned} recommended workouts this week. Continue with {next} today.",
+  "exerciseAdviceRoutineWeekCountsToday": "You did {completed} of {assigned} personal exercises this week. Continue with {next} today.",
   "@exerciseAdviceRoutineWeekCountsToday": {
     "description": "Exercise tab AI advice sentence `routine_week_counts_today` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3284,7 +3284,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineWeekCountsKeep": "You did {completed} of {assigned} recommended workouts this week. {rest, select, next_week{Keep it going next week.} other{Keep it going for the rest of the week.}}",
+  "exerciseAdviceRoutineWeekCountsKeep": "You did {completed} of {assigned} personal exercises this week. {rest, select, next_week{Keep it going next week.} other{Keep it going for the rest of the week.}}",
   "@exerciseAdviceRoutineWeekCountsKeep": {
     "description": "Exercise tab AI advice sentence `routine_week_counts_keep` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3299,7 +3299,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineWeekCounts": "You did {completed} of {assigned} recommended workouts this week.",
+  "exerciseAdviceRoutineWeekCounts": "You did {completed} of {assigned} personal exercises this week.",
   "@exerciseAdviceRoutineWeekCounts": {
     "description": "Exercise tab AI advice sentence `routine_week_counts` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3311,7 +3311,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineLastWeekNoneNext": "No recommended workouts last week. This week, start with {next}.",
+  "exerciseAdviceRoutineLastWeekNoneNext": "You didn't do your personal exercises last week. This week, start with {next}.",
   "@exerciseAdviceRoutineLastWeekNoneNext": {
     "description": "Exercise tab AI advice sentence `routine_last_week_none_next` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3320,7 +3320,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineLastWeekNone": "No recommended workouts last week. Take them one at a time this week.",
+  "exerciseAdviceRoutineLastWeekNone": "You didn't do your personal exercises last week. Take them one at a time this week.",
   "@exerciseAdviceRoutineLastWeekNone": {
     "description": "Exercise tab AI advice sentence `routine_last_week_none` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
   },
@@ -3345,7 +3345,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineLastWeekSkew": "{share}% of last week's recommended workouts were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. This week, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
+  "exerciseAdviceRoutineLastWeekSkew": "{share}% of last week's personal exercises were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. This week, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
   "@exerciseAdviceRoutineLastWeekSkew": {
     "description": "Exercise tab AI advice sentence `routine_last_week_skew` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3360,7 +3360,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineLastWeekSkewShort": "{share}% of last week's recommended workouts were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
+  "exerciseAdviceRoutineLastWeekSkewShort": "{share}% of last week's personal exercises were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
   "@exerciseAdviceRoutineLastWeekSkewShort": {
     "description": "Exercise tab AI advice sentence `routine_last_week_skew_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3372,7 +3372,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineLastWeekPraise": "You kept up with last week's recommended workouts {how, select, even{across the board} other{steadily}}. Keep it going this week!",
+  "exerciseAdviceRoutineLastWeekPraise": "You kept up with last week's personal exercises {how, select, even{across the board} other{steadily}}. Keep it going this week!",
   "@exerciseAdviceRoutineLastWeekPraise": {
     "description": "Exercise tab AI advice sentence `routine_last_week_praise` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3381,7 +3381,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineLastWeekCountsMore": "You did {completed} of {assigned} recommended workouts last week. Let's do more this week.",
+  "exerciseAdviceRoutineLastWeekCountsMore": "You did {completed} of {assigned} personal exercises last week. Let's do more this week.",
   "@exerciseAdviceRoutineLastWeekCountsMore": {
     "description": "Exercise tab AI advice sentence `routine_last_week_counts_more` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3393,7 +3393,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineLastWeekCounts": "You did {completed} of {assigned} recommended workouts last week.",
+  "exerciseAdviceRoutineLastWeekCounts": "You did {completed} of {assigned} personal exercises last week.",
   "@exerciseAdviceRoutineLastWeekCounts": {
     "description": "Exercise tab AI advice sentence `routine_last_week_counts` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3405,7 +3405,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineAllNew": "Day {days} with your recommended list. After a week, we'll point out what gets skipped.",
+  "exerciseAdviceRoutineAllNew": "Day {days} with your personal exercises. After a week, we'll point out what gets skipped.",
   "@exerciseAdviceRoutineAllNew": {
     "description": "Exercise tab AI advice sentence `routine_all_new` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3414,7 +3414,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineAllNoneNext": "Day {days} with your recommended list. Start with {next} today?",
+  "exerciseAdviceRoutineAllNoneNext": "Day {days} with your personal exercises. Start with {next} today?",
   "@exerciseAdviceRoutineAllNoneNext": {
     "description": "Exercise tab AI advice sentence `routine_all_none_next` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3426,7 +3426,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineAllNone": "Day {days} with your recommended list. Try one today.",
+  "exerciseAdviceRoutineAllNone": "Day {days} with your personal exercises. Try one today.",
   "@exerciseAdviceRoutineAllNone": {
     "description": "Exercise tab AI advice sentence `routine_all_none` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3469,7 +3469,7 @@
   "@exerciseAdviceRoutineAllDoneToday": {
     "description": "Exercise tab AI advice sentence `routine_all_done_today` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
   },
-  "exerciseAdviceRoutineAllMissedPart": "{part, select, lower{Lower-body} upper{Upper-body} core{Core} full{Full-body} other{Full-body}} recommended workouts get skipped often. Try doing them first?",
+  "exerciseAdviceRoutineAllMissedPart": "{part, select, lower{Lower-body} upper{Upper-body} core{Core} full{Full-body} other{Full-body}} personal exercises get skipped often. Try doing them first?",
   "@exerciseAdviceRoutineAllMissedPart": {
     "description": "Exercise tab AI advice sentence `routine_all_missed_part` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3529,11 +3529,11 @@
       }
     }
   },
-  "exerciseAdviceRoutineAllMissed": "Some recommended workouts get skipped often. Try reordering your list?",
+  "exerciseAdviceRoutineAllMissed": "Some personal exercises get skipped often. Try reordering your list?",
   "@exerciseAdviceRoutineAllMissed": {
     "description": "Exercise tab AI advice sentence `routine_all_missed` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
   },
-  "exerciseAdviceRoutineAllPraise": "{weeks, plural, =1{1 week} other{{weeks} weeks}} of steady recommended workouts. Keep it up!",
+  "exerciseAdviceRoutineAllPraise": "{weeks, plural, =1{1 week} other{{weeks} weeks}} of keeping up with your personal exercises. Keep it up!",
   "@exerciseAdviceRoutineAllPraise": {
     "description": "Exercise tab AI advice sentence `routine_all_praise` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3542,7 +3542,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineAllRate": "You've done {pct}% of your recommended workouts. Try not to skip a day.",
+  "exerciseAdviceRoutineAllRate": "You've done {pct}% of your personal exercises. Try not to skip a day.",
   "@exerciseAdviceRoutineAllRate": {
     "description": "Exercise tab AI advice sentence `routine_all_rate` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {

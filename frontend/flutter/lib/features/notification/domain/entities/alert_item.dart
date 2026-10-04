@@ -13,7 +13,7 @@ enum AlertCategory {
   /// 트레이너가 등록한 주간 리포트(`coach_report`, #2085).
   coachReport,
 
-  /// 새 운동 루틴(`routine`).
+  /// 새 개인운동·PT 프로그램(`routine`).
   routine,
 
   /// PT 일정 등록·변경·취소(`member_schedule`).

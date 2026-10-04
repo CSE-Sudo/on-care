@@ -136,18 +136,18 @@ void main() {
       );
       expect(
         routineKindLabel(_en, '배정 루틴 수행', kind: 'assigned_routine'),
-        'Assigned routine',
+        'Personal exercise',
       );
     });
 
-    test('한국어 이름은 예전과 같다', () {
+    test('한국어 이름은 화면 용어를 쓴다 — 배정 루틴은 개인운동 (#3107)', () {
       expect(
         routineKindLabel(_ko, 'PT 세션 · 트레이너 지도', kind: 'pt_session'),
         'PT · 트레이너 지도',
       );
       expect(
         routineKindLabel(_ko, '배정 루틴 수행', kind: 'assigned_routine'),
-        '배정 루틴 수행',
+        '개인운동 수행',
       );
       expect(routineKindLabel(_ko, 'AI 개인운동'), '개인운동');
     });
@@ -164,7 +164,7 @@ void main() {
         routineKindLabel(_en, '개인운동', kind: 'personal_routine'),
         'Personal exercise',
       );
-      expect(routineKindLabel(_en, '배정 루틴 수행'), 'Assigned routine');
+      expect(routineKindLabel(_en, '배정 루틴 수행'), 'Personal exercise');
     });
 
     test('트레이너가 지은 이름은 번역하지 않는다', () {

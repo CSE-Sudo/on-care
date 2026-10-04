@@ -242,8 +242,8 @@
   "dashChurnRiskUnavailable": "Unavailable · Tap to retry",
   "dashActivityFeedbackLoading": "Checking recent workouts.",
   "dashActivityFeedbackUnavailable": "Couldn't load recent workouts, so activity feedback is unavailable. Tap the churn risk card to retry.",
-  "dashActivityDifficultyTitle": "Behind exercise goal / routine skipped",
-  "dashActivityDifficultyDesc": "{names} are behind this week's exercise goal or skipped an assigned routine. Lower the difficulty before the next PT and check recent feedback.",
+  "dashActivityDifficultyTitle": "Behind exercise goal / missed personal exercises",
+  "dashActivityDifficultyDesc": "{names} are behind this week's exercise goal or skipped their personal exercises. Lower the difficulty before the next PT and check recent feedback.",
   "@dashActivityDifficultyDesc": {
     "placeholders": {
       "names": {
@@ -420,7 +420,7 @@
       }
     }
   },
-  "clientsSignalRoutineMissed": "Routine skipped",
+  "clientsSignalRoutineMissed": "Missed exercise",
   "clientsSignalExerciseGoalLow": "Low exercise",
   "clientsSignalExerciseGoalLowPercent": "Exercise {percent}%",
   "@clientsSignalExerciseGoalLowPercent": {
@@ -458,7 +458,7 @@
       }
     }
   },
-  "clientsSignalRoutineMissedDays": "Routine skipped {days}d",
+  "clientsSignalRoutineMissedDays": "Missed exercise {days}d",
   "@clientsSignalRoutineMissedDays": {
     "placeholders": {
       "days": {
@@ -644,7 +644,7 @@
   "chatRoutineDeliveredPt": "PT program and personal exercises sent",
   "chatRoutineDeliveredPersonal": "Personal exercises sent",
   "chatRoutineDeliveredAfterCancel": "Personal exercises sent in place of the cancelled PT",
-  "chatRoutineDeliveredProgram": "Workout program sent",
+  "chatRoutineDeliveredProgram": "PT program sent",
   "chatRoutineDeliveredMore": "{names} and {count} more",
   "@chatRoutineDeliveredMore": {
     "placeholders": {
@@ -796,7 +796,7 @@
   "@workoutKindPtSession": {
     "description": "Workout history kind for a completed PT session (server kind code pt_session)."
   },
-  "workoutKindAssignedRoutine": "Assigned routine",
+  "workoutKindAssignedRoutine": "Personal exercise",
   "@workoutKindAssignedRoutine": {
     "description": "Workout history kind for a completed assigned routine that has no name (server kind code assigned_routine)."
   },
@@ -1576,7 +1576,7 @@
       }
     }
   },
-  "myClientRemoveBody": "After you disconnect, this member's schedules, programs and routines, reports, messages, and notes won't show in the trainer app. Their account and member app records stay as they are.",
+  "myClientRemoveBody": "After you disconnect, this member's schedules, programs and personal exercises, reports, messages, and notes won't show in the trainer app. Their account and member app records stay as they are.",
   "myClientRemoveSuccess": "Disconnected from the member",
   "myClientRemoveFailed": "Couldn't disconnect. Please try again",
   "myClientManagementEmpty": "No members assigned",
@@ -1871,7 +1871,7 @@
   "coachUnsentRoutinesBody": "The PT has ended but this has not reached the member yet. Open that session in the schedule to send it.",
   "coachSendUnsentRoutines": "Open in schedule",
   "coachDeliveryProgramSection": "Program",
-  "coachDeliveryRoutineSection": "Personal workout",
+  "coachDeliveryRoutineSection": "Personal exercises",
   "coachDeliveryNothing": "Nothing sent",
   "coachHistoryFailed": "Couldn't load history",
   "coachHistoryEmpty": "You haven't sent any programs yet",
@@ -2415,7 +2415,7 @@
   "myDeleteAction": "Delete",
   "myDeleteDemo": "Demo mode has no account to delete",
   "myDeleteTitle": "Delete your account?",
-  "myDeleteBody": "Your profile, messages with members, assigned routines, schedule and open booking times are deleted, your member links and upcoming bookings end, and your members are notified. Their unused PT renewal coupons are cancelled and the points are returned to them. This can't be undone.",
+  "myDeleteBody": "Your profile, messages with members, the PT programs and personal exercises you sent, schedule and open booking times are deleted, your member links and upcoming bookings end, and your members are notified. Their unused PT renewal coupons are cancelled and the points are returned to them. This can't be undone.",
   "myDeleteFailed": "Couldn't delete your account. Please try again in a moment",
   "myDeleteReauthPrompt": "Enter your current password to confirm it's you",
   "myDeleteReauthWrongPassword": "Your current password is incorrect",
@@ -2734,7 +2734,7 @@
       }
     }
   },
-  "clientMemoTagPersonal": "Personal workout · {date}",
+  "clientMemoTagPersonal": "Personal exercise · {date}",
   "@clientMemoTagPersonal": {
     "placeholders": {
       "date": {
@@ -2742,7 +2742,7 @@
       }
     }
   },
-  "clientMemoTagPersonalNamed": "Personal workout · {date} {name}",
+  "clientMemoTagPersonalNamed": "Personal exercise · {date} {name}",
   "@clientMemoTagPersonalNamed": {
     "placeholders": {
       "date": {
@@ -2801,7 +2801,7 @@
       }
     }
   },
-  "clientMemoRecordPersonal": "{date} Personal workout",
+  "clientMemoRecordPersonal": "{date} Personal exercise",
   "@clientMemoRecordPersonal": {
     "placeholders": {
       "date": {
@@ -2809,7 +2809,7 @@
       }
     }
   },
-  "clientMemoRecordPersonalNamed": "{date} Personal workout · {name}",
+  "clientMemoRecordPersonalNamed": "{date} Personal exercise · {name}",
   "@clientMemoRecordPersonalNamed": {
     "placeholders": {
       "date": {
@@ -3608,7 +3608,7 @@
       }
     }
   },
-  "reportsGridPersonal": "Personal workouts",
+  "reportsGridPersonal": "Personal exercises",
   "reportsGridPersonalUnit": "Done / assigned",
   "reportsGridDoneOfAssigned": "{done} / {total}",
   "@reportsGridDoneOfAssigned": {

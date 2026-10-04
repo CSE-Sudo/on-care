@@ -250,7 +250,7 @@ void main() {
     );
     expect(tag.tone, AppTagTone.danger);
     expect(tag.icon, AppIcons.error);
-    expect(find.text('배정 루틴 3일 미수행'), findsOneWidget);
+    expect(find.text('개인운동 3일 미수행'), findsOneWidget);
 
     final AppTag feedback = tester.widget<AppTag>(
       find.byKey(const ValueKey<String>('churn-risk-no-feedback-c1')),

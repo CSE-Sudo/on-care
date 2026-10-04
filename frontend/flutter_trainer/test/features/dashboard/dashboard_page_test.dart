@@ -348,7 +348,7 @@ void main() {
 
     expect(find.text('활동 피드백'), findsOneWidget);
     // 세 항목 모두 PT 관리 신호 기준이다(#2244).
-    expect(find.text('운동 목표 미달·배정 루틴 미수행'), findsOneWidget);
+    expect(find.text('운동 목표 미달·개인운동 미수행'), findsOneWidget);
     expect(find.text('기록 끊김'), findsOneWidget);
     expect(find.text('식단 피드백 미완료'), findsOneWidget);
     expect(find.textContaining('난이도를 낮추고'), findsOneWidget);

@@ -52,7 +52,7 @@ void main() {
   // 목적지는 서버 갈래별 표와 다를 수 있다(서버를 맞추는 일은 #2690).
   test('예시 알림은 예전 데모와 같은 갈래와 목적지로 이어진다', () {
     final expected = <String, (AlertCategory, AlertTarget)>{
-      '새 운동 루틴이 도착했어요': (AlertCategory.routine, AlertTarget.exercise),
+      '새 개인운동이 왔어요': (AlertCategory.routine, AlertTarget.exercise),
       // 서버 시드와 같은 갈래다(#2084·#2085).
       '이번 주 리포트가 등록됐어요': (AlertCategory.coachReport, AlertTarget.coachChat),
       'PT 수업 완료': (AlertCategory.ptDone, AlertTarget.exercise),
@@ -160,8 +160,8 @@ void main() {
     final List<FixtureDay> days = fixture.daysFor(DateTime(2026, 9, 15, 19));
     final FixtureDay today = days.last;
 
-    test('루틴 알림은 픽스처에 있는 걷기 루틴을 말한다', () {
-      expect(byTitle('새 운동 루틴이 도착했어요').body, contains('걷기'));
+    test('루틴 알림은 픽스처에 있는 걷기 위주 개인운동을 말한다', () {
+      expect(byTitle('새 개인운동이 왔어요').body, contains('걷기'));
       expect(
         fixture.routines.any((FixtureRoutine r) => r.name.contains('걷기')),
         isTrue,
