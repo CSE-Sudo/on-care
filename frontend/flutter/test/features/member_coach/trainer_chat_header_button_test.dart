@@ -261,7 +261,6 @@ void main() {
 
       expect(en.coachTrainerRetrying, isNot(en.coachTrainerNone));
       expect(en.coachTrainerRetrying, isNot(en.coachTrainerLoading));
-      expect(en.coachTrainerLoadFailed, isNot(en.coachTrainerNone));
       expect(en.coachTrainerRetrying, isNot(matches(RegExp('[가-힣]'))));
     });
   });

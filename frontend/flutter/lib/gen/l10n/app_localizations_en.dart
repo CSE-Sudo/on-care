@@ -3590,9 +3590,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get coachAssignedTrainer => 'My trainer';
-
-  @override
   String get coachRoutineTitle => 'Recommended solo workouts';
 
   @override
@@ -3681,9 +3678,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get coachTrainerNone =>
       'You don\'t have a trainer yet. Connect a gym and trainer from the Exercise tab';
-
-  @override
-  String get coachTrainerLoadFailed => 'Couldn\'t load your trainer';
 
   @override
   String get coachTrainerRetrying =>

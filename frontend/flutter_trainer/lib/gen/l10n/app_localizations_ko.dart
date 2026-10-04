@@ -3980,29 +3980,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientFeedbackSearchEmpty => '찾는 피드백이 없어요.';
 
   @override
-  String get followUp => '후속 관리';
-
-  @override
-  String get followUpOverdue => '기한 지남';
-
-  @override
-  String get followUpComplete => '완료';
-
-  @override
-  String followUpCount(int count) {
-    return '$count건';
-  }
-
-  @override
-  String get followUpDashboardEmpty => '오늘 처리할 후속 관리가 없어요.';
-
-  @override
-  String get followUpLoadFailed => '후속 관리를 불러오지 못했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String get followUpCompleteFailed => '완료 처리하지 못했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
   String programEditorDefaultName(String goal) {
     return '$goal 프로그램';
   }
