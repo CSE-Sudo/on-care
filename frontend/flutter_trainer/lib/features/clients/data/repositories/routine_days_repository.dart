@@ -134,13 +134,18 @@ class MockRoutineDaysRepository implements RoutineDaysRepository {
   }) async {
     final DateTime today = _dayOf(nowKst());
     final DateTime end = to == null || to.isAfter(today) ? today : _dayOf(to);
-    final List<AssignedRoutine> assigned = await DemoRoutineStore(
-      _db,
-    ).assigned(memberId);
-    if (assigned.isEmpty) return RoutineDays.empty;
+    final DemoRoutineStore store = DemoRoutineStore(_db);
+    final List<AssignedRoutine> assigned = await store.assigned(memberId);
+    // 새 개인운동에 밀려 내려간 것도 지난 날의 이행으로 읽는다 — 실서버처럼
+    // 보낸 기간마다 링이 남는다.
+    final List<(AssignedRoutine, DateTime)> retired = await store.readRetired(
+      memberId,
+    );
+    if (assigned.isEmpty && retired.isEmpty) return RoutineDays.empty;
     final List<RoutineDayRoutine> routines = demoRoutineWindows(
       assigned,
       today,
+      retired: retired,
     );
     DateTime start = from == null
         ? routines
@@ -301,11 +306,19 @@ Future<Map<String, String>> demoTodayAssignedRoutines(
 /// (#2656).
 List<RoutineDayRoutine> demoRoutineWindows(
   List<AssignedRoutine> assigned,
-  DateTime today,
-) {
+  DateTime today, {
+  List<(AssignedRoutine, DateTime)> retired =
+      const <(AssignedRoutine, DateTime)>[],
+}) {
   final DateTime seedSince = today.subtract(const Duration(days: 27));
+  final List<(AssignedRoutine, DateTime?)> rows =
+      <(AssignedRoutine, DateTime?)>[
+        for (final AssignedRoutine r in assigned) (r, null),
+        for (final (AssignedRoutine r, DateTime end) in retired) (r, end),
+      ];
   return <RoutineDayRoutine>[
-    for (final (int i, AssignedRoutine r) in assigned.indexed)
+    for (final (int i, (AssignedRoutine r, DateTime? retiredOn))
+        in rows.indexed)
       () {
         final bool personal = r.deliveryKind != null;
         final DateTime? date = r.date == null ? null : _dayOf(r.date!);
@@ -319,7 +332,10 @@ List<RoutineDayRoutine> demoRoutineWindows(
           // 날로 갈리므로 목록 순서가 곧 배정 순서다.
           sortOrder: i,
           activeFrom: from,
-          endedOn: personal ? from.add(const Duration(days: 7)) : null,
+          // 내려간 개인운동은 다음 묶음이 걸린 날에 끝난다(7일보다 이르면).
+          endedOn: personal
+              ? _earlier(from.add(const Duration(days: 7)), retiredOn)
+              : retiredOn,
           sentOn: from.isAfter(today) ? today : from,
           personal: personal,
           minutes: r.minutes,
@@ -336,6 +352,9 @@ List<RoutineDayRoutine> demoRoutineWindows(
 }
 
 DateTime _dayOf(DateTime d) => DateTime(d.year, d.month, d.day);
+
+DateTime _earlier(DateTime a, DateTime? b) =>
+    b == null || !b.isBefore(a) ? a : _dayOf(b);
 
 /// 하루치 칸을 만드는 규칙.
 abstract class _DoneRule {

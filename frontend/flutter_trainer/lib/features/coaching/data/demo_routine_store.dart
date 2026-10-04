@@ -37,6 +37,7 @@ class DemoRoutineStore {
   static String _assignedKey(String memberId) => '${prefix}assigned/$memberId';
   static String _personalKey(String memberId) => '${prefix}personal/$memberId';
   static String _deliveryKey(String memberId) => '${prefix}delivery/$memberId';
+  static String _retiredKey(String memberId) => '${prefix}retired/$memberId';
   static String _sessionKey(String sessionId) => '${prefix}session/$sessionId';
 
   /// 이 저장소의 값을 모두 지운다 — 시드를 다시 심을 때 부른다.
@@ -170,6 +171,17 @@ class DemoRoutineStore {
       for (final AssignedRoutine r in before)
         if (!replacing.contains(r.id)) r,
     ]);
+    // 내린 개인운동은 목록에서는 빠져도 지난 날의 이행으로는 남는다 — 실서버가
+    // 지우지 않고 끝난 날(`ended_on`)을 두는 것과 같다(#2508). 서버처럼 보낸
+    // 그날 끝난다 — 아직 시작하지 않은 것은 시작일에 끝나 하루도 걸리지 않는다.
+    final List<AssignedRoutine> retired = <AssignedRoutine>[
+      for (final AssignedRoutine r in before)
+        if (replacing.contains(r.id)) r,
+    ];
+    if (retired.isNotEmpty) {
+      final DateTime now = nowKst();
+      await _retire(memberId, retired, DateTime(now.year, now.month, now.day));
+    }
     await writeDelivery(memberId, delivery);
     await postDeliveryCard(
       memberId,
@@ -224,6 +236,51 @@ class DemoRoutineStore {
         ),
       );
     });
+  }
+
+  // ---- 내린 개인운동 ----
+
+  /// 새 개인운동에 밀려 목록에서 내려간 개인운동과 그 끝난 날(그날은 걸리지
+  /// 않는다). 날짜별 이행만 읽는다 — 배정 목록에는 다시 서지 않는다.
+  Future<List<(AssignedRoutine, DateTime)>> readRetired(String memberId) async {
+    final Object? raw = await _read(_retiredKey(memberId));
+    return <(AssignedRoutine, DateTime)>[
+      if (raw is List)
+        for (final Object? row in raw)
+          if (row is Map<String, Object?>)
+            if (row['routine'] case final Map<String, Object?> routine)
+              if (DateTime.tryParse((row['ended_on'] as String?) ?? '')
+                  case final DateTime endedOn)
+                (assignedRoutineFromJson(routine), endedOn),
+    ];
+  }
+
+  Future<void> _retire(
+    String memberId,
+    List<AssignedRoutine> rows,
+    DateTime endedOn,
+  ) async {
+    final List<(AssignedRoutine, DateTime)> before = await readRetired(
+      memberId,
+    );
+    await _write(_retiredKey(memberId), <Object?>[
+      for (final (AssignedRoutine r, DateTime end)
+          in <(AssignedRoutine, DateTime)>[
+            ...before,
+            for (final AssignedRoutine r in rows)
+          (r, _laterOf(endedOn, r.date)),
+          ])
+        <String, Object?>{
+          'routine': assignedRoutineToStoreJson(r),
+          'ended_on': end.toIso8601String(),
+        },
+    ]);
+  }
+
+  static DateTime _laterOf(DateTime day, DateTime? start) {
+    if (start == null) return day;
+    final DateTime s = DateTime(start.year, start.month, start.day);
+    return s.isAfter(day) ? s : day;
   }
 
   /// 마지막으로 `개인운동만` 보낸 배정 id — 다음에 보낼 때 내린다(#2514).
