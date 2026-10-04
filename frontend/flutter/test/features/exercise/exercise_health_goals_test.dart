@@ -569,6 +569,62 @@ void main() {
     expect(find.text('실내 자전거 · 1시간 30분'), findsOneWidget);
   });
 
+  testWidgets('완료한 PT 의 버티기 종목은 횟수 대신 버틴 초로 읽힌다 (#3138)', (
+    WidgetTester tester,
+  ) async {
+    await pumpExercise(
+      tester,
+      profile: const UserProfile(
+        id: 'member',
+        name: '테스트',
+        email: 'member@example.com',
+      ),
+      coachRepository: _SessionMemberCoachRepository(
+        <CoachSession>[
+          CoachSession(
+            id: 'completed-pt-hold',
+            date: nowKst(),
+            time: '18:00',
+            type: '1:1 PT',
+            durationMinutes: 50,
+            status: '완료',
+            program: const <CoachProgramItem>[
+              // 서버는 버티는 종목의 `reps` 를 비우고 `hold_seconds` 에 초를
+              // 싣는다(#1969). 초를 읽지 않으면 `3세트` 만 남는다.
+              CoachProgramItem(
+                name: '플랭크',
+                sets: 3,
+                reps: 0,
+                weight: 0,
+                holdSeconds: 60,
+              ),
+              CoachProgramItem(name: '스쿼트', sets: 4, reps: 12, weight: 40),
+            ],
+          ),
+        ],
+        coach: const MemberCoach(
+          trainerId: 'trainer-1',
+          name: '김트레이너',
+          specialty: '근력 운동',
+          career: '5년',
+          intro: '',
+          gymName: '온케어짐',
+          goal: '근력 향상',
+        ),
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('completedPtSessionCard')),
+      400,
+    );
+
+    expect(find.text('플랭크 · 3세트 · 60초'), findsOneWidget);
+    expect(find.text('플랭크 · 3세트'), findsNothing);
+    // 횟수로 재는 종목은 지금처럼 횟수다.
+    expect(find.text('스쿼트 · 4세트 · 12회 · 40kg'), findsOneWidget);
+  });
+
   testWidgets('데모의 오늘 완료한 PT는 시드 PT 일정의 종목·세트·횟수·중량과 회차를 표시한다 (#2126, #2694)', (
     WidgetTester tester,
   ) async {

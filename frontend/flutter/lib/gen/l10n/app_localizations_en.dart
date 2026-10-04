@@ -924,6 +924,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String exHoldSecondsCount(int seconds) {
+    return '$seconds sec';
+  }
+
+  @override
   String get exEnterSets => 'Enter the number of sets';
 
   @override

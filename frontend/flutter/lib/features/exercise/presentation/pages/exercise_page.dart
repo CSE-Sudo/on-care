@@ -932,7 +932,7 @@ class _PtLogCard extends ConsumerWidget {
 /// PT 종목 한 줄의 값 — 유형(없으면 비움)·이름·운동량.
 typedef _LineData = ({ExerciseType? type, String name, String amount});
 
-/// PT 프로그램 한 줄의 운동량 — `4세트 · 12회 · 10kg`·`30분`.
+/// PT 프로그램 한 줄의 운동량 — `4세트 · 12회 · 10kg`·`3세트 · 60초`·`30분`.
 String _ptProgramAmount(AppLocalizations l, CoachProgramItem item) {
   // 서버 계약상 근력이 아닌 항목은 세트 대신 duration(분)을 갖는다. 이 값을
   // 버리면 러닝머신·스트레칭이 이름만 남아, 데모와 같은 회귀가 실 API에서도
@@ -947,14 +947,16 @@ String _ptProgramAmount(AppLocalizations l, CoachProgramItem item) {
     );
     return time;
   }
-  // 세트 → 횟수 → 중량. 입력 화면이 묻는 순서 그대로다 (#1310) — 트레이너가
-  // 적은 순서와 회원이 읽는 순서가 다르면 같은 한 줄이 두 앱에서 달라 보인다.
-  final String details = <String>[
-    if (item.sets > 0) l.exSetsCount(item.sets),
-    if (item.reps > 0) l.exRepsCount(item.reps),
-    if (item.weight > 0) exerciseWeightLabel(l, item.weight),
-  ].join(' · ');
-  return details;
+  // 세트 → 횟수(버티는 운동이면 초) → 중량. 입력 화면이 묻는 순서 그대로다
+  // (#1310, #3138) — 트레이너가 적은 순서와 회원이 읽는 순서가 다르면 같은 한
+  // 줄이 두 앱에서 달라 보인다.
+  return strengthAmountParts(
+    l,
+    sets: item.sets,
+    reps: item.reps,
+    holdSeconds: item.holdSeconds,
+    weight: item.weight,
+  ).join(' · ');
 }
 
 /// "오늘 완료한 PT" 카드 — 데모와 실서버가 같은 모양이다. (#2666)
