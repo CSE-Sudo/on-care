@@ -89,6 +89,14 @@ class Settings(BaseSettings):
     # 비어 있으면 Apple 로그인은 검증 불가로 **거부**된다(조용히 통과시키면 다른 앱용
     # Apple 토큰으로도 로그인이 뚫린다).
     apple_client_ids: str = ""
+    # Google 로그인에서 허용할 id_token `aud`(OAuth client_id) 목록, 콤마 구분 (#3035).
+    # iOS·Android·Web client_id 가 서로 다르므로 복수를 허용한다. 비어 있으면 Google
+    # 로그인은 **거부**된다 — aud 를 보지 않으면 다른 앱이 받은 구글 토큰으로도 로그인된다.
+    google_client_ids: str = ""
+    # 카카오 로그인에서 허용할 앱 ID(카카오 개발자 콘솔 > 앱 설정의 숫자 "앱 ID") (#3035).
+    # access_token 의 발급 앱(`/v1/user/access_token_info` 의 app_id)과 같아야 한다.
+    # 장소 검색용 KAKAO_REST_API_KEY 와 다른 값이다. 비어 있으면 카카오 로그인은 거부된다.
+    kakao_app_id: str = ""
 
     # --- 장소(O2O) ---
     # 카카오 Local REST 키. 있으면 실검색, 없으면 시드 폴백(recognizer 팩토리와 같은 철학).
@@ -315,8 +323,8 @@ class Settings(BaseSettings):
     # --- 클라이언트 IP (#2815) ---
     # rate limit 키·감사 로그 IP 를 정할 때 믿는 앞단 프록시 수. `X-Forwarded-For` 를
     # 오른쪽에서 이 번째 값으로 읽는다(`app/core/client_ip.py`). 0 이면 헤더를 보지 않고
-    # 소켓 주소를 쓴다. 비워 두면 운영(prod)은 1, 그 밖은 0 — 운영 배포(App Runner·
-    # Railway·EC2+Nginx)는 모두 프록시 하나 뒤다. 프록시가 늘면 그 수로 맞춘다.
+    # 소켓 주소를 쓴다. 비워 두면 운영(prod)은 1, 그 밖은 0 — 운영 배포(ECS Express Mode
+    # 의 ALB·Railway·EC2+Nginx)는 모두 프록시 하나 뒤다. 프록시가 늘면 그 수로 맞춘다.
     trusted_proxy_hops: Optional[int] = Field(default=None, ge=0, le=5)
 
     @property
@@ -338,6 +346,21 @@ class Settings(BaseSettings):
         if self.expose_api_docs is not None:
             return self.expose_api_docs
         return not self.is_prod
+
+    @property
+    def apple_client_id_list(self) -> list[str]:
+        """허용 Apple `aud` 목록(공백·빈 항목 제거)."""
+        return _comma_list(self.apple_client_ids)
+
+    @property
+    def google_client_id_list(self) -> list[str]:
+        """허용 Google `aud` 목록(공백·빈 항목 제거)."""
+        return _comma_list(self.google_client_ids)
+
+    @property
+    def kakao_app_id_value(self) -> str:
+        """허용 카카오 앱 ID(앞뒤 공백 제거, 미설정이면 빈 문자열)."""
+        return (self.kakao_app_id or "").strip()
 
     @property
     def admin_email_set(self) -> set[str]:
@@ -519,6 +542,16 @@ class Settings(BaseSettings):
     def missing_ai_config(self) -> list[str]:
         """운영 기동을 막는 AI 설정 문제 목록. 비어 있으면 통과."""
         return [p for p in (self.recognizer_problem(), self.embedder_problem()) if p]
+
+
+def _comma_list(raw: str | None) -> list[str]:
+    """콤마 구분 문자열 → 공백을 걷어 낸 비지 않은 항목 목록(순서 유지·중복 제거)."""
+    items: list[str] = []
+    for part in (raw or "").split(","):
+        value = part.strip()
+        if value and value not in items:
+            items.append(value)
+    return items
 
 
 @lru_cache

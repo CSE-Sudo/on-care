@@ -167,6 +167,19 @@ PR gate 가 PR 의 새 커밋을 gitleaks 로 검사합니다([`.gitleaks.toml`]
 저장소 설정의 Secret scanning·Push protection(Settings → Code security)도 켜 두면 푸시
 단계에서 한 번 더 막습니다. 저장소 관리자가 확인합니다.
 
+## 6.4 운영 배포 승인 (#3019)
+
+운영 배포(백엔드 `Backend Deploy`, 프런트 `Deploy Frontend to AWS`)는 GitHub Environment `production` 에서
+돕니다. 배포 브랜치는 `main` 만이고, Environment 에 승인자가 지정돼 있으면 **병합 뒤 배포가 승인을 기다립니다.**
+
+- 승인자는 Actions 실행 화면의 "Review deployments" 에서 커밋·변경 내용을 보고 승인합니다. 배포 기록은
+  저장소 Environments 화면에 남아 "지금 운영에 무엇이 떠 있는지"를 거기서 봅니다.
+- 백엔드는 staging 이 켜져 있으면 staging 을 먼저 배포·검증하고, 통과해야 운영 승인 단계로 갑니다.
+- 배포 뒤 검증(healthz·readyz)이 실패하면 백엔드는 직전 이미지로, 프런트는 직전 릴리스 경로로 스스로
+  되돌립니다. 워크플로는 실패로 남으니 원인을 고친 PR 을 다시 병합합니다.
+- 스키마를 바꾸는 PR 은 **직전 이미지와도 함께 돌 수 있게** 나눕니다(칸 삭제·이름 변경은 두 번에 나눠 병합) —
+  되돌리기는 이미지만 되돌리고 마이그레이션은 되돌리지 않습니다([`backend/docs/DEPLOY.md`](../backend/docs/DEPLOY.md) 2절).
+
 ---
 
 ## 7. 이슈 사용
