@@ -721,6 +721,12 @@ class DriftScheduleRepository implements ScheduleRepository {
         note: note == null ? const Value.absent() : Value(note),
       ),
     );
+    if (current != null &&
+        current.status == ScheduleStatus.done &&
+        note != null &&
+        note != current.note) {
+      await _syncCompletionHistory(id, note: note);
+    }
     if (current != null) {
       await _moveDemoConsultationLink(
         current,
@@ -760,11 +766,9 @@ class DriftScheduleRepository implements ScheduleRepository {
     await writeDemoScheduleConsultations(_db);
   }
 
-  /// 완료 세션을 [date](미래)의 예정으로 되돌린다(#1396). 데모 DB에는 완료가
-  /// 남긴 파생 기록이 세션 id로 되짚어지지 않는 키를 쓰므로(`hist-$id-시각`),
-  /// `deleteSession` 과 같은 한계로 그 이력까지 지우지는 않는다 — 로컬
-  /// 데모에서만 남는 흔적이라 실 서버(`DioScheduleRepository`)와 달리 여기는
-  /// 상태·날짜만 되돌린다.
+  /// 완료 세션을 [date](미래)의 예정으로 되돌린다(#1396). 완료가 남긴 이력
+  /// (`hist-$id-시각`)도 서버처럼 함께 지운다(#3093) — 남겨 두면 되돌린 PT 가
+  /// 고객 운동 기록에 "이미 한 운동" 으로 남는다.
   ///
   /// 옮길 자리가 다른 일정과 겹치는지는 **아무것도 바꾸기 전에** 본다(#2757) —
   /// 겹치면 [ScheduleOverlapError] 이고 세션은 완료 그대로다. 회원 예약 일정은
@@ -810,7 +814,72 @@ class DriftScheduleRepository implements ScheduleRepository {
           status: const Value(ScheduleStatus.upcoming),
         ),
       );
+      await _deleteCompletionHistory(id);
     });
+  }
+
+  /// 완료가 남긴 이 세션의 이력 행 id(`hist-$id-<마이크로초>`, [completeSession]).
+  ///
+  /// 서버의 `sched-hist-{id}` 자리다. 키에 시각이 붙어 접두어로 찾고, 다른
+  /// 세션 id 가 이 id 로 시작하는 경우에 걸리지 않게 꼬리가 숫자뿐인 것만
+  /// 고른다. 시드 이력은 세션과 이어져 있지 않아 걸리지 않는다.
+  Future<List<String>> _completionHistoryIds(String id) async {
+    final String prefix = 'hist-$id-';
+    final rows = await (_db.select(
+      _db.clientRoutineHistory,
+    )..where((t) => t.id.like('$prefix%'))).get();
+    final RegExp digits = RegExp(r'^\d+$');
+    return <String>[
+      for (final row in rows)
+        if (row.id.startsWith(prefix) &&
+            digits.hasMatch(row.id.substring(prefix.length)))
+          row.id,
+    ];
+  }
+
+  /// 완료한 세션의 프로그램·메모를 고치면 완료가 남긴 이력도 같은 값으로
+  /// 고친다(#3093) — 서버가 같은 저장에서 트레이너 이력을 다시 쓴다. null 은
+  /// '그대로' 다.
+  Future<void> _syncCompletionHistory(
+    String id, {
+    String? programJson,
+    String? note,
+  }) async {
+    if (programJson == null && note == null) return;
+    final List<String> ids = await _completionHistoryIds(id);
+    if (ids.isEmpty) return;
+    await (_db.update(
+      _db.clientRoutineHistory,
+    )..where((t) => t.id.isIn(ids))).write(
+      ClientRoutineHistoryCompanion(
+        exercisesJson: programJson == null
+            ? const Value.absent()
+            : Value(_historyExercisesJson(programJson)),
+        trainerNote: note == null ? const Value.absent() : Value(note),
+      ),
+    );
+  }
+
+  /// 완료가 남긴 이력을 지운다 — 세션 삭제·되돌리기(#3093).
+  Future<void> _deleteCompletionHistory(String id) async {
+    final List<String> ids = await _completionHistoryIds(id);
+    if (ids.isEmpty) return;
+    await (_db.delete(
+      _db.clientRoutineHistory,
+    )..where((t) => t.id.isIn(ids))).go();
+  }
+
+  /// 일정 프로그램을 이력의 운동 목록으로 옮긴다. 완료와 완료 뒤 수정이 같은
+  /// 값을 쓰도록 한 곳에 둔다(#3093). 문장이 아니라 값으로 남긴다 — 단위는
+  /// 화면이 로케일에 맞춰 붙인다(#2300). 읽는 규칙은 서버
+  /// `_program_item_label` 과 같다.
+  static String _historyExercisesJson(String programJson) {
+    final program = (jsonDecode(programJson) as List<Object?>)
+        .map((e) => programItemFromJson(e! as Map<String, Object?>))
+        .toList();
+    return jsonEncode(<Map<String, Object?>>[
+      for (final m in program) programHistoryItem(m).toJson(),
+    ]);
   }
 
   /// Replaces the exercise program and trainer memo without changing the
@@ -837,14 +906,22 @@ class DriftScheduleRepository implements ScheduleRepository {
         message: demoSentProgramEditRejected,
       );
     }
+    final String programJson = jsonEncode(programToJson(program));
     await (_db.update(
       _db.trainerScheduleEntries,
     )..where((t) => t.id.equals(id))).write(
       TrainerScheduleEntriesCompanion(
-        programJson: Value(jsonEncode(programToJson(program))),
+        programJson: Value(programJson),
         note: Value(note),
       ),
     );
+    if (current != null && current.status == ScheduleStatus.done) {
+      await _syncCompletionHistory(
+        id,
+        programJson: programJson == current.programJson ? null : programJson,
+        note: note == current.note ? null : note,
+      );
+    }
   }
 
   /// 데모에는 루틴을 받을 회원 백엔드가 없어 배정은 쓰지 않는다
@@ -1026,6 +1103,10 @@ class DriftScheduleRepository implements ScheduleRepository {
     await (_db.delete(
       _db.trainerScheduleEntries,
     )..where((t) => t.id.equals(id))).go();
+    // 완료 세션이면 완료가 남긴 이력도 지운다 — 서버와 같다(#3093).
+    if (row != null && row.status == ScheduleStatus.done) {
+      await _deleteCompletionHistory(id);
+    }
     // 서버는 예정·취소인 상담 일정을 지울 때만 신청을 철회한다(#2758). 상담함은
     // 연결된 일정이 없어진 신청을 철회로 읽으므로, 이미 치른(완료·노쇼) 상담을
     // 지울 때는 연결을 먼저 떼어 신청을 수락된 채로 둔다.
@@ -1242,9 +1323,6 @@ class DriftScheduleRepository implements ScheduleRepository {
 
       // 상담 등 미등록 고객은 기록 없이 완료만 처리한다.
       if (client == null) return;
-      final program = (jsonDecode(session.programJson) as List<Object?>)
-          .map((e) => programItemFromJson(e! as Map<String, Object?>))
-          .toList();
       // Label with the SESSION's calendar day — completing a session
       // browsed on another date must not claim '오늘'.
       final day = DateTime.tryParse(session.date) ?? now;
@@ -1268,11 +1346,7 @@ class DriftScheduleRepository implements ScheduleRepository {
               // 되짚어 화면 언어로 그린다(`routineKindLabel`).
               label: 'PT 세션 · 트레이너 지도',
               completionRate: 100,
-              // 문장이 아니라 값으로 남긴다 — 단위는 화면이 로케일에 맞춰
-              // 붙인다(#2300). 읽는 규칙은 서버 `_program_item_label` 과 같다.
-              exercisesJson: jsonEncode(<Map<String, Object?>>[
-                for (final m in program) programHistoryItem(m).toJson(),
-              ]),
+              exercisesJson: _historyExercisesJson(session.programJson),
               trainerNote: Value(note),
               // Seed rows use ascending sortOrder from 0; a negative,
               // decreasing key keeps runtime completions newest-first.

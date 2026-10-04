@@ -445,6 +445,71 @@ void main() {
       expect(after.length, before.length - 1);
       expect(after.where((s) => s.clientName == '윤가온'), isEmpty);
     });
+
+    // ---- #3093 완료 뒤 수정·삭제·되돌리기가 완료 이력을 따라간다 ----
+
+    Future<String> completeParkSession(DriftScheduleRepository repo) async {
+      final target = (await repo.watchToday().first).firstWhere(
+        (s) => s.clientName == '박성호',
+      );
+      await repo.completeSession(target.id, note: '완료 때 메모');
+      return target.id;
+    }
+
+    Future<List<ClientRoutineHistoryRow>> historyOf(String id) async =>
+        (await db.select(db.clientRoutineHistory).get())
+            .where((h) => h.id.startsWith('hist-$id-'))
+            .toList();
+
+    test('완료 뒤 프로그램을 고치면 완료 이력의 운동도 바뀐다', () async {
+      final repo = DriftScheduleRepository(db);
+      final id = await completeParkSession(repo);
+
+      await repo.updateProgram(
+        id,
+        program: const <ProgramItem>[
+          ProgramItem(name: '스쿼트', sets: 5, weight: 80),
+        ],
+        note: '완료 때 메모',
+      );
+
+      final logged = (await historyOf(id)).single;
+      expect(logged.exercisesJson, contains('스쿼트'));
+      expect(logged.exercisesJson, isNot(contains('벤치프레스')));
+      expect(logged.trainerNote, '완료 때 메모');
+    });
+
+    test('완료 뒤 메모만 고쳐도 완료 이력의 메모가 바뀐다', () async {
+      final repo = DriftScheduleRepository(db);
+      final id = await completeParkSession(repo);
+      final before = (await historyOf(id)).single;
+
+      await repo.updateSession(id, note: '끝난 뒤 남긴 메모');
+
+      final logged = (await historyOf(id)).single;
+      expect(logged.trainerNote, '끝난 뒤 남긴 메모');
+      expect(logged.exercisesJson, before.exercisesJson);
+    });
+
+    test('완료 세션을 지우면 완료 이력도 지워진다', () async {
+      final repo = DriftScheduleRepository(db);
+      final id = await completeParkSession(repo);
+      expect(await historyOf(id), hasLength(1));
+
+      await repo.deleteSession(id);
+
+      expect(await historyOf(id), isEmpty);
+    });
+
+    test('완료 세션을 예정으로 되돌리면 완료 이력도 지워진다', () async {
+      final repo = DriftScheduleRepository(db);
+      final id = await completeParkSession(repo);
+      final DateTime future = nowKst().add(const Duration(days: 40));
+
+      await repo.reopenSession(id, date: ymd(future), time: '06:00');
+
+      expect(await historyOf(id), isEmpty);
+    });
   });
 
   group('SchedulePage', () {
