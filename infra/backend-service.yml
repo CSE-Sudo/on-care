@@ -71,7 +71,9 @@ Parameters:
     Default: 'false'
     AllowedValues: ['true', 'false']
     Description: Staging only. Production ignores it (ENV=prod always disables the fallback)
-  # 비밀번호 재설정 메일(#2824). MailFrom 을 비우면 메일 발송이 꺼진다(재설정 요청은 503).
+  # 가입 인증 코드·비밀번호 재설정 메일(#2824). production 은 필수다(#3131) — 가입 이메일 확인을
+  # 끌 수 없어 메일이 없으면 신규 가입이 모두 막히므로, MailFrom·SmtpHost 가 비면 서버가 기동을
+  # 거부한다. staging 은 비우면 메일 키를 넣지 않고 코드를 로그로만 남긴다.
   # 채우면 SMTP 계정은 비밀의 SMTP_USERNAME·SMTP_PASSWORD 키에서 읽는다(SES SMTP 포함).
   MailFrom:
     Type: String
