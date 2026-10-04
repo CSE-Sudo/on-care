@@ -52,9 +52,6 @@ Parameters:
     Type: String
     AllowedPattern: '^[a-z0-9][a-z0-9.-]*$'
     Description: Pinned Gemini model name (DEPLOY.md 5-3)
-  AdminEmails:
-    Type: String
-    Default: ''
   AppleClientIds:
     Type: String
     Default: ''
@@ -110,7 +107,6 @@ Mappings:
 
 Conditions:
   IsStaging: !Equals [!Ref EnvironmentName, staging]
-  HasAdminEmails: !Not [!Equals [!Ref AdminEmails, '']]
   HasAppleClientIds: !Not [!Equals [!Ref AppleClientIds, '']]
   HasGoogleClientIds: !Not [!Equals [!Ref GoogleClientIds, '']]
   HasKakaoAppId: !Not [!Equals [!Ref KakaoAppId, '']]
@@ -229,11 +225,6 @@ Resources:
             Value: '365'
           - Name: AUDIT_SENSITIVE_RETENTION_DAYS
             Value: '730'
-          - !If
-            - HasAdminEmails
-            - Name: ADMIN_EMAILS
-              Value: !Ref AdminEmails
-            - !Ref AWS::NoValue
           - !If
             - HasAppleClientIds
             - Name: APPLE_CLIENT_IDS
