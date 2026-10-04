@@ -742,6 +742,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exNearbyGymsMapLabel => 'Gyms near me';
 
   @override
+  String get exGymMapUnavailable => 'Couldn\'t load the map';
+
+  @override
   String get exActivityTitle => 'Activity';
 
   @override
