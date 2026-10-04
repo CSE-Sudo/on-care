@@ -130,6 +130,9 @@ Resources:
       Cpu: !Ref Cpu
       Memory: !Ref Memory
       # healthz 는 프로세스만 본다 — DB 일시 장애로 태스크를 갈아 치우지 않게(#2912).
+      # 대상 그룹 헬스체크는 컨테이너에 평문 HTTP 로 직접 들어오고 X-Forwarded-Proto 를 붙이지
+      # 않는다. 아래 FORCE_HTTPS=true 의 리다이렉트는 /v1/healthz·/v1/readyz 만 빼고 걸린다
+      # (#3130, backend/app/core/https_redirect.py). 경로를 바꾸면 그 예외 목록도 함께 바꾼다.
       HealthCheckPath: /v1/healthz
       ExecutionRoleArn: !ImportValue
         Fn::Sub: 'oncare-backend-${EnvironmentName}-TaskExecutionRoleArn'
@@ -164,6 +167,7 @@ Resources:
             Value: !Ref CorsAllowOrigins
           - Name: TZ
             Value: Asia/Seoul
+          # 헬스체크 경로(/v1/healthz·/v1/readyz)는 리다이렉트하지 않는다(#3130).
           - Name: FORCE_HTTPS
             Value: 'true'
           - Name: LOG_LEVEL
