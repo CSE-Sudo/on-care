@@ -1660,7 +1660,6 @@
   "adminFieldEmail": "Email",
   "adminFieldGym": "Gym",
   "adminFieldSignedUp": "Signed up",
-  "adminValueNone": "None",
   "adminGymNone": "No gym yet",
   "adminSuspend": "Suspend account",
   "adminUnsuspend": "Lift suspension",

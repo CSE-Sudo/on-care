@@ -1061,7 +1061,6 @@
   "adminFieldEmail": "이메일",
   "adminFieldGym": "소속",
   "adminFieldSignedUp": "가입일",
-  "adminValueNone": "없음",
   "adminGymNone": "소속 헬스장이 없어요",
   "adminSuspend": "계정 정지",
   "adminUnsuspend": "정지 해제",

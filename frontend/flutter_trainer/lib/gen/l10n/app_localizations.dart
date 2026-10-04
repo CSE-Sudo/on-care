@@ -4447,12 +4447,6 @@ abstract class AppLocalizations {
   /// **'Signed up'**
   String get adminFieldSignedUp;
 
-  /// No description provided for @adminValueNone.
-  ///
-  /// In en, this message translates to:
-  /// **'None'**
-  String get adminValueNone;
-
   /// No description provided for @adminGymNone.
   ///
   /// In en, this message translates to:

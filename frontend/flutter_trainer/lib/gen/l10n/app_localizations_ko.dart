@@ -2411,9 +2411,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get adminFieldSignedUp => '가입일';
 
   @override
-  String get adminValueNone => '없음';
-
-  @override
   String get adminGymNone => '소속 헬스장이 없어요';
 
   @override

@@ -2546,9 +2546,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adminFieldSignedUp => 'Signed up';
 
   @override
-  String get adminValueNone => 'None';
-
-  @override
   String get adminGymNone => 'No gym yet';
 
   @override
