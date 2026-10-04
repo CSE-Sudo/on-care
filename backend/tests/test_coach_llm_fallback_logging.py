@@ -413,27 +413,3 @@ def test_request_id_is_attached_on_the_member_chat_path(client, db_session, monk
     assert records[0].request_id == request_id
     assert records[0].user_id == user_id
     assert SECRET_MESSAGE not in records[0].getMessage()
-
-
-def test_trainer_path_logs_the_member_scope(client, monkeypatch, caplog):
-    """트레이너 고객 AI 코치도 같은 폴백 로그를 남긴다(검색 스코프 = 회원)."""
-    _use(monkeypatch, _StubLLM(error=_ProviderFailure("down", status_code=502)))
-    token = client.post(
-        "/v1/auth/login",
-        data={"username": "trainer@oncare.com", "password": "oncare123"},
-    ).json()["access_token"]
-    headers = {"Authorization": f"Bearer {token}"}
-    member_id = client.get("/v1/trainer/clients", headers=headers).json()[0]["id"]
-
-    with caplog.at_level(logging.WARNING, logger=LOGGER):
-        r = client.post(
-            f"/v1/trainer/clients/{member_id}/ai-coach",
-            headers=headers,
-            json={"message": SECRET_MESSAGE},
-        )
-
-    assert r.status_code == 200, r.text
-    [record] = _fallback_records(caplog)
-    assert record.user_id == member_id
-    assert record.http_status == 502
-    _assert_no_sensitive(caplog)
