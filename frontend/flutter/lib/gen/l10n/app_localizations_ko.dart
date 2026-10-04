@@ -2102,13 +2102,25 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myFieldWeight => '체중 (kg)';
 
   @override
-  String get myNotifExercise => '운동 리마인더';
+  String get myNotifExercise => '운동 루틴';
 
   @override
   String get myNotifTrainer => '트레이너 메시지';
 
   @override
-  String get myNotifWeeklyReport => '주간 리포트';
+  String get myNotifWeeklyReport => '트레이너 주간 리포트';
+
+  @override
+  String get myNotifExerciseDesc => '트레이너가 운동 루틴·프로그램을 보내면 알려요';
+
+  @override
+  String get myNotifTrainerDesc => '트레이너가 대화로 보낸 메시지를 알려요';
+
+  @override
+  String get myNotifWeeklyReportDesc => '담당 트레이너가 주간 리포트를 보내면 알려요';
+
+  @override
+  String get myNotifAlwaysSent => 'PT 일정 등록·변경·취소와 담당 트레이너 연결·해제 알림은 항상 보내요';
 
   @override
   String get mySupportFaq => '자주 묻는 질문';

@@ -64,7 +64,7 @@ def remove_client(db: Session, link: TrainerClient) -> None:
     notification_service.queue(
         db,
         member_id=link.member_id,
-        kind=notification_service.TRAINER_MESSAGE,
+        kind=notification_service.PT_LINK_NOTICE,
         # 취소된 일정이 있으면 일정으로, 없으면 새 트레이너를 찾는 화면으로.
         category=(
             notification_service.MEMBER_SCHEDULE
