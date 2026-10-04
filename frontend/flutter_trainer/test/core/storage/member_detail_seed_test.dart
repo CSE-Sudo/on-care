@@ -29,6 +29,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fixed_clock.dart';
 
+/// 심긴 모든 고객의 미완료 후속 관리.
+Future<List<FollowUpTask>> _pendingFollowUps(SharedPreferences prefs) async {
+  const String prefix = 'trainer_follow_ups:';
+  final LocalFollowUpTaskRepository repository = LocalFollowUpTaskRepository(
+    prefs,
+  );
+  final List<FollowUpTask> tasks = <FollowUpTask>[];
+  for (final String key in prefs.getKeys()) {
+    if (!key.startsWith(prefix)) continue;
+    tasks.addAll(await repository.fetchForClient(key.substring(prefix.length)));
+  }
+  return tasks;
+}
+
 void main() {
   late AppDatabase db;
   late DriftClientRepository repo;
@@ -286,11 +300,13 @@ void main() {
       final LocalFollowUpTaskRepository followUps = LocalFollowUpTaskRepository(
         prefs,
       );
-      final List<FollowUpTask> due = await followUps.fetchDue();
-      expect(due, isNotEmpty);
-      // 기한이 지난 할 일도 오늘 할 일에 선다.
+      final List<FollowUpTask> pending = await _pendingFollowUps(prefs);
+      expect(pending, isNotEmpty);
+      // 기한이 지난 할 일도 심는다.
       expect(
-        due.any((FollowUpTask t) => t.dueDate.isBefore(DateTime(2026, 8, 20))),
+        pending.any(
+          (FollowUpTask t) => t.dueDate.isBefore(DateTime(2026, 8, 20)),
+        ),
         isTrue,
       );
       final List<FollowUpTask> jisu = await followUps.fetchForClient(
@@ -335,10 +351,9 @@ void main() {
         language: DemoLanguage.en,
         clock: kMidWeekKst,
       );
-      final List<FollowUpTask> due = await LocalFollowUpTaskRepository(
-        prefs,
-      ).fetchDue();
-      for (final FollowUpTask t in due) {
+      final List<FollowUpTask> pending = await _pendingFollowUps(prefs);
+      expect(pending, isNotEmpty);
+      for (final FollowUpTask t in pending) {
         expect(RegExp('[가-힣]').hasMatch(t.title), isFalse, reason: t.title);
       }
     });

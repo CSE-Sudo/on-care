@@ -327,6 +327,9 @@ extension _LocalApiExercise on LocalApiInterceptor {
     final rows = await (_db.select(
       _db.exerciseSessions,
     )..where((t) => t.weekStart.equals(weekStart))).get();
+    // 직접 기록한 운동마다 개인 기록 태그를 붙인다 — 서버 `current_week` 와
+    // 같은 자리다(#2971, #3099).
+    final Map<String, String> records = await _personalRecords(rows);
 
     // Aggregate minutes per day-label so the bar chart can render even
     // when a day is missing (React mock left Tue=0).
@@ -414,6 +417,7 @@ extension _LocalApiExercise on LocalApiInterceptor {
               : 'estimate',
           source: r.source,
           assignedRoutineId: r.assignedRoutineId,
+          record: records[r.id],
         ),
       );
     }
@@ -443,8 +447,10 @@ extension _LocalApiExercise on LocalApiInterceptor {
     ];
 
     // 운동 탭의 연속은 운동만 센다 — 보호권은 기록 연속(식단·운동)을 지키고
-    // 포인트 화면에서 쓴다(#1788, #2075).
-    final streak = _longestActiveStreak(dailyMinutes);
+    // 포인트 화면에서 쓴다(#1788, #2075). 정의는 [longestActiveStreak] 한 곳이다.
+    final streak = longestActiveStreak(<double>[
+      for (final num m in dailyMinutes) m.toDouble(),
+    ]);
 
     return _ok(options, <String, Object?>{
       'sessions': sessionsJson,
@@ -468,26 +474,6 @@ extension _LocalApiExercise on LocalApiInterceptor {
           ? '주간 운동 목표 80%를 달성했어요! 오늘 가볍게 걷기를 더해 100%를 채워봐요.'
           : '이번 주는 운동량이 조금 부족해요. 가벼운 산책부터 다시 시작해 봐요.',
     });
-  }
-
-  /// "N일 연속" — 운동한 요일 중 가장 긴 연속 구간의 길이. 활성 일수의 단순
-  /// 합계가 아니다(월·수·금 운동은 3일이 아니라 1일 연속). FastAPI
-  /// `exercise_service._longest_streak`, 그리고 클라이언트의
-  /// `longestActiveStreak` 와 같은 정의라야 '연속' 카드가 어느 경로에서든
-  /// 같은 값을 보인다. 보호권으로 이어 붙인 날([protectedDays])도 운동한 날로
-  /// 센다(#1788).
-  int _longestActiveStreak(List<num> dailyMinutes) {
-    int best = 0;
-    int run = 0;
-    for (int i = 0; i < dailyMinutes.length; i++) {
-      if (dailyMinutes[i] > 0) {
-        run += 1;
-        if (run > best) best = run;
-      } else {
-        run = 0;
-      }
-    }
-    return best;
   }
 
   /// "오늘 / 어제 / MM월 DD일" for a weekday label inside [weekStart]'s week.
@@ -871,6 +857,7 @@ extension _LocalApiExercise on LocalApiInterceptor {
     required String calorieSource,
     String source = 'member',
     String? assignedRoutineId,
+    String? record,
   }) => <String, Object?>{
     'id': id,
     'day_label': dayLabel,
@@ -899,7 +886,53 @@ extension _LocalApiExercise on LocalApiInterceptor {
     'source': source,
     'assigned_routine_id': assignedRoutineId,
     'assigned_routine_name': assignedRoutineId == null ? '' : name,
+    // 개인 기록 태그(#2971). 서버는 주간 목록에서만 채우고 생성·수정 응답은
+    // null 이다 — 여기도 같다(#3099).
+    'record': record,
+    // 개인 운동 피드백은 없앴고(#1825, #2517) 서버도 모양만 남긴다. 데모는
+    // 완료 시각을 남기지 않는다. 응답 키를 서버와 맞추려고 둔다(#3099).
+    'member_note': '',
+    'trainer_feedback': '',
+    'completed_at': null,
   };
+
+  /// 직접 기록한 운동의 개인 기록 태그 — 서버
+  /// `exercise_records.personal_records` 와 같은 규칙이다(#2971, #3099).
+  ///
+  /// [rows] 중 `source == member` 기록마다, 회원의 직접 기록 전체에서 같은
+  /// 이름(공백 제거·소문자)의 더 이른 기록과 견준다. 태그가 없는 기록은 빠진다.
+  Future<Map<String, String>> _personalRecords(
+    List<ExerciseSessionRow> rows,
+  ) async {
+    final List<ExerciseSessionRow> targets = <ExerciseSessionRow>[
+      for (final ExerciseSessionRow r in rows)
+        if (r.source == 'member') r,
+    ];
+    if (targets.isEmpty) return const <String, String>{};
+    final List<ExerciseSessionRow> history = await (_db.select(
+      _db.exerciseSessions,
+    )..where((t) => t.source.equals('member'))).get();
+    final Map<String, List<_RecordEntry>> byKey =
+        <String, List<_RecordEntry>>{};
+    for (final ExerciseSessionRow row in history) {
+      final _RecordEntry? entry = _RecordEntry.of(row);
+      if (entry != null) {
+        byKey.putIfAbsent(entry.key, () => <_RecordEntry>[]).add(entry);
+      }
+    }
+    final Map<String, String> tags = <String, String>{};
+    for (final ExerciseSessionRow row in targets) {
+      final _RecordEntry? entry = _RecordEntry.of(row);
+      if (entry == null) continue;
+      final List<_RecordEntry> earlier = <_RecordEntry>[
+        for (final _RecordEntry e in byKey[entry.key] ?? const <_RecordEntry>[])
+          if (e.id != entry.id && e.isBefore(entry)) e,
+      ];
+      final String? tag = entry.tagAgainst(earlier);
+      if (tag != null) tags[entry.id] = tag;
+    }
+    return tags;
+  }
 
   /// (주 시작, 요일 라벨) → `YYYY-MM-DD`. FastAPI `session_date_of` 와 같다.
   String _dateOfWeekday(String weekStart, String dayLabel) {
@@ -917,4 +950,83 @@ String? _exerciseDateError(Object? raw) {
   if (raw == null) return null;
   if (raw is! String) return 'date 는 YYYY-MM-DD 형식이어야 합니다.';
   return _entryDateError(raw);
+}
+
+/// 개인 기록을 견주는 한 줄 — 서버 `exercise_records._Entry` 와 같다(#3099).
+class _RecordEntry {
+  const _RecordEntry({
+    required this.id,
+    required this.key,
+    required this.strength,
+    required this.weight,
+    required this.seconds,
+    required this.day,
+    required this.createdAt,
+  });
+
+  /// 이름이 없거나 날짜를 알 수 없는 기록은 견줄 수 없어 null 이다.
+  static _RecordEntry? of(ExerciseSessionRow row) {
+    // 서버 `exercise_key` — 공백을 모두 지우고 소문자로 맞춘다.
+    final String key = row.name.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+    if (key.isEmpty) return null;
+    // 서버 `activity_date_of` — 주 시작 + 요일 라벨이 먼저, 깨졌으면 만든 날.
+    final DateTime? monday = DateTime.tryParse(row.weekStart);
+    final int index = _weekdayLabels.indexOf(row.dayLabel);
+    final DateTime created = row.createdAt;
+    final DateTime day = monday != null && index >= 0
+        ? DateTime(monday.year, monday.month, monday.day + index)
+        : DateTime(created.year, created.month, created.day);
+    final int? duration = row.durationSeconds;
+    return _RecordEntry(
+      id: row.id,
+      key: key,
+      strength: normalizeExerciseType(row.type) == kExerciseTypeStrength,
+      weight: row.weight,
+      // 초를 모르는 옛 기록은 분에서 환산한다(서버 `_seconds_of`).
+      seconds: duration != null && duration != 0 ? duration : row.minutes * 60,
+      day: day,
+      createdAt: created,
+    );
+  }
+
+  final String id;
+  final String key;
+  final bool strength;
+  final double? weight;
+  final int seconds;
+  final DateTime day;
+  final DateTime createdAt;
+
+  /// 어느 기록이 먼저인가. 같은 날이면 먼저 저장한 기록이 먼저다.
+  bool isBefore(_RecordEntry other) {
+    final int byDay = day.compareTo(other.day);
+    if (byDay != 0) return byDay < 0;
+    return createdAt.isBefore(other.createdAt);
+  }
+
+  /// [earlier](같은 운동의 더 이른 기록)와 견준 태그. 서버 `tag_of` 와 같다 —
+  /// 처음이면 `first`, 근력은 중량, 나머지는 시간으로만 견주고 동률은 없다.
+  String? tagAgainst(List<_RecordEntry> earlier) {
+    if (earlier.isEmpty) return 'first';
+    if (strength) {
+      final double? mine = weight;
+      if (mine == null) return null;
+      final List<double> before = <double>[
+        for (final _RecordEntry e in earlier)
+          if (e.strength && e.weight != null) e.weight!,
+      ];
+      if (before.isNotEmpty && mine > before.reduce(math.max)) {
+        return 'max_weight';
+      }
+      return null;
+    }
+    final List<int> before = <int>[
+      for (final _RecordEntry e in earlier)
+        if (!e.strength) e.seconds,
+    ];
+    if (before.isNotEmpty && seconds > before.reduce(math.max)) {
+      return 'longest';
+    }
+    return null;
+  }
 }

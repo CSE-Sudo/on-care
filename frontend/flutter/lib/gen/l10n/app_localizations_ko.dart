@@ -3479,9 +3479,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get coachAssignedTrainer => '담당 트레이너';
-
-  @override
   String get coachRoutineTitle => '추천 개인운동';
 
   @override
@@ -3568,9 +3565,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachTrainerNone => '담당 트레이너가 아직 없어요. 운동 탭에서 헬스장·트레이너를 연결해 보세요';
-
-  @override
-  String get coachTrainerLoadFailed => '담당 트레이너 정보를 불러오지 못했어요';
 
   @override
   String get coachTrainerRetrying => '담당 트레이너 정보를 불러오지 못해 다시 불러오고 있어요';

@@ -316,6 +316,7 @@
   "coachTemplateExerciseNameRequired": "운동 이름을 적어 주세요",
   "coachTemplateSaveFailed": "템플릿을 저장하지 못했어요. 다시 시도해 주세요",
   "coachTemplateDeleteFailed": "템플릿을 지우지 못했어요. 다시 시도해 주세요",
+  "coachTemplateAlreadyDeleted": "이미 지워진 템플릿이에요",
   "coachTemplateDeleteConfirm": "{name} 템플릿을 지울까요?",
   "@coachTemplateDeleteConfirm": {
     "placeholders": {
@@ -508,6 +509,8 @@
   "reportsNoClients": "담당 회원이 없어 리포트를 만들 수 없어요",
   "reportsWeekly": "주간 리포트",
   "reportsSendFailed": "리포트 전송에 실패했어요. 다시 시도해 주세요",
+  "reportsSendStaleTitle": "그사이 회원 기록이 바뀌었어요",
+  "reportsSendStaleBody": "아직 보내지 않았어요. 새 수치로 다시 만든 리포트를 확인한 뒤 보내 주세요",
   "reportsSendAlreadyDone": "이미 전송된 리포트예요. 전송 기록을 다시 불러왔어요",
   "reportsSent": "{name}님에게 리포트를 보냈어요",
   "reportsGoToChat": "채팅으로 이동하기",
@@ -1766,20 +1769,6 @@
   "clientFeedbackLoadFailed": "피드백을 불러오지 못했어요. 잠시 후 다시 시도해 주세요",
   "clientFeedbackSearchHint": "피드백 검색 (본문·출처·방향)",
   "clientFeedbackSearchEmpty": "찾는 피드백이 없어요.",
-  "followUp": "후속 관리",
-  "followUpOverdue": "기한 지남",
-  "followUpComplete": "완료",
-  "followUpCount": "{count}건",
-  "@followUpCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "followUpDashboardEmpty": "오늘 처리할 후속 관리가 없어요.",
-  "followUpLoadFailed": "후속 관리를 불러오지 못했어요. 잠시 후 다시 시도해 주세요",
-  "followUpCompleteFailed": "완료 처리하지 못했어요. 잠시 후 다시 시도해 주세요",
   "programEditorDefaultName": "{goal} 프로그램",
   "programEditorSaveUnsupported": "프로그램 이름을 입력해 주세요",
   "programDraftSaved": "프로그램을 저장했어요",

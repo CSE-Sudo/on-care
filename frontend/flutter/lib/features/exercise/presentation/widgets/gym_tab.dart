@@ -277,14 +277,20 @@ class _ReservationPanelState extends ConsumerState<_ReservationPanel> {
     if (_reserving != null) return;
     final AppToastHost toast = AppToastHost.of(context);
     final String label = _when(context, l, slot.startsAt);
+    // 요청 뒤 갱신은 컨테이너로 한다 — 예약 중에 화면을 떠나도 `내 예약`·자리
+    // 목록이 옛 값으로 남지 않는다(#3096).
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     setState(() => _reserving = slot.id);
     try {
-      await ref.read(gymRepositoryProvider).reserve(slot.id);
+      await container.read(gymRepositoryProvider).reserve(slot.id);
     } on SlotTimeTakenError {
       // 트레이너가 그 시간을 다른 일정으로 쓰게 됐다(#2284). 다시 눌러도 같은
       // 결과라 재시도 대신 다른 시간을 고르게 하고, 자리 목록을 새로 읽는다.
       if (mounted) setState(() => _reserving = null);
-      ref.invalidate(trainerSlotsProvider(widget.trainer.id));
+      container.invalidate(trainerSlotsProvider(widget.trainer.id));
       toast.show(l.exReserveTimeTaken, type: AppToastType.error);
       return;
     } catch (_) {
@@ -292,12 +298,12 @@ class _ReservationPanelState extends ConsumerState<_ReservationPanel> {
       toast.show(l.exReserveFailed, type: AppToastType.error);
       return;
     }
+    // 잔여 자리를 다시 읽어, 방금 잡은 자리가 목록에도 반영되게 한다.
+    container.invalidate(trainerSlotsProvider(widget.trainer.id));
+    // 방금 잡은 예약이 '내 예약'에도 나타나야 취소가 걸린다. (#502)
+    container.invalidate(myReservationsProvider);
     if (!mounted) return;
     setState(() => _reserving = null);
-    // 잔여 자리를 다시 읽어, 방금 잡은 자리가 목록에도 반영되게 한다.
-    ref.invalidate(trainerSlotsProvider(widget.trainer.id));
-    // 방금 잡은 예약이 '내 예약'에도 나타나야 취소가 걸린다. (#502)
-    ref.invalidate(myReservationsProvider);
     toast.show(
       l.exReserveConfirmedSlotGym(label, widget.gym.name),
       type: AppToastType.success,
@@ -312,6 +318,11 @@ class _ReservationPanelState extends ConsumerState<_ReservationPanel> {
     if (_reserving != null || _cancelling != null) return;
     final AppToastHost toast = AppToastHost.of(context);
     final String label = _when(context, l, reservation.startsAt);
+    // 예약과 같은 규칙이다 — 요청 뒤 갱신은 컨테이너로 한다(#3096).
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.exCancelConfirmTitle,
@@ -324,17 +335,19 @@ class _ReservationPanelState extends ConsumerState<_ReservationPanel> {
 
     setState(() => _cancelling = reservation.id);
     try {
-      await ref.read(gymRepositoryProvider).cancelReservation(reservation.id);
+      await container
+          .read(gymRepositoryProvider)
+          .cancelReservation(reservation.id);
     } catch (_) {
       if (mounted) setState(() => _cancelling = null);
       toast.show(l.exCancelFailed, type: AppToastType.error);
       return;
     }
+    // 좌석이 돌아왔으므로 슬롯도 함께 다시 읽는다.
+    container.invalidate(trainerSlotsProvider(widget.trainer.id));
+    container.invalidate(myReservationsProvider);
     if (!mounted) return;
     setState(() => _cancelling = null);
-    // 좌석이 돌아왔으므로 슬롯도 함께 다시 읽는다.
-    ref.invalidate(trainerSlotsProvider(widget.trainer.id));
-    ref.invalidate(myReservationsProvider);
     toast.show(l.exCancelDone(label), type: AppToastType.success);
   }
 

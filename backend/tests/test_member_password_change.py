@@ -186,3 +186,140 @@ def test_profile_reports_has_password(client, member_email, social_member):
     social_token = auth_tokens.issue_token_pair(social_member).access_token
     social = client.get("/v1/users/me/profile", headers=_h(social_token)).json()
     assert social["has_password"] is False
+
+
+# ---- 계정 단위 실패 잠금 (#3087) ----
+#
+# 트레이너 `POST /trainer/me/password`(#2913)와 같은 잠금. 접근 토큰을 손에 넣은 쪽이
+# IP 를 바꿔 가며 현재 비밀번호를 맞혀 보지 못하게 사용자 id 로 센다.
+
+
+def _ip(n: int) -> dict:
+    return {"X-Forwarded-For": f"198.51.100.{n % 250 + 1}"}
+
+
+def _change_from(client, token: str, current: str, n: int, new: str = _NEW_PW):
+    """요청마다 다른 IP 로 보낸다 — IP 버킷이 아니라 계정 잠금이 막는지 본다."""
+    return client.post(
+        "/v1/users/me/password",
+        json={"current_password": current, "new_password": new},
+        headers={**_h(token), **_ip(n)},
+    )
+
+
+@pytest.fixture
+def lock_settings(monkeypatch):
+    settings = get_settings()
+    monkeypatch.setattr(settings, "rate_limit_enabled", True)
+    monkeypatch.setattr(settings, "rate_limit_auth_per_minute", 1000)
+    monkeypatch.setattr(settings, "trusted_proxy_hops", 1)
+    return settings
+
+
+def _user_id(db_session, email: str) -> str:
+    return db_session.query(models.User).filter(models.User.email == email).one().id
+
+
+def _fail_until_locked(client, token: str, settings) -> None:
+    for n in range(settings.password_change_max_failures):
+        r = _change_from(client, token, "not-my-pw-1", n)
+        assert r.status_code == 400, r.text
+
+
+def test_repeated_wrong_current_password_locks_across_ips(
+    client, db_session, member_email, lock_settings
+):
+    """IP 를 바꿔도 정해진 횟수만큼 틀리면 맞는 비밀번호도 429 — 비밀번호는 그대로다."""
+    token = _login(client, member_email, _OLD_PW)["access_token"]
+    _fail_until_locked(client, token, lock_settings)
+
+    blocked = _change_from(client, token, _OLD_PW, 99)
+    assert blocked.status_code == 429, blocked.text
+    assert "Retry-After" in blocked.headers
+    # 잠긴 동안에는 비밀번호를 확인하지 않는다 — 세대도 그대로라 이 기기는 이어 쓴다.
+    assert client.get("/v1/users/me/profile", headers=_h(token)).status_code == 200
+    _login(client, member_email, _OLD_PW)
+
+
+def test_lock_lifts_after_the_window(client, member_email, lock_settings, monkeypatch):
+    import app.core.rate_limit as rate_limit_module
+
+    now = [1_000_000.0]
+    monkeypatch.setattr(rate_limit_module.time, "monotonic", lambda: now[0])
+    rate_limit_module.limiter.clear()
+    token = _login(client, member_email, _OLD_PW)["access_token"]
+    _fail_until_locked(client, token, lock_settings)
+    assert _change_from(client, token, _OLD_PW, 50).status_code == 429
+
+    now[0] += lock_settings.login_lockout_seconds + 1
+
+    assert _change_from(client, token, _OLD_PW, 51).status_code == 200
+
+
+def test_success_clears_earlier_failures(client, db_session, member_email, lock_settings):
+    from app.core.rate_limit import limiter, password_change_fail_key
+
+    token = _login(client, member_email, _OLD_PW)["access_token"]
+    limit = lock_settings.password_change_max_failures
+    for n in range(limit - 1):
+        _change_from(client, token, "not-my-pw-1", n)
+    ok = _change_from(client, token, _OLD_PW, 60)
+    assert ok.status_code == 200, ok.text
+
+    # 트레이너와 같은 키 규칙이다 — 성공하면 기록이 지워진다.
+    key = password_change_fail_key(_user_id(db_session, member_email))
+    window = float(lock_settings.login_lockout_seconds)
+    assert limiter.retry_after(key, 1, window) is None
+    # 다음 실패는 1부터 센다 — 한도 직전까지 다시 틀려도 잠기지 않는다.
+    fresh = ok.json()["access_token"]
+    for n in range(limit - 1):
+        assert _change_from(client, fresh, "not-my-pw-1", 70 + n).status_code == 400
+    assert _change_from(client, fresh, _NEW_PW, 80, new=_OLD_PW).status_code == 200
+
+
+def test_lock_is_per_member(client, db_session, member_email, lock_settings):
+    token = _login(client, member_email, _OLD_PW)["access_token"]
+    _fail_until_locked(client, token, lock_settings)
+    assert _change_from(client, token, "not-my-pw-1", 90).status_code == 429
+
+    other = f"mpw-other-{uuid4().hex[:8]}@oncare.com"
+    res = client.post(
+        "/v1/auth/register",
+        json={"email": other, "password": _OLD_PW, "name": "다른회원"},
+    )
+    assert res.status_code == 201, res.text
+    try:
+        other_token = _login(client, other, _OLD_PW)["access_token"]
+        assert _change_from(client, other_token, "not-my-pw-1", 91).status_code == 400
+    finally:
+        db_session.expire_all()
+        row = db_session.get(models.User, res.json()["id"])
+        if row is not None:
+            db_session.delete(row)
+            db_session.commit()
+
+
+def test_wrong_current_password_audit_has_reason(client, db_session, member_email):
+    token = _login(client, member_email, _OLD_PW)["access_token"]
+    _change(client, token, current="not-my-pw-1")
+    row = (
+        db_session.query(models.AuditLog)
+        .filter(
+            models.AuditLog.event == "auth.password_change",
+            models.AuditLog.user_id == _user_id(db_session, member_email),
+        )
+        .one()
+    )
+    assert row.success is False
+    # 입력한 비밀번호가 아니라 사유만 남는다 — 트레이너와 같은 값이다.
+    assert row.detail == "current_password_mismatch"
+
+
+def test_social_account_conflict_is_not_counted(client, social_member, lock_settings):
+    from app.core.rate_limit import limiter, password_change_fail_key
+
+    token = auth_tokens.issue_token_pair(social_member).access_token
+    for n in range(lock_settings.password_change_max_failures + 1):
+        assert _change_from(client, token, "anything-1", n).status_code == 409
+    key = password_change_fail_key(social_member.id)
+    assert limiter.retry_after(key, 1, float(lock_settings.login_lockout_seconds)) is None

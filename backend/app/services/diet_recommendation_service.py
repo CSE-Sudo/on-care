@@ -32,8 +32,9 @@ from app.data.meal_catalog import CATALOG, DEFAULT_ORDER, RECOMMENDATION_COUNT, 
 from app.models.models import DietEntry, HealthProfile
 from app.schemas.diet_api import DietRecommendationItem, DietRecommendationsResponse
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
-from app.services.coach.llm_base import is_truncated, output_cap
 from app.services import ai_call_quota, goal_defaults, health_focus
+from app.services.ai_log import log_ai_fallback
+from app.services.coach.llm_base import is_truncated, output_cap
 
 logger = logging.getLogger(__name__)
 
@@ -461,9 +462,10 @@ def build_recommendations(
         except FutureTimeout:
             metrics.incr("diet_recommendations.fallback", reason="timeout")
             logger.warning("diet recommendation LLM timeout (%.1fs) — 규칙 폴백", LLM_TIMEOUT_SEC)
-        except Exception:  # noqa: BLE001 - LLM 장애 종류와 무관하게 화면은 떠야 한다
+        except Exception as exc:  # noqa: BLE001 - LLM 장애 종류와 무관하게 화면은 떠야 한다
             metrics.incr("diet_recommendations.fallback", reason="error")
-            logger.warning("diet recommendation LLM 실패 — 규칙 폴백", exc_info=True)
+            # 규칙 폴백. 예외 메시지·스택은 남기지 않는다(#3090).
+            log_ai_fallback(logger, "diet_recommendation", "error", exc=exc)
 
     # 규칙 폴백도 신호를 반영한 진짜 추천이다(예: 나트륨 과다 → 저나트륨 상위).
     metrics.incr("diet_recommendations.generated", by="rules")

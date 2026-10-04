@@ -15,6 +15,11 @@ const String kConsultationSessionType = '1:1 PT';
 /// 신청 직후 만료되는 자리를 고를 수 있다(#1873).
 const Duration kConsultationSlotMinLead = Duration(hours: 4);
 
+/// 답을 기다리는 상담 요청을 동시에 둘 수 있는 수. 서버 설정
+/// `consultation_max_pending`(backend/app/core/config.py) 의 기본값과 같다 —
+/// 데모 대역이 실서버와 같은 자리에서 [TooManyPendingConsultations] 를 낸다(#3099).
+const int kConsultationMaxPending = 3;
+
 /// 상담 신청 접수·조회. (#327)
 abstract class ConsultationRepository {
   /// 접수된 상담 id. 같은 대상에 이미 대기 중이면 [DuplicatePendingConsultation].

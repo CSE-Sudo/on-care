@@ -115,13 +115,6 @@ def body_limit_rules(s: Settings) -> tuple[BodyLimitRule, ...]:
             s.coach_chat_max_body_bytes,
             "요청이 너무 큽니다. 질문과 대화 기록을 줄여 다시 보내 주세요.",
         ),
-        # 트레이너 AI 코칭(#3032). 회원 AI 코치와 같은 필드 제한이라 같은 상한을 쓴다.
-        BodyLimitRule(
-            rf"{v1}/trainer/clients/[^/]+/ai-coach",
-            s.coach_chat_max_body_bytes,
-            "요청이 너무 큽니다. 질문과 대화 기록을 줄여 다시 보내 주세요.",
-            regex=True,
-        ),
         # 채팅 사진 — 회원 → 트레이너, 트레이너 → 회원.
         BodyLimitRule(
             rf"{v1}/me/coach/chat/image", chat_image, image_detail, regex=True

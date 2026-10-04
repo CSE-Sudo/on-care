@@ -28,7 +28,6 @@ from app.core.config import get_settings
 from app.core.security import create_access_token
 from app.models.models import (
     AiCallUsage,
-    AiMessage,
     DietAnalysisUsage,
     HealthProfile,
     TrainerClient,
@@ -197,14 +196,6 @@ def make_trainer(db_session) -> Iterator:
     db_session.commit()
 
 
-def _coach(client, t: Trainer, message: str = "이번 주 어땠나요?"):
-    return client.post(
-        f"/v1/trainer/clients/{t.member_id}/ai-coach",
-        headers=t.headers,
-        json={"message": message},
-    )
-
-
 def _routine(client, t: Trainer):
     return client.post(
         f"/v1/trainer/clients/{t.member_id}/routine-options",
@@ -240,13 +231,13 @@ def _assert_ai_capacity(response) -> None:
 # ---------- 트레이너 하루 상한 ----------
 
 
-@pytest.mark.parametrize("endpoint", ["coach", "routine", "summary"])
+@pytest.mark.parametrize("endpoint", ["routine", "summary"])
 def test_each_trainer_endpoint_answers_429_daily_limit_at_the_cap(
     client, caps, make_trainer, llms, report_with_records, monkeypatch, endpoint
 ):
     monkeypatch.setattr(caps, "trainer_ai_calls_per_day", 1)
     t = make_trainer()
-    call = {"coach": _coach, "routine": _routine, "summary": _summary}[endpoint]
+    call = {"routine": _routine, "summary": _summary}[endpoint]
 
     assert call(client, t).status_code == 200
     _assert_daily_limit(call(client, t))
@@ -255,18 +246,17 @@ def test_each_trainer_endpoint_answers_429_daily_limit_at_the_cap(
     assert len(getattr(llms, endpoint)) == 1
 
 
-def test_the_three_endpoints_share_one_trainer_bucket(
+def test_the_trainer_endpoints_share_one_trainer_bucket(
     client, caps, make_trainer, llms, report_with_records, monkeypatch
 ):
-    monkeypatch.setattr(caps, "trainer_ai_calls_per_day", 2)
+    # 트레이너 AI 는 프로그램 추천·리포트 요약 두 곳이다(트레이너 AI 코칭 API 는 #3085 로 삭제).
+    monkeypatch.setattr(caps, "trainer_ai_calls_per_day", 1)
     t = make_trainer()
 
-    assert _coach(client, t).status_code == 200
     assert _routine(client, t).status_code == 200
     _assert_daily_limit(_summary(client, t))
-    _assert_daily_limit(_coach(client, t))
     _assert_daily_limit(_routine(client, t))
-    assert ai_call_quota.used_today(ai_call_quota.trainer_bucket(t.id)) == 2
+    assert ai_call_quota.used_today(ai_call_quota.trainer_bucket(t.id)) == 1
 
 
 def test_another_trainer_is_not_affected(
@@ -278,21 +268,6 @@ def test_another_trainer_is_not_affected(
     assert _routine(client, first).status_code == 200
     _assert_daily_limit(_routine(client, first))
     assert _routine(client, second).status_code == 200
-
-
-def test_blocked_trainer_coach_does_not_store_the_exchange(
-    client, db_session, caps, make_trainer, llms, monkeypatch
-):
-    monkeypatch.setattr(caps, "trainer_ai_calls_per_day", 1)
-    t = make_trainer()
-    assert _coach(client, t, "첫 질문").status_code == 200
-    _assert_daily_limit(_coach(client, t, "둘째 질문"))
-
-    db_session.expire_all()
-    stored = db_session.scalars(
-        select(AiMessage.content).where(AiMessage.content.in_(["첫 질문", "둘째 질문"]))
-    ).all()
-    assert "둘째 질문" not in stored
 
 
 def test_routine_daily_limit_is_not_hidden_behind_a_rule_fallback(
@@ -362,15 +337,6 @@ def test_global_cap_falls_back_for_report_summary(
     assert r.status_code == 200, r.text
     assert r.json()["generated_by"] == "rule"
     assert llms.summary == []
-
-
-def test_global_cap_answers_503_for_trainer_coach(
-    client, caps, make_trainer, llms, monkeypatch
-):
-    _spend_the_global_share(caps, monkeypatch)
-    t = make_trainer()
-    _assert_ai_capacity(_coach(client, t))
-    assert llms.coach == []
 
 
 def _member(client, db_session, points: int = 100) -> tuple[str, dict[str, str]]:
@@ -496,13 +462,13 @@ def test_photo_analysis_passes_the_output_cap_when_under_the_global_cap(
 
 
 def test_capacity_message_follows_the_request_language(
-    client, caps, make_trainer, llms, monkeypatch
+    client, db_session, caps, llms, monkeypatch
 ):
     _spend_the_global_share(caps, monkeypatch)
-    t = make_trainer()
+    _, headers = _member(client, db_session)
     r = client.post(
-        f"/v1/trainer/clients/{t.member_id}/ai-coach",
-        headers={**t.headers, "Accept-Language": "en"},
+        "/v1/ai-coach/chat",
+        headers={**headers, "Accept-Language": "en"},
         json={"message": "How was the week?"},
     )
     _assert_ai_capacity(r)

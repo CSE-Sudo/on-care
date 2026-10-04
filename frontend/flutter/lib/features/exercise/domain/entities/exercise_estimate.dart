@@ -9,19 +9,10 @@ import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare_rules/oncare_rules.dart'
     show
         fallbackExerciseCalories,
-        kExerciseIntensityFactor,
         kExerciseTypeCardio,
         kExerciseTypeOther,
         kExerciseTypeStrength,
         kExerciseTypeStretching;
-
-/// 강도별 배수 (가벼움 / 보통 / 높음). 값은 서버 `exercise_catalog.energy` 와
-/// 함께 대조하는 공용 표(`oncare_rules` 의 `kExerciseIntensityFactor`)다(#2906).
-final Map<ExerciseIntensity, double> kIntensityFactor =
-    <ExerciseIntensity, double>{
-      for (final ExerciseIntensity i in ExerciseIntensity.values)
-        i: kExerciseIntensityFactor[i.name] ?? 1.0,
-    };
 
 /// 소모 칼로리 한 건과 그 근거. (#1312)
 class ExerciseCalorieEstimate {

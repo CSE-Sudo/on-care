@@ -126,9 +126,11 @@ def record_chat(
     """
     if not _chat_is_ingestable(text):
         return
-    speaker = prompt_safety.speaker_label(sender)
+    # 인용 표시는 경계 문구(`prompt_safety.UNTRUSTED_QUOTE_GUARD`)와 같은 함수에서
+    # 만든다 — 한쪽만 바뀌면 경계가 가리키는 줄이 사라진다(#3090).
+    quote = prompt_safety.chat_quote_prefix(sender)
     _safe(
-        db, member_id, f"{date} 대화 — {speaker}: {text.strip()}",
+        db, member_id, f"{date} {quote} {text.strip()}",
         domain="general", source="chat", source_ref=source_ref, once=once,
     )
 

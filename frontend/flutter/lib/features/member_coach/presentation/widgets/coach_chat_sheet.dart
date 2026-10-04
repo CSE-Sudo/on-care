@@ -894,7 +894,6 @@ class _ReportNoticeState extends ConsumerState<_ReportNotice> {
       // 문서를 열면 회원은 같은 주 리포트를 두 벌 가진 셈이 된다(#2232).
       await openCoachReport(
         context,
-        ref,
         message: widget.message,
         weekStart: widget.weekStart,
       );

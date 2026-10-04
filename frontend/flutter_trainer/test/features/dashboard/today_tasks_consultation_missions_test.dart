@@ -203,9 +203,11 @@ void main() {
       await expandConsultations(tester);
       expect(missionOf('c1'), findsOneWidget);
 
-      final WidgetRef ref =
-          tester.element(find.byType(TodayTasksCard)) as WidgetRef;
-      await rejectConsultation(ref, 'c1');
+      final ProviderContainer container = ProviderScope.containerOf(
+        tester.element(find.byType(TodayTasksCard)),
+        listen: false,
+      );
+      await rejectConsultation(container, 'c1');
       await settle(tester);
       await expandConsultations(tester);
 

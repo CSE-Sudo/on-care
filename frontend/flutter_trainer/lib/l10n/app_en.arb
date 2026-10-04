@@ -563,6 +563,7 @@
   "coachTemplateExerciseNameRequired": "Enter the exercise name",
   "coachTemplateSaveFailed": "Couldn't save the template. Please try again",
   "coachTemplateDeleteFailed": "Couldn't delete the template. Please try again",
+  "coachTemplateAlreadyDeleted": "This template was already deleted",
   "coachTemplateDeleteConfirm": "Delete the {name} template?",
   "@coachTemplateDeleteConfirm": {
     "placeholders": {
@@ -904,6 +905,8 @@
   "reportsNoClients": "No members yet, so there's nothing to report on",
   "reportsWeekly": "Weekly report",
   "reportsSendFailed": "Couldn't send the report. Please try again",
+  "reportsSendStaleTitle": "The member's records changed in the meantime",
+  "reportsSendStaleBody": "Nothing was sent yet. Review the report rebuilt with the new numbers, then send it",
   "reportsSendAlreadyDone": "This report was already sent. Send history has been refreshed",
   "@reportsSendAlreadyDone": {
     "description": "Toast when the server says this report send was already processed (409, #2773)."
@@ -2801,20 +2804,6 @@
   "clientFeedbackLoadFailed": "Couldn't load feedback. Try again in a moment",
   "clientFeedbackSearchHint": "Search feedback (text, source, direction)",
   "clientFeedbackSearchEmpty": "No feedback matches your search.",
-  "followUp": "Follow-ups",
-  "followUpOverdue": "Overdue",
-  "followUpComplete": "Done",
-  "followUpCount": "{count} left",
-  "@followUpCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "followUpDashboardEmpty": "Nothing to follow up on today.",
-  "followUpLoadFailed": "Couldn't load follow-ups. Please try again.",
-  "followUpCompleteFailed": "Couldn't mark it done. Please try again.",
   "programEditorDefaultName": "{goal} program",
   "@programEditorDefaultName": {
     "placeholders": {

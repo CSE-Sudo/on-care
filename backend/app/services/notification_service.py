@@ -281,15 +281,13 @@ def queue(
     return notification
 
 
-def unread_count(db: Session, member_id: str) -> int:
-    """읽지 않은 알림 수. 테스트와 배지가 같은 계산을 쓰게 한다."""
-    rows = db.scalars(
-        select(Notification.id).where(
-            Notification.user_id == member_id,
-            Notification.read.is_(False),
-        )
-    ).all()
-    return len(rows)
+def unread_count(db: Session, user_id: str) -> int:
+    """읽지 않은 알림 수. 배지 API(`GET /notifications/unread-count`)가 이 계산을 쓴다."""
+    return db.scalar(
+        select(func.count())
+        .select_from(Notification)
+        .where(Notification.user_id == user_id, Notification.read.is_(False))
+    ) or 0
 
 
 #: 회원 알림의 목적지. `Notification.category` 에 그대로 저장되고, 앱이 이 값에

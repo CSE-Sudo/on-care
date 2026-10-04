@@ -196,11 +196,11 @@ def test_trainer_cap_stops_one_account_only(caps, usage, trainers, monkeypatch):
     quota.acquire(quota.FEATURE_REPORT_SUMMARY, trainer_id=first)
 
     with pytest.raises(quota.TrainerAiDailyLimitReached) as exc:
-        quota.acquire(quota.FEATURE_TRAINER_COACH, trainer_id=first)
+        quota.acquire(quota.FEATURE_ROUTINE_OPTIONS, trainer_id=first)
     assert exc.value.retry_after_seconds >= 1
 
     # 다른 트레이너는 영향이 없다.
-    quota.acquire(quota.FEATURE_TRAINER_COACH, trainer_id=second)
+    quota.acquire(quota.FEATURE_ROUTINE_OPTIONS, trainer_id=second)
     assert quota.used_today(quota.trainer_bucket(first)) == 2
     assert quota.used_today(quota.trainer_bucket(second)) == 1
 

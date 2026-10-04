@@ -72,9 +72,25 @@ class TrainerSettingsController
   /// 마지막 저장이 실패했는가. 문구는 화면이 붙인다. (#501)
   bool lastError = false;
 
+  /// 쓰기 순번(#3103). 저장은 설정 전체를 덮어쓰는 `PUT` 이라, 스위치를 빠르게
+  /// 끔→켬 하면 두 요청이 동시에 돈다. 응답은 보낸 순서대로 오지 않으므로
+  /// 순번으로 어느 쪽이 최신인지 가린다.
+  int _writeSeq = 0;
+
+  /// 아직 응답이 오지 않은 쓰기의 순번.
+  final Set<int> _pending = <int>{};
+
+  /// 서버가 마지막으로 확인해 준 값과 그 순번(불러오기는 0). 최신 쓰기가
+  /// 실패하면 요청 직전 값이 아니라 이 값으로 되돌린다 — 앞 요청 직전 값으로
+  /// 되돌리면 뒤 요청으로 이미 저장된 변경이 화면에서 사라진다.
+  TrainerSettings? _confirmed;
+  int _confirmedSeq = 0;
+
   Future<void> _load() async {
     try {
       final TrainerSettings loaded = await _repository.load();
+      _confirmed = loaded;
+      _confirmedSeq = 0;
       if (mounted) state = AsyncData<TrainerSettings>(loaded);
     } catch (error, stackTrace) {
       // 기본값으로 채우지 않는다 — 화면은 실패를 알리고 다시 시도를 둔다.
@@ -107,21 +123,43 @@ class TrainerSettingsController
 
   /// 받은 값에만 얹어 저장한다. 받기 전·실패 뒤에는 아무것도 보내지 않는다 —
   /// 보내면 서버 값을 기본값으로 덮어쓴다(#2883).
+  ///
+  /// 응답·롤백은 순서를 확인하고 쓴다(#3103). 더 새 요청이 아직 돌고 있으면
+  /// 화면은 그 요청의 낙관적 값을 그대로 두고 — 새 요청은 화면의 전체 값을
+  /// 보내므로 앞 요청의 변경도 함께 싣는다 — 모든 요청이 끝난 뒤 서버가
+  /// 마지막으로 확인한 값으로 맞춘다. 앞 요청만 실패하면 되돌리지도 알리지도
+  /// 않는다.
   Future<void> _apply(TrainerSettings Function(TrainerSettings) change) async {
     final AsyncValue<TrainerSettings> previous = state;
     if (previous is! AsyncData<TrainerSettings>) return;
     final TrainerSettings next = change(previous.value);
+    final int seq = ++_writeSeq;
+    _pending.add(seq);
     state = AsyncData<TrainerSettings>(next);
     lastError = false;
     try {
       final TrainerSettings saved = await _repository.save(next);
-      if (mounted) state = AsyncData<TrainerSettings>(saved);
+      if (seq > _confirmedSeq) {
+        _confirmed = saved;
+        _confirmedSeq = seq;
+      }
     } catch (_) {
-      if (mounted) state = previous;
       // 문구가 아니라 '실패했다'는 사실만 남긴다 — 컨트롤러는 로케일을
-      // 모르고, 화면이 자기 언어로 문구를 붙인다. (#501)
-      lastError = true;
+      // 모르고, 화면이 자기 언어로 문구를 붙인다. (#501) 최신 요청의
+      // 실패만 알린다 — 앞 요청의 실패는 뒤 요청이 같은 변경을 다시 싣는다.
+      if (seq == _writeSeq) lastError = true;
+    } finally {
+      _pending.remove(seq);
     }
+    _settle();
+  }
+
+  /// 확인된 값보다 새 요청이 남아 있지 않으면 화면을 확인된 값에 맞춘다.
+  void _settle() {
+    if (!mounted) return;
+    if (_pending.any((int s) => s > _confirmedSeq)) return;
+    final TrainerSettings? confirmed = _confirmed;
+    if (confirmed != null) state = AsyncData<TrainerSettings>(confirmed);
   }
 
   /// Clears [lastError] once the UI has shown it.

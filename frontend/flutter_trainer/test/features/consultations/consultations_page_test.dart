@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,7 +10,11 @@ import 'package:oncare_trainer/app/shell/nav_destinations.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
+import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
+import 'package:oncare_trainer/shared/models/trainer_client.dart';
+import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart'
     show AppButton, AppButtonVariant, AppTextField;
 
@@ -135,16 +141,61 @@ class _FakeConsultationRepository implements ConsultationRepository {
   }
 }
 
+/// 승인·거절 응답을 테스트가 풀 때까지 붙잡아 두는 인박스. (#3103)
+class _HeldDecisionRepository extends _FakeConsultationRepository {
+  _HeldDecisionRepository({super.requests});
+
+  final Completer<void> gate = Completer<void>();
+
+  /// 붙잡은 결정을 실패로 끝낼 오류. null 이면 성공한다.
+  AppError? decisionFailure;
+
+  /// 대기 목록 첫 쪽을 읽은 횟수 — 대시보드 상담 카드 무효화를 센다.
+  int pendingFetches = 0;
+
+  @override
+  Future<List<ConsultationRequest>> fetch({
+    String status = 'pending',
+    int limit = consultationPageSize,
+    DateTime? before,
+    String? beforeId,
+  }) {
+    if (status == 'pending' && before == null) pendingFetches++;
+    return super.fetch(
+      status: status,
+      limit: limit,
+      before: before,
+      beforeId: beforeId,
+    );
+  }
+
+  @override
+  Future<ConsultationAcceptResult> accept(String id) async {
+    await gate.future;
+    if (decisionFailure != null) throw decisionFailure!;
+    return super.accept(id);
+  }
+
+  @override
+  Future<void> reject(String id, {String? note}) async {
+    await gate.future;
+    if (decisionFailure != null) throw decisionFailure!;
+    return super.reject(id, note: note);
+  }
+}
+
 Future<ProviderContainer> _pumpInbox(
   WidgetTester tester,
   _FakeConsultationRepository repo, {
   String? at,
+  List<Override> extraOverrides = const <Override>[],
 }) => pumpTrainerApp(
   tester,
   token: 'demo-token',
   at: at ?? AppRoutes.consultations,
   extraOverrides: <Override>[
     consultationRepositoryProvider.overrideWithValue(repo),
+    ...extraOverrides,
   ],
 );
 
@@ -454,6 +505,172 @@ void main() {
       );
 
       expect(find.text(navLabel(_ko, NavLabel.consultations)), findsNothing);
+    });
+  });
+
+  group('응답 전에 카드가 사라져도 갱신을 마친다 (#3103)', () {
+    late int clientBuilds;
+    late int todayBuilds;
+
+    /// 명단·오늘 일정을 세는 override. 상담 창이 닫혀도 무효화가 닿는지 본다.
+    List<Override> counters() => <Override>[
+      clientsProvider.overrideWith((ref) {
+        clientBuilds++;
+        return Stream<List<TrainerClient>>.value(const <TrainerClient>[]);
+      }),
+      todayScheduleProvider.overrideWith((ref) {
+        todayBuilds++;
+        return Stream<List<ScheduleSession>>.value(const <ScheduleSession>[]);
+      }),
+    ];
+
+    setUp(() {
+      clientBuilds = 0;
+      todayBuilds = 0;
+    });
+
+    Future<ProviderContainer> open(
+      WidgetTester tester,
+      _HeldDecisionRepository repo,
+    ) async {
+      final ProviderContainer container = await _pumpInbox(
+        tester,
+        repo,
+        extraOverrides: counters(),
+      );
+      // 창 밖의 화면(명단·오늘 일정·대시보드 상담 카드)이 보고 있는 상태.
+      for (final ProviderListenable<Object?> p in <ProviderListenable<Object?>>[
+        clientsProvider,
+        todayScheduleProvider,
+        pendingConsultationsOnceProvider,
+      ]) {
+        final ProviderSubscription<Object?> sub = container.listen(
+          p,
+          (_, _) {},
+        );
+        addTearDown(sub.close);
+      }
+      await settle(tester);
+      return container;
+    }
+
+    void closeInbox(WidgetTester tester) {
+      Navigator.of(
+        tester.element(
+          find.byKey(const ValueKey<String>('consultations-dialog')),
+        ),
+      ).pop();
+    }
+
+    _HeldDecisionRepository slotRequestRepo() => _HeldDecisionRepository(
+      requests: <ConsultationRequest>[
+        _request(
+          slotStartsAt: DateTime(2026, 8, 12, 19),
+          slotDurationMinutes: 60,
+        ),
+      ],
+    );
+
+    testWidgets('승인 중 상담 창을 닫아도 명단·일정·상담 카드를 다시 읽는다', (tester) async {
+      final repo = slotRequestRepo();
+      await open(tester, repo);
+      final int clientsBefore = clientBuilds;
+      final int todayBefore = todayBuilds;
+      final int pendingBefore = repo.pendingFetches;
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('consultation-accept-consult-1')),
+      );
+      await tester.pump();
+      closeInbox(tester);
+      await settle(tester);
+      expect(
+        find.byKey(const ValueKey<String>('consultations-dialog')),
+        findsNothing,
+      );
+
+      repo.gate.complete();
+      await settle(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(repo.accepted, <String>['consult-1']);
+      expect(clientBuilds, greaterThan(clientsBefore));
+      expect(todayBuilds, greaterThan(todayBefore));
+      expect(repo.pendingFetches, greaterThan(pendingBefore));
+    });
+
+    testWidgets('승인 중 필터를 바꿔 카드가 다시 그려져도 갱신을 마친다', (tester) async {
+      final repo = slotRequestRepo();
+      await open(tester, repo);
+      final int clientsBefore = clientBuilds;
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('consultation-accept-consult-1')),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('consultation-filter-all')),
+      );
+      await settle(tester);
+
+      repo.gate.complete();
+      await settle(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(clientBuilds, greaterThan(clientsBefore));
+    });
+
+    testWidgets('거절 중 상담 창을 닫아도 상담 카드를 다시 읽는다', (tester) async {
+      final repo = _HeldDecisionRepository(
+        requests: <ConsultationRequest>[_request()],
+      );
+      await open(tester, repo);
+      final int pendingBefore = repo.pendingFetches;
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('consultation-reject-consult-1')),
+      );
+      await settle(tester);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('consultation-reject-confirm')),
+      );
+      await tester.pump();
+      closeInbox(tester);
+      await settle(tester);
+
+      repo.gate.complete();
+      await settle(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(repo.rejected.single.$1, 'consult-1');
+      expect(repo.pendingFetches, greaterThan(pendingBefore));
+    });
+
+    testWidgets('승인이 실패한 뒤 창이 닫혀 있어도 예외 없이 상담 수를 다시 읽는다', (tester) async {
+      final repo = slotRequestRepo()
+        ..decisionFailure = const NetworkError(message: 'offline');
+      final ProviderContainer container = await open(tester, repo);
+      int countBuilds = 0;
+      final ProviderSubscription<Object?> count = container.listen(
+        consultationPendingCountProvider,
+        (_, _) => countBuilds++,
+      );
+      addTearDown(count.close);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('consultation-accept-consult-1')),
+      );
+      await tester.pump();
+      closeInbox(tester);
+      await settle(tester);
+      final int countBefore = countBuilds;
+
+      repo.gate.complete();
+      await settle(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(repo.accepted, isEmpty);
+      expect(countBuilds, greaterThan(countBefore));
     });
   });
 }

@@ -32,7 +32,6 @@ from app.schemas.misc_api import (
     ChatRequest,
     ChatTurn,
 )
-from app.schemas.trainer_api import ClientCoachRequest
 
 
 def _h(token: str) -> dict[str, str]:
@@ -53,12 +52,6 @@ def test_limits_are_the_documented_values():
     assert COACH_MESSAGE_MAX_CHARS == 1000
     assert COACH_TURN_MAX_CHARS == 2000
     assert COACH_HISTORY_MAX_TURNS == 20
-
-
-def test_member_and_trainer_question_limits_match():
-    """회원·트레이너 AI 코치가 같은 질문 길이를 받는다."""
-    trainer_max = ClientCoachRequest.model_fields["message"].metadata
-    assert any(getattr(m, "max_length", None) == COACH_MESSAGE_MAX_CHARS for m in trainer_max)
 
 
 def test_message_at_the_limit_is_accepted():
@@ -250,23 +243,6 @@ def test_limits_do_not_consume_the_daily_quota(client, member, llm_calls):
 
     after = client.get("/v1/ai-coach/quota", headers=_h(token)).json()["free_left"]
     assert after == before
-
-
-def test_trainer_question_over_the_limit_is_still_422(client):
-    """트레이너 쪽 기존 한도도 같은 값으로 그대로다."""
-    token = client.post(
-        "/v1/auth/login",
-        data={"username": "trainer@oncare.com", "password": "oncare123"},
-    ).json()["access_token"]
-    member_id = client.get("/v1/trainer/clients", headers=_h(token)).json()[0]["id"]
-
-    r = client.post(
-        f"/v1/trainer/clients/{member_id}/ai-coach",
-        headers=_h(token),
-        json={"message": "가" * (COACH_MESSAGE_MAX_CHARS + 1)},
-    )
-
-    assert r.status_code == 422, r.text
 
 
 # ---- 본문 전체 상한(413) ----

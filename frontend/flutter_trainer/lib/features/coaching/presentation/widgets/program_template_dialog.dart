@@ -120,7 +120,16 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
       ref.invalidate(programTemplatesProvider);
       if (!mounted) return;
       navigator.pop();
+    } on NotFoundError {
+      // 고치려던 템플릿을 다른 탭·기기에서 이미 지웠다(#3101) — 다시 저장해도
+      // 같은 404 다. 목록을 서버와 맞춰 카드를 걷고, 창을 닫으며 알린다.
+      ref.invalidate(programTemplatesProvider);
+      if (!mounted) return;
+      showAppToast(context, l.coachTemplateAlreadyDeleted);
+      navigator.pop();
     } on AppError catch (error) {
+      // 실패해도 목록은 다시 읽는다 — 그사이 서버가 달라졌으면 맞춘다(#3101).
+      ref.invalidate(programTemplatesProvider);
       if (!mounted) return;
       // 저장이 막힌 것은 어느 한 칸의 잘못이 아니다. 창 아래에 세운다.
       setState(

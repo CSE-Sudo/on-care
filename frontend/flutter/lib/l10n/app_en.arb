@@ -2625,10 +2625,6 @@
       }
     }
   },
-  "coachAssignedTrainer": "My trainer",
-  "@coachAssignedTrainer": {
-    "description": "Header of the assigned trainer card."
-  },
   "coachRoutineTitle": "Recommended solo workouts",
   "coachRoutineAiTitle": "AI recommended solo workouts",
   "coachRoutinePastEditHint": "You can add a missed check now. Your trainer will see it as checked later.",
@@ -2731,10 +2727,6 @@
   "coachTrainerNone": "You don't have a trainer yet. Connect a gym and trainer from the Exercise tab",
   "@coachTrainerNone": {
     "description": "Tooltip when no trainer is assigned yet."
-  },
-  "coachTrainerLoadFailed": "Couldn't load your trainer",
-  "@coachTrainerLoadFailed": {
-    "description": "Home trainer card title when the assigned-trainer lookup failed (not a confirmed 'no trainer') (#2843)."
   },
   "coachTrainerRetrying": "Couldn't load your trainer. Trying again",
   "@coachTrainerRetrying": {

@@ -64,16 +64,6 @@ class FakeFollowUpRepository implements FollowUpTaskRepository {
   }
 
   @override
-  Future<List<FollowUpTask>> fetchDue() async {
-    if (failReads) throw const NetworkError();
-    final today = todayKst();
-    return tasks
-        .where((task) => !task.isCompleted && !task.dueDate.isAfter(today))
-        .toList()
-      ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
-  }
-
-  @override
   Future<FollowUpTask> create(
     String clientId, {
     required String title,

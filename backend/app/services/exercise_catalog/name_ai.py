@@ -25,8 +25,10 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 
 from app.core.config import get_settings
+from app.services.ai_log import log_ai_fallback
 
 log = logging.getLogger(__name__)
 
@@ -114,15 +116,22 @@ def resolve_name(name: str, candidates: list[str]) -> tuple[str, float] | None:
         if gemini_truncated(response):
             raise ValueError("운동 이름 해석 응답이 출력 상한에 걸려 끊김")
         data = json.loads(response.text or "{}")
-    except Exception:  # noqa: BLE001 — 어떤 실패든 폴백이 답이다
-        log.warning("운동 이름 해석 실패 — 유형 표로 폴백합니다.", exc_info=True)
+    except Exception as exc:  # noqa: BLE001 — 어떤 실패든 폴백이 답이다
+        # 유형 표로 폴백한다. 예외 메시지·스택은 남기지 않는다(#3090).
+        log_ai_fallback(log, "exercise_name", "error", exc=exc)
         return None
 
+    # JSON 이어도 객체가 아닐 수 있다(`null`·`[]`·`"x"`). 여기서 `.get` 이 터지면
+    # 운동 기록 저장·칼로리 미리보기·트레이너 루틴 추정이 500 이 된다(#3090).
+    if not isinstance(data, dict):
+        return None
     matched = data.get("match")
     if not isinstance(matched, str) or matched not in candidates:
         return None
     try:
         confidence = float(data.get("confidence") or 0)
     except (TypeError, ValueError):
+        return None
+    if not math.isfinite(confidence):
         return None
     return matched, max(0.0, min(1.0, confidence))
