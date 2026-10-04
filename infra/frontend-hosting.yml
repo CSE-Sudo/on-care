@@ -57,6 +57,22 @@ Parameters:
     Type: String
     Default: ''
     Description: Optional ARN of an existing token.actions.githubusercontent.com OIDC provider
+  # 배포 job 이 GitHub Environment 에서 돌면 OIDC subject 가 `environment:<이름>` 이 된다(#3019).
+  # 승인 규칙을 Environment 에 두고, 이 역할은 그 subject 를 믿는다.
+  GitHubEnvironment:
+    Type: String
+    Default: production
+    AllowedPattern: '^[A-Za-z0-9_.-]+$'
+    Description: GitHub Environment the deploy job runs in
+  # 옮겨 가는 동안만 true. 워크플로가 Environment 로 도는 것을 확인한 뒤 false 로 스택을
+  # 다시 적용하면 브랜치 형식 토큰으로는 더 이상 배포할 수 없다.
+  AllowBranchOidcSubject:
+    Type: String
+    Default: 'true'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: Also trust the branch-based subject during the move to GitHub Environments
 
 Rules:
   # 도메인과 인증서는 함께 채우거나 함께 비운다(#3021).
@@ -75,6 +91,7 @@ Conditions:
   HasCustomDomain: !Not [!Equals [!Ref AlternateDomainName, '']]
   CreateGitHubOidcProvider: !Equals [!Ref ExistingGitHubOidcProviderArn, '']
   UseImmutableGitHubOidcSubjectCondition: !Equals [!Ref UseImmutableGitHubOidcSubject, 'true']
+  AllowBranchOidcSubjectCondition: !Equals [!Ref AllowBranchOidcSubject, 'true']
 
 Resources:
   FrontendBucket:
@@ -351,11 +368,12 @@ Resources:
   GitHubFrontendDeployRole:
     Type: AWS::IAM::Role
     Properties:
-      Description: Deploy the main branch frontend to S3 and CloudFront from GitHub Actions
+      Description: Deploy the frontend to S3 and CloudFront from the GitHub production Environment
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
-          - Effect: Allow
+          - Sid: TrustGitHubEnvironment
+            Effect: Allow
             Principal:
               Federated: !If
                 - CreateGitHubOidcProvider
@@ -365,10 +383,30 @@ Resources:
             Condition:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
+              # Environment 이름은 대소문자를 가리지 않는다(저장소의 `Production` = `production`).
+              StringEqualsIgnoreCase:
                 token.actions.githubusercontent.com:sub: !If
                   - UseImmutableGitHubOidcSubjectCondition
-                  - !Sub 'repo:${GitHubOwner}@${GitHubOwnerId}/${GitHubRepository}@${GitHubRepositoryId}:ref:refs/heads/${GitHubBranch}'
-                  - !Sub 'repo:${GitHubOwner}/${GitHubRepository}:ref:refs/heads/${GitHubBranch}'
+                  - !Sub 'repo:${GitHubOwner}@${GitHubOwnerId}/${GitHubRepository}@${GitHubRepositoryId}:environment:${GitHubEnvironment}'
+                  - !Sub 'repo:${GitHubOwner}/${GitHubRepository}:environment:${GitHubEnvironment}'
+          - !If
+            - AllowBranchOidcSubjectCondition
+            - Sid: TrustMainBranchDuringMove
+              Effect: Allow
+              Principal:
+                Federated: !If
+                  - CreateGitHubOidcProvider
+                  - !Ref GitHubOidcProvider
+                  - !Ref ExistingGitHubOidcProviderArn
+              Action: sts:AssumeRoleWithWebIdentity
+              Condition:
+                StringEquals:
+                  token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                  token.actions.githubusercontent.com:sub: !If
+                    - UseImmutableGitHubOidcSubjectCondition
+                    - !Sub 'repo:${GitHubOwner}@${GitHubOwnerId}/${GitHubRepository}@${GitHubRepositoryId}:ref:refs/heads/${GitHubBranch}'
+                    - !Sub 'repo:${GitHubOwner}/${GitHubRepository}:ref:refs/heads/${GitHubBranch}'
+            - !Ref AWS::NoValue
       Policies:
         - PolicyName: deploy-frontend
           PolicyDocument:

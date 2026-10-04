@@ -342,8 +342,8 @@ class Settings(BaseSettings):
     # --- 클라이언트 IP (#2815) ---
     # rate limit 키·감사 로그 IP 를 정할 때 믿는 앞단 프록시 수. `X-Forwarded-For` 를
     # 오른쪽에서 이 번째 값으로 읽는다(`app/core/client_ip.py`). 0 이면 헤더를 보지 않고
-    # 소켓 주소를 쓴다. 비워 두면 운영(prod)은 1, 그 밖은 0 — 운영 배포(App Runner·
-    # Railway·EC2+Nginx)는 모두 프록시 하나 뒤다. 프록시가 늘면 그 수로 맞춘다.
+    # 소켓 주소를 쓴다. 비워 두면 운영(prod)은 1, 그 밖은 0 — 운영 배포(ECS Express Mode
+    # 의 ALB·Railway·EC2+Nginx)는 모두 프록시 하나 뒤다. 프록시가 늘면 그 수로 맞춘다.
     trusted_proxy_hops: Optional[int] = Field(default=None, ge=0, le=5)
 
     @property
