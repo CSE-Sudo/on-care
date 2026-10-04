@@ -2486,6 +2486,18 @@ abstract class AppLocalizations {
   /// **'Couldn\'t send the report. Please try again'**
   String get reportsSendFailed;
 
+  /// No description provided for @reportsSendStaleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The member\'s records changed in the meantime'**
+  String get reportsSendStaleTitle;
+
+  /// No description provided for @reportsSendStaleBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing was sent yet. Review the report rebuilt with the new numbers, then send it'**
+  String get reportsSendStaleBody;
+
   /// Toast when the server says this report send was already processed (409, #2773).
   ///
   /// In en, this message translates to:

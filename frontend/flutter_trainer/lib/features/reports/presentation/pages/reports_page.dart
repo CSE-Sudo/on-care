@@ -137,6 +137,10 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   /// A send is in flight for this client.
   String? _sending;
 
+  /// 전송 직전에 다시 읽은 수치가 화면과 달라 전송을 멈춘 리포트(`회원|주`).
+  /// ③ 에 안내가 서고, 다른 회원·주로 옮기거나 보내고 나면 걷힌다(#3100).
+  String? _staleFor;
+
   /// 다시 보낼지 묻는 창이 떠 있다 — 두 번 눌러 창이 둘 뜨지 않게 한다.
   bool _confirming = false;
 
@@ -278,12 +282,90 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     }
   }
 
+  /// 리포트 탭이 지난번에 보이던가. 탭이 다시 보일 때를 가린다.
+  bool? _visible;
+
+  /// 지금 화면에 선 리포트·작업대 요약의 provider.
+  ///
+  /// 명단을 아직 못 읽었으면 비어 있다 — 그때는 리포트도 아직 그려지지 않았다.
+  List<ProviderBase<Object?>> _shownReports() {
+    final List<TrainerClient>? roster = ref.read(clientsProvider).valueOrNull;
+    if (roster == null || roster.isEmpty) {
+      return const <ProviderBase<Object?>>[];
+    }
+    TrainerClient? inRoster(String? id) => id == null
+        ? null
+        : roster.where((TrainerClient c) => c.id == id).firstOrNull;
+    final TrainerClient? historyClient = _clientId == null
+        ? inRoster(_historyFor)
+        : null;
+    final DateTime? historyWeek = _historyWeek;
+    return <ProviderBase<Object?>>[
+      if (_clientId == null)
+        reportQueueProvider(
+          ReportQueueKey(clients: roster, weekStart: _weekStart),
+        ),
+      for (final TrainerClient? c in <TrainerClient?>[
+        inRoster(_clientId),
+        inRoster(_sentViewFor),
+      ])
+        if (c != null)
+          weeklyReportProvider(ReportKey(client: c, weekStart: _weekStart)),
+      if (historyClient != null && historyWeek != null)
+        weeklyReportProvider(
+          ReportKey(client: historyClient, weekStart: historyWeek),
+        ),
+    ];
+  }
+
+  /// 화면에 설 리포트·작업대 요약을 서버에서 다시 읽는다(#3100).
+  ///
+  /// 실서버 리포트는 한 번 읽고 끝나는 값이고 계정 동안 붙잡혀 있어, 다시 읽지
+  /// 않으면 처음 연 때의 수치가 탭을 오가도 그대로 남았다. 리포트 탭에 들어올
+  /// 때·탭이 다시 보일 때·회원이나 주를 옮길 때 부른다.
+  ///
+  /// **이미 읽어 둔 것만** 다시 읽는다 — 처음 여는 회원·주는 화면이 읽는 것이
+  /// 곧 최신이라, 여기서 또 부르면 같은 요청이 두 번 나간다. 그래서 무엇을
+  /// 다시 읽을지는 지금(화면이 새 값을 구독하기 전) 정하고, 실제 무효화는 build
+  /// 밖인 다음 프레임에 한다. 무효화하는 동안 화면은 이전 값을 그대로 그린다.
+  void _refreshCachedReports() {
+    final List<ProviderBase<Object?>> cached = _shownReports()
+        .where(ref.exists)
+        .toList();
+    if (cached.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      for (final ProviderBase<Object?> p in cached) {
+        ref.invalidate(p);
+      }
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // 다른 화면이 먼저 읽어 둔 리포트로 들어왔을 수 있다.
+    _refreshCachedReports();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 셸은 탭을 모두 살려 두고 보이지 않는 탭의 [TickerMode] 만 끈다 — 다시
+    // 켜지면 다른 탭에 다녀온 것이다.
+    final bool visible = TickerMode.valuesOf(context).enabled;
+    if (visible && _visible == false) _refreshCachedReports();
+    _visible = visible;
+  }
+
   @override
   void didUpdateWidget(ReportsPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.clientId != oldWidget.clientId) {
       _clientId = widget.clientId;
       _missingNotified = null;
+      _staleFor = null;
+      _refreshCachedReports();
       // 다른 회원의 리포트는 처음부터 읽는다 — 앞 회원에서 ③까지 갔다고
       // 이 회원의 수치를 건너뛸 이유가 없다.
       _stage = 0;
@@ -313,7 +395,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     _sentViewFor = null;
     _feedbackDraft = null;
     _feedbackFor = null;
+    _staleFor = null;
     _dropPreview();
+    _refreshCachedReports();
   }
 
   /// 주를 옮기고 URL 에 싣는다.
@@ -502,6 +586,36 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     }
     if (previousCount == null || !mounted) return;
     setState(() => _sending = id);
+    // 보내기 직전에 서버 값을 다시 읽는다(#3100). 화면의 리포트는 편집기를
+    // 연 때의 집계라, 그 사이 회원이 더 기록했으면 옛 수치가 회원에게 나간다.
+    // 다시 읽지 못하면 옛 수치로 조용히 보내지 않는다.
+    final WeeklyReport latest;
+    try {
+      latest = await ref.refresh(
+        weeklyReportProvider(
+          ReportKey(client: report.client, weekStart: report.weekStart),
+        ).future,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _sending = null);
+      showAppToast(context, l.reportsSendFailed, type: AppToastType.error);
+      return;
+    }
+    if (!mounted) return;
+    // 수치가 바뀌었으면 보내지 않고 멈춘다. 손대지 않은 자동 문구도 트레이너가
+    // 확인한 글이라, 새 수치로 몰래 다시 만들어 보내면 본 것과 나간 것이
+    // 달라진다. 화면은 다시 읽은 값으로 미리보기·자동 문구를 새로 그리고(고친
+    // 문구는 그대로 둔다), 트레이너가 확인한 뒤 다시 누른다.
+    if (latest.contentKey != report.contentKey) {
+      setState(() {
+        _sending = null;
+        _staleFor = _feedbackKey(latest);
+        // 고치지 않은 입력창은 새 자동 문구로 다시 만든다.
+        if (_feedbackFor != _feedbackKey(latest)) _draftEpoch++;
+      });
+      return;
+    }
     try {
       final bytes = await _pdfForSend(l, report, message);
       await ref
@@ -547,6 +661,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     ref.invalidate(memberReportHistoryProvider(id));
     setState(() {
       _sending = null;
+      _staleFor = null;
       _sent.add(id);
       // 보내고 나면 작업대로 돌아간다 — 다음 회원이 그 자리에 있다.
       _stage = 0;
@@ -838,7 +953,10 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
             return MemberReportHistoryView(
               client: historyClient,
               onBack: () => context.go(_locationFor(null)),
-              onView: (DateTime week) => setState(() => _historyWeek = week),
+              onView: (DateTime week) => setState(() {
+                _historyWeek = week;
+                _refreshCachedReports();
+              }),
               onOpenThisWeek: () =>
                   _openEditor(historyClient.id, weekStartOf(nowKst())),
             );
@@ -937,8 +1055,10 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               sentSort: _sentSort,
               onSentSortChanged: (value) => setState(() => _sentSort = value),
               onOpen: (entry) => _selectClient(entry.client.id),
-              onOpenSent: (entry) =>
-                  setState(() => _sentViewFor = entry.client.id),
+              onOpenSent: (entry) => setState(() {
+                _sentViewFor = entry.client.id;
+                _refreshCachedReports();
+              }),
               onHistory: (entry) => _openHistory(entry.client.id),
             );
           }
@@ -1058,6 +1178,19 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                       children: <Widget>[
                         // ③ 전송은 회원이 받을 PDF 를 그대로 보여 준다(#2402).
                         // 글을 고치려면 `이전` 으로 ② 에 돌아간다.
+                        if (_stage == ReportEditorStage.send.index &&
+                            _staleFor == _feedbackKey(data)) ...<Widget>[
+                          AppBanner(
+                            key: const ValueKey<String>(
+                              'reports-send-stale-notice',
+                            ),
+                            title: l.reportsSendStaleTitle,
+                            message: l.reportsSendStaleBody,
+                            icon: AppIcons.warning,
+                            tone: AppBannerTone.caution,
+                          ),
+                          const SizedBox(height: OnCareSpacing.s12),
+                        ],
                         if (_stage == ReportEditorStage.send.index)
                           ReportSendPreview(
                             report: data,
