@@ -447,7 +447,7 @@ class DietEntry(Base):
     sugar_g: Mapped[float] = mapped_column(Float, default=0.0)
     engine: Mapped[str] = mapped_column(
         String(20), default=""
-    )  # 인식 엔진(gemini|yolo)
+    )  # 인식 엔진(gemini|litellm|stub)
     # 사진 분석이 만든 식단평(#1932). 앱이 끼니 카드 아래 한 줄로 보여 준다.
     # 손으로 적은 끼니와 이 컬럼 이전 기록은 빈 문자열이다.
     ai_comment: Mapped[str] = mapped_column(Text, default="", server_default="")

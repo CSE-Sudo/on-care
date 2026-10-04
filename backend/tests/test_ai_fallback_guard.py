@@ -50,11 +50,11 @@ def test_prod_refuses_to_start_without_the_gemini_key():
     ("overrides", "needle"),
     [
         ({"recognizer": "stub"}, "RECOGNIZER=stub"),
-        ({"recognizer": "yolo"}, "RECOGNIZER=yolo"),
+        ({"recognizer": "nope"}, "RECOGNIZER=nope"),
         ({"embedder": "hash"}, "EMBEDDER=hash"),
         ({"embedder": "openai", "openai_api_key": ""}, "OPENAI_API_KEY"),
         ({"embedder": "litellm"}, "LITELLM_EMBED_MODEL"),
-        ({"recognizer": "claude"}, "LITELLM_API_KEY"),
+        ({"recognizer": "litellm"}, "LITELLM_API_KEY"),
     ],
 )
 def test_prod_refuses_dev_only_or_unconfigured_ai(overrides, needle):
@@ -65,7 +65,7 @@ def test_prod_refuses_dev_only_or_unconfigured_ai(overrides, needle):
 def test_prod_accepts_litellm_recognizer_and_openai_embedder_when_configured():
     s = _prod(
         gemini_api_key="",
-        recognizer="claude",
+        recognizer="litellm",
         litellm_base_url="https://proxy.example",
         litellm_api_key="vk",
         embedder="openai",
@@ -214,7 +214,7 @@ def test_prod_ignores_an_unknown_engine_instead_of_failing(client, monkeypatch):
     _, h = _register(client)
     monkeypatch.setattr(get_settings(), "env", "prod")
 
-    assert _analyze(client, h, query="?engine=yolo").status_code == 200
+    assert _analyze(client, h, query="?engine=nope").status_code == 200
 
 
 def test_dev_still_honours_the_engine_query(client):

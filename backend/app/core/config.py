@@ -188,7 +188,7 @@ class Settings(BaseSettings):
     attachment_s3_endpoint_url: str = ""
 
     # --- AI 엔진 ---
-    recognizer: str = "gemini"        # gemini | claude(litellm) | yolo
+    recognizer: str = "gemini"        # gemini | litellm
     # 인식 후 공공 식품영양성분 DB 로 영양 수치 보강(정확도↑). 순수 LLM 비교실험 시 false.
     nutrition_db_enrich: bool = True
     #: 참조표에 바로 붙지 않는 운동 이름을 AI 로 종목에 접는다(#1312). 끄면 표
@@ -300,10 +300,6 @@ class Settings(BaseSettings):
     # 헬스장 현장 혜택(PT 재등록 할인·락커 쿠폰·분석용 식판)을 실제로 열지(#2822).
     # 제휴 헬스장이 없는 동안은 꺼 둔다. 데모 시드가 켜진 서버는 이 값과 상관없이 연다.
     gym_benefits_enabled: bool = False
-    # 예전 관리자 이메일 목록. 기동 때 이 주소의 계정을 관리자로 올리던 동작은 없앴다
-    # (#3037) — 그 주소로 먼저 가입한 사람이 관리자가 됐다. 관리자 지정은
-    # `scripts/grant_admin.py` 로만 한다. 값이 남아 있으면 기동 로그가 경고한다.
-    admin_emails: str = ""
 
     # --- 운영 배포 하드닝 ---
     force_https: bool = False       # HTTP→HTTPS 리다이렉트(프록시 뒤면 X-Forwarded-Proto 신뢰)
@@ -589,13 +585,13 @@ class Settings(BaseSettings):
         engine = self.recognizer.strip().lower()
         if engine == "gemini":
             return None if self.gemini_api_key else "RECOGNIZER=gemini 인데 GEMINI_API_KEY 가 비어 있음"
-        if engine == "claude":
+        if engine == "litellm":
             if self.litellm_base_url and self.litellm_api_key:
                 return None
-            return "RECOGNIZER=claude 인데 LITELLM_BASE_URL·LITELLM_API_KEY 가 비어 있음"
+            return "RECOGNIZER=litellm 인데 LITELLM_BASE_URL·LITELLM_API_KEY 가 비어 있음"
         if engine == "stub":
             return "RECOGNIZER=stub 은 개발용 고정 식단이라 운영에서 쓸 수 없음"
-        return f"RECOGNIZER={engine} 는 운영에서 쓸 수 있는 인식기가 아님(gemini|claude)"
+        return f"RECOGNIZER={engine} 는 운영에서 쓸 수 있는 인식기가 아님(gemini|litellm)"
 
     def embedder_problem(self) -> str | None:
         """설정된 임베더를 실제로 쓸 수 없는 이유. 쓸 수 있으면 None. (#2812)"""
