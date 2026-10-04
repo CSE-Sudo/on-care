@@ -16,6 +16,8 @@ import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/chat_pdf_repository.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_invite_repository.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/presentation/controllers/roster_view.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_meal_photo.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_program_draft_repository.dart';
@@ -303,6 +305,28 @@ void main() {
       await session.signOut();
       await settleAsync();
       expect(sub.read(), isEmpty);
+    });
+  });
+
+  group('회원 식단·운동 기록 (#3103)', () {
+    // 계정 동안 붙잡아 두지 않게 바꿨다 — 그래도 B 에게 A 의 기록이 실리지
+    // 않아야 한다. 같은 회원 id 로 두 계정을 연다.
+    const String sharedId = 'shared';
+
+    test('clientDietProvider — B 에게 B 의 식단만', () async {
+      bool dietOf(List<ClientDietEntry> items, TestTrainer t) =>
+          items.any((ClientDietEntry e) => e.items == t.mealItems);
+      final result = await switchAccounts(clientDietProvider(sharedId));
+      expect(dietOf(result.forA.requireValue, TestTrainer.a), isTrue);
+      expectOnlyB(result.seenByB, dietOf);
+    });
+
+    test('clientHistoryProvider — B 에게 B 의 운동 기록만', () async {
+      bool historyOf(List<RoutineHistoryEntry> items, TestTrainer t) =>
+          items.any((RoutineHistoryEntry e) => e.label == t.workoutLabel);
+      final result = await switchAccounts(clientHistoryProvider(sharedId));
+      expect(historyOf(result.forA.requireValue, TestTrainer.a), isTrue);
+      expectOnlyB(result.seenByB, historyOf);
     });
   });
 
