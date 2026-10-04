@@ -25,7 +25,18 @@ import pytest
 #: 모델 출력·예외 메시지에 심어 두는 표식. 로그 어디에도 나오면 안 된다.
 LEAK = "LEAK-MARKER"
 
-_JPEG = b"\xff\xd8\xff\xe0\x00\x10JFIF fake-image-bytes"
+def _real_jpeg() -> bytes:
+    """디코딩되는 진짜 JPEG. 업로드 사진은 디코딩 검사(#3040)를 지나야 분석까지 간다."""
+    import io
+
+    from PIL import Image
+
+    buffer = io.BytesIO()
+    Image.new("RGB", (64, 64), (120, 180, 90)).save(buffer, format="JPEG")
+    return buffer.getvalue()
+
+
+_JPEG = _real_jpeg()
 
 
 def _gemini_parse(payload) -> object:
