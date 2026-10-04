@@ -36,7 +36,8 @@ TrainerClient trainerClientFromJson(Map<String, Object?> json) {
     fatG: _double(json['fat_g']),
     lastRoutine: _str(json['last_routine']),
     lastRoutineDate: _dayOrNull(json['last_routine_date']),
-    weekCompletion: _intList(json['week_completion']),
+    // 걸린 것이 없는 날은 null 이다(#2513) — 자리를 지켜야 요일이 밀리지 않는다.
+    weekCompletion: _nullableIntList(json['week_completion']),
     sodiumWeek: _intList(json['sodium_week']),
     caloriesWeek: _intList(json['calories_week']),
     sugarWeek: _doubleList(json['sugar_week']),
@@ -212,6 +213,11 @@ double _double(Object? v) => v is num ? v.toDouble() : 0;
 List<int> _intList(Object? v) => v is List
     ? v.whereType<num>().map((n) => n.toInt()).toList(growable: false)
     : const <int>[];
+
+/// 빈 자리(null)를 지키는 정수 계열 — 이행률처럼 null 이 "값 없음" 인 것.
+List<int?> _nullableIntList(Object? v) => v is List
+    ? v.map((Object? n) => n is num ? n.toInt() : null).toList(growable: false)
+    : const <int?>[];
 
 /// 당류처럼 소수를 유지해야 하는 계열. `_intList` 로 읽으면 6.3 이 6 이 된다.
 List<double> _doubleList(Object? v) => v is List

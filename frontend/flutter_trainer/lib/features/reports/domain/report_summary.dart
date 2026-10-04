@@ -419,15 +419,8 @@ List<String> summaryCoachingActions(AppLocalizations l, WeeklyReport report) {
     }
   }
 
-  final unlogged = report.weekCompletion.where((v) => v == 0).length;
-  // 아직 오지 않은 날은 세지 않는다 — 이번 주 목요일에 "사흘 비었다" 고 하면
-  // 오지도 않은 날을 나무라는 말이 된다.
-  final pending = report.isCurrentWeek
-      ? report.weekCompletion.length - elapsedWeekdays(nowKst())
-      : 0;
-  if (unlogged - pending > 0) {
-    actions.add(l.reportsActionUnlogged(unlogged - pending));
-  }
+  final int unlogged = unloggedDays(report);
+  if (unlogged > 0) actions.add(l.reportsActionUnlogged(unlogged));
   final completion = report.completionAvg;
   if (completion != null && completion >= 90 && actions.isEmpty) {
     actions.add(l.reportsActionHighCompletion);
@@ -450,12 +443,24 @@ List<String> summaryCoachingActionsAll(
   WeeklyReport report,
 ) {
   final all = <String>[for (final w in summaryWatchpoints(l, report)) w.text];
-  final unlogged = report.weekCompletion.where((v) => v == 0).length;
-  final pending = report.isCurrentWeek
-      ? report.weekCompletion.length - elapsedWeekdays(nowKst())
-      : 0;
-  if (unlogged - pending > 0) {
-    all.add(l.reportsActionUnlogged(unlogged - pending));
-  }
+  final int unlogged = unloggedDays(report);
+  if (unlogged > 0) all.add(l.reportsActionUnlogged(unlogged));
   return all;
+}
+
+/// 걸린 운동을 하나도 하지 않은 날 수(이행률 0). (#2513)
+///
+/// 아직 오지 않은 날은 세지 않는다 — 이번 주 목요일에 "사흘 비었다" 고 하면
+/// 오지도 않은 날을 나무라는 말이 된다. 걸린 것이 없던 날(null)도 회원이 비운
+/// 날이 아니다.
+int unloggedDays(WeeklyReport report) {
+  final List<int?> week = report.weekCompletion;
+  final int upTo = report.isCurrentWeek
+      ? elapsedWeekdays(nowKst())
+      : week.length;
+  int count = 0;
+  for (int i = 0; i < upTo && i < week.length; i++) {
+    if (week[i] == 0) count++;
+  }
+  return count;
 }

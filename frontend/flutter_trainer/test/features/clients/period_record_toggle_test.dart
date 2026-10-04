@@ -88,6 +88,8 @@ void main() {
     expect(calories, isNotNull);
   });
 
+  // 섭취 칼로리와 같은 말로 부르지 않는다(#1465) — 펼친 날 하루 합계는
+  // `총 소모 N kcal` 이다(#2508, 식단 `총 N kcal` 과 같은 자리).
   testWidgets('운동 상세는 소모 칼로리라고 부른다', (tester) async {
     await openSection(tester, 'workout');
     await tester.tap(_periodSegment('이번 주'));
@@ -100,14 +102,14 @@ void main() {
       await tester.tap(tile);
       await tester.pumpAndSettle();
       if (find
-          .textContaining('소모 칼로리', findRichText: true)
+          .textContaining('총 소모', findRichText: true)
           .evaluate()
           .isNotEmpty) {
         break;
       }
     }
 
-    expect(find.textContaining('소모 칼로리', findRichText: true), findsWidgets);
+    expect(find.textContaining('총 소모', findRichText: true), findsWidgets);
   });
 }
 

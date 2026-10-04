@@ -634,19 +634,18 @@ void main() {
       expect(find.text('운동 현황'), findsOneWidget);
       expect(find.text('이번 주 완료율'), findsNothing);
 
-      // 오늘 줄은 토글이 아닌 일반 박스로 항상 펼쳐져 있다.
-      final Finder todayRow = find.byKey(
-        ValueKey<String>('client-day-tile-${ymd(todayKst())}'),
-      );
-      expect(find.text(_todayRowLabel()), findsOneWidget);
-      expect(todayRow, findsOneWidget);
+      // `오늘` 은 날짜 줄 없이 그날 내용만 카드에 담는다 — 식단 `오늘` 처럼.
+      expect(find.text(_todayRowLabel()), findsNothing);
       expect(
-        find.descendant(
-          of: todayRow,
-          matching: find.byIcon(AppIcons.expandMore),
-        ),
+        find.byKey(ValueKey<String>('client-day-tile-${ymd(todayKst())}')),
         findsNothing,
       );
+      // 출처마다 상자 한 장 — 식단 `오늘` 처럼 하루 합계 줄 없이 PT 상자가 선다.
+      expect(
+        find.byKey(ValueKey<String>('workout-day-total-${ymd(todayKst())}')),
+        findsNothing,
+      );
+      expect(find.textContaining('총 '), findsWidgets);
       // 오늘 기록은 펼쳐져 운동 줄이 보인다. 시드의 트레이너 메모·회원
       // 피드백과 완료 배지는 그리지 않는다(#2329).
       expect(_exerciseLines, findsWidgets);
@@ -670,91 +669,34 @@ void main() {
       expect(find.textContaining(skipped.name), findsWidgets);
     });
 
-    testWidgets('아직 하지 않은 개인 운동을 이 화면에서 취소한다 (#1020)', (tester) async {
+    testWidgets('운동 탭에는 개인운동 내리기(X)가 없다 — 바꾸려면 새로 보낸다', (tester) async {
       _useTallSurface(tester);
       await openWorkout(tester, '김민수');
 
-      // 배정된 루틴 목록·PT 이력을 되살린 것이 아니다 — 물릴 수 있는 것만
-      // 온다(#1025 는 그 목록을 걷어낸 채로 둔다).
-      final Finder pending = find.byKey(
-        const ValueKey<String>('workout-pending-routines'),
+      // 오늘 목록은 그대로 보인다.
+      expect(
+        find.byKey(const ValueKey<String>('workout-pending-routines')),
+        findsOneWidget,
       );
-      expect(pending, findsOneWidget);
-      expect(find.textContaining('저강도 유산소 (걷기)'), findsOneWidget);
-
-      final Finder cancel = find.byKey(
-        const ValueKey<String>(
-          'workout-cancel-routine-seed-routine-user-7d4e9a2c5f18-0',
+      expect(find.textContaining('저강도 유산소 (걷기)'), findsWidgets);
+      // 개인운동은 7일이 지나면 내려가고 새로 보내면 교대된다(#2514) — 기록을
+      // 확인하는 이 탭에 회원 목록을 고치는 버튼을 두지 않는다.
+      expect(
+        find.byWidgetPredicate(
+          (Widget w) =>
+              w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith(
+                'workout-cancel-routine-',
+              ),
         ),
+        findsNothing,
       );
-      expect(cancel, findsOneWidget);
-
-      // 확인 없이 지우지 않는다.
-      await tester.tap(cancel);
-      await settle(tester);
-      expect(find.text('프로그램을 삭제할까요?'), findsOneWidget);
-      await tester.tap(
-        find.descendant(of: find.byType(AppDialog), matching: find.text('취소')),
-      );
-      await settle(tester);
-      expect(find.textContaining('저강도 유산소 (걷기)'), findsOneWidget);
-
-      // 확인하면 실제로 사라진다 — 데모 저장소가 배정을 들고 있어 취소가
-      // 목록에 반영된다(#1020).
-      await tester.tap(cancel);
-      await settle(tester);
-      await tester.tap(
-        find.descendant(
-          of: find.byType(AppDialog),
-          matching: find.widgetWithText(AppButton, '삭제'),
-        ),
-      );
-      await settle(tester);
-      expect(find.textContaining('저강도 유산소 (걷기)'), findsNothing);
-      // 나머지 배정은 그대로다.
-      expect(find.textContaining('하체 스트레칭'), findsOneWidget);
-
-      // 이번 주·전체는 지나간 기록을 되짚는 화면이라 '앞으로 할 일' 은 접는다.
-      await tester.tap(_periodSegment('이번 주'));
-      await settle(tester);
-      expect(pending, findsNothing);
-      expect(find.textContaining('하체 스트레칭'), findsNothing);
-
-      await tester.tap(_periodSegment('오늘'));
-      await settle(tester);
-      expect(pending, findsOneWidget);
+      expect(find.byTooltip('개인운동 내리기'), findsNothing);
     });
 
-    testWidgets('취소는 이미 완료한 운동 기록을 건드리지 않는다 (#1020)', (tester) async {
-      _useTallSurface(tester);
-      await openWorkout(tester, '김민수');
-
-      // 오늘 줄은 처음부터 펼쳐져 있고 그 안에 완료한 기록이 있다.
-      final int linesBefore = _exerciseLines.evaluate().length;
-      expect(linesBefore, greaterThan(0));
-
-      await tester.tap(
-        find.byKey(
-          const ValueKey<String>(
-            'workout-cancel-routine-seed-routine-user-7d4e9a2c5f18-0',
-          ),
-        ),
-      );
-      await settle(tester);
-      await tester.tap(
-        find.descendant(
-          of: find.byType(AppDialog),
-          matching: find.widgetWithText(AppButton, '삭제'),
-        ),
-      );
-      await settle(tester);
-
-      // 배정만 사라지고 기록은 그대로다 — 한 일이 없던 일이 되지 않는다.
-      expect(find.textContaining('저강도 유산소 (걷기)'), findsNothing);
-      expect(_exerciseLines.evaluate().length, linesBefore);
-    });
-
-    testWidgets('오늘 한 개인 운동도 남아 오늘 완료로 보이고 취소할 수 있다 (#2161)', (tester) async {
+    testWidgets('오늘 한 개인운동도 남아 완료로, 안 한 것은 아직으로 보인다 (#2161, #2508)', (
+      tester,
+    ) async {
       _useTallSurface(tester);
       await pumpTrainerApp(
         tester,
@@ -769,7 +711,10 @@ void main() {
 
       // 개인 운동은 매일 새로 체크하는 목록이다 — 오늘 한 것도 내일 다시
       // 걸리므로 이 자리에 남고, 오늘 했는지만 표시한다.
-      expect(find.text('매일 하는 개인 운동'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('workout-pending-routines')),
+        findsOneWidget,
+      );
       expect(find.textContaining('아직 안 한 루틴'), findsOneWidget);
       expect(find.textContaining('이미 한 루틴'), findsOneWidget);
       expect(
@@ -780,14 +725,9 @@ void main() {
         find.byKey(const ValueKey<String>('workout-routine-done-todo-1')),
         findsNothing,
       );
-      // 취소는 목록에서 내릴 뿐 이미 한 기록을 지우지 않으니, 완료한 것도
-      // 물릴 수 있다 — 서버는 행을 남기고 그날부터 목록에서 뺀다.
+      // 아직 안 한 줄은 `아직` 이다 — 전체 개수 줄은 두지 않는다(#2508).
       expect(
-        find.byKey(const ValueKey<String>('workout-cancel-routine-todo-1')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey<String>('workout-cancel-routine-done-1')),
+        find.byKey(const ValueKey<String>('workout-routine-pending-todo-1')),
         findsOneWidget,
       );
     });
@@ -884,7 +824,7 @@ void main() {
       );
       expect(card, findsOneWidget);
       expect(
-        find.descendant(of: card, matching: find.text('직접 기록')),
+        find.descendant(of: card, matching: find.text('회원 추가')),
         findsOneWidget,
       );
       Finder ownLine(int i) =>
@@ -923,12 +863,17 @@ void main() {
       // 그건 배포본에도 있는 것이고 그림자가 없다.
       // 판은 공용 [AppCard] 다 — 흰 바탕·네 변 같은 테두리가 컴포넌트에 묶여
       // 있고, 선택 채움(브랜드색)으로 칠해지지 않아야 한다.
-      final Iterable<AppCard> cards = tester.widgetList<AppCard>(
-        find.descendant(
-          of: find.byKey(const ValueKey<String>('exercise-daily-records')),
-          matching: find.byType(AppCard),
-        ),
+      // `오늘` 은 기록 판 자체가 카드 한 장이다(날짜 줄 없이) — 판과 그 안의
+      // 카드를 함께 본다.
+      final Finder records = find.byKey(
+        const ValueKey<String>('exercise-daily-records'),
       );
+      final Iterable<AppCard> cards = <AppCard>[
+        if (tester.widget(records) case final AppCard self) self,
+        ...tester.widgetList<AppCard>(
+          find.descendant(of: records, matching: find.byType(AppCard)),
+        ),
+      ];
       expect(cards, isNotEmpty);
       for (final AppCard card in cards) {
         expect(card.selected, isFalse, reason: '기록 카드에 색이 다시 입혀졌습니다.');
@@ -975,8 +920,11 @@ void main() {
       await settle(tester);
       await tester.tap(retry);
       await settle(tester);
+      final Finder todayTotal = find.byKey(
+        const ValueKey<String>('exercise-daily-records'),
+      );
       await tester.scrollUntilVisible(
-        find.text(_todayRowLabel()),
+        todayTotal,
         150,
         scrollable: detailScrollable('seed-client-1'),
       );
@@ -985,7 +933,7 @@ void main() {
           container.read(clientRepositoryProvider)
               as _HistoryFailsOnceRepository;
       expect(repository.watchHistoryCalls, 2);
-      expect(find.text(_todayRowLabel()), findsOneWidget);
+      expect(todayTotal, findsOneWidget);
     });
   });
 }

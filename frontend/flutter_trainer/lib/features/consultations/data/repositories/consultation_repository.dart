@@ -781,31 +781,41 @@ final pendingConsultationsOnceProvider =
 /// The roster is invalidated too — accepting is precisely the moment a new
 /// client appears, and a stale 고객 tab would make the trainer wonder
 /// whether the approval worked.
+///
+/// 위젯의 `WidgetRef` 가 아니라 [ProviderContainer] 를 받는다(#3103). 무효화는
+/// 서버 응답 **뒤에** 하는데, 그사이 상담 창이 닫히거나 필터가 바뀌거나 폴링이
+/// 승인된 요청을 목록에서 빼면 카드가 사라진다. 사라진 위젯의 `ref` 는
+/// `StateError` 를 던져 명단·일정·대시보드 상담 카드 갱신이 모두 빠졌다.
+/// 부르는 쪽이 await 전에 `ProviderScope.containerOf` 로 잡아 넘긴다.
 Future<ConsultationAcceptResult> acceptConsultation(
-  WidgetRef ref,
+  ProviderContainer container,
   String id,
 ) async {
-  final result = await ref.read(consultationRepositoryProvider).accept(id);
-  _refreshAfterDecision(ref);
-  ref.invalidate(clientsProvider);
+  final result = await container
+      .read(consultationRepositoryProvider)
+      .accept(id);
+  _refreshAfterDecision(container);
+  container.invalidate(clientsProvider);
   if (result.scheduleCreated) {
-    ref.invalidate(todayScheduleProvider);
-    ref.invalidate(scheduleForDateProvider);
-    ref.invalidate(bookedDatesProvider);
-    ref.invalidate(scheduleRangeProvider);
-    ref.invalidate(clientSessionsProvider);
+    container.invalidate(todayScheduleProvider);
+    container.invalidate(scheduleForDateProvider);
+    container.invalidate(bookedDatesProvider);
+    container.invalidate(scheduleRangeProvider);
+    container.invalidate(clientSessionsProvider);
   }
   return result;
 }
 
 /// Rejects a request. The roster is untouched, so it is not invalidated.
+///
+/// [acceptConsultation] 과 같은 이유로 [ProviderContainer] 를 받는다(#3103).
 Future<void> rejectConsultation(
-  WidgetRef ref,
+  ProviderContainer container,
   String id, {
   String? note,
 }) async {
-  await ref.read(consultationRepositoryProvider).reject(id, note: note);
-  _refreshAfterDecision(ref);
+  await container.read(consultationRepositoryProvider).reject(id, note: note);
+  _refreshAfterDecision(container);
 }
 
 /// 상담 결정 뒤 다시 읽을 것 — 인박스 목록, 배지 수, 대시보드 상담 미션(#2887).
@@ -817,8 +827,8 @@ final List<ProviderOrFamily> consultationDecisionRefreshTargets =
       pendingConsultationsOnceProvider,
     ]);
 
-void _refreshAfterDecision(WidgetRef ref) {
+void _refreshAfterDecision(ProviderContainer container) {
   for (final ProviderOrFamily target in consultationDecisionRefreshTargets) {
-    ref.invalidate(target);
+    container.invalidate(target);
   }
 }

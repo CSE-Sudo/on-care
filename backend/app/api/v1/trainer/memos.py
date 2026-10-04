@@ -80,6 +80,7 @@ def trainer_create_memo(
             insight_kind=payload.insight_kind,
             ref_id=payload.ref_id,
             ref_date=payload.ref_date,
+            ref_kind=payload.ref_kind,
             category=payload.category,
         )
     except trainer_routines_service.RoutineNotFound as exc:

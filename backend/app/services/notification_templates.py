@@ -445,6 +445,9 @@ def _member_routine_program(args: Args, locale: Locale) -> Rendered:
     # `개인운동만` 을 여럿 보내면 운동 하나가 세션 하나다(#2581). 프로그램 이름
     # (예전 `이번 주 개인운동`)과 `세션 N개` 는 개인운동 묶음에 맞지 않는다.
     routine_only = bool(args.get("routine_only")) and multi
+    # 미래 시작일로 보낸 개인운동(#2656) — 알림은 지금 가지만 회원 목록에는
+    # 그날부터 뜬다. 제목이 그날을 말해야 오늘 열어 보고 헷갈리지 않는다.
+    starts_on = _starts_on(args)
     if locale == "ko":
         if routine_only:
             body = f"개인운동 {sessions}개 · {duration}"
@@ -452,6 +455,8 @@ def _member_routine_program(args: Args, locale: Locale) -> Rendered:
             body = f"{name} · 세션 {sessions}개 · {duration}"
         else:
             body = f"{name} · {duration}"
+        if starts_on is not None:
+            return f"{starts_on.month}/{starts_on.day}부터 할 개인운동이 왔어요", body
         return "새 운동 루틴이 배정되었어요", body
     if routine_only:
         body = (
@@ -462,7 +467,30 @@ def _member_routine_program(args: Args, locale: Locale) -> Rendered:
         body = f"{name} · {_plural(sessions, 'session', 'sessions')} · {duration}"
     else:
         body = f"{name} · {duration}"
+    if starts_on is not None:
+        return (
+            f"Personal exercises starting {_MONTHS[starts_on.month - 1]} {starts_on.day}",
+            body,
+        )
     return "New workout routine assigned", body
+
+
+#: 영어 알림의 달 이름. `strftime("%b")` 는 서버 로케일을 탄다.
+_MONTHS = (
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+)
+
+
+def _starts_on(args: Args) -> date | None:
+    """`starts_on`(YYYY-MM-DD) → 날짜. 없거나 깨졌으면 None. (#2656)"""
+    raw = args.get("starts_on")
+    if not isinstance(raw, str):
+        return None
+    try:
+        return date.fromisoformat(raw)
+    except ValueError:
+        return None
 
 
 @_template(MEMBER_TRAINER_CONNECTED)

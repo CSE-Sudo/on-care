@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/network/dio_client.dart';
@@ -39,10 +41,23 @@ final dietTrayProvider = FutureProvider.autoDispose<DietTray>(
 
 /// MY 프로필 이름 옆에 단 펫(#2021). MY 탭이 들고 있는 동안 살아 있고, 사용처에서
 /// 펫을 달면 다시 읽는다. 읽지 못하면 이름만 그린다 — 꾸밈 때문에 프로필이 비지 않는다.
-final profilePetProvider = FutureProvider<ProfilePet?>(
-  (ref) => ref.watch(benefitsRepositoryProvider).fetchProfilePet(),
-  name: 'profilePet',
-);
+///
+/// 만료는 받을 때 한 번만 판정되므로, 받은 남은 시간이 지나면 한 번 다시 읽는다
+/// (#3098) — 앱을 켜 둔 채 만료 시각을 넘겨도 이름 옆 펫이 남지 않는다. 서버는 만료
+/// 펫을 내려 주지 않으므로 다시 읽은 값이 비어 사라진다.
+final profilePetProvider = FutureProvider<ProfilePet?>((ref) async {
+  final ProfilePet? pet = await ref
+      .watch(benefitsRepositoryProvider)
+      .fetchProfilePet();
+  if (pet != null) {
+    final Timer expiry = Timer(
+      Duration(seconds: pet.remainingSeconds),
+      ref.invalidateSelf,
+    );
+    ref.onDispose(expiry.cancel);
+  }
+  return pet;
+}, name: 'profilePet');
 
 /// 포인트로 받은 주간 리포트(#2022). 내 혜택 화면이 연 동안 살아 있고, 사용처에서
 /// 리포트를 받으면 다시 읽는다.

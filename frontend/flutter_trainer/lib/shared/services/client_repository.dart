@@ -26,6 +26,8 @@ import 'package:oncare_trainer/features/clients/data/dtos/client_dtos.dart'
         clientExerciseItems,
         clientSignalsFromJson;
 import 'package:oncare_trainer/features/clients/data/repositories/dio_client_repository.dart';
+import 'package:oncare_trainer/features/clients/data/repositories/routine_days_repository.dart'
+    show demoRowIsRoutine, demoTodayAssignedRoutines;
 import 'package:oncare_trainer/features/clients/domain/diet_analysis_rules.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
@@ -789,8 +791,10 @@ class DriftClientRepository implements ClientRepository {
       final row = await (_db.select(
         _db.trainerClients,
       )..where((table) => table.id.equals(clientId))).getSingle();
+      // 걸린 것이 없던 날은 null 로 저장돼 있다(#2513) — 이 계열은 운동 현황의
+      // 막대 높이라 0 으로 읽는다.
       final week = (jsonDecode(row.weekCompletionJson) as List<Object?>)
-          .map((value) => (value as num).toInt())
+          .map((value) => value is num ? value.toInt() : 0)
           .toList(growable: false);
       return <int>[for (var d = 0; d < 7; d++) d < week.length ? week[d] : 0];
     }
@@ -1238,14 +1242,46 @@ class DriftClientRepository implements ClientRepository {
     if (row == null) return const <ClientExerciseItem>[];
     final Object? decoded = jsonDecode(row.exercisesJson);
     if (decoded is! List<Object?>) return const <ClientExerciseItem>[];
+    // 오늘 한 개인운동은 실서버처럼 출처 `assigned_routine` 행이다(#2508) —
+    // 걸린 개인운동과 이름이 같은 오늘 행을 그 체크로 읽는다. 날짜별 이행
+    // 데모가 같은 규칙으로 `완료` 를 매긴다.
+    final Map<String, String> assigned = ymd(date) == ymd(nowKst())
+        ? await demoTodayAssignedRoutines(_db, clientId)
+        : const <String, String>{};
+    ClientExerciseItem tag(ClientExerciseItem item) {
+      if (item.source.isNotEmpty) return item;
+      final String? routineId = assigned.entries
+          .where((e) => demoRowIsRoutine(item.name, e.key))
+          .map((e) => e.value)
+          .firstOrNull;
+      if (routineId == null) return item;
+      return ClientExerciseItem.fromJson(<String, Object?>{
+        ...item.toJson(),
+        'source': 'assigned_routine',
+        'assigned_routine_id': routineId,
+      });
+    }
+
     return <ClientExerciseItem>[
       for (final Object? item in decoded)
         // 이름만 싣던 옛 시드도 읽는다 — 그때는 적힌 그대로 보여 준다.
         if (item is Map<String, Object?>)
-          ClientExerciseItem.fromJson(item)
+          tag(_withDemoCalories(ClientExerciseItem.fromJson(item)))
         else if (item is String)
-          ClientExerciseItem.nameOnly(item),
+          tag(ClientExerciseItem.nameOnly(item)),
     ];
+  }
+
+  /// 운동 한 줄의 소모 kcal 을 채운다 — 그날 합계(주간 집계)와 같은 분당 소모로 센다. 그래야 펼친 날 줄마다의 kcal 을 더하면
+  /// `총 소모` 가 된다(#2508). 실서버는 운동 기록 행에 값을 싣는다.
+  static ClientExerciseItem _withDemoCalories(ClientExerciseItem item) {
+    if (item.calories != null) return item;
+    final (int m, _DemoKind kind) = _demoMinutes(item);
+    if (m <= 0) return item;
+    return ClientExerciseItem.fromJson(<String, Object?>{
+      ...item.toJson(),
+      'calories': m * kind.kcalPerMinute,
+    });
   }
 
   ClientDietEntry _toDietEntry(ClientDietEntryRow row) => ClientDietEntry(
@@ -1317,8 +1353,10 @@ TrainerClient trainerClientFromRow(
   TrainerClientRow row, {
   bool registered = true,
 }) {
-  final week = (jsonDecode(row.weekCompletionJson) as List<Object?>)
-      .map((e) => e as int)
+  // 걸린 것이 없던 날은 null 이다(#2513). 웹에서는 숫자가 double 로 읽힐 수 있어
+  // num 으로 받는다.
+  final List<int?> week = (jsonDecode(row.weekCompletionJson) as List<Object?>)
+      .map((Object? e) => e is num ? e.toInt() : null)
       .toList();
   final sodiumWeek = (jsonDecode(row.sodiumWeekJson) as List<Object?>)
       // On web, JSON numbers can decode as double — `as int` would
@@ -1381,14 +1419,6 @@ final clientRepositoryProvider = Provider<ClientRepository>((ref) {
       .listen((_) => repository.refreshRoster());
   ref.onDispose(accessLost.cancel);
   return repository;
-});
-
-/// Streams the client list for the 고객 관리 tab.
-final managedClientsProvider = StreamProvider.autoDispose<List<TrainerClient>>((
-  ref,
-) {
-  keepAliveForAccount(ref);
-  return ref.watch(clientRepositoryProvider).watchClients();
 });
 
 final clientsProvider = StreamProvider.autoDispose<List<TrainerClient>>((ref) {
@@ -1495,9 +1525,13 @@ final todayPendingSessionCountProvider = Provider<AsyncValue<int>>((ref) {
 });
 
 /// Streams a client's meals for the 식단 sub-tab.
+///
+/// **화면이 보는 동안만** 산다(#3103). 실서버 스트림은 30초마다 다시 읽는
+/// 폴링이라, 계정 동안 붙잡아 두면(`keepAliveForAccount`) 한 번 연 회원마다
+/// 로그아웃할 때까지 요청이 나갔다. 알림 목록(#2767)과 같은 처리다. 계정
+/// 경계는 저장소 provider 가 [accountScopeProvider] 를 보므로 그대로 지켜진다.
 final clientDietProvider = StreamProvider.autoDispose
     .family<List<ClientDietEntry>, String>((ref, clientId) {
-      keepAliveForAccount(ref);
       return ref.watch(clientRepositoryProvider).watchDiet(clientId);
     });
 
@@ -1614,9 +1648,10 @@ final clientExercisesOnProvider = FutureProvider.autoDispose
     });
 
 /// Streams a client's workout history for the 운동 sub-tab.
+///
+/// [clientDietProvider] 와 같이 **화면이 보는 동안만** 산다(#3103).
 final clientHistoryProvider = StreamProvider.autoDispose
     .family<List<RoutineHistoryEntry>, String>((ref, clientId) {
-      keepAliveForAccount(ref);
       return ref.watch(clientRepositoryProvider).watchHistory(clientId);
     });
 

@@ -17,7 +17,7 @@ class ReportQueueSummary {
     required this.sessionsBooked,
     required this.sessionsDone,
     required this.completionAvg,
-    this.weekCompletion = const <int>[],
+    this.weekCompletion = const <int?>[],
   });
 
   /// [report] 에서 작업대가 쓰는 값만 옮긴다 — 데모와 테스트 저장소가 쓴다.
@@ -43,7 +43,7 @@ class ReportQueueSummary {
   final int? completionAvg;
 
   /// 월→일 7칸 이행률.
-  final List<int> weekCompletion;
+  final List<int?> weekCompletion;
 
   /// 작업대 줄에 싣는 [WeeklyReport] — 큐가 읽는 값만 채운 것이다.
   ///

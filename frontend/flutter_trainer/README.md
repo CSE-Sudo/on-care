@@ -232,7 +232,7 @@ lib/
 | AI 코칭 | `AI루틴`에서 승격 — 프로그램 템플릿, 전송 이력 추가 |
 | 리포트 | 신규. 운영 지표 + 회원 주간 리포트 → 회원 채팅으로 전송 |
 | 내 정보 | nav에서 사이드바 footer로, `내 정보`/`설정` 2섹션 |
-| 백엔드 | `PUT /trainer/me`, `POST /trainer/clients/{id}/ai-coach`, `GET·POST .../report[/send]` |
+| 백엔드 | `PUT /trainer/me`, `GET·POST .../report[/send]` |
 
 ## 로드맵
 

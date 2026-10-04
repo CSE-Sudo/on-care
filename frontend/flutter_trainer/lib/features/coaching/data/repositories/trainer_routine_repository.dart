@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
@@ -169,6 +170,7 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
       type: routine.type,
       reason: routine.reason,
       source: routine.source,
+      effect: routine.effect,
       date: routine.date,
       intensity: routine.intensity,
       sets: routine.sets,
@@ -208,8 +210,8 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
     final added = <AssignedRoutine>[
       for (final session in sessions)
         if (session is Map<String, Object?>)
-          for (final ex in (session['exercises'] as List<Object?>? ??
-              const <Object?>[]))
+          for (final ex
+              in (session['exercises'] as List<Object?>? ?? const <Object?>[]))
             if (ex is Map<String, Object?>)
               AssignedRoutine(
                 id: _newId((ex['name'] as String?) ?? ''),
@@ -218,6 +220,7 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
                 type: (ex['type'] as String?) ?? '기타',
                 reason: '',
                 source: (ex['source'] as String?) ?? 'trainer',
+                effect: (ex['effect'] as String?) ?? '',
                 date: date,
                 sets: (ex['sets'] as num?)?.toInt(),
                 reps: (ex['reps'] as num?)?.toInt(),
@@ -239,6 +242,10 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
     final Set<String> newIds = <String>{
       for (final AssignedRoutine r in added) r.id,
     };
+    // 보낸 날은 전송한 오늘이다 — 시작일을 미래로 골라도 서버처럼 행을 만든
+    // 날을 보낸 날로 적는다(#2656). 시작일로 적으면 데모 이력만 '내일' 이 된다.
+    final DateTime now = nowKst();
+    final DateTime sentOn = DateTime(now.year, now.month, now.day);
     final DemoRoutineStore? store = _store;
     if (store != null) {
       // 이 전송의 개인운동을 채운 AI 제안을 닫는다 — 실서버가 배정과 같은
@@ -258,10 +265,12 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
         memberId,
         StoredDelivery(
           kind: DeliveryKinds.routineOnly,
-          sentOn: date,
+          sentOn: sentOn,
           routines: added,
         ),
         replacing: previous,
+        // 미래 시작일이면 이전 개인운동은 그날 교대한다 — 서버와 같다(#2656).
+        retireOn: personal ? date : null,
       );
       if (personal) await store.writePersonalIds(memberId, newIds);
       return;
@@ -276,7 +285,7 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
     if (personal) _personalIds[memberId] = newIds;
     _lastDelivery[memberId] = SentDelivery(
       kind: DeliveryKinds.routineOnly,
-      sentOn: date,
+      sentOn: sentOn,
       routines: added,
     );
   }

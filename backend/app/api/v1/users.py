@@ -27,6 +27,7 @@ from app.core import clock
 from app.core.config import get_settings
 from app.core.locale import get_request_locale
 from app.core.rate_limit import (
+    PasswordChangeGuard,
     check_key,
     clear_failures,
     ensure_unlocked,
@@ -551,23 +552,33 @@ def change_my_password(
 
     소셜 로그인 전용 계정(비밀번호 없음)은 409 다 — 확인할 현재 비밀번호가 없다.
     현재 비밀번호 불일치는 401 이 아니라 400 이다. 토큰은 유효하므로 앱이
-    로그아웃으로 오인하면 안 된다. 틀린 비밀번호를 연달아 맞혀 보는 것은 IP 별
-    rate limit 이 막는다.
+    로그아웃으로 오인하면 안 된다.
+
+    시도 제한(#3087): IP 한도에 더해 트레이너와 같은 **계정 단위 실패 잠금**을 건다.
+    접근 토큰을 손에 넣은 쪽이 IP 를 바꿔 가며 현재 비밀번호를 맞혀 보면, 맞히는
+    순간 다른 기기 토큰까지 끊고 계정을 가져간다. `login_lockout_seconds` 창 안에
+    `password_change_max_failures` 번 틀리면 남은 시간 동안 429 다. 잠금 판정은
+    비밀번호 확인보다 먼저 하고, 소셜 전용 계정(409)은 세지 않는다.
     """
     if not user.hashed_password:
         raise HTTPException(
             status_code=409,
             detail="소셜 로그인 계정은 비밀번호가 없어 바꿀 수 없습니다.",
         )
+    guard = PasswordChangeGuard(user.id)
+    guard.ensure_unlocked()
     if not verify_password(payload.current_password, user.hashed_password):
+        guard.record_failure()
         audit(
             db,
             event="auth.password_change",
             user_id=user.id,
             ip=client_ip(request),
             success=False,
+            detail="current_password_mismatch",
         )
         raise HTTPException(status_code=400, detail="현재 비밀번호가 일치하지 않습니다.")
+    guard.clear()
     if verify_password(payload.new_password, user.hashed_password):
         raise HTTPException(status_code=400, detail="현재와 다른 비밀번호를 입력해 주세요.")
     user.hashed_password = hash_password(payload.new_password)
@@ -918,7 +929,11 @@ def refresh(
         # 회전해 주면 비밀번호를 바꾼 의미가 없다. 폐기 표에도 적어 같은 토큰이
         # 다시 와도 같은 결과가 되게 한다(세대 칸이 되돌려져도 살아나지 않게).
         token_revocation.revoke(
-            db, jti=claims.jti, user_id=user.id, expires_at=claims.expires_at
+            db,
+            jti=claims.jti,
+            user_id=user.id,
+            expires_at=claims.expires_at,
+            reason=token_revocation.REASON_STALE,
         )
         audit(
             db,
@@ -928,21 +943,61 @@ def refresh(
             success=False,
         )
         raise invalid
+    if claims.session_id is not None and token_revocation.is_session_revoked(
+        db, claims.session_id
+    ):
+        # 재사용으로 탈취가 의심돼 끊긴 세션의 토큰(#3086).
+        audit(
+            db,
+            event="auth.refresh_session_revoked",
+            user_id=user.id,
+            ip=client_ip(request),
+            success=False,
+        )
+        raise invalid
+    if auth_tokens.session_expired(claims):
+        # 최초 로그인으로부터 세션 절대 수명이 지났다 — 다시 로그인한다(#3086).
+        audit(
+            db,
+            event="auth.refresh_session_expired",
+            user_id=user.id,
+            ip=client_ip(request),
+            success=False,
+        )
+        raise invalid
     first_use = token_revocation.revoke(
-        db, jti=claims.jti, user_id=user.id, expires_at=claims.expires_at
+        db,
+        jti=claims.jti,
+        user_id=user.id,
+        expires_at=claims.expires_at,
+        reason=token_revocation.REASON_ROTATED,
     )
     if not first_use:
-        # 로그아웃된 토큰이거나 이미 회전에 쓰인 토큰이다. 어느 쪽이든 여기서 끝난다.
+        # 로그아웃된 토큰이거나 이미 회전에 쓰인 토큰이다. 이 요청은 여기서 끝나고,
+        # 유예를 넘긴 회전 토큰이면 그 세션 전체를 끊는다(#3086).
         audit(
             db,
             event="auth.refresh_reuse",
             user_id=user.id,
             ip=client_ip(request),
             success=False,
+            detail=token_revocation.handle_reuse(
+                db,
+                jti=claims.jti,
+                user_id=user.id,
+                session_id=claims.session_id,
+                session_expires_at=auth_tokens.session_expires_at(claims),
+            ),
         )
         raise invalid
     # 웹으로 발급된 토큰은 헤더가 없어도 웹 수명으로 회전한다(#2828).
-    return auth_tokens.issue_token_pair(user, web=claims.web)
+    # 로그인 세션 이름·최초 인증 시각은 그대로 이어 받는다(#3086).
+    return auth_tokens.issue_token_pair(
+        user,
+        web=claims.web,
+        session_id=claims.session_id,
+        auth_time=claims.auth_time,
+    )
 
 
 @router.post(
@@ -976,7 +1031,11 @@ def logout(
         )
         return None
     token_revocation.revoke(
-        db, jti=claims.jti, user_id=claims.subject, expires_at=claims.expires_at
+        db,
+        jti=claims.jti,
+        user_id=claims.subject,
+        expires_at=claims.expires_at,
+        reason=token_revocation.REASON_LOGOUT,
     )
     audit(
         db,
@@ -1017,7 +1076,7 @@ def request_password_reset(
     settings = get_settings()
     if settings.rate_limit_enabled:
         limiter.check(
-            f"pw-reset-email:{payload.email.lower()}",
+            f"pw-reset-email:{normalize_email(payload.email)}",
             settings.password_reset_email_per_window,
             settings.password_reset_email_window_minutes * 60.0,
         )

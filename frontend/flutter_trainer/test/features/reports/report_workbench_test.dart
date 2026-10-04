@@ -325,7 +325,8 @@ void main() {
           sodiumMg: 4200,
           calories: 3400,
           sugarG: 90,
-          weekCompletion: const <int>[80, 0, 70, 0, 0, 60, 90],
+          // 걸린 것이 없던 날은 null — 평균은 걸린 날만(#2513).
+          weekCompletion: const <int?>[80, null, 70, null, null, 60, 90],
           // 서버가 식단 신호를 실어 보내도 작업대에는 오지 않는다.
           signals: const <ClientSignal>[
             ClientSignal(ClientSignalKind.calorieOff, percent: 22, over: true),

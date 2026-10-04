@@ -301,6 +301,100 @@ def test_revoke_never_takes_the_balance_below_zero(client, db_session):
     assert revoke.delta == -10
 
 
+def _set_balance(db_session, member_id: str, value: int) -> None:
+    """그사이 포인트를 써서 잔액이 [value] 만 남았다고 둔다."""
+    from app.models.models import HealthProfile
+
+    profile = db_session.scalar(
+        select(HealthProfile).where(HealthProfile.user_id == member_id)
+    )
+    profile.activity_points = value
+    db_session.commit()
+
+
+def _delete_exercise(client, headers, session_id: str) -> None:
+    r = client.delete(f"/v1/exercise/sessions/{session_id}", headers=headers)
+    assert r.status_code == 200, r.text
+
+
+def test_revoke_of_zero_points_keeps_the_daily_slot(client, db_session):
+    # 잔액 0 에서 지운 적립은 회수가 0P 다 — 그 칸이 풀리면 받은 포인트를 쓰고
+    # 지웠다 다시 기록하는 반복으로 한도가 없어진다. (#3084)
+    h = _register(client)
+    member_id = client.get("/v1/users/me", headers=h).json()["id"]
+    sessions = [_add_exercise(client, h) for _ in range(3)]
+    _set_balance(db_session, member_id, 0)
+
+    _delete_exercise(client, h, sessions[0]["id"])
+
+    assert _balance(client, h) == 0
+    assert _add_exercise(client, h)["points"] == {"awarded": 0, "balance": 0}
+
+
+def test_partial_revoke_keeps_the_daily_slot(client, db_session):
+    h = _register(client)
+    member_id = client.get("/v1/users/me", headers=h).json()["id"]
+    sessions = [_add_exercise(client, h) for _ in range(3)]
+    _set_balance(db_session, member_id, 10)
+
+    _delete_exercise(client, h, sessions[0]["id"])
+
+    # 20P 적립에서 10P 만 회수됐다 — 칸은 그대로다.
+    assert _balance(client, h) == 0
+    assert _add_exercise(client, h)["points"]["awarded"] == 0
+
+
+def test_spend_delete_and_record_again_cannot_exceed_the_daily_cap(
+    client, db_session
+):
+    # 이슈 재현 시나리오: 3건 기록 → 50P 사용 → 3건 삭제 → 다시 3건. (#3084)
+    from app.models.models import PointsLedger
+
+    h = _register(client)
+    member_id = client.get("/v1/users/me", headers=h).json()["id"]
+    for _round in range(2):
+        sessions = [_add_exercise(client, h) for _ in range(3)]
+        _set_balance(db_session, member_id, max(_balance(client, h) - 50, 0))
+        for s in sessions:
+            _delete_exercise(client, h, s["id"])
+
+    db_session.expire_all()
+    earned = db_session.scalars(
+        select(PointsLedger).where(
+            PointsLedger.user_id == member_id,
+            PointsLedger.kind == "earn",
+            PointsLedger.reason == "exercise_manual",
+        )
+    ).all()
+    # 덜 회수된 적립이 칸을 지켜, 그날 받은 적립은 한도 3회를 넘지 않는다.
+    assert len(earned) == 3
+    assert sum(e.delta for e in earned) == 60
+
+
+def test_partially_revoked_routine_completion_keeps_the_daily_slot(
+    client, db_session
+):
+    h = _register(client)
+    member_id = client.get("/v1/users/me", headers=h).json()["id"]
+    ai = [
+        r
+        for r in client.get("/v1/me/coach/routines", headers=h).json()
+        if r["source"] == "ai"
+    ]
+    assert len(ai) >= 2
+    assert _complete(client, h, ai[0]["id"])["points"]["awarded"] == 50
+    _set_balance(db_session, member_id, 0)
+
+    undone = client.delete(
+        f"/v1/me/coach/routines/{ai[0]['id']}/complete", headers=h
+    )
+    assert undone.status_code == 200, undone.text
+
+    # 0P 회수 — 하루 1회 칸이 풀리지 않아 다시 완료해도, 다른 추천을 완료해도 0.
+    assert _complete(client, h, ai[0]["id"])["points"]["awarded"] == 0
+    assert _complete(client, h, ai[1]["id"])["points"]["awarded"] == 0
+
+
 def test_same_source_cannot_be_awarded_twice(client, db_session):
     from app.services import points_service
 

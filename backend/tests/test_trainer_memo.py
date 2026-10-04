@@ -415,21 +415,34 @@ def test_exercise_memo_fills_its_source_from_the_record(
         assert assigned_memo["ref_name"] == "코어 강화"
         assert assigned_memo["ref_date"]
 
-        member_log_memo = _create_memo(
+        # 날짜로 가리키면 그날 운동 기록 전체에 단 메모다(#2508).
+        day_memo = _create_memo(
             client, trainer_token,
             body="혼자 걷기 꾸준함", source="exercise_memo", ref_date="2026-09-21",
         )
-        cleanup_memos.append(member_log_memo["id"])
-        assert member_log_memo["ref_kind"] == "member_log"
-        assert member_log_memo["ref_id"] is None
-        assert member_log_memo["ref_date"] == "2026-09-21"
+        cleanup_memos.append(day_memo["id"])
+        assert day_memo["ref_kind"] == "day"
+        assert day_memo["ref_id"] is None
+        assert day_memo["ref_date"] == "2026-09-21"
+
+        # 오늘 상자(개인운동·회원 추가)는 날짜와 함께 어느 상자인지 보낸다.
+        for kind in ("personal", "member_log"):
+            boxed = _create_memo(
+                client, trainer_token,
+                body="상자 메모", source="exercise_memo",
+                ref_date="2026-09-21", ref_kind=kind,
+            )
+            cleanup_memos.append(boxed["id"])
+            assert boxed["ref_kind"] == kind
+            assert boxed["ref_id"] is None
+            assert boxed["ref_date"] == "2026-09-21"
 
         # 직접 쓴 메모와 한 목록에 섞여 나온다.
         listed = client.get(
             f"/v1/trainer/clients/{MEMBER_ID}/memos", headers=_headers(trainer_token)
         ).json()
         ids = {item["id"] for item in listed}
-        assert {pt_memo["id"], assigned_memo["id"], member_log_memo["id"]} <= ids
+        assert {pt_memo["id"], assigned_memo["id"], day_memo["id"]} <= ids
     finally:
         for row in (pt, personal, assigned):
             db_session.delete(row)
@@ -491,6 +504,7 @@ def test_exercise_memo_needs_exactly_one_record_link(client, trainer_token):
         {"source": "trainer", "ref_id": "x"},
         {"source": "chat_insight", "insight_id": "i-1", "ref_date": "2026-09-21"},
         {"source": "exercise_memo", "ref_date": "2026-09-21", "insight_id": "i-2"},
+        {"source": "exercise_memo", "ref_id": "x", "ref_kind": "personal"},
     ):
         response = client.post(
             url, headers=_headers(trainer_token), json={"body": "메모", **payload}
@@ -586,7 +600,7 @@ def test_source_decides_the_category_of_other_memos(
     )
     cleanup_memos.append(picked["id"])
     assert picked["category"] == "exercise"
-    assert picked["ref_kind"] == "member_log"
+    assert picked["ref_kind"] == "day"
 
     wrong = client.post(
         url, headers=_headers(trainer_token),

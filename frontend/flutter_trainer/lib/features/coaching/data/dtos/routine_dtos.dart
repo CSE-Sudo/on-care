@@ -93,6 +93,8 @@ AssignedRoutine assignedRoutineFromJson(Map<String, Object?> json) {
     type: _str(json['type']),
     reason: _str(json['reason']),
     source: _str(json['source']),
+    // 회원 앱이 그리는 효과 줄과 같은 값이다(#2951).
+    effect: _str(json['effect']),
     completed: json['completed'] == true,
     date: DateTime.tryParse(_str(json['exercise_date'])),
     intensity: normaliseRoutineIntensity(json['intensity'] as String?),

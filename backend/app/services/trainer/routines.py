@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -17,6 +17,10 @@ from app.schemas.trainer_api import (
     ProgramDraftSession,
     RoutineCompleteOut,
     RoutineOut,
+    TrainerRoutineDayItemOut,
+    TrainerRoutineDayOut,
+    TrainerRoutineDayRoutineOut,
+    TrainerRoutineDaysOut,
 )
 from app.services import (
     exercise_activity,
@@ -33,6 +37,7 @@ from app.services.trainer._common import (
     DELIVERY_ROUTINE_ONLY,
     ROUTINE_APPROVED,
     RoutineDayInFuture,
+    RoutineDayItem,
     _add_program_routines,
     _apply_routine_duration,
     _consume_routine_suggestions,
@@ -41,7 +46,11 @@ from app.services.trainer._common import (
     _routine_notification_args,
     _routine_out,
     _routine_prefetch,
+    _member_goals,
+    _routine_effect,
     get_member_trainer_id,
+    member_routine_days,
+    routine_sent_on,
 )
 from app.services.trainer.chat import (
     post_routine_delivery,
@@ -674,6 +683,12 @@ def assign_program(
     이 정하므로(#2161), `개인운동만` 은 7 을 보내 보낸 날부터 한 주만 걸어
     둔다. 비우면 트레이너가 철회할 때까지 걸려 있는 기존 배정이다.
 
+    `개인운동만` 의 [start_date] 가 미래면 **그날부터** 한 주를 건다(#2656).
+    예전에는 시작일과 상관없이 보낸 날부터 걸어, 확인창이 말한 기간("10/5부터
+    10/11까지")과 회원 앱에 뜨는 기간(9/30~10/6)이 달랐다. 알림은 지금 가고
+    문구가 시작일을 말한다. 이전 개인운동은 시작일 전날까지 두고 시작일에
+    교대한다([_retire_personal_routines]).
+
     [suggestion_ids] 는 이 전송의 개인운동을 채운 대기 중 AI 제안이다(#2747).
     배정과 같은 트랜잭션에서 닫아, 보낸 제안이 다음 위저드에 다시 뜨거나 대기
     백로그를 차지해 새 제안을 막지 않게 한다.
@@ -693,10 +708,16 @@ def assign_program(
         # 주 것이 함께 걸려 회원이 두 벌을 받는다. 같은 트랜잭션이라 배정이
         # 실패하면 내린 것도 되돌아간다. 재시도는 위에서 이미 돌려보냈으므로
         # 방금 보낸 한 주를 내리는 일은 없다.
+        today = clock.today()
+        starts = (
+            start_date
+            if delivery_kind == DELIVERY_ROUTINE_ONLY
+            and start_date is not None
+            and start_date > today
+            else today
+        )
         if delivery_kind is not None:
-            _retire_personal_routines(
-                db, trainer_id, member_id, today=clock.today()
-            )
+            _retire_personal_routines(db, trainer_id, member_id, today=starts)
         created = _add_program_routines(
             db, trainer_id, member_id,
             name=name, sessions=sessions, client_request_id=client_request_id,
@@ -704,6 +725,7 @@ def assign_program(
             trainer_message=trainer_message,
             start_date=start_date,
             active_days=active_days,
+            active_from=starts,
         )
         _consume_routine_suggestions(db, trainer_id, member_id, suggestion_ids)
     except IntegrityError:
@@ -736,3 +758,109 @@ def assign_program(
     for rt in created:
         db.refresh(rt)
     return [_routine_out(db, rt) for rt in created]
+
+
+#: 날짜별 개인운동 조회가 한 번에 읽는 최대 날 수. `전체` 는 첫 개인운동 주부터
+#: 읽는데, 오래 담당한 회원이라도 한 해를 넘겨 한 번에 그릴 일은 없다. (#2508)
+ROUTINE_DAYS_MAX_SPAN = 371
+
+
+def build_trainer_routine_days(
+    db: Session,
+    trainer_id: str,
+    member_id: str,
+    start: date | None = None,
+    end: date | None = None,
+) -> TrainerRoutineDaysOut:
+    """트레이너가 보는 날짜별 개인운동 이행 — 그날 걸린 것과 결과. (#2508)
+
+    회원 화면과 같은 규칙([member_routine_days])이고, 이 트레이너가 건 배정만
+    읽는다. 새 배정이 온 날 이미 체크한 옛 것도 그날 칸에 남긴다.
+
+    - 결과는 `done`(그날 완료) / `late`(다음 날 이후 체크) / `missed`(안 함,
+      오늘 이전만) / `pending`(오늘 아직)이다.
+    - [start] 를 비우면 이 트레이너가 처음 건 배정의 첫날부터다. 걸린 적이
+      없으면 빈 응답이다. [end] 는 기본 오늘이고 오늘을 넘지 않는다.
+    - 너무 긴 기간은 끝에서 [ROUTINE_DAYS_MAX_SPAN] 일로 자른다.
+    """
+    today = clock.today()
+    end = min(end or today, today)
+    if start is None:
+        first = db.scalar(
+            select(func.min(TrainerRoutine.active_from)).where(
+                TrainerRoutine.trainer_id == trainer_id,
+                TrainerRoutine.member_id == member_id,
+                TrainerRoutine.status == ROUTINE_APPROVED,
+            )
+        )
+        if first is None:
+            return TrainerRoutineDaysOut()
+        start = date.fromisoformat(first)
+    start = max(start, end - timedelta(days=ROUTINE_DAYS_MAX_SPAN - 1))
+    if end < start:
+        return TrainerRoutineDaysOut()
+    days = member_routine_days(
+        db, member_id, start, end,
+        trainer_id=trainer_id, keep_done_on_end_day=True,
+    )
+    seen: list[str] = []
+    for day in days:
+        for item in day.routines:
+            if item.routine_id not in seen:
+                seen.append(item.routine_id)
+    rows = {
+        row.id: row
+        for row in db.scalars(
+            select(TrainerRoutine).where(TrainerRoutine.id.in_(seen))
+        ).all()
+    } if seen else {}
+    goals = _member_goals(db, member_id)
+    routines = [
+        TrainerRoutineDayRoutineOut(
+            id=row.id,
+            name=row.name,
+            type=row.type,
+            source=row.source,
+            sort_order=row.sort_order,
+            minutes=row.minutes,
+            duration_seconds=row.duration_seconds,
+            sets=row.sets,
+            reps=row.reps,
+            hold_seconds=row.hold_seconds,
+            weight=row.weight,
+            effect=_routine_effect(db, row, goals),
+            active_from=date.fromisoformat(row.active_from),
+            ended_on=(
+                date.fromisoformat(row.ended_on) if row.ended_on else None
+            ),
+            sent_on=routine_sent_on(row),
+            personal=row.delivery_kind is not None,
+        )
+        for routine_id in seen
+        if (row := rows.get(routine_id)) is not None
+    ]
+
+    def status(item: RoutineDayItem, day: date) -> str:
+        if item.done:
+            return "late" if item.late else "done"
+        return "pending" if day >= today else "missed"
+
+    return TrainerRoutineDaysOut(
+        start=start,
+        end=end,
+        routines=routines,
+        days=[
+            TrainerRoutineDayOut(
+                date=day.date,
+                items=[
+                    TrainerRoutineDayItemOut(
+                        routine_id=item.routine_id,
+                        status=status(item, day.date),
+                        session_id=item.session_id,
+                    )
+                    for item in day.routines
+                ],
+            )
+            for day in days
+        ],
+    )

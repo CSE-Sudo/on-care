@@ -75,6 +75,7 @@ def _resolve_exercise_memo_ref(
     *,
     ref_id: str | None,
     ref_date: date | None,
+    ref_kind: str | None = None,
 ) -> _MemoRef:
     """운동 탭 기록 카드가 가리키는 기록을 찾아 출처 표시 값을 채운다. (#2332)
 
@@ -84,10 +85,14 @@ def _resolve_exercise_memo_ref(
     [RoutineNotFound] 다(있는지 없는지를 가르지 않는다).
     """
     if ref_date is not None:
-        # 회원 직접 기록 카드는 하루치 묶음이다. 오지 않은 날의 기록은 없다.
+        # 날짜로 가리키면 그날의 한 상자(`personal`·`member_log`) 또는 그날
+        # 운동 기록 전체(`day`)에 다는 메모다(#2508). 오지 않은 날의 기록은 없다.
         if ref_date > _today():
             raise RoutineNotFound("운동 기록을 찾을 수 없습니다.")
-        return _MemoRef(kind="member_log", ref_id=None, day=ref_date.isoformat())
+        return _MemoRef(
+            kind=ref_kind or "day", ref_id=None, day=ref_date.isoformat()
+        )
+
 
     history = db.scalar(
         select(RoutineHistory).where(
@@ -176,7 +181,7 @@ def create_memo(
     body: str, source: str = "trainer",
     insight_id: str | None = None, insight_kind: str = "",
     ref_id: str | None = None, ref_date: date | None = None,
-    category: str = "",
+    category: str = "", ref_kind: str | None = None,
 ) -> TrainerMemoOut:
     """회원 메모를 남긴다.
 
@@ -199,7 +204,8 @@ def create_memo(
     ref: _MemoRef | None = None
     if source == "exercise_memo":
         ref = _resolve_exercise_memo_ref(
-            db, trainer_id, member_id, ref_id=ref_id, ref_date=ref_date
+            db, trainer_id, member_id,
+            ref_id=ref_id, ref_date=ref_date, ref_kind=ref_kind,
         )
 
     now = datetime.now(timezone.utc)

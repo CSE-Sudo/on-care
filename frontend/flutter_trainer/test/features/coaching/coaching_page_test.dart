@@ -849,19 +849,22 @@ Future<void> _sendProgram(WidgetTester tester) async {
   // - 기존 PT 에 이미 개인운동이 붙어 있음(데모 PT 는 기본 개인운동이 붙어
   //   있다): `교체`.
   // 기존 PT 면 그 PT 에 붙은 개인운동을 먼저 읽고 나서 창이 서므로, 창이
-  // 서거나 전송이 시작될(편집기 `일정 추가` 가 잠길) 때까지 기다린다.
+  // 서거나 전송이 시작될 때까지 기다린다. 편집기 `일정 추가` 는 누른 순간부터
+  // 잠겨(#3101) 잠김으로는 전송 시작을 알 수 없다 — 확인창이 닫힌 뒤 한동안
+  // 아무 창도 서지 않으면 전송이 시작된 것으로 본다.
   final noRoutines = find.byKey(
     const ValueKey<String>('no-personal-routine-dialog'),
   );
   final replace = find.text('이미 개인운동이 있어요');
-  // 보낸 뒤 편집기가 내려가 버튼이 없어져도 전송이 시작된 것으로 본다.
-  bool sending() =>
-      send.evaluate().isEmpty ||
-      tester.widget<AppButton>(send).onPressed == null;
+  final confirm = find.byKey(
+    const ValueKey<String>('program-assign-confirm-submit'),
+  );
   bool asking() =>
       noRoutines.evaluate().isNotEmpty || replace.evaluate().isNotEmpty;
-  for (var i = 0; i < 60 && !asking() && !sending(); i++) {
+  var quiet = 0;
+  for (var i = 0; i < 60 && !asking() && quiet < 6; i++) {
     await tester.pump(const Duration(milliseconds: 50));
+    quiet = confirm.evaluate().isEmpty ? quiet + 1 : 0;
   }
   if (noRoutines.evaluate().isNotEmpty) {
     await tester.pumpAndSettle();
@@ -1592,9 +1595,39 @@ void main() {
         const ValueKey<String>('client-exercise-detail'),
       );
       expect(detail, findsOneWidget);
+      // 운동 현황 카드 안이 아니라 그 아래 따로 선 `운동 기록` 카드다(#2509).
+      final Finder recordsCard = find.ancestor(
+        of: detail,
+        matching: find.byWidgetPredicate(
+          (Widget w) =>
+              w.key is ValueKey<String> &&
+              (w.key! as ValueKey<String>).value.startsWith(
+                'program-workout-records-',
+              ),
+        ),
+      );
+      expect(recordsCard, findsOneWidget);
       expect(
-        find.descendant(of: detail, matching: find.text('운동 기록')),
+        find.descendant(of: recordsCard, matching: find.text('운동 기록')),
         findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('client-exercise-status-card')),
+          matching: detail,
+        ),
+        findsNothing,
+      );
+      // 요약 → 상세 순이다: 주간 운동 이행률이 운동 기록보다 위다.
+      expect(
+        tester
+            .getTopLeft(
+              find.byKey(
+                const ValueKey<String>('program-week-completion-chart'),
+              ),
+            )
+            .dy,
+        lessThan(tester.getTopLeft(recordsCard).dy),
       );
       // 이름과 값을 ` · ` 로 잇는다(#1902) — 예전에는 그 수가 이름 안에 있었다.
       expect(

@@ -29,6 +29,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -120,7 +121,30 @@ class _FakeServer implements HttpClientAdapter {
     ],
     'GET /reservations/me': <Object?>[],
     'GET /exercise/weeks/current': <String, Object?>{
-      'sessions': <Object?>[],
+      // 오늘 직접 기록한 운동 하나 — 서버가 개인 기록 태그를 붙였다(#2971).
+      'sessions': <Object?>[
+        <String, Object?>{
+          'id': 'own-bench',
+          'day_label': '목',
+          'date': '2026-08-20',
+          'type': 'strength',
+          'name': '벤치프레스',
+          'minutes': 12,
+          'sets': 3,
+          'reps': 10,
+          'weight': 25,
+          'calories': 60,
+          'calorie_source': 'db',
+          'intensity': 'moderate',
+          'date_label': '오늘',
+          'time_label': null,
+          'items': <Object?>['벤치프레스'],
+          'source': 'member',
+          'assigned_routine_id': null,
+          'assigned_routine_name': '',
+          'record': 'max_weight',
+        },
+      ],
       'day_labels': <Object?>['월', '화', '수', '목', '금', '토', '일'],
       'daily_minutes': <Object?>[30, 0, 30, 0, 0, 0, 0],
       'total_minutes': 60,
@@ -263,10 +287,22 @@ class _FakeServer implements HttpClientAdapter {
 // ---------------------------------------------------------------------------
 
 /// [mode] 로 [page] 를 띄운다. 실서버 모드면 가짜 서버를 돌려준다.
-Future<_FakeServer?> _pump(WidgetTester tester, _Mode mode, Widget page) async {
+///
+/// [demoData] 는 데모 DB 에 비교에만 쓸 기록을 더한다 — 시드에 없는 종류의
+/// 데이터(예: 회원이 직접 적은 운동)가 데모에서 어떻게 보이는지 볼 때다. 시드
+/// 자체는 바꾸지 않는다.
+Future<_FakeServer?> _pump(
+  WidgetTester tester,
+  _Mode mode,
+  Widget page, {
+  Future<void> Function(AppDatabase db)? demoData,
+}) async {
   final AppDatabase db = mode == _Mode.demo
       ? await seededDemoDatabase(tester)
       : emptyDemoDatabase();
+  if (mode == _Mode.demo && demoData != null) {
+    await tester.runAsync(() => demoData(db));
+  }
   final _FakeServer? server = mode == _Mode.real ? _FakeServer() : null;
 
   await tester.pumpWidget(
@@ -336,6 +372,7 @@ Future<void> _expectParity(
   WidgetTester tester, {
   required Widget page,
   required List<ParityEntry> entries,
+  Future<void> Function(AppDatabase db)? demoData,
 }) async {
   useFixedKstDate(_now);
   tester.view.physicalSize = const Size(420, 3000);
@@ -349,7 +386,7 @@ Future<void> _expectParity(
   // 탭을 떠나며 폴링을 끝낸다 — 다음 모드가 새 ProviderScope 로 시작한다.
   await tester.pumpWidget(const SizedBox.shrink());
 
-  await _pump(tester, _Mode.demo, page);
+  await _pump(tester, _Mode.demo, page, demoData: demoData);
   final Set<String> demo = _present(tester, page.runtimeType, compared);
   await tester.pumpWidget(const SizedBox.shrink());
 
@@ -409,6 +446,43 @@ void main() {
                 w.icon == AppIcons.eventAvailable &&
                 w.label != l.exNextPtNone,
           ),
+        ),
+      ],
+    );
+  });
+
+  // 데모 응답에 `record` 가 없어 데모에서만 태그가 뜨지 않았다(#3099). 시드에는
+  // 직접 적은 운동이 없어, 회원이 같은 운동을 20kg → 25kg 로 적은 모양을 이
+  // 비교에서만 더한다.
+  testWidgets('운동 탭 — 직접 기록한 운동의 개인 기록 태그', (WidgetTester tester) async {
+    await _expectParity(
+      tester,
+      page: const ExercisePage(),
+      demoData: (AppDatabase db) async {
+        for (final (int i, double kg) in <double>[20, 25].indexed) {
+          await db
+              .into(db.exerciseSessions)
+              .insert(
+                ExerciseSessionsCompanion.insert(
+                  id: 'parity-own-bench-$i',
+                  weekStart: '2026-08-17',
+                  dayLabel: '목',
+                  type: 'strength',
+                  minutes: 12,
+                  calories: 60,
+                  name: const Value('벤치프레스'),
+                  sets: const Value(3),
+                  reps: const Value(10),
+                  weight: Value(kg),
+                  createdAt: Value(DateTime(2026, 8, 20, 9, i)),
+                ),
+              );
+        }
+      },
+      entries: <ParityEntry>[
+        ParityEntry(
+          '운동 기록 태그',
+          (_) => _keyPrefix('exercise-own-record-badge-'),
         ),
       ],
     );

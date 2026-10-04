@@ -74,7 +74,7 @@ def test_litellm_sends_the_bytes_it_is_given():
 
     urls: list[str] = []
 
-    def create(*, model, messages, temperature):  # noqa: ARG001
+    def create(*, model, messages, temperature, **_kwargs):  # noqa: ARG001 — max_tokens 등(#3032)
         urls.append(messages[0]["content"][1]["image_url"]["url"])
         return SimpleNamespace(
             choices=[SimpleNamespace(message=SimpleNamespace(content=_RAW))]

@@ -53,28 +53,19 @@ const double _maxChartTextScale = 1.6;
 /// 기간 토글은 이 카드가 아니라 바깥 [ClientPeriodSection] 이 그린다. 카드
 /// 안에 두면 기간을 바꿀 때 토글이 함께 움직인다.
 ///
-/// `clientName` 을 주면 그래프 아래에 **상세 운동 내역**(종목별 완료 여부)이
-/// 붙는다(#1027).
+/// 그래프만 그린다. 프로그램 화면의 **상세 운동 내역**은 예전에 이 카드 안
+/// 그래프 아래 붙어 있었는데, 요약(그래프·이행률) 다음에 상세가 오도록 카드
+/// 밖 [ClientWorkoutRecordsDetail] 로 옮겼다(#2509).
 class ClientExerciseStatusCard extends ConsumerWidget {
   /// Creates the card for [clientId] over [period].
   const ClientExerciseStatusCard({
     super.key,
     required this.clientId,
     required this.period,
-    this.clientName,
   });
 
   final String clientId;
   final ClientPeriod period;
-
-  /// 값을 주면(빈 문자열이 아니어도 됨 — 실제로는 opt-in 스위치) 그래프 아래에
-  /// **상세 운동 내역**이 함께 붙는다. 그래프는 "얼마나 오래" 만 말해서, 다음
-  /// 프로그램을 짤 때 정작 필요한 "무엇을 몇 세트" 가 화면 밖에 있었다(#1027).
-  ///
-  /// 상세 내역은 고객 탭 `운동 기록`(`clientHistoryProvider`)과 같은 자료다.
-  /// 고객 탭은 같은 화면에 `운동 기록` 카드가 이미 있으므로 이 파라미터를
-  /// 주지 않는다 — 한 화면에서 같은 목록을 두 번 읽게 하지 않는다.
-  final String? clientName;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -83,7 +74,6 @@ class ClientExerciseStatusCard extends ConsumerWidget {
     final AsyncValue<ClientExercisePeriod> async = ref.watch(
       clientExercisePeriodProvider(key),
     );
-    final String? name = clientName;
     // 목표는 회원 건강 프로필에서 읽는다 — 회원 앱이 MY 목표를 기준선으로 쓰는
     // 것과 같다(회원 앱 #1139, #2157). 프로필을 받는 중이거나 실패했으면
     // 회원 앱 기본값으로 그린다 — 목표 때문에 그래프가 로딩·에러에 막히지
@@ -120,20 +110,18 @@ class ClientExerciseStatusCard extends ConsumerWidget {
                 ? _Today(clientId: clientId, period: data, goals: goals)
                 : _Range(period: data, goals: goals),
           ),
-          if (name != null) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s12),
-            const AppDivider(),
-            const SizedBox(height: OnCareSpacing.s12),
-            _WorkoutDetail(clientId: clientId, period: period),
-          ],
         ],
       ),
     );
   }
 }
 
-/// 고객 탭 `운동 기록`(`WorkoutView`)과 **같은 자료**를 그래프 아래에 붙인다.
-/// (#1027 팔로업)
+/// 프로그램 화면 `운동 기록` 카드의 내용 — 고객 탭 `운동 기록`(`WorkoutView`)과
+/// **같은 자료**다. (#1027 팔로업, #2509)
+///
+/// 예전에는 [ClientExerciseStatusCard] 그래프 아래에 붙어 있었다. 이제는
+/// `운동 현황 → 주간 운동 이행률 → 개인운동 이행` 다음의 따로 선 카드다 —
+/// 요약을 먼저 읽고 상세로 내려간다. 제목은 감싸는 카드가 그린다.
 ///
 /// 처음에는 스케줄에 붙은 PT 세션(`clientSessionsProvider`)을 그래프와 같은
 /// 기간으로 걸러 보여줬다. 그런데 그 세션은 트레이너가 예약한 슬롯일 뿐이고,
@@ -146,8 +134,13 @@ class ClientExerciseStatusCard extends ConsumerWidget {
 /// 처럼 기간으로 거를 수 없다 — 고객 탭의 `운동 기록` 도 같은 이유로 기간과
 /// 무관하게 전체를 보여준다. 대신 접힌 기본 상태에서는 가장 최근 기록 하나만
 /// 보이고, 아래 캐럿을 누르면 전체 이력으로 펼쳐진다.
-class _WorkoutDetail extends ConsumerStatefulWidget {
-  const _WorkoutDetail({required this.clientId, required this.period});
+class ClientWorkoutRecordsDetail extends ConsumerStatefulWidget {
+  /// Creates the detail for [clientId] over [period].
+  const ClientWorkoutRecordsDetail({
+    super.key,
+    required this.clientId,
+    required this.period,
+  });
 
   final String clientId;
 
@@ -157,10 +150,12 @@ class _WorkoutDetail extends ConsumerStatefulWidget {
   final ClientPeriod period;
 
   @override
-  ConsumerState<_WorkoutDetail> createState() => _WorkoutDetailState();
+  ConsumerState<ClientWorkoutRecordsDetail> createState() =>
+      _ClientWorkoutRecordsDetailState();
 }
 
-class _WorkoutDetailState extends ConsumerState<_WorkoutDetail> {
+class _ClientWorkoutRecordsDetailState
+    extends ConsumerState<ClientWorkoutRecordsDetail> {
   /// `이번 주` 에서 펼쳤을 때 늘어놓는 최대 기록 수 — **한 주**다 (#1172).
   static const int _weekLimit = 7;
 
@@ -174,7 +169,7 @@ class _WorkoutDetailState extends ConsumerState<_WorkoutDetail> {
   final ScrollController _scroll = ScrollController();
 
   @override
-  void didUpdateWidget(_WorkoutDetail old) {
+  void didUpdateWidget(ClientWorkoutRecordsDetail old) {
     super.didUpdateWidget(old);
     // 기간이나 고객이 바뀌면 접힌 상태로 돌아간다 — 앞 고객의 스크롤 위치가
     // 다음 고객 목록에 남아 있으면 어디를 보고 있는지 알 수 없다.
@@ -200,7 +195,6 @@ class _WorkoutDetailState extends ConsumerState<_WorkoutDetail> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
     final AsyncValue<List<RoutineHistoryEntry>> async = ref.watch(
       clientHistoryProvider(widget.clientId),
     );
@@ -212,13 +206,6 @@ class _WorkoutDetailState extends ConsumerState<_WorkoutDetail> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Text(
-          l.workoutRecords,
-          style: tokens
-              .text(OnCareTypography.strong(OnCareTypography.caption))
-              .copyWith(color: OnCareColors.textTertiary),
-        ),
-        const SizedBox(height: OnCareSpacing.s8),
         async.when(
           loading: () => const Padding(
             padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s8),
@@ -361,7 +348,9 @@ class _ExerciseLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool skipped = line.contains('✗');
+    // 값으로 온 수행 여부가 먼저다(#1902) — 예전에는 [done] 을 받고도 줄 끝
+    // 표시만 읽어, 안 한 운동이 ✓ 로 그려졌다(#2509).
+    final bool skipped = !done || line.contains('✗');
     final String text = line.replaceAll(RegExp(r'\s*[✓✗]\s*'), ' ').trim();
     final Color color = skipped
         ? OnCareColors.textDisabled

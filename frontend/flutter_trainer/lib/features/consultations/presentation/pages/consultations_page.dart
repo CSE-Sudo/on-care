@@ -11,7 +11,6 @@ import 'package:oncare_trainer/features/schedule/domain/entities/schedule_sessio
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_overlap_banner.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
-import 'package:oncare_trainer/shared/widgets/trainer_verification_banner.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 카드 필드 라벨 열 폭 — `운동 목표`·`희망 일시` 가 한 줄에 들어가는 폭.
@@ -96,11 +95,6 @@ class _Inbox extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        // 승인 전에는 회원 앱에 나오지 않아 요청이 오지 않는다 — 빈 함의 이유(#2825).
-        const TrainerVerificationBanner(
-          scope: TrainerVerificationScope.consultations,
-          bottomGap: OnCareSpacing.s16,
-        ),
         // 메시지 탭 고객 리스트 상단의 `전체 / 읽지 않음 N` 칩과 같은 언어다 —
         // 글자 토글(`전체 보기`/`대기 중만`) 대신 두 상태를 한눈에 본다.
         Row(
@@ -199,12 +193,24 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
   /// 않았다. 신청은 대기로 남아 있으므로 카드 안, 승인 버튼 바로 위에 남긴다.
   List<ScheduleSession>? _overlaps;
 
-  Future<void> _run(Future<void> Function() action, String success) async {
+  /// 응답을 기다리는 사이 카드가 사라질 수 있다 — 상담 창을 닫거나 필터를
+  /// 바꾸거나 폴링이 처리된 요청을 목록에서 뺀다. 그래서 await 전에 앱의
+  /// [ProviderContainer] 를 잡아 두고 갱신은 그것으로만 한다(#3103). 사라진
+  /// 위젯의 `ref` 는 `StateError` 를 던져 갱신이 빠졌다. 토스트·버튼 상태는
+  /// 카드가 남아 있을 때만 바꾼다.
+  ProviderContainer _container() =>
+      ProviderScope.containerOf(context, listen: false);
+
+  Future<void> _run(
+    Future<void> Function(ProviderContainer container) action,
+    String success,
+  ) async {
     setState(() => _busy = true);
+    final ProviderContainer container = _container();
     final AppLocalizations l = AppLocalizations.of(context);
     final String failureText = l.consultActionFailed;
     try {
-      await action();
+      await action(container);
       if (!mounted) return;
       showAppToast(context, success, type: AppToastType.success);
     } on AppError catch (e) {
@@ -212,8 +218,8 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
       // another trainer at the same gym accepted it first. Refresh before
       // showing the reason, or the card stays actionable and the trainer
       // can keep pressing 승인 on something already decided (review).
-      ref.invalidate(consultationsProvider);
-      ref.invalidate(consultationPendingCountProvider);
+      container.invalidate(consultationsProvider);
+      container.invalidate(consultationPendingCountProvider);
       if (!mounted) return;
       // 409 carries the server's reason (이미 처리됨 / 다른 트레이너가 담당 중)
       // — that sentence is the whole point, so it is shown verbatim.
@@ -238,10 +244,11 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
       _busy = true;
       _overlaps = null;
     });
+    final ProviderContainer container = _container();
     final AppLocalizations l = AppLocalizations.of(context);
     final request = widget.request;
     try {
-      final result = await acceptConsultation(ref, request.id);
+      final result = await acceptConsultation(container, request.id);
       if (!mounted) return;
       showAppToast(
         context,
@@ -253,8 +260,8 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
     } on ScheduleOverlapError catch (e) {
       if (mounted) setState(() => _overlaps = e.conflicts);
     } on AppError catch (e) {
-      ref.invalidate(consultationsProvider);
-      ref.invalidate(consultationPendingCountProvider);
+      container.invalidate(consultationsProvider);
+      container.invalidate(consultationPendingCountProvider);
       if (!mounted) return;
       showAppToast(
         context,
@@ -272,9 +279,11 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
       context: context,
       builder: (_) => const _RejectDialog(),
     );
-    if (note == null) return;
+    // 사유 창을 띄운 사이 카드가 사라졌으면(폴링이 목록에서 뺐다) 보내지 않는다.
+    if (note == null || !mounted) return;
     await _run(
-      () => rejectConsultation(ref, widget.request.id, note: note),
+      (ProviderContainer container) =>
+          rejectConsultation(container, widget.request.id, note: note),
       l.consultRejected,
     );
   }

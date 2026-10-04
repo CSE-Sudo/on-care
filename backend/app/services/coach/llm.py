@@ -12,7 +12,7 @@ from __future__ import annotations
 from functools import lru_cache
 
 from app.core.config import get_settings
-from app.services.coach.llm_base import CoachLLM, LLMResult
+from app.services.coach.llm_base import CoachLLM, LLMResult, output_cap
 
 #: 짧은 JSON 한 건을 받을 때 쓰는 기본 사고 예산.
 #:
@@ -22,6 +22,25 @@ from app.services.coach.llm_base import CoachLLM, LLMResult
 #:
 #: **`json_mode=True` 와 반드시 함께 쓴다.** json_mode 만 켜면 오히려 크게 느려진다.
 DEFAULT_THINKING_BUDGET = 128
+
+
+def _openai_truncated(choice: object) -> bool:
+    """OpenAI 호환 응답이 출력 상한(`max_tokens`)에 끊겼는가."""
+    return getattr(choice, "finish_reason", None) == "length"
+
+
+def gemini_truncated(resp: object) -> bool:
+    """Gemini 응답이 출력 상한(`max_output_tokens`)에 끊겼는가.
+
+    `finish_reason` 은 SDK 버전에 따라 열거형이거나 문자열이다 — 이름으로 비교한다.
+    후보가 없거나 필드가 없으면 거짓이다.
+    """
+    candidates = getattr(resp, "candidates", None) or []
+    if not isinstance(candidates, (list, tuple)) or not candidates:
+        return False
+    reason = getattr(candidates[0], "finish_reason", None)
+    name = getattr(reason, "name", reason)
+    return isinstance(name, str) and name.upper().endswith("MAX_TOKENS")
 
 
 class OpenAICoachLLM(CoachLLM):
@@ -44,11 +63,16 @@ class OpenAICoachLLM(CoachLLM):
         json_mode: bool = False,
         thinking_budget: int | None = None,
         timeout_seconds: float | None = None,
+        max_output_tokens: int | None = None,
     ) -> LLMResult:
         extra = {"response_format": {"type": "json_object"}} if json_mode else {}
         request_options = (
             {"timeout": timeout_seconds} if timeout_seconds is not None else {}
         )
+        cap = output_cap(max_output_tokens)
+        if cap is not None:
+            # OpenAI 호환은 출력 상한을 `max_tokens` 로 받는다(#3032).
+            extra = {**extra, "max_tokens": cap}
         resp = self._client.chat.completions.create(
             model=self._model,
             messages=[
@@ -60,12 +84,14 @@ class OpenAICoachLLM(CoachLLM):
             **extra,
         )
         u = resp.usage
+        choice = resp.choices[0]
         return LLMResult(
-            text=resp.choices[0].message.content or "",
+            text=choice.message.content or "",
             model=self._model,
             prompt_tokens=getattr(u, "prompt_tokens", 0),
             completion_tokens=getattr(u, "completion_tokens", 0),
             total_tokens=getattr(u, "total_tokens", 0),
+            truncated=_openai_truncated(choice),
         )
 
 
@@ -101,6 +127,7 @@ class GeminiCoachLLM(CoachLLM):
         json_mode: bool = False,
         thinking_budget: int | None = None,
         timeout_seconds: float | None = None,
+        max_output_tokens: int | None = None,
     ) -> LLMResult:
         # 사고 예산은 지연에 지배적이다. `gemini-flash-latest` 는 기본적으로 사고가
         # 켜져 있어 짧은 JSON 응답도 10초 이상 걸린다(실측 12.9s). 작은 예산을 주면
@@ -118,6 +145,11 @@ class GeminiCoachLLM(CoachLLM):
             options["thinking_config"] = self._types.ThinkingConfig(
                 thinking_budget=thinking_budget
             )
+        cap = output_cap(max_output_tokens)
+        if cap is not None:
+            # 사고 토큰도 이 안에서 쓴다 — 사고 예산을 함께 주는 JSON 호출처는 그만큼
+            # 여유를 둔 값을 넘긴다(#3032).
+            options["max_output_tokens"] = cap
         scoped_client = None
         client = self._client
         try:
@@ -146,6 +178,7 @@ class GeminiCoachLLM(CoachLLM):
             prompt_tokens=pt,
             completion_tokens=ct,
             total_tokens=(pt + ct),
+            truncated=gemini_truncated(resp),
         )
 
 
@@ -179,11 +212,16 @@ class LiteLLMCoachLLM(CoachLLM):
         json_mode: bool = False,
         thinking_budget: int | None = None,
         timeout_seconds: float | None = None,
+        max_output_tokens: int | None = None,
     ) -> LLMResult:
         extra = {"response_format": {"type": "json_object"}} if json_mode else {}
         request_options = (
             {"timeout": timeout_seconds} if timeout_seconds is not None else {}
         )
+        cap = output_cap(max_output_tokens)
+        if cap is not None:
+            # OpenAI 호환은 출력 상한을 `max_tokens` 로 받는다(#3032).
+            extra = {**extra, "max_tokens": cap}
         resp = self._client.chat.completions.create(
             model=self._model,
             messages=[
@@ -195,12 +233,14 @@ class LiteLLMCoachLLM(CoachLLM):
             **extra,
         )
         u = resp.usage
+        choice = resp.choices[0]
         return LLMResult(
-            text=resp.choices[0].message.content or "",
+            text=choice.message.content or "",
             model=self._model,
             prompt_tokens=getattr(u, "prompt_tokens", 0),
             completion_tokens=getattr(u, "completion_tokens", 0),
             total_tokens=getattr(u, "total_tokens", 0),
+            truncated=_openai_truncated(choice),
         )
 
 

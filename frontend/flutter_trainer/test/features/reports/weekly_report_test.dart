@@ -90,7 +90,10 @@ void main() {
 
     test('completion averages only the recorded days', () {
       final report = buildWeeklyReport(
-        client: makeClient(weekCompletion: const <int>[80, 60, 0, 0, 0, 0, 0]),
+        // 걸린 것이 없던 날은 null 이다(#2513) — 평균에 넣지 않는다.
+        client: makeClient(
+          weekCompletion: const <int?>[80, 60, null, null, null, null, null],
+        ),
         sessions: const <ScheduleSession>[],
         weekStart: wednesday,
         today: wednesday,
@@ -101,7 +104,7 @@ void main() {
 
     test('a client with no logged days reports null, not 0%', () {
       final report = buildWeeklyReport(
-        client: makeClient(weekCompletion: const <int>[0, 0, 0, 0, 0, 0, 0]),
+        client: makeClient(weekCompletion: List<int?>.filled(7, null)),
         sessions: const <ScheduleSession>[],
         weekStart: wednesday,
         today: wednesday,

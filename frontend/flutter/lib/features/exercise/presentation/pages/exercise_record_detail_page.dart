@@ -62,6 +62,9 @@ class _ExerciseDayDetailPageState extends ConsumerState<ExerciseDayDetailPage> {
   bool _saving = false;
   bool _movingDate = false;
 
+  /// 상자 하나를 지우는 중. 그동안 뒤로 가기로 화면이 닫히지 않는다(#3096).
+  bool _deleting = false;
+
   /// 운동 상자마다 하나. 수정 모드에서 저장할 값을 모은다.
   final Map<String, GlobalKey<_ExerciseCardState>> _cards =
       <String, GlobalKey<_ExerciseCardState>>{};
@@ -86,6 +89,7 @@ class _ExerciseDayDetailPageState extends ConsumerState<ExerciseDayDetailPage> {
     editing: _editing && s.id != null,
     busy: busy,
     onChanged: () => setState(() {}),
+    onDelete: () => _delete(s),
   );
 
   _ExerciseCardState? _stateOf(ExerciseSession s) =>
@@ -107,6 +111,21 @@ class _ExerciseDayDetailPageState extends ConsumerState<ExerciseDayDetailPage> {
       key.currentState?.reset();
     }
     setState(() => _editing = false);
+  }
+
+  /// 상자 하나를 지운다. 지우는 동안은 화면이 닫히지 않는다 — 삭제 요청 중에
+  /// 상자의 `ref` 가 치워지지 않도록 페이지가 삭제를 맡는다(#3096).
+  Future<void> _delete(ExerciseSession s) async {
+    if (_deleting || _saving || _movingDate) return;
+    await confirmDeleteExerciseSession(
+      context,
+      ref,
+      s,
+      onDeleteStart: () {
+        if (mounted) setState(() => _deleting = true);
+      },
+    );
+    if (mounted && _deleting) setState(() => _deleting = false);
   }
 
   /// 그날 기록을 모두 고른 날로 옮긴다. 연필을 누르지 않아도 되고, 고른 즉시
@@ -247,7 +266,7 @@ class _ExerciseDayDetailPageState extends ConsumerState<ExerciseDayDetailPage> {
       });
     }
     final double side = context.oncare.density.pagePadding;
-    final bool busy = _saving || _movingDate;
+    final bool busy = _saving || _movingDate || _deleting;
     final Widget page = Scaffold(
       key: const Key('exerciseRecordDetailPage'),
       backgroundColor: OnCareColors.surfaceCard,
@@ -486,6 +505,7 @@ class _ExerciseCard extends ConsumerStatefulWidget {
     required this.editing,
     required this.busy,
     this.onChanged,
+    this.onDelete,
   });
 
   final ExerciseSession session;
@@ -494,6 +514,9 @@ class _ExerciseCard extends ConsumerStatefulWidget {
 
   /// 수정 중 값이 바뀌었다 — 화면이 `총 소모 칼로리` 를 다시 그린다.
   final VoidCallback? onChanged;
+
+  /// 휴지통을 눌렀다 — 지우기는 페이지가 한다(#3096).
+  final VoidCallback? onDelete;
 
   @override
   ConsumerState<_ExerciseCard> createState() => _ExerciseCardState();
@@ -667,10 +690,6 @@ class _ExerciseCardState extends ConsumerState<_ExerciseCard> {
         (!_isStrength && d.durationSeconds != _savedSeconds);
   }
 
-  Future<void> _delete() async {
-    await confirmDeleteExerciseSession(context, ref, _s);
-  }
-
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -830,7 +849,7 @@ class _ExerciseCardState extends ConsumerState<_ExerciseCard> {
                   tooltip: l.exDeleteExercise,
                   size: AppIconButtonSize.small,
                   color: OnCareColors.textTertiary,
-                  onPressed: widget.busy ? null : _delete,
+                  onPressed: widget.busy ? null : widget.onDelete,
                 ),
               ],
             ),

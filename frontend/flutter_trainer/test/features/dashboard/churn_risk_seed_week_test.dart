@@ -37,14 +37,13 @@ void main() {
     final day = _dayNames[i];
     final elapsed = i + 1;
 
-    test('$day: 시드 식단·이행률 계열은 월→일 7칸이고 미래 요일은 0 이다', () async {
+    test('$day: 시드 식단·이행률 계열은 월→일 7칸이고 미래 요일은 비어 있다', () async {
       final roster = await seededRoster(now);
       expect(roster, isNotEmpty);
       for (final c in roster) {
         for (final (name, series) in <(String, List<num>)>[
           ('칼로리', c.caloriesWeek),
           ('나트륨', c.sodiumWeek),
-          ('이행률', c.weekCompletion),
         ]) {
           if (series.isEmpty) continue;
           expect(series, hasLength(7), reason: '${c.name} $name');
@@ -52,6 +51,15 @@ void main() {
             series.skip(elapsed),
             everyElement(0),
             reason: '${c.name} $name 미래 요일',
+          );
+        }
+        // 이행률은 아직 오지 않은 날이 null 이다(#2513) — 0 은 "걸렸는데 안 함".
+        if (c.weekCompletion.isNotEmpty) {
+          expect(c.weekCompletion, hasLength(7), reason: '${c.name} 이행률');
+          expect(
+            c.weekCompletion.skip(elapsed),
+            everyElement(isNull),
+            reason: '${c.name} 이행률 미래 요일',
           );
         }
       }

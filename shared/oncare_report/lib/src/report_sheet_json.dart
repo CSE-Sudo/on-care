@@ -29,6 +29,12 @@ ReportSheetWeekData reportSheetWeekFromJson(
           .whereType<num>()
           .map((num n) => n.toInt())
           .toList(growable: false);
+  // 이행률은 걸린 것이 없는 날이 null 이다(#2513). 자리를 지켜야 요일이 밀리지
+  // 않는다 — null 을 걸러 내면 화요일 값이 월요일 칸에 선다.
+  List<int?> nullableInts(String key) =>
+      (json[key] as List<Object?>? ?? const <Object?>[])
+          .map((Object? v) => v is num ? v.toInt() : null)
+          .toList(growable: false);
   List<double> doubles(String key) =>
       (json[key] as List<Object?>? ?? const <Object?>[])
           .whereType<num>()
@@ -47,7 +53,7 @@ ReportSheetWeekData reportSheetWeekFromJson(
     sessionsDone: optInt('sessions_done') ?? 0,
     completionAvg: optInt('completion_avg'),
     sodiumAvg: optInt('sodium_avg'),
-    weekCompletion: ints('week_completion'),
+    weekCompletion: nullableInts('week_completion'),
     sodiumWeek: ints('sodium_week'),
     caloriesWeek: ints('calories_week'),
     sugarWeek: doubles('sugar_week'),

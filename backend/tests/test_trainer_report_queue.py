@@ -174,8 +174,8 @@ def test_queue_matches_each_members_weekly_report(client, db_session):
     quiet = _member(db_session, trainer)
     _session(db_session, trainer, busy, _day(0), status=trainer_common_service.SCHEDULE_DONE)
     _session(db_session, trainer, busy, _day(2), status=trainer_common_service.SCHEDULE_UPCOMING)
-    _history(db_session, busy, _day(0), 90, trainer_id=trainer)
-    _history(db_session, busy, _day(0), 60)  # 같은 날 여럿이면 최댓값
+    # 이행률은 그날 잡힌 PT·걸린 개인운동으로 센다(#2513) — 옛 `routine_history`
+    # 비율은 읽지 않는다.
     _history(db_session, busy, _day(4), 40)
 
     queue = _items(
@@ -193,11 +193,12 @@ def test_queue_matches_each_members_weekly_report(client, db_session):
 
     assert queue[busy]["sessions_booked"] == 2
     assert queue[busy]["sessions_done"] == 1
-    assert queue[busy]["week_completion"] == [90, 0, 0, 0, 40, 0, 0]
-    assert queue[busy]["completion_avg"] == 65
-    # 기록이 없는 회원은 0% 가 아니라 null 이다.
+    # 마친 PT 날은 100, 잡혔는데 지나도록 안 한 날은 0, 걸린 것이 없는 날은 null.
+    assert queue[busy]["week_completion"] == [100, None, 0, None, None, None, None]
+    assert queue[busy]["completion_avg"] == 50
+    # 걸린 것이 없는 회원은 0% 가 아니라 null 이다.
     assert queue[quiet]["completion_avg"] is None
-    assert queue[quiet]["week_completion"] == [0] * 7
+    assert queue[quiet]["week_completion"] == [None] * 7
 
 
 def test_queue_skips_cancelled_no_show_and_consultation_sessions(client, db_session):
@@ -243,11 +244,12 @@ def test_queue_leaves_out_members_the_trainer_cannot_read(client, db_session):
 
 
 def test_queue_does_not_count_another_trainers_guided_history(client, db_session):
-    """다른 트레이너가 지도한 기록은 이 트레이너의 이행률에 들지 않는다(리포트와 같다)."""
+    """다른 트레이너의 PT·기록은 이 트레이너의 이행률에 들지 않는다(리포트와 같다)."""
     trainer = _trainer(db_session)
     other = _trainer(db_session)
     member = _member(db_session, trainer)
     _history(db_session, member, _day(1), 70, trainer_id=other)
+    _session(db_session, other, member, _day(1), status=trainer_common_service.SCHEDULE_DONE)
     item = _items(
         trainer_reports_service.build_report_queue(db_session, trainer, WEEK).model_dump()
     )[member]
@@ -264,10 +266,10 @@ def test_queue_is_empty_for_a_trainer_without_members(client, db_session):
 def test_queue_normalises_a_mid_week_day_to_monday(client, db_session):
     trainer = _trainer(db_session)
     member = _member(db_session, trainer)
-    _history(db_session, member, _day(3), 50)
+    _session(db_session, trainer, member, _day(3), status=trainer_common_service.SCHEDULE_DONE)
     out = trainer_reports_service.build_report_queue(db_session, trainer, _day(5))
     assert out.week_start == WEEK.isoformat()
-    assert _items(out.model_dump())[member]["week_completion"][3] == 50
+    assert _items(out.model_dump())[member]["week_completion"][3] == 100
 
 
 def test_queue_ignores_records_outside_the_week(client, db_session):
@@ -295,8 +297,8 @@ def test_queue_ignores_records_outside_the_week(client, db_session):
 def test_endpoint_answers_every_readable_member_in_one_response(client, db_session):
     trainer = _trainer(db_session)
     members = [_member(db_session, trainer) for _ in range(3)]
-    _history(db_session, members[0], _day(0), 100)
-    body = _queue(client, trainer)
+    _session(db_session, trainer, members[0], _day(0), status=trainer_common_service.SCHEDULE_DONE)
+    body = _queue(client, trainer, WEEK)
     assert body["week_start"] == WEEK.isoformat()
     items = _items(body)
     assert set(items) == set(members)

@@ -15,13 +15,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
-import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_feedback_providers.dart';
-import 'package:oncare/features/member_coach/presentation/widgets/coach_card.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -133,74 +131,6 @@ void main() {
       expect(repo.coachLoads, 2);
       await container.read(coachSessionsProvider.future);
       expect(repo.sessionLoads, 1);
-    });
-  });
-
-  group('홈 트레이너 카드', () {
-    Future<void> pumpCard(WidgetTester tester, Override coach) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: <Override>[
-            coach,
-            myTrainerProvider.overrideWith((ref) async => null),
-            coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
-          ],
-          child: MaterialApp(
-            theme: AppTheme.light(),
-            locale: const Locale('ko'),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: const Scaffold(
-              body: SingleChildScrollView(child: CoachCard()),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-    }
-
-    testWidgets('조회에 실패하면 숨기지 않고 다시 시도 줄을 보인다', (WidgetTester tester) async {
-      await pumpCard(
-        tester,
-        memberCoachProvider.overrideWith(
-          (ref) => Future<MemberCoach?>.error(Exception('offline')),
-        ),
-      );
-
-      expect(find.byKey(const Key('coachCardLoadFailed')), findsOneWidget);
-      expect(find.text('담당 트레이너 정보를 불러오지 못했어요'), findsOneWidget);
-      expect(find.byKey(const Key('coachCardRetry')), findsOneWidget);
-    });
-
-    testWidgets('다시 시도하면 담당을 다시 읽어 카드가 돌아온다', (WidgetTester tester) async {
-      var calls = 0;
-      await pumpCard(
-        tester,
-        memberCoachProvider.overrideWith((ref) {
-          calls += 1;
-          if (calls == 1) {
-            return Future<MemberCoach?>.error(Exception('offline'));
-          }
-          return Future<MemberCoach?>.value(_coach);
-        }),
-      );
-
-      await tester.tap(find.byKey(const Key('coachCardRetry')));
-      await tester.pumpAndSettle();
-
-      expect(calls, 2);
-      expect(find.byKey(const Key('coachCardLoadFailed')), findsNothing);
-      expect(find.text('${_coach.name} · ${_coach.specialty}'), findsOneWidget);
-    });
-
-    testWidgets('담당이 없으면(404) 카드도 오류 줄도 없다', (WidgetTester tester) async {
-      await pumpCard(
-        tester,
-        memberCoachProvider.overrideWith((ref) async => null),
-      );
-
-      expect(find.byKey(const Key('coachCardLoadFailed')), findsNothing);
-      expect(find.byType(AppCard), findsNothing);
     });
   });
 

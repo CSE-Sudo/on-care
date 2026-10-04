@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.models.models import AiConversation, AiMessage
+from app.services.coach.conversation import member_thread_clause
 
 #: 감지 종류. 트레이너 웹 `ChatInsightKind` 와 같은 이름이다.
 KIND_DISCOMFORT = "discomfort"
@@ -138,6 +139,9 @@ def recent_insights(
     회원이 치운 줄(`insight_dismissed`)은 건너뛴다(#1975). 규칙이 완벽할 수 없어
     `목요일`·`목표` 같은 말이 부위로 잡히는 일이 남는데, 그 오탐을 회원이 치울 수
     있어야 한다. 치우는 것은 감지뿐이고 메시지는 그대로 둔다.
+
+    회원 본인 스레드만 본다(#3085). 예전 트레이너 AI 코칭 스레드에 남은 트레이너
+    질문이 회원이 한 말로 읽히지 않게 한다.
     """
     cutoff = (now or clock.now()) - timedelta(days=INSIGHT_WINDOW_DAYS)
     rows = db.execute(
@@ -145,6 +149,7 @@ def recent_insights(
         .join(AiConversation, AiConversation.id == AiMessage.conversation_id)
         .where(
             AiConversation.user_id == user_id,
+            member_thread_clause(),
             AiMessage.role == "user",
             AiMessage.created_at >= cutoff,
             AiMessage.insight_dismissed.is_(False),

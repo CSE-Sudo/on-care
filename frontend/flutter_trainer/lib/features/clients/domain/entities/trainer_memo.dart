@@ -76,19 +76,26 @@ enum TrainerMemoRefKind {
   /// A personal workout — an assigned routine or an AI personal routine.
   personal,
 
-  /// The member's own logs for one day (one card per day, no id).
-  memberLog;
+  /// The member's own logs for one day (one card per day, no id). Only read
+  /// now — new date-linked memos are [day].
+  memberLog,
+
+  /// Every workout record of one day (#2508). The workout tab keeps one memo
+  /// spot per date row.
+  day;
 
   String get wire => switch (this) {
     TrainerMemoRefKind.ptSession => 'pt_session',
     TrainerMemoRefKind.personal => 'personal',
     TrainerMemoRefKind.memberLog => 'member_log',
+    TrainerMemoRefKind.day => 'day',
   };
 
   static TrainerMemoRefKind? fromWire(String? value) => switch (value) {
     'pt_session' => TrainerMemoRefKind.ptSession,
     'personal' => TrainerMemoRefKind.personal,
     'member_log' => TrainerMemoRefKind.memberLog,
+    'day' => TrainerMemoRefKind.day,
     _ => null,
   };
 }

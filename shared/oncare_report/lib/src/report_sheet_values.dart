@@ -105,7 +105,7 @@ class ReportSheetWeekData implements ReportSheetWeek {
     required this.completionAvg,
     required this.sodiumAvg,
     required this.isCurrentWeek,
-    this.weekCompletion = const <int>[],
+    this.weekCompletion = const <int?>[],
     this.sodiumWeek = const <int>[],
     this.caloriesWeek = const <int>[],
     this.sugarWeek = const <double>[],
@@ -138,7 +138,7 @@ class ReportSheetWeekData implements ReportSheetWeek {
   @override
   final bool isCurrentWeek;
   @override
-  final List<int> weekCompletion;
+  final List<int?> weekCompletion;
   @override
   final List<int> sodiumWeek;
   @override

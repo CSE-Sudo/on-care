@@ -19,11 +19,23 @@
   - **문자열**: `{"detail": "문장"}` — 대부분의 오류. 앱은 그대로 보여 준다(한국어 화면).
   - **객체**: `{"detail": {"code", "message", …추가 필드}}` — 화면이 분기해야 하는 오류만. **`code` 는 반드시 있다.**
     예: 일정 겹침 `schedule_overlap`(+`conflicts`), 프로그램을 붙일 회차 미정 `attach_target_conflict`(+`candidates`),
-    상담 `too_many_pending`·`slot_unavailable`, AI 코치 `points_required`·`daily_limit`·`insufficient_points`.
+    상담 `too_many_pending`·`slot_unavailable`, AI 코치 `points_required`·`daily_limit`·`insufficient_points`,
+    AI 하루 상한 `daily_limit`(트레이너)·`ai_capacity`(서버 전체).
     앱 공용 처리(트레이너 웹 `serverDetailText`)는 문자열이면 그 문장, 객체면 `message` 를 읽는다.
   - 예외는 FastAPI 스키마 검증 422 의 목록형 `detail`(`[{loc, msg, type}]`) 하나다.
   - 경쟁 상황(같은 이메일로 동시에 바꾸기, 같은 회원 담당 복구·수락·연결 코드가 겹침)도 DB 제약 위반을 500 이 아니라
     앞선 조회로 막았을 때와 같은 409 로 돌려준다.
+- **AI 하루 호출 상한(#3032).** 회원 한도(AI 코치 대화·사진 분석) 위에 두 상한을 더 둔다. 둘 다 DB 에서 KST 날짜로 세고
+  (인스턴스 수와 무관), 모델을 **부르기 직전에** 센다 — 키가 없어 모델을 부르지 않는 폴백은 세지 않는다. 문구는 `Accept-Language` 를 따른다.
+  - **트레이너 한 계정**(`TRAINER_AI_CALLS_PER_DAY`, 기본 200):
+    `POST /trainer/clients/{member_id}/routine-options`·`GET /trainer/clients/{member_id}/report/summary` 의 AI 호출 합.
+    넘으면 **429** `detail = { code: "daily_limit", message }` + `Retry-After`(다음 KST 자정까지 초). 분당 한도의 429(`detail` 이
+    문자열)와 모양으로 구분된다. 트레이너 웹은 루틴 후보는 토스트로, 리포트 요약은 다시 시도 없이 "내일 다시" 안내로 보인다.
+  - **서버 전체**(`AI_GLOBAL_CALLS_PER_DAY`, 기본 0 = 끔): 모든 AI 기능의 합. 넘으면 규칙형 폴백이 있는 기능(식단 조언·추천·메뉴,
+    루틴 후보, 리포트 요약, 코치 피드백, 운동 이름 접기)은 폴백으로 답하고 응답 모양은 그대로다. 대안이 없는 **AI 코치 대화**
+    (회원·트레이너)와 **사진 분석**만 **503** `detail = { code: "ai_capacity", message }` + `Retry-After` 를 받는다. 이때 회원 하루
+    몫·포인트·끼니는 남기지 않는다.
+  - 호출 한 번의 출력 토큰은 `LLM_MAX_OUTPUT_TOKENS`(기본 4096) 이하이고, 기능별로 더 작게 묶는다. 잘린 응답은 폴백(사진 분석은 502)이다.
 - **언어(`Accept-Language`, #2297)**: 회원 앱·트레이너 웹은 **모든 요청**에 지금 화면 언어를
   `Accept-Language: ko` 또는 `Accept-Language: en` 으로 보냅니다(호출부가 직접 넣은 값은 덮지 않음).
   서버는 `app/core/locale.py` 에서 이 값을 읽어 **`ko` 또는 `en` 하나**로 정합니다.
@@ -91,7 +103,7 @@
 | PUT | `/users/me/notification-settings` | 위 다섯 키 중 보낸 것만 반영 → 같은 모양 |
 | POST | `/users/me/pairing-code` | `{ code, expires_at, expires_in_seconds }` — 트레이너에게 불러 줄 6자리 코드(#1634). **이 호출이 데이터 공유 동의다**(#1022). 유효한 코드가 남아 있으면 같은 코드를 돌려준다. 회원 전용, rate limit 적용 |
 | DELETE | `/users/me/pairing-code` | 204 — 띄워 둔 코드를 버린다(화면을 닫을 때) |
-| POST | `/users/me/password` | `{ current_password, new_password }` → `PasswordChanged`(새 토큰 한 쌍) — 회원 비밀번호 변경(#2824). 아래 [회원 비밀번호 변경](#회원-비밀번호-변경-2824) |
+| POST | `/users/me/password` | `{ current_password, new_password }` → `PasswordChanged`(새 토큰 한 쌍) — 회원 비밀번호 변경(#2824). 현재 비밀번호를 연달아 틀리면 계정 단위 잠금 429(#3087). 아래 [회원 비밀번호 변경](#회원-비밀번호-변경-2824) |
 
 `DELETE /users/me` 는 본문으로 `{ reasons: [코드], current_password | social_provider·social_token }`
 을 받는다(#2019, #3039). 본인 확인 값은 **늘 필요하다** — 아래 [본인 확인](#탈퇴로그인-이메일-변경-전-본인-확인-3039).
@@ -209,7 +221,7 @@
 | GET | `/diet/advice?period=&lang=` | `{ period, from_date, to_date, days_logged, message, analysis, analysis_key?, analysis_params, action, action_key?, action_params, action_source? }` — 식단 탭 AI 맞춤 조언. `period` 는 `today`(기본)·`week`·`all`, `lang` 은 `ko`(기본)·`en`. 규칙 한 줄(`analysis`) + 다음 할 일 한 문장(`action`)이다 (#1017, #2251) |
 | GET | `/diet/recommendations?use_llm=` | `{ items[{ key, reason_key, reason_text? }], basis?, personalized, source, days_with_data, avg_sodium_mg, sodium_limit_mg, trainer_pick? }` — 홈 `추천 식단`. `trainer_pick` 은 담당 트레이너가 확정한 추천 `{ slot, name, tag, keyword, trainer_name }` 이고 없거나 해소됐으면 null (#2378) |
 | POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key?, date? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립). `date`(`YYYY-MM-DD`)는 기록을 남길 날로, 지난 날짜 화면에서 연 추가가 싣는다(#2849). 없으면 저장하는 날(KST), 앞날·작년 1월 1일 이전·형식 오류는 인식 전에 422. 포인트 하루 한도는 지금처럼 적립 시점 기준이다. `meal_type` 이 다섯 값 밖이면 인식 전에 422(#2882) |
-| POST | `/diet/entries` | `{ date?, meal_type, foods[](1개 이상, 이름 필수), idempotency_key? }` → 201, 새 `entries[]` 항목 하나 — 사진 없이 회원이 직접 적은 끼니(#2151). 합계는 음식에서 내고, **포인트는 적립하지 않는다.** `date` 가 없으면 오늘(KST), 앞날은 422. 당류 > 탄수화물인 음식이 있으면 422 |
+| POST | `/diet/entries` | `{ date?, meal_type, foods[](1개 이상, 이름 필수), idempotency_key? }` → 201, 새 `entries[]` 항목 하나 — 사진 없이 회원이 직접 적은 끼니(#2151). 합계는 음식에서 내고, **포인트는 적립하지 않는다.** `date` 가 없으면 오늘(KST), 앞날은 422. 당류 > 탄수화물인 음식이 있으면 422. 같은 `idempotency_key` 재전송은 처음 끼니를 돌려주고, 같은 키에 끼니·음식·(보냈다면)날짜가 다르면 409 이고 아무것도 바뀌지 않는다(#3095) |
 | PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나. `meal_type` 은 다섯 값, `time_label` 은 `HH:MM` 또는 빈 문자열(그 밖은 422, #2882) |
 | DELETE | `/diet/entries/{id}` | `{ status: "deleted" }` — 그 끼니로 받은 포인트를 회수한다 |
 | POST | `/diet/nutrition` | `{ name(필수), amount_g? }` → `{ matched_name?, match(exact\|similar)?, source, amount_g?, calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` — 이름으로 찾은 공공 DB 값(#1896). 못 찾았거나 양을 정할 수 없으면 `matched_name`·`match` 가 null |
@@ -219,6 +231,7 @@
 **`POST /diet/analyze` 거절 응답.** 앱은 `detail.code` 로 일반 실패와 구분해 안내한다. 아래 거절은 끼니·포인트·사진을 남기지 않는다.
 
 - `503 { code: "analysis_unavailable", message }` — 사진 인식을 쓸 수 없는 설정(운영에서 인식 키 없음). 고정 식단으로 저장하지 않는다(#2812). 운영은 키가 없으면 기동부터 거부하므로 정상 배포에서는 나오지 않는다.
+- `503 { code: "ai_capacity", message }` + `Retry-After` — 서버 전체의 오늘 AI 호출 상한 도달(위 "AI 하루 호출 상한", #3032). 모델을 부르지 않았고 회원 하루 분석 횟수도 돌려준다. 앱은 다시 시도 대신 직접 추가로 안내한다.
 - `422 { code: "no_food_detected", message }` — 사진에서 음식을 하나도 찾지 못했다. 0kcal 끼니를 저장하지 않고 포인트도 없으며, 멱등키도 쓰지 않아 같은 키로 다른 사진을 다시 보낼 수 있다(#2848).
 - `415` — 바이트가 JPG·PNG·WebP 가 아니다. 요청의 `Content-Type` 과 무관하게 바이트 시그니처로 판정하며, 모델을 부르기 전에 거절한다(#2827).
 - `415` — 형식은 맞지만 픽셀을 읽을 수 없는 사진(매직 넘버만 맞춘 손상·위장 파일). 인식 모델을 부르기 전, 하루 분석 한도를 예약하기 전에 거절하므로 한도를 깎지 않는다(#3041).
@@ -251,6 +264,8 @@
 당류만 소수다 — 항목 단위 당류가 6.3g·8.5g 처럼 소수로 들어오고 합계도 절삭 없이 유지된다(`total_sugar_g` 도 float).
 `foods[]`: `[{ name, display_name(str?), amount_g(float?), calories(int?), sodium_mg(int?), sugar_g(float?), carbs_g(float?), protein_g(float?), fat_g(float?), source(db|estimate|mixed|member) }]` — 음식별 영양은 회원이 식단 상세에서 고칠 수 있는 값이고, 그대로 저장된다(#1856, #1892).
 
+**사진 분석 값의 범위(#3090).** 인식 모델의 응답은 외부 입력으로 보고 서버가 걸러 저장한다. 음식 한 항목에서 `calories` 는 0~5000, `sodium_mg` 는 0~20000, `carbs_g`·`protein_g`·`fat_g`·`sugar_g` 는 0~1000, `amount_g` 는 0 초과~5000 이다. 음수·비유한값·숫자가 아닌 값·이 범위를 넘는 값은 모름(`null`)으로 저장하고 그 음식은 남긴다 — 앱은 `—` 로 보인다. 그래도 읽을 수 없는 항목(예: 확신도가 0~1 밖)은 그 항목만 빼고, 남은 음식이 없으면 `no_food_detected` 422 다. `name` 은 공백을 한 칸으로 접어 80자, `coach_comment` 는 300자까지 받고, 음식은 한 사진에 20개까지다. 비거나 문자열이 아닌 이름은 `알 수 없음` 이다. 공공 DB 보정(`source=db`·`mixed`)이 DB 밀도 × 양으로 다시 낸 값은 이 상한을 거치지 않는다. 음식별 `calories`·`sodium_mg` 는 수정 경로(`PUT`)를 포함해 음수면 422 다.
+
 `source` 는 그 음식의 숫자가 어디서 왔나다. `db`(공공 DB × 양) · `mixed`(DB 행에 탄단지가 비어 인식기 값을 남김) · `estimate`(매칭이나 양이 없어 인식기 추정 그대로) · `member`(회원이 수정 화면에서 영양 칸을 직접 고침, #2105). **`PUT` 의 `foods[].source` 는 앱이 정해 보낸다** — 손대지 않은 음식과 섭취량만 바꾼 음식은 원래 값을, 공공 DB 값으로 채운 음식은 `db` 를, 영양 칸을 고친 음식은 `member` 를 싣는다. 네 값 밖은 422 이고, **빠지면 `member` 로 저장한다**(인식기 쪽 기본값 `estimate` 를 쓰면 수정 경로로 들어온 숫자를 인식기 추정이라 부르게 된다). 이 필드 이전 기록은 `source` 가 없을 수 있고, 읽는 쪽은 `estimate` 로 읽는다.
 
 `POST /diet/nutrition` 의 `match` 는 찾은 음식이 **같은 음식**(`exact` — 이름·별칭·양 표기를 뗀 이름·`계란`→`달걀` 표기 변형이 표 이름과 같다)인지, 이름 끝말로 붙은 **비슷한 음식**(`similar` — `야채비빔밥` → `비빔밥`)인지다(#2107). 수정 화면은 이름을 바꾼 음식이 같은 음식에 붙으면 곧바로 그 값으로 채우고, 비슷한 음식이면 제안만 한다. 매칭은 사진 분석 보정과 같은 것이다.
@@ -278,7 +293,7 @@
 |---|---|---|
 | GET | `/exercise/weeks/current` | 질의 `?week_start=YYYY-MM-DD`(생략 시 이번 주) → `{ sessions[], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], stretching_minutes[7], day_labels[7], total_minutes, total_calories, streak_days, ai_coach_message }` — `streak_days` 는 **운동만** 센다(식단도 세는 기록 연속은 아래 "연속 기록 보호권" 절) |
 | GET | `/exercise/weeks?from=&to=` | `{ from_week, to_week, weeks[] }` — 구간이 걸친 주들. 한 칸은 `{ week_start, day_labels[7], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], strength_sets[7], stretching_minutes[7], other_minutes[7], total_minutes, total_calories, streak_days, weekly_goal_minutes, weekly_goal_calories }` 다. 기간 그래프가 쓰는 길이라 `sessions` 와 코칭 문구는 싣지 않는다 — 한 주를 펼쳐 볼 때는 위 `weeks/current` 다. `from` 생략 시 **첫 기록 주**부터, `to` 생략 시 이번 주까지. 월요일이 아닌 날짜는 그 주의 월요일로 맞춘다. 기록이 없는 주도 0 으로 채워 온다 (#2247). 구간은 끝 주에서 거슬러 **최대 160주**(`exercise_service.MAX_PERIOD_WEEKS`)이고, 더 이른 `from`·첫 기록 주는 그 하한으로 잘린다 — 응답 `from_week` 가 실제 시작 주다 (#2833) |
-| POST | `/exercise/sessions` | 입력 `{ sessions: [항목 1~20개] }` — 항목은 `{ type, name, minutes(>0) 또는 duration_seconds(>0), calories, intensity(light\|moderate\|high), sets?, reps?, hold_seconds?, weight?, date? }` → `{ sessions[](요청 순서), points(합계) }`. **한 트랜잭션**이라 항목 하나라도 잘못되면 전체가 422 이고 아무것도 저장되지 않는다. 한 건도 목록으로 감싸 보낸다 — 감싸지 않은 단건 입력은 422 (#2544). `date` 는 생략하면 오늘(KST)이고, **오늘보다 뒤 날짜는 422**(`date 는 오늘보다 뒤일 수 없습니다.` — 식단 기록과 같은 문구, #3042). 기록·포인트·코치 적재·보호권 환급을 하나도 남기지 않는다 |
+| POST | `/exercise/sessions` | 입력 `{ sessions: [항목 1~20개], client_request_id? }` — 항목은 `{ type, name, minutes(>0) 또는 duration_seconds(>0), calories, intensity(light\|moderate\|high), sets?, reps?, hold_seconds?, weight?, date? }` → `{ sessions[](요청 순서), points(합계) }`. **한 트랜잭션**이라 항목 하나라도 잘못되면 전체가 422 이고 아무것도 저장되지 않는다. 한 건도 목록으로 감싸 보낸다 — 감싸지 않은 단건 입력은 422 (#2544). `date` 는 생략하면 오늘(KST)이고, **오늘보다 뒤 날짜는 422**(`date 는 오늘보다 뒤일 수 없습니다.` — 식단 기록과 같은 문구, #3042). 기록·포인트·코치 적재·보호권 환급을 하나도 남기지 않는다. `client_request_id`(1~64자)는 저장 시도 단위 멱등키다 — 같은 키로 저장한 기록이 남아 있으면 새로 저장·적립하지 않고 처음 응답(`points` 는 그 기록들이 처음 받은 적립의 합)을 다시 돌려주고, 항목 수나 항목 내용(칼로리 제외, `date` 는 보낸 경우만)이 다르면 409 이고 아무것도 바뀌지 않는다. 그 키의 기록이 모두 지워졌으면 처음 보는 키처럼 새로 저장한다. 키가 없으면 매번 새로 저장한다 (#3095) |
 | PUT | `/exercise/sessions/{id}` | 입력은 위 **항목 하나**(부분 갱신) → 갱신된 항목(`points` 없음). `date` 를 주지 않으면 원래 날짜를 그대로 두고, 오늘보다 뒤로 옮기면 422 다 — 원래 날짜가 남는다(#3042) |
 | DELETE | `/exercise/sessions/{id}` | `{ status: "deleted" }` — 그 기록으로 받은 포인트를 회수한다 |
 | GET | `/exercise/advice?period=` | `{ period, from_date, to_date, days_logged, message, advice_key?, advice_params }` — 운동 탭 AI 조언. `period` 는 `today`(기본)·`week`·`all`. 식단 조언과 같은 규칙이고, 문장은 트레이너 웹의 `/trainer/clients/{member_id}/exercise-advice` 와 같다(#1574, #1025). 앱은 `advice_key`·`advice_params` 로 자기 언어 문장을 그린다(#2210) |
@@ -324,7 +339,9 @@
   재전송은 새로 적립하지 않고 처음 받은 `awarded` 를 그대로 싣는다.
 - **기록을 지우면 회수**한다(`DELETE /diet/entries/{id}`, `DELETE /exercise/sessions/{id}`,
   `DELETE /me/coach/routines/{id}/complete`). 잔액은 0 아래로 내려가지 않는다 — 모자라면 남은 만큼만
-  빼고 내역에 실제로 뺀 값을 적는다. 회수된 적립은 그날 한도에서 빠진다. 다시 만든 기록은 새 기록이다.
+  빼고 내역에 실제로 뺀 값을 적는다. **전액 회수된 적립만** 그날 한도에서 빠진다 — 잔액이 모자라 0P·일부만
+  회수됐으면 그 칸은 그대로다(받은 포인트를 쓰고 지웠다 다시 기록해 한도를 넘지 못하게, #3084). 다시 만든
+  기록은 새 기록이다.
 - 배정 루틴 완료 응답은 `RoutineOut` + `points` 다. 앱의 안내 문구는 `추천·배정 운동 완료` 로, AI 추천과
   트레이너 배정이 **하루 1회를 함께** 쓴다 — 배정 루틴으로 받은 날은 AI 루틴을 완료해도 `awarded: 0`.
   목록·수정 응답에는 `points` 가 붙지 않는다.
@@ -632,7 +649,7 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
   회원 앱은 `pt_done` 을 일정(`member_schedule`)과 다른 'PT 기록' 갈래로 보여 주고, 두 알림 모두 운동 탭으로 가면서
   다음 PT 일정·내 예약을 다시 읽습니다. 데모(목 모드)도 같은 버튼을 붙입니다.
 
-#### 회원 알림 수신 설정 (#489·#2854)
+#### 회원 알림 수신 설정 (#489·#2854·#3024·#3025)
 
 | 메서드 | 경로 | 응답 |
 | --- | --- | --- |
@@ -642,9 +659,27 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 - 회원 앱 스위치는 `exercise_reminder`·`trainer_message`·`weekly_report` 세 가지입니다.
   `diet_log`·`ai_coaching` 은 **이 kind 로 만드는 알림이 없어** 앱이 더는 그리거나 보내지 않고,
   이미 저장된 값과 예전 앱 버전을 위해 응답·저장에만 남아 있습니다.
-- **끌 수 없는 알림**: 포인트 쿠폰(`points_coupon`)·주간 챌린지 결과(`weekly_challenge`)는
-  설정과 무관하게 늘 만듭니다(`notification_service.ALWAYS_DELIVERED`). 새 회원 알림 kind 는
-  설정 키이거나 이 집합에 있어야 합니다.
+- 각 키가 끄는 알림과 기본값(저장한 적이 없을 때). 키 이름은 서버·앱 계약이라 화면 라벨이
+  바뀌어도 그대로입니다.
+
+  | 키 | 회원 앱 라벨 | 끄는 알림 | 기본값 |
+  | --- | --- | --- | --- |
+  | `exercise_reminder` | 운동 루틴 | 트레이너의 운동 루틴·프로그램 배정(`routine`) | 켬 |
+  | `trainer_message` | 트레이너 메시지 | 코치 채팅 메시지(`coach_chat`) | 켬 |
+  | `weekly_report` | 트레이너 주간 리포트 | 담당 트레이너가 보낸 주간 리포트(`coach_report`) | 켬 (#3025, 예전 끔) |
+
+  `weekly_report` 기본값은 마이그레이션 0143 에서 켬으로 바뀌었고, 그때 저장돼 있던 `false` 도
+  한 번 `true` 로 바꿨습니다(그 전까지 앱에서 끌 이유가 된 알림이 없었습니다). 그 뒤 회원이 끈
+  값은 그대로 지킵니다. 포인트로 만드는 '주간 리포트'(`/me/points/exchange`)와는 다른 알림입니다.
+- **끌 수 없는 알림**: 포인트 쿠폰(`points_coupon`)·주간 챌린지 결과(`weekly_challenge`)와
+  **PT 일정·담당 관계 알림**(`pt_link_notice`, #3024)은 설정과 무관하게 늘 만듭니다
+  (`notification_service.ALWAYS_DELIVERED`). `pt_link_notice` 는 PT 일정 등록·변경·취소·삭제·
+  인계(`member_schedule`), 담당 연결(`consultation_result`)·담당 요청(`coach_invite`),
+  담당 해제·트레이너 탈퇴와 그로 인한 예약 취소에 씁니다. 예전에는 이 알림이 `exercise_reminder`·
+  `trainer_message` 를 따라, 회원이 루틴 알림을 끄면 PT 취소 알림까지 끊겼습니다.
+  트레이너 탈퇴 알림은 **활성 담당 회원**에게만 가고, 담당이 끝난 회원은 예약이 남아 있을 때만
+  '예약한 수업이 취소되었어요' 알림을 받습니다. 새 회원 알림 kind 는 설정 키이거나 이 집합에
+  있어야 합니다.
 
 #### 알림 문장의 언어 (#2302)
 
@@ -764,7 +799,8 @@ tag: diet|exercise (피드백은 식단·운동 두 건, #2706)
 - `next` 는 다음 대화가 무엇으로 나가는가 — `free` · `paid` · `exhausted`.
 - 무료를 넘겨 보내려면 `pay_with_points: true` 가 있어야 한다. 앱은 무료를 다 쓴 뒤 처음 한 번만 확인창을 띄운다.
 - 거절은 `detail: { code, message }` 다. 동의 없음 402 `points_required`, 오늘 다 씀 429 `daily_limit`, 잔액 부족 409
-  `insufficient_points`(+`shortfall`).
+  `insufficient_points`(+`shortfall`). 서버 전체 AI 상한에 걸리면 503 `ai_capacity` + `Retry-After`(#3032) — 무료 횟수·포인트를
+  쓰지 않고 대화도 저장하지 않는다. 앱은 보낸 말을 거두고 입력칸에 되돌려 안내한다.
 - **AI 가 답했을 때만 센다.** 검색 기반 대체 답은 무료 횟수도 포인트도 쓰지 않는다. 포인트로 산 답은 원장에 `ai_chat` 사용 줄로 남고,
   `points_spent`·`balance_after` 가 답변 아래 차감 표시(`−50P · 남은 포인트`)를 채운다. `GET /ai-coach/messages` 의 코치 답변도 같은
   두 값을 싣는다.
@@ -774,16 +810,15 @@ tag: diet|exercise (피드백은 식단·운동 두 건, #2706)
 
 | 한도 | 값 | 넘으면 |
 | --- | --- | --- |
-| `message` 길이 | 1000자 (트레이너 고객 AI 코치와 같음) | **422** |
+| `message` 길이 | 1000자 | **422** |
 | `history` 턴 수 | 20 | **422** |
 | `history[].content` 길이 | 2000자 (`role` 은 16자) | **422** |
-| 요청 본문 전체 | 256KiB (`COACH_CHAT_MAX_BODY_BYTES`) | **413** `{"detail": "요청이 너무 큽니다. …"}` — 본문을 다 읽기 전에 끊는다 |
+| 요청 본문 전체 — 회원·트레이너 AI 코치 공용(트레이너는 #3032) | 256KiB (`COACH_CHAT_MAX_BODY_BYTES`) | **413** `{"detail": "요청이 너무 큽니다. …"}` — 본문을 다 읽기 전에 끊는다 |
 | 분당 요청 수 — 회원 `POST /ai-coach/chat` | 20 / IP (`COACH_CHAT_PER_MINUTE`) | **429** `{"detail": "요청이 너무 많습니다. …"}` + `Retry-After: 60` |
-| 분당 요청 수 — 트레이너 `POST /trainer/clients/{member_id}/ai-coach` | 20 / **트레이너 id** (같은 설정) | 같은 429. 같은 IP 의 다른 트레이너와 버킷을 나누지 않고, 한 트레이너가 여러 고객에게 물어도 한 버킷이다. 담당이 아닌 회원은 한도를 세기 전에 404 |
 
 길이는 글자(유니코드 코드 포인트) 수다. 회원 앱은 입력칸을 1000자로 막고, `history` 는 최근 20턴·턴당 2000자로 잘라 보낸다(서버는
 저장된 대화를 먼저 쓰고 프롬프트에는 최근 몇 턴만 넣으므로 답이 달라지지 않는다). 분당 한도(429 `detail` 이 문자열)는 하루 한도의
-429 `daily_limit`(`detail` 이 객체)와 모양으로 구분된다. 트레이너 웹은 이 429 를 "1분 뒤 다시 물어봐 주세요" 로 보이고 쓰던 질문을 남긴다.
+429 `daily_limit`(`detail` 이 객체)와 모양으로 구분된다.
 
 **생성 실패 로그(#1559).** LLM 대신 검색 기반 대체 답으로 내려갈 때마다 `app.services.coach.chat` 로거가 `event=coach_llm_fallback` 레코드를
 남긴다. 필드는 `fallback_reason`(`llm_unavailable` 설정·키 문제 / `provider_error` 호출 실패 / `empty_reply` 빈 응답 — 셋은 WARNING,
@@ -791,6 +826,8 @@ tag: diet|exercise (피드백은 식단·운동 두 건, #2706)
 `request_id` 로 잇는다. 예외 메시지·프롬프트·건강정보·질문은 남기지 않는다. 응답 계약은 그대로다.
 
 `DELETE /ai-coach/insights/{message_id}` 는 **메시지를 지우지 않는다**(#1975). 감지는 저장하지 않고 대화에서 매번 계산하므로 지울 행이 없다 — 그 줄에 `더 보지 않음` 표시만 남기고 `GET` 이 건너뛴다. 회원이 쓴 말은 대화에 그대로 남고 AI 가 맥락으로 읽는 것도 그대로다. 이미 치운 줄을 다시 눌러도 200 이고, 남의 대화·없는 id 는 404 다.
+
+감지(`GET /ai-coach/insights`·치우기·AI 코치 프롬프트의 불편 요약·자동 추천 루틴·트레이너 회원 목록의 통증 신호)는 **회원 본인 대화**(`ai_conversations.trainer_id IS NULL`)만 읽는다(#3085). 예전 트레이너 AI 코칭(`/trainer/clients/{member_id}/ai-coach`, 삭제됨)이 남긴 스레드의 트레이너 질문이 회원 발화로 읽히지 않게 하기 위해서다. 그 스레드의 메시지 id 로 치우기를 부르면 404 다.
 
 ### 바이탈 (체중/혈압/혈당) — 제거됨
 
@@ -853,10 +890,11 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | GET | `/trainers` | `[{ id, gym_id, name, role, reason, career, intro, certifications[] }]` |
 | GET | `/trainers/recommended` | 같은 형태 — 홈·운동 탭 추천 레일 |
 | GET | `/trainers/{trainer_id}` | 단건(없으면 404) |
+| POST | `/trainers/{trainer_id}/reports` | 회원 신고(`RequireMember`) — 아래 [트레이너 신고와 계정 관리](#트레이너-신고와-계정-관리-3008) |
 
 - **노출 조건**: 소속(`gym_id`)이 있고 그 장소가 `category='fitness'` 인 트레이너만. 상담 요청 시의 대상 검증과 같은 조건이라, 목록에 뜬 트레이너는 상담을 걸 수 있다. (#451)
 - **데모 트레이너 제외**: 데모 시드가 꺼진 서버(`SEED_DEMO_DATA=false`, 운영은 항상)에서는 데모 시드 트레이너(`app/db/demo_ids.py`)가 목록·추천·상세(404)·헬스장별 목록에 나오지 않고, `POST /consultations` 도 대상 없음(404)으로 막는다. 예전 기본값으로 운영 DB 에 심긴 가상 트레이너를 정리 스크립트(`scripts/purge_demo_data.py`)로 지우기 전에도 노출되지 않게 하는 장치다. (#2811)
-- **운영자 승인**: 위 조건에 더해 `verification_status='approved'` 인 트레이너만 목록·추천·상세에 나오고 상담 대상이 된다(승인 전 상세는 404, 상담 요청은 404). 이미 담당인 회원이 자기 트레이너를 읽는 상세는 예외다(#691). 아래 [트레이너 운영자 승인](#트레이너-운영자-승인-2825) 참고. (#2825)
+- **운영자 승인 없음**: 트레이너는 가입하고 소속을 고르면 바로 목록·추천·상세에 나오고 상담 대상이 된다. 소속은 트레이너가 카카오 장소에서 직접 고른 값이고, 헬스장은 트레이너를 묶는 단위일 뿐 확인을 거치지 않는다. 사칭·부적절한 메시지는 회원 신고와 운영자의 계정 정지로 다룬다. (#3008, 예전 승인 게이트 #2825 를 대체)
 - **`/trainers/recommended` 순서**: 회원마다 다르다. 회원의 건강 목표(`conditions`, 옛 질환 이름은 새 목표로 읽는다)·가장 최근 상담의 `exercise_goal`·내 헬스장(`MemberGym`)을 신호로 점수를 매겨 내림차순 정렬한다. 동점은 경력 → id 로 갈라 같은 회원이 새로고침해도 순서가 흔들리지 않는다. (#500)
 - **트레이너 화면의 회원 목표(`TrainerClientOut.goal`, `MemberCoachOut.goal`, 루틴 추천 분석의 `goal`)**: 회원 건강 목표(`conditions` 중 목표, 최대 2개)를 ` · ` 로 이은 값이다. 트레이너가 `PUT /trainer/clients/{id}/health-profile` 로 `conditions` 를 고치면 회원앱과 같은 칸이 바뀐다. 옛 질환 이름은 저장 때 정리하고, 목표가 아닌 글(건강상태·주의사항)은 남는다. 회원이 6자리 코드로 연결될 때(`POST /trainer/pairing-code`) 회원 목표가 비어 있으면 그 트레이너에게 수락된 가장 최근 상담의 `exercise_goal` 을 목표로 채운다(#1818). 상담 수락은 담당 연결이 아니라 채우지 않는다(#2584). 상담 운동 목표가 건강 목표 여덟 종과 1:1 이 되면서 `other` 를 뺀 모든 값이 빠짐없이 채워진다(#1992).
 - **회원 건강 목표 숫자의 범위**: 회원 경로(`PUT /users/me/health-goals`·`POST /users/me/onboarding`)와 트레이너 경로(`PUT /trainer/clients/{id}/health-profile`)가 **같은 범위**를 쓴다 — 같은 컬럼을 고치는 문들이라 기준이 갈라지면 한쪽으로 들어온 값을 다른 쪽이 고칠 수 없다. 범위는 `app/schemas/health_goal_ranges.py` 한 곳에 있고, 어긋나면 422 다. `null` 은 그대로 목표 해제다. 자세한 사정은 [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) 참조. (#1888)
@@ -1137,7 +1175,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 
 | Method | Path | 요청 → 응답 |
 |---|---|---|
-| GET | `/trainer/me` | `TrainerMe` `{ id, name, email, phone, specialty, career, intro, certifications, gym }` |
+| GET | `/trainer/me` | `TrainerMe` `{ id, name, email, phone, specialty, career, intro, certifications, gym, is_admin, has_password }` — `is_admin` 은 운영자 계정인지(#3008), `has_password` 는 비밀번호 로그인 계정인지(#3039) |
 | PUT | `/trainer/me` | 부분 수정 `{ phone?, specialty?, career_years?, intro?, certifications?, gym_name?, gym_address?, gym_hours?, gym_phone? }` → `TrainerMe`. 이름·이메일은 바꾸지 않는다 |
 | DELETE | `/trainer/me` | 본문 `{ reasons?, current_password? \| social_provider?·social_token? }` → `{ status: "deleted" }` — 탈퇴. 본인 확인 필수(#3039). 담당 회원에게 알린 뒤 계정과 딸린 데이터를 지운다(#505) |
 | DELETE | `/trainer/me/gym` | `TrainerMe` — 소속 해제. 원래 없어도 200 |
@@ -1166,10 +1204,8 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | GET | `/trainer/clients/{member_id}/chat?limit=&before=&before_id=` | `ChatMessageOut[]`(오래된→최신, 기본 최신 50건) |
 | POST | `/trainer/clients/{member_id}/chat` | `{ text, emote_id?, client_request_id? }` → **201** `ChatMessageOut`. 빈 메시지·모르는 이모티콘 400 |
 | POST | `/trainer/clients/{member_id}/chat/read` | `{ marked_read }` |
-| POST | `/trainer/clients/{member_id}/ai-coach` | `{ message }` → `{ member_id, reply, sources }` — 담당 고객 데이터를 근거로 한 AI 문답. 한도는 위 "AI 코치" 표 |
-| GET | `/trainer/clients/{member_id}/ai-coach` | `[{ role, content, sources }]` — 이 트레이너가 그 고객에 대해 나눈 문답(오래된→최신) |
 | GET | `/trainer/clients/{member_id}/memos` | `TrainerMemoOut[]`(최신 먼저) — 트레이너 혼자 보는 메모 |
-| POST | `/trainer/clients/{member_id}/memos` | `{ body, source?, insight_id?, insight_kind?, ref_id?, ref_date? }` → **201** `TrainerMemoOut` |
+| POST | `/trainer/clients/{member_id}/memos` | `{ body, source?, insight_id?, insight_kind?, ref_id?, ref_date?, ref_kind? }` → **201** `TrainerMemoOut`. `exercise_memo` 를 `ref_date` 로 남기면 `ref_kind`(`personal`·`member_log`) 상자, 없으면 그날 전체(`day`)에 다는 메모(#2508) |
 | PUT | `/trainer/clients/{member_id}/memos/{memo_id}` | `{ body }` → `TrainerMemoOut` |
 | DELETE | `/trainer/clients/{member_id}/memos/{memo_id}` | `{ status: "deleted" }` |
 | GET | `/trainer/clients/{member_id}/follow-ups?include_completed=` | `TrainerFollowUpTaskOut[]`(예정일 순) |
@@ -1185,12 +1221,13 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | PUT | `/trainer/clients/{member_id}/routines/{routine_id}` | `{ name?, minutes?, duration_seconds?, type?, reason? }` → `RoutineOut`(#504, #2547) |
 | DELETE | `/trainer/clients/{member_id}/routines/{routine_id}` | `{ status: "deleted" }` — 철회, 회원 앱에서도 사라진다 |
 | GET | `/trainer/clients/{member_id}/routines/unsent` | `RoutineOut[]` — PT 에 붙여 두고 아직 보내지 않은 개인운동(#2225) |
+| GET | `/trainer/clients/{member_id}/routine-days` | `?from=&to=` → 날짜별 개인운동 이행(#2508) — 날마다 그날 걸린 배정과 결과(done/late/missed/pending), 배정 묶음. from 을 비우면 처음 걸린 날부터, 최대 371일. 담당 해제 회원 404 |
 | GET | `/trainer/clients/{member_id}/deliveries/latest` | 가장 최근에 보낸 묶음 하나 또는 `null` (#2225) |
 | GET | `/trainer/clients/{member_id}/routine-suggestions` | `RoutineOut[]` — 검토를 기다리는 AI 개인운동 제안 |
 | POST | `/trainer/clients/{member_id}/routine-suggestions` | 후보 `{ name, minutes\|duration_seconds, type, …, evidence?, client_request_id? }` → **201** `RoutineOut`. 회원에게는 아직 안 보인다 |
 | POST | `/trainer/routine-suggestions/{suggestion_id}/approve` | 고칠 칸만 → `RoutineOut` — 승인해 배정. 빈 이름 400, 없음 404, 이미 처리 409 |
 | POST | `/trainer/routine-suggestions/{suggestion_id}/dismiss` | `RoutineOut` — 추천하지 않음. 없음 404, 이미 처리 409 |
-| POST | `/trainer/clients/{member_id}/routine-options` | `{ available_minutes, intensity_preference, trainer_note?, sources? }` → `{ analysis, plan_a, plan_b, generated_by }` — AI 루틴 A/B 후보. 분당 한도 `ROUTINE_OPTIONS_PER_MINUTE` |
+| POST | `/trainer/clients/{member_id}/routine-options` | `{ available_minutes, intensity_preference, trainer_note?, sources? }` → `{ analysis, plan_a, plan_b, generated_by }` — AI 루틴 A/B 후보. 분당 한도 `ROUTINE_OPTIONS_PER_MINUTE`, 트레이너 하루 상한 429 `daily_limit`(서버 전체 상한은 규칙형 후보로 폴백, #3032) |
 | POST | `/trainer/clients/{member_id}/program` | `{ name, sessions[], client_request_id?, delivery_kind?, trainer_message?, start_date?, active_days?, suggestion_ids? }` → **201** `RoutineOut[]` — 다중 세션 프로그램 배정(#709) |
 | POST | `/trainer/clients/{member_id}/program-schedule` | 프로그램 + 날짜·시각(또는 붙일 `session_id`) → **201** `{ routines, session, attached_to_existing, personal_routines }` — 배정과 PT 일정 등록을 한 트랜잭션으로(#1580). 붙일 일정이 모호하면 409 `{ message, candidates }` |
 | GET | `/trainer/programs?member_id=` | `[{ id, name, goal, period, session_count, exercise_count, member_id, updated_at }]` — 프로그램 초안 목록. `member_id` 를 주면 그 회원에게 자동 보관한 것만(#2873) |
@@ -1205,7 +1242,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | GET | `/trainer/schedule?date=&from=&to=&member_id=` | `ScheduleSessionOut[]` — 기본 하루, `from`/`to` 면 그 구간 |
 | GET | `/trainer/schedule/booked-dates` | `["YYYY-MM-DD", …]` — 주간 스트립 점 표시용 |
 | POST | `/trainer/schedule` | `{ date, time, client_name?, member_id?, type, duration_minutes, note?, program?, client_request_id? }` → **201** `ScheduleSessionOut`(예정). 겹치면 409 |
-| POST | `/trainer/schedule/recurring/preview` | 반복 설정(`weekdays`, `count` 또는 `until`) → `{ dates, conflicts }` (#870) |
+| POST | `/trainer/schedule/recurring/preview` | 반복 설정(`weekdays`, `count` 또는 `until`, `client_request_id?`) → `{ dates, conflicts, already_created }` (#870). 만들기와 같은 `client_request_id` 의 시리즈가 이미 있으면 그 회차는 `conflicts` 에서 빠지고 `already_created: true` — 응답만 잃은 재시도는 같은 키로 만들기를 다시 불러 그 회차를 받는다(#3102) |
 | POST | `/trainer/schedule/recurring` | 같은 입력 → **201** `ScheduleSessionOut[]`. 겹치면 409 |
 | PUT | `/trainer/schedule/{session_id}` | 보낸 칸만 수정 → `ScheduleSessionOut`. 겹치면 409 |
 | DELETE | `/trainer/schedule/{session_id}` | `{ status: "deleted" }` — 잘못 만든 일정을 없앤다(취소와 다르다) |
@@ -1219,7 +1256,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/trainer/schedule/{session_id}/routines/send` | `{ personal_routines? }` → `RoutineOut[]` — 마무리된 PT 에 남은 개인운동을 보낸다(#2224). 상태가 맞지 않으면 400 |
 | POST | `/trainer/schedule/{session_id}/routines/dismiss` | `{ dismissed }` — 보내지 않기로 정리(#2224) |
 | GET | `/trainer/clients/{member_id}/report?week_start=` | `WeeklyReportOut` — 주간 리포트. 아무 요일을 줘도 그 주 월요일로 접는다 |
-| GET | `/trainer/clients/{member_id}/report/summary?week_start=` | `{ member_id, week_start, headline, points, generated_by }` |
+| GET | `/trainer/clients/{member_id}/report/summary?week_start=` | `{ member_id, week_start, headline, points, generated_by }` — `headline` 은 한 문장이다. AI 가 쓴 문장이 200자를 넘으면 계약 위반으로 보고 규칙 기반 요약(`generated_by: "rule"`)으로 바꾼다. 응답 상한은 400자(#3090). AI 로 만들 때 트레이너 하루 상한 429 `daily_limit`(서버 전체 상한은 규칙형 요약으로 폴백, #3032). |
 | GET | `/trainer/clients/{member_id}/report/feedback?week_start=` | `{ member_id, week_start, body, updated_at }` — 저장해 둔 피드백 초안. 없으면 빈 본문(오류 아님, #821) |
 | PUT | `/trainer/clients/{member_id}/report/feedback` | `{ week_start?, body }` → 같은 모양. 같은 주는 덮어쓰고, 회원에게는 아무것도 보내지 않는다 |
 | POST | `/trainer/clients/{member_id}/report/send` | `{ week_start?, message? }` → **201** `ChatMessageOut` — 리포트를 회원 채팅으로 보낸다 |
@@ -1257,6 +1294,33 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 다시 집계된다. 판단은 `data_consent_service.link_is_open`/`open_link_clause` 한 곳을
 `_require_client` 와 함께 쓴다.
 기준값과 예외 규칙은 [`docs/TRAINER_DOMAIN.md`](docs/TRAINER_DOMAIN.md) 의 "PT 관리 신호" 참조.
+
+**이행률 (#2513)**: 로스터 `week_completion: (int | null)[7]`(월→일)과 주간 리포트
+`week_completion`·`days[].completion`·`completion_avg` 는 그날 이행률 = (완료한 개인운동 + 완료한
+PT) ÷ (그날 걸린 개인운동 + 그날 잡힌 PT) 다. 개인운동은 그 트레이너가 건 것이고 다음 날 이후
+체크도 완료다. PT 는 `예정·완료` 만 분모다(취소·노쇼·상담 제외). 회원이 직접 추가한 운동은 넣지
+않는다. 아무것도 걸리지 않은 날과 아직 오지 않은 날은 `null`, 걸렸는데 하나도 안 한 날은 `0` 이다.
+예전 응답은 `routine_history` 의 그날 최댓값이라 `null` 이 없었다(0 = 기록 없음).
+
+**날짜별 개인운동 이행 (#2508)**: `GET /trainer/clients/{member_id}/routine-days?from=&to=` →
+`{ start, end, routines[], days[] }`. `days[]` 는 `start`~`end`(오늘을 넘지 않는다) 날마다
+`{ date, items[{ routine_id, status, session_id }] }` 이고 `status` 는 `done`(그날 완료) ·
+`late`(그날 완료를 다음 날 이후에 체크) · `missed`(안 함, 오늘 이전만) · `pending`(오늘 아직)이다.
+`routines[]` 는 `{ id, name, type, source, sort_order, active_from, ended_on, sent_on, personal, minutes, duration_seconds, sets, reps, hold_seconds, weight, effect }` —
+양 칸은 배정에 적힌 그대로이고 `effect` 는 회원 앱과 같은 효과 한 줄(적힌 값, 없으면 문구표)이다.
+`ended_on` 날은 목록에 뜨지 않고(기한 없는 배정은 `null`), `sent_on` 은 보낸 날(미래 시작일로 보낸
+`개인운동만` 은 `active_from` 보다 이르다, #2656), `personal` 이 거짓이면 기한 없는 따로 배정이다.
+`from` 을 비우면 그 트레이너가 처음 건 배정의 첫날부터다. 걸린 적이 없으면
+`{ start: null, end: null, routines: [], days: [] }`. 담당 해제 회원은 404.
+
+**운동 기록의 개인운동 (#2510)**: `GET /trainer/clients/{member_id}/history` 는 그 트레이너가 건
+개인운동의 완료를 하루 한 장으로 묶는다 — `kind: "personal_routine"`, `label: "개인운동"`,
+`id: "personal-YYYY-MM-DD"`. `exercise_items[]` 는 그날 걸린 배정 순서이고 한 줄마다 `done` 과
+완료의 `session_id`(트레이너 메모 `ref_id` 로 쓴다)를 싣는다. 지난 날 하지 않은 것은 `done: false`,
+오늘 아직 안 한 것은 줄이 없다. 예전에는 완료 한 건마다 한 장(`assigned_routine_id` 를 단
+항목)이었다. 강도(#2508): 한 줄의 `intensity` 는 회원이 고른 강도이고 `prescribed_intensity` 에
+트레이너가 처방한 강도를 함께 싣는다(둘이 다르면 트레이너 화면이 `수행 …` 을 붙인다). 하지 않은
+줄은 `intensity` 가 곧 처방 강도이고 `prescribed_intensity` 는 비어 있다.
 
 **완료 PT 회차 (#2697)**: `GET /me/coach/sessions` 의 각 세션은 `session_number` 를 싣는다 —
 완료(`status="완료"`)한 PT 가 현재 담당 트레이너와의 몇 번째 수업인지(1부터). 날짜·시각 순으로
@@ -1373,7 +1437,7 @@ N명이면 첫 화면에서 요청이 2N개였다.
 
 - 각 값은 같은 회원·같은 주의 `GET /trainer/clients/{member_id}/report` 와 **같은 규칙**이다 —
   `sessions_booked` 는 예정+완료(취소·노쇼·상담 제외), `sessions_done` 은 완료, `week_completion`
-  은 월→일 7칸 이행률, `completion_avg` 는 기록한 날의 평균이고 기록이 없으면 `null`(0 아님).
+  은 월→일 7칸 이행률(주간 리포트와 같은 계산 — 걸린 개인운동과 잡힌 PT, 아무것도 걸리지 않은 날은 `null`, #2513), `completion_avg` 는 걸린 날의 평균이고 걸린 날이 없으면 `null`(0 아님).
   식단·요일별 운동·회원 피드백은 싣지 않는다 — 편집기를 열 때 그 회원 리포트로 읽는다.
 - 집계는 회원별 반복이 아니라 회원 id 목록으로 묶어 조회한다(세션 한 번, 이행 기록 한 번).
 - **담당이 살아 있고 데이터 공유 동의가 유효한 회원만** 싣는다(회원 단위 경로가 404 를 주는 회원은
@@ -1490,6 +1554,11 @@ N명이면 첫 화면에서 요청이 2N개였다.
   `client_name`·`type`·`duration_minutes` 가 하나라도 섞이면 409 다(그 기록이 가리키는 약속이 바뀐다).
   이미 보낸 프로그램(`program_sent: true`)을 다른 내용으로 바꾸면 409 이고, 같은 내용을 함께 실은
   메모 수정은 막지 않는다.
+- **완료 세션의 프로그램·메모를 고치면 회원 운동 기록과 트레이너 이력이 함께 바뀐다 (#3093).** 같은
+  저장에서 회원 운동 기록(`sched-ex-{id}`, 분·유형·이름·세트·횟수·중량·강도·칼로리)과 트레이너 이력
+  (`sched-hist-{id}`, 운동 목록·메모)을 완료 때와 같은 계산으로 다시 쓰고, 커밋 뒤 AI 코치 근거 문서도
+  맞춘다. 메모만 고치면 회원 운동 기록은 그대로다. 완료 세션을 지우거나(`DELETE`) 되돌리면(`/reopen`)
+  두 기록과 함께 코치 근거 문서도 지운다. 근거 문서 갱신은 best-effort 라 실패해도 응답은 200 이다.
 - **회원 예약 일정은 `is_reservation: true` 로 실린다 (#2756).** 트레이너 스케줄 응답의 각 일정에
   회원이 예약 슬롯으로 잡은 일정인지를 싣는다. 이 일정은 `note`·`program` 수정만 되고, 그 밖의 수정·
   삭제·되돌리기는 409(`detail` 에 사유 문자열)다. 일정을 거두려면 `/cancel` 을 쓴다 — 예약과 좌석이
@@ -1605,8 +1674,9 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
 
 - `POST /auth/register`·`POST /auth/trainer/register` 는 `consents: [항목]` 을 받는다. 보냈다면 그
   역할의 필수 항목이 모두 있어야 하고, 빠졌거나(빈 목록 포함) 모르는 항목이면 **422** 다 — 계정은
-  만들어지지 않는다. **보내지 않으면(`null`) 막지 않는다**: 동의 화면이 없는 옛 빌드의 가입이며,
-  기록 없이 계정만 만들어진다.
+  만들어지지 않는다. **보내지 않으면(`null`) 가입은 받는다**: 동의 화면이 없는 옛 빌드의 가입이며,
+  기록 없이 계정만 만들어진다. 다만 그 계정은 동의하기 전까지 회원 데이터·AI API 를 쓰지 못한다
+  (아래 "필수 동의 확인").
 - `POST /auth/login`·`POST /auth/social/{provider}` 응답에 `consent_required: bool` 이 붙는다.
   `GET /users/me` 는 같은 값과 아직 동의하지 않은 필수 항목 목록(`consent_pending`)을 준다.
   기록이 없는 계정(동의 절차 이전 가입·옛 빌드 가입·소셜 첫 가입)과, 문서 버전이 올라 지금 버전에
@@ -1616,8 +1686,21 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
   이미 지금 버전에 동의한 항목은 다시 쓰지 않는다 — 처음 동의한 시각이 남는다.
 - 문서 버전은 `services/signup_consent.CURRENT_VERSIONS` 한 곳이 정한다. 약관·처리방침 본문을
   고치면 그 항목의 버전을 올린다. 처리방침은 위탁·국외 이전·파기 절차 절을 더하며 `privacy` 가
-  `2026-10-03` 으로 올랐다(#2820) — 그 전 버전에만 동의한 계정은 다음 로그인 때 동의 화면을 다시
-  거친다. 버전 날짜는 두 앱 처리방침 본문의 시행일과 같아야 한다.
+  `2026-10-03` 으로 올랐다(#2820) — 그 전 버전에만 동의한 계정은 다시 동의할 때까지 회원 데이터 API
+  가 403 이고, 동의 화면을 다시 거친다. 버전 날짜는 두 앱 처리방침 본문의 시행일과 같아야 한다.
+- **필수 동의 확인(#3088)** — 회원 계정은 역할의 필수 항목(`terms`·`privacy`·`health`·`age14`)에
+  지금 버전으로 동의해 두어야 회원 의존성(`CurrentUser`·`RequireMember`)을 쓰는 API 를 부를 수 있다.
+  남은 항목이 있으면 **403** `{ detail: { code: "consent_required", missing: [...] } }` — 위 422 와
+  같은 모양이다. 핸들러보다 먼저 막으므로 음식 인식·AI 코치 같은 외부 AI 호출도 일어나지 않는다.
+  기록이 없는 계정, 문서 버전이 오른 계정, 동의를 철회(`revoked_at`)한 계정이 모두 해당한다.
+  - 동의 없이도 열려 있는 경로: `GET /users/me`(동의 필요 여부 조회), `POST /users/me/consents`,
+    `DELETE /users/me`(탈퇴), `/auth/*`(로그인·refresh·로그아웃·비밀번호 재설정·소셜 로그인),
+    계정 데이터가 없는 공개 경로. 목록은 `api/deps.CONSENT_EXEMPT_ROUTES` 한 곳에 있다.
+  - 트레이너 계정은 이 확인을 거치지 않는다(트레이너 필수 동의 강제는 따로 정한다).
+  - 회원 앱은 이 403 을 받으면 세션을 "동의 필요" 로 바꿔 동의 화면으로 보낸다. 앱을 쓰는 사이
+    문서 버전이 올라도 다음 데이터 요청에서 동의 화면으로 넘어간다.
+  - 회원 의존성 없이 `RequireUser` 로만 사용자를 받는 라우트가 생기면
+    `tests/test_member_consent_gate.py` 가 실패한다(예외는 그 파일의 목록에 이유와 함께 적는다).
 - 국외 이전 동의는 따로 받지 않는다(#2820). 계약 이행을 위한 처리 위탁·보관이라 처리방침 공개로
   갈음한다(「개인정보 보호법」 제28조의8 제1항 제3호). 위탁·이전 표는 `docs/privacy_processing.md`.
 
@@ -1784,45 +1867,63 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은
 - `PUT /trainer/me` 로 `gym_name`·`gym_address`·`gym_hours`·`gym_phone` 을 보내면 소속 유무와
   관계없이 **409** 이고, 함께 온 다른 필드도 반영하지 않는다. 헬스장 문자열은 소속에서만 파생된다.
 
-### 트레이너 운영자 승인 (#2825)
+### 트레이너 신고와 계정 관리 (#3008)
 
-공개 가입(`POST /auth/trainer/register`)으로 생긴 트레이너는 **승인 대기(`pending`)** 로 시작한다.
-가입·로그인·프로필 작성·소속 선택은 그대로 되지만, 승인 전에는 회원 데이터로 이어지는 네 자리에서
-빠진다.
+**트레이너 운영자 승인 절차는 없다.** 공개 가입(`POST /auth/trainer/register`)으로 생긴 트레이너는
+소속(`PUT /trainer/me/gym`, 실재하는 카카오 장소)을 고르면 바로 회원 앱 디렉터리·헬스장 트레이너
+목록·상세에 나오고, 상담 대상이 되며, 연결 코드와 담당 요청을 쓸 수 있다. 회원 연결은 여전히 회원의
+수락(담당 요청 수락·상담 뒤 연결)이나 회원이 준 연결 코드로만 된다. 예전 승인 게이트(#2825)·반려
+기록 잠금(#3009)·승인 알림(#3010)은 모두 걷었다.
 
-| 자리 | 승인 전 동작 |
+- 마이그레이션 `0145_trainer_reports_no_approval` 은 남아 있던 `pending`·`rejected` 를 `approved` 로
+  채우고 DB 기본값을 `approved` 로 바꾼다. `trainer_profiles.verification_*` 열은 기록용으로 남기고
+  어디서도 읽지 않는다. `GET /trainer/me` 에는 승인 상태가 없다.
+- 같은 응답의 `is_admin: bool` 은 운영자 계정인지다 — 트레이너 웹이 `신고·계정 관리` 메뉴를
+  보일지 정하고, 실제 차단은 `RequireAdmin` 이 한다. 운영자 판별은 사용자 행의 `is_admin` 이다.
+- 같은 응답의 `has_password: bool`(#3039)은 비밀번호로 로그인하는 계정인지다 — 탈퇴 본인 확인에서
+  현재 비밀번호 칸과 소셜 다시 로그인 중 무엇을 보일지 고른다.
+
+**회원 신고** — `POST /trainers/{trainer_id}/reports` (`RequireMember`)
+
+| Body | Response |
 |---|---|
-| 회원 앱 디렉터리 `/trainers`·`/trainers/recommended`·`/gyms/{id}/trainers` | 빠짐. 상세 `/trainers/{id}` 는 404 |
-| 상담 요청 `POST /consultations` | 404(대상 없음) |
-| 연결 코드 `POST /trainer/pairing-code/preview`·`POST /trainer/pairing-code` | **403** `detail={ code: "trainer_not_approved", message }` — 코드는 소비되지 않는다 |
-| 담당 요청 `POST /trainer/client-invites` | **403** 같은 모양 |
-| 담당 요청 수락 `POST /me/coach/invites/{id}/accept` | 보낸 트레이너가 지금 승인 상태가 아니면 404 |
+| `{ reason: "impersonation"\|"inappropriate_message"\|"other", memo?: string(≤200) }` | **201** `TrainerReportOut { id, status: "open", created_at }` |
 
-`GET /trainer/me`(및 같은 모양을 돌려주는 `PUT /trainer/me`·`PUT /trainer/me/gym*`)는
-`verification: { status: "pending"|"approved"|"rejected", decided_at: datetime|null, note: string }`
-을 싣는다. `note` 는 반려 사유(승인·대기면 빈 문자열)이고, 트레이너 웹이 그대로 보여 준다.
-`has_password`(bool, #3039)는 비밀번호로 로그인하는 계정인지다 — 탈퇴 본인 확인에서 현재 비밀번호
-칸과 소셜 다시 로그인 중 무엇을 보일지 고른다.
+- `memo` 는 앞뒤 공백을 지운다. `reason="other"` 이면 `memo` 가 필요하다(없으면 422).
+- 트레이너가 아니거나 없는 id 는 404, 트레이너 계정 403, 미인증 401.
+- 같은 회원이 같은 트레이너를 **처리 전(`open`)에 다시 신고하면 409**
+  `detail={ code: "report_already_open", message }`. 처리된 뒤 다시 신고하는 것은 된다. 다른 회원의
+  신고는 따로 쌓인다(DB 부분 유니크 `uq_trainer_reports_open`).
 
-운영자 엔드포인트(모두 `RequireAdmin` — 비관리자 403, 미인증 401, 처리 결과는 감사 로그
-`admin.trainer_approve`/`admin.trainer_reject`):
+**운영자 엔드포인트**(모두 `RequireAdmin` — 비관리자 403, 미인증 401)
 
 | Method | Path | Body / Query → Response |
 |---|---|---|
-| GET | `/admin/trainers` | `status`(`pending` 기본·`approved`·`rejected`·`all`) → `[AdminTrainerVerificationOut]` |
-| POST | `/admin/trainers/{trainer_id}/approve` | → `AdminTrainerVerificationOut` (반려했던 트레이너도 승인 가능, 사유는 지움) |
-| POST | `/admin/trainers/{trainer_id}/reject` | `{ reason?: string(≤300) }` → `AdminTrainerVerificationOut` |
+| GET | `/admin/trainer-reports` | `status`(`open` 기본·`closed`·`all`) → `[AdminTrainerReportOut]`, 최근 순 최대 200 |
+| POST | `/admin/trainer-reports/{report_id}/close` | `{ outcome: "resolved"\|"dismissed" }` → `AdminTrainerReportOut` — 없음 404, 이미 처리 409. 감사 로그 `admin.trainer_report_close` |
+| GET | `/admin/trainers` | `q`(이름·이메일 부분 일치, 대소문자 무시)·`state`(`all` 기본·`active`·`suspended`) → `[AdminTrainerOut]`, 처리 전 신고 많은 순 → 최근 가입 순, 최대 100 |
+| POST | `/admin/users/{user_id}/suspend` | → `AdminUserStatusOut` — 없는 계정 404, 운영자 계정(자신 포함) 409 |
+| POST | `/admin/users/{user_id}/unsuspend` | → `AdminUserStatusOut` — 없는 계정 404 |
 
-`AdminTrainerVerificationOut = { trainer_id, name, email, specialty, career_years, certifications[],
-gym_id, gym_name, gym_address, gym_is_fitness, status, decided_at, decided_by, note, created_at }`.
-트레이너 계정이 아니거나 없으면 404.
+`AdminTrainerReportOut = { id, trainer_id, trainer_name, trainer_email, trainer_is_active, reason, memo,
+status, created_at, resolved_at }` — 신고한 회원은 싣지 않는다. `resolved` 는 조치함, `dismissed` 는
+조치 없이 넘김이다. 신고 처리는 계정 상태를 바꾸지 않는다 — 조치가 필요하면 정지를 따로 부른다.
 
-- **반려는 새 연결만 막는다.** 이미 맺어진 담당 관계·받은 상담은 그대로 둔다 — 끊으려면 회원 쪽
-  알림·동의 철회가 따라야 하고, 그건 계정 정지·탈퇴 경로의 일이다.
-- 마이그레이션(`0132_trainer_verification`)은 **기존 트레이너를 모두 `approved` 로 채운다.**
-  DB 기본값은 `pending` 이라 ORM 밖에서 넣은 행은 노출되지 않는다. ORM 기본값은 `approved`
-  (시드·운영 스크립트 경로)이고, 공개 가입만 `pending` 을 명시한다.
-- 자격증 사본 등 증빙 업로드와 운영자 관리 화면은 아직 없다.
+`AdminTrainerOut = { trainer_id, name, email, gym_name, gym_address, is_active, created_at,
+open_reports }`. `AdminUserStatusOut = { user_id, role, is_active, released_clients }`.
+
+계정 정지·해제(감사 로그 `admin.user_suspend`/`admin.user_unsuspend`, `target_user_id` 에 대상):
+
+- 정지는 `is_active=false` 와 토큰 세대 올리기다 — 기존 접근·refresh 토큰이 바로 401 이 되고
+  로그인도 401 이다.
+- 트레이너를 정지하면 살아 있는 담당을 모두 해제한다. 트레이너가 직접 해제할 때(`DELETE
+  /trainer/clients/{id}`)와 같은 경로라 회원에게 `member_trainer_disconnected` 알림이 가고, 아직
+  시작하지 않은 PT 일정이 취소되고, PT 재등록 쿠폰이 환불된다. 대기 중 담당 요청은 `cancelled` 로
+  거둔다. `released_clients` 는 이번에 해제한 수다. 정지된 트레이너는 디렉터리에서도 빠진다.
+- 이미 정지된 계정을 다시 정지하면 토큰 세대는 그대로이고, 남은 담당이 있을 때만 마저 해제한다.
+- 해제는 계정만 되살린다. 해제했던 담당 관계는 복구하지 않는다 — 회원의 새 동의가 필요하다.
+- 회원 계정을 정지해도 그 회원의 담당 관계는 건드리지 않는다.
+- 운영 화면은 트레이너 웹 `/admin/reports`(`신고·계정 관리`, 운영자 계정에만 메뉴가 보인다)다.
 
 **로그인에는 걸지 않는다.** 이 기준 이전에 만든 계정은 비밀번호가 기준에 못 미쳐도 그대로
 로그인되고, 트레이너는 `POST /trainer/me/password` 로 기준에 맞는 값으로 옮길 수 있다. 로그인에
@@ -1850,6 +1951,18 @@ refresh 토큰은 **일회용**이다. `POST /auth/refresh` 는 회전할 때 �
 
 발급된 access 토큰 자체는 남은 수명(기본 하루)까지 유효하다. 상태 없는 JWT 의 성질이며,
 로그아웃이 끊는 것은 **세션을 계속 되살리는 능력**이다.
+
+### 재사용 감지 뒤 세션 전체 폐기 · 세션 절대 수명 (#3086)
+
+refresh 토큰에는 로그인 세션 이름 `sid`(무작위)와 최초 인증 시각 `auth_time`(epoch 초)이 실린다. 로그인·소셜 로그인·비밀번호 변경(`POST /users/me/password`·`POST /trainer/me/password`)은 새 세션을 열고, `POST /auth/refresh` 는 두 값을 **그대로 이어** 새 토큰에 싣는다. 같은 계정이라도 로그인마다(기기마다) `sid` 가 다르다.
+
+- **재사용 감지 = 세션 폐기.** 회전으로 폐기된 토큰이 `REFRESH_REUSE_GRACE_SECONDS`(기본 30초)를 넘겨 다시 오면, 정상 사용자와 탈취자 중 누가 먼저 회전했는지 알 수 없으므로 그 `sid` 를 `revoked_sessions` 에 적는다. 이후 그 세션의 refresh 토큰은 모두 401 이고 `auth.refresh_session_revoked` 감사 로그가 남는다. 재사용 요청의 `auth.refresh_reuse` 감사 로그 `detail` 은 `session revoked: <sid>` 다. 다른 `sid`(다른 기기)는 영향이 없다.
+- **동시 갱신 유예.** 웹 탭 두 개나 응답을 받기 전에 앱이 꺼진 경우처럼 정상 사용자도 같은 토큰을 두 번 보낼 수 있다. 회전된 지 유예 안에 다시 온 토큰은 그 요청만 401 이고 세션은 이어진다(`detail`: `within grace`).
+- **로그아웃·옛 세대로 폐기된 토큰의 재사용**은 이미 끊긴 세션이라 세션을 따로 폐기하지 않는다(`detail`: `already revoked: logout`·`already revoked: stale`). 폐기 사유는 `revoked_refresh_tokens.reason`(`rotated`·`logout`·`stale`)에 남는다.
+- **절대 수명.** `auth_time` 으로부터 `SESSION_MAX_DAYS`(모바일, 기본 90일)·`WEB_SESSION_MAX_DAYS`(웹, 기본 30일)가 지나면 `POST /auth/refresh` 는 401 + `auth.refresh_session_expired` 감사 로그다. 회전이 내는 refresh 토큰의 만료도 이 상한을 넘지 않게 잘린다. 두 앱은 지금처럼 refresh 401 → 세션 만료 안내 → 로그인 화면으로 간다.
+- **배포 전 토큰.** `sid`·`auth_time` 이 없는 토큰은 끊기지 않고 첫 회전에서 새 `sid` 와 `auth_time=지금`을 받는다.
+- 접근 토큰에는 `sid` 를 싣지 않는다. 세션이 끊겨도 이미 발급된 접근 토큰은 남은 수명(`ACCESS_TOKEN_EXPIRE_MINUTES`)까지 유효하다.
+- `revoked_sessions` 의 `expires_at` 은 그 세션의 절대 수명이 끝나는 시각이고, 새 폐기가 생길 때마다 만료된 행을 정리한다.
 
 ### 웹 클라이언트의 짧은 refresh 토큰 (#2828)
 
@@ -1916,7 +2029,12 @@ CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 �
 | 현재 비밀번호 불일치 | **400** `현재 비밀번호가 일치하지 않습니다.` (401 이 아니다 — 토큰은 유효) |
 | 새 비밀번호가 지금과 같음 | 400 |
 | 새 비밀번호 기준 미달 | 422 `password_weak`·`password_too_long`·`password_empty` |
-| 소셜 로그인 전용 계정(비밀번호 없음) | **409** |
+| 소셜 로그인 전용 계정(비밀번호 없음) | **409** (실패 잠금에 세지 않는다) |
+| 현재 비밀번호를 `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `PASSWORD_CHANGE_MAX_FAILURES`(5)번 틀림 | 남은 시간 동안 **429** + `Retry-After`. 잠긴 동안에는 맞는 비밀번호도 확인하지 않는다(#3087) |
+
+실패 잠금은 사용자 id 단위라 IP 를 바꿔도 같은 버킷이고, 트레이너와 같은 키·설정값을 쓴다
+(`PasswordChangeGuard`). 틀린 시도는 감사 로그 `auth.password_change`(실패, `current_password_mismatch`)에
+남고, 현재 비밀번호가 맞으면 실패 기록을 지운다. 회원 앱은 429 를 "시도가 너무 많아요" 안내로 보여 준다.
 
 `GET /users/me/profile` 의 `has_password`(bool)가 false 면 소셜 로그인 전용 계정이다. 회원 앱은
 이 값으로 MY 의 비밀번호 변경 대신 안내를 보여 준다.
@@ -2061,7 +2179,7 @@ IP 를 바꿔 가며 한 계정을 노리는 시도는 계정 쪽 버킷이 막�
 | `POST /auth/register/email-code` | IP + **이메일** + (이메일, 용도) | IP 는 분당 10. 같은 이메일은 `SIGNUP_EMAIL_CODE_WINDOW_MINUTES`(60분) 안에 `SIGNUP_EMAIL_CODE_PER_WINDOW`(5)번, 같은 (이메일, 용도)는 `SIGNUP_EMAIL_CODE_RESEND_SECONDS`(60초)에 한 번. 가입된 주소도 똑같이 센다(#3038) |
 | `DELETE /users/me`·`DELETE /trainer/me`·이메일을 바꾸는 `PUT /users/me` | **사용자 id 연속 실패** | 본인 확인을 `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `PASSWORD_CHANGE_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429. 값을 아예 보내지 않은 400 은 세지 않는다(#3039) |
 | `POST /auth/register`·`POST /auth/trainer/register` | IP + **이메일(대소문자 무시)** | IP 는 분당 10. 같은 이메일은 시간당 `REGISTER_PER_EMAIL_PER_HOUR`(5) — 성공·409 를 가리지 않고 세고, 두 가입이 한 버킷이다(#2913). 409 문구는 그대로 |
-| `POST /trainer/me/password` | IP + **사용자 id 연속 실패** | IP 는 분당 10. 현재 비밀번호를 `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `PASSWORD_CHANGE_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429(잠긴 동안 비밀번호를 확인하지 않는다). 틀린 시도는 감사 로그 `auth.password_change`(실패)에 남고, 성공하면 실패 기록을 지운다(#2913) |
+| `POST /trainer/me/password`·`POST /users/me/password` | IP + **사용자 id 연속 실패** | IP 는 분당 10. 현재 비밀번호를 `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `PASSWORD_CHANGE_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429(잠긴 동안 비밀번호를 확인하지 않는다). 틀린 시도는 감사 로그 `auth.password_change`(실패)에 남고, 성공하면 실패 기록을 지운다(#2913). 회원·트레이너가 같은 키 규칙·설정값을 쓴다(#3087) |
 
 한도 저장소는 프로세스 메모리라 인스턴스가 여럿이면 한도도 그 배수가 된다. 운영 인스턴스가
 하나를 넘게 되면 공유 저장소 구현으로 바꾼다(`app/core/rate_limit.py`).
@@ -2072,11 +2190,10 @@ IP 를 바꿔 가며 한 계정을 노리는 시도는 계정 쪽 버킷이 막�
 
 | 의존성 | 토큰 없을 때 | 역할 제한 |
 |---|---|---|
-| `CurrentUser` | 환경에 따라 데모 사용자 폴백 또는 401 (아래) | 트레이너 계정이면 **403** |
+| `CurrentUser` | 환경에 따라 데모 사용자 폴백 또는 401 (아래) | 트레이너 계정이면 **403**. 필수 동의가 남은 회원이면 403 `consent_required` (#3088) |
 | `RequireUser` | 401 | 없음 |
-| `RequireMember` | 401 | 회원만. 트레이너면 403 |
+| `RequireMember` | 401 | 회원만. 트레이너면 403. 필수 동의가 남았으면 403 `consent_required` (#3088) |
 | `RequireTrainer` | 401 | 트레이너만. 회원이면 403 |
-| `RequireApprovedTrainer` | 401 | 운영자 승인을 받은 트레이너만. 승인 전이면 403 `trainer_not_approved` (#2825) |
 | `RequireAdmin` | 401 | `is_admin` 아니면 403 |
 
 읽기 화면은 `CurrentUser`, 쓰기·삭제는 `RequireMember`, 트레이너 앱(`/v1/trainer/*`)은

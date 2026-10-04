@@ -107,7 +107,7 @@ void main() {
       expect(reportQueueFromJson(<String, dynamic>{'items': 'x'}), isEmpty);
     });
 
-    test('음수·숫자 아닌 세션 수는 0 으로 읽는다', () {
+    test('음수·숫자 아닌 세션 수는 0, 숫자 아닌 이행률 칸은 빈칸으로 읽는다', () {
       final ReportQueueSummary item = reportQueueFromJson(<String, dynamic>{
         'items': <Object?>[
           <String, dynamic>{
@@ -120,7 +120,8 @@ void main() {
       }).single;
       expect(item.sessionsBooked, 0);
       expect(item.sessionsDone, 0);
-      expect(item.weekCompletion, <int>[50, 70]);
+      // 숫자가 아닌 칸은 null 로 자리를 지킨다 — 요일이 당겨지지 않는다.
+      expect(item.weekCompletion, <int?>[50, null, 70]);
     });
   });
 

@@ -25,6 +25,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
+from app.api import ai_call_errors
 from app.api.deps import CurrentUser, RequireMember
 from app.core import rate_limit
 from app.core.config import get_settings
@@ -46,7 +47,9 @@ from app.schemas.diet_api import (
     analyze_record_date,
 )
 from app.schemas.points_api import PointsOut
+from app.services.ai_log import log_ai_fallback
 from app.services import (
+    ai_call_quota,
     chat_image_storage,
     diet_advice_copy,
     diet_all_advice,
@@ -69,6 +72,7 @@ from app.services.recognizer.factory import (
 )
 
 router = APIRouter(tags=["diet"])
+
 logger = logging.getLogger(__name__)
 
 #: 사진 분석 분당 한도 초과(#2827). 하루 상한(`daily_limit`)과 달리 잠시 뒤 다시 된다.
@@ -356,11 +360,20 @@ async def diet_analyze(
     except NotImplementedError as e:
         await run_in_threadpool(diet_analysis_quota_service.release, db, usage_id)
         raise HTTPException(status_code=501, detail=str(e)) from e
+    except ai_call_quota.AiCapacityReached as e:
+        # 서버 전체 하루 AI 상한(#3032). 모델을 부르지 않았으니 회원의 하루 몫을 돌려주고,
+        # 앱이 `analysis_unavailable` 처럼 직접 입력으로 이어 주게 503 `ai_capacity` 로 답한다.
+        await run_in_threadpool(diet_analysis_quota_service.release, db, usage_id)
+        raise ai_call_errors.capacity_http_error(e) from e
     except Exception as e:  # noqa: BLE001
         # 공급자 장애로 회원의 하루 몫이 깎이지 않게 돌려준다.
         await run_in_threadpool(diet_analysis_quota_service.release, db, usage_id)
-        # 원본 에러(API 키/내부 URL 등)는 서버 로그에만 남기고, 클라이언트엔 일반화된 메시지
-        logger.exception("식단 인식 실패 (engine=%s)", engine)
+        # 클라이언트엔 일반화된 메시지. 서버 로그에도 예외 메시지·스택은 남기지 않는다 —
+        # provider 오류는 요청 본문을, 검증 오류는 모델 출력을 되풀이한다(#3090).
+        log_ai_fallback(
+            logger, "diet_recognize", "error", exc=e, level=logging.ERROR,
+            engine=engine or "-", user_id=user_id,
+        )
         raise HTTPException(
             status_code=502, detail="식단 인식에 실패했습니다. 잠시 후 다시 시도해 주세요."
         ) from e
@@ -526,6 +539,8 @@ def create_entry(
         return diet_service.save_manual_entry(db, current_user.id, payload)
     except diet_service.NutritionInconsistentError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
+    except diet_service.IdempotencyConflictError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
 
 
 @router.put("/diet/entries/{entry_id}", response_model=DietEntryOut)

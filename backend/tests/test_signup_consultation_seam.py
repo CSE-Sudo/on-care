@@ -134,19 +134,6 @@ def _member(client) -> tuple[str, str]:
     return response.json()["id"], _login(client, email)
 
 
-def _approve_as_admin(client, db_session, trainer_id: str) -> None:
-    """운영자가 승인한다(#2825). 승인 전 트레이너는 상담 대상이 아니다."""
-    admin_id, _ = _member(client)
-    admin = db_session.get(User, admin_id)
-    admin.is_admin = True
-    db_session.commit()
-    response = client.post(
-        f"/v1/admin/trainers/{trainer_id}/approve",
-        headers=_auth(_login(client, admin.email)),
-    )
-    assert response.status_code == 200, response.text
-
-
 def _request_consultation(client, token: str, trainer_id: str) -> str:
     """회원이 그 트레이너의 빈 자리를 골라 상담을 신청한다. (#1873)"""
     from tests.test_consultation_decision import _open_slot
@@ -181,8 +168,7 @@ def test_a_signed_up_trainer_can_receive_and_accept_a_consultation(
     gym = _gym(db_session)
 
     trainer_id, trainer_token = _sign_up_trainer(client, gym)
-    # 공개 가입은 승인 대기로 시작한다(#2825) — 승인이 이 이음매의 한 단계다.
-    _approve_as_admin(client, db_session, trainer_id)
+    # 운영자 승인 단계는 없다(#3008) — 가입하고 소속을 고르면 바로 상담 대상이다.
     member_id, member_token = _member(client)
     consultation_id = _request_consultation(client, member_token, trainer_id)
 
@@ -223,7 +209,6 @@ def test_a_signed_up_trainer_sees_only_their_own_requests(client, db_session):
     gym = _gym(db_session)
     _, trainer_token = _sign_up_trainer(client, gym)
     other_trainer_id, _ = _sign_up_trainer(client, gym)
-    _approve_as_admin(client, db_session, other_trainer_id)
     _, member_token = _member(client)
 
     foreign_id = _request_consultation(client, member_token, other_trainer_id)

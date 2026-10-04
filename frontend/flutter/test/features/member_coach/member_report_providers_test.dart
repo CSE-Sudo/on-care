@@ -5,6 +5,7 @@
 /// 같은 문서를 연다.
 library;
 
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -360,6 +361,83 @@ void main() {
       expect(generator.inputs, isNull);
     });
   });
+  testWidgets('자료를 받는 동안 부른 줄이 치워져도 던지지 않고 끝까지 만든다 (#3096)', (
+    WidgetTester tester,
+  ) async {
+    final Completer<void> gate = Completer<void>();
+    final _RecordingRepository repository = _RecordingRepository();
+    final _RecordingGenerator generator = _RecordingGenerator();
+    final List<Object> failures = <Object>[];
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: <Override>[
+          memberReportSheetRepositoryProvider.overrideWithValue(repository),
+          memberReportPdfGeneratorProvider.overrideWithValue(generator),
+          // 목표(프로필)를 읽는 동안 붙잡는다 — 그 뒤에 자료·생성기를 읽는다.
+          profileProvider.overrideWith(() => _GatedProfile(gate, _profile())),
+        ],
+        child: MaterialApp(
+          locale: const Locale('ko'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Builder(
+            builder: (BuildContext context) => TextButton(
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  // 대화 목록의 리포트 줄처럼, 누르면 리포트를 연다.
+                  builder: (BuildContext inner) => TextButton(
+                    onPressed: () async {
+                      try {
+                        await openCoachReport(
+                          inner,
+                          message: _notice(),
+                          weekStart: _monday,
+                        );
+                      } on Object catch (error) {
+                        failures.add(error);
+                      }
+                    },
+                    child: const Text('리포트 열기'),
+                  ),
+                ),
+              ),
+              child: const Text('대화'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('대화'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('리포트 열기'));
+    await tester.pump();
+
+    // 받는 사이 화면을 떠나 그 줄이 치워진다.
+    tester.state<NavigatorState>(find.byType(Navigator)).pop();
+    await tester.pumpAndSettle();
+    expect(find.text('리포트 열기'), findsNothing);
+
+    gate.complete();
+    await tester.pumpAndSettle();
+
+    expect(failures, isEmpty, reason: '`PDF를 열지 못했어요` 가 뜬다');
+    expect(repository.calls, 1);
+    expect(generator.inputs, isNotNull);
+  });
+}
+
+/// [gate] 가 풀릴 때까지 프로필을 내주지 않는다.
+class _GatedProfile extends ProfileController {
+  _GatedProfile(this._gate, this._value);
+
+  final Completer<void> _gate;
+  final UserProfile _value;
+
+  @override
+  Future<UserProfile> build() async {
+    await _gate.future;
+    return _value;
+  }
 }
 
 class _ThrowingRepository implements MemberReportSheetRepository {

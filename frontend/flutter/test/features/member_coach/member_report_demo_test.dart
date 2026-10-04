@@ -163,7 +163,7 @@ void main() {
     final ReportSheetInputs mine = await load(tester, 'ko');
     expect(
       mine.week.caloriesWeek.any((int v) => v > 0) ||
-          mine.week.weekCompletion.any((int v) => v > 0),
+          mine.week.weekCompletion.any((int? v) => (v ?? 0) > 0),
       isTrue,
     );
     expect(mine.week.sessionsBooked, greaterThan(0));

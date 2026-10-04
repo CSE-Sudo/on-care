@@ -37,7 +37,6 @@ class _Console extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final clients = ref.watch(clientsProvider).valueOrNull ?? const [];
-    final managed = ref.watch(managedClientsProvider).valueOrNull ?? const [];
     final prioritized =
         ref.watch(prioritizedClientsProvider).valueOrNull ?? const [];
     final notifications =
@@ -47,7 +46,6 @@ class _Console extends ConsumerWidget {
     return ListView(
       children: <Widget>[
         for (final c in clients) Text('client:${c.name}'),
-        for (final c in managed) Text('managed:${c.name}'),
         for (final c in prioritized) Text('priority:${c.name}'),
         for (final n in notifications) Text('notification:${n.title}'),
         for (final t in templates) Text('template:${t.name}'),
@@ -125,7 +123,6 @@ void main() {
     );
     await pumpFrames(tester);
     expect(find.text('client:${TestTrainer.a.memberName}'), findsOneWidget);
-    expect(find.text('managed:${TestTrainer.a.memberName}'), findsOneWidget);
     expect(find.text('priority:${TestTrainer.a.memberName}'), findsOneWidget);
     expect(
       find.text('notification:${TestTrainer.a.notificationTitle}'),
@@ -151,7 +148,6 @@ void main() {
       ),
     );
     expect(find.text('client:${TestTrainer.b.memberName}'), findsOneWidget);
-    expect(find.text('managed:${TestTrainer.b.memberName}'), findsOneWidget);
     expect(find.text('priority:${TestTrainer.b.memberName}'), findsOneWidget);
     expect(
       find.text('notification:${TestTrainer.b.notificationTitle}'),

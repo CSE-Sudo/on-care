@@ -996,11 +996,25 @@ class ExerciseSession(Base):
     completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    #: 회원이 한 번에 저장한 요청의 멱등키와 그 안의 순서(#3095). 응답을 잃고
+    #: 다시 보낸 저장을 알아보는 데 쓴다 — 한 요청이 여러 행이라 키 하나로는
+    #: 행을 가리킬 수 없어 순서를 함께 둔다. 키 없이 저장한 기록·파생 기록·이
+    #: 칼럼 이전 기록은 둘 다 NULL 이다.
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    client_request_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
 
     __table_args__ = (
+        # 같은 저장 요청의 같은 자리는 한 행이다(#3095). 동시에 온 재시도가 두 벌을
+        # 넣지 못하게 하는 마지막 방어선이다. 키가 NULL 인 행은 걸리지 않는다.
+        UniqueConstraint(
+            "user_id",
+            "client_request_id",
+            "client_request_index",
+            name="uq_exercise_sessions_client_request",
+        ),
         # 배정 하나는 하루에 한 번 완료한다(#2161). 운동 기록의 날짜는
         # `(week_start, day_label)` 이라 그 둘로 하루를 가리킨다. 더블 탭·재전송이
         # 같은 날 기록 둘을 만들지 않게 하는 마지막 방어선이다. 수기 기록은
@@ -1083,9 +1097,9 @@ class MemberNotificationSetting(Base):
     ai_coaching: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=true(), default=True
     )
-    #: 주간 리포트만 기본 꺼짐 — 앱의 현재 기본값과 같다.
+    #: 트레이너 주간 리포트 알림. 다른 항목과 같이 기본 켜짐이다(#3025).
     weekly_report: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default=false(), default=False
+        Boolean, nullable=False, server_default=true(), default=True
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -1394,13 +1408,9 @@ class TrainerProfile(Base):
     reminder_lead_minutes: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default="30", default=30
     )
-    #: 운영자 승인 상태(#2825) — pending|approved|rejected. 승인 전에는 회원 앱
-    #: 디렉터리·상담 대상·담당 요청·연결 코드에서 빠진다
-    #: (`trainer_verification_service`).
-    #:
-    #: DB 기본값은 pending 이다 — ORM 을 거치지 않고 들어온 행은 노출되지 않는
-    #: 쪽으로 닫힌다. ORM 기본값이 approved 인 것은 시드·운영 스크립트처럼 운영자가
-    #: 직접 넣는 경로 때문이고, 공개 가입(`register_trainer`)은 pending 을 명시한다.
+    #: 예전 운영자 승인 상태(#2825). 승인 절차를 없애면서(#3008) 모든 행을
+    #: approved 로 채우고 기본값도 approved 로 바꿨다(0145). 어느 코드도 이 값으로
+    #: 노출·연결을 가르지 않는다 — 칸은 이력 보존용으로 남긴다.
     verification_status: Mapped[str] = mapped_column(
         String(16),
         CheckConstraint(
@@ -1408,18 +1418,18 @@ class TrainerProfile(Base):
             name="ck_trainer_profiles_verification_status",
         ),
         nullable=False,
-        server_default="pending",
+        server_default="approved",
         default="approved",
         index=True,
     )
-    #: 승인·반려를 처리한 시각과 운영자. 가입 직후(pending)·백필 행은 비어 있다.
+    #: 예전 승인·반려 처리 시각과 운영자(#2825). 새로 채우지 않는다.
     verification_decided_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     verification_decided_by: Mapped[str | None] = mapped_column(
         String(64), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
-    #: 반려 사유 — 트레이너 웹이 그대로 보여 준다. 승인이면 비운다.
+    #: 예전 반려 사유(#2825). 새로 채우지 않는다.
     verification_note: Mapped[str] = mapped_column(
         String(300), nullable=False, server_default="", default=""
     )
@@ -1555,6 +1565,64 @@ class TrainerClientInvite(Base):
     )
 
 
+class TrainerReport(Base):
+    """회원이 트레이너를 신고한 기록. (#3008)
+
+    운영자 승인 절차를 없앤 자리의 사후 관리 경로다. 회원이 사칭·부적절한 메시지·
+    기타 사유로 신고하면 운영자가 트레이너 웹 `신고·계정 관리` 화면에서 보고
+    처리(resolved)하거나 넘긴다(dismissed). 필요하면 계정을 정지한다.
+
+    (trainer, reporter) 부분 유니크(처리 전일 때만) — 같은 회원이 같은 트레이너를
+    처리 전에 두 번 신고할 수 없다. 처리된 뒤 다시 신고하는 것은 된다.
+    """
+
+    __tablename__ = "trainer_reports"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    trainer_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    reporter_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: impersonation | inappropriate_message | other
+    reason: Mapped[str] = mapped_column(String(32))
+    #: 회원이 덧붙인 설명. 기타 사유면 비어 있을 수 없다(스키마가 막는다).
+    memo: Mapped[str] = mapped_column(String(200), server_default="", default="")
+    #: open | resolved | dismissed
+    status: Mapped[str] = mapped_column(
+        String(16), server_default="open", default="open"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    resolved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    resolved_by: Mapped[str | None] = mapped_column(
+        String(64), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "reason IN ('impersonation', 'inappropriate_message', 'other')",
+            name="ck_trainer_reports_reason",
+        ),
+        CheckConstraint(
+            "status IN ('open', 'resolved', 'dismissed')",
+            name="ck_trainer_reports_status",
+        ),
+        Index(
+            "uq_trainer_reports_open",
+            "trainer_id",
+            "reporter_id",
+            unique=True,
+            postgresql_where=text("status = 'open'"),
+        ),
+        Index("ix_trainer_reports_status_created", "status", "created_at"),
+    )
+
+
 class MemberPairingCode(Base):
     """회원이 트레이너에게 불러 주는 6자리 일회용 동기화 코드. (#1634)
 
@@ -1625,7 +1693,7 @@ class TrainerClientMemo(Base):
     insight_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     #: 채팅 인사이트 종류(discomfort|negativeFeedback). 직접 쓴 메모는 빈 문자열.
     insight_kind: Mapped[str] = mapped_column(String(32), default="")
-    #: 운동 기록 메모가 가리키는 기록의 갈래(pt_session|personal|member_log).
+    #: 운동 기록 메모가 가리키는 기록의 갈래(pt_session|personal|member_log|day).
     #: 다른 출처는 빈 문자열.
     ref_kind: Mapped[str] = mapped_column(String(16), default="", server_default="")
     #: 가리키는 이력 id(`routine_history.id` 또는 배정 수행 `exercise_sessions.id`).
@@ -2414,6 +2482,34 @@ class RevokedRefreshToken(Base):
     revoked_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    #: 폐기 사유(#3086) — `rotated`(회전에 쓰임)·`logout`·`stale`(비밀번호 변경 전 세대).
+    #: 재사용이 왔을 때 회전된 지 얼마 안 된 토큰(동시 갱신)인지, 이미 끊긴 세션인지
+    #: 가른다. 이 칸이 생기기 전의 행은 비어 있다.
+    reason: Mapped[str | None] = mapped_column(String(16), nullable=True)
+
+
+class RevokedSession(Base):
+    """끊긴 로그인 세션 — refresh 토큰 재사용으로 탈취가 의심된 세션(#3086).
+
+    refresh 토큰 한 장(`jti`)만 폐기하면, 탈취한 쪽이 먼저 회전해 받은 다음 토큰들은
+    그대로 산다. 토큰의 세션 이름(`sid`)을 여기에 적어 그 세션에서 나간 토큰을 모두
+    `/auth/refresh` 에서 거부한다. 같은 계정의 다른 로그인(다른 기기)은 이름이 달라
+    끊기지 않는다.
+
+    `expires_at` 은 그 세션의 절대 수명이 끝나는 시각이다. 그 뒤로는 세션의 어떤
+    토큰도 만료돼 있으므로 폐기 기록과 함께 정리한다.
+    """
+
+    __tablename__ = "revoked_sessions"
+
+    sid: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    revoked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
 
 class PasswordResetToken(Base):
@@ -2794,4 +2890,32 @@ class DietAnalysisUsage(Base):
 
     __table_args__ = (
         Index("ix_diet_analysis_usages_user_date", "user_id", "kst_date"),
+    )
+
+
+class AiCallUsage(Base):
+    """하루 AI 호출 수 — 서버 전체·트레이너 계정 단위 상한을 센다. (#3032)
+
+    `bucket` 하나에 하루 한 행이다. `global` 은 서버 전체, `trainer:<id>` 는 그
+    트레이너의 고객 AI 코치·루틴 후보·리포트 요약 합이다. 외부 모델을 **실제로 부르기
+    직전에** `INSERT … ON CONFLICT DO UPDATE … WHERE calls < 상한` 으로 한 번에 더해,
+    여러 인스턴스가 동시에 불러도 상한을 넘지 않는다. 기능별 건수는 행으로 나누지 않고
+    메트릭(`ai_calls.*`)으로 본다 — 상한 판정을 한 행에서 끝내기 위해서다.
+    """
+
+    __tablename__ = "ai_call_usages"
+
+    #: KST 날짜 `YYYY-MM-DD`. 자정이 지나면 새 행에서 다시 센다.
+    kst_date: Mapped[str] = mapped_column(String(10), primary_key=True)
+    #: `global` 또는 `trainer:<트레이너 id>`.
+    bucket: Mapped[str] = mapped_column(String(80), primary_key=True)
+    #: 트레이너 버킷의 주인. 전역 버킷은 비어 있다. 트레이너가 탈퇴하면 함께 지운다.
+    trainer_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    calls: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0", default=0
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
     )

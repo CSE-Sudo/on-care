@@ -132,7 +132,7 @@ void main() {
       );
       expect(
         routineKindLabel(_en, 'AI 개인운동', kind: 'ai_personal'),
-        'AI personal exercise',
+        'Personal exercise',
       );
       expect(
         routineKindLabel(_en, '배정 루틴 수행', kind: 'assigned_routine'),
@@ -149,7 +149,7 @@ void main() {
         routineKindLabel(_ko, '배정 루틴 수행', kind: 'assigned_routine'),
         '배정 루틴 수행',
       );
-      expect(routineKindLabel(_ko, 'AI 개인운동'), 'AI 개인운동');
+      expect(routineKindLabel(_ko, 'AI 개인운동'), '개인운동');
     });
 
     test('코드가 없는 옛 서버·데모 행은 저장된 이름에서 코드를 되짚는다', () {
@@ -157,8 +157,13 @@ void main() {
         routineKindLabel(_en, 'PT 세션 · 트레이너 지도'),
         'PT · Trainer-led',
       );
-      expect(routineKindLabel(_en, '  AI 개인운동 '), 'AI personal exercise');
-      expect(routineKindLabel(_en, 'AI 루틴 · 자율 운동'), 'AI personal exercise');
+      expect(routineKindLabel(_en, '  AI 개인운동 '), 'Personal exercise');
+      expect(routineKindLabel(_en, 'AI 루틴 · 자율 운동'), 'Personal exercise');
+      // 하루치 개인운동 카드(#2510).
+      expect(
+        routineKindLabel(_en, '개인운동', kind: 'personal_routine'),
+        'Personal exercise',
+      );
       expect(routineKindLabel(_en, '배정 루틴 수행'), 'Assigned routine');
     });
 

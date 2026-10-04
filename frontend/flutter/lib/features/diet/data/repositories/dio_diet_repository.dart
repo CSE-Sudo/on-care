@@ -6,6 +6,7 @@ import 'package:oncare/core/network/request_extras.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis_failure.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/domain/entities/diet_entry_key_conflict.dart';
 import 'package:oncare/features/diet/domain/entities/diet_period.dart';
 import 'package:oncare/features/diet/domain/entities/food_nutrition_suggestion.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
@@ -168,16 +169,22 @@ class DioDietRepository implements DietRepository {
     required List<FoodItem> foods,
     String? idempotencyKey,
   }) async {
-    final res = await _dio.post<Map<String, Object?>>(
-      '/diet/entries',
-      data: <String, Object?>{
-        'date': date,
-        'meal_type': mealType,
-        'foods': foods.map(_foodJson).toList(),
-        'idempotency_key': ?idempotencyKey,
-      },
-    );
-    return DietEntry.fromJson(res.data!);
+    try {
+      final res = await _dio.post<Map<String, Object?>>(
+        '/diet/entries',
+        data: <String, Object?>{
+          'date': date,
+          'meal_type': mealType,
+          'foods': foods.map(_foodJson).toList(),
+          'idempotency_key': ?idempotencyKey,
+        },
+      );
+      return DietEntry.fromJson(res.data!);
+    } on DioException catch (e) {
+      // 이 키로는 다른 끼니가 이미 저장돼 있다(#3095).
+      if (e.response?.statusCode == 409) throw const DietEntryKeyConflict();
+      rethrow;
+    }
   }
 
   /// 음식 한 줄의 전송 표현. 직접 추가와 수정이 같은 모양을 보낸다.

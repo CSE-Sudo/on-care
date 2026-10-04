@@ -52,13 +52,26 @@ void main() {
   }
 
   group('로컬(데모) 저장소', () {
-    test('저장한 적 없으면 기본값 — 주간 리포트만 꺼짐', () async {
+    test('저장한 적 없으면 기본값 — 모두 켜짐(#3025)', () async {
       final prefs = await SharedPreferences.getInstance();
       final repo = LocalNotificationSettingsRepository(prefs);
 
       final settings = await repo.fetch();
 
+      expect(settings['notif_exercise_reminder'], isTrue);
       expect(settings['notif_trainer_message'], isTrue);
+      expect(settings['notif_weekly_report'], isTrue);
+    });
+
+    test('예전에 끈 주간 리포트는 기기에 남은 값 그대로다', () async {
+      // 데모 기기 저장은 마이그레이션 대상이 아니다 — 기본값만 바뀐다.
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'notif_weekly_report': false,
+      });
+      final prefs = await SharedPreferences.getInstance();
+
+      final settings = await LocalNotificationSettingsRepository(prefs).fetch();
+
       expect(settings['notif_weekly_report'], isFalse);
     });
 
@@ -115,6 +128,41 @@ void main() {
       expect(settings.length, kNotificationSettingItems.length);
     });
 
+    test('서버가 끔으로 준 주간 리포트는 기본값이 아니라 끔으로 읽는다', () async {
+      // 기본값이 켜짐으로 바뀌어도(#3025) 회원이 다시 끈 값은 그대로다.
+      when(
+        () => dio.get<Map<String, Object?>>('/users/me/notification-settings'),
+      ).thenAnswer(
+        (_) async => _ok<Map<String, Object?>>(<String, Object?>{
+          'exercise_reminder': true,
+          'trainer_message': true,
+          'weekly_report': false,
+        }),
+      );
+
+      final settings = await DioNotificationSettingsRepository(dio).fetch();
+
+      expect(settings['notif_weekly_report'], isFalse);
+    });
+
+    test('항목 정의는 모두 기본 켜짐이고 키는 그대로다', () {
+      // 키는 서버와 공유하는 계약이라 라벨이 바뀌어도(#3024) 그대로 둔다.
+      expect(
+        kNotificationSettingItems.map((NotificationSettingItem i) => i.key),
+        <String>[
+          'notif_exercise_reminder',
+          'notif_trainer_message',
+          'notif_weekly_report',
+        ],
+      );
+      expect(
+        kNotificationSettingItems.every(
+          (NotificationSettingItem i) => i.fallback,
+        ),
+        isTrue,
+      );
+    });
+
     test('서버가 모르는 항목은 기본값으로 둔다', () async {
       // 배포 시점이 어긋나 필드가 빠져 와도 토글이 사라지면 안 된다.
       when(
@@ -129,7 +177,8 @@ void main() {
 
       expect(settings['notif_trainer_message'], isFalse);
       expect(settings['notif_exercise_reminder'], isTrue);
-      expect(settings['notif_weekly_report'], isFalse);
+      // 서버 기본값(켜짐)과 같다(#3025).
+      expect(settings['notif_weekly_report'], isTrue);
       expect(settings.length, kNotificationSettingItems.length);
     });
 
@@ -197,7 +246,7 @@ void main() {
 
       expect(settings.loadFailed, isTrue);
       expect(settings.valueOf('notif_trainer_message'), isTrue);
-      expect(settings.valueOf('notif_weekly_report'), isFalse);
+      expect(settings.valueOf('notif_weekly_report'), isTrue);
     });
   });
 }

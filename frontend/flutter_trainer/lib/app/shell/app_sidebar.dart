@@ -6,6 +6,7 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/nav_destinations.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
+import 'package:oncare_trainer/features/admin/presentation/pages/admin_reports_page.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/my/data/trainer_settings.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -80,6 +81,7 @@ class AppSidebar extends ConsumerWidget {
         .watch(todayPendingSessionCountProvider)
         .valueOrNull;
     final profile = ref.watch(sessionControllerProvider).profile;
+    final bool adminConsole = ref.watch(adminConsoleEnabledProvider);
     // 상담 요청은 사이드바 행이 아니라 스케줄·대시보드에서 창으로 열고, 데모도
     // 시드 요청으로 같은 창을 보여 준다(#2669). 알림은 사이드바가 아니라 화면
     // 머리의 알림 종이다(#2628).
@@ -128,6 +130,18 @@ class AppSidebar extends ConsumerWidget {
                       },
                       onTap: () {
                         onSelect(i);
+                        onNavigate?.call();
+                      },
+                    ),
+                  ],
+                  // 운영자 계정에만 보인다(#3008). 데모에는 없다.
+                  if (adminConsole) ...<Widget>[
+                    if (expanded) AppOverline(l.navAdminGroup),
+                    _AdminTile(
+                      selected: currentIndex == adminBranchIndex,
+                      expanded: expanded,
+                      onTap: () {
+                        onSelect(adminBranchIndex);
                         onNavigate?.call();
                       },
                     ),
@@ -276,6 +290,37 @@ class _NavTile extends StatelessWidget {
           selected: selected,
           collapsed: !expanded,
           badgeCount: badgeCount ?? 0,
+          onTap: onTap,
+        ),
+      ),
+    );
+  }
+}
+
+/// 신고·계정 관리 — 운영자 전용 행 (#3008). [_NavTile] 과 같은 부품이다.
+class _AdminTile extends StatelessWidget {
+  const _AdminTile({
+    required this.selected,
+    required this.expanded,
+    required this.onTap,
+  });
+
+  final bool selected;
+  final bool expanded;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s2),
+      child: Semantics(
+        inMutuallyExclusiveGroup: true,
+        child: AppSidebarItem(
+          key: const ValueKey<String>('sidebar-${AppRoutes.adminReports}'),
+          icon: AppIcons.attention,
+          label: AppLocalizations.of(context).navAdminReports,
+          selected: selected,
+          collapsed: !expanded,
           onTap: onTap,
         ),
       ),

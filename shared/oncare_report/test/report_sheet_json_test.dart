@@ -38,6 +38,15 @@ Map<String, dynamic> _json() => <String, dynamic>{
 
 void main() {
   group('reportSheetWeekFromJson (#2652)', () {
+    test('걸린 것이 없는 날(null)의 이행률은 자리를 지킨다 (#2513)', () {
+      final ReportSheetWeekData w = reportSheetWeekFromJson(<String, dynamic>{
+        ..._json(),
+        'week_completion': <Object?>[null, 67, 0, null, null, null, null],
+      }, today: DateTime(2026, 9, 30));
+      // 걸러 내면 화요일 값이 월요일 칸에 선다.
+      expect(w.weekCompletion, <int?>[null, 67, 0, null, null, null, null]);
+    });
+
     test('WeeklyReportOut 의 칸을 그대로 읽는다', () {
       final ReportSheetWeekData w = reportSheetWeekFromJson(
         _json(),

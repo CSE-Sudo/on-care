@@ -219,6 +219,33 @@ def password_change_fail_key(user_id: str) -> str:
     return f"password-change-fail:{user_id}"
 
 
+class PasswordChangeGuard:
+    """비밀번호 변경 계정 단위 실패 잠금(#2913, #3087). 회원·트레이너 라우트 공용.
+
+    접근 토큰을 손에 넣은 쪽이 IP 를 바꿔 가며 현재 비밀번호를 맞혀 보지 못하게
+    사용자 id 로 센다. 로그인 잠금과 같은 창(`login_lockout_seconds`) 안에
+    `password_change_max_failures` 번 틀리면 남은 시간 동안 429 다.
+    """
+
+    def __init__(self, user_id: str) -> None:
+        settings = get_settings()
+        self._key = password_change_fail_key(user_id)
+        self._limit = settings.password_change_max_failures
+        self._window = float(settings.login_lockout_seconds)
+
+    def ensure_unlocked(self) -> None:
+        """잠겼으면 429. 비밀번호 확인보다 먼저 부른다."""
+        ensure_unlocked(self._key, self._limit, self._window)
+
+    def record_failure(self) -> None:
+        """현재 비밀번호가 틀린 시도 한 번을 센다."""
+        record_failure(self._key, self._window)
+
+    def clear(self) -> None:
+        """현재 비밀번호가 맞으면 실패 기록을 지운다."""
+        clear_failures(self._key)
+
+
 def rate_limit(bucket: str, per_minute: int | None = None):
     """엔드포인트에 붙일 의존성 팩토리. bucket 은 엔드포인트 구분자.
 

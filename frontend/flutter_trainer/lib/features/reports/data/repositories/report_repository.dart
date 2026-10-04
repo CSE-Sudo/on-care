@@ -338,7 +338,8 @@ class LocalReportRepository implements ReportRepository {
           ),
       ],
       mealCounts: <int>[for (var d = 0; d < 7; d++) on(d)?.mealCount ?? 0],
-      completion: <int>[for (var d = 0; d < 7; d++) on(d)?.completion ?? 0],
+      // 그날 행이 없으면 걸린 것이 없던 날이다(null, #2513).
+      completion: <int?>[for (var d = 0; d < 7; d++) on(d)?.completion],
       sodium: <int>[for (var d = 0; d < 7; d++) on(d)?.sodiumMg ?? 0],
       calories: <int>[for (var d = 0; d < 7; d++) on(d)?.calories ?? 0],
       sugar: <double>[for (var d = 0; d < 7; d++) on(d)?.sugarG ?? 0],
@@ -929,6 +930,12 @@ WeeklyReport weeklyReportFromJson(
           .whereType<num>()
           .map((n) => n.toDouble())
           .toList(growable: false);
+  // 이행률은 걸린 것이 없는 날이 null 이다(#2513) — 자리를 지켜야 요일이 밀리지
+  // 않는다.
+  List<int?> nullableInts(String key) =>
+      (json[key] as List<Object?>? ?? const <Object?>[])
+          .map((Object? v) => v is num ? v.toInt() : null)
+          .toList(growable: false);
   final weekStart =
       DateTime.tryParse(json['week_start'] as String? ?? '') ??
       weekStartOf(nowKst());
@@ -941,7 +948,7 @@ WeeklyReport weeklyReportFromJson(
     completionAvg: optInt('completion_avg'),
     sodiumOverDays: optInt('sodium_over_days') ?? 0,
     sodiumAvg: optInt('sodium_avg'),
-    weekCompletion: ints('week_completion'),
+    weekCompletion: nullableInts('week_completion'),
     sodiumWeek: ints('sodium_week'),
     caloriesWeek: ints('calories_week'),
     sugarWeek: doubles('sugar_week'),
@@ -1005,11 +1012,14 @@ List<ReportQueueSummary> reportQueueFromJson(Map<String, dynamic> json) {
           sessionsBooked: count(item['sessions_booked']),
           sessionsDone: count(item['sessions_done']),
           completionAvg: (item['completion_avg'] as num?)?.toInt(),
-          weekCompletion:
-              (item['week_completion'] as List<Object?>? ?? const <Object?>[])
-                  .whereType<num>()
-                  .map((n) => n.toInt())
-                  .toList(growable: false),
+          // 걸린 것이 없는 날은 null 이다(#2513) — 버리면 칸이 앞으로
+          // 당겨져 요일이 어긋난다.
+          weekCompletion: <int?>[
+            for (final Object? v
+                in item['week_completion'] as List<Object?>? ??
+                    const <Object?>[])
+              v is num ? v.toInt() : null,
+          ],
         ),
   ];
 }

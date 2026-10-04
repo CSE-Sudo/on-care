@@ -56,6 +56,21 @@ def assigned_routine(client, db_session):
     db_session.commit()
 
 
+def _personal_line(history: list[dict], session_id: str | None, *, name: str = ""):
+    """하루치 `개인운동` 카드에서 그 완료 줄을 찾는다(#2510). (카드, 줄)."""
+    for row in history:
+        if row.get("kind") != "personal_routine":
+            continue
+        for item in row["exercise_items"]:
+            if not item["done"]:
+                continue
+            if (session_id and item["session_id"] == session_id) or (
+                not session_id and name and item["name"] == name
+            ):
+                return row, item
+    raise AssertionError("개인운동 카드에서 그 완료 줄을 찾지 못했다")
+
+
 def test_completion_and_history_share_one_record(client, assigned_routine):
     trainer_token, routine = assigned_routine
     member_token = _login(client, "jisu@oncare.com")
@@ -105,10 +120,11 @@ def test_completion_and_history_share_one_record(client, assigned_routine):
     history = client.get(
         f"/v1/trainer/clients/{MEMBER_ID}/history", headers=trainer_headers
     ).json()
-    history_row = next(
-        row for row in history if row["assigned_routine_id"] == routine["id"]
-    )
-    assert history_row["id"] == session["id"]
+    # 개인운동 완료는 하루 한 장 `개인운동` 카드의 한 줄이다(#2510). 줄이 그
+    # 운동 기록을 가리킨다 — 트레이너 메모가 이 id 로 단다.
+    history_row, line = _personal_line(history, session["id"])
+    assert history_row["kind"] == "personal_routine"
+    assert line["name"] == routine["name"]
     assert history_row["client_feedback"] == ""
     # 개인 운동 트레이너 피드백도 없앴다(#2517) — 응답 칸은 늘 비어 있다.
     assert history_row["trainer_note"] == ""
@@ -178,8 +194,8 @@ def test_snapshot_survives_routine_deletion(client, assigned_routine):
     history = client.get(
         f"/v1/trainer/clients/{MEMBER_ID}/history", headers=trainer_headers
     ).json()
-    row = next(item for item in history if item["assigned_routine_id"] == routine["id"])
-    assert row["label"] == routine["name"]
+    _, line = _personal_line(history, None, name=routine["name"])
+    assert line["name"] == routine["name"]
 
     sessions = client.get(
         "/v1/exercise/weeks/current", headers=member_headers
@@ -202,7 +218,7 @@ def test_routine_feedback_endpoint_is_gone(client, assigned_routine):
     history = client.get(
         f"/v1/trainer/clients/{MEMBER_ID}/history", headers=trainer_headers
     ).json()
-    row = next(item for item in history if item["assigned_routine_id"] == routine["id"])
+    row, _ = _personal_line(history, None, name=routine["name"])
 
     response = client.put(
         f"/v1/trainer/clients/{MEMBER_ID}/history/{row['id']}/feedback",

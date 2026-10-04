@@ -98,6 +98,15 @@ void main() {
       );
     });
 
+    test('keeps null completion days in place (#2513)', () {
+      final c = trainerClientFromJson(<String, Object?>{
+        'id': 'm3',
+        'week_completion': <Object?>[null, 67, 0, null, null, null, null],
+      });
+      // 걸린 것이 없던 날(null)을 걸러 내면 화요일 값이 월요일 칸에 선다.
+      expect(c.weekCompletion, <int?>[null, 67, 0, null, null, null, null]);
+    });
+
     test('normalizes an integer sugar value to double', () {
       final c = trainerClientFromJson(<String, Object?>{'sugar_g': 17});
 

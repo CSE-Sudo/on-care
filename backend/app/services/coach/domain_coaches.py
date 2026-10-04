@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from app.core.locale import current_locale, localized
 from app.db.session import release_connection
 from app.schemas.misc_api import CoachSuggestion
+from app.services import ai_call_quota
 from app.services.coach import grounding, prompt_safety
 from app.services.coach.llm import get_coach_llm
 from app.services.coach.rag import retrieve_context
@@ -30,6 +31,7 @@ from app.services.coach_service import (
     _diet_today_priority, _diet_weekly_or_default, _exercise_suggestion,
     diet_period_context,
 )
+from app.services.ai_log import log_ai_fallback
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +45,9 @@ _DIET_SYSTEM = (
     # 있다. 세 코치 모두 같은 안내를 싣는다(#602).
     + grounding.UNTRACKED_METRIC_NOTICE + " "
     # 개인 문서에는 트레이너와 주고받은 대화도 검색되어 들어온다(#580).
-    + prompt_safety.UNTRUSTED_QUOTE_GUARD
+    + prompt_safety.UNTRUSTED_QUOTE_GUARD + " "
+    # 식단 기록 줄에는 회원이 적은 음식 이름이 들어 있다(#3090).
+    + prompt_safety.FOOD_NAME_GUARD
 )
 _EXERCISE_SYSTEM = (
     # 위와 같은 이유로 대상 집단을 고쳤다(#2026).
@@ -53,7 +57,10 @@ _EXERCISE_SYSTEM = (
     # 예전에는 "혈압·혈당 관리에 도움이 되는" 이라고 지시했다. 그 수치를 재지
     # 않으므로 모델이 근거 없이 답하거나 일반론으로 흘렀다(#602).
     + grounding.UNTRACKED_METRIC_NOTICE + " "
-    + prompt_safety.UNTRUSTED_QUOTE_GUARD
+    + prompt_safety.UNTRUSTED_QUOTE_GUARD + " "
+    # 식단 코치와 같은 경계를 싣는다 — 검색 도메인이 바뀌어 식단 기록이 섞여도
+    # 한쪽만 빠지지 않게(#3090).
+    + prompt_safety.FOOD_NAME_GUARD
 )
 
 #: 영어 화면에서 요청했을 때 시스템 프롬프트 끝에 덧붙이는 출력 언어 규칙(#2707).
@@ -96,14 +103,21 @@ def _rag_suggestion(
         user_prompt = f"{combined}\n\n{ask}"
         # LLM 을 기다리는 동안 DB 연결을 쥐지 않는다(#2836) — 여기까지는 읽기뿐이다.
         release_connection(db)
+        # 서버 전체 하루 상한(#3032). 넘으면 규칙 기반 카드로 내려간다.
+        ai_call_quota.acquire(ai_call_quota.FEATURE_COACH_FEEDBACK)
         result = llm.generate(_system_prompt(system_prompt), user_prompt)
         if not result.text.strip():
             return fallback
         return CoachSuggestion(tag=tag, title=title, body=result.text.strip())
-    except Exception:
-        # 키 미설정/네트워크/모델 오류 → 안전하게 규칙 기반 폴백 (단, 로그는 남긴다)
-        logger.exception(
-            "RAG 코칭 생성 실패 (domain=%s, user_id=%s) → 규칙 기반 폴백 사용", domain, user_id
+    except ai_call_quota.AiCapacityReached:
+        logger.info("RAG 코칭 서버 AI 상한 도달 (domain=%s) → 규칙 기반 폴백 사용", domain)
+        return fallback
+    except Exception as exc:  # noqa: BLE001
+        # 키 미설정/네트워크/모델 오류 → 안전하게 규칙 기반 폴백 (단, 로그는 남긴다).
+        # 예외 메시지·스택은 남기지 않는다 — 프롬프트(회원 기록)가 실린다(#3090).
+        log_ai_fallback(
+            logger, f"{domain}_coach", "error", exc=exc, level=logging.ERROR,
+            user_id=user_id,
         )
         return fallback
 

@@ -24,9 +24,12 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 
 from app.core import metrics
+from app.services import ai_call_quota
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
+from app.services.coach.llm_base import is_truncated, output_cap
 from app.services.coach.prompt_safety import FOOD_NAME_GUARD, TRAINER_DIET_GUARD
 from app.services.diet_advice_copy import plain
+from app.services.ai_log import log_ai_fallback
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +38,8 @@ LLM_TIMEOUT_SEC = 8.0
 LLM_MAX_CONCURRENCY = 4
 #: 한 번 더 받아 보는 횟수. 길이·수치 검사에 걸리면 다시 받는다.
 MAX_ATTEMPTS = 2
+#: 출력 토큰 상한(#3032). `{"sentence": "…"}` 한 줄과 사고 예산이 들어가는 값.
+LLM_MAX_OUTPUT_TOKENS = 512
 
 #: 카드의 두 문장 한도. 한국어는 한 문장 반(#1574), 영어는 같은 폭에 드는 길이다.
 CARD_MAX = {"ko": 45, "en": 90}
@@ -56,6 +61,10 @@ _MEASURE_UNIT = re.compile(r"(?:(?:mg|kcal|cal|g)(?![a-z])|%|㎎|킬로|칼로�
 
 class LLMBusyError(RuntimeError):
     """동시 호출 한도가 차서 AI 를 부르지 않았다."""
+
+
+class LLMTruncatedError(ValueError):
+    """출력 상한에 걸려 JSON 이 끊겼다 — 규칙 문장으로 내린다(#3032)."""
 
 
 def sentence_limit(lang: str, analysis_text: str) -> int:
@@ -151,18 +160,31 @@ def build_prompt(
 def _call_llm(system: str, user: str) -> str:
     if not _llm_slots.acquire(blocking=False):
         raise LLMBusyError("LLM 동시 호출 한도 초과")
+    try:
+        # 공급자를 고른 뒤에 센다 — 키가 없어 부르지 못하는 호출은 하루 상한(#3032)에 세지 않는다.
+        llm = get_coach_llm()
+        # 서버 전체 하루 상한(#3032). 자리를 잡은 뒤에 세야 포화로 부르지 않은 호출을
+        # 세지 않는다.
+        ai_call_quota.acquire(ai_call_quota.FEATURE_DIET_ADVICE)
+    except BaseException:
+        _llm_slots.release()
+        raise
 
     def _call():
         try:
-            return get_coach_llm().generate(
+            return llm.generate(
                 system, user, json_mode=True,
                 thinking_budget=DEFAULT_THINKING_BUDGET,
                 timeout_seconds=LLM_TIMEOUT_SEC,
+                max_output_tokens=output_cap(LLM_MAX_OUTPUT_TOKENS),
             )
         finally:
             _llm_slots.release()
 
-    return _executor.submit(_call).result(timeout=LLM_TIMEOUT_SEC).text
+    result = _executor.submit(_call).result(timeout=LLM_TIMEOUT_SEC)
+    if is_truncated(result):
+        raise LLMTruncatedError("출력 상한에 걸려 응답이 끊김")
+    return result.text
 
 
 def generate(
@@ -188,24 +210,32 @@ def generate(
         except LLMBusyError:
             metrics.incr(f"{metric}.fallback", reason="busy")
             return None
+        except ai_call_quota.AiCapacityReached:
+            metrics.incr(f"{metric}.fallback", reason="global_cap")
+            return None
+        except LLMTruncatedError:
+            metrics.incr(f"{metric}.fallback", reason="truncated")
+            logger.info("%s LLM 응답이 출력 상한에 끊김", metric)
+            return None
         except FutureTimeout:
             metrics.incr(f"{metric}.fallback", reason="timeout")
             logger.warning("%s LLM timeout (%.1fs)", metric, LLM_TIMEOUT_SEC)
             return None
-        except Exception:  # noqa: BLE001 - AI 장애 종류와 무관하게 카드는 떠야 한다
+        except Exception as exc:  # noqa: BLE001 - AI 장애 종류와 무관하게 카드는 떠야 한다
             metrics.incr(f"{metric}.fallback", reason="error")
-            logger.warning("%s LLM 실패", metric, exc_info=True)
+            # 예외 메시지·스택은 남기지 않는다 — 프롬프트·모델 출력이 실린다(#3090).
+            log_ai_fallback(logger, metric, "error", exc=exc)
             return None
         reason = rejection_reason(text, limit)
         if reason is None:
             metrics.incr(f"{metric}.generated", by="llm")
             return text
-        # 문장에는 회원이 먹은 메뉴·수치가 들어 있다(#2913). 운영 로그(INFO)에는
-        # 메트릭 이름·사유·길이만 남기고, 원문은 DEBUG 로만 본다.
+        # 문장에는 회원이 먹은 메뉴·수치가 들어 있다(#2913). 메트릭 이름·사유·길이만
+        # 남긴다. 원문은 DEBUG 로도 남기지 않는다 — 로그 수준은 운영 중에 바뀔 수
+        # 있고, 그때 회원 식단이 그대로 쌓인다(#3090).
         logger.info(
             "%s LLM 문장 검사 탈락: reason=%s len=%d limit=%d",
             metric, reason, len(plain(text)), limit,
         )
-        logger.debug("%s LLM 탈락 문장 원문: %r", metric, text)
     metrics.incr(f"{metric}.fallback", reason="invalid")
     return None
