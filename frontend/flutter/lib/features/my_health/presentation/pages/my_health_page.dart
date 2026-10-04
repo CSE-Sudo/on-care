@@ -696,6 +696,10 @@ Future<void> _openPointsBenefitsPage(BuildContext context, int? points) {
   return context.push<void>(AppRoutes.myPoints, extra: points);
 }
 
+/// 색 고르기 결과(#3098). `unavailable` 이면 기록 그래프를 읽지 못해 시트를 열지
+/// 못했다 — `choice` 가 null 이어도 "고르지 않음" 과 다르다.
+typedef _GraphColorPick = ({GraphColorChoice? choice, bool unavailable});
+
 /// 포인트 사용처 — 포인트를 쿠폰으로 교환한다. (#1787)
 ///
 /// 예전 카드 셋(결제 차감 할인·예측 리포트·레시피)은 지금 서비스와 맞지 않았고
@@ -722,8 +726,14 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
   Future<void> _exchange(ShopItem item) async {
     if (item.id == kGraphColorItem) {
       // 색은 하나씩 연다(#2076) — 어느 색을 열지 먼저 고르고 나서 확인창이다.
-      final GraphColorChoice? choice = await _pickGraphColor(lockedOnly: true);
-      if (choice == null || !mounted) return;
+      final _GraphColorPick pick = await _pickGraphColor(lockedOnly: true);
+      if (!mounted) return;
+      if (pick.unavailable) {
+        _toastGraphColorUnavailable();
+        return;
+      }
+      final GraphColorChoice? choice = pick.choice;
+      if (choice == null) return;
       await _exchangeItem(item, option: choice.color);
       return;
     }
@@ -847,27 +857,58 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
   /// 보호권 사용 요청이 나가 있다(#1788). 교환·참가와 겹치지 않게 서로 막는다.
   bool _usingShield = false;
 
-  /// 색 고르기 시트를 띄우고 고른 색을 돌려준다. 아무것도 고르지 않으면 null.
+  /// 색 고르기 시트를 띄우고 고른 색을 돌려준다. 아무것도 고르지 않으면 `choice`
+  /// 가 null 이다.
+  ///
+  /// 기록 그래프를 아직 읽지 못했으면(로딩 중) 한 번 기다려 본다. 그래도 색 상태를
+  /// 얻지 못하면 `unavailable` 이다 — "고르지 않음" 과 갈라, 버튼이 아무 반응 없이
+  /// 끝나지 않고 실패를 알리게 한다(#3098).
   ///
   /// [lockedOnly] 는 사용처 카드에서 들어온 길이다 — 아직 열지 않은 색만 보여 준다.
-  Future<GraphColorChoice?> _pickGraphColor({bool lockedOnly = false}) async {
-    final GraphColorState? color = ref
+  Future<_GraphColorPick> _pickGraphColor({bool lockedOnly = false}) async {
+    GraphColorState? color = ref
         .read(activityCalendarProvider)
         .valueOrNull
         ?.color;
-    if (color == null) return null;
-    return showAppSheet<GraphColorChoice>(
+    if (color == null) {
+      try {
+        color = (await ref.read(activityCalendarProvider.future)).color;
+      } on Object {
+        color = null;
+      }
+    }
+    if (color == null || !mounted) {
+      return (choice: null, unavailable: color == null);
+    }
+    final GraphColorState state = color;
+    final GraphColorChoice? choice = await showAppSheet<GraphColorChoice>(
       context: context,
       builder: (BuildContext ctx) =>
-          GraphColorSheet(state: color, lockedOnly: lockedOnly),
+          GraphColorSheet(state: state, lockedOnly: lockedOnly),
+    );
+    return (choice: choice, unavailable: false);
+  }
+
+  /// 기록 그래프를 읽지 못해 색 시트를 열 수 없을 때(#3098).
+  void _toastGraphColorUnavailable() {
+    showAppToast(
+      context,
+      AppLocalizations.of(context).myGraphColorFailed,
+      type: AppToastType.error,
     );
   }
 
   /// 그래프 카드의 팔레트 버튼 — 연 색은 바로 바꾸고, 열지 않은 색은 교환으로 잇는다.
   Future<void> _changeGraphColor() async {
     final AppLocalizations l = AppLocalizations.of(context);
-    final GraphColorChoice? choice = await _pickGraphColor();
-    if (choice == null || !mounted) return;
+    final _GraphColorPick pick = await _pickGraphColor();
+    if (!mounted) return;
+    if (pick.unavailable) {
+      _toastGraphColorUnavailable();
+      return;
+    }
+    final GraphColorChoice? choice = pick.choice;
+    if (choice == null) return;
     if (choice.unlock) {
       // 여기서도 값을 치르는 길은 사용처 교환과 같은 확인창을 탄다.
       final ShopItem? item = ref
