@@ -489,7 +489,7 @@ def _add_session(
         notification_service.queue(
             db,
             member_id=member_id,
-            kind=notification_service.EXERCISE,
+            kind=notification_service.PT_LINK_NOTICE,
             category=notification_service.MEMBER_SCHEDULE,
             template=notification_templates.MEMBER_SCHEDULE_ADDED,
             template_args={"date": date, "time": time, "type": type_},
@@ -841,7 +841,7 @@ def create_recurring_sessions(
         notification_service.queue(
             db,
             member_id=member_id,
-            kind=notification_service.EXERCISE,
+            kind=notification_service.PT_LINK_NOTICE,
             category=notification_service.MEMBER_SCHEDULE,
             template=notification_templates.MEMBER_SCHEDULE_SERIES,
             template_args={
@@ -1844,7 +1844,7 @@ def _notify_schedule_changed(
         notification_service.queue(
             db,
             member_id=session.member_id,
-            kind=notification_service.EXERCISE,
+            kind=notification_service.PT_LINK_NOTICE,
             category=notification_service.MEMBER_SCHEDULE,
             template=notification_templates.MEMBER_SCHEDULE_CHANGED,
             template_args=_slot_args(after_slot),
@@ -1857,7 +1857,7 @@ def _notify_schedule_changed(
         notification_service.queue(
             db,
             member_id=before_member_id,
-            kind=notification_service.EXERCISE,
+            kind=notification_service.PT_LINK_NOTICE,
             category=notification_service.MEMBER_SCHEDULE,
             template=notification_templates.MEMBER_SCHEDULE_CANCELLED,
             template_args=_slot_args(before_slot),
@@ -1866,7 +1866,7 @@ def _notify_schedule_changed(
         notification_service.queue(
             db,
             member_id=session.member_id,
-            kind=notification_service.EXERCISE,
+            kind=notification_service.PT_LINK_NOTICE,
             category=notification_service.MEMBER_SCHEDULE,
             template=notification_templates.MEMBER_SCHEDULE_ADDED,
             template_args=_slot_args(after_slot),
@@ -2117,7 +2117,7 @@ def delete_session(db: Session, trainer_id: str, session_id: str) -> bool:
         notification_service.queue(
             db,
             member_id=s.member_id,
-            kind=notification_service.EXERCISE,
+            kind=notification_service.PT_LINK_NOTICE,
             category=notification_service.MEMBER_SCHEDULE,
             template=notification_templates.MEMBER_SCHEDULE_CANCELLED,
             template_args=_slot_args(_member_visible_slot(s)),
@@ -2671,7 +2671,7 @@ def cancel_session(
         notification_service.queue(
             db,
             member_id=s.member_id,
-            kind=notification_service.EXERCISE,
+            kind=notification_service.PT_LINK_NOTICE,
             category=notification_service.MEMBER_SCHEDULE,
             template=notification_templates.MEMBER_SCHEDULE_CANCELLED,
             template_args=_slot_args(_member_visible_slot(s)),
