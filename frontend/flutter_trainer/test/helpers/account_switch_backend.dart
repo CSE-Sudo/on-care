@@ -59,6 +59,12 @@ enum TestTrainer {
   /// 메시지 알림 설정 — A 는 기본값(켜짐)과 다르게 꺼 두었다.
   bool get newMessageAlerts => this == b;
 
+  /// 회원 식단 기록의 음식 — 계정을 가르는 표식이다.
+  String get mealItems => '$displayName 식단';
+
+  /// 회원 운동 기록의 이름 — 계정을 가르는 표식이다.
+  String get workoutLabel => '$displayName 운동';
+
   /// 끼니 사진 바이트.
   List<int> get photoBytes => this == a ? <int>[1, 1, 1] : <int>[2, 2, 2];
 
@@ -144,6 +150,24 @@ class FakeTrainerBackend implements HttpClientAdapter {
         'sessions_booked': account.sessionsBooked,
         'sessions_done': 0,
       });
+    }
+    // 회원 식단·운동 기록 — 같은 회원 id 라도 계정마다 다른 기록을 준다. (#3103)
+    if (path.startsWith('/trainer/clients/') && path.endsWith('/diet')) {
+      return _json(<Object?>[
+        <String, Object?>{
+          'id': '${account.memberId}-meal',
+          'meal': 'lunch',
+          'items': account.mealItems,
+        },
+      ]);
+    }
+    if (path.startsWith('/trainer/clients/') && path.endsWith('/history')) {
+      return _json(<Object?>[
+        <String, Object?>{
+          'id': '${account.memberId}-workout',
+          'label': account.workoutLabel,
+        },
+      ]);
     }
     if (path.startsWith('/trainer/clients/') && path.contains('/photos/')) {
       return ResponseBody.fromBytes(account.photoBytes, 200);

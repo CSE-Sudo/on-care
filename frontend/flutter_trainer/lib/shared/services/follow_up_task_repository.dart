@@ -239,12 +239,6 @@ final followUpTaskRepositoryProvider = Provider<FollowUpTaskRepository>((ref) {
   return DioFollowUpTaskRepository(ref.watch(dioProvider));
 });
 
-/// 그 고객의 미완료 후속 관리(예정일 순). 쓰기 뒤에는 invalidate 한다.
-final clientFollowUpsProvider = FutureProvider.autoDispose
-    .family<List<FollowUpTask>, String>((ref, clientId) async {
-      return ref.watch(followUpTaskRepositoryProvider).fetchForClient(clientId);
-    });
-
 /// 오늘까지 처리해야 할 내 미완료 할 일(지난 항목 포함). 대시보드가 읽는다.
 final dueFollowUpsProvider = FutureProvider.autoDispose<List<FollowUpTask>>((
   ref,

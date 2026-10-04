@@ -199,12 +199,24 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
   /// 않았다. 신청은 대기로 남아 있으므로 카드 안, 승인 버튼 바로 위에 남긴다.
   List<ScheduleSession>? _overlaps;
 
-  Future<void> _run(Future<void> Function() action, String success) async {
+  /// 응답을 기다리는 사이 카드가 사라질 수 있다 — 상담 창을 닫거나 필터를
+  /// 바꾸거나 폴링이 처리된 요청을 목록에서 뺀다. 그래서 await 전에 앱의
+  /// [ProviderContainer] 를 잡아 두고 갱신은 그것으로만 한다(#3103). 사라진
+  /// 위젯의 `ref` 는 `StateError` 를 던져 갱신이 빠졌다. 토스트·버튼 상태는
+  /// 카드가 남아 있을 때만 바꾼다.
+  ProviderContainer _container() =>
+      ProviderScope.containerOf(context, listen: false);
+
+  Future<void> _run(
+    Future<void> Function(ProviderContainer container) action,
+    String success,
+  ) async {
     setState(() => _busy = true);
+    final ProviderContainer container = _container();
     final AppLocalizations l = AppLocalizations.of(context);
     final String failureText = l.consultActionFailed;
     try {
-      await action();
+      await action(container);
       if (!mounted) return;
       showAppToast(context, success, type: AppToastType.success);
     } on AppError catch (e) {
@@ -212,8 +224,8 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
       // another trainer at the same gym accepted it first. Refresh before
       // showing the reason, or the card stays actionable and the trainer
       // can keep pressing 승인 on something already decided (review).
-      ref.invalidate(consultationsProvider);
-      ref.invalidate(consultationPendingCountProvider);
+      container.invalidate(consultationsProvider);
+      container.invalidate(consultationPendingCountProvider);
       if (!mounted) return;
       // 409 carries the server's reason (이미 처리됨 / 다른 트레이너가 담당 중)
       // — that sentence is the whole point, so it is shown verbatim.
@@ -238,10 +250,11 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
       _busy = true;
       _overlaps = null;
     });
+    final ProviderContainer container = _container();
     final AppLocalizations l = AppLocalizations.of(context);
     final request = widget.request;
     try {
-      final result = await acceptConsultation(ref, request.id);
+      final result = await acceptConsultation(container, request.id);
       if (!mounted) return;
       showAppToast(
         context,
@@ -253,8 +266,8 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
     } on ScheduleOverlapError catch (e) {
       if (mounted) setState(() => _overlaps = e.conflicts);
     } on AppError catch (e) {
-      ref.invalidate(consultationsProvider);
-      ref.invalidate(consultationPendingCountProvider);
+      container.invalidate(consultationsProvider);
+      container.invalidate(consultationPendingCountProvider);
       if (!mounted) return;
       showAppToast(
         context,
@@ -272,9 +285,11 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
       context: context,
       builder: (_) => const _RejectDialog(),
     );
-    if (note == null) return;
+    // 사유 창을 띄운 사이 카드가 사라졌으면(폴링이 목록에서 뺐다) 보내지 않는다.
+    if (note == null || !mounted) return;
     await _run(
-      () => rejectConsultation(ref, widget.request.id, note: note),
+      (ProviderContainer container) =>
+          rejectConsultation(container, widget.request.id, note: note),
       l.consultRejected,
     );
   }
