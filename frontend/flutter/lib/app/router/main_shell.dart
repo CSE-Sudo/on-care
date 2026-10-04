@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/day_change_refresh.dart';
 import 'package:oncare/app/router/member_refresh_targets.dart';
+import 'package:oncare/core/release/release_update.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
@@ -26,6 +27,7 @@ import 'package:oncare/shared/services/record_span_provider.dart';
 import 'package:oncare/shared/widgets/coaching_sheet.dart';
 import 'package:oncare/shared/widgets/member_bottom_nav.dart';
 import 'package:oncare/shared/widgets/oni_fab.dart';
+import 'package:oncare/shared/widgets/release_update_banner.dart';
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -212,16 +214,35 @@ class _MainShellState extends ConsumerState<MainShell>
     // 첫 조회 동안 로딩 표시가 보인다 — 데모는 예전처럼 목록이 바로 떠야 하고,
     // 실서버도 그 모양을 따른다. 세션이 바뀌어 무효화되면 여기서 다시 만든다.
     ref.listen<NotificationState>(notificationControllerProvider, (_, _) {});
+    final bool showReleaseBanner = ref.watch(
+      releaseUpdateProvider.select((ReleaseUpdateState s) => s.showBanner),
+    );
     return Scaffold(
       // 페이지가 하단 바 뒤까지 이어지게 둔다 — 각 탭은 바 높이만큼 아래 여백을
       // 스스로 둔다.
       extendBody: true,
       // 받은 담당 요청은 어느 탭에 있든 가운데 창으로 뜬다(#1801). 탭 전체를
       // 감싸 두어 탭을 옮겨도 요청을 듣는 일이 끊기지 않는다.
-      body: CoachInvitePrompter(
-        // 주간 피드백은 담당 요청 안쪽이다 — 담당을 아직 수락하지도 않은
-        // 회원에게 한 주를 묻는 창이 먼저 뜨면 안 된다(#2232).
-        child: WeeklyFeedbackPrompter(child: navigationShell),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          // 회원 웹에 새 배포가 올라오면 셸 맨 위에 안내가 선다(#3023). 안내가
+          // 없으면 높이 0 이고, 자리는 늘 두어 탭 화면의 상태가 다시 만들어지지
+          // 않는다.
+          const ReleaseUpdateBanner(),
+          Expanded(
+            child: MediaQuery.removePadding(
+              context: context,
+              // 배너가 상태 표시줄 자리를 이미 썼다 — 탭 화면이 그만큼 또 띄우지 않게.
+              removeTop: showReleaseBanner,
+              child: CoachInvitePrompter(
+                // 주간 피드백은 담당 요청 안쪽이다 — 담당을 아직 수락하지도 않은
+                // 회원에게 한 주를 묻는 창이 먼저 뜨면 안 된다(#2232).
+                child: WeeklyFeedbackPrompter(child: navigationShell),
+              ),
+            ),
+          ),
+        ],
       ),
       // AI 조언 진입점이 이 자리에 있을지가 아직 정해지지 않아 **노출만** 끈다
       // (#862). 기능·라우트·provider 는 그대로라, 자리가 정해지면 이 상수를

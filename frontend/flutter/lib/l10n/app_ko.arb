@@ -2055,5 +2055,9 @@
   "passwordResetUnavailable": "지금은 재설정 메일을 보낼 수 없어요. 고객센터로 문의해 주세요.",
   "passwordResetDoneTitle": "비밀번호를 바꿨어요",
   "passwordResetDoneBody": "새 비밀번호로 다시 로그인해 주세요. 모든 기기의 로그인이 끝났어요.",
-  "passwordResetBackToSignIn": "로그인하러 가기"
+  "passwordResetBackToSignIn": "로그인하러 가기",
+  "releaseUpdateTitle": "새 버전이 배포되었어요",
+  "releaseUpdateMessage": "새로고침하면 최신 화면으로 바뀌어요. 작성 중인 내용이 있으면 먼저 저장해 주세요.",
+  "releaseUpdateReload": "새로고침",
+  "releaseUpdateDismiss": "안내 닫기"
 }

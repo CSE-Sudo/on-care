@@ -173,6 +173,10 @@ jobs:
     name: Build and deploy Flutter web apps
     needs: gate
     runs-on: ubuntu-latest
+    # 배포 역할은 이 Environment 형식 OIDC subject 를 믿는다(infra/frontend-hosting.yml,
+    # #3019). 승인 규칙·배포 기록은 Environment 설정에서 본다.
+    environment:
+      name: production
     permissions:
       contents: read
       id-token: write
@@ -209,9 +213,11 @@ jobs:
       # 운영 배포는 실서버 고정이다(#2810). 두 앱은 dart-define 을 받지 못하면
       # 목업(USE_MOCK_API=true)·자리표시자 주소로 빌드되는데, 빌드는 그대로 성공하므로
       # 배포 뒤에야 드러난다. 그래서 주소 변수가 비었거나 형식이 틀리면 빌드 전에 멈춘다.
+      # staging 주소와 같으면 멈춘다 — 운영 웹이 시연용 DB 를 보지 않게(#3020).
       - name: Require production API base URL
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
+          FORBIDDEN_API_BASE_URL: ${{ vars.STAGING_API_BASE_URL }}
         run: bash .github/scripts/check_web_api_base_url.sh
 
       # 에러 추적(#2839, #3022). DSN 은 앱마다 따로다(Sentry 프로젝트 둘). 비어 있어도
@@ -255,6 +261,7 @@ jobs:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN_MEMBER }}
         run: >-
           flutter build web --release --base-href "/frontend/"
+          --dart-define=RELEASE_SHA="${RELEASE_SHA:-$GITHUB_SHA}"
           --dart-define=KAKAO_JS_KEY="$KAKAO_JS_KEY"
           --dart-define=USE_MOCK_API=false
           --dart-define=API_BASE_URL="$API_BASE_URL"
@@ -284,6 +291,7 @@ jobs:
           SENTRY_DSN: ${{ secrets.SENTRY_DSN_TRAINER }}
         run: >-
           flutter build web --release --base-href "/trainer/"
+          --dart-define=RELEASE_SHA="${RELEASE_SHA:-$GITHUB_SHA}"
           --dart-define=KAKAO_JS_KEY="$KAKAO_JS_KEY"
           --dart-define=USE_MOCK_API=false
           --dart-define=API_BASE_URL="$API_BASE_URL"
@@ -301,6 +309,14 @@ jobs:
           cp legal/*.html public/legal/
           find public -name '*.js.symbols' -delete
           echo "$RELEASE_SHA" > public/version.txt
+
+      # 열린 탭이 새 배포를 알아채도록 두 앱 폴더에도 같은 version.txt 를 둔다(#3023). 앱은
+      # 자기 `<base href>version.txt` 를 읽어 빌드에 넣은 RELEASE_SHA 와 비교한다.
+      - name: Copy release marker into each app
+        run: |
+          set -euo pipefail
+          cp public/version.txt public/frontend/version.txt
+          cp public/version.txt public/trainer/version.txt
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
@@ -335,10 +351,11 @@ jobs:
           BUCKET: ${{ vars.AWS_FRONTEND_BUCKET }}
         run: |
           set -euo pipefail
-          # `--delete` 는 이 prefix 안에서만 작용한다(재실행이 남긴 잔여 파일 정리).
-          aws s3 sync public/ "s3://$BUCKET/releases/$RELEASE_SHA/" \
-            --delete \
-            --cache-control "public,max-age=300"
+          # 진입 파일(index.html·flutter_bootstrap.js·main.dart.js·version.txt 등)은 이름에
+          # 해시가 없어 no-cache 로, 나머지는 짧은 max-age 로 나눠 올린다(#3023). 규칙과
+          # `--delete`(이 prefix 안에서만 작용) 는 스크립트 한 곳에 있다.
+          bash .github/scripts/web_cache_headers.sh upload public \
+            "s3://$BUCKET/releases/${RELEASE_SHA:-$GITHUB_SHA}"
 
       - name: Verify the uploaded release before switching traffic
         env:
@@ -370,6 +387,15 @@ jobs:
             echo "::error::Release version mismatch: expected=$RELEASE_SHA actual=$UPLOADED_SHA"
             exit 1
           fi
+
+      # 브라우저가 옛 진입 파일을 붙들지 않는지 — 대표 파일의 Cache-Control 을 본다(#3023).
+      - name: Verify cache headers of the uploaded release
+        env:
+          BUCKET: ${{ vars.AWS_FRONTEND_BUCKET }}
+        run: |
+          set -euo pipefail
+          bash .github/scripts/web_cache_headers.sh verify "$BUCKET" \
+            "releases/${RELEASE_SHA:-$GITHUB_SHA}"
 
       # 여기서 처음으로 운영 트래픽이 움직인다. origin pointer 하나만 바꾸므로
       # 전환이 원자적이고, 직전 릴리스 객체가 그대로 남아 되돌릴 수 있다.

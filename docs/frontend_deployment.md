@@ -47,7 +47,7 @@
 1. 랜딩 `index.html` 의 앱 바로가기를 검사합니다([아래 절](#랜딩-바로가기와-ogurlcanonical)).
 2. 회원 앱과 트레이너 웹의 Flutter 의존성을 설치합니다.
 3. 두 앱에 필요한 drift WASM 파일을 내려받습니다.
-4. 빌드 모드를 정합니다. `main` push 는 항상 `mock`(목업)이고, 수동 실행에서 `backend` 입력으로 `real` 을 고를 때만 실서버 빌드가 됩니다. `real` 이면 `API_BASE_URL` 저장소 변수를 먼저 검사합니다.
+4. 빌드 모드를 정합니다. `main` push 는 항상 `mock`(목업)이고, 수동 실행에서 `backend` 입력으로 `real` 을 고를 때만 실서버 빌드가 됩니다. `real` 이면 **staging 백엔드**(`STAGING_API_BASE_URL` 저장소 변수)를 보며, 그 값을 먼저 검사합니다. 운영 주소(`API_BASE_URL`)와 같으면 멈춥니다(#3020).
 5. 회원 앱을 `/frontend/`, 트레이너 웹을 `/trainer/` base path로 빌드합니다.
 6. 루트 `index.html`, 공개 정책 페이지 `legal/*.html`, 두 앱의 빌드 결과를 `public/` 아래에 모으고, 랜딩의 og:url·canonical 을 `CNAME` 도메인으로 채웁니다.
 7. Pages artifact를 업로드하고 `github-pages` 환경에 배포합니다.
@@ -132,7 +132,7 @@ Vercel 프로젝트가 이 Git 저장소와 연결되어 있으면 저장소 안
 | --- | --- | --- | --- |
 | 운영 — [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) | `false` | 저장소 변수 `vars.API_BASE_URL` | `prod` |
 | 데모 — [`deploy.yml`](../.github/workflows/deploy.yml), `main` push·수동 `mock` | `true` | 넘기지 않음 | `dev` |
-| 데모 — [`deploy.yml`](../.github/workflows/deploy.yml), 수동 `real` | `false` | 저장소 변수 `vars.API_BASE_URL` | `prod` |
+| 데모 — [`deploy.yml`](../.github/workflows/deploy.yml), 수동 `real` | `false` | 저장소 변수 `vars.STAGING_API_BASE_URL`(staging 백엔드) | `staging` |
 
 - **운영 경로는 실서버 고정입니다.** 목업으로 되돌리는 입력이 없습니다. 회원이 남긴 기록이 같은 백엔드를 거쳐 트레이너 웹에 보이고, 트레이너의 코칭·루틴이 회원 앱으로 돌아옵니다.
 - **`ENV=prod`** 이면 회원 앱의 GoRouter 진단 로그(`debugLogDiagnostics`)·provider 로그(`LoggingProviderObserver`)·화면 이동 로그와, 두 앱의 API 요청 로그 인터셉터가 꺼집니다. UI 카탈로그 경로도 열리지 않습니다.
@@ -143,6 +143,7 @@ Vercel 프로젝트가 이 Git 저장소와 연결되어 있으면 저장소 안
 - 위치: 저장소 `Settings` → `Secrets and variables` → `Actions` → `Variables`
 - 형식: `https://<운영 API 도메인>/v1` — **`/v1` 까지 포함하고 끝에 `/` 를 붙이지 않습니다.** 두 앱 모두 요청 경로를 `/auth/login` 처럼 `/v1` 없이 씁니다.
 - 주소는 워크플로에 적지 않고 이 변수에서만 읽습니다. 값을 바꾸면 다음 배포부터 반영됩니다.
+- 데모 사이트의 `real` 빌드는 같은 형식의 **`STAGING_API_BASE_URL`** 을 씁니다. staging 백엔드는 운영과 다른 DB·비밀로 뜨는 데모 시연용 서비스입니다([`backend/docs/DEPLOY.md`](../backend/docs/DEPLOY.md) 0절).
 
 빌드 전에 [`check_web_api_base_url.sh`](../.github/scripts/check_web_api_base_url.sh) 가 값을 검사하고, 아래 경우 **빌드를 시작하지 않고 워크플로를 실패시킵니다.** 빈 값으로 빌드하면 빌드는 성공하지만 자리표시자 주소를 부르는 앱이 배포되기 때문입니다.
 
@@ -150,6 +151,7 @@ Vercel 프로젝트가 이 Git 저장소와 연결되어 있으면 저장소 안
 - `https://` 로 시작하지 않음 (배포 웹은 https 로 서빙되므로 http 주소는 브라우저가 막습니다)
 - `/v1` 로 끝나지 않음, 또는 끝에 `/` 가 붙음
 - 코드 기본값의 자리표시자 도메인(`example.com` 계열)
+- **다른 환경의 주소와 같음** — 운영 빌드에는 `STAGING_API_BASE_URL` 을, 데모 `real` 빌드에는 `API_BASE_URL` 을 금지 주소로 넘깁니다. 두 변수를 같은 값으로 두면 데모 사이트가 운영 DB 에 기록을 남기거나 운영 웹이 시연용 DB 를 보게 되므로 둘 다 멈춥니다(#3020)
 
 검사 규칙 자체는 `bash .github/scripts/test_check_web_api_base_url.sh` 로 확인합니다.
 
@@ -232,6 +234,31 @@ Vercel 프로젝트가 이 Git 저장소와 연결되어 있으면 저장소 안
 - 회원 앱에서 식단을 하나 기록하고, **다른 브라우저**의 트레이너 웹에서 담당 회원 화면에 그 기록이 보이는지 확인
 - 개발자 도구 Console 에 GoRouter 진단 로그·provider 로그·API 요청 로그가 찍히지 않는지 확인
 - 개발자 도구 Console 에 CSP 위반(`Refused to connect`·`Refused to load`)이 없는지, 카카오 지도·사진 업로드·리포트 PDF 인쇄가 동작하는지 확인(응답 헤더 CSP 가 meta 보다 좁습니다 — [응답 보안 헤더](#응답-보안-헤더3017))
+
+## 캐시 헤더와 새 버전 안내 (#3023)
+
+Flutter 웹 산출물의 진입 파일은 이름에 해시가 없습니다. 모든 파일에 같은 `max-age` 를 주면 배포 뒤에도 브라우저가 옛 `index.html`·`flutter_bootstrap.js`·`main.dart.js` 를 들고 있고, 서로 다른 릴리스의 진입 파일이 섞일 수 있습니다. 이미 열려 있는 탭은 아예 옛 번들을 계속 실행합니다.
+
+### 캐시 헤더 (운영 AWS)
+
+`Upload release to S3` 단계는 [`.github/scripts/web_cache_headers.sh`](../.github/scripts/web_cache_headers.sh) 로 두 번에 나눠 올립니다. 규칙은 이 스크립트 한 곳에 있습니다.
+
+| 파일 | `Cache-Control` |
+| --- | --- |
+| 진입 파일 — `index.html`·`flutter_bootstrap.js`·`flutter.js`·`main.dart.js`(`.mjs`·`.wasm`)·`version.json`·`version.txt`·`manifest.json`·`drift_worker.js`·`sqlite3.wasm` (폴더 무관) | `no-cache` — 매번 재검증하고, 바뀌지 않았으면 304 |
+| 그 밖 — `canvaskit/`·`assets/`·글꼴·아이콘 | `public,max-age=300` |
+
+업로드 뒤 `Verify cache headers of the uploaded release` 단계가 대표 파일(두 앱의 `index.html`·`flutter_bootstrap.js`·`main.dart.js`·`version.txt`·`canvaskit/canvaskit.wasm`)의 헤더를 확인하고, 다르면 트래픽을 전환하지 않고 멈춥니다. CloudFront 캐시 정책은 `MinTTL: 0` 이라 오리진의 `no-cache` 를 따릅니다. GitHub Pages(데모)는 응답 헤더를 바꿀 수 없어 아래 새 버전 안내만 적용됩니다.
+
+### 새 버전 안내
+
+- 두 웹 빌드는 `--dart-define=RELEASE_SHA=<커밋 SHA>` 로 자기 릴리스를 내장합니다(운영·데모 모두). 로컬 실행·테스트 빌드에는 값이 없어 확인이 꺼집니다.
+- 배포는 루트 `version.txt` 를 두 앱 폴더에도 복사합니다(`/frontend/version.txt`·`/trainer/version.txt`).
+- 앱은 자기 `<base href>version.txt` 를 `cache: no-store` 로 읽어 내장 SHA 와 비교합니다. 시점은 시작 직후 한 번, 탭이 다시 보일 때, 그 밖에는 10분 간격입니다. 읽기 실패·SHA 가 아닌 응답은 조용히 넘깁니다.
+- 다르면 트레이너 웹은 콘텐츠 영역 맨 위, 회원 웹은 셸 맨 위에 정보 배너 "새 버전이 배포되었어요 · 새로고침" 이 뜹니다. `새로고침` 은 페이지를 다시 읽고(트레이너 웹은 작성 중인 폼이 있으면 브라우저 확인창이 먼저 뜹니다), 닫기(X)는 같은 배포에 대해 그 탭에서 다시 띄우지 않습니다. 자동 새로고침은 하지 않습니다.
+- 모바일 앱 빌드는 확인 자체가 없습니다.
+
+배포 뒤 확인: 브라우저 개발자 도구 Network 탭에서 `/trainer/main.dart.js` 응답의 `Cache-Control: no-cache` 와 `/trainer/version.txt` 의 SHA 를 봅니다. 배포 전부터 열어 둔 탭은 다시 보이게 하면 배너가 떠야 합니다.
 
 ## 운영 도메인과 보안 헤더
 

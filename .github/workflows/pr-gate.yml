@@ -166,6 +166,13 @@ jobs:
           python3 -m unittest discover -s tool/legal -p 'test_*.py' -v
           python3 tool/legal/build_legal_pages.py --check
 
+      - name: Test the web cache header rules
+        # 운영 웹 업로드가 진입 파일에 no-cache 를, 나머지에 짧은 max-age 를 주는지와 업로드 뒤
+        # 헤더 검증의 경계를 가짜 aws 명령으로 확인한다(#3023).
+        run: |
+          set -euo pipefail
+          bash .github/scripts/test_web_cache_headers.sh
+
       - name: Test the frontend deploy checks
         # 운영 프론트 배포의 CI 판정·백엔드 선후·응답 보안 헤더 확인 스크립트(#3017, #3018).
         # 배포 때만 도는 스크립트라 여기서 경계를 미리 확인한다. 네트워크 대신 가짜 gh·curl 과
