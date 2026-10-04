@@ -51,7 +51,7 @@ if not isinstance(data, dict):
     sys.exit(1)
 
 KNOWN = {"ENV", "USE_MOCK_API", "API_BASE_URL", "SENTRY_DSN", "DEMO_BUILD",
-         "SHOW_DEMO_ENTRY", "REAL_API", "KAKAO_JS_KEY"}
+         "SHOW_DEMO_ENTRY", "REAL_API", "KAKAO_JS_KEY", "IOS_APP_STORE_ID"}
 PLACEHOLDER = re.compile(
     r"[<>]|(^|[./@])example\.(com|org|net)([/:]|$)|\.(example|test|invalid|localhost)([/:]|$)"
     r"|//(localhost|127\.0\.0\.1)([/:]|$)",
@@ -111,6 +111,10 @@ for flag in ("DEMO_BUILD", "SHOW_DEMO_ENTRY"):
     value = text(flag)
     if value is not None and value.lower() == "true":
         errors.append(f"{flag}=true 는 데모 빌드 전용입니다. 릴리스 파일에서 지우세요.")
+
+store_id = text("IOS_APP_STORE_ID")
+if store_id and not store_id.isdigit():
+    errors.append("IOS_APP_STORE_ID 는 App Store Connect 의 숫자 Apple ID 여야 합니다(#3045).")
 
 real_api = text("REAL_API")
 if real_api:

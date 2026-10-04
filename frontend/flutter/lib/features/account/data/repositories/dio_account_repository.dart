@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import 'package:oncare/features/account/domain/entities/account_deletion_preview.dart';
 import 'package:oncare/features/account/domain/entities/account_reauth.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
@@ -40,6 +41,14 @@ class DioAccountRepository implements AccountRepository {
       if (rejected != null) throw rejected;
       rethrow;
     }
+  }
+
+  @override
+  Future<AccountDeletionPreview> fetchDeletionPreview() async {
+    final res = await _dio.get<Map<String, Object?>>(
+      '/users/me/deletion-preview',
+    );
+    return AccountDeletionPreview.fromJson(res.data!);
   }
 
   @override

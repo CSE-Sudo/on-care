@@ -1,3 +1,4 @@
+import 'package:oncare/features/account/domain/entities/account_deletion_preview.dart';
 import 'package:oncare/features/account/domain/entities/account_reauth.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
@@ -85,6 +86,13 @@ class MockAccountRepository implements AccountRepository {
 
   @override
   Future<UserProfile> fetchProfile() async => _profile;
+
+  /// 탈퇴 미리보기로 돌려줄 값(#3006). 기본은 잃는 것이 없는 계정이다.
+  AccountDeletionPreview deletionPreview = const AccountDeletionPreview();
+
+  @override
+  Future<AccountDeletionPreview> fetchDeletionPreview() async =>
+      deletionPreview;
 
   /// 목업이 받아 둔 탈퇴 사유. 대역이 무엇을 받았는지 테스트가 확인한다.
   List<String> deletedWithReasons = const <String>[];

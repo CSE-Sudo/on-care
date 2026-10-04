@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # 버전 이름(+ 앞)과 빌드 번호(+ 뒤) 규칙은 docs/mobile_release.md 를 따른다.
 # 스토어 제출 빌드는 --build-number 로 덮어쓰지 않고 이 값을 올려 커밋한다.
-version: 0.3.0+3
+version: 0.4.0+4
 
 environment:
   sdk: ^3.10.0
@@ -93,6 +93,9 @@ dependencies:
   image_picker: ^1.2.3
   geolocator: ^14.0.2
   sentry_flutter: ^8.14.2
+  # 빌드 버전을 읽는다 — 고객 지원 버전 줄(#3047)·최소 지원 버전 확인(#3045).
+  # 트레이너 웹과 같은 버전을 쓴다.
+  package_info_plus: ^9.0.1
 
   # NOTE: Social-login SDKs (sign_in_with_apple / google_sign_in /
   # kakao_flutter_sdk_user / flutter_naver_login) are added in Stage 4

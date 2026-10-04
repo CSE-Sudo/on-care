@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/features/account/domain/entities/account_deletion_preview.dart';
 import 'package:oncare/features/account/domain/entities/account_reauth.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
@@ -82,6 +83,10 @@ class _RecordingRepository implements AccountRepository {
     List<String> reasons = const <String>[],
     AccountReauth? reauth,
   }) => _inner.deleteAccount(reasons: reasons, reauth: reauth);
+
+  @override
+  Future<AccountDeletionPreview> fetchDeletionPreview() =>
+      _inner.fetchDeletionPreview();
 
   @override
   Future<UserProfile> updateProfile({

@@ -274,6 +274,26 @@ extension _LocalApiProfile on LocalApiInterceptor {
     }
   }
 
+  /// GET /users/me/deletion-preview — 탈퇴하면 사라지거나 취소되는 것의 건수(#3006).
+  ///
+  /// 포인트·쿠폰은 이 목업이 들고 있는 원장·쿠폰함에서 센다. 데모의 PT 예약과
+  /// 상담 요청은 목 헬스장·상담 저장소가 들고 있어 여기서는 0 으로 두고, 앱의
+  /// 탈퇴 화면이 그 저장소에서 센 값으로 덮는다(`withdrawPreviewLoaderProvider`).
+  Future<Response<Object?>> _usersMeDeletionPreview(
+    RequestOptions options,
+  ) async {
+    final int activeCoupons = _coupons
+        .couponsJson()
+        .where((Map<String, Object?> c) => c['status'] == 'issued')
+        .length;
+    return _ok(options, <String, Object?>{
+      'points': _points.balance,
+      'active_coupons': activeCoupons,
+      'upcoming_reservations': 0,
+      'pending_consultations': 0,
+    });
+  }
+
   /// DELETE /users/me — withdraw. The demo wipes the profile overlay so a
   /// subsequent session starts clean, mirroring FastAPI's cascade delete.
   ///

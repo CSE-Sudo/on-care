@@ -175,6 +175,9 @@ jobs:
           cp -R frontend/flutter/build/web/* public/frontend/
           mkdir -p public/trainer
           cp -R frontend/flutter_trainer/build/web/* public/trainer/
+          # 공개 정책 페이지(#3005). 스토어·가입 전 안내가 여는 처리방침·약관 주소다.
+          mkdir -p public/legal
+          cp legal/*.html public/legal/
           # CanvasKit ships wasm symbol maps for debugging stack traces. They are
           # never fetched at runtime and cost ~8MB per app, so drop them to keep
           # the Pages publish as short as possible.

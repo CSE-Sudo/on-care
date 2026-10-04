@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/core/observability/handled_error.dart';
 import 'package:oncare/core/storage/prefs_store.dart';
 import 'package:oncare/features/account/domain/entities/account_reauth.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare/features/my_health/presentation/controllers/withdraw_preview_controller.dart';
 import 'package:oncare/features/my_health/presentation/widgets/account_reauth_dialog.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -83,6 +85,9 @@ class _WithdrawPageState extends ConsumerState<WithdrawPage> {
   /// 그 창에서 본인 확인도 한다(#3039). 잠기지 않은 폰을 누가 잠깐 집어 들어도
   /// 기록 전체를 지우지 못하게, 현재 비밀번호(소셜 전용 계정은 다시 로그인)를
   /// 거쳐야 빨간 버튼이 켜진다. 비밀번호가 틀리면 창 안에 알리고 세션은 그대로다.
+  ///
+  /// 확인창 앞에서 이 계정의 포인트·쿠폰·예약·상담 요청 건수를 읽어 0 이 아닌
+  /// 것만 덧붙인다(#3006). 읽기가 실패하거나 늦으면 일반 문구로 띄운다.
   Future<void> _confirmAndDelete() async {
     final AppLocalizations l = AppLocalizations.of(context);
     final AppToastHost toast = AppToastHost.of(context);
@@ -92,7 +97,12 @@ class _WithdrawPageState extends ConsumerState<WithdrawPage> {
       for (final WithdrawReason r in WithdrawReason.values)
         if (_picked.contains(r)) r.code,
     ];
+    // 읽는 동안 두 버튼을 잠근다 — 두 번 눌러 확인창이 겹쳐 뜨지 않게.
     setState(() => _busy = true);
+    final preview = await loadWithdrawPreview(
+      ref.read(withdrawPreviewLoaderProvider),
+      reporter: ref.read(handledErrorReporterProvider),
+    );
     // 비밀번호 칸을 보일지, 소셜 다시 로그인을 보일지. 프로필을 못 읽으면
     // 비밀번호 계정으로 본다 — 대부분이 그렇고, 소셜 전용 계정이면 서버가
     // `reauth_required` 로 알려 준다.
@@ -106,7 +116,7 @@ class _WithdrawPageState extends ConsumerState<WithdrawPage> {
     if (!mounted) return;
     final AccountReauthDialogOutcome outcome = await showAccountReauthDialog(
       context: context,
-      message: l.myWithdrawConfirm,
+      message: withdrawConfirmMessage(l, preview),
       confirmLabel: l.myWithdrawAction,
       hasPassword: hasPassword,
       destructive: true,

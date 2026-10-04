@@ -413,4 +413,17 @@ void main() {
       isA<SocialReauth>().having((r) => r.provider, 'provider', 'google'),
     );
   });
+
+  testWidgets('확인창이 무엇이 지워지고 무엇이 끝나는지 말한다 (#3006)', (tester) async {
+    await _pumpSettings(tester);
+
+    await _tapDelete(tester);
+
+    // 기존 확인창 그대로 — 본문 글만 늘었다.
+    expect(find.byType(AppDialog), findsOneWidget);
+    expect(find.text(_ko.myDeleteBody), findsOneWidget);
+    expect(_ko.myDeleteBody, contains('배정한 루틴'));
+    expect(_ko.myDeleteBody, contains('PT 재등록 쿠폰'));
+    expect(_ko.myDeleteBody, contains('되돌릴 수 없어요'));
+  });
 }

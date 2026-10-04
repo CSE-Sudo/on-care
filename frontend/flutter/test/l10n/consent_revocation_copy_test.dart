@@ -13,6 +13,7 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/legal_contact.dart';
 
 void main() {
   final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
@@ -101,7 +102,9 @@ void main() {
 
   group('개인정보 처리방침', () {
     test('한국어본에 트레이너 공유·동의 철회 조항이 있다', () {
-      final String body = ko.myLegalPrivacyBody;
+      final String body = ko.myLegalPrivacyBody(
+        LegalContact.privacyOfficerEmail,
+      );
       expect(body, contains('5. 담당 트레이너와의 정보 공유 및 동의 철회'));
       expect(body, contains('동의한 시각과 철회한 시각을 기록'));
       expect(body, contains('새 기록을 볼 수 없'));
@@ -112,7 +115,9 @@ void main() {
     });
 
     test('영문본에 같은 조항이 있다', () {
-      final String body = en.myLegalPrivacyBody;
+      final String body = en.myLegalPrivacyBody(
+        LegalContact.privacyOfficerEmail,
+      );
       expect(
         body,
         contains('5. Sharing with your trainer and withdrawing consent'),
@@ -135,16 +140,31 @@ void main() {
     test('조항 번호가 1부터 빠짐없이 이어진다 — 두 언어가 같다', () {
       // 위탁·국외 이전·파기 절차 등이 더해져 16개 조항이다(#2820).
       final List<int> expected = List<int>.generate(16, (int i) => i + 1);
-      expect(numbers(ko.myLegalPrivacyBody), expected);
-      expect(numbers(en.myLegalPrivacyBody), expected);
+      expect(
+        numbers(ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail)),
+        expected,
+      );
+      expect(
+        numbers(en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail)),
+        expected,
+      );
     });
 
     test('기존 조항은 뒤로 밀렸을 뿐 그대로 있다', () {
-      expect(ko.myLegalPrivacyBody, contains('13. 이용자의 권리'));
-      expect(ko.myLegalPrivacyBody, contains('14. 개인정보 보호책임자'));
-      expect(en.myLegalPrivacyBody, contains('13. Rights of the user'));
       expect(
-        en.myLegalPrivacyBody,
+        ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+        contains('13. 이용자의 권리'),
+      );
+      expect(
+        ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+        contains('14. 개인정보 보호책임자'),
+      );
+      expect(
+        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+        contains('13. Rights of the user'),
+      );
+      expect(
+        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
         contains('14. Personal information protection officer'),
       );
     });
@@ -156,7 +176,7 @@ void main() {
         contains('식단 기록·운동 기록·신체 정보, 건강 목표와 건강상태·주의사항'),
       );
       expect(
-        ko.myLegalPrivacyBody,
+        ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
         contains('식단 기록·운동 기록·신체 정보, 건강 목표와 건강상태·주의사항'),
       );
       expect(
@@ -166,7 +186,7 @@ void main() {
         ),
       );
       expect(
-        en.myLegalPrivacyBody,
+        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
         contains(
           'meal records, workout records, body information, health goals, and health notes & cautions',
         ),

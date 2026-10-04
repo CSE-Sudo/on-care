@@ -223,6 +223,7 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     'POST /users/me/consents': _usersMeConsents,
     'GET /users/me/profile': _usersMeProfile,
     'PUT /users/me': _usersMeUpdate,
+    'GET /users/me/deletion-preview': _usersMeDeletionPreview,
     'DELETE /users/me': _usersMeDelete,
     'POST /users/me/onboarding': _usersMeOnboarding,
     'POST /users/me/onboarding/skip': _usersMeOnboardingSkip,
