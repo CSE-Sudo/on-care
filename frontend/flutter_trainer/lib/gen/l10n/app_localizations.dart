@@ -2324,12 +2324,6 @@ abstract class AppLocalizations {
   /// **'Member feedback'**
   String get clientFeedback;
 
-  /// No description provided for @workoutKindAiPersonal.
-  ///
-  /// In en, this message translates to:
-  /// **'AI personal exercise'**
-  String get workoutKindAiPersonal;
-
   /// Workout history kind for a completed PT session (server kind code pt_session).
   ///
   /// In en, this message translates to:
@@ -4915,12 +4909,6 @@ abstract class AppLocalizations {
   /// **'You haven\'t sent any programs yet'**
   String get coachHistoryEmpty;
 
-  /// No description provided for @coachTrainer.
-  ///
-  /// In en, this message translates to:
-  /// **'Trainer'**
-  String get coachTrainer;
-
   /// No description provided for @aiReasonSodium.
   ///
   /// In en, this message translates to:
@@ -5400,12 +5388,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Start date'**
   String get aiRoutineOnlyStartDate;
-
-  /// No description provided for @aiRoutineOnlyWeekRange.
-  ///
-  /// In en, this message translates to:
-  /// **'Shown daily {start} – {end}'**
-  String aiRoutineOnlyWeekRange(String start, String end);
 
   /// No description provided for @aiRoutineOnlyWeeklyHint.
   ///
@@ -6325,12 +6307,6 @@ abstract class AppLocalizations {
   /// **'Continue leaving'**
   String get myWithdrawContinue;
 
-  /// No description provided for @routineAlreadyGone.
-  ///
-  /// In en, this message translates to:
-  /// **'That program is already gone'**
-  String get routineAlreadyGone;
-
   /// No description provided for @workoutKindPersonal.
   ///
   /// In en, this message translates to:
@@ -6499,12 +6475,6 @@ abstract class AppLocalizations {
   /// **'PT'**
   String get workoutDaySourcePt;
 
-  /// No description provided for @workoutPendingTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Personal exercises'**
-  String get workoutPendingTitle;
-
   /// No description provided for @workoutUndatedTitle.
   ///
   /// In en, this message translates to:
@@ -6522,30 +6492,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load this day\'s workouts'**
   String get workoutDayExercisesFailed;
-
-  /// No description provided for @routineDeleteTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete this program?'**
-  String get routineDeleteTitle;
-
-  /// No description provided for @routineDeleteFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t delete the program. Please try again in a moment'**
-  String get routineDeleteFailed;
-
-  /// No description provided for @routineDeleted.
-  ///
-  /// In en, this message translates to:
-  /// **'Program deleted'**
-  String get routineDeleted;
-
-  /// No description provided for @routineDeleteBody.
-  ///
-  /// In en, this message translates to:
-  /// **'{name} disappears from the member\'s app too.'**
-  String routineDeleteBody(String name);
 
   /// Label/tooltip of the console header's client search.
   ///
@@ -8228,12 +8174,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{date}'**
   String chatDateDivider(DateTime date);
-
-  /// Tag on a pending assigned routine that the AI suggested.
-  ///
-  /// In en, this message translates to:
-  /// **'AI'**
-  String get clientWorkoutSourceAi;
 
   /// No description provided for @coachClientDemographics.
   ///

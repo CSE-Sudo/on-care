@@ -790,7 +790,6 @@
   },
   "legendDone": "Done",
   "clientFeedback": "Member feedback",
-  "workoutKindAiPersonal": "AI personal exercise",
   "workoutKindPtSession": "PT · Trainer-led",
   "@workoutKindPtSession": {
     "description": "Workout history kind for a completed PT session (server kind code pt_session)."
@@ -1773,7 +1772,6 @@
   "coachDeliveryNothing": "Nothing sent",
   "coachHistoryFailed": "Couldn't load history",
   "coachHistoryEmpty": "You haven't sent any programs yet",
-  "coachTrainer": "Trainer",
   "aiReasonSodium": "Sodium is over target today, so lean into low-intensity cardio.",
   "aiReasonBalanced": "Today's meals are balanced, so the current intensity is fine to keep.",
   "aiReasonGoal": "Based on the {goal} goal and recent {last} activity.",
@@ -1933,10 +1931,6 @@
   "aiPersonalStepEmpty": "No personal exercise yet. Add one below.",
   "aiKeepOnePersonalRoutine": "Keep at least one personal exercise.",
   "aiRoutineOnlyStartDate": "Start date",
-  "aiRoutineOnlyWeekRange": "Shown daily {start} – {end}",
-  "@aiRoutineOnlyWeekRange": {
-    "placeholders": { "start": { "type": "String" }, "end": { "type": "String" } }
-  },
   "@aiRoutineOnlyWeeklyHint": {"placeholders": {"start": {"type": "String"}, "end": {"type": "String"}}},
   "aiRoutineOnlyWeeklyHint": "Appears in the member app every day for 7 days, {start} to {end}. Send next week's set again then.",
   "aiRoutineOnlySend": "Send to member",
@@ -2347,7 +2341,6 @@
       }
     }
   },
-  "routineAlreadyGone": "That program is already gone",
   "workoutKindPersonal": "Personal exercise",
   "workoutRoutineDay": "{month}/{day} ({weekday})",
   "@workoutRoutineDay": {"placeholders": {"month": {"type": "int"}, "day": {"type": "int"}, "weekday": {"type": "String"}}},
@@ -2407,23 +2400,11 @@
   "workoutIntensityPerformed": "Did {level}",
   "@workoutIntensityPerformed": {"placeholders": {"level": {"type": "String"}}},
   "workoutDaySourcePt": "PT",
-  "workoutPendingTitle": "Personal exercises",
   "workoutUndatedTitle": "Records without a date",
   "workoutMemberLogTitle": "Added by member",
   "workoutDayExercisesFailed": "Couldn't load this day's workouts",
   "@workoutDayExercisesFailed": {
     "description": "Shown in the expanded day when its workouts fail to load (#2892)"
-  },
-  "routineDeleteTitle": "Delete this program?",
-  "routineDeleteFailed": "Couldn't delete the program. Please try again in a moment",
-  "routineDeleted": "Program deleted",
-  "routineDeleteBody": "{name} disappears from the member's app too.",
-  "@routineDeleteBody": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
   },
   "searchClients": "Search members",
   "@searchClients": {
@@ -3310,10 +3291,6 @@
         "format": "yMMMMEEEEd"
       }
     }
-  },
-  "clientWorkoutSourceAi": "AI",
-  "@clientWorkoutSourceAi": {
-    "description": "Tag on a pending assigned routine that the AI suggested."
   },
   "coachClientDemographics": "{gender} · Age {age}",
   "@coachClientDemographics": {

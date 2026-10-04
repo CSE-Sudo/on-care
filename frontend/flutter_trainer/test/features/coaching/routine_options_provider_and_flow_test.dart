@@ -49,7 +49,8 @@ const _client = TrainerClient(
   sodiumMg: 2100,
   sugarG: 40,
   lastRoutine: '저강도 유산소',
-  weekCompletion: <int>[100, 0, 60, 0, 0, 0, 0],
+  // 걸린 것이 없던 날은 null(#2513) — 걸린 날 100·60 의 평균 80%.
+  weekCompletion: <int?>[100, null, 60, null, null, null, null],
   sodiumWeek: <int>[],
 );
 

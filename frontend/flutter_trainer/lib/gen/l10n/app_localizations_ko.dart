@@ -1219,9 +1219,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientFeedback => '회원 피드백';
 
   @override
-  String get workoutKindAiPersonal => 'AI 개인운동';
-
-  @override
   String get workoutKindPtSession => 'PT · 트레이너 지도';
 
   @override
@@ -2667,9 +2664,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachHistoryEmpty => '아직 보낸 프로그램이 없어요';
 
   @override
-  String get coachTrainer => '트레이너';
-
-  @override
   String get aiReasonSodium => '오늘 나트륨이 목표를 초과해 저강도 유산소 비중을 높이는 것이 좋아요.';
 
   @override
@@ -2936,11 +2930,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiRoutineOnlyStartDate => '시작일';
-
-  @override
-  String aiRoutineOnlyWeekRange(String start, String end) {
-    return '$start ~ $end 매일 표시';
-  }
 
   @override
   String aiRoutineOnlyWeeklyHint(String start, String end) {
@@ -3479,9 +3468,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myWithdrawContinue => '탈퇴 계속';
 
   @override
-  String get routineAlreadyGone => '이미 삭제된 프로그램이에요';
-
-  @override
   String get workoutKindPersonal => '개인운동';
 
   @override
@@ -3610,9 +3596,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get workoutDaySourcePt => 'PT';
 
   @override
-  String get workoutPendingTitle => '개인운동';
-
-  @override
   String get workoutUndatedTitle => '날짜를 알 수 없는 기록';
 
   @override
@@ -3620,20 +3603,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get workoutDayExercisesFailed => '운동 기록을 불러오지 못했어요';
-
-  @override
-  String get routineDeleteTitle => '프로그램을 삭제할까요?';
-
-  @override
-  String get routineDeleteFailed => '프로그램을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String get routineDeleted => '프로그램을 삭제했어요';
-
-  @override
-  String routineDeleteBody(String name) {
-    return '$name 배정이 회원 앱에서도 사라져요.';
-  }
 
   @override
   String get searchClients => '회원 검색';
@@ -4653,9 +4622,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
     return '$dateString';
   }
-
-  @override
-  String get clientWorkoutSourceAi => 'AI';
 
   @override
   String coachClientDemographics(String gender, int age) {

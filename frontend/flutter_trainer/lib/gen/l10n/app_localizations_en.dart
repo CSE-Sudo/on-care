@@ -1256,9 +1256,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientFeedback => 'Member feedback';
 
   @override
-  String get workoutKindAiPersonal => 'AI personal exercise';
-
-  @override
   String get workoutKindPtSession => 'PT · Trainer-led';
 
   @override
@@ -2814,9 +2811,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachHistoryEmpty => 'You haven\'t sent any programs yet';
 
   @override
-  String get coachTrainer => 'Trainer';
-
-  @override
   String get aiReasonSodium =>
       'Sodium is over target today, so lean into low-intensity cardio.';
 
@@ -3094,11 +3088,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiRoutineOnlyStartDate => 'Start date';
-
-  @override
-  String aiRoutineOnlyWeekRange(String start, String end) {
-    return 'Shown daily $start – $end';
-  }
 
   @override
   String aiRoutineOnlyWeeklyHint(String start, String end) {
@@ -3657,9 +3646,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myWithdrawContinue => 'Continue leaving';
 
   @override
-  String get routineAlreadyGone => 'That program is already gone';
-
-  @override
   String get workoutKindPersonal => 'Personal exercise';
 
   @override
@@ -3788,9 +3774,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workoutDaySourcePt => 'PT';
 
   @override
-  String get workoutPendingTitle => 'Personal exercises';
-
-  @override
   String get workoutUndatedTitle => 'Records without a date';
 
   @override
@@ -3798,21 +3781,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get workoutDayExercisesFailed => 'Couldn\'t load this day\'s workouts';
-
-  @override
-  String get routineDeleteTitle => 'Delete this program?';
-
-  @override
-  String get routineDeleteFailed =>
-      'Couldn\'t delete the program. Please try again in a moment';
-
-  @override
-  String get routineDeleted => 'Program deleted';
-
-  @override
-  String routineDeleteBody(String name) {
-    return '$name disappears from the member\'s app too.';
-  }
 
   @override
   String get searchClients => 'Search members';
@@ -4872,9 +4840,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
     return '$dateString';
   }
-
-  @override
-  String get clientWorkoutSourceAi => 'AI';
 
   @override
   String coachClientDemographics(String gender, int age) {
