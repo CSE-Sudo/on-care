@@ -111,6 +111,19 @@ def _program_rows(db_session, session_id: str) -> list[TrainerRoutine]:
     )
 
 
+def _program_lines(db_session) -> list[TrainerRoutine]:
+    """이 회원이 받은 PT 프로그램 줄(개인운동 전송 종류가 없는 승인된 줄)."""
+    return list(
+        db_session.scalars(
+            select(TrainerRoutine).where(
+                TrainerRoutine.member_id == MEMBER,
+                TrainerRoutine.delivery_kind.is_(None),
+                TrainerRoutine.status == "approved",
+            )
+        ).all()
+    )
+
+
 def test_registering_does_not_reach_the_member(client, db_session):
     """등록만으로는 회원에게 가지 않는다 — 일정에 붙여만 둔다."""
     token = _tok(client)
@@ -150,14 +163,19 @@ def test_the_program_reaches_the_member_once(client, db_session):
         ).status_code == 200
 
         added = [n for n in _member_routines(client, mtok) if n not in before]
-        # 프로그램 한 벌 + 개인운동 한 벌.
-        assert sorted(added) == sorted([_NAME, f"{_NAME} 걷기"]), added
+        # 매일 하는 목록에는 개인운동만 걸린다 — PT 프로그램은 그날 PT 에서
+        # 한 것이라 PT 기록으로 남는다(#3115).
+        assert added == [f"{_NAME} 걷기"], added
 
         db_session.expire_all()
         rows = _program_rows(db_session, session_id)
+        # 프로그램은 한 벌만 보냈다.
         assert [r.status for r in rows] == ["approved"]
         # 며칠 전에 짜 두었어도 회원에게는 오늘 받은 운동이다.
-        assert rows[0].active_from == clock.today().isoformat()
+        today = clock.today().isoformat()
+        assert rows[0].active_from == today
+        # 하루도 목록에 걸리지 않는다(`ended_on == active_from`).
+        assert rows[0].ended_on == today
     finally:
         _cleanup(db_session)
 
@@ -173,6 +191,7 @@ def test_a_program_without_attached_rows_still_sends(client, db_session):
     _cleanup(db_session)
     try:
         before = _member_routines(client, mtok)
+        program_before = {r.id for r in _program_lines(db_session)}
         session_id = _attach(client, token)
         # 붙은 프로그램 줄을 지워 `연필로 짠 프로그램` 과 같은 모양으로 만든다.
         db_session.expire_all()
@@ -192,7 +211,16 @@ def test_a_program_without_attached_rows_still_sends(client, db_session):
         ).status_code == 200
 
         added = [n for n in _member_routines(client, mtok) if n not in before]
-        assert any(f"{_NAME} 걷기" == n for n in added), added
-        assert len(added) >= 2, added
+        # 새로 배정한 프로그램도 매일 목록에는 걸지 않는다(#3115).
+        assert added == [f"{_NAME} 걷기"], added
+        db_session.expire_all()
+        sent = [
+            r for r in _program_lines(db_session) if r.id not in program_before
+        ]
+        assert sent, "프로그램은 보낸 기록으로 남는다"
+        assert all(r.ended_on == r.active_from for r in sent)
+        for row in sent:
+            db_session.delete(row)
+        db_session.commit()
     finally:
         _cleanup(db_session)

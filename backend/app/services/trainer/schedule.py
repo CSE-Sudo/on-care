@@ -1291,6 +1291,12 @@ def _raise_scheduled_program(
     for row in rows:
         row.status = ROUTINE_APPROVED
         row.active_from = today_iso
+        # PT 프로그램은 "오늘 PT 에서 한 것" 이다 — 매일 체크하는 개인운동 목록에
+        # 걸지 않는다(#3115). 그날 내용은 PT 기록이 남긴다. 예전에는 `ended_on`
+        # 이 비어 철회 전까지 날마다 `추천 개인운동` 에 떠, 조언·미수행 신호·리포트
+        # 분모가 개인운동으로 세었다. `ended_on == active_from` 은 하루도 걸리지
+        # 않았다는 표시다([_retire_personal_routines] 와 같은 규칙).
+        row.ended_on = today_iso
     db.flush()
     # 바로 배정([assign_program])과 같은 틀이다 — 문장이 코드에 박혀 있으면
     # 영어 화면에서도 한국어로 보인다(#2546). 여러 세션이면 프로그램 이름으로 부른다.
@@ -2489,6 +2495,8 @@ def send_session_program(
             name=f"{s.date} {s.type}".strip() or s.date,
             sessions=[ProgramDraftSession(id=s.id, name="", exercises=exercises)],
             client_request_id=client_request_id,
+            # 붙여 둔 프로그램을 올릴 때와 같이 매일 목록에 걸지 않는다(#3115).
+            active_days=0,
             # 아래에서 개인운동과 함께 카드 하나로 남긴다(#2672).
             chat_card=False,
         )
