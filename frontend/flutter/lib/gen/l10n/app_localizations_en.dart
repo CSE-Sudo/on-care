@@ -1077,6 +1077,54 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exTrainerNotFound => 'Couldn\'t find this trainer.';
 
   @override
+  String get exTrainerReport => 'Report trainer';
+
+  @override
+  String get exTrainerReportShort => 'Report';
+
+  @override
+  String get exTrainerReportReasonLabel => 'Reason';
+
+  @override
+  String get exTrainerReportReasonImpersonation => 'Impersonation';
+
+  @override
+  String get exTrainerReportReasonInappropriateMessage =>
+      'Inappropriate message';
+
+  @override
+  String get exTrainerReportReasonOther => 'Other';
+
+  @override
+  String get exTrainerReportMemoLabel => 'Details';
+
+  @override
+  String get exTrainerReportMemoHint => 'Tell us what happened';
+
+  @override
+  String get exTrainerReportMemoRequired =>
+      'Add details to report for another reason';
+
+  @override
+  String get exTrainerReportNotice =>
+      'Only operators see reports. The trainer isn\'t told who reported them.';
+
+  @override
+  String get exTrainerReportSubmit => 'Submit report';
+
+  @override
+  String get exTrainerReportSubmitted =>
+      'Report received. An operator will review it.';
+
+  @override
+  String get exTrainerReportAlreadyOpen =>
+      'You already have an open report. An operator is reviewing it.';
+
+  @override
+  String get exTrainerSelfRegisteredAffiliation =>
+      'Affiliation registered by the trainer';
+
+  @override
   String get exGymSearchPlaceholder => 'Search by area or gym name';
 
   @override

@@ -1037,6 +1037,48 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exTrainerNotFound => '트레이너 정보를 찾을 수 없어요.';
 
   @override
+  String get exTrainerReport => '트레이너 신고';
+
+  @override
+  String get exTrainerReportShort => '신고';
+
+  @override
+  String get exTrainerReportReasonLabel => '신고 사유';
+
+  @override
+  String get exTrainerReportReasonImpersonation => '사칭';
+
+  @override
+  String get exTrainerReportReasonInappropriateMessage => '부적절한 메시지';
+
+  @override
+  String get exTrainerReportReasonOther => '기타';
+
+  @override
+  String get exTrainerReportMemoLabel => '내용';
+
+  @override
+  String get exTrainerReportMemoHint => '어떤 일이 있었는지 적어 주세요';
+
+  @override
+  String get exTrainerReportMemoRequired => '기타 사유는 내용을 적어야 보낼 수 있어요';
+
+  @override
+  String get exTrainerReportNotice => '신고는 운영자만 확인해요. 누가 신고했는지 트레이너에게 알리지 않아요.';
+
+  @override
+  String get exTrainerReportSubmit => '신고하기';
+
+  @override
+  String get exTrainerReportSubmitted => '신고를 접수했어요. 운영자가 확인할게요.';
+
+  @override
+  String get exTrainerReportAlreadyOpen => '이미 접수된 신고가 있어요. 운영자가 확인하고 있어요.';
+
+  @override
+  String get exTrainerSelfRegisteredAffiliation => '트레이너가 직접 등록한 소속이에요';
+
+  @override
   String get exGymSearchPlaceholder => '지역이나 헬스장 이름 검색';
 
   @override
