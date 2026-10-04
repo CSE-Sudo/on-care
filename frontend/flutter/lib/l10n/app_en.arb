@@ -2055,6 +2055,18 @@
   "authSessionExpired": "Your session has expired. Please sign in again",
   "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment",
   "authSocialComingSoon": "Social sign-in is coming soon. Please sign in with your email",
+  "authTrainerAccountTitle": "This is a trainer account",
+  "@authTrainerAccountTitle": {
+    "description": "Title of the sign-in banner shown when a trainer account tries to sign in to the member app (#3137)."
+  },
+  "authTrainerAccountMessage": "The member app is for member accounts. Please sign in to the trainer web with your trainer account",
+  "@authTrainerAccountMessage": {
+    "description": "Body of the trainer-account sign-in banner. The issued tokens are discarded (#3137)."
+  },
+  "authTrainerAccountOpenWeb": "Open trainer web",
+  "@authTrainerAccountOpenWeb": {
+    "description": "Banner action that opens the trainer web on the same origin. Shown on web builds only (#3137)."
+  },
   "signUpTitle": "Sign up",
   "signUpSubtitle": "Create an On-Care account and start managing your health",
   "signUpNameHint": "Name",

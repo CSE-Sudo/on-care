@@ -5132,6 +5132,24 @@ abstract class AppLocalizations {
   /// **'Social sign-in is coming soon. Please sign in with your email'**
   String get authSocialComingSoon;
 
+  /// Title of the sign-in banner shown when a trainer account tries to sign in to the member app (#3137).
+  ///
+  /// In en, this message translates to:
+  /// **'This is a trainer account'**
+  String get authTrainerAccountTitle;
+
+  /// Body of the trainer-account sign-in banner. The issued tokens are discarded (#3137).
+  ///
+  /// In en, this message translates to:
+  /// **'The member app is for member accounts. Please sign in to the trainer web with your trainer account'**
+  String get authTrainerAccountMessage;
+
+  /// Banner action that opens the trainer web on the same origin. Shown on web builds only (#3137).
+  ///
+  /// In en, this message translates to:
+  /// **'Open trainer web'**
+  String get authTrainerAccountOpenWeb;
+
   /// No description provided for @signUpTitle.
   ///
   /// In en, this message translates to:
