@@ -220,6 +220,16 @@ CREATE EXTENSION IF NOT EXISTS vector;
 - **풀러(`-pooler`) 엔드포인트가 아니라 직접 엔드포인트를 쓴다.** 기동 시 마이그레이션이
   `pg_try_advisory_lock`(세션 단위 lock, `scripts/migrate.py`)으로 태스크를 직렬화하는데,
   트랜잭션 풀링을 거치면 lock 을 잡은 세션과 alembic 이 쓰는 세션이 달라질 수 있어 직렬화가 깨진다.
+  공개 문서 재적재의 세션 잠금(`app/db/init_db.py`)도 같고, 앱 연결의 시작 옵션
+  `options=-c statement_timeout=…`(`app/db/session.py`)은 풀러가 받지 않아 연결이 거절된다.
+  - 운영(`ENV=prod`)은 `DATABASE_URL` 호스트의 첫 조각이 `-pooler` 로 끝나면 **기동을 거부**한다
+    (`app/core/db_url.py` `pooler_problem`, #3146). 마이그레이션 러너(`scripts/migrate.py`)도 같은
+    판정으로 잠금을 잡기 전에 종료 코드 1 로 멈춘다. 오류 문구에 바꿀 직접 엔드포인트 호스트가 나온다
+    (`ep-xxx-pooler.<region>.aws.neon.tech` → `ep-xxx.<region>.aws.neon.tech`).
+  - 개발·스테이징은 막지 않고 기동 로그(`[startup]`)와 `[migrate] WARN` 으로만 남긴다.
+  - 연결 수가 모자라 풀러가 필요해지면, 마이그레이션·세션 잠금 전용 직접 주소
+    (`MIGRATION_DATABASE_URL` 같은 별도 값)와 앱용 `DATABASE_URL`(풀러)을 나누고 앱 쪽 시작 옵션·세션
+    잠금을 트랜잭션 단위로 바꾸는 작업이 먼저 필요하다. 지금은 구현하지 않았다 — 직접 엔드포인트만 쓴다.
 - 운영과 staging 은 **다른 DB**(또는 Neon 브랜치)를 쓴다.
 
 ## 5) 환경변수 / 비밀
