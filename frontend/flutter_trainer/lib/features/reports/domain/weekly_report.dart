@@ -238,7 +238,7 @@ class WeeklyReport implements ReportSheetWeek {
       effectiveProteinTarget,
       fatTarget,
       for (final ReportDay day in days)
-        '${day.completion}:${day.assigned}:${day.exercises.join('␟')}',
+        '${day.completion}:${day.assigned}:${day.assignedDone}:${day.exercises.join('␟')}',
       mealCounts.join(','),
       calorieBaseline,
       if (member == null)
@@ -442,6 +442,7 @@ class ReportDay implements ReportSheetDay {
     required this.completion,
     this.exercises = const <String>[],
     this.assigned,
+    this.assignedDone,
   });
 
   /// 그날 이행률(%). 0 은 기록이 없다는 뜻이다.
@@ -462,8 +463,17 @@ class ReportDay implements ReportSheetDay {
   @override
   final int? assigned;
 
-  /// 건너뛰지 않은 운동 수.
-  int get done => exercises.where((e) => !e.contains('✗')).length;
+  /// 그중 그날 완료한 수(#3115). 모르면(옛 응답·데모) null 이다.
+  @override
+  final int? assignedDone;
+
+  /// 완료한 운동 수 — 배정을 알면 그 완료, 모르면 건너뛰지 않은 운동 수.
+  ///
+  /// [exercises] 는 그날 남은 운동 기록 전부(직접 기록·PT 기록 포함)라, 분모가
+  /// 그날 걸린 개인운동일 때 그 길이를 분자로 쓰면 실제보다 많아진다(#3115).
+  int get done =>
+      (assigned != null ? assignedDone : null) ??
+      exercises.where((e) => !e.contains('✗')).length;
 
   /// 배정된 운동 수.
   int get total => assigned ?? exercises.length;

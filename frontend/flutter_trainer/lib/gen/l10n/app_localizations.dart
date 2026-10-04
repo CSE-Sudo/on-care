@@ -881,13 +881,13 @@ abstract class AppLocalizations {
   /// No description provided for @dashActivityDifficultyTitle.
   ///
   /// In en, this message translates to:
-  /// **'Behind exercise goal / routine skipped'**
+  /// **'Behind exercise goal / missed personal exercises'**
   String get dashActivityDifficultyTitle;
 
   /// No description provided for @dashActivityDifficultyDesc.
   ///
   /// In en, this message translates to:
-  /// **'{names} are behind this week\'s exercise goal or skipped an assigned routine. Lower the difficulty before the next PT and check recent feedback.'**
+  /// **'{names} are behind this week\'s exercise goal or skipped their personal exercises. Lower the difficulty before the next PT and check recent feedback.'**
   String dashActivityDifficultyDesc(String names);
 
   /// No description provided for @dashActivityInactiveTitle.
@@ -1235,7 +1235,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientsSignalRoutineMissed.
   ///
   /// In en, this message translates to:
-  /// **'Routine skipped'**
+  /// **'Missed exercise'**
   String get clientsSignalRoutineMissed;
 
   /// No description provided for @clientsSignalExerciseGoalLow.
@@ -1295,7 +1295,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientsSignalRoutineMissedDays.
   ///
   /// In en, this message translates to:
-  /// **'Routine skipped {days}d'**
+  /// **'Missed exercise {days}d'**
   String clientsSignalRoutineMissedDays(int days);
 
   /// No description provided for @clientsSignalUnanswered.
@@ -1961,7 +1961,7 @@ abstract class AppLocalizations {
   /// No description provided for @chatRoutineDeliveredProgram.
   ///
   /// In en, this message translates to:
-  /// **'Workout program sent'**
+  /// **'PT program sent'**
   String get chatRoutineDeliveredProgram;
 
   /// No description provided for @chatRoutineDeliveredMore.
@@ -2345,7 +2345,7 @@ abstract class AppLocalizations {
   /// Workout history kind for a completed assigned routine that has no name (server kind code assigned_routine).
   ///
   /// In en, this message translates to:
-  /// **'Assigned routine'**
+  /// **'Personal exercise'**
   String get workoutKindAssignedRoutine;
 
   /// No description provided for @dietLoadFailed.
@@ -4072,7 +4072,7 @@ abstract class AppLocalizations {
   /// No description provided for @myClientRemoveBody.
   ///
   /// In en, this message translates to:
-  /// **'After you disconnect, this member\'s schedules, programs and routines, reports, messages, and notes won\'t show in the trainer app. Their account and member app records stay as they are.'**
+  /// **'After you disconnect, this member\'s schedules, programs and personal exercises, reports, messages, and notes won\'t show in the trainer app. Their account and member app records stay as they are.'**
   String get myClientRemoveBody;
 
   /// No description provided for @myClientRemoveSuccess.
@@ -5194,7 +5194,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachDeliveryRoutineSection.
   ///
   /// In en, this message translates to:
-  /// **'Personal workout'**
+  /// **'Personal exercises'**
   String get coachDeliveryRoutineSection;
 
   /// No description provided for @coachDeliveryNothing.
@@ -6484,7 +6484,7 @@ abstract class AppLocalizations {
   /// No description provided for @myDeleteBody.
   ///
   /// In en, this message translates to:
-  /// **'Your profile, messages with members, assigned routines, schedule and open booking times are deleted, your member links and upcoming bookings end, and your members are notified. Their unused PT renewal coupons are cancelled and the points are returned to them. This can\'t be undone.'**
+  /// **'Your profile, messages with members, the PT programs and personal exercises you sent, schedule and open booking times are deleted, your member links and upcoming bookings end, and your members are notified. Their unused PT renewal coupons are cancelled and the points are returned to them. This can\'t be undone.'**
   String get myDeleteBody;
 
   /// No description provided for @myDeleteFailed.
@@ -7486,13 +7486,13 @@ abstract class AppLocalizations {
   /// No description provided for @clientMemoTagPersonal.
   ///
   /// In en, this message translates to:
-  /// **'Personal workout · {date}'**
+  /// **'Personal exercise · {date}'**
   String clientMemoTagPersonal(String date);
 
   /// No description provided for @clientMemoTagPersonalNamed.
   ///
   /// In en, this message translates to:
-  /// **'Personal workout · {date} {name}'**
+  /// **'Personal exercise · {date} {name}'**
   String clientMemoTagPersonalNamed(String date, String name);
 
   /// No description provided for @clientMemoTagMemberLog.
@@ -7582,13 +7582,13 @@ abstract class AppLocalizations {
   /// No description provided for @clientMemoRecordPersonal.
   ///
   /// In en, this message translates to:
-  /// **'{date} Personal workout'**
+  /// **'{date} Personal exercise'**
   String clientMemoRecordPersonal(String date);
 
   /// No description provided for @clientMemoRecordPersonalNamed.
   ///
   /// In en, this message translates to:
-  /// **'{date} Personal workout · {name}'**
+  /// **'{date} Personal exercise · {name}'**
   String clientMemoRecordPersonalNamed(String date, String name);
 
   /// No description provided for @clientMemoRecordMemberLog.
@@ -8934,7 +8934,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsGridPersonal.
   ///
   /// In en, this message translates to:
-  /// **'Personal workouts'**
+  /// **'Personal exercises'**
   String get reportsGridPersonal;
 
   /// No description provided for @reportsGridPersonalUnit.

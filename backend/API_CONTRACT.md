@@ -664,7 +664,7 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 
   | 키 | 회원 앱 라벨 | 끄는 알림 | 기본값 |
   | --- | --- | --- | --- |
-  | `exercise_reminder` | 운동 루틴 | 트레이너의 운동 루틴·프로그램 배정(`routine`) | 켬 |
+  | `exercise_reminder` | 개인운동·프로그램 | 트레이너의 개인운동·PT 프로그램 전송(`routine`), PT 완료·피드백(`pt_done`) | 켬 |
   | `trainer_message` | 트레이너 메시지 | 코치 채팅 메시지(`coach_chat`) | 켬 |
   | `weekly_report` | 트레이너 주간 리포트 | 담당 트레이너가 보낸 주간 리포트(`coach_report`) | 켬 (#3025, 예전 끔) |
 
@@ -1364,6 +1364,11 @@ PT) ÷ (그날 걸린 개인운동 + 그날 잡힌 PT) 다. 개인운동은 그 
 - `days[].assigned: int | null` — 그날 회원 목록에 걸려 있던 **그 트레이너의** 추천 개인운동
   수(매일 리셋되는 목록, #2161). 배정이 없던 날과 아직 오지 않은 날은 `null` 이다 — 0 은
   쉬는 날과 구분되지 않아 쓰지 않는다(#2232, 데모와 같은 규칙).
+- `days[].assigned_done: int | null` — 그중 그날 완료한 수, `assigned` 의 짝인 분자다(#3115).
+  `assigned` 가 `null` 인 날은 이것도 `null` 이다. `exercises` 는 그날 남은 운동 기록 전부(직접
+  기록·PT 기록 포함)라 개인운동 완료 수로 쓰지 않는다. 이 칸이 없는 옛 응답이면 앱이 `exercises` 로 센다.
+- PT 프로그램은 회원의 매일 개인운동 목록에 걸리지 않는다(#3115) — 보낼 때 `ended_on == active_from`
+  으로 남아 `assigned`·운동 조언·회원 신호 `routine_missed` 가 개인운동만 센다. 그날 내용은 PT 기록이 남긴다.
 
 **칼로리 평소 기준 (#2863)**: 같은 `WeeklyReportOut` 에 `calorie_baseline: float | null` 이 실린다.
 그 주 월요일 앞 **4주(28일)** 동안 칼로리를 기록한 날(하루 `DietEntry.total_calories` 합이 0 보다 큰

@@ -47,8 +47,8 @@ class DemoNotification:
 DEMO_NOTIFICATIONS: tuple[DemoNotification, ...] = (
     DemoNotification(
         "noti-demo-3",
-        "새 운동 루틴이 도착했어요",
-        f"{TRAINER_NAME} 트레이너님이 무릎 상태에 맞춰 걷기 루틴으로 조정해 보냈어요.",
+        "새 개인운동이 왔어요",
+        f"{TRAINER_NAME} 트레이너님이 무릎 상태에 맞춰 걷기 위주 개인운동으로 조정해 보냈어요.",
         notification_service.MEMBER_ROUTINE,
         timedelta(minutes=30),
     ),

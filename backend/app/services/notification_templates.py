@@ -430,9 +430,11 @@ def _member_coach_message(args: Args, locale: Locale) -> Rendered:
 def _member_routine_assigned(args: Args, locale: Locale) -> Rendered:
     name = _text(args, "name")
     amount = _amount(args, locale)
+    # 한 건 배정은 개인운동이다 — 회원 앱 채팅 안내(`개인운동을 받았어요`)와
+    # 운동 탭 목록(`추천 개인운동`)이 같은 이름으로 부른다(#3107).
     if locale == "ko":
-        return "새 운동 루틴이 배정되었어요", f"{name} · {amount}"
-    return "New workout routine assigned", f"{name} · {amount}"
+        return "새 개인운동이 왔어요", f"{name} · {amount}"
+    return "New personal exercise", f"{name} · {amount}"
 
 
 @_template(MEMBER_ROUTINE_PROGRAM)
@@ -448,6 +450,9 @@ def _member_routine_program(args: Args, locale: Locale) -> Rendered:
     # 미래 시작일로 보낸 개인운동(#2656) — 알림은 지금 가지만 회원 목록에는
     # 그날부터 뜬다. 제목이 그날을 말해야 오늘 열어 보고 헷갈리지 않는다.
     starts_on = _starts_on(args)
+    # 제목은 무엇을 받았는지 말한다 — 개인운동이면 `개인운동`, 아니면 PT
+    # 프로그램이다(#3107). `personal` 이 없는 예전 알림은 `routine_only` 로 가린다.
+    personal = bool(args.get("personal")) or bool(args.get("routine_only"))
     if locale == "ko":
         if routine_only:
             body = f"개인운동 {sessions}개 · {duration}"
@@ -457,7 +462,7 @@ def _member_routine_program(args: Args, locale: Locale) -> Rendered:
             body = f"{name} · {duration}"
         if starts_on is not None:
             return f"{starts_on.month}/{starts_on.day}부터 할 개인운동이 왔어요", body
-        return "새 운동 루틴이 배정되었어요", body
+        return ("새 개인운동이 왔어요" if personal else "새 PT 프로그램이 왔어요"), body
     if routine_only:
         body = (
             f"{_plural(sessions, 'personal exercise', 'personal exercises')}"
@@ -472,7 +477,10 @@ def _member_routine_program(args: Args, locale: Locale) -> Rendered:
             f"Personal exercises starting {_MONTHS[starts_on.month - 1]} {starts_on.day}",
             body,
         )
-    return "New workout routine assigned", body
+    if personal:
+        title = "New personal exercise" if sessions == 1 else "New personal exercises"
+        return title, body
+    return "New PT program", body
 
 
 #: 영어 알림의 달 이름. `strftime("%b")` 는 서버 로케일을 탄다.

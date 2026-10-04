@@ -1,6 +1,6 @@
 /// 트레이너 탈퇴 확인창 문구가 실제로 지워지고 끝나는 것을 빠짐없이 말하는지. (#3006)
 ///
-/// 서버의 트레이너 탈퇴는 프로필·대화·배정 루틴·일정·예약 가능 시간을 지우고,
+/// 서버의 트레이너 탈퇴는 프로필·대화·보낸 PT 프로그램·개인운동·일정·예약 가능 시간을 지우고,
 /// 담당 회원 연결과 예정된 예약을 끝내며, 회원의 사용 전 PT 재등록 쿠폰을 취소해
 /// 포인트를 돌려준다. 확인창이 그중 일부만 말하면 되돌릴 수 없는 동작 앞에서
 /// 무엇을 잃는지 모르고 누른다.
@@ -18,7 +18,7 @@ void main() {
     for (final String part in <String>[
       '프로필',
       '회원과의 대화',
-      '배정한 루틴',
+      '보낸 PT 프로그램·개인운동',
       '예약 가능 시간',
       '담당 회원 연결',
       '예정된 예약',
@@ -35,7 +35,7 @@ void main() {
     for (final String part in <String>[
       'profile',
       'messages with members',
-      'assigned routines',
+      'PT programs and personal exercises you sent',
       'booking times',
       'member links',
       'upcoming bookings',

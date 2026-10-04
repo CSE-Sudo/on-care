@@ -2080,6 +2080,10 @@ class WeeklyReportDayOut(BaseModel):
     #: 날과 구분되지 않아 쓰지 않고, null 이면 화면이 실제로 한 운동 수로
     #: 되돌아간다(#2232, 데모와 같은 규칙).
     assigned: int | None = None
+    #: 그중 그날 완료한 수 — [assigned] 의 짝인 분자다(#3115). `exercises` 는
+    #: 직접 기록·PT 기록까지 담아 개인운동 완료 수로 쓸 수 없다. [assigned] 가
+    #: null 인 날은 이것도 null 이다.
+    assigned_done: int | None = None
 
 
 class WeeklyReportOut(BaseModel):

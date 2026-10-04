@@ -45,7 +45,7 @@ def _target(title: str) -> str | None:
 def test_each_alert_opens_the_same_screen_as_the_app_demo():
     # 회원 앱 데모 목록(`demo_alert_keys.dart` 의 `kDemoAlertActionBySeedId`)과 같다.
     # 리마인더라도 운동 목표는 운동이다(#2690).
-    assert _target("새 운동 루틴이 도착했어요") == "exercise"
+    assert _target("새 개인운동이 왔어요") == "exercise"
     assert _target("이번 주 리포트가 등록됐어요") == "coach_chat"
     assert _target("PT 수업 완료") == "exercise"
     assert _target("트레이너 피드백 도착") == "coach_chat"
@@ -159,7 +159,7 @@ def test_removed_diet_alerts_are_cleared_from_seeded_databases():
 
 
 def test_routine_alert_names_a_routine_in_the_fixture():
-    assert "걷기" in _body("새 운동 루틴이 도착했어요")
+    assert "걷기" in _body("새 개인운동이 왔어요")
     assert any("걷기" in r.name for r in load_fixture().routines)
 
 

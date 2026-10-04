@@ -152,8 +152,8 @@ void main() {
       expect(message, contains('다음 주 PT 일정도 이번에 같이 잡아 둘게요'));
     });
 
-    test('배정된 개인 운동 개수와 건너뛴 운동을 적는다', () {
-      expect(message, contains('배정된 개인 운동 14개 중 10개를 완료하셨어요'));
+    test('배정된 개인운동 개수와 건너뛴 운동을 적는다', () {
+      expect(message, contains('배정된 개인운동 14개 중 10개를 완료하셨어요'));
       expect(message, contains('건너뛰셨더라고요'));
     });
 

@@ -109,7 +109,7 @@ void main() {
 
       expect(find.textContaining('회원과 연결을 해제할까요?'), findsOneWidget);
       expect(
-        find.textContaining(keepWords('스케줄, 프로그램·루틴, 리포트, 메시지, 메모')),
+        find.textContaining(keepWords('스케줄, 프로그램·개인운동, 리포트, 메시지, 메모')),
         findsOneWidget,
       );
       expect(

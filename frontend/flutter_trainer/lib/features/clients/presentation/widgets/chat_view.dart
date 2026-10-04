@@ -811,7 +811,8 @@ class RoutineDeliveryCard extends StatelessWidget {
 /// 전송 종류 → 안내 제목. 모르는 종류는 일반 문구다.
 String routineDeliveryTitle(AppLocalizations l, String kind) => switch (kind) {
   'pt_with_routine' => l.chatRoutineDeliveredPt,
-  'routine_only' => l.chatRoutineDeliveredPersonal,
+  // 개인운동 한 건(AI 제안 승인 포함)도 개인운동이다 — 회원 알림 제목과 같은 이름(#3107).
+  'routine' || 'routine_only' => l.chatRoutineDeliveredPersonal,
   'cancelled_routine_only' => l.chatRoutineDeliveredAfterCancel,
   'program' => l.chatRoutineDeliveredProgram,
   _ => l.chatRoutineDelivered,

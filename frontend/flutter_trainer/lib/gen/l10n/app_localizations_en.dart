@@ -435,11 +435,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dashActivityDifficultyTitle =>
-      'Behind exercise goal / routine skipped';
+      'Behind exercise goal / missed personal exercises';
 
   @override
   String dashActivityDifficultyDesc(String names) {
-    return '$names are behind this week\'s exercise goal or skipped an assigned routine. Lower the difficulty before the next PT and check recent feedback.';
+    return '$names are behind this week\'s exercise goal or skipped their personal exercises. Lower the difficulty before the next PT and check recent feedback.';
   }
 
   @override
@@ -643,7 +643,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get clientsSignalRoutineMissed => 'Routine skipped';
+  String get clientsSignalRoutineMissed => 'Missed exercise';
 
   @override
   String get clientsSignalExerciseGoalLow => 'Low exercise';
@@ -682,7 +682,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String clientsSignalRoutineMissedDays(int days) {
-    return 'Routine skipped ${days}d';
+    return 'Missed exercise ${days}d';
   }
 
   @override
@@ -1046,7 +1046,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Personal exercises sent in place of the cancelled PT';
 
   @override
-  String get chatRoutineDeliveredProgram => 'Workout program sent';
+  String get chatRoutineDeliveredProgram => 'PT program sent';
 
   @override
   String chatRoutineDeliveredMore(String names, int count) {
@@ -1266,7 +1266,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workoutKindPtSession => 'PT · Trainer-led';
 
   @override
-  String get workoutKindAssignedRoutine => 'Assigned routine';
+  String get workoutKindAssignedRoutine => 'Personal exercise';
 
   @override
   String get dietLoadFailed => 'Couldn\'t load meals';
@@ -2342,7 +2342,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myClientRemoveBody =>
-      'After you disconnect, this member\'s schedules, programs and routines, reports, messages, and notes won\'t show in the trainer app. Their account and member app records stay as they are.';
+      'After you disconnect, this member\'s schedules, programs and personal exercises, reports, messages, and notes won\'t show in the trainer app. Their account and member app records stay as they are.';
 
   @override
   String get myClientRemoveSuccess => 'Disconnected from the member';
@@ -2977,7 +2977,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachDeliveryProgramSection => 'Program';
 
   @override
-  String get coachDeliveryRoutineSection => 'Personal workout';
+  String get coachDeliveryRoutineSection => 'Personal exercises';
 
   @override
   String get coachDeliveryNothing => 'Nothing sent';
@@ -3748,7 +3748,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myDeleteBody =>
-      'Your profile, messages with members, assigned routines, schedule and open booking times are deleted, your member links and upcoming bookings end, and your members are notified. Their unused PT renewal coupons are cancelled and the points are returned to them. This can\'t be undone.';
+      'Your profile, messages with members, the PT programs and personal exercises you sent, schedule and open booking times are deleted, your member links and upcoming bookings end, and your members are notified. Their unused PT renewal coupons are cancelled and the points are returned to them. This can\'t be undone.';
 
   @override
   String get myDeleteFailed =>
@@ -4370,12 +4370,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String clientMemoTagPersonal(String date) {
-    return 'Personal workout · $date';
+    return 'Personal exercise · $date';
   }
 
   @override
   String clientMemoTagPersonalNamed(String date, String name) {
-    return 'Personal workout · $date $name';
+    return 'Personal exercise · $date $name';
   }
 
   @override
@@ -4430,12 +4430,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String clientMemoRecordPersonal(String date) {
-    return '$date Personal workout';
+    return '$date Personal exercise';
   }
 
   @override
   String clientMemoRecordPersonalNamed(String date, String name) {
-    return '$date Personal workout · $name';
+    return '$date Personal exercise · $name';
   }
 
   @override
@@ -5294,7 +5294,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get reportsGridPersonal => 'Personal workouts';
+  String get reportsGridPersonal => 'Personal exercises';
 
   @override
   String get reportsGridPersonalUnit => 'Done / assigned';

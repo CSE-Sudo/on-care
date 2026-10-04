@@ -610,7 +610,8 @@ class CoachRoutineDeliveryNotice extends StatelessWidget {
       icon: AppIcons.routine,
       title: switch (delivery.kind) {
         'pt_with_routine' => l.coachChatRoutineReceivedPt,
-        'routine_only' => l.coachChatRoutineReceivedPersonal,
+        // 개인운동 한 건(AI 제안 승인 포함)도 개인운동이다 — 알림 제목과 같은 이름(#3107).
+        'routine' || 'routine_only' => l.coachChatRoutineReceivedPersonal,
         'cancelled_routine_only' => l.coachChatRoutineReceivedAfterCancel,
         'program' => l.coachChatRoutineReceivedProgram,
         _ => l.coachChatRoutineReceived,

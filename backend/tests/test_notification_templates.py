@@ -262,21 +262,21 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         nt.MEMBER_ROUTINE_PROGRAM,
         {"name": "하체 프로그램", "sessions": 3, "minutes": 150, "multi": True},
         "",
-        "새 운동 루틴이 배정되었어요",
+        "새 PT 프로그램이 왔어요",
         "하체 프로그램 · 세션 3개 · 2시간 30분",
     ),
     (
         nt.MEMBER_ROUTINE_PROGRAM,
         {"name": "코어", "sessions": 3, "seconds": 135, "minutes": 2, "multi": True},
         "",
-        "새 운동 루틴이 배정되었어요",
+        "새 PT 프로그램이 왔어요",
         "코어 · 세션 3개 · 2분 15초",
     ),
     (
         nt.MEMBER_ROUTINE_PROGRAM,
         {"name": "하체 프로그램", "sessions": 1, "minutes": 50, "multi": False},
         "",
-        "새 운동 루틴이 배정되었어요",
+        "새 PT 프로그램이 왔어요",
         "하체 프로그램 · 50분",
     ),
     # `개인운동만` 을 여럿 보내면 이름·세션 대신 개인운동 수로 말한다(#2581).
@@ -285,7 +285,7 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         {"name": "개인운동", "sessions": 2, "seconds": 2520, "multi": True,
          "routine_only": True},
         "",
-        "새 운동 루틴이 배정되었어요",
+        "새 개인운동이 왔어요",
         "개인운동 2개 · 42분",
     ),
     # 하나만 보내면 이름이 곧 그 운동이다.
@@ -294,7 +294,16 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         {"name": "걷기", "sessions": 1, "seconds": 1800, "multi": False,
          "routine_only": True},
         "",
-        "새 운동 루틴이 배정되었어요",
+        "새 개인운동이 왔어요",
+        "걷기 · 30분",
+    ),
+    # PT 와 함께 보낸 개인운동도 제목은 개인운동이다 — PT 프로그램과 가른다(#3107).
+    (
+        nt.MEMBER_ROUTINE_PROGRAM,
+        {"name": "걷기", "sessions": 1, "seconds": 1800, "multi": False,
+         "personal": True},
+        "",
+        "새 개인운동이 왔어요",
         "걷기 · 30분",
     ),
     (
@@ -627,7 +636,7 @@ def test_routine_amount_matches_the_trainer_routine_rule(type_, minutes, sets, r
     legacy = "스쿼트 · " + _amount_label(
         type_, minutes=minutes, sets=sets, reps=reps, hold_seconds=hold, weight=weight
     )
-    assert title == "새 운동 루틴이 배정되었어요"
+    assert title == "새 개인운동이 왔어요"
     assert body.encode() == legacy.encode()
     # 영어에는 단위 한글이 남지 않는다(운동 이름은 데이터라 그대로다).
     _, body_en = _en(nt.MEMBER_ROUTINE_ASSIGNED, args)
@@ -654,7 +663,7 @@ def test_routine_amount_in_english(type_, minutes, sets, reps, hold, weight, exp
         hold_seconds=hold, weight=weight,
     )
     assert _en(nt.MEMBER_ROUTINE_ASSIGNED, args) == (
-        "New workout routine assigned",
+        "New personal exercise",
         f"Squat · {expected}",
     )
 
@@ -823,23 +832,29 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
     (
         nt.MEMBER_ROUTINE_PROGRAM,
         {"name": "Leg day", "sessions": 3, "minutes": 150, "multi": True},
-        ("New workout routine assigned", "Leg day · 3 sessions · 2 hr 30 min"),
+        ("New PT program", "Leg day · 3 sessions · 2 hr 30 min"),
     ),
     (
         nt.MEMBER_ROUTINE_PROGRAM,
         {"name": "Core", "sessions": 3, "seconds": 135, "minutes": 2, "multi": True},
-        ("New workout routine assigned", "Core · 3 sessions · 2 min 15 sec"),
+        ("New PT program", "Core · 3 sessions · 2 min 15 sec"),
     ),
     (
         nt.MEMBER_ROUTINE_PROGRAM,
         {"name": "Leg day", "sessions": 1, "minutes": 50, "multi": False},
-        ("New workout routine assigned", "Leg day · 50 min"),
+        ("New PT program", "Leg day · 50 min"),
     ),
     (
         nt.MEMBER_ROUTINE_PROGRAM,
         {"name": "Personal exercise", "sessions": 2, "seconds": 2520,
          "multi": True, "routine_only": True},
-        ("New workout routine assigned", "2 personal exercises · 42 min"),
+        ("New personal exercises", "2 personal exercises · 42 min"),
+    ),
+    (
+        nt.MEMBER_ROUTINE_PROGRAM,
+        {"name": "Walk", "sessions": 1, "seconds": 1800, "multi": False,
+         "personal": True},
+        ("New personal exercise", "Walk · 30 min"),
     ),
     (
         nt.MEMBER_TRAINER_CONNECTED,

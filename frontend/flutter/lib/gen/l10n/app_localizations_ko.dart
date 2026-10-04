@@ -2109,7 +2109,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myFieldWeight => '체중 (kg)';
 
   @override
-  String get myNotifExercise => '운동 루틴';
+  String get myNotifExercise => '개인운동·프로그램';
 
   @override
   String get myNotifTrainer => '트레이너 메시지';
@@ -2118,7 +2118,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myNotifWeeklyReport => '트레이너 주간 리포트';
 
   @override
-  String get myNotifExerciseDesc => '트레이너가 운동 루틴·프로그램을 보내면 알려요';
+  String get myNotifExerciseDesc =>
+      '트레이너가 개인운동·PT 프로그램을 보내거나 PT 기록·피드백을 남기면 알려요';
 
   @override
   String get myNotifTrainerDesc => '트레이너가 대화로 보낸 메시지를 알려요';
@@ -2342,7 +2343,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachChatRoutineReceivedAfterCancel => '취소된 PT 대신 개인운동을 받았어요';
 
   @override
-  String get coachChatRoutineReceivedProgram => '운동 프로그램을 받았어요';
+  String get coachChatRoutineReceivedProgram => 'PT 프로그램을 받았어요';
 
   @override
   String coachChatRoutineReceivedMore(String names, int count) {
@@ -3121,7 +3122,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String guidePointsBody(int diet, int exercise, int routine) {
-    return '기록할 때마다 포인트가 쌓여요.\n식단 기록 +${diet}P, 운동 추가 +${exercise}P, 추천 운동 완료 +${routine}P\n모은 포인트는 MY › 포인트 사용처에서 써요';
+    return '기록할 때마다 포인트가 쌓여요.\n식단 기록 +${diet}P, 운동 추가 +${exercise}P, 개인운동 완료 +${routine}P\n모은 포인트는 MY › 포인트 사용처에서 써요';
   }
 
   @override
@@ -3521,7 +3522,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutineUndoFailed => '완료 취소에 실패했어요.';
 
   @override
-  String get coachRoutineCancel => '이 개인 운동 삭제';
+  String get coachRoutineCancel => '이 개인운동 삭제';
 
   @override
   String coachRoutineCancelConfirm(String name) {
@@ -3532,16 +3533,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachCardRoutineUndoTitle => '완료를 취소할까요?';
 
   @override
-  String get coachCardRoutineCancelTitle => '개인 운동을 삭제할까요?';
+  String get coachCardRoutineCancelTitle => '개인운동을 삭제할까요?';
 
   @override
   String get coachRoutineKeep => '유지';
 
   @override
-  String get coachRoutineCancelled => '개인 운동을 삭제했어요';
+  String get coachRoutineCancelled => '개인운동을 삭제했어요';
 
   @override
-  String get coachRoutineCancelFailed => '개인 운동을 삭제하지 못했어요';
+  String get coachRoutineCancelFailed => '개인운동을 삭제하지 못했어요';
 
   @override
   String get coachRoutineCompleteTitle => '개인운동 수행 완료';
@@ -3579,7 +3580,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get alertCategoryCoachReport => '주간 리포트';
 
   @override
-  String get alertCategoryRoutine => '운동 루틴';
+  String get alertCategoryRoutine => '개인운동·프로그램';
 
   @override
   String get alertCategorySchedule => 'PT 일정';
@@ -3649,11 +3650,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get demoAlertRoutineTitle => '새 운동 루틴이 도착했어요';
+  String get demoAlertRoutineTitle => '새 개인운동이 왔어요';
 
   @override
   String demoAlertRoutineBody(String trainerName) {
-    return '$trainerName 트레이너님이 무릎 상태에 맞춰 걷기 루틴으로 조정해 보냈어요.';
+    return '$trainerName 트레이너님이 무릎 상태에 맞춰 걷기 위주 개인운동으로 조정해 보냈어요.';
   }
 
   @override
@@ -3883,7 +3884,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String exerciseAdviceRoutineTodayAllDone(int count) {
-    return '오늘 추천 운동 $count개를 모두 마쳤어요. 잘했어요!';
+    return '오늘 개인운동 $count개를 모두 마쳤어요. 잘했어요!';
   }
 
   @override
@@ -3917,12 +3918,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String exerciseAdviceRoutineTodayLeft(int count) {
-    return '남은 추천 운동이 $count개예요. 목록 순서대로 해 보세요.';
+    return '남은 개인운동이 $count개예요. 목록 순서대로 해 보세요.';
   }
 
   @override
   String exerciseAdviceRoutineTodayStartOrder(String next, String then) {
-    return '오늘 추천 운동은 $next → $then 순서로 시작해 보세요.';
+    return '오늘 개인운동은 $next → $then 순서로 시작해 보세요.';
   }
 
   @override
@@ -3932,17 +3933,17 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String exerciseAdviceRoutineWeekNoneToday(String next) {
-    return '이번 주엔 추천 운동을 아직 안 했어요. 오늘 $next부터 해 볼까요?';
+    return '이번 주엔 개인운동을 아직 안 했어요. 오늘 $next부터 해 볼까요?';
   }
 
   @override
   String exerciseAdviceRoutineWeekNoneNext(String next) {
-    return '이번 주엔 추천 운동을 아직 안 했어요. $next부터 해 봐요.';
+    return '이번 주엔 개인운동을 아직 안 했어요. $next부터 해 봐요.';
   }
 
   @override
   String get exerciseAdviceRoutineWeekNone =>
-      '이번 주엔 추천 운동을 아직 안 했어요. 오늘 하나부터 해 봐요.';
+      '이번 주엔 개인운동을 아직 안 했어요. 오늘 하나부터 해 봐요.';
 
   @override
   String exerciseAdviceRoutineWeekOnly(
@@ -3966,7 +3967,7 @@ class AppLocalizationsKo extends AppLocalizations {
       'stretching': '스트레칭',
       'other': '기타',
     });
-    return '이번 주엔 $_temp0 추천 운동만 했어요. $_temp1 $_temp2부터 해 보세요.';
+    return '이번 주엔 $_temp0 개인운동만 했어요. $_temp1 $_temp2부터 해 보세요.';
   }
 
   @override
@@ -3977,7 +3978,7 @@ class AppLocalizationsKo extends AppLocalizations {
       'stretching': '스트레칭',
       'other': '기타',
     });
-    return '이번 주엔 $_temp0 추천 운동만 했어요.';
+    return '이번 주엔 $_temp0 개인운동만 했어요.';
   }
 
   @override
@@ -4003,7 +4004,7 @@ class AppLocalizationsKo extends AppLocalizations {
       'stretching': '스트레칭',
       'other': '기타',
     });
-    return '이번 주 추천 운동 중 $_temp0 $share%예요. $_temp1 $_temp2부터 해 보세요.';
+    return '이번 주 개인운동 중 $_temp0 $share%예요. $_temp1 $_temp2부터 해 보세요.';
   }
 
   @override
@@ -4014,13 +4015,13 @@ class AppLocalizationsKo extends AppLocalizations {
       'stretching': '스트레칭이',
       'other': '기타가',
     });
-    return '이번 주 추천 운동은 $_temp0 $share%예요.';
+    return '이번 주 개인운동은 $_temp0 $share%예요.';
   }
 
   @override
   String exerciseAdviceRoutineWeekPraise(String how) {
     String _temp0 = intl.Intl.selectLogic(how, {'even': '고르게', 'other': '꾸준히'});
-    return '이번 주 추천 운동을 $_temp0 해냈어요. 이대로 이어 가요!';
+    return '이번 주 개인운동을 $_temp0 해냈어요. 이대로 이어 가요!';
   }
 
   @override
@@ -4029,7 +4030,7 @@ class AppLocalizationsKo extends AppLocalizations {
     int completed,
     String next,
   ) {
-    return '이번 주 추천 운동 $assigned개 중 $completed개를 했어요. 오늘 $next부터 이어 가요.';
+    return '이번 주 개인운동 $assigned개 중 $completed개를 했어요. 오늘 $next부터 이어 가요.';
   }
 
   @override
@@ -4042,22 +4043,22 @@ class AppLocalizationsKo extends AppLocalizations {
       'next_week': '다음 주도 이어 가요.',
       'other': '남은 날도 이어 가요.',
     });
-    return '이번 주 추천 운동 $assigned개 중 $completed개를 했어요. $_temp0';
+    return '이번 주 개인운동 $assigned개 중 $completed개를 했어요. $_temp0';
   }
 
   @override
   String exerciseAdviceRoutineWeekCounts(int assigned, int completed) {
-    return '이번 주 추천 운동 $assigned개 중 $completed개를 했어요.';
+    return '이번 주 개인운동 $assigned개 중 $completed개를 했어요.';
   }
 
   @override
   String exerciseAdviceRoutineLastWeekNoneNext(String next) {
-    return '지난주엔 추천 운동을 못 했어요. 이번 주는 $next부터 해 봐요.';
+    return '지난주엔 개인운동을 못 했어요. 이번 주는 $next부터 해 봐요.';
   }
 
   @override
   String get exerciseAdviceRoutineLastWeekNone =>
-      '지난주엔 추천 운동을 못 했어요. 이번 주는 하나씩 해 봐요.';
+      '지난주엔 개인운동을 못 했어요. 이번 주는 하나씩 해 봐요.';
 
   @override
   String exerciseAdviceRoutineLastWeekOnly(String missing, String top) {
@@ -4073,7 +4074,7 @@ class AppLocalizationsKo extends AppLocalizations {
       'stretching': '스트레칭',
       'other': '기타',
     });
-    return '지난주엔 $_temp0 추천 운동만 했어요. 이번 주는 $_temp1부터 해 보세요.';
+    return '지난주엔 $_temp0 개인운동만 했어요. 이번 주는 $_temp1부터 해 보세요.';
   }
 
   @override
@@ -4084,7 +4085,7 @@ class AppLocalizationsKo extends AppLocalizations {
       'stretching': '스트레칭',
       'other': '기타',
     });
-    return '지난주엔 $_temp0 추천 운동만 했어요.';
+    return '지난주엔 $_temp0 개인운동만 했어요.';
   }
 
   @override
@@ -4105,7 +4106,7 @@ class AppLocalizationsKo extends AppLocalizations {
       'stretching': '스트레칭',
       'other': '기타',
     });
-    return '지난주 추천 운동 중 $_temp0 $share%였어요. 이번 주는 $_temp1부터 해 보세요.';
+    return '지난주 개인운동 중 $_temp0 $share%였어요. 이번 주는 $_temp1부터 해 보세요.';
   }
 
   @override
@@ -4116,38 +4117,38 @@ class AppLocalizationsKo extends AppLocalizations {
       'stretching': '스트레칭이',
       'other': '기타가',
     });
-    return '지난주 추천 운동은 $_temp0 $share%였어요.';
+    return '지난주 개인운동은 $_temp0 $share%였어요.';
   }
 
   @override
   String exerciseAdviceRoutineLastWeekPraise(String how) {
     String _temp0 = intl.Intl.selectLogic(how, {'even': '고르게', 'other': '꾸준히'});
-    return '지난주 추천 운동을 $_temp0 해냈어요. 이번 주도 이어 가요!';
+    return '지난주 개인운동을 $_temp0 해냈어요. 이번 주도 이어 가요!';
   }
 
   @override
   String exerciseAdviceRoutineLastWeekCountsMore(int assigned, int completed) {
-    return '지난주 추천 운동 $assigned개 중 $completed개를 했어요. 이번 주는 더 채워 봐요.';
+    return '지난주 개인운동 $assigned개 중 $completed개를 했어요. 이번 주는 더 채워 봐요.';
   }
 
   @override
   String exerciseAdviceRoutineLastWeekCounts(int assigned, int completed) {
-    return '지난주 추천 운동 $assigned개 중 $completed개를 했어요.';
+    return '지난주 개인운동 $assigned개 중 $completed개를 했어요.';
   }
 
   @override
   String exerciseAdviceRoutineAllNew(int days) {
-    return '추천 목록을 받은 지 $days일째예요. 일주일 뒤 빠진 운동을 짚어 드릴게요.';
+    return '개인운동을 받은 지 $days일째예요. 일주일 뒤 빠진 운동을 짚어 드릴게요.';
   }
 
   @override
   String exerciseAdviceRoutineAllNoneNext(int days, String next) {
-    return '추천 목록을 받은 지 $days일째예요. 오늘 $next부터 시작해 볼까요?';
+    return '개인운동을 받은 지 $days일째예요. 오늘 $next부터 시작해 볼까요?';
   }
 
   @override
   String exerciseAdviceRoutineAllNone(int days) {
-    return '추천 목록을 받은 지 $days일째예요. 오늘 하나부터 시작해 봐요.';
+    return '개인운동을 받은 지 $days일째예요. 오늘 하나부터 시작해 봐요.';
   }
 
   @override
@@ -4192,7 +4193,7 @@ class AppLocalizationsKo extends AppLocalizations {
       'full': '전신',
       'other': '전신',
     });
-    return '추천 운동 중 $_temp0 운동이 자주 빠졌어요. $_temp1 운동을 먼저 해 볼까요?';
+    return '개인운동 중 $_temp0 운동이 자주 빠졌어요. $_temp1 운동을 먼저 해 볼까요?';
   }
 
   @override
@@ -4204,12 +4205,12 @@ class AppLocalizationsKo extends AppLocalizations {
       'full': '전신',
       'other': '전신',
     });
-    return '$_temp0 추천 운동이 자주 빠졌어요. 먼저 하는 순서로 바꿔 볼까요?';
+    return '$_temp0 개인운동이 자주 빠졌어요. 먼저 하는 순서로 바꿔 볼까요?';
   }
 
   @override
   String exerciseAdviceRoutineAllMissedName(String name, String nameSubj) {
-    return '추천 운동 중 $name$nameSubj 자주 빠졌어요. 다음엔 먼저 해 볼까요?';
+    return '개인운동 중 $name$nameSubj 자주 빠졌어요. 다음엔 먼저 해 볼까요?';
   }
 
   @override
@@ -4219,7 +4220,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String exerciseAdviceRoutineAllMissedNamePlain(String name) {
-    return '추천 운동 $name, 자주 빠졌어요. 다음엔 먼저 해 볼까요?';
+    return '개인운동 $name, 자주 빠졌어요. 다음엔 먼저 해 볼까요?';
   }
 
   @override
@@ -4229,16 +4230,16 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exerciseAdviceRoutineAllMissed =>
-      '자주 빠진 추천 운동이 있어요. 목록 순서를 바꿔 볼까요?';
+      '자주 빠진 개인운동이 있어요. 목록 순서를 바꿔 볼까요?';
 
   @override
   String exerciseAdviceRoutineAllPraise(int weeks) {
-    return '추천 운동을 $weeks주째 꾸준히 하고 있어요. 앞으로도 화이팅!';
+    return '개인운동을 $weeks주째 꾸준히 하고 있어요. 앞으로도 화이팅!';
   }
 
   @override
   String exerciseAdviceRoutineAllRate(int pct) {
-    return '지금 추천 운동의 $pct%를 했어요. 빠지는 날 없이 이어 가 봐요.';
+    return '지금 개인운동의 $pct%를 했어요. 빠지는 날 없이 이어 가 봐요.';
   }
 
   @override

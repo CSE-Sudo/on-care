@@ -914,7 +914,7 @@ void main() {
     expect(trigger, findsOneWidget);
     expect(tester.widget(trigger), isA<AppIconButton>());
     // 줄에는 빨간 글자가 남지 않는다 — 문구는 확인창에서만 읽힌다.
-    expect(find.text('이 개인 운동 삭제'), findsNothing);
+    expect(find.text('이 개인운동 삭제'), findsNothing);
   });
 
   testWidgets('개인 운동 삭제 확인창의 왼쪽 버튼은 `유지` 다 (#1782)', (

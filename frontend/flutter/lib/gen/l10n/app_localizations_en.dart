@@ -1036,7 +1036,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exCompletedPtDayTitle => 'Completed PT';
 
   @override
-  String get exCompletedRoutineDayTitle => 'Completed solo workout';
+  String get exCompletedRoutineDayTitle => 'Completed personal exercises';
 
   @override
   String get exDeleteExercise => 'Delete workout';
@@ -2215,7 +2215,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myFieldWeight => 'Weight (kg)';
 
   @override
-  String get myNotifExercise => 'Workout routines';
+  String get myNotifExercise => 'Exercises & programs';
 
   @override
   String get myNotifTrainer => 'Trainer message';
@@ -2225,7 +2225,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myNotifExerciseDesc =>
-      'When your trainer sends a workout routine or program';
+      'When your trainer sends personal exercises or a PT program, or leaves a PT record or feedback';
 
   @override
   String get myNotifTrainerDesc => 'When your trainer sends you a chat message';
@@ -2450,19 +2450,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachChatRoutineReceivedPt =>
-      'You received a PT program and personal workout';
+      'You received a PT program and personal exercises';
 
   @override
   String get coachChatRoutineReceivedPersonal =>
-      'You received a personal workout';
+      'You received personal exercises';
 
   @override
   String get coachChatRoutineReceivedAfterCancel =>
-      'You received a personal workout in place of the cancelled PT';
+      'You received personal exercises in place of the cancelled PT';
 
   @override
-  String get coachChatRoutineReceivedProgram =>
-      'You received a workout program';
+  String get coachChatRoutineReceivedProgram => 'You received a PT program';
 
   @override
   String coachChatRoutineReceivedMore(String names, int count) {
@@ -3294,7 +3293,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String guidePointsBody(int diet, int exercise, int routine) {
-    return 'Every log earns points.\nLog a meal +${diet}P, log a workout +${exercise}P, finish a recommended workout +${routine}P\nSpend them in MY › Use Points';
+    return 'Every log earns points.\nLog a meal +${diet}P, log a workout +${exercise}P, finish a personal exercise +${routine}P\nSpend them in MY › Use Points';
   }
 
   @override
@@ -3668,10 +3667,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get coachRoutineTitle => 'Recommended solo workouts';
+  String get coachRoutineTitle => 'Recommended personal exercises';
 
   @override
-  String get coachRoutineAiTitle => 'AI recommended solo workouts';
+  String get coachRoutineAiTitle => 'AI-recommended personal exercises';
 
   @override
   String get coachRoutinePastEditHint =>
@@ -3711,7 +3710,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachRoutineUndoFailed => 'Could not undo the completion.';
 
   @override
-  String get coachRoutineCancel => 'Delete this workout';
+  String get coachRoutineCancel => 'Delete this personal exercise';
 
   @override
   String coachRoutineCancelConfirm(String name) {
@@ -3722,16 +3721,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachCardRoutineUndoTitle => 'Undo completion?';
 
   @override
-  String get coachCardRoutineCancelTitle => 'Delete this workout?';
+  String get coachCardRoutineCancelTitle => 'Delete this personal exercise?';
 
   @override
   String get coachRoutineKeep => 'Keep';
 
   @override
-  String get coachRoutineCancelled => 'Workout deleted';
+  String get coachRoutineCancelled => 'Personal exercise deleted';
 
   @override
-  String get coachRoutineCancelFailed => 'Couldn\'t delete the workout';
+  String get coachRoutineCancelFailed =>
+      'Couldn\'t delete the personal exercise';
 
   @override
   String get coachRoutineCompleteTitle => 'Mark personal exercise done';
@@ -3771,7 +3771,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alertCategoryCoachReport => 'Weekly report';
 
   @override
-  String get alertCategoryRoutine => 'Workout routine';
+  String get alertCategoryRoutine => 'Exercises & programs';
 
   @override
   String get alertCategorySchedule => 'PT schedule';
@@ -3843,11 +3843,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get demoAlertRoutineTitle => 'A new workout routine arrived';
+  String get demoAlertRoutineTitle => 'New personal exercises';
 
   @override
   String demoAlertRoutineBody(String trainerName) {
-    return 'Trainer $trainerName adjusted it to a walking routine for your knee.';
+    return 'Trainer $trainerName adjusted them to walking-focused exercises for your knee.';
   }
 
   @override
@@ -4119,8 +4119,8 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'all $count recommended workouts',
-      one: 'your recommended workout',
+      other: 'all $count personal exercises',
+      one: 'your personal exercise',
     );
     return 'You finished $_temp0 today. Great job!';
   }
@@ -4159,15 +4159,15 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count recommended workouts left',
-      one: '1 recommended workout left',
+      other: '$count personal exercises left',
+      one: '1 personal exercise left',
     );
     return '$_temp0. Go down the list in order.';
   }
 
   @override
   String exerciseAdviceRoutineTodayStartOrder(String next, String then) {
-    return 'Start today\'s recommended workouts with $next → $then.';
+    return 'Start today\'s personal exercises with $next → $then.';
   }
 
   @override
@@ -4177,17 +4177,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String exerciseAdviceRoutineWeekNoneToday(String next) {
-    return 'No recommended workouts this week yet. Start with $next today?';
+    return 'You haven\'t done your personal exercises this week yet. Start with $next today?';
   }
 
   @override
   String exerciseAdviceRoutineWeekNoneNext(String next) {
-    return 'No recommended workouts this week yet. Try $next first.';
+    return 'You haven\'t done your personal exercises this week yet. Try $next first.';
   }
 
   @override
   String get exerciseAdviceRoutineWeekNone =>
-      'No recommended workouts this week yet. Try one today.';
+      'You haven\'t done your personal exercises this week yet. Try one today.';
 
   @override
   String exerciseAdviceRoutineWeekOnly(
@@ -4248,7 +4248,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'stretching': 'stretching',
       'other': 'other exercise',
     });
-    return '$share% of this week\'s recommended workouts were $_temp0. $_temp1, start with $_temp2.';
+    return '$share% of this week\'s personal exercises were $_temp0. $_temp1, start with $_temp2.';
   }
 
   @override
@@ -4259,7 +4259,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'stretching': 'stretching',
       'other': 'other exercise',
     });
-    return '$share% of this week\'s recommended workouts were $_temp0.';
+    return '$share% of this week\'s personal exercises were $_temp0.';
   }
 
   @override
@@ -4268,7 +4268,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'even': 'across the board',
       'other': 'steadily',
     });
-    return 'You kept up with this week\'s recommended workouts $_temp0. Keep it going!';
+    return 'You kept up with this week\'s personal exercises $_temp0. Keep it going!';
   }
 
   @override
@@ -4277,7 +4277,7 @@ class AppLocalizationsEn extends AppLocalizations {
     int completed,
     String next,
   ) {
-    return 'You did $completed of $assigned recommended workouts this week. Continue with $next today.';
+    return 'You did $completed of $assigned personal exercises this week. Continue with $next today.';
   }
 
   @override
@@ -4290,22 +4290,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'next_week': 'Keep it going next week.',
       'other': 'Keep it going for the rest of the week.',
     });
-    return 'You did $completed of $assigned recommended workouts this week. $_temp0';
+    return 'You did $completed of $assigned personal exercises this week. $_temp0';
   }
 
   @override
   String exerciseAdviceRoutineWeekCounts(int assigned, int completed) {
-    return 'You did $completed of $assigned recommended workouts this week.';
+    return 'You did $completed of $assigned personal exercises this week.';
   }
 
   @override
   String exerciseAdviceRoutineLastWeekNoneNext(String next) {
-    return 'No recommended workouts last week. This week, start with $next.';
+    return 'You didn\'t do your personal exercises last week. This week, start with $next.';
   }
 
   @override
   String get exerciseAdviceRoutineLastWeekNone =>
-      'No recommended workouts last week. Take them one at a time this week.';
+      'You didn\'t do your personal exercises last week. Take them one at a time this week.';
 
   @override
   String exerciseAdviceRoutineLastWeekOnly(String missing, String top) {
@@ -4353,7 +4353,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'stretching': 'stretching',
       'other': 'other exercise',
     });
-    return '$share% of last week\'s recommended workouts were $_temp0. This week, start with $_temp1.';
+    return '$share% of last week\'s personal exercises were $_temp0. This week, start with $_temp1.';
   }
 
   @override
@@ -4364,7 +4364,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'stretching': 'stretching',
       'other': 'other exercise',
     });
-    return '$share% of last week\'s recommended workouts were $_temp0.';
+    return '$share% of last week\'s personal exercises were $_temp0.';
   }
 
   @override
@@ -4373,32 +4373,32 @@ class AppLocalizationsEn extends AppLocalizations {
       'even': 'across the board',
       'other': 'steadily',
     });
-    return 'You kept up with last week\'s recommended workouts $_temp0. Keep it going this week!';
+    return 'You kept up with last week\'s personal exercises $_temp0. Keep it going this week!';
   }
 
   @override
   String exerciseAdviceRoutineLastWeekCountsMore(int assigned, int completed) {
-    return 'You did $completed of $assigned recommended workouts last week. Let\'s do more this week.';
+    return 'You did $completed of $assigned personal exercises last week. Let\'s do more this week.';
   }
 
   @override
   String exerciseAdviceRoutineLastWeekCounts(int assigned, int completed) {
-    return 'You did $completed of $assigned recommended workouts last week.';
+    return 'You did $completed of $assigned personal exercises last week.';
   }
 
   @override
   String exerciseAdviceRoutineAllNew(int days) {
-    return 'Day $days with your recommended list. After a week, we\'ll point out what gets skipped.';
+    return 'Day $days with your personal exercises. After a week, we\'ll point out what gets skipped.';
   }
 
   @override
   String exerciseAdviceRoutineAllNoneNext(int days, String next) {
-    return 'Day $days with your recommended list. Start with $next today?';
+    return 'Day $days with your personal exercises. Start with $next today?';
   }
 
   @override
   String exerciseAdviceRoutineAllNone(int days) {
-    return 'Day $days with your recommended list. Try one today.';
+    return 'Day $days with your personal exercises. Try one today.';
   }
 
   @override
@@ -4436,7 +4436,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'full': 'Full-body',
       'other': 'Full-body',
     });
-    return '$_temp0 recommended workouts get skipped often. Try doing them first?';
+    return '$_temp0 personal exercises get skipped often. Try doing them first?';
   }
 
   @override
@@ -4473,7 +4473,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exerciseAdviceRoutineAllMissed =>
-      'Some recommended workouts get skipped often. Try reordering your list?';
+      'Some personal exercises get skipped often. Try reordering your list?';
 
   @override
   String exerciseAdviceRoutineAllPraise(int weeks) {
@@ -4483,12 +4483,12 @@ class AppLocalizationsEn extends AppLocalizations {
       other: '$weeks weeks',
       one: '1 week',
     );
-    return '$_temp0 of steady recommended workouts. Keep it up!';
+    return '$_temp0 of keeping up with your personal exercises. Keep it up!';
   }
 
   @override
   String exerciseAdviceRoutineAllRate(int pct) {
-    return 'You\'ve done $pct% of your recommended workouts. Try not to skip a day.';
+    return 'You\'ve done $pct% of your personal exercises. Try not to skip a day.';
   }
 
   @override

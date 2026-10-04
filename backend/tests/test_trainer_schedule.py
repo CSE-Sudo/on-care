@@ -1135,10 +1135,17 @@ def test_send_completed_program_assigns_routine_once(client, db_session, make_pt
         ],
     )
 
-    # 시드에 이미 배정된 루틴이 있으므로 개수의 **변화**로 센다.
-    before = client.get("/v1/trainer/clients/user-jisu/routines", headers=_h(token))
-    assert before.status_code == 200
-    before_count = len(before.json())
+    def _sent_rows() -> list[TrainerRoutine]:
+        # PT 프로그램은 매일 목록에 걸지 않으므로(#3115) 목록이 아니라 보낸 줄로 센다.
+        db_session.expire_all()
+        return list(
+            db_session.scalars(
+                select(TrainerRoutine).where(
+                    TrainerRoutine.member_id == "user-jisu",
+                    TrainerRoutine.client_request_id.like("send-1#%"),
+                )
+            ).all()
+        )
 
     # 완료 전에는 보낼 수 없다 — 아직 한 것이 아니라 할 것이다.
     early = client.post(
@@ -1160,10 +1167,10 @@ def test_send_completed_program_assigns_routine_once(client, db_session, make_pt
     assert sent.status_code == 200, sent.text
     assert sent.json()["program_sent"] is True
 
-    routines = client.get(
-        "/v1/trainer/clients/user-jisu/routines", headers=_h(token)
-    ).json()
-    assert len(routines) == before_count + 1, "전송이 회원 루틴을 만들지 않았다"
+    sent_rows = _sent_rows()
+    assert len(sent_rows) == 1, "전송이 회원 루틴을 만들지 않았다"
+    # 보낸 기록으로 남지만 매일 하는 개인운동 목록에는 걸리지 않는다(#3115).
+    assert sent_rows[0].ended_on == sent_rows[0].active_from
 
     # 두 번째 호출은 멱등 — 회원 루틴이 겹치지 않는다.
     again = client.post(
@@ -1173,10 +1180,7 @@ def test_send_completed_program_assigns_routine_once(client, db_session, make_pt
     )
     assert again.status_code == 200
     assert again.json()["program_sent"] is True
-    after = client.get(
-        "/v1/trainer/clients/user-jisu/routines", headers=_h(token)
-    ).json()
-    assert len(after) == len(routines), "재전송이 회원 루틴을 늘렸다"
+    assert len(_sent_rows()) == 1, "재전송이 회원 루틴을 늘렸다"
 
     # 조회 경로도 전송 사실을 그대로 말한다.
     listed = client.get(
@@ -1187,7 +1191,7 @@ def test_send_completed_program_assigns_routine_once(client, db_session, make_pt
 
 
 def test_send_completed_program_forwards_item_type_and_duration(
-    client, make_pt_session
+    client, db_session, make_pt_session
 ):
     """전송된 프로그램의 운동 항목도 트레이너가 적은 type/분을 그대로 옮긴다(#1233).
 
@@ -1214,12 +1218,16 @@ def test_send_completed_program_forwards_item_type_and_duration(
     )
     assert sent.status_code == 200, sent.text
 
-    routines = client.get(
-        "/v1/trainer/clients/user-jisu/routines", headers=_h(token)
-    ).json()
-    routine = next(r for r in routines if r["reason"] == "달리기")
-    assert routine["type"] == "유산소"
-    assert routine["minutes"] == 20
+    db_session.expire_all()
+    routine = db_session.scalar(
+        select(TrainerRoutine).where(
+            TrainerRoutine.member_id == "user-jisu",
+            TrainerRoutine.client_request_id.like("send-type-1#%"),
+        )
+    )
+    assert routine is not None
+    assert routine.type == "유산소"
+    assert routine.minutes == 20
 
 
 def test_send_program_requires_a_linked_member_and_a_program(client, make_pt_session):

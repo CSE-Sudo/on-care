@@ -58,7 +58,7 @@
           "next": "스쿼트",
           "then": "힙브릿지"
         },
-        "message": "오늘 추천 운동은 스쿼트 → 힙브릿지 순서로 시작해 보세요."
+        "message": "오늘 개인운동은 스쿼트 → 힙브릿지 순서로 시작해 보세요."
       }
     },
     {
@@ -182,7 +182,7 @@
         "params": {
           "count": 3
         },
-        "message": "오늘 추천 운동 3개를 모두 마쳤어요. 잘했어요!"
+        "message": "오늘 개인운동 3개를 모두 마쳤어요. 잘했어요!"
       }
     },
     {
@@ -322,7 +322,7 @@
         "params": {
           "count": 2
         },
-        "message": "남은 추천 운동이 2개예요. 목록 순서대로 해 보세요."
+        "message": "남은 개인운동이 2개예요. 목록 순서대로 해 보세요."
       }
     },
     {
@@ -614,7 +614,7 @@
           "missing": "strength",
           "rest": "remaining"
         },
-        "message": "이번 주엔 유산소 추천 운동만 했어요. 남은 날엔 근력부터 해 보세요."
+        "message": "이번 주엔 유산소 개인운동만 했어요. 남은 날엔 근력부터 해 보세요."
       }
     },
     {
@@ -888,7 +888,7 @@
         "params": {
           "how": "even"
         },
-        "message": "이번 주 추천 운동을 고르게 해냈어요. 이대로 이어 가요!"
+        "message": "이번 주 개인운동을 고르게 해냈어요. 이대로 이어 가요!"
       }
     },
     {
@@ -1162,7 +1162,7 @@
         "params": {
           "how": "steady"
         },
-        "message": "이번 주 추천 운동을 꾸준히 해냈어요. 이대로 이어 가요!"
+        "message": "이번 주 개인운동을 꾸준히 해냈어요. 이대로 이어 가요!"
       }
     },
     {
@@ -1438,7 +1438,7 @@
           "assigned": 6,
           "completed": 2
         },
-        "message": "이번 주 추천 운동 6개 중 2개를 했어요. 오늘 저강도 걷기부터 이어 가요."
+        "message": "이번 주 개인운동 6개 중 2개를 했어요. 오늘 저강도 걷기부터 이어 가요."
       }
     },
     {
@@ -1712,7 +1712,7 @@
         "params": {
           "next": "저강도 걷기"
         },
-        "message": "이번 주엔 추천 운동을 아직 안 했어요. 오늘 저강도 걷기부터 해 볼까요?"
+        "message": "이번 주엔 개인운동을 아직 안 했어요. 오늘 저강도 걷기부터 해 볼까요?"
       }
     },
     {
@@ -1935,7 +1935,7 @@
           "top": "cardio",
           "missing": "strength"
         },
-        "message": "지난주엔 유산소 추천 운동만 했어요. 이번 주는 근력부터 해 보세요."
+        "message": "지난주엔 유산소 개인운동만 했어요. 이번 주는 근력부터 해 보세요."
       }
     },
     {
@@ -2157,7 +2157,7 @@
         "params": {
           "how": "even"
         },
-        "message": "지난주 추천 운동을 고르게 해냈어요. 이번 주도 이어 가요!"
+        "message": "지난주 개인운동을 고르게 해냈어요. 이번 주도 이어 가요!"
       }
     },
     {
@@ -2537,7 +2537,7 @@
           "assigned": 21,
           "completed": 6
         },
-        "message": "이번 주 추천 운동 21개 중 6개를 했어요. 다음 주도 이어 가요."
+        "message": "이번 주 개인운동 21개 중 6개를 했어요. 다음 주도 이어 가요."
       }
     },
     {
@@ -2917,7 +2917,7 @@
           "missing": "strength",
           "rest": "next_week"
         },
-        "message": "이번 주엔 유산소 추천 운동만 했어요. 다음 주엔 근력부터 해 보세요."
+        "message": "이번 주엔 유산소 개인운동만 했어요. 다음 주엔 근력부터 해 보세요."
       }
     },
     {
@@ -3194,7 +3194,7 @@
           "missing": "stretching",
           "rest": "remaining"
         },
-        "message": "이번 주 추천 운동 중 유산소가 96%예요. 남은 날엔 스트레칭부터 해 보세요."
+        "message": "이번 주 개인운동 중 유산소가 96%예요. 남은 날엔 스트레칭부터 해 보세요."
       }
     },
     {
@@ -3286,7 +3286,7 @@
         "params": {
           "days": 3
         },
-        "message": "추천 목록을 받은 지 3일째예요. 일주일 뒤 빠진 운동을 짚어 드릴게요."
+        "message": "개인운동을 받은 지 3일째예요. 일주일 뒤 빠진 운동을 짚어 드릴게요."
       }
     },
     {
@@ -3846,7 +3846,7 @@
         "params": {
           "part": "lower"
         },
-        "message": "추천 운동 중 하체 운동이 자주 빠졌어요. 하체 운동을 먼저 해 볼까요?"
+        "message": "개인운동 중 하체 운동이 자주 빠졌어요. 하체 운동을 먼저 해 볼까요?"
       }
     },
     {
@@ -4259,7 +4259,7 @@
         "params": {
           "name": "밴드 워크"
         },
-        "message": "추천 운동 중 밴드 워크가 자주 빠졌어요. 다음엔 먼저 해 볼까요?"
+        "message": "개인운동 중 밴드 워크가 자주 빠졌어요. 다음엔 먼저 해 볼까요?"
       }
     },
     {
@@ -5365,7 +5365,7 @@
         "params": {
           "weeks": 6
         },
-        "message": "추천 운동을 6주째 꾸준히 하고 있어요. 앞으로도 화이팅!"
+        "message": "개인운동을 6주째 꾸준히 하고 있어요. 앞으로도 화이팅!"
       }
     },
     {
@@ -5640,7 +5640,7 @@
           "days": 10,
           "next": "저강도 걷기"
         },
-        "message": "추천 목록을 받은 지 10일째예요. 오늘 저강도 걷기부터 시작해 볼까요?"
+        "message": "개인운동을 받은 지 10일째예요. 오늘 저강도 걷기부터 시작해 볼까요?"
       }
     },
     {
@@ -6200,7 +6200,7 @@
         "params": {
           "name": "어깨 관절 보호 스트레칭"
         },
-        "message": "추천 운동 중 어깨 관절 보호 스트레칭이 자주 빠졌어요. 다음엔 먼저 해 볼까요?"
+        "message": "개인운동 중 어깨 관절 보호 스트레칭이 자주 빠졌어요. 다음엔 먼저 해 볼까요?"
       }
     },
     {
@@ -6613,7 +6613,7 @@
         "params": {
           "name": "Band walk"
         },
-        "message": "추천 운동 Band walk, 자주 빠졌어요. 다음엔 먼저 해 볼까요?"
+        "message": "개인운동 Band walk, 자주 빠졌어요. 다음엔 먼저 해 볼까요?"
       }
     },
     {
@@ -8267,7 +8267,7 @@
         "params": {
           "pct": 34
         },
-        "message": "지금 추천 운동의 34%를 했어요. 빠지는 날 없이 이어 가 봐요."
+        "message": "지금 개인운동의 34%를 했어요. 빠지는 날 없이 이어 가 봐요."
       }
     },
     {
@@ -8661,7 +8661,7 @@
         "params": {
           "weeks": 1
         },
-        "message": "추천 운동을 1주째 꾸준히 하고 있어요. 앞으로도 화이팅!"
+        "message": "개인운동을 1주째 꾸준히 하고 있어요. 앞으로도 화이팅!"
       }
     },
     {
@@ -9164,7 +9164,7 @@
       "params": {
         "count": 3
       },
-      "message": "오늘 추천 운동 3개를 모두 마쳤어요. 잘했어요!"
+      "message": "오늘 개인운동 3개를 모두 마쳤어요. 잘했어요!"
     },
     {
       "key": "routine_today_done_next_order",
@@ -9220,7 +9220,7 @@
       "params": {
         "count": 3
       },
-      "message": "남은 추천 운동이 3개예요. 목록 순서대로 해 보세요."
+      "message": "남은 개인운동이 3개예요. 목록 순서대로 해 보세요."
     },
     {
       "key": "routine_today_start_order",
@@ -9228,7 +9228,7 @@
         "next": "힙브릿지",
         "then": "밴드 워크"
       },
-      "message": "오늘 추천 운동은 힙브릿지 → 밴드 워크 순서로 시작해 보세요."
+      "message": "오늘 개인운동은 힙브릿지 → 밴드 워크 순서로 시작해 보세요."
     },
     {
       "key": "routine_today_start",
@@ -9242,19 +9242,19 @@
       "params": {
         "next": "힙브릿지"
       },
-      "message": "이번 주엔 추천 운동을 아직 안 했어요. 오늘 힙브릿지부터 해 볼까요?"
+      "message": "이번 주엔 개인운동을 아직 안 했어요. 오늘 힙브릿지부터 해 볼까요?"
     },
     {
       "key": "routine_week_none_next",
       "params": {
         "next": "힙브릿지"
       },
-      "message": "이번 주엔 추천 운동을 아직 안 했어요. 힙브릿지부터 해 봐요."
+      "message": "이번 주엔 개인운동을 아직 안 했어요. 힙브릿지부터 해 봐요."
     },
     {
       "key": "routine_week_none",
       "params": {},
-      "message": "이번 주엔 추천 운동을 아직 안 했어요. 오늘 하나부터 해 봐요."
+      "message": "이번 주엔 개인운동을 아직 안 했어요. 오늘 하나부터 해 봐요."
     },
     {
       "key": "routine_week_only",
@@ -9263,7 +9263,7 @@
         "rest": "remaining",
         "top": "cardio"
       },
-      "message": "이번 주엔 유산소 추천 운동만 했어요. 남은 날엔 근력부터 해 보세요."
+      "message": "이번 주엔 유산소 개인운동만 했어요. 남은 날엔 근력부터 해 보세요."
     },
     {
       "key": "routine_week_only",
@@ -9272,7 +9272,7 @@
         "rest": "remaining",
         "top": "cardio"
       },
-      "message": "이번 주엔 유산소 추천 운동만 했어요. 남은 날엔 유산소부터 해 보세요."
+      "message": "이번 주엔 유산소 개인운동만 했어요. 남은 날엔 유산소부터 해 보세요."
     },
     {
       "key": "routine_week_only",
@@ -9281,7 +9281,7 @@
         "rest": "remaining",
         "top": "cardio"
       },
-      "message": "이번 주엔 유산소 추천 운동만 했어요. 남은 날엔 스트레칭부터 해 보세요."
+      "message": "이번 주엔 유산소 개인운동만 했어요. 남은 날엔 스트레칭부터 해 보세요."
     },
     {
       "key": "routine_week_only",
@@ -9290,7 +9290,7 @@
         "rest": "remaining",
         "top": "cardio"
       },
-      "message": "이번 주엔 유산소 추천 운동만 했어요. 남은 날엔 기타부터 해 보세요."
+      "message": "이번 주엔 유산소 개인운동만 했어요. 남은 날엔 기타부터 해 보세요."
     },
     {
       "key": "routine_week_only",
@@ -9299,7 +9299,7 @@
         "rest": "next_week",
         "top": "cardio"
       },
-      "message": "이번 주엔 유산소 추천 운동만 했어요. 다음 주엔 근력부터 해 보세요."
+      "message": "이번 주엔 유산소 개인운동만 했어요. 다음 주엔 근력부터 해 보세요."
     },
     {
       "key": "routine_week_only",
@@ -9308,7 +9308,7 @@
         "rest": "remaining",
         "top": "strength"
       },
-      "message": "이번 주엔 근력 추천 운동만 했어요. 남은 날엔 근력부터 해 보세요."
+      "message": "이번 주엔 근력 개인운동만 했어요. 남은 날엔 근력부터 해 보세요."
     },
     {
       "key": "routine_week_only",
@@ -9317,7 +9317,7 @@
         "rest": "remaining",
         "top": "stretching"
       },
-      "message": "이번 주엔 스트레칭 추천 운동만 했어요. 남은 날엔 근력부터 해 보세요."
+      "message": "이번 주엔 스트레칭 개인운동만 했어요. 남은 날엔 근력부터 해 보세요."
     },
     {
       "key": "routine_week_only",
@@ -9326,35 +9326,35 @@
         "rest": "remaining",
         "top": "other"
       },
-      "message": "이번 주엔 기타 추천 운동만 했어요. 남은 날엔 근력부터 해 보세요."
+      "message": "이번 주엔 기타 개인운동만 했어요. 남은 날엔 근력부터 해 보세요."
     },
     {
       "key": "routine_week_only_short",
       "params": {
         "top": "cardio"
       },
-      "message": "이번 주엔 유산소 추천 운동만 했어요."
+      "message": "이번 주엔 유산소 개인운동만 했어요."
     },
     {
       "key": "routine_week_only_short",
       "params": {
         "top": "strength"
       },
-      "message": "이번 주엔 근력 추천 운동만 했어요."
+      "message": "이번 주엔 근력 개인운동만 했어요."
     },
     {
       "key": "routine_week_only_short",
       "params": {
         "top": "stretching"
       },
-      "message": "이번 주엔 스트레칭 추천 운동만 했어요."
+      "message": "이번 주엔 스트레칭 개인운동만 했어요."
     },
     {
       "key": "routine_week_only_short",
       "params": {
         "top": "other"
       },
-      "message": "이번 주엔 기타 추천 운동만 했어요."
+      "message": "이번 주엔 기타 개인운동만 했어요."
     },
     {
       "key": "routine_week_skew",
@@ -9364,7 +9364,7 @@
         "share": 85,
         "top": "cardio"
       },
-      "message": "이번 주 추천 운동 중 유산소가 85%예요. 남은 날엔 근력부터 해 보세요."
+      "message": "이번 주 개인운동 중 유산소가 85%예요. 남은 날엔 근력부터 해 보세요."
     },
     {
       "key": "routine_week_skew",
@@ -9374,7 +9374,7 @@
         "share": 85,
         "top": "cardio"
       },
-      "message": "이번 주 추천 운동 중 유산소가 85%예요. 남은 날엔 유산소부터 해 보세요."
+      "message": "이번 주 개인운동 중 유산소가 85%예요. 남은 날엔 유산소부터 해 보세요."
     },
     {
       "key": "routine_week_skew",
@@ -9384,7 +9384,7 @@
         "share": 85,
         "top": "cardio"
       },
-      "message": "이번 주 추천 운동 중 유산소가 85%예요. 남은 날엔 스트레칭부터 해 보세요."
+      "message": "이번 주 개인운동 중 유산소가 85%예요. 남은 날엔 스트레칭부터 해 보세요."
     },
     {
       "key": "routine_week_skew",
@@ -9394,7 +9394,7 @@
         "share": 85,
         "top": "cardio"
       },
-      "message": "이번 주 추천 운동 중 유산소가 85%예요. 남은 날엔 기타부터 해 보세요."
+      "message": "이번 주 개인운동 중 유산소가 85%예요. 남은 날엔 기타부터 해 보세요."
     },
     {
       "key": "routine_week_skew",
@@ -9404,7 +9404,7 @@
         "share": 85,
         "top": "cardio"
       },
-      "message": "이번 주 추천 운동 중 유산소가 85%예요. 다음 주엔 근력부터 해 보세요."
+      "message": "이번 주 개인운동 중 유산소가 85%예요. 다음 주엔 근력부터 해 보세요."
     },
     {
       "key": "routine_week_skew",
@@ -9414,7 +9414,7 @@
         "share": 85,
         "top": "strength"
       },
-      "message": "이번 주 추천 운동 중 근력이 85%예요. 남은 날엔 근력부터 해 보세요."
+      "message": "이번 주 개인운동 중 근력이 85%예요. 남은 날엔 근력부터 해 보세요."
     },
     {
       "key": "routine_week_skew",
@@ -9424,7 +9424,7 @@
         "share": 85,
         "top": "stretching"
       },
-      "message": "이번 주 추천 운동 중 스트레칭이 85%예요. 남은 날엔 근력부터 해 보세요."
+      "message": "이번 주 개인운동 중 스트레칭이 85%예요. 남은 날엔 근력부터 해 보세요."
     },
     {
       "key": "routine_week_skew",
@@ -9434,7 +9434,7 @@
         "share": 85,
         "top": "other"
       },
-      "message": "이번 주 추천 운동 중 기타가 85%예요. 남은 날엔 근력부터 해 보세요."
+      "message": "이번 주 개인운동 중 기타가 85%예요. 남은 날엔 근력부터 해 보세요."
     },
     {
       "key": "routine_week_skew_short",
@@ -9442,7 +9442,7 @@
         "share": 85,
         "top": "cardio"
       },
-      "message": "이번 주 추천 운동은 유산소가 85%예요."
+      "message": "이번 주 개인운동은 유산소가 85%예요."
     },
     {
       "key": "routine_week_skew_short",
@@ -9450,7 +9450,7 @@
         "share": 85,
         "top": "strength"
       },
-      "message": "이번 주 추천 운동은 근력이 85%예요."
+      "message": "이번 주 개인운동은 근력이 85%예요."
     },
     {
       "key": "routine_week_skew_short",
@@ -9458,7 +9458,7 @@
         "share": 85,
         "top": "stretching"
       },
-      "message": "이번 주 추천 운동은 스트레칭이 85%예요."
+      "message": "이번 주 개인운동은 스트레칭이 85%예요."
     },
     {
       "key": "routine_week_skew_short",
@@ -9466,21 +9466,21 @@
         "share": 85,
         "top": "other"
       },
-      "message": "이번 주 추천 운동은 기타가 85%예요."
+      "message": "이번 주 개인운동은 기타가 85%예요."
     },
     {
       "key": "routine_week_praise",
       "params": {
         "how": "even"
       },
-      "message": "이번 주 추천 운동을 고르게 해냈어요. 이대로 이어 가요!"
+      "message": "이번 주 개인운동을 고르게 해냈어요. 이대로 이어 가요!"
     },
     {
       "key": "routine_week_praise",
       "params": {
         "how": "steady"
       },
-      "message": "이번 주 추천 운동을 꾸준히 해냈어요. 이대로 이어 가요!"
+      "message": "이번 주 개인운동을 꾸준히 해냈어요. 이대로 이어 가요!"
     },
     {
       "key": "routine_week_counts_today",
@@ -9489,7 +9489,7 @@
         "completed": 7,
         "next": "힙브릿지"
       },
-      "message": "이번 주 추천 운동 12개 중 7개를 했어요. 오늘 힙브릿지부터 이어 가요."
+      "message": "이번 주 개인운동 12개 중 7개를 했어요. 오늘 힙브릿지부터 이어 가요."
     },
     {
       "key": "routine_week_counts_keep",
@@ -9498,7 +9498,7 @@
         "completed": 7,
         "rest": "remaining"
       },
-      "message": "이번 주 추천 운동 12개 중 7개를 했어요. 남은 날도 이어 가요."
+      "message": "이번 주 개인운동 12개 중 7개를 했어요. 남은 날도 이어 가요."
     },
     {
       "key": "routine_week_counts_keep",
@@ -9507,7 +9507,7 @@
         "completed": 7,
         "rest": "next_week"
       },
-      "message": "이번 주 추천 운동 12개 중 7개를 했어요. 다음 주도 이어 가요."
+      "message": "이번 주 개인운동 12개 중 7개를 했어요. 다음 주도 이어 가요."
     },
     {
       "key": "routine_week_counts",
@@ -9515,19 +9515,19 @@
         "assigned": 12,
         "completed": 7
       },
-      "message": "이번 주 추천 운동 12개 중 7개를 했어요."
+      "message": "이번 주 개인운동 12개 중 7개를 했어요."
     },
     {
       "key": "routine_last_week_none_next",
       "params": {
         "next": "힙브릿지"
       },
-      "message": "지난주엔 추천 운동을 못 했어요. 이번 주는 힙브릿지부터 해 봐요."
+      "message": "지난주엔 개인운동을 못 했어요. 이번 주는 힙브릿지부터 해 봐요."
     },
     {
       "key": "routine_last_week_none",
       "params": {},
-      "message": "지난주엔 추천 운동을 못 했어요. 이번 주는 하나씩 해 봐요."
+      "message": "지난주엔 개인운동을 못 했어요. 이번 주는 하나씩 해 봐요."
     },
     {
       "key": "routine_last_week_only",
@@ -9535,7 +9535,7 @@
         "missing": "strength",
         "top": "cardio"
       },
-      "message": "지난주엔 유산소 추천 운동만 했어요. 이번 주는 근력부터 해 보세요."
+      "message": "지난주엔 유산소 개인운동만 했어요. 이번 주는 근력부터 해 보세요."
     },
     {
       "key": "routine_last_week_only",
@@ -9543,7 +9543,7 @@
         "missing": "cardio",
         "top": "cardio"
       },
-      "message": "지난주엔 유산소 추천 운동만 했어요. 이번 주는 유산소부터 해 보세요."
+      "message": "지난주엔 유산소 개인운동만 했어요. 이번 주는 유산소부터 해 보세요."
     },
     {
       "key": "routine_last_week_only",
@@ -9551,7 +9551,7 @@
         "missing": "stretching",
         "top": "cardio"
       },
-      "message": "지난주엔 유산소 추천 운동만 했어요. 이번 주는 스트레칭부터 해 보세요."
+      "message": "지난주엔 유산소 개인운동만 했어요. 이번 주는 스트레칭부터 해 보세요."
     },
     {
       "key": "routine_last_week_only",
@@ -9559,7 +9559,7 @@
         "missing": "other",
         "top": "cardio"
       },
-      "message": "지난주엔 유산소 추천 운동만 했어요. 이번 주는 기타부터 해 보세요."
+      "message": "지난주엔 유산소 개인운동만 했어요. 이번 주는 기타부터 해 보세요."
     },
     {
       "key": "routine_last_week_only",
@@ -9567,7 +9567,7 @@
         "missing": "strength",
         "top": "strength"
       },
-      "message": "지난주엔 근력 추천 운동만 했어요. 이번 주는 근력부터 해 보세요."
+      "message": "지난주엔 근력 개인운동만 했어요. 이번 주는 근력부터 해 보세요."
     },
     {
       "key": "routine_last_week_only",
@@ -9575,7 +9575,7 @@
         "missing": "strength",
         "top": "stretching"
       },
-      "message": "지난주엔 스트레칭 추천 운동만 했어요. 이번 주는 근력부터 해 보세요."
+      "message": "지난주엔 스트레칭 개인운동만 했어요. 이번 주는 근력부터 해 보세요."
     },
     {
       "key": "routine_last_week_only",
@@ -9583,35 +9583,35 @@
         "missing": "strength",
         "top": "other"
       },
-      "message": "지난주엔 기타 추천 운동만 했어요. 이번 주는 근력부터 해 보세요."
+      "message": "지난주엔 기타 개인운동만 했어요. 이번 주는 근력부터 해 보세요."
     },
     {
       "key": "routine_last_week_only_short",
       "params": {
         "top": "cardio"
       },
-      "message": "지난주엔 유산소 추천 운동만 했어요."
+      "message": "지난주엔 유산소 개인운동만 했어요."
     },
     {
       "key": "routine_last_week_only_short",
       "params": {
         "top": "strength"
       },
-      "message": "지난주엔 근력 추천 운동만 했어요."
+      "message": "지난주엔 근력 개인운동만 했어요."
     },
     {
       "key": "routine_last_week_only_short",
       "params": {
         "top": "stretching"
       },
-      "message": "지난주엔 스트레칭 추천 운동만 했어요."
+      "message": "지난주엔 스트레칭 개인운동만 했어요."
     },
     {
       "key": "routine_last_week_only_short",
       "params": {
         "top": "other"
       },
-      "message": "지난주엔 기타 추천 운동만 했어요."
+      "message": "지난주엔 기타 개인운동만 했어요."
     },
     {
       "key": "routine_last_week_skew",
@@ -9620,7 +9620,7 @@
         "share": 85,
         "top": "cardio"
       },
-      "message": "지난주 추천 운동 중 유산소가 85%였어요. 이번 주는 근력부터 해 보세요."
+      "message": "지난주 개인운동 중 유산소가 85%였어요. 이번 주는 근력부터 해 보세요."
     },
     {
       "key": "routine_last_week_skew",
@@ -9629,7 +9629,7 @@
         "share": 85,
         "top": "cardio"
       },
-      "message": "지난주 추천 운동 중 유산소가 85%였어요. 이번 주는 유산소부터 해 보세요."
+      "message": "지난주 개인운동 중 유산소가 85%였어요. 이번 주는 유산소부터 해 보세요."
     },
     {
       "key": "routine_last_week_skew",
@@ -9638,7 +9638,7 @@
         "share": 85,
         "top": "cardio"
       },
-      "message": "지난주 추천 운동 중 유산소가 85%였어요. 이번 주는 스트레칭부터 해 보세요."
+      "message": "지난주 개인운동 중 유산소가 85%였어요. 이번 주는 스트레칭부터 해 보세요."
     },
     {
       "key": "routine_last_week_skew",
@@ -9647,7 +9647,7 @@
         "share": 85,
         "top": "cardio"
       },
-      "message": "지난주 추천 운동 중 유산소가 85%였어요. 이번 주는 기타부터 해 보세요."
+      "message": "지난주 개인운동 중 유산소가 85%였어요. 이번 주는 기타부터 해 보세요."
     },
     {
       "key": "routine_last_week_skew",
@@ -9656,7 +9656,7 @@
         "share": 85,
         "top": "strength"
       },
-      "message": "지난주 추천 운동 중 근력이 85%였어요. 이번 주는 근력부터 해 보세요."
+      "message": "지난주 개인운동 중 근력이 85%였어요. 이번 주는 근력부터 해 보세요."
     },
     {
       "key": "routine_last_week_skew",
@@ -9665,7 +9665,7 @@
         "share": 85,
         "top": "stretching"
       },
-      "message": "지난주 추천 운동 중 스트레칭이 85%였어요. 이번 주는 근력부터 해 보세요."
+      "message": "지난주 개인운동 중 스트레칭이 85%였어요. 이번 주는 근력부터 해 보세요."
     },
     {
       "key": "routine_last_week_skew",
@@ -9674,7 +9674,7 @@
         "share": 85,
         "top": "other"
       },
-      "message": "지난주 추천 운동 중 기타가 85%였어요. 이번 주는 근력부터 해 보세요."
+      "message": "지난주 개인운동 중 기타가 85%였어요. 이번 주는 근력부터 해 보세요."
     },
     {
       "key": "routine_last_week_skew_short",
@@ -9682,7 +9682,7 @@
         "share": 85,
         "top": "cardio"
       },
-      "message": "지난주 추천 운동은 유산소가 85%였어요."
+      "message": "지난주 개인운동은 유산소가 85%였어요."
     },
     {
       "key": "routine_last_week_skew_short",
@@ -9690,7 +9690,7 @@
         "share": 85,
         "top": "strength"
       },
-      "message": "지난주 추천 운동은 근력이 85%였어요."
+      "message": "지난주 개인운동은 근력이 85%였어요."
     },
     {
       "key": "routine_last_week_skew_short",
@@ -9698,7 +9698,7 @@
         "share": 85,
         "top": "stretching"
       },
-      "message": "지난주 추천 운동은 스트레칭이 85%였어요."
+      "message": "지난주 개인운동은 스트레칭이 85%였어요."
     },
     {
       "key": "routine_last_week_skew_short",
@@ -9706,21 +9706,21 @@
         "share": 85,
         "top": "other"
       },
-      "message": "지난주 추천 운동은 기타가 85%였어요."
+      "message": "지난주 개인운동은 기타가 85%였어요."
     },
     {
       "key": "routine_last_week_praise",
       "params": {
         "how": "even"
       },
-      "message": "지난주 추천 운동을 고르게 해냈어요. 이번 주도 이어 가요!"
+      "message": "지난주 개인운동을 고르게 해냈어요. 이번 주도 이어 가요!"
     },
     {
       "key": "routine_last_week_praise",
       "params": {
         "how": "steady"
       },
-      "message": "지난주 추천 운동을 꾸준히 해냈어요. 이번 주도 이어 가요!"
+      "message": "지난주 개인운동을 꾸준히 해냈어요. 이번 주도 이어 가요!"
     },
     {
       "key": "routine_last_week_counts_more",
@@ -9728,7 +9728,7 @@
         "assigned": 12,
         "completed": 7
       },
-      "message": "지난주 추천 운동 12개 중 7개를 했어요. 이번 주는 더 채워 봐요."
+      "message": "지난주 개인운동 12개 중 7개를 했어요. 이번 주는 더 채워 봐요."
     },
     {
       "key": "routine_last_week_counts",
@@ -9736,14 +9736,14 @@
         "assigned": 12,
         "completed": 7
       },
-      "message": "지난주 추천 운동 12개 중 7개를 했어요."
+      "message": "지난주 개인운동 12개 중 7개를 했어요."
     },
     {
       "key": "routine_all_new",
       "params": {
         "days": 5
       },
-      "message": "추천 목록을 받은 지 5일째예요. 일주일 뒤 빠진 운동을 짚어 드릴게요."
+      "message": "개인운동을 받은 지 5일째예요. 일주일 뒤 빠진 운동을 짚어 드릴게요."
     },
     {
       "key": "routine_all_none_next",
@@ -9751,14 +9751,14 @@
         "days": 5,
         "next": "힙브릿지"
       },
-      "message": "추천 목록을 받은 지 5일째예요. 오늘 힙브릿지부터 시작해 볼까요?"
+      "message": "개인운동을 받은 지 5일째예요. 오늘 힙브릿지부터 시작해 볼까요?"
     },
     {
       "key": "routine_all_none",
       "params": {
         "days": 5
       },
-      "message": "추천 목록을 받은 지 5일째예요. 오늘 하나부터 시작해 봐요."
+      "message": "개인운동을 받은 지 5일째예요. 오늘 하나부터 시작해 봐요."
     },
     {
       "key": "routine_all_done_today_part",
@@ -9819,70 +9819,70 @@
       "params": {
         "part": "lower"
       },
-      "message": "추천 운동 중 하체 운동이 자주 빠졌어요. 하체 운동을 먼저 해 볼까요?"
+      "message": "개인운동 중 하체 운동이 자주 빠졌어요. 하체 운동을 먼저 해 볼까요?"
     },
     {
       "key": "routine_all_missed_part",
       "params": {
         "part": "upper"
       },
-      "message": "추천 운동 중 상체 운동이 자주 빠졌어요. 상체 운동을 먼저 해 볼까요?"
+      "message": "개인운동 중 상체 운동이 자주 빠졌어요. 상체 운동을 먼저 해 볼까요?"
     },
     {
       "key": "routine_all_missed_part",
       "params": {
         "part": "core"
       },
-      "message": "추천 운동 중 코어 운동이 자주 빠졌어요. 코어 운동을 먼저 해 볼까요?"
+      "message": "개인운동 중 코어 운동이 자주 빠졌어요. 코어 운동을 먼저 해 볼까요?"
     },
     {
       "key": "routine_all_missed_part",
       "params": {
         "part": "full"
       },
-      "message": "추천 운동 중 전신 운동이 자주 빠졌어요. 전신 운동을 먼저 해 볼까요?"
+      "message": "개인운동 중 전신 운동이 자주 빠졌어요. 전신 운동을 먼저 해 볼까요?"
     },
     {
       "key": "routine_all_missed_part_short",
       "params": {
         "part": "lower"
       },
-      "message": "하체 추천 운동이 자주 빠졌어요. 먼저 하는 순서로 바꿔 볼까요?"
+      "message": "하체 개인운동이 자주 빠졌어요. 먼저 하는 순서로 바꿔 볼까요?"
     },
     {
       "key": "routine_all_missed_part_short",
       "params": {
         "part": "upper"
       },
-      "message": "상체 추천 운동이 자주 빠졌어요. 먼저 하는 순서로 바꿔 볼까요?"
+      "message": "상체 개인운동이 자주 빠졌어요. 먼저 하는 순서로 바꿔 볼까요?"
     },
     {
       "key": "routine_all_missed_part_short",
       "params": {
         "part": "core"
       },
-      "message": "코어 추천 운동이 자주 빠졌어요. 먼저 하는 순서로 바꿔 볼까요?"
+      "message": "코어 개인운동이 자주 빠졌어요. 먼저 하는 순서로 바꿔 볼까요?"
     },
     {
       "key": "routine_all_missed_part_short",
       "params": {
         "part": "full"
       },
-      "message": "전신 추천 운동이 자주 빠졌어요. 먼저 하는 순서로 바꿔 볼까요?"
+      "message": "전신 개인운동이 자주 빠졌어요. 먼저 하는 순서로 바꿔 볼까요?"
     },
     {
       "key": "routine_all_missed_name",
       "params": {
         "name": "사이드 플랭크"
       },
-      "message": "추천 운동 중 사이드 플랭크가 자주 빠졌어요. 다음엔 먼저 해 볼까요?"
+      "message": "개인운동 중 사이드 플랭크가 자주 빠졌어요. 다음엔 먼저 해 볼까요?"
     },
     {
       "key": "routine_all_missed_name",
       "params": {
         "name": "레그 컬"
       },
-      "message": "추천 운동 중 레그 컬이 자주 빠졌어요. 다음엔 먼저 해 볼까요?"
+      "message": "개인운동 중 레그 컬이 자주 빠졌어요. 다음엔 먼저 해 볼까요?"
     },
     {
       "key": "routine_all_missed_name_short",
@@ -9903,7 +9903,7 @@
       "params": {
         "name": "Band walk"
       },
-      "message": "추천 운동 Band walk, 자주 빠졌어요. 다음엔 먼저 해 볼까요?"
+      "message": "개인운동 Band walk, 자주 빠졌어요. 다음엔 먼저 해 볼까요?"
     },
     {
       "key": "routine_all_missed_name_plain_short",
@@ -9929,21 +9929,21 @@
     {
       "key": "routine_all_missed",
       "params": {},
-      "message": "자주 빠진 추천 운동이 있어요. 목록 순서를 바꿔 볼까요?"
+      "message": "자주 빠진 개인운동이 있어요. 목록 순서를 바꿔 볼까요?"
     },
     {
       "key": "routine_all_praise",
       "params": {
         "weeks": 6
       },
-      "message": "추천 운동을 6주째 꾸준히 하고 있어요. 앞으로도 화이팅!"
+      "message": "개인운동을 6주째 꾸준히 하고 있어요. 앞으로도 화이팅!"
     },
     {
       "key": "routine_all_rate",
       "params": {
         "pct": 64
       },
-      "message": "지금 추천 운동의 64%를 했어요. 빠지는 날 없이 이어 가 봐요."
+      "message": "지금 개인운동의 64%를 했어요. 빠지는 날 없이 이어 가 봐요."
     }
   ]
 }

@@ -92,12 +92,19 @@ abstract interface class ReportSheetDay {
   /// 그날 **배정된** 개인 운동 수. 모르면 null 이고, 그때는 [exercises] 의
   /// 길이가 분모가 된다.
   int? get assigned;
+
+  /// 그중 그날 완료한 수 — [assigned] 의 짝인 분자다(#3115). 모르면(옛 응답·
+  /// 데모) null 이고, 그때는 [exercises] 에서 센다. [exercises] 는 그날 남은
+  /// 운동 기록 전부(직접 기록·PT 기록 포함)라 개인운동 완료 수보다 많을 수 있다.
+  int? get assignedDone;
 }
 
 /// [ReportSheetDay] 의 셈.
 extension ReportSheetDayCounts on ReportSheetDay {
-  /// 건너뛰지 않은 운동 수.
-  int get doneCount => exercises.where((String e) => !e.contains('✗')).length;
+  /// 완료한 운동 수 — 배정을 알면 그 완료, 모르면 건너뛰지 않은 운동 수.
+  int get doneCount =>
+      (assigned != null ? assignedDone : null) ??
+      exercises.where((String e) => !e.contains('✗')).length;
 
   /// 배정된 운동 수.
   int get totalCount => assigned ?? exercises.length;
