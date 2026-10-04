@@ -52,7 +52,7 @@ if not isinstance(data, dict):
 
 KNOWN = {"ENV", "USE_MOCK_API", "API_BASE_URL", "SENTRY_DSN", "DEMO_BUILD",
          "SHOW_DEMO_ENTRY", "REAL_API", "KAKAO_JS_KEY",
-         "KAKAO_MAP_ORIGIN"}
+         "KAKAO_MAP_ORIGIN", "IOS_APP_STORE_ID"}
 PLACEHOLDER = re.compile(
     r"[<>]|(^|[./@])example\.(com|org|net)([/:]|$)|\.(example|test|invalid|localhost)([/:]|$)"
     r"|//(localhost|127\.0\.0\.1)([/:]|$)",
@@ -120,6 +120,9 @@ if map_origin:
         errors.append("KAKAO_MAP_ORIGIN 은 경로 없는 https:// 출처여야 합니다(예: https://<운영 회원 웹 주소>).")
     elif PLACEHOLDER.search(map_origin):
         errors.append("KAKAO_MAP_ORIGIN 이 자리표시자·예시·로컬 주소입니다.")
+store_id = text("IOS_APP_STORE_ID")
+if store_id and not store_id.isdigit():
+    errors.append("IOS_APP_STORE_ID 는 App Store Connect 의 숫자 Apple ID 여야 합니다(#3045).")
 
 real_api = text("REAL_API")
 if real_api:

@@ -43,6 +43,8 @@ expect pass '지도 출처 운영 주소' "$(good prod '"false"' "$GOOD_URL" "$G
 expect fail '지도 출처 localhost' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"KAKAO_MAP_ORIGIN":"http://localhost"')"
 expect fail '지도 출처 https localhost' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"KAKAO_MAP_ORIGIN":"https://localhost"')"
 expect fail '지도 출처 경로 포함' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"KAKAO_MAP_ORIGIN":"https://app.oncare.kr/frontend"')"
+expect pass 'iOS 앱 ID 숫자' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"IOS_APP_STORE_ID":"1234567890"')"
+expect fail 'iOS 앱 ID 자리표시자' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"IOS_APP_STORE_ID":"<Apple ID>"')"
 
 # 필수 키 누락
 expect fail 'ENV 누락' "{\"USE_MOCK_API\":\"false\",\"API_BASE_URL\":\"$GOOD_URL\",\"SENTRY_DSN\":\"$GOOD_DSN\"}"

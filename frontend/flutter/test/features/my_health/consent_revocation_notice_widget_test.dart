@@ -16,6 +16,7 @@ import 'package:oncare/features/exercise/presentation/controllers/exercise_contr
 import 'package:oncare/features/exercise/presentation/widgets/connection_disconnect.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/legal_contact.dart';
 
 const AppConfig _config = AppConfig(
   environment: Environment.dev,
@@ -130,7 +131,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final Finder body = find.text(l.myLegalPrivacyBody);
+      final Finder body = find.text(
+        l.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      );
       expect(body, findsOneWidget);
       final String heading = tag == 'ko'
           ? '5. 담당 트레이너와의 정보 공유 및 동의 철회'

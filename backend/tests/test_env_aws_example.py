@@ -35,6 +35,7 @@ _LOCAL_DIR = "로컬 저장 경로 — 운영 첨부는 S3(ATTACHMENT_*)라 쓰�
 _AWS_INTENTIONALLY_OMITTED: dict[str, str] = {
     "API_V1_PREFIX": "두 앱이 /v1 을 가정한다. 운영에서 바꾸지 않는다.",
     "APP_VERSION": "코드가 정하는 버전 문자열. 환경변수로 덮지 않는다.",
+    "MIN_MEMBER_APP_VERSION": "회원 앱 최소 지원 버전 — 비어 있으면(기본값) 업데이트를 강제하지 않는다. 강제 업데이트가 필요할 때만 설정한다.",
     "JWT_ALGORITHM": "HS256 고정. 바꾸면 발급된 토큰이 모두 무효가 된다.",
     "AUDIT_READ_DEDUPE_MINUTES": "열람 기록 중복 제거 창 — 기본값이 운영값이다.",
     "NUTRITION_DB_ENRICH": "공공 영양 DB 보강 — 운영은 기본값(true). 비교실험 때만 끈다.",
