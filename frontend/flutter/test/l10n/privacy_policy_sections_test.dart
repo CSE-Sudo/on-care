@@ -239,11 +239,11 @@ void main() {
     test('시행일이 자리표시자(2026년 1월 1일)가 아니고 두 언어가 같다', () {
       expect(
         ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('시행일: 2026년 10월 3일'),
+        contains('시행일: 2026년 10월 5일'),
       );
       expect(
         en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-        contains('Effective date: 3 October 2026'),
+        contains('Effective date: 5 October 2026'),
       );
       expect(
         ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
@@ -253,8 +253,8 @@ void main() {
         en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
         isNot(contains('1 January 2026')),
       );
-      expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 03.');
-      expect(en.myLegalPrivacyEffectiveDate, 'Effective Oct 3, 2026');
+      expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 05.');
+      expect(en.myLegalPrivacyEffectiveDate, 'Effective Oct 5, 2026');
     });
 
     test('개정 이력이 있다', () {

@@ -189,11 +189,11 @@ void main() {
   test('시행일이 자리표시자가 아니고 두 언어가 같으며 개정 이력이 있다', () {
     expect(
       ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-      contains('시행일: 2026년 10월 3일'),
+      contains('시행일: 2026년 10월 5일'),
     );
     expect(
       en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-      contains('Effective: October 3, 2026'),
+      contains('Effective: October 5, 2026'),
     );
     expect(
       ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
@@ -211,8 +211,8 @@ void main() {
       en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
       contains('October 1, 2026: first issued'),
     );
-    expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 03.');
-    expect(en.myLegalPrivacyEffectiveDate, 'Effective Oct 3, 2026');
+    expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 05.');
+    expect(en.myLegalPrivacyEffectiveDate, 'Effective Oct 5, 2026');
   });
 
   test('약관 시행일은 처리방침과 따로 간다', () {
