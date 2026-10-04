@@ -70,6 +70,8 @@ def test_prod_accepts_litellm_recognizer_and_openai_embedder_when_configured():
         litellm_api_key="vk",
         embedder="openai",
         openai_api_key="sk-test",
+        # Gemini 키가 없으니 코치도 키가 있는 엔진으로 고른다(#3145).
+        coach_llm="litellm",
     )
     assert s.missing_ai_config() == []
 
