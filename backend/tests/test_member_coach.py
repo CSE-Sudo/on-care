@@ -343,11 +343,7 @@ def test_accepting_a_coach_invite_requires_data_sharing_consent(client, db_sessi
     )
     # 트레이너 행이 먼저 커밋돼야 프로필·초대의 외래키가 걸린다.
     db_session.commit()
-    # 운영자 승인을 받은 트레이너여야 초대 수락이 회원 기록을 연다(#2825).
-    # 프로필이 없으면 미승인으로 취급되어 동의 여부와 무관하게 막힌다.
-    db_session.add(
-        models.TrainerProfile(trainer_id=trainer_id, verification_status="approved")
-    )
+    db_session.add(models.TrainerProfile(trainer_id=trainer_id))
     db_session.commit()
 
     invite_id = f"invite-{uuid4().hex[:8]}"

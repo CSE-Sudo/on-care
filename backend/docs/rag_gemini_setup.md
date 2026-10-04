@@ -5,7 +5,8 @@
 
 ## 0. 전제
 - PostgreSQL 14+ (+ `pgvector` 확장), Python 3.11+
-- 결제된 `GEMINI_API_KEY`
+- 결제된 `GEMINI_API_KEY` — 운영·실데이터는 반드시 결제가 연결된 프로젝트(유료 등급)의 키다. 이유와
+  운영 체크는 [DEPLOY.md](DEPLOY.md) 3절 `GEMINI_API_KEY`·5-2 (#3032).
 
 ## 1. 의존성
 ```bash

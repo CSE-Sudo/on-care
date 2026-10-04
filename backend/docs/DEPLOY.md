@@ -234,7 +234,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 |---|---|---|
 | `DATABASE_URL` | 그 환경 DB 의 직접 엔드포인트 | 예 |
 | `JWT_SECRET` | `openssl rand -hex 32`. **환경마다 다르게**. 32바이트 미만이면 운영 기동 거부(#3029) | 예 |
-| `GEMINI_API_KEY` | 사진 인식·임베딩. 운영은 없으면 기동 거부(#2812) | 예 |
+| `GEMINI_API_KEY` | 사진 인식·임베딩. 운영은 없으면 기동 거부(#2812). **결제가 연결된 프로젝트의 키(유료 등급)만**(#3032) — 무료 등급은 입력(회원 음식 사진·건강 기록·코치 대화)이 제공자의 서비스 개선에 쓰일 수 있고 한도가 낮다. 결제 연결은 #480 | 예 |
 | `KAKAO_REST_API_KEY` | 장소 실검색. 빈 값이면 헬스장 찾기가 사실상 빈다(시드로 채우지 않음, #2914) | 키는 있어야 함 |
 | `SENTRY_DSN` | 오류 수집(#2839). 빈 값이면 꺼짐 | 키는 있어야 함 |
 | `SMTP_USERNAME`·`SMTP_PASSWORD` | `MailFrom` 파라미터를 채웠을 때만 읽는다 | 메일을 켤 때 |
@@ -264,6 +264,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `AUDIT_RETENTION_DAYS`·`AUDIT_SENSITIVE_RETENTION_DAYS` | `365`·`730`(#2830) — 처리방침 보관 기간과 묶여 있다 |
 | `MAIL_PROVIDER`·`SMTP_STARTTLS`·`SMTP_SSL` | `smtp`·`true`·`false` — `MailFrom` 파라미터를 채웠을 때만 들어간다(#3033). `smtp` 라 서버·발신 주소가 비면 기동이 거부돼 빠뜨린 것이 바로 드러난다. 587 STARTTLS 기준 |
 | `GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID`·`APPLE_CLIENT_IDS` | 스택 파라미터(`GoogleClientIds`·`KakaoAppId`·`AppleClientIds`). 소셜 로그인 허용 `aud`(#3035) — Google 은 iOS·Android·웹 client_id(콤마 구분), 카카오는 콘솔의 숫자 앱 ID(`KAKAO_REST_API_KEY` 와 다른 값), Apple 은 번들 ID·Service ID. **비우면 그 로그인은 401 로 거부**. 네이버 로그인은 서버 측 코드 교환 전까지 501 로 닫혀 있어 설정이 없다 |
+| `AI_GLOBAL_CALLS_PER_DAY`·`TRAINER_AI_CALLS_PER_DAY`·`LLM_MAX_OUTPUT_TOKENS` | `0`·`200`·`4096`(#3032) — 서버 전체 하루 AI 호출 합(DB 에서 KST 날짜로 셈, 0 이면 끔, 넘으면 폴백이 있는 기능은 규칙형 폴백·AI 코치 채팅·사진 분석은 503 `ai_capacity` + `Retry-After`)·트레이너 한 계정 하루 AI 호출(넘으면 429 `daily_limit`)·호출 한 번의 출력 토큰 천장. 출시 전 `AI_GLOBAL_CALLS_PER_DAY` 를 공급자 하루 예산 ÷ 호출당 비용으로 바꾼다(#480) |
 
 위 값 중 코드 기본값과 같은 것도 템플릿에 못 박는다(#3034) — 데모 서비스에서 바꾼 값이 운영으로
 복사되지 않게 하고, 운영에서 무엇이 들어가는지 `.env.aws.example` 한 곳에서 보이게 한다.
@@ -439,6 +440,10 @@ Fargate 태스크의 디스크는 재배포·재시작 때 비므로 운영은 S
       배포한 커밋). 실패했다면 `Roll back to previous image` 단계 결과와 잡 요약을 본다.
 - [ ] 기동 로그에 `[startup]` WARN 이 없다(데모 폴백, staging 의 로컬 첨부 저장소). 운영 데모 시드·운영
       로컬 첨부 저장소는 WARN 이 아니라 기동 거부다.
+- [ ] **AI 비용 상한이 정해져 있다(#3032).** `GEMINI_API_KEY` 가 결제가 연결된 프로젝트의 키다
+      (무료 등급 금지). 공급자 콘솔에 예산 알림을 걸고, 그 예산으로 `AI_GLOBAL_CALLS_PER_DAY` 를 0 이
+      아닌 값으로 둔다. 운영 중에는 `ai_calls.rejected{reason=global_cap}` 메트릭이 늘면 상한이나
+      예산을 다시 본다(`backend/README.md` 메트릭 표).
 
 ## 5-3) 모델 고정 (#2912)
 

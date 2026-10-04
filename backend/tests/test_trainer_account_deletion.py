@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
@@ -20,6 +21,14 @@ PASSWORD = "pw!12345"
 
 def _h(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
+
+
+def _delete_me(client, token: str):
+    """트레이너 탈퇴 — 본인 확인으로 현재 비밀번호를 함께 보낸다."""
+    return client.request(
+        "DELETE", "/v1/trainer/me", json={"current_password": PASSWORD},
+        headers=_h(token),
+    )
 
 
 def _login(client, email: str, password: str) -> str:
@@ -198,6 +207,149 @@ def test_deleting_with_clients_unlinks_and_notifies_them(
     ).all()
     assert len(after) == len(before) + 1
     assert any("연결이 해제" in row.title for row in after)
+
+
+def _link(db_session, trainer_id: str, member_id: str, *, active: bool):
+    from app.models import models
+
+    db_session.add(
+        models.TrainerClient(
+            id=f"tc-{uuid4().hex[:12]}",
+            trainer_id=trainer_id,
+            member_id=member_id,
+            goal="테스트",
+            active=active,
+            sort_order=1,
+        )
+    )
+    db_session.commit()
+
+
+def _member_titles(db_session, member_id: str) -> list[str]:
+    from app.models import models
+
+    db_session.expire_all()
+    return [
+        row.title
+        for row in db_session.scalars(
+            select(models.Notification).where(
+                models.Notification.user_id == member_id
+            )
+        ).all()
+    ]
+
+
+def test_deleting_does_not_notify_past_clients(
+    client, db_session, gym_id, make_trainer
+):
+    """담당이 이미 끝난 회원에게는 탈퇴 알림을 보내지 않는다(#3024).
+
+    오래전에 끝난 관계를 "담당 트레이너 연결이 해제되었어요" 로 다시 들으면
+    지금 담당이 끊긴 것으로 읽힌다.
+    """
+    token, trainer_id = make_trainer(gym_id)
+    _, past_member_id = _register_member(client)
+    _link(db_session, trainer_id, past_member_id, active=False)
+    before = _member_titles(db_session, past_member_id)
+
+    assert _delete_me(client, token).status_code == 200
+
+    assert _member_titles(db_session, past_member_id) == before
+
+
+def test_deleting_notifies_active_clients_even_with_switches_off(
+    client, db_session, gym_id, make_trainer
+):
+    """'트레이너 메시지' 를 꺼도 탈퇴 알림은 온다 — 끌 수 없는 알림이다(#3024)."""
+    token, trainer_id = make_trainer(gym_id)
+    member_token, member_id = _register_member(client)
+    switched = client.put(
+        "/v1/users/me/notification-settings",
+        headers=_h(member_token),
+        json={"trainer_message": False, "exercise_reminder": False},
+    )
+    assert switched.status_code == 200, switched.text
+    _link(db_session, trainer_id, member_id, active=True)
+
+    assert _delete_me(client, token).status_code == 200
+
+    assert "담당 트레이너 연결이 해제되었어요" in _member_titles(db_session, member_id)
+
+
+def test_a_past_client_with_a_booking_hears_only_about_the_booking(
+    client, db_session, gym_id, make_trainer
+):
+    """담당이 끝났어도 예약이 남아 있으면 '예약 취소' 한 건만 받는다(#3024)."""
+    from app.models import models
+
+    token, trainer_id = make_trainer(gym_id)
+    member_token, member_id = _register_member(client)
+    _link(db_session, trainer_id, member_id, active=True)
+    slot = client.post(
+        "/v1/trainer/reservation-slots",
+        headers=_h(token),
+        json={
+            "starts_at": (
+                datetime.now(timezone.utc) + timedelta(days=5)
+            ).isoformat(),
+            "capacity": 1,
+        },
+    )
+    assert slot.status_code == 201, slot.text
+    booked = client.post(
+        "/v1/reservations",
+        headers=_h(member_token),
+        json={"slot_id": slot.json()["id"]},
+    )
+    assert booked.status_code == 201, booked.text
+    # 예약은 남긴 채 담당만 끝난 상태로 만든다.
+    link = db_session.scalar(
+        select(models.TrainerClient).where(
+            models.TrainerClient.trainer_id == trainer_id,
+            models.TrainerClient.member_id == member_id,
+        )
+    )
+    link.active = False
+    db_session.commit()
+    before = _member_titles(db_session, member_id)
+
+    assert _delete_me(client, token).status_code == 200
+
+    added = Counter(_member_titles(db_session, member_id)) - Counter(before)
+    assert added == Counter({"예약한 수업이 취소되었어요": 1})
+
+
+def test_an_active_client_with_a_booking_gets_one_notice(
+    client, db_session, gym_id, make_trainer
+):
+    """담당 중이면서 예약도 있는 회원은 '연결 해제' 한 건만 받는다."""
+    token, trainer_id = make_trainer(gym_id)
+    member_token, member_id = _register_member(client)
+    _link(db_session, trainer_id, member_id, active=True)
+    slot = client.post(
+        "/v1/trainer/reservation-slots",
+        headers=_h(token),
+        json={
+            "starts_at": (
+                datetime.now(timezone.utc) + timedelta(days=5)
+            ).isoformat(),
+            "capacity": 1,
+        },
+    )
+    assert slot.status_code == 201, slot.text
+    booked = client.post(
+        "/v1/reservations",
+        headers=_h(member_token),
+        json={"slot_id": slot.json()["id"]},
+    )
+    assert booked.status_code == 201, booked.text
+    before = len(_member_titles(db_session, member_id))
+
+    assert _delete_me(client, token).status_code == 200
+
+    titles = _member_titles(db_session, member_id)
+    assert len(titles) == before + 1
+    assert "담당 트레이너 연결이 해제되었어요" in titles
 
 
 def test_deleting_a_trainer_with_bookings_clears_them(

@@ -6,10 +6,17 @@
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from sqlalchemy.orm import Session
 
 from app.core.client_platform import is_web_client
-from app.core.security import create_access_token, create_refresh_token
+from app.core.security import (
+    RefreshClaims,
+    create_access_token,
+    create_refresh_token,
+    session_max_age,
+)
 from app.models.models import User
 from app.schemas.user import LoginToken, Token
 from app.services import signup_consent
@@ -25,19 +32,53 @@ def is_current(user: User, token_version: int) -> bool:
     return token_version == current_version(user)
 
 
-def issue_token_pair(user: User, *, web: bool = False) -> Token:
+def issue_token_pair(
+    user: User,
+    *,
+    web: bool = False,
+    session_id: str | None = None,
+    auth_time: datetime | None = None,
+) -> Token:
     """지금 세대로 접근·refresh 토큰 한 쌍을 만든다.
 
     웹 클라이언트(요청 헤더 `X-Client-Platform: web`, 또는 ``web=True`` — 웹으로 발급된
     refresh 토큰의 회전)에는 짧은 수명의 refresh 토큰을 준다(#2828).
+
+    `session_id`·`auth_time` 을 주면 그 로그인 세션을 이어 받는다 — 회전이 그렇다.
+    비우면(로그인·소셜 로그인·비밀번호 변경) 새 세션을 연다(#3086). 둘 중 하나만
+    있는 토큰은 이어 받을 기준이 없어 새 세션으로 본다.
     """
     version = current_version(user)
+    if session_id is None or auth_time is None:
+        session_id, auth_time = None, None
     return Token(
         access_token=create_access_token(user.id, token_version=version),
         refresh_token=create_refresh_token(
-            user.id, token_version=version, web=web or is_web_client()
+            user.id,
+            token_version=version,
+            web=web or is_web_client(),
+            session_id=session_id,
+            auth_time=auth_time,
         ),
     )
+
+
+def session_expires_at(claims: RefreshClaims) -> datetime:
+    """그 토큰이 속한 로그인 세션의 절대 수명이 끝나는 시각(#3086).
+
+    최초 인증 시각이 없는 토큰(세션 값이 생기기 전 발급)은 토큰 자신의 만료로 본다 —
+    첫 회전에서 새 세션을 받는다.
+    """
+    if claims.auth_time is None:
+        return claims.expires_at
+    return claims.auth_time + session_max_age(web=claims.web)
+
+
+def session_expired(claims: RefreshClaims, *, now: datetime | None = None) -> bool:
+    """최초 로그인으로부터 세션 절대 수명이 지났는가(#3086)."""
+    if claims.auth_time is None:
+        return False
+    return (now or datetime.now(timezone.utc)) >= session_expires_at(claims)
 
 
 def issue_login_tokens(db: Session, user: User) -> LoginToken:

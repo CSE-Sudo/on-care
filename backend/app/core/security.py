@@ -52,6 +52,17 @@ TOKEN_VERSION_CLAIM = "tv"
 #: 회전해 원래 수명(30일)을 다시 얻을 수 있다.
 CLIENT_CLAIM = "cli"
 
+#: refresh 토큰이 속한 로그인 세션의 이름(#3086).
+#:
+#: 로그인할 때 새로 만들고 회전은 그대로 이어 싣는다. 이미 쓴 토큰이 다시 와 탈취로
+#: 판단되면 이 값을 폐기 세션으로 적어, 그 토큰에서 이어 회전돼 나간 토큰까지 함께
+#: 끊는다. 같은 계정의 다른 로그인(다른 기기)은 값이 달라 영향이 없다.
+SESSION_ID_CLAIM = "sid"
+
+#: 그 세션의 최초 인증 시각(#3086). epoch 초. 회전해도 바뀌지 않아 세션 절대 수명의
+#: 기준이 된다(`session_max_age`).
+AUTH_TIME_CLAIM = "auth_time"
+
 
 def _encode(
     subject: str,
@@ -61,8 +72,10 @@ def _encode(
     jti: str | None = None,
     token_version: int = 0,
     client: str | None = None,
+    extra: dict | None = None,
+    now: datetime | None = None,
 ) -> str:
-    now = datetime.now(timezone.utc)
+    now = now or datetime.now(timezone.utc)
     payload = {
         "sub": subject,
         "type": token_type,
@@ -74,6 +87,8 @@ def _encode(
         payload["jti"] = jti
     if client is not None:
         payload[CLIENT_CLAIM] = client
+    if extra:
+        payload.update(extra)
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
@@ -105,8 +120,19 @@ def refresh_token_ttl(*, web: bool = False) -> timedelta:
     return timedelta(days=days)
 
 
+def session_max_age(*, web: bool = False) -> timedelta:
+    """로그인 한 번이 이어질 수 있는 최대 기간(#3086). 웹은 더 짧다."""
+    days = settings.web_session_max_days if web else settings.session_max_days
+    return timedelta(days=days)
+
+
 def create_refresh_token(
-    subject: str, *, token_version: int = 0, web: bool = False
+    subject: str,
+    *,
+    token_version: int = 0,
+    web: bool = False,
+    session_id: str | None = None,
+    auth_time: datetime | None = None,
 ) -> str:
     """폐기 가능한 refresh 토큰을 만든다.
 
@@ -114,14 +140,27 @@ def create_refresh_token(
     없다"고 남길 대상이 있어야 서버가 세션을 끊을 수 있다(#966).
     `token_version` 은 계정 단위로 한꺼번에 끊는 기준이다(#2766).
     `web` 이면 웹 수명으로 내고 :data:`CLIENT_CLAIM` 을 붙인다(#2828).
+
+    `session_id`·`auth_time` 은 회전이 이어 받는 세션 값이다(#3086). 비우면 새 로그인
+    세션으로 보고 새 이름과 지금 시각을 싣는다. 만료는 세션 절대 수명을 넘지 않게
+    자른다 — 상한 직전에 회전해도 그 뒤로 한 수명을 더 얻지 못한다.
     """
+    now = datetime.now(timezone.utc)
+    sid = session_id or uuid.uuid4().hex
+    started = auth_time or now
+    ttl = min(refresh_token_ttl(web=web), started + session_max_age(web=web) - now)
     return _encode(
         subject,
         "refresh",
-        refresh_token_ttl(web=web),
+        ttl,
         jti=uuid.uuid4().hex,
         token_version=token_version,
         client="web" if web else None,
+        extra={
+            SESSION_ID_CLAIM: sid,
+            AUTH_TIME_CLAIM: int(started.timestamp()),
+        },
+        now=now,
     )
 
 
@@ -159,6 +198,10 @@ class RefreshClaims:
     token_version: int = 0
     #: 웹 클라이언트에 발급된 토큰인가(#2828). 회전도 웹 수명으로 이어 간다.
     web: bool = False
+    #: 로그인 세션 이름과 최초 인증 시각(#3086). 이 값이 생기기 전에 발급된 토큰은
+    #: 둘 다 None 이고, 첫 회전에서 새 세션을 받는다.
+    session_id: str | None = None
+    auth_time: datetime | None = None
 
 
 def decode_refresh_claims(token: str) -> RefreshClaims:
@@ -186,4 +229,26 @@ def decode_refresh_claims(token: str) -> RefreshClaims:
         expires_at=datetime.fromtimestamp(float(exp), tz=timezone.utc),
         token_version=_token_version_of(payload),
         web=payload.get(CLIENT_CLAIM) == "web",
+        session_id=_session_id_of(payload),
+        auth_time=_auth_time_of(payload),
     )
+
+
+def _session_id_of(payload: dict) -> str | None:
+    """세션 이름. 없으면 None, 문자열이 아니면 위조·손상으로 보고 거부한다."""
+    value = payload.get(SESSION_ID_CLAIM)
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value:
+        raise jwt.InvalidTokenError("세션 id 형식 오류")
+    return value
+
+
+def _auth_time_of(payload: dict) -> datetime | None:
+    """최초 인증 시각. 없으면 None, 숫자가 아니면 위조·손상으로 보고 거부한다."""
+    value = payload.get(AUTH_TIME_CLAIM)
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise jwt.InvalidTokenError("인증 시각 형식 오류")
+    return datetime.fromtimestamp(float(value), tz=timezone.utc)

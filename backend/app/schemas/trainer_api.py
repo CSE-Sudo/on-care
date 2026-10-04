@@ -47,7 +47,6 @@ from app.schemas.health_goal_ranges import (
 from app.schemas.partial_update import PartialUpdate
 from app.schemas.text_limits import TEXT_ENTRY_MAX, TEXT_LINE_MAX, TEXT_LONG_MAX
 from app.schemas.points_api import PointsOut
-from app.schemas.trainer_verification import TrainerVerificationOut
 from app.services.password_policy import check_new_password
 from app.services import contact_format
 from app.services import health_focus
@@ -91,8 +90,9 @@ class TrainerMe(BaseModel):
     intro: str
     certifications: list[str]
     gym: TrainerGymOut
-    #: 운영자 승인 상태(#2825). 트레이너 웹이 승인 대기·반려 안내를 고른다.
-    verification: TrainerVerificationOut
+    #: 운영자 계정인가(#3008). 트레이너 웹이 `신고·계정 관리` 메뉴를 보일지 정한다 —
+    #: 실제 차단은 `/admin/*` 의 `RequireAdmin` 이 한다.
+    is_admin: bool = False
     #: 비밀번호로 로그인하는 계정인가(#3039). 탈퇴 본인 확인에서 현재 비밀번호
     #: 칸과 소셜 다시 로그인 중 무엇을 보일지 고른다. 회원 `ProfileView` 와 같은 뜻.
     has_password: bool = True

@@ -192,7 +192,7 @@ def test_litellm_sends_english_instruction_on_english_requests(english):
 
     sent: list[str] = []
 
-    def create(*, model, messages, temperature):  # noqa: ARG001
+    def create(*, model, messages, temperature, **_):  # noqa: ARG001
         sent.append(messages[0]["content"][0]["text"])
         return SimpleNamespace(
             choices=[SimpleNamespace(message=SimpleNamespace(content=_RAW))]

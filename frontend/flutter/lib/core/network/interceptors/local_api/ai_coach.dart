@@ -89,6 +89,9 @@ extension _LocalApiAiCoach on LocalApiInterceptor {
       }
     }
 
+    // 서버 전체 상한(#3032) — 모델을 부르지 않았으니 회원 몫도 세지 않는다.
+    if (replayed == null && demoAiCapacityReached) return _aiCapacity(options);
+
     // 답을 즉시 돌려주면 "맞춤 답변 생성 중" 표시가 한 프레임 만에 지나가,
     // 답이 그 사람의 기록을 읽고 만들어진다는 것이 보이지 않는다(#1180).
     // 실 서버는 그만한 시간이 걸리므로 데모도 같은 리듬으로 답한다.

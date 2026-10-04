@@ -52,6 +52,13 @@ os.environ.setdefault("EMBEDDER", "hash")
 os.environ.setdefault("DIET_ANALYZE_PER_DAY", "100000")
 os.environ.setdefault("DIET_ANALYZE_PER_MINUTE", "100000")
 
+#: 트레이너 하루 AI 상한(#3032). 스위트 전체가 같은 DB·같은 날짜(시계 고정)를 쓰고
+#: 트레이너 계정을 여러 테스트가 공유하므로, 켜 두면 뒤쪽 테스트가 앞쪽의 호출 수에
+#: 따라 429 로 깨진다. DB 없이 서비스만 부르는 테스트도 가짜 트레이너 id 로 상한을
+#: 확인하려다 DB 에 닿는다. 상한 자체는 `test_ai_call_quota` 가 설정을 켜서 확인한다.
+#: 서버 전체 상한(`AI_GLOBAL_CALLS_PER_DAY`)은 기본이 꺼짐(0)이다.
+os.environ.setdefault("TRAINER_AI_CALLS_PER_DAY", "0")
+
 #: 테스트는 로컬 개발 환경(`.env.example`)과 같이 데모 폴백을 켠 채 돈다.
 #:
 #: 설정 기본값은 꺼짐이다(#2821) — 환경변수를 빠뜨린 배포 서버가 로그인 없는 요청을
@@ -262,3 +269,60 @@ def db_session(client):
         yield db
     finally:
         db.close()
+
+
+#: 테스트가 만드는 회원 계정에 필수 동의를 함께 남길까. (#3088)
+#:
+#: 회원 데이터·AI API 는 필수 동의가 끝난 계정만 받는다. 기존 테스트 다수가
+#: `consents` 없이 가입하거나 `User` 를 DB 에 직접 넣고 토큰을 만드는데, 그 계정은
+#: 모두 동의 화면을 거친 회원을 뜻한다. 가입 헬퍼가 100여 파일에 흩어져 있어
+#: 하나씩 고치는 대신, 회원 행이 생길 때 지금 버전의 필수 동의를 같은 트랜잭션에
+#: 남긴다. 동의하지 않은 계정이 필요한 테스트는 `without_default_consent` 를 쓴다.
+_DEFAULT_CONSENT = {"on": True}
+
+
+def _record_default_consent(mapper, connection, target) -> None:
+    if not _DEFAULT_CONSENT["on"]:
+        return
+    from sqlalchemy.dialects.postgresql import insert
+
+    from app.core import clock
+    from app.models.models import UserConsent
+    from app.services import signup_consent
+
+    # 아직 읽지 않은 서버 기본값(role)은 회원이다.
+    role = target.__dict__.get("role") or "member"
+    if role != "member":
+        return
+    now = clock.now()
+    rows = [
+        {
+            "user_id": target.id,
+            "kind": kind,
+            "version": signup_consent.CURRENT_VERSIONS[kind],
+            "agreed_at": now,
+        }
+        for kind in sorted(signup_consent.required_for(role))
+    ]
+    # 가입이 같은 항목을 이어서 남기면 그쪽은 이미 있는 행을 보고 건너뛴다.
+    connection.execute(insert(UserConsent.__table__).values(rows).on_conflict_do_nothing())
+
+
+try:
+    from sqlalchemy import event
+
+    from app.models.models import User as _User
+
+    event.listen(_User, "after_insert", _record_default_consent)
+except Exception:  # noqa: BLE001, S110 — 앱 의존성 없이 도는 순수 테스트
+    pass
+
+
+@pytest.fixture
+def without_default_consent():
+    """이 테스트가 만드는 회원 계정에는 동의를 남기지 않는다. (#3088)"""
+    _DEFAULT_CONSENT["on"] = False
+    try:
+        yield
+    finally:
+        _DEFAULT_CONSENT["on"] = True

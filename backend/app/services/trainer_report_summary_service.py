@@ -31,10 +31,11 @@ from sqlalchemy.orm import Session
 
 from app.core.locale import Locale, current_locale, localized
 from app.schemas.trainer_api import ReportSummaryOut, WeeklyReportOut
-from app.services import client_signals, goal_defaults, korean_josa
+from app.services import ai_call_quota, client_signals, goal_defaults, korean_josa
 from app.services.trainer import reports as trainer_reports_service
 from app.services.coach import prompt_safety
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
+from app.services.coach.llm_base import is_truncated, output_cap
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,8 @@ SODIUM_OVER_DAYS = 2
 MAX_POINTS = 3
 
 LLM_TIMEOUT_SECONDS = 10.0
+#: 출력 토큰 상한(#3032). 헤드라인 한 줄과 근거 세 줄, 사고 예산이 들어가는 값.
+LLM_MAX_OUTPUT_TOKENS = 1024
 _MAX_CONCURRENT_LLM = 4
 _llm_slots = threading.Semaphore(_MAX_CONCURRENT_LLM)
 _executor = ThreadPoolExecutor(max_workers=_MAX_CONCURRENT_LLM)
@@ -160,8 +163,16 @@ def generate_summary(
         ensure_ascii=False,
     )
     try:
-        result = _call_llm(prompt, locale)
+        result = _call_llm(prompt, locale, trainer_id=trainer_id)
+        if is_truncated(result):
+            # 출력 상한에 끊긴 응답은 계약 위반이다(#3032).
+            raise ValueError("리포트 요약 LLM 응답이 출력 상한에 걸려 끊김")
         return _decode(result.text, report, evidence, locale)
+    except ai_call_quota.TrainerAiDailyLimitReached:
+        # 이 트레이너의 오늘 몫을 다 썼다 — 라우터가 429 `daily_limit` 로 옮긴다(#3032).
+        raise
+    except ai_call_quota.AiCapacityReached:
+        logger.info("리포트 요약 서버 AI 상한 도달 — 규칙 기반 요약 사용")
     except (json.JSONDecodeError, ValidationError, ValueError):
         logger.warning("리포트 요약 LLM 계약 위반 — 규칙 기반 요약 사용", exc_info=True)
     except FutureTimeout:
@@ -634,24 +645,36 @@ def _out(
     )
 
 
-def _call_llm(prompt: str, locale: Locale = "ko"):
+def _call_llm(prompt: str, locale: Locale = "ko", *, trainer_id: str | None = None):
     """요청을 최대 10초로 제한하고 지연 호출의 무한 적체를 막는다.
 
     [locale] 은 호출하는 쪽에서 정해 넘긴다 — 여기서 도는 스레드는 요청 컨텍스트를
     보지 못해 :func:`current_locale` 이 늘 기본값을 돌려준다.
+
+    트레이너·서버 전체 하루 상한(#3032)은 자리를 잡은 뒤, 모델을 부르기 직전에 센다.
     """
     if not _llm_slots.acquire(blocking=False):
         raise RuntimeError("리포트 요약 LLM 동시 호출 한도 초과")
+    try:
+        # 공급자를 고른 뒤에 센다 — 키가 없어 부르지 못하는 호출은 하루 상한(#3032)에 세지 않는다.
+        llm = get_coach_llm()
+        ai_call_quota.acquire(
+            ai_call_quota.FEATURE_REPORT_SUMMARY, trainer_id=trainer_id
+        )
+    except BaseException:
+        _llm_slots.release()
+        raise
     system_prompt = _system_prompt(locale)
 
     def _call():
         try:
-            return get_coach_llm().generate(
+            return llm.generate(
                 system_prompt,
                 prompt,
                 json_mode=True,
                 thinking_budget=DEFAULT_THINKING_BUDGET,
                 timeout_seconds=LLM_TIMEOUT_SECONDS,
+                max_output_tokens=output_cap(LLM_MAX_OUTPUT_TOKENS),
             )
         finally:
             _llm_slots.release()

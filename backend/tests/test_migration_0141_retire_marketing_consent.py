@@ -67,7 +67,7 @@ def _user(db_session) -> User:
     return user
 
 
-def test_upgrade_revokes_marketing_rows_and_keeps_them(client, db_session):
+def test_upgrade_revokes_marketing_rows_and_keeps_them(client, db_session, without_default_consent):
     user = _user(db_session)
     marketing = UserConsent(
         user_id=user.id, kind="marketing", version="2026-10-01", agreed_at=AGREED
@@ -99,7 +99,7 @@ def test_upgrade_revokes_marketing_rows_and_keeps_them(client, db_session):
         db_session.commit()
 
 
-def test_upgrade_keeps_an_existing_revoke_time(client, db_session):
+def test_upgrade_keeps_an_existing_revoke_time(client, db_session, without_default_consent):
     user = _user(db_session)
     db_session.add(
         UserConsent(
