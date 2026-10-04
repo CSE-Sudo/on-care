@@ -138,6 +138,32 @@ void main() {
       expect(fresh.revoke(PointsRule.exerciseManual.sourceType, 'ex-0'), 20);
       expect(fresh.award(PointsRule.exerciseManual, 'ex-3').awarded, 20);
     });
+
+    DemoPointsLedger reloaded(Map<String, Object?> json) =>
+        DemoPointsLedger(openingBalance: 0, now: () => now)..restore(json);
+
+    test('저장했다 다시 불러와도 전액 회수로 푼 칸은 풀린 채다', () {
+      fresh.revoke(PointsRule.exerciseManual.sourceType, 'ex-0');
+      final DemoPointsLedger again = reloaded(fresh.toJson());
+      expect(again.award(PointsRule.exerciseManual, 'ex-3').awarded, 20);
+    });
+
+    test('저장했다 다시 불러와도 0P 회수는 칸을 지킨다', () {
+      expect(fresh.spend('coupon-1', 60, reason: 'coupon_locker'), isTrue);
+      fresh.revoke(PointsRule.exerciseManual.sourceType, 'ex-0');
+      final DemoPointsLedger again = reloaded(fresh.toJson());
+      expect(again.award(PointsRule.exerciseManual, 'ex-3').awarded, 0);
+    });
+
+    test('칸 기록이 없는 옛 저장본은 회수된 적립의 칸을 푼다', () {
+      fresh.revoke(PointsRule.exerciseManual.sourceType, 'ex-0');
+      final Map<String, Object?> json = fresh.toJson();
+      for (final Object? row in json['earned']! as List<Object?>) {
+        (row! as Map<String, Object?>).remove('slot_freed');
+      }
+      final DemoPointsLedger again = reloaded(json);
+      expect(again.award(PointsRule.exerciseManual, 'ex-3').awarded, 20);
+    });
   });
 
   test('응답의 points 를 읽는다 — 없거나 모양이 다르면 null', () {

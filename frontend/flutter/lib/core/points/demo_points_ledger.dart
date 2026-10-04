@@ -231,6 +231,7 @@ class DemoPointsLedger implements DemoPersistable {
           'day': e.value.day,
           'delta': e.value.delta,
           'revoked': e.value.revoked,
+          'slot_freed': e.value.slotFreed,
         },
     ],
     'entries': <Map<String, Object?>>[
@@ -258,7 +259,10 @@ class DemoPointsLedger implements DemoPersistable {
             rule: PointsRule.values.byName(row['rule']! as String),
             day: row['day']! as String,
             delta: (row['delta']! as num).toInt(),
-          )..revoked = row['revoked'] == true,
+            revoked: row['revoked'] == true,
+            // 칸 기록 전에 저장된 행은 예전 규칙(회수하면 칸도 푼다)을 따른다.
+            slotFreed: (row['slot_freed'] ?? row['revoked']) == true,
+          ),
       });
     _entries
       ..clear()
@@ -315,16 +319,22 @@ class _Entry {
 }
 
 class _Earned {
-  _Earned({required this.rule, required this.day, required this.delta});
+  _Earned({
+    required this.rule,
+    required this.day,
+    required this.delta,
+    this.revoked = false,
+    this.slotFreed = false,
+  });
 
   final PointsRule rule;
   final String day;
   final int delta;
-  bool revoked = false;
+  bool revoked;
 
   /// 전액 회수돼 그날 한도 칸을 돌려줬는가(#3084). 잔액이 모자라 0P·일부만
   /// 회수됐으면 칸은 그대로 — 서버 `_live_awards_on` 과 같은 규칙.
-  bool slotFreed = false;
+  bool slotFreed;
 
   int get liveDelta => revoked ? 0 : delta;
 }
