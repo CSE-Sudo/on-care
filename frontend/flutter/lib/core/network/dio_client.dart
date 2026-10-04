@@ -48,7 +48,10 @@ final dioProvider = Provider<Dio>((ref) {
 
   // Order matters: LocalApi (drift-backed) short-circuits before auth/logging
   // fire.
-  if (config.useMockApi) {
+  //
+  // 상수 [kDemoCodeIncluded] 를 먼저 본다 — 운영 릴리스에서는 이 분기 전체가
+  // 컴파일 때 사라져 로컬 API·시드가 번들에 들어가지 않는다(#3157).
+  if (kDemoCodeIncluded && config.useMockApi) {
     // REAL_API 로 켠 기능의 경로는 목업 인터셉터가 가로채지 않고 실 네트워크로
     // 흘려보낸다 — 준비된 기능만 골라 실연동해 보여줄 수 있게(전역 USE_MOCK_API 는
     // 끄는 순간 전 기능이 함께 넘어간다).

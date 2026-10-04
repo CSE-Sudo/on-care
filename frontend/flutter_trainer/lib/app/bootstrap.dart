@@ -50,8 +50,13 @@ Future<void> bootstrap() async {
   // drift-backed local backend. 데모 모드에서만 시드한다(#2914) — drift 를 읽는
   // 저장소가 전부 `useMockApi` 분기 안에서만 만들어져, 실서버 빌드가 시드하면
   // 아무도 읽지 않는 데모 행을 기기에 써 넣기만 한다.
+  //
+  // 시드 함수는 기본 인자로 물려 있어, 상수 [kDemoCodeIncluded] 로 호출 자체를
+  // 감싸야 운영 릴리스 번들에서 시드가 빠진다(#3157).
   final db = AppDatabase();
-  await seedDemoStorage(config, db, prefs, demoLanguage);
+  if (kDemoCodeIncluded) {
+    await seedDemoStorage(config, db, prefs, demoLanguage);
+  }
 
   // 전역 오류 처리기. 보고와 별개로 콘솔에도 남긴다.
   installErrorHandlers(
