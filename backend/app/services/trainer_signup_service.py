@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -30,20 +31,35 @@ class TrainerEmailTaken(Exception):
     """이미 가입된 이메일 — 409."""
 
 
-def register_trainer(db: Session, payload: TrainerRegister) -> User:
+def ensure_email_available(db: Session, email: str) -> None:
+    """이미 가입된 이메일이면 [TrainerEmailTaken].
+
+    스키마가 소문자로 맞춘 값이다. 대소문자만 다른 기존 주소도 같은 이메일(#2816).
+    라우터가 가입 인증 코드를 확인하기 **전에** 부른다(#3038) — 409 가 400 보다 먼저다.
+    """
+    taken = db.scalar(select(User.id).where(func.lower(User.email) == email))
+    if taken is not None:
+        raise TrainerEmailTaken("이미 가입된 이메일입니다.")
+
+
+def register_trainer(
+    db: Session,
+    payload: TrainerRegister,
+    *,
+    email_verified_at: datetime | None = None,
+) -> User:
     """트레이너 계정과 빈 프로필, 가입 동의 기록을 만든다.
 
     계정 생성·프로필 생성을 **한 트랜잭션**으로 커밋한다. 나눠 커밋하면 프로필 없는
-    트레이너가 남아 `/trainer/me` 가 실패한다.
+    트레이너가 남아 `/trainer/me` 가 실패한다. 라우터가 가입 인증 코드를 쓴 것으로
+    표시해 두었다면(#3038) 그 표시도 같은 커밋이다 — 가입이 실패하면 코드도 살아 있다.
     """
-    # 스키마가 소문자로 맞춘 값이다. 대소문자만 다른 기존 주소도 같은 이메일(#2816).
-    taken = db.scalar(select(User.id).where(func.lower(User.email) == payload.email))
-    if taken is not None:
-        raise TrainerEmailTaken("이미 가입된 이메일입니다.")
+    ensure_email_available(db, payload.email)
 
     trainer = User(
         id=f"trainer-{uuid.uuid4().hex[:12]}",
         email=payload.email,
+        email_verified_at=email_verified_at,
         name=payload.name or payload.email.split("@")[0],
         hashed_password=hash_password(payload.password),
         role="trainer",

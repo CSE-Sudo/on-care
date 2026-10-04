@@ -1,4 +1,5 @@
 import 'package:oncare_trainer/core/storage/demo_language.dart';
+import 'package:oncare_trainer/features/auth/data/repositories/signup_email_code_repositories.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
@@ -42,6 +43,7 @@ class MockTrainerAuthRepository implements TrainerAuthRepository {
     required String email,
     required String password,
     required String name,
+    required String emailCode,
     List<String>? consents,
   }) async {
     await Future<void>.delayed(_loginDelay);
@@ -58,8 +60,15 @@ class MockTrainerAuthRepository implements TrainerAuthRepository {
       default:
         throw const AuthException(AuthFailure.passwordWeak);
     }
-    // 데모에는 코드를 검증할 백엔드가 없다. 화면이 기존과 똑같이 동작하도록
-    // 코드는 보지 않고 통과시킨다.
+    // 이메일 인증 코드(#3038) — 서버와 같은 순서·같은 실패다. 메일이 가지 않는
+    // 데모는 정해진 코드 하나만 통과시킨다. 화면은 데모에서 그 코드를 안내한다.
+    final String code = emailCode.trim();
+    if (code.isEmpty) {
+      throw const AuthException(AuthFailure.emailCodeRequired);
+    }
+    if (code != MockSignupEmailCodeRepository.demoCode) {
+      throw const AuthException(AuthFailure.emailCodeInvalid);
+    }
     return _demoTokens('signup');
   }
 

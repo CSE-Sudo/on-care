@@ -287,10 +287,12 @@ def test_trainer_me_response_contract_is_unchanged(client, trainer):
     body = client.get("/v1/trainer/me", headers=_auth(token)).json()
     assert set(body) == {
         "id", "name", "email", "phone", "specialty", "career", "intro",
-        "certifications", "gym", "is_admin",
+        "certifications", "gym", "is_admin", "has_password",
     }
     # 트레이너 웹의 gym 계약 — 필드가 사라지면 화면이 빈다.
     assert set(body["gym"]) == {"id", "name", "address", "hours", "phone"}
+    # 소셜 가입 계정은 비밀번호가 없어 탈퇴 본인 확인 방식이 다르다(#3039).
+    assert body["has_password"] is True
 
 
 def test_affiliated_trainer_shows_up_under_that_gym(client, trainer):

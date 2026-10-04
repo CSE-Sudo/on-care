@@ -48,6 +48,7 @@ class TrainerProfile {
     required this.certifications,
     required this.gym,
     this.isAdmin = false,
+    this.hasPassword = true,
   });
 
   /// Display name (e.g. "김태오").
@@ -83,6 +84,11 @@ class TrainerProfile {
   /// 서버가 `/admin/*` 에서 따로 확인한다. 데모 프로필은 운영자가 아니다.
   final bool isAdmin;
 
+  /// 비밀번호로 로그인할 수 있는 계정인가 — `GET /trainer/me` 의 `has_password`
+  /// (#3039). 소셜로만 가입한 계정은 false 라, 탈퇴 같은 본인 확인을 비밀번호
+  /// 대신 소셜 계정 재로그인으로 받는다. 칸이 없는 서버·데모 프로필은 true 다.
+  final bool hasPassword;
+
   /// Returns a copy with the given fields replaced. Used by 회원가입 to
   /// reflect the submitted name/email on the (otherwise seed) demo profile.
   TrainerProfile copyWith({
@@ -95,6 +101,7 @@ class TrainerProfile {
     List<String>? certifications,
     TrainerGym? gym,
     bool? isAdmin,
+    bool? hasPassword,
   }) {
     return TrainerProfile(
       name: name ?? this.name,
@@ -106,6 +113,7 @@ class TrainerProfile {
       certifications: certifications ?? this.certifications,
       gym: gym ?? this.gym,
       isAdmin: isAdmin ?? this.isAdmin,
+      hasPassword: hasPassword ?? this.hasPassword,
     );
   }
 }

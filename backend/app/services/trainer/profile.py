@@ -135,6 +135,7 @@ def build_trainer_me(trainer: User, profile: TrainerProfile) -> TrainerMe:
             phone=profile.gym_phone,
         ),
         is_admin=bool(trainer.is_admin),
+        has_password=bool(trainer.hashed_password),
     )
 
 

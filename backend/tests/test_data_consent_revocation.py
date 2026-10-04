@@ -411,7 +411,10 @@ def test_member_withdrawal_leaves_no_consent_behind(client, db_session):
     """탈퇴하면 링크 행이 계정과 함께 지워진다 — 남는 동의가 없다."""
     member_id, member_token, trainer_id, _ = _linked(client, db_session)
 
-    response = client.request("DELETE", "/v1/users/me", headers=_auth(member_token))
+    response = client.request(
+        "DELETE", "/v1/users/me", json={"current_password": PASSWORD},
+        headers=_auth(member_token),
+    )
 
     assert response.status_code == 200, response.text
     db_session.expire_all()
@@ -429,6 +432,7 @@ def test_trainer_withdrawal_leaves_no_consent_behind(client, db_session):
     response = client.request(
         "DELETE",
         "/v1/trainer/me",
+        json={"current_password": PASSWORD},
         headers=_auth(trainer_token),
     )
 
@@ -833,7 +837,10 @@ def test_trainer_withdrawal_removes_the_memos(client, db_session):
     member_id, _, trainer_id, trainer_token = _linked(client, db_session)
     memo_ids = _memos_of_every_source(db_session, trainer_id, member_id)
 
-    response = client.request("DELETE", "/v1/trainer/me", headers=_auth(trainer_token))
+    response = client.request(
+        "DELETE", "/v1/trainer/me", json={"current_password": PASSWORD},
+        headers=_auth(trainer_token),
+    )
 
     assert response.status_code == 200, response.text
     db_session.expire_all()
@@ -846,7 +853,10 @@ def test_member_withdrawal_removes_the_memos(client, db_session):
     member_id, member_token, trainer_id, _ = _linked(client, db_session)
     memo_ids = _memos_of_every_source(db_session, trainer_id, member_id)
 
-    response = client.request("DELETE", "/v1/users/me", headers=_auth(member_token))
+    response = client.request(
+        "DELETE", "/v1/users/me", json={"current_password": PASSWORD},
+        headers=_auth(member_token),
+    )
 
     assert response.status_code == 200, response.text
     db_session.expire_all()

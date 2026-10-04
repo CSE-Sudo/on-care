@@ -16,6 +16,14 @@ enum AuthFailure {
 
   /// 서버가 가입 비밀번호를 너무 길다고 거절했다 — 64자·UTF-8 72바이트(#1555).
   passwordTooLong,
+
+  /// 이메일 인증 코드가 틀렸거나, 만료됐거나, 이미 쓰였다(400
+  /// `invalid_email_code`, #3038). 어느 쪽인지 서버도 밝히지 않는다 — 코드를
+  /// 다시 받으면 된다.
+  emailCodeInvalid,
+
+  /// 가입 요청에 인증 코드가 없었다(422 `email_code_required`, #3038).
+  emailCodeRequired,
   sessionExpired,
   noSocialToken,
   emptyCredentials,
@@ -75,10 +83,15 @@ abstract class TrainerAuthRepository {
   /// 트랜잭션으로 남기고, 필수 항목이 빠졌으면 계정을 만들지 않고 422 를 준다.
   /// 넘기지 않으면(null) 칸을 싣지 않는다 — 계정은 동의 기록 없이 만들어지고
   /// 로그인 직후 동의 화면을 거친다.
+  ///
+  /// [emailCode] 는 `POST /auth/register/email-code`(목적 `trainer_signup`)로
+  /// 그 이메일 앞으로 받은 6자리 코드다(#3038). 틀리거나 만료되면
+  /// [AuthFailure.emailCodeInvalid], 비었으면 [AuthFailure.emailCodeRequired].
   Future<TrainerAuthTokens> register({
     required String email,
     required String password,
     required String name,
+    required String emailCode,
     List<String>? consents,
   });
 
@@ -135,6 +148,8 @@ String authFailureText(AppLocalizations l, AuthException e) {
     AuthFailure.emailTaken => l.authErrEmailTaken,
     AuthFailure.passwordWeak => l.authErrPasswordWeak,
     AuthFailure.passwordTooLong => l.authErrPasswordTooLong,
+    AuthFailure.emailCodeInvalid => l.signUpCodeInvalid,
+    AuthFailure.emailCodeRequired => l.signUpCodeRequired,
     AuthFailure.sessionExpired => l.authErrSessionExpired,
     AuthFailure.noSocialToken => l.authErrNoSocialToken,
     AuthFailure.emptyCredentials => l.authErrEmptyCredentials,

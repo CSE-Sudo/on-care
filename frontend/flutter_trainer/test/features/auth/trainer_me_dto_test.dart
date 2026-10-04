@@ -86,5 +86,29 @@ void main() {
       expect(profile.copyWith(name: '새 이름').isAdmin, isTrue);
       expect(profile.copyWith(isAdmin: false).isAdmin, isFalse);
     });
+
+    // 소셜로만 가입한 계정은 탈퇴 본인 확인을 소셜 재로그인으로 받는다(#3039).
+    test('reads has_password, defaulting to true when absent', () {
+      expect(
+        trainerProfileFromJson(<String, Object?>{
+          'has_password': false,
+        }).hasPassword,
+        isFalse,
+      );
+      expect(
+        trainerProfileFromJson(<String, Object?>{
+          'has_password': true,
+        }).hasPassword,
+        isTrue,
+      );
+      // 칸이 없는 옛 서버·잘못된 값은 서버 기본값(true)과 같게 읽는다.
+      expect(trainerProfileFromJson(<String, Object?>{}).hasPassword, isTrue);
+      expect(
+        trainerProfileFromJson(<String, Object?>{
+          'has_password': 'no',
+        }).hasPassword,
+        isTrue,
+      );
+    });
   });
 }
