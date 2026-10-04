@@ -6160,4 +6160,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get releaseUpdateDismiss => 'Dismiss';
+
+  @override
+  String get errorNetworkUnstable =>
+      'The connection is unstable. Please check your network and try again.';
+
+  @override
+  String get errorServerTemporary =>
+      'The server is having a temporary problem. Please try again in a moment.';
 }

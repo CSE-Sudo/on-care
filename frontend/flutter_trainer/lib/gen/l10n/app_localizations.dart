@@ -10004,6 +10004,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dismiss'**
   String get releaseUpdateDismiss;
+
+  /// Shown in error toasts and error states when a request failed because of a network error or timeout, instead of the HTTP library's own English message.
+  ///
+  /// In en, this message translates to:
+  /// **'The connection is unstable. Please check your network and try again.'**
+  String get errorNetworkUnstable;
+
+  /// Shown in error toasts and error states when the server answered with a 5xx status and gave no reason of its own.
+  ///
+  /// In en, this message translates to:
+  /// **'The server is having a temporary problem. Please try again in a moment.'**
+  String get errorServerTemporary;
 }
 
 class _AppLocalizationsDelegate
