@@ -97,6 +97,49 @@ void main() {
     expect(low.balance, 0);
   });
 
+  group('잔액이 모자라 덜 회수된 적립은 그날 한도 칸을 지킨다 (#3084)', () {
+    late DemoPointsLedger fresh;
+
+    setUp(() {
+      fresh = DemoPointsLedger(openingBalance: 0, now: () => now);
+      for (int i = 0; i < 3; i++) {
+        fresh.award(PointsRule.exerciseManual, 'ex-$i');
+      }
+    });
+
+    test('0P 회수는 칸을 풀지 않는다', () {
+      expect(fresh.spend('coupon-1', 60, reason: 'coupon_locker'), isTrue);
+      expect(fresh.revoke(PointsRule.exerciseManual.sourceType, 'ex-0'), 0);
+      expect(fresh.award(PointsRule.exerciseManual, 'ex-3').awarded, 0);
+    });
+
+    test('일부 회수(잔액 10P, 적립 20P)도 칸을 풀지 않는다', () {
+      expect(fresh.spend('coupon-1', 50, reason: 'coupon_locker'), isTrue);
+      expect(fresh.revoke(PointsRule.exerciseManual.sourceType, 'ex-0'), 10);
+      expect(fresh.balance, 0);
+      expect(fresh.award(PointsRule.exerciseManual, 'ex-3').awarded, 0);
+    });
+
+    test('쓰고 → 지우고 → 다시 기록해도 하루 적립은 한도를 넘지 않는다', () {
+      expect(fresh.spend('coupon-1', 50, reason: 'coupon_locker'), isTrue);
+      for (int i = 0; i < 3; i++) {
+        fresh.revoke(PointsRule.exerciseManual.sourceType, 'ex-$i');
+      }
+      expect(
+        <int>[
+          for (int i = 3; i < 6; i++)
+            fresh.award(PointsRule.exerciseManual, 'ex-$i').awarded,
+        ],
+        <int>[0, 0, 0],
+      );
+    });
+
+    test('전액 회수는 지금처럼 칸을 푼다', () {
+      expect(fresh.revoke(PointsRule.exerciseManual.sourceType, 'ex-0'), 20);
+      expect(fresh.award(PointsRule.exerciseManual, 'ex-3').awarded, 20);
+    });
+  });
+
   test('응답의 points 를 읽는다 — 없거나 모양이 다르면 null', () {
     final PointsAward? award = PointsAward.fromJson(<String, Object?>{
       'awarded': 20,

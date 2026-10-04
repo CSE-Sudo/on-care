@@ -124,7 +124,7 @@ class DemoPointsLedger implements DemoPersistable {
     }
     final String day = wireDate(_now());
     final int live = _earned.values
-        .where((_Earned e) => e.rule == rule && e.day == day && !e.revoked)
+        .where((_Earned e) => e.rule == rule && e.day == day && !e.slotFreed)
         .length;
     if (live >= rule.dailyCap) {
       return PointsAward(awarded: 0, balance: _balance);
@@ -152,6 +152,7 @@ class DemoPointsLedger implements DemoPersistable {
     if (existing == null || existing.revoked) return 0;
     final int taken = math.min(existing.delta, math.max(_balance, 0));
     existing.revoked = true;
+    existing.slotFreed = taken == existing.delta;
     _balance -= taken;
     _log('revoke', _reasonOf(existing.rule), -taken);
     _changed();
@@ -320,6 +321,10 @@ class _Earned {
   final String day;
   final int delta;
   bool revoked = false;
+
+  /// 전액 회수돼 그날 한도 칸을 돌려줬는가(#3084). 잔액이 모자라 0P·일부만
+  /// 회수됐으면 칸은 그대로 — 서버 `_live_awards_on` 과 같은 규칙.
+  bool slotFreed = false;
 
   int get liveDelta => revoked ? 0 : delta;
 }
