@@ -27,6 +27,14 @@ ExerciseDayTotals _exercise(
   byType: Map<String, int>.of(byType),
 );
 
+/// 데모 생산자(`LocalApiInterceptor`)가 내려보내는 것과 같은
+/// [exercisePeriodAdviceOf] 의 한국어 문장.
+String _message(
+  List<ExerciseDayTotals> days,
+  String period, {
+  List<RoutineAdviceDay> routineDays = const <RoutineAdviceDay>[],
+}) => exercisePeriodAdviceOf(days, period, routineDays: routineDays).message;
+
 void main() {
   group('운동', () {
     test('기록이 없으면 기간마다 다른 안내를 남긴다', () {
@@ -36,13 +44,13 @@ void main() {
           kPeriodWeek,
           kPeriodAll,
         ])
-          exercisePeriodAdvice(const <ExerciseDayTotals>[], period),
+          _message(const <ExerciseDayTotals>[], period),
       };
       expect(messages.length, 3);
     });
 
     test('오늘은 그날 한 운동과 소모 칼로리를 말한다', () {
-      final String today = exercisePeriodAdvice(<ExerciseDayTotals>[
+      final String today = _message(<ExerciseDayTotals>[
         _exercise('2026-08-27', minutes: 45, calories: 400),
       ], kPeriodToday);
       expect(today, contains('45분'));
@@ -56,12 +64,12 @@ void main() {
         _exercise('2026-08-25'),
         _exercise('2026-08-26'),
       ];
-      final String week = exercisePeriodAdvice(cardioOnly, kPeriodWeek);
+      final String week = _message(cardioOnly, kPeriodWeek);
       expect(week, contains('유산소'));
       expect(week, contains('근력'));
-      expect(week, isNot(exercisePeriodAdvice(cardioOnly, kPeriodToday)));
+      expect(week, isNot(_message(cardioOnly, kPeriodToday)));
 
-      final String mixed = exercisePeriodAdvice(<ExerciseDayTotals>[
+      final String mixed = _message(<ExerciseDayTotals>[
         _exercise('2026-08-24'),
         _exercise('2026-08-25', byType: <String, int>{'strength': 30}),
         _exercise('2026-08-26', byType: <String, int>{'stretching': 30}),
@@ -82,19 +90,19 @@ void main() {
             minutes: 60,
           ),
       ];
-      expect(exercisePeriodAdvice(days, kPeriodAll), contains('최근 4주'));
+      expect(_message(days, kPeriodAll), contains('최근 4주'));
     });
 
     test('조언은 짧다 — 카드 한 줄 반을 넘기지 않는다', () {
       final List<String> messages = <String>[
-        exercisePeriodAdvice(<ExerciseDayTotals>[
+        _message(<ExerciseDayTotals>[
           _exercise('2026-08-27', minutes: 45, calories: 400),
         ], kPeriodToday),
-        exercisePeriodAdvice(<ExerciseDayTotals>[
+        _message(<ExerciseDayTotals>[
           _exercise('2026-08-24'),
           _exercise('2026-08-25'),
         ], kPeriodWeek),
-        exercisePeriodAdvice(const <ExerciseDayTotals>[], kPeriodWeek),
+        _message(const <ExerciseDayTotals>[], kPeriodWeek),
       ];
       for (final String message in messages) {
         expect(message.length, lessThanOrEqualTo(45), reason: message);
@@ -230,9 +238,9 @@ void main() {
       final List<ExerciseDayTotals> days = <ExerciseDayTotals>[
         _exercise('2026-09-23'),
       ];
-      final String recordAdvice = exercisePeriodAdvice(days, kPeriodToday);
+      final String recordAdvice = _message(days, kPeriodToday);
       expect(
-        exercisePeriodAdvice(
+        _message(
           days,
           kPeriodToday,
           routineDays: <RoutineAdviceDay>[
@@ -245,7 +253,7 @@ void main() {
         recordAdvice,
       );
       expect(
-        exercisePeriodAdvice(
+        _message(
           days,
           kPeriodToday,
           routineDays: <RoutineAdviceDay>[

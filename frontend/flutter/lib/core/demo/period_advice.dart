@@ -171,13 +171,6 @@ ExerciseAdvice exercisePeriodAdviceOf(
   });
 }
 
-/// [exercisePeriodAdviceOf] 의 한국어 문장.
-String exercisePeriodAdvice(
-  List<ExerciseDayTotals> days,
-  String period, {
-  List<RoutineAdviceDay> routineDays = const <RoutineAdviceDay>[],
-}) => exercisePeriodAdviceOf(days, period, routineDays: routineDays).message;
-
 // --- 추천 개인운동 기준 조언 (#2162) ------------------------------------------
 //
 // 서버 `routine_advice.py` 의 재현이다. 규칙도 문장도 서버가 원본이고, 두 쪽이
