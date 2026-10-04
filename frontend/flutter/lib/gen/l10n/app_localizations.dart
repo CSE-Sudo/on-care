@@ -3719,7 +3719,7 @@ abstract class AppLocalizations {
   /// No description provided for @myNotifExercise.
   ///
   /// In en, this message translates to:
-  /// **'Exercise reminder'**
+  /// **'Workout routines'**
   String get myNotifExercise;
 
   /// No description provided for @myNotifTrainer.
@@ -3731,8 +3731,32 @@ abstract class AppLocalizations {
   /// No description provided for @myNotifWeeklyReport.
   ///
   /// In en, this message translates to:
-  /// **'Weekly report'**
+  /// **'Trainer weekly report'**
   String get myNotifWeeklyReport;
+
+  /// No description provided for @myNotifExerciseDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When your trainer sends a workout routine or program'**
+  String get myNotifExerciseDesc;
+
+  /// No description provided for @myNotifTrainerDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When your trainer sends you a chat message'**
+  String get myNotifTrainerDesc;
+
+  /// No description provided for @myNotifWeeklyReportDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When your trainer sends your weekly report'**
+  String get myNotifWeeklyReportDesc;
+
+  /// No description provided for @myNotifAlwaysSent.
+  ///
+  /// In en, this message translates to:
+  /// **'PT session bookings, changes and cancellations, and trainer connect or disconnect notices are always sent'**
+  String get myNotifAlwaysSent;
 
   /// No description provided for @mySupportFaq.
   ///

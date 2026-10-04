@@ -191,6 +191,32 @@ def test_the_member_sees_the_invite_and_gets_a_notification(client, db_session):
     )
 
 
+def test_the_invite_notification_ignores_the_member_switches(client, db_session):
+    """담당 요청 알림은 끌 수 없다 — 스위치를 다 꺼도 온다(#3024).
+
+    알림을 `queue()` 경로로 옮겨도 요청을 가리키는 `invite_id` 는 그대로 남는다.
+    """
+    _, trainer_token = _trainer(client, db_session)
+    member_id, _, member_token = _member(client)
+    switched = client.put(
+        "/v1/users/me/notification-settings",
+        headers=_auth(member_token),
+        json={
+            "exercise_reminder": False,
+            "trainer_message": False,
+            "weekly_report": False,
+        },
+    )
+    assert switched.status_code == 200, switched.text
+
+    invite_id = _invite(client, trainer_token, member_id)
+
+    alerts = client.get("/v1/notifications", headers=_auth(member_token)).json()
+    alert = next(a for a in alerts if a["invite_id"] == invite_id)
+    assert alert["category"] == "coach_invite"
+    assert alert["title"] == "담당 요청이 도착했어요"
+
+
 def test_accepting_creates_the_link_and_the_roster_row(client, db_session):
     trainer, trainer_token = _trainer(client, db_session)
     member_id, _, member_token = _member(client)
