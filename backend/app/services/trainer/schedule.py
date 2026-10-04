@@ -695,12 +695,18 @@ def preview_recurring_sessions(
     count: int | None = None,
     until: str | None = None,
     duration_minutes: int = 0,
-) -> tuple[list[str], list[ScheduleSessionOut]]:
-    """저장 전에 보여 줄 (생성될 날짜들, 겹치는 기존 세션들).
+    client_request_id: str | None = None,
+) -> tuple[list[str], list[ScheduleSessionOut], bool]:
+    """저장 전에 보여 줄 (생성될 날짜들, 겹치는 기존 세션들, 이미 만들어졌는지).
 
     만들기 전에 확인시키는 까닭은 반복이 **한 번에 여러 건**을 만들기 때문이다.
     요일이나 종료일을 잘못 골랐을 때 되돌리는 비용이 한 건씩 지우는 일이라,
     그 전에 보여 주는 편이 싸다.
+
+    [client_request_id] 는 만들기와 같은 키다. 그 키의 시리즈가 이미 있으면 —
+    만들기는 커밋됐는데 응답만 잃은 재시도 — 그 회차들을 충돌에서 빼고
+    `already_created` 를 참으로 돌려준다. 빼지 않으면 방금 만든 자기 회차와
+    겹친다고 막혀, 같은 키로 만들기를 다시 불러 결과를 받는 길이 끊긴다(#3102).
     """
     dates = series_occurrences(
         date.fromisoformat(start),
@@ -709,12 +715,25 @@ def preview_recurring_sessions(
         until=None if until is None else date.fromisoformat(until),
     )
     iso = [day.isoformat() for day in dates]
-    return iso, conflicting_sessions(
+    own_ids: list[str] = []
+    if client_request_id:
+        own_ids = list(
+            db.scalars(
+                select(TrainerSchedule.id).where(
+                    TrainerSchedule.trainer_id == trainer_id,
+                    TrainerSchedule.series_id
+                    == _series_id_for(trainer_id, client_request_id),
+                )
+            ).all()
+        )
+    conflicts = conflicting_sessions(
         db,
         trainer_id,
         [(day, time) for day in iso],
         duration_minutes=duration_minutes,
+        exclude_ids=own_ids,
     )
+    return iso, conflicts, bool(own_ids)
 
 
 def create_recurring_sessions(

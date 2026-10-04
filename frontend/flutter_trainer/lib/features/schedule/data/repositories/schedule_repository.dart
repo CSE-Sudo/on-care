@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -203,11 +204,16 @@ abstract interface class ScheduleRepository {
   ///
   /// [durationMinutes] 는 회차 하나의 길이다. 겹침은 시작 시각이 아니라 시간
   /// 구간으로 본다(#2284).
+  ///
+  /// [clientRequestId] 는 [addRecurringSessions] 에 보낼 것과 같은 키다. 그
+  /// 키로 이미 만들어진 회차는 충돌에서 빼고 `alreadyCreated` 로 알린다 —
+  /// 응답만 잃은 재시도가 방금 만든 자기 회차와 겹친다고 막히지 않게(#3102).
   Future<RecurrencePreview> previewRecurring({
     required DateTime start,
     required String time,
     required WeeklyRecurrence rule,
     int durationMinutes = 0,
+    String? clientRequestId,
   });
 
   /// 반복 규칙대로 회차를 한 번에 만든다. (#870)
@@ -1329,15 +1335,59 @@ class DriftScheduleRepository implements ScheduleRepository {
         .write(values);
   }
 
+  /// 같은 시도(멱등키 [clientRequestId])가 만든 회차 id 의 머리. 실서버의
+  /// `series_id`(키에서 만든 결정론적 값) 자리다 — 데모 표에는 그 칸이 없어
+  /// id 에 싣는다. 뒤에 회차 순번이 붙는다(#3102).
+  static String _seriesIdPrefix(String clientRequestId) =>
+      'sched-s.$clientRequestId.';
+
+  /// 키 없이 만드는 회차의 id — 실서버와 같은 `sched-` + 무작위 12자리다.
+  /// 날짜·시각에서 만들면 같은 자리의 취소·노쇼·옮긴 행과 id 가 겹쳐 저장이
+  /// 기본키 충돌로 실패했다(#3102).
+  static String _randomSessionId() {
+    final Random rng = Random.secure();
+    final StringBuffer buffer = StringBuffer('sched-');
+    for (int i = 0; i < 12; i++) {
+      buffer.write(rng.nextInt(16).toRadixString(16));
+    }
+    return buffer.toString();
+  }
+
+  /// [clientRequestId] 시도가 이미 만든 회차(날짜·시각 순).
+  Future<List<TrainerScheduleRow>> _seriesRows(String clientRequestId) async {
+    final prefix = _seriesIdPrefix(clientRequestId);
+    final rows = await (_db.select(
+      _db.trainerScheduleEntries,
+    )..where((t) => t.id.like('sched-s.%'))).get();
+    // LIKE 의 와일드카드가 키에 섞여도 다른 시도의 회차를 줍지 않게 머리와
+    // 순번을 직접 확인한다.
+    return <TrainerScheduleRow>[
+      for (final row in rows)
+        if (row.id.startsWith(prefix) &&
+            int.tryParse(row.id.substring(prefix.length)) != null)
+          row,
+    ]..sort((a, b) {
+      final byDate = a.date.compareTo(b.date);
+      return byDate != 0 ? byDate : a.time.compareTo(b.time);
+    });
+  }
+
   @override
   Future<RecurrencePreview> previewRecurring({
     required DateTime start,
     required String time,
     required WeeklyRecurrence rule,
     int durationMinutes = 0,
+    String? clientRequestId,
   }) async {
     final dates = seriesOccurrences(start, rule);
     final wanted = dates.map(ymd).toSet();
+    // 같은 시도가 이미 만든 회차는 충돌이 아니다 — 실서버와 같은 규칙(#3102).
+    final Set<String> ownIds = clientRequestId == null
+        ? const <String>{}
+        : <String>{
+            for (final row in await _seriesRows(clientRequestId)) row.id,
+          };
     // 취소·노쇼 자리는 겹침이 아니다 — 그 시간은 비어 있다(#871).
     final rows =
         await (_db.select(_db.trainerScheduleEntries)..where(
@@ -1354,14 +1404,16 @@ class DriftScheduleRepository implements ScheduleRepository {
       dates: dates,
       conflicts: <ScheduleSession>[
         for (final row in rows)
-          if (timeRangesOverlap(
-            row.time,
-            row.durationMinutes,
-            time,
-            durationMinutes,
-          ))
+          if (!ownIds.contains(row.id) &&
+              timeRangesOverlap(
+                row.time,
+                row.durationMinutes,
+                time,
+                durationMinutes,
+              ))
             _toEntity(row),
       ],
+      alreadyCreated: ownIds.isNotEmpty,
     );
   }
 
@@ -1377,6 +1429,14 @@ class DriftScheduleRepository implements ScheduleRepository {
     String note = '',
     String? clientRequestId,
   }) async {
+    // 같은 키의 재시도는 새로 만들지 않고 그 시도가 만든 회차를 돌려준다 —
+    // 실서버 `create_recurring_sessions` 의 멱등 규칙과 같다(#3102).
+    if (clientRequestId != null) {
+      final existing = await _seriesRows(clientRequestId);
+      if (existing.isNotEmpty) {
+        return <ScheduleSession>[for (final row in existing) _toEntity(row)];
+      }
+    }
     final preview = await previewRecurring(
       start: start,
       time: time,
@@ -1391,9 +1451,11 @@ class DriftScheduleRepository implements ScheduleRepository {
     // '전부 아니면 전무' 와 어긋나면, 데모에서 확인한 동작이 거짓이 된다.
     final created = <ScheduleSession>[];
     await _db.transaction(() async {
-      for (final day in preview.dates) {
+      for (final (index, day) in preview.dates.indexed) {
         final companion = TrainerScheduleEntriesCompanion.insert(
-          id: 'sched-${day.millisecondsSinceEpoch}-${time.hashCode}',
+          id: clientRequestId == null
+              ? _randomSessionId()
+              : '${_seriesIdPrefix(clientRequestId)}$index',
           date: ymd(day),
           time: time,
           clientId: Value(clientId),

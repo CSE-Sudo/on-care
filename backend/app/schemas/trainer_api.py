@@ -1705,6 +1705,10 @@ class ScheduleRecurringPreviewOut(BaseModel):
     dates: list[str]
     #: 그 자리에 이미 있는 세션. 비어 있지 않으면 생성은 409 로 막힌다.
     conflicts: list[ScheduleSessionOut]
+    #: 같은 `client_request_id` 로 이미 만들어진 시리즈가 있다(응답만 잃은 재시도).
+    #: 그 회차는 `conflicts` 에서 빠진다 — 같은 키로 만들기를 다시 부르면 그
+    #: 회차들을 그대로 돌려받는다. (#3102)
+    already_created: bool = False
 
 
 class ProgramScheduleRequest(BaseModel):
