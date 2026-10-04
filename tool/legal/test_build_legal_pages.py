@@ -92,6 +92,12 @@ class ContactTest(unittest.TestCase):
     def test_repository_contact_is_read(self) -> None:
         self.assertIn("@", blp.read_contact())
 
+    def test_repository_contact_is_not_a_demo_domain(self) -> None:
+        # 공개 페이지가 싣는 연락처는 팀이 메일을 받는 주소다(#3132).
+        contact = blp.read_contact()
+        self.assertFalse(blp.is_demo_contact(contact), contact)
+        self.assertEqual(contact, "sudo.capstone@gmail.com")
+
 
 def _fake_repo(root: Path, *, contact: str = "dpo@team.example") -> None:
     """생성기가 읽는 파일만 가진 작은 저장소."""
@@ -238,6 +244,20 @@ class RepositoryPagesTest(unittest.TestCase):
     def test_check_passes_on_the_repository(self) -> None:
         with redirect_stdout(io.StringIO()):
             self.assertEqual(blp.main(["--check"]), 0)
+
+    def test_check_leaves_no_demo_contact_warning(self) -> None:
+        # 운영 연락처로 바꾼 뒤에는 `--check` 가 데모 도메인 경고를 찍지 않는다(#3132).
+        out = io.StringIO()
+        with redirect_stdout(out):
+            self.assertEqual(blp.main(["--check"]), 0)
+        self.assertNotIn("::warning", out.getvalue())
+
+    def test_published_privacy_page_carries_the_team_contact(self) -> None:
+        privacy = (blp.OUT_DIR / "privacy.html").read_text(encoding="utf-8")
+        self.assertEqual(
+            privacy.count('href="mailto:sudo.capstone@gmail.com"'), len(blp.SOURCES)
+        )
+        self.assertNotIn("@oncare.com", privacy)
 
     def test_every_source_document_is_published(self) -> None:
         pages = blp.build()

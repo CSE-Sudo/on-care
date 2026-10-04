@@ -97,12 +97,12 @@ DB 복구용 기록(Neon 의 복원 기간)에 남은 사본은 그 기간이 �
 처리방침에는 개인 성명 대신 직책(On-Care 서비스 운영팀 개인정보 보호책임자)과 연락처를 적는다.
 연락처는 **한 곳**, `shared/oncare_core/lib/legal_contact.dart` 의 `LegalContact.privacyOfficerEmail`
 에서만 정한다(#3005). 네 ARB 의 처리방침 본문은 `{contact}` 자리표시자를 쓰고, 두 앱과 공개 페이지
-생성기가 모두 이 상수로 채운다. 지금 값 `support@oncare.com` 은 데모 도메인이라 운영 주소가 정해질 때까지
-임시다 — 생성기가 데모 도메인이면 경고를 낸다.
+생성기가 모두 이 상수로 채운다. 지금 값은 팀이 메일을 직접 받는 `sudo.capstone@gmail.com` 이다(#3132).
+예전 값은 데모 시드 전용 도메인이라 메일을 받지 못했다 — 생성기는 값이 데모 도메인이면 경고를 낸다.
 
 ## 6. 확정이 필요한 값 (#480)
 
-- [ ] 운영 연락처(수신 확인된 주소)를 정해 `LegalContact.privacyOfficerEmail` 한 곳을 바꾸고 공개 페이지를 다시 만든다.
+- [x] 운영 연락처(수신 확인된 주소)를 정해 `LegalContact.privacyOfficerEmail` 한 곳을 바꾸고 공개 페이지를 다시 만든다. (#3132, `sudo.capstone@gmail.com`)
 - [ ] 보호책임자 성명(또는 직책)을 운영 주체가 정해지면 확정한다.
 - [ ] 백엔드·S3·Neon 최종 리전(현재 싱가포르). 바뀌면 1절과 처리방침 7항의 국가를 고친다.
 - [ ] Sentry 데이터 보관 지역(미국/EU)과 보관 기간 — `SENTRY_DSN` 을 만들 때 정해진다.

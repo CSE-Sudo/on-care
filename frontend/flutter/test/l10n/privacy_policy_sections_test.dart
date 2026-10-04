@@ -268,6 +268,44 @@ void main() {
       );
     });
 
+    test('보호책임자 연락처 변경이 개정 이력의 맨 위에 있다 (#3132)', () {
+      final String k = ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
+      final String e = en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
+      expect(k, contains('- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경'));
+      expect(
+        e,
+        contains(
+          '- 5 October 2026: changed the contact address of the personal '
+          'information protection officer',
+        ),
+      );
+      // 새 항목이 옛 항목보다 앞에 온다 — 개정 이력은 최신순이다.
+      expect(k.indexOf('2026년 10월 5일:'), lessThan(k.indexOf('2026년 10월 3일:')));
+      expect(
+        e.indexOf('5 October 2026:'),
+        lessThan(e.indexOf('3 October 2026:')),
+      );
+    });
+
+    test('보호책임자 연락처가 팀 수신 주소로 채워진다 (#3132)', () {
+      expect(LegalContact.privacyOfficerEmail, 'sudo.capstone@gmail.com');
+      expect(
+        ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+        contains('연락처: sudo.capstone@gmail.com'),
+      );
+      expect(
+        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+        contains('Contact: sudo.capstone@gmail.com'),
+      );
+      for (final String body in <String>[
+        ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      ]) {
+        expect(body, isNot(contains('{contact}')));
+        expect(body, isNot(contains('@oncare.com')));
+      }
+    });
+
     test('약관의 시행일도 자리표시자가 아니다 — 처리방침과 따로 간다', () {
       expect(ko.myLegalTermsBody, contains('2026년 10월 3일부터 시행'));
       expect(ko.myLegalTermsEffectiveDate, '시행일 2026. 10. 03.');
@@ -324,9 +362,26 @@ void main() {
           scrollable: find.byType(Scrollable).first,
         );
         expect(find.text(l.myLegalPrivacyEffectiveDate), findsOneWidget);
-        // 약관 개정(#3006)으로 두 문서의 시행일이 같은 날이 됐다 — 본문으로 구분한다.
         expect(find.text(l.myLegalTermsBody), findsNothing);
         expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('[$tag] 처리방침 화면이 연락처 자리에 팀 수신 주소를 채운다 (#3132)', (
+        WidgetTester tester,
+      ) async {
+        await tester.binding.setSurfaceSize(const Size(390, 844));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await tester.pumpWidget(app(locale, 'privacy'));
+        await tester.pumpAndSettle();
+
+        final String shown = tester
+            .widget<Text>(
+              find.text(l.myLegalPrivacyBody(LegalContact.privacyOfficerEmail)),
+            )
+            .data!;
+        expect(shown, contains('sudo.capstone@gmail.com'));
+        expect(shown, isNot(contains('{contact}')));
+        expect(shown, isNot(contains('@oncare.com')));
       });
 
       testWidgets('[$tag] 약관 화면은 약관 시행일을 단다', (WidgetTester tester) async {
@@ -341,7 +396,7 @@ void main() {
           scrollable: find.byType(Scrollable).first,
         );
         expect(find.text(l.myLegalTermsEffectiveDate), findsOneWidget);
-        // 두 문서의 시행일이 같아(#3006) 날짜 대신 본문으로 약관 화면임을 본다.
+        // 날짜만으로 문서를 가리지 않는다 — 본문으로 약관 화면임을 본다.
         expect(find.text(l.myLegalTermsBody), findsOneWidget);
         expect(
           find.text(l.myLegalPrivacyBody(LegalContact.privacyOfficerEmail)),
