@@ -1754,6 +1754,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t send the photo. Please try again'**
   String get chatImageSendFailed;
 
+  /// No description provided for @chatImageAlreadySent.
+  ///
+  /// In en, this message translates to:
+  /// **'An earlier send of this photo already went through. Please check the conversation.'**
+  String get chatImageAlreadySent;
+
   /// No description provided for @clientTabDiet.
   ///
   /// In en, this message translates to:

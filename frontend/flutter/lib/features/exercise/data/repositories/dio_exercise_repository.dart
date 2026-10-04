@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import 'package:oncare/core/advice/exercise_advice.dart';
+import 'package:oncare/core/network/retry_request_keys.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
@@ -12,6 +13,10 @@ import 'package:oncare_ui/oncare_ui.dart';
 class DioExerciseRepository implements ExerciseRepository {
   DioExerciseRepository(this._dio);
   final Dio _dio;
+
+  /// 운동 기록 추가의 멱등키(#3095). 저장 응답을 잃고 같은 목록을 다시 보내면
+  /// 같은 키라 서버가 처음 결과를 돌려준다. 목록을 고치면 새 키다.
+  final RetryRequestKeys _addKeys = RetryRequestKeys('exercise');
 
   @override
   Future<ExerciseWeek> fetchThisWeek() async {
@@ -86,27 +91,30 @@ class DioExerciseRepository implements ExerciseRepository {
   Future<ExerciseSessionsAdded> addSessions(
     List<ExerciseSessionDraft> drafts,
   ) async {
+    final List<Map<String, Object?>> sessions = <Map<String, Object?>>[
+      for (final ExerciseSessionDraft d in drafts)
+        _sessionBody(
+          type: d.type,
+          minutes: d.minutes,
+          calories: d.calories,
+          date: d.date,
+          name: d.name,
+          intensity: d.intensity,
+          sets: d.sets,
+          reps: d.reps,
+          holdSeconds: d.holdSeconds,
+          durationSeconds: d.durationSeconds,
+          weight: d.weight,
+        ),
+    ];
     final res = await _dio.post<Map<String, Object?>>(
       '/exercise/sessions',
       data: <String, Object?>{
-        'sessions': <Map<String, Object?>>[
-          for (final ExerciseSessionDraft d in drafts)
-            _sessionBody(
-              type: d.type,
-              minutes: d.minutes,
-              calories: d.calories,
-              date: d.date,
-              name: d.name,
-              intensity: d.intensity,
-              sets: d.sets,
-              reps: d.reps,
-              holdSeconds: d.holdSeconds,
-              durationSeconds: d.durationSeconds,
-              weight: d.weight,
-            ),
-        ],
+        'sessions': sessions,
+        'client_request_id': _addKeys.keyFor(sessions),
       },
     );
+    _addKeys.clear();
     return ExerciseSessionsAdded.fromJson(res.data!);
   }
 

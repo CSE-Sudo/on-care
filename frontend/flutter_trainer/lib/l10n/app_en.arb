@@ -577,6 +577,7 @@
   "chatAttachImage": "Attach a photo",
   "chatImageUnavailable": "Couldn't load the photo",
   "chatImageSendFailed": "Couldn't send the photo. Please try again",
+  "chatImageAlreadySent": "An earlier send of this photo already went through. Please check the conversation.",
   "clientTabDiet": "Meals",
   "clientTabWorkout": "Workouts",
   "clientNotFound": "Member not found",

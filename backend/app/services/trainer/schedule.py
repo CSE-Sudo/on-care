@@ -695,12 +695,18 @@ def preview_recurring_sessions(
     count: int | None = None,
     until: str | None = None,
     duration_minutes: int = 0,
-) -> tuple[list[str], list[ScheduleSessionOut]]:
-    """저장 전에 보여 줄 (생성될 날짜들, 겹치는 기존 세션들).
+    client_request_id: str | None = None,
+) -> tuple[list[str], list[ScheduleSessionOut], bool]:
+    """저장 전에 보여 줄 (생성될 날짜들, 겹치는 기존 세션들, 이미 만들어졌는지).
 
     만들기 전에 확인시키는 까닭은 반복이 **한 번에 여러 건**을 만들기 때문이다.
     요일이나 종료일을 잘못 골랐을 때 되돌리는 비용이 한 건씩 지우는 일이라,
     그 전에 보여 주는 편이 싸다.
+
+    [client_request_id] 는 만들기와 같은 키다. 그 키의 시리즈가 이미 있으면 —
+    만들기는 커밋됐는데 응답만 잃은 재시도 — 그 회차들을 충돌에서 빼고
+    `already_created` 를 참으로 돌려준다. 빼지 않으면 방금 만든 자기 회차와
+    겹친다고 막혀, 같은 키로 만들기를 다시 불러 결과를 받는 길이 끊긴다(#3102).
     """
     dates = series_occurrences(
         date.fromisoformat(start),
@@ -709,12 +715,25 @@ def preview_recurring_sessions(
         until=None if until is None else date.fromisoformat(until),
     )
     iso = [day.isoformat() for day in dates]
-    return iso, conflicting_sessions(
+    own_ids: list[str] = []
+    if client_request_id:
+        own_ids = list(
+            db.scalars(
+                select(TrainerSchedule.id).where(
+                    TrainerSchedule.trainer_id == trainer_id,
+                    TrainerSchedule.series_id
+                    == _series_id_for(trainer_id, client_request_id),
+                )
+            ).all()
+        )
+    conflicts = conflicting_sessions(
         db,
         trainer_id,
         [(day, time) for day in iso],
         duration_minutes=duration_minutes,
+        exclude_ids=own_ids,
     )
+    return iso, conflicts, bool(own_ids)
 
 
 def create_recurring_sessions(
@@ -1929,8 +1948,10 @@ def update_session(
     # 일정의 취소 알림에는 옛 시각을 써야 회원이 어느 약속인지 안다.
     before_member_id = s.member_id
     before_slot = _member_visible_slot(s)
-    # 완료 PT 에 피드백이 처음 생기는지 보려면 바꾸기 전 메모가 필요하다(#3027).
-    before_note = (s.note or "").strip()
+    before_program_json = s.program_json
+    # 완료 PT 에 피드백이 처음 생기는지(#3027)·파생 기록을 다시 맞출지(#3093) 보려면
+    # 바꾸기 전 메모가 필요하다.
+    before_note = s.note
     # A reservation owns the booking coordinates and lifecycle, so changing
     # its time/member/type/duration through the general schedule API would
     # desynchronise the slot and remaining count. The trainer may still add
@@ -2008,6 +2029,20 @@ def update_session(
         s.note = fields["note"]
     if "program" in fields and fields["program"] is not None:
         s.program_json = _dump_program(fields["program"])
+    # 완료 세션의 프로그램·메모를 고치면 완료가 만든 파생 기록도 같은 저장에서
+    # 따라간다(#3093). 그대로 두면 회원 운동 탭·주간 집계·트레이너 이력·코치
+    # 근거가 완료 시점 값에 머문다 — 회원은 그 기록을 고칠 수 없다.
+    program_changed = s.program_json != before_program_json
+    note_changed = s.note != before_note
+    refresh_derived = False
+    if s.status == SCHEDULE_DONE and (program_changed or note_changed):
+        refresh_derived = _sync_completed_records(
+            db,
+            s,
+            trainer_id,
+            note=s.note if note_changed else None,
+            exercise=program_changed,
+        )
     _notify_schedule_changed(
         db,
         session=s,
@@ -2020,7 +2055,7 @@ def update_session(
     if (
         "note" in fields
         and s.status == SCHEDULE_DONE
-        and not before_note
+        and not (before_note or "").strip()
         and (s.note or "").strip()
     ):
         _notify_pt_done(
@@ -2028,7 +2063,13 @@ def update_session(
         )
     db.commit()
     db.refresh(s)
-    return _schedule_out(s)
+    out = _schedule_out(s)
+    if refresh_derived:
+        # 커밋 뒤 best-effort — 적재 실패가 저장을 되돌리지 않는다(완료와 같다).
+        personal_ingest.refresh_exercise(
+            db, s.member_id, session_id=_derived_exercise_id(s.id)
+        )
+    return out
 
 
 def delete_session(db: Session, trainer_id: str, session_id: str) -> bool:
@@ -2043,12 +2084,14 @@ def delete_session(db: Session, trainer_id: str, session_id: str) -> bool:
     # 회원 운동 기록(sched-ex-{id}) 두 개다. 세션을 지우면 둘 다 함께 지워 고아
     # 레코드가 남지 않게 한다(완료 시 적재의 역연산). 회원 쪽을 빠뜨리면 회원의
     # 주간 집계에만 지워진 PT 가 계속 잡힌다.
+    derived_owner: str | None = None
     if s.status == "완료":
         hist = db.get(RoutineHistory, f"sched-hist-{s.id}")
         if hist is not None:
             db.delete(hist)
         derived = db.get(ExerciseSession, _derived_exercise_id(s.id))
         if derived is not None:
+            derived_owner = derived.user_id
             db.delete(derived)
     # 그 PT 에 붙여 두었을 뿐 아직 회원에게 가지 않은 개인운동은 함께 지운다
     # (#2223). FK 는 `SET NULL` 이라 그냥 두면 일정만 사라지고 `status` 는
@@ -2079,8 +2122,13 @@ def delete_session(db: Session, trainer_id: str, session_id: str) -> bool:
             template=notification_templates.MEMBER_SCHEDULE_CANCELLED,
             template_args=_slot_args(_member_visible_slot(s)),
         )
+    derived_id = _derived_exercise_id(s.id)
     db.delete(s)
     db.commit()
+    if derived_owner is not None:
+        # 지운 기록을 코치가 계속 근거로 들지 않게 문서도 지운다(#3093) — 행이
+        # 없으므로 refresh 가 문서를 지운다(배정 루틴 되돌리기와 같은 호출).
+        personal_ingest.refresh_exercise(db, derived_owner, session_id=derived_id)
     return True
 
 
@@ -2135,6 +2183,7 @@ def reopen_session(
     if hist is not None:
         db.delete(hist)
     derived = db.get(ExerciseSession, _derived_exercise_id(s.id))
+    derived_owner = derived.user_id if derived is not None else None
     if derived is not None:
         db.delete(derived)
 
@@ -2144,7 +2193,13 @@ def reopen_session(
     s.status = SCHEDULE_UPCOMING
     db.commit()
     db.refresh(s)
-    return _schedule_out(s)
+    out = _schedule_out(s)
+    if derived_owner is not None:
+        # 되돌린 PT 는 아직 하지 않은 운동이다 — 코치 근거도 지운다(#3093).
+        personal_ingest.refresh_exercise(
+            db, derived_owner, session_id=_derived_exercise_id(s.id)
+        )
+    return out
 
 
 #: PT 완료가 파생시키는 회원 운동 기록의 종류. `TrainerSchedule.type` 은 화면용
@@ -2175,15 +2230,14 @@ def _schedule_day(day: str) -> date:
         return clock.today()
 
 
-def _add_member_exercise_log(
-    db: Session, s: TrainerSchedule
-) -> ExerciseSession | None:
-    """완료된 PT 세션을 회원 쪽 운동 기록으로 적재. 대상이 아니면 None.
+def _member_exercise_values(db: Session, s: TrainerSchedule) -> dict | None:
+    """완료된 PT 세션이 만들 회원 운동 기록의 칸 값. 대상이 아니면 None.
 
     `RoutineHistory` 는 트레이너 화면 전용이라(`/trainer/clients/{id}/history`)
     회원 앱에서는 읽지 않는다. 회원의 운동 탭·홈 대시보드 주간 집계는 전부
     `ExerciseSession` 에서 나오므로, 두 곳 모두에 남겨야 회원이 받은 PT 가
-    자기 기록에 잡힌다. (#499)
+    자기 기록에 잡힌다. (#499) 완료와 완료 뒤 수정이 같은 값을 쓰도록 계산은
+    여기 한 곳에만 둔다(#3093).
     """
     ex_type = _SESSION_EXERCISE_TYPE.get(s.type)
     if s.member_id is None or ex_type is None or s.duration_minutes <= 0:
@@ -2229,48 +2283,110 @@ def _add_member_exercise_log(
         intensity=intensity,
         weight_kg=exercise_service.member_weight_kg(db, s.member_id),
     )
-    row = ExerciseSession(
-        id=_derived_exercise_id(s.id),
-        user_id=s.member_id,
-        week_start=exercise_service.monday_of_str(session_day.isoformat()),
-        day_label=exercise_service.weekday_label_of(session_day.isoformat()),
-        type=ex_type,
-        name=", ".join(i.name for i in items),
-        minutes=minutes,
+    return {
+        "user_id": s.member_id,
+        "week_start": exercise_service.monday_of_str(session_day.isoformat()),
+        "day_label": exercise_service.weekday_label_of(session_day.isoformat()),
+        "type": ex_type,
+        "name": ", ".join(i.name for i in items),
+        "minutes": minutes,
         # 프로그램에 적힌 시간을 초까지 남긴다(#2221) — 회원 앱이 `45초` 를
         # `1분` 이 아니라 적힌 대로 읽는다. 근력은 세트로 읽고, 프로그램에 시간이
         # 없어 슬롯 길이로 되돌아간 기록은 분뿐이다.
-        duration_seconds=(
+        "duration_seconds": (
             program_seconds
             if program_minutes > 0 and ex_type != exercise_types.STRENGTH
             else None
         ),
-        sets=sets if ex_type == exercise_types.STRENGTH else None,
-        reps=(
+        "sets": sets if ex_type == exercise_types.STRENGTH else None,
+        "reps": (
             max(rep_counts)
             if rep_counts and not hold_counts
             and ex_type == exercise_types.STRENGTH
             else None
         ),
-        hold_seconds=(
+        "hold_seconds": (
             max(hold_counts)
             if hold_counts and ex_type == exercise_types.STRENGTH
             else None
         ),
         # 여러 운동을 한 세션이면 가장 무거웠던 무게가 그날의 기록이다 —
         # 평균은 실제로 든 적 없는 값이라 다음 무게를 정할 근거가 못 된다.
-        weight=max(weights) if weights and ex_type == exercise_types.STRENGTH else None,
-        calories=pt_estimate.calories,
-        calorie_source=pt_estimate.source,
-        intensity=intensity,
-        source="trainer_pt",
-        completed_at=exercise_activity.noon(session_day),
-    )
-    db.add(row)
+        "weight": max(weights) if weights and ex_type == exercise_types.STRENGTH else None,
+        "calories": pt_estimate.calories,
+        "calorie_source": pt_estimate.source,
+        "intensity": intensity,
+        "source": "trainer_pt",
+        "completed_at": exercise_activity.noon(session_day),
+    }
+
+
+def _sync_completed_records(
+    db: Session,
+    s: TrainerSchedule,
+    trainer_id: str,
+    *,
+    note: str | None,
+    exercise: bool = True,
+) -> bool:
+    """완료 세션의 파생 기록 두 개를 세션의 지금 값으로 맞춘다(커밋 없음). (#3093)
+
+    트레이너 이력(`sched-hist-{id}`)과 회원 운동 기록(`sched-ex-{id}`)을 없으면
+    만들고 있으면 고쳐 쓴다. 완료([complete_session])와 완료 뒤 프로그램·메모
+    수정([update_session])이 함께 쓴다 — 계산이 두 곳이면 같은 PT 가 언제
+    적었느냐에 따라 다른 기록이 된다.
+
+    - [note] 가 None 이면 이력의 메모를 그대로 둔다(프로그램만 고친 수정).
+    - [exercise] 가 False 면 회원 운동 기록을 건드리지 않는다 — 메모만 고쳤는데
+      그 사이 바뀐 체중으로 칼로리가 다시 계산되면 안 된다.
+    - 대상이 아니게 된 회원 운동 기록은 지운다.
+
+    반환: 회원 운동 기록이 있었거나 생겼는가 — 커밋 뒤 코치 근거를 맞출지.
+    """
+    if not s.member_id:
+        return False
+    exercises = [
+        _program_history_entry(p) for p in _program_items(s.program_json)
+    ]
+    exercises_json = json.dumps(exercises, ensure_ascii=False)
+    hist = db.get(RoutineHistory, f"sched-hist-{s.id}")
+    if hist is None:
+        db.add(RoutineHistory(
+            id=f"sched-hist-{s.id}",
+            member_id=s.member_id,
+            trainer_id=trainer_id,
+            date=s.date,
+            kind_label=PT_HISTORY_KIND_LABEL,
+            completion_rate=100,
+            exercises_json=exercises_json,
+            trainer_note=note or "",
+        ))
+    else:
+        hist.exercises_json = exercises_json
+        if note is not None:
+            hist.trainer_note = note
+    if not exercise:
+        return False
+    row_id = _derived_exercise_id(s.id)
+    existing = db.get(ExerciseSession, row_id)
+    values = _member_exercise_values(db, s)
+    if values is None:
+        if existing is not None:
+            db.delete(existing)
+        return existing is not None
+    if existing is not None:
+        # 같은 id 를 고쳐 쓴다. 날짜는 바뀌지 않으므로 보호권 환급은 다시 하지
+        # 않는다.
+        for key, value in values.items():
+            setattr(existing, key, value)
+        return True
+    db.add(ExerciseSession(id=row_id, **values))
     # 보호권으로 이어 붙인 날의 PT 를 완료 처리하면 그날은 운동한 날이다 — 그
     # 보호권을 되돌린다(#1788). 트레이너 화면은 보호한 날을 모른다.
-    streak_shield_service.refund_for_record(db, s.member_id, session_day)
-    return row
+    streak_shield_service.refund_for_record(
+        db, s.member_id, _schedule_day(s.date)
+    )
+    return True
 
 
 def send_session_program(
@@ -2436,21 +2552,8 @@ def complete_session(
         db.refresh(s)
         return _schedule_out(s)  # 동시 호출이 먼저 완료 처리함 — 기록 없이 현재 상태 반환
 
-    exercise_log: ExerciseSession | None = None
+    has_exercise_log = _sync_completed_records(db, s, trainer_id, note=note)
     if s.member_id:
-        program = _program_items(s.program_json)
-        exercises = [_program_history_entry(p) for p in program]
-        db.add(RoutineHistory(
-            id=f"sched-hist-{s.id}",
-            member_id=s.member_id,
-            trainer_id=trainer_id,
-            date=s.date,
-            kind_label=PT_HISTORY_KIND_LABEL,
-            completion_rate=100,
-            exercises_json=json.dumps(exercises, ensure_ascii=False),
-            trainer_note=note,
-        ))
-        exercise_log = _add_member_exercise_log(db, s)
         # 방금 전환한 이 호출만 알린다(#3027) — 멱등 재호출·동시 호출은 위에서
         # 돌아가 알림도 한 번뿐이다. 완료 요청에 메모가 없으면 미리 적어 둔 메모가
         # 회원에게 보이는 피드백이다(`member_mirror._member_schedule_out`).
@@ -2464,14 +2567,14 @@ def complete_session(
     db.commit()
     db.refresh(s)
     out = _schedule_out(s)
-    if exercise_log is not None:
+    if has_exercise_log:
         # 회원 입장에서 PT 도 '내가 한 운동'이라 코치가 검색할 수 있어야 한다(#586).
         # 커밋 뒤에 부르는 이유는 record_chat 과 같다 — 적재 실패의 롤백이 응답을
         # 깨뜨리지 않도록, 값은 미리 뽑아 두고 응답도 이미 만들어 둔다.
         # PT 완료는 멱등하게 재호출될 수 있고 id 도 슬롯 기준 결정론적이라
         # (`_derived_exercise_id`), 교체로 두어야 문서가 겹쳐 쌓이지 않는다.
         personal_ingest.refresh_exercise(
-            db, exercise_log.user_id, session_id=exercise_log.id
+            db, s.member_id, session_id=_derived_exercise_id(s.id)
         )
     return out
 

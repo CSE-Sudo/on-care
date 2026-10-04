@@ -14,6 +14,7 @@ import 'package:oncare/features/auth/presentation/controllers/session_controller
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis_failure.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/domain/entities/diet_entry_key_conflict.dart';
 import 'package:oncare/features/diet/domain/entities/food_nutrition_suggestion.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';

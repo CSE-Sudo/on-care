@@ -709,7 +709,7 @@ def save_manual_entry(
     if payload.idempotency_key:
         existing = find_by_idempotency(db, user_id, payload.idempotency_key)
         if existing is not None:
-            return _entry_out(existing)
+            return _replayed_manual_entry(existing, payload)
     # 회원이 적은 값이라 탄수화물 0 도 적은 값이다 — 수정에서 방금 0 으로 바꾼
     # 것과 같이 본다(#1893).
     for number, food in enumerate(payload.foods, start=1):
@@ -751,7 +751,7 @@ def save_manual_entry(
             else None
         )
         if existing is not None:
-            return _entry_out(existing)
+            return _replayed_manual_entry(existing, payload)
         raise
     db.refresh(entry)
     # RAG 적재가 롤백하면 이 인스턴스가 만료된다 — 응답은 그 전에 만든다.
@@ -780,6 +780,33 @@ def get_owned_entry(db: Session, user_id: str, entry_id: str) -> DietEntry | Non
 
 class NutritionInconsistentError(ValueError):
     """영양 수치가 서로 어긋난다 — 당류가 탄수화물을 넘는 경우 등."""
+
+
+class IdempotencyConflictError(ValueError):
+    """같은 멱등키로 다른 내용을 저장하려 했다(#3095). 라우터가 409 로 바꾼다."""
+
+
+def _replayed_manual_entry(existing: DietEntry, payload: DietEntryCreate) -> DietEntryOut:
+    """같은 키로 이미 저장한 끼니. 내용이 다르면 [IdempotencyConflictError].
+
+    같은 키는 같은 저장 시도라는 약속이다. 응답을 잃은 뒤 회원이 음식·끼니·날짜를
+    고쳐 다시 보낸 것을 처음 기록으로 받아 주면, 고친 내용이 아무 알림 없이
+    버려진다(#3095). 날짜가 빠진 요청은 "저장한 날" 이라 날짜는 보낸 경우에만
+    비교한다.
+    """
+    sent_foods = json.loads(
+        json.dumps(store_foods(payload.foods), ensure_ascii=False)
+    )
+    same = (
+        existing.meal_type == payload.meal_type
+        and (payload.date is None or existing.date == payload.date)
+        and json.loads(existing.foods_json or "[]") == sent_foods
+    )
+    if not same:
+        raise IdempotencyConflictError(
+            "같은 idempotency_key로 다른 끼니를 저장할 수 없습니다."
+        )
+    return _entry_out(existing)
 
 
 def _sugar_exceeds_carbs(

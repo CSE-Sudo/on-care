@@ -221,7 +221,7 @@
 | GET | `/diet/advice?period=&lang=` | `{ period, from_date, to_date, days_logged, message, analysis, analysis_key?, analysis_params, action, action_key?, action_params, action_source? }` — 식단 탭 AI 맞춤 조언. `period` 는 `today`(기본)·`week`·`all`, `lang` 은 `ko`(기본)·`en`. 규칙 한 줄(`analysis`) + 다음 할 일 한 문장(`action`)이다 (#1017, #2251) |
 | GET | `/diet/recommendations?use_llm=` | `{ items[{ key, reason_key, reason_text? }], basis?, personalized, source, days_with_data, avg_sodium_mg, sodium_limit_mg, trainer_pick? }` — 홈 `추천 식단`. `trainer_pick` 은 담당 트레이너가 확정한 추천 `{ slot, name, tag, keyword, trainer_name }` 이고 없거나 해소됐으면 null (#2378) |
 | POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key?, date? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립). `date`(`YYYY-MM-DD`)는 기록을 남길 날로, 지난 날짜 화면에서 연 추가가 싣는다(#2849). 없으면 저장하는 날(KST), 앞날·작년 1월 1일 이전·형식 오류는 인식 전에 422. 포인트 하루 한도는 지금처럼 적립 시점 기준이다. `meal_type` 이 다섯 값 밖이면 인식 전에 422(#2882) |
-| POST | `/diet/entries` | `{ date?, meal_type, foods[](1개 이상, 이름 필수), idempotency_key? }` → 201, 새 `entries[]` 항목 하나 — 사진 없이 회원이 직접 적은 끼니(#2151). 합계는 음식에서 내고, **포인트는 적립하지 않는다.** `date` 가 없으면 오늘(KST), 앞날은 422. 당류 > 탄수화물인 음식이 있으면 422 |
+| POST | `/diet/entries` | `{ date?, meal_type, foods[](1개 이상, 이름 필수), idempotency_key? }` → 201, 새 `entries[]` 항목 하나 — 사진 없이 회원이 직접 적은 끼니(#2151). 합계는 음식에서 내고, **포인트는 적립하지 않는다.** `date` 가 없으면 오늘(KST), 앞날은 422. 당류 > 탄수화물인 음식이 있으면 422. 같은 `idempotency_key` 재전송은 처음 끼니를 돌려주고, 같은 키에 끼니·음식·(보냈다면)날짜가 다르면 409 이고 아무것도 바뀌지 않는다(#3095) |
 | PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나. `meal_type` 은 다섯 값, `time_label` 은 `HH:MM` 또는 빈 문자열(그 밖은 422, #2882) |
 | DELETE | `/diet/entries/{id}` | `{ status: "deleted" }` — 그 끼니로 받은 포인트를 회수한다 |
 | POST | `/diet/nutrition` | `{ name(필수), amount_g? }` → `{ matched_name?, match(exact\|similar)?, source, amount_g?, calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` — 이름으로 찾은 공공 DB 값(#1896). 못 찾았거나 양을 정할 수 없으면 `matched_name`·`match` 가 null |
@@ -293,7 +293,7 @@
 |---|---|---|
 | GET | `/exercise/weeks/current` | 질의 `?week_start=YYYY-MM-DD`(생략 시 이번 주) → `{ sessions[], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], stretching_minutes[7], day_labels[7], total_minutes, total_calories, streak_days, ai_coach_message }` — `streak_days` 는 **운동만** 센다(식단도 세는 기록 연속은 아래 "연속 기록 보호권" 절) |
 | GET | `/exercise/weeks?from=&to=` | `{ from_week, to_week, weeks[] }` — 구간이 걸친 주들. 한 칸은 `{ week_start, day_labels[7], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], strength_sets[7], stretching_minutes[7], other_minutes[7], total_minutes, total_calories, streak_days, weekly_goal_minutes, weekly_goal_calories }` 다. 기간 그래프가 쓰는 길이라 `sessions` 와 코칭 문구는 싣지 않는다 — 한 주를 펼쳐 볼 때는 위 `weeks/current` 다. `from` 생략 시 **첫 기록 주**부터, `to` 생략 시 이번 주까지. 월요일이 아닌 날짜는 그 주의 월요일로 맞춘다. 기록이 없는 주도 0 으로 채워 온다 (#2247). 구간은 끝 주에서 거슬러 **최대 160주**(`exercise_service.MAX_PERIOD_WEEKS`)이고, 더 이른 `from`·첫 기록 주는 그 하한으로 잘린다 — 응답 `from_week` 가 실제 시작 주다 (#2833) |
-| POST | `/exercise/sessions` | 입력 `{ sessions: [항목 1~20개] }` — 항목은 `{ type, name, minutes(>0) 또는 duration_seconds(>0), calories, intensity(light\|moderate\|high), sets?, reps?, hold_seconds?, weight?, date? }` → `{ sessions[](요청 순서), points(합계) }`. **한 트랜잭션**이라 항목 하나라도 잘못되면 전체가 422 이고 아무것도 저장되지 않는다. 한 건도 목록으로 감싸 보낸다 — 감싸지 않은 단건 입력은 422 (#2544). `date` 는 생략하면 오늘(KST)이고, **오늘보다 뒤 날짜는 422**(`date 는 오늘보다 뒤일 수 없습니다.` — 식단 기록과 같은 문구, #3042). 기록·포인트·코치 적재·보호권 환급을 하나도 남기지 않는다 |
+| POST | `/exercise/sessions` | 입력 `{ sessions: [항목 1~20개], client_request_id? }` — 항목은 `{ type, name, minutes(>0) 또는 duration_seconds(>0), calories, intensity(light\|moderate\|high), sets?, reps?, hold_seconds?, weight?, date? }` → `{ sessions[](요청 순서), points(합계) }`. **한 트랜잭션**이라 항목 하나라도 잘못되면 전체가 422 이고 아무것도 저장되지 않는다. 한 건도 목록으로 감싸 보낸다 — 감싸지 않은 단건 입력은 422 (#2544). `date` 는 생략하면 오늘(KST)이고, **오늘보다 뒤 날짜는 422**(`date 는 오늘보다 뒤일 수 없습니다.` — 식단 기록과 같은 문구, #3042). 기록·포인트·코치 적재·보호권 환급을 하나도 남기지 않는다. `client_request_id`(1~64자)는 저장 시도 단위 멱등키다 — 같은 키로 저장한 기록이 남아 있으면 새로 저장·적립하지 않고 처음 응답(`points` 는 그 기록들이 처음 받은 적립의 합)을 다시 돌려주고, 항목 수나 항목 내용(칼로리 제외, `date` 는 보낸 경우만)이 다르면 409 이고 아무것도 바뀌지 않는다. 그 키의 기록이 모두 지워졌으면 처음 보는 키처럼 새로 저장한다. 키가 없으면 매번 새로 저장한다 (#3095) |
 | PUT | `/exercise/sessions/{id}` | 입력은 위 **항목 하나**(부분 갱신) → 갱신된 항목(`points` 없음). `date` 를 주지 않으면 원래 날짜를 그대로 두고, 오늘보다 뒤로 옮기면 422 다 — 원래 날짜가 남는다(#3042) |
 | DELETE | `/exercise/sessions/{id}` | `{ status: "deleted" }` — 그 기록으로 받은 포인트를 회수한다 |
 | GET | `/exercise/advice?period=` | `{ period, from_date, to_date, days_logged, message, advice_key?, advice_params }` — 운동 탭 AI 조언. `period` 는 `today`(기본)·`week`·`all`. 식단 조언과 같은 규칙이고, 문장은 트레이너 웹의 `/trainer/clients/{member_id}/exercise-advice` 와 같다(#1574, #1025). 앱은 `advice_key`·`advice_params` 로 자기 언어 문장을 그린다(#2210) |
@@ -339,7 +339,9 @@
   재전송은 새로 적립하지 않고 처음 받은 `awarded` 를 그대로 싣는다.
 - **기록을 지우면 회수**한다(`DELETE /diet/entries/{id}`, `DELETE /exercise/sessions/{id}`,
   `DELETE /me/coach/routines/{id}/complete`). 잔액은 0 아래로 내려가지 않는다 — 모자라면 남은 만큼만
-  빼고 내역에 실제로 뺀 값을 적는다. 회수된 적립은 그날 한도에서 빠진다. 다시 만든 기록은 새 기록이다.
+  빼고 내역에 실제로 뺀 값을 적는다. **전액 회수된 적립만** 그날 한도에서 빠진다 — 잔액이 모자라 0P·일부만
+  회수됐으면 그 칸은 그대로다(받은 포인트를 쓰고 지웠다 다시 기록해 한도를 넘지 못하게, #3084). 다시 만든
+  기록은 새 기록이다.
 - 배정 루틴 완료 응답은 `RoutineOut` + `points` 다. 앱의 안내 문구는 `추천·배정 운동 완료` 로, AI 추천과
   트레이너 배정이 **하루 1회를 함께** 쓴다 — 배정 루틴으로 받은 날은 AI 루틴을 완료해도 `awarded: 0`.
   목록·수정 응답에는 `points` 가 붙지 않는다.
@@ -1239,7 +1241,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | GET | `/trainer/schedule?date=&from=&to=&member_id=` | `ScheduleSessionOut[]` — 기본 하루, `from`/`to` 면 그 구간 |
 | GET | `/trainer/schedule/booked-dates` | `["YYYY-MM-DD", …]` — 주간 스트립 점 표시용 |
 | POST | `/trainer/schedule` | `{ date, time, client_name?, member_id?, type, duration_minutes, note?, program?, client_request_id? }` → **201** `ScheduleSessionOut`(예정). 겹치면 409 |
-| POST | `/trainer/schedule/recurring/preview` | 반복 설정(`weekdays`, `count` 또는 `until`) → `{ dates, conflicts }` (#870) |
+| POST | `/trainer/schedule/recurring/preview` | 반복 설정(`weekdays`, `count` 또는 `until`, `client_request_id?`) → `{ dates, conflicts, already_created }` (#870). 만들기와 같은 `client_request_id` 의 시리즈가 이미 있으면 그 회차는 `conflicts` 에서 빠지고 `already_created: true` — 응답만 잃은 재시도는 같은 키로 만들기를 다시 불러 그 회차를 받는다(#3102) |
 | POST | `/trainer/schedule/recurring` | 같은 입력 → **201** `ScheduleSessionOut[]`. 겹치면 409 |
 | PUT | `/trainer/schedule/{session_id}` | 보낸 칸만 수정 → `ScheduleSessionOut`. 겹치면 409 |
 | DELETE | `/trainer/schedule/{session_id}` | `{ status: "deleted" }` — 잘못 만든 일정을 없앤다(취소와 다르다) |
@@ -1524,6 +1526,11 @@ N명이면 첫 화면에서 요청이 2N개였다.
   `client_name`·`type`·`duration_minutes` 가 하나라도 섞이면 409 다(그 기록이 가리키는 약속이 바뀐다).
   이미 보낸 프로그램(`program_sent: true`)을 다른 내용으로 바꾸면 409 이고, 같은 내용을 함께 실은
   메모 수정은 막지 않는다.
+- **완료 세션의 프로그램·메모를 고치면 회원 운동 기록과 트레이너 이력이 함께 바뀐다 (#3093).** 같은
+  저장에서 회원 운동 기록(`sched-ex-{id}`, 분·유형·이름·세트·횟수·중량·강도·칼로리)과 트레이너 이력
+  (`sched-hist-{id}`, 운동 목록·메모)을 완료 때와 같은 계산으로 다시 쓰고, 커밋 뒤 AI 코치 근거 문서도
+  맞춘다. 메모만 고치면 회원 운동 기록은 그대로다. 완료 세션을 지우거나(`DELETE`) 되돌리면(`/reopen`)
+  두 기록과 함께 코치 근거 문서도 지운다. 근거 문서 갱신은 best-effort 라 실패해도 응답은 200 이다.
 - **회원 예약 일정은 `is_reservation: true` 로 실린다 (#2756).** 트레이너 스케줄 응답의 각 일정에
   회원이 예약 슬롯으로 잡은 일정인지를 싣는다. 이 일정은 `note`·`program` 수정만 되고, 그 밖의 수정·
   삭제·되돌리기는 409(`detail` 에 사유 문자열)다. 일정을 거두려면 `/cancel` 을 쓴다 — 예약과 좌석이

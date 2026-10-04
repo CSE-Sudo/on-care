@@ -996,11 +996,25 @@ class ExerciseSession(Base):
     completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    #: 회원이 한 번에 저장한 요청의 멱등키와 그 안의 순서(#3095). 응답을 잃고
+    #: 다시 보낸 저장을 알아보는 데 쓴다 — 한 요청이 여러 행이라 키 하나로는
+    #: 행을 가리킬 수 없어 순서를 함께 둔다. 키 없이 저장한 기록·파생 기록·이
+    #: 칼럼 이전 기록은 둘 다 NULL 이다.
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    client_request_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
 
     __table_args__ = (
+        # 같은 저장 요청의 같은 자리는 한 행이다(#3095). 동시에 온 재시도가 두 벌을
+        # 넣지 못하게 하는 마지막 방어선이다. 키가 NULL 인 행은 걸리지 않는다.
+        UniqueConstraint(
+            "user_id",
+            "client_request_id",
+            "client_request_index",
+            name="uq_exercise_sessions_client_request",
+        ),
         # 배정 하나는 하루에 한 번 완료한다(#2161). 운동 기록의 날짜는
         # `(week_start, day_label)` 이라 그 둘로 하루를 가리킨다. 더블 탭·재전송이
         # 같은 날 기록 둘을 만들지 않게 하는 마지막 방어선이다. 수기 기록은

@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import func, select, tuple_
+from sqlalchemy import func, select, tuple_, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -165,6 +165,43 @@ def _expires_at(row: ConsultationRequest, slot_starts_at: datetime | None) -> da
     return min(held_until, before_start)
 
 
+def _transition_pending(
+    db: Session, consultation_id: str, *, to: str, scope: Any, **values: Any
+) -> bool:
+    """대기 중인 요청만 [to] 로 바꾼다. 이 호출이 바꿨으면 True. (#3091)
+
+    행을 읽고 파이썬에서 `pending` 을 본 뒤 기본키로만 쓰면, 그 사이 수락이 커밋한
+    `accepted` 를 취소·거절·만료가 덮어쓴다 — 수락이 만든 상담 일정은 남고 자리는
+    한 번 더 풀린다. 조건을 `UPDATE` 에 실으면 DB 가 행 잠금을 기다린 뒤 조건을
+    다시 보므로 진 쪽은 0행을 바꾼다. 그래서 **True 인 호출만** 자리를 풀고 알린다
+    — PT 완료(`trainer.schedule`, `예정` 조건부 전환)와 같은 방식이다.
+
+    세션이 들고 있던 행 객체는 맞추지 않는다(`synchronize_session=False`). 맞추면
+    0행을 바꾼 경우에도 캐시의 옛 `pending` 이 조건을 통과해 객체만 바뀐다. 다시
+    읽을 때는 [_reload] 를 쓴다.
+    """
+    result = db.execute(
+        update(ConsultationRequest)
+        .where(
+            ConsultationRequest.id == consultation_id,
+            ConsultationRequest.status == "pending",
+            scope,
+        )
+        .values(status=to, **values)
+        .execution_options(synchronize_session=False)
+    )
+    return result.rowcount == 1
+
+
+def _reload(db: Session, consultation_id: str) -> ConsultationRequest:
+    """전이 뒤의 행을 DB 에서 다시 읽는다 — 세션 캐시의 옛 상태를 쓰지 않는다."""
+    return db.scalar(
+        select(ConsultationRequest)
+        .where(ConsultationRequest.id == consultation_id)
+        .execution_options(populate_existing=True)
+    )
+
+
 def expire_stale_requests(
     db: Session, trainer_id: str, *, now: datetime | None = None
 ) -> int:
@@ -178,13 +215,20 @@ def expire_stale_requests(
     다르고, 트레이너 인박스 대기 건수에서도 빠진다.
 
     커밋하지 않는다. 부르는 쪽이 자기 트랜잭션에 함께 담는다.
+
+    대상은 잠그지 않고 고르되, 바꾸기는 행마다 조건부로 한다(#3091). 인박스 목록과
+    대기 배지가 서로 다른 요청으로 함께 부르고, 그사이 수락이 끼어들 수 있다 —
+    조건부 전이에 이긴 행만 자리를 풀고 회원에게 만료를 알린다. id 순서로 바꿔
+    두 정리가 서로의 행 잠금을 엇갈려 기다리지 않게 한다.
     """
     current = now or _now()
     rows = db.scalars(
-        select(ConsultationRequest).where(
+        select(ConsultationRequest)
+        .where(
             _inbox_scope(trainer_id),
             ConsultationRequest.status == "pending",
         )
+        .order_by(ConsultationRequest.id)
     ).all()
     if not rows:
         return 0
@@ -206,12 +250,21 @@ def expire_stale_requests(
         slot_starts_at = starts.get(row.slot_id or "")
         if _expires_at(row, slot_starts_at) > current:
             continue
-        row.status = "expired"
-        row.decided_at = current
-        reservation_service.release_consultation_hold(db, row.slot_id)
+        # 읽어 둔 객체는 이제 DB 와 다를 수 있다 — 다음 접근 때 다시 읽게 놓아 둔다.
+        row_id, slot_id, member_id = row.id, row.slot_id, row.member_id
+        db.expire(row)
+        if not _transition_pending(
+            db,
+            row_id,
+            to="expired",
+            scope=_inbox_scope(trainer_id),
+            decided_at=current,
+        ):
+            continue
+        reservation_service.release_consultation_hold(db, slot_id)
         _notify(
             db,
-            user_id=row.member_id,
+            user_id=member_id,
             template=notification_templates.MEMBER_CONSULT_EXPIRED,
             template_args={},
         )
@@ -252,13 +305,21 @@ def release_holds_for_account_deletion(db: Session, member_id: str) -> None:
     `reservation_service.cancel_member_reservations_for_account_deletion` 과 같은
     자리에서 부른다. 요청을 받은 트레이너에게 알리는 일은
     [notify_trainers_of_account_deletion] 이 따로 맡는다(#1632).
+
+    대기 행을 잠가 읽는다(#3091). 잠그지 않으면 그사이 수락이 커밋해 상담 일정이
+    잡힌 요청의 자리까지 되돌린다 — 다른 해제 경로와 같은 경합이다. 잠금을 기다린 뒤
+    DB 가 `pending` 조건을 다시 보므로 이미 수락된 행은 빠지고, 잠근 행은 이 탈퇴가
+    커밋해 함께 지울 때까지 수락이 기다린다.
     """
     slot_ids = db.scalars(
-        select(ConsultationRequest.slot_id).where(
+        select(ConsultationRequest.slot_id)
+        .where(
             ConsultationRequest.member_id == member_id,
             ConsultationRequest.status == "pending",
             ConsultationRequest.slot_id.is_not(None),
         )
+        .order_by(ConsultationRequest.id)
+        .with_for_update(of=ConsultationRequest)
     ).all()
     for slot_id in slot_ids:
         reservation_service.release_consultation_hold(db, slot_id)
@@ -789,11 +850,17 @@ def cancel_my_consultation(
     )
     if row is None:
         raise ConsultationNotFound()
-    if row.status != "pending":
+    # 수락과 겹쳐도 덮어쓰지 않게 조건부로 바꾼다(#3091) — 진 쪽은 지금과 같은 409.
+    if not _transition_pending(
+        db,
+        consultation_id,
+        to="cancelled",
+        scope=ConsultationRequest.member_id == member_id,
+        decided_at=_now(),
+        decision_note=None,
+    ):
         raise ConsultationNotCancellable()
-    row.status = "cancelled"
-    row.decided_at = _now()
-    row.decision_note = None
+    row = _reload(db, consultation_id)
     # 취소도 거절과 같다 — 잡고 있던 자리를 놓아 준다. (#1873)
     reservation_service.release_consultation_hold(db, row.slot_id)
     _notify_trainer_of_cancel(db, row, member_id)
@@ -1012,7 +1079,9 @@ def _require_inbox_row(
         _inbox_scope(trainer_id),
     )
     if lock:
-        query = query.with_for_update()
+        # 잠금을 기다리는 동안 다른 요청이 바꾼 상태를 읽어야 한다 — 세션 캐시의
+        # 옛 값을 쓰면 취소·만료된 요청을 `pending` 으로 보고 수락한다(#3091).
+        query = query.with_for_update().execution_options(populate_existing=True)
     row = db.scalar(query)
     if row is None:
         raise ConsultationNotFound("상담 요청을 찾을 수 없습니다.")
@@ -1309,14 +1378,19 @@ def reject(
     db: Session, trainer_id: str, consultation_id: str, note: str | None = None
 ) -> TrainerConsultationOut:
     """상담을 거절한다. 담당 링크는 만들지 않고 사유만 남긴다."""
-    row = _require_inbox_row(db, trainer_id, consultation_id)
-    if row.status != "pending":
+    _require_inbox_row(db, trainer_id, consultation_id)
+    # 수락과 겹쳐도 덮어쓰지 않게 조건부로 바꾼다(#3091) — 진 쪽은 지금과 같은 409.
+    if not _transition_pending(
+        db,
+        consultation_id,
+        to="rejected",
+        scope=_inbox_scope(trainer_id),
+        decided_by=trainer_id,
+        decided_at=_now(),
+        decision_note=note,
+    ):
         raise ConsultationAlreadyDecided("이미 처리된 상담 요청입니다.")
-
-    row.status = "rejected"
-    row.decided_by = trainer_id
-    row.decided_at = _now()
-    row.decision_note = note
+    row = _reload(db, consultation_id)
     # 거절하면 자리가 다시 열린다 — 다른 회원이 고를 수 있어야 한다. (#1873)
     reservation_service.release_consultation_hold(db, row.slot_id)
 
