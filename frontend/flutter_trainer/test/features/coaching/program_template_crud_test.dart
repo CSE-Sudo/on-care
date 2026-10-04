@@ -307,6 +307,24 @@ void main() {
       expect(await demo.list(), MockTrainerProgramTemplateRepository.starters);
     });
 
+    test('없는 템플릿을 지우면 실서버처럼 NotFoundError 다 (#3101)', () async {
+      final demo = MockTrainerProgramTemplateRepository();
+      final created = await demo.create(
+        name: '다른 탭에서 지울 템플릿',
+        goal: '',
+        exercises: const <TemplateExercise>[
+          TemplateExercise(name: '걷기', minutes: 20, type: '유산소'),
+        ],
+      );
+      await demo.delete(created.id);
+
+      await expectLater(demo.delete(created.id), throwsA(isA<NotFoundError>()));
+      await expectLater(
+        demo.delete('starter:0'),
+        throwsA(isA<NotFoundError>()),
+      );
+    });
+
     test('앱을 새로 시작하면(새 인스턴스) 저장한 것이 남지 않는다', () async {
       final first = MockTrainerProgramTemplateRepository();
       await first.create(

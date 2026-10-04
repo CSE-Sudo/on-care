@@ -848,19 +848,22 @@ Future<void> _sendProgram(WidgetTester tester) async {
   // - 기존 PT 에 이미 개인운동이 붙어 있음(데모 PT 는 기본 개인운동이 붙어
   //   있다): `교체`.
   // 기존 PT 면 그 PT 에 붙은 개인운동을 먼저 읽고 나서 창이 서므로, 창이
-  // 서거나 전송이 시작될(편집기 `일정 추가` 가 잠길) 때까지 기다린다.
+  // 서거나 전송이 시작될 때까지 기다린다. 편집기 `일정 추가` 는 누른 순간부터
+  // 잠겨(#3101) 잠김으로는 전송 시작을 알 수 없다 — 확인창이 닫힌 뒤 한동안
+  // 아무 창도 서지 않으면 전송이 시작된 것으로 본다.
   final noRoutines = find.byKey(
     const ValueKey<String>('no-personal-routine-dialog'),
   );
   final replace = find.text('이미 개인운동이 있어요');
-  // 보낸 뒤 편집기가 내려가 버튼이 없어져도 전송이 시작된 것으로 본다.
-  bool sending() =>
-      send.evaluate().isEmpty ||
-      tester.widget<AppButton>(send).onPressed == null;
+  final confirm = find.byKey(
+    const ValueKey<String>('program-assign-confirm-submit'),
+  );
   bool asking() =>
       noRoutines.evaluate().isNotEmpty || replace.evaluate().isNotEmpty;
-  for (var i = 0; i < 60 && !asking() && !sending(); i++) {
+  var quiet = 0;
+  for (var i = 0; i < 60 && !asking() && quiet < 6; i++) {
     await tester.pump(const Duration(milliseconds: 50));
+    quiet = confirm.evaluate().isEmpty ? quiet + 1 : 0;
   }
   if (noRoutines.evaluate().isNotEmpty) {
     await tester.pumpAndSettle();
