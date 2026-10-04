@@ -355,7 +355,6 @@ class _MyPageState extends ConsumerState<MyPage> {
     try {
       await ref.read(clientRepositoryProvider).removeClient(client.id);
       ref.invalidate(clientsProvider);
-      ref.invalidate(managedClientsProvider);
       invalidateClientVisibilityDependentViews(ref);
       if (!mounted) return;
       showAppToast(context, l.myClientRemoveSuccess);

@@ -63,6 +63,26 @@ class _GatedRepository implements TrainerSettingsRepository {
   }
 }
 
+/// 저장을 요청마다 붙잡아 두는 저장소 — 응답 순서·실패를 테스트가 정한다. (#3103)
+class _HeldSaveRepository implements TrainerSettingsRepository {
+  _HeldSaveRepository(this.stored);
+
+  final TrainerSettings stored;
+  final List<TrainerSettings> requested = <TrainerSettings>[];
+  final List<Completer<TrainerSettings>> saves = <Completer<TrainerSettings>>[];
+
+  @override
+  Future<TrainerSettings> load() async => stored;
+
+  @override
+  Future<TrainerSettings> save(TrainerSettings settings) {
+    requested.add(settings);
+    final Completer<TrainerSettings> c = Completer<TrainerSettings>();
+    saves.add(c);
+    return c.future;
+  }
+}
+
 Response<Map<String, dynamic>> _ok(Map<String, dynamic> body) =>
     Response<Map<String, dynamic>>(
       requestOptions: RequestOptions(path: '/trainer/me/settings'),
@@ -207,6 +227,132 @@ void main() {
       // the server never accepted.
       expect(controller.state.requireValue.newMessageAlerts, isTrue);
       expect(controller.lastError, isTrue);
+    });
+  });
+
+  group('연속 전환의 응답 순서 (#3103)', () {
+    Future<(TrainerSettingsController, _HeldSaveRepository)> start() async {
+      final repo = _HeldSaveRepository(const TrainerSettings());
+      final controller = TrainerSettingsController(repo);
+      addTearDown(controller.dispose);
+      await Future<void>.delayed(Duration.zero);
+      return (controller, repo);
+    }
+
+    test('끔→켬 응답이 역순으로 와도 화면은 마지막 요청 값이다', () async {
+      final (controller, repo) = await start();
+      final Future<void> off = controller.setNewMessageAlerts(false);
+      final Future<void> on = controller.setNewMessageAlerts(true);
+
+      repo.saves[1].complete(repo.requested[1]);
+      await on;
+      expect(controller.state.requireValue.newMessageAlerts, isTrue);
+
+      // 늦게 온 앞 요청의 응답이 화면을 끔으로 되돌리지 않는다.
+      repo.saves[0].complete(repo.requested[0]);
+      await off;
+      expect(controller.state.requireValue.newMessageAlerts, isTrue);
+      expect(controller.lastError, isFalse);
+    });
+
+    test('뒤 요청이 돌고 있는 동안 앞 응답은 화면을 바꾸지 않는다', () async {
+      final (controller, repo) = await start();
+      final Future<void> off = controller.setNewMessageAlerts(false);
+      final Future<void> on = controller.setNewMessageAlerts(true);
+
+      repo.saves[0].complete(repo.requested[0]);
+      await off;
+      expect(controller.state.requireValue.newMessageAlerts, isTrue);
+
+      repo.saves[1].complete(repo.requested[1]);
+      await on;
+      expect(controller.state.requireValue.newMessageAlerts, isTrue);
+    });
+
+    test('앞 요청만 실패하면 되돌리지 않고 뒤 요청의 저장 값을 지킨다', () async {
+      final (controller, repo) = await start();
+      final Future<void> first = controller.setNewMessageAlerts(false);
+      final Future<void> second = controller.setConsultationAlerts(false);
+      // 뒤 요청은 화면의 전체 값을 보내므로 앞 변경도 함께 싣는다.
+      expect(repo.requested[1].newMessageAlerts, isFalse);
+
+      repo.saves[0].completeError(const NetworkError(message: 'offline'));
+      await first;
+      expect(controller.state.requireValue.newMessageAlerts, isFalse);
+      expect(controller.state.requireValue.consultationAlerts, isFalse);
+      expect(controller.lastError, isFalse);
+
+      repo.saves[1].complete(repo.requested[1]);
+      await second;
+      expect(controller.state.requireValue.newMessageAlerts, isFalse);
+      expect(controller.state.requireValue.consultationAlerts, isFalse);
+      expect(controller.lastError, isFalse);
+    });
+
+    test('마지막 요청이 실패하면 서버가 마지막으로 확인한 값으로 돌아간다', () async {
+      final (controller, repo) = await start();
+      final Future<void> first = controller.setNewMessageAlerts(false);
+      final Future<void> second = controller.setConsultationAlerts(false);
+
+      repo.saves[0].complete(repo.requested[0]);
+      await first;
+      repo.saves[1].completeError(const NetworkError(message: 'offline'));
+      await second;
+
+      // 앞 요청 직전 값(모두 켬)이 아니라 앞 요청으로 확인된 값이다.
+      expect(controller.state.requireValue.newMessageAlerts, isFalse);
+      expect(controller.state.requireValue.consultationAlerts, isTrue);
+      expect(controller.lastError, isTrue);
+    });
+
+    test('마지막 요청이 먼저 실패하면 앞 요청의 결과를 기다려 맞춘다', () async {
+      final (controller, repo) = await start();
+      final Future<void> first = controller.setNewMessageAlerts(false);
+      final Future<void> second = controller.setConsultationAlerts(false);
+
+      repo.saves[1].completeError(const NetworkError(message: 'offline'));
+      await second;
+      expect(controller.lastError, isTrue);
+
+      repo.saves[0].complete(repo.requested[0]);
+      await first;
+      expect(controller.state.requireValue.newMessageAlerts, isFalse);
+      expect(controller.state.requireValue.consultationAlerts, isTrue);
+    });
+
+    test('실서버 저장소에서도 응답 역순이 화면 값을 뒤집지 않는다', () async {
+      final dio = _MockDio();
+      when(
+        () => dio.get<Map<String, dynamic>>('/trainer/me/settings'),
+      ).thenAnswer(
+        (_) async => _ok(<String, dynamic>{'notify_new_message': true}),
+      );
+      final List<Completer<Response<Map<String, dynamic>>>> puts =
+          <Completer<Response<Map<String, dynamic>>>>[];
+      when(
+        () => dio.put<Map<String, dynamic>>(
+          '/trainer/me/settings',
+          data: any(named: 'data'),
+        ),
+      ).thenAnswer((_) {
+        final c = Completer<Response<Map<String, dynamic>>>();
+        puts.add(c);
+        return c.future;
+      });
+      final controller = TrainerSettingsController(
+        DioTrainerSettingsRepository(dio),
+      );
+      addTearDown(controller.dispose);
+      await Future<void>.delayed(Duration.zero);
+
+      final Future<void> off = controller.setNewMessageAlerts(false);
+      final Future<void> on = controller.setNewMessageAlerts(true);
+      puts[1].complete(_ok(<String, dynamic>{'notify_new_message': true}));
+      await on;
+      puts[0].complete(_ok(<String, dynamic>{'notify_new_message': false}));
+      await off;
+
+      expect(controller.state.requireValue.newMessageAlerts, isTrue);
     });
   });
 

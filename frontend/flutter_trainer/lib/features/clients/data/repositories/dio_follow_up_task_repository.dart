@@ -47,21 +47,6 @@ class DioFollowUpTaskRepository implements FollowUpTaskRepository {
   }
 
   @override
-  Future<List<FollowUpTask>> fetchDue() async {
-    try {
-      // 오늘 기준은 서버가 정한다 — 기기 시계로 거르면 KST 자정 근처에서 화면과
-      // 서버의 "오늘" 이 갈린다(#850 과 같은 이유).
-      final response = await _dio.get<List<dynamic>>(
-        '/trainer/follow-ups',
-        queryParameters: <String, Object?>{'scope': 'due'},
-      );
-      return _decodeList(response.data);
-    } on DioException catch (error) {
-      throw AppError.fromDio(error);
-    }
-  }
-
-  @override
   Future<FollowUpTask> create(
     String clientId, {
     required String title,

@@ -447,8 +447,10 @@ extension _LocalApiExercise on LocalApiInterceptor {
     ];
 
     // 운동 탭의 연속은 운동만 센다 — 보호권은 기록 연속(식단·운동)을 지키고
-    // 포인트 화면에서 쓴다(#1788, #2075).
-    final streak = _longestActiveStreak(dailyMinutes);
+    // 포인트 화면에서 쓴다(#1788, #2075). 정의는 [longestActiveStreak] 한 곳이다.
+    final streak = longestActiveStreak(<double>[
+      for (final num m in dailyMinutes) m.toDouble(),
+    ]);
 
     return _ok(options, <String, Object?>{
       'sessions': sessionsJson,
@@ -472,26 +474,6 @@ extension _LocalApiExercise on LocalApiInterceptor {
           ? '주간 운동 목표 80%를 달성했어요! 오늘 가볍게 걷기를 더해 100%를 채워봐요.'
           : '이번 주는 운동량이 조금 부족해요. 가벼운 산책부터 다시 시작해 봐요.',
     });
-  }
-
-  /// "N일 연속" — 운동한 요일 중 가장 긴 연속 구간의 길이. 활성 일수의 단순
-  /// 합계가 아니다(월·수·금 운동은 3일이 아니라 1일 연속). FastAPI
-  /// `exercise_service._longest_streak`, 그리고 클라이언트의
-  /// `longestActiveStreak` 와 같은 정의라야 '연속' 카드가 어느 경로에서든
-  /// 같은 값을 보인다. 보호권으로 이어 붙인 날([protectedDays])도 운동한 날로
-  /// 센다(#1788).
-  int _longestActiveStreak(List<num> dailyMinutes) {
-    int best = 0;
-    int run = 0;
-    for (int i = 0; i < dailyMinutes.length; i++) {
-      if (dailyMinutes[i] > 0) {
-        run += 1;
-        if (run > best) best = run;
-      } else {
-        run = 0;
-      }
-    }
-    return best;
   }
 
   /// "오늘 / 어제 / MM월 DD일" for a weekday label inside [weekStart]'s week.

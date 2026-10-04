@@ -911,6 +911,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t delete the template. Please try again';
 
   @override
+  String get coachTemplateAlreadyDeleted => 'This template was already deleted';
+
+  @override
   String coachTemplateDeleteConfirm(String name) {
     return 'Delete the $name template?';
   }
@@ -1365,6 +1368,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsSendFailed => 'Couldn\'t send the report. Please try again';
+
+  @override
+  String get reportsSendStaleTitle =>
+      'The member\'s records changed in the meantime';
+
+  @override
+  String get reportsSendStaleBody =>
+      'Nothing was sent yet. Review the report rebuilt with the new numbers, then send it';
 
   @override
   String get reportsSendAlreadyDone =>
@@ -4374,31 +4385,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientFeedbackSearchEmpty => 'No feedback matches your search.';
-
-  @override
-  String get followUp => 'Follow-ups';
-
-  @override
-  String get followUpOverdue => 'Overdue';
-
-  @override
-  String get followUpComplete => 'Done';
-
-  @override
-  String followUpCount(int count) {
-    return '$count left';
-  }
-
-  @override
-  String get followUpDashboardEmpty => 'Nothing to follow up on today.';
-
-  @override
-  String get followUpLoadFailed =>
-      'Couldn\'t load follow-ups. Please try again.';
-
-  @override
-  String get followUpCompleteFailed =>
-      'Couldn\'t mark it done. Please try again.';
 
   @override
   String programEditorDefaultName(String goal) {

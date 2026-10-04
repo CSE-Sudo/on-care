@@ -42,6 +42,7 @@ void main() {
   Future<void> pump(
     WidgetTester tester, {
     required Override coachOverride,
+    int unread = 0,
   }) async {
     // AI 챗봇 입구는 라우터로 화면을 연다. 도착한 화면은 표지 글자로 확인한다.
     final GoRouter router = GoRouter(
@@ -62,7 +63,7 @@ void main() {
       ProviderScope(
         overrides: <Override>[
           coachOverride,
-          coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
+          coachUnreadProvider.overrideWith((ref) => Stream<int>.value(unread)),
         ],
         child: MaterialApp.router(
           theme: AppTheme.light(),
@@ -85,6 +86,46 @@ void main() {
     expect(_drawnEnabled(tester), isTrue);
     // 트레이너가 있는 회원에게 AI 챗봇 입구는 없다(#1823).
     expect(find.byKey(const Key('aiChatHeaderButton')), findsNothing);
+  });
+
+  // 안읽음 배지는 두 앱 공용 [AppCountBadge] 다(#1418, #1702) — 한 자리 수는
+  // 정원이고, 두 자리 이상은 같은 높이의 알약이다. 지운 홈 코치 카드(#3104)의
+  // 배지 단언을 실제로 배지를 다는 이 버튼으로 옮겼다.
+  group('안읽음 배지 모양', () {
+    Size badgeSize(WidgetTester tester) =>
+        tester.getSize(find.byType(AppCountBadge));
+
+    testWidgets('한 자리 수 배지는 정원이다', (WidgetTester tester) async {
+      await pump(
+        tester,
+        coachOverride: memberCoachProvider.overrideWith((ref) async => _coach),
+        unread: 1,
+      );
+      final Size size = badgeSize(tester);
+      expect(size.width, size.height);
+    });
+
+    testWidgets('99+ 도 같은 높이의 배지로 줄여 적는다', (WidgetTester tester) async {
+      await pump(
+        tester,
+        coachOverride: memberCoachProvider.overrideWith((ref) async => _coach),
+        unread: 120,
+      );
+      final Size size = badgeSize(tester);
+      // 세 글자는 원에 욱여넣지 않고 같은 높이의 알약으로 늘어난다.
+      expect(size.height, OnCareSize.countBadgeMin);
+      expect(size.width, greaterThanOrEqualTo(size.height));
+      expect(find.text('99+'), findsOneWidget);
+    });
+
+    testWidgets('안 읽은 것이 없으면 배지를 그리지 않는다', (WidgetTester tester) async {
+      await pump(
+        tester,
+        coachOverride: memberCoachProvider.overrideWith((ref) async => _coach),
+      );
+      expect(find.byType(AppCountBadge), findsNothing);
+      expect(find.text('0'), findsNothing);
+    });
   });
 
   testWidgets('담당 트레이너가 없으면 같은 자리가 AI 챗봇 입구로 바뀐다', (WidgetTester tester) async {
@@ -220,7 +261,6 @@ void main() {
 
       expect(en.coachTrainerRetrying, isNot(en.coachTrainerNone));
       expect(en.coachTrainerRetrying, isNot(en.coachTrainerLoading));
-      expect(en.coachTrainerLoadFailed, isNot(en.coachTrainerNone));
       expect(en.coachTrainerRetrying, isNot(matches(RegExp('[가-힣]'))));
     });
   });

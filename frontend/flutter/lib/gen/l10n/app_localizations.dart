@@ -6283,12 +6283,6 @@ abstract class AppLocalizations {
   /// **'{action} ({count, plural, =1{once a day} other{up to {count} times a day}})'**
   String myPointsRuleWithDailyCap(String action, int count);
 
-  /// Header of the assigned trainer card.
-  ///
-  /// In en, this message translates to:
-  /// **'My trainer'**
-  String get coachAssignedTrainer;
-
   /// Section title in the coaching card.
   ///
   /// In en, this message translates to:
@@ -6450,12 +6444,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You don\'t have a trainer yet. Connect a gym and trainer from the Exercise tab'**
   String get coachTrainerNone;
-
-  /// Home trainer card title when the assigned-trainer lookup failed (not a confirmed 'no trainer') (#2843).
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load your trainer'**
-  String get coachTrainerLoadFailed;
 
   /// Toast from the header chat button when the assigned-trainer lookup failed; tapping also retries (#2843).
   ///

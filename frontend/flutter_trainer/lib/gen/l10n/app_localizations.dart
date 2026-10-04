@@ -1712,6 +1712,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t delete the template. Please try again'**
   String get coachTemplateDeleteFailed;
 
+  /// No description provided for @coachTemplateAlreadyDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'This template was already deleted'**
+  String get coachTemplateAlreadyDeleted;
+
   /// No description provided for @coachTemplateDeleteConfirm.
   ///
   /// In en, this message translates to:
@@ -2485,6 +2491,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t send the report. Please try again'**
   String get reportsSendFailed;
+
+  /// No description provided for @reportsSendStaleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The member\'s records changed in the meantime'**
+  String get reportsSendStaleTitle;
+
+  /// No description provided for @reportsSendStaleBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing was sent yet. Review the report rebuilt with the new numbers, then send it'**
+  String get reportsSendStaleBody;
 
   /// Toast when the server says this report send was already processed (409, #2773).
   ///
@@ -7536,48 +7554,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No feedback matches your search.'**
   String get clientFeedbackSearchEmpty;
-
-  /// No description provided for @followUp.
-  ///
-  /// In en, this message translates to:
-  /// **'Follow-ups'**
-  String get followUp;
-
-  /// No description provided for @followUpOverdue.
-  ///
-  /// In en, this message translates to:
-  /// **'Overdue'**
-  String get followUpOverdue;
-
-  /// No description provided for @followUpComplete.
-  ///
-  /// In en, this message translates to:
-  /// **'Done'**
-  String get followUpComplete;
-
-  /// No description provided for @followUpCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} left'**
-  String followUpCount(int count);
-
-  /// No description provided for @followUpDashboardEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'Nothing to follow up on today.'**
-  String get followUpDashboardEmpty;
-
-  /// No description provided for @followUpLoadFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load follow-ups. Please try again.'**
-  String get followUpLoadFailed;
-
-  /// No description provided for @followUpCompleteFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t mark it done. Please try again.'**
-  String get followUpCompleteFailed;
 
   /// No description provided for @programEditorDefaultName.
   ///

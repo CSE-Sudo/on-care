@@ -45,6 +45,11 @@ class CoachingDraftAutosaver {
 
   final Map<String, Timer> _timers = <String, Timer>{};
 
+  /// 회원 → [discard] 를 부른 횟수(세대). 보관이 도는 사이에 버리면 세대가
+  /// 바뀌어, 끝난 보관의 결과를 [_saved]·[_draftIds] 에 남기지 않는다. 남기면
+  /// 서버에는 없는 초안을 보관했다고 믿어 같은 내용을 다시 보관하지 않는다.
+  final Map<String, int> _generations = <String, int>{};
+
   /// 저장소 작업 줄. 앞 작업이 실패해도 뒤 작업은 돈다.
   Future<void> _queue = Future<void>.value();
 
@@ -106,6 +111,7 @@ class CoachingDraftAutosaver {
   Future<void> discard(String memberId) {
     cancel(memberId);
     _saved.remove(memberId);
+    _generations[memberId] = (_generations[memberId] ?? 0) + 1;
     return _run(() async {
       try {
         final Set<String> ids = <String>{
@@ -143,6 +149,8 @@ class CoachingDraftAutosaver {
     final ({Map<String, Object?> payload, String encoded})? next = _pending
         .remove(memberId);
     if (next == null) return Future<void>.value();
+    final int generation = _generations[memberId] ?? 0;
+    bool discarded() => (_generations[memberId] ?? 0) != generation;
     return _run(() async {
       try {
         final String? id = _draftIds[memberId];
@@ -150,9 +158,12 @@ class CoachingDraftAutosaver {
           final TrainerProgramDraft created = await _repository.create(
             <String, Object?>{...next.payload, 'member_id': memberId},
           );
+          // 그사이 버렸으면 방금 만든 초안은 뒤따르는 [discard] 작업이 지운다.
+          if (discarded()) return;
           _draftIds[memberId] = created.id;
         } else {
           await _repository.update(id, next.payload);
+          if (discarded()) return;
         }
         _saved[memberId] = next.encoded;
       } on Object catch (error) {

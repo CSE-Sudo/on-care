@@ -881,6 +881,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachTemplateDeleteFailed => '템플릿을 지우지 못했어요. 다시 시도해 주세요';
 
   @override
+  String get coachTemplateAlreadyDeleted => '이미 지워진 템플릿이에요';
+
+  @override
   String coachTemplateDeleteConfirm(String name) {
     return '$name 템플릿을 지울까요?';
   }
@@ -1314,6 +1317,13 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportsSendFailed => '리포트 전송에 실패했어요. 다시 시도해 주세요';
+
+  @override
+  String get reportsSendStaleTitle => '그사이 회원 기록이 바뀌었어요';
+
+  @override
+  String get reportsSendStaleBody =>
+      '아직 보내지 않았어요. 새 수치로 다시 만든 리포트를 확인한 뒤 보내 주세요';
 
   @override
   String get reportsSendAlreadyDone => '이미 전송된 리포트예요. 전송 기록을 다시 불러왔어요';
@@ -4157,29 +4167,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get clientFeedbackSearchEmpty => '찾는 피드백이 없어요.';
-
-  @override
-  String get followUp => '후속 관리';
-
-  @override
-  String get followUpOverdue => '기한 지남';
-
-  @override
-  String get followUpComplete => '완료';
-
-  @override
-  String followUpCount(int count) {
-    return '$count건';
-  }
-
-  @override
-  String get followUpDashboardEmpty => '오늘 처리할 후속 관리가 없어요.';
-
-  @override
-  String get followUpLoadFailed => '후속 관리를 불러오지 못했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String get followUpCompleteFailed => '완료 처리하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String programEditorDefaultName(String goal) {

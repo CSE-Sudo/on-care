@@ -103,7 +103,8 @@ class ProgramEditorWorkspace extends StatefulWidget {
   final bool saving;
 
   /// 전송(배정+PT 등록)이 진행 중이거나 막 끝났다 — `일정 추가` 버튼이
-  /// 잠겨 두 번째 클릭이 두 번째 전송을 만들지 않는다.
+  /// 잠겨 두 번째 클릭이 두 번째 전송을 만들지 않는다. 보내기 전 조회·확인창
+  /// 단계도 포함한다(#3101).
   final bool sending;
 
   /// [sending] 가 켜진 까닭이 **방금 보낸 구성**이라서다(#2752). 툴팁이 진행

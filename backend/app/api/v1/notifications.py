@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select, tuple_, update
+from sqlalchemy import select, tuple_, update
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser, RequireMember
@@ -244,12 +244,7 @@ def unread_count(
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     """미확인 알림 수(배지용)."""
-    n = db.scalar(
-        select(func.count())
-        .select_from(Notification)
-        .where(Notification.user_id == current_user.id, Notification.read.is_(False))
-    ) or 0
-    return {"unread": n}
+    return {"unread": notification_service.unread_count(db, current_user.id)}
 
 
 @router.post("/notifications/read-all")
