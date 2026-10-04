@@ -23,6 +23,8 @@ import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+import '../../helpers/signup_email_code.dart';
+
 const AppConfig _config = AppConfig(
   environment: Environment.dev,
   apiBaseUrl: 'https://dev.api.test',
@@ -41,6 +43,11 @@ class _Server {
       InterceptorsWrapper(
         onRequest: (RequestOptions options, RequestInterceptorHandler handler) {
           requests.add(options);
+          // 가입 인증 코드 요청(#3038)은 늘 받아 준다 — 이 파일은 동의를 본다.
+          if (options.path == signupCodePath) {
+            handler.resolve(signupCodeAccepted(options));
+            return;
+          }
           final (int, Object?)? hit =
               routes['${options.method.toUpperCase()} ${options.path}'];
           final int status = hit?.$1 ?? 404;
@@ -129,6 +136,13 @@ Future<void> _type(WidgetTester tester, String key, String text) async {
   await tester.pump();
 }
 
+/// 이메일을 채우고 인증 코드를 받아 넣는다(#3038). 가입 버튼은 동의와 코드가
+/// 함께 갖춰져야 켜진다.
+Future<void> _withCode(WidgetTester tester) async {
+  await _type(tester, 'member-signup-email', 'new@oncare.com');
+  await passSignupCode(tester);
+}
+
 /// 토스트 타이머가 남지 않게 흘려보낸다.
 Future<void> _drain(WidgetTester tester) async {
   for (int i = 0; i < 10; i++) {
@@ -183,6 +197,7 @@ void main() {
         const SignUpPage(),
         _Server(<String, (int, Object?)>{}),
       );
+      await _withCode(tester);
 
       await _tap(tester, 'consent-all');
       expect(_enabled(tester, submit), isTrue);
@@ -201,6 +216,7 @@ void main() {
         const SignUpPage(),
         _Server(<String, (int, Object?)>{}),
       );
+      await _withCode(tester);
       await _tap(tester, 'consent-all');
       expect(_enabled(tester, submit), isTrue);
 
@@ -218,6 +234,7 @@ void main() {
         const SignUpPage(),
         _Server(<String, (int, Object?)>{}),
       );
+      await _withCode(tester);
 
       for (final String id in <String>['terms', 'privacy', 'health']) {
         await _tap(tester, 'consent-$id');
@@ -226,6 +243,24 @@ void main() {
       expect(find.text('만 14세 미만은 가입할 수 없어요.'), findsOneWidget);
 
       await _tap(tester, 'consent-age14');
+      expect(_enabled(tester, submit), isTrue);
+    });
+
+    testWidgets('동의를 마쳐도 인증 코드 여섯 자리 전에는 꺼져 있다 (#3038)', (tester) async {
+      await _pump(
+        tester,
+        const SignUpPage(),
+        _Server(<String, (int, Object?)>{}),
+      );
+      await _tap(tester, 'consent-all');
+      expect(_enabled(tester, submit), isFalse);
+
+      await _type(tester, 'member-signup-email', 'new@oncare.com');
+      await tapSignupCodeSend(tester);
+      await typeSignupCode(tester, '12345');
+      expect(_enabled(tester, submit), isFalse);
+
+      await typeSignupCode(tester, '123456');
       expect(_enabled(tester, submit), isTrue);
     });
 
@@ -291,6 +326,7 @@ void main() {
       for (final String id in <String>['terms', 'privacy', 'health', 'age14']) {
         await _tap(tester, 'consent-$id');
       }
+      await passSignupCode(tester);
       await _tap(tester, submit);
 
       final List<RequestOptions> sent = server.to('/auth/register');

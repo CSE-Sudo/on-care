@@ -25,6 +25,7 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/mock_account_repository.dart';
+import '../../helpers/signup_email_code.dart';
 
 const AppConfig _config = AppConfig(
   environment: Environment.dev,
@@ -53,6 +54,11 @@ class _FakeServer {
       InterceptorsWrapper(
         onRequest: (RequestOptions options, RequestInterceptorHandler handler) {
           requests.add(options);
+          // 가입 인증 코드 요청(#3038)은 늘 받아 준다.
+          if (options.path == signupCodePath) {
+            handler.resolve(signupCodeAccepted(options));
+            return;
+          }
           final int? status = switch (options.path) {
             '/auth/login'
                 when loginAfter != null && to('/auth/login').length > 1 =>
@@ -374,7 +380,8 @@ void main() {
       await _type(tester, phone, '01012345678');
       await _type(tester, password, 'signup-pw-1234');
       await _type(tester, confirm, confirmValue ?? 'signup-pw-1234');
-      // 필수 동의 없이는 가입 버튼이 꺼져 있다(#2819).
+      // 인증 코드 여섯 자리와(#3038) 필수 동의 없이는(#2819) 가입 버튼이 꺼져 있다.
+      await passSignupCode(tester);
       await _tapKey(tester, 'consent-all');
     }
 
@@ -492,7 +499,7 @@ void main() {
 
       await _tapKey(tester, submit);
 
-      expect(server.requests, isEmpty);
+      expect(server.to('/auth/register'), isEmpty);
       expect(_finishCalls(tester), isEmpty);
     });
 

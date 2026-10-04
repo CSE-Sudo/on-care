@@ -1,8 +1,9 @@
-"""이메일 대소문자 정규화와 관리자 승격. (#2816)
+"""이메일 대소문자 정규화. (#2816)
 
 가입·로그인·중복 확인은 대소문자를 구분하고 관리자 승격만 무시하던 불일치를 닫는다.
-`Admin@…` 로 가입해 관리자가 되는 길이 막혀야 하고, 대문자를 섞어 쳐도 같은
-계정으로 로그인돼야 한다.
+대문자를 섞어 쳐도 같은 계정으로 로그인돼야 한다. 기동 때 이메일로 관리자를 올리던
+동작은 #3037 에서 없앴다 — 관리자 지정의 대소문자 변형 판정은
+`test_grant_admin_script` 가 본다.
 
 앞부분은 DB 없이 도는 순수 검사, 뒷부분(`client` 픽스처)은 CI 의 Postgres 에서 돈다.
 """
@@ -58,55 +59,6 @@ def test_clean_email_and_normalize_email_agree():
     """가입이 저장하는 값과 로그인이 찾는 값이 같은 규칙이어야 한다."""
     raw = "  First.Last+Tag@Sub.OnCare.co.KR "
     assert clean_email(raw) == normalize_email(raw)
-
-
-# ---- 관리자 승격 대상 판정 (DB 불필요) ----
-
-
-def _user(user_id: str, email: str) -> User:
-    return User(id=user_id, email=email, name="u", hashed_password="")
-
-
-def test_promotes_single_exact_match():
-    from app.db.init_db import admin_promotion_targets
-
-    admin = _user("u-1", "admin@example.com")
-    targets, skipped = admin_promotion_targets([admin], {"admin@example.com"})
-    assert targets == [admin]
-    assert skipped == []
-
-
-def test_case_variant_alone_is_not_promoted():
-    """정규화 전 표기로 남은 계정은 글자가 달라 승격하지 않는다."""
-    from app.db.init_db import admin_promotion_targets
-
-    variant = _user("u-2", "Admin@example.com")
-    targets, skipped = admin_promotion_targets([variant], {"admin@example.com"})
-    assert targets == []
-    assert skipped == ["admin@example.com"]
-
-
-def test_ambiguous_case_duplicates_promote_nobody():
-    from app.db.init_db import admin_promotion_targets
-
-    real = _user("u-3", "admin@example.com")
-    variant = _user("u-4", "Admin@example.com")
-    targets, skipped = admin_promotion_targets([real, variant], {"admin@example.com"})
-    assert targets == []
-    assert skipped == ["admin@example.com"]
-
-
-def test_each_admin_email_is_judged_separately():
-    from app.db.init_db import admin_promotion_targets
-
-    a = _user("u-5", "a@example.com")
-    b1 = _user("u-6", "b@example.com")
-    b2 = _user("u-7", "B@example.com")
-    targets, skipped = admin_promotion_targets(
-        [a, b1, b2], {"a@example.com", "b@example.com", "c@example.com"}
-    )
-    assert targets == [a]
-    assert skipped == ["b@example.com"]
 
 
 # ---- 가입·로그인 (DB) ----
@@ -178,7 +130,7 @@ def test_profile_email_change_rejects_case_variant_of_other(client):
     token = _login(client, mine).json()["access_token"]
     response = client.put(
         "/v1/users/me",
-        json={"email": taken.upper()},
+        json={"email": taken.upper(), "current_password": PASSWORD},
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 409
@@ -191,7 +143,7 @@ def test_profile_email_change_stores_lowercase(client, db_session):
     new_email = _email("changed")
     response = client.put(
         "/v1/users/me",
-        json={"email": new_email.upper()},
+        json={"email": new_email.upper(), "current_password": PASSWORD},
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200, response.text
@@ -242,57 +194,6 @@ def test_db_rejects_case_duplicate_insert(client, db_session):
     with pytest.raises(IntegrityError):
         db_session.commit()
     db_session.rollback()
-
-
-# ---- 관리자 승격 (DB) ----
-
-
-def test_promote_admins_promotes_exact_account(client, db_session, monkeypatch):
-    from app.core.config import get_settings
-    from app.db import init_db
-
-    email = _email("admin")
-    assert _register(client, email).status_code == 201
-    monkeypatch.setattr(get_settings(), "admin_emails", email.upper())
-    init_db._promote_admins()
-    db_session.expire_all()
-    user = db_session.scalar(select(User).where(User.email == email))
-    assert user is not None and user.is_admin is True
-
-
-def test_case_variant_signup_cannot_become_admin(client, db_session, monkeypatch):
-    """재현 경로: 관리자 이메일의 대소문자 변형으로 가입 → 재기동 → 관리자 아님."""
-    from app.core.config import get_settings
-    from app.db import init_db
-
-    admin_email = _email("admin-real")
-    monkeypatch.setattr(get_settings(), "admin_emails", admin_email)
-    # 대소문자 변형은 별도 계정이 되지 못한다 — 같은 이메일로 보고 409.
-    assert _register(client, admin_email).status_code == 201
-    assert _register(client, admin_email.upper()).status_code == 409
-    init_db._promote_admins()
-    db_session.expire_all()
-    admins = db_session.scalars(
-        select(User).where(User.email.ilike(admin_email), User.is_admin.is_(True))
-    ).all()
-    assert [u.email for u in admins] == [admin_email]
-
-
-def test_legacy_mixed_case_row_is_not_promoted(client, db_session, monkeypatch):
-    """정규화 전 표기로 남은 행은 승격하지 않고 경고만 남긴다."""
-    from app.core.config import get_settings
-    from app.db import init_db
-
-    email = _email("legacy")
-    legacy = User(
-        id=f"case-legacy-{uuid4().hex[:8]}", email=email.upper(), name="legacy"
-    )
-    db_session.add(legacy)
-    db_session.commit()
-    monkeypatch.setattr(get_settings(), "admin_emails", email)
-    init_db._promote_admins()
-    db_session.expire_all()
-    assert db_session.get(User, legacy.id).is_admin is False
 
 
 # ---- 마이그레이션 0120 (DB) ----

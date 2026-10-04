@@ -356,7 +356,10 @@ def test_deleting_the_account_deletes_the_photos(client, db_session):
         "/", 1
     )[-1]
 
-    gone = client.delete("/v1/users/me", headers=_auth(token))
+    gone = client.request(
+        "DELETE", "/v1/users/me", json={"current_password": _PASSWORD},
+        headers=_auth(token),
+    )
     assert gone.status_code == 200, gone.text
 
     db_session.expire_all()

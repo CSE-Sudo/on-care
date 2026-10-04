@@ -73,7 +73,11 @@ void main() {
     await expectLater(
       container
           .read(sessionControllerProvider.notifier)
-          .register(email: 'new@oncare.com', password: 'pw123456'),
+          .register(
+            email: 'new@oncare.com',
+            password: 'pw123456',
+            emailCode: '123456',
+          ),
       throwsA(isA<AccountCreatedSignInFailed>()),
     );
 
@@ -94,37 +98,42 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    container.read(dioProvider).interceptors.insert(
-      0,
-      InterceptorsWrapper(
-        onRequest: (RequestOptions options, RequestInterceptorHandler handler) {
-          if (options.path == '/auth/register') {
-            handler.reject(
-              DioException(
-                requestOptions: options,
-                response: Response<Object?>(
-                  requestOptions: options,
-                  statusCode: 409,
-                ),
-              ),
-            );
-            return;
-          }
-          handler.next(options);
-        },
-      ),
-    );
+    container
+        .read(dioProvider)
+        .interceptors
+        .insert(
+          0,
+          InterceptorsWrapper(
+            onRequest:
+                (RequestOptions options, RequestInterceptorHandler handler) {
+                  if (options.path == '/auth/register') {
+                    handler.reject(
+                      DioException(
+                        requestOptions: options,
+                        response: Response<Object?>(
+                          requestOptions: options,
+                          statusCode: 409,
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+                  handler.next(options);
+                },
+          ),
+        );
 
     // 계정이 만들어지지 않았으니 `계정 생성됨` 으로 감싸지 않는다.
     await expectLater(
       container
           .read(sessionControllerProvider.notifier)
-          .register(email: 'taken@oncare.com', password: 'pw123456'),
+          .register(
+            email: 'taken@oncare.com',
+            password: 'pw123456',
+            emailCode: '123456',
+          ),
       throwsA(
-        allOf(
-          isA<DioException>(),
-          isNot(isA<AccountCreatedSignInFailed>()),
-        ),
+        allOf(isA<DioException>(), isNot(isA<AccountCreatedSignInFailed>())),
       ),
     );
   });

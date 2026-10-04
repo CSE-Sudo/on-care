@@ -6193,11 +6193,53 @@ abstract class AppLocalizations {
   /// **'Couldn\'t delete your account. Please try again in a moment'**
   String get myDeleteFailed;
 
-  /// No description provided for @myDeleteConfirmPrompt.
+  /// No description provided for @myDeleteReauthPrompt.
   ///
   /// In en, this message translates to:
-  /// **'Type your name ({name}) to continue'**
-  String myDeleteConfirmPrompt(String name);
+  /// **'Enter your current password to confirm it\'s you'**
+  String get myDeleteReauthPrompt;
+
+  /// No description provided for @myDeleteReauthWrongPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Your current password is incorrect'**
+  String get myDeleteReauthWrongPassword;
+
+  /// No description provided for @myDeleteReauthSocialPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'This account uses social sign-in. Sign in again with your social account to confirm it\'s you.'**
+  String get myDeleteReauthSocialPrompt;
+
+  /// No description provided for @myDeleteReauthSocialAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in again with your social account'**
+  String get myDeleteReauthSocialAction;
+
+  /// No description provided for @myDeleteReauthKakao.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in again with Kakao'**
+  String get myDeleteReauthKakao;
+
+  /// No description provided for @myDeleteReauthGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in again with Google'**
+  String get myDeleteReauthGoogle;
+
+  /// No description provided for @myDeleteReauthSocialDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Social account confirmed. Press Delete to continue.'**
+  String get myDeleteReauthSocialDone;
+
+  /// No description provided for @myDeleteReauthSocialFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t confirm your social account. Please sign in again.'**
+  String get myDeleteReauthSocialFailed;
 
   /// No description provided for @myWithdrawReasonTitle.
   ///
@@ -9470,6 +9512,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t complete the request. Please try again shortly.'**
   String get passwordResetTemporaryFailure;
+
+  /// No description provided for @signUpCodeSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send code'**
+  String get signUpCodeSend;
+
+  /// No description provided for @signUpCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification code'**
+  String get signUpCodeLabel;
+
+  /// Same text whether or not the email already has an account.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-digit code from the email. If this email already has an account, you\'ll get a notice instead of a code.'**
+  String get signUpCodeSentNotice;
+
+  /// Remaining validity of the sign-up email code; time looks like 9:41.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires in {time}'**
+  String signUpCodeRemaining(String time);
+
+  /// No description provided for @signUpCodeExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'The code has expired. Request a new one.'**
+  String get signUpCodeExpired;
+
+  /// No description provided for @signUpCodeResend.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend'**
+  String get signUpCodeResend;
+
+  /// No description provided for @signUpCodeResendIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend in {seconds}s'**
+  String signUpCodeResendIn(int seconds);
+
+  /// No description provided for @signUpCodeDemoNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo mode doesn\'t send email. Enter {code} as the code.'**
+  String signUpCodeDemoNote(String code);
+
+  /// No description provided for @signUpCodeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This code is wrong or has expired. Request a new one.'**
+  String get signUpCodeInvalid;
+
+  /// No description provided for @signUpCodeRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the email verification code.'**
+  String get signUpCodeRequired;
+
+  /// No description provided for @signUpCodeTooMany.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many requests. Please try again in a moment.'**
+  String get signUpCodeTooMany;
+
+  /// No description provided for @signUpCodeUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'We can\'t send verification emails right now. Please try again later.'**
+  String get signUpCodeUnavailable;
+
+  /// No description provided for @signUpCodeRequestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t send the code. Please try again shortly.'**
+  String get signUpCodeRequestFailed;
 
   /// Title of the banner shown when a newer web release has been deployed while this tab is open (#3023).
   ///

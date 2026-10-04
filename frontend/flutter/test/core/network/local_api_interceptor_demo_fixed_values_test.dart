@@ -40,7 +40,12 @@ void main() {
     test('내 프로필에서 바꾼 이름·이메일이 /users/me/health 에 보인다', () async {
       await dio.put<Map<String, Object?>>(
         '/users/me',
-        data: <String, Object?>{'name': '김민지', 'email': 'minji@oncare.com'},
+        data: <String, Object?>{
+          'name': '김민지',
+          'email': 'minji@oncare.com',
+          // 이메일 변경은 본인 확인을 거친다(#3039). 테스트 전용 값이다.
+          'current_password': 'pw-current-1',
+        },
       );
 
       final res = await dio.get<Map<String, Object?>>('/users/me/health');
