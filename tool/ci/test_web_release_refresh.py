@@ -42,7 +42,9 @@ class WebReleaseRefreshWiringTest(unittest.TestCase):
         builds = [b for n, b in self.aws_steps.items() if n.startswith("Build Flutter web")]
         self.assertEqual(len(builds), 2)
         for block in builds:
-            self.assertIn("flutter build web --release", block)
+            # 빌드 인자는 배열에 모아 빌드 전 검사(#3147)와 빌드가 같은 값을 쓴다.
+            self.assertIn('flutter build web "${args[@]}"', block)
+            self.assertRegex(block, r"args=\(\s*--release\b")
             self.assertRegex(block, r"--dart-define=RELEASE_SHA=\"\$\{RELEASE_SHA:-\$GITHUB_SHA\}\"")
 
     def test_pages_builds_embed_release_sha(self) -> None:
