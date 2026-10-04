@@ -24,6 +24,7 @@
 | `https://ewhasudo.zapto.org/` | 랜딩페이지 | `public/index.html` |
 | `https://ewhasudo.zapto.org/frontend/` | 사용자 앱 | `public/frontend/` |
 | `https://ewhasudo.zapto.org/trainer/` | 트레이너 웹 | `public/trainer/` |
+| `https://ewhasudo.zapto.org/legal/privacy.html`, `…/legal/terms.html` | 개인정보 처리방침·이용약관 공개 페이지(#3005) | `public/legal/` |
 
 - 검색 색인: 랜딩만 색인합니다. 두 앱의 `web/index.html` 은 `<meta name="robots" content="noindex, nofollow">` 로 색인에서 빠집니다(로그인해야 쓰는 화면, #3015). 운영 정적 호스팅에서 응답 헤더(`X-Robots-Tag`)로 같은 정책을 거는 일은 배포 설정 몫입니다(#480).
 - 배포 워크플로: [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml)
@@ -46,12 +47,14 @@
 1. 랜딩 `index.html` 의 앱 바로가기를 검사합니다([아래 절](#랜딩-바로가기와-ogurlcanonical)).
 2. 회원 앱과 트레이너 웹의 Flutter 의존성을 설치합니다.
 3. 두 앱에 필요한 drift WASM 파일을 내려받습니다.
-4. 빌드 모드를 정합니다. `main` push 는 항상 `mock`(목업)이고, 수동 실행에서 `backend` 입력으로 `real` 을 고를 때만 실서버 빌드가 됩니다. `real` 이면 `API_BASE_URL` 저장소 변수를 먼저 검사합니다.
+4. 빌드 모드를 정합니다. `main` push 는 항상 `mock`(목업)이고, 수동 실행에서 `backend` 입력으로 `real` 을 고를 때만 실서버 빌드가 됩니다. `real` 이면 **staging 백엔드**(`STAGING_API_BASE_URL` 저장소 변수)를 보며, 그 값을 먼저 검사합니다. 운영 주소(`API_BASE_URL`)와 같으면 멈춥니다(#3020).
 5. 회원 앱을 `/frontend/`, 트레이너 웹을 `/trainer/` base path로 빌드합니다.
-6. 루트 `index.html`과 두 앱의 빌드 결과를 `public/` 아래에 모으고, 랜딩의 og:url·canonical 을 `CNAME` 도메인으로 채웁니다.
+6. 루트 `index.html`, 공개 정책 페이지 `legal/*.html`, 두 앱의 빌드 결과를 `public/` 아래에 모으고, 랜딩의 og:url·canonical 을 `CNAME` 도메인으로 채웁니다.
 7. Pages artifact를 업로드하고 `github-pages` 환경에 배포합니다.
 8. 배포 action이 제한 시간 안에 완료를 확인하지 못하면 `version.txt`로 실제 반영 여부를 추가 검증합니다.
-9. 배포된 랜딩을 받아 앱 바로가기·canonical·같은 도메인의 `/frontend/`·`/trainer/` 응답을 확인합니다.
+9. 배포된 랜딩을 받아 앱 바로가기·canonical·같은 도메인의 `/frontend/`·`/trainer/`·`/legal/privacy.html` 응답을 확인합니다.
+
+두 앱 화면에 보이는 버전(`… · 버전 <이름>`)은 각 앱 `pubspec.yaml` 의 `version` 에서 옵니다. 워크플로는 버전을 주입하지 않으므로, 버전을 바꾸려면 `pubspec.yaml` 을 올리는 커밋을 main 에 넣습니다([mobile_release.md 1절](mobile_release.md#1-버전빌드-번호-규칙)). `version.txt` 는 배포한 커밋 SHA 로, 화면의 버전과 다릅니다.
 
 ## 랜딩 바로가기와 og:url·canonical
 
@@ -66,9 +69,9 @@
 
 검사·치환·배포 후 확인은 [`.github/scripts/landing_site_url.sh`](../.github/scripts/landing_site_url.sh) 하나로 합니다.
 
-- `check` — 앱 바로가기에 `http(s)://…/frontend`·`…/trainer` 절대 주소가 없고, 상대 경로 바로가기와 표시 줄이 있는지. PR Gate 와 두 배포 워크플로의 빌드 전에 돕니다.
+- `check` — 앱 바로가기·처리방침 링크에 `http(s)://…/frontend`·`…/trainer`·`…/legal` 절대 주소가 없고, 상대 경로 바로가기·`legal/privacy.html` 링크와 표시 줄이 있는지. PR Gate 와 두 배포 워크플로의 빌드 전에 돕니다.
 - `stamp` — 표시 줄을 og:url·canonical 태그로 바꿉니다(https 주소만 받음).
-- `verify` — 배포된 랜딩을 받아 바로가기가 상대 경로인지, canonical 이 그 배포 주소인지, 같은 도메인의 `/frontend/`·`/trainer/` 가 응답하는지 확인합니다. AWS 배포에서 실패하면 직전 릴리스로 되돌립니다.
+- `verify` — 배포된 랜딩을 받아 바로가기가 상대 경로인지, canonical 이 그 배포 주소인지, 같은 도메인의 `/frontend/`·`/trainer/`·`/legal/privacy.html` 이 응답하는지 확인합니다. AWS 배포에서 실패하면 직전 릴리스로 되돌립니다.
 
 경계 검사는 `bash .github/scripts/test_landing_site_url.sh` 로 돌립니다.
 
@@ -131,7 +134,7 @@ Vercel 프로젝트가 이 Git 저장소와 연결되어 있으면 저장소 안
 | --- | --- | --- | --- |
 | 운영 — [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) | `false` | 저장소 변수 `vars.API_BASE_URL` | `prod` |
 | 데모 — [`deploy.yml`](../.github/workflows/deploy.yml), `main` push·수동 `mock` | `true` | 넘기지 않음 | `dev` |
-| 데모 — [`deploy.yml`](../.github/workflows/deploy.yml), 수동 `real` | `false` | 저장소 변수 `vars.API_BASE_URL` | `prod` |
+| 데모 — [`deploy.yml`](../.github/workflows/deploy.yml), 수동 `real` | `false` | 저장소 변수 `vars.STAGING_API_BASE_URL`(staging 백엔드) | `staging` |
 
 - **운영 경로는 실서버 고정입니다.** 목업으로 되돌리는 입력이 없습니다. 회원이 남긴 기록이 같은 백엔드를 거쳐 트레이너 웹에 보이고, 트레이너의 코칭·루틴이 회원 앱으로 돌아옵니다.
 - **`ENV=prod`** 이면 회원 앱의 GoRouter 진단 로그(`debugLogDiagnostics`)·provider 로그(`LoggingProviderObserver`)·화면 이동 로그와, 두 앱의 API 요청 로그 인터셉터가 꺼집니다. UI 카탈로그 경로도 열리지 않습니다.
@@ -142,6 +145,7 @@ Vercel 프로젝트가 이 Git 저장소와 연결되어 있으면 저장소 안
 - 위치: 저장소 `Settings` → `Secrets and variables` → `Actions` → `Variables`
 - 형식: `https://<운영 API 도메인>/v1` — **`/v1` 까지 포함하고 끝에 `/` 를 붙이지 않습니다.** 두 앱 모두 요청 경로를 `/auth/login` 처럼 `/v1` 없이 씁니다.
 - 주소는 워크플로에 적지 않고 이 변수에서만 읽습니다. 값을 바꾸면 다음 배포부터 반영됩니다.
+- 데모 사이트의 `real` 빌드는 같은 형식의 **`STAGING_API_BASE_URL`** 을 씁니다. staging 백엔드는 운영과 다른 DB·비밀로 뜨는 데모 시연용 서비스입니다([`backend/docs/DEPLOY.md`](../backend/docs/DEPLOY.md) 0절).
 
 빌드 전에 [`check_web_api_base_url.sh`](../.github/scripts/check_web_api_base_url.sh) 가 값을 검사하고, 아래 경우 **빌드를 시작하지 않고 워크플로를 실패시킵니다.** 빈 값으로 빌드하면 빌드는 성공하지만 자리표시자 주소를 부르는 앱이 배포되기 때문입니다.
 
@@ -149,6 +153,7 @@ Vercel 프로젝트가 이 Git 저장소와 연결되어 있으면 저장소 안
 - `https://` 로 시작하지 않음 (배포 웹은 https 로 서빙되므로 http 주소는 브라우저가 막습니다)
 - `/v1` 로 끝나지 않음, 또는 끝에 `/` 가 붙음
 - 코드 기본값의 자리표시자 도메인(`example.com` 계열)
+- **다른 환경의 주소와 같음** — 운영 빌드에는 `STAGING_API_BASE_URL` 을, 데모 `real` 빌드에는 `API_BASE_URL` 을 금지 주소로 넘깁니다. 두 변수를 같은 값으로 두면 데모 사이트가 운영 DB 에 기록을 남기거나 운영 웹이 시연용 DB 를 보게 되므로 둘 다 멈춥니다(#3020)
 
 검사 규칙 자체는 `bash .github/scripts/test_check_web_api_base_url.sh` 로 확인합니다.
 

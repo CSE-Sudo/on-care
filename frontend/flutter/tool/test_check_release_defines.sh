@@ -39,6 +39,8 @@ expect pass '운영 prod' "$(good)"
 expect pass '내부 staging' "$(good staging)"
 expect pass 'USE_MOCK_API 를 JSON false 로' "$(good prod false)"
 expect pass '모르는 키는 경고만' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"EXTRA":"1"')"
+expect pass 'iOS 앱 ID 숫자' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"IOS_APP_STORE_ID":"1234567890"')"
+expect fail 'iOS 앱 ID 자리표시자' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"IOS_APP_STORE_ID":"<Apple ID>"')"
 
 # 필수 키 누락
 expect fail 'ENV 누락' "{\"USE_MOCK_API\":\"false\",\"API_BASE_URL\":\"$GOOD_URL\",\"SENTRY_DSN\":\"$GOOD_DSN\"}"

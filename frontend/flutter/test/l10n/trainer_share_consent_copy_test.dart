@@ -10,6 +10,7 @@ library;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/legal_contact.dart';
 
 void main() {
   final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
@@ -40,7 +41,10 @@ void main() {
     });
 
     test('범위가 처리방침 5항과 같다', () {
-      expect(ko.myLegalPrivacyBody, contains(koScope));
+      expect(
+        ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+        contains(koScope),
+      );
       expect(ko.trainerShareItems, koScope);
     });
 
@@ -84,7 +88,10 @@ void main() {
 
     test('수락 안내와 처리방침도 같은 범위를 말한다', () {
       expect(en.coachInviteExplain, contains(enScope));
-      expect(en.myLegalPrivacyBody, contains(enScope));
+      expect(
+        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+        contains(enScope),
+      );
     });
 
     test('자세히의 다섯 항목이 모두 있다', () {

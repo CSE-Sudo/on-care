@@ -14,8 +14,8 @@ IP 로 본다. 요청자가 왼쪽에 무엇을 써 넣든 결과가 바뀌지 �
 
 uvicorn `--proxy-headers` 가 고치는 `request.client.host` 에 기대지 않는 이유:
 `--forwarded-allow-ips="*"` 이면 uvicorn 은 헤더의 **왼쪽 첫 값**(요청자가 쓴 값)을
-그대로 소켓 주소로 바꾼다. App Runner 처럼 프록시 주소 대역이 고정되지 않은
-플랫폼에서는 그 값을 좁힐 수 없어, 앱이 직접 오른쪽에서 센다.
+그대로 소켓 주소로 바꾼다. 관리형 로드 밸런서(ECS Express Mode 의 ALB 등)처럼 프록시
+주소 대역이 고정되지 않은 플랫폼에서는 그 값을 좁힐 수 없어, 앱이 직접 오른쪽에서 센다.
 """
 from __future__ import annotations
 

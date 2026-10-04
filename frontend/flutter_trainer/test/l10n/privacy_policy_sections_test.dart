@@ -9,6 +9,7 @@ library;
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/legal_contact.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 
 final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
@@ -64,7 +65,7 @@ List<int> _numbers(String body) => RegExp(
 
 void main() {
   test('한국어본에 필수 절이 순서대로 모두 있다', () {
-    final String body = ko.myLegalPrivacyBody;
+    final String body = ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
     int last = -1;
     for (final String heading in koSections) {
       final int at = body.indexOf('\n$heading\n');
@@ -74,7 +75,7 @@ void main() {
   });
 
   test('영문본에 같은 절이 같은 순서로 있다', () {
-    final String body = en.myLegalPrivacyBody;
+    final String body = en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
     int last = -1;
     for (final String heading in enSections) {
       final int at = body.indexOf('\n$heading\n');
@@ -85,56 +86,139 @@ void main() {
 
   test('조항 번호가 1부터 빠짐없이 이어진다 — 두 언어가 같다', () {
     final List<int> expected = List<int>.generate(15, (int i) => i + 1);
-    expect(_numbers(ko.myLegalPrivacyBody), expected);
-    expect(_numbers(en.myLegalPrivacyBody), expected);
+    expect(
+      _numbers(ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail)),
+      expected,
+    );
+    expect(
+      _numbers(en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail)),
+      expected,
+    );
   });
 
   test('실제 수탁자와 이전 국가·근거 조항을 적는다', () {
     for (final String name in _processors) {
-      expect(ko.myLegalPrivacyBody, contains(name), reason: name);
-      expect(en.myLegalPrivacyBody, contains(name), reason: name);
+      expect(
+        ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+        contains(name),
+        reason: name,
+      );
+      expect(
+        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+        contains(name),
+        reason: name,
+      );
     }
-    expect(ko.myLegalPrivacyBody, contains('주식회사 카카오'));
-    expect(en.myLegalPrivacyBody, contains('Kakao Corp.'));
-    expect(ko.myLegalPrivacyBody, contains('싱가포르'));
-    expect(ko.myLegalPrivacyBody, contains('제28조의8'));
-    expect(en.myLegalPrivacyBody, contains('Singapore'));
-    expect(en.myLegalPrivacyBody, contains('Article 28-8'));
+    expect(
+      ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('주식회사 카카오'),
+    );
+    expect(
+      en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('Kakao Corp.'),
+    );
+    expect(
+      ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('싱가포르'),
+    );
+    expect(
+      ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('제28조의8'),
+    );
+    expect(
+      en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('Singapore'),
+    );
+    expect(
+      en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('Article 28-8'),
+    );
   });
 
   test('보관 기간과 탈퇴 시 남는 것을 적는다', () {
-    expect(ko.myLegalPrivacyBody, contains('접속 기록: 1년'));
-    expect(ko.myLegalPrivacyBody, contains('탈퇴 기록: 2년'));
-    expect(ko.myLegalPrivacyBody, contains('리포트 PDF 파일 포함'));
+    expect(
+      ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('접속 기록: 1년'),
+    );
+    expect(
+      ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('탈퇴 기록: 2년'),
+    );
+    expect(
+      ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('리포트 PDF 파일 포함'),
+    );
     // 회원이 보낸 상담 요청은 트레이너 탈퇴로 지워지지 않는다(trainer_id SET NULL).
-    expect(ko.myLegalPrivacyBody, contains('트레이너 정보만 지운 채 남습니다'));
-    expect(en.myLegalPrivacyBody, contains('one year'));
-    expect(en.myLegalPrivacyBody, contains('two years'));
-    expect(en.myLegalPrivacyBody, contains("with the trainer's details removed"));
+    expect(
+      ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('트레이너 정보만 지운 채 남습니다'),
+    );
+    expect(
+      en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('one year'),
+    );
+    expect(
+      en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('two years'),
+    );
+    expect(
+      en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains("with the trainer's details removed"),
+    );
   });
 
   test('보호책임자는 직책과 연락처로 적는다', () {
-    expect(ko.myLegalPrivacyBody, contains('직책:'));
-    expect(ko.myLegalPrivacyBody, contains('연락처: support@oncare.com'));
-    expect(en.myLegalPrivacyBody, contains('Position:'));
-    expect(en.myLegalPrivacyBody, contains('Contact: support@oncare.com'));
+    expect(
+      ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('직책:'),
+    );
+    expect(
+      ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('연락처: ${LegalContact.privacyOfficerEmail}'),
+    );
+    expect(
+      en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('Position:'),
+    );
+    expect(
+      en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('Contact: ${LegalContact.privacyOfficerEmail}'),
+    );
   });
 
   test('시행일이 자리표시자가 아니고 두 언어가 같으며 개정 이력이 있다', () {
-    expect(ko.myLegalPrivacyBody, contains('시행일: 2026년 10월 3일'));
-    expect(en.myLegalPrivacyBody, contains('Effective: October 3, 2026'));
-    expect(ko.myLegalPrivacyBody, isNot(contains('2026년 1월 1일')));
-    expect(en.myLegalPrivacyBody, isNot(contains('January 1, 2026')));
-    expect(ko.myLegalPrivacyBody, contains('2026년 10월 1일: 제정'));
-    expect(en.myLegalPrivacyBody, contains('October 1, 2026: first issued'));
+    expect(
+      ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('시행일: 2026년 10월 3일'),
+    );
+    expect(
+      en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('Effective: October 3, 2026'),
+    );
+    expect(
+      ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      isNot(contains('2026년 1월 1일')),
+    );
+    expect(
+      en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      isNot(contains('January 1, 2026')),
+    );
+    expect(
+      ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('2026년 10월 1일: 제정'),
+    );
+    expect(
+      en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('October 1, 2026: first issued'),
+    );
     expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 03.');
     expect(en.myLegalPrivacyEffectiveDate, 'Effective Oct 3, 2026');
   });
 
   test('약관 시행일은 처리방침과 따로 간다', () {
-    expect(ko.myLegalTermsBody, contains('2026년 10월 1일부터 시행'));
-    expect(en.myLegalTermsBody, contains('October 1, 2026'));
-    expect(ko.myLegalTermsEffectiveDate, '시행일 2026. 10. 01.');
-    expect(en.myLegalTermsEffectiveDate, 'Effective Oct 1, 2026');
+    expect(ko.myLegalTermsBody, contains('2026년 10월 3일부터 시행'));
+    expect(en.myLegalTermsBody, contains('October 3, 2026'));
+    expect(ko.myLegalTermsEffectiveDate, '시행일 2026. 10. 03.');
+    expect(en.myLegalTermsEffectiveDate, 'Effective Oct 3, 2026');
   });
 }

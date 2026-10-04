@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/core/observability/handled_error.dart';
 import 'package:oncare/core/storage/prefs_store.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare/features/my_health/presentation/controllers/withdraw_preview_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -76,15 +78,26 @@ class _WithdrawPageState extends ConsumerState<WithdrawPage> {
 
   /// 되돌릴 수 없는 동작 앞의 마지막 확인이다. 확인창은 #1935 의 것 그대로 —
   /// 무엇이 사라지는지 말하고, 빨간 채움 버튼에서 확정한다.
+  ///
+  /// 확인창 앞에서 이 계정의 포인트·쿠폰·예약·상담 요청 건수를 읽어 0 이 아닌
+  /// 것만 덧붙인다(#3006). 읽기가 실패하거나 늦으면 일반 문구로 띄운다.
   Future<void> _confirmAndDelete() async {
     final AppLocalizations l = AppLocalizations.of(context);
     final AppToastHost toast = AppToastHost.of(context);
     // 세션을 비우면 이 화면은 그 자리에서 사라진다 — 옮길 곳을 먼저 붙들어 둔다.
     final GoRouter? router = GoRouter.maybeOf(context);
+    // 읽는 동안 두 버튼을 잠근다 — 두 번 눌러 확인창이 겹쳐 뜨지 않게.
+    setState(() => _busy = true);
+    final preview = await loadWithdrawPreview(
+      ref.read(withdrawPreviewLoaderProvider),
+      reporter: ref.read(handledErrorReporterProvider),
+    );
+    if (!mounted) return;
+    setState(() => _busy = false);
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.myWithdrawTitle,
-      message: l.myWithdrawConfirm,
+      message: withdrawConfirmMessage(l, preview),
       confirmLabel: l.myWithdrawAction,
       cancelLabel: l.myCancel,
       destructive: true,

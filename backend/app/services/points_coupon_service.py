@@ -56,7 +56,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
-from sqlalchemy import case, select, update
+from sqlalchemy import case, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -838,6 +838,23 @@ def _expire_stale(db: Session, member_id: str) -> None:
         .values(status=EXPIRED)
         .execution_options(synchronize_session=False)
     )
+
+
+def count_active(db: Session, member_id: str) -> int:
+    """아직 쓸 수 있는 쿠폰 수 — 탈퇴 확인창이 읽는다(#3006).
+
+    사용·취소·만료된 쿠폰은 세지 않는다. 기한이 지났지만 아직 `expired` 로 내리지
+    못한 행도 `expires_at` 으로 걸러 낸다(만료는 늦게 반영된다). 종류는 가리지
+    않는다 — 0P 로 받은 식판 쿠폰(#2150)도 탈퇴하면 함께 사라진다.
+    """
+    value = db.scalar(
+        select(func.count(PointsCoupon.id)).where(
+            PointsCoupon.user_id == member_id,
+            PointsCoupon.status == ISSUED,
+            PointsCoupon.expires_at > clock.now(),
+        )
+    )
+    return int(value or 0)
 
 
 def _active_coupon(db: Session, member_id: str, item_id: str) -> PointsCoupon | None:

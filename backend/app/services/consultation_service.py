@@ -264,6 +264,30 @@ def release_holds_for_account_deletion(db: Session, member_id: str) -> None:
         reservation_service.release_consultation_hold(db, slot_id)
 
 
+def count_live_pending_for_member(
+    db: Session, member_id: str, *, now: datetime | None = None
+) -> int:
+    """탈퇴하면 함께 지워지는 대기 상담 요청 수 — 탈퇴 확인창이 읽는다(#3006).
+
+    만료 시각([_expires_at])이 지난 대기 요청은 아직 `expired` 로 내려가지 않았어도
+    회원 화면에서 끝난 요청이라 세지 않는다. [notify_trainers_of_account_deletion] 이
+    알리지 않는 것과 같은 기준이다.
+    """
+    current = now or _now()
+    rows = db.execute(
+        select(ConsultationRequest, TrainerReservationSlot.starts_at)
+        .outerjoin(
+            TrainerReservationSlot,
+            TrainerReservationSlot.id == ConsultationRequest.slot_id,
+        )
+        .where(
+            ConsultationRequest.member_id == member_id,
+            ConsultationRequest.status == "pending",
+        )
+    ).all()
+    return sum(1 for row, starts_at in rows if _expires_at(row, starts_at) > current)
+
+
 def notify_trainers_of_account_deletion(
     db: Session, member: User, *, now: datetime | None = None
 ) -> int:

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/features/account/domain/entities/account_deletion_preview.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
@@ -77,6 +78,10 @@ class _RecordingRepository implements AccountRepository {
   @override
   Future<void> deleteAccount({List<String> reasons = const <String>[]}) =>
       _inner.deleteAccount(reasons: reasons);
+
+  @override
+  Future<AccountDeletionPreview> fetchDeletionPreview() =>
+      _inner.fetchDeletionPreview();
 
   @override
   Future<UserProfile> updateProfile({
@@ -660,8 +665,8 @@ void main() {
   testWidgets('범위 밖 식단 목표를 넣으면 3단계에 머물고 그 칸에 알려 준다', (tester) async {
     await _open(tester);
     await _fillBasics(tester);
-    await _tapNext(tester);  // 2단계
-    await _tapNext(tester);  // 3단계 식단 목표
+    await _tapNext(tester); // 2단계
+    await _tapNext(tester); // 3단계 식단 목표
 
     await tester.enterText(_field('onboardKcalField'), '99999');
     await _tapNext(tester);
@@ -681,7 +686,7 @@ void main() {
     await _fillBasics(tester);
     await _tapNext(tester);
     await _tapNext(tester);
-    await _tapNext(tester);  // 4단계 운동 목표
+    await _tapNext(tester); // 4단계 운동 목표
 
     // 한 주는 10,080분이다.
     await tester.enterText(_field('onboardCardioField'), '100000');
