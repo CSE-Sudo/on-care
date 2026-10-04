@@ -23,6 +23,14 @@ def _h(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
+def _delete_me(client, token: str):
+    """트레이너 탈퇴 — 본인 확인으로 현재 비밀번호를 함께 보낸다."""
+    return client.request(
+        "DELETE", "/v1/trainer/me", json={"current_password": PASSWORD},
+        headers=_h(token),
+    )
+
+
 def _login(client, email: str, password: str) -> str:
     res = client.post(
         "/v1/auth/login", data={"username": email, "password": password}
@@ -244,7 +252,7 @@ def test_deleting_does_not_notify_past_clients(
     _link(db_session, trainer_id, past_member_id, active=False)
     before = _member_titles(db_session, past_member_id)
 
-    assert client.delete("/v1/trainer/me", headers=_h(token)).status_code == 200
+    assert _delete_me(client, token).status_code == 200
 
     assert _member_titles(db_session, past_member_id) == before
 
@@ -263,7 +271,7 @@ def test_deleting_notifies_active_clients_even_with_switches_off(
     assert switched.status_code == 200, switched.text
     _link(db_session, trainer_id, member_id, active=True)
 
-    assert client.delete("/v1/trainer/me", headers=_h(token)).status_code == 200
+    assert _delete_me(client, token).status_code == 200
 
     assert "담당 트레이너 연결이 해제되었어요" in _member_titles(db_session, member_id)
 
@@ -305,7 +313,7 @@ def test_a_past_client_with_a_booking_hears_only_about_the_booking(
     db_session.commit()
     before = _member_titles(db_session, member_id)
 
-    assert client.delete("/v1/trainer/me", headers=_h(token)).status_code == 200
+    assert _delete_me(client, token).status_code == 200
 
     added = Counter(_member_titles(db_session, member_id)) - Counter(before)
     assert added == Counter({"예약한 수업이 취소되었어요": 1})
@@ -337,7 +345,7 @@ def test_an_active_client_with_a_booking_gets_one_notice(
     assert booked.status_code == 201, booked.text
     before = len(_member_titles(db_session, member_id))
 
-    assert client.delete("/v1/trainer/me", headers=_h(token)).status_code == 200
+    assert _delete_me(client, token).status_code == 200
 
     titles = _member_titles(db_session, member_id)
     assert len(titles) == before + 1
