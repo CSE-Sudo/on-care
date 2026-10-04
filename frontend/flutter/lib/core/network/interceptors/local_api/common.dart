@@ -75,11 +75,13 @@ extension _LocalApiCommon on LocalApiInterceptor {
     );
   }
 
+  // 오류 본문은 FastAPI `HTTPException` 과 같은 `{'detail': ...}` 이다 —
+  // `AppError.fromDio` 는 `detail` 만 서버 사유로 읽는다(#3099).
   Response<Object?> _badRequest(RequestOptions options, String message) {
     return Response<Object?>(
       requestOptions: options,
       statusCode: 400,
-      data: <String, Object?>{'code': 'bad_request', 'message': message},
+      data: <String, Object?>{'detail': message},
     );
   }
 
@@ -89,7 +91,7 @@ extension _LocalApiCommon on LocalApiInterceptor {
     return Response<Object?>(
       requestOptions: options,
       statusCode: 422,
-      data: <String, Object?>{'code': 'unprocessable', 'message': message},
+      data: <String, Object?>{'detail': message},
     );
   }
 
@@ -118,7 +120,7 @@ extension _LocalApiCommon on LocalApiInterceptor {
     return Response<Object?>(
       requestOptions: options,
       statusCode: 404,
-      data: <String, Object?>{'code': 'not_found', 'message': message},
+      data: <String, Object?>{'detail': message},
     );
   }
 }

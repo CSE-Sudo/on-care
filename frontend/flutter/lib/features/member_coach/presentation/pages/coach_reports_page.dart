@@ -160,7 +160,6 @@ class _ReportRowState extends ConsumerState<_ReportRow> {
     try {
       await openCoachReport(
         context,
-        ref,
         message: widget.notice.message,
         weekStart: widget.notice.weekStart,
       );

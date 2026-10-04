@@ -108,7 +108,7 @@ class _GatedRepository implements ExerciseRepository {
   }
 
   @override
-  Future<void> deleteSession(String id) async {}
+  Future<void> deleteSession(String id) => _wait();
 
   @override
   Future<ExerciseSession> updateSession({
@@ -136,6 +136,24 @@ class _GatedRepository implements ExerciseRepository {
       date: date,
     );
   }
+}
+
+/// [ExerciseChangeRunner] 에 넘기는 `Ref` — 읽기는 [source] 로, 비우기는
+/// [invalidated] 에 적어 두기만 한다.
+class _RecordingRef implements Ref<Object?> {
+  _RecordingRef(this.source, this.invalidated);
+
+  final ProviderContainer source;
+  final List<ProviderOrFamily> invalidated;
+
+  @override
+  T read<T>(ProviderListenable<T> provider) => source.read(provider);
+
+  @override
+  void invalidate(ProviderOrFamily provider) => invalidated.add(provider);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 /// KST 고정 날짜의 기존 기록.
@@ -217,7 +235,7 @@ void main() {
       expect(added.points?.awarded, 20);
     });
 
-    test('실패하면 비우지 않고 예외를 올린다', () async {
+    test('실패해도 비우고 예외를 그대로 올린다 (#3096)', () async {
       final _GatedRepository repo = _GatedRepository()
         ..saveError = StateError('offline');
       final ProviderContainer c = container(repo);
@@ -236,7 +254,67 @@ void main() {
       );
       await c.read(exerciseWeekProvider.future);
 
-      expect(repo.weekCalls, 1);
+      expect(repo.weekCalls, 2);
+    });
+
+    test('여러 건 중 두 번째가 실패해도 첫 수정이 보이게 다시 읽는다 (#3096)', () async {
+      final _GatedRepository repo = _GatedRepository();
+      final ProviderContainer c = container(repo);
+      final ProviderSubscription<AsyncValue<ExerciseWeek>> sub = c.listen(
+        exerciseWeekProvider,
+        (_, _) {},
+      );
+      addTearDown(sub.close);
+      await c.read(exerciseWeekProvider.future);
+
+      Future<ExerciseSession> update(ExerciseRepository r, String id) =>
+          r.updateSession(
+            id: id,
+            type: ExerciseType.cardio,
+            minutes: 30,
+            calories: 120,
+            date: DateTime(2026, 9, 29),
+          );
+
+      await expectLater(
+        c.read(exerciseChangeRunnerProvider).run((ExerciseRepository r) async {
+          await update(r, 'ex-1');
+          // 첫 수정은 서버에 남았다 — 두 번째만 실패한다.
+          repo.saveError = StateError('offline');
+          await update(r, 'ex-2');
+        }),
+        throwsA(isA<StateError>()),
+      );
+      await c.read(exerciseWeekProvider.future);
+
+      expect(repo.saves, 2);
+      expect(repo.weekCalls, 2);
+    });
+
+    test('성공·실패 모두 대상 목록 전부를 비운다 (#3096)', () async {
+      for (final bool fail in <bool>[false, true]) {
+        final List<ProviderOrFamily> invalidated = <ProviderOrFamily>[];
+        final ProviderContainer c = ProviderContainer(
+          overrides: <Override>[
+            exerciseRepositoryProvider.overrideWithValue(
+              _GatedRepository()..saveError = fail ? StateError('x') : null,
+            ),
+          ],
+        );
+        addTearDown(c.dispose);
+        // 러너가 받는 `Ref.invalidate` 를 가로채 무엇을 비웠는지 센다.
+        final ExerciseChangeRunner runner = ExerciseChangeRunner(
+          _RecordingRef(c, invalidated),
+        );
+
+        try {
+          await runner.run((ExerciseRepository r) => r.deleteSession('ex-1'));
+        } on StateError {
+          expect(fail, isTrue);
+        }
+
+        expect(invalidated, kExerciseChangeRefreshTargets, reason: '$fail');
+      }
     });
   });
 

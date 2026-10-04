@@ -28,17 +28,51 @@ import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/demo_exercise.dart';
 
+/// 완료 요청을 [gate] 가 풀릴 때까지 붙잡는다. 추천 목록 조회 수를 센다.
+class _GatedCoach extends MockMemberCoachRepository {
+  _GatedCoach({super.exercise});
+
+  Completer<void>? gate;
+  int routineFetches = 0;
+
+  @override
+  Future<List<CoachRoutine>> fetchRoutines() {
+    routineFetches++;
+    return super.fetchRoutines();
+  }
+
+  @override
+  Future<CoachRoutine> completeRoutine(
+    String routineId, {
+    required int minutes,
+    int? durationSeconds,
+    String intensity = 'moderate',
+    DateTime? day,
+  }) async {
+    final Completer<void>? g = gate;
+    if (g != null) await g.future;
+    return super.completeRoutine(
+      routineId,
+      minutes: minutes,
+      durationSeconds: durationSeconds,
+      intensity: intensity,
+      day: day,
+    );
+  }
+}
+
+/// 추천 카드를 화면에 둘지 — 요청 중에 줄을 치우는 데 쓴다.
+final StateProvider<bool> _showCard = StateProvider<bool>((ref) => true);
+
 void main() {
-  late MockMemberCoachRepository coach;
+  late _GatedCoach coach;
   late int calendarBuilds;
   late int shieldBuilds;
   late int challengeBuilds;
 
   setUp(() {
     // 앱의 데모와 같은 경로 — 루틴 완료 기록이 로컬 목업 API(drift)에 남는다(#2724).
-    coach = MockMemberCoachRepository(
-      exercise: demoExerciseBackend(emptyDemoDatabase()).api,
-    );
+    coach = _GatedCoach(exercise: demoExerciseBackend(emptyDemoDatabase()).api);
     calendarBuilds = 0;
     shieldBuilds = 0;
     challengeBuilds = 0;
@@ -87,11 +121,15 @@ void main() {
                 ref
                   ..watch(activityCalendarProvider)
                   ..watch(myStreakShieldsProvider)
-                  ..watch(weeklyChallengeProvider);
-                return const SingleChildScrollView(
+                  ..watch(weeklyChallengeProvider)
+                  // 운동 탭의 다른 자리도 추천 목록을 보고 있다.
+                  ..watch(coachRoutinesProvider);
+                return SingleChildScrollView(
                   child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: AiCoachingCard(),
+                    padding: const EdgeInsets.all(24),
+                    child: ref.watch(_showCard)
+                        ? const AiCoachingCard()
+                        : const SizedBox.shrink(),
                   ),
                 );
               },
@@ -175,6 +213,36 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(calendarBuilds, 2);
+    expect(challengeBuilds, 2);
+  });
+
+  testWidgets('완료 요청 중에 그 줄이 치워져도 목록·달력·챌린지를 다시 읽는다 (#3096)', (
+    WidgetTester tester,
+  ) async {
+    await pumpCard(tester);
+    final CoachRoutine target = await firstOpenRoutine(tester);
+    final int fetchesBefore = coach.routineFetches;
+
+    coach.gate = Completer<void>();
+    await tester.tap(find.byKey(Key('completeRoutine-${target.id}')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('confirmRoutineCompletion')));
+    await tester.pump();
+
+    // 요청이 가 있는 동안 카드가 치워진다(목록 갱신·탭 이동).
+    ProviderScope.containerOf(
+      tester.element(find.byType(Scaffold).first),
+    ).read(_showCard.notifier).state = false;
+    await tester.pumpAndSettle();
+    expect(find.byType(AiCoachingCard), findsNothing);
+
+    coach.gate!.complete();
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(coach.routineFetches, greaterThan(fetchesBefore));
+    expect(calendarBuilds, 2);
+    expect(shieldBuilds, 2);
     expect(challengeBuilds, 2);
   });
 }
