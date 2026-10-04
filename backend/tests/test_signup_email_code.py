@@ -71,13 +71,16 @@ def test_prod_refuses_to_turn_verification_off():
         Settings(
             _env_file=None,
             env="prod",
-            jwt_secret="a-strong-random-secret-value",
+            # 다른 운영 필수값(32바이트 이상 JWT_SECRET·S3 첨부, #3029)을 채워
+            # 인증 끄기 검사만 걸리게 한다.
+            jwt_secret="a-strong-random-secret-value-for-prod-tests",
             cors_allow_origins="https://app.oncare.com",
             seed_demo_data=False,
             auto_create_tables=False,
             gemini_api_key="test-gemini-key",
             recognizer="gemini",
             embedder="gemini",
+            attachment_s3_bucket="oncare-prod",
             signup_email_verification=False,
         )
 
