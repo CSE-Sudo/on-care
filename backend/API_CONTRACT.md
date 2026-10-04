@@ -103,7 +103,7 @@
 | PUT | `/users/me/notification-settings` | 위 다섯 키 중 보낸 것만 반영 → 같은 모양 |
 | POST | `/users/me/pairing-code` | `{ code, expires_at, expires_in_seconds }` — 트레이너에게 불러 줄 6자리 코드(#1634). **이 호출이 데이터 공유 동의다**(#1022). 유효한 코드가 남아 있으면 같은 코드를 돌려준다. 회원 전용, rate limit 적용 |
 | DELETE | `/users/me/pairing-code` | 204 — 띄워 둔 코드를 버린다(화면을 닫을 때) |
-| POST | `/users/me/password` | `{ current_password, new_password }` → `PasswordChanged`(새 토큰 한 쌍) — 회원 비밀번호 변경(#2824). 아래 [회원 비밀번호 변경](#회원-비밀번호-변경-2824) |
+| POST | `/users/me/password` | `{ current_password, new_password }` → `PasswordChanged`(새 토큰 한 쌍) — 회원 비밀번호 변경(#2824). 현재 비밀번호를 연달아 틀리면 계정 단위 잠금 429(#3087). 아래 [회원 비밀번호 변경](#회원-비밀번호-변경-2824) |
 
 `DELETE /users/me` 는 본문으로 `{ reasons: [코드], current_password | social_provider·social_token }`
 을 받는다(#2019, #3039). 본인 확인 값은 **늘 필요하다** — 아래 [본인 확인](#탈퇴로그인-이메일-변경-전-본인-확인-3039).
@@ -1639,8 +1639,9 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
 
 - `POST /auth/register`·`POST /auth/trainer/register` 는 `consents: [항목]` 을 받는다. 보냈다면 그
   역할의 필수 항목이 모두 있어야 하고, 빠졌거나(빈 목록 포함) 모르는 항목이면 **422** 다 — 계정은
-  만들어지지 않는다. **보내지 않으면(`null`) 막지 않는다**: 동의 화면이 없는 옛 빌드의 가입이며,
-  기록 없이 계정만 만들어진다.
+  만들어지지 않는다. **보내지 않으면(`null`) 가입은 받는다**: 동의 화면이 없는 옛 빌드의 가입이며,
+  기록 없이 계정만 만들어진다. 다만 그 계정은 동의하기 전까지 회원 데이터·AI API 를 쓰지 못한다
+  (아래 "필수 동의 확인").
 - `POST /auth/login`·`POST /auth/social/{provider}` 응답에 `consent_required: bool` 이 붙는다.
   `GET /users/me` 는 같은 값과 아직 동의하지 않은 필수 항목 목록(`consent_pending`)을 준다.
   기록이 없는 계정(동의 절차 이전 가입·옛 빌드 가입·소셜 첫 가입)과, 문서 버전이 올라 지금 버전에
@@ -1650,8 +1651,21 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
   이미 지금 버전에 동의한 항목은 다시 쓰지 않는다 — 처음 동의한 시각이 남는다.
 - 문서 버전은 `services/signup_consent.CURRENT_VERSIONS` 한 곳이 정한다. 약관·처리방침 본문을
   고치면 그 항목의 버전을 올린다. 처리방침은 위탁·국외 이전·파기 절차 절을 더하며 `privacy` 가
-  `2026-10-03` 으로 올랐다(#2820) — 그 전 버전에만 동의한 계정은 다음 로그인 때 동의 화면을 다시
-  거친다. 버전 날짜는 두 앱 처리방침 본문의 시행일과 같아야 한다.
+  `2026-10-03` 으로 올랐다(#2820) — 그 전 버전에만 동의한 계정은 다시 동의할 때까지 회원 데이터 API
+  가 403 이고, 동의 화면을 다시 거친다. 버전 날짜는 두 앱 처리방침 본문의 시행일과 같아야 한다.
+- **필수 동의 확인(#3088)** — 회원 계정은 역할의 필수 항목(`terms`·`privacy`·`health`·`age14`)에
+  지금 버전으로 동의해 두어야 회원 의존성(`CurrentUser`·`RequireMember`)을 쓰는 API 를 부를 수 있다.
+  남은 항목이 있으면 **403** `{ detail: { code: "consent_required", missing: [...] } }` — 위 422 와
+  같은 모양이다. 핸들러보다 먼저 막으므로 음식 인식·AI 코치 같은 외부 AI 호출도 일어나지 않는다.
+  기록이 없는 계정, 문서 버전이 오른 계정, 동의를 철회(`revoked_at`)한 계정이 모두 해당한다.
+  - 동의 없이도 열려 있는 경로: `GET /users/me`(동의 필요 여부 조회), `POST /users/me/consents`,
+    `DELETE /users/me`(탈퇴), `/auth/*`(로그인·refresh·로그아웃·비밀번호 재설정·소셜 로그인),
+    계정 데이터가 없는 공개 경로. 목록은 `api/deps.CONSENT_EXEMPT_ROUTES` 한 곳에 있다.
+  - 트레이너 계정은 이 확인을 거치지 않는다(트레이너 필수 동의 강제는 따로 정한다).
+  - 회원 앱은 이 403 을 받으면 세션을 "동의 필요" 로 바꿔 동의 화면으로 보낸다. 앱을 쓰는 사이
+    문서 버전이 올라도 다음 데이터 요청에서 동의 화면으로 넘어간다.
+  - 회원 의존성 없이 `RequireUser` 로만 사용자를 받는 라우트가 생기면
+    `tests/test_member_consent_gate.py` 가 실패한다(예외는 그 파일의 목록에 이유와 함께 적는다).
 - 국외 이전 동의는 따로 받지 않는다(#2820). 계약 이행을 위한 처리 위탁·보관이라 처리방침 공개로
   갈음한다(「개인정보 보호법」 제28조의8 제1항 제3호). 위탁·이전 표는 `docs/privacy_processing.md`.
 
@@ -1903,6 +1917,18 @@ refresh 토큰은 **일회용**이다. `POST /auth/refresh` 는 회전할 때 �
 발급된 access 토큰 자체는 남은 수명(기본 하루)까지 유효하다. 상태 없는 JWT 의 성질이며,
 로그아웃이 끊는 것은 **세션을 계속 되살리는 능력**이다.
 
+### 재사용 감지 뒤 세션 전체 폐기 · 세션 절대 수명 (#3086)
+
+refresh 토큰에는 로그인 세션 이름 `sid`(무작위)와 최초 인증 시각 `auth_time`(epoch 초)이 실린다. 로그인·소셜 로그인·비밀번호 변경(`POST /users/me/password`·`POST /trainer/me/password`)은 새 세션을 열고, `POST /auth/refresh` 는 두 값을 **그대로 이어** 새 토큰에 싣는다. 같은 계정이라도 로그인마다(기기마다) `sid` 가 다르다.
+
+- **재사용 감지 = 세션 폐기.** 회전으로 폐기된 토큰이 `REFRESH_REUSE_GRACE_SECONDS`(기본 30초)를 넘겨 다시 오면, 정상 사용자와 탈취자 중 누가 먼저 회전했는지 알 수 없으므로 그 `sid` 를 `revoked_sessions` 에 적는다. 이후 그 세션의 refresh 토큰은 모두 401 이고 `auth.refresh_session_revoked` 감사 로그가 남는다. 재사용 요청의 `auth.refresh_reuse` 감사 로그 `detail` 은 `session revoked: <sid>` 다. 다른 `sid`(다른 기기)는 영향이 없다.
+- **동시 갱신 유예.** 웹 탭 두 개나 응답을 받기 전에 앱이 꺼진 경우처럼 정상 사용자도 같은 토큰을 두 번 보낼 수 있다. 회전된 지 유예 안에 다시 온 토큰은 그 요청만 401 이고 세션은 이어진다(`detail`: `within grace`).
+- **로그아웃·옛 세대로 폐기된 토큰의 재사용**은 이미 끊긴 세션이라 세션을 따로 폐기하지 않는다(`detail`: `already revoked: logout`·`already revoked: stale`). 폐기 사유는 `revoked_refresh_tokens.reason`(`rotated`·`logout`·`stale`)에 남는다.
+- **절대 수명.** `auth_time` 으로부터 `SESSION_MAX_DAYS`(모바일, 기본 90일)·`WEB_SESSION_MAX_DAYS`(웹, 기본 30일)가 지나면 `POST /auth/refresh` 는 401 + `auth.refresh_session_expired` 감사 로그다. 회전이 내는 refresh 토큰의 만료도 이 상한을 넘지 않게 잘린다. 두 앱은 지금처럼 refresh 401 → 세션 만료 안내 → 로그인 화면으로 간다.
+- **배포 전 토큰.** `sid`·`auth_time` 이 없는 토큰은 끊기지 않고 첫 회전에서 새 `sid` 와 `auth_time=지금`을 받는다.
+- 접근 토큰에는 `sid` 를 싣지 않는다. 세션이 끊겨도 이미 발급된 접근 토큰은 남은 수명(`ACCESS_TOKEN_EXPIRE_MINUTES`)까지 유효하다.
+- `revoked_sessions` 의 `expires_at` 은 그 세션의 절대 수명이 끝나는 시각이고, 새 폐기가 생길 때마다 만료된 행을 정리한다.
+
 ### 웹 클라이언트의 짧은 refresh 토큰 (#2828)
 
 회원 앱 웹·트레이너 웹 빌드는 **모든 요청**에 `X-Client-Platform: web` 을 싣는다(모바일은
@@ -1968,7 +1994,12 @@ CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 �
 | 현재 비밀번호 불일치 | **400** `현재 비밀번호가 일치하지 않습니다.` (401 이 아니다 — 토큰은 유효) |
 | 새 비밀번호가 지금과 같음 | 400 |
 | 새 비밀번호 기준 미달 | 422 `password_weak`·`password_too_long`·`password_empty` |
-| 소셜 로그인 전용 계정(비밀번호 없음) | **409** |
+| 소셜 로그인 전용 계정(비밀번호 없음) | **409** (실패 잠금에 세지 않는다) |
+| 현재 비밀번호를 `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `PASSWORD_CHANGE_MAX_FAILURES`(5)번 틀림 | 남은 시간 동안 **429** + `Retry-After`. 잠긴 동안에는 맞는 비밀번호도 확인하지 않는다(#3087) |
+
+실패 잠금은 사용자 id 단위라 IP 를 바꿔도 같은 버킷이고, 트레이너와 같은 키·설정값을 쓴다
+(`PasswordChangeGuard`). 틀린 시도는 감사 로그 `auth.password_change`(실패, `current_password_mismatch`)에
+남고, 현재 비밀번호가 맞으면 실패 기록을 지운다. 회원 앱은 429 를 "시도가 너무 많아요" 안내로 보여 준다.
 
 `GET /users/me/profile` 의 `has_password`(bool)가 false 면 소셜 로그인 전용 계정이다. 회원 앱은
 이 값으로 MY 의 비밀번호 변경 대신 안내를 보여 준다.
@@ -2113,7 +2144,7 @@ IP 를 바꿔 가며 한 계정을 노리는 시도는 계정 쪽 버킷이 막�
 | `POST /auth/register/email-code` | IP + **이메일** + (이메일, 용도) | IP 는 분당 10. 같은 이메일은 `SIGNUP_EMAIL_CODE_WINDOW_MINUTES`(60분) 안에 `SIGNUP_EMAIL_CODE_PER_WINDOW`(5)번, 같은 (이메일, 용도)는 `SIGNUP_EMAIL_CODE_RESEND_SECONDS`(60초)에 한 번. 가입된 주소도 똑같이 센다(#3038) |
 | `DELETE /users/me`·`DELETE /trainer/me`·이메일을 바꾸는 `PUT /users/me` | **사용자 id 연속 실패** | 본인 확인을 `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `PASSWORD_CHANGE_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429. 값을 아예 보내지 않은 400 은 세지 않는다(#3039) |
 | `POST /auth/register`·`POST /auth/trainer/register` | IP + **이메일(대소문자 무시)** | IP 는 분당 10. 같은 이메일은 시간당 `REGISTER_PER_EMAIL_PER_HOUR`(5) — 성공·409 를 가리지 않고 세고, 두 가입이 한 버킷이다(#2913). 409 문구는 그대로 |
-| `POST /trainer/me/password` | IP + **사용자 id 연속 실패** | IP 는 분당 10. 현재 비밀번호를 `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `PASSWORD_CHANGE_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429(잠긴 동안 비밀번호를 확인하지 않는다). 틀린 시도는 감사 로그 `auth.password_change`(실패)에 남고, 성공하면 실패 기록을 지운다(#2913) |
+| `POST /trainer/me/password`·`POST /users/me/password` | IP + **사용자 id 연속 실패** | IP 는 분당 10. 현재 비밀번호를 `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `PASSWORD_CHANGE_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429(잠긴 동안 비밀번호를 확인하지 않는다). 틀린 시도는 감사 로그 `auth.password_change`(실패)에 남고, 성공하면 실패 기록을 지운다(#2913). 회원·트레이너가 같은 키 규칙·설정값을 쓴다(#3087) |
 
 한도 저장소는 프로세스 메모리라 인스턴스가 여럿이면 한도도 그 배수가 된다. 운영 인스턴스가
 하나를 넘게 되면 공유 저장소 구현으로 바꾼다(`app/core/rate_limit.py`).
@@ -2124,9 +2155,9 @@ IP 를 바꿔 가며 한 계정을 노리는 시도는 계정 쪽 버킷이 막�
 
 | 의존성 | 토큰 없을 때 | 역할 제한 |
 |---|---|---|
-| `CurrentUser` | 환경에 따라 데모 사용자 폴백 또는 401 (아래) | 트레이너 계정이면 **403** |
+| `CurrentUser` | 환경에 따라 데모 사용자 폴백 또는 401 (아래) | 트레이너 계정이면 **403**. 필수 동의가 남은 회원이면 403 `consent_required` (#3088) |
 | `RequireUser` | 401 | 없음 |
-| `RequireMember` | 401 | 회원만. 트레이너면 403 |
+| `RequireMember` | 401 | 회원만. 트레이너면 403. 필수 동의가 남았으면 403 `consent_required` (#3088) |
 | `RequireTrainer` | 401 | 트레이너만. 회원이면 403 |
 | `RequireAdmin` | 401 | `is_admin` 아니면 403 |
 

@@ -27,7 +27,7 @@ from app.core.security import decode_access_claims
 from app.db.init_db import DEMO_USER_ID
 from app.db.session import get_db
 from app.models.models import User
-from app.services import auth_tokens
+from app.services import auth_tokens, signup_consent
 
 
 def _extract_bearer(request: Request) -> Optional[str]:
@@ -66,6 +66,7 @@ def get_current_user(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail="회원 전용 API 입니다.",
                     )
+                ensure_member_consented(request, user, db)
                 return user
         except jwt.InvalidTokenError:
             pass
@@ -132,14 +133,79 @@ def require_trainer(
 
 
 def require_member(
+    request: Request,
     user: Annotated[User, Depends(require_auth)],
+    db: Annotated[Session, Depends(get_db)],
 ) -> User:
     """회원 전용(쓰기/삭제 등): 유효 토큰 + role == 'member'. 트레이너 계정이면 403.
     데모 폴백 없음(require_auth 기반). 읽기 폴백이 필요한 엔드포인트는 CurrentUser
-    (get_current_user)가 이미 트레이너를 403 처리한다."""
+    (get_current_user)가 이미 트레이너를 403 처리한다.
+
+    필수 동의가 남은 계정은 403 `consent_required` 다([ensure_member_consented])."""
     if user.role != "member":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="회원 전용 API 입니다.")
+    ensure_member_consented(request, user, db)
     return user
+
+
+# ---- 필수 동의 확인 (#3088) ----
+
+#: 필수 동의가 남은 회원도 부를 수 있는 회원 라우트. `(메서드, /v1 을 뺀 경로)`.
+#:
+#: 회원 의존성(`CurrentUser`·`RequireMember`)을 쓰는 라우트는 **기본으로 막힌다** —
+#: 새 라우트가 빠지지 않게 하려는 것이다. 여기에는 동의를 처리하는 데 필요한 경로만
+#: 둔다. `/auth/*`(로그인·refresh·로그아웃·비밀번호 재설정)와 `POST /users/me/consents`
+#: 는 회원 의존성을 쓰지 않아 처음부터 이 확인 밖이다.
+#:
+#: 동의 관리 경로(마케팅 동의 철회 등, #3007)가 생기면 함께 연다.
+CONSENT_EXEMPT_ROUTES: dict[tuple[str, str], str] = {
+    ("GET", "/users/me"): "앱이 동의가 필요한지 읽는 곳이다. 회원 앱 세션 복원은 "
+    "이 경로의 401·403 을 로그인 만료로 본다.",
+    ("DELETE", "/users/me"): "탈퇴는 동의하지 않은 회원도 할 수 있어야 한다.",
+}
+
+
+def _route_key(request: Request) -> tuple[str, str] | None:
+    """요청이 잡힌 라우트의 `(메서드, /v1 을 뺀 경로 템플릿)`."""
+    route = request.scope.get("route")
+    path = getattr(route, "path", None)
+    if not path:
+        return None
+    prefix = get_settings().api_v1_prefix
+    if prefix and path.startswith(prefix):
+        path = path[len(prefix):]
+    return request.method.upper(), path
+
+
+def ensure_member_consented(request: Request, user: User, db: Session) -> None:
+    """회원 계정의 필수 동의(약관·개인정보·건강정보·만 14세)가 끝났는지 본다. (#3088)
+
+    동의는 지금까지 앱 화면이 동의 화면을 먼저 띄우는 것으로만 지켜졌다. 앱을
+    거치지 않거나 옛 빌드로 부르면 동의 없이 건강정보가 저장되고 외부 AI 로
+    나갔다. 그래서 회원 데이터·AI API 앞에서 서버가 직접 확인한다.
+
+    남은 항목이 있으면 403 `{"code": "consent_required", "missing": [...]}` —
+    `POST /users/me/consents` 의 422 detail 과 같은 모양이다. 문서 버전이 올라
+    옛 버전에만 동의한 계정, 동의를 철회한 계정도 여기 걸린다.
+
+    한 요청 안에서는 한 번만 조회한다(회원 의존성이 겹쳐도).
+    """
+    if user.role != "member":
+        return
+    key = _route_key(request)
+    if key is not None and key in CONSENT_EXEMPT_ROUTES:
+        return
+    cached = getattr(request.state, "consent_pending", None)
+    if cached is not None and cached[0] == user.id:
+        pending = cached[1]
+    else:
+        pending = signup_consent.pending_kinds(db, user)
+        request.state.consent_pending = (user.id, pending)
+    if pending:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "consent_required", "missing": pending},
+        )
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
