@@ -10,8 +10,8 @@
 
 기존 토큰·행은 그대로다 — 이 마이그레이션만으로 끊기는 세션은 없다.
 
-Revision ID: 0144_refresh_session_revoke
-Revises: 0143_member_weekly_report_on
+Revision ID: 0146_refresh_session_revoke
+Revises: 0145_trainer_reports_no_approval
 Create Date: 2026-10-04
 """
 from __future__ import annotations
@@ -21,8 +21,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0144_refresh_session_revoke"
-down_revision: str | Sequence[str] | None = "0143_member_weekly_report_on"
+revision: str = "0146_refresh_session_revoke"
+down_revision: str | Sequence[str] | None = "0145_trainer_reports_no_approval"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
