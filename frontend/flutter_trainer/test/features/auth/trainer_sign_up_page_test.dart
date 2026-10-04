@@ -814,6 +814,8 @@ void main() {
       );
       codeField.controller!.text = '654321';
       await tester.pump();
+      // 입력 칸은 지운 오류 문구를 잠깐 흐리며 거둔다 — 그동안은 위젯이 남는다.
+      await tester.pump(const Duration(milliseconds: 300));
       expect(find.text(c.value), findsNothing);
     });
   }
