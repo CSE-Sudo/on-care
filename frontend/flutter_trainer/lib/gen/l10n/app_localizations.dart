@@ -1712,6 +1712,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t delete the template. Please try again'**
   String get coachTemplateDeleteFailed;
 
+  /// No description provided for @coachTemplateAlreadyDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'This template was already deleted'**
+  String get coachTemplateAlreadyDeleted;
+
   /// No description provided for @coachTemplateDeleteConfirm.
   ///
   /// In en, this message translates to:

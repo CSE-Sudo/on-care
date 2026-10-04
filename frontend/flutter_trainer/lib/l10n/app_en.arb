@@ -563,6 +563,7 @@
   "coachTemplateExerciseNameRequired": "Enter the exercise name",
   "coachTemplateSaveFailed": "Couldn't save the template. Please try again",
   "coachTemplateDeleteFailed": "Couldn't delete the template. Please try again",
+  "coachTemplateAlreadyDeleted": "This template was already deleted",
   "coachTemplateDeleteConfirm": "Delete the {name} template?",
   "@coachTemplateDeleteConfirm": {
     "placeholders": {
