@@ -1214,6 +1214,8 @@ def _add_program_routines(
             multi=multi,
             routine_only=delivery_kind == DELIVERY_ROUTINE_ONLY,
             starts_on=begin if begin > today else None,
+            # 전송 종류가 붙은 줄은 개인운동이다(#2223) — 비어 있으면 PT 프로그램.
+            personal=delivery_kind is not None,
         ),
     )
     return created
@@ -1239,6 +1241,7 @@ def _program_notification_args(
     multi: bool,
     routine_only: bool = False,
     starts_on: date | None = None,
+    personal: bool = False,
 ) -> dict[str, Any]:
     """프로그램 배정 알림의 틀 인자. 합계 시간은 초로 더한 값이다. (#2546)
 
@@ -1251,6 +1254,9 @@ def _program_notification_args(
     [starts_on] 은 미래 시작일로 보낸 개인운동이 걸리기 시작하는 날이다(#2656).
     알림은 지금 가므로, 문구가 그날을 말하지 않으면 회원은 오늘 열어 보고 빈
     목록을 본다.
+
+    [personal] 은 보낸 것이 PT 프로그램이 아니라 개인운동이라는 뜻이다 — 알림
+    제목이 `새 개인운동이 왔어요` 가 된다(#3107).
     """
     args: dict[str, Any] = {
         "name": name,
@@ -1259,6 +1265,7 @@ def _program_notification_args(
         "minutes": _minutes_of(seconds),
         "multi": multi,
         "routine_only": routine_only,
+        "personal": personal or routine_only,
     }
     if starts_on is not None:
         args["starts_on"] = starts_on.isoformat()

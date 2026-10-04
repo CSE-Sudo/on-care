@@ -475,6 +475,8 @@ def test_routine_only_notification_counts_personal_exercises(client, db_session)
         assert rows
         latest = rows[0]
         assert latest.template_args["routine_only"] is True
+        # 제목도 본문처럼 개인운동이라 부른다(#3107).
+        assert latest.title == "새 개인운동이 왔어요"
         assert latest.body.startswith("개인운동 2개 · ")
         assert "세션" not in latest.body
     finally:

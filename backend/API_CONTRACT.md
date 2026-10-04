@@ -664,7 +664,7 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 
   | 키 | 회원 앱 라벨 | 끄는 알림 | 기본값 |
   | --- | --- | --- | --- |
-  | `exercise_reminder` | 운동 루틴 | 트레이너의 운동 루틴·프로그램 배정(`routine`) | 켬 |
+  | `exercise_reminder` | 개인운동·프로그램 | 트레이너의 개인운동·PT 프로그램 전송(`routine`), PT 완료·피드백(`pt_done`) | 켬 |
   | `trainer_message` | 트레이너 메시지 | 코치 채팅 메시지(`coach_chat`) | 켬 |
   | `weekly_report` | 트레이너 주간 리포트 | 담당 트레이너가 보낸 주간 리포트(`coach_report`) | 켬 (#3025, 예전 끔) |
 
