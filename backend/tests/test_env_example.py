@@ -135,6 +135,9 @@ def test_prod_recommended_values_pass_guard():
         force_https=True,
         # 운영은 사진 인식·임베딩 키가 필수다(#2812). 예시 파일은 비워 둔다.
         gemini_api_key="test-gemini-key",
+        # 운영은 메일 발송 설정이 필수다 — 없으면 가입 인증 코드를 못 보내 기동 거부(#3131).
+        smtp_host="smtp.example.com",
+        mail_from="no-reply@example.com",
     )
     assert s.is_prod is True
     assert s.demo_fallback_enabled is False

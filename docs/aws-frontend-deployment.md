@@ -94,20 +94,37 @@ aws cloudformation deploy \
 
 이미 있는 스택을 이 템플릿으로 처음 갱신할 때도 `ApiOrigin` 을 함께 넘겨야 합니다(기존 값이 없는 새 파라미터라 생략하면 실패합니다).
 
+### 스택 갱신은 언제나 현재 릴리스 경로와 함께 (#3129)
+
+위 두 명령은 **첫 생성**에만 씁니다. 이미 있는 스택을 갱신할 때는 `aws cloudformation deploy` 를 직접 부르지 않고 아래 스크립트를 씁니다.
+
+```bash
+# 지금 서비스 중인 릴리스 경로 확인(빈 값 또는 /releases/<sha>)
+bash .github/scripts/frontend_hosting_stack.sh origin-path oncare-frontend
+
+# 변경 세트만 만들어 검토 → 문제없으면 같은 명령을 --no-execute-changeset 없이 실행
+bash .github/scripts/frontend_hosting_stack.sh deploy oncare-frontend \
+  <바꿀 파라미터>=<값> ... \
+  --no-execute-changeset
+```
+
+릴리스 전환은 배포 워크플로가 CloudFront distribution 의 `OriginPath` 를 직접 `/releases/<sha>` 로 바꾸는 방식이라([7절](#7-릴리스-전환과-롤백)) 스택은 그 값을 `ReleaseOriginPath` 파라미터로만 압니다. CloudFormation 은 스택을 갱신할 때 템플릿·파라미터 값으로 배포 구성을 다시 쓰므로, 이 값이 비어 있거나 옛 값이면 갱신하는 순간 `OriginPath` 가 덮어써집니다. 버킷 루트에는 `releases/` 폴더만 있어 랜딩·회원 앱·트레이너 웹이 모두 403/404 가 되고, 옛 값이면 이미 정리된 릴리스를 가리킬 수 있습니다. 다음 프론트 배포가 돌기 전까지 계속됩니다.
+
+스크립트는 스택 출력 `DistributionId` 로 distribution 을 찾아 기본 동작 오리진의 현재 `OriginPath` 를 읽고(`get-distribution-config`), 그 값을 `ReleaseOriginPath` 로 붙여 `aws cloudformation deploy` 를 부릅니다. 넘기지 않은 다른 파라미터는 직전 값을 씁니다. 현재 값을 읽지 못하거나 릴리스 형식이 아니면 스택을 건드리지 않고 멈추고, `ReleaseOriginPath` 를 손으로 넘기면 거부합니다. 템플릿·리전은 `TEMPLATE`·`AWS_REGION` 환경 변수로 바꿀 수 있습니다.
+
+- 변경 세트에서 `FrontendDistribution` 의 `OriginPath` 가 바뀌는 것으로 나오면 멈추고 원인을 봅니다. 정상이라면 갱신 전후 값이 같아 바뀌지 않습니다.
+- 갱신 도중 프론트 배포가 릴리스를 전환하지 않도록, 스택 갱신은 프론트 배포가 돌지 않을 때 합니다(필요하면 `AWS_FRONTEND_DEPLOY_ENABLED=false` 로 잠시 멈춤).
+- 콘솔에서 **기존 템플릿 사용**으로 갱신할 때도 `ReleaseOriginPath` 를 **기존 값 사용**으로 두지 말고, 위 `origin-path` 출력값을 넣습니다. 스택이 기억하는 값은 마지막 스택 갱신 때의 릴리스라 그 뒤 배포가 있었다면 옛 값입니다.
+
 > **이미 생성된 스택을 갱신하는 경우 주의합니다.** `aws cloudformation deploy`는 `--parameter-overrides`에 없는 기존 파라미터 값을 유지합니다. 조직명은 `CSE-Sudo-26`에서 `CSE-Sudo`로, 저장소명은 `sudo-capstone-project`에서 `on-care`로 바뀌었습니다. 템플릿 기본값 변경만으로 이미 배포된 스택의 `GitHubOwner`와 `GitHubRepository`가 갱신되지는 않습니다. 최신 템플릿 전체를 적용할 때는 아래처럼 값을 명시하고 변경 세트를 먼저 검토합니다. 조직명만 복구할 때는 아래의 **기존 템플릿을 유지하는 복구 절차**를 사용합니다.
 >
 > ```bash
-> aws cloudformation deploy \
->   --template-file infra/frontend-hosting.yml \
->   --stack-name oncare-frontend \
->   --capabilities CAPABILITY_IAM \
->   --parameter-overrides \
->     GitHubOwner=CSE-Sudo \
->     GitHubRepository=on-care \
->     GitHubOwnerId=265976266 \
->     GitHubRepositoryId=1174354664 \
->   --no-execute-changeset \
->   --region ap-northeast-2
+> bash .github/scripts/frontend_hosting_stack.sh deploy oncare-frontend \
+>   GitHubOwner=CSE-Sudo \
+>   GitHubRepository=on-care \
+>   GitHubOwnerId=265976266 \
+>   GitHubRepositoryId=1174354664 \
+>   --no-execute-changeset
 > ```
 
 ### GitHub Environment 전환 (#3019)
@@ -116,7 +133,7 @@ aws cloudformation deploy \
 `repo:CSE-Sudo@<id>/on-care@<id>:ref:refs/heads/main` 에서 `…:environment:production` 으로 바뀝니다.
 신뢰 정책이 브랜치 형식만 허용하면 워크플로를 바꾸는 순간 배포가 인증 단계에서 실패하므로, 아래 순서를 지킵니다.
 
-1. **스택 먼저**: 최신 `infra/frontend-hosting.yml` 로 스택을 갱신합니다. 새 파라미터 `GitHubEnvironment`(기본
+1. **스택 먼저**: 최신 `infra/frontend-hosting.yml` 로 스택을 갱신합니다([스택 갱신 스크립트](#스택-갱신은-언제나-현재-릴리스-경로와-함께-3129)). 새 파라미터 `GitHubEnvironment`(기본
    `production`)·`AllowBranchOidcSubject`(기본 `true`)가 생기고, 역할은 Environment 형식과 브랜치 형식을 **둘 다**
    믿습니다. 변경 세트에서 `GitHubFrontendDeployRole` 의 신뢰 정책·설명만 바뀌는지 확인합니다.
 2. 저장소 Settings → Environments 에서 `production`(이미 있는 `Production` 이 같은 환경입니다)에 보호 규칙을
@@ -124,7 +141,7 @@ aws cloudformation deploy \
    [`backend/docs/DEPLOY.md`](../backend/docs/DEPLOY.md) 1절 "GitHub Environment 설정" 에 있습니다(#3133).
    승인자를 두면 프런트·백엔드 운영 배포가 같은 승인을 기다립니다.
 3. 이 워크플로를 `main` 에서 한 번 돌려 `Configure AWS credentials` 가 통과하는지 봅니다.
-4. **브랜치 형식 제거**: `AllowBranchOidcSubject=false` 로 스택을 다시 적용합니다. 이제 Environment 밖에서 돈
+4. **브랜치 형식 제거**: `bash .github/scripts/frontend_hosting_stack.sh deploy oncare-frontend AllowBranchOidcSubject=false` 로 스택을 다시 적용합니다. 이제 Environment 밖에서 돈
    job 은 이 역할을 맡을 수 없습니다.
 
 Environment 이름은 대소문자를 가리지 않으므로 신뢰 정책은 `StringEqualsIgnoreCase` 로 비교합니다.
@@ -140,7 +157,8 @@ Environment 이름은 대소문자를 가리지 않으므로 신뢰 정책은 `S
 1. 서울(`ap-northeast-2`) CloudFormation에서 `oncare-frontend`의 **파라미터**를 확인합니다.
 2. **스택 업데이트 → 변경 세트 생성 → 표준 변경 세트 → 기존 템플릿 사용**을 선택합니다.
 3. `GitHubOwner`만 `CSE-Sudo`로 변경합니다. 저장소명, 두 ID, 브랜치, OIDC 공급자 ARN 등
-   나머지는 기존 값을 유지합니다.
+   나머지는 기존 값을 유지합니다. 단 `ReleaseOriginPath` 가 있으면 기존 값 대신
+   `bash .github/scripts/frontend_hosting_stack.sh origin-path oncare-frontend` 출력값을 넣습니다.
 4. 변경 세트에서 `GitHubFrontendDeployRole`의 `AssumeRolePolicyDocument`만 수정되는지 확인합니다.
    리소스 교체·삭제, S3·CloudFront 변경 또는 배포 권한 추가가 포함되면 원인을 확인한 뒤 진행합니다.
 5. 변경 세트를 실행하고 스택이 `UPDATE_COMPLETE`가 될 때까지 확인합니다.
@@ -228,15 +246,10 @@ https://<DistributionDomainName>/version.txt
 2. 스택을 갱신합니다. 두 값은 함께 채우거나 함께 비웁니다(템플릿 `Rules` 가 한쪽만 채우면 막습니다).
 
    ```bash
-   aws cloudformation deploy \
-     --template-file infra/frontend-hosting.yml \
-     --stack-name oncare-frontend \
-     --capabilities CAPABILITY_IAM \
-     --parameter-overrides \
-       AlternateDomainName=<운영 도메인> \
-       AcmCertificateArn=arn:aws:acm:us-east-1:<ACCOUNT_ID>:certificate/<ID> \
-     --no-execute-changeset \
-     --region ap-northeast-2
+   bash .github/scripts/frontend_hosting_stack.sh deploy oncare-frontend \
+     AlternateDomainName=<운영 도메인> \
+     AcmCertificateArn=arn:aws:acm:us-east-1:<ACCOUNT_ID>:certificate/<ID> \
+     --no-execute-changeset
    ```
 
    변경 세트에서 `FrontendDistribution` 의 `Aliases`·`ViewerCertificate` 만 바뀌는지 확인한 뒤 실행합니다.
@@ -244,7 +257,7 @@ https://<DistributionDomainName>/version.txt
 4. 아래 "함께 바꾸는 곳" 을 모두 반영합니다.
 5. 다음 배포를 돌려 랜딩·두 앱·SPA 새로고침·카카오맵을 운영 도메인에서 확인합니다. 랜딩의 og:url·canonical 은 대체 도메인을 자동으로 씁니다([랜딩 바로가기와 og:url·canonical](frontend_deployment.md#랜딩-바로가기와-ogurlcanonical)).
 
-되돌리려면 두 파라미터를 빈 값으로 다시 적용합니다. CloudFront 기본 도메인·기본 인증서로 돌아갑니다.
+되돌리려면 두 파라미터를 빈 값으로 다시 적용합니다(`... deploy oncare-frontend AlternateDomainName= AcmCertificateArn=`). CloudFront 기본 도메인·기본 인증서로 돌아갑니다.
 
 ### 운영 도메인을 바꿀 때 함께 바꾸는 곳
 
@@ -268,16 +281,17 @@ https://<DistributionDomainName>/version.txt
 | 무효화 후 smoke check | 같음 — 자동 롤백 후 워크플로 실패 처리 |
 | 응답 보안 헤더 확인([9절](#9-응답-보안-헤더-3017)) | 같음 — 헤더 정책은 스택 쪽이라 되돌린 뒤 스택 파라미터(`ApiOrigin`)를 확인 |
 
-- 릴리스 보관: 최신 5개를 남기고 그보다 오래된 prefix는 배포 성공 시 정리합니다. 현재 릴리스와 직전 릴리스는 개수와 무관하게 항상 보존합니다.
+- 릴리스 보관: 최신 5개 릴리스를 남기고 그보다 오래된 릴리스는 배포 성공 시 정리합니다. 현재 릴리스와 직전 릴리스는 개수와 무관하게 항상 보존합니다. 릴리스는 `releases/<sha>/` 루트 하나로 세며(앱 폴더의 `frontend/version.txt`·`trainer/version.txt` 를 따로 세지 않음), 삭제도 언제나 루트 단위로만 합니다. 규칙은 [`.github/scripts/frontend_release_prune.sh`](../.github/scripts/frontend_release_prune.sh) 에 있고, PR gate 가 가짜 키 목록으로 경계를 검사합니다.
 - 버킷 버전 관리가 켜져 있어 실수로 덮어쓰거나 지운 객체도 30일 안에는 복구할 수 있습니다.
 - 수동 롤백이 필요하면 distribution의 origin path를 되돌릴 릴리스로 바꾸고 `/*`를 무효화합니다.
+- 스택은 지금 릴리스 경로를 `ReleaseOriginPath` 파라미터로만 압니다. 전환·롤백 뒤 스택을 갱신할 때는 반드시 [스택 갱신 스크립트](#스택-갱신은-언제나-현재-릴리스-경로와-함께-3129)를 써서 살아 있는 값을 넘깁니다. `aws cloudformation deploy` 를 직접 부르면 스택이 기억하는 옛 경로(또는 빈 값)로 되돌아갑니다.
 
 ```bash
 aws cloudfront get-distribution-config --id <DISTRIBUTION_ID> \
   --query 'DistributionConfig.Origins.Items[0].OriginPath'
 ```
 
-> **이 방식은 스택 갱신이 선행되어야 합니다.** 릴리스 전환에는 `cloudfront:GetDistributionConfig`·`cloudfront:UpdateDistribution` 권한이 필요하고, 버전 관리·수명 주기 규칙도 템플릿에 새로 들어갔습니다. 이 변경을 병합한 뒤 배포를 켜기 전에 `aws cloudformation deploy`를 한 번 더 실행해 주세요.
+> **이 방식은 스택 갱신이 선행되어야 합니다.** 릴리스 전환에는 `cloudfront:GetDistributionConfig`·`cloudfront:UpdateDistribution` 권한이 필요하고, 버전 관리·수명 주기 규칙도 템플릿에 새로 들어갔습니다. 이 변경을 병합한 뒤 배포를 켜기 전에 [스택 갱신 스크립트](#스택-갱신은-언제나-현재-릴리스-경로와-함께-3129)로 스택을 한 번 더 갱신해 주세요.
 >
 > 첫 전환 이후에는 버킷 루트에 남아 있는 옛 배포 파일이 더 이상 서비스되지 않습니다. 다만 그 시점의 롤백 대상이 루트이므로, 다음 릴리스가 정상 서비스되는 것을 확인한 뒤에 수동으로 정리하는 편이 안전합니다.
 

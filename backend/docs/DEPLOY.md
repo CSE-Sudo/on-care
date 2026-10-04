@@ -239,8 +239,11 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
 6. 저장소 변수 `BACKEND_DEPLOY_ENABLED=true`(staging 을 쓰면 `BACKEND_STAGING_DEPLOY_ENABLED=true`).
    다음 `main` 병합부터 자동으로 배포된다.
 
+**production 필수 파라미터(#3131)**: 메일 `MailFrom`·`SmtpHost`. 운영은 가입 이메일 확인을 끌 수 없어(#3038) 메일이
+없으면 가입 인증 코드를 보낼 수 없고 신규 가입이 모두 막히므로, 둘 중 하나라도 비면 서버가 기동을 거부한다.
+
 선택 파라미터: `Cpu`(기본 1024)·`Memory`(기본 2048), `AdminEmails`, `AppleClientIds`·`GoogleClientIds`·`KakaoAppId`(#3035), 메일
-(`MailFrom`·`SmtpHost`·`SmtpPort`·`PasswordResetMemberUrl`·`PasswordResetTrainerUrl`), staging 전용
+(`SmtpPort`·`PasswordResetMemberUrl`·`PasswordResetTrainerUrl`, staging 은 `MailFrom`·`SmtpHost` 도 선택), staging 전용
 `AllowDemoFallback`, 기본 VPC 가 아닌 곳에 둘 때 `SubnetIds`·`SecurityGroupIds`.
 
 ## 4) Neon Postgres (pgvector)
@@ -274,7 +277,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `GEMINI_API_KEY` | 사진 인식·임베딩. 운영은 없으면 기동 거부(#2812). **결제가 연결된 프로젝트의 키(유료 등급)만**(#3032) — 무료 등급은 입력(회원 음식 사진·건강 기록·코치 대화)이 제공자의 서비스 개선에 쓰일 수 있고 한도가 낮다. 결제 연결은 #480 | 예 |
 | `KAKAO_REST_API_KEY` | 장소 실검색. 빈 값이면 헬스장 찾기가 사실상 빈다(시드로 채우지 않음, #2914) | 키는 있어야 함 |
 | `SENTRY_DSN` | 오류 수집(#2839). 빈 값이면 꺼짐 | 키는 있어야 함 |
-| `SMTP_USERNAME`·`SMTP_PASSWORD` | `MailFrom` 파라미터를 채웠을 때만 읽는다 | 메일을 켤 때 |
+| `SMTP_USERNAME`·`SMTP_PASSWORD` | `MailFrom` 파라미터를 채웠을 때만 읽는다. 운영은 메일이 필수라 항상 채운다(#3131) | 운영 예, staging 은 메일을 켤 때 |
 | `DEMO_LOGIN_PASSWORD` | staging 만. 강한 값 | staging |
 
 **템플릿이 고정하는 값** — 바꾸려면 템플릿 PR.
@@ -306,7 +309,9 @@ CREATE EXTENSION IF NOT EXISTS vector;
 위 값 중 코드 기본값과 같은 것도 템플릿에 못 박는다(#3034) — 데모 서비스에서 바꾼 값이 운영으로
 복사되지 않게 하고, 운영에서 무엇이 들어가는지 `.env.aws.example` 한 곳에서 보이게 한다.
 
-**메일·재설정 값**(#3033)
+**메일·재설정 값**(#3033) — 운영 필수(#3131). `SMTP_HOST`·`MAIL_FROM` 이 비면(또는 `MAIL_PROVIDER=log` 면)
+운영 서버가 기동을 거부한다. 메일이 없으면 가입 인증 코드를 보낼 수 없어 회원 앱·트레이너 웹의 신규 가입이
+모두 막히고(가입 코드 요청 503), 비밀번호 재설정도 503 이 되기 때문이다.
 
 | 키 | 설명 |
 |---|---|
@@ -462,6 +467,9 @@ Fargate 태스크의 디스크는 재배포·재시작 때 비므로 운영은 S
       `ENV`·`SEED_DEMO_DATA`·`ALLOW_DEMO_FALLBACK`·`AUTO_CREATE_TABLES` 는 템플릿이 정한다.
       `backend/.env.aws.example` 의 주석 키(`# KEY=값`)는 기본값이 이 서비스에 맞는지 확인했다(#3034).
 - [ ] 비밀 `oncare/backend/<environment>` 이 위 "비밀 키" 표의 키를 모두 갖는다(빈 값이라도).
+- [ ] **메일 파라미터 `MailFrom`·`SmtpHost` 와 비밀 `SMTP_USERNAME`·`SMTP_PASSWORD` 가 채워져 있다(#3131).**
+      비면 운영 서버가 기동을 거부한다(가입 인증 코드를 보낼 수 없어 신규 가입이 모두 막히기 때문).
+      배포 뒤 새 이메일로 회원 가입 코드를 한 번 요청해 메일이 오는지 본다.
 - [ ] **비밀번호 재설정 메일이 실제로 온다(#3033).** 회원·트레이너 계정으로 재설정을 한 번씩 요청해 메일을
       받고, 링크를 눌러 두 앱 재설정 화면이 **코드가 채워진 채** 열리는지 본다. 기동 로그에 `PASSWORD_RESET_` WARN 이 없다.
 - [ ] **운영 DB 와 staging(데모) DB 가 다르다.** 운영 `DATABASE_URL` 은 데모 시드가 한 번도 들어가지

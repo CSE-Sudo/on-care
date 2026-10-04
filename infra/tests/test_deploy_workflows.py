@@ -190,3 +190,39 @@ def test_environment_protection_is_documented() -> None:
         assert needle in deploy, needle
     frontend = (root / "docs" / "frontend_deployment.md").read_text(encoding="utf-8")
     assert "backend/docs/DEPLOY.md" in frontend
+
+
+def _step(workflow: str, job: str, name: str) -> dict[str, Any]:
+    steps = _workflow(workflow)["jobs"][job]["steps"]
+    matches = [step for step in steps if step.get("name") == name]
+    assert len(matches) == 1, f"{workflow}:{job} 에 '{name}' 단계가 하나여야 한다"
+    return matches[0]
+
+
+def test_frontend_prune_counts_release_roots_via_script() -> None:
+    # 릴리스 정리는 릴리스 루트 단위로 세는 스크립트를 쓴다(#3128). 인라인으로
+    # `*/version.txt` 키를 세면 앱 폴더의 version.txt(#3023)까지 릴리스로 세어
+    # 직전 릴리스의 하위 폴더가 지워진다.
+    step = _step("aws-frontend-deploy.yml", "build-and-deploy", "Prune old releases")
+    run = step["run"]
+    assert "bash .github/scripts/frontend_release_prune.sh prune" in run
+    assert '"$RELEASE_SHA" "$PREVIOUS_ORIGIN_PATH"' in run
+    assert "aws s3 rm" not in run
+    assert "ends_with" not in run
+    assert step["env"]["KEEP"] == "5"
+    assert step["env"]["PREVIOUS_ORIGIN_PATH"] == "${{ steps.switch.outputs.previous_origin_path }}"
+    # 실패한 배포에서는 정리하지 않는다(롤백 대상 보존).
+    assert "if" not in step
+
+
+def test_frontend_prune_script_normalizes_to_release_root() -> None:
+    script = (WORKFLOWS.parent / "scripts" / "frontend_release_prune.sh").read_text(encoding="utf-8")
+    # 키를 `releases/<40자 SHA>/` 루트로 줄여 세고, 지우기 직전에도 루트 형식만 허용한다.
+    assert "releases/[0-9a-f]{40}/([^\\t]*/)?version\\\\.txt$" in script
+    assert "^releases/[0-9a-f]{40}/$" in script
+    assert "ROOT_PREFIX_LEN=50" in script
+
+
+def test_frontend_prune_script_is_tested_in_ci() -> None:
+    gate = (WORKFLOWS / "pr-gate.yml").read_text(encoding="utf-8")
+    assert "bash .github/scripts/test_frontend_release_prune.sh" in gate
