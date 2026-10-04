@@ -103,6 +103,15 @@ Future<ProviderContainer> _pumpSupport(
   return container;
 }
 
+/// 시행일은 긴 본문 아래에 있다 — 끝까지 내려 그린 뒤 찾는다.
+Future<void> _scrollTo(WidgetTester tester, Finder target) async {
+  await tester.scrollUntilVisible(
+    target,
+    400,
+    scrollable: find.byType(Scrollable).first,
+  );
+}
+
 bool _switchValue(WidgetTester tester) =>
     tester.widget<Switch>(find.byKey(_switch)).value;
 
@@ -146,13 +155,14 @@ void main() {
       await tester.tap(find.text(_ko.myLegalLocationTitle));
       await tester.pumpAndSettle();
 
+      expect(find.textContaining('제1조 (목적)'), findsOneWidget);
+      await _scrollTo(tester, find.text(_ko.myLegalLocationEffectiveDate));
       expect(find.text(_ko.myLegalLocationEffectiveDate), findsOneWidget);
       expect(
         find.textContaining(LegalContact.privacyOfficerEmail),
         findsOneWidget,
       );
       expect(find.textContaining('{contact}'), findsNothing);
-      expect(find.textContaining('제1조 (목적)'), findsOneWidget);
     });
 
     testWidgets('영어로도 열린다', (WidgetTester tester) async {
@@ -162,8 +172,9 @@ void main() {
       await tester.tap(find.text(_en.myLegalLocationTitle));
       await tester.pumpAndSettle();
 
-      expect(find.text(_en.myLegalLocationEffectiveDate), findsOneWidget);
       expect(find.textContaining('Article 1 (Purpose)'), findsOneWidget);
+      await _scrollTo(tester, find.text(_en.myLegalLocationEffectiveDate));
+      expect(find.text(_en.myLegalLocationEffectiveDate), findsOneWidget);
     });
 
     testWidgets('약관·처리방침 화면은 예전 그대로 자기 문서를 연다', (WidgetTester tester) async {
@@ -171,8 +182,10 @@ void main() {
 
       await tester.tap(find.text(_ko.myLegalTermsTitle));
       await tester.pumpAndSettle();
-      expect(find.text(_ko.myLegalTermsEffectiveDate), findsWidgets);
+      expect(find.text(_ko.myLegalTermsBody), findsOneWidget);
       expect(find.textContaining('위치기반서비스'), findsNothing);
+      await _scrollTo(tester, find.text(_ko.myLegalTermsEffectiveDate));
+      expect(find.text(_ko.myLegalTermsEffectiveDate), findsOneWidget);
     });
   });
 
@@ -231,11 +244,18 @@ void main() {
     });
 
     testWidgets('스위치에 이름이 붙어 있다', (WidgetTester tester) async {
-      final SemanticsHandle handle = tester.ensureSemantics();
       await _pumpSupport(tester, _FakeConsent());
 
-      expect(find.bySemanticsLabel(_ko.myLocationConsentTitle), findsWidgets);
-      handle.dispose();
+      // 알림 설정과 같은 방식 — 스위치를 이름 붙은 Semantics 로 감싼다.
+      final Finder named = find.ancestor(
+        of: find.byKey(_switch),
+        matching: find.byWidgetPredicate(
+          (Widget w) =>
+              w is Semantics &&
+              w.properties.label == _ko.myLocationConsentTitle,
+        ),
+      );
+      expect(named, findsOneWidget);
     });
   });
 }

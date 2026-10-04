@@ -319,7 +319,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(_ko.myLegalLocationTitle), findsOneWidget);
-    expect(find.text(_ko.myLegalLocationEffectiveDate), findsOneWidget);
+    // 시행일은 긴 본문 아래라 처음 화면에는 그려지지 않는다 — 본문 첫 조로 본다.
+    expect(find.textContaining('제1조 (목적)'), findsOneWidget);
   });
 
   testWidgets('영어로도 시트가 뜬다', (WidgetTester tester) async {
