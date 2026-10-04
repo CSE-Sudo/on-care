@@ -140,8 +140,10 @@ class MockConsultationRepository implements ConsultationRepository {
   ///
   /// 예전에는 빈 id 만 돌려주고 아무것도 남기지 않아, 화면을 새로 읽으면 대기
   /// 상태가 사라지고 자리도 헬스장 탭에서 계속 비어 보였다. 실서버처럼 같은
-  /// 트레이너에게 이미 대기 중이면 [DuplicatePendingConsultation], 자리가 찼거나
-  /// 지났으면 [ConsultationSlotTaken] 이다.
+  /// 트레이너에게 이미 대기 중이면 [DuplicatePendingConsultation], 대기 요청이
+  /// [kConsultationMaxPending] 건이면 [TooManyPendingConsultations], 자리가 찼거나
+  /// 시작까지 [kConsultationSlotMinLead] 가 남지 않았으면 [ConsultationSlotTaken]
+  /// 이다 — 검사 순서도 서버 `create_consultation` 과 같다(#3099).
   ///
   /// 인위적 지연은 두지 않는다. `testWidgets` 의 가짜 시간대에서는
   /// `Future.delayed` 가 펌프 없이는 끝나지 않아 위젯 테스트가 멈춘다. 같은
@@ -153,11 +155,20 @@ class MockConsultationRepository implements ConsultationRepository {
     )) {
       throw const DuplicatePendingConsultation();
     }
+    final int pending = _mine
+        .where((ConsultationRequest r) => r.isPending)
+        .length;
+    if (pending >= kConsultationMaxPending) {
+      throw const TooManyPendingConsultations(limit: kConsultationMaxPending);
+    }
     final MockGymRepository? gyms = _mockGyms;
     final DateTime now = nowKst();
     final TrainerSlot? slot = gyms?.slotById(draft.slotId);
     if (slot != null) {
-      if (slot.booked || !slot.startsAt.isAfter(now)) {
+      // 신청하는 순간에도 목록과 같은 하한을 본다 — 폼을 연 채 시간이 지나
+      // 하한 안으로 들어온 자리는 서버도 받지 않는다(`slot_visibility_cutoff`).
+      final DateTime cutoff = now.add(kConsultationSlotMinLead);
+      if (slot.booked || !slot.startsAt.isAfter(cutoff)) {
         throw const ConsultationSlotTaken();
       }
       gyms!.setSlotBooked(slot.id, booked: true);
