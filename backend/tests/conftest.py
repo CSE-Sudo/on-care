@@ -262,3 +262,60 @@ def db_session(client):
         yield db
     finally:
         db.close()
+
+
+#: 테스트가 만드는 회원 계정에 필수 동의를 함께 남길까. (#3088)
+#:
+#: 회원 데이터·AI API 는 필수 동의가 끝난 계정만 받는다. 기존 테스트 다수가
+#: `consents` 없이 가입하거나 `User` 를 DB 에 직접 넣고 토큰을 만드는데, 그 계정은
+#: 모두 동의 화면을 거친 회원을 뜻한다. 가입 헬퍼가 100여 파일에 흩어져 있어
+#: 하나씩 고치는 대신, 회원 행이 생길 때 지금 버전의 필수 동의를 같은 트랜잭션에
+#: 남긴다. 동의하지 않은 계정이 필요한 테스트는 `without_default_consent` 를 쓴다.
+_DEFAULT_CONSENT = {"on": True}
+
+
+def _record_default_consent(mapper, connection, target) -> None:
+    if not _DEFAULT_CONSENT["on"]:
+        return
+    from sqlalchemy.dialects.postgresql import insert
+
+    from app.core import clock
+    from app.models.models import UserConsent
+    from app.services import signup_consent
+
+    # 아직 읽지 않은 서버 기본값(role)은 회원이다.
+    role = target.__dict__.get("role") or "member"
+    if role != "member":
+        return
+    now = clock.now()
+    rows = [
+        {
+            "user_id": target.id,
+            "kind": kind,
+            "version": signup_consent.CURRENT_VERSIONS[kind],
+            "agreed_at": now,
+        }
+        for kind in sorted(signup_consent.required_for(role))
+    ]
+    # 가입이 같은 항목을 이어서 남기면 그쪽은 이미 있는 행을 보고 건너뛴다.
+    connection.execute(insert(UserConsent.__table__).values(rows).on_conflict_do_nothing())
+
+
+try:
+    from sqlalchemy import event
+
+    from app.models.models import User as _User
+
+    event.listen(_User, "after_insert", _record_default_consent)
+except Exception:  # noqa: BLE001, S110 — 앱 의존성 없이 도는 순수 테스트
+    pass
+
+
+@pytest.fixture
+def without_default_consent():
+    """이 테스트가 만드는 회원 계정에는 동의를 남기지 않는다. (#3088)"""
+    _DEFAULT_CONSENT["on"] = False
+    try:
+        yield
+    finally:
+        _DEFAULT_CONSENT["on"] = True

@@ -29,6 +29,13 @@ PASSWORD = "consent-pw-1234"
 MEMBER_REQUIRED = ["terms", "privacy", "health", "age14"]
 TRAINER_REQUIRED = ["terms", "privacy", "age14"]
 
+
+@pytest.fixture(autouse=True)
+def _no_default_consent(without_default_consent):
+    """이 파일은 동의 기록 자체를 본다 — 테스트 기본 동의(conftest, #3088)를 끈다."""
+    yield
+
+
 #: 고정 시각 — 기록 시각을 비교할 때 `clock.now()` 대신 넣는다.
 FIXED_NOW = datetime(2026, 10, 1, 9, 30, tzinfo=clock.SEOUL)
 
