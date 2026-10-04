@@ -279,6 +279,7 @@
   "exTrainerCertifications": "자격증 · 인증",
   "exTrainerRecommendationReason": "내 건강 목표 달성에 잘 맞는 트레이너예요",
   "exNearbyGymsMapLabel": "내 주변 헬스장",
+  "exGymMapUnavailable": "지도를 불러오지 못했어요",
   "exActivityTitle": "운동 현황",
   "exBurnWeekOfMonthTitle": "{month}월 {week}주차 소모",
   "exBurnTodayTitle": "오늘 소모",
