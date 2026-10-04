@@ -71,8 +71,8 @@ def test_hash_is_not_the_code():
         ),
         # 두 앱의 실제 배포 형식 — 해시 URL 전략·하위 경로(#3033).
         (
-            "https://oncare.example/frontend/#/auth/password-reset",
-            "https://oncare.example/frontend/#/auth/password-reset?token=ABCD-EFGH-JKMN-PQRS",
+            "https://oncare.example/member/#/auth/password-reset",
+            "https://oncare.example/member/#/auth/password-reset?token=ABCD-EFGH-JKMN-PQRS",
         ),
         (
             "https://oncare.example/trainer/#/auth/password-reset",
@@ -90,11 +90,11 @@ def test_hash_is_not_the_code():
         ),
         # 끝이 이미 구분자면 두 번 붙이지 않는다.
         (
-            "https://oncare.example/frontend/#/auth/password-reset?",
-            "https://oncare.example/frontend/#/auth/password-reset?token=ABCD-EFGH-JKMN-PQRS",
+            "https://oncare.example/member/#/auth/password-reset?",
+            "https://oncare.example/member/#/auth/password-reset?token=ABCD-EFGH-JKMN-PQRS",
         ),
-        ("  https://oncare.example/frontend/#/auth/password-reset  ",
-         "https://oncare.example/frontend/#/auth/password-reset?token=ABCD-EFGH-JKMN-PQRS"),
+        ("  https://oncare.example/member/#/auth/password-reset  ",
+         "https://oncare.example/member/#/auth/password-reset?token=ABCD-EFGH-JKMN-PQRS"),
     ],
 )
 def test_reset_link(base, expected):
@@ -103,7 +103,7 @@ def test_reset_link(base, expected):
 
 def test_reset_link_encodes_the_token():
     """토큰은 URL 인코딩된다 — 앱이 쿼리로 읽을 때 그대로 돌아온다."""
-    link = pr.reset_link("https://oncare.example/frontend/#/auth/password-reset", "A B&C")
+    link = pr.reset_link("https://oncare.example/member/#/auth/password-reset", "A B&C")
     assert link.endswith("?token=A+B%26C")
 
 
@@ -112,12 +112,12 @@ def test_reset_link_encodes_the_token():
     [
         ("", None),
         ("   ", None),
-        ("https://oncare.example/frontend/#/auth/password-reset", None),
+        ("https://oncare.example/member/#/auth/password-reset", None),
         ("https://oncare.example/trainer/?ref=mail#/auth/password-reset", None),
         ("https://oncare.example/auth/password-reset", "해시"),
-        ("https://oncare.example/frontend/#auth/password-reset", "해시"),
-        ("http://oncare.example/frontend/#/auth/password-reset", "https"),
-        ("oncare.example/frontend/#/auth/password-reset", "https"),
+        ("https://oncare.example/member/#auth/password-reset", "해시"),
+        ("http://oncare.example/member/#/auth/password-reset", "https"),
+        ("oncare.example/member/#/auth/password-reset", "https"),
     ],
 )
 def test_reset_url_problem(url, problem):

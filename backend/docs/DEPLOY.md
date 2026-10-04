@@ -277,7 +277,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `SMTP_HOST`·`SMTP_PORT` | 업체 SMTP 엔드포인트(SES 는 `email-smtp.<리전>.amazonaws.com`)·`587` |
 | `SMTP_USERNAME`·`SMTP_PASSWORD` | SMTP 자격 증명. 비밀 JSON 에 넣는다(SES 는 IAM 에서 만든 SMTP 자격 증명, #480) |
 | `MAIL_SUPPORT_CONTACT` | 가입 안내·이메일 변경 안내 메일 끝의 문의처(#3038·#3039, **결정 필요**). 비우면 문의처 줄이 빠진다 |
-| `PASSWORD_RESET_MEMBER_URL` | 회원 앱 재설정 화면 — **해시형** `https://<운영 도메인>/frontend/#/auth/password-reset`. 서버가 `…#/auth/password-reset?token=…` 꼴로 토큰을 붙인다. 비우면 메일에 코드만 보낸다 |
+| `PASSWORD_RESET_MEMBER_URL` | 회원 앱 재설정 화면 — **해시형** `https://<운영 도메인>/member/#/auth/password-reset`. 서버가 `…#/auth/password-reset?token=…` 꼴로 토큰을 붙인다. 비우면 메일에 코드만 보낸다 |
 | `PASSWORD_RESET_TRAINER_URL` | 트레이너 웹 재설정 화면 — **해시형** `https://<운영 도메인>/trainer/#/auth/password-reset`. 해시 없는 경로형(`/auth/password-reset`)은 정적 경로를 가리켜 코드가 버려진다. 운영에서 경로형·`http://` 면 기동 로그에 WARN(#3033) |
 
 **스택 파라미터로 정하는 값**: `CORS_ALLOW_ORIGINS`(https 만, `*`·빈 값·localhost 금지 — 운영 기동 거부, #3029), `GEMINI_MODEL`(아래 5-3),

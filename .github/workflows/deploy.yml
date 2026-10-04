@@ -40,7 +40,14 @@ jobs:
           # 이후 단계는 git 인증을 쓰지 않는다(토큰이 필요한 곳은 env 로 따로 받는다).
           persist-credentials: false
 
-      # 랜딩의 앱 바로가기는 상대 경로라 어느 배포에서든 같은 도메인의 /frontend/·/trainer/ 로
+      # Pages 주소는 저장소 Settings → Pages 가 정한다(#2000). 커스텀 도메인 없이 기본 주소
+      # https://cse-sudo.github.io/on-care/ 를 쓰므로 앱 base-href·canonical 이 저장소 경로(/on-care)
+      # 아래를 가리켜야 한다. 값을 여기 적지 않고 설정에서 읽어, 주소가 바뀌어도 워크플로는 그대로 둔다.
+      - name: Configure GitHub Pages
+        id: pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      # 랜딩의 앱 바로가기는 상대 경로라 어느 배포에서든 같은 도메인의 /member/·/trainer/ 로
       # 간다(#2841). 절대 주소가 다시 들어오면 운영(AWS) 방문자가 이 데모로 넘어오므로 빌드 전에 막는다.
       - name: Check landing app links
         run: bash .github/scripts/landing_site_url.sh check index.html
@@ -117,10 +124,12 @@ jobs:
         env:
           KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
           API_BASE_URL: ${{ vars.STAGING_API_BASE_URL }}
+          # 루트 배포면 빈 값, 저장소 경로 아래면 `/on-care`(끝 `/` 없음).
+          PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
         run: |
           set -euo pipefail
           args=(
-            --release --base-href "/frontend/"
+            --release --base-href "${PAGES_BASE_PATH}/member/"
             --dart-define=KAKAO_JS_KEY="$KAKAO_JS_KEY"
             --dart-define=USE_MOCK_API="$WEB_USE_MOCK_API"
             --dart-define=ENV="$WEB_ENV"
@@ -152,10 +161,12 @@ jobs:
         env:
           KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
           API_BASE_URL: ${{ vars.STAGING_API_BASE_URL }}
+          # 루트 배포면 빈 값, 저장소 경로 아래면 `/on-care`(끝 `/` 없음).
+          PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
         run: |
           set -euo pipefail
           args=(
-            --release --base-href "/trainer/"
+            --release --base-href "${PAGES_BASE_PATH}/trainer/"
             --dart-define=KAKAO_JS_KEY="$KAKAO_JS_KEY"
             --dart-define=USE_MOCK_API="$WEB_USE_MOCK_API"
             --dart-define=ENV="$WEB_ENV"
@@ -170,9 +181,9 @@ jobs:
 
       - name: Prepare GitHub Pages files
         run: |
-          mkdir -p public/frontend
+          mkdir -p public/member
           cp index.html public/index.html
-          cp -R frontend/flutter/build/web/* public/frontend/
+          cp -R frontend/flutter/build/web/* public/member/
           mkdir -p public/trainer
           cp -R frontend/flutter_trainer/build/web/* public/trainer/
           # 공개 정책 페이지(#3005). 스토어·가입 전 안내가 여는 처리방침·약관 주소다.
@@ -186,7 +197,7 @@ jobs:
           echo "$GITHUB_SHA" > public/version.txt
           touch public/.nojekyll
           # 두 앱은 자기 `<base href>version.txt` 를 읽어 새 배포를 알아챈다(#3023).
-          cp public/version.txt public/frontend/version.txt
+          cp public/version.txt public/member/version.txt
           cp public/version.txt public/trainer/version.txt
 
       # 두 앱 meta CSP 의 connect-src 는 로컬 개발용으로 https: 전체·localhost 까지 열려 있다.
@@ -202,21 +213,19 @@ jobs:
           if [ "$WEB_USE_MOCK_API" = "false" ]; then
             api="$API_BASE_URL"
           fi
-          for page in public/frontend/index.html public/trainer/index.html; do
+          for page in public/member/index.html public/trainer/index.html; do
             bash .github/scripts/pages_demo_csp.sh narrow "$page" "$api"
             bash .github/scripts/pages_demo_csp.sh check "$page" "$api"
           done
 
-      # og:url·canonical 은 이 배포의 커스텀 도메인(CNAME)으로 채운다(#2841). AWS 배포는 자기
+      # og:url·canonical 은 이 배포의 Pages 주소로 채운다(#2841, #2000). AWS 배포는 자기
       # 도메인으로 따로 채우므로 원본 index.html 에는 표시 줄만 있다.
       - name: Stamp landing site URL
+        env:
+          PAGES_BASE_URL: ${{ steps.pages.outputs.base_url }}
         run: |
           set -euo pipefail
-          domain="$(tr -d '[:space:]' < CNAME)"
-          bash .github/scripts/landing_site_url.sh stamp public/index.html "https://${domain}/"
-
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+          bash .github/scripts/landing_site_url.sh stamp public/index.html "${PAGES_BASE_URL%/}/"
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
@@ -246,7 +255,7 @@ jobs:
       - name: Verify the published site
         if: steps.deployment.outcome != 'success'
         env:
-          SITE_URL: ${{ steps.deployment.outputs.page_url || 'https://ewhasudo.zapto.org/' }}
+          SITE_URL: ${{ steps.deployment.outputs.page_url || 'https://cse-sudo.github.io/on-care/' }}
         run: |
           base="${SITE_URL%/}"
           # Absolute deadline, not an iteration count: an unresponsive host makes
@@ -276,20 +285,20 @@ jobs:
           exit 1
 
       # 배포 후 링크 확인(#2841): 실제로 서빙되는 랜딩의 바로가기가 상대 경로이고, canonical 이
-      # 이 배포 도메인이며, 같은 도메인의 /frontend/·/trainer/ 가 응답하는지 본다.
+      # 이 배포 도메인이며, 같은 도메인의 /member/·/trainer/ 가 응답하는지 본다.
       - name: Check out landing scripts
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           sparse-checkout: |
             .github/scripts
-            CNAME
           sparse-checkout-cone-mode: false
 
       - name: Verify landing app links on the published site
         env:
-          SITE_URL: ${{ steps.deployment.outputs.page_url || 'https://ewhasudo.zapto.org/' }}
+          SITE_URL: ${{ steps.deployment.outputs.page_url || 'https://cse-sudo.github.io/on-care/' }}
         run: |
           set -euo pipefail
-          domain="$(tr -d '[:space:]' < CNAME)"
-          bash .github/scripts/landing_site_url.sh verify "$SITE_URL" "https://${domain}/" 600
+          # page_url 이 http:// 로 오는 실행이 있어, 기대 canonical 은 https 로 맞춘다.
+          site="https://${SITE_URL#*://}"
+          bash .github/scripts/landing_site_url.sh verify "$SITE_URL" "$site" 600

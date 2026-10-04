@@ -118,7 +118,7 @@ def test_prod_without_demo_seed_has_no_demo_warning():
 
 # --- 비밀번호 재설정 메일 링크(#3033) ---
 
-_MEMBER_HASH_URL = "https://oncare.example/frontend/#/auth/password-reset"
+_MEMBER_HASH_URL = "https://oncare.example/member/#/auth/password-reset"
 _TRAINER_HASH_URL = "https://oncare.example/trainer/#/auth/password-reset"
 
 

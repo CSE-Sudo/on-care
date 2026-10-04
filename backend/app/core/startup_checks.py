@@ -112,7 +112,7 @@ def check(settings: Settings) -> list[str]:
                 warnings.append(
                     f"{key} 형식이 맞지 않습니다({problem}) — 메일 링크를 눌러도 재설정 "
                     "화면에 코드가 채워지지 않습니다. 해시형 주소를 넣으세요 "
-                    "(예: https://<도메인>/frontend/#/auth/password-reset)."
+                    "(예: https://<도메인>/member/#/auth/password-reset)."
                 )
 
     for message in warnings:

@@ -21,14 +21,14 @@ check() {
 }
 
 # --- classify: 진입 파일은 폴더와 무관하게 no-cache, 나머지는 짧은 max-age
-for path in index.html frontend/index.html trainer/flutter_bootstrap.js \
-  frontend/main.dart.js trainer/version.json frontend/version.txt version.txt \
-  trainer/manifest.json frontend/drift_worker.js; do
+for path in index.html member/index.html trainer/flutter_bootstrap.js \
+  member/main.dart.js trainer/version.json member/version.txt version.txt \
+  trainer/manifest.json member/drift_worker.js; do
   check "classify $path" "no-cache" "$(bash "$script" classify "$path")"
 done
-for path in frontend/canvaskit/canvaskit.wasm trainer/assets/AssetManifest.bin \
-  frontend/assets/fonts/MaterialIcons-Regular.otf trainer/favicon.png \
-  frontend/main.dart.js.map frontend/index.html.bak; do
+for path in member/canvaskit/canvaskit.wasm trainer/assets/AssetManifest.bin \
+  member/assets/fonts/MaterialIcons-Regular.otf trainer/favicon.png \
+  member/main.dart.js.map member/index.html.bak; do
   check "classify $path" "public,max-age=300" "$(bash "$script" classify "$path")"
 done
 
@@ -51,7 +51,7 @@ chmod +x "$fake"
 export AWS_CLI="$fake" FAKE_LOG="$work/log" FAKE_HEADERS="$work/headers"
 
 # --- upload: 나머지 sync(--delete·제외 패턴·max-age) 다음 진입 파일 cp(no-cache)
-mkdir -p "$work/public/frontend"
+mkdir -p "$work/public/member"
 : > "$FAKE_LOG"
 bash "$script" upload "$work/public" "s3://bucket/releases/abc" > /dev/null
 calls=$(grep -c '^CALL ' "$FAKE_LOG")
@@ -77,12 +77,12 @@ fi
 # --- verify: 대표 파일이 모두 기대 값이면 통과, 하나라도 다르면 실패
 good_headers() {
   local p
-  for p in index.html version.txt frontend/index.html frontend/flutter_bootstrap.js \
-    frontend/main.dart.js frontend/version.txt trainer/index.html \
+  for p in index.html version.txt member/index.html member/flutter_bootstrap.js \
+    member/main.dart.js member/version.txt trainer/index.html \
     trainer/flutter_bootstrap.js trainer/main.dart.js trainer/version.txt; do
     echo "releases/abc/$p=no-cache"
   done
-  echo "releases/abc/frontend/canvaskit/canvaskit.wasm=public,max-age=300"
+  echo "releases/abc/member/canvaskit/canvaskit.wasm=public,max-age=300"
   echo "releases/abc/trainer/canvaskit/canvaskit.wasm=public,max-age=300"
 }
 good_headers > "$FAKE_HEADERS"

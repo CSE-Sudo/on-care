@@ -222,10 +222,10 @@ def test_mail_and_reset_keys_are_active_lines(key):
 def test_reset_url_guidance_is_hash_style():
     """재설정 화면 주소 안내가 두 앱의 실제 배포 형식(해시·하위 경로)이다(#3033)."""
     text = AWS_EXAMPLE.read_text(encoding="utf-8")
-    assert "/frontend/#/auth/password-reset" in text
+    assert "/member/#/auth/password-reset" in text
     assert "/trainer/#/auth/password-reset" in text
     dev = DEV_EXAMPLE.read_text(encoding="utf-8")
-    assert "/frontend/#/auth/password-reset" in dev
+    assert "/member/#/auth/password-reset" in dev
     assert "/trainer/#/auth/password-reset" in dev
 
 
@@ -269,7 +269,7 @@ def test_template_with_secrets_filled_passes_prod_guard():
         attachment_s3_bucket="oncare-prod",
         mail_from="no-reply@oncare.example",
         smtp_host="smtp.oncare.example",
-        password_reset_member_url="https://oncare.example/frontend/#/auth/password-reset",
+        password_reset_member_url="https://oncare.example/member/#/auth/password-reset",
         password_reset_trainer_url="https://oncare.example/trainer/#/auth/password-reset",
     )
     s = Settings(_env_file=None, **values)

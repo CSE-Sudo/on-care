@@ -2,10 +2,10 @@
 # 소개(랜딩) 페이지가 특정 도메인에 묶이지 않게 하는 검사·치환·배포 후 확인(#2841).
 #
 # 같은 index.html 이 GitHub Pages(데모)와 AWS CloudFront(운영)에 그대로 올라간다. 두 배포 모두
-# 랜딩을 루트에, 회원 앱을 /frontend/, 트레이너 웹을 /trainer/ 에 두므로 앱 바로가기는 상대 경로
-# (`frontend/#/dashboard`, `trainer/`)여야 각 배포에서 자기 앱으로 간다. 공개 정책 페이지(#3005)도 같은 이유로
+# 랜딩 바로 아래에 회원 앱 member/, 트레이너 웹 trainer/ 를 두므로(Pages 는 /on-care/ 아래) 앱 바로가기는 상대 경로
+# (`member/#/dashboard`, `trainer/`)여야 각 배포에서 자기 앱으로 간다. 공개 정책 페이지(#3005)도 같은 이유로
 # `legal/privacy.html` 상대 경로다 — 스토어에 적는 처리방침 주소가 배포마다 자기 도메인을 가리킨다. 절대 주소가 다시 들어오면
-# 운영 방문자가 데모로 넘어가고, 무료 DNS 이름이 끊기면 운영 랜딩의 버튼까지 함께 죽는다.
+# 운영 방문자가 데모로 넘어가고, 데모 주소가 바뀌거나 끊기면 운영 랜딩의 버튼까지 함께 죽는다.
 # og:url·canonical 은 상대 경로를 쓸 수 없어 원본에는 표시 줄(<!-- SITE_URL_META -->)만 두고,
 # 각 배포 워크플로가 자기 도메인으로 바꾼다.
 #
@@ -16,12 +16,12 @@
 #       표시 줄을 og:url·canonical 태그로 바꿈(사이트 주소는 https://도메인/ 형식)
 #   bash landing_site_url.sh verify <배포 주소> <사이트 주소> [대기 초]
 #       배포된 랜딩을 받아 바로가기가 상대 경로인지, canonical 이 사이트 주소인지,
-#       같은 도메인의 /frontend/·/trainer/·/legal/privacy.html 이 응답하는지 확인(캐시가 바뀔 때까지 재시도)
+#       같은 도메인의 /member/·/trainer/·/legal/privacy.html 이 응답하는지 확인(캐시가 바뀔 때까지 재시도)
 set -euo pipefail
 
 MARKER='<!-- SITE_URL_META -->'
-# 바로가기 href 가 http(s):// 로 시작하면서 frontend·trainer·legal 경로를 가리키면 절대 주소로 본다.
-ABSOLUTE_APP_LINK='href="https?://[^"]*/(frontend|trainer|legal)([/"#?])'
+# 바로가기 href 가 http(s):// 로 시작하면서 member·trainer·legal 경로를 가리키면 절대 주소로 본다.
+ABSOLUTE_APP_LINK='href="https?://[^"]*/(member|trainer|legal)([/"#?])'
 
 fail() {
   echo "::error title=landing::$1"
@@ -37,12 +37,12 @@ usage() {
 inspect_html() {
   local file="$1" found
   if found=$(grep -nE "$ABSOLUTE_APP_LINK" "$file"); then
-    echo "앱 바로가기에 절대 주소가 있습니다. frontend/·trainer/ 상대 경로를 쓰세요."
+    echo "앱 바로가기에 절대 주소가 있습니다. member/·trainer/ 상대 경로를 쓰세요."
     echo "$found"
     return 1
   fi
-  if ! grep -qE 'href="(\./)?frontend/' "$file"; then
-    echo "회원 앱 상대 경로 바로가기(href=\"frontend/...\")가 없습니다."
+  if ! grep -qE 'href="(\./)?member/' "$file"; then
+    echo "회원 앱 상대 경로 바로가기(href=\"member/...\")가 없습니다."
     return 1
   fi
   if ! grep -qE 'href="(\./)?trainer/' "$file"; then
@@ -136,10 +136,10 @@ cmd_verify() {
   rm -f "$page"
   # 상대 경로 바로가기는 같은 도메인의 이 경로들로 열린다. 처리방침은 스토어 심사가 여는
   # 공개 주소라 함께 본다(#3005).
-  for path in frontend/ trainer/ legal/privacy.html; do
+  for path in member/ trainer/ legal/privacy.html; do
     curl -fsS --max-time 20 -o /dev/null "$base/$path" || fail "바로가기 목적지 $base/$path 가 응답하지 않습니다."
   done
-  echo "배포된 랜딩 확인 완료: $base/ → $base/frontend/, $base/trainer/, $base/legal/privacy.html (canonical ${site_url})"
+  echo "배포된 랜딩 확인 완료: $base/ → $base/member/, $base/trainer/, $base/legal/privacy.html (canonical ${site_url})"
 }
 
 [ $# -ge 1 ] || usage

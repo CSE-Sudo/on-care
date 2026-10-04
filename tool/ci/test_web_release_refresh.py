@@ -3,7 +3,7 @@
 열린 탭이 새 배포를 알아채려면 세 가지가 함께 맞아야 한다.
 
 * 두 웹 빌드가 `--dart-define=RELEASE_SHA=...` 로 자기 릴리스 SHA 를 내장하고,
-* 같은 SHA 를 담은 `version.txt` 가 각 앱 폴더(`/frontend/`·`/trainer/`)에 올라가며,
+* 같은 SHA 를 담은 `version.txt` 가 각 앱 폴더(`/member/`·`/trainer/`)에 올라가며,
 * 운영 업로드는 진입 파일을 no-cache 로 나눠 올리는 스크립트를 거치고 그 헤더를 검증한다.
 
 하나만 빠져도 빌드·배포는 성공하고 안내만 조용히 사라지므로 병합 전에 확인한다.
@@ -51,7 +51,7 @@ class WebReleaseRefreshWiringTest(unittest.TestCase):
 
     def test_both_deploys_copy_version_into_each_app(self) -> None:
         for text in (self.aws, self.pages):
-            for app in ("frontend", "trainer"):
+            for app in ("member", "trainer"):
                 self.assertIn(f"cp public/version.txt public/{app}/version.txt", text)
 
     def test_aws_upload_goes_through_cache_header_script(self) -> None:
