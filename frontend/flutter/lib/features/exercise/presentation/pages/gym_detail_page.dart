@@ -496,7 +496,7 @@ class _AffiliatedTrainerRow extends StatelessWidget {
 
   final Trainer trainer;
 
-  /// 화살표 앞에 `신고` 버튼을 둘지 (#3008). 소속 트레이너 섹션만 켠다 —
+  /// 제목 아래에 `신고` 버튼을 둘지 (#3008). 소속 트레이너 섹션만 켠다 —
   /// 상담 트레이너 선택 시트는 고르는 자리라 다른 동작을 섞지 않는다.
   final bool showReport;
 
@@ -510,6 +510,32 @@ class _AffiliatedTrainerRow extends StatelessWidget {
 
   /// 오른쪽 화살표 대신 보여 줄 상태 문구(예: "상담 요청 대기 중").
   final String? trailingLabel;
+
+  /// 제목 아래 줄 — 추천 이유 태그와 `신고` 버튼 (#3008).
+  ///
+  /// 신고 버튼은 화살표 옆이 아니라 여기 둔다. 오른쪽에 붙이면 제목 칸이 좁아져
+  /// 추천 이유 태그가 넘친다. 버튼이 탭을 먼저 받으므로 행의 상세 이동과 겹치지 않는다.
+  Widget? _below() {
+    final Widget? badges = trainer.reasons.isEmpty
+        ? null
+        : TrainerReasonBadges(
+            reasons: trainer.reasons,
+            keyPrefix: reasonKeyPrefix,
+          );
+    if (!showReport) return badges;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        ?badges,
+        TrainerReportButton(
+          key: Key('gym-detail-trainer-report-${trainer.id}'),
+          trainer: trainer,
+          compact: true,
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -529,35 +555,13 @@ class _AffiliatedTrainerRow extends StatelessWidget {
       leading: AppAvatar(name: trainer.name, size: AppAvatarSize.large),
       // 여기가 상담할 트레이너를 고르는 자리다 — 헬스장 찾기에서 봤던 근거를
       // 정작 고르는 화면에서 다시 찾게 두지 않는다 (#1881).
-      below: trainer.reasons.isEmpty
-          ? null
-          : TrainerReasonBadges(
-              reasons: trainer.reasons,
-              keyPrefix: reasonKeyPrefix,
-            ),
+      below: _below(),
       trailing: trailingLabel != null
           ? Text(
               trailingLabel!,
               style: tokens
                   .text(OnCareTypography.strong(OnCareTypography.caption))
                   .copyWith(color: OnCareColors.textSecondary),
-            )
-          : showReport
-          ? Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                // 버튼이 탭을 먼저 받으므로 행의 상세 이동과 겹치지 않는다.
-                TrainerReportButton(
-                  key: Key('gym-detail-trainer-report-${trainer.id}'),
-                  trainer: trainer,
-                  compact: true,
-                ),
-                const AppIcon(
-                  AppIcons.chevronRight,
-                  size: OnCareSize.iconMedium,
-                  color: OnCareColors.textTertiary,
-                ),
-              ],
             )
           : const AppIcon(
               AppIcons.chevronRight,

@@ -133,7 +133,9 @@ void main() {
 
       final Finder report = find.byKey(const Key('trainer-detail-report'));
       expect(report, findsOneWidget);
-      final AppButton button = tester.widget<AppButton>(report);
+      final AppButton button = tester.widget<AppButton>(
+        find.descendant(of: report, matching: find.byType(AppButton)),
+      );
       // 상담·연결 동작보다 앞서지 않는 작은 빨간 글자 버튼이다.
       expect(button.variant, AppButtonVariant.destructiveText);
       expect(button.size, OnCareButtonSize.small);
@@ -389,7 +391,14 @@ void main() {
         Key('gym-detail-trainer-report-${_trainer.id}'),
       );
       expect(report, findsOneWidget);
-      expect(tester.widget<AppButton>(report).label, l.exTrainerReportShort);
+      expect(
+        tester
+            .widget<AppButton>(
+              find.descendant(of: report, matching: find.byType(AppButton)),
+            )
+            .label,
+        l.exTrainerReportShort,
+      );
 
       final Finder note = find.byKey(const Key('gym-detail-self-registered'));
       expect(note, findsOneWidget);
@@ -435,7 +444,10 @@ void main() {
         repository: _RecordingRepository(),
       );
 
-      final Finder name = find.text(_trainer.name);
+      // 이름과 직함은 한 문단(Text.rich)으로 그려진다.
+      final Finder name = find
+          .textContaining(_trainer.name, findRichText: true)
+          .first;
       await tester.ensureVisible(name);
       await tester.pumpAndSettle();
       await tester.tap(name);
