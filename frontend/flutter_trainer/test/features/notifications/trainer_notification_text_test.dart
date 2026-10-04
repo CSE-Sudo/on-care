@@ -114,8 +114,8 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
     'trainer_member_disconnected',
     <String, Object?>{'member_name': '지수'},
     '담당 연결 해제',
-    '지수 회원이 담당 연결을 끊었어요.',
-    'Client disconnected',
+    '지수 회원이 담당 연결을 해제했어요.',
+    'Member disconnected',
     '지수 ended their connection with you.',
   ),
   (
@@ -148,7 +148,7 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
     '담당 요청이 수락되었어요',
     '지수 회원이 담당으로 연결되었어요.',
     'Coaching request accepted',
-    '지수 is now your client.',
+    '지수 is now one of your members.',
   ),
   (
     'trainer_invite_rejected',

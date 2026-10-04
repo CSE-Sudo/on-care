@@ -155,7 +155,7 @@ void main() {
         _dio(<Object?>[
           <String, Object?>{
             'id': 'n1',
-            'title': '상담 요청이 반려되었어요',
+            'title': '상담 요청이 거절됐어요',
             'body': '이번 주는 일정이 가득 찼어요',
             'time_ago': '방금',
             'category': 'consult_decision',

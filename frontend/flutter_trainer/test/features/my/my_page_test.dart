@@ -191,7 +191,7 @@ void main() {
       await tester.tap(find.byTooltip('연결 해제').first);
       await tester.pumpAndSettle();
       await tester.tap(
-        find.descendant(of: find.byType(AppDialog), matching: find.text('연결 해제')),
+        find.descendant(of: find.byType(AppDialog), matching: find.text('해제')),
       );
       await tester.pumpAndSettle();
 

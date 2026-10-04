@@ -181,7 +181,7 @@ void main() {
 
     expect(find.byType(AppDialog), findsOneWidget);
     expect(find.textContaining('온케어짐 신촌점'), findsWidgets);
-    expect(find.textContaining('김트레이너 연결도 함께 해제됩니다'), findsOneWidget);
+    expect(find.textContaining('김트레이너 연결도 함께 해제돼요'), findsOneWidget);
   });
 
   testWidgets('취소하면 연결이 유지된다', (WidgetTester tester) async {
@@ -206,7 +206,7 @@ void main() {
     );
     await tapDisconnect(tester);
 
-    await tester.tap(find.text('삭제'));
+    await tester.tap(find.text('해제'));
     // 다이얼로그 닫힘 → 대역의 지연 → 화면 되돌아가기까지 몇 프레임 걸린다.
     for (int i = 0; i < 4; i++) {
       await tester.pump(const Duration(milliseconds: 400));
@@ -225,7 +225,7 @@ void main() {
     await tapDisconnect(tester);
 
     expect(find.textContaining('김트레이너'), findsWidgets);
-    await tester.tap(find.text('삭제'));
+    await tester.tap(find.text('해제'));
     // 다이얼로그 닫힘 → 대역의 지연 → 화면 되돌아가기까지 몇 프레임 걸린다.
     for (int i = 0; i < 4; i++) {
       await tester.pump(const Duration(milliseconds: 400));
@@ -240,7 +240,7 @@ void main() {
     const String failedToast = '연결을 해제하지 못했어요. 다시 시도해 주세요.';
 
     Future<void> confirmDelete(WidgetTester tester) async {
-      await tester.tap(find.text('삭제'));
+      await tester.tap(find.text('해제'));
       for (int i = 0; i < 4; i++) {
         await tester.pump(const Duration(milliseconds: 400));
       }
@@ -315,7 +315,7 @@ void main() {
 
       expect(find.byType(AppDialog), findsOneWidget);
       // 누가 함께 해제되는지 모르면 그 안내만 뺀다.
-      expect(find.textContaining('연결도 함께 해제됩니다'), findsNothing);
+      expect(find.textContaining('연결도 함께 해제돼요'), findsNothing);
     });
 
     testWidgets('내 헬스장 조회가 실패해도 트레이너 해제 확인 창은 뜬다', (WidgetTester tester) async {

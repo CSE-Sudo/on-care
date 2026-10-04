@@ -56,10 +56,10 @@ void main() {
     });
 
     test('기존 안내(무엇이 끊기고 무엇이 남는지)는 그대로다', () {
-      expect(messages[0], startsWith('담당 트레이너 김코치 연결을 삭제하시겠습니까?'));
-      expect(messages[0], contains('온케어짐 헬스장 연결은 유지됩니다.'));
-      expect(messages[1], startsWith('온케어짐 연결을 삭제하시겠습니까?'));
-      expect(messages[1], contains('담당 트레이너 김코치 연결도 함께 해제됩니다.'));
+      expect(messages[0], startsWith('담당 트레이너 김코치 연결을 해제할까요?'));
+      expect(messages[0], contains('온케어짐 헬스장 연결은 유지돼요.'));
+      expect(messages[1], startsWith('온케어짐 연결을 해제할까요?'));
+      expect(messages[1], contains('담당 트레이너 김코치 연결도 함께 해제돼요.'));
     });
 
     test('담당이 없는 헬스장 해제에는 동의 안내를 붙이지 않는다', () {

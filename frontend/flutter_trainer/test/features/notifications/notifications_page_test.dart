@@ -379,7 +379,7 @@ void main() {
       _notification(
         id: 'noti-left',
         title: '담당 연결 해제',
-        body: '김민수 회원이 담당 연결을 끊었어요.',
+        body: '김민수 회원이 담당 연결을 해제했어요.',
         kind: TrainerNotificationKind.memberLeft,
       ),
     ]);
@@ -393,7 +393,7 @@ void main() {
     );
 
     expect(find.text('담당 연결 해제'), findsOneWidget);
-    expect(find.text('김민수 회원이 담당 연결을 끊었어요.'), findsOneWidget);
+    expect(find.text('김민수 회원이 담당 연결을 해제했어요.'), findsOneWidget);
 
     await tester.tap(
       find.byKey(const ValueKey<String>('notification-noti-left')),

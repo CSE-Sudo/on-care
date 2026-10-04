@@ -357,7 +357,7 @@
     "description": "Unit after a person count. Korean uses the counter 명; English omits it. Intentionally empty."
   },
   "clientsLoadFailed": "Couldn't load member data",
-  "clientsNew": "Register new member",
+  "clientsNew": "Connect member",
   "clientsTitle": "Member management",
   "clientsManagementAttention": "Needs attention",
   "clientsFiltersClearAll": "Clear all",
@@ -369,7 +369,7 @@
   "clientsFilterLabel": "Filters",
   "clientsPickHint": "Pick a member on the left to open\ntheir chat, meals and workouts here",
   "clientsEmpty": "No members yet",
-  "clientsEmptyConnectHint": "Connect members with the code they show you or by sending a coaching request. Consultation requests from members also appear in your inbox.",
+  "clientsEmptyConnectHint": "Connect members with their connection code or by sending a coaching request. Consultation requests from members also appear in your inbox.",
   "clientsEmptyForFilter": "No members match {filter}",
   "@clientsEmptyForFilter": {
     "placeholders": {
@@ -527,15 +527,15 @@
       }
     }
   },
-  "clientInviteTitle": "Add a new member",
-  "clientInviteIntro": "Enter the 6-digit sync code from the member's MY tab to connect right away.",
-  "clientInviteIntroImmediate": "Enter the 6-digit sync code from the member's MY tab to connect right away.",
-  "clientConnectCodeLabel": "Sync code",
+  "clientInviteTitle": "Connect member",
+  "clientInviteIntro": "Enter the 6-digit connection code from the member's MY tab to connect right away.",
+  "clientInviteIntroImmediate": "Enter the 6-digit connection code from the member's MY tab to connect right away.",
+  "clientConnectCodeLabel": "Connection code",
   "clientConnectCodeRequired": "Enter all six digits",
   "clientConnectCodeInvalid": "That code is wrong or expired. Ask the member for a new one",
   "clientConnectAlreadyManaged": "You already manage this member. Find them in your member list",
-  "clientInviteConnectAction": "Register member",
-  "clientInviteConnected": "Registered {name} as a member",
+  "clientInviteConnectAction": "Connect",
+  "clientInviteConnected": "Connected with {name}",
   "@clientInviteConnected": {
     "placeholders": {
       "name": {
@@ -1251,11 +1251,11 @@
   },
   "schedCompleteFailed": "Couldn't mark it complete. Please try again",
   "schedGroupProgram": "PT program",
-  "schedDetachedMember": "Former client",
+  "schedDetachedMember": "Former member",
   "@schedDetachedMember": {
     "description": "담당이 끊긴 회원의 일정에 이름 대신 쓰는 말 (#2589)"
   },
-  "schedDetachedMemberHint": "Coaching has ended, so client details are hidden",
+  "schedDetachedMemberHint": "Coaching has ended, so member details are hidden",
   "schedReservationLockedHint": "Booked by the member. It can't be moved or deleted here; use Cancel to call it off.",
   "@schedReservationLockedHint": {
     "description": "Hint on a session card for a session the member booked through a reservation slot (#2756). Edit schedule and Delete are disabled."
@@ -1392,7 +1392,7 @@
   "schedAddNote": "Add feedback",
   "schedNoNote": "No memo yet",
   "schedNoteOnlyHint": "A consultation is recorded as a memo, not a program.",
-  "schedNoteHint": "Feedback for the member. Keep member notes in the client memo",
+  "schedNoteHint": "Feedback for the member. Keep notes about the member in their member memo",
   "schedNoteVisibleToMember": "Shown to the member as feedback once the PT is done",
   "schedConsultNote": "Consultation memo",
   "schedEditConsultNote": "Edit memo",
@@ -1406,7 +1406,7 @@
   "progEditTitle": "Edit program",
   "progAddTitle": "Add program",
   "progAddExercise": "Add exercise",
-  "progNoteHint": "Feedback for the member. Keep member notes in the client memo",
+  "progNoteHint": "Feedback for the member. Keep notes about the member in their member memo",
   "progSaving": "Saving...",
   "progSaveAction": "Save",
   "progSaveNoteAction": "Save",
@@ -1568,6 +1568,10 @@
   "myStatClients": "Members",
   "myClientManagement": "Member management",
   "myClientRemove": "Disconnect",
+  "myClientRemoveConfirm": "Disconnect",
+  "@myClientRemoveConfirm": {
+    "description": "Confirm button of the disconnect-member dialog. Noun form per the button rule (#3117); the row tooltip keeps myClientRemove."
+  },
   "myClientRemoveTitle": "Disconnect from {name}?",
   "@myClientRemoveTitle": {
     "placeholders": {
@@ -1755,7 +1759,7 @@
   "myGymEmpty": "No gym yet. Set yours in Edit profile.",
   "myEditVisibleBody": "Your specialty, career, introduction, certifications and gym appear on your trainer profile in the member app.",
   "myClientManagementNoteTitle": "Disconnecting keeps member records",
-  "myClientManagementNote": "Their records stay in the member app. To coach them again, add them by member ID from New member on the Members tab.",
+  "myClientManagementNote": "Their records stay in the member app. To coach them again, enter the connection code they give you under Connect member on the Members tab.",
   "myNotifConsultation": "Consultation requests",
   "myNotifConsultationHint": "When a member requests a consultation or answers your invite",
   "myNotifReservation": "Bookings",
@@ -1812,8 +1816,8 @@
   "coachTitle": "Programs",
   "coachSubtitle": "Create, assign, and manage exercise programs for each member",
   "coachSendFailed": "Couldn't send. Please try again",
-  "coachSwitchClientTitle": "Switch to another client?",
-  "coachSwitchClientBody": "You have unsent work. Switching clients discards the program and personal exercises you are building.",
+  "coachSwitchClientTitle": "Switch to another member?",
+  "coachSwitchClientBody": "You have unsent work. Switching members discards the program and personal exercises you are building.",
   "coachSwitchClientConfirm": "Switch",
   "coachDraftResumeTitle": "You have saved work",
   "coachDraftResumeBody": "The program you were building for {name} was saved automatically. Continue where you left off?",
@@ -2277,7 +2281,7 @@
       }
     }
   },
-  "notifTplMemberDisconnectedTitle": "Client disconnected",
+  "notifTplMemberDisconnectedTitle": "Member disconnected",
   "notifTplMemberDisconnectedBody": "{name} ended their connection with you.",
   "@notifTplMemberDisconnectedBody": {
     "placeholders": {
@@ -2290,7 +2294,7 @@
   "notifTplConsultCancelledTitle": "Consultation request cancelled",
   "notifTplConsultWithdrawnTitle": "Consultation request cancelled: member account deleted",
   "notifTplInviteAcceptedTitle": "Coaching request accepted",
-  "notifTplInviteAcceptedBody": "{name} is now your client.",
+  "notifTplInviteAcceptedBody": "{name} is now one of your members.",
   "@notifTplInviteAcceptedBody": {
     "placeholders": {
       "name": {
