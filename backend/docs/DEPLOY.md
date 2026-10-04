@@ -47,14 +47,17 @@ GitHub(main push) ─> Backend CI ─> backend-deploy.yml
 |---|---|---|---|---|
 | `oncare-backend-bootstrap` | `infra/backend-bootstrap.yml` | 계정에 1개 | 없음(이미지 저장량만) | ECR `oncare-backend`(불변 태그, 최근 20개 유지), 이미지 푸시 역할 |
 | `oncare-backend-env-<environment>` | `infra/backend-environment.yml` | 환경마다 1개 | 없음 | 첨부 버킷, 태스크·실행·인프라 역할, CloudFormation 서비스 역할, GitHub 배포 역할 |
-| `oncare-backend-<environment>` | `infra/backend-service.yml` | 환경마다 1개 | **생성 순간부터 과금** | ECS Express Mode 서비스(Fargate 태스크 1개 + ALB) |
+| `oncare-backend-<environment>` | `infra/backend-service.yml` | 환경마다 1개 | **생성 순간부터 과금** | ECS Express Mode 서비스(Fargate 태스크 1~4개, 기본 1 + ALB) |
 
 `<environment>` 는 `production`·`staging` 이다. staging 은 데모 시연용이고 **운영과 다른 DB·비밀·버킷**을
 쓴다(#3020). staging 이 필요 없으면 staging 스택을 만들지 않고 `BACKEND_STAGING_DEPLOY_ENABLED` 를 비워 둔다.
 
-**태스크는 1개로 고정한다.** 로그인 실패 잠금·가입 상한 같은 시도 제한이 프로세스 메모리에 있어
-(`app/core/rate_limit.py`) 태스크가 늘면 한도가 그만큼 느슨해진다. 템플릿은 `MinTaskCount`·
-`MaxTaskCount` 를 `1` 만 받는다. 늘리려면 먼저 시도 제한을 공유 저장소(Redis 등)로 옮긴다.
+**태스크는 기본 1개, 1~4개까지 늘릴 수 있다(#3143).** 분당 한도·로그인 실패 잠금·가입 상한 같은 시도
+제한은 Postgres 공유 표 `rate_limit_hits` 에 센다(`RATE_LIMIT_STORE=database`, `app/core/rate_limit.py`).
+태스크가 늘어도 한도가 느슨해지지 않고, 재배포·재시작에도 잠금이 남는다. 템플릿은 `MinTaskCount`·
+`MaxTaskCount` 를 1~4 로 받는다. 늘리기 전에 아래 "DB 커넥션 풀" 의 연결 수 계산이 DB 플랜 상한 안인지
+보고, `/v1/system/metrics` 는 요청을 받은 태스크 하나의 값만 보여 준다는 점을 감안한다. 실제 태스크 수는
+배포 담당(#480)이 정한다.
 
 **서비스 설정의 원본은 템플릿과 스택 파라미터다.** 콘솔에서 서비스를 직접 고치면 다음 배포가
 템플릿 값으로 되돌린다. 설정을 바꿀 때는 `infra/backend-service.yml` 을 PR 로 고치거나 스택
@@ -252,6 +255,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `FORCE_HTTPS`·`LOG_LEVEL` | `true`·`INFO` |
 | `TRUSTED_PROXY_HOPS` | `1` — ALB 하나 뒤다(#2815) |
 | `WEB_CONCURRENCY` | `1` (아래 "워커 수") |
+| `RATE_LIMIT_STORE` | `database` — 시도 제한을 Postgres 공유 표에 센다(#3143). 태스크가 여럿이어도 한도가 하나다 |
 | `ATTACHMENT_STORAGE`·`ATTACHMENT_S3_*` | `s3`, 환경 스택 버킷, 서비스 리전, `chat-attachments` |
 | `RECOGNIZER`·`COACH_LLM`·`EMBEDDER` | `gemini` |
 | `GEMINI_TIMEOUT_SECONDS`·`RECOGNIZER_TIMEOUT_SECONDS` | `30`·`60`(#2912) |
@@ -288,8 +292,10 @@ CREATE EXTENSION IF NOT EXISTS vector;
 `.env.aws.example` 에서 그 키의 주석을 푼다. 전체 키와 기본값은 `backend/.env.example` 이
 `config.py` 와 1:1 로 갖고 있다(`tests/test_env_example.py`).
 
-> **시도 제한은 태스크 메모리에 둔다**(`app/core/rate_limit.py`). 태스크가 1 이 아니게 되거나
-> `WEB_CONCURRENCY` 를 늘리면 한도가 그 수만큼 늘어나므로, 그때 공유 저장소(Redis 등) 구현으로 바꾼다.
+> **시도 제한은 DB 공유 저장소에 센다**(`RATE_LIMIT_STORE=database`, `app/core/rate_limit.py`, #3143).
+> 한도 대상 요청(로그인·가입·사진 분석·AI 코치 등)마다 DB 왕복이 한 번 늘어난다. 저장소 오류 때는 한도
+> 없이 통과시키고(fail-open) 오류 로그와 `rate_limit.store_errors` 메트릭을 남긴다. 만료 행은 태스크가
+> 1분마다 지운다.
 > 기동 로그에 `TRUSTED_PROXY_HOPS=0` 경고가 보이면 프록시 홉 수 설정을 확인한다.
 > 기동 로그에 `소셜 로그인 허용 앱 설정이 비어` 경고가 보이면, 거기 적힌 provider 의 로그인은 모두 401 이다.
 
@@ -330,8 +336,9 @@ python -m scripts.grant_admin --email ops@example.com --confirm-id user-… --re
 - `WEB_CONCURRENCY` 로 uvicorn 워커 수를 정한다(`scripts/start.sh`, 기본 `1`, 1 이상 정수가
   아니면 기동 거부). 운영 값은 서비스 템플릿이 `1` 로 고정한다(#3016).
 - 워커를 늘릴 때의 영향:
-  - **인메모리 분당 한도**(로그인·AI 코치·사진 분석 분당 한도 등)는 워커마다 따로 센다 — 워커 N 개면
-    한 사용자가 최대 N 배까지 통과할 수 있다. DB 에서 세는 하루 상한(AI 챗봇·사진 분석)은 영향 없다.
+  - **분당 한도·로그인 잠금**은 운영(`RATE_LIMIT_STORE=database`)에서 DB 공유 저장소라 영향 없다(#3143).
+    `memory` 로 두면 워커마다 따로 세어 워커 N 개면 한 사용자가 최대 N 배까지 통과한다. DB 에서 세는
+    하루 상한(AI 챗봇·사진 분석)은 원래 영향 없다.
   - **`/v1/system/metrics`** 는 그 요청을 받은 워커 하나의 값만 보여 준다(합산되지 않는다).
   - **DB 연결 수**가 워커 수만큼 곱해진다(아래 계산식).
 - `async def` 라우트 안에서 동기 DB·Pillow·파일 저장을 돌리지 않는다 — 이벤트 루프가 막혀 같은 워커의
@@ -359,7 +366,7 @@ Backend CI 가 컨테이너를 띄워 좌표 쿼리 요청 뒤 로그에 좌표�
 | `DB_STATEMENT_TIMEOUT_MS` | `10000` | 쿼리 하나의 실행 상한. 연결 시작 옵션(`-c statement_timeout`)으로 건다. `0` 이면 끈다 |
 
 - **연결 수 계산:** `(DB_POOL_SIZE + DB_MAX_OVERFLOW) × WEB_CONCURRENCY × 태스크 수` 가 DB 플랜의
-  동시 연결 상한보다 작아야 한다. 기본값·워커 1·태스크 1 이면 최대 15 다(배포 중 옛 태스크와 겹치는 동안은 두 배). 마이그레이션은 기동 때
+  동시 연결 상한보다 작아야 한다. 기본값·워커 1·태스크 1 이면 최대 15, 태스크 4(템플릿 상한)면 최대 60 이다(배포 중 옛 태스크와 겹치는 동안은 두 배). 마이그레이션은 기동 때
   별도 연결 하나를 잠깐 더 쓴다.
 - 실행 상한은 앱 엔진에만 걸린다. 마이그레이션(`scripts/migrate.py`·Alembic)은 자기 엔진을 쓰므로 긴
   DDL 이 끊기지 않는다. readiness(`/readyz`)는 따로 3초 상한을 건다.
