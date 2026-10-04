@@ -73,18 +73,55 @@ GitHub(main push) ─> Backend CI ─> backend-deploy.yml
 - 배포 역할은 **GitHub Environment 에서 돈 job 만** 맡을 수 있다. 브랜치 형식 토큰으로는 서비스를
   바꿀 수 없으므로 Environment 의 승인 규칙을 건너뛰는 길이 없다.
 - 배포 역할에는 ECS·IAM 권한이 없다. 서비스 변경은 CloudFormation 이 서비스 역할로 한다.
-- 저장소에는 이미 `Production`·`Preview`·`github-pages` Environment 가 있다. Environment 이름은
-  대소문자를 가리지 않으므로 `Production` 이 곧 `production` 이다.
+- Environment 이름이 곧 배포 경계다. 워크플로의 `environment:` 와 템플릿의 신뢰 조건이 같은 이름을
+  써야 한다(아래 표). `infra/tests/test_deploy_workflows.py` 가 둘이 어긋나지 않는지 PR 마다 본다.
 
-**GitHub Environment 설정**(Settings > Environments)
+**Environment 이름 ↔ OIDC subject ↔ 워크플로**(#3133)
 
-| Environment | 보호 규칙 | 배포 브랜치 | 변수 |
+| Environment | 믿는 역할(템플릿) | OIDC subject | 쓰는 job |
 |---|---|---|---|
-| `production` | Required reviewers(운영 승인자), 필요하면 대기 시간 | `main` 만 | `AWS_BACKEND_DEPLOY_ROLE_ARN`·`AWS_BACKEND_CFN_ROLE_ARN`·`BACKEND_STACK_NAME` |
-| `staging` | 없음(자동) | `main` 만 | 같은 세 변수(staging 스택 출력값) |
+| `production` | 백엔드 배포 역할(`infra/backend-environment.yml`, `EnvironmentName=production`), 프런트 배포 역할(`infra/frontend-hosting.yml`, `GitHubEnvironment` 기본값) | `repo:CSE-Sudo@<id>/on-care@<id>:environment:production` | `backend-deploy.yml` → `deploy-production`(`backend-deploy-service.yml`), `aws-frontend-deploy.yml` → `build-and-deploy` |
+| `staging` | 백엔드 배포 역할(`EnvironmentName=staging`) | `…:environment:staging` | `backend-deploy.yml` → `deploy-staging` |
+| `github-pages` | 없음(AWS 역할을 받지 않음) | — | `deploy.yml` 데모 Pages 배포 |
+
+두 템플릿은 subject 를 `StringEqualsIgnoreCase` 로 비교하고 GitHub 도 Environment 이름의 대소문자를
+가리지 않는다. 그래서 Vercel 연동 시절에 만들어진 `Production` 이 곧 `production` 이다. 이름을 바꿀 수
+없으므로 지우지 않고 아래 규칙을 채워 이어 쓴다(배포 기록 보존). 워크플로와 문서는 소문자로 쓴다.
+
+**보호 규칙이 비어 있으면 안 되는 이유** — 배포 역할은 Environment 이름만 믿는다. 배포 브랜치 정책이
+없으면 **어느 브랜치에서 돈 job 이든** `environment: production` 만 적으면 운영 배포 역할을 받는다.
+필수 승인자가 없으면 누구의 승인도 없이 받는다. `staging` 은 처음 실행될 때 규칙 없는 Environment 로
+자동 생성되므로, 첫 배포 전에 관리자가 먼저 만든다.
+
+**GitHub Environment 설정**(Settings > Environments, 저장소 관리자 작업 — 코드로 남지 않는다)
+
+| Environment | Required reviewers | Prevent self-review | Wait timer | Deployment branches and tags | Allow administrators to bypass | 변수 |
+|---|---|---|---|---|---|---|
+| `production`(기존 `Production`) | 켬 — 배포 담당(`aJISUa`)·백엔드 담당(`subin21cc`). 둘 중 한 명 승인 | 끔(두 명뿐이라 켜면 병합한 사람이 승인할 수 없어 다른 한 명이 늘 있어야 한다) | 0 | **Selected branches and tags** → 규칙 1개: Ref type `Branch`, 이름 `main` | 끔 | `AWS_BACKEND_DEPLOY_ROLE_ARN`·`AWS_BACKEND_CFN_ROLE_ARN`·`BACKEND_STACK_NAME` |
+| `staging`(새로 만듦) | 끔(자동) | — | 0 | **Selected branches and tags** → 규칙 1개: Ref type `Branch`, 이름 `main` | 끔 | 같은 세 변수(staging 스택 출력값) |
+| `Preview` | — | — | — | — | — | **삭제한다**(Vercel 미리보기 배포 기록뿐, 쓰는 워크플로 없음) |
+| `github-pages` | 그대로 | — | — | 그대로 | — | 바꾸지 않는다 |
+
+관리자 적용 순서
+
+1. Settings > Environments > `Production` → **Required reviewers** 에 `aJISUa`·`subin21cc` 를 넣고
+   저장한다. **Prevent self-review** 는 끈 채로 둔다.
+2. 같은 화면 **Deployment branches and tags** 를 `No restriction` 에서 **Selected branches and tags** 로
+   바꾸고 **Add deployment branch or tag rule** → Ref type `Branch`, Name pattern `main` 을 넣는다.
+   태그 규칙은 넣지 않는다(태그는 리뷰 없이 아무 커밋에 붙일 수 있어 운영 역할을 받는 길이 된다).
+3. **Allow administrators to bypass configured protection rules** 체크를 끈다.
+4. **New environment** → 이름 `staging` 으로 만들고 2·3 번을 똑같이 한다. 승인자는 두지 않는다.
+5. 두 Environment 에 위 표의 변수를 넣는다(백엔드 환경 스택 출력값, 3절).
+6. `Preview` Environment 를 **Delete environment** 로 지운다.
+7. 확인: `gh api repos/CSE-Sudo/on-care/environments --jq '.environments[] | {name, rules: [.protection_rules[].type], policy: .deployment_branch_policy}'`
+   에서 `Production` 은 `required_reviewers`·`branch_policy` 와 `{"protected_branches":false,"custom_branch_policies":true}`,
+   `staging` 은 `branch_policy` 와 같은 정책, `Preview` 는 없어야 한다. 브랜치 이름은
+   `gh api repos/CSE-Sudo/on-care/environments/production/deployment-branch-policies` 에서 `main` 하나여야 한다.
 
 프런트 AWS 배포(`aws-frontend-deploy.yml`)도 `production` Environment 에서 돈다. 그래서 운영 승인자를
-걸면 프런트 배포도 같은 승인을 기다린다.
+걸면 프런트 배포도 같은 승인을 기다린다. 승인 대기는 배포 순서 판정(프런트가 백엔드를 최대 45분
+기다림)에 포함되므로, 백엔드 승인을 늦게 하면 프런트 배포가 시간 초과로 멈출 수 있다 — 그때는 승인 뒤
+프런트 배포를 수동으로 다시 실행한다.
 
 **저장소 변수**(Settings > Secrets and variables > Actions > Variables)
 
