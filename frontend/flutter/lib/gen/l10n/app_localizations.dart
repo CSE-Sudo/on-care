@@ -1694,6 +1694,12 @@ abstract class AppLocalizations {
   /// **'{reps, plural, =1{1 rep} other{{reps} reps}}'**
   String exRepsCount(int reps);
 
+  /// One set of a hold exercise in seconds (#3138). Same shape as the trainer web progHoldValue
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} sec'**
+  String exHoldSecondsCount(int seconds);
+
   /// No description provided for @exEnterSets.
   ///
   /// In en, this message translates to:

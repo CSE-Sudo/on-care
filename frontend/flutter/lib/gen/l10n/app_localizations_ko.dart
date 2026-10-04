@@ -885,6 +885,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String exHoldSecondsCount(int seconds) {
+    return '$seconds초';
+  }
+
+  @override
   String get exEnterSets => '세트 수를 입력해주세요';
 
   @override
