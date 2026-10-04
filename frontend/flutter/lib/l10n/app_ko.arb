@@ -820,7 +820,7 @@
   "myPointsHistoryMoreFailed": "더 불러오지 못했어요. 다시 시도해 주세요",
   "myPointsReasonDiet": "식단 기록",
   "myPointsReasonExercise": "운동 기록",
-  "myPointsReasonRoutine": "추천·배정 운동 완료",
+  "myPointsReasonRoutine": "개인운동 완료",
   "myPointsReasonPtRenewal": "PT 재등록 할인 쿠폰",
   "myPointsReasonLocker": "개인 락커 쿠폰",
   "myPointsReasonShield": "연속 기록 보호권",
@@ -1702,7 +1702,7 @@
   "myNotifLoadFailedBody": "지금 보이는 값은 기본값이라 저장된 설정과 다를 수 있어요",
   "myPointsGuideTitle": "포인트 적립 안내",
   "myPointsDietAdd": "식단 추가",
-  "myPointsRoutineComplete": "추천·배정 운동 완료",
+  "myPointsRoutineComplete": "개인운동 완료",
   "myPointsExerciseAdd": "운동 직접 추가",
   "myPointsRuleWithDailyCap": "{action} (하루 {count}회)",
   "@myPointsRuleWithDailyCap": {

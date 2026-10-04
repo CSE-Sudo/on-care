@@ -791,7 +791,7 @@
   "schedRoutinesSkipFailed": "보내지 않기로 처리하지 못했어요. 잠시 후 다시 시도해 주세요.",
   "schedRoutinesLoadFailed": "개인운동을 불러오지 못했어요",
   "schedClientUnresolved": "이 일정의 회원을 특정할 수 없어요. 회원을 골라 주세요.",
-  "schedRoutinesUpdated": "개인운동을 고커어요.",
+  "schedRoutinesUpdated": "개인운동을 고쳤어요.",
   "schedRoutinesUpdateFailed": "개인운동을 고치지 못했어요. 다시 시도해 주세요.",
   "schedAddRoutines": "개인운동 추가",
   "schedRoutinesAdded": "개인운동을 붙였어요.",

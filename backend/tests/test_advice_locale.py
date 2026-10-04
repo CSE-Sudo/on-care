@@ -227,7 +227,7 @@ def test_exercise_english_type_labels(code, label):
 def test_exercise_english_body_parts(part, middle, start):
     assert (
         exercise_advice.advice("routine_all_done_today_part", part=part).text_en
-        == f"You did the {middle} workouts you often skip today. Keep it going!"
+        == f"You did the {middle} personal exercises you often skip today. Keep it going!"
     )
     assert exercise_advice.advice("routine_all_missed_part", part=part).text_en.startswith(
         f"{start} personal exercises"
@@ -246,7 +246,7 @@ def test_exercise_english_rest_of_week(rest, lead, keep):
         "routine_week_only", top="cardio", missing="strength", rest=rest
     )
     assert only.text_en == (
-        f"This week you only did cardio workouts. {lead}, start with strength."
+        f"This week you only did cardio personal exercises. {lead}, start with strength."
     )
     counts = exercise_advice.advice(
         "routine_week_counts_keep", assigned=5, completed=3, rest=rest

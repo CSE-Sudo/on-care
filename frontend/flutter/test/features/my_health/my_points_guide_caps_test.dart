@@ -62,7 +62,7 @@ void main() {
 
     expect(inDialog('식단 추가 (하루 3회)'), findsOneWidget);
     expect(inDialog('운동 직접 추가 (하루 3회)'), findsOneWidget);
-    expect(inDialog('추천·배정 운동 완료 (하루 1회)'), findsOneWidget);
+    expect(inDialog('개인운동 완료 (하루 1회)'), findsOneWidget);
     // 포인트는 예전처럼 줄 오른쪽에 선다.
     expect(inDialog('+50P'), findsNWidgets(2));
     expect(inDialog('+20P'), findsOneWidget);
@@ -81,7 +81,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      inDialog('Complete a recommended or assigned workout (once a day)'),
+      inDialog('Finish a personal exercise (once a day)'),
       findsOneWidget,
     );
   });

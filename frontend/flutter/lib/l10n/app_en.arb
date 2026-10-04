@@ -1100,7 +1100,7 @@
   "myPointsHistoryMoreFailed": "Couldn't load more. Please try again",
   "myPointsReasonDiet": "Meal log",
   "myPointsReasonExercise": "Workout log",
-  "myPointsReasonRoutine": "Recommended or assigned workout done",
+  "myPointsReasonRoutine": "Personal exercise done",
   "myPointsReasonPtRenewal": "PT renewal discount coupon",
   "myPointsReasonLocker": "Personal locker coupon",
   "myPointsReasonShield": "Streak shield",
@@ -2605,9 +2605,9 @@
   "@myPointsDietAdd": {
     "description": "Point-earning action in the points guide."
   },
-  "myPointsRoutineComplete": "Complete a recommended or assigned workout",
+  "myPointsRoutineComplete": "Finish a personal exercise",
   "@myPointsRoutineComplete": {
-    "description": "Point-earning action in the points guide: completing a workout recommended by AI or assigned by the trainer."
+    "description": "Point-earning action in the points guide: finishing a personal exercise (sent by the trainer or recommended by AI)."
   },
   "myPointsExerciseAdd": "Log a workout yourself",
   "@myPointsExerciseAdd": {
@@ -3206,7 +3206,7 @@
   "@exerciseAdviceRoutineWeekNone": {
     "description": "Exercise tab AI advice sentence `routine_week_none` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
   },
-  "exerciseAdviceRoutineWeekOnly": "This week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} workouts. {rest, select, next_week{Next week} other{For the rest of the week}}, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
+  "exerciseAdviceRoutineWeekOnly": "This week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} personal exercises. {rest, select, next_week{Next week} other{For the rest of the week}}, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
   "@exerciseAdviceRoutineWeekOnly": {
     "description": "Exercise tab AI advice sentence `routine_week_only` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3221,7 +3221,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineWeekOnlyShort": "This week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} workouts.",
+  "exerciseAdviceRoutineWeekOnlyShort": "This week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} personal exercises.",
   "@exerciseAdviceRoutineWeekOnlyShort": {
     "description": "Exercise tab AI advice sentence `routine_week_only_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3324,7 +3324,7 @@
   "@exerciseAdviceRoutineLastWeekNone": {
     "description": "Exercise tab AI advice sentence `routine_last_week_none` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
   },
-  "exerciseAdviceRoutineLastWeekOnly": "Last week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} workouts. This week, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
+  "exerciseAdviceRoutineLastWeekOnly": "Last week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} personal exercises. This week, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
   "@exerciseAdviceRoutineLastWeekOnly": {
     "description": "Exercise tab AI advice sentence `routine_last_week_only` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3336,7 +3336,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineLastWeekOnlyShort": "Last week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} workouts.",
+  "exerciseAdviceRoutineLastWeekOnlyShort": "Last week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} personal exercises.",
   "@exerciseAdviceRoutineLastWeekOnlyShort": {
     "description": "Exercise tab AI advice sentence `routine_last_week_only_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3435,7 +3435,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineAllDoneTodayPart": "You did the {part, select, lower{lower-body} upper{upper-body} core{core} full{full-body} other{full-body}} workouts you often skip today. Keep it going!",
+  "exerciseAdviceRoutineAllDoneTodayPart": "You did the {part, select, lower{lower-body} upper{upper-body} core{core} full{full-body} other{full-body}} personal exercises you often skip today. Keep it going!",
   "@exerciseAdviceRoutineAllDoneTodayPart": {
     "description": "Exercise tab AI advice sentence `routine_all_done_today_part` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3478,7 +3478,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineAllMissedPartShort": "{part, select, lower{Lower-body} upper{Upper-body} core{Core} full{Full-body} other{Full-body}} workouts get skipped often. Move them up?",
+  "exerciseAdviceRoutineAllMissedPartShort": "{part, select, lower{Lower-body} upper{Upper-body} core{Core} full{Full-body} other{Full-body}} personal exercises get skipped often. Move them up?",
   "@exerciseAdviceRoutineAllMissedPartShort": {
     "description": "Exercise tab AI advice sentence `routine_all_missed_part_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
