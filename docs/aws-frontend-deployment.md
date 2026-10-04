@@ -106,7 +106,6 @@ aws cloudformation deploy \
 >     GitHubRepository=on-care \
 >     GitHubOwnerId=265976266 \
 >     GitHubRepositoryId=1174354664 \
-\
 >   --no-execute-changeset \
 >   --region ap-northeast-2
 > ```
