@@ -290,6 +290,24 @@ abstract class AppLocalizations {
   /// **'Too many requests right now. Please try again in a moment.'**
   String get errorRateLimited;
 
+  /// Connection lost or timed out — the member should check the network (#3140).
+  ///
+  /// In en, this message translates to:
+  /// **'Your connection looks unstable. Check your network and try again.'**
+  String get errorNetwork;
+
+  /// 5xx from the server: a temporary server problem the member cannot fix (#3140).
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong on our side. Please try again in a moment.'**
+  String get errorServer;
+
+  /// 400/422 without a usable server reason: the request was rejected (#3140).
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t process that request. Please check what you entered.'**
+  String get errorInvalidRequest;
+
   /// No description provided for @dashboardMetricCalories.
   ///
   /// In en, this message translates to:
