@@ -84,6 +84,7 @@ chore(repo): remove unused api/ and package.json from old calculator demo
 
 - **Bug · correctness > Design > Style** 순으로 코멘트 우선순위
 - 사소한 스타일 제안은 `nit:` 접두사로 표시
+- Flutter 화면에서 `await` 뒤에 `ref.`(`read`·`invalidate`·`watch`)나 미리 잡은 `Navigator` 를 쓰면 짚는다 — 요청 중 화면이 닫히면 던지거나 다른 화면을 닫는다. 요청 뒤 갱신은 `await` 전에 `ProviderScope.containerOf(context, listen: false)` 로 잡은 컨테이너로 하고, 토스트·`setState` 만 `mounted` 로 거른다(#3096)
 - 차단성 코멘트는 `Request changes`, 의견만 남길 때는 `Comment`
 - 리뷰어는 24시간 내 1차 응답을 목표로 합니다.
 

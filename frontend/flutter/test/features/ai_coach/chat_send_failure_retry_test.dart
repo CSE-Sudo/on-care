@@ -37,6 +37,10 @@ class _ServerLike implements AiCoachRepository {
   DateTime savedAt = DateTime(2026, 10, 1, 9);
   Completer<void>? restoreGate;
   Completer<void>? replyGate;
+
+  /// 두면 요청이 서버에 닿기 전에 이것이 풀릴 때까지 기다린다 — 성공·한도·망
+  /// 오류 어느 쪽이든 답이 늦게 오게 한다(#3096).
+  Completer<void>? sendGate;
   bool laterHistoryFails = false;
   int historyReads = 0;
 
@@ -80,6 +84,7 @@ class _ServerLike implements AiCoachRepository {
     bool payWithPoints = false,
     String? clientRequestId,
   }) async {
+    await sendGate?.future;
     keys.add(clientRequestId);
     paid.add(payWithPoints);
     histories.add(history);
@@ -557,6 +562,55 @@ void main() {
         clientRequestId: 'k2',
       );
       expect(mock.sentCount, 2);
+    });
+  });
+
+  group('기다리는 사이 컨트롤러가 버려지면 (#3096)', () {
+    // 로그아웃·계정 전환 리셋이 `chatControllerProvider` 를 무효화한 뒤 답이 온다.
+    Future<void> sendThenReset(
+      _ServerLike repo,
+      ChatSendOutcome expected,
+    ) async {
+      final ProviderContainer c = _container(repo);
+      await _settle();
+      final ChatController old = c.read(chatControllerProvider.notifier);
+      repo.sendGate = Completer<void>();
+      final Future<ChatSendResult> pending = old.send('질문');
+      await _settle();
+
+      c.invalidate(chatControllerProvider);
+      final ChatController fresh = c.read(chatControllerProvider.notifier);
+      expect(identical(fresh, old), isFalse);
+      expect(old.mounted, isFalse);
+      await _settle();
+      final ChatState before = c.read(chatControllerProvider);
+
+      repo.sendGate!.complete();
+      final ChatSendResult r = await pending;
+
+      expect(r.outcome, expected);
+      // 새 계정의 대화에는 앞 계정의 질문·답이 섞이지 않는다.
+      expect(c.read(chatControllerProvider).messages, before.messages);
+      expect(_users(c), isNot(contains('질문')));
+    }
+
+    test('답이 와도 던지지 않고 아무것도 쓰지 않는다', () async {
+      await sendThenReset(_ServerLike(), ChatSendOutcome.ignored);
+    });
+
+    test('한도 거절이 와도 던지지 않는다', () async {
+      await sendThenReset(
+        _ServerLike()
+          ..blockWith = const AiChatBlocked(AiChatBlockReason.dailyLimit),
+        ChatSendOutcome.ignored,
+      );
+    });
+
+    test('망 오류가 와도 던지지 않는다', () async {
+      await sendThenReset(
+        _ServerLike()..dropRequests = true,
+        ChatSendOutcome.ignored,
+      );
     });
   });
 }

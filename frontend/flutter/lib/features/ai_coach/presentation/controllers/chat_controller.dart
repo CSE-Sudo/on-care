@@ -302,6 +302,12 @@ class ChatController extends StateNotifier<ChatState> {
     return null;
   }
 
+  /// 버려진 컨트롤러에 온 답 — 화면도 사라졌으니 알릴 것이 없다(#3096).
+  static const ChatSendResult _discarded = (
+    outcome: ChatSendOutcome.ignored,
+    shortfall: 0,
+  );
+
   /// [message] 를 [clientRequestId] 로 서버에 보낸다. 한도에 걸리면 방금 띄운 말풍선을
   /// 거두고(다시 보내기였다면 [restoreOnBlock] 으로 되돌리고), 망 오류면 메시지를
   /// `보내지 못함` 으로 남긴다.
@@ -358,6 +364,9 @@ class ChatController extends StateNotifier<ChatState> {
         payWithPoints: payWithPoints,
         clientRequestId: clientRequestId,
       );
+      // 기다리는 사이 로그아웃·계정 전환 리셋이 이 컨트롤러를 버렸으면 아무것도
+      // 쓰지 않는다(#3096) — [refreshQuota]·[_restore] 와 같은 규칙이다.
+      if (!mounted) return _discarded;
       // 답에 실려 온 감지 결과는 **방금 보낸 회원 메시지**에 붙인다(#1824).
       final List<ChatMessage> next = _replacePending(reply.withTime(nowKst()));
       final int mineAt = next.lastIndexWhere((ChatMessage m) => m.isUser);
@@ -372,6 +381,7 @@ class ChatController extends StateNotifier<ChatState> {
       if (reply.replyQuota == null) await refreshQuota();
       return (outcome: ChatSendOutcome.sent, shortfall: 0);
     } on AiChatBlocked catch (blocked) {
+      if (!mounted) return _discarded;
       // 보내지 않은 말이다 — 방금 띄운 말풍선을 거두고 화면이 까닭을 안내한다.
       // 다시 보내기였다면 실패 메시지를 그대로 되돌려 둔다.
       state = state.copyWith(
@@ -391,6 +401,7 @@ class ChatController extends StateNotifier<ChatState> {
         shortfall: blocked.shortfall,
       );
     } catch (_) {
+      if (!mounted) return _discarded;
       // 답을 받지 못했다. 회원이 쓴 말은 지우지 않고 `보내지 못함` 으로 남기고,
       // 처음 쓴 키를 함께 둔다 — 다시 보내면 같은 키로 간다(#2846).
       state = state.copyWith(
