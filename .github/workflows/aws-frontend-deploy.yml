@@ -254,19 +254,27 @@ jobs:
         working-directory: frontend/flutter
         # 운영 빌드: 실서버(USE_MOCK_API=false)·운영 환경(ENV=prod — 라우터 진단 로그와
         # provider 로그가 꺼진다). 주소는 저장소 변수에서만 읽고 여기 적지 않는다.
-        # DEMO_BUILD 는 넘기지 않는다 — 앱의 릴리스 가드가 목업·개발 설정을 거부한다(#3022).
+        # DEMO_BUILD·SHOW_DEMO_ENTRY·REAL_API 는 넘기지 않는다 — 빌드 전 검사와 앱의 릴리스
+        # 가드가 목업·개발·데모 설정을 거부한다(#3022, #3147).
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
           KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN_MEMBER }}
-        run: >-
-          flutter build web --release --base-href "/frontend/"
-          --dart-define=RELEASE_SHA="${RELEASE_SHA:-$GITHUB_SHA}"
-          --dart-define=KAKAO_JS_KEY="$KAKAO_JS_KEY"
-          --dart-define=USE_MOCK_API=false
-          --dart-define=API_BASE_URL="$API_BASE_URL"
-          --dart-define=ENV=prod
-          --dart-define=SENTRY_DSN="$SENTRY_DSN"
+        run: |
+          set -euo pipefail
+          args=(
+            --release --base-href "/frontend/"
+            --dart-define=RELEASE_SHA="${RELEASE_SHA:-$GITHUB_SHA}"
+            --dart-define=KAKAO_JS_KEY="$KAKAO_JS_KEY"
+            --dart-define=USE_MOCK_API=false
+            --dart-define=API_BASE_URL="$API_BASE_URL"
+            --dart-define=ENV=prod
+            --dart-define=SENTRY_DSN="$SENTRY_DSN"
+          )
+          # 데모 진입(SHOW_DEMO_ENTRY)·부분 실연동(REAL_API)·데모 표시·목업 값이 섞이지
+          # 않았는지 빌드 전에 본다(#3147). 검사한 인자 그대로 빌드한다.
+          bash "$GITHUB_WORKSPACE/.github/scripts/check_web_release_defines.sh" "${args[@]}"
+          flutter build web "${args[@]}"
 
       - name: Install Flutter dependencies (trainer)
         working-directory: frontend/flutter_trainer
@@ -289,14 +297,21 @@ jobs:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
           KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN_TRAINER }}
-        run: >-
-          flutter build web --release --base-href "/trainer/"
-          --dart-define=RELEASE_SHA="${RELEASE_SHA:-$GITHUB_SHA}"
-          --dart-define=KAKAO_JS_KEY="$KAKAO_JS_KEY"
-          --dart-define=USE_MOCK_API=false
-          --dart-define=API_BASE_URL="$API_BASE_URL"
-          --dart-define=ENV=prod
-          --dart-define=SENTRY_DSN="$SENTRY_DSN"
+        run: |
+          set -euo pipefail
+          args=(
+            --release --base-href "/trainer/"
+            --dart-define=RELEASE_SHA="${RELEASE_SHA:-$GITHUB_SHA}"
+            --dart-define=KAKAO_JS_KEY="$KAKAO_JS_KEY"
+            --dart-define=USE_MOCK_API=false
+            --dart-define=API_BASE_URL="$API_BASE_URL"
+            --dart-define=ENV=prod
+            --dart-define=SENTRY_DSN="$SENTRY_DSN"
+          )
+          # 데모 진입(SHOW_DEMO_ENTRY)·부분 실연동(REAL_API)·데모 표시·목업 값이 섞이지
+          # 않았는지 빌드 전에 본다(#3147). 검사한 인자 그대로 빌드한다.
+          bash "$GITHUB_WORKSPACE/.github/scripts/check_web_release_defines.sh" "${args[@]}"
+          flutter build web "${args[@]}"
 
       - name: Prepare deploy files
         run: |
