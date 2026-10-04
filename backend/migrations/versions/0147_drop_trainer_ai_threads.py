@@ -11,8 +11,8 @@ API 가 없어지면 다시 읽을 길이 없는 회원 건강 대화라 남길 
 
 되돌릴 수 없다 — downgrade 는 아무것도 하지 않는다.
 
-Revision ID: 0145_drop_trainer_ai_threads
-Revises: 0143_member_weekly_report_on
+Revision ID: 0147_drop_trainer_ai_threads
+Revises: 0145_trainer_reports_no_approval
 Create Date: 2026-10-04
 """
 from __future__ import annotations
@@ -21,8 +21,8 @@ from collections.abc import Sequence
 
 from alembic import op
 
-revision: str = "0145_drop_trainer_ai_threads"
-down_revision: str | Sequence[str] | None = "0143_member_weekly_report_on"
+revision: str = "0147_drop_trainer_ai_threads"
+down_revision: str | Sequence[str] | None = "0145_trainer_reports_no_approval"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
