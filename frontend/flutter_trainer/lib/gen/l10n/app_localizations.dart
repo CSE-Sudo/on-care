@@ -6883,6 +6883,54 @@ abstract class AppLocalizations {
   /// **'{names} +{count} more'**
   String workoutRoutineWeekMore(String names, int count);
 
+  /// No description provided for @workoutRoutineAllCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent {count} times'**
+  String workoutRoutineAllCount(int count);
+
+  /// No description provided for @workoutRoutineAllAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% on average'**
+  String workoutRoutineAllAverage(int percent);
+
+  /// No description provided for @workoutRoutineAllSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent {date}'**
+  String workoutRoutineAllSent(String date);
+
+  /// No description provided for @workoutRoutineAllUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'until {date}'**
+  String workoutRoutineAllUntil(String date);
+
+  /// No description provided for @workoutRoutineAllUntilShort.
+  ///
+  /// In en, this message translates to:
+  /// **'until {date} · {days} days'**
+  String workoutRoutineAllUntilShort(String date, int days);
+
+  /// No description provided for @workoutRoutineAllOngoing.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress · day {day}'**
+  String workoutRoutineAllOngoing(int day);
+
+  /// No description provided for @workoutRoutineAllFirstDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Starts today'**
+  String get workoutRoutineAllFirstDay;
+
+  /// No description provided for @workoutRoutineAllRing.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise sent {date}, {percent}% done'**
+  String workoutRoutineAllRing(String date, int percent);
+
   /// No description provided for @coachRoutineAdherenceTitle.
   ///
   /// In en, this message translates to:

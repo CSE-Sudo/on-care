@@ -74,6 +74,7 @@ class ClientRoutineAdherenceStrip extends StatelessWidget {
     required RoutineDayGroup group,
     required this.today,
   }) : start = group.activeFrom,
+       end = null,
        fillWidth = false,
        showSummary = true,
        keyPrefix = 'program-routine-adherence';
@@ -86,15 +87,34 @@ class ClientRoutineAdherenceStrip extends StatelessWidget {
     required DateTime monday,
     required this.today,
   }) : start = monday,
+       end = null,
        fillWidth = true,
        showSummary = false,
        keyPrefix = 'workout-routine-adherence';
+
+  /// 운동 탭 `전체` — 고른 링([group])의 보낸 날부터 7칸, 폭을 채운다.
+  /// [days] 는 그 묶음 배정만 남긴 것이다([RoutineDays.only]) — 링의 % 와
+  /// 칸의 수가 같은 것을 센다.
+  ClientRoutineAdherenceStrip.period({
+    super.key,
+    required this.days,
+    required RoutineDayGroup group,
+    required this.today,
+  }) : start = group.activeFrom,
+       end = group.lastDay,
+       fillWidth = true,
+       showSummary = false,
+       keyPrefix = 'workout-routine-all';
 
   final RoutineDays days;
   final DateTime today;
 
   /// 첫 칸의 날.
   final DateTime start;
+
+  /// 묶음이 걸린 마지막 날. 7일보다 일찍 끝났으면 그 뒤 칸은 오지 않은 날처럼
+  /// 빈 테두리다 — "배정 없음" 회색으로 칠하면 비어 있던 날과 구분되지 않는다.
+  final DateTime? end;
 
   /// 칸이 폭을 나눠 채우는가. 거짓이면 [_stripCellMax] 한 변의 정사각형이다.
   final bool fillWidth;
@@ -146,6 +166,7 @@ class ClientRoutineAdherenceStrip extends StatelessWidget {
                       today: today,
                       days: days,
                       keyPrefix: keyPrefix,
+                      ended: end != null && d.isAfter(end!),
                       height: fillWidth ? _stripCellMax : null,
                     ),
                   ),
@@ -249,23 +270,125 @@ List<String> routineWeekSentLines(
       groups.where((RoutineDayGroup g) => g.personal).toList()..sort(
         (RoutineDayGroup a, RoutineDayGroup b) => a.sentOn.compareTo(b.sentOn),
       );
-  String names(RoutineDayGroup g) {
-    final List<String> all = <String>[
-      for (final RoutineDayRoutine r in g.routines) r.name,
-    ];
-    if (all.length <= _sentNamesMax) return all.join(' · ');
-    return l.workoutRoutineWeekMore(
-      all.take(_sentNamesMax).join(' · '),
-      all.length - _sentNamesMax,
-    );
-  }
-
   return <String>[
     for (final RoutineDayGroup g in personal)
-      l.workoutRoutineWeekSent(routineDayLabel(l, g.sentOn), names(g)),
+      l.workoutRoutineWeekSent(
+        routineDayLabel(l, g.sentOn),
+        routineGroupNames(l, g),
+      ),
     for (final RoutineDayGroup g in groups)
-      if (!g.personal) l.workoutRoutineWeekOngoing(names(g)),
+      if (!g.personal) l.workoutRoutineWeekOngoing(routineGroupNames(l, g)),
   ];
+}
+
+/// 운동 탭 `전체` 링 하나 — 보낸 개인운동 한 묶음을 얼마나 따라왔나.
+class RoutineGroupAdherence {
+  /// Creates one ring.
+  const RoutineGroupAdherence({
+    required this.group,
+    required this.done,
+    required this.total,
+    required this.ongoing,
+    required this.day,
+  });
+
+  final RoutineDayGroup group;
+
+  /// 완료한 수 / 센 수. 오늘은 한 만큼만 양쪽에 더한다 — 이번 주 칸처럼
+  /// 끝나지 않은 오늘의 0개를 안 한 것으로 세지 않는다.
+  final int done;
+  final int total;
+
+  /// 오늘도 걸려 있는가.
+  final bool ongoing;
+
+  /// 오늘이 보낸 기간의 며칠째인가(1부터). [ongoing] 일 때만 뜻이 있다.
+  final int day;
+
+  /// 완료율(0..100). 아직 셀 것이 없으면 null.
+  int? get percent => total == 0 ? null : (done * 100 / total).round();
+}
+
+/// 오늘까지 걸린 개인운동 묶음마다 링 하나 — 일찍 보낸 것이 앞이다. 기한
+/// 없는 따로 배정은 기간이 없어 링으로 그리지 않는다(`계속` 줄).
+List<RoutineGroupAdherence> routineGroupAdherence(
+  RoutineDays days,
+  DateTime today,
+) {
+  final List<RoutineDayGroup> groups =
+      days
+          .groupsOf(days.routines.map((RoutineDayRoutine r) => r.id))
+          .where(
+            (RoutineDayGroup g) =>
+                g.personal &&
+                !g.activeFrom.isAfter(today) &&
+                // 하루도 걸리지 않고 내려간 묶음(보낸 날 바로 바뀐 것)은 그릴
+                // 날이 없다.
+                !(g.lastDay?.isBefore(g.activeFrom) ?? false),
+          )
+          .toList()
+        ..sort(
+          (RoutineDayGroup a, RoutineDayGroup b) =>
+              a.activeFrom.compareTo(b.activeFrom),
+        );
+  return <RoutineGroupAdherence>[
+    for (final RoutineDayGroup g in groups) _groupAdherence(days, g, today),
+  ];
+}
+
+RoutineGroupAdherence _groupAdherence(
+  RoutineDays days,
+  RoutineDayGroup group,
+  DateTime today,
+) {
+  final Set<String> ids = <String>{
+    for (final RoutineDayRoutine r in group.routines) r.id,
+  };
+  final DateTime? last = group.lastDay;
+  final DateTime end = last == null || last.isAfter(today) ? today : last;
+  int done = 0;
+  int total = 0;
+  for (final RoutineDay d in days.between(group.activeFrom, end)) {
+    final List<RoutineDayItem> items = <RoutineDayItem>[
+      for (final RoutineDayItem i in d.items)
+        if (ids.contains(i.routineId)) i,
+    ];
+    final int completed = items
+        .where((RoutineDayItem i) => i.status.completed)
+        .length;
+    done += completed;
+    total += d.date.isBefore(today) ? items.length : completed;
+  }
+  return RoutineGroupAdherence(
+    group: group,
+    done: done,
+    total: total,
+    ongoing: group.activeOn(today),
+    day: today.difference(group.activeFrom).inDays + 1,
+  );
+}
+
+/// 운동 탭 `전체` 제목 줄 오른쪽의 평균 — 셀 것이 있는 링들의 % 평균이다
+/// (링마다 같은 무게). 아직 셀 링이 없으면 null.
+int? routineAllAverage(List<RoutineGroupAdherence> rings) {
+  final List<int> percents = <int>[
+    for (final RoutineGroupAdherence r in rings)
+      if (r.percent case final int p) p,
+  ];
+  if (percents.isEmpty) return null;
+  return (percents.reduce((int a, int b) => a + b) / percents.length).round();
+}
+
+/// 보낸 운동 이름 — 셋까지, 넘치면 `외 N개`.
+String routineGroupNames(AppLocalizations l, RoutineDayGroup g) {
+  final List<String> all = <String>[
+    for (final RoutineDayRoutine r in g.routines) r.name,
+  ];
+  if (all.length <= _sentNamesMax) return all.join(' · ');
+  return l.workoutRoutineWeekMore(
+    all.take(_sentNamesMax).join(' · '),
+    all.length - _sentNamesMax,
+  );
 }
 
 class _AdherenceCell extends StatelessWidget {
@@ -274,6 +397,7 @@ class _AdherenceCell extends StatelessWidget {
     required this.today,
     required this.days,
     required this.keyPrefix,
+    this.ended = false,
     this.height,
   });
 
@@ -282,13 +406,16 @@ class _AdherenceCell extends StatelessWidget {
   final RoutineDays days;
   final String keyPrefix;
 
+  /// 묶음이 끝난 뒤의 날인가 — 오지 않은 날처럼 그린다.
+  final bool ended;
+
   /// 칸 높이. 비우면 폭과 같은 정사각형이다.
   final double? height;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final bool future = date.isAfter(today);
+    final bool future = ended || date.isAfter(today);
     final bool isToday = !future && !date.isBefore(today);
     final RoutineDay? day = future ? null : days.dayOf(date);
     final int total = day?.items.length ?? 0;

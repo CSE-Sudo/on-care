@@ -3799,6 +3799,44 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String workoutRoutineAllCount(int count) {
+    return '$count번 보냄';
+  }
+
+  @override
+  String workoutRoutineAllAverage(int percent) {
+    return '평균 $percent%';
+  }
+
+  @override
+  String workoutRoutineAllSent(String date) {
+    return '$date 보냄';
+  }
+
+  @override
+  String workoutRoutineAllUntil(String date) {
+    return '~$date';
+  }
+
+  @override
+  String workoutRoutineAllUntilShort(String date, int days) {
+    return '~$date · $days일';
+  }
+
+  @override
+  String workoutRoutineAllOngoing(int day) {
+    return '진행 중 · $day일째';
+  }
+
+  @override
+  String get workoutRoutineAllFirstDay => '오늘 시작';
+
+  @override
+  String workoutRoutineAllRing(String date, int percent) {
+    return '$date 보낸 개인운동, $percent% 완료';
+  }
+
+  @override
   String get coachRoutineAdherenceTitle => '개인운동 이행';
 
   @override

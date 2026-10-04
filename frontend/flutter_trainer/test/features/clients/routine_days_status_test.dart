@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
+import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/routine_days_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_days.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_routine_status.dart';
@@ -95,6 +96,55 @@ RoutineDays _days() => routineDaysFromJson(<String, Object?>{
         <String, Object?>{'routine_id': 'squat', 'status': 'pending'},
       ],
     },
+  ],
+});
+
+/// `전체` 링 — 3일만 걸리고 바뀐 개인운동(8/11~8/13)과 지금 걸린 묶음(8/18~).
+RoutineDays _allDays() => routineDaysFromJson(<String, Object?>{
+  'start': '2026-08-11',
+  'end': '2026-08-20',
+  'routines': <Object?>[
+    for (final (String id, String from, String ended)
+        in <(String, String, String)>[
+          ('run', '2026-08-11', '2026-08-14'),
+          ('walk', '2026-08-18', '2026-08-25'),
+          ('squat', '2026-08-18', '2026-08-25'),
+        ])
+      <String, Object?>{
+        'id': id,
+        'name': id,
+        'type': '유산소',
+        'active_from': from,
+        'ended_on': ended,
+        'sent_on': from,
+        'personal': true,
+      },
+    <String, Object?>{
+      'id': 'stretch',
+      'name': '스트레칭',
+      'type': '스트레칭',
+      'active_from': '2026-07-01',
+      'sent_on': '2026-07-01',
+      'personal': false,
+    },
+  ],
+  'days': <Object?>[
+    for (final (String date, Map<String, String> items)
+        in <(String, Map<String, String>)>[
+          ('2026-08-11', <String, String>{'run': 'done', 'stretch': 'missed'}),
+          ('2026-08-12', <String, String>{'run': 'missed'}),
+          ('2026-08-13', <String, String>{'run': 'done'}),
+          ('2026-08-18', <String, String>{'walk': 'done', 'squat': 'done'}),
+          ('2026-08-19', <String, String>{'walk': 'late', 'squat': 'missed'}),
+          ('2026-08-20', <String, String>{'walk': 'done', 'squat': 'pending'}),
+        ])
+      <String, Object?>{
+        'date': date,
+        'items': <Object?>[
+          for (final MapEntry<String, String> e in items.entries)
+            <String, Object?>{'routine_id': e.key, 'status': e.value},
+        ],
+      },
   ],
 });
 
@@ -391,6 +441,131 @@ void main() {
       expect(
         c.read(routineDaysRepositoryProvider),
         isA<MockRoutineDaysRepository>(),
+      );
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('운동 탭 전체 개인운동 이행', () {
+    test('보낸 기간마다 링 하나 — 걸린 날만 세고, 오늘은 한 만큼만', () {
+      final List<RoutineGroupAdherence> rings = routineGroupAdherence(
+        _allDays(),
+        _today,
+      );
+      // 기한 없는 따로 배정은 링이 아니다. 일찍 보낸 것이 앞이다.
+      expect(rings, hasLength(2));
+      final RoutineGroupAdherence run = rings.first;
+      expect(run.group.lastDay, _d(13));
+      expect((run.done, run.total, run.percent), (2, 3, 67));
+      expect(run.ongoing, isFalse);
+      // 지난 날 3/4 에 오늘 한 것 1 을 양쪽에 더한다 — 아직 안 한 오늘 것은
+      // 안 한 것으로 세지 않는다.
+      final RoutineGroupAdherence now = rings.last;
+      expect((now.done, now.total, now.percent), (4, 5, 80));
+      expect((now.ongoing, now.day), (true, 3));
+      // 평균은 링마다 같은 무게다.
+      expect(routineAllAverage(rings), 74);
+      expect(routineAllAverage(const <RoutineGroupAdherence>[]), isNull);
+    });
+
+    test('묶음 배정만 남기면 그날 함께 걸린 배정을 세지 않는다', () {
+      final RoutineDays only = _allDays().only(<String>{'run'});
+      expect(only.routines.map((RoutineDayRoutine r) => r.id), <String>['run']);
+      expect(only.dayOf(_d(11))!.items, hasLength(1));
+      expect(only.dayOf(_d(18))!.items, isEmpty);
+    });
+
+    testWidgets('데모 — 새로 보내도 이전 개인운동이 링으로 남는다', (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(1000, 3000);
+      addTearDown(tester.view.reset);
+      final ProviderContainer c = await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        seedClock: kMidWeekKst,
+      );
+      // 8/11 에 보내고 8/14 에 새로 보낸다 — 서버처럼 보낸 그날 이전 것이
+      // 끝나 8/11 묶음은 사흘만 걸린다.
+      for (final String start in <String>['2026-08-11', '2026-08-14']) {
+        final DateTime at = DateTime.parse(
+          start,
+        ).add(const Duration(hours: 13));
+        debugNowKstOverride = () => at;
+        await c.read(trainerRoutineRepositoryProvider).assignProgram(
+          'seed-client-2',
+          <String, Object?>{
+            'name': '개인운동',
+            'delivery_kind': 'routine_only',
+            'start_date': start,
+            'active_days': 7,
+            'sessions': <Object?>[
+              <String, Object?>{
+                'name': '빠르게 걷기',
+                'exercises': <Object?>[
+                  <String, Object?>{
+                    'name': '빠르게 걷기',
+                    'type': '유산소',
+                    'duration': 30,
+                  },
+                ],
+              },
+            ],
+          },
+        );
+      }
+      debugNowKstOverride = () => kMidWeekKst;
+      await goTo(
+        tester,
+        AppRoutes.clientDetail('seed-client-2', section: 'workout'),
+      );
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('client-period-toggle')),
+          matching: find.text('전체'),
+        ),
+      );
+      await settle(tester);
+
+      expect(
+        find.byKey(const ValueKey<String>('workout-routine-all-card')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('workout-routine-all-ring-8-11')),
+        findsOneWidget,
+      );
+      expect(find.text('~8/13(목) · 3일'), findsOneWidget);
+      // 진행 중인 묶음은 브랜드색 알약이다.
+      expect(
+        find.byKey(const ValueKey<String>('workout-routine-all-ongoing-8-14')),
+        findsOneWidget,
+      );
+      expect(find.text('2번 보냄'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('workout-routine-all-average')),
+        findsOneWidget,
+      );
+      // 칸 아래는 이름만 — 보낸 날은 링이 말한다.
+      expect(
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey<String>('workout-routine-all-names')),
+            )
+            .data,
+        '빠르게 걷기',
+      );
+
+      // 일찍 끝난 묶음을 고르면 끝난 뒤의 날은 빈칸이다.
+      await tester.tap(
+        find.byKey(const ValueKey<String>('workout-routine-all-ring-8-11')),
+      );
+      await settle(tester);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('workout-routine-all-8-14')),
+          matching: find.byType(Text),
+        ),
+        findsNothing,
       );
       expect(tester.takeException(), isNull);
     });

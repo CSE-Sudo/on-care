@@ -208,6 +208,27 @@ class RoutineDays {
       if (!d.date.isBefore(_day(from)) && !d.date.isAfter(_day(to))) d,
   ];
 
+  /// [routineIds] 배정만 남긴 같은 기간 — 묶음 하나의 칸을 그릴 때 그날 함께
+  /// 걸린 다른 배정을 세지 않는다.
+  RoutineDays only(Set<String> routineIds) => RoutineDays(
+    start: start,
+    end: end,
+    routines: <RoutineDayRoutine>[
+      for (final RoutineDayRoutine r in routines)
+        if (routineIds.contains(r.id)) r,
+    ],
+    days: <RoutineDay>[
+      for (final RoutineDay d in days)
+        RoutineDay(
+          date: d.date,
+          items: <RoutineDayItem>[
+            for (final RoutineDayItem i in d.items)
+              if (routineIds.contains(i.routineId)) i,
+          ],
+        ),
+    ],
+  );
+
   /// [routineIds] 를 같은 전송끼리 묶는다 — 보낸 날·끝나는 날·종류가 같은
   /// 배정이 한 묶음이다. 묶음은 최근에 보낸 것이 위, 안은 배정 순서다.
   List<RoutineDayGroup> groupsOf(Iterable<String> routineIds) {

@@ -3996,6 +3996,44 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String workoutRoutineAllCount(int count) {
+    return 'Sent $count times';
+  }
+
+  @override
+  String workoutRoutineAllAverage(int percent) {
+    return '$percent% on average';
+  }
+
+  @override
+  String workoutRoutineAllSent(String date) {
+    return 'Sent $date';
+  }
+
+  @override
+  String workoutRoutineAllUntil(String date) {
+    return 'until $date';
+  }
+
+  @override
+  String workoutRoutineAllUntilShort(String date, int days) {
+    return 'until $date · $days days';
+  }
+
+  @override
+  String workoutRoutineAllOngoing(int day) {
+    return 'In progress · day $day';
+  }
+
+  @override
+  String get workoutRoutineAllFirstDay => 'Starts today';
+
+  @override
+  String workoutRoutineAllRing(String date, int percent) {
+    return 'Personal exercise sent $date, $percent% done';
+  }
+
+  @override
   String get coachRoutineAdherenceTitle => 'Personal exercise follow-through';
 
   @override
