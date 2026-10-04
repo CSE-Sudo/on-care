@@ -66,6 +66,25 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
   /// 서버가 돌려준 코드 칸 오류(틀림·만료·빠짐). 코드를 고치면 지운다.
   String? _codeServerError;
 
+  /// 서버가 거절한 코드. 칸 값이 이것과 달라지면 [_codeServerError] 를 지운다
+  /// — 타이핑뿐 아니라 붙여넣기·자동 완성처럼 `onChanged` 를 거치지 않는
+  /// 입력도 같게 다룬다.
+  String? _rejectedCode;
+
+  @override
+  void initState() {
+    super.initState();
+    _code.addListener(_onCodeValue);
+  }
+
+  void _onCodeValue() {
+    if (_codeServerError == null || _code.text == _rejectedCode) return;
+    setState(() {
+      _codeServerError = null;
+      _rejectedCode = null;
+    });
+  }
+
   bool get _codeReady =>
       _codeSent != null && SignupEmailCode.isComplete(_code.text);
 
@@ -81,6 +100,7 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
   @override
   void dispose() {
     _codeTicker?.cancel();
+    _code.removeListener(_onCodeValue);
     _code.dispose();
     _name.dispose();
     _email.dispose();
@@ -257,6 +277,7 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
         setState(() {
           _loading = false;
           _codeServerError = authFailureText(l, e);
+          _rejectedCode = _code.text;
         });
         return;
       }

@@ -804,8 +804,16 @@ void main() {
       expect(currentLocation(tester), AppRoutes.signUp);
       expect(find.text('김신규'), findsOneWidget);
 
-      // 코드를 고치면 문구가 사라진다.
-      await _enterCode(tester, '654321');
+      // 코드를 고치면 문구가 사라진다 — 붙여넣기·자동 완성처럼 칸 값이 바로
+      // 바뀌는 입력도 같다.
+      final TextField codeField = tester.widget<TextField>(
+        find.descendant(
+          of: find.byKey(_codeKey),
+          matching: find.byType(TextField),
+        ),
+      );
+      codeField.controller!.text = '654321';
+      await tester.pump();
       expect(find.text(c.value), findsNothing);
     });
   }
