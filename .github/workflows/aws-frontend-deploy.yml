@@ -173,6 +173,10 @@ jobs:
     name: Build and deploy Flutter web apps
     needs: gate
     runs-on: ubuntu-latest
+    # 배포 역할은 이 Environment 형식 OIDC subject 를 믿는다(infra/frontend-hosting.yml,
+    # #3019). 승인 규칙·배포 기록은 Environment 설정에서 본다.
+    environment:
+      name: production
     permissions:
       contents: read
       id-token: write
@@ -209,9 +213,11 @@ jobs:
       # 운영 배포는 실서버 고정이다(#2810). 두 앱은 dart-define 을 받지 못하면
       # 목업(USE_MOCK_API=true)·자리표시자 주소로 빌드되는데, 빌드는 그대로 성공하므로
       # 배포 뒤에야 드러난다. 그래서 주소 변수가 비었거나 형식이 틀리면 빌드 전에 멈춘다.
+      # staging 주소와 같으면 멈춘다 — 운영 웹이 시연용 DB 를 보지 않게(#3020).
       - name: Require production API base URL
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
+          FORBIDDEN_API_BASE_URL: ${{ vars.STAGING_API_BASE_URL }}
         run: bash .github/scripts/check_web_api_base_url.sh
 
       # 에러 추적(#2839, #3022). DSN 은 앱마다 따로다(Sentry 프로젝트 둘). 비어 있어도

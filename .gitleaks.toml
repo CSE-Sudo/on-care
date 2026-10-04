@@ -28,3 +28,10 @@ paths = [
   '''^frontend/[^/]+/test/.+_test\.dart$''',
   '''^backend/tests/.+\.py$''',
 ]
+
+[[allowlists]]
+description = "인프라 템플릿 테스트의 가짜 Secrets Manager ARN — AWS 문서용 계정 번호 123456789012 를 쓴 줄만, 인프라 테스트 안에서만(#3016)"
+condition = "AND"
+regexTarget = "line"
+regexes = ['''arn:aws:secretsmanager:[a-z0-9-]+:123456789012:secret:''']
+paths = ['''^infra/tests/.+\.py$''']
