@@ -112,6 +112,10 @@ def trainer_client_report_summary(
     고객을 고를 때마다 화면 전체가 그만큼 멈춘다.
 
     문장은 `Accept-Language` 언어로 만든다(#2298). 헤더가 없으면 한국어다.
+
+    **하루 상한(#3032)** — 이 트레이너의 AI 호출 합이 `trainer_ai_calls_per_day` 를
+    넘으면 429 `daily_limit` + `Retry-After` 다(규칙형으로 덮지 않는다). 서버 전체
+    상한이면 규칙 기반 요약(`generated_by: rule`)으로 답한다.
     """
     _require_client(db, trainer.id, member_id)
     settings = get_settings()

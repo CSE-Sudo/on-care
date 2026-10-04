@@ -47,7 +47,6 @@ from app.schemas.health_goal_ranges import (
 from app.schemas.partial_update import PartialUpdate
 from app.schemas.text_limits import TEXT_ENTRY_MAX, TEXT_LINE_MAX, TEXT_LONG_MAX
 from app.schemas.points_api import PointsOut
-from app.schemas.trainer_verification import TrainerVerificationOut
 from app.services.password_policy import check_new_password
 from app.services import contact_format
 from app.services import health_focus
@@ -91,8 +90,9 @@ class TrainerMe(BaseModel):
     intro: str
     certifications: list[str]
     gym: TrainerGymOut
-    #: 운영자 승인 상태(#2825). 트레이너 웹이 승인 대기·반려 안내를 고른다.
-    verification: TrainerVerificationOut
+    #: 운영자 계정인가(#3008). 트레이너 웹이 `신고·계정 관리` 메뉴를 보일지 정한다 —
+    #: 실제 차단은 `/admin/*` 의 `RequireAdmin` 이 한다.
+    is_admin: bool = False
     #: 비밀번호로 로그인하는 계정인가(#3039). 탈퇴 본인 확인에서 현재 비밀번호
     #: 칸과 소셜 다시 로그인 중 무엇을 보일지 고른다. 회원 `ProfileView` 와 같은 뜻.
     has_password: bool = True
@@ -1964,36 +1964,6 @@ class TrainerKakaoGymSelect(BaseModel):
     name: str = Field(min_length=1, max_length=200)
 
 
-# ---- 트레이너용 AI 코칭 (회원 데이터 기반) ----
-
-class ClientCoachRequest(BaseModel):
-    """트레이너가 담당 고객에 대해 AI에게 묻는 질문."""
-    message: str = Field(min_length=1, max_length=1000)
-
-
-class ClientCoachMessageOut(BaseModel):
-    """복원된 문답 한 줄 (#588).
-
-    `role` 은 저장값을 그대로 쓴다(user|coach). 회원 앱의 채팅 계약과 같은 값이라
-    프론트가 두 화면에서 같은 분기를 쓸 수 있다.
-    """
-    role: str
-    content: str
-    sources: list[str] = Field(default_factory=list)
-
-
-class ClientCoachOut(BaseModel):
-    """AI 답변 + 근거.
-
-    회원 앱의 `/ai-coach/chat` 과 같은 RAG 파이프라인이지만, 검색 스코프가
-    **호출한 트레이너가 아니라 담당 회원**이라는 점이 다르다 — 트레이너가
-    자기 자신의(비어 있는) 기록으로 코칭받는 일이 없도록.
-    """
-    member_id: str
-    reply: str
-    sources: list[str] = []
-
-
 # ---- 주간 리포트 (트레이너 → 회원) ----
 
 class WeeklyReportDayOut(BaseModel):
@@ -2065,11 +2035,19 @@ class WeeklyReportOut(BaseModel):
     message: str                 # 회원에게 전송될 본문(미리보기와 동일)
 
 
+#: 리포트 요약 headline 의 응답 상한(#3090). 회원 이름(최대 100자)이 들어간 규칙 기반
+#: 영어 문장까지 넉넉히 담는다. AI 문장은 이보다 짧은 선에서 먼저 걸러진다.
+REPORT_HEADLINE_MAX = 400
+
+
 class ReportSummaryOut(BaseModel):
     """리포트 요약 — 트레이너가 피드백 초안으로 가져다 고칠 재료."""
     member_id: str
     week_start: str              # YYYY-MM-DD (월요일)
-    headline: str                # 이번 주를 한 문장으로
+    #: 이번 주를 한 문장으로. AI 문장은 200자를 넘으면 규칙 기반으로 바뀐다
+    #: (`trainer_report_summary_service.HEADLINE_MAX`, #3090). 이 상한은 회원 이름이
+    #: 들어가는 규칙 기반 문장까지 담는 바깥 계약이다.
+    headline: str = Field(max_length=REPORT_HEADLINE_MAX)
     #: 근거가 된 수치 문장. 리포트 화면이 이미 보여 주는 값만 담는다 — 요약과
     #: 그래프가 다른 값을 말하면 트레이너가 어느 쪽을 믿어야 할지 모른다.
     points: list[str] = Field(default_factory=list)

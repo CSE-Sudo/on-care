@@ -56,7 +56,13 @@ class Settings(BaseSettings):
     git_sha: str = "unknown"
 
     # --- Database ---
-    database_url: str = "postgresql+psycopg://oncare:oncare@localhost:5432/oncare"
+    # 비밀값(접속 비밀번호·키·DSN)은 `repr=False` 로 둔다(#3090) — 설정 객체를 로그·
+    # 오류 화면·디버거에서 찍어도 값이 나오지 않는다. 타입은 `str` 그대로라 사용처는
+    # 바뀌지 않는다(`SecretStr` 은 모든 사용처·테스트가 `.get_secret_value()` 를
+    # 거쳐야 해 이번 범위에서 고르지 않았다).
+    database_url: str = Field(
+        "postgresql+psycopg://oncare:oncare@localhost:5432/oncare", repr=False
+    )
     # DB 커넥션 인출(연결 수립) 상한(초) — 네트워크 파티션/무응답 시 스레드 무한 점유 방지.
     db_connect_timeout_seconds: int = 5
     # 커넥션 풀(#2836). 기본값을 SQLAlchemy 에 맡기면 풀 대기가 30초라, 풀이 마르면
@@ -77,7 +83,7 @@ class Settings(BaseSettings):
     auto_create_tables: bool = True
 
     # --- JWT ---
-    jwt_secret: str = DEFAULT_JWT_SECRET
+    jwt_secret: str = Field(DEFAULT_JWT_SECRET, repr=False)
     jwt_algorithm: str = "HS256"
     # 접근 토큰 수명(#2913). 두 앱 모두 401 을 받으면 refresh 로 새 토큰을 받아 요청을
     # 다시 보내므로 짧아도 사용자 체감이 없고, 새어 나간 토큰이 쓰일 수 있는 시간이
@@ -88,6 +94,15 @@ class Settings(BaseSettings):
     # 토큰을 탭 단위 저장소에만 두므로 오래 갈 필요가 없고, 브라우저에서 새어 나갔을
     # 때 쓸 수 있는 기간을 줄인다. 모바일은 위 값을 그대로 쓴다.
     web_refresh_token_expire_days: int = 7
+    # 로그인 한 번이 이어질 수 있는 최대 기간(#3086). refresh 토큰은 회전할 때마다 위
+    # 수명을 새로 받으므로, 최초 로그인 시각(`auth_time`) 기준 상한이 없으면 손에 넣은
+    # 토큰을 주기적으로 회전해 세션을 끝없이 이어 갈 수 있다. 넘으면 다시 로그인한다.
+    session_max_days: int = 90
+    web_session_max_days: int = 30
+    # 회전으로 폐기된 refresh 토큰이 이 시간(초) 안에 다시 오면 동시 갱신(웹 탭 두 개,
+    # 응답 전에 앱이 꺼진 경우)으로 보고 그 요청만 거부한다. 넘으면 탈취로 보고 그
+    # 세션 전체를 끊는다(#3086).
+    refresh_reuse_grace_seconds: int = 30
     # 토큰 없이 접근 시 데모 사용자로 폴백(개발 편의). 운영(prod)에서는 항상 비활성.
     # 기본은 꺼짐(#2821) — ENV 를 빠뜨린 채 뜬 서버가 로그인 없는 요청을 데모 회원으로
     # 처리하지 않게 한다. 로컬 개발은 .env.example 의 ALLOW_DEMO_FALLBACK=true 로 켠다.
@@ -119,7 +134,7 @@ class Settings(BaseSettings):
 
     # --- 장소(O2O) ---
     # 카카오 Local REST 키. 있으면 실검색, 없으면 시드 폴백(recognizer 팩토리와 같은 철학).
-    kakao_rest_api_key: str = ""
+    kakao_rest_api_key: str = Field("", repr=False)
     # auto: 키 있으면 kakao, 없으면 seed. 강제하려면 kakao|seed.
     places_provider: Literal["auto", "kakao", "seed"] = "auto"
     kakao_timeout_seconds: float = 3.0
@@ -180,16 +195,21 @@ class Settings(BaseSettings):
     #: 매칭만 쓰고, 안 붙는 이름은 유형 평균으로 떨어진다 — 인식기와 같은 규약이라
     #: 키가 없으면 이 값과 무관하게 조용히 폴백한다.
     exercise_name_ai: bool = True
-    gemini_api_key: str = ""
+    gemini_api_key: str = Field("", repr=False)
     gemini_model: str = "gemini-flash-latest"  # 챗·인식 공용. 핀 버전은 은퇴로 404 → latest 별칭 사용
     # Gemini HTTP 타임아웃(초). 걸지 않으면 무응답 시 호출 스레드가 무기한 묶여
     # 워커 풀이 고갈된다(추천 경로는 스레드 풀에서 돈다).
     gemini_timeout_seconds: float = 30.0
+    # LLM 한 번의 출력 토큰 상한(#3032). 호출처는 필요한 길이(한 문장 조언·JSON 후보
+    # 등)에 맞춰 이보다 작게 넘기고, 넘기지 않는 호출(AI 코치 답변)은 이 값을 쓴다.
+    # Gemini 는 사고 토큰도 이 안에서 쓰므로 너무 작게 잡으면 답이 비거나 잘린다.
+    # 잘린 JSON 응답은 계약 위반으로 보고 규칙형 폴백을 탄다. 0 이면 상한을 넘기지 않는다.
+    llm_max_output_tokens: int = 4096
     # 식단 사진 인식 HTTP 타임아웃(초, #2912). 사진 분석은 글 응답보다 오래 걸려
     # gemini_timeout_seconds 와 따로 둔다. Gemini·LiteLLM 비전 인식기가 함께 쓴다.
     recognizer_timeout_seconds: float = 60.0
     coach_llm: str = "gemini"         # openai | gemini | litellm
-    openai_api_key: str = ""
+    openai_api_key: str = Field("", repr=False)
     openai_chat_model: str = "gpt-4o"
     embedder: str = "gemini"          # openai | gemini | litellm
     openai_embed_model: str = "text-embedding-3-small"
@@ -198,7 +218,7 @@ class Settings(BaseSettings):
     # 하나의 Virtual Key 로 뒤의 여러 모델(claude 등)을 호출.
     # base_url 을 넣으면 OpenAI SDK 가 이 프록시를 바라봄.
     litellm_base_url: str = ""
-    litellm_api_key: str = ""                       # Virtual Key
+    litellm_api_key: str = Field("", repr=False)  # Virtual Key
     litellm_chat_model: str = "claude-sonnet-4-6"   # 코치/인식용 채팅 모델
     litellm_embed_model: str = ""                   # 프록시에 임베딩 모델 있으면 지정
     litellm_vision_model: str = "claude-sonnet-4-6" # 식단 인식(이미지)용
@@ -232,7 +252,7 @@ class Settings(BaseSettings):
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_username: str = ""
-    smtp_password: str = ""
+    smtp_password: str = Field("", repr=False)
     # true: 평문 연결 뒤 STARTTLS(587). false 면 smtp_ssl 을 본다.
     smtp_starttls: bool = True
     # true: 처음부터 TLS(465). starttls 와 함께 켜면 ssl 이 우선한다.
@@ -276,7 +296,7 @@ class Settings(BaseSettings):
     # 에서 명시적으로 켠다. 운영(env=prod)에서는 켤 수 없다(아래 가드).
     seed_demo_data: bool = False
     # 데모 계정(트레이너/회원 시드) 로그인 비밀번호. 데모 시드를 켠 환경에서만 쓰인다.
-    demo_login_password: str = DEFAULT_DEMO_PASSWORD
+    demo_login_password: str = Field(DEFAULT_DEMO_PASSWORD, repr=False)
     # 헬스장 현장 혜택(PT 재등록 할인·락커 쿠폰·분석용 식판)을 실제로 열지(#2822).
     # 제휴 헬스장이 없는 동안은 꺼 둔다. 데모 시드가 켜진 서버는 이 값과 상관없이 연다.
     gym_benefits_enabled: bool = False
@@ -295,7 +315,7 @@ class Settings(BaseSettings):
     # 처리하지 못한 예외를 외부 에러 추적 도구로 보낸다. DSN 은 배포 환경변수로만 넣고
     # 저장소에 두지 않는다. 비어 있거나 ENV=dev 면 초기화하지 않는다(개발·데모 오류는
     # 보내지 않음). 요청 본문·헤더·쿼리·지역 변수는 보내지 않는다(app/core/error_tracking.py).
-    sentry_dsn: str = ""
+    sentry_dsn: str = Field("", repr=False)
     # 비우면 ENV 값(staging·prod)을 그대로 쓴다.
     sentry_environment: str = ""
     # 오류 이벤트 표본 비율(0~1). 성능 추적(APM)은 켜지 않는다.
@@ -331,6 +351,18 @@ class Settings(BaseSettings):
     # 0 이면 그 한도를 끈다. RATE_LIMIT_ENABLED=false 면 둘 다 끈다.
     diet_analyze_per_minute: int = 10
     diet_analyze_per_day: int = 20
+    # 서버 전체·트레이너 계정의 하루 AI 호출 상한(#3032). 위 값들은 **한 회원**을
+    # 묶을 뿐이라, 가입자가 늘면 그 합만큼 비용이 열린다. 두 값 모두 DB
+    # (`ai_call_usages`)에서 KST 날짜로 세므로 재기동·워커 수·인스턴스 수와 상관없이
+    # 같다. 0 이면 그 상한을 끈다. RATE_LIMIT_ENABLED=false 면 둘 다 끈다.
+    # - 전역: 외부 LLM·비전 모델을 실제로 부르는 모든 기능의 합. 넘으면 규칙형 폴백이
+    #   있는 기능은 폴백으로, 없는 기능(AI 코치 채팅·사진 분석)은 503 `ai_capacity` 로
+    #   답한다. 기본값 0(끔) — 운영 값은 배포 설정에서 정한다(DEPLOY.md 3절).
+    # - 트레이너: 한 트레이너 계정의 고객 AI 코치·루틴 후보·리포트 요약 합. 넘으면
+    #   429 `daily_limit` + `Retry-After`(KST 자정까지). 공개 가입 계정 하나가 분당
+    #   한도 안에서 하루 종일 부르는 것을 막는다.
+    ai_global_calls_per_day: int = 0
+    trainer_ai_calls_per_day: int = 200
     # 상담 요청 생성 한도(#1628). 트래픽이 아니라 **남에게 주는 피해**를 막는 정책이다
     # — 답을 기다리는 요청 하나가 트레이너 자리 하나를 최대 24시간 잠그고(#1873),
     # 신청·취소를 되풀이하면 트레이너 알림함이 찬다. 둘 다 DB 에서 세므로 재기동이나

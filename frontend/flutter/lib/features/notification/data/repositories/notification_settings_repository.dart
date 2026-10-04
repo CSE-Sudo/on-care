@@ -20,7 +20,12 @@ class NotificationSettingItem {
   final bool fallback;
 }
 
-/// 화면에 보이는 순서 그대로. 주간 리포트만 기본 꺼짐이다.
+/// 화면에 보이는 순서 그대로. 모두 기본 켜짐이다 — 서버 기본값과 같아야
+/// 한다(#3025). 트레이너 주간 리포트는 예전에 기본 꺼짐이라, 회원이 손대지
+/// 않으면 트레이너가 보낸 리포트 알림이 한 번도 오지 않았다.
+///
+/// PT 일정·담당 관계 알림은 여기 없다 — 서버가 스위치와 상관없이 보낸다
+/// (#3024).
 ///
 /// 모든 항목은 서버가 실제로 만드는 알림을 켜고 끈다. 식단 기록·AI 코칭
 /// (`notif_diet_log`·`notif_ai_coaching`)은 그 알림을 만드는 곳이 서버에 없어
@@ -30,7 +35,7 @@ const List<NotificationSettingItem> kNotificationSettingItems =
     <NotificationSettingItem>[
       NotificationSettingItem('notif_exercise_reminder', true),
       NotificationSettingItem('notif_trainer_message', true),
-      NotificationSettingItem('notif_weekly_report', false),
+      NotificationSettingItem('notif_weekly_report', true),
     ];
 
 /// 알림 수신 설정을 읽고 쓴다.

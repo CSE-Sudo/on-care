@@ -434,7 +434,8 @@ void main() {
           condition: WeekCondition.ok,
           intensity: WeekIntensity.right,
         ),
-        throwsA(isA<StateError>()),
+        // 실서버처럼 404 다(#3099).
+        throwsA(isA<NotFoundError>()),
       );
     });
   });

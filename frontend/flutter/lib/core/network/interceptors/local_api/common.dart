@@ -75,11 +75,13 @@ extension _LocalApiCommon on LocalApiInterceptor {
     );
   }
 
+  // 오류 본문은 FastAPI `HTTPException` 과 같은 `{'detail': ...}` 이다 —
+  // `AppError.fromDio` 는 `detail` 만 서버 사유로 읽는다(#3099).
   Response<Object?> _badRequest(RequestOptions options, String message) {
     return Response<Object?>(
       requestOptions: options,
       statusCode: 400,
-      data: <String, Object?>{'code': 'bad_request', 'message': message},
+      data: <String, Object?>{'detail': message},
     );
   }
 
@@ -89,7 +91,28 @@ extension _LocalApiCommon on LocalApiInterceptor {
     return Response<Object?>(
       requestOptions: options,
       statusCode: 422,
-      data: <String, Object?>{'code': 'unprocessable', 'message': message},
+      data: <String, Object?>{'detail': message},
+    );
+  }
+
+  /// 서버 전체 AI 하루 상한(#3032) — 실서버 `ai_call_errors` 와 같은 503 본문.
+  /// 다음 자정까지 남은 초 대신 고정 값을 싣는다(목업은 시각을 흉내 내지 않는다).
+  Response<Object?> _aiCapacity(RequestOptions options) {
+    final bool english = _prefersEnglish(options);
+    return Response<Object?>(
+      requestOptions: options,
+      statusCode: 503,
+      headers: Headers.fromMap(<String, List<String>>{
+        'retry-after': <String>['3600'],
+      }),
+      data: <String, Object?>{
+        'detail': <String, Object?>{
+          'code': 'ai_capacity',
+          'message': english
+              ? 'AI features are taking a break due to high demand. Please try again tomorrow.'
+              : '지금은 AI 기능 이용이 많아 잠시 쉬어요. 내일 다시 이용해 주세요.',
+        },
+      },
     );
   }
 
@@ -97,7 +120,7 @@ extension _LocalApiCommon on LocalApiInterceptor {
     return Response<Object?>(
       requestOptions: options,
       statusCode: 404,
-      data: <String, Object?>{'code': 'not_found', 'message': message},
+      data: <String, Object?>{'detail': message},
     );
   }
 }

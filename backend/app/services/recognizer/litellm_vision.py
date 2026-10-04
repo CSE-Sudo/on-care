@@ -11,14 +11,14 @@ from __future__ import annotations
 
 import base64
 import json
-import math
 import re
 import time
 
 from app.core.config import get_settings
-from app.schemas.diet import DietAnalysis, RecognizedFood
-from app.services.recognizer.base import FoodRecognizer
-from app.services.recognizer.locale_prompt import display_name_of, localized_prompt
+from app.schemas.diet import DietAnalysis
+from app.services.recognizer.base import RECOGNIZER_MAX_OUTPUT_TOKENS, FoodRecognizer
+from app.services.recognizer.locale_prompt import localized_prompt
+from app.services.recognizer.parse import parse_payload
 
 _PROMPT = """당신은 전문 영양사입니다. 이 음식 사진을 분석해 아래 JSON 스키마로만 응답하세요.
 설명, 마크다운, 코드블록 없이 순수 JSON만 출력합니다.
@@ -57,6 +57,10 @@ class LiteLLMVisionRecognizer(FoodRecognizer):
         import asyncio
         # 요청 언어는 컨텍스트 변수라 작업 스레드로 넘기기 전에 고른다. (#2850)
         prompt = localized_prompt(_PROMPT)
+        # 서버 전체 하루 상한(#3032) — Gemini 인식기와 같다.
+        from app.services import ai_call_quota
+
+        await asyncio.to_thread(ai_call_quota.acquire, ai_call_quota.FEATURE_DIET_PHOTO)
         start = time.perf_counter()
         b64 = base64.b64encode(image_bytes).decode()
         data_url = f"data:{mime_type};base64,{b64}"
@@ -72,8 +76,12 @@ class LiteLLMVisionRecognizer(FoodRecognizer):
                 ],
             }],
             temperature=0.2,
+            **_max_tokens(),
         )
         latency_ms = int((time.perf_counter() - start) * 1000)
+        if getattr(resp.choices[0], "finish_reason", None) == "length":
+            # 끊긴 JSON 은 음식 일부만 저장될 수 있다 — 인식 실패(502)로 돌린다(#3032).
+            raise RuntimeError("식단 인식 응답이 출력 상한에 걸려 끊김")
         raw = resp.choices[0].message.content or ""
         return self._parse(raw, latency_ms)
 
@@ -83,71 +91,20 @@ class LiteLLMVisionRecognizer(FoodRecognizer):
         # 선행 ```lang 펜스와 후행 ``` 만 제거 (본문의 'json' 은 건드리지 않음)
         text = re.sub(r"^```[a-zA-Z]*\s*", "", text)
         text = re.sub(r"\s*```$", "", text).strip()
-        foods: list[RecognizedFood] = []
-        coach = ""
+        # 값 검사·상한은 두 인식기가 같은 규칙을 쓴다(#3090, `parse.py`).
         try:
-            data = json.loads(text)
-            coach = str(data.get("coach_comment", "") or "")
-            for f in data.get("foods", []):
-                foods.append(RecognizedFood(
-                    name=str(f.get("name", "알 수 없음")),
-                    display_name=display_name_of(f),
-                    calories=_i(f.get("calories")), sodium_mg=_i(f.get("sodium_mg")),
-                    carbs_g=_macro_f(f.get("carbs_g")),
-                    protein_g=_macro_f(f.get("protein_g")),
-                    fat_g=_macro_f(f.get("fat_g")), sugar_g=_i(f.get("sugar_g")),
-                    # 보정이 100g 기준 값을 이 양으로 환산한다 — 안 넘기면
-                    # 프롬프트가 요구해도 항상 None 이라 폴백만 탄다.
-                    amount_g=_amount_g(f.get("amount_g")),
-                    confidence=_f(f.get("confidence")),
-                ))
-        except (json.JSONDecodeError, AttributeError):
-            pass
+            foods, coach = parse_payload(json.loads(text))
+        except json.JSONDecodeError:
+            foods, coach = [], ""
         return DietAnalysis(
             engine=self.name, foods=foods, coach_comment=coach,
             latency_ms=latency_ms, raw_model_output=raw,
         ).compute_totals()
 
 
-def _i(v):
-    if v is None:
-        return None
-    try:
-        return int(round(float(v)))
-    except (TypeError, ValueError):
-        return None
+def _max_tokens() -> dict[str, int]:
+    """출력 토큰 상한(#3032). 0 으로 끈 환경이면 넘기지 않는다."""
+    from app.services.coach.llm_base import output_cap
 
-
-def _f(v):
-    if v is None:
-        return None
-    try:
-        return float(v)
-    except (TypeError, ValueError):
-        return None
-
-
-def _amount_g(v):
-    """추정 섭취량(g). 0·음수·비유한값은 "모름"으로 눕힌다.
-
-    `RecognizedFood.amount_g` 는 `gt=0` 이라 0 을 그대로 넘기면 검증 오류로
-    응답 파싱 전체가 깨진다. 모델이 0 을 줬다는 건 양을 모른다는 뜻이므로
-    None 이 맞다(보정이 폴백을 타거나 추정치를 유지한다).
-    """
-    if v is None:
-        return None
-    try:
-        value = float(v)
-    except (TypeError, ValueError):
-        return None
-    return value if math.isfinite(value) and value > 0 else None
-
-
-def _macro_f(v):
-    if v is None:
-        return None
-    try:
-        value = float(v)
-    except (TypeError, ValueError):
-        return None
-    return value if math.isfinite(value) and value >= 0 else None
+    cap = output_cap(RECOGNIZER_MAX_OUTPUT_TOKENS)
+    return {} if cap is None else {"max_tokens": cap}

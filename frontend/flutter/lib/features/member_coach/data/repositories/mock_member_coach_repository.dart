@@ -527,12 +527,12 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   CoachRoutine _todayRoutine(String routineId) =>
       _routineOn(routineId, todayKst());
 
-  /// [day] 목록의 [routineId] — 그날 걸려 있지 않았으면 실서버처럼 못 찾는다.
-  /// (#2506)
+  /// [day] 목록의 [routineId] — 그날 걸려 있지 않았으면 실서버처럼 못 찾는다
+  /// (404 → [NotFoundError], #2506, #3099).
   CoachRoutine _routineOn(String routineId, DateTime day) {
     final String key = _dayKey(day);
     if (_hasCoach() && key.compareTo(_routineSinceKey()) < 0) {
-      throw StateError('Routine not found.');
+      throw const NotFoundError(detail: 'Routine not found.');
     }
     for (final CoachRoutine routine
         in _hasCoach() ? _routines : _autoRoutines) {
@@ -540,7 +540,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
         return routine;
       }
     }
-    throw StateError('Routine not found.');
+    throw const NotFoundError(detail: 'Routine not found.');
   }
 
   @override
@@ -625,7 +625,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     final CoachRoutine base = <CoachRoutine>[..._routines, ..._autoRoutines]
         .firstWhere(
           (CoachRoutine routine) => routine.id == routineId,
-          orElse: () => throw StateError('Routine not found.'),
+          orElse: () => throw const NotFoundError(detail: 'Routine not found.'),
         );
     // 지난 날짜의 픽스처 완료도 함께 푼다(#2506) — 픽스처는 고칠 수 없어 덮어
     // 둔다. 회원이 다시 체크했다 푼 날도 같다: 그러지 않으면 푼 뒤에 픽스처의
@@ -974,8 +974,9 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   /// `/me/coach/chat/image`). 목록만 비우고 전송을 받아 주면 데모에서만 해제한
   /// 트레이너에게 말이 간다 — 다시 불러오면 끊긴 대화에 그 말이 붙어 있다.
   void _requireCoachForChat() {
+    // 실서버는 404 다 — 앱에는 [NotFoundError] 로 닿는다(#3099).
     if (!_hasCoach()) {
-      throw StateError('담당 트레이너가 없으면 메시지를 보낼 수 없습니다.');
+      throw const NotFoundError(detail: '담당 트레이너가 없습니다.');
     }
   }
 
@@ -1052,8 +1053,9 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     DateTime? painOn,
     String note = '',
   }) async {
+    // 실서버 `_my_trainer_or_404` 와 같은 404 다(#3099).
     if (!_hasCoach()) {
-      throw StateError('담당 트레이너가 없으면 주간 피드백을 보낼 수 없습니다.');
+      throw const NotFoundError(detail: '담당 트레이너가 없습니다.');
     }
     _seedFeedback();
     final DateTime week = mondayOf(weekStart);

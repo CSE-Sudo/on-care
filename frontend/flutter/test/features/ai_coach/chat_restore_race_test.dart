@@ -286,6 +286,28 @@ void main() {
         '어제 답변',
       ]);
     });
+
+    test('서버 전체 AI 상한도 보내지 않은 말로 거둔다 (#3032)', () async {
+      final _GatedRepository repository = _GatedRepository();
+      final ProviderContainer container = _container(repository);
+      final ChatController controller = container.read(
+        chatControllerProvider.notifier,
+      );
+      await _flush();
+
+      final Future<ChatSendResult> sending = controller.send('오늘 뭐 먹을까요');
+      repository.history.complete(const <ChatMessage>[_yesterdayAnswer]);
+      await _flush();
+      repository.reply.completeError(
+        const AiChatBlocked(AiChatBlockReason.aiCapacity),
+      );
+      final ChatSendResult result = await sending;
+
+      expect(result.outcome, ChatSendOutcome.aiCapacity);
+      expect(_contents(container.read(chatControllerProvider)), <String>[
+        '어제 답변',
+      ]);
+    });
   });
 
   group('화면', () {

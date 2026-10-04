@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 import 'package:oncare/features/benefits/domain/entities/diet_tray.dart';
 import 'package:oncare/features/benefits/domain/entities/points_history.dart';
@@ -23,6 +25,9 @@ class FakeBenefitsRepository implements BenefitsRepository {
 
   final List<String> exchanged = <String>[];
   final List<String> used = <String>[];
+
+  /// 채워 두면 교환이 이것이 풀릴 때까지 기다린다 — 교환 중의 화면을 본다.
+  Completer<void>? exchangeGate;
 
   /// 서버처럼 사용 가능한 쿠폰의 종류와 이번 달 교환을 반영해 목록을 다시 만든다.
   void _refreshShop(int balance) {
@@ -51,6 +56,8 @@ class FakeBenefitsRepository implements BenefitsRepository {
     String? option,
     String? clientRequestId,
   }) async {
+    final Completer<void>? gate = exchangeGate;
+    if (gate != null) await gate.future;
     exchanged.add(option == null ? itemId : '$itemId:$option');
     final ShopItem item = shop.items.firstWhere((ShopItem i) => i.id == itemId);
     final int balance = shop.balance - item.cost;

@@ -19,7 +19,11 @@ class RecognizedFood(BaseModel):
     display_name: Optional[str] = Field(
         None, max_length=80, description="화면 언어 표시 이름"
     )
-    calories: Optional[int] = Field(None, description="칼로리 kcal")
+    # 음수는 받지 않는다(#3090). 끼니 합계가 음수가 되면 하루 섭취량·트레이너
+    # 요약이 줄어든다. 위쪽 상한은 스키마가 아니라 인식기 변환(`recognizer/parse.py`)이
+    # 건다 — 이 모델은 공공 DB 환산값·회원 수정값(`EditedFood`)·저장된 기록 복원에도
+    # 쓰여서, 여기 상한을 두면 큰 끼니를 고친 기록이 다시 읽히지 않는다.
+    calories: Optional[int] = Field(None, ge=0, description="칼로리 kcal")
     carbs_g: Optional[float] = Field(
         None, ge=0, allow_inf_nan=False, description="탄수화물 g"
     )
@@ -27,7 +31,7 @@ class RecognizedFood(BaseModel):
         None, ge=0, allow_inf_nan=False, description="단백질 g"
     )
     fat_g: Optional[float] = Field(None, ge=0, allow_inf_nan=False, description="지방 g")
-    sodium_mg: Optional[int] = Field(None, description="나트륨 mg")
+    sodium_mg: Optional[int] = Field(None, ge=0, description="나트륨 mg")
     sugar_g: Optional[float] = Field(
         None, ge=0, allow_inf_nan=False, description="당류 g"
     )

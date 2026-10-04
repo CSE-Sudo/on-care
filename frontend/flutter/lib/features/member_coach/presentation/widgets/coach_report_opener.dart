@@ -24,14 +24,21 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// [message] 가 실어 온 [weekStart] 주 리포트를 미리보기로 연다.
 ///
 /// 열지 못하면 던진다 — 부르는 쪽이 자기 자리에 맞는 안내를 띄운다.
+///
+/// 파일을 받는 동안 부른 줄이 치워져도(대화 목록 스크롤·화면 이동) 던지지 않게
+/// 화면 `ref` 가 아니라 컨테이너로 읽는다(#3096). 미리보기는 그 줄이 남아 있을
+/// 때만 띄운다.
 Future<void> openCoachReport(
-  BuildContext context,
-  WidgetRef ref, {
+  BuildContext context, {
   required CoachMessage message,
   required DateTime weekStart,
 }) async {
+  final ProviderContainer container = ProviderScope.containerOf(
+    context,
+    listen: false,
+  );
   final CoachReportPdf pdf = await loadCoachReportPdf(
-    ref.read,
+    container.read,
     l: AppLocalizations.of(context),
     message: message,
     weekStart: weekStart,

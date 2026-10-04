@@ -39,26 +39,42 @@ WEEKLY_REPORT = "notif_weekly_report"
 DIET_LOG = "notif_diet_log"
 AI_COACHING = "notif_ai_coaching"
 
-#: 설정 키 → 기본값. 사용자 앱의 현재 기본값과 같다(주간 리포트만 꺼짐).
+#: PT 일정·담당 관계가 바뀐 일을 알리는 kind(#3024) — 일정 등록·변경·취소·삭제,
+#: 담당 연결·담당 요청·담당 해제, 트레이너 탈퇴. 회원 수신 설정 키가 아니라
+#: [ALWAYS_DELIVERED] 에 든다.
+#:
+#: 예전에는 일정 알림이 `EXERCISE`('운동 리마인더'), 담당 해제·탈퇴가
+#: `TRAINER_MESSAGE`('트레이너 메시지')에 실려, 리마인더나 채팅을 끈 회원이 PT
+#: 취소와 담당 해제를 듣지 못했다. 취소된 약속을 모르고 나가거나 '내 담당 코치'가
+#: 조용히 비는 쪽이 알림 하나 더 받는 쪽보다 나쁘다.
+PT_LINK_NOTICE = "pt_link_notice"
+
+#: 설정 키 → 기본값. 모두 켜짐이다.
+#:
+#: 트레이너 주간 리포트도 켜 둔다(#3025). 예전에는 리포트 알림이 없던 시기의
+#: 앱 하드코딩 값(`false`)을 그대로 옮겨 꺼져 있었고, 트레이너가 한 주를 정리해
+#: 보낸 리포트가 회원 알림함에 아무 흔적 없이 도착했다.
 DEFAULTS: dict[str, bool] = {
     DIET_LOG: True,
     EXERCISE: True,
     TRAINER_MESSAGE: True,
     AI_COACHING: True,
-    WEEKLY_REPORT: False,
+    WEEKLY_REPORT: True,
 }
 
 #: 알림 종류 → 목록에 실릴 기본 category.
 #:
 #: **`kind` 는 목적지가 아니라 알림 수신 설정 키다.** 같은 키로 서로 다른 곳을
-#: 가리키는 알림이 나간다 — 루틴 배정과 일정 등록이 둘 다 `EXERCISE` 이고, 연결
-#: 해제와 예약 취소가 둘 다 `TRAINER_MESSAGE` 다. 그래서 여기서 유도한 값만으로는
+#: 가리키는 알림이 나간다 — 루틴 배정과 PT 연결 루틴이 둘 다 `EXERCISE` 이고, 일정
+#: 등록과 담당 해제가 둘 다 [PT_LINK_NOTICE] 다. 그래서 여기서 유도한 값만으로는
 #: 앱이 갈 곳을 정할 수 없다(#636).
 #:
 #: 호출부가 `queue(category=...)` 로 목적지를 밝히면 그 값이 우선한다. 이 표는
 #: 밝히지 않은 호출부를 위한 기본값이다.
 _CATEGORY: dict[str, str] = {
     TRAINER_MESSAGE: "system",
+    # 호출부가 모두 category 를 밝힌다. 밝히지 않으면 일정으로 둔다.
+    PT_LINK_NOTICE: "member_schedule",
     EXERCISE: "reminder",
     WEEKLY_REPORT: "achievement",
     DIET_LOG: "reminder",
@@ -212,6 +228,7 @@ def queue(
     category: str | None = None,
     template: str | None = None,
     template_args: Mapping[str, Any] | None = None,
+    invite_id: str | None = None,
     action_target: str | None = None,
 ) -> Notification | None:
     """알림을 세션에 **추가만** 한다(커밋하지 않는다). 꺼져 있으면 None.
@@ -231,6 +248,9 @@ def queue(
     [template] 을 주면 [title] 대신 문장 틀로 한국어 제목·본문을 만들고 틀과
     인자를 함께 남긴다(#2302, [texts] 참고).
 
+    [invite_id] 는 담당 요청 알림이 가리키는 요청이다 — 앱이 알림에서 바로
+    수락·거절하는 데 쓴다.
+
     [action_target] 은 **이 알림 한 건의 목적지**다(#3028). 주면
     `Notification.action_target` 에 남아 갈래별 액션 표보다 우선한다 — 갈래(아이콘)는
     같은데 갈 곳만 다른 알림을 갈래를 바꿔 끼우지 않고 나타낸다. 예전에는 이 칸을
@@ -246,6 +266,7 @@ def queue(
         id=f"noti-{uuid.uuid4().hex[:12]}",
         user_id=member_id,
         category=category or _CATEGORY.get(kind, "system"),
+        invite_id=invite_id,
         read=False,
         action_target=action_target,
         **texts(title=title, body=body, template=template, template_args=template_args),
@@ -312,9 +333,12 @@ POINTS_COUPON = "points_coupon"
 WEEKLY_CHALLENGE = "weekly_challenge"
 
 #: 끌 수 없는 회원 알림 kind(#2854). 회원 수신 설정에 스위치가 없고, 설정과 무관하게
-#: 늘 만든다 — 모두 회원의 포인트가 움직인 일을 알리는 알림이다. 예전에는 `wants`
-#: 가 모르는 kind 를 받는 쪽으로 두는 기본값에 이 규칙이 숨어 있었다.
-ALWAYS_DELIVERED: frozenset[str] = frozenset({POINTS_COUPON, WEEKLY_CHALLENGE})
+#: 늘 만든다 — 회원의 포인트가 움직인 일([POINTS_COUPON]·[WEEKLY_CHALLENGE])과
+#: 약속·담당 관계가 바뀐 일([PT_LINK_NOTICE], #3024)이다. 예전에는 `wants` 가
+#: 모르는 kind 를 받는 쪽으로 두는 기본값에 이 규칙이 숨어 있었다.
+ALWAYS_DELIVERED: frozenset[str] = frozenset(
+    {POINTS_COUPON, WEEKLY_CHALLENGE, PT_LINK_NOTICE}
+)
 
 MEMBER_COACH_INVITE = "coach_invite"
 #: 담당 트레이너가 회원 건강 목표를 바꿨다 → MY 건강 목표(#1832).

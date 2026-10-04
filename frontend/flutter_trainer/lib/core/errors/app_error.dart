@@ -47,8 +47,13 @@ sealed class AppError implements Exception {
         }
         if (code == 429) {
           // 실패가 아니라 **잠시 뒤 되는** 상태다. 다른 오류와 뭉뚱그리면
-          // 트레이너가 고장으로 읽는다(#582).
-          return RateLimitedError(message: message);
+          // 트레이너가 고장으로 읽는다(#582). 하루 상한(`daily_limit`)은
+          // "잠시 뒤" 가 아니라 "내일" 이라 화면이 문구를 가를 수 있게 코드를
+          // 함께 싣는다(#3032).
+          return RateLimitedError(
+            message: message,
+            code: serverDetailCode(e.response?.data),
+          );
         }
         if (code == 400 || code == 422) {
           // The server rejected the INPUT, not the request. Callers show
@@ -97,8 +102,22 @@ class ValidationError extends AppError {
 
 /// 429 — 한도 초과. 실패가 아니라 잠시 뒤 되는 상태라, 화면이 "실패했어요"
 /// 대신 기다렸다 다시 하라고 안내할 수 있게 따로 둔다(#582).
+///
+/// [code] 는 서버 `detail.code` 다. 분당 한도는 코드가 없고(잠시 뒤 다시),
+/// 트레이너 하루 AI 상한은 [dailyLimitCode] 다(내일 다시, #3032).
 class RateLimitedError extends AppError {
-  const RateLimitedError({super.message});
+  const RateLimitedError({super.message, this.code});
+
+  /// 트레이너 계정의 오늘 AI 호출 몫을 다 썼다 — 다시 눌러도 오늘은 같다.
+  static const String dailyLimitCode = 'daily_limit';
+
+  final String? code;
+
+  /// 하루 상한인가. 참이면 "잠시 후" 가 아니라 "내일" 로 안내한다.
+  bool get isDailyLimit => code == dailyLimitCode;
+
+  @override
+  String toString() => 'RateLimitedError(code: $code, message: $message)';
 }
 
 class ServerError extends AppError {

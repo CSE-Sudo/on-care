@@ -32,6 +32,7 @@ import 'package:oncare/features/member_coach/data/repositories/mock_member_coach
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/locale_provider.dart';
@@ -610,8 +611,19 @@ void main() {
 
     // 포인트 카드는 내 헬스장 · 트레이너 섹션 아래라(#1785) 첫 화면에서 내려가
     // 있다. 스크롤한 뒤 한 번 그려야 누를 좌표가 새 자리를 따른다.
+    // 목록은 지연 생성이라, 담당 트레이너 카드의 신고 버튼(#3008)만큼 카드가
+    // 내려가면 첫 그림에 아직 없다. 찾을 때까지 MY 목록을 내린다.
     final banner = find.byKey(const Key('pointsBanner'));
-    await tester.ensureVisible(banner);
+    await tester.scrollUntilVisible(
+      banner,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(MyHealthPage),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await tester.pumpAndSettle();
 
     // 포인트 카드 화살표는 카드 안쪽 여백만큼 떨어진 오른쪽 끝에 선다.

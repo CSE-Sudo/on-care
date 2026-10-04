@@ -46,7 +46,7 @@ from app.services import (
     goal_defaults,
     health_focus,
 )
-from app.services.coach import insights
+from app.services.coach import conversation, insights
 
 # ---- 신호 종류 — 앱이 이 문자열로 배지·필터를 고른다. 번역하지 않는다. ----
 
@@ -397,6 +397,8 @@ def build_signals(
             .join(AiConversation, AiConversation.id == AiMessage.conversation_id)
             .where(
                 AiConversation.user_id.in_(member_ids),
+                # 회원 본인 스레드만 — 트레이너가 AI 에게 물은 말은 회원의 호소가 아니다(#3085).
+                conversation.member_thread_clause(),
                 AiMessage.role == "user",
                 AiMessage.created_at >= cutoff,
                 # 회원이 오탐이라며 치운 줄은 세지 않는다(#1975).

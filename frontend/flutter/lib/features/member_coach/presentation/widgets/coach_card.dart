@@ -320,6 +320,12 @@ class _RecommendedExerciseRowState
   Future<void> _cancel() async {
     final AppLocalizations l = AppLocalizations.of(context);
     final CoachRoutine routine = widget.routine;
+    // 요청 뒤 갱신·오류 보고는 화면 `ref` 가 아니라 컨테이너로 한다 — 요청 중에
+    // 이 줄이 치워져도(목록 갱신·탭 이동) 갱신이 빠지지 않는다(#3096).
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.coachCardRoutineCancelTitle,
@@ -335,8 +341,10 @@ class _RecommendedExerciseRowState
 
     setState(() => _saving = true);
     try {
-      await ref.read(memberCoachRepositoryProvider).deleteRoutine(routine.id);
-      refreshCoachRoutines(ref);
+      await container
+          .read(memberCoachRepositoryProvider)
+          .deleteRoutine(routine.id);
+      refreshCoachRoutines(container.invalidate);
       if (mounted) {
         showAppToast(
           context,
@@ -365,6 +373,12 @@ class _RecommendedExerciseRowState
   Future<void> _undoComplete() async {
     final AppLocalizations l = AppLocalizations.of(context);
     final CoachRoutine routine = widget.routine;
+    // 요청 뒤 갱신·오류 보고는 화면 `ref` 가 아니라 컨테이너로 한다 — 요청 중에
+    // 이 줄이 치워져도(목록 갱신·탭 이동) 갱신이 빠지지 않는다(#3096).
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     // 기록에서 빼는 동작이라 확정 버튼은 위험 동작 색이다.
     final bool ok = await showAppConfirmDialog(
       context: context,
@@ -379,21 +393,21 @@ class _RecommendedExerciseRowState
 
     setState(() => _saving = true);
     try {
-      await ref
+      await container
           .read(memberCoachRepositoryProvider)
           .uncompleteRoutine(routine.id, day: widget.day);
       // 목록과 함께 운동 AI 조언도 다시 읽는다 — 조언이 오늘 한 추천 운동을
       // 보고 말한다(#2161, #2162).
-      refreshCoachRoutines(ref);
+      refreshCoachRoutines(container.invalidate);
       // 운동 기록 삭제와 같은 갱신이다(#2634) — 되돌린 완료의 적립 회수(#1786)와
       // 함께 MY 기록 달력·보호권·주간 챌린지도 다시 읽는다. 지난 주도 비워
       // 지난 날짜 해제(#2506)가 그 주 합계에 바로 반영된다.
-      refreshAfterExerciseChange(ref.invalidate);
+      refreshAfterExerciseChange(container.invalidate);
       if (mounted) {
         showAppToast(context, l.coachRoutineUndone, type: AppToastType.success);
       }
     } on Object catch (error, stackTrace) {
-      ref
+      container
           .read(handledErrorReporterProvider)
           .report(error, stackTrace, context: 'coach.uncompleteRoutine');
       if (mounted) {
@@ -411,6 +425,12 @@ class _RecommendedExerciseRowState
   Future<void> _complete() async {
     final AppLocalizations l = AppLocalizations.of(context);
     final CoachRoutine routine = widget.routine;
+    // 요청 뒤 갱신·오류 보고는 화면 `ref` 가 아니라 컨테이너로 한다 — 요청 중에
+    // 이 줄이 치워져도(목록 갱신·탭 이동) 갱신이 빠지지 않는다(#3096).
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     // 강도·피드백을 받는 입력이라 모바일 규격대로 바텀시트다. 탭 페이지의
     // Navigator 가 아니라 루트에서 띄워 하단 바 위를 덮는다 — 예전 다이얼로그와
     // 같은 층이다.
@@ -423,7 +443,7 @@ class _RecommendedExerciseRowState
 
     setState(() => _saving = true);
     try {
-      final CoachRoutine done = await ref
+      final CoachRoutine done = await container
           .read(memberCoachRepositoryProvider)
           .completeRoutine(
             routine.id,
@@ -440,11 +460,11 @@ class _RecommendedExerciseRowState
           );
       // 목록과 함께 운동 AI 조언도 다시 읽는다 — 조언이 오늘 한 추천 운동을
       // 보고 말한다(#2161, #2162).
-      refreshCoachRoutines(ref);
+      refreshCoachRoutines(container.invalidate);
       // 운동 기록 저장과 같은 갱신이다(#2634) — 보호권(#1788)·달력 칸(#2075)·
       // 적립(#1786)·주간 챌린지를 함께 다시 읽는다. 지난 주도 비워 지난 날짜
       // 체크(#2506)가 그 주 합계에 바로 반영된다.
-      refreshAfterExerciseChange(ref.invalidate);
+      refreshAfterExerciseChange(container.invalidate);
       if (mounted) {
         showAppToast(
           context,
@@ -455,13 +475,14 @@ class _RecommendedExerciseRowState
         );
       }
     } catch (error, stackTrace) {
-      ref
+      container
           .read(handledErrorReporterProvider)
           .report(error, stackTrace, context: 'coach.completeRoutine');
+      // 이미 내려간 추천이면 줄이 치워졌어도 목록은 다시 읽는다.
+      if (error is NotFoundError) {
+        refreshCoachRoutines(container.invalidate);
+      }
       if (mounted) {
-        if (error is NotFoundError) {
-          refreshCoachRoutines(ref);
-        }
         final String message = switch (error) {
           NotFoundError() => l.coachRoutineGone,
           NetworkError() => l.coachRoutineNetworkError,

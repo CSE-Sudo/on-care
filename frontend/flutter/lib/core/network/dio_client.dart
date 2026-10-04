@@ -5,6 +5,7 @@ import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/network/auth_token.dart';
 import 'package:oncare/core/network/client_platform.dart';
+import 'package:oncare/core/network/consent_gate.dart';
 import 'package:oncare/core/network/interceptors/api_logging_interceptor.dart';
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
@@ -71,6 +72,10 @@ final dioProvider = Provider<Dio>((ref) {
   }
   // 실행 중 만료된 토큰은 갱신 뒤 원 요청을 한 번 다시 보낸다(#1546).
   dio.interceptors.add(authInterceptorFor(ref, retryClient: dio));
+  // 실행 중 필수 동의가 남게 되면(문서 버전 갱신 등) 동의 화면으로 보낸다(#3088).
+  dio.interceptors.add(
+    ConsentRequiredInterceptor(() => ref.read(consentGateBridgeProvider)),
+  );
   if (!config.isProd) {
     dio.interceptors.add(ApiLoggingInterceptor(logger));
   }

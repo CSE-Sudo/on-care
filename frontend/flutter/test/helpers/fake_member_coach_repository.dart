@@ -5,6 +5,7 @@
 /// 갈림길을 한 화면 안에서 만들 수 없다. 여기서는 그 갈림길만 만든다.
 library;
 
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
@@ -44,6 +45,9 @@ class FakeMemberCoachRepository implements MemberCoachRepository {
   /// 보내기가 실패하는가.
   final bool failSave;
 
+  /// 채워 두면 보내기가 이것이 풀릴 때까지 기다린다 — 보내는 중의 화면을 본다.
+  Completer<void>? saveGate;
+
   /// 저장소로 넘어온 답들 — 화면이 무엇을 보냈는지 본다.
   final List<MemberWeeklyFeedback> saved = <MemberWeeklyFeedback>[];
 
@@ -70,6 +74,8 @@ class FakeMemberCoachRepository implements MemberCoachRepository {
     DateTime? painOn,
     String note = '',
   }) async {
+    final Completer<void>? gate = saveGate;
+    if (gate != null) await gate.future;
     if (failSave) throw StateError('weekly feedback save failed');
     final String area = painArea.trim();
     final MemberWeeklyFeedback value = MemberWeeklyFeedback(

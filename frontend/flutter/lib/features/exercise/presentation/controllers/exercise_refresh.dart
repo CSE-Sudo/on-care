@@ -48,8 +48,8 @@ void refreshAfterExerciseChange(ProviderInvalidator invalidate) {
   }
 }
 
-/// 운동 기록을 바꾸는 요청을 보내고, 성공하면 [refreshAfterExerciseChange] 까지
-/// 하는 곳. (#2879)
+/// 운동 기록을 바꾸는 요청을 보내고 [refreshAfterExerciseChange] 까지 하는 곳.
+/// (#2879, #3096)
 ///
 /// 기록 시트가 저장 뒤에 직접 비우면, 저장 중에 시트를 내렸을 때 `mounted` 가
 /// 거짓이 되어 비우기를 건너뛰었다 — 서버에는 기록이 있는데 주간 그래프·AI
@@ -60,14 +60,20 @@ class ExerciseChangeRunner {
 
   final Ref _ref;
 
-  /// [change] 가 성공하면 운동 기록에 딸린 캐시를 비우고 그 결과를 돌려준다.
-  /// 실패하면 아무것도 비우지 않고 예외를 그대로 올린다.
+  /// [change] 를 보내고, 성공하든 실패하든 운동 기록에 딸린 캐시를 비운다.
+  /// 결과는 그대로 돌려주고 예외는 그대로 올린다. (#3096)
+  ///
+  /// 실패해도 비우는 까닭: 한 [change] 안에서 여러 건을 고치다(날짜 옮기기·
+  /// 여러 상자 저장) 두 번째에서 실패하면 첫 번째 수정은 이미 서버에 있다.
+  /// 단건이 실패한 경우는 비워도 같은 값을 다시 읽을 뿐이라 해가 없다.
   Future<T> run<T>(
     Future<T> Function(ExerciseRepository repository) change,
   ) async {
-    final T result = await change(_ref.read(exerciseRepositoryProvider));
-    refreshAfterExerciseChange(_ref.invalidate);
-    return result;
+    try {
+      return await change(_ref.read(exerciseRepositoryProvider));
+    } finally {
+      refreshAfterExerciseChange(_ref.invalidate);
+    }
   }
 }
 

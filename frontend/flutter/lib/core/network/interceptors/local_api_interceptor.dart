@@ -134,6 +134,11 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
   /// 422 `no_food_detected` 로 거절한다.
   bool Function(Uint8List? photoBytes)? demoPhotoHasFood;
 
+  /// 서버 전체의 오늘 AI 호출 상한에 걸린 날을 흉내 낸다(#3032). true 면 AI 코치
+  /// 대화와 사진 분석이 실서버처럼 503 `ai_capacity` + `Retry-After` 로 거절한다 —
+  /// 회원 하루 한도·포인트는 깎지 않는다. 기본은 꺼져 있다(테스트·시연용).
+  bool demoAiCapacityReached = false;
+
   /// 연속 기록 보호권(#1788). 앱에서는 사용처(쿠폰 원장)와 같은 인스턴스를 받아
   /// 교환한 보호권이 기록 연속으로 이어진다. 주지 않으면
   /// 쿠폰 원장이 쓰는 것, 그것도 없으면 이 인터셉터의 원장으로 만든다.

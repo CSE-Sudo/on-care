@@ -42,7 +42,11 @@ def all_off(monkeypatch):
 
 @pytest.mark.parametrize(
     "kind",
-    [notification_service.POINTS_COUPON, notification_service.WEEKLY_CHALLENGE],
+    [
+        notification_service.POINTS_COUPON,
+        notification_service.WEEKLY_CHALLENGE,
+        notification_service.PT_LINK_NOTICE,
+    ],
 )
 def test_always_delivered_kinds_ignore_the_settings(all_off, kind):
     assert notification_service.wants(_Session(), "member-1", kind) is True
@@ -70,7 +74,29 @@ def test_always_delivered_kinds_are_not_settings():
     assert notification_service.ALWAYS_DELIVERED == {
         notification_service.POINTS_COUPON,
         notification_service.WEEKLY_CHALLENGE,
+        notification_service.PT_LINK_NOTICE,
     }
+
+
+def test_pt_link_notice_ignores_a_broken_settings_read(monkeypatch):
+    """설정 조회가 터져도 일정·담당 알림은 설정을 읽지 않으므로 그대로 받는다."""
+
+    def _boom(db, member_id):  # noqa: ANN001
+        raise AssertionError("끌 수 없는 알림은 설정을 읽지 않는다")
+
+    monkeypatch.setattr(notification_service, "get_settings", _boom)
+    assert (
+        notification_service.wants(
+            _Session(), "member-1", notification_service.PT_LINK_NOTICE
+        )
+        is True
+    )
+
+
+def test_every_default_is_on():
+    # 트레이너 주간 리포트도 기본 켜짐이다(#3025).
+    assert all(notification_service.DEFAULTS.values())
+    assert notification_service.DEFAULTS[notification_service.WEEKLY_REPORT] is True
 
 
 def test_retired_keys_stay_in_the_settings_for_compatibility():
@@ -106,3 +132,44 @@ def test_no_member_notification_uses_the_retired_kinds():
     kinds = _queued_member_kinds()
     assert "DIET_LOG" not in kinds
     assert "AI_COACHING" not in kinds
+
+
+def _queued_calls() -> list[str]:
+    """`notification_service.queue(...)` 호출 하나하나의 인자 글."""
+    pattern = re.compile(r"notification_service\.queue\((.*?)\n\s*\)", re.S)
+    calls: list[str] = []
+    for path in APP_DIR.rglob("*.py"):
+        calls.extend(pattern.findall(path.read_text(encoding="utf-8")))
+    return calls
+
+
+@pytest.mark.parametrize(
+    "category",
+    ["MEMBER_SCHEDULE", "MEMBER_CONSULTATION", "MEMBER_COACH_INVITE"],
+)
+def test_schedule_and_link_notices_cannot_be_switched_off(category):
+    """일정·담당 관계 알림은 끌 수 없는 kind 로만 나간다(#3024).
+
+    예전에는 일정이 '운동 리마인더', 담당 해제·탈퇴가 '트레이너 메시지' 스위치에
+    실려 있어, 그 스위치를 끈 회원이 PT 취소와 담당 해제를 듣지 못했다.
+    """
+    calls = [
+        call
+        for call in _queued_calls()
+        if f"notification_service.{category}" in call
+    ]
+    assert calls, category
+    for call in calls:
+        assert "kind=notification_service.PT_LINK_NOTICE" in call, call
+
+
+def test_routine_notices_still_follow_the_exercise_switch():
+    """루틴·프로그램 배정은 '운동 루틴' 스위치로 끌 수 있다 — 기존 동작 그대로."""
+    calls = [
+        call
+        for call in _queued_calls()
+        if "notification_service.MEMBER_ROUTINE" in call
+    ]
+    assert calls
+    for call in calls:
+        assert "kind=notification_service.EXERCISE" in call, call
