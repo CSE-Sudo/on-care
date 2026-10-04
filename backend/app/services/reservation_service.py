@@ -863,7 +863,7 @@ def cancel(
     slot = db.get(TrainerReservationSlot, reservation.slot_id)
     starts_at = _aware(slot.starts_at) if slot is not None else None
     if starts_at is not None and starts_at <= current:
-        raise ReservationTooLate("이미 시작한 수업은 취소할 수 없어요.")
+        raise ReservationTooLate("이미 시작한 PT는 취소할 수 없어요.")
 
     member_name = db.scalar(select(User.name).where(User.id == member_id)) or ""
     trainer_id = slot.trainer_id if slot is not None else None

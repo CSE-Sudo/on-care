@@ -34,7 +34,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String schedCancelConfirm(String time, String name) {
-    return 'The $time session with $name will be recorded as cancelled. The entry stays.';
+    return 'The $time PT with $name will be recorded as cancelled. The entry stays.';
   }
 
   @override
@@ -54,14 +54,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedCancelFailed =>
-      'Couldn\'t cancel the session. Please try again.';
+      'Couldn\'t cancel the appointment. Please try again.';
 
   @override
   String get schedNoShowTitle => 'Record as a no-show?';
 
   @override
   String schedNoShowConfirm(String time, String name) {
-    return 'The $time session with $name will be recorded as a no-show.';
+    return 'The $time appointment with $name will be recorded as a no-show.';
   }
 
   @override
@@ -79,7 +79,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedDeleteMeansRemoveFinished =>
-      'Deleting erases the record. This session is already complete and can\'t be undone.';
+      'Deleting erases the record. This appointment is already complete and can\'t be undone.';
 
   @override
   String get scheduleStatusGap => 'Open';
@@ -287,7 +287,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authSocialSignInFailed =>
-      'Social sign-in failed. Please try again in a moment.';
+      'Couldn\'t sign in with your social account. Please try again in a moment.';
 
   @override
   String get authSocialComingSoon =>
@@ -295,11 +295,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authErrSignInFailed =>
-      'Sign-in failed. Please try again in a moment.';
+      'Couldn\'t sign in. Please try again in a moment.';
 
   @override
   String get authSessionExpired =>
-      'Your session has expired. Please sign in again.';
+      'Your sign-in has expired. Please sign in again.';
 
   @override
   String get authErrNameEmpty => 'Enter your name';
@@ -339,7 +339,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authErrSignUpFailed =>
-      'Sign-up failed. Please try again in a moment.';
+      'Couldn\'t sign up. Please try again in a moment.';
 
   @override
   String get dashTitle => 'Dashboard';
@@ -1149,12 +1149,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String consultApproved(String name) {
-    return '$name\'s request was approved. Add a session from the Schedule tab.';
+    return '$name\'s request was approved. Add an appointment from the Schedule tab.';
   }
 
   @override
   String consultScheduleCreated(String name) {
-    return 'Added a consultation session for $name';
+    return 'Added a consultation appointment for $name';
   }
 
   @override
@@ -1178,7 +1178,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get consultStatusCancelled => 'Cancelled';
 
   @override
-  String get consultStatusCancelledByTrainer => 'Withdrawn (session cancelled)';
+  String get consultStatusCancelledByTrainer =>
+      'Withdrawn (appointment cancelled)';
 
   @override
   String get consultStatusExpired => 'Expired';
@@ -1675,10 +1676,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedTitle => 'Schedule';
 
   @override
-  String get schedDetailTitle => 'Session detail';
+  String get schedDetailTitle => 'Appointment details';
 
   @override
-  String get schedDeleteTitle => 'Delete session';
+  String get schedDeleteTitle => 'Delete appointment';
 
   @override
   String schedDeleteConfirm(String time, String name) {
@@ -1687,10 +1688,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedDeleteFailed =>
-      'Couldn\'t delete the session. Please try again';
+      'Couldn\'t delete the appointment. Please try again';
 
   @override
-  String get schedCompleteTitle => 'Complete session';
+  String get schedCompleteTitle => 'Complete appointment';
 
   @override
   String schedCompleteConfirm(String time, String name) {
@@ -1783,7 +1784,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedClientUnresolved =>
-      'Couldn\'t tell which member this session is for. Please pick the member.';
+      'Couldn\'t tell which member this appointment is for. Please pick the member.';
 
   @override
   String get schedRoutinesUpdated => 'Personal exercise updated.';
@@ -1823,23 +1824,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedSlots => 'Booking slots';
 
   @override
-  String get schedNewSession => 'New session';
+  String get schedNewSession => 'New appointment';
 
   @override
   String get schedLoadFailed => 'Couldn\'t load the schedule';
 
   @override
   String get schedEmptyDay =>
-      'Nothing scheduled for this day.\nUse New session above to add one.';
+      'Nothing scheduled for this day.\nUse New appointment above to add one.';
 
   @override
-  String get schedSaveFailed => 'Couldn\'t save the session. Please try again';
+  String get schedSaveFailed =>
+      'Couldn\'t save the appointment. Please try again';
 
   @override
-  String get schedAddTitle => 'Add a session';
+  String get schedAddTitle => 'Add an appointment';
 
   @override
-  String get schedEditTitle => 'Edit session';
+  String get schedEditTitle => 'Edit appointment';
 
   @override
   String get schedFieldClient => 'Member';
@@ -1926,7 +1928,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String schedRepeatPreview(int count, String first, String last) {
-    return '$count sessions · $first – $last';
+    return '$count appointments · $first – $last';
   }
 
   @override
@@ -1937,7 +1939,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String schedRepeatConflictTitle(int total, int count) {
-    return '$count of $total sessions clash';
+    return '$count of $total appointments clash';
   }
 
   @override
@@ -1947,22 +1949,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedRepeatConflictHint =>
-      'Nothing was created. Change the time, or clear the sessions that clash.';
+      'Nothing was created. Change the time, or clear the appointments that clash.';
 
   @override
-  String get schedOverlapTitle => 'This time overlaps another session';
+  String get schedOverlapTitle => 'This time overlaps another appointment';
 
   @override
   String get schedOverlapHint =>
-      'Nothing was saved. Change the time or move the overlapping session, then save again.';
+      'Nothing was saved. Change the time or move the overlapping appointment, then save again.';
 
   @override
   String get slotOverlapHint =>
-      'The slot wasn\'t opened. Pick another time or move the overlapping session.';
+      'The slot wasn\'t opened. Pick another time or move the overlapping appointment.';
 
   @override
   String get consultOverlapHint =>
-      'The member\'s chosen time is already booked, so the request wasn\'t approved. Move the overlapping session, then approve again.';
+      'The member\'s chosen time is already booked, so the request wasn\'t approved. Move the overlapping appointment, then approve again.';
 
   @override
   String get schedNote => 'Trainer feedback';
@@ -2139,11 +2141,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get slotBookedSummary => 'Booked';
 
   @override
-  String get slotOverlappedSummary => 'Overlaps a session';
+  String get slotOverlappedSummary => 'Overlaps an appointment';
 
   @override
   String get slotOverlappedHint =>
-      'Another session is booked at this time, so members see it as full. Close it if you will not use it.';
+      'Another appointment is booked at this time, so members see it as full. Close it if you will not use it.';
 
   @override
   String get slotCloseAction => 'Close bookings';
@@ -2233,13 +2235,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myLoginAccount => 'Signed in as';
 
   @override
-  String get mySupportTitle => 'Customer Support';
+  String get mySupportTitle => 'Customer support';
 
   @override
   String get mySupportFaq => 'FAQ';
 
   @override
-  String get mySupportInquiry => '1:1 Inquiry';
+  String get mySupportInquiry => '1:1 inquiry';
 
   @override
   String get mySupportExternalHint => 'Opens the KakaoTalk channel';
@@ -2576,7 +2578,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get adminSuspendBody =>
-      'They are signed out right away and can\'t sign in again. All member connections end, members are notified, and upcoming PT sessions are cancelled. Lifting the suspension does not restore those connections.';
+      'They are signed out right away and can\'t sign in again. All member connections end, members are notified, and upcoming PT appointments are cancelled. Lifting the suspension does not restore those connections.';
 
   @override
   String adminUnsuspendTitle(String name) {
@@ -2740,7 +2742,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myNotifReservationHint =>
-      'When a member books or changes a session';
+      'When a member books or changes an appointment';
 
   @override
   String get myNotifMemberUpdates => 'Member updates';
@@ -2971,7 +2973,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachUnsentRoutinesBody =>
-      'The PT has ended but this has not reached the member yet. Open that session in the schedule to send it.';
+      'The PT has ended but this has not reached the member yet. Open that PT in the schedule to send it.';
 
   @override
   String get coachSendUnsentRoutines => 'Open in schedule';
@@ -3025,7 +3027,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiGenerateFailed =>
-      'AI generation failed. Please try again in a moment';
+      'Couldn\'t generate with AI. Please try again in a moment';
 
   @override
   String aiGenerateInvalidConditions(int min, int max) {
@@ -3209,7 +3211,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiPersonalStepLoadFailed =>
-      'Could not load the AI personal-exercise suggestions';
+      'Couldn\'t load the AI personal-exercise suggestions';
 
   @override
   String get aiPersonalStepNoSuggestion =>
@@ -3238,7 +3240,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiPersonalDismissFailed =>
-      'Could not complete that. Please try again shortly.';
+      'Couldn\'t complete that. Please try again shortly.';
 
   @override
   String get aiStepSkipped => 'Skipped';
@@ -3305,7 +3307,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get progNoRoutinesRegisterBody =>
-      'Each PT should come with at least one personal exercise. If you skip it now, you can still add it from the session details in Schedule before sending the PT program.';
+      'Each PT should come with at least one personal exercise. If you skip it now, you can still add it from the appointment details in Schedule before sending the PT program.';
 
   @override
   String get progNoRoutinesRegisterSkip => 'Add without it';
@@ -3468,7 +3470,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aiStatusPersonalizedBody(int count, int days) {
-    return 'Based on $count sessions over the last $days days.';
+    return 'Based on $count workout records over the last $days days.';
   }
 
   @override
@@ -4035,7 +4037,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String searchDetailNextSession(String date, String time) {
-    return 'Next session $date $time';
+    return 'Next appointment $date $time';
   }
 
   @override
@@ -4536,7 +4538,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachScheduleOverlap =>
-      'Another session is already booked at that time, so nothing was added. Pick a different time and try again';
+      'Another appointment is already booked at that time, so nothing was added. Pick a different time and try again';
 
   @override
   String get programEditorNoExercises => 'Add at least one exercise';
