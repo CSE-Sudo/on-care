@@ -9,6 +9,8 @@ from urllib.parse import urlsplit
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.core.db_url import pooler_problem
+
 # 개발 기본 시크릿(운영에서 그대로 쓰면 기동 차단)
 DEFAULT_JWT_SECRET = "CHANGE_ME_dev_only_secret_key_please_replace_in_prod"
 # 회원 앱 최소 지원 버전 형식(#3045). 빌드 번호(`+N`)·접미사 없이 숫자 세 자리만.
@@ -565,6 +567,11 @@ class Settings(BaseSettings):
                     "운영(env=prod)에서는 데모 시드를 켤 수 없습니다(SEED_DEMO_DATA=false). "
                     "시연은 데모 전용 DB 를 둔 별도 환경에서 하십시오."
                 )
+            # Neon 풀러(트랜잭션 풀링) 주소면 마이그레이션 잠금이 동작하지 않고 연결 시작
+            # 옵션이 거절된다(#3146). 원인을 알기 어려운 실패 대신 기동에서 막는다.
+            db_problem = pooler_problem(self.database_url)
+            if db_problem:
+                raise ValueError(f"운영(env=prod)에서는 직접 DB 엔드포인트를 써야 합니다: {db_problem}")
             # 운영은 Alembic 을 스키마의 유일한 변경 경로로 삼는다. create_all 이 켜져 있으면
             # ORM 정의만으로 테이블이 생겨 Alembic 이력과 어긋날 수 있으므로, 조용히 무시하지 않고
             # 기동을 거부한다(AUTO_CREATE_TABLES=false 를 명시하도록 강제).
