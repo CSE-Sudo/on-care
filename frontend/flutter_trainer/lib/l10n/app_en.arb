@@ -792,7 +792,6 @@
   },
   "legendDone": "Done",
   "clientFeedback": "Member feedback",
-  "workoutKindAiPersonal": "AI personal exercise",
   "workoutKindPtSession": "PT · Trainer-led",
   "@workoutKindPtSession": {
     "description": "Workout history kind for a completed PT session (server kind code pt_session)."
@@ -1876,7 +1875,6 @@
   "coachDeliveryNothing": "Nothing sent",
   "coachHistoryFailed": "Couldn't load history",
   "coachHistoryEmpty": "You haven't sent any programs yet",
-  "coachTrainer": "Trainer",
   "aiReasonSodium": "Sodium is over target today, so lean into low-intensity cardio.",
   "aiReasonBalanced": "Today's meals are balanced, so the current intensity is fine to keep.",
   "aiReasonGoal": "Based on the {goal} goal and recent {last} activity.",
@@ -2037,7 +2035,8 @@
   "aiPersonalStepEmpty": "No personal exercise yet. Add one below.",
   "aiKeepOnePersonalRoutine": "Keep at least one personal exercise.",
   "aiRoutineOnlyStartDate": "Start date",
-  "aiRoutineOnlyWeeklyHint": "Appears in the member app every day for 7 days from today. Send next week's set again then.",
+  "@aiRoutineOnlyWeeklyHint": {"placeholders": {"start": {"type": "String"}, "end": {"type": "String"}}},
+  "aiRoutineOnlyWeeklyHint": "Appears in the member app every day for 7 days, {start} to {end}. Send next week's set again then.",
   "aiRoutineOnlySend": "Send to member",
   "aiRoutineOnlySentLabel": "Sent",
   "aiRoutineOnlySent": "Personal exercise sent to the member.",
@@ -2446,26 +2445,77 @@
   "myWithdrawNext": "Next",
   "myWithdrawStay": "Keep using",
   "myWithdrawContinue": "Continue leaving",
-  "routineAlreadyGone": "That program is already gone",
-  "workoutPendingTitle": "Daily personal exercises",
-  "workoutRoutineDoneToday": "Done today",
-  "workoutUndatedTitle": "Records without a date",
-  "workoutMemberLogTitle": "Logged by member",
-  "workoutDayExercisesFailed": "Couldn't load this day's workouts",
-  "@workoutDayExercisesFailed": {
-    "description": "Shown in the expanded day when its workouts fail to load (#2892)"
-  },
-  "workoutPendingCancel": "Cancel assignment",
-  "routineDeleteTitle": "Delete this program?",
-  "routineDeleteFailed": "Couldn't delete the program. Please try again in a moment",
-  "routineDeleted": "Program deleted",
-  "routineDeleteBody": "{name} disappears from the member's app too.",
-  "@routineDeleteBody": {
+  "@myDeleteConfirmPrompt": {
     "placeholders": {
       "name": {
         "type": "String"
       }
     }
+  },
+  "workoutKindPersonal": "Personal exercise",
+  "workoutRoutineDay": "{month}/{day} ({weekday})",
+  "@workoutRoutineDay": {"placeholders": {"month": {"type": "int"}, "day": {"type": "int"}, "weekday": {"type": "String"}}},
+  "workoutRoutineDoneOf": "{done} of {total} done",
+  "@workoutRoutineDoneOf": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "workoutRoutineSentUntil": "Sent {sent} · until {end}",
+  "@workoutRoutineSentUntil": {"placeholders": {"sent": {"type": "String"}, "end": {"type": "String"}}},
+  "workoutRoutineWeekSummary": "All done {full} of {days} days",
+  "@workoutRoutineWeekSummary": {"placeholders": {"days": {"type": "int"}, "full": {"type": "int"}}},
+  "workoutRoutineWeekLate": "{count} late on {weekday}",
+  "@workoutRoutineWeekLate": {"placeholders": {"weekday": {"type": "String"}, "count": {"type": "int"}}},
+  "workoutRoutineWeekFirstDay": "Starts today",
+  "workoutRoutineWeekSent": "Sent {date} · {names}",
+  "@workoutRoutineWeekSent": {"placeholders": {"date": {"type": "String"}, "names": {"type": "String"}}},
+  "workoutRoutineWeekOngoing": "Ongoing · {names}",
+  "@workoutRoutineWeekOngoing": {"placeholders": {"names": {"type": "String"}}},
+  "workoutRoutineWeekMore": "{names} +{count} more",
+  "@workoutRoutineWeekMore": {"placeholders": {"names": {"type": "String"}, "count": {"type": "int"}}},
+  "workoutRoutineAllCount": "Sent {count} times",
+  "@workoutRoutineAllCount": {"placeholders": {"count": {"type": "int"}}},
+  "workoutRoutineAllAverage": "{percent}% on average",
+  "@workoutRoutineAllAverage": {"placeholders": {"percent": {"type": "int"}}},
+  "workoutRoutineAllSent": "Sent {date}",
+  "@workoutRoutineAllSent": {"placeholders": {"date": {"type": "String"}}},
+  "workoutRoutineAllUntil": "until {date}",
+  "@workoutRoutineAllUntil": {"placeholders": {"date": {"type": "String"}}},
+  "workoutRoutineAllUntilShort": "until {date} · {days} days",
+  "@workoutRoutineAllUntilShort": {"placeholders": {"date": {"type": "String"}, "days": {"type": "int"}}},
+  "workoutRoutineAllOngoing": "In progress · day {day}",
+  "@workoutRoutineAllOngoing": {"placeholders": {"day": {"type": "int"}}},
+  "workoutRoutineAllFirstDay": "Starts today",
+  "workoutRoutineAllRing": "Personal exercise sent {date}, {percent}% done",
+  "@workoutRoutineAllRing": {"placeholders": {"date": {"type": "String"}, "percent": {"type": "int"}}},
+  "coachRoutineAdherenceTitle": "Personal exercise follow-through",
+  "coachRoutineAdherenceSummary": "All done on {full} of the past {days} days",
+  "@coachRoutineAdherenceSummary": {"placeholders": {"days": {"type": "int"}, "full": {"type": "int"}}},
+  "coachRoutineAdherenceLate": "{count} on {weekday} checked later",
+  "@coachRoutineAdherenceLate": {"placeholders": {"weekday": {"type": "String"}, "count": {"type": "int"}}},
+  "coachRoutineAdherenceFirstDay": "Sent today",
+  "coachRoutineAdherenceCell": "{date}: {done} of {total} done",
+  "@coachRoutineAdherenceCell": {"placeholders": {"date": {"type": "String"}, "done": {"type": "int"}, "total": {"type": "int"}}},
+  "workoutTotalBurned": "{calories} kcal burned",
+  "@workoutTotalBurned": {"placeholders": {"calories": {"type": "String"}}},
+  "workoutLineBurned": "{calories} kcal burned",
+  "@workoutLineBurned": {"placeholders": {"calories": {"type": "String"}}},
+  "workoutLineEstimated": "Est. {calories} kcal burned",
+  "@workoutLineEstimated": {"placeholders": {"calories": {"type": "String"}}},
+  "workoutIntensityPerformed": "Did {level}",
+  "@workoutIntensityPerformed": {"placeholders": {"level": {"type": "String"}}},
+  "workoutDaySourcePt": "PT",
+  "workoutUndatedTitle": "Records without a date",
+  "workoutMemberLogTitle": "Added by member",
+  "workoutDayExercisesFailed": "Couldn't load this day's workouts",
+  "@workoutDayExercisesFailed": {
+    "description": "Shown in the expanded day when its workouts fail to load (#2892)"
   },
   "searchClients": "Search members",
   "@searchClients": {
@@ -2676,7 +2726,7 @@
   "clientExerciseMemoHint": "Note what to remember from this workout",
   "clientExerciseMemoSaved": "Saved to memos.",
   "clientMemoTagManual": "Written by you",
-  "clientMemoTagPtSession": "PT session · {date}",
+  "clientMemoTagPtSession": "PT · {date}",
   "@clientMemoTagPtSession": {
     "placeholders": {
       "date": {
@@ -2703,8 +2753,16 @@
       }
     }
   },
-  "clientMemoTagMemberLog": "Member's log · {date}",
+  "clientMemoTagMemberLog": "Added by member · {date}",
   "@clientMemoTagMemberLog": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoTagDay": "Workout · {date}",
+  "@clientMemoTagDay": {
     "placeholders": {
       "date": {
         "type": "String"
@@ -2735,7 +2793,7 @@
       }
     }
   },
-  "clientMemoRecordPtSession": "{date} PT session",
+  "clientMemoRecordPtSession": "{date} PT",
   "@clientMemoRecordPtSession": {
     "placeholders": {
       "date": {
@@ -2762,8 +2820,16 @@
       }
     }
   },
-  "clientMemoRecordMemberLog": "{date} Member log",
+  "clientMemoRecordMemberLog": "{date} Added by member",
   "@clientMemoRecordMemberLog": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "clientMemoRecordExerciseDay": "{date} workout",
+  "@clientMemoRecordExerciseDay": {
     "placeholders": {
       "date": {
         "type": "String"
@@ -2775,7 +2841,7 @@
   "clientFeedbackPrivate": "Feedback you and the member exchanged. Tap one to edit it where it was written.",
   "clientFeedbackToMember": "Trainer → member",
   "clientFeedbackFromMember": "Member → trainer",
-  "clientFeedbackSourcePt": "PT session · {date}",
+  "clientFeedbackSourcePt": "PT · {date}",
   "@clientFeedbackSourcePt": {
     "placeholders": {
       "date": {
@@ -3323,10 +3389,6 @@
         "format": "yMMMMEEEEd"
       }
     }
-  },
-  "clientWorkoutSourceAi": "AI",
-  "@clientWorkoutSourceAi": {
-    "description": "Tag on a pending assigned routine that the AI suggested."
   },
   "coachClientDemographics": "{gender} · Age {age}",
   "@coachClientDemographics": {

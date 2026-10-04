@@ -1449,8 +1449,8 @@ void main() {
       await tester.tap(picker);
       await tester.pumpAndSettle();
       // 최신 먼저, `9/30 (수) PT 세션` 처럼 날짜·요일·종류를 적는다.
-      expect(find.text('9/29 (화) 개인 운동 · 코어 강화'), findsWidgets);
-      await tester.tap(find.text('9/30 (수) PT 세션').last);
+      expect(find.text('9/29 (화) 개인운동 · 코어 강화'), findsWidgets);
+      await tester.tap(find.text('9/30 (수) PT').last);
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey<String>('client-memo-add')));
@@ -1465,7 +1465,7 @@ void main() {
         const ValueKey<String>('client-memo-exercise-memo-1'),
       );
       expect(
-        find.descendant(of: tag, matching: find.text('PT 세션 · 9/30')),
+        find.descendant(of: tag, matching: find.text('PT · 9/30')),
         findsOneWidget,
       );
     });
@@ -1525,7 +1525,7 @@ void main() {
         find.byKey(const ValueKey<String>('client-memo-record')),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('9/30 (수) PT 세션').last);
+      await tester.tap(find.text('9/30 (수) PT').last);
       await tester.pumpAndSettle();
       await tester.tap(chip('diet'));
       await tester.pumpAndSettle();
@@ -1750,7 +1750,7 @@ void main() {
       expect(ptY, lessThan(weeklyY));
       expect(weeklyY, lessThan(reportY));
 
-      expect(find.text('PT 세션 · 9/30'), findsOneWidget);
+      expect(find.text('PT · 9/30'), findsOneWidget);
       expect(find.text('주간 피드백 · 9/28 주'), findsOneWidget);
       expect(find.text('리포트 · 9/21 주'), findsOneWidget);
       expect(find.text('트레이너 → 회원'), findsNWidgets(2));

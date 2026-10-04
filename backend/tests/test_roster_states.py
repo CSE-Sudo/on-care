@@ -71,7 +71,8 @@ def test_every_alert_state_is_reachable_through_the_api(client):
 
     low_completion = []
     for r in rows:
-        logged = [v for v in r.get("week_completion") or [] if v > 0]
+        # null 은 걸린 것이 없는 날이다. 0 은 걸렸는데 안 한 날이라 센다(#2513).
+        logged = [v for v in r.get("week_completion") or [] if v is not None]
         if logged and sum(logged) / len(logged) < _COMPLETION_LOW:
             low_completion.append(r)
     assert low_completion, "이행률 저조 경고를 그릴 고객이 없다"
@@ -196,4 +197,4 @@ def test_seeded_history_reaches_back_far_enough_for_the_trend_card(client):
     body = r.json()
     assert sum(body["sodium_week"]) > 0, "11주 전 나트륨 기록이 없다"
     assert body["sodium_avg"] is not None
-    assert sum(body["week_completion"]) > 0, "11주 전 운동 기록이 없다"
+    assert sum(v or 0 for v in body["week_completion"]) > 0, "11주 전 운동 기록이 없다"

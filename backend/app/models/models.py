@@ -1693,7 +1693,7 @@ class TrainerClientMemo(Base):
     insight_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     #: 채팅 인사이트 종류(discomfort|negativeFeedback). 직접 쓴 메모는 빈 문자열.
     insight_kind: Mapped[str] = mapped_column(String(32), default="")
-    #: 운동 기록 메모가 가리키는 기록의 갈래(pt_session|personal|member_log).
+    #: 운동 기록 메모가 가리키는 기록의 갈래(pt_session|personal|member_log|day).
     #: 다른 출처는 빈 문자열.
     ref_kind: Mapped[str] = mapped_column(String(16), default="", server_default="")
     #: 가리키는 이력 id(`routine_history.id` 또는 배정 수행 `exercise_sessions.id`).

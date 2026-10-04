@@ -71,6 +71,7 @@ TRAINER_ROUTES = frozenset({
     "POST /v1/trainer/clients/{member_id}/report/send-pdf",
     "GET /v1/trainer/clients/{member_id}/report/summary",
     "GET /v1/trainer/clients/{member_id}/reports/sent",
+    "GET /v1/trainer/clients/{member_id}/routine-days",
     "POST /v1/trainer/clients/{member_id}/routine-options",
     "GET /v1/trainer/clients/{member_id}/routine-suggestions",
     "POST /v1/trainer/clients/{member_id}/routine-suggestions",

@@ -9,14 +9,14 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.locale import Locale, current_locale
 from app.core.week import monday_of
 from app.models.models import (
     ChatMessage, DietEntry, ExerciseSession, HealthProfile,
-    TrainerReportGoal, RoutineHistory,
+    TrainerReportGoal,
     TrainerClient, TrainerReportFeedback,
     TrainerSchedule,
     User,
@@ -48,8 +48,8 @@ from app.services.trainer._common import (
     _meal_counts,
     _sodium_week,
     _sugar_week,
-    _week_completion,
     _week_days,
+    week_completion_by_member,
 )
 
 
@@ -96,15 +96,8 @@ def build_weekly_report(
     booked = len(sessions)
     done = sum(1 for s in sessions if s.status == SCHEDULE_DONE)
 
-    hist = db.scalars(
-        select(RoutineHistory).where(
-            RoutineHistory.member_id == member_id,
-            RoutineHistory.date >= monday_str,
-            RoutineHistory.date <= sunday_str,
-            or_(RoutineHistory.trainer_id.is_(None), RoutineHistory.trainer_id == trainer_id),
-        )
-    ).all()
-    week = _week_completion(hist, monday)
+    # 요일 이행률은 로스터와 같은 계산이다(#2513) — 걸린 개인운동과 잡힌 PT.
+    week = week_completion_by_member(db, trainer_id, [member_id], monday)[member_id]
     # 요일 칸은 회원의 실제 운동 기록에서 만든다(#1288). 기록이 (그 주 월요일,
     # 요일) 로 저장되므로 월요일 하나로 한 주가 그대로 걸린다.
     exercise_rows = db.scalars(
@@ -120,8 +113,9 @@ def build_weekly_report(
     days = _week_days(
         list(exercise_rows), week, _assigned_week(db, trainer_id, member_id, monday)
     )
-    recorded = [d for d in week if d > 0]
-    # 기록이 하나도 없으면 null — 0% 로 보고하면 "아무것도 안 했다"는 거짓말이 된다.
+    recorded = [d for d in week if d is not None]
+    # 걸린 것이 하나도 없으면 null — 0% 로 보고하면 "아무것도 안 했다"는 거짓말이
+    # 된다. 걸렸는데 안 한 날(0)은 평균에 든다(#2513).
     completion_avg = round(sum(recorded) / len(recorded)) if recorded else None
 
     diet = db.scalars(
@@ -271,25 +265,14 @@ def build_report_queue(db: Session, trainer_id: str, week: date) -> ReportQueueO
         if status == SCHEDULE_DONE:
             done[member_id] += 1
 
-    # 이행률 — 리포트와 같은 `_week_completion` 규칙(같은 날 여럿이면 최댓값).
-    hist_by_member: dict[str, list[RoutineHistory]] = defaultdict(list)
-    for row in db.scalars(
-        select(RoutineHistory).where(
-            RoutineHistory.member_id.in_(member_ids),
-            RoutineHistory.date >= monday_str,
-            RoutineHistory.date <= sunday_str,
-            or_(
-                RoutineHistory.trainer_id.is_(None),
-                RoutineHistory.trainer_id == trainer_id,
-            ),
-        )
-    ).all():
-        hist_by_member[row.member_id].append(row)
+    # 이행률 — 리포트와 같은 `week_completion_by_member` 규칙(#2513): 걸린
+    # 개인운동과 잡힌 PT. 회원 수와 무관하게 쿼리 셋이다.
+    week_by_member = week_completion_by_member(db, trainer_id, member_ids, monday)
 
     items: list[ReportQueueItemOut] = []
     for member_id in member_ids:
-        week_values = _week_completion(hist_by_member.get(member_id, []), monday)
-        recorded = [d for d in week_values if d > 0]
+        week_values = week_by_member.get(member_id, [None] * 7)
+        recorded = [d for d in week_values if d is not None]
         items.append(
             ReportQueueItemOut(
                 member_id=member_id,

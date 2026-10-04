@@ -68,7 +68,7 @@ void main() {
       }
 
       expect(await db.select(db.clientChatMessages).get(), isNotEmpty);
-      expect(await db.readValue('trainer_seeded_v50'), _todayString());
+      expect(await db.readValue('trainer_seeded_v53'), _todayString());
     });
 
     test(
@@ -141,12 +141,14 @@ void main() {
           (jsonDecode(c.sodiumWeekJson) as List<Object?>)
               .map((e) => (e! as num).toInt())
               .toList();
-      List<int> week(TrainerClientRow c) =>
+      // 걸린 것이 없는 날은 null 이다(#2513).
+      List<int?> week(TrainerClientRow c) =>
           (jsonDecode(c.weekCompletionJson) as List<Object?>)
-              .map((e) => e! as int)
+              .map((e) => (e as num?)?.toInt())
               .toList();
+      // 앱과 같은 규칙 — 걸린 날만 평균내고, 0 은 걸렸는데 안 한 날이라 센다.
       bool low(TrainerClientRow c) {
-        final recorded = week(c).where((d) => d > 0).toList();
+        final recorded = week(c).whereType<int>().toList();
         if (recorded.isEmpty) return false;
         return recorded.reduce((a, b) => a + b) / recorded.length < 60;
       }
@@ -482,13 +484,13 @@ void main() {
 
     test('stale flag (different date) re-seeds schedule onto today', () async {
       await seedIfEmpty(db);
-      await db.putValue('trainer_seeded_v50', '2020-01-01');
+      await db.putValue('trainer_seeded_v53', '2020-01-01');
 
       await seedIfEmpty(db);
 
       final schedule = await db.select(db.trainerScheduleEntries).get();
       expect(schedule.any((s) => s.date == _todayString()), isTrue);
-      expect(await db.readValue('trainer_seeded_v50'), _todayString());
+      expect(await db.readValue('trainer_seeded_v53'), _todayString());
     });
 
     test(
@@ -680,7 +682,7 @@ void main() {
         expect(week.length, 7);
         expect(week.any((v) => (v as num) > 0), isTrue);
 
-        expect(await db.readValue('trainer_seeded_v50'), today);
+        expect(await db.readValue('trainer_seeded_v53'), today);
       },
     );
 
@@ -789,7 +791,7 @@ void main() {
           );
 
       // Force a re-seed.
-      await db.putValue('trainer_seeded_v50', '2020-01-01');
+      await db.putValue('trainer_seeded_v53', '2020-01-01');
       await seedIfEmpty(db);
 
       final chat = await db.select(db.clientChatMessages).get();
@@ -907,7 +909,7 @@ void main() {
         'daily_calories': 1700,
       });
 
-      await db.putValue('trainer_seeded_v50', '2020-01-01');
+      await db.putValue('trainer_seeded_v53', '2020-01-01');
       await seedIfEmpty(db);
 
       final p = await repository.fetchHealthProfile('seed-client-2');

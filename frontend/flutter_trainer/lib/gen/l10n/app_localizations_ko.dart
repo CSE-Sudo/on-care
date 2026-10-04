@@ -1225,9 +1225,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientFeedback => '회원 피드백';
 
   @override
-  String get workoutKindAiPersonal => 'AI 개인운동';
-
-  @override
   String get workoutKindPtSession => 'PT · 트레이너 지도';
 
   @override
@@ -2836,9 +2833,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachHistoryEmpty => '아직 보낸 프로그램이 없어요';
 
   @override
-  String get coachTrainer => '트레이너';
-
-  @override
   String get aiReasonSodium => '오늘 나트륨이 목표를 초과해 저강도 유산소 비중을 높이는 것이 좋아요.';
 
   @override
@@ -3110,8 +3104,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiRoutineOnlyStartDate => '시작일';
 
   @override
-  String get aiRoutineOnlyWeeklyHint =>
-      '보낸 날부터 7일간 회원 앱에 매일 떠요. 다음 주 분은 그때 다시 보내 주세요.';
+  String aiRoutineOnlyWeeklyHint(String start, String end) {
+    return '$start부터 $end까지 7일간 회원 앱에 매일 떠요. 다음 주 분은 그때 다시 보내 주세요.';
+  }
 
   @override
   String get aiRoutineOnlySend => '회원에게 보내기';
@@ -3665,39 +3660,141 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myWithdrawContinue => '탈퇴 계속';
 
   @override
-  String get routineAlreadyGone => '이미 삭제된 프로그램이에요';
+  String get workoutKindPersonal => '개인운동';
 
   @override
-  String get workoutPendingTitle => '매일 하는 개인 운동';
+  String workoutRoutineDay(int month, int day, String weekday) {
+    return '$month/$day($weekday)';
+  }
 
   @override
-  String get workoutRoutineDoneToday => '오늘 완료';
+  String workoutRoutineDoneOf(int done, int total) {
+    return '$total개 중 $done개 완료';
+  }
+
+  @override
+  String workoutRoutineSentUntil(String sent, String end) {
+    return '$sent 보냄 · $end까지';
+  }
+
+  @override
+  String workoutRoutineWeekSummary(int days, int full) {
+    return '$days일 중 모두 완료 $full일';
+  }
+
+  @override
+  String workoutRoutineWeekLate(String weekday, int count) {
+    return '$weekday $count건 늦게';
+  }
+
+  @override
+  String get workoutRoutineWeekFirstDay => '오늘 시작';
+
+  @override
+  String workoutRoutineWeekSent(String date, String names) {
+    return '$date 보냄 · $names';
+  }
+
+  @override
+  String workoutRoutineWeekOngoing(String names) {
+    return '계속 · $names';
+  }
+
+  @override
+  String workoutRoutineWeekMore(String names, int count) {
+    return '$names 외 $count개';
+  }
+
+  @override
+  String workoutRoutineAllCount(int count) {
+    return '$count번 보냄';
+  }
+
+  @override
+  String workoutRoutineAllAverage(int percent) {
+    return '평균 $percent%';
+  }
+
+  @override
+  String workoutRoutineAllSent(String date) {
+    return '$date 보냄';
+  }
+
+  @override
+  String workoutRoutineAllUntil(String date) {
+    return '~$date';
+  }
+
+  @override
+  String workoutRoutineAllUntilShort(String date, int days) {
+    return '~$date · $days일';
+  }
+
+  @override
+  String workoutRoutineAllOngoing(int day) {
+    return '진행 중 · $day일째';
+  }
+
+  @override
+  String get workoutRoutineAllFirstDay => '오늘 시작';
+
+  @override
+  String workoutRoutineAllRing(String date, int percent) {
+    return '$date 보낸 개인운동, $percent% 완료';
+  }
+
+  @override
+  String get coachRoutineAdherenceTitle => '개인운동 이행';
+
+  @override
+  String coachRoutineAdherenceSummary(int days, int full) {
+    return '지난 $days일 중 모두 완료 $full일';
+  }
+
+  @override
+  String coachRoutineAdherenceLate(String weekday, int count) {
+    return '$weekday요일 $count건은 다음 날 체크';
+  }
+
+  @override
+  String get coachRoutineAdherenceFirstDay => '오늘 보낸 개인운동이에요';
+
+  @override
+  String coachRoutineAdherenceCell(String date, int done, int total) {
+    return '$date: $done/$total 완료';
+  }
+
+  @override
+  String workoutTotalBurned(String calories) {
+    return '총 소모 $calories kcal';
+  }
+
+  @override
+  String workoutLineBurned(String calories) {
+    return '소모 $calories kcal';
+  }
+
+  @override
+  String workoutLineEstimated(String calories) {
+    return '예상 소모 $calories kcal';
+  }
+
+  @override
+  String workoutIntensityPerformed(String level) {
+    return '수행 $level';
+  }
+
+  @override
+  String get workoutDaySourcePt => 'PT';
 
   @override
   String get workoutUndatedTitle => '날짜를 알 수 없는 기록';
 
   @override
-  String get workoutMemberLogTitle => '직접 기록';
+  String get workoutMemberLogTitle => '회원 추가';
 
   @override
   String get workoutDayExercisesFailed => '운동 기록을 불러오지 못했어요';
-
-  @override
-  String get workoutPendingCancel => '배정 취소';
-
-  @override
-  String get routineDeleteTitle => '프로그램을 삭제할까요?';
-
-  @override
-  String get routineDeleteFailed => '프로그램을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String get routineDeleted => '프로그램을 삭제했어요';
-
-  @override
-  String routineDeleteBody(String name) {
-    return '$name 배정이 회원 앱에서도 사라져요.';
-  }
 
   @override
   String get searchClients => '회원 검색';
@@ -4053,22 +4150,27 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String clientMemoTagPtSession(String date) {
-    return 'PT 세션 · $date';
+    return 'PT · $date';
   }
 
   @override
   String clientMemoTagPersonal(String date) {
-    return '개인 운동 · $date';
+    return '개인운동 · $date';
   }
 
   @override
   String clientMemoTagPersonalNamed(String date, String name) {
-    return '개인 운동 · $date $name';
+    return '개인운동 · $date $name';
   }
 
   @override
   String clientMemoTagMemberLog(String date) {
-    return '회원 기록 · $date';
+    return '회원 추가 · $date';
+  }
+
+  @override
+  String clientMemoTagDay(String date) {
+    return '운동 기록 · $date';
   }
 
   @override
@@ -4108,22 +4210,27 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String clientMemoRecordPtSession(String date) {
-    return '$date PT 세션';
+    return '$date PT';
   }
 
   @override
   String clientMemoRecordPersonal(String date) {
-    return '$date 개인 운동';
+    return '$date 개인운동';
   }
 
   @override
   String clientMemoRecordPersonalNamed(String date, String name) {
-    return '$date 개인 운동 · $name';
+    return '$date 개인운동 · $name';
   }
 
   @override
   String clientMemoRecordMemberLog(String date) {
-    return '$date 회원 기록';
+    return '$date 회원 추가';
+  }
+
+  @override
+  String clientMemoRecordExerciseDay(String date) {
+    return '$date 운동 기록';
   }
 
   @override
@@ -4143,7 +4250,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String clientFeedbackSourcePt(String date) {
-    return 'PT 세션 · $date';
+    return 'PT · $date';
   }
 
   @override
@@ -4689,9 +4796,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get clientWorkoutSourceAi => 'AI';
-
-  @override
   String coachClientDemographics(String gender, int age) {
     return '$gender · $age세';
   }
@@ -4948,7 +5052,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get reportsGridPersonal => '개인 운동';
+  String get reportsGridPersonal => '개인운동';
 
   @override
   String get reportsGridPersonalUnit => '수행 / 배정';

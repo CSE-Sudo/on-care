@@ -761,21 +761,24 @@ def test_report_carries_the_requested_weeks_daily_series(client, db_session):
     assert body["sodium_week"][1] == 2400
     assert body["calories_week"][1] == 700
     assert body["sugar_week"][1] == 12.5
-    assert body["week_completion"][1] == 80
+    # 이행률은 `routine_history` 가 아니라 그 주에 걸린 개인운동·잡힌 PT 로
+    # 센다(#2513) — 위 기록 행은 이행률에 들지 않는다. 요일 칸과 계열은 같은 값이다.
     # 그날 **실제로 한** 운동이 함께 온다(#754, #1288). 배정 목록이 아니라 운동
     # 기록에서 오므로 미수행(✗)은 실리지 않는다 — 배정에 날짜가 없어 "그날
     # 배정됐는데 안 했다" 가 만들어지지 않는다.
     assert len(body["days"]) == 7
-    assert body["days"][1]["completion"] == 80
+    assert [d["completion"] for d in body["days"]] == body["week_completion"]
     assert body["days"][1]["exercises"] == ["걷기 30분", "코어 강화"]
     assert all("✗" not in name for name in body["days"][1]["exercises"])
-    assert body["days"][0]["completion"] == 0
     assert body["days"][0]["exercises"] == []
     # 기록이 없는 날은 0 이고, 이번 주 수치가 섞여 들어오지 않는다.
     assert body["sodium_week"][0] == 0
     assert body["sodium_avg"] == 2400  # 기록된 하루만 나눈다
     assert body["sodium_over_days"] == 1
-    assert body["completion_avg"] == 80
+    recorded = [v for v in body["week_completion"] if v is not None]
+    assert body["completion_avg"] == (
+        round(sum(recorded) / len(recorded)) if recorded else None
+    )
 
 
 def test_report_lists_exercise_a_member_logged_alone(client, db_session):

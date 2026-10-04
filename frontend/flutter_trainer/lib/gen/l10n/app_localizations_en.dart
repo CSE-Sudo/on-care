@@ -1263,9 +1263,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientFeedback => 'Member feedback';
 
   @override
-  String get workoutKindAiPersonal => 'AI personal exercise';
-
-  @override
   String get workoutKindPtSession => 'PT · Trainer-led';
 
   @override
@@ -2992,9 +2989,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachHistoryEmpty => 'You haven\'t sent any programs yet';
 
   @override
-  String get coachTrainer => 'Trainer';
-
-  @override
   String get aiReasonSodium =>
       'Sodium is over target today, so lean into low-intensity cardio.';
 
@@ -3278,8 +3272,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiRoutineOnlyStartDate => 'Start date';
 
   @override
-  String get aiRoutineOnlyWeeklyHint =>
-      'Appears in the member app every day for 7 days from today. Send next week\'s set again then.';
+  String aiRoutineOnlyWeeklyHint(String start, String end) {
+    return 'Appears in the member app every day for 7 days, $start to $end. Send next week\'s set again then.';
+  }
 
   @override
   String get aiRoutineOnlySend => 'Send to member';
@@ -3858,40 +3853,141 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myWithdrawContinue => 'Continue leaving';
 
   @override
-  String get routineAlreadyGone => 'That program is already gone';
+  String get workoutKindPersonal => 'Personal exercise';
 
   @override
-  String get workoutPendingTitle => 'Daily personal exercises';
+  String workoutRoutineDay(int month, int day, String weekday) {
+    return '$month/$day ($weekday)';
+  }
 
   @override
-  String get workoutRoutineDoneToday => 'Done today';
+  String workoutRoutineDoneOf(int done, int total) {
+    return '$done of $total done';
+  }
+
+  @override
+  String workoutRoutineSentUntil(String sent, String end) {
+    return 'Sent $sent · until $end';
+  }
+
+  @override
+  String workoutRoutineWeekSummary(int days, int full) {
+    return 'All done $full of $days days';
+  }
+
+  @override
+  String workoutRoutineWeekLate(String weekday, int count) {
+    return '$count late on $weekday';
+  }
+
+  @override
+  String get workoutRoutineWeekFirstDay => 'Starts today';
+
+  @override
+  String workoutRoutineWeekSent(String date, String names) {
+    return 'Sent $date · $names';
+  }
+
+  @override
+  String workoutRoutineWeekOngoing(String names) {
+    return 'Ongoing · $names';
+  }
+
+  @override
+  String workoutRoutineWeekMore(String names, int count) {
+    return '$names +$count more';
+  }
+
+  @override
+  String workoutRoutineAllCount(int count) {
+    return 'Sent $count times';
+  }
+
+  @override
+  String workoutRoutineAllAverage(int percent) {
+    return '$percent% on average';
+  }
+
+  @override
+  String workoutRoutineAllSent(String date) {
+    return 'Sent $date';
+  }
+
+  @override
+  String workoutRoutineAllUntil(String date) {
+    return 'until $date';
+  }
+
+  @override
+  String workoutRoutineAllUntilShort(String date, int days) {
+    return 'until $date · $days days';
+  }
+
+  @override
+  String workoutRoutineAllOngoing(int day) {
+    return 'In progress · day $day';
+  }
+
+  @override
+  String get workoutRoutineAllFirstDay => 'Starts today';
+
+  @override
+  String workoutRoutineAllRing(String date, int percent) {
+    return 'Personal exercise sent $date, $percent% done';
+  }
+
+  @override
+  String get coachRoutineAdherenceTitle => 'Personal exercise follow-through';
+
+  @override
+  String coachRoutineAdherenceSummary(int days, int full) {
+    return 'All done on $full of the past $days days';
+  }
+
+  @override
+  String coachRoutineAdherenceLate(String weekday, int count) {
+    return '$count on $weekday checked later';
+  }
+
+  @override
+  String get coachRoutineAdherenceFirstDay => 'Sent today';
+
+  @override
+  String coachRoutineAdherenceCell(String date, int done, int total) {
+    return '$date: $done of $total done';
+  }
+
+  @override
+  String workoutTotalBurned(String calories) {
+    return '$calories kcal burned';
+  }
+
+  @override
+  String workoutLineBurned(String calories) {
+    return '$calories kcal burned';
+  }
+
+  @override
+  String workoutLineEstimated(String calories) {
+    return 'Est. $calories kcal burned';
+  }
+
+  @override
+  String workoutIntensityPerformed(String level) {
+    return 'Did $level';
+  }
+
+  @override
+  String get workoutDaySourcePt => 'PT';
 
   @override
   String get workoutUndatedTitle => 'Records without a date';
 
   @override
-  String get workoutMemberLogTitle => 'Logged by member';
+  String get workoutMemberLogTitle => 'Added by member';
 
   @override
   String get workoutDayExercisesFailed => 'Couldn\'t load this day\'s workouts';
-
-  @override
-  String get workoutPendingCancel => 'Cancel assignment';
-
-  @override
-  String get routineDeleteTitle => 'Delete this program?';
-
-  @override
-  String get routineDeleteFailed =>
-      'Couldn\'t delete the program. Please try again in a moment';
-
-  @override
-  String get routineDeleted => 'Program deleted';
-
-  @override
-  String routineDeleteBody(String name) {
-    return '$name disappears from the member\'s app too.';
-  }
 
   @override
   String get searchClients => 'Search members';
@@ -4269,7 +4365,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String clientMemoTagPtSession(String date) {
-    return 'PT session · $date';
+    return 'PT · $date';
   }
 
   @override
@@ -4284,7 +4380,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String clientMemoTagMemberLog(String date) {
-    return 'Member\'s log · $date';
+    return 'Added by member · $date';
+  }
+
+  @override
+  String clientMemoTagDay(String date) {
+    return 'Workout · $date';
   }
 
   @override
@@ -4324,7 +4425,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String clientMemoRecordPtSession(String date) {
-    return '$date PT session';
+    return '$date PT';
   }
 
   @override
@@ -4339,7 +4440,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String clientMemoRecordMemberLog(String date) {
-    return '$date Member log';
+    return '$date Added by member';
+  }
+
+  @override
+  String clientMemoRecordExerciseDay(String date) {
+    return '$date workout';
   }
 
   @override
@@ -4360,7 +4466,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String clientFeedbackSourcePt(String date) {
-    return 'PT session · $date';
+    return 'PT · $date';
   }
 
   @override
@@ -4920,9 +5026,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
     return '$dateString';
   }
-
-  @override
-  String get clientWorkoutSourceAi => 'AI';
 
   @override
   String coachClientDemographics(String gender, int age) {

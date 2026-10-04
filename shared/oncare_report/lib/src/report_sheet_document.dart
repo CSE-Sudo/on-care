@@ -699,7 +699,8 @@ class _DailyTable extends StatelessWidget {
         <String>[
           for (int i = 0; i < weekdays.length; i++)
             orDash(
-              at(report.days, i)?.completion ?? at(report.weekCompletion, i),
+              at(report.days, i)?.completion ??
+                  at<int?>(report.weekCompletion, i),
               l.reportsPdfValuePercent,
             ),
         ],

@@ -36,10 +36,14 @@ part 'seed_text_en.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v50']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v53']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
+///
+/// `_v51` 은 이번 주 이행률 계열의 뜻을 바꿨다(#2513) — 걸린 것이 없는 날과
+/// 아직 오지 않은 날은 null, 0 은 "걸렸는데 하나도 안 했다" 다. 올리지 않으면
+/// 오늘 이미 시드된 브라우저의 로스터가 옛 0 을 `0%` 막대로 그린다.
 ///
 /// `_v50` 은 김민수 대화에 트레이너가 보낸 PDF·사진을 붙였다(#2663). 올리지
 /// 않으면 오늘 이미 시드된 브라우저의 김민수 대화에 그 두 메시지가 없어 회원 앱
@@ -207,7 +211,7 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v50') == today &&
+  if (await db.readValue('trainer_seeded_v53') == today &&
       seededLanguage == language.name) {
     // 일정 행이 동기로 읽는 상담 연결을 저장소에서 되살린다(#2669).
     await loadDemoScheduleConsultations(db);
@@ -380,7 +384,7 @@ Future<void> seedIfEmpty(
               lastRoutine: t(client.lastRoutine),
               weekCompletionJson: jsonEncode(
                 fromFixture
-                    ? fixtureClient.completionWeek
+                    ? _upToToday(fixtureClient.completionWeek, todayIndex)
                     : _upToToday(client.weekCompletion, todayIndex),
               ),
               sodiumWeekJson: Value(
@@ -856,15 +860,14 @@ Future<void> seedIfEmpty(
         continue;
       }
       demoScheduleConsultations[demoConsultationKey(
-            clientId: seedClientIdByName[_schedule[i].clientName],
-            date: today,
-            time: _schedule[i].time,
-          )] =
-          ScheduleConsultation(
-            id: '$_seedConsultPrefix$i',
-            goalCode: request.goal,
-            message: t(request.message),
-          );
+        clientId: seedClientIdByName[_schedule[i].clientName],
+        date: today,
+        time: _schedule[i].time,
+      )] = ScheduleConsultation(
+        id: '$_seedConsultPrefix$i',
+        goalCode: request.goal,
+        message: t(request.message),
+      );
     }
     for (final p in placed) {
       final _WeekSlot slot = _weekSchedule[p.index];
@@ -872,15 +875,14 @@ Future<void> seedIfEmpty(
           _seedConsultRequests[slot.clientName];
       if (slot.type != SessionType.consultation || request == null) continue;
       demoScheduleConsultations[demoConsultationKey(
-            clientId: seedClientIdByName[slot.clientName],
-            date: ymd(dayOfWeek(p.weekday)),
-            time: p.time,
-          )] =
-          ScheduleConsultation(
-            id: '${_seedConsultPrefix}w${p.index}',
-            goalCode: request.goal,
-            message: t(request.message),
-          );
+        clientId: seedClientIdByName[slot.clientName],
+        date: ymd(dayOfWeek(p.weekday)),
+        time: p.time,
+      )] = ScheduleConsultation(
+        id: '${_seedConsultPrefix}w${p.index}',
+        goalCode: request.goal,
+        message: t(request.message),
+      );
     }
     // 지난 상담(#2667)도 요청에서 생긴 상담이다 — 같은 규칙으로 잇는다.
     for (var i = 0; i < _pastConsults.length; i++) {
@@ -888,15 +890,14 @@ Future<void> seedIfEmpty(
           _seedConsultRequests[_pastConsults[i].clientName];
       if (request == null) continue;
       demoScheduleConsultations[demoConsultationKey(
-            clientId: seedClientIdByName[_pastConsults[i].clientName],
-            date: ymd(_daysBefore(now, _pastConsults[i].daysAgo)),
-            time: _pastConsultTime,
-          )] =
-          ScheduleConsultation(
-            id: '${_seedConsultPrefix}c$i',
-            goalCode: request.goal,
-            message: t(request.message),
-          );
+        clientId: seedClientIdByName[_pastConsults[i].clientName],
+        date: ymd(_daysBefore(now, _pastConsults[i].daysAgo)),
+        time: _pastConsultTime,
+      )] = ScheduleConsultation(
+        id: '${_seedConsultPrefix}c$i',
+        goalCode: request.goal,
+        message: t(request.message),
+      );
     }
     await writeDemoScheduleConsultations(db);
 
@@ -908,7 +909,7 @@ Future<void> seedIfEmpty(
     await seedDemoNotifications(db, now: now);
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v50', today);
+    await db.putValue('trainer_seeded_v53', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }
@@ -1472,6 +1473,16 @@ class _FixtureClient {
                   'name': t(e.name),
                   'type': e.type,
                   'minutes': e.minutes,
+                  // 펼친 날 줄마다 적는 소모 kcal(#2508) — 하루 합계와 같은
+                  // 픽스처 값이라 줄을 더하면 `총 소모` 가 된다.
+                  'calories': e.calories,
+                  // 픽스처에는 회원이 손으로 적은 기록이 없다 — PT 날은 트레이너
+                  // 지도 세션, 나머지 날은 개인운동을 한 기록이다. 백엔드 시드와
+                  // 같은 출처다(#2662, #2508).
+                  'source': day.isPt ? 'trainer_pt' : 'assigned_routine',
+                  // 백엔드 시드가 남기는 강도와 같다 — 트레이너 화면 운동 줄이
+                  // 강도 태그를 그린다(#2508).
+                  'intensity': 'moderate',
                   if (e.sets != null) 'sets': e.sets,
                   if (e.reps != null) 'reps': e.reps,
                   if (e.holdSeconds != null) 'hold_seconds': e.holdSeconds,
@@ -1606,7 +1617,11 @@ Iterable<ClientDailyMetricsCompanion> _dailyMetrics(
       exercisesJson: Value(
         jsonEncode(
           d.date == today
-              ? _exercisesFor(client, d.completion, t, today: true)
+              ? _todayRows(
+                  client,
+                  _exercisesFor(client, d.completion, t, today: true),
+                  t,
+                )
               : t.exercises(_routineFor(client.id, d.day, d.completion)),
         ),
       ),
@@ -1866,6 +1881,37 @@ List<String> _exercisesFor(
   return const <String>[];
 }
 
+/// 오늘 한 운동 이름 → 운동 행. 개인운동과 이름이 같은 것은 그 개인운동의
+/// 양(유형·분·세트·횟수·중량)을 싣는다(#2508) — 실서버에서 회원이 개인운동을
+/// 체크하면 그 값으로 운동 행이 남는다. 그래야 줄마다 소모 kcal 과 운동 시간이
+/// 선다. 개인운동이 아닌 이름은 적힌 그대로 둔다.
+List<Object> _todayRows(_Client client, List<String> names, _SeedText t) =>
+    <Object>[
+      for (final String name in names)
+        () {
+          for (final _Routine r in client.aiRoutine) {
+            final String routine = t(r.name);
+            if (name != routine && !name.startsWith('$routine ')) continue;
+            return <String, Object?>{
+              'name': routine,
+              'type': switch (r.type) {
+                '유산소' => 'cardio',
+                '근력' => 'strength',
+                '스트레칭' => 'stretching',
+                _ => 'other',
+              },
+              'minutes': r.minutes,
+              'intensity': 'moderate',
+              if (r.sets > 0) 'sets': r.sets,
+              if (r.reps > 0) 'reps': r.reps,
+              if (r.holdSeconds > 0) 'hold_seconds': r.holdSeconds,
+              if (r.weight > 0) 'weight': r.weight,
+            };
+          }
+          return name;
+        }(),
+    ];
+
 /// 시드의 운동 목록에서 **한 것만** 이름으로 추린다.
 ///
 /// 값까지 실린 객체(#1902)와, 손으로 적어 둔 옛 표기(`이름 ✓` / `이름 ✗`)를 함께
@@ -1902,9 +1948,17 @@ List<Map<String, Object?>> _routineFor(
 /// 채워져 있다. 운동 추이 카드가 오지 않은 날을 막대로 그리고, 주 평균도
 /// 그 날들을 포함해 실제보다 높게 나온다 — 화면은 비워 두고 평균만 포함하는
 /// 어긋남이 여기서 생겼다(#752).
-List<int> _upToToday(List<int> week, int todayIndex) => <int>[
-  for (var i = 0; i < week.length; i++) i <= todayIndex ? week[i] : 0,
-];
+///
+/// 이행률은 걸린 개인운동·PT 중 한 비율이라(#2513) 아직 오지 않은 날은 null
+/// 이다. 한 주 내내 0 인 회원(기록 전무)은 아직 아무것도 받지 않은 회원이라
+/// 모두 null 이다 — 0 은 "걸렸는데 하나도 안 했다" 라는 다른 뜻이다.
+List<int?> _upToToday(List<int> week, int todayIndex) {
+  final bool started = week.any((int v) => v > 0);
+  return <int?>[
+    for (var i = 0; i < week.length; i++)
+      started && i <= todayIndex ? week[i] : null,
+  ];
+}
 
 /// 시드의 "오래된→오늘" 계열을 **이번 주 월→일** 자리에 옮긴다.
 ///
@@ -2125,24 +2179,12 @@ const List<Map<String, String>> _pastPtNotes = <Map<String, String>>[
 /// 지난 상담([_pastConsults])의 시각.
 const String _pastConsultTime = '11:00';
 
-const List<({int daysAgo, String clientName, String note})> _pastConsults =
-    <({int daysAgo, String clientName, String note})>[
-      (
-        daysAgo: 11,
-        clientName: '한지호',
-        note: '식습관 상담. 회식이 주 2회라 야식 빈도부터 줄이기로 함.',
-      ),
-      (
-        daysAgo: 18,
-        clientName: '오세라',
-        note: '혈압 관리 상담. 가정 혈압 기록을 PT 전에 공유하기로 함.',
-      ),
-      (
-        daysAgo: 25,
-        clientName: '신유나',
-        note: '재활 목표 재설정 상담. 병원 소견상 무릎 굴곡은 120°까지.',
-      ),
-    ];
+const List<({int daysAgo, String clientName, String note})>
+_pastConsults = <({int daysAgo, String clientName, String note})>[
+  (daysAgo: 11, clientName: '한지호', note: '식습관 상담. 회식이 주 2회라 야식 빈도부터 줄이기로 함.'),
+  (daysAgo: 18, clientName: '오세라', note: '혈압 관리 상담. 가정 혈압 기록을 PT 전에 공유하기로 함.'),
+  (daysAgo: 25, clientName: '신유나', note: '재활 목표 재설정 상담. 병원 소견상 무릎 굴곡은 120°까지.'),
+];
 
 class _Slot {
   const _Slot({
@@ -2225,39 +2267,21 @@ const String _seedConsultPrefix = 'seed-consultation-';
 /// 시드 상담 일정마다 회원이 보낸 상담 요청 — 상담받는 사람 이름으로 찾는다
 /// (#2669). 목표 코드는 서버 enum 이라 옮기지 않고, 문의 글만 시드 언어로
 /// 옮긴다. 일정 메모(트레이너가 적은 것)와 같은 이야기를 회원 쪽 말로 한다.
-const Map<String, ({String goal, String message})> _seedConsultRequests =
-    <String, ({String goal, String message})>{
-      '정하윤': (
-        goal: 'eating',
-        message: '저녁 외식이 잦은데 식단 기록을 어떻게 이어 가면 좋을지 상담받고 싶어요.',
-      ),
-      '문가영': (goal: 'fitness', message: '수업을 오전 시간대로 옮길 수 있을지 여쭤보고 싶어요.'),
-      '조은비': (
-        goal: 'rehab',
-        message: '예전에 무릎을 다친 적이 있어요. 무리 없이 시작할 수 있을지 궁금해요.',
-      ),
-      '서지훈': (
-        goal: 'exercise_habit',
-        message: '주말에만 운동할 수 있는데 그래도 꾸준히 할 수 있을까요?',
-      ),
-      // 지난 상담(#2667)의 요청 — 상담 메모와 같은 이야기를 회원 쪽 말로 한다.
-      '한지호': (
-        goal: 'eating',
-        message: '회식이 잦아서 야식을 어떻게 줄일지 상담받고 싶어요.',
-      ),
-      '오세라': (
-        goal: 'blood_pressure',
-        message: '혈압이 다시 올라서 운동 강도를 같이 봐 주셨으면 해요.',
-      ),
-      '신유나': (
-        goal: 'rehab',
-        message: '무릎 재활 목표를 다시 잡고 싶어요. 병원 소견도 받아 뒀어요.',
-      ),
-      '윤가온': (
-        goal: 'weight_loss',
-        message: '체중 감량을 목표로 PT 를 알아보고 있어요. 퇴근 후 시간대가 좋아요.',
-      ),
-    };
+const Map<String, ({String goal, String message})>
+_seedConsultRequests = <String, ({String goal, String message})>{
+  '정하윤': (goal: 'eating', message: '저녁 외식이 잦은데 식단 기록을 어떻게 이어 가면 좋을지 상담받고 싶어요.'),
+  '문가영': (goal: 'fitness', message: '수업을 오전 시간대로 옮길 수 있을지 여쭤보고 싶어요.'),
+  '조은비': (goal: 'rehab', message: '예전에 무릎을 다친 적이 있어요. 무리 없이 시작할 수 있을지 궁금해요.'),
+  '서지훈': (goal: 'exercise_habit', message: '주말에만 운동할 수 있는데 그래도 꾸준히 할 수 있을까요?'),
+  // 지난 상담(#2667)의 요청 — 상담 메모와 같은 이야기를 회원 쪽 말로 한다.
+  '한지호': (goal: 'eating', message: '회식이 잦아서 야식을 어떻게 줄일지 상담받고 싶어요.'),
+  '오세라': (goal: 'blood_pressure', message: '혈압이 다시 올라서 운동 강도를 같이 봐 주셨으면 해요.'),
+  '신유나': (goal: 'rehab', message: '무릎 재활 목표를 다시 잡고 싶어요. 병원 소견도 받아 뒀어요.'),
+  '윤가온': (
+    goal: 'weight_loss',
+    message: '체중 감량을 목표로 PT 를 알아보고 있어요. 퇴근 후 시간대가 좋아요.',
+  ),
+};
 
 /// 지난 PT 가운데 끝내 하지 못한 수업(#2669) — 취소·노쇼 기록이 일정에도
 /// 리포트에도 있어야 실서버 화면과 같다. 배준혁은 야근형·노쇼 회원이고,

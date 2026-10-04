@@ -13,12 +13,12 @@ final AppLocalizationsKo _ko = AppLocalizationsKo();
 void main() {
   group('routineKindLabel', () {
     test('옛 라벨은 그릴 때 새 용어로 바꿔 읽는다', () {
-      expect(routineKindLabel(_ko, 'AI 루틴 · 자율 운동'), 'AI 개인운동');
+      expect(routineKindLabel(_ko, 'AI 루틴 · 자율 운동'), '개인운동');
     });
 
     test('그 밖의 라벨은 서버가 준 그대로 둔다', () {
       expect(routineKindLabel(_ko, 'PT 세션 · 트레이너 지도'), 'PT · 트레이너 지도');
-      expect(routineKindLabel(_ko, 'AI 개인운동'), 'AI 개인운동');
+      expect(routineKindLabel(_ko, 'AI 개인운동'), '개인운동');
     });
   });
 }

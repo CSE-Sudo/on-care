@@ -18,9 +18,12 @@ class ClientExerciseItem {
     this.durationSeconds,
     this.weight,
     this.intensity,
+    this.prescribedIntensity,
     this.done = true,
     this.source = '',
     this.assignedRoutineId,
+    this.sessionId,
+    this.calories,
   });
 
   /// 이름만 아는 옛 기록. 값이 이름 문자열에 섞여 있던 시절의 자료와, 이름만
@@ -99,12 +102,21 @@ class ClientExerciseItem {
           final String value when value.isNotEmpty => value,
           _ => null,
         },
+        prescribedIntensity: switch (json['prescribed_intensity']) {
+          final String value when value.isNotEmpty => value,
+          _ => null,
+        },
         done: json['done'] as bool? ?? true,
         source: (json['source'] as String?) ?? '',
         assignedRoutineId: switch (json['assigned_routine_id']) {
           final String value when value.isNotEmpty => value,
           _ => null,
         },
+        sessionId: switch (json['session_id']) {
+          final String value when value.isNotEmpty => value,
+          _ => null,
+        },
+        calories: (json['calories'] as num?)?.toInt(),
       );
 
   final String name;
@@ -135,6 +147,11 @@ class ClientExerciseItem {
   /// `light` | `moderate` | `high`. 강도를 적은 기록(배정 수행)만 있다(#2300).
   final String? intensity;
 
+  /// 하루치 `개인운동` 카드(#2510)의 한 줄에서 트레이너가 처방한 강도. [intensity]
+  /// 는 회원이 실제로 고른 강도라, 둘이 다르면 화면이 `수행 …` 을 붙인다(#2508).
+  /// 안 한 줄·다른 기록은 비어 있다.
+  final String? prescribedIntensity;
+
   /// 실제로 했는가. 운동 기록 탭이 ✓/✗ 로 그린다 — 배정만 되고 하지 않은 항목도
   /// 이력에는 남는다.
   final bool done;
@@ -146,6 +163,14 @@ class ClientExerciseItem {
   /// 배정 운동을 완료해 생긴 행이면 그 배정 id. 서버 옛 시드는 출처를
   /// `member` 로 둔 채 이 값만 채운다.
   final String? assignedRoutineId;
+
+  /// 하루치 `개인운동` 카드(#2510)의 한 줄이 가리키는 운동 기록 id. 트레이너
+  /// 메모가 줄마다 이 값으로 그 완료를 가리킨다(#2332). 하지 않은 줄은 비어 있다.
+  final String? sessionId;
+
+  /// 이 운동으로 소모한 kcal — 운동 기록 행만 싣는다. 펼친 날 줄마다 오른쪽에
+  /// 적는다(#2508). 이력 줄·옛 응답은 비어 있다.
+  final int? calories;
 
   /// 회원이 앱에서 **직접 적은** 기록인가. (#2534)
   ///
@@ -168,9 +193,13 @@ class ClientExerciseItem {
     if (durationSeconds != null) 'duration_seconds': durationSeconds,
     if (weight != null) 'weight': weight,
     if (intensity != null) 'intensity': intensity,
+    if (prescribedIntensity != null)
+      'prescribed_intensity': prescribedIntensity,
     if (!done) 'done': done,
     if (source.isNotEmpty) 'source': source,
     if (assignedRoutineId != null) 'assigned_routine_id': assignedRoutineId,
+    if (sessionId != null) 'session_id': sessionId,
+    if (calories != null) 'calories': calories,
   };
 }
 

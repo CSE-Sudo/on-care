@@ -1,12 +1,14 @@
 """트레이너 라우터 — 루틴 배정(트레이너/AI → 회원)과 루틴 선택지."""
 from __future__ import annotations
 
+from datetime import date as _date
 from typing import Annotated
 
 from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
+    Query,
 )
 from sqlalchemy.orm import Session
 
@@ -19,6 +21,7 @@ from app.db.session import get_db
 from app.schemas.trainer_api import (
     DeliveryOut,
     RoutineAssignRequest, RoutineOut, ProgramAssignRequest, RoutineOptionsOut, RoutineOptionsRequest, RoutineUpdateRequest,
+    TrainerRoutineDaysOut,
 )
 from app.services import (
     trainer_routine_options_service,
@@ -82,6 +85,30 @@ def trainer_client_routines(
     """담당 고객에게 배정된 루틴 목록."""
     _require_client(db, trainer.id, member_id)
     return trainer_routines_service.build_routines(db, member_id, trainer.id)
+
+
+@router.get(
+    "/trainer/clients/{member_id}/routine-days",
+    response_model=TrainerRoutineDaysOut,
+)
+def trainer_client_routine_days(
+    member_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+    from_date: Annotated[_date | None, Query(alias="from")] = None,
+    to_date: Annotated[_date | None, Query(alias="to")] = None,
+) -> TrainerRoutineDaysOut:
+    """날짜별 개인운동 이행 — 그날 걸린 것과 완료·늦은 체크·안 함·오늘 아직. (#2508)
+
+    `GET .../routines` 는 **오늘** 완료만 준다. 개인운동은 매일 새로 체크하는
+    목록이라(#2161) 트레이너가 "날마다 했나" 를 보려면 날짜별로 읽어야 한다.
+    `from` 을 생략하면 이 트레이너가 처음 건 배정의 첫날부터, `to` 는 기본
+    오늘이다. 담당이 해제된 회원은 404 다(#2312).
+    """
+    _require_client(db, trainer.id, member_id)
+    return trainer_routines_service.build_trainer_routine_days(
+        db, trainer.id, member_id, start=from_date, end=to_date
+    )
 
 
 @router.post("/trainer/clients/{member_id}/routines", response_model=RoutineOut, status_code=201)

@@ -155,7 +155,10 @@ class TrainerClient {
   final DateTime? lastRoutineDate;
 
   /// This week's daily completion rates (7 entries, 월→일).
-  final List<int> weekCompletion;
+  ///
+  /// 그날 걸린 개인운동·잡힌 PT 중 한 비율이다(#2513). 아무것도 걸리지 않은
+  /// 날과 아직 오지 않은 날은 null 이고, 0 은 "걸렸는데 하나도 안 했다" 다.
+  final List<int?> weekCompletion;
 
   /// This week's daily sodium (mg), 월→일 — the same fixed window as
   /// [weekCompletion], with days that haven't come yet at 0 (today's

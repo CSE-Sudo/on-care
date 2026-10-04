@@ -25,15 +25,17 @@ const int goodCompletionThreshold = 80;
 /// Mean routine completion (%) across the days [client] actually
 /// recorded this week, or null when they recorded none.
 ///
-/// Days at 0 are treated as "not recorded", not as "failed": the roster
-/// seeds a full Mon–Sun series, so a week that has only started would
-/// otherwise average in the days that haven't happened yet.
+/// Days at null had nothing assigned (or haven't come yet) and are left out.
+/// A 0 is a day the member was given work and did none of it — it counts
+/// (#2513). 예전에는 0 이 "기록 없음" 이라 평균에서 뺐다.
 ///
 /// One definition, several readers — the roster bar, the weekly report,
 /// 고객 검색 and the program tab — so a client can't be "이행률 78%" in one
 /// place and 낮은 이행률 in another.
 double? recordedCompletionMean(TrainerClient client) {
-  final recorded = client.weekCompletion.where((d) => d > 0).toList();
+  final List<int> recorded = <int>[
+    for (final int? d in client.weekCompletion) ?d,
+  ];
   if (recorded.isEmpty) return null;
   return recorded.reduce((a, b) => a + b) / recorded.length;
 }

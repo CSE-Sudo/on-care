@@ -149,7 +149,9 @@ def test_routine_sessions_are_seeded_by_type(db_session):
 
     sessions = db_session.scalars(
         select(ExerciseSession).where(
-            ExerciseSession.user_id == "user-woojin",
+            # 확장 회원은 이행률을 개인운동 완료로 남기므로(#2513) 루틴 기록에서
+            # 세션을 만드는 회원은 기록을 가진 지수다.
+            ExerciseSession.user_id == "user-jisu",
             ExerciseSession.id.like(f"{SESSION_ID_PREFIX}%"),
         )
     ).all()

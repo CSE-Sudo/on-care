@@ -214,8 +214,13 @@ class PersonalRoutineBox extends StatelessWidget {
                     .copyWith(color: OnCareColors.textSecondary),
               )
             else ...<Widget>[
+              // 고른 시작일부터 한 주다 — 미래 날짜를 고르면 그날부터 걸린다
+              // (#2656). 예전 문구 "보낸 날부터" 는 그 경우 거짓이었다.
               Text(
-                l.aiRoutineOnlyWeeklyHint,
+                l.aiRoutineOnlyWeeklyHint(
+                  ymd(start),
+                  ymd(start.add(const Duration(days: activeDays - 1))),
+                ),
                 key: const ValueKey<String>('personal-routine-box-weekly'),
                 style: context.oncare
                     .text(OnCareTypography.caption)

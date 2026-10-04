@@ -1503,17 +1503,10 @@ void main() {
       // 있다(#1025). 목록이 길어 스크롤 곡예 대신 화면을 키운다.
       //
       // 메모는 더 이상 완료 처리에서 받지 않으므로(#1106) 그 문구로 찾지
-      // 않는다 — 방금 생긴 PT 기록의 종류로 확인한다.
-      expect(find.text('PT · 트레이너 지도'), findsWidgets);
-      // 날짜는 미션 카드가 아니라 그 줄이 말한다.
-      const List<String> weekdays = <String>['월', '화', '수', '목', '금', '토', '일'];
-      final DateTime today = nowKst();
-      expect(
-        find.text(
-          '${today.month}월 ${today.day}일 (${weekdays[today.weekday - 1]})',
-        ),
-        findsOneWidget,
-      );
+      // 않는다 — 방금 생긴 PT 기록의 출처 상자(`PT`)로 확인한다(#2508).
+      // `오늘` 은 날짜 줄 없이 그날 출처 상자만 선다(#2508) — 기간 제목이
+      // 이미 오늘이다.
+      expect(find.text('PT'), findsWidgets);
     });
 
     testWidgets('a future session offers no 완료 action', (tester) async {

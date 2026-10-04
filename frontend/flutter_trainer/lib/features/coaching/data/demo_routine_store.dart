@@ -9,6 +9,7 @@ import 'package:oncare_trainer/features/coaching/data/dtos/program_draft_dtos.da
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/features/coaching/domain/routine_effects.dart';
 import 'package:oncare_trainer/shared/models/chat_preview.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/services/demo_chat_files.dart';
@@ -36,6 +37,8 @@ class DemoRoutineStore {
   static String _assignedKey(String memberId) => '${prefix}assigned/$memberId';
   static String _personalKey(String memberId) => '${prefix}personal/$memberId';
   static String _deliveryKey(String memberId) => '${prefix}delivery/$memberId';
+  static String _retiredKey(String memberId) => '${prefix}retired/$memberId';
+  static String _sentKey(String memberId) => '${prefix}sent/$memberId';
   static String _sessionKey(String sessionId) => '${prefix}session/$sessionId';
 
   /// 이 저장소의 값을 모두 지운다 — 시드를 다시 심을 때 부른다.
@@ -78,10 +81,36 @@ class DemoRoutineStore {
   /// 회원의 배정 목록. 남긴 적이 없으면 시드로 채워 남긴다.
   Future<List<AssignedRoutine>> assigned(String memberId) async {
     final List<AssignedRoutine>? stored = await readAssigned(memberId);
-    if (stored != null) return stored;
+    if (stored != null) return _withEffects(memberId, stored);
     final List<AssignedRoutine> seeded = await seedAssigned(memberId);
     await writeAssigned(memberId, seeded);
-    return seeded;
+    return _withEffects(memberId, seeded);
+  }
+
+  /// 효과가 빈 배정에 문구표 효과를 채운다 — 실서버가 응답 때 하는 일이다
+  /// (#2570). 채우지 않으면 데모에서만 트레이너가 효과를 적지 않은 줄이 회색
+  /// 한 줄 없이 서고, 시드는 회원 앱 효과와 다른 옛 사유를 보인다(#2951).
+  /// 서버처럼 `기타` 유형은 비워 둔다. 저장값은 건드리지 않고 읽을 때만 채운다.
+  Future<List<AssignedRoutine>> _withEffects(
+    String memberId,
+    List<AssignedRoutine> rows,
+  ) async {
+    if (!rows.any((AssignedRoutine r) => r.effect.isEmpty)) return rows;
+    final String goal =
+        (await (_db.select(
+          _db.trainerClients,
+        )..where((t) => t.id.equals(memberId))).getSingleOrNull())?.goal ??
+        '';
+    return <AssignedRoutine>[
+      for (final AssignedRoutine r in rows)
+        if (r.effect.isNotEmpty || r.type == '기타')
+          r
+        else
+          assignedRoutineFromJson(<String, Object?>{
+            ...assignedRoutineToStoreJson(r),
+            'effect': autoRoutineEffect(r.type, goal),
+          }),
+    ];
   }
 
   /// 회원의 배정 목록을 지켜본다 — 다른 저장소(스케줄의 PT 전송)가 남긴
@@ -94,7 +123,29 @@ class DemoRoutineStore {
         // 그대로면 흘려보내지 않는다.
         .map((row) => row?.value)
         .distinct()
-        .asyncMap((_) => assigned(memberId));
+        .asyncMap((_) => _assignedToday(memberId));
+  }
+
+  /// 오늘 회원 목록에 걸린 배정 — 서버의 배정 목록과 같은 규칙이다(#2656).
+  ///
+  /// 미래 시작일로 보낸 `개인운동만` 은 시작일까지 아직 뜨지 않고, 그 사이
+  /// 이전 개인운동이 그대로 걸려 있다가 시작일에 내려간다. 저장된 목록에는
+  /// 둘이 함께 있으므로 보일 때 거른다.
+  Future<List<AssignedRoutine>> _assignedToday(String memberId) async {
+    final DateTime now = nowKst();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    final Map<String, DateTime> ends = <String, DateTime>{
+      for (final (AssignedRoutine r, DateTime end) in await readRetired(
+        memberId,
+      ))
+        r.id: end,
+    };
+    return <AssignedRoutine>[
+      for (final AssignedRoutine r in await assigned(memberId))
+        if (!(ends[r.id]?.isAfter(today) == false) &&
+            !(r.deliveryKind != null && (r.date?.isAfter(today) ?? false)))
+          r,
+    ];
   }
 
   /// 회원의 **처음** 배정 — 시드가 정한다.
@@ -136,14 +187,39 @@ class DemoRoutineStore {
     StoredDelivery delivery, {
     Set<String> replacing = const <String>{},
     List<String> programNames = const <String>[],
+    DateTime? retireOn,
   }) async {
+    // 이전 개인운동이 끝나는 날 — 서버처럼 오늘, `개인운동만` 을 미래 시작일로
+    // 보냈으면 그 시작일이다(#2656). 그 전날까지는 이전 것이 그대로 걸린다.
+    final DateTime now = nowKst();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    final DateTime end = retireOn == null || !retireOn.isAfter(today)
+        ? today
+        : DateTime(retireOn.year, retireOn.month, retireOn.day);
+    final bool later = end.isAfter(today);
     final List<AssignedRoutine> before = await assigned(memberId);
     await writeAssigned(memberId, <AssignedRoutine>[
       ...delivery.routines,
+      // 시작일에 교대하면 그때까지 목록에 남긴다 — 보일 때 끝난 날로 거른다.
       for (final AssignedRoutine r in before)
-        if (!replacing.contains(r.id)) r,
+        if (later || !replacing.contains(r.id)) r,
     ]);
+    // 내린 개인운동은 목록에서는 빠져도 지난 날의 이행으로는 남는다 — 실서버가
+    // 지우지 않고 끝난 날(`ended_on`)을 두는 것과 같다(#2508). 아직 시작하지
+    // 않은 것은 시작일에 끝나 하루도 걸리지 않는다.
+    final List<AssignedRoutine> retired = <AssignedRoutine>[
+      for (final AssignedRoutine r in before)
+        if (replacing.contains(r.id)) r,
+    ];
+    if (retired.isNotEmpty) await _retire(memberId, retired, end);
     await writeDelivery(memberId, delivery);
+    // 배정마다 보낸 날 — 날짜별 이행이 `8/18(화) 보냄` 을 이 값으로 적는다.
+    // 시작일(`date`)과 다를 수 있다(#2656, 미래 시작일).
+    if (delivery.sentOn case final DateTime day) {
+      await _recordSentOn(memberId, <String>[
+        for (final AssignedRoutine r in delivery.routines) r.id,
+      ], day);
+    }
     await postDeliveryCard(
       memberId,
       RoutineDeliveryNotice(
@@ -197,6 +273,78 @@ class DemoRoutineStore {
         ),
       );
     });
+  }
+
+  // ---- 보낸 날 ----
+
+  /// 배정 id → 보낸 날. 남긴 적이 없는 배정(시드)은 빠진다.
+  Future<Map<String, DateTime>> readSentOn(String memberId) async {
+    final Object? raw = await _read(_sentKey(memberId));
+    return <String, DateTime>{
+      if (raw is Map<String, Object?>)
+        for (final MapEntry<String, Object?> e in raw.entries)
+          if (DateTime.tryParse((e.value as String?) ?? '')
+              case final DateTime day)
+            e.key: day,
+    };
+  }
+
+  Future<void> _recordSentOn(
+    String memberId,
+    List<String> ids,
+    DateTime day,
+  ) async {
+    final Map<String, DateTime> before = await readSentOn(memberId);
+    await _write(_sentKey(memberId), <String, Object?>{
+      for (final MapEntry<String, DateTime> e in before.entries)
+        e.key: e.value.toIso8601String(),
+      for (final String id in ids) id: day.toIso8601String(),
+    });
+  }
+
+  // ---- 내린 개인운동 ----
+
+  /// 새 개인운동에 밀려 목록에서 내려간 개인운동과 그 끝난 날(그날은 걸리지
+  /// 않는다). 날짜별 이행만 읽는다 — 배정 목록에는 다시 서지 않는다.
+  Future<List<(AssignedRoutine, DateTime)>> readRetired(String memberId) async {
+    final Object? raw = await _read(_retiredKey(memberId));
+    return <(AssignedRoutine, DateTime)>[
+      if (raw is List)
+        for (final Object? row in raw)
+          if (row is Map<String, Object?>)
+            if (row['routine'] case final Map<String, Object?> routine)
+              if (DateTime.tryParse((row['ended_on'] as String?) ?? '')
+                  case final DateTime endedOn)
+                (assignedRoutineFromJson(routine), endedOn),
+    ];
+  }
+
+  Future<void> _retire(
+    String memberId,
+    List<AssignedRoutine> rows,
+    DateTime endedOn,
+  ) async {
+    final List<(AssignedRoutine, DateTime)> before = await readRetired(
+      memberId,
+    );
+    await _write(_retiredKey(memberId), <Object?>[
+      for (final (AssignedRoutine r, DateTime end)
+          in <(AssignedRoutine, DateTime)>[
+            ...before,
+            for (final AssignedRoutine r in rows)
+              (r, _laterOf(endedOn, r.date)),
+          ])
+        <String, Object?>{
+          'routine': assignedRoutineToStoreJson(r),
+          'ended_on': end.toIso8601String(),
+        },
+    ]);
+  }
+
+  static DateTime _laterOf(DateTime day, DateTime? start) {
+    if (start == null) return day;
+    final DateTime s = DateTime(start.year, start.month, start.day);
+    return s.isAfter(day) ? s : day;
   }
 
   /// 마지막으로 `개인운동만` 보낸 배정 id — 다음에 보낼 때 내린다(#2514).
@@ -389,6 +537,8 @@ List<AssignedRoutine> demoFixtureAssignedRoutines() => <AssignedRoutine>[
       type: r.type,
       reason: r.reason,
       source: r.source,
+      // 회원 앱과 같은 효과 줄이다(#2951).
+      effect: r.effect,
       // 근력은 세트·횟수·중량으로 읽는다(#1276).
       sets: r.sets,
       reps: r.reps,
@@ -413,6 +563,7 @@ AssignedRoutine assignedFromExercise(
     type: e.type,
     reason: e.reason,
     source: e.source == 'trainer' ? 'trainer' : 'ai',
+    effect: e.effect,
     date: date,
     durationSeconds: strength ? null : e.durationSeconds,
     sets: strength && e.sets > 0 ? e.sets : null,
@@ -436,6 +587,7 @@ Map<String, Object?> assignedRoutineToStoreJson(AssignedRoutine r) =>
       'type': r.type,
       'reason': r.reason,
       'source': r.source,
+      'effect': r.effect,
       'completed': r.completed,
       'exercise_date': r.date?.toIso8601String(),
       'intensity': r.intensity,

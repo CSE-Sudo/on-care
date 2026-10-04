@@ -16,8 +16,8 @@ import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 운동 기록 메모의 출처 태그 — `PT 세션 · 9/23`, `개인 운동 · 9/23 코어 강화`,
-/// `회원 기록 · 9/23`. (#2332)
+/// 운동 기록 메모의 출처 태그 — `운동 기록 · 9/23`(그날 기록 전체, #2508), 예전
+/// 메모의 `PT 세션 · 9/23`, `개인운동 · 9/23 코어 강화`, `회원 기록 · 9/23`. (#2332)
 ///
 /// 기록 카드의 작성 창과 회원 메모 창이 같은 말을 쓴다 — 두 자리에서 다르게
 /// 부르면 같은 기록을 가리킨다는 것이 읽히지 않는다.
@@ -29,6 +29,7 @@ String exerciseMemoTagLabel(AppLocalizations l, TrainerMemoRef ref) {
       l.clientMemoTagPersonalNamed(date, ref.name),
     TrainerMemoRefKind.personal => l.clientMemoTagPersonal(date),
     TrainerMemoRefKind.memberLog => l.clientMemoTagMemberLog(date),
+    TrainerMemoRefKind.day => l.clientMemoTagDay(date),
   };
 }
 
@@ -71,15 +72,22 @@ String memoRecordOptionLabel(AppLocalizations l, TrainerMemoRef ref) {
       l.clientMemoRecordPersonalNamed(date, ref.name),
     TrainerMemoRefKind.personal => l.clientMemoRecordPersonal(date),
     TrainerMemoRefKind.memberLog => l.clientMemoRecordMemberLog(date),
+    TrainerMemoRefKind.day => l.clientMemoRecordExerciseDay(date),
   };
 }
 
-/// 운동 이력 카드 하나가 가리키는 기록 — 운동 탭 카드(`_HistoryCard`)와 같은
-/// 규칙이다. 같은 기록이면 어느 자리에서 남겨도 같은 메모가 된다.
+/// 운동 이력 한 건이 가리키는 기록 — 운동 탭 출처 줄(PT·개인운동)의 메모
+/// 자리와 메모 창 `운동 기록 연결` 이 같은 규칙을 쓴다. 같은 기록이면 어느
+/// 자리에서 남겨도 같은 메모가 된다.
 TrainerMemoRef memoRefForHistory(RoutineHistoryEntry entry) {
-  final DateTime? day = entry.date ?? entry.completedAt;
   // 데모 이력은 코드 없이 고정 이름만 갖는다 — 이름으로도 종류를 찾는다.
   final String? code = routineKindCode(entry.label, kind: entry.kind);
+  final DateTime? day = historyDayOf(entry);
+  // 하루치 개인운동은 날짜로 가리킨다 — `오늘` 개인운동 상자에서 남긴 메모가
+  // 지난 날 펼친 줄에서도 같은 자리에 보인다.
+  if (code == 'personal_routine' && day != null) {
+    return TrainerMemoRef(kind: TrainerMemoRefKind.personal, day: ymd(day));
+  }
   return TrainerMemoRef(
     kind: code == 'pt_session'
         ? TrainerMemoRefKind.ptSession
@@ -91,12 +99,12 @@ TrainerMemoRef memoRefForHistory(RoutineHistoryEntry entry) {
   );
 }
 
-/// 최근 [memoRecordLookbackDays] 일 동안 메모를 이을 수 있는 운동 기록, 최신
-/// 먼저. (#2622)
+/// 최근 [memoRecordLookbackDays] 일 동안 메모를 이을 수 있는 기록, 최신 날
+/// 먼저. (#2622, #2508)
 ///
-/// 운동 탭이 메모 아이콘을 다는 카드와 같은 것들이다 — PT 세션·개인 운동 이력
-/// 카드(id 가 있는 것)와, 회원이 직접 적은 운동이 있는 날의 `회원 기록` 하나씩.
-/// 같은 날 안에서는 PT → 개인 운동 → 회원 기록 순서다.
+/// 운동 탭이 출처(개인운동·회원 추가·PT)마다 메모 자리를 두므로 기록 연결도
+/// 그 출처 하나를 고른다 — 한 날 안에서는 화면과 같은 순서(개인운동 → 회원
+/// 추가 → PT)다. 여기서 이은 메모는 운동 탭 그 줄의 메모 개수에 들어간다.
 final memoRecordOptionsProvider = FutureProvider.autoDispose
     .family<List<TrainerMemoRef>, String>((ref, clientId) async {
       final DateTime now = nowKst();
@@ -111,23 +119,22 @@ final memoRecordOptionsProvider = FutureProvider.autoDispose
         return !d.isBefore(from) && !d.isAfter(today);
       }
 
+      final Map<String, List<RoutineHistoryEntry>> entriesByDay =
+          <String, List<RoutineHistoryEntry>>{};
       final List<RoutineHistoryEntry> history = await ref.watch(
         clientHistoryProvider(clientId).future,
       );
-      final List<TrainerMemoRef> refs = <TrainerMemoRef>[];
-      final Map<String, Set<String>> historyNamesByDay =
-          <String, Set<String>>{};
       for (final RoutineHistoryEntry entry in history) {
-        final DateTime? day = entry.date ?? entry.completedAt;
-        // id 를 잃은 옛 기록은 운동 탭에서도 메모 자리가 없다.
-        if (entry.id.isEmpty || day == null || !inRange(day)) continue;
-        refs.add(memoRefForHistory(entry));
-        historyNamesByDay
-            .putIfAbsent(ymd(day), () => <String>{})
-            .addAll(entry.exercises.map((item) => item.name.trim()));
+        final DateTime? day = historyDayOf(entry);
+        // id 를 잃은 옛 기록은 운동 탭에도 메모 자리가 없다.
+        if (day == null || !inRange(day) || entry.id.isEmpty) continue;
+        (entriesByDay[ymd(day)] ??= <RoutineHistoryEntry>[]).add(entry);
       }
 
-      // 회원 직접 기록은 주 단위 운동 조회에 실려 온다(운동 탭과 같은 출처).
+      // 회원 추가 기록은 주 단위 운동 조회에 실려 온다(운동 탭과 같은 출처).
+      // 이력이 이미 말하는 운동(PT 완료·개인운동 완료)은 뺀다 — 운동 탭
+      // `회원 추가` 줄과 같은 규칙이다.
+      final Set<String> memberLogDays = <String>{};
       final ClientRepository repo = ref.watch(clientRepositoryProvider);
       for (
         DateTime monday = weekStartOf(from);
@@ -145,34 +152,42 @@ final memoRecordOptionsProvider = FutureProvider.autoDispose
             monday.day + i,
           );
           if (!inRange(day)) continue;
-          final Set<String> inHistory =
-              historyNamesByDay[ymd(day)] ?? const <String>{};
+          final List<RoutineHistoryEntry> entries =
+              entriesByDay[ymd(day)] ?? const <RoutineHistoryEntry>[];
+          final Set<String> inHistory = <String>{
+            for (final RoutineHistoryEntry entry in entries)
+              for (final ClientExerciseItem item in entry.exercises)
+                item.name.trim(),
+          };
           final List<ClientExerciseItem> items =
               week.itemsByDayLabel[label] ?? const <ClientExerciseItem>[];
-          // 운동 탭의 `회원 기록` 카드와 같은 판정 — 이력 카드가 이미 말하는
-          // 운동만 있는 날은 따로 카드가 서지 않는다.
           if (items.any(
             (ClientExerciseItem item) =>
                 item.isMemberLog && !inHistory.contains(item.name.trim()),
           )) {
-            refs.add(
-              TrainerMemoRef(kind: TrainerMemoRefKind.memberLog, day: ymd(day)),
-            );
+            memberLogDays.add(ymd(day));
           }
         }
       }
 
-      int rank(TrainerMemoRefKind kind) => switch (kind) {
-        TrainerMemoRefKind.ptSession => 0,
-        TrainerMemoRefKind.personal => 1,
-        TrainerMemoRefKind.memberLog => 2,
-      };
-      refs.sort((TrainerMemoRef a, TrainerMemoRef b) {
-        final int byDay = (b.day ?? '').compareTo(a.day ?? '');
-        if (byDay != 0) return byDay;
-        return rank(a.kind).compareTo(rank(b.kind));
-      });
-      return refs;
+      bool isPt(RoutineHistoryEntry entry) =>
+          routineKindCode(entry.label, kind: entry.kind) == 'pt_session';
+      final List<String> days = <String>{
+        ...entriesByDay.keys,
+        ...memberLogDays,
+      }.toList()..sort((a, b) => b.compareTo(a));
+      return <TrainerMemoRef>[
+        for (final String day in days) ...<TrainerMemoRef>[
+          for (final RoutineHistoryEntry entry
+              in entriesByDay[day] ?? const <RoutineHistoryEntry>[])
+            if (!isPt(entry)) memoRefForHistory(entry),
+          if (memberLogDays.contains(day))
+            TrainerMemoRef(kind: TrainerMemoRefKind.memberLog, day: day),
+          for (final RoutineHistoryEntry entry
+              in entriesByDay[day] ?? const <RoutineHistoryEntry>[])
+            if (isPt(entry)) memoRefForHistory(entry),
+        ],
+      ];
     });
 
 /// 두 기록 연결이 같은 기록을 가리키는가 — 드롭다운 선택 비교에 쓴다.
@@ -180,19 +195,30 @@ bool sameMemoRecord(TrainerMemoRef a, TrainerMemoRef b) =>
     a.kind == b.kind && a.id == b.id && a.day == b.day;
 
 /// [memo] 가 [ref] 가 가리키는 기록에서 남긴 메모인가.
+///
+/// 날짜([TrainerMemoRefKind.day])는 그날 운동 기록에 남긴 메모를 모두 센다 —
+/// 예전에 PT 세션·개인운동·회원 기록 카드마다 남긴 메모도 그날 것이다.
 bool _isFor(TrainerMemo memo, TrainerMemoRef ref) {
   final TrainerMemoRef? mine = memo.ref;
   if (memo.source != TrainerMemoSource.exerciseMemo || mine == null) {
     return false;
   }
+  if (ref.kind == TrainerMemoRefKind.day) return mine.day == ref.day;
   if (ref.id != null) return mine.id == ref.id;
-  return mine.kind == TrainerMemoRefKind.memberLog && mine.day == ref.day;
+  // 날짜로 가리킨 상자(개인운동·회원 추가) — 같은 상자, 같은 날.
+  return mine.id == null && mine.kind == ref.kind && mine.day == ref.day;
 }
 
-/// 운동 기록 카드 오른쪽 위의 메모 자리 — 아이콘과, 남긴 메모가 있으면 개수. (#2332)
+/// 운동 기록 메모 자리 — 아이콘과, 남긴 메모가 있으면 개수. (#2332)
+///
+/// 운동 탭은 출처(개인운동·회원 추가·PT)마다 알약 줄 오른쪽 끝에 하나다
+/// (#2508) — `오늘` 상자와 이번 주·전체 펼친 날이 같다.
 ///
 /// 헤더의 `메모` 버튼과 같은 아이콘이다. 여기서 남긴 메모는 그 창의 같은
 /// 목록에 들어간다 — 두 자리가 다른 그림이면 다른 것을 쓰는 곳처럼 보인다.
+///
+/// 메모가 없을 때 아이콘만 두면 무엇을 하는 버튼인지 읽히지 않는다 — 그때는
+/// `+ 메모 추가` 다.
 class ExerciseMemoButton extends ConsumerWidget {
   const ExerciseMemoButton({
     super.key,
@@ -217,39 +243,53 @@ class ExerciseMemoButton extends ConsumerWidget {
             ?.where((TrainerMemo memo) => _isFor(memo, memoRef))
             .length ??
         0;
-    final String key = memoRef.id ?? 'day-${memoRef.day}';
+    // 날짜로 가리킨 상자(개인운동·회원 추가)는 같은 날이라도 다른 자리다 —
+    // 키에 종류를 넣어 한 화면에서 겹치지 않게 한다.
+    final String key =
+        memoRef.id ??
+        (memoRef.kind == TrainerMemoRefKind.day
+            ? 'day-${memoRef.day}'
+            : '${memoRef.kind.wire}-${memoRef.day}');
+    void open() =>
+        showExerciseMemoDialog(context, clientId: clientId, memoRef: memoRef);
+    if (count == 0) {
+      return AppButton(
+        key: ValueKey<String>('exercise-memo-open-$key'),
+        onPressed: open,
+        variant: AppButtonVariant.text,
+        size: OnCareButtonSize.small,
+        leadingIcon: AppIcons.add,
+        label: l.clientTrainerMemoAdd,
+      );
+    }
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        if (count > 0)
-          Text(
-            key: ValueKey<String>('exercise-memo-count-$key'),
-            '$count',
-            style: OnCareTypography.numeric(
-              tokens.text(OnCareTypography.caption),
-            ).copyWith(color: OnCareColors.textSecondary),
-          ),
+        Text(
+          key: ValueKey<String>('exercise-memo-count-$key'),
+          '$count',
+          style: OnCareTypography.numeric(
+            tokens.text(OnCareTypography.caption),
+          ).copyWith(color: tokens.brand.primary),
+        ),
         AppIconButton(
           key: ValueKey<String>('exercise-memo-open-$key'),
           icon: AppIcons.note,
-          tooltip: count > 0
-              ? l.clientExerciseMemoCount(count)
-              : l.clientExerciseMemoAdd,
-          // 남긴 메모가 있는 기록은 브랜드 색으로 — 목록을 훑으며 어디에
-          // 적어 두었는지 찾을 수 있다.
-          color: count > 0 ? tokens.brand.primary : OnCareColors.textSecondary,
-          onPressed: () => showExerciseMemoDialog(
-            context,
-            clientId: clientId,
-            memoRef: memoRef,
-          ),
+          tooltip: l.clientExerciseMemoCount(count),
+          // 남긴 메모가 있는 기록은 개수와 아이콘을 같은 브랜드 색으로 —
+          // 목록을 훑으며 어디에 적어 두었는지 찾을 수 있다.
+          color: tokens.brand.primary,
+          onPressed: open,
         ),
       ],
     );
   }
 }
 
-/// 운동 기록 하나에서 회원 메모를 남기는 작은 창을 연다. (#2332)
+/// 운동 기록 하나의 메모 창을 연다. (#2332)
+///
+/// 이 기록에 남긴 메모가 있으면 그 메모들을 먼저 보여 주고 아래에서 더 쓴다.
+/// 없으면 바로 새 메모를 쓴다.
 Future<void> showExerciseMemoDialog(
   BuildContext context, {
   required String clientId,
@@ -331,8 +371,19 @@ class _ExerciseMemoDialogState extends ConsumerState<_ExerciseMemoDialog> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final List<TrainerMemo> memos =
+        ref
+            .watch(trainerMemosProvider(widget.clientId))
+            .valueOrNull
+            ?.where((TrainerMemo memo) => _isFor(memo, widget.memoRef))
+            .toList() ??
+        const <TrainerMemo>[];
     return AppDialog(
-      title: l.clientExerciseMemoAdd,
+      key: const ValueKey<String>('exercise-memo-dialog'),
+      title: memos.isEmpty
+          ? l.clientExerciseMemoAdd
+          : l.clientExerciseMemoCount(memos.length),
       size: AppDialogSize.medium,
       footer: AppButtonPair(
         cancelLabel: l.actionCancel,
@@ -349,15 +400,47 @@ class _ExerciseMemoDialogState extends ConsumerState<_ExerciseMemoDialog> {
             key: const ValueKey<String>('exercise-memo-source'),
             label: exerciseMemoTagLabel(l, widget.memoRef),
             icon: AppIcons.exercise,
+            // 회원 메모 창 목록의 운동 기록 메모 태그와 같은 파랑이다 — 같은
+            // 태그가 두 자리에서 다른 색이면 다른 것으로 읽힌다.
+            tone: AppTagTone.brand,
           ),
           const SizedBox(height: OnCareSpacing.s12),
+          // 이 기록에 남긴 메모 — 최신 먼저(목록이 그 순서로 온다). 고치거나
+          // 지우는 일은 헤더 `메모` 창이 맡는다.
+          for (final TrainerMemo memo in memos) ...<Widget>[
+            AppTile(
+              key: ValueKey<String>('exercise-memo-item-${memo.id}'),
+              tone: AppTileTone.outline,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Text(
+                    memo.body,
+                    style: tokens
+                        .text(OnCareTypography.body)
+                        .copyWith(color: OnCareColors.textPrimary),
+                  ),
+                  const SizedBox(height: OnCareSpacing.s4),
+                  Text(
+                    _memoTime(memo.createdAt),
+                    style: OnCareTypography.numeric(
+                      tokens.text(OnCareTypography.caption),
+                    ).copyWith(color: OnCareColors.textTertiary),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+          ],
+          if (memos.isNotEmpty) const SizedBox(height: OnCareSpacing.s4),
           AppTextField(
             key: const ValueKey<String>('exercise-memo-input'),
             controller: _draft,
-            maxLines: 4,
+            maxLines: memos.isEmpty ? 4 : 2,
             maxLength: _maxLength,
             enabled: !_busy,
-            autofocus: true,
+            // 남긴 메모를 보러 연 창에서는 입력칸이 먼저 잡지 않는다.
+            autofocus: memos.isEmpty,
             hint: l.clientExerciseMemoHint,
           ),
           const SizedBox(height: OnCareSpacing.s4),
@@ -391,4 +474,14 @@ class _ExerciseMemoDialogState extends ConsumerState<_ExerciseMemoDialog> {
       ),
     );
   }
+}
+
+/// 메모를 남긴 때 — 회원 메모 창 목록과 같은 `2026.09.23 14:05`.
+String _memoTime(DateTime at) {
+  // 회원 메모 창과 같은 KST 벽시계다(#2893) — 브라우저 시간대를 따르면 두
+  // 창이 같은 메모를 다른 시각으로 보인다.
+  final DateTime local = toKst(at);
+  String two(int v) => v.toString().padLeft(2, '0');
+  return '${local.year}.${two(local.month)}.${two(local.day)} '
+      '${two(local.hour)}:${two(local.minute)}';
 }

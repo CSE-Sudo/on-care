@@ -63,7 +63,7 @@ class WeeklyReport implements ReportSheetWeek {
     required this.sodiumOverDays,
     required this.sodiumAvg,
     required this.isCurrentWeek,
-    this.weekCompletion = const <int>[],
+    this.weekCompletion = const <int?>[],
     this.sodiumWeek = const <int>[],
     this.caloriesWeek = const <int>[],
     this.sugarWeek = const <double>[],
@@ -120,7 +120,7 @@ class WeeklyReport implements ReportSheetWeek {
   /// 그건 이번 주 것이라, 과거 주를 열면 지난 주 날짜 아래 이번 주 수치가
   /// 실린다. 트레이너는 그 리포트를 회원에게 그대로 보낼 수 있다(#752).
   @override
-  final List<int> weekCompletion;
+  final List<int?> weekCompletion;
 
   /// 그 주의 일별 나트륨(mg).
   @override
@@ -362,7 +362,9 @@ WeeklyReport buildWeeklyReport({
   final isThisWeek = start == weekStartOf(today ?? nowKst());
   final series = week ?? (isThisWeek ? WeekSeries.of(client) : null);
   // Same "recorded days only" rule the 주의 badge and 고객 검색 use.
-  final mean = series == null ? null : recordedMean(series.completion)?.round();
+  final mean = series == null
+      ? null
+      : completionMean(series.completion)?.round();
 
   return WeeklyReport(
     isCurrentWeek: isThisWeek,
@@ -377,7 +379,7 @@ WeeklyReport buildWeeklyReport({
         ? null
         : sodiumOverDaysOf(series.sodium, sodiumLimitOf(targets.sodium)),
     sodiumAvg: series == null ? null : recordedMean(series.sodium)?.round(),
-    weekCompletion: series?.completion ?? const <int>[],
+    weekCompletion: series?.completion ?? const <int?>[],
     days: series?.days ?? const <ReportDay>[],
     sodiumWeek: series?.sodium ?? const <int>[],
     caloriesWeek: series?.calories ?? const <int>[],
@@ -396,6 +398,13 @@ WeeklyReport buildWeeklyReport({
     memberFeedback: memberFeedback,
     calorieBaseline: calorieBaseline,
   );
+}
+
+/// 이행률 평균 — 걸린 것이 있던 날(null 이 아닌 날)만. 0% 인 날도 든다(#2513).
+double? completionMean(List<int?> week) {
+  final List<int> recorded = <int>[for (final int? v in week) ?v];
+  if (recorded.isEmpty) return null;
+  return recorded.reduce((int a, int b) => a + b) / recorded.length;
 }
 
 /// 회원이 적어 둔 하루 목표 — 리포트 판정이 공통 상수보다 먼저 쓴다(#1430).
@@ -479,7 +488,8 @@ class WeekSeries {
   /// 로스터가 준 이번 주 계열.
   factory WeekSeries.of(TrainerClient client) => WeekSeries(
     days: <ReportDay>[
-      for (final rate in client.weekCompletion) ReportDay(completion: rate),
+      for (final rate in client.weekCompletion)
+        ReportDay(completion: rate ?? 0),
     ],
     completion: client.weekCompletion,
     sodium: client.sodiumWeek,
@@ -487,8 +497,8 @@ class WeekSeries {
     sugar: client.sugarWeek,
   );
 
-  /// 일별 이행률(%).
-  final List<int> completion;
+  /// 일별 이행률(%). 걸린 것이 없던 날은 null(#2513).
+  final List<int?> completion;
 
   /// 일별 나트륨(mg).
   final List<int> sodium;
@@ -744,7 +754,9 @@ List<String> _nextWeekTips(AppLocalizations l, WeeklyReport report) {
 /// 이번 주라면 아직 오지 않은 요일은 세지 않는다 — 목요일에 "금·토·일이
 /// 비었다" 고 하면 오지도 않은 날을 나무라는 말이 된다.
 List<String> silentWeekdayNames(AppLocalizations l, WeeklyReport report) {
-  final List<int> week = report.weekCompletion;
+  // 0 은 걸렸는데 하나도 안 한 날이다. 걸린 것이 없던 날(null)은 회원이
+  // 비운 날이 아니다(#2513).
+  final List<int?> week = report.weekCompletion;
   if (week.length != weekdayCount) return const <String>[];
   final int upTo = report.isCurrentWeek
       ? elapsedWeekdays(nowKst())

@@ -1205,7 +1205,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/trainer/clients/{member_id}/chat` | `{ text, emote_id?, client_request_id? }` → **201** `ChatMessageOut`. 빈 메시지·모르는 이모티콘 400 |
 | POST | `/trainer/clients/{member_id}/chat/read` | `{ marked_read }` |
 | GET | `/trainer/clients/{member_id}/memos` | `TrainerMemoOut[]`(최신 먼저) — 트레이너 혼자 보는 메모 |
-| POST | `/trainer/clients/{member_id}/memos` | `{ body, source?, insight_id?, insight_kind?, ref_id?, ref_date? }` → **201** `TrainerMemoOut` |
+| POST | `/trainer/clients/{member_id}/memos` | `{ body, source?, insight_id?, insight_kind?, ref_id?, ref_date?, ref_kind? }` → **201** `TrainerMemoOut`. `exercise_memo` 를 `ref_date` 로 남기면 `ref_kind`(`personal`·`member_log`) 상자, 없으면 그날 전체(`day`)에 다는 메모(#2508) |
 | PUT | `/trainer/clients/{member_id}/memos/{memo_id}` | `{ body }` → `TrainerMemoOut` |
 | DELETE | `/trainer/clients/{member_id}/memos/{memo_id}` | `{ status: "deleted" }` |
 | GET | `/trainer/clients/{member_id}/follow-ups?include_completed=` | `TrainerFollowUpTaskOut[]`(예정일 순) |
@@ -1221,6 +1221,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | PUT | `/trainer/clients/{member_id}/routines/{routine_id}` | `{ name?, minutes?, duration_seconds?, type?, reason? }` → `RoutineOut`(#504, #2547) |
 | DELETE | `/trainer/clients/{member_id}/routines/{routine_id}` | `{ status: "deleted" }` — 철회, 회원 앱에서도 사라진다 |
 | GET | `/trainer/clients/{member_id}/routines/unsent` | `RoutineOut[]` — PT 에 붙여 두고 아직 보내지 않은 개인운동(#2225) |
+| GET | `/trainer/clients/{member_id}/routine-days` | `?from=&to=` → 날짜별 개인운동 이행(#2508) — 날마다 그날 걸린 배정과 결과(done/late/missed/pending), 배정 묶음. from 을 비우면 처음 걸린 날부터, 최대 371일. 담당 해제 회원 404 |
 | GET | `/trainer/clients/{member_id}/deliveries/latest` | 가장 최근에 보낸 묶음 하나 또는 `null` (#2225) |
 | GET | `/trainer/clients/{member_id}/routine-suggestions` | `RoutineOut[]` — 검토를 기다리는 AI 개인운동 제안 |
 | POST | `/trainer/clients/{member_id}/routine-suggestions` | 후보 `{ name, minutes\|duration_seconds, type, …, evidence?, client_request_id? }` → **201** `RoutineOut`. 회원에게는 아직 안 보인다 |
@@ -1293,6 +1294,33 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 다시 집계된다. 판단은 `data_consent_service.link_is_open`/`open_link_clause` 한 곳을
 `_require_client` 와 함께 쓴다.
 기준값과 예외 규칙은 [`docs/TRAINER_DOMAIN.md`](docs/TRAINER_DOMAIN.md) 의 "PT 관리 신호" 참조.
+
+**이행률 (#2513)**: 로스터 `week_completion: (int | null)[7]`(월→일)과 주간 리포트
+`week_completion`·`days[].completion`·`completion_avg` 는 그날 이행률 = (완료한 개인운동 + 완료한
+PT) ÷ (그날 걸린 개인운동 + 그날 잡힌 PT) 다. 개인운동은 그 트레이너가 건 것이고 다음 날 이후
+체크도 완료다. PT 는 `예정·완료` 만 분모다(취소·노쇼·상담 제외). 회원이 직접 추가한 운동은 넣지
+않는다. 아무것도 걸리지 않은 날과 아직 오지 않은 날은 `null`, 걸렸는데 하나도 안 한 날은 `0` 이다.
+예전 응답은 `routine_history` 의 그날 최댓값이라 `null` 이 없었다(0 = 기록 없음).
+
+**날짜별 개인운동 이행 (#2508)**: `GET /trainer/clients/{member_id}/routine-days?from=&to=` →
+`{ start, end, routines[], days[] }`. `days[]` 는 `start`~`end`(오늘을 넘지 않는다) 날마다
+`{ date, items[{ routine_id, status, session_id }] }` 이고 `status` 는 `done`(그날 완료) ·
+`late`(그날 완료를 다음 날 이후에 체크) · `missed`(안 함, 오늘 이전만) · `pending`(오늘 아직)이다.
+`routines[]` 는 `{ id, name, type, source, sort_order, active_from, ended_on, sent_on, personal, minutes, duration_seconds, sets, reps, hold_seconds, weight, effect }` —
+양 칸은 배정에 적힌 그대로이고 `effect` 는 회원 앱과 같은 효과 한 줄(적힌 값, 없으면 문구표)이다.
+`ended_on` 날은 목록에 뜨지 않고(기한 없는 배정은 `null`), `sent_on` 은 보낸 날(미래 시작일로 보낸
+`개인운동만` 은 `active_from` 보다 이르다, #2656), `personal` 이 거짓이면 기한 없는 따로 배정이다.
+`from` 을 비우면 그 트레이너가 처음 건 배정의 첫날부터다. 걸린 적이 없으면
+`{ start: null, end: null, routines: [], days: [] }`. 담당 해제 회원은 404.
+
+**운동 기록의 개인운동 (#2510)**: `GET /trainer/clients/{member_id}/history` 는 그 트레이너가 건
+개인운동의 완료를 하루 한 장으로 묶는다 — `kind: "personal_routine"`, `label: "개인운동"`,
+`id: "personal-YYYY-MM-DD"`. `exercise_items[]` 는 그날 걸린 배정 순서이고 한 줄마다 `done` 과
+완료의 `session_id`(트레이너 메모 `ref_id` 로 쓴다)를 싣는다. 지난 날 하지 않은 것은 `done: false`,
+오늘 아직 안 한 것은 줄이 없다. 예전에는 완료 한 건마다 한 장(`assigned_routine_id` 를 단
+항목)이었다. 강도(#2508): 한 줄의 `intensity` 는 회원이 고른 강도이고 `prescribed_intensity` 에
+트레이너가 처방한 강도를 함께 싣는다(둘이 다르면 트레이너 화면이 `수행 …` 을 붙인다). 하지 않은
+줄은 `intensity` 가 곧 처방 강도이고 `prescribed_intensity` 는 비어 있다.
 
 **완료 PT 회차 (#2697)**: `GET /me/coach/sessions` 의 각 세션은 `session_number` 를 싣는다 —
 완료(`status="완료"`)한 PT 가 현재 담당 트레이너와의 몇 번째 수업인지(1부터). 날짜·시각 순으로
@@ -1409,7 +1437,7 @@ N명이면 첫 화면에서 요청이 2N개였다.
 
 - 각 값은 같은 회원·같은 주의 `GET /trainer/clients/{member_id}/report` 와 **같은 규칙**이다 —
   `sessions_booked` 는 예정+완료(취소·노쇼·상담 제외), `sessions_done` 은 완료, `week_completion`
-  은 월→일 7칸 이행률, `completion_avg` 는 기록한 날의 평균이고 기록이 없으면 `null`(0 아님).
+  은 월→일 7칸 이행률(주간 리포트와 같은 계산 — 걸린 개인운동과 잡힌 PT, 아무것도 걸리지 않은 날은 `null`, #2513), `completion_avg` 는 걸린 날의 평균이고 걸린 날이 없으면 `null`(0 아님).
   식단·요일별 운동·회원 피드백은 싣지 않는다 — 편집기를 열 때 그 회원 리포트로 읽는다.
 - 집계는 회원별 반복이 아니라 회원 id 목록으로 묶어 조회한다(세션 한 번, 이행 기록 한 번).
 - **담당이 살아 있고 데이터 공유 동의가 유효한 회원만** 싣는다(회원 단위 경로가 404 를 주는 회원은

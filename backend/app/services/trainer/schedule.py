@@ -8,7 +8,7 @@ from collections.abc import Mapping, Sequence
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import exists, func, select, update
+from sqlalchemy import exists, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -72,6 +72,7 @@ from app.services.trainer._common import (
     _schedule_out,
     _today,
     has_active_client_link,
+    routine_sent_on,
     today_iso,
 )
 from app.services.trainer.chat import (
@@ -1090,6 +1091,12 @@ def latest_delivery(
             TrainerRoutine.member_id == member_id,
             TrainerRoutine.status == ROUTINE_APPROVED,
             TrainerRoutine.delivery_kind.is_not(None),
+            # 미래 시작일로 보냈다가 걸리기 전에 다른 것으로 바꾼 줄은 하루도
+            # 뜨지 않았다(#2656) — 가장 최근 전송이 아니다.
+            or_(
+                TrainerRoutine.ended_on.is_(None),
+                TrainerRoutine.ended_on > TrainerRoutine.active_from,
+            ),
         )
         # 같은 날 두 번 보내면 `created_at` 이 같은 초에 걸릴 수 있다. 그때
         # `id` 로 가르면 난수라 순서가 뒤집힌다 — `sort_order` 는 이 회원의
@@ -1150,10 +1157,15 @@ def latest_delivery(
     if session is not None and session.trainer_id != trainer_id:
         session = None
 
-    sent_on = _iso_day_or_none(newest.active_from)
+    # 미래 시작일로 보낸 `개인운동만` 은 걸리는 첫날이 보낸 날보다 늦다(#2656).
+    sent_on = (
+        routine_sent_on(newest)
+        if _iso_day_or_none(newest.active_from)
+        else None
+    )
     return DeliveryOut(
         kind=kind,
-        sent_on=date.fromisoformat(sent_on) if sent_on else None,
+        sent_on=sent_on,
         session=_schedule_out(session) if session is not None else None,
         routines=_routine_outs(db, personal),
     )

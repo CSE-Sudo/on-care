@@ -7,7 +7,7 @@ const int _over = 2600;
 const int _under = 1500;
 
 TrainerClient _client({
-  List<int> weekCompletion = const <int>[],
+  List<int?> weekCompletion = const <int?>[],
   List<int> sodiumWeek = const <int>[],
 }) => TrainerClient(
   id: 'm1',
@@ -29,10 +29,14 @@ void main() {
   group('programDirectionFor (#2373)', () {
     test('완료율도 식단 기록도 없으면 판단하지 않는다', () {
       expect(programDirectionFor(_client()), ProgramDirection.noData);
-      // 0 은 기록하지 않은 날이다 — 기록이 있는 것으로 치지 않는다.
+      // null 은 걸린 것이 없던 날이다(#2513) — 기록이 있는 것으로 치지 않는다.
+      // 0 은 걸렸는데 안 한 날이라 기록이다.
       expect(
         programDirectionFor(
-          _client(weekCompletion: <int>[0, 0, 0], sodiumWeek: <int>[0, 0, 0]),
+          _client(
+            weekCompletion: <int?>[null, null, null],
+            sodiumWeek: <int>[0, 0, 0],
+          ),
         ),
         ProgramDirection.noData,
       );
