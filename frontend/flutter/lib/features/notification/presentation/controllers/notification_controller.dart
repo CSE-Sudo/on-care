@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/network/dio_client.dart';
+import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/notification/data/repositories/dio_notification_repository.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/domain/repositories/notification_repository.dart';
@@ -27,6 +28,14 @@ class NotificationController extends StateNotifier<NotificationState> {
   /// 같은 future 를 돌려준다 — 중복 조회는 목록이 두 번 흔들리는 것으로 보인다.
   Future<void>? _inFlight;
 
+  /// 조회가 진행 중인 동안 일어난 읽음 처리(#3097).
+  ///
+  /// 조회 응답은 요청을 보낸 시점의 서버 상태라, 그 사이 읽음 쓰기가 먼저 끝나면
+  /// 응답이 방금 읽은 알림을 다시 안 읽음으로 덮는다. 쓰기가 진행 중이거나 조회
+  /// 중에 끝난 읽음 처리를 여기 남겨 두었다가 응답에 덧입힌다 — 응답을 버리지
+  /// 않으므로 그 사이 새로 온 알림은 그대로 살아 있다.
+  final List<_ReadMark> _readMarks = <_ReadMark>[];
+
   Future<void> _load() {
     return _inFlight ??= _loadOnce().whenComplete(() => _inFlight = null);
   }
@@ -43,7 +52,7 @@ class NotificationController extends StateNotifier<NotificationState> {
       // 새로고침은 **첫 쪽으로 되돌린다** — 이어 받아 둔 과거 알림을 그대로 두면
       // 그 사이 지워진 알림이 목록에 남는다.
       state = NotificationState(
-        items: items,
+        items: _overlayReadMarks(items),
         loaded: true,
         hasMore: items.length >= notificationPageSize,
       );
@@ -52,7 +61,35 @@ class NotificationController extends StateNotifier<NotificationState> {
       // 실패해도 **이미 받아 둔 목록은 지우지 않는다.** 화면이 재시도를 제안한다.
       if (!mounted) return;
       state = state.copyWith(loading: false, failedToLoad: true);
+    } finally {
+      // 쓰기가 끝난 읽음 처리는 이 조회까지만 덧입히면 된다. 다음 조회는 쓰기 뒤에
+      // 나가므로 서버가 이미 읽음으로 답한다.
+      _readMarks.removeWhere((_ReadMark m) => m.done);
     }
+  }
+
+  /// 받은 목록에 진행 중·조회 중에 끝난 읽음 처리를 덧입힌다(#3097).
+  List<AlertItem> _overlayReadMarks(List<AlertItem> items) {
+    if (_readMarks.isEmpty) return items;
+    return items.map((AlertItem item) {
+      if (item.read) return item;
+      bool covered = false;
+      for (final _ReadMark mark in _readMarks) {
+        if (mark.covers(item)) {
+          // 쓰기가 실패하면 이렇게 덮은 알림도 함께 안 읽음으로 되돌린다.
+          if (!mark.done) mark.overlaid.add(item.id);
+          covered = true;
+        }
+      }
+      return covered ? item.copyWith(read: true) : item;
+    }).toList();
+  }
+
+  /// 읽음 쓰기가 성공했다. 진행 중인 조회가 없으면 더 덧입힐 응답이 없으므로
+  /// 바로 거두고, 있으면 그 응답을 받을 때까지 남겨 둔다.
+  void _settleReadMark(_ReadMark mark) {
+    mark.done = true;
+    if (_inFlight == null) _readMarks.remove(mark);
   }
 
   /// 과거 알림을 한 쪽 더 이어 붙인다. (#965)
@@ -106,6 +143,8 @@ class NotificationController extends StateNotifier<NotificationState> {
     final bool wasUnread = state.items.any(
       (AlertItem i) => i.id == id && !i.read,
     );
+    final _ReadMark mark = _ReadMark(ids: <String>{id});
+    _readMarks.add(mark);
     // copyWith 로 바꾼다 — 새 상태를 통째로 만들면 이어 받아 둔 쪽 정보(hasMore)가
     // 사라져, 읽음 처리 한 번에 "더 보기" 가 멈춘다.
     state = state.copyWith(
@@ -115,8 +154,12 @@ class NotificationController extends StateNotifier<NotificationState> {
     );
     try {
       await _repo.markRead(id);
+      _settleReadMark(mark);
     } catch (_) {
-      if (mounted && wasUnread) _restoreUnread(<String>{id});
+      _readMarks.remove(mark);
+      if (mounted && (wasUnread || mark.overlaid.isNotEmpty)) {
+        _restoreUnread(<String>{id});
+      }
     } finally {
       // **쓰기가 끝난 뒤에** 다시 센다. 먼저 부르면 서버가 아직 옛 수를 답해,
       // 배지가 다음 폴링까지 틀린 채로 남는다(리뷰).
@@ -134,14 +177,23 @@ class NotificationController extends StateNotifier<NotificationState> {
         .where((AlertItem i) => !i.read)
         .map((AlertItem i) => i.id)
         .toSet();
+    // 서버는 "지금까지 온 알림 전부" 를 읽음으로 바꾼다. 받아 둔 알림 id 와, 받지
+    // 않은 과거 알림까지 덮도록 받아 둔 것 중 가장 새 알림 시각을 기준으로 남긴다.
+    final _ReadMark mark = _ReadMark(
+      ids: state.items.map((AlertItem i) => i.id).toSet(),
+      before: _newestCreatedAt(state.items),
+    );
+    _readMarks.add(mark);
     state = state.copyWith(
       items: state.items.map((AlertItem i) => i.copyWith(read: true)).toList(),
     );
     try {
       await _repo.markAllRead();
+      _settleReadMark(mark);
       return true;
     } catch (_) {
-      if (mounted) _restoreUnread(unread);
+      _readMarks.remove(mark);
+      if (mounted) _restoreUnread(<String>{...unread, ...mark.overlaid});
       return false;
     } finally {
       onChanged?.call();
@@ -159,6 +211,43 @@ class NotificationController extends StateNotifier<NotificationState> {
           )
           .toList(),
     );
+  }
+}
+
+/// [items] 가운데 가장 새 알림의 시각. 시각을 읽을 수 없으면 null 이다.
+DateTime? _newestCreatedAt(List<AlertItem> items) {
+  DateTime? newest;
+  for (final AlertItem item in items) {
+    final DateTime? at = DateTime.tryParse(item.createdAt);
+    if (at != null && (newest == null || at.isAfter(newest))) newest = at;
+  }
+  return newest;
+}
+
+/// 조회 응답에 덧입힐 읽음 처리 한 건(#3097).
+class _ReadMark {
+  _ReadMark({required this.ids, this.before});
+
+  /// 읽음으로 바꾼 알림 id.
+  final Set<String> ids;
+
+  /// 모두 읽음이면 이 시각까지 온 알림 전부를 덮는다 — 받지 않은 과거 알림도
+  /// 서버에서는 함께 읽음이 된다.
+  final DateTime? before;
+
+  /// 서버 쓰기가 성공했다.
+  bool done = false;
+
+  /// 쓰기가 끝나기 전에 도착한 응답에서 안 읽음이었는데 이 표시로 읽음으로
+  /// 덮은 알림. 쓰기가 실패하면 이것까지 되돌린다.
+  final Set<String> overlaid = <String>{};
+
+  bool covers(AlertItem item) {
+    if (ids.contains(item.id)) return true;
+    final DateTime? cutoff = before;
+    if (cutoff == null) return false;
+    final DateTime? at = DateTime.tryParse(item.createdAt);
+    return at != null && !at.isAfter(cutoff);
   }
 }
 
@@ -186,11 +275,25 @@ final notificationControllerProvider =
 /// 폴링은 앱이 앞에 있을 때만 돌고, 일시적 실패에는 마지막 값을 유지한다
 /// (`activePollingStream`). 트레이너가 무언가 하면 회원 앱을 재시작하지 않아도
 /// 배지가 따라온다.
-final notificationUnreadProvider = StreamProvider<int>((ref) {
+///
+/// autoDispose 다(#3097). 듣는 화면(셸·탭 헤더·알림함)이 모두 사라지면 스트림을
+/// 닫아 폴링을 멈춘다 — 예전에는 로그아웃 뒤 로그인 화면에서도 토큰 없이 15초마다
+/// 미읽음 수를 물었다. 다시 로그인해 셸이 서면 새로 시작한다.
+final notificationUnreadProvider = StreamProvider.autoDispose<int>((ref) {
   final repo = ref.watch(notificationRepositoryProvider);
   // 데모도 같은 폴링이다 — 로컬 인터셉터가 drift 의 미읽음 수로 답한다(#2660).
   return activePollingStream<int>(
-    load: repo.unreadCount,
+    load: () async {
+      // 로그아웃이 세션 상태를 먼저 바꾸고 셸이 치워지기 전 한 틈에, 무효화로 새로
+      // 선 스트림이 토큰 없이 묻지 않게 한 번 더 본다. 세션을 watch 하지 않는다 —
+      // 세션 초기화가 이 provider 를 무효화하므로 의존 검사에 걸릴 수 있다. 세션을
+      // 아직 아무도 만들지 않았으면(라우터 없이 세운 테스트) 만들지 않는다.
+      if (ref.exists(sessionControllerProvider) &&
+          !ref.read(sessionControllerProvider).canEnterApp) {
+        return 0;
+      }
+      return repo.unreadCount();
+    },
     interval: const Duration(seconds: 15),
   );
 }, name: 'notificationUnread');
