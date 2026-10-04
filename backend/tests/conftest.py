@@ -271,9 +271,9 @@ def db_session(client):
         db.close()
 
 
-#: 테스트가 만드는 회원 계정에 필수 동의를 함께 남길까. (#3088)
+#: 테스트가 만드는 회원·트레이너 계정에 필수 동의를 함께 남길까. (#3088, #3155)
 #:
-#: 회원 데이터·AI API 는 필수 동의가 끝난 계정만 받는다. 기존 테스트 다수가
+#: 회원 데이터·AI API 와 트레이너 API 는 필수 동의가 끝난 계정만 받는다. 기존 테스트 다수가
 #: `consents` 없이 가입하거나 `User` 를 DB 에 직접 넣고 토큰을 만드는데, 그 계정은
 #: 모두 동의 화면을 거친 회원을 뜻한다. 가입 헬퍼가 100여 파일에 흩어져 있어
 #: 하나씩 고치는 대신, 회원 행이 생길 때 지금 버전의 필수 동의를 같은 트랜잭션에
@@ -290,10 +290,9 @@ def _record_default_consent(mapper, connection, target) -> None:
     from app.models.models import UserConsent
     from app.services import signup_consent
 
-    # 아직 읽지 않은 서버 기본값(role)은 회원이다.
+    # 아직 읽지 않은 서버 기본값(role)은 회원이다. 트레이너는 역할별 항목(건강정보
+    # 제외)을 남긴다.
     role = target.__dict__.get("role") or "member"
-    if role != "member":
-        return
     now = clock.now()
     rows = [
         {
@@ -320,7 +319,7 @@ except Exception:  # noqa: BLE001, S110 — 앱 의존성 없이 도는 순수 �
 
 @pytest.fixture
 def without_default_consent():
-    """이 테스트가 만드는 회원 계정에는 동의를 남기지 않는다. (#3088)"""
+    """이 테스트가 만드는 회원·트레이너 계정에는 동의를 남기지 않는다. (#3088, #3155)"""
     _DEFAULT_CONSENT["on"] = False
     try:
         yield
