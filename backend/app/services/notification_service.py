@@ -15,7 +15,8 @@ from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import select, tuple_
+from sqlalchemy import func, select, tuple_
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.core import clock
@@ -108,24 +109,14 @@ def get_settings(db: Session, member_id: str) -> dict[str, bool]:
 def update_settings(
     db: Session, member_id: str, fields: dict[str, bool]
 ) -> dict[str, bool]:
-    """보낸 항목만 반영한다. 없던 행은 기본값에서 시작해 만든다."""
-    # 바꿀 게 없으면 행을 만들지 않는다. 행 없음 == 기본값이므로 빈 요청에
-    # 기본값 행을 새로 남기는 것은 의미 없는 쓰기다(리뷰).
-    if not fields:
-        return get_settings(db, member_id)
+    """보낸 항목만 반영한다. 없던 행은 기본값에서 시작해 만든다.
 
-    row = db.get(MemberNotificationSetting, member_id)
-    if row is None:
-        row = MemberNotificationSetting(
-            member_id=member_id,
-            diet_log=DEFAULTS[DIET_LOG],
-            exercise_reminder=DEFAULTS[EXERCISE],
-            trainer_message=DEFAULTS[TRAINER_MESSAGE],
-            ai_coaching=DEFAULTS[AI_COACHING],
-            weekly_report=DEFAULTS[WEEKLY_REPORT],
-        )
-        db.add(row)
-
+    한 문장(`INSERT … ON CONFLICT DO UPDATE`)으로 쓴다(#3092). 앱은 토글마다 따로
+    저장하므로 설정을 처음 바꾸는 회원이 토글 두 개를 빠르게 바꾸면 요청 둘이
+    함께 "행 없음" 을 보고 각자 넣었고, 늦은 쪽이 기본키 충돌로 500 이 되어 그
+    토글이 되돌아갔다. 충돌하면 **보낸 칸만** 덮어쓰므로 서로 다른 토글이 동시에
+    와도 둘 다 남는다.
+    """
     column_by_key = {
         DIET_LOG: "diet_log",
         EXERCISE: "exercise_reminder",
@@ -133,12 +124,27 @@ def update_settings(
         AI_COACHING: "ai_coaching",
         WEEKLY_REPORT: "weekly_report",
     }
-    for key, column in column_by_key.items():
-        if key in fields:
-            setattr(row, column, bool(fields[key]))
+    sent = {
+        column: bool(fields[key])
+        for key, column in column_by_key.items()
+        if key in fields
+    }
+    # 바꿀 게 없으면 행을 만들지 않는다. 행 없음 == 기본값이므로 빈 요청에
+    # 기본값 행을 새로 남기는 것은 의미 없는 쓰기다(리뷰).
+    if not sent:
+        return get_settings(db, member_id)
+    defaults = {column: DEFAULTS[key] for key, column in column_by_key.items()}
 
+    db.execute(
+        insert(MemberNotificationSetting)
+        .values(member_id=member_id, **{**defaults, **sent})
+        .on_conflict_do_update(
+            index_elements=["member_id"],
+            set_={**sent, "updated_at": func.now()},
+        )
+    )
+    # 커밋이 이 세션에 올라온 행을 만료시키므로 아래 조회는 방금 쓴 값을 읽는다.
     db.commit()
-    db.refresh(row)
     return get_settings(db, member_id)
 
 

@@ -33,7 +33,7 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, timedelta
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, text
 from sqlalchemy.orm import Session
 
 from app.core import clock, metrics
@@ -109,11 +109,33 @@ class MenuPlan:
 
 
 def _latest(db: Session, user_id: str) -> DietMenuPlan | None:
+    # 잠금을 기다린 뒤 다시 읽을 때 다른 요청이 고친 행(재시도로 채운 행)이 이
+    # 세션에 예전 값으로 남아 있지 않게 DB 값으로 덮어 읽는다(#3092).
     return db.scalar(
         select(DietMenuPlan)
         .where(DietMenuPlan.user_id == user_id)
         .order_by(DietMenuPlan.created_at.desc())
         .limit(1)
+        .execution_options(populate_existing=True)
+    )
+
+
+def _lock_user(db: Session, user_id: str) -> None:
+    """이 회원의 리스트 만들기를 트랜잭션 끝까지 직렬화한다. (#3092)
+
+    AI 호출이 최대 [LLM_TIMEOUT_SEC] 걸려 그 사이 같은 회원의 두 번째 조회
+    (새로고침, 기록 저장 뒤 조언 다시 읽기, 트레이너 웹 추천 후보)가 들어오기
+    쉽다. 잠금이 없으면 둘 다 "다시 만들 때" 로 보고 각자 AI 를 불러 새 행을
+    하나씩 넣는다 — 비용이 두 번 들고, 정리 삭제가 상대의 새 행을 보지 못해
+    남기며, 다음 재생성이 그 쌍둥이를 "직전 리스트" 로 읽는다.
+
+    AI 를 부르는 동안 잠금을 쥐지만 기다리는 것은 같은 회원의 리스트 조회뿐이다.
+    회원 행(`FOR UPDATE`)을 잠그면 식단 분석 한도·프로필 저장까지 그동안 멈추므로
+    자문 잠금을 쓴다. 커밋·롤백과 함께 풀린다.
+    """
+    db.execute(
+        text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
+        {"key": f"diet_menu_plan:{user_id}"},
     )
 
 
@@ -185,11 +207,13 @@ def get_plan(
     entries = inputs.entries_between(db, user_id, start, today)
     recent = inputs.digest(entries)
 
-    reason = regeneration_reason(
-        row, lang=lang, today=today, fingerprint=fingerprint,
-        recent_days=recent.days_logged,
-    )
-    if reason is None:
+    def due(row: DietMenuPlan | None) -> str | None:
+        reason = regeneration_reason(
+            row, lang=lang, today=today, fingerprint=fingerprint,
+            recent_days=recent.days_logged,
+        )
+        if reason is not None:
+            return reason
         assert row is not None
         retry_due = (
             use_llm
@@ -197,9 +221,21 @@ def get_plan(
             and row.retry_after is not None
             and _aware(row.retry_after) <= now
         )
-        if not retry_due:
-            return _to_plan(row)
-        reason = "retry"
+        return "retry" if retry_due else None
+
+    if due(row) is None:
+        assert row is not None
+        return _to_plan(row)
+
+    # 만들 때다 — 잠그고 다시 판정한다(#3092). 기다리는 동안 다른 요청이 만들거나
+    # 다시 채웠으면 그 리스트를 그대로 돌려준다: AI 를 한 번만 부르고 두 요청이
+    # 같은 리스트를 받는다.
+    _lock_user(db, user_id)
+    row = _latest(db, user_id)
+    reason = due(row)
+    if reason is None:
+        assert row is not None
+        return _to_plan(row)
 
     previous = _load_items(row) if row is not None and reason != "retry" else ()
     if reason == "retry":
