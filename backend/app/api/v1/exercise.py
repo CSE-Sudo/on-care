@@ -7,12 +7,14 @@
 """
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import date, datetime
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy import select
+from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -43,6 +45,7 @@ from app.services.exercise_service import (
 )
 
 router = APIRouter(tags=["exercise"])
+log = logging.getLogger(__name__)
 
 
 def _session_date(row: ExerciseSession) -> str:
@@ -300,6 +303,7 @@ def add_sessions(
     payload: ExerciseSessionsCreate,
     current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
+    background_tasks: BackgroundTasks,
 ) -> ExerciseSessionsCreatedOut:
     """운동 기록 1~N개를 **한 트랜잭션으로** 추가한다. (#2544)
 
@@ -312,6 +316,10 @@ def add_sessions(
     기록이 있으면 새로 저장·적립·적재하지 않고 처음 결과를 다시 만들어 돌려주고,
     목록이 다르면 409 다. 그 키의 기록이 모두 지워졌으면 처음 보는 키처럼 새로
     저장한다 — 남은 것이 없으니 비교할 것도 없다.
+
+    개인 RAG 적재는 **응답 뒤에** 한다(#3095). 기록마다 임베딩을 부르므로 여러
+    개를 저장하면 그 시간이 쌓여 앱의 수신 제한(15초)을 넘기고, 저장은 됐는데
+    앱은 실패로 보는 일이 생겼다. 재시도 재생은 적재하지 않는다.
     """
     key = payload.client_request_id
     if key:
@@ -365,9 +373,8 @@ def add_sessions(
         ],
         points=PointsOut(awarded=awarded, balance=balance),
     )
-    # 적재할 값은 먼저 떼어 둔다(#586). 적재가 실패하면 personal_ingest 가 세션을
-    # 롤백하는데, 그때 행이 만료되면 다음 항목을 읽다가 적재 실패가 기록 저장
-    # 실패로 번진다. 커밋은 이미 끝났다.
+    # 적재할 값은 먼저 떼어 둔다(#586). 응답 뒤에는 요청 세션이 닫혀 행을 읽을 수
+    # 없다. 커밋은 이미 끝났다.
     ingests = [
         dict(
             date=_session_date(row), exercise_type=row.type, minutes=row.minutes,
@@ -376,9 +383,33 @@ def add_sessions(
         )
         for row in rows
     ]
-    for one in ingests:
-        personal_ingest.record_exercise(db, current_user.id, **one)
+    background_tasks.add_task(
+        _ingest_exercises, db.get_bind(), current_user.id, ingests
+    )
     return out
+
+
+def _ingest_exercises(
+    bind: Engine | Connection, user_id: str, ingests: list[dict]
+) -> None:
+    """저장한 운동 기록을 개인 RAG 로 적재한다 — 응답 뒤에 돈다. (#3095)
+
+    요청 세션은 응답과 함께 닫히므로 **자기 세션**을 연다. 전역 `SessionLocal` 이
+    아니라 요청 세션이 쓰던 연결 대상(`bind`)으로 열어, `get_db` 를 바꿔 끼운
+    환경(테스트 등)에서도 기록이 저장된 그 DB 에 적재한다.
+
+    적재는 best-effort 다. 실패해도 이미 나간 저장 응답에는 영향이 없고, 로그만
+    남는다. 항목 하나가 실패해도 다음 항목은 적재한다.
+    """
+    with Session(bind=bind, autoflush=False) as db:
+        for one in ingests:
+            try:
+                personal_ingest.record_exercise(db, user_id, **one)
+            except Exception as exc:  # noqa: BLE001 — 적재 실패가 저장을 깨면 안 된다
+                db.rollback()
+                log.warning(
+                    "운동 기록 RAG 적재 실패(무시): %s", type(exc).__name__
+                )
 
 
 def _replay_sessions(
