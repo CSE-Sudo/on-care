@@ -165,7 +165,7 @@ Future<void> _drainToast(WidgetTester tester) async {
 
 void main() {
   for (final (Locale locale, String message) in <(Locale, String)>[
-    (const Locale('ko'), '로그인이 만료되었어요. 다시 로그인해 주세요.'),
+    (const Locale('ko'), '로그인이 만료됐어요. 다시 로그인해 주세요.'),
     (const Locale('en'), 'Your sign-in has expired. Please sign in again.'),
   ]) {
     testWidgets('갱신이 거부되면 로그인 화면으로 가고 안내한다 (${locale.languageCode})', (
@@ -224,7 +224,7 @@ void main() {
 
     expect(find.byType(_Home), findsOneWidget);
     expect(find.text('실패'), findsOneWidget);
-    expect(find.text('로그인이 만료되었어요. 다시 로그인해 주세요.'), findsNothing);
+    expect(find.text('로그인이 만료됐어요. 다시 로그인해 주세요.'), findsNothing);
     expect(
       container.read(sessionControllerProvider).status,
       SessionStatus.authenticated,
@@ -243,6 +243,6 @@ void main() {
     await _settle(tester);
 
     expect(find.byType(TrainerSignInPage), findsOneWidget);
-    expect(find.text('로그인이 만료되었어요. 다시 로그인해 주세요.'), findsNothing);
+    expect(find.text('로그인이 만료됐어요. 다시 로그인해 주세요.'), findsNothing);
   });
 }

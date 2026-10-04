@@ -708,7 +708,7 @@ void main() {
         await tester.pump();
         await tester.pump();
         expect(tester.takeException(), isNull);
-        expect(find.text('메시지 전송에 실패했어요. 다시 시도해 주세요'), findsNothing);
+        expect(find.text('메시지를 보내지 못했어요. 다시 시도해 주세요'), findsNothing);
       },
     );
 

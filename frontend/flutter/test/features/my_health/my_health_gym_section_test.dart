@@ -168,7 +168,7 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
 
-    expect(find.text('My Gym & Trainer'), findsOneWidget);
+    expect(find.text('My gym & trainer'), findsOneWidget);
     // 카드의 동작은 상세로 가는 길이다 — 삭제는 그 화면 하단에 있다. (#1057)
     expect(find.byTooltip('Gym details'), findsOneWidget);
     expect(find.byTooltip('Trainer details'), findsOneWidget);

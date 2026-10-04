@@ -29,7 +29,7 @@ from app.services.trainer import _common as trainer_common_service
 TRAINER_EMAIL = "trainer@oncare.com"
 MEMBER_EMAIL = "jisu@oncare.com"
 MEMBER_ID = "user-jisu"
-CANCELLED_TITLE = "일정이 취소되었어요"
+CANCELLED_TITLE = "일정이 취소됐어요"
 
 
 # ---------------------------------------------------------------------------

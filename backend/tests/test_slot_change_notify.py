@@ -2,7 +2,7 @@
 
 트레이너가 예약이 걸린 자리를 옮기거나 늘리고 줄이면 회원 일정은 함께 바뀌었지만
 알림이 가지 않았다. 회원은 예약할 때 본 시각을 믿고 그대로 나간다. 일반 일정
-수정과 같은 알림(`일정이 변경되었어요`)이 같은 기준으로 가는지를 본다 — 실제로
+수정과 같은 알림(`일정이 변경됐어요`)이 같은 기준으로 가는지를 본다 — 실제로
 시각·길이가 달라진 경우만, 예약이 걸린 자리만.
 """
 from __future__ import annotations
@@ -28,7 +28,7 @@ from app.services.trainer import schedule as trainer_schedule_service
 TRAINER_EMAIL = "trainer@oncare.com"
 MEMBER_EMAIL = "jisu@oncare.com"
 MEMBER_ID = "user-jisu"
-CHANGED_TITLE = "일정이 변경되었어요"
+CHANGED_TITLE = "일정이 변경됐어요"
 
 
 # ---------------------------------------------------------------------------

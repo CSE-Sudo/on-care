@@ -162,9 +162,9 @@
   "consentPageFailed": "Couldn't save your agreement. Please try again in a moment.",
   "authHasAccount": "Already have an account?",
   "authErrEmptyCredentials": "Enter your email and password",
-  "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment.",
+  "authSocialSignInFailed": "Couldn't sign in with your social account. Please try again in a moment.",
   "authSocialComingSoon": "Social sign-in is coming soon. Please sign in with your email.",
-  "authErrSignInFailed": "Sign-in failed. Please try again in a moment.",
+  "authErrSignInFailed": "Couldn't sign in. Please try again in a moment.",
   "authSessionExpired": "Your sign-in has expired. Please sign in again.",
   "authErrNameEmpty": "Enter your name",
   "authErrNameTooLong": "Names can be up to 100 characters",
@@ -198,7 +198,7 @@
     "description": "Shared birth-date message (#1887). The trainer app has no birth-date field today; kept so the shared AppInputError mapping stays exhaustive."
   },
   "authErrPasswordMismatch": "Passwords don't match",
-  "authErrSignUpFailed": "Sign-up failed. Please try again in a moment.",
+  "authErrSignUpFailed": "Couldn't sign up. Please try again in a moment.",
   "dashTitle": "Dashboard",
   "dashActivityRecommendRoutine": "Try adjusting the program setup.",
   "dashActivityRecommendChat": "Try checking in over Messages.",
@@ -1510,9 +1510,9 @@
   "myChangePasswordHint": "We'll confirm your current password first",
   "myChangePasswordDemo": "Demo mode has no account, so this is unavailable",
   "myLoginAccount": "Signed in as",
-  "mySupportTitle": "Customer Support",
+  "mySupportTitle": "Customer support",
   "mySupportFaq": "FAQ",
-  "mySupportInquiry": "1:1 Inquiry",
+  "mySupportInquiry": "1:1 inquiry",
   "mySupportExternalHint": "Opens the KakaoTalk channel",
   "mySupportOpenFailed": "Couldn't open the link. Please try again in a moment",
   "myAppVersion": "On-Care Trainer · Version {version}",
@@ -1898,7 +1898,7 @@
   "aiOptionRecovery": "Recovery",
   "aiOptionPush": "Push",
   "aiOptionExisting": "Existing",
-  "aiGenerateFailed": "AI generation failed. Please try again in a moment",
+  "aiGenerateFailed": "Couldn't generate with AI. Please try again in a moment",
   "aiGenerateInvalidConditions": "Check the generation conditions. Total time must be between {min} and {max} minutes",
   "@aiGenerateInvalidConditions": {"placeholders": {"min": {"type": "int"}, "max": {"type": "int"}}},
   "aiGenerateMinutesHelper": "Enter between {min} and {max} minutes",
@@ -2011,7 +2011,7 @@
   "@aiPersonalStepIntro": {
     "placeholders": { "name": { "type": "String" } }
   },
-  "aiPersonalStepLoadFailed": "Could not load the AI personal-exercise suggestions",
+  "aiPersonalStepLoadFailed": "Couldn't load the AI personal-exercise suggestions",
   "aiPersonalStepNoSuggestion": "No AI suggestion today. Add one below.",
   "aiProgramExerciseRemoveBody": "Removes {name} from this program.",
   "@aiProgramExerciseRemoveBody": {
@@ -2027,7 +2027,7 @@
   "@aiPersonalDismissed": {
     "placeholders": { "name": { "type": "String" } }
   },
-  "aiPersonalDismissFailed": "Could not complete that. Please try again shortly.",
+  "aiPersonalDismissFailed": "Couldn't complete that. Please try again shortly.",
   "aiStepSkipped": "Skipped",
   "aiStepPersonal": "Personal exercise",
   "aiStepPrev": "Back",

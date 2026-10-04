@@ -338,7 +338,7 @@ void main() {
             _json(
               id: 'noti-left',
               category: 'member_left',
-              title: '회원 탈퇴',
+              title: '회원이 탈퇴했어요',
               body: '지수 회원이 탈퇴했어요.',
               args: <String, Object?>{'member_name': '지수'},
               targetDate: null,
@@ -347,7 +347,7 @@ void main() {
         ]);
 
         expect(find.text(_koTitle), findsOneWidget);
-        expect(find.text('회원 탈퇴'), findsOneWidget);
+        expect(find.text('회원이 탈퇴했어요'), findsOneWidget);
         expect(find.byIcon(AppIcons.eventBusy), findsOneWidget);
         expect(find.byIcon(AppIcons.memberLeft), findsOneWidget);
       });

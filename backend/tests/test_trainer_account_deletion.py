@@ -316,7 +316,7 @@ def test_a_past_client_with_a_booking_hears_only_about_the_booking(
     assert _delete_me(client, token).status_code == 200
 
     added = Counter(_member_titles(db_session, member_id)) - Counter(before)
-    assert added == Counter({"예약한 수업이 취소되었어요": 1})
+    assert added == Counter({"예약한 PT가 취소됐어요": 1})
 
 
 def test_an_active_client_with_a_booking_gets_one_notice(

@@ -837,7 +837,7 @@ void main() {
     // '운동 유형' 은 신규 키를 만들지 않고 기존 exExerciseType('운동 종류')으로
     // 합쳤다. exercise_flows 가 같은 개념에 이미 그 키를 쓰고 있어, 두 시트가
     // 서로 다른 말을 하던 것이 정리된다.
-    expect(en.exExerciseType, 'Exercise Type');
+    expect(en.exExerciseType, 'Exercise type');
     expect(ko.exExerciseType, '운동 종류');
 
     for (final String s in <String>[

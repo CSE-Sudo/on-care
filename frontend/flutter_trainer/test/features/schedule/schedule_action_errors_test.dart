@@ -337,7 +337,7 @@ void main() {
       await tapKey(tester, 'schedule-send-program');
 
       expect(find.text('완료한 세션만 보낼 수 있습니다'), findsOneWidget);
-      expect(find.text('전송에 실패했어요. 다시 시도해 주세요'), findsNothing);
+      expect(find.text('보내지 못했어요. 다시 시도해 주세요'), findsNothing);
     });
   });
 }

@@ -1748,7 +1748,7 @@ void main() {
 
       await openSession(tester, '김민수'); // 완료 session with a program
       await revealInPanel(tester, find.textContaining('오늘 PT 프로그램'));
-      expect(find.text('전송에 실패했어요. 다시 시도해 주세요'), findsNothing);
+      expect(find.text('보내지 못했어요. 다시 시도해 주세요'), findsNothing);
       expect(find.text('김민수님에게 전송됨'), findsNothing);
     });
 
@@ -1774,7 +1774,7 @@ void main() {
       await tester.tap(find.text('추가'));
       await settle(tester);
 
-      expect(find.text('일정 저장에 실패했어요. 다시 시도해 주세요'), findsOneWidget);
+      expect(find.text('일정을 저장하지 못했어요. 다시 시도해 주세요'), findsOneWidget);
       // Sheet stays open (its title is still present) so input isn't lost.
       expect(find.text('새 일정 추가'), findsOneWidget);
     });
@@ -1818,7 +1818,7 @@ void main() {
 
       // The exception is caught: an error snackbar shows and the card is
       // still 예정 (its ✓ 완료 action remains) (review PR 237).
-      expect(find.text('완료 처리에 실패했어요. 다시 시도해 주세요'), findsOneWidget);
+      expect(find.text('완료 처리하지 못했어요. 다시 시도해 주세요'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -1847,7 +1847,7 @@ void main() {
       await tester.tap(find.text('삭제').last); // confirm in dialog
       await settle(tester);
 
-      expect(find.text('일정 삭제에 실패했어요. 다시 시도해 주세요'), findsOneWidget);
+      expect(find.text('일정을 삭제하지 못했어요. 다시 시도해 주세요'), findsOneWidget);
     });
   });
 }

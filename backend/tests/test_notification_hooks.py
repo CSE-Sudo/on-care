@@ -204,7 +204,7 @@ def test_schedule_creates_a_notification(client, db_session):
     )
 
     assert created.status_code == 201, created.text
-    assert "새 일정이 등록되었어요" in _titles(client, member_token)
+    assert "새 일정이 등록됐어요" in _titles(client, member_token)
 
 
 def test_report_creates_its_own_notification_kind(client, db_session):
@@ -355,7 +355,7 @@ def test_moving_a_session_tells_the_member(client, db_session):
     )
 
     assert moved.status_code == 200, moved.text
-    assert "일정이 변경되었어요" in _titles(client, member_token)
+    assert "일정이 변경됐어요" in _titles(client, member_token)
 
 
 def test_editing_only_the_note_tells_nobody(client, db_session):
@@ -383,7 +383,7 @@ def test_cancelling_a_session_tells_the_member(client, db_session):
     )
 
     assert removed.status_code in (200, 204), removed.text
-    assert "일정이 취소되었어요" in _titles(client, member_token)
+    assert "일정이 취소됐어요" in _titles(client, member_token)
 
 
 def test_unassigning_a_member_tells_that_member(client, db_session):
@@ -398,7 +398,7 @@ def test_unassigning_a_member_tells_that_member(client, db_session):
     )
 
     assert unassigned.status_code == 200, unassigned.text
-    assert "일정이 취소되었어요" in _titles(client, member_token)
+    assert "일정이 취소됐어요" in _titles(client, member_token)
 
 
 def test_assigning_an_empty_slot_tells_the_new_member(client, db_session):
@@ -413,7 +413,7 @@ def test_assigning_an_empty_slot_tells_the_new_member(client, db_session):
     )
 
     assert assigned.status_code == 200, assigned.text
-    assert "새 일정이 등록되었어요" in _titles(client, member_token)
+    assert "새 일정이 등록됐어요" in _titles(client, member_token)
 
 
 def test_cancelling_an_empty_slot_tells_nobody(client, db_session):
@@ -449,7 +449,7 @@ def test_a_schedule_change_cannot_be_switched_off(client, db_session):
     )
 
     assert moved.status_code == 200, moved.text
-    assert "일정이 변경되었어요" in _titles(client, member_token)
+    assert "일정이 변경됐어요" in _titles(client, member_token)
 
 
 def test_a_settings_read_failure_still_delivers_the_message(
@@ -708,7 +708,7 @@ def test_schedule_creation_reaches_a_member_with_both_switches_off(
 
     _schedule(client, trainer_token, member_id)
 
-    assert "새 일정이 등록되었어요" in _titles(client, member_token)
+    assert "새 일정이 등록됐어요" in _titles(client, member_token)
 
 
 def test_schedule_deletion_reaches_a_member_with_the_exercise_switch_off(
@@ -723,7 +723,7 @@ def test_schedule_deletion_reaches_a_member_with_the_exercise_switch_off(
     )
 
     assert removed.status_code in (200, 204), removed.text
-    assert "일정이 취소되었어요" in _titles(client, member_token)
+    assert "일정이 취소됐어요" in _titles(client, member_token)
 
 
 def test_schedule_cancel_reaches_a_member_with_the_exercise_switch_off(
@@ -740,7 +740,7 @@ def test_schedule_cancel_reaches_a_member_with_the_exercise_switch_off(
     )
 
     assert cancelled.status_code == 200, cancelled.text
-    assert "일정이 취소되었어요" in _titles(client, member_token)
+    assert "일정이 취소됐어요" in _titles(client, member_token)
 
 
 def test_handing_a_session_over_tells_the_old_member_even_when_switched_off(
@@ -758,7 +758,7 @@ def test_handing_a_session_over_tells_the_old_member_even_when_switched_off(
     )
 
     assert unassigned.status_code == 200, unassigned.text
-    assert "일정이 취소되었어요" in _titles(client, member_token)
+    assert "일정이 취소됐어요" in _titles(client, member_token)
 
 
 def test_schedule_notice_keeps_the_schedule_category(client, db_session):
@@ -769,7 +769,7 @@ def test_schedule_notice_keeps_the_schedule_category(client, db_session):
 
     item = next(
         i for i in _items(client, member_token)
-        if i["title"] == "새 일정이 등록되었어요"
+        if i["title"] == "새 일정이 등록됐어요"
     )
     assert item["category"] == notification_service.MEMBER_SCHEDULE
 

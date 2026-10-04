@@ -88,7 +88,7 @@ void main() {
           OnCareBrand.member.surface,
         );
         expect(find.text('새 개인운동이 왔어요'), findsOneWidget);
-        expect(find.text('서비스 점검 안내'), findsOneWidget);
+        expect(find.text('서비스 점검이 예정돼 있어요'), findsOneWidget);
         // 개발용 가상 푸시 버튼은 목/데모 빌드에도 두지 않는다(#1242).
         expect(find.text('Simulate push'), findsNothing);
         expect(find.byType(FloatingActionButton), findsNothing);

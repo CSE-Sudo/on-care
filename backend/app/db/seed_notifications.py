@@ -48,14 +48,14 @@ DEMO_NOTIFICATIONS: tuple[DemoNotification, ...] = (
     DemoNotification(
         "noti-demo-3",
         "새 개인운동이 왔어요",
-        f"{TRAINER_NAME} 트레이너님이 무릎 상태에 맞춰 걷기 위주 개인운동으로 조정해 보냈어요.",
+        f"{TRAINER_NAME} 트레이너가 무릎 상태에 맞춰 걷기 위주 개인운동으로 조정해 보냈어요.",
         notification_service.MEMBER_ROUTINE,
         timedelta(minutes=30),
     ),
     DemoNotification(
         "noti-demo-4",
         "주간 리포트가 도착했어요",
-        f"{TRAINER_NAME} 트레이너님이 주간 리포트를 보냈어요.",
+        f"{TRAINER_NAME} 트레이너가 주간 리포트를 보냈어요.",
         notification_service.MEMBER_COACH_REPORT,
         timedelta(minutes=45),
     ),
@@ -71,8 +71,8 @@ DEMO_NOTIFICATIONS: tuple[DemoNotification, ...] = (
     ),
     DemoNotification(
         "noti-demo-6",
-        "트레이너 피드백 도착",
-        "마무리로 어깨 회전근개 스트레칭을 꼭 해주세요.",
+        "트레이너 피드백이 도착했어요",
+        "마무리로 어깨 회전근개 스트레칭을 꼭 해 주세요.",
         notification_service.MEMBER_COACH_CHAT,
         timedelta(hours=2),
     ),
@@ -94,8 +94,8 @@ DEMO_NOTIFICATIONS: tuple[DemoNotification, ...] = (
     ),
     DemoNotification(
         "noti-demo-9",
-        "서비스 점검 안내",
-        "내일 02:00~03:00 점검 예정입니다.",
+        "서비스 점검이 예정돼 있어요",
+        "내일 02:00~03:00에 점검해요.",
         "system",
         timedelta(hours=28),
         read=True,
