@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/network/request_extras.dart';
+import 'package:oncare/core/network/request_timeouts.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis_failure.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
@@ -111,6 +112,8 @@ class DioDietRepository implements DietRepository {
           // 서버로 나가는 값이 아니다 — multipart 본문은 한 번만 읽히므로
           // 인터셉터가 거기서 바이트를 꺼내 갈 수는 없다.
           options: Options(
+            // 사진을 다 올리기 전에 전역 보내기 한도(10초)에 끊기지 않게(#3141).
+            sendTimeout: photoUploadSendTimeout,
             receiveTimeout: analyzeTimeout,
             extra: <String, Object?>{kMealPhotoBytesExtra: photo.bytes},
           ),
