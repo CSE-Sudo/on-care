@@ -49,8 +49,11 @@ class _MealCreatePageState extends ConsumerState<_MealCreatePage>
   /// 화면을 연 동안 하나. 응답을 잃고 다시 누른 저장이 끼니를 둘 만들지 않는다.
   /// 그 사이 내용을 고쳐 다시 누르면 서버가 같은 키·다른 끼니로 보고 409 를
   /// 주고, 화면은 이미 저장된 끼니가 있다고 알린다(#3095). 저장해 화면을 닫으면
-  /// 함께 사라진다.
-  final String _idempotencyKey =
+  /// 함께 사라진다. 409 를 알린 뒤에는 새 키로 바꿔, 기록을 확인한 회원이
+  /// 고친 끼니를 같은 화면에서 일부러 다시 저장할 수 있게 한다.
+  String _idempotencyKey = _newIdempotencyKey();
+
+  static String _newIdempotencyKey() =>
       'manual-${DateTime.now().microsecondsSinceEpoch}';
 
   @override
@@ -119,7 +122,10 @@ class _MealCreatePageState extends ConsumerState<_MealCreatePage>
       }
       if (!mounted) return;
       refreshDietRecords(ref.invalidate, dates: <DateTime>[_date]);
-      setState(() => _busy = false);
+      setState(() {
+        _busy = false;
+        _idempotencyKey = _newIdempotencyKey();
+      });
     } catch (_) {
       if (mounted) setState(() => _busy = false);
       if (toastContext.mounted) {
