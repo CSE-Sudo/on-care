@@ -237,7 +237,13 @@ def test_consent_and_account_routes_stay_open(client, without_default_consent):
 def test_member_without_consent_can_still_withdraw(client, db_session, without_default_consent):
     user_id, login = _register_without_consent(client)
 
-    r = client.delete("/v1/users/me", headers=_auth(login["access_token"]))
+    # 탈퇴는 본인 확인을 거친다(#3039) — 동의가 없어도 비밀번호만 맞으면 된다.
+    r = client.request(
+        "DELETE",
+        "/v1/users/me",
+        json={"current_password": PASSWORD},
+        headers=_auth(login["access_token"]),
+    )
 
     assert r.status_code == 200, r.text
     db_session.expire_all()
