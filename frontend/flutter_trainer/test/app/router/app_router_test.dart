@@ -15,6 +15,15 @@ import '../../helpers/pump_app.dart';
 final AppLocalizationsKo _ko = AppLocalizationsKo();
 final AppLocalizationsEn _en = AppLocalizationsEn();
 
+/// 서버 `reset_link()`(backend/app/services/password_reset.py)가 만드는 메일 링크와 같은
+/// 모양(#3033). 앱은 해시 URL 전략이라 브라우저가 `#` 뒤를 라우터 위치로 넘긴다 — 그 위치가
+/// 재설정 경로이고 `token` 이 그대로 읽혀야 한다. 서버 형식을 바꾸면 이 표도 같이 바꾼다.
+const List<String> _mailLinks = <String>[
+  'https://oncare.example/trainer/#/auth/password-reset?token=ABCD-EFGH-JKMN-PQRS',
+  'https://oncare.example/trainer/?ref=mail#/auth/password-reset?token=ABCD-EFGH-JKMN-PQRS',
+  'https://oncare.example/trainer/#/auth/password-reset?lang=ko&token=ABCD-EFGH-JKMN-PQRS',
+];
+
 void main() {
   group('sessionRedirect', () {
     test('signed-out is forced onto sign-in from any app route', () {
@@ -27,6 +36,45 @@ void main() {
         '${AppRoutes.signIn}?from=%2Fschedule',
       );
     });
+
+    test('password reset opens in every session state (#2824)', () {
+      // 메일 링크를 어느 상태에서 열어도 코드가 담긴 주소를 그대로 둔다.
+      for (final SessionStatus status in SessionStatus.values) {
+        expect(
+          sessionRedirect(status, AppRoutes.passwordReset),
+          isNull,
+          reason: status.name,
+        );
+        expect(
+          sessionRedirect(
+            status,
+            '${AppRoutes.passwordReset}?token=ABCDEFGHJKMNPQRS',
+          ),
+          isNull,
+          reason: status.name,
+        );
+      }
+    });
+
+    test(
+      'hash-style mail links open the reset screen with the code (#3033)',
+      () {
+        for (final String link in _mailLinks) {
+          // 해시 URL 전략 — 브라우저가 `#` 뒤를 라우터 위치로 넘긴다.
+          final String location = Uri.parse(link).fragment;
+          final Uri parsed = Uri.parse(location);
+          expect(parsed.path, AppRoutes.passwordReset, reason: link);
+          expect(parsed.queryParameters['token'], 'ABCD-EFGH-JKMN-PQRS');
+          for (final SessionStatus status in SessionStatus.values) {
+            expect(
+              sessionRedirect(status, location),
+              isNull,
+              reason: '${status.name} $link',
+            );
+          }
+        }
+      },
+    );
 
     test('signed-out stays on sign-in (no redirect loop)', () {
       expect(

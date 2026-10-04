@@ -137,6 +137,51 @@ gh api repos/actions/checkout/git/ref/tags/v4 --jq .object.sha
 
 ---
 
+## 6.2 의존성 업데이트 PR (#2837)
+
+Dependabot 이 매주 월요일 오전에 생태계별로 묶은 업데이트 PR 을 엽니다
+([`.github/dependabot.yml`](../.github/dependabot.yml)) — 백엔드(pip), GitHub Actions,
+회원 앱·트레이너 웹(pub). 백엔드·두 앱의 주 버전 변경은 자동 PR 로 받지 않습니다(#2978).
+
+- **부·수 버전 묶음**: CI 가 모두 초록이면 담당 영역 사람이 변경 기록(릴리스 노트)만 훑고
+  병합합니다. 한 패키지 때문에 깨지면 그 패키지만 묶음에서 빼고(`@dependabot ignore this
+  minor version`) 나머지를 병합합니다.
+- **주 버전 변경**: Dependabot 이 열지 않습니다. 올려야 할 때는 패키지별로 이슈를 만들어
+  마이그레이션 안내와 필요한 코드 수정 범위를 적고, 그 이슈의 PR 에서 버전과 코드를 함께
+  올립니다. 취약점 때문에 열리는 보안 업데이트 PR 은 주 버전이어도 열리므로 우선 처리합니다.
+- **백엔드 잠금 파일**: `requirements.txt`·`requirements-dev.txt` 는 손으로 고치지 않습니다.
+  직접 의존을 바꿀 때는 `requirements.in`(·`requirements-dev.in`)을 고친 뒤 잠금 파일을
+  다시 만듭니다(절차는 [backend/README.md](../backend/README.md) "의존성").
+- **취약점 경고**: 백엔드 CI 의 `Dependency audit (pip-audit)` 잡이 잠금 파일의 알려진
+  취약점을 요약에 남깁니다. 지금은 경고 모드라 병합을 막지 않지만, 경고가 뜨면 해당
+  패키지 업데이트를 우선 처리합니다.
+
+## 6.3 비밀값 스캔 (#2837)
+
+PR gate 가 PR 의 새 커밋을 gitleaks 로 검사합니다([`.gitleaks.toml`](../.gitleaks.toml)).
+걸리면 값을 지우는 커밋을 더하는 것만으로는 부족합니다 — 이력에 남으므로 그 커밋을
+고쳐 다시 푸시하고, 실제 키였다면 즉시 교체합니다. 예시 파일에는 `CHANGE_ME_…` 처럼
+자리표시자임이 이름에서 드러나는 값만 둡니다. 정말 오탐인 한 줄은 줄 끝에
+`gitleaks:allow` 주석을 달고 PR 에 이유를 적습니다.
+
+저장소 설정의 Secret scanning·Push protection(Settings → Code security)도 켜 두면 푸시
+단계에서 한 번 더 막습니다. 저장소 관리자가 확인합니다.
+
+## 6.4 운영 배포 승인 (#3019)
+
+운영 배포(백엔드 `Backend Deploy`, 프런트 `Deploy Frontend to AWS`)는 GitHub Environment `production` 에서
+돕니다. 배포 브랜치는 `main` 만이고, Environment 에 승인자가 지정돼 있으면 **병합 뒤 배포가 승인을 기다립니다.**
+
+- 승인자는 Actions 실행 화면의 "Review deployments" 에서 커밋·변경 내용을 보고 승인합니다. 배포 기록은
+  저장소 Environments 화면에 남아 "지금 운영에 무엇이 떠 있는지"를 거기서 봅니다.
+- 백엔드는 staging 이 켜져 있으면 staging 을 먼저 배포·검증하고, 통과해야 운영 승인 단계로 갑니다.
+- 배포 뒤 검증(healthz·readyz)이 실패하면 백엔드는 직전 이미지로, 프런트는 직전 릴리스 경로로 스스로
+  되돌립니다. 워크플로는 실패로 남으니 원인을 고친 PR 을 다시 병합합니다.
+- 스키마를 바꾸는 PR 은 **직전 이미지와도 함께 돌 수 있게** 나눕니다(칸 삭제·이름 변경은 두 번에 나눠 병합) —
+  되돌리기는 이미지만 되돌리고 마이그레이션은 되돌리지 않습니다([`backend/docs/DEPLOY.md`](../backend/docs/DEPLOY.md) 2절).
+
+---
+
 ## 7. 이슈 사용
 
 - 새 작업은 가능한 한 **이슈 → PR → Closes** 흐름을 유지합니다.

@@ -99,7 +99,7 @@ void main() {
   testWidgets('네 줄이 같은 요일 축 위에 선다', (tester) async {
     await _pump(tester);
 
-    expect(find.text('PT 세션'), findsOneWidget);
+    expect(find.text('PT'), findsOneWidget);
     expect(find.text('개인운동'), findsOneWidget);
     expect(find.text('식단 기록'), findsOneWidget);
     expect(find.text('섭취 칼로리'), findsOneWidget);
@@ -301,7 +301,7 @@ void main() {
   testWidgets('영어에서 모든 자리가 번역되어 있다', (tester) async {
     await _pump(tester, locale: 'en');
 
-    expect(find.text('PT sessions'), findsOneWidget);
+    expect(find.text('PT'), findsOneWidget);
     expect(find.text('Personal workouts'), findsOneWidget);
     expect(find.text('Meal logs'), findsOneWidget);
     expect(find.text('Calories eaten'), findsOneWidget);

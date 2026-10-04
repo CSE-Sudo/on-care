@@ -2,12 +2,12 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/demo_member_directory.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_invite_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_invite.dart';
 import 'package:oncare_trainer/features/clients/domain/repositories/client_data_refresher.dart';
@@ -53,13 +53,6 @@ class _NoInviteClientInviteRepository implements ClientInviteRepository {
 
   @override
   Future<void> cancel(String inviteId) async {}
-}
-
-class _ReadOnlyClientRepository extends DriftClientRepository {
-  const _ReadOnlyClientRepository(super.db);
-
-  @override
-  bool get supportsRosterMutations => false;
 }
 
 class _RecordingRefreshClientRepository extends DriftClientRepository
@@ -136,80 +129,8 @@ void main() {
       expect(clients.where((c) => !c.sodiumOverBudget), isNotEmpty);
     });
 
-    test('addClient appends a fresh profile after the seeded roster', () async {
-      final repo = DriftClientRepository(db);
-      final seeded = (await repo.watchClients().first).length;
-      await repo.addClient(name: '  최수진  ', goal: '체중 감량');
-
-      final clients = await repo.watchClients().first;
-      expect(clients.length, seeded + 1);
-      final added = clients.last; // large sortOrder appends
-      expect(added.name, '최수진'); // trimmed
-      expect(added.avatar, '최');
-      expect(added.goal, '체중 감량');
-      expect(added.active, isTrue);
-      expect(added.sodiumMg, 0);
-      // 아직 아무것도 걸리지 않았다 — 0% 가 아니라 빈 칸이다(#2513).
-      expect(added.weekCompletion, List<int?>.filled(7, null));
-      expect(added.id.startsWith('seed-'), isFalse); // survives re-seed
-    });
-
-    test(
-      'addClient ignores an empty name and defaults an empty goal',
-      () async {
-        final repo = DriftClientRepository(db);
-        final seeded = (await repo.watchClients().first).length;
-        expect(await repo.addClient(name: '   ', goal: '아무거나'), isFalse);
-        expect((await repo.watchClients().first).length, seeded);
-
-        expect(await repo.addClient(name: '박도윤', goal: '  '), isTrue);
-        final clients = await repo.watchClients().first;
-        // 목표는 회원 건강 목표만 남는다 — 고르지 않았으면 비어 있다(#1818).
-        expect(clients.last.goal, isEmpty);
-      },
-    );
-
-    test('addClient rejects a duplicate name', () async {
-      final repo = DriftClientRepository(db);
-      final seeded = (await repo.watchClients().first).length;
-
-      // Schedules resolve their client by NAME, so a second 김민수 could
-      // receive the first one's chat/운동기록 (review PR 243).
-      expect(await repo.addClient(name: '김민수', goal: '중복'), isFalse);
-      expect(await repo.addClient(name: '  김민수  ', goal: '공백 차이'), isFalse);
-      expect(await repo.addClient(name: '김민수 ', goal: '후행 공백'), isFalse);
-      expect((await repo.watchClients().first).length, seeded); // nothing added
-
-      // A genuinely new name still registers, and is then itself taken.
-      expect(await repo.addClient(name: '최수진', goal: '체중 감량'), isTrue);
-      expect(await repo.addClient(name: '최수진', goal: '또'), isFalse);
-      expect((await repo.watchClients().first).length, seeded + 1);
-
-      expect(await repo.clientNameExists('김민수'), isTrue);
-      expect(await repo.clientNameExists('없는사람'), isFalse);
-    });
-
-    test('concurrent addClient of the same name inserts exactly one', () async {
-      final repo = DriftClientRepository(db);
-
-      // Fire both adds without awaiting between them: the check and the
-      // insert share one transaction, so only one can pass the duplicate
-      // guard even when they race (review PR 243).
-      final results = await Future.wait(<Future<bool>>[
-        repo.addClient(name: '한지민', goal: 'A'),
-        repo.addClient(name: '한지민', goal: 'B'),
-      ]);
-
-      expect(results.where((r) => r).length, 1); // exactly one succeeded
-      final matches = (await repo.watchClients().first)
-          .where((c) => c.name == '한지민')
-          .toList();
-      expect(matches.length, 1); // and only one row exists
-    });
-
     test('setClientActive flips the 활성/휴면 state', () async {
       final repo = DriftClientRepository(db);
-      expect(repo.supportsRosterMutations, isTrue);
       await repo.setClientActive('seed-client-1', false);
       var clients = await repo.watchClients().first;
       expect(clients.firstWhere((c) => c.name == '김민수').active, isFalse);
@@ -746,7 +667,10 @@ void main() {
       await enterSyncCode(tester, demoAlreadyLinkedPairingCode);
 
       expect(find.text('김민수'), findsWidgets);
-      expect(find.text('이미 담당하고 있는 회원이에요.'), findsNothing);
+      expect(
+        find.text('이미 담당하고 있는 회원이에요. 회원 목록에서 찾아 주세요'),
+        findsNothing,
+      );
 
       // 바로 잇지 않는다 — 이름·성별·나이를 확인하고 누른다.
       expect(find.text('이 회원이 맞나요?'), findsOneWidget);
@@ -783,8 +707,37 @@ void main() {
       // 김민수(seed-client-1)는 이미 담당 중이다.
       await enterSyncCode(tester, demoAlreadyLinkedPairingCode);
 
-      expect(find.text('이미 담당하고 있는 회원이에요.'), findsOneWidget);
+      expect(
+        find.text('이미 담당하고 있는 회원이에요. 회원 목록에서 찾아 주세요'),
+        findsOneWidget,
+      );
       // 이유만 보여 주고 끝낸다 — 연결된 회원 카드가 뜨지 않는다.
+      expect(
+        find.byKey(const ValueKey<String>('client-connect-result')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('영어 화면 데모에서도 담당 중 안내가 영어로 뜬다 (#2893)', (tester) async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.clients,
+        locale: const Locale('en'),
+      );
+
+      await tester.tap(find.text('Register new member'));
+      await settle(tester);
+
+      await enterSyncCode(tester, demoAlreadyLinkedPairingCode);
+
+      expect(
+        find.text(
+          'You already manage this member. Find them in your member list',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('이미 담당'), findsNothing);
       expect(
         find.byKey(const ValueKey<String>('client-connect-result')),
         findsNothing,
@@ -842,9 +795,6 @@ void main() {
         token: 'demo-trainer-token',
         at: AppRoutes.clients,
         extraOverrides: [
-          clientRepositoryProvider.overrideWith(
-            (ref) => _ReadOnlyClientRepository(ref.watch(appDatabaseProvider)),
-          ),
           clientInviteRepositoryProvider.overrideWithValue(
             const _NoInviteClientInviteRepository(),
           ),
@@ -860,14 +810,14 @@ void main() {
       await tester.tap(clientCard.last);
       await settle(tester);
 
-      // 신규 회원 등록과 활성/휴면은 다른 권한이다 (#707) — 백엔드 로스터에는
-      // 회원을 더하는 경로가 없지만 관리 상태 전환은 있다. 한 플래그로 묶여
-      // 있던 동안에는 이 배지가 실 API 에서 계속 읽기 전용이었다.
-      final statusInkWell = find.byKey(
+      // 신규 회원 등록과 활성/휴면은 다른 권한이다 (#707) — 연결 경로가 없는
+      // 소스여도 관리 상태 전환은 있다. 한 플래그로 묶여 있던 동안에는 이
+      // 배지가 실 API 에서 계속 읽기 전용이었다.
+      final statusTag = find.byKey(
         const ValueKey<String>('client-status-toggle'),
       );
-      expect(statusInkWell, findsOneWidget);
-      expect(tester.widget<InkWell>(statusInkWell).onTap, isNotNull);
+      expect(statusTag, findsOneWidget);
+      expect(tester.widget<AppTag>(statusTag).onTap, isNotNull);
     });
 
     /// 필터 패널을 열어 [filter] 칩을 누르고 닫는다.

@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/drift.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/program_draft_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';

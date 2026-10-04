@@ -1,3 +1,8 @@
+import 'package:oncare_trainer/features/clients/domain/diet_analysis_rules.dart'
+    show pyRound;
+import 'package:oncare_ui/oncare_ui.dart'
+    show kGoalDefaultDailyProteinG, kGoalDefaultProteinGPerKg;
+
 class MemberHealthProfile {
   /// [focusChangedBy] 값 — 건강 목표를 마지막으로 바꾼 사람(#1832).
   static const String focusChangedByMember = 'member';
@@ -16,6 +21,7 @@ class MemberHealthProfile {
     this.dailyCarbsG,
     this.dailyProteinG,
     this.dailyFatG,
+    this.serverEffectiveDailyProteinG,
     this.dailyBurnKcal,
     this.weeklyCardioMinutes,
     this.weeklyStrengthSets,
@@ -45,6 +51,32 @@ class MemberHealthProfile {
   final int? dailyCarbsG;
   final int? dailyProteinG;
   final int? dailyFatG;
+
+  /// 서버가 계산한 실효 단백질 목표(`effective_daily_protein_g`, #2898). 옛
+  /// 응답·데모면 null 이고, 그때는 [effectiveDailyProteinG] 가 같은 규칙을 계산한다.
+  final int? serverEffectiveDailyProteinG;
+
+  /// 단백질 목표 — 개인 목표 → 서버 실효값 → 체중 × 1.2g → 60g. 회원 식단
+  /// 분석·조언과 같은 분모다(#2898). 회원 앱 `UserProfile.effectiveDailyProteinG`
+  /// 와 같은 규칙이다.
+  int get effectiveDailyProteinG =>
+      dailyProteinG ??
+      serverEffectiveDailyProteinG ??
+      proteinTargetFromWeight(weightKg) ??
+      defaultDailyProteinG;
+
+  /// 체중도 개인 목표도 없을 때의 단백질 목표 — 서버 `DEFAULT_PROTEIN_G`.
+  /// 값은 공용 패키지 `oncare_ui` 의 `kGoalDefault…` 한 곳에 있다(#2906).
+  static const int defaultDailyProteinG = kGoalDefaultDailyProteinG;
+
+  /// 체중 1kg 당 단백질 목표(g) — 서버 `PROTEIN_G_PER_KG`.
+  static const double proteinGPerKg = kGoalDefaultProteinGPerKg;
+
+  /// 체중 기반 단백질 목표. 체중이 없으면 null.
+  static int? proteinTargetFromWeight(double? weightKg) =>
+      weightKg != null && weightKg > 0
+      ? pyRound(weightKg * proteinGPerKg)
+      : null;
 
   /// 운동 탭이 실제로 견주는 목표(#1139). 아래 `weekly*Goal` 셋은 그 이전
   /// 세대의 값이라 트레이너 편집 폼에서는 다루지 않는다.
@@ -85,6 +117,11 @@ class MemberHealthProfile {
         dailyCarbsG: (json['daily_carbs_g'] as num?)?.toInt(),
         dailyProteinG: (json['daily_protein_g'] as num?)?.toInt(),
         dailyFatG: (json['daily_fat_g'] as num?)?.toInt(),
+        serverEffectiveDailyProteinG:
+            switch (json['effective_daily_protein_g']) {
+              final num v when v > 0 => v.toInt(),
+              _ => null,
+            },
         dailyBurnKcal: (json['daily_burn_kcal'] as num?)?.toInt(),
         weeklyCardioMinutes: (json['weekly_cardio_minutes'] as num?)?.toInt(),
         weeklyStrengthSets: (json['weekly_strength_sets'] as num?)?.toInt(),
@@ -99,7 +136,8 @@ class MemberHealthProfile {
           _ => null,
         },
         focusChangedAt: switch (json['focus_changed_at']) {
-          final String at => DateTime.tryParse(at)?.toLocal(),
+          // UTC 순간 그대로 — 표시할 때 KST 날짜로 바꾼다(#2893).
+          final String at => DateTime.tryParse(at),
           _ => null,
         },
         notesChangedBy: switch (json['notes_changed_by']) {

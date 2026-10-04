@@ -2,7 +2,7 @@
 # 운영 컨테이너 기동 엔트리포인트.
 # 1) 스키마를 Alembic head 까지 마이그레이션(운영은 AUTO_CREATE_TABLES=false 권장 →
 #    Alembic 이 유일한 스키마 소스). 2) uvicorn 시작.
-# App Runner/프록시 뒤이므로 --proxy-headers 로 X-Forwarded-Proto 를 신뢰(HTTPS 판정).
+# 로드 밸런서(프록시) 뒤이므로 --proxy-headers 로 X-Forwarded-Proto 를 신뢰(HTTPS 판정).
 set -euo pipefail
 
 # ENV 는 반드시 명시한다(#2821). 백엔드의 운영 안전장치(JWT·CORS·데모 비밀번호 검사,
@@ -17,7 +17,7 @@ fi
 echo "[start] ENV=${ENV_TRIMMED}"
 
 # 포트: Railway 등 일부 플랫폼은 동적 $PORT 를 주입한다. 없거나 비어 있으면
-# (App Runner·로컬·docker-compose) 8000 으로 폴백 → 한 이미지가 두 플랫폼 모두에서
+# (ECS·로컬·docker-compose) 8000 으로 폴백 → 한 이미지가 두 플랫폼 모두에서
 # 그대로 뜬다. 검증은 마이그레이션보다 먼저 한다 — DB 가 unavailable 할 때 포트
 # 오류가 마이그레이션 오류에 가려지지 않고 "명확한 포트 검증"이 먼저 작동하도록.
 PORT="${PORT:-8000}"
@@ -35,10 +35,36 @@ if (( PORT < 1 || PORT > 65535 )); then
   exit 1
 fi
 
+# 워커 수(#2835). 기본 1 — 인메모리 rate limiter·메트릭은 워커마다 따로 세므로
+# 늘리면 분당 한도가 사실상 워커 수만큼 느슨해지고 /system/metrics 는 요청을 받은
+# 워커 하나의 값만 보여 준다(하루 상한처럼 DB 에서 세는 값은 영향 없음). DB 연결
+# 상한도 워커 수만큼 곱해진다 — 계산법은 docs/DEPLOY.md. 값은 배포 설정에서 정한다.
+WEB_CONCURRENCY="${WEB_CONCURRENCY:-1}"
+if ! [[ "${WEB_CONCURRENCY}" =~ ^[0-9]+$ ]] || (( 10#$WEB_CONCURRENCY < 1 )); then
+  echo "[start] invalid WEB_CONCURRENCY='${WEB_CONCURRENCY}' — 1 이상의 정수여야 합니다." >&2
+  exit 1
+fi
+WEB_CONCURRENCY=$((10#$WEB_CONCURRENCY))
+
 echo "[start] migrate (advisory-lock serialized)"
 python scripts/migrate.py
 
-echo "[start] launching uvicorn on :${PORT}"
+# 프록시 헤더를 믿을 앞단 주소(#2815). uvicorn 은 여기 든 주소에서 온 요청의
+# X-Forwarded-Proto(HTTPS 판정)와 X-Forwarded-For 를 받아들인다. 관리형 ALB 처럼
+# 프록시 주소 대역이 고정되지 않은 플랫폼은 좁힐 수 없어 기본값을 "*" 로 둔다 —
+# 그래도 안전한 이유는 rate limit·감사 로그가 이 값으로 고쳐진 소켓 주소가 아니라
+# app/core/client_ip.py 가 X-Forwarded-For 를 오른쪽에서 TRUSTED_PROXY_HOPS 번째로
+# 읽은 값을 쓰기 때문이다. 프록시 대역이 고정된 환경은 그 대역으로 좁힌다.
+FORWARDED_ALLOW_IPS="${FORWARDED_ALLOW_IPS:-*}"
+
+# uvicorn 기본 액세스 로그는 끈다(#3031). 그 로그는 요청 줄 전체(쿼리 포함)와 위의
+# 프록시 헤더로 읽은 실제 사용자 IP 를 한 줄에 남겨, 헬스장 찾기의 lat·lng 같은 위치
+# 좌표가 IP 와 함께 서버 로그에 쌓인다. 요청 로그는 앱의 `app.access`
+# (app/core/observability.py)가 method·경로(쿼리 제외)·상태·소요시간·request_id 만
+# 남기므로 가시성은 그대로다.
+echo "[start] launching uvicorn on :${PORT} (workers=${WEB_CONCURRENCY})"
 exec uvicorn app.main:app \
   --host 0.0.0.0 --port "${PORT}" \
-  --proxy-headers --forwarded-allow-ips="*"
+  --workers "${WEB_CONCURRENCY}" \
+  --proxy-headers --forwarded-allow-ips="${FORWARDED_ALLOW_IPS}" \
+  --no-access-log

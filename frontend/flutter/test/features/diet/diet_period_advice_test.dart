@@ -12,16 +12,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/advice/diet_advice.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
+import 'package:oncare_ui/oncare_ui.dart' show withoutWordJoiners;
 
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
+import '../../helpers/mock_account_repository.dart';
 
 /// 기간 조언을 붙잡아 두거나 실패시키는 대역. 나머지 동작은 그대로 쓴다.
 class _AdviceRepository extends FakeDietRepository {
@@ -76,7 +77,7 @@ void main() {
           .widgetList<Text>(
             find.descendant(of: card, matching: find.byType(Text)),
           )
-          .map((Text t) => t.data ?? '')
+          .map((Text t) => withoutWordJoiners(t.data ?? ''))
           .join(' ');
     }
 
@@ -150,5 +151,5 @@ String _shellText(WidgetTester tester) => tester
         matching: find.byType(Text),
       ),
     )
-    .map((Text t) => t.data ?? '')
+    .map((Text t) => withoutWordJoiners(t.data ?? ''))
     .join(' ');

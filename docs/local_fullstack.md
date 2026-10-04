@@ -87,6 +87,11 @@ docker compose ps             # app, db 모두 Up
 docker compose logs app       # alembic upgrade 성공 후 uvicorn 기동
 ```
 
+요청 로그는 `app.access: GET '/v1/...' -> 200 (…ms)` 처럼 경로만 남습니다. 컨테이너는 운영과 같은
+`scripts/start.sh` 로 떠서 uvicorn 기본 액세스 로그(쿼리·IP 포함)를 끕니다(#3031). 컨테이너 없이
+`uvicorn app.main:app --reload` 로 직접 띄울 때도 위치 좌표를 로그에 남기고 싶지 않으면
+`--no-access-log` 를 더합니다(개발에서는 선택).
+
 ## 2. 회원 앱 (모바일)
 
 로컬 검증은 Chrome 으로 띄우는 편이 빠릅니다. 실제 배포 타깃은 iOS/Android 입니다.
@@ -98,6 +103,21 @@ flutter run -d chrome \
   --dart-define=USE_MOCK_API=false \
   --dart-define=API_BASE_URL=http://localhost:8000/v1
 ```
+
+헬스장 찾기 지도를 에뮬레이터·시뮬레이터에서 보려면 **개발용** 카카오 앱의 JavaScript 키를 넣습니다
+(#3043). 모바일은 지도 문서를 `http://localhost` 출처로 띄우므로, 개발용 앱의 JavaScript SDK 도메인에
+`http://localhost` 가 있어야 합니다. 운영 키의 허용 목록에는 넣지 않습니다(#2913).
+
+```bash
+flutter run -d <에뮬레이터·시뮬레이터 id> \
+  --dart-define=USE_MOCK_API=false \
+  --dart-define=API_BASE_URL=http://10.0.2.2:8000/v1 \
+  --dart-define=KAKAO_JS_KEY=<개발용 카카오 JavaScript 키>
+```
+
+키가 없거나 지도를 불러오지 못하면 지도 자리에 "지도를 불러오지 못했어요" 만 보이고 목록은 그대로
+쓸 수 있습니다. 데모(`USE_MOCK_API=true`)는 예전 그림 지도를 그대로 씁니다. `10.0.2.2` 는 안드로이드
+에뮬레이터에서 본 PC 의 주소이고, iOS 시뮬레이터는 `localhost` 를 그대로 씁니다.
 
 ### 안드로이드 실기기에서 실행 (#1882)
 
@@ -214,7 +234,8 @@ flutter run -d chrome \
 
 ## 데모 계정
 
-`SEED_DEMO_DATA=true`(기본값)면 시드 계정이 생성됩니다. 비밀번호는 모두
+`SEED_DEMO_DATA=true` 면 시드 계정이 생성됩니다. 서버 기본값은 `false` 라(#2811)
+`backend/.env.example` 을 복사해 쓰거나 직접 켜야 합니다. 비밀번호는 모두
 `.env` 의 `DEMO_LOGIN_PASSWORD`(기본 `oncare123`)입니다.
 
 | 역할 | 이메일 | 비고 |

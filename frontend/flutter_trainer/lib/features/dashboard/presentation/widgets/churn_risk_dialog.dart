@@ -97,7 +97,7 @@ class _ChurnRiskTile extends StatelessWidget {
                     const AppIcon(
                       AppIcons.chevronRight,
                       size: OnCareSize.iconMedium,
-                      color: OnCareColors.textDisabled,
+                      color: OnCareColors.textTertiary,
                     ),
                   ],
                 ),

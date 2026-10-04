@@ -1,10 +1,10 @@
 import 'package:oncare/core/demo/demo_ai_advice.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
 import 'package:oncare/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 테스트용 홈 요약 저장소 — 식단 저장소 대역에서 영양 수치를 가져온다.
 ///

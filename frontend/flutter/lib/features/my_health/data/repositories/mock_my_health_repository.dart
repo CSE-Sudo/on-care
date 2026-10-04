@@ -64,22 +64,7 @@ class MockMyHealthRepository implements MyHealthRepository {
       // 계정 id 자체를 그 형태로 바꾸면서 둘이 다시 하나가 됐다 (#1279).
       // 데모에서 가입한 계정은 그 계정의 id 다(#2665).
       profile: UserProfile(name: me.name, email: me.email, id: me.id),
-      risk: const RiskAlert(
-        title: '이번 주 관리 포인트',
-        body: '식단·운동 기록을 꾸준히 이어 가면 트레이너가 더 정확하게 도와줄 수 있어요.',
-        level: RiskLevel.medium,
-      ),
       activityPoints: points?.balance ?? kDemoOpeningPoints,
-      activityRank: 14,
-      settings: const <SettingsItem>[
-        SettingsItem(label: '내 프로필', icon: '👤', kind: SettingsKind.myProfile),
-        SettingsItem(
-          label: '알림 설정',
-          icon: '🔔',
-          kind: SettingsKind.notification,
-        ),
-        SettingsItem(label: '고객 지원', icon: '💬', kind: SettingsKind.support),
-      ],
     );
   }
 }

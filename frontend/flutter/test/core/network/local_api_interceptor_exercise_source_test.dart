@@ -8,8 +8,8 @@ import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 데모 운동이 drift 에 남으면서(#2662) 로컬 목업 API 가 맡게 된 일 — 기록의
 /// 출처, 파생 기록 잠금, 루틴 완료 기록, 조언의 추천 개인운동.

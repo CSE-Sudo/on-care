@@ -2,12 +2,12 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/kst_clock_provider.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
@@ -517,8 +517,8 @@ class DriftScheduleRepository implements ScheduleRepository {
   /// 그걸 그대로 회원에게 전송할 수 있었다.
   ///
   /// v3 이전에 저장된 행은 `client_id` 가 null 이라 예전처럼 정규화된 이름으로
-  /// 폴백한다. 폴백은 `lower(trim(name))` — `addClient` 의 유일성 가드와 같은
-  /// 정규화라, 저장/조회 기준이 어긋나지 않는다.
+  /// 폴백한다. 폴백은 `lower(trim(name))` — 시드 회원 이름 유일성 검사
+  /// (`seed_data_test`)와 같은 정규화라, 저장/조회 기준이 어긋나지 않는다.
   @override
   Stream<List<ScheduleSession>> watchClientSessions(ScheduleClientKey client) {
     final query = _db.select(_db.trainerScheduleEntries)
@@ -1468,10 +1468,10 @@ bool isDemoReservationScheduleId(String id) =>
     id.startsWith(demoReservationScheduleIdPrefix) ||
     id.startsWith('seed-$demoReservationScheduleIdPrefix');
 
-// 데모 저장소가 서버와 같은 사유로 거절할 때 쓰는 문구 — 서버 `trainer_service`
+// 데모 저장소가 서버와 같은 사유로 거절할 때 쓰는 문구 — 서버 `trainer.schedule`
 // 의 ScheduleConflict 문구와 같다. 화면은 한국어일 때 이 사유를 그대로 보인다.
 const String demoFinishedEditRejected =
-    '완료·취소·노쇼로 마무리된 세션은 메모·프로그램만 수정할 수 있습니다.';
+    '완료·취소·노쇼로 마무리된 PT는 메모·프로그램만 수정할 수 있습니다.';
 const String demoSentProgramEditRejected = '이미 보낸 프로그램은 수정할 수 없습니다.';
 const String demoReservationEditRejected =
     '예약으로 생성된 일정은 일반 일정 화면에서 수정할 수 없습니다.';

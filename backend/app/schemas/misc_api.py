@@ -4,46 +4,22 @@
 """
 from __future__ import annotations
 
-import re
-from datetime import date as _date, datetime
-from typing import Any, Literal, Optional
-from pydantic import BaseModel, Field, field_validator
-
-from app.schemas.partial_update import PartialUpdate
-
-# 회원 일정 카테고리 허용값(프론트 계약).
-ScheduleCategory = Literal["hospital", "exercise", "meal", "medication", "other"]
-_HEX_COLOR = r"^#[0-9A-Fa-f]{3}([0-9A-Fa-f]{3})?$"
-# 계약 형식은 정확히 YYYY-MM-DD. date.fromisoformat 는 3.11+ 에서 basic ISO(20260726)·
-# 주 날짜(2026-W30-7)까지 받으므로 형식을 먼저 좁힌다.
-_YMD_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+from datetime import datetime
+from typing import Any, Optional
+from pydantic import BaseModel, Field
 
 
-def _valid_ymd(v: str) -> str:
-    if not _YMD_RE.fullmatch(v):
-        raise ValueError("유효한 날짜(YYYY-MM-DD)가 아닙니다.")
-    try:
-        _date.fromisoformat(v)  # 2026-02-30 등 달력상 불가능한 값 거부
-    except ValueError as e:
-        raise ValueError("유효한 날짜(YYYY-MM-DD)가 아닙니다.") from e
-    return v
-
-
-def _valid_hhmm_or_empty(v: str) -> str:
-    if v == "":
-        return v  # 시간 미지정(종일) 허용
-    try:
-        datetime.strptime(v, "%H:%M")  # 25:99 등 거부
-    except ValueError as e:
-        raise ValueError("유효한 시간(HH:MM)이 아닙니다.") from e
-    return v
-
-
-# ---- 일정 ----
+# ---- 알림 ----
 class NotificationAction(BaseModel):
-    """알림에서 바로 갈 수 있는 액션(카테고리에서 파생). 프론트가 target 으로 이동."""
+    """알림에서 바로 갈 수 있는 액션. 프론트가 target 으로 이동.
+
+    알림에 목적지(`action_target`, #2690·#3028)가 있으면 그 값, 없으면 카테고리에서
+    파생한다. PT 일정(`member_schedule`)은 운동 탭(`exercise`)이다(#3028).
+    """
     label: str         # "기록하러 가기" / "Log now" — 요청 언어(#2302)
-    target: str        # 프론트 라우트 힌트: schedule|dashboard
+    # 프론트 라우트 힌트: dashboard|coach_chat|exercise|diet|my_benefits|points_shop|
+    # health_goals|consultations (`notification_service.MEMBER_ACTION_TARGETS`)
+    target: str
 
 
 class NotificationOut(BaseModel):

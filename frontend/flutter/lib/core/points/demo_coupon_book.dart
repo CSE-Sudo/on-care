@@ -8,7 +8,8 @@ import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/demo_profile_pet.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/core/points/demo_weekly_reports.dart';
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 목업 API 의 포인트 사용처·쿠폰. 서버 `points_coupon_service` 의 대역이다. (#1787)
 ///
@@ -283,8 +284,8 @@ class DemoCouponBook implements DemoPersistable {
       'photo_days': photoDays,
       'required_days': dietTrayRequiredDays,
       'window_days': dietTrayWindowDays,
-      'window_from': _ymd(dietTrayWindowFrom()),
-      'window_to': _ymd(dietTrayWindowTo()),
+      'window_from': wireDate(dietTrayWindowFrom()),
+      'window_to': wireDate(dietTrayWindowTo()),
       'has_trainer': _hasTrainer,
       'coupon': row == null ? null : _couponJson(row),
     };
@@ -512,8 +513,8 @@ class DemoCouponBook implements DemoPersistable {
       'trainer_name': coupon.trainerName,
       'gym_name': coupon.gymName,
       'issued_at': coupon.issuedAt.toIso8601String(),
-      'issued_on': _ymd(coupon.issuedOn),
-      'expires_on': _ymd(coupon.lastDay),
+      'issued_on': wireDate(coupon.issuedOn),
+      'expires_on': wireDate(coupon.lastDay),
       'days_left': daysLeft,
       'no_expiry': noExpiry,
       'used_at': coupon.usedAt?.toIso8601String(),
@@ -523,11 +524,6 @@ class DemoCouponBook implements DemoPersistable {
 
   static DemoCouponResult _error(int status, String detail) =>
       DemoCouponResult(status, <String, Object?>{'detail': detail});
-
-  static String _ymd(DateTime day) =>
-      '${day.year.toString().padLeft(4, '0')}-'
-      '${day.month.toString().padLeft(2, '0')}-'
-      '${day.day.toString().padLeft(2, '0')}';
 }
 
 /// 목업 응답 — 상태코드와 본문.

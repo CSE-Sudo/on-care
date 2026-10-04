@@ -1,6 +1,8 @@
 /// 로그인·가입 입력 형식 규칙과 전화번호 하이픈 서식 — #1784·#1887.
 library;
 
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -161,6 +163,44 @@ void main() {
           reason: email,
         );
       }
+    });
+
+    // 서버 `contact_format.clean_email` 이 길이를 형식보다 먼저 보고 255자를
+    // 넘으면 422 로 돌려준다. 화면이 같은 경계에서 먼저 알린다(#2908).
+    String emailOfLength(int length) {
+      const String domain = '@oncare.com';
+      return '${'a' * (length - domain.length)}$domain';
+    }
+
+    test('255자까지는 통과하고 256자부터 길이 오류다', () {
+      expect(AppInputRules.emailMaxLength, 255);
+      expect(emailOfLength(255).length, 255);
+      expect(AppInputRules.email(emailOfLength(255)), isNull);
+      expect(
+        AppInputRules.email(emailOfLength(256)),
+        AppInputError.emailTooLong,
+      );
+    });
+
+    test('길이는 앞뒤 공백을 잘라낸 값으로 센다', () {
+      expect(AppInputRules.email('  ${emailOfLength(255)}  '), isNull);
+    });
+
+    test('길이를 형식보다 먼저 본다 — 서버와 같은 순서다', () {
+      expect(AppInputRules.email('a' * 300), AppInputError.emailTooLong);
+    });
+
+    test('상한은 서버 EMAIL_MAX_LENGTH 와 같은 값이다', () {
+      // 테스트는 패키지 폴더(shared/oncare_ui)에서 돈다.
+      final String server = File(
+        '../../backend/app/services/contact_format.py',
+      ).readAsStringSync();
+      final RegExpMatch? m = RegExp(
+        r'^EMAIL_MAX_LENGTH = (\d+)$',
+        multiLine: true,
+      ).firstMatch(server);
+      expect(m, isNotNull, reason: 'contact_format.py 에 EMAIL_MAX_LENGTH 가 없다');
+      expect(AppInputRules.emailMaxLength, int.parse(m![1]!));
     });
   });
 

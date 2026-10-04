@@ -21,6 +21,7 @@ import 'package:oncare/features/ai_coach/presentation/controllers/chat_controlle
 import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart' show keepWords;
 
 import 'free_quota.dart';
 
@@ -352,7 +353,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('aiCoachRestoring')), findsNothing);
-      expect(find.text('어제 답변'), findsOneWidget);
+      expect(find.text(keepWords('어제 답변')), findsOneWidget);
 
       await tester.tap(find.text(l.aicQuickReply1));
       await tester.pump();
@@ -366,8 +367,8 @@ void main() {
       await tester.pumpAndSettle();
       // 복원분이 앞, 새 질문과 답이 뒤에 선다.
       expect(
-        tester.getTopLeft(find.text('어제 답변')).dy,
-        lessThan(tester.getTopLeft(find.text('닭가슴살 샐러드요')).dy),
+        tester.getTopLeft(find.text(keepWords('어제 답변'))).dy,
+        lessThan(tester.getTopLeft(find.text(keepWords('닭가슴살 샐러드요'))).dy),
       );
     });
   });

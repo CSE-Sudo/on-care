@@ -1,0 +1,14 @@
+{
+  "_comment": "목표를 세우지 않은 회원의 기준선(#2906) — 이 파일이 원본이다. 서버 `app/services/goal_defaults.py`, 공용 패키지 `oncare_ui` 의 `kGoalDefault…`(app_recommended_goals.dart)가 이 값을 들고, 서버 pytest·oncare_ui·두 앱 테스트가 이 파일과 같은지 본다. 값을 바꾸면 세 쪽 테스트가 함께 깨진다.",
+  "daily_calories": 2000,
+  "daily_sodium_mg": 2000,
+  "daily_sugar_g": 50,
+  "daily_carbs_g": 275,
+  "daily_protein_g": 60,
+  "protein_g_per_kg": 1.2,
+  "daily_fat_g": 55,
+  "daily_burn_kcal": 300,
+  "weekly_cardio_minutes": 150,
+  "weekly_strength_sets": 21,
+  "weekly_flexibility_minutes": 60
+}

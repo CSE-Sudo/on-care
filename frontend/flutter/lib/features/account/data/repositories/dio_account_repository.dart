@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import 'package:oncare/features/account/domain/entities/account_deletion_preview.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
 import 'package:oncare/features/account/domain/entities/profile_update_rejected.dart';
@@ -22,6 +23,14 @@ class DioAccountRepository implements AccountRepository {
       '/users/me',
       data: <String, Object?>{'reasons': reasons},
     );
+  }
+
+  @override
+  Future<AccountDeletionPreview> fetchDeletionPreview() async {
+    final res = await _dio.get<Map<String, Object?>>(
+      '/users/me/deletion-preview',
+    );
+    return AccountDeletionPreview.fromJson(res.data!);
   }
 
   @override
@@ -68,6 +77,14 @@ class DioAccountRepository implements AccountRepository {
   }
 
   @override
+  Future<UserProfile> skipOnboarding() async {
+    final res = await _dio.post<Map<String, Object?>>(
+      '/users/me/onboarding/skip',
+    );
+    return UserProfile.fromJson(res.data!);
+  }
+
+  @override
   Future<UserProfile> updateProfile({
     String? name,
     String? email,
@@ -95,7 +112,7 @@ class DioAccountRepository implements AccountRepository {
       );
     } on DioException catch (e) {
       // 이메일 중복(409)·연락처 비움(422)은 이유를 실어 올린다(#2639). 데모의
-    // 로컬 목업 API 도 오류를 같은 예외로 돌려준다(#2743).
+      // 로컬 목업 API 도 오류를 같은 예외로 돌려준다(#2743).
       final ProfileUpdateRejected? rejected =
           ProfileUpdateRejected.fromResponse(
             e.response?.statusCode,

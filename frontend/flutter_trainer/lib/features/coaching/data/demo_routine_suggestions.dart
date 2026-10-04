@@ -458,7 +458,7 @@ demoMemberSuggestionsEn = <String, List<RoutineSuggestion>>{
       minutes: 30,
       type: '유산소',
       reason:
-          'Weekends have no records. One easy cardio session keeps the '
+          'Weekends have no records. One easy cardio workout keeps the '
           'weekend going.',
       evidence: <String>[RoutineEvidence.lowCardio],
     ),
@@ -492,7 +492,7 @@ demoMemberSuggestionsEn = <String, List<RoutineSuggestion>>{
       minutes: 20,
       type: '유산소',
       reason:
-          'Recent workouts were all strength. A short cardio session '
+          'Recent workouts were all strength. A short cardio workout '
           'helps recovery.',
       evidence: <String>[
         RoutineEvidence.strengthHeavy,
@@ -519,7 +519,7 @@ demoMemberSuggestionsEn = <String, List<RoutineSuggestion>>{
       reps: 10,
       weight: 0,
       reason:
-          'The last PT session agreed to keep up core rehab. A good next '
+          'At the last PT we agreed to keep up core rehab. A good next '
           'step after pelvic stabilization.',
       evidence: <String>[RoutineEvidence.recentPtFeedback],
     ),
@@ -585,7 +585,7 @@ demoMemberSuggestionsEn = <String, List<RoutineSuggestion>>{
       type: '유산소',
       reason:
           'Weekday workouts are 100% but weekends are 0%. A short '
-          'weekend-morning cardio session holds the rhythm.',
+          'weekend-morning cardio workout holds the rhythm.',
       evidence: <String>[RoutineEvidence.recentRecord],
     ),
     RoutineSuggestion(
@@ -809,7 +809,7 @@ demoMemberSuggestionsEn = <String, List<RoutineSuggestion>>{
       name: 'Foam rolling',
       minutes: 10,
       type: '스트레칭',
-      reason: 'First week back. Loosening up makes the next session easier.',
+      reason: 'First week back. Loosening up makes the next workout easier.',
       evidence: <String>[RoutineEvidence.recentRecord],
     ),
   ],

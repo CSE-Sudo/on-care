@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_core/legal_contact.dart';
 
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
@@ -31,14 +32,20 @@ class LegalDocumentPage extends StatelessWidget {
     final String title = isPrivacy
         ? l.myLegalPrivacyTitle
         : l.myLegalTermsTitle;
-    final String body = isPrivacy ? l.myLegalPrivacyBody : l.myLegalTermsBody;
+    final String body = isPrivacy
+        ? l.myLegalPrivacyBody(LegalContact.privacyOfficerEmail)
+        : l.myLegalTermsBody;
+    // 두 문서는 시행일이 따로 간다 — 처리방침만 고쳐도 약관 날짜는 그대로다(#2820).
+    final String effectiveDate = isPrivacy
+        ? l.myLegalPrivacyEffectiveDate
+        : l.myLegalTermsEffectiveDate;
 
     return Scaffold(
       backgroundColor: OnCareColors.surfacePage,
       body: SafeArea(
         child: AppWebPage(
           title: title,
-          subtitle: l.myLegalEffectiveDate,
+          subtitle: effectiveDate,
           width: AppWebPageWidth.narrow,
           // 폭이 좁아 알림 종이 다른 화면과 다른 자리에 선다 — MY 에서 잠깐
           // 들어가 읽는 문서라 종을 두지 않는다(#2628).
@@ -67,7 +74,7 @@ class LegalDocumentPage extends StatelessWidget {
               const SizedBox(height: OnCareSpacing.s16),
               Center(
                 child: Text(
-                  l.myLegalEffectiveDate,
+                  effectiveDate,
                   style: tokens
                       .text(OnCareTypography.bodySmall)
                       .copyWith(color: OnCareColors.textTertiary),

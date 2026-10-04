@@ -5,8 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/not_found_page.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/app_shell.dart';
+import 'package:oncare_trainer/core/observability/error_reporter.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare_trainer/features/auth/presentation/pages/trainer_consent_page.dart';
+import 'package:oncare_trainer/features/auth/presentation/pages/trainer_password_reset_page.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_sign_in_page.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_sign_up_page.dart';
 import 'package:oncare_trainer/features/clients/presentation/pages/clients_page.dart';
@@ -52,9 +55,25 @@ String? sessionRedirect(
   SessionStatus status,
   String location, {
   bool resume = true,
+  bool consentRequired = false,
 }) {
   final path = Uri.tryParse(location)?.path ?? location;
+  // 문서는 동의하기 전에 읽을 수 있어야 한다 — 동의 화면의 `보기` 도 여기로 온다.
   if (AppRoutes.isLegalPath(path)) return null;
+  // 재설정 메일의 링크는 어느 상태에서 열려도 그 자리에 둔다(#2824). 로그인
+  // 화면으로 보내면 주소의 코드를 잃는다.
+  if (path == AppRoutes.passwordReset) return null;
+  // 동의가 남은 계정은 어느 주소로 가든 동의 화면에 붙든다(#2819). 데모에는
+  // 계정이 없어 해당하지 않는다.
+  if (status == SessionStatus.authenticated && consentRequired) {
+    return path == AppRoutes.consent ? null : AppRoutes.consent;
+  }
+  if (path == AppRoutes.consent) {
+    return switch (status) {
+      SessionStatus.unknown || SessionStatus.signedOut => AppRoutes.signIn,
+      SessionStatus.demo || SessionStatus.authenticated => AppRoutes.dashboard,
+    };
+  }
   final onAuthRoute = path == AppRoutes.signIn || path == AppRoutes.signUp;
   switch (status) {
     case SessionStatus.unknown:
@@ -120,6 +139,7 @@ GoRouter buildAppRouter({
   required Listenable refresh,
   String? initialLocation,
   bool Function()? readResume,
+  bool Function()? readConsentRequired,
 }) {
   return GoRouter(
     initialLocation: initialLocation,
@@ -130,6 +150,7 @@ GoRouter buildAppRouter({
       // rides on the query string.
       state.uri.toString(),
       resume: readResume?.call() ?? true,
+      consentRequired: readConsentRequired?.call() ?? false,
     ),
     // A URL that matches no route — mistyped, or a stale link whose prefix
     // is a real screen (`/clients/<id>/diet/old`) and so survives the
@@ -182,6 +203,10 @@ GoRouter buildAppRouter({
                             state.uri.queryParameters[AppRoutes
                                 .clientOpenParam] ==
                             AppRoutes.clientOpenHealthNotes,
+                        openFeedback:
+                            state.uri.queryParameters[AppRoutes
+                                .clientOpenParam] ==
+                            AppRoutes.clientOpenFeedback,
                       ),
                     ),
                   ),
@@ -296,6 +321,16 @@ GoRouter buildAppRouter({
         path: AppRoutes.signUp,
         builder: (context, state) => const TrainerSignUpPage(),
       ),
+      GoRoute(
+        path: AppRoutes.consent,
+        builder: (context, state) => const TrainerConsentPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.passwordReset,
+        builder: (context, state) => TrainerPasswordResetPage(
+          initialCode: state.uri.queryParameters['token'],
+        ),
+      ),
     ],
   );
 }
@@ -314,11 +349,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     (_, _) => refresh.value++,
   );
   ref.onDispose(refresh.dispose);
-  return buildAppRouter(
+  final router = buildAppRouter(
     readStatus: () => ref.read(sessionControllerProvider).status,
     refresh: refresh,
     initialLocation: ref.read(routerInitialLocationProvider),
     // 직접 로그아웃·탈퇴한 뒤에는 이전 자리를 잇지 않는다(#2765).
     readResume: () => !ref.read(signedOutByUserProvider),
+    readConsentRequired: () =>
+        ref.read(sessionControllerProvider).consentRequired,
   );
+  // 오류 보고에 화면 경로 패턴(값이 빠진 `/legal/:document` 형태)을 싣는다 (#2839).
+  ref
+      .read(errorReporterProvider)
+      .attachRouteResolver(
+        () => router.routerDelegate.currentConfiguration.fullPath,
+      );
+  return router;
 });

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/routine_days_repository.dart';
@@ -14,11 +14,11 @@ import 'package:oncare_trainer/features/clients/presentation/widgets/client_day_
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_exercise_status_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_section.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_routine_status.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/day_fetch_failed_line.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/exercise_memo.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
-import 'package:oncare_trainer/features/coaching/presentation/routine_effect_text.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_duration.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -822,11 +822,25 @@ class _DayDetail extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final ({String clientId, DateTime date}) dayKey = (
+      clientId: clientId,
+      date: date,
+    );
+    final AsyncValue<List<ClientExerciseItem>> async = ref.watch(
+      clientExercisesOnProvider(dayKey),
+    );
     final List<ClientExerciseItem> items =
-        ref
-            .watch(clientExercisesOnProvider((clientId: clientId, date: date)))
-            .valueOrNull ??
-        const <ClientExerciseItem>[];
+        async.valueOrNull ?? const <ClientExerciseItem>[];
+    // 실패는 빈 결과와 갈라 말한다(#2892). 이력이 있든 없든 같은 줄이 선다 —
+    // 실패하면 `회원 추가` 묶음이 통째로 빠져 빈 날처럼 보였다. 다시 읽는
+    // 동안은 내린다.
+    final Widget? failed = async.hasError && !async.isLoading
+        ? DayFetchFailedLine(
+            key: ValueKey<String>('workout-day-failed-${ymd(date)}'),
+            message: l.workoutDayExercisesFailed,
+            onRetry: () => ref.invalidate(clientExercisesOnProvider(dayKey)),
+          )
+        : null;
     // 회원이 직접 적은 기록만 따로 한 줄로 둔다(#2534) — PT 완료·개인운동
     // 완료 행은 그 출처가 말한다. 이력이 없는 날은 출처를 모르는 행도 여기
     // 선다(옛 응답).
@@ -890,6 +904,7 @@ class _DayDetail extends ConsumerWidget {
           ),
         for (final RoutineHistoryEntry entry in pt)
           _TodayCard.entry(clientId: clientId, entry: entry, dayItems: items),
+        if (failed case final Widget line) line,
       ];
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -951,6 +966,11 @@ class _DayDetail extends ConsumerWidget {
           ),
         for (final RoutineHistoryEntry entry in pt)
           _EntryRow(clientId: clientId, entry: entry, dayItems: items),
+        if (failed != null)
+          Padding(
+            padding: const EdgeInsets.only(top: OnCareSpacing.s8),
+            child: failed,
+          ),
       ],
     );
   }
@@ -1890,7 +1910,9 @@ class _PersonalTodayCard extends ConsumerWidget {
 
   /// 이름 뒤 옅은 한 줄 — 효과가 있으면 효과, 없을 때만 옛 사유(#2951).
   static String? _effectOf(AppLocalizations l, AssignedRoutine routine) {
-    if (routine.effect.isNotEmpty) return routineEffectText(l, routine.effect);
+    if (routine.effect.isNotEmpty) {
+      return routineEffectText(routine.effect, languageCode: l.localeName);
+    }
     if (routine.reason.isNotEmpty) return routine.reason;
     return null;
   }

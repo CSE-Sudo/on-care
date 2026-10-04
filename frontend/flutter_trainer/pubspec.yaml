@@ -1,9 +1,11 @@
 name: oncare_trainer
-description: "On-Care 트레이너 앱 — 트레이너용 회원 관리 / AI 루틴 / 스케줄 (Android / iOS / Web)."
+description: "On-Care 트레이너 웹 — PT 담당 회원의 식단·운동 기록 확인과 코칭·루틴·스케줄 관리."
 publish_to: 'none'
 
-# Versioning is managed via --build-name / --build-number at build time.
-version: 0.1.0+1
+# 버전 이름(+ 앞)과 빌드 번호(+ 뒤)는 이 한 곳에서 정한다(#3047). 배포 워크플로는
+# --build-name·--build-number 를 넘기지 않는다 — 화면의 버전(MY 아래)이 이 값을
+# 빌드의 version.json 으로 읽는다. 올리는 규칙은 docs/mobile_release.md 1절.
+version: 0.2.0+2
 
 environment:
   sdk: ^3.12.0
@@ -27,8 +29,6 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: any
-
-  cupertino_icons: ^1.0.8
 
   # --- State management & DI ---
   # 사용자 앱(frontend/flutter)과 동일한 Riverpod 기반. 트레이너 앱은
@@ -67,6 +67,18 @@ dependencies:
   demo_fixture:
     path: ../../shared/demo_fixture
 
+  # --- 서버와 같은 계산 규칙 ---
+  # 반올림·운동 유형 정규화·한국어 조사처럼 서버와 두 앱이 같은 값을 내야 하는
+  # 규칙의 단일 원본(#2860, #2861, #2897). 앱마다 따로 적지 않는다.
+  oncare_rules:
+    path: ../../shared/oncare_rules
+
+  # --- 네트워크·인증·시각 기반 ---
+  # 토큰 갱신·인증/언어 헤더·요청 ID·폴링·KST 시계(#2907). 회원 앱과 같은
+  # 백엔드 인증 규칙을 상대하므로 한 벌을 함께 쓴다. provider 는 앱에 둔다.
+  oncare_core:
+    path: ../../shared/oncare_core
+
   # --- UI 규격 ---
   # 두 앱이 같은 토큰·테마·컴포넌트를 쓴다(#1690). 화면마다 크기·색을 적지 않는다.
   oncare_ui:
@@ -90,9 +102,9 @@ dependencies:
   # 데이터를 영속 저장한다 (사용자 앱과 동일 스택, 코드는 공유하지 않음).
   drift: ^2.20.3
   drift_flutter: ^0.2.4
-  path: ^1.9.0
   package_info_plus: ^9.0.1
   web: ^1.1.1
+  sentry_flutter: ^8.14.2
 
 dev_dependencies:
   flutter_test:

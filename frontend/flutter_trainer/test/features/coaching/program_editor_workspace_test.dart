@@ -430,10 +430,11 @@ void main() {
       expect(dateRect.left, lessThan(timeRect.left));
       expect(timeRect.left, lessThan(sendRect.left));
       expect(dateRect.height, timeRect.height);
-      // `일정 추가` 버튼 자체(테두리 박스)의 높이는 날짜·시간 칩의 테두리
-      // 박스와 같다 — 라벨 한 줄만큼(위)만 셋보다 낮게 시작한다(#1536).
+      // `일정 추가` 버튼과 날짜·시간 칸([AppPickerField] compact)은 높이가
+      // 같다(#1536). 예전 직접 그린 칸은 테두리 두께(위아래 1px)만큼 더
+      // 높았다(#2950).
       expect(sendRect.height, 36);
-      expect(dateRect.bottom - dateRect.top, greaterThan(sendRect.height));
+      expect(dateRect.height, sendRect.height);
       expect(
         find.descendant(of: date, matching: find.byIcon(AppIcons.calendar)),
         findsOneWidget,

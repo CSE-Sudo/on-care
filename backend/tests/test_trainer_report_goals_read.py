@@ -135,7 +135,7 @@ def test_any_day_of_the_week_reads_the_same_monday(client, offset):
 
 def test_the_default_week_is_this_week(client):
     from app.core import clock
-    from app.services.trainer_service import week_start_of
+    from app.services.trainer.reports import week_start_of
 
     t = _trainer_tok(client)
     r = client.get(GOALS, headers=_h(t))
@@ -150,7 +150,7 @@ def test_a_week_that_has_not_come_yet_is_refused(client):
     """저장은 다음 주에 남지만, 그 주를 미리 읽는 길은 없다 — 리포트도 그 주를
     열 수 없다."""
     from app.core import clock
-    from app.services.trainer_service import week_start_of
+    from app.services.trainer.reports import week_start_of
 
     t = _trainer_tok(client)
     upcoming = (week_start_of(clock.today()) + timedelta(days=7)).isoformat()

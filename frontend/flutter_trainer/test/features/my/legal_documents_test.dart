@@ -76,6 +76,43 @@ void main() {
       expect(body, contains('담당 관계가 종료되면'));
     });
 
+    testWidgets('처리방침 화면에 위탁·국외 이전·파기·보호책임자 절과 그 시행일이 보인다 (#2820)', (
+      tester,
+    ) async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.legalDocument('privacy'),
+      );
+
+      final body = _bodyText(tester);
+      for (final heading in <String>[
+        '6. 개인정보 처리의 위탁',
+        '7. 개인정보의 국외 이전',
+        '8. 개인정보의 파기 절차 및 방법',
+        '13. 개인정보 보호책임자',
+      ]) {
+        expect(body, contains(heading));
+      }
+      expect(body, isNot(contains('2026년 1월 1일')));
+      // 머리글 부제와 본문 아래 두 곳 모두 처리방침의 시행일이다.
+      expect(find.text('시행일 2026. 10. 03.'), findsWidgets);
+      expect(body, isNot(contains('제1조 (목적)')));
+    });
+
+    testWidgets('약관 화면은 약관 시행일을 단다', (tester) async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.legalDocument('terms'),
+      );
+
+      // 약관 개정(#3006)으로 두 문서의 시행일이 같은 날이 됐다 — 본문으로 구분한다.
+      expect(find.text('시행일 2026. 10. 03.'), findsWidgets);
+      expect(find.text('시행일 2026. 10. 01.'), findsNothing);
+      expect(_bodyText(tester), contains('제13조 (분쟁 해결과 관할)'));
+    });
+
     testWidgets('영어 로케일에서도 두 문서가 뜬다', (tester) async {
       await pumpTrainerApp(
         tester,
@@ -110,7 +147,8 @@ void main() {
     testWidgets('가입 화면에서 약관을 열어 보고 돌아올 수 있다', (tester) async {
       await pumpTrainerApp(tester, bootAt: AppRoutes.signUp);
 
-      final link = find.text('이용약관');
+      // 간주 동의 문구의 링크 대신 동의 목록의 `보기` 다(#2819).
+      final link = find.byKey(const ValueKey<String>('consent-view-terms'));
       expect(link, findsOneWidget, reason: '동의할 문서를 가입 화면에서 열 수 없다');
       await tester.ensureVisible(link);
       await tester.tap(link);

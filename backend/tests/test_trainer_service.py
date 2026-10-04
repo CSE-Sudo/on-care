@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 def test_latest_by_member_returns_one_row_per_member(client, db_session):
     from app.db.seed_trainer import TRAINER_ID
     from app.models.models import ChatMessage
-    from app.services.trainer_service import _latest_by_member
+    from app.services.trainer.roster import _latest_by_member
 
     # user-jisu 스레드에 메시지 5건을 삽입. 다른 테스트가 남긴 런타임 메시지보다 확실히
     # 최신이 되도록 미래 시각으로 두어(순서 독립) 마지막(msg4)이 선택되는지 검증한다.
@@ -44,11 +44,11 @@ def test_assign_routine_sort_order_is_monotonic(client, db_session):
     """연속 배정한 두 루틴의 sort_order 가 max+1 로 단조 증가(같은 초에도 순서 결정론적, #279)."""
     from app.db.seed_trainer import TRAINER_ID
     from app.models.models import TrainerRoutine
-    from app.services import trainer_service
+    from app.services.trainer import routines as trainer_routines_service
 
     kw = dict(minutes=10, type_="근력", reason="테스트", source="trainer")
-    r1 = trainer_service.assign_routine(db_session, TRAINER_ID, "user-jisu", name="rt-a", **kw)
-    r2 = trainer_service.assign_routine(db_session, TRAINER_ID, "user-jisu", name="rt-b", **kw)
+    r1 = trainer_routines_service.assign_routine(db_session, TRAINER_ID, "user-jisu", name="rt-a", **kw)
+    r2 = trainer_routines_service.assign_routine(db_session, TRAINER_ID, "user-jisu", name="rt-b", **kw)
     try:
         o1 = db_session.get(TrainerRoutine, r1.id).sort_order
         o2 = db_session.get(TrainerRoutine, r2.id).sort_order

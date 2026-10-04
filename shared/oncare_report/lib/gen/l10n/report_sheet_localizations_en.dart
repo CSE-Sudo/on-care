@@ -78,7 +78,7 @@ class ReportSheetLocalizationsEn extends ReportSheetLocalizations {
   String get reportsPdfLabelCompletion => 'Workout completion';
 
   @override
-  String get reportsPdfLabelSessions => 'PT sessions';
+  String get reportsPdfLabelSessions => 'PT';
 
   @override
   String get reportsPdfNoData => 'Not measured';

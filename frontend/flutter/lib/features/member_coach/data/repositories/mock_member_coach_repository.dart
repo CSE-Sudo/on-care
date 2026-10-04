@@ -7,8 +7,6 @@ import 'package:demo_fixture/demo_fixture.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/points_award.dart';
-import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/core/utils/wire_date.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/routine_session_log.dart';
@@ -17,6 +15,8 @@ import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 데모에서 담당 트레이너 연결이 아직 살아 있는지 묻는다. (#1865)
 ///
@@ -366,10 +366,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   ///
   /// 스레드 날짜는 실행할 때마다 오늘로 옮겨진다. 여기에 고정된 주를 적으면
   /// 대화는 이번 주인데 안내 상자만 지난 주를 가리키게 된다.
-  static final DateTime _reportWeekStart = _mondayOf(_seedAt(2, '18:17'));
-
-  static DateTime _mondayOf(DateTime day) =>
-      DateTime(day.year, day.month, day.day - (day.weekday - DateTime.monday));
+  static final DateTime _reportWeekStart = mondayOf(_seedAt(2, '18:17'));
 
   static int _minutesOfDay(String timeLabel) {
     final match = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(timeLabel);
@@ -479,7 +476,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   /// (#2161)
   ///
   /// 데모의 운동 AI 맞춤 조언(#2162)이 읽는 자리다. 실서버의
-  /// `trainer_service.member_routine_days` 와 같은 모양이라, 조언 규칙은 두 경로에서
+  /// `trainer._common.member_routine_days` 와 같은 모양이라, 조언 규칙은 두 경로에서
   /// 같은 입력을 받는다. 아직 오지 않은 날은 담지 않는다.
   List<RoutineDay> routineDaysBetween(DateTime from, DateTime to) {
     final DateTime today = todayKst();
@@ -798,9 +795,11 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
       // 서버와 같은 쪽을 준다 — 최신 [chatPageSize] 건, 커서가 있으면 그 앞 한
       // 쪽(#2640). 전부를 한 번에 주면 쪽 사이의 경계가 데모에서만 없어 보인다.
+      // 끊겼으면 실서버의 404 처럼 해제 신호를 준다(#2843) — 빈 목록이면
+      // 대화방이 안내 없이 비어 보인다.
       _hasCoach()
       ? List<CoachMessage>.unmodifiable(pageCoachChat(_chat, before: before))
-      : const <CoachMessage>[];
+      : throw const CoachUnassignedException();
 
   /// 대화가 바뀔 때마다 최신 쪽을 다시 준다. (#2663)
   ///
@@ -820,9 +819,15 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   Stream<T> _watch<T>(Future<T> Function() load) {
     late final StreamController<T> out;
     StreamSubscription<void>? changes;
+    // 읽기가 실패하면(해제 신호 등, #2843) 스트림의 오류로 흘려보낸다 — 삼키면
+    // 듣는 쪽은 첫 값을 끝없이 기다린다.
     Future<void> push() async {
-      final T value = await load();
-      if (!out.isClosed) out.add(value);
+      try {
+        final T value = await load();
+        if (!out.isClosed) out.add(value);
+      } on Object catch (error, stack) {
+        if (!out.isClosed) out.addError(error, stack);
+      }
     }
 
     out = StreamController<T>(
@@ -1031,7 +1036,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   Future<MemberWeeklyFeedback> fetchWeeklyFeedback({
     DateTime? weekStart,
   }) async {
-    final DateTime week = _mondayOf(weekStart ?? manualFeedbackWeek());
+    final DateTime week = mondayOf(weekStart ?? manualFeedbackWeek());
     // 담당이 끊긴 데모에서는 보낼 곳이 없다 — 빈 답이라 화면이 칸을 숨긴다.
     if (!_hasCoach()) return MemberWeeklyFeedback.empty(week);
     _seedFeedback();
@@ -1051,7 +1056,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       throw StateError('담당 트레이너가 없으면 주간 피드백을 보낼 수 없습니다.');
     }
     _seedFeedback();
-    final DateTime week = _mondayOf(weekStart);
+    final DateTime week = mondayOf(weekStart);
     final String area = painArea.trim();
     final MemberWeeklyFeedback saved = MemberWeeklyFeedback(
       weekStart: week,

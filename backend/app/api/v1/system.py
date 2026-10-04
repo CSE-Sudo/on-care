@@ -3,8 +3,8 @@
 
 프론트 기대 응답:
   GET /ping     -> { "message": "pong (...)" }
-  GET /healthz  -> { "status": "ok", "backend": "...", env·demo_fallback·demo_seed·attachment_storage }
-  GET /version  -> { "api_version": "v1", "app_version": "..." }
+  GET /healthz  -> { "status": "ok", "backend": "...", env·demo_fallback·demo_seed·attachment_storage·commit_sha }
+  GET /version  -> { "api_version": "v1", "app_version": "...", "commit_sha": "..." }
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import RequireAdmin
 from app.core import metrics
 from app.core.config import get_settings
-from app.db.session import get_db
+from app.db.session import get_db, pool_status
 from app.services import attachment_store
 
 router = APIRouter(tags=["system"])
@@ -39,6 +39,8 @@ def healthz() -> dict[str, object]:
     대부분 `ENV=prod` 일 때만 켜지는데, 그 값이 실제로 들어갔는지 확인할 길이
     없었다. 배포 워크플로가 이 응답의 `env`·`demo_fallback`·`demo_seed` 를 보고
     운영 기대값과 다르면 실패로 처리한다. 비밀은 싣지 않는다 — 공개 엔드포인트다.
+    `attachment_storage` 는 운영에서 `s3` 여야 하고(#3029), `commit_sha` 는 이 프로세스를
+    띄운 이미지의 커밋이다(공개 저장소에 이미 공개된 값).
     """
     current = get_settings()
     try:
@@ -52,6 +54,7 @@ def healthz() -> dict[str, object]:
         "demo_fallback": current.demo_fallback_enabled,
         "demo_seed": current.seed_demo_data,
         "attachment_storage": storage,
+        "commit_sha": current.commit_sha,
     }
 
 
@@ -77,8 +80,21 @@ def readyz(db: Annotated[Session, Depends(get_db)]) -> dict[str, str]:
 
 
 @router.get("/version")
-def version() -> dict[str, str]:
-    return {"api_version": "v1", "app_version": settings.app_version}
+def version() -> dict[str, str | None]:
+    """API·앱 버전, 회원 앱 최소 지원 버전(#3045), 이 이미지를 만든 커밋 SHA(#3029).
+
+    `app_version` 은 이 서버의 버전이다. 회원 앱은 `min_app_version` 을 자기 빌드
+    버전과 비교해 낮으면 업데이트 화면을 띄운다. 설정이 비면 `null` — 검사하지 않는다.
+    배포 워크플로가 `commit_sha` 를 배포한 SHA 와 대조해, 실제로 요청을 받는 프로세스가
+    새 코드인지 확인한다. 로컬·테스트 빌드는 `unknown`. 인증 없이 부른다(로그인 전에 확인한다).
+    """
+    current = get_settings()
+    return {
+        "api_version": "v1",
+        "app_version": current.app_version,
+        "min_app_version": current.min_member_app_version or None,
+        "commit_sha": current.commit_sha,
+    }
 
 
 @router.get("/system/metrics")
@@ -90,5 +106,9 @@ def system_metrics(admin: RequireAdmin) -> dict[str, object]:
 
     인증을 거는 이유: 어떤 공급자가 얼마나 실패하는지는 운영 정보다. 공개 헬스
     체크(/healthz, /readyz)와 달리 LB 가 볼 필요도 없다.
+
+    `db_pool` 은 DB 커넥션 풀 상태(#2836) — 크기·빌려 간 연결·여분 연결 수다. 풀
+    크기·대기 시간을 조정할 근거로 쓴다. 워커가 여럿이면 이 요청을 받은 워커의
+    값이다(docs/DEPLOY.md).
     """
-    return metrics.snapshot()
+    return {**metrics.snapshot(), "db_pool": pool_status()}

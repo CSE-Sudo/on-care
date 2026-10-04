@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/errors/app_error.dart';
+import 'package:oncare/core/observability/handled_error.dart';
 import 'package:oncare/features/ai_coach/presentation/widgets/insight_history_sheet.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart'
     show exerciseTypeFromLabel;
@@ -17,7 +18,6 @@ import 'package:oncare/features/exercise/presentation/widgets/own_exercise_recor
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/coach_routine_detail.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
-import 'package:oncare/features/member_coach/presentation/routine_effect_text.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -39,7 +39,31 @@ class CoachCard extends ConsumerWidget {
     final OnCareTokens tokens = context.oncare;
     final coachAsync = ref.watch(memberCoachProvider);
     final coach = coachAsync.valueOrNull;
-    if (coach == null) return const SizedBox.shrink();
+    if (coach == null) {
+      // 조회 실패와 담당 없음은 다르다(#2843). 실패한 채 카드를 숨기면 연결된
+      // 회원에게 트레이너가 사라진 것처럼 보인다 — 다시 시도할 자리를 둔다.
+      if (coachAsync.hasError && !coachAsync.isLoading) {
+        return Padding(
+          key: const Key('coachCardLoadFailed'),
+          padding: const EdgeInsets.fromLTRB(
+            OnCareSpacing.s24,
+            0,
+            OnCareSpacing.s24,
+            OnCareSpacing.s20,
+          ),
+          child: AppCard(
+            child: AppErrorState(
+              title: l.coachTrainerLoadFailed,
+              retryLabel: l.actionRetry,
+              retryKey: const Key('coachCardRetry'),
+              onRetry: () => ref.invalidate(memberCoachProvider),
+              placement: AppStatePlacement.card,
+            ),
+          ),
+        );
+      }
+      return const SizedBox.shrink();
+    }
     // 트레이너 상세는 이제 트레이너 id 로 라우팅한다 — 한 헬스장에
     // 여러 명이 있으므로 헬스장 id 로는 한 명을 특정할 수 없다.
     final assignedTrainer = ref.watch(myTrainerProvider).valueOrNull;
@@ -93,8 +117,12 @@ class CoachCard extends ConsumerWidget {
                                 )
                                 .copyWith(color: OnCareColors.textTertiary),
                           ),
+                          // 전문 분야를 비운 트레이너는 이름만 — 가운뎃점만
+                          // 남지 않게 한다(#2880, 트레이너 정보 한 줄 #2083).
                           Text(
-                            '${coach.name} · ${coach.specialty}',
+                            coach.specialty.trim().isEmpty
+                                ? coach.name
+                                : '${coach.name} · ${coach.specialty}',
                             style: tokens
                                 .text(OnCareTypography.titleSmall)
                                 .copyWith(color: OnCareColors.textPrimary),
@@ -502,7 +530,9 @@ class _RecommendedExerciseRowState
         showAppToast(context, l.coachRoutineUndone, type: AppToastType.success);
       }
     } on Object catch (error, stackTrace) {
-      debugPrint('uncompleteRoutine failed: $error\n$stackTrace');
+      ref
+          .read(handledErrorReporterProvider)
+          .report(error, stackTrace, context: 'coach.uncompleteRoutine');
       if (mounted) {
         showAppToast(
           context,
@@ -562,7 +592,9 @@ class _RecommendedExerciseRowState
         );
       }
     } catch (error, stackTrace) {
-      debugPrint('completeRoutine failed: $error\n$stackTrace');
+      ref
+          .read(handledErrorReporterProvider)
+          .report(error, stackTrace, context: 'coach.completeRoutine');
       if (mounted) {
         if (error is NotFoundError) {
           refreshCoachRoutines(ref);
@@ -664,7 +696,13 @@ class _RecommendedExerciseRowState
                         const SizedBox(height: OnCareSpacing.s2),
                         Text(
                           // 공용 표의 자동 문구는 화면 언어로 옮긴다(#2725).
-                          routineEffectText(l, routine.effect),
+                          // 번역 표는 두 앱이 함께 쓰는 `oncare_ui` 한 벌이다(#2906).
+                          keepWords(
+                            routineEffectText(
+                              routine.effect,
+                              languageCode: l.localeName,
+                            ),
+                          ),
                           key: ValueKey<String>('routine-effect-${routine.id}'),
                           style: detailStyle,
                         ),
@@ -693,7 +731,7 @@ class _RecommendedExerciseRowState
                           routine.effect.isEmpty &&
                           routine.reason.isNotEmpty) ...<Widget>[
                         const SizedBox(height: OnCareSpacing.s2),
-                        Text(routine.reason, style: detailStyle),
+                        Text(keepWords(routine.reason), style: detailStyle),
                       ],
                       // 줄마다 출처(`트레이너 직접 추천` 등)를 붙이지 않는다
                       // (#2566). 담당이 있으면 내려오는 운동은 모두 트레이너가

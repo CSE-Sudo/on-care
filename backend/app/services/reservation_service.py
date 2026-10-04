@@ -22,7 +22,9 @@ from app.schemas.reservation_api import (
     ReservationOut,
     TrainerSlotOut,
 )
-from app.services import notification_service, notification_templates, trainer_service
+from app.services import notification_service, notification_templates
+from app.services.trainer import _common as trainer_common_service
+from app.services.trainer import schedule as trainer_schedule_service
 
 
 class SlotNotFound(Exception):
@@ -256,7 +258,7 @@ def overlapped_slot_ids(
     자리를 닫는 대신 목록을 만들 때마다 판정한다 — 일정을 취소하거나 다른 시간으로
     옮기면 자리가 저절로 다시 빈 자리가 된다. 판정 규칙(반열린 구간, 취소·노쇼는
     자리를 차지하지 않음, 전날 늦게 시작한 일정까지)은 예약 거절이 쓰는
-    `trainer_service.conflicting_sessions` 와 같다. 목록과 거절이 다른 답을 하면
+    `trainer.schedule.conflicting_sessions` 와 같다. 목록과 거절이 다른 답을 하면
     안 된다.
 
     닫혔거나 이미 찬 자리는 볼 필요가 없다 — 어차피 고를 수 없다.
@@ -267,7 +269,7 @@ def overlapped_slot_ids(
         if slot.is_closed or slot.remaining <= 0:
             continue
         local = _aware(slot.starts_at).astimezone(SEOUL)
-        interval = trainer_service._interval(
+        interval = trainer_schedule_service._interval(
             local.date().isoformat(), local.strftime("%H:%M"), slot.duration_minutes
         )
         if interval is None:
@@ -281,7 +283,7 @@ def overlapped_slot_ids(
         select(TrainerSchedule).where(
             TrainerSchedule.trainer_id == trainer_id,
             TrainerSchedule.date.in_(sorted(days)),
-            TrainerSchedule.status.in_(trainer_service._OCCUPYING_STATUSES),
+            TrainerSchedule.status.in_(trainer_schedule_service._OCCUPYING_STATUSES),
         )
     ).all()
     if not rows:
@@ -290,7 +292,7 @@ def overlapped_slot_ids(
     busy = [
         (row.id, interval)
         for row in rows
-        if (interval := trainer_service._interval(row.date, row.time, row.duration_minutes))
+        if (interval := trainer_schedule_service._interval(row.date, row.time, row.duration_minutes))
         is not None
     ]
     hits: set[str] = set()
@@ -361,7 +363,7 @@ def _ensure_slot_free(
     뺀다 — 함께 움직이는 일정이 자기와 겹친다고 막으면 안 된다.
     """
     local = _aware(starts_at).astimezone(SEOUL)
-    trainer_service.ensure_no_overlap(
+    trainer_schedule_service.ensure_no_overlap(
         db,
         trainer_id,
         date=local.date().isoformat(),
@@ -474,7 +476,7 @@ def update_slot(
     booked = _booked_schedules(db, slot.id) if moving else []
     # 회원에게 알릴지 판단하려면 **바꾸기 전** 값을 들고 있어야 한다 — 일반
     # 일정 수정과 같은 기준으로 비교한다. (#2290)
-    before = {s.id: trainer_service._member_visible_slot(s) for s in booked}
+    before = {s.id: trainer_schedule_service._member_visible_slot(s) for s in booked}
     if "starts_at" in fields:
         starts_at = fields["starts_at"]
         slot.starts_at = starts_at
@@ -491,7 +493,7 @@ def update_slot(
     for schedule in booked:
         # 예약으로 잡힌 약속이 옮겨지거나 늘고 줄면 회원이 알아야 그 시간에
         # 나온다. 실제로 달라진 경우만 알린다(같은 값이면 헬퍼가 건너뛴다).
-        trainer_service._notify_schedule_changed(
+        trainer_schedule_service._notify_schedule_changed(
             db,
             session=schedule,
             before_member_id=schedule.member_id,
@@ -572,9 +574,9 @@ def _release(
             continue
         # 이미 마무리된 세션(완료·취소·노쇼)은 그대로 둔다 — 지난 수업의 결말을
         # 예약 정리가 덮어쓰면 안 된다.
-        if schedule.status != trainer_service.SCHEDULE_UPCOMING:
+        if schedule.status != trainer_common_service.SCHEDULE_UPCOMING:
             continue
-        schedule.status = trainer_service.SCHEDULE_CANCELLED
+        schedule.status = trainer_common_service.SCHEDULE_CANCELLED
         schedule.cancelled_at = datetime.now(timezone.utc)
         schedule.cancellation_source = cancelled_by
     db.flush()
@@ -626,6 +628,35 @@ def cancel_member_reservations_for_account_deletion(
     _release(db, list(reservations))
 
 
+def count_upcoming_for_member(
+    db: Session, member_id: str, *, now: datetime | None = None
+) -> int:
+    """탈퇴하면 취소되는 예정 예약 수 — 탈퇴 확인창이 읽는다(#3006).
+
+    [list_member_reservations] 가 "예약됨" 으로 보여 주는 것 중 아직 시작하지 않은
+    것만 센다. 트레이너가 일정을 취소해 행만 남은 예약은 회원 화면에 없으므로 세지
+    않는다. 지난 예약도 탈퇴 때 함께 지워지지만, 회원이 잃는 것은 앞으로의 예약이다.
+    """
+    current = now or datetime.now(timezone.utc)
+    value = db.scalar(
+        select(func.count(TrainerReservation.id))
+        .join(
+            TrainerReservationSlot,
+            TrainerReservationSlot.id == TrainerReservation.slot_id,
+        )
+        .where(
+            TrainerReservation.member_id == member_id,
+            TrainerReservation.status == "booked",
+            TrainerReservationSlot.starts_at > current,
+            ~exists().where(
+                TrainerSchedule.id == TrainerReservation.schedule_id,
+                TrainerSchedule.status == trainer_common_service.SCHEDULE_CANCELLED,
+            ),
+        )
+    )
+    return int(value or 0)
+
+
 def reserve(
     db: Session, member: User, slot_id: str, *, now: datetime | None = None
 ) -> ReservationOut:
@@ -662,7 +693,7 @@ def reserve(
     # 자리를 연 뒤 트레이너가 그 시간에 다른 일정을 직접 잡았을 수 있다. 그대로
     # 받으면 이중 예약이다. 회원에게는 남의 일정이 보이지 않게 라우터가 목록을
     # 빼고 코드와 문구만 준다. (#2284)
-    trainer_service.ensure_no_overlap(
+    trainer_schedule_service.ensure_no_overlap(
         db,
         slot.trainer_id,
         date=local.date().isoformat(),
@@ -778,7 +809,7 @@ def list_member_reservations(
             TrainerReservation.status == "booked",
             ~exists().where(
                 TrainerSchedule.id == TrainerReservation.schedule_id,
-                TrainerSchedule.status == trainer_service.SCHEDULE_CANCELLED,
+                TrainerSchedule.status == trainer_common_service.SCHEDULE_CANCELLED,
             ),
         )
     )

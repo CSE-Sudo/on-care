@@ -3,13 +3,13 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
+import 'package:oncare/features/exercise/domain/entities/gym_search_area.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
@@ -85,15 +85,58 @@ class GymFinderView extends ConsumerStatefulWidget {
 class _GymFinderViewState extends ConsumerState<GymFinderView> {
   bool _locating = false;
 
-  Future<void> _locate() async {
+  /// 권한 창 없이 본 위치 사용 상태(#3044). 안내 줄의 버튼이 무엇을 할지 정한다.
+  GymLocationAccess _access = GymLocationAccess.undetermined;
+
+  /// 설정 화면에서 권한을 켜고 돌아오면 다시 본다.
+  AppLifecycleListener? _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycle = AppLifecycleListener(onResume: _locateIfAllowed);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _locateIfAllowed());
+  }
+
+  @override
+  void dispose() {
+    _lifecycle?.dispose();
+    super.dispose();
+  }
+
+  /// 이미 허용된 권한이면 화면을 열 때 **조용히** 위치를 얻는다(#3044). 권한 창은
+  /// 띄우지 않는다 — 묻는 것은 회원이 [위치 사용]·현재 위치 버튼을 눌렀을 때뿐이다.
+  Future<void> _locateIfAllowed() async {
+    if (!mounted || ref.read(gymSearchAreaProvider).isUserLocation) return;
+    final GymLocationAccess access = await ref
+        .read(gymLocationServiceProvider)
+        .checkAccess();
+    if (!mounted) return;
+    setState(() => _access = access);
+    if (access == GymLocationAccess.granted) await _locate(silent: true);
+  }
+
+  /// 위치를 얻어 기준 좌표를 회원 위치로 바꾼다. [silent] 면 실패해도 알리지
+  /// 않는다 — 회원이 누르지 않았는데 오류 토스트가 뜨면 안 된다.
+  Future<void> _locate({bool silent = false}) async {
     if (_locating) return;
     setState(() => _locating = true);
+    final GymLocationService service = ref.read(gymLocationServiceProvider);
     try {
-      final area = await ref.read(gymLocationServiceProvider).locate();
+      final area = await service.locate();
       if (!mounted) return;
-      ref.read(gymSearchAreaProvider.notifier).state = area;
+      ref.read(gymSearchAreaProvider.notifier).state =
+          GymSearchArea.userLocation(area);
     } catch (error) {
       if (!mounted) return;
+      setState(
+        () => _access = switch (error) {
+          GymLocationFailure.blocked => GymLocationAccess.blocked,
+          GymLocationFailure.disabled => GymLocationAccess.disabled,
+          _ => _access,
+        },
+      );
+      if (silent) return;
       final l = AppLocalizations.of(context);
       final message = switch (error) {
         GymLocationFailure.denied => l.gymLocationDenied,
@@ -111,13 +154,11 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
         type: AppToastType.error,
         actionLabel: canOpenSettings ? l.gymLocationSettings : null,
         onAction: canOpenSettings
-            ? () {
-                if (error == GymLocationFailure.disabled) {
-                  Geolocator.openLocationSettings();
-                } else {
-                  Geolocator.openAppSettings();
-                }
-              }
+            ? () => service.openSettingsFor(
+                error == GymLocationFailure.disabled
+                    ? GymLocationAccess.disabled
+                    : GymLocationAccess.blocked,
+              )
             : null,
       );
     } finally {
@@ -125,14 +166,41 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
     }
   }
 
+  /// 영구 거부·위치 서비스 꺼짐이면 권한 창이 뜨지 않는다 — 안내 줄의 버튼은
+  /// 그 설정 화면을 연다. 웹은 사이트 설정을 열 수 없어 늘 위치를 다시 청한다.
+  bool get _opensSettings =>
+      !kIsWeb &&
+      (_access == GymLocationAccess.blocked ||
+          _access == GymLocationAccess.disabled);
+
+  void _useLocation() {
+    if (_opensSettings) {
+      ref.read(gymLocationServiceProvider).openSettingsFor(_access);
+      return;
+    }
+    _locate();
+  }
+
   String _query = '';
   _GymSort _sort = _GymSort.recommended;
 
-  // 거리순도 위치를 먼저 묻지 않는다 — 위치를 얻기 전에는 검색 지점(기본 신촌)
-  // 기준 거리로 늘어선다. 데모와 같다. (#2666)
-  void _selectSort(_GymSort value) => setState(() => _sort = value);
+  // 거리순은 회원 위치를 얻었을 때만 고를 수 있다(#3044). 기본 검색 영역(신촌)에서
+  // 잰 거리로 늘어세우면 회원에게는 뜻 없는 순서다 — 고르면 위치 사용을 권한다.
+  void _selectSort(_GymSort value) {
+    if (value == _GymSort.distance &&
+        !ref.read(gymSearchAreaProvider).isUserLocation) {
+      final AppLocalizations l = AppLocalizations.of(context);
+      AppToastHost.of(context).show(
+        l.gymDistanceSortNeedsLocation,
+        actionLabel: _opensSettings ? l.gymLocationSettings : l.gymUseLocation,
+        onAction: _useLocation,
+      );
+      return;
+    }
+    setState(() => _sort = value);
+  }
 
-  List<Gym> _visibleGyms(List<Gym> gyms) {
+  List<Gym> _visibleGyms(List<Gym> gyms, {required bool byUserLocation}) {
     final String query = _query.trim().toLowerCase();
     final List<Gym> visible = gyms
         .where((Gym gym) {
@@ -145,6 +213,8 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
 
     return switch (_sort) {
       _GymSort.recommended => visible,
+      // 회원 위치가 아니면 거리순으로 늘어세우지 않는다(#3044).
+      _GymSort.distance when !byUserLocation => visible,
       _GymSort.distance =>
         visible.toList()
           ..sort((Gym a, Gym b) => a.distanceKm.compareTo(b.distanceKm)),
@@ -159,8 +229,14 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
     // 제휴 헬스장 + 카카오 Local 주변 헬스장(#329). 카카오 쪽만 좌표가 있어도
     // 지도는 뜨고, 카카오가 실패하면 제휴 목록만 남는다.
     final AsyncValue<List<Gym>> gymsAsync = ref.watch(gymFinderResultsProvider);
+    // 회원 위치를 얻기 전이면 기본 검색 영역(신촌) 기준이다 — 그렇다고 알리고,
+    // 거리는 그리지 않는다(#3044).
+    final bool byUserLocation = ref.watch(
+      gymSearchAreaProvider.select((GymSearchArea a) => a.isUserLocation),
+    );
     final List<Gym> visible = _visibleGyms(
       gymsAsync.valueOrNull ?? const <Gym>[],
+      byUserLocation: byUserLocation,
     );
     // 상담 요청 확인 아이콘의 배지 — 대기 중인 요청이 있으면 점을 켠다(#1257).
     final bool hasPendingConsultation = ref
@@ -238,14 +314,28 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
                   child: _GymMapAndList(
                     gyms: visible,
                     header: l.exNearbyGyms,
+                    notice: byUserLocation
+                        ? null
+                        : _DefaultAreaNotice(
+                            actionLabel: _opensSettings
+                                ? l.gymLocationSettings
+                                : l.gymUseLocation,
+                            onAction: _locating ? null : _useLocation,
+                          ),
                     controls: gymsAsync.hasValue
                         ? _ResultControls(
                             countLabel: l.exResultCount(visible.length),
                             sort: _sort,
+                            distanceSortEnabled: byUserLocation,
                             onSort: _selectSort,
                           )
                         : null,
-                    resultSliver: _resultSliver(context, gymsAsync, visible),
+                    resultSliver: _resultSliver(
+                      context,
+                      gymsAsync,
+                      visible,
+                      showDistance: byUserLocation,
+                    ),
                   ),
                 ),
               ],
@@ -265,8 +355,9 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
   Widget _resultSliver(
     BuildContext context,
     AsyncValue<List<Gym>> gymsAsync,
-    List<Gym> visible,
-  ) {
+    List<Gym> visible, {
+    required bool showDistance,
+  }) {
     final AppLocalizations l = AppLocalizations.of(context);
     return gymsAsync.when(
       loading: () => const SliverToBoxAdapter(
@@ -297,6 +388,7 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
           itemBuilder: (BuildContext context, int index) => _GymListCard(
             key: Key('gym-card-${visible[index].id}'),
             gym: visible[index],
+            showDistance: showDistance,
             onTap: () =>
                 context.push(AppRoutes.gymDetailPath(visible[index].id)),
           ),
@@ -328,10 +420,14 @@ class _GymMapAndList extends StatefulWidget {
     required this.header,
     required this.controls,
     required this.resultSliver,
+    this.notice,
   });
 
   final List<Gym> gyms;
   final String header;
+
+  /// 목록 머리 아래 안내 — 회원 위치를 얻기 전의 "신촌 주변 결과" 줄(#3044).
+  final Widget? notice;
 
   /// 결과 수와 정렬 드롭다운. 아직 못 읽었으면 null 이라 자리도 없다.
   final Widget? controls;
@@ -392,6 +488,16 @@ class _GymMapAndListState extends State<_GymMapAndList> {
                       collapsed: !_listOnly,
                       onToggle: () => setState(() => _listOnly = !_listOnly),
                     ),
+                    if (widget.notice != null)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          OnCareSpacing.s20,
+                          0,
+                          OnCareSpacing.s20,
+                          OnCareSpacing.s8,
+                        ),
+                        child: widget.notice,
+                      ),
                     if (widget.controls != null)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(
@@ -429,6 +535,36 @@ class _GymMapAndListState extends State<_GymMapAndList> {
           ],
         );
       },
+    );
+  }
+}
+
+/// 회원 위치를 얻기 전의 안내 줄(#3044) — "신촌 주변 결과예요" 와 [위치 사용].
+///
+/// 영구 거부·위치 서비스 꺼짐이면 버튼이 설정 화면을 연다. 위치를 얻으면 줄이
+/// 통째로 사라진다.
+class _DefaultAreaNotice extends StatelessWidget {
+  const _DefaultAreaNotice({required this.actionLabel, required this.onAction});
+
+  final String actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return AppBanner(
+      key: const Key('gym-default-area-notice'),
+      title: l.gymDefaultAreaTitle,
+      message: l.gymDefaultAreaMessage,
+      icon: AppIcons.location,
+      density: AppBannerDensity.compact,
+      trailing: AppButton(
+        key: const Key('gym-use-location'),
+        label: actionLabel,
+        onPressed: onAction,
+        variant: AppButtonVariant.secondary,
+        size: OnCareButtonSize.small,
+      ),
     );
   }
 }
@@ -507,11 +643,16 @@ class _ResultControls extends StatelessWidget {
   const _ResultControls({
     required this.countLabel,
     required this.sort,
+    required this.distanceSortEnabled,
     required this.onSort,
   });
 
   final String countLabel;
   final _GymSort sort;
+
+  /// 회원 위치를 얻었나. 아니면 거리순은 고를 수 없다 — 누르면 위치 사용을
+  /// 권한다(#3044).
+  final bool distanceSortEnabled;
   final ValueChanged<_GymSort> onSort;
 
   @override
@@ -536,8 +677,11 @@ class _ResultControls extends StatelessWidget {
           items: <AppMenuItem>[
             for (final MapEntry<_GymSort, String> entry in labels.entries)
               AppMenuItem(
+                key: ValueKey<String>('gym-sort-${entry.key.name}'),
                 label: entry.value,
                 selected: entry.key == sort,
+                // 거리순이 막혀 있어도 누를 수는 있다 — 왜 안 되는지와 위치 사용
+                // 버튼을 알린다. 회색 비활성 항목은 이유를 말해 주지 않는다.
                 onSelected: () => onSort(entry.key),
               ),
           ],
@@ -562,24 +706,47 @@ class _ResultControls extends StatelessWidget {
 /// 적는다 (#1185) — 여기가 헬스장을 견주는 자리인데, 정작 누가 있는지는 상세로
 /// 들어가야 알 수 있었다.
 class _GymListCard extends ConsumerWidget {
-  const _GymListCard({required this.gym, required this.onTap, super.key});
+  const _GymListCard({
+    required this.gym,
+    required this.onTap,
+    required this.showDistance,
+    super.key,
+  });
 
   final Gym gym;
   final VoidCallback? onTap;
+
+  /// 회원 위치에서 잰 거리인가. 아니면(기본 검색 영역 기준) 거리를 그리지
+  /// 않는다 — 회원과 무관한 숫자는 보이지 않는 편이 낫다(#3044).
+  final bool showDistance;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    // 트레이너를 아직 못 읽었거나 한 명도 없으면 이 부분은 통째로 없다 —
+    // 트레이너를 아직 읽는 중이거나 한 명도 없으면 이 부분은 통째로 없다 —
     // 카드가 예전과 같은 모습으로 남는다.
+    final AsyncValue<List<Trainer>> trainersAsync = ref.watch(
+      gymTrainersProvider(gym.id),
+    );
     final List<Trainer> trainers =
-        ref.watch(gymTrainersProvider(gym.id)).valueOrNull ?? const <Trainer>[];
+        trainersAsync.valueOrNull ?? const <Trainer>[];
+    // 조회가 실패했으면 '트레이너 없음' 과 구분해 짧은 안내를 둔다(#2857,
+    // #2879). 카드를 누르면 상세로 가면서 다시 읽는다 — 상세의 소속 트레이너
+    // 섹션이 그 결과를 보여 준다.
+    final bool trainersFailed =
+        trainersAsync.hasError && !trainersAsync.isLoading;
+    final VoidCallback? tap = onTap == null
+        ? null
+        : () {
+            if (trainersFailed) ref.invalidate(gymTrainersProvider(gym.id));
+            onTap!();
+          };
     final TextStyle meta = tokens
         .text(OnCareTypography.bodySmall)
         .copyWith(color: OnCareColors.textSecondary);
     return AppCard(
-      onTap: onTap,
+      onTap: tap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -613,46 +780,54 @@ class _GymListCard extends ConsumerWidget {
                             .text(OnCareTypography.titleSmall)
                             .copyWith(color: OnCareColors.textPrimary),
                       ),
-                      const SizedBox(height: OnCareSpacing.s4),
-                      Row(
-                        children: <Widget>[
-                          // 거리는 위치를 얻기 전에도 적는다 — 그때는 검색
-                          // 지점(기본 신촌) 기준이다. 데모와 같다. (#2666)
-                          Flexible(
-                            child: Text(
-                              '${gym.distanceKm.toStringAsFixed(1)}km',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: OnCareTypography.numeric(meta),
-                            ),
-                          ),
-                          // 평점이 없는 헬스장(카카오로 찾은 실재 업체)은 별을
-                          // 세우지 않는다 — `★ 0.0` 은 최하 평점으로 읽힌다.
-                          // 상세 화면과 같다. (#2666)
-                          if (gym.rating > 0) ...<Widget>[
-                            const SizedBox(width: OnCareSpacing.s8),
-                            const AppIcon(
-                              AppIcons.star,
-                              size: OnCareSize.iconSmall,
-                              color: OnCareColors.cautionFill,
-                            ),
-                            const SizedBox(width: OnCareSpacing.s2),
-                            Text(
-                              gym.rating.toStringAsFixed(1),
-                              maxLines: 1,
-                              style: OnCareTypography.numeric(
-                                tokens
-                                    .text(
-                                      OnCareTypography.strong(
-                                        OnCareTypography.bodySmall,
-                                      ),
-                                    )
-                                    .copyWith(color: OnCareColors.textPrimary),
+                      if (showDistance || gym.rating > 0) ...<Widget>[
+                        const SizedBox(height: OnCareSpacing.s4),
+                        Row(
+                          children: <Widget>[
+                            // 거리는 회원 위치를 얻었을 때만 적는다(#3044). 그
+                            // 전에는 기본 검색 영역(신촌)에서 잰 값이라 회원이
+                            // 자기 거리로 읽는다.
+                            if (showDistance)
+                              Flexible(
+                                key: Key('gym-distance-${gym.id}'),
+                                child: Text(
+                                  '${gym.distanceKm.toStringAsFixed(1)}km',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: OnCareTypography.numeric(meta),
+                                ),
                               ),
-                            ),
+                            // 평점이 없는 헬스장(카카오로 찾은 실재 업체)은 별을
+                            // 세우지 않는다 — `★ 0.0` 은 최하 평점으로 읽힌다.
+                            // 상세 화면과 같다. (#2666)
+                            if (gym.rating > 0) ...<Widget>[
+                              if (showDistance)
+                                const SizedBox(width: OnCareSpacing.s8),
+                              const AppIcon(
+                                AppIcons.star,
+                                size: OnCareSize.iconSmall,
+                                color: OnCareColors.cautionFill,
+                              ),
+                              const SizedBox(width: OnCareSpacing.s2),
+                              Text(
+                                gym.rating.toStringAsFixed(1),
+                                maxLines: 1,
+                                style: OnCareTypography.numeric(
+                                  tokens
+                                      .text(
+                                        OnCareTypography.strong(
+                                          OnCareTypography.bodySmall,
+                                        ),
+                                      )
+                                      .copyWith(
+                                        color: OnCareColors.textPrimary,
+                                      ),
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
-                      ),
+                        ),
+                      ],
                       const SizedBox(height: OnCareSpacing.s4),
                       Text(
                         gym.weekdayHours == null
@@ -716,14 +891,51 @@ class _GymListCard extends ConsumerWidget {
                   context.push(AppRoutes.trainerDetailPath(trainer.id)),
             ),
           ],
+          if (trainersFailed) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s8),
+            Row(
+              key: Key('gym-trainers-failed-${gym.id}'),
+              children: <Widget>[
+                const AppIcon(
+                  AppIcons.offline,
+                  size: OnCareSize.iconSmall,
+                  color: OnCareColors.textTertiary,
+                ),
+                const SizedBox(width: OnCareSpacing.s4),
+                Expanded(
+                  child: Text(
+                    l.exGymTrainersLoadError,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: meta,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-/// 목록에 보이는 헬스장을 카카오맵 핀으로 찍는다. `KAKAO_JS_KEY` 가 없거나
-/// SDK 로드가 실패하면 [_GymMiniMap] 그래픽으로 폴백한다(#329).
+/// 지도를 띄우지 못했을 때 예전 그림 지도([_GymMiniMap])를 쓸지(#3043).
+///
+/// 데모 세션 — 목업 빌드이거나 실서버에서 데모로 들어온 세션 — 만 그렇다. 데모
+/// 화면은 바꾸지 않는다. 판별은 헬스장 찾기 기준 좌표와 같은
+/// [gymDemoSessionProvider](#3044)를 그대로 따른다.
+final gymMapDemoFallbackProvider = Provider<bool>(
+  (ref) => ref.watch(gymDemoSessionProvider),
+  name: 'gymMapDemoFallback',
+);
+
+/// 목록에 보이는 헬스장을 카카오맵 핀으로 찍는다. 웹은 `HtmlElementView`,
+/// 안드로이드·iOS 는 WebView 로 같은 카카오 지도를 띄운다(#3043).
+///
+/// `KAKAO_JS_KEY` 가 없거나 SDK 로드가 실패하면 폴백으로 떨어진다(#329). 실사용자
+/// 경로의 폴백은 핀 없는 자리 표시([_GymMapUnavailable])다 — 좌표와 무관한 핀은
+/// 회원이 헬스장 위치로 읽는다. 데모 세션은 데모 화면을 바꾸지 않으려 예전 그림
+/// 지도([_GymMiniMap])를 그대로 쓴다.
 class _GymMap extends ConsumerWidget {
   const _GymMap({required this.gyms});
 
@@ -750,7 +962,9 @@ class _GymMap extends ConsumerWidget {
           for (final Gym g in located)
             KakaoMapMarker(lat: g.lat!, lng: g.lng!, title: g.name),
         ],
-        fallback: _GymMiniMap(pinCount: located.isEmpty ? 3 : located.length),
+        fallback: ref.watch(gymMapDemoFallbackProvider)
+            ? _GymMiniMap(pinCount: located.isEmpty ? 3 : located.length)
+            : const _GymMapUnavailable(),
       ),
     );
   }
@@ -759,6 +973,9 @@ class _GymMap extends ConsumerWidget {
 /// Lightweight illustrative map for the 헬스장 찾기 페이지 — a soft map backdrop
 /// with [pinCount] location pins (헬스장 하나당 핀 하나) and a center "내 위치"
 /// dot. Purely decorative (no real map/tiles/network) for the demo.
+///
+/// **데모 세션 전용이다**(#3043). 핀 자리가 고정이라 실제 헬스장 좌표와 대응하지
+/// 않는다 — 실사용자 경로는 [_GymMapUnavailable] 을 쓴다.
 class _GymMiniMap extends StatelessWidget {
   const _GymMiniMap({required this.pinCount});
 
@@ -804,6 +1021,68 @@ class _GymMiniMap extends StatelessWidget {
                   style: tokens
                       .text(OnCareTypography.strong(OnCareTypography.caption))
                       .copyWith(color: OnCareColors.textSecondary),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 지도를 띄우지 못했을 때의 자리 표시(#3043) — 실사용자 경로의 폴백.
+///
+/// 지도와 같은 자리를 차지하되(#1362), 핀·"내 위치" 점을 그리지 않는다. 고정
+/// 자리의 핀은 회원이 실제 헬스장 위치로 읽기 때문이다. 대신 지도를 불러오지
+/// 못했다고 한 줄로 알린다. 헬스장은 아래 목록에서 그대로 고를 수 있다.
+class _GymMapUnavailable extends StatelessWidget {
+  const _GymMapUnavailable();
+
+  /// 자리 표시 본문의 Key.
+  static const Key bodyKey = ValueKey<String>('gym-map-unavailable');
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    return DecoratedBox(
+      key: bodyKey,
+      decoration: const BoxDecoration(color: OnCareColors.surfaceInput),
+      child: SizedBox.expand(
+        child: Stack(
+          children: <Widget>[
+            Positioned.fill(child: CustomPaint(painter: _MapRoadsPainter())),
+            Align(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: OnCareSpacing.s12,
+                  vertical: OnCareSpacing.s4,
+                ),
+                decoration: const BoxDecoration(
+                  color: OnCareColors.surfaceCard,
+                  borderRadius: OnCareRadius.pillAll,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    const AppIcon(
+                      AppIcons.location,
+                      size: OnCareSize.iconSmall,
+                      color: OnCareColors.textTertiary,
+                    ),
+                    const SizedBox(width: OnCareSpacing.s4),
+                    Flexible(
+                      child: Text(
+                        l.exGymMapUnavailable,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: tokens
+                            .text(OnCareTypography.caption)
+                            .copyWith(color: OnCareColors.textSecondary),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

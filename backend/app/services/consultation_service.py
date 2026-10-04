@@ -39,8 +39,10 @@ from app.services import (
     notification_service,
     notification_templates,
     reservation_service,
-    trainer_service,
+    trainer_verification_service,
 )
+from app.services.trainer import _common as trainer_common_service
+from app.services.trainer import schedule as trainer_schedule_service
 
 
 class InvalidConsultationRequest(Exception):
@@ -263,6 +265,30 @@ def release_holds_for_account_deletion(db: Session, member_id: str) -> None:
         reservation_service.release_consultation_hold(db, slot_id)
 
 
+def count_live_pending_for_member(
+    db: Session, member_id: str, *, now: datetime | None = None
+) -> int:
+    """탈퇴하면 함께 지워지는 대기 상담 요청 수 — 탈퇴 확인창이 읽는다(#3006).
+
+    만료 시각([_expires_at])이 지난 대기 요청은 아직 `expired` 로 내려가지 않았어도
+    회원 화면에서 끝난 요청이라 세지 않는다. [notify_trainers_of_account_deletion] 이
+    알리지 않는 것과 같은 기준이다.
+    """
+    current = now or _now()
+    rows = db.execute(
+        select(ConsultationRequest, TrainerReservationSlot.starts_at)
+        .outerjoin(
+            TrainerReservationSlot,
+            TrainerReservationSlot.id == ConsultationRequest.slot_id,
+        )
+        .where(
+            ConsultationRequest.member_id == member_id,
+            ConsultationRequest.status == "pending",
+        )
+    ).all()
+    return sum(1 for row, starts_at in rows if _expires_at(row, starts_at) > current)
+
+
 def notify_trainers_of_account_deletion(
     db: Session, member: User, *, now: datetime | None = None
 ) -> int:
@@ -312,7 +338,7 @@ def notify_trainers_of_account_deletion(
 
     # 담당 트레이너에게는 탈퇴 알림이 따로 간다(#2174).
     notified: set[str] = set()
-    coach_id = trainer_service.get_member_trainer_id(db, member.id)
+    coach_id = trainer_common_service.get_member_trainer_id(db, member.id)
     if coach_id is not None:
         notified.add(coach_id)
 
@@ -421,7 +447,18 @@ def _validate_target(db: Session, payload: ConsultationCreate) -> None:
 
     헬스장(`Place.category == 'fitness'`)에 소속된 활성 트레이너만 대상이다 — 소속이
     없으면 승인 뒤 회원을 연결할 헬스장도 없다.
+
+    운영자 승인을 받은 트레이너만 대상이다(#2825). 상담 신청은 회원의 이름·운동
+    목표·문의 내용을 그 계정에 넘기므로, 디렉터리와 같은 조건으로 막는다.
+    데모 시드가 꺼진 서버에서는 데모 트레이너도 대상이 아니다 — 트레이너 디렉터리
+    (`gym_service._trainer_query`)와 같은 조건이다(#2811).
     """
+    from app.db import demo_ids
+
+    if not demo_ids.demo_data_enabled() and payload.trainer_id in demo_ids.demo_trainer_ids():
+        raise ConsultationTargetNotFound(
+            "상담 가능한 트레이너를 찾을 수 없습니다."
+        )
     trainer = db.scalar(
         select(User)
         .join(TrainerProfile, TrainerProfile.trainer_id == User.id)
@@ -431,6 +468,7 @@ def _validate_target(db: Session, payload: ConsultationCreate) -> None:
             User.role == "trainer",
             User.is_active.is_(True),
             Place.category == "fitness",
+            trainer_verification_service.approved_clause(),
         )
     )
     if trainer is None:
@@ -451,7 +489,7 @@ def create_consultation(
         )
 
     _validate_target(db, payload)
-    coach_id = trainer_service.get_member_trainer_id(db, member_id)
+    coach_id = trainer_common_service.get_member_trainer_id(db, member_id)
     if coach_id is not None and coach_id != payload.trainer_id:
         raise LinkedToOtherTrainer(
             "담당 트레이너 연결을 해제한 뒤 다른 트레이너에게 상담을 요청할 수 있습니다."
@@ -496,6 +534,13 @@ def create_consultation(
         data_consent_at=now,
     )
     db.add(consultation)
+    # 상담 신청의 공유 동의도 이력으로 남긴다(#2830) — 신청과 같은 트랜잭션이다.
+    data_consent_service.stage_grant(
+        db,
+        trainer_id=payload.trainer_id,
+        member_id=member_id,
+        via=data_consent_service.VIA_CONSULTATION,
+    )
     _notify_trainer_of_new_request(db, consultation, member_id)
     try:
         db.commit()
@@ -667,7 +712,7 @@ def _consultation_schedule_times(
             ).replace(tzinfo=SEOUL)
         except ValueError:
             continue
-        is_live = status != trainer_service.SCHEDULE_CANCELLED
+        is_live = status != trainer_common_service.SCHEDULE_CANCELLED
         if consultation_id in live and not is_live:
             continue
         out[consultation_id] = (starts_at, duration)
@@ -936,7 +981,7 @@ def pending_count_for_trainer(db: Session, trainer_id: str) -> int:
 
     배지는 페이지네이션과 무관하게 전체를 세므로 행을 가져와 파이썬에서 세면 곧
     전체 행 로드가 된다. 화면이 주기적으로 다시 읽는 경로라 DB 집계로 받는다 —
-    트레이너 알림 미읽음 수(`app/api/v1/trainer.py`)와 같은 형태다. (#1629)
+    트레이너 알림 미읽음 수(`app/api/v1/trainer/notifications.py`)와 같은 형태다. (#1629)
 
     목록과 같은 이유로 세기 전에 만료를 정리한다 — 그러지 않으면 배지가 이미 지난
     요청을 계속 세고, 트레이너는 인박스를 열어야만 그 수가 줄어든다. (#1873)
@@ -1105,6 +1150,7 @@ def attach_member_to_trainer(
     *,
     goal: str = "",
     consented_at: datetime | None = None,
+    via: str = "",
 ) -> None:
     """담당 링크를 만든다(커밋 없음). 활성 담당이 없는 회원에게만 부른다.
 
@@ -1117,6 +1163,8 @@ def attach_member_to_trainer(
     되살릴 때 동의는 **이번 연결의 것만** 적는다(#1631). 해제할 때 동의를
     비웠으므로 `consented_at` 이 없으면 링크는 동의 없이 살아나고, 트레이너는
     회원 기록을 열 수 없다 — 옛 동의가 말없이 다시 쓰이지 않는다.
+
+    동의가 있으면 `via`(발급 경로)와 함께 감사 기록을 얹는다(#2830).
     """
     dormant = db.scalar(
         select(TrainerClient).where(
@@ -1127,7 +1175,7 @@ def attach_member_to_trainer(
     if dormant is not None:
         dormant.active = True
         # 다시 담당이 되는 것도 새 연결이다 — 그때의 동의만 적는다. (#1022, #1631)
-        data_consent_service.grant(dormant, consented_at)
+        data_consent_service.grant(dormant, consented_at, via=via)
         return
 
     last_order = db.scalar(
@@ -1146,6 +1194,10 @@ def attach_member_to_trainer(
             sort_order=(last_order or 0) + 1,
         )
     )
+    if consented_at is not None:
+        data_consent_service.stage_grant(
+            db, trainer_id=trainer_id, member_id=member_id, via=via
+        )
 
 
 def accept(
@@ -1164,7 +1216,7 @@ def accept(
     `pending` 에서만 진행한다. **수락은 시각을 정하지 않는다** — 날짜·시각·소요
     시간은 회원이 신청할 때 고른 자리가 이미 들고 있다(#1873). 그래도 겹침은
     본다(#2284). 자리를 연 뒤 신청이 기다리는 동안 트레이너가 그 시간에 다른
-    일정을 직접 잡을 수 있다 — 겹치면 [trainer_service.ScheduleOverlap] 으로 멈추고
+    일정을 직접 잡을 수 있다 — 겹치면 [trainer.schedule.ScheduleOverlap] 으로 멈추고
     아무것도 바꾸지 않는다.
 
     상태 전이·일정 생성·알림을 **한 트랜잭션**으로 커밋한다. 나눠 커밋하면 요청은
@@ -1192,7 +1244,7 @@ def accept(
 
     local = _aware(slot.starts_at).astimezone(SEOUL)
     # 상태 전이보다 먼저 본다 — 겹쳐서 멈출 때 반쪽 상태가 남지 않는다.
-    trainer_service.ensure_no_overlap(
+    trainer_schedule_service.ensure_no_overlap(
         db,
         trainer_id,
         date=local.date().isoformat(),

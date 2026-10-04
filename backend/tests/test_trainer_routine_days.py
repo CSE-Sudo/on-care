@@ -30,12 +30,14 @@ from app.models.models import (
     TrainerSchedule,
     User,
 )
-from app.services import notification_templates, trainer_service
+from app.services import notification_templates
 from app.services.exercise_activity import noon
-from app.services.trainer_service import (
-    DELIVERY_ROUTINE_ONLY,
-    PERSONAL_ROUTINE_ACTIVE_DAYS,
-)
+from app.services.trainer import _common as trainer_common_service
+from app.services.trainer import roster as trainer_roster_service
+from app.services.trainer import routines as trainer_routines_service
+from app.services.trainer import schedule as trainer_schedule_service
+from app.services.trainer._common import DELIVERY_ROUTINE_ONLY
+from app.services.trainer.schedule import PERSONAL_ROUTINE_ACTIVE_DAYS
 
 #: 이 파일의 '오늘' — 목요일. 월~수가 지난 날이고 금~일이 아직 오지 않은 날이다.
 TODAY = date(2026, 10, 1)
@@ -299,16 +301,16 @@ def test_week_completion_counts_personal_routines_and_pt(db_session, pair):
     a = _routine(db_session, pair, "걷기", active_from=MONDAY + timedelta(days=1), ended_on=MONDAY + timedelta(days=3))
     b = _routine(db_session, pair, "스쿼트", active_from=MONDAY + timedelta(days=1), ended_on=MONDAY + timedelta(days=3), order=2)
     # 월: PT 만 잡혀 있고 했다 → 100.
-    _pt(db_session, pair, MONDAY, trainer_service.SCHEDULE_DONE)
+    _pt(db_session, pair, MONDAY, trainer_common_service.SCHEDULE_DONE)
     # 화: 개인운동 둘 중 하나 + PT 예정(안 함) → 1/3.
     _done(db_session, pair, a, MONDAY + timedelta(days=1))
-    _pt(db_session, pair, MONDAY + timedelta(days=1), trainer_service.SCHEDULE_UPCOMING)
+    _pt(db_session, pair, MONDAY + timedelta(days=1), trainer_common_service.SCHEDULE_UPCOMING)
     # 수: 둘 다 했는데 하나는 다음 날 체크, 취소·노쇼·상담은 분모가 아니다 → 100.
     _done(db_session, pair, a, MONDAY + timedelta(days=2))
     _done(db_session, pair, b, MONDAY + timedelta(days=2), checked=TODAY)
-    _pt(db_session, pair, MONDAY + timedelta(days=2), trainer_service.SCHEDULE_CANCELLED)
-    _pt(db_session, pair, MONDAY + timedelta(days=2), trainer_service.SCHEDULE_NO_SHOW)
-    _pt(db_session, pair, MONDAY + timedelta(days=2), trainer_service.SCHEDULE_UPCOMING, "상담")
+    _pt(db_session, pair, MONDAY + timedelta(days=2), trainer_common_service.SCHEDULE_CANCELLED)
+    _pt(db_session, pair, MONDAY + timedelta(days=2), trainer_common_service.SCHEDULE_NO_SHOW)
+    _pt(db_session, pair, MONDAY + timedelta(days=2), trainer_common_service.SCHEDULE_UPCOMING, "상담")
     # 직접 추가한 운동은 세지 않는다 — 목요일에 걸린 것이 없으니 null 이다.
     db_session.add(
         ExerciseSession(
@@ -326,7 +328,7 @@ def test_week_completion_counts_personal_routines_and_pt(db_session, pair):
     )
     db_session.commit()
 
-    week = trainer_service.week_completion_by_member(
+    week = trainer_common_service.week_completion_by_member(
         db_session, pair.trainer_id, [pair.member_id], MONDAY
     )[pair.member_id]
 
@@ -366,7 +368,7 @@ def test_history_groups_a_days_personal_routines_into_one_card(db_session, pair)
     db_session.commit()
     today_walk = _done(db_session, pair, walk, TODAY)
 
-    history = trainer_service.build_client_history(db_session, pair.member_id, pair.trainer_id)
+    history = trainer_roster_service.build_client_history(db_session, pair.member_id, pair.trainer_id)
     personal = [h for h in history if h.kind == "personal_routine"]
 
     assert [h.date for h in personal] == [TODAY.isoformat(), tuesday.isoformat()]
@@ -413,7 +415,7 @@ def test_routine_only_with_a_future_start_runs_from_that_day(db_session, pair):
         ended_on=start + timedelta(days=9), sent=TODAY,
     )
 
-    created = trainer_service.assign_program(
+    created = trainer_routines_service.assign_program(
         db_session, pair.trainer_id, pair.member_id,
         name="이번 주 개인운동",
         sessions=[_draft("걷기"), _draft("자전거")],
@@ -436,7 +438,7 @@ def test_routine_only_with_a_future_start_runs_from_that_day(db_session, pair):
     # 시작일 뒤에야 걸리기로 했던 것은 걸리기 전에 내린다(제약 ended_on >= active_from).
     assert farther.ended_on == farther.active_from
 
-    delivery = trainer_service.latest_delivery(db_session, pair.trainer_id, pair.member_id)
+    delivery = trainer_schedule_service.latest_delivery(db_session, pair.trainer_id, pair.member_id)
     assert delivery is not None
     # 보낸 날은 오늘이다 — 걸리는 첫날(미래)이 '보냄' 으로 찍히지 않는다.
     assert delivery.sent_on == TODAY
@@ -454,7 +456,7 @@ def test_routine_only_with_a_future_start_runs_from_that_day(db_session, pair):
 
 
 def test_routine_only_for_today_still_runs_from_today(db_session, pair):
-    created = trainer_service.assign_program(
+    created = trainer_routines_service.assign_program(
         db_session, pair.trainer_id, pair.member_id,
         name="이번 주 개인운동",
         sessions=[_draft("걷기")],

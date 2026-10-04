@@ -5,7 +5,6 @@ Android / iOS 릴리즈 절차와 버전 관리 정책을 정리합니다.
 
 > CI 자동화 범위: **Web만 자동**. Android/iOS는 수동.
 > 회원 앱은 모노레포 `frontend/flutter/` 이고, 워크플로는 저장소 **루트** `.github/workflows/` 에 있습니다.
-> `frontend/flutter/.github/` 아래 파일은 별도 저장소 시절의 것이라 GitHub Actions 가 실행하지 않습니다.
 
 ---
 
@@ -29,12 +28,18 @@ Android / iOS 릴리즈 절차와 버전 관리 정책을 정리합니다.
 ```bash
 flutter build web --release \
   --base-href "/frontend/" \
-  --dart-define=KAKAO_JS_KEY=<카카오 JavaScript 키>
-# 실서버로 붙여 보려면 아래 두 줄을 더한다
+  --dart-define=KAKAO_JS_KEY=<카카오 JavaScript 키> \
+  --dart-define=DEMO_BUILD=true
+# 실서버로 붙여 보려면 DEMO_BUILD 대신 아래 세 줄을 넣는다
+#   --dart-define=ENV=prod \
 #   --dart-define=USE_MOCK_API=false \
 #   --dart-define=API_BASE_URL=https://<백엔드 도메인>/v1
 # 출력: build/web/
 ```
+
+릴리스 빌드(`--release`)는 기동할 때 설정을 검사합니다(#3022). `ENV` 가 `prod`·`staging` 이 아니거나,
+`DEMO_BUILD=true` 없이 목업이거나, API 주소가 `https://` 가 아니거나 예시·로컬 주소면 앱 대신
+"이 빌드는 잘못 구성됐어요" 안내가 뜹니다. 목업으로 확인할 때는 위처럼 `DEMO_BUILD=true` 를 넘깁니다.
 
 ---
 
@@ -62,23 +67,26 @@ keyPassword=<...>
 
 ### 2.2 빌드
 
+설정 값은 `config/release.json` 한 파일로 넘깁니다(`config/release.example.json` 을 복사해
+채움, 커밋 금지). 키와 규칙은 [`docs/mobile_release.md`](../../../docs/mobile_release.md) 5절에 있습니다.
+`--dart-define` 을 하나씩 적지 않습니다 — 하나만 빠져도 개발·목업 설정의 앱이 빌드됩니다(#3022).
+
 ```bash
+# 빌드 전 검사 — ENV·USE_MOCK_API·API_BASE_URL·SENTRY_DSN
+bash tool/check_release_defines.sh config/release.json
+
 # Play Store 업로드용 AAB
-flutter build appbundle --release \
-  --dart-define=ENV=prod \
-  --dart-define=API_BASE_URL=https://api.oncare.example.com
+flutter build appbundle --release --dart-define-from-file=config/release.json
 # 출력: build/app/outputs/bundle/release/app-release.aab
 
 # 사이드로드용 APK
-flutter build apk --release \
-  --dart-define=ENV=prod \
-  --dart-define=API_BASE_URL=https://api.oncare.example.com
+flutter build apk --release --dart-define-from-file=config/release.json
 # 출력: build/app/outputs/flutter-apk/app-release.apk
 ```
 
 ### 2.3 사전 점검
 
-- [ ] `applicationId` = `com.barmi.oncare` (Stage 1.1에서 설정됨)
+- [ ] `applicationId` = `com.csesudo.oncare` (확정값·검사: `docs/mobile_release.md` §4)
 - [ ] 권한 — 현재는 마이크/카메라 등 추가 권한 없음. 새 기능 추가 시 `AndroidManifest.xml` 갱신.
 - [ ] 소셜 SDK 통합 시 `AndroidManifest.xml` placeholder
   (`KAKAO_NATIVE_KEY`, `NAVER_CLIENT_ID`)와 `--dart-define` 동기화.
@@ -89,16 +97,15 @@ flutter build apk --release \
 
 ### 3.1 설정 (1회)
 
-1. Apple Developer 계정 / Bundle ID `com.barmi.oncare` 생성.
+1. Apple Developer 계정 / Bundle ID `com.csesudo.oncare` 생성.
 2. App Store Connect 앱 등록.
 3. Xcode → Runner → Signing & Capabilities → Team + Provisioning Profile.
 
 ### 3.2 빌드
 
 ```bash
-flutter build ios --release \
-  --dart-define=ENV=prod \
-  --dart-define=API_BASE_URL=https://api.oncare.example.com
+bash tool/check_release_defines.sh config/release.json
+flutter build ios --release --dart-define-from-file=config/release.json
 
 # 이후 Xcode 에서:
 #   Product → Archive → Distribute App → App Store Connect (TestFlight)

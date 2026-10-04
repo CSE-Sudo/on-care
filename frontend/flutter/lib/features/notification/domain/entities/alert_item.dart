@@ -19,6 +19,10 @@ enum AlertCategory {
   /// PT 일정 등록·변경·취소(`member_schedule`).
   schedule,
 
+  /// 트레이너가 PT 를 완료했다·완료 PT 에 피드백을 적었다(`pt_done`, #3027).
+  /// 앞으로의 약속(일정)이 아니라 끝난 수업의 기록이라 갈래를 나눴다.
+  ptDone,
+
   /// 담당 트레이너 요청·연결·해제(`coach_invite`·`consultation_result`).
   trainerLink,
 
@@ -175,6 +179,12 @@ class NotificationState {
 
   /// 마지막 조회가 실패했는가. 화면이 재시도를 제안하는 근거다.
   final bool failedToLoad;
+
+  /// 한 번도 받지 못한 채 조회가 실패해 **보여 줄 목록이 없는** 상태인가(#2877).
+  ///
+  /// 이때는 "알림이 없습니다" 를 그리면 안 된다 — 받아 본 적이 없는데 없다고 말하면
+  /// 트레이너가 보낸 알림을 회원이 놓친다. 화면은 실패 안내와 재시도만 그린다.
+  bool get failedFirstLoad => failedToLoad && !loaded && items.isEmpty;
 
   /// 더 받아 올 과거 알림이 남아 있을 수 있는가. (#965)
   ///

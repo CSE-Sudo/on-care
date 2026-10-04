@@ -5,6 +5,7 @@ import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart'
 import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Network-side [ExerciseRepository]. dev/local builds get served by
 /// `LocalApiInterceptor` (drift-backed); prod hits FastAPI.
@@ -26,8 +27,8 @@ class DioExerciseRepository implements ExerciseRepository {
     final res = await _dio.get<Map<String, Object?>>(
       '/exercise/weeks',
       queryParameters: <String, String>{
-        if (from != null) 'from': _ymd(from),
-        if (to != null) 'to': _ymd(to),
+        if (from != null) 'from': wireDate(from),
+        if (to != null) 'to': wireDate(to),
       },
     );
     final Map<String, Object?> body = res.data ?? const <String, Object?>{};
@@ -44,17 +45,11 @@ class DioExerciseRepository implements ExerciseRepository {
     ];
   }
 
-  /// `YYYY-MM-DD` — 서버가 날짜 질의에 쓰는 형식.
-  String _ymd(DateTime date) =>
-      '${date.year.toString().padLeft(4, '0')}-'
-      '${date.month.toString().padLeft(2, '0')}-'
-      '${date.day.toString().padLeft(2, '0')}';
-
   @override
   Future<ExerciseWeek> fetchWeek(DateTime weekStart) async {
     final res = await _dio.get<Map<String, Object?>>(
       '/exercise/weeks/current',
-      queryParameters: <String, Object?>{'week_start': _dateString(weekStart)},
+      queryParameters: <String, Object?>{'week_start': wireDate(weekStart)},
     );
     return ExerciseWeek.fromJson(res.data!);
   }
@@ -67,11 +62,6 @@ class DioExerciseRepository implements ExerciseRepository {
     );
     return ExerciseAdvice.fromJson(res.data ?? const <String, Object?>{});
   }
-
-  static String _dateString(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-'
-      '${d.month.toString().padLeft(2, '0')}-'
-      '${d.day.toString().padLeft(2, '0')}';
 
   @override
   Future<ExerciseCalorieEstimate> previewCalories({
@@ -150,7 +140,7 @@ class DioExerciseRepository implements ExerciseRepository {
     'weight': weight,
     'calories': calories,
     'intensity': intensity.name,
-    'date': _dateString(date),
+    'date': wireDate(date),
   };
 
   @override

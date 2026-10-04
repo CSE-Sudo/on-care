@@ -17,6 +17,14 @@ class AppRoutes {
   /// Trainer 회원가입 screen (name/email/password).
   static const String signUp = '/auth/sign-up';
 
+  /// 가입 동의(#2819) — 동의가 남은 계정이 로그인하면 다른 화면보다 먼저 온다.
+  static const String consent = '/auth/consent';
+
+  /// 비밀번호 재설정(#2824). 로그인 화면과 재설정 메일의 링크(`?token=…`)가
+  /// 연다. 세션 상태와 상관없이 열린다 — 링크를 어느 상태에서 열어도 코드를
+  /// 잃지 않는다.
+  static const String passwordReset = '/auth/password-reset';
+
   // --- Main navigation (StatefulShellRoute branches) ---
 
   /// 대시보드 — the console's home; what needs doing today.
@@ -165,11 +173,15 @@ class AppRoutes {
   ///
   /// [openHealthNotes] 는 들어가자마자 신체·목표 창의 `건강 목표` 탭을 연다 —
   /// 주의사항 알림에서 온 길이다(#2619).
+  ///
+  /// [openFeedback] 은 메모 창의 `피드백` 탭을 연다 — 회원 주간 피드백 알림에서
+  /// 온 길이다(#3026). 둘 다 주면 [openHealthNotes] 가 이긴다(한 번에 창 하나).
   static String clientDetail(
     String id, {
     String? section,
     String? filter,
     bool openHealthNotes = false,
+    bool openFeedback = false,
   }) {
     final safeSection = clientSections.contains(section)
         ? section!
@@ -177,12 +189,15 @@ class AppRoutes {
     final path = '$clients/${Uri.encodeComponent(id)}/$safeSection';
     // 빈 맵을 넘기면 `?` 만 붙은 주소가 나온다 — 필터가 없을 때는 쿼리 자체를
     // 만들지 않는다.
-    if (filter == null && !openHealthNotes) return path;
+    if (filter == null && !openHealthNotes && !openFeedback) return path;
     return Uri(
       path: path,
       queryParameters: <String, String>{
         'f': ?filter,
-        if (openHealthNotes) clientOpenParam: clientOpenHealthNotes,
+        if (openHealthNotes)
+          clientOpenParam: clientOpenHealthNotes
+        else if (openFeedback)
+          clientOpenParam: clientOpenFeedback,
       },
     ).toString();
   }
@@ -190,6 +205,7 @@ class AppRoutes {
   /// [clientDetail] 이 창을 열라고 알리는 쿼리 이름과 값.
   static const String clientOpenParam = 'open';
   static const String clientOpenHealthNotes = 'health-notes';
+  static const String clientOpenFeedback = 'feedback';
 
   /// Builds the 고객 list filtered to a preset. Used by the dashboard
   /// KPI cards (`unread` = 답장 필요, `attention` = 주의 고객).
@@ -197,6 +213,14 @@ class AppRoutes {
     path: clients,
     queryParameters: <String, String>{'f': filter},
   ).toString();
+
+  /// 회원 목록 — [filter] 가 있으면 그 필터를 건 목록, 없으면 전체 목록. (#2893)
+  ///
+  /// 상세를 닫을 때 돌아갈 자리다. 예전에는 닫기가 늘 [clients] 로 가, '주의
+  /// 회원' 처럼 걸러 둔 목록에서 한 명을 닫을 때마다 필터가 풀렸다 — 메시지
+  /// 탭([messagesFor])은 같은 상황에서 필터를 지킨다.
+  static String clientsWith(String? filter) =>
+      filter == null ? clients : clientsFiltered(filter);
 
   /// Builds the standalone 메시지 workspace with an optional selected client
   /// and conversation filter (`all` | `unread` | `attention`).

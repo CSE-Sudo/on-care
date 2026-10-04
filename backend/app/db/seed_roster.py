@@ -6,7 +6,7 @@
 실 API 시드는 3명뿐이라 실서버로 전환하면 그 상태 대부분이 재현되지 않았다(#572).
 
 여기서는 **지표를 만들 최소 기록만** 넣는다. 로스터의 주간 지표는 저장 필드가 아니라
-실데이터에서 계산되기 때문이다(`trainer_service._sodium_week` /
+실데이터에서 계산되기 때문이다(`trainer._common._sodium_week` /
 `week_completion_by_member`).
 따라서 "계정만 만들고 지표를 채운다"는 불가능하고, 하루치 식단·운동 기록이 곧 지표다.
 
@@ -24,6 +24,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core import clock
+from app.core.week import monday_of
 from app.db.session import SessionLocal
 from app.models import models
 from app.services import exercise_activity
@@ -258,7 +259,7 @@ def _seed_completion_days(db: Session, member_id: str, completion: list[int]) ->
     """주마다 개인운동 한 벌을 걸고 그날 비율만큼 완료를 남긴다(멱등). (#2513)
 
     이행률은 저장값이 아니라 그날 걸린 개인운동과 완료에서 계산된다
-    (`trainer_service.week_completion_by_member`). 예전처럼 `routine_history` 에
+    (`trainer._common.week_completion_by_member`). 예전처럼 `routine_history` 에
     비율을 적으면 아무 화면도 읽지 않는다.
     """
     from app.db.seed_trainer import TRAINER_ID
@@ -268,7 +269,7 @@ def _seed_completion_days(db: Session, member_id: str, completion: list[int]) ->
         return  # 기록 전무 — 개인운동을 받은 적 없는 회원이다
     first, last = active[0], active[-1]
     today = clock.today()
-    this_monday = today - timedelta(days=today.weekday())
+    this_monday = monday_of(today)
     existing_routines = set(
         db.scalars(
             select(models.TrainerRoutine.id).where(

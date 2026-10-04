@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
@@ -29,8 +29,11 @@
     - font-src·connect-src: 엔진의 대체 글꼴(fonts.gstatic.com)과 CanvasKit wasm 내려받기.
     - connect-src 의 https: 는 API 주소가 빌드마다 달라서다(로컬 개발은 localhost).
     - frame-src blob: 는 `printing` 의 웹 인쇄용 iframe, worker-src 는 pdf.js·drift 워커.
-    정적 호스팅(CloudFront)은 같은 정책을 응답 헤더로 내리고 connect-src 를 API 출처로
-    좁힌다 — frame-ancestors·HSTS 는 meta 로는 걸리지 않아 헤더에서만 붙는다.
+    운영(AWS CloudFront)은 infra/frontend-hosting.yml 의 FrontendAppResponseHeadersPolicy 가
+    같은 지시어를 응답 헤더로 내리고 connect-src 를 API 출처로 좁힌다(#3017). 브라우저는 둘을
+    함께 적용하므로 운영에서는 헤더 쪽이 한도다. frame-ancestors·HSTS 는 meta 로는 걸리지 않아
+    헤더에서만 붙는다. GitHub Pages 데모는 응답 헤더를 바꿀 수 없어 이 meta 만 적용된다.
+    지시어를 바꾸면 템플릿도 같이 바꾼다 — tool/ci/test_frontend_csp.py 가 둘을 비교한다.
   -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://www.gstatic.com https://dapi.kakao.com https://t1.daumcdn.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; worker-src 'self' blob:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -42,6 +45,10 @@
   <style>
     html, body { background-color: #FFFFFF; }
   </style>
+  <!-- 로그인해야 쓰는 앱이라 검색 색인에서 뺀다(#3015). 검색에 걸려야 하는 것은
+       저장소 루트의 소개 페이지뿐이다 — 앱 주소가 수집되면 빈 로그인 화면이
+       검색 결과에 뜬다. -->
+  <meta name="robots" content="noindex, nofollow">
   <meta name="description" content="On-Care — 사진 한 장으로 식단을 기록하고, 트레이너에게 자동 요약 리포트를 전달하는 헬스케어 앱.">
 
   <!-- iOS meta tags & icons -->
@@ -73,19 +80,10 @@
 </head>
 <body>
   <!--
-    리포트 PDF 미리보기가 쓰는 pdf.js. 저장소에 함께 싣고 여기서 먼저 올린다.
-
-    `printing` 패키지는 웹에서 PDF 를 pdf.js 로 그리는데, 아무것도 안 두면 화면을
-    여는 순간 unpkg.com 에서 최신 빌드를 받아 온다. 데모가 남의 CDN 이 살아 있는지에
-    걸리고, 그 최신 빌드는 `Promise.withResolvers` 를 써서 Safari 17.4 아래에서는
-    아예 돌지 않는다. 게다가 pdf.js 를 못 올리면 `printing` 은 오류를 내는 대신
-    잠금을 쥔 채 멈춰서, 미리보기가 영영 스피너만 돈다.
-
-    그래서 오래된 사파리에서도 도는 3.x 레거시 빌드를 직접 싣고, `pdfjsLib` 를 미리
-    올려 둔다. 이러면 `printing` 은 자기 로더를 아예 건너뛴다.
+    PDF 미리보기용 pdf.js 를 올린 뒤 Flutter(`flutter_bootstrap.js`)를 띄운다(#2818).
+    버전·보안 설정·순서의 이유는 `js/pdfjs_loader.js` 에 있다. 인라인 스크립트로
+    두지 않는다(CSP).
   -->
-  <script src="pdfjs/pdf.min.js"></script>
-  <script src="js/pdfjs_worker.js"></script>
-  <script src="flutter_bootstrap.js" async></script>
+  <script type="module" src="js/pdfjs_loader.js"></script>
 </body>
 </html>

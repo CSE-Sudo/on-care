@@ -134,6 +134,84 @@ abstract class AppLocalizations {
   /// **'Go to sign in'**
   String get notFoundGoSignIn;
 
+  /// Title of the full-screen page shown when this build is older than the server's minimum supported version (#3045).
+  ///
+  /// In en, this message translates to:
+  /// **'A new version is available'**
+  String get updateRequiredTitle;
+
+  /// No description provided for @updateRequiredMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Please update On-Care to keep using it.'**
+  String get updateRequiredMessage;
+
+  /// Current and minimum versions on the update page (#3045).
+  ///
+  /// In en, this message translates to:
+  /// **'Your version {current} · Required {min}'**
+  String updateRequiredVersions(String current, String min);
+
+  /// Button on the update page; opens the store page of the app.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get updateRequiredAction;
+
+  /// Shown instead of the button when there is no store link to open (App Store ID not configured).
+  ///
+  /// In en, this message translates to:
+  /// **'Please update On-Care from the App Store.'**
+  String get updateRequiredStoreHint;
+
+  /// No description provided for @updateRequiredOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the store. Please update On-Care from the store app.'**
+  String get updateRequiredOpenFailed;
+
+  /// Heading of the startup screen shown instead of the app when a release build was made with development or demo settings.
+  ///
+  /// In en, this message translates to:
+  /// **'This build is misconfigured'**
+  String get misconfiguredBuildTitle;
+
+  /// No description provided for @misconfiguredBuildMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This build was made with settings that can\'t be used for real users, so the app didn\'t open. Please share the details below with whoever released it.'**
+  String get misconfiguredBuildMessage;
+
+  /// No description provided for @misconfiguredBuildDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Build settings to fix'**
+  String get misconfiguredBuildDetailsTitle;
+
+  /// No description provided for @misconfiguredBuildDevEnvironment.
+  ///
+  /// In en, this message translates to:
+  /// **'ENV is not prod or staging'**
+  String get misconfiguredBuildDevEnvironment;
+
+  /// No description provided for @misconfiguredBuildMockWithoutDemo.
+  ///
+  /// In en, this message translates to:
+  /// **'It uses demo data without the demo build flag (USE_MOCK_API, DEMO_BUILD)'**
+  String get misconfiguredBuildMockWithoutDemo;
+
+  /// No description provided for @misconfiguredBuildPlaceholderApiUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'The API address is an example or local address (API_BASE_URL)'**
+  String get misconfiguredBuildPlaceholderApiUrl;
+
+  /// No description provided for @misconfiguredBuildInsecureApiUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'The API address does not start with https:// (API_BASE_URL)'**
+  String get misconfiguredBuildInsecureApiUrl;
+
   /// No description provided for @navDashboard.
   ///
   /// In en, this message translates to:
@@ -187,30 +265,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Retry'**
   String get actionRetry;
-
-  /// No description provided for @errorNetwork.
-  ///
-  /// In en, this message translates to:
-  /// **'Network problem'**
-  String get errorNetwork;
-
-  /// No description provided for @errorUnauthorized.
-  ///
-  /// In en, this message translates to:
-  /// **'Sign in required'**
-  String get errorUnauthorized;
-
-  /// No description provided for @errorNotFound.
-  ///
-  /// In en, this message translates to:
-  /// **'Not found'**
-  String get errorNotFound;
-
-  /// No description provided for @errorServer.
-  ///
-  /// In en, this message translates to:
-  /// **'Server error'**
-  String get errorServer;
 
   /// No description provided for @errorCancelled.
   ///
@@ -308,11 +362,11 @@ abstract class AppLocalizations {
   /// **'Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.'**
   String get homeAiAdviceBody;
 
-  /// No description provided for @homeSodiumExceededBadge.
+  /// No description provided for @homeAiAdviceNoRecord.
   ///
   /// In en, this message translates to:
-  /// **'Sodium over'**
-  String get homeSodiumExceededBadge;
+  /// **'Log today\'s meals and workouts, and we\'ll put together advice for your day.'**
+  String get homeAiAdviceNoRecord;
 
   /// No description provided for @homeMacroCarbs.
   ///
@@ -373,12 +427,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Weekly {metric} trend'**
   String homeWeeklyMetricTrend(String metric);
-
-  /// No description provided for @homeWeeklyExerciseTrend.
-  ///
-  /// In en, this message translates to:
-  /// **'Exercise trend'**
-  String get homeWeeklyExerciseTrend;
 
   /// No description provided for @homeExerciseTrendUnavailable.
   ///
@@ -542,11 +590,11 @@ abstract class AppLocalizations {
   /// **'Recommended meals'**
   String get homeRecMealsTitle;
 
-  /// No description provided for @homeViewAll.
+  /// No description provided for @homeRecMealsErrorTitle.
   ///
   /// In en, this message translates to:
-  /// **'View all'**
-  String get homeViewAll;
+  /// **'Couldn\'t load meal suggestions'**
+  String get homeRecMealsErrorTitle;
 
   /// No description provided for @unitKcal.
   ///
@@ -559,12 +607,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'min'**
   String get unitMinutes;
-
-  /// No description provided for @unitSets.
-  ///
-  /// In en, this message translates to:
-  /// **'sets'**
-  String get unitSets;
 
   /// No description provided for @unitKcalValue.
   ///
@@ -716,6 +758,24 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load your diet.'**
   String get dietLoadError;
 
+  /// No description provided for @dietMealNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This meal was deleted or doesn\'t exist'**
+  String get dietMealNotFound;
+
+  /// No description provided for @dietMealNotFoundMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your meals again in the Diet tab.'**
+  String get dietMealNotFoundMessage;
+
+  /// No description provided for @dietMealNotFoundAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Diet'**
+  String get dietMealNotFoundAction;
+
   /// No description provided for @dietPeriodAverage.
   ///
   /// In en, this message translates to:
@@ -727,12 +787,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No meals were logged in this period.'**
   String get dietPeriodEmpty;
-
-  /// No description provided for @dietPeriodRange.
-  ///
-  /// In en, this message translates to:
-  /// **'{start} - {end}'**
-  String dietPeriodRange(String start, String end);
 
   /// No description provided for @dietPeriodNoRecord.
   ///
@@ -1028,6 +1082,30 @@ abstract class AppLocalizations {
   /// **'Photo analysis is unavailable right now. Please log the meal manually.'**
   String get dietAnalysisNotImplemented;
 
+  /// No description provided for @dietAnalysisNoFood.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t find any food in this photo. Pick another photo or add the meal manually.'**
+  String get dietAnalysisNoFood;
+
+  /// No description provided for @dietAnalysisDailyLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve used today\'s photo analyses. They reset tomorrow — for now you can add the meal manually.'**
+  String get dietAnalysisDailyLimit;
+
+  /// No description provided for @dietAnalysisRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many photo analyses in a short time. Try again in a moment or add the meal manually.'**
+  String get dietAnalysisRateLimited;
+
+  /// No description provided for @dietAnalysisUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo analysis is unavailable right now. Please add the meal manually.'**
+  String get dietAnalysisUnavailable;
+
   /// No description provided for @dietAnalysisPickAnother.
   ///
   /// In en, this message translates to:
@@ -1280,42 +1358,6 @@ abstract class AppLocalizations {
   /// **'Connected'**
   String get exConnected;
 
-  /// No description provided for @exRecommendedGyms.
-  ///
-  /// In en, this message translates to:
-  /// **'Recommended Gyms'**
-  String get exRecommendedGyms;
-
-  /// No description provided for @exRecommendedTrainers.
-  ///
-  /// In en, this message translates to:
-  /// **'Recommended Trainers'**
-  String get exRecommendedTrainers;
-
-  /// No description provided for @exSeeMore.
-  ///
-  /// In en, this message translates to:
-  /// **'See more'**
-  String get exSeeMore;
-
-  /// No description provided for @exNoConnectedGym.
-  ///
-  /// In en, this message translates to:
-  /// **'You don\'t have a connected gym yet.'**
-  String get exNoConnectedGym;
-
-  /// No description provided for @exNoRecommendedGyms.
-  ///
-  /// In en, this message translates to:
-  /// **'No gym recommendations yet.'**
-  String get exNoRecommendedGyms;
-
-  /// No description provided for @exNoRecommendedTrainers.
-  ///
-  /// In en, this message translates to:
-  /// **'No trainer recommendations yet.'**
-  String get exNoRecommendedTrainers;
-
   /// No description provided for @exTrainerAffiliation.
   ///
   /// In en, this message translates to:
@@ -1352,11 +1394,11 @@ abstract class AppLocalizations {
   /// **'Gyms near me'**
   String get exNearbyGymsMapLabel;
 
-  /// No description provided for @exWeekSummary.
+  /// No description provided for @exGymMapUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'This Week\'s Summary'**
-  String get exWeekSummary;
+  /// **'Couldn\'t load the map'**
+  String get exGymMapUnavailable;
 
   /// No description provided for @exActivityTitle.
   ///
@@ -1412,83 +1454,11 @@ abstract class AppLocalizations {
   /// **'All'**
   String get exPeriodAll;
 
-  /// No description provided for @exExerciseContent.
-  ///
-  /// In en, this message translates to:
-  /// **'What you did'**
-  String get exExerciseContent;
-
-  /// No description provided for @exViewDetail.
-  ///
-  /// In en, this message translates to:
-  /// **'View details'**
-  String get exViewDetail;
-
-  /// No description provided for @exRegister.
-  ///
-  /// In en, this message translates to:
-  /// **'Register'**
-  String get exRegister;
-
-  /// No description provided for @exGymRegistered.
-  ///
-  /// In en, this message translates to:
-  /// **'Registered {gym}'**
-  String exGymRegistered(String gym);
-
-  /// No description provided for @exWeekNumber.
-  ///
-  /// In en, this message translates to:
-  /// **'Week {n}'**
-  String exWeekNumber(int n);
-
-  /// No description provided for @exTodayTotalTime.
-  ///
-  /// In en, this message translates to:
-  /// **'Today\'s total time'**
-  String get exTodayTotalTime;
-
-  /// No description provided for @exRest.
-  ///
-  /// In en, this message translates to:
-  /// **'Rest'**
-  String get exRest;
-
   /// No description provided for @exRestSeconds.
   ///
   /// In en, this message translates to:
   /// **'Rest {seconds}s'**
   String exRestSeconds(int seconds);
-
-  /// No description provided for @exAiRecommendedExercise.
-  ///
-  /// In en, this message translates to:
-  /// **'AI recommended exercise'**
-  String get exAiRecommendedExercise;
-
-  /// No description provided for @exStatTime.
-  ///
-  /// In en, this message translates to:
-  /// **'Time'**
-  String get exStatTime;
-
-  /// No description provided for @exStatCalories.
-  ///
-  /// In en, this message translates to:
-  /// **'Calories'**
-  String get exStatCalories;
-
-  /// No description provided for @exStatStreak.
-  ///
-  /// In en, this message translates to:
-  /// **'Streak'**
-  String get exStatStreak;
-
-  /// No description provided for @exUnitStreakDays.
-  ///
-  /// In en, this message translates to:
-  /// **'day streak'**
-  String get exUnitStreakDays;
 
   /// No description provided for @exStreakCheer.
   ///
@@ -1585,12 +1555,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Exercise Name'**
   String get exExerciseName;
-
-  /// No description provided for @exExerciseNameHint.
-  ///
-  /// In en, this message translates to:
-  /// **'e.g. Squat, Treadmill'**
-  String get exExerciseNameHint;
 
   /// No description provided for @exExerciseNameHintCardio.
   ///
@@ -1862,11 +1826,47 @@ abstract class AppLocalizations {
   /// **'Total calories burned'**
   String get exRecordDetailTotalCalories;
 
-  /// No description provided for @exOwnRecordSource.
+  /// No description provided for @exBurnedPrefix.
   ///
   /// In en, this message translates to:
-  /// **'Self-logged'**
-  String get exOwnRecordSource;
+  /// **'Burned'**
+  String get exBurnedPrefix;
+
+  /// No description provided for @exRecordMaxWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Heaviest yet'**
+  String get exRecordMaxWeight;
+
+  /// No description provided for @exRecordLongest.
+  ///
+  /// In en, this message translates to:
+  /// **'Longest yet'**
+  String get exRecordLongest;
+
+  /// No description provided for @exRecordFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'First time'**
+  String get exRecordFirst;
+
+  /// No description provided for @exRecordDateChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change date'**
+  String get exRecordDateChange;
+
+  /// Confirmation after moving a day's self-logged workouts to another day.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved to {date}'**
+  String exRecordDateMoved(String date);
+
+  /// No description provided for @exRecordDateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t change the date. Please try again shortly.'**
+  String get exRecordDateFailed;
 
   /// No description provided for @exCompletedPtDayTitle.
   ///
@@ -1933,12 +1933,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Trainer Details'**
   String get exTrainerDetailTitle;
-
-  /// No description provided for @exDistance.
-  ///
-  /// In en, this message translates to:
-  /// **'Distance'**
-  String get exDistance;
 
   /// No description provided for @exRating.
   ///
@@ -2012,12 +2006,6 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load trainers.'**
   String get exTrainersLoadError;
 
-  /// No description provided for @exGymSearchHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Search by gym or area'**
-  String get exGymSearchHint;
-
   /// No description provided for @exNearbyGyms.
   ///
   /// In en, this message translates to:
@@ -2036,47 +2024,11 @@ abstract class AppLocalizations {
   /// **'Expand list'**
   String get exGymListExpand;
 
-  /// No description provided for @exAiAnalysis.
-  ///
-  /// In en, this message translates to:
-  /// **'✦ AI analysis'**
-  String get exAiAnalysis;
-
-  /// No description provided for @exNoGymMatch.
-  ///
-  /// In en, this message translates to:
-  /// **'No gyms match \'{query}\''**
-  String exNoGymMatch(String query);
-
   /// No description provided for @exGymsLoadError.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t load gyms.'**
   String get exGymsLoadError;
-
-  /// No description provided for @exAiTopPick.
-  ///
-  /// In en, this message translates to:
-  /// **'✦ AI top pick'**
-  String get exAiTopPick;
-
-  /// No description provided for @exGymDetailHint.
-  ///
-  /// In en, this message translates to:
-  /// **'See trainers and request a consultation'**
-  String get exGymDetailHint;
-
-  /// No description provided for @exReasonTrainer.
-  ///
-  /// In en, this message translates to:
-  /// **'Personal trainer {name}{role} on site'**
-  String exReasonTrainer(String name, String role);
-
-  /// No description provided for @exReasonHours.
-  ///
-  /// In en, this message translates to:
-  /// **'Open {hours}{weekend}'**
-  String exReasonHours(String hours, String weekend);
 
   /// No description provided for @exGymWeekdayHours.
   ///
@@ -2108,23 +2060,11 @@ abstract class AppLocalizations {
   /// **'{date} {time}'**
   String exSlotWhen(String date, String time);
 
-  /// No description provided for @exSlotFull.
-  ///
-  /// In en, this message translates to:
-  /// **'Fully booked'**
-  String get exSlotFull;
-
   /// No description provided for @exSlotTypePersonalTraining.
   ///
   /// In en, this message translates to:
   /// **'1:1 PT'**
   String get exSlotTypePersonalTraining;
-
-  /// No description provided for @exSlotTypeConsultation.
-  ///
-  /// In en, this message translates to:
-  /// **'Consultation'**
-  String get exSlotTypeConsultation;
 
   /// No description provided for @exSlotsEmpty.
   ///
@@ -2168,18 +2108,6 @@ abstract class AppLocalizations {
   /// **'Confirm {slot}'**
   String exReserveConfirm(String slot);
 
-  /// No description provided for @exGymInfo.
-  ///
-  /// In en, this message translates to:
-  /// **'Gym Info'**
-  String get exGymInfo;
-
-  /// No description provided for @exConsultButton.
-  ///
-  /// In en, this message translates to:
-  /// **'💬 1:1 Consult'**
-  String get exConsultButton;
-
   /// No description provided for @exAddress.
   ///
   /// In en, this message translates to:
@@ -2204,12 +2132,6 @@ abstract class AppLocalizations {
   /// **'Specialties'**
   String get exSpecialty;
 
-  /// No description provided for @exKakaoMapArea.
-  ///
-  /// In en, this message translates to:
-  /// **'Kakao Map area'**
-  String get exKakaoMapArea;
-
   /// No description provided for @myTabTitle.
   ///
   /// In en, this message translates to:
@@ -2221,6 +2143,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'User'**
   String get myDefaultUserName;
+
+  /// No description provided for @myProfileLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your profile'**
+  String get myProfileLoadFailed;
+
+  /// No description provided for @myPointsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your points balance'**
+  String get myPointsLoadFailed;
 
   /// No description provided for @mySettingsTitle.
   ///
@@ -2972,12 +2906,6 @@ abstract class AppLocalizations {
   /// **'Weekly workout challenge'**
   String get challengeTitle;
 
-  /// No description provided for @challengeShort.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly challenge'**
-  String get challengeShort;
-
   /// Title of the progress row in the exercise tab, naming the week it covers.
   ///
   /// In en, this message translates to:
@@ -3061,48 +2989,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Goal reached! You get {reward} when the week ends'**
   String challengeAchieved(String reward);
-
-  /// No description provided for @challengeWeekTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Challenge {range}'**
-  String challengeWeekTitle(String range);
-
-  /// No description provided for @challengeStatusActive.
-  ///
-  /// In en, this message translates to:
-  /// **'In progress'**
-  String get challengeStatusActive;
-
-  /// No description provided for @challengeStatusSucceeded.
-  ///
-  /// In en, this message translates to:
-  /// **'Completed'**
-  String get challengeStatusSucceeded;
-
-  /// No description provided for @challengeStatusFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Missed'**
-  String get challengeStatusFailed;
-
-  /// No description provided for @challengeResultSucceeded.
-  ///
-  /// In en, this message translates to:
-  /// **'{progress} of {goal} workouts · {reward} earned'**
-  String challengeResultSucceeded(int goal, int progress, String reward);
-
-  /// No description provided for @challengeResultFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'{progress} of {goal} workouts · {stake} stake lost'**
-  String challengeResultFailed(int goal, int progress, String stake);
-
-  /// No description provided for @challengeLoadFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load challenges'**
-  String get challengeLoadFailed;
 
   /// No description provided for @myCouponStatusUsable.
   ///
@@ -3446,6 +3332,18 @@ abstract class AppLocalizations {
   /// **'We could not buy the emote. Please try again in a moment.'**
   String get emoteBuyFailed;
 
+  /// No description provided for @emoteAlreadyUnlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'This emote is already unlocked. You can send it now'**
+  String get emoteAlreadyUnlocked;
+
+  /// No description provided for @emoteTrainerRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'You need a trainer to buy emotes'**
+  String get emoteTrainerRequired;
+
   /// No description provided for @emoteShortfall.
   ///
   /// In en, this message translates to:
@@ -3485,8 +3383,32 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Deleting your account erases the diet, exercise and health records you saved, and removes your trainer link and the messages you exchanged. This cannot be undone.'**
+  /// **'Deleting your account erases the diet, exercise and health records you saved, removes your trainer link and the messages you exchanged, and deletes your points, unused coupons, shields and decorative items. Upcoming PT bookings and pending consultation requests are cancelled. This cannot be undone.'**
   String get myWithdrawConfirm;
+
+  /// Withdrawal confirmation line, shown only when the member has points left (#3006).
+  ///
+  /// In en, this message translates to:
+  /// **'• Your balance of {points}P will be deleted'**
+  String myWithdrawLosePoints(int points);
+
+  /// Withdrawal confirmation line, shown only when the member has usable coupons (#3006).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{• Your unused coupon will be deleted} other{• Your {count} unused coupons will be deleted}}'**
+  String myWithdrawLoseCoupons(int count);
+
+  /// Withdrawal confirmation line, shown only when the member has upcoming bookings (#3006).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{• Your upcoming PT booking will be cancelled} other{• Your {count} upcoming PT bookings will be cancelled}}'**
+  String myWithdrawCancelReservations(int count);
+
+  /// Withdrawal confirmation line, shown only when the member has pending consultation requests (#3006).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{• Your pending consultation request will be cancelled} other{• Your {count} pending consultation requests will be cancelled}}'**
+  String myWithdrawCancelConsultations(int count);
 
   /// No description provided for @myWithdrawAction.
   ///
@@ -3605,7 +3527,7 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawKeepDefault.
   ///
   /// In en, this message translates to:
-  /// **'The diet and exercise records you have built up go with the account, and they cannot be restored.'**
+  /// **'The diet and exercise records you have built up, your points and your unused coupons go with the account, and they cannot be restored. Upcoming bookings are cancelled.'**
   String get myWithdrawKeepDefault;
 
   /// No description provided for @myWithdrawStay.
@@ -3637,6 +3559,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove Connection'**
   String get myConnectionDeleteTitle;
+
+  /// No description provided for @myConnectionDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t remove the connection. Please try again.'**
+  String get myConnectionDeleteFailed;
 
   /// No description provided for @myDelete.
   ///
@@ -3782,18 +3710,6 @@ abstract class AppLocalizations {
   /// **'Weight (kg)'**
   String get myFieldWeight;
 
-  /// No description provided for @myFieldGoals.
-  ///
-  /// In en, this message translates to:
-  /// **'Health and exercise goals'**
-  String get myFieldGoals;
-
-  /// No description provided for @myNotifDietLog.
-  ///
-  /// In en, this message translates to:
-  /// **'Diet log reminder'**
-  String get myNotifDietLog;
-
   /// No description provided for @myNotifExercise.
   ///
   /// In en, this message translates to:
@@ -3805,12 +3721,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Trainer message'**
   String get myNotifTrainer;
-
-  /// No description provided for @myNotifAiCoaching.
-  ///
-  /// In en, this message translates to:
-  /// **'AI coaching tips'**
-  String get myNotifAiCoaching;
 
   /// No description provided for @myNotifWeeklyReport.
   ///
@@ -3845,26 +3755,38 @@ abstract class AppLocalizations {
   /// No description provided for @myLegalTermsBody.
   ///
   /// In en, this message translates to:
-  /// **'Article 1 (Purpose)\nThese Terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and its members in connection with the use of the health management service (the \"Service\") the Company provides.\n\nArticle 2 (Effect and Amendment of the Terms)\n(1) These Terms apply to every member who uses the Service.\n(2) The Company may amend these Terms within the limits of applicable law. Any amendment is announced inside the Service together with its effective date and the reason for the change.\n\nArticle 3 (Provision of the Service)\nThe Company provides features that support a member\'s health management, including diet records, exercise records, health indicator tracking and AI coaching. The specific contents of the Service may change in line with the Company\'s policy.\n\nArticle 4 (Obligations of the Member)\nMembers must enter their own health information accurately. Information provided by the Service does not replace a medical diagnosis or treatment. If you have a health problem, please consult a qualified medical institution.\n\nArticle 5 (Limitation of Liability)\nTo the extent permitted by law, the Company is not liable for decisions a member makes on the basis of information obtained through the Service, nor for the consequences of those decisions.\n\nAddendum\nThese Terms take effect on 1 January 2026.\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.'**
+  /// **'Article 1 (Purpose)\nThese Terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and its members in connection with the use of the health management service (the \"Service\") the Company provides.\n\nArticle 2 (Effect and Amendment of the Terms)\n(1) These Terms apply to every member who uses the Service.\n(2) The Company may amend these Terms within the limits of applicable law. Any amendment is announced inside the Service before it takes effect, together with its effective date and the reason for the change.\n(3) Where an amendment requires consent, the Company asks for consent again. A member who does not agree to the amended Terms may terminate the agreement.\n\nArticle 3 (Membership and Accounts)\n(1) Only people aged 14 or over may sign up.\n(2) Each person uses one account. You may not sign up with someone else\'s details, or transfer or lend your account to anyone else.\n(3) You are responsible for your account details, including your password and linked social logins. If you find that someone else is using your account, change your password at once and tell the Company.\n\nArticle 4 (Provision of the Service)\nThe Company provides features that support a member\'s health management, including diet records, exercise records, health indicator tracking, AI coaching, and linking, messaging and booking with an assigned trainer. The specific contents of the Service may change in line with the Company\'s policy.\n\nArticle 5 (Points)\n(1) Members receive points for the activities described in the app, such as logging meals and workouts. The points for each activity and the daily limits follow the guidance in the app.\n(2) Points can only be exchanged for coupons and items inside the Service. Points have no cash value, cannot be cashed out or refunded, and cannot be transferred to anyone else.\n(3) If you delete a record that earned points, those points are taken back. Points obtained by abnormal means, such as uploading the same record repeatedly, may also be taken back.\n(4) The Company may change how points are earned and what items cost, and announces the change inside the Service beforehand. Coupons and items already exchanged are not affected.\n(5) When you delete your account, your remaining points and their history are deleted with it and cannot be restored.\n\nArticle 6 (Coupons and Exchange Items)\n(1) Members may exchange points for the coupons described in the app, such as a PT renewal discount coupon or a personal locker coupon. The benefit of a coupon is provided on site by the assigned trainer or gym linked to the member.\n(2) A coupon can only be used within the validity period shown in the app. A coupon exchanged for points is valid for 30 days from the day of exchange. An expired coupon lapses, and the points spent on it are not returned.\n(3) If your link to the trainer or gym where the coupon is used ends, any unused coupon for it is cancelled and the points spent on it are returned.\n(4) A coupon is used when staff on site have checked it and you then tap \"Mark as used\" on your own phone. A coupon marked as used cannot be restored.\n(5) Coupons cannot be transferred or exchanged for cash.\n\nArticle 7 (Time-Limited Items and Shields)\n(1) Decorative items such as profile pets and emotes can be used only for the period shown in the app, and disappear when it ends.\n(2) A streak shield keeps your recording streak from breaking on a day you could not record. How to use it and how many you can hold follow the guidance in the app.\n(3) The items and shields in this Article also have no cash value, cannot be transferred, and are deleted when you delete your account.\n\nArticle 8 (Bookings and Consultation Requests)\n(1) Members may book PT in the times their assigned trainer has opened, or send a trainer a consultation request. When you can request or cancel, and when a pending consultation request expires, follow the guidance in the app.\n(2) The PT contract itself, and its payment and refunds, is a separate agreement between the member and the trainer or gym. The Company provides the tools for linking and booking.\n\nArticle 9 (Obligations of the Member)\nMembers must enter their own health information accurately. Information provided by the Service does not replace a medical diagnosis or treatment. If you have a health problem, please consult a qualified medical institution.\n\nArticle 10 (Restrictions on Use)\nIf a member does any of the following, the Company may, after notice, restrict all or part of their use of the Service or suspend the account. Where it is urgent, for example to protect other users, the Company restricts first and notifies right after.\n- Using someone else\'s details or transferring an account\n- Obtaining points or using coupons by abnormal means\n- Harming trainers or other users through abuse or harassment\n- Interfering with the operation of the Service\n\nArticle 11 (Termination and Its Effects)\n(1) Members may terminate the agreement at any time by deleting their account from the MY tab.\n(2) Deleting your account erases your profile, diet, exercise and health records, AI coach conversations, and your link and messages with your assigned trainer. Your remaining points and their history, unused coupons, shields and decorative items are deleted as well. Nothing deleted can be restored.\n(3) Upcoming PT bookings and pending consultation requests are cancelled, and the trainers concerned are told that you have left.\n(4) Records that the destruction procedure of the Privacy Policy says are kept, such as sessions already on a trainer\'s schedule, remain to that extent.\n\nArticle 12 (Changes to and Suspension of the Service)\n(1) The Company may change the Service or end some of its features, and announces any change that affects members inside the Service beforehand.\n(2) The Company may suspend the Service temporarily for unavoidable reasons such as maintenance or replacement of equipment, outages or natural disasters. If notice could not be given in advance, it is given afterwards.\n(3) If the Company ends the Service as a whole, it announces this beforehand together with how remaining points and unused coupons will be handled.\n\nArticle 13 (Limitation of Liability)\nTo the extent permitted by law, the Company is not liable for decisions a member makes on the basis of information obtained through the Service, nor for the consequences of those decisions.\n\nArticle 14 (Dispute Resolution and Jurisdiction)\n(1) The Company and members will negotiate in good faith to settle any dispute about the Service amicably. Members may send questions or complaints to the contact given in the Privacy Policy.\n(2) If a dispute is not settled by negotiation and a lawsuit is filed, the court with jurisdiction under the Civil Procedure Act of Korea has jurisdiction.\n(3) These Terms and the use of the Service are governed by the laws of the Republic of Korea.\n\nAddendum\nThese Terms take effect on 3 October 2026.\n- 3 October 2026: added membership and accounts, points, coupons and exchange items, time-limited items and shields, bookings and consultation requests, restrictions on use, termination and its effects, changes to and suspension of the Service, and dispute resolution and jurisdiction\n- 1 October 2026: first issued\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.'**
   String get myLegalTermsBody;
 
-  /// No description provided for @myLegalPrivacyBody.
+  /// Privacy policy body. {contact} is the privacy officer contact, filled from LegalContact.privacyOfficerEmail in shared/oncare_core (the single definition point, #3005).
   ///
   /// In en, this message translates to:
-  /// **'On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members\' personal information with care.\n\n1. Personal information collected\nFor membership registration and provision of the Service, the Company collects your name, email address, phone number and date of birth, together with health-related information such as diet, exercise and health indicators.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features, deliver personalised AI coaching, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nAs a rule, a member\'s personal information is destroyed without delay when the member withdraws from the Service. Where applicable law requires it to be retained, it is stored securely for the period the law prescribes.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member\'s consent, except where a law specifically provides otherwise.\n\n5. Sharing with your trainer and withdrawing consent\nWhen you agree to data sharing by requesting a consultation, accepting a coaching request or issuing a pairing code, your assigned trainer can see your meal records, workout records, body information and health goals. You can withdraw this consent at any time by removing your trainer or gym connection in the MY tab, and consent is also treated as withdrawn when the trainer ends the coaching relationship. The Company records when consent was given and when it was withdrawn. After you withdraw, the trainer can no longer see your new records, and reconnecting with the same trainer requires your consent again. Conversations you exchanged with the trainer and reports delivered before the withdrawal are not deleted.\n\n6. Rights of the user\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted.\n\n7. Personal information protection officer\nFor enquiries about personal information, please contact customer support (support@oncare.com).\n\nEffective date: 1 January 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.'**
-  String get myLegalPrivacyBody;
+  /// **'On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members\' personal information with care.\n\n1. Personal information collected\n(1) Sign-up: email address, password (stored encrypted) and name. If you sign up with a social login (Kakao, Google, Naver or Apple), we receive the member identifier, email address and name that service passes on.\n(2) Profile and first setup: phone number, date of birth, gender, height, weight, health goals and diet and exercise targets.\n(3) Information you leave while using the Service: meal records and food photos, workout records, health indicators such as body weight, conversations with the AI coach, messages and attached photos exchanged with your trainer, and consultation and booking requests.\n(4) Information generated automatically: access logs such as sign-ins and password changes (time and IP address), and, when an error occurs, the error details, device type, operating system and app version.\n(5) Location: only if you allow your current location in gym search, we receive the device\'s current coordinates and use them to search nearby. They are not saved to your account.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features such as food photo analysis and nutrition calculation, deliver personalised AI coaching, connect you with a trainer, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nA member\'s personal information is kept until the member withdraws from the Service, and is then destroyed without delay following section 10. The following records are kept for the stated period and then destroyed.\n- Access logs such as sign-ins: one year (covering the three-month retention of sign-in records required by the Protection of Communications Secrets Act)\n- Records of trainers opening members\' health information, of data-sharing consent being given or withdrawn, and of account deletion: two years (processing records kept under the Standards for Personal Information Security Measures)\nA reason chosen when deleting an account is kept only as a reason code and a time, with no link to the member.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member\'s consent. Sharing with your trainer follows section 5, and processing entrusted to service providers follows sections 6 and 7. The exception is where a law specifically provides otherwise.\n\n5. Sharing with your trainer and withdrawing consent\nWhen you agree to data sharing by requesting a consultation, accepting a coaching request or issuing a pairing code, your assigned trainer can see your meal records, workout records, body information, health goals, and health notes & cautions. You can withdraw this consent at any time by removing your trainer or gym connection in the MY tab, and consent is also treated as withdrawn when the trainer ends the coaching relationship. The Company records when consent was given and when it was withdrawn. After you withdraw, the trainer can no longer see your new records, and reconnecting with the same trainer requires your consent again. Conversations you exchanged with the trainer and reports delivered before the withdrawal are not deleted.\n\n6. Entrusted processing\nThe Company entrusts the following work to outside providers to deliver the Service. If a provider changes, this policy is updated to say so.\n- Amazon Web Services, Inc.: running the servers and storing chat photos and report PDFs\n- Neon: running the database (account information and all records)\n- Google LLC: food photo recognition, generating AI coach answers and recommendations, and building the search index the AI coach uses to look up your records (Gemini API)\n- Kakao Corp.: gym and place search and map display\n- Functional Software, Inc. (Sentry): collecting and analysing app and server errors\n\n7. Transfer of personal information overseas\nTo perform its contract with members, the Company has personal information processed and stored overseas as follows, and discloses this in this policy under Article 28-8(1)(3) of the Personal Information Protection Act. Each transfer happens over an encrypted network connection whenever the Service is used.\n(1) Amazon Web Services, Inc. / Singapore / member information and records in general, chat photo attachments and report PDFs / running the servers and storing files / until the member withdraws or the contract with the provider ends\n(2) Neon / Singapore / account, profile, diet, workout and health records and conversation records / running the database / until the member withdraws or the contract with the provider ends\n(3) Google LLC / the United States and other countries where Google operates data centres / food photos, the diet and workout records, body information and health goals needed for analysis, and conversations with the AI coach / AI analysis, answer generation and search indexing / for the period set in the provider\'s terms of service after the request is processed\n(4) Functional Software, Inc. (Sentry) / the United States / error details, device type, operating system and app version (name, email address, IP address and request contents are not sent) / error analysis / the provider\'s retention period\nEach time you save a meal or workout record, its contents are sent to (3) to build the AI coach\'s search index. If you do not want your information transferred overseas, you can refuse by deleting your account, but you will then be unable to use the Service.\n\n8. Processing of sensitive (health) information\nHealth information such as diet and workout records, body information, health goals, and health notes & cautions is processed under Article 23 of the Personal Information Protection Act only with a separate consent obtained at sign-up, apart from other personal information. It is shared with your trainer only with the consent described in section 5.\n\n9. Children under 14\nThe Company does not accept sign-ups from children under 14, and confirms at sign-up that you are 14 or older.\n\n10. Destruction procedure and method\n(1) Procedure: when you delete your account in the MY tab, the Company immediately deletes the account together with your profile, meal and workout records and food photos, AI coach conversations and search index, notifications, social login links, and your trainer connection and conversations (including attached photos and report PDF files). Pending consultation requests and bookings are cancelled, and the trainers involved are told that you have left. Sessions already on a trainer\'s schedule keep your display name and the date and time as the trainer\'s work record. Records kept under section 3 are deleted automatically when their period ends.\n(2) Method: information held as electronic files is deleted from the database and file storage, and copies remaining in database recovery backups disappear when the backup retention period ends. The Company does not handle personal information on paper.\n\n11. Automatic collection tools\nThe Company does not use cookies or tracking tools for advertising or behavioural analysis. On the web, sign-in information is kept in browser storage to keep you signed in, and is removed when you sign out or clear your browser data.\n\n12. Safeguards\nThe Company stores passwords encrypted, encrypts traffic in transit, and limits trainers\' access to member information by assignment. When a trainer opens a member\'s health information, only the trainer, the member, the kind of information and the time are recorded, never the health information itself. Error reports are sent with names, email addresses, IP addresses and request contents removed.\n\n13. Rights of the user and how to exercise them\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted. You can edit your profile, delete your account and withdraw trainer-sharing consent in the MY tab. For any other request, contact the address in section 14 and it will be handled without delay.\n\n14. Personal information protection officer\nThe Company has appointed a personal information protection officer who oversees the processing of personal information and handles related complaints and remedies.\n- Position: Personal information protection officer, On-Care service operations team\n- Contact: {contact}\n\n15. Remedies for infringement\nFor reports or advice about an infringement of personal information, you can contact the following bodies (in Korea).\n- Personal Information Dispute Mediation Committee: 1833-6972 (www.kopico.go.kr)\n- Personal Information Infringement Report Center: 118 (privacy.kisa.or.kr)\n- Supreme Prosecutors\' Office: 1301 (www.spo.go.kr)\n- Korean National Police Agency: 182 (ecrm.police.go.kr)\n\n16. Changes to this policy\nIf this policy changes, the Company announces it in the app before the effective date, and asks for consent again where the change requires it.\n- 3 October 2026: added entrusted processing, overseas transfer, sensitive information, children under 14, destruction procedure, automatic collection tools, safeguards, protection officer and remedies sections\n- 1 October 2026: first issued\n\nEffective date: 3 October 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.'**
+  String myLegalPrivacyBody(String contact);
 
-  /// No description provided for @myLegalEffectiveDate.
+  /// No description provided for @myLegalTermsEffectiveDate.
   ///
   /// In en, this message translates to:
-  /// **'Effective Jan 1, 2026'**
-  String get myLegalEffectiveDate;
+  /// **'Effective Oct 3, 2026'**
+  String get myLegalTermsEffectiveDate;
 
-  /// No description provided for @myAppVersion.
+  /// No description provided for @myLegalPrivacyEffectiveDate.
   ///
   /// In en, this message translates to:
-  /// **'On-Care · Version 1.0.0'**
-  String get myAppVersion;
+  /// **'Effective Oct 3, 2026'**
+  String get myLegalPrivacyEffectiveDate;
+
+  /// Footer of the support page. The version is read from the build (pubspec.yaml), never hard-coded (#3047).
+  ///
+  /// In en, this message translates to:
+  /// **'On-Care · Version {version}'**
+  String myAppVersion(String version);
+
+  /// Support page footer when the build version cannot be read — the app name only (#3047).
+  ///
+  /// In en, this message translates to:
+  /// **'On-Care'**
+  String get myAppName;
 
   /// No description provided for @coachHeaderPill.
   ///
@@ -3920,6 +3842,30 @@ abstract class AppLocalizations {
   /// **'Hydration'**
   String get coachCardWaterTag;
 
+  /// No description provided for @coachSheetErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your advice'**
+  String get coachSheetErrorTitle;
+
+  /// No description provided for @coachSheetErrorBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your connection and try again.'**
+  String get coachSheetErrorBody;
+
+  /// No description provided for @coachSheetEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Advice will appear as you log more'**
+  String get coachSheetEmptyTitle;
+
+  /// No description provided for @coachSheetEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Try logging today\'s meals and workouts.'**
+  String get coachSheetEmptyBody;
+
   /// No description provided for @coachInviteTitle.
   ///
   /// In en, this message translates to:
@@ -3941,7 +3887,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachInviteExplain.
   ///
   /// In en, this message translates to:
-  /// **'Accepting lets this trainer see your meal and workout records.'**
+  /// **'Accepting lets this trainer see your meal records, workout records, body information, health goals, and health notes & cautions. You\'ll be asked to agree to sharing before you accept.'**
   String get coachInviteExplain;
 
   /// No description provided for @coachInviteAccept.
@@ -3986,12 +3932,6 @@ abstract class AppLocalizations {
   /// **'Personal trainer'**
   String get coachChatSubtitle;
 
-  /// No description provided for @coachChatBack.
-  ///
-  /// In en, this message translates to:
-  /// **'Back'**
-  String get coachChatBack;
-
   /// Button above the trainer chat thread that fetches the previous page (#1943).
   ///
   /// In en, this message translates to:
@@ -4003,6 +3943,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load the conversation'**
   String get coachChatLoadFailed;
+
+  /// Trainer chat notice shown instead of the thread once the server reports the assignment ended; the input is disabled (#2843).
+  ///
+  /// In en, this message translates to:
+  /// **'Your trainer is no longer assigned, so you can\'t send messages here'**
+  String get coachChatUnassigned;
+
+  /// No description provided for @coachChatEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a conversation with {trainer}'**
+  String coachChatEmptyTitle(String trainer);
+
+  /// No description provided for @coachChatEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a photo of what you ate today or ask about your workouts'**
+  String get coachChatEmptyBody;
 
   /// No description provided for @coachChatSendFailed.
   ///
@@ -4100,376 +4058,17 @@ abstract class AppLocalizations {
   /// **'{sm}/{sd} – {em}/{ed}'**
   String coachChatReportWeek(int sm, int sd, int em, int ed);
 
-  /// No description provided for @coachChatReportOpenPdf.
-  ///
-  /// In en, this message translates to:
-  /// **'Open PDF'**
-  String get coachChatReportOpenPdf;
-
   /// No description provided for @coachChatReportPreviewPdf.
   ///
   /// In en, this message translates to:
   /// **'Preview PDF'**
   String get coachChatReportPreviewPdf;
 
-  /// No description provided for @coachReportPdfDocTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly report'**
-  String get coachReportPdfDocTitle;
-
-  /// No description provided for @coachReportPdfDocTitleContinued.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly report (cont.)'**
-  String get coachReportPdfDocTitleContinued;
-
-  /// Week the previewed report covers, printed under the title.
-  ///
-  /// In en, this message translates to:
-  /// **'Period {from} – {to}'**
-  String coachReportPdfPeriod(String from, String to);
-
-  /// No description provided for @coachReportPdfSectionMetrics.
-  ///
-  /// In en, this message translates to:
-  /// **'Key metrics'**
-  String get coachReportPdfSectionMetrics;
-
-  /// No description provided for @coachReportPdfSectionTrend.
-  ///
-  /// In en, this message translates to:
-  /// **'Daily trend'**
-  String get coachReportPdfSectionTrend;
-
-  /// No description provided for @coachReportPdfSectionDaily.
-  ///
-  /// In en, this message translates to:
-  /// **'Day by day'**
-  String get coachReportPdfSectionDaily;
-
   /// One metric line in the previewed report.
   ///
   /// In en, this message translates to:
   /// **'· {label}: {value}'**
   String coachReportPdfBullet(String label, String value);
-
-  /// No description provided for @coachReportPdfLabelWorkoutDays.
-  ///
-  /// In en, this message translates to:
-  /// **'Days trained'**
-  String get coachReportPdfLabelWorkoutDays;
-
-  /// No description provided for @coachReportPdfLabelWorkoutMinutes.
-  ///
-  /// In en, this message translates to:
-  /// **'Total workout time'**
-  String get coachReportPdfLabelWorkoutMinutes;
-
-  /// No description provided for @coachReportPdfLabelBurned.
-  ///
-  /// In en, this message translates to:
-  /// **'Calories burned'**
-  String get coachReportPdfLabelBurned;
-
-  /// No description provided for @coachReportPdfLabelSessions.
-  ///
-  /// In en, this message translates to:
-  /// **'PT sessions'**
-  String get coachReportPdfLabelSessions;
-
-  /// No description provided for @coachReportPdfLabelCalories.
-  ///
-  /// In en, this message translates to:
-  /// **'Average intake'**
-  String get coachReportPdfLabelCalories;
-
-  /// No description provided for @coachReportPdfLabelSodium.
-  ///
-  /// In en, this message translates to:
-  /// **'Average sodium'**
-  String get coachReportPdfLabelSodium;
-
-  /// No description provided for @coachReportPdfLabelSugar.
-  ///
-  /// In en, this message translates to:
-  /// **'Average sugar'**
-  String get coachReportPdfLabelSugar;
-
-  /// No description provided for @coachReportPdfLabelMinutesShort.
-  ///
-  /// In en, this message translates to:
-  /// **'Workout time'**
-  String get coachReportPdfLabelMinutesShort;
-
-  /// No description provided for @coachReportPdfLabelCaloriesShort.
-  ///
-  /// In en, this message translates to:
-  /// **'Intake'**
-  String get coachReportPdfLabelCaloriesShort;
-
-  /// No description provided for @coachReportPdfLabelSodiumShort.
-  ///
-  /// In en, this message translates to:
-  /// **'Sodium'**
-  String get coachReportPdfLabelSodiumShort;
-
-  /// No description provided for @coachReportPdfLabelSugarShort.
-  ///
-  /// In en, this message translates to:
-  /// **'Sugar'**
-  String get coachReportPdfLabelSugarShort;
-
-  /// No description provided for @coachReportPdfValueDays.
-  ///
-  /// In en, this message translates to:
-  /// **'{value} days'**
-  String coachReportPdfValueDays(String value);
-
-  /// No description provided for @coachReportPdfValueMinutes.
-  ///
-  /// In en, this message translates to:
-  /// **'{value} min'**
-  String coachReportPdfValueMinutes(String value);
-
-  /// No description provided for @coachReportPdfValueKcal.
-  ///
-  /// In en, this message translates to:
-  /// **'{value} kcal'**
-  String coachReportPdfValueKcal(String value);
-
-  /// No description provided for @coachReportPdfValueMg.
-  ///
-  /// In en, this message translates to:
-  /// **'{value} mg'**
-  String coachReportPdfValueMg(String value);
-
-  /// No description provided for @coachReportPdfValueGram.
-  ///
-  /// In en, this message translates to:
-  /// **'{value} g'**
-  String coachReportPdfValueGram(String value);
-
-  /// PT sessions completed out of the ones booked that week.
-  ///
-  /// In en, this message translates to:
-  /// **'{done} of {booked}'**
-  String coachReportPdfAttendance(String done, String booked);
-
-  /// No description provided for @coachReportPdfNoData.
-  ///
-  /// In en, this message translates to:
-  /// **'No data'**
-  String get coachReportPdfNoData;
-
-  /// One weekday line in the previewed report.
-  ///
-  /// In en, this message translates to:
-  /// **'{weekday} — workout {exercise}, intake {intake}'**
-  String coachReportPdfDay(String weekday, String exercise, String intake);
-
-  /// Section heading for the message the trainer sent with the report.
-  ///
-  /// In en, this message translates to:
-  /// **'Trainer feedback'**
-  String get coachReportPdfSectionTrainerNote;
-
-  /// Shown under the trainer-message heading when the report arrived without a note.
-  ///
-  /// In en, this message translates to:
-  /// **'No feedback came with this report.'**
-  String get coachReportPdfNoTrainerNote;
-
-  /// Section heading comparing this week with the previous one.
-  ///
-  /// In en, this message translates to:
-  /// **'Change from last week'**
-  String get coachReportPdfSectionChange;
-
-  /// Section heading for average carbs / protein / fat.
-  ///
-  /// In en, this message translates to:
-  /// **'Average macros'**
-  String get coachReportPdfSectionMacros;
-
-  /// Metric label: how many days of the week have diet records.
-  ///
-  /// In en, this message translates to:
-  /// **'Days with meals logged'**
-  String get coachReportPdfLabelLoggedDays;
-
-  /// Metric label: days whose sodium exceeded the member's daily goal.
-  ///
-  /// In en, this message translates to:
-  /// **'Days over the sodium goal'**
-  String get coachReportPdfLabelSodiumOver;
-
-  /// Metric label used when only completed PT sessions are known.
-  ///
-  /// In en, this message translates to:
-  /// **'PT sessions done'**
-  String get coachReportPdfLabelPtDone;
-
-  /// A count of PT sessions with its unit.
-  ///
-  /// In en, this message translates to:
-  /// **'{value} sessions'**
-  String coachReportPdfValueSessions(String value);
-
-  /// Metric label for cardio minutes.
-  ///
-  /// In en, this message translates to:
-  /// **'Cardio'**
-  String get coachReportPdfLabelCardio;
-
-  /// Metric label for strength minutes.
-  ///
-  /// In en, this message translates to:
-  /// **'Strength'**
-  String get coachReportPdfLabelStrength;
-
-  /// Metric label for stretching minutes.
-  ///
-  /// In en, this message translates to:
-  /// **'Stretching'**
-  String get coachReportPdfLabelStretching;
-
-  /// Section heading breaking the week's minutes down by workout type.
-  ///
-  /// In en, this message translates to:
-  /// **'Minutes by workout type'**
-  String get coachReportPdfSectionTypes;
-
-  /// Shown for PT when nothing was booked and nothing was recorded.
-  ///
-  /// In en, this message translates to:
-  /// **'None booked'**
-  String get coachReportPdfNoSessions;
-
-  /// Header band cell title for the reported week.
-  ///
-  /// In en, this message translates to:
-  /// **'Period'**
-  String get coachReportPdfBandPeriod;
-
-  /// Section heading for the goal gauges.
-  ///
-  /// In en, this message translates to:
-  /// **'Against your goals'**
-  String get coachReportPdfSectionGoals;
-
-  /// Summary table column: the metric name.
-  ///
-  /// In en, this message translates to:
-  /// **'Metric'**
-  String get coachReportPdfColumnMetric;
-
-  /// Summary table column: this week's value.
-  ///
-  /// In en, this message translates to:
-  /// **'This week'**
-  String get coachReportPdfColumnThisWeek;
-
-  /// Summary table column: last week's value.
-  ///
-  /// In en, this message translates to:
-  /// **'Last week'**
-  String get coachReportPdfColumnLastWeek;
-
-  /// Summary table column: the difference between the two weeks.
-  ///
-  /// In en, this message translates to:
-  /// **'Change'**
-  String get coachReportPdfColumnChange;
-
-  /// Daily table column: the weekday.
-  ///
-  /// In en, this message translates to:
-  /// **'Day'**
-  String get coachReportPdfColumnWeekday;
-
-  /// Daily table column: what was done that day.
-  ///
-  /// In en, this message translates to:
-  /// **'Workout'**
-  String get coachReportPdfColumnWorkout;
-
-  /// Daily table column: calories eaten that day.
-  ///
-  /// In en, this message translates to:
-  /// **'Intake'**
-  String get coachReportPdfColumnIntake;
-
-  /// Daily table cell for a weekday that has not happened yet.
-  ///
-  /// In en, this message translates to:
-  /// **'Still to come'**
-  String get coachReportPdfUpcoming;
-
-  /// Text form of a gauge: the value and the goal it is measured against.
-  ///
-  /// In en, this message translates to:
-  /// **'{value} (goal {target})'**
-  String coachReportPdfGoalOf(String value, String target);
-
-  /// Label on a chart's dashed goal line.
-  ///
-  /// In en, this message translates to:
-  /// **'goal {value}'**
-  String coachReportPdfChartTarget(String value);
-
-  /// Daily line for a weekday that has not happened yet.
-  ///
-  /// In en, this message translates to:
-  /// **'{weekday} — still to come'**
-  String coachReportPdfDayUpcoming(String weekday);
-
-  /// One comparison line: this week's value, last week's, and the difference.
-  ///
-  /// In en, this message translates to:
-  /// **'· {label}: {current} (last week {previous}, {delta})'**
-  String coachReportPdfChange(
-    String label,
-    String current,
-    String previous,
-    String delta,
-  );
-
-  /// Difference when this week is higher.
-  ///
-  /// In en, this message translates to:
-  /// **'+{value}'**
-  String coachReportPdfDeltaUp(String value);
-
-  /// Difference when this week is lower.
-  ///
-  /// In en, this message translates to:
-  /// **'-{value}'**
-  String coachReportPdfDeltaDown(String value);
-
-  /// Difference when both weeks are equal.
-  ///
-  /// In en, this message translates to:
-  /// **'no change'**
-  String get coachReportPdfDeltaSame;
-
-  /// Shown under the comparison heading when the previous week has nothing.
-  ///
-  /// In en, this message translates to:
-  /// **'There are no records from last week to compare with.'**
-  String get coachReportPdfNoPreviousWeek;
-
-  /// Footnote naming the sodium goal the over-days count was measured against.
-  ///
-  /// In en, this message translates to:
-  /// **'The sodium goal is the {target}mg daily target you set on the MY screen.'**
-  String coachReportPdfSodiumTargetNote(String target);
-
-  /// No description provided for @coachReportPdfPreviewNote.
-  ///
-  /// In en, this message translates to:
-  /// **'Built from your own records for the week the trainer\'s report covers.'**
-  String get coachReportPdfPreviewNote;
 
   /// No description provided for @coachReportPdfFileName.
   ///
@@ -4560,12 +4159,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ask me anytime'**
   String get aicHeaderSubtitle;
-
-  /// No description provided for @aicDatePillToday.
-  ///
-  /// In en, this message translates to:
-  /// **'Today'**
-  String get aicDatePillToday;
 
   /// No description provided for @aicMedicalDisclaimer.
   ///
@@ -4813,6 +4406,12 @@ abstract class AppLocalizations {
   /// **'No trainers are affiliated yet.'**
   String get exGymConsultNoTrainers;
 
+  /// No description provided for @exGymTrainersLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this gym\'s trainers.'**
+  String get exGymTrainersLoadError;
+
   /// No description provided for @exTrainerConsultRequest.
   ///
   /// In en, this message translates to:
@@ -4864,7 +4463,7 @@ abstract class AppLocalizations {
   /// No description provided for @exConsultDataSharingNotice.
   ///
   /// In en, this message translates to:
-  /// **'Your request details (name, exercise goal, and message) go to this trainer. Your meal and workout records are shared only if you register with a connection code after the consultation, with a separate consent.'**
+  /// **'Your request details (name, exercise goal, and message) go to this trainer for the consultation and stay with the request and its schedule after you send them. If you don\'t agree, you just can\'t send this request; everything else keeps working. Your meal and workout records are shared only if you register with a connection code after the consultation, with a separate consent.'**
   String get exConsultDataSharingNotice;
 
   /// No description provided for @exConsultDataSharingAgree.
@@ -4900,7 +4499,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachInviteConsentBody.
   ///
   /// In en, this message translates to:
-  /// **'Once {name} becomes your trainer, they can see your meal records, workout records, body information and health goals. Disconnecting also revokes that access.'**
+  /// **'Once {name} becomes your trainer, they can see your meal records, workout records, body information, health goals, and health notes & cautions for coaching, consultations and writing reports. Disconnecting also revokes that access, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don\'t agree.'**
   String coachInviteConsentBody(String name);
 
   /// No description provided for @coachInviteConsentAgree.
@@ -5065,78 +4664,6 @@ abstract class AppLocalizations {
   /// **'Discuss Later'**
   String get exTimeFlexible;
 
-  /// No description provided for @exTimeRangeTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Select time'**
-  String get exTimeRangeTitle;
-
-  /// No description provided for @exTimeRangeStartTime.
-  ///
-  /// In en, this message translates to:
-  /// **'Start time'**
-  String get exTimeRangeStartTime;
-
-  /// No description provided for @exTimeRangeEndTime.
-  ///
-  /// In en, this message translates to:
-  /// **'End time'**
-  String get exTimeRangeEndTime;
-
-  /// No description provided for @exTimeRangeStartHourStep.
-  ///
-  /// In en, this message translates to:
-  /// **'Start hour'**
-  String get exTimeRangeStartHourStep;
-
-  /// No description provided for @exTimeRangeStartMinuteStep.
-  ///
-  /// In en, this message translates to:
-  /// **'Start minute'**
-  String get exTimeRangeStartMinuteStep;
-
-  /// No description provided for @exTimeRangeEndHourStep.
-  ///
-  /// In en, this message translates to:
-  /// **'End hour'**
-  String get exTimeRangeEndHourStep;
-
-  /// No description provided for @exTimeRangeEndMinuteStep.
-  ///
-  /// In en, this message translates to:
-  /// **'End minute'**
-  String get exTimeRangeEndMinuteStep;
-
-  /// No description provided for @exSlotAm.
-  ///
-  /// In en, this message translates to:
-  /// **'AM'**
-  String get exSlotAm;
-
-  /// No description provided for @exSlotPm.
-  ///
-  /// In en, this message translates to:
-  /// **'PM'**
-  String get exSlotPm;
-
-  /// No description provided for @exTimeRangeInvalidEnd.
-  ///
-  /// In en, this message translates to:
-  /// **'End time must be later than the start time.'**
-  String get exTimeRangeInvalidEnd;
-
-  /// No description provided for @exTimeRangePrevStep.
-  ///
-  /// In en, this message translates to:
-  /// **'Previous step'**
-  String get exTimeRangePrevStep;
-
-  /// No description provided for @exTimeRangeNextStep.
-  ///
-  /// In en, this message translates to:
-  /// **'Next step'**
-  String get exTimeRangeNextStep;
-
   /// No description provided for @exConsultMessage.
   ///
   /// In en, this message translates to:
@@ -5221,12 +4748,6 @@ abstract class AppLocalizations {
   /// **'Return to Exercise'**
   String get exReturnExercise;
 
-  /// No description provided for @exConsultStatusSection.
-  ///
-  /// In en, this message translates to:
-  /// **'Consultation Request Status'**
-  String get exConsultStatusSection;
-
   /// No description provided for @exConsultHistoryTitle.
   ///
   /// In en, this message translates to:
@@ -5298,6 +4819,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Past booking'**
   String get exReservationPast;
+
+  /// No description provided for @exReservationPastMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Show {count} more past bookings'**
+  String exReservationPastMore(int count);
+
+  /// No description provided for @exReservationPastLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide past bookings'**
+  String get exReservationPastLess;
 
   /// No description provided for @exCancelConfirmBody.
   ///
@@ -5418,6 +4951,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a valid email address'**
   String get authEmailInvalid;
+
+  /// Red text under the email field when the address is longer than the server limit (#2908). The limit matches the users.email column and EMAIL_MAX_LENGTH in contact_format.py.
+  ///
+  /// In en, this message translates to:
+  /// **'Email addresses can be up to 255 characters'**
+  String get authEmailTooLong;
 
   /// No description provided for @authPasswordEmpty.
   ///
@@ -5578,8 +5117,80 @@ abstract class AppLocalizations {
   /// No description provided for @trainerSyncConsent.
   ///
   /// In en, this message translates to:
-  /// **'Once the trainer who enters this code becomes your coach, they can see your diet log, exercise log, body info, and health goals. Disconnecting removes their access too.'**
+  /// **'Once the trainer who enters this code becomes your coach, they can see your meal records, workout records, body information, health goals, and health notes & cautions for coaching, consultations and writing reports. Disconnecting removes their access too, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don\'t agree.'**
   String get trainerSyncConsent;
+
+  /// No description provided for @trainerShareDetailMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Show details'**
+  String get trainerShareDetailMore;
+
+  /// No description provided for @trainerShareDetailLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide details'**
+  String get trainerShareDetailLess;
+
+  /// No description provided for @trainerShareRecipientLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared with'**
+  String get trainerShareRecipientLabel;
+
+  /// No description provided for @trainerShareRecipient.
+  ///
+  /// In en, this message translates to:
+  /// **'The trainer connected as your coach'**
+  String get trainerShareRecipient;
+
+  /// No description provided for @trainerShareItemsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'What is shared'**
+  String get trainerShareItemsLabel;
+
+  /// No description provided for @trainerShareItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Meal records, workout records, body information, health goals, and health notes & cautions'**
+  String get trainerShareItems;
+
+  /// No description provided for @trainerSharePurposeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Purpose'**
+  String get trainerSharePurposeLabel;
+
+  /// No description provided for @trainerSharePurpose.
+  ///
+  /// In en, this message translates to:
+  /// **'Coaching, consultations and writing reports'**
+  String get trainerSharePurpose;
+
+  /// No description provided for @trainerSharePeriodLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'How long'**
+  String get trainerSharePeriodLabel;
+
+  /// No description provided for @trainerSharePeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Until you withdraw consent by disconnecting. Deleting the trainer connection in the MY tab withdraws it, and the trainer can no longer see your new records. Conversations you had and reports already delivered before then are not deleted.'**
+  String get trainerSharePeriod;
+
+  /// No description provided for @trainerShareRefuseLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your right to refuse'**
+  String get trainerShareRefuseLabel;
+
+  /// No description provided for @trainerShareRefuse.
+  ///
+  /// In en, this message translates to:
+  /// **'You can say no. Without agreeing you can still use your personal records in the app; only the trainer connection won\'t be made.'**
+  String get trainerShareRefuse;
 
   /// No description provided for @trainerSyncAgree.
   ///
@@ -5634,6 +5245,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign-up failed. Please try again in a moment.'**
   String get signUpFailed;
+
+  /// No description provided for @consentAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree to all'**
+  String get consentAll;
+
+  /// No description provided for @consentRequiredTag.
+  ///
+  /// In en, this message translates to:
+  /// **'[Required]'**
+  String get consentRequiredTag;
+
+  /// No description provided for @consentOptionalTag.
+  ///
+  /// In en, this message translates to:
+  /// **'[Optional]'**
+  String get consentOptionalTag;
+
+  /// No description provided for @consentView.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get consentView;
+
+  /// No description provided for @consentTerms.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get consentTerms;
+
+  /// No description provided for @consentPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection and use of personal information'**
+  String get consentPrivacy;
+
+  /// No description provided for @consentHealth.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing of health information (sensitive data)'**
+  String get consentHealth;
+
+  /// No description provided for @consentHealthDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Covers your diet and exercise logs, body data such as weight, health goals, and health notes & cautions. We ask for this separately from other personal information.'**
+  String get consentHealthDetail;
+
+  /// No description provided for @consentAge14.
+  ///
+  /// In en, this message translates to:
+  /// **'I am 14 years of age or older'**
+  String get consentAge14;
+
+  /// No description provided for @consentAge14Detail.
+  ///
+  /// In en, this message translates to:
+  /// **'You must be 14 or older to sign up.'**
+  String get consentAge14Detail;
+
+  /// No description provided for @consentRequiredHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree to all required items to continue.'**
+  String get consentRequiredHint;
+
+  /// No description provided for @consentPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Agreements'**
+  String get consentPageTitle;
+
+  /// No description provided for @consentPageSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Please review and agree to the items below to keep using On-Care.'**
+  String get consentPageSubtitle;
+
+  /// No description provided for @consentPageAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree and continue'**
+  String get consentPageAction;
+
+  /// No description provided for @consentPageFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save your agreement. Please try again in a moment.'**
+  String get consentPageFailed;
 
   /// No description provided for @onboardSkip.
   ///
@@ -5826,6 +5527,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a recommended workout +{routine}P\nSpend them in MY › Use Points'**
   String guidePointsBody(int diet, int exercise, int routine);
+
+  /// No description provided for @guideSampleFoodScrambledEggs.
+  ///
+  /// In en, this message translates to:
+  /// **'Scrambled eggs'**
+  String get guideSampleFoodScrambledEggs;
+
+  /// No description provided for @guideSampleFoodWholeWheatToast.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole-wheat toast'**
+  String get guideSampleFoodWholeWheatToast;
+
+  /// No description provided for @guideSampleFoodChickenSalad.
+  ///
+  /// In en, this message translates to:
+  /// **'Chicken breast salad'**
+  String get guideSampleFoodChickenSalad;
+
+  /// No description provided for @guideSampleFoodBrownRice.
+  ///
+  /// In en, this message translates to:
+  /// **'Brown rice'**
+  String get guideSampleFoodBrownRice;
+
+  /// No description provided for @guideSampleFoodGrilledSalmon.
+  ///
+  /// In en, this message translates to:
+  /// **'Grilled salmon'**
+  String get guideSampleFoodGrilledSalmon;
+
+  /// No description provided for @guideSampleFoodRoastedVegetables.
+  ///
+  /// In en, this message translates to:
+  /// **'Roasted vegetables'**
+  String get guideSampleFoodRoastedVegetables;
 
   /// Onboarding step 1: the basic info step must be filled in (#1830).
   ///
@@ -6073,6 +5810,18 @@ abstract class AppLocalizations {
   /// **'Something went wrong. Please try again in a moment.'**
   String get aiCoachFailure;
 
+  /// No description provided for @aicResend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send again'**
+  String get aicResend;
+
+  /// No description provided for @aicSendFailedMine.
+  ///
+  /// In en, this message translates to:
+  /// **'Not sent · Long-press to edit'**
+  String get aicSendFailedMine;
+
   /// Generic cancel button in shared dialogs.
   ///
   /// In en, this message translates to:
@@ -6108,6 +5857,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Health goals'**
   String get myHealthGoalsTitle;
+
+  /// No description provided for @myFirstRunPromptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your basics for tailored goals'**
+  String get myFirstRunPromptTitle;
+
+  /// No description provided for @myFirstRunPromptBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You skipped the first-time setup. Add your birth date, height and weight and we will suggest diet and exercise goals that fit you.'**
+  String get myFirstRunPromptBody;
+
+  /// No description provided for @myFirstRunPromptAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter basics'**
+  String get myFirstRunPromptAction;
 
   /// No description provided for @myGoalsFocusSection.
   ///
@@ -6318,24 +6085,6 @@ abstract class AppLocalizations {
   /// **'Use suggested split'**
   String get myGoalMacroApplySuggestion;
 
-  /// Health goal field label.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly workout count goal'**
-  String get myGoalWorkoutCount;
-
-  /// Health goal field label.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly workout minutes goal'**
-  String get myGoalWorkoutMinutes;
-
-  /// Health goal field label.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly calories burned goal (kcal)'**
-  String get myGoalWorkoutCalories;
-
   /// Footnote under a read-only health-goal card that has fields the member has never set. The number shown is the app-wide baseline in force, not the personalized recommendation the edit form offers.
   ///
   /// In en, this message translates to:
@@ -6371,6 +6120,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t save notification settings'**
   String get myNotificationSaveFailed;
+
+  /// No description provided for @myNotifLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load notification settings'**
+  String get myNotifLoadFailed;
+
+  /// No description provided for @myNotifLoadFailedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'These are default values and may differ from your saved settings'**
+  String get myNotifLoadFailedBody;
 
   /// Title of the points guide dialog.
   ///
@@ -6411,12 +6172,6 @@ abstract class AppLocalizations {
   /// Section title in the coaching card.
   ///
   /// In en, this message translates to:
-  /// **'This week\'s coaching points'**
-  String get coachPointsTitle;
-
-  /// Section title in the coaching card.
-  ///
-  /// In en, this message translates to:
   /// **'Recommended solo workouts'**
   String get coachRoutineTitle;
 
@@ -6449,90 +6204,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This program no longer exists. Please refresh the list'**
   String get coachRoutineGone;
-
-  /// Routine effect line (#2725). Translation of the shared effect table sentence "체력 향상·만성질환 예방".
-  ///
-  /// In en, this message translates to:
-  /// **'Builds fitness and helps prevent chronic disease'**
-  String get routineEffectCardioDefault;
-
-  /// Routine effect line (#2725). Translation of the shared effect table sentence "근력·근지구력 향상".
-  ///
-  /// In en, this message translates to:
-  /// **'Builds strength and muscular endurance'**
-  String get routineEffectStrengthDefault;
-
-  /// Routine effect line (#2725). Translation of the shared effect table sentence "유연성·부상 예방".
-  ///
-  /// In en, this message translates to:
-  /// **'Improves flexibility and helps prevent injury'**
-  String get routineEffectStretchDefault;
-
-  /// Routine effect line (#2725). Translation of the shared effect table sentence "혈압 관리에 도움".
-  ///
-  /// In en, this message translates to:
-  /// **'Helps manage blood pressure'**
-  String get routineEffectBloodPressure;
-
-  /// Routine effect line (#2725). Translation of the shared effect table sentence "체지방 감량에 도움".
-  ///
-  /// In en, this message translates to:
-  /// **'Helps reduce body fat'**
-  String get routineEffectFatLoss;
-
-  /// Routine effect line (#2725). Translation of the shared effect table sentence "심폐 체력 향상".
-  ///
-  /// In en, this message translates to:
-  /// **'Improves cardiorespiratory fitness'**
-  String get routineEffectCardioFitness;
-
-  /// Routine effect line (#2725). Translation of the shared effect table sentence "무리 없는 체력 회복".
-  ///
-  /// In en, this message translates to:
-  /// **'Rebuilds fitness without strain'**
-  String get routineEffectGentleRecovery;
-
-  /// Routine effect line (#2725). Translation of the shared effect table sentence "근육량 유지·증가".
-  ///
-  /// In en, this message translates to:
-  /// **'Maintains and builds muscle mass'**
-  String get routineEffectMuscleMass;
-
-  /// Routine effect line (#2725). Translation of the shared effect table sentence "근력 향상".
-  ///
-  /// In en, this message translates to:
-  /// **'Builds strength'**
-  String get routineEffectStrength;
-
-  /// Routine effect line (#2725). Translation of the shared effect table sentence "자세 지지 근육 강화".
-  ///
-  /// In en, this message translates to:
-  /// **'Strengthens posture-supporting muscles'**
-  String get routineEffectPostureMuscles;
-
-  /// Routine effect line (#2725). Translation of the shared effect table sentence "혈압·심박 안정".
-  ///
-  /// In en, this message translates to:
-  /// **'Steadies blood pressure and heart rate'**
-  String get routineEffectHeartRate;
-
-  /// Routine effect line (#2725). Translation of the shared effect table sentence "근육 회복".
-  ///
-  /// In en, this message translates to:
-  /// **'Helps muscles recover'**
-  String get routineEffectMuscleRecovery;
-
-  /// Routine effect line (#2725). Translation of the shared effect table sentence "굳은 근육 이완".
-  ///
-  /// In en, this message translates to:
-  /// **'Loosens tight muscles'**
-  String get routineEffectLoosen;
-
-  /// Routine effect line (#2725). Translation of the shared effect table sentence "관절 가동 범위 회복".
-  ///
-  /// In en, this message translates to:
-  /// **'Restores joint range of motion'**
-  String get routineEffectJointRange;
 
   /// Shown when the network is unavailable.
   ///
@@ -6660,6 +6331,18 @@ abstract class AppLocalizations {
   /// **'You don\'t have a trainer yet. Connect a gym and trainer from the Exercise tab'**
   String get coachTrainerNone;
 
+  /// Home trainer card title when the assigned-trainer lookup failed (not a confirmed 'no trainer') (#2843).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your trainer'**
+  String get coachTrainerLoadFailed;
+
+  /// Toast from the header chat button when the assigned-trainer lookup failed; tapping also retries (#2843).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your trainer. Trying again'**
+  String get coachTrainerRetrying;
+
   /// Notification category badge.
   ///
   /// In en, this message translates to:
@@ -6689,6 +6372,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'PT schedule'**
   String get alertCategorySchedule;
+
+  /// Notification category label for screen readers: a finished PT session or the trainer's feedback on it (#3027).
+  ///
+  /// In en, this message translates to:
+  /// **'PT record'**
+  String get alertCategoryPtDone;
 
   /// Notification category label for screen readers.
   ///
@@ -6750,6 +6439,24 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the latest notifications'**
   String get alertLoadFailed;
 
+  /// No description provided for @alertMarkAllReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t mark all as read. Please try again shortly'**
+  String get alertMarkAllReadFailed;
+
+  /// No description provided for @alertCoachChatFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your trainer, so the chat can\'t open. Please try again shortly'**
+  String get alertCoachChatFailed;
+
+  /// No description provided for @alertCoachChatNoTrainer.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no assigned trainer, so the chat can\'t open'**
+  String get alertCoachChatNoTrainer;
+
   /// Relative time for a notification less than a minute old.
   ///
   /// In en, this message translates to:
@@ -6783,30 +6490,6 @@ abstract class AppLocalizations {
   /// Title of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'Watch your sodium'**
-  String get demoAlertSodiumTitle;
-
-  /// Body of a demo notification shown in tour mode.
-  ///
-  /// In en, this message translates to:
-  /// **'Lunch jjamppong pushed today\'s sodium to 4,657mg. Drink plenty of water.'**
-  String get demoAlertSodiumBody;
-
-  /// Title of a demo notification shown in tour mode.
-  ///
-  /// In en, this message translates to:
-  /// **'Log your dinner'**
-  String get demoAlertDinnerTitle;
-
-  /// Body of a demo notification shown in tour mode.
-  ///
-  /// In en, this message translates to:
-  /// **'No dinner logged yet today. One photo is all it takes.'**
-  String get demoAlertDinnerBody;
-
-  /// Title of a demo notification shown in tour mode.
-  ///
-  /// In en, this message translates to:
   /// **'A new workout routine arrived'**
   String get demoAlertRoutineTitle;
 
@@ -6831,13 +6514,13 @@ abstract class AppLocalizations {
   /// Title of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'PT session complete'**
+  /// **'PT complete'**
   String get demoAlertPtDoneTitle;
 
   /// Body of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'You finished PT session 12 with Trainer {trainerName} at 18:00 today!'**
+  /// **'You finished your 12th PT with Trainer {trainerName} at 18:00 today!'**
   String demoAlertPtDoneBody(String trainerName);
 
   /// Title of a demo notification shown in tour mode.
@@ -6966,12 +6649,6 @@ abstract class AppLocalizations {
   /// **'Remove food'**
   String get a11yRemoveFood;
 
-  /// No description provided for @a11yOpenCalendar.
-  ///
-  /// In en, this message translates to:
-  /// **'Open schedule calendar'**
-  String get a11yOpenCalendar;
-
   /// No description provided for @a11yPrevWeek.
   ///
   /// In en, this message translates to:
@@ -6995,6 +6672,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel request'**
   String get exConsultHistoryCancelAction;
+
+  /// No description provided for @exConsultCancelFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t cancel the consultation request. Please try again.'**
+  String get exConsultCancelFailed;
+
+  /// No description provided for @exConsultCancelStale.
+  ///
+  /// In en, this message translates to:
+  /// **'This request was already handled. It now shows its latest status.'**
+  String get exConsultCancelStale;
+
+  /// No description provided for @exConsultHistoryLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your consultation requests.'**
+  String get exConsultHistoryLoadError;
 
   /// No description provided for @exConsultHistoryCancelBody.
   ///
@@ -7050,6 +6745,30 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get gymLocationSettings;
 
+  /// No description provided for @gymDefaultAreaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing gyms around Sinchon'**
+  String get gymDefaultAreaTitle;
+
+  /// No description provided for @gymDefaultAreaMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow location access to see gyms near you.'**
+  String get gymDefaultAreaMessage;
+
+  /// No description provided for @gymUseLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Use location'**
+  String get gymUseLocation;
+
+  /// No description provided for @gymDistanceSortNeedsLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by distance needs your current location.'**
+  String get gymDistanceSortNeedsLocation;
+
   /// No description provided for @exGymCopyPhone.
   ///
   /// In en, this message translates to:
@@ -7089,7 +6808,7 @@ abstract class AppLocalizations {
   /// Exercise tab AI advice sentence `record_week_one_day` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'Just one day this week ({minutes} min). One more session keeps the flow going.'**
+  /// **'Just one day this week ({minutes} min). One more workout keeps the flow going.'**
   String exerciseAdviceRecordWeekOneDay(int minutes);
 
   /// Exercise tab AI advice sentence `record_week_skew` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
@@ -7853,12 +7572,6 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the weekly feedback you sent'**
   String get weeklyFeedbackLoadFailed;
 
-  /// No description provided for @coachReportOpen.
-  ///
-  /// In en, this message translates to:
-  /// **'Open report'**
-  String get coachReportOpen;
-
   /// No description provided for @coachReportSentOn.
   ///
   /// In en, this message translates to:
@@ -7930,6 +7643,234 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Send feedback now'**
   String get weeklyFeedbackNowButton;
+
+  /// No description provided for @authForgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot your password?'**
+  String get authForgotPassword;
+
+  /// No description provided for @passwordChangeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change password'**
+  String get passwordChangeTitle;
+
+  /// No description provided for @passwordChangeCurrentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Current password'**
+  String get passwordChangeCurrentHint;
+
+  /// No description provided for @passwordChangeNewHint.
+  ///
+  /// In en, this message translates to:
+  /// **'New password (8+ characters, letters and numbers)'**
+  String get passwordChangeNewHint;
+
+  /// No description provided for @passwordChangeConfirmHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm new password'**
+  String get passwordChangeConfirmHint;
+
+  /// No description provided for @passwordChangeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'This device stays signed in. Other devices will need to sign in again.'**
+  String get passwordChangeNote;
+
+  /// No description provided for @passwordChangeAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Change password'**
+  String get passwordChangeAction;
+
+  /// No description provided for @passwordChangeDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Password changed'**
+  String get passwordChangeDone;
+
+  /// No description provided for @passwordChangeWrongCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Your current password is incorrect'**
+  String get passwordChangeWrongCurrent;
+
+  /// No description provided for @passwordChangeSameAsCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a password different from your current one'**
+  String get passwordChangeSameAsCurrent;
+
+  /// No description provided for @passwordChangeDemoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo accounts can\'t change passwords'**
+  String get passwordChangeDemoTitle;
+
+  /// No description provided for @passwordChangeDemoBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo mode has no server account. Sign in with a real account to change your password here.'**
+  String get passwordChangeDemoBody;
+
+  /// No description provided for @passwordChangeSocialTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This account has no password'**
+  String get passwordChangeSocialTitle;
+
+  /// No description provided for @passwordChangeSocialBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Accounts that sign in with Kakao or Google are managed by that service.'**
+  String get passwordChangeSocialBody;
+
+  /// No description provided for @passwordTooManyAttempts.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please try again in a moment.'**
+  String get passwordTooManyAttempts;
+
+  /// No description provided for @passwordTemporaryFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t complete the request. Please try again shortly.'**
+  String get passwordTemporaryFailure;
+
+  /// No description provided for @passwordResetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset password'**
+  String get passwordResetTitle;
+
+  /// No description provided for @passwordResetRequestSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll email a reset code to the address you signed up with.'**
+  String get passwordResetRequestSubtitle;
+
+  /// No description provided for @passwordResetSendAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Send code'**
+  String get passwordResetSendAction;
+
+  /// No description provided for @passwordResetHaveCode.
+  ///
+  /// In en, this message translates to:
+  /// **'I already have a code'**
+  String get passwordResetHaveCode;
+
+  /// No description provided for @passwordResetSentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your email'**
+  String get passwordResetSentTitle;
+
+  /// Shown after a reset request. Same text whether or not the account exists.
+  ///
+  /// In en, this message translates to:
+  /// **'If an account uses {email}, we\'ve sent a code you can use once within {minutes} minutes.'**
+  String passwordResetSentBody(String email, int minutes);
+
+  /// No description provided for @passwordResetConfirmSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code from the email and your new password.'**
+  String get passwordResetConfirmSubtitle;
+
+  /// No description provided for @passwordResetCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'16-character reset code'**
+  String get passwordResetCodeHint;
+
+  /// No description provided for @passwordResetCodeEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code'**
+  String get passwordResetCodeEmpty;
+
+  /// No description provided for @passwordResetCodeMalformed.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 16-character code from the email'**
+  String get passwordResetCodeMalformed;
+
+  /// No description provided for @passwordResetCodeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'This code is wrong or has expired. Request a new one.'**
+  String get passwordResetCodeInvalid;
+
+  /// No description provided for @passwordResetConfirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Save new password'**
+  String get passwordResetConfirmAction;
+
+  /// No description provided for @passwordResetResend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a new code'**
+  String get passwordResetResend;
+
+  /// No description provided for @passwordResetDemoNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo mode doesn\'t send email. The code is filled in for you.'**
+  String get passwordResetDemoNote;
+
+  /// No description provided for @passwordResetUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'We can\'t send reset emails right now. Please contact support.'**
+  String get passwordResetUnavailable;
+
+  /// No description provided for @passwordResetDoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Password reset'**
+  String get passwordResetDoneTitle;
+
+  /// No description provided for @passwordResetDoneBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with your new password. You\'ve been signed out on every device.'**
+  String get passwordResetDoneBody;
+
+  /// No description provided for @passwordResetBackToSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to sign in'**
+  String get passwordResetBackToSignIn;
+
+  /// Title of the banner shown when a newer web release has been deployed while this tab is open (#3023).
+  ///
+  /// In en, this message translates to:
+  /// **'A new version is available'**
+  String get releaseUpdateTitle;
+
+  /// Body of the new-release banner.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload to get the latest version. Save anything you\'re working on first.'**
+  String get releaseUpdateMessage;
+
+  /// Button that reloads the page to load the new release.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload'**
+  String get releaseUpdateReload;
+
+  /// Tooltip of the button that hides the new-release banner for this release.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get releaseUpdateDismiss;
 }
 
 class _AppLocalizationsDelegate

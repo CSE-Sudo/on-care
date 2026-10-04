@@ -7,6 +7,9 @@
 
 - 필수 id 누락·토큰 거절(비 200)·요청 실패 → 401
 - 응답 형식 이상(HTML·깨진 JSON·객체 아님·타입 이상·빈 본문) → 502
+
+API 로 로그인이 열린 provider(구글·카카오)만 돈다. 네이버는 서버 측 코드 교환 전까지
+501 로 닫혀 있다(#3035).
 """
 from __future__ import annotations
 
@@ -20,17 +23,25 @@ from sqlalchemy import func, select
 from app.models.models import AuditLog
 from tests.social_provider_fakes import (
     BODY_MARKER,
+    GOOGLE_CLAIMS,
     NON_OBJECT_BODIES,
+    OPEN_PROVIDERS,
     PROVIDERS,
     SECRET_TOKEN,
     install_transport,
     respond_json,
     respond_raw,
+    use_app_ids,
 )
 
-PROVIDER_NAMES = sorted(PROVIDERS)
+PROVIDER_NAMES = sorted(OPEN_PROVIDERS)
 BAD_RESPONSE_DETAIL = "소셜 로그인 제공자의 응답을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요."
 AUTH_FAILED_DETAIL = "소셜 인증에 실패했습니다."
+
+
+@pytest.fixture(autouse=True)
+def _app_ids(monkeypatch):
+    use_app_ids(monkeypatch)
 
 
 def _failed_count(db, provider: str) -> int:
@@ -105,11 +116,10 @@ def test_wrong_id_type_returns_502(client, db_session, monkeypatch, caplog, prov
 @pytest.mark.parametrize(
     "provider,body",
     [
-        ("google", {"sub": "g", "email": 1}),
+        ("google", {**GOOGLE_CLAIMS, "sub": "g", "email": 1}),
+        ("google", {**GOOGLE_CLAIMS, "sub": "g", "exp": "soon"}),
         ("kakao", {"id": 1, "kakao_account": []}),
         ("kakao", {"id": 1, "kakao_account": {"profile": "p"}}),
-        ("naver", {"response": "profile"}),
-        ("naver", {"response": {"id": "n", "name": ["a"]}}),
     ],
 )
 def test_wrong_nested_type_returns_502(client, db_session, monkeypatch, provider, body):
@@ -228,10 +238,10 @@ def test_bad_response_is_logged_with_provider(client, monkeypatch, caplog):
     caplog.set_level(logging.INFO)
     respond_raw(monkeypatch, b"<html>down</html>", "text/html")
 
-    assert _login(client, "naver").status_code == 502
+    assert _login(client, "kakao").status_code == 502
 
     msgs = [r.getMessage() for r in caplog.records if r.name == "app.api.v1.social"]
-    assert any("provider=naver" in m for m in msgs)
+    assert any("provider=kakao" in m for m in msgs)
 
 
 # ── 정상 경로 회귀 ────────────────────────────────────────────────
@@ -245,10 +255,8 @@ def test_valid_response_logs_in_and_audits_success(client, db_session, monkeypat
     email = f"{uid}@oncare.com"
     if provider == "google":
         body["email"] = email
-    elif provider == "kakao":
-        body["kakao_account"]["email"] = email
     else:
-        body["response"]["email"] = email
+        body["kakao_account"]["email"] = email
     respond_json(monkeypatch, body)
 
     r = _login(client, provider)

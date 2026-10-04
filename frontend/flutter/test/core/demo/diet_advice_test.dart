@@ -17,6 +17,7 @@ import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/core/demo/diet_advice.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
+import 'package:oncare_ui/oncare_ui.dart' show keepWords;
 
 final Map<String, Object?> _cases =
     jsonDecode(File('test/core/demo/diet_advice_cases.json').readAsStringSync())
@@ -198,7 +199,7 @@ void main() {
           ),
         ),
       );
-      final Finder body = find.text('단백질 32g 더 필요해요. 저녁은 연어 어때요?');
+      final Finder body = find.text(keepWords('단백질 32g 더 필요해요. 저녁은 연어 어때요?'));
       expect(body, findsOneWidget);
       expect(
         tester.widget<Text>(body).textSpan,

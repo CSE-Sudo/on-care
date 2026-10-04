@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date as date_, datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.schemas.exercise_limits import (
     MAX_EXERCISE_HOLD_SECONDS,
@@ -15,6 +15,7 @@ from app.schemas.exercise_limits import (
     MAX_EXERCISE_WEIGHT_KG,
 )
 from app.schemas.points_api import PointsOut
+from app.schemas.record_dates import not_after_today
 
 #: 회원이 고를 수 있는 운동 유형. 저장 값은 이 넷뿐이다(#996).
 ExerciseTypeIn = Literal["cardio", "strength", "flexibility", "other"]
@@ -65,6 +66,10 @@ class ExerciseSessionOut(BaseModel):
     source: str = "member"
     assigned_routine_id: str | None = None
     assigned_routine_name: str = ""
+    #: 개인 기록 태그 — max_weight(같은 근력 운동 최고 중량) | longest(같은 운동
+    #: 최장 시간) | first(처음 적은 운동) | None. 직접 기록한 운동만, 한 기록에
+    #: 하나다. 평가가 아니라 사실만 알린다. (#2971)
+    record: str | None = None
     #: 개인 운동 피드백은 회원(#1825)·트레이너(#2517) 모두 없앴다. 늘 빈
     #: 문자열이며, 이 칸을 읽는 옛 앱을 위해 모양만 남긴다.
     member_note: str = ""
@@ -227,6 +232,18 @@ class ExerciseSessionCreate(BaseModel):
     #: 이 운동을 한 날. 생략하면 오늘이다. 예전 `day_label`(요일 문자열)은 어느
     #: 주인지를 담지 못해, 지난 날짜를 골라도 늘 이번 주로 저장됐다.
     date: date_ | None = None
+
+    @field_validator("date")
+    @classmethod
+    def _past_or_today(cls, value: date_ | None) -> date_ | None:
+        """아직 오지 않은 날은 받지 않는다(#3042) — 식단과 같은 규칙·문구.
+
+        추가(목록의 어느 한 항목이라도)·수정이 모두 이 스키마라 한 곳에서 두 경로가
+        막힌다. 하지 않은 운동을 미리 적어 포인트·주간 챌린지를 앞당기지 못한다.
+        """
+        if value is None:
+            return None
+        return not_after_today(value)
 
     @model_validator(mode="after")
     def _minutes_from_seconds(self) -> ExerciseSessionCreate:

@@ -4,10 +4,17 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from app.core.config import DEFAULT_JWT_SECRET, Settings
+from app.core.config import (
+    DEFAULT_CORS_ALLOW_ORIGINS,
+    DEFAULT_JWT_SECRET,
+    MIN_PROD_JWT_SECRET_BYTES,
+    Settings,
+)
 
 
-def test_dev_defaults():
+def test_dev_defaults(monkeypatch):
+    # CI 는 AUTO_CREATE_TABLES=false 로 돈다(#2838). 기본값을 보려면 환경변수를 비운다.
+    monkeypatch.delenv("AUTO_CREATE_TABLES", raising=False)
     s = Settings(_env_file=None)
     assert s.env == "dev"
     assert s.is_prod is False
@@ -25,10 +32,14 @@ def _prod(**kw) -> Settings:
     """운영 정상 설정 헬퍼 — Alembic 이 스키마 소스이므로 auto_create_tables=False 명시."""
     base = dict(
         _env_file=None, env="prod",
-        jwt_secret="a-strong-random-secret-value",
+        jwt_secret="a-strong-random-secret-value-for-prod-tests",
         cors_allow_origins="https://app.oncare.com",
-        seed_demo_data=False,       # 운영 권장: 데모 시드 끔(켜려면 DEMO_LOGIN_PASSWORD 강제)
+        seed_demo_data=False,       # 운영은 데모 시드를 켤 수 없다(#2811)
         auto_create_tables=False,   # 운영은 Alembic 이 스키마 소스
+        gemini_api_key="test-gemini-key",  # 운영은 사진 인식·임베딩 키 필수(#2812)
+        # conftest 가 EMBEDDER=hash 를 환경변수로 심으므로 운영 값을 명시한다.
+        recognizer="gemini",
+        embedder="gemini",
     )
     base.update(kw)
     return Settings(**base)
@@ -46,9 +57,16 @@ def test_prod_blocks_auto_create_tables():
         _prod(auto_create_tables=True)
 
 
-def test_dev_keeps_auto_create_tables():
+def test_dev_keeps_auto_create_tables(monkeypatch):
     """개발에서는 create_all 편의 유지(기본 True)."""
+    monkeypatch.delenv("AUTO_CREATE_TABLES", raising=False)
     assert Settings(_env_file=None).auto_create_tables is True
+
+
+def test_auto_create_tables_env_false_is_respected(monkeypatch):
+    """CI·운영처럼 AUTO_CREATE_TABLES=false 를 주면 create_all 을 끈다(#2838)."""
+    monkeypatch.setenv("AUTO_CREATE_TABLES", "false")
+    assert Settings(_env_file=None).auto_create_tables is False
 
 
 def test_log_level_rejects_invalid():
@@ -103,3 +121,138 @@ def test_demo_fallback_gated_by_env():
 def test_sqlalchemy_database_url_normalizes_to_psycopg_v3(raw: str, expected: str):
     s = Settings(_env_file=None, database_url=raw)
     assert s.sqlalchemy_database_url == expected
+
+
+# --- 회원 앱 최소 지원 버전(#3045) ---
+
+
+def test_min_member_app_version_defaults_to_empty(monkeypatch):
+    monkeypatch.delenv("MIN_MEMBER_APP_VERSION", raising=False)
+    assert Settings(_env_file=None).min_member_app_version == ""
+
+
+@pytest.mark.parametrize("value", ["1.2.0", "0.3.0", "10.20.30", " 1.0.0 "])
+def test_min_member_app_version_accepts_semver(value):
+    s = Settings(_env_file=None, min_member_app_version=value)
+    assert s.min_member_app_version == value.strip()
+
+
+@pytest.mark.parametrize(
+    "value", ["1.2", "1.2.0+3", "v1.2.0", "1.2.0-beta", "latest", "1..0", "1.2.x"]
+)
+def test_min_member_app_version_rejects_bad_format(value):
+    """오타 하나로 모든 회원이 막히지 않게 기동에서 실패한다."""
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, min_member_app_version=value)
+
+
+def test_min_member_app_version_from_env(monkeypatch):
+    monkeypatch.setenv("MIN_MEMBER_APP_VERSION", "2.0.1")
+    assert Settings(_env_file=None).min_member_app_version == "2.0.1"
+
+
+def test_min_member_app_version_bad_env_fails(monkeypatch):
+    monkeypatch.setenv("MIN_MEMBER_APP_VERSION", "2.0")
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)
+
+
+# --- JWT 시크릿 길이(#3029) ---
+
+
+def test_prod_blocks_short_jwt_secret():
+    with pytest.raises(ValidationError, match="JWT_SECRET"):
+        _prod(jwt_secret="x" * (MIN_PROD_JWT_SECRET_BYTES - 1))
+
+
+def test_prod_accepts_minimum_length_jwt_secret():
+    assert _prod(jwt_secret="x" * MIN_PROD_JWT_SECRET_BYTES).is_prod is True
+
+
+def test_prod_accepts_openssl_hex_secret():
+    # 문서·예시의 생성법(openssl rand -hex 32)은 64자다.
+    assert _prod(jwt_secret="ab" * 32).is_prod is True
+
+
+def test_jwt_secret_length_is_counted_in_bytes():
+    # 한글 11자 = 33바이트 → 통과, 10자 = 30바이트 → 거부.
+    assert _prod(jwt_secret="가" * 11).is_prod is True
+    with pytest.raises(ValidationError, match="JWT_SECRET"):
+        _prod(jwt_secret="가" * 10)
+
+
+def test_dev_allows_short_jwt_secret(monkeypatch):
+    monkeypatch.delenv("ENV", raising=False)
+    s = Settings(_env_file=None, jwt_secret="short")
+    assert s.is_prod is False
+
+
+# --- 운영 CORS 출처(#3029) ---
+
+
+def test_prod_blocks_default_cors_origins():
+    with pytest.raises(ValidationError, match="개발 기본값"):
+        _prod(cors_allow_origins=DEFAULT_CORS_ALLOW_ORIGINS)
+
+
+@pytest.mark.parametrize(
+    "origins",
+    [
+        "https://app.oncare.com,https://localhost:3000",
+        "https://127.0.0.1",
+        "https://[::1]:8443",
+        "https://LOCALHOST",
+    ],
+)
+def test_prod_blocks_local_cors_hosts(origins: str):
+    with pytest.raises(ValidationError, match="개발 호스트"):
+        _prod(cors_allow_origins=origins)
+
+
+@pytest.mark.parametrize(
+    "origins",
+    ["http://app.oncare.com", "app.oncare.com", "https://app.oncare.com,http://trainer.oncare.com"],
+)
+def test_prod_blocks_non_https_cors_origins(origins: str):
+    with pytest.raises(ValidationError, match="https://"):
+        _prod(cors_allow_origins=origins)
+
+
+@pytest.mark.parametrize("origins", ["", " , ,"])
+def test_prod_blocks_empty_cors_origins(origins: str):
+    with pytest.raises(ValidationError, match="비어"):
+        _prod(cors_allow_origins=origins)
+
+
+def test_prod_accepts_https_origins_after_normalising_blanks():
+    s = _prod(cors_allow_origins=" https://app.oncare.com , ,https://trainer.oncare.com ")
+    assert s.cors_origin_list == ["https://app.oncare.com", "https://trainer.oncare.com"]
+    assert s.cors_prod_problem() is None
+
+
+def test_prod_accepts_https_origin_with_port():
+    assert _prod(cors_allow_origins="https://app.oncare.com:8443").is_prod is True
+
+
+def test_cors_checks_do_not_apply_outside_prod(monkeypatch):
+    monkeypatch.delenv("ENV", raising=False)
+    for env in ("dev", "staging"):
+        s = Settings(_env_file=None, env=env, cors_allow_origins=DEFAULT_CORS_ALLOW_ORIGINS)
+        assert s.is_prod is False
+
+
+# --- 커밋 SHA(#3029) ---
+
+
+def test_commit_sha_defaults_to_unknown(monkeypatch):
+    monkeypatch.delenv("GIT_SHA", raising=False)
+    assert Settings(_env_file=None).commit_sha == "unknown"
+
+
+def test_commit_sha_reads_git_sha_env(monkeypatch):
+    monkeypatch.setenv("GIT_SHA", "0123456789abcdef0123456789abcdef01234567")
+    assert Settings(_env_file=None).commit_sha == "0123456789abcdef0123456789abcdef01234567"
+
+
+def test_blank_commit_sha_is_unknown():
+    assert Settings(_env_file=None, git_sha="   ").commit_sha == "unknown"

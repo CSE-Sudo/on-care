@@ -1,6 +1,8 @@
 /// 트레이너가 받은 알림 한 건. `GET /trainer/notifications`. (#503)
 library;
 
+import 'package:oncare_ui/oncare_ui.dart' show parseWireDate;
+
 /// 알림 종류. 서버 `category` 값과 1:1이고, 어디로 이동할지를 정한다.
 ///
 /// 회원 알림의 category 집합(reminder|health_check|achievement|system)과 다르다 —
@@ -32,6 +34,10 @@ enum TrainerNotificationKind {
   /// 회원이 탈퇴해 대기 중이던 상담 요청이 함께 사라졌다(#1632) — 상담 요청함으로
   /// 간다. 떠난 회원의 상세는 열 수 없어 회원을 가리키지 않는다.
   consultationWithdrawn,
+
+  /// 담당 회원이 주간 피드백(컨디션·운동 강도·통증)을 냈다 — 그 회원 메모 창의
+  /// `피드백` 탭으로 간다(#3026). [TrainerNotification.targetDate] 는 그 주 월요일.
+  weeklyFeedback,
   other,
 }
 
@@ -45,6 +51,7 @@ TrainerNotificationKind _kindFrom(String? raw) => switch (raw) {
   'invite_accepted' => TrainerNotificationKind.inviteAccepted,
   'invite_rejected' => TrainerNotificationKind.inviteRejected,
   'consult_withdrawn' => TrainerNotificationKind.consultationWithdrawn,
+  'weekly_feedback' => TrainerNotificationKind.weeklyFeedback,
   // 서버가 새 종류를 추가했는데 앱이 모르는 경우. 목록에서 빼지 않고 이동만
   // 하지 않는다 — 안 보이는 알림보다 갈 곳 없는 알림이 낫다.
   _ => TrainerNotificationKind.other,
@@ -139,21 +146,12 @@ class TrainerNotification {
       );
 }
 
-final RegExp _ymdPattern = RegExp(r'^\d{4}-\d{2}-\d{2}$');
-
 /// 서버 날짜가 실제 달력 날짜(`YYYY-MM-DD`)일 때만 그대로 돌려준다.
-String? _ymdOrNull(Object? raw) {
-  if (raw is! String || !_ymdPattern.hasMatch(raw)) return null;
-  final DateTime? parsed = DateTime.tryParse(raw);
-  if (parsed == null) return null;
-  // `2026-02-31` 처럼 넘치는 날짜는 DateTime 이 다음 달로 굴려 받아 준다.
-  // 굴린 결과가 원문과 다르면 없는 날짜다.
-  final String roundTrip =
-      '${parsed.year.toString().padLeft(4, '0')}-'
-      '${parsed.month.toString().padLeft(2, '0')}-'
-      '${parsed.day.toString().padLeft(2, '0')}';
-  return roundTrip == raw ? raw : null;
-}
+///
+/// `2026-02-31` 처럼 넘치는 날짜는 [DateTime] 이 다음 달로 굴려 받아 주므로
+/// [parseWireDate] 로 형식과 달력을 함께 본다.
+String? _ymdOrNull(Object? raw) =>
+    raw is String && parseWireDate(raw) != null ? raw : null;
 
 /// 다음 쪽을 받을 자리 — 서버가 준 `(before, before_id)` 그대로. (#2293)
 ///

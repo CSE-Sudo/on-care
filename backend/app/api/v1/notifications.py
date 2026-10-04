@@ -46,8 +46,6 @@ router = APIRouter(tags=["notifications"])
 _ACTION_BY_CATEGORY: dict[str, tuple[str, str, str]] = {
     # 성격만 나타내던 기존 값들.
     "reminder": ("기록하러 가기", "Log now", "dashboard"),
-    # 일정을 여는 화면이 회원 앱에 없다(#1928) — 액션을 달면 눌러도 갈 곳이 없어
-    # 고장 난 버튼이 된다. 회원이 일정을 볼 자리가 생기면 그때 되돌린다.
     "health_check": ("기록하러 가기", "Log now", "dashboard"),
     "achievement": ("대시보드 보기", "View dashboard", "dashboard"),
     # 트레이너가 한 일 — 예전에는 전부 `system` 으로 뭉쳐 갈 곳이 없었다(#636).
@@ -56,9 +54,13 @@ _ACTION_BY_CATEGORY: dict[str, tuple[str, str, str]] = {
     # 알림함 아이콘만 다르다(#2085).
     notification_service.MEMBER_COACH_REPORT: ("리포트 보기", "View report", "coach_chat"),
     notification_service.MEMBER_ROUTINE: ("운동 보기", "View workouts", "exercise"),
-    # MEMBER_SCHEDULE 은 액션을 달지 않는다(#1928). 회원 앱에 일정 화면이 없어
-    # 어디로 보내든 알림이 말한 것을 보여 줄 수 없다 — 읽음 처리만 하고 제자리에
-    # 두는 편이 갈 곳 없는 버튼보다 낫다.
+    # PT 일정 등록·변경·취소·인계, 담당 해제·트레이너 탈퇴로 취소된 일정(#3028).
+    # 운동 탭이 트레이너 일정과 회원 예약을 합친 다음 PT 배지와 헬스장 패널의 예약
+    # 목록을 함께 보여 주는 곳이다. 예전에는 회원 앱에 일정을 볼 자리가 없어(#1928)
+    # 액션을 달지 않았고, 일정 알림만 눌러도 아무 화면이 열리지 않았다.
+    notification_service.MEMBER_SCHEDULE: ("일정 보기", "View schedule", "exercise"),
+    # PT 수업 완료·피드백 도착 — 운동 탭의 PT 기록(완료 PT 카드와 피드백)(#3027).
+    notification_service.MEMBER_PT_DONE: ("PT 기록 보기", "View PT record", "exercise"),
     notification_service.MEMBER_COACH_INVITE: ("요청 확인", "View request", "exercise"),
     notification_service.MEMBER_CONSULTATION: ("트레이너 보기", "View trainer", "exercise"),
     # 상담 요청의 승인·거절·만료 — 결과와 사유가 있는 내 상담 요청(#2067).
@@ -252,7 +254,7 @@ def unread_count(
 
 @router.post("/notifications/read-all")
 def mark_all_read(
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     """내 미확인 알림을 모두 읽음 처리."""
@@ -268,7 +270,7 @@ def mark_all_read(
 @router.post("/notifications/{notification_id}/read", status_code=200)
 def mark_read(
     notification_id: str,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     row = db.scalar(select(Notification).where(Notification.id == notification_id))
@@ -282,7 +284,7 @@ def mark_read(
 @router.delete("/notifications/{notification_id}")
 def delete_notification(
     notification_id: str,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     """알림 삭제(본인 소유만)."""

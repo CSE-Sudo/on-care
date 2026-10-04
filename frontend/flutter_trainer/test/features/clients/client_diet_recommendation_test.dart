@@ -1,6 +1,6 @@
 // 회원 상세 식단 `오늘` 의 AI 식단 추천 (#2379).
 //
-// 분석 한 문단 아래에서 AI 후보를 하나씩 묻는다 — `아니오` 는 다음 후보, 세 개를 다
+// 분석 한 문단 아래에서 AI 후보를 하나씩 묻는다 — `아니요` 는 다음 후보, 세 개를 다
 // 넘기면 `처음부터 다시 보기`/`다른 메뉴 보기`, `예` 로 확정하면 추천 중인 메뉴와
 // `바꾸기`, 회원이 먹었으면 그 사실과 `다음 추천 보기`. 채울 점이 없으면 묻지 않는다.
 import 'package:drift/drift.dart' show Value;
@@ -16,6 +16,7 @@ import 'package:oncare_trainer/features/clients/domain/entities/client_diet_anal
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_diet_analysis_card.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_ui/oncare_ui.dart' show keepWords;
 
 import '../../helpers/fixed_clock.dart';
 
@@ -142,7 +143,7 @@ void main() {
     );
 
     expect(find.text('식단 분석'), findsOneWidget);
-    expect(find.text('단백질은 54g으로 목표보다 46g 모자라요.'), findsOneWidget);
+    expect(find.text(keepWords('단백질은 54g으로 목표보다 46g 모자라요.')), findsOneWidget);
     expect(find.text('저녁으로 이 메뉴를 회원에게 추천할까요?'), findsOneWidget);
     expect(_menuName(tester), '닭가슴살 샐러드');
     expect(find.text('AI 추천 1 / 3'), findsOneWidget);
@@ -158,7 +159,7 @@ void main() {
     expect(find.text('AI 식단 추천'), findsNothing);
   });
 
-  testWidgets('아니오는 다음 후보, 세 개를 넘기면 다시 보기·다른 메뉴', (tester) async {
+  testWidgets('아니요는 다음 후보, 세 개를 넘기면 다시 보기·다른 메뉴', (tester) async {
     await _pump(
       tester,
       ClientDietRecommendations(
@@ -268,6 +269,65 @@ void main() {
     await tester.tap(_key('diet-recommendation-next'));
     await tester.pumpAndSettle();
     expect(_menuName(tester), '구운 고등어 정식');
+  });
+
+  group('추천일·먹은 날은 KST 날짜 (#2893)', () {
+    test('서버 시각은 UTC 순간 그대로 읽는다', () {
+      final ClientDietPick pick = ClientDietPick.fromJson(<String, Object?>{
+        'slot': 'dinner',
+        'name': '닭가슴살 샐러드',
+        'status': 'resolved',
+        'confirmed_at': '2026-09-28T15:30:00Z',
+        'resolved_at': '2026-09-29T15:30:00+00:00',
+      });
+      expect(pick.confirmedAt, DateTime.utc(2026, 9, 28, 15, 30));
+      expect(pick.confirmedAt.isUtc, isTrue);
+      expect(pick.resolvedAt, DateTime.utc(2026, 9, 29, 15, 30));
+      expect(pick.resolvedAt!.isUtc, isTrue);
+    });
+
+    testWidgets('UTC 15:30 에 추천했으면 KST 다음 날로 말한다', (tester) async {
+      await _pump(
+        tester,
+        ClientDietRecommendations(
+          needs: const <String>['protein_high'],
+          pick: ClientDietPick.fromJson(<String, Object?>{
+            'slot': 'dinner',
+            'name': '닭가슴살 샐러드',
+            'tag': 'protein_high',
+            'status': 'active',
+            'confirmed_at': '2026-09-28T15:30:00Z',
+          }),
+          candidates: _five.skip(1).toList(),
+        ),
+      );
+      expect(
+        find.text('9월 29일에 이 메뉴를 추천했어요. 회원 앱 홈에 트레이너 추천으로 떠 있어요.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('UTC 15:30 에 먹었으면 KST 다음 날로 말한다', (tester) async {
+      await _pump(
+        tester,
+        ClientDietRecommendations(
+          needs: const <String>['protein_high'],
+          pick: ClientDietPick.fromJson(<String, Object?>{
+            'slot': 'dinner',
+            'name': '닭가슴살 샐러드',
+            'tag': 'protein_high',
+            'status': 'resolved',
+            'confirmed_at': '2026-09-28T15:30:00Z',
+            'resolved_at': '2026-09-29T15:30:00Z',
+          }),
+          candidates: _five.skip(1).toList(),
+        ),
+      );
+      expect(
+        find.text('회원이 9월 30일 저녁에 추천한 메뉴(닭가슴살 샐러드)를 먹었어요.'),
+        findsOneWidget,
+      );
+    });
   });
 
   testWidgets('채울 점이 없으면 묻지 않고 분석만 남는다', (tester) async {

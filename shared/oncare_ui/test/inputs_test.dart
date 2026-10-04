@@ -641,4 +641,47 @@ void main() {
     // 회원앱(모바일)은 장문 칸도 흰 채움 그대로다.
     expect(fill('area'), OnCareColors.surfaceCard);
   });
+
+  testWidgets('AppPickerField — 누르면 부르고, compact 는 버튼 높이·내용 폭이다', (
+    tester,
+  ) async {
+    int taps = 0;
+    await _pump(
+      tester,
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          AppPickerField(
+            key: const ValueKey<String>('wide'),
+            icon: Icons.calendar_today_rounded,
+            value: '2026년 10월 2일',
+            onTap: () => taps++,
+          ),
+          AppPickerField(
+            key: const ValueKey<String>('compact'),
+            value: '10:00',
+            compact: true,
+            onTap: () => taps++,
+          ),
+        ],
+      ),
+      density: OnCareDensity.web,
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('wide')));
+    await tester.tap(find.byKey(const ValueKey<String>('compact')));
+    expect(taps, 2);
+
+    final Size wide = tester.getSize(
+      find.byKey(const ValueKey<String>('wide')),
+    );
+    final Size compact = tester.getSize(
+      find.byKey(const ValueKey<String>('compact')),
+    );
+    expect(wide.height, OnCareDensity.web.inputMedium);
+    expect(
+      compact.height,
+      OnCareDensity.web.buttonHeight(OnCareButtonSize.medium),
+    );
+    expect(compact.width, lessThan(wide.width));
+  });
 }

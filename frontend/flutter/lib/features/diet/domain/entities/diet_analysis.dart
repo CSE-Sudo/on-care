@@ -14,9 +14,17 @@ class RecognizedFood {
     this.proteinG = 0,
     this.fatG = 0,
     this.amountG,
+    this.displayName,
   });
 
+  /// 공공 영양 DB 가 매칭하는 한국어 이름. 화면에는 [label] 을 쓴다.
   final String name;
+
+  /// 화면 언어 표시 이름(#2850) — 영어 화면에서 분석하면 서버가 함께 준다.
+  final String? displayName;
+
+  /// 화면에 보일 이름 — 표시 이름이 있으면 그것, 없으면 [name].
+  String get label => displayName ?? name;
   final int calories;
   final int sodiumMg;
   final double sugarG;
@@ -50,6 +58,7 @@ class RecognizedFood {
       final num g when g > 0 => g.toDouble(),
       _ => null,
     },
+    displayName: displayNameOf(json['display_name']),
   );
 }
 

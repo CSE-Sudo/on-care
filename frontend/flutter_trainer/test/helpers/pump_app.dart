@@ -1,16 +1,17 @@
+import 'package:drift/drift.dart' show DatabaseConnection;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app.dart';
 import 'package:oncare_trainer/app/router/app_router.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/prefs_provider.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/kst_clock_provider.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
@@ -48,6 +49,10 @@ const AppConfig kTestAppConfigWithDemoEntry = AppConfig(
   useMockApi: true,
   showDemoEntry: true,
 );
+
+/// 테스트가 빌드 정보로 주입하는 버전 이름(#3047). `pubspec.yaml` 의 실제 버전과
+/// 일부러 다르게 둔다 — 화면이 버전을 문구에 박지 않고 빌드에서 읽는지 본다.
+const String kTestBuildVersion = '9.8.7';
 
 /// Pumps the full trainer app for a widget test, backed by a fresh
 /// in-memory (seeded) drift DB and an optional persisted session token.
@@ -105,7 +110,7 @@ Future<ProviderContainer> pumpTrainerApp(
   PackageInfo.setMockInitialValues(
     appName: 'oncare_trainer',
     packageName: 'oncare_trainer',
-    version: '0.1.0',
+    version: kTestBuildVersion,
     buildNumber: '1',
     buildSignature: '',
   );
@@ -125,7 +130,19 @@ Future<ProviderContainer> pumpTrainerApp(
   tester.platformDispatcher.localesTestValue = <Locale>[locale];
   addTearDown(tester.platformDispatcher.clearLocalesTestValue);
 
-  final db = AppDatabase.forTesting(NativeDatabase.memory());
+  // drift 는 마지막 구독자가 떠난 쿼리 스트림을 한 이벤트 루프 뒤
+  // (`Timer.run`)에 치운다. 그 타이머는 구독을 끊는 자리의 zone 에 걸리는데,
+  // 여러 리포트를 묶는 작업대 요약(`reportQueueFromReports`, #2863)처럼
+  // StreamController 로 감싼 스트림은 끊기가 테스트 본문의 fake async zone 에서
+  // 돈다. 테스트가 끝난 뒤에는 그 zone 을 아무도 펌프하지 않아 타이머가 영영
+  // 울리지 않고, 정리 단계의 `db.close()` 가 그 타이머를 기다리며 멈춘다.
+  // 테스트에서는 바로 치우게 둔다 — drift 가 테스트용으로 둔 옵션이다.
+  final db = AppDatabase.forTesting(
+    DatabaseConnection(
+      NativeDatabase.memory(),
+      closeStreamsSynchronously: true,
+    ),
+  );
   if (seedClock != null) useFixedKstDate(seedClock);
   if (seed) await seedIfEmpty(db, clock: seedClock);
   addTearDown(() async => db.close());
@@ -247,9 +264,6 @@ class _StillClientRepository implements ClientRepository {
   const _StillClientRepository();
 
   @override
-  bool get supportsRosterMutations => false;
-
-  @override
   Stream<List<TrainerClient>> watchClients() =>
       Stream<List<TrainerClient>>.value(const <TrainerClient>[]);
 
@@ -333,14 +347,6 @@ class _StillClientRepository implements ClientRepository {
     String clientId,
     ClientDateRange range,
   ) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
-
-  @override
-  Future<bool> clientNameExists(String name) =>
-      throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
-
-  @override
-  Future<bool> addClient({required String name, required String goal}) =>
-      throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 
   @override
   Future<void> setClientActive(String id, bool active) =>

@@ -20,12 +20,12 @@ import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/prefs_store.dart';
 import 'package:oncare/core/storage/seed_data.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_report_providers.dart';
 import 'package:oncare/features/member_coach/services/member_report_pdf_generator.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_report/oncare_report.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -163,7 +163,7 @@ void main() {
     final ReportSheetInputs mine = await load(tester, 'ko');
     expect(
       mine.week.caloriesWeek.any((int v) => v > 0) ||
-          mine.week.weekCompletion.any((int v) => v > 0),
+          mine.week.weekCompletion.any((int? v) => (v ?? 0) > 0),
       isTrue,
     );
     expect(mine.week.sessionsBooked, greaterThan(0));

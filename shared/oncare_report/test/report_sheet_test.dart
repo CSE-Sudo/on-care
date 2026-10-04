@@ -1,5 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_report/oncare_report.dart';
+import 'package:oncare_ui/oncare_ui.dart'
+    show
+        kGoalDefaultDailyCarbsG,
+        kGoalDefaultDailyFatG,
+        kGoalDefaultDailyProteinG,
+        kGoalDefaultDailySodiumMg;
 
 ReportSheetWeekData _report({
   int sessionsBooked = 2,
@@ -115,6 +121,21 @@ void main() {
       expect(sheet.diet[SheetDietItem.carbs]!.target, kReportCarbsTargetG);
       expect(sheet.diet[SheetDietItem.carbs]!.value, 275);
       expect(sheet.diet[SheetDietItem.protein]!.value, isNull);
+    });
+
+    test('목표가 없는 탄단지는 두 앱의 기준선과 같은 값으로 견준다(#2906)', () {
+      final ReportSheet sheet = ReportSheet.of(_report());
+      // 단백질은 홈 카드·트레이너 영양 카드·서버 식단 분석과 같은 60g 이다.
+      expect(
+        sheet.diet[SheetDietItem.protein]!.target,
+        kGoalDefaultDailyProteinG,
+      );
+      expect(sheet.diet[SheetDietItem.carbs]!.target, kGoalDefaultDailyCarbsG);
+      expect(sheet.diet[SheetDietItem.fat]!.target, kGoalDefaultDailyFatG);
+      expect(
+        sheet.diet[SheetDietItem.sodium]!.target,
+        kGoalDefaultDailySodiumMg,
+      );
     });
 
     test('출석은 진행 / 잡힌 수업이다', () {

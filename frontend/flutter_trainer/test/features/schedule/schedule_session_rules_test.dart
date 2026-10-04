@@ -155,7 +155,7 @@ void main() {
 
     test('마무리된 세션 거절(409)은 서버 사유를 담은 ServerError 다', () async {
       const path = '/trainer/schedule/sched-1';
-      const reason = '완료·취소·노쇼로 마무리된 세션은 메모·프로그램만 수정할 수 있습니다.';
+      const reason = '완료·취소·노쇼로 마무리된 PT는 메모·프로그램만 수정할 수 있습니다.';
       when(
         () => dio.put<Map<String, dynamic>>(path, data: any(named: 'data')),
       ).thenThrow(_error(path, 409, <String, dynamic>{'detail': reason}));

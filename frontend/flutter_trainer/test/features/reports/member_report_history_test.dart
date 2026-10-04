@@ -3,7 +3,9 @@
 /// 이 파일이 지키는 것:
 ///  * 목록 줄의 첫 줄([reportFeedbackPreview])은 서버 `feedback_preview` 와
 ///    같은 규칙이다 — 비어 있지 않은 첫 줄, 80자 넘으면 잘라 `…`.
-///  * [mergeMemberHistory] 는 같은 주에서 세션 기록이 이기고, 다른 회원 기록은
+///  * [mergeMemberHistory] 는 같은 주에서 서버가 아직 방금 보낸 것을 돌려주지
+///    않았으면 세션 기록이, 같은 횟수를 돌려줬으면 서버 기록이 이기고(#2885),
+///    다른 회원 기록은
 ///    끼우지 않고, 최신 주부터 세우고, 아직 안 불러온 쪽의 주는 얹지 않는다.
 library;
 
@@ -166,7 +168,7 @@ void main() {
       final List<MemberReportHistoryItem> merged = mergeMemberHistory(
         fetched: <MemberReportHistoryItem>[_item(w1, preview: '옛 글')],
         session: <String, ReportSendRecord>{
-          _key('c1', w1): _record(w1, message: '다시 쓴 글'),
+          _key('c1', w1): _record(w1, message: '다시 쓴 글', sendCount: 2),
         },
         clientId: 'c1',
       );
@@ -175,20 +177,39 @@ void main() {
       expect(only.sentAt, DateTime(2026, 8, 19, 9));
     });
 
-    test('같은 주를 덮을 때 방금 보낸 것은 안 읽음이고 횟수는 큰 쪽을 지킨다', () {
+    test('같은 주를 덮을 때 방금 보낸 것은 안 읽음이고 횟수가 바로 는다 (#2885)', () {
       final MemberReportHistoryItem only = mergeMemberHistory(
-        fetched: <MemberReportHistoryItem>[_item(w1, sendCount: 3)],
-        session: <String, ReportSendRecord>{_key('c1', w1): _record(w1)},
+        fetched: <MemberReportHistoryItem>[_item(w1, sendCount: 2)],
+        session: <String, ReportSendRecord>{
+          _key('c1', w1): _record(w1, sendCount: 3),
+        },
         clientId: 'c1',
       ).single;
       expect(only.read, isFalse);
       expect(only.sendCount, 3);
     });
 
+    test('서버가 같은 횟수를 돌려주면 서버 줄이 남는다 — 읽음도 따른다 (#2885)', () {
+      final MemberReportHistoryItem only = mergeMemberHistory(
+        fetched: <MemberReportHistoryItem>[
+          _item(w1, preview: '서버 글', sendCount: 2),
+        ],
+        session: <String, ReportSendRecord>{
+          _key('c1', w1): _record(w1, sendCount: 2, read: false),
+        },
+        clientId: 'c1',
+      ).single;
+      expect(only.feedbackPreview, '서버 글');
+      expect(only.read, isTrue);
+      expect(only.sendCount, 2);
+    });
+
     test('같은 주를 덮어도 서버의 메시지 id·PDF 여부는 남는다', () {
       final MemberReportHistoryItem only = mergeMemberHistory(
         fetched: <MemberReportHistoryItem>[_item(w1, messageId: 'server-msg')],
-        session: <String, ReportSendRecord>{_key('c1', w1): _record(w1)},
+        session: <String, ReportSendRecord>{
+          _key('c1', w1): _record(w1, sendCount: 2),
+        },
         clientId: 'c1',
       ).single;
       expect(only.messageId, 'server-msg');
@@ -223,7 +244,7 @@ void main() {
           _item(w2, preview: '옛'),
         ],
         session: <String, ReportSendRecord>{
-          _key('c1', w2): _record(w2, message: '새'),
+          _key('c1', w2): _record(w2, message: '새', sendCount: 2),
         },
         clientId: 'c1',
         oldestLoaded: w2,
@@ -235,7 +256,11 @@ void main() {
       final List<MemberReportHistoryItem> merged = mergeMemberHistory(
         fetched: <MemberReportHistoryItem>[_item(w1, preview: '옛')],
         session: <String, ReportSendRecord>{
-          _key('c1', w1): _record(DateTime(2026, 8, 20), message: '새'),
+          _key('c1', w1): _record(
+            DateTime(2026, 8, 20),
+            message: '새',
+            sendCount: 2,
+          ),
         },
         clientId: 'c1',
       );

@@ -128,7 +128,7 @@ void main() {
     test('종류 코드로 화면 언어의 이름을 고른다', () {
       expect(
         routineKindLabel(_en, 'PT 세션 · 트레이너 지도', kind: 'pt_session'),
-        'PT session · Trainer-led',
+        'PT · Trainer-led',
       );
       expect(
         routineKindLabel(_en, 'AI 개인운동', kind: 'ai_personal'),
@@ -143,7 +143,7 @@ void main() {
     test('한국어 이름은 예전과 같다', () {
       expect(
         routineKindLabel(_ko, 'PT 세션 · 트레이너 지도', kind: 'pt_session'),
-        'PT 세션 · 트레이너 지도',
+        'PT · 트레이너 지도',
       );
       expect(
         routineKindLabel(_ko, '배정 루틴 수행', kind: 'assigned_routine'),
@@ -155,7 +155,7 @@ void main() {
     test('코드가 없는 옛 서버·데모 행은 저장된 이름에서 코드를 되짚는다', () {
       expect(
         routineKindLabel(_en, 'PT 세션 · 트레이너 지도'),
-        'PT session · Trainer-led',
+        'PT · Trainer-led',
       );
       expect(routineKindLabel(_en, '  AI 개인운동 '), 'Personal exercise');
       expect(routineKindLabel(_en, 'AI 루틴 · 자율 운동'), 'Personal exercise');
@@ -440,7 +440,7 @@ void main() {
       expect(routineHistoryDateLabel(_ko, h, now: _now), '9/27 (오늘)');
       expect(
         routineKindLabel(_en, h.label, kind: h.kind),
-        'PT session · Trainer-led',
+        'PT · Trainer-led',
       );
     });
 

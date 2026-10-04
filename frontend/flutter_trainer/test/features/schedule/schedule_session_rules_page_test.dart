@@ -17,7 +17,7 @@ import '../../helpers/fixed_clock.dart';
 import '../../helpers/pump_app.dart';
 
 const String _deleteReason = '예약으로 생성된 일정은 일반 일정 화면에서 삭제할 수 없습니다.';
-const String _saveReason = '완료·취소·노쇼로 마무리된 세션은 메모·프로그램만 수정할 수 있습니다.';
+const String _saveReason = '완료·취소·노쇼로 마무리된 PT는 메모·프로그램만 수정할 수 있습니다.';
 
 /// 서버처럼 사유를 담아 거절하는 저장소.
 class _RejectingScheduleRepository extends DriftScheduleRepository {

@@ -21,6 +21,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core import clock
+from app.core.week import monday_of
 from app.db.seed_trainer import TRAINER_ID, _MEMBERS
 from app.db.session import SessionLocal
 from app.models import models
@@ -296,7 +297,7 @@ def seed_drafts(db: Session, today: date) -> None:
 
 def seed_past_pt_notes(db: Session, today: date) -> None:
     """지난 두 주 회원별 첫 시드 PT 에 수업 메모를 단다 — 비어 있을 때만."""
-    monday = today - timedelta(days=today.weekday())
+    monday = monday_of(today)
     for back, notes in enumerate(_PAST_PT_NOTES, start=1):
         week_monday = monday - timedelta(weeks=back)
         week_sunday = week_monday + timedelta(days=6)

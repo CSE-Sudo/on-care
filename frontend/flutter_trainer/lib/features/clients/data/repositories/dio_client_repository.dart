@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:ui' show Locale;
 
 import 'package:dio/dio.dart';
+import 'package:oncare_core/active_polling_stream.dart';
+import 'package:oncare_core/network/accept_language_interceptor.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/network/interceptors/accept_language_interceptor.dart';
-import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/data/dtos/client_dtos.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
@@ -54,19 +54,18 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
       StreamController<String?>.broadcast(sync: true);
 
   @override
-  bool get supportsRosterMutations => false;
-
-  @override
   Stream<List<TrainerClient>> watchClients() =>
       activePollingStream<List<TrainerClient>>(
         load: _fetchClients,
         interval: pollInterval,
         refreshes: _refreshesFor(null),
+        keepPollingWhileInactive: true,
       );
 
-  /// The roster endpoint carries no chat-recency signal, so priority
-  /// ordering falls back to the server's own order. Emitting an empty map
-  /// (not nothing) lets the ordering resolve immediately.
+  /// 실서버는 채팅 시각을 따로 흘리지 않는다 — 로스터의 회원마다
+  /// `last_message_at`([TrainerClient.lastMessageAt])이 실려 오고, 정렬
+  /// 함수가 그 값으로 폴백한다(#3011). 같은 값을 두 길로 흘리지 않도록 빈
+  /// 맵을 내보낸다(아무것도 내보내지 않으면 정렬이 그 값을 기다린다).
   @override
   Stream<Map<String, DateTime>> watchLastChatAt() =>
       Stream<Map<String, DateTime>>.value(const <String, DateTime>{});
@@ -77,6 +76,7 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
         load: () => _fetchDiet(clientId),
         interval: pollInterval,
         refreshes: _refreshesFor(clientId),
+        keepPollingWhileInactive: true,
       );
 
   @override
@@ -85,6 +85,7 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
         load: () => _fetchHistory(clientId),
         interval: pollInterval,
         refreshes: _refreshesFor(clientId),
+        keepPollingWhileInactive: true,
       );
 
   Stream<void> _refreshesFor(String? clientId) => _refreshes.stream
@@ -425,15 +426,6 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
       throw AppError.fromDio(e);
     }
   }
-
-  @override
-  Future<bool> clientNameExists(String name) => throw UnsupportedError(
-    'clientNameExists is demo-only (no backend endpoint).',
-  );
-
-  @override
-  Future<bool> addClient({required String name, required String goal}) =>
-      throw UnsupportedError('addClient is demo-only (no backend endpoint).');
 
   /// Flips the trainer's 활성/휴면 management state for [id] (#707).
   ///

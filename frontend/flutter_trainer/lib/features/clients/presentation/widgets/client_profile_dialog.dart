@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
@@ -41,6 +42,7 @@ Future<void> showClientProfileDialog(
   int? ageYears,
   ClientProfileSection section = ClientProfileSection.health,
   bool openHealthNotes = false,
+  bool openFeedback = false,
 }) => showAppDialog<void>(
   context: context,
   builder: (_) => ClientProfileDialog(
@@ -49,6 +51,7 @@ Future<void> showClientProfileDialog(
     ageYears: ageYears,
     section: section,
     openHealthNotes: openHealthNotes,
+    openFeedback: openFeedback,
   ),
 );
 
@@ -65,6 +68,7 @@ class ClientProfileDialog extends StatelessWidget {
     this.ageYears,
     this.section = ClientProfileSection.health,
     this.openHealthNotes = false,
+    this.openFeedback = false,
   });
 
   /// The client whose profile or memos are shown.
@@ -83,6 +87,9 @@ class ClientProfileDialog extends StatelessWidget {
   /// 신체·목표 창을 건강상태·주의사항이 있는 `건강 목표` 탭으로 연다(#2619).
   final bool openHealthNotes;
 
+  /// 메모 창을 회원과 주고받은 글이 있는 `피드백` 탭으로 연다(#3026).
+  final bool openFeedback;
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -99,9 +106,15 @@ class ClientProfileDialog extends StatelessWidget {
       ),
       ClientProfileSection.memo => AppDialog(
         key: const ValueKey<String>('client-memo-dialog'),
-        title: l.clientTrainerMemo,
+        title: l.clientMemoDialogTitle,
         size: AppDialogSize.medium,
-        child: _MemoDialogBody(clientId: clientId, clientName: clientName),
+        // 메모·피드백 탭을 오갈 때 창 높이가 바뀌지 않게 고정한다(#2955).
+        fixedHeight: true,
+        child: _MemoDialogBody(
+          clientId: clientId,
+          clientName: clientName,
+          openFeedback: openFeedback,
+        ),
       ),
     };
   }
@@ -466,7 +479,8 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       l.memberHealthGoalProtein,
       AppGoalRanges.dailyProteinG,
       true,
-      hint: '$proteinTargetG',
+      // 비워 두면 식단 분석이 쓰는 실효 목표(#2898)다 — 체중이 있으면 체중 × 1.2g.
+      hint: '${_base?.effectiveDailyProteinG ?? proteinTargetG}',
     ),
     _NumberField(
       'client-goal-fat',
@@ -707,7 +721,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
             child: Text(
               name,
               style: tokens
-                  .text(OnCareTypography.bodySmall)
+                  .text(OnCareTypography.body)
                   .copyWith(color: OnCareColors.textPrimary),
             ),
           ),
@@ -719,7 +733,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
               child: Text(
                 unit,
                 style: tokens
-                    .text(OnCareTypography.caption)
+                    .text(OnCareTypography.bodySmall)
                     .copyWith(color: OnCareColors.textSecondary),
               ),
             ),
@@ -751,7 +765,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
           textAlign: TextAlign.end,
           style:
               OnCareTypography.numeric(
-                context.oncare.text(OnCareTypography.bodySmall),
+                context.oncare.text(OnCareTypography.body),
               ).copyWith(
                 color: text.isEmpty
                     ? OnCareColors.textTertiary
@@ -806,6 +820,8 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       key: const ValueKey<String>('client-profile-dialog'),
       title: l.clientProfileSectionTitle,
       size: AppDialogSize.medium,
+      // 신체·목표 탭을 오갈 때 창 높이가 바뀌지 않게 고정한다(#2955).
+      fixedHeight: true,
       trailing: _editing || !_profileLoaded
           ? null
           : AppIconButton(
@@ -870,7 +886,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
                       ),
                       textAlign: TextAlign.end,
                       style: tokens
-                          .text(OnCareTypography.bodySmall)
+                          .text(OnCareTypography.body)
                           .copyWith(
                             color: _gender.isEmpty
                                 ? OnCareColors.textTertiary
@@ -1249,17 +1265,22 @@ enum _MemoTab { memo, feedback }
 /// 규칙). 헤더의 `메모` 버튼은 하나 그대로 두고 창 안에서 나눈다 — "이 회원에
 /// 대해 남긴 것" 을 찾는 자리가 둘로 갈라지지 않게.
 class _MemoDialogBody extends StatefulWidget {
-  const _MemoDialogBody({required this.clientId, required this.clientName});
+  const _MemoDialogBody({
+    required this.clientId,
+    required this.clientName,
+    this.openFeedback = false,
+  });
 
   final String clientId;
   final String clientName;
+  final bool openFeedback;
 
   @override
   State<_MemoDialogBody> createState() => _MemoDialogBodyState();
 }
 
 class _MemoDialogBodyState extends State<_MemoDialogBody> {
-  _MemoTab _tab = _MemoTab.memo;
+  late _MemoTab _tab = widget.openFeedback ? _MemoTab.feedback : _MemoTab.memo;
 
   @override
   Widget build(BuildContext context) {
@@ -1888,8 +1909,9 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
     }
   }
 
+  /// 메모 시각은 KST 벽시계로 보인다 — 브라우저 시간대와 상관없이(#2893).
   static String _dayLabel(DateTime at) {
-    final local = at.toLocal();
+    final DateTime local = toKst(at);
     String two(int v) => v.toString().padLeft(2, '0');
     return '${local.year}.${two(local.month)}.${two(local.day)} '
         '${two(local.hour)}:${two(local.minute)}';

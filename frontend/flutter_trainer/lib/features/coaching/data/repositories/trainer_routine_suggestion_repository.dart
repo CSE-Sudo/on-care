@@ -172,8 +172,8 @@ class MockTrainerRoutineSuggestionRepository
       minutes: 10,
       type: '스트레칭',
       reason:
-          'There was a PT session 2 days ago. Loosening the upper back '
-          'eases the shoulders before the next session.',
+          'There was a PT 2 days ago. Loosening the upper back '
+          'eases the shoulders before the next PT.',
       evidence: <String>[RoutineEvidence.recentPtFeedback],
     ),
     RoutineSuggestion(
