@@ -189,6 +189,24 @@ jobs:
           cp public/version.txt public/frontend/version.txt
           cp public/version.txt public/trainer/version.txt
 
+      # 두 앱 meta CSP 의 connect-src 는 로컬 개발용으로 https: 전체·localhost 까지 열려 있다.
+      # Pages 는 응답 헤더를 붙일 수 없어 meta 가 전부이므로, 이 빌드가 부르는 출처(실서버면
+      # API 출처, 목업이면 없음)와 CanvasKit·글꼴·카카오 SDK 출처로 좁히고 확인한다(#3089).
+      # 운영 CloudFront 는 같은 목록을 응답 헤더로 내린다(#3017).
+      - name: Narrow demo CSP connect-src
+        env:
+          API_BASE_URL: ${{ vars.STAGING_API_BASE_URL }}
+        run: |
+          set -euo pipefail
+          api=""
+          if [ "$WEB_USE_MOCK_API" = "false" ]; then
+            api="$API_BASE_URL"
+          fi
+          for page in public/frontend/index.html public/trainer/index.html; do
+            bash .github/scripts/pages_demo_csp.sh narrow "$page" "$api"
+            bash .github/scripts/pages_demo_csp.sh check "$page" "$api"
+          done
+
       # og:url·canonical 은 이 배포의 커스텀 도메인(CNAME)으로 채운다(#2841). AWS 배포는 자기
       # 도메인으로 따로 채우므로 원본 index.html 에는 표시 줄만 있다.
       - name: Stamp landing site URL

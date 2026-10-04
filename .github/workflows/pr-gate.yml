@@ -191,6 +191,21 @@ jobs:
           set -euo pipefail
           bash .github/scripts/test_verify_backend_health.sh
 
+      - name: Test the drift WASM checksum check
+        # 두 웹 앱 배포가 받는 sqlite3.wasm·drift_worker.js 는 앱과 같은 출처로 나간다. 해시가
+        # 다르거나 표에 없는 버전이면 실패하는지, 두 앱 pubspec.lock 의 버전이 표에 있는지
+        # 병합 전에 확인한다(#3089).
+        run: |
+          set -euo pipefail
+          bash .github/scripts/test_fetch_drift_wasm.sh
+
+      - name: Test the Pages demo CSP narrowing
+        # Pages 데모 배포가 두 앱 meta CSP 의 connect-src 를 이 스크립트로 좁힌다. 다른 지시어를
+        # 건드리거나 넓은 목록을 놓치지 않는지 실제 index.html 사본으로 병합 전에 확인한다(#3089).
+        run: |
+          set -euo pipefail
+          bash .github/scripts/test_pages_demo_csp.sh
+
       - name: Test the demo divergence checker
         # 아래 검사가 오탐하면 필수 검사인 이 job 이 PR 병합을 막는다. 임시 저장소의
         # 가짜 diff 로 걸림·안 걸림·예외 통과를 먼저 확인한다(#2791).

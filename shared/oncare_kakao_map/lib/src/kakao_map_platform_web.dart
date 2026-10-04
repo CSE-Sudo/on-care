@@ -47,6 +47,9 @@ Future<void> _ensureSdkLoaded() {
   if (existing != null) return existing;
 
   final Completer<void> completer = Completer<void>();
+  // SRI(integrity)는 걸 수 없다(#3089) — SDK 내용이 예고 없이 바뀌고 t1.daumcdn.net
+  // 의 스크립트를 다시 불러온다. 남은 방어는 CSP script-src 와 카카오 콘솔의 JS 키
+  // 사용 도메인 제한이다.
   final web.HTMLScriptElement script =
       web.document.createElement('script') as web.HTMLScriptElement
         ..src = kakaoMapSdkSrc(kakaoJsKey)

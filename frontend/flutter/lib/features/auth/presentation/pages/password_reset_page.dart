@@ -71,9 +71,35 @@ class _PasswordResetPageState extends ConsumerState<PasswordResetPage> {
     if (code.isNotEmpty) {
       _code.text = PasswordResetCode.format(code);
       _step = PasswordResetStep.confirm;
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _dropTokenFromAddress(),
+      );
     } else {
       _step = PasswordResetStep.request;
     }
+  }
+
+  /// 메일 링크로 들어왔으면 주소에서 `token` 을 지운다(#3089). 30분 동안 쓸 수 있는
+  /// 일회용 코드가 주소창·방문 기록·화면 공유에 남지 않게 한다. 코드는 이미 칸에
+  /// 옮겨 두었다.
+  ///
+  /// 같은 경로로 다시 가되 [Router.neglect] 로 감싸 방문 기록에 새 항목을 쌓지 않고
+  /// 지금 항목을 바꾼다. 경로가 같아 이 화면과 입력은 그대로 남는다(새로고침하면 코드
+  /// 없이 요청 단계부터 다시 한다). 라우터가 기억하는 주소도 바뀌므로 나중에 라우터가
+  /// 주소를 다시 알려도 코드가 되살아나지 않는다.
+  void _dropTokenFromAddress() {
+    if (!mounted) return;
+    final GoRouter? router = GoRouter.maybeOf(context);
+    if (router == null) return;
+    final Uri uri = router.routerDelegate.currentConfiguration.uri;
+    if (!uri.queryParameters.containsKey('token')) return;
+    final Map<String, String> rest = Map<String, String>.of(uri.queryParameters)
+      ..remove('token');
+    final Uri clean = Uri(
+      path: uri.path,
+      queryParameters: rest.isEmpty ? null : rest,
+    );
+    Router.neglect(context, () => router.go(clean.toString()));
   }
 
   @override

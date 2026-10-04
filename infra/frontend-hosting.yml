@@ -46,13 +46,6 @@ Parameters:
   GitHubBranch:
     Type: String
     Default: main
-  UseImmutableGitHubOidcSubject:
-    Type: String
-    Default: 'true'
-    AllowedValues:
-      - 'true'
-      - 'false'
-    Description: Use GitHub's owner-ID and repository-ID based OIDC subject format
   ExistingGitHubOidcProviderArn:
     Type: String
     Default: ''
@@ -90,7 +83,6 @@ Rules:
 Conditions:
   HasCustomDomain: !Not [!Equals [!Ref AlternateDomainName, '']]
   CreateGitHubOidcProvider: !Equals [!Ref ExistingGitHubOidcProviderArn, '']
-  UseImmutableGitHubOidcSubjectCondition: !Equals [!Ref UseImmutableGitHubOidcSubject, 'true']
   AllowBranchOidcSubjectCondition: !Equals [!Ref AllowBranchOidcSubject, 'true']
 
 Resources:
@@ -385,10 +377,9 @@ Resources:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
               # Environment 이름은 대소문자를 가리지 않는다(저장소의 `Production` = `production`).
               StringEqualsIgnoreCase:
-                token.actions.githubusercontent.com:sub: !If
-                  - UseImmutableGitHubOidcSubjectCondition
-                  - !Sub 'repo:${GitHubOwner}@${GitHubOwnerId}/${GitHubRepository}@${GitHubRepositoryId}:environment:${GitHubEnvironment}'
-                  - !Sub 'repo:${GitHubOwner}/${GitHubRepository}:environment:${GitHubEnvironment}'
+                # ID 기반 subject 하나만 신뢰한다(#3089). 이름 기반(repo:<소유자>/<저장소>)은
+                # 같은 이름을 다시 쓰는 다른 저장소도 맞출 수 있어 두지 않는다 — 백엔드 역할과 같다.
+                token.actions.githubusercontent.com:sub: !Sub 'repo:${GitHubOwner}@${GitHubOwnerId}/${GitHubRepository}@${GitHubRepositoryId}:environment:${GitHubEnvironment}'
           - !If
             - AllowBranchOidcSubjectCondition
             - Sid: TrustMainBranchDuringMove
@@ -402,10 +393,7 @@ Resources:
               Condition:
                 StringEquals:
                   token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                  token.actions.githubusercontent.com:sub: !If
-                    - UseImmutableGitHubOidcSubjectCondition
-                    - !Sub 'repo:${GitHubOwner}@${GitHubOwnerId}/${GitHubRepository}@${GitHubRepositoryId}:ref:refs/heads/${GitHubBranch}'
-                    - !Sub 'repo:${GitHubOwner}/${GitHubRepository}:ref:refs/heads/${GitHubBranch}'
+                  token.actions.githubusercontent.com:sub: !Sub 'repo:${GitHubOwner}@${GitHubOwnerId}/${GitHubRepository}@${GitHubRepositoryId}:ref:refs/heads/${GitHubBranch}'
             - !Ref AWS::NoValue
       Policies:
         - PolicyName: deploy-frontend
