@@ -10,8 +10,8 @@
 
 기존 행은 둘 다 NULL 이라 이 마이그레이션만으로 바뀌는 동작은 없다.
 
-Revision ID: 0142_exercise_client_request
-Revises: 0141_retire_marketing_consent
+Revision ID: 0145_exercise_client_request
+Revises: 0142_email_verification
 Create Date: 2026-10-04
 """
 from __future__ import annotations
@@ -21,8 +21,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0142_exercise_client_request"
-down_revision: str | Sequence[str] | None = "0141_retire_marketing_consent"
+revision: str = "0145_exercise_client_request"
+down_revision: str | Sequence[str] | None = "0142_email_verification"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
