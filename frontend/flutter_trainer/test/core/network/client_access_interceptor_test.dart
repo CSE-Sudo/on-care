@@ -72,7 +72,7 @@ void main() {
         '/v1/trainer/clients/m1/chat/read',
         '/v1/trainer/clients/m1/report/summary',
         '/v1/trainer/clients/m1/memos/memo-1',
-        '/v1/trainer/clients/m1/ai-coach',
+        '/v1/trainer/clients/m1/report',
         'http://localhost/v1/trainer/clients/m1/routines',
       ]) {
         expect(

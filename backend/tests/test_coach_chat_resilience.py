@@ -161,30 +161,3 @@ def test_chat_answers_when_generation_fails(client, db_session, member):
     body = r.json()
     assert title in body["sources"]
     assert content in body["reply"]
-
-
-def test_trainer_client_coach_answers_when_retrieve_fails(client, monkeypatch):
-    """트레이너 쪽 코칭 질의도 같은 폴백 경계를 쓴다(같은 answer 를 부른다)."""
-    _fail_retrieve(monkeypatch)
-    r = client.post(
-        "/v1/auth/login",
-        data={"username": "trainer@oncare.com", "password": "oncare123"},
-    )
-    if r.status_code != 200:
-        pytest.skip("데모 트레이너 계정이 없는 환경")
-    token = r.json()["access_token"]
-
-    clients = client.get("/v1/trainer/clients", headers=_h(token))
-    assert clients.status_code == 200, clients.text
-    rows = clients.json()
-    if not rows:
-        pytest.skip("담당 회원이 없는 환경")
-    member_id = rows[0]["member_id"] if "member_id" in rows[0] else rows[0]["id"]
-
-    reply = client.post(
-        f"/v1/trainer/clients/{member_id}/ai-coach",
-        json={"message": "이 회원 식단은 어떤가요"}, headers=_h(token),
-    )
-
-    assert reply.status_code == 200, reply.text
-    assert reply.json()["reply"].strip()

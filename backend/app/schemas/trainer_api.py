@@ -1964,36 +1964,6 @@ class TrainerKakaoGymSelect(BaseModel):
     name: str = Field(min_length=1, max_length=200)
 
 
-# ---- 트레이너용 AI 코칭 (회원 데이터 기반) ----
-
-class ClientCoachRequest(BaseModel):
-    """트레이너가 담당 고객에 대해 AI에게 묻는 질문."""
-    message: str = Field(min_length=1, max_length=1000)
-
-
-class ClientCoachMessageOut(BaseModel):
-    """복원된 문답 한 줄 (#588).
-
-    `role` 은 저장값을 그대로 쓴다(user|coach). 회원 앱의 채팅 계약과 같은 값이라
-    프론트가 두 화면에서 같은 분기를 쓸 수 있다.
-    """
-    role: str
-    content: str
-    sources: list[str] = Field(default_factory=list)
-
-
-class ClientCoachOut(BaseModel):
-    """AI 답변 + 근거.
-
-    회원 앱의 `/ai-coach/chat` 과 같은 RAG 파이프라인이지만, 검색 스코프가
-    **호출한 트레이너가 아니라 담당 회원**이라는 점이 다르다 — 트레이너가
-    자기 자신의(비어 있는) 기록으로 코칭받는 일이 없도록.
-    """
-    member_id: str
-    reply: str
-    sources: list[str] = []
-
-
 # ---- 주간 리포트 (트레이너 → 회원) ----
 
 class WeeklyReportDayOut(BaseModel):

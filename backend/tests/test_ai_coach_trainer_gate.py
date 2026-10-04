@@ -2,8 +2,8 @@
 
 트레이너가 연결된 회원은 AI 챗봇 대신 트레이너와 채팅한다. 앱이 입구를 숨기는 것과
 별개로 서버가 대화 경로를 거절해야 한다. 회원 본인 AI 대화는 최근 30일만 복원하고,
-새 대화를 저장할 때 그보다 오래된 메시지를 지운다. 트레이너가 회원에 대해 묻는
-스레드는 이 보관 규칙의 대상이 아니다.
+새 대화를 저장할 때 그보다 오래된 메시지를 지운다. 예전 트레이너 AI 코칭 스레드가
+남아 있어도 회원 대화의 복원·정리에 섞이지 않는다(#3085).
 
 LLM 은 호출하지 않는다 — 검색 기반 폴백으로 고정한다.
 """
@@ -149,22 +149,33 @@ def test_history_keeps_only_the_last_30_days(client, db_session):
     assert remaining[:3] == ["얼마 전 질문", "얼마 전 답", "오늘 질문"]
 
 
-def test_trainer_thread_is_not_trimmed(client, db_session):
-    """트레이너가 회원에 대해 AI 에게 묻는 스레드는 회원 챗봇 보관 규칙을 따르지 않는다."""
-    member_id, _ = _member(client)
+def test_leftover_trainer_thread_stays_out_of_member_history(client, db_session):
+    """예전 트레이너 AI 코칭 스레드(#588, #3085 에서 API 삭제)는 회원 복원에 섞이지 않고,
+    회원 보관 정리도 그 스레드를 건드리지 않는다(지우는 일은 마이그레이션 0146 이 한다)."""
+    member_id, headers = _member(client)
     trainer_id = _trainer(db_session)
-    convo = conversation.append_exchange(
-        db_session,
-        member_id,
-        question="회원 식단 요약",
-        reply="요약",
-        sources=[],
-        trainer_id=trainer_id,
+    convo = AiConversation(
+        id=f"aiconv-gate-{uuid4().hex[:8]}", user_id=member_id, trainer_id=trainer_id
     )
-    _age(db_session, convo.id, ["회원 식단 요약", "요약"], days=45)
+    db_session.add(convo)
+    db_session.flush()
+    db_session.add(
+        AiMessage(
+            id=f"aimsg-gate-{uuid4().hex[:8]}",
+            conversation_id=convo.id,
+            seq=0,
+            role="user",
+            content="회원 식단 요약",
+            sources_json="[]",
+        )
+    )
+    db_session.commit()
+    _age(db_session, convo.id, ["회원 식단 요약"], days=45)
 
     assert conversation.purge_expired_messages(db_session, member_id) == 0
     db_session.commit()
+    assert conversation.load_messages(db_session, member_id) == []
 
-    kept = conversation.load_messages(db_session, member_id, trainer_id=trainer_id)
-    assert [m.content for m in kept] == ["회원 식단 요약", "요약"]
+    history = client.get("/v1/ai-coach/messages", headers=headers)
+    assert history.status_code == 200, history.text
+    assert history.json()["messages"] == []
