@@ -51,13 +51,22 @@ extension _LocalApiNotifications on LocalApiInterceptor {
           'read': r.read,
           'created_at': r.createdAt.toIso8601String(),
           // 데모 시드 알림은 정해 둔 경과 시간으로 보인다 — 같은 날 안에서 시각이
-          // 흐르지 않는다(#2660). 나머지는 실제 경과다.
-          'time_ago': _timeAgoKorean(
-            kDemoAlertAgeBySeedId[r.id] ?? now.difference(r.createdAt),
-          ),
+          // 흐르지 않는다(#2660). 나머지는 실제 경과이고 문구도 서버 일반 알림과
+          // 같다(#3099).
+          'time_ago': switch (kDemoAlertAgeBySeedId[r.id]) {
+            final Duration ago => _demoSeedTimeAgoKorean(ago),
+            null => _timeAgoKorean(now.difference(r.createdAt)),
+          },
           // 데모 시드 알림은 예전 데모 목록의 목적지, 나머지는 서버처럼 갈래별
           // 목적지를 싣는다(#1789·#2660).
-          'action': ?(_demoSeedAction(r.id) ?? _demoActionFor(r.category)),
+          // 목적지가 없으면 서버처럼 null 로 싣는다 — 키가 빠지면 응답 모양이
+          // 갈린다(#3099).
+          'action': _demoSeedAction(r.id) ?? _demoActionFor(r.category),
+          // 데모는 담당 요청 알림·문장 틀을 만들지 않는다. 서버 `NotificationOut`
+          // 과 같은 키를 빈 값으로 싣는다(#3099).
+          'invite_id': null,
+          'template': null,
+          'args': null,
           // 데모 시드 알림은 문구 키를 함께 준다 — 화면이 로케일에 맞는 문장을
           // 고른다. 시드 밖의 알림은 키가 없다(#1812).
           'message_key': ?kDemoAlertKeyBySeedId[r.id],
@@ -113,7 +122,18 @@ extension _LocalApiNotifications on LocalApiInterceptor {
     return _ok(options, <String, Object?>{'marked_read': n});
   }
 
+  /// 시드 밖 알림의 상대 시각 — 서버 `notification_service.time_ago` 와 같다.
+  /// 하루 지난 알림은 `1일 전` 이다(#3099).
   String _timeAgoKorean(Duration d) {
+    if (d.inMinutes < 1) return '방금 전';
+    if (d.inMinutes < 60) return '${d.inMinutes}분 전';
+    if (d.inHours < 24) return '${d.inHours}시간 전';
+    return '${d.inDays}일 전';
+  }
+
+  /// 데모 시드 알림의 상대 시각 — 서버 `seed_notifications.demo_time_ago` 와
+  /// 같다. 하루 지난 알림은 `어제` 다(#2691).
+  String _demoSeedTimeAgoKorean(Duration d) {
     if (d.inMinutes < 1) return '방금';
     if (d.inMinutes < 60) return '${d.inMinutes}분 전';
     if (d.inHours < 24) return '${d.inHours}시간 전';

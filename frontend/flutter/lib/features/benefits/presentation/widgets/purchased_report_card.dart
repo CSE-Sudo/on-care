@@ -138,8 +138,11 @@ const int _insightKindsShown = 3;
 /// 건만으로 문서가 두 장이 된다 — 리포트는 한 장에 담는다(#1619). 언제 무슨 말을
 /// 했는지는 AI 코치의 감지 기록 창에서 본다.
 ///
-/// 감지 시각은 KST 로 옮겨 날짜를 판정한다 — 기기 시간대로 자르면 월요일 새벽에
-/// 쓴 말이 지난주로 넘어간다. 그 주에 감지가 없으면 빈 목록이다.
+/// 감지 시각은 KST 벽시계로 날짜를 판정한다 — 기기 시간대로 자르면 월요일 새벽에
+/// 쓴 말이 지난주로 넘어간다. 기록은 [ChatInsightRecord.fromJson] 에서 이미 KST
+/// 벽시계(UTC 아님)가 되어 오므로 `toUtc()` 로 다시 옮기지 않는다 — 그러면 필드를
+/// 기기 시간대로 읽어 KST 밖 기기에서 한 주가 밀린다(#3098). [toKst] 는 UTC 값만
+/// 바꾸므로 두 번 거쳐도 안전하다. 그 주에 감지가 없으면 빈 목록이다.
 List<String> weeklyInsightLines(
   AppLocalizations l,
   List<ChatInsightRecord> records,
@@ -160,7 +163,7 @@ List<String> weeklyInsightLines(
   final List<(DateTime, ChatInsightRecord)> inWeek =
       <(DateTime, ChatInsightRecord)>[
         for (final ChatInsightRecord r in records)
-          if (_kst(r.createdAt) case final DateTime at
+          if (toKst(r.createdAt) case final DateTime at
               when !at.isBefore(monday) && at.isBefore(nextMonday))
             (at, r),
       ]..sort(
@@ -190,16 +193,4 @@ List<String> weeklyInsightLines(
       if (rest > 0) l.coachReportPdfInsightMore(rest),
     ].join(' · '),
   ];
-}
-
-DateTime _kst(DateTime at) {
-  final DateTime seoul = at.toUtc().add(kstOffset);
-  return DateTime(
-    seoul.year,
-    seoul.month,
-    seoul.day,
-    seoul.hour,
-    seoul.minute,
-    seoul.second,
-  );
 }
