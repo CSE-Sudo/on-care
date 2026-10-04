@@ -46,7 +46,8 @@
 | 트레이너 열람 기록, 데이터 공유 동의·철회, 탈퇴 기록 | 2년 | 「개인정보의 안전성 확보조치 기준」 처리 기록 | `config.py` `audit_sensitive_retention_days=730`, `services/audit.py` `SENSITIVE_EVENTS` |
 | 탈퇴 사유 | 회원과 잇지 않은 사유 코드·시각만 | 개인정보 아님 | `account_deletion_reasons` |
 
-기간이 지난 감사 기록은 서버가 기동할 때 지운다(`audit.purge_expired_best_effort`, `app/main.py`).
+기간이 지난 감사 기록은 서버가 기동할 때와 그 뒤 하루마다 지운다(`services/retention.py` `run_purge`,
+`app/main.py` lifespan, #3144). 재시작 없이 오래 도는 서버에서도 고지한 보관 기간을 하루 넘게 넘기지 않는다.
 
 ## 3. 파기 — 실제 동작
 
