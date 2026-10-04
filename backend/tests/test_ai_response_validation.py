@@ -431,7 +431,7 @@ def test_long_headline_falls_back_to_the_rule_summary(monkeypatch, caplog, over)
     monkeypatch.setattr(
         svc,
         "_call_llm",
-        lambda prompt, locale="ko": SimpleNamespace(
+        lambda prompt, locale="ko", **_kw: SimpleNamespace(
             text=json.dumps({"headline": headline, "points": evidence[:1]})
         ),
     )
