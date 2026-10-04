@@ -27,6 +27,7 @@ from app.core import clock
 from app.core.config import get_settings
 from app.core.locale import get_request_locale
 from app.core.rate_limit import (
+    PasswordChangeGuard,
     check_key,
     clear_failures,
     ensure_unlocked,
@@ -551,23 +552,33 @@ def change_my_password(
 
     소셜 로그인 전용 계정(비밀번호 없음)은 409 다 — 확인할 현재 비밀번호가 없다.
     현재 비밀번호 불일치는 401 이 아니라 400 이다. 토큰은 유효하므로 앱이
-    로그아웃으로 오인하면 안 된다. 틀린 비밀번호를 연달아 맞혀 보는 것은 IP 별
-    rate limit 이 막는다.
+    로그아웃으로 오인하면 안 된다.
+
+    시도 제한(#3087): IP 한도에 더해 트레이너와 같은 **계정 단위 실패 잠금**을 건다.
+    접근 토큰을 손에 넣은 쪽이 IP 를 바꿔 가며 현재 비밀번호를 맞혀 보면, 맞히는
+    순간 다른 기기 토큰까지 끊고 계정을 가져간다. `login_lockout_seconds` 창 안에
+    `password_change_max_failures` 번 틀리면 남은 시간 동안 429 다. 잠금 판정은
+    비밀번호 확인보다 먼저 하고, 소셜 전용 계정(409)은 세지 않는다.
     """
     if not user.hashed_password:
         raise HTTPException(
             status_code=409,
             detail="소셜 로그인 계정은 비밀번호가 없어 바꿀 수 없습니다.",
         )
+    guard = PasswordChangeGuard(user.id)
+    guard.ensure_unlocked()
     if not verify_password(payload.current_password, user.hashed_password):
+        guard.record_failure()
         audit(
             db,
             event="auth.password_change",
             user_id=user.id,
             ip=client_ip(request),
             success=False,
+            detail="current_password_mismatch",
         )
         raise HTTPException(status_code=400, detail="현재 비밀번호가 일치하지 않습니다.")
+    guard.clear()
     if verify_password(payload.new_password, user.hashed_password):
         raise HTTPException(status_code=400, detail="현재와 다른 비밀번호를 입력해 주세요.")
     user.hashed_password = hash_password(payload.new_password)
