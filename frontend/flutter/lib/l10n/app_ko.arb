@@ -1694,7 +1694,6 @@
       }
     }
   },
-  "coachAssignedTrainer": "담당 트레이너",
   "coachRoutineTitle": "추천 개인운동",
   "coachRoutineAiTitle": "AI 추천 개인운동",
   "coachRoutinePastEditHint": "빠뜨린 체크를 지금 할 수 있어요. 트레이너에게는 나중에 체크한 것으로 보여요.",
@@ -1736,7 +1735,6 @@
   "coachChatWithTrainer": "트레이너와 채팅",
   "coachTrainerLoading": "담당 트레이너를 불러오는 중이에요",
   "coachTrainerNone": "담당 트레이너가 아직 없어요. 운동 탭에서 헬스장·트레이너를 연결해 보세요",
-  "coachTrainerLoadFailed": "담당 트레이너 정보를 불러오지 못했어요",
   "coachTrainerRetrying": "담당 트레이너 정보를 불러오지 못해 다시 불러오고 있어요",
   "alertCategoryReminder": "리마인더",
   "alertCategoryCoachChat": "트레이너 메시지",

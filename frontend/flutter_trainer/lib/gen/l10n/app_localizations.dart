@@ -7267,48 +7267,6 @@ abstract class AppLocalizations {
   /// **'No feedback matches your search.'**
   String get clientFeedbackSearchEmpty;
 
-  /// No description provided for @followUp.
-  ///
-  /// In en, this message translates to:
-  /// **'Follow-ups'**
-  String get followUp;
-
-  /// No description provided for @followUpOverdue.
-  ///
-  /// In en, this message translates to:
-  /// **'Overdue'**
-  String get followUpOverdue;
-
-  /// No description provided for @followUpComplete.
-  ///
-  /// In en, this message translates to:
-  /// **'Done'**
-  String get followUpComplete;
-
-  /// No description provided for @followUpCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} left'**
-  String followUpCount(int count);
-
-  /// No description provided for @followUpDashboardEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'Nothing to follow up on today.'**
-  String get followUpDashboardEmpty;
-
-  /// No description provided for @followUpLoadFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load follow-ups. Please try again.'**
-  String get followUpLoadFailed;
-
-  /// No description provided for @followUpCompleteFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t mark it done. Please try again.'**
-  String get followUpCompleteFailed;
-
   /// No description provided for @programEditorDefaultName.
   ///
   /// In en, this message translates to:

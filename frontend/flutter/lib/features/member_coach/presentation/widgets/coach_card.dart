@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/app_icons.dart';
-import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/observability/handled_error.dart';
 import 'package:oncare/features/ai_coach/presentation/widgets/insight_history_sheet.dart';
@@ -11,151 +9,16 @@ import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart'
     show exerciseTypeFromLabel;
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart'
     show ExerciseIntensity, exerciseIntensityFromName;
-import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_refresh.dart';
 import 'package:oncare/features/exercise/presentation/widgets/own_exercise_records.dart'
     show exerciseAmountLabelOf, exerciseIntensityLabel;
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/coach_routine_detail.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
-import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 // 토스트는 아직 앱의 AppToastHost 를 쓴다 — 패키지 쪽 같은 이름은 가린다.
 import 'package:oncare_ui/oncare_ui.dart';
-
-/// 담당 트레이너 관계와 소통만 담는다 — 이름·전문 분야·프로필 이동·채팅.
-///
-/// 추천 개인운동은 여기 있지 않다. 트레이너 추천이든 AI 추천이든 회원에게는
-/// "지금 무엇을 하면 되는가" 라는 한 가지 질문이라, [AiCoachingCard] 의
-/// `추천 개인운동` 한 곳에 모았다(#782). 예전에는 이 카드와 AI 카드가 화면
-/// 두 곳에 나뉘어 있어 둘의 관계와 우선순위를 회원이 다시 해석해야 했다.
-class CoachCard extends ConsumerWidget {
-  const CoachCard({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    final coachAsync = ref.watch(memberCoachProvider);
-    final coach = coachAsync.valueOrNull;
-    if (coach == null) {
-      // 조회 실패와 담당 없음은 다르다(#2843). 실패한 채 카드를 숨기면 연결된
-      // 회원에게 트레이너가 사라진 것처럼 보인다 — 다시 시도할 자리를 둔다.
-      if (coachAsync.hasError && !coachAsync.isLoading) {
-        return Padding(
-          key: const Key('coachCardLoadFailed'),
-          padding: const EdgeInsets.fromLTRB(
-            OnCareSpacing.s24,
-            0,
-            OnCareSpacing.s24,
-            OnCareSpacing.s20,
-          ),
-          child: AppCard(
-            child: AppErrorState(
-              title: l.coachTrainerLoadFailed,
-              retryLabel: l.actionRetry,
-              retryKey: const Key('coachCardRetry'),
-              onRetry: () => ref.invalidate(memberCoachProvider),
-              placement: AppStatePlacement.card,
-            ),
-          ),
-        );
-      }
-      return const SizedBox.shrink();
-    }
-    // 트레이너 상세는 이제 트레이너 id 로 라우팅한다 — 한 헬스장에
-    // 여러 명이 있으므로 헬스장 id 로는 한 명을 특정할 수 없다.
-    final assignedTrainer = ref.watch(myTrainerProvider).valueOrNull;
-
-    final unread = ref.watch(coachUnreadProvider).valueOrNull ?? 0;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        OnCareSpacing.s24,
-        0,
-        OnCareSpacing.s24,
-        OnCareSpacing.s20,
-      ),
-      child: AppCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                key: const Key('assignedTrainerProfile'),
-                onTap: assignedTrainer == null
-                    ? null
-                    : () => context.push(
-                        AppRoutes.trainerDetailPath(assignedTrainer.id),
-                      ),
-                borderRadius: OnCareRadius.mdAll,
-                child: Row(
-                  children: <Widget>[
-                    SizedBox(
-                      width: OnCareSize.avatarMedium,
-                      height: OnCareSize.avatarMedium,
-                      child: AppIcon(
-                        AppIcons.person,
-                        color: tokens.brand.primary,
-                        size: OnCareSize.iconMedium,
-                      ),
-                    ),
-                    const SizedBox(width: OnCareSpacing.s12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            l.coachAssignedTrainer,
-                            style: tokens
-                                .text(
-                                  OnCareTypography.strong(
-                                    OnCareTypography.caption,
-                                  ),
-                                )
-                                .copyWith(color: OnCareColors.textTertiary),
-                          ),
-                          // 전문 분야를 비운 트레이너는 이름만 — 가운뎃점만
-                          // 남지 않게 한다(#2880, 트레이너 정보 한 줄 #2083).
-                          Text(
-                            coach.specialty.trim().isEmpty
-                                ? coach.name
-                                : '${coach.name} · ${coach.specialty}',
-                            style: tokens
-                                .text(OnCareTypography.titleSmall)
-                                .copyWith(color: OnCareColors.textPrimary),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // 화살표는 '누르면 간다'는 신호다. 트레이너 상세로 갈 수
-                    // 없을 때(myTrainerProvider 가 아직 없거나 연결이 끊긴
-                    // 경우)는 지운다 — 예전에는 화살표만 남아 눌러도 아무 일이
-                    // 없었다(#786).
-                    if (assignedTrainer != null)
-                      const AppIcon(
-                        AppIcons.chevronRight,
-                        size: OnCareSize.iconMedium,
-                        color: OnCareColors.textTertiary,
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: OnCareSpacing.s12),
-            _ChatButton(
-              unread: unread,
-              onTap: () =>
-                  openTrainerChatPage(context, trainerName: coach.name),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 /// 운동 탭의 `AI 코칭` — 코칭 포인트와 추천 개인운동을 한 흐름으로 보여준다.
 ///
@@ -924,69 +787,6 @@ class _RoutineCompletionSheetState extends State<_RoutineCompletionSheet> {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ChatButton extends StatelessWidget {
-  const _ChatButton({required this.unread, required this.onTap});
-
-  final int unread;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-
-    // 안 읽은 개수 배지를 라벨 옆에 붙여야 해서 [AppButton] 대신 같은 높이·반경의
-    // 옅은 브랜드 칸을 직접 놓는다.
-    return Material(
-      color: tokens.brand.surface,
-      borderRadius: OnCareRadius.mdAll,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: OnCareRadius.mdAll,
-        child: Container(
-          height: tokens.density.buttonMedium,
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              AppIcon(
-                AppIcons.chat,
-                size: OnCareSize.iconSmall,
-                color: tokens.brand.primary,
-              ),
-              const SizedBox(width: OnCareSpacing.s8),
-              // 큰 글자 배율에서 라벨이 버튼을 넘겼다. 안 읽은 개수 배지는
-              // 접지 않는다 — 몇 건인지가 이 버튼을 누를 이유다(#766).
-              Flexible(
-                // 줄임표 대신 축소다 — `Chat with train…` 이 되면 버튼이 무슨
-                // 버튼인지 사라진다. (#1004)
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    l.coachChatWithTrainer,
-                    maxLines: 1,
-                    style: tokens
-                        .text(OnCareTypography.buttonMedium)
-                        .copyWith(color: tokens.brand.primary),
-                  ),
-                ),
-              ),
-              if (unread > 0) ...<Widget>[
-                const SizedBox(width: OnCareSpacing.s8),
-                // 한 자리 수는 정원, 두 자리 이상은 같은 높이의 알약이다 —
-                // 두 앱 공용 배지 규격(#1418, #1695). 버튼 높이를 그대로 받으면
-                // 배지가 세로로 늘어나므로 제 크기로 풀어 둔다.
-                UnconstrainedBox(child: AppCountBadge(count: unread)),
-              ],
-            ],
-          ),
-        ),
       ),
     );
   }

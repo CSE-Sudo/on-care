@@ -4220,31 +4220,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientFeedbackSearchEmpty => 'No feedback matches your search.';
 
   @override
-  String get followUp => 'Follow-ups';
-
-  @override
-  String get followUpOverdue => 'Overdue';
-
-  @override
-  String get followUpComplete => 'Done';
-
-  @override
-  String followUpCount(int count) {
-    return '$count left';
-  }
-
-  @override
-  String get followUpDashboardEmpty => 'Nothing to follow up on today.';
-
-  @override
-  String get followUpLoadFailed =>
-      'Couldn\'t load follow-ups. Please try again.';
-
-  @override
-  String get followUpCompleteFailed =>
-      'Couldn\'t mark it done. Please try again.';
-
-  @override
   String programEditorDefaultName(String goal) {
     return '$goal program';
   }

@@ -326,25 +326,6 @@ class AppRoutes {
     ).toString();
   }
 
-  /// 후속 관리 할 일이 열어야 할 화면. (#869)
-  ///
-  /// 새 deep-link 체계를 만들지 않고 **이미 있는 route 를 고른다** — 할 일은
-  /// "이 고객의 무엇을 다시 볼 것인가"라서, 그 무엇은 이미 화면을 갖고 있다.
-  ///
-  /// [contextWire] 는 서버 계약값(`context_type`)이다. 도메인 타입 대신 문자열을
-  /// 받아 라우트 표가 특정 feature 의 enum 에 매이지 않게 둔다. 모르는 값은 고객
-  /// 상세로 보낸다 — 갈 곳이 없다고 아무 데도 가지 않는 것보다, 그 고객 화면까지
-  /// 데려다주는 편이 낫다.
-  static String followUpTarget(String clientId, String contextWire) =>
-      switch (contextWire) {
-        'message' => messagesFor(clientId),
-        'program' => coachingFor(clientId),
-        'schedule' => scheduleAt(),
-        'diet' => clientDetail(clientId, section: 'diet'),
-        'exercise' => clientDetail(clientId, section: 'workout'),
-        _ => clientDetail(clientId),
-      };
-
   /// Builds the 내 정보 page on a given [tab] (`profile` | `settings`).
   static String mySection(String tab) =>
       Uri(path: my, queryParameters: <String, String>{'t': tab}).toString();

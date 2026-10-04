@@ -2703,20 +2703,6 @@
   "clientFeedbackLoadFailed": "Couldn't load feedback. Try again in a moment",
   "clientFeedbackSearchHint": "Search feedback (text, source, direction)",
   "clientFeedbackSearchEmpty": "No feedback matches your search.",
-  "followUp": "Follow-ups",
-  "followUpOverdue": "Overdue",
-  "followUpComplete": "Done",
-  "followUpCount": "{count} left",
-  "@followUpCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "followUpDashboardEmpty": "Nothing to follow up on today.",
-  "followUpLoadFailed": "Couldn't load follow-ups. Please try again.",
-  "followUpCompleteFailed": "Couldn't mark it done. Please try again.",
   "programEditorDefaultName": "{goal} program",
   "@programEditorDefaultName": {
     "placeholders": {
