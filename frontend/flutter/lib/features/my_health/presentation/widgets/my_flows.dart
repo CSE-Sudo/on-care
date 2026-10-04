@@ -22,6 +22,7 @@ import 'package:oncare/features/my_health/domain/support_links.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/features/notification/data/repositories/notification_settings_repository.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/legal_contact.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -2038,7 +2039,9 @@ class LegalDocumentPage extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final bool isTerms = document == _LegalDoc.terms.name;
     final String title = isTerms ? l.myLegalTermsTitle : l.myLegalPrivacyTitle;
-    final String body = isTerms ? l.myLegalTermsBody : l.myLegalPrivacyBody;
+    final String body = isTerms
+        ? l.myLegalTermsBody
+        : l.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
     // 두 문서는 시행일이 따로 간다 — 처리방침만 고쳐도 약관 날짜는 그대로다(#2820).
     final String effectiveDate = isTerms
         ? l.myLegalTermsEffectiveDate

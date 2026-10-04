@@ -116,6 +116,10 @@ Play Console 데이터 보안 양식의 백업 관련 항목은 이 정책(백�
 | 지원 언어 | `ios/Runner/Info.plist` `CFBundleLocalizations` = `ko`, `en` · `project.pbxproj` `knownRegions` | 앱 안 지원 언어(`AppLocalizations.supportedLocales`)와 같게. 개발 언어(`developmentRegion`)는 `en` — 앱 안 문구의 폴백과 같다 |
 | 권한 문구 | `ios/Runner/ko.lproj/InfoPlist.strings`, `ios/Runner/en.lproj/InfoPlist.strings`, `Info.plist`(영어 폴백) | 카메라·사진(식단 사진·트레이너 채팅 사진), 위치(주변 헬스장 찾기) |
 
+- 두 스토어의 **개인정보처리방침 URL** 은 운영 도메인의 `/legal/privacy.html`, 이용약관이 필요한 칸에는
+  `/legal/terms.html` 을 적습니다. 로그인 없이 열리는 정적 페이지로, 앱 안 문서와 같은 원본에서
+  만들어집니다([privacy_processing.md](privacy_processing.md) 8절, #3005). 운영 도메인이 정해지기 전에는
+  콘솔에 적지 않습니다(#480).
 - App Store Connect 의 **개인정보 라벨**은 `PrivacyInfo.xcprivacy` 의 수집 항목과 같게 적습니다.
   수집 항목·플러그인이 바뀌면 두 곳을 함께 고칩니다.
 - 개인정보 라벨 체크리스트(#3053) — `PrivacyInfo.xcprivacy` 와 한 줄씩 대조합니다.
