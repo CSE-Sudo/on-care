@@ -304,6 +304,7 @@ void main() {
         'email': 'new@oncare.com',
         'password': 'password123',
         'name': '홍길동',
+        'email_code': '000000',
       },
     );
     expect(res.statusCode, 201);
@@ -318,6 +319,7 @@ void main() {
       data: <String, Object?>{
         'email': 'solo@oncare.com',
         'password': 'password123',
+        'email_code': '000000',
       },
     );
     expect(res.statusCode, 201);
@@ -343,6 +345,7 @@ void main() {
             'email': 'policy@oncare.com',
             'password': password,
             'name': '정책',
+            'email_code': '000000',
           },
           options: Options(validateStatus: (int? s) => true),
         );
@@ -455,7 +458,11 @@ void main() {
       data: <String, Object?>{'name': '탈퇴예정'},
     );
 
-    final del = await dio.delete<Map<String, Object?>>('/users/me');
+    // 탈퇴는 본인 확인을 거친다(#3039). 테스트 전용 값이다.
+    final del = await dio.delete<Map<String, Object?>>(
+      '/users/me',
+      data: <String, Object?>{'current_password': 'pw-current-1'},
+    );
     expect(del.statusCode, 200);
     expect(del.data!['status'], 'deleted');
 

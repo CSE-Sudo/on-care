@@ -93,6 +93,9 @@ class TrainerMe(BaseModel):
     gym: TrainerGymOut
     #: 운영자 승인 상태(#2825). 트레이너 웹이 승인 대기·반려 안내를 고른다.
     verification: TrainerVerificationOut
+    #: 비밀번호로 로그인하는 계정인가(#3039). 탈퇴 본인 확인에서 현재 비밀번호
+    #: 칸과 소셜 다시 로그인 중 무엇을 보일지 고른다. 회원 `ProfileView` 와 같은 뜻.
+    has_password: bool = True
 
 
 class ClientSignalOut(BaseModel):

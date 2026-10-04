@@ -1,6 +1,7 @@
 """관리자 권한 — 공공문서 업로드 보호.
 
-- admin_email_set 파싱은 순수(로컬 실행).
+- 관리자는 기동 설정(ADMIN_EMAILS)이 아니라 운영 스크립트로만 정한다(#3037,
+  `test_grant_admin_script`).
 - 엔드포인트 보호(201/403/401)는 DB 필요(로컬 skip, CI 실행).
 - 적재 실패 응답이 내부 예외 문자열을 싣지 않는지도 여기서 본다(#1556).
 """
@@ -9,11 +10,20 @@ from __future__ import annotations
 from uuid import uuid4
 
 
-def test_admin_email_set_parsing():
-    from app.core.config import Settings
+def test_admin_emails_no_longer_promote_on_startup():
+    """기동 코드에 이메일로 관리자를 올리는 경로가 없다(#3037).
 
-    s = Settings(_env_file=None, admin_emails="A@x.com, b@Y.com ,")
-    assert s.admin_email_set == {"a@x.com", "b@y.com"}
+    예전에는 그 주소로 먼저 가입한 사람이 다음 배포 때 관리자가 됐다.
+    """
+    import inspect
+
+    from app.core.config import Settings
+    from app.db import init_db
+
+    assert not hasattr(init_db, "_promote_admins")
+    assert not hasattr(init_db, "admin_promotion_targets")
+    assert "is_admin = True" not in inspect.getsource(init_db)
+    assert not hasattr(Settings, "admin_email_set")
 
 
 def _register_login(client, email: str) -> str:
@@ -29,7 +39,7 @@ def test_admin_can_upload_public_doc(client, db_session):
     email = f"admin-{uuid4().hex[:8]}@oncare.com"
     token = _register_login(client, email)
 
-    # 관리자로 승격(운영에선 ADMIN_EMAILS 로 부팅 시 승격)
+    # 관리자로 지정(운영에선 scripts/grant_admin.py, #3037)
     user = db_session.scalar(select(User).where(User.email == email))
     user.is_admin = True
     db_session.commit()
@@ -65,7 +75,7 @@ def test_unauthenticated_is_rejected(client):
 
 
 def _promote_admin(client, db_session) -> str:
-    """관리자 토큰 하나. (승격은 운영에서 ADMIN_EMAILS 가 부팅 시 한다)"""
+    """관리자 토큰 하나. (운영에서는 scripts/grant_admin.py 로 지정한다, #3037)"""
     from sqlalchemy import select
 
     from app.models.models import User

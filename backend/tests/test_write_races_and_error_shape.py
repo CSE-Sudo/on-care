@@ -198,7 +198,9 @@ def test_profile_email_race_is_409_not_500(client, db_session, cleanup, monkeypa
     _skip_select(users_router, monkeypatch)
 
     response = client.put(
-        "/v1/users/me", json={"email": taken_email}, headers=_auth(token)
+        "/v1/users/me",
+        json={"email": taken_email, "current_password": PASSWORD},
+        headers=_auth(token),
     )
 
     assert response.status_code == 409, response.text
@@ -219,7 +221,7 @@ def test_profile_email_race_keeps_other_fields_unsaved(
 
     response = client.put(
         "/v1/users/me",
-        json={"email": taken_email, "name": "바뀌면 안 됨"},
+        json={"email": taken_email, "name": "바뀌면 안 됨", "current_password": PASSWORD},
         headers=_auth(token),
     )
 
@@ -233,7 +235,9 @@ def test_profile_email_change_still_works(client, db_session, cleanup):
     new_email = f"{EMAIL_PREFIX}moved-{uuid4().hex[:8]}@oncare.com"
 
     response = client.put(
-        "/v1/users/me", json={"email": new_email}, headers=_auth(token)
+        "/v1/users/me",
+        json={"email": new_email, "current_password": PASSWORD},
+        headers=_auth(token),
     )
 
     assert response.status_code == 200, response.text
@@ -245,7 +249,9 @@ def test_profile_email_precheck_is_still_409(client, cleanup):
     _, _, token = _member(client)
 
     response = client.put(
-        "/v1/users/me", json={"email": taken_email}, headers=_auth(token)
+        "/v1/users/me",
+        json={"email": taken_email, "current_password": PASSWORD},
+        headers=_auth(token),
     )
 
     assert response.status_code == 409, response.text

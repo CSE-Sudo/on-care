@@ -64,7 +64,10 @@
 
 ### 관리자 전용
 
-`ADMIN_EMAILS` 에 적은 계정만 쓴다(설정은 [`.env.example`](.env.example)). 미인증 401, 관리자가 아니면 403.
+`users.is_admin` 인 계정만 쓴다. 관리자는 운영자가 계정 id 를 확인한 뒤
+`python -m scripts.grant_admin --email … --confirm-id …` 로만 지정한다(#3037, [DEPLOY.md](docs/DEPLOY.md)).
+예전처럼 `ADMIN_EMAILS` 로 기동 때 올리지 않는다 — 그 주소로 먼저 가입한 사람이 관리자가 됐다.
+미인증 401, 관리자가 아니면 403.
 
 | Method | Path | 응답 |
 |---|---|---|
@@ -78,10 +81,10 @@
 | GET | `/users/me` | `{ id(str), name, email, role, consent_required, consent_pending[] }` (아래 "가입 동의" 참고, #2819). `role` 은 계정 역할 — 이 API 는 회원 전용이라 늘 `member` 이고 트레이너 토큰은 403. 회원 앱은 세션 복원 때 `role` 이 있으면 `member` 인지 확인하고, 없으면(옛 서버) 그대로 들어간다(#3054) |
 | POST | `/users/me/consents` | `{ consents: [항목] }` → `{ consent_required, consent_pending[] }` (#2819) |
 | GET | `/users/me/health` | `{ profile: { id, name, email }, activity_points }` — MY 계정 카드. 위험 문구(`risk`)·활동 순위(`activity_rank`)·설정 메뉴(`settings[]`)는 앱이 읽지 않는 고정값이라 뺐다(#2903) |
-| DELETE | `/users/me` | `{ status: "deleted" }` |
+| DELETE | `/users/me` | 본문 `{ reasons?, current_password? \| social_provider?·social_token? }` → `{ status: "deleted" }`. 본인 확인 필수, 실패 400(#3039) |
 | GET | `/users/me/deletion-preview` | `{ points, active_coupons, upcoming_reservations, pending_consultations }` — 탈퇴하면 사라지거나 취소되는 것의 수(#3006). 아래 [탈퇴 미리보기](#탈퇴-미리보기-3006). 회원 전용(트레이너 403) |
 | GET | `/users/me/profile` | `ProfileView` — `{ id, name, email, phone, birth_date, gender, height_cm, weight_kg, conditions, daily_calories, daily_sodium_mg, daily_sugar_g, daily_carbs_g, daily_protein_g, daily_fat_g, weekly_workout_goal, weekly_exercise_minutes_goal, weekly_burn_goal, daily_burn_kcal, weekly_cardio_minutes, weekly_strength_sets, weekly_flexibility_minutes, onboarded, focus_changed_by, focus_changed_at }` — MY 프로필 통합 뷰 |
-| PUT | `/users/me` | 부분 수정 `{ name?, email?, phone?, birth_date?, gender?, height_cm?, weight_kg? }` → `ProfileView`. 다른 계정이 쓰는 이메일은 409, 전화번호를 빈 값으로 보내면 422. 형식 규칙은 아래 "인증" 의 연락처·이름·생년월일 절과 같다 |
+| PUT | `/users/me` | 부분 수정 `{ name?, email?, phone?, birth_date?, gender?, height_cm?, weight_kg? }` → `ProfileView`. 이메일을 실제로 바꿀 때만 `current_password`(소셜 전용은 `social_provider`·`social_token`)를 함께 보내고, 그때 응답에 새 `access_token`·`refresh_token` 이 실린다(#3039). 다른 계정이 쓰는 이메일은 409, 전화번호를 빈 값으로 보내면 422. 형식 규칙은 아래 "인증" 의 연락처·이름·생년월일 절과 같다 |
 | POST | `/users/me/onboarding` | 최초 온보딩 `{ name?, birth_date?, gender?, height_cm?, weight_kg?, conditions?, daily_*?, daily_burn_kcal?, weekly_cardio_minutes?, weekly_strength_sets?, weekly_flexibility_minutes? }` → `ProfileView`(`onboarded: true`). 보낸 필드만 반영한다 |
 | PUT | `/users/me/health-goals` | 건강 목표(식단 일일 6종 + 운동 7종) 부분 수정 → `ProfileView` |
 | GET | `/users/me/notification-settings` | `{ diet_log, exercise_reminder, trainer_message, ai_coaching, weekly_report }` — 회원 알림 수신 설정. 저장한 적이 없으면 서버 기본값(#489) |
@@ -90,7 +93,8 @@
 | DELETE | `/users/me/pairing-code` | 204 — 띄워 둔 코드를 버린다(화면을 닫을 때) |
 | POST | `/users/me/password` | `{ current_password, new_password }` → `PasswordChanged`(새 토큰 한 쌍) — 회원 비밀번호 변경(#2824). 아래 [회원 비밀번호 변경](#회원-비밀번호-변경-2824) |
 
-`DELETE /users/me` 는 본문으로 `{ reasons: [코드] }` 를 받는다(#2019). 본문은 없어도 되고,
+`DELETE /users/me` 는 본문으로 `{ reasons: [코드], current_password | social_provider·social_token }`
+을 받는다(#2019, #3039). 본인 확인 값은 **늘 필요하다** — 아래 [본인 확인](#탈퇴로그인-이메일-변경-전-본인-확인-3039).
 사유는 탈퇴의 조건이 아니다 — 아는 코드만 `account_deletion_reasons` 에 사유와 시각으로만
 남고(누가 골랐는지는 남기지 않는다), 모르는 코드는 조용히 버린다. 아는 코드는
 `privacy` · `rarely_used` · `hard_to_use` · `too_many_notifications` · `found_alternative` ·
@@ -1153,7 +1157,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 |---|---|---|
 | GET | `/trainer/me` | `TrainerMe` `{ id, name, email, phone, specialty, career, intro, certifications, gym }` |
 | PUT | `/trainer/me` | 부분 수정 `{ phone?, specialty?, career_years?, intro?, certifications?, gym_name?, gym_address?, gym_hours?, gym_phone? }` → `TrainerMe`. 이름·이메일은 바꾸지 않는다 |
-| DELETE | `/trainer/me` | 본문 `{ reasons? }` → `{ status: "deleted" }` — 탈퇴. 담당 회원에게 알린 뒤 계정과 딸린 데이터를 지운다(#505) |
+| DELETE | `/trainer/me` | 본문 `{ reasons?, current_password? \| social_provider?·social_token? }` → `{ status: "deleted" }` — 탈퇴. 본인 확인 필수(#3039). 담당 회원에게 알린 뒤 계정과 딸린 데이터를 지운다(#505) |
 | DELETE | `/trainer/me/gym` | `TrainerMe` — 소속 해제. 원래 없어도 200 |
 | POST | `/trainer/me/password` | `{ current_password, new_password }` → `{ access_token, refresh_token, token_type, status }`. 아래 "비밀번호 변경과 토큰 세대" |
 | GET | `/trainer/me/settings` | `{ notify_new_message, notify_session_reminder, reminder_lead_minutes }` — 기본값은 서버가 정한다 |
@@ -1546,8 +1550,9 @@ N명이면 첫 화면에서 요청이 2N개였다.
 
 | Method | Path | 요청 → 응답 |
 |---|---|---|
-| POST | `/auth/register` | `{ email, password, name, phone }` → **201** `{ id, name, email, role: "member" }` — 회원(`role=member`). 이미 가입된 이메일 409 |
-| POST | `/auth/trainer/register` | 같은 입력 → **201** `{ id, name, email, role: "trainer" }` — 트레이너(#475). 역할을 요청 필드로 가르지 않으려고 경로를 나눴다. 소속 헬스장은 가입 뒤 `PUT /trainer/me/gym` |
+| POST | `/auth/register/email-code` | `{ email, purpose: "member_signup"\|"trainer_signup" }` → **202** `{ expires_in_minutes, resend_after_seconds }` — 가입 전 이메일 인증 코드(#3038). 가입 여부와 무관하게 같은 응답. 아래 [가입 이메일 인증](#가입-이메일-인증-3038) |
+| POST | `/auth/register` | `{ email, password, name, phone, email_code }` → **201** `{ id, name, email, role: "member" }` — 회원(`role=member`). 이미 가입된 이메일 409, 코드 없음 422 `email_code_required`, 틀린·만료 코드 400 `invalid_email_code`(#3038) |
+| POST | `/auth/trainer/register` | 같은 입력 → **201** `{ id, name, email, role: "trainer" }` — 트레이너(#475). 역할을 요청 필드로 가르지 않으려고 경로를 나눴다. 소속 헬스장은 가입 뒤 `PUT /trainer/me/gym`. 코드는 `purpose=trainer_signup` 으로 받은 것만 맞다 |
 | POST | `/auth/login` | form(`application/x-www-form-urlencoded`) `username`(이메일)·`password` → `{ access_token, refresh_token, token_type }`. 틀리면 401 |
 | POST | `/auth/refresh` | `{ refresh_token }` → 새 `{ access_token, refresh_token, token_type }`(회전). 무효·폐기된 토큰 401 |
 | POST | `/auth/logout` | `{ refresh_token }` → **204**. 그 refresh 토큰을 폐기한다. access 토큰은 요구하지 않고, 못 알아본 토큰에도 204 |
@@ -1659,8 +1664,8 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은
 소문자로 바꾸는데, 대소문자만 다른 계정이 이미 있으면 바꾸지 않고 겹치는 이메일·계정 id 를
 출력하며 멈춘다(자동 병합 없음).
 
-`ADMIN_EMAILS` 승격도 같은 규칙이다. 소문자로 맞춘 관리자 이메일과 **저장값이 정확히 같은
-계정 하나**만 올리고, 대소문자만 같은 계정이 여럿이면 기동 로그에 경고하고 아무도 올리지 않는다.
+관리자 지정 스크립트(`scripts/grant_admin.py`, #3037)도 같은 규칙으로 찾는다. 대소문자만 같은
+계정이 여럿이면 누구도 바꾸지 않는다.
 
 전화번호는 `01012345678` 처럼 하이픈 없이 보내도 받는다. **표기에 대해서만** 앱보다 느슨한
 쪽이라 앱을 통과한 값이 서버에서 막히는 일은 생기지 않는다. 시드와 기존 프로필이 이미 하이픈
@@ -1814,6 +1819,8 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은
 `GET /trainer/me`(및 같은 모양을 돌려주는 `PUT /trainer/me`·`PUT /trainer/me/gym*`)는
 `verification: { status: "pending"|"approved"|"rejected", decided_at: datetime|null, note: string }`
 을 싣는다. `note` 는 반려 사유(승인·대기면 빈 문자열)이고, 트레이너 웹이 그대로 보여 준다.
+`has_password`(bool, #3039)는 비밀번호로 로그인하는 계정인지다 — 탈퇴 본인 확인에서 현재 비밀번호
+칸과 소셜 다시 로그인 중 무엇을 보일지 고른다.
 
 운영자 엔드포인트(모두 `RequireAdmin` — 비관리자 403, 미인증 401, 처리 결과는 감사 로그
 `admin.trainer_approve`/`admin.trainer_reject`):
@@ -1932,6 +1939,71 @@ CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 �
 `GET /users/me/profile` 의 `has_password`(bool)가 false 면 소셜 로그인 전용 계정이다. 회원 앱은
 이 값으로 MY 의 비밀번호 변경 대신 안내를 보여 준다.
 
+### 가입 이메일 인증 (#3038)
+
+가입하는 사람이 그 이메일의 주인인지 계정을 만들기 **전에** 확인한다. 예전에는 형식만 봐서, 남의
+주소로 먼저 가입하면 그 주소를 믿는 기능(관리자 지정·재설정 메일·소셜 연결)이 가입한 사람 편이 됐다.
+
+**1) 코드 받기** — `POST /auth/register/email-code`
+
+```json
+{ "email": "member@example.com", "purpose": "member_signup" }
+```
+
+→ **202** `{ "expires_in_minutes": 10, "resend_after_seconds": 60 }`
+
+- 응답은 가입 여부와 무관하게 **같다**. 이미 가입된 주소에는 코드 대신 "이미 계정이 있다(로그인·비밀번호
+  재설정 안내)" 메일이 간다 — 주인만 그 차이를 안다.
+- 코드는 6자리 숫자, `SIGNUP_EMAIL_CODE_MINUTES`(10분) 동안 한 번. 새 코드를 받으면 앞의 코드는 닫힌다.
+  표에는 서버 비밀값으로 만든 HMAC 만 남는다(`email_verification_codes`).
+- 코드는 (소문자 이메일, 용도)에 묶인다. 회원 코드로 트레이너 가입을 할 수 없고, 화면에서 이메일을 바꾸면
+  새 코드가 필요하다.
+- 형식이 틀린 이메일·모르는 용도 422, 시도 한도 429, 서버에 메일 발송 수단이 없으면(운영인데 SMTP 가 빔)
+  **503** `"지금은 인증 메일을 보낼 수 없습니다. 잠시 후 다시 시도해 주세요."`.
+
+**2) 가입** — `POST /auth/register`·`POST /auth/trainer/register` 본문에 `email_code` 를 더한다.
+
+| 상황 | 응답 |
+|---|---|
+| 이미 가입된 이메일 | **409** (코드보다 먼저 본다) |
+| `email_code` 없음·빈 값 | **422** `detail={ code: "email_code_required", message }` |
+| 틀림·만료·사용됨·다른 용도·틀린 횟수 초과 | **400** `detail={ code: "invalid_email_code", message }` — 까닭은 가르지 않는다 |
+| 맞음 | **201**, `users.email_verified_at` 에 확인 시각 |
+
+한 코드로 `SIGNUP_EMAIL_CODE_MAX_ATTEMPTS`(5)번 틀리면 그 코드는 맞는 값도 받지 않는다 — 6자리의 경우의
+수를 묶는 장치다. 틀린 횟수는 가입이 실패해도 남는다. 코드 사용 표시는 계정 생성과 한 트랜잭션이라,
+가입이 다른 이유로 실패하면 코드도 살아 있다.
+
+`SIGNUP_EMAIL_VERIFICATION=false` 면 가입이 코드를 보지 않는다(백엔드 테스트·E2E 러너처럼 메일함이 없는
+환경 전용). **운영(`ENV=prod`)에서는 끌 수 없다** — 설정 단계에서 기동을 거부한다. 데모(앱 mock)는 코드
+`000000` 을 받는다.
+
+### 탈퇴·로그인 이메일 변경 전 본인 확인 (#3039)
+
+탈퇴(`DELETE /users/me`·`DELETE /trainer/me`)와 로그인 이메일을 **실제로** 바꾸는 `PUT /users/me` 는
+접근 토큰만으로 처리하지 않는다. 토큰이 새거나 잠금 없는 기기를 남이 들면 계정을 지우거나 이메일을 자기
+주소로 바꿔(재설정 메일까지 받아) 가져갈 수 있었다. 본문에 다음 중 하나를 더한다.
+
+| 계정 | 보낼 값 |
+|---|---|
+| 비밀번호 있음(`has_password=true`) | `current_password` |
+| 소셜 로그인 전용 | `social_provider` + `social_token` — 그 provider 로 방금 다시 로그인해 받은 토큰. 검증한 provider 계정이 **이 사용자에게 연결된** 것이어야 한다 |
+
+실패는 모두 **400** 이다 — 토큰은 유효하므로 앱이 로그아웃으로 오인하면 안 된다(비밀번호 변경과 같은 규약).
+
+| `detail.code` | 뜻 |
+|---|---|
+| `reauth_required` | 확인 값을 보내지 않았다(옛 빌드). 잠금에 세지 않는다 |
+| `invalid_current_password` | 현재 비밀번호가 틀렸다 |
+| `invalid_reauth` | 소셜 토큰 검증 실패, 또는 다른 사람의 provider 계정 |
+
+연속 실패는 사용자 id 단위로 잠근다(429, 위 시도 제한 표). 실패는 감사 로그 `account.reauth_failed` 에 남는다.
+
+`PUT /users/me` 는 이메일이 실제로 바뀔 때만(대소문자 무시 비교) 확인한다 — 이름·연락처만 고치는 저장은
+예전과 같다. 중복 확인(409)은 본인 확인 **뒤**다(확인 없이 409 를 주면 가입 여부를 알아낼 수 있다). 이메일을
+바꾸면 토큰 세대가 올라 다른 기기가 모두 로그아웃되고, 응답 `ProfileView` 의 `access_token`·`refresh_token`
+(그 밖의 응답에서는 `null`)으로 이 기기가 이어 쓴다. **옛 주소로** 변경 안내 메일이 간다(새 주소는 가려서).
+
 ### 비밀번호 재설정 (#2824)
 
 로그아웃 상태에서 메일로 계정을 되찾는 길. 회원·트레이너 공용이다.
@@ -2004,6 +2076,8 @@ IP 를 바꿔 가며 한 계정을 노리는 시도는 계정 쪽 버킷이 막�
 | `POST /auth/login` | IP | 분당 `RATE_LIMIT_AUTH_PER_MINUTE`(10) |
 | `POST /auth/login` | **이메일(대소문자 무시) 연속 실패** | `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `LOGIN_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429. 잠긴 동안에는 비밀번호를 확인하지 않는다. 성공하면 실패 기록을 지운다. 없는 이메일도 같이 센다 |
 | `POST /trainer/pairing-code/preview`·`POST /trainer/pairing-code` | IP + **트레이너 id** | 각각 분당 10, 트레이너 id 는 하루 `PAIRING_REDEEM_PER_DAY`(30) 도 함께. 두 엔드포인트가 한 버킷 |
+| `POST /auth/register/email-code` | IP + **이메일** + (이메일, 용도) | IP 는 분당 10. 같은 이메일은 `SIGNUP_EMAIL_CODE_WINDOW_MINUTES`(60분) 안에 `SIGNUP_EMAIL_CODE_PER_WINDOW`(5)번, 같은 (이메일, 용도)는 `SIGNUP_EMAIL_CODE_RESEND_SECONDS`(60초)에 한 번. 가입된 주소도 똑같이 센다(#3038) |
+| `DELETE /users/me`·`DELETE /trainer/me`·이메일을 바꾸는 `PUT /users/me` | **사용자 id 연속 실패** | 본인 확인을 `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `PASSWORD_CHANGE_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429. 값을 아예 보내지 않은 400 은 세지 않는다(#3039) |
 | `POST /auth/register`·`POST /auth/trainer/register` | IP + **이메일(대소문자 무시)** | IP 는 분당 10. 같은 이메일은 시간당 `REGISTER_PER_EMAIL_PER_HOUR`(5) — 성공·409 를 가리지 않고 세고, 두 가입이 한 버킷이다(#2913). 409 문구는 그대로 |
 | `POST /trainer/me/password` | IP + **사용자 id 연속 실패** | IP 는 분당 10. 현재 비밀번호를 `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `PASSWORD_CHANGE_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429(잠긴 동안 비밀번호를 확인하지 않는다). 틀린 시도는 감사 로그 `auth.password_change`(실패)에 남고, 성공하면 실패 기록을 지운다(#2913) |
 
@@ -2077,7 +2151,11 @@ CORS 와일드카드, 기본·짧은 `DEMO_LOGIN_PASSWORD` 로 켠 데모 시드
 - 동의 발급 `consent.grant`(연결 코드 `pairing`·담당 요청 수락 `invite`·상담 신청 `consultation`),
   철회 `consent.revoke`(`DELETE /me/coach`·`/me/coach/trainer` 는 회원, `DELETE /trainer/clients/{id}` 는 트레이너),
   탈퇴 `account.withdraw`(`DELETE /users/me`·`DELETE /trainer/me`), 비밀번호 변경 `auth.password_change`
-  (`POST /trainer/me/password`). 본 작업과 같은 트랜잭션이고 계정이 지워져도 남는다.
+  (`POST /trainer/me/password`), 로그인 이메일 변경 `account.email_change`(#3039, 이메일 원문 없음).
+  본 작업과 같은 트랜잭션이고 계정이 지워져도 남는다.
+- 본인 확인 실패 `account.reauth_failed`(`detail` 에 `action=delete_account|change_email`·`via=password|social`),
+  관리자 지정·해제 `admin.grant`·`admin.revoke`(`target_user_id` 에 대상, `scripts/grant_admin.py`), 가입 인증 코드
+  요청 `auth.signup_code_request`·확인 실패 `auth.signup_code_verify`(이메일은 키를 둔 해시만).
 - 보존 기간: 접속 기록 365일(`AUDIT_RETENTION_DAYS`), 열람·동의·탈퇴 기록 730일
   (`AUDIT_SENSITIVE_RETENTION_DAYS`). 서버 기동 때 지난 기록을 정리한다.
 

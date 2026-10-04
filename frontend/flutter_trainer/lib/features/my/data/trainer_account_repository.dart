@@ -5,6 +5,7 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
+import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_ui/oncare_ui.dart' show AppInputError, AppInputRules;
 
@@ -19,6 +20,74 @@ class NewPasswordRejected extends ValidationError {
 
   /// 무엇이 기준에 맞지 않았는가.
   final AppInputError reason;
+}
+
+/// 되돌릴 수 없는 계정 동작 앞의 본인 확인(#3039).
+///
+/// 토큰만 있으면 탈퇴되던 때가 있었다 — 공용 PC 에 남은 세션이나 새어 나간
+/// 토큰으로 계정을 지울 수 있었다. 비밀번호 계정은 현재 비밀번호를, 소셜로만
+/// 가입한 계정은 방금 다시 로그인해 받은 소셜 토큰을 함께 보낸다.
+sealed class TrainerReauth {
+  const TrainerReauth();
+
+  /// 서버 본문에 더할 칸.
+  Map<String, Object?> toJson();
+}
+
+/// 비밀번호 계정의 본인 확인 — 현재 비밀번호.
+final class PasswordReauth extends TrainerReauth {
+  const PasswordReauth(this.currentPassword);
+
+  final String currentPassword;
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'current_password': currentPassword,
+  };
+}
+
+/// 소셜로만 가입한 계정의 본인 확인 — 다시 로그인해 받은 제공자 토큰.
+final class SocialReauth extends TrainerReauth {
+  const SocialReauth({required this.provider, required this.token});
+
+  /// `kakao` · `google`.
+  final String provider;
+  final String token;
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'social_provider': provider,
+    'social_token': token,
+  };
+}
+
+/// 본인 확인이 거절된 이유(#3039). 모두 400 이다 — 토큰은 아직 유효하므로
+/// 로그아웃하지 않고, 확인창 안에 알린다.
+enum ReauthFailure {
+  /// 확인 값을 싣지 않았다(`reauth_required`).
+  required,
+
+  /// 현재 비밀번호가 틀렸다(`invalid_current_password`).
+  invalidPassword,
+
+  /// 소셜 계정 확인에 실패했다(`invalid_reauth`).
+  invalidSocial;
+
+  /// 서버 `detail.code` → 이유. 모르는 코드면 null.
+  static ReauthFailure? fromCode(String? code) => switch (code) {
+    'reauth_required' => required,
+    'invalid_current_password' => invalidPassword,
+    'invalid_reauth' => invalidSocial,
+    _ => null,
+  };
+}
+
+/// 서버가 본인 확인을 거절했다(#3039). 다른 [ValidationError] 처럼 입력의
+/// 문제라 다시 시도하면 되고, 문구는 화면이 [reason] 으로 고른다.
+class ReauthRejected extends ValidationError {
+  const ReauthRejected(this.reason);
+
+  final ReauthFailure reason;
 }
 
 /// Account-level actions that change credentials.
@@ -54,7 +123,12 @@ abstract interface class TrainerAccountRepository {
   ///
   /// [reasons] 는 탈퇴 화면에서 고른 사유 코드다(#2264). 서버는 모르는 값을
   /// 버리고, 계정과 잇지 않고 남긴다. 비어 있어도 된다.
-  Future<void> deleteAccount({List<String> reasons = const <String>[]});
+  ///
+  /// [reauth] 는 본인 확인이다(#3039). 거절되면 [ReauthRejected].
+  Future<void> deleteAccount({
+    required TrainerReauth reauth,
+    List<String> reasons = const <String>[],
+  });
 }
 
 /// Demo build: no server account to change.
@@ -79,7 +153,27 @@ class MockTrainerAccountRepository implements TrainerAccountRepository {
   }
 
   @override
-  Future<void> deleteAccount({List<String> reasons = const <String>[]}) async {
+  Future<void> deleteAccount({
+    required TrainerReauth reauth,
+    List<String> reasons = const <String>[],
+  }) async {
+    // 본인 확인은 서버와 같은 규칙으로 먼저 본다(#3039). 데모 로그인은 비어 있지
+    // 않은 비밀번호를 모두 받으므로 여기서도 그렇다. 소셜은 데모 로그인이 쓰는
+    // 토큰(`demo-<provider>-token`)만 통과한다.
+    switch (reauth) {
+      case PasswordReauth(:final String currentPassword):
+        if (currentPassword.isEmpty) {
+          throw const ReauthRejected(ReauthFailure.required);
+        }
+      case SocialReauth(:final String provider, :final String token):
+        if (provider.isEmpty || token.isEmpty) {
+          throw const ReauthRejected(ReauthFailure.required);
+        }
+        if (token != 'demo-$provider-token') {
+          throw const ReauthRejected(ReauthFailure.invalidSocial);
+        }
+    }
+    // 확인을 통과해도 데모에는 지울 서버 계정이 없다.
     throw const ValidationError(message: '데모 모드에는 지울 계정이 없어요');
   }
 }
@@ -98,14 +192,24 @@ class DioTrainerAccountRepository implements TrainerAccountRepository {
   bool get supportsDeletion => true;
 
   @override
-  Future<void> deleteAccount({List<String> reasons = const <String>[]}) async {
+  Future<void> deleteAccount({
+    required TrainerReauth reauth,
+    List<String> reasons = const <String>[],
+  }) async {
     try {
       await _dio.delete<Map<String, dynamic>>(
         '/trainer/me',
-        // 회원 탈퇴와 같은 본문이다 — 고른 사유가 없으면 빈 목록.
-        data: <String, Object?>{'reasons': reasons},
+        // 회원 탈퇴와 같은 본문이다 — 고른 사유가 없으면 빈 목록. 본인 확인
+        // 칸(#3039)이 함께 간다.
+        data: <String, Object?>{'reasons': reasons, ...reauth.toJson()},
       );
     } on DioException catch (e) {
+      if (e.response?.statusCode == 400) {
+        final ReauthFailure? reason = ReauthFailure.fromCode(
+          serverDetailCode(e.response?.data),
+        );
+        if (reason != null) throw ReauthRejected(reason);
+      }
       throw AppError.fromDio(e);
     }
   }

@@ -211,7 +211,10 @@ def test_member_withdrawal_deletes_every_attachment_in_their_threads(
     report = _trainer_report_pdf(db_session, trainer_id, member_id)
     assert _image_exists(mine) and _image_exists(theirs) and _pdf_exists(report)
 
-    gone = client.delete("/v1/users/me", headers=_auth(member_token))
+    gone = client.request(
+        "DELETE", "/v1/users/me", json={"current_password": PASSWORD},
+        headers=_auth(member_token),
+    )
 
     assert gone.status_code == 200, gone.text
     assert not _image_exists(mine)
@@ -227,7 +230,10 @@ def test_trainer_withdrawal_deletes_attachments_in_their_threads(client, db_sess
     from_member = _member_sends_photo(client, member_token)
     report = _trainer_report_pdf(db_session, trainer_id, member_id)
 
-    gone = client.delete("/v1/trainer/me", headers=_auth(trainer_token))
+    gone = client.request(
+        "DELETE", "/v1/trainer/me", json={"current_password": PASSWORD},
+        headers=_auth(trainer_token),
+    )
 
     assert gone.status_code == 200, gone.text
     assert not _image_exists(mine)
@@ -244,7 +250,10 @@ def test_withdrawal_leaves_other_threads_alone(client, db_session):
     leaving_photo = _member_sends_photo(client, leaving_token)
     staying_photo = _member_sends_photo(client, staying_token)
 
-    client.delete("/v1/users/me", headers=_auth(leaving_token))
+    client.request(
+        "DELETE", "/v1/users/me", json={"current_password": PASSWORD},
+        headers=_auth(leaving_token),
+    )
 
     assert not _image_exists(leaving_photo)
     assert _image_exists(staying_photo)
@@ -263,7 +272,10 @@ def test_withdrawal_succeeds_even_if_the_store_cannot_delete(
 
     monkeypatch.setattr(chat_image_storage, "delete", broken)
 
-    gone = client.delete("/v1/users/me", headers=_auth(member_token))
+    gone = client.request(
+        "DELETE", "/v1/users/me", json={"current_password": PASSWORD},
+        headers=_auth(member_token),
+    )
 
     assert gone.status_code == 200, gone.text
     db_session.expire_all()

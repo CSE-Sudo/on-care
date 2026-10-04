@@ -186,6 +186,8 @@ class SessionController extends StateNotifier<SessionState>
     AuthFailure.emailTaken ||
     AuthFailure.passwordWeak ||
     AuthFailure.passwordTooLong ||
+    AuthFailure.emailCodeInvalid ||
+    AuthFailure.emailCodeRequired ||
     AuthFailure.noSocialToken ||
     AuthFailure.emptyCredentials => false,
   };
@@ -257,6 +259,7 @@ class SessionController extends StateNotifier<SessionState>
     required String email,
     required String password,
     required String name,
+    required String emailCode,
     List<String>? consents,
   }) async {
     _userActionStarted = true;
@@ -264,6 +267,7 @@ class SessionController extends StateNotifier<SessionState>
       email: email,
       password: password,
       name: name,
+      emailCode: emailCode,
       consents: consents,
     );
     await _establish(tokens);
@@ -274,10 +278,18 @@ class SessionController extends StateNotifier<SessionState>
     _userActionStarted = true;
     final tokens = await _repo.socialLogin(
       provider: provider,
-      token: 'demo-$provider-token',
+      token: await socialProviderToken(provider),
     );
     await _establish(tokens);
   }
+
+  /// 소셜 로그인의 첫 단계 — [provider] 에서 받은 토큰. 로그인과 본인 확인
+  /// (#3039, 소셜로만 가입한 계정의 탈퇴)이 이 한 경로로 토큰을 얻는다.
+  ///
+  /// 트레이너 웹에는 아직 제공자 SDK 가 붙지 않아 데모 토큰을 쓴다 — 실서버
+  /// 빌드의 로그인 화면이 소셜 버튼을 꺼 두는 이유다(#2769).
+  Future<String> socialProviderToken(String provider) async =>
+      'demo-$provider-token';
 
   /// Persists fresh tokens and attaches the trainer profile from `/me`.
   /// Any failure clears the just-issued tokens and rethrows an

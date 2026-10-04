@@ -64,6 +64,11 @@ class User(Base):
     token_version: Mapped[int] = mapped_column(
         Integer, default=0, server_default="0", nullable=False
     )
+    # 가입 때 메일로 받은 코드로 이메일 소유를 확인한 시각(#3038). 확인 절차 이전에
+    # 만든 계정·소셜 가입 계정은 비어 있다.
+    email_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -2430,6 +2435,40 @@ class PasswordResetToken(Base):
     #: 정규화한 코드의 SHA-256(16진수). 확인 요청은 이 값으로 찾는다.
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class EmailVerificationCode(Base):
+    """가입 이메일 확인 코드(#3038).
+
+    계정을 만들기 전에 그 주소로 보낸 6자리 코드다. 계정이 아직 없어 사용자가 아니라
+    (이메일, 용도)에 묶는다. 원문은 담지 않고 서버 비밀값으로 만든 HMAC 만 담는다 —
+    6자리는 경우의 수가 백만뿐이라 소금 없는 해시는 표가 새면 곧바로 풀린다.
+
+    같은 (이메일, 용도)로 새 코드를 보내면 앞선 코드는 쓴 것으로 닫는다. 확인에 실패할
+    때마다 `attempts` 가 오르고 상한에 닿으면 그 코드는 더 받지 않는다.
+    """
+
+    __tablename__ = "email_verification_codes"
+    __table_args__ = (
+        Index("ix_email_verification_codes_email_purpose", "email", "purpose"),
+    )
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    #: 소문자로 정규화한 이메일.
+    email: Mapped[str] = mapped_column(String(255))
+    #: `member_signup` | `trainer_signup`.
+    purpose: Mapped[str] = mapped_column(String(32))
+    code_hash: Mapped[str] = mapped_column(String(64))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    attempts: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
     used_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

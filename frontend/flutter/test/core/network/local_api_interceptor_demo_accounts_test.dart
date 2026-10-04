@@ -42,6 +42,8 @@ void main() {
       'password': password,
       'name': name,
       'phone': phone,
+      // 데모가 받아 주는 가입 인증 코드(#3038).
+      'email_code': '000000',
     },
   );
 
@@ -138,7 +140,14 @@ void main() {
       '/users/me/onboarding',
       data: <String, Object?>{'height_cm': 162},
     );
-    expect((await dio.delete<Object?>('/users/me')).statusCode, 200);
+    // 탈퇴는 가입한 비밀번호로 본인 확인을 거친다(#3039).
+    expect(
+      (await dio.delete<Object?>(
+        '/users/me',
+        data: <String, Object?>{'current_password': 'password123'},
+      )).statusCode,
+      200,
+    );
 
     expect((await register('seoyeon@example.com')).statusCode, 201);
     await login('seoyeon@example.com');
@@ -152,7 +161,10 @@ void main() {
     await login('seoyeon@example.com');
     final res = await dio.put<Map<String, Object?>>(
       '/users/me',
-      data: <String, Object?>{'email': 'new-seoyeon@example.com'},
+      data: <String, Object?>{
+        'email': 'new-seoyeon@example.com',
+        'current_password': 'password123',
+      },
     );
     expect(res.statusCode, 200);
     expect((await login('new-seoyeon@example.com')).statusCode, 200);
@@ -160,7 +172,10 @@ void main() {
     // 데모 회원의 이메일로는 바꿀 수 없다.
     final taken = await dio.put<Map<String, Object?>>(
       '/users/me',
-      data: <String, Object?>{'email': 'minsu@oncare.com'},
+      data: <String, Object?>{
+        'email': 'minsu@oncare.com',
+        'current_password': 'password123',
+      },
     );
     expect(taken.statusCode, 409);
   });

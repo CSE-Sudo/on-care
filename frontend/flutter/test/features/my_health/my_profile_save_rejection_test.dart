@@ -9,10 +9,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
+import 'package:oncare/features/account/domain/entities/account_reauth.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
 import 'package:oncare/features/account/domain/entities/profile_update_rejected.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
+import 'package:oncare/features/auth/domain/repositories/password_repository.dart'
+    show ReissuedTokens;
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -37,6 +40,8 @@ class _ScriptedAccountRepository extends MockAccountRepository {
     String? gender,
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
+    AccountReauth? reauth,
+    void Function(ReissuedTokens tokens)? onTokensReissued,
   }) {
     saves++;
     final Object? failure = failNext;
@@ -52,6 +57,8 @@ class _ScriptedAccountRepository extends MockAccountRepository {
       gender: gender,
       heightCm: heightCm,
       weightKg: weightKg,
+      reauth: reauth,
+      onTokensReissued: onTokensReissued,
     );
   }
 }
@@ -109,6 +116,15 @@ Future<void> _save(WidgetTester tester, AppLocalizations l) async {
   await tester.ensureVisible(find.text(l.mySave));
   await tester.tap(find.text(l.mySave));
   await tester.pumpAndSettle();
+  // 이메일을 바꾼 저장은 본인 확인 창을 거친다(#3039). 이 파일은 그 뒤의
+  // 거절 처리를 보므로 현재 비밀번호를 적고 넘어간다.
+  final Finder password = find.byKey(const ValueKey<String>('reauth-password'));
+  if (password.evaluate().isNotEmpty) {
+    await tester.enterText(password, 'pw-current-1');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey<String>('reauth-confirm')));
+    await tester.pumpAndSettle();
+  }
 }
 
 Future<void> _drainToast(WidgetTester tester) async {

@@ -15,6 +15,9 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import select
 
+#: 이 파일이 만드는 계정의 비밀번호. 탈퇴 본인 확인(#3039)에도 같은 값을 보낸다.
+PASSWORD = "pw!12345"
+
 
 def _h(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
@@ -56,9 +59,9 @@ def _register_member(client) -> tuple[str, str]:
     email = f"del-member-{uuid4().hex[:8]}@oncare.com"
     client.post(
         "/v1/auth/register",
-        json={"email": email, "password": "pw!12345", "name": "탈퇴 테스트 회원"},
+        json={"email": email, "password": PASSWORD, "name": "탈퇴 테스트 회원"},
     )
-    token = _login(client, email, "pw!12345")
+    token = _login(client, email, PASSWORD)
     me = client.get("/v1/users/me", headers=_h(token))
     assert me.status_code == 200, me.text
     return token, me.json()["id"]
@@ -82,12 +85,12 @@ def make_trainer(client, db_session):
             "/v1/auth/trainer/register",
             json={
                 "email": email,
-                "password": "pw!12345",
+                "password": PASSWORD,
                 "name": f"탈퇴 트레이너 {uuid4().hex[:4]}",
             },
         )
         assert res.status_code in (200, 201), res.text
-        token = _login(client, email, "pw!12345")
+        token = _login(client, email, PASSWORD)
         # 소속은 가입 뒤에 고른다(#1627).
         picked = client.put(
             "/v1/trainer/me/gym", headers=_h(token), json={"gym_id": gym_id}
@@ -114,7 +117,10 @@ def test_trainer_can_delete_their_account(client, db_session, gym_id, make_train
 
     token, trainer_id = make_trainer(gym_id)
 
-    deleted = client.delete("/v1/trainer/me", headers=_h(token))
+    deleted = client.request(
+        "DELETE", "/v1/trainer/me", json={"current_password": PASSWORD},
+        headers=_h(token),
+    )
     assert deleted.status_code == 200, deleted.text
 
     db_session.expire_all()
@@ -132,7 +138,10 @@ def test_trainer_can_delete_their_account(client, db_session, gym_id, make_train
 
 def test_deleted_trainer_cannot_sign_in_again(client, gym_id, make_trainer):
     email_token, _ = make_trainer(gym_id)
-    client.delete("/v1/trainer/me", headers=_h(email_token))
+    client.request(
+        "DELETE", "/v1/trainer/me", json={"current_password": PASSWORD},
+        headers=_h(email_token),
+    )
 
     # 지운 계정의 토큰으로는 아무것도 읽을 수 없다.
     assert client.get("/v1/trainer/me", headers=_h(email_token)).status_code in (
@@ -167,7 +176,11 @@ def test_deleting_with_clients_unlinks_and_notifies_them(
         )
     ).all()
 
-    assert client.delete("/v1/trainer/me", headers=_h(token)).status_code == 200
+    deleted = client.request(
+        "DELETE", "/v1/trainer/me", json={"current_password": PASSWORD},
+        headers=_h(token),
+    )
+    assert deleted.status_code == 200, deleted.text
 
     db_session.expire_all()
     # 담당 링크는 CASCADE 로 사라진다.
@@ -372,7 +385,10 @@ def test_deleting_a_trainer_with_bookings_clears_them(
     reservation_id = booked.json()["id"]
     schedule_id = booked.json()["schedule_id"]
 
-    deleted = client.delete("/v1/trainer/me", headers=_h(token))
+    deleted = client.request(
+        "DELETE", "/v1/trainer/me", json={"current_password": PASSWORD},
+        headers=_h(token),
+    )
     assert deleted.status_code == 200, deleted.text
 
     db_session.expire_all()
@@ -407,7 +423,10 @@ def test_trainer_deletion_keeps_chosen_reasons_apart_from_members(
         "DELETE",
         "/v1/trainer/me",
         headers=_h(token),
-        json={"reasons": ["leaving_work", "missing_feature", "not-a-reason"]},
+        json={
+            "reasons": ["leaving_work", "missing_feature", "not-a-reason"],
+            "current_password": PASSWORD,
+        },
     )
     assert deleted.status_code == 200, deleted.text
 
@@ -429,4 +448,8 @@ def test_trainer_deletion_without_reasons_still_works(
 ):
     """사유는 탈퇴를 막는 조건이 아니다 — 본문 없이도 지워진다(#2264)."""
     token, _ = make_trainer(gym_id)
-    assert client.delete("/v1/trainer/me", headers=_h(token)).status_code == 200
+    deleted = client.request(
+        "DELETE", "/v1/trainer/me", json={"current_password": PASSWORD},
+        headers=_h(token),
+    )
+    assert deleted.status_code == 200, deleted.text

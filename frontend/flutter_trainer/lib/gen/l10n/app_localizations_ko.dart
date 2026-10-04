@@ -3403,9 +3403,29 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myDeleteFailed => '탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
-  String myDeleteConfirmPrompt(String name) {
-    return '계속하려면 이름($name)을 입력해 주세요';
-  }
+  String get myDeleteReauthPrompt => '본인 확인을 위해 현재 비밀번호를 입력해 주세요';
+
+  @override
+  String get myDeleteReauthWrongPassword => '현재 비밀번호가 일치하지 않아요';
+
+  @override
+  String get myDeleteReauthSocialPrompt =>
+      '소셜 계정으로 가입한 계정이에요. 본인 확인을 위해 소셜 계정으로 다시 로그인해 주세요.';
+
+  @override
+  String get myDeleteReauthSocialAction => '소셜 계정으로 다시 로그인';
+
+  @override
+  String get myDeleteReauthKakao => '카카오로 다시 로그인';
+
+  @override
+  String get myDeleteReauthGoogle => '구글로 다시 로그인';
+
+  @override
+  String get myDeleteReauthSocialDone => '소셜 계정을 확인했어요. 탈퇴를 누르면 진행돼요.';
+
+  @override
+  String get myDeleteReauthSocialFailed => '소셜 계정 확인에 실패했어요. 다시 로그인해 주세요.';
 
   @override
   String get myWithdrawReasonTitle => '정말 탈퇴하시겠어요?';
@@ -5564,6 +5584,52 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get passwordResetTemporaryFailure => '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get signUpCodeSend => '인증 코드 받기';
+
+  @override
+  String get signUpCodeLabel => '인증 코드';
+
+  @override
+  String get signUpCodeSentNotice =>
+      '메일로 받은 6자리 코드를 입력해 주세요. 이미 가입된 이메일이면 코드 대신 안내 메일이 가요.';
+
+  @override
+  String signUpCodeRemaining(String time) {
+    return '남은 시간 $time';
+  }
+
+  @override
+  String get signUpCodeExpired => '코드가 만료됐어요. 다시 받아 주세요.';
+
+  @override
+  String get signUpCodeResend => '다시 받기';
+
+  @override
+  String signUpCodeResendIn(int seconds) {
+    return '$seconds초 뒤 다시 받기';
+  }
+
+  @override
+  String signUpCodeDemoNote(String code) {
+    return '데모 모드에서는 메일이 가지 않아요. 인증 코드로 $code 를 입력해 주세요.';
+  }
+
+  @override
+  String get signUpCodeInvalid => '인증 코드가 맞지 않거나 만료됐어요. 코드를 다시 받아 주세요.';
+
+  @override
+  String get signUpCodeRequired => '이메일 인증 코드를 입력해 주세요.';
+
+  @override
+  String get signUpCodeTooMany => '요청이 너무 많아요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get signUpCodeUnavailable => '지금은 인증 메일을 보낼 수 없어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get signUpCodeRequestFailed => '인증 코드를 보내지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get releaseUpdateTitle => '새 버전이 배포되었어요';
