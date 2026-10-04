@@ -1,0 +1,218 @@
+"""공개 정책 페이지 생성기의 경계 검사(#3005).
+
+생성기가 틀리면 스토어에 적은 처리방침 주소가 앱과 다른 글을 보여 준다. 본문 변환
+규칙(제목·항·목록·이스케이프·연락처 링크), 랜딩 모양 옮기기, `--check` 의 통과·실패를
+임시 저장소로 확인한다. 표준 라이브러리만 쓴다.
+"""
+
+from __future__ import annotations
+
+import io
+import json
+import shutil
+import sys
+import tempfile
+import unittest
+from contextlib import redirect_stdout
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import build_legal_pages as blp  # noqa: E402
+
+
+class RenderBodyTest(unittest.TestCase):
+    def test_articles_become_headings(self) -> None:
+        html = blp.render_body("제1조 (목적)\n이 약관은 목적을 정합니다.", "")
+        self.assertIn("<h3>제1조 (목적)</h3>", html)
+        self.assertIn("<p>이 약관은 목적을 정합니다.</p>", html)
+
+    def test_english_and_numbered_headings(self) -> None:
+        html = blp.render_body(
+            "Article 12 (Changes)\n\n3. Retention\n\nAddendum\n부칙", ""
+        )
+        for heading in ("Article 12 (Changes)", "3. Retention", "Addendum", "부칙"):
+            self.assertIn(f"<h3>{heading}</h3>", html)
+
+    def test_clauses_keep_their_marker(self) -> None:
+        html = blp.render_body("① 첫째 항\n② 둘째 항\n(3) third", "")
+        self.assertEqual(html.count('<ul class="clause">'), 1)
+        self.assertIn("<li>① 첫째 항</li>", html)
+        self.assertIn("<li>(3) third</li>", html)
+
+    def test_dash_items_drop_only_the_dash(self) -> None:
+        html = blp.render_body("- 접속 기록: 1년\n- 탈퇴 기록: 2년", "")
+        self.assertEqual(html.count('<ul class="dash">'), 1)
+        self.assertIn("<li>접속 기록: 1년</li>", html)
+
+    def test_blank_line_closes_a_list(self) -> None:
+        html = blp.render_body("- a\n\n- b", "")
+        self.assertEqual(html.count('<ul class="dash">'), 2)
+
+    def test_text_is_escaped(self) -> None:
+        html = blp.render_body('A <b>bold</b> & "quoted"', "")
+        self.assertIn("&lt;b&gt;bold&lt;/b&gt; &amp;", html)
+        self.assertNotIn("<b>", html)
+
+    def test_contact_becomes_a_mail_link(self) -> None:
+        html = blp.render_body("연락처: privacy@team.example", "privacy@team.example")
+        self.assertIn(
+            '<a href="mailto:privacy@team.example">privacy@team.example</a>', html
+        )
+
+    def test_a_sentence_that_mentions_a_number_is_not_a_heading(self) -> None:
+        html = blp.render_body("회사는 2. 항에 따라 처리합니다.", "")
+        self.assertNotIn("<h3>", html)
+
+
+class ContactTest(unittest.TestCase):
+    def test_reads_the_single_definition(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "legal_contact.dart"
+            path.write_text(
+                "abstract final class LegalContact {\n"
+                "  static const String privacyOfficerEmail = 'dpo@team.example';\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(blp.read_contact(path), "dpo@team.example")
+
+    def test_missing_constant_is_an_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "legal_contact.dart"
+            path.write_text("// nothing\n", encoding="utf-8")
+            with self.assertRaises(ValueError):
+                blp.read_contact(path)
+
+    def test_demo_domains_are_flagged(self) -> None:
+        self.assertTrue(blp.is_demo_contact("support@oncare.com"))
+        self.assertTrue(blp.is_demo_contact("a@ONCARE.DEMO"))
+        self.assertFalse(blp.is_demo_contact("privacy@realcompany.co.kr"))
+
+    def test_repository_contact_is_read(self) -> None:
+        self.assertIn("@", blp.read_contact())
+
+
+def _fake_repo(root: Path, *, contact: str = "dpo@team.example") -> None:
+    """생성기가 읽는 파일만 가진 작은 저장소."""
+    for app in ("flutter", "flutter_trainer"):
+        for lang in ("ko", "en"):
+            path = root / "frontend" / app / "lib" / "l10n" / f"app_{lang}.arb"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(
+                json.dumps(
+                    {
+                        "myLegalPrivacyTitle": f"Privacy {app} {lang}",
+                        "myLegalPrivacyBody": "1. Officer\nContact: {contact}",
+                        "myLegalPrivacyEffectiveDate": "2026-10-03",
+                        "myLegalTermsTitle": f"Terms {app} {lang}",
+                        "myLegalTermsBody": "제1조 (목적)\n① 항",
+                        "myLegalTermsEffectiveDate": "2026-10-03",
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+    contact_file = root / "shared" / "oncare_core" / "lib" / "legal_contact.dart"
+    contact_file.parent.mkdir(parents=True, exist_ok=True)
+    contact_file.write_text(
+        f"static const String privacyOfficerEmail = '{contact}';\n", encoding="utf-8"
+    )
+    (root / "index.html").write_text(
+        "<link href=\"https://fonts.googleapis.com/css2?family=X\" rel=\"stylesheet\" />\n"
+        "<style>\n  :root {\n    --brand: #1580bd;\n  }\n</style>\n"
+        '<img src="data:image/png;base64,AAAA" alt="On-Care" />\n',
+        encoding="utf-8",
+    )
+
+
+class BuildTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tmp = Path(tempfile.mkdtemp())
+        _fake_repo(self.tmp)
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.tmp)
+
+    def test_builds_both_pages_with_four_sections(self) -> None:
+        pages = blp.build(self.tmp)
+        self.assertEqual(
+            sorted(p.name for p in pages), ["privacy.html", "terms.html"]
+        )
+        privacy = pages[self.tmp / "legal" / "privacy.html"]
+        for anchor in ("member-ko", "trainer-ko", "member-en", "trainer-en"):
+            self.assertIn(f'id="{anchor}"', privacy)
+            self.assertIn(f'href="#{anchor}"', privacy)
+        self.assertIn('lang="en"', privacy)
+
+    def test_placeholder_is_filled_with_the_contact(self) -> None:
+        privacy = blp.build(self.tmp)[self.tmp / "legal" / "privacy.html"]
+        self.assertNotIn("{contact}", privacy)
+        self.assertIn('href="mailto:dpo@team.example"', privacy)
+
+    def test_landing_look_is_carried_over(self) -> None:
+        terms = blp.build(self.tmp)[self.tmp / "legal" / "terms.html"]
+        self.assertIn("--brand: #1580bd;", terms)
+        self.assertIn("https://fonts.googleapis.com/css2?family=X", terms)
+        self.assertIn('src="data:image/png;base64,AAAA"', terms)
+        # 랜딩으로 돌아가는 길은 상대 경로다 — 배포마다 자기 도메인으로 간다.
+        self.assertIn('href="../"', terms)
+        self.assertNotIn("http://", terms)
+
+    def test_pages_need_no_script(self) -> None:
+        for text in blp.build(self.tmp).values():
+            self.assertNotIn("<script", text)
+
+    def test_current_page_is_marked_in_the_nav(self) -> None:
+        pages = blp.build(self.tmp)
+        self.assertIn(
+            'href="terms.html" aria-current="page"',
+            pages[self.tmp / "legal" / "terms.html"],
+        )
+        self.assertIn(
+            'href="privacy.html" aria-current="page"',
+            pages[self.tmp / "legal" / "privacy.html"],
+        )
+
+    def test_build_is_deterministic(self) -> None:
+        self.assertEqual(blp.build(self.tmp), blp.build(self.tmp))
+
+    def test_landing_without_tokens_is_an_error(self) -> None:
+        (self.tmp / "index.html").write_text("<html></html>", encoding="utf-8")
+        with self.assertRaises(ValueError):
+            blp.build(self.tmp)
+
+
+class RepositoryPagesTest(unittest.TestCase):
+    """커밋된 `legal/*.html` 이 지금 원본과 같은지 — `--check` 와 같은 판단."""
+
+    def test_committed_pages_are_current(self) -> None:
+        for path, text in blp.build().items():
+            self.assertTrue(path.exists(), f"{path} 가 없다 — 생성기를 돌려 커밋하세요")
+            self.assertEqual(
+                path.read_text(encoding="utf-8"),
+                text,
+                f"{path.name} 가 낡았다 — python3 tool/legal/build_legal_pages.py",
+            )
+
+    def test_check_passes_on_the_repository(self) -> None:
+        with redirect_stdout(io.StringIO()):
+            self.assertEqual(blp.main(["--check"]), 0)
+
+    def test_every_source_document_is_published(self) -> None:
+        pages = blp.build()
+        for doc in blp.DOCS:
+            text = pages[blp.OUT_DIR / f"{doc.slug}.html"]
+            for source in blp.SOURCES:
+                arb = blp.read_arb(source.app, source.lang)
+                first_line = str(arb[doc.body_key]).split("\n", 1)[0]
+                escaped = (
+                    first_line.replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                )
+                self.assertIn(escaped, text, f"{doc.slug} {source.anchor}")
+
+
+if __name__ == "__main__":
+    unittest.main()

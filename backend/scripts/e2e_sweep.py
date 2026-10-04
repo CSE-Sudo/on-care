@@ -28,6 +28,7 @@ AI 루틴 경로(A/B 생성 → 편집 → 배정 → 회원 수신)도 훑는�
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import sys
 import time
@@ -45,7 +46,22 @@ TRAINER_EMAIL = "trainer@oncare.com"
 # 매칭되지 않아 IPv6 루프백이 원격 취급된다.
 LOCAL_HOSTS = ("localhost", "127.0.0.1", "::1", "host.docker.internal")
 
-_JPEG = b"\xff\xd8\xff\xe0\x00\x10JFIF e2e-sweep"
+# 16×16 진짜 JPEG. 서버가 인식 전에 픽셀까지 읽어 정리하므로(#3041) 매직 넘버만
+# 맞춘 가짜 바이트는 415 로 끝난다.
+_JPEG = base64.b64decode(
+    "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcU"
+    "FhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgo"
+    "KCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAQABADASIA"
+    "AhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQA"
+    "AAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3"
+    "ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWm"
+    "p6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEA"
+    "AwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSEx"
+    "BhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElK"
+    "U1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3"
+    "uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwC5RRRX"
+    "xx9mf//Z"
+)
 _BOUNDARY = "----e2esweep"
 
 # 실행마다 다른 키를 쓴다. 고정 키면 정리(DELETE)가 실패했을 때 다음 실행이 기존

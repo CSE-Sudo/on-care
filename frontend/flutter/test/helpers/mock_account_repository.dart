@@ -1,3 +1,4 @@
+import 'package:oncare/features/account/domain/entities/account_deletion_preview.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
 import 'package:oncare/features/account/domain/entities/profile_update_rejected.dart';
@@ -49,6 +50,13 @@ class MockAccountRepository implements AccountRepository {
 
   @override
   Future<UserProfile> fetchProfile() async => _profile;
+
+  /// 탈퇴 미리보기로 돌려줄 값(#3006). 기본은 잃는 것이 없는 계정이다.
+  AccountDeletionPreview deletionPreview = const AccountDeletionPreview();
+
+  @override
+  Future<AccountDeletionPreview> fetchDeletionPreview() async =>
+      deletionPreview;
 
   /// 목업이 받아 둔 탈퇴 사유. 대역이 무엇을 받았는지 테스트가 확인한다.
   List<String> deletedWithReasons = const <String>[];
@@ -171,12 +179,8 @@ class MockAccountRepository implements AccountRepository {
     birthDate: birthDate ?? _profile.birthDate,
     gender: gender ?? _profile.gender,
     // 인자를 주지 않으면 손대지 않고, 값이 null 이면 지운다(#1941).
-    heightCm: heightCm == null
-        ? _profile.heightCm
-        : heightCm.value?.toDouble(),
-    weightKg: weightKg == null
-        ? _profile.weightKg
-        : weightKg.value?.toDouble(),
+    heightCm: heightCm == null ? _profile.heightCm : heightCm.value?.toDouble(),
+    weightKg: weightKg == null ? _profile.weightKg : weightKg.value?.toDouble(),
     dailyCalories: dailyCalories ?? _profile.dailyCalories,
     dailySodiumMg: dailySodiumMg ?? _profile.dailySodiumMg,
     dailySugarG: dailySugarG ?? _profile.dailySugarG,

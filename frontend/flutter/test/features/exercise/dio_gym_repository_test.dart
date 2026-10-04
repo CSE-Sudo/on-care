@@ -123,15 +123,40 @@ void main() {
     expect(g.hasCoordinates, isTrue);
   });
 
-  test('거리 계산을 서버가 하도록 좌표를 함께 보낸다', () async {
+  test('회원 위치가 없으면 목록은 기본 검색 영역을 검색 중심으로 보낸다 (#3044)', () async {
     final adapter = _StubAdapter(<String, Object?>{'/gyms': _gymsJson});
     await DioGymRepository(_dio(adapter)).fetchNearby();
 
     expect(adapter.calls, contains('GET /gyms'));
-    // 경로만 보면 lat/lng 가 빠져도 통과한다 — 값까지 확인한다.
+    // 경로만 보면 lat/lng 가 빠져도 통과한다 — 값까지 확인한다. 목록은 검색
+    // 중심이 필요하다. 그 거리는 화면이 감춘다.
     final Map<String, dynamic> q = adapter.queryOf('/gyms');
-    expect(q['lat'], kGymSearchLat);
-    expect(q['lng'], kGymSearchLng);
+    expect(q['lat'], kGymDefaultAreaLat);
+    expect(q['lng'], kGymDefaultAreaLng);
+  });
+
+  test('회원 위치가 없으면 /me/gym 에 좌표를 싣지 않는다 (#3044)', () async {
+    // 예전에는 늘 신촌 좌표가 실려, 회원과 무관한 거리가 엔티티에 들어왔다.
+    final adapter = _StubAdapter(<String, Object?>{'/me/gym': _gymDetailJson});
+    await DioGymRepository(_dio(adapter)).fetchMyGym();
+
+    final Map<String, dynamic> q = adapter.queryOf('/me/gym');
+    expect(q.containsKey('lat'), isFalse);
+    expect(q.containsKey('lng'), isFalse);
+  });
+
+  test('좌표가 하나만 있으면 /me/gym 에 싣지 않는다', () async {
+    // 서버는 한쪽만 오면 422 다 — 반쪽 좌표는 아예 보내지 않는다.
+    final adapter = _StubAdapter(<String, Object?>{
+      '/me/gym': _gymDetailJson,
+      '/gyms': '[]',
+    });
+    final repo = DioGymRepository(_dio(adapter), lat: 35.1);
+    await repo.fetchMyGym();
+    await repo.fetchNearby();
+
+    expect(adapter.queryOf('/me/gym'), isEmpty);
+    expect(adapter.queryOf('/gyms')['lat'], kGymDefaultAreaLat);
   });
 
   test('GET /trainers 응답이 Trainer 로 매핑된다', () async {
@@ -177,10 +202,8 @@ void main() {
     expect(gym!.rating, 4.7);
     expect(gym.tags, isNotEmpty);
     expect(adapter.calls, <String>['GET /me/gym']);
-    // 거리 표시는 서버가 계산한다.
-    final Map<String, dynamic> q = adapter.queryOf('/me/gym');
-    expect(q['lat'], kGymSearchLat);
-    expect(q['lng'], kGymSearchLng);
+    // 회원 위치가 없으니 좌표를 싣지 않는다(#3044).
+    expect(adapter.queryOf('/me/gym'), isEmpty);
   });
 
   group('내 예약 목록 (#980)', () {

@@ -42,6 +42,8 @@ extension _LocalApiProfile on LocalApiInterceptor {
       'id': p['id'],
       'name': p['name'],
       'email': p['email'],
+      // 서버와 같은 모양(#3054). 데모 계정은 회원이다.
+      'role': 'member',
       // 데모 회원은 동의를 마친 계정으로 둔다(#2819) — 데모 진입마다 동의
       // 화면이 끼면 시연 흐름이 끊긴다.
       'consent_required': false,
@@ -205,6 +207,26 @@ extension _LocalApiProfile on LocalApiInterceptor {
   ///
   /// 가입 계정이 탈퇴하면 계정째 지운다(#2665) — 같은 이메일로 다시 가입할 수
   /// 있고, 그 비밀번호로는 더 로그인되지 않는다.
+  /// GET /users/me/deletion-preview — 탈퇴하면 사라지거나 취소되는 것의 건수(#3006).
+  ///
+  /// 포인트·쿠폰은 이 목업이 들고 있는 원장·쿠폰함에서 센다. 데모의 PT 예약과
+  /// 상담 요청은 목 헬스장·상담 저장소가 들고 있어 여기서는 0 으로 두고, 앱의
+  /// 탈퇴 화면이 그 저장소에서 센 값으로 덮는다(`withdrawPreviewLoaderProvider`).
+  Future<Response<Object?>> _usersMeDeletionPreview(
+    RequestOptions options,
+  ) async {
+    final int activeCoupons = _coupons
+        .couponsJson()
+        .where((Map<String, Object?> c) => c['status'] == 'issued')
+        .length;
+    return _ok(options, <String, Object?>{
+      'points': _points.balance,
+      'active_coupons': activeCoupons,
+      'upcoming_reservations': 0,
+      'pending_consultations': 0,
+    });
+  }
+
   Future<Response<Object?>> _usersMeDelete(RequestOptions options) async {
     if (await _accounts.current() != null) {
       await _accounts.removeCurrent();

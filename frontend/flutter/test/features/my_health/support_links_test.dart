@@ -6,14 +6,17 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
-
+import 'package:oncare/core/app_version/app_version.dart';
 import 'package:oncare/features/my_health/domain/support_links.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/gen/l10n/app_localizations_en.dart';
+import 'package:oncare/gen/l10n/app_localizations_ko.dart';
 
 /// `url_launcher` 플랫폼 호출을 가로채 어떤 URL 로 나갔는지 기록한다.
 class _LaunchRecorder {
@@ -43,14 +46,24 @@ class _LaunchRecorder {
   }
 }
 
-Future<void> _pumpSupport(WidgetTester tester) async {
+Future<void> _pumpSupport(
+  WidgetTester tester, {
+  Locale locale = const Locale('ko'),
+  String? version = '0.4.0',
+}) async {
   await tester.pumpWidget(
-    MaterialApp(
-      theme: AppTheme.light(),
-      locale: const Locale('ko'),
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: const SupportPage(),
+    ProviderScope(
+      // 버전 줄은 빌드 정보에서 읽는다(#3047). 테스트에는 플랫폼이 없어 값을 준다.
+      overrides: <Override>[
+        appVersionProvider.overrideWith((ref) async => version),
+      ],
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        locale: locale,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const SupportPage(),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -113,5 +126,37 @@ void main() {
     expect(kSupportChannelUrl.startsWith('https://'), isTrue);
     expect(kSupportChatUrl.startsWith('https://'), isTrue);
     expect(kSupportChatUrl.startsWith(kSupportChannelUrl), isTrue);
+  });
+
+  group('버전 줄 (#3047)', () {
+    final AppLocalizationsKo ko = AppLocalizationsKo();
+    final AppLocalizationsEn en = AppLocalizationsEn();
+
+    testWidgets('빌드 버전을 그대로 보인다', (WidgetTester tester) async {
+      await _pumpSupport(tester, version: '1.2.3');
+
+      expect(find.text('On-Care · 버전 1.2.3'), findsOneWidget);
+      expect(find.text(ko.myAppVersion('1.2.3')), findsOneWidget);
+    });
+
+    testWidgets('영어 화면도 빌드 버전을 보인다', (WidgetTester tester) async {
+      await _pumpSupport(tester, locale: const Locale('en'), version: '1.2.3');
+
+      expect(find.text(en.myAppVersion('1.2.3')), findsOneWidget);
+    });
+
+    testWidgets('읽지 못하면 앱 이름만 보인다', (WidgetTester tester) async {
+      await _pumpSupport(tester, version: null);
+
+      expect(find.text(ko.myAppName), findsOneWidget);
+      expect(find.textContaining('버전'), findsNothing);
+    });
+
+    testWidgets('예전 고정 버전이 남지 않았다', (WidgetTester tester) async {
+      await _pumpSupport(tester, version: '2.3.4');
+
+      expect(find.textContaining('1.0.0'), findsNothing);
+      expect(find.text(ko.myAppVersion('2.3.4')), findsOneWidget);
+    });
   });
 }

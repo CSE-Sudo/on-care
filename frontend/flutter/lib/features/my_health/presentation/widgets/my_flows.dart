@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/core/app_version/app_version.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
@@ -21,6 +22,7 @@ import 'package:oncare/features/my_health/domain/support_links.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/features/notification/data/repositories/notification_settings_repository.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/legal_contact.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -1943,15 +1945,29 @@ class SupportPage extends StatelessWidget {
         ),
       ]),
       const SizedBox(height: OnCareSpacing.s12),
-      Center(
-        child: Text(
-          l.myAppVersion,
-          style: context.oncare
-              .text(OnCareTypography.caption)
-              .copyWith(color: OnCareColors.textTertiary),
-        ),
-      ),
+      const Center(child: SupportAppVersionLine()),
     ]);
+  }
+}
+
+/// 고객 지원 맨 아래 버전 줄(#3047). 버전은 빌드에서 읽는다 — 예전에는 번역
+/// 문구에 `1.0.0` 이 박혀 실제 빌드와 상관없이 늘 같았다. 읽기 전·읽지 못하면
+/// 앱 이름만 보인다(트레이너 웹과 같은 규칙).
+class SupportAppVersionLine extends ConsumerWidget {
+  const SupportAppVersionLine({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return Text(
+      switch (ref.watch(appVersionProvider).valueOrNull) {
+        final String version => l.myAppVersion(version),
+        null => l.myAppName,
+      },
+      style: context.oncare
+          .text(OnCareTypography.caption)
+          .copyWith(color: OnCareColors.textTertiary),
+    );
   }
 }
 
@@ -2023,7 +2039,9 @@ class LegalDocumentPage extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final bool isTerms = document == _LegalDoc.terms.name;
     final String title = isTerms ? l.myLegalTermsTitle : l.myLegalPrivacyTitle;
-    final String body = isTerms ? l.myLegalTermsBody : l.myLegalPrivacyBody;
+    final String body = isTerms
+        ? l.myLegalTermsBody
+        : l.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
     // 두 문서는 시행일이 따로 간다 — 처리방침만 고쳐도 약관 날짜는 그대로다(#2820).
     final String effectiveDate = isTerms
         ? l.myLegalTermsEffectiveDate

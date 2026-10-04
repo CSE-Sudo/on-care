@@ -16,8 +16,8 @@
 
 | 수탁자 | 위탁 업무 | 이전 국가 | 이전 항목 | 보유 기간 | 근거(코드·설정) |
 | --- | --- | --- | --- | --- | --- |
-| Amazon Web Services, Inc. | 서버 운영(App Runner), 채팅 사진·리포트 PDF 보관(S3) | 싱가포르(`ap-southeast-1`) | 서버가 처리하는 회원·트레이너 정보 전반, 채팅 첨부 사진·리포트 PDF | 탈퇴 또는 위탁 계약 종료 시까지 | `.github/workflows/backend-deploy.yml` `AWS_REGION`, `backend/app/core/config.py` `attachment_storage`·`attachment_s3_*`, `backend/docs/DEPLOY.md` 5-1·리전 |
-| Neon | 데이터베이스 운영(Postgres + pgvector) | 싱가포르(App Runner 와 같은 리전) | 계정·프로필·식단(음식 사진 축소본 포함)·운동·건강 기록, 대화 기록, 검색 색인 | 탈퇴 또는 위탁 계약 종료 시까지 | `backend/docs/DEPLOY.md` 1·2절, `backend/.env.aws.example` `DATABASE_URL` |
+| Amazon Web Services, Inc. | 서버 운영(ECS Express Mode), 채팅 사진·리포트 PDF 보관(S3) | 싱가포르(`ap-southeast-1`) | 서버가 처리하는 회원·트레이너 정보 전반, 채팅 첨부 사진·리포트 PDF | 탈퇴 또는 위탁 계약 종료 시까지 | `.github/workflows/backend-deploy.yml` `AWS_REGION`, `backend/app/core/config.py` `attachment_storage`·`attachment_s3_*`, `backend/docs/DEPLOY.md` 5-1·리전 |
+| Neon | 데이터베이스 운영(Postgres + pgvector) | 싱가포르(서버와 같은 리전) | 계정·프로필·식단(음식 사진 축소본 포함)·운동·건강 기록, 대화 기록, 검색 색인 | 탈퇴 또는 위탁 계약 종료 시까지 | `backend/docs/DEPLOY.md` 4·5절, `backend/.env.aws.example` `DATABASE_URL` |
 | Google LLC (Gemini API) | 음식 사진 인식, AI 코치 답변·추천, 개인 기록 검색 색인(임베딩), 트레이너 AI 프로그램·루틴 후보·리포트 요약 | 미국 등 Google 데이터센터 소재 국가 | 음식 사진, 분석에 필요한 식단·운동 기록·신체 정보·건강 목표, AI 코치 대화, 트레이너가 입력한 코칭 조건과 담당 회원 운동 기록·주간 리포트 수치 | 요청 처리 후 수탁자 약관에서 정한 기간 | `config.py` `recognizer`·`coach_llm`·`embedder` 기본값 `gemini`, `rag_auto_ingest=True`(식단·운동 저장 때마다 색인), `services/trainer_report_summary_service.py`, `services/trainer_routine_options_service.py` |
 | Functional Software, Inc. (Sentry) | 앱·서버 오류 수집 | 미국 | 오류 내용, 기기·브라우저·운영체제 종류, 앱 버전. 이름·이메일·IP·헤더·쿠키·요청 본문·지역 변수는 보내기 전에 지운다 | 수탁자 보관 기간 | `backend/app/core/error_tracking.py`(`send_default_pii=False`, `scrub_event`), `frontend/flutter/lib/core/observability/error_reporter.dart`, 화면이 잡아서 처리한 오류도 같은 항목·같은 정리로 보낸다(`source=handled`, `frontend/flutter/lib/core/observability/handled_error.dart`, 연결 끊김·이미 지워진 항목 같은 예상된 실패는 보내지 않음), 트레이너 웹 `sentry_flutter` |
 | 주식회사 카카오 | 헬스장·장소 검색, 지도 표시 | 대한민국(국외 이전 아님) | 장소 검색 좌표(회원이 현재 위치를 허용한 경우 그 좌표), 검색어 | 수탁자 보관 기간 | `backend/app/services/places/kakao.py`, `services/trainer_gym_search.py`, `shared/oncare_kakao_map`, 두 앱 `web/index.html` CSP |
@@ -32,7 +32,10 @@
 - 공공 식품영양성분 DB: 서버에 적재한 참조표(`food_nutrients`)를 조회할 뿐 외부로 보내지 않는다.
 - OpenAI·LiteLLM: 설정으로 고를 수 있지만 운영 기본값과 `backend/.env.aws.example` 은 Gemini 다.
   운영에서 바꾸면 이 표와 처리방침에 수탁자를 더한다.
-- 메일 발송(비밀번호 재설정): `mail_provider` 의 실제 발송 업체가 아직 정해지지 않았다. 정해지면 표에 더한다.
+- 메일 발송(비밀번호 재설정): `mail_provider` 의 실제 발송 업체가 아직 정해지지 않았다(#480). 정해지면 표에 더한다.
+  미리 정해 둔 행 — 위탁 업무 "비밀번호 재설정 메일 발송", 이전 항목 **수신 이메일 주소·재설정 코드(재설정 링크)**,
+  근거 `backend/app/services/mailer.py`·`services/password_reset.py`, `backend/.env.aws.example` 메일 블록(#3033).
+  업체 이름·이전 국가·보유 기간만 채우면 된다.
 
 ## 2. 보관 기간
 
@@ -82,18 +85,22 @@ DB 복구용 기록(Neon 의 복원 기간)에 남은 사본은 그 기간이 �
 | 채팅 첨부 사진·리포트 PDF | ○ | ○ | `chat_messages`, `config.py` `chat_image_storage_dir`·`report_pdf_storage_dir` |
 | 접속 기록(일시·IP) | ○ | ○ | `audit_logs.ip` |
 | 현재 위치 | 헬스장 찾기에서 허용한 경우만, 저장 안 함(서버 요청 로그에도 남지 않음) | — | `frontend/flutter/.../gym_location_controller.dart`, `GET /places/nearby` |
+| 상담·예약 신청 내용(운동 목표·희망 일시·문의 내용) | ○ | ○(받는 쪽) | `consultation_requests`, `trainer_reservations` · iOS 매니페스트 `NSPrivacyCollectedDataTypeOtherUserContent`(계정 연결) |
 | 서버 요청 로그 | method·경로(쿼리 제외)·상태·소요시간·요청 id 만. IP·쿼리(위치 좌표·검색어)·본문은 없음 | 같음 | `app/core/observability.py` `app.access`, `scripts/start.sh` `--no-access-log`(#3031) |
-| 오류 정보 | ○ | ○ | Sentry(1절) |
+| 오류 정보 | ○ | ○ | Sentry(1절) · iOS 매니페스트 `NSPrivacyCollectedDataTypeCrashData`·`NSPrivacyCollectedDataTypeOtherDiagnosticData`(세션 추적·기기 종류·운영체제·앱 버전, 계정 미연결) |
 | 광고·분석 쿠키 | 없음 | 없음 | 두 앱 `pubspec.yaml`, `web/index.html` CSP |
 
 ## 5. 보호책임자
 
-처리방침에는 개인 성명 대신 직책(On-Care 서비스 운영팀 개인정보 보호책임자)과 저장소에 이미 쓰이던
-고객 지원 주소 `support@oncare.com` 을 적는다.
+처리방침에는 개인 성명 대신 직책(On-Care 서비스 운영팀 개인정보 보호책임자)과 연락처를 적는다.
+연락처는 **한 곳**, `shared/oncare_core/lib/legal_contact.dart` 의 `LegalContact.privacyOfficerEmail`
+에서만 정한다(#3005). 네 ARB 의 처리방침 본문은 `{contact}` 자리표시자를 쓰고, 두 앱과 공개 페이지
+생성기가 모두 이 상수로 채운다. 지금 값 `support@oncare.com` 은 데모 도메인이라 운영 주소가 정해질 때까지
+임시다 — 생성기가 데모 도메인이면 경고를 낸다.
 
 ## 6. 확정이 필요한 값 (#480)
 
-- [ ] `support@oncare.com` 이 실제로 수신되는지 확인하고, 아니면 수신 확인된 주소로 네 ARB 를 함께 바꾼다.
+- [ ] 운영 연락처(수신 확인된 주소)를 정해 `LegalContact.privacyOfficerEmail` 한 곳을 바꾸고 공개 페이지를 다시 만든다.
 - [ ] 보호책임자 성명(또는 직책)을 운영 주체가 정해지면 확정한다.
 - [ ] 백엔드·S3·Neon 최종 리전(현재 싱가포르). 바뀌면 1절과 처리방침 7항의 국가를 고친다.
 - [ ] Sentry 데이터 보관 지역(미국/EU)과 보관 기간 — `SENTRY_DSN` 을 만들 때 정해진다.
@@ -109,3 +116,21 @@ DB 복구용 기록(Neon 의 복원 기간)에 남은 사본은 그 기간이 �
    옛 버전에만 동의한 계정은 다음 로그인 때 동의 화면을 다시 거친다.
    `backend/tests/test_privacy_policy_version.py` 가 버전과 본문 시행일이 같은지 본다.
 5. 두 앱에서 `flutter gen-l10n` 을 돌린다.
+6. `python3 tool/legal/build_legal_pages.py` 로 공개 페이지(`legal/privacy.html`·`legal/terms.html`)를
+   다시 만들어 함께 커밋한다. PR Gate 가 `--check` 로 앱 문서와 공개 페이지가 같은지 본다.
+
+## 8. 공개 URL
+
+개인정보 보호법 시행령 제31조는 처리방침을 누구나 볼 수 있게 공개하도록 한다. 앱 안 화면과 별개로
+로그인 없이 열리는 정적 페이지를 랜딩 옆에 둔다(#3005).
+
+| 문서 | 경로 | 원본 |
+| --- | --- | --- |
+| 개인정보 처리방침 | `/legal/privacy.html` | 두 앱 ARB `myLegalPrivacyBody`(회원·트레이너, 한국어·영문) |
+| 이용약관 | `/legal/terms.html` | 두 앱 ARB `myLegalTermsBody` |
+
+- 랜딩 바닥글의 "개인정보 처리방침" 링크는 다른 링크보다 눈에 띄게(굵게) 둔다.
+- 페이지는 생성물이라 손으로 고치지 않는다. 모양은 랜딩 `index.html` 의 `:root` 토큰·글꼴·로고를
+  생성기가 그대로 옮겨 쓴다(랜딩이 바뀌면 `--check` 가 다시 만들라고 알린다).
+- 스토어 콘솔의 개인정보처리방침 URL 은 운영 도메인의 `/legal/privacy.html` 을 적는다
+  ([mobile_release.md](mobile_release.md)).

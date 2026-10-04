@@ -45,6 +45,7 @@ from app.db.session import get_db
 from app.models.models import AccountDeletionReason, HealthProfile, User
 from app.schemas.user import (
     AccountDeleteRequest,
+    AccountDeletionPreview,
     ConsentStatus,
     ConsentSubmit,
     MemberPasswordChange,
@@ -68,6 +69,7 @@ from app.schemas.user import (
     UserRegister,
 )
 from app.services import (
+    account_deletion_preview,
     attachment_cleanup,
     auth_tokens,
     consultation_service,
@@ -102,6 +104,7 @@ def get_me(
         id=current_user.id,
         name=current_user.name,
         email=current_user.email,
+        role=current_user.role,
         consent_required=bool(pending),
         consent_pending=pending,
     )
@@ -412,6 +415,19 @@ DELETION_REASONS: frozenset[str] = frozenset(
 )
 
 
+@router.get("/users/me/deletion-preview", response_model=AccountDeletionPreview)
+def get_deletion_preview(
+    user: RequireMember,
+    db: Annotated[Session, Depends(get_db)],
+) -> AccountDeletionPreview:
+    """탈퇴하면 사라지는 포인트·쿠폰과 취소되는 예약·상담 요청의 수(#3006).
+
+    탈퇴 확인창이 연다. [delete_me] 가 실제로 지우는 범위를 숫자로 미리 보여 줄
+    뿐이고, 아무것도 바꾸지 않는다. 트레이너 계정은 403 이다(회원 전용).
+    """
+    return account_deletion_preview.preview(db, user.id)
+
+
 @router.delete("/users/me")
 def delete_me(
     user: RequireMember,
@@ -589,7 +605,7 @@ def register(
     audit(
         db, event="auth.register", user_id=user.id, ip=client_ip(request), success=True
     )
-    return UserMe(id=user.id, name=user.name, email=user.email)
+    return UserMe(id=user.id, name=user.name, email=user.email, role=user.role)
 
 
 @router.post(
@@ -633,7 +649,9 @@ def register_trainer(
         ip=client_ip(request),
         success=True,
     )
-    return UserMe(id=trainer.id, name=trainer.name, email=trainer.email)
+    return UserMe(
+        id=trainer.id, name=trainer.name, email=trainer.email, role=trainer.role
+    )
 
 
 def _login_lock_key(username: str) -> str:

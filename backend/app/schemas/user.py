@@ -32,7 +32,7 @@ from app.services.contact_format import clean_email, normalize_phone
 from app.services.password_policy import check_new_password
 from app.services.profile_format import clean_birth_date, clean_name
 from app.services.health_focus import normalize_conditions
-from app.services.signup_consent import Kind as ConsentKind, missing_required
+from app.services.signup_consent import SubmittedKind as ConsentKind, missing_required
 
 
 # ---- GET /users/me ----
@@ -40,6 +40,10 @@ class UserMe(BaseModel):
     id: str
     name: str
     email: str
+    #: 계정 역할(`member`·`trainer`, #3054). 회원 앱과 트레이너 웹은 한 출처에
+    #: 배포돼 브라우저 저장소를 같이 쓴다. 앱이 세션을 되살릴 때 이 값으로 자기
+    #: 계정인지 한 번 더 확인한다. 트레이너 토큰은 이 API 에서 이미 403 이다.
+    role: str = "member"
     #: 필수 가입 동의(약관·개인정보·건강정보·만 14세) 중 지금 버전에 동의하지
     #: 않은 항목이 있는가(#2819). 참이면 앱이 다른 화면보다 먼저 동의 화면을
     #: 띄운다 — 동의 절차가 생기기 전에 가입한 계정, 소셜 첫 가입, 문서 버전이
@@ -473,6 +477,23 @@ class AccountDeleteRequest(BaseModel):
     """
 
     reasons: list[str] = Field(default_factory=list, max_length=10)
+
+
+class AccountDeletionPreview(BaseModel):
+    """GET /users/me/deletion-preview — 탈퇴하면 사라지는 것의 수. (#3006)
+
+    회원 탈퇴 확인창이 읽어 0 이 아닌 항목만 보여 준다. 읽기에 실패하면 앱은
+    숫자 없이 고정 문구로 알린다.
+    """
+
+    #: 남은 포인트. 탈퇴하면 내역과 함께 사라진다.
+    points: int = Field(ge=0)
+    #: 아직 쓸 수 있는 쿠폰 수(사용·취소·만료 제외).
+    active_coupons: int = Field(ge=0)
+    #: 시작 전인 PT 예약 수. 탈퇴하면 취소되고 자리가 풀린다.
+    upcoming_reservations: int = Field(ge=0)
+    #: 아직 답을 받지 않은 상담 요청 수. 탈퇴하면 취소되고 트레이너에게 알린다.
+    pending_consultations: int = Field(ge=0)
 
 
 class ProfileUpdate(PartialUpdate):

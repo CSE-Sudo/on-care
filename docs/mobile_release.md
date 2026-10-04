@@ -19,6 +19,19 @@ Flutter 가 이 값에서 채웁니다.
   그 커밋에서 빌드합니다. 그래야 스토어의 빌드와 저장소 이력이 1:1 로 맞습니다.
 - 커밋 제목 예: `chore(mobile): 1.0.1+12 릴리스 버전 갱신`.
 
+### 화면의 버전과 웹 배포
+
+회원 앱 MY → 설정 → 고객 지원 하단과 트레이너 웹 MY 하단의 `… · 버전 <이름>` 은 빌드에서
+읽은 버전 이름입니다(`package_info_plus`, 모바일은 `versionName`·`CFBundleShortVersionString`, 웹은
+빌드의 `version.json`). 번역 문구에 숫자를 적지 않습니다(#3047). 읽지 못하면 앱 이름만 보입니다.
+
+- 트레이너 웹(`frontend/flutter_trainer/pubspec.yaml`)도 같은 규칙으로 버전을 둡니다.
+- 배포 워크플로(Pages·AWS)는 `--build-name`·`--build-number` 를 주입하지 않습니다. 주입하면 저장소
+  이력과 배포물의 버전이 갈라집니다.
+- 회원이나 트레이너가 보는 변화가 있는 웹 배포 전에는 그 앱의 버전 이름을 위 표대로 올리는 커밋을
+  main 에 넣습니다. 웹만 배포할 때는 빌드 번호(`+` 뒤)를 올리지 않아도 됩니다. 빌드 번호는 스토어
+  업로드에만 씁니다.
+
 ## 2. Android 릴리스 서명
 
 릴리스 빌드는 업로드 키로만 서명합니다. `android/app/build.gradle.kts` 가
@@ -39,13 +52,12 @@ keyPassword=<키 비밀번호>
 - `key.properties`·`*.jks`·`*.keystore` 는 `frontend/flutter/android/.gitignore` 로 제외되어
   있습니다. `git status` 에 보이면 커밋하지 말고 제외 설정부터 확인합니다.
 
-빌드:
+빌드(define 파일은 [5절](#5-릴리스-빌드-설정-define-파일)):
 
 ```bash
 cd frontend/flutter
-flutter build appbundle --release \
-  --dart-define=USE_MOCK_API=false \
-  --dart-define=API_BASE_URL=<운영 API 주소>
+bash tool/check_release_defines.sh config/release.json
+flutter build appbundle --release --dart-define-from-file=config/release.json
 # → build/app/outputs/bundle/release/app-release.aab
 ```
 
@@ -104,8 +116,22 @@ Play Console 데이터 보안 양식의 백업 관련 항목은 이 정책(백�
 | 지원 언어 | `ios/Runner/Info.plist` `CFBundleLocalizations` = `ko`, `en` · `project.pbxproj` `knownRegions` | 앱 안 지원 언어(`AppLocalizations.supportedLocales`)와 같게. 개발 언어(`developmentRegion`)는 `en` — 앱 안 문구의 폴백과 같다 |
 | 권한 문구 | `ios/Runner/ko.lproj/InfoPlist.strings`, `ios/Runner/en.lproj/InfoPlist.strings`, `Info.plist`(영어 폴백) | 카메라·사진(식단 사진·트레이너 채팅 사진), 위치(주변 헬스장 찾기) |
 
+- 두 스토어의 **개인정보처리방침 URL** 은 운영 도메인의 `/legal/privacy.html`, 이용약관이 필요한 칸에는
+  `/legal/terms.html` 을 적습니다. 로그인 없이 열리는 정적 페이지로, 앱 안 문서와 같은 원본에서
+  만들어집니다([privacy_processing.md](privacy_processing.md) 8절, #3005). 운영 도메인이 정해지기 전에는
+  콘솔에 적지 않습니다(#480).
 - App Store Connect 의 **개인정보 라벨**은 `PrivacyInfo.xcprivacy` 의 수집 항목과 같게 적습니다.
   수집 항목·플러그인이 바뀌면 두 곳을 함께 고칩니다.
+- 개인정보 라벨 체크리스트(#3053) — `PrivacyInfo.xcprivacy` 와 한 줄씩 대조합니다.
+  - [ ] 연락처 정보: 이름·이메일·전화번호 — 사용자에게 연결됨, 앱 기능
+  - [ ] 건강 및 피트니스: 건강·피트니스 — 연결됨, 앱 기능
+  - [ ] 사용자 콘텐츠: 사진, 이메일 또는 문자 메시지(채팅), **기타 사용자 콘텐츠(상담·예약 신청 내용)** — 연결됨, 앱 기능
+  - [ ] 위치: 정확한 위치 — 연결됨, 앱 기능
+  - [ ] 식별자: 사용자 ID — 연결됨, 앱 기능
+  - [ ] **진단: 충돌 데이터, 기타 진단 데이터** — 사용자에게 **연결되지 않음**, 앱 기능(오류 수집 Sentry, 자동 세션 추적 포함)
+  - [ ] 기타 데이터: 성별·생년월일·키 등 프로필 — 연결됨, 앱 기능
+  - [ ] 추적: 하지 않음
+- 오류 수집 SDK 를 빼거나 Sentry 세션 추적(`enableAutoSessionTracking`)을 끄면 진단 항목을 함께 고칩니다. 어긋나면 `test/platform/privacy_manifest_test.dart` 가 실패합니다.
 - 권한 문구는 실제로 그 권한을 쓰는 화면과 맞아야 합니다. 새 용도가 생기면 문구도 고칩니다.
 - **권한 문구는 세 곳을 함께 고칩니다**(#3048): `ko.lproj/InfoPlist.strings`, `en.lproj/InfoPlist.strings`, `Info.plist` 본문(영어 폴백). 권한 키를 새로 더할 때(예: 푸시 알림 #474)도 같습니다. 한 곳이라도 빠지면 `test/platform/ios_localizations_test.dart` 가 실패합니다.
 - 릴리스 전에 기기 언어를 한국어·영어로 바꿔 가며 카메라·사진·위치 권한 창의 설명과 버튼이 그 언어로 뜨는지, 설정 → On-Care 에 언어 항목(한국어·영어)이 보이는지 확인합니다.
@@ -114,9 +140,8 @@ Play Console 데이터 보안 양식의 백업 관련 항목은 이 정책(백�
 
 ```bash
 cd frontend/flutter
-flutter build ipa --release \
-  --dart-define=USE_MOCK_API=false \
-  --dart-define=API_BASE_URL=<운영 API 주소>
+bash tool/check_release_defines.sh config/release.json
+flutter build ipa --release --dart-define-from-file=config/release.json
 ```
 
 ## 3-1. 화면 방향 정책 (#3050)
@@ -159,4 +184,101 @@ flutter build ipa --release \
 - Play Console 앱 생성(패키지 이름), App Store Connect 앱 생성과 Apple Developer 의 App ID(번들 ID).
 - 모바일에서 카카오·네이버 등 네이티브 소셜 로그인 SDK 를 붙이면(#330) 각 개발자 콘솔에 패키지 이름·
   번들 ID 와 업로드 키·Play 앱 서명 키의 키 해시를 등록합니다. 지금 회원 앱 모바일 빌드는 이런 네이티브
-  SDK 를 쓰지 않습니다(카카오 지도는 웹 전용).
+  SDK 를 쓰지 않습니다.
+
+### 헬스장 찾기 지도 (#3043)
+
+모바일 빌드도 웹과 같은 카카오맵 JavaScript SDK 를 앱 안 WebView 로 띄웁니다. 네이티브 지도 SDK 가
+아니므로 패키지 이름·키 해시 등록은 필요 없고, 웹과 같은 **JavaScript 키와 JavaScript SDK 도메인**
+목록을 그대로 씁니다. 두 값은 5절의 `config/release.json` 에 `KAKAO_JS_KEY`·`KAKAO_MAP_ORIGIN` 키로
+넣습니다(`check_release_defines.sh` 는 `KAKAO_MAP_ORIGIN` 이 경로 없는 `https://` 출처가 아니거나 로컬 주소면 멈춥니다).
+
+- `KAKAO_JS_KEY` 를 빼고 빌드하면 지도를 띄우지 않습니다. 헬스장 목록은 그대로 쓸 수 있고, 지도 자리에는
+  "지도를 불러오지 못했어요" 안내만 둡니다(위치와 무관한 핀을 그리지 않습니다).
+- WebView 는 지도 문서를 `KAKAO_MAP_ORIGIN` 출처로 띄우고 그 출처로 SDK 를 부릅니다. 운영 빌드는
+  **이미 허용 목록에 있는 운영 회원 웹 주소**(`https://` 포함, 경로 없이)를 넣습니다. 그래야 운영 키의
+  허용 목록에 `localhost` 같은 개발용 주소를 더하지 않습니다(#2913, `backend/docs/DEPLOY.md`).
+  앱이 실제로 그 주소에 요청을 보내지는 않습니다.
+- 값을 비우면 로컬 개발용 `http://localhost` 입니다. 이 값은 개발용 카카오 앱 키와 함께만 씁니다.
+- 지도가 뜨지 않으면(도메인 미등록·키 오류·네트워크 차단, 10초 제한) 같은 안내로 돌아갑니다.
+- 데모 세션(`USE_MOCK_API=true` 빌드·실서버 데모 입장)은 키가 없을 때 예전 그림 지도를 그대로 씁니다.
+- Android 는 `INTERNET` 권한이 이미 있고, iOS 는 SDK 가 `https` 라 ATS 예외가 필요 없습니다.
+
+## 5. 릴리스 빌드 설정 (define 파일)
+
+앱의 컴파일 타임 기본값은 로컬 개발용입니다(`ENV=dev`·`USE_MOCK_API=true`·예시 API 주소).
+`--dart-define` 을 하나씩 적으면 하나를 빠뜨려도 빌드는 성공하고, 그 앱은 **개발 환경으로 판정된
+운영 앱**(요청 로그·개발용 화면이 켜지고 오류 보고가 꺼짐)이나 **목업 데이터로 도는 앱**이 됩니다(#3022).
+그래서 스토어 빌드는 define 파일 하나로만 합니다.
+
+1. `frontend/flutter/config/release.example.json` 을 같은 폴더의 `release.json` 으로 복사하고 값을 채웁니다.
+   `release.json` 은 `.gitignore` 로 제외되어 있습니다 — 커밋하지 않습니다.
+
+   | 키 | 값 |
+   | --- | --- |
+   | `ENV` | `prod`(스토어). 내부 배포 빌드만 `staging` |
+   | `USE_MOCK_API` | `false` |
+   | `API_BASE_URL` | `https://<운영 API 도메인>/v1` — `/v1` 까지, 끝 `/` 없이 |
+   | `SENTRY_DSN` | 회원 앱 Sentry 프로젝트의 DSN(`https://…`) |
+
+2. 빌드 전에 `bash tool/check_release_defines.sh config/release.json` 을 돌립니다. 키가 빠졌거나 형식이
+   틀리면(`ENV` 가 `prod`·`staging` 이 아님, 목업, `http://`·예시·로컬 주소, DSN 없음, 데모 전용 스위치
+   `DEMO_BUILD`·`SHOW_DEMO_ENTRY`·`REAL_API` 가 남음) 빌드하지 말라는 오류와 함께 멈춥니다.
+3. `flutter build appbundle|ipa --release --dart-define-from-file=config/release.json` 으로 빌드합니다.
+
+빌드 단계를 건너뛰어도 앱이 한 번 더 막습니다. 릴리스 모드에서 `ENV` 가 `prod`·`staging` 이 아니거나,
+데모 빌드 표시(`DEMO_BUILD=true`) 없이 목업이거나, API 주소가 `https://` 가 아니거나 예시·로컬
+주소면 기동할 때 기능 화면 대신 **"이 빌드는 잘못 구성됐어요"** 안내와 고칠 설정 목록을 띄웁니다
+(`AppConfig.releaseProblems`). `flutter run`(디버그)·테스트에는 적용되지 않습니다.
+
+- `DEMO_BUILD=true` 는 데모 Pages 빌드(`.github/workflows/deploy.yml`)만 넘깁니다. 스토어 빌드에는 넣지 않습니다.
+- Sentry 프로젝트 생성·DSN 발급은 #480 에서 합니다. 값은 팀 비밀번호 관리자에 두고 `release.json` 에만 적습니다.
+
+## 6. 최소 지원 버전 (강제 업데이트)
+
+백엔드 환경 변수 `MIN_MEMBER_APP_VERSION` 보다 낮은 회원 앱 **모바일** 빌드는 업데이트 화면만
+보입니다(#3045). 옛 빌드가 바뀐 API 응답을 읽어 화면마다 오류를 내는 일을 막는 장치이고, 첫 스토어
+출시 빌드부터 들어 있어야 의미가 있습니다.
+
+- 앱은 켤 때와 백그라운드에서 돌아올 때 `GET /version` 의 `min_app_version` 을 읽어 자기 버전
+  이름(`pubspec.yaml` 의 `+` 앞)과 비교합니다. 빌드 번호는 비교하지 않습니다.
+- 비어 있으면(기본) 검사하지 않습니다. 개발·데모·목업 빌드는 늘 비어 있습니다.
+- `/version` 이 실패하거나 3초 안에 오지 않으면 평소처럼 진행합니다(fail-open). 이미 업데이트 화면이
+  떠 있으면 다시 확인이 실패해도 그대로 둡니다.
+- 웹 빌드(회원 앱 웹·트레이너 웹)는 검사하지 않습니다. 웹은 배포하면 곧 새 빌드를 받습니다.
+- 값은 `MAJOR.MINOR.PATCH` 형식만 받습니다. 형식이 틀리면 백엔드가 뜨기 전에 설정 로드가
+  실패합니다 — 오타 하나로 모든 회원이 막히지 않게 하기 위해서입니다.
+
+### 올리는 때
+
+호환되지 않는 API 변경(필드 형식·의미 변경, 필수 요청 값 추가 등)이나 보안 문제로 옛 빌드를 더 둘 수
+없을 때만 올립니다. 기능 추가만으로는 올리지 않습니다 — 닫을 수 있는 권장 업데이트 안내는 없고, 이
+값은 회원을 즉시 막습니다.
+
+### 올리는 절차
+
+1. 새 빌드를 두 스토어에 올리고 **심사를 통과해 회원이 받을 수 있는 상태인지** 확인합니다. Play
+   Console 단계적 출시라면 100% 배포 뒤에 진행합니다. 스토어에 없는 버전을 요구하면 회원이 업데이트할
+   방법 없이 막힙니다.
+2. 운영 백엔드의 `MIN_MEMBER_APP_VERSION` 을 그 버전 이름으로 바꾸고 다시 배포합니다(운영 환경 변수는
+   배포 담당이 관리합니다, #480).
+3. 옛 빌드 기기에서 업데이트 화면이 뜨고 버튼이 스토어의 On-Care 페이지를 여는지 확인합니다.
+
+### 되돌리는 법
+
+`MIN_MEMBER_APP_VERSION` 을 비우거나 낮은 값으로 바꾸고 다시 배포합니다. 앱은 백그라운드에서
+돌아오거나 다시 켤 때 확인해 업데이트 화면을 풉니다. 앱을 새로 낼 필요는 없습니다.
+
+### iOS App Store ID
+
+업데이트 버튼은 안드로이드에서 Play 스토어 앱(`market://details?id=com.csesudo.oncare`, 열리지 않으면
+Play 스토어 웹 페이지)을 엽니다. iOS 는 App Store 의 앱 ID 가 필요한데, 이 값은 App Store Connect 에
+앱을 만든 뒤에 정해집니다. 숫자 ID 를 5절의 `config/release.json` 에 `IOS_APP_STORE_ID` 키로
+넣습니다(선택 키, 숫자만 — 다른 글자가 섞이면 `check_release_defines.sh` 가 멈춥니다).
+
+```json
+"IOS_APP_STORE_ID": "<App Store Connect 의 Apple ID 숫자>"
+```
+
+값이 없으면 iOS 업데이트 화면은 버튼 대신 "App Store 에서 On-Care 를 업데이트해 주세요" 문구만
+보입니다. 첫 iOS 제출 전에 ID 를 넣어 빌드하는 것을 권장합니다.

@@ -162,9 +162,12 @@ void main() {
     expect(res.data!.keys.toSet(), <String>{
       'api_version',
       'app_version',
+      'min_app_version',
       'commit_sha',
     });
     expect(res.data!['commit_sha'], 'unknown');
+    // 데모는 최소 지원 버전을 두지 않는다 — 업데이트 화면이 뜨지 않는다(#3045).
+    expect(res.data!['min_app_version'], isNull);
   });
 
   test('POST /ai-coach/chat returns a grounded reply with sources', () async {

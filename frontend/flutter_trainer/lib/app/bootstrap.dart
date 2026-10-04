@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/app/app.dart';
+import 'package:oncare_trainer/app/misconfigured_build_page.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/observability/error_reporter.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
@@ -21,6 +22,20 @@ Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final config = AppConfig.fromEnvironment();
+
+  // 릴리스 기본값 가드(#3022). 개발·목업 기본값 그대로 나간 릴리스 빌드는 저장소·
+  // 오류 보고를 건드리기 전에 멈추고 구성 오류 안내만 띄운다.
+  final List<ReleaseProblem> problems = releaseGuardProblems(config);
+  if (problems.isNotEmpty) {
+    debugPrint(
+      'oncare trainer release build misconfigured: '
+      '${problems.map((ReleaseProblem p) => p.name).join(',')}',
+    );
+    // 안내 화면은 provider 를 읽지 않지만, 앱 루트는 늘 ProviderScope 아래에 둔다
+    // (riverpod_lint missing_provider_scope).
+    runApp(ProviderScope(child: MisconfiguredBuildApp(problems: problems)));
+    return;
+  }
   // 처리하지 못한 오류 보고(#2839). 데모(목업)·개발 환경·DSN 없음이면 보내지 않는
   // 보고기가 돌아오고, SDK 도 초기화하지 않는다.
   final ErrorReporter errorReporter = await initErrorReporter(config);

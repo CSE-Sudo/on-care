@@ -19,10 +19,14 @@ extension _LocalApiCommon on LocalApiInterceptor {
     });
   }
 
+  /// 실서버 `/version` 과 같은 모양(#3045). 데모에는 최소 지원 버전이 없다 —
+  /// 데모 빌드는 업데이트 화면으로 막지 않는다. `app_version` 은 서버 버전
+  /// 자리라 데모 백엔드 이름을 둔다(예전의 앱 버전 같은 고정 숫자는 걷었다).
   Future<Response<Object?>> _version(RequestOptions options) async {
     return _ok(options, <String, Object?>{
       'api_version': 'v1',
       'app_version': '0.2.0+2',
+      'min_app_version': null,
       'commit_sha': 'unknown',
     });
   }

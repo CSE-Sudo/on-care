@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/storage/token_keys.dart';
 import 'package:oncare_trainer/core/storage/secure_token_store.dart';
 import 'package:oncare_trainer/core/storage/token_session_storage.dart';
 
@@ -14,6 +15,10 @@ void main() {
 
   Future<Map<String, String>> persisted() => secure.readAll();
 
+  // 이 앱의 토큰 키(#3054).
+  final String access = TokenKeyspace.trainer.accessKey;
+  final String refresh = TokenKeyspace.trainer.refreshKey;
+
   setUp(() => FlutterSecureStorage.setMockInitialValues(<String, String>{}));
 
   group('mobile (no session storage)', () {
@@ -23,10 +28,7 @@ void main() {
 
       await store.saveTokens(access: 'a1', refresh: 'r1');
 
-      expect(await persisted(), <String, String>{
-        'access_token': 'a1',
-        'refresh_token': 'r1',
-      });
+      expect(await persisted(), <String, String>{access: 'a1', refresh: 'r1'});
       expect(await store.readAccessToken(), 'a1');
       expect(await store.readRefreshToken(), 'r1');
     });
@@ -40,6 +42,11 @@ void main() {
 
       expect(await store.readAccessToken(), 'old-a');
       expect(await store.readRefreshToken(), 'old-r');
+      // 옛 이름은 이 앱 이름으로 옮겨졌다(#3054) — 업데이트해도 다시 로그인하지 않는다.
+      expect(await persisted(), <String, String>{
+        access: 'old-a',
+        refresh: 'old-r',
+      });
     });
 
     test('clear removes both tokens', () async {
@@ -68,8 +75,8 @@ void main() {
       await store.saveTokens(access: 'a1', refresh: 'r1');
 
       expect(await persisted(), isEmpty);
-      expect(session.read('access_token'), 'a1');
-      expect(session.read('refresh_token'), 'r1');
+      expect(session.read(access), 'a1');
+      expect(session.read(refresh), 'r1');
     });
 
     test('reads tokens back from the tab session', () async {
@@ -119,8 +126,8 @@ void main() {
 
       await store.clear();
 
-      expect(session.read('access_token'), isNull);
-      expect(session.read('refresh_token'), isNull);
+      expect(session.read(access), isNull);
+      expect(session.read(refresh), isNull);
       expect(await persisted(), isEmpty);
     });
 
@@ -134,6 +141,127 @@ void main() {
 
       expect(await otherTab.readAccessToken(), isNull);
       expect(await otherTab.readRefreshToken(), isNull);
+    });
+  });
+
+  group('key namespace (#3054)', () {
+    test('mobile clear also removes leftover legacy keys', () async {
+      FlutterSecureStorage.setMockInitialValues(<String, String>{
+        'refresh_token': 'orphan-r',
+      });
+      final SecureTokenStore store = SecureTokenStore(secure);
+      await store.saveTokens(access: 'a1', refresh: 'r1');
+
+      await store.clear();
+
+      expect(await persisted(), isEmpty);
+    });
+
+    test('mobile keeps namespaced tokens over legacy ones', () async {
+      FlutterSecureStorage.setMockInitialValues(<String, String>{
+        access: 'new-a',
+        refresh: 'new-r',
+        'access_token': 'legacy-a',
+        'refresh_token': 'legacy-r',
+      });
+      final SecureTokenStore store = SecureTokenStore(secure);
+
+      expect(await store.readAccessToken(), 'new-a');
+      expect(await store.readRefreshToken(), 'new-r');
+    });
+
+    test(
+      'clear during a legacy migration does not bring the old token back',
+      () async {
+        // 세션 복원이 옛 키를 옮기는 사이 로그인이 토큰을 지우는 순서다.
+        FlutterSecureStorage.setMockInitialValues(<String, String>{
+          'access_token': 'old-access',
+          'refresh_token': 'old-refresh',
+        });
+        final SecureTokenStore store = SecureTokenStore(secure);
+
+        final Future<String?> restoring = store.readAccessToken();
+        final Future<void> clearing = store.clear();
+        await Future.wait(<Future<Object?>>[restoring, clearing]);
+
+        expect(await store.readAccessToken(), isNull);
+        expect(await store.readRefreshToken(), isNull);
+        expect(await persisted(), isEmpty);
+      },
+    );
+
+    test('concurrent reads share one migration', () async {
+      FlutterSecureStorage.setMockInitialValues(<String, String>{
+        'access_token': 'legacy-a',
+        'refresh_token': 'legacy-r',
+      });
+      final SecureTokenStore store = SecureTokenStore(secure);
+
+      final List<String?> read = await Future.wait(<Future<String?>>[
+        store.readAccessToken(),
+        store.readRefreshToken(),
+        store.readAccessToken(),
+      ]);
+
+      expect(read, <String?>['legacy-a', 'legacy-r', 'legacy-a']);
+      expect(await persisted(), <String, String>{
+        access: 'legacy-a',
+        refresh: 'legacy-r',
+      });
+    });
+
+    test('web moves a pre-namespace tab session to this app keys', () async {
+      final InMemoryTokenSessionStorage session = InMemoryTokenSessionStorage()
+        ..write('access_token', 'old-a')
+        ..write('refresh_token', 'old-r');
+      final SecureTokenStore store = SecureTokenStore(
+        secure,
+        sessionStorage: session,
+      );
+
+      expect(await store.readAccessToken(), 'old-a');
+      expect(await store.readRefreshToken(), 'old-r');
+      expect(session.read(access), 'old-a');
+      expect(session.read('access_token'), isNull);
+      expect(session.read('refresh_token'), isNull);
+    });
+
+    test('web never writes the other app keys', () async {
+      final InMemoryTokenSessionStorage session = InMemoryTokenSessionStorage()
+        ..write(TokenKeyspace.member.accessKey, 'other-a')
+        ..write(TokenKeyspace.member.refreshKey, 'other-r');
+      final SecureTokenStore store = SecureTokenStore(
+        secure,
+        sessionStorage: session,
+      );
+
+      await store.saveTokens(access: 'a1', refresh: 'r1');
+      await store.saveTokens(access: 'a2', refresh: 'r2');
+      expect(await store.readAccessToken(), 'a2');
+
+      await store.clear();
+
+      expect(await store.readAccessToken(), isNull);
+      expect(session.read(TokenKeyspace.member.accessKey), 'other-a');
+      expect(session.read(TokenKeyspace.member.refreshKey), 'other-r');
+    });
+
+    test('this app does not read the other app session', () async {
+      final InMemoryTokenSessionStorage session = InMemoryTokenSessionStorage()
+        ..write(TokenKeyspace.member.accessKey, 'other-a')
+        ..write(TokenKeyspace.member.refreshKey, 'other-r');
+      final SecureTokenStore store = SecureTokenStore(
+        secure,
+        sessionStorage: session,
+      );
+
+      expect(await store.readAccessToken(), isNull);
+      expect(await store.readRefreshToken(), isNull);
+    });
+
+    test('keyspace is this app name', () {
+      expect(SecureTokenStore.keyspace, TokenKeyspace.trainer);
+      expect(access, startsWith('oncare.trainer.'));
     });
   });
 
@@ -157,7 +285,7 @@ void main() {
       await store.saveTokens(access: 'a1', refresh: 'r1');
 
       expect(store.isSessionScoped, isTrue);
-      expect(session.read('refresh_token'), 'r1');
+      expect(session.read(refresh), 'r1');
       expect(await persisted(), isEmpty);
     });
   });
