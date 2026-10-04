@@ -88,6 +88,15 @@ class Settings(BaseSettings):
     # 토큰을 탭 단위 저장소에만 두므로 오래 갈 필요가 없고, 브라우저에서 새어 나갔을
     # 때 쓸 수 있는 기간을 줄인다. 모바일은 위 값을 그대로 쓴다.
     web_refresh_token_expire_days: int = 7
+    # 로그인 한 번이 이어질 수 있는 최대 기간(#3086). refresh 토큰은 회전할 때마다 위
+    # 수명을 새로 받으므로, 최초 로그인 시각(`auth_time`) 기준 상한이 없으면 손에 넣은
+    # 토큰을 주기적으로 회전해 세션을 끝없이 이어 갈 수 있다. 넘으면 다시 로그인한다.
+    session_max_days: int = 90
+    web_session_max_days: int = 30
+    # 회전으로 폐기된 refresh 토큰이 이 시간(초) 안에 다시 오면 동시 갱신(웹 탭 두 개,
+    # 응답 전에 앱이 꺼진 경우)으로 보고 그 요청만 거부한다. 넘으면 탈취로 보고 그
+    # 세션 전체를 끊는다(#3086).
+    refresh_reuse_grace_seconds: int = 30
     # 토큰 없이 접근 시 데모 사용자로 폴백(개발 편의). 운영(prod)에서는 항상 비활성.
     # 기본은 꺼짐(#2821) — ENV 를 빠뜨린 채 뜬 서버가 로그인 없는 요청을 데모 회원으로
     # 처리하지 않게 한다. 로컬 개발은 .env.example 의 ALLOW_DEMO_FALLBACK=true 로 켠다.

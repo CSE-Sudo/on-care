@@ -2468,6 +2468,34 @@ class RevokedRefreshToken(Base):
     revoked_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    #: 폐기 사유(#3086) — `rotated`(회전에 쓰임)·`logout`·`stale`(비밀번호 변경 전 세대).
+    #: 재사용이 왔을 때 회전된 지 얼마 안 된 토큰(동시 갱신)인지, 이미 끊긴 세션인지
+    #: 가른다. 이 칸이 생기기 전의 행은 비어 있다.
+    reason: Mapped[str | None] = mapped_column(String(16), nullable=True)
+
+
+class RevokedSession(Base):
+    """끊긴 로그인 세션 — refresh 토큰 재사용으로 탈취가 의심된 세션(#3086).
+
+    refresh 토큰 한 장(`jti`)만 폐기하면, 탈취한 쪽이 먼저 회전해 받은 다음 토큰들은
+    그대로 산다. 토큰의 세션 이름(`sid`)을 여기에 적어 그 세션에서 나간 토큰을 모두
+    `/auth/refresh` 에서 거부한다. 같은 계정의 다른 로그인(다른 기기)은 이름이 달라
+    끊기지 않는다.
+
+    `expires_at` 은 그 세션의 절대 수명이 끝나는 시각이다. 그 뒤로는 세션의 어떤
+    토큰도 만료돼 있으므로 폐기 기록과 함께 정리한다.
+    """
+
+    __tablename__ = "revoked_sessions"
+
+    sid: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    revoked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
 
 class PasswordResetToken(Base):
