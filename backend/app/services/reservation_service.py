@@ -628,6 +628,35 @@ def cancel_member_reservations_for_account_deletion(
     _release(db, list(reservations))
 
 
+def count_upcoming_for_member(
+    db: Session, member_id: str, *, now: datetime | None = None
+) -> int:
+    """탈퇴하면 취소되는 예정 예약 수 — 탈퇴 확인창이 읽는다(#3006).
+
+    [list_member_reservations] 가 "예약됨" 으로 보여 주는 것 중 아직 시작하지 않은
+    것만 센다. 트레이너가 일정을 취소해 행만 남은 예약은 회원 화면에 없으므로 세지
+    않는다. 지난 예약도 탈퇴 때 함께 지워지지만, 회원이 잃는 것은 앞으로의 예약이다.
+    """
+    current = now or datetime.now(timezone.utc)
+    value = db.scalar(
+        select(func.count(TrainerReservation.id))
+        .join(
+            TrainerReservationSlot,
+            TrainerReservationSlot.id == TrainerReservation.slot_id,
+        )
+        .where(
+            TrainerReservation.member_id == member_id,
+            TrainerReservation.status == "booked",
+            TrainerReservationSlot.starts_at > current,
+            ~exists().where(
+                TrainerSchedule.id == TrainerReservation.schedule_id,
+                TrainerSchedule.status == trainer_common_service.SCHEDULE_CANCELLED,
+            ),
+        )
+    )
+    return int(value or 0)
+
+
 def reserve(
     db: Session, member: User, slot_id: str, *, now: datetime | None = None
 ) -> ReservationOut:

@@ -124,6 +124,7 @@ class AppConfig {
     this.sentryDsn,
     this.realApiFeatures = const <String>{},
     this.showDemoEntry = false,
+    this.iosAppStoreId,
     this.demoBuild = false,
   });
 
@@ -182,6 +183,13 @@ class AppConfig {
   /// 다시 열 때: `--dart-define=SHOW_DEMO_ENTRY=true`
   final bool showDemoEntry;
 
+  /// App Store 의 앱 ID(숫자, `https://apps.apple.com/app/id<ID>`). (#3045)
+  ///
+  /// 앱을 App Store Connect 에 등록해야 정해지므로 `--dart-define=IOS_APP_STORE_ID`
+  /// 로 넣는다. 없으면 업데이트 화면이 버튼 대신 App Store 에서 업데이트하라는
+  /// 안내만 보인다.
+  final String? iosAppStoreId;
+
   /// 데모 배포(GitHub Pages) 빌드 표시 — `--dart-define=DEMO_BUILD=true` (#3022).
   ///
   /// 릴리스 빌드에서 목업을 허용하는 유일한 근거다. 데모 배포 워크플로(`deploy.yml`)만
@@ -232,6 +240,7 @@ class AppConfig {
     // 매칭되는 경로가 없으면 아무 일도 일어나지 않는다).
     const realApi = String.fromEnvironment('REAL_API');
     const showDemoEntry = bool.fromEnvironment('SHOW_DEMO_ENTRY');
+    const iosAppStoreId = String.fromEnvironment('IOS_APP_STORE_ID');
     // 데모 Pages 빌드만 넘긴다(#3022). 릴리스 가드가 목업을 허용하는 근거다.
     const demoBuild = bool.fromEnvironment('DEMO_BUILD');
     return AppConfig(
@@ -247,6 +256,7 @@ class AppConfig {
       // 여기서 값이 갈린다.
       // ignore: avoid_redundant_argument_values
       showDemoEntry: showDemoEntry,
+      iosAppStoreId: iosAppStoreId.trim().isEmpty ? null : iosAppStoreId.trim(),
       // ignore: avoid_redundant_argument_values
       demoBuild: demoBuild,
     );

@@ -97,7 +97,7 @@ void main() {
       expect(body, isNot(contains('2026년 1월 1일')));
       // 머리글 부제와 본문 아래 두 곳 모두 처리방침의 시행일이다.
       expect(find.text('시행일 2026. 10. 03.'), findsWidgets);
-      expect(find.text('시행일 2026. 10. 01.'), findsNothing);
+      expect(body, isNot(contains('제1조 (목적)')));
     });
 
     testWidgets('약관 화면은 약관 시행일을 단다', (tester) async {
@@ -107,8 +107,10 @@ void main() {
         at: AppRoutes.legalDocument('terms'),
       );
 
-      expect(find.text('시행일 2026. 10. 01.'), findsWidgets);
-      expect(find.text('시행일 2026. 10. 03.'), findsNothing);
+      // 약관 개정(#3006)으로 두 문서의 시행일이 같은 날이 됐다 — 본문으로 구분한다.
+      expect(find.text('시행일 2026. 10. 03.'), findsWidgets);
+      expect(find.text('시행일 2026. 10. 01.'), findsNothing);
+      expect(_bodyText(tester), contains('제13조 (분쟁 해결과 관할)'));
     });
 
     testWidgets('영어 로케일에서도 두 문서가 뜬다', (tester) async {

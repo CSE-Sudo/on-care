@@ -479,6 +479,23 @@ class AccountDeleteRequest(BaseModel):
     reasons: list[str] = Field(default_factory=list, max_length=10)
 
 
+class AccountDeletionPreview(BaseModel):
+    """GET /users/me/deletion-preview — 탈퇴하면 사라지는 것의 수. (#3006)
+
+    회원 탈퇴 확인창이 읽어 0 이 아닌 항목만 보여 준다. 읽기에 실패하면 앱은
+    숫자 없이 고정 문구로 알린다.
+    """
+
+    #: 남은 포인트. 탈퇴하면 내역과 함께 사라진다.
+    points: int = Field(ge=0)
+    #: 아직 쓸 수 있는 쿠폰 수(사용·취소·만료 제외).
+    active_coupons: int = Field(ge=0)
+    #: 시작 전인 PT 예약 수. 탈퇴하면 취소되고 자리가 풀린다.
+    upcoming_reservations: int = Field(ge=0)
+    #: 아직 답을 받지 않은 상담 요청 수. 탈퇴하면 취소되고 트레이너에게 알린다.
+    pending_consultations: int = Field(ge=0)
+
+
 class ProfileUpdate(PartialUpdate):
     """PUT /users/me — 내 프로필 모달(이름/이메일/전화/생년월일).
 

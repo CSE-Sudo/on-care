@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# check_web_api_base_url.sh 의 통과·실패 경계 검사(#2810).
+# check_web_api_base_url.sh 의 통과·실패 경계 검사(#2810, #3020).
 # 사용: bash .github/scripts/test_check_web_api_base_url.sh
 set -uo pipefail
 
@@ -8,13 +8,17 @@ guard="$here/check_web_api_base_url.sh"
 failures=0
 
 expect() {
-  local want="$1" value="$2" got
-  if API_BASE_URL="$value" bash "$guard" > /dev/null 2>&1; then got=pass; else got=fail; fi
+  local want="$1" value="$2" forbidden="${3:-}" got
+  if API_BASE_URL="$value" FORBIDDEN_API_BASE_URL="$forbidden" bash "$guard" > /dev/null 2>&1; then
+    got=pass
+  else
+    got=fail
+  fi
   if [ "$got" != "$want" ]; then
-    echo "FAIL: API_BASE_URL='$value' -> $got (기대: $want)"
+    echo "FAIL: API_BASE_URL='$value' forbidden='$forbidden' -> $got (기대: $want)"
     failures=$((failures + 1))
   else
-    echo "ok:   API_BASE_URL='$value' -> $got"
+    echo "ok:   API_BASE_URL='$value' forbidden='$forbidden' -> $got"
   fi
 }
 
@@ -32,7 +36,15 @@ expect fail 'https://dev.api.oncare.example.com/v1'
 expect fail 'https://api.example.test/v1'
 # 올바른 형식
 expect pass 'https://api.oncare.kr/v1'
-expect pass 'https://abc123.ap-northeast-2.awsapprunner.com/v1'
+expect pass 'https://oncare-backend-production.ecs.ap-southeast-1.on.aws/v1'
+# 다른 환경의 주소 — 운영 빌드에 staging, 데모 빌드에 운영 주소(#3020)
+STAGING='https://oncare-backend-staging.ecs.ap-southeast-1.on.aws/v1'
+PROD='https://api.oncare.kr/v1'
+expect fail "$STAGING" "$STAGING"
+expect fail "$PROD" 'https://API.oncare.kr/v1/'
+expect pass "$PROD" "$STAGING"
+expect pass "$STAGING" "$PROD"
+expect pass "$PROD" ''
 
 if [ "$failures" -gt 0 ]; then
   echo "$failures 건 실패"
