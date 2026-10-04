@@ -505,7 +505,37 @@ void main() {
       expect(shown().sessionsDone, 3);
     });
 
-    testWidgets('화면이 옛 수치여도 PDF·문구는 전송 직전에 다시 읽은 수치로 만든다', (tester) async {
+    final Finder staleNotice = find.byKey(
+      const ValueKey<String>('reports-send-stale-notice'),
+    );
+    final Finder feedbackField = find.byWidgetPredicate(
+      (widget) =>
+          widget is TextField &&
+          widget.decoration?.hintText == '회원에게 전달할 코칭 피드백을 작성하세요.',
+    );
+
+    testWidgets('수치가 같으면 안내 없이 바로 보낸다', (tester) async {
+      final _LiveServer server = _LiveServer();
+      await open(
+        tester,
+        _Mode.real,
+        at: AppRoutes.reportFor(_minsu),
+        server: server,
+      );
+      await tester.tap(nextButton);
+      await settle(tester);
+      await tester.tap(nextButton);
+      await settle(tester);
+
+      await tapSend(tester);
+
+      expect(server.sentMessages, hasLength(1));
+      expect(staleNotice, findsNothing);
+    });
+
+    testWidgets('전송 직전 수치가 바뀌었으면 멈추고 안내하며, 새 수치로 다시 그린 뒤 다시 눌러야 나간다', (
+      tester,
+    ) async {
       final _LiveServer server = _LiveServer();
       final _RecordingPdf pdf = _RecordingPdf();
       await open(
@@ -520,14 +550,62 @@ void main() {
       await tester.tap(nextButton);
       await settle(tester);
       expect(pdf.reports.last.sessionsDone, 1, reason: '③ 미리보기는 처음 값');
+      expect(staleNotice, findsNothing);
 
       server.done = 3;
       await tapSend(tester);
 
-      expect(pdf.reports.last.sessionsDone, 3);
-      expect(server.sentMessages, hasLength(1));
-      expect(server.sentMessages.single, reportMessage(ko, pdf.reports.last));
+      // 보내지 않았다 — 트레이너가 본 것과 다른 수치가 나가지 않는다.
+      expect(server.sentMessages, isEmpty);
+      expect(staleNotice, findsOneWidget);
+      expect(find.text('그사이 회원 기록이 바뀌었어요'), findsOneWidget);
       expect(find.text(failedToast), findsNothing);
+      // 미리보기·자동 문구가 새 수치로 다시 섰다.
+      expect(pdf.reports.last.sessionsDone, 3);
+      final String refreshed = reportMessage(ko, pdf.reports.last);
+
+      await tapSend(tester);
+
+      expect(server.sentMessages, <String>[refreshed]);
+      expect(pdf.reports.last.sessionsDone, 3);
+    });
+
+    testWidgets('트레이너가 고친 문구는 수치가 바뀌어 다시 그려도 그대로 나간다', (tester) async {
+      final _LiveServer server = _LiveServer();
+      final _RecordingPdf pdf = _RecordingPdf();
+      await open(
+        tester,
+        _Mode.real,
+        at: AppRoutes.reportFor(_minsu),
+        server: server,
+        pdf: pdf,
+      );
+      await tester.tap(nextButton);
+      await settle(tester);
+      const String edited = '이번 주 하체 운동 좋았어요.';
+      await tester.enterText(feedbackField, edited);
+      await settle(tester);
+      await tester.tap(nextButton);
+      await settle(tester);
+
+      server.done = 3;
+      await tapSend(tester);
+      expect(server.sentMessages, isEmpty);
+      expect(staleNotice, findsOneWidget);
+
+      // ② 로 돌아가도 고친 글이 그대로다.
+      await tester.tap(find.byKey(const ValueKey<String>('report-step-prev')));
+      await settle(tester);
+      final EditableText editable = tester.widget<EditableText>(
+        find.descendant(of: feedbackField, matching: find.byType(EditableText)),
+      );
+      expect(editable.controller.text, edited);
+      await tester.tap(nextButton);
+      await settle(tester);
+
+      await tapSend(tester);
+      expect(server.sentMessages, <String>[edited]);
+      expect(pdf.reports.last.sessionsDone, 3);
     });
 
     testWidgets('전송 직전 다시 읽기가 실패하면 보내지 않고 실패를 알린다', (tester) async {

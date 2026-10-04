@@ -137,6 +137,10 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   /// A send is in flight for this client.
   String? _sending;
 
+  /// 전송 직전에 다시 읽은 수치가 화면과 달라 전송을 멈춘 리포트(`회원|주`).
+  /// ③ 에 안내가 서고, 다른 회원·주로 옮기거나 보내고 나면 걷힌다(#3100).
+  String? _staleFor;
+
   /// 다시 보낼지 묻는 창이 떠 있다 — 두 번 눌러 창이 둘 뜨지 않게 한다.
   bool _confirming = false;
 
@@ -360,6 +364,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     if (widget.clientId != oldWidget.clientId) {
       _clientId = widget.clientId;
       _missingNotified = null;
+      _staleFor = null;
       _refreshCachedReports();
       // 다른 회원의 리포트는 처음부터 읽는다 — 앞 회원에서 ③까지 갔다고
       // 이 회원의 수치를 건너뛸 이유가 없다.
@@ -390,6 +395,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     _sentViewFor = null;
     _feedbackDraft = null;
     _feedbackFor = null;
+    _staleFor = null;
     _dropPreview();
     _refreshCachedReports();
   }
@@ -580,10 +586,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     }
     if (previousCount == null || !mounted) return;
     setState(() => _sending = id);
-    // 보내기 직전에 서버 값을 다시 읽고 **그 값으로** PDF 를 만든다(#3100).
-    // 화면의 리포트는 편집기를 연 때의 집계라, 그 사이 회원이 더 기록했으면
-    // 옛 수치가 회원에게 나간다. 다시 읽지 못하면 옛 수치로 조용히 보내지
-    // 않는다.
+    // 보내기 직전에 서버 값을 다시 읽는다(#3100). 화면의 리포트는 편집기를
+    // 연 때의 집계라, 그 사이 회원이 더 기록했으면 옛 수치가 회원에게 나간다.
+    // 다시 읽지 못하면 옛 수치로 조용히 보내지 않는다.
     final WeeklyReport latest;
     try {
       latest = await ref.refresh(
@@ -598,22 +603,29 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       return;
     }
     if (!mounted) return;
-    // 손대지 않은 자동 문구는 수치에서 만든 글이다 — 새 수치로 다시 만들어야
-    // 문구와 PDF 가 같은 주를 말한다. 트레이너가 쓴 글은 그대로 보낸다.
-    final String sendMessage = message == reportMessage(l, report)
-        ? reportMessage(l, latest)
-        : message;
+    // 수치가 바뀌었으면 보내지 않고 멈춘다. 손대지 않은 자동 문구도 트레이너가
+    // 확인한 글이라, 새 수치로 몰래 다시 만들어 보내면 본 것과 나간 것이
+    // 달라진다. 화면은 다시 읽은 값으로 미리보기·자동 문구를 새로 그리고(고친
+    // 문구는 그대로 둔다), 트레이너가 확인한 뒤 다시 누른다.
+    if (latest.contentKey != report.contentKey) {
+      setState(() {
+        _sending = null;
+        _staleFor = _feedbackKey(latest);
+        // 고치지 않은 입력창은 새 자동 문구로 다시 만든다.
+        if (_feedbackFor != _feedbackKey(latest)) _draftEpoch++;
+      });
+      return;
+    }
     try {
-      // 수치가 바뀌었으면 미리보기 열쇠가 달라져 새 값으로 다시 만든다.
-      final bytes = await _pdfForSend(l, latest, sendMessage);
+      final bytes = await _pdfForSend(l, report, message);
       await ref
           .read(reportRepositoryProvider)
           .sendPdf(
             clientId: id,
-            weekStart: latest.weekStart,
+            weekStart: report.weekStart,
             bytes: bytes,
-            fileName: reportPdfFileName(l, latest),
-            message: sendMessage,
+            fileName: reportPdfFileName(l, report),
+            message: message,
           );
     } catch (e) {
       if (!mounted) return;
@@ -639,7 +651,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
         .record(
           clientId: id,
           weekStart: report.weekStart,
-          message: sendMessage,
+          message: message,
           // 이번이 몇 번째인가 — 서버 기록이 돌아오기 전에도 `N회 보냄` 이
           // 바로 는다(#2885).
           previousCount: previousCount,
@@ -649,6 +661,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     ref.invalidate(memberReportHistoryProvider(id));
     setState(() {
       _sending = null;
+      _staleFor = null;
       _sent.add(id);
       // 보내고 나면 작업대로 돌아간다 — 다음 회원이 그 자리에 있다.
       _stage = 0;
@@ -1165,6 +1178,19 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                       children: <Widget>[
                         // ③ 전송은 회원이 받을 PDF 를 그대로 보여 준다(#2402).
                         // 글을 고치려면 `이전` 으로 ② 에 돌아간다.
+                        if (_stage == ReportEditorStage.send.index &&
+                            _staleFor == _feedbackKey(data)) ...<Widget>[
+                          AppBanner(
+                            key: const ValueKey<String>(
+                              'reports-send-stale-notice',
+                            ),
+                            title: l.reportsSendStaleTitle,
+                            message: l.reportsSendStaleBody,
+                            icon: AppIcons.warning,
+                            tone: AppBannerTone.caution,
+                          ),
+                          const SizedBox(height: OnCareSpacing.s12),
+                        ],
                         if (_stage == ReportEditorStage.send.index)
                           ReportSendPreview(
                             report: data,
