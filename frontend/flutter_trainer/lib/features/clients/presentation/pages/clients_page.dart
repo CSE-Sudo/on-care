@@ -16,7 +16,6 @@ import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/trainer_verification_banner.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 관리 필터 패널 폭 — 아홉 개 칩이 서너 줄로 접히는 폭이다.
@@ -100,10 +99,6 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
     // (실 API 는 #2670 에서 켰다). 이 provider 가 꺼진 빌드에서만 진입점
     // 자체를 그리지 않는다. (#919·#1634)
     final canConnect = ref.watch(clientInvitesEnabledProvider);
-    // 운영자 승인 전에는 서버가 연결 코드를 403 으로 막는다(#2825). 진입점은
-    // 남겨 두고 끈 채로, 그 아래 배너가 이유를 적는다 — 버튼이 사라지면 이 기능이
-    // 있다는 것조차 모른다.
-    final approved = ref.watch(trainerVerificationProvider).isApproved;
     final activeFilter = clientFilterFrom(widget.filter);
 
     final Widget page = clientsAsync.when(
@@ -185,19 +180,12 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                             key: const ValueKey<String>('clients-new'),
                             label: l.clientsNew,
                             leadingIcon: AppIcons.addClient,
-                            onPressed: approved
-                                ? () => _openConnectDialog(context)
-                                : null,
+                            onPressed: () => _openConnectDialog(context),
                           ),
                         ],
                       ],
                     ),
                     const SizedBox(height: OnCareSpacing.s12),
-                    if (canConnect)
-                      const TrainerVerificationBanner(
-                        scope: TrainerVerificationScope.connect,
-                        bottomGap: OnCareSpacing.s12,
-                      ),
                   ],
                   Expanded(
                     child: AppSplitView(
@@ -209,10 +197,10 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                         filter: activeFilter,
                         managementFilters: view.filters,
                         // 담당 회원이 0명일 때 빈 상태가 연결 방법을 알린다
-                        // (#3012). 승인 전이면 버튼 없이 안내만 — 이유는 위
-                        // 승인 배너가 적는다.
+                        // (#3012). 운영자 승인 단계가 없어(#3008) 가입한
+                        // 트레이너는 바로 연결 창을 연다.
                         canConnect: canConnect,
-                        onConnect: canConnect && approved
+                        onConnect: canConnect
                             ? () => _openConnectDialog(context)
                             : null,
                         // 목록 카드의 오른쪽 테두리·그림자가 스크롤 영역에
@@ -673,7 +661,7 @@ class _RosterList extends StatelessWidget {
   final bool canConnect;
 
   /// 빈 상태의 `신규 회원 등록` — 툴바 버튼과 같은 연결 창을 연다(#3012).
-  /// 승인 전·연결 비활성이면 null 이라 버튼을 그리지 않는다.
+  /// 연결 경로가 꺼진 빌드면 null 이라 버튼을 그리지 않는다.
   final VoidCallback? onConnect;
 
   @override

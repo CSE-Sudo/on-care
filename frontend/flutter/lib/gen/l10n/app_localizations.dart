@@ -1106,6 +1106,12 @@ abstract class AppLocalizations {
   /// **'Photo analysis is unavailable right now. Please add the meal manually.'**
   String get dietAnalysisUnavailable;
 
+  /// No description provided for @dietAnalysisAiCapacity.
+  ///
+  /// In en, this message translates to:
+  /// **'AI features are taking a break due to high demand. They reopen tomorrow — for now you can add the meal manually.'**
+  String get dietAnalysisAiCapacity;
+
   /// No description provided for @dietAnalysisPickAnother.
   ///
   /// In en, this message translates to:
@@ -1963,6 +1969,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t find this trainer.'**
   String get exTrainerNotFound;
+
+  /// No description provided for @exTrainerReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Report trainer'**
+  String get exTrainerReport;
+
+  /// No description provided for @exTrainerReportShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Report'**
+  String get exTrainerReportShort;
+
+  /// No description provided for @exTrainerReportReasonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason'**
+  String get exTrainerReportReasonLabel;
+
+  /// No description provided for @exTrainerReportReasonImpersonation.
+  ///
+  /// In en, this message translates to:
+  /// **'Impersonation'**
+  String get exTrainerReportReasonImpersonation;
+
+  /// No description provided for @exTrainerReportReasonInappropriateMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Inappropriate message'**
+  String get exTrainerReportReasonInappropriateMessage;
+
+  /// No description provided for @exTrainerReportReasonOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get exTrainerReportReasonOther;
+
+  /// No description provided for @exTrainerReportMemoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get exTrainerReportMemoLabel;
+
+  /// No description provided for @exTrainerReportMemoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us what happened'**
+  String get exTrainerReportMemoHint;
+
+  /// No description provided for @exTrainerReportMemoRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Add details to report for another reason'**
+  String get exTrainerReportMemoRequired;
+
+  /// No description provided for @exTrainerReportNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Only operators see reports. The trainer isn\'t told who reported them.'**
+  String get exTrainerReportNotice;
+
+  /// No description provided for @exTrainerReportSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit report'**
+  String get exTrainerReportSubmit;
+
+  /// No description provided for @exTrainerReportSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Report received. An operator will review it.'**
+  String get exTrainerReportSubmitted;
+
+  /// No description provided for @exTrainerReportAlreadyOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have an open report. An operator is reviewing it.'**
+  String get exTrainerReportAlreadyOpen;
+
+  /// No description provided for @exTrainerSelfRegisteredAffiliation.
+  ///
+  /// In en, this message translates to:
+  /// **'Affiliation registered by the trainer'**
+  String get exTrainerSelfRegisteredAffiliation;
 
   /// No description provided for @exGymSearchPlaceholder.
   ///
@@ -4213,6 +4303,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You\'ve used today\'s chats. They reopen tomorrow'**
   String get aicQuotaExhausted;
+
+  /// No description provided for @aicAiCapacity.
+  ///
+  /// In en, this message translates to:
+  /// **'AI features are taking a break due to high demand. Please try again tomorrow'**
+  String get aicAiCapacity;
 
   /// No description provided for @aicQuotaFindTrainer.
   ///

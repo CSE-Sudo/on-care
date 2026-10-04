@@ -94,6 +94,10 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
       case ChatSendOutcome.dailyLimit:
         _restoreInput(text);
         showAppToast(context, l.aicQuotaExhausted);
+      case ChatSendOutcome.aiCapacity:
+        // 서버 전체 상한(#3032) — 보낸 것이 없으니 쓴 말을 입력칸에 되돌린다.
+        _restoreInput(text);
+        showAppToast(context, l.aicAiCapacity);
       case ChatSendOutcome.insufficientPoints:
         _restoreInput(text);
         showAppToast(
@@ -136,6 +140,8 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
         break;
       case ChatSendOutcome.dailyLimit:
         showAppToast(context, l.aicQuotaExhausted);
+      case ChatSendOutcome.aiCapacity:
+        showAppToast(context, l.aicAiCapacity);
       case ChatSendOutcome.insufficientPoints:
         showAppToast(
           context,

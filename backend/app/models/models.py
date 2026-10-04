@@ -1394,13 +1394,9 @@ class TrainerProfile(Base):
     reminder_lead_minutes: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default="30", default=30
     )
-    #: 운영자 승인 상태(#2825) — pending|approved|rejected. 승인 전에는 회원 앱
-    #: 디렉터리·상담 대상·담당 요청·연결 코드에서 빠진다
-    #: (`trainer_verification_service`).
-    #:
-    #: DB 기본값은 pending 이다 — ORM 을 거치지 않고 들어온 행은 노출되지 않는
-    #: 쪽으로 닫힌다. ORM 기본값이 approved 인 것은 시드·운영 스크립트처럼 운영자가
-    #: 직접 넣는 경로 때문이고, 공개 가입(`register_trainer`)은 pending 을 명시한다.
+    #: 예전 운영자 승인 상태(#2825). 승인 절차를 없애면서(#3008) 모든 행을
+    #: approved 로 채우고 기본값도 approved 로 바꿨다(0145). 어느 코드도 이 값으로
+    #: 노출·연결을 가르지 않는다 — 칸은 이력 보존용으로 남긴다.
     verification_status: Mapped[str] = mapped_column(
         String(16),
         CheckConstraint(
@@ -1408,18 +1404,18 @@ class TrainerProfile(Base):
             name="ck_trainer_profiles_verification_status",
         ),
         nullable=False,
-        server_default="pending",
+        server_default="approved",
         default="approved",
         index=True,
     )
-    #: 승인·반려를 처리한 시각과 운영자. 가입 직후(pending)·백필 행은 비어 있다.
+    #: 예전 승인·반려 처리 시각과 운영자(#2825). 새로 채우지 않는다.
     verification_decided_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     verification_decided_by: Mapped[str | None] = mapped_column(
         String(64), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
-    #: 반려 사유 — 트레이너 웹이 그대로 보여 준다. 승인이면 비운다.
+    #: 예전 반려 사유(#2825). 새로 채우지 않는다.
     verification_note: Mapped[str] = mapped_column(
         String(300), nullable=False, server_default="", default=""
     )
@@ -1552,6 +1548,64 @@ class TrainerClientInvite(Base):
         Index(
             "ix_trainer_client_invites_member_status", "member_id", "status"
         ),
+    )
+
+
+class TrainerReport(Base):
+    """회원이 트레이너를 신고한 기록. (#3008)
+
+    운영자 승인 절차를 없앤 자리의 사후 관리 경로다. 회원이 사칭·부적절한 메시지·
+    기타 사유로 신고하면 운영자가 트레이너 웹 `신고·계정 관리` 화면에서 보고
+    처리(resolved)하거나 넘긴다(dismissed). 필요하면 계정을 정지한다.
+
+    (trainer, reporter) 부분 유니크(처리 전일 때만) — 같은 회원이 같은 트레이너를
+    처리 전에 두 번 신고할 수 없다. 처리된 뒤 다시 신고하는 것은 된다.
+    """
+
+    __tablename__ = "trainer_reports"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    trainer_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    reporter_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: impersonation | inappropriate_message | other
+    reason: Mapped[str] = mapped_column(String(32))
+    #: 회원이 덧붙인 설명. 기타 사유면 비어 있을 수 없다(스키마가 막는다).
+    memo: Mapped[str] = mapped_column(String(200), server_default="", default="")
+    #: open | resolved | dismissed
+    status: Mapped[str] = mapped_column(
+        String(16), server_default="open", default="open"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    resolved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    resolved_by: Mapped[str | None] = mapped_column(
+        String(64), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "reason IN ('impersonation', 'inappropriate_message', 'other')",
+            name="ck_trainer_reports_reason",
+        ),
+        CheckConstraint(
+            "status IN ('open', 'resolved', 'dismissed')",
+            name="ck_trainer_reports_status",
+        ),
+        Index(
+            "uq_trainer_reports_open",
+            "trainer_id",
+            "reporter_id",
+            unique=True,
+            postgresql_where=text("status = 'open'"),
+        ),
+        Index("ix_trainer_reports_status_created", "status", "created_at"),
     )
 
 
@@ -2822,4 +2876,32 @@ class DietAnalysisUsage(Base):
 
     __table_args__ = (
         Index("ix_diet_analysis_usages_user_date", "user_id", "kst_date"),
+    )
+
+
+class AiCallUsage(Base):
+    """하루 AI 호출 수 — 서버 전체·트레이너 계정 단위 상한을 센다. (#3032)
+
+    `bucket` 하나에 하루 한 행이다. `global` 은 서버 전체, `trainer:<id>` 는 그
+    트레이너의 고객 AI 코치·루틴 후보·리포트 요약 합이다. 외부 모델을 **실제로 부르기
+    직전에** `INSERT … ON CONFLICT DO UPDATE … WHERE calls < 상한` 으로 한 번에 더해,
+    여러 인스턴스가 동시에 불러도 상한을 넘지 않는다. 기능별 건수는 행으로 나누지 않고
+    메트릭(`ai_calls.*`)으로 본다 — 상한 판정을 한 행에서 끝내기 위해서다.
+    """
+
+    __tablename__ = "ai_call_usages"
+
+    #: KST 날짜 `YYYY-MM-DD`. 자정이 지나면 새 행에서 다시 센다.
+    kst_date: Mapped[str] = mapped_column(String(10), primary_key=True)
+    #: `global` 또는 `trainer:<트레이너 id>`.
+    bucket: Mapped[str] = mapped_column(String(80), primary_key=True)
+    #: 트레이너 버킷의 주인. 전역 버킷은 비어 있다. 트레이너가 탈퇴하면 함께 지운다.
+    trainer_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    calls: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0", default=0
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
     )

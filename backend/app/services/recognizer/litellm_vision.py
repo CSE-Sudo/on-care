@@ -17,7 +17,7 @@ import time
 
 from app.core.config import get_settings
 from app.schemas.diet import DietAnalysis, RecognizedFood
-from app.services.recognizer.base import FoodRecognizer
+from app.services.recognizer.base import RECOGNIZER_MAX_OUTPUT_TOKENS, FoodRecognizer
 from app.services.recognizer.locale_prompt import display_name_of, localized_prompt
 
 _PROMPT = """당신은 전문 영양사입니다. 이 음식 사진을 분석해 아래 JSON 스키마로만 응답하세요.
@@ -57,6 +57,10 @@ class LiteLLMVisionRecognizer(FoodRecognizer):
         import asyncio
         # 요청 언어는 컨텍스트 변수라 작업 스레드로 넘기기 전에 고른다. (#2850)
         prompt = localized_prompt(_PROMPT)
+        # 서버 전체 하루 상한(#3032) — Gemini 인식기와 같다.
+        from app.services import ai_call_quota
+
+        await asyncio.to_thread(ai_call_quota.acquire, ai_call_quota.FEATURE_DIET_PHOTO)
         start = time.perf_counter()
         b64 = base64.b64encode(image_bytes).decode()
         data_url = f"data:{mime_type};base64,{b64}"
@@ -72,8 +76,12 @@ class LiteLLMVisionRecognizer(FoodRecognizer):
                 ],
             }],
             temperature=0.2,
+            **_max_tokens(),
         )
         latency_ms = int((time.perf_counter() - start) * 1000)
+        if getattr(resp.choices[0], "finish_reason", None) == "length":
+            # 끊긴 JSON 은 음식 일부만 저장될 수 있다 — 인식 실패(502)로 돌린다(#3032).
+            raise RuntimeError("식단 인식 응답이 출력 상한에 걸려 끊김")
         raw = resp.choices[0].message.content or ""
         return self._parse(raw, latency_ms)
 
@@ -151,3 +159,11 @@ def _macro_f(v):
     except (TypeError, ValueError):
         return None
     return value if math.isfinite(value) and value >= 0 else None
+
+
+def _max_tokens() -> dict[str, int]:
+    """출력 토큰 상한(#3032). 0 으로 끈 환경이면 넘기지 않는다."""
+    from app.services.coach.llm_base import output_cap
+
+    cap = output_cap(RECOGNIZER_MAX_OUTPUT_TOKENS)
+    return {} if cap is None else {"max_tokens": cap}

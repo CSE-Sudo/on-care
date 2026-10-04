@@ -71,6 +71,10 @@ enum AiChatBlockReason {
 
   /// 포인트가 모자라다.
   insufficientPoints,
+
+  /// 서버 전체의 오늘 AI 호출 상한에 걸렸다(503 `ai_capacity`, #3032). 모델을
+  /// 부르지 않았고 회원 몫·포인트도 깎이지 않았다 — 내일 다시 열린다.
+  aiCapacity,
 }
 
 /// 한도 때문에 보내지 못했다. 저장소가 서버 거절을 이것으로 바꾼다.
@@ -91,6 +95,7 @@ class AiChatBlocked implements Exception {
         AiChatBlockReason.pointsRequired,
       ),
       'daily_limit' => const AiChatBlocked(AiChatBlockReason.dailyLimit),
+      'ai_capacity' => const AiChatBlocked(AiChatBlockReason.aiCapacity),
       'insufficient_points' => AiChatBlocked(
         AiChatBlockReason.insufficientPoints,
         shortfall: shortfall,

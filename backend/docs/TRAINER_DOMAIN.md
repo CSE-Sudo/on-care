@@ -297,23 +297,26 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
   같은 규칙이라 같은 헬스장은 한 행으로 모인다. 규칙: **목록에 들어가는 헬스장 =
   카카오에 있는 실제 헬스장(`스포츠시설` 카테고리)**.
 
-### 트레이너 운영자 승인 (#2825, `0132_trainer_verification`)
+### 승인 절차 없음 — 신고와 계정 정지 (#3008, `0145_trainer_reports_no_approval`)
 
-헬스장이 실재해도 **그 사람이 그 헬스장 트레이너인지는** 소속 선택만으로 알 수 없다.
-공개 가입 트레이너는 `TrainerProfile.verification_status='pending'` 으로 시작하고, 운영자가
-`POST /admin/trainers/{id}/approve` 로 승인해야 회원에게 닿는다.
+헬스장은 실재하는 카카오 장소지만, **소속은 트레이너가 직접 고른 값**이고 헬스장은 트레이너를
+묶는 단위일 뿐이다. 운영자 승인 단계는 두지 않는다 — 트레이너는 가입하고 소속을 고르면 바로
+회원 앱 디렉터리(`gym_service._trainer_query`)·상담 대상(`consultation_service._validate_target`)에
+들어가고, 연결 코드·담당 요청을 쓸 수 있다(`RequireTrainer`). 회원 앱은 헬스장 트레이너 목록과
+트레이너 상세에 "트레이너가 직접 등록한 소속"이라는 안내를 붙인다.
 
-- 승인 전(`pending`)·반려(`rejected`) 트레이너는 회원 앱 디렉터리(`gym_service._trainer_query`),
-  상담 대상(`consultation_service._validate_target`), 연결 코드·담당 요청 발송
-  (`RequireApprovedTrainer`, 403 `trainer_not_approved`)에서 빠진다. 반려 뒤 남은 담당 요청은
-  회원이 수락할 수 없다(404).
-- 프로필·소속·비밀번호·탈퇴 같은 계정 관리는 승인과 무관하게 열려 있다 — 운영자가 판단할
-  내용을 채워 두는 시간이다.
-- 반려는 **새 연결만** 막는다. 이미 맺은 담당·받은 상담은 그대로다.
-- 처리 시각·처리자·반려 사유는 `verification_decided_at`·`verification_decided_by`·
-  `verification_note` 에 남고, `GET /trainer/me` 의 `verification` 으로 트레이너 웹에 간다.
-- 기존 트레이너와 시드 트레이너는 `approved` 다(마이그레이션 백필·ORM 기본값). DB 기본값은
-  `pending` 이라 ORM 밖에서 넣은 행은 닫힌 쪽에서 시작한다.
+- 회원 연결은 여전히 회원 쪽 행동으로만 생긴다 — 담당 요청 수락, 상담 뒤 연결, 회원이 준 연결 코드.
+- 사칭·부적절한 메시지는 회원이 신고한다(`POST /trainers/{id}/reports`, `trainer_reports`).
+  같은 회원이 같은 트레이너를 처리 전에 다시 신고하면 409 다(부분 유니크 `uq_trainer_reports_open`).
+  운영 목록에는 신고한 회원이 실리지 않는다.
+- 운영자는 트레이너 웹 `신고·계정 관리`(`/admin/reports`, `GET /trainer/me` 의 `is_admin` 이 참인
+  계정에만 메뉴가 보인다)에서 신고를 처리(조치함·넘김)하고, 트레이너를 찾아 계정을 정지·해제한다.
+- 정지(`POST /admin/users/{id}/suspend`, `account_suspension_service`)는 트레이너가 직접 해제할 때와
+  같은 `remove_client` 로 모든 담당을 해제하고(알림·일정 취소·쿠폰 환불·동의 철회), 대기 담당
+  요청을 거둔다. 정지된 트레이너는 로그인할 수 없고 디렉터리에서도 빠진다. 해제는 계정만 되살린다.
+- 예전 승인 게이트(#2825)·반려 기록 잠금(#3009)·승인 알림(#3010)은 걷었다. `0145` 가 남은
+  `pending`·`rejected` 를 `approved` 로 채우고 DB 기본값도 `approved` 로 바꿨다.
+  `trainer_profiles.verification_*` 열은 기록용으로만 남아 있고 읽는 곳이 없다.
 
 ## 4. 트레이너 API (`/v1/trainer/*`, RequireTrainer)
 

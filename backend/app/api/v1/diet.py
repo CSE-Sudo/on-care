@@ -25,6 +25,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
+from app.api import ai_call_errors
 from app.api.deps import CurrentUser, RequireMember
 from app.core import rate_limit
 from app.core.config import get_settings
@@ -47,6 +48,7 @@ from app.schemas.diet_api import (
 )
 from app.schemas.points_api import PointsOut
 from app.services import (
+    ai_call_quota,
     chat_image_storage,
     diet_advice_copy,
     diet_all_advice,
@@ -356,6 +358,11 @@ async def diet_analyze(
     except NotImplementedError as e:
         await run_in_threadpool(diet_analysis_quota_service.release, db, usage_id)
         raise HTTPException(status_code=501, detail=str(e)) from e
+    except ai_call_quota.AiCapacityReached as e:
+        # 서버 전체 하루 AI 상한(#3032). 모델을 부르지 않았으니 회원의 하루 몫을 돌려주고,
+        # 앱이 `analysis_unavailable` 처럼 직접 입력으로 이어 주게 503 `ai_capacity` 로 답한다.
+        await run_in_threadpool(diet_analysis_quota_service.release, db, usage_id)
+        raise ai_call_errors.capacity_http_error(e) from e
     except Exception as e:  # noqa: BLE001
         # 공급자 장애로 회원의 하루 몫이 깎이지 않게 돌려준다.
         await run_in_threadpool(diet_analysis_quota_service.release, db, usage_id)

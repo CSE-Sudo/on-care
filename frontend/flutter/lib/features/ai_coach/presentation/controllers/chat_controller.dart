@@ -155,6 +155,9 @@ enum ChatSendOutcome {
 
   /// 포인트가 모자라다. 모자란 값은 [ChatSendResult.shortfall].
   insufficientPoints,
+
+  /// 서버 전체 AI 하루 상한(#3032) — 보내지 않았고 아무것도 깎이지 않았다.
+  aiCapacity,
 }
 
 typedef ChatSendResult = ({ChatSendOutcome outcome, int shortfall});
@@ -387,6 +390,7 @@ class ChatController extends StateNotifier<ChatState> {
           AiChatBlockReason.dailyLimit => ChatSendOutcome.dailyLimit,
           AiChatBlockReason.insufficientPoints =>
             ChatSendOutcome.insufficientPoints,
+          AiChatBlockReason.aiCapacity => ChatSendOutcome.aiCapacity,
         },
         shortfall: blocked.shortfall,
       );
