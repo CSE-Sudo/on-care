@@ -544,8 +544,10 @@ jobs:
             echo "- Restored origin path: ${PREVIOUS_ORIGIN_PATH:-/}"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # 릴리스가 무한정 쌓이지 않게 한다. 최근 것만 남기되, 지금 서비스 중인
-      # 릴리스와 되돌아갈 직전 릴리스는 어떤 경우에도 지우지 않는다.
+      # 릴리스가 무한정 쌓이지 않게 한다. 릴리스는 `releases/<sha>/` 루트 하나로 센다 — 앱 폴더의
+      # version.txt(#3023)까지 따로 세면 직전 릴리스의 하위 폴더가 지워진다(#3128). 최신 $KEEP 개
+      # 릴리스를 남기고, 지금 서비스 중인 릴리스와 되돌아갈 직전 릴리스는 어떤 경우에도 지우지
+      # 않는다. 삭제는 언제나 릴리스 루트 단위다. 규칙은 스크립트 한 곳에 있다.
       - name: Prune old releases
         env:
           BUCKET: ${{ vars.AWS_FRONTEND_BUCKET }}
@@ -553,25 +555,5 @@ jobs:
           PREVIOUS_ORIGIN_PATH: ${{ steps.switch.outputs.previous_origin_path }}
         run: |
           set -euo pipefail
-          KEEP_PREFIXES=" releases/$RELEASE_SHA/ "
-          if [ -n "$PREVIOUS_ORIGIN_PATH" ]; then
-            KEEP_PREFIXES="$KEEP_PREFIXES${PREVIOUS_ORIGIN_PATH#/}/ "
-          fi
-
-          # 릴리스마다 version.txt 가 하나씩 있으므로 그 객체의 시각이 곧 릴리스
-          # 시각이다. 최신 $KEEP 개를 남기고 나머지 prefix 를 통째로 지운다.
-          KEYS=$(aws s3api list-objects-v2 --bucket "$BUCKET" --prefix 'releases/' \
-            --query "reverse(sort_by(Contents[?ends_with(Key, '/version.txt')], &LastModified))[].Key" \
-            --output text | tr '\t' '\n')
-
-          INDEX=0
-          for key in $KEYS; do
-            INDEX=$((INDEX + 1))
-            PREFIX="${key%version.txt}"
-            case "$KEEP_PREFIXES" in *" $PREFIX "*) continue ;; esac
-            if [ "$INDEX" -le "$KEEP" ]; then
-              continue
-            fi
-            echo "오래된 릴리스 삭제: $PREFIX"
-            aws s3 rm "s3://$BUCKET/$PREFIX" --recursive > /dev/null
-          done
+          bash .github/scripts/frontend_release_prune.sh prune "$BUCKET" "$KEEP" \
+            "$RELEASE_SHA" "$PREVIOUS_ORIGIN_PATH"
