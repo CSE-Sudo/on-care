@@ -1,0 +1,335 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  OnCare backend service on Amazon ECS Express Mode (Fargate + ALB). One stack per
+  environment, named oncare-backend-<environment>. Creating it starts billing (#3016).
+
+# 컴퓨트 결정(#3016): App Runner 는 신규 고객을 받지 않으므로 ECS Express Mode 로 띄운다.
+# 첫 생성은 #480 에서 사람이 한다. 그 뒤 이미지 교체는 배포 워크플로가 이 템플릿으로
+# `aws cloudformation deploy` 를 돌려 ImageIdentifier 만 바꾼다 — 나머지 파라미터는
+# 직전 값을 그대로 쓴다. 서비스 설정을 콘솔에서 바꾸면 다음 배포가 템플릿 값으로
+# 되돌리므로 설정 변경은 이 파일과 스택 파라미터로만 한다.
+#
+# 비밀 값은 여기 없다. Secrets Manager 비밀 하나(JSON)의 키를 ARN 으로 참조한다.
+# 키 목록은 backend/docs/DEPLOY.md 의 "비밀 키" 표와 같다.
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    AllowedValues:
+      - production
+      - staging
+  ImageIdentifier:
+    Type: String
+    AllowedPattern: '^[0-9]{12}\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com/oncare-backend@sha256:[0-9a-f]{64}$'
+    Description: Immutable ECR image digest (the deploy workflow passes it)
+  SecretArn:
+    Type: String
+    AllowedPattern: '^arn:aws[a-z-]*:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:oncare/backend/(production|staging)-[A-Za-z0-9]{6}$'
+    Description: Full ARN of the oncare/backend/<environment> secret
+  Cpu:
+    Type: String
+    Default: '1024'
+    AllowedValues: ['256', '512', '1024', '2048']
+  Memory:
+    Type: String
+    Default: '2048'
+    AllowedValues: ['512', '1024', '2048', '3072', '4096']
+  # 시도 제한(로그인 실패 잠금·가입 상한)은 프로세스 메모리에 있다(app/core/rate_limit.py).
+  # 태스크가 둘이 되면 한도가 두 배로 느슨해지므로 공유 저장소로 바꾸기 전까지 1 로 묶는다.
+  MinTaskCount:
+    Type: Number
+    Default: 1
+    AllowedValues: [1]
+  MaxTaskCount:
+    Type: Number
+    Default: 1
+    AllowedValues: [1]
+  CorsAllowOrigins:
+    Type: String
+    AllowedPattern: '^https://[^,*\s]+(,https://[^,*\s]+)*$'
+    Description: Comma-separated front-end origins (no wildcard)
+  GeminiModel:
+    Type: String
+    AllowedPattern: '^[a-z0-9][a-z0-9.-]*$'
+    Description: Pinned Gemini model name (DEPLOY.md 5-3)
+  AdminEmails:
+    Type: String
+    Default: ''
+  AppleClientIds:
+    Type: String
+    Default: ''
+  # 소셜 로그인 허용 aud(#3035). 비우면 그 공급자 로그인은 401 로 거부된다.
+  GoogleClientIds:
+    Type: String
+    Default: ''
+  KakaoAppId:
+    Type: String
+    Default: ''
+    AllowedPattern: '^[0-9]*$'
+  AllowDemoFallback:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+    Description: Staging only. Production ignores it (ENV=prod always disables the fallback)
+  # 비밀번호 재설정 메일(#2824). MailFrom 을 비우면 메일 발송이 꺼진다(재설정 요청은 503).
+  # 채우면 SMTP 계정은 비밀의 SMTP_USERNAME·SMTP_PASSWORD 키에서 읽는다(SES SMTP 포함).
+  MailFrom:
+    Type: String
+    Default: ''
+  SmtpHost:
+    Type: String
+    Default: ''
+  SmtpPort:
+    Type: String
+    Default: '587'
+    AllowedPattern: '^[0-9]{2,5}$'
+  PasswordResetMemberUrl:
+    Type: String
+    Default: ''
+    AllowedPattern: '^(https://\S+)?$'
+  PasswordResetTrainerUrl:
+    Type: String
+    Default: ''
+    AllowedPattern: '^(https://\S+)?$'
+  SubnetIds:
+    Type: CommaDelimitedList
+    Default: ''
+    Description: Optional public subnets. Empty uses the default VPC
+  SecurityGroupIds:
+    Type: CommaDelimitedList
+    Default: ''
+
+Mappings:
+  EnvironmentSettings:
+    production:
+      AppEnv: prod
+      SeedDemoData: 'false'
+    staging:
+      AppEnv: staging
+      SeedDemoData: 'true'
+
+Conditions:
+  IsStaging: !Equals [!Ref EnvironmentName, staging]
+  HasAdminEmails: !Not [!Equals [!Ref AdminEmails, '']]
+  HasAppleClientIds: !Not [!Equals [!Ref AppleClientIds, '']]
+  HasGoogleClientIds: !Not [!Equals [!Ref GoogleClientIds, '']]
+  HasKakaoAppId: !Not [!Equals [!Ref KakaoAppId, '']]
+  HasMail: !Not [!Equals [!Ref MailFrom, '']]
+  HasMemberResetUrl: !Not [!Equals [!Ref PasswordResetMemberUrl, '']]
+  HasTrainerResetUrl: !Not [!Equals [!Ref PasswordResetTrainerUrl, '']]
+  HasSubnets: !Not [!Equals [!Join ['', !Ref SubnetIds], '']]
+  HasSecurityGroups: !Not [!Equals [!Join ['', !Ref SecurityGroupIds], '']]
+
+Resources:
+  BackendService:
+    Type: AWS::ECS::ExpressGatewayService
+    Properties:
+      ServiceName: !Sub 'oncare-backend-${EnvironmentName}'
+      Cpu: !Ref Cpu
+      Memory: !Ref Memory
+      # healthz 는 프로세스만 본다 — DB 일시 장애로 태스크를 갈아 치우지 않게(#2912).
+      HealthCheckPath: /v1/healthz
+      ExecutionRoleArn: !ImportValue
+        Fn::Sub: 'oncare-backend-${EnvironmentName}-TaskExecutionRoleArn'
+      TaskRoleArn: !ImportValue
+        Fn::Sub: 'oncare-backend-${EnvironmentName}-TaskRoleArn'
+      InfrastructureRoleArn: !ImportValue
+        Fn::Sub: 'oncare-backend-${EnvironmentName}-InfrastructureRoleArn'
+      ScalingTarget:
+        MinTaskCount: !Ref MinTaskCount
+        MaxTaskCount: !Ref MaxTaskCount
+      NetworkConfiguration: !If
+        - HasSubnets
+        - Subnets: !Ref SubnetIds
+          SecurityGroups: !If
+            - HasSecurityGroups
+            - !Ref SecurityGroupIds
+            - !Ref AWS::NoValue
+        - !Ref AWS::NoValue
+      PrimaryContainer:
+        Image: !Ref ImageIdentifier
+        ContainerPort: 8000
+        Environment:
+          - Name: ENV
+            Value: !FindInMap [EnvironmentSettings, !Ref EnvironmentName, AppEnv]
+          - Name: AUTO_CREATE_TABLES
+            Value: 'false'
+          - Name: SEED_DEMO_DATA
+            Value: !FindInMap [EnvironmentSettings, !Ref EnvironmentName, SeedDemoData]
+          - Name: ALLOW_DEMO_FALLBACK
+            Value: !If [IsStaging, !Ref AllowDemoFallback, 'false']
+          - Name: CORS_ALLOW_ORIGINS
+            Value: !Ref CorsAllowOrigins
+          - Name: TZ
+            Value: Asia/Seoul
+          - Name: FORCE_HTTPS
+            Value: 'true'
+          - Name: LOG_LEVEL
+            Value: INFO
+          # ALB 하나 뒤다. X-Forwarded-For 를 오른쪽에서 첫 값으로 읽는다(#2815).
+          - Name: TRUSTED_PROXY_HOPS
+            Value: '1'
+          # 워커 하나 — 시도 제한·메트릭이 워커마다 따로라서(#2835).
+          - Name: WEB_CONCURRENCY
+            Value: '1'
+          - Name: ATTACHMENT_STORAGE
+            Value: s3
+          - Name: ATTACHMENT_S3_BUCKET
+            Value: !ImportValue
+              Fn::Sub: 'oncare-backend-${EnvironmentName}-AttachmentBucket'
+          - Name: ATTACHMENT_S3_REGION
+            Value: !Ref AWS::Region
+          - Name: ATTACHMENT_S3_PREFIX
+            Value: chat-attachments
+          - Name: RECOGNIZER
+            Value: gemini
+          - Name: COACH_LLM
+            Value: gemini
+          - Name: EMBEDDER
+            Value: gemini
+          - Name: GEMINI_MODEL
+            Value: !Ref GeminiModel
+          - Name: GEMINI_TIMEOUT_SECONDS
+            Value: '30'
+          - Name: RECOGNIZER_TIMEOUT_SECONDS
+            Value: '60'
+          - Name: EMBED_DIM
+            Value: '768'
+          - Name: AI_GLOBAL_CALLS_PER_DAY
+            Value: '0'
+          - Name: TRAINER_AI_CALLS_PER_DAY
+            Value: '200'
+          - Name: LLM_MAX_OUTPUT_TOKENS
+            Value: '4096'
+          - Name: MIGRATE_LOCK_TIMEOUT
+            Value: '120'
+          - Name: MIGRATE_CONNECT_TIMEOUT
+            Value: '10'
+          - Name: MIGRATE_LOCK_RETRY_INTERVAL
+            Value: '2'
+          # 아래는 코드 기본값과 같지만 운영 값으로 못 박는다(#3034) — 데모 서비스에서 바꾼 값이
+          # 운영으로 복사되지 않게 한다. 하드닝 스위치·혜택·API 문서·토큰 수명·감사 로그 보존.
+          - Name: SECURITY_HEADERS
+            Value: 'true'
+          - Name: RATE_LIMIT_ENABLED
+            Value: 'true'
+          - Name: GYM_BENEFITS_ENABLED
+            Value: 'false'
+          - Name: EXPOSE_API_DOCS
+            Value: 'false'
+          - Name: PLACES_PROVIDER
+            Value: auto
+          - Name: ACCESS_TOKEN_EXPIRE_MINUTES
+            Value: '60'
+          - Name: REFRESH_TOKEN_EXPIRE_DAYS
+            Value: '30'
+          - Name: WEB_REFRESH_TOKEN_EXPIRE_DAYS
+            Value: '7'
+          - Name: AUDIT_RETENTION_DAYS
+            Value: '365'
+          - Name: AUDIT_SENSITIVE_RETENTION_DAYS
+            Value: '730'
+          - !If
+            - HasAdminEmails
+            - Name: ADMIN_EMAILS
+              Value: !Ref AdminEmails
+            - !Ref AWS::NoValue
+          - !If
+            - HasAppleClientIds
+            - Name: APPLE_CLIENT_IDS
+              Value: !Ref AppleClientIds
+            - !Ref AWS::NoValue
+          - !If
+            - HasGoogleClientIds
+            - Name: GOOGLE_CLIENT_IDS
+              Value: !Ref GoogleClientIds
+            - !Ref AWS::NoValue
+          - !If
+            - HasKakaoAppId
+            - Name: KAKAO_APP_ID
+              Value: !Ref KakaoAppId
+            - !Ref AWS::NoValue
+          - !If
+            - HasMail
+            - Name: MAIL_PROVIDER
+              Value: smtp
+            - !Ref AWS::NoValue
+          - !If
+            - HasMail
+            - Name: MAIL_FROM
+              Value: !Ref MailFrom
+            - !Ref AWS::NoValue
+          - !If
+            - HasMail
+            - Name: SMTP_HOST
+              Value: !Ref SmtpHost
+            - !Ref AWS::NoValue
+          - !If
+            - HasMail
+            - Name: SMTP_PORT
+              Value: !Ref SmtpPort
+            - !Ref AWS::NoValue
+          # 587 은 STARTTLS(기본), 465 는 SMTP_SSL=true·SMTP_STARTTLS=false. 지금은 587 고정이다.
+          - !If
+            - HasMail
+            - Name: SMTP_STARTTLS
+              Value: 'true'
+            - !Ref AWS::NoValue
+          - !If
+            - HasMail
+            - Name: SMTP_SSL
+              Value: 'false'
+            - !Ref AWS::NoValue
+          - !If
+            - HasMemberResetUrl
+            - Name: PASSWORD_RESET_MEMBER_URL
+              Value: !Ref PasswordResetMemberUrl
+            - !Ref AWS::NoValue
+          - !If
+            - HasTrainerResetUrl
+            - Name: PASSWORD_RESET_TRAINER_URL
+              Value: !Ref PasswordResetTrainerUrl
+            - !Ref AWS::NoValue
+        Secrets:
+          - Name: DATABASE_URL
+            ValueFrom: !Sub '${SecretArn}:DATABASE_URL::'
+          - Name: JWT_SECRET
+            ValueFrom: !Sub '${SecretArn}:JWT_SECRET::'
+          - Name: GEMINI_API_KEY
+            ValueFrom: !Sub '${SecretArn}:GEMINI_API_KEY::'
+          - Name: KAKAO_REST_API_KEY
+            ValueFrom: !Sub '${SecretArn}:KAKAO_REST_API_KEY::'
+          - Name: SENTRY_DSN
+            ValueFrom: !Sub '${SecretArn}:SENTRY_DSN::'
+          # 비밀에 없는 키를 참조하면 태스크가 뜨지 않는다. 메일을 켤 때만 SMTP 키를 읽는다.
+          - !If
+            - HasMail
+            - Name: SMTP_USERNAME
+              ValueFrom: !Sub '${SecretArn}:SMTP_USERNAME::'
+            - !Ref AWS::NoValue
+          - !If
+            - HasMail
+            - Name: SMTP_PASSWORD
+              ValueFrom: !Sub '${SecretArn}:SMTP_PASSWORD::'
+            - !Ref AWS::NoValue
+          # 데모 시드가 켜지는 staging 만. 운영은 데모 계정이 없다.
+          - !If
+            - IsStaging
+            - Name: DEMO_LOGIN_PASSWORD
+              ValueFrom: !Sub '${SecretArn}:DEMO_LOGIN_PASSWORD::'
+            - !Ref AWS::NoValue
+      Tags:
+        - Key: Project
+          Value: OnCare
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+Outputs:
+  ServiceArn:
+    Value: !GetAtt BackendService.ServiceArn
+  ServiceEndpoint:
+    Description: Host name the deploy workflow checks (/v1/healthz, /v1/readyz)
+    Value: !GetAtt BackendService.Endpoint
+  ImageIdentifier:
+    Description: Image currently declared by this stack (used for rollback)
+    Value: !Ref ImageIdentifier
