@@ -13,8 +13,13 @@ dependencies:
     sdk: flutter
   # 카카오맵 JS SDK 를 `HtmlElementView` 로 얹는다. 두 앱이 이미 쓰는 패키지다.
   web: ^1.1.0
+  # 안드로이드·iOS 에서 같은 JS SDK 를 띄운다(#3043). Flutter 팀이 관리하는
+  # WebView 로, iOS WKWebView·안드로이드 WebView 를 그대로 쓴다.
+  webview_flutter: ^4.9.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  # 테스트에서 WebView 를 가짜 구현으로 바꿔 끼운다.
+  webview_flutter_platform_interface: ^2.10.0

@@ -1,13 +1,14 @@
 import 'package:flutter/widgets.dart';
 
 import 'package:oncare_kakao_map/src/kakao_map_config.dart';
-import 'package:oncare_kakao_map/src/kakao_map_platform_stub.dart'
+import 'package:oncare_kakao_map/src/kakao_map_platform_mobile.dart'
     if (dart.library.js_interop) 'package:oncare_kakao_map/src/kakao_map_platform_web.dart'
     as platform;
 
-/// 카카오맵 위젯. 키가 없거나(빌드에 `KAKAO_JS_KEY` 미주입) web 이 아니거나
-/// SDK 로드가 실패하면 [fallback] 을 그대로 그린다 — 데모가 절대 비지 않게 하기
-/// 위한 #329 요건이다.
+/// 카카오맵 위젯. 웹은 JS SDK 를 `HtmlElementView` 로, 안드로이드·iOS 는 같은
+/// SDK 를 WebView 로 띄운다(#3043). 키가 없거나(빌드에 `KAKAO_JS_KEY` 미주입)
+/// 지도를 띄울 수 없는 타깃이거나 SDK 로드가 실패하면 [fallback] 을 그대로
+/// 그린다 — 지도 자리가 절대 비지 않게 하기 위한 #329 요건이다.
 class KakaoMapView extends StatelessWidget {
   const KakaoMapView({
     super.key,
