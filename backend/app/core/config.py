@@ -1,15 +1,18 @@
 """환경 설정. .env 에서 읽어옵니다."""
 from __future__ import annotations
 
+import re
 from functools import lru_cache
 from typing import Literal, Optional
 from urllib.parse import urlsplit
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # 개발 기본 시크릿(운영에서 그대로 쓰면 기동 차단)
 DEFAULT_JWT_SECRET = "CHANGE_ME_dev_only_secret_key_please_replace_in_prod"
+# 회원 앱 최소 지원 버전 형식(#3045). 빌드 번호(`+N`)·접미사 없이 숫자 세 자리만.
+MIN_APP_VERSION_PATTERN = re.compile(r"^\d+\.\d+\.\d+$")
 # 데모 계정(트레이너/회원 시드) 기본 로그인 비밀번호. 데모 시드는 운영(env=prod)에서
 # 켤 수 없으므로(아래 _guard_prod_secrets, #2811) 로컬·데모 환경에서만 쓰인다.
 DEFAULT_DEMO_PASSWORD = "oncare123"
@@ -31,6 +34,22 @@ class Settings(BaseSettings):
     # --- API ---
     api_v1_prefix: str = "/v1"
     app_version: str = "0.4.0"
+    # 회원 모바일 앱의 최소 지원 버전(#3045, `MAJOR.MINOR.PATCH`). 이보다 낮은 빌드는
+    # 업데이트 화면만 보인다. 비우면 검사하지 않는다(기본·개발·데모). 스토어에 새 빌드가
+    # 반영된 것을 확인한 뒤 올린다(docs/mobile_release.md).
+    min_member_app_version: str = ""
+
+    @field_validator("min_member_app_version")
+    @classmethod
+    def _check_min_member_app_version(cls, value: str) -> str:
+        """잘못된 값으로 모든 회원이 막히지 않게 기동에서 형식을 확인한다."""
+        value = value.strip()
+        if value and not MIN_APP_VERSION_PATTERN.match(value):
+            raise ValueError(
+                "MIN_MEMBER_APP_VERSION 은 MAJOR.MINOR.PATCH 형식(예: 1.2.0)이어야 합니다."
+            )
+        return value
+
     # 이 이미지를 만든 커밋 SHA(#3029). 배포 워크플로가 `docker build --build-arg
     # GIT_SHA=…` 로 넣고 Dockerfile 이 같은 이름의 환경변수로 옮긴다. 로컬·테스트는
     # `unknown`. `/version`·`/healthz` 와 Sentry release 가 이 값을 쓴다.

@@ -2,8 +2,10 @@ name: oncare_trainer
 description: "On-Care 트레이너 웹 — PT 담당 회원의 식단·운동 기록 확인과 코칭·루틴·스케줄 관리."
 publish_to: 'none'
 
-# Versioning is managed via --build-name / --build-number at build time.
-version: 0.1.0+1
+# 버전 이름(+ 앞)과 빌드 번호(+ 뒤)는 이 한 곳에서 정한다(#3047). 배포 워크플로는
+# --build-name·--build-number 를 넘기지 않는다 — 화면의 버전(MY 아래)이 이 값을
+# 빌드의 version.json 으로 읽는다. 올리는 규칙은 docs/mobile_release.md 1절.
+version: 0.2.0+2
 
 environment:
   sdk: ^3.12.0

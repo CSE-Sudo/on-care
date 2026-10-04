@@ -54,6 +54,8 @@
 8. 배포 action이 제한 시간 안에 완료를 확인하지 못하면 `version.txt`로 실제 반영 여부를 추가 검증합니다.
 9. 배포된 랜딩을 받아 앱 바로가기·canonical·같은 도메인의 `/frontend/`·`/trainer/`·`/legal/privacy.html` 응답을 확인합니다.
 
+두 앱 화면에 보이는 버전(`… · 버전 <이름>`)은 각 앱 `pubspec.yaml` 의 `version` 에서 옵니다. 워크플로는 버전을 주입하지 않으므로, 버전을 바꾸려면 `pubspec.yaml` 을 올리는 커밋을 main 에 넣습니다([mobile_release.md 1절](mobile_release.md#1-버전빌드-번호-규칙)). `version.txt` 는 배포한 커밋 SHA 로, 화면의 버전과 다릅니다.
+
 ## 랜딩 바로가기와 og:url·canonical
 
 루트 `index.html` 은 Pages(데모)와 AWS(운영)에 **같은 파일**로 올라갑니다. 두 배포 모두 랜딩을 루트에, 회원 앱을 `/frontend/`, 트레이너 웹을 `/trainer/` 에 두므로 앱 바로가기는 **상대 경로**(`frontend/#/dashboard`, `trainer/`)로 씁니다. 그래야 각 배포의 방문자가 자기 배포의 앱으로 가고, 무료 DNS 이름이 끊겨도 운영 랜딩의 버튼은 영향을 받지 않습니다(#2841). 데모 영상·GitHub 같은 외부 링크는 절대 주소 그대로 둡니다.

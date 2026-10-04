@@ -44,8 +44,8 @@ void main() {
     expect(find.text(_ko.myLegalTermsTitle), findsOneWidget);
     expect(find.text(_ko.myLegalPrivacyTitle), findsOneWidget);
     expect(find.text(_ko.myDeleteAccount), findsOneWidget);
-    // 버전은 빌드 정보에서 읽는다(#2264) — 테스트 빌드는 0.1.0.
-    expect(find.text(_ko.myAppVersion('0.1.0')), findsOneWidget);
+    // 버전은 빌드 정보에서 읽는다(#2264, #3047) — 테스트가 주입한 값이 보인다.
+    expect(find.text(_ko.myAppVersion(kTestBuildVersion)), findsOneWidget);
     // 앱 밖으로 나가는 줄은 그렇다고 미리 말해 준다.
     expect(find.text(_ko.mySupportExternalHint), findsNWidgets(2));
   });

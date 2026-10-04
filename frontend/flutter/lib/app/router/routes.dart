@@ -75,6 +75,10 @@ class AppRoutes {
     ).toString();
   }
 
+  /// 업데이트 필요(#3045) — 서버의 최소 지원 버전보다 낮은 빌드는 로그인 여부와
+  /// 상관없이 이 화면만 보인다.
+  static const String updateRequired = '/update-required';
+
   // Auth
   /// 저장된 세션을 되살리는 동안 머무는 시작 화면(#1944). 복구가 끝나면
   /// 라우터가 홈이나 로그인으로 옮긴다.

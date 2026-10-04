@@ -80,16 +80,19 @@ def readyz(db: Annotated[Session, Depends(get_db)]) -> dict[str, str]:
 
 
 @router.get("/version")
-def version() -> dict[str, str]:
-    """API·앱 버전과 이 이미지를 만든 커밋 SHA(#3029).
+def version() -> dict[str, str | None]:
+    """API·앱 버전, 회원 앱 최소 지원 버전(#3045), 이 이미지를 만든 커밋 SHA(#3029).
 
+    `app_version` 은 이 서버의 버전이다. 회원 앱은 `min_app_version` 을 자기 빌드
+    버전과 비교해 낮으면 업데이트 화면을 띄운다. 설정이 비면 `null` — 검사하지 않는다.
     배포 워크플로가 `commit_sha` 를 배포한 SHA 와 대조해, 실제로 요청을 받는 프로세스가
-    새 코드인지 확인한다. 로컬·테스트 빌드는 `unknown`.
+    새 코드인지 확인한다. 로컬·테스트 빌드는 `unknown`. 인증 없이 부른다(로그인 전에 확인한다).
     """
     current = get_settings()
     return {
         "api_version": "v1",
         "app_version": current.app_version,
+        "min_app_version": current.min_member_app_version or None,
         "commit_sha": current.commit_sha,
     }
 

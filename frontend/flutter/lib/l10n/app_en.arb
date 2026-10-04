@@ -15,6 +15,34 @@
     "description": "404 page button for a signed-in (or demo) member; goes to the home dashboard."
   },
   "notFoundGoSignIn": "Go to sign in",
+  "updateRequiredTitle": "A new version is available",
+  "@updateRequiredTitle": {
+    "description": "Title of the full-screen page shown when this build is older than the server's minimum supported version (#3045)."
+  },
+  "updateRequiredMessage": "Please update On-Care to keep using it.",
+  "updateRequiredVersions": "Your version {current} · Required {min}",
+  "@updateRequiredVersions": {
+    "description": "Current and minimum versions on the update page (#3045).",
+    "placeholders": {
+      "current": {
+        "type": "String",
+        "example": "0.4.0"
+      },
+      "min": {
+        "type": "String",
+        "example": "0.5.0"
+      }
+    }
+  },
+  "updateRequiredAction": "Update",
+  "@updateRequiredAction": {
+    "description": "Button on the update page; opens the store page of the app."
+  },
+  "updateRequiredStoreHint": "Please update On-Care from the App Store.",
+  "@updateRequiredStoreHint": {
+    "description": "Shown instead of the button when there is no store link to open (App Store ID not configured)."
+  },
+  "updateRequiredOpenFailed": "Couldn't open the store. Please update On-Care from the store app.",
   "@notFoundGoSignIn": {
     "description": "404 page button when nobody is signed in; goes to the sign-in screen."
   },
@@ -1478,7 +1506,20 @@
   },
   "myLegalTermsEffectiveDate": "Effective Oct 3, 2026",
   "myLegalPrivacyEffectiveDate": "Effective Oct 3, 2026",
-  "myAppVersion": "On-Care · Version 1.0.0",
+  "myAppVersion": "On-Care · Version {version}",
+  "@myAppVersion": {
+    "description": "Footer of the support page. The version is read from the build (pubspec.yaml), never hard-coded (#3047).",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "0.4.0"
+      }
+    }
+  },
+  "myAppName": "On-Care",
+  "@myAppName": {
+    "description": "Support page footer when the build version cannot be read — the app name only (#3047)."
+  },
   "coachHeaderPill": "AI Health Assistant",
   "coachHeaderSubtitle": "Here are today's tailored tips",
   "coachCardDietTag": "Diet",
