@@ -94,12 +94,17 @@ void main() {
         AppShell.branchRoot(AppShell.notificationsBranchIndex),
         AppRoutes.notifications,
       );
+      expect(
+        AppShell.branchRoot(AppShell.adminReportsBranchIndex),
+        AppRoutes.adminReports,
+      );
     });
 
     test('an out-of-range index falls back to the 대시보드', () {
       expect(AppShell.branchRoot(-1), AppRoutes.dashboard);
+      // 운영자 브랜치(#3008)가 알림함 뒤에 붙으므로 그 다음부터가 범위 밖이다.
       expect(
-        AppShell.branchRoot(AppShell.notificationsBranchIndex + 1),
+        AppShell.branchRoot(AppShell.adminReportsBranchIndex + 1),
         AppRoutes.dashboard,
       );
     });

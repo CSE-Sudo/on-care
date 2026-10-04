@@ -1,20 +1,21 @@
 """트레이너 디렉터리 라우터 — 회원앱 트레이너 찾기/상세/추천. (#324)
 
 `/trainer/*`(단수)는 트레이너 앱이 자기 데이터를 다루는 곳이고, 여기 `/trainers`
-(복수)는 회원이 트레이너를 **탐색**하는 읽기 전용 디렉터리다.
+(복수)는 회원이 트레이너를 **탐색**하는 디렉터리다. 쓰기는 신고(#3008) 하나뿐이다.
 """
 from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentUser
+from app.api.deps import CurrentUser, RequireMember
 from app.db.session import get_db
+from app.schemas.admin_ops import TrainerReportCreate, TrainerReportOut
 from app.schemas.gym_api import TrainerOut
-from app.services import gym_service
+from app.services import gym_service, trainer_report_service
 
 router = APIRouter(tags=["trainers"])
 
@@ -57,3 +58,35 @@ def get_trainer(
     if trainer is None:
         raise HTTPException(status_code=404, detail="트레이너를 찾을 수 없습니다.")
     return trainer
+
+
+@router.post(
+    "/trainers/{trainer_id}/reports",
+    response_model=TrainerReportOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def report_trainer(
+    trainer_id: str,
+    payload: TrainerReportCreate,
+    member: RequireMember,
+    db: Annotated[Session, Depends(get_db)],
+) -> TrainerReportOut:
+    """트레이너 신고(#3008) — 사칭·부적절한 메시지·기타.
+
+    운영자가 트레이너 웹 `신고·계정 관리` 화면에서 보고 처리한다. 같은 트레이너를
+    처리 전에 다시 신고하면 409 `report_already_open`.
+    """
+    try:
+        return trainer_report_service.create_report(
+            db, reporter_id=member.id, trainer_id=trainer_id, payload=payload
+        )
+    except trainer_report_service.TrainerNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except trainer_report_service.ReportAlreadyOpen as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": trainer_report_service.ALREADY_OPEN_CODE,
+                "message": str(exc),
+            },
+        ) from exc

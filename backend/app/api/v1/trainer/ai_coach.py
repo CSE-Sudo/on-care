@@ -50,6 +50,11 @@ def trainer_client_ai_coach(
     **분당 한도(#1548)** — 회원 AI 코치와 같은 `coach_chat_per_minute` 를 트레이너
     단위 버킷으로 센다. 넘기면 429 와 `Retry-After` 다. 같은 헬스장(같은 IP)의 다른
     트레이너가 한도를 대신 소진하지 않게 IP 가 아니라 트레이너 id 로 나눈다.
+
+    **하루 상한(#3032)** — 이 트레이너의 고객 AI 코칭·루틴 후보·리포트 요약 합이
+    `trainer_ai_calls_per_day` 를 넘으면 429 `daily_limit` + `Retry-After`(다음 KST
+    자정까지)다. 서버 전체 상한에 걸리면 503 `ai_capacity` 다. 둘 다 모델을 부르지
+    않았고 대화도 저장하지 않는다.
     """
     _require_client(db, trainer.id, member_id)
     settings = get_settings()
@@ -67,7 +72,9 @@ def trainer_client_ai_coach(
     # 트레이너라, 회원 대화(trainer_id IS NULL)와 섞이면 회원이 앱을 열었을 때
     # 자기가 하지 않은 대화를 보게 된다.
     history = conversation.load_messages(db, member_id, trainer_id=trainer.id)
-    reply, sources, _ = coach_answer(db, member_id, message, history)
+    reply, sources, _ = coach_answer(
+        db, member_id, message, history, trainer_id=trainer.id
+    )
     conversation.append_exchange(
         db, member_id, question=message, reply=reply, sources=sources,
         trainer_id=trainer.id,

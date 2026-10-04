@@ -591,6 +591,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Photo analysis is unavailable right now. Please add the meal manually.';
 
   @override
+  String get dietAnalysisAiCapacity =>
+      'AI features are taking a break due to high demand. They reopen tomorrow — for now you can add the meal manually.';
+
+  @override
   String get dietAnalysisPickAnother => 'Pick another photo';
 
   @override
@@ -1075,6 +1079,54 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exTrainerNotFound => 'Couldn\'t find this trainer.';
+
+  @override
+  String get exTrainerReport => 'Report trainer';
+
+  @override
+  String get exTrainerReportShort => 'Report';
+
+  @override
+  String get exTrainerReportReasonLabel => 'Reason';
+
+  @override
+  String get exTrainerReportReasonImpersonation => 'Impersonation';
+
+  @override
+  String get exTrainerReportReasonInappropriateMessage =>
+      'Inappropriate message';
+
+  @override
+  String get exTrainerReportReasonOther => 'Other';
+
+  @override
+  String get exTrainerReportMemoLabel => 'Details';
+
+  @override
+  String get exTrainerReportMemoHint => 'Tell us what happened';
+
+  @override
+  String get exTrainerReportMemoRequired =>
+      'Add details to report for another reason';
+
+  @override
+  String get exTrainerReportNotice =>
+      'Only operators see reports. The trainer isn\'t told who reported them.';
+
+  @override
+  String get exTrainerReportSubmit => 'Submit report';
+
+  @override
+  String get exTrainerReportSubmitted =>
+      'Report received. An operator will review it.';
+
+  @override
+  String get exTrainerReportAlreadyOpen =>
+      'You already have an open report. An operator is reviewing it.';
+
+  @override
+  String get exTrainerSelfRegisteredAffiliation =>
+      'Affiliation registered by the trainer';
 
   @override
   String get exGymSearchPlaceholder => 'Search by area or gym name';
@@ -2471,6 +2523,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aicQuotaExhausted =>
       'You\'ve used today\'s chats. They reopen tomorrow';
+
+  @override
+  String get aicAiCapacity =>
+      'AI features are taking a break due to high demand. Please try again tomorrow';
 
   @override
   String get aicQuotaFindTrainer => 'Find a trainer';

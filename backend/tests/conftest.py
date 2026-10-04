@@ -52,6 +52,13 @@ os.environ.setdefault("EMBEDDER", "hash")
 os.environ.setdefault("DIET_ANALYZE_PER_DAY", "100000")
 os.environ.setdefault("DIET_ANALYZE_PER_MINUTE", "100000")
 
+#: 트레이너 하루 AI 상한(#3032). 스위트 전체가 같은 DB·같은 날짜(시계 고정)를 쓰고
+#: 트레이너 계정을 여러 테스트가 공유하므로, 켜 두면 뒤쪽 테스트가 앞쪽의 호출 수에
+#: 따라 429 로 깨진다. DB 없이 서비스만 부르는 테스트도 가짜 트레이너 id 로 상한을
+#: 확인하려다 DB 에 닿는다. 상한 자체는 `test_ai_call_quota` 가 설정을 켜서 확인한다.
+#: 서버 전체 상한(`AI_GLOBAL_CALLS_PER_DAY`)은 기본이 꺼짐(0)이다.
+os.environ.setdefault("TRAINER_AI_CALLS_PER_DAY", "0")
+
 #: 테스트는 로컬 개발 환경(`.env.example`)과 같이 데모 폴백을 켠 채 돈다.
 #:
 #: 설정 기본값은 꺼짐이다(#2821) — 환경변수를 빠뜨린 배포 서버가 로그인 없는 요청을

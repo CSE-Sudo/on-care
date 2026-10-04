@@ -4,6 +4,7 @@ import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/widgets/gym_trainer_line.dart';
+import 'package:oncare/features/exercise/presentation/widgets/trainer_report_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -18,6 +19,7 @@ class ConnectedGymCard extends StatelessWidget {
     required this.onGymTap,
     this.onTrainerDetail,
     this.footer,
+    this.showTrainerReport = true,
     super.key,
   });
 
@@ -28,6 +30,10 @@ class ConnectedGymCard extends StatelessWidget {
 
   /// 운동 탭의 채팅처럼 화면별로만 필요한 동작. MY는 전달하지 않는다.
   final Widget? footer;
+
+  /// 담당 트레이너 줄 아래 `트레이너 신고` 를 둘지 (#3008). 운동 탭과 MY 의 내
+  /// 트레이너 카드가 모두 켠다 — 담당과의 채팅에서 겪은 일을 알릴 자리다.
+  final bool showTrainerReport;
 
   @override
   Widget build(BuildContext context) {
@@ -136,6 +142,14 @@ class ConnectedGymCard extends StatelessWidget {
                 leadingWidth: _gymIconBox,
                 leadingGap: OnCareSpacing.s12,
               ),
+              if (showTrainerReport)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TrainerReportButton(
+                    key: const Key('my-trainer-report'),
+                    trainer: trainer!,
+                  ),
+                ),
             ] else ...<Widget>[
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s4),

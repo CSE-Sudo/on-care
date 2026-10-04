@@ -218,7 +218,11 @@ def trainer_routine_options(
     """회원 실데이터를 LLM에 전달해 두 개의 맞춤 루틴 후보를 생성한다.
 
     설정된 AI 공급자를 사용할 수 없거나 응답 계약이 잘못되면 동일 응답 형태의
-    규칙 기반 후보로 폴백한다.
+    규칙 기반 후보로 폴백한다. 서버 전체 하루 AI 상한(#3032)에 걸려도 규칙 기반이다.
+
+    **하루 상한(#3032)** — 이 트레이너의 AI 호출 합이 `trainer_ai_calls_per_day` 를
+    넘으면 429 `daily_limit` + `Retry-After` 다. 규칙형으로 덮으면 트레이너가 한도를
+    모른 채 AI 후보를 기다리며 계속 누르게 된다.
     """
     _require_client(db, trainer.id, member_id)
     return trainer_routine_options_service.generate_routine_options(

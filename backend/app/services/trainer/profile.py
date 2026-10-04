@@ -18,7 +18,6 @@ from app.services import (
     notification_templates,
     points_coupon_service,
 )
-from app.services import trainer_verification_service
 
 
 def delete_trainer_account(db: Session, trainer: User) -> None:
@@ -134,7 +133,7 @@ def build_trainer_me(trainer: User, profile: TrainerProfile) -> TrainerMe:
             hours=profile.gym_hours,
             phone=profile.gym_phone,
         ),
-        verification=trainer_verification_service.to_out(profile),
+        is_admin=bool(trainer.is_admin),
         has_password=bool(trainer.hashed_password),
     )
 
