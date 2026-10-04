@@ -559,7 +559,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientsLoadFailed => 'Couldn\'t load member data';
 
   @override
-  String get clientsNew => 'Register new member';
+  String get clientsNew => 'Connect member';
 
   @override
   String get clientsTitle => 'Member management';
@@ -597,7 +597,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientsEmptyConnectHint =>
-      'Connect members with the code they show you or by sending a coaching request. Consultation requests from members also appear in your inbox.';
+      'Connect members with their connection code or by sending a coaching request. Consultation requests from members also appear in your inbox.';
 
   @override
   String clientsEmptyForFilter(String filter) {
@@ -615,7 +615,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get clientWeeklyRoutineAdherence => 'Weekly adherence';
+  String get clientWeeklyRoutineAdherence => 'Weekly completion rate';
 
   @override
   String get clientRoutineAdherenceUnmeasured => 'Not measured';
@@ -779,22 +779,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memberHealthExerciseGoal => 'Exercise goals';
 
   @override
-  String get memberHealthGoalCalories => 'Daily calories (kcal)';
+  String get memberHealthGoalCalories => 'Daily calorie goal (kcal)';
 
   @override
-  String get memberHealthGoalSodium => 'Daily sodium (mg)';
+  String get memberHealthGoalSodium => 'Daily sodium goal (mg)';
 
   @override
-  String get memberHealthGoalSugar => 'Daily sugar (g)';
+  String get memberHealthGoalSugar => 'Daily sugar goal (g)';
 
   @override
-  String get memberHealthGoalCarbs => 'Daily carbs (g)';
+  String get memberHealthGoalCarbs => 'Daily carbs goal (g)';
 
   @override
-  String get memberHealthGoalProtein => 'Daily protein (g)';
+  String get memberHealthGoalProtein => 'Daily protein goal (g)';
 
   @override
-  String get memberHealthGoalFat => 'Daily fat (g)';
+  String get memberHealthGoalFat => 'Daily fat goal (g)';
 
   @override
   String get memberHealthGoalBurnDaily => 'Daily burn (kcal)';
@@ -814,18 +814,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get clientInviteTitle => 'Add a new member';
+  String get clientInviteTitle => 'Connect member';
 
   @override
   String get clientInviteIntro =>
-      'Enter the 6-digit sync code from the member\'s MY tab to connect right away.';
+      'Enter the 6-digit connection code from the member\'s MY tab to connect right away.';
 
   @override
   String get clientInviteIntroImmediate =>
-      'Enter the 6-digit sync code from the member\'s MY tab to connect right away.';
+      'Enter the 6-digit connection code from the member\'s MY tab to connect right away.';
 
   @override
-  String get clientConnectCodeLabel => 'Sync code';
+  String get clientConnectCodeLabel => 'Connection code';
 
   @override
   String get clientConnectCodeRequired => 'Enter all six digits';
@@ -839,11 +839,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'You already manage this member. Find them in your member list';
 
   @override
-  String get clientInviteConnectAction => 'Register member';
+  String get clientInviteConnectAction => 'Connect';
 
   @override
   String clientInviteConnected(String name) {
-    return 'Registered $name as a member';
+    return 'Connected with $name';
   }
 
   @override
@@ -939,7 +939,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'An earlier send of this photo already went through. Please check the conversation.';
 
   @override
-  String get clientTabDiet => 'Meals';
+  String get clientTabDiet => 'Diet';
 
   @override
   String get clientTabWorkout => 'Workouts';
@@ -1018,7 +1018,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatPdfOpenFailed => 'Couldn\'t open the PDF. Please try again';
 
   @override
-  String get chatReportRegistered => 'Weekly report added';
+  String get chatReportRegistered => 'Weekly report sent';
 
   @override
   String get chatReportOpenInReports => 'Go to Reports';
@@ -1477,7 +1477,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get reportsCompletionByDay => 'Weekly workout completion';
+  String get reportsCompletionByDay => 'Weekly workout completion rate';
 
   @override
   String get reportsNoWorkoutsThisWeek => 'No workouts logged this week';
@@ -1513,7 +1513,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportBodyCompletionLow(int avg) {
-    return 'Workout completion came in at $avg%. Sounds like a busy one.';
+    return 'Workout completion rate came in at $avg%. Sounds like a busy one.';
   }
 
   @override
@@ -1533,12 +1533,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportBodySodiumOver(String avg, String target, int days) {
-    return 'Sodium averaged ${avg}mg a day, and went over the ${target}mg target on $days days. Leaving half the broth behind saves 400-500mg a day.';
+    return 'Sodium averaged ${avg}mg a day, and went over the ${target}mg goal on $days days. Leaving half the broth behind saves 400-500mg a day.';
   }
 
   @override
   String reportBodySodiumOk(String avg, String target) {
-    return 'Sodium averaged ${avg}mg a day — comfortably inside the ${target}mg target.';
+    return 'Sodium averaged ${avg}mg a day — comfortably inside the ${target}mg goal.';
   }
 
   @override
@@ -1588,32 +1588,32 @@ class AppLocalizationsEn extends AppLocalizations {
     String pct,
     int days,
   ) {
-    return 'Calories averaged ${avg}kcal a day — $pct% above your ${target}kcal target, and over it on $days days.';
+    return 'Calories averaged ${avg}kcal a day — $pct% above your ${target}kcal goal, and over it on $days days.';
   }
 
   @override
   String reportBodyCaloriesUnder(String avg, String target, String pct) {
-    return 'Calories averaged ${avg}kcal a day — $pct% below your ${target}kcal target. Eating too little tends to cost muscle first.';
+    return 'Calories averaged ${avg}kcal a day — $pct% below your ${target}kcal goal. Eating too little tends to cost muscle first.';
   }
 
   @override
   String reportBodyCaloriesNearOver(String avg, String target, int days) {
-    return 'Calories averaged ${avg}kcal a day, close to your ${target}kcal target, but went over it on $days days.';
+    return 'Calories averaged ${avg}kcal a day, close to your ${target}kcal goal, but went over it on $days days.';
   }
 
   @override
   String reportBodyCaloriesOk(String avg, String target) {
-    return 'Calories averaged ${avg}kcal a day — right around your ${target}kcal target.';
+    return 'Calories averaged ${avg}kcal a day — right around your ${target}kcal goal.';
   }
 
   @override
   String reportBodySugarOver(String avg, String target, int days) {
-    return 'Sugar averaged ${avg}g a day and went over the ${target}g limit on $days days.';
+    return 'Sugar averaged ${avg}g a day and went over the ${target}g goal on $days days.';
   }
 
   @override
   String reportBodySugarOk(String avg, String target) {
-    return 'Sugar averaged ${avg}g a day, inside the ${target}g limit.';
+    return 'Sugar averaged ${avg}g a day, inside the ${target}g goal.';
   }
 
   @override
@@ -1705,11 +1705,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedGroupProgram => 'PT program';
 
   @override
-  String get schedDetachedMember => 'Former client';
+  String get schedDetachedMember => 'Former member';
 
   @override
   String get schedDetachedMemberHint =>
-      'Coaching has ended, so client details are hidden';
+      'Coaching has ended, so member details are hidden';
 
   @override
   String get schedReservationLockedHint =>
@@ -1717,11 +1717,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedEndedLockedHint =>
-      'A finished PT can only have its note and program edited.';
+      'A finished PT can only have its feedback and program edited.';
 
   @override
   String get schedDoneLockedHint =>
-      'A completed PT can only have its note and program edited. Move the date forward to reopen it as upcoming.';
+      'A completed PT can only have its feedback and program edited. Move the date forward to reopen it as upcoming.';
 
   @override
   String get schedGroupPersonal => 'Personal exercise';
@@ -1982,7 +1982,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedNoteHint =>
-      'Feedback for the member. Keep member notes in the client memo';
+      'Feedback for the member. Keep notes about the member in their member memo';
 
   @override
   String get schedNoteVisibleToMember =>
@@ -2028,7 +2028,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get progNoteHint =>
-      'Feedback for the member. Keep member notes in the client memo';
+      'Feedback for the member. Keep notes about the member in their member memo';
 
   @override
   String get progSaving => 'Saving...';
@@ -2334,6 +2334,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myClientRemove => 'Disconnect';
+
+  @override
+  String get myClientRemoveConfirm => 'Disconnect';
 
   @override
   String myClientRemoveTitle(String name) {
@@ -2723,7 +2726,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myClientManagementNote =>
-      'Their records stay in the member app. To coach them again, add them by member ID from New member on the Members tab.';
+      'Their records stay in the member app. To coach them again, enter the connection code they give you under Connect member on the Members tab.';
 
   @override
   String get myNotifConsultation => 'Consultation requests';
@@ -2875,11 +2878,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachSendFailed => 'Couldn\'t send. Please try again';
 
   @override
-  String get coachSwitchClientTitle => 'Switch to another client?';
+  String get coachSwitchClientTitle => 'Switch to another member?';
 
   @override
   String get coachSwitchClientBody =>
-      'You have unsent work. Switching clients discards the program and personal exercises you are building.';
+      'You have unsent work. Switching members discards the program and personal exercises you are building.';
 
   @override
   String get coachSwitchClientConfirm => 'Switch';
@@ -3075,7 +3078,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiOverTarget => ' · over target';
 
   @override
-  String get aiRecentCompletion => 'Recent completion';
+  String get aiRecentCompletion => 'Recent completion rate';
 
   @override
   String get aiNoCompletionData => 'No activity logged this week';
@@ -3098,7 +3101,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiDirectionLabel => 'Direction';
 
   @override
-  String get aiDirectionLower => 'Lower intensity — recent completion is low';
+  String get aiDirectionLower =>
+      'Lower intensity — recent completion rate is low';
 
   @override
   String get aiDirectionCardio => 'More cardio — sodium is often over target';
@@ -3534,7 +3538,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aiBasisGoalCompletion(String goal, int rate) {
-    return '$goal · based on $rate% completion';
+    return '$goal · based on a $rate% completion rate';
   }
 
   @override
@@ -3632,7 +3636,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get notifTplMemberDisconnectedTitle => 'Client disconnected';
+  String get notifTplMemberDisconnectedTitle => 'Member disconnected';
 
   @override
   String notifTplMemberDisconnectedBody(String name) {
@@ -3654,7 +3658,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String notifTplInviteAcceptedBody(String name) {
-    return '$name is now your client.';
+    return '$name is now one of your members.';
   }
 
   @override
@@ -3937,7 +3941,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get coachRoutineAdherenceTitle => 'Personal exercise follow-through';
+  String get coachRoutineAdherenceTitle => 'Personal exercise completion';
 
   @override
   String coachRoutineAdherenceSummary(int days, int full) {
@@ -4044,7 +4048,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String searchDetailCompletion(int percent) {
-    return '$percent% completion this week';
+    return '$percent% completion rate this week';
   }
 
   @override
@@ -4301,7 +4305,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Age, height, or weight is missing, so only the health goals adjust the defaults';
 
   @override
-  String get clientGoalApplySuggestion => 'Fill with suggestion';
+  String get clientGoalApplySuggestion => 'Use suggested goals';
 
   @override
   String get clientTrainerMemoHint =>
@@ -4476,7 +4480,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String clientFeedbackSourceWeekly(String date) {
-    return 'Weekly check-in · week of $date';
+    return 'Weekly feedback · week of $date';
   }
 
   @override
@@ -4867,7 +4871,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsPdfFallbackClient => 'member';
 
   @override
-  String get reportsPdfDocTitle => 'Weekly coaching report';
+  String get reportsPdfDocTitle => 'Weekly report';
 
   @override
   String reportsPdfClient(String name) {
@@ -4902,13 +4906,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get reportsPdfLabelCompletion => 'Workout completion';
+  String get reportsPdfLabelCompletion => 'Workout completion rate';
 
   @override
-  String get reportsPdfLabelSessions => 'PT';
+  String get reportsPdfLabelSessions => 'PT done';
 
   @override
-  String get reportsPdfLabelSessionCount => 'PT completed';
+  String get reportsPdfLabelSessionCount => 'PT done';
 
   @override
   String get reportsPdfLabelSodiumOver => 'Days over sodium target';
@@ -5389,16 +5393,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsMemberFeedbackConditionTired => 'Worn out';
 
   @override
-  String get reportsMemberFeedbackConditionBad => 'Really rough';
+  String get reportsMemberFeedbackConditionBad => 'Rough';
 
   @override
   String get reportsMemberFeedbackIntensityTooEasy => 'Too easy';
 
   @override
-  String get reportsMemberFeedbackIntensityRight => 'About right';
+  String get reportsMemberFeedbackIntensityRight => 'Just right';
 
   @override
-  String get reportsMemberFeedbackIntensityHard => 'Hard';
+  String get reportsMemberFeedbackIntensityHard => 'A bit hard';
 
   @override
   String get reportsMemberFeedbackIntensityTooHard => 'Too hard';
@@ -5517,17 +5521,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String summaryCompletionLow(String pct, String threshold) {
-    return 'Avg workout completion $pct% · below the $threshold% bar';
+    return 'Avg workout completion rate $pct% · below the $threshold% bar';
   }
 
   @override
   String summaryCompletionTopic(String pct) {
-    return 'workout completion at $pct%';
+    return 'workout completion rate at $pct%';
   }
 
   @override
   String summaryCompletionAvg(String pct) {
-    return 'Avg workout completion $pct%';
+    return 'Avg workout completion rate $pct%';
   }
 
   @override

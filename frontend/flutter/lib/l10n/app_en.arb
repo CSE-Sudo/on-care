@@ -386,7 +386,7 @@
   "dietAnalysisClose": "Close",
   "dietRecognizedFood": "Recognized Food",
   "dietNoRecognizedFood": "No food recognized",
-  "dietNutritionResult": "AI Nutrition Result",
+  "dietNutritionResult": "Nutrition Info",
   "dietSaved": "Meal saved",
   "dietSaveFailed": "Couldn't save. Please try again in a moment.",
   "dietManualAlreadySaved": "An earlier version of this meal was already saved. Please check your records.",

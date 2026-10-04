@@ -287,7 +287,7 @@
   "clientConnectCodeRequired": "6자리를 모두 입력해 주세요",
   "clientConnectCodeInvalid": "코드가 맞지 않거나 만료됐어요. 회원에게 새 코드를 받아 주세요",
   "clientConnectAlreadyManaged": "이미 담당하고 있는 회원이에요. 회원 목록에서 찾아 주세요",
-  "clientInviteConnectAction": "회원 연결",
+  "clientInviteConnectAction": "연결",
   "clientInviteConnected": "{name}님과 연결했어요",
   "@clientInviteConnected": {
     "placeholders": {

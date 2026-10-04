@@ -323,7 +323,7 @@ abstract class AppLocalizations {
   /// Home AI advice when today's sodium is over the goal (#1943).
   ///
   /// In en, this message translates to:
-  /// **'You went over the sodium target today. Try keeping the rest of your meals light.'**
+  /// **'You went over your sodium goal today. Try keeping the rest of your meals light.'**
   String get homeAdviceSodiumOver;
 
   /// Home AI advice when the weekly exercise goal is met (#1943).
@@ -359,7 +359,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeAiAdviceBody.
   ///
   /// In en, this message translates to:
-  /// **'Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.'**
+  /// **'Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your trainer emphasized.'**
   String get homeAiAdviceBody;
 
   /// No description provided for @homeAiAdviceNoRecord.
@@ -581,7 +581,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeRecBasisOverLimit.
   ///
   /// In en, this message translates to:
-  /// **'over the daily limit'**
+  /// **'over the daily goal'**
   String get homeRecBasisOverLimit;
 
   /// No description provided for @homeRecMealsTitle.
@@ -839,7 +839,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietMealLateNight.
   ///
   /// In en, this message translates to:
-  /// **'Late-night'**
+  /// **'Late-night snack'**
   String get dietMealLateNight;
 
   /// No description provided for @dietMealSheetTitle.
@@ -1145,7 +1145,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietNutritionResult.
   ///
   /// In en, this message translates to:
-  /// **'Nutrition Result'**
+  /// **'Nutrition Info'**
   String get dietNutritionResult;
 
   /// No description provided for @dietSaved.
@@ -2879,7 +2879,7 @@ abstract class AppLocalizations {
   /// No description provided for @myPointsReasonRoutine.
   ///
   /// In en, this message translates to:
-  /// **'Recommended or assigned workout done'**
+  /// **'Personal exercise done'**
   String get myPointsReasonRoutine;
 
   /// No description provided for @myPointsReasonPtRenewal.
@@ -3653,25 +3653,25 @@ abstract class AppLocalizations {
   /// No description provided for @myConnectionDeleteTitle.
   ///
   /// In en, this message translates to:
-  /// **'Remove Connection'**
+  /// **'Disconnect'**
   String get myConnectionDeleteTitle;
 
   /// No description provided for @myConnectionDeleteFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t remove the connection. Please try again.'**
+  /// **'Couldn\'t disconnect. Please try again.'**
   String get myConnectionDeleteFailed;
 
   /// No description provided for @myDelete.
   ///
   /// In en, this message translates to:
-  /// **'Remove'**
+  /// **'Disconnect'**
   String get myDelete;
 
   /// No description provided for @myGymDisconnectWithTrainerConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Disconnect {gym}?\nYour trainer link with {trainer} will also be removed.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged are not deleted, and you can see them again if you reconnect with the same trainer.'**
+  /// **'Disconnect {gym}?\nYour connection with trainer {trainer} will also end.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged are not deleted, and you can see them again if you reconnect with the same trainer.'**
   String myGymDisconnectWithTrainerConfirm(String gym, String trainer);
 
   /// No description provided for @myGymDisconnectConfirm.
@@ -4025,7 +4025,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachInviteAccepted.
   ///
   /// In en, this message translates to:
-  /// **'{name} is now your coach'**
+  /// **'{name} is now your trainer'**
   String coachInviteAccepted(String name);
 
   /// No description provided for @coachInviteRejected.
@@ -4169,7 +4169,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachChatReportRegistered.
   ///
   /// In en, this message translates to:
-  /// **'Weekly report added'**
+  /// **'Weekly report received'**
   String get coachChatReportRegistered;
 
   /// Week the registered report covers, shown on the report card.
@@ -4859,13 +4859,13 @@ abstract class AppLocalizations {
   /// No description provided for @exConsultAcceptedStatus.
   ///
   /// In en, this message translates to:
-  /// **'Accepted'**
+  /// **'Approved'**
   String get exConsultAcceptedStatus;
 
   /// No description provided for @exConsultRejectedStatus.
   ///
   /// In en, this message translates to:
-  /// **'Rejected'**
+  /// **'Declined'**
   String get exConsultRejectedStatus;
 
   /// No description provided for @exReturnExercise.
@@ -4907,7 +4907,7 @@ abstract class AppLocalizations {
   /// No description provided for @exConsultAcceptedGuide.
   ///
   /// In en, this message translates to:
-  /// **'Your consultation is confirmed. If you decide to register, connect with the trainer using the code in the MY tab during the consultation.'**
+  /// **'Your consultation request was approved. If you decide to sign up, connect with the trainer using the connection code in the MY tab during the consultation.'**
   String get exConsultAcceptedGuide;
 
   /// No description provided for @exMyReservations.
@@ -5225,25 +5225,25 @@ abstract class AppLocalizations {
   /// No description provided for @trainerSyncEntryLabel.
   ///
   /// In en, this message translates to:
-  /// **'Sync data with a trainer'**
+  /// **'Trainer connection code'**
   String get trainerSyncEntryLabel;
 
   /// No description provided for @trainerSyncEntryHint.
   ///
   /// In en, this message translates to:
-  /// **'Connect with your trainer using a 6-digit code'**
+  /// **'A 6-digit code to connect with your trainer and share your records'**
   String get trainerSyncEntryHint;
 
   /// No description provided for @trainerSyncTitle.
   ///
   /// In en, this message translates to:
-  /// **'Sync data with a trainer'**
+  /// **'Trainer connection code'**
   String get trainerSyncTitle;
 
   /// No description provided for @trainerSyncConsent.
   ///
   /// In en, this message translates to:
-  /// **'Once the trainer who enters this code becomes your coach, they can see your meal records, workout records, body information, health goals, and health notes & cautions for coaching, consultations and writing reports. Disconnecting removes their access too, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don\'t agree.'**
+  /// **'Once the trainer who enters this code becomes your trainer, they can see your meal records, workout records, body information, health goals, and health notes & cautions for coaching, consultations and writing reports. Disconnecting removes their access too, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don\'t agree.'**
   String get trainerSyncConsent;
 
   /// No description provided for @trainerShareDetailMore.
@@ -5267,7 +5267,7 @@ abstract class AppLocalizations {
   /// No description provided for @trainerShareRecipient.
   ///
   /// In en, this message translates to:
-  /// **'The trainer connected as your coach'**
+  /// **'The trainer connected with you'**
   String get trainerShareRecipient;
 
   /// No description provided for @trainerShareItemsLabel.
@@ -5303,7 +5303,7 @@ abstract class AppLocalizations {
   /// No description provided for @trainerSharePeriod.
   ///
   /// In en, this message translates to:
-  /// **'Until you withdraw consent by disconnecting. Deleting the trainer connection in the MY tab withdraws it, and the trainer can no longer see your new records. Conversations you had and reports already delivered before then are not deleted.'**
+  /// **'Until you withdraw consent by disconnecting. Disconnecting your trainer in the MY tab withdraws it, and the trainer can no longer see your new records. Conversations you had and reports already delivered before then are not deleted.'**
   String get trainerSharePeriod;
 
   /// No description provided for @trainerShareRefuseLabel.
@@ -5327,7 +5327,7 @@ abstract class AppLocalizations {
   /// No description provided for @trainerSyncHint.
   ///
   /// In en, this message translates to:
-  /// **'Read these six digits out to your trainer.'**
+  /// **'Read this 6-digit connection code out to your trainer.'**
   String get trainerSyncHint;
 
   /// No description provided for @trainerSyncCountdown.
@@ -6154,37 +6154,37 @@ abstract class AppLocalizations {
   /// Health goal field label.
   ///
   /// In en, this message translates to:
-  /// **'Daily calorie limit (kcal)'**
+  /// **'Daily calorie goal (kcal)'**
   String get myGoalCalories;
 
   /// Health goal field label.
   ///
   /// In en, this message translates to:
-  /// **'Daily sodium limit (mg)'**
+  /// **'Daily sodium goal (mg)'**
   String get myGoalSodium;
 
   /// Health goal field label.
   ///
   /// In en, this message translates to:
-  /// **'Daily sugar limit (g)'**
+  /// **'Daily sugar goal (g)'**
   String get myGoalSugar;
 
   /// Health goal field label.
   ///
   /// In en, this message translates to:
-  /// **'Daily carbohydrate limit (g)'**
+  /// **'Daily carbs goal (g)'**
   String get myGoalCarbs;
 
   /// Health goal field label.
   ///
   /// In en, this message translates to:
-  /// **'Daily protein limit (g)'**
+  /// **'Daily protein goal (g)'**
   String get myGoalProtein;
 
   /// Health goal field label.
   ///
   /// In en, this message translates to:
-  /// **'Daily fat limit (g)'**
+  /// **'Daily fat goal (g)'**
   String get myGoalFat;
 
   /// Helper under the calorie goal field when it was derived from the macro fields.
@@ -6208,7 +6208,7 @@ abstract class AppLocalizations {
   /// Button that fills the macro fields with the suggested grams.
   ///
   /// In en, this message translates to:
-  /// **'Use suggested split'**
+  /// **'Use suggested goals'**
   String get myGoalMacroApplySuggestion;
 
   /// Footnote under a read-only health-goal card that has fields the member has never set. The number shown is the app-wide baseline in force, not the personalized recommendation the edit form offers.
@@ -6271,10 +6271,10 @@ abstract class AppLocalizations {
   /// **'Log a meal'**
   String get myPointsDietAdd;
 
-  /// Point-earning action in the points guide: completing a workout recommended by AI or assigned by the trainer.
+  /// Point-earning action in the points guide: finishing a personal exercise (sent by the trainer or recommended by AI).
   ///
   /// In en, this message translates to:
-  /// **'Complete a recommended or assigned workout'**
+  /// **'Finish a personal exercise'**
   String get myPointsRoutineComplete;
 
   /// Point-earning action in the points guide.
@@ -6616,13 +6616,13 @@ abstract class AppLocalizations {
   /// Title of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'This week\'s report is ready'**
+  /// **'Your weekly report is here'**
   String get demoAlertReportTitle;
 
   /// Body of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'Trainer {trainerName} posted your report for this week.'**
+  /// **'Trainer {trainerName} sent your weekly report.'**
   String demoAlertReportBody(String trainerName);
 
   /// Title of a demo notification shown in tour mode.
@@ -7038,13 +7038,13 @@ abstract class AppLocalizations {
   /// Exercise tab AI advice sentence `routine_week_only` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'This week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} workouts. {rest, select, next_week{Next week} other{For the rest of the week}}, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.'**
+  /// **'This week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} personal exercises. {rest, select, next_week{Next week} other{For the rest of the week}}, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.'**
   String exerciseAdviceRoutineWeekOnly(String missing, String rest, String top);
 
   /// Exercise tab AI advice sentence `routine_week_only_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'This week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} workouts.'**
+  /// **'This week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} personal exercises.'**
   String exerciseAdviceRoutineWeekOnlyShort(String top);
 
   /// Exercise tab AI advice sentence `routine_week_skew` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
@@ -7111,13 +7111,13 @@ abstract class AppLocalizations {
   /// Exercise tab AI advice sentence `routine_last_week_only` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'Last week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} workouts. This week, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.'**
+  /// **'Last week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} personal exercises. This week, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.'**
   String exerciseAdviceRoutineLastWeekOnly(String missing, String top);
 
   /// Exercise tab AI advice sentence `routine_last_week_only_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'Last week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} workouts.'**
+  /// **'Last week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} personal exercises.'**
   String exerciseAdviceRoutineLastWeekOnlyShort(String top);
 
   /// Exercise tab AI advice sentence `routine_last_week_skew` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
@@ -7175,7 +7175,7 @@ abstract class AppLocalizations {
   /// Exercise tab AI advice sentence `routine_all_done_today_part` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'You did the {part, select, lower{lower-body} upper{upper-body} core{core} full{full-body} other{full-body}} workouts you often skip today. Keep it going!'**
+  /// **'You did the {part, select, lower{lower-body} upper{upper-body} core{core} full{full-body} other{full-body}} personal exercises you often skip today. Keep it going!'**
   String exerciseAdviceRoutineAllDoneTodayPart(String part);
 
   /// Exercise tab AI advice sentence `routine_all_done_today_name` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
@@ -7205,7 +7205,7 @@ abstract class AppLocalizations {
   /// Exercise tab AI advice sentence `routine_all_missed_part_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'{part, select, lower{Lower-body} upper{Upper-body} core{Core} full{Full-body} other{Full-body}} workouts get skipped often. Move them up?'**
+  /// **'{part, select, lower{Lower-body} upper{Upper-body} core{Core} full{Full-body} other{Full-body}} personal exercises get skipped often. Move them up?'**
   String exerciseAdviceRoutineAllMissedPartShort(String part);
 
   /// Exercise tab AI advice sentence `routine_all_missed_name` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
@@ -7265,7 +7265,7 @@ abstract class AppLocalizations {
   /// Diet tab AI advice sentence `today_sodium_over` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
   ///
   /// In en, this message translates to:
-  /// **'Sodium **{sodiumMg}mg**, over the limit.'**
+  /// **'Sodium **{sodiumMg}mg**, over your goal.'**
   String dietAdviceTodaySodiumOver(int sodiumMg);
 
   /// Diet tab AI advice sentence `today_calorie_over` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
@@ -7647,7 +7647,7 @@ abstract class AppLocalizations {
   /// No description provided for @myCoachReportsEntry.
   ///
   /// In en, this message translates to:
-  /// **'Trainer reports'**
+  /// **'Weekly reports'**
   String get myCoachReportsEntry;
 
   /// No description provided for @myCoachReportsEntryHint.

@@ -541,7 +541,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientsLoadFailed => '회원 정보를 불러오지 못했어요';
 
   @override
-  String get clientsNew => '신규 회원 등록';
+  String get clientsNew => '회원 연결';
 
   @override
   String get clientsTitle => '회원 관리';
@@ -578,7 +578,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get clientsEmptyConnectHint =>
-      '연결 코드를 받거나 담당 요청을 보내 회원을 연결하세요. 회원이 상담을 신청하면 상담 요청함에도 표시돼요.';
+      '연결 코드를 받거나 담당 요청을 보내 회원을 연결하세요. 회원이 상담을 신청하면 상담 요청에도 표시돼요.';
 
   @override
   String clientsEmptyForFilter(String filter) {
@@ -596,7 +596,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get clientWeeklyRoutineAdherence => '주간 이행률';
+  String get clientWeeklyRoutineAdherence => '주간 완료율';
 
   @override
   String get clientRoutineAdherenceUnmeasured => '미집계';
@@ -638,7 +638,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientsSignalCalorieOff => '칼로리 목표 이탈';
 
   @override
-  String get clientsSignalCalorieOver => '칼로리 과다';
+  String get clientsSignalCalorieOver => '칼로리 초과';
 
   @override
   String get clientsSignalCalorieUnder => '칼로리 부족';
@@ -648,7 +648,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String clientsSignalCalorieOverPercent(int percent) {
-    return '칼로리 $percent% 과다';
+    return '칼로리 $percent% 초과';
   }
 
   @override
@@ -756,25 +756,25 @@ class AppLocalizationsKo extends AppLocalizations {
   String get memberHealthExerciseGoal => '운동 목표';
 
   @override
-  String get memberHealthGoalCalories => '일일 칼로리 제한 (kcal)';
+  String get memberHealthGoalCalories => '하루 칼로리 목표 (kcal)';
 
   @override
-  String get memberHealthGoalSodium => '일일 나트륨 제한 (mg)';
+  String get memberHealthGoalSodium => '하루 나트륨 목표 (mg)';
 
   @override
-  String get memberHealthGoalSugar => '일일 당류 제한 (g)';
+  String get memberHealthGoalSugar => '하루 당류 목표 (g)';
 
   @override
-  String get memberHealthGoalCarbs => '일일 탄수화물 제한 (g)';
+  String get memberHealthGoalCarbs => '하루 탄수화물 목표 (g)';
 
   @override
-  String get memberHealthGoalProtein => '일일 단백질 제한 (g)';
+  String get memberHealthGoalProtein => '하루 단백질 목표 (g)';
 
   @override
-  String get memberHealthGoalFat => '일일 지방 제한 (g)';
+  String get memberHealthGoalFat => '하루 지방 목표 (g)';
 
   @override
-  String get memberHealthGoalBurnDaily => '일일 소모 칼로리 (kcal)';
+  String get memberHealthGoalBurnDaily => '하루 소모 칼로리 (kcal)';
 
   @override
   String get memberHealthGoalCardioWeekly => '주간 유산소 (분)';
@@ -791,17 +791,17 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get clientInviteTitle => '신규 회원 등록';
+  String get clientInviteTitle => '회원 연결';
 
   @override
-  String get clientInviteIntro => '회원 앱 MY 탭의 6자리 동기화 코드를 입력하면 바로 연결돼요.';
+  String get clientInviteIntro => '회원 앱 MY 탭의 6자리 연결 코드를 입력하면 바로 연결돼요.';
 
   @override
   String get clientInviteIntroImmediate =>
-      '회원 앱 MY 탭의 6자리 동기화 코드를 입력하면 바로 연결돼요.';
+      '회원 앱 MY 탭의 6자리 연결 코드를 입력하면 바로 연결돼요.';
 
   @override
-  String get clientConnectCodeLabel => '동기화 코드';
+  String get clientConnectCodeLabel => '연결 코드';
 
   @override
   String get clientConnectCodeRequired => '6자리를 모두 입력해 주세요';
@@ -813,11 +813,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientConnectAlreadyManaged => '이미 담당하고 있는 회원이에요. 회원 목록에서 찾아 주세요';
 
   @override
-  String get clientInviteConnectAction => '회원 등록';
+  String get clientInviteConnectAction => '연결';
 
   @override
   String clientInviteConnected(String name) {
-    return '$name님을 회원으로 등록했어요';
+    return '$name님과 연결했어요';
   }
 
   @override
@@ -931,7 +931,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get metricSugar => '당류';
 
   @override
-  String get clientDietMacrosMissing => '탄·단·지 기록 없음';
+  String get clientDietMacrosMissing => '탄단지 기록 없음';
 
   @override
   String get clientDietDayTotal => '하루 합계';
@@ -985,7 +985,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatPdfOpenFailed => 'PDF를 열지 못했어요. 다시 시도해 주세요';
 
   @override
-  String get chatReportRegistered => '리포트가 등록되었어요';
+  String get chatReportRegistered => '주간 리포트를 보냈어요';
 
   @override
   String get chatReportOpenInReports => '리포트 탭으로 가기';
@@ -1172,7 +1172,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get consultRejectHint => '예) 요청하신 시간에 다른 일정이 있어요.';
 
   @override
-  String get consultStatusPending => '대기중';
+  String get consultStatusPending => '대기 중';
 
   @override
   String get consultStatusAccepted => '승인됨';
@@ -1415,7 +1415,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get reportsCompletionByDay => '주간 운동 이행률';
+  String get reportsCompletionByDay => '주간 운동 완료율';
 
   @override
   String get reportsNoWorkoutsThisWeek => '이번 주 운동 기록이 없어요';
@@ -1451,7 +1451,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportBodyCompletionLow(int avg) {
-    return '운동 이행률은 평균 $avg%였어요. 많이 바쁘셨나 봐요.';
+    return '운동 완료율은 평균 $avg%였어요. 많이 바쁘셨나 봐요.';
   }
 
   @override
@@ -1545,12 +1545,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportBodySugarOver(String avg, String target, int days) {
-    return '당류는 하루 평균 ${avg}g이었고, 기준(${target}g)을 넘긴 날이 $days일이었어요.';
+    return '당류는 하루 평균 ${avg}g이었고, 목표(${target}g)를 넘긴 날이 $days일이었어요.';
   }
 
   @override
   String reportBodySugarOk(String avg, String target) {
-    return '당류는 하루 평균 ${avg}g으로 기준(${target}g) 안이었어요.';
+    return '당류는 하루 평균 ${avg}g으로 목표(${target}g) 안이었어요.';
   }
 
   @override
@@ -1642,11 +1642,11 @@ class AppLocalizationsKo extends AppLocalizations {
       '회원이 예약한 일정이에요. 시간을 바꾸거나 지울 수 없고, 약속을 거두려면 취소해 주세요.';
 
   @override
-  String get schedEndedLockedHint => '끝난 PT는 메모·프로그램만 고칠 수 있어요.';
+  String get schedEndedLockedHint => '끝난 PT는 피드백·프로그램만 고칠 수 있어요.';
 
   @override
   String get schedDoneLockedHint =>
-      '완료한 PT는 메모·프로그램만 고칠 수 있어요. 날짜를 앞으로 옮기면 예정으로 되돌릴 수 있어요.';
+      '완료한 PT는 피드백·프로그램만 고칠 수 있어요. 날짜를 앞으로 옮기면 예정으로 되돌릴 수 있어요.';
 
   @override
   String get schedGroupPersonal => '개인운동';
@@ -1707,7 +1707,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get schedClientUnresolved => '이 일정의 회원을 특정할 수 없어요. 회원을 골라 주세요.';
 
   @override
-  String get schedRoutinesUpdated => '개인운동을 고커어요.';
+  String get schedRoutinesUpdated => '개인운동을 고쳤어요.';
 
   @override
   String get schedRoutinesUpdateFailed => '개인운동을 고치지 못했어요. 다시 시도해 주세요.';
@@ -2209,6 +2209,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myClientRemove => '연결 해제';
 
   @override
+  String get myClientRemoveConfirm => '해제';
+
+  @override
   String myClientRemoveTitle(String name) {
     return '$name 회원과 연결을 해제할까요?';
   }
@@ -2578,7 +2581,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myClientManagementNote =>
-      '회원 앱의 기록은 남아요. 다시 담당하려면 회원 탭의 신규 회원 등록에서 회원 ID로 연결해 주세요.';
+      '회원 앱의 기록은 남아요. 다시 담당하려면 회원 탭의 회원 연결에서 회원에게 받은 연결 코드를 입력해 주세요.';
 
   @override
   String get myNotifConsultation => '상담 요청';
@@ -3454,7 +3457,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String notifTplMemberDisconnectedBody(String name) {
-    return '$name 회원이 담당 연결을 끊었어요.';
+    return '$name 회원이 담당 연결을 해제했어요.';
   }
 
   @override
@@ -3744,7 +3747,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get coachRoutineAdherenceTitle => '개인운동 이행';
+  String get coachRoutineAdherenceTitle => '개인운동 완료';
 
   @override
   String coachRoutineAdherenceSummary(int days, int full) {
@@ -3850,7 +3853,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String searchDetailCompletion(int percent) {
-    return '이번 주 이행률 $percent%';
+    return '이번 주 완료율 $percent%';
   }
 
   @override
@@ -4482,12 +4485,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportsDemoSummaryCompletionThisWeek(String name) {
-    return '$name님은 이번 주 운동 이행이 주춤했어요. 일정이 빠듯했는지 먼저 물어보고, 다음 주는 짧은 루틴부터 다시 붙여 보는 것을 권해 드려요.';
+    return '$name님은 이번 주 운동 완료율이 주춤했어요. 일정이 빠듯했는지 먼저 물어보고, 다음 주는 짧은 루틴부터 다시 붙여 보는 것을 권해 드려요.';
   }
 
   @override
   String reportsDemoSummaryCompletionPastWeek(String name) {
-    return '$name님은 그 주 운동 이행이 주춤했어요. 일정이 빠듯했는지 먼저 물어보고, 짧은 루틴부터 다시 붙여 보는 것을 권해 드려요.';
+    return '$name님은 그 주 운동 완료율이 주춤했어요. 일정이 빠듯했는지 먼저 물어보고, 짧은 루틴부터 다시 붙여 보는 것을 권해 드려요.';
   }
 
   @override
@@ -4522,12 +4525,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportsDemoSummaryCaloriesThisWeek(String name) {
-    return '$name님의 이번 주 섭취 열량이 목표에서 벗어났어요. 끼니를 거르거나 몰아 먹은 날이 있었는지 식단 기록을 함께 짚어 보세요.';
+    return '$name님의 이번 주 섭취 칼로리가 목표에서 벗어났어요. 끼니를 거르거나 몰아 먹은 날이 있었는지 식단 기록을 함께 짚어 보세요.';
   }
 
   @override
   String reportsDemoSummaryCaloriesPastWeek(String name) {
-    return '$name님의 그 주 섭취 열량이 목표에서 벗어났어요. 끼니를 거르거나 몰아 먹은 날이 있었는지 식단 기록을 함께 짚어 보세요.';
+    return '$name님의 그 주 섭취 칼로리가 목표에서 벗어났어요. 끼니를 거르거나 몰아 먹은 날이 있었는지 식단 기록을 함께 짚어 보세요.';
   }
 
   @override
@@ -4635,7 +4638,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsPdfFallbackClient => '회원';
 
   @override
-  String get reportsPdfDocTitle => '주간 코칭 리포트';
+  String get reportsPdfDocTitle => '주간 리포트';
 
   @override
   String reportsPdfClient(String name) {
@@ -4670,25 +4673,25 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get reportsPdfLabelCompletion => '운동 수행률';
+  String get reportsPdfLabelCompletion => '운동 완료율';
 
   @override
-  String get reportsPdfLabelSessions => 'PT 진행';
+  String get reportsPdfLabelSessions => '완료 PT';
 
   @override
-  String get reportsPdfLabelSessionCount => 'PT 진행 횟수';
+  String get reportsPdfLabelSessionCount => '완료 PT';
 
   @override
   String get reportsPdfLabelSodiumOver => '나트륨 목표 초과';
 
   @override
-  String get reportsPdfLabelCalories => '평균 열량';
+  String get reportsPdfLabelCalories => '평균 칼로리';
 
   @override
   String get reportsPdfLabelSugar => '평균 당류';
 
   @override
-  String get reportsPdfLabelCaloriesShort => '열량';
+  String get reportsPdfLabelCaloriesShort => '칼로리';
 
   @override
   String get reportsPdfLabelSodiumShort => '나트륨';
@@ -4867,12 +4870,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportsReasonCompletion(int percent) {
-    return '이행 $percent%';
+    return '완료율 $percent%';
   }
 
   @override
   String reportsReasonSessionDone(int count) {
-    return 'PT $count회 전량 소화';
+    return '완료 PT $count회';
   }
 
   @override
@@ -5145,16 +5148,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsMemberFeedbackConditionTired => '지쳤어요';
 
   @override
-  String get reportsMemberFeedbackConditionBad => '많이 힘들었어요';
+  String get reportsMemberFeedbackConditionBad => '많이 안 좋았어요';
 
   @override
   String get reportsMemberFeedbackIntensityTooEasy => '너무 쉬웠어요';
 
   @override
-  String get reportsMemberFeedbackIntensityRight => '적당했어요';
+  String get reportsMemberFeedbackIntensityRight => '딱 맞았어요';
 
   @override
-  String get reportsMemberFeedbackIntensityHard => '힘들었어요';
+  String get reportsMemberFeedbackIntensityHard => '조금 힘들었어요';
 
   @override
   String get reportsMemberFeedbackIntensityTooHard => '너무 힘들었어요';
@@ -5271,17 +5274,17 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String summaryCompletionLow(String pct, String threshold) {
-    return '운동 이행률 평균 $pct% · 기준 $threshold% 미만';
+    return '운동 완료율 평균 $pct% · 기준 $threshold% 미만';
   }
 
   @override
   String summaryCompletionTopic(String pct) {
-    return '운동 이행률 $pct%';
+    return '운동 완료율 $pct%';
   }
 
   @override
   String summaryCompletionAvg(String pct) {
-    return '운동 이행률 평균 $pct%';
+    return '운동 완료율 평균 $pct%';
   }
 
   @override

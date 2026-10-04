@@ -134,7 +134,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeAdviceSodiumOver =>
-      'You went over the sodium target today. Try keeping the rest of your meals light.';
+      'You went over your sodium goal today. Try keeping the rest of your meals light.';
 
   @override
   String homeAdviceExerciseOnTrack(int minutes) {
@@ -162,7 +162,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeAiAdviceBody =>
-      'Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.';
+      'Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your trainer emphasized.';
 
   @override
   String get homeAiAdviceNoRecord =>
@@ -279,7 +279,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get homeRecBasisOverLimit => 'over the daily limit';
+  String get homeRecBasisOverLimit => 'over the daily goal';
 
   @override
   String get homeRecMealsTitle => 'Recommended meals';
@@ -425,7 +425,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietMealSnack => 'Snack';
 
   @override
-  String get dietMealLateNight => 'Late-night';
+  String get dietMealLateNight => 'Late-night snack';
 
   @override
   String dietMealSheetTitle(String meal) {
@@ -610,7 +610,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietNoRecognizedFood => 'No food recognized';
 
   @override
-  String get dietNutritionResult => 'Nutrition Result';
+  String get dietNutritionResult => 'Nutrition Info';
 
   @override
   String get dietSaved => 'Meal saved';
@@ -1646,7 +1646,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsReasonExercise => 'Workout log';
 
   @override
-  String get myPointsReasonRoutine => 'Recommended or assigned workout done';
+  String get myPointsReasonRoutine => 'Personal exercise done';
 
   @override
   String get myPointsReasonPtRenewal => 'PT renewal discount coupon';
@@ -2130,18 +2130,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGymTrainerTitle => 'My Gym & Trainer';
 
   @override
-  String get myConnectionDeleteTitle => 'Remove Connection';
+  String get myConnectionDeleteTitle => 'Disconnect';
 
   @override
   String get myConnectionDeleteFailed =>
-      'Couldn\'t remove the connection. Please try again.';
+      'Couldn\'t disconnect. Please try again.';
 
   @override
-  String get myDelete => 'Remove';
+  String get myDelete => 'Disconnect';
 
   @override
   String myGymDisconnectWithTrainerConfirm(String gym, String trainer) {
-    return 'Disconnect $gym?\nYour trainer link with $trainer will also be removed.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged are not deleted, and you can see them again if you reconnect with the same trainer.';
+    return 'Disconnect $gym?\nYour connection with trainer $trainer will also end.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged are not deleted, and you can see them again if you reconnect with the same trainer.';
   }
 
   @override
@@ -2339,7 +2339,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String coachInviteAccepted(String name) {
-    return '$name is now your coach';
+    return '$name is now your trainer';
   }
 
   @override
@@ -2422,7 +2422,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t open the PDF. Please try again';
 
   @override
-  String get coachChatReportRegistered => 'Weekly report added';
+  String get coachChatReportRegistered => 'Weekly report received';
 
   @override
   String coachChatReportWeek(int sm, int sd, int em, int ed) {
@@ -2846,10 +2846,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exConsultPendingStatus => 'Pending';
 
   @override
-  String get exConsultAcceptedStatus => 'Accepted';
+  String get exConsultAcceptedStatus => 'Approved';
 
   @override
-  String get exConsultRejectedStatus => 'Rejected';
+  String get exConsultRejectedStatus => 'Declined';
 
   @override
   String get exReturnExercise => 'Return to Exercise';
@@ -2873,7 +2873,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exConsultAcceptedGuide =>
-      'Your consultation is confirmed. If you decide to register, connect with the trainer using the code in the MY tab during the consultation.';
+      'Your consultation request was approved. If you decide to sign up, connect with the trainer using the connection code in the MY tab during the consultation.';
 
   @override
   String get exMyReservations => 'My bookings';
@@ -3054,18 +3054,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myFieldBirthInvalid => 'Enter your date of birth as 1996-03-21';
 
   @override
-  String get trainerSyncEntryLabel => 'Sync data with a trainer';
+  String get trainerSyncEntryLabel => 'Trainer connection code';
 
   @override
   String get trainerSyncEntryHint =>
-      'Connect with your trainer using a 6-digit code';
+      'A 6-digit code to connect with your trainer and share your records';
 
   @override
-  String get trainerSyncTitle => 'Sync data with a trainer';
+  String get trainerSyncTitle => 'Trainer connection code';
 
   @override
   String get trainerSyncConsent =>
-      'Once the trainer who enters this code becomes your coach, they can see your meal records, workout records, body information, health goals, and health notes & cautions for coaching, consultations and writing reports. Disconnecting removes their access too, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don\'t agree.';
+      'Once the trainer who enters this code becomes your trainer, they can see your meal records, workout records, body information, health goals, and health notes & cautions for coaching, consultations and writing reports. Disconnecting removes their access too, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don\'t agree.';
 
   @override
   String get trainerShareDetailMore => 'Show details';
@@ -3077,7 +3077,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trainerShareRecipientLabel => 'Shared with';
 
   @override
-  String get trainerShareRecipient => 'The trainer connected as your coach';
+  String get trainerShareRecipient => 'The trainer connected with you';
 
   @override
   String get trainerShareItemsLabel => 'What is shared';
@@ -3098,7 +3098,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trainerSharePeriod =>
-      'Until you withdraw consent by disconnecting. Deleting the trainer connection in the MY tab withdraws it, and the trainer can no longer see your new records. Conversations you had and reports already delivered before then are not deleted.';
+      'Until you withdraw consent by disconnecting. Disconnecting your trainer in the MY tab withdraws it, and the trainer can no longer see your new records. Conversations you had and reports already delivered before then are not deleted.';
 
   @override
   String get trainerShareRefuseLabel => 'Your right to refuse';
@@ -3111,7 +3111,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trainerSyncAgree => 'Agree and get a code';
 
   @override
-  String get trainerSyncHint => 'Read these six digits out to your trainer.';
+  String get trainerSyncHint =>
+      'Read this 6-digit connection code out to your trainer.';
 
   @override
   String trainerSyncCountdown(String remaining) {
@@ -3578,22 +3579,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGoalExerciseApplySuggestion => 'Use suggested goals';
 
   @override
-  String get myGoalCalories => 'Daily calorie limit (kcal)';
+  String get myGoalCalories => 'Daily calorie goal (kcal)';
 
   @override
-  String get myGoalSodium => 'Daily sodium limit (mg)';
+  String get myGoalSodium => 'Daily sodium goal (mg)';
 
   @override
-  String get myGoalSugar => 'Daily sugar limit (g)';
+  String get myGoalSugar => 'Daily sugar goal (g)';
 
   @override
-  String get myGoalCarbs => 'Daily carbohydrate limit (g)';
+  String get myGoalCarbs => 'Daily carbs goal (g)';
 
   @override
-  String get myGoalProtein => 'Daily protein limit (g)';
+  String get myGoalProtein => 'Daily protein goal (g)';
 
   @override
-  String get myGoalFat => 'Daily fat limit (g)';
+  String get myGoalFat => 'Daily fat goal (g)';
 
   @override
   String get myGoalCaloriesFromMacros =>
@@ -3611,7 +3612,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get myGoalMacroApplySuggestion => 'Use suggested split';
+  String get myGoalMacroApplySuggestion => 'Use suggested goals';
 
   @override
   String get myGoalUnsetHint =>
@@ -3649,8 +3650,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsDietAdd => 'Log a meal';
 
   @override
-  String get myPointsRoutineComplete =>
-      'Complete a recommended or assigned workout';
+  String get myPointsRoutineComplete => 'Finish a personal exercise';
 
   @override
   String get myPointsExerciseAdd => 'Log a workout yourself';
@@ -3851,11 +3851,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get demoAlertReportTitle => 'This week\'s report is ready';
+  String get demoAlertReportTitle => 'Your weekly report is here';
 
   @override
   String demoAlertReportBody(String trainerName) {
-    return 'Trainer $trainerName posted your report for this week.';
+    return 'Trainer $trainerName sent your weekly report.';
   }
 
   @override
@@ -4211,7 +4211,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'stretching': 'stretching',
       'other': 'other exercise',
     });
-    return 'This week you only did $_temp0 workouts. $_temp1, start with $_temp2.';
+    return 'This week you only did $_temp0 personal exercises. $_temp1, start with $_temp2.';
   }
 
   @override
@@ -4222,7 +4222,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'stretching': 'stretching',
       'other': 'other exercise',
     });
-    return 'This week you only did $_temp0 workouts.';
+    return 'This week you only did $_temp0 personal exercises.';
   }
 
   @override
@@ -4321,7 +4321,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'stretching': 'stretching',
       'other': 'other exercise',
     });
-    return 'Last week you only did $_temp0 workouts. This week, start with $_temp1.';
+    return 'Last week you only did $_temp0 personal exercises. This week, start with $_temp1.';
   }
 
   @override
@@ -4332,7 +4332,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'stretching': 'stretching',
       'other': 'other exercise',
     });
-    return 'Last week you only did $_temp0 workouts.';
+    return 'Last week you only did $_temp0 personal exercises.';
   }
 
   @override
@@ -4410,7 +4410,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'full': 'full-body',
       'other': 'full-body',
     });
-    return 'You did the $_temp0 workouts you often skip today. Keep it going!';
+    return 'You did the $_temp0 personal exercises you often skip today. Keep it going!';
   }
 
   @override
@@ -4448,7 +4448,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'full': 'Full-body',
       'other': 'Full-body',
     });
-    return '$_temp0 workouts get skipped often. Move them up?';
+    return '$_temp0 personal exercises get skipped often. Move them up?';
   }
 
   @override
@@ -4503,7 +4503,7 @@ class AppLocalizationsEn extends AppLocalizations {
         intl.NumberFormat.decimalPattern(localeName);
     final String sodiumMgString = sodiumMgNumberFormat.format(sodiumMg);
 
-    return 'Sodium **${sodiumMgString}mg**, over the limit.';
+    return 'Sodium **${sodiumMgString}mg**, over your goal.';
   }
 
   @override
@@ -4804,7 +4804,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weekIntensityTooHard => 'Too hard';
 
   @override
-  String get myCoachReportsEntry => 'Trainer reports';
+  String get myCoachReportsEntry => 'Weekly reports';
 
   @override
   String get myCoachReportsEntryHint =>
