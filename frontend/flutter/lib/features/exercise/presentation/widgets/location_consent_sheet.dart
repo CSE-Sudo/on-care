@@ -8,9 +8,13 @@ import 'package:oncare_ui/oncare_ui.dart';
 ///
 /// 시트는 동의를 묻기만 한다 — 저장은 부르는 쪽이 `LocationConsentController`
 /// 로 한다. 동의를 받아 저장한 다음에만 OS 위치 권한 창으로 넘어간다.
+///
+/// 찾기 화면은 하단 탭이 있는 셸 안쪽 내비게이터에 있다. 그 내비게이터로 띄우면
+/// 하단 탭이 시트 위에 그려져 [동의]·[거부] 버튼을 덮는다 — 그래서 루트
+/// 내비게이터로 띄운다.
 Future<bool> showLocationConsentSheet(BuildContext context) async {
   final bool? agreed = await showAppSheet<bool>(
-    context: context,
+    context: Navigator.of(context, rootNavigator: true).context,
     builder: (BuildContext context) => const LocationConsentSheet(),
   );
   return agreed ?? false;

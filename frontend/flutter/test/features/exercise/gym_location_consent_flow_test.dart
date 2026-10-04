@@ -401,4 +401,50 @@ void main() {
 
     expect(answers, <bool>[true, false]);
   });
+
+  testWidgets('하단 탭이 있는 셸 안에서 띄워도 버튼이 탭에 가리지 않는다', (WidgetTester tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final List<bool> answers = <bool>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(),
+        locale: const Locale('ko'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        // 앱 셸처럼 하단 탭 안쪽에 내비게이터가 하나 더 있다.
+        home: Scaffold(
+          bottomNavigationBar: const SizedBox(
+            key: ValueKey<String>('shell-bottom-nav'),
+            height: 80,
+            child: ColoredBox(color: Colors.white),
+          ),
+          body: Navigator(
+            onGenerateRoute: (RouteSettings settings) =>
+                MaterialPageRoute<void>(
+                  builder: (BuildContext context) => Center(
+                    child: TextButton(
+                      onPressed: () async =>
+                          answers.add(await showLocationConsentSheet(context)),
+                      child: const Text('open'),
+                    ),
+                  ),
+                ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    // 시트가 하단 탭 위에 있어야 버튼이 실제로 눌려 답이 돌아온다.
+    await tester.tap(find.byKey(_decline));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(_agree));
+    await tester.pumpAndSettle();
+
+    expect(answers, <bool>[false, true]);
+  });
 }
