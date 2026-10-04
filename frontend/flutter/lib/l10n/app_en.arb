@@ -553,6 +553,15 @@
       }
     }
   },
+  "exHoldSecondsCount": "{seconds} sec",
+  "@exHoldSecondsCount": {
+    "description": "One set of a hold exercise in seconds (#3138). Same shape as the trainer web progHoldValue",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "exEnterSets": "Enter the number of sets",
   "exExerciseIntensity": "Intensity",
   "exEstimatedCalories": "Estimated Calories",

@@ -336,6 +336,14 @@
   "exExerciseSets": "세트 수",
   "exSetsCount": "{sets}세트",
   "exRepsCount": "{reps}회",
+  "exHoldSecondsCount": "{seconds}초",
+  "@exHoldSecondsCount": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "exEnterSets": "세트 수를 입력해주세요",
   "exExerciseIntensity": "운동 강도",
   "exEstimatedCalories": "예상 소모 칼로리",
