@@ -26,7 +26,6 @@ from sqlalchemy.orm import Session
 from app.core import clock
 from app.models.models import (
     HealthProfile,
-    Notification,
     TrainerClient,
     TrainerClientInvite,
     TrainerProfile,
@@ -293,17 +292,15 @@ def _notify_member_paired(db: Session, trainer_id: str, member_id: str) -> None:
     """
     # 이름이 없으면 틀이 대신 적는 말(`트레이너`)을 고른다(#2302).
     trainer_name = db.scalar(select(User.name).where(User.id == trainer_id)) or ""
-    db.add(
-        Notification(
-            id=f"noti-{uuid.uuid4().hex[:12]}",
-            user_id=member_id,
-            category=notification_service.MEMBER_CONSULTATION,
-            read=False,
-            **notification_templates.columns(
-                notification_templates.MEMBER_TRAINER_CONNECTED,
-                {"trainer_name": trainer_name},
-            ),
-        )
+    # 담당 해제와 같은 끌 수 없는 kind 다(#3024) — 연결은 늘 오는데 해제는 끌 수
+    # 있던 비대칭을 없앤다.
+    notification_service.queue(
+        db,
+        member_id=member_id,
+        kind=notification_service.PT_LINK_NOTICE,
+        category=notification_service.MEMBER_CONSULTATION,
+        template=notification_templates.MEMBER_TRAINER_CONNECTED,
+        template_args={"trainer_name": trainer_name},
     )
 
 
@@ -527,18 +524,14 @@ def _notify_member(db: Session, row: TrainerClientInvite) -> None:
     trainer_name = (
         db.scalar(select(User.name).where(User.id == row.trainer_id)) or ""
     )
-    db.add(
-        Notification(
-            id=f"noti-{uuid.uuid4().hex[:12]}",
-            user_id=row.member_id,
-            category=notification_service.MEMBER_COACH_INVITE,
-            invite_id=row.id,
-            read=False,
-            **notification_templates.columns(
-                notification_templates.MEMBER_COACH_INVITE,
-                {"trainer_name": trainer_name},
-            ),
-        )
+    notification_service.queue(
+        db,
+        member_id=row.member_id,
+        kind=notification_service.PT_LINK_NOTICE,
+        category=notification_service.MEMBER_COACH_INVITE,
+        template=notification_templates.MEMBER_COACH_INVITE,
+        template_args={"trainer_name": trainer_name},
+        invite_id=row.id,
     )
 
 
