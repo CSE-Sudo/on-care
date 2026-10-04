@@ -79,6 +79,10 @@ jobs:
       # 분당 10회라 그대로 두면 로그인이 429 로 막히고, 화면에서는 "로그인 화면에서
       # 안 넘어감" 으로만 보인다.
       RATE_LIMIT_ENABLED: "false"
+      # 하네스가 `POST /auth/register` 로 회원을 바로 만든다(test_e2e/support). 가입 이메일
+      # 인증(#3038)은 메일함이 없는 러너에서 코드를 받을 수 없으므로 끈다 — ENV=dev 라
+      # 허용된다(운영은 끌 수 없다). 인증 흐름은 백엔드 테스트가 확인한다.
+      SIGNUP_EMAIL_VERIFICATION: "false"
       API_BASE_URL: http://localhost:8000/v1
       # 아직 통과하지 못하는 스위트. **돌리기는 하되** 실패해도 잡을 막지 않는다.
       # 건너뛰지 않는 이유는 두 가지다 — 상태가 계속 보이고, 고쳐져서 통과하기

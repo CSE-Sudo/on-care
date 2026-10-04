@@ -185,7 +185,10 @@ def test_member_deleting_the_account_reopens_the_slot(client, db_session):
     created = _apply(client, member_token, trainer.id, slot.id, db_session)
     assert created.status_code == 201, created.text
 
-    deleted = client.delete("/v1/users/me", headers=_auth(member_token))
+    deleted = client.request(
+        "DELETE", "/v1/users/me", json={"current_password": "test-pw-1234"},
+        headers=_auth(member_token),
+    )
 
     assert deleted.status_code == 200, deleted.text
     db_session.expire_all()

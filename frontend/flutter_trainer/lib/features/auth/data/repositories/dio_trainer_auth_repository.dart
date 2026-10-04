@@ -7,6 +7,7 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
+import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/auth/data/dtos/trainer_me_dto.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/mock_trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
@@ -41,6 +42,7 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
     required String email,
     required String password,
     required String name,
+    required String emailCode,
     List<String>? consents,
   }) async {
     try {
@@ -52,16 +54,28 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
           'email': email,
           'password': password,
           'name': name,
+          // 가입 전에 받은 이메일 인증 코드(#3038).
+          'email_code': emailCode,
           // 체크한 동의(#2819) — 계정과 한 트랜잭션으로 남는다. 넘기지 않으면
           // 칸을 싣지 않는다(서버는 기록 없이 만들고 로그인 뒤 동의를 받는다).
           'consents': ?consents,
         },
       );
     } on DioException catch (e) {
-      if (e.response?.statusCode == 409) {
+      final int? status = e.response?.statusCode;
+      final String? code = serverDetailCode(e.response?.data);
+      if (status == 409) {
         throw const AuthException(AuthFailure.emailTaken);
       }
-      if (e.response?.statusCode == 422) {
+      // 인증 코드 문제는 코드 칸 아래에 알린다(#3038). 중복 이메일(409)은 서버가
+      // 코드보다 먼저 본다.
+      if (status == 400 && code == 'invalid_email_code') {
+        throw const AuthException(AuthFailure.emailCodeInvalid);
+      }
+      if (status == 422 && code == 'email_code_required') {
+        throw const AuthException(AuthFailure.emailCodeRequired);
+      }
+      if (status == 422) {
         // 비밀번호가 서버 기준(#1555)에 걸렸으면 그 이유를 알린다. 나머지 422
         // (형식 오류 등)는 화면이 미리 거르는 값이라 알 수 없는 오류로 둔다.
         final AuthFailure? password = _passwordFailure(e.response?.data);

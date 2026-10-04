@@ -38,6 +38,7 @@ from app.schemas.trainer_api import (
 from app.services import (
     audit,
     auth_tokens,
+    reauth,
     data_consent_service,
     attachment_cleanup,
     trainer_gym_search,
@@ -255,7 +256,18 @@ def trainer_delete_me(
 
     고른 사유가 있으면 회원 탈퇴와 같은 표에 계정과 잇지 않고 남긴다(#2264).
     사유는 없어도 된다 — 탈퇴를 막는 조건이 아니라 물어보는 자리다.
+    본인 확인은 늘 필요하다(#3039, 회원 탈퇴와 같은 `services/reauth.py`). 예전
+    화면의 "이름 입력" 확인은 화면 안의 실수 방지일 뿐 서버는 보지 않았다.
     """
+    reauth.require(
+        db,
+        trainer,
+        action=reauth.DELETE_ACCOUNT,
+        ip=audit.client_ip(request),
+        current_password=payload.current_password if payload else None,
+        social_provider=payload.social_provider if payload else None,
+        social_token=payload.social_token if payload else None,
+    )
     for reason in sorted(
         set(payload.reasons if payload else []) & TRAINER_DELETION_REASONS
     ):

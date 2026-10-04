@@ -174,7 +174,11 @@ def test_update_me_still_rejects_null_for_non_nullable_profile_fields(client):
 def test_update_me_duplicate_email_conflicts_409(client):
     token_a, email_a = _register_and_login(client)
     token_b, _ = _register_and_login(client)
-    r = client.put("/v1/users/me", json={"email": email_a}, headers=_auth(token_b))
+    r = client.put(
+        "/v1/users/me",
+        json={"email": email_a, "current_password": "pw-12345!"},
+        headers=_auth(token_b),
+    )
     assert r.status_code == 409
 
 
@@ -248,7 +252,10 @@ def test_exercise_type_goals_are_saved_and_cleared(client):
 
 def test_delete_me_removes_account(client):
     token, email = _register_and_login(client)
-    r = client.delete("/v1/users/me", headers=_auth(token))
+    r = client.request(
+        "DELETE", "/v1/users/me", json={"current_password": "pw-12345!"},
+        headers=_auth(token),
+    )
     assert r.status_code == 200, r.text
     assert r.json()["status"] == "deleted"
 
@@ -274,7 +281,10 @@ def test_delete_me_keeps_only_known_reasons(client, db_session):
     r = client.request(
         "DELETE",
         "/v1/users/me",
-        json={"reasons": ["privacy", "hard_to_use", "privacy", "made-up"]},
+        json={
+            "reasons": ["privacy", "hard_to_use", "privacy", "made-up"],
+            "current_password": "pw-12345!",
+        },
         headers=_auth(token),
     )
     assert r.status_code == 200, r.text
@@ -299,7 +309,9 @@ def test_delete_me_without_reasons_still_deletes(client):
     """사유 칸을 건너뛴 탈퇴도 예전처럼 그대로 지운다. (#1935·#2019)"""
     token, email = _register_and_login(client)
     r = client.request(
-        "DELETE", "/v1/users/me", json={"reasons": []}, headers=_auth(token)
+        "DELETE", "/v1/users/me",
+        json={"reasons": [], "current_password": "pw-12345!"},
+        headers=_auth(token),
     )
     assert r.status_code == 200, r.text
     assert r.json()["status"] == "deleted"
@@ -455,7 +467,11 @@ def test_update_me_accepts_a_valid_email_change(client):
     """막는 것은 형식이 틀린 값뿐이다 — 제대로 된 주소로는 바꿀 수 있다."""
     token, _ = _register_and_login(client)
     new_email = f"prof-moved-{uuid4().hex[:8]}@oncare.com"
-    r = client.put("/v1/users/me", json={"email": new_email}, headers=_auth(token))
+    r = client.put(
+        "/v1/users/me",
+        json={"email": new_email, "current_password": "pw-12345!"},
+        headers=_auth(token),
+    )
     assert r.status_code == 200, r.text
     assert r.json()["email"] == new_email
 

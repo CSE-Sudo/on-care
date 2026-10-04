@@ -4657,6 +4657,74 @@ class AppLocalizationsKo extends AppLocalizations {
   String get passwordResetBackToSignIn => '로그인하러 가기';
 
   @override
+  String get signUpEmailCodeSend => '인증 코드 받기';
+
+  @override
+  String get signUpEmailCodeHint => '인증 코드';
+
+  @override
+  String get signUpEmailCodeResend => '다시 받기';
+
+  @override
+  String signUpEmailCodeResendIn(int seconds) {
+    return '$seconds초 뒤 다시 받기';
+  }
+
+  @override
+  String signUpEmailCodeRemaining(String time) {
+    return '메일로 받은 6자리 코드 · 남은 시간 $time';
+  }
+
+  @override
+  String get signUpEmailCodeExpired => '코드가 만료됐어요. 다시 받아 주세요.';
+
+  @override
+  String get signUpEmailCodeEmpty => '인증 코드 6자리를 입력해 주세요';
+
+  @override
+  String get signUpEmailCodeInvalid => '인증 코드가 맞지 않거나 만료됐어요. 코드를 다시 받아 주세요.';
+
+  @override
+  String signUpEmailCodeDemoNote(String code) {
+    return '데모 모드에서는 메일이 가지 않아요. 인증 코드 $code 을 입력해 주세요.';
+  }
+
+  @override
+  String get signUpEmailCodeUnavailable =>
+      '지금은 인증 메일을 보낼 수 없어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get reauthTitle => '본인 확인';
+
+  @override
+  String get reauthEmailMessage => '이메일을 바꾸면 로그인 아이디와 비밀번호 재설정 메일 주소가 바뀝니다.';
+
+  @override
+  String get reauthPasswordPrompt => '계속하려면 현재 비밀번호를 입력해 주세요.';
+
+  @override
+  String get reauthPasswordRequired => '현재 비밀번호를 입력해 주세요';
+
+  @override
+  String get reauthSocialPrompt => '비밀번호가 없는 계정이에요. 가입한 소셜 계정으로 다시 로그인해 주세요.';
+
+  @override
+  String get reauthSocialAction => '소셜 계정으로 다시 로그인';
+
+  @override
+  String get reauthSocialConfirmed => '소셜 계정을 확인했어요';
+
+  @override
+  String get reauthSocialRequired => '소셜 계정으로 다시 로그인해 주세요';
+
+  @override
+  String get reauthSocialInvalid => '소셜 계정 확인에 실패했어요. 다시 로그인해 주세요.';
+
+  @override
+  String get reauthSocialUnavailable =>
+      '이 버전에서는 아직 소셜 계정 확인을 할 수 없어요. 고객 지원으로 문의해 주세요.';
+
+  @override
   String get releaseUpdateTitle => '새 버전이 배포되었어요';
 
   @override

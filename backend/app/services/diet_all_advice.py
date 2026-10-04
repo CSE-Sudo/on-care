@@ -119,7 +119,8 @@ def slot_sodium(records: dict[date, DayRecord], targets: inputs.DietTargets) -> 
     if best is None:
         return None
     slot, days, high = best
-    high.sort(key=lambda dm: -dm[1][4])
+    # 나트륨이 같으면 최근 끼니부터 — DB 가 돌려준 순서에 따라 고르는 줄이 바뀌지 않게 한다.
+    high.sort(key=lambda dm: (-dm[1][4], -dm[0].toordinal()))
     return Finding(
         "slot_sodium",
         line("all_slot_sodium", slot=slot, days=days),

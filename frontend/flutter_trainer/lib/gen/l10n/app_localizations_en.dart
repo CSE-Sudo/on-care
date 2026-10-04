@@ -3573,9 +3573,34 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t delete your account. Please try again in a moment';
 
   @override
-  String myDeleteConfirmPrompt(String name) {
-    return 'Type your name ($name) to continue';
-  }
+  String get myDeleteReauthPrompt =>
+      'Enter your current password to confirm it\'s you';
+
+  @override
+  String get myDeleteReauthWrongPassword =>
+      'Your current password is incorrect';
+
+  @override
+  String get myDeleteReauthSocialPrompt =>
+      'This account uses social sign-in. Sign in again with your social account to confirm it\'s you.';
+
+  @override
+  String get myDeleteReauthSocialAction =>
+      'Sign in again with your social account';
+
+  @override
+  String get myDeleteReauthKakao => 'Sign in again with Kakao';
+
+  @override
+  String get myDeleteReauthGoogle => 'Sign in again with Google';
+
+  @override
+  String get myDeleteReauthSocialDone =>
+      'Social account confirmed. Press Delete to continue.';
+
+  @override
+  String get myDeleteReauthSocialFailed =>
+      'Couldn\'t confirm your social account. Please sign in again.';
 
   @override
   String get myWithdrawReasonTitle => 'Are you sure you want to leave?';
@@ -5911,6 +5936,56 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get passwordResetTemporaryFailure =>
       'Couldn\'t complete the request. Please try again shortly.';
+
+  @override
+  String get signUpCodeSend => 'Send code';
+
+  @override
+  String get signUpCodeLabel => 'Verification code';
+
+  @override
+  String get signUpCodeSentNotice =>
+      'Enter the 6-digit code from the email. If this email already has an account, you\'ll get a notice instead of a code.';
+
+  @override
+  String signUpCodeRemaining(String time) {
+    return 'Expires in $time';
+  }
+
+  @override
+  String get signUpCodeExpired => 'The code has expired. Request a new one.';
+
+  @override
+  String get signUpCodeResend => 'Resend';
+
+  @override
+  String signUpCodeResendIn(int seconds) {
+    return 'Resend in ${seconds}s';
+  }
+
+  @override
+  String signUpCodeDemoNote(String code) {
+    return 'Demo mode doesn\'t send email. Enter $code as the code.';
+  }
+
+  @override
+  String get signUpCodeInvalid =>
+      'This code is wrong or has expired. Request a new one.';
+
+  @override
+  String get signUpCodeRequired => 'Enter the email verification code.';
+
+  @override
+  String get signUpCodeTooMany =>
+      'Too many requests. Please try again in a moment.';
+
+  @override
+  String get signUpCodeUnavailable =>
+      'We can\'t send verification emails right now. Please try again later.';
+
+  @override
+  String get signUpCodeRequestFailed =>
+      'Couldn\'t send the code. Please try again shortly.';
 
   @override
   String get releaseUpdateTitle => 'A new version is available';

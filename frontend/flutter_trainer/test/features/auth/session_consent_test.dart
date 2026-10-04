@@ -50,6 +50,7 @@ class _AuthRepository implements TrainerAuthRepository {
     required String email,
     required String password,
     required String name,
+    required String emailCode,
     List<String>? consents,
   }) async {
     registeredConsents = consents;
@@ -319,6 +320,7 @@ void main() {
           email: 'new@example.com',
           password: 'pw-12345678',
           name: '김신규',
+          emailCode: '000000',
           consents: <String>['terms', 'privacy', 'age14'],
         );
 
