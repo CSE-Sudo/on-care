@@ -386,7 +386,11 @@ void main() {
         c.read(sessionControllerProvider).status,
         SessionStatus.authenticated,
       );
-      await tester.pumpAndSettle();
+      // 로그인에 성공하면 화면을 옮기는 일은 라우터 몫이라, 이 테스트의 로그인
+      // 화면은 진행 표시를 계속 돌린다. 기다려 가라앉히지 않고 화면을 내려
+      // 남은 타이머를 정리한다.
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(seconds: 1));
     });
   });
 }
