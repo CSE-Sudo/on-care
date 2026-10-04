@@ -525,7 +525,7 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
          "pain": False, "revised": False},
         "",
         "지수 회원이 주간 피드백을 보냈어요",
-        "컨디션 좋았어요 · 운동 강도 적당했어요",
+        "컨디션 좋았어요 · 운동 강도 딱 맞았어요",
     ),
     (
         nt.TRAINER_MEMBER_WEEKLY_FEEDBACK,
@@ -550,14 +550,14 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
          "pain": True, "revised": True},
         "",
         "지수 회원이 통증을 알렸어요",
-        "컨디션 많이 힘들었어요 · 운동 강도 힘들었어요 · 통증 있음",
+        "컨디션 많이 안 좋았어요 · 운동 강도 조금 힘들었어요 · 통증 있음",
     ),
     (
         nt.TRAINER_MEMBER_WEEKLY_FEEDBACK,
         {"member_name": "", "condition": "ok", "intensity": "right", "pain": False},
         "",
         "회원이 주간 피드백을 보냈어요",
-        "컨디션 보통이었어요 · 운동 강도 적당했어요",
+        "컨디션 보통이었어요 · 운동 강도 딱 맞았어요",
     ),
     # PT 완료·피드백(#3027). 본문은 트레이너가 쓴 글 그대로다.
     (
@@ -1050,7 +1050,7 @@ ENGLISH: list[tuple[str, dict, tuple[str, str | None]]] = [
         nt.TRAINER_MEMBER_WEEKLY_FEEDBACK,
         {"member_name": "Alex", "condition": "good", "intensity": "right",
          "pain": False, "revised": False},
-        ("Alex sent their weekly feedback", "Condition: Good · Intensity: About right"),
+        ("Alex sent their weekly feedback", "Condition: Good · Intensity: Just right"),
     ),
     (
         nt.TRAINER_MEMBER_WEEKLY_FEEDBACK,

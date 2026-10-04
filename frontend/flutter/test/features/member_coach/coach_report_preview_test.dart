@@ -210,7 +210,7 @@ void main() {
       await pumpChat(tester);
 
       expect(find.byType(CoachReportCard), findsOneWidget);
-      expect(find.text('리포트가 등록되었어요'), findsOneWidget);
+      expect(find.text('주간 리포트를 받았어요'), findsOneWidget);
       expect(find.text('8월 17일 – 8월 23일'), findsOneWidget);
       expect(find.text('PDF 미리보기'), findsOneWidget);
       // 본문 그대로의 말풍선은 그리지 않는다 — 같은 사건이 두 번 보인다.
@@ -283,10 +283,10 @@ void main() {
         inputs: _inputs(),
         feedback: trainerReportFeedback('글'),
       );
-      expect(lines.first, '주간 코칭 리포트');
+      expect(lines.first, '주간 리포트');
       expect(lines, contains('· 회원: 김민수'));
-      expect(lines, contains('· 운동 수행률: 82%'));
-      expect(lines, contains('· PT 진행: 1/2회 (50%)'));
+      expect(lines, contains('· 운동 완료율: 82%'));
+      expect(lines, contains('· 완료 PT: 1/2회 (50%)'));
       expect(lines, contains('· 나트륨: 2,100mg'));
     });
 
@@ -297,7 +297,7 @@ void main() {
         inputs: _inputs(completion: null),
         feedback: trainerReportFeedback(''),
       );
-      expect(lines, contains('· 운동 수행률: 미집계'));
+      expect(lines, contains('· 운동 완료율: 미집계'));
     });
 
     testWidgets('이름을 모르면 회원 줄을 비워 두지 않고 뺀다', (WidgetTester tester) async {
@@ -317,7 +317,7 @@ void main() {
         inputs: _inputs(),
         feedback: trainerReportFeedback(''),
       );
-      expect(lines.first, 'Weekly coaching report');
+      expect(lines.first, 'Weekly report');
       expect(lines, contains('Trainer feedback'));
       expect(lines, contains('No feedback'));
     });

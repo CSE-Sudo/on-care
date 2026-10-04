@@ -217,7 +217,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     _seed(
       1,
       CoachSender.trainer,
-      '민수님, 지난주 기록 정리해 봤는데 요일마다 이행률이 들쭉날쭉하네요. 바쁜 요일이 정해져 있나요?',
+      '민수님, 지난주 기록 정리해 봤는데 요일마다 완료율이 들쭉날쭉하네요. 바쁜 요일이 정해져 있나요?',
       '화 10:02',
       day: 0,
     ),
@@ -318,7 +318,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     _seed(
       19,
       CoachSender.trainer,
-      '이번 주 리포트 등록해 뒀어요. 확인해 보세요',
+      '이번 주 리포트 보내 드렸어요. 확인해 보세요',
       '18:17',
       day: 2,
       reportWeekStart: _reportWeekStart,

@@ -1295,8 +1295,8 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 `_require_client` 와 함께 쓴다.
 기준값과 예외 규칙은 [`docs/TRAINER_DOMAIN.md`](docs/TRAINER_DOMAIN.md) 의 "PT 관리 신호" 참조.
 
-**이행률 (#2513)**: 로스터 `week_completion: (int | null)[7]`(월→일)과 주간 리포트
-`week_completion`·`days[].completion`·`completion_avg` 는 그날 이행률 = (완료한 개인운동 + 완료한
+**완료율 (#2513)**: 로스터 `week_completion: (int | null)[7]`(월→일)과 주간 리포트
+`week_completion`·`days[].completion`·`completion_avg` 는 그날 완료율 = (완료한 개인운동 + 완료한
 PT) ÷ (그날 걸린 개인운동 + 그날 잡힌 PT) 다. 개인운동은 그 트레이너가 건 것이고 다음 날 이후
 체크도 완료다. PT 는 `예정·완료` 만 분모다(취소·노쇼·상담 제외). 회원이 직접 추가한 운동은 넣지
 않는다. 아무것도 걸리지 않은 날과 아직 오지 않은 날은 `null`, 걸렸는데 하나도 안 한 날은 `0` 이다.
@@ -1442,7 +1442,7 @@ N명이면 첫 화면에서 요청이 2N개였다.
 
 - 각 값은 같은 회원·같은 주의 `GET /trainer/clients/{member_id}/report` 와 **같은 규칙**이다 —
   `sessions_booked` 는 예정+완료(취소·노쇼·상담 제외), `sessions_done` 은 완료, `week_completion`
-  은 월→일 7칸 이행률(주간 리포트와 같은 계산 — 걸린 개인운동과 잡힌 PT, 아무것도 걸리지 않은 날은 `null`, #2513), `completion_avg` 는 걸린 날의 평균이고 걸린 날이 없으면 `null`(0 아님).
+  은 월→일 7칸 완료율(주간 리포트와 같은 계산 — 걸린 개인운동과 잡힌 PT, 아무것도 걸리지 않은 날은 `null`, #2513), `completion_avg` 는 걸린 날의 평균이고 걸린 날이 없으면 `null`(0 아님).
   식단·요일별 운동·회원 피드백은 싣지 않는다 — 편집기를 열 때 그 회원 리포트로 읽는다.
 - 집계는 회원별 반복이 아니라 회원 id 목록으로 묶어 조회한다(세션 한 번, 이행 기록 한 번).
 - **담당이 살아 있고 데이터 공유 동의가 유효한 회원만** 싣는다(회원 단위 경로가 404 를 주는 회원은

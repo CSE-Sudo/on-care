@@ -336,7 +336,7 @@ def _report_message_ko(report: WeeklyReportOut) -> str:
         elif report.completion_avg >= client_signals.COMPLETION_LOW_PERCENT:
             line = f"운동은 평균 {report.completion_avg}%로 꾸준히 해 주셨어요."
         else:
-            line = f"운동 이행률은 평균 {report.completion_avg}%였어요. 많이 바쁘셨나 봐요."
+            line = f"운동 완료율은 평균 {report.completion_avg}%였어요. 많이 바쁘셨나 봐요."
         workout.append(line)
     skipped = _skipped_names(report)
     if skipped:
@@ -382,7 +382,7 @@ def _report_message_ko(report: WeeklyReportOut) -> str:
         paragraphs.append(
             "정말 잘하셨어요. 다음 주도 이 페이스 그대로 가요!"
             if good
-            else "다음 주에는 이 부분만 같이 신경 써 봐요. 루틴은 제가 조정해서 올려둘게요."
+            else "다음 주에는 이 부분만 같이 신경 써 봐요. 프로그램은 제가 조정해서 올려둘게요."
         )
     return "\n\n".join(paragraphs)
 
@@ -415,7 +415,7 @@ def _report_message_en(report: WeeklyReportOut) -> str:
             line = f"You stayed steady — {report.completion_avg}% of your workouts done."
         else:
             line = (
-                f"Workout completion came in at {report.completion_avg}%. "
+                f"Workout completion rate came in at {report.completion_avg}%. "
                 "Sounds like a busy week."
             )
         workout.append(line)

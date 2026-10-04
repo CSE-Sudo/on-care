@@ -114,7 +114,7 @@ const List<_Client> _clients = <_Client>[
       // 1일차.
       _Chat(
         'trainer',
-        '민수님, 지난주 기록 정리해 봤는데 요일마다 이행률이 들쭉날쭉하네요. 바쁜 요일이 정해져 있나요?',
+        '민수님, 지난주 기록 정리해 봤는데 요일마다 완료율이 들쭉날쭉하네요. 바쁜 요일이 정해져 있나요?',
         '화 10:02',
       ),
       _Chat('client', '화요일이랑 목요일이 야근이 많아요 😥', '화 10:15'),
@@ -189,7 +189,7 @@ const List<_Client> _clients = <_Client>[
       // 스레드 맨 끝 메시지는 고객 목록의 미리보기로 쓰인다.
       _Chat(
         'trainer',
-        '이번 주 리포트 등록해 뒀어요. 확인해 보세요',
+        '이번 주 리포트 보내 드렸어요. 확인해 보세요',
         '18:17',
         dayIndex: 2,
         report: true,
@@ -774,7 +774,7 @@ const List<_Client> _clients = <_Client>[
         completionRate: 20,
         exercises: <String>['걷기 ✓ (10분만)', '호흡 이완 ✗', '의자 스쿼트 ✗'],
         clientFeedback: '10분 걷다가 회사에서 전화 와서 끊었어요',
-        trainerNote: '나트륨 3000 돌파 + 이행률 20%. 이번 주 안에 전화 상담 필요.',
+        trainerNote: '나트륨 3000 돌파 + 완료율 20%. 이번 주 안에 전화 상담 필요.',
       ),
       _History(
         daysAgo: 6,
@@ -1035,7 +1035,7 @@ const List<_Client> _clients = <_Client>[
         completionRate: 67,
         exercises: <String>['경사 걷기 ✓', '풀업 어시스트 ✓', '스트레칭 ✗'],
         clientFeedback: '늘 하던 만큼 했어요',
-        trainerNote: '7주째 같은 이행률·같은 나트륨. 자극 변화 필요.',
+        trainerNote: '7주째 같은 완료율·같은 나트륨. 자극 변화 필요.',
       ),
     ],
     chat: <_Chat>[
@@ -1255,7 +1255,7 @@ const List<_Client> _clients = <_Client>[
         completionRate: 100,
         exercises: <String>['러닝머신 30분 ✓', '근력 서킷 25분 ✓', '스트레칭 10분 ✓'],
         clientFeedback: '운동은 빠짐없이 하고 있어요',
-        trainerNote: '이행률 100%인데 나트륨 7일 연속 초과. 식단 상담으로 전환.',
+        trainerNote: '완료율 100%인데 나트륨 7일 연속 초과. 식단 상담으로 전환.',
       ),
     ],
     chat: <_Chat>[

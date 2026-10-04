@@ -38,11 +38,11 @@ class _SummaryServer implements HttpClientAdapter {
     'member_id': 'm1',
     'week_start': '2026-08-10',
     'headline':
-        'Alex did well with workout completion at 87%; next week, '
+        'Alex did well with workout completion rate at 87%; next week, '
         "let's also work on sodium over target on 4 days.",
     'points': <String>[
       'Avg sodium 2,288mg · over the default target of 2,000mg on 4 days',
-      'Avg workout completion 87%',
+      'Avg workout completion rate 87%',
     ],
     'generated_by': 'rule',
   };
@@ -50,8 +50,8 @@ class _SummaryServer implements HttpClientAdapter {
   static const Map<String, Object> korean = <String, Object>{
     'member_id': 'm1',
     'week_start': '2026-08-10',
-    'headline': 'Alex 고객은 운동 이행률 87%로 잘 지켰고, 다음 주는 나트륨 목표 초과 4일을 함께 챙기면 좋겠습니다.',
-    'points': <String>['나트륨 평균 2,288mg · 기본 목표 2,000mg 초과 4일', '운동 이행률 평균 87%'],
+    'headline': 'Alex 회원은 운동 완료율 87%로 잘 지켰고, 다음 주는 나트륨 목표 초과 4일을 함께 챙기면 좋겠습니다.',
+    'points': <String>['나트륨 평균 2,288mg · 기본 목표 2,000mg 초과 4일', '운동 완료율 평균 87%'],
     'generated_by': 'llm',
   };
 
@@ -321,7 +321,7 @@ void main() {
         find.text(_SummaryServer.english['headline']! as String),
         findsOneWidget,
       );
-      expect(find.textContaining('고객은'), findsNothing);
+      expect(find.textContaining('회원은'), findsNothing);
       expect(find.text(en.reportsAiGenerated), findsNothing);
 
       await tester.tap(find.text(en.reportsAiUseAsDraft));

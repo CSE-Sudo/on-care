@@ -402,7 +402,7 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
 | GET | `/trainer/dashboard/task-progress` | 오늘 할 일 진행 상태 — 보관 기간(63일) 안의 날짜별 기록 |
 | PUT | `/trainer/dashboard/task-progress/{date}` | 그날 진행 상태 통째로 저장(KST 오늘·어제만) |
 | POST | `/trainer/dashboard/task-progress/{date}/keys` | 할 일 키 하나 체크·해제·삭제 — 그날 행에 그 키만 반영하고 합계는 서버가 다시 냄(KST 오늘·어제만, #2886) |
-| GET | `/trainer/reports/queue?week_start=` | 리포트 작업대 요약 — 담당 회원 전원의 세션 예약·완료 수, 요일별·평균 이행률을 한 번에(#2863) |
+| GET | `/trainer/reports/queue?week_start=` | 리포트 작업대 요약 — 담당 회원 전원의 세션 예약·완료 수, 요일별·평균 완료율을 한 번에(#2863) |
 | GET | `/trainer/clients/{member_id}/report?week_start=` | 주간 리포트(어느 요일을 줘도 그 주 월요일로 정규화). 직전 4주 칼로리 평균 `calorie_baseline` 포함(#2863) |
 | GET | `/trainer/clients/{member_id}/report/summary?week_start=` | 주간 리포트 AI 요약(머리 문장 + 근거 최대 3줄) |
 | POST | `/trainer/clients/{member_id}/report/send` | 리포트를 회원 채팅 스레드로 전송 |
@@ -556,15 +556,15 @@ range`)이었고, `-3000` 이나 주 100,000분(한 주는 10,080분이다) 같�
 
 ### 주간 리포트 (`/trainer/clients/{id}/report`)
 
-O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, 이행률은 그 주에 걸린
+O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, 완료율은 그 주에 걸린
 개인운동(`trainer_routines`·`exercise_sessions`)과 잡힌 PT(`trainer_schedule`), 나트륨은
 `diet_entries`에서 그 주만 집계한다 — 새로 수집하는 데이터는 없다. **기록이 없는 항목은
-0 이 아니라 `null`** 로 내려간다("이행률 0%"는 "안 했다"는 거짓말이 되므로). 전송은 별도
+0 이 아니라 `null`** 로 내려간다("완료율 0%"는 "안 했다"는 거짓말이 되므로). 전송은 별도
 리포트 함이 아니라 **회원이 이미 읽고 있는 채팅 스레드**로 들어간다.
 
-**이행률 (#2513)**: 그날 이행률 = (완료한 개인운동 + 완료한 PT) ÷ (그날 걸린 개인운동 +
-그날 잡힌 PT). 로스터 `week_completion`(회원 목록 행 막대·프로그램 화면 `주간 운동 이행률`),
-리포트 `week_completion`·`days[].completion`·`completion_avg`, 이행률 배지가 모두 이 값이다
+**완료율 (#2513)**: 그날 완료율 = (완료한 개인운동 + 완료한 PT) ÷ (그날 걸린 개인운동 +
+그날 잡힌 PT). 로스터 `week_completion`(회원 목록 행 막대·프로그램 화면 `주간 운동 완료율`),
+리포트 `week_completion`·`days[].completion`·`completion_avg`, 완료율 배지가 모두 이 값이다
 (`week_completion_by_member`).
 
 - 개인운동은 회원 화면과 같은 규칙으로 센다(`member_routine_days`) — 이 트레이너가 건
@@ -579,7 +579,7 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
   완료 하나뿐이라, 개인운동을 매일 해도 PT 없는 날은 `기록 없음` 이었다.
 
 **작업대 요약 (#2863)**: 트레이너 웹 리포트 첫 화면은 `GET /trainer/reports/queue` 하나로
-담당 회원 전원의 큐 값(세션 예약·완료 수, 요일별·평균 이행률)을 받는다. 값은 회원별
+담당 회원 전원의 큐 값(세션 예약·완료 수, 요일별·평균 완료율)을 받는다. 값은 회원별
 `build_weekly_report` 와 같은 규칙이고, 회원 목록은 회원 단위 경로와 같은 접근 규칙(담당 연결
 활성 + 데이터 공유 동의 유효)으로 고른다 — 작업대에 서는 회원과 편집기를 열 수 있는 회원이 같다.
 리포트 응답의 `calorie_baseline` 은 그 주 앞 4주 동안 기록한 날의 하루 평균 칼로리다.
@@ -676,7 +676,7 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 - **회원의 예약 취소**는 트레이너 일정을 지우지 않고 `취소`(주체 member)로 남긴다. 좌석
   복구·예약 삭제는 그대로다. 탈퇴 경로는 계정이 사라지므로 지금처럼 일정을 지운다.
 - 집계: 주간 리포트의 `sessions_booked` 는 `예정+완료` 만 센다. 진행되지 않은 약속을
-  분모에 넣으면 트레이너 사정의 취소가 회원의 낮은 이행률로 보인다. 취소·노쇼에 패널티를
+  분모에 넣으면 트레이너 사정의 취소가 회원의 낮은 완료율로 보인다. 취소·노쇼에 패널티를
   주는 지표는 별도 정책이다.
 
 ### 회원 후속 관리 할 일 (#869)

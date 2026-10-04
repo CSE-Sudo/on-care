@@ -78,7 +78,7 @@ def test_report_message_omits_figures_without_data():
     )
     text = report_message(report)
     assert "주간 리포트" in text
-    assert "이행률" not in text
+    assert "완료율" not in text
     assert "나트륨" not in text
 
 
@@ -120,7 +120,7 @@ def test_report_message_speaks_in_three_completion_bands():
     assert "운동은 평균 80%로 잘 따라오셨어요." in message(80)
     assert "운동은 평균 75%로 꾸준히 해 주셨어요." in message(75)
     assert "운동은 평균 60%로 꾸준히 해 주셨어요." in message(60)
-    assert "운동 이행률은 평균 59%였어요." in message(59)
+    assert "운동 완료율은 평균 59%였어요." in message(59)
     assert "You stayed steady — 70% of your workouts done." in message(70, "en")
 
 
@@ -915,7 +915,7 @@ def test_summary_evidence_quotes_only_screen_figures():
 
     lines = svc._evidence(_report())
 
-    assert "운동 이행률 평균 87%" in lines
+    assert "운동 완료율 평균 87%" in lines
     # 수치는 화면과 같은 서식으로 적는다 — 그래프가 `2,288mg` 이라고 적는 값을
     # 요약만 `2288mg` 이라고 쓰면 트레이너는 다른 값으로 읽는다(#1177).
     assert any("나트륨 평균 2,288mg" in line for line in lines)
@@ -934,7 +934,7 @@ def test_summary_headline_does_not_call_an_over_week_on_target():
     assert "목표 범위 안" not in summary.headline
     assert "나트륨 목표 초과 3일" in summary.headline
     # 잘한 쪽도 함께 말한다 — 챙길 것만 남으면 보낼 만한 글이 못 된다.
-    assert "운동 이행률 81%" in summary.headline
+    assert "운동 완료율 81%" in summary.headline
 
 
 def test_summary_falls_back_when_model_invents_evidence():
@@ -1097,7 +1097,7 @@ def test_many_watchpoints_are_not_silently_dropped():
     assert len(out.points) == svc.MAX_POINTS
     assert out.points[-1].startswith("외 ")
     # 가장 위험한 항목이 먼저 남는다.
-    assert "운동 이행률" in out.points[0]
+    assert "운동 완료율" in out.points[0]
     assert "목표 범위 안" not in out.headline
 
 

@@ -1627,7 +1627,7 @@
     "description": "Screen reader label for a photo the member sent in the trainer chat (#1665)."
   },
   "coachChatPdfOpenFailed": "Couldn't open the PDF. Please try again",
-  "coachChatReportRegistered": "Weekly report added",
+  "coachChatReportRegistered": "Weekly report received",
   "coachChatReportWeek": "{sm}/{sd} – {em}/{ed}",
   "@coachChatReportWeek": {
     "description": "Week the registered report covers, shown on the report card.",
@@ -2847,11 +2847,11 @@
       }
     }
   },
-  "demoAlertReportTitle": "This week's report is ready",
+  "demoAlertReportTitle": "Your weekly report is here",
   "@demoAlertReportTitle": {
     "description": "Title of a demo notification shown in tour mode."
   },
-  "demoAlertReportBody": "Trainer {trainerName} posted your report for this week.",
+  "demoAlertReportBody": "Trainer {trainerName} sent your weekly report.",
   "@demoAlertReportBody": {
     "description": "Body of a demo notification shown in tour mode.",
     "placeholders": {
@@ -3895,7 +3895,7 @@
   "weekIntensityRight": "Just right",
   "weekIntensityHard": "A bit hard",
   "weekIntensityTooHard": "Too hard",
-  "myCoachReportsEntry": "Trainer reports",
+  "myCoachReportsEntry": "Weekly reports",
   "myCoachReportsEntryHint": "Reports you received and feedback you sent",
   "coachReportsSectionTitle": "Reports received",
   "coachReportsEmpty": "No reports yet",

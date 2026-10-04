@@ -398,7 +398,7 @@
       }
     }
   },
-  "clientWeeklyRoutineAdherence": "Weekly adherence",
+  "clientWeeklyRoutineAdherence": "Weekly completion rate",
   "clientRoutineAdherenceUnmeasured": "Not measured",
   "clientsSignalDiscomfort": "Pain",
   "clientsSignalRecordGap": "No logs",
@@ -629,7 +629,7 @@
   "chatTooLong": "Message is too long (1000 characters max)",
   "chatSendFailed": "Couldn't send the message. Please try again",
   "chatPdfOpenFailed": "Couldn't open the PDF. Please try again",
-  "chatReportRegistered": "Weekly report added",
+  "chatReportRegistered": "Weekly report sent",
   "chatReportOpenInReports": "Go to Reports",
   "chatLoadFailed": "Couldn't load the conversation",
   "chatLoadOlder": "Load earlier messages",
@@ -967,7 +967,7 @@
       }
     }
   },
-  "reportsCompletionByDay": "Weekly workout completion",
+  "reportsCompletionByDay": "Weekly workout completion rate",
   "reportsNoWorkoutsThisWeek": "No workouts logged this week",
   "chartNoRecord": "Not logged",
   "chartNotYet": "Not yet",
@@ -1010,7 +1010,7 @@
       }
     }
   },
-  "reportBodyCompletionLow": "Workout completion came in at {avg}%. Sounds like a busy one.",
+  "reportBodyCompletionLow": "Workout completion rate came in at {avg}%. Sounds like a busy one.",
   "@reportBodyCompletionLow": {
     "placeholders": {
       "avg": {
@@ -1260,8 +1260,8 @@
   "@schedReservationLockedHint": {
     "description": "Hint on a session card for a session the member booked through a reservation slot (#2756). Edit schedule and Delete are disabled."
   },
-  "schedEndedLockedHint": "A finished PT can only have its note and program edited.",
-  "schedDoneLockedHint": "A completed PT can only have its note and program edited. Move the date forward to reopen it as upcoming.",
+  "schedEndedLockedHint": "A finished PT can only have its feedback and program edited.",
+  "schedDoneLockedHint": "A completed PT can only have its feedback and program edited. Move the date forward to reopen it as upcoming.",
   "schedGroupPersonal": "Personal exercise",
   "schedRoutinesGoesOnComplete": "Goes to the member together with this PT's program.",
   "schedRoutinesNotSentYet": "Not sent to the member yet.",
@@ -1921,7 +1921,7 @@
   "aiAnalysedData": "Member status",
   "aiGoal": "Goal",
   "aiOverTarget": " · over target",
-  "aiRecentCompletion": "Recent completion",
+  "aiRecentCompletion": "Recent completion rate",
   "aiNoCompletionData": "No activity logged this week",
   "aiCompletionLow": " · needs attention",
   "aiDietSignal": "Diet warning",
@@ -1935,7 +1935,7 @@
   },
   "aiSugarAlsoOver": " · sugar also over",
   "aiDirectionLabel": "Direction",
-  "aiDirectionLower": "Lower intensity — recent completion is low",
+  "aiDirectionLower": "Lower intensity — recent completion rate is low",
   "aiDirectionCardio": "More cardio — sodium is often over target",
   "aiDirectionLowerAndCardio": "Lower intensity · more cardio",
   "aiDirectionKeep": "Keep current intensity",
@@ -2165,7 +2165,7 @@
   "slotNotFound": "Booking slot not found.",
   "slotTypeLockedByBooking": "Can't change the type of a slot that's already booked.",
   "authErrNotTrainer": "Please sign in with a trainer account.",
-  "aiBasisGoalCompletion": "{goal} · based on {rate}% completion",
+  "aiBasisGoalCompletion": "{goal} · based on a {rate}% completion rate",
   "@aiBasisGoalCompletion": {
     "placeholders": {
       "goal": {
@@ -2494,7 +2494,7 @@
   "workoutRoutineAllFirstDay": "Starts today",
   "workoutRoutineAllRing": "Personal exercise sent {date}, {percent}% done",
   "@workoutRoutineAllRing": {"placeholders": {"date": {"type": "String"}, "percent": {"type": "int"}}},
-  "coachRoutineAdherenceTitle": "Personal exercise follow-through",
+  "coachRoutineAdherenceTitle": "Personal exercise completion",
   "coachRoutineAdherenceSummary": "All done on {full} of the past {days} days",
   "@coachRoutineAdherenceSummary": {"placeholders": {"days": {"type": "int"}, "full": {"type": "int"}}},
   "coachRoutineAdherenceLate": "{count} on {weekday} checked later",
@@ -2578,7 +2578,7 @@
       }
     }
   },
-  "searchDetailCompletion": "{percent}% completion this week",
+  "searchDetailCompletion": "{percent}% completion rate this week",
   "@searchDetailCompletion": {
     "placeholders": {
       "percent": {
@@ -2857,7 +2857,7 @@
       }
     }
   },
-  "clientFeedbackSourceWeekly": "Weekly check-in · week of {date}",
+  "clientFeedbackSourceWeekly": "Weekly feedback · week of {date}",
   "@clientFeedbackSourceWeekly": {
     "placeholders": {
       "date": {
@@ -3211,7 +3211,7 @@
   "reportsAiFailed": "Couldn't create the summary. Please try again.",
   "reportsAiDailyLimit": "You've used today's AI limit. Please try again tomorrow.",
   "reportsPdfFallbackClient": "member",
-  "reportsPdfDocTitle": "Weekly coaching report",
+  "reportsPdfDocTitle": "Weekly report",
   "reportsPdfClient": "Member  {name}",
   "@reportsPdfClient": {
     "placeholders": {
@@ -3260,9 +3260,9 @@
       }
     }
   },
-  "reportsPdfLabelCompletion": "Workout completion",
-  "reportsPdfLabelSessions": "PT",
-  "reportsPdfLabelSessionCount": "PT completed",
+  "reportsPdfLabelCompletion": "Workout completion rate",
+  "reportsPdfLabelSessions": "PT done",
+  "reportsPdfLabelSessionCount": "PT done",
   "reportsPdfLabelSodiumOver": "Days over sodium target",
   "reportsPdfLabelCalories": "Average calories",
   "reportsPdfLabelSugar": "Average sugar",
@@ -3689,10 +3689,10 @@
   "reportsMemberFeedbackConditionGood": "Good",
   "reportsMemberFeedbackConditionOk": "Okay",
   "reportsMemberFeedbackConditionTired": "Worn out",
-  "reportsMemberFeedbackConditionBad": "Really rough",
+  "reportsMemberFeedbackConditionBad": "Rough",
   "reportsMemberFeedbackIntensityTooEasy": "Too easy",
-  "reportsMemberFeedbackIntensityRight": "About right",
-  "reportsMemberFeedbackIntensityHard": "Hard",
+  "reportsMemberFeedbackIntensityRight": "Just right",
+  "reportsMemberFeedbackIntensityHard": "A bit hard",
   "reportsMemberFeedbackIntensityTooHard": "Too hard",
   "reportsTrendUnavailable": "Couldn't load this week's workout records",
   "reportsTrendNoGoal": "No goal",
@@ -3801,15 +3801,15 @@
   "summaryBasisPersonal": "personal target",
   "summaryDirOver": "above",
   "summaryDirUnder": "below",
-  "summaryCompletionLow": "Avg workout completion {pct}% · below the {threshold}% bar",
+  "summaryCompletionLow": "Avg workout completion rate {pct}% · below the {threshold}% bar",
   "@summaryCompletionLow": {
     "placeholders": { "pct": { "type": "String" }, "threshold": { "type": "String" } }
   },
-  "summaryCompletionTopic": "workout completion at {pct}%",
+  "summaryCompletionTopic": "workout completion rate at {pct}%",
   "@summaryCompletionTopic": {
     "placeholders": { "pct": { "type": "String" } }
   },
-  "summaryCompletionAvg": "Avg workout completion {pct}%",
+  "summaryCompletionAvg": "Avg workout completion rate {pct}%",
   "@summaryCompletionAvg": {
     "placeholders": { "pct": { "type": "String" } }
   },

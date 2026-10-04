@@ -18,7 +18,7 @@ part of 'seed_data.dart';
 const Map<String, String> _seedEnglish = <String, String>{
   '체중 감량 · 혈압 관리': 'Weight loss · Blood pressure',
   '오늘': 'Today',
-  '민수님, 지난주 기록 정리해 봤는데 요일마다 이행률이 들쭉날쭉하네요. 바쁜 요일이 정해져 있나요?':
+  '민수님, 지난주 기록 정리해 봤는데 요일마다 완료율이 들쭉날쭉하네요. 바쁜 요일이 정해져 있나요?':
       "Minsu, I went through last week's logs and your completion rate jumps around from day to day. Are some days always busier?",
   '화요일이랑 목요일이 야근이 많아요 😥': 'I usually work late on Tuesdays and Thursdays 😥',
   '그럼 그 이틀은 15분짜리 짧은 프로그램으로 바꿔 둘게요. 안 하는 것보다 훨씬 낫습니다':
@@ -49,7 +49,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   '그렇군요! 오늘 PT 후에 부상이나 불편한 데는 없으셨나요?':
       "I see! Any injuries or discomfort after today's PT?",
   '무릎이 가볍게 당기긴 했는데 괜찮아요': "My knee was a little sore, but it's fine",
-  '이번 주 리포트 등록해 뒀어요. 확인해 보세요': "This week's report is up. Take a look",
+  '이번 주 리포트 보내 드렸어요. 확인해 보세요': "I sent you this week's report. Take a look",
   '확인했어요. AI가 오늘 식단 기반으로 유산소 프로그램을 추천했는데, 무릎 상태 감안해서 런닝 대신 걷기로 조정해서 보낼게요. 다음 PT 때 봐요 💪':
       "Got it. The AI suggested a cardio program based on today's meals, but given your knee I'll swap running for walking. See you at the next PT 💪",
   '체중 감량 · 체력 강화': 'Weight loss · Fitness',
@@ -240,7 +240,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   '의자 스쿼트 ✗': 'Chair squat ✗',
   '10분 걷다가 회사에서 전화 와서 끊었어요':
       'I walked 10 minutes, then work called and I had to stop',
-  '나트륨 3000 돌파 + 이행률 20%. 이번 주 안에 전화 상담 필요.':
+  '나트륨 3000 돌파 + 완료율 20%. 이번 주 안에 전화 상담 필요.':
       'Sodium over 3,000 + 20% completion. Needs a phone check-in this week.',
   '걷기 ✓': 'Walking ✓',
   '피곤해서 걷기만 했어요': 'I was tired, so I only walked',
@@ -308,7 +308,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   '경사 걷기 ✓': 'Incline walk ✓',
   '풀업 어시스트 ✓': 'Assisted pull-up ✓',
   '늘 하던 만큼 했어요': 'Did the same as always',
-  '7주째 같은 이행률·같은 나트륨. 자극 변화 필요.':
+  '7주째 같은 완료율·같은 나트륨. 자극 변화 필요.':
       'Same completion and sodium for 7 weeks. Needs a new stimulus.',
   '지호님, 몇 주째 수치가 거의 안 움직여요. 프로그램을 좀 바꿔볼까요?':
       'Jiho, your numbers have barely moved for weeks. Shall we change up the program?',
@@ -361,7 +361,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   '러닝머신 30분 ✓': 'Treadmill · 30 min ✓',
   '근력 서킷 25분 ✓': 'Strength circuit · 25 min ✓',
   '운동은 빠짐없이 하고 있어요': "I haven't missed a single workout",
-  '이행률 100%인데 나트륨 7일 연속 초과. 식단 상담으로 전환.':
+  '완료율 100%인데 나트륨 7일 연속 초과. 식단 상담으로 전환.':
       '100% completion but sodium over target 7 days straight. Switch to diet counseling.',
   '서진님, 운동은 7일 다 채우셨어요. 다만 나트륨이 계속 2500 위예요':
       'Seojin, you completed all 7 days of workouts. Your sodium keeps staying above 2,500, though',

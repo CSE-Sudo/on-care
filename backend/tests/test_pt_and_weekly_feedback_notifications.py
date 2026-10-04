@@ -422,7 +422,7 @@ def test_weekly_feedback_tells_the_trainer(client, db_session, pair):
     assert len(rows) == 1
     row = rows[0]
     assert row["title"] == "지수 회원이 주간 피드백을 보냈어요"
-    assert row["body"] == "컨디션 좋았어요 · 운동 강도 적당했어요"
+    assert row["body"] == "컨디션 좋았어요 · 운동 강도 딱 맞았어요"
     assert row["subject_id"] == pair.member_id
     assert row["target_date"] == "2026-09-21"
     assert row["template"] == nt.TRAINER_MEMBER_WEEKLY_FEEDBACK
@@ -461,7 +461,7 @@ def test_resubmitting_before_reading_rewrites_the_same_alert(client, db_session,
     assert len(rows) == 1
     assert rows[0]["id"] == first["id"]
     assert rows[0]["title"] == "지수 회원이 주간 피드백을 보냈어요"
-    assert rows[0]["body"] == "컨디션 많이 힘들었어요 · 운동 강도 너무 힘들었어요"
+    assert rows[0]["body"] == "컨디션 많이 안 좋았어요 · 운동 강도 너무 힘들었어요"
 
 
 def test_resubmitting_before_reading_moves_the_alert_to_the_top(client, db_session, pair):
@@ -520,7 +520,7 @@ def test_revised_alert_rewritten_before_reading_stays_revised(client, db_session
     rows = _of(_trainer_inbox(client, pair), "weekly_feedback")
     assert len(rows) == 2
     assert rows[0]["title"] == "지수 회원이 주간 피드백을 수정했어요"
-    assert rows[0]["body"].startswith("컨디션 많이 힘들었어요")
+    assert rows[0]["body"].startswith("컨디션 많이 안 좋았어요")
 
 
 def test_another_week_is_its_own_alert(client, db_session, pair):

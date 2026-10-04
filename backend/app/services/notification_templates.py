@@ -338,20 +338,21 @@ def _trainer_member_message(args: Args, locale: Locale) -> Rendered:
     return f"Message from {name or 'a member'}", "Sent a photo" if photo_only else None
 
 
-#: 회원 주간 피드백 저장 값 → (한국어, 영어). 트레이너 웹 ARB 의
-#: `reportsMemberFeedbackCondition*`·`reportsMemberFeedbackIntensity*` 와 같은 말이다.
+#: 회원 주간 피드백 저장 값 → (한국어, 영어). 회원 앱 입력 시트의
+#: `weekCondition*`·`weekIntensity*` 와 같은 말이다 — 회원이 고른 말 그대로
+#: 트레이너에게 보인다(#3116). 트레이너 웹 `reportsMemberFeedback*` 도 같다.
 #: 저장 값 목록은 `trainer.weekly_feedback` 의 `_WEEKLY_FEEDBACK_*` 와 같다.
 _FEEDBACK_CONDITION: dict[str, tuple[str, str]] = {
     "great": ("아주 좋았어요", "Great"),
     "good": ("좋았어요", "Good"),
     "ok": ("보통이었어요", "Okay"),
     "tired": ("지쳤어요", "Worn out"),
-    "bad": ("많이 힘들었어요", "Really rough"),
+    "bad": ("많이 안 좋았어요", "Rough"),
 }
 _FEEDBACK_INTENSITY: dict[str, tuple[str, str]] = {
     "too_easy": ("너무 쉬웠어요", "Too easy"),
-    "right": ("적당했어요", "About right"),
-    "hard": ("힘들었어요", "Hard"),
+    "right": ("딱 맞았어요", "Just right"),
+    "hard": ("조금 힘들었어요", "A bit hard"),
     "too_hard": ("너무 힘들었어요", "Too hard"),
 }
 

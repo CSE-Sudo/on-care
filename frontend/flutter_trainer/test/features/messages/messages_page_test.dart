@@ -450,7 +450,7 @@ void main() {
       expect(labels.where((l) => l.contains('나트륨')), isEmpty);
       // 대화 화면은 대화만 한다 — 운동 데이터는 회원 탭이 보여 준다.
       expect(find.textContaining('최근 운동'), findsNothing);
-      expect(find.textContaining('주간 이행률'), findsNothing);
+      expect(find.textContaining('주간 완료율'), findsNothing);
     });
   });
 

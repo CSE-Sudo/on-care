@@ -100,12 +100,12 @@ CASES: dict[str, dict] = {
 }
 
 
-# 이 변경 전 한국어 출력 그대로. **고치지 말 것** — 달라졌다면 한국어 회귀다.
+# 이 변경 전 한국어 출력 그대로(#3116 에서 `완료율`·`회원`·`프로그램` 으로 용어만 맞춤). **고치지 말 것** — 달라졌다면 한국어 회귀다.
 KO_GOLDEN: dict[str, dict] = {'default': {'evidence': ['나트륨 평균 2,288mg · 기본 목표 2,000mg 초과 4일',
                           '칼로리 평균 1,624kcal · 기본 목표 2,000kcal 대비 부족 19%',
                           '건너뛴 운동: 풀업',
-                          '운동 이행률 평균 87%'],
-             'headline': '김민수 고객은 운동 이행률 87%로 잘 지켰고, 다음 주는 나트륨 목표 초과 4일을 함께 챙기면 좋겠습니다. '
+                          '운동 완료율 평균 87%'],
+             'headline': '김민수 회원은 운동 완료율 87%로 잘 지켰고, 다음 주는 나트륨 목표 초과 4일을 함께 챙기면 좋겠습니다. '
                          '그 밖에 2가지도 함께 보세요.',
              'points': ['나트륨 평균 2,288mg · 기본 목표 2,000mg 초과 4일',
                         '칼로리 평균 1,624kcal · 기본 목표 2,000kcal 대비 부족 19%',
@@ -119,19 +119,19 @@ KO_GOLDEN: dict[str, dict] = {'default': {'evidence': ['나트륨 평균 2,288mg
                         '나트륨은 하루 평균 2,288mg이었고, 목표(2,000mg)를 넘긴 날이 4일이었어요. 국물을 절반만 '
                         '남기셔도 하루 400~500mg은 줄어듭니다. 칼로리는 하루 평균 1,624kcal이에요.\n'
                         '\n'
-                        '다음 주에는 이 부분만 같이 신경 써 봐요. 루틴은 제가 조정해서 올려둘게요.'},
+                        '다음 주에는 이 부분만 같이 신경 써 봐요. 프로그램은 제가 조정해서 올려둘게요.'},
  'empty': {'evidence': [],
-           'headline': '김민수 고객은 그 주 기록이 없어 다음 주 시작을 함께 잡아 주세요.',
+           'headline': '김민수 회원은 그 주 기록이 없어 다음 주 시작을 함께 잡아 주세요.',
            'points': [],
            'topics': [],
            'message': '김민수님, 8월 10일 – 8월 16일 주간 리포트 정리해서 보내드려요.\n'
                       '\n'
                       '이 주에는 남은 기록이 없어서 정리해 드릴 내용이 없네요. 다음 주 시작을 같이 잡아 봐요.'},
- 'steady': {'evidence': ['운동 이행률 평균 90%',
+ 'steady': {'evidence': ['운동 완료율 평균 90%',
                          '나트륨 평균 1,500mg · 기본 목표 2,000mg 초과 0일',
                          '칼로리 평균 2,000kcal'],
-            'headline': '김민수 고객은 기록이 목표 범위 안에 있어 지금 강도를 유지해도 좋습니다.',
-            'points': ['운동 이행률 평균 90%',
+            'headline': '김민수 회원은 기록이 목표 범위 안에 있어 지금 강도를 유지해도 좋습니다.',
+            'points': ['운동 완료율 평균 90%',
                        '나트륨 평균 1,500mg · 기본 목표 2,000mg 초과 0일',
                        '칼로리 평균 2,000kcal'],
             'topics': [],
@@ -143,42 +143,42 @@ KO_GOLDEN: dict[str, dict] = {'default': {'evidence': ['나트륨 평균 2,288mg
                        '2,000kcal이에요.\n'
                        '\n'
                        '정말 잘하셨어요. 다음 주도 이 페이스 그대로 가요!'},
- 'watch_only': {'evidence': ['운동 이행률 평균 40% · 기준 60% 미만'],
-                'headline': '김민수 고객은 운동 이행률 40%가 목표를 벗어나 다음 주 조정이 필요합니다.',
-                'points': ['운동 이행률 평균 40% · 기준 60% 미만'],
-                'topics': ['운동 이행률 40%'],
+ 'watch_only': {'evidence': ['운동 완료율 평균 40% · 기준 60% 미만'],
+                'headline': '김민수 회원은 운동 완료율 40%가 목표를 벗어나 다음 주 조정이 필요합니다.',
+                'points': ['운동 완료율 평균 40% · 기준 60% 미만'],
+                'topics': ['운동 완료율 40%'],
                 'message': '김민수님, 8월 10일 – 8월 16일 주간 리포트 정리해서 보내드려요.\n'
                            '\n'
-                           '운동 이행률은 평균 40%였어요. 많이 바쁘셨나 봐요.\n'
+                           '운동 완료율은 평균 40%였어요. 많이 바쁘셨나 봐요.\n'
                            '\n'
-                           '다음 주에는 이 부분만 같이 신경 써 봐요. 루틴은 제가 조정해서 올려둘게요.'},
- 'good_sodium_over1': {'evidence': ['운동 이행률 평균 50% · 기준 60% 미만',
+                           '다음 주에는 이 부분만 같이 신경 써 봐요. 프로그램은 제가 조정해서 올려둘게요.'},
+ 'good_sodium_over1': {'evidence': ['운동 완료율 평균 50% · 기준 60% 미만',
                                     '나트륨 평균 1,800mg · 기본 목표 2,000mg 초과 1일'],
-                       'headline': '김민수 고객은 나트륨 목표 초과 1일로 잘 지켰고, 다음 주는 운동 이행률 50%를 함께 '
+                       'headline': '김민수 회원은 나트륨 목표 초과 1일로 잘 지켰고, 다음 주는 운동 완료율 50%를 함께 '
                                    '챙기면 좋겠습니다.',
-                       'points': ['운동 이행률 평균 50% · 기준 60% 미만',
+                       'points': ['운동 완료율 평균 50% · 기준 60% 미만',
                                   '나트륨 평균 1,800mg · 기본 목표 2,000mg 초과 1일'],
-                       'topics': ['운동 이행률 50%'],
+                       'topics': ['운동 완료율 50%'],
                        'message': '김민수님, 8월 10일 – 8월 16일 주간 리포트 정리해서 보내드려요.\n'
                                   '\n'
-                                  '운동 이행률은 평균 50%였어요. 많이 바쁘셨나 봐요.\n'
+                                  '운동 완료율은 평균 50%였어요. 많이 바쁘셨나 봐요.\n'
                                   '\n'
                                   '나트륨은 하루 평균 1,800mg이었고, 목표(2,000mg)를 넘긴 날이 1일이었어요. '
                                   '국물을 절반만 남기셔도 하루 400~500mg은 줄어듭니다.\n'
                                   '\n'
-                                  '다음 주에는 이 부분만 같이 신경 써 봐요. 루틴은 제가 조정해서 올려둘게요.'},
- 'many': {'evidence': ['운동 이행률 평균 55% · 기준 60% 미만',
+                                  '다음 주에는 이 부분만 같이 신경 써 봐요. 프로그램은 제가 조정해서 올려둘게요.'},
+ 'many': {'evidence': ['운동 완료율 평균 55% · 기준 60% 미만',
                        '나트륨 평균 2,600mg · 개인 목표 2,300mg 초과 5일',
                        '당류 평균 75g · 개인 목표 40g 초과 4일',
                        '칼로리 평균 2,600kcal · 개인 목표 2,100kcal 대비 초과 24%',
                        '건너뛴 운동: 스쿼트, 런지, 플랭크',
                        '탄수화물 평균 310g · 개인 목표 200g 대비 초과 55%',
                        '단백질 평균 55g · 개인 목표 120g 대비 부족 54%'],
-          'headline': '김민수 고객은 운동 이행률 55%가 목표를 벗어나 다음 주 조정이 필요합니다. 그 밖에 6가지도 함께 보세요.',
-          'points': ['운동 이행률 평균 55% · 기준 60% 미만',
+          'headline': '김민수 회원은 운동 완료율 55%가 목표를 벗어나 다음 주 조정이 필요합니다. 그 밖에 6가지도 함께 보세요.',
+          'points': ['운동 완료율 평균 55% · 기준 60% 미만',
                      '나트륨 평균 2,600mg · 개인 목표 2,300mg 초과 5일',
                      '외 5건 — 리포트 본문에서 확인'],
-          'topics': ['운동 이행률 55%',
+          'topics': ['운동 완료율 55%',
                      '나트륨 목표 초과 5일',
                      '당류 목표 초과 4일',
                      '칼로리 초과',
@@ -187,29 +187,29 @@ KO_GOLDEN: dict[str, dict] = {'default': {'evidence': ['나트륨 평균 2,288mg
                      '단백질 부족'],
           'message': '김민수님, 8월 10일 – 8월 16일 주간 리포트 정리해서 보내드려요.\n'
                      '\n'
-                     '운동 이행률은 평균 55%였어요. 많이 바쁘셨나 봐요. 다만 스쿼트, 런지, 플랭크는 건너뛰셨더라고요. 컨디션 '
+                     '운동 완료율은 평균 55%였어요. 많이 바쁘셨나 봐요. 다만 스쿼트, 런지, 플랭크는 건너뛰셨더라고요. 컨디션 '
                      '때문이었다면 다음 PT 때 말씀해 주세요. 대체 동작으로 바꿔 둘게요.\n'
                      '\n'
                      '나트륨은 하루 평균 2,600mg이었고, 목표(2,300mg)를 넘긴 날이 5일이었어요. 국물을 절반만 남기셔도 '
                      '하루 400~500mg은 줄어듭니다. 칼로리는 하루 평균 2,600kcal이에요.\n'
                      '\n'
-                     '다음 주에는 이 부분만 같이 신경 써 봐요. 루틴은 제가 조정해서 올려둘게요.'},
+                     '다음 주에는 이 부분만 같이 신경 써 봐요. 프로그램은 제가 조정해서 올려둘게요.'},
  'cal_under': {'evidence': ['칼로리 평균 1,250kcal · 기본 목표 2,000kcal 대비 부족 38%'],
-               'headline': '김민수 고객은 칼로리 부족이 목표를 벗어나 다음 주 조정이 필요합니다.',
+               'headline': '김민수 회원은 칼로리 부족이 목표를 벗어나 다음 주 조정이 필요합니다.',
                'points': ['칼로리 평균 1,250kcal · 기본 목표 2,000kcal 대비 부족 38%'],
                'topics': ['칼로리 부족'],
                'message': '김민수님, 8월 10일 – 8월 16일 주간 리포트 정리해서 보내드려요.\n'
                           '\n'
                           '칼로리는 하루 평균 1,250kcal이에요.\n'
                           '\n'
-                          '다음 주에는 이 부분만 같이 신경 써 봐요. 루틴은 제가 조정해서 올려둘게요.'},
+                          '다음 주에는 이 부분만 같이 신경 써 봐요. 프로그램은 제가 조정해서 올려둘게요.'},
  'sugar_avg': {'evidence': ['당류 평균 58g · 기본 목표 50g 초과 2일',
-                            '운동 이행률 평균 80%',
+                            '운동 완료율 평균 80%',
                             '나트륨 평균 1,500mg · 기본 목표 2,000mg 초과 0일'],
-               'headline': '김민수 고객은 운동 이행률 80%로 잘 지켰고, 다음 주는 당류 목표 초과 2일을 함께 챙기면 '
+               'headline': '김민수 회원은 운동 완료율 80%로 잘 지켰고, 다음 주는 당류 목표 초과 2일을 함께 챙기면 '
                            '좋겠습니다.',
                'points': ['당류 평균 58g · 기본 목표 50g 초과 2일',
-                          '운동 이행률 평균 80%',
+                          '운동 완료율 평균 80%',
                           '나트륨 평균 1,500mg · 기본 목표 2,000mg 초과 0일'],
                'topics': ['당류 목표 초과 2일'],
                'message': '김민수님, 8월 10일 – 8월 16일 주간 리포트 정리해서 보내드려요.\n'
@@ -220,14 +220,14 @@ KO_GOLDEN: dict[str, dict] = {'default': {'evidence': ['나트륨 평균 2,288mg
                           '\n'
                           '정말 잘하셨어요. 다음 주도 이 페이스 그대로 가요!'},
  'sodium_avg_over': {'evidence': ['나트륨 평균 2,400mg · 기본 목표 2,000mg 초과 0일'],
-                     'headline': '김민수 고객은 나트륨 평균 2,400mg가 목표를 벗어나 다음 주 조정이 필요합니다.',
+                     'headline': '김민수 회원은 나트륨 평균 2,400mg가 목표를 벗어나 다음 주 조정이 필요합니다.',
                      'points': ['나트륨 평균 2,400mg · 기본 목표 2,000mg 초과 0일'],
                      'topics': ['나트륨 평균 2,400mg'],
                      'message': '김민수님, 8월 10일 – 8월 16일 주간 리포트 정리해서 보내드려요.\n'
                                 '\n'
                                 '나트륨은 하루 평균 2,400mg으로 목표(2,000mg) 안에서 잘 지키고 계세요.\n'
                                 '\n'
-                                '다음 주에는 이 부분만 같이 신경 써 봐요. 루틴은 제가 조정해서 올려둘게요.'}}
+                                '다음 주에는 이 부분만 같이 신경 써 봐요. 프로그램은 제가 조정해서 올려둘게요.'}}
 
 
 @pytest.fixture
@@ -297,14 +297,14 @@ def test_english_evidence_for_the_default_week():
         "Avg sodium 2,288mg · over the default target of 2,000mg on 4 days",
         "Avg calories 1,624kcal · 19% below the default target of 2,000kcal",
         "Skipped exercises: 풀업",
-        "Avg workout completion 87%",
+        "Avg workout completion rate 87%",
     ]
 
 
 def test_english_evidence_names_personal_targets():
     lines = svc._evidence(_report(**CASES["many"]), "en")
     assert lines == [
-        "Avg workout completion 55% · below the 60% bar",
+        "Avg workout completion rate 55% · below the 60% bar",
         "Avg sodium 2,600mg · over the personal target of 2,300mg on 5 days",
         "Avg sugar 75g · over the personal target of 40g on 4 days",
         "Avg calories 2,600kcal · 24% above the personal target of 2,100kcal",
@@ -316,7 +316,7 @@ def test_english_evidence_names_personal_targets():
 
 def test_english_evidence_for_a_steady_week():
     assert svc._evidence(_report(**CASES["steady"]), "en") == [
-        "Avg workout completion 90%",
+        "Avg workout completion rate 90%",
         "Avg sodium 1,500mg · over the default target of 2,000mg on 0 days",
         "Avg calories 2,000kcal",
     ]
@@ -412,7 +412,7 @@ def test_english_sentences_carry_no_korean_of_their_own(case):
 def test_english_rule_summary_names_the_good_and_the_watch():
     out = _outputs(_report(), "en")
     assert out["headline"] == (
-        "김민수 did well with workout completion at 87%; next week, let's also work "
+        "김민수 did well with workout completion rate at 87%; next week, let's also work "
         "on sodium over target on 4 days. Keep an eye on 2 more items too."
     )
     assert out["points"] == [
@@ -441,7 +441,7 @@ def test_english_rule_summary_for_a_steady_week():
 def test_english_rule_summary_when_only_watchpoints_remain():
     out = _outputs(_en_report(**CASES["watch_only"]), "en")
     assert out["headline"] == (
-        "Alex needs some adjusting next week: workout completion at 40%."
+        "Alex needs some adjusting next week: workout completion rate at 40%."
     )
 
 
@@ -459,7 +459,7 @@ def test_english_praise_for_sodium_reads_as_praise():
     out = _outputs(_en_report(**CASES["good_sodium_over1"]), "en")
     assert out["headline"] == (
         "Alex did well with sodium (1 day over target); next week, let's also "
-        "work on workout completion at 50%."
+        "work on workout completion rate at 50%."
     )
     avg = _outputs(
         _en_report(**{**CASES["good_sodium_over1"], "sodium_over_days": 0}), "en"
@@ -693,7 +693,7 @@ def test_english_draft_low_completion_and_single_day():
     message = trainer_reports_service.report_message(
         _en_report(**CASES["good_sodium_over1"]), "en"
     )
-    assert "Workout completion came in at 50%. Sounds like a busy week." in message
+    assert "Workout completion rate came in at 50%. Sounds like a busy week." in message
     assert "went over the 2,000mg target on 1 day." in message
 
 
@@ -774,7 +774,7 @@ def test_summary_endpoint_stays_korean_without_a_header(client, model_down):
         "/v1/trainer/clients/user-jisu/report/summary", headers=_headers(client)
     )
     assert r.status_code == 200, r.text
-    assert "고객은" in r.json()["headline"]
+    assert "회원은" in r.json()["headline"]
 
 
 @pytest.mark.parametrize("header", ["en-US", "en-US,en;q=0.9", "ko;q=0.2, en;q=0.8"])
@@ -784,7 +784,7 @@ def test_summary_endpoint_reads_real_browser_headers(client, model_down, header)
         headers=_headers(client, header),
     )
     assert r.status_code == 200, r.text
-    assert "고객은" not in r.json()["headline"]
+    assert "회원은" not in r.json()["headline"]
     _assert_english_summary(r.json())
 
 
@@ -795,7 +795,7 @@ def test_summary_endpoint_falls_back_to_korean(client, model_down, header):
         headers=_headers(client, header),
     )
     assert r.status_code == 200, r.text
-    assert "고객은" in r.json()["headline"]
+    assert "회원은" in r.json()["headline"]
 
 
 def test_summary_endpoint_matches_the_service_for_both_languages(

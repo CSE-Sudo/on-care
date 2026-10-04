@@ -218,9 +218,9 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
       'revised': false,
     },
     '지수 회원이 주간 피드백을 보냈어요',
-    '컨디션 좋았어요 · 운동 강도 적당했어요',
+    '컨디션 좋았어요 · 운동 강도 딱 맞았어요',
     '지수 sent their weekly feedback',
-    'Condition: Good · Intensity: About right',
+    'Condition: Good · Intensity: Just right',
   ),
   // 통증은 수정보다 먼저 보인다 — 다음 PT 를 바꿔야 할 수 있는 답이다.
   (
