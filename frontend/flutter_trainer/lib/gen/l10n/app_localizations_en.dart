@@ -5882,4 +5882,17 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get signUpCodeRequestFailed =>
       'Couldn\'t send the code. Please try again shortly.';
+
+  @override
+  String get releaseUpdateTitle => 'A new version is available';
+
+  @override
+  String get releaseUpdateMessage =>
+      'Reload to get the latest version. Save anything you\'re working on first.';
+
+  @override
+  String get releaseUpdateReload => 'Reload';
+
+  @override
+  String get releaseUpdateDismiss => 'Dismiss';
 }

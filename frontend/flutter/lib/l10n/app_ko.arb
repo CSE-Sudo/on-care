@@ -2071,5 +2071,9 @@
   "reauthSocialConfirmed": "소셜 계정을 확인했어요",
   "reauthSocialRequired": "소셜 계정으로 다시 로그인해 주세요",
   "reauthSocialInvalid": "소셜 계정 확인에 실패했어요. 다시 로그인해 주세요.",
-  "reauthSocialUnavailable": "이 버전에서는 아직 소셜 계정 확인을 할 수 없어요. 고객 지원으로 문의해 주세요."
+  "reauthSocialUnavailable": "이 버전에서는 아직 소셜 계정 확인을 할 수 없어요. 고객 지원으로 문의해 주세요.",
+  "releaseUpdateTitle": "새 버전이 배포되었어요",
+  "releaseUpdateMessage": "새로고침하면 최신 화면으로 바뀌어요. 작성 중인 내용이 있으면 먼저 저장해 주세요.",
+  "releaseUpdateReload": "새로고침",
+  "releaseUpdateDismiss": "안내 닫기"
 }

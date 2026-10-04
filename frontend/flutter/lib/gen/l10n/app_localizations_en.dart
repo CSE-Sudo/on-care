@@ -4918,4 +4918,17 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get reauthSocialUnavailable =>
       'Social sign-in isn\'t available in this version yet. Please contact support.';
+
+  @override
+  String get releaseUpdateTitle => 'A new version is available';
+
+  @override
+  String get releaseUpdateMessage =>
+      'Reload to get the latest version. Save anything you\'re working on first.';
+
+  @override
+  String get releaseUpdateReload => 'Reload';
+
+  @override
+  String get releaseUpdateDismiss => 'Dismiss';
 }

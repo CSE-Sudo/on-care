@@ -2661,5 +2661,9 @@
   "signUpCodeRequired": "이메일 인증 코드를 입력해 주세요.",
   "signUpCodeTooMany": "요청이 너무 많아요. 잠시 후 다시 시도해 주세요.",
   "signUpCodeUnavailable": "지금은 인증 메일을 보낼 수 없어요. 잠시 후 다시 시도해 주세요.",
-  "signUpCodeRequestFailed": "인증 코드를 보내지 못했어요. 잠시 후 다시 시도해 주세요."
+  "signUpCodeRequestFailed": "인증 코드를 보내지 못했어요. 잠시 후 다시 시도해 주세요.",
+  "releaseUpdateTitle": "새 버전이 배포되었어요",
+  "releaseUpdateMessage": "새로고침하면 최신 화면으로 바뀌어요. 작성 중인 내용이 있으면 먼저 저장해 주세요.",
+  "releaseUpdateReload": "새로고침",
+  "releaseUpdateDismiss": "안내 닫기"
 }
