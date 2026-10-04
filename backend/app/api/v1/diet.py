@@ -46,6 +46,7 @@ from app.schemas.diet_api import (
     analyze_record_date,
 )
 from app.schemas.points_api import PointsOut
+from app.services.ai_log import log_ai_fallback
 from app.services import (
     chat_image_storage,
     diet_advice_copy,
@@ -69,6 +70,7 @@ from app.services.recognizer.factory import (
 )
 
 router = APIRouter(tags=["diet"])
+
 logger = logging.getLogger(__name__)
 
 #: 사진 분석 분당 한도 초과(#2827). 하루 상한(`daily_limit`)과 달리 잠시 뒤 다시 된다.
@@ -359,8 +361,12 @@ async def diet_analyze(
     except Exception as e:  # noqa: BLE001
         # 공급자 장애로 회원의 하루 몫이 깎이지 않게 돌려준다.
         await run_in_threadpool(diet_analysis_quota_service.release, db, usage_id)
-        # 원본 에러(API 키/내부 URL 등)는 서버 로그에만 남기고, 클라이언트엔 일반화된 메시지
-        logger.exception("식단 인식 실패 (engine=%s)", engine)
+        # 클라이언트엔 일반화된 메시지. 서버 로그에도 예외 메시지·스택은 남기지 않는다 —
+        # provider 오류는 요청 본문을, 검증 오류는 모델 출력을 되풀이한다(#3090).
+        log_ai_fallback(
+            logger, "diet_recognize", "error", exc=e, level=logging.ERROR,
+            engine=engine or "-", user_id=user_id,
+        )
         raise HTTPException(
             status_code=502, detail="식단 인식에 실패했습니다. 잠시 후 다시 시도해 주세요."
         ) from e

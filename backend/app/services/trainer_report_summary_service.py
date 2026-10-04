@@ -35,6 +35,7 @@ from app.services import client_signals, goal_defaults, korean_josa
 from app.services.trainer import reports as trainer_reports_service
 from app.services.coach import prompt_safety
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
+from app.services.ai_log import log_ai_fallback
 
 logger = logging.getLogger(__name__)
 
@@ -162,12 +163,20 @@ def generate_summary(
     try:
         result = _call_llm(prompt, locale)
         return _decode(result.text, report, evidence, locale)
-    except (json.JSONDecodeError, ValidationError, ValueError):
-        logger.warning("리포트 요약 LLM 계약 위반 — 규칙 기반 요약 사용", exc_info=True)
+    # 규칙 기반 요약으로 폴백한다. 예외 메시지·스택은 남기지 않는다 — 계약 위반
+    # 메시지(`ValidationError`·`JSONDecodeError`)는 모델 출력을 그대로 싣는다(#3090).
+    except (json.JSONDecodeError, ValidationError, ValueError) as exc:
+        log_ai_fallback(
+            logger, "report_summary", "contract", exc=exc,
+            trainer_id=trainer_id, member_id=member_id,
+        )
     except FutureTimeout:
         logger.warning("리포트 요약 LLM 타임아웃 — 규칙 기반 요약 사용")
-    except Exception:
-        logger.exception("리포트 요약 LLM 호출 실패 — 규칙 기반 요약 사용")
+    except Exception as exc:  # noqa: BLE001 — 공급자 장애·우리 쪽 버그
+        log_ai_fallback(
+            logger, "report_summary", "error", exc=exc, level=logging.ERROR,
+            trainer_id=trainer_id, member_id=member_id,
+        )
     return fallback
 
 
@@ -603,6 +612,11 @@ def _rule_summary(
     return _out(report, headline, _points(report, evidence, locale), "rule")
 
 
+#: AI 가 쓴 headline 의 최대 길이(#3090). 프롬프트는 "한 문장" 을 요구한다. 영어 한
+#: 문장(잘한 점 + 챙길 점)이 한국어보다 길어 두 언어를 함께 담는 값으로 둔다.
+HEADLINE_MAX = 200
+
+
 def _decode(
     text: str,
     report: WeeklyReportOut,
@@ -611,9 +625,15 @@ def _decode(
 ) -> ReportSummaryOut:
     """모델 응답을 검사한다. 근거를 지어냈으면 계약 위반으로 본다."""
     raw = json.loads(text)
+    if not isinstance(raw, dict):
+        raise ValueError("LLM 응답이 JSON 객체가 아닙니다.")
     headline = str(raw.get("headline", "")).strip()
     if not headline:
         raise ValueError("LLM 응답에 headline 이 없습니다.")
+    # 한 문장이어야 할 칸에 긴 글이 오면 요약 카드에 그대로 뜬다(#3090). 자르지 않고
+    # 계약 위반으로 본다 — 중간에서 끊긴 문장보다 규칙 기반 한 문장이 낫다.
+    if len(headline) > HEADLINE_MAX:
+        raise ValueError("LLM 응답의 headline 이 너무 깁니다.")
     points = [str(p).strip() for p in raw.get("points", []) if str(p).strip()]
     if not points or not set(points).issubset(evidence):
         raise ValueError("LLM 응답의 근거가 입력 데이터와 다릅니다.")

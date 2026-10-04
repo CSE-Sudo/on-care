@@ -25,7 +25,7 @@ from app.services.coach import grounding, insights, prompt_safety
 from app.services.coach.llm import get_coach_llm
 from app.services.coach.rag import retrieve
 from app.services.coach_service import diet_period_context
-from app.services import health_focus
+from app.services import ai_log, health_focus
 
 _SYSTEM = (
     # 대상 집단을 스타트 단계의 `고혈압·당뇨 위험군` 으로 소개하고 있었다(#2026).
@@ -45,7 +45,9 @@ _SYSTEM = (
     # 안 재는 지표를 근거 있는 것처럼 말하지 않게 한다(#602).
     + grounding.UNTRACKED_METRIC_NOTICE + " "
     # '내 건강 기록'에는 트레이너와 주고받은 대화도 섞여 들어온다(#580).
-    + prompt_safety.UNTRUSTED_QUOTE_GUARD
+    + prompt_safety.UNTRUSTED_QUOTE_GUARD + " "
+    # 식단 기록 줄에는 회원이 적은 음식 이름이 들어 있다(#3090).
+    + prompt_safety.FOOD_NAME_GUARD
 )
 
 #: 영어 화면에서 요청했을 때 시스템 프롬프트 끝에 덧붙이는 출력 언어 규칙(#2712).
@@ -242,17 +244,8 @@ def _configured_model(provider: str) -> str:
     return str(getattr(get_settings(), field, "") or "-") if field else "-"
 
 
-def _http_status(exc: BaseException) -> int | None:
-    """provider SDK 예외에 실린 HTTP 상태(401·429·5xx…). 없으면 None.
-
-    SDK 마다 이름이 달라(`status_code`·`code`) 정수인 것만 쓴다 — 인증 오류와
-    한도 초과를 운영에서 가르는 데 가장 쓸모 있는 값이다.
-    """
-    for attr in ("status_code", "code"):
-        value = getattr(exc, attr, None)
-        if isinstance(value, int) and not isinstance(value, bool):
-            return value
-    return None
+#: provider SDK 예외의 HTTP 상태. 규칙은 다른 AI 경로와 같이 쓴다(#3090, `ai_log`).
+_http_status = ai_log.http_status
 
 
 def _log_fallback(
@@ -265,6 +258,7 @@ def _log_fallback(
 ) -> None:
     """생성 폴백 한 건을 구조화 로그로 남긴다 (#1559).
 
+    다른 AI 경로도 이 원칙을 공용 헬퍼(`app/services/ai_log.py`)로 따른다(#3090).
     남기는 것은 **사유·provider·model·오류 유형·HTTP 상태·user_id** 뿐이다. 예외
     메시지는 남기지 않는다 — provider SDK 는 오류 메시지에 요청 본문(프롬프트:
     회원 프로필·식단·대화)이나 키 일부를 되풀이하는 일이 있다. 요청 상관관계는
@@ -273,9 +267,7 @@ def _log_fallback(
     내부 오류만 스택을 붙인다. 우리 코드의 버그라 어디서 났는지가 필요하고, 그
     경로의 예외는 provider 응답을 싣지 않는다.
     """
-    error_type = (
-        f"{type(exc).__module__}.{type(exc).__qualname__}" if exc is not None else "-"
-    )
+    error_type = ai_log.error_type(exc)
     status = _http_status(exc) if exc is not None else None
     fields = {
         "event": FALLBACK_EVENT,
