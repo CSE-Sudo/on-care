@@ -3872,6 +3872,12 @@ abstract class AppLocalizations {
   /// **'Privacy Policy'**
   String get myLegalPrivacyTitle;
 
+  /// MY support row that opens the open-source license list (packages and the bundled Pretendard font, #3150).
+  ///
+  /// In en, this message translates to:
+  /// **'Open-source licenses'**
+  String get myOpenSourceLicensesTitle;
+
   /// No description provided for @myLegalTermsBody.
   ///
   /// In en, this message translates to:

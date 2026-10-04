@@ -28,6 +28,7 @@ import 'package:oncare/features/my_health/presentation/widgets/account_reauth_di
 import 'package:oncare/features/notification/data/repositories/notification_settings_repository.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_core/legal_contact.dart';
+import 'package:oncare_core/licenses.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -2030,6 +2031,15 @@ class SupportPage extends StatelessWidget {
           () => _openLegal(context, _LegalDoc.privacy),
         ),
         const AppDivider(),
+        // 오픈소스 라이선스(#3150) — 의존 패키지와 앱에 담긴 Pretendard 글꼴의
+        // 고지. Flutter 기본 목록 화면을 앱 테마 그대로 연다.
+        _supportRow(
+          context,
+          AppIcons.info,
+          l.myOpenSourceLicensesTitle,
+          () => openOpenSourceLicenses(context),
+        ),
+        const AppDivider(),
         // 탈퇴는 MY 설정 목록 맨 끝이 아니라 여기다(#2019). 로그아웃 바로
         // 아래에 두면 빨간 글자 둘이 나란히 서서 어느 쪽이 되돌릴 수 없는
         // 동작인지 흐려진다. 약관·개인정보 다음, 계정을 정리하는 줄로 묶는다.
@@ -2088,6 +2098,21 @@ Future<void> _openExternal(BuildContext context, String url) async {
   if (!opened) {
     toast.show(l.mySupportOpenFailed, type: AppToastType.error);
   }
+}
+
+/// 오픈소스 라이선스 목록을 연다(#3150). 머리에는 앱 이름과, 읽었으면 버전을
+/// 싣는다 — 고객 지원 아래 버전 줄과 같은 값이다.
+void openOpenSourceLicenses(BuildContext context) {
+  final AppLocalizations l = AppLocalizations.of(context);
+  final String? version = ProviderScope.containerOf(
+    context,
+    listen: false,
+  ).read(appVersionProvider).valueOrNull;
+  showOnCareLicenses(
+    context,
+    applicationName: l.myAppName,
+    applicationVersion: version,
+  );
 }
 
 void _openLegal(BuildContext context, _LegalDoc doc) {
