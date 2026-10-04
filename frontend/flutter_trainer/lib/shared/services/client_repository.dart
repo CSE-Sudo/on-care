@@ -1383,14 +1383,6 @@ final clientRepositoryProvider = Provider<ClientRepository>((ref) {
   return repository;
 });
 
-/// Streams the client list for the 고객 관리 tab.
-final managedClientsProvider = StreamProvider.autoDispose<List<TrainerClient>>((
-  ref,
-) {
-  keepAliveForAccount(ref);
-  return ref.watch(clientRepositoryProvider).watchClients();
-});
-
 final clientsProvider = StreamProvider.autoDispose<List<TrainerClient>>((ref) {
   keepAliveForAccount(ref);
   return ref

@@ -42,11 +42,7 @@ class _FollowUpCardState extends ConsumerState<FollowUpCard> {
     setState(() => _completing = task.id);
     try {
       await ref.read(followUpTaskRepositoryProvider).complete(task.id);
-      // 고객 상세의 남은 목록도 같은 데이터를 읽는다 — 한쪽만 갱신하면 이미 닫은
-      // 할 일이 다른 화면에 남는다.
-      ref
-        ..invalidate(dueFollowUpsProvider)
-        ..invalidate(clientFollowUpsProvider(task.memberId));
+      ref.invalidate(dueFollowUpsProvider);
     } on AppError catch (error) {
       if (mounted) {
         _toast(serverDetailOr(l, error.message, l.followUpCompleteFailed));

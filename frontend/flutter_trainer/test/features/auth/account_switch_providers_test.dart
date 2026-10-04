@@ -135,12 +135,6 @@ void main() {
       clients.any((TrainerClient c) => c.name == t.memberName);
 
   group('회원 목록', () {
-    test('managedClientsProvider — B 에게 B 의 회원만', () async {
-      final result = await switchAccounts(managedClientsProvider);
-      expect(rosterOf(result.forA.requireValue, TestTrainer.a), isTrue);
-      expectOnlyB(result.seenByB, rosterOf);
-    });
-
     test('clientsProvider — B 에게 B 의 회원만', () async {
       final result = await switchAccounts(clientsProvider);
       expect(rosterOf(result.forA.requireValue, TestTrainer.a), isTrue);
