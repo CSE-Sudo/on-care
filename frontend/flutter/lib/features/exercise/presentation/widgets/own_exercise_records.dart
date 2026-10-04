@@ -227,6 +227,7 @@ String exerciseAmountLabel(AppLocalizations l, ExerciseSession s) =>
       durationSeconds: s.durationSeconds,
       sets: s.sets,
       reps: s.reps,
+      holdSeconds: s.holdSeconds,
       weight: s.weight,
     );
 
@@ -242,6 +243,7 @@ String exerciseAmountLabelOf(
   int? durationSeconds,
   int? sets,
   int? reps,
+  int? holdSeconds,
   double? weight,
   bool setsFromMinutesWhenUnknown = true,
 }) {
@@ -261,17 +263,43 @@ String exerciseAmountLabelOf(
     );
   }
   final int setCount = sets ?? setsFromStrengthMinutes(minutes.toDouble());
-  final StringBuffer buffer = StringBuffer(l.exSetsCount(setCount));
-  // 횟수·중량은 적었을 때만 붙인다 — 이 칸이 생기기 전 기록에 아무도 적지
-  // 않은 수가 뜨면 안 된다. 맨몸 운동(0kg)도 중량을 적지 않는다: 중량 칸은
-  // 비울 수 없어(최솟값 0) 맨몸이면 늘 0 이 드는데, `0kg` 은 잡음이다(#2533).
-  // 트레이너 앱도 같은 규칙이라, 같은 기록이 두 앱에서 같은 줄로 읽힌다.
-  if (reps != null && reps > 0) buffer.write(' · ${l.exRepsCount(reps)}');
-  if (weight != null && weight > 0) {
-    buffer.write(' · ${exerciseWeightLabel(l, weight)}');
-  }
-  return buffer.toString();
+  return strengthAmountParts(
+    l,
+    sets: setCount,
+    reps: reps,
+    holdSeconds: holdSeconds,
+    weight: weight,
+  ).join(' · ');
 }
+
+/// 근력 한 세트 처방의 조각들 — `3세트`·`12회` 또는 `60초`·`10kg`. (#3138)
+///
+/// 세트 → 횟수(또는 버티는 시간) → 중량. 입력 화면이 묻는 순서 그대로다
+/// (#1310). 서버는 한 세트를 횟수와 버티는 시간 중 하나로만 재므로(#1969)
+/// [holdSeconds] 가 있으면 횟수 대신 초를 적는다 — 예전에는 이 값을 읽지 않아
+/// 플랭크가 `3세트` 로만 보였다.
+///
+/// 추천 개인운동·프로그램 세션 구성·PT 프로그램 줄·직접 기록한 운동이 모두
+/// 이 함수로 만든다. 화면마다 따로 이으면 같은 처방이 다른 모양으로 읽힌다.
+///
+/// 값은 적었을 때만 붙인다 — 이 칸이 생기기 전 기록에 아무도 적지 않은 수가
+/// 뜨면 안 된다. 맨몸 운동(0kg)도 중량을 적지 않는다: 중량 칸은 비울 수 없어
+/// (최솟값 0) 맨몸이면 늘 0 이 드는데, `0kg` 은 잡음이다(#2533). 트레이너 앱도
+/// 같은 규칙이라, 같은 기록이 두 앱에서 같은 줄로 읽힌다.
+List<String> strengthAmountParts(
+  AppLocalizations l, {
+  int? sets,
+  int? reps,
+  int? holdSeconds,
+  double? weight,
+}) => <String>[
+  if (sets != null && sets > 0) l.exSetsCount(sets),
+  if (holdSeconds != null && holdSeconds > 0)
+    l.exHoldSecondsCount(holdSeconds)
+  else if (reps != null && reps > 0)
+    l.exRepsCount(reps),
+  if (weight != null && weight > 0) exerciseWeightLabel(l, weight),
+];
 
 /// 걸린 시간 한 값의 표기 — **적은 만큼만** 보인다. (#2071)
 ///
