@@ -1,9 +1,12 @@
 """운동 기록 추가의 재시도 멱등성 — DB 필요(로컬 skip, CI 실행). (#3095)
 
-`POST /exercise/sessions` 는 저장 뒤 개인 RAG 적재까지 마친 다음 응답한다. 그
+`POST /exercise/sessions` 는 저장 뒤 개인 RAG 적재까지 마친 다음 응답했다. 그
 사이 앱이 수신 제한에 걸리면 저장은 됐는데 앱은 실패로 보고, 회원이 다시 누르면
 같은 기록과 포인트가 한 벌 더 생겼다. `client_request_id` 로 같은 저장 시도를
-알아보고 처음 결과를 돌려준다.
+알아보고 처음 결과를 돌려주며, 적재는 응답 뒤(BackgroundTasks)로 옮겼다.
+
+TestClient 는 응답을 돌려주기 전에 백그라운드 작업까지 마치므로, 요청이 끝난
+시점에 적재 횟수를 셀 수 있다.
 """
 from __future__ import annotations
 
@@ -15,6 +18,7 @@ from sqlalchemy import select
 
 from app.api.v1 import exercise as exercise_router
 from app.core import clock
+from app.db import session as db_session_module
 from app.models.models import ExerciseSession
 from tests.exercise_helpers import EXERCISE_SESSIONS_PATH
 
@@ -179,3 +183,46 @@ def test_same_key_after_one_record_was_deleted_is_409(
 
     assert _post(client, h, _sessions(), key).status_code == 409
     assert len(_rows(db_session, user_id)) == 1
+
+
+def test_ingest_runs_after_commit_on_its_own_session_of_the_same_db(
+    client, db_session, monkeypatch
+):
+    """적재는 요청 세션이 아닌 자기 세션으로, 기록이 저장된 그 DB 에서 돈다."""
+    seen: list[tuple[object, bool]] = []
+
+    def record(db, user_id, **kw):
+        # 커밋이 끝난 뒤라 같은 DB 의 새 세션에서 그 기록이 보여야 한다.
+        found = db.get(ExerciseSession, kw["source_ref"]) is not None
+        seen.append((db.get_bind(), found))
+
+    monkeypatch.setattr(exercise_router.personal_ingest, "record_exercise", record)
+    h, _ = _login(client)
+    r = _post(client, h, _sessions(), uuid4().hex)
+    assert r.status_code == 201, r.text
+    assert len(seen) == 2
+    assert all(bind is db_session_module.engine for bind, _ in seen)
+    assert all(found for _, found in seen)
+
+
+def test_ingest_failure_keeps_the_saved_response(client, db_session, monkeypatch):
+    """적재가 실패해도 저장 응답·기록·포인트는 그대로이고, 다음 항목도 적재를 시도한다."""
+    attempts: list[str] = []
+
+    def broken(db, user_id, **kw):
+        attempts.append(kw["source_ref"])
+        raise RuntimeError("embedding timeout")
+
+    monkeypatch.setattr(exercise_router.personal_ingest, "record_exercise", broken)
+    h, user_id = _login(client)
+    key = uuid4().hex
+    r = _post(client, h, _sessions(), key)
+    assert r.status_code == 201, r.text
+    assert r.json()["points"]["awarded"] > 0
+    assert len(_rows(db_session, user_id)) == 2
+    assert len(attempts) == 2
+
+    # 재시도 재생은 적재를 다시 돌리지 않는다.
+    again = _post(client, h, _sessions(), key)
+    assert again.status_code == 201, again.text
+    assert len(attempts) == 2
