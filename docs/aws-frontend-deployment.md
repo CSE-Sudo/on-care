@@ -38,9 +38,11 @@ OnCare에서 사용하는 `main` 브랜치 subject는 다음과 같습니다. ID
 repo:CSE-Sudo@265976266/on-care@1174354664:ref:refs/heads/main
 ```
 
-이 형식에는 `UseImmutableGitHubOidcSubject=true`를 사용합니다. 이름 기반 subject를 실제로
-사용하는 다른 저장소에서만 `false`를 선택합니다. 저장소와 `main` 브랜치의 정확한 일치를
-유지하고 와일드카드로 신뢰 범위를 넓히지 않습니다.
+배포 역할은 이 ID 기반 형식 하나만 신뢰합니다(#3089). 이름 기반 형식(`repo:<소유자>/<저장소>:…`)은
+같은 이름을 다시 쓰는 다른 저장소도 맞출 수 있어 템플릿에서 선택지를 없앴습니다(백엔드 역할과 같습니다).
+예전 스택에 남아 있던 `UseImmutableGitHubOidcSubject` 파라미터는 값이 이미 `true` 였으므로 최신 템플릿을
+적용해도 신뢰 정책은 바뀌지 않습니다. 저장소와 `main` 브랜치의 정확한 일치를 유지하고 와일드카드로
+신뢰 범위를 넓히지 않습니다.
 근거: [GitHub OIDC subject 형식](https://docs.github.com/en/actions/reference/security/oidc#immutable-subject-claims).
 
 ```bash
@@ -104,7 +106,6 @@ aws cloudformation deploy \
 >     GitHubRepository=on-care \
 >     GitHubOwnerId=265976266 \
 >     GitHubRepositoryId=1174354664 \
->     UseImmutableGitHubOidcSubject=true \
 >   --no-execute-changeset \
 >   --region ap-northeast-2
 > ```
@@ -136,8 +137,8 @@ Environment 이름은 대소문자를 가리지 않으므로 신뢰 정책은 `S
 
 1. 서울(`ap-northeast-2`) CloudFormation에서 `oncare-frontend`의 **파라미터**를 확인합니다.
 2. **스택 업데이트 → 변경 세트 생성 → 표준 변경 세트 → 기존 템플릿 사용**을 선택합니다.
-3. `GitHubOwner`만 `CSE-Sudo`로 변경합니다. 저장소명, 두 ID, 브랜치, OIDC 공급자 ARN,
-   `UseImmutableGitHubOidcSubject` 등 나머지는 기존 값을 유지합니다.
+3. `GitHubOwner`만 `CSE-Sudo`로 변경합니다. 저장소명, 두 ID, 브랜치, OIDC 공급자 ARN 등
+   나머지는 기존 값을 유지합니다.
 4. 변경 세트에서 `GitHubFrontendDeployRole`의 `AssumeRolePolicyDocument`만 수정되는지 확인합니다.
    리소스 교체·삭제, S3·CloudFront 변경 또는 배포 권한 추가가 포함되면 원인을 확인한 뒤 진행합니다.
 5. 변경 세트를 실행하고 스택이 `UPDATE_COMPLETE`가 될 때까지 확인합니다.

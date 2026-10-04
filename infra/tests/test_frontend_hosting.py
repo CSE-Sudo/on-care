@@ -14,10 +14,10 @@ def _trust() -> list:
 def test_environment_subject_is_trusted() -> None:
     environment = _trust()[0]
     assert environment["Sid"] == "TrustGitHubEnvironment"
-    subs = environment["Condition"]["StringEqualsIgnoreCase"]["token.actions.githubusercontent.com:sub"]["Fn::If"]
-    assert subs[0] == "UseImmutableGitHubOidcSubjectCondition"
-    for option in subs[1:]:
-        assert option["Fn::Sub"].endswith(":environment:${GitHubEnvironment}")
+    sub = environment["Condition"]["StringEqualsIgnoreCase"]["token.actions.githubusercontent.com:sub"]
+    # ID 기반 subject 하나만 믿는다(#3089) — 이름 기반 선택지는 없다.
+    assert sub["Fn::Sub"].startswith("repo:${GitHubOwner}@${GitHubOwnerId}/")
+    assert sub["Fn::Sub"].endswith(":environment:${GitHubEnvironment}")
     assert TEMPLATE["Parameters"]["GitHubEnvironment"]["Default"] == "production"
 
 
@@ -27,6 +27,13 @@ def test_branch_subject_is_only_a_transition_option() -> None:
     assert branch[1]["Sid"] == "TrustMainBranchDuringMove"
     assert branch[2] == {"Ref": "AWS::NoValue"}
     assert TEMPLATE["Parameters"]["AllowBranchOidcSubject"]["AllowedValues"] == ["true", "false"]
+    sub = branch[1]["Condition"]["StringEquals"]["token.actions.githubusercontent.com:sub"]
+    assert sub["Fn::Sub"].startswith("repo:${GitHubOwner}@${GitHubOwnerId}/")
+
+
+def test_name_based_subject_option_is_gone() -> None:
+    assert "UseImmutableGitHubOidcSubject" not in TEMPLATE["Parameters"]
+    assert "UseImmutableGitHubOidcSubjectCondition" not in TEMPLATE["Conditions"]
 
 
 def test_audience_is_pinned_in_every_statement() -> None:

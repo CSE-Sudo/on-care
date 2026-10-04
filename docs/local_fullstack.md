@@ -56,6 +56,8 @@ docker compose up -d --build
 
 → http://localhost:8000/docs (모든 경로는 `/v1/...`)
 
+Postgres(`5432`)는 이 PC 에서만 열립니다(`127.0.0.1` 에 묶음, #3089). 기본 계정이라 같은 Wi-Fi 의 다른 기기에는 열지 않습니다. 호스트의 pytest·psql 은 지금처럼 `localhost:5432` 로 붙습니다.
+
 예전에 만든 `.env` 를 그대로 쓴다면 두 줄을 확인합니다(#2821). 데모 폴백은 이제 기본이 꺼짐이라
 토큰 없이 데모 회원 화면을 보려면 `ALLOW_DEMO_FALLBACK=true` 가 있어야 하고, 컨테이너 기동
 스크립트는 `ENV` 가 비어 있으면 뜨지 않습니다(`.env.example` 은 둘 다 들어 있습니다).

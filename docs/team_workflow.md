@@ -165,6 +165,15 @@ PR gate 가 PR 의 새 커밋을 gitleaks 로 검사합니다([`.gitleaks.toml`]
 자리표시자임이 이름에서 드러나는 값만 둡니다. 정말 오탐인 한 줄은 줄 끝에
 `gitleaks:allow` 주석을 달고 PR 에 이유를 적습니다.
 
+PR gate 는 PR 커밋만 보므로, 이미 이력에 들어간 값과 PR 을 거치지 않은 푸시는
+[`Secret Scan`](../.github/workflows/secret-scan.yml) 워크플로가 매주 월요일 모든 브랜치·태그의
+전체 이력으로 다시 봅니다(#3083). Actions 탭에서 수동으로도 돌릴 수 있고, `.gitleaks.toml`·
+`.gitleaksignore` 를 바꾸는 PR 에서도 자동으로 돕니다. 로그는 `--redact` 라 값이 찍히지 않습니다.
+여기서 걸리면 실제 키인지 먼저 확인해 **폐기·교체를 끝낸 뒤에만** 로그의 `Fingerprint` 한 줄을
+[`.gitleaksignore`](../.gitleaksignore) 에 이유·이슈 번호와 함께 더합니다. 이력을 지우는
+재작성(`git filter-repo` + 강제 푸시)은 모든 클론·열린 PR·커밋 링크에 영향을 주므로 팀 합의가
+있을 때만 합니다.
+
 저장소 설정의 Secret scanning·Push protection(Settings → Code security)도 켜 두면 푸시
 단계에서 한 번 더 막습니다. 저장소 관리자가 확인합니다.
 
