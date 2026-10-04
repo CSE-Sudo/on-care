@@ -881,6 +881,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachTemplateDeleteFailed => '템플릿을 지우지 못했어요. 다시 시도해 주세요';
 
   @override
+  String get coachTemplateAlreadyDeleted => '이미 지워진 템플릿이에요';
+
+  @override
   String coachTemplateDeleteConfirm(String name) {
     return '$name 템플릿을 지울까요?';
   }

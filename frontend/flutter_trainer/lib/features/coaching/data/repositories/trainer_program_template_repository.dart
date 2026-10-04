@@ -263,7 +263,11 @@ class MockTrainerProgramTemplateRepository
   @override
   Future<void> delete(String id) async {
     await _restore();
-    _saved.removeWhere((t) => t.id == id);
+    // 실서버처럼 없는 템플릿은 404 다(#3101) — 조용히 성공하면 데모만 다른
+    // 탭에서 지운 템플릿을 지운 것처럼 보인다.
+    final index = _saved.indexWhere((t) => t.id == id);
+    if (index == -1) throw const NotFoundError();
+    _saved.removeAt(index);
     await _persist();
   }
 }

@@ -911,6 +911,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t delete the template. Please try again';
 
   @override
+  String get coachTemplateAlreadyDeleted => 'This template was already deleted';
+
+  @override
   String coachTemplateDeleteConfirm(String name) {
     return 'Delete the $name template?';
   }
