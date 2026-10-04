@@ -405,6 +405,7 @@ class DioScheduleRepository implements ScheduleRepository {
     required String time,
     required WeeklyRecurrence rule,
     int durationMinutes = 0,
+    String? clientRequestId,
   }) async {
     try {
       final res = await _dio.post<Map<String, dynamic>>(
@@ -418,6 +419,9 @@ class DioScheduleRepository implements ScheduleRepository {
           // 겹침은 시간 구간으로 본다(#2284) — 길이를 빼면 10:00(60분) 위의
           // 10:30 회차를 미리보기가 놓친다.
           durationMinutes: durationMinutes,
+          // 만들기와 같은 키 — 응답만 잃은 재시도의 자기 회차를 서버가 충돌에서
+          // 뺀다(#3102).
+          clientRequestId: clientRequestId,
         ),
       );
       final data = res.data ?? const <String, dynamic>{};
@@ -430,6 +434,8 @@ class DioScheduleRepository implements ScheduleRepository {
           for (final row in (data['conflicts'] as List<dynamic>? ?? const []))
             if (row is Map<String, dynamic>) scheduleSessionFromJson(row),
         ],
+        // 이 칸을 모르는 옛 서버는 보내지 않는다 — 없으면 예전처럼 충돌만 본다.
+        alreadyCreated: data['already_created'] == true,
       );
     } on DioException catch (e) {
       throw AppError.fromDio(e);

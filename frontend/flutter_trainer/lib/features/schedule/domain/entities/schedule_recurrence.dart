@@ -59,9 +59,14 @@ List<DateTime> seriesOccurrences(DateTime start, WeeklyRecurrence rule) {
 ///
 /// 충돌을 미리 말해 주는 까닭은 생성이 **전부 아니면 전무**이기 때문이다 —
 /// 겹친 것만 빼고 나머지를 만들면 트레이너는 몇 회차가 생겼는지 세어 봐야 안다.
+///
+/// `alreadyCreated` 는 같은 멱등키로 이미 만들어진 시리즈가 있다는 뜻이다 —
+/// 만들기는 반영됐는데 응답만 잃은 재시도. 그 회차는 `conflicts` 에서 빠지고,
+/// 같은 키로 만들기를 다시 부르면 그 회차를 그대로 돌려받는다(#3102).
 typedef RecurrencePreview = ({
   List<DateTime> dates,
   List<ScheduleSession> conflicts,
+  bool alreadyCreated,
 });
 
 /// 반복 생성이 기존 일정과 겹쳐 아무것도 만들지 못했다. (#870)
