@@ -103,4 +103,11 @@ void main() {
       isNot(DioTrainerChatImageRepository.requestKeyOf('u', 'a.jpg', 4, '둘')),
     );
   });
+
+  test('파일 이름·한마디의 / 가 다른 조합과 같은 열쇠를 만들지 않는다', () {
+    expect(
+      DioTrainerChatImageRepository.requestKeyOf('u', 'a/1', 4, '2'),
+      isNot(DioTrainerChatImageRepository.requestKeyOf('u', 'a', 1, '4/2')),
+    );
+  });
 }

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -95,6 +96,8 @@ class DioTrainerChatImageRepository implements TrainerChatImageRepository {
   ///
   /// 한마디도 열쇠에 넣는다(#3095). 빼면 실패 뒤 한마디를 고쳐 같은 사진을 다시
   /// 보낼 때 같은 키로 나가, 서버가 "다른 메시지" 라며 409 를 계속 낸다.
+  /// 칸을 `/` 로 이으면 파일 이름·한마디의 `/` 때문에 다른 조합이 같은 열쇠가
+  /// 되므로 JSON 목록으로 묶는다.
   final Map<String, String> _requestIds = <String, String>{};
 
   @visibleForTesting
@@ -103,7 +106,7 @@ class DioTrainerChatImageRepository implements TrainerChatImageRepository {
     String fileName,
     int length,
     String message,
-  ) => '$clientId/$fileName/$length/$message';
+  ) => jsonEncode(<Object>[clientId, fileName, length, message]);
 
   @override
   Future<void> send({
