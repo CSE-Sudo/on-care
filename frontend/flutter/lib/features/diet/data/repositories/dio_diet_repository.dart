@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:oncare/core/advice/diet_advice.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/network/request_extras.dart';
-import 'package:oncare/core/network/retry_request_keys.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis_failure.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
@@ -23,9 +22,6 @@ class DioDietRepository implements DietRepository {
   DioDietRepository(this._dio);
 
   final Dio _dio;
-
-  /// 직접 추가의 멱등키(#3095). 같은 본문이면 같은 키, 고치면 새 키다.
-  final RetryRequestKeys _manualKeys = RetryRequestKeys('manual');
 
   /// 사진 분석 응답 대기 시간. 전역 receiveTimeout(15초)으로는 모자란다(#2847).
   ///
@@ -173,26 +169,21 @@ class DioDietRepository implements DietRepository {
     required List<FoodItem> foods,
     String? idempotencyKey,
   }) async {
-    final Map<String, Object?> body = <String, Object?>{
-      'date': date,
-      'meal_type': mealType,
-      'foods': foods.map(_foodJson).toList(),
-    };
     try {
       final res = await _dio.post<Map<String, Object?>>(
         '/diet/entries',
         data: <String, Object?>{
-          ...body,
-          'idempotency_key': idempotencyKey ?? _manualKeys.keyFor(body),
+          'date': date,
+          'meal_type': mealType,
+          'foods': foods.map(_foodJson).toList(),
+          'idempotency_key': ?idempotencyKey,
         },
       );
-      _manualKeys.clear();
       return DietEntry.fromJson(res.data!);
     } on DioException catch (e) {
-      if (e.response?.statusCode != 409) rethrow;
-      // 이 키로는 다른 끼니가 저장돼 있다. 키를 버려 다음 저장은 새 시도가 된다.
-      _manualKeys.forget(body);
-      throw const DietEntryKeyConflict();
+      // 이 키로는 다른 끼니가 이미 저장돼 있다(#3095).
+      if (e.response?.statusCode == 409) throw const DietEntryKeyConflict();
+      rethrow;
     }
   }
 
