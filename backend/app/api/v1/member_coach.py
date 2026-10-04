@@ -46,7 +46,7 @@ router = APIRouter(tags=["member-coach"])
 def _my_trainer_or_404(db: Session, member_id: str) -> str:
     trainer_id = trainer_common_service.get_member_trainer_id(db, member_id)
     if trainer_id is None:
-        raise HTTPException(status_code=404, detail="담당 트레이너가 없습니다.")
+        raise HTTPException(status_code=404, detail="담당 트레이너가 없어요.")
     return trainer_id
 
 
@@ -58,7 +58,7 @@ def my_coach(
     """내 담당 트레이너 요약."""
     coach = trainer_member_mirror_service.build_member_coach(db, current_user.id)
     if coach is None:
-        raise HTTPException(status_code=404, detail="담당 트레이너가 없습니다.")
+        raise HTTPException(status_code=404, detail="담당 트레이너가 없어요.")
     return coach
 
 
@@ -250,7 +250,7 @@ def my_chat(
         try:
             before_dt = datetime.fromisoformat(before)
         except ValueError as e:
-            raise HTTPException(status_code=422, detail="before 는 ISO datetime 이어야 합니다.") from e
+            raise HTTPException(status_code=422, detail="before 는 ISO datetime 이어야 해요.") from e
     return trainer_chat_service.build_chat_thread(
         db, trainer_id, current_user.id,
         limit=limit, before=before_dt, before_id=before_id, viewer="member",
@@ -290,7 +290,7 @@ def send_to_coach(
         # 본문은 이모티콘을 그리지 못하는 자리(알림·로스터의 마지막 메시지)가 읽는다.
         text = text or "(이모티콘)"
     if not text:
-        raise HTTPException(status_code=400, detail="빈 메시지는 보낼 수 없습니다.")
+        raise HTTPException(status_code=400, detail="빈 메시지는 보낼 수 없어요.")
     try:
         return trainer_chat_service.send_message(
             db,
@@ -441,7 +441,7 @@ def _feedback_week(week_start: str | None) -> date:
             day = date.fromisoformat(week_start)
         except ValueError as exc:
             raise HTTPException(
-                status_code=422, detail="week_start 는 YYYY-MM-DD 여야 합니다."
+                status_code=422, detail="week_start 는 YYYY-MM-DD 여야 해요."
             ) from exc
     else:
         day = trainer_reports_service.week_start_of(clock.today()) - timedelta(days=7)
@@ -512,12 +512,12 @@ def _my_report_week(week_start: str | None) -> date:
         day = date.fromisoformat(week_start)
     except ValueError as exc:
         raise HTTPException(
-            status_code=422, detail="week_start 는 YYYY-MM-DD 여야 합니다."
+            status_code=422, detail="week_start 는 YYYY-MM-DD 여야 해요."
         ) from exc
     week = trainer_reports_service.week_start_of(day)
     if week > today:
         raise HTTPException(
-            status_code=422, detail="아직 오지 않은 주는 조회할 수 없습니다."
+            status_code=422, detail="아직 오지 않은 주는 조회할 수 없어요."
         )
     return week
 

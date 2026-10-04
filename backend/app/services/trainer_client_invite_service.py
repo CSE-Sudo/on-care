@@ -407,7 +407,7 @@ def accept(
         # 수락하는 순간 트레이너가 회원의 식단·운동·신체 정보를 읽는다. 동의를
         # 받지 않고 그 문을 열 수는 없다. (#1022)
         raise DataSharingConsentRequired(
-            "식단·운동 기록 공유에 동의해야 담당 요청을 수락할 수 있습니다."
+            "식단·운동 기록 공유에 동의해야 담당 요청을 수락할 수 있어요."
         )
 
     row = _require_member_row(db, member_id, invite_id)

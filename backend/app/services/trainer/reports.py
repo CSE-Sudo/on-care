@@ -794,12 +794,12 @@ def save_report_goals(
         if not text:
             continue
         if len(text) > _MAX_REPORT_GOAL_LENGTH:
-            raise HTTPException(status_code=422, detail="목표가 너무 깁니다.")
+            raise HTTPException(status_code=422, detail="목표가 너무 길어요.")
         # 같은 목표가 두 줄로 서면 다음 주 ③ 이 같은 판정을 두 번 적는다.
         if text not in cleaned:
             cleaned.append(text)
     if len(cleaned) > _MAX_REPORT_GOALS:
-        raise HTTPException(status_code=422, detail="목표가 너무 많습니다.")
+        raise HTTPException(status_code=422, detail="목표가 너무 많아요.")
 
     now = datetime.now(timezone.utc)
     row = db.scalar(

@@ -57,14 +57,14 @@ def get_current_user(
                 if not user.is_active:
                     raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail="인증이 필요합니다.",
+                        detail="인증이 필요해요.",
                         headers={"WWW-Authenticate": "Bearer"},
                     )
                 # 회원 전용 API. 트레이너 계정은 /trainer/* 를 쓴다(역할 분리).
                 if user.role == "trainer":
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
-                        detail="회원 전용 API 입니다.",
+                        detail="회원 전용 API예요.",
                     )
                 ensure_member_consented(request, user, db)
                 return user
@@ -74,12 +74,12 @@ def get_current_user(
     if get_settings().demo_fallback_enabled:
         demo = db.scalar(select(User).where(User.id == DEMO_USER_ID))
         if demo is None:
-            raise HTTPException(status_code=500, detail="데모 사용자가 시드되지 않았습니다.")
+            raise HTTPException(status_code=500, detail="데모 사용자가 시드되지 않았어요.")
         return demo
 
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="인증이 필요합니다.",
+        detail="인증이 필요해요.",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
@@ -92,7 +92,7 @@ def require_auth(
     token = _extract_bearer(request)
     exc = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="인증이 필요합니다.",
+        detail="인증이 필요해요.",
         headers={"WWW-Authenticate": "Bearer"},
     )
     if not token:
@@ -117,7 +117,7 @@ def require_admin(
 ) -> User:
     """관리자 전용: 유효 토큰 + is_admin. 아니면 403(미인증은 require_auth 가 401)."""
     if not user.is_admin:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="관리자 권한이 필요합니다.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="관리자 권한이 필요해요.")
     return user
 
 
@@ -128,7 +128,7 @@ def require_trainer(
     트레이너 엔드포인트에 새어 들어가지 않도록). 미인증은 require_auth 가 401,
     회원 계정이면 403."""
     if user.role != "trainer":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="트레이너 권한이 필요합니다.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="트레이너 권한이 필요해요.")
     return user
 
 
@@ -143,7 +143,7 @@ def require_member(
 
     필수 동의가 남은 계정은 403 `consent_required` 다([ensure_member_consented])."""
     if user.role != "member":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="회원 전용 API 입니다.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="회원 전용 API예요.")
     ensure_member_consented(request, user, db)
     return user
 

@@ -72,7 +72,7 @@
 | GET | `/ping` | `{ message }` |
 | GET | `/healthz` | `{ status, backend, env, demo_fallback, demo_seed, attachment_storage, commit_sha }` (#2821·#3029). `attachment_storage` 는 `local`·`s3`·`misconfigured` |
 | GET | `/version` | `{ api_version, app_version, min_app_version, commit_sha }` — `app_version` 은 서버 버전. `min_app_version` 은 회원 모바일 앱 최소 지원 버전(`MAJOR.MINOR.PATCH`, 설정 `MIN_MEMBER_APP_VERSION`), 비어 있으면 `null` 이고 앱은 검사하지 않는다(#3045). `commit_sha` 는 이미지를 만든 커밋 SHA(40자), 빌드 인자 없이 만든 이미지는 `"unknown"`(#3029). 인증 없음 |
-| GET | `/readyz` | `{ status: "ready" }` — DB 에 `SELECT 1` 까지 확인한다(3초 제한). 실패하면 **503** `{"detail": "서비스가 아직 준비되지 않았습니다."}`, 원인은 서버 로그에만 남긴다. `/healthz` 는 프로세스만 본다(liveness) |
+| GET | `/readyz` | `{ status: "ready" }` — DB 에 `SELECT 1` 까지 확인한다(3초 제한). 실패하면 **503** `{"detail": "서비스가 아직 준비되지 않았어요."}`, 원인은 서버 로그에만 남긴다. `/healthz` 는 프로세스만 본다(liveness) |
 
 ### 관리자 전용
 
@@ -293,7 +293,7 @@
 |---|---|---|
 | GET | `/exercise/weeks/current` | 질의 `?week_start=YYYY-MM-DD`(생략 시 이번 주) → `{ sessions[], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], stretching_minutes[7], day_labels[7], total_minutes, total_calories, streak_days, ai_coach_message }` — `streak_days` 는 **운동만** 센다(식단도 세는 기록 연속은 아래 "연속 기록 보호권" 절) |
 | GET | `/exercise/weeks?from=&to=` | `{ from_week, to_week, weeks[] }` — 구간이 걸친 주들. 한 칸은 `{ week_start, day_labels[7], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], strength_sets[7], stretching_minutes[7], other_minutes[7], total_minutes, total_calories, streak_days, weekly_goal_minutes, weekly_goal_calories }` 다. 기간 그래프가 쓰는 길이라 `sessions` 와 코칭 문구는 싣지 않는다 — 한 주를 펼쳐 볼 때는 위 `weeks/current` 다. `from` 생략 시 **첫 기록 주**부터, `to` 생략 시 이번 주까지. 월요일이 아닌 날짜는 그 주의 월요일로 맞춘다. 기록이 없는 주도 0 으로 채워 온다 (#2247). 구간은 끝 주에서 거슬러 **최대 160주**(`exercise_service.MAX_PERIOD_WEEKS`)이고, 더 이른 `from`·첫 기록 주는 그 하한으로 잘린다 — 응답 `from_week` 가 실제 시작 주다 (#2833) |
-| POST | `/exercise/sessions` | 입력 `{ sessions: [항목 1~20개], client_request_id? }` — 항목은 `{ type, name, minutes(>0) 또는 duration_seconds(>0), calories, intensity(light\|moderate\|high), sets?, reps?, hold_seconds?, weight?, date? }` → `{ sessions[](요청 순서), points(합계) }`. **한 트랜잭션**이라 항목 하나라도 잘못되면 전체가 422 이고 아무것도 저장되지 않는다. 한 건도 목록으로 감싸 보낸다 — 감싸지 않은 단건 입력은 422 (#2544). `date` 는 생략하면 오늘(KST)이고, **오늘보다 뒤 날짜는 422**(`date 는 오늘보다 뒤일 수 없습니다.` — 식단 기록과 같은 문구, #3042). 기록·포인트·코치 적재·보호권 환급을 하나도 남기지 않는다. `client_request_id`(1~64자)는 저장 시도 단위 멱등키다 — 같은 키로 저장한 기록이 남아 있으면 새로 저장·적립하지 않고 처음 응답(`points` 는 그 기록들이 처음 받은 적립의 합)을 다시 돌려주고, 항목 수나 항목 내용(칼로리 제외, `date` 는 보낸 경우만)이 다르면 409 이고 아무것도 바뀌지 않는다. 그 키의 기록이 모두 지워졌으면 처음 보는 키처럼 새로 저장한다. 키가 없으면 매번 새로 저장한다 (#3095) |
+| POST | `/exercise/sessions` | 입력 `{ sessions: [항목 1~20개], client_request_id? }` — 항목은 `{ type, name, minutes(>0) 또는 duration_seconds(>0), calories, intensity(light\|moderate\|high), sets?, reps?, hold_seconds?, weight?, date? }` → `{ sessions[](요청 순서), points(합계) }`. **한 트랜잭션**이라 항목 하나라도 잘못되면 전체가 422 이고 아무것도 저장되지 않는다. 한 건도 목록으로 감싸 보낸다 — 감싸지 않은 단건 입력은 422 (#2544). `date` 는 생략하면 오늘(KST)이고, **오늘보다 뒤 날짜는 422**(`date 는 오늘보다 뒤일 수 없어요.` — 식단 기록과 같은 문구, #3042). 기록·포인트·코치 적재·보호권 환급을 하나도 남기지 않는다. `client_request_id`(1~64자)는 저장 시도 단위 멱등키다 — 같은 키로 저장한 기록이 남아 있으면 새로 저장·적립하지 않고 처음 응답(`points` 는 그 기록들이 처음 받은 적립의 합)을 다시 돌려주고, 항목 수나 항목 내용(칼로리 제외, `date` 는 보낸 경우만)이 다르면 409 이고 아무것도 바뀌지 않는다. 그 키의 기록이 모두 지워졌으면 처음 보는 키처럼 새로 저장한다. 키가 없으면 매번 새로 저장한다 (#3095) |
 | PUT | `/exercise/sessions/{id}` | 입력은 위 **항목 하나**(부분 갱신) → 갱신된 항목(`points` 없음). `date` 를 주지 않으면 원래 날짜를 그대로 두고, 오늘보다 뒤로 옮기면 422 다 — 원래 날짜가 남는다(#3042) |
 | DELETE | `/exercise/sessions/{id}` | `{ status: "deleted" }` — 그 기록으로 받은 포인트를 회수한다 |
 | GET | `/exercise/advice?period=` | `{ period, from_date, to_date, days_logged, message, advice_key?, advice_params }` — 운동 탭 AI 조언. `period` 는 `today`(기본)·`week`·`all`. 식단 조언과 같은 규칙이고, 문장은 트레이너 웹의 `/trainer/clients/{member_id}/exercise-advice` 와 같다(#1574, #1025). 앱은 `advice_key`·`advice_params` 로 자기 언어 문장을 그린다(#2210) |
@@ -1429,7 +1429,7 @@ PT) ÷ (그날 걸린 개인운동 + 그날 잡힌 PT) 다. 개인운동은 그 
   **409** 다. 트레이너 웹은 보낼 문구가 바뀌면 새 키를 쓴다(#2773).
 - 담당이 아니거나 해제된 회원은 **404**, PDF 가 아니면 **415**, 용량 초과는 **413**. 요청 본문이
   `max_report_pdf_bytes`(8MB) + `UPLOAD_BODY_SLACK_BYTES`(multipart 여유, 기본 512KB)를 넘으면 본문을 다
-  받기 전에 **413** `{"detail": "PDF 용량이 너무 큽니다(최대 8MB)."}` 로 끊는다(#2832). 그 안쪽에서 파일만
+  받기 전에 **413** `{"detail": "PDF 용량이 너무 커요(최대 8MB)."}` 로 끊는다(#2832). 그 안쪽에서 파일만
   8MB 를 넘으면 핸들러가 413 을 낸다.
 
 **리포트 작업대 요약 (#2863)**: 트레이너 웹 리포트 첫 화면(작업대)의 큐를 세우는 값을 담당 회원
@@ -1507,7 +1507,7 @@ N명이면 첫 화면에서 요청이 2N개였다.
   보내는 쪽이 자유롭게 적을 수 있어 참고하지 않는다. 용량 상한은 `max_chat_image_bytes`(6MB)이고
   넘으면 **413**. 두 경로가 같은 규약을 한 함수(`chat_attachments.receive_chat_image`)로 쓴다.
   요청 본문이 6MB + `UPLOAD_BODY_SLACK_BYTES`(multipart 여유, 기본 512KB)를 넘으면 본문을 다 받기 전에
-  **413** `{"detail": "사진 용량이 너무 큽니다(최대 6MB)."}` 로 끊는다(#2832). 이 413 에도 CORS 헤더가 붙는다.
+  **413** `{"detail": "사진 용량이 너무 커요(최대 6MB)."}` 로 끊는다(#2832). 이 413 에도 CORS 헤더가 붙는다.
 - **저장 전에 사진을 정리한다(#2829).** 끝까지 디코딩해 EXIF 회전을 픽셀에 적용하고, EXIF(촬영
   위치·기기)·XMP·주석·PNG 텍스트 같은 메타데이터를 버린 뒤 **원본 형식 그대로** 다시 인코딩한다
   (PNG 투명도 유지, 색 프로필 ICC 만 유지). 장변은 2048px 로 줄인다. 매직 넘버만 맞고 디코딩할 수
@@ -1627,9 +1627,9 @@ N명이면 첫 화면에서 요청이 2N개였다.
 
 | 상황 | 상태 | `detail` |
 |---|---|---|
-| 지원하지 않는 provider | **400** | `지원하지 않는 소셜 로그인입니다.` |
-| 토큰 거절(provider 가 200 아닌 응답)·요청 실패(연결·타임아웃)·필수 사용자 id 누락 | **401** | `소셜 인증에 실패했습니다.` |
-| provider 응답 형식 이상 — JSON 이 아님(HTML·깨진 JSON·빈 본문), JSON 객체가 아님(배열·문자열·숫자·null), 필드 타입 이상(id 가 객체·bool 등, 하위 객체가 배열 등) | **502** | `소셜 로그인 제공자의 응답을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.` |
+| 지원하지 않는 provider | **400** | `지원하지 않는 소셜 로그인이에요.` |
+| 토큰 거절(provider 가 200 아닌 응답)·요청 실패(연결·타임아웃)·필수 사용자 id 누락 | **401** | `소셜 계정을 인증하지 못했어요.` |
+| provider 응답 형식 이상 — JSON 이 아님(HTML·깨진 JSON·빈 본문), JSON 객체가 아님(배열·문자열·숫자·null), 필드 타입 이상(id 가 객체·bool 등, 하위 객체가 배열 등) | **502** | `소셜 로그인 제공자의 응답을 확인하지 못했어요. 잠시 후 다시 시도해 주세요.` |
 | 검증 중 예상하지 못한 예외 | **502** | 위와 같음 |
 
 - 401 은 "이 토큰으로는 로그인할 수 없다", 502 는 "provider 쪽이 지금 제대로 답하지 않는다"
@@ -1650,9 +1650,9 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
 | google | tokeninfo 의 `aud` 가 허용 목록 안, `iss` 가 `accounts.google.com`·`https://accounts.google.com`, `exp` 가 미래 | `GOOGLE_CLIENT_IDS`(콤마 구분) |
 | kakao | `GET /v1/user/access_token_info` 의 `app_id` 가 설정값과 같고, 그 `id` 가 `/v2/user/me` 의 `id` 와 같음(토큰 정보가 맞을 때만 사용자 정보를 부른다) | `KAKAO_APP_ID` |
 | apple | id_token 서명(JWKS)·`aud`·`iss`·`exp` | `APPLE_CLIENT_IDS`(콤마 구분) |
-| naver | 앱이 보낸 access_token 의 발급 앱을 확인할 수단이 없다. 서버 측 코드 교환 전까지 **501** `아직 지원하지 않는 소셜 로그인입니다.`(네이버로 요청도 보내지 않는다) | — |
+| naver | 앱이 보낸 access_token 의 발급 앱을 확인할 수단이 없다. 서버 측 코드 교환 전까지 **501** `아직 지원하지 않는 소셜 로그인이에요.`(네이버로 요청도 보내지 않는다) | — |
 
-- 발급 앱·발급자 불일치, 만료, 두 응답의 id 불일치는 위 표의 **401** `소셜 인증에 실패했습니다.` 와 같다.
+- 발급 앱·발급자 불일치, 만료, 두 응답의 id 불일치는 위 표의 **401** `소셜 계정을 인증하지 못했어요.` 와 같다.
   어느 검사에서 떨어졌는지는 서버 로그에만 남기고, 값(토큰·client_id·응답 본문)은 남기지 않는다.
 - 허용 설정이 비어 있으면 그 provider 는 외부 호출 없이 **401** 이다(조용히 통과시키지 않는다). 기동
   점검이 비어 있는 provider 를 경고 로그로 남긴다.
@@ -2031,7 +2031,7 @@ CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 �
 | 상황 | 응답 |
 |---|---|
 | 성공 | 200 + 새 토큰 한 쌍. 세대 +1 |
-| 현재 비밀번호 불일치 | **400** `현재 비밀번호가 일치하지 않습니다.` (401 이 아니다 — 토큰은 유효) |
+| 현재 비밀번호 불일치 | **400** `현재 비밀번호가 일치하지 않아요.` (401 이 아니다 — 토큰은 유효) |
 | 새 비밀번호가 지금과 같음 | 400 |
 | 새 비밀번호 기준 미달 | 422 `password_weak`·`password_too_long`·`password_empty` |
 | 소셜 로그인 전용 계정(비밀번호 없음) | **409** (실패 잠금에 세지 않는다) |
@@ -2064,7 +2064,7 @@ CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 �
 - 코드는 (소문자 이메일, 용도)에 묶인다. 회원 코드로 트레이너 가입을 할 수 없고, 화면에서 이메일을 바꾸면
   새 코드가 필요하다.
 - 형식이 틀린 이메일·모르는 용도 422, 시도 한도 429, 서버에 메일 발송 수단이 없으면(운영인데 SMTP 가 빔)
-  **503** `"지금은 인증 메일을 보낼 수 없습니다. 잠시 후 다시 시도해 주세요."`.
+  **503** `"지금은 인증 메일을 보낼 수 없어요. 잠시 후 다시 시도해 주세요."`.
 
 **2) 가입** — `POST /auth/register`·`POST /auth/trainer/register` 본문에 `email_code` 를 더한다.
 

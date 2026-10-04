@@ -270,7 +270,7 @@ def mark_read(
 ) -> dict:
     row = db.scalar(select(Notification).where(Notification.id == notification_id))
     if row is None or row.user_id != current_user.id:
-        raise HTTPException(status_code=404, detail="알림을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="알림을 찾을 수 없어요.")
     row.read = True
     db.commit()
     return {"id": notification_id, "read": True}
@@ -285,7 +285,7 @@ def delete_notification(
     """알림 삭제(본인 소유만)."""
     row = db.scalar(select(Notification).where(Notification.id == notification_id))
     if row is None or row.user_id != current_user.id:
-        raise HTTPException(status_code=404, detail="알림을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="알림을 찾을 수 없어요.")
     db.delete(row)
     db.commit()
     return {"status": "deleted"}

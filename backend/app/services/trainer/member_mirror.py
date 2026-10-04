@@ -208,7 +208,7 @@ def build_member_routines(
     today = clock.today()
     day = day or today
     if day > today:
-        raise RoutineDayInFuture("아직 오지 않은 날입니다.")
+        raise RoutineDayInFuture("아직 오지 않은 날이에요.")
     trainer_id = get_member_trainer_id(db, member_id)
     if trainer_id is None:
         if day == today:

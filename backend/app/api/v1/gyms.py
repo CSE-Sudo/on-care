@@ -25,7 +25,7 @@ def _require_coordinate_pair(lat: float | None, lng: float | None) -> None:
     """
     if (lat is None) != (lng is None):
         raise HTTPException(
-            status_code=422, detail="lat 과 lng 는 함께 보내야 합니다."
+            status_code=422, detail="lat 과 lng 는 함께 보내야 해요."
         )
 
 
@@ -58,7 +58,7 @@ def my_gym(
     _require_coordinate_pair(lat, lng)
     gym = gym_service.get_member_gym(db, current_user.id, lat=lat, lng=lng)
     if gym is None:
-        raise HTTPException(status_code=404, detail="연결된 헬스장이 없습니다.")
+        raise HTTPException(status_code=404, detail="연결된 헬스장이 없어요.")
     return gym
 
 
@@ -73,7 +73,7 @@ def get_gym(
     _require_coordinate_pair(lat, lng)
     gym = gym_service.get_gym(db, gym_id, lat=lat, lng=lng)
     if gym is None:
-        raise HTTPException(status_code=404, detail="헬스장을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="헬스장을 찾을 수 없어요.")
     return gym
 
 
@@ -85,5 +85,5 @@ def list_gym_trainers(
 ) -> list[TrainerOut]:
     """이 헬스장 소속 트레이너 전원. 헬스장이 없으면 404, 있고 소속이 없으면 빈 배열."""
     if gym_service.get_gym(db, gym_id) is None:
-        raise HTTPException(status_code=404, detail="헬스장을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="헬스장을 찾을 수 없어요.")
     return gym_service.list_trainers(db, gym_id=gym_id)

@@ -22,7 +22,7 @@ from app.core.security import create_access_token
 from app.models.models import Notification, TrainerClient, TrainerSchedule, User
 from app.services import notification_templates as nt
 
-GUARD_DETAIL = "담당 회원을 찾을 수 없습니다."
+GUARD_DETAIL = "담당 회원을 찾을 수 없어요."
 
 
 def _h(token: str) -> dict[str, str]:

@@ -32,7 +32,7 @@ from tests.exercise_helpers import post_exercise
 THURSDAY = datetime(2026, 9, 17, 10, 0, tzinfo=clock.SEOUL)
 TODAY = "2026-09-17"
 THIS_MONDAY = "2026-09-14"
-GUARD_DETAIL = "담당 회원을 찾을 수 없습니다."
+GUARD_DETAIL = "담당 회원을 찾을 수 없어요."
 PASSWORD = "period-pw-2910"
 
 
