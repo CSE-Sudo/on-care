@@ -1106,6 +1106,12 @@ abstract class AppLocalizations {
   /// **'Photo analysis is unavailable right now. Please add the meal manually.'**
   String get dietAnalysisUnavailable;
 
+  /// No description provided for @dietAnalysisAiCapacity.
+  ///
+  /// In en, this message translates to:
+  /// **'AI features are taking a break due to high demand. They reopen tomorrow — for now you can add the meal manually.'**
+  String get dietAnalysisAiCapacity;
+
   /// No description provided for @dietAnalysisPickAnother.
   ///
   /// In en, this message translates to:
@@ -4213,6 +4219,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You\'ve used today\'s chats. They reopen tomorrow'**
   String get aicQuotaExhausted;
+
+  /// No description provided for @aicAiCapacity.
+  ///
+  /// In en, this message translates to:
+  /// **'AI features are taking a break due to high demand. Please try again tomorrow'**
+  String get aicAiCapacity;
 
   /// No description provided for @aicQuotaFindTrainer.
   ///

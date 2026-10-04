@@ -52,6 +52,10 @@ enum DietAnalysisFailure {
   /// server (#2812). Retrying won't change that; manual entry still works.
   unavailable(canRetry: false, offersManualEntry: true),
 
+  /// 503 `ai_capacity` — 서버 전체의 오늘 AI 호출 상한에 걸렸다(#3032). 내일
+  /// 다시 열리고, 그때까지는 직접 추가로 기록한다. 회원 몫은 깎이지 않는다.
+  aiCapacity(canRetry: false, offersManualEntry: true),
+
   /// Timeouts, connection drops, other 5xx — worth another attempt.
   temporary(canRetry: true);
 
@@ -102,6 +106,7 @@ enum DietAnalysisFailure {
     'daily_limit' => DietAnalysisFailure.dailyLimit,
     'rate_limited' => DietAnalysisFailure.rateLimited,
     'analysis_unavailable' => DietAnalysisFailure.unavailable,
+    'ai_capacity' => DietAnalysisFailure.aiCapacity,
     _ => null,
   };
 }
