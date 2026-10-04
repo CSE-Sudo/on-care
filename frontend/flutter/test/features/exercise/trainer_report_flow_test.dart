@@ -404,7 +404,14 @@ void main() {
       expect(note, findsOneWidget);
       expect(
         tester.getTopLeft(note).dy,
-        greaterThan(tester.getBottomLeft(find.text(_trainer.name)).dy),
+        greaterThan(
+          // 이름과 직함은 한 문단(Text.rich)으로 그려진다.
+          tester
+              .getBottomLeft(
+                find.textContaining(_trainer.name, findRichText: true).first,
+              )
+              .dy,
+        ),
       );
     });
 
