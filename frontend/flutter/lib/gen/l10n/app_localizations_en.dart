@@ -4901,10 +4901,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weeklyFeedbackNowButton => 'Send feedback now';
 
   @override
-  String get authForgotPassword => 'Forgot your password?';
+  String get authForgotPassword => 'Forgot password?';
 
   @override
-  String get authFindEmail => 'Find your email';
+  String get authFindEmail => 'Forgot email?';
 
   @override
   String get findEmailTitle => 'Find your email';

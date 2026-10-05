@@ -260,6 +260,7 @@ class SessionController extends StateNotifier<SessionState>
     required String password,
     required String name,
     required String emailCode,
+    String phone = '',
     List<String>? consents,
   }) async {
     _userActionStarted = true;
@@ -268,6 +269,7 @@ class SessionController extends StateNotifier<SessionState>
       password: password,
       name: name,
       emailCode: emailCode,
+      phone: phone,
       consents: consents,
     );
     await _establish(tokens);

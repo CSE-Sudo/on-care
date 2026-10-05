@@ -2064,7 +2064,7 @@
     }
   },
   "weeklyFeedbackNowButton": "지금 피드백 보내기",
-  "authForgotPassword": "비밀번호를 잊으셨나요?",
+  "authForgotPassword": "비밀번호 찾기",
   "authFindEmail": "아이디 찾기",
   "findEmailTitle": "아이디 찾기",
   "findEmailSubtitle": "가입할 때 입력한 이름과 휴대폰 번호로 가입 이메일을 찾아요.",

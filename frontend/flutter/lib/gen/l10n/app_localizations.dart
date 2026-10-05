@@ -7809,13 +7809,13 @@ abstract class AppLocalizations {
   /// No description provided for @authForgotPassword.
   ///
   /// In en, this message translates to:
-  /// **'Forgot your password?'**
+  /// **'Forgot password?'**
   String get authForgotPassword;
 
   /// Text button next to 'Forgot your password?' on sign-in that opens the find-email screen.
   ///
   /// In en, this message translates to:
-  /// **'Find your email'**
+  /// **'Forgot email?'**
   String get authFindEmail;
 
   /// No description provided for @findEmailTitle.

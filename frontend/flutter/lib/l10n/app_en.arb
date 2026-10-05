@@ -3984,8 +3984,8 @@
     }
   },
   "weeklyFeedbackNowButton": "Send feedback now",
-  "authForgotPassword": "Forgot your password?",
-  "authFindEmail": "Find your email",
+  "authForgotPassword": "Forgot password?",
+  "authFindEmail": "Forgot email?",
   "@authFindEmail": {
     "description": "Text button next to 'Forgot your password?' on sign-in that opens the find-email screen."
   },

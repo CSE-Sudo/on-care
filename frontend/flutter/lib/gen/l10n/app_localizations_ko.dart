@@ -4638,7 +4638,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get weeklyFeedbackNowButton => '지금 피드백 보내기';
 
   @override
-  String get authForgotPassword => '비밀번호를 잊으셨나요?';
+  String get authForgotPassword => '비밀번호 찾기';
 
   @override
   String get authFindEmail => '아이디 찾기';
