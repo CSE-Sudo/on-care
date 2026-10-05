@@ -3947,19 +3947,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachRoutineAdherenceTitle => 'Personal exercise follow-through';
 
   @override
-  String coachRoutineAdherenceSummary(int days, int full) {
-    return 'All done on $full of the past $days days';
-  }
-
-  @override
-  String coachRoutineAdherenceLate(String weekday, int count) {
-    return '$count on $weekday checked later';
-  }
-
-  @override
-  String get coachRoutineAdherenceFirstDay => 'Sent today';
-
-  @override
   String coachRoutineAdherenceCell(String date, int done, int total) {
     return '$date: $done of $total done';
   }

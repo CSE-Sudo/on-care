@@ -6787,24 +6787,6 @@ abstract class AppLocalizations {
   /// **'Personal exercise follow-through'**
   String get coachRoutineAdherenceTitle;
 
-  /// No description provided for @coachRoutineAdherenceSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'All done on {full} of the past {days} days'**
-  String coachRoutineAdherenceSummary(int days, int full);
-
-  /// No description provided for @coachRoutineAdherenceLate.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} on {weekday} checked later'**
-  String coachRoutineAdherenceLate(String weekday, int count);
-
-  /// No description provided for @coachRoutineAdherenceFirstDay.
-  ///
-  /// In en, this message translates to:
-  /// **'Sent today'**
-  String get coachRoutineAdherenceFirstDay;
-
   /// No description provided for @coachRoutineAdherenceCell.
   ///
   /// In en, this message translates to:
