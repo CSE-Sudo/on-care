@@ -31,15 +31,16 @@ iOS `CFBundleShortVersionString`/`CFBundleVersion` 은 Flutter 가 이 두 값�
 
 ### 화면의 버전과 웹 배포
 
-두 앱 설정 화면의 `버전 정보`(회원 앱 MY → 설정 카드, 트레이너 웹 설정 메뉴 맨 아래)는
-`<버전 이름> (<빌드 번호>) · <배포 일시> KST` 로 보입니다(#3226). 빌드 번호와 배포 일시는 빌드 때
-`--dart-define=BUILD_NUMBER`·`--dart-define=RELEASE_DATE`(UTC ISO 8601)로 들어가고, 앱이 KST 로 바꿔
-화면 언어에 맞춰 적습니다. 두 define 이 없는 로컬 실행·테스트 빌드는 `<버전 이름> · 개발 빌드` 로 보입니다.
+버전은 화면에 한 곳만 보입니다 — 회원 앱 MY → 설정 → 고객 지원 하단, 트레이너 웹 설정 → 고객 지원
+하단의 버전 줄입니다(#3047, #3226). 모양은 `<앱 이름> · 버전 <버전 이름> (<빌드 번호>) · <배포 일시> KST 배포`
+입니다(예: `On-Care · 버전 0.4.0 (7032) · 2026년 10월 5일 14:30 KST 배포`).
 
-회원 앱 MY → 설정 → 고객 지원 하단과 트레이너 웹 고객 지원 하단의 `… · 버전 <이름>` 은 빌드에서
-읽은 버전 이름입니다(`package_info_plus`, 모바일은 `versionName`·`CFBundleShortVersionString`, 웹은
-빌드의 `version.json`). 번역 문구에 숫자를 적지 않습니다(#3047). 읽지 못하면 앱 이름만 보입니다.
-
+- 버전 이름은 빌드에서 읽습니다(`package_info_plus`, 모바일은 `versionName`·`CFBundleShortVersionString`,
+  웹은 빌드의 `version.json`). 번역 문구에 숫자를 적지 않습니다(#3047).
+- 빌드 번호와 배포 일시는 빌드 때 `--dart-define=BUILD_NUMBER`·`--dart-define=RELEASE_DATE`(UTC ISO 8601)로
+  들어가고, 앱이 KST 로 바꿔 화면 언어에 맞춰 적습니다.
+- 두 define 이 없는 로컬 실행·테스트 빌드는 `<앱 이름> · 버전 <버전 이름> · 개발 빌드` 로 보입니다. 버전
+  이름과 빌드 번호를 모두 읽지 못하면 버전 칸이 빠집니다(예: `On-Care · 개발 빌드`).
 - 트레이너 웹(`frontend/flutter_trainer/pubspec.yaml`)도 같은 규칙으로 버전을 둡니다.
 - 배포 워크플로(Pages·AWS)는 `--build-number` 만 자동 번호로 넣고 `--build-name` 은 넣지 않습니다.
   버전 이름은 저장소의 pubspec 과 늘 같습니다.

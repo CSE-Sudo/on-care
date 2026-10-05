@@ -191,7 +191,7 @@ jobs:
           KAKAO_JS_KEY: ${{ vars.MEMBER_APP_KAKAO_JS_KEY }}
           KAKAO_MAP_ORIGIN: ${{ vars.MEMBER_APP_KAKAO_MAP_ORIGIN }}
           IOS_APP_STORE_ID: ${{ vars.MEMBER_APP_IOS_APP_STORE_ID }}
-          # 설정 화면 `버전 정보`(#3226)가 읽는 빌드 번호·배포 일시.
+          # 고객 지원 버전 줄(#3226)이 읽는 빌드 번호·배포 일시.
           BUILD_NUMBER: ${{ needs.gate.outputs.build_number }}
           RELEASE_DATE: ${{ needs.gate.outputs.release_date }}
         run: python3 ../../tool/ci/write_release_defines.py config/release.json
@@ -321,7 +321,7 @@ jobs:
           KAKAO_JS_KEY: ${{ vars.MEMBER_APP_KAKAO_JS_KEY }}
           KAKAO_MAP_ORIGIN: ${{ vars.MEMBER_APP_KAKAO_MAP_ORIGIN }}
           IOS_APP_STORE_ID: ${{ vars.MEMBER_APP_IOS_APP_STORE_ID }}
-          # 설정 화면 `버전 정보`(#3226)가 읽는 빌드 번호·배포 일시.
+          # 고객 지원 버전 줄(#3226)이 읽는 빌드 번호·배포 일시.
           BUILD_NUMBER: ${{ needs.gate.outputs.build_number }}
           RELEASE_DATE: ${{ needs.gate.outputs.release_date }}
         run: python3 ../../tool/ci/write_release_defines.py config/release.json
