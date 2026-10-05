@@ -245,17 +245,21 @@ void main() {
     }
   });
 
-  testWidgets('더 좁은 자리(본인 확인 창)에서는 넘치지 않고 다음 줄로 흐른다', (tester) async {
-    await _pump(tester, SizedBox(width: 200, child: _row()));
+  testWidgets('더 좁은 자리(본인 확인 창)에서는 간격만 똑같이 줄여 한 줄을 지킨다', (tester) async {
+    // 폭 320 폰의 본인 확인 창 안쪽 폭이 232 다 — 버튼 넷(208)에 간격 8 씩.
+    await _pump(tester, SizedBox(width: 232, child: _row()));
 
     expect(tester.takeException(), isNull);
     final List<Rect> rects = rectsInOrder(tester);
     final Rect row = tester.getRect(find.byType(AppSocialLoginRow));
-    for (final Rect rect in rects) {
-      expect(rect.left, greaterThanOrEqualTo(row.left));
-      expect(rect.right, lessThanOrEqualTo(row.right));
+    for (int i = 1; i < rects.length; i++) {
+      expect(rects[i].center.dy, rects.first.center.dy);
+      expect(rects[i].left - rects[i - 1].right, closeTo(8, 0.01));
     }
-    expect(rects.last.top, greaterThan(rects.first.bottom));
+    expect(rects.first.left, greaterThanOrEqualTo(row.left));
+    expect(rects.last.right, lessThanOrEqualTo(row.right));
+    // 버튼은 줄지 않는다.
+    expect(rects.first.size, const Size.square(OnCareSize.socialLoginButton));
   });
 
   testWidgets('글자 구분선은 양옆 선 가운데에 캡션을 둔다', (tester) async {

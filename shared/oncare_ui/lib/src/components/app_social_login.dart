@@ -120,9 +120,10 @@ class AppSocialLoginButton extends StatelessWidget {
 
 /// 원형 소셜 로그인 버튼 줄(#1783) — 가운데 정렬, 버튼 사이 [OnCareSpacing.s24].
 ///
-/// 버튼 네 개(카카오·구글·네이버·애플)는 폭 280 이 든다. 로그인 틀(폭 320 화면에서
-/// 안쪽 280)에는 한 줄로 들어가지만 본인 확인 창처럼 더 좁은 자리에서는 넘치므로,
-/// 모자랄 때만 다음 줄로 흘린다.
+/// 버튼 네 개(카카오·구글·네이버·애플)는 간격까지 폭 280 이 든다. 로그인 틀(폭 320
+/// 화면에서 안쪽 280)에는 그대로 들어간다. 본인 확인 창처럼 더 좁은 자리에서는
+/// 줄을 바꾸지 않고 **간격만 똑같이 줄여** 한 줄을 지킨다 — 줄을 바꾸면 3개+1개로
+/// 갈라지고, 높이가 정해진 창에서는 넷째 버튼이 스크롤 아래로 숨었다.
 class AppSocialLoginRow extends StatelessWidget {
   const AppSocialLoginRow({super.key, required this.children});
 
@@ -131,11 +132,15 @@ class AppSocialLoginRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: OnCareSpacing.s24,
-      runSpacing: OnCareSpacing.s16,
-      children: children,
+    // 간격 자리는 유연하다 — 남는 폭을 똑같이 나눠 받되 24 를 넘지 않는다.
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        for (int i = 0; i < children.length; i++) ...<Widget>[
+          if (i > 0) const Flexible(child: SizedBox(width: OnCareSpacing.s24)),
+          children[i],
+        ],
+      ],
     );
   }
 }
