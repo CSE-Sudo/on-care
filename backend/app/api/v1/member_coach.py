@@ -21,6 +21,7 @@ from app.api.v1 import chat_attachments
 from app.core import clock
 from app.db.session import get_db
 from app.schemas.exercise_api import AssignedRoutineCompleteRequest
+from app.schemas.record_dates import parse_ymd
 from app.schemas.text_limits import TEXT_LONG_MAX
 from app.schemas.trainer_api import (
     ChatMessageOut, ChatSendRequest, MemberClientInviteOut,
@@ -452,17 +453,27 @@ def _feedback_week(week_start: str | None) -> date:
     기본값이 **지난 주**인 까닭: 이 답은 끝난 한 주를 돌아보며 적는 것이고,
     트레이너는 주 초에 그 주의 리포트를 쓴다. 기본을 이번 주로 두면 아직
     절반도 지나지 않은 주에 `한 주 컨디션` 을 묻게 된다.
+
+    **아직 오지 않은 주는 받지 않는다(#3243).** 지나지 않은 한 주를 돌아볼 수는
+    없고, 미래 주에 저장된 답은 그 주가 와도 이미 낸 것으로 보여 다시 묻지 않는다.
+    이번 주는 받는다 — 주말에 그 주를 정리해 보내는 회원이 있다. 리포트 주차
+    (`_my_report_week`)와 같은 규칙이다.
     """
-    if week_start:
-        try:
-            day = date.fromisoformat(week_start)
-        except ValueError as exc:
-            raise HTTPException(
-                status_code=422, detail="week_start 는 YYYY-MM-DD 여야 합니다."
-            ) from exc
-    else:
-        day = trainer_reports_service.week_start_of(clock.today()) - timedelta(days=7)
-    return trainer_reports_service.week_start_of(day)
+    this_week = trainer_reports_service.week_start_of(clock.today())
+    if not week_start:
+        return this_week - timedelta(days=7)
+    try:
+        day = parse_ymd(week_start)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422, detail="week_start 는 YYYY-MM-DD 여야 합니다."
+        ) from exc
+    week = trainer_reports_service.week_start_of(day)
+    if week > this_week:
+        raise HTTPException(
+            status_code=422, detail="아직 오지 않은 주에는 피드백을 남길 수 없습니다."
+        )
+    return week
 
 
 @router.get("/me/coach/weekly-feedback", response_model=MemberWeeklyFeedbackOut)
@@ -526,7 +537,7 @@ def _my_report_week(week_start: str | None) -> date:
     if not week_start:
         return today
     try:
-        day = date.fromisoformat(week_start)
+        day = parse_ymd(week_start)
     except ValueError as exc:
         raise HTTPException(
             status_code=422, detail="week_start 는 YYYY-MM-DD 여야 합니다."

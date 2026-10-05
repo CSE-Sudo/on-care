@@ -63,3 +63,9 @@ def test_recurring_until_rejects_compact_dates():
             date="2026-10-05", time="09:00", weekdays=[1], until="20261231"
         )
 
+
+@pytest.mark.parametrize("bad", ["2026-1-5", "20260105"])
+def test_exercise_week_rejects_other_shapes_instead_of_this_week(client, bad):
+    """`2026-1-5` 가 조용히 이번 주로 바뀌지 않고 422 다."""
+    r = client.get("/v1/exercise/weeks/current", params={"week_start": bad})
+    assert r.status_code == 422, r.text
