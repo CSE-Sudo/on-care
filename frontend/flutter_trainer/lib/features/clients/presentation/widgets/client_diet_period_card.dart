@@ -534,7 +534,7 @@ class _MacroDetail extends StatelessWidget {
               Text(
                 // `204g` — 소수점은 버린다. 옆의 머리 숫자가 주인공이고 이
                 // 줄은 곁들이다. (회원 앱 `_macroGrams`)
-                '${value.round()}g',
+                '${value.round()}${unitGap(Localizations.localeOf(context).toString())}g',
                 maxLines: 1,
                 style: OnCareTypography.numeric(
                   captionStrong,

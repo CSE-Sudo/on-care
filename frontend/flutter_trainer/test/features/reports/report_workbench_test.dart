@@ -744,7 +744,7 @@ void main() {
               '',
       ];
       expect(texts.any((t) => t.startsWith('가회원')), isTrue);
-      expect(texts.any((t) => t.contains('전송')), isTrue);
+      expect(texts.any((t) => t.contains('보냄')), isTrue);
     });
   });
 

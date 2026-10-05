@@ -654,7 +654,7 @@ void main() {
     expect(
       find.descendant(
         of: total,
-        matching: find.textContaining(RegExp(r'^총 [\d,]+ kcal$')),
+        matching: find.textContaining(RegExp(r'^총 [\d,]+kcal$')),
       ),
       findsOneWidget,
     );

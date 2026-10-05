@@ -2337,10 +2337,8 @@ void main() {
       expect(
         find.descendant(
           of: timeButton,
-          matching: find.text(
-            '${const TimeOfDay(hour: 14, minute: 30).format(tester.element(timeButton))} – '
-            '${const TimeOfDay(hour: 15, minute: 45).format(tester.element(timeButton))}',
-          ),
+          // 시각은 24시간제(#3120).
+          matching: find.text('14:30 – 15:45'),
         ),
         findsOneWidget,
       );

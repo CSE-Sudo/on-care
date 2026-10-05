@@ -1181,7 +1181,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         // 번에 보여준다.
         _analysisRow(
           l.aiDietSignal,
-          '${client.sodiumMg}mg'
+          '${client.sodiumMg}${unitGap(l.localeName)}mg'
           '${client.sodiumOverBudget ? l.aiOverTarget : ''}'
           '${client.sodiumOverDays > 0 ? l.aiSodiumOverDaysSuffix(client.sodiumOverDays) : ''}'
           '${client.sugarOverBudget ? l.aiSugarAlsoOver : ''}',

@@ -328,7 +328,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('2번 보냄'), findsOneWidget);
+      expect(find.text('2회 보냄'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 

@@ -272,7 +272,8 @@ class _MacroProgressItem extends StatelessWidget {
               // "정상" 이라고 말한다. (회원 앱 #1070)
               if (item.isOverGoal)
                 TextSpan(
-                  text: ' +${item.difference}${item.unit}',
+                  text:
+                      ' +${item.difference}${unitGap(Localizations.localeOf(context).toString())}${item.unit}',
                   style: captionStrong.copyWith(color: OnCareColors.danger),
                 ),
             ],
@@ -297,7 +298,8 @@ class _MacroProgressItem extends StatelessWidget {
                   ).copyWith(color: OnCareColors.textPrimary),
                 ),
                 TextSpan(
-                  text: ' / ${item.goal}${item.unit}',
+                  text:
+                      ' / ${item.goal}${unitGap(Localizations.localeOf(context).toString())}${item.unit}',
                   style: captionStrong.copyWith(
                     color: OnCareColors.textSecondary,
                   ),

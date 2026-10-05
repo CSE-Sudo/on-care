@@ -1185,7 +1185,8 @@ class _MacroProgressItem extends StatelessWidget {
               // 초과분은 라벨 오른쪽에 빨간 글씨로 (#1070).
               if (macro.item.isOverGoal && macro.difference != null)
                 TextSpan(
-                  text: ' +${macro.difference}${macro.item.unit}',
+                  text:
+                      ' +${macro.difference}${unitGap(Localizations.localeOf(context).toString())}${macro.item.unit}',
                   style: const TextStyle(color: OnCareColors.danger),
                 ),
             ],
@@ -1216,7 +1217,8 @@ class _MacroProgressItem extends StatelessWidget {
                   ),
                 ),
                 TextSpan(
-                  text: ' / ${macro.item.goal}${macro.item.unit}',
+                  text:
+                      ' / ${macro.item.goal}${unitGap(Localizations.localeOf(context).toString())}${macro.item.unit}',
                   style: _text(
                     context,
                     OnCareTypography.caption,

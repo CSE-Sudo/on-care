@@ -296,9 +296,9 @@ class _MealCard extends StatelessWidget {
                     food: f,
                     flags: <String>[
                       if (identical(f, sugarFood))
-                        '${l.metricSugar} ${_grams(f.sugarG)}g',
+                        '${l.metricSugar} ${_grams(f.sugarG)}${unitGap(l.localeName)}g',
                       if (identical(f, sodiumFood))
-                        '${l.metricSodium} ${formatNumber(f.sodiumMg)}mg',
+                        '${l.metricSodium} ${formatNumber(f.sodiumMg)}${unitGap(l.localeName)}mg',
                     ],
                   ),
               const SizedBox(height: OnCareSpacing.s8),
@@ -395,7 +395,7 @@ class _FoodLine extends StatelessWidget {
                     TextSpan(text: food.name),
                     if (amount != null)
                       TextSpan(
-                        text: '  ${_grams(amount)}g',
+                        text: '  ${_grams(amount)}${unitGap(l.localeName)}g',
                         style: OnCareTypography.numeric(
                           tokens
                               .text(OnCareTypography.caption)
@@ -547,7 +547,7 @@ class _MealTotals extends StatelessWidget {
     // 당류 — 탄수화물의 일부라 그 칸 안, **g 값 바로 오른쪽**에 작게 붙는다.
     // 아래 줄로 따로 두면 탄수화물 칸만 한 줄 길어져 네 칸의 키가 어긋났다.
     final Widget sugar = Text(
-      '${l.metricSugar} ${_grams(entry.sugarG)}g',
+      '${l.metricSugar} ${_grams(entry.sugarG)}${unitGap(l.localeName)}g',
       key: ValueKey<String>('client-diet-sugar-${entry.id}'),
       maxLines: 1,
       softWrap: false,
@@ -587,9 +587,10 @@ class _MealTotals extends StatelessWidget {
         bool sugarFits(double rowWidth) => _fitsInline(
           context,
           columnWidth: _macroColumnWidth(rowWidth),
-          value: '${_grams(entry.carbsG)}g',
+          value: '${_grams(entry.carbsG)}${unitGap(l.localeName)}g',
           valueStyle: value(),
-          sugar: '${l.metricSugar} ${_grams(entry.sugarG)}g',
+          sugar:
+              '${l.metricSugar} ${_grams(entry.sugarG)}${unitGap(l.localeName)}g',
           sugarStyle: head,
         );
         final double totalWidth =
@@ -636,7 +637,7 @@ class _MealTotals extends StatelessWidget {
                             textBaseline: TextBaseline.alphabetic,
                             children: <Widget>[
                               Text(
-                                '${_grams(p.grams)}g',
+                                '${_grams(p.grams)}${unitGap(l.localeName)}g',
                                 maxLines: 1,
                                 softWrap: false,
                                 style: value(),
@@ -711,7 +712,7 @@ class _MealTotals extends StatelessWidget {
                     const SizedBox(height: OnCareSpacing.s2),
                     fit(
                       Text(
-                        '${formatNumber(entry.sodiumMg)}mg',
+                        '${formatNumber(entry.sodiumMg)}${unitGap(l.localeName)}mg',
                         key: ValueKey<String>('client-diet-sodium-${entry.id}'),
                         maxLines: 1,
                         softWrap: false,
@@ -886,7 +887,11 @@ InlineSpan _foodsSpan(BuildContext context, ClientDietEntry meal) {
         if (i > 0) const TextSpan(text: ', '),
         TextSpan(text: meal.foods[i].name),
         if (meal.foods[i].amountG case final double g)
-          TextSpan(text: ' ${_grams(g)}g', style: amount),
+          TextSpan(
+            text:
+                ' ${_grams(g)}${unitGap(Localizations.localeOf(context).toString())}g',
+            style: amount,
+          ),
       ],
     ],
   );
@@ -1058,12 +1063,12 @@ class _NutrientLine extends StatelessWidget {
     final bool tellsMacros = basis > 0 || calories <= 0;
     String part(String name, double kcal, double grams) => basis > 0
         ? '${l.clientDietMacroShare(name, (kcal / basis * 100).round())} '
-              '${_grams(grams)}g'
-        : '$name ${_grams(grams)}g';
+              '${_grams(grams)}${unitGap(l.localeName)}g'
+        : '$name ${_grams(grams)}${unitGap(l.localeName)}g';
     Widget item(InlineSpan span) =>
         Text.rich(span, maxLines: 1, softWrap: false, style: caption);
     final TextSpan sugar = TextSpan(
-      text: '${l.metricSugar} ${_grams(sugarG)}g',
+      text: '${l.metricSugar} ${_grams(sugarG)}${unitGap(l.localeName)}g',
       style: sugarOver ? warn : null,
     );
     return Wrap(
@@ -1103,7 +1108,8 @@ class _NutrientLine extends StatelessWidget {
         ),
         item(
           TextSpan(
-            text: '${l.metricSodium} ${formatNumber(sodiumMg)}mg',
+            text:
+                '${l.metricSodium} ${formatNumber(sodiumMg)}${unitGap(l.localeName)}mg',
             style: sodiumOver ? warn : null,
           ),
         ),

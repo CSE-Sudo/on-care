@@ -786,7 +786,7 @@
   "schedRoutinesSend": "개인운동 보내기",
   "schedRoutinesSkip": "보내지 않음",
   "schedSendProgramWithRoutines": "{date} PT 프로그램 · 개인운동 보내기",
-  "schedRoutineSent": "전송됨",
+  "schedRoutineSent": "보냄",
   "@schedSendProgramWithRoutines": {
     "placeholders": {
       "name": {
@@ -1719,7 +1719,7 @@
       }
     }
   },
-  "workoutRoutineAllCount": "{count}번 보냄",
+  "workoutRoutineAllCount": "{count}회 보냄",
   "@workoutRoutineAllCount": {
     "placeholders": {
       "count": {
@@ -1797,7 +1797,7 @@
       }
     }
   },
-  "workoutTotalBurned": "총 소모 {calories} kcal",
+  "workoutTotalBurned": "총 소모 {calories}kcal",
   "@workoutTotalBurned": {
     "placeholders": {
       "calories": {
@@ -1805,7 +1805,7 @@
       }
     }
   },
-  "workoutLineBurned": "소모 {calories} kcal",
+  "workoutLineBurned": "소모 {calories}kcal",
   "@workoutLineBurned": {
     "placeholders": {
       "calories": {
@@ -1813,7 +1813,7 @@
       }
     }
   },
-  "workoutLineEstimated": "예상 소모 {calories} kcal",
+  "workoutLineEstimated": "예상 소모 {calories}kcal",
   "@workoutLineEstimated": {
     "placeholders": {
       "calories": {

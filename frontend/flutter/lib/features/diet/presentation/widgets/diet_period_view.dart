@@ -626,7 +626,7 @@ class _MacroDetail extends StatelessWidget {
               Text(label, maxLines: 1, style: base.copyWith(color: color)),
               const SizedBox(width: OnCareSpacing.s4),
               Text(
-                _macroGrams(value),
+                _macroGrams(value, l.localeName),
                 maxLines: 1,
                 style: OnCareTypography.numeric(
                   base,
@@ -640,7 +640,9 @@ class _MacroDetail extends StatelessWidget {
 }
 
 /// `204g` — 소수점은 버린다. 옆의 머리 숫자가 주인공이고 이 줄은 곁들이다.
-String _macroGrams(double v) => '${v.round()}g';
+/// `204g` / 영어 `204 g`(#3120).
+String _macroGrams(double v, String locale) =>
+    '${v.round()}${unitGap(locale)}g';
 
 /// 요일 라벨(월~일). 이번 주 그래프의 축에 적는다.
 List<String> _weekdayLabels(AppLocalizations l) => <String>[

@@ -191,14 +191,14 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         {"member_name": "지수", "starts_at": STARTS.isoformat()},
         "",
         "새 예약이 들어왔어요",
-        f"지수 회원 · 10월 1일 09:05",
+        "지수 회원 · 10월 1일 09:05",
     ),
     (
         nt.TRAINER_RESERVATION_CANCELLED,
         {"member_name": "지수", "starts_at": STARTS.isoformat()},
         "",
         "예약이 취소되었습니다",
-        f"지수 회원 · 10월 1일 09:05",
+        "지수 회원 · 10월 1일 09:05",
     ),
     (
         nt.TRAINER_RESERVATION_CANCELLED,
@@ -339,14 +339,14 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         {"trainer_name": "박코치", "starts_at": STARTS.isoformat(), "note": None},
         "",
         "상담 요청이 수락되었어요",
-        f"박코치 트레이너와의 상담이 확정됐어요. 상담 일시는 10월 1일 09:05 입니다.",
+        "박코치 트레이너와의 상담이 확정됐어요. 상담 일시는 10월 1일 09:05 입니다.",
     ),
     (
         nt.MEMBER_CONSULT_APPROVED,
         {"trainer_name": "", "starts_at": STARTS.isoformat(), "note": "편한 복장으로 오세요."},
         "",
         "상담 요청이 수락되었어요",
-        f"트레이너 트레이너와의 상담이 확정됐어요. 상담 일시는 10월 1일 09:05 입니다."
+        "트레이너 트레이너와의 상담이 확정됐어요. 상담 일시는 10월 1일 09:05 입니다."
         " 편한 복장으로 오세요.",
     ),
     (
@@ -354,7 +354,7 @@ LEGACY_KO: list[tuple[str, dict, str, str, str]] = [
         {"trainer_name": "박코치", "starts_at": STARTS.isoformat(), "note": ""},
         "",
         "상담 요청이 수락되었어요",
-        f"박코치 트레이너와의 상담이 확정됐어요. 상담 일시는 10월 1일 09:05 입니다. ",
+        "박코치 트레이너와의 상담이 확정됐어요. 상담 일시는 10월 1일 09:05 입니다. ",
     ),
     (
         nt.MEMBER_CONSULT_REJECTED,
