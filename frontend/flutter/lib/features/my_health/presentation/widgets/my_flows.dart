@@ -28,6 +28,7 @@ import 'package:oncare/features/my_health/presentation/widgets/account_reauth_di
 import 'package:oncare/features/notification/data/repositories/notification_settings_repository.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/app_error_state_for.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_core/legal_contact.dart';
 import 'package:oncare_core/licenses.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -1185,6 +1186,21 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   RecommendedGoals get _exerciseSuggestion =>
       _recommendedFor(UserProfile.defaultDailyCalories);
 
+  /// 회원의 나이·성별·키·체중으로 낸 권장 칼로리와 그 배분(#2144). 온보딩·
+  /// 트레이너 웹 신체·목표 창과 **같은 계산**이다.
+  ///
+  /// 흐린 기준선([_fallbackValue])과는 다른 값이다. 기준선은 목표 없는 회원을
+  /// 홈·식단 탭이 실제로 견주는 2000 이고, 이 값은 회원이 받아들였을 때만
+  /// 목표가 된다 — 온보딩도 계산값을 칸에 채워 보여 주고 완료를 눌러야 저장한다.
+  /// 정보가 모자라면 `fallback` 이고, 그때 화면은 이 줄을 내지 않는다.
+  RecommendedGoals get _personalSuggestion => recommendedGoalsFor(
+    ageYears: ageFromBirthDate(_base.birthDate, today: todayKst()),
+    gender: _base.gender,
+    heightCm: _base.heightCm,
+    weightKg: _base.weightKg,
+    focus: _focus,
+  );
+
   /// 탄단지 → 칼로리. 세 칸이 모두 채워졌을 때만 칼로리를 다시 쓴다.
   ///
   /// 한 칸이라도 비어 있으면 손대지 않는다 — 지우는 도중의 빈 칸을 0g 으로
@@ -1227,6 +1243,37 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     _markTouched(_kFat);
     _markTouched(_kSugar);
     _syncCaloriesFromMacros();
+  }
+
+  /// 권장 칼로리와 그 배분을 다섯 칸에 채운다(#2144).
+  ///
+  /// 채운 칸은 손댄 칸으로 친다 — 저장하면 `null` 이 아니라 이 값이 목표로
+  /// 나가, 홈·식단 탭·트레이너 화면이 모두 같은 숫자를 견준다.
+  ///
+  /// 칼로리를 탄단지에서 다시 세지 않는다. 반올림 탓에 배분의 합이 몇 kcal
+  /// 어긋나는데, 다시 세면 칸이 방금 안내한 권장 칼로리와 다른 수가 되고
+  /// `탄·단·지 목표로 계산한 값` 이라는 엉뚱한 안내까지 붙는다. 온보딩도 두
+  /// 값을 따로 채운다.
+  void _applyPersonalSuggestion() {
+    final RecommendedGoals r = _personalSuggestion;
+    if (!r.isPersonalized) return;
+    setState(() {
+      _kcal.text = '${r.dailyCalories}';
+      _carbs.text = '${r.dailyCarbsG}';
+      _protein.text = '${r.dailyProteinG}';
+      _fat.text = '${r.dailyFatG}';
+      _sugar.text = '${r.dailySugarG}';
+      _kcalFromMacros = false;
+      for (final String key in <String>[
+        _kKcal,
+        _kCarbs,
+        _kProtein,
+        _kFat,
+        _kSugar,
+      ]) {
+        _markTouched(key);
+      }
+    });
   }
 
   /// 권장 운동 목표를 네 칸에 채운다. 고른 건강 목표를 반영한 값이다(#1816).
@@ -1370,6 +1417,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     // 만질 때마다 사라진다.
     final split = _suggestedSplit;
     final RecommendedGoals exercise = _exerciseSuggestion;
+    final RecommendedGoals personal = _personalSuggestion;
     // 보기 모드가 읽는 초점도 저장된 값이다 — 고치다 취소한 선택이 남아
     // 있을 수 있는 `_focus` 가 아니라 프로필에서 다시 센다.
     final Set<String> savedFocus = parseHealthFocus(_base.conditions);
@@ -1623,6 +1671,21 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
               }),
             ),
           ),
+          // 회원 정보로 낸 권장 칼로리(#2144). 칼로리 칸 바로 아래에 둔다 — 이
+          // 줄이 말하는 것은 칼로리이고, 아래 `권장 배분` 줄은 칸에 적힌 칼로리를
+          // 나눈 값이라 자리가 다르다. 목표가 이미 저장된 회원에게도 보인다:
+          // 운동 권장 줄과 같은 규칙이고, 덮어쓰기는 버튼을 누르고 저장할 때만
+          // 일어난다. 값을 덮어쓰는 버튼이라 보기 모드에서는 내지 않고, 계산할
+          // 정보가 없으면 기본값 2000 을 권장처럼 다시 말하지 않도록 감춘다.
+          if (_editing && personal.isPersonalized) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s12),
+            _MacroSuggestionRow(
+              buttonKey: const Key('goalApplyPersonalCalories'),
+              note: l.myGoalPersonalCaloriesNote(personal.dailyCalories),
+              actionLabel: l.myGoalPersonalCaloriesApply,
+              onApply: _applyPersonalSuggestion,
+            ),
+          ],
           const SizedBox(height: OnCareSpacing.s12),
           _goalField(
             _kCarbs,

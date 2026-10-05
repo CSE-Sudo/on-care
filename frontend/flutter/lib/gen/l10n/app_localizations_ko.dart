@@ -3464,6 +3464,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGoalMacroApplySuggestion => '권장 비율로 채우기';
 
   @override
+  String myGoalPersonalCaloriesNote(int kcal) {
+    return '내 정보로 계산한 권장: 하루 ${kcal}kcal · 탄·단·지·당류도 이 칼로리에 맞춰 채워요';
+  }
+
+  @override
+  String get myGoalPersonalCaloriesApply => '권장 칼로리로 채우기';
+
+  @override
   String get myGoalUnsetHint => '흐린 값은 목표를 세우기 전의 기본 기준이에요';
 
   @override

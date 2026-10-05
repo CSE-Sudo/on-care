@@ -6259,6 +6259,18 @@ abstract class AppLocalizations {
   /// **'Use suggested split'**
   String get myGoalMacroApplySuggestion;
 
+  /// Edit-mode line under the calorie goal: the daily calories estimated from the member's age, sex, height and weight (same estimate as onboarding). Shown only when all four are known. Pressing the button fills calories and the macro split, which are then saved as real goals.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested for you: {kcal} kcal a day · carbs, protein, fat and sugar follow it'**
+  String myGoalPersonalCaloriesNote(int kcal);
+
+  /// Button that fills the calorie, carbs, protein, fat and sugar goals with the personalized suggestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Use suggested calories'**
+  String get myGoalPersonalCaloriesApply;
+
   /// Footnote under a read-only health-goal card that has fields the member has never set. The number shown is the app-wide baseline in force, not the personalized recommendation the edit form offers.
   ///
   /// In en, this message translates to:
