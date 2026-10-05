@@ -41,6 +41,11 @@ class ConsultationRequestController
   /// 요청을 그대로 넣은 임시 카드의 id. 서버에 없는 id 다(#2858).
   final Set<String> _provisionalIds = <String>{};
 
+  /// 마지막 [restore] 를 실패하게 한 오류(#3140). 받았으면 null 이다 — 내역
+  /// 화면의 오류 안내가 원인(연결·서버·권한)을 말하는 근거다.
+  Object? get lastRestoreError => _lastRestoreError;
+  Object? _lastRestoreError;
+
   /// 서버에 남은 내 신청으로 목록을 채운다. 실패해도 예외를 던지지 않는다 —
   /// 복원이 안 됐다고 다른 화면을 오류로 덮을 이유가 없고, 중복은 서버가 409 로
   /// 막는다. 대신 받았는지를 돌려줘, 내역 화면이 처음 열 때 로딩·오류·빈 상태를
@@ -58,9 +63,11 @@ class ConsultationRequestController
     final List<ConsultationRequest> mine;
     try {
       mine = await _repository.fetchMine();
-    } on Object {
+    } on Object catch (error) {
+      _lastRestoreError = error;
       return false;
     }
+    _lastRestoreError = null;
     // 받는 사이에 세션이 바뀌어 이 컨트롤러가 버려졌을 수 있다.
     if (!mounted || edits != _localEdits) return true;
     if (mine.isNotEmpty) {

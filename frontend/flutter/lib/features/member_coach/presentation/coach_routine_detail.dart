@@ -1,5 +1,5 @@
 import 'package:oncare/features/exercise/presentation/widgets/own_exercise_records.dart'
-    show exerciseDurationLabel, exerciseWeightLabel;
+    show exerciseDurationLabel, exerciseWeightLabel, strengthAmountParts;
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
@@ -26,9 +26,6 @@ String coachRoutineExerciseLabel(
 /// 구분자는 앱의 나머지 표기와 같은 ` · ` 다 — 세트와 횟수 사이만 `×` 를 쓰면
 /// 같은 값이 화면마다 다른 모양으로 읽힌다(#1904).
 String _detail(AppLocalizations l, CoachRoutineExercise exercise) {
-  final int? sets = exercise.sets;
-  final int? reps = exercise.reps;
-  final double? weight = exercise.weight;
   final int? duration = exercise.duration;
   // 초가 있으면 초로 읽는다 — `45초` 를 반올림한 `1분` 으로 적지 않는다(#2221).
   // 초를 모르는 옛 응답은 분에서 되짚는다.
@@ -36,9 +33,16 @@ String _detail(AppLocalizations l, CoachRoutineExercise exercise) {
       exercise.durationSeconds ??
       (duration != null && duration > 0 ? duration * 60 : null);
   final int? rest = exercise.rest;
+  // 세트·횟수(버티는 운동이면 초)·중량은 다른 화면과 같은 함수로 잇는다(#3138).
+  final List<String> strength = strengthAmountParts(
+    l,
+    sets: exercise.sets,
+    reps: exercise.reps,
+    holdSeconds: exercise.holdSeconds,
+  );
+  final double? weight = exercise.weight;
   return <String>[
-    if (sets != null && sets > 0) l.exSetsCount(sets),
-    if (reps != null && reps > 0) l.exRepsCount(reps),
+    ...strength,
     if (seconds != null && seconds > 0)
       exerciseDurationLabel(
         l,

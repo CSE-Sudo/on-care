@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_feedback_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_feedback.dart';
 import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
@@ -64,9 +62,11 @@ class _ClientFeedbackSectionState extends ConsumerState<ClientFeedbackSection> {
           error: (Object error, _) => AppErrorState(
             key: const ValueKey<String>('client-feedback-retry'),
             placement: AppStatePlacement.card,
-            title: error is AppError
-                ? serverDetailOr(l, error.message, l.clientFeedbackLoadFailed)
-                : l.clientFeedbackLoadFailed,
+            title: appErrorMessage(
+              l,
+              error,
+              fallback: l.clientFeedbackLoadFailed,
+            ),
             retryLabel: l.actionRetry,
             onRetry: () =>
                 ref.invalidate(clientFeedbacksProvider(widget.clientId)),

@@ -41,7 +41,7 @@ from app.api.v1 import (
     users,
 )
 from app.api.v1.trainer import notifications as trainer_notifications
-from app.core import error_tracking, observability, startup_checks
+from app.core import error_tracking, https_redirect, observability, startup_checks
 from app.core.body_limit import BodyLimitRule, RequestBodySizeLimitMiddleware
 from app.core.client_ip import warn_if_untrusted_setup
 from app.core.client_platform import RequestClientPlatformMiddleware
@@ -147,10 +147,9 @@ def body_limit_rules(s: Settings) -> tuple[BodyLimitRule, ...]:
 app.add_middleware(RequestBodySizeLimitMiddleware, rules=body_limit_rules(settings))
 
 # HTTPS 강제(운영). 프록시 뒤면 X-Forwarded-Proto 를 신뢰(uvicorn --proxy-headers).
-if settings.force_https:
-    from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
-
-    app.add_middleware(HTTPSRedirectMiddleware)
+# 로드 밸런서 헬스체크는 평문 HTTP 로 직접 들어오므로 /v1/healthz·/v1/readyz 는
+# 리다이렉트하지 않는다(#3130, app/core/https_redirect.py).
+https_redirect.install(app, settings)
 
 # CORS: 와일드카드('*')면 자격증명(쿠키) 불가 → allow_credentials=False.
 # 명시 출처면 자격증명 허용. (앱은 Bearer 토큰이라 와일드카드+무자격증명으로 충분.)
