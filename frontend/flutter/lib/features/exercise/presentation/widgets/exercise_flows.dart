@@ -481,7 +481,11 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
       // 화면이 보여 준 값을 그대로 싣는다 — 서버는 이 값을 쓰지 않고 같은
       // 계산을 다시 하지만(#1312), 서버가 없는 경로(목업 저장소)는 이 값을
       // 기록에 남긴다. 미리보기가 아직 안 돌아왔으면 앱이 아는 유형 평균이다.
-      calories: _estimate?.calories ?? _estimateCalories(type, minutes, _level),
+      // 입력을 고친 뒤 디바운스가 끝나기 전이면 들고 있는 값은 고치기 전 입력의
+      // 것이다 — 그 값도 쓰지 않는다(#3244).
+      calories: _estimate != null && _requestedKey == _estimateKey
+          ? _estimate!.calories
+          : _estimateCalories(type, minutes, _level),
       // Intensity is persisted now, so always recompute calories from the
       // (restored or edited) level — no more preserving stale values.
       intensity: ExerciseIntensity.values[_level],

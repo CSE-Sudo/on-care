@@ -267,16 +267,26 @@ class _PeriodBody extends StatelessWidget {
   /// 머리 숫자 옆에 붙일 탄단지. [picked] 이 있으면 그날 값, 없으면 기록이
   /// 있는 날의 하루 평균이다. 서버가 영양을 주지 않은 기간이면 null 이라
   /// 아무것도 붙지 않는다.
+  ///
+  /// 평균은 칼로리와 같은 **보이는 구간**에서 낸다(#3244). 칼로리만 보이는
+  /// 구간 평균이고 탄단지는 기간 전체 평균이면, `전체` 를 옆으로 넘길 때 한
+  /// 줄의 두 숫자가 서로 다른 날들을 말한다.
   _Macros? _macrosFor(int? picked) {
     final List<DietPeriodDay>? all = days;
-    if (all == null) return null;
+    if (all == null || all.isEmpty) return null;
     if (picked != null) {
       final DietPeriodDay d = all[picked];
       return d.hasMacros
           ? _Macros(carbs: d.carbsG, protein: d.proteinG, fat: d.fatG)
           : null;
     }
+    final (int, int)? visible = selection.visible;
+    final int from = visible == null ? 0 : visible.$1.clamp(0, all.length - 1);
+    final int to = visible == null
+        ? all.length - 1
+        : visible.$2.clamp(from, all.length - 1);
     final List<DietPeriodDay> logged = all
+        .sublist(from, to + 1)
         .where((DietPeriodDay d) => d.hasMacros)
         .toList();
     if (logged.isEmpty) return null;

@@ -269,10 +269,29 @@ class _RecordTabState extends ConsumerState<_RecordTab> {
   /// 이 화면이 마지막으로 그린 오늘 — 식단 탭과 같은 자정 넘김 규칙이다(#2882).
   late DateTime _shownToday = _selected;
 
+  /// 자정을 넘겨 주가 바뀌었고 새 주 자료를 아직 받지 못했다(#3244).
+  ///
+  /// 주간 자료는 요일 이름으로 하루를 가른다. 일요일에서 월요일로 넘어가면 들고
+  /// 있던 지난주 자료의 `월` 이 오늘로 읽혀, 지난주 월요일 기록이 오늘 기록처럼
+  /// 보였다. 새 주를 받을 때까지는 그리지 않는다.
+  bool _weekRolled = false;
+
+  /// [_weekRolled] 뒤 주간 자료를 다시 읽기 시작했다 — 다음에 오는 결과가 새 주다.
+  bool _awaitingWeek = false;
+
   /// 날이 바뀌었으면, 회원이 날짜를 직접 고르지 않았을 때만 새 오늘로 옮긴다.
   void _followMidnight(DateTime today) {
     if (today == _shownToday) return;
     if (_weekShift == 0 && _selected == _shownToday) _selected = today;
+    if (mondayOfWeek(today) != mondayOfWeek(_shownToday)) {
+      _weekRolled = true;
+      // 그리는 중에는 provider 를 비울 수 없다 — 이 프레임이 끝난 뒤 비운다.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _awaitingWeek = true;
+        ref.invalidate(exerciseWeekProvider);
+      });
+    }
     _shownToday = today;
   }
 
@@ -288,10 +307,29 @@ class _RecordTabState extends ConsumerState<_RecordTab> {
     final AsyncValue<ExerciseWeek> weekAsync = ref.watch(
       exerciseWeekViewProvider,
     );
+    ref.listen<AsyncValue<ExerciseWeek>>(exerciseWeekProvider, (
+      AsyncValue<ExerciseWeek>? previous,
+      AsyncValue<ExerciseWeek> next,
+    ) {
+      if (!_awaitingWeek || next.isLoading) return;
+      setState(() {
+        _awaitingWeek = false;
+        _weekRolled = false;
+      });
+    });
     final DateTime today = _today;
     _followMidnight(today);
-    final DateTime center = today.add(Duration(days: _weekShift * 7));
+    // 날짜는 달력으로 더한다 — 24시간 단위로 더하면 서머타임이 있는 기기에서
+    // 전날 23시가 되어 한 칸 밀린다(#3244).
+    final DateTime center = DateTime(
+      today.year,
+      today.month,
+      today.day + _weekShift * 7,
+    );
     final bool atToday = _weekShift == 0 && _selected == today;
+    if (_weekRolled) {
+      return const AppLoading(placement: AppStatePlacement.card);
+    }
     return weekAsync.when(
       loading: () => const AppLoading(placement: AppStatePlacement.card),
       error: (Object e, StackTrace _) => Padding(
@@ -468,7 +506,7 @@ class _ExerciseWeekStrip extends StatelessWidget {
     final DateTime monday = mondayOf(center);
     final List<DateTime> days = List<DateTime>.generate(
       7,
-      (int i) => monday.add(Duration(days: i)),
+      (int i) => DateTime(monday.year, monday.month, monday.day + i),
     );
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s16),

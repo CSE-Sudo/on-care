@@ -54,7 +54,7 @@ Future<bool> showDietResultSheet(
   // 그 화면에서 저장했으면 이 흐름도 저장 성공이다(#2848, #2827).
   if (closedWith == _ResultSheetExit.manual) {
     if (!root.mounted) return false;
-    return openDietManualAddPage(root);
+    return openDietManualAddPage(root, date: date);
   }
   return outcome.resolve(closedWith);
 }

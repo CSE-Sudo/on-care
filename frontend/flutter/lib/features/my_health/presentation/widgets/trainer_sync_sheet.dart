@@ -49,6 +49,9 @@ class _TrainerSyncSheetState extends ConsumerState<_TrainerSyncSheet> {
   /// 저장소를 미리 붙들어 둔다 — [dispose] 에서 `ref` 를 읽을 수 없다.
   late final TrainerSyncRepository _repository;
 
+  /// 진행 중인 발급 요청. 시트를 닫을 때 이것이 끝난 뒤에 버린다(#3244).
+  Future<void>? _issuing;
+
   @override
   void initState() {
     super.initState();
@@ -71,6 +74,13 @@ class _TrainerSyncSheetState extends ConsumerState<_TrainerSyncSheet> {
   }
 
   Future<void> _revokeQuietly() async {
+    // 발급 중에 닫으면 폐기가 발급보다 먼저 서버에 닿을 수 있다. 그러면 뒤늦게
+    // 발급된 코드가 만료까지 살아 있다 — 발급이 끝나기를 기다린 뒤 버린다.
+    try {
+      await _issuing;
+    } catch (_) {
+      // 발급 실패는 [_issue] 가 이미 다뤘다.
+    }
     try {
       await _repository.revoke();
     } catch (_) {
@@ -81,7 +91,9 @@ class _TrainerSyncSheetState extends ConsumerState<_TrainerSyncSheet> {
   Future<void> _issue() async {
     setState(() => _failed = false);
     try {
-      final issued = await _repository.issue();
+      final issuing = _repository.issue();
+      _issuing = issuing;
+      final issued = await issuing;
       if (!mounted) return;
       setState(() {
         _code = issued.code;

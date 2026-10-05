@@ -1052,9 +1052,15 @@ class _DetailRow extends StatelessWidget {
               keyboardType: TextInputType.numberWithOptions(decimal: decimal),
               // 숫자만 받는다 — 빈 칸은 0 으로 읽힌다.
               inputFormatters: <TextInputFormatter>[
-                if (decimal)
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))
-                else
+                if (decimal) ...<TextInputFormatter>[
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                  // 소수점은 하나만 — `1.2.3` 은 숫자로 읽히지 않아 0 으로
+                  // 저장됐다(#3244).
+                  TextInputFormatter.withFunction(
+                    (TextEditingValue previous, TextEditingValue next) =>
+                        '.'.allMatches(next.text).length > 1 ? previous : next,
+                  ),
+                ] else
                   FilteringTextInputFormatter.digitsOnly,
                 LengthLimitingTextInputFormatter(6),
               ],
