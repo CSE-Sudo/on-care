@@ -245,7 +245,7 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
 **production 필수 파라미터(#3131)**: 메일 `MailFrom`·`SmtpHost`. 운영은 가입 이메일 확인을 끌 수 없어(#3038) 메일이
 없으면 가입 인증 코드를 보낼 수 없고 신규 가입이 모두 막히므로, 둘 중 하나라도 비면 서버가 기동을 거부한다.
 
-선택 파라미터: `Cpu`(기본 1024)·`Memory`(기본 2048), `AdminEmails`, `AppleClientIds`·`GoogleClientIds`·`KakaoAppId`(#3035),
+선택 파라미터: `Cpu`(기본 1024)·`Memory`(기본 2048), `AppleClientIds`·`GoogleClientIds`·`KakaoAppId`(#3035),
 카카오 웹 로그인 `KakaoLoginRestApiKey`·`KakaoClientSecretEnabled`(#330), 메일
 (`SmtpPort`·`PasswordResetMemberUrl`·`PasswordResetTrainerUrl`, staging 은 `MailFrom`·`SmtpHost` 도 선택), staging 전용
 `AllowDemoFallback`, 기본 VPC 가 아닌 곳에 둘 때 `SubnetIds`·`SecurityGroupIds`.
@@ -340,7 +340,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `PASSWORD_RESET_TRAINER_URL` | 트레이너 웹 재설정 화면 — **해시형** `https://<운영 도메인>/trainer/#/auth/password-reset`. 해시 없는 경로형(`/auth/password-reset`)은 정적 경로를 가리켜 코드가 버려진다. 운영에서 경로형·`http://` 면 기동 로그에 WARN(#3033) |
 
 **스택 파라미터로 정하는 값**: `CORS_ALLOW_ORIGINS`(https 만, `*`·빈 값·localhost 금지 — 운영 기동 거부, #3029), `GEMINI_MODEL`(아래 5-3),
-`ADMIN_EMAILS`(쓰지 않음 — 비워 둔다, 아래 "관리자 지정", #3037), 소셜 로그인 `aud`(`APPLE_CLIENT_IDS`·`GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` — 비우면 그 로그인은 401, #3035), 카카오 웹 로그인
+소셜 로그인 `aud`(`APPLE_CLIENT_IDS`·`GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` — 비우면 그 로그인은 401, #3035), 카카오 웹 로그인
 `KAKAO_LOGIN_REST_API_KEY`(#330), 메일(`MAIL_FROM`·`SMTP_HOST`·`SMTP_PORT`·`PASSWORD_RESET_*_URL`).
 
 그 밖의 키(`LOGIN_MAX_FAILURES` 같은 시도 제한·`SENTRY_ENVIRONMENT`·DB 풀 등)는 코드 기본값이 운영 값이라
@@ -374,8 +374,8 @@ CREATE EXTENSION IF NOT EXISTS vector;
 ### 관리자 지정 (#3037)
 
 관리자는 환경 변수로 정하지 않는다. 예전 `ADMIN_EMAILS` 는 기동할 때 그 주소로 가입된 계정을
-올려, 운영자보다 **먼저 그 주소로 가입한 사람**이 관리자가 됐다. 이제 값이 남아 있으면 기동 로그에
-경고만 하고 아무도 올리지 않는다. 운영 DB 에 붙은 셸에서 다음 순서로 지정한다.
+올려, 운영자보다 **먼저 그 주소로 가입한 사람**이 관리자가 됐다. 그 설정과 템플릿 파라미터(`AdminEmails`)는
+지웠다(#3162) — 예전 환경에 값이 남아 있어도 알 수 없는 키로 무시되고 아무도 올리지 않는다. 운영 DB 에 붙은 셸에서 다음 순서로 지정한다.
 
 ```bash
 python -m scripts.grant_admin --email ops@example.com                       # 1) 조회만: id·가입일·역할·인증 시각
