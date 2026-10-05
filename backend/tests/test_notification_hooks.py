@@ -182,7 +182,7 @@ def test_routine_assignment_creates_a_notification(client, db_session):
     )
 
     assert assigned.status_code == 201, assigned.text
-    assert "새 운동 루틴이 배정되었어요" in _titles(client, member_token)
+    assert "새 개인운동이 왔어요" in _titles(client, member_token)
 
 
 def test_schedule_creates_a_notification(client, db_session):
@@ -775,7 +775,7 @@ def test_schedule_notice_keeps_the_schedule_category(client, db_session):
 
 
 def test_routine_assignment_still_follows_the_exercise_switch(client, db_session):
-    """루틴 배정은 '운동 루틴' 스위치로 끈다 — 기존 동작 그대로."""
+    """루틴 배정은 '개인운동·프로그램' 스위치로 끈다 — 기존 동작 그대로."""
     trainer_token, member_id, member_token, _ = _pair(client, db_session)
     _switch_off(client, member_token, exercise_reminder=False)
 
@@ -792,7 +792,7 @@ def test_routine_assignment_still_follows_the_exercise_switch(client, db_session
     )
 
     assert assigned.status_code == 201, assigned.text
-    assert "새 운동 루틴이 배정되었어요" not in _titles(client, member_token)
+    assert "새 개인운동이 왔어요" not in _titles(client, member_token)
 
 
 def test_disconnecting_reaches_a_member_with_the_message_switch_off(

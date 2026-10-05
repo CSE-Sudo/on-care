@@ -980,6 +980,8 @@ WeeklyReport weeklyReportFromJson(
                 .whereType<String>()
                 .toList(growable: false),
             assigned: _assignedOf(day['assigned']),
+            // 그날 완료한 개인운동 수(#3115). 옛 응답이면 null 이다.
+            assignedDone: (day['assigned_done'] as num?)?.toInt(),
           ),
     ],
     memberFeedback: memberFeedback,

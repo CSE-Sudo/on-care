@@ -389,11 +389,11 @@ def test_routine_assignment_reaches_the_member_in_english(client, db_session):
     assert assigned.status_code == 201, assigned.text
 
     en = _member_inbox(client, member_token, EN)[0]
-    assert en["title"] == "New workout routine assigned"
+    assert en["title"] == "New personal exercise"
     assert en["body"] == "Interval run · 30 min"
     assert en["action"] == {"label": "View workouts", "target": "exercise"}
     ko = _member_inbox(client, member_token)[0]
-    assert (ko["title"], ko["body"]) == ("새 운동 루틴이 배정되었어요", "Interval run · 30분")
+    assert (ko["title"], ko["body"]) == ("새 개인운동이 왔어요", "Interval run · 30분")
 
 
 def test_trainer_goal_change_reaches_the_member_in_english(client, db_session):

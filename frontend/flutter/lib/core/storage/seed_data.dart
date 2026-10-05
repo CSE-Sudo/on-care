@@ -204,8 +204,8 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
         NotificationItemsCompanion.insert(
           id: 'seed-noti-5',
           createdAt: now.subtract(const Duration(minutes: 30)),
-          title: '새 운동 루틴이 도착했어요',
-          body: '$kDemoTrainerName 트레이너님이 무릎 상태에 맞춰 걷기 루틴으로 조정해 보냈어요.',
+          title: '새 개인운동이 왔어요',
+          body: '$kDemoTrainerName 트레이너님이 무릎 상태에 맞춰 걷기 위주 개인운동으로 조정해 보냈어요.',
           category: 'routine',
         ),
         NotificationItemsCompanion.insert(

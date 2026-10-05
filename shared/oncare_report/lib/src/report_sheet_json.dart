@@ -80,6 +80,11 @@ ReportSheetWeekData reportSheetWeekFromJson(
               final num n when n > 0 => n.toInt(),
               _ => null,
             },
+            // 그날 완료한 개인운동 수(#3115). 없는 옛 응답이면 운동 기록에서 센다.
+            assignedDone: switch (day['assigned_done']) {
+              final num n when n >= 0 => n.toInt(),
+              _ => null,
+            },
           ),
     ],
     answers: answers,

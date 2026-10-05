@@ -51,7 +51,7 @@ void main() {
       locale: const Locale('en'),
     );
 
-    expect(find.text('A new workout routine arrived'), findsOneWidget);
+    expect(find.text('New personal exercises'), findsOneWidget);
     expect(find.text('Scheduled maintenance'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('notification-time-seed-noti-5')),
@@ -65,7 +65,7 @@ void main() {
           .data,
       '30m ago',
     );
-    expect(find.text('새 운동 루틴이 도착했어요'), findsNothing);
+    expect(find.text('새 개인운동이 왔어요'), findsNothing);
     expect(find.text('30분 전'), findsNothing);
   });
 
@@ -87,7 +87,7 @@ void main() {
           theme.colorScheme.surfaceContainerHigh,
           OnCareBrand.member.surface,
         );
-        expect(find.text('새 운동 루틴이 도착했어요'), findsOneWidget);
+        expect(find.text('새 개인운동이 왔어요'), findsOneWidget);
         expect(find.text('서비스 점검 안내'), findsOneWidget);
         // 개발용 가상 푸시 버튼은 목/데모 빌드에도 두지 않는다(#1242).
         expect(find.text('Simulate push'), findsNothing);

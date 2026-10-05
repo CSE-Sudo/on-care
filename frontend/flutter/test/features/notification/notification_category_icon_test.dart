@@ -31,7 +31,7 @@ const Map<String, (IconData, String)> _expected = <String, (IconData, String)>{
   'reminder': (AppIcons.notifications, '리마인더'),
   'coach_chat': (AppIcons.chat, '트레이너 메시지'),
   'coach_report': (AppIcons.document, '주간 리포트'),
-  'routine': (AppIcons.routine, '운동 루틴'),
+  'routine': (AppIcons.routine, '개인운동·프로그램'),
   'member_schedule': (AppIcons.eventAvailable, 'PT 일정'),
   'pt_done': (AppIcons.exerciseLog, 'PT 기록'),
   'coach_invite': (AppIcons.person, '담당 트레이너'),

@@ -10,7 +10,7 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/utils/server_message.dart';
+import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/chat_pdf_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/clients/domain/repositories/client_data_refresher.dart';
@@ -295,7 +295,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
       // 다음에 할 일(줄여서 다시 보낼지)을 정한다.
       showAppToast(
         context,
-        serverDetailOr(l, error.message, l.chatImageSendFailed),
+        appErrorMessage(l, error, fallback: l.chatImageSendFailed),
         type: AppToastType.error,
       );
       return;
@@ -811,7 +811,8 @@ class RoutineDeliveryCard extends StatelessWidget {
 /// 전송 종류 → 안내 제목. 모르는 종류는 일반 문구다.
 String routineDeliveryTitle(AppLocalizations l, String kind) => switch (kind) {
   'pt_with_routine' => l.chatRoutineDeliveredPt,
-  'routine_only' => l.chatRoutineDeliveredPersonal,
+  // 개인운동 한 건(AI 제안 승인 포함)도 개인운동이다 — 회원 알림 제목과 같은 이름(#3107).
+  'routine' || 'routine_only' => l.chatRoutineDeliveredPersonal,
   'cancelled_routine_only' => l.chatRoutineDeliveredAfterCancel,
   'program' => l.chatRoutineDeliveredProgram,
   _ => l.chatRoutineDelivered,

@@ -178,6 +178,18 @@ def _program_seconds_and_type(
     return seconds, type_
 
 
+def _personal_row_seconds(row: TrainerRoutine) -> int:
+    """개인운동 한 줄의 시간(초). (#3107)
+
+    개인운동 줄은 운동 구성(`exercises_json`) 없이 한 운동을 칸에 담는다 —
+    프로그램 줄처럼 읽으면 분으로 떨어져 45초가 1분, 근력은 0분이 된다.
+    근력은 세트에서 환산하고([_exercise_seconds]), 둘 다 없는 옛 줄만 분으로 읽는다.
+    """
+    return _exercise_seconds(
+        row.type, row.duration_seconds, row.sets
+    ) or row.minutes * 60
+
+
 def _reservation_schedule_ids(db: Session, session_ids: set[str]) -> set[str]:
     """[session_ids] 중 회원 예약이 소유한 일정. [_is_reservation_schedule] 의 묶음판."""
     if not session_ids:
@@ -1279,6 +1291,12 @@ def _raise_scheduled_program(
     for row in rows:
         row.status = ROUTINE_APPROVED
         row.active_from = today_iso
+        # PT 프로그램은 "오늘 PT 에서 한 것" 이다 — 매일 체크하는 개인운동 목록에
+        # 걸지 않는다(#3115). 그날 내용은 PT 기록이 남긴다. 예전에는 `ended_on`
+        # 이 비어 철회 전까지 날마다 `추천 개인운동` 에 떠, 조언·미수행 신호·리포트
+        # 분모가 개인운동으로 세었다. `ended_on == active_from` 은 하루도 걸리지
+        # 않았다는 표시다([_retire_personal_routines] 와 같은 규칙).
+        row.ended_on = today_iso
     db.flush()
     # 바로 배정([assign_program])과 같은 틀이다 — 문장이 코드에 박혀 있으면
     # 영어 화면에서도 한국어로 보인다(#2546). 여러 세션이면 프로그램 이름으로 부른다.
@@ -1341,13 +1359,21 @@ def _send_scheduled_routines(
         row.ended_on = ended_on
         row.exercise_date = today.isoformat()
     db.flush()
+    # 프로그램 화면의 `개인운동만` 전송과 같은 틀이다 — 문장이 코드에 박혀
+    # 있으면 영어 화면에서도 한국어로 보인다(#2546, #3107).
     notification_service.queue(
         db,
         member_id=session.member_id,
         kind=notification_service.EXERCISE,
         category=notification_service.MEMBER_ROUTINE,
-        title="이번 주에 할 개인운동이 왔어요",
-        body=" · ".join(row.name for row in rows),
+        template=notification_templates.MEMBER_ROUTINE_PROGRAM,
+        template_args=_program_notification_args(
+            rows[0].name,
+            sessions=len(rows),
+            seconds=sum(_personal_row_seconds(row) for row in rows),
+            multi=len(rows) > 1,
+            routine_only=True,
+        ),
     )
     return rows
 
@@ -2469,6 +2495,8 @@ def send_session_program(
             name=f"{s.date} {s.type}".strip() or s.date,
             sessions=[ProgramDraftSession(id=s.id, name="", exercises=exercises)],
             client_request_id=client_request_id,
+            # 붙여 둔 프로그램을 올릴 때와 같이 매일 목록에 걸지 않는다(#3115).
+            active_days=0,
             # 아래에서 개인운동과 함께 카드 하나로 남긴다(#2672).
             chat_card=False,
         )

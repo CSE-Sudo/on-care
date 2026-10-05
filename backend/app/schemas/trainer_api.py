@@ -547,8 +547,14 @@ def _drop_fields_not_in_type(model: _ProgramLike) -> _ProgramLike:
         # 한 세트는 회로든 초로든 한 번만 잰다(#1969). 버티는 운동이면 초가
         # 맞고 횟수를 비운다 — 둘이 함께 남으면 `플랭크 3세트 · 10회 · 60초`
         # 처럼 한 줄이 두 단위로 자기를 말한다.
-        if model.hold_seconds is not None:
+        #
+        # 0 이하의 초는 "버티지 않음" 이다 — 빈 칸을 0 으로 채워 보내는
+        # 클라이언트가 있어, 0 을 버티기로 읽으면 일반 근력 운동의 횟수가
+        # 지워진 채 저장됐다(`스쿼트 3세트 · 12회` → `스쿼트 3세트`).
+        if model.hold_seconds is not None and model.hold_seconds > 0:
             model.reps = None
+        else:
+            model.hold_seconds = None
     else:
         model.sets = None
         model.reps = None
@@ -2080,6 +2086,10 @@ class WeeklyReportDayOut(BaseModel):
     #: 날과 구분되지 않아 쓰지 않고, null 이면 화면이 실제로 한 운동 수로
     #: 되돌아간다(#2232, 데모와 같은 규칙).
     assigned: int | None = None
+    #: 그중 그날 완료한 수 — [assigned] 의 짝인 분자다(#3115). `exercises` 는
+    #: 직접 기록·PT 기록까지 담아 개인운동 완료 수로 쓸 수 없다. [assigned] 가
+    #: null 인 날은 이것도 null 이다.
+    assigned_done: int | None = None
 
 
 class WeeklyReportOut(BaseModel):

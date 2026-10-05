@@ -72,6 +72,28 @@ def test_week_days_carries_assigned_counts_per_weekday():
     assert [d.assigned for d in days] == assigned
 
 
+def test_week_days_counts_done_from_the_assigned_list_not_every_log():
+    """분자는 그날 걸린 개인운동의 완료다 — 그날의 운동 기록 전부가 아니다. (#3115)
+
+    직접 기록·PT 기록까지 세면 `개인운동 2개 중 3개` 처럼 분자가 넘쳤다.
+    """
+    from types import SimpleNamespace
+
+    from app.services.trainer._common import _week_days
+
+    logs = [
+        SimpleNamespace(day_label="월", name=name, type="근력")
+        for name in ("스쿼트", "직접 한 러닝", "PT 레그프레스")
+    ]
+    days = _week_days(
+        logs, [50] + [None] * 6, [2] + [None] * 6, [1] + [None] * 6
+    )
+
+    assert len(days[0].exercises) == 3
+    assert (days[0].assigned, days[0].assigned_done) == (2, 1)
+    assert days[1].assigned_done is None
+
+
 def test_week_days_without_assigned_leaves_every_day_unknown():
     """배정을 모르면 null — 화면이 실제로 한 운동 수로 되돌아간다(#2232)."""
     from app.services.trainer._common import _week_days

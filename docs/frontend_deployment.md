@@ -109,24 +109,20 @@ AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배�
 
 되돌린 뒤에는 `Deploy Frontend to AWS` 를 `main` 에서 배포할 커밋 SHA 로 한 번 실행해 운영 주소의 세 경로와 `version.txt`, 응답 보안 헤더가 정상인지 확인합니다. 켜 둔 동안 자동 배포는 `main` push 마다가 아니라 **같은 커밋의 E2E CI 가 성공한 뒤** 시작하고, 앱 CI 결과와 운영 백엔드 커밋을 먼저 확인합니다([배포 순서](aws-frontend-deployment.md#8-배포-순서--ci-판정과-백엔드-선후-3018)).
 
-## Vercel 자동 배포 정리
+## Vercel 연동 정리
 
-Vercel 프로젝트가 이 Git 저장소와 연결되어 있으면 저장소 안에 `vercel.json`이 없어도 다음 배포가 별도로 생성될 수 있습니다.
+공식 서비스는 Vercel 을 쓰지 않습니다. 예전에는 Vercel 프로젝트가 이 저장소에 연결되어 `main` 갱신마다 Production 배포를, PR 마다 Preview 배포와 Bot 댓글을 만들었습니다(마지막 Vercel 배포 기록은 2026-08-08). GitHub Pages 로 가는 중간 단계가 아니라 같은 커밋을 따로 배포하는 중복 경로였고, 2026-08-08 에 루트 `vercel.json`(`git.deploymentEnabled: false`)으로 자동 배포를 막았습니다.
 
-- `main` 갱신: Vercel Production 배포
-- PR 브랜치 갱신: Vercel Preview 배포 및 GitHub Bot 댓글
+#3133 에서 남은 잔재를 걷어 냈습니다.
 
-이 배포는 GitHub Pages로 전달되는 중간 단계가 아니라 **Vercel이 같은 커밋을 독립적으로 배포하는 중복 경로**입니다. 공식 서비스에서 Vercel을 사용하지 않으므로 아래 순서로 연결을 정리합니다.
+- 루트 `vercel.json` 을 지웠습니다. 저장소 안의 설정 파일이 아니라 Vercel 쪽 Git 연결 자체가 없어야 배포가 생기지 않습니다.
+- GitHub `Preview` Environment(Vercel 미리보기 기록)는 지웁니다. `Production` 은 운영 배포가 쓰는 `production` 과 같은 Environment 라 지우지 않고 보호 규칙을 채워 이어 씁니다 — 이름·보호 규칙·OIDC subject 의 관계는 [`backend/docs/DEPLOY.md`](../backend/docs/DEPLOY.md) 1절에 있습니다.
 
-1. 루트 [`vercel.json`](../vercel.json)의 `git.deploymentEnabled: false`를 반영해 모든 브랜치의 자동 배포를 차단합니다.
-2. Vercel Dashboard에서 이 저장소와 연결된 프로젝트를 엽니다. Vercel 프로젝트 이름은 GitHub 저장소 이름 변경을 따라가지 않으므로, 저장소가 `on-care`로 바뀐 뒤에도 목록에는 이전 이름인 `sudo-capstone-project`로 남아 있을 수 있습니다.
-3. `Settings` → `Git`에서 연결된 GitHub 저장소를 `Disconnect`합니다.
-4. GitHub 저장소의 Rulesets 또는 Branch protection에서 Vercel 관련 required check가 있으면 제거합니다.
-5. 새 PR을 갱신해 Vercel Preview와 Bot 댓글이 더 생성되지 않는지 확인합니다.
-6. `main` 갱신 후 Vercel Production 배포가 생성되지 않는지 확인합니다.
-7. 기존 `*.vercel.app` 주소가 필요하지 않다면 Pages 검증 후 Vercel 프로젝트를 별도로 삭제합니다.
+`vercel.json` 이 없으므로 아래가 끝나 있어야 합니다(저장소 관리자·Vercel 계정 작업).
 
-> `vercel.json`은 자동 배포를 코드 수준에서 막는 안전장치입니다. Git 연결 해제와 프로젝트 삭제는 외부 서비스 설정이므로 저장소 변경만으로 실행되지 않습니다.
+1. Vercel Dashboard 에서 이 저장소와 연결된 프로젝트(이전 이름 `sudo-capstone-project` 로 남아 있을 수 있음)의 `Settings` → `Git` 에서 `Disconnect` 하거나 프로젝트를 삭제합니다. 또는 GitHub 조직 설정의 Vercel 앱 설치에서 이 저장소 접근을 뺍니다.
+2. GitHub Rulesets·Branch protection 에 Vercel 관련 required check 가 없는지 확인합니다.
+3. 다음 PR·`main` 갱신에서 `vercel[bot]` 배포·댓글이 생기지 않는지 확인합니다(`gh api "repos/CSE-Sudo/on-care/deployments?environment=Preview"` 가 새 항목 없이 비어 있어야 합니다).
 
 ## 운영 빌드는 실서버를 봅니다
 

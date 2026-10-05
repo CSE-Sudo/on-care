@@ -178,12 +178,12 @@ def test_exercise_english_has_no_korean_left(rendering):
 @pytest.mark.parametrize(
     ("count", "done", "left"),
     [
-        (1, "You finished your recommended workout today. Great job!",
-         "1 recommended workout left. Go down the list in order."),
-        (2, "You finished all 2 recommended workouts today. Great job!",
-         "2 recommended workouts left. Go down the list in order."),
-        (0, "You finished all 0 recommended workouts today. Great job!",
-         "0 recommended workouts left. Go down the list in order."),
+        (1, "You finished your personal exercise today. Great job!",
+         "1 personal exercise left. Go down the list in order."),
+        (2, "You finished all 2 personal exercises today. Great job!",
+         "2 personal exercises left. Go down the list in order."),
+        (0, "You finished all 0 personal exercises today. Great job!",
+         "0 personal exercises left. Go down the list in order."),
     ],
 )
 def test_exercise_english_plurals(count, done, left):
@@ -230,7 +230,7 @@ def test_exercise_english_body_parts(part, middle, start):
         == f"You did the {middle} workouts you often skip today. Keep it going!"
     )
     assert exercise_advice.advice("routine_all_missed_part", part=part).text_en.startswith(
-        f"{start} recommended workouts"
+        f"{start} personal exercises"
     )
 
 

@@ -11,6 +11,7 @@ import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// "AI 건강 도우미" bottom sheet — the daily coaching digest opened from the
@@ -155,11 +156,12 @@ class _CoachingSheetState extends ConsumerState<_CoachingSheet> {
           ],
         );
       } else if (state.hasError && !state.isLoading) {
-        body = AppErrorState(
+        body = appErrorStateFor(
+          context,
           key: const Key('coachingSheetError'),
+          error: state.error,
           title: l.coachSheetErrorTitle,
           message: l.coachSheetErrorBody,
-          retryLabel: l.actionRetry,
           retryKey: const Key('coachingSheetRetry'),
           onRetry: () => ref.invalidate(aiCoachStateProvider),
           placement: AppStatePlacement.card,

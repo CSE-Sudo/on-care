@@ -41,7 +41,7 @@ from app.services.trainer._common import (
     SCHEDULE_DONE,
     SCHEDULE_UPCOMING,
     SODIUM_TARGET_MG,
-    _assigned_week,
+    _assigned_week_counts,
     _calories_week,
     _iso,
     _macro_week,
@@ -110,9 +110,8 @@ def build_weekly_report(
         # 열 때 칸 안의 줄 순서가 바뀐다.
         .order_by(ExerciseSession.completed_at, ExerciseSession.id)
     ).all()
-    days = _week_days(
-        list(exercise_rows), week, _assigned_week(db, trainer_id, member_id, monday)
-    )
+    assigned, assigned_done = _assigned_week_counts(db, trainer_id, member_id, monday)
+    days = _week_days(list(exercise_rows), week, assigned, assigned_done)
     recorded = [d for d in week if d is not None]
     # 걸린 것이 하나도 없으면 null — 0% 로 보고하면 "아무것도 안 했다"는 거짓말이
     # 된다. 걸렸는데 안 한 날(0)은 평균에 든다(#2513).

@@ -164,7 +164,7 @@ def test_schedule_and_link_notices_cannot_be_switched_off(category):
 
 
 def test_routine_notices_still_follow_the_exercise_switch():
-    """루틴·프로그램 배정은 '운동 루틴' 스위치로 끌 수 있다 — 기존 동작 그대로."""
+    """루틴·프로그램 배정은 '개인운동·프로그램' 스위치로 끌 수 있다 — 기존 동작 그대로."""
     calls = [
         call
         for call in _queued_calls()

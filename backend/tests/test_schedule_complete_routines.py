@@ -16,7 +16,8 @@ from datetime import timedelta
 from sqlalchemy import or_, select
 
 from app.core import clock
-from app.models.models import TrainerRoutine, TrainerSchedule
+from app.models.models import Notification, TrainerRoutine, TrainerSchedule
+from app.services import notification_templates as nt
 
 MEMBER = "user-jisu"
 TRAINER = "trainer-demo"
@@ -159,6 +160,48 @@ def test_sending_the_program_sends_its_personal_routines(client, db_session):
             clock.today() + timedelta(days=7)
         ).isoformat()
         assert row.delivery_kind == "pt_with_routine"
+    finally:
+        _cleanup(db_session, day)
+
+
+def test_pt_send_names_the_program_and_the_personal_exercises(client, db_session):
+    """PT 를 보내면 알림 둘이 각자 받은 것을 부른다 — PT 프로그램과 개인운동. (#3107)
+
+    개인운동 알림은 예전에 한국어 제목을 박아 넣어 영어 화면에도 한국어로
+    보였다. 프로그램 화면의 `개인운동만` 전송과 같은 문장 틀을 쓴다.
+    """
+    token = _tok(client)
+    day = clock.today().isoformat()
+    _cleanup(db_session, day)
+    try:
+        session_id = _attach(client, token, day)
+        _complete(client, token, session_id)
+        assert client.post(
+            f"/v1/trainer/schedule/{session_id}/program/send",
+            json={},
+            headers=_h(token),
+        ).status_code == 200
+
+        db_session.expire_all()
+        rows = db_session.scalars(
+            select(Notification)
+            .where(
+                Notification.user_id == MEMBER,
+                Notification.template == nt.MEMBER_ROUTINE_PROGRAM,
+            )
+            .order_by(Notification.created_at.desc())
+            .limit(2)
+        ).all()
+        assert {row.title for row in rows} == {
+            "새 PT 프로그램이 왔어요",
+            "새 개인운동이 왔어요",
+        }
+        personal = next(row for row in rows if row.title == "새 개인운동이 왔어요")
+        assert personal.template_args["personal"] is True
+        title_en, _ = nt.render(
+            nt.MEMBER_ROUTINE_PROGRAM, personal.template_args, "en"
+        )
+        assert title_en == "New personal exercise"
     finally:
         _cleanup(db_session, day)
 

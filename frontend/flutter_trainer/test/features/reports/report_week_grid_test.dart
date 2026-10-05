@@ -302,7 +302,7 @@ void main() {
     await _pump(tester, locale: 'en');
 
     expect(find.text('PT'), findsOneWidget);
-    expect(find.text('Personal workouts'), findsOneWidget);
+    expect(find.text('Personal exercises'), findsOneWidget);
     expect(find.text('Meal logs'), findsOneWidget);
     expect(find.text('Calories eaten'), findsOneWidget);
     expect(find.text('Mon'), findsOneWidget);

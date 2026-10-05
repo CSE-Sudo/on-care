@@ -686,7 +686,7 @@ void main() {
         ),
       ]);
 
-      expect(find.text('8/18 · Assigned routine'), findsOneWidget);
+      expect(find.text('8/18 · Personal exercise'), findsOneWidget);
       expect(find.textContaining('배정 루틴'), findsNothing);
     });
   });

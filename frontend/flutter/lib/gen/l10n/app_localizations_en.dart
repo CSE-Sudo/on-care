@@ -117,6 +117,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Too many requests right now. Please try again in a moment.';
 
   @override
+  String get errorNetwork =>
+      'Your connection looks unstable. Check your network and try again.';
+
+  @override
+  String get errorServer =>
+      'Something went wrong on our side. Please try again in a moment.';
+
+  @override
+  String get errorInvalidRequest =>
+      'We couldn\'t process that request. Please check what you entered.';
+
+  @override
   String get dashboardMetricCalories => 'Calories';
 
   @override
@@ -924,6 +936,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String exHoldSecondsCount(int seconds) {
+    return '$seconds sec';
+  }
+
+  @override
   String get exEnterSets => 'Enter the number of sets';
 
   @override
@@ -1036,7 +1053,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exCompletedPtDayTitle => 'Completed PT';
 
   @override
-  String get exCompletedRoutineDayTitle => 'Completed solo workout';
+  String get exCompletedRoutineDayTitle => 'Completed personal exercises';
 
   @override
   String get exDeleteExercise => 'Delete workout';
@@ -2215,7 +2232,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myFieldWeight => 'Weight (kg)';
 
   @override
-  String get myNotifExercise => 'Workout routines';
+  String get myNotifExercise => 'Exercises & programs';
 
   @override
   String get myNotifTrainer => 'Trainer message';
@@ -2225,7 +2242,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myNotifExerciseDesc =>
-      'When your trainer sends a workout routine or program';
+      'When your trainer sends personal exercises or a PT program, or leaves a PT record or feedback';
 
   @override
   String get myNotifTrainerDesc => 'When your trainer sends you a chat message';
@@ -2251,19 +2268,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myLegalPrivacyTitle => 'Privacy Policy';
 
   @override
+  String get myOpenSourceLicensesTitle => 'Open-source licenses';
+
+  @override
   String get myLegalTermsBody =>
       'Article 1 (Purpose)\nThese Terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and its members in connection with the use of the health management service (the \"Service\") the Company provides.\n\nArticle 2 (Effect and Amendment of the Terms)\n(1) These Terms apply to every member who uses the Service.\n(2) The Company may amend these Terms within the limits of applicable law. Any amendment is announced inside the Service before it takes effect, together with its effective date and the reason for the change.\n(3) Where an amendment requires consent, the Company asks for consent again. A member who does not agree to the amended Terms may terminate the agreement.\n\nArticle 3 (Membership and Accounts)\n(1) Only people aged 14 or over may sign up.\n(2) Each person uses one account. You may not sign up with someone else\'s details, or transfer or lend your account to anyone else.\n(3) You are responsible for your account details, including your password and linked social logins. If you find that someone else is using your account, change your password at once and tell the Company.\n\nArticle 4 (Provision of the Service)\nThe Company provides features that support a member\'s health management, including diet records, exercise records, health indicator tracking, AI coaching, and linking, messaging and booking with an assigned trainer. The specific contents of the Service may change in line with the Company\'s policy.\n\nArticle 5 (Points)\n(1) Members receive points for the activities described in the app, such as logging meals and workouts. The points for each activity and the daily limits follow the guidance in the app.\n(2) Points can only be exchanged for coupons and items inside the Service. Points have no cash value, cannot be cashed out or refunded, and cannot be transferred to anyone else.\n(3) If you delete a record that earned points, those points are taken back. Points obtained by abnormal means, such as uploading the same record repeatedly, may also be taken back.\n(4) The Company may change how points are earned and what items cost, and announces the change inside the Service beforehand. Coupons and items already exchanged are not affected.\n(5) When you delete your account, your remaining points and their history are deleted with it and cannot be restored.\n\nArticle 6 (Coupons and Exchange Items)\n(1) Members may exchange points for the coupons described in the app, such as a PT renewal discount coupon or a personal locker coupon. The benefit of a coupon is provided on site by the assigned trainer or gym linked to the member.\n(2) A coupon can only be used within the validity period shown in the app. A coupon exchanged for points is valid for 30 days from the day of exchange. An expired coupon lapses, and the points spent on it are not returned.\n(3) If your link to the trainer or gym where the coupon is used ends, any unused coupon for it is cancelled and the points spent on it are returned.\n(4) A coupon is used when staff on site have checked it and you then tap \"Mark as used\" on your own phone. A coupon marked as used cannot be restored.\n(5) Coupons cannot be transferred or exchanged for cash.\n\nArticle 7 (Time-Limited Items and Shields)\n(1) Decorative items such as profile pets and emotes can be used only for the period shown in the app, and disappear when it ends.\n(2) A streak shield keeps your recording streak from breaking on a day you could not record. How to use it and how many you can hold follow the guidance in the app.\n(3) The items and shields in this Article also have no cash value, cannot be transferred, and are deleted when you delete your account.\n\nArticle 8 (Bookings and Consultation Requests)\n(1) Members may book PT in the times their assigned trainer has opened, or send a trainer a consultation request. When you can request or cancel, and when a pending consultation request expires, follow the guidance in the app.\n(2) The PT contract itself, and its payment and refunds, is a separate agreement between the member and the trainer or gym. The Company provides the tools for linking and booking.\n\nArticle 9 (Obligations of the Member)\nMembers must enter their own health information accurately. Information provided by the Service does not replace a medical diagnosis or treatment. If you have a health problem, please consult a qualified medical institution.\n\nArticle 10 (Restrictions on Use)\nIf a member does any of the following, the Company may, after notice, restrict all or part of their use of the Service or suspend the account. Where it is urgent, for example to protect other users, the Company restricts first and notifies right after.\n- Using someone else\'s details or transferring an account\n- Obtaining points or using coupons by abnormal means\n- Harming trainers or other users through abuse or harassment\n- Interfering with the operation of the Service\n\nArticle 11 (Termination and Its Effects)\n(1) Members may terminate the agreement at any time by deleting their account from the MY tab.\n(2) Deleting your account erases your profile, diet, exercise and health records, AI coach conversations, and your link and messages with your assigned trainer. Your remaining points and their history, unused coupons, shields and decorative items are deleted as well. Nothing deleted can be restored.\n(3) Upcoming PT bookings and pending consultation requests are cancelled, and the trainers concerned are told that you have left.\n(4) Records that the destruction procedure of the Privacy Policy says are kept, such as sessions already on a trainer\'s schedule, remain to that extent.\n\nArticle 12 (Changes to and Suspension of the Service)\n(1) The Company may change the Service or end some of its features, and announces any change that affects members inside the Service beforehand.\n(2) The Company may suspend the Service temporarily for unavoidable reasons such as maintenance or replacement of equipment, outages or natural disasters. If notice could not be given in advance, it is given afterwards.\n(3) If the Company ends the Service as a whole, it announces this beforehand together with how remaining points and unused coupons will be handled.\n\nArticle 13 (Limitation of Liability)\nTo the extent permitted by law, the Company is not liable for decisions a member makes on the basis of information obtained through the Service, nor for the consequences of those decisions.\n\nArticle 14 (Dispute Resolution and Jurisdiction)\n(1) The Company and members will negotiate in good faith to settle any dispute about the Service amicably. Members may send questions or complaints to the contact given in the Privacy Policy.\n(2) If a dispute is not settled by negotiation and a lawsuit is filed, the court with jurisdiction under the Civil Procedure Act of Korea has jurisdiction.\n(3) These Terms and the use of the Service are governed by the laws of the Republic of Korea.\n\nAddendum\nThese Terms take effect on 3 October 2026.\n- 3 October 2026: added membership and accounts, points, coupons and exchange items, time-limited items and shields, bookings and consultation requests, restrictions on use, termination and its effects, changes to and suspension of the Service, and dispute resolution and jurisdiction\n- 1 October 2026: first issued\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.';
 
   @override
   String myLegalPrivacyBody(String contact) {
-    return 'On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members\' personal information with care.\n\n1. Personal information collected\n(1) Sign-up: email address, password (stored encrypted) and name. If you sign up with a social login (Kakao, Google, Naver or Apple), we receive the member identifier, email address and name that service passes on.\n(2) Profile and first setup: phone number, date of birth, gender, height, weight, health goals and diet and exercise targets.\n(3) Information you leave while using the Service: meal records and food photos, workout records, health indicators such as body weight, conversations with the AI coach, messages and attached photos exchanged with your trainer, and consultation and booking requests.\n(4) Information generated automatically: access logs such as sign-ins and password changes (time and IP address), and, when an error occurs, the error details, device type, operating system and app version.\n(5) Location: only if you allow your current location in gym search, we receive the device\'s current coordinates and use them to search nearby. They are not saved to your account.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features such as food photo analysis and nutrition calculation, deliver personalised AI coaching, connect you with a trainer, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nA member\'s personal information is kept until the member withdraws from the Service, and is then destroyed without delay following section 10. The following records are kept for the stated period and then destroyed.\n- Access logs such as sign-ins: one year (covering the three-month retention of sign-in records required by the Protection of Communications Secrets Act)\n- Records of trainers opening members\' health information, of data-sharing consent being given or withdrawn, and of account deletion: two years (processing records kept under the Standards for Personal Information Security Measures)\nA reason chosen when deleting an account is kept only as a reason code and a time, with no link to the member.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member\'s consent. Sharing with your trainer follows section 5, and processing entrusted to service providers follows sections 6 and 7. The exception is where a law specifically provides otherwise.\n\n5. Sharing with your trainer and withdrawing consent\nWhen you agree to data sharing by requesting a consultation, accepting a coaching request or issuing a pairing code, your assigned trainer can see your meal records, workout records, body information, health goals, and health notes & cautions. You can withdraw this consent at any time by removing your trainer or gym connection in the MY tab, and consent is also treated as withdrawn when the trainer ends the coaching relationship. The Company records when consent was given and when it was withdrawn. After you withdraw, the trainer can no longer see your new records, and reconnecting with the same trainer requires your consent again. Conversations you exchanged with the trainer and reports delivered before the withdrawal are not deleted.\n\n6. Entrusted processing\nThe Company entrusts the following work to outside providers to deliver the Service. If a provider changes, this policy is updated to say so.\n- Amazon Web Services, Inc.: running the servers and storing chat photos and report PDFs\n- Neon: running the database (account information and all records)\n- Google LLC: food photo recognition, generating AI coach answers and recommendations, and building the search index the AI coach uses to look up your records (Gemini API)\n- Kakao Corp.: gym and place search and map display\n- Functional Software, Inc. (Sentry): collecting and analysing app and server errors\n\n7. Transfer of personal information overseas\nTo perform its contract with members, the Company has personal information processed and stored overseas as follows, and discloses this in this policy under Article 28-8(1)(3) of the Personal Information Protection Act. Each transfer happens over an encrypted network connection whenever the Service is used.\n(1) Amazon Web Services, Inc. / Singapore / member information and records in general, chat photo attachments and report PDFs / running the servers and storing files / until the member withdraws or the contract with the provider ends\n(2) Neon / Singapore / account, profile, diet, workout and health records and conversation records / running the database / until the member withdraws or the contract with the provider ends\n(3) Google LLC / the United States and other countries where Google operates data centres / food photos, the diet and workout records, body information and health goals needed for analysis, and conversations with the AI coach / AI analysis, answer generation and search indexing / for the period set in the provider\'s terms of service after the request is processed\n(4) Functional Software, Inc. (Sentry) / the United States / error details, device type, operating system and app version (name, email address, IP address and request contents are not sent) / error analysis / the provider\'s retention period\nEach time you save a meal or workout record, its contents are sent to (3) to build the AI coach\'s search index. If you do not want your information transferred overseas, you can refuse by deleting your account, but you will then be unable to use the Service.\n\n8. Processing of sensitive (health) information\nHealth information such as diet and workout records, body information, health goals, and health notes & cautions is processed under Article 23 of the Personal Information Protection Act only with a separate consent obtained at sign-up, apart from other personal information. It is shared with your trainer only with the consent described in section 5.\n\n9. Children under 14\nThe Company does not accept sign-ups from children under 14, and confirms at sign-up that you are 14 or older.\n\n10. Destruction procedure and method\n(1) Procedure: when you delete your account in the MY tab, the Company immediately deletes the account together with your profile, meal and workout records and food photos, AI coach conversations and search index, notifications, social login links, and your trainer connection and conversations (including attached photos and report PDF files). Pending consultation requests and bookings are cancelled, and the trainers involved are told that you have left. Sessions already on a trainer\'s schedule keep your display name and the date and time as the trainer\'s work record. Records kept under section 3 are deleted automatically when their period ends.\n(2) Method: information held as electronic files is deleted from the database and file storage, and copies remaining in database recovery backups disappear when the backup retention period ends. The Company does not handle personal information on paper.\n\n11. Automatic collection tools\nThe Company does not use cookies or tracking tools for advertising or behavioural analysis. On the web, sign-in information is kept in browser storage to keep you signed in, and is removed when you sign out or clear your browser data.\n\n12. Safeguards\nThe Company stores passwords encrypted, encrypts traffic in transit, and limits trainers\' access to member information by assignment. When a trainer opens a member\'s health information, only the trainer, the member, the kind of information and the time are recorded, never the health information itself. Error reports are sent with names, email addresses, IP addresses and request contents removed.\n\n13. Rights of the user and how to exercise them\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted. You can edit your profile, delete your account and withdraw trainer-sharing consent in the MY tab. For any other request, contact the address in section 14 and it will be handled without delay.\n\n14. Personal information protection officer\nThe Company has appointed a personal information protection officer who oversees the processing of personal information and handles related complaints and remedies.\n- Position: Personal information protection officer, On-Care service operations team\n- Contact: $contact\n\n15. Remedies for infringement\nFor reports or advice about an infringement of personal information, you can contact the following bodies (in Korea).\n- Personal Information Dispute Mediation Committee: 1833-6972 (www.kopico.go.kr)\n- Personal Information Infringement Report Center: 118 (privacy.kisa.or.kr)\n- Supreme Prosecutors\' Office: 1301 (www.spo.go.kr)\n- Korean National Police Agency: 182 (ecrm.police.go.kr)\n\n16. Changes to this policy\nIf this policy changes, the Company announces it in the app before the effective date, and asks for consent again where the change requires it.\n- 3 October 2026: added entrusted processing, overseas transfer, sensitive information, children under 14, destruction procedure, automatic collection tools, safeguards, protection officer and remedies sections\n- 1 October 2026: first issued\n\nEffective date: 3 October 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.';
+    return 'On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members\' personal information with care.\n\n1. Personal information collected\n(1) Sign-up: email address, password (stored encrypted) and name. If you sign up with a social login (Kakao, Google, Naver or Apple), we receive the member identifier, email address and name that service passes on.\n(2) Profile and first setup: phone number, date of birth, gender, height, weight, health goals and diet and exercise targets.\n(3) Information you leave while using the Service: meal records and food photos, workout records, health indicators such as body weight, conversations with the AI coach, messages and attached photos exchanged with your trainer, and consultation and booking requests.\n(4) Information generated automatically: access logs such as sign-ins and password changes (time and IP address), and, when an error occurs, the error details, device type, operating system and app version.\n(5) Location: only if you allow your current location in gym search, we receive the device\'s current coordinates and use them to search nearby. They are not saved to your account.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features such as food photo analysis and nutrition calculation, deliver personalised AI coaching, connect you with a trainer, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nA member\'s personal information is kept until the member withdraws from the Service, and is then destroyed without delay following section 10. The following records are kept for the stated period and then destroyed.\n- Access logs such as sign-ins: one year (covering the three-month retention of sign-in records required by the Protection of Communications Secrets Act)\n- Records of trainers opening members\' health information, of data-sharing consent being given or withdrawn, and of account deletion: two years (processing records kept under the Standards for Personal Information Security Measures)\nA reason chosen when deleting an account is kept only as a reason code and a time, with no link to the member.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member\'s consent. Sharing with your trainer follows section 5, and processing entrusted to service providers follows sections 6 and 7. The exception is where a law specifically provides otherwise.\n\n5. Sharing with your trainer and withdrawing consent\nWhen you agree to data sharing by requesting a consultation, accepting a coaching request or issuing a pairing code, your assigned trainer can see your meal records, workout records, body information, health goals, and health notes & cautions. You can withdraw this consent at any time by removing your trainer or gym connection in the MY tab, and consent is also treated as withdrawn when the trainer ends the coaching relationship. The Company records when consent was given and when it was withdrawn. After you withdraw, the trainer can no longer see your new records, and reconnecting with the same trainer requires your consent again. Conversations you exchanged with the trainer and reports delivered before the withdrawal are not deleted.\n\n6. Entrusted processing\nThe Company entrusts the following work to outside providers to deliver the Service. If a provider changes, this policy is updated to say so.\n- Amazon Web Services, Inc.: running the servers and storing chat photos and report PDFs\n- Neon: running the database (account information and all records)\n- Google LLC: food photo recognition, generating AI coach answers and recommendations, and building the search index the AI coach uses to look up your records (Gemini API)\n- Kakao Corp.: gym and place search and map display\n- Functional Software, Inc. (Sentry): collecting and analysing app and server errors\n\n7. Transfer of personal information overseas\nTo perform its contract with members, the Company has personal information processed and stored overseas as follows, and discloses this in this policy under Article 28-8(1)(3) of the Personal Information Protection Act. Each transfer happens over an encrypted network connection whenever the Service is used.\n(1) Amazon Web Services, Inc. / Singapore / member information and records in general, chat photo attachments and report PDFs / running the servers and storing files / until the member withdraws or the contract with the provider ends\n(2) Neon / Singapore / account, profile, diet, workout and health records and conversation records / running the database / until the member withdraws or the contract with the provider ends\n(3) Google LLC / the United States and other countries where Google operates data centres / food photos, the diet and workout records, body information and health goals needed for analysis, and conversations with the AI coach / AI analysis, answer generation and search indexing / for the period set in the provider\'s terms of service after the request is processed\n(4) Functional Software, Inc. (Sentry) / the United States / error details, device type, operating system and app version (name, email address, IP address and request contents are not sent) / error analysis / the provider\'s retention period\nEach time you save a meal or workout record, its contents are sent to (3) to build the AI coach\'s search index. If you do not want your information transferred overseas, you can refuse by deleting your account, but you will then be unable to use the Service.\n\n8. Processing of sensitive (health) information\nHealth information such as diet and workout records, body information, health goals, and health notes & cautions is processed under Article 23 of the Personal Information Protection Act only with a separate consent obtained at sign-up, apart from other personal information. It is shared with your trainer only with the consent described in section 5.\n\n9. Children under 14\nThe Company does not accept sign-ups from children under 14, and confirms at sign-up that you are 14 or older.\n\n10. Destruction procedure and method\n(1) Procedure: when you delete your account in the MY tab, the Company immediately deletes the account together with your profile, meal and workout records and food photos, AI coach conversations and search index, notifications, social login links, and your trainer connection and conversations (including attached photos and report PDF files). Pending consultation requests and bookings are cancelled, and the trainers involved are told that you have left. Sessions already on a trainer\'s schedule keep your display name and the date and time as the trainer\'s work record. Records kept under section 3 are deleted automatically when their period ends.\n(2) Method: information held as electronic files is deleted from the database and file storage, and copies remaining in database recovery backups disappear when the backup retention period ends. The Company does not handle personal information on paper.\n\n11. Automatic collection tools\nThe Company does not use cookies or tracking tools for advertising or behavioural analysis. On the web, sign-in information is kept in browser storage to keep you signed in, and is removed when you sign out or clear your browser data.\n\n12. Safeguards\nThe Company stores passwords encrypted, encrypts traffic in transit, and limits trainers\' access to member information by assignment. When a trainer opens a member\'s health information, only the trainer, the member, the kind of information and the time are recorded, never the health information itself. Error reports are sent with names, email addresses, IP addresses and request contents removed.\n\n13. Rights of the user and how to exercise them\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted. You can edit your profile, delete your account and withdraw trainer-sharing consent in the MY tab. For any other request, contact the address in section 14 and it will be handled without delay.\n\n14. Personal information protection officer\nThe Company has appointed a personal information protection officer who oversees the processing of personal information and handles related complaints and remedies.\n- Position: Personal information protection officer, On-Care service operations team\n- Contact: $contact\n\n15. Remedies for infringement\nFor reports or advice about an infringement of personal information, you can contact the following bodies (in Korea).\n- Personal Information Dispute Mediation Committee: 1833-6972 (www.kopico.go.kr)\n- Personal Information Infringement Report Center: 118 (privacy.kisa.or.kr)\n- Supreme Prosecutors\' Office: 1301 (www.spo.go.kr)\n- Korean National Police Agency: 182 (ecrm.police.go.kr)\n\n16. Changes to this policy\nIf this policy changes, the Company announces it in the app before the effective date, and asks for consent again where the change requires it.\n- 5 October 2026: changed the contact address of the personal information protection officer\n- 3 October 2026: added entrusted processing, overseas transfer, sensitive information, children under 14, destruction procedure, automatic collection tools, safeguards, protection officer and remedies sections\n- 1 October 2026: first issued\n\nEffective date: 5 October 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.';
   }
 
   @override
   String get myLegalTermsEffectiveDate => 'Effective Oct 3, 2026';
 
   @override
-  String get myLegalPrivacyEffectiveDate => 'Effective Oct 3, 2026';
+  String get myLegalPrivacyEffectiveDate => 'Effective Oct 5, 2026';
 
   @override
   String myAppVersion(String version) {
@@ -2450,19 +2470,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachChatRoutineReceivedPt =>
-      'You received a PT program and personal workout';
+      'You received a PT program and personal exercises';
 
   @override
   String get coachChatRoutineReceivedPersonal =>
-      'You received a personal workout';
+      'You received personal exercises';
 
   @override
   String get coachChatRoutineReceivedAfterCancel =>
-      'You received a personal workout in place of the cancelled PT';
+      'You received personal exercises in place of the cancelled PT';
 
   @override
-  String get coachChatRoutineReceivedProgram =>
-      'You received a workout program';
+  String get coachChatRoutineReceivedProgram => 'You received a PT program';
 
   @override
   String coachChatRoutineReceivedMore(String names, int count) {
@@ -3001,6 +3020,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Social sign-in is coming soon. Please sign in with your email';
 
   @override
+  String get authTrainerAccountTitle => 'This is a trainer account';
+
+  @override
+  String get authTrainerAccountMessage =>
+      'The member app is for member accounts. Please sign in to the trainer web with your trainer account';
+
+  @override
+  String get authTrainerAccountOpenWeb => 'Open trainer web';
+
+  @override
   String get signUpTitle => 'Sign up';
 
   @override
@@ -3294,7 +3323,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String guidePointsBody(int diet, int exercise, int routine) {
-    return 'Every log earns points.\nLog a meal +${diet}P, log a workout +${exercise}P, finish a recommended workout +${routine}P\nSpend them in MY › Use Points';
+    return 'Every log earns points.\nLog a meal +${diet}P, log a workout +${exercise}P, finish a personal exercise +${routine}P\nSpend them in MY › Use Points';
   }
 
   @override
@@ -3668,10 +3697,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get coachRoutineTitle => 'Recommended solo workouts';
+  String get coachRoutineTitle => 'Recommended personal exercises';
 
   @override
-  String get coachRoutineAiTitle => 'AI recommended solo workouts';
+  String get coachRoutineAiTitle => 'AI-recommended personal exercises';
 
   @override
   String get coachRoutinePastEditHint =>
@@ -3711,7 +3740,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachRoutineUndoFailed => 'Could not undo the completion.';
 
   @override
-  String get coachRoutineCancel => 'Delete this workout';
+  String get coachRoutineCancel => 'Delete this personal exercise';
 
   @override
   String coachRoutineCancelConfirm(String name) {
@@ -3722,16 +3751,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachCardRoutineUndoTitle => 'Undo completion?';
 
   @override
-  String get coachCardRoutineCancelTitle => 'Delete this workout?';
+  String get coachCardRoutineCancelTitle => 'Delete this personal exercise?';
 
   @override
   String get coachRoutineKeep => 'Keep';
 
   @override
-  String get coachRoutineCancelled => 'Workout deleted';
+  String get coachRoutineCancelled => 'Personal exercise deleted';
 
   @override
-  String get coachRoutineCancelFailed => 'Couldn\'t delete the workout';
+  String get coachRoutineCancelFailed =>
+      'Couldn\'t delete the personal exercise';
 
   @override
   String get coachRoutineCompleteTitle => 'Mark personal exercise done';
@@ -3771,7 +3801,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alertCategoryCoachReport => 'Weekly report';
 
   @override
-  String get alertCategoryRoutine => 'Workout routine';
+  String get alertCategoryRoutine => 'Exercises & programs';
 
   @override
   String get alertCategorySchedule => 'PT schedule';
@@ -3843,11 +3873,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get demoAlertRoutineTitle => 'A new workout routine arrived';
+  String get demoAlertRoutineTitle => 'New personal exercises';
 
   @override
   String demoAlertRoutineBody(String trainerName) {
-    return 'Trainer $trainerName adjusted it to a walking routine for your knee.';
+    return 'Trainer $trainerName adjusted them to walking-focused exercises for your knee.';
   }
 
   @override
@@ -4119,8 +4149,8 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'all $count recommended workouts',
-      one: 'your recommended workout',
+      other: 'all $count personal exercises',
+      one: 'your personal exercise',
     );
     return 'You finished $_temp0 today. Great job!';
   }
@@ -4159,15 +4189,15 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count recommended workouts left',
-      one: '1 recommended workout left',
+      other: '$count personal exercises left',
+      one: '1 personal exercise left',
     );
     return '$_temp0. Go down the list in order.';
   }
 
   @override
   String exerciseAdviceRoutineTodayStartOrder(String next, String then) {
-    return 'Start today\'s recommended workouts with $next → $then.';
+    return 'Start today\'s personal exercises with $next → $then.';
   }
 
   @override
@@ -4177,17 +4207,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String exerciseAdviceRoutineWeekNoneToday(String next) {
-    return 'No recommended workouts this week yet. Start with $next today?';
+    return 'You haven\'t done your personal exercises this week yet. Start with $next today?';
   }
 
   @override
   String exerciseAdviceRoutineWeekNoneNext(String next) {
-    return 'No recommended workouts this week yet. Try $next first.';
+    return 'You haven\'t done your personal exercises this week yet. Try $next first.';
   }
 
   @override
   String get exerciseAdviceRoutineWeekNone =>
-      'No recommended workouts this week yet. Try one today.';
+      'You haven\'t done your personal exercises this week yet. Try one today.';
 
   @override
   String exerciseAdviceRoutineWeekOnly(
@@ -4248,7 +4278,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'stretching': 'stretching',
       'other': 'other exercise',
     });
-    return '$share% of this week\'s recommended workouts were $_temp0. $_temp1, start with $_temp2.';
+    return '$share% of this week\'s personal exercises were $_temp0. $_temp1, start with $_temp2.';
   }
 
   @override
@@ -4259,7 +4289,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'stretching': 'stretching',
       'other': 'other exercise',
     });
-    return '$share% of this week\'s recommended workouts were $_temp0.';
+    return '$share% of this week\'s personal exercises were $_temp0.';
   }
 
   @override
@@ -4268,7 +4298,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'even': 'across the board',
       'other': 'steadily',
     });
-    return 'You kept up with this week\'s recommended workouts $_temp0. Keep it going!';
+    return 'You kept up with this week\'s personal exercises $_temp0. Keep it going!';
   }
 
   @override
@@ -4277,7 +4307,7 @@ class AppLocalizationsEn extends AppLocalizations {
     int completed,
     String next,
   ) {
-    return 'You did $completed of $assigned recommended workouts this week. Continue with $next today.';
+    return 'You did $completed of $assigned personal exercises this week. Continue with $next today.';
   }
 
   @override
@@ -4290,22 +4320,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'next_week': 'Keep it going next week.',
       'other': 'Keep it going for the rest of the week.',
     });
-    return 'You did $completed of $assigned recommended workouts this week. $_temp0';
+    return 'You did $completed of $assigned personal exercises this week. $_temp0';
   }
 
   @override
   String exerciseAdviceRoutineWeekCounts(int assigned, int completed) {
-    return 'You did $completed of $assigned recommended workouts this week.';
+    return 'You did $completed of $assigned personal exercises this week.';
   }
 
   @override
   String exerciseAdviceRoutineLastWeekNoneNext(String next) {
-    return 'No recommended workouts last week. This week, start with $next.';
+    return 'You didn\'t do your personal exercises last week. This week, start with $next.';
   }
 
   @override
   String get exerciseAdviceRoutineLastWeekNone =>
-      'No recommended workouts last week. Take them one at a time this week.';
+      'You didn\'t do your personal exercises last week. Take them one at a time this week.';
 
   @override
   String exerciseAdviceRoutineLastWeekOnly(String missing, String top) {
@@ -4353,7 +4383,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'stretching': 'stretching',
       'other': 'other exercise',
     });
-    return '$share% of last week\'s recommended workouts were $_temp0. This week, start with $_temp1.';
+    return '$share% of last week\'s personal exercises were $_temp0. This week, start with $_temp1.';
   }
 
   @override
@@ -4364,7 +4394,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'stretching': 'stretching',
       'other': 'other exercise',
     });
-    return '$share% of last week\'s recommended workouts were $_temp0.';
+    return '$share% of last week\'s personal exercises were $_temp0.';
   }
 
   @override
@@ -4373,32 +4403,32 @@ class AppLocalizationsEn extends AppLocalizations {
       'even': 'across the board',
       'other': 'steadily',
     });
-    return 'You kept up with last week\'s recommended workouts $_temp0. Keep it going this week!';
+    return 'You kept up with last week\'s personal exercises $_temp0. Keep it going this week!';
   }
 
   @override
   String exerciseAdviceRoutineLastWeekCountsMore(int assigned, int completed) {
-    return 'You did $completed of $assigned recommended workouts last week. Let\'s do more this week.';
+    return 'You did $completed of $assigned personal exercises last week. Let\'s do more this week.';
   }
 
   @override
   String exerciseAdviceRoutineLastWeekCounts(int assigned, int completed) {
-    return 'You did $completed of $assigned recommended workouts last week.';
+    return 'You did $completed of $assigned personal exercises last week.';
   }
 
   @override
   String exerciseAdviceRoutineAllNew(int days) {
-    return 'Day $days with your recommended list. After a week, we\'ll point out what gets skipped.';
+    return 'Day $days with your personal exercises. After a week, we\'ll point out what gets skipped.';
   }
 
   @override
   String exerciseAdviceRoutineAllNoneNext(int days, String next) {
-    return 'Day $days with your recommended list. Start with $next today?';
+    return 'Day $days with your personal exercises. Start with $next today?';
   }
 
   @override
   String exerciseAdviceRoutineAllNone(int days) {
-    return 'Day $days with your recommended list. Try one today.';
+    return 'Day $days with your personal exercises. Try one today.';
   }
 
   @override
@@ -4436,7 +4466,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'full': 'Full-body',
       'other': 'Full-body',
     });
-    return '$_temp0 recommended workouts get skipped often. Try doing them first?';
+    return '$_temp0 personal exercises get skipped often. Try doing them first?';
   }
 
   @override
@@ -4473,7 +4503,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exerciseAdviceRoutineAllMissed =>
-      'Some recommended workouts get skipped often. Try reordering your list?';
+      'Some personal exercises get skipped often. Try reordering your list?';
 
   @override
   String exerciseAdviceRoutineAllPraise(int weeks) {
@@ -4483,12 +4513,12 @@ class AppLocalizationsEn extends AppLocalizations {
       other: '$weeks weeks',
       one: '1 week',
     );
-    return '$_temp0 of steady recommended workouts. Keep it up!';
+    return '$_temp0 of keeping up with your personal exercises. Keep it up!';
   }
 
   @override
   String exerciseAdviceRoutineAllRate(int pct) {
-    return 'You\'ve done $pct% of your recommended workouts. Try not to skip a day.';
+    return 'You\'ve done $pct% of your personal exercises. Try not to skip a day.';
   }
 
   @override

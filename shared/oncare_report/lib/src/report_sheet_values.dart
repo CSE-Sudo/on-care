@@ -11,6 +11,7 @@ class ReportSheetDayData implements ReportSheetDay {
     required this.completion,
     this.exercises = const <String>[],
     this.assigned,
+    this.assignedDone,
   });
 
   @override
@@ -21,6 +22,9 @@ class ReportSheetDayData implements ReportSheetDay {
 
   @override
   final int? assigned;
+
+  @override
+  final int? assignedDone;
 }
 
 /// [ReportSheetAnswers] 의 값.

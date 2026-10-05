@@ -434,6 +434,7 @@ def _week_days(
     rows: list[ExerciseSession],
     week: list[int | None],
     assigned: list[int | None] | None = None,
+    assigned_done: list[int | None] | None = None,
 ) -> list[WeeklyReportDayOut]:
     """요일별 이행률 + 그날 **실제로 한** 운동(월→일).
 
@@ -451,6 +452,10 @@ def _week_days(
 
     [assigned] 는 요일별 그날 걸려 있던 추천 개인운동 수다(#2772,
     [_assigned_week]). 모르는 날은 null 로 둔다.
+
+    [assigned_done] 은 그중 그날 완료한 수다(#3115) — [assigned] 의 짝인 분자다.
+    `exercises` 는 그날 남은 운동 기록 전부(직접 기록·PT 기록 포함)라 개인운동
+    완료 수로 세면 실제보다 많아진다.
     """
     by_weekday: dict[int, list[str]] = {}
     for row in rows:
@@ -470,6 +475,11 @@ def _week_days(
             completion=week[i] if i < len(week) else None,
             exercises=by_weekday.get(i, []),
             assigned=assigned[i] if assigned and i < len(assigned) else None,
+            assigned_done=(
+                assigned_done[i]
+                if assigned_done and i < len(assigned_done)
+                else None
+            ),
         )
         for i in range(7)
     ]
@@ -502,14 +512,28 @@ def _assigned_week(
     구분되지 않아 쓰지 않는다 — 화면이 `0 / 0` 을 그리면 안 한 날처럼 읽힌다
     (#2232, 데모 `assignedCount` 와 같은 규칙).
     """
-    out: list[int | None] = [None] * 7
+    return _assigned_week_counts(db, trainer_id, member_id, monday)[0]
+
+
+def _assigned_week_counts(
+    db: Session, trainer_id: str, member_id: str, monday: date
+) -> tuple[list[int | None], list[int | None]]:
+    """[_assigned_week] 와 그날 완료한 수(#3115). 둘 다 같은 날에만 값이 있다.
+
+    리포트의 `개인운동 N개 중 M개` 는 분모가 그날 걸려 있던 개인운동인데, 분자를
+    그날의 운동 기록 전부로 세면 직접 기록·PT 기록까지 들어가 실제보다 많아진다.
+    분자도 같은 목록의 완료로 센다.
+    """
+    assigned: list[int | None] = [None] * 7
+    done: list[int | None] = [None] * 7
     for day in member_routine_days(
         db, member_id, monday, monday + timedelta(days=6), trainer_id=trainer_id
     ):
         offset = (day.date - monday).days
         if 0 <= offset < 7 and day.routines:
-            out[offset] = len(day.routines)
-    return out
+            assigned[offset] = len(day.routines)
+            done[offset] = sum(1 for item in day.routines if item.done)
+    return assigned, done
 
 
 def _roster_active(link: TrainerClient) -> bool:
@@ -1214,6 +1238,8 @@ def _add_program_routines(
             multi=multi,
             routine_only=delivery_kind == DELIVERY_ROUTINE_ONLY,
             starts_on=begin if begin > today else None,
+            # 전송 종류가 붙은 줄은 개인운동이다(#2223) — 비어 있으면 PT 프로그램.
+            personal=delivery_kind is not None,
         ),
     )
     return created
@@ -1239,6 +1265,7 @@ def _program_notification_args(
     multi: bool,
     routine_only: bool = False,
     starts_on: date | None = None,
+    personal: bool = False,
 ) -> dict[str, Any]:
     """프로그램 배정 알림의 틀 인자. 합계 시간은 초로 더한 값이다. (#2546)
 
@@ -1251,6 +1278,9 @@ def _program_notification_args(
     [starts_on] 은 미래 시작일로 보낸 개인운동이 걸리기 시작하는 날이다(#2656).
     알림은 지금 가므로, 문구가 그날을 말하지 않으면 회원은 오늘 열어 보고 빈
     목록을 본다.
+
+    [personal] 은 보낸 것이 PT 프로그램이 아니라 개인운동이라는 뜻이다 — 알림
+    제목이 `새 개인운동이 왔어요` 가 된다(#3107).
     """
     args: dict[str, Any] = {
         "name": name,
@@ -1259,6 +1289,7 @@ def _program_notification_args(
         "minutes": _minutes_of(seconds),
         "multi": multi,
         "routine_only": routine_only,
+        "personal": personal or routine_only,
     }
     if starts_on is not None:
         args["starts_on"] = starts_on.isoformat()

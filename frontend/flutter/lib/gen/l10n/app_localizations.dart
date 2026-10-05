@@ -290,6 +290,24 @@ abstract class AppLocalizations {
   /// **'Too many requests right now. Please try again in a moment.'**
   String get errorRateLimited;
 
+  /// Connection lost or timed out — the member should check the network (#3140).
+  ///
+  /// In en, this message translates to:
+  /// **'Your connection looks unstable. Check your network and try again.'**
+  String get errorNetwork;
+
+  /// 5xx from the server: a temporary server problem the member cannot fix (#3140).
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong on our side. Please try again in a moment.'**
+  String get errorServer;
+
+  /// 400/422 without a usable server reason: the request was rejected (#3140).
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t process that request. Please check what you entered.'**
+  String get errorInvalidRequest;
+
   /// No description provided for @dashboardMetricCalories.
   ///
   /// In en, this message translates to:
@@ -1694,6 +1712,12 @@ abstract class AppLocalizations {
   /// **'{reps, plural, =1{1 rep} other{{reps} reps}}'**
   String exRepsCount(int reps);
 
+  /// One set of a hold exercise in seconds (#3138). Same shape as the trainer web progHoldValue
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} sec'**
+  String exHoldSecondsCount(int seconds);
+
   /// No description provided for @exEnterSets.
   ///
   /// In en, this message translates to:
@@ -1889,7 +1913,7 @@ abstract class AppLocalizations {
   /// No description provided for @exCompletedRoutineDayTitle.
   ///
   /// In en, this message translates to:
-  /// **'Completed solo workout'**
+  /// **'Completed personal exercises'**
   String get exCompletedRoutineDayTitle;
 
   /// No description provided for @exDeleteExercise.
@@ -3809,7 +3833,7 @@ abstract class AppLocalizations {
   /// No description provided for @myNotifExercise.
   ///
   /// In en, this message translates to:
-  /// **'Workout routines'**
+  /// **'Exercises & programs'**
   String get myNotifExercise;
 
   /// No description provided for @myNotifTrainer.
@@ -3827,7 +3851,7 @@ abstract class AppLocalizations {
   /// No description provided for @myNotifExerciseDesc.
   ///
   /// In en, this message translates to:
-  /// **'When your trainer sends a workout routine or program'**
+  /// **'When your trainer sends personal exercises or a PT program, or leaves a PT record or feedback'**
   String get myNotifExerciseDesc;
 
   /// No description provided for @myNotifTrainerDesc.
@@ -3872,6 +3896,12 @@ abstract class AppLocalizations {
   /// **'Privacy Policy'**
   String get myLegalPrivacyTitle;
 
+  /// MY support row that opens the open-source license list (packages and the bundled Pretendard font, #3150).
+  ///
+  /// In en, this message translates to:
+  /// **'Open-source licenses'**
+  String get myOpenSourceLicensesTitle;
+
   /// No description provided for @myLegalTermsBody.
   ///
   /// In en, this message translates to:
@@ -3881,7 +3911,7 @@ abstract class AppLocalizations {
   /// Privacy policy body. {contact} is the privacy officer contact, filled from LegalContact.privacyOfficerEmail in shared/oncare_core (the single definition point, #3005).
   ///
   /// In en, this message translates to:
-  /// **'On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members\' personal information with care.\n\n1. Personal information collected\n(1) Sign-up: email address, password (stored encrypted) and name. If you sign up with a social login (Kakao, Google, Naver or Apple), we receive the member identifier, email address and name that service passes on.\n(2) Profile and first setup: phone number, date of birth, gender, height, weight, health goals and diet and exercise targets.\n(3) Information you leave while using the Service: meal records and food photos, workout records, health indicators such as body weight, conversations with the AI coach, messages and attached photos exchanged with your trainer, and consultation and booking requests.\n(4) Information generated automatically: access logs such as sign-ins and password changes (time and IP address), and, when an error occurs, the error details, device type, operating system and app version.\n(5) Location: only if you allow your current location in gym search, we receive the device\'s current coordinates and use them to search nearby. They are not saved to your account.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features such as food photo analysis and nutrition calculation, deliver personalised AI coaching, connect you with a trainer, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nA member\'s personal information is kept until the member withdraws from the Service, and is then destroyed without delay following section 10. The following records are kept for the stated period and then destroyed.\n- Access logs such as sign-ins: one year (covering the three-month retention of sign-in records required by the Protection of Communications Secrets Act)\n- Records of trainers opening members\' health information, of data-sharing consent being given or withdrawn, and of account deletion: two years (processing records kept under the Standards for Personal Information Security Measures)\nA reason chosen when deleting an account is kept only as a reason code and a time, with no link to the member.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member\'s consent. Sharing with your trainer follows section 5, and processing entrusted to service providers follows sections 6 and 7. The exception is where a law specifically provides otherwise.\n\n5. Sharing with your trainer and withdrawing consent\nWhen you agree to data sharing by requesting a consultation, accepting a coaching request or issuing a pairing code, your assigned trainer can see your meal records, workout records, body information, health goals, and health notes & cautions. You can withdraw this consent at any time by removing your trainer or gym connection in the MY tab, and consent is also treated as withdrawn when the trainer ends the coaching relationship. The Company records when consent was given and when it was withdrawn. After you withdraw, the trainer can no longer see your new records, and reconnecting with the same trainer requires your consent again. Conversations you exchanged with the trainer and reports delivered before the withdrawal are not deleted.\n\n6. Entrusted processing\nThe Company entrusts the following work to outside providers to deliver the Service. If a provider changes, this policy is updated to say so.\n- Amazon Web Services, Inc.: running the servers and storing chat photos and report PDFs\n- Neon: running the database (account information and all records)\n- Google LLC: food photo recognition, generating AI coach answers and recommendations, and building the search index the AI coach uses to look up your records (Gemini API)\n- Kakao Corp.: gym and place search and map display\n- Functional Software, Inc. (Sentry): collecting and analysing app and server errors\n\n7. Transfer of personal information overseas\nTo perform its contract with members, the Company has personal information processed and stored overseas as follows, and discloses this in this policy under Article 28-8(1)(3) of the Personal Information Protection Act. Each transfer happens over an encrypted network connection whenever the Service is used.\n(1) Amazon Web Services, Inc. / Singapore / member information and records in general, chat photo attachments and report PDFs / running the servers and storing files / until the member withdraws or the contract with the provider ends\n(2) Neon / Singapore / account, profile, diet, workout and health records and conversation records / running the database / until the member withdraws or the contract with the provider ends\n(3) Google LLC / the United States and other countries where Google operates data centres / food photos, the diet and workout records, body information and health goals needed for analysis, and conversations with the AI coach / AI analysis, answer generation and search indexing / for the period set in the provider\'s terms of service after the request is processed\n(4) Functional Software, Inc. (Sentry) / the United States / error details, device type, operating system and app version (name, email address, IP address and request contents are not sent) / error analysis / the provider\'s retention period\nEach time you save a meal or workout record, its contents are sent to (3) to build the AI coach\'s search index. If you do not want your information transferred overseas, you can refuse by deleting your account, but you will then be unable to use the Service.\n\n8. Processing of sensitive (health) information\nHealth information such as diet and workout records, body information, health goals, and health notes & cautions is processed under Article 23 of the Personal Information Protection Act only with a separate consent obtained at sign-up, apart from other personal information. It is shared with your trainer only with the consent described in section 5.\n\n9. Children under 14\nThe Company does not accept sign-ups from children under 14, and confirms at sign-up that you are 14 or older.\n\n10. Destruction procedure and method\n(1) Procedure: when you delete your account in the MY tab, the Company immediately deletes the account together with your profile, meal and workout records and food photos, AI coach conversations and search index, notifications, social login links, and your trainer connection and conversations (including attached photos and report PDF files). Pending consultation requests and bookings are cancelled, and the trainers involved are told that you have left. Sessions already on a trainer\'s schedule keep your display name and the date and time as the trainer\'s work record. Records kept under section 3 are deleted automatically when their period ends.\n(2) Method: information held as electronic files is deleted from the database and file storage, and copies remaining in database recovery backups disappear when the backup retention period ends. The Company does not handle personal information on paper.\n\n11. Automatic collection tools\nThe Company does not use cookies or tracking tools for advertising or behavioural analysis. On the web, sign-in information is kept in browser storage to keep you signed in, and is removed when you sign out or clear your browser data.\n\n12. Safeguards\nThe Company stores passwords encrypted, encrypts traffic in transit, and limits trainers\' access to member information by assignment. When a trainer opens a member\'s health information, only the trainer, the member, the kind of information and the time are recorded, never the health information itself. Error reports are sent with names, email addresses, IP addresses and request contents removed.\n\n13. Rights of the user and how to exercise them\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted. You can edit your profile, delete your account and withdraw trainer-sharing consent in the MY tab. For any other request, contact the address in section 14 and it will be handled without delay.\n\n14. Personal information protection officer\nThe Company has appointed a personal information protection officer who oversees the processing of personal information and handles related complaints and remedies.\n- Position: Personal information protection officer, On-Care service operations team\n- Contact: {contact}\n\n15. Remedies for infringement\nFor reports or advice about an infringement of personal information, you can contact the following bodies (in Korea).\n- Personal Information Dispute Mediation Committee: 1833-6972 (www.kopico.go.kr)\n- Personal Information Infringement Report Center: 118 (privacy.kisa.or.kr)\n- Supreme Prosecutors\' Office: 1301 (www.spo.go.kr)\n- Korean National Police Agency: 182 (ecrm.police.go.kr)\n\n16. Changes to this policy\nIf this policy changes, the Company announces it in the app before the effective date, and asks for consent again where the change requires it.\n- 3 October 2026: added entrusted processing, overseas transfer, sensitive information, children under 14, destruction procedure, automatic collection tools, safeguards, protection officer and remedies sections\n- 1 October 2026: first issued\n\nEffective date: 3 October 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.'**
+  /// **'On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members\' personal information with care.\n\n1. Personal information collected\n(1) Sign-up: email address, password (stored encrypted) and name. If you sign up with a social login (Kakao, Google, Naver or Apple), we receive the member identifier, email address and name that service passes on.\n(2) Profile and first setup: phone number, date of birth, gender, height, weight, health goals and diet and exercise targets.\n(3) Information you leave while using the Service: meal records and food photos, workout records, health indicators such as body weight, conversations with the AI coach, messages and attached photos exchanged with your trainer, and consultation and booking requests.\n(4) Information generated automatically: access logs such as sign-ins and password changes (time and IP address), and, when an error occurs, the error details, device type, operating system and app version.\n(5) Location: only if you allow your current location in gym search, we receive the device\'s current coordinates and use them to search nearby. They are not saved to your account.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features such as food photo analysis and nutrition calculation, deliver personalised AI coaching, connect you with a trainer, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nA member\'s personal information is kept until the member withdraws from the Service, and is then destroyed without delay following section 10. The following records are kept for the stated period and then destroyed.\n- Access logs such as sign-ins: one year (covering the three-month retention of sign-in records required by the Protection of Communications Secrets Act)\n- Records of trainers opening members\' health information, of data-sharing consent being given or withdrawn, and of account deletion: two years (processing records kept under the Standards for Personal Information Security Measures)\nA reason chosen when deleting an account is kept only as a reason code and a time, with no link to the member.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member\'s consent. Sharing with your trainer follows section 5, and processing entrusted to service providers follows sections 6 and 7. The exception is where a law specifically provides otherwise.\n\n5. Sharing with your trainer and withdrawing consent\nWhen you agree to data sharing by requesting a consultation, accepting a coaching request or issuing a pairing code, your assigned trainer can see your meal records, workout records, body information, health goals, and health notes & cautions. You can withdraw this consent at any time by removing your trainer or gym connection in the MY tab, and consent is also treated as withdrawn when the trainer ends the coaching relationship. The Company records when consent was given and when it was withdrawn. After you withdraw, the trainer can no longer see your new records, and reconnecting with the same trainer requires your consent again. Conversations you exchanged with the trainer and reports delivered before the withdrawal are not deleted.\n\n6. Entrusted processing\nThe Company entrusts the following work to outside providers to deliver the Service. If a provider changes, this policy is updated to say so.\n- Amazon Web Services, Inc.: running the servers and storing chat photos and report PDFs\n- Neon: running the database (account information and all records)\n- Google LLC: food photo recognition, generating AI coach answers and recommendations, and building the search index the AI coach uses to look up your records (Gemini API)\n- Kakao Corp.: gym and place search and map display\n- Functional Software, Inc. (Sentry): collecting and analysing app and server errors\n\n7. Transfer of personal information overseas\nTo perform its contract with members, the Company has personal information processed and stored overseas as follows, and discloses this in this policy under Article 28-8(1)(3) of the Personal Information Protection Act. Each transfer happens over an encrypted network connection whenever the Service is used.\n(1) Amazon Web Services, Inc. / Singapore / member information and records in general, chat photo attachments and report PDFs / running the servers and storing files / until the member withdraws or the contract with the provider ends\n(2) Neon / Singapore / account, profile, diet, workout and health records and conversation records / running the database / until the member withdraws or the contract with the provider ends\n(3) Google LLC / the United States and other countries where Google operates data centres / food photos, the diet and workout records, body information and health goals needed for analysis, and conversations with the AI coach / AI analysis, answer generation and search indexing / for the period set in the provider\'s terms of service after the request is processed\n(4) Functional Software, Inc. (Sentry) / the United States / error details, device type, operating system and app version (name, email address, IP address and request contents are not sent) / error analysis / the provider\'s retention period\nEach time you save a meal or workout record, its contents are sent to (3) to build the AI coach\'s search index. If you do not want your information transferred overseas, you can refuse by deleting your account, but you will then be unable to use the Service.\n\n8. Processing of sensitive (health) information\nHealth information such as diet and workout records, body information, health goals, and health notes & cautions is processed under Article 23 of the Personal Information Protection Act only with a separate consent obtained at sign-up, apart from other personal information. It is shared with your trainer only with the consent described in section 5.\n\n9. Children under 14\nThe Company does not accept sign-ups from children under 14, and confirms at sign-up that you are 14 or older.\n\n10. Destruction procedure and method\n(1) Procedure: when you delete your account in the MY tab, the Company immediately deletes the account together with your profile, meal and workout records and food photos, AI coach conversations and search index, notifications, social login links, and your trainer connection and conversations (including attached photos and report PDF files). Pending consultation requests and bookings are cancelled, and the trainers involved are told that you have left. Sessions already on a trainer\'s schedule keep your display name and the date and time as the trainer\'s work record. Records kept under section 3 are deleted automatically when their period ends.\n(2) Method: information held as electronic files is deleted from the database and file storage, and copies remaining in database recovery backups disappear when the backup retention period ends. The Company does not handle personal information on paper.\n\n11. Automatic collection tools\nThe Company does not use cookies or tracking tools for advertising or behavioural analysis. On the web, sign-in information is kept in browser storage to keep you signed in, and is removed when you sign out or clear your browser data.\n\n12. Safeguards\nThe Company stores passwords encrypted, encrypts traffic in transit, and limits trainers\' access to member information by assignment. When a trainer opens a member\'s health information, only the trainer, the member, the kind of information and the time are recorded, never the health information itself. Error reports are sent with names, email addresses, IP addresses and request contents removed.\n\n13. Rights of the user and how to exercise them\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted. You can edit your profile, delete your account and withdraw trainer-sharing consent in the MY tab. For any other request, contact the address in section 14 and it will be handled without delay.\n\n14. Personal information protection officer\nThe Company has appointed a personal information protection officer who oversees the processing of personal information and handles related complaints and remedies.\n- Position: Personal information protection officer, On-Care service operations team\n- Contact: {contact}\n\n15. Remedies for infringement\nFor reports or advice about an infringement of personal information, you can contact the following bodies (in Korea).\n- Personal Information Dispute Mediation Committee: 1833-6972 (www.kopico.go.kr)\n- Personal Information Infringement Report Center: 118 (privacy.kisa.or.kr)\n- Supreme Prosecutors\' Office: 1301 (www.spo.go.kr)\n- Korean National Police Agency: 182 (ecrm.police.go.kr)\n\n16. Changes to this policy\nIf this policy changes, the Company announces it in the app before the effective date, and asks for consent again where the change requires it.\n- 5 October 2026: changed the contact address of the personal information protection officer\n- 3 October 2026: added entrusted processing, overseas transfer, sensitive information, children under 14, destruction procedure, automatic collection tools, safeguards, protection officer and remedies sections\n- 1 October 2026: first issued\n\nEffective date: 5 October 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.'**
   String myLegalPrivacyBody(String contact);
 
   /// No description provided for @myLegalTermsEffectiveDate.
@@ -3893,7 +3923,7 @@ abstract class AppLocalizations {
   /// No description provided for @myLegalPrivacyEffectiveDate.
   ///
   /// In en, this message translates to:
-  /// **'Effective Oct 3, 2026'**
+  /// **'Effective Oct 5, 2026'**
   String get myLegalPrivacyEffectiveDate;
 
   /// Footer of the support page. The version is read from the build (pubspec.yaml), never hard-coded (#3047).
@@ -4211,25 +4241,25 @@ abstract class AppLocalizations {
   /// No description provided for @coachChatRoutineReceivedPt.
   ///
   /// In en, this message translates to:
-  /// **'You received a PT program and personal workout'**
+  /// **'You received a PT program and personal exercises'**
   String get coachChatRoutineReceivedPt;
 
   /// No description provided for @coachChatRoutineReceivedPersonal.
   ///
   /// In en, this message translates to:
-  /// **'You received a personal workout'**
+  /// **'You received personal exercises'**
   String get coachChatRoutineReceivedPersonal;
 
   /// No description provided for @coachChatRoutineReceivedAfterCancel.
   ///
   /// In en, this message translates to:
-  /// **'You received a personal workout in place of the cancelled PT'**
+  /// **'You received personal exercises in place of the cancelled PT'**
   String get coachChatRoutineReceivedAfterCancel;
 
   /// No description provided for @coachChatRoutineReceivedProgram.
   ///
   /// In en, this message translates to:
-  /// **'You received a workout program'**
+  /// **'You received a PT program'**
   String get coachChatRoutineReceivedProgram;
 
   /// Routine delivery notice: first names, then how many more.
@@ -5126,6 +5156,24 @@ abstract class AppLocalizations {
   /// **'Social sign-in is coming soon. Please sign in with your email'**
   String get authSocialComingSoon;
 
+  /// Title of the sign-in banner shown when a trainer account tries to sign in to the member app (#3137).
+  ///
+  /// In en, this message translates to:
+  /// **'This is a trainer account'**
+  String get authTrainerAccountTitle;
+
+  /// Body of the trainer-account sign-in banner. The issued tokens are discarded (#3137).
+  ///
+  /// In en, this message translates to:
+  /// **'The member app is for member accounts. Please sign in to the trainer web with your trainer account'**
+  String get authTrainerAccountMessage;
+
+  /// Banner action that opens the trainer web on the same origin. Shown on web builds only (#3137).
+  ///
+  /// In en, this message translates to:
+  /// **'Open trainer web'**
+  String get authTrainerAccountOpenWeb;
+
   /// No description provided for @signUpTitle.
   ///
   /// In en, this message translates to:
@@ -5651,7 +5699,7 @@ abstract class AppLocalizations {
   /// Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).
   ///
   /// In en, this message translates to:
-  /// **'Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a recommended workout +{routine}P\nSpend them in MY › Use Points'**
+  /// **'Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use Points'**
   String guidePointsBody(int diet, int exercise, int routine);
 
   /// No description provided for @guideSampleFoodScrambledEggs.
@@ -6292,13 +6340,13 @@ abstract class AppLocalizations {
   /// Section title in the coaching card.
   ///
   /// In en, this message translates to:
-  /// **'Recommended solo workouts'**
+  /// **'Recommended personal exercises'**
   String get coachRoutineTitle;
 
   /// Card title when the member has no trainer — every line is AI recommended (#2015).
   ///
   /// In en, this message translates to:
-  /// **'AI recommended solo workouts'**
+  /// **'AI-recommended personal exercises'**
   String get coachRoutineAiTitle;
 
   /// Shown after tapping the pencil on a past day's recommended exercises — past checks are allowed and marked as late for the trainer (#2506).
@@ -6370,7 +6418,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachRoutineCancel.
   ///
   /// In en, this message translates to:
-  /// **'Delete this workout'**
+  /// **'Delete this personal exercise'**
   String get coachRoutineCancel;
 
   /// No description provided for @coachRoutineCancelConfirm.
@@ -6388,7 +6436,7 @@ abstract class AppLocalizations {
   /// Title of the dialog confirming removal of a recommended workout.
   ///
   /// In en, this message translates to:
-  /// **'Delete this workout?'**
+  /// **'Delete this personal exercise?'**
   String get coachCardRoutineCancelTitle;
 
   /// Left button of the cancel/undo confirmation dialogs for a recommended workout; closes the dialog and keeps it as is.
@@ -6400,13 +6448,13 @@ abstract class AppLocalizations {
   /// No description provided for @coachRoutineCancelled.
   ///
   /// In en, this message translates to:
-  /// **'Workout deleted'**
+  /// **'Personal exercise deleted'**
   String get coachRoutineCancelled;
 
   /// No description provided for @coachRoutineCancelFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t delete the workout'**
+  /// **'Couldn\'t delete the personal exercise'**
   String get coachRoutineCancelFailed;
 
   /// Title of the completion dialog.
@@ -6478,7 +6526,7 @@ abstract class AppLocalizations {
   /// Notification category label for screen readers.
   ///
   /// In en, this message translates to:
-  /// **'Workout routine'**
+  /// **'Exercises & programs'**
   String get alertCategoryRoutine;
 
   /// Notification category label for screen readers.
@@ -6604,13 +6652,13 @@ abstract class AppLocalizations {
   /// Title of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'A new workout routine arrived'**
+  /// **'New personal exercises'**
   String get demoAlertRoutineTitle;
 
   /// Body of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'Trainer {trainerName} adjusted it to a walking routine for your knee.'**
+  /// **'Trainer {trainerName} adjusted them to walking-focused exercises for your knee.'**
   String demoAlertRoutineBody(String trainerName);
 
   /// Title of a demo notification shown in tour mode.
@@ -6963,7 +7011,7 @@ abstract class AppLocalizations {
   /// Exercise tab AI advice sentence `routine_today_all_done` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'You finished {count, plural, =1{your recommended workout} other{all {count} recommended workouts}} today. Great job!'**
+  /// **'You finished {count, plural, =1{your personal exercise} other{all {count} personal exercises}} today. Great job!'**
   String exerciseAdviceRoutineTodayAllDone(int count);
 
   /// Exercise tab AI advice sentence `routine_today_done_next_order` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
@@ -7002,13 +7050,13 @@ abstract class AppLocalizations {
   /// Exercise tab AI advice sentence `routine_today_left` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{1 recommended workout left} other{{count} recommended workouts left}}. Go down the list in order.'**
+  /// **'{count, plural, =1{1 personal exercise left} other{{count} personal exercises left}}. Go down the list in order.'**
   String exerciseAdviceRoutineTodayLeft(int count);
 
   /// Exercise tab AI advice sentence `routine_today_start_order` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'Start today\'s recommended workouts with {next} → {then}.'**
+  /// **'Start today\'s personal exercises with {next} → {then}.'**
   String exerciseAdviceRoutineTodayStartOrder(String next, String then);
 
   /// Exercise tab AI advice sentence `routine_today_start` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
@@ -7020,19 +7068,19 @@ abstract class AppLocalizations {
   /// Exercise tab AI advice sentence `routine_week_none_today` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'No recommended workouts this week yet. Start with {next} today?'**
+  /// **'You haven\'t done your personal exercises this week yet. Start with {next} today?'**
   String exerciseAdviceRoutineWeekNoneToday(String next);
 
   /// Exercise tab AI advice sentence `routine_week_none_next` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'No recommended workouts this week yet. Try {next} first.'**
+  /// **'You haven\'t done your personal exercises this week yet. Try {next} first.'**
   String exerciseAdviceRoutineWeekNoneNext(String next);
 
   /// Exercise tab AI advice sentence `routine_week_none` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'No recommended workouts this week yet. Try one today.'**
+  /// **'You haven\'t done your personal exercises this week yet. Try one today.'**
   String get exerciseAdviceRoutineWeekNone;
 
   /// Exercise tab AI advice sentence `routine_week_only` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
@@ -7050,7 +7098,7 @@ abstract class AppLocalizations {
   /// Exercise tab AI advice sentence `routine_week_skew` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'{share}% of this week\'s recommended workouts were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. {rest, select, next_week{Next week} other{For the rest of the week}}, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.'**
+  /// **'{share}% of this week\'s personal exercises were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. {rest, select, next_week{Next week} other{For the rest of the week}}, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.'**
   String exerciseAdviceRoutineWeekSkew(
     String missing,
     String rest,
@@ -7061,19 +7109,19 @@ abstract class AppLocalizations {
   /// Exercise tab AI advice sentence `routine_week_skew_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'{share}% of this week\'s recommended workouts were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.'**
+  /// **'{share}% of this week\'s personal exercises were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.'**
   String exerciseAdviceRoutineWeekSkewShort(int share, String top);
 
   /// Exercise tab AI advice sentence `routine_week_praise` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'You kept up with this week\'s recommended workouts {how, select, even{across the board} other{steadily}}. Keep it going!'**
+  /// **'You kept up with this week\'s personal exercises {how, select, even{across the board} other{steadily}}. Keep it going!'**
   String exerciseAdviceRoutineWeekPraise(String how);
 
   /// Exercise tab AI advice sentence `routine_week_counts_today` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'You did {completed} of {assigned} recommended workouts this week. Continue with {next} today.'**
+  /// **'You did {completed} of {assigned} personal exercises this week. Continue with {next} today.'**
   String exerciseAdviceRoutineWeekCountsToday(
     int assigned,
     int completed,
@@ -7083,7 +7131,7 @@ abstract class AppLocalizations {
   /// Exercise tab AI advice sentence `routine_week_counts_keep` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'You did {completed} of {assigned} recommended workouts this week. {rest, select, next_week{Keep it going next week.} other{Keep it going for the rest of the week.}}'**
+  /// **'You did {completed} of {assigned} personal exercises this week. {rest, select, next_week{Keep it going next week.} other{Keep it going for the rest of the week.}}'**
   String exerciseAdviceRoutineWeekCountsKeep(
     int assigned,
     int completed,
@@ -7093,19 +7141,19 @@ abstract class AppLocalizations {
   /// Exercise tab AI advice sentence `routine_week_counts` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'You did {completed} of {assigned} recommended workouts this week.'**
+  /// **'You did {completed} of {assigned} personal exercises this week.'**
   String exerciseAdviceRoutineWeekCounts(int assigned, int completed);
 
   /// Exercise tab AI advice sentence `routine_last_week_none_next` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'No recommended workouts last week. This week, start with {next}.'**
+  /// **'You didn\'t do your personal exercises last week. This week, start with {next}.'**
   String exerciseAdviceRoutineLastWeekNoneNext(String next);
 
   /// Exercise tab AI advice sentence `routine_last_week_none` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'No recommended workouts last week. Take them one at a time this week.'**
+  /// **'You didn\'t do your personal exercises last week. Take them one at a time this week.'**
   String get exerciseAdviceRoutineLastWeekNone;
 
   /// Exercise tab AI advice sentence `routine_last_week_only` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
@@ -7123,7 +7171,7 @@ abstract class AppLocalizations {
   /// Exercise tab AI advice sentence `routine_last_week_skew` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'{share}% of last week\'s recommended workouts were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. This week, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.'**
+  /// **'{share}% of last week\'s personal exercises were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. This week, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.'**
   String exerciseAdviceRoutineLastWeekSkew(
     String missing,
     int share,
@@ -7133,43 +7181,43 @@ abstract class AppLocalizations {
   /// Exercise tab AI advice sentence `routine_last_week_skew_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'{share}% of last week\'s recommended workouts were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.'**
+  /// **'{share}% of last week\'s personal exercises were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.'**
   String exerciseAdviceRoutineLastWeekSkewShort(int share, String top);
 
   /// Exercise tab AI advice sentence `routine_last_week_praise` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'You kept up with last week\'s recommended workouts {how, select, even{across the board} other{steadily}}. Keep it going this week!'**
+  /// **'You kept up with last week\'s personal exercises {how, select, even{across the board} other{steadily}}. Keep it going this week!'**
   String exerciseAdviceRoutineLastWeekPraise(String how);
 
   /// Exercise tab AI advice sentence `routine_last_week_counts_more` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'You did {completed} of {assigned} recommended workouts last week. Let\'s do more this week.'**
+  /// **'You did {completed} of {assigned} personal exercises last week. Let\'s do more this week.'**
   String exerciseAdviceRoutineLastWeekCountsMore(int assigned, int completed);
 
   /// Exercise tab AI advice sentence `routine_last_week_counts` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'You did {completed} of {assigned} recommended workouts last week.'**
+  /// **'You did {completed} of {assigned} personal exercises last week.'**
   String exerciseAdviceRoutineLastWeekCounts(int assigned, int completed);
 
   /// Exercise tab AI advice sentence `routine_all_new` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'Day {days} with your recommended list. After a week, we\'ll point out what gets skipped.'**
+  /// **'Day {days} with your personal exercises. After a week, we\'ll point out what gets skipped.'**
   String exerciseAdviceRoutineAllNew(int days);
 
   /// Exercise tab AI advice sentence `routine_all_none_next` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'Day {days} with your recommended list. Start with {next} today?'**
+  /// **'Day {days} with your personal exercises. Start with {next} today?'**
   String exerciseAdviceRoutineAllNoneNext(int days, String next);
 
   /// Exercise tab AI advice sentence `routine_all_none` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'Day {days} with your recommended list. Try one today.'**
+  /// **'Day {days} with your personal exercises. Try one today.'**
   String exerciseAdviceRoutineAllNone(int days);
 
   /// Exercise tab AI advice sentence `routine_all_done_today_part` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
@@ -7199,7 +7247,7 @@ abstract class AppLocalizations {
   /// Exercise tab AI advice sentence `routine_all_missed_part` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'{part, select, lower{Lower-body} upper{Upper-body} core{Core} full{Full-body} other{Full-body}} recommended workouts get skipped often. Try doing them first?'**
+  /// **'{part, select, lower{Lower-body} upper{Upper-body} core{Core} full{Full-body} other{Full-body}} personal exercises get skipped often. Try doing them first?'**
   String exerciseAdviceRoutineAllMissedPart(String part);
 
   /// Exercise tab AI advice sentence `routine_all_missed_part_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
@@ -7235,19 +7283,19 @@ abstract class AppLocalizations {
   /// Exercise tab AI advice sentence `routine_all_missed` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'Some recommended workouts get skipped often. Try reordering your list?'**
+  /// **'Some personal exercises get skipped often. Try reordering your list?'**
   String get exerciseAdviceRoutineAllMissed;
 
   /// Exercise tab AI advice sentence `routine_all_praise` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'{weeks, plural, =1{1 week} other{{weeks} weeks}} of steady recommended workouts. Keep it up!'**
+  /// **'{weeks, plural, =1{1 week} other{{weeks} weeks}} of keeping up with your personal exercises. Keep it up!'**
   String exerciseAdviceRoutineAllPraise(int weeks);
 
   /// Exercise tab AI advice sentence `routine_all_rate` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
   ///
   /// In en, this message translates to:
-  /// **'You\'ve done {pct}% of your recommended workouts. Try not to skip a day.'**
+  /// **'You\'ve done {pct}% of your personal exercises. Try not to skip a day.'**
   String exerciseAdviceRoutineAllRate(int pct);
 
   /// Diet tab AI advice sentence `today_empty` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
