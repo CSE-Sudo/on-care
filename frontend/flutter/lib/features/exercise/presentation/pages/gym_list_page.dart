@@ -249,14 +249,8 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
   }
 
   List<Gym> _visibleGyms(List<Gym> gyms, {required bool byUserLocation}) {
-    final String query = _query.trim().toLowerCase();
     final List<Gym> visible = gyms
-        .where((Gym gym) {
-          if (query.isEmpty) return true;
-          return gym.name.toLowerCase().contains(query) ||
-              gym.address.toLowerCase().contains(query) ||
-              gym.tags.any((String tag) => tag.toLowerCase().contains(query));
-        })
+        .where((Gym gym) => gym.matchesQuery(_query))
         .toList(growable: false);
 
     return switch (_sort) {

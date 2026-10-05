@@ -2273,6 +2273,28 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGymSearchFailed => '헬스장을 찾지 못했어요. 잠시 뒤 다시 시도해 주세요.';
 
   @override
+  String get myGymLocateAction => '현재 위치로 찾기';
+
+  @override
+  String get myGymNearbyCaption => '현재 위치에서 가까운 헬스장이에요. 위치는 저장하지 않아요.';
+
+  @override
+  String get myGymNearbyEmpty => '현재 위치 2km 안에서 헬스장을 찾지 못했어요. 이름으로 찾아 보세요.';
+
+  @override
+  String get myGymLocationDenied => '위치 사용을 허용하면 주변 헬스장을 찾을 수 있어요.';
+
+  @override
+  String get myGymLocationBlocked => '브라우저 사이트 설정에서 위치 사용을 허용한 뒤 다시 눌러 주세요.';
+
+  @override
+  String get myGymLocationDisabled => '기기의 위치 서비스를 켠 뒤 다시 눌러 주세요.';
+
+  @override
+  String get myGymLocationUnavailable =>
+      '현재 위치를 가져오지 못했어요. 다시 시도하거나 이름으로 찾아 보세요.';
+
+  @override
   String get myGymCurrent => '현재 소속';
 
   @override
