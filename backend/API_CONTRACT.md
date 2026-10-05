@@ -912,7 +912,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | Method | Path | 응답 |
 |---|---|---|
 | GET | `/trainers/{trainer_id}/slots` | `[{ id, trainer_id, starts_at, capacity, remaining, is_closed, overlapped }]` |
-| POST | `/reservations` | 입력 `{ slot_id }` → `{ id, slot_id, schedule_id, status, created_at }` |
+| POST | `/reservations` | 입력 `{ slot_id }` → `{ id, slot_id, schedule_id, status, created_at }`. 다가오는 예약(시작 전·취소되지 않은 일정)이 이미 있으면 **409** — 다음 일정은 하나이고 옮기려면 먼저 취소한다(#1072, #3240) |
 | GET | `/reservations/me` | `[{ id, slot_id, trainer_id, starts_at, cancellable }]` — 내 예약 (다가오는 것부터, 기본 50건·커서). 회원·트레이너가 취소한 예약은 빠진다(#2283) |
 | DELETE | `/reservations/{id}` | 취소 → `{ status: "cancelled" }` |
 
@@ -1272,10 +1272,10 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | DELETE | `/trainer/client-invites/{invite_id}` | `{ status: "cancelled" }` — 보낸 요청을 거둔다. 없음 404, 이미 결정됨 409 |
 | GET | `/trainer/consultations?status=&limit=&before=&before_id=` | `TrainerConsultationOut[]` — 나를 지정한 상담 요청 한 쪽(기본 미처리, 최신 50건, #980) |
 | GET | `/trainer/consultations/pending-count` | `{ count }` — 인박스 배지(쪽 나눔과 무관한 전체 기준) |
-| POST | `/trainer/consultations/{consultation_id}/accept` | `{ note? }` → `TrainerConsultationOut` + `{ client_connected, schedule_created, schedule_id }` — 수락하고 회원이 고른 자리에 상담 일정을 잡는다. 겹치면 409 `schedule_overlap` |
+| POST | `/trainer/consultations/{consultation_id}/accept` | `{ note? }` → `TrainerConsultationOut` + `{ client_connected, schedule_created, schedule_id }` — 수락하고 회원이 고른 자리에 상담 일정을 잡는다. 겹치면 409 `schedule_overlap`. 만료 시각(신청 24시간 뒤·자리 시작 2시간 전 중 이른 쪽)이 지난 요청은 만료로 내리고 409(#3241) |
 | POST | `/trainer/consultations/{consultation_id}/reject` | `{ note? }` → `TrainerConsultationOut`. 사유는 회원 알림 본문에 실린다 |
 | GET | `/trainer/reservation-slots?include_past=` | `TrainerSlotOut[]` `{ id, trainer_id, starts_at, duration_minutes, capacity, remaining, is_closed, session_type, booked_by_name, overlapped }` |
-| POST | `/trainer/reservation-slots` | `{ starts_at, duration_minutes, session_type }` → **201** `TrainerSlotOut`. 겹치면 409 `schedule_overlap` |
+| POST | `/trainer/reservation-slots` | `{ starts_at, duration_minutes, session_type }` → **201** `TrainerSlotOut`. 다른 일정이나 열린 다른 자리와 겹치면 409 `schedule_overlap`(#3241) |
 | PUT | `/trainer/reservation-slots/{slot_id}` | `{ starts_at?, duration_minutes?, session_type?, is_closed? }` → `TrainerSlotOut`. 겹치면 409 |
 | DELETE | `/trainer/reservation-slots/{slot_id}` | `TrainerSlotOut` — 자리를 닫는다(행은 남는다) |
 
