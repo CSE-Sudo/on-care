@@ -312,9 +312,8 @@ def test_naver_profile_reader_still_parses_for_code_exchange(monkeypatch):
     ],
 )
 def test_client_id_lists_are_parsed(raw, expected):
-    settings = Settings(_env_file=None, google_client_ids=raw, apple_client_ids=raw)
+    settings = Settings(_env_file=None, google_client_ids=raw)
     assert settings.google_client_id_list == expected
-    assert settings.apple_client_id_list == expected
 
 
 @pytest.mark.parametrize("raw,expected", [("", ""), ("  ", ""), (" 424242 ", "424242")])
@@ -335,25 +334,20 @@ def test_startup_warns_about_every_unconfigured_provider(caplog):
     caplog.set_level(logging.WARNING, logger="app.startup")
     warnings = startup_checks.check(Settings(_env_file=None))
     [social] = [w for w in warnings if "소셜 로그인" in w]
-    for name in ("GOOGLE_CLIENT_IDS", "KAKAO_APP_ID", "APPLE_CLIENT_IDS"):
+    for name in ("GOOGLE_CLIENT_IDS", "KAKAO_APP_ID"):
         assert name in social
     assert any("소셜 로그인" in r.getMessage() for r in caplog.records)
 
 
 def test_startup_names_only_the_missing_provider():
-    settings = Settings(
-        _env_file=None, google_client_ids="g.test", kakao_app_id="1", apple_client_ids=""
-    )
+    settings = Settings(_env_file=None, google_client_ids="g.test", kakao_app_id="")
     [social] = [w for w in startup_checks.check(settings) if "소셜 로그인" in w]
-    assert "APPLE_CLIENT_IDS" in social
+    assert "KAKAO_APP_ID" in social
     assert "GOOGLE_CLIENT_IDS" not in social
-    assert "KAKAO_APP_ID" not in social
 
 
 def test_startup_is_quiet_when_every_provider_is_configured():
-    settings = Settings(
-        _env_file=None, google_client_ids="g.test", kakao_app_id="1", apple_client_ids="a.test"
-    )
+    settings = Settings(_env_file=None, google_client_ids="g.test", kakao_app_id="1")
     assert not any("소셜 로그인" in w for w in startup_checks.check(settings))
     assert startup_checks.unconfigured_social_providers(settings) == []
 
