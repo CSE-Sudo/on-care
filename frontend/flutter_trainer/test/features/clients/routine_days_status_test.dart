@@ -328,7 +328,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('2번 보냄'), findsOneWidget);
+      expect(find.text('2회 보냄'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -594,7 +594,7 @@ void main() {
         find.byKey(const ValueKey<String>('workout-routine-all-ongoing-8-14')),
         findsOneWidget,
       );
-      expect(find.text('2번 보냄'), findsOneWidget);
+      expect(find.text('2회 보냄'), findsOneWidget);
       expect(
         find.byKey(const ValueKey<String>('workout-routine-all-average')),
         findsOneWidget,

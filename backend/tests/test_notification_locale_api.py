@@ -272,15 +272,15 @@ def test_reservation_booked_and_cancelled_in_english(client, db_session):
     seoul = starts.astimezone(timezone(timedelta(hours=9)))
     en = _trainer_inbox(client, trainer_token, EN)[0]
     assert en["title"] == "New booking"
-    assert en["body"] == f"Alex · {seoul:%m/%d %H:%M}"
+    assert en["body"] == f"Alex · {seoul.month}/{seoul.day} {seoul:%H:%M}"
     ko = _trainer_inbox(client, trainer_token)[0]
     assert ko["title"] == "새 예약이 들어왔어요"
-    assert ko["body"] == f"Alex 회원 · {seoul:%m월 %d일 %H:%M}"
+    assert ko["body"] == f"Alex 회원 · {seoul.month}월 {seoul.day}일 {seoul:%H:%M}"
 
     client.delete(f"/v1/reservations/{booked.json()['id']}", headers=_auth(member_token))
     en = _trainer_inbox(client, trainer_token, EN)[0]
     assert en["title"] == "Booking cancelled"
-    assert en["body"] == f"Alex · {seoul:%m/%d %H:%M}"
+    assert en["body"] == f"Alex · {seoul.month}/{seoul.day} {seoul:%H:%M}"
     assert _trainer_inbox(client, trainer_token)[0]["title"] == "예약이 취소되었습니다"
 
 
@@ -477,6 +477,8 @@ def _future_day(days: int = 30) -> str:
 def test_schedule_added_and_cancelled_reach_the_member_in_english(client, db_session):
     trainer_token, _, member_id, member_token = _pair(client, db_session)
     day = _future_day()
+    month, dom = int(day[5:7]), int(day[8:10])
+    ko_day, en_day = f"{month}월 {dom}일", f"{month}/{dom}"
     created = client.post(
         "/v1/trainer/schedule",
         json={
@@ -494,8 +496,8 @@ def test_schedule_added_and_cancelled_reach_the_member_in_english(client, db_ses
         )
     )
     assert row is not None
-    # 저장 문장은 예전과 같은 한국어다.
-    assert (row.title, row.body) == ("새 일정이 등록되었어요", f"{day} 19:00 · 상담")
+    # 저장 문장은 한국어다. 날짜는 0 을 채우지 않는 `10월 1일` 꼴(#3120).
+    assert (row.title, row.body) == ("새 일정이 등록되었어요", f"{ko_day} 19:00 · 상담")
     assert row.template_args == {"date": day, "time": "19:00", "type": "상담"}
 
     removed = client.delete(
@@ -504,11 +506,11 @@ def test_schedule_added_and_cancelled_reach_the_member_in_english(client, db_ses
     assert removed.status_code in (200, 204), removed.text
 
     en = {n["title"]: n for n in _member_inbox(client, member_token, EN)}
-    assert en["New session scheduled"]["body"] == f"{day} 19:00 · Consultation"
-    assert en["Session cancelled"]["body"] == f"{day} 19:00 · Consultation"
+    assert en["New session scheduled"]["body"] == f"{en_day} 19:00 · Consultation"
+    assert en["Session cancelled"]["body"] == f"{en_day} 19:00 · Consultation"
     ko = {n["title"]: n for n in _member_inbox(client, member_token, KO)}
-    assert ko["새 일정이 등록되었어요"]["body"] == f"{day} 19:00 · 상담"
-    assert ko["일정이 취소되었어요"]["body"] == f"{day} 19:00 · 상담"
+    assert ko["새 일정이 등록되었어요"]["body"] == f"{ko_day} 19:00 · 상담"
+    assert ko["일정이 취소되었어요"]["body"] == f"{ko_day} 19:00 · 상담"
 
 
 @pytest.mark.parametrize(
@@ -570,7 +572,7 @@ def test_queue_stores_points_templates_with_korean_text(client, db_session):
     db_session.commit()
     assert row is not None
     assert row.title == "주간 챌린지 목표를 채우지 못했어요"
-    assert row.body.startswith("9월 28일~10월 4일 목표 4회 중 2회 운동해")
+    assert row.body.startswith("9월 28일 ~ 10월 4일 목표 4회 중 2회 운동해")
     assert row.template == nt.MEMBER_CHALLENGE_RESULT
 
 

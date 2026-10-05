@@ -73,7 +73,7 @@ def test_diet_periods_look_at_different_material():
     week = diet_service.period_coach_message(days, period_window.PERIOD_WEEK)
 
     # 오늘은 오늘 합계를, 이번 주는 초과한 날 수를 말한다.
-    assert "1200mg" in day_view
+    assert "1,200mg" in day_view
     assert "이번 주 3일" in week
     assert day_view != week
 

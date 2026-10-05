@@ -77,7 +77,7 @@ void main() {
       );
 
       expect(find.text('리포트가 등록되었어요'), findsOneWidget);
-      expect(find.text('8월 17일 – 8월 23일'), findsOneWidget);
+      expect(find.text('8월 17일 ~ 8월 23일'), findsOneWidget);
       expect(find.text('PDF 미리보기'), findsOneWidget);
 
       await tester.tap(find.text('PDF 미리보기'));

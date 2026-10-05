@@ -274,7 +274,7 @@ def _sodium_line(report: WeeklyReportOut, target: int, locale: Locale) -> str:
     return localized(
         f"나트륨 평균 {report.sodium_avg:,}mg · {basis} {target:,}mg "
         f"초과 {report.sodium_over_days}일",
-        f"Avg sodium {report.sodium_avg:,}mg · over the {basis} of {target:,}mg "
+        f"Avg sodium {report.sodium_avg:,} mg · over the {basis} of {target:,} mg "
         f"on {_days_en(report.sodium_over_days)}",
         locale,
     )
@@ -359,8 +359,8 @@ def watchpoints(
                 localized(
                     f"당류 평균 {sugar_mean:,.0f}g · {basis} {sugar_target:,.0f}g "
                     f"초과 {sugar_over}일",
-                    f"Avg sugar {sugar_mean:,.0f}g · over the {basis} of "
-                    f"{sugar_target:,.0f}g on {_days_en(sugar_over)}",
+                    f"Avg sugar {sugar_mean:,.0f} g · over the {basis} of "
+                    f"{sugar_target:,.0f} g on {_days_en(sugar_over)}",
                     locale,
                 ),
                 80,
@@ -370,7 +370,7 @@ def watchpoints(
                     else f"당류 평균 {sugar_mean:,.0f}g",
                     f"sugar over target on {_days_en(sugar_over)}"
                     if sugar_over
-                    else f"avg sugar of {sugar_mean:,.0f}g",
+                    else f"avg sugar of {sugar_mean:,.0f} g",
                     locale,
                 ),
             )
@@ -391,8 +391,8 @@ def watchpoints(
                         f"칼로리 평균 {round(calorie_mean):,}kcal · "
                         f"{basis} {round(calorie_target):,}kcal "
                         f"대비 {direction} {pct}%",
-                        f"Avg calories {round(calorie_mean):,}kcal · {pct}% "
-                        f"{direction} the {basis} of {round(calorie_target):,}kcal",
+                        f"Avg calories {round(calorie_mean):,} kcal · {pct}% "
+                        f"{direction} the {basis} of {round(calorie_target):,} kcal",
                         locale,
                     ),
                     75,
@@ -424,8 +424,8 @@ def watchpoints(
                     localized(
                         f"{label_ko} 평균 {mean:,.0f}g · 개인 목표 {target:,.0f}g "
                         f"대비 {direction} {pct}%",
-                        f"Avg {label_en} {mean:,.0f}g · {pct}% {direction} "
-                        f"the personal target of {target:,.0f}g",
+                        f"Avg {label_en} {mean:,.0f} g · {pct}% {direction} "
+                        f"the personal target of {target:,.0f} g",
                         locale,
                     ),
                     60,
@@ -451,7 +451,7 @@ def _sodium_topic(report: WeeklyReportOut, locale: Locale) -> str:
         )
     return localized(
         f"나트륨 평균 {report.sodium_avg:,}mg",
-        f"avg sodium of {report.sodium_avg:,}mg",
+        f"avg sodium of {report.sodium_avg:,} mg",
         locale,
     )
 
@@ -493,7 +493,7 @@ def _evidence(report: WeeklyReportOut, locale: Locale | None = None) -> list[str
         lines.append(
             localized(
                 f"칼로리 평균 {round(calorie_mean):,}kcal",
-                f"Avg calories {round(calorie_mean):,}kcal",
+                f"Avg calories {round(calorie_mean):,} kcal",
                 locale,
             )
         )
@@ -574,7 +574,7 @@ def _rule_summary(
                 _sodium_topic(report, "ko"),
                 f"sodium ({_days_en(report.sodium_over_days)} over target)"
                 if report.sodium_over_days
-                else f"sodium (avg {report.sodium_avg:,}mg)",
+                else f"sodium (avg {report.sodium_avg:,} mg)",
                 locale,
             )
         )

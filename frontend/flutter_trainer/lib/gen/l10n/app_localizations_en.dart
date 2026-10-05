@@ -1541,12 +1541,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportBodySodiumOver(String avg, String target, int days) {
-    return 'Sodium averaged ${avg}mg a day, and went over the ${target}mg target on $days days. Leaving half the broth behind saves 400-500mg a day.';
+    return 'Sodium averaged $avg mg a day, and went over the $target mg target on $days days. Leaving half the broth behind saves 400–500 mg a day.';
   }
 
   @override
   String reportBodySodiumOk(String avg, String target) {
-    return 'Sodium averaged ${avg}mg a day — comfortably inside the ${target}mg target.';
+    return 'Sodium averaged $avg mg a day — comfortably inside the $target mg target.';
   }
 
   @override
@@ -1596,32 +1596,32 @@ class AppLocalizationsEn extends AppLocalizations {
     String pct,
     int days,
   ) {
-    return 'Calories averaged ${avg}kcal a day — $pct% above your ${target}kcal target, and over it on $days days.';
+    return 'Calories averaged $avg kcal a day — $pct% above your $target kcal target, and over it on $days days.';
   }
 
   @override
   String reportBodyCaloriesUnder(String avg, String target, String pct) {
-    return 'Calories averaged ${avg}kcal a day — $pct% below your ${target}kcal target. Eating too little tends to cost muscle first.';
+    return 'Calories averaged $avg kcal a day — $pct% below your $target kcal target. Eating too little tends to cost muscle first.';
   }
 
   @override
   String reportBodyCaloriesNearOver(String avg, String target, int days) {
-    return 'Calories averaged ${avg}kcal a day, close to your ${target}kcal target, but went over it on $days days.';
+    return 'Calories averaged $avg kcal a day, close to your $target kcal target, but went over it on $days days.';
   }
 
   @override
   String reportBodyCaloriesOk(String avg, String target) {
-    return 'Calories averaged ${avg}kcal a day — right around your ${target}kcal target.';
+    return 'Calories averaged $avg kcal a day — right around your $target kcal target.';
   }
 
   @override
   String reportBodySugarOver(String avg, String target, int days) {
-    return 'Sugar averaged ${avg}g a day and went over the ${target}g limit on $days days.';
+    return 'Sugar averaged $avg g a day and went over the $target g limit on $days days.';
   }
 
   @override
   String reportBodySugarOk(String avg, String target) {
-    return 'Sugar averaged ${avg}g a day, inside the ${target}g limit.';
+    return 'Sugar averaged $avg g a day, inside the $target g limit.';
   }
 
   @override
@@ -4857,7 +4857,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsActionSugar(String target) {
-    return 'Some days went over the ${target}g sugar target. Start with drinks and snacks.';
+    return 'Some days went over the $target g sugar target. Start with drinks and snacks.';
   }
 
   @override
@@ -4880,7 +4880,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsActionCalories(String target) {
-    return 'Intake is under the ${target}kcal target. Suggest one protein-led meal.';
+    return 'Intake is under the $target kcal target. Suggest one protein-led meal.';
   }
 
   @override
@@ -4972,17 +4972,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsPdfValueMg(String value) {
-    return '${value}mg';
+    return '$value mg';
   }
 
   @override
   String reportsPdfValueKcal(String value) {
-    return '${value}kcal';
+    return '$value kcal';
   }
 
   @override
   String reportsPdfValueGram(String value) {
-    return '${value}g';
+    return '$value g';
   }
 
   @override
@@ -5366,7 +5366,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsMacroValueOfTarget(String name, int value, int target) {
-    return '$name $value / ${target}g';
+    return '$name $value / $target g';
   }
 
   @override
@@ -5579,7 +5579,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String summarySodium(String avg, String basis, String target, String days) {
-    return 'Avg sodium ${avg}mg · over the $basis of ${target}mg on $days day(s)';
+    return 'Avg sodium $avg mg · over the $basis of $target mg on $days day(s)';
   }
 
   @override
@@ -5589,12 +5589,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String summarySodiumAvgTopic(String avg) {
-    return 'avg sodium ${avg}mg';
+    return 'avg sodium $avg mg';
   }
 
   @override
   String summarySugar(String avg, String basis, String target, String days) {
-    return 'Avg sugar ${avg}g · over the $basis of ${target}g on $days day(s)';
+    return 'Avg sugar $avg g · over the $basis of $target g on $days day(s)';
   }
 
   @override
@@ -5604,7 +5604,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String summarySugarAvgTopic(String avg) {
-    return 'avg sugar ${avg}g';
+    return 'avg sugar $avg g';
   }
 
   @override
@@ -5615,7 +5615,7 @@ class AppLocalizationsEn extends AppLocalizations {
     String direction,
     String pct,
   ) {
-    return 'Avg calories ${avg}kcal · $pct% $direction the $basis of ${target}kcal';
+    return 'Avg calories $avg kcal · $pct% $direction the $basis of $target kcal';
   }
 
   @override
@@ -5625,7 +5625,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String summaryCaloriesAvg(String avg) {
-    return 'Avg calories ${avg}kcal';
+    return 'Avg calories $avg kcal';
   }
 
   @override
@@ -5636,7 +5636,7 @@ class AppLocalizationsEn extends AppLocalizations {
     String direction,
     String pct,
   ) {
-    return 'Avg $label ${avg}g · $pct% $direction the personal target of ${target}g';
+    return 'Avg $label $avg g · $pct% $direction the personal target of $target g';
   }
 
   @override
@@ -6046,7 +6046,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String clientDietRecNutrition(String kcal, String protein, String sodium) {
-    return '${kcal}kcal · protein ${protein}g · sodium ${sodium}mg';
+    return '$kcal kcal · protein $protein g · sodium $sodium mg';
   }
 
   @override

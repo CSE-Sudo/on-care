@@ -190,7 +190,7 @@ class _ClientAllRoutineAdherenceCardState
               title: l.coachRoutineAdherenceTitle,
               icon: AppIcons.personalRoutine,
               trailingFit: AppSectionTrailingFit.wrap,
-              // `7번 보냄` 옆에 평균을 연한 파랑 태그로 — 이 카드가 답하는
+              // `7회 보냄` 옆에 평균을 연한 파랑 태그로 — 이 카드가 답하는
               // 말이 평균이다.
               trailing: Row(
                 key: const ValueKey<String>('workout-routine-all-summary'),

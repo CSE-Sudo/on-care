@@ -295,7 +295,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String homeRecBasisSodium(int days, String sodium) {
-    return '$days-day avg sodium ${sodium}mg';
+    return '$days-day avg sodium $sodium mg';
   }
 
   @override
@@ -4648,7 +4648,7 @@ class AppLocalizationsEn extends AppLocalizations {
         intl.NumberFormat.decimalPattern(localeName);
     final String sodiumMgString = sodiumMgNumberFormat.format(sodiumMg);
 
-    return 'Sodium **${sodiumMgString}mg**, over the limit.';
+    return 'Sodium **$sodiumMgString mg**, over the limit.';
   }
 
   @override
@@ -4663,7 +4663,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String dietAdviceTodayProteinLeft(int proteinG) {
-    return '**${proteinG}g** more protein to go.';
+    return '**$proteinG g** more protein to go.';
   }
 
   @override

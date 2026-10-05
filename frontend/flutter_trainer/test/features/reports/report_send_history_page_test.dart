@@ -198,7 +198,7 @@ void main() {
       );
       expect(warning, findsOneWidget);
       expect(
-        find.text('전송 이력을 불러오지 못했어요. 이미 보낸 회원이 미전송으로 보일 수 있어요.'),
+        find.text('전송 이력을 불러오지 못했어요. 이미 보낸 회원이 안 보냄으로 보일 수 있어요.'),
         findsOneWidget,
       );
     });

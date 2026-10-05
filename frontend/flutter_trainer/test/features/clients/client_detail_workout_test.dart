@@ -55,7 +55,7 @@ void _useTallSurface(WidgetTester tester) {
 
 String _rowLabel(DateTime d) {
   const List<String> weekdays = <String>['월', '화', '수', '목', '금', '토', '일'];
-  return '${d.month}월 ${d.day}일 (${weekdays[d.weekday - 1]})';
+  return '${d.month}/${d.day} (${weekdays[d.weekday - 1]})';
 }
 
 String _todayRowLabel() => _rowLabel(nowKst());

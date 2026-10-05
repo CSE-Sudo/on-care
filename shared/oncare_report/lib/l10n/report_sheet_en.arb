@@ -65,7 +65,7 @@
       }
     }
   },
-  "reportsPdfValueGram": "{value}g",
+  "reportsPdfValueGram": "{value} g",
   "@reportsPdfValueGram": {
     "placeholders": {
       "value": {
@@ -73,7 +73,7 @@
       }
     }
   },
-  "reportsPdfValueKcal": "{value}kcal",
+  "reportsPdfValueKcal": "{value} kcal",
   "@reportsPdfValueKcal": {
     "placeholders": {
       "value": {
@@ -81,7 +81,7 @@
       }
     }
   },
-  "reportsPdfValueMg": "{value}mg",
+  "reportsPdfValueMg": "{value} mg",
   "@reportsPdfValueMg": {
     "placeholders": {
       "value": {

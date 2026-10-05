@@ -559,7 +559,7 @@ void main() {
           .read(chatRepositoryProvider)
           .sendTrainerMessage(
             clientId: 'seed-client-1',
-            text: '김민수님, 8월 18일 – 8월 24일 주간 리포트 정리해서 보내드려요.',
+            text: '김민수님, 8월 18일 ~ 8월 24일 주간 리포트 정리해서 보내드려요.',
             reportWeekStart: DateTime(2026, 8, 18),
           );
       await settle(tester);
@@ -568,7 +568,7 @@ void main() {
       // 주로 갈라 짚는다 — 시드가 가리키는 주는 언제나 이번 주라, 지나간
       // 이 주와 겹치지 않는다.
       final card = find.ancestor(
-        of: find.text('8월 18일 – 8월 24일'),
+        of: find.text('8월 18일 ~ 8월 24일'),
         matching: find.byType(ReportRegisteredCard),
       );
       expect(card, findsOneWidget);
@@ -585,7 +585,7 @@ void main() {
       expect(goToReports, findsOneWidget);
       // 본문 그대로의 일반 말풍선은 그려지지 않는다.
       expect(
-        find.text('김민수님, 8월 18일 – 8월 24일 주간 리포트 정리해서 보내드려요.'),
+        find.text('김민수님, 8월 18일 ~ 8월 24일 주간 리포트 정리해서 보내드려요.'),
         findsNothing,
       );
 

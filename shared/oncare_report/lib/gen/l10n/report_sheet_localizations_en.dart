@@ -93,17 +93,17 @@ class ReportSheetLocalizationsEn extends ReportSheetLocalizations {
 
   @override
   String reportsPdfValueGram(String value) {
-    return '${value}g';
+    return '$value g';
   }
 
   @override
   String reportsPdfValueKcal(String value) {
-    return '${value}kcal';
+    return '$value kcal';
   }
 
   @override
   String reportsPdfValueMg(String value) {
-    return '${value}mg';
+    return '$value mg';
   }
 
   @override

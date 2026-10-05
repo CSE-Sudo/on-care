@@ -12,8 +12,10 @@ String? clientDietSentenceText(AppLocalizations l, ClientDietSentence s) {
   String str(String k) => '${p[k] ?? ''}';
   int number(String k) => (p[k] as num?)?.toInt() ?? 0;
   final String nutrient = str('nutrient');
+  // 단위는 한국어 붙임(`4,286mg`), 영어 띄움(`4,286 mg`) — 서버 `_fmt` 와 같다(#3120).
+  final bool spaced = !l.localeName.startsWith('ko');
   String amount(String k, [String? of]) =>
-      formatDietAmount(number(k), of ?? nutrient);
+      formatDietAmount(number(k), of ?? nutrient, spaced: spaced);
   return switch (s.key) {
     'tr_today_empty' => l.clientDietAnalysisTodayEmpty,
     'tr_today_over' => l.clientDietAnalysisTodayOver(
@@ -142,12 +144,13 @@ String clientDietAnalysisText(AppLocalizations l, ClientDietAnalysis a) => a
     .whereType<String>()
     .join(' ');
 
-/// `4,286mg` · `70g` · `2,600kcal` — 서버 틀과 같은 모양(천 단위 쉼표, 단위를 붙인다).
-String formatDietAmount(int value, String nutrient) {
+/// `4,286mg` · `70g` · `2,600kcal` — 서버 틀과 같은 모양(천 단위 쉼표). 한국어는
+/// 단위를 붙이고, [spaced] 면(영어) `4,286 mg` 처럼 띄운다.
+String formatDietAmount(int value, String nutrient, {bool spaced = false}) {
   final String unit = switch (nutrient) {
     'sodium' => 'mg',
     'calorie' => 'kcal',
     _ => 'g',
   };
-  return '${NumberFormat('#,##0', 'en').format(value)}$unit';
+  return '${NumberFormat('#,##0', 'en').format(value)}${spaced ? ' ' : ''}$unit';
 }

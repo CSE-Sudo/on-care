@@ -2759,13 +2759,13 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodySodiumOver.
   ///
   /// In en, this message translates to:
-  /// **'Sodium averaged {avg}mg a day, and went over the {target}mg target on {days} days. Leaving half the broth behind saves 400-500mg a day.'**
+  /// **'Sodium averaged {avg} mg a day, and went over the {target} mg target on {days} days. Leaving half the broth behind saves 400–500 mg a day.'**
   String reportBodySodiumOver(String avg, String target, int days);
 
   /// No description provided for @reportBodySodiumOk.
   ///
   /// In en, this message translates to:
-  /// **'Sodium averaged {avg}mg a day — comfortably inside the {target}mg target.'**
+  /// **'Sodium averaged {avg} mg a day — comfortably inside the {target} mg target.'**
   String reportBodySodiumOk(String avg, String target);
 
   /// No description provided for @reportBodyPraise.
@@ -2825,7 +2825,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodyCaloriesOver.
   ///
   /// In en, this message translates to:
-  /// **'Calories averaged {avg}kcal a day — {pct}% above your {target}kcal target, and over it on {days} days.'**
+  /// **'Calories averaged {avg} kcal a day — {pct}% above your {target} kcal target, and over it on {days} days.'**
   String reportBodyCaloriesOver(
     String avg,
     String target,
@@ -2836,31 +2836,31 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodyCaloriesUnder.
   ///
   /// In en, this message translates to:
-  /// **'Calories averaged {avg}kcal a day — {pct}% below your {target}kcal target. Eating too little tends to cost muscle first.'**
+  /// **'Calories averaged {avg} kcal a day — {pct}% below your {target} kcal target. Eating too little tends to cost muscle first.'**
   String reportBodyCaloriesUnder(String avg, String target, String pct);
 
   /// No description provided for @reportBodyCaloriesNearOver.
   ///
   /// In en, this message translates to:
-  /// **'Calories averaged {avg}kcal a day, close to your {target}kcal target, but went over it on {days} days.'**
+  /// **'Calories averaged {avg} kcal a day, close to your {target} kcal target, but went over it on {days} days.'**
   String reportBodyCaloriesNearOver(String avg, String target, int days);
 
   /// No description provided for @reportBodyCaloriesOk.
   ///
   /// In en, this message translates to:
-  /// **'Calories averaged {avg}kcal a day — right around your {target}kcal target.'**
+  /// **'Calories averaged {avg} kcal a day — right around your {target} kcal target.'**
   String reportBodyCaloriesOk(String avg, String target);
 
   /// No description provided for @reportBodySugarOver.
   ///
   /// In en, this message translates to:
-  /// **'Sugar averaged {avg}g a day and went over the {target}g limit on {days} days.'**
+  /// **'Sugar averaged {avg} g a day and went over the {target} g limit on {days} days.'**
   String reportBodySugarOver(String avg, String target, int days);
 
   /// No description provided for @reportBodySugarOk.
   ///
   /// In en, this message translates to:
-  /// **'Sugar averaged {avg}g a day, inside the {target}g limit.'**
+  /// **'Sugar averaged {avg} g a day, inside the {target} g limit.'**
   String reportBodySugarOk(String avg, String target);
 
   /// No description provided for @reportBodyMemberPain.
@@ -6457,7 +6457,7 @@ abstract class AppLocalizations {
   /// **'{name}'**
   String notifTplMemberOnly(String name);
 
-  /// Seoul wall-clock date and time of a session. month and day are two digits, time is HH:mm.
+  /// Seoul wall-clock date and time of a session. month and day have no leading zero, time is 24-hour HH:mm.
   ///
   /// In en, this message translates to:
   /// **'{month}/{day} {time}'**
@@ -8232,7 +8232,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsActionSugar.
   ///
   /// In en, this message translates to:
-  /// **'Some days went over the {target}g sugar target. Start with drinks and snacks.'**
+  /// **'Some days went over the {target} g sugar target. Start with drinks and snacks.'**
   String reportsActionSugar(String target);
 
   /// No description provided for @reportsActionLowCompletion.
@@ -8262,7 +8262,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsActionCalories.
   ///
   /// In en, this message translates to:
-  /// **'Intake is under the {target}kcal target. Suggest one protein-led meal.'**
+  /// **'Intake is under the {target} kcal target. Suggest one protein-led meal.'**
   String reportsActionCalories(String target);
 
   /// No description provided for @reportsAiGenerated.
@@ -8418,19 +8418,19 @@ abstract class AppLocalizations {
   /// No description provided for @reportsPdfValueMg.
   ///
   /// In en, this message translates to:
-  /// **'{value}mg'**
+  /// **'{value} mg'**
   String reportsPdfValueMg(String value);
 
   /// No description provided for @reportsPdfValueKcal.
   ///
   /// In en, this message translates to:
-  /// **'{value}kcal'**
+  /// **'{value} kcal'**
   String reportsPdfValueKcal(String value);
 
   /// No description provided for @reportsPdfValueGram.
   ///
   /// In en, this message translates to:
-  /// **'{value}g'**
+  /// **'{value} g'**
   String reportsPdfValueGram(String value);
 
   /// No description provided for @reportsPdfValueDays.
@@ -9048,7 +9048,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsMacroValueOfTarget.
   ///
   /// In en, this message translates to:
-  /// **'{name} {value} / {target}g'**
+  /// **'{name} {value} / {target} g'**
   String reportsMacroValueOfTarget(String name, int value, int target);
 
   /// No description provided for @reportsMacroShortfall.
@@ -9384,7 +9384,7 @@ abstract class AppLocalizations {
   /// No description provided for @summarySodium.
   ///
   /// In en, this message translates to:
-  /// **'Avg sodium {avg}mg · over the {basis} of {target}mg on {days} day(s)'**
+  /// **'Avg sodium {avg} mg · over the {basis} of {target} mg on {days} day(s)'**
   String summarySodium(String avg, String basis, String target, String days);
 
   /// No description provided for @summarySodiumOverTopic.
@@ -9396,13 +9396,13 @@ abstract class AppLocalizations {
   /// No description provided for @summarySodiumAvgTopic.
   ///
   /// In en, this message translates to:
-  /// **'avg sodium {avg}mg'**
+  /// **'avg sodium {avg} mg'**
   String summarySodiumAvgTopic(String avg);
 
   /// No description provided for @summarySugar.
   ///
   /// In en, this message translates to:
-  /// **'Avg sugar {avg}g · over the {basis} of {target}g on {days} day(s)'**
+  /// **'Avg sugar {avg} g · over the {basis} of {target} g on {days} day(s)'**
   String summarySugar(String avg, String basis, String target, String days);
 
   /// No description provided for @summarySugarOverTopic.
@@ -9414,13 +9414,13 @@ abstract class AppLocalizations {
   /// No description provided for @summarySugarAvgTopic.
   ///
   /// In en, this message translates to:
-  /// **'avg sugar {avg}g'**
+  /// **'avg sugar {avg} g'**
   String summarySugarAvgTopic(String avg);
 
   /// No description provided for @summaryCalories.
   ///
   /// In en, this message translates to:
-  /// **'Avg calories {avg}kcal · {pct}% {direction} the {basis} of {target}kcal'**
+  /// **'Avg calories {avg} kcal · {pct}% {direction} the {basis} of {target} kcal'**
   String summaryCalories(
     String avg,
     String basis,
@@ -9438,13 +9438,13 @@ abstract class AppLocalizations {
   /// No description provided for @summaryCaloriesAvg.
   ///
   /// In en, this message translates to:
-  /// **'Avg calories {avg}kcal'**
+  /// **'Avg calories {avg} kcal'**
   String summaryCaloriesAvg(String avg);
 
   /// No description provided for @summaryMacro.
   ///
   /// In en, this message translates to:
-  /// **'Avg {label} {avg}g · {pct}% {direction} the personal target of {target}g'**
+  /// **'Avg {label} {avg} g · {pct}% {direction} the personal target of {target} g'**
   String summaryMacro(
     String label,
     String avg,
@@ -9828,7 +9828,7 @@ abstract class AppLocalizations {
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
   /// In en, this message translates to:
-  /// **'{kcal}kcal · protein {protein}g · sodium {sodium}mg'**
+  /// **'{kcal} kcal · protein {protein} g · sodium {sodium} mg'**
   String clientDietRecNutrition(String kcal, String protein, String sodium);
 
   /// 트레이너웹 AI 식단 추천의 끼니 배지 (#2379).

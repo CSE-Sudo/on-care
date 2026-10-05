@@ -169,7 +169,11 @@ class ProgramNutritionSummaryCard extends StatelessWidget {
                                 ).copyWith(color: calorieColor),
                               ),
                               TextSpan(
-                                text: ' / ${calories.goal} ${calories.unit}',
+                                // ko `/ 2,000kcal` · en `/ 2,000 kcal`(#3120).
+                                text:
+                                    ' / ${calories.goal}'
+                                    '${unitGap(Localizations.localeOf(context).toString())}'
+                                    '${calories.unit}',
                                 style: tokens
                                     .text(
                                       OnCareTypography.strong(
@@ -268,7 +272,8 @@ class _MacroProgressItem extends StatelessWidget {
               // "정상" 이라고 말한다. (회원 앱 #1070)
               if (item.isOverGoal)
                 TextSpan(
-                  text: ' +${item.difference}${item.unit}',
+                  text:
+                      ' +${item.difference}${unitGap(Localizations.localeOf(context).toString())}${item.unit}',
                   style: captionStrong.copyWith(color: OnCareColors.danger),
                 ),
             ],
@@ -293,7 +298,8 @@ class _MacroProgressItem extends StatelessWidget {
                   ).copyWith(color: OnCareColors.textPrimary),
                 ),
                 TextSpan(
-                  text: ' / ${item.goal}${item.unit}',
+                  text:
+                      ' / ${item.goal}${unitGap(Localizations.localeOf(context).toString())}${item.unit}',
                   style: captionStrong.copyWith(
                     color: OnCareColors.textSecondary,
                   ),

@@ -100,7 +100,7 @@
   "homeRecMealsErrorTitle": "추천 식단을 불러오지 못했어요",
   "unitKcal": "kcal",
   "unitMinutes": "분",
-  "unitKcalValue": "{count} kcal",
+  "unitKcalValue": "{count}kcal",
   "unitMinutesValue": "{count}분",
   "dietTitle": "식단",
   "dietToday": "오늘로",
@@ -1277,7 +1277,7 @@
   "a11yMyPhoto": "내가 보낸 사진",
   "coachChatPdfOpenFailed": "PDF를 열지 못했어요. 다시 시도해 주세요",
   "coachChatReportRegistered": "리포트가 등록되었어요",
-  "coachChatReportWeek": "{sm}월 {sd}일 – {em}월 {ed}일",
+  "coachChatReportWeek": "{sm}월 {sd}일 ~ {em}월 {ed}일",
   "@coachChatReportWeek": {
     "description": "Week the registered report covers, shown on the report card.",
     "placeholders": {

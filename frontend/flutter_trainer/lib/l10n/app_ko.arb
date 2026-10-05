@@ -183,10 +183,10 @@
   "dashPreparePt": "PT 준비하기",
   "dashLeaveMemo": "메모 남기기",
   "dashLeaveFeedback": "피드백 남기기",
-  "dashSessionSent": "전송됨",
+  "dashSessionSent": "보냄",
   "dashSessionPrepared": "준비됨",
   "dashSessionNoteWritten": "작성 완료",
-  "dashSessionSentNo": "전송 안됨",
+  "dashSessionSentNo": "안 보냄",
   "dashSessionPreparedNo": "준비 안됨",
   "dashSessionNoteNotWritten": "메모 없음",
   "weekdayMon": "월",
@@ -347,7 +347,7 @@
   "@clientDietDayMealsFailed": {
     "description": "회원 상세 식단 기록에서 펼친 날의 끼니 조회 실패 안내 (#2892)"
   },
-  "clientDietTotalCalories": "총 {calories} kcal",
+  "clientDietTotalCalories": "총 {calories}kcal",
   "@clientDietTotalCalories": {
     "description": "트레이너 웹 식단 합계 kcal — 오늘 끼니 카드의 네 칸 오른쪽 끝과 펼친 날 하루 합계 줄 오른쪽 끝. 음식 kcal 과 구분되게 총을 붙인다. calories 는 천 단위 구분이 된 숫자. (#2421)",
     "placeholders": {
@@ -502,10 +502,10 @@
   "dateWeeksAgo": "{count}주 전",
   "historyDate": "{month}/{day}",
   "historyDateRelative": "{date} ({relative})",
-  "dateMonthDayWeekday": "{month}월 {day}일 ({weekday})",
+  "dateMonthDayWeekday": "{month}/{day} ({weekday})",
   "datePrefixed": "{prefix} · {date}",
   "dateMonthDay": "{month}월 {day}일",
-  "dateRange": "{start} – {end}",
+  "dateRange": "{start} ~ {end}",
   "reportsTitle": "리포트",
   "reportsSubtitle": "주간 변화를 확인하고 회원에게 전달하세요",
   "reportsLoadFailed": "리포트를 불러오지 못했어요",
@@ -787,7 +787,7 @@
   "schedRoutinesSend": "개인운동 보내기",
   "schedRoutinesSkip": "보내지 않음",
   "schedSendProgramWithRoutines": "{date} PT 프로그램 · 개인운동 보내기",
-  "schedRoutineSent": "전송됨",
+  "schedRoutineSent": "보냄",
   "@schedSendProgramWithRoutines": {
     "placeholders": {
       "name": {
@@ -930,7 +930,7 @@
   },
   "progEmpty": "아직 계획된 프로그램이 없어요",
   "progEmptyHint": "AI 추천 탭에서 프로그램을 만들어 보내거나, 채팅으로 미리 조율해 보세요.",
-  "schedSentTo": "{name}님에게 전송됨",
+  "schedSentTo": "{name}님에게 보냄",
   "schedSentProgramTo": "{date} PT 프로그램 보내기",
   "slotPastTime": "현재보다 이후 시간만 예약 슬롯으로 만들 수 있어요.",
   "slotOpened": "예약 슬롯을 열었습니다.",
@@ -1179,7 +1179,7 @@
   "routineUnitReps": "회",
   "routineUnitSeconds": "초",
   "routineUnitKg": "kg",
-  "routineKcalValue": "{count} kcal",
+  "routineKcalValue": "{count}kcal",
   "@routineKcalValue": {
     "placeholders": {
       "count": {
@@ -1214,7 +1214,7 @@
       }
     }
   },
-  "coachRegisteredOn": "{date} 스케줄에 등록됐어요",
+  "coachRegisteredOn": "{date} 일정에 추가했어요",
   "coachRegisteredAttachedExisting": "{date}에 이미 예정된 PT가 있어 그 PT에 프로그램만 추가됐어요 — 고른 시간 범위는 적용되지 않았어요",
   "@coachRegisteredAttachedExisting": {
     "placeholders": {
@@ -1730,7 +1730,7 @@
       }
     }
   },
-  "workoutRoutineAllCount": "{count}번 보냄",
+  "workoutRoutineAllCount": "{count}회 보냄",
   "@workoutRoutineAllCount": {
     "placeholders": {
       "count": {
@@ -1808,7 +1808,7 @@
       }
     }
   },
-  "workoutTotalBurned": "총 소모 {calories} kcal",
+  "workoutTotalBurned": "총 소모 {calories}kcal",
   "@workoutTotalBurned": {
     "placeholders": {
       "calories": {
@@ -1816,7 +1816,7 @@
       }
     }
   },
-  "workoutLineBurned": "소모 {calories} kcal",
+  "workoutLineBurned": "소모 {calories}kcal",
   "@workoutLineBurned": {
     "placeholders": {
       "calories": {
@@ -1824,7 +1824,7 @@
       }
     }
   },
-  "workoutLineEstimated": "예상 소모 {calories} kcal",
+  "workoutLineEstimated": "예상 소모 {calories}kcal",
   "@workoutLineEstimated": {
     "placeholders": {
       "calories": {
@@ -1877,7 +1877,7 @@
   "dashTodoReport": "리포트",
   "dashTodoConsultationSubtitle": "희망 {when}",
   "dashTodoCarriedOverDemoSubtitle": "어제 남긴 식단 피드백",
-  "dashTodoProgramSubtitle": "최근 등록한 프로그램 없음",
+  "dashTodoProgramSubtitle": "최근 보낸 프로그램 없음",
   "dashTodoReportSubtitle": "이번 주 리포트 작성 대상",
   "dashTaskSaveFailed": "할 일 상태를 저장하지 못했어요. 잠시 후 다시 시도해 주세요",
   "dashTaskLoadFailed": "할 일 상태를 불러오지 못했어요. 잠시 후 다시 시도해 주세요",
@@ -2499,7 +2499,7 @@
   "coachTemplateMenu": "템플릿 메뉴",
   "routineFormDecrease": "줄이기",
   "routineFormIncrease": "늘리기",
-  "reportsPending": "미전송",
+  "reportsPending": "안 보냄",
   "reportsCountPeople": "{count}명",
   "@reportsCountPeople": {
     "placeholders": {
@@ -2513,7 +2513,7 @@
   "reportsSortName": "이름 오름차순",
   "reportsSortNameDescending": "이름 내림차순",
   "reportsSentSortUnread": "안 읽은 회원 먼저",
-  "reportsSendProgress": "{done} / {total} 전송",
+  "reportsSendProgress": "{done} / {total} 보냄",
   "@reportsSendProgress": {
     "placeholders": {
       "done": {
@@ -2534,7 +2534,7 @@
     }
   },
   "reportsQueueAllSent": "이번 주 리포트를 모두 보냈어요",
-  "reportsSentColumn": "전송 완료",
+  "reportsSentColumn": "보냄",
   "reportsSentColumnEmpty": "아직 보낸 리포트가 없어요",
   "reportsSentSubtitle": "보낸 리포트 보기",
   "reportsOpenDraft": "열기",
@@ -2574,7 +2574,7 @@
   "reportsReasonFullLog": "7일 전량 기록",
   "reportsReasonOnboarding": "신규 · 적응 중",
   "reportsReasonSteady": "순조로움",
-  "reportsSentOn": "{date} 전송",
+  "reportsSentOn": "{date} 보냄",
   "@reportsSentOn": {
     "placeholders": {
       "date": {
@@ -2593,7 +2593,7 @@
       }
     }
   },
-  "reportsSentAt": "{date} {time} 전송",
+  "reportsSentAt": "{date} {time} 보냄",
   "@reportsSentAt": {
     "placeholders": {
       "date": {
@@ -2616,13 +2616,13 @@
     }
   },
   "reportsHistoryBack": "지난 리포트",
-  "reportsHistoryUnsent": "미전송",
+  "reportsHistoryUnsent": "안 보냄",
   "reportsHistoryThisWeek": "이번 주",
   "reportsHistoryEmpty": "아직 보낸 리포트가 없어요",
   "reportsHistoryLoadFailed": "지난 리포트를 불러오지 못했어요",
   "reportsHistoryMore": "더 보기",
   "reportsHistoryMoreFailed": "더 불러오지 못했어요. 다시 눌러 주세요.",
-  "reportsHistorySendCount": "{count}번 보냄",
+  "reportsHistorySendCount": "{count}회 보냄",
   "@reportsHistorySendCount": {
     "placeholders": {
       "count": {
@@ -2647,7 +2647,7 @@
     }
   },
   "reportsResendConfirm": "다시 보내기",
-  "reportsSendHistoryFailed": "전송 이력을 불러오지 못했어요. 이미 보낸 회원이 미전송으로 보일 수 있어요.",
+  "reportsSendHistoryFailed": "전송 이력을 불러오지 못했어요. 이미 보낸 회원이 안 보냄으로 보일 수 있어요.",
   "reportsStepReview": "확인",
   "reportsStepWrite": "작성",
   "reportsStepSend": "보내기",
@@ -3158,21 +3158,21 @@
   "clientDietAnalysisWeekCause": "{weekday, select, 0{월요일} 1{화요일} 2{수요일} 3{목요일} 4{금요일} 5{토요일} other{일요일}} {slot, select, breakfast{아침} lunch{점심} dinner{저녁} lateNight{야식} other{간식}}에 먹은 {food}({foodValue}) 영향이 가장 컸어요.",
   "clientDietAnalysisWeekProteinShort": "{scope, select, last{지난주} other{이번 주}} 기록한 {logged}일 중 {days}일 단백질이 목표의 80%에 못 미쳤어요.",
   "clientDietAnalysisWeekGood": "{scope, select, last{지난주} other{이번 주}} 기록한 {days}일 모두 목표 안에서 드셨어요.",
-  "clientDietAnalysisWeekBreakfastSnackFood": "아침 대신 먹은 것은 {food} {count}번이 가장 많았어요.",
+  "clientDietAnalysisWeekBreakfastSnackFood": "아침 대신 먹은 것은 {food} {count}회가 가장 많았어요.",
   "clientDietAnalysisWeekProteinAvg": "모자란 날은 하루 평균 {value} 정도였어요.",
   "clientDietAnalysisWeekGoodAvg": "하루 평균 {kcal}, 단백질 {protein}을 드셨어요.",
   "clientDietAnalysisWeekVsLast": "지난주({prevLogged}일 중 {prevDays}일){way, select, more{보다 늘었어요} less{보다 줄었어요} other{와 비슷해요}}.",
   "clientDietAnalysisAllFew": "최근 4주 기록이 {days}일이라, 7일이 넘으면 흐름을 짚어 드릴게요.",
-  "clientDietAnalysisAllSlotSodium": "최근 4주 동안 {slot, select, breakfast{아침} lunch{점심} dinner{저녁} lateNight{야식} other{간식}} 나트륨이 {days}번 목표의 절반을 넘었어요.",
+  "clientDietAnalysisAllSlotSodium": "최근 4주 동안 {slot, select, breakfast{아침} lunch{점심} dinner{저녁} lateNight{야식} other{간식}} 나트륨이 {days}회 목표의 절반을 넘었어요.",
   "clientDietAnalysisAllCarbHeavy": "최근 4주 섭취 열량 중 탄수화물이 {pct}%로 높은 편이에요.",
   "clientDietAnalysisAllProteinLight": "최근 4주 섭취 열량 중 단백질이 {pct}%로 낮은 편이에요.",
   "clientDietAnalysisAllProteinTrendUp": "단백질 목표를 채운 날이 앞선 2주 {before}일에서 최근 2주 {after}일로 늘었어요.",
   "clientDietAnalysisAllProteinTrendDown": "단백질 목표를 채운 날이 앞선 2주 {before}일에서 최근 2주 {after}일로 줄었어요.",
-  "clientDietAnalysisAllFrequent": "최근 4주 동안 {slot, select, breakfast{아침} lunch{점심} dinner{저녁} lateNight{야식} other{간식}} 메뉴로 {food} {count}번이 가장 많았어요.",
+  "clientDietAnalysisAllFrequent": "최근 4주 동안 {slot, select, breakfast{아침} lunch{점심} dinner{저녁} lateNight{야식} other{간식}} 메뉴로 {food} {count}회가 가장 많았어요.",
   "clientDietAnalysisAllRepeated": "최근 4주 음식 기록에서 {food1}·{food2} 비중이 높아요.",
   "clientDietAnalysisAllGood": "최근 4주 동안 {days}일 기록했고, 흐름이 고른 편이에요.",
-  "clientDietAnalysisFoodsOne": "{food1} {count1}번이 대부분이에요.",
-  "clientDietAnalysisFoodsTwo": "{food1} {count1}번, {food2} {count2}번이 대부분이에요.",
+  "clientDietAnalysisFoodsOne": "{food1} {count1}회가 대부분이에요.",
+  "clientDietAnalysisFoodsTwo": "{food1} {count1}회, {food2} {count2}회가 대부분이에요.",
   "clientDietRecQuestion": "{slot, select, breakfast{아침으로} lunch{점심으로} dinner{저녁으로} lateNight{야식으로} other{간식으로}} 이 메뉴를 회원에게 추천할까요?",
   "clientDietRecQuestionNext": "다음 식사로 이 메뉴를 회원에게 추천할까요?",
   "clientDietRecCounter": "AI 추천 {index} / {total}",
