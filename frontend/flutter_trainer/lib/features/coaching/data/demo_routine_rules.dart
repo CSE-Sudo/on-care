@@ -188,6 +188,8 @@ String guessExerciseType(String name) {
 /// `걷기 ✓` 가 따로 세어진다. **안 한 운동(✗)은 빈 이름**이라 반복으로 세지
 /// 않는다.
 String historyExerciseName(Object? item) {
+  // 값으로 적힌 기록은 `done: false` 가 안 한 운동이다 — 문장의 `✗` 와 같다.
+  if (item is Map && item['done'] == false) return '';
   final Object? raw = item is Map ? item['name'] : item;
   if (raw is! String || raw.contains('✗')) return '';
   return raw

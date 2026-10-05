@@ -526,11 +526,17 @@ void main() {
         ),
         isTrue,
       );
-      // 추천 상태는 시드 기록으로 센다(#2674) — 오세라는 기록 2회라 학습 중이다.
-      expect(o.analysis.recommendationStatus, RecommendationStatus.learning);
+      // 추천 상태는 시드 기록(이력 표)으로 센다(#2674). 하루치 `개인운동` 카드는
+      // 세지 않는다 — 서버도 그 카드를 개인운동 완료에서 만든다(#3003). 오세라는
+      // PT 이력이 없어 기본안이고, 매주 PT 이력이 쌓인 최우진은 맞춤이다.
+      expect(o.analysis.recommendationStatus, RecommendationStatus.template);
 
       final RoutineOptions other = await generate('seed-client-5');
       expect(other.analysis.goal, isNot(o.analysis.goal));
+      expect(
+        other.analysis.recommendationStatus,
+        RecommendationStatus.personalized,
+      );
     });
 
     test('근거 문장은 서버 규칙형과 같다 — 고른 자료는 넣지 않고, 목표 이하면 꼬리표가 없다', () async {
