@@ -1783,29 +1783,6 @@
     }
   },
   "coachRoutineAdherenceTitle": "개인운동 이행",
-  "coachRoutineAdherenceSummary": "지난 {days}일 중 모두 완료 {full}일",
-  "@coachRoutineAdherenceSummary": {
-    "placeholders": {
-      "days": {
-        "type": "int"
-      },
-      "full": {
-        "type": "int"
-      }
-    }
-  },
-  "coachRoutineAdherenceLate": "{weekday}요일 {count}건은 다음 날 체크",
-  "@coachRoutineAdherenceLate": {
-    "placeholders": {
-      "weekday": {
-        "type": "String"
-      },
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "coachRoutineAdherenceFirstDay": "오늘 보낸 개인운동이에요",
   "coachRoutineAdherenceCell": "{date}: {done}/{total} 완료",
   "@coachRoutineAdherenceCell": {
     "placeholders": {

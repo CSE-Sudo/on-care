@@ -2722,29 +2722,6 @@
     }
   },
   "coachRoutineAdherenceTitle": "Personal exercise follow-through",
-  "coachRoutineAdherenceSummary": "All done on {full} of the past {days} days",
-  "@coachRoutineAdherenceSummary": {
-    "placeholders": {
-      "days": {
-        "type": "int"
-      },
-      "full": {
-        "type": "int"
-      }
-    }
-  },
-  "coachRoutineAdherenceLate": "{count} on {weekday} checked later",
-  "@coachRoutineAdherenceLate": {
-    "placeholders": {
-      "weekday": {
-        "type": "String"
-      },
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "coachRoutineAdherenceFirstDay": "Sent today",
   "coachRoutineAdherenceCell": "{date}: {done} of {total} done",
   "@coachRoutineAdherenceCell": {
     "placeholders": {

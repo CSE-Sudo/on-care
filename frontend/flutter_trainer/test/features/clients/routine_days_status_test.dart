@@ -239,25 +239,120 @@ void main() {
     });
   });
 
-  group('프로그램 화면 개인운동 이행', () {
-    testWidgets('보낸 날부터 7칸 — 완료 수/걸린 수, 오지 않은 날은 빈칸', (tester) async {
-      final RoutineDays days = _days();
-      await tester.pumpWidget(
-        _host(
-          ClientRoutineAdherenceStrip(
-            days: days,
-            group: days.currentPersonal(_today)!,
-            today: _today,
-          ),
+  group('프로그램 화면 개인운동 이행 (#3004)', () {
+    /// 프로그램 화면 `운동` 보기를 연다. 데모 시드에는 기간 있는 개인운동이
+    /// 없어 [starts] 날마다 서버처럼 보낸다.
+    Future<void> openProgramWorkout(
+      WidgetTester tester, {
+      required Size size,
+      List<String> starts = const <String>['2026-08-11', '2026-08-14'],
+    }) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = size;
+      addTearDown(tester.view.reset);
+      final ProviderContainer c = await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        seedClock: kMidWeekKst,
+      );
+      await _sendPersonal(c, starts);
+      await goTo(tester, AppRoutes.coachingFor('seed-client-2'));
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('program-client-data-tabs')),
+          matching: find.text('운동'),
         ),
       );
+      await settle(tester);
+    }
 
-      expect(find.text('3/3'), findsOneWidget); // 화
-      // 수요일과 오늘(목). 오늘은 진하기 없이 수만 적는다. 금~월은 아직 오지
-      // 않아 빈칸이다.
-      expect(find.text('1/3'), findsNWidgets(2));
-      expect(find.text('0/3'), findsNothing);
-      expect(find.text('지난 2일 중 모두 완료 1일 · 수요일 1건은 다음 날 체크'), findsOneWidget);
+    Future<void> pickPeriod(WidgetTester tester, String label) async {
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('client-period-toggle')),
+          matching: find.text(label),
+        ),
+      );
+      await settle(tester);
+    }
+
+    const ValueKey<String> weekCard = ValueKey<String>(
+      'program-routine-adherence-card-seed-client-2',
+    );
+    const ValueKey<String> allCard = ValueKey<String>(
+      'program-routine-all-card-seed-client-2',
+    );
+
+    testWidgets('기간마다 회원 상세와 같은 카드 — 오늘은 없고 이번 주는 월~일, 전체는 링', (tester) async {
+      await openProgramWorkout(tester, size: const Size(1440, 3000));
+
+      // 오늘 — 회원 상세 운동 탭처럼 카드를 두지 않는다. 오늘 걸린 개인운동은
+      // 그래프 카드 안 `운동 기록` 맨 위에 선다.
+      expect(find.byKey(weekCard), findsNothing);
+      expect(find.byKey(allCard), findsNothing);
+      Finder todayInRecords() => find.descendant(
+        of: find.byKey(const ValueKey<String>('client-exercise-detail')),
+        matching: find.byKey(
+          const ValueKey<String>('workout-pending-routines'),
+        ),
+      );
+      expect(todayInRecords(), findsOneWidget);
+      expect(
+        find.textContaining('8/14(금) 보냄 · 8/20(목)까지', findRichText: true),
+        findsOneWidget,
+      );
+
+      await pickPeriod(tester, '이번 주');
+      expect(find.byKey(weekCard), findsOneWidget);
+      expect(todayInRecords(), findsNothing);
+      // 첫 칸은 보낸 날(금)이 아니라 이번 주 월요일이다.
+      expect(
+        find.descendant(
+          of: find.byKey(weekCard),
+          matching: find.byKey(
+            const ValueKey<String>('workout-routine-adherence-8-17'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byKey(allCard), findsNothing);
+
+      await pickPeriod(tester, '전체');
+      expect(find.byKey(weekCard), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byKey(allCard),
+          matching: find.byKey(
+            const ValueKey<String>('workout-routine-all-ring-8-11'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('2번 보냄'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('좁은 화면에서는 링 줄이 옆으로 스크롤하고 최근 링에서 시작한다', (tester) async {
+      await openProgramWorkout(
+        tester,
+        size: const Size(420, 3000),
+        starts: const <String>[
+          '2026-08-02',
+          '2026-08-06',
+          '2026-08-10',
+          '2026-08-14',
+        ],
+      );
+      await pickPeriod(tester, '전체');
+
+      final ScrollableState rings = tester.state<ScrollableState>(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('workout-routine-all-rings')),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      expect(rings.position.maxScrollExtent, greaterThan(0));
+      expect(rings.position.pixels, rings.position.maxScrollExtent);
       expect(tester.takeException(), isNull);
     });
   });
@@ -472,34 +567,7 @@ void main() {
       );
       // 8/11 에 보내고 8/14 에 새로 보낸다 — 서버처럼 보낸 그날 이전 것이
       // 끝나 8/11 묶음은 사흘만 걸린다.
-      for (final String start in <String>['2026-08-11', '2026-08-14']) {
-        final DateTime at = DateTime.parse(
-          start,
-        ).add(const Duration(hours: 13));
-        debugNowKstOverride = () => at;
-        await c.read(trainerRoutineRepositoryProvider).assignProgram(
-          'seed-client-2',
-          <String, Object?>{
-            'name': '개인운동',
-            'delivery_kind': 'routine_only',
-            'start_date': start,
-            'active_days': 7,
-            'sessions': <Object?>[
-              <String, Object?>{
-                'name': '빠르게 걷기',
-                'exercises': <Object?>[
-                  <String, Object?>{
-                    'name': '빠르게 걷기',
-                    'type': '유산소',
-                    'duration': 30,
-                  },
-                ],
-              },
-            ],
-          },
-        );
-      }
-      debugNowKstOverride = () => kMidWeekKst;
+      await _sendPersonal(c, <String>['2026-08-11', '2026-08-14']);
       await goTo(
         tester,
         AppRoutes.clientDetail('seed-client-2', section: 'workout'),
@@ -662,4 +730,36 @@ void main() {
     });
     expect(routine.effect, '체지방 감량에 도움');
   });
+}
+
+/// [starts] 날마다 `빠르게 걷기` 개인운동을 7일로 보낸다 — 데모는 서버처럼
+/// 새로 보낸 그날 이전 것을 끝낸다. 보낼 때마다 시계를 그날로 옮겨야 채팅
+/// 메시지 id 가 겹치지 않는다. 끝나면 시계를 [kMidWeekKst] 로 돌린다.
+Future<void> _sendPersonal(ProviderContainer c, List<String> starts) async {
+  for (final String start in starts) {
+    final DateTime at = DateTime.parse(start).add(const Duration(hours: 13));
+    debugNowKstOverride = () => at;
+    await c.read(trainerRoutineRepositoryProvider).assignProgram(
+      'seed-client-2',
+      <String, Object?>{
+        'name': '개인운동',
+        'delivery_kind': 'routine_only',
+        'start_date': start,
+        'active_days': 7,
+        'sessions': <Object?>[
+          <String, Object?>{
+            'name': '빠르게 걷기',
+            'exercises': <Object?>[
+              <String, Object?>{
+                'name': '빠르게 걷기',
+                'type': '유산소',
+                'duration': 30,
+              },
+            ],
+          },
+        ],
+      },
+    );
+  }
+  debugNowKstOverride = () => kMidWeekKst;
 }
