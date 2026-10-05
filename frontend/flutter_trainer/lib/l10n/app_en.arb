@@ -1597,6 +1597,7 @@
   "myGymSearching": "Searching…",
   "myGymSearchEmpty": "No gyms found. Try a different name or add the neighborhood.",
   "myGymSearchFailed": "Couldn't search gyms. Please try again in a moment.",
+  "myGymDemoNotice": "The demo shows sample gyms instead of real ones. In the live service you can find your own gym by name.",
   "myGymCurrent": "Current gym",
   "myGymPicked": "Saving will switch you to this gym",
   "myGymNone": "None yet",

@@ -4177,6 +4177,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t search gyms. Please try again in a moment.'**
   String get myGymSearchFailed;
 
+  /// No description provided for @myGymDemoNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'The demo shows sample gyms instead of real ones. In the live service you can find your own gym by name.'**
+  String get myGymDemoNotice;
+
   /// No description provided for @myGymCurrent.
   ///
   /// In en, this message translates to:

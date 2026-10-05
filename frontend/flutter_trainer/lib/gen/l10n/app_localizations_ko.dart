@@ -2269,6 +2269,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGymSearchFailed => '헬스장을 찾지 못했어요. 잠시 뒤 다시 시도해 주세요.';
 
   @override
+  String get myGymDemoNotice =>
+      '데모에서는 실제 헬스장 대신 데모 헬스장이 나와요. 실제 서비스에서는 이름으로 내 헬스장을 찾을 수 있어요.';
+
+  @override
   String get myGymCurrent => '현재 소속';
 
   @override

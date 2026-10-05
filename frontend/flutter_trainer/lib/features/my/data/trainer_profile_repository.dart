@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/search_match.dart';
 
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
@@ -303,19 +304,41 @@ class MockTrainerProfileRepository implements TrainerProfileRepository {
   @override
   Future<TrainerProfile> fetch() => _current();
 
+  /// 헬스장을 가리키는 일반 낱말. 데모 헬스장은 모두 헬스장이라 이 낱말은 비교에서
+  /// 뺀다 — `강남 헬스장` 은 `강남` 으로 찾고, `헬스장` 만 치면 전부 보인다. 실 API
+  /// 에서 카카오가 '헬스장' 으로 주변 헬스장을 모두 주는 것과 같다. 낱말 전체가
+  /// 같을 때만 뺀다(`온케어짐` 의 `짐` 은 빼지 않는다).
+  static const Set<String> _genericGymWords = <String>{
+    '헬스',
+    '헬스장',
+    '헬스클럽',
+    '짐',
+    '피트니스',
+    'gym',
+    'fitness',
+  };
+
+  /// 데모 헬스장 검색. (#3223)
+  ///
+  /// 이름·주소는 서버와 같은 규칙([matchesSearchQuery] — 대소문자·띄어쓰기·단어
+  /// 순서 무시)으로 비교한다. 그래도 맞는 데모 헬스장이 없으면 **빈 목록 대신
+  /// 데모 헬스장 전체**를 준다. 데모에는 카카오가 없어 트레이너가 자기 헬스장
+  /// 이름(실제 상호)을 치면 항상 빈 목록이었고, 가입한 트레이너가 소속을 정하지
+  /// 못한 채 막혔다. 화면은 데모 빌드에서 "데모 헬스장이 나온다" 고 안내한다.
   @override
   Future<List<TrainerGymCandidate>> searchGyms(String query) async {
-    final String q = query.trim().toLowerCase();
-    if (q.isEmpty) return const <TrainerGymCandidate>[];
-    return <TrainerGymCandidate>[
-      for (final TrainerGymCandidate gym in _gyms)
-        if (gym.name.toLowerCase().contains(q) ||
-            gym.address.toLowerCase().contains(q) ||
-            // 데모에서 무엇을 쳐도 결과가 보이게 '헬스'·'gym' 은 모두 맞춘다.
-            q.contains('헬스') ||
-            q.contains('gym'))
-          gym,
+    final List<String> terms = searchTerms(query);
+    if (terms.isEmpty) return const <TrainerGymCandidate>[];
+    final List<TrainerGymCandidate> gyms = _gyms;
+    final String specific = terms
+        .where((String term) => !_genericGymWords.contains(term))
+        .join(' ');
+    if (specific.isEmpty) return gyms;
+    final List<TrainerGymCandidate> matched = <TrainerGymCandidate>[
+      for (final TrainerGymCandidate gym in gyms)
+        if (matchesSearchQuery(specific, <String>[gym.name, gym.address])) gym,
     ];
+    return matched.isEmpty ? gyms : matched;
   }
 
   @override

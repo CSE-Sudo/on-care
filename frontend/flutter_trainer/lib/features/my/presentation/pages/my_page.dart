@@ -11,6 +11,7 @@ import 'package:oncare_kakao_map/oncare_kakao_map.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
+import 'package:oncare_trainer/core/config/app_config.dart';
 // Session은 앱 전역 상태라 예외적으로 auth feature 의 provider 를 직접
 // 사용한다 (라우터의 인증 게이트와 동일한 소비자).
 import 'package:oncare_trainer/core/errors/app_error.dart';
@@ -2331,6 +2332,18 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
           onChanged: _onChanged,
           onSubmitted: (_) => _search(),
         ),
+        // 데모에는 카카오가 없어 실제 상호를 찾을 수 없다 — 무엇을 쳐도 데모
+        // 헬스장이 나오는 이유를 알린다(#3223).
+        if (ref.watch(appConfigProvider).useMockApi) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s4),
+          Text(
+            l.myGymDemoNotice,
+            key: const ValueKey<String>('gym-demo-notice'),
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
+        ],
         const SizedBox(height: OnCareSpacing.s12),
         if (_loading)
           Text(

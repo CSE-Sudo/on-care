@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/features/my/data/trainer_profile_repository.dart';
+import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 
 class _MockDio extends Mock implements Dio {}
 
@@ -324,5 +326,70 @@ void main() {
     expect(restored.careerYears, 9);
     expect(restored.gym.id, 'gym-2');
     expect(restored.gym.name, '온케어짐 강남점');
+  });
+
+  group('mock gym search (#3223)', () {
+    Future<List<String>> ids(String query, {DemoLanguage? language}) async {
+      final repository = MockTrainerProfileRepository(
+        language: language ?? DemoLanguage.ko,
+      );
+      return (await repository.searchGyms(
+        query,
+      )).map((TrainerGymCandidate g) => g.id).toList();
+    }
+
+    test('ignores spacing — 붙여 쓴 이름도 찾는다', () async {
+      expect(await ids('온케어짐신촌'), <String>[kDemoTrainerGymId]);
+    });
+
+    test('ignores word order', () async {
+      expect(await ids('신촌 온케어짐'), <String>[kDemoTrainerGymId]);
+      expect(await ids('강남점   온케어짐'), <String>['gym-2']);
+    });
+
+    test('matches address words together with name words', () async {
+      expect(await ids('연희로 스튜디오'), <String>['gym-demo-yeonhui']);
+    });
+
+    test('generic gym words narrow nothing on their own', () async {
+      expect(await ids('강남 헬스장'), <String>['gym-2']);
+      expect(await ids('헬스장'), hasLength(3));
+      expect(await ids('피트니스'), hasLength(3));
+    });
+
+    test('is case-insensitive in English', () async {
+      expect(
+        await ids('ONCARE gangnam', language: DemoLanguage.en),
+        <String>['gym-2'],
+      );
+    });
+
+    test('never comes back empty for a real gym name — 데모 헬스장 전체', () async {
+      // 데모에는 카카오가 없어 실제 상호는 찾을 수 없다. 빈 목록이면 가입한
+      // 트레이너가 소속을 고르지 못한다.
+      final List<String> found = await ids('스포애니 신림점');
+      expect(found, <String>[
+        kDemoTrainerGymId,
+        'gym-2',
+        'gym-demo-yeonhui',
+      ]);
+    });
+
+    test('a blank query searches nothing', () async {
+      expect(await ids(''), isEmpty);
+      expect(await ids('   '), isEmpty);
+    });
+
+    test('a fallback result can still be selected', () async {
+      final repository = MockTrainerProfileRepository();
+      final List<TrainerGymCandidate> found = await repository.searchGyms(
+        '없는 헬스장 이름',
+      );
+      final TrainerGymCandidate yeonhui = found.singleWhere(
+        (TrainerGymCandidate g) => g.id == 'gym-demo-yeonhui',
+      );
+      final profile = await repository.selectGym(yeonhui);
+      expect(profile.gym.id, 'gym-demo-yeonhui');
+    });
   });
 }

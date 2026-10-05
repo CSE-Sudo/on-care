@@ -2398,6 +2398,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t search gyms. Please try again in a moment.';
 
   @override
+  String get myGymDemoNotice =>
+      'The demo shows sample gyms instead of real ones. In the live service you can find your own gym by name.';
+
+  @override
   String get myGymCurrent => 'Current gym';
 
   @override

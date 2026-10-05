@@ -51,6 +51,26 @@ class _UpdateFailureRepository implements TrainerProfileRepository {
       throw UnimplementedError();
 }
 
+/// 검색이 늘 빈 목록인 저장소 — 서버가 맞는 헬스장을 못 찾은 경우.
+class _EmptySearchRepository implements TrainerProfileRepository {
+  final MockTrainerProfileRepository _delegate = MockTrainerProfileRepository();
+
+  @override
+  Future<TrainerProfile> fetch() => _delegate.fetch();
+
+  @override
+  Future<List<TrainerGymCandidate>> searchGyms(String query) async =>
+      const <TrainerGymCandidate>[];
+
+  @override
+  Future<TrainerProfile> update(TrainerProfileUpdate update) =>
+      _delegate.update(update);
+
+  @override
+  Future<TrainerProfile> selectGym(TrainerGymCandidate gym) =>
+      _delegate.selectGym(gym);
+}
+
 void main() {
   group('MyPage', () {
     Future<void> openTab(WidgetTester tester) async {
@@ -534,13 +554,82 @@ void main() {
     });
 
     testWidgets('찾는 헬스장이 없으면 그렇다고 말한다 — 직접 적는 칸은 없다', (tester) async {
-      await openEdit(tester);
+      // 데모 저장소는 빈 목록을 주지 않는다(#3223) — 서버가 빈 목록을 준 경우다.
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.my,
+        extraOverrides: <Override>[
+          trainerProfileRepositoryProvider.overrideWithValue(
+            _EmptySearchRepository(),
+          ),
+        ],
+      );
+      await tester.tap(find.text('프로필 수정'));
+      await settle(tester);
       await searchGym(tester, '없는 스튜디오');
       expect(
         find.text('찾는 헬스장이 없어요. 이름을 다르게 적거나 동네 이름을 붙여 보세요.'),
         findsOneWidget,
       );
       expect(find.byKey(const ValueKey<String>('gym-address')), findsNothing);
+    });
+
+    testWidgets('데모에서 실제 헬스장 이름을 쳐도 고를 헬스장이 나온다 (#3223)', (
+      tester,
+    ) async {
+      await openEdit(tester);
+      await searchGym(tester, '스포애니 신림점');
+
+      expect(
+        find.text('찾는 헬스장이 없어요. 이름을 다르게 적거나 동네 이름을 붙여 보세요.'),
+        findsNothing,
+      );
+      for (final String id in <String>[
+        kDemoTrainerGymId,
+        'gym-2',
+        'gym-demo-yeonhui',
+      ]) {
+        expect(find.byKey(ValueKey<String>('gym-result-$id')), findsOneWidget);
+      }
+
+      // 나온 헬스장을 골라 저장할 수 있다 — 가입 직후 막히지 않는다.
+      await tapResult(tester, 'gym-2');
+      await tester.tap(find.text('저장'));
+      await settle(tester);
+      expect(currentLocation(tester), AppRoutes.mySection('profile'));
+      expect(find.text('온케어짐 강남점'), findsWidgets);
+    });
+
+    testWidgets('붙여 쓴 이름으로도 데모 헬스장을 찾는다 (#3223)', (tester) async {
+      await openEdit(tester);
+      await searchGym(tester, '온케어짐강남');
+      expect(
+        find.byKey(const ValueKey<String>('gym-result-gym-2')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('gym-result-$kDemoTrainerGymId')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('데모 빌드는 검색 칸 아래에 데모 헬스장이라고 알린다 (#3223)', (
+      tester,
+    ) async {
+      await openEdit(tester);
+      final Finder notice = find.byKey(
+        const ValueKey<String>('gym-demo-notice'),
+      );
+      await tester.ensureVisible(notice);
+      expect(notice, findsOneWidget);
+      expect(
+        find.text(
+          '데모에서는 실제 헬스장 대신 데모 헬스장이 나와요. '
+          '실제 서비스에서는 이름으로 내 헬스장을 찾을 수 있어요.',
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('소속이 없으면 내 정보에 회원에게 보이지 않는다고 알린다', (tester) async {
