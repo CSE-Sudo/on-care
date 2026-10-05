@@ -22,7 +22,6 @@ import pytest
 from app.core import clock
 from app.core.locale import _request_locale_ctx
 from app.services import diet_service, exercise_advice, exercise_service, period_window
-from app.services.diet_service import DietDayTotals
 from app.services.exercise_service import ExerciseDayTotals
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -360,124 +359,11 @@ def test_shared_cases_in_english_match_the_arb(case):
 
 
 # ---------------------------------------------------------------------------
-# 식단 조언 — 기간 조언(트레이너웹)과 오늘 코칭 한 마디
+# 식단 조언 — 오늘 코칭 한 마디
 # ---------------------------------------------------------------------------
 
 
-def _diet_days(*sodium_by_back: tuple[int, int]) -> list[DietDayTotals]:
-    days = []
-    for back, sodium in sorted(sodium_by_back, reverse=True):
-        day = _TODAY - timedelta(days=back)
-        days.append(
-            DietDayTotals(
-                date=day,
-                calories=1800,
-                sodium_mg=sodium,
-                sugar_g=30,
-            )
-        )
-    return days
-
-
 LIMIT = diet_service.SODIUM_LIMIT_MG
-WEEKS = period_window.ALL_PERIOD_DAYS // 7
-
-
-def _weekend(back_from_today: int) -> bool:
-    return (_TODAY - timedelta(days=back_from_today)).weekday() >= 5
-
-
-DIET_CASES = [
-    pytest.param([], TODAY,
-                 "오늘 식단 기록이 아직 없어요. 첫 끼니를 기록해 볼까요?",
-                 "No meals logged today yet. Want to log your first meal?", id="today-empty"),
-    pytest.param([], WEEK,
-                 "이번 주 식단 기록이 아직 없어요. 한 끼만 남겨도 흐름이 보여요.",
-                 "No meals logged this week yet. Even one meal shows the trend.", id="week-empty"),
-    pytest.param([], ALL,
-                 "기록이 쌓이면 나트륨·칼로리 흐름을 짚어 드릴게요.",
-                 "Once you log more, we'll show how your sodium and calories are trending.",
-                 id="all-empty"),
-    pytest.param(_diet_days((0, LIMIT + 400)), TODAY,
-                 f"오늘 나트륨 {LIMIT + 400}mg 로 권장량을 넘겼어요. 남은 끼니는 담백하게.",
-                 f"Sodium is at {LIMIT + 400}mg today, over the limit. Keep the rest of your meals light.",
-                 id="today-over"),
-    pytest.param(_diet_days((0, LIMIT)), TODAY,
-                 f"오늘 나트륨 {LIMIT}mg 로 권장량 안이에요. 이대로 마무리해요.",
-                 f"Sodium is at {LIMIT}mg today, within the limit. Finish the day like this.",
-                 id="today-at-limit"),
-    pytest.param(_diet_days((0, 1200)), TODAY,
-                 "오늘 나트륨 1200mg 로 권장량 안이에요. 이대로 마무리해요.",
-                 "Sodium is at 1200mg today, within the limit. Finish the day like this.",
-                 id="today-under"),
-    pytest.param(_diet_days((0, 3000), (1, 3000), (2, 3000)), WEEK,
-                 "이번 주 3일이나 나트륨을 넘겼어요. 국물은 건더기 위주로 드세요.",
-                 "Sodium went over on 3 days this week. With soups, eat the solids and leave the broth.",
-                 id="week-three-over"),
-    pytest.param(_diet_days((0, 3000), (1, 1000)), WEEK,
-                 "이번 주 1일만 권장량을 넘었어요. 나머지 날의 균형은 좋았어요.",
-                 "Only 1 day went over the sodium limit this week. The other days were well balanced.",
-                 id="week-one-over"),
-    pytest.param(_diet_days((0, 3000), (1, 3000), (2, 1000)), WEEK,
-                 "이번 주 2일만 권장량을 넘었어요. 나머지 날의 균형은 좋았어요.",
-                 "Only 2 days went over the sodium limit this week. The other days were well balanced.",
-                 id="week-two-over"),
-    pytest.param(_diet_days((0, 1000), (1, 1000)), WEEK,
-                 "이번 주 2일 모두 나트륨을 권장량 안에서 지켰어요!",
-                 "You kept sodium within the limit on all 2 days this week!",
-                 id="week-all-under"),
-    pytest.param(_diet_days((0, 1000)), WEEK,
-                 "이번 주 1일 모두 나트륨을 권장량 안에서 지켰어요!",
-                 "You kept sodium within the limit on the 1 day you logged this week!",
-                 id="week-one-day-under"),
-    pytest.param(_diet_days(*((b, 3000) for b in range(40, 30, -1)), *((b, 1000) for b in range(10))),
-                 ALL,
-                 "최근 4주 나트륨이 그 전보다 낮아졌어요. 지금 방식이 잘 맞아요.",
-                 "Sodium over the last 4 weeks is lower than before. This approach suits you.",
-                 id="all-down"),
-    pytest.param(_diet_days(*((b, 1000) for b in range(40, 30, -1)), *((b, 3000) for b in range(10))),
-                 ALL,
-                 "최근 4주 나트륨이 다시 올라가고 있어요. 한 주만 되짚어 볼까요?",
-                 "Sodium is creeping back up over the last 4 weeks. Want to look back over one week?",
-                 id="all-up"),
-    pytest.param(_diet_days(*((b, 3000 if _weekend(b) else 1000) for b in range(14))), ALL,
-                 f"최근 {WEEKS}주 주말마다 나트륨이 올라요. 주말 한 끼만 담백하게 바꿔요.",
-                 f"Over the last {WEEKS} weeks, sodium rises every weekend. Make one weekend meal lighter.",
-                 id="all-weekend"),
-    pytest.param(_diet_days((0, 3000), (1, 3000), (2, 1000), (3, 1000), (4, 1000)), ALL,
-                 f"최근 {WEEKS}주 중 40%가 나트륨 권장량을 넘었어요. 국물부터 남겨 봐요.",
-                 f"40% of days in the last {WEEKS} weeks went over the sodium limit. Start by leaving the broth.",
-                 id="all-ratio"),
-    pytest.param(_diet_days((0, 1000), (1, 1000), (2, 3000)), ALL,
-                 f"최근 {WEEKS}주 기록한 3일 대부분이 권장량 안이에요. 지금 흐름이 좋아요.",
-                 f"Most of your 3 logged days in the last {WEEKS} weeks stayed within the sodium limit. Nice trend.",
-                 id="all-mostly-under"),
-    pytest.param(_diet_days((0, 1000)), ALL,
-                 f"최근 {WEEKS}주 기록한 1일 대부분이 권장량 안이에요. 지금 흐름이 좋아요.",
-                 f"Your 1 logged day in the last {WEEKS} weeks stayed within the sodium limit. Nice trend.",
-                 id="all-one-day"),
-]
-
-
-@pytest.mark.parametrize(("days", "period", "ko", "en"), DIET_CASES)
-def test_diet_period_message_in_both_languages(days, period, ko, en):
-    assert diet_service.period_coach_message(days, period) == ko
-    assert diet_service.period_coach_message(days, period, locale="ko") == ko
-    assert diet_service.period_coach_message(days, period, locale="en") == en
-    assert _no_hangul(en)
-
-
-@pytest.mark.parametrize(("days", "period", "ko", "en"), DIET_CASES)
-def test_diet_period_message_follows_the_request_locale(english, days, period, ko, en):
-    assert diet_service.period_coach_message(days, period) == en
-    assert diet_service.period_coach_message(days, period, locale="ko") == ko
-
-
-def test_diet_english_messages_are_distinct_per_rule():
-    """규칙마다 다른 영어 문장이다 — 번역하다 두 규칙을 한 문장으로 뭉개지 않았다."""
-    english = {c.values[3] for c in DIET_CASES}
-    korean = {c.values[2] for c in DIET_CASES}
-    assert len(english) == len(korean)
 
 
 @pytest.mark.parametrize(
