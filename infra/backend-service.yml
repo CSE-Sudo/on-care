@@ -75,7 +75,9 @@ Parameters:
     Default: 'false'
     AllowedValues: ['true', 'false']
     Description: Staging only. Production ignores it (ENV=prod always disables the fallback)
-  # 비밀번호 재설정 메일(#2824). MailFrom 을 비우면 메일 발송이 꺼진다(재설정 요청은 503).
+  # 가입 인증 코드·비밀번호 재설정 메일(#2824). production 은 필수다(#3131) — 가입 이메일 확인을
+  # 끌 수 없어 메일이 없으면 신규 가입이 모두 막히므로, MailFrom·SmtpHost 가 비면 서버가 기동을
+  # 거부한다. staging 은 비우면 메일 키를 넣지 않고 코드를 로그로만 남긴다.
   # 채우면 SMTP 계정은 비밀의 SMTP_USERNAME·SMTP_PASSWORD 키에서 읽는다(SES SMTP 포함).
   MailFrom:
     Type: String
@@ -132,6 +134,9 @@ Resources:
       Cpu: !Ref Cpu
       Memory: !Ref Memory
       # healthz 는 프로세스만 본다 — DB 일시 장애로 태스크를 갈아 치우지 않게(#2912).
+      # 대상 그룹 헬스체크는 컨테이너에 평문 HTTP 로 직접 들어오고 X-Forwarded-Proto 를 붙이지
+      # 않는다. 아래 FORCE_HTTPS=true 의 리다이렉트는 /v1/healthz·/v1/readyz 만 빼고 걸린다
+      # (#3130, backend/app/core/https_redirect.py). 경로를 바꾸면 그 예외 목록도 함께 바꾼다.
       HealthCheckPath: /v1/healthz
       ExecutionRoleArn: !ImportValue
         Fn::Sub: 'oncare-backend-${EnvironmentName}-TaskExecutionRoleArn'
@@ -166,6 +171,7 @@ Resources:
             Value: !Ref CorsAllowOrigins
           - Name: TZ
             Value: Asia/Seoul
+          # 헬스체크 경로(/v1/healthz·/v1/readyz)는 리다이렉트하지 않는다(#3130).
           - Name: FORCE_HTTPS
             Value: 'true'
           - Name: LOG_LEVEL

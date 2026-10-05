@@ -76,18 +76,55 @@ GitHub(main push) ─> Backend CI ─> backend-deploy.yml
 - 배포 역할은 **GitHub Environment 에서 돈 job 만** 맡을 수 있다. 브랜치 형식 토큰으로는 서비스를
   바꿀 수 없으므로 Environment 의 승인 규칙을 건너뛰는 길이 없다.
 - 배포 역할에는 ECS·IAM 권한이 없다. 서비스 변경은 CloudFormation 이 서비스 역할로 한다.
-- 저장소에는 이미 `Production`·`Preview`·`github-pages` Environment 가 있다. Environment 이름은
-  대소문자를 가리지 않으므로 `Production` 이 곧 `production` 이다.
+- Environment 이름이 곧 배포 경계다. 워크플로의 `environment:` 와 템플릿의 신뢰 조건이 같은 이름을
+  써야 한다(아래 표). `infra/tests/test_deploy_workflows.py` 가 둘이 어긋나지 않는지 PR 마다 본다.
 
-**GitHub Environment 설정**(Settings > Environments)
+**Environment 이름 ↔ OIDC subject ↔ 워크플로**(#3133)
 
-| Environment | 보호 규칙 | 배포 브랜치 | 변수 |
+| Environment | 믿는 역할(템플릿) | OIDC subject | 쓰는 job |
 |---|---|---|---|
-| `production` | Required reviewers(운영 승인자), 필요하면 대기 시간 | `main` 만 | `AWS_BACKEND_DEPLOY_ROLE_ARN`·`AWS_BACKEND_CFN_ROLE_ARN`·`BACKEND_STACK_NAME` |
-| `staging` | 없음(자동) | `main` 만 | 같은 세 변수(staging 스택 출력값) |
+| `production` | 백엔드 배포 역할(`infra/backend-environment.yml`, `EnvironmentName=production`), 프런트 배포 역할(`infra/frontend-hosting.yml`, `GitHubEnvironment` 기본값) | `repo:CSE-Sudo@<id>/on-care@<id>:environment:production` | `backend-deploy.yml` → `deploy-production`(`backend-deploy-service.yml`), `aws-frontend-deploy.yml` → `build-and-deploy` |
+| `staging` | 백엔드 배포 역할(`EnvironmentName=staging`) | `…:environment:staging` | `backend-deploy.yml` → `deploy-staging` |
+| `github-pages` | 없음(AWS 역할을 받지 않음) | — | `deploy.yml` 데모 Pages 배포 |
+
+두 템플릿은 subject 를 `StringEqualsIgnoreCase` 로 비교하고 GitHub 도 Environment 이름의 대소문자를
+가리지 않는다. 그래서 Vercel 연동 시절에 만들어진 `Production` 이 곧 `production` 이다. 이름을 바꿀 수
+없으므로 지우지 않고 아래 규칙을 채워 이어 쓴다(배포 기록 보존). 워크플로와 문서는 소문자로 쓴다.
+
+**보호 규칙이 비어 있으면 안 되는 이유** — 배포 역할은 Environment 이름만 믿는다. 배포 브랜치 정책이
+없으면 **어느 브랜치에서 돈 job 이든** `environment: production` 만 적으면 운영 배포 역할을 받는다.
+필수 승인자가 없으면 누구의 승인도 없이 받는다. `staging` 은 처음 실행될 때 규칙 없는 Environment 로
+자동 생성되므로, 첫 배포 전에 관리자가 먼저 만든다.
+
+**GitHub Environment 설정**(Settings > Environments, 저장소 관리자 작업 — 코드로 남지 않는다)
+
+| Environment | Required reviewers | Prevent self-review | Wait timer | Deployment branches and tags | Allow administrators to bypass | 변수 |
+|---|---|---|---|---|---|---|
+| `production`(기존 `Production`) | 켬 — 배포 담당(`aJISUa`)·백엔드 담당(`subin21cc`). 둘 중 한 명 승인 | 끔(두 명뿐이라 켜면 병합한 사람이 승인할 수 없어 다른 한 명이 늘 있어야 한다) | 0 | **Selected branches and tags** → 규칙 1개: Ref type `Branch`, 이름 `main` | 끔 | `AWS_BACKEND_DEPLOY_ROLE_ARN`·`AWS_BACKEND_CFN_ROLE_ARN`·`BACKEND_STACK_NAME` |
+| `staging`(새로 만듦) | 끔(자동) | — | 0 | **Selected branches and tags** → 규칙 1개: Ref type `Branch`, 이름 `main` | 끔 | 같은 세 변수(staging 스택 출력값) |
+| `Preview` | — | — | — | — | — | **삭제한다**(Vercel 미리보기 배포 기록뿐, 쓰는 워크플로 없음) |
+| `github-pages` | 그대로 | — | — | 그대로 | — | 바꾸지 않는다 |
+
+관리자 적용 순서
+
+1. Settings > Environments > `Production` → **Required reviewers** 에 `aJISUa`·`subin21cc` 를 넣고
+   저장한다. **Prevent self-review** 는 끈 채로 둔다.
+2. 같은 화면 **Deployment branches and tags** 를 `No restriction` 에서 **Selected branches and tags** 로
+   바꾸고 **Add deployment branch or tag rule** → Ref type `Branch`, Name pattern `main` 을 넣는다.
+   태그 규칙은 넣지 않는다(태그는 리뷰 없이 아무 커밋에 붙일 수 있어 운영 역할을 받는 길이 된다).
+3. **Allow administrators to bypass configured protection rules** 체크를 끈다.
+4. **New environment** → 이름 `staging` 으로 만들고 2·3 번을 똑같이 한다. 승인자는 두지 않는다.
+5. 두 Environment 에 위 표의 변수를 넣는다(백엔드 환경 스택 출력값, 3절).
+6. `Preview` Environment 를 **Delete environment** 로 지운다.
+7. 확인: `gh api repos/CSE-Sudo/on-care/environments --jq '.environments[] | {name, rules: [.protection_rules[].type], policy: .deployment_branch_policy}'`
+   에서 `Production` 은 `required_reviewers`·`branch_policy` 와 `{"protected_branches":false,"custom_branch_policies":true}`,
+   `staging` 은 `branch_policy` 와 같은 정책, `Preview` 는 없어야 한다. 브랜치 이름은
+   `gh api repos/CSE-Sudo/on-care/environments/production/deployment-branch-policies` 에서 `main` 하나여야 한다.
 
 프런트 AWS 배포(`aws-frontend-deploy.yml`)도 `production` Environment 에서 돈다. 그래서 운영 승인자를
-걸면 프런트 배포도 같은 승인을 기다린다.
+걸면 프런트 배포도 같은 승인을 기다린다. 승인 대기는 배포 순서 판정(프런트가 백엔드를 최대 45분
+기다림)에 포함되므로, 백엔드 승인을 늦게 하면 프런트 배포가 시간 초과로 멈출 수 있다 — 그때는 승인 뒤
+프런트 배포를 수동으로 다시 실행한다.
 
 **저장소 변수**(Settings > Secrets and variables > Actions > Variables)
 
@@ -205,8 +242,11 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
 6. 저장소 변수 `BACKEND_DEPLOY_ENABLED=true`(staging 을 쓰면 `BACKEND_STAGING_DEPLOY_ENABLED=true`).
    다음 `main` 병합부터 자동으로 배포된다.
 
+**production 필수 파라미터(#3131)**: 메일 `MailFrom`·`SmtpHost`. 운영은 가입 이메일 확인을 끌 수 없어(#3038) 메일이
+없으면 가입 인증 코드를 보낼 수 없고 신규 가입이 모두 막히므로, 둘 중 하나라도 비면 서버가 기동을 거부한다.
+
 선택 파라미터: `Cpu`(기본 1024)·`Memory`(기본 2048), `AdminEmails`, `AppleClientIds`·`GoogleClientIds`·`KakaoAppId`(#3035), 메일
-(`MailFrom`·`SmtpHost`·`SmtpPort`·`PasswordResetMemberUrl`·`PasswordResetTrainerUrl`), staging 전용
+(`SmtpPort`·`PasswordResetMemberUrl`·`PasswordResetTrainerUrl`, staging 은 `MailFrom`·`SmtpHost` 도 선택), staging 전용
 `AllowDemoFallback`, 기본 VPC 가 아닌 곳에 둘 때 `SubnetIds`·`SecurityGroupIds`.
 
 ## 4) Neon Postgres (pgvector)
@@ -240,7 +280,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `GEMINI_API_KEY` | 사진 인식·임베딩. 운영은 없으면 기동 거부(#2812). **결제가 연결된 프로젝트의 키(유료 등급)만**(#3032) — 무료 등급은 입력(회원 음식 사진·건강 기록·코치 대화)이 제공자의 서비스 개선에 쓰일 수 있고 한도가 낮다. 결제 연결은 #480 | 예 |
 | `KAKAO_REST_API_KEY` | 장소 실검색. 빈 값이면 헬스장 찾기가 사실상 빈다(시드로 채우지 않음, #2914) | 키는 있어야 함 |
 | `SENTRY_DSN` | 오류 수집(#2839). 빈 값이면 꺼짐 | 키는 있어야 함 |
-| `SMTP_USERNAME`·`SMTP_PASSWORD` | `MailFrom` 파라미터를 채웠을 때만 읽는다 | 메일을 켤 때 |
+| `SMTP_USERNAME`·`SMTP_PASSWORD` | `MailFrom` 파라미터를 채웠을 때만 읽는다. 운영은 메일이 필수라 항상 채운다(#3131) | 운영 예, staging 은 메일을 켤 때 |
 | `DEMO_LOGIN_PASSWORD` | staging 만. 강한 값 | staging |
 
 **템플릿이 고정하는 값** — 바꾸려면 템플릿 PR.
@@ -273,7 +313,9 @@ CREATE EXTENSION IF NOT EXISTS vector;
 위 값 중 코드 기본값과 같은 것도 템플릿에 못 박는다(#3034) — 데모 서비스에서 바꾼 값이 운영으로
 복사되지 않게 하고, 운영에서 무엇이 들어가는지 `.env.aws.example` 한 곳에서 보이게 한다.
 
-**메일·재설정 값**(#3033)
+**메일·재설정 값**(#3033) — 운영 필수(#3131). `SMTP_HOST`·`MAIL_FROM` 이 비면(또는 `MAIL_PROVIDER=log` 면)
+운영 서버가 기동을 거부한다. 메일이 없으면 가입 인증 코드를 보낼 수 없어 회원 앱·트레이너 웹의 신규 가입이
+모두 막히고(가입 코드 요청 503), 비밀번호 재설정도 503 이 되기 때문이다.
 
 | 키 | 설명 |
 |---|---|
@@ -432,6 +474,9 @@ Fargate 태스크의 디스크는 재배포·재시작 때 비므로 운영은 S
       `ENV`·`SEED_DEMO_DATA`·`ALLOW_DEMO_FALLBACK`·`AUTO_CREATE_TABLES` 는 템플릿이 정한다.
       `backend/.env.aws.example` 의 주석 키(`# KEY=값`)는 기본값이 이 서비스에 맞는지 확인했다(#3034).
 - [ ] 비밀 `oncare/backend/<environment>` 이 위 "비밀 키" 표의 키를 모두 갖는다(빈 값이라도).
+- [ ] **메일 파라미터 `MailFrom`·`SmtpHost` 와 비밀 `SMTP_USERNAME`·`SMTP_PASSWORD` 가 채워져 있다(#3131).**
+      비면 운영 서버가 기동을 거부한다(가입 인증 코드를 보낼 수 없어 신규 가입이 모두 막히기 때문).
+      배포 뒤 새 이메일로 회원 가입 코드를 한 번 요청해 메일이 오는지 본다.
 - [ ] **비밀번호 재설정 메일이 실제로 온다(#3033).** 회원·트레이너 계정으로 재설정을 한 번씩 요청해 메일을
       받고, 링크를 눌러 두 앱 재설정 화면이 **코드가 채워진 채** 열리는지 본다. 기동 로그에 `PASSWORD_RESET_` WARN 이 없다.
 - [ ] **운영 DB 와 staging(데모) DB 가 다르다.** 운영 `DATABASE_URL` 은 데모 시드가 한 번도 들어가지

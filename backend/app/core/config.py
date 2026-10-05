@@ -507,7 +507,7 @@ class Settings(BaseSettings):
 
     @property
     def mail_enabled(self) -> bool:
-        """재설정 메일을 보낼 수 있는가.
+        """가입 인증 코드·재설정 메일을 보낼 수 있는가.
 
         개발·스테이징은 log 발송으로도 켜 둔다(코드를 서버 로그에서 읽어 확인한다).
         운영은 실제 발송 수단이 있어야만 켠다 — 로그로만 남기는 재설정은 회원에게
@@ -593,6 +593,16 @@ class Settings(BaseSettings):
             if problems:
                 raise ValueError(
                     "운영(env=prod)에서는 사진 인식·임베딩 키가 필요합니다: " + "; ".join(problems)
+                )
+            # 운영은 가입 이메일 확인을 끌 수 없으므로(#3038) 메일을 못 보내면 가입 코드를
+            # 받을 수 없어 신규 가입이 모두 막히고, 비밀번호 재설정도 503 이 된다. 첫 가입
+            # 시도 때에야 드러나지 않게 기동에서 거부한다(#3131).
+            if not self.mail_enabled:
+                raise ValueError(
+                    "운영(env=prod)에서는 메일 발송 설정이 필요합니다 — 없으면 가입 인증 코드와 "
+                    "비밀번호 재설정 메일을 보낼 수 없어 신규 가입·재설정이 모두 막힙니다. "
+                    "SMTP_HOST·MAIL_FROM 과 SMTP 계정 비밀(SMTP_USERNAME·SMTP_PASSWORD)을 설정하고 "
+                    "MAIL_PROVIDER 는 smtp(또는 auto)로 두십시오."
                 )
         return self
 
