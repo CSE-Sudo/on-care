@@ -1704,7 +1704,11 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
   - 동의 없이도 열려 있는 경로: `GET /users/me`(동의 필요 여부 조회), `POST /users/me/consents`,
     `DELETE /users/me`(탈퇴), `/auth/*`(로그인·refresh·로그아웃·비밀번호 재설정·소셜 로그인),
     계정 데이터가 없는 공개 경로. 목록은 `api/deps.CONSENT_EXEMPT_ROUTES` 한 곳에 있다.
-  - 트레이너 계정은 이 확인을 거치지 않는다(트레이너 필수 동의 강제는 따로 정한다).
+  - **트레이너 계정(#3155)** 도 같은 규칙이다. 트레이너의 필수 항목(`terms`·`privacy`·`age14`)이
+    남았으면 트레이너 의존성(`RequireTrainer`)을 쓰는 API 가 같은 모양의 403 을 준다. 동의 없이도
+    열린 트레이너 경로는 `GET /trainer/me`(트레이너 웹이 로그인·세션 복구 때 읽는 프로필)와
+    `DELETE /trainer/me`(탈퇴)뿐이다. 트레이너 웹도 이 403 을 받으면 세션을 "동의 필요" 로 바꿔
+    동의 화면(`/auth/consent`)으로 보낸다.
   - 회원 앱은 이 403 을 받으면 세션을 "동의 필요" 로 바꿔 동의 화면으로 보낸다. 앱을 쓰는 사이
     문서 버전이 올라도 다음 데이터 요청에서 동의 화면으로 넘어간다.
   - 회원 의존성 없이 `RequireUser` 로만 사용자를 받는 라우트가 생기면
@@ -2201,7 +2205,7 @@ IP 를 바꿔 가며 한 계정을 노리는 시도는 계정 쪽 버킷이 막�
 | `CurrentUser` | 환경에 따라 데모 사용자 폴백 또는 401 (아래) | 트레이너 계정이면 **403**. 필수 동의가 남은 회원이면 403 `consent_required` (#3088) |
 | `RequireUser` | 401 | 없음 |
 | `RequireMember` | 401 | 회원만. 트레이너면 403. 필수 동의가 남았으면 403 `consent_required` (#3088) |
-| `RequireTrainer` | 401 | 트레이너만. 회원이면 403 |
+| `RequireTrainer` | 401 | 트레이너만. 회원이면 403. 필수 동의가 남았으면 403 `consent_required` (#3155) |
 | `RequireAdmin` | 401 | `is_admin` 아니면 403 |
 
 읽기 화면은 `CurrentUser`, 쓰기·삭제는 `RequireMember`, 트레이너 앱(`/v1/trainer/*`)은
