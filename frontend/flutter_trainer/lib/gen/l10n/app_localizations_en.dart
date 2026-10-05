@@ -2263,6 +2263,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myLegalPrivacyTitle => 'Privacy Policy';
 
   @override
+  String get myOpenSourceLicensesTitle => 'Open-source licenses';
+
+  @override
   String get myLegalTermsEffectiveDate => 'Effective Oct 3, 2026';
 
   @override

@@ -2148,6 +2148,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myLegalPrivacyTitle => '개인정보 처리방침';
 
   @override
+  String get myOpenSourceLicensesTitle => '오픈소스 라이선스';
+
+  @override
   String get myLegalTermsEffectiveDate => '시행일 2026. 10. 03.';
 
   @override
