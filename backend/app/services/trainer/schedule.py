@@ -401,6 +401,11 @@ def create_session(
 ) -> ScheduleSessionOut:
     program_json = _dump_program(program)
     if client_request_id:
+        # 같은 키의 동시 요청은 잠금 안에서 키를 다시 본다(#3241). 잠금 밖에서 보면
+        # 둘 다 "없음" 을 보고 잠금을 기다렸다가, 뒤 요청이 앞 요청의 일정과 자기
+        # 자신이 겹친다며 409 를 받는다. 자문 잠금은 같은 트랜잭션에서 다시 잡아도
+        # 된다(아래 겹침 검사가 한 번 더 잡는다).
+        lock_trainer_schedule(db, trainer_id)
         existing = db.scalar(
             select(TrainerSchedule).where(
                 TrainerSchedule.trainer_id == trainer_id,
@@ -801,6 +806,8 @@ def create_recurring_sessions(
         _series_id_for(trainer_id, client_request_id) if client_request_id else None
     )
     if series_id is not None:
+        # 단건 생성과 같이 같은 키의 동시 요청은 잠금 안에서 시리즈를 다시 본다(#3241).
+        lock_trainer_schedule(db, trainer_id)
         existing = db.scalars(
             select(TrainerSchedule)
             .where(
