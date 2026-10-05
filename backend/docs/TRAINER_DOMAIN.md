@@ -801,6 +801,7 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 |---|---|---|
 | GET | `/me/coach` | 내 담당 코치 요약(활성 담당 없으면 404) |
 | GET | `/me/coach/routines?date=` | 받은 루틴 — 그날 걸려 있던 목록과 그날 완료(`date` 없으면 오늘, 미래는 422) |
+| GET | `/me/coach/routines/upcoming` | 아직 시작하지 않은 `개인운동만` 한 묶음(시작일·보낸 날·운동 이름) 또는 `null` — 가장 최근에 보낸 것(#3106) |
 | POST | `/me/coach/routines/{id}/complete?date=` | 그날 완료(`date` 없으면 오늘). 지난 날짜는 그날 걸려 있던 배정만(#2506), 미래는 422 |
 | DELETE | `/me/coach/routines/{id}/complete?date=` | 그날 완료 되돌리기(`date` 없으면 오늘) |
 | GET | `/me/coach/sessions` | 내 PT 세션(최근 100건) |

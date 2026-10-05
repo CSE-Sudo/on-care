@@ -42,6 +42,12 @@ abstract interface class MemberCoachRepository {
   /// 넘긴다(#2506). 아직 오지 않은 날은 오류다.
   Future<List<CoachRoutine>> fetchRoutinesOn(DateTime day);
 
+  /// 아직 시작하지 않은 개인운동 한 묶음, 없으면 null. (#3106)
+  ///
+  /// 미래 시작일로 받은 `개인운동만` 은 시작일까지 [fetchRoutines] 에 없다.
+  /// 둘 이상이면 가장 최근에 보낸 것이다.
+  Future<UpcomingRoutines?> fetchUpcomingRoutines();
+
   /// [day](없으면 오늘)의 운동 기록으로 완료한다 — 배정 하나당 하루 한 번. (#2161)
   ///
   /// 지난 날짜는 그날 걸려 있던 배정만 된다(#2506) — 빠뜨린 체크를 나중에

@@ -60,6 +60,11 @@ List<Override> guideSampleOverrides(AppLocalizations l) {
     myReservationsProvider.overrideWith((ref) => gym.fetchMyReservations()),
     memberCoachProvider.overrideWith((ref) => coach.fetchCoach()),
     coachRoutinesProvider.overrideWith((ref) => coach.fetchRoutines()),
+    // 예정 한 줄(#3106)은 오늘 목록을 지켜본다 — 위에서 오늘 목록을 이 범위에서
+    // 덮었으니 예정도 같은 범위에 둬야 한다. 예시 회원은 예정이 없다.
+    coachUpcomingRoutinesProvider.overrideWith(
+      (ref) => coach.fetchUpcomingRoutines(),
+    ),
     coachSessionsProvider.overrideWith((ref) => coach.fetchSessions()),
     coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
     // MY
