@@ -390,9 +390,9 @@ void main() {
     expect(
       assets,
       containsAll(<String>[
-        'assets/images/diet-oatmeal-banana.jpeg',
-        'assets/images/diet-chicken-salad.jpg',
-        'assets/images/diet-doenjang-rice.jpeg',
+        'assets/demo/images/diet-oatmeal-banana.jpeg',
+        'assets/demo/images/diet-chicken-salad.jpg',
+        'assets/demo/images/diet-doenjang-rice.jpeg',
       ]),
     );
   });

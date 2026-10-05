@@ -396,6 +396,83 @@ void main() {
         );
       });
     }
+
+    test(
+      'gym info is read and saved through the gym profile endpoint',
+      () async {
+        final Map<String, Object?> body = <String, Object?>{
+          'gym_id': 'gym-1',
+          'name': '온케어짐',
+          'weekday_hours': '06:00 - 23:00',
+          'weekend_hours': '09:00 - 18:00',
+          'phone': '02-332-1720',
+          'tags': <String>['샤워실', 'PT 전문'],
+        };
+        Response<Map<String, Object?>> response() =>
+            Response<Map<String, Object?>>(
+              requestOptions: RequestOptions(path: '/trainer/me/gym/profile'),
+              statusCode: 200,
+              data: body,
+            );
+        when(
+          () => dio.get<Map<String, Object?>>('/trainer/me/gym/profile'),
+        ).thenAnswer((_) async => response());
+        when(
+          () => dio.put<Map<String, Object?>>(
+            '/trainer/me/gym/profile',
+            data: any(named: 'data'),
+          ),
+        ).thenAnswer((_) async => response());
+
+        final TrainerGymInfo info = await repository.fetchGymInfo();
+        expect(info.weekendHours, '09:00 - 18:00');
+        expect(info.tags, <String>['샤워실', 'PT 전문']);
+
+        await repository.updateGymInfo(
+          const TrainerGymInfoUpdate(
+            weekdayHours: '06:00 - 23:00',
+            weekendHours: '09:00 - 18:00',
+            phone: '02-332-1720',
+            tags: <String>['샤워실', 'PT 전문'],
+          ),
+        );
+        final sent =
+            verify(
+                  () => dio.put<Map<String, Object?>>(
+                    '/trainer/me/gym/profile',
+                    data: captureAny(named: 'data'),
+                  ),
+                ).captured.single
+                as Map<String, Object?>;
+        // 평점은 트레이너가 고치는 값이 아니다(#2700).
+        expect(sent, isNot(contains('rating')));
+        expect(sent['tags'], <String>['샤워실', 'PT 전문']);
+      },
+    );
+
+    test('gym info without an affiliation keeps the 409 detail', () async {
+      when(
+        () => dio.get<Map<String, Object?>>('/trainer/me/gym/profile'),
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/trainer/me/gym/profile'),
+          response: Response<Map<String, Object?>>(
+            requestOptions: RequestOptions(path: '/trainer/me/gym/profile'),
+            statusCode: 409,
+            data: <String, Object?>{'detail': '소속 헬스장이 없습니다.'},
+          ),
+        ),
+      );
+
+      await expectLater(
+        repository.fetchGymInfo(),
+        throwsA(
+          isA<ServerError>()
+              .having((error) => error.statusCode, 'status', 409)
+              .having((error) => error.message, 'message', '소속 헬스장이 없습니다.'),
+        ),
+      );
+    });
   });
 
   test('mock repository persists profile and affiliation mutations', () async {
@@ -578,4 +655,28 @@ void main() {
       expect(moved.distanceMeters, 42);
     });
   });
+
+  test(
+    'mock gym info edit updates the profile copy of hours and phone',
+    () async {
+      final repository = MockTrainerProfileRepository();
+      final TrainerGymInfo before = await repository.fetchGymInfo();
+      expect(before.gymId, kDemoTrainerGymId);
+
+      final TrainerGymInfo saved = await repository.updateGymInfo(
+        const TrainerGymInfoUpdate(
+          weekdayHours: '05:00 - 24:00',
+          weekendHours: '08:00 - 20:00',
+          phone: '02-332-1720',
+          tags: <String>[' 샤워실 ', '샤워실', '24시간'],
+        ),
+      );
+      expect(saved.tags, <String>['샤워실', '24시간']);
+
+      final profile = await repository.fetch();
+      expect(profile.gym.hours, '05:00 - 24:00');
+      expect(profile.gym.phone, '02-332-1720');
+      expect((await repository.fetchGymInfo()).weekendHours, '08:00 - 20:00');
+    },
+  );
 }

@@ -99,6 +99,8 @@ TRAINER_ROUTES = frozenset({
     "DELETE /v1/trainer/me/gym",
     "PUT /v1/trainer/me/gym",
     "PUT /v1/trainer/me/gym/kakao",
+    "GET /v1/trainer/me/gym/profile",
+    "PUT /v1/trainer/me/gym/profile",
     "POST /v1/trainer/me/password",
     "GET /v1/trainer/me/settings",
     "PUT /v1/trainer/me/settings",

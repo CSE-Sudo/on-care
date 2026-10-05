@@ -42,6 +42,13 @@ class _GymFailureRepository implements TrainerProfileRepository {
   Future<TrainerProfile> selectGym(TrainerGymCandidate gym) {
     throw const ServerError(message: '헬스장 연결 요청이 실패했습니다.');
   }
+
+  @override
+  Future<TrainerGymInfo> fetchGymInfo() => _delegate.fetchGymInfo();
+
+  @override
+  Future<TrainerGymInfo> updateGymInfo(TrainerGymInfoUpdate update) =>
+      _delegate.updateGymInfo(update);
 }
 
 class _UpdateFailureRepository implements TrainerProfileRepository {
@@ -68,6 +75,13 @@ class _UpdateFailureRepository implements TrainerProfileRepository {
 
   @override
   Future<TrainerProfile> selectGym(TrainerGymCandidate gym) =>
+      throw UnimplementedError();
+
+  @override
+  Future<TrainerGymInfo> fetchGymInfo() => throw UnimplementedError();
+
+  @override
+  Future<TrainerGymInfo> updateGymInfo(TrainerGymInfoUpdate update) =>
       throw UnimplementedError();
 }
 
@@ -868,6 +882,94 @@ void main() {
     testWidgets('소속이 있으면 안내하지 않는다', (tester) async {
       await openTab(tester);
       expect(find.byKey(const ValueKey<String>('my-gym-hidden')), findsNothing);
+    });
+
+    /// 소속 헬스장 카드의 `헬스장 정보 수정` 으로 들어가 값이 올 때까지 기다린다.
+    Future<void> openGymInfo(WidgetTester tester) async {
+      await openTab(tester);
+      final Finder button = find.byKey(
+        const ValueKey<String>('my-gym-info-edit'),
+      );
+      await tester.ensureVisible(button);
+      await tester.pump();
+      await tester.tap(button);
+      await settle(tester);
+    }
+
+    testWidgets('소속 헬스장 정보를 고치면 내 정보 카드에 반영된다 (#2700)', (tester) async {
+      await openGymInfo(tester);
+      expect(currentLocation(tester), AppRoutes.mySection('gymInfo'));
+      expect(
+        find.byKey(const ValueKey<String>('gym-info-weekday')),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('gym-info-weekday')),
+        '05:00 - 24:00',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('gym-info-phone')),
+        '02-332-1720',
+      );
+      final Finder tagInput = find.byKey(
+        const ValueKey<String>('gym-tag-input'),
+      );
+      await tester.ensureVisible(tagInput);
+      await tester.enterText(tagInput, '샤워실');
+      await tester.tap(find.byKey(const ValueKey<String>('gym-tag-add')));
+      await tester.pump();
+      expect(find.byKey(const ValueKey<String>('gym-tag-샤워실')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey<String>('gym-info-save')));
+      await settle(tester);
+      expect(currentLocation(tester), AppRoutes.mySection('profile'));
+      expect(find.text('05:00 - 24:00'), findsOneWidget);
+      expect(find.text('02-332-1720'), findsOneWidget);
+      // 태그는 수정 화면이 아니라 카드의 헬스장 이름 옆에도 보인다.
+      expect(
+        find.byKey(const ValueKey<String>('my-gym-tag-샤워실')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('태그는 지울 수 있고, 같은 태그는 한 번만 들어간다', (tester) async {
+      await openGymInfo(tester);
+      final Finder tagInput = find.byKey(
+        const ValueKey<String>('gym-tag-input'),
+      );
+      final Finder add = find.byKey(const ValueKey<String>('gym-tag-add'));
+      await tester.ensureVisible(tagInput);
+      await tester.enterText(tagInput, '24시간');
+      await tester.tap(add);
+      await tester.pump();
+      await tester.enterText(tagInput, ' 24시간 ');
+      // 태그 줄이 생기며 버튼이 아래로 밀려, 다시 화면으로 올린 뒤 누른다.
+      await tester.ensureVisible(add);
+      await tester.pumpAndSettle();
+      await tester.tap(add);
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('gym-tag-24시간')),
+        findsOneWidget,
+      );
+
+      // 태그 줄이 상단 바 아래로 밀려 있을 수 있어, 누르기 전에 화면으로 올린다.
+      final Finder remove = find.byTooltip('태그 지우기');
+      await tester.ensureVisible(remove);
+      await tester.pumpAndSettle();
+      await tester.tap(remove);
+      await tester.pump();
+      expect(find.byKey(const ValueKey<String>('gym-tag-24시간')), findsNothing);
+      expect(find.text('아직 태그가 없어요.'), findsOneWidget);
+    });
+
+    testWidgets('소속이 없으면 헬스장 정보 수정 버튼이 없다', (tester) async {
+      await openWithoutGym(tester);
+      expect(
+        find.byKey(const ValueKey<String>('my-gym-info-edit')),
+        findsNothing,
+      );
     });
 
     testWidgets('소속 헬스장은 필수다 — 고르지 않으면 저장하지 않고 칸 아래에 알린다', (tester) async {

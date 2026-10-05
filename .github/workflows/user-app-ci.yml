@@ -3,7 +3,8 @@ name: User App CI
 # 사용자 Flutter 앱(frontend/flutter) 전용 PR/main CI.
 # 트레이너 웹은 trainer-ci.yml 이 같은 일을 하는데 사용자 앱에는 대응이 없어,
 # 200건이 넘는 테스트가 로컬에서만 돌고 PR 화면에서는 통과 여부를 볼 수 없었다(#374).
-# 웹 빌드 검증은 deploy.yml 이 main 배포에서 이미 하므로 여기서는 analyze/test 만 한다.
+# 데모 웹 빌드는 deploy.yml 이 main 배포에서 하고, 여기서는 analyze/test 와 운영 웹
+# 번들에 데모가 섞이지 않았는지(#3157)를 본다.
 on:
   pull_request:
     paths:
@@ -24,6 +25,9 @@ on:
       - "shared/oncare_core/**"
       # 데모·실서버 진입점 비교 시험이 읽는 예외 목록 — 목록만 바뀌어도 돈다(#2792).
       - ".github/demo-divergence-allowlist.txt"
+      # 운영 빌드의 데모 자산 선언 제거와 운영 번들 검사(#3157).
+      - "frontend/tool/strip_demo_assets.py"
+      - "tool/ci/check_prod_web_bundle.py"
       - ".github/workflows/user-app-ci.yml"
   push:
     branches: [main]
@@ -45,6 +49,9 @@ on:
       - "shared/oncare_core/**"
       # 데모·실서버 진입점 비교 시험이 읽는 예외 목록 — 목록만 바뀌어도 돈다(#2792).
       - ".github/demo-divergence-allowlist.txt"
+      # 운영 빌드의 데모 자산 선언 제거와 운영 번들 검사(#3157).
+      - "frontend/tool/strip_demo_assets.py"
+      - "tool/ci/check_prod_web_bundle.py"
       - ".github/workflows/user-app-ci.yml"
 
 permissions:
@@ -263,3 +270,44 @@ jobs:
             "$keystore" "$secret" "$secret" > android/key.properties
           cd android
           ./gradlew --no-daemon :app:bundleRelease :app:assembleRelease --dry-run
+
+  # 운영 웹 번들 검사(#3157). 운영 배포(aws-frontend-deploy.yml)와 같은 조건 — 데모 자산
+  # 선언을 빼고 DEMO_BUILD 없이 실서버 설정으로 빌드한 뒤, 목업 분기가 트리 셰이킹되고
+  # 데모 자산이 빠졌는지 산출물을 직접 연다. 주소는 검사용 자리값이고 배포하지 않는다.
+  prod-web-bundle:
+    name: Production web bundle has no demo (user app)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: frontend/flutter
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          # analyze-and-test 와 같은 이유로 고정한다(#659).
+          flutter-version: '3.44.9'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Strip demo-only assets
+        run: python3 ../tool/strip_demo_assets.py .
+
+      - name: Build user web (production settings)
+        run: >-
+          flutter build web --release --base-href "/frontend/"
+          --dart-define=USE_MOCK_API=false
+          --dart-define=ENV=prod
+          --dart-define=API_BASE_URL=https://api.example.org/v1
+
+      - name: Check production bundle has no demo code or assets
+        working-directory: .
+        run: python3 tool/ci/check_prod_web_bundle.py --app member frontend/flutter/build/web

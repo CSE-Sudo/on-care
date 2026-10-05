@@ -33,7 +33,7 @@ final DietMeal _breakfast = DietMeal(
   total: 217,
   emoji: '🥣',
   thumbBg: const Color(0xFFFFF3E0),
-  photoAsset: 'assets/images/breakfast-scrambled-egg-strawberry.jpg',
+  photoAsset: 'assets/demo/images/breakfast-scrambled-egg-strawberry.jpg',
   items: const <DietFood>[DietFood('스크램블 에그', 185), DietFood('딸기', 32)],
   tags: const <DietTag>[],
   sodium: 221,

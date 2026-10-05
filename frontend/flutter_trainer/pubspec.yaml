@@ -137,8 +137,12 @@ flutter:
 
   assets:
     - assets/images/
-    # 데모 대화에서 트레이너가 보낸 첨부 PDF (#2663).
+    # >>> demo-assets — 데모 전용 자산(#3157). 데모 대화 첨부 PDF(#2663)와 데모 시드
+    # 끼니 사진. 운영 빌드는 `python3 frontend/tool/strip_demo_assets.py` 가 이 표시
+    # 사이를 지운 뒤 빌드한다 — 데모·개발·테스트는 지금처럼 그대로 싣는다.
     - assets/demo/
+    - assets/demo/images/
+    # <<< demo-assets
     # Pretendard 글꼴 라이선스 전문 — 기동 때 라이선스 목록에 넣는다(#3150).
     # OFL 은 글꼴을 함께 배포할 때 라이선스 고지를 요구한다.
     - assets/fonts/Pretendard-OFL.txt

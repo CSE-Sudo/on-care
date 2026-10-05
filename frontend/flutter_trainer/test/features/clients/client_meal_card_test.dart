@@ -262,7 +262,7 @@ void main() {
             fatG: 12.7,
             sugarG: 8.6,
             // 사진 칸만큼 줄 폭이 좁아진다 — 오늘 탭의 실제 카드 폭.
-            photoAsset: 'assets/images/diet-vegetable-bibimbap.jpg',
+            photoAsset: 'assets/demo/images/diet-vegetable-bibimbap.jpg',
             foods: <ClientDietFood>[ClientDietFood(name: '짬뽕', calories: 707)],
           ),
         ],
@@ -533,7 +533,7 @@ void main() {
               carbsG: 50,
               proteinG: 10,
               fatG: 5,
-              photoAsset: 'assets/images/diet-oatmeal-banana.jpeg',
+              photoAsset: 'assets/demo/images/diet-oatmeal-banana.jpeg',
             ),
             ClientDietEntry(
               id: 'without-photo',

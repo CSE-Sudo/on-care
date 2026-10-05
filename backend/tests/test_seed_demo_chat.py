@@ -169,7 +169,7 @@ def test_trainer_files_are_seeded_in_the_same_places_as_the_apps(client, db_sess
     assert media_type == "image/jpeg"
     image_bytes = blob.read_all()
     assert image_bytes == (
-        frontend / "assets" / "images" / "diet-doenjang-rice.jpeg"
+        frontend / "assets" / "demo" / "images" / "diet-doenjang-rice.jpeg"
     ).read_bytes()
     assert image.attachment_file_size == len(image_bytes)
 
