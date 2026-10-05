@@ -122,11 +122,30 @@ void main() {
       );
     });
 
-    test('사유가 없으면 동작별 문구다', () {
+    test('연결 오류·5xx 는 원인별 안내다', () {
       expect(
         scheduleActionErrorMessage(
           ko,
           const NetworkError(),
+          ko.schedCancelFailed,
+        ),
+        ko.errorNetworkUnstable,
+      );
+      expect(
+        scheduleActionErrorMessage(
+          ko,
+          const ServerError(statusCode: 503),
+          ko.schedCancelFailed,
+        ),
+        ko.errorServerTemporary,
+      );
+    });
+
+    test('사유가 없으면 동작별 문구다', () {
+      expect(
+        scheduleActionErrorMessage(
+          ko,
+          const ValidationError(),
           ko.schedCancelFailed,
         ),
         ko.schedCancelFailed,
@@ -256,11 +275,43 @@ void main() {
     testWidgets('사유 없는 취소 실패는 기존 문구다', (tester) async {
       await openSchedule(tester);
       await openSession(tester, '박성호');
-      repo.cancelError = const NetworkError();
+      // 사유 없는 거절 — 연결 오류는 원인별 안내라 따로 본다.
+      repo.cancelError = const ValidationError();
 
       await cancelWith(tester, 'cancel-source-member');
 
       expect(find.text('취소 처리하지 못했어요. 잠시 후 다시 시도해 주세요'), findsOneWidget);
+    });
+
+    testWidgets('연결 오류로 취소가 실패하면 연결 안내다 — Dio 원문이 아니다', (tester) async {
+      await openSchedule(tester);
+      await openSession(tester, '박성호');
+      repo.cancelError = const NetworkError();
+
+      await cancelWith(tester, 'cancel-source-member');
+
+      expect(
+        find.text(
+          lookupAppLocalizations(const Locale('ko')).errorNetworkUnstable,
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('exception'), findsNothing);
+    });
+
+    testWidgets('사유 없는 5xx 로 노쇼가 실패하면 서버 일시 문제 안내다', (tester) async {
+      await openSchedule(tester);
+      await openSession(tester, '박성호');
+      repo.noShowError = const ServerError(statusCode: 500);
+
+      await cancelWith(tester, 'cancel-source-no-show');
+
+      expect(
+        find.text(
+          lookupAppLocalizations(const Locale('ko')).errorServerTemporary,
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('노쇼 실패는 서버 사유를 보인다', (tester) async {
@@ -314,7 +365,7 @@ void main() {
       await openSchedule(tester);
       await openSession(tester, '박성호');
       await cancelWith(tester, 'cancel-source-member');
-      repo.dismissError = const NetworkError();
+      repo.dismissError = const ValidationError();
 
       await tapKey(tester, 'session-routines-skip');
 

@@ -23,6 +23,7 @@ import 'package:oncare/features/notification/presentation/controllers/notificati
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/record_span_provider.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -569,9 +570,10 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
         else
           diet.when(
             loading: () => const AppLoading(placement: AppStatePlacement.card),
-            error: (Object e, StackTrace _) => AppErrorState(
+            error: (Object e, StackTrace _) => appErrorStateFor(
+              context,
+              error: e,
               title: l.dietLoadError,
-              retryLabel: l.actionRetry,
               onRetry: _retryDay,
               placement: AppStatePlacement.card,
             ),

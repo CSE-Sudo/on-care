@@ -168,16 +168,16 @@ flutter run --dart-define=USE_MOCK_API=false --dart-define=API_BASE_URL=http://l
 
 식단 인식은 인식 엔진을 교체할 수 있습니다(factory 구조).
 현재 Gemini 무료 티어가 지역에서 회수되어(quota=0) 라이브 호출이 막혔으므로,
-**LiteLLM Virtual Key 를 통해 Claude 비전 모델로 우회**하여 라이브 호출을 확인했습니다.
+**LiteLLM Virtual Key 로 프록시 뒤의 비전 모델을 써서 우회**하여 라이브 호출을 확인했습니다.
 Gemini 키가 확보되면 `.env` 의 `RECOGNIZER=gemini` 로 즉시 전환 가능합니다.
 
 **설정 (.env)**
 ```
-RECOGNIZER=claude
+RECOGNIZER=litellm
 COACH_LLM=litellm
 LITELLM_BASE_URL=http://<litellm-host>:4000
 LITELLM_API_KEY=<Virtual Key>          # gitignored
-LITELLM_VISION_MODEL=claude-haiku-4-5-20251001
+LITELLM_VISION_MODEL=<비전 모델 이름>
 ```
 
 **요청**
@@ -185,12 +185,12 @@ LITELLM_VISION_MODEL=claude-haiku-4-5-20251001
 POST /v1/diet/analyze   (multipart: image=<음식 사진>, meal_type=lunch)
 ```
 
-**응답 (engine=claude, 실제 호출 결과)**
+**응답 (engine=litellm, 실제 호출 결과 — 엔진 이름은 현재 키로 표기)**
 ```json
 {
   "entry_id": "diet-c62ce45833ba",
   "analysis": {
-    "engine": "claude",
+    "engine": "litellm",
     "foods": [
       {"name": "혼합 견과류 및 건포도", "calories": 180, "sodium_mg": 95, "sugar_g": 15, "confidence": 0.75},
       {"name": "오이 및 채소 샐러드", "calories": 35, "sodium_mg": 45, "sugar_g": 3, "confidence": 0.85},
@@ -205,5 +205,5 @@ POST /v1/diet/analyze   (multipart: image=<음식 사진>, meal_type=lunch)
 }
 ```
 
-인식 엔진 선택: `RECOGNIZER=claude`(LiteLLM) | `gemini` | `yolo`(비교실험용 스텁).
+인식 엔진 선택: `RECOGNIZER=gemini`(기본) | `litellm`(LiteLLM 프록시 경유 비전 모델).
 엔진을 바꿔도 응답 형식(DietAnalysis)은 동일하므로 프론트는 영향받지 않습니다.

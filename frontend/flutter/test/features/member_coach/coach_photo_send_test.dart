@@ -99,6 +99,7 @@ ProviderContainer _container(_PhotoRepository repo) {
 void main() {
   setUpAll(() {
     registerFallbackValue(FormData());
+    registerFallbackValue(Options());
   });
 
   group('DTO', () {
@@ -137,6 +138,7 @@ void main() {
         () => dio.post<Map<String, Object?>>(
           '/me/coach/chat/image',
           data: any(named: 'data'),
+          options: any(named: 'options'),
         ),
       ).thenAnswer(
         (_) async => Response<Map<String, Object?>>(
@@ -161,6 +163,7 @@ void main() {
                 () => dio.post<Map<String, Object?>>(
                   '/me/coach/chat/image',
                   data: captureAny(named: 'data'),
+                  options: any(named: 'options'),
                 ),
               ).captured.single
               as FormData;
@@ -181,6 +184,7 @@ void main() {
         () => dio.post<Map<String, Object?>>(
           '/me/coach/chat/image',
           data: any(named: 'data'),
+          options: any(named: 'options'),
         ),
       ).thenThrow(
         DioException(
@@ -209,6 +213,7 @@ void main() {
         () => dio.post<Map<String, Object?>>(
           '/me/coach/chat/image',
           data: any(named: 'data'),
+          options: any(named: 'options'),
         ),
       ).thenAnswer(
         (_) async => Response<Map<String, Object?>>(

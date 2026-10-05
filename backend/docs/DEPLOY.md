@@ -47,14 +47,17 @@ GitHub(main push) ─> Backend CI ─> backend-deploy.yml
 |---|---|---|---|---|
 | `oncare-backend-bootstrap` | `infra/backend-bootstrap.yml` | 계정에 1개 | 없음(이미지 저장량만) | ECR `oncare-backend`(불변 태그, 최근 20개 유지), 이미지 푸시 역할 |
 | `oncare-backend-env-<environment>` | `infra/backend-environment.yml` | 환경마다 1개 | 없음 | 첨부 버킷, 태스크·실행·인프라 역할, CloudFormation 서비스 역할, GitHub 배포 역할 |
-| `oncare-backend-<environment>` | `infra/backend-service.yml` | 환경마다 1개 | **생성 순간부터 과금** | ECS Express Mode 서비스(Fargate 태스크 1개 + ALB) |
+| `oncare-backend-<environment>` | `infra/backend-service.yml` | 환경마다 1개 | **생성 순간부터 과금** | ECS Express Mode 서비스(Fargate 태스크 1~4개, 기본 1 + ALB) |
 
 `<environment>` 는 `production`·`staging` 이다. staging 은 데모 시연용이고 **운영과 다른 DB·비밀·버킷**을
 쓴다(#3020). staging 이 필요 없으면 staging 스택을 만들지 않고 `BACKEND_STAGING_DEPLOY_ENABLED` 를 비워 둔다.
 
-**태스크는 1개로 고정한다.** 로그인 실패 잠금·가입 상한 같은 시도 제한이 프로세스 메모리에 있어
-(`app/core/rate_limit.py`) 태스크가 늘면 한도가 그만큼 느슨해진다. 템플릿은 `MinTaskCount`·
-`MaxTaskCount` 를 `1` 만 받는다. 늘리려면 먼저 시도 제한을 공유 저장소(Redis 등)로 옮긴다.
+**태스크는 기본 1개, 1~4개까지 늘릴 수 있다(#3143).** 분당 한도·로그인 실패 잠금·가입 상한 같은 시도
+제한은 Postgres 공유 표 `rate_limit_hits` 에 센다(`RATE_LIMIT_STORE=database`, `app/core/rate_limit.py`).
+태스크가 늘어도 한도가 느슨해지지 않고, 재배포·재시작에도 잠금이 남는다. 템플릿은 `MinTaskCount`·
+`MaxTaskCount` 를 1~4 로 받는다. 늘리기 전에 아래 "DB 커넥션 풀" 의 연결 수 계산이 DB 플랜 상한 안인지
+보고, `/v1/system/metrics` 는 요청을 받은 태스크 하나의 값만 보여 준다는 점을 감안한다. 실제 태스크 수는
+배포 담당(#480)이 정한다.
 
 **서비스 설정의 원본은 템플릿과 스택 파라미터다.** 콘솔에서 서비스를 직접 고치면 다음 배포가
 템플릿 값으로 되돌린다. 설정을 바꿀 때는 `infra/backend-service.yml` 을 PR 로 고치거나 스택
@@ -73,18 +76,55 @@ GitHub(main push) ─> Backend CI ─> backend-deploy.yml
 - 배포 역할은 **GitHub Environment 에서 돈 job 만** 맡을 수 있다. 브랜치 형식 토큰으로는 서비스를
   바꿀 수 없으므로 Environment 의 승인 규칙을 건너뛰는 길이 없다.
 - 배포 역할에는 ECS·IAM 권한이 없다. 서비스 변경은 CloudFormation 이 서비스 역할로 한다.
-- 저장소에는 이미 `Production`·`Preview`·`github-pages` Environment 가 있다. Environment 이름은
-  대소문자를 가리지 않으므로 `Production` 이 곧 `production` 이다.
+- Environment 이름이 곧 배포 경계다. 워크플로의 `environment:` 와 템플릿의 신뢰 조건이 같은 이름을
+  써야 한다(아래 표). `infra/tests/test_deploy_workflows.py` 가 둘이 어긋나지 않는지 PR 마다 본다.
 
-**GitHub Environment 설정**(Settings > Environments)
+**Environment 이름 ↔ OIDC subject ↔ 워크플로**(#3133)
 
-| Environment | 보호 규칙 | 배포 브랜치 | 변수 |
+| Environment | 믿는 역할(템플릿) | OIDC subject | 쓰는 job |
 |---|---|---|---|
-| `production` | Required reviewers(운영 승인자), 필요하면 대기 시간 | `main` 만 | `AWS_BACKEND_DEPLOY_ROLE_ARN`·`AWS_BACKEND_CFN_ROLE_ARN`·`BACKEND_STACK_NAME` |
-| `staging` | 없음(자동) | `main` 만 | 같은 세 변수(staging 스택 출력값) |
+| `production` | 백엔드 배포 역할(`infra/backend-environment.yml`, `EnvironmentName=production`), 프런트 배포 역할(`infra/frontend-hosting.yml`, `GitHubEnvironment` 기본값) | `repo:CSE-Sudo@<id>/on-care@<id>:environment:production` | `backend-deploy.yml` → `deploy-production`(`backend-deploy-service.yml`), `aws-frontend-deploy.yml` → `build-and-deploy` |
+| `staging` | 백엔드 배포 역할(`EnvironmentName=staging`) | `…:environment:staging` | `backend-deploy.yml` → `deploy-staging` |
+| `github-pages` | 없음(AWS 역할을 받지 않음) | — | `deploy.yml` 데모 Pages 배포 |
+
+두 템플릿은 subject 를 `StringEqualsIgnoreCase` 로 비교하고 GitHub 도 Environment 이름의 대소문자를
+가리지 않는다. 그래서 Vercel 연동 시절에 만들어진 `Production` 이 곧 `production` 이다. 이름을 바꿀 수
+없으므로 지우지 않고 아래 규칙을 채워 이어 쓴다(배포 기록 보존). 워크플로와 문서는 소문자로 쓴다.
+
+**보호 규칙이 비어 있으면 안 되는 이유** — 배포 역할은 Environment 이름만 믿는다. 배포 브랜치 정책이
+없으면 **어느 브랜치에서 돈 job 이든** `environment: production` 만 적으면 운영 배포 역할을 받는다.
+필수 승인자가 없으면 누구의 승인도 없이 받는다. `staging` 은 처음 실행될 때 규칙 없는 Environment 로
+자동 생성되므로, 첫 배포 전에 관리자가 먼저 만든다.
+
+**GitHub Environment 설정**(Settings > Environments, 저장소 관리자 작업 — 코드로 남지 않는다)
+
+| Environment | Required reviewers | Prevent self-review | Wait timer | Deployment branches and tags | Allow administrators to bypass | 변수 |
+|---|---|---|---|---|---|---|
+| `production`(기존 `Production`) | 켬 — 배포 담당(`aJISUa`)·백엔드 담당(`subin21cc`). 둘 중 한 명 승인 | 끔(두 명뿐이라 켜면 병합한 사람이 승인할 수 없어 다른 한 명이 늘 있어야 한다) | 0 | **Selected branches and tags** → 규칙 1개: Ref type `Branch`, 이름 `main` | 끔 | `AWS_BACKEND_DEPLOY_ROLE_ARN`·`AWS_BACKEND_CFN_ROLE_ARN`·`BACKEND_STACK_NAME` |
+| `staging`(새로 만듦) | 끔(자동) | — | 0 | **Selected branches and tags** → 규칙 1개: Ref type `Branch`, 이름 `main` | 끔 | 같은 세 변수(staging 스택 출력값) |
+| `Preview` | — | — | — | — | — | **삭제한다**(Vercel 미리보기 배포 기록뿐, 쓰는 워크플로 없음) |
+| `github-pages` | 그대로 | — | — | 그대로 | — | 바꾸지 않는다 |
+
+관리자 적용 순서
+
+1. Settings > Environments > `Production` → **Required reviewers** 에 `aJISUa`·`subin21cc` 를 넣고
+   저장한다. **Prevent self-review** 는 끈 채로 둔다.
+2. 같은 화면 **Deployment branches and tags** 를 `No restriction` 에서 **Selected branches and tags** 로
+   바꾸고 **Add deployment branch or tag rule** → Ref type `Branch`, Name pattern `main` 을 넣는다.
+   태그 규칙은 넣지 않는다(태그는 리뷰 없이 아무 커밋에 붙일 수 있어 운영 역할을 받는 길이 된다).
+3. **Allow administrators to bypass configured protection rules** 체크를 끈다.
+4. **New environment** → 이름 `staging` 으로 만들고 2·3 번을 똑같이 한다. 승인자는 두지 않는다.
+5. 두 Environment 에 위 표의 변수를 넣는다(백엔드 환경 스택 출력값, 3절).
+6. `Preview` Environment 를 **Delete environment** 로 지운다.
+7. 확인: `gh api repos/CSE-Sudo/on-care/environments --jq '.environments[] | {name, rules: [.protection_rules[].type], policy: .deployment_branch_policy}'`
+   에서 `Production` 은 `required_reviewers`·`branch_policy` 와 `{"protected_branches":false,"custom_branch_policies":true}`,
+   `staging` 은 `branch_policy` 와 같은 정책, `Preview` 는 없어야 한다. 브랜치 이름은
+   `gh api repos/CSE-Sudo/on-care/environments/production/deployment-branch-policies` 에서 `main` 하나여야 한다.
 
 프런트 AWS 배포(`aws-frontend-deploy.yml`)도 `production` Environment 에서 돈다. 그래서 운영 승인자를
-걸면 프런트 배포도 같은 승인을 기다린다.
+걸면 프런트 배포도 같은 승인을 기다린다. 승인 대기는 배포 순서 판정(프런트가 백엔드를 최대 45분
+기다림)에 포함되므로, 백엔드 승인을 늦게 하면 프런트 배포가 시간 초과로 멈출 수 있다 — 그때는 승인 뒤
+프런트 배포를 수동으로 다시 실행한다.
 
 **저장소 변수**(Settings > Secrets and variables > Actions > Variables)
 
@@ -202,8 +242,11 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
 6. 저장소 변수 `BACKEND_DEPLOY_ENABLED=true`(staging 을 쓰면 `BACKEND_STAGING_DEPLOY_ENABLED=true`).
    다음 `main` 병합부터 자동으로 배포된다.
 
-선택 파라미터: `Cpu`(기본 1024)·`Memory`(기본 2048), `AdminEmails`, `AppleClientIds`·`GoogleClientIds`·`KakaoAppId`(#3035), 메일
-(`MailFrom`·`SmtpHost`·`SmtpPort`·`PasswordResetMemberUrl`·`PasswordResetTrainerUrl`), staging 전용
+**production 필수 파라미터(#3131)**: 메일 `MailFrom`·`SmtpHost`. 운영은 가입 이메일 확인을 끌 수 없어(#3038) 메일이
+없으면 가입 인증 코드를 보낼 수 없고 신규 가입이 모두 막히므로, 둘 중 하나라도 비면 서버가 기동을 거부한다.
+
+선택 파라미터: `Cpu`(기본 1024)·`Memory`(기본 2048), `AppleClientIds`·`GoogleClientIds`·`KakaoAppId`(#3035), 메일
+(`SmtpPort`·`PasswordResetMemberUrl`·`PasswordResetTrainerUrl`, staging 은 `MailFrom`·`SmtpHost` 도 선택), staging 전용
 `AllowDemoFallback`, 기본 VPC 가 아닌 곳에 둘 때 `SubnetIds`·`SecurityGroupIds`.
 
 ## 4) Neon Postgres (pgvector)
@@ -220,6 +263,16 @@ CREATE EXTENSION IF NOT EXISTS vector;
 - **풀러(`-pooler`) 엔드포인트가 아니라 직접 엔드포인트를 쓴다.** 기동 시 마이그레이션이
   `pg_try_advisory_lock`(세션 단위 lock, `scripts/migrate.py`)으로 태스크를 직렬화하는데,
   트랜잭션 풀링을 거치면 lock 을 잡은 세션과 alembic 이 쓰는 세션이 달라질 수 있어 직렬화가 깨진다.
+  공개 문서 재적재의 세션 잠금(`app/db/init_db.py`)도 같고, 앱 연결의 시작 옵션
+  `options=-c statement_timeout=…`(`app/db/session.py`)은 풀러가 받지 않아 연결이 거절된다.
+  - 운영(`ENV=prod`)은 `DATABASE_URL` 호스트의 첫 조각이 `-pooler` 로 끝나면 **기동을 거부**한다
+    (`app/core/db_url.py` `pooler_problem`, #3146). 마이그레이션 러너(`scripts/migrate.py`)도 같은
+    판정으로 잠금을 잡기 전에 종료 코드 1 로 멈춘다. 오류 문구에 바꿀 직접 엔드포인트 호스트가 나온다
+    (`ep-xxx-pooler.<region>.aws.neon.tech` → `ep-xxx.<region>.aws.neon.tech`).
+  - 개발·스테이징은 막지 않고 기동 로그(`[startup]`)와 `[migrate] WARN` 으로만 남긴다.
+  - 연결 수가 모자라 풀러가 필요해지면, 마이그레이션·세션 잠금 전용 직접 주소
+    (`MIGRATION_DATABASE_URL` 같은 별도 값)와 앱용 `DATABASE_URL`(풀러)을 나누고 앱 쪽 시작 옵션·세션
+    잠금을 트랜잭션 단위로 바꾸는 작업이 먼저 필요하다. 지금은 구현하지 않았다 — 직접 엔드포인트만 쓴다.
 - 운영과 staging 은 **다른 DB**(또는 Neon 브랜치)를 쓴다.
 
 ## 5) 환경변수 / 비밀
@@ -234,17 +287,17 @@ CREATE EXTENSION IF NOT EXISTS vector;
 |---|---|---|
 | `DATABASE_URL` | 그 환경 DB 의 직접 엔드포인트 | 예 |
 | `JWT_SECRET` | `openssl rand -hex 32`. **환경마다 다르게**. 32바이트 미만이면 운영 기동 거부(#3029) | 예 |
-| `GEMINI_API_KEY` | 사진 인식·임베딩. 운영은 없으면 기동 거부(#2812). **결제가 연결된 프로젝트의 키(유료 등급)만**(#3032) — 무료 등급은 입력(회원 음식 사진·건강 기록·코치 대화)이 제공자의 서비스 개선에 쓰일 수 있고 한도가 낮다. 결제 연결은 #480 | 예 |
+| `GEMINI_API_KEY` | 사진 인식·임베딩·코치 LLM(`COACH_LLM=gemini`). 운영은 없으면 기동 거부(#2812·#3145). **결제가 연결된 프로젝트의 키(유료 등급)만**(#3032) — 무료 등급은 입력(회원 음식 사진·건강 기록·코치 대화)이 제공자의 서비스 개선에 쓰일 수 있고 한도가 낮다. 결제 연결은 #480 | 예 |
 | `KAKAO_REST_API_KEY` | 장소 실검색. 빈 값이면 헬스장 찾기가 사실상 빈다(시드로 채우지 않음, #2914) | 키는 있어야 함 |
 | `SENTRY_DSN` | 오류 수집(#2839). 빈 값이면 꺼짐 | 키는 있어야 함 |
-| `SMTP_USERNAME`·`SMTP_PASSWORD` | `MailFrom` 파라미터를 채웠을 때만 읽는다 | 메일을 켤 때 |
+| `SMTP_USERNAME`·`SMTP_PASSWORD` | `MailFrom` 파라미터를 채웠을 때만 읽는다. 운영은 메일이 필수라 항상 채운다(#3131) | 운영 예, staging 은 메일을 켤 때 |
 | `DEMO_LOGIN_PASSWORD` | staging 만. 강한 값 | staging |
 
 **템플릿이 고정하는 값** — 바꾸려면 템플릿 PR.
 
 | 키 | 값/설명 |
 |---|---|
-| `ENV` | production `prod`, staging `staging` (fail-fast 하드닝은 `prod` 에서만). **비우면 컨테이너가 뜨지 않는다**(`scripts/start.sh`, #2821) |
+| `ENV` | production `prod`, staging `staging` (fail-fast 하드닝은 `prod` 에서만). **비우면 컨테이너가 뜨지 않는다**(`scripts/start.sh`, #2821). 허용값은 `dev`·`staging`·`prod` 뿐이고(대소문자·공백 무시, `production` 은 `prod`), `prd`·`live` 같은 다른 표기는 기동 거부(#3145) |
 | `SEED_DEMO_DATA` | production `false`, staging `true` |
 | `ALLOW_DEMO_FALLBACK` | production `false`, staging 은 파라미터 `AllowDemoFallback` |
 | `AUTO_CREATE_TABLES` | `false` (Alembic 이 정답) |
@@ -252,6 +305,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `FORCE_HTTPS`·`LOG_LEVEL` | `true`·`INFO` |
 | `TRUSTED_PROXY_HOPS` | `1` — ALB 하나 뒤다(#2815) |
 | `WEB_CONCURRENCY` | `1` (아래 "워커 수") |
+| `RATE_LIMIT_STORE` | `database` — 시도 제한을 Postgres 공유 표에 센다(#3143). 태스크가 여럿이어도 한도가 하나다 |
 | `ATTACHMENT_STORAGE`·`ATTACHMENT_S3_*` | `s3`, 환경 스택 버킷, 서비스 리전, `chat-attachments` |
 | `RECOGNIZER`·`COACH_LLM`·`EMBEDDER` | `gemini` |
 | `GEMINI_TIMEOUT_SECONDS`·`RECOGNIZER_TIMEOUT_SECONDS` | `30`·`60`(#2912) |
@@ -269,7 +323,9 @@ CREATE EXTENSION IF NOT EXISTS vector;
 위 값 중 코드 기본값과 같은 것도 템플릿에 못 박는다(#3034) — 데모 서비스에서 바꾼 값이 운영으로
 복사되지 않게 하고, 운영에서 무엇이 들어가는지 `.env.aws.example` 한 곳에서 보이게 한다.
 
-**메일·재설정 값**(#3033)
+**메일·재설정 값**(#3033) — 운영 필수(#3131). `SMTP_HOST`·`MAIL_FROM` 이 비면(또는 `MAIL_PROVIDER=log` 면)
+운영 서버가 기동을 거부한다. 메일이 없으면 가입 인증 코드를 보낼 수 없어 회원 앱·트레이너 웹의 신규 가입이
+모두 막히고(가입 코드 요청 503), 비밀번호 재설정도 503 이 되기 때문이다.
 
 | 키 | 설명 |
 |---|---|
@@ -281,15 +337,17 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `PASSWORD_RESET_TRAINER_URL` | 트레이너 웹 재설정 화면 — **해시형** `https://<운영 도메인>/trainer/#/auth/password-reset`. 해시 없는 경로형(`/auth/password-reset`)은 정적 경로를 가리켜 코드가 버려진다. 운영에서 경로형·`http://` 면 기동 로그에 WARN(#3033) |
 
 **스택 파라미터로 정하는 값**: `CORS_ALLOW_ORIGINS`(https 만, `*`·빈 값·localhost 금지 — 운영 기동 거부, #3029), `GEMINI_MODEL`(아래 5-3),
-`ADMIN_EMAILS`(쓰지 않음 — 비워 둔다, 아래 "관리자 지정", #3037), 소셜 로그인 `aud`(`APPLE_CLIENT_IDS`·`GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` — 비우면 그 로그인은 401, #3035), 메일(`MAIL_FROM`·`SMTP_HOST`·`SMTP_PORT`·`PASSWORD_RESET_*_URL`).
+소셜 로그인 `aud`(`APPLE_CLIENT_IDS`·`GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` — 비우면 그 로그인은 401, #3035), 메일(`MAIL_FROM`·`SMTP_HOST`·`SMTP_PORT`·`PASSWORD_RESET_*_URL`).
 
 그 밖의 키(`LOGIN_MAX_FAILURES` 같은 시도 제한·`SENTRY_ENVIRONMENT`·DB 풀 등)는 코드 기본값이 운영 값이라
 템플릿에 넣지 않았다(사유는 `tests/test_env_aws_example.py`, #3034). 바꿔야 하면 템플릿에 키를 더하고
 `.env.aws.example` 에서 그 키의 주석을 푼다. 전체 키와 기본값은 `backend/.env.example` 이
 `config.py` 와 1:1 로 갖고 있다(`tests/test_env_example.py`).
 
-> **시도 제한은 태스크 메모리에 둔다**(`app/core/rate_limit.py`). 태스크가 1 이 아니게 되거나
-> `WEB_CONCURRENCY` 를 늘리면 한도가 그 수만큼 늘어나므로, 그때 공유 저장소(Redis 등) 구현으로 바꾼다.
+> **시도 제한은 DB 공유 저장소에 센다**(`RATE_LIMIT_STORE=database`, `app/core/rate_limit.py`, #3143).
+> 한도 대상 요청(로그인·가입·사진 분석·AI 코치 등)마다 DB 왕복이 한 번 늘어난다. 저장소 오류 때는 한도
+> 없이 통과시키고(fail-open) 오류 로그와 `rate_limit.store_errors` 메트릭을 남긴다. 만료 행은 태스크가
+> 1분마다 지운다.
 > 기동 로그에 `TRUSTED_PROXY_HOPS=0` 경고가 보이면 프록시 홉 수 설정을 확인한다.
 > 기동 로그에 `소셜 로그인 허용 앱 설정이 비어` 경고가 보이면, 거기 적힌 provider 의 로그인은 모두 401 이다.
 
@@ -312,8 +370,8 @@ CREATE EXTENSION IF NOT EXISTS vector;
 ### 관리자 지정 (#3037)
 
 관리자는 환경 변수로 정하지 않는다. 예전 `ADMIN_EMAILS` 는 기동할 때 그 주소로 가입된 계정을
-올려, 운영자보다 **먼저 그 주소로 가입한 사람**이 관리자가 됐다. 이제 값이 남아 있으면 기동 로그에
-경고만 하고 아무도 올리지 않는다. 운영 DB 에 붙은 셸에서 다음 순서로 지정한다.
+올려, 운영자보다 **먼저 그 주소로 가입한 사람**이 관리자가 됐다. 그 설정과 템플릿 파라미터(`AdminEmails`)는
+지웠다(#3162) — 예전 환경에 값이 남아 있어도 알 수 없는 키로 무시되고 아무도 올리지 않는다. 운영 DB 에 붙은 셸에서 다음 순서로 지정한다.
 
 ```bash
 python -m scripts.grant_admin --email ops@example.com                       # 1) 조회만: id·가입일·역할·인증 시각
@@ -330,8 +388,9 @@ python -m scripts.grant_admin --email ops@example.com --confirm-id user-… --re
 - `WEB_CONCURRENCY` 로 uvicorn 워커 수를 정한다(`scripts/start.sh`, 기본 `1`, 1 이상 정수가
   아니면 기동 거부). 운영 값은 서비스 템플릿이 `1` 로 고정한다(#3016).
 - 워커를 늘릴 때의 영향:
-  - **인메모리 분당 한도**(로그인·AI 코치·사진 분석 분당 한도 등)는 워커마다 따로 센다 — 워커 N 개면
-    한 사용자가 최대 N 배까지 통과할 수 있다. DB 에서 세는 하루 상한(AI 챗봇·사진 분석)은 영향 없다.
+  - **분당 한도·로그인 잠금**은 운영(`RATE_LIMIT_STORE=database`)에서 DB 공유 저장소라 영향 없다(#3143).
+    `memory` 로 두면 워커마다 따로 세어 워커 N 개면 한 사용자가 최대 N 배까지 통과한다. DB 에서 세는
+    하루 상한(AI 챗봇·사진 분석)은 원래 영향 없다.
   - **`/v1/system/metrics`** 는 그 요청을 받은 워커 하나의 값만 보여 준다(합산되지 않는다).
   - **DB 연결 수**가 워커 수만큼 곱해진다(아래 계산식).
 - `async def` 라우트 안에서 동기 DB·Pillow·파일 저장을 돌리지 않는다 — 이벤트 루프가 막혀 같은 워커의
@@ -359,7 +418,7 @@ Backend CI 가 컨테이너를 띄워 좌표 쿼리 요청 뒤 로그에 좌표�
 | `DB_STATEMENT_TIMEOUT_MS` | `10000` | 쿼리 하나의 실행 상한. 연결 시작 옵션(`-c statement_timeout`)으로 건다. `0` 이면 끈다 |
 
 - **연결 수 계산:** `(DB_POOL_SIZE + DB_MAX_OVERFLOW) × WEB_CONCURRENCY × 태스크 수` 가 DB 플랜의
-  동시 연결 상한보다 작아야 한다. 기본값·워커 1·태스크 1 이면 최대 15 다(배포 중 옛 태스크와 겹치는 동안은 두 배). 마이그레이션은 기동 때
+  동시 연결 상한보다 작아야 한다. 기본값·워커 1·태스크 1 이면 최대 15, 태스크 4(템플릿 상한)면 최대 60 이다(배포 중 옛 태스크와 겹치는 동안은 두 배). 마이그레이션은 기동 때
   별도 연결 하나를 잠깐 더 쓴다.
 - 실행 상한은 앱 엔진에만 걸린다. 마이그레이션(`scripts/migrate.py`·Alembic)은 자기 엔진을 쓰므로 긴
   DDL 이 끊기지 않는다. readiness(`/readyz`)는 따로 3초 상한을 건다.
@@ -425,6 +484,9 @@ Fargate 태스크의 디스크는 재배포·재시작 때 비므로 운영은 S
       `ENV`·`SEED_DEMO_DATA`·`ALLOW_DEMO_FALLBACK`·`AUTO_CREATE_TABLES` 는 템플릿이 정한다.
       `backend/.env.aws.example` 의 주석 키(`# KEY=값`)는 기본값이 이 서비스에 맞는지 확인했다(#3034).
 - [ ] 비밀 `oncare/backend/<environment>` 이 위 "비밀 키" 표의 키를 모두 갖는다(빈 값이라도).
+- [ ] **메일 파라미터 `MailFrom`·`SmtpHost` 와 비밀 `SMTP_USERNAME`·`SMTP_PASSWORD` 가 채워져 있다(#3131).**
+      비면 운영 서버가 기동을 거부한다(가입 인증 코드를 보낼 수 없어 신규 가입이 모두 막히기 때문).
+      배포 뒤 새 이메일로 회원 가입 코드를 한 번 요청해 메일이 오는지 본다.
 - [ ] **비밀번호 재설정 메일이 실제로 온다(#3033).** 회원·트레이너 계정으로 재설정을 한 번씩 요청해 메일을
       받고, 링크를 눌러 두 앱 재설정 화면이 **코드가 채워진 채** 열리는지 본다. 기동 로그에 `PASSWORD_RESET_` WARN 이 없다.
 - [ ] **운영 DB 와 staging(데모) DB 가 다르다.** 운영 `DATABASE_URL` 은 데모 시드가 한 번도 들어가지
@@ -440,6 +502,9 @@ Fargate 태스크의 디스크는 재배포·재시작 때 비므로 운영은 S
       배포한 커밋). 실패했다면 `Roll back to previous image` 단계 결과와 잡 요약을 본다.
 - [ ] 기동 로그에 `[startup]` WARN 이 없다(데모 폴백, staging 의 로컬 첨부 저장소). 운영 데모 시드·운영
       로컬 첨부 저장소는 WARN 이 아니라 기동 거부다.
+- [ ] **헬스장 찾기가 비지 않는다(#3161).** 기동 로그에 `KAKAO_REST_API_KEY`·`PLACES_PROVIDER=seed` 를 말하는
+      `[startup]` ERROR 가 없다. 키가 비거나 `PLACES_PROVIDER=seed` 면 서버는 뜨지만 회원 앱 헬스장 찾기가
+      항상 빈 목록이다(데모 장소는 빼고 읽음, #2914). 배포 뒤 회원 앱에서 한 번 검색해 결과가 나오는지 본다.
 - [ ] **AI 비용 상한이 정해져 있다(#3032).** `GEMINI_API_KEY` 가 결제가 연결된 프로젝트의 키다
       (무료 등급 금지). 공급자 콘솔에 예산 알림을 걸고, 그 예산으로 `AI_GLOBAL_CALLS_PER_DAY` 를 0 이
       아닌 값으로 둔다. 운영 중에는 `ai_calls.rejected{reason=global_cap}` 메트릭이 늘면 상한이나
@@ -465,11 +530,30 @@ Fargate 태스크의 디스크는 재배포·재시작 때 비므로 운영은 S
 
 | 작업 | 주기 | 방법 | 담당 |
 |---|---|---|---|
-| 읽은 알림 정리 | 매월 1회 | `python -m scripts.purge_notifications --dry-run` 으로 대상 확인 → 같은 명령에서 `--dry-run` 을 빼고 실행. 읽은 알림 중 90일 지난 것만 지운다 | 배포 담당(#480) |
+| 보존 기한 정리(감사 로그·읽은 알림) | 자동 — 기동 때와 하루마다 | 서버가 스스로 돈다(아래). 손으로 한 번 돌릴 때는 `python -m scripts.purge_retention` | 자동(확인은 배포 담당 #480) |
 | 모델 은퇴 확인 | 분기 1회 | 위 5-3 | 배포 담당(#480) |
 
-알림 정리는 되돌릴 수 없어 자동 스케줄로 돌리지 않는다. 운영 DB 를 향한 `DATABASE_URL` 로
-컨테이너(또는 같은 이미지의 일회성 작업)에서 실행한다.
+**보존 기한 정리 (#3144)**. 처리방침이 "기간이 지나면 자동으로 삭제" 한다고 고지하므로 정리는 사람
+손에 맡기지 않는다. 백엔드 프로세스가 기동 때 한 번, 그 뒤 24시간마다 백그라운드에서
+`app/services/retention.py` `run_purge` 를 돈다.
+
+- 지우는 것: 감사 로그 중 `AUDIT_RETENTION_DAYS`(접속 기록 365일)·`AUDIT_SENSITIVE_RETENTION_DAYS`
+  (건강정보 열람·공유 동의·탈퇴 730일)가 지난 기록, 읽은 알림 중 90일 지난 것. 미확인 알림은 남긴다.
+- 태스크·워커가 여럿이면 Postgres advisory lock 을 기다리지 않고 잡아 본 한 곳만 돌고 나머지는
+  그 차례를 건너뛴다. 삭제는 기한 조건으로만 골라 겹쳐 돌아도 결과가 같다.
+- 단계(감사 로그·알림)마다 따로 커밋하고, 한 단계가 실패해도 다음 단계와 서비스는 계속된다. 실패는
+  `보존 기한 정리 실패(<단계>)` 경고 로그와 관리자 전용 `GET /v1/system/metrics` 의 `retention.purge_failures{step=…}` 로 드러난다.
+  지운 건수는 `보존 기한 정리: audit_logs N건, notifications N건` 정보 로그로 남는다.
+- 손으로 한 번 돌릴 때(보존 기간 설정을 바꾼 직후 등)는 운영 DB 를 향한 `DATABASE_URL` 로 같은 이미지에서
+  `python -m scripts.purge_retention` 을 실행한다. 실패한 단계가 있으면 종료 코드 1 이다.
+- 알림을 기준·사용자를 바꿔 정리하거나 대상을 먼저 볼 때는 `python -m scripts.purge_notifications --dry-run`
+  을 쓴다.
+
+예약 실행을 인프라(EventBridge Scheduler → ECS `RunTask`)에 두지 않은 이유: Express Mode 서비스는 작업
+정의를 스스로 만들고 바꿔 예약 작업이 가리킬 고정 ARN 이 없고, 같은 이미지로 별도 작업 정의를 두면 운영
+환경변수·비밀 목록 전체를 두 벌로 맞춰야 한다(어긋나면 운영 설정 검증에 걸려 정리만 조용히 멈춘다).
+기본 VPC 를 쓰는 스택은 `RunTask` 에 넘길 서브넷도 없다. 앱 안에서 돌면 태스크 수와 무관하게 하루 한 번
+이상 돌고 추가 IAM·스케줄 리소스가 필요 없다.
 
 ## 리전 (#2912)
 

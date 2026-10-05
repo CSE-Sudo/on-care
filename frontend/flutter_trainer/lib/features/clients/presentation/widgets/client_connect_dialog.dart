@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/utils/server_message.dart';
+import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_invite_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_invite.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/pairing_code_input.dart';
@@ -155,11 +154,7 @@ class _ClientConnectDialogState extends ConsumerState<ClientConnectDialog> {
     NotFoundError() => l.clientConnectCodeInvalid,
     // 타입으로 받은 사유는 로케일 문구로 — 한국어 문장이 새지 않는다(#2893).
     AlreadyManagedError() => l.clientConnectAlreadyManaged,
-    AppError(:final String? message) => serverDetailOr(
-      l,
-      message,
-      l.clientInviteFailed,
-    ),
+    AppError() => appErrorMessage(l, error, fallback: l.clientInviteFailed),
     _ => l.clientInviteFailed,
   };
 
@@ -180,7 +175,7 @@ class _ClientConnectDialogState extends ConsumerState<ClientConnectDialog> {
       if (!mounted) return;
       showAppToast(
         context,
-        serverDetailOr(l, error.message, l.clientInviteCancelFailed),
+        appErrorMessage(l, error, fallback: l.clientInviteCancelFailed),
         type: AppToastType.error,
       );
     } finally {
