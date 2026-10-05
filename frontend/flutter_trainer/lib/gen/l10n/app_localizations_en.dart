@@ -2254,6 +2254,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get buildInfoTitle => 'Version';
+
+  @override
+  String get buildInfoDevelopment => 'Development build';
+
+  @override
+  String buildInfoReleasedAt(String date) {
+    return 'Deployed $date KST';
+  }
+
+  @override
   String get myAppName => 'On-Care Trainer';
 
   @override

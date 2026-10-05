@@ -15,6 +15,7 @@ import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
 // 사용한다 (라우터의 인증 게이트와 동일한 소비자).
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/errors/app_error_message.dart';
+import 'package:oncare_trainer/core/release/build_info.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
@@ -24,6 +25,7 @@ import 'package:oncare_trainer/features/auth/presentation/auth_input_error_text.
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_card.dart';
 import 'package:oncare_trainer/features/my/data/app_version.dart';
+import 'package:oncare_trainer/features/my/data/build_info.dart';
 import 'package:oncare_trainer/features/my/data/trainer_account_repository.dart';
 import 'package:oncare_trainer/features/my/data/trainer_profile_repository.dart';
 import 'package:oncare_trainer/features/my/data/trainer_settings.dart';
@@ -582,6 +584,13 @@ class _MyPageState extends ConsumerState<MyPage> {
             fullWidth: true,
             onPressed: _signOut,
           ),
+          // 지금 떠 있는 빌드가 어느 배포인지(#3226). 메뉴의 맨 끝이라 넓은 화면에서는
+          // 어느 하위 화면을 열어도 보이고, 좁은 화면에서는 설정 첫 화면에 보인다.
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s8),
+            child: AppDivider(),
+          ),
+          const _BuildInfoRow(),
         ],
       ),
     );
@@ -1966,6 +1975,33 @@ class _CertsEditor extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// 설정 메뉴 맨 아래의 `버전 정보` 줄(#3226) — `0.2.0 (7032) · 2026년 10월 5일 14:30 KST 배포`.
+///
+/// 회원 앱 설정 카드의 같은 줄과 같은 내용이다. 누르는 줄이 아니라 화살표가 없다.
+/// 빌드 번호가 없는 로컬·테스트 빌드는 `0.2.0 · 개발 빌드` 로 보인다.
+class _BuildInfoRow extends ConsumerWidget {
+  const _BuildInfoRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return AppListRow(
+      key: const ValueKey<String>('my-build-info'),
+      leading: AppIcon(
+        AppIcons.info,
+        size: OnCareSize.iconMedium,
+        color: context.oncare.brand.primary,
+      ),
+      title: l.buildInfoTitle,
+      subtitle: buildInfoSummary(
+        l,
+        Localizations.localeOf(context).toString(),
+        ref.watch(buildInfoProvider),
+      ),
     );
   }
 }

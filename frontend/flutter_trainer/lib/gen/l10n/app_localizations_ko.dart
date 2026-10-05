@@ -2139,6 +2139,17 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get buildInfoTitle => '버전 정보';
+
+  @override
+  String get buildInfoDevelopment => '개발 빌드';
+
+  @override
+  String buildInfoReleasedAt(String date) {
+    return '$date KST 배포';
+  }
+
+  @override
   String get myAppName => 'On-Care 트레이너';
 
   @override
