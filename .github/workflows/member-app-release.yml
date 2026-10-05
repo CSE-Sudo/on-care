@@ -191,6 +191,9 @@ jobs:
           KAKAO_JS_KEY: ${{ vars.MEMBER_APP_KAKAO_JS_KEY }}
           KAKAO_MAP_ORIGIN: ${{ vars.MEMBER_APP_KAKAO_MAP_ORIGIN }}
           IOS_APP_STORE_ID: ${{ vars.MEMBER_APP_IOS_APP_STORE_ID }}
+          KAKAO_NATIVE_APP_KEY: ${{ vars.MEMBER_APP_KAKAO_NATIVE_APP_KEY }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.MEMBER_APP_GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_IOS_CLIENT_ID: ${{ vars.MEMBER_APP_GOOGLE_IOS_CLIENT_ID }}
           # 고객 지원 버전 줄(#3226)이 읽는 빌드 번호·배포 일시.
           BUILD_NUMBER: ${{ needs.gate.outputs.build_number }}
           RELEASE_DATE: ${{ needs.gate.outputs.release_date }}
@@ -326,6 +329,9 @@ jobs:
           KAKAO_JS_KEY: ${{ vars.MEMBER_APP_KAKAO_JS_KEY }}
           KAKAO_MAP_ORIGIN: ${{ vars.MEMBER_APP_KAKAO_MAP_ORIGIN }}
           IOS_APP_STORE_ID: ${{ vars.MEMBER_APP_IOS_APP_STORE_ID }}
+          KAKAO_NATIVE_APP_KEY: ${{ vars.MEMBER_APP_KAKAO_NATIVE_APP_KEY }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.MEMBER_APP_GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_IOS_CLIENT_ID: ${{ vars.MEMBER_APP_GOOGLE_IOS_CLIENT_ID }}
           # 고객 지원 버전 줄(#3226)이 읽는 빌드 번호·배포 일시.
           BUILD_NUMBER: ${{ needs.gate.outputs.build_number }}
           RELEASE_DATE: ${{ needs.gate.outputs.release_date }}
@@ -333,6 +339,13 @@ jobs:
 
       - name: Check the release define file
         run: bash tool/check_release_defines.sh config/release.json
+
+      - name: Write the login URL schemes
+        # 카카오·구글 로그인이 앱으로 돌아오는 URL 스킴(#330). 공개 식별자라 비밀이 아니다.
+        env:
+          KAKAO_NATIVE_APP_KEY: ${{ vars.MEMBER_APP_KAKAO_NATIVE_APP_KEY }}
+          GOOGLE_IOS_CLIENT_ID: ${{ vars.MEMBER_APP_GOOGLE_IOS_CLIENT_ID }}
+        run: python3 ../../tool/ci/write_release_defines.py --ios-url-schemes ios/Flutter/Social.xcconfig
 
       - name: Install the signing certificate and profile
         # 임시 키체인(무작위 비밀번호)에 배포 인증서를 넣고, 프로필을 설치한 뒤 Runner Release

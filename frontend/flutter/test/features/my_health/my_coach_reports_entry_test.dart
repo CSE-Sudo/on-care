@@ -77,7 +77,7 @@ void main() {
     await _pumpMy(tester, repository: FakeMemberCoachRepository());
 
     expect(find.byKey(_entry), findsOneWidget);
-    expect(find.text('트레이너 리포트'), findsOneWidget);
+    expect(find.text('주간 리포트'), findsOneWidget);
   });
 
   testWidgets('무엇이 있는 줄인지 한 줄로 말한다', (tester) async {
@@ -90,7 +90,7 @@ void main() {
     await _pumpMy(tester, repository: FakeMemberCoachRepository(coach: null));
 
     expect(find.byKey(_entry), findsNothing);
-    expect(find.text('트레이너 리포트'), findsNothing);
+    expect(find.text('주간 리포트'), findsNothing);
   });
 
   testWidgets('누르면 리포트 목록으로 간다', (tester) async {
@@ -105,7 +105,7 @@ void main() {
   testWidgets('영어에서도 번역되어 있다', (tester) async {
     await _pumpMy(tester, repository: FakeMemberCoachRepository(), locale: 'en');
 
-    expect(find.text('Trainer reports'), findsOneWidget);
+    expect(find.text('Weekly reports'), findsOneWidget);
     expect(find.text('Reports you received and feedback you sent'), findsOneWidget);
   });
 }

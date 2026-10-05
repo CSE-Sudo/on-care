@@ -123,7 +123,7 @@ def body_limit_rules(s: Settings) -> tuple[BodyLimitRule, ...]:
     chat_image = s.max_chat_image_bytes + s.upload_body_slack_bytes
     report_pdf = s.max_report_pdf_bytes + s.upload_body_slack_bytes
     image_detail = (
-        f"사진 용량이 너무 큽니다(최대 {s.max_chat_image_bytes // (1024 * 1024)}MB)."
+        f"사진 용량이 너무 커요(최대 {s.max_chat_image_bytes // (1024 * 1024)}MB)."
     )
     return (
         # 식단 사진 분석. 값 자체가 multipart 여유를 포함한다(config 주석 참고).
@@ -134,7 +134,7 @@ def body_limit_rules(s: Settings) -> tuple[BodyLimitRule, ...]:
         BodyLimitRule(
             f"{s.api_v1_prefix}/ai-coach/chat",
             s.coach_chat_max_body_bytes,
-            "요청이 너무 큽니다. 질문과 대화 기록을 줄여 다시 보내 주세요.",
+            "요청이 너무 커요. 질문과 대화 기록을 줄여 다시 보내 주세요.",
         ),
         # 채팅 사진 — 회원 → 트레이너, 트레이너 → 회원.
         BodyLimitRule(
@@ -150,7 +150,7 @@ def body_limit_rules(s: Settings) -> tuple[BodyLimitRule, ...]:
         BodyLimitRule(
             rf"{v1}/trainer/clients/[^/]+/report/send-pdf",
             report_pdf,
-            f"PDF 용량이 너무 큽니다(최대 {s.max_report_pdf_bytes // (1024 * 1024)}MB).",
+            f"PDF 용량이 너무 커요(최대 {s.max_report_pdf_bytes // (1024 * 1024)}MB).",
             regex=True,
         ),
         # 관리자 공공 문서 적재 — 문서 원문을 JSON 본문으로 받는다.

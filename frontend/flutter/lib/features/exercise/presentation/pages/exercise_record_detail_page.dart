@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart' show DateFormat, NumberFormat;
+import 'package:intl/intl.dart' show DateFormat;
 
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
@@ -372,8 +372,8 @@ class _ExerciseDayDetailPageState extends ConsumerState<ExerciseDayDetailPage> {
 TextStyle _style(BuildContext context, TextStyle base, Color color) =>
     context.oncare.text(base).copyWith(color: color);
 
-String _kcal(AppLocalizations l, int kcal) =>
-    '${NumberFormat('#,###').format(kcal)} ${l.unitKcal}';
+/// ko `1,480kcal` · en `1,480 kcal`(#3120).
+String _kcal(AppLocalizations l, int kcal) => l.unitKcalValue(kcal);
 
 /// 상자 제목 — 식단 끼니 상세의 `식사 정보`·`먹은 음식` 과 같은 모양.
 class _CardTitle extends StatelessWidget {

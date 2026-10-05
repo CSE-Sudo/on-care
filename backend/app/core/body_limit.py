@@ -170,7 +170,7 @@ class RequestBodySizeLimitMiddleware:
     def _detail(rule: BodyLimitRule) -> str:
         """413 문구 — 규칙 문구가 없으면 업로드 기본 문구(최대 N MB)."""
         limit_mb = rule.max_bytes / (1024 * 1024)
-        return rule.detail or f"업로드 용량이 너무 큽니다(최대 {limit_mb:.0f}MB)."
+        return rule.detail or f"업로드 용량이 너무 커요(최대 {limit_mb:.0f}MB)."
 
     @classmethod
     async def _reject(cls, send: Send, rule: BodyLimitRule) -> None:

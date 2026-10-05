@@ -75,7 +75,7 @@ def trainer_create_follow_up(
     title = payload.title.strip()
     if not title:
         # 공백만 있는 할 일을 성공으로 처리하면 대시보드에 빈 줄이 쌓인다.
-        raise HTTPException(status_code=400, detail="할 일 내용이 필요합니다.")
+        raise HTTPException(status_code=400, detail="할 일 내용이 필요해요.")
     return trainer_follow_ups_service.create_follow_up(
         db,
         trainer.id,
@@ -113,11 +113,11 @@ def trainer_update_follow_up(
     """할 일 수정(부분). 내용과 예정일만 바뀐다."""
     fields = payload.model_dump(exclude_unset=True)
     if not fields:
-        raise HTTPException(status_code=400, detail="수정할 항목이 없습니다.")
+        raise HTTPException(status_code=400, detail="수정할 항목이 없어요.")
     if "title" in fields:
         fields["title"] = fields["title"].strip()
         if not fields["title"]:
-            raise HTTPException(status_code=400, detail="할 일 내용이 필요합니다.")
+            raise HTTPException(status_code=400, detail="할 일 내용이 필요해요.")
     try:
         return trainer_follow_ups_service.update_follow_up(db, trainer.id, task_id, fields)
     except trainer_follow_ups_service.FollowUpTaskNotFound as exc:

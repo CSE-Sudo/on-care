@@ -150,9 +150,9 @@ class NutritionContext:
             return None
         parts = [f"최근 {self.days_with_data}일 평균 나트륨 {self.avg_sodium_mg:,}mg"]
         if "sodium_high" in self.signals:
-            parts.append(f"권장 {self.sodium_limit_mg:,}mg 초과")
+            parts.append(f"목표 {self.sodium_limit_mg:,}mg 초과")
         if "sugar_high" in self.signals:
-            parts.append(f"당류 {self.avg_sugar_g:.0f}g(권장 {self.sugar_limit_g}g 초과)")
+            parts.append(f"당류 {self.avg_sugar_g:.0f}g(목표 {self.sugar_limit_g}g 초과)")
         if "protein_low" in self.signals:
             parts.append("단백질 부족")
         return " · ".join(parts)

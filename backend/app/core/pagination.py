@@ -32,7 +32,7 @@ def parse_before(before: str | None) -> datetime | None:
         cursor = datetime.fromisoformat(before)
     except ValueError as exc:
         raise HTTPException(
-            status_code=422, detail="before 는 ISO datetime 이어야 합니다."
+            status_code=422, detail="before 는 ISO datetime 이어야 해요."
         ) from exc
     if cursor.tzinfo is None:
         return cursor.replace(tzinfo=timezone.utc)

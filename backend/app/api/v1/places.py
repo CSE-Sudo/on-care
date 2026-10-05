@@ -98,7 +98,7 @@ async def places_nearby(
             if not demo:
                 raise HTTPException(
                     status_code=503,
-                    detail="장소 검색을 잠시 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.",
+                    detail="장소 검색을 잠시 사용할 수 없어요. 잠시 후 다시 시도해 주세요.",
                 ) from None
     # 시드 조회는 동기 DB 다 — 이벤트 루프를 막지 않게 스레드풀로 넘긴다(#2835).
     return await run_in_threadpool(

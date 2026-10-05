@@ -699,7 +699,7 @@ def test_accept_notifies_the_member(client, db_session):
     alerts = client.get("/v1/notifications", headers=_auth(member_token))
     assert alerts.status_code == 200, alerts.text
     accepted = [
-        a for a in alerts.json() if a["title"] == "상담 요청이 수락되었어요"
+        a for a in alerts.json() if a["title"] == "상담 요청이 승인됐어요"
     ]
     assert accepted
     # 수락은 담당 연결이 아니다 — "담당으로 연결" 로 읽히면 안 된다(#2584).
@@ -984,7 +984,7 @@ def test_reject_records_the_reason_and_creates_no_link(client, db_session):
         == 0
     )
     alerts = client.get("/v1/notifications", headers=_auth(member_token)).json()
-    rejected = [a for a in alerts if a["title"] == "상담 요청이 반려되었어요"]
+    rejected = [a for a in alerts if a["title"] == "상담 요청이 거절됐어요"]
     assert rejected and rejected[0]["body"] == "이번 달은 정원이 찼어요"
     # 사유를 보여 주는 곳이 내 상담 요청이다(#2067).
     assert rejected[0]["action"]["target"] == "consultations"

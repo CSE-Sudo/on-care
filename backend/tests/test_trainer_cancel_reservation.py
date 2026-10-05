@@ -31,7 +31,7 @@ MEMBER_EMAIL = "jisu@oncare.com"
 MEMBER_ID = "user-jisu"
 #: 같은 트레이너의 다른 담당 회원(시드). 한 회원의 다가오는 예약은 하나다(#3240).
 OTHER_MEMBER_ID = "user-hayun"
-CANCELLED_TITLE = "일정이 취소되었어요"
+CANCELLED_TITLE = "일정이 취소됐어요"
 
 
 # ---------------------------------------------------------------------------

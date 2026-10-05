@@ -33,7 +33,7 @@ void main() {
       );
       expect(alertText(en, feedback).title, en.demoAlertTrainerFeedbackTitle);
       expect(alertText(en, feedback).body, en.demoAlertTrainerFeedbackBody);
-      expect(alertText(ko, feedback).title, '트레이너 피드백 도착');
+      expect(alertText(ko, feedback).title, '트레이너 피드백이 도착했어요');
     });
 
     test('서버 알림과 모르는 키는 받은 문자열을 그대로 쓴다', () {

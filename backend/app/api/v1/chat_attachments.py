@@ -38,9 +38,9 @@ from app.services.trainer import _common as trainer_common_service
 router = APIRouter(tags=["chat-attachments"])
 logger = logging.getLogger(__name__)
 
-#: 어느 종류든 "찾을 수 없습니다" 로 끝난다. 권한이 없는 사람에게 파일의
+#: 어느 종류든 "찾을 수 없어요" 로 끝난다. 권한이 없는 사람에게 파일의
 #: 존재 여부를 알려 주지 않기 위해서다.
-_NOT_FOUND = "첨부를 찾을 수 없습니다."
+_NOT_FOUND = "첨부를 찾을 수 없어요."
 
 
 @router.get("/chat/attachments/{file_id}")
@@ -113,7 +113,7 @@ def _store_unavailable() -> HTTPException:
     """저장소 장애. 파일이 없다는 404 와 구분해야 앱이 다시 시도할 수 있다."""
     logger.exception("첨부 저장소를 읽지 못했습니다.")
     return HTTPException(
-        status_code=503, detail="첨부를 잠시 불러올 수 없습니다. 다시 시도해 주세요."
+        status_code=503, detail="첨부를 잠시 불러올 수 없어요. 다시 시도해 주세요."
     )
 
 
@@ -192,14 +192,14 @@ def receive_chat_image(
             if existing.body != text or existing.attachment_type != "image":
                 raise HTTPException(
                     status_code=409,
-                    detail="같은 client_request_id에 다른 메시지를 보낼 수 없습니다.",
+                    detail="같은 client_request_id에 다른 메시지를 보낼 수 없어요.",
                 )
             return trainer_chat_service.chat_message_out(existing, viewer)
 
     settings = get_settings()
     data = image.file.read(settings.max_chat_image_bytes + 1)
     if len(data) > settings.max_chat_image_bytes:
-        raise HTTPException(status_code=413, detail="이미지 용량이 너무 큽니다.")
+        raise HTTPException(status_code=413, detail="이미지 용량이 너무 커요.")
     try:
         chat_image_storage.sniff(data)
     except chat_image_storage.UnsupportedImage as exc:

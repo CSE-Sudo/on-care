@@ -448,7 +448,7 @@ def too_many_requests(
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
         detail=detail
         if detail is not None
-        else "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.",
+        else "요청이 너무 많아요. 잠시 후 다시 시도해 주세요.",
         headers={"Retry-After": str(max(1, int(retry_after)))},
     )
 

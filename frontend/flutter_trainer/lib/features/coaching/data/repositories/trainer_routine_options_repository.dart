@@ -152,7 +152,7 @@ class MockTrainerRoutineOptionsRepository
     final bool sodiumOver = member?.sodiumOver ?? true;
     // 서버 규칙형과 같다 — 목표를 넘을 때만 꼬리표를 단다.
     final String sodiumLabel = sodiumOver
-        ? t(' (목표 초과)', ' (over target)')
+        ? t(' (목표 초과)', ' (over goal)')
         : '';
     final note = trainerNote.trim();
     final noteSuffix = note.isEmpty
@@ -255,7 +255,7 @@ class MockTrainerRoutineOptionsRepository
           'A short, easy-to-sustain recovery program',
         ),
         rationale: en
-            ? 'Sodium today ${sodium}mg$sodiumLabel, recent workout '
+            ? 'Sodium today $sodium mg$sodiumLabel, recent workout '
                   'completion $completion% → focusing on consistency with '
                   'low-strain cardio and stretching.$noteSuffix$safety'
             : '오늘 나트륨 ${sodium}mg$sodiumLabel, 최근 운동 완료율 $completion% → '

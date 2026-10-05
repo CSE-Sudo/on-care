@@ -97,7 +97,7 @@ _NO_FOOD_DETECTED = {
 
 #: 형식은 맞지만 픽셀을 읽을 수 없는 사진의 415 본문(#3041). 형식 판정 415 와 같은
 #: 문자열 모양이라 앱은 같은 "지원하지 않는 사진" 안내를 띄운다.
-_UNREADABLE_IMAGE = "이미지를 읽을 수 없습니다. 다른 사진을 골라 주세요."
+_UNREADABLE_IMAGE = "이미지를 읽을 수 없어요. 다른 사진을 골라 주세요."
 
 
 @router.get("/diet/days/today", response_model=DietTodayResponse)
@@ -302,7 +302,7 @@ async def diet_analyze(
 ) -> DietAnalyzeResponse:
     image_bytes = await image.read()
     if not image_bytes:
-        raise HTTPException(status_code=400, detail="빈 파일입니다.")
+        raise HTTPException(status_code=400, detail="빈 파일이에요.")
     # 형식은 바이트로 판정한다 — 요청 헤더의 Content-Type 은 보내는 쪽이 적어 준 값일
     # 뿐이라, 이미지가 아닌 본문이 그 말만 믿고 외부 모델 호출까지 가면 안 된다(#2827).
     try:
@@ -375,7 +375,7 @@ async def diet_analyze(
             engine=engine or "-", user_id=user_id,
         )
         raise HTTPException(
-            status_code=502, detail="식단 인식에 실패했습니다. 잠시 후 다시 시도해 주세요."
+            status_code=502, detail="식단을 인식하지 못했어요. 잠시 후 다시 시도해 주세요."
         ) from e
 
     # 음식을 하나도 찾지 못한 사진(풍경·사람·빈 그릇)은 끼니가 아니다. 0kcal 끼니를
@@ -514,7 +514,7 @@ def diet_photo(
     """
     photo = diet_photo_service.get_owned_photo(db, photo_id, current_user.id)
     if photo is None:
-        raise HTTPException(status_code=404, detail="사진을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="사진을 찾을 수 없어요.")
     return Response(
         content=photo.data,
         media_type=photo.content_type,
@@ -553,7 +553,7 @@ def update_entry(
     """식단 기록의 끼니 분류/시간·영양소 수정(본인 소유만, 아니면 404)."""
     row = diet_service.get_owned_entry(db, current_user.id, entry_id)
     if row is None:
-        raise HTTPException(status_code=404, detail="식단 기록을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="식단 기록을 찾을 수 없어요.")
     try:
         return diet_service.apply_entry_update(db, row, payload)
     except diet_service.NutritionInconsistentError as e:
@@ -570,7 +570,7 @@ def delete_entry(
     """식단 기록 삭제. 본인 소유 엔트리만 삭제 가능(아니면 404)."""
     row = diet_service.get_owned_entry(db, current_user.id, entry_id)
     if row is None:
-        raise HTTPException(status_code=404, detail="식단 기록을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="식단 기록을 찾을 수 없어요.")
     # 이 끼니로 받은 포인트를 회수한다. 기록 삭제와 같은 트랜잭션이라 기록만
     # 사라지고 포인트가 남는 일이 없다(#1786).
     points_service.revoke(

@@ -204,7 +204,7 @@ def test_profile_email_race_is_409_not_500(client, db_session, cleanup, monkeypa
     )
 
     assert response.status_code == 409, response.text
-    assert response.json() == {"detail": "이미 사용 중인 이메일입니다."}
+    assert response.json() == {"detail": "이미 사용 중인 이메일이에요."}
     db_session.expire_all()
     assert db_session.get(User, member_id).email == own_email
 

@@ -51,11 +51,11 @@ REAUTH_REQUIRED_SOCIAL = {
 }
 INVALID_CURRENT_PASSWORD = {
     "code": "invalid_current_password",
-    "message": "현재 비밀번호가 일치하지 않습니다.",
+    "message": "현재 비밀번호가 일치하지 않아요.",
 }
 INVALID_REAUTH = {
     "code": "invalid_reauth",
-    "message": "소셜 계정 확인에 실패했습니다. 다시 로그인해 주세요.",
+    "message": "소셜 계정을 확인하지 못했어요. 다시 로그인해 주세요.",
 }
 
 #: 확인하는 동작. 감사 로그 `detail` 의 `action=` 이다.

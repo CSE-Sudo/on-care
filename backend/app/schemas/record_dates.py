@@ -38,7 +38,7 @@ def is_hhmm(value: str) -> bool:
     return isinstance(value, str) and _HHMM.fullmatch(value) is not None
 
 #: 앞날 거절 문구(422). 식단·운동이 같은 말을 한다.
-FUTURE_DATE_MESSAGE = "date 는 오늘보다 뒤일 수 없습니다."
+FUTURE_DATE_MESSAGE = "date 는 오늘보다 뒤일 수 없어요."
 
 
 def not_after_today(value: date) -> date:

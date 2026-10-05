@@ -123,9 +123,9 @@ def _diet_today_priority(db: Session, user_id: str) -> CoachSuggestion | None:
             tag="diet",
             title=localized("나트륨 섭취가 많아요", "High sodium today"),
             body=localized(
-                f"오늘 나트륨이 약 {total_na}mg 으로 권장량을 넘었어요. "
+                f"오늘 나트륨이 약 {total_na:,}mg으로 권장량을 넘었어요. "
                 "저녁은 국물을 남기고 채소를 늘려 균형을 맞춰봐요.",
-                f"Today's sodium is about {total_na}mg, over the recommended amount. "
+                f"Today's sodium is about {total_na:,} mg, over the recommended amount. "
                 "At dinner, leave the broth and add more vegetables to balance it out.",
             ),
         )

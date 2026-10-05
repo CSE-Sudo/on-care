@@ -85,9 +85,9 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('/ 1,600 kcal', findRichText: true), findsOne);
+    expect(find.textContaining('/ 1,600kcal', findRichText: true), findsOne);
     expect(
-      find.textContaining('/ 2,000 kcal', findRichText: true),
+      find.textContaining('/ 2,000kcal', findRichText: true),
       findsNothing,
     );
   });
@@ -95,7 +95,7 @@ void main() {
   testWidgets('프로필에 목표가 없으면 회원 앱 기본값 2,000kcal 이다', (tester) async {
     await pump(tester, ClientPeriod.week);
 
-    expect(find.textContaining('/ 2,000 kcal', findRichText: true), findsOne);
+    expect(find.textContaining('/ 2,000kcal', findRichText: true), findsOne);
   });
 
   testWidgets('`전체` 는 한 화면에 24일 — 회원 앱과 같은 평균 구간', (tester) async {

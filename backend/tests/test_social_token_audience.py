@@ -42,9 +42,9 @@ from tests.social_provider_fakes import (
     use_app_ids,
 )
 
-AUTH_FAILED_DETAIL = "소셜 인증에 실패했습니다."
-BAD_RESPONSE_DETAIL = "소셜 로그인 제공자의 응답을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요."
-UNSUPPORTED_DETAIL = "지원하지 않는 소셜 로그인입니다."
+AUTH_FAILED_DETAIL = "소셜 계정을 인증하지 못했어요."
+BAD_RESPONSE_DETAIL = "소셜 로그인 제공자의 응답을 확인하지 못했어요. 잠시 후 다시 시도해 주세요."
+UNSUPPORTED_DETAIL = "지원하지 않는 소셜 로그인이에요."
 
 
 @pytest.fixture(autouse=True)
@@ -323,14 +323,14 @@ def test_startup_warns_about_every_unconfigured_provider(caplog):
 
 
 def test_startup_names_only_the_missing_provider():
-    settings = Settings(_env_file=None, google_client_ids="g.test", kakao_app_id="")
+    settings = Settings(_env_file=None, google_client_ids="g.apps.googleusercontent.com", kakao_app_id="")
     [social] = [w for w in startup_checks.check(settings) if "소셜 로그인" in w]
     assert "KAKAO_APP_ID" in social
     assert "GOOGLE_CLIENT_IDS" not in social
 
 
 def test_startup_is_quiet_when_every_provider_is_configured():
-    settings = Settings(_env_file=None, google_client_ids="g.test", kakao_app_id="1")
+    settings = Settings(_env_file=None, google_client_ids="g.apps.googleusercontent.com", kakao_app_id="1")
     assert not any("소셜 로그인" in w for w in startup_checks.check(settings))
     assert startup_checks.unconfigured_social_providers(settings) == []
 

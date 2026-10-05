@@ -68,7 +68,7 @@ def _reject_if_derived(row: ExerciseSession) -> None:
     if row.source != "member":
         raise HTTPException(
             status_code=409,
-            detail="코칭에서 생성된 운동 기록은 수정하거나 삭제할 수 없습니다.",
+            detail="코칭에서 생성된 운동 기록은 수정하거나 삭제할 수 없어요.",
         )
 
 
@@ -125,7 +125,7 @@ def current_week(
             parse_ymd(week_start)
         except ValueError:
             raise HTTPException(
-                status_code=422, detail="week_start 는 YYYY-MM-DD 형식이어야 합니다."
+                status_code=422, detail="week_start 는 YYYY-MM-DD 형식이어야 해요."
             ) from None
         week_start = monday_of_str(week_start)
     rows = db.scalars(
@@ -441,7 +441,7 @@ def _replay_sessions(
     ):
         raise HTTPException(
             status_code=409,
-            detail="같은 client_request_id에 다른 운동 기록을 보낼 수 없습니다.",
+            detail="같은 client_request_id에 다른 운동 기록을 보낼 수 없어요.",
         )
     awarded = 0
     for row in rows:
@@ -526,7 +526,7 @@ def update_session(
         .where(ExerciseSession.user_id == current_user.id)
     )
     if row is None:
-        raise HTTPException(status_code=404, detail="운동 기록을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="운동 기록을 찾을 수 없어요.")
     _reject_if_derived(row)
 
     # 날짜를 주지 않은 수정은 원래 있던 자리를 그대로 둔다 — 오늘로 끌어오면
@@ -576,7 +576,7 @@ def delete_session(
         .where(ExerciseSession.user_id == current_user.id)
     )
     if row is None:
-        raise HTTPException(status_code=404, detail="운동 기록을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="운동 기록을 찾을 수 없어요.")
     _reject_if_derived(row)
     # 이 기록으로 받은 포인트를 회수한다 — 삭제와 같은 트랜잭션이다(#1786).
     points_service.revoke(

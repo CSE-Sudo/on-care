@@ -24,7 +24,7 @@ from sqlalchemy import func, select
 from app.core import clock
 from tests.exercise_helpers import post_exercise
 
-_FUTURE = "date 는 오늘보다 뒤일 수 없습니다."
+_FUTURE = "date 는 오늘보다 뒤일 수 없어요."
 
 #: 기준 주 — 2026-09-14(월) ~ 2026-09-20(일).
 MON = date(2026, 9, 14)

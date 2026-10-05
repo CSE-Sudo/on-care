@@ -529,7 +529,7 @@ mixin _FoodEditing<W extends ConsumerStatefulWidget> on ConsumerState<W> {
           ),
         ),
         Text(
-          '$_total ${l.unitKcal}',
+          l.unitKcalValue(_total),
           key: const Key('meal-total'),
           style: OnCareTypography.numeric(
             _text(context, OnCareTypography.titleSmall, tokens.brand.primary),

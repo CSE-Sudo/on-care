@@ -47,7 +47,7 @@ def test_global_500_hides_detail_and_carries_request_id():
     assert r.status_code == 500
     assert "SECRET" not in r.text and "hunter2" not in r.text  # 내부 상세 미노출
     body = r.json()
-    assert body["detail"] == "내부 서버 오류가 발생했습니다."
+    assert body["detail"] == "내부 서버 오류가 발생했어요."
     assert body["request_id"] == "trace-abc"
     assert r.headers.get("X-Request-ID") == "trace-abc"
 

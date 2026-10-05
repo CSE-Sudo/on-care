@@ -73,14 +73,14 @@ def trainer_schedule(
         # 클라이언트는 구간을 받았다고 믿는다.
         if from_ is None or to is None:
             raise HTTPException(
-                status_code=422, detail="from 과 to 는 함께 지정해야 합니다."
+                status_code=422, detail="from 과 to 는 함께 지정해야 해요."
             )
         if not _is_ymd(from_) or not _is_ymd(to):
             raise HTTPException(
-                status_code=422, detail="from/to 는 YYYY-MM-DD 형식이어야 합니다."
+                status_code=422, detail="from/to 는 YYYY-MM-DD 형식이어야 해요."
             )
         if from_ > to:
-            raise HTTPException(status_code=422, detail="from 은 to 보다 늦을 수 없습니다.")
+            raise HTTPException(status_code=422, detail="from 은 to 보다 늦을 수 없어요.")
         return trainer_schedule_service.build_schedule_range(
             db, trainer.id, from_, to, member_id=member_id
         )
@@ -90,7 +90,7 @@ def trainer_schedule(
 
     day = date or trainer_common_service.today_iso()
     if not _is_ymd(day):
-        raise HTTPException(status_code=422, detail="date 는 YYYY-MM-DD 형식이어야 합니다.")
+        raise HTTPException(status_code=422, detail="date 는 YYYY-MM-DD 형식이어야 해요.")
     return trainer_schedule_service.build_schedule_range(
         db, trainer.id, day, day, member_id=member_id
     )
@@ -229,9 +229,9 @@ def trainer_assign_program_with_schedule(
     """
     name = payload.name.strip()
     if not name:
-        raise HTTPException(status_code=400, detail="프로그램 이름이 필요합니다.")
+        raise HTTPException(status_code=400, detail="프로그램 이름이 필요해요.")
     if not any(session.exercises for session in payload.sessions):
-        raise HTTPException(status_code=400, detail="운동이 하나 이상 필요합니다.")
+        raise HTTPException(status_code=400, detail="운동이 하나 이상 필요해요.")
     try:
         result = trainer_schedule_service.assign_program_with_schedule(
             db,
@@ -267,7 +267,7 @@ def trainer_assign_program_with_schedule(
             },
         ) from exc
     if result is None:
-        raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="담당 회원을 찾을 수 없어요.")
     return result
 
 
@@ -320,7 +320,7 @@ def trainer_update_schedule_routines(
     except trainer_schedule_service.ScheduleError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if rows is None:
-        raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="일정을 찾을 수 없어요.")
     return rows
 
 
@@ -350,7 +350,7 @@ def trainer_send_schedule_routines(
     except trainer_schedule_service.ScheduleError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if sent is None:
-        raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="일정을 찾을 수 없어요.")
     return sent
 
 
@@ -371,7 +371,7 @@ def trainer_dismiss_schedule_routines(
     except trainer_schedule_service.ScheduleError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if done is None:
-        raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="일정을 찾을 수 없어요.")
     return {"dismissed": done}
 
 
@@ -400,7 +400,7 @@ def trainer_update_session(
     except trainer_schedule_service.ScheduleConflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
     if out is None:
-        raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="일정을 찾을 수 없어요.")
     return out
 
 
@@ -416,7 +416,7 @@ def trainer_delete_session(
     except trainer_schedule_service.ScheduleConflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
     if not deleted:
-        raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="일정을 찾을 수 없어요.")
     return {"status": "deleted"}
 
 
@@ -442,7 +442,7 @@ def trainer_complete_session(
     except trainer_schedule_service.ScheduleConflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
     if out is None:
-        raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="일정을 찾을 수 없어요.")
     return out
 
 
@@ -472,7 +472,7 @@ def trainer_cancel_session(
     except trainer_schedule_service.ScheduleConflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
     if out is None:
-        raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="일정을 찾을 수 없어요.")
     return out
 
 
@@ -508,7 +508,7 @@ def trainer_reopen_session(
     except trainer_schedule_service.ScheduleConflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
     if out is None:
-        raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="일정을 찾을 수 없어요.")
     return out
 
 
@@ -530,7 +530,7 @@ def trainer_mark_session_no_show(
     except trainer_schedule_service.ScheduleConflict as e:
         raise HTTPException(status_code=409, detail=str(e)) from e
     if out is None:
-        raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="일정을 찾을 수 없어요.")
     return out
 
 
@@ -560,5 +560,5 @@ def trainer_send_session_program(
     except trainer_schedule_service.ScheduleError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     if out is None:
-        raise HTTPException(status_code=404, detail="일정을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="일정을 찾을 수 없어요.")
     return out

@@ -363,7 +363,8 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
 **production 필수 파라미터(#3131)**: 메일 `MailFrom`·`SmtpHost`. 운영은 가입 이메일 확인을 끌 수 없어(#3038) 메일이
 없으면 가입 인증 코드를 보낼 수 없고 신규 가입이 모두 막히므로, 둘 중 하나라도 비면 서버가 기동을 거부한다.
 
-선택 파라미터: `Cpu`(기본 1024)·`Memory`(기본 2048), `GoogleClientIds`·`KakaoAppId`(#3035), 메일
+선택 파라미터: `Cpu`(기본 1024)·`Memory`(기본 2048), `GoogleClientIds`·`KakaoAppId`(#3035),
+카카오 웹 로그인 `KakaoLoginRestApiKey`·`KakaoClientSecretEnabled`(#330), 메일
 (`SmtpPort`·`PasswordResetMemberUrl`·`PasswordResetTrainerUrl`, staging 은 `MailFrom`·`SmtpHost` 도 선택), staging 전용
 `AllowDemoFallback`, 기본 VPC 가 아닌 곳에 둘 때 `SubnetIds`·`SecurityGroupIds`.
 
@@ -408,6 +409,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `GEMINI_API_KEY` | 사진 인식·임베딩·코치 LLM(`COACH_LLM=gemini`). 운영은 없으면 기동 거부(#2812·#3145). **결제가 연결된 프로젝트의 키(유료 등급)만**(#3032) — 무료 등급은 입력(회원 음식 사진·건강 기록·코치 대화)이 제공자의 서비스 개선에 쓰일 수 있고 한도가 낮다. 결제 연결은 #480 | 예 |
 | `KAKAO_REST_API_KEY` | 장소 실검색. 빈 값이면 헬스장 찾기가 사실상 빈다(시드로 채우지 않음, #2914) | 키는 있어야 함 |
 | `SENTRY_DSN` | 오류 수집(#2839). 빈 값이면 꺼짐 | 키는 있어야 함 |
+| `KAKAO_CLIENT_SECRET` | 카카오 웹 로그인 키의 클라이언트 시크릿(#330). 파라미터 `KakaoClientSecretEnabled=true` 일 때만 읽는다 | 시크릿을 켤 때 |
 | `SMTP_USERNAME`·`SMTP_PASSWORD` | `MailFrom` 파라미터를 채웠을 때만 읽는다. 운영은 메일이 필수라 항상 채운다(#3131) | 운영 예, staging 은 메일을 켤 때 |
 | `DEMO_LOGIN_PASSWORD` | staging 만. 강한 값 | staging |
 
@@ -435,7 +437,8 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `ACCESS_TOKEN_EXPIRE_MINUTES`·`REFRESH_TOKEN_EXPIRE_DAYS`·`WEB_REFRESH_TOKEN_EXPIRE_DAYS` | `60`·`30`·`7`(#2913·#2828) — 데모 서비스에서 길게 바꾼 값이 운영으로 복사되지 않게 |
 | `AUDIT_RETENTION_DAYS`·`AUDIT_SENSITIVE_RETENTION_DAYS` | `365`·`730`(#2830) — 처리방침 보관 기간과 묶여 있다 |
 | `MAIL_PROVIDER`·`SMTP_STARTTLS`·`SMTP_SSL` | `smtp`·`true`·`false` — `MailFrom` 파라미터를 채웠을 때만 들어간다(#3033). `smtp` 라 서버·발신 주소가 비면 기동이 거부돼 빠뜨린 것이 바로 드러난다. 587 STARTTLS 기준 |
-| `GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` | 스택 파라미터(`GoogleClientIds`·`KakaoAppId`). 소셜 로그인 허용 `aud`(#3035) — Google 은 iOS·Android·웹 client_id(콤마 구분), 카카오는 콘솔의 숫자 앱 ID(`KAKAO_REST_API_KEY` 와 다른 값). **비우면 그 로그인은 401 로 거부**. 네이버·애플 로그인은 제공하지 않아 설정이 없다(#3218). |
+| `GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` | 스택 파라미터(`GoogleClientIds`·`KakaoAppId`). 소셜 로그인 허용 `aud`(#3035) — Google 은 iOS·Android·웹 client_id(콤마 구분), 카카오는 콘솔의 숫자 앱 ID(`KAKAO_REST_API_KEY` 와 다른 값). **비우면 그 로그인은 401 로 거부**. 네이버·애플 로그인은 제공하지 않아 설정이 없다(#3218). 형식이 틀리면(숫자가 아닌 앱 ID, `.apps.googleusercontent.com` 으로 끝나지 않는 client_id) 기동 거부(#330) |
+| `KAKAO_LOGIN_REST_API_KEY` | 스택 파라미터 `KakaoLoginRestApiKey`(#330). 회원 웹·트레이너 웹 카카오 로그인의 client_id — 같은 카카오 앱의 REST API 키. 웹이 받은 인가 코드를 서버가 이 키로 교환한다(`POST /v1/auth/social/kakao/code`). 브라우저에 보이는 값이라 비밀이 아니며, 프런트 웹 빌드 변수 `KAKAO_LOGIN_REST_API_KEY` 와 같은 값이다. 비우면 웹 카카오 로그인만 401(기동 경고) |
 | `AI_GLOBAL_CALLS_PER_DAY`·`TRAINER_AI_CALLS_PER_DAY`·`LLM_MAX_OUTPUT_TOKENS` | `0`·`200`·`4096`(#3032) — 서버 전체 하루 AI 호출 합(DB 에서 KST 날짜로 셈, 0 이면 끔, 넘으면 폴백이 있는 기능은 규칙형 폴백·AI 코치 채팅·사진 분석은 503 `ai_capacity` + `Retry-After`)·트레이너 한 계정 하루 AI 호출(넘으면 429 `daily_limit`)·호출 한 번의 출력 토큰 천장. 출시 전 `AI_GLOBAL_CALLS_PER_DAY` 를 공급자 하루 예산 ÷ 호출당 비용으로 바꾼다(#480) |
 
 위 값 중 코드 기본값과 같은 것도 템플릿에 못 박는다(#3034) — 데모 서비스에서 바꾼 값이 운영으로
@@ -455,7 +458,8 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `PASSWORD_RESET_TRAINER_URL` | 트레이너 웹 재설정 화면 — **해시형** `https://<운영 도메인>/trainer/#/auth/password-reset`. 해시 없는 경로형(`/auth/password-reset`)은 정적 경로를 가리켜 코드가 버려진다. 운영에서 경로형·`http://` 면 기동 로그에 WARN(#3033) |
 
 **스택 파라미터로 정하는 값**: `CORS_ALLOW_ORIGINS`(https 만, `*`·빈 값·localhost 금지 — 운영 기동 거부, #3029), `GEMINI_MODEL`(아래 5-3),
-소셜 로그인 `aud`(`GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` — 비우면 그 로그인은 401, #3035), 메일(`MAIL_FROM`·`SMTP_HOST`·`SMTP_PORT`·`PASSWORD_RESET_*_URL`).
+소셜 로그인 `aud`(`GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` — 비우면 그 로그인은 401, #3035), 카카오 웹 로그인
+`KAKAO_LOGIN_REST_API_KEY`(#330), 메일(`MAIL_FROM`·`SMTP_HOST`·`SMTP_PORT`·`PASSWORD_RESET_*_URL`).
 
 그 밖의 키(`LOGIN_MAX_FAILURES` 같은 시도 제한·`SENTRY_ENVIRONMENT`·DB 풀 등)는 코드 기본값이 운영 값이라
 템플릿에 넣지 않았다(사유는 `tests/test_env_aws_example.py`, #3034). 바꿔야 하면 템플릿에 키를 더하고

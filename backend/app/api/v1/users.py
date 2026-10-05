@@ -409,7 +409,7 @@ def update_me(
             )
         )
         if dup is not None:
-            raise HTTPException(status_code=409, detail="이미 사용 중인 이메일입니다.")
+            raise HTTPException(status_code=409, detail="이미 사용 중인 이메일이에요.")
         if email_changed:
             # 중복 확인(409) 뒤에 코드를 본다 — 가입과 같은 순서다. 틀린 코드는 시도
             # 횟수를 커밋하므로 아직 세션에 아무것도 얹지 않은 이 자리여야 한다.
@@ -431,7 +431,7 @@ def update_me(
         except IntegrityError:
             db.rollback()
             raise HTTPException(
-                status_code=409, detail="이미 사용 중인 이메일입니다."
+                status_code=409, detail="이미 사용 중인 이메일이에요."
             ) from None
     if data.get("name") is not None:
         name_before = user.name
@@ -450,7 +450,7 @@ def update_me(
     # 연락처를 넣을 자리가 없었다)에게는 요구하지 않는다 — 이름만 고치려는
     # 사람에게 전화번호를 내놓으라고 막는 화면이 된다.
     if data.get("phone") == "" and profile.phone:
-        raise HTTPException(status_code=422, detail="전화번호는 비울 수 없습니다.")
+        raise HTTPException(status_code=422, detail="전화번호는 비울 수 없어요.")
 
     for field in (
         "phone",
@@ -649,7 +649,7 @@ def change_my_password(
     if not user.hashed_password:
         raise HTTPException(
             status_code=409,
-            detail="소셜 로그인 계정은 비밀번호가 없어 바꿀 수 없습니다.",
+            detail="소셜 로그인 계정은 비밀번호가 없어 바꿀 수 없어요.",
         )
     guard = PasswordChangeGuard(user.id)
     guard.claim()
@@ -662,7 +662,7 @@ def change_my_password(
             success=False,
             detail="current_password_mismatch",
         )
-        raise HTTPException(status_code=400, detail="현재 비밀번호가 일치하지 않습니다.")
+        raise HTTPException(status_code=400, detail="현재 비밀번호가 일치하지 않아요.")
     guard.clear()
     if verify_password(payload.new_password, user.hashed_password):
         raise HTTPException(status_code=400, detail="현재와 다른 비밀번호를 입력해 주세요.")
@@ -709,7 +709,7 @@ _EMAIL_CODE_REQUIRED = {
 }
 _INVALID_EMAIL_CODE = {
     "code": "invalid_email_code",
-    "message": "인증 코드가 맞지 않거나 만료되었습니다. 코드를 다시 받아 주세요.",
+    "message": "인증 코드가 맞지 않거나 만료됐어요. 코드를 다시 받아 주세요.",
 }
 
 
@@ -797,7 +797,7 @@ def request_email_change_code(
     if payload.email == user.email.lower():
         raise HTTPException(
             status_code=422,
-            detail={"code": "email_unchanged", "message": "지금 쓰는 이메일과 같습니다."},
+            detail={"code": "email_unchanged", "message": "지금 쓰는 이메일과 같아요."},
         )
     check_key(
         f"email-change-code:user:{user.id}",
@@ -817,7 +817,7 @@ def request_email_change_code(
     except signup_email_code.CodeUnavailable:
         raise HTTPException(
             status_code=503,
-            detail="지금은 인증 메일을 보낼 수 없습니다. 잠시 후 다시 시도해 주세요.",
+            detail="지금은 인증 메일을 보낼 수 없어요. 잠시 후 다시 시도해 주세요.",
         ) from None
     audit(
         db,
@@ -870,7 +870,7 @@ def request_signup_email_code(
     except signup_email_code.CodeUnavailable:
         raise HTTPException(
             status_code=503,
-            detail="지금은 인증 메일을 보낼 수 없습니다. 잠시 후 다시 시도해 주세요.",
+            detail="지금은 인증 메일을 보낼 수 없어요. 잠시 후 다시 시도해 주세요.",
         ) from None
     audit(
         db,
@@ -909,7 +909,7 @@ def register(
             success=False,
             detail=masked_email(payload.email),
         )
-        raise HTTPException(status_code=409, detail="이미 가입된 이메일입니다.")
+        raise HTTPException(status_code=409, detail="이미 가입된 이메일이에요.")
     # 중복 확인 뒤에 코드를 본다 — 가입된 주소는 코드를 받을 수 없으므로(안내 메일만
     # 간다) 순서를 바꾸면 409 대신 400 이 되어 원인을 알 수 없다.
     verified_at = _consume_signup_code(
@@ -947,7 +947,7 @@ def register(
     except IntegrityError:
         db.rollback()
         raise HTTPException(
-            status_code=409, detail="이미 가입된 이메일입니다."
+            status_code=409, detail="이미 가입된 이메일이에요."
         ) from None
     db.refresh(user)
     audit(
@@ -1062,7 +1062,7 @@ def login(
             detail=masked_email(form.username),
         )
         raise HTTPException(
-            status_code=401, detail="이메일 또는 비밀번호가 올바르지 않습니다."
+            status_code=401, detail="이메일 또는 비밀번호가 올바르지 않아요."
         )
     clear_failures(lock_key)
     audit(db, event="auth.login", user_id=user.id, ip=client_ip(request), success=True)
@@ -1085,7 +1085,7 @@ def refresh(
     이미 쓴 토큰이 다시 오면 정상 사용자와 탈취자 둘 중 하나가 같은 토큰을 들고
     있다는 뜻이라, 회전해 주지 않고 거부하고 감사 로그에 남긴다(#966).
     """
-    invalid = HTTPException(status_code=401, detail="유효하지 않은 refresh 토큰입니다.")
+    invalid = HTTPException(status_code=401, detail="유효하지 않은 refresh 토큰이에요.")
     try:
         claims = decode_refresh_claims(payload.refresh_token)
     except jwt.InvalidTokenError:
@@ -1265,7 +1265,7 @@ def request_password_reset(
     except password_reset.ResetUnavailable:
         raise HTTPException(
             status_code=503,
-            detail="지금은 비밀번호 재설정 메일을 보낼 수 없습니다. 고객센터로 문의해 주세요.",
+            detail="지금은 비밀번호 재설정 메일을 보낼 수 없어요. 고객센터로 문의해 주세요.",
         ) from None
     audit(
         db,
@@ -1311,7 +1311,7 @@ def confirm_password_reset(
             status_code=400,
             detail={
                 "code": "invalid_reset_token",
-                "message": "재설정 코드가 올바르지 않거나 만료되었습니다. 다시 요청해 주세요.",
+                "message": "재설정 코드가 올바르지 않거나 만료됐어요. 다시 요청해 주세요.",
             },
         ) from None
     audit(

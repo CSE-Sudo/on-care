@@ -50,7 +50,7 @@ void main() {
         <String, Object?>{
           'id': 'n1',
           'title': '건강 목표가 바뀌었어요',
-          'body': '김트레이너 트레이너님이 건강 목표를 바꿨어요: 자세 교정',
+          'body': '김트레이너 트레이너가 건강 목표를 바꿨어요: 자세 교정',
           'time_ago': '방금',
           'category': 'health_goals',
           'read': false,

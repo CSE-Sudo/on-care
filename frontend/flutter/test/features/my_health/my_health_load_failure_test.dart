@@ -119,7 +119,7 @@ void main() {
       // 잔액을 모르는 동안에는 사용처로 들어가는 카드가 없다 — 교환을 시작할 수 없다.
       expect(banner(), findsNothing);
       // 동기화 코드는 따로 받으므로 실패와 상관없이 남는다.
-      expect(find.text('트레이너와 데이터 동기화'), findsOneWidget);
+      expect(find.text('트레이너 연결 코드'), findsOneWidget);
     });
 
     testWidgets('프로필의 다시 시도를 누르면 다시 읽고 이름·잔액이 보인다', (

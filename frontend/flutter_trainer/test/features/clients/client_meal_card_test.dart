@@ -194,11 +194,11 @@ void main() {
     // 음식 kcal 은 오른쪽 끝, 합계는 네 칸 오른쪽 끝에 `총` 을 붙여 선다 —
     // `총 칼로리` 라벨 줄은 따로 두지 않는다.
     expect(
-      find.descendant(of: card, matching: find.text('310 kcal')),
+      find.descendant(of: card, matching: find.text('310kcal')),
       findsOneWidget,
     );
     expect(
-      find.descendant(of: card, matching: find.text('총 330 kcal')),
+      find.descendant(of: card, matching: find.text('총 330kcal')),
       findsOneWidget,
     );
     expect(
@@ -585,7 +585,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.descendant(of: records, matching: find.text('300 kcal')),
+      find.descendant(of: records, matching: find.text('300kcal')),
       findsOneWidget,
     );
   });
@@ -654,7 +654,7 @@ void main() {
     expect(
       find.descendant(
         of: total,
-        matching: find.textContaining(RegExp(r'^총 [\d,]+ kcal$')),
+        matching: find.textContaining(RegExp(r'^총 [\d,]+kcal$')),
       ),
       findsOneWidget,
     );

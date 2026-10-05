@@ -585,7 +585,7 @@ def _validate_target(db: Session, payload: ConsultationCreate) -> None:
 
     if not demo_ids.demo_data_enabled() and payload.trainer_id in demo_ids.demo_trainer_ids():
         raise ConsultationTargetNotFound(
-            "상담 가능한 트레이너를 찾을 수 없습니다."
+            "상담 가능한 트레이너를 찾을 수 없어요."
         )
     trainer = db.scalar(
         select(User)
@@ -600,7 +600,7 @@ def _validate_target(db: Session, payload: ConsultationCreate) -> None:
     )
     if trainer is None:
         raise ConsultationTargetNotFound(
-            "상담 가능한 트레이너를 찾을 수 없습니다."
+            "상담 가능한 트레이너를 찾을 수 없어요."
         )
 
 
@@ -612,21 +612,21 @@ def create_consultation(
         # 동의받는다(#1022). 식단·운동 기록 공유 동의는 여기서 받지 않는다 — 수락은
         # 담당 연결이 아니고, 연결은 6자리 코드를 받을 때 따로 동의한다(#2584).
         raise InvalidConsultationRequest(
-            "상담 신청 정보 전달에 동의해야 상담을 신청할 수 있습니다."
+            "상담 신청 정보 전달에 동의해야 상담을 신청할 수 있어요."
         )
 
     _validate_target(db, payload)
     coach_id = trainer_common_service.get_member_trainer_id(db, member_id)
     if coach_id is not None and coach_id != payload.trainer_id:
         raise LinkedToOtherTrainer(
-            "담당 트레이너 연결을 해제한 뒤 다른 트레이너에게 상담을 요청할 수 있습니다."
+            "담당 트레이너 연결을 해제한 뒤 다른 트레이너에게 상담을 요청할 수 있어요."
         )
     now = _now()
     # 지난 대기 요청을 먼저 정리한다 — 그래야 만료된 요청이 잡고 있던 자리를 이
     # 신청이 고를 수 있고, 아래 대기 중복 검사도 살아 있는 요청만 본다. (#1873)
     expire_stale_requests(db, payload.trainer_id, now=now)
     if db.scalar(_pending_query(member_id, payload)) is not None:
-        raise DuplicatePendingConsultation("이미 대기 중인 상담 요청이 있습니다.")
+        raise DuplicatePendingConsultation("이미 대기 중인 상담 요청이 있어요.")
     # 같은 트레이너 중복을 먼저 본다 — 그쪽은 "이미 신청함" 상태라 앱이 기존 신청을
     # 보여 준다. 한도는 그다음이다. (#1628)
     _enforce_request_limits(db, member_id, now=now)
@@ -675,7 +675,7 @@ def create_consultation(
         db.rollback()
         if db.scalar(_pending_query(member_id, payload)) is not None:
             raise DuplicatePendingConsultation(
-                "이미 대기 중인 상담 요청이 있습니다."
+                "이미 대기 중인 상담 요청이 있어요."
             ) from None
         raise
     db.refresh(consultation)
@@ -1153,7 +1153,7 @@ def _require_inbox_row(
         query = query.with_for_update().execution_options(populate_existing=True)
     row = db.scalar(query)
     if row is None:
-        raise ConsultationNotFound("상담 요청을 찾을 수 없습니다.")
+        raise ConsultationNotFound("상담 요청을 찾을 수 없어요.")
     return row
 
 
@@ -1169,7 +1169,7 @@ def _commit_decision(db: Session) -> None:
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise ConsultationAlreadyDecided("이미 처리된 상담 요청입니다.") from exc
+        raise ConsultationAlreadyDecided("이미 처리된 상담 요청이에요.") from exc
 
 
 def _notify(
@@ -1359,7 +1359,7 @@ def accept(
     """
     row = _require_inbox_row(db, trainer_id, consultation_id, lock=True)
     if row.status != "pending":
-        raise ConsultationAlreadyDecided("이미 처리된 상담 요청입니다.")
+        raise ConsultationAlreadyDecided("이미 처리된 상담 요청이에요.")
 
     slot = (
         db.scalar(
@@ -1374,7 +1374,7 @@ def accept(
         # 자리를 지운 뒤에 수락을 누른 경우다. 잡아 줄 시각이 없으므로 수락하지
         # 않는다 — 여기서 임의의 시각을 지어내면 회원이 모르는 일정에 묶인다.
         raise ConsultationSlotGone(
-            "회원이 고른 시간이 사라졌습니다. 요청을 거절하고 다시 받아 주세요."
+            "회원이 고른 시간이 사라졌어요. 요청을 거절하고 다시 받아 주세요."
         )
 
     current = _now()
@@ -1386,7 +1386,7 @@ def accept(
         expire_stale_requests(db, trainer_id, now=current)
         db.commit()
         raise ConsultationExpired(
-            "만료된 상담 요청입니다. 회원에게 다시 신청을 받아 주세요."
+            "만료된 상담 요청이에요. 회원에게 다시 신청을 받아 주세요."
         )
 
     local = _aware(slot.starts_at).astimezone(SEOUL)
@@ -1397,7 +1397,7 @@ def accept(
         date=local.date().isoformat(),
         time=local.strftime("%H:%M"),
         duration_minutes=slot.duration_minutes,
-        message="회원이 고른 시간에 이미 다른 일정이 있습니다. 일정을 옮긴 뒤 수락해 주세요.",
+        message="회원이 고른 시간에 이미 다른 일정이 있어요. 일정을 옮긴 뒤 수락해 주세요.",
     )
 
     row.status = "accepted"
@@ -1470,7 +1470,7 @@ def reject(
         decided_at=_now(),
         decision_note=note,
     ):
-        raise ConsultationAlreadyDecided("이미 처리된 상담 요청입니다.")
+        raise ConsultationAlreadyDecided("이미 처리된 상담 요청이에요.")
     row = _reload(db, consultation_id)
     # 거절하면 자리가 다시 열린다 — 다른 회원이 고를 수 있어야 한다. (#1873)
     reservation_service.release_consultation_hold(db, row.slot_id)

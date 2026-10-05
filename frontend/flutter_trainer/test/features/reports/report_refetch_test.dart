@@ -373,7 +373,7 @@ void main() {
     final Finder sendButton = find.byKey(
       const ValueKey<String>('report-step-send'),
     );
-    const String failedToast = '리포트 전송에 실패했어요. 다시 시도해 주세요';
+    const String failedToast = '리포트를 보내지 못했어요. 다시 시도해 주세요';
     final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
 
     /// [mode] 의 저장소를 [_Counting] 으로 감싸 [at] 을 연다.

@@ -11,7 +11,7 @@
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
@@ -242,14 +242,17 @@ def test_every_trainer_with_a_pending_request_gets_one_notice(db_session):
 
     assert _notify(db_session, member) == 2
 
-    for trainer, day in ((first, "2026-10-01"), (second, "2026-10-03")):
+    for trainer, day, shown in (
+        (first, "2026-10-01", "10월 1일"),
+        (second, "2026-10-03", "10월 3일"),
+    ):
         rows = _withdrawn_rows(db_session, trainer.id)
         assert len(rows) == 1
         row = rows[0]
         assert row.template == nt.TRAINER_CONSULT_WITHDRAWN
         assert row.template_args == {"member_name": "지수", "preferred_date": day}
         assert row.title == "회원 탈퇴로 상담 요청이 취소됐어요"
-        assert row.body == f"지수 회원 · {day}"
+        assert row.body == f"지수 회원 · {shown}"
         assert row.target_date == day
         assert row.read is False
 
@@ -379,9 +382,9 @@ def test_no_pending_request_means_no_notice(db_session):
 @pytest.mark.parametrize(
     ("name", "stored_name", "body"),
     [
-        ("  지수  ", "지수", "지수 회원 · 2026-10-01"),
-        ("", "", "이름 없는 회원 · 2026-10-01"),
-        ("   ", "", "이름 없는 회원 · 2026-10-01"),
+        ("  지수  ", "지수", "지수 회원 · 10월 1일"),
+        ("", "", "이름 없는 회원 · 10월 1일"),
+        ("   ", "", "이름 없는 회원 · 10월 1일"),
     ],
 )
 def test_member_name_is_captured_before_deletion(db_session, name, stored_name, body):
@@ -509,7 +512,8 @@ def test_withdrawal_tells_each_requested_trainer(client, db_session):
         assert len(rows) == 1
         row = rows[0]
         assert row["title"] == "회원 탈퇴로 상담 요청이 취소됐어요"
-        assert row["body"] == f"탈퇴상담 회원 · {item['preferred_date']}"
+        day = date.fromisoformat(item["preferred_date"])
+        assert row["body"] == f"탈퇴상담 회원 · {day.month}월 {day.day}일"
         assert row["template"] == nt.TRAINER_CONSULT_WITHDRAWN
         assert row["args"] == {
             "member_name": "탈퇴상담",
@@ -535,7 +539,8 @@ def test_withdrawal_notice_is_english_for_an_english_trainer(client, db_session)
     ]
     assert len(rows) == 1
     assert rows[0]["title"] == "Consultation request cancelled: member account deleted"
-    assert rows[0]["body"] == f"Alex · {item['preferred_date']}"
+    day = date.fromisoformat(item["preferred_date"])
+    assert rows[0]["body"] == f"Alex · {day.month}/{day.day}"
 
 
 def test_withdrawal_clears_the_pending_badge_with_a_reason(client, db_session):

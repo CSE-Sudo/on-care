@@ -148,11 +148,11 @@ def _past_or_today(value: str | None) -> str | None:
     # 표기뿐이라 형태부터 걸러 낸다 — 두 표기가 섞이면 화면과 로그에서
     # 같은 날짜가 다른 문자열로 남는다.
     if not _YMD.fullmatch(value):
-        raise ValueError("date 는 YYYY-MM-DD 형식이어야 합니다.")
+        raise ValueError("date 는 YYYY-MM-DD 형식이어야 해요.")
     try:
         parsed = _date.fromisoformat(value)
     except ValueError as e:
-        raise ValueError("date 는 YYYY-MM-DD 형식이어야 합니다.") from e
+        raise ValueError("date 는 YYYY-MM-DD 형식이어야 해요.") from e
     return not_after_today(parsed).isoformat()
 
 
@@ -169,7 +169,7 @@ def analyze_record_date(value: str | None) -> _date | None:
         return None
     parsed = _date.fromisoformat(checked)
     if parsed < _date(clock.today().year - 1, 1, 1):
-        raise ValueError("date 는 작년 1월 1일보다 앞설 수 없습니다.")
+        raise ValueError("date 는 작년 1월 1일보다 앞설 수 없어요.")
     return parsed
 
 

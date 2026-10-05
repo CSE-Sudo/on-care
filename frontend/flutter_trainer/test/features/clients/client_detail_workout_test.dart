@@ -55,7 +55,7 @@ void _useTallSurface(WidgetTester tester) {
 
 String _rowLabel(DateTime d) {
   const List<String> weekdays = <String>['월', '화', '수', '목', '금', '토', '일'];
-  return '${d.month}월 ${d.day}일 (${weekdays[d.weekday - 1]})';
+  return '${d.month}/${d.day} (${weekdays[d.weekday - 1]})';
 }
 
 String _todayRowLabel() => _rowLabel(nowKst());
@@ -671,7 +671,7 @@ void main() {
       // 피드백과 완료 배지는 그리지 않는다(#2329).
       expect(_exerciseLines, findsWidgets);
       expect(find.text('트레이너 피드백'), findsNothing);
-      expect(find.text('무릎 가동범위 체크 필요. 다음 세션 중량 조절 예정.'), findsNothing);
+      expect(find.text('무릎 가동범위 체크 필요. 다음 PT 중량 조절 예정.'), findsNothing);
       expect(find.textContaining('회원 피드백'), findsNothing);
       expect(find.byIcon(Symbols.emoji_events_rounded), findsNothing);
 

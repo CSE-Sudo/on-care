@@ -57,8 +57,8 @@ void main() {
   test('서버 알림 한 건의 상대 시각', () {
     const AlertItem item = AlertItem(
       id: 'n1',
-      title: 'Session cancelled',
-      body: '2026-10-01 09:00 · Consultation',
+      title: 'Appointment cancelled',
+      body: '10/1 09:00 · Consultation',
       timeAgo: '3 hours ago',
       category: AlertCategory.reminder,
     );

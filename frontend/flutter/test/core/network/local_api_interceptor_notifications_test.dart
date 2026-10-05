@@ -40,8 +40,8 @@ void main() {
         NotificationItemsCompanion.insert(
           id: 'n-3',
           createdAt: now.subtract(const Duration(days: 1)),
-          title: '서비스 점검 안내',
-          body: '내일 02:00~03:00 점검 예정입니다.',
+          title: '서비스 점검이 예정돼 있어요',
+          body: '내일 02:00~03:00에 점검해요.',
           category: 'system',
           read: const Value(true),
         ),
@@ -108,7 +108,7 @@ void main() {
             id: 'seed-noti-5',
             createdAt: nowKst().subtract(const Duration(minutes: 5)),
             title: '새 개인운동이 왔어요',
-            body: '트레이너님이 걷기 위주 개인운동으로 조정해 보냈어요.',
+            body: '트레이너가 걷기 위주 개인운동으로 조정해 보냈어요.',
             category: 'routine',
           ),
         );
