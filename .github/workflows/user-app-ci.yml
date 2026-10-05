@@ -22,6 +22,8 @@ on:
       - "shared/routine_effects/**"
       # 두 앱이 함께 쓰는 인증·네트워크·시계 기반(#2907).
       - "shared/oncare_core/**"
+      # 두 앱이 함께 쓰는 카카오·구글 로그인(#330).
+      - "shared/oncare_social_login/**"
       # 데모·실서버 진입점 비교 시험이 읽는 예외 목록 — 목록만 바뀌어도 돈다(#2792).
       - ".github/demo-divergence-allowlist.txt"
       - ".github/workflows/user-app-ci.yml"
@@ -43,6 +45,8 @@ on:
       - "shared/routine_effects/**"
       # 두 앱이 함께 쓰는 인증·네트워크·시계 기반(#2907).
       - "shared/oncare_core/**"
+      # 두 앱이 함께 쓰는 카카오·구글 로그인(#330).
+      - "shared/oncare_social_login/**"
       # 데모·실서버 진입점 비교 시험이 읽는 예외 목록 — 목록만 바뀌어도 돈다(#2792).
       - ".github/demo-divergence-allowlist.txt"
       - ".github/workflows/user-app-ci.yml"
@@ -127,6 +131,15 @@ jobs:
       # 한 번만 돌린다.
       - name: Analyze and test shared Kakao map package
         working-directory: shared/oncare_kakao_map
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test
+
+      # 두 앱이 함께 쓰는 카카오·구글 로그인(#330). 공용 UI 패키지와 같은 이유로 여기서
+      # 한 번만 돌린다.
+      - name: Analyze and test shared social login package
+        working-directory: shared/oncare_social_login
         run: |
           flutter pub get
           flutter analyze
