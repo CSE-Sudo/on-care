@@ -36,10 +36,14 @@ part 'seed_text_en.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v53']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v54']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
+///
+/// `_v54` 는 시드 문구의 표기를 정리했다(#3201·#3202) — 운동 이름 `런닝`→`러닝`,
+/// `이행률`→`완료율`, PT 메모의 `수업`·`세션`→`PT`, 알림 제목. 올리지 않으면 오늘
+/// 이미 시드된 브라우저가 자정까지 옛 표기를 보인다.
 ///
 /// `_v51` 은 이번 주 이행률 계열의 뜻을 바꿨다(#2513) — 걸린 것이 없는 날과
 /// 아직 오지 않은 날은 null, 0 은 "걸렸는데 하나도 안 했다" 다. 올리지 않으면
@@ -211,7 +215,7 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v53') == today &&
+  if (await db.readValue('trainer_seeded_v54') == today &&
       seededLanguage == language.name) {
     // 일정 행이 동기로 읽는 상담 연결을 저장소에서 되살린다(#2669).
     await loadDemoScheduleConsultations(db);
@@ -909,7 +913,7 @@ Future<void> seedIfEmpty(
     await seedDemoNotifications(db, now: now);
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v53', today);
+    await db.putValue('trainer_seeded_v54', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }
