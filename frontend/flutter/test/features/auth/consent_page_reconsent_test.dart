@@ -241,8 +241,9 @@ void main() {
     await _agreeAndSubmit(tester);
 
     expect(container.read(sessionControllerProvider).consentRequired, isFalse);
-    // 403 캐시를 버리고 프로필을 다시 받았다.
-    expect(server.count('/users/me/profile'), 2);
+    // 403 캐시를 버리고 프로필을 다시 받았다. 홈 껍데기가 처음 그려질 때도
+    // 조용히 한 번 더 받으므로(main_shell `refreshProfileQuietly`) 횟수는 2 이상이다.
+    expect(server.count('/users/me/profile'), greaterThanOrEqualTo(2));
     expect(
       router.routerDelegate.currentConfiguration.uri.path,
       isNot(AppRoutes.onboarding),
