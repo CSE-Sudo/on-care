@@ -27,19 +27,20 @@ Flutter SDK 는 git 체크아웃이라 태그로 오갈 수 있습니다. 올리
 툴체인(AGP·Kotlin)이 함께 걸리므로 혼자 정하지 마십시오 — #1898 을 보십시오.
 
 **iOS 를 맡은 Mac 팀원도 같습니다.** Flutter 버전은 플랫폼별이 아니라 SDK 하나라서,
-같은 `flutter` 로 iOS 를 빌드합니다. 다만 **CI 가 잡아 주지 않습니다** — 모든
-워크플로가 `ubuntu-latest` 라 iOS 잡이 아예 없고, 안드로이드도 빌드하지 않습니다.
-웹 코드만 CI 가 지킵니다.
+같은 `flutter` 로 iOS 를 빌드합니다. 다만 **PR 에서는 CI 가 잡아 주지 않습니다** —
+PR 에서 도는 워크플로는 모두 `ubuntu-latest` 라 iOS 를 빌드하지 않고, 안드로이드도
+서명 설정까지만 보고 컴파일하지 않습니다. iOS·안드로이드를 실제로 빌드하는 곳은 스토어
+제출용 서명 빌드(`member-app-release.yml`, 수동 실행·`member-app-v*` 태그)뿐입니다.
 
 | 플랫폼 | 버전이 어긋나면 CI 가 알려 주나 |
 | --- | --- |
-| 웹 — 회원 앱 | PR 에서는 analyze·test 만(`user-app-ci.yml`). 웹 빌드는 `main` 배포(`deploy.yml`)에서 처음 돕니다 |
+| 웹 — 회원 앱 | 예 — PR 에서 analyze·test 와 운영 설정 웹 빌드(`user-app-ci.yml` 의 `prod-web-bundle`). 데모 웹 빌드는 `main` 배포(`deploy.yml`)에서 돕니다 |
 | 웹 — 트레이너 웹 | 예 — PR 에서 analyze·test·웹 빌드(`trainer-ci.yml`) |
-| 안드로이드 | 아니오 |
-| iOS | 아니오 — 잡 자체가 없습니다 |
+| 안드로이드 | 일부 — PR 의 `mobile-release-config`(`user-app-ci.yml`)가 앱 ID·서명 설정과 Gradle 작업 구성까지 봅니다(컴파일 전에 멈춤). AAB 빌드는 `member-app-release.yml` 에서만 |
+| iOS | PR 에서는 아니오 — `member-app-release.yml` 의 `ios` 잡(`macos-15`)이 서명 비밀이 있을 때 수동 실행·태그에서만 IPA 를 빌드합니다 |
 
-그래서 iOS 쪽은 어긋난 채로 한참 가다가, 그 사람이 웹 코드를 건드릴 때 처음
-드러납니다. 실기기 검증(#1882)을 시작하기 전에 `flutter --version` 부터 맞추십시오 —
+그래서 iOS 쪽은 어긋난 채로 한참 가다가, 그 사람이 웹 코드를 건드리거나 서명 빌드를
+돌릴 때 처음 드러납니다. 실기기 검증(#1882)을 시작하기 전에 `flutter --version` 부터 맞추십시오 —
 버전이 다르면 다른 팀원의 결과와 비교할 수 없습니다.
 
 iOS 에는 축이 하나 더 있습니다. `ios/Podfile` 이 `platform :ios, '14.0'` 을 잡고

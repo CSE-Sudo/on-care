@@ -133,8 +133,12 @@ Linux 에서 작업한다면 `cd shared/oncare_ui && flutter test --update-golde
 확인한 뒤 머지합니다. SHA 는 이렇게 확인합니다.
 
 ```bash
-gh api repos/actions/checkout/git/ref/tags/v4 --jq .object.sha
+gh api repos/actions/checkout/commits/v7.0.1 --jq .sha
 ```
+
+`commits/<태그>` 는 태그가 가리키는 **커밋** SHA 를 돌려줍니다. `git/ref/tags/<태그>` 의
+`.object.sha` 는 annotated 태그면 커밋이 아니라 태그 객체의 SHA 를 돌려주므로 쓰지 않습니다 —
+`uses:` 에는 커밋 SHA 를 적습니다(#3237).
 
 ---
 
