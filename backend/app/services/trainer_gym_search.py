@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import logging
 
-from sqlalchemy import or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
@@ -46,19 +46,46 @@ def kakao_enabled() -> bool:
     return bool(settings.kakao_rest_api_key)
 
 
+def _like_escape(text: str) -> str:
+    """LIKE 패턴에 그대로 넣을 수 있게 와일드카드(`%`·`_`)와 이스케이프 문자를 막는다.
+
+    검색어의 `%` 가 그대로 들어가면 모든 헬스장이 걸린다.
+    """
+    return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def search_terms(query: str) -> list[str]:
+    """검색어를 비교할 단어로 나눈다. 띄어쓰기로 나누고 대소문자는 비교 때 무시한다."""
+    return [term for term in query.split() if term]
+
+
 def _registered_matches(db: Session, query: str) -> list[Place]:
-    """이미 `places` 에 있는 헬스장 중 이름·주소가 검색어를 포함하는 곳.
+    """이미 `places` 에 있는 헬스장 중 검색어의 모든 단어가 이름·주소에 있는 곳. (#3223)
 
     카카오에 없는 제휴 시드 헬스장도 고를 수 있어야 하고, 카카오 키가 없는
     환경(로컬·CI)에서는 이것이 유일한 결과다.
+
+    사람이 치는 방식대로 비교한다 — 띄어쓰기는 보지 않고(`온케어짐신촌` →
+    `온케어짐 신촌점`), 단어 순서도 보지 않는다(`신촌 헬스메이트` → `헬스메이트
+    신촌점`). 예전에는 검색어 전체를 `ILIKE '%검색어%'` 한 번으로 비교해, 띄어쓰기나
+    순서만 달라도 등록된 헬스장이 빈 목록이 됐다.
     """
-    pattern = f"%{query}%"
+    terms = search_terms(query)
+    if not terms:
+        return []
+    # 이름·주소의 띄어쓰기를 빼고 비교한다 — 검색어 단어에도 띄어쓰기가 없다.
+    name = func.replace(Place.name, " ", "")
+    address = func.replace(Place.address, " ", "")
+    conditions = []
+    for term in terms:
+        pattern = f"%{_like_escape(term)}%"
+        conditions.append(or_(
+            name.ilike(pattern, escape="\\"),
+            address.ilike(pattern, escape="\\"),
+        ))
     return list(db.scalars(
         select(Place)
-        .where(
-            Place.category == "fitness",
-            or_(Place.name.ilike(pattern), Place.address.ilike(pattern)),
-        )
+        .where(Place.category == "fitness", and_(*conditions))
         .order_by(Place.name)
         .limit(_REGISTERED_LIMIT)
     ))

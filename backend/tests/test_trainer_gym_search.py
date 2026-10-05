@@ -71,6 +71,24 @@ def test_docs_to_gyms_distance_is_none_without_coordinates():
     assert kakao.docs_to_gyms([doc])[0]["distance_meters"] is None
 
 
+# ---- 검색어 비교 규칙 (순수, #3223) ----
+
+def test_search_terms_split_on_any_whitespace():
+    from app.services import trainer_gym_search
+
+    assert trainer_gym_search.search_terms("  신촌\t헬스메이트  ") == ["신촌", "헬스메이트"]
+    assert trainer_gym_search.search_terms("   ") == []
+
+
+def test_like_escape_neutralises_wildcards():
+    from app.services import trainer_gym_search
+
+    assert trainer_gym_search._like_escape("100%") == "100\\%"
+    assert trainer_gym_search._like_escape("a_b") == "a\\_b"
+    assert trainer_gym_search._like_escape("a\\b") == "a\\\\b"
+    assert trainer_gym_search._like_escape("헬스") == "헬스"
+
+
 # ---- 픽스처 ----
 
 @pytest.fixture
@@ -230,6 +248,62 @@ def test_member_cannot_search(client):
         "/v1/trainer/gyms/search", params={"query": "헬스"}, headers=_auth(token)
     )
     assert r.status_code == 403, r.text
+
+
+# ---- 등록 헬스장 매칭 — 띄어쓰기·단어 순서 (#3223) ----
+
+def _search_ids(client, token: str, query: str) -> list[str]:
+    r = client.get(
+        "/v1/trainer/gyms/search", params={"query": query}, headers=_auth(token)
+    )
+    assert r.status_code == 200, r.text
+    return [g["id"] for g in r.json()]
+
+
+@pytest.mark.parametrize("query", [
+    "헬스메이트신촌",      # 붙여 쓴 이름 — 저장된 이름은 `헬스메이트 신촌점`
+    "신촌 헬스메이트",     # 단어 순서가 다르다
+    "헬스메이트   신촌점",  # 띄어쓰기가 여러 칸
+    "헬스메이트 신촌점",   # 대조군: 저장된 이름 그대로
+    "신촌로 헬스메이트",   # 주소 단어 + 이름 단어
+])
+def test_registered_search_ignores_spacing_and_word_order(
+    client, trainer, kakao_off, query
+):
+    token, _ = trainer
+    assert HEALTHMATE_ID in _search_ids(client, token, query)
+
+
+def test_registered_search_requires_every_word(client, trainer, kakao_off):
+    """단어 하나라도 이름·주소에 없으면 그 헬스장은 빠진다 — 아무 단어나 걸리면
+    결과가 너무 넓어진다."""
+    token, _ = trainer
+    assert HEALTHMATE_ID not in _search_ids(client, token, "헬스메이트 없는동네이름")
+
+
+def test_registered_search_is_case_insensitive(client, trainer, kakao_off, db_session):
+    from app.models import models
+
+    place_id = f"gym-case-{uuid4().hex[:8]}"
+    db_session.add(models.Place(
+        id=place_id, name="OnCare Fit Studio", category="fitness",
+        address="서울 마포구 테스트로 1", lat=37.55, lng=126.93,
+    ))
+    db_session.commit()
+    try:
+        token, _ = trainer
+        assert place_id in _search_ids(client, token, "oncarefit")
+        assert place_id in _search_ids(client, token, "STUDIO oncare")
+    finally:
+        db_session.query(models.Place).filter(models.Place.id == place_id).delete()
+        db_session.commit()
+
+
+@pytest.mark.parametrize("query", ["%", "_", "%%", "헬스%"])
+def test_registered_search_treats_wildcards_literally(client, trainer, kakao_off, query):
+    """`%`·`_` 는 글자 그대로 비교한다 — 와일드카드로 읽으면 모든 헬스장이 걸린다."""
+    token, _ = trainer
+    assert _search_ids(client, token, query) == []
 
 
 # ---- 카카오 결과로 소속 설정 ----
