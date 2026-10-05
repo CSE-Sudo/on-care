@@ -1239,12 +1239,26 @@ def list_scheduled_routines(
 
     **PT 프로그램 줄은 여기 오지 않는다.** 개인운동만 `delivery_kind` 를 달고
     있어(#2223) 그 값으로 가른다.
+
+    담당이 해제됐거나 동의가 철회된 회원의 줄은 남의 일정과 같이 빈 목록이다
+    (#3239). 해제하면 일정은 취소되지만 붙은 미전송 줄은 남아, 옛 일정 id 로 읽으면
+    그 회원의 지금 목표로 계산한 효과 문구가 나갔다.
     """
+    s = _get_owned_session(db, trainer_id, schedule_id)
+    if s is None:
+        return []
+    try:
+        _ensure_session_member_linked(db, trainer_id, s)
+    except ClientLinkDetached:
+        return []
     rows = db.scalars(
         select(TrainerRoutine)
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.schedule_id == schedule_id,
+            # 지금 일정의 회원 것만 — 회원을 바꾸기 전에 붙은 줄이 남아 있어도
+            # 다른 회원의 운동을 이 일정에 띄우지 않는다(#3232).
+            TrainerRoutine.member_id == s.member_id,
             TrainerRoutine.delivery_kind.is_not(None),
             TrainerRoutine.status.in_((ROUTINE_SCHEDULED, ROUTINE_APPROVED)),
         )
@@ -1563,6 +1577,7 @@ def update_scheduled_routines(
     - 소유 슬롯 아님 → None(404).
     - 빈 목록으로 비우려 함 → ScheduleError.
     - 처음 붙이는데 붙일 수 없는 PT → ScheduleError(`_ensure_routine_attachable`).
+    - 담당이 해제됐거나 동의가 철회된 회원의 일정 → ClientLinkDetached(404).
 
     [suggestion_ids] 는 이 개인운동을 채운 대기 중 AI 제안이다(#2747) —
     프로그램 만들기와 같이 같은 트랜잭션에서 `consumed` 로 닫는다. 실패하면
@@ -1571,6 +1586,8 @@ def update_scheduled_routines(
     s = _get_owned_session(db, trainer_id, session_id)
     if s is None:
         return None
+    # 붙은 줄을 고치는 길도 처음 붙이는 길과 같은 담당·동의 경계를 본다(#3239).
+    _ensure_session_member_linked(db, trainer_id, s)
     if not items:
         raise ScheduleError("개인운동을 최소 한 개는 남겨 주세요.")
     rows = db.scalars(
@@ -1578,6 +1595,8 @@ def update_scheduled_routines(
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.schedule_id == session_id,
+            # 목록([list_scheduled_routines])과 같이 지금 일정의 회원 것만 고친다.
+            TrainerRoutine.member_id == s.member_id,
             # 개인운동만 — PT 프로그램 줄도 같은 일정에 붙어 있다(#2279).
             TrainerRoutine.delivery_kind.is_not(None),
             TrainerRoutine.status == ROUTINE_SCHEDULED,
