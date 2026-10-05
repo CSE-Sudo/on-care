@@ -7,6 +7,7 @@ import 'package:oncare/features/benefits/presentation/benefit_labels.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/benefits/presentation/widgets/benefit_cards.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 쿠폰 한 장 — 혜택, 담당 트레이너(PT 재등록)·헬스장(PT 재등록·개인 락커),
@@ -80,9 +81,10 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
           : <Widget>[
               if (coupons.hasError && !coupons.hasValue)
                 AppCard(
-                  child: AppErrorState(
+                  child: appErrorStateFor(
+                    context,
+                    error: coupons.error,
                     title: l.myBenefitsLoadFailed,
-                    retryLabel: l.actionRetry,
                     onRetry: () => ref.invalidate(myCouponsProvider),
                     placement: AppStatePlacement.card,
                   ),

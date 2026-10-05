@@ -58,6 +58,18 @@ class AccountCreatedSignInFailed implements Exception {
   String toString() => 'AccountCreatedSignInFailed($cause)';
 }
 
+/// 회원 앱에 트레이너 계정으로 로그인하려 했다. (#3137)
+///
+/// 서버는 트레이너 토큰에 회원 API 를 403 으로 거절하므로, 이 토큰으로 들어가면
+/// 로그인 직후부터 모든 회원 화면이 오류가 된다. 받은 토큰은 저장하지 않고 서버에서
+/// 폐기한 뒤 이 예외를 던진다 — 로그인 화면이 트레이너 웹 안내를 보인다.
+class TrainerAccountSignInRejected implements Exception {
+  const TrainerAccountSignInRejected();
+
+  @override
+  String toString() => 'TrainerAccountSignInRejected()';
+}
+
 class SessionController extends StateNotifier<SessionState>
     implements SessionTokenRefresher {
   SessionController(this._ref) : super(const SessionState()) {
@@ -101,7 +113,8 @@ class SessionController extends StateNotifier<SessionState>
     _ref.read(sessionFeatureResetProvider)();
   }
 
-  /// 첫 설정 기기 기록을 지운다 — 계정 경계를 넘을 때마다 부른다. (#2630)
+  /// 첫 설정 기기 기록을 지운다 — 새 토큰으로 로그인할 때 부른다. (#2630)
+  /// 세션이 끝날 때는 홈 가이드까지 지우는 [_forgetAccountRecords] 를 쓴다.
   ///
   /// 그 기록은 프로필을 못 받아 왔을 때 "이 계정은 이미 끝냈다" 로 쓰는 보조
   /// 판단이다. 기기 전체에 하나로 남으면 앞 계정의 기록이 다음 계정의 판단에
@@ -112,6 +125,21 @@ class SessionController extends StateNotifier<SessionState>
       await _ref.read(appPrefsProvider).forgetOnboardingDone();
     } catch (_) {
       // 설정 저장소가 없거나 쓰기에 실패해도 세션 전환은 막지 않는다.
+    }
+  }
+
+  /// 계정에 매인 기기 기록(첫 설정·홈 가이드)을 모두 지운다 — 세션이 끝나는
+  /// 길(로그아웃·만료·갱신 거부)마다 부른다. (#3154)
+  ///
+  /// 다음에 이 기기로 들어오는 사람이 같은 계정이라는 보장이 없다. 첫 설정 기록만
+  /// 지우면 앞 계정이 끝낸 홈 가이드 기록이 남아, 다른 계정으로 로그인한 새
+  /// 회원이 첫 사용 안내를 한 번도 보지 못한다. 언어와 설치 표식은 기기의 것이라
+  /// 남는다([AppPrefs.clearAccountScoped]).
+  Future<void> _forgetAccountRecords() async {
+    try {
+      await _ref.read(appPrefsProvider).clearAccountScoped();
+    } catch (_) {
+      // 설정 저장소가 없거나 쓰기에 실패해도 로그아웃은 막지 않는다.
     }
   }
 
@@ -311,7 +339,7 @@ class SessionController extends StateNotifier<SessionState>
       await _ref.read(secureTokenStoreProvider).clear();
     } catch (_) {}
     if (!mounted || _userActionStarted) return;
-    await _forgetDeviceFirstRun();
+    await _forgetAccountRecords();
     if (!mounted || _userActionStarted) return;
     _setToken(null);
     state = const SessionState(status: SessionStatus.signedOut);
@@ -326,6 +354,12 @@ class SessionController extends StateNotifier<SessionState>
     final access = (data?['access_token'] as String?) ?? '';
     final refresh = (data?['refresh_token'] as String?) ?? '';
     if (access.isEmpty) throw Exception('$label 응답에 토큰이 없습니다.');
+    // 저장하기 **전에** 회원 계정인지 확인한다(#3137). 세션 복구(#3054)와 같은
+    // 규칙이다 — 응답에 역할이 없으면(배포 전 서버) 지금처럼 들어간다.
+    if (!isMemberRole(data)) {
+      await _rejectTrainerAccount(refresh);
+      throw const TrainerAccountSignInRejected();
+    }
     try {
       await _ref
           .read(secureTokenStoreProvider)
@@ -338,10 +372,36 @@ class SessionController extends StateNotifier<SessionState>
     _setToken(access);
     _resetFeatureState();
     _ref.read(sessionExpiredNoticeProvider.notifier).state = false;
+    _ref.read(trainerAccountNoticeProvider.notifier).state = false;
     state = SessionState(
       status: SessionStatus.authenticated,
       consentRequired: consentRequiredIn(data),
     );
+  }
+
+  /// 트레이너 계정으로 받은 토큰을 버린다. (#3137)
+  ///
+  /// 저장소에도 메모리에도 넣지 않고, 서버에 폐기를 보낸다 — 이 기기에서 쓰지 않을
+  /// 토큰이 만료까지 살아 있을 이유가 없다. 폐기 실패는 안내를 막지 않는다(로그아웃
+  /// [_revokeSession] 과 같은 원칙). 저장소에 있던 앞 세션은 건드리지 않는다.
+  Future<void> _rejectTrainerAccount(String refresh) async {
+    if (refresh.isNotEmpty) {
+      try {
+        await _ref
+            .read(dioProvider)
+            .post<void>(
+              '/auth/logout',
+              data: <String, Object?>{'refresh_token': refresh},
+            )
+            .timeout(const Duration(seconds: 3));
+      } catch (_) {
+        // 무시한다 — 위 주석 참고.
+      }
+    }
+    if (!mounted) return;
+    _setToken(null);
+    _ref.read(trainerAccountNoticeProvider.notifier).state = true;
+    state = const SessionState(status: SessionStatus.signedOut);
   }
 
   /// 비밀번호를 바꾼 뒤 서버가 새로 준 토큰으로 **이 기기의 세션을 이어 간다.**
@@ -376,6 +436,7 @@ class SessionController extends StateNotifier<SessionState>
   /// Email/password login → POST /auth/login (OAuth2 form). Throws on failure.
   Future<void> login({required String email, required String password}) async {
     _userActionStarted = true;
+    _ref.read(trainerAccountNoticeProvider.notifier).state = false;
     final dio = _ref.read(dioProvider);
     final res = await dio.post<Map<String, Object?>>(
       '/auth/login',
@@ -392,6 +453,7 @@ class SessionController extends StateNotifier<SessionState>
     required String token,
   }) async {
     _userActionStarted = true;
+    _ref.read(trainerAccountNoticeProvider.notifier).state = false;
     final dio = _ref.read(dioProvider);
     final res = await dio.post<Map<String, Object?>>(
       '/auth/social/$provider',
@@ -498,12 +560,13 @@ class SessionController extends StateNotifier<SessionState>
 
   /// 저장된 토큰을 지우고, 회원별 화면 상태를 비우고, 로그인 화면으로 보낸다.
   ///
-  /// 로그아웃과 실행 중 만료(#1546)가 함께 쓰는 마지막 단계다.
+  /// 로그아웃과 실행 중 만료(#1546)가 함께 쓰는 마지막 단계다. 계정에 매인
+  /// 기기 기록도 여기서 지운다(#3154).
   Future<void> _closeSession() async {
     try {
       await _ref.read(secureTokenStoreProvider).clear();
     } catch (_) {}
-    await _forgetDeviceFirstRun();
+    await _forgetAccountRecords();
     if (!mounted) return;
     _setToken(null);
     _resetFeatureState();
@@ -639,7 +702,7 @@ class SessionController extends StateNotifier<SessionState>
 bool consentRequiredIn(Map<String, Object?>? data) =>
     data?['consent_required'] == true;
 
-/// `GET /users/me` 응답이 회원 계정인가. (#3054)
+/// `GET /users/me`·로그인 응답이 회원 계정인가. (#3054, #3137)
 ///
 /// 칸이 없거나 비었으면 회원으로 본다 — 역할을 주지 않던 서버를 상대할 때
 /// 막혀 들어가지 못하는 쪽보다 지금처럼 들어가는 쪽이 낫다. 서버는 트레이너
@@ -649,6 +712,16 @@ bool isMemberRole(Map<String, Object?>? data) {
   if (role is! String || role.isEmpty) return true;
   return role == 'member';
 }
+
+/// 방금 트레이너 계정으로 로그인하려 했다 — 로그인 화면이 트레이너 웹 안내를
+/// 보인다. (#3137)
+///
+/// 토스트처럼 사라지면 회원이 다시 같은 계정으로 시도하게 된다. 다음 로그인
+/// 시도까지 화면에 남긴다.
+final trainerAccountNoticeProvider = StateProvider<bool>(
+  (ref) => false,
+  name: 'trainerAccountNotice',
+);
 
 /// 실행 중 세션이 만료되어 로그인 화면으로 보냈다 — 로그인 화면이 한 번 안내하고
 /// 거둔다. (#1546)

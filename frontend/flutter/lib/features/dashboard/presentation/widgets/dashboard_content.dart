@@ -21,6 +21,7 @@ import 'package:oncare/features/notification/presentation/controllers/notificati
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/exercise_goals_provider.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare/shared/widgets/chart_a11y_labels.dart';
 import 'package:oncare/shared/widgets/coaching_sheet.dart';
 import 'package:oncare/shared/widgets/member_tab_header.dart';
@@ -64,11 +65,15 @@ class DashboardContent extends StatelessWidget {
                 .watch(dashboardSummaryProvider)
                 .when(
                   loading: () => const AppLoading(),
-                  error: (Object error, StackTrace stackTrace) => AppErrorState(
-                    title: AppLocalizations.of(context).homeDashboardLoadError,
-                    retryLabel: AppLocalizations.of(context).actionRetry,
-                    onRetry: () => ref.invalidate(dashboardSummaryProvider),
-                  ),
+                  error: (Object error, StackTrace stackTrace) =>
+                      appErrorStateFor(
+                        context,
+                        error: error,
+                        title: AppLocalizations.of(
+                          context,
+                        ).homeDashboardLoadError,
+                        onRetry: () => ref.invalidate(dashboardSummaryProvider),
+                      ),
                   data: (DashboardSummary summary) => _DashboardData(
                     adviceAnchorKey: adviceAnchorKey,
                     summary: summary,
@@ -880,7 +885,7 @@ class _RecommendedMeals extends ConsumerWidget {
     final MealRecommendations? loaded = async.valueOrNull;
     if (loaded == null && !ref.watch(mealRecsDemoFallbackProvider)) {
       return _RecommendedMealsState(
-        error: async.hasError && !async.isLoading,
+        error: async.hasError && !async.isLoading ? async.error : null,
         onRetry: () => ref.invalidate(dietRecommendationsProvider),
       );
     }
@@ -959,7 +964,9 @@ class _RecommendedMeals extends ConsumerWidget {
 class _RecommendedMealsState extends StatelessWidget {
   const _RecommendedMealsState({required this.error, required this.onRetry});
 
-  final bool error;
+  /// 추천 조회를 실패하게 한 오류. 아직 받는 중이면 null 이다 — 오류 칸의
+  /// 설명이 이 오류의 원인을 말한다(#3140).
+  final Object? error;
   final VoidCallback onRetry;
 
   @override
@@ -978,11 +985,12 @@ class _RecommendedMealsState extends StatelessWidget {
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppCard(
-          child: error
-              ? AppErrorState(
+          child: error != null
+              ? appErrorStateFor(
+                  context,
                   key: const ValueKey<String>('home-rec-meals-error'),
+                  error: error,
                   title: l.homeRecMealsErrorTitle,
-                  retryLabel: l.actionRetry,
                   retryKey: const ValueKey<String>('home-rec-meals-retry'),
                   onRetry: onRetry,
                   placement: AppStatePlacement.card,

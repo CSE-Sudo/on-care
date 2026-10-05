@@ -24,7 +24,7 @@ void main() {
     }
     // 한국어본의 조 수만큼 영문본에도 있어야 한다 — 한쪽만 늘면 갈라진다.
     expect(RegExp(r'제\d+조').allMatches(ko.myLegalTermsBody).length, 14);
-    // 시행일은 실제 동의 기록 버전과 같은 날이다(#2820).
+    // 약관 시행일은 약관 동의 기록 버전과 같은 날이다(#2820, #3006).
     expect(body, contains('3 October 2026'));
   });
 
