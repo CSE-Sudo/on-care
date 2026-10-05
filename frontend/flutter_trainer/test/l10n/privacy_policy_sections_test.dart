@@ -257,4 +257,23 @@ void main() {
     expect(ko.myLegalTermsEffectiveDate, '시행일 2026. 10. 03.');
     expect(en.myLegalTermsEffectiveDate, 'Effective Oct 3, 2026');
   });
+
+  test('처리방침·약관이 네이버·애플을 로그인 수단으로 적지 않는다 (#3217)', () {
+    // 네이버·애플 로그인은 제공하지 않는다. 트레이너 웹 문서는 처음부터 소셜 로그인
+    // 수단을 나열하지 않았지만, 회원 앱과 문안을 맞추다 다시 들어오지 않게 본다.
+    for (final String body in <String>[
+      ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      ko.myLegalTermsBody,
+    ]) {
+      expect(body, isNot(contains('애플')));
+      expect(body, isNot(contains('네이버')));
+    }
+    for (final String body in <String>[
+      en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      en.myLegalTermsBody,
+    ]) {
+      expect(body, isNot(contains('Apple')));
+      expect(body, isNot(contains('Naver')));
+    }
+  });
 }

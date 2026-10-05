@@ -9,6 +9,7 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_rules.dart';
 import 'package:oncare_trainer/features/coaching/data/demo_routine_store.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_routine_options_repository.dart';
@@ -508,7 +509,16 @@ class MockTrainerRoutineOptionsRepository
                     DateTime(since.year, since.month, since.day),
                   ),
             ))
-            .get();
+            .get()
+            // 하루치 `개인운동` 카드는 빼고 센다 — 서버는 그 카드를 이력 표가
+            // 아니라 개인운동 완료에서 만들어, 추천 근거(`RoutineHistory`)에
+            // 들지 않는다(#3003).
+            .then(
+              (rows) => <ClientRoutineHistoryRow>[
+                for (final row in rows)
+                  if (routineKindCode(row.label) != 'personal_routine') row,
+              ],
+            );
     final List<List<Object?>> sessions = <List<Object?>>[
       for (final row in history)
         if (jsonDecode(row.exercisesJson) case final List<Object?> items) items,

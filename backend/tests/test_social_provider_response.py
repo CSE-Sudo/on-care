@@ -1,6 +1,6 @@
 """소셜 provider 비정상 응답 — adapter 단위 (#1550).
 
-google/kakao/naver adapter 가 200 인데 약속과 다른 응답(HTML·깨진 JSON·객체가 아닌
+google/kakao adapter 가 200 인데 약속과 다른 응답(HTML·깨진 JSON·객체가 아닌
 JSON·필드 타입 이상·빈 본문)을 받으면 JSONDecodeError·AttributeError 가 새지 않고
 SocialAuthError 계열로 바뀌는지 본다.
 
@@ -10,8 +10,8 @@ SocialAuthError 계열로 바뀌는지 본다.
 DB 가 필요 없다. 네트워크 대신 `httpx.MockTransport` 로 응답을 흉내 낸다.
 
 발급 앱 확인(#3035) 뒤에도 같은 규칙이 지켜지는지 본다. 구글 본문에는 우리 앱 발급
-정보가, 카카오에는 토큰 정보 조회가 더해졌고, 네이버는 코드 교환 뒤에 쓸 프로필
-읽기(`read_profile`)를 검사한다. 발급 앱 검사 자체는 `test_social_token_audience.py`.
+정보가, 카카오에는 토큰 정보 조회가 더해졌다. 네이버·애플 로그인은 제공하지 않는다
+(#3218). 발급 앱 검사 자체는 `test_social_token_audience.py`.
 """
 from __future__ import annotations
 
@@ -89,14 +89,6 @@ def test_kakao_null_account_and_profile_are_treated_as_absent(monkeypatch):
     assert (identity.email, identity.name) == ("", "")
 
 
-def test_naver_name_falls_back_to_nickname(monkeypatch):
-    respond_json(monkeypatch, {"response": {"id": "n-1", "nickname": "닉네임"}})
-    assert _verify("naver").name == "닉네임"
-
-
-def test_naver_empty_name_falls_back_to_nickname(monkeypatch):
-    respond_json(monkeypatch, {"response": {"id": "n-1", "name": "", "nickname": "닉네임"}})
-    assert _verify("naver").name == "닉네임"
 
 
 def test_google_optional_fields_absent(monkeypatch):
@@ -203,13 +195,6 @@ def test_empty_object_is_auth_error(monkeypatch, provider):
     assert _is_plain_auth_error(info.value)
 
 
-def test_naver_without_response_object_is_auth_error(monkeypatch):
-    respond_json(monkeypatch, {"resultcode": "024", "message": "Authentication failed"})
-    with pytest.raises(SocialAuthError) as info:
-        _verify("naver")
-    assert _is_plain_auth_error(info.value)
-
-
 # ── 필드 타입 이상 → 형식 이상 ────────────────────────────────────
 
 
@@ -240,12 +225,6 @@ def test_wrong_id_type_is_provider_response_error(monkeypatch, provider, uid):
         ("kakao", {"id": 1, "kakao_account": {"profile": ["p"]}}),
         ("kakao", {"id": 1, "kakao_account": {"email": 5}}),
         ("kakao", {"id": 1, "kakao_account": {"profile": {"nickname": 9}}}),
-        ("naver", {"response": []}),
-        ("naver", {"response": "profile"}),
-        ("naver", {"response": 0}),
-        ("naver", {"response": {"id": "n", "email": 1}}),
-        ("naver", {"response": {"id": "n", "name": ["a"]}}),
-        ("naver", {"response": {"id": "n", "nickname": {"x": 1}}}),
     ],
 )
 def test_wrong_nested_type_is_provider_response_error(monkeypatch, provider, body):

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +28,7 @@ import 'package:oncare_trainer/features/clients/presentation/widgets/client_card
 import 'package:oncare_trainer/features/my/data/app_version.dart';
 import 'package:oncare_trainer/features/my/data/build_info.dart';
 import 'package:oncare_trainer/features/my/data/trainer_account_repository.dart';
+import 'package:oncare_trainer/features/my/data/trainer_location_service.dart';
 import 'package:oncare_trainer/features/my/data/trainer_profile_repository.dart';
 import 'package:oncare_trainer/features/my/data/trainer_settings.dart';
 import 'package:oncare_trainer/features/my/domain/support_links.dart';
@@ -52,7 +54,8 @@ import 'package:url_launcher/url_launcher.dart';
 ///    고친다. Edits persist through `PUT /v1/trainer/me` and the gym
 ///    affiliation endpoints; mock mode follows the same repository contract
 ///    (#477, #452). 이름·이메일 입력은 비활성이다 — 값이 없어서가 아니라
-///    **계정 소관**이라 여기서 바꾸지 않는다.
+///    **계정 소관**이라 여기서 바꾸지 않는다. 소속 헬스장의 영업시간·전화·
+///    태그는 `헬스장 정보 수정`(`t=gymInfo`)에서 고친다(#2700).
 ///  * **설정** — 한 장짜리 목록이다. 알림·계정·고객 지원은 하위 화면으로
 ///    열고(`t=notifications|account|support`), 화면 언어만 줄 안에서 고른다.
 ///    알림 수신 설정은 `GET/PUT /v1/trainer/me/settings`(#379), 비밀번호
@@ -83,6 +86,10 @@ enum _MySection {
   profile,
   clients,
   edit(parent: profile),
+
+  /// 소속 헬스장 정보(영업시간·전화·태그) 수정(#2700). 프로필의 소속 헬스장
+  /// 카드에서 들어가 프로필로 돌아간다.
+  gymInfo(parent: profile),
   notifications,
   language,
   account,
@@ -132,6 +139,22 @@ class _MyPageState extends ConsumerState<MyPage> {
   /// 소속 헬스장 안내를 띄울지 — 저장을 눌러 한 번 막힌 뒤부터(전화번호와 같다).
   bool _showGymError = false;
 
+  /// 헬스장 정보 수정(#2700) — 서버에서 읽은 값. 읽는 중이면 null 이다.
+  TrainerGymInfo? _gymInfo;
+
+  /// 헬스장 정보를 읽다 난 오류. 있으면 다시 시도 화면을 보인다.
+  Object? _gymInfoError;
+
+  /// 늦게 온 응답이 새 요청의 결과를 덮지 않게 요청마다 올린다.
+  int _gymInfoLoad = 0;
+
+  /// 헬스장 태그 초안과 추가 칸.
+  List<String> _draftTags = <String>[];
+  final TextEditingController _newTag = TextEditingController();
+
+  /// 태그 추가 칸 아래 안내(개수·길이 초과). 없으면 null.
+  String? _tagError;
+
   @override
   void initState() {
     super.initState();
@@ -144,23 +167,26 @@ class _MyPageState extends ConsumerState<MyPage> {
     _draftCerts = List<String>.of(_certs);
     // 주소로 프로필 수정에 바로 들어와도(새로고침·뒤로) 빈 폼이 아니다.
     if (_section == _MySection.edit) _loadDrafts();
+    if (_section == _MySection.gymInfo) _loadGymInfo();
   }
 
-  /// 새로 고침·탭 닫기 지킴이 켜져 있는가(프로필 수정 화면에서만).
+  /// 새로 고침·탭 닫기 지킴이 켜져 있는가(프로필·헬스장 정보 수정 화면에서만).
   bool _leaveGuarded = false;
+
+  /// 지금 화면이 저장 버튼이 있는 수정 화면인가.
+  bool get _editing =>
+      _section == _MySection.edit || _section == _MySection.gymInfo;
 
   /// 프로필 수정 화면에 있는 동안 새로 고침·탭 닫기 앞에서 브라우저가 묻게 한다.
   /// 앱 안의 이동은 [_go] 가 묻는다. 막을지는 떠나는 그 순간에 정한다 —
   /// 고친 것이 없거나 저장 중이면 묻지 않는다.
   void _syncLeaveGuard() {
-    final bool want = _section == _MySection.edit;
+    final bool want = _editing;
     if (want == _leaveGuarded) return;
     _leaveGuarded = want;
     setLeaveGuard(
       this,
-      want
-          ? () => mounted && _section == _MySection.edit && !_saving && _isDirty
-          : null,
+      want ? () => mounted && _editing && !_saving && _isDirty : null,
     );
   }
 
@@ -171,6 +197,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       c.dispose();
     }
     _newCert.dispose();
+    _newTag.dispose();
     super.dispose();
   }
 
@@ -208,6 +235,109 @@ class _MyPageState extends ConsumerState<MyPage> {
     _field('specialty', _profile.specialty).text = _profile.specialty;
     _field('career', _careerText(_profile)).text = _careerText(_profile);
     _field('intro', _profile.intro).text = _profile.intro;
+  }
+
+  /// 헬스장 정보 수정 화면에 들어올 때마다 서버 값을 새로 읽는다(#2700) — 같은
+  /// 헬스장의 다른 트레이너가 그사이 고쳤을 수 있다. 지난번에 저장하지 않고
+  /// 나간 입력은 버린다. `initState` 에서도 부르므로 여기서 setState 하지 않는다.
+  void _loadGymInfo() {
+    _gymInfo = null;
+    _gymInfoError = null;
+    _tagError = null;
+    _newTag.clear();
+    final int load = ++_gymInfoLoad;
+    ref
+        .read(trainerProfileRepositoryProvider)
+        .fetchGymInfo()
+        .then(
+          (TrainerGymInfo info) {
+            if (!mounted || load != _gymInfoLoad) return;
+            setState(() => _fillGymInfo(info));
+          },
+          onError: (Object error) {
+            if (!mounted || load != _gymInfoLoad) return;
+            setState(() => _gymInfoError = error);
+          },
+        );
+  }
+
+  void _fillGymInfo(TrainerGymInfo info) {
+    _gymInfo = info;
+    _draftTags = List<String>.of(info.tags);
+    _field('gymWeekday', info.weekdayHours).text = info.weekdayHours;
+    _field('gymWeekend', info.weekendHours).text = info.weekendHours;
+    _field('gymPhone', info.phone).text = info.phone;
+  }
+
+  /// 추가 칸의 태그를 초안에 넣는다. 서버와 같은 기준(개수·길이)으로 미리
+  /// 막고 칸 아래에 이유를 보인다. 이미 있는 태그는 조용히 칸만 비운다.
+  /// 넣었거나 넣을 것이 없으면 true.
+  bool _addTag() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final String tag = _newTag.text.trim();
+    if (tag.isEmpty) return true;
+    String? error;
+    if (tag.length > TrainerGymInfoUpdate.maxTagLength) {
+      error = l.myGymTagTooLong(TrainerGymInfoUpdate.maxTagLength);
+    } else if (!_draftTags.contains(tag) &&
+        _draftTags.length >= TrainerGymInfoUpdate.maxTags) {
+      error = l.myGymTagsFull(TrainerGymInfoUpdate.maxTags);
+    }
+    setState(() {
+      _tagError = error;
+      if (error != null) return;
+      if (!_draftTags.contains(tag)) _draftTags.add(tag);
+      _newTag.clear();
+    });
+    return error == null;
+  }
+
+  Future<void> _saveGymInfo() async {
+    if (_saving || _gymInfo == null) return;
+    // 칸에 적어 두고 `추가` 를 누르지 않은 태그도 담는다 — 저장을 눌렀는데
+    // 적어 둔 태그가 사라지면 저장이 안 된 줄 안다.
+    if (!_addTag()) return;
+    final AppLocalizations l = AppLocalizations.of(context);
+    setState(() => _saving = true);
+    final repository = ref.read(trainerProfileRepositoryProvider);
+    try {
+      await repository.updateGymInfo(
+        TrainerGymInfoUpdate(
+          weekdayHours: _fields['gymWeekday']!.text.trim(),
+          weekendHours: _fields['gymWeekend']!.text.trim(),
+          phone: _fields['gymPhone']!.text.trim(),
+          tags: List<String>.of(_draftTags),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      final String? detail = error is AppError ? error.message : null;
+      // 실패하면 이 화면에 남는다 — 적은 값을 다시 적지 않아도 된다.
+      showAppToast(
+        context,
+        serverDetailOr(l, detail, l.myGymInfoSaveFailed),
+        type: AppToastType.error,
+      );
+      return;
+    }
+    // 서버가 프로필의 영업시간·전화 복사본도 바꿨다 — 내 정보 카드가 새 값을
+    // 보이게 다시 읽는다. 읽기만 실패하면 저장은 된 것이라 그대로 알린다.
+    TrainerProfile? refreshed;
+    try {
+      refreshed = await repository.fetch();
+    } catch (_) {
+      refreshed = null;
+    }
+    if (!mounted) return;
+    if (refreshed != null) {
+      _applySavedProfile(refreshed);
+    } else {
+      ref.invalidate(trainerGymInfoProvider);
+      setState(() => _saving = false);
+    }
+    showAppToast(context, l.mySaved, type: AppToastType.success);
+    context.go(AppRoutes.mySection(_MySection.profile.name));
   }
 
   /// 소속이 없고 새로 고르지도 않았으면 저장하지 않는다 — 소속이 없으면 회원이
@@ -303,6 +433,8 @@ class _MyPageState extends ConsumerState<MyPage> {
 
   void _applySavedProfile(TrainerProfile saved) {
     ref.read(sessionControllerProvider.notifier).replaceProfile(saved);
+    // 소속·헬스장 정보가 바뀌었을 수 있다 — 카드의 태그·주말 시간을 다시 읽는다.
+    ref.invalidate(trainerGymInfoProvider);
     setState(() {
       _profile = saved;
       _gym = saved.gym;
@@ -401,6 +533,10 @@ class _MyPageState extends ConsumerState<MyPage> {
     if (_section == _MySection.edit && oldWidget.tab != _MySection.edit.name) {
       setState(_loadDrafts);
     }
+    if (_section == _MySection.gymInfo &&
+        oldWidget.tab != _MySection.gymInfo.name) {
+      setState(_loadGymInfo);
+    }
     // 탈퇴 화면은 들어올 때마다 첫 칸(사유)부터 다시 시작한다.
     if (_section == _MySection.withdraw &&
         oldWidget.tab != _MySection.withdraw.name) {
@@ -416,7 +552,7 @@ class _MyPageState extends ConsumerState<MyPage> {
   /// 생긴다. 저장 성공·실패 뒤의 이동은 이 확인을 거치지 않는다.
   Future<void> _go(_MySection section) async {
     if (_saving) return;
-    if (_section == _MySection.edit && section != _MySection.edit && _isDirty) {
+    if (_editing && section != _section && _isDirty) {
       final AppLocalizations l = AppLocalizations.of(context);
       final bool leave = await showAppConfirmDialog(
         context: context,
@@ -432,7 +568,25 @@ class _MyPageState extends ConsumerState<MyPage> {
   }
 
   /// 편집 초안이 저장된 값과 다른가. 떠날 때 버릴지 묻는 기준이다.
-  bool get _isDirty {
+  bool get _isDirty => switch (_section) {
+    _MySection.edit => _profileDirty,
+    _MySection.gymInfo => _gymInfoDirty,
+    _ => false,
+  };
+
+  /// 헬스장 정보 초안이 읽어 온 값과 다른가. 아직 읽는 중이면 고친 것이 없다.
+  bool get _gymInfoDirty {
+    final TrainerGymInfo? info = _gymInfo;
+    if (info == null) return false;
+    String text(String key) => _fields[key]?.text ?? '';
+    return text('gymWeekday') != info.weekdayHours ||
+        text('gymWeekend') != info.weekendHours ||
+        text('gymPhone') != info.phone ||
+        _newTag.text.trim().isNotEmpty ||
+        !listEquals(_draftTags, info.tags);
+  }
+
+  bool get _profileDirty {
     String text(String key) => _fields[key]?.text ?? '';
     return text('phone') != _profile.phone ||
         text('specialty') != _profile.specialty ||
@@ -448,6 +602,7 @@ class _MyPageState extends ConsumerState<MyPage> {
     _MySection.profile => l.myProfileTitle,
     _MySection.clients => l.myClientManagement,
     _MySection.edit => l.myEditProfile,
+    _MySection.gymInfo => l.myGymInfoEdit,
     _MySection.notifications => l.myNotifications,
     _MySection.language => l.myLanguageApp,
     _MySection.account => l.myAccount,
@@ -464,6 +619,8 @@ class _MyPageState extends ConsumerState<MyPage> {
         // 누가 보는 정보인지 먼저 알린다 — 소개·경력·자격증은 담당 회원이
         // 보는 트레이너 소개에 그대로 나간다.
         _MySection.edit => l.myEditVisibleBody,
+        // 누가 보는 값이고 누가 고칠 수 있는지 먼저 알린다(#2700).
+        _MySection.gymInfo => l.myGymInfoSubtitle,
         _MySection.notifications => l.myNotificationsHint,
         _MySection.language => l.myLanguageSubtitle,
         _MySection.account => l.myAccountSubtitle,
@@ -498,6 +655,14 @@ class _MyPageState extends ConsumerState<MyPage> {
                 label: _saving ? l.mySaving : l.actionSave,
                 loading: _saving,
                 onPressed: _save,
+              ),
+            if (section == _MySection.gymInfo)
+              AppButton(
+                key: const ValueKey<String>('gym-info-save'),
+                label: _saving ? l.mySaving : l.actionSave,
+                loading: _saving,
+                // 읽기 전에는 저장할 값이 없다.
+                onPressed: _gymInfo == null ? null : _saveGymInfo,
               ),
           ],
           body: PageScrollResetListener(
@@ -542,8 +707,9 @@ class _MyPageState extends ConsumerState<MyPage> {
   /// 로그아웃은 맨 아래다(#2227).
   Widget _menu({required _MySection? selected}) {
     final AppLocalizations l = AppLocalizations.of(context);
-    // 프로필 수정은 프로필 항목에 속한다.
-    final _MySection? current = selected == _MySection.edit
+    // 프로필 수정·헬스장 정보 수정은 프로필 항목에 속한다.
+    final _MySection? current =
+        selected == _MySection.edit || selected == _MySection.gymInfo
         ? _MySection.profile
         : selected;
     Widget item(_MySection section, IconData icon) => KeyedSubtree(
@@ -613,6 +779,7 @@ class _MyPageState extends ConsumerState<MyPage> {
         ],
         ...switch (section) {
           _MySection.edit => _editCards(),
+          _MySection.gymInfo => _gymInfoCards(),
           _MySection.clients => <Widget>[_buildClientManagement()],
           _MySection.language => <Widget>[_languageCard(wide: wide)],
           _MySection.account => _accountCards(),
@@ -672,19 +839,23 @@ class _MyPageState extends ConsumerState<MyPage> {
       const SizedBox(height: OnCareSpacing.cardGap),
       _SettingsCard(
         title: l.myGym,
+        // 소속이 있어야 고칠 헬스장이 있다(#2700).
+        trailing: _gym.id == null
+            ? null
+            : AppButton(
+                key: const ValueKey<String>('my-gym-info-edit'),
+                label: l.myGymInfoEdit,
+                leadingIcon: AppIcons.edit,
+                variant: AppButtonVariant.secondary,
+                size: OnCareButtonSize.small,
+                onPressed: () => _go(_MySection.gymInfo),
+              ),
         body: _gym.name.trim().isEmpty
             ? AppEmptyState(
                 title: l.myGymEmpty,
                 placement: AppStatePlacement.inline,
               )
-            : _InfoGrid(
-                fields: <_Info>[
-                  _Info(l.myGymName, _gym.name),
-                  _Info(l.myGymAddress, _gym.address),
-                  _Info(l.myGymHours, _gym.hours),
-                  _Info(l.myFieldPhone, _gym.phone),
-                ],
-              ),
+            : _gymInfoGrid(l),
       ),
       const SizedBox(height: OnCareSpacing.cardGap),
       _SettingsCard(
@@ -692,6 +863,37 @@ class _MyPageState extends ConsumerState<MyPage> {
         body: _CertsList(certs: _certs),
       ),
     ];
+  }
+
+  /// 소속 헬스장 카드 본문 — 두 칸씩 둔다(#2700). 윗줄은 이름(옆에 태그)과
+  /// 운영 시간, 아랫줄은 주소와 연락처다. 세 칸으로 두면 연락처만 다음 줄에
+  /// 홀로 남고, 긴 주소가 좁은 칸에서 잘렸다.
+  ///
+  /// 태그·주말 영업시간은 프로필에 없어 헬스장 정보에서 읽는다. 읽는 동안이나
+  /// 실패하면 프로필에 복사된 평일 영업시간만 보인다.
+  Widget _gymInfoGrid(AppLocalizations l) {
+    final TrainerGymInfo? info = _gym.id == null
+        ? null
+        : ref.watch(trainerGymInfoProvider).valueOrNull;
+    final String weekday = info?.weekdayHours ?? _gym.hours;
+    final String weekend = info?.weekendHours ?? '';
+    return _InfoGrid(
+      maxColumns: 2,
+      fields: <_Info>[
+        _Info(l.myGymName, _gym.name, tags: info?.tags ?? const <String>[]),
+        _Info(
+          l.myGymHours,
+          weekend.trim().isEmpty
+              ? weekday
+              : <String>[
+                  if (weekday.trim().isNotEmpty) l.myGymHoursWeekday(weekday),
+                  l.myGymHoursWeekend(weekend),
+                ].join('\n'),
+        ),
+        _Info(l.myGymAddress, _gym.address),
+        _Info(l.myFieldPhone, info?.phone ?? _gym.phone),
+      ],
+    );
   }
 
   /// 프로필 수정 — 내 정보 본문을 편집 모드로 바꾸지 않고 따로 연다(#2264).
@@ -734,6 +936,81 @@ class _MyPageState extends ConsumerState<MyPage> {
           picked: _draftGym,
           errorText: _showGymError ? _gymError(l) : null,
           onPick: (gym) => setState(() => _draftGym = gym),
+        ),
+      ),
+    ];
+  }
+
+  /// 헬스장 정보 수정 — 영업시간·전화 칸과 태그 칩(#2700). 저장은 헤더 버튼,
+  /// 취소는 경로의 뒤로 가기다(프로필 수정과 같다).
+  List<Widget> _gymInfoCards() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final TrainerGymInfo? info = _gymInfo;
+    if (info == null) {
+      return <Widget>[
+        _SettingsCard(
+          title: l.myGymInfoCardTitle,
+          body: _gymInfoError == null
+              ? const AppLoading(placement: AppStatePlacement.inline)
+              : AppErrorState(
+                  title: l.myGymInfoLoadFailed,
+                  retryLabel: l.actionRetry,
+                  retryKey: const ValueKey<String>('gym-info-retry'),
+                  onRetry: () => setState(_loadGymInfo),
+                  placement: AppStatePlacement.inline,
+                ),
+        ),
+      ];
+    }
+    return <Widget>[
+      _SettingsCard(
+        title: l.myGymInfoCardTitle,
+        description: info.name,
+        body: _FormGrid(
+          children: <Widget>[
+            _EditField(
+              label: l.myGymWeekdayHours,
+              hint: l.myGymHoursHint,
+              controller: _field('gymWeekday', info.weekdayHours),
+              inputKey: const ValueKey<String>('gym-info-weekday'),
+              maxLength: TrainerGymInfoUpdate.maxHoursLength,
+            ),
+            _EditField(
+              label: l.myGymWeekendHours,
+              hint: l.myGymHoursHint,
+              controller: _field('gymWeekend', info.weekendHours),
+              inputKey: const ValueKey<String>('gym-info-weekend'),
+              maxLength: TrainerGymInfoUpdate.maxHoursLength,
+            ),
+            // 대표번호라 휴대전화 서식(하이픈 자동)을 걸지 않는다 —
+            // `02-332-1720` 같은 번호가 깨진다(#1914).
+            _EditField(
+              label: l.myGymPhone,
+              hint: l.myGymPhoneHint,
+              controller: _field('gymPhone', info.phone),
+              inputKey: const ValueKey<String>('gym-info-phone'),
+              keyboardType: TextInputType.phone,
+              maxLength: TrainerGymInfoUpdate.maxPhoneLength,
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: OnCareSpacing.cardGap),
+      _SettingsCard(
+        title: l.myGymTags,
+        description: l.myGymTagsHint(
+          TrainerGymInfoUpdate.maxTags,
+          TrainerGymInfoUpdate.maxTagLength,
+        ),
+        body: _GymTagsEditor(
+          tags: _draftTags,
+          newTag: _newTag,
+          errorText: _tagError,
+          onAdd: _addTag,
+          onRemove: (int i) => setState(() {
+            _draftTags.removeAt(i);
+            _tagError = null;
+          }),
         ),
       ),
     ];
@@ -1478,6 +1755,7 @@ class _SettingsCard extends StatelessWidget {
   const _SettingsCard({
     this.title,
     this.description,
+    this.trailing,
     this.body,
     this.rows,
     this.footer,
@@ -1485,6 +1763,9 @@ class _SettingsCard extends StatelessWidget {
 
   final String? title;
   final String? description;
+
+  /// 제목 줄 오른쪽 끝(버튼 등).
+  final Widget? trailing;
   final Widget? body;
   final List<Widget>? rows;
   final String? footer;
@@ -1506,7 +1787,11 @@ class _SettingsCard extends StatelessWidget {
                 OnCareSpacing.s16,
                 OnCareSpacing.s12,
               ),
-              child: AppSectionHeader(title: title!, subtitle: description),
+              child: AppSectionHeader(
+                title: title!,
+                subtitle: description,
+                trailing: trailing,
+              ),
             ),
             const AppDivider(),
           ],
@@ -1543,20 +1828,26 @@ class _SettingsCard extends StatelessWidget {
 
 /// 라벨·값 한 칸. 값이 비면 [empty](없으면 `–`)를 흐리게 보인다.
 class _Info {
-  const _Info(this.label, this.value, {this.empty});
+  const _Info(this.label, this.value, {this.empty, this.tags = const []});
 
   final String label;
   final String value;
   final String? empty;
+
+  /// 값 옆에 붙이는 태그(헬스장 이름 옆의 헬스장 태그, #2700).
+  final List<String> tags;
 }
 
 /// 라벨·값 격자 — 넓으면 두 칸씩, 좁으면 한 칸씩. [wide] 는 맨 아래 한 줄을
 /// 다 쓰는 칸이다(소개처럼 긴 글).
 class _InfoGrid extends StatelessWidget {
-  const _InfoGrid({required this.fields, this.wide});
+  const _InfoGrid({required this.fields, this.wide, this.maxColumns = 3});
 
   final List<_Info> fields;
   final _Info? wide;
+
+  /// 넓어도 이보다 많이 놓지 않는다. 짝을 맞춰 읽는 카드(소속 헬스장)는 2.
+  final int maxColumns;
 
   @override
   Widget build(BuildContext context) {
@@ -1564,11 +1855,14 @@ class _InfoGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         // 본문이 넓으면 세 칸까지 — 한 줄에 라벨·값이 너무 멀어지지 않게.
-        final int columns = constraints.maxWidth >= 760
-            ? 3
-            : constraints.maxWidth >= 480
-            ? 2
-            : 1;
+        final int columns = math.min(
+          maxColumns,
+          constraints.maxWidth >= 760
+              ? 3
+              : constraints.maxWidth >= 480
+              ? 2
+              : 1,
+        );
         const double gap = OnCareSpacing.s16;
         final double cell =
             (constraints.maxWidth - gap * (columns - 1)) / columns;
@@ -1589,10 +1883,26 @@ class _InfoGrid extends StatelessWidget {
 
 Widget _infoCell(_Info info) {
   final bool blank = info.value.trim().isEmpty;
-  return AppKeyValueRow.stacked(
+  final Widget cell = AppKeyValueRow.stacked(
     label: info.label,
     value: blank ? (info.empty ?? '–') : info.value,
     valueColor: blank ? OnCareColors.textTertiary : null,
+  );
+  if (info.tags.isEmpty) return cell;
+  // 값 줄 끝에 태그를 잇는다 — 좁으면 다음 줄로 넘어간다.
+  return Wrap(
+    spacing: OnCareSpacing.s8,
+    runSpacing: OnCareSpacing.s4,
+    crossAxisAlignment: WrapCrossAlignment.end,
+    children: <Widget>[
+      cell,
+      for (final String tag in info.tags)
+        AppTag(
+          key: ValueKey<String>('my-gym-tag-$tag'),
+          label: tag,
+          tone: AppTagTone.brand,
+        ),
+    ],
   );
 }
 
@@ -1830,6 +2140,7 @@ class _EditField extends StatelessWidget {
   const _EditField({
     required this.label,
     required this.controller,
+    this.hint,
     this.maxLines = 1,
     this.enabled = true,
     this.inputKey,
@@ -1842,6 +2153,9 @@ class _EditField extends StatelessWidget {
 
   final String label;
   final TextEditingController controller;
+
+  /// 빈 칸에 흐리게 보이는 예시.
+  final String? hint;
   final int maxLines;
 
   /// 서버 상한이 있는 칸만 준다. 주면 칸 아래에 글자 수를 붙인다(#2618).
@@ -1862,6 +2176,7 @@ class _EditField extends StatelessWidget {
       child: AppTextField(
         key: inputKey,
         label: label,
+        hint: hint,
         controller: controller,
         enabled: enabled,
         maxLines: maxLines,
@@ -1965,6 +2280,87 @@ class _CertsEditor extends StatelessWidget {
             ),
             const SizedBox(width: OnCareSpacing.s8),
             AppButton(
+              label: l.myAdd,
+              variant: AppButtonVariant.secondary,
+              onPressed: onAdd,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// 헬스장 태그 고치기(#2700) — 칩마다 지우기, 아래에 추가 칸. 회원 앱
+/// 헬스장 카드에 칩으로 나가는 값이라 여기서도 칩으로 보인다.
+class _GymTagsEditor extends StatelessWidget {
+  const _GymTagsEditor({
+    required this.tags,
+    required this.newTag,
+    required this.onAdd,
+    required this.onRemove,
+    this.errorText,
+  });
+
+  final List<String> tags;
+  final TextEditingController newTag;
+  final VoidCallback onAdd;
+  final ValueChanged<int> onRemove;
+
+  /// 추가 칸 아래 안내(개수·길이 초과).
+  final String? errorText;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        if (tags.isEmpty)
+          AppEmptyState(
+            title: l.myGymTagsEmpty,
+            placement: AppStatePlacement.inline,
+          )
+        else
+          Wrap(
+            spacing: OnCareSpacing.s8,
+            runSpacing: OnCareSpacing.s8,
+            children: <Widget>[
+              for (var i = 0; i < tags.length; i++)
+                Row(
+                  key: ValueKey<String>('gym-tag-${tags[i]}'),
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    AppTag(label: tags[i], tone: AppTagTone.brand),
+                    // 아이콘 하나뿐인 버튼이라 툴팁이 접근성 이름이다(#972).
+                    AppIconButton(
+                      icon: AppIcons.close,
+                      tooltip: l.a11yRemoveGymTag,
+                      size: AppIconButtonSize.small,
+                      color: OnCareColors.textTertiary,
+                      onPressed: () => onRemove(i),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        const SizedBox(height: OnCareSpacing.s12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Expanded(
+              child: AppTextField(
+                key: const ValueKey<String>('gym-tag-input'),
+                controller: newTag,
+                hint: l.myGymAddTag,
+                errorText: errorText,
+                // 엔터로도 넣는다 — 여러 개를 이어 적는 칸이다.
+                onSubmitted: (_) => onAdd(),
+              ),
+            ),
+            const SizedBox(width: OnCareSpacing.s8),
+            AppButton(
+              key: const ValueKey<String>('gym-tag-add'),
               label: l.myAdd,
               variant: AppButtonVariant.secondary,
               onPressed: onAdd,
@@ -2183,7 +2579,14 @@ class _ManagedClientRow extends StatelessWidget {
   }
 }
 
-/// 소속 헬스장 고르기 — 이름으로 찾아 목록이나 지도 핀에서 고른다(#2543).
+/// 소속 헬스장 고르기 — 이름이나 현재 위치로 찾아 목록이나 지도 핀에서 고른다
+/// (#2543, #3223).
+///
+/// 회원 앱 헬스장 찾기처럼 검색 칸 바로 아래에 지도를 먼저 두고, "현재 위치로
+/// 찾기"는 브라우저 위치로 주변 헬스장을 가까운 순으로 보인다. 위치는 이 화면이
+/// 열려 있는 동안 메모리에만 두고 저장하지 않는다. 위치 안내는 지도 위에 겹치지
+/// 않고 지도 위쪽 줄에 둔다 — 웹 지도(플랫폼 뷰)는 위에 겹친 Flutter 위젯의 클릭을
+/// 가로챈다.
 ///
 /// 직접 적는 칸은 없다. 직접 적은 이름은 서버 목록(`places`)에 없어 회원에게
 /// 노출되지 않는데도 화면에는 소속이 있는 것처럼 보였다. 검색 결과는 서버가
@@ -2230,10 +2633,22 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
   /// 남기지 않고 목록만 보인다.
   bool _mapUnavailable = false;
 
-  /// 지도 중심 — 헬스장을 고르기 전에는 첫 결과, 기본은 서울시청.
+  /// "현재 위치로 찾기"로 얻은 좌표. 이 화면 안에서만 쓰고 저장하지 않는다.
+  TrainerPosition? _position;
+  bool _locating = false;
+  TrainerLocationFailure? _locationFailure;
+
+  /// 지금 목록이 현재 위치 주변 결과인가(이름 검색 결과가 아니라).
+  bool _nearby = false;
+
+  /// 지도 중심 — 내 위치, 고른 헬스장, 첫 결과 순. 기본은 서울시청.
   static const double _defaultLat = 37.5665;
   static const double _defaultLng = 126.9780;
   static const double _mapHeight = 240;
+
+  /// 지도 확대 단계. 주변 찾기는 반경 2km 가 한눈에 들어오게 한 단계 넓힌다.
+  static const int _mapLevel = 4;
+  static const int _nearbyMapLevel = 5;
 
   @override
   void dispose() {
@@ -2251,29 +2666,58 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
   Future<void> _search() async {
     _debounce?.cancel();
     final String query = _query.text.trim();
-    final int seq = ++_seq;
     if (query.isEmpty) {
+      // 이름을 지우면 위치를 얻어 둔 경우 주변 결과로 돌아간다.
+      final TrainerPosition? position = _position;
+      if (position != null) return _loadNearby(position);
+      ++_seq;
       setState(() {
         _results = const <TrainerGymCandidate>[];
         _searched = false;
         _failed = false;
         _loading = false;
+        _nearby = false;
       });
       return;
     }
+    final TrainerPosition? position = _position;
+    await _load(
+      nearby: false,
+      fetch: (TrainerProfileRepository repo) =>
+          repo.searchGyms(query, lat: position?.lat, lng: position?.lng),
+    );
+  }
+
+  Future<void> _loadNearby(TrainerPosition position) => _load(
+    nearby: true,
+    fetch: (TrainerProfileRepository repo) =>
+        repo.nearbyGyms(lat: position.lat, lng: position.lng),
+  );
+
+  /// 결과를 불러온다. 이름 검색과 주변 찾기가 같은 목록·같은 순번을 쓴다 — 늦게
+  /// 온 쪽이 새 결과를 덮지 않는다.
+  Future<void> _load({
+    required bool nearby,
+    required Future<List<TrainerGymCandidate>> Function(
+      TrainerProfileRepository repo,
+    )
+    fetch,
+  }) async {
+    final int seq = ++_seq;
     setState(() {
       _loading = true;
       _failed = false;
     });
     try {
-      final List<TrainerGymCandidate> found = await ref
-          .read(trainerProfileRepositoryProvider)
-          .searchGyms(query);
+      final List<TrainerGymCandidate> found = await fetch(
+        ref.read(trainerProfileRepositoryProvider),
+      );
       if (!mounted || seq != _seq) return;
       setState(() {
         _results = found;
         _searched = true;
         _loading = false;
+        _nearby = nearby;
       });
     } catch (_) {
       if (!mounted || seq != _seq) return;
@@ -2281,9 +2725,48 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
         _failed = true;
         _searched = true;
         _loading = false;
+        _nearby = nearby;
       });
     }
   }
+
+  /// 브라우저 위치를 얻어 주변 헬스장을 찾는다. 트레이너가 버튼을 눌렀을 때만
+  /// 부른다 — 권한 창이 이때 뜬다.
+  Future<void> _locate() async {
+    if (_locating) return;
+    _debounce?.cancel();
+    setState(() {
+      _locating = true;
+      _locationFailure = null;
+    });
+    try {
+      final TrainerPosition position = await ref
+          .read(trainerLocationServiceProvider)
+          .locate();
+      if (!mounted) return;
+      // 주변 결과는 이름과 상관없다 — 남은 검색어가 목록을 설명하지 않게 비운다.
+      _query.clear();
+      setState(() {
+        _position = position;
+        _locating = false;
+      });
+      await _loadNearby(position);
+    } on TrainerLocationFailure catch (failure) {
+      if (!mounted) return;
+      setState(() {
+        _locationFailure = failure;
+        _locating = false;
+      });
+    }
+  }
+
+  String _locationMessage(AppLocalizations l, TrainerLocationFailure failure) =>
+      switch (failure) {
+        TrainerLocationFailure.denied => l.myGymLocationDenied,
+        TrainerLocationFailure.blocked => l.myGymLocationBlocked,
+        TrainerLocationFailure.disabled => l.myGymLocationDisabled,
+        TrainerLocationFailure.unavailable => l.myGymLocationUnavailable,
+      };
 
   TrainerGymCandidate? get _focus {
     final TrainerGymCandidate? picked = widget.picked;
@@ -2320,6 +2803,10 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
           ),
     ];
     final TrainerGymCandidate? focus = _focus;
+    final TrainerPosition? position = _position;
+    final TrainerLocationFailure? locationFailure = _locationFailure;
+    final double centerLat = position?.lat ?? focus?.lat ?? _defaultLat;
+    final double centerLng = position?.lng ?? focus?.lng ?? _defaultLng;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2337,7 +2824,53 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
           onChanged: _onChanged,
           onSubmitted: (_) => _search(),
         ),
+        const SizedBox(height: OnCareSpacing.s8),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: AppButton(
+            key: const ValueKey<String>('gym-locate'),
+            label: l.myGymLocateAction,
+            variant: AppButtonVariant.brandOutline,
+            size: OnCareButtonSize.small,
+            leadingIcon: AppIcons.location,
+            loading: _locating,
+            onPressed: _locating ? null : _locate,
+          ),
+        ),
+        if (locationFailure != null) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s4),
+          Text(
+            _locationMessage(l, locationFailure),
+            key: const ValueKey<String>('gym-location-error'),
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.danger),
+          ),
+        ],
         const SizedBox(height: OnCareSpacing.s12),
+        // 지도가 먼저다 — 회원 앱 헬스장 찾기와 같은 순서(#3223). 지도 위에는
+        // 아무것도 겹치지 않는다.
+        if (isKakaoMapConfigured && !_mapUnavailable) ...<Widget>[
+          ClipRRect(
+            borderRadius: OnCareRadius.mdAll,
+            child: SizedBox(
+              key: const ValueKey<String>('gym-map'),
+              height: _mapHeight,
+              child: KakaoMapView(
+                centerLat: centerLat,
+                centerLng: centerLng,
+                level: position != null ? _nearbyMapLevel : _mapLevel,
+                markers: markers,
+                onMarkerTap: _pickById,
+                onUnavailable: () {
+                  if (mounted) setState(() => _mapUnavailable = true);
+                },
+                fallback: const SizedBox.shrink(),
+              ),
+            ),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+        ],
         if (_loading)
           Text(
             l.myGymSearching,
@@ -2354,41 +2887,29 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
           )
         else if (_searched && _results.isEmpty)
           Text(
-            l.myGymSearchEmpty,
+            _nearby ? l.myGymNearbyEmpty : l.myGymSearchEmpty,
+            key: const ValueKey<String>('gym-empty'),
             style: tokens
                 .text(OnCareTypography.caption)
                 .copyWith(color: OnCareColors.textSecondary),
+          )
+        else if (_nearby)
+          Text(
+            l.myGymNearbyCaption,
+            key: const ValueKey<String>('gym-nearby-caption'),
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
           ),
-        if (isKakaoMapConfigured &&
-            !_mapUnavailable &&
-            markers.isNotEmpty) ...<Widget>[
-          ClipRRect(
-            borderRadius: OnCareRadius.mdAll,
-            child: SizedBox(
-              key: const ValueKey<String>('gym-map'),
-              height: _mapHeight,
-              child: KakaoMapView(
-                centerLat: focus?.lat ?? _defaultLat,
-                centerLng: focus?.lng ?? _defaultLng,
-                level: 4,
-                markers: markers,
-                onMarkerTap: _pickById,
-                onUnavailable: () {
-                  if (mounted) setState(() => _mapUnavailable = true);
-                },
-                fallback: const SizedBox.shrink(),
-              ),
-            ),
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-        ],
+        if (_loading || _failed || _searched)
+          const SizedBox(height: OnCareSpacing.s8),
         for (final TrainerGymCandidate gym in _results)
           Padding(
             padding: const EdgeInsets.only(bottom: OnCareSpacing.s4),
             child: AppListRow(
               key: ValueKey<String>('gym-result-${gym.id}'),
               title: gym.name,
-              subtitle: gym.address.isEmpty ? null : gym.address,
+              subtitle: _subtitle(gym),
               selected: gym.id == pickedId,
               trailing: gym.id == pickedId
                   ? AppIcon(AppIcons.check, color: tokens.brand.primary)
@@ -2398,6 +2919,16 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
           ),
       ],
     );
+  }
+
+  /// 결과 줄 아래 글 — 주소, 거리를 알면 그 뒤에 거리.
+  String? _subtitle(TrainerGymCandidate gym) {
+    final String? distance = gym.distanceLabel;
+    final List<String> parts = <String>[
+      if (gym.address.isNotEmpty) gym.address,
+      ?distance,
+    ];
+    return parts.isEmpty ? null : parts.join(' · ');
   }
 
   /// 지금 소속(또는 저장하면 바뀔 헬스장) 한 줄.

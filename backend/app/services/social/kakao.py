@@ -6,7 +6,7 @@
 발급 앱(`app_id`)이 우리 앱(`KAKAO_APP_ID`)인지 확인하고, 같을 때만 사용자 정보를
 읽는다. 두 응답의 사용자 `id` 가 같은지도 본다.
 
-`KAKAO_APP_ID` 가 비면 Apple·Google 과 같이 **거부**한다.
+`KAKAO_APP_ID` 가 비면 Google 과 같이 **거부**한다.
 """
 from __future__ import annotations
 

@@ -156,6 +156,17 @@ class BuildStepsTest(unittest.TestCase):
                 self.assertLess(write, check)
                 self.assertLess(check, built)
 
+    def test_demo_assets_are_stripped_before_each_build(self) -> None:
+        # 데모 전용 자산(데모 시드 사진·데모 대화 첨부)은 스토어 빌드에 싣지 않는다(#3157).
+        for name, build in (("android", "flutter build appbundle"), ("ios", "flutter build ipa")):
+            job = jobs()[name]
+            with self.subTest(job=name):
+                strip = step_named(job, "Strip demo-only assets")
+                self.assertIn("python3 ../tool/strip_demo_assets.py .", run_body(strip))
+                self.assertLess(
+                    step_index(job, "tool/strip_demo_assets.py"), step_index(job, build)
+                )
+
     def test_builds_use_the_define_file_only(self) -> None:
         for name, build in (("android", "flutter build appbundle"), ("ios", "flutter build ipa")):
             job = jobs()[name]

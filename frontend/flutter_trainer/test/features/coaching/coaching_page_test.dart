@@ -1595,45 +1595,58 @@ void main() {
         const ValueKey<String>('client-exercise-detail'),
       );
       expect(detail, findsOneWidget);
-      // 운동 현황 카드 안이 아니라 그 아래 따로 선 `운동 기록` 카드다(#2509).
-      final Finder recordsCard = find.ancestor(
-        of: detail,
-        matching: find.byWidgetPredicate(
-          (Widget w) =>
-              w.key is ValueKey<String> &&
-              (w.key! as ValueKey<String>).value.startsWith(
-                'program-workout-records-',
-              ),
-        ),
-      );
-      expect(recordsCard, findsOneWidget);
-      expect(
-        find.descendant(of: recordsCard, matching: find.text('운동 기록')),
-        findsOneWidget,
-      );
+      // 운동 현황 그래프 카드 안 아래에 붙는다 — 접힌 기본이 최근 1건이라
+      // 이행률보다 먼저 와도 길지 않다(#3004).
       expect(
         find.descendant(
           of: find.byKey(const ValueKey<String>('client-exercise-status-card')),
           matching: detail,
         ),
-        findsNothing,
+        findsOneWidget,
       );
-      // 요약 → 상세 순이다: 주간 운동 이행률이 운동 기록보다 위다.
       expect(
-        tester
-            .getTopLeft(
-              find.byKey(
-                const ValueKey<String>('program-week-completion-chart'),
-              ),
-            )
-            .dy,
-        lessThan(tester.getTopLeft(recordsCard).dy),
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('client-exercise-status-card')),
+          matching: find.text('운동 기록'),
+        ),
+        findsOneWidget,
       );
-      // 이름과 값을 ` · ` 로 잇는다(#1902) — 예전에는 그 수가 이름 안에 있었다.
+      // `오늘` 은 맨 위에 오늘 개인운동이 선다 — 회원 상세 `오늘` 맨 위 상자와
+      // 같은 내용이다(#3004). 이번 주·전체는 최근 기록부터다.
       expect(
         find.descendant(
           of: detail,
-          matching: find.text('벤치프레스 · 4세트 · 10회 · 40kg'),
+          matching: find.byKey(
+            const ValueKey<String>('workout-pending-routines'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('client-period-toggle')),
+          matching: find.text('이번 주'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: detail,
+          matching: find.byKey(
+            const ValueKey<String>('workout-pending-routines'),
+          ),
+        ),
+        findsNothing,
+      );
+      // 이름과 값을 ` · ` 로 잇는다(#1902) — 예전에는 그 수가 이름 안에 있었다.
+      // 줄은 회원 상세 운동 탭과 같은 모양이라 이름만 진하게 따로 칠한다(#3004).
+      expect(
+        find.descendant(
+          of: detail,
+          matching: find.textContaining(
+            '벤치프레스 · 4세트 · 10회 · 40kg',
+            findRichText: true,
+          ),
         ),
         findsOneWidget,
       );

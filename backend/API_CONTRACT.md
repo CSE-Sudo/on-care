@@ -92,6 +92,7 @@
 |---|---|---|
 | GET | `/users/me` | `{ id(str), name, email, role, consent_required, consent_pending[] }` (아래 "가입 동의" 참고, #2819). `role` 은 계정 역할 — 이 API 는 회원 전용이라 늘 `member` 이고 트레이너 토큰은 403. 회원 앱은 세션 복원 때 `role` 이 있으면 `member` 인지 확인하고, 없으면(옛 서버) 그대로 들어간다(#3054) |
 | POST | `/users/me/consents` | `{ consents: [항목] }` → `{ consent_required, consent_pending[] }` (#2819) |
+| GET, PUT, DELETE | `/users/me/consents/{kind}` | 선택 동의(`location`) 상태 조회·동의·철회 → `{ kind, agreed, current_version, version, agreed_at, revoked_at }`. 회원 전용, 선택 항목 아닌 `kind` 는 422 (아래 "선택 동의 — 위치정보 이용" 참고, #3136) |
 | GET | `/users/me/health` | `{ profile: { id, name, email }, activity_points }` — MY 계정 카드. 위험 문구(`risk`)·활동 순위(`activity_rank`)·설정 메뉴(`settings[]`)는 앱이 읽지 않는 고정값이라 뺐다(#2903) |
 | DELETE | `/users/me` | 본문 `{ reasons?, current_password? \| social_provider?·social_token? }` → `{ status: "deleted" }`. 본인 확인 필수, 실패 400(#3039) |
 | GET | `/users/me/deletion-preview` | `{ points, active_coupons, upcoming_reservations, pending_consultations }` — 탈퇴하면 사라지거나 취소되는 것의 수(#3006). 아래 [탈퇴 미리보기](#탈퇴-미리보기-3006). 회원 전용(트레이너 403) |
@@ -1161,6 +1162,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | DELETE | `/me/coach` | 204 — 헬스장과 담당을 함께 해제(MY 탭 헬스장 휴지통). 이미 없어도 204. 트레이너에게 알리고 데이터 공유 동의를 철회한다(#444, #2174, #1631) |
 | DELETE | `/me/coach/trainer` | 204 — 담당 트레이너만 해제, 헬스장 연결은 남는다. 위와 같이 멱등·동의 철회 |
 | GET | `/me/coach/routines?date=` | `RoutineOut[]` — 그날 걸린 추천 개인운동과 그날 완료(#2161). 날짜 형식이 깨지면 422 |
+| GET | `/me/coach/routines/upcoming` | `{ starts_on, sent_on, names[] }` 또는 `null` — 지금 담당이 미래 시작일로 보낸 승인된 `개인운동만` 중 아직 시작하지 않은 가장 최근 묶음(#3106). 시작일부터는 위 그날 목록에 들고 여기서 빠진다 |
 | POST | `/me/coach/routines/{routine_id}/complete` | `{ minutes?, duration_seconds?, sets?, reps?, weight?, hold_seconds?, intensity? }` → `RoutineCompleteOut`(루틴 + 남긴 운동 기록·포인트). 없는 루틴 404 |
 | DELETE | `/me/coach/routines/{routine_id}/complete` | `RoutineOut` — 완료 표시를 되돌리고 그 완료로 남은 운동 기록을 지운다(#1131) |
 | DELETE | `/me/coach/routines/{routine_id}` | 204 — 내 개인운동 취소. **담당 트레이너가 있으면 403**(취소는 트레이너의 일), 없는 루틴 404 (#1020) |
@@ -1623,20 +1625,20 @@ N명이면 첫 화면에서 요청이 2N개였다.
 
 ### 소셜 로그인 실패 응답 (#1550)
 
-`POST /auth/social/{provider}` 는 provider(google·kakao·apple, naver 는 아래 #3035 절)에 토큰을 확인한 뒤
+`POST /auth/social/{provider}` 는 provider(google·kakao)에 토큰을 확인한 뒤
 결과에 따라 아래처럼 답한다. **500 은 내지 않는다** — provider 점검 페이지·WAF 차단 화면처럼
 200 에 HTML 이 오거나, JSON 이 깨졌거나, 약속한 필드의 타입이 달라도 마찬가지다.
 
 | 상황 | 상태 | `detail` |
 |---|---|---|
-| 지원하지 않는 provider | **400** | `지원하지 않는 소셜 로그인입니다.` |
+| 지원하지 않는 provider(`naver`·`apple` 포함, #3218) | **400** | `지원하지 않는 소셜 로그인입니다.` |
 | 토큰 거절(provider 가 200 아닌 응답)·요청 실패(연결·타임아웃)·필수 사용자 id 누락 | **401** | `소셜 인증에 실패했습니다.` |
 | provider 응답 형식 이상 — JSON 이 아님(HTML·깨진 JSON·빈 본문), JSON 객체가 아님(배열·문자열·숫자·null), 필드 타입 이상(id 가 객체·bool 등, 하위 객체가 배열 등) | **502** | `소셜 로그인 제공자의 응답을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.` |
 | 검증 중 예상하지 못한 예외 | **502** | 위와 같음 |
 
 - 401 은 "이 토큰으로는 로그인할 수 없다", 502 는 "provider 쪽이 지금 제대로 답하지 않는다"
   이다. 앱은 502 를 잠시 뒤 재시도할 일로 다루면 된다.
-- 선택 필드(이메일·이름·kakao `kakao_account`/`profile`·naver `response`)는 없거나 `null` 이면
+- 선택 필드(이메일·이름·kakao `kakao_account`/`profile`)는 없거나 `null` 이면
   빈 값으로 받는다. 있는데 타입이 다르면 형식 이상(502)이다. kakao id 는 정수로 와도 문자열로
   저장한다.
 - 401·502 모두 실패 감사 로그(`auth.social`, `success=false`, `detail`=provider)를 남긴다.
@@ -1651,11 +1653,13 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
 |---|---|---|
 | google | tokeninfo 의 `aud` 가 허용 목록 안, `iss` 가 `accounts.google.com`·`https://accounts.google.com`, `exp` 가 미래 | `GOOGLE_CLIENT_IDS`(콤마 구분) |
 | kakao | `GET /v1/user/access_token_info` 의 `app_id` 가 설정값과 같고, 그 `id` 가 `/v2/user/me` 의 `id` 와 같음(토큰 정보가 맞을 때만 사용자 정보를 부른다) | `KAKAO_APP_ID` |
-| apple | id_token 서명(JWKS)·`aud`·`iss`·`exp` | `APPLE_CLIENT_IDS`(콤마 구분) |
-| naver | 앱이 보낸 access_token 의 발급 앱을 확인할 수단이 없다. 서버 측 코드 교환 전까지 **501** `아직 지원하지 않는 소셜 로그인입니다.`(네이버로 요청도 보내지 않는다) | — |
 
 - 발급 앱·발급자 불일치, 만료, 두 응답의 id 불일치는 위 표의 **401** `소셜 인증에 실패했습니다.` 와 같다.
   어느 검사에서 떨어졌는지는 서버 로그에만 남기고, 값(토큰·client_id·응답 본문)은 남기지 않는다.
+- 네이버·애플 로그인은 제공하지 않는다(#3218). 애플은 유료 Apple Developer Program 을 쓰지 않기로 했고
+  네이버도 함께 접었다. 두 검증기와 `APPLE_CLIENT_IDS` 설정을 지웠고, `POST /auth/social/naver`·`/apple` 은
+  모르는 provider 와 같은 **400** 이다(네이버가 쓰던 501 은 "지원 예정"이라는 뜻이라 쓰지 않는다).
+  `social_accounts.provider` 는 자유 문자열이라 스키마 변경은 없다.
 - 허용 설정이 비어 있으면 그 provider 는 외부 호출 없이 **401** 이다(조용히 통과시키지 않는다). 기동
   점검이 비어 있는 provider 를 경고 로그로 남긴다.
 - 발급 정보 필드의 타입이 약속과 다르면(예: `aud` 가 배열, `exp` 가 숫자가 아닌 문자열, `app_id` 가 bool)
@@ -1693,9 +1697,10 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
   이미 지금 버전에 동의한 항목은 다시 쓰지 않는다 — 처음 동의한 시각이 남는다.
 - 문서 버전은 `services/signup_consent.CURRENT_VERSIONS` 한 곳이 정한다. 약관·처리방침 본문을
   고치면 그 항목의 버전을 올린다. 처리방침은 위탁·국외 이전·파기 절차 절을 더하며 `privacy` 가
-  `2026-10-03` 으로 올랐고(#2820), 보호책임자 연락처를 팀 수신 주소로 바꾸며 `2026-10-05` 로 다시
-  올랐다(#3132) — 그 전 버전에만 동의한 계정은 다시 동의할 때까지 회원 데이터 API 가 403 이고,
-  동의 화면을 다시 거친다. 버전 날짜는 두 앱 처리방침 본문의 시행일과 같아야 한다.
+  `2026-10-03` 으로 올랐고(#2820), 보호책임자 연락처를 팀 수신 주소로 바꾸고 위치정보 이용 동의
+  안내를 더하며 `2026-10-05` 로 다시 올랐다(#3132·#3136) — 그 전 버전에만 동의한 계정은 다시
+  동의할 때까지 회원 데이터 API 가 403 이고, 동의 화면을 다시 거친다. 버전 날짜는 두 앱 처리방침
+  본문의 시행일과 같아야 한다.
 - **필수 동의 확인(#3088)** — 회원 계정은 역할의 필수 항목(`terms`·`privacy`·`health`·`age14`)에
   지금 버전으로 동의해 두어야 회원 의존성(`CurrentUser`·`RequireMember`)을 쓰는 API 를 부를 수 있다.
   남은 항목이 있으면 **403** `{ detail: { code: "consent_required", missing: [...] } }` — 위 422 와
@@ -1715,6 +1720,18 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
     `tests/test_member_consent_gate.py` 가 실패한다(예외는 그 파일의 목록에 이유와 함께 적는다).
 - 국외 이전 동의는 따로 받지 않는다(#2820). 계약 이행을 위한 처리 위탁·보관이라 처리방침 공개로
   갈음한다(「개인정보 보호법」 제28조의8 제1항 제3호). 위탁·이전 표는 `docs/privacy_processing.md`.
+- **선택 동의 — 위치정보 이용(#3136)**: `location` 은 가입 필수가 아니다. 회원 앱이 헬스장 찾기에서
+  현재 위치를 쓰기 전에 받고, MY 에서 철회한다. 필수 판정에 들지 않아 동의하지 않아도 데이터 API 는
+  막히지 않는다. 가입·재동의의 `consents` 목록으로는 받지 않는다(넣으면 422).
+  - `GET /users/me/consents/{kind}` — 지금 상태. `PUT` 은 지금 버전으로 동의, `DELETE` 는 철회
+    (행은 남기고 `revoked_at` 만 적는다, 기록이 없어도 200). 세 경로 모두 회원 전용(`RequireMember`,
+    필수 동의가 남았으면 403 `consent_required`, 트레이너는 403)이고, `kind` 는 선택 항목(`location`)만
+    받는다 — 필수 항목·모르는 값은 경로에서 **422**.
+  - 응답 `{ kind, agreed, current_version, version, agreed_at, revoked_at }`. `agreed` 는 **지금 버전**에
+    철회하지 않은 동의가 있는가다. 위치기반서비스 이용약관 버전(`CURRENT_VERSIONS["location"]`)이
+    오르면 옛 버전에만 동의한 계정은 `false` 가 되어 앱이 다시 묻는다. 나머지는 가장 최근 기록의 값이다.
+  - 서버는 좌표를 저장하지 않는다. `GET /places/nearby` 는 동의 여부를 보지 않는다 — 기본 검색 영역의
+    좌표와 기기 좌표를 서버가 구분할 수 없어, 동의 전에는 앱이 기기 좌표를 읽지도 보내지도 않는다.
 
 ### 가입 연락처 형식 (#1780)
 
@@ -1862,6 +1879,7 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은
 | Method | Path | Body / Query → Response |
 |---|---|---|
 | GET | `/trainer/gyms/search` | `query`(1~100자, 이름·주소), `lat`·`lng`(선택, 쌍으로) → `[{ id, name, address, lat, lng, phone, distance_meters, registered }]` |
+| GET | `/trainer/gyms/nearby` | `lat`(-90~90)·`lng`(-180~180) 필수 → 같은 모양, 가까운 순 (#3223) |
 | PUT | `/trainer/me/gym` | `{ gym_id }` — `registered=true` 인 결과 → `TrainerMe` |
 | PUT | `/trainer/me/gym/kakao` | `{ kakao_place_id(숫자), name }` — `registered=false` 인 결과 → `TrainerMe` |
 
@@ -1869,7 +1887,16 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은
   카카오 키워드 검색 결과를 싣는다. 카카오 결과 중 이미 등록된 곳은 `registered=true` 로 한 번만
   나온다. 카카오 결과는 `category_name` 에 `스포츠시설` 이 든 곳만 — 필라테스·크로스핏 스튜디오는
   들어가고 음식점·병원은 빠진다. 카카오 키가 없거나 호출이 실패하면 등록된 결과만 200 으로 준다.
-- `distance_meters` 는 좌표를 보냈을 때만 채운다(카카오 결과만). `lat`·`lng` 는 지도 핀용이다.
+- 등록 헬스장 비교는 **띄어쓰기와 단어 순서를 보지 않는다**(#3223). 검색어를 띄어쓰기로 나눈
+  단어가 모두 이름이나 주소(띄어쓰기를 뺀 값)에 들어 있으면 맞는다 — `온케어짐신촌`·`신촌 온케어짐`
+  모두 `온케어짐 신촌점` 을 찾는다. 대소문자는 무시하고 `%`·`_` 는 글자 그대로 비교한다.
+- `distance_meters` 는 좌표를 보냈을 때 채운다(등록 헬스장은 서버가 계산, 카카오 결과는 카카오
+  값). `lat`·`lng` 는 지도 핀용이다.
+- `/trainer/gyms/nearby` 는 트레이너 웹의 "현재 위치로 찾기"용이다. 반경 2km 안의 등록 헬스장과
+  카카오 `헬스장` 검색(같은 반경, 거리순)을 합쳐 가까운 순으로 준다. 이미 등록된 카카오 결과는
+  `registered=true` 로 한 번만. 카카오 키가 없거나 실패하면 등록 헬스장만 200. 좌표가 없거나
+  범위를 벗어나면 **422**, 회원 토큰은 **403**. **좌표는 저장하지 않는다**(회원 앱
+  `/places/nearby` 와 같다).
 - `PUT /trainer/me/gym/kakao` 는 **클라이언트가 보낸 이름·주소를 저장하지 않는다.** `name` 으로
   카카오를 다시 검색해 id 가 같은 헬스장을 찾고 그 값으로 `places`·`gym_profiles`
   (`is_partner=false`, 전화만)를 만든다. 찾지 못하거나 헬스장이 아니면 **404**, 카카오를 쓸 수
@@ -1878,6 +1905,24 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은
   여러 트레이너가 골라도 한 행이다.
 - `PUT /trainer/me` 로 `gym_name`·`gym_address`·`gym_hours`·`gym_phone` 을 보내면 소속 유무와
   관계없이 **409** 이고, 함께 온 다른 필드도 반영하지 않는다. 헬스장 문자열은 소속에서만 파생된다.
+
+### 트레이너 소속 헬스장 정보 수정 (#2700)
+
+| Method | Path | Body / Query → Response |
+|---|---|---|
+| GET | `/trainer/me/gym/profile` | → `{ gym_id, name, weekday_hours, weekend_hours, phone, tags[] }` |
+| PUT | `/trainer/me/gym/profile` | `{ weekday_hours?, weekend_hours?, phone?, tags? }` (보낸 칸만) → 위와 같은 꼴 |
+
+- **소속 트레이너 누구나** 고칠 수 있다. 헬스장에 대표 트레이너 개념이 없어서이고, 마지막에 저장한
+  값이 남는다. 소속이 없으면 두 경로 모두 **409**.
+- 고친 값은 `gym_profiles` 에 들어가 회원 앱 `GET /gyms`·`GET /gyms/{id}`·`GET /me/gym` 에 그대로
+  나간다. 카카오에서 등록한 헬스장처럼 `gym_profiles` 행이 없으면 만든다(`is_partner=false`).
+- 소속을 정할 때 복사해 둔 `trainer_profiles.gym_hours`(평일 영업시간)·`gym_phone` 을 **같은 헬스장
+  소속 트레이너 모두** 함께 갱신한다 — 동료의 `TrainerMe.gym`·회원 코치 카드에 옛 값이 남지 않는다.
+- 검증: 영업시간 각 50자·전화 20자 이하, 태그 최대 10개·각 1~20자(앞뒤 공백 제거, 중복은 하나로).
+  빈 문자열은 "비운다", `null` 은 422, 빈 본문은 400. 전화번호에는 휴대전화 규칙을 걸지 않는다
+  (`02-332-1720` 같은 대표번호, #1914).
+- **평점은 받지 않는다** — `rating` 을 보내면 422.
 
 ### 트레이너 신고와 계정 관리 (#3008)
 

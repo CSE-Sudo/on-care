@@ -70,21 +70,12 @@ const Map<String, String> _seedEnglish = <String, String>{
   '플랭크': 'Plank',
   '코어 안정화': 'Core stability',
   'AI 개인운동': 'AI personal exercise',
-  '인터벌 런닝 25분 ✓': 'Interval running · 25 min ✓',
-  '스쿼트 3세트 · 12회 · 40kg ✓': 'Squat · 3 sets · 12 reps · 40kg ✓',
-  '플랭크 3세트 · 3회 · 0kg ✓': 'Plank · 3 sets · 3 reps · 0kg ✓',
   '런닝이 힘들었는데 다 했어요! 숨이 많이 찼어요':
       'The run was tough but I finished it all! I was really out of breath',
   '심폐지구력 향상 중. 다음 주 런닝 강도 소폭 올릴 예정.':
       'Cardio endurance improving. Will raise running intensity slightly next week.',
   'PT 세션 · 트레이너 지도': 'PT · Trainer-led',
-  '데드리프트 3세트 · 8회 · 55kg': 'Deadlift · 3 sets · 8 reps · 55kg',
-  '런지 3세트 · 12회 · 10kg': 'Lunge · 3 sets · 12 reps · 10kg',
-  '코어 서킷 2세트 · 12회 · 0kg': 'Core circuit · 2 sets · 12 reps · 0kg',
   '데드리프트 자세 교정 도움 많이 됐어요!': 'The deadlift form fixes really helped!',
-  '런닝 25분 ✓': 'Running · 25 min ✓',
-  '스쿼트 ✓': 'Squat ✓',
-  '플랭크 ✗ (피로)': 'Plank ✗ (fatigue)',
   '마지막 플랭크는 너무 지쳐서 못 했어요': 'I was too worn out for the last plank',
   '지수님, AI 운동 데이터 수신했어요 — 오늘 인터벌 런닝 25분 완료! 컨디션은 어때요?':
       'Jisu, your AI workout data came in — 25 minutes of interval running done today! How are you feeling?',
@@ -106,16 +97,10 @@ const Map<String, String> _seedEnglish = <String, String>{
   '전신 근력 향상': 'Full-body strength',
   '유산소 쿨다운': 'Cardio cool-down',
   '나트륨 배출 지원': 'Helps flush sodium',
-  '벤치프레스 4세트 · 8회 · 65kg': 'Bench press · 4 sets · 8 reps · 65kg',
-  '인클라인 덤벨 3세트 · 10회 · 26kg':
-      'Incline dumbbell press · 3 sets · 10 reps · 26kg',
-  '트라이셉스 딥 3세트 · 12회 · 0kg': 'Triceps dip · 3 sets · 12 reps · 0kg',
+  '인클라인 덤벨': 'Incline dumbbell press',
   '가슴이 많이 타는 느낌이었어요. 좋았어요!': 'My chest was really burning. Loved it!',
   '벤치 중량 62.5kg → 65kg 도전 가능. 다음 PT 때 시도 예정.':
       'Ready to move bench from 62.5kg to 65kg. Will try at the next PT.',
-  '벤치프레스 ✓': 'Bench press ✓',
-  '데드리프트 ✗': 'Deadlift ✗',
-  '유산소 ✗': 'Cardio ✗',
   '회사 일이 생겨서 벤치만 하고 나왔어요':
       'Something came up at work, so I only did bench and left',
   '벤치프레스 ✗': 'Bench press ✗',
@@ -386,7 +371,12 @@ const Map<String, String> _seedEnglish = <String, String>{
   '이번 주는 3번만 채워보죠. 무리 안 하는 게 더 중요해요 🙂':
       "Let's aim for just three this week. Not overdoing it matters more 🙂",
   '야식': 'Late-night snack',
-  // 날짜별 루틴(`_routinePool`)은 값까지 실린 객체라 이름만 옮긴다(#2667).
+  // 운동 기록의 운동 이름 — 값까지 실린 객체라 이름만 옮긴다(#2667, #3003).
+  '개인운동': 'Personal exercise',
+  '주말 러닝': 'Weekend run',
+  '가벼운 등산': 'Easy hike',
+  '스텝업': 'Step-up',
+  '케이블 크런치': 'Cable crunch',
   '푸시업': 'Push-up',
   '덤벨 플라이': 'Dumbbell fly',
   '바벨 로우': 'Barbell row',
