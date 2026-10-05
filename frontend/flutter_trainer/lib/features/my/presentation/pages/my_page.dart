@@ -18,6 +18,7 @@ import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/keep_words.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
+import 'package:oncare_trainer/core/web/current_position.dart';
 import 'package:oncare_trainer/core/web/leave_guard.dart';
 import 'package:oncare_trainer/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
@@ -1992,7 +1993,8 @@ class _ManagedClientRow extends StatelessWidget {
 ///
 /// 고른 헬스장은 저장을 눌러야 바뀐다(다른 프로필 칸과 같다). 지도는 카카오
 /// JS 키가 주입된 빌드에서만 뜨고, 없으면 목록만으로 고른다. 지도는 검색 전에도
-/// 떠서 현재 소속(없으면 기본 위치)을 보여 준다(#3206).
+/// 떠서 현재 소속을 보여 주고, 소속이 없으면 트레이너의 현재 위치에서 시작한다
+/// (#3206).
 class _GymPicker extends ConsumerStatefulWidget {
   const _GymPicker({
     required this.current,
@@ -2032,10 +2034,27 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
   /// 남기지 않고 목록만 보인다.
   bool _mapUnavailable = false;
 
-  /// 지도 중심 — 고른 헬스장 → 첫 결과 → 현재 소속, 셋 다 없으면 서울시청.
+  /// 브라우저에서 읽은 현재 위치. 소속 좌표가 없을 때만 묻고, 못 읽으면 null.
+  ({double lat, double lng})? _here;
+
+  /// 지도 중심 — 고른 헬스장 → 첫 결과 → 현재 소속 → 현재 위치, 모두 없으면
+  /// 서울시청.
   static const double _defaultLat = 37.5665;
   static const double _defaultLng = 126.9780;
   static const double _mapHeight = 240;
+
+  @override
+  void initState() {
+    super.initState();
+    // 소속이 있으면 지도는 그 헬스장에서 시작하므로 위치 권한을 묻지 않는다.
+    if (isKakaoMapConfigured && !widget.current.hasLocation) _locate();
+  }
+
+  Future<void> _locate() async {
+    final ({double lat, double lng})? here = await readCurrentPosition();
+    if (!mounted || here == null) return;
+    setState(() => _here = here);
+  }
 
   @override
   void dispose() {
@@ -2097,7 +2116,7 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
     }
     final TrainerGym current = widget.current;
     if (current.hasLocation) return (lat: current.lat!, lng: current.lng!);
-    return null;
+    return _here;
   }
 
   /// 검색 결과가 없을 때(검색 전·검색어를 지운 뒤) 지도에 찍을 핀 — 고른
