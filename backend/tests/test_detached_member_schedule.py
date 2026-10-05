@@ -22,7 +22,7 @@ from app.core.security import create_access_token
 from app.models.models import Notification, TrainerClient, TrainerSchedule, User
 from app.services import notification_templates as nt
 
-GUARD_DETAIL = "담당 고객을 찾을 수 없습니다."
+GUARD_DETAIL = "담당 회원을 찾을 수 없습니다."
 
 
 def _h(token: str) -> dict[str, str]:
@@ -335,9 +335,9 @@ def test_trainer_detach_cancels_remaining_sessions_with_one_notice(
 
     notices = _notices(db_session, pair.member_id, nt.MEMBER_TRAINER_DISCONNECTED)
     assert len(notices) == 1
-    assert notices[0].title == "담당 트레이너 연결 해제"
+    assert notices[0].title == "담당 트레이너 연결이 해제됐어요"
     assert notices[0].body == (
-        "박코치 트레이너와 담당 연결이 끊어졌어요. 남은 PT 일정 2건도 취소됐어요."
+        "박코치 트레이너와 담당 연결이 해제됐어요. 남은 PT 일정 2건도 취소됐어요."
     )
     # 일정마다 취소 알림을 보내지 않는다.
     assert _notices(db_session, pair.member_id, nt.MEMBER_SCHEDULE_CANCELLED) == []
@@ -359,7 +359,7 @@ def test_trainer_detach_without_remaining_sessions_only_says_disconnected(
 
     notices = _notices(db_session, pair.member_id, nt.MEMBER_TRAINER_DISCONNECTED)
     assert len(notices) == 1
-    assert notices[0].body == "박코치 트레이너와 담당 연결이 끊어졌어요."
+    assert notices[0].body == "박코치 트레이너와 담당 연결이 해제됐어요."
 
 
 def test_member_detach_cancels_remaining_sessions_and_tells_the_trainer(
@@ -380,7 +380,7 @@ def test_member_detach_cancels_remaining_sessions_and_tells_the_trainer(
     )
     assert len(trainer_notices) == 1
     assert trainer_notices[0].body == (
-        "해제될 회원 회원이 담당 연결을 끊었어요. 남은 일정 1건은 취소됐어요."
+        "해제될 회원 회원이 담당 연결을 해제했어요. 남은 일정 1건은 취소됐어요."
     )
     # 회원은 스스로 끊었으니 따로 알리지 않는다.
     assert _notices(db_session, pair.member_id, nt.MEMBER_TRAINER_DISCONNECTED) == []
@@ -396,4 +396,4 @@ def test_member_detach_without_remaining_sessions_keeps_the_old_notice(
         db_session, pair.trainer_id, nt.TRAINER_MEMBER_DISCONNECTED
     )
     assert len(trainer_notices) == 1
-    assert trainer_notices[0].body == "해제될 회원 회원이 담당 연결을 끊었어요."
+    assert trainer_notices[0].body == "해제될 회원 회원이 담당 연결을 해제했어요."

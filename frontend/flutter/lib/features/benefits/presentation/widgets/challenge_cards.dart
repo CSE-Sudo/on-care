@@ -11,10 +11,9 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 챌린지 아이콘 — 사용처 카드·내 혜택·운동 현황이 같은 것을 쓴다.
 const IconData kChallengeIcon = AppIcons.challenge;
 
-/// `9.14~9.20`.
-String challengeWeekRange(Challenge challenge) =>
-    '${challenge.weekStart.month}.${challenge.weekStart.day}~'
-    '${challenge.weekEnd.month}.${challenge.weekEnd.day}';
+/// `9. 14. ~ 9. 20.` / `9/14 – 9/20`. 기간 카드와 같은 공용 표기(#3120).
+String challengeWeekRange(String locale, Challenge challenge) =>
+    periodRangeText(locale, challenge.weekStart, challenge.weekEnd);
 
 /// 참가 카드에 적는 막힌 이유. 참가할 수 있거나 이미 참가했으면 null.
 String? challengeBlockLabel(AppLocalizations l, WeeklyChallenge state) {
@@ -260,7 +259,10 @@ class ExerciseChallengeProgress extends ConsumerWidget {
                 child: ChallengeProgressView(
                   challenge: challenge,
                   title: l.challengeShortWithRange(
-                    challengeWeekRange(challenge),
+                    challengeWeekRange(
+                      Localizations.localeOf(context).toString(),
+                      challenge,
+                    ),
                   ),
                   showHint: false,
                 ),

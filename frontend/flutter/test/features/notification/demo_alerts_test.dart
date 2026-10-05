@@ -54,7 +54,7 @@ void main() {
     final expected = <String, (AlertCategory, AlertTarget)>{
       '새 개인운동이 왔어요': (AlertCategory.routine, AlertTarget.exercise),
       // 서버 시드와 같은 갈래다(#2084·#2085).
-      '이번 주 리포트가 등록됐어요': (AlertCategory.coachReport, AlertTarget.coachChat),
+      '주간 리포트가 도착했어요': (AlertCategory.coachReport, AlertTarget.coachChat),
       'PT 수업 완료': (AlertCategory.ptDone, AlertTarget.exercise),
       '트레이너 피드백 도착': (AlertCategory.coachChat, AlertTarget.coachChat),
       '이번 주 운동 목표까지 조금 남았어요': (AlertCategory.reminder, AlertTarget.exercise),

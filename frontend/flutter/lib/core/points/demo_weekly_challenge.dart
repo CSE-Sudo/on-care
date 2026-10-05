@@ -284,7 +284,7 @@ class DemoWeeklyChallenge implements DemoPersistable {
   }) {
     final DateTime end = _addDays(c.weekStart, 6);
     final String period =
-        '${c.weekStart.month}월 ${c.weekStart.day}일~${end.month}월 ${end.day}일';
+        '${c.weekStart.month}월 ${c.weekStart.day}일 ~ ${end.month}월 ${end.day}일';
     return succeeded
         ? DemoChallengeNotice(
             id: 'noti-${c.id}',

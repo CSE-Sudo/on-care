@@ -178,7 +178,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('1,800 kcal'), findsOneWidget);
+    expect(find.textContaining('1,800kcal'), findsOneWidget);
     expect(find.textContaining('/ 220g'), findsOneWidget);
     expect(find.textContaining('/ 120g'), findsOneWidget);
     expect(find.textContaining('/ 50g'), findsOneWidget);
@@ -229,7 +229,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('1,067'), findsOneWidget);
-      expect(find.textContaining('2,000 kcal'), findsOneWidget);
+      expect(find.textContaining('2,000kcal'), findsOneWidget);
       // 지방 45 / 55g — 목표에 가까운 값이 카드에 그대로 적힌다.
       expect(find.textContaining('45 / 55g'), findsOneWidget);
       // 배지도, 차이를 설명하는 문장도 없다 — 카드마다 있고 없고가 갈려

@@ -140,7 +140,7 @@ void main() {
     expect(_textOf(tester, 'diet-food-sodium-1'), '440');
 
     // 영양 정보 카드의 합계도 저장 전에 이미 따라와 있다(딸기 몫을 더한 값).
-    expect(find.text('402 kcal'), findsOneWidget, reason: '총 칼로리 370 + 32');
+    expect(find.text('402kcal'), findsOneWidget, reason: '총 칼로리 370 + 32');
     expect(find.text('441'), findsOneWidget, reason: '나트륨 440 + 1');
     expect(find.text('7.1'), findsOneWidget, reason: '당류 1.6 + 5.5');
   });

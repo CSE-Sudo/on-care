@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_core/licenses.dart';
 import 'package:oncare_kakao_map/oncare_kakao_map.dart';
+import 'package:oncare_social_login/oncare_social_login.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
@@ -26,6 +27,7 @@ import 'package:oncare_trainer/core/web/leave_guard.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare_trainer/features/auth/presentation/trainer_social_login.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_card.dart';
 import 'package:oncare_trainer/features/my/data/app_version.dart';
 import 'package:oncare_trainer/features/my/data/build_info.dart';
@@ -489,7 +491,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       // 긴 본문이라 낱말 중간(`회원 계` / `정과`)에서 끊기지 않게 한다.
       message: keepWords(l.myClientRemoveBody),
       cancelLabel: l.actionCancel,
-      confirmLabel: l.myClientRemove,
+      confirmLabel: l.myClientRemoveConfirm,
       destructive: true,
     );
     if (!confirmed || !mounted) return;
@@ -1594,8 +1596,30 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
   /// 소셜 재로그인으로 받은 확인 값. 받기 전에는 탈퇴 버튼이 꺼져 있다.
   SocialReauth? _social;
 
+  /// 웹 카카오 팝업을 기다리는 중 — 창을 막지 않는다(로그인 화면과 같은 이유).
+  /// 동의를 마쳐 서버 교환을 시작하면 [_busy] 가 된다.
+  bool _socialWaiting = false;
+
+  /// 웹 구글 버튼(GIS)의 로그인 결과(#330).
+  StreamSubscription<SocialSignInResult>? _googleWeb;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.hasPassword) {
+      _googleWeb = ref
+          .read(trainerSocialLoginProvider)
+          .googleWebResults()
+          .listen((SocialSignInResult result) {
+            if (_busy || !mounted) return;
+            _applySocial(result);
+          });
+    }
+  }
+
   @override
   void dispose() {
+    unawaited(_googleWeb?.cancel());
     _password.dispose();
     super.dispose();
   }
@@ -1610,36 +1634,46 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
   }
 
   /// 소셜 계정으로 다시 로그인해 확인 토큰을 받는다 — 로그인 화면의 소셜
-  /// 로그인과 같은 경로다([SessionController.socialProviderToken]). 세션은
-  /// 바꾸지 않는다.
-  Future<void> _reauthWithSocial(String provider) async {
+  /// 로그인과 같은 경로다([trainerSocialLoginProvider], #330). 세션은 바꾸지 않는다.
+  /// 계정에 연결된 provider 인지는 서버가 본다 — 다르면 `invalid_reauth` 다.
+  Future<void> _reauthWithSocial(SocialLoginProvider provider) async {
     if (_busy) return;
+    final TrainerSocialLogin social = ref.read(trainerSocialLoginProvider);
+    final bool waits = social.waitsInPopup(provider);
     setState(() {
-      _busy = true;
+      _busy = !waits;
+      _socialWaiting = waits;
       _error = null;
     });
-    try {
-      final String token = await ref
-          .read(sessionControllerProvider.notifier)
-          .socialProviderToken(provider);
-      if (!mounted) return;
-      setState(() {
-        _busy = false;
-        _social = token.isEmpty
-            ? null
-            : SocialReauth(provider: provider, token: token);
-        if (token.isEmpty) {
-          _error = AppLocalizations.of(context).myDeleteReauthSocialFailed;
-        }
-      });
-    } on Object {
-      if (!mounted) return;
-      setState(() {
-        _busy = false;
-        _social = null;
-        _error = AppLocalizations.of(context).myDeleteReauthSocialFailed;
-      });
-    }
+    final SocialSignInResult result = await social.signIn(
+      provider,
+      onAuthorized: () {
+        if (mounted) setState(() => _busy = true);
+      },
+    );
+    if (!mounted) return;
+    _applySocial(result);
+  }
+
+  void _applySocial(SocialSignInResult result) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    setState(() {
+      _busy = false;
+      _socialWaiting = false;
+      switch (result) {
+        case SocialSignInSuccess(:final provider, :final token):
+          _error = null;
+          _social = SocialReauth(provider: provider.id, token: token);
+        case SocialSignInCancelled():
+          // 창을 닫은 것은 실패가 아니다.
+          _error = null;
+        case SocialSignInFailure(:final reason):
+          _social = null;
+          _error = reason == SocialSignInFailureReason.popupBlocked
+              ? l.authSocialPopupBlocked
+              : l.myDeleteReauthSocialFailed;
+      }
+    });
   }
 
   Future<void> _submit() async {
@@ -1697,6 +1731,8 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
+    final TrainerSocialLogin social = ref.watch(trainerSocialLoginProvider);
+    bool socialEnabled(SocialLoginProvider p) => !_busy && social.isEnabled(p);
     return AppDialog(
       title: l.myDeleteTitle,
       showClose: false,
@@ -1708,7 +1744,7 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
         confirmLoading: _busy,
         destructive: true,
         // 본인 확인 값이 있어야 눌린다 — 확인 절차가 형식만 남지 않도록.
-        onConfirm: _reauth == null || _busy ? null : _submit,
+        onConfirm: _reauth == null || _busy || _socialWaiting ? null : _submit,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1747,23 +1783,48 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
                   .copyWith(color: OnCareColors.textPrimary),
             ),
             const SizedBox(height: OnCareSpacing.s8),
-            // 로그인 화면과 같은 소셜 버튼이다(#1783).
+            // 로그인 화면과 같은 소셜 버튼이다(#1783). 키가 없는 provider 는
+            // 꺼 두고, 웹 구글은 구글이 그리는 버튼이다(#330).
             AppSocialLoginRow(
               children: <Widget>[
                 AppSocialLoginButton(
                   key: const ValueKey<String>('delete-account-reauth-kakao'),
                   provider: AppSocialProvider.kakao,
                   label: l.myDeleteReauthKakao,
-                  onPressed: _busy ? null : () => _reauthWithSocial('kakao'),
+                  onPressed: socialEnabled(SocialLoginProvider.kakao)
+                      ? () => _reauthWithSocial(SocialLoginProvider.kakao)
+                      : null,
                 ),
-                AppSocialLoginButton(
-                  key: const ValueKey<String>('delete-account-reauth-google'),
-                  provider: AppSocialProvider.google,
-                  label: l.myDeleteReauthGoogle,
-                  onPressed: _busy ? null : () => _reauthWithSocial('google'),
+                social.googleButton(
+                  busy: _busy,
+                  appButton: AppSocialLoginButton(
+                    key: const ValueKey<String>('delete-account-reauth-google'),
+                    provider: AppSocialProvider.google,
+                    label: l.myDeleteReauthGoogle,
+                    onPressed: socialEnabled(SocialLoginProvider.google)
+                        ? () => _reauthWithSocial(SocialLoginProvider.google)
+                        : null,
+                  ),
+                  disabledAppButton: AppSocialLoginButton(
+                    key: const ValueKey<String>('delete-account-reauth-google'),
+                    provider: AppSocialProvider.google,
+                    label: l.myDeleteReauthGoogle,
+                    onPressed: null,
+                  ),
                 ),
               ],
             ),
+            if (!social.anyEnabled) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s8),
+              Text(
+                l.myDeleteReauthSocialUnavailable,
+                key: const ValueKey<String>('delete-account-social-soon'),
+                textAlign: TextAlign.center,
+                style: tokens
+                    .text(OnCareTypography.bodySmall)
+                    .copyWith(color: OnCareColors.textSecondary),
+              ),
+            ],
             if (_social != null) ...<Widget>[
               const SizedBox(height: OnCareSpacing.s12),
               AppBanner(

@@ -1249,9 +1249,11 @@ class _NextPtBadge extends ConsumerWidget {
     final String date = DateFormat.MMMEd(
       Localizations.localeOf(context).toString(),
     ).format(at);
-    final String time = MaterialLocalizations.of(
-      context,
-    ).formatTimeOfDay(TimeOfDay.fromDateTime(at));
+    // 시각은 24시간제 — 같은 화면의 예약 목록·슬롯(`19:00–20:00`)과 같다(#3120).
+    final String time = MaterialLocalizations.of(context).formatTimeOfDay(
+      TimeOfDay.fromDateTime(at),
+      alwaysUse24HourFormat: true,
+    );
     return '$date $time';
   }
 }

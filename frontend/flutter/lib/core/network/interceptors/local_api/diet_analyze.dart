@@ -194,8 +194,8 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
       }
     }
     final String coach = english
-        ? 'Sodium is low at 185mg, so this is an easy meal on that front. '
-              'Sugar is a little over half of your daily target (50g), and '
+        ? 'Sodium is low at 185 mg, so this is an easy meal on that front. '
+              'Sugar is a little over half of your daily target (50 g), and '
               'half of that comes from the frozen yogurt itself. Keep the '
               'toppings mostly fruit and nuts like you did here.'
         : '나트륨이 185mg으로 낮아 부담이 적어요. 당류는 하루 목표(50g)의 절반 남짓인데, '

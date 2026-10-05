@@ -117,9 +117,9 @@ def trainer_remove_client(
         )
     )
     if link is None:
-        raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="담당 회원을 찾을 수 없습니다.")
     if not link.active:
-        raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="담당 회원을 찾을 수 없습니다.")
     trainer_client_status_service.remove_client(db, link)
 
 
@@ -137,7 +137,7 @@ def trainer_restore_client(
         )
     )
     if link is None:
-        raise HTTPException(status_code=404, detail="고객을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="회원을 찾을 수 없습니다.")
     try:
         trainer_client_status_service.restore_client(db, link)
     except trainer_common_service.ClientLinkDetached as exc:
@@ -171,7 +171,7 @@ def trainer_set_client_status(
         )
     )
     if link is None:
-        raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="담당 회원을 찾을 수 없습니다.")
     try:
         return trainer_client_status_service.set_client_active(db, link, payload.active)
     except trainer_common_service.ClientLinkDetached as exc:

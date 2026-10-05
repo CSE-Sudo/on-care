@@ -44,7 +44,7 @@ class _FakeAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
-const String _guard = '담당 고객을 찾을 수 없습니다.';
+const String _guard = '담당 회원을 찾을 수 없습니다.';
 
 Dio _dioWith(_FakeAdapter adapter, void Function(String) onLost) {
   final Dio dio = Dio(

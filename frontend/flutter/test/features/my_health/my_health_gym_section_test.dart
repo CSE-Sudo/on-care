@@ -196,8 +196,8 @@ void main() {
     // 카드에서 가장 누르기 쉬운 자리가 되돌릴 수 없는 삭제였다.
     expect(find.byTooltip('헬스장 상세 보기'), findsOneWidget);
     expect(find.byTooltip('트레이너 상세 보기'), findsOneWidget);
-    expect(find.byTooltip('헬스장 연결 삭제'), findsNothing);
-    expect(find.byTooltip('트레이너 연결 삭제'), findsNothing);
+    expect(find.byTooltip('헬스장 연결 해제'), findsNothing);
+    expect(find.byTooltip('트레이너 연결 해제'), findsNothing);
     expect(find.byIcon(AppIcons.delete), findsNothing);
 
     // 연결은 그대로다 — 이 화면에서는 아무것도 지우지 않는다.

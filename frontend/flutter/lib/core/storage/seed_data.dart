@@ -211,8 +211,8 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
         NotificationItemsCompanion.insert(
           id: 'seed-noti-7',
           createdAt: now.subtract(const Duration(minutes: 45)),
-          title: '이번 주 리포트가 등록됐어요',
-          body: '$kDemoTrainerName 트레이너님이 이번 주 리포트를 등록했어요.',
+          title: '주간 리포트가 도착했어요',
+          body: '$kDemoTrainerName 트레이너님이 주간 리포트를 보냈어요.',
           category: 'coach_report',
         ),
         NotificationItemsCompanion.insert(

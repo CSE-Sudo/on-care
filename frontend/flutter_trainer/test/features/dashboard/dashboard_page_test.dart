@@ -249,7 +249,7 @@ void main() {
     // 1명 이상이면 빨강, 0명이면 초록 — 판단을 담는 지표라 색으로도 말한다.
     expect(attention.toneColor, OnCareColors.danger);
     expect(find.text('관리 신호 확인'), findsOneWidget);
-    expect(find.text('식단·이행률 확인'), findsNothing);
+    expect(find.text('식단·완료율 확인'), findsNothing);
   });
 
   testWidgets('a KPI deep-links into the pre-filtered roster', (tester) async {
@@ -323,7 +323,7 @@ void main() {
     expect(findMissionRow('feedback-calorie_off'), findsNWidgets(5));
     expect(findMissionRow('feedback-protein_low'), findsOneWidget);
     // 할 일은 목록 배지보다 자세히 — 근거 수치를 붙인다.
-    expect(find.textContaining('칼로리 20% 과다'), findsNWidgets(5));
+    expect(find.textContaining('칼로리 20% 초과'), findsNWidgets(5));
     expect(find.textContaining('단백질 목표의 60%'), findsOneWidget);
     expect(find.textContaining('나트륨'), findsNothing);
     expect(find.text('답장 대기'), findsNothing);
@@ -353,7 +353,7 @@ void main() {
     expect(find.text('식단 피드백 미완료'), findsOneWidget);
     expect(find.textContaining('난이도를 낮추고'), findsOneWidget);
     expect(find.textContaining('나트륨'), findsNothing);
-    expect(find.textContaining('이행률'), findsNothing);
+    expect(find.textContaining('완료율'), findsNothing);
   });
 
   for (final scenario in <({String kind, String route})>[

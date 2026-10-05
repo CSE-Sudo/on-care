@@ -640,10 +640,8 @@ void main() {
         find
             .descendant(
               of: timeChip,
-              matching: find.text(
-                '${const TimeOfDay(hour: 10, minute: 0).format(tester.element(timeChip))} – '
-                '${const TimeOfDay(hour: 11, minute: 0).format(tester.element(timeChip))}',
-              ),
+              // 시각은 24시간제(#3120).
+              matching: find.text('10:00 – 11:00'),
             )
             .evaluate()
             .isNotEmpty,

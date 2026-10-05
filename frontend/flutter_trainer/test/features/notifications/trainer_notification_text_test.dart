@@ -114,33 +114,33 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
     'trainer_member_disconnected',
     <String, Object?>{'member_name': '지수'},
     '담당 연결 해제',
-    '지수 회원이 담당 연결을 끊었어요.',
-    'Client disconnected',
+    '지수 회원이 담당 연결을 해제했어요.',
+    'Member disconnected',
     '지수 ended their connection with you.',
   ),
   (
     'trainer_consult_requested',
     <String, Object?>{'member_name': '지수', 'preferred_date': '2026-10-01'},
     '새 상담 요청이 도착했어요',
-    '지수 회원 · 2026-10-01',
+    '지수 회원 · 10월 1일',
     'New consultation request',
-    '지수 · 2026-10-01',
+    '지수 · 10/1',
   ),
   (
     'trainer_consult_cancelled',
     <String, Object?>{'member_name': '지수', 'preferred_date': '2026-10-01'},
     '상담 요청이 취소됐어요',
-    '지수 회원 · 2026-10-01',
+    '지수 회원 · 10월 1일',
     'Consultation request cancelled',
-    '지수 · 2026-10-01',
+    '지수 · 10/1',
   ),
   (
     'trainer_consult_withdrawn',
     <String, Object?>{'member_name': '지수', 'preferred_date': '2026-10-01'},
     '회원 탈퇴로 상담 요청이 취소됐어요',
-    '지수 회원 · 2026-10-01',
+    '지수 회원 · 10월 1일',
     'Consultation request cancelled: member account deleted',
-    '지수 · 2026-10-01',
+    '지수 · 10/1',
   ),
   (
     'trainer_invite_accepted',
@@ -148,7 +148,7 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
     '담당 요청이 수락되었어요',
     '지수 회원이 담당으로 연결되었어요.',
     'Coaching request accepted',
-    '지수 is now your client.',
+    '지수 is now one of your members.',
   ),
   (
     'trainer_invite_rejected',
@@ -162,17 +162,17 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
     'trainer_reservation_booked',
     <String, Object?>{'member_name': '지수', 'starts_at': _starts},
     '새 예약이 들어왔어요',
-    '지수 회원 · 10월 01일 09:05',
+    '지수 회원 · 10월 1일 09:05',
     'New booking',
-    '지수 · 10/01 09:05',
+    '지수 · 10/1 09:05',
   ),
   (
     'trainer_reservation_cancelled',
     <String, Object?>{'member_name': '지수', 'starts_at': _starts},
     '예약이 취소되었습니다',
-    '지수 회원 · 10월 01일 09:05',
+    '지수 회원 · 10월 1일 09:05',
     'Booking cancelled',
-    '지수 · 10/01 09:05',
+    '지수 · 10/1 09:05',
   ),
   (
     'trainer_reservation_cancelled',
@@ -218,9 +218,9 @@ _cases = <(String, Map<String, Object?>, String, String, String, String)>[
       'revised': false,
     },
     '지수 회원이 주간 피드백을 보냈어요',
-    '컨디션 좋았어요 · 운동 강도 적당했어요',
+    '컨디션 좋았어요 · 운동 강도 딱 맞았어요',
     '지수 sent their weekly feedback',
-    'Condition: Good · Intensity: About right',
+    'Condition: Good · Intensity: Just right',
   ),
   // 통증은 수정보다 먼저 보인다 — 다음 PT 를 바꿔야 할 수 있는 답이다.
   (
@@ -428,7 +428,7 @@ void main() {
     });
 
     test('예약 시각을 읽을 수 없다', () {
-      for (final Object? starts in <Object?>['내일', '', 12, '10/01 09:05']) {
+      for (final Object? starts in <Object?>['내일', '', 12, '10/1 09:05']) {
         expectStored(
           _n('trainer_reservation_booked', <String, Object?>{
             'member_name': '지수',

@@ -106,7 +106,7 @@ void main() {
       findsNothing,
     );
     expect(
-      find.descendant(of: rowOf('steady'), matching: find.text('운동 이행률')),
+      find.descendant(of: rowOf('steady'), matching: find.text('운동 완료율')),
       findsNothing,
     );
   });

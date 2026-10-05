@@ -109,7 +109,7 @@ def exchange(
     if client_request_id and _by_request(db, member_id, client_request_id):
         return _exchange_out(db, member_id)
     if trainer_common_service.get_member_trainer_id(db, member_id) is not None:
-        raise TrainerAssigned("담당 트레이너가 리포트를 등록해 줘요.")
+        raise TrainerAssigned("담당 트레이너가 주간 리포트를 보내 줘요.")
 
     week = target_week()
     points_service.lock_balance(db, member_id)

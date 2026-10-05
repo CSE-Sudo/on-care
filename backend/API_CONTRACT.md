@@ -343,7 +343,7 @@
   빼고 내역에 실제로 뺀 값을 적는다. **전액 회수된 적립만** 그날 한도에서 빠진다 — 잔액이 모자라 0P·일부만
   회수됐으면 그 칸은 그대로다(받은 포인트를 쓰고 지웠다 다시 기록해 한도를 넘지 못하게, #3084). 다시 만든
   기록은 새 기록이다.
-- 배정 루틴 완료 응답은 `RoutineOut` + `points` 다. 앱의 안내 문구는 `추천·배정 운동 완료` 로, AI 추천과
+- 배정 루틴 완료 응답은 `RoutineOut` + `points` 다. 앱의 안내 문구는 `개인운동 완료` 로, AI 추천과
   트레이너 배정이 **하루 1회를 함께** 쓴다 — 배정 루틴으로 받은 날은 AI 루틴을 완료해도 `awarded: 0`.
   목록·수정 응답에는 `points` 가 붙지 않는다.
 
@@ -1299,8 +1299,8 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 `_require_client` 와 함께 쓴다.
 기준값과 예외 규칙은 [`docs/TRAINER_DOMAIN.md`](docs/TRAINER_DOMAIN.md) 의 "PT 관리 신호" 참조.
 
-**이행률 (#2513)**: 로스터 `week_completion: (int | null)[7]`(월→일)과 주간 리포트
-`week_completion`·`days[].completion`·`completion_avg` 는 그날 이행률 = (완료한 개인운동 + 완료한
+**완료율 (#2513)**: 로스터 `week_completion: (int | null)[7]`(월→일)과 주간 리포트
+`week_completion`·`days[].completion`·`completion_avg` 는 그날 완료율 = (완료한 개인운동 + 완료한
 PT) ÷ (그날 걸린 개인운동 + 그날 잡힌 PT) 다. 개인운동은 그 트레이너가 건 것이고 다음 날 이후
 체크도 완료다. PT 는 `예정·완료` 만 분모다(취소·노쇼·상담 제외). 회원이 직접 추가한 운동은 넣지
 않는다. 아무것도 걸리지 않은 날과 아직 오지 않은 날은 `null`, 걸렸는데 하나도 안 한 날은 `0` 이다.
@@ -1446,7 +1446,7 @@ N명이면 첫 화면에서 요청이 2N개였다.
 
 - 각 값은 같은 회원·같은 주의 `GET /trainer/clients/{member_id}/report` 와 **같은 규칙**이다 —
   `sessions_booked` 는 예정+완료(취소·노쇼·상담 제외), `sessions_done` 은 완료, `week_completion`
-  은 월→일 7칸 이행률(주간 리포트와 같은 계산 — 걸린 개인운동과 잡힌 PT, 아무것도 걸리지 않은 날은 `null`, #2513), `completion_avg` 는 걸린 날의 평균이고 걸린 날이 없으면 `null`(0 아님).
+  은 월→일 7칸 완료율(주간 리포트와 같은 계산 — 걸린 개인운동과 잡힌 PT, 아무것도 걸리지 않은 날은 `null`, #2513), `completion_avg` 는 걸린 날의 평균이고 걸린 날이 없으면 `null`(0 아님).
   식단·요일별 운동·회원 피드백은 싣지 않는다 — 편집기를 열 때 그 회원 리포트로 읽는다.
 - 집계는 회원별 반복이 아니라 회원 id 목록으로 묶어 조회한다(세션 한 번, 이행 기록 한 번).
 - **담당이 살아 있고 데이터 공유 동의가 유효한 회원만** 싣는다(회원 단위 경로가 404 를 주는 회원은
@@ -1617,6 +1617,7 @@ N명이면 첫 화면에서 요청이 2N개였다.
 | POST | `/auth/refresh` | `{ refresh_token }` → 새 `{ access_token, refresh_token, token_type }`(회전). 무효·폐기된 토큰 401 |
 | POST | `/auth/logout` | `{ refresh_token }` → **204**. 그 refresh 토큰을 폐기한다. access 토큰은 요구하지 않고, 못 알아본 토큰에도 204 |
 | POST | `/auth/social/{provider}` | `{ token }` → `{ access_token, refresh_token, token_type, consent_required, role }`(`role` 은 위 `/auth/login` 과 같다, #3137). 실패 응답은 아래 절 |
+| POST | `/auth/social/kakao/code` | `{ code, redirect_uri }` → `{ access_token }` — 카카오 **웹** 로그인 창이 돌려준 인가 코드를 카카오 access_token 으로 교환(#330). 로그인은 하지 않는다 — 앱은 받은 값을 `/auth/social/kakao` 의 `token`(또는 본인 확인의 `social_token`)으로 쓴다. 아래 [소셜 로그인 실연동](#소셜-로그인-실연동-330) |
 | POST | `/auth/password-reset/request` | `{ email }` → **202** `{ status: "requested", expires_in_minutes }` — 계정 유무와 무관하게 같은 응답(#2824). 아래 [비밀번호 재설정](#비밀번호-재설정-2824) |
 | POST | `/auth/password-reset/confirm` | `{ token, new_password }` → `{ status: "reset" }`. 코드 없음·만료·사용됨은 400 `invalid_reset_token`(#2824) |
 
@@ -1664,6 +1665,51 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
   점검이 비어 있는 provider 를 경고 로그로 남긴다.
 - 발급 정보 필드의 타입이 약속과 다르면(예: `aud` 가 배열, `exp` 가 숫자가 아닌 문자열, `app_id` 가 bool)
   형식 이상 **502** 다.
+
+### 소셜 로그인 실연동 (#330)
+
+로그인 수단은 이메일과 **카카오·구글** 두 소셜이다. 앱이 provider SDK·로그인 창으로 받은 값을
+아래처럼 서버에 넘긴다. 서버 검증 규칙은 위 [발급 앱 확인](#소셜-토큰-발급-앱-확인-3035) 절 그대로다.
+
+| provider | 플랫폼 | 앱이 받는 값 | 서버로 보내는 길 |
+|---|---|---|---|
+| google | Android·iOS | `google_sign_in` 의 id_token(`aud` = 웹 client_id, `serverClientId` 로 지정) | `POST /auth/social/google { token: id_token }` |
+| google | 웹(회원 웹·트레이너 웹) | Google Identity Services 버튼의 credential(id_token, `aud` = 웹 client_id) | 같음 |
+| kakao | Android·iOS | 카카오 SDK(카카오톡 → 없으면 카카오계정)의 access_token | `POST /auth/social/kakao { token: access_token }` |
+| kakao | 웹 | 카카오 로그인 창(`kauth.kakao.com/oauth/authorize`)이 redirect URI 로 돌려준 인가 코드 | `POST /auth/social/kakao/code { code, redirect_uri }` → `{ access_token }` → `POST /auth/social/kakao { token }` |
+
+**카카오 인가 코드 교환**(`POST /auth/social/kakao/code`)
+
+- 서버가 `https://kauth.kakao.com/oauth/token` 에 `grant_type=authorization_code`·`client_id`=
+  `KAKAO_LOGIN_REST_API_KEY`·`redirect_uri`·`code`(·`KAKAO_CLIENT_SECRET` 이 있으면 `client_secret`)로
+  교환한다. 앱이 로그인 창을 열 때 쓴 client_id 와 같은 키다. 클라이언트 시크릿은 서버에만 있다.
+- `redirect_uri` 는 로그인 창을 열 때 쓴 값과 글자까지 같고, 카카오 콘솔에 등록된 주소여야 한다.
+- 응답은 `{ access_token }` 하나다(refresh_token·id_token 은 돌려주지 않고 저장하지도 않는다).
+- 실패는 소셜 로그인과 같은 표를 따른다: `KAKAO_APP_ID`·`KAKAO_LOGIN_REST_API_KEY` 미설정, 코드 만료·재사용,
+  redirect URI 불일치(카카오 400) → **401** `소셜 인증에 실패했습니다.`, 200 인데 형식 이상 → **502**.
+  실패 감사(`auth.social`, `success=false`, `detail`=`kakao code`)를 남기고, 코드·토큰·응답 본문은
+  어디에도 남기지 않는다(카카오 오류 식별자 `KOE…` 만 서버 로그에).
+- 입력 길이: `code`·`redirect_uri` 각 1~2048자(넘으면 422). 분당 한도는 소셜 로그인과 같은 버킷이다.
+
+**이메일이 없거나 동의하지 않은 경우**
+
+- 카카오는 이메일 동의 항목을 선택으로 둘 수 있고, 구글도 이메일이 빠진 토큰을 줄 수 있다. 응답에 이메일이
+  없으면(동의 거부·`email_needs_agreement`) 계정 이메일을 `{provider}_{provider_user_id}@social.oncare`
+  대체 주소로 만들고 로그인은 그대로 된다. 이 주소로는 메일을 보내지 않는다.
+- 같은 이메일의 기존 계정 연결 조건은 provider 가 확인한 이메일일 때로 좁혀진다(#1551).
+
+**허용 설정과 기동 점검**
+
+| 설정 | 값 | 비었을 때 |
+|---|---|---|
+| `GOOGLE_CLIENT_IDS` | 웹·Android·iOS OAuth client_id(콤마 구분). 앱 id_token 의 `aud` 는 웹 client_id 이지만, 플랫폼별 값도 함께 넣는다 | 구글 로그인 401 |
+| `KAKAO_APP_ID` | 카카오 콘솔의 숫자 앱 ID | 카카오 로그인·코드 교환 401 |
+| `KAKAO_LOGIN_REST_API_KEY` | 같은 카카오 앱의 REST API 키 — 로그인 창 주소에 실려 브라우저에 보이는 client_id 다. 장소 검색 키(`KAKAO_REST_API_KEY`)와 따로 발급해 두기를 권한다 | 카카오 **웹** 로그인(코드 교환) 401 |
+| `KAKAO_CLIENT_SECRET` | 위 키의 클라이언트 시크릿을 켰을 때만(비밀) | 시크릿을 켠 키면 교환 401 |
+
+기동 점검(`app/core/startup_checks.py`)은 형식이 틀린 값을 **기동 거부**한다 — `KAKAO_APP_ID` 가 숫자가
+아님(REST 키를 잘못 넣은 경우), `GOOGLE_CLIENT_IDS` 항목이 `.apps.googleusercontent.com` 으로 끝나지 않음.
+`KAKAO_APP_ID` 는 있는데 `KAKAO_LOGIN_REST_API_KEY` 가 비면 웹 카카오 로그인만 안 된다는 경고를 남긴다.
 
 ### 가입 동의 (#2819)
 

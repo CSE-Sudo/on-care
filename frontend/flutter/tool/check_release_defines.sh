@@ -17,6 +17,9 @@
 #  - API_BASE_URL: https:// 로 시작, /v1 로 끝(끝 / 금지), 자리표시자(<…>·example·.test·localhost) 금지
 #  - SENTRY_DSN: 비어 있지 않은 https:// 주소, 자리표시자 금지
 #  - DEMO_BUILD·SHOW_DEMO_ENTRY 가 true 이면 실패, REAL_API 는 비어 있어야 함(목업 전용 스위치)
+#  - KAKAO_NATIVE_APP_KEY: 있으면 영숫자 16~64자(카카오 네이티브 앱 키, #330)
+#  - GOOGLE_WEB_CLIENT_ID·GOOGLE_IOS_CLIENT_ID: 있으면 <번호>-<해시>.apps.googleusercontent.com,
+#    iOS client_id 는 웹 client_id 와 함께 있어야 함(iOS 구글 로그인이 둘 다 쓴다)
 #  - BUILD_NUMBER·RELEASE_DATE(#3226)는 선택 — 있으면 양의 정수·UTC ISO 8601(`…Z`)이어야 함.
 #    서명 빌드 워크플로가 커밋 수·빌드 시각으로 채우고, 설정 화면 `버전 정보` 가 읽는다
 #  - 모르는 키는 경고만
@@ -54,7 +57,8 @@ if not isinstance(data, dict):
 
 KNOWN = {"ENV", "USE_MOCK_API", "API_BASE_URL", "SENTRY_DSN", "DEMO_BUILD",
          "SHOW_DEMO_ENTRY", "REAL_API", "KAKAO_JS_KEY",
-         "KAKAO_MAP_ORIGIN", "IOS_APP_STORE_ID", "BUILD_NUMBER", "RELEASE_DATE"}
+         "KAKAO_MAP_ORIGIN", "IOS_APP_STORE_ID", "KAKAO_NATIVE_APP_KEY",
+         "GOOGLE_WEB_CLIENT_ID", "GOOGLE_IOS_CLIENT_ID", "BUILD_NUMBER", "RELEASE_DATE"}
 PLACEHOLDER = re.compile(
     r"[<>]|(^|[./@])example\.(com|org|net)([/:]|$)|\.(example|test|invalid|localhost)([/:]|$)"
     r"|//(localhost|127\.0\.0\.1)([/:]|$)",
@@ -126,6 +130,21 @@ store_id = text("IOS_APP_STORE_ID")
 if store_id and not store_id.isdigit():
     errors.append("IOS_APP_STORE_ID 는 App Store Connect 의 숫자 Apple ID 여야 합니다(#3045).")
 
+# 카카오·구글 로그인(#330). 비우면 그 버튼이 '준비 중'으로 남을 뿐이지만, 틀린 값은
+# 버튼을 켠 채 누를 때마다 실패하게 만드므로 빌드 전에 막는다.
+kakao_native = text("KAKAO_NATIVE_APP_KEY")
+if kakao_native and not re.fullmatch(r"[A-Za-z0-9]{16,64}", kakao_native):
+    errors.append("KAKAO_NATIVE_APP_KEY 는 카카오 콘솔의 네이티브 앱 키(영숫자)여야 합니다.")
+GOOGLE_CLIENT_ID = re.compile(r"[A-Za-z0-9-]+\.apps\.googleusercontent\.com")
+google_web = text("GOOGLE_WEB_CLIENT_ID")
+google_ios = text("GOOGLE_IOS_CLIENT_ID")
+for key, value in (("GOOGLE_WEB_CLIENT_ID", google_web), ("GOOGLE_IOS_CLIENT_ID", google_ios)):
+    if value and not GOOGLE_CLIENT_ID.fullmatch(value):
+        errors.append(f"{key} 는 구글 OAuth client_id(<번호>-<해시>.apps.googleusercontent.com)여야 합니다.")
+if google_ios and not google_web:
+    errors.append("GOOGLE_IOS_CLIENT_ID 만 있습니다. iOS 구글 로그인은 GOOGLE_WEB_CLIENT_ID 도 씁니다.")
+if google_web and google_ios and google_web == google_ios:
+    errors.append("GOOGLE_WEB_CLIENT_ID 와 GOOGLE_IOS_CLIENT_ID 가 같습니다. 클라이언트 유형별 값을 넣으세요.")
 # 설정 화면 버전 정보(#3226). 틀린 값은 앱이 "없음"으로 읽어 개발 빌드로 보이므로 여기서 막는다.
 build_number = text("BUILD_NUMBER")
 if build_number and not re.fullmatch(r"[1-9][0-9]*", build_number):

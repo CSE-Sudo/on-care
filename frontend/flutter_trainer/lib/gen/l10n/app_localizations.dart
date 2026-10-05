@@ -626,6 +626,12 @@ abstract class AppLocalizations {
   /// **'Social sign-in is coming soon. Please sign in with your email.'**
   String get authSocialComingSoon;
 
+  /// Shown when the browser blocks the Kakao sign-in pop-up window (#330).
+  ///
+  /// In en, this message translates to:
+  /// **'The sign-in window was blocked. Allow pop-ups for this site and try again.'**
+  String get authSocialPopupBlocked;
+
   /// No description provided for @authErrSignInFailed.
   ///
   /// In en, this message translates to:
@@ -1097,7 +1103,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientsNew.
   ///
   /// In en, this message translates to:
-  /// **'Register new member'**
+  /// **'Connect member'**
   String get clientsNew;
 
   /// No description provided for @clientsTitle.
@@ -1169,7 +1175,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientsEmptyConnectHint.
   ///
   /// In en, this message translates to:
-  /// **'Connect members with the code they show you or by sending a coaching request. Consultation requests from members also appear in your inbox.'**
+  /// **'Connect members with their connection code or by sending a coaching request. Consultation requests from members also appear in your inbox.'**
   String get clientsEmptyConnectHint;
 
   /// No description provided for @clientsEmptyForFilter.
@@ -1199,7 +1205,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientWeeklyRoutineAdherence.
   ///
   /// In en, this message translates to:
-  /// **'Weekly adherence'**
+  /// **'Weekly completion rate'**
   String get clientWeeklyRoutineAdherence;
 
   /// No description provided for @clientRoutineAdherenceUnmeasured.
@@ -1487,37 +1493,37 @@ abstract class AppLocalizations {
   /// No description provided for @memberHealthGoalCalories.
   ///
   /// In en, this message translates to:
-  /// **'Daily calories (kcal)'**
+  /// **'Daily calorie goal (kcal)'**
   String get memberHealthGoalCalories;
 
   /// No description provided for @memberHealthGoalSodium.
   ///
   /// In en, this message translates to:
-  /// **'Daily sodium (mg)'**
+  /// **'Daily sodium goal (mg)'**
   String get memberHealthGoalSodium;
 
   /// No description provided for @memberHealthGoalSugar.
   ///
   /// In en, this message translates to:
-  /// **'Daily sugar (g)'**
+  /// **'Daily sugar goal (g)'**
   String get memberHealthGoalSugar;
 
   /// No description provided for @memberHealthGoalCarbs.
   ///
   /// In en, this message translates to:
-  /// **'Daily carbs (g)'**
+  /// **'Daily carbs goal (g)'**
   String get memberHealthGoalCarbs;
 
   /// No description provided for @memberHealthGoalProtein.
   ///
   /// In en, this message translates to:
-  /// **'Daily protein (g)'**
+  /// **'Daily protein goal (g)'**
   String get memberHealthGoalProtein;
 
   /// No description provided for @memberHealthGoalFat.
   ///
   /// In en, this message translates to:
-  /// **'Daily fat (g)'**
+  /// **'Daily fat goal (g)'**
   String get memberHealthGoalFat;
 
   /// No description provided for @memberHealthGoalBurnDaily.
@@ -1553,25 +1559,25 @@ abstract class AppLocalizations {
   /// No description provided for @clientInviteTitle.
   ///
   /// In en, this message translates to:
-  /// **'Add a new member'**
+  /// **'Connect member'**
   String get clientInviteTitle;
 
   /// No description provided for @clientInviteIntro.
   ///
   /// In en, this message translates to:
-  /// **'Enter the 6-digit sync code from the member\'s MY tab to connect right away.'**
+  /// **'Enter the 6-digit connection code from the member\'s MY tab to connect right away.'**
   String get clientInviteIntro;
 
   /// No description provided for @clientInviteIntroImmediate.
   ///
   /// In en, this message translates to:
-  /// **'Enter the 6-digit sync code from the member\'s MY tab to connect right away.'**
+  /// **'Enter the 6-digit connection code from the member\'s MY tab to connect right away.'**
   String get clientInviteIntroImmediate;
 
   /// No description provided for @clientConnectCodeLabel.
   ///
   /// In en, this message translates to:
-  /// **'Sync code'**
+  /// **'Connection code'**
   String get clientConnectCodeLabel;
 
   /// No description provided for @clientConnectCodeRequired.
@@ -1595,13 +1601,13 @@ abstract class AppLocalizations {
   /// No description provided for @clientInviteConnectAction.
   ///
   /// In en, this message translates to:
-  /// **'Register member'**
+  /// **'Connect'**
   String get clientInviteConnectAction;
 
   /// No description provided for @clientInviteConnected.
   ///
   /// In en, this message translates to:
-  /// **'Registered {name} as a member'**
+  /// **'Connected with {name}'**
   String clientInviteConnected(String name);
 
   /// No description provided for @clientInviteFailed.
@@ -1775,7 +1781,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientTabDiet.
   ///
   /// In en, this message translates to:
-  /// **'Meals'**
+  /// **'Diet'**
   String get clientTabDiet;
 
   /// No description provided for @clientTabWorkout.
@@ -1919,7 +1925,7 @@ abstract class AppLocalizations {
   /// No description provided for @chatReportRegistered.
   ///
   /// In en, this message translates to:
-  /// **'Weekly report added'**
+  /// **'Weekly report sent'**
   String get chatReportRegistered;
 
   /// No description provided for @chatReportOpenInReports.
@@ -2693,7 +2699,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsCompletionByDay.
   ///
   /// In en, this message translates to:
-  /// **'Weekly workout completion'**
+  /// **'Weekly workout completion rate'**
   String get reportsCompletionByDay;
 
   /// No description provided for @reportsNoWorkoutsThisWeek.
@@ -2747,7 +2753,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodyCompletionLow.
   ///
   /// In en, this message translates to:
-  /// **'Workout completion came in at {avg}%. Sounds like a busy one.'**
+  /// **'Workout completion rate came in at {avg}%. Sounds like a busy one.'**
   String reportBodyCompletionLow(int avg);
 
   /// No description provided for @reportBodySilentDays.
@@ -2771,13 +2777,13 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodySodiumOver.
   ///
   /// In en, this message translates to:
-  /// **'Sodium averaged {avg}mg a day, and went over the {target}mg target on {days} days. Leaving half the broth behind saves 400-500mg a day.'**
+  /// **'Sodium averaged {avg} mg a day, and went over the {target} mg goal on {days} days. Leaving half the broth behind saves 400–500 mg a day.'**
   String reportBodySodiumOver(String avg, String target, int days);
 
   /// No description provided for @reportBodySodiumOk.
   ///
   /// In en, this message translates to:
-  /// **'Sodium averaged {avg}mg a day — comfortably inside the {target}mg target.'**
+  /// **'Sodium averaged {avg} mg a day — comfortably inside the {target} mg goal.'**
   String reportBodySodiumOk(String avg, String target);
 
   /// No description provided for @reportBodyPraise.
@@ -2837,7 +2843,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodyCaloriesOver.
   ///
   /// In en, this message translates to:
-  /// **'Calories averaged {avg}kcal a day — {pct}% above your {target}kcal target, and over it on {days} days.'**
+  /// **'Calories averaged {avg} kcal a day — {pct}% above your {target} kcal goal, and over it on {days} days.'**
   String reportBodyCaloriesOver(
     String avg,
     String target,
@@ -2848,31 +2854,31 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodyCaloriesUnder.
   ///
   /// In en, this message translates to:
-  /// **'Calories averaged {avg}kcal a day — {pct}% below your {target}kcal target. Eating too little tends to cost muscle first.'**
+  /// **'Calories averaged {avg} kcal a day — {pct}% below your {target} kcal goal. Eating too little tends to cost muscle first.'**
   String reportBodyCaloriesUnder(String avg, String target, String pct);
 
   /// No description provided for @reportBodyCaloriesNearOver.
   ///
   /// In en, this message translates to:
-  /// **'Calories averaged {avg}kcal a day, close to your {target}kcal target, but went over it on {days} days.'**
+  /// **'Calories averaged {avg} kcal a day, close to your {target} kcal goal, but went over it on {days} days.'**
   String reportBodyCaloriesNearOver(String avg, String target, int days);
 
   /// No description provided for @reportBodyCaloriesOk.
   ///
   /// In en, this message translates to:
-  /// **'Calories averaged {avg}kcal a day — right around your {target}kcal target.'**
+  /// **'Calories averaged {avg} kcal a day — right around your {target} kcal goal.'**
   String reportBodyCaloriesOk(String avg, String target);
 
   /// No description provided for @reportBodySugarOver.
   ///
   /// In en, this message translates to:
-  /// **'Sugar averaged {avg}g a day and went over the {target}g limit on {days} days.'**
+  /// **'Sugar averaged {avg} g a day and went over the {target} g goal on {days} days.'**
   String reportBodySugarOver(String avg, String target, int days);
 
   /// No description provided for @reportBodySugarOk.
   ///
   /// In en, this message translates to:
-  /// **'Sugar averaged {avg}g a day, inside the {target}g limit.'**
+  /// **'Sugar averaged {avg} g a day, inside the {target} g goal.'**
   String reportBodySugarOk(String avg, String target);
 
   /// No description provided for @reportBodyMemberPain.
@@ -3016,13 +3022,13 @@ abstract class AppLocalizations {
   /// 담당이 끊긴 회원의 일정에 이름 대신 쓰는 말 (#2589)
   ///
   /// In en, this message translates to:
-  /// **'Former client'**
+  /// **'Former member'**
   String get schedDetachedMember;
 
   /// No description provided for @schedDetachedMemberHint.
   ///
   /// In en, this message translates to:
-  /// **'Coaching has ended, so client details are hidden'**
+  /// **'Coaching has ended, so member details are hidden'**
   String get schedDetachedMemberHint;
 
   /// Hint on a session card for a session the member booked through a reservation slot (#2756). Edit schedule and Delete are disabled.
@@ -3034,13 +3040,13 @@ abstract class AppLocalizations {
   /// No description provided for @schedEndedLockedHint.
   ///
   /// In en, this message translates to:
-  /// **'A finished PT can only have its note and program edited.'**
+  /// **'A finished PT can only have its feedback and program edited.'**
   String get schedEndedLockedHint;
 
   /// No description provided for @schedDoneLockedHint.
   ///
   /// In en, this message translates to:
-  /// **'A completed PT can only have its note and program edited. Move the date forward to reopen it as upcoming.'**
+  /// **'A completed PT can only have its feedback and program edited. Move the date forward to reopen it as upcoming.'**
   String get schedDoneLockedHint;
 
   /// No description provided for @schedGroupPersonal.
@@ -3520,7 +3526,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedNoteHint.
   ///
   /// In en, this message translates to:
-  /// **'Feedback for the member. Keep member notes in the client memo'**
+  /// **'Feedback for the member. Keep notes about the member in their member memo'**
   String get schedNoteHint;
 
   /// No description provided for @schedNoteVisibleToMember.
@@ -3604,7 +3610,7 @@ abstract class AppLocalizations {
   /// No description provided for @progNoteHint.
   ///
   /// In en, this message translates to:
-  /// **'Feedback for the member. Keep member notes in the client memo'**
+  /// **'Feedback for the member. Keep notes about the member in their member memo'**
   String get progNoteHint;
 
   /// No description provided for @progSaving.
@@ -4122,6 +4128,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Disconnect'**
   String get myClientRemove;
+
+  /// Confirm button of the disconnect-member dialog. Noun form per the button rule (#3117); the row tooltip keeps myClientRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get myClientRemoveConfirm;
 
   /// No description provided for @myClientRemoveTitle.
   ///
@@ -4852,7 +4864,7 @@ abstract class AppLocalizations {
   /// No description provided for @myClientManagementNote.
   ///
   /// In en, this message translates to:
-  /// **'Their records stay in the member app. To coach them again, add them by member ID from New member on the Members tab.'**
+  /// **'Their records stay in the member app. To coach them again, enter the connection code they give you under Connect member on the Members tab.'**
   String get myClientManagementNote;
 
   /// No description provided for @myNotifConsultation.
@@ -5128,13 +5140,13 @@ abstract class AppLocalizations {
   /// No description provided for @coachSwitchClientTitle.
   ///
   /// In en, this message translates to:
-  /// **'Switch to another client?'**
+  /// **'Switch to another member?'**
   String get coachSwitchClientTitle;
 
   /// No description provided for @coachSwitchClientBody.
   ///
   /// In en, this message translates to:
-  /// **'You have unsent work. Switching clients discards the program and personal exercises you are building.'**
+  /// **'You have unsent work. Switching members discards the program and personal exercises you are building.'**
   String get coachSwitchClientBody;
 
   /// No description provided for @coachSwitchClientConfirm.
@@ -5320,7 +5332,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiReasonSodium.
   ///
   /// In en, this message translates to:
-  /// **'Sodium is over target today, so lean into low-intensity cardio.'**
+  /// **'Sodium is over goal today, so lean into low-intensity cardio.'**
   String get aiReasonSodium;
 
   /// No description provided for @aiReasonBalanced.
@@ -5458,13 +5470,13 @@ abstract class AppLocalizations {
   /// No description provided for @aiOverTarget.
   ///
   /// In en, this message translates to:
-  /// **' · over target'**
+  /// **' · over goal'**
   String get aiOverTarget;
 
   /// No description provided for @aiRecentCompletion.
   ///
   /// In en, this message translates to:
-  /// **'Recent completion'**
+  /// **'Recent completion rate'**
   String get aiRecentCompletion;
 
   /// No description provided for @aiNoCompletionData.
@@ -5488,7 +5500,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiSodiumOverDaysSuffix.
   ///
   /// In en, this message translates to:
-  /// **' · over target on {days} of the last 7 days'**
+  /// **' · over goal on {days} of the last 7 days'**
   String aiSodiumOverDaysSuffix(int days);
 
   /// No description provided for @aiSugarAlsoOver.
@@ -5506,13 +5518,13 @@ abstract class AppLocalizations {
   /// No description provided for @aiDirectionLower.
   ///
   /// In en, this message translates to:
-  /// **'Lower intensity — recent completion is low'**
+  /// **'Lower intensity — recent completion rate is low'**
   String get aiDirectionLower;
 
   /// No description provided for @aiDirectionCardio.
   ///
   /// In en, this message translates to:
-  /// **'More cardio — sodium is often over target'**
+  /// **'More cardio — sodium is often over goal'**
   String get aiDirectionCardio;
 
   /// No description provided for @aiDirectionLowerAndCardio.
@@ -6268,7 +6280,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiBasisGoalCompletion.
   ///
   /// In en, this message translates to:
-  /// **'{goal} · based on {rate}% completion'**
+  /// **'{goal} · based on a {rate}% completion rate'**
   String aiBasisGoalCompletion(String goal, int rate);
 
   /// No description provided for @aiBasisTrainerRequest.
@@ -6430,7 +6442,7 @@ abstract class AppLocalizations {
   /// No description provided for @notifTplMemberDisconnectedTitle.
   ///
   /// In en, this message translates to:
-  /// **'Client disconnected'**
+  /// **'Member disconnected'**
   String get notifTplMemberDisconnectedTitle;
 
   /// No description provided for @notifTplMemberDisconnectedBody.
@@ -6466,7 +6478,7 @@ abstract class AppLocalizations {
   /// No description provided for @notifTplInviteAcceptedBody.
   ///
   /// In en, this message translates to:
-  /// **'{name} is now your client.'**
+  /// **'{name} is now one of your members.'**
   String notifTplInviteAcceptedBody(String name);
 
   /// No description provided for @notifTplInviteRejectedTitle.
@@ -6505,7 +6517,7 @@ abstract class AppLocalizations {
   /// **'{name}'**
   String notifTplMemberOnly(String name);
 
-  /// Seoul wall-clock date and time of a session. month and day are two digits, time is HH:mm.
+  /// Seoul wall-clock date and time of a session. month and day have no leading zero, time is 24-hour HH:mm.
   ///
   /// In en, this message translates to:
   /// **'{month}/{day} {time}'**
@@ -6660,6 +6672,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t confirm your social account. Please sign in again.'**
   String get myDeleteReauthSocialFailed;
+
+  /// Shown in the account-deletion confirmation when no social sign-in is configured for this build (#330).
+  ///
+  /// In en, this message translates to:
+  /// **'Social sign-in isn\'t available in this version yet. Please contact support.'**
+  String get myDeleteReauthSocialUnavailable;
 
   /// No description provided for @myWithdrawReasonTitle.
   ///
@@ -6892,7 +6910,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachRoutineAdherenceTitle.
   ///
   /// In en, this message translates to:
-  /// **'Personal exercise follow-through'**
+  /// **'Personal exercise completion'**
   String get coachRoutineAdherenceTitle;
 
   /// No description provided for @coachRoutineAdherenceCell.
@@ -7036,7 +7054,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchDetailCompletion.
   ///
   /// In en, this message translates to:
-  /// **'{percent}% completion this week'**
+  /// **'{percent}% completion rate this week'**
   String searchDetailCompletion(int percent);
 
   /// No description provided for @navOperationsGroup.
@@ -7486,7 +7504,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientGoalApplySuggestion.
   ///
   /// In en, this message translates to:
-  /// **'Fill with suggestion'**
+  /// **'Use suggested goals'**
   String get clientGoalApplySuggestion;
 
   /// No description provided for @clientTrainerMemoHint.
@@ -7750,7 +7768,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientFeedbackSourceWeekly.
   ///
   /// In en, this message translates to:
-  /// **'Weekly check-in · week of {date}'**
+  /// **'Weekly feedback · week of {date}'**
   String clientFeedbackSourceWeekly(String date);
 
   /// No description provided for @clientFeedbackWeeklyNoNote.
@@ -8274,7 +8292,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsActionSugar.
   ///
   /// In en, this message translates to:
-  /// **'Some days went over the {target}g sugar target. Start with drinks and snacks.'**
+  /// **'Some days went over the {target} g sugar goal. Start with drinks and snacks.'**
   String reportsActionSugar(String target);
 
   /// No description provided for @reportsActionLowCompletion.
@@ -8304,7 +8322,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsActionCalories.
   ///
   /// In en, this message translates to:
-  /// **'Intake is under the {target}kcal target. Suggest one protein-led meal.'**
+  /// **'Intake is under the {target} kcal goal. Suggest one protein-led meal.'**
   String reportsActionCalories(String target);
 
   /// No description provided for @reportsAiGenerated.
@@ -8346,7 +8364,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsPdfDocTitle.
   ///
   /// In en, this message translates to:
-  /// **'Weekly coaching report'**
+  /// **'Weekly report'**
   String get reportsPdfDocTitle;
 
   /// No description provided for @reportsPdfClient.
@@ -8400,25 +8418,25 @@ abstract class AppLocalizations {
   /// No description provided for @reportsPdfLabelCompletion.
   ///
   /// In en, this message translates to:
-  /// **'Workout completion'**
+  /// **'Workout completion rate'**
   String get reportsPdfLabelCompletion;
 
   /// No description provided for @reportsPdfLabelSessions.
   ///
   /// In en, this message translates to:
-  /// **'PT'**
+  /// **'PT done'**
   String get reportsPdfLabelSessions;
 
   /// No description provided for @reportsPdfLabelSessionCount.
   ///
   /// In en, this message translates to:
-  /// **'PT completed'**
+  /// **'PT done'**
   String get reportsPdfLabelSessionCount;
 
   /// No description provided for @reportsPdfLabelSodiumOver.
   ///
   /// In en, this message translates to:
-  /// **'Days over sodium target'**
+  /// **'Days over sodium goal'**
   String get reportsPdfLabelSodiumOver;
 
   /// No description provided for @reportsPdfLabelCalories.
@@ -8460,19 +8478,19 @@ abstract class AppLocalizations {
   /// No description provided for @reportsPdfValueMg.
   ///
   /// In en, this message translates to:
-  /// **'{value}mg'**
+  /// **'{value} mg'**
   String reportsPdfValueMg(String value);
 
   /// No description provided for @reportsPdfValueKcal.
   ///
   /// In en, this message translates to:
-  /// **'{value}kcal'**
+  /// **'{value} kcal'**
   String reportsPdfValueKcal(String value);
 
   /// No description provided for @reportsPdfValueGram.
   ///
   /// In en, this message translates to:
-  /// **'{value}g'**
+  /// **'{value} g'**
   String reportsPdfValueGram(String value);
 
   /// No description provided for @reportsPdfValueDays.
@@ -9078,7 +9096,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsGridCalorieTarget.
   ///
   /// In en, this message translates to:
-  /// **'Target {value}'**
+  /// **'Goal {value}'**
   String reportsGridCalorieTarget(String value);
 
   /// No description provided for @reportsMacroNone.
@@ -9090,13 +9108,13 @@ abstract class AppLocalizations {
   /// No description provided for @reportsMacroValueOfTarget.
   ///
   /// In en, this message translates to:
-  /// **'{name} {value} / {target}g'**
+  /// **'{name} {value} / {target} g'**
   String reportsMacroValueOfTarget(String name, int value, int target);
 
   /// No description provided for @reportsMacroShortfall.
   ///
   /// In en, this message translates to:
-  /// **'{name} is well under target — worth raising in your feedback'**
+  /// **'{name} is well under goal — worth raising in your feedback'**
   String reportsMacroShortfall(String name);
 
   /// No description provided for @reportsMemberFeedbackTitle.
@@ -9210,7 +9228,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsMemberFeedbackConditionBad.
   ///
   /// In en, this message translates to:
-  /// **'Really rough'**
+  /// **'Rough'**
   String get reportsMemberFeedbackConditionBad;
 
   /// No description provided for @reportsMemberFeedbackIntensityTooEasy.
@@ -9222,13 +9240,13 @@ abstract class AppLocalizations {
   /// No description provided for @reportsMemberFeedbackIntensityRight.
   ///
   /// In en, this message translates to:
-  /// **'About right'**
+  /// **'Just right'**
   String get reportsMemberFeedbackIntensityRight;
 
   /// No description provided for @reportsMemberFeedbackIntensityHard.
   ///
   /// In en, this message translates to:
-  /// **'Hard'**
+  /// **'A bit hard'**
   String get reportsMemberFeedbackIntensityHard;
 
   /// No description provided for @reportsMemberFeedbackIntensityTooHard.
@@ -9384,13 +9402,13 @@ abstract class AppLocalizations {
   /// No description provided for @summaryBasisDefault.
   ///
   /// In en, this message translates to:
-  /// **'default target'**
+  /// **'default goal'**
   String get summaryBasisDefault;
 
   /// No description provided for @summaryBasisPersonal.
   ///
   /// In en, this message translates to:
-  /// **'personal target'**
+  /// **'personal goal'**
   String get summaryBasisPersonal;
 
   /// No description provided for @summaryDirOver.
@@ -9408,19 +9426,19 @@ abstract class AppLocalizations {
   /// No description provided for @summaryCompletionLow.
   ///
   /// In en, this message translates to:
-  /// **'Avg workout completion {pct}% · below the {threshold}% bar'**
+  /// **'Avg workout completion rate {pct}% · below the {threshold}% bar'**
   String summaryCompletionLow(String pct, String threshold);
 
   /// No description provided for @summaryCompletionTopic.
   ///
   /// In en, this message translates to:
-  /// **'workout completion at {pct}%'**
+  /// **'workout completion rate at {pct}%'**
   String summaryCompletionTopic(String pct);
 
   /// No description provided for @summaryCompletionAvg.
   ///
   /// In en, this message translates to:
-  /// **'Avg workout completion {pct}%'**
+  /// **'Avg workout completion rate {pct}%'**
   String summaryCompletionAvg(String pct);
 
   /// No description provided for @summarySkipped.
@@ -9438,43 +9456,43 @@ abstract class AppLocalizations {
   /// No description provided for @summarySodium.
   ///
   /// In en, this message translates to:
-  /// **'Avg sodium {avg}mg · over the {basis} of {target}mg on {days} day(s)'**
+  /// **'Avg sodium {avg} mg · over the {basis} of {target} mg on {days} day(s)'**
   String summarySodium(String avg, String basis, String target, String days);
 
   /// No description provided for @summarySodiumOverTopic.
   ///
   /// In en, this message translates to:
-  /// **'sodium over target on {days} day(s)'**
+  /// **'sodium over goal on {days} day(s)'**
   String summarySodiumOverTopic(String days);
 
   /// No description provided for @summarySodiumAvgTopic.
   ///
   /// In en, this message translates to:
-  /// **'avg sodium {avg}mg'**
+  /// **'avg sodium {avg} mg'**
   String summarySodiumAvgTopic(String avg);
 
   /// No description provided for @summarySugar.
   ///
   /// In en, this message translates to:
-  /// **'Avg sugar {avg}g · over the {basis} of {target}g on {days} day(s)'**
+  /// **'Avg sugar {avg} g · over the {basis} of {target} g on {days} day(s)'**
   String summarySugar(String avg, String basis, String target, String days);
 
   /// No description provided for @summarySugarOverTopic.
   ///
   /// In en, this message translates to:
-  /// **'sugar over target on {days} day(s)'**
+  /// **'sugar over goal on {days} day(s)'**
   String summarySugarOverTopic(String days);
 
   /// No description provided for @summarySugarAvgTopic.
   ///
   /// In en, this message translates to:
-  /// **'avg sugar {avg}g'**
+  /// **'avg sugar {avg} g'**
   String summarySugarAvgTopic(String avg);
 
   /// No description provided for @summaryCalories.
   ///
   /// In en, this message translates to:
-  /// **'Avg calories {avg}kcal · {pct}% {direction} the {basis} of {target}kcal'**
+  /// **'Avg calories {avg} kcal · {pct}% {direction} the {basis} of {target} kcal'**
   String summaryCalories(
     String avg,
     String basis,
@@ -9486,19 +9504,19 @@ abstract class AppLocalizations {
   /// No description provided for @summaryCaloriesTopic.
   ///
   /// In en, this message translates to:
-  /// **'calories {direction} target'**
+  /// **'calories {direction} goal'**
   String summaryCaloriesTopic(String direction);
 
   /// No description provided for @summaryCaloriesAvg.
   ///
   /// In en, this message translates to:
-  /// **'Avg calories {avg}kcal'**
+  /// **'Avg calories {avg} kcal'**
   String summaryCaloriesAvg(String avg);
 
   /// No description provided for @summaryMacro.
   ///
   /// In en, this message translates to:
-  /// **'Avg {label} {avg}g · {pct}% {direction} the personal target of {target}g'**
+  /// **'Avg {label} {avg} g · {pct}% {direction} the personal goal of {target} g'**
   String summaryMacro(
     String label,
     String avg,
@@ -9510,7 +9528,7 @@ abstract class AppLocalizations {
   /// No description provided for @summaryMacroTopic.
   ///
   /// In en, this message translates to:
-  /// **'{label} {direction} target'**
+  /// **'{label} {direction} goal'**
   String summaryMacroTopic(String label, String direction);
 
   /// No description provided for @summaryMorePoints.
@@ -9528,7 +9546,7 @@ abstract class AppLocalizations {
   /// No description provided for @summaryHeadlineSteady.
   ///
   /// In en, this message translates to:
-  /// **'{name} stayed within target — the current intensity can stay as is.'**
+  /// **'{name} stayed within their goals — the current intensity can stay as is.'**
   String summaryHeadlineSteady(String name);
 
   /// No description provided for @summaryHeadlineRest.
@@ -9551,7 +9569,7 @@ abstract class AppLocalizations {
   /// No description provided for @summaryHeadlineNeedsAdjust.
   ///
   /// In en, this message translates to:
-  /// **'{name} was off target on {top} — next week needs adjusting.{rest}'**
+  /// **'{name} missed the goal on {top} — next week needs adjusting.{rest}'**
   String summaryHeadlineNeedsAdjust(String name, String top, String rest);
 
   /// No description provided for @reportsPdfFileSuffix.
@@ -9882,7 +9900,7 @@ abstract class AppLocalizations {
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
   /// In en, this message translates to:
-  /// **'{kcal}kcal · protein {protein}g · sodium {sodium}mg'**
+  /// **'{kcal} kcal · protein {protein} g · sodium {sodium} mg'**
   String clientDietRecNutrition(String kcal, String protein, String sodium);
 
   /// 트레이너웹 AI 식단 추천의 끼니 배지 (#2379).

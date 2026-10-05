@@ -210,7 +210,10 @@ class _KindCard extends StatelessWidget {
                     // 한 축에서 셋을 견줄 수 있는 유일한 값이 칼로리라, 그것이
                     // 가장 크게 선다. 분·세트는 그 아래 원래 단위로 남는다.
                     Text(
-                      '${formatNumber(week.caloriesOf(kind))}${l.unitKcal}',
+                      // ko `1,200kcal` · en `1,200 kcal`(#3120).
+                      '${formatNumber(week.caloriesOf(kind))}'
+                      '${unitGap(Localizations.localeOf(context).toString())}'
+                      '${l.unitKcal}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: tokens.text(

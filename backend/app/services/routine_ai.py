@@ -318,8 +318,8 @@ def rule_based_plans(
                 f"오늘 나트륨 {sodium_today_mg}mg"
                 f"{' (목표 초과)' if over else ''}, 최근 운동 완료율 "
                 f"{avg_completion_rate}% → 부담이 적은 유산소·스트레칭으로 지속 가능성에 집중.",
-                f"Sodium today {sodium_today_mg}mg"
-                f"{' (over target)' if over else ''}, recent workout completion "
+                f"Sodium today {sodium_today_mg} mg"
+                f"{' (over goal)' if over else ''}, recent workout completion "
                 f"{avg_completion_rate}% → focusing on consistency with "
                 "low-strain cardio and stretching.",
                 locale,

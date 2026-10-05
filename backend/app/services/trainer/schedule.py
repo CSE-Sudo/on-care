@@ -2008,7 +2008,7 @@ def update_session(
         # 메모·아직 보내지 않은 프로그램은 그 약속을 바꾸지 않아 연다 — 수업이
         # 끝난 뒤 기록을 남기는 것이 가장 자연스러운 흐름이다(#2754).
         raise ScheduleConflict(
-            "완료·취소·노쇼로 마무리된 PT는 메모·프로그램만 수정할 수 있습니다."
+            "완료·취소·노쇼로 마무리된 PT는 피드백·프로그램만 수정할 수 있습니다."
         )
     if (
         "program" in fields
@@ -2454,7 +2454,7 @@ def send_session_program(
         raise ScheduleError("회원이 연결되지 않은 일정입니다.")
     # 해제 전에 잡아 둔 일정이라도 해제 뒤에는 회원에게 루틴을 보내지 않는다. (#2281)
     if not has_active_client_link(db, trainer_id, s.member_id):
-        raise ClientLinkDetached("담당 고객을 찾을 수 없습니다.")
+        raise ClientLinkDetached("담당 회원을 찾을 수 없습니다.")
     if s.status != "완료":
         raise ScheduleError("완료한 일정만 보낼 수 있습니다.")
     items = _program_items(s.program_json)

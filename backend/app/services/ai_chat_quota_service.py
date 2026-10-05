@@ -103,7 +103,7 @@ def plan(db: Session, user_id: str, *, pay_with_points: bool) -> bool:
         raise DailyLimitReached("오늘 AI 코치 대화를 다 썼어요. 내일 다시 열려요.")
     if not pay_with_points:
         raise PointsConsentRequired(
-            f"오늘 무료 대화를 다 썼어요. 한 번에 {quota.cost}P 로 더 보낼 수 있어요."
+            f"오늘 무료 대화를 다 썼어요. 한 번에 {quota.cost}P로 더 보낼 수 있어요."
         )
     if quota.balance < quota.cost:
         raise points_service.InsufficientPoints(quota.cost - quota.balance)

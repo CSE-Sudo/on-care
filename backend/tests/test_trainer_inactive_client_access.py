@@ -44,7 +44,7 @@ from app.models.models import (
     User,
 )
 
-GUARD_DETAIL = "담당 고객을 찾을 수 없습니다."
+GUARD_DETAIL = "담당 회원을 찾을 수 없습니다."
 
 
 def _h(token: str) -> dict[str, str]:

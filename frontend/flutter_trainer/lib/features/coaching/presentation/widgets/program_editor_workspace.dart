@@ -166,6 +166,11 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
 
   int _minutes(TimeOfDay value) => value.hour * 60 + value.minute;
 
+  static String _hhmm(BuildContext context, TimeOfDay value) =>
+      MaterialLocalizations.of(
+        context,
+      ).formatTimeOfDay(value, alwaysUse24HourFormat: true);
+
   /// 고른 등록 날짜가 이미 지났는가 — 화면을 연 채 자정을 넘긴 경우다(#1582).
   /// 누르는 순간의 재검증은 호출부가 한 번 더 한다.
   bool get _registerDateIsPast => widget.registerDate.isBefore(_todayDate());
@@ -637,9 +642,10 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
                 compact: true,
                 key: const ValueKey<String>('program-register-time'),
                 icon: AppIcons.clock,
+                // 24시간제 — 예약 슬롯 창(`10:00 – 11:00`)과 같은 표기(#3120).
                 value:
-                    '${widget.registerStartTime.format(context)} – '
-                    '${widget.registerEndTime.format(context)}',
+                    '${_hhmm(context, widget.registerStartTime)} – '
+                    '${_hhmm(context, widget.registerEndTime)}',
                 onTap: () => unawaited(_pickRegisterTimeRange(context)),
               ),
               Tooltip(

@@ -216,6 +216,16 @@ class BuildStepsTest(unittest.TestCase):
                 self.assertIn("API_BASE_URL: ${{ vars.MEMBER_APP_API_BASE_URL }}", step)
                 # 운영 웹과 같은 회원 앱 DSN 비밀을 쓴다.
                 self.assertIn("SENTRY_DSN: ${{ secrets.SENTRY_DSN_MEMBER }}", step)
+                # 카카오·구글 로그인 공개 식별자(#330)는 변수로 받는다.
+                for key in ("KAKAO_NATIVE_APP_KEY", "GOOGLE_WEB_CLIENT_ID", "GOOGLE_IOS_CLIENT_ID"):
+                    self.assertIn(f"{key}: ${{{{ vars.MEMBER_APP_{key} }}}}", step)
+
+    def test_ios_writes_login_url_schemes_before_building(self) -> None:
+        job = jobs()["ios"]
+        step = step_named(job, "Write the login URL schemes")
+        self.assertIn("--ios-url-schemes ios/Flutter/Social.xcconfig", step)
+        self.assertNotIn("secrets.", step)
+        self.assertLess(step_index(job, "--ios-url-schemes"), step_index(job, "flutter build ipa"))
 
     def test_flutter_version_matches_the_user_app_ci(self) -> None:
         pinned = re.search(r'FLUTTER_VERSION: "([0-9.]+)"', workflow_text())
@@ -353,6 +363,44 @@ class WriteReleaseDefinesTest(unittest.TestCase):
         self.assertEqual(got["IOS_APP_STORE_ID"], "123")
         self.assertNotIn("KAKAO_MAP_ORIGIN", got)
 
+    def test_social_login_keys_are_optional_defines(self) -> None:
+        got = defines.release_defines({
+            "KAKAO_NATIVE_APP_KEY": " 0123456789abcdef0123456789abcdef ",
+            "GOOGLE_WEB_CLIENT_ID": "1-web.apps.googleusercontent.com",
+            "GOOGLE_IOS_CLIENT_ID": "",
+        })
+        self.assertEqual(got["KAKAO_NATIVE_APP_KEY"], "0123456789abcdef0123456789abcdef")
+        self.assertEqual(got["GOOGLE_WEB_CLIENT_ID"], "1-web.apps.googleusercontent.com")
+        self.assertNotIn("GOOGLE_IOS_CLIENT_ID", got)
+
+    def test_ios_url_schemes_from_social_keys(self) -> None:
+        text = defines.ios_url_schemes({
+            "KAKAO_NATIVE_APP_KEY": "0123456789abcdef0123456789abcdef",
+            "GOOGLE_IOS_CLIENT_ID": "123-ioshash.apps.googleusercontent.com",
+        })
+        self.assertIn("KAKAO_URL_SCHEME = kakao0123456789abcdef0123456789abcdef\n", text)
+        self.assertIn("GOOGLE_URL_SCHEME = com.googleusercontent.apps.123-ioshash\n", text)
+
+    def test_ios_url_schemes_skip_missing_or_malformed_values(self) -> None:
+        text = defines.ios_url_schemes({"KAKAO_NATIVE_APP_KEY": "<키>", "GOOGLE_IOS_CLIENT_ID": "GOCSPX-x"})
+        self.assertNotIn("KAKAO_URL_SCHEME", text)
+        self.assertNotIn("GOOGLE_URL_SCHEME", text)
+        self.assertNotIn("GOOGLE_URL_SCHEME", defines.ios_url_schemes({}))
+
+    def test_main_writes_ios_url_schemes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "Flutter" / "Social.xcconfig"
+            old = dict(os.environ)
+            try:
+                os.environ.clear()
+                os.environ.update({"KAKAO_NATIVE_APP_KEY": "0123456789abcdef0123456789abcdef"})
+                with redirect_stdout(io.StringIO()):
+                    self.assertEqual(defines.main(["--ios-url-schemes", str(out)]), 0)
+            finally:
+                os.environ.clear()
+                os.environ.update(old)
+            self.assertIn("KAKAO_URL_SCHEME", out.read_text(encoding="utf-8"))
+
     def test_build_stamp_keys_only_when_set(self) -> None:
         got = defines.release_defines({"BUILD_NUMBER": " 7032 ", "RELEASE_DATE": "2026-10-05T05:30:00Z"})
         self.assertEqual(got["BUILD_NUMBER"], "7032")
@@ -388,6 +436,7 @@ class WriteReleaseDefinesTest(unittest.TestCase):
     def test_usage(self) -> None:
         with redirect_stderr(io.StringIO()):
             self.assertEqual(defines.main([]), 2)
+            self.assertEqual(defines.main(["--ios-url-schemes"]), 2)
 
 
 def profile_plist(**overrides) -> bytes:

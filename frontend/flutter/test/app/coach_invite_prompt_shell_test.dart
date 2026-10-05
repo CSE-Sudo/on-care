@@ -305,7 +305,7 @@ void main() {
       const AlertItem(
         id: 'n-invite',
         title: '담당 요청이 도착했어요',
-        body: '김트레이너 트레이너가 담당 코치가 되기를 요청했어요.',
+        body: '김트레이너 트레이너가 담당 트레이너가 되기를 요청했어요.',
         timeAgo: '방금',
         category: AlertCategory.system,
         action: AlertAction(label: '트레이너 보기', target: AlertTarget.exercise),

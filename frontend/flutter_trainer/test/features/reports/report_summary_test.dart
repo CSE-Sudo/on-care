@@ -53,7 +53,7 @@ void main() {
       expect(summary.headline, isNot(contains('목표 범위 안')));
       expect(summary.headline, contains('나트륨 목표 초과 3일'));
       // 잘한 쪽도 함께 말한다 — 챙길 것만 남으면 보낼 만한 글이 못 된다.
-      expect(summary.headline, contains('운동 이행률 81%'));
+      expect(summary.headline, contains('운동 완료율 81%'));
     });
 
     test('평균도 초과일도 목표 안이면 지금 강도를 유지하라고 말한다', () {
@@ -80,7 +80,7 @@ void main() {
 
   group('summaryEvidence', () {
     test('PT 세션 수는 요약이 다시 말하지 않는다 (#1177)', () {
-      // 바로 옆 `주간 운동 이행률` 카드 제목 줄이 같은 값을 이미 적고 있어,
+      // 바로 옆 `주간 운동 완료율` 카드 제목 줄이 같은 값을 이미 적고 있어,
       // 근거 세 줄 중 하나를 되풀이에 쓰고 있었다.
       final lines = summaryEvidence(
         _ko,
@@ -88,7 +88,7 @@ void main() {
       );
 
       expect(lines.any((line) => line.contains('PT')), isFalse);
-      expect(lines, contains('운동 이행률 평균 81%'));
+      expect(lines, contains('운동 완료율 평균 81%'));
     });
   });
 
@@ -158,8 +158,8 @@ void main() {
         makeClient(name: '김민수'),
       ).headline;
 
-      expect(headline(85), contains('운동 이행률 85%'));
-      expect(headline(75), isNot(contains('운동 이행률 75%')));
+      expect(headline(85), contains('운동 완료율 85%'));
+      expect(headline(75), isNot(contains('운동 완료율 75%')));
     });
   });
 
@@ -264,7 +264,7 @@ void main() {
       expect(summary.points.length, summaryMaxPoints);
       expect(summary.points.last, startsWith('외 '));
       // 가장 위험한 항목이 먼저 남는다.
-      expect(summary.points.first, contains('운동 이행률'));
+      expect(summary.points.first, contains('운동 완료율'));
       expect(summaryHiddenWatchCount(_ko, report), greaterThan(0));
     });
   });
@@ -319,7 +319,10 @@ void main() {
         makeClient(name: 'Min'),
       );
 
-      expect(summary.headline, contains('workout completion at 95% on track'));
+      expect(
+        summary.headline,
+        contains('workout completion rate at 95% on track'),
+      );
     });
 
     test('기록이 없는 주도 영어로 말한다', () {

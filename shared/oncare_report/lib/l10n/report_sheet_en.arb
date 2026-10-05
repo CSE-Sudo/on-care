@@ -52,9 +52,9 @@
       }
     }
   },
-  "reportsPdfDocTitle": "Weekly coaching report",
-  "reportsPdfLabelCompletion": "Workout completion",
-  "reportsPdfLabelSessions": "PT",
+  "reportsPdfDocTitle": "Weekly report",
+  "reportsPdfLabelCompletion": "Workout completion rate",
+  "reportsPdfLabelSessions": "PT done",
   "reportsPdfNoData": "Not measured",
   "reportsPdfNoFeedback": "No feedback",
   "reportsPdfValueDays": "{value} days",
@@ -65,7 +65,7 @@
       }
     }
   },
-  "reportsPdfValueGram": "{value}g",
+  "reportsPdfValueGram": "{value} g",
   "@reportsPdfValueGram": {
     "placeholders": {
       "value": {
@@ -73,7 +73,7 @@
       }
     }
   },
-  "reportsPdfValueKcal": "{value}kcal",
+  "reportsPdfValueKcal": "{value} kcal",
   "@reportsPdfValueKcal": {
     "placeholders": {
       "value": {
@@ -81,7 +81,7 @@
       }
     }
   },
-  "reportsPdfValueMg": "{value}mg",
+  "reportsPdfValueMg": "{value} mg",
   "@reportsPdfValueMg": {
     "placeholders": {
       "value": {
@@ -105,7 +105,7 @@
       }
     }
   },
-  "reportsSheetAttendance": "PT attendance",
+  "reportsSheetAttendance": "PT done",
   "@reportsSheetAttendance": {
     "description": "리포트 PDF 한 장 결과지 (#2485)."
   },
@@ -145,7 +145,7 @@
   "@reportsSheetDailyCalories": {
     "description": "리포트 PDF 한 장 결과지 (#2485)."
   },
-  "reportsSheetDailyCompletion": "Done",
+  "reportsSheetDailyCompletion": "Completion",
   "@reportsSheetDailyCompletion": {
     "description": "리포트 PDF 한 장 결과지 (#2485)."
   },
@@ -234,7 +234,7 @@
       }
     }
   },
-  "reportsSheetScoreFormula": "Average of workout completion, PT attendance, meal logging and on-target calorie days. Items without records are left out.",
+  "reportsSheetScoreFormula": "Average of workout completion rate, PT done, meal logging and on-target calorie days. Items without records are left out.",
   "@reportsSheetScoreFormula": {
     "description": "리포트 PDF 한 장 결과지 (#2485)."
   },
@@ -293,9 +293,9 @@
   "reportsMemberFeedbackConditionGood": "Good",
   "reportsMemberFeedbackConditionOk": "Okay",
   "reportsMemberFeedbackConditionTired": "Worn out",
-  "reportsMemberFeedbackConditionBad": "Really rough",
+  "reportsMemberFeedbackConditionBad": "Rough",
   "reportsMemberFeedbackIntensityTooEasy": "Too easy",
-  "reportsMemberFeedbackIntensityRight": "About right",
-  "reportsMemberFeedbackIntensityHard": "Hard",
+  "reportsMemberFeedbackIntensityRight": "Just right",
+  "reportsMemberFeedbackIntensityHard": "A bit hard",
   "reportsMemberFeedbackIntensityTooHard": "Too hard"
 }

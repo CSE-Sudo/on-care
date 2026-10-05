@@ -96,7 +96,7 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('/ 1,600 kcal', findRichText: true), findsOne);
+    expect(find.textContaining('/ 1,600kcal', findRichText: true), findsOne);
     expect(barColor(tester, '탄수화물'), OnCareColors.danger);
     // 비어 있는 칸은 회원 앱 기본값 — 단백질 60g(식단 분석 기준, #2898), 지방 55g.
     expect(find.textContaining('/ 60g', findRichText: true), findsOne);

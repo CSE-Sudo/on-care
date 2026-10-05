@@ -8,6 +8,7 @@
 # 부르는 출처만으로 바꾼다 — 운영 헤더와 같은 목록이다.
 #   'self' · API 출처(실서버 빌드만, 목업은 네트워크를 쓰지 않는다) · CanvasKit(www.gstatic.com)
 #   · 대체 글꼴(fonts.gstatic.com) · 카카오맵 SDK(dapi.kakao.com)
+#   · 구글 로그인 버튼(accounts.google.com/gsi/, #330)
 #
 # 사용:
 #   pages_demo_csp.sh narrow <index.html> [API_BASE_URL]   산출물의 connect-src 를 바꾼다
@@ -17,7 +18,7 @@ set -euo pipefail
 # connect-src 의 `*` 가 파일 이름으로 펼쳐지지 않게 한다.
 set -f
 
-STATIC_SOURCES="https://www.gstatic.com https://fonts.gstatic.com https://dapi.kakao.com"
+STATIC_SOURCES="https://www.gstatic.com https://fonts.gstatic.com https://dapi.kakao.com https://accounts.google.com/gsi/"
 
 fail() {
   echo "::error title=Pages 데모 CSP::$1" >&2

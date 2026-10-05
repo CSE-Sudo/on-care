@@ -807,7 +807,7 @@ def test_disconnecting_reaches_a_member_with_the_message_switch_off(
     )
 
     assert removed.status_code == 204, removed.text
-    assert "담당 트레이너 연결 해제" in _titles(client, member_token)
+    assert "담당 트레이너 연결이 해제됐어요" in _titles(client, member_token)
 
 
 def test_disconnecting_with_a_pending_session_reports_the_cancellation(
@@ -826,7 +826,7 @@ def test_disconnecting_with_a_pending_session_reports_the_cancellation(
     assert removed.status_code == 204, removed.text
     item = next(
         i for i in _items(client, member_token)
-        if i["title"] == "담당 트레이너 연결 해제"
+        if i["title"] == "담당 트레이너 연결이 해제됐어요"
     )
     assert "1건" in item["body"]
     assert item["category"] == notification_service.MEMBER_SCHEDULE

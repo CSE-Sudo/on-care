@@ -263,7 +263,7 @@ class WeeklyReport implements ReportSheetWeek {
     ].join('␞');
   }
 
-  /// `M월 D일 – M월 D일` / `M/D – M/D`, in the current locale.
+  /// `M월 D일 ~ M월 D일` / `M/D – M/D`, in the current locale.
   String rangeLabel(AppLocalizations l) => l.dateRange(
     l.dateMonthDay(weekStart.month, weekStart.day),
     l.dateMonthDay(weekEnd.month, weekEnd.day),

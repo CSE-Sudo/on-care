@@ -72,13 +72,13 @@ class ReportSheetLocalizationsKo extends ReportSheetLocalizations {
   }
 
   @override
-  String get reportsPdfDocTitle => '주간 코칭 리포트';
+  String get reportsPdfDocTitle => '주간 리포트';
 
   @override
-  String get reportsPdfLabelCompletion => '운동 수행률';
+  String get reportsPdfLabelCompletion => '운동 완료율';
 
   @override
-  String get reportsPdfLabelSessions => 'PT 진행';
+  String get reportsPdfLabelSessions => '완료 PT';
 
   @override
   String get reportsPdfNoData => '미집계';
@@ -117,7 +117,7 @@ class ReportSheetLocalizationsKo extends ReportSheetLocalizations {
   }
 
   @override
-  String get reportsSheetAttendance => 'PT 출석';
+  String get reportsSheetAttendance => '완료 PT';
 
   @override
   String get reportsSheetAverageBase => '4주 평균';
@@ -141,13 +141,13 @@ class ReportSheetLocalizationsKo extends ReportSheetLocalizations {
   String get reportsSheetBandUnder => '부족';
 
   @override
-  String get reportsSheetCalorieDays => '열량 적정일';
+  String get reportsSheetCalorieDays => '칼로리 적정일';
 
   @override
-  String get reportsSheetDailyCalories => '열량';
+  String get reportsSheetDailyCalories => '칼로리';
 
   @override
-  String get reportsSheetDailyCompletion => '수행률';
+  String get reportsSheetDailyCompletion => '완료율';
 
   @override
   String get reportsSheetDailyMeals => '끼니';
@@ -206,7 +206,7 @@ class ReportSheetLocalizationsKo extends ReportSheetLocalizations {
 
   @override
   String get reportsSheetScoreFormula =>
-      '운동 수행률·PT 출석·식단 기록·열량 적정일 비율의 평균입니다. 기록이 없는 항목은 빠집니다.';
+      '운동 완료율·완료 PT·식단 기록·칼로리 적정일 비율의 평균입니다. 기록이 없는 항목은 빠집니다.';
 
   @override
   String get reportsSheetScoreNone => '점수를 낼 기록이 없어요';
@@ -218,7 +218,7 @@ class ReportSheetLocalizationsKo extends ReportSheetLocalizations {
   String get reportsSheetScoreUnit => '/100점';
 
   @override
-  String get reportsSheetTrendDaily => '요일별 섭취 열량 · 목표선';
+  String get reportsSheetTrendDaily => '요일별 섭취 칼로리 · 목표선';
 
   @override
   String get reportsSheetTrendTitle => '추이';
@@ -282,16 +282,16 @@ class ReportSheetLocalizationsKo extends ReportSheetLocalizations {
   String get reportsMemberFeedbackConditionTired => '지쳤어요';
 
   @override
-  String get reportsMemberFeedbackConditionBad => '많이 힘들었어요';
+  String get reportsMemberFeedbackConditionBad => '많이 안 좋았어요';
 
   @override
   String get reportsMemberFeedbackIntensityTooEasy => '너무 쉬웠어요';
 
   @override
-  String get reportsMemberFeedbackIntensityRight => '적당했어요';
+  String get reportsMemberFeedbackIntensityRight => '딱 맞았어요';
 
   @override
-  String get reportsMemberFeedbackIntensityHard => '힘들었어요';
+  String get reportsMemberFeedbackIntensityHard => '조금 힘들었어요';
 
   @override
   String get reportsMemberFeedbackIntensityTooHard => '너무 힘들었어요';
