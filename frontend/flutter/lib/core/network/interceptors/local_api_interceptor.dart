@@ -230,6 +230,8 @@ class LocalApiInterceptor extends Interceptor implements RoutineSessionLog {
     'POST /auth/refresh': _authRefresh,
     'POST /auth/social/kakao': _authSocial,
     'POST /auth/social/google': _authSocial,
+    'POST /auth/social/naver': _authSocial,
+    'POST /auth/social/apple': _authSocial,
     'GET /users/me': _usersMe,
     'POST /users/me/consents': _usersMeConsents,
     'GET /users/me/profile': _usersMeProfile,

@@ -5096,6 +5096,18 @@ abstract class AppLocalizations {
   /// **'Continue with Google'**
   String get authGoogleAction;
 
+  /// No description provided for @authNaverAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Naver'**
+  String get authNaverAction;
+
+  /// No description provided for @authAppleAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Apple'**
+  String get authAppleAction;
+
   /// Red text under the email field on sign-in/sign-up when it is empty (#1784).
   ///
   /// In en, this message translates to:

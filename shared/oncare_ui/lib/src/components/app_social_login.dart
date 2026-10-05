@@ -11,6 +11,12 @@ enum AppSocialProvider {
 
   /// 구글 — 흰 원 + 회색 테두리 + 네 색 `G` 로고(Google Identity 브랜딩 가이드).
   google,
+
+  /// 네이버 — 그린 원 + 흰 `N` 심볼(네이버 로그인 버튼 가이드).
+  naver,
+
+  /// 애플 — 검은 원 + 흰 애플 로고(Sign in with Apple 로고 전용 버튼).
+  apple,
 }
 
 /// 로그인 화면의 원형 소셜 로그인 버튼(#1783).
@@ -57,6 +63,18 @@ class AppSocialLoginButton extends StatelessWidget {
         OnCareColors.textPrimary,
         const _GoogleLogoPainter(),
       ),
+      AppSocialProvider.naver => (
+        OnCareColors.naverGreen,
+        BorderSide.none,
+        OnCareColors.naverSymbol,
+        const _NaverSymbolPainter(),
+      ),
+      AppSocialProvider.apple => (
+        OnCareColors.appleButtonFill,
+        BorderSide.none,
+        OnCareColors.appleLogo,
+        const _AppleLogoPainter(),
+      ),
     };
     final bool enabled = onPressed != null;
     return Tooltip(
@@ -75,7 +93,8 @@ class AppSocialLoginButton extends StatelessWidget {
           child: InkWell(
             onTap: onPressed,
             customBorder: const CircleBorder(),
-            // 눌림은 어두운 색을 옅게 얹는다 — 노랑·흰 바탕 위 흰 잉크는 보이지 않는다.
+            // 눌림은 심볼 색을 옅게 얹는다 — 노랑·흰 바탕은 어두운 잉크, 그린·검은
+            // 바탕은 흰 잉크라 어느 바탕에서도 보인다.
             overlayColor: WidgetStateProperty.resolveWith<Color?>((
               Set<WidgetState> states,
             ) {
@@ -100,6 +119,10 @@ class AppSocialLoginButton extends StatelessWidget {
 }
 
 /// 원형 소셜 로그인 버튼 줄(#1783) — 가운데 정렬, 버튼 사이 [OnCareSpacing.s24].
+///
+/// 버튼 네 개(카카오·구글·네이버·애플)는 폭 280 이 든다. 로그인 틀(폭 320 화면에서
+/// 안쪽 280)에는 한 줄로 들어가지만 본인 확인 창처럼 더 좁은 자리에서는 넘치므로,
+/// 모자랄 때만 다음 줄로 흘린다.
 class AppSocialLoginRow extends StatelessWidget {
   const AppSocialLoginRow({super.key, required this.children});
 
@@ -108,9 +131,10 @@ class AppSocialLoginRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Wrap(
+      alignment: WrapAlignment.center,
       spacing: OnCareSpacing.s24,
+      runSpacing: OnCareSpacing.s16,
       children: children,
     );
   }
@@ -245,4 +269,93 @@ class _GoogleLogoPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _GoogleLogoPainter oldDelegate) => false;
+}
+
+/// 네이버 `N` 심볼 — 네이버 로그인 버튼의 흰 `N`(24×24 좌표계).
+///
+/// 모양은 Simple Icons 의 Naver 아이콘(CC0) 경로를 그대로 옮겼다.
+class _NaverSymbolPainter extends CustomPainter {
+  const _NaverSymbolPainter();
+
+  /// 원 지름에 대한 심볼 한 변. 정사각형을 꽉 채우는 글자라 다른 로고보다 작게 둔다.
+  static const double _ratio = 0.34;
+  static const double _viewBox = 24;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    _paintCentered(
+      canvas,
+      size,
+      ratio: _ratio,
+      viewBox: _viewBox,
+      draw: (Canvas canvas) => canvas.drawPath(
+        Path()
+          ..moveTo(16.273, 12.845)
+          ..lineTo(7.376, 0)
+          ..lineTo(0, 0)
+          ..lineTo(0, 24)
+          ..lineTo(7.726, 24)
+          ..lineTo(7.726, 11.156)
+          ..lineTo(16.624, 24)
+          ..lineTo(24, 24)
+          ..lineTo(24, 0)
+          ..lineTo(16.273, 0)
+          ..close(),
+        Paint()..color = OnCareColors.naverSymbol,
+      ),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _NaverSymbolPainter oldDelegate) => false;
+}
+
+/// 애플 로고 — Sign in with Apple 로고 전용 버튼의 흰 사과(24×24 좌표계).
+///
+/// 모양은 Simple Icons 의 Apple 아이콘(CC0) 경로를 옮겼다. 몸통과 잎 두 조각이다.
+class _AppleLogoPainter extends CustomPainter {
+  const _AppleLogoPainter();
+
+  /// 원 지름에 대한 로고 한 변.
+  static const double _ratio = 0.44;
+  static const double _viewBox = 24;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    _paintCentered(
+      canvas,
+      size,
+      ratio: _ratio,
+      viewBox: _viewBox,
+      draw: (Canvas canvas) => canvas.drawPath(
+        Path()
+          // 몸통
+          ..moveTo(12.152, 6.896)
+          ..cubicTo(11.204, 6.896, 9.737, 5.818, 8.192, 5.856)
+          ..cubicTo(6.152, 5.883, 4.282, 7.039, 3.231, 8.87)
+          ..cubicTo(1.114, 12.545, 2.685, 17.973, 4.75, 20.96)
+          ..cubicTo(5.763, 22.414, 6.958, 24.05, 8.542, 23.999)
+          ..cubicTo(10.062, 23.934, 10.632, 23.012, 12.477, 23.012)
+          ..cubicTo(14.308, 23.012, 14.827, 23.999, 16.437, 23.96)
+          ..cubicTo(18.074, 23.934, 19.113, 22.48, 20.113, 21.012)
+          ..cubicTo(21.269, 19.324, 21.749, 17.687, 21.775, 17.597)
+          ..cubicTo(21.736, 17.584, 18.593, 16.376, 18.555, 12.74)
+          ..cubicTo(18.529, 9.7, 21.035, 8.246, 21.152, 8.181)
+          ..cubicTo(19.723, 6.091, 17.529, 5.857, 16.762, 5.805)
+          ..cubicTo(14.762, 5.649, 13.087, 6.895, 12.152, 6.895)
+          ..close()
+          // 잎
+          ..moveTo(15.53, 3.83)
+          ..cubicTo(16.373, 2.818, 16.93, 1.403, 16.775, 0)
+          ..cubicTo(15.568, 0.052, 14.113, 0.805, 13.243, 1.818)
+          ..cubicTo(12.463, 2.714, 11.789, 4.156, 11.97, 5.532)
+          ..cubicTo(13.308, 5.636, 14.685, 4.844, 15.529, 3.831)
+          ..close(),
+        Paint()..color = OnCareColors.appleLogo,
+      ),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _AppleLogoPainter oldDelegate) => false;
 }

@@ -133,7 +133,7 @@ Finder _errorUnder(ValueKey<String> key, String message) =>
 
 void main() {
   for (final mock in <bool>[true, false]) {
-    for (final provider in <String>['kakao', 'google']) {
+    for (final provider in <String>['kakao', 'google', 'naver', 'apple']) {
       for (final fail in <bool>[false, true]) {
         testWidgets('$provider mock=$mock fail=$fail 소셜 버튼 로그인', (
           tester,
@@ -336,7 +336,7 @@ void main() {
       expect(find.text('비밀번호를 입력해 주세요'), findsNothing);
     });
 
-    testWidgets('소셜 로그인은 구분선 아래 원형 카카오·구글 버튼이다', (tester) async {
+    testWidgets('소셜 로그인은 구분선 아래 원형 카카오·구글·네이버·애플 버튼이다', (tester) async {
       // 전체 폭 글자 버튼 대신 가운데에 나란히 놓인 원형 버튼이다(#1783).
       await pumpTrainerApp(tester);
 
@@ -357,6 +357,21 @@ void main() {
       expect(find.byTooltip('구글로 시작하기'), findsOneWidget);
       expect(find.text('카카오로 시작하기'), findsNothing);
       expect(tester.getCenter(kakao).dy, tester.getCenter(google).dy);
+      // 네이버·애플이 카카오·구글 옆에 같은 줄로 이어진다.
+      Offset centerOf(String key) =>
+          tester.getCenter(find.byKey(ValueKey<String>(key)));
+      expect(find.bySemanticsLabel('네이버로 시작하기'), findsOneWidget);
+      expect(find.bySemanticsLabel('Apple로 시작하기'), findsOneWidget);
+      expect(centerOf('trainer-login-naver').dy, tester.getCenter(kakao).dy);
+      expect(centerOf('trainer-login-apple').dy, tester.getCenter(kakao).dy);
+      expect(
+        centerOf('trainer-login-naver').dx,
+        greaterThan(tester.getCenter(google).dx),
+      );
+      expect(
+        centerOf('trainer-login-apple').dx,
+        greaterThan(centerOf('trainer-login-naver').dx),
+      );
       expect(
         tester.getCenter(kakao).dy,
         greaterThan(tester.getCenter(find.text('SNS 계정으로 로그인')).dy),

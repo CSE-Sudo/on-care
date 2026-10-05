@@ -222,6 +222,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authGoogleAction => 'Continue with Google';
 
   @override
+  String get authNaverAction => 'Continue with Naver';
+
+  @override
+  String get authAppleAction => 'Continue with Apple';
+
+  @override
   String get authSignUpSubtitle =>
       'Create an On-Care account and start managing members';
 
@@ -3778,6 +3784,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myDeleteReauthGoogle => 'Sign in again with Google';
+
+  @override
+  String get myDeleteReauthNaver => 'Sign in again with Naver';
+
+  @override
+  String get myDeleteReauthApple => 'Sign in again with Apple';
 
   @override
   String get myDeleteReauthSocialDone =>

@@ -488,6 +488,18 @@ abstract class AppLocalizations {
   /// **'Continue with Google'**
   String get authGoogleAction;
 
+  /// No description provided for @authNaverAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Naver'**
+  String get authNaverAction;
+
+  /// No description provided for @authAppleAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Apple'**
+  String get authAppleAction;
+
   /// No description provided for @authSignUpSubtitle.
   ///
   /// In en, this message translates to:
@@ -6534,6 +6546,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign in again with Google'**
   String get myDeleteReauthGoogle;
+
+  /// No description provided for @myDeleteReauthNaver.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in again with Naver'**
+  String get myDeleteReauthNaver;
+
+  /// No description provided for @myDeleteReauthApple.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in again with Apple'**
+  String get myDeleteReauthApple;
 
   /// No description provided for @myDeleteReauthSocialDone.
   ///

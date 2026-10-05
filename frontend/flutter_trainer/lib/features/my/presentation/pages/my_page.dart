@@ -1435,6 +1435,18 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
                   label: l.myDeleteReauthGoogle,
                   onPressed: _busy ? null : () => _reauthWithSocial('google'),
                 ),
+                AppSocialLoginButton(
+                  key: const ValueKey<String>('delete-account-reauth-naver'),
+                  provider: AppSocialProvider.naver,
+                  label: l.myDeleteReauthNaver,
+                  onPressed: _busy ? null : () => _reauthWithSocial('naver'),
+                ),
+                AppSocialLoginButton(
+                  key: const ValueKey<String>('delete-account-reauth-apple'),
+                  provider: AppSocialProvider.apple,
+                  label: l.myDeleteReauthApple,
+                  onPressed: _busy ? null : () => _reauthWithSocial('apple'),
+                ),
               ],
             ),
             if (_social != null) ...<Widget>[

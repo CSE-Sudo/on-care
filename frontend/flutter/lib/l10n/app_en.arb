@@ -2055,6 +2055,8 @@
   },
   "authKakaoAction": "Continue with Kakao",
   "authGoogleAction": "Continue with Google",
+  "authNaverAction": "Continue with Naver",
+  "authAppleAction": "Continue with Apple",
   "authEmailEmpty": "Enter your email",
   "@authEmailEmpty": {
     "description": "Red text under the email field on sign-in/sign-up when it is empty (#1784)."

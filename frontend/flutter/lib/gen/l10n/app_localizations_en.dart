@@ -2984,6 +2984,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authGoogleAction => 'Continue with Google';
 
   @override
+  String get authNaverAction => 'Continue with Naver';
+
+  @override
+  String get authAppleAction => 'Continue with Apple';
+
+  @override
   String get authEmailEmpty => 'Enter your email';
 
   @override

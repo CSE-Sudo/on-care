@@ -23,21 +23,27 @@ Future<void> _pump(
 const Map<AppSocialProvider, String> _labels = <AppSocialProvider, String>{
   AppSocialProvider.kakao: '카카오로 시작하기',
   AppSocialProvider.google: '구글로 시작하기',
+  AppSocialProvider.naver: '네이버로 시작하기',
+  AppSocialProvider.apple: 'Apple로 시작하기',
 };
 
 /// 각 회사 가이드의 버튼 바탕.
 const Map<AppSocialProvider, Color> _backgrounds = <AppSocialProvider, Color>{
   AppSocialProvider.kakao: OnCareColors.kakaoYellow,
   AppSocialProvider.google: OnCareColors.googleButtonFill,
+  AppSocialProvider.naver: OnCareColors.naverGreen,
+  AppSocialProvider.apple: OnCareColors.appleButtonFill,
 };
 
-/// 카카오는 테두리가 없고, 구글은 흰 바탕이라 1px 회색 테두리가 있다.
+/// 구글만 흰 바탕이라 1px 회색 테두리가 있다. 나머지는 바탕색만으로 원이 보인다.
 const Map<AppSocialProvider, BorderSide> _sides =
     <AppSocialProvider, BorderSide>{
       AppSocialProvider.kakao: BorderSide.none,
       AppSocialProvider.google: BorderSide(
         color: OnCareColors.googleButtonStroke,
       ),
+      AppSocialProvider.naver: BorderSide.none,
+      AppSocialProvider.apple: BorderSide.none,
     };
 
 Widget _row() => AppSocialLoginRow(
@@ -126,6 +132,18 @@ void main() {
     );
     expect(google, paintsExactlyCountTimes(#drawPath, 4));
     expect(google, paintsExactlyCountTimes(#drawParagraph, 0));
+
+    // 네이버 — 그린 바탕 위 흰 `N` 하나. 글자 위젯이 아니라 그림이다.
+    final RenderObject naver = logoOf(AppSocialProvider.naver);
+    expect(naver, paints..path(color: OnCareColors.naverSymbol));
+    expect(naver, paintsExactlyCountTimes(#drawPath, 1));
+    expect(naver, paintsExactlyCountTimes(#drawParagraph, 0));
+
+    // 애플 — 검은 바탕 위 흰 사과(몸통·잎을 한 경로로).
+    final RenderObject apple = logoOf(AppSocialProvider.apple);
+    expect(apple, paints..path(color: OnCareColors.appleLogo));
+    expect(apple, paintsExactlyCountTimes(#drawPath, 1));
+    expect(apple, paintsExactlyCountTimes(#drawParagraph, 0));
   });
 
   testWidgets('그림만 있어 라벨이 화면 읽기 이름이자 툴팁이다', (tester) async {
@@ -197,20 +215,47 @@ void main() {
     );
   });
 
-  testWidgets('버튼 줄은 가운데에 간격 24 로 나란히 놓인다', (tester) async {
+  List<Rect> rectsInOrder(WidgetTester tester) => <Rect>[
+    for (final AppSocialProvider provider in AppSocialProvider.values)
+      tester.getRect(find.byKey(ValueKey<AppSocialProvider>(provider))),
+  ];
+
+  testWidgets('버튼 줄은 카카오·구글·네이버·애플 순서로 가운데에 간격 24 로 놓인다', (tester) async {
     await _pump(tester, SizedBox(width: 400, child: _row()));
 
-    final Rect kakao = tester.getRect(
-      find.byKey(const ValueKey<AppSocialProvider>(AppSocialProvider.kakao)),
-    );
-    final Rect google = tester.getRect(
-      find.byKey(const ValueKey<AppSocialProvider>(AppSocialProvider.google)),
-    );
+    final List<Rect> rects = rectsInOrder(tester);
     final Rect row = tester.getRect(find.byType(AppSocialLoginRow));
-    expect(kakao.center.dy, google.center.dy);
-    expect(kakao.left, lessThan(google.left));
-    expect(google.left - kakao.right, OnCareSpacing.s24);
-    expect(kakao.left - row.left, closeTo(row.right - google.right, 0.01));
+    for (int i = 1; i < rects.length; i++) {
+      expect(rects[i].center.dy, rects.first.center.dy);
+      expect(rects[i].left - rects[i - 1].right, OnCareSpacing.s24);
+    }
+    expect(
+      rects.first.left - row.left,
+      closeTo(row.right - rects.last.right, 0.01),
+    );
+  });
+
+  testWidgets('폭 320 화면의 로그인 틀(안쪽 280)에도 한 줄로 들어간다', (tester) async {
+    await _pump(tester, SizedBox(width: 280, child: _row()));
+
+    expect(tester.takeException(), isNull);
+    final List<Rect> rects = rectsInOrder(tester);
+    for (final Rect rect in rects) {
+      expect(rect.center.dy, rects.first.center.dy);
+    }
+  });
+
+  testWidgets('더 좁은 자리(본인 확인 창)에서는 넘치지 않고 다음 줄로 흐른다', (tester) async {
+    await _pump(tester, SizedBox(width: 200, child: _row()));
+
+    expect(tester.takeException(), isNull);
+    final List<Rect> rects = rectsInOrder(tester);
+    final Rect row = tester.getRect(find.byType(AppSocialLoginRow));
+    for (final Rect rect in rects) {
+      expect(rect.left, greaterThanOrEqualTo(row.left));
+      expect(rect.right, lessThanOrEqualTo(row.right));
+    }
+    expect(rects.last.top, greaterThan(rects.first.bottom));
   });
 
   testWidgets('글자 구분선은 양옆 선 가운데에 캡션을 둔다', (tester) async {

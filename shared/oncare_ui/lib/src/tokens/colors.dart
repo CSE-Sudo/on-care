@@ -119,6 +119,18 @@ class OnCareColors {
   /// 구글 `G` 로고 네 색 — 초록.
   static const Color googleGreen = Color(0xFF34A853);
 
+  /// 네이버 로그인 버튼 바탕 — 네이버 로그인 버튼 가이드의 네이버 그린.
+  static const Color naverGreen = Color(0xFF03C75A);
+
+  /// 네이버 `N` 심볼 색 — 그린 바탕 위 흰색.
+  static const Color naverSymbol = Color(0xFFFFFFFF);
+
+  /// 애플 로그인 버튼 바탕 — Sign in with Apple 가이드의 검은(black) 버튼.
+  static const Color appleButtonFill = Color(0xFF000000);
+
+  /// 애플 로고 색 — 검은 버튼 위 흰색.
+  static const Color appleLogo = Color(0xFFFFFFFF);
+
   /// [color] 를 흰 바탕 위에 [alpha] 만큼 얹은 **불투명** 색.
   ///
   /// 차트 막대처럼 겹쳐 그리는 자리는 반투명이면 아래 선이 비치므로, 투명도 대신

@@ -217,6 +217,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authGoogleAction => '구글로 시작하기';
 
   @override
+  String get authNaverAction => '네이버로 시작하기';
+
+  @override
+  String get authAppleAction => 'Apple로 시작하기';
+
+  @override
   String get authSignUpSubtitle => 'On-Care 계정을 만들어 회원 관리를 시작하세요';
 
   @override
@@ -3590,6 +3596,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myDeleteReauthGoogle => '구글로 다시 로그인';
+
+  @override
+  String get myDeleteReauthNaver => '네이버로 다시 로그인';
+
+  @override
+  String get myDeleteReauthApple => 'Apple로 다시 로그인';
 
   @override
   String get myDeleteReauthSocialDone => '소셜 계정을 확인했어요. 탈퇴를 누르면 진행돼요.';

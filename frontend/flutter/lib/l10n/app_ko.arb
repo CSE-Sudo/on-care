@@ -1508,6 +1508,8 @@
   "authSocialDivider": "SNS 계정으로 로그인",
   "authKakaoAction": "카카오로 시작하기",
   "authGoogleAction": "구글로 시작하기",
+  "authNaverAction": "네이버로 시작하기",
+  "authAppleAction": "Apple로 시작하기",
   "authEmailEmpty": "이메일을 입력해 주세요",
   "authEmailInvalid": "이메일 형식이 올바르지 않아요",
   "authEmailTooLong": "이메일은 255자까지 입력할 수 있어요",

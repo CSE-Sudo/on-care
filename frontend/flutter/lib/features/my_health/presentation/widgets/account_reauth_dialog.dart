@@ -275,6 +275,18 @@ class _AccountReauthDialogState extends ConsumerState<AccountReauthDialog> {
             label: l.authGoogleAction,
             onPressed: enabled ? () => _relogin('google') : null,
           ),
+          AppSocialLoginButton(
+            key: const ValueKey<String>('reauth-social-naver'),
+            provider: AppSocialProvider.naver,
+            label: l.authNaverAction,
+            onPressed: enabled ? () => _relogin('naver') : null,
+          ),
+          AppSocialLoginButton(
+            key: const ValueKey<String>('reauth-social-apple'),
+            provider: AppSocialProvider.apple,
+            label: l.authAppleAction,
+            onPressed: enabled ? () => _relogin('apple') : null,
+          ),
         ],
       ),
       if (!available) ...<Widget>[

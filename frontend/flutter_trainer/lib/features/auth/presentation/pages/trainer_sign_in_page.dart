@@ -280,6 +280,22 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
                       ? null
                       : () => _social('google'),
                 ),
+                AppSocialLoginButton(
+                  key: const ValueKey<String>('trainer-login-naver'),
+                  provider: AppSocialProvider.naver,
+                  label: l.authNaverAction,
+                  onPressed: _loading || !socialAvailable
+                      ? null
+                      : () => _social('naver'),
+                ),
+                AppSocialLoginButton(
+                  key: const ValueKey<String>('trainer-login-apple'),
+                  provider: AppSocialProvider.apple,
+                  label: l.authAppleAction,
+                  onPressed: _loading || !socialAvailable
+                      ? null
+                      : () => _social('apple'),
+                ),
               ],
             ),
             if (!socialAvailable) ...<Widget>[

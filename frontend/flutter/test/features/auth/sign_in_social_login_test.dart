@@ -48,16 +48,20 @@ Future<void> _pumpSignIn(
 void _expectSocialButtons(Matcher matcher) {
   expect(find.byKey(const ValueKey<String>('member-login-kakao')), matcher);
   expect(find.byKey(const ValueKey<String>('member-login-google')), matcher);
+  expect(find.byKey(const ValueKey<String>('member-login-naver')), matcher);
+  expect(find.byKey(const ValueKey<String>('member-login-apple')), matcher);
   // 그림만 있는 원형 버튼이라 이름은 화면 읽기 라벨로 찾는다(#1783).
   expect(find.bySemanticsLabel('카카오로 시작하기'), matcher);
   expect(find.bySemanticsLabel('구글로 시작하기'), matcher);
+  expect(find.bySemanticsLabel('네이버로 시작하기'), matcher);
+  expect(find.bySemanticsLabel('Apple로 시작하기'), matcher);
   expect(find.text('SNS 계정으로 로그인'), matcher);
   // 옛 구분선 문구는 어느 설정에서도 남지 않는다.
   expect(find.text('또는'), findsNothing);
 }
 
 void main() {
-  for (final provider in <String>['kakao', 'google']) {
+  for (final provider in <String>['kakao', 'google', 'naver', 'apple']) {
     for (final fail in <bool>[false, true]) {
       testWidgets('$provider 목업 fail=$fail 소셜 교환으로 로그인한다', (tester) async {
         final requests = <RequestOptions>[];
@@ -203,6 +207,8 @@ void main() {
     for (final String key in <String>[
       'member-login-kakao',
       'member-login-google',
+      'member-login-naver',
+      'member-login-apple',
     ]) {
       expect(
         tester
