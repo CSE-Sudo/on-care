@@ -70,7 +70,7 @@ def trainer_create_memo(
     body = payload.body.strip()
     if not body:
         # 공백만 있는 메모를 성공으로 처리하면 목록에 빈 줄이 쌓인다.
-        raise HTTPException(status_code=400, detail="메모 내용이 필요합니다.")
+        raise HTTPException(status_code=400, detail="메모 내용이 필요해요.")
     try:
         return trainer_memos_service.create_memo(
             db, trainer.id, member_id,
@@ -102,11 +102,11 @@ def trainer_update_memo(
     _require_client(db, trainer.id, member_id)
     fields = payload.model_dump(exclude_unset=True)
     if not fields:
-        raise HTTPException(status_code=400, detail="수정할 항목이 없습니다.")
+        raise HTTPException(status_code=400, detail="수정할 항목이 없어요.")
     if "body" in fields:
         fields["body"] = fields["body"].strip()
         if not fields["body"]:
-            raise HTTPException(status_code=400, detail="메모 내용이 필요합니다.")
+            raise HTTPException(status_code=400, detail="메모 내용이 필요해요.")
     try:
         return trainer_memos_service.update_memo(
             db, trainer.id, member_id, memo_id, fields

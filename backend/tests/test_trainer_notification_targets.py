@@ -319,7 +319,7 @@ def test_cancelled_reservation_records_member_and_class_date(client, db_session)
     )
     assert cancelled.status_code in (200, 204), cancelled.text
 
-    row = _one(client, trainer_token, "예약이 취소되었습니다")
+    row = _one(client, trainer_token, "예약이 취소됐어요")
     assert row["category"] == "reservation"
     assert row["subject_id"] == member_id
     assert row["target_date"] == starts_at.astimezone(SEOUL).date().isoformat()
@@ -401,7 +401,7 @@ def test_accepted_invite_is_its_own_kind_pointing_at_the_new_client(client, db_s
     member_id, member_token = _member(client)
     _accept(client, member_token, _invite(client, trainer_token, member_id))
 
-    row = _one(client, trainer_token, "담당 요청이 수락되었어요")
+    row = _one(client, trainer_token, "담당 요청이 수락됐어요")
     assert row["category"] == "invite_accepted"
     assert row["subject_id"] == member_id
     assert row["target_date"] is None
@@ -413,7 +413,7 @@ def test_accepted_invite_member_is_on_the_roster(client, db_session):
     member_id, member_token = _member(client)
     _accept(client, member_token, _invite(client, trainer_token, member_id))
 
-    row = _one(client, trainer_token, "담당 요청이 수락되었어요")
+    row = _one(client, trainer_token, "담당 요청이 수락됐어요")
     roster = client.get("/v1/trainer/clients", headers=_auth(trainer_token)).json()
     assert row["subject_id"] in {item["id"] for item in roster}
 
@@ -424,7 +424,7 @@ def test_rejected_invite_is_its_own_kind(client, db_session):
     member_id, member_token = _member(client)
     _reject(client, member_token, _invite(client, trainer_token, member_id))
 
-    row = _one(client, trainer_token, "담당 요청이 거절되었어요")
+    row = _one(client, trainer_token, "담당 요청이 거절됐어요")
     assert row["category"] == "invite_rejected"
     assert row["subject_id"] == member_id
     assert row["target_date"] is None

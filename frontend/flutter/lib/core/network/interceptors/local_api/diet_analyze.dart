@@ -72,7 +72,7 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
         _analyzeRequestFields(options);
     // 다섯 값 밖의 끼니는 저장하지 않는다 — 실서버와 같은 422(#2882).
     if (!_mealTypes.contains(mealType)) {
-      return _unprocessable(options, 'meal_type 이 올바르지 않습니다.');
+      return _unprocessable(options, 'meal_type 이 올바르지 않아요.');
     }
     final Uint8List? photoBytes = _requestPhotoBytes(options);
 
@@ -378,7 +378,7 @@ String? _analyzeDateError(String date) {
   if (error != null) return error;
   final DateTime parsed = DateTime.parse(date);
   if (parsed.isBefore(DateTime(nowKst().year - 1))) {
-    return 'date 는 작년 1월 1일보다 앞설 수 없습니다.';
+    return 'date 는 작년 1월 1일보다 앞설 수 없어요.';
   }
   return null;
 }

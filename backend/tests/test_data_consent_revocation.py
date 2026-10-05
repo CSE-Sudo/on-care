@@ -47,7 +47,7 @@ from app.services import consultation_service, data_consent_service
 EMAIL_PREFIX = "consent1631-"
 PLACE_PREFIX = "consent1631-place-"
 PASSWORD = "consent-pw-1234"
-GUARD_DETAIL = "담당 회원을 찾을 수 없습니다."
+GUARD_DETAIL = "담당 회원을 찾을 수 없어요."
 
 
 # ---------------------------------------------------------------------------

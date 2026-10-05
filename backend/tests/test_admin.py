@@ -113,7 +113,7 @@ def test_ingest_failure_hides_internal_exception_text(client, db_session, monkey
 
     assert r.status_code == 502, r.text
     assert SECRET not in r.text
-    assert r.json()["detail"] == "문서 적재에 실패했습니다."
+    assert r.json()["detail"] == "문서를 적재하지 못했어요."
     # 서버 로그와 상관지을 수단은 남아 있어야 한다.
     assert r.headers.get("X-Request-ID")
 

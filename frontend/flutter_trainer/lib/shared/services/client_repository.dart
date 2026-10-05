@@ -1051,7 +1051,7 @@ class DriftClientRepository implements ClientRepository {
         )
         .firstOrNull;
     if (menu == null) {
-      throw ArgumentError.value(name, 'name', '추천 후보에 없는 메뉴입니다.');
+      throw ArgumentError.value(name, 'name', '추천 후보에 없는 메뉴예요.');
     }
     await _db.putValue(
       _demoPickKey(clientId),

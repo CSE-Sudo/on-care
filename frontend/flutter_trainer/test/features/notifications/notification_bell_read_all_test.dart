@@ -136,7 +136,7 @@ void main() {
       await tester.pump();
 
       expect(tester.takeException(), isNull);
-      expect(find.text('읽음 처리에 실패했어요. 잠시 후 다시 시도해 주세요'), findsOneWidget);
+      expect(find.text('읽음 처리하지 못했어요. 잠시 후 다시 시도해 주세요'), findsOneWidget);
       await settle(tester);
       expect(badge, findsOneWidget);
     });

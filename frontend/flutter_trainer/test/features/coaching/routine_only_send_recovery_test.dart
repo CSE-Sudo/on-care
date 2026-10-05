@@ -335,7 +335,7 @@ void main() {
 
       await _tapSend(tester);
 
-      expect(find.text('서버에 일시적인 문제가 있습니다. 잠시 후 다시 시도해 주세요.'), findsOneWidget);
+      expect(find.text('서버에 일시적인 문제가 있어요. 잠시 후 다시 시도해 주세요.'), findsOneWidget);
       expect(find.text('개인운동을 고치지 못했어요. 다시 시도해 주세요.'), findsNothing);
     });
 

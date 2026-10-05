@@ -143,7 +143,7 @@ void main() {
     await withWideSurface(tester, () async {
       await pumpConsole(tester);
       expect(
-        find.descendant(of: banner(), matching: find.text('앱이 업데이트되었어요')),
+        find.descendant(of: banner(), matching: find.text('앱이 업데이트됐어요')),
         findsOneWidget,
       );
       expect(

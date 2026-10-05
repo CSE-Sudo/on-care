@@ -156,14 +156,14 @@ String cautionSuffix(List<String> cautions, bool escalate, {required bool en}) {
         ' Cautions ($names) applied: removed movements that load those areas.',
       );
     } else {
-      out.write(' 주의사항(${cautions.join(', ')}) 반영: 해당 부위 부담 동작을 뺐습니다.');
+      out.write(' 주의사항(${cautions.join(', ')}) 반영: 해당 부위 부담 동작을 뺐어요.');
     }
   }
   if (escalate) {
     out.write(
       en
           ? ' Intensity was not raised — adjust after a professional check.'
-          : ' 강도는 올리지 않았습니다 — 전문가 확인 후 조정하세요.',
+          : ' 강도는 올리지 않았어요 — 전문가 확인 후 조정해 주세요.',
     );
   }
   return out.toString();

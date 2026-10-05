@@ -45,7 +45,7 @@ def test_demo_alerts_open_the_same_screens_as_the_app_demo(client, db_session):
     assert [target(n) for n in DEMO_IDS] == [
         "exercise",  # 새 개인운동
         "coach_chat",  # 주간 리포트
-        "exercise",  # PT 수업 완료
+        "exercise",  # PT 완료
         "coach_chat",  # 트레이너 피드백
         "exercise",  # 운동 목표
         "dashboard",  # 식단 연속 기록

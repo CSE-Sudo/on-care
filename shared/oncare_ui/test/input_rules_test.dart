@@ -446,7 +446,7 @@ void main() {
         expect(AppInputRules.serverPasswordError('oops'), isNull);
         expect(
           AppInputRules.serverPasswordError(<String, Object?>{
-            'detail': '현재 비밀번호가 일치하지 않습니다.',
+            'detail': '현재 비밀번호가 일치하지 않아요.',
           }),
           isNull,
         );

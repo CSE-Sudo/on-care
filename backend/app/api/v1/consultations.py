@@ -145,7 +145,7 @@ def get_my_consultation(
         db, member.id, consultation_id
     )
     if consultation is None:
-        raise HTTPException(status_code=404, detail="상담 요청을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="상담 요청을 찾을 수 없어요.")
     return consultation
 
 
@@ -163,8 +163,8 @@ def cancel_my_consultation(
             db, member.id, consultation_id
         )
     except consultation_service.ConsultationNotFound as exc:
-        raise HTTPException(status_code=404, detail="상담 요청을 찾을 수 없습니다.") from exc
+        raise HTTPException(status_code=404, detail="상담 요청을 찾을 수 없어요.") from exc
     except consultation_service.ConsultationNotCancellable as exc:
         raise HTTPException(
-            status_code=409, detail="대기 중인 상담 요청만 취소할 수 있습니다."
+            status_code=409, detail="대기 중인 상담 요청만 취소할 수 있어요."
         ) from exc

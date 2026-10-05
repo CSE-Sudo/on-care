@@ -1024,7 +1024,7 @@ void main() {
       await tester.tap(find.text('저장'));
       await settle(tester);
 
-      expect(find.textContaining('소속 헬스장 변경에 실패했습니다'), findsOneWidget);
+      expect(find.textContaining('소속 헬스장을 바꾸지 못했어요'), findsOneWidget);
       expect(
         container.read(sessionControllerProvider).profile?.phone,
         '010-9999-0000',

@@ -398,7 +398,7 @@ _SCHEDULE: list[tuple[str, str, str | None, str, int, str, str, list[dict]]] = [
     # 레그프레스 수업이라 회원 앱의 `18:00 · 벤치프레스` 와 같은 날이 달랐다(#2694).
     # 목록 자리는 그대로 둔다 — id(`seed-schedule-{날짜}-N`)가 밀리지 않게.
     (_FIXTURE_PT_TIME, "김민수", "user-7d4e9a2c5f18", "1:1 PT", _FIXTURE_PT_MINUTES, "완료", "", []),
-    ("12:00", "이지수", "user-jisu", "1:1 PT", 50, "완료", "데드리프트 자세 안정적. 다음 세션 60kg 도전.", [
+    ("12:00", "이지수", "user-jisu", "1:1 PT", 50, "완료", "데드리프트 자세 안정적. 다음 PT 60kg 도전.", [
         {"name": "데드리프트", "type": "근력", "sets": 4, "reps": 8, "weight": 55},
         {"name": "루마니안 데드리프트", "type": "근력", "sets": 3, "reps": 10, "weight": 40},
         # 플랭크는 버티는 운동이라 초로 적는다 — `reps: 3` 은 45초를 "3회" 라고

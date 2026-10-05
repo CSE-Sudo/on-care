@@ -335,7 +335,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeDashboardLoadError.
   ///
   /// In en, this message translates to:
-  /// **'Could not load the dashboard.'**
+  /// **'Couldn\'t load the dashboard.'**
   String get homeDashboardLoadError;
 
   /// No description provided for @homeDashboardEmpty.
@@ -767,13 +767,13 @@ abstract class AppLocalizations {
   /// No description provided for @dietMealLog.
   ///
   /// In en, this message translates to:
-  /// **'Meal Log'**
+  /// **'Meal log'**
   String get dietMealLog;
 
   /// No description provided for @dietAddMeal.
   ///
   /// In en, this message translates to:
-  /// **'Add Meal'**
+  /// **'Add meal'**
   String get dietAddMeal;
 
   /// No description provided for @dietEmptyLog.
@@ -917,7 +917,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietAddSheetTitle.
   ///
   /// In en, this message translates to:
-  /// **'Add a Meal'**
+  /// **'Add a meal'**
   String get dietAddSheetTitle;
 
   /// No description provided for @dietAddSheetSubtitle.
@@ -929,7 +929,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietPickPhoto.
   ///
   /// In en, this message translates to:
-  /// **'Choose a Photo'**
+  /// **'Choose a photo'**
   String get dietPickPhoto;
 
   /// No description provided for @dietPickPhotoSub.
@@ -941,7 +941,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietTakePhoto.
   ///
   /// In en, this message translates to:
-  /// **'Take a Photo'**
+  /// **'Take a photo'**
   String get dietTakePhoto;
 
   /// No description provided for @dietTakePhotoSub.
@@ -953,7 +953,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietAddPhoto.
   ///
   /// In en, this message translates to:
-  /// **'Add a Photo'**
+  /// **'Add a photo'**
   String get dietAddPhoto;
 
   /// No description provided for @dietAddPhotoSub.
@@ -1055,7 +1055,7 @@ abstract class AppLocalizations {
   /// Error shown when moving a meal to another day fails.
   ///
   /// In en, this message translates to:
-  /// **'Could not change the date. Please try again shortly.'**
+  /// **'Couldn\'t change the date. Please try again shortly.'**
   String get dietRecordDateFailed;
 
   /// Label of the meal-type row next to the record date in the meal detail (#1947).
@@ -1073,7 +1073,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietAiNutritionResult.
   ///
   /// In en, this message translates to:
-  /// **'AI Nutrition Result'**
+  /// **'AI nutrition result'**
   String get dietAiNutritionResult;
 
   /// No description provided for @dietAnalyzingBody.
@@ -1085,7 +1085,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietAnalysisFailedBody.
   ///
   /// In en, this message translates to:
-  /// **'Analysis failed. Please try again in a moment.'**
+  /// **'Couldn\'t analyze it. Please try again in a moment.'**
   String get dietAnalysisFailedBody;
 
   /// No description provided for @dietAnalysisUnsupportedFormat.
@@ -1103,7 +1103,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietAnalysisUnauthorized.
   ///
   /// In en, this message translates to:
-  /// **'Your session expired. Please sign in again to log this meal.'**
+  /// **'Your sign-in expired. Please sign in again to log this meal.'**
   String get dietAnalysisUnauthorized;
 
   /// No description provided for @dietAnalysisNotImplemented.
@@ -1163,7 +1163,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietRecognizedFood.
   ///
   /// In en, this message translates to:
-  /// **'Recognized Food'**
+  /// **'Recognized food'**
   String get dietRecognizedFood;
 
   /// No description provided for @dietNoRecognizedFood.
@@ -1175,7 +1175,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietNutritionResult.
   ///
   /// In en, this message translates to:
-  /// **'Nutrition Info'**
+  /// **'Nutrition info'**
   String get dietNutritionResult;
 
   /// No description provided for @dietSaved.
@@ -1199,7 +1199,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietDeleteTitle.
   ///
   /// In en, this message translates to:
-  /// **'Delete Meal Record'**
+  /// **'Delete meal record'**
   String get dietDeleteTitle;
 
   /// No description provided for @dietDeleteConfirm.
@@ -1247,13 +1247,13 @@ abstract class AppLocalizations {
   /// No description provided for @dietMealInfo.
   ///
   /// In en, this message translates to:
-  /// **'Meal Info'**
+  /// **'Meal info'**
   String get dietMealInfo;
 
   /// No description provided for @dietEatenFood.
   ///
   /// In en, this message translates to:
-  /// **'Food Eaten'**
+  /// **'Food eaten'**
   String get dietEatenFood;
 
   /// No description provided for @dietNewFood.
@@ -1265,7 +1265,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietAddFood.
   ///
   /// In en, this message translates to:
-  /// **'Add Food'**
+  /// **'Add food'**
   String get dietAddFood;
 
   /// No description provided for @dietManualAdd.
@@ -1277,7 +1277,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietManualAddTitle.
   ///
   /// In en, this message translates to:
-  /// **'Add Meal Manually'**
+  /// **'Add meal manually'**
   String get dietManualAddTitle;
 
   /// No description provided for @dietManualAddHint.
@@ -1301,13 +1301,13 @@ abstract class AppLocalizations {
   /// No description provided for @dietTotalCalories.
   ///
   /// In en, this message translates to:
-  /// **'Total Calories'**
+  /// **'Total calories'**
   String get dietTotalCalories;
 
   /// No description provided for @dietNutritionInfo.
   ///
   /// In en, this message translates to:
-  /// **'Nutrition Info'**
+  /// **'Nutrition info'**
   String get dietNutritionInfo;
 
   /// No description provided for @dietEditNutritionHint.
@@ -1325,7 +1325,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietDeleteMeal.
   ///
   /// In en, this message translates to:
-  /// **'Delete Meal'**
+  /// **'Delete meal'**
   String get dietDeleteMeal;
 
   /// No description provided for @dietEditMeal.
@@ -1379,7 +1379,7 @@ abstract class AppLocalizations {
   /// No description provided for @exExerciseLog.
   ///
   /// In en, this message translates to:
-  /// **'Exercise Log'**
+  /// **'Exercise log'**
   String get exExerciseLog;
 
   /// No description provided for @exGymTab.
@@ -1391,7 +1391,7 @@ abstract class AppLocalizations {
   /// No description provided for @exMyGymSection.
   ///
   /// In en, this message translates to:
-  /// **'My Gym'**
+  /// **'My gym'**
   String get exMyGymSection;
 
   /// No description provided for @exConnected.
@@ -1547,7 +1547,7 @@ abstract class AppLocalizations {
   /// PT card chip — which session with the assigned trainer this was (#2666).
   ///
   /// In en, this message translates to:
-  /// **'Session {count}'**
+  /// **'PT #{count}'**
   String exPtSessionNumber(int count);
 
   /// No description provided for @exCompletedPtNoProgram.
@@ -1559,7 +1559,7 @@ abstract class AppLocalizations {
   /// No description provided for @exAddExercise.
   ///
   /// In en, this message translates to:
-  /// **'Add Exercise'**
+  /// **'Add exercise'**
   String get exAddExercise;
 
   /// No description provided for @exDurationMinutes.
@@ -1571,7 +1571,7 @@ abstract class AppLocalizations {
   /// No description provided for @exEditExercise.
   ///
   /// In en, this message translates to:
-  /// **'Edit Exercise Record'**
+  /// **'Edit exercise record'**
   String get exEditExercise;
 
   /// No description provided for @exSave.
@@ -1583,7 +1583,7 @@ abstract class AppLocalizations {
   /// No description provided for @exExerciseType.
   ///
   /// In en, this message translates to:
-  /// **'Exercise Type'**
+  /// **'Exercise type'**
   String get exExerciseType;
 
   /// No description provided for @exExerciseDate.
@@ -1595,7 +1595,7 @@ abstract class AppLocalizations {
   /// No description provided for @exExerciseName.
   ///
   /// In en, this message translates to:
-  /// **'Exercise Name'**
+  /// **'Exercise name'**
   String get exExerciseName;
 
   /// No description provided for @exExerciseNameHintCardio.
@@ -1637,13 +1637,13 @@ abstract class AppLocalizations {
   /// No description provided for @exExerciseStrengthAmount.
   ///
   /// In en, this message translates to:
-  /// **'Sets · Reps · Weight'**
+  /// **'Sets · reps · weight'**
   String get exExerciseStrengthAmount;
 
   /// No description provided for @exExerciseStrengthAmountHold.
   ///
   /// In en, this message translates to:
-  /// **'Sets · Hold · Weight'**
+  /// **'Sets · hold · weight'**
   String get exExerciseStrengthAmountHold;
 
   /// No description provided for @exExerciseMeasure.
@@ -1745,7 +1745,7 @@ abstract class AppLocalizations {
   /// No description provided for @exEstimatedCalories.
   ///
   /// In en, this message translates to:
-  /// **'Estimated Calories'**
+  /// **'Estimated calories'**
   String get exEstimatedCalories;
 
   /// No description provided for @exCaloriesNeedName.
@@ -1949,7 +1949,7 @@ abstract class AppLocalizations {
   /// No description provided for @exDeleteFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not delete. Please try again in a moment'**
+  /// **'Couldn\'t delete. Please try again in a moment'**
   String get exDeleteFailed;
 
   /// No description provided for @exCannotDelete.
@@ -1967,19 +1967,19 @@ abstract class AppLocalizations {
   /// No description provided for @exFindGym.
   ///
   /// In en, this message translates to:
-  /// **'Find a Gym'**
+  /// **'Find a gym'**
   String get exFindGym;
 
   /// No description provided for @exGymDetailTitle.
   ///
   /// In en, this message translates to:
-  /// **'Gym Details'**
+  /// **'Gym details'**
   String get exGymDetailTitle;
 
   /// No description provided for @exTrainerDetailTitle.
   ///
   /// In en, this message translates to:
-  /// **'Trainer Details'**
+  /// **'Trainer details'**
   String get exTrainerDetailTitle;
 
   /// No description provided for @exRating.
@@ -1991,7 +1991,7 @@ abstract class AppLocalizations {
   /// No description provided for @exAffiliatedTrainer.
   ///
   /// In en, this message translates to:
-  /// **'Affiliated Trainer'**
+  /// **'Affiliated trainer'**
   String get exAffiliatedTrainer;
 
   /// No description provided for @exRecommendationReason.
@@ -2213,13 +2213,13 @@ abstract class AppLocalizations {
   /// No description provided for @exSlotsLoadError.
   ///
   /// In en, this message translates to:
-  /// **'Could not load available times.'**
+  /// **'Couldn\'t load available times.'**
   String get exSlotsLoadError;
 
   /// No description provided for @exReserveFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not book that time. Please try again.'**
+  /// **'Couldn\'t book that time. Please try again.'**
   String get exReserveFailed;
 
   /// No description provided for @exReserveTimeTaken.
@@ -2303,13 +2303,13 @@ abstract class AppLocalizations {
   /// No description provided for @myProfileTitle.
   ///
   /// In en, this message translates to:
-  /// **'My Profile'**
+  /// **'My profile'**
   String get myProfileTitle;
 
   /// No description provided for @myNotifTitle.
   ///
   /// In en, this message translates to:
-  /// **'Notification Settings'**
+  /// **'Notification settings'**
   String get myNotifTitle;
 
   /// MY tab: opens the spotlight app guide again (#1857).
@@ -2321,13 +2321,13 @@ abstract class AppLocalizations {
   /// No description provided for @mySupportTitle.
   ///
   /// In en, this message translates to:
-  /// **'Customer Support'**
+  /// **'Customer support'**
   String get mySupportTitle;
 
   /// No description provided for @myPointsBenefitsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Use Points'**
+  /// **'Use points'**
   String get myPointsBenefitsTitle;
 
   /// The balance shown on the rewards screen, with thousands separators, e.g. 25,000P.
@@ -3467,7 +3467,7 @@ abstract class AppLocalizations {
   /// No description provided for @emoteBuyFailed.
   ///
   /// In en, this message translates to:
-  /// **'We could not buy the emote. Please try again in a moment.'**
+  /// **'Couldn\'t buy the emote. Please try again in a moment.'**
   String get emoteBuyFailed;
 
   /// No description provided for @emoteAlreadyUnlocked.
@@ -3491,13 +3491,13 @@ abstract class AppLocalizations {
   /// No description provided for @emoteLoadFailed.
   ///
   /// In en, this message translates to:
-  /// **'We could not load the emotes'**
+  /// **'Couldn\'t load the emotes'**
   String get emoteLoadFailed;
 
   /// No description provided for @emoteSendFailed.
   ///
   /// In en, this message translates to:
-  /// **'We could not send the emote'**
+  /// **'Couldn\'t send the emote'**
   String get emoteSendFailed;
 
   /// No description provided for @a11yOpenEmotes.
@@ -3557,7 +3557,7 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawFailed.
   ///
   /// In en, this message translates to:
-  /// **'We could not delete your account. Please try again in a moment.'**
+  /// **'Couldn\'t delete your account. Please try again in a moment.'**
   String get myWithdrawFailed;
 
   /// First step of the two-step account deletion flow under customer support (#2019).
@@ -3641,13 +3641,13 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawKeepHardToUse.
   ///
   /// In en, this message translates to:
-  /// **'Tell us what got in the way and we will fix it. The 1:1 Inquiry under MY > Customer Support reaches us directly.'**
+  /// **'Tell us what got in the way and we will fix it. The 1:1 inquiry under MY > Customer support reaches us directly.'**
   String get myWithdrawKeepHardToUse;
 
   /// No description provided for @myWithdrawKeepNotifications.
   ///
   /// In en, this message translates to:
-  /// **'Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification Settings.'**
+  /// **'Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification settings.'**
   String get myWithdrawKeepNotifications;
 
   /// No description provided for @myWithdrawKeepAlternative.
@@ -3659,7 +3659,7 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawKeepOther.
   ///
   /// In en, this message translates to:
-  /// **'Whatever it is, tell us and we will act on it. Leave it in the 1:1 Inquiry under MY > Customer Support.'**
+  /// **'Whatever it is, tell us and we will act on it. Leave it in the 1:1 inquiry under MY > Customer support.'**
   String get myWithdrawKeepOther;
 
   /// No description provided for @myWithdrawKeepDefault.
@@ -3689,7 +3689,7 @@ abstract class AppLocalizations {
   /// No description provided for @myGymTrainerTitle.
   ///
   /// In en, this message translates to:
-  /// **'My Gym & Trainer'**
+  /// **'My gym & trainer'**
   String get myGymTrainerTitle;
 
   /// No description provided for @myConnectionDeleteTitle.
@@ -3887,7 +3887,7 @@ abstract class AppLocalizations {
   /// No description provided for @myNotifAlwaysSent.
   ///
   /// In en, this message translates to:
-  /// **'PT session bookings, changes and cancellations, and trainer connect or disconnect notices are always sent'**
+  /// **'PT bookings, changes and cancellations, and trainer connect or disconnect notices are always sent'**
   String get myNotifAlwaysSent;
 
   /// No description provided for @mySupportFaq.
@@ -3899,7 +3899,7 @@ abstract class AppLocalizations {
   /// No description provided for @mySupportInquiry.
   ///
   /// In en, this message translates to:
-  /// **'1:1 Inquiry'**
+  /// **'1:1 inquiry'**
   String get mySupportInquiry;
 
   /// No description provided for @myLegalTermsTitle.
@@ -4109,7 +4109,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachHeaderPill.
   ///
   /// In en, this message translates to:
-  /// **'AI Health Assistant'**
+  /// **'AI health assistant'**
   String get coachHeaderPill;
 
   /// No description provided for @coachHeaderSubtitle.
@@ -4631,7 +4631,7 @@ abstract class AppLocalizations {
   /// No description provided for @aicInsightDeleteFailed.
   ///
   /// In en, this message translates to:
-  /// **'We could not remove it. Please try again in a moment.'**
+  /// **'Couldn\'t remove it. Please try again in a moment.'**
   String get aicInsightDeleteFailed;
 
   /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
@@ -4703,13 +4703,13 @@ abstract class AppLocalizations {
   /// No description provided for @exConsultRequestTitle.
   ///
   /// In en, this message translates to:
-  /// **'Consultation Request'**
+  /// **'Consultation request'**
   String get exConsultRequestTitle;
 
   /// No description provided for @exGymConsultRequest.
   ///
   /// In en, this message translates to:
-  /// **'Request a Consultation'**
+  /// **'Request a consultation'**
   String get exGymConsultRequest;
 
   /// No description provided for @exGymConsultPickTrainer.
@@ -4739,13 +4739,13 @@ abstract class AppLocalizations {
   /// No description provided for @exTrainerConsultRequest.
   ///
   /// In en, this message translates to:
-  /// **'Request a Trainer Consultation'**
+  /// **'Request a trainer consultation'**
   String get exTrainerConsultRequest;
 
   /// No description provided for @exConsultPendingCta.
   ///
   /// In en, this message translates to:
-  /// **'Consultation Request Pending'**
+  /// **'Consultation request pending'**
   String get exConsultPendingCta;
 
   /// No description provided for @exConsultLinkedToOtherTrainer.
@@ -4769,19 +4769,19 @@ abstract class AppLocalizations {
   /// No description provided for @exConsultTarget.
   ///
   /// In en, this message translates to:
-  /// **'Consultation Target'**
+  /// **'Consultation target'**
   String get exConsultTarget;
 
   /// No description provided for @exTrainerConsultType.
   ///
   /// In en, this message translates to:
-  /// **'Trainer Consultation'**
+  /// **'Trainer consultation'**
   String get exTrainerConsultType;
 
   /// No description provided for @exAssignedTrainer.
   ///
   /// In en, this message translates to:
-  /// **'Assigned Trainer'**
+  /// **'Assigned trainer'**
   String get exAssignedTrainer;
 
   /// No description provided for @exConsultDataSharingNotice.
@@ -4865,7 +4865,7 @@ abstract class AppLocalizations {
   /// No description provided for @exConsultSlotsError.
   ///
   /// In en, this message translates to:
-  /// **'Could not load the available times.'**
+  /// **'Couldn\'t load the available times.'**
   String get exConsultSlotsError;
 
   /// No description provided for @exConsultSlotTaken.
@@ -4913,7 +4913,7 @@ abstract class AppLocalizations {
   /// No description provided for @exGymCallFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not open the phone app.'**
+  /// **'Couldn\'t open the phone app.'**
   String get exGymCallFailed;
 
   /// No description provided for @exGymDetail.
@@ -4955,13 +4955,13 @@ abstract class AppLocalizations {
   /// No description provided for @exExerciseGoal.
   ///
   /// In en, this message translates to:
-  /// **'Exercise Goal'**
+  /// **'Exercise goal'**
   String get exExerciseGoal;
 
   /// No description provided for @exGoalHealth.
   ///
   /// In en, this message translates to:
-  /// **'Health Management'**
+  /// **'Health management'**
   String get exGoalHealth;
 
   /// No description provided for @exOptionOther.
@@ -4979,13 +4979,13 @@ abstract class AppLocalizations {
   /// No description provided for @exPreferredDate.
   ///
   /// In en, this message translates to:
-  /// **'Preferred Date'**
+  /// **'Preferred date'**
   String get exPreferredDate;
 
   /// No description provided for @exTimeFlexible.
   ///
   /// In en, this message translates to:
-  /// **'Discuss Later'**
+  /// **'Discuss later'**
   String get exTimeFlexible;
 
   /// No description provided for @exConsultMessage.
@@ -5003,7 +5003,7 @@ abstract class AppLocalizations {
   /// No description provided for @exSendConsultRequest.
   ///
   /// In en, this message translates to:
-  /// **'Send Consultation Request'**
+  /// **'Send consultation request'**
   String get exSendConsultRequest;
 
   /// No description provided for @exGoalRequired.
@@ -5045,7 +5045,7 @@ abstract class AppLocalizations {
   /// No description provided for @exConsultStatus.
   ///
   /// In en, this message translates to:
-  /// **'Current Status'**
+  /// **'Current status'**
   String get exConsultStatus;
 
   /// No description provided for @exConsultPendingStatus.
@@ -5075,7 +5075,7 @@ abstract class AppLocalizations {
   /// No description provided for @exConsultHistoryTitle.
   ///
   /// In en, this message translates to:
-  /// **'My Consultation Requests'**
+  /// **'My consultation requests'**
   String get exConsultHistoryTitle;
 
   /// No description provided for @exConsultHistoryEmpty.
@@ -5087,7 +5087,7 @@ abstract class AppLocalizations {
   /// No description provided for @exConsultHistoryInProgress.
   ///
   /// In en, this message translates to:
-  /// **'In Progress'**
+  /// **'In progress'**
   String get exConsultHistoryInProgress;
 
   /// No description provided for @exConsultRejectedReasonLabel.
@@ -5183,13 +5183,13 @@ abstract class AppLocalizations {
   /// Splash message while the saved session is being restored (#1944).
   ///
   /// In en, this message translates to:
-  /// **'Restoring your session'**
+  /// **'Restoring your sign-in'**
   String get authRestoring;
 
   /// No description provided for @authRestoreFailed.
   ///
   /// In en, this message translates to:
-  /// **'We could not restore your session — the connection looks unstable.'**
+  /// **'Couldn\'t restore your sign-in — the connection looks unstable.'**
   String get authRestoreFailed;
 
   /// No description provided for @authRestoreRetry.
@@ -5291,7 +5291,7 @@ abstract class AppLocalizations {
   /// No description provided for @authSignInFailed.
   ///
   /// In en, this message translates to:
-  /// **'Sign-in failed. Check your email and password'**
+  /// **'Couldn\'t sign in. Check your email and password'**
   String get authSignInFailed;
 
   /// No description provided for @authSignInNetworkFailed.
@@ -5309,13 +5309,13 @@ abstract class AppLocalizations {
   /// No description provided for @authSessionExpired.
   ///
   /// In en, this message translates to:
-  /// **'Your session has expired. Please sign in again'**
+  /// **'Your sign-in has expired. Please sign in again'**
   String get authSessionExpired;
 
   /// No description provided for @authSocialSignInFailed.
   ///
   /// In en, this message translates to:
-  /// **'Social sign-in failed. Please try again in a moment'**
+  /// **'Couldn\'t sign in with your social account. Please try again in a moment'**
   String get authSocialSignInFailed;
 
   /// No description provided for @authSocialComingSoon.
@@ -5567,7 +5567,7 @@ abstract class AppLocalizations {
   /// No description provided for @trainerSyncFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not get a code.'**
+  /// **'Couldn\'t get a code.'**
   String get trainerSyncFailed;
 
   /// No description provided for @trainerSyncRetry.
@@ -5591,7 +5591,7 @@ abstract class AppLocalizations {
   /// No description provided for @signUpFailed.
   ///
   /// In en, this message translates to:
-  /// **'Sign-up failed. Please try again in a moment.'**
+  /// **'Couldn\'t sign up. Please try again in a moment.'**
   String get signUpFailed;
 
   /// No description provided for @consentAll.
@@ -5711,7 +5711,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardSaveFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not save. Please try again in a moment'**
+  /// **'Couldn\'t save. Please try again in a moment'**
   String get onboardSaveFailed;
 
   /// No description provided for @onboardBasicTitle.
@@ -5873,7 +5873,7 @@ abstract class AppLocalizations {
   /// Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).
   ///
   /// In en, this message translates to:
-  /// **'Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use Points'**
+  /// **'Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use points'**
   String guidePointsBody(int diet, int exercise, int routine);
 
   /// No description provided for @guideSampleFoodScrambledEggs.
@@ -6604,7 +6604,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachRoutineUndoFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not undo the completion.'**
+  /// **'Couldn\'t undo the completion.'**
   String get coachRoutineUndoFailed;
 
   /// No description provided for @coachRoutineCancel.
@@ -6868,19 +6868,19 @@ abstract class AppLocalizations {
   /// Title of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'PT complete'**
+  /// **'You finished PT #12'**
   String get demoAlertPtDoneTitle;
 
   /// Body of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'You finished your 12th PT with Trainer {trainerName} at 18:00 today!'**
+  /// **'Your PT with Trainer {trainerName} at 18:00 today is saved to your workout log.'**
   String demoAlertPtDoneBody(String trainerName);
 
   /// Title of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'Feedback from your trainer'**
+  /// **'New PT feedback from your trainer'**
   String get demoAlertTrainerFeedbackTitle;
 
   /// Body of a demo notification shown in tour mode.
@@ -7084,7 +7084,7 @@ abstract class AppLocalizations {
   /// No description provided for @gymLocationUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'Could not get your location. Please try again.'**
+  /// **'Couldn\'t get your location. Please try again.'**
   String get gymLocationUnavailable;
 
   /// No description provided for @gymLocateAction.

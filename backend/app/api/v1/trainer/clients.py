@@ -117,9 +117,9 @@ def trainer_remove_client(
         )
     )
     if link is None:
-        raise HTTPException(status_code=404, detail="담당 회원을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="담당 회원을 찾을 수 없어요.")
     if not link.active:
-        raise HTTPException(status_code=404, detail="담당 회원을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="담당 회원을 찾을 수 없어요.")
     trainer_client_status_service.remove_client(db, link)
 
 
@@ -137,7 +137,7 @@ def trainer_restore_client(
         )
     )
     if link is None:
-        raise HTTPException(status_code=404, detail="회원을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="회원을 찾을 수 없어요.")
     try:
         trainer_client_status_service.restore_client(db, link)
     except trainer_common_service.ClientLinkDetached as exc:
@@ -171,7 +171,7 @@ def trainer_set_client_status(
         )
     )
     if link is None:
-        raise HTTPException(status_code=404, detail="담당 회원을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="담당 회원을 찾을 수 없어요.")
     try:
         return trainer_client_status_service.set_client_active(db, link, payload.active)
     except trainer_common_service.ClientLinkDetached as exc:
@@ -277,7 +277,7 @@ def trainer_client_diet(
     day = date or trainer_common_service.today_iso()
     # 형식 검증 — 잘못된 date 가 조용히 빈 목록으로 나가지 않게 422(캘린더 라우트와 일관, #278).
     if not _is_ymd(day):
-        raise HTTPException(status_code=422, detail="date 는 YYYY-MM-DD 형식이어야 합니다.")
+        raise HTTPException(status_code=422, detail="date 는 YYYY-MM-DD 형식이어야 해요.")
     return trainer_roster_service.build_client_diet(db, member_id, day)
 
 
@@ -372,7 +372,7 @@ def trainer_client_diet_photo(
     _require_client(db, trainer.id, member_id)
     photo = diet_photo_service.get_owned_photo(db, photo_id, member_id)
     if photo is None:
-        raise HTTPException(status_code=404, detail="사진을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="사진을 찾을 수 없어요.")
     return Response(
         content=photo.data,
         media_type=photo.content_type,
@@ -509,7 +509,7 @@ def trainer_confirm_diet_recommendation(
         )
     except diet_trainer_pick.PickNotInPlan as exc:
         raise HTTPException(
-            status_code=422, detail="추천 후보에 없는 메뉴입니다."
+            status_code=422, detail="추천 후보에 없는 메뉴예요."
         ) from exc
     return _diet_recommendations(db, trainer.id, member_id, locale)
 
@@ -579,7 +579,7 @@ def trainer_client_exercise_week(
         # 그리고도 맞다고 믿게 된다(회원 API 와 같은 422).
         if not _is_ymd(week_start):
             raise HTTPException(
-                status_code=422, detail="week_start 는 YYYY-MM-DD 형식이어야 합니다."
+                status_code=422, detail="week_start 는 YYYY-MM-DD 형식이어야 해요."
             )
         week_start = monday_of_str(week_start)
     rows = db.scalars(

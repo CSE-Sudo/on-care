@@ -164,7 +164,7 @@ class _ServerBackend implements _Backend, ScheduleRepository {
     if (row['status'] != ScheduleStatus.done) {
       throw const ServerError(
         statusCode: 409,
-        message: '완료된 PT만 예정으로 되돌릴 수 있습니다.',
+        message: '완료된 PT만 예정으로 되돌릴 수 있어요.',
       );
     }
     row

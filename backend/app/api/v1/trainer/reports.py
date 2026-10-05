@@ -68,11 +68,11 @@ def _report_week(day: str) -> _date:
     보낼 수 있고, 화면에도 다음 주로 가는 길이 없다.
     """
     if not _is_ymd(day):
-        raise HTTPException(status_code=422, detail="week_start 는 YYYY-MM-DD 형식이어야 합니다.")
+        raise HTTPException(status_code=422, detail="week_start 는 YYYY-MM-DD 형식이어야 해요.")
     week = trainer_reports_service.week_start_of(_date.fromisoformat(day))
     today = _date.fromisoformat(trainer_common_service.today_iso())
     if week > trainer_reports_service.week_start_of(today):
-        raise HTTPException(status_code=422, detail="아직 오지 않은 주는 조회할 수 없습니다.")
+        raise HTTPException(status_code=422, detail="아직 오지 않은 주는 조회할 수 없어요.")
     return week
 
 
@@ -322,7 +322,7 @@ def trainer_client_report_sends(
     if before is not None:
         if not _is_ymd(before):
             raise HTTPException(
-                status_code=422, detail="before 는 YYYY-MM-DD 형식이어야 합니다."
+                status_code=422, detail="before 는 YYYY-MM-DD 형식이어야 해요."
             )
         cursor = _date.fromisoformat(before)
     return trainer_reports_service.list_member_report_sends(
@@ -398,18 +398,18 @@ def trainer_send_report_pdf(
             if existing.body != text or existing.attachment_type != "pdf":
                 raise HTTPException(
                     status_code=409,
-                    detail="같은 client_request_id에 다른 메시지를 보낼 수 없습니다.",
+                    detail="같은 client_request_id에 다른 메시지를 보낼 수 없어요.",
                 )
             return trainer_chat_service.chat_message_out(existing, "trainer")
 
     if pdf.content_type != "application/pdf":
-        raise HTTPException(status_code=415, detail="PDF 파일만 전송할 수 있습니다.")
+        raise HTTPException(status_code=415, detail="PDF 파일만 전송할 수 있어요.")
     settings = get_settings()
     data = pdf.file.read(settings.max_report_pdf_bytes + 1)
     if len(data) > settings.max_report_pdf_bytes:
-        raise HTTPException(status_code=413, detail="PDF 파일 용량이 너무 큽니다.")
+        raise HTTPException(status_code=413, detail="PDF 파일 용량이 너무 커요.")
     if not data.startswith(b"%PDF-") or b"%%EOF" not in data[-1024:]:
-        raise HTTPException(status_code=415, detail="유효한 PDF 파일이 아닙니다.")
+        raise HTTPException(status_code=415, detail="유효한 PDF 파일이 아니에요.")
 
     display_name = re.sub(
         r"[\x00-\x1f]", "_", PurePath(pdf.filename or "weekly-report.pdf").name

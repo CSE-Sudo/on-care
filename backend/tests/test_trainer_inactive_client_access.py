@@ -44,7 +44,7 @@ from app.models.models import (
     User,
 )
 
-GUARD_DETAIL = "담당 회원을 찾을 수 없습니다."
+GUARD_DETAIL = "담당 회원을 찾을 수 없어요."
 
 
 def _h(token: str) -> dict[str, str]:
@@ -259,7 +259,7 @@ def test_writes_are_blocked_after_detach(client, pair, method, suffix, body):
 def test_diet_photo_is_blocked_before_the_photo_lookup(client, pair):
     """사진 id 를 알아도 해제 뒤에는 담당 확인에서 먼저 막힌다.
 
-    담당 중일 때 없는 사진은 '사진을 찾을 수 없습니다.' 다 — 해제 뒤 문구가
+    담당 중일 때 없는 사진은 '사진을 찾을 수 없어요.' 다 — 해제 뒤 문구가
     담당 쪽으로 바뀌는 것으로 확인이 사진 조회보다 앞선다는 것을 본다.
     """
     url = f"/v1/trainer/clients/{pair.member_id}/diet/photos/photo-unknown"

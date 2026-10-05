@@ -69,7 +69,7 @@ extension _LocalApiProfile on LocalApiInterceptor {
         return reject('reauth_required', '본인 확인을 위해 소셜 계정으로 다시 로그인해 주세요.');
       }
       if (provider != login.socialProvider || token != 'demo-$provider-token') {
-        return reject('invalid_reauth', '소셜 계정 확인에 실패했습니다. 다시 로그인해 주세요.');
+        return reject('invalid_reauth', '소셜 계정을 확인하지 못했어요. 다시 로그인해 주세요.');
       }
       return null;
     }
@@ -83,7 +83,7 @@ extension _LocalApiProfile on LocalApiInterceptor {
         ? account['password'] as String?
         : login.password;
     if (expected != null && expected != password) {
-      return reject('invalid_current_password', '현재 비밀번호가 일치하지 않습니다.');
+      return reject('invalid_current_password', '현재 비밀번호가 일치하지 않아요.');
     }
     return null;
   }
@@ -171,7 +171,7 @@ extension _LocalApiProfile on LocalApiInterceptor {
       return Response<Object?>(
         requestOptions: options,
         statusCode: 409,
-        data: <String, Object?>{'detail': '이미 사용 중인 이메일입니다.'},
+        data: <String, Object?>{'detail': '이미 사용 중인 이메일이에요.'},
       );
     }
     if (emailChanged) {
@@ -198,7 +198,7 @@ extension _LocalApiProfile on LocalApiInterceptor {
       return Response<Object?>(
         requestOptions: options,
         statusCode: 422,
-        data: <String, Object?>{'detail': '전화번호는 비울 수 없습니다.'},
+        data: <String, Object?>{'detail': '전화번호는 비울 수 없어요.'},
       );
     }
     final patch = <String, Object?>{};

@@ -8,7 +8,7 @@ extension _LocalApiExercise on LocalApiInterceptor {
     final existing = await (_db.select(
       _db.exerciseSessions,
     )..where((t) => t.id.equals(id))).getSingleOrNull();
-    if (existing == null) return _notFound(options, '운동 기록을 찾을 수 없습니다.');
+    if (existing == null) return _notFound(options, '운동 기록을 찾을 수 없어요.');
     if (existing.source != 'member') return _derivedExercise(options);
     await (_db.delete(
       _db.exerciseSessions,
@@ -25,7 +25,7 @@ extension _LocalApiExercise on LocalApiInterceptor {
       Response<Object?>(
         requestOptions: options,
         statusCode: 409,
-        data: <String, Object?>{'detail': '코칭에서 생성된 운동 기록은 수정하거나 삭제할 수 없습니다.'},
+        data: <String, Object?>{'detail': '코칭에서 생성된 운동 기록은 수정하거나 삭제할 수 없어요.'},
       );
 
   Future<Response<Object?>> _exerciseUpdate(RequestOptions options) async {
@@ -33,7 +33,7 @@ extension _LocalApiExercise on LocalApiInterceptor {
     final existing = await (_db.select(
       _db.exerciseSessions,
     )..where((t) => t.id.equals(id))).getSingleOrNull();
-    if (existing == null) return _notFound(options, '운동 기록을 찾을 수 없습니다.');
+    if (existing == null) return _notFound(options, '운동 기록을 찾을 수 없어요.');
     if (existing.source != 'member') return _derivedExercise(options);
     final body = _jsonBody(options);
     // 앞날로 옮기는 수정은 실서버처럼 422 — 원래 날짜가 그대로 남는다(#3042).
@@ -681,7 +681,7 @@ extension _LocalApiExercise on LocalApiInterceptor {
         requestOptions: options,
         statusCode: 409,
         data: <String, Object?>{
-          'detail': '같은 client_request_id에 다른 운동 기록을 보낼 수 없습니다.',
+          'detail': '같은 client_request_id에 다른 운동 기록을 보낼 수 없어요.',
         },
       );
     }
@@ -947,7 +947,7 @@ extension _LocalApiExercise on LocalApiInterceptor {
 /// 않는다. 문구는 식단 기록(`_entryDateError`)과 같다.
 String? _exerciseDateError(Object? raw) {
   if (raw == null) return null;
-  if (raw is! String) return 'date 는 YYYY-MM-DD 형식이어야 합니다.';
+  if (raw is! String) return 'date 는 YYYY-MM-DD 형식이어야 해요.';
   return _entryDateError(raw);
 }
 

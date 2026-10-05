@@ -43,8 +43,8 @@ ACCESS = "kakao-access-0330-do-not-log"
 REDIRECT = "https://app.example.com/kakao_login_callback.html"
 TOKEN_PATH = "/oauth/token"
 
-AUTH_FAILED_DETAIL = "소셜 인증에 실패했습니다."
-BAD_RESPONSE_DETAIL = "소셜 로그인 제공자의 응답을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요."
+AUTH_FAILED_DETAIL = "소셜 계정을 인증하지 못했어요."
+BAD_RESPONSE_DETAIL = "소셜 로그인 제공자의 응답을 확인하지 못했어요. 잠시 후 다시 시도해 주세요."
 
 
 @pytest.fixture(autouse=True)
