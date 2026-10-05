@@ -4891,6 +4891,17 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reauthEmailMessage => '이메일을 바꾸면 로그인 아이디와 비밀번호 재설정 메일 주소가 바뀝니다.';
 
   @override
+  String get emailChangeCodeTitle => '새 이메일 인증';
+
+  @override
+  String emailChangeCodeMessage(String email) {
+    return '$email 로 6자리 인증 코드를 보냈어요. 이 주소가 내 것인지 확인하려면 코드를 입력해 주세요.';
+  }
+
+  @override
+  String get emailChangeCodeNext => '다음';
+
+  @override
   String get reauthPasswordPrompt => '계속하려면 현재 비밀번호를 입력해 주세요.';
 
   @override

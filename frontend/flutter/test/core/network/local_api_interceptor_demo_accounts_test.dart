@@ -164,6 +164,8 @@ void main() {
       data: <String, Object?>{
         'email': 'new-seoyeon@example.com',
         'current_password': 'password123',
+        // 새 주소 인증 코드(#3230). 데모는 고정 코드를 받는다.
+        'email_code': '000000',
       },
     );
     expect(res.statusCode, 200);

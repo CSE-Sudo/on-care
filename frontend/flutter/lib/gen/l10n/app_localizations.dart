@@ -8262,6 +8262,24 @@ abstract class AppLocalizations {
   /// **'Changing your email changes your sign-in ID and the address password reset emails go to.'**
   String get reauthEmailMessage;
 
+  /// Title of the dialog that checks the new address before an email change (#3230)
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your new email'**
+  String get emailChangeCodeTitle;
+
+  /// Body of the new-email code dialog; email is the new address (#3230)
+  ///
+  /// In en, this message translates to:
+  /// **'We sent a 6-digit code to {email}. Enter it to confirm this address is yours.'**
+  String emailChangeCodeMessage(String email);
+
+  /// Confirm button of the new-email code dialog; the re-auth dialog follows (#3230)
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get emailChangeCodeNext;
+
   /// No description provided for @reauthPasswordPrompt.
   ///
   /// In en, this message translates to:

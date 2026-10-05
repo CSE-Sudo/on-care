@@ -41,6 +41,7 @@ class _ScriptedAccountRepository extends MockAccountRepository {
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
     AccountReauth? reauth,
+    String? emailCode,
     void Function(ReissuedTokens tokens)? onTokensReissued,
   }) {
     saves++;
@@ -58,6 +59,7 @@ class _ScriptedAccountRepository extends MockAccountRepository {
       heightCm: heightCm,
       weightKg: weightKg,
       reauth: reauth,
+      emailCode: emailCode,
       onTokensReissued: onTokensReissued,
     );
   }
@@ -116,8 +118,18 @@ Future<void> _save(WidgetTester tester, AppLocalizations l) async {
   await tester.ensureVisible(find.text(l.mySave));
   await tester.tap(find.text(l.mySave));
   await tester.pumpAndSettle();
-  // 이메일을 바꾼 저장은 본인 확인 창을 거친다(#3039). 이 파일은 그 뒤의
-  // 거절 처리를 보므로 현재 비밀번호를 적고 넘어간다.
+  // 이메일을 바꾼 저장은 새 주소 인증(#3230)과 본인 확인 창(#3039)을 거친다.
+  // 이 파일은 그 뒤의 거절 처리를 보므로 데모 코드와 현재 비밀번호를 적고
+  // 넘어간다.
+  final Finder code = find.byKey(const ValueKey<String>('email-change-code'));
+  if (code.evaluate().isNotEmpty) {
+    await tester.enterText(code, '000000');
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('email-change-code-confirm')),
+    );
+    await tester.pumpAndSettle();
+  }
   final Finder password = find.byKey(const ValueKey<String>('reauth-password'));
   if (password.evaluate().isNotEmpty) {
     await tester.enterText(password, 'pw-current-1');

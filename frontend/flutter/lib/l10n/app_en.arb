@@ -4154,6 +4154,23 @@
   "@reauthEmailMessage": {
     "description": "Re-auth dialog text before an email change (#3039)"
   },
+  "emailChangeCodeTitle": "Verify your new email",
+  "@emailChangeCodeTitle": {
+    "description": "Title of the dialog that checks the new address before an email change (#3230)"
+  },
+  "emailChangeCodeMessage": "We sent a 6-digit code to {email}. Enter it to confirm this address is yours.",
+  "@emailChangeCodeMessage": {
+    "description": "Body of the new-email code dialog; email is the new address (#3230)",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "emailChangeCodeNext": "Next",
+  "@emailChangeCodeNext": {
+    "description": "Confirm button of the new-email code dialog; the re-auth dialog follows (#3230)"
+  },
   "reauthPasswordPrompt": "Enter your current password to continue.",
   "reauthPasswordRequired": "Enter your current password",
   "reauthSocialPrompt": "This account has no password. Sign in again with the social account you signed up with.",

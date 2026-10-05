@@ -45,6 +45,8 @@ void main() {
           'email': 'minji@oncare.com',
           // 이메일 변경은 본인 확인을 거친다(#3039). 테스트 전용 값이다.
           'current_password': 'pw-current-1',
+          // 새 주소 인증 코드(#3230). 데모는 고정 코드를 받는다.
+          'email_code': '000000',
         },
       );
 

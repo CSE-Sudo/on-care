@@ -5176,6 +5176,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Changing your email changes your sign-in ID and the address password reset emails go to.';
 
   @override
+  String get emailChangeCodeTitle => 'Verify your new email';
+
+  @override
+  String emailChangeCodeMessage(String email) {
+    return 'We sent a 6-digit code to $email. Enter it to confirm this address is yours.';
+  }
+
+  @override
+  String get emailChangeCodeNext => 'Next';
+
+  @override
   String get reauthPasswordPrompt => 'Enter your current password to continue.';
 
   @override
