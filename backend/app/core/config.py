@@ -323,6 +323,11 @@ class Settings(BaseSettings):
 
     # --- Rate limit (인증 엔드포인트 브루트포스 방어) ---
     rate_limit_enabled: bool = True
+    # 분당 한도·로그인 실패 잠금·가입 한도를 어디에 셀지(#3143). `database` 는 Postgres
+    # 공유 표(`rate_limit_hits`)라 태스크·워커가 여럿이어도 한도가 하나이고 재배포에도
+    # 잠금이 남는다. `memory` 는 프로세스 메모리(개발·테스트). `auto` 는 운영이면
+    # database, 그 밖은 memory.
+    rate_limit_store: Literal["auto", "memory", "database"] = "auto"
     rate_limit_auth_per_minute: int = 10  # IP·엔드포인트당 분당 시도 한도
     # AI 코치 채팅 한도. 브루트포스 방어가 아니라 LLM 비용 가드라서 목적이 다르다.
     # 사람이 대화하는 속도로는 걸리지 않되, 폭주하는 클라이언트는 막는 값.
@@ -511,6 +516,13 @@ class Settings(BaseSettings):
         if self.mail_backend == "smtp":
             return bool(self.smtp_host.strip() and self.mail_from.strip())
         return not self.is_prod
+
+    @property
+    def rate_limit_backend(self) -> str:
+        """실제로 쓸 시도 제한 저장소(`memory`|`database`). `auto` 를 여기서 푼다(#3143)."""
+        if self.rate_limit_store != "auto":
+            return self.rate_limit_store
+        return "database" if self.is_prod else "memory"
 
     @property
     def demo_fallback_enabled(self) -> bool:
