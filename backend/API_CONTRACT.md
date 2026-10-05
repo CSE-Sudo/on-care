@@ -446,8 +446,9 @@ expires_at, expires_on, days_left, no_expiry, used_at?, cancelled_at? }`. `no_ex
 보상이다 — 사용처 목록(`/me/points/shop`)에 없고, `POST /me/points/exchange` 에 `diet_tray` 를 주면 404 다.
 
 - **조건** 최근 `window_days`(28)일(KST, 오늘 포함 — `window_from`~`window_to`) 중 식단 사진을 남긴 날(`photo_days`)이
-  `required_days`(20)일 이상이고 활성 담당이 있다. 사진 분석으로 저장한 끼니(`diet_entries.engine` 이 빈 값이 아님)만
-  세고, 하루 여러 끼도 하루다. 손으로 적은 끼니와 보호권으로 이은 날은 세지 않는다.
+  `required_days`(20)일 이상이고 활성 담당이 있다. 사진 분석으로 저장한 끼니(`diet_entries.engine` 이 실제 사진 인식기
+  `gemini`·`litellm` 이거나 데모 시드 `seed`, 허용 목록 — #3240)만 세고, 하루 여러 끼도 하루다. 손으로 적은 끼니(`manual`)·
+  개발용 스텁(`stub`)·보호권으로 이은 날은 세지 않는다.
 - **`enabled`** 식판을 줄 수 있는 서버인가(#2822, 위 헬스장 혜택 기능 플래그). 거짓이면 `status` 가 `claimable` 이
   되지 않고 받기는 409, 회원 앱은 카드를 그리지 않는다. 이미 받은 쿠폰은 `coupon` 에 그대로 온다.
 - **`status`** `progress`(조건을 채우는 중이거나 담당 없음) · `claimable`(지금 받을 수 있음) · `issued`(수령 쿠폰을

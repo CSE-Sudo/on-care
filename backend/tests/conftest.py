@@ -213,8 +213,9 @@ def _force_stub_recognizer(monkeypatch):
 
     스텁과 같은 식단을 돌려주되 이름은 `test-vision` 이다. 개발용 스텁(`stub`)
     결과는 포인트·식판 조건에 세지 않으므로(#2812), 이름까지 스텁이면 "실제 인식기로
-    저장한 끼니" 를 전제로 한 적립·식판 테스트가 모두 0 이 된다. 스텁 자체의 규칙은
-    그 테스트가 `recognizer` 를 `stub` 으로 다시 고정해 확인한다."""
+    저장한 끼니" 를 전제로 한 적립 테스트가 모두 0 이 된다. 스텁 자체의 규칙은
+    그 테스트가 `recognizer` 를 `stub` 으로 다시 고정해 확인한다. 식판 조건은 실제
+    인식기 이름만 세는 허용 목록(#3240)이라, 식판 테스트는 `gemini` 끼니를 직접 넣는다."""
     try:
         from app.core.config import get_settings
         from app.services.recognizer import factory
