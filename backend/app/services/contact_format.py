@@ -83,7 +83,7 @@ def clean_email(value: str) -> str:
     if not email:
         raise InvalidEmail("이메일을 입력해 주세요.")
     if len(email) > EMAIL_MAX_LENGTH:
-        raise InvalidEmail("이메일이 너무 깁니다.")
+        raise InvalidEmail("이메일이 너무 길어요.")
     local, _, _domain = email.partition("@")
     # 점으로 시작·끝나거나 점이 이어진 로컬 부분은 정규식으로 적으면 읽기
     # 어려워 따로 본다. 앱도 같은 자리에서 같은 방식으로 본다.
@@ -93,7 +93,7 @@ def clean_email(value: str) -> str:
         or local.endswith(".")
         or ".." in email
     ):
-        raise InvalidEmail("이메일 형식이 올바르지 않습니다.")
+        raise InvalidEmail("이메일 형식이 올바르지 않아요.")
     return email
 
 

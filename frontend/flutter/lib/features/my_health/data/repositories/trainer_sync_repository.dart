@@ -41,7 +41,7 @@ class TrainerSyncRepository {
   Future<PairingCode> issue() async {
     final res = await _dio.post<Map<String, Object?>>('/users/me/pairing-code');
     final data = res.data;
-    if (data == null) throw StateError('동기화 코드 응답이 비어 있습니다.');
+    if (data == null) throw StateError('연결 코드 응답이 비어 있습니다.');
     return PairingCode.fromJson(data);
   }
 

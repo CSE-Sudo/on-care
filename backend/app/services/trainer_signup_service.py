@@ -39,7 +39,7 @@ def ensure_email_available(db: Session, email: str) -> None:
     """
     taken = db.scalar(select(User.id).where(func.lower(User.email) == email))
     if taken is not None:
-        raise TrainerEmailTaken("이미 가입된 이메일입니다.")
+        raise TrainerEmailTaken("이미 가입된 이메일이에요.")
 
 
 def register_trainer(
@@ -81,7 +81,7 @@ def register_trainer(
         db.rollback()
         # 이메일 유니크 제약만이 여기서 경합으로 터질 수 있다 — 트레이너 id 는
         # 새로 만든 UUID 다.
-        raise TrainerEmailTaken("이미 가입된 이메일입니다.") from exc
+        raise TrainerEmailTaken("이미 가입된 이메일이에요.") from exc
 
     db.refresh(trainer)
     return trainer

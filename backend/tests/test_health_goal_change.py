@@ -147,7 +147,7 @@ def test_member_notes_change_tells_the_trainer_and_records_apart(client, seeded)
     assert len(notices) == 1
     assert notices[0]["subject_id"] == MEMBER_ID
     assert notices[0]["template"] == "trainer_health_notes"
-    assert notices[0]["title"] == "회원 주의사항 변경"
+    assert notices[0]["title"] == "회원 주의사항이 바뀌었어요"
     # 글은 알림에 싣지 않는다 — 미리보기에 건강 정보가 드러나지 않게.
     assert "무릎" not in notices[0]["body"]
 
@@ -180,7 +180,7 @@ def test_member_change_is_recorded_and_the_trainer_is_told(client, seeded):
     notices = _goal_notices(client, seeded["trainer"], trainer=True)
     assert len(notices) == 1
     assert notices[0]["subject_id"] == MEMBER_ID
-    assert notices[0]["title"] == "회원 건강 목표 변경"
+    assert notices[0]["title"] == "회원 건강 목표가 바뀌었어요"
     assert notices[0]["body"].endswith("건강 목표를 바꿨어요: 근력 향상 · 재활")
 
     # 트레이너 창에도 같은 마지막 변경이 보인다.
@@ -226,7 +226,7 @@ def test_trainer_change_is_recorded_and_the_member_is_told(client, seeded):
     notices = _goal_notices(client, seeded["member"], trainer=False)
     assert len(notices) == 1
     assert notices[0]["title"] == "건강 목표가 바뀌었어요"
-    assert notices[0]["body"].endswith("트레이너님이 건강 목표를 바꿨어요: 자세 교정")
+    assert notices[0]["body"].endswith("트레이너가 건강 목표를 바꿨어요: 자세 교정")
     # 누르면 MY 건강 목표로 간다.
     assert notices[0]["action"] == {"label": "목표 보기", "target": "health_goals"}
 

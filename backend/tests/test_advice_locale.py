@@ -227,7 +227,7 @@ def test_exercise_english_type_labels(code, label):
 def test_exercise_english_body_parts(part, middle, start):
     assert (
         exercise_advice.advice("routine_all_done_today_part", part=part).text_en
-        == f"You did the {middle} workouts you often skip today. Keep it going!"
+        == f"You did the {middle} personal exercises you often skip today. Keep it going!"
     )
     assert exercise_advice.advice("routine_all_missed_part", part=part).text_en.startswith(
         f"{start} personal exercises"
@@ -246,7 +246,7 @@ def test_exercise_english_rest_of_week(rest, lead, keep):
         "routine_week_only", top="cardio", missing="strength", rest=rest
     )
     assert only.text_en == (
-        f"This week you only did cardio workouts. {lead}, start with strength."
+        f"This week you only did cardio personal exercises. {lead}, start with strength."
     )
     counts = exercise_advice.advice(
         "routine_week_counts_keep", assigned=5, completed=3, rest=rest
@@ -399,16 +399,16 @@ DIET_CASES = [
                  "Once you log more, we'll show how your sodium and calories are trending.",
                  id="all-empty"),
     pytest.param(_diet_days((0, LIMIT + 400)), TODAY,
-                 f"오늘 나트륨 {LIMIT + 400}mg 로 권장량을 넘겼어요. 남은 끼니는 담백하게.",
-                 f"Sodium is at {LIMIT + 400}mg today, over the limit. Keep the rest of your meals light.",
+                 f"오늘 나트륨 {LIMIT + 400:,}mg으로 권장량을 넘겼어요. 남은 끼니는 담백하게.",
+                 f"Sodium is at {LIMIT + 400:,} mg today, over the limit. Keep the rest of your meals light.",
                  id="today-over"),
     pytest.param(_diet_days((0, LIMIT)), TODAY,
-                 f"오늘 나트륨 {LIMIT}mg 로 권장량 안이에요. 이대로 마무리해요.",
-                 f"Sodium is at {LIMIT}mg today, within the limit. Finish the day like this.",
+                 f"오늘 나트륨 {LIMIT:,}mg으로 권장량 안이에요. 이대로 마무리해요.",
+                 f"Sodium is at {LIMIT:,} mg today, within the limit. Finish the day like this.",
                  id="today-at-limit"),
     pytest.param(_diet_days((0, 1200)), TODAY,
-                 "오늘 나트륨 1200mg 로 권장량 안이에요. 이대로 마무리해요.",
-                 "Sodium is at 1200mg today, within the limit. Finish the day like this.",
+                 "오늘 나트륨 1,200mg으로 권장량 안이에요. 이대로 마무리해요.",
+                 "Sodium is at 1,200 mg today, within the limit. Finish the day like this.",
                  id="today-under"),
     pytest.param(_diet_days((0, 3000), (1, 3000), (2, 3000)), WEEK,
                  "이번 주 3일이나 나트륨을 넘겼어요. 국물은 건더기 위주로 드세요.",

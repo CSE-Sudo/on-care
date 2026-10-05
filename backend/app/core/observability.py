@@ -143,7 +143,7 @@ def install(app: FastAPI) -> None:
             # 있다 — 언어는 요청에서 직접 읽는다(#2297).
             content={
                 "detail": localized(
-                    "내부 서버 오류가 발생했습니다.",
+                    "내부 서버 오류가 발생했어요.",
                     "An internal server error occurred.",
                     get_request_locale(request),
                 ),

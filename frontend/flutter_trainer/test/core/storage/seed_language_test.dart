@@ -271,21 +271,22 @@ void main() {
       }
     });
 
-    test('운동 한 줄은 `·` 앞이 이름이라 리포트가 같은 운동으로 묶는다', () async {
+    test('운동 한 줄은 이름과 양이 갈려 리포트가 같은 운동으로 묶는다', () async {
       final AppDatabase db = await _seeded(DemoLanguage.en);
       addTearDown(db.close);
 
-      final List<String> lines = <String>[
+      // 하루 운동 행은 값까지 실린 객체다(#3003) — 이름 칸에 양이 섞이지 않는다.
+      final List<Object?> items = <Object?>[
         for (final row in await db.select(db.clientDailyMetrics).get())
-          for (final Object? item
-              in jsonDecode(row.exercisesJson) as List<Object?>)
-            if (item is String) item,
+          ...jsonDecode(row.exercisesJson) as List<Object?>,
       ];
-      expect(lines, isNotEmpty);
-      for (final String line in lines) {
-        final String name = exerciseBaseName(line);
-        expect(name, isNot(matches(RegExp(r'\d'))), reason: line);
-        expect(name, isNotEmpty, reason: line);
+      expect(items, isNotEmpty);
+      for (final Object? item in items) {
+        expect(item, isA<Map<String, Object?>>(), reason: '$item');
+        final String name = (item! as Map<String, Object?>)['name']! as String;
+        expect(exerciseBaseName(name), name, reason: name);
+        expect(name, isNot(matches(RegExp(r'\d'))), reason: name);
+        expect(name, isNotEmpty);
       }
       expect(exerciseBaseName('Squat · 4 sets · 10 reps · 50kg'), 'Squat');
       expect(exerciseBaseName('Running · 30 min'), 'Running');
@@ -345,7 +346,7 @@ void main() {
       )..where((t) => t.id.equals('seed-schedule-0'))).getSingle();
       expect(
         today.note,
-        'Knee range of motion needs checking. Adjust weights next session.',
+        'Knee range of motion needs checking. Adjust weights at the next PT.',
       );
       final program = jsonDecode(today.programJson) as List<Object?>;
       final first = program.first! as Map<String, Object?>;

@@ -15,7 +15,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import select, text
+from sqlalchemy import text
 
 from app.models.models import User
 from app.services.contact_format import clean_email, normalize_email

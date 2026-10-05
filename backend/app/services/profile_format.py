@@ -53,7 +53,7 @@ def clean_name(value: str) -> str:
     if not name:
         raise InvalidName("이름을 입력해 주세요.")
     if len(name) > NAME_MAX_LENGTH:
-        raise InvalidName(f"이름은 {NAME_MAX_LENGTH}자까지 입력할 수 있습니다.")
+        raise InvalidName(f"이름은 {NAME_MAX_LENGTH}자까지 입력할 수 있어요.")
     return name
 
 
@@ -88,7 +88,7 @@ def clean_birth_date(value: str) -> str:
     try:
         date.fromisoformat(birth_date)
     except ValueError:
-        raise InvalidBirthDate("실제 날짜가 아닙니다.") from None
+        raise InvalidBirthDate("실제 날짜가 아니에요.") from None
     return birth_date
 
 

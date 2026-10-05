@@ -60,7 +60,7 @@ void main() {
         expect(
           entry['photo_asset'],
           isA<String>().having(
-            (String s) => s.startsWith('assets/images/'),
+            (String s) => s.startsWith('assets/demo/images/'),
             '에셋 경로다',
             isTrue,
           ),

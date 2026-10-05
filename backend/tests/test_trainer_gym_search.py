@@ -71,6 +71,69 @@ def test_docs_to_gyms_distance_is_none_without_coordinates():
     assert kakao.docs_to_gyms([doc])[0]["distance_meters"] is None
 
 
+def test_search_gyms_sends_radius_only_for_nearby(monkeypatch):
+    """반경을 주면 카카오에 반경·거리순을 보내고, 이름 검색은 반경으로 자르지 않는다. (#3223)"""
+    import asyncio
+
+    import httpx
+
+    from app.services.places import kakao
+
+    sent: list[dict] = []
+
+    class _Resp:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"documents": []}
+
+    class _Client:
+        def __init__(self, *a, **k):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+        async def get(self, url, params=None, headers=None):
+            sent.append(dict(params or {}))
+            return _Resp()
+
+    monkeypatch.setattr(httpx, "AsyncClient", _Client)
+
+    asyncio.run(kakao.search_gyms("헬스장", 37.55, 126.93, api_key="k", radius_m=2000))
+    asyncio.run(kakao.search_gyms("헬스메이트", 37.55, 126.93, api_key="k"))
+    asyncio.run(kakao.search_gyms("헬스장", None, None, api_key="k", radius_m=2000))
+
+    nearby, by_name, no_coords = sent
+    assert nearby["radius"] == 2000 and nearby["sort"] == "distance"
+    assert (nearby["x"], nearby["y"]) == ("126.93", "37.55")
+    assert "radius" not in by_name and "sort" not in by_name
+    # 좌표가 없으면 반경도 의미가 없다.
+    assert "radius" not in no_coords and "x" not in no_coords
+
+
+# ---- 검색어 비교 규칙 (순수, #3223) ----
+
+def test_search_terms_split_on_any_whitespace():
+    from app.services import trainer_gym_search
+
+    assert trainer_gym_search.search_terms("  신촌\t헬스메이트  ") == ["신촌", "헬스메이트"]
+    assert trainer_gym_search.search_terms("   ") == []
+
+
+def test_like_escape_neutralises_wildcards():
+    from app.services import trainer_gym_search
+
+    assert trainer_gym_search._like_escape("100%") == "100\\%"
+    assert trainer_gym_search._like_escape("a_b") == "a\\_b"
+    assert trainer_gym_search._like_escape("a\\b") == "a\\\\b"
+    assert trainer_gym_search._like_escape("헬스") == "헬스"
+
+
 # ---- 픽스처 ----
 
 @pytest.fixture
@@ -131,15 +194,17 @@ def fake_kakao(monkeypatch):
     """카카오를 켠 것으로 두고, 검색 결과를 테스트가 정한다.
 
     `docs` 에 카카오 원문을 넣으면 실제 파서(`docs_to_gyms`)를 거쳐 돌려준다.
-    `fail=True` 면 호출이 예외를 던진다. `calls` 에 받은 검색어가 쌓인다.
+    `fail=True` 면 호출이 예외를 던진다. `calls` 에 받은 검색어가, `radii` 에
+    받은 반경(이름 검색이면 None)이 쌓인다.
     """
     from app.services import trainer_gym_search
     from app.services.places import kakao
 
-    state = {"docs": [], "fail": False, "calls": []}
+    state = {"docs": [], "fail": False, "calls": [], "radii": []}
 
-    async def fake_search_gyms(query, lat, lng, api_key, timeout=3.0):
+    async def fake_search_gyms(query, lat, lng, api_key, timeout=3.0, radius_m=None):
         state["calls"].append(query)
+        state["radii"].append(radius_m)
         if state["fail"]:
             raise RuntimeError("kakao down")
         return kakao.docs_to_gyms(state["docs"])
@@ -230,6 +295,161 @@ def test_member_cannot_search(client):
         "/v1/trainer/gyms/search", params={"query": "헬스"}, headers=_auth(token)
     )
     assert r.status_code == 403, r.text
+
+
+# ---- 등록 헬스장 매칭 — 띄어쓰기·단어 순서 (#3223) ----
+
+def _search_ids(client, token: str, query: str) -> list[str]:
+    r = client.get(
+        "/v1/trainer/gyms/search", params={"query": query}, headers=_auth(token)
+    )
+    assert r.status_code == 200, r.text
+    return [g["id"] for g in r.json()]
+
+
+@pytest.mark.parametrize("query", [
+    "헬스메이트신촌",      # 붙여 쓴 이름 — 저장된 이름은 `헬스메이트 신촌점`
+    "신촌 헬스메이트",     # 단어 순서가 다르다
+    "헬스메이트   신촌점",  # 띄어쓰기가 여러 칸
+    "헬스메이트 신촌점",   # 대조군: 저장된 이름 그대로
+    "신촌로 헬스메이트",   # 주소 단어 + 이름 단어
+])
+def test_registered_search_ignores_spacing_and_word_order(
+    client, trainer, kakao_off, query
+):
+    token, _ = trainer
+    assert HEALTHMATE_ID in _search_ids(client, token, query)
+
+
+def test_registered_search_requires_every_word(client, trainer, kakao_off):
+    """단어 하나라도 이름·주소에 없으면 그 헬스장은 빠진다 — 아무 단어나 걸리면
+    결과가 너무 넓어진다."""
+    token, _ = trainer
+    assert HEALTHMATE_ID not in _search_ids(client, token, "헬스메이트 없는동네이름")
+
+
+def test_registered_search_is_case_insensitive(client, trainer, kakao_off, db_session):
+    from app.models import models
+
+    place_id = f"gym-case-{uuid4().hex[:8]}"
+    db_session.add(models.Place(
+        id=place_id, name="OnCare Fit Studio", category="fitness",
+        address="서울 마포구 테스트로 1", lat=37.55, lng=126.93,
+    ))
+    db_session.commit()
+    try:
+        token, _ = trainer
+        assert place_id in _search_ids(client, token, "oncarefit")
+        assert place_id in _search_ids(client, token, "STUDIO oncare")
+    finally:
+        db_session.query(models.Place).filter(models.Place.id == place_id).delete()
+        db_session.commit()
+
+
+@pytest.mark.parametrize("query", ["%", "_", "%%", "헬스%"])
+def test_registered_search_treats_wildcards_literally(client, trainer, kakao_off, query):
+    """`%`·`_` 는 글자 그대로 비교한다 — 와일드카드로 읽으면 모든 헬스장이 걸린다."""
+    token, _ = trainer
+    assert _search_ids(client, token, query) == []
+
+
+# ---- 현재 위치 주변 찾기 (#3223) ----
+
+#: 시드의 `헬스메이트 신촌점` 좌표. 온케어짐 신촌점은 여기서 약 200m 다.
+HEALTHMATE_LAT, HEALTHMATE_LNG = 37.5548, 126.9385
+
+
+def _nearby(client, token: str, **params):
+    return client.get("/v1/trainer/gyms/nearby", params=params, headers=_auth(token))
+
+
+def test_nearby_without_kakao_returns_registered_gyms_by_distance(client, trainer, kakao_off):
+    token, _ = trainer
+    r = _nearby(client, token, lat=HEALTHMATE_LAT, lng=HEALTHMATE_LNG)
+    assert r.status_code == 200, r.text
+    rows = r.json()
+    assert rows[0]["id"] == HEALTHMATE_ID
+    assert rows[0]["distance_meters"] == 0
+    assert "gym-oncare-sinchon" in {g["id"] for g in rows}
+    distances = [g["distance_meters"] for g in rows]
+    assert distances == sorted(distances)
+    assert all(d <= 2000 for d in distances)
+    assert all(g["registered"] for g in rows)
+    # 의료 장소는 소속 후보가 아니다.
+    assert MEDICAL_PLACE_ID not in {g["id"] for g in rows}
+
+
+def test_nearby_far_from_every_gym_is_empty_without_kakao(client, trainer, kakao_off):
+    token, _ = trainer
+    r = _nearby(client, token, lat=35.1796, lng=129.0756)  # 부산
+    assert r.status_code == 200, r.text
+    assert r.json() == []
+
+
+def test_nearby_merges_kakao_by_distance(client, trainer, fake_kakao):
+    token, _ = trainer
+    new_id = _new_kakao_id()
+    near = {**_kakao_doc(new_id, "가까운 새 헬스장"), "distance": "50"}
+    fake_kakao["docs"] = [near, _kakao_doc(DISCOVERED_GYM_ID, "이미 있는 헬스장")]
+
+    r = _nearby(client, token, lat=HEALTHMATE_LAT, lng=HEALTHMATE_LNG)
+    assert r.status_code == 200, r.text
+    rows = r.json()
+    ids = [g["id"] for g in rows]
+
+    # 카카오에는 '헬스장' 을 반경과 함께 보낸다.
+    assert fake_kakao["calls"] == ["헬스장"]
+    assert fake_kakao["radii"] == [2000]
+    # 가까운 순 — 등록 헬스장(0m)이 먼저, 50m 카카오 결과가 그다음.
+    assert ids[:2] == [HEALTHMATE_ID, new_id]
+    distances = [g["distance_meters"] for g in rows if g["distance_meters"] is not None]
+    assert distances == sorted(distances)
+    assert ids.count(DISCOVERED_GYM_ID) == 1
+    by_id = {g["id"]: g for g in rows}
+    assert by_id[new_id]["registered"] is False
+    assert by_id[DISCOVERED_GYM_ID]["registered"] is True
+
+
+def test_nearby_survives_kakao_failure(client, trainer, fake_kakao):
+    token, _ = trainer
+    fake_kakao["fail"] = True
+    r = _nearby(client, token, lat=HEALTHMATE_LAT, lng=HEALTHMATE_LNG)
+    assert r.status_code == 200, r.text
+    assert r.json()[0]["id"] == HEALTHMATE_ID
+
+
+@pytest.mark.parametrize("params", [
+    {},
+    {"lat": 37.5},
+    {"lng": 126.9},
+    {"lat": 91, "lng": 126.9},
+    {"lat": 37.5, "lng": 181},
+])
+def test_nearby_rejects_bad_coordinates(client, trainer, kakao_off, params):
+    token, _ = trainer
+    assert _nearby(client, token, **params).status_code == 422
+
+
+def test_member_cannot_use_nearby(client):
+    email = f"member-{uuid4().hex[:8]}@oncare.com"
+    client.post("/v1/auth/register", json={"email": email, "password": "test-pw-1234", "name": "u"})
+    token = client.post(
+        "/v1/auth/login", data={"username": email, "password": "test-pw-1234"}
+    ).json()["access_token"]
+    r = _nearby(client, token, lat=HEALTHMATE_LAT, lng=HEALTHMATE_LNG)
+    assert r.status_code == 403, r.text
+
+
+def test_name_search_with_coordinates_fills_registered_distance(client, trainer, kakao_off):
+    token, _ = trainer
+    r = client.get(
+        "/v1/trainer/gyms/search",
+        params={"query": "헬스메이트", "lat": HEALTHMATE_LAT, "lng": HEALTHMATE_LNG},
+        headers=_auth(token),
+    )
+    assert r.status_code == 200, r.text
+    row = next(g for g in r.json() if g["id"] == HEALTHMATE_ID)
+    assert row["distance_meters"] == 0
 
 
 # ---- 카카오 결과로 소속 설정 ----

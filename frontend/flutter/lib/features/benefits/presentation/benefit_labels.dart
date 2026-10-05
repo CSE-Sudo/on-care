@@ -126,7 +126,7 @@ DateTime lastWeekMonday() {
   return DateTime(today.year, today.month, today.day - today.weekday + 1 - 7);
 }
 
-/// `9월 14일 – 9월 20일` — 채팅의 리포트 카드와 같은 표기다.
+/// `9월 14일 ~ 9월 20일` — 채팅의 리포트 카드와 같은 표기다.
 String reportWeekRange(AppLocalizations l, DateTime monday) {
   final DateTime sunday = DateTime(monday.year, monday.month, monday.day + 6);
   return l.coachChatReportWeek(

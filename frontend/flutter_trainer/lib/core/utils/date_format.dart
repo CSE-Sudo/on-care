@@ -33,7 +33,7 @@ List<String> weekdayNames(AppLocalizations l) => <String>[
   l.weekdaySun,
 ];
 
-/// Human date for page headers — `8월 5일 (화)` / `8/5 (Tue)`, with
+/// Human date for page headers — `8/5 (화)` / `8/5 (Tue)`, with
 /// `오늘`/`내일` prefixed when [relativeTo] (defaults to now) makes that
 /// clearer.
 ///

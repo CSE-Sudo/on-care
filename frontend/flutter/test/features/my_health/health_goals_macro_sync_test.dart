@@ -58,7 +58,7 @@ String _text(WidgetTester tester, String key) =>
     tester.widget<TextField>(_field(key)).controller!.text;
 
 String _calories(WidgetTester tester) =>
-    _fieldByLabel(tester, '일일 칼로리 제한 (kcal)').controller!.text;
+    _fieldByLabel(tester, '하루 칼로리 목표 (kcal)').controller!.text;
 
 /// 권장 안내 줄의 전체 문구.
 ///
@@ -83,7 +83,7 @@ void main() {
     expect(_text(tester, 'goalProteinField'), '100');
     expect(_text(tester, 'goalFatField'), '55');
     // 자동 계산이 일어나지 않았으니 그 안내도 없다.
-    expect(find.text('탄·단·지 목표로 계산한 값이에요'), findsNothing);
+    expect(find.text('탄단지 목표로 계산한 값이에요'), findsNothing);
   });
 
   testWidgets('탄단지를 고치면 칼로리가 4/4/9 로 다시 계산된다', (tester) async {
@@ -94,7 +94,7 @@ void main() {
 
     // 4×(200+100) + 9×55 = 1695
     expect(_calories(tester), '1695');
-    expect(find.text('탄·단·지 목표로 계산한 값이에요'), findsOneWidget);
+    expect(find.text('탄단지 목표로 계산한 값이에요'), findsOneWidget);
   });
 
   testWidgets('세 칸 중 하나라도 비면 칼로리를 건드리지 않는다', (tester) async {
@@ -104,7 +104,7 @@ void main() {
     await tester.pump();
 
     expect(_calories(tester), '2000');
-    expect(find.text('탄·단·지 목표로 계산한 값이에요'), findsNothing);
+    expect(find.text('탄단지 목표로 계산한 값이에요'), findsNothing);
   });
 
   testWidgets('칼로리를 고치면 탄단지 placeholder 가 권장 배분으로 바뀐다', (tester) async {
@@ -120,7 +120,7 @@ void main() {
       find.descendant(
         of: find
             .ancestor(
-              of: find.text('일일 칼로리 제한 (kcal)'),
+              of: find.text('하루 칼로리 목표 (kcal)'),
               matching: find.byType(Column),
             )
             .first,
@@ -167,7 +167,7 @@ void main() {
 
   testWidgets('안내 줄이 버튼으로 바뀌는 칸을 모두 말한다 (#1941)', (tester) async {
     await _openHealthGoals(tester);
-    await tester.enterText(_fieldByLabelFinder('일일 칼로리 제한 (kcal)'), '1600');
+    await tester.enterText(_fieldByLabelFinder('하루 칼로리 목표 (kcal)'), '1600');
     await tester.pump();
 
     // 버튼은 탄단지에 더해 당류 칸도 덮는다. 안내 줄이 셋만 말하면, 당류를

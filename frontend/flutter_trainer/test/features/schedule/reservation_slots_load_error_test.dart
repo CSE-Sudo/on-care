@@ -93,7 +93,7 @@ void main() {
       findsOneWidget,
     );
     // 빈 상태와 헷갈리지 않는다.
-    expect(find.text('열린 예약 슬롯이 없습니다.'), findsNothing);
+    expect(find.text('열린 예약 슬롯이 없어요.'), findsNothing);
   });
 
   testWidgets('다시 시도하면 목록을 새로 읽는다', (tester) async {
@@ -109,7 +109,7 @@ void main() {
 
     expect(repo.listCalls, greaterThan(before));
     expect(find.byKey(const ValueKey<String>('slot-load-error')), findsNothing);
-    expect(find.text('열린 예약 슬롯이 없습니다.'), findsOneWidget);
+    expect(find.text('열린 예약 슬롯이 없어요.'), findsOneWidget);
   });
 
   testWidgets('영어 화면은 영어 문구다', (tester) async {

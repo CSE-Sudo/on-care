@@ -993,7 +993,7 @@ def test_past_session_lands_in_its_own_week(client, db_session, make_pt_session)
 
     완료 시점의 월요일을 쓰면 지난 주 PT 가 이번 주 운동량으로 잡힌다.
     """
-    from datetime import date, timedelta
+    from datetime import timedelta
 
     from app.models import models
 

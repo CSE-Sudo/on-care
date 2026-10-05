@@ -332,7 +332,7 @@ void main() {
       await settle(tester);
 
       expect(repo.loginCalls, 1);
-      expect(find.text('이메일 또는 비밀번호가 올바르지 않습니다.'), findsOneWidget);
+      expect(find.text('이메일 또는 비밀번호가 올바르지 않아요.'), findsOneWidget);
       expect(find.text('이메일 형식이 올바르지 않아요'), findsNothing);
       expect(find.text('비밀번호를 입력해 주세요'), findsNothing);
     });

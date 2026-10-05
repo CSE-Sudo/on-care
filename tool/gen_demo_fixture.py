@@ -147,67 +147,67 @@ AMOUNTS_G: dict[str, int] = {
 # 그렇다 — 에셋이 생기면 여기만 고치면 세 곳이 함께 따라온다.
 MEALS: dict[str, tuple[str, str, str, str, list[str]]] = {
     "breakfast-oatmeal-banana": (
-        "breakfast", "08:05", "assets/images/diet-oatmeal-banana.jpeg",
+        "breakfast", "08:05", "assets/demo/images/diet-oatmeal-banana.jpeg",
         "오트밀로 식이섬유를 챙긴 아침이에요.",
         ["oatmeal", "banana"],
     ),
     "breakfast-greek-yogurt-nuts": (
-        "breakfast", "08:30", "assets/images/diet-greek-yogurt-nuts.jpeg",
+        "breakfast", "08:30", "assets/demo/images/diet-greek-yogurt-nuts.jpeg",
         "단백질과 불포화지방을 고르게 섭취했어요.",
         ["greek-yogurt", "nuts"],
     ),
     "breakfast-egg-strawberry": (
-        "breakfast", "07:50", "assets/images/breakfast-scrambled-egg-strawberry.jpg",
+        "breakfast", "07:50", "assets/demo/images/breakfast-scrambled-egg-strawberry.jpg",
         "달걀 단백질에 과일로 비타민을 더했어요.",
         ["scrambled-egg", "strawberry"],
     ),
     "lunch-chicken-salad": (
-        "lunch", "12:30", "assets/images/diet-chicken-salad.jpg",
+        "lunch", "12:30", "assets/demo/images/diet-chicken-salad.jpg",
         "닭가슴살과 채소로 단백질·식이섬유를 챙겼어요.",
         ["chicken-salad"],
     ),
     "lunch-bibimbap": (
-        "lunch", "12:20", "assets/images/diet-vegetable-bibimbap.jpg",
+        "lunch", "12:20", "assets/demo/images/diet-vegetable-bibimbap.jpg",
         "야채가 풍부해요. 고추장을 줄이면 나트륨이 더 좋아져요.",
         ["bibimbap"],
     ),
     "lunch-jjamppong": (
-        "lunch", "12:50", "assets/images/lunch-jjamppong.jpg",
+        "lunch", "12:50", "assets/demo/images/lunch-jjamppong.jpg",
         "국물 나트륨이 높은 날이에요. 국물은 남기는 편이 좋아요.",
         ["jjamppong"],
     ),
     "lunch-doenjang-rice": (
-        "lunch", "12:10", "assets/images/diet-doenjang-rice.jpeg",
+        "lunch", "12:10", "assets/demo/images/diet-doenjang-rice.jpeg",
         "집밥 한 상이에요. 찌개 국물만 조금 남겨 보세요.",
         ["doenjang-jjigae", "rice"],
     ),
     "dinner-salmon-brown-rice": (
-        "dinner", "18:40", "assets/images/diet-salmon-brown-rice.jpeg",
+        "dinner", "18:40", "assets/demo/images/diet-salmon-brown-rice.jpeg",
         "연어의 지방과 현미밥의 복합 탄수화물 조합이 좋아요.",
         ["grilled-salmon", "brown-rice"],
     ),
     "dinner-doenjang-rice": (
-        "dinner", "19:10", "assets/images/diet-doenjang-rice.jpeg",
+        "dinner", "19:10", "assets/demo/images/diet-doenjang-rice.jpeg",
         "포만감은 좋지만 국물 나트륨이 높은 편이에요.",
         ["doenjang-jjigae", "rice"],
     ),
     "dinner-chicken-salad-sweet-potato": (
-        "dinner", "18:20", "assets/images/diet-chicken-salad-sweet-potato.jpg",
+        "dinner", "18:20", "assets/demo/images/diet-chicken-salad-sweet-potato.jpg",
         "가볍게 마무리한 저녁이에요.",
         ["chicken-salad", "sweet-potato"],
     ),
     "dinner-samgyeopsal": (
-        "dinner", "19:30", "assets/images/diet-samgyeopsal-rice-soju.jpg",
+        "dinner", "19:30", "assets/demo/images/diet-samgyeopsal-rice-soju.jpg",
         "고기와 술이 함께여서 칼로리가 크게 올라갔어요. 다음 날은 가볍게 시작해 보세요.",
         ["samgyeopsal", "rice", "soju"],
     ),
     "snack-coffee-nuts": (
-        "snack", "15:40", "assets/images/snack-coffee-nuts.jpg",
+        "snack", "15:40", "assets/demo/images/snack-coffee-nuts.jpg",
         "당류가 낮고 건강한 지방을 채운 간식이에요.",
         ["iced-americano", "nut-pack"],
     ),
     "snack-cake-latte": (
-        "snack", "21:10", "assets/images/snack-choco-cake-latte.jpg",
+        "snack", "21:10", "assets/demo/images/snack-choco-cake-latte.jpg",
         "디저트로 당류가 하루 목표를 넘었어요.",
         ["choco-cake", "cafe-latte"],
     ),
@@ -256,7 +256,7 @@ PT_LABEL = "PT 세션 · 트레이너 지도"
 
 PT_SESSIONS: dict[int, tuple[int, str, str, list[tuple]]] = {
     5: (2, "레그프레스 무게가 붙었어요. 마지막 세트가 힘들었어요.",
-        "하체 근력 향상 확인. 다음 세션 레그프레스 5kg 증량.",
+        "하체 근력 향상 확인. 다음 PT 레그프레스 5kg 증량.",
         [("레그프레스 70kg · 4세트", "strength", 12, 4, 12),
          ("레그컬 35kg · 3세트", "strength", 9, 3, 12),
          ("카프레이즈 자체중량 · 3세트", "strength", 6, 3, 20),
@@ -284,7 +284,7 @@ PT_SESSIONS: dict[int, tuple[int, str, str, list[tuple]]] = {
           ("마무리 러닝머신 15분", "cardio", 15),
           ("상체 스트레칭 10분", "stretching", 10)]),
     29: (2, "첫 PT 라 긴장했는데 생각보다 할 만했어요.",
-         "첫 세션. 체력 수준 점검 위주로 가볍게 진행.",
+         "첫 PT. 체력 수준 점검 위주로 가볍게 진행.",
          [("고블릿 스쿼트 12kg · 3세트", "strength", 9, 3, 12),
           ("케틀벨 스윙 12kg · 3세트", "strength", 9, 3, 15),
           ("코어 서킷 · 2세트", "strength", 6, 2, 12),
@@ -468,7 +468,7 @@ RECENT: list[dict] = [
         "label": "PT 세션 · 트레이너 지도",
         "pt": True,
         "clientFeedback": "무릎이 좀 당겼지만 트레이너님 덕분에 잘 마쳤어요 😊",
-        "trainerNote": "무릎 가동범위 체크 필요. 다음 세션 중량 조절 예정.",
+        "trainerNote": "무릎 가동범위 체크 필요. 다음 PT 중량 조절 예정.",
         "dayMessage": "점심 짬뽕으로 오늘 나트륨 섭취가 많았어요. 저녁은 양념을 줄인 채소와 단백질 위주로 구성해 보세요.",
         # 근력 한 줄은 **세트 · 횟수 · 중량** 순으로 적는다 — 트레이너 웹의 PT
         # 프로그램 줄(`3세트 · 12회 · 80kg`)과 사용자앱 운동 기록 줄이 이미 그

@@ -489,7 +489,7 @@
           "params": {
             "sodium_mg": 2400
           },
-          "text": "나트륨 **2,400mg**, 권장량 초과예요."
+          "text": "나트륨 **2,400mg**, 목표 초과예요."
         },
         "action": {
           "key": "next_meal",
@@ -1007,7 +1007,7 @@
           "params": {
             "sodium_mg": 1400
           },
-          "text": "나트륨 **1,400mg**, 권장량 초과예요."
+          "text": "나트륨 **1,400mg**, 목표 초과예요."
         },
         "action": {
           "key": "next_meal",
@@ -4637,7 +4637,7 @@
       "params": {
         "sodium_mg": 2400
       },
-      "text": "나트륨 **2,400mg**, 권장량 초과예요."
+      "text": "나트륨 **2,400mg**, 목표 초과예요."
     },
     {
       "key": "today_calorie_over",

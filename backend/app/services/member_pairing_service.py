@@ -118,7 +118,7 @@ def issue(db: Session, member_id: str) -> MemberPairingCode:
         db.refresh(row)
         return row
 
-    raise PairingError("동기화 코드를 만들지 못했어요. 잠시 후 다시 시도해 주세요.")
+    raise PairingError("연결 코드를 만들지 못했어요. 잠시 후 다시 시도해 주세요.")
 
 
 def revoke(db: Session, member_id: str) -> None:
@@ -145,7 +145,7 @@ def _find(db: Session, code: str) -> MemberPairingCode:
     """유효한 코드 행. 없으면 [CodeNotFound]."""
     normalized = "".join(ch for ch in code if ch.isdigit())
     if len(normalized) != CODE_LENGTH:
-        raise CodeNotFound("동기화 코드가 맞지 않아요. 회원 화면의 6자리를 확인해 주세요.")
+        raise CodeNotFound("연결 코드가 맞지 않아요. 회원 화면의 6자리를 확인해 주세요.")
 
     row = db.scalar(
         select(MemberPairingCode).where(
@@ -154,7 +154,7 @@ def _find(db: Session, code: str) -> MemberPairingCode:
         )
     )
     if row is None:
-        raise CodeNotFound("동기화 코드가 맞지 않아요. 회원 화면의 6자리를 확인해 주세요.")
+        raise CodeNotFound("연결 코드가 맞지 않아요. 회원 화면의 6자리를 확인해 주세요.")
     return row
 
 

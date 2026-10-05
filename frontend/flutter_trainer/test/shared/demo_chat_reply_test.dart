@@ -84,7 +84,7 @@ void main() {
 
     await repo.sendTrainerMessage(
       clientId: _client,
-      text: '이번 주 리포트 등록해 뒀어요',
+      text: '이번 주 리포트 보내 드렸어요',
       reportWeekStart: DateTime(2026, 9, 28),
     );
     await _waitReply();

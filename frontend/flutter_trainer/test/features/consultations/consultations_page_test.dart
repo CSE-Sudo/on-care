@@ -422,7 +422,7 @@ void main() {
       await settle(tester);
 
       expect(_inInbox(find.text(label)), findsOneWidget);
-      expect(_inInbox(find.text('대기중')), findsNothing);
+      expect(_inInbox(find.text('대기 중')), findsNothing);
       // 끝난 신청이라 결정 버튼이 없다.
       expect(_inInbox(find.text('승인')), findsNothing);
     });

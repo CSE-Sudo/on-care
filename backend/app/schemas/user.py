@@ -66,6 +66,22 @@ class ConsentStatus(BaseModel):
     consent_pending: list[str] = Field(default_factory=list)
 
 
+class OptionalConsentState(BaseModel):
+    """선택 동의 한 항목의 상태 — `GET`·`PUT`·`DELETE /users/me/consents/{kind}`. (#3136)
+
+    `agreed` 는 **지금 버전**에 철회하지 않은 동의가 있는가다. 약관이 바뀌어 옛
+    버전에만 동의한 계정은 `false` 이고, 앱은 다음 이용 때 다시 묻는다.
+    `version`·`agreed_at`·`revoked_at` 은 가장 최근 기록의 값이다(없으면 null).
+    """
+
+    kind: str
+    agreed: bool
+    current_version: str
+    version: Optional[str] = None
+    agreed_at: Optional[datetime] = None
+    revoked_at: Optional[datetime] = None
+
+
 # ---- GET /users/me/health ----
 class HealthProfileBrief(BaseModel):
     name: str
@@ -257,8 +273,24 @@ class SignupEmailCodeSent(BaseModel):
 
 
 class SocialLoginRequest(BaseModel):
-    # provider 가 준 토큰 (kakao/naver=access_token, google=id_token)
+    # provider 가 준 토큰 (kakao=access_token, google=id_token)
     token: str
+
+
+class KakaoCodeExchangeRequest(BaseModel):
+    """카카오 웹 로그인 창이 돌려준 인가 코드 (#330).
+
+    `redirect_uri` 는 로그인 창을 열 때 쓴 값과 **글자 그대로** 같아야 카카오가 교환해 준다.
+    """
+
+    code: str = Field(min_length=1, max_length=2048)
+    redirect_uri: str = Field(min_length=1, max_length=2048)
+
+
+class KakaoCodeExchangeResponse(BaseModel):
+    """교환한 카카오 access_token. 앱은 이 값을 `POST /auth/social/kakao` 의 `token` 으로 쓴다."""
+
+    access_token: str
 
 
 class UserRegister(BaseModel):

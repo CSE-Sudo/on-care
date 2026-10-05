@@ -21,10 +21,15 @@ on:
       - "shared/oncare_rules/**"
       # 두 앱이 함께 쓰는 인증·네트워크·시계 기반(#2907).
       - "shared/oncare_core/**"
+      # 두 앱이 함께 쓰는 카카오·구글 로그인(#330).
+      - "shared/oncare_social_login/**"
       # 데모·실서버 진입점 비교 시험이 읽는 예외 목록 — 목록만 바뀌어도 돈다(#2792).
       - ".github/demo-divergence-allowlist.txt"
       # 웹 빌드가 받는 drift WASM 의 공용 다운로드 스크립트와 SHA-256 표(#3089).
       - "tool/drift_wasm/**"
+      # 운영 빌드의 데모 자산 선언 제거와 운영 번들 검사(#3157).
+      - "frontend/tool/strip_demo_assets.py"
+      - "tool/ci/check_prod_web_bundle.py"
       - ".github/workflows/trainer-ci.yml"
   push:
     branches: [main]
@@ -44,10 +49,15 @@ on:
       - "shared/oncare_rules/**"
       # 두 앱이 함께 쓰는 인증·네트워크·시계 기반(#2907).
       - "shared/oncare_core/**"
+      # 두 앱이 함께 쓰는 카카오·구글 로그인(#330).
+      - "shared/oncare_social_login/**"
       # 데모·실서버 진입점 비교 시험이 읽는 예외 목록 — 목록만 바뀌어도 돈다(#2792).
       - ".github/demo-divergence-allowlist.txt"
       # 웹 빌드가 받는 drift WASM 의 공용 다운로드 스크립트와 SHA-256 표(#3089).
       - "tool/drift_wasm/**"
+      # 운영 빌드의 데모 자산 선언 제거와 운영 번들 검사(#3157).
+      - "frontend/tool/strip_demo_assets.py"
+      - "tool/ci/check_prod_web_bundle.py"
       - ".github/workflows/trainer-ci.yml"
 
 permissions:
@@ -154,11 +164,25 @@ jobs:
           test -s web/sqlite3.wasm
           test -s web/drift_worker.js
 
+      # 운영과 같은 조건으로 빌드한다(#3157) — 데모 자산 선언을 빼고, DEMO_BUILD 없이
+      # 실서버 설정으로. 목업 분기가 트리 셰이킹되고 데모 자산이 빠졌는지는 아래
+      # 번들 검사가 본다. 주소는 검사용 자리값이다 — 이 산출물은 배포하지 않는다.
+      - name: Strip demo-only assets
+        run: python3 ../tool/strip_demo_assets.py .
+
       - name: Build trainer web
-        run: flutter build web --release --base-href "/trainer/"
+        run: >-
+          flutter build web --release --base-href "/trainer/"
+          --dart-define=USE_MOCK_API=false
+          --dart-define=ENV=prod
+          --dart-define=API_BASE_URL=https://api.example.org/v1
 
       # 다운로드뿐 아니라 최종 산출물에도 두 파일이 포함됐는지 확인(배포 시 404 방지).
       - name: Verify built Drift runtime files (build/web/)
         run: |
           test -s build/web/sqlite3.wasm
           test -s build/web/drift_worker.js
+
+      - name: Check production bundle has no demo code or assets
+        working-directory: .
+        run: python3 tool/ci/check_prod_web_bundle.py --app trainer frontend/flutter_trainer/build/web

@@ -75,7 +75,7 @@ def build_weekly_report(
     monday_str, sunday_str = monday.isoformat(), sunday.isoformat()
 
     member = db.get(User, member_id)
-    member_name = member.name if member else "고객"
+    member_name = member.name if member else "회원"
 
     # 취소·노쇼는 세지 않는다(#871). `sessions_booked` 는 "이번 주에 잡혀 있던
     # 수업" 이고 리포트는 그 분모로 이행을 읽는다 — 진행되지 않은 약속을 분모에
@@ -317,7 +317,7 @@ def _report_message_ko(report: WeeklyReportOut) -> str:
         (report.completion_avg or 0) >= client_signals.COMPLETION_GOOD_PERCENT
         and report.sodium_over_days <= 2
     )
-    period = f"{start.month}월 {start.day}일 – {end.month}월 {end.day}일"
+    period = f"{start.month}월 {start.day}일 ~ {end.month}월 {end.day}일"
 
     paragraphs: list[str] = [
         # 첫 줄에 무슨 메시지인지가 있어야 한다 — 회원의 대화방에는 다른
@@ -336,7 +336,7 @@ def _report_message_ko(report: WeeklyReportOut) -> str:
         elif report.completion_avg >= client_signals.COMPLETION_LOW_PERCENT:
             line = f"운동은 평균 {report.completion_avg}%로 꾸준히 해 주셨어요."
         else:
-            line = f"운동 이행률은 평균 {report.completion_avg}%였어요. 많이 바쁘셨나 봐요."
+            line = f"운동 완료율은 평균 {report.completion_avg}%였어요. 많이 바쁘셨나 봐요."
         workout.append(line)
     skipped = _skipped_names(report)
     if skipped:
@@ -382,7 +382,7 @@ def _report_message_ko(report: WeeklyReportOut) -> str:
         paragraphs.append(
             "정말 잘하셨어요. 다음 주도 이 페이스 그대로 가요!"
             if good
-            else "다음 주에는 이 부분만 같이 신경 써 봐요. 루틴은 제가 조정해서 올려둘게요."
+            else "다음 주에는 이 부분만 같이 신경 써 봐요. 프로그램은 제가 조정해서 올려둘게요."
         )
     return "\n\n".join(paragraphs)
 
@@ -415,7 +415,7 @@ def _report_message_en(report: WeeklyReportOut) -> str:
             line = f"You stayed steady — {report.completion_avg}% of your workouts done."
         else:
             line = (
-                f"Workout completion came in at {report.completion_avg}%. "
+                f"Workout completion rate came in at {report.completion_avg}%. "
                 "Sounds like a busy week."
             )
         workout.append(line)
@@ -433,17 +433,17 @@ def _report_message_en(report: WeeklyReportOut) -> str:
     sodium_limit = sodium_limit_mg(report.sodium_target)
     if report.sodium_avg is not None:
         diet.append(
-            f"Sodium averaged {report.sodium_avg:,}mg a day, and went over the "
-            f"{sodium_limit:,}mg target on {_plural_days(report.sodium_over_days)}. "
-            "Leaving half the broth behind saves 400–500mg a day."
+            f"Sodium averaged {report.sodium_avg:,} mg a day, and went over the "
+            f"{sodium_limit:,} mg goal on {_plural_days(report.sodium_over_days)}. "
+            "Leaving half the broth behind saves 400–500 mg a day."
             if report.sodium_over_days > 0
-            else f"Sodium averaged {report.sodium_avg:,}mg a day — comfortably "
-            f"inside the {sodium_limit:,}mg target."
+            else f"Sodium averaged {report.sodium_avg:,} mg a day — comfortably "
+            f"inside the {sodium_limit:,} mg goal."
         )
     recorded = [v for v in report.calories_week if v > 0]
     if recorded:
         diet.append(
-            f"Calories averaged {round(sum(recorded) / len(recorded)):,}kcal a day."
+            f"Calories averaged {round(sum(recorded) / len(recorded)):,} kcal a day."
         )
     if diet:
         paragraphs.append(" ".join(diet))
@@ -794,12 +794,12 @@ def save_report_goals(
         if not text:
             continue
         if len(text) > _MAX_REPORT_GOAL_LENGTH:
-            raise HTTPException(status_code=422, detail="목표가 너무 깁니다.")
+            raise HTTPException(status_code=422, detail="목표가 너무 길어요.")
         # 같은 목표가 두 줄로 서면 다음 주 ③ 이 같은 판정을 두 번 적는다.
         if text not in cleaned:
             cleaned.append(text)
     if len(cleaned) > _MAX_REPORT_GOALS:
-        raise HTTPException(status_code=422, detail="목표가 너무 많습니다.")
+        raise HTTPException(status_code=422, detail="목표가 너무 많아요.")
 
     now = datetime.now(timezone.utc)
     row = db.scalar(

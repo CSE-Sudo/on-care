@@ -76,7 +76,7 @@ class DemoWeeklyReportBook implements DemoPersistable {
     if (clientRequestId != null && _requests.containsKey(clientRequestId)) {
       return DemoCouponResult(201, _exchangeJson(_requests[clientRequestId]!));
     }
-    if (_hasTrainer()) return _error(409, '담당 트레이너가 리포트를 등록해 줘요.');
+    if (_hasTrainer()) return _error(409, '담당 트레이너가 주간 리포트를 보내 줘요.');
     final DateTime week = targetWeek;
     if (_weeks.contains(week)) return _error(409, '이 주의 리포트는 이미 받았어요.');
     final int shortfall = cost - _ledger.balance;

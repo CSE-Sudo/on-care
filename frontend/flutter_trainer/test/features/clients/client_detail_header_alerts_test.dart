@@ -95,7 +95,7 @@ void main() {
   testWidgets('신호 배지는 이름 아래 자기 줄에 급한 순으로 선다', (tester) async {
     await open(tester, <TrainerClient>[over()]);
 
-    expect(visibleBadges(tester), <String>['통증·불편', '칼로리 22% 과다']);
+    expect(visibleBadges(tester), <String>['통증·불편', '칼로리 22% 초과']);
     // 이름 줄이 아니라 그 아래다.
     final Rect name = tester.getRect(find.text('주의회원'));
     final Rect badges = tester.getRect(byKey('client-detail-signals'));

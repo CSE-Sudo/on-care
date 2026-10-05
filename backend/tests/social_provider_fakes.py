@@ -11,8 +11,7 @@ adapter 코드를 고치지 않고 실제 파싱 경로를 그대로 탄다.
   은 그 요청에 우리 앱 `app_id` 와 **본문의 `id` 를 그대로** 담은 토큰 정보를 돌려줘,
   기존 사용자 정보 본문만으로 정상 경로를 탈 수 있게 한다. `respond_raw` 는 두 요청에
   같은 본문을 준다(형식 이상·비 200 은 첫 요청에서 끝난다).
-- 네이버는 서버 측 코드 교환 전까지 닫혀 있다(501). 프로필 파싱은 코드 교환 뒤에 쓸
-  `NaverVerifier.read_profile` 로 검사하고, API 로 여는 provider 는 `OPEN_PROVIDERS` 다.
+- 네이버·애플 로그인은 제공하지 않는다(#3218). API 로 여는 provider 는 `OPEN_PROVIDERS` 다.
 - `use_app_ids(monkeypatch)` 로 허용 앱 설정을 테스트 값으로 고정한다.
 """
 from __future__ import annotations
@@ -26,7 +25,6 @@ from app.core.config import get_settings
 from app.services.social.base import SocialIdentity
 from app.services.social.google import GoogleVerifier
 from app.services.social.kakao import KakaoVerifier
-from app.services.social.naver import NaverVerifier
 
 #: 로그·응답·감사 기록에 새면 안 되는 값. 토큰과 응답 본문에 각각 심어 둔다.
 SECRET_TOKEN = "tok-secret-1550-do-not-log"
@@ -73,7 +71,7 @@ class ProviderCase:
     valid_body: Callable[[Any], dict]
     #: 필수 id 를 뺀 본문(형식은 정상).
     missing_id_body: dict
-    #: 토큰을 받아 adapter 의 파싱 경로를 탄다. 네이버는 코드 교환 뒤의 프로필 읽기.
+    #: 토큰을 받아 adapter 의 파싱 경로를 탄다.
     read: Callable[[str], Awaitable[SocialIdentity]]
 
 
@@ -95,20 +93,9 @@ PROVIDERS: dict[str, ProviderCase] = {
         missing_id_body={"kakao_account": {"email": "k@oncare.com"}},
         read=lambda token: KakaoVerifier().verify(token),
     ),
-    "naver": ProviderCase(
-        name="naver",
-        verifier=NaverVerifier,
-        valid_body=lambda uid: {
-            "resultcode": "00",
-            "message": "success",
-            "response": {"id": uid, "email": "n@oncare.com", "name": "네이버유저"},
-        },
-        missing_id_body={"resultcode": "00", "message": "success", "response": {"email": "n@oncare.com"}},
-        read=lambda token: NaverVerifier().read_profile(token),
-    ),
 }
 
-#: `POST /v1/auth/social/{provider}` 로 로그인이 열린 provider(네이버는 501 로 닫힘).
+#: `POST /v1/auth/social/{provider}` 로 로그인이 열린 provider.
 OPEN_PROVIDERS: tuple[str, ...] = ("google", "kakao")
 
 

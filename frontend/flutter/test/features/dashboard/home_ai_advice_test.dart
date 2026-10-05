@@ -83,7 +83,7 @@ void main() {
 
     test('키가 없으면 서버 문장을 그대로 쓴다', () {
       final DashboardSummary summary = _summary(
-        sodiumWarning: '오늘 나트륨이 3,000mg 으로 권장량을 넘었어요.',
+        sodiumWarning: '오늘 나트륨이 3,000mg 으로 목표를 넘었어요.',
       );
 
       final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
