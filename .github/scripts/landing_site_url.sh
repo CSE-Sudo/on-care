@@ -8,20 +8,38 @@
 # 운영 방문자가 데모로 넘어가고, 데모 주소가 바뀌거나 끊기면 운영 랜딩의 버튼까지 함께 죽는다.
 # og:url·canonical 은 상대 경로를 쓸 수 없어 원본에는 표시 줄(<!-- SITE_URL_META -->)만 두고,
 # 각 배포 워크플로가 자기 도메인으로 바꾼다.
+# 루트 절대 경로(`href="/…"`·`src="/…"`)도 막는다. Pages 는 /on-care/ 아래에서 서비스되므로 `/` 로
+# 시작하는 경로는 저장소 경로 밖(도메인 루트)을 가리킨다. 홈 화면 아이콘·manifest 는 배포가
+# docs/assets/landing/ 을 assets/landing/ 으로 올리고 랜딩이 그 상대 경로로 부른다.
 #
 # 사용
 #   bash landing_site_url.sh check  <index.html>
 #       앱 바로가기에 절대 주소가 없고, 상대 경로 바로가기와 표시 줄이 있는지 확인
+#   bash landing_site_url.sh check-manifest <manifest.json>
+#       랜딩 manifest 의 아이콘·start_url·scope·id 가 루트 절대 경로(`/…`)가 아닌지 확인
 #   bash landing_site_url.sh stamp  <배포용 index.html> <사이트 주소>
 #       표시 줄을 og:url·canonical 태그로 바꿈(사이트 주소는 https://도메인/ 형식)
 #   bash landing_site_url.sh verify <배포 주소> <사이트 주소> [대기 초]
 #       배포된 랜딩을 받아 바로가기가 상대 경로인지, canonical 이 사이트 주소인지,
-#       같은 도메인의 /member/·/trainer/·/legal/privacy.html 이 응답하는지 확인(캐시가 바뀔 때까지 재시도)
+#       같은 도메인의 /member/·/trainer/·/legal/privacy.html·랜딩 아이콘이 응답하고 manifest 가
+#       루트 절대 경로를 쓰지 않는지 확인(캐시가 바뀔 때까지 재시도)
 set -euo pipefail
 
 MARKER='<!-- SITE_URL_META -->'
 # 바로가기 href 가 http(s):// 로 시작하면서 member·trainer·legal 경로를 가리키면 절대 주소로 본다.
 ABSOLUTE_APP_LINK='href="https?://[^"]*/(member|trainer|legal)([/"#?])'
+# `/` 로 시작하는 href·src. 프로토콜 상대 주소(`//cdn…`)는 외부 주소라 뺀다.
+ROOT_ABSOLUTE_PATH='(href|src)="/([^/"][^"]*)?"'
+# manifest 에서 문서 위치 기준으로 풀리는 값이 `/` 로 시작하면 루트 절대 경로다.
+MANIFEST_ROOT_ABSOLUTE='"(src|start_url|scope|id)"[[:space:]]*:[[:space:]]*"/([^/"]|")'
+# 랜딩이 상대 경로로 부르는 아이콘·manifest(배포 산출물 기준).
+LANDING_ASSETS=(
+  assets/landing/manifest.json
+  assets/landing/apple-touch-icon.png
+  assets/landing/icon-192.png
+  assets/landing/icon-512.png
+  assets/landing/icon-maskable-512.png
+)
 
 fail() {
   echo "::error title=landing::$1"
@@ -29,7 +47,7 @@ fail() {
 }
 
 usage() {
-  echo "사용: $0 check <index.html> | stamp <index.html> <site_url> | verify <base_url> <site_url> [wait_seconds]" >&2
+  echo "사용: $0 check <index.html> | check-manifest <manifest.json> | stamp <index.html> <site_url> | verify <base_url> <site_url> [wait_seconds]" >&2
   exit 2
 }
 
@@ -38,6 +56,11 @@ inspect_html() {
   local file="$1" found
   if found=$(grep -nE "$ABSOLUTE_APP_LINK" "$file"); then
     echo "앱 바로가기에 절대 주소가 있습니다. member/·trainer/ 상대 경로를 쓰세요."
+    echo "$found"
+    return 1
+  fi
+  if found=$(grep -nE "$ROOT_ABSOLUTE_PATH" "$file"); then
+    echo "루트 절대 경로(href=\"/…\"·src=\"/…\")가 있습니다. 하위 경로(/on-care/) 배포에서 깨지므로 상대 경로를 쓰세요."
     echo "$found"
     return 1
   fi
@@ -51,6 +74,21 @@ inspect_html() {
   fi
   if ! grep -qE 'href="(\./)?legal/privacy\.html"' "$file"; then
     echo "개인정보 처리방침 상대 경로 링크(href=\"legal/privacy.html\")가 없습니다."
+    return 1
+  fi
+  return 0
+}
+
+# 랜딩 manifest 를 검사한다. 실패 사유를 표준 출력으로 내고 0/1 을 돌려준다.
+inspect_manifest() {
+  local file="$1" found
+  if found=$(grep -nE "$MANIFEST_ROOT_ABSOLUTE" "$file"); then
+    echo "manifest 에 루트 절대 경로가 있습니다. manifest 위치 기준 상대 경로를 쓰세요."
+    echo "$found"
+    return 1
+  fi
+  if ! grep -qE '"start_url"' "$file"; then
+    echo "manifest 에 start_url 이 없습니다."
     return 1
   fi
   return 0
@@ -90,6 +128,15 @@ cmd_check() {
   echo "랜딩 바로가기 확인 완료: $file"
 }
 
+cmd_check_manifest() {
+  local file="$1" reason
+  [ -f "$file" ] || fail "파일이 없습니다: $file"
+  if ! reason=$(inspect_manifest "$file"); then
+    fail "$file: $reason"
+  fi
+  echo "랜딩 manifest 확인 완료: $file"
+}
+
 cmd_stamp() {
   local file="$1" site_url tags tmp
   cmd_check "$file"
@@ -105,7 +152,7 @@ cmd_stamp() {
 }
 
 cmd_verify() {
-  local base="${1%/}" site_url wait_seconds deadline page reason path
+  local base="${1%/}" site_url wait_seconds deadline page manifest reason path
   validate_site_url "$2"
   site_url=$(normalize_site_url "$2")
   wait_seconds="${3:-300}"
@@ -135,11 +182,18 @@ cmd_verify() {
   done
   rm -f "$page"
   # 상대 경로 바로가기는 같은 도메인의 이 경로들로 열린다. 처리방침은 스토어 심사가 여는
-  # 공개 주소라 함께 본다(#3005).
-  for path in member/ trainer/ legal/privacy.html; do
+  # 공개 주소라 함께 본다(#3005). 랜딩 아이콘·manifest 도 같은 배포에 있어야 한다.
+  for path in member/ trainer/ legal/privacy.html "${LANDING_ASSETS[@]}"; do
     curl -fsS --max-time 20 -o /dev/null "$base/$path" || fail "바로가기 목적지 $base/$path 가 응답하지 않습니다."
   done
-  echo "배포된 랜딩 확인 완료: $base/ → $base/member/, $base/trainer/, $base/legal/privacy.html (canonical ${site_url})"
+  manifest="$(mktemp)"
+  curl -fsS --max-time 20 -o "$manifest" "$base/assets/landing/manifest.json"     || { rm -f "$manifest"; fail "$base/assets/landing/manifest.json 을 받지 못했습니다."; }
+  if ! reason=$(inspect_manifest "$manifest"); then
+    rm -f "$manifest"
+    fail "배포된 랜딩 manifest 확인 실패($base): $reason"
+  fi
+  rm -f "$manifest"
+  echo "배포된 랜딩 확인 완료: $base/ → $base/member/, $base/trainer/, $base/legal/privacy.html, $base/assets/landing/ (canonical ${site_url})"
 }
 
 [ $# -ge 1 ] || usage
@@ -147,6 +201,7 @@ command="$1"
 shift
 case "$command" in
   check) [ $# -eq 1 ] || usage; cmd_check "$1" ;;
+  check-manifest) [ $# -eq 1 ] || usage; cmd_check_manifest "$1" ;;
   stamp) [ $# -eq 2 ] || usage; cmd_stamp "$1" "$2" ;;
   verify) [ $# -ge 2 ] && [ $# -le 3 ] || usage; cmd_verify "$@" ;;
   *) usage ;;
