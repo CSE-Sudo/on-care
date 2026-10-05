@@ -58,7 +58,7 @@ class ChatInProgress(AiChatQuotaError):
 
 
 #: 답을 잇지 못한 채 이만큼 지난 예약은 버려진 것으로 본다 — 답을 기다리던 프로세스가
-#: 끝난 경우다. 같은 멱등키로 다시 오면 거두고 새로 잡는다. LLM 대기보다 넉넉하다.
+#: 끝난 경우다. 그 회원의 다음 전송이 거둔다([reserve]). LLM 대기보다 넉넉하다.
 RESERVATION_STALE_AFTER = timedelta(minutes=5)
 
 
@@ -137,24 +137,25 @@ def reserve(
     [points_service.InsufficientPoints] 다. 답을 받으면 [complete], 아니면 [release].
 
     같은 멱등키로 아직 답을 기다리는 줄이 있으면 [ChatInProgress] 다. 오래 묵은
-    줄([RESERVATION_STALE_AFTER])은 버려진 것으로 보고 거둔 뒤 새로 잡는다.
+    줄([RESERVATION_STALE_AFTER])은 키와 관계없이 버려진 것으로 보고 먼저 거둔다 —
+    답을 기다리던 프로세스가 끝나 남은 줄이 그날 몫과 포인트를 붙들지 않게.
     """
     _, _, cost = _limits()
     points_service.lock_balance(db, user_id)
+    _drop_abandoned(db, user_id)
     if client_request_id:
         existing = by_request(db, user_id, client_request_id)
         if existing is not None:
             if existing.message_id is not None:
                 # 답했던 대화가 한 달이 지나 지워졌다 — 새로 답하고 새로 센다.
                 existing.client_request_id = None
-            elif existing.created_at and (
-                clock.now() - clock.to_seoul(existing.created_at)
-                < RESERVATION_STALE_AFTER
-            ):
+            elif existing.kst_date != clock.today_iso():
+                # 지난 날 버려진 줄 — 오늘 정리에 들지 않으니 여기서 거둔다.
+                _drop(db, existing)
+            else:
+                # 묵은 줄은 위에서 거뒀다 — 남은 빈 줄은 지금 답을 기다리는 중이다.
                 db.rollback()
                 raise ChatInProgress("같은 메시지에 답하는 중이에요.")
-            else:
-                _drop(db, existing)
             db.flush()
     try:
         paid = _check(db, user_id, pay_with_points=pay_with_points)
@@ -213,6 +214,25 @@ def release(db: Session, user_id: str, usage_id: str) -> None:
     if row is not None and row.user_id == user_id:
         _drop(db, row)
     db.commit()
+
+
+def _drop_abandoned(db: Session, user_id: str) -> None:
+    """답을 잇지 못한 채 [RESERVATION_STALE_AFTER] 넘게 묵은 예약을 거둔다(커밋 없음).
+
+    잔액 행을 잠근 뒤에 부른다. 오늘 줄만 본다 — 한도를 붙드는 것은 오늘 줄뿐이고,
+    지난 기록의 원장은 건드리지 않는다.
+    """
+    cutoff = clock.now() - RESERVATION_STALE_AFTER
+    rows = db.scalars(
+        select(AiChatUsage).where(
+            AiChatUsage.user_id == user_id,
+            AiChatUsage.kst_date == clock.today_iso(),
+            AiChatUsage.message_id.is_(None),
+            AiChatUsage.created_at < cutoff,
+        )
+    ).all()
+    for row in rows:
+        _drop(db, row)
 
 
 def _drop(db: Session, row: AiChatUsage) -> None:

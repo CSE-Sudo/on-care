@@ -287,3 +287,44 @@ def test_a_resend_while_the_first_is_waiting_is_in_progress(
 
     assert r.status_code == 409, r.text
     assert r.json()["detail"]["code"] == "in_progress"
+
+
+def test_an_abandoned_reservation_is_swept_by_the_next_send(
+    client, db_session, small_limits
+):
+    """답을 기다리던 프로세스가 끝나 남은 예약은 다음 전송이 거둔다 — 키가 달라도.
+
+    거두지 않으면 그날 몫과 잡아 둔 포인트가 답 없이 묶인다.
+    """
+    from datetime import timedelta
+
+    from app.core import clock
+    from app.models.models import AiChatUsage
+    from app.services import ai_chat_quota_service, points_service
+
+    h = _member(client, db_session, points=100)
+    member_id = _member_id(client, h)
+    ai_chat_quota_service.reserve(
+        db_session, member_id, pay_with_points=False, client_request_id=uuid4().hex
+    )
+    abandoned = ai_chat_quota_service.reserve(
+        db_session, member_id, pay_with_points=True, client_request_id=uuid4().hex
+    )
+    db_session.expire_all()
+    assert points_service.balance(db_session, member_id) == 50
+    for row in db_session.scalars(
+        select(AiChatUsage).where(AiChatUsage.user_id == member_id)
+    ).all():
+        row.created_at = clock.now() - timedelta(minutes=10)
+    db_session.commit()
+
+    # 무료 몫이 돌아와 동의 없이 보낼 수 있고, 잡혔던 50P 도 돌아온다.
+    fresh = ai_chat_quota_service.reserve(
+        db_session, member_id, pay_with_points=False, client_request_id=uuid4().hex
+    )
+
+    db_session.expire_all()
+    assert db_session.get(AiChatUsage, abandoned) is None
+    assert db_session.get(AiChatUsage, fresh) is not None
+    assert points_service.balance(db_session, member_id) == 100
+    assert _ai_chat_ledger(db_session, member_id) == []
