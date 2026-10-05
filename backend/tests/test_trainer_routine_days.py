@@ -555,9 +555,48 @@ def test_upcoming_is_the_latest_approved_send_only(db_session, pair):
     assert up.starts_on == TODAY + timedelta(days=6)
     assert up.names == ["런지", "플랭크"]
 
+    # 거절된 후보도 예정이 아니다.
+    candidate.status = "dismissed"
+    db_session.commit()
+    up = member_mirror.build_member_upcoming_routines(db_session, pair.member_id)
+    assert up is not None and up.names == ["런지", "플랭크"]
+
     # 더 이른 시작일로 다시 보내면 늦은 묶음은 걸리기 전에 내려가고 새 것만 남는다.
     _send(db_session, pair, TODAY + timedelta(days=3), "스쿼트")
     up = member_mirror.build_member_upcoming_routines(db_session, pair.member_id)
     assert up is not None
     assert (up.starts_on, up.names) == (TODAY + timedelta(days=3), ["스쿼트"])
+
+
+def test_upcoming_ignores_another_trainers_send(db_session, pair):
+    """지금 담당이 아닌 트레이너가 보낸 미래 개인운동은 예정에 들지 않는다."""
+    from app.services.trainer import member_mirror
+
+    other = f"rd-other-{uuid4().hex[:10]}"
+    db_session.add(_user(other, "trainer"))
+    db_session.flush()
+    db_session.add(
+        TrainerRoutine(
+            id=f"rt-{uuid4().hex[:12]}",
+            trainer_id=other,
+            member_id=pair.member_id,
+            name="남의 개인운동",
+            minutes=20,
+            type="유산소",
+            source="trainer",
+            sort_order=1,
+            status="approved",
+            delivery_kind=DELIVERY_ROUTINE_ONLY,
+            active_from=(TODAY + timedelta(days=2)).isoformat(),
+            ended_on=(TODAY + timedelta(days=9)).isoformat(),
+            created_at=noon(TODAY),
+        )
+    )
+    db_session.commit()
+    try:
+        assert member_mirror.build_member_upcoming_routines(db_session, pair.member_id) is None
+    finally:
+        db_session.rollback()
+        db_session.execute(text("DELETE FROM users WHERE id = :id"), {"id": other})
+        db_session.commit()
 
