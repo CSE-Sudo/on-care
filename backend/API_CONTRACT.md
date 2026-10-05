@@ -1894,6 +1894,24 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은
 - `PUT /trainer/me` 로 `gym_name`·`gym_address`·`gym_hours`·`gym_phone` 을 보내면 소속 유무와
   관계없이 **409** 이고, 함께 온 다른 필드도 반영하지 않는다. 헬스장 문자열은 소속에서만 파생된다.
 
+### 트레이너 소속 헬스장 정보 수정 (#2700)
+
+| Method | Path | Body / Query → Response |
+|---|---|---|
+| GET | `/trainer/me/gym/profile` | → `{ gym_id, name, weekday_hours, weekend_hours, phone, tags[] }` |
+| PUT | `/trainer/me/gym/profile` | `{ weekday_hours?, weekend_hours?, phone?, tags? }` (보낸 칸만) → 위와 같은 꼴 |
+
+- **소속 트레이너 누구나** 고칠 수 있다. 헬스장에 대표 트레이너 개념이 없어서이고, 마지막에 저장한
+  값이 남는다. 소속이 없으면 두 경로 모두 **409**.
+- 고친 값은 `gym_profiles` 에 들어가 회원 앱 `GET /gyms`·`GET /gyms/{id}`·`GET /me/gym` 에 그대로
+  나간다. 카카오에서 등록한 헬스장처럼 `gym_profiles` 행이 없으면 만든다(`is_partner=false`).
+- 소속을 정할 때 복사해 둔 `trainer_profiles.gym_hours`(평일 영업시간)·`gym_phone` 을 **같은 헬스장
+  소속 트레이너 모두** 함께 갱신한다 — 동료의 `TrainerMe.gym`·회원 코치 카드에 옛 값이 남지 않는다.
+- 검증: 영업시간 각 50자·전화 20자 이하, 태그 최대 10개·각 1~20자(앞뒤 공백 제거, 중복은 하나로).
+  빈 문자열은 "비운다", `null` 은 422, 빈 본문은 400. 전화번호에는 휴대전화 규칙을 걸지 않는다
+  (`02-332-1720` 같은 대표번호, #1914).
+- **평점은 받지 않는다** — `rating` 을 보내면 422.
+
 ### 트레이너 신고와 계정 관리 (#3008)
 
 **트레이너 운영자 승인 절차는 없다.** 공개 가입(`POST /auth/trainer/register`)으로 생긴 트레이너는

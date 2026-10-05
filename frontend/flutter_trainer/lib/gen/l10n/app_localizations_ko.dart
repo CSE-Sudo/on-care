@@ -5912,4 +5912,72 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get errorServerTemporary => '서버에 일시적인 문제가 있습니다. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get myGymInfoEdit => '헬스장 정보 수정';
+
+  @override
+  String get myGymInfoSubtitle =>
+      '회원 앱 헬스장 목록과 상세에 그대로 보여요. 같은 헬스장 트레이너 누구나 고칠 수 있고, 마지막에 저장한 내용이 남아요.';
+
+  @override
+  String get myGymInfoCardTitle => '회원에게 보이는 헬스장 정보';
+
+  @override
+  String get myGymWeekdayHours => '평일 영업시간';
+
+  @override
+  String get myGymWeekendHours => '주말 영업시간';
+
+  @override
+  String get myGymHoursHint => '예: 06:00 - 23:00';
+
+  @override
+  String get myGymPhone => '대표 전화';
+
+  @override
+  String get myGymPhoneHint => '예: 02-123-4567';
+
+  @override
+  String get myGymTags => '태그';
+
+  @override
+  String get myGymAddTag => '태그 추가...';
+
+  @override
+  String get myGymTagsEmpty => '아직 태그가 없어요.';
+
+  @override
+  String get myGymInfoLoadFailed => '헬스장 정보를 불러오지 못했어요.';
+
+  @override
+  String get myGymInfoSaveFailed => '헬스장 정보를 저장하지 못했어요.';
+
+  @override
+  String get a11yRemoveGymTag => '태그 지우기';
+
+  @override
+  String myGymTagsHint(int max, int length) {
+    return '회원 앱 헬스장 카드에 칩으로 보여요. 최대 $max개, 한 개에 $length자까지 적을 수 있어요.';
+  }
+
+  @override
+  String myGymTagsFull(int max) {
+    return '태그는 $max개까지 넣을 수 있어요';
+  }
+
+  @override
+  String myGymTagTooLong(int length) {
+    return '태그는 $length자까지 적을 수 있어요';
+  }
+
+  @override
+  String myGymHoursWeekday(String hours) {
+    return '평일 $hours';
+  }
+
+  @override
+  String myGymHoursWeekend(String hours) {
+    return '주말 $hours';
+  }
 }
