@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
+import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/reservation_slot_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/reservation_slot.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
@@ -152,11 +153,16 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
 
   String _errorMessage(AppLocalizations l, Object error) {
     if (error is DioException) {
-      final data = error.response?.data;
-      if (data is Map<String, dynamic> && data['detail'] is String) {
-        // 서버가 보낸 사유는 한국어 화면에서만 그대로 쓴다. (#501)
-        return serverDetailOr(l, data['detail'] as String, l.slotActionFailed);
-      }
+      // 서버가 보낸 사유는 한국어 화면에서만 그대로 쓰고(#501), 사유가 없으면
+      // 원인별 안내로 물러난다 — Dio 의 영어 설명문은 화면에 올리지 않는다.
+      return appErrorMessage(
+        l,
+        AppError.fromDio(error),
+        fallback: l.slotActionFailed,
+      );
+    }
+    if (error is AppError) {
+      return appErrorMessage(l, error, fallback: l.slotActionFailed);
     }
     if (error is StateError) {
       // 목 리포지토리는 코드를 던진다 — 문구는 여기서 붙인다. (#501)

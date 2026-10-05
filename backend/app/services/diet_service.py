@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import uuid
 from dataclasses import dataclass
 from datetime import date as date_type, timedelta
@@ -76,12 +77,37 @@ def load_foods(foods_json: str) -> list[dict]:
     out: list[dict] = []
     for food in foods:
         if isinstance(food, dict):
-            out.append(
-                {field: food[field] for field in _FOOD_STORAGE_FIELDS if field in food}
-            )
+            item = {field: food[field] for field in _FOOD_STORAGE_FIELDS if field in food}
         elif isinstance(food, str) and food.strip():
-            out.append({"name": food.strip()})
+            item = {"name": food.strip()}
+        else:
+            continue
+        item["calories"] = _food_calories(item.get("calories"))
+        out.append(item)
     return out
+
+
+def _food_calories(value: object) -> int:
+    """음식 한 줄의 칼로리를 응답용 정수로 접는다. 모르면 0 이다.
+
+    사진 인식이 칼로리를 읽지 못하면 `None` 으로 저장되고(`recognizer/parse.py`
+    `as_bounded_int`, 영양 DB 보강도 붙지 않은 경우), 옛 문자열 항목은 칼로리 키
+    자체가 없다(#724). 앱은 음식마다 정수 칼로리를 받는다고 보고 읽으므로, 한
+    줄이라도 `null` 이면 그날 식단 전체의 파싱이 실패했다. 끼니 합계도 이미 None 을
+    0 으로 센다(`DietAnalysis.compute_totals`) — 같은 규칙이다.
+    """
+    if isinstance(value, bool):
+        return 0
+    if isinstance(value, str):
+        try:
+            value = float(value.strip())
+        except ValueError:
+            return 0
+    if isinstance(value, int):
+        return max(0, value)
+    if isinstance(value, float) and math.isfinite(value):
+        return max(0, round(value))
+    return 0
 
 
 def store_foods(foods: list[RecognizedFood]) -> list[dict]:

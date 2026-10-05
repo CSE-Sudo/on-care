@@ -13,8 +13,15 @@ import os
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 import psycopg
+
+# `python scripts/migrate.py` 로 돌면 경로 맨 앞이 scripts/ 라 `app` 을 못 찾는다.
+# 설정 검증과 같은 주소 판정(#3146)을 쓰려고 backend/ 를 경로에 넣는다.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from app.core.db_url import pooler_problem  # noqa: E402
 
 # 마이그레이션 전용 고정 advisory lock 키(임의 상수). 다른 용도와 겹치지 않게.
 _LOCK_KEY = 4815162342
@@ -33,9 +40,23 @@ def _try_acquire(conn: psycopg.Connection) -> bool:
     return bool(row and row[0])
 
 
+def _is_prod_env() -> bool:
+    """`Settings.is_prod` 와 같은 판정. 앱 설정 전체를 읽지 않고 ENV 만 본다."""
+    return os.environ.get("ENV", "").strip().lower() in ("prod", "production")
+
+
 def main() -> int:
+    raw_url = os.environ["DATABASE_URL"]
+    # 풀러(트랜잭션 풀링) 주소면 아래 세션 잠금이 아무것도 직렬화하지 못한다(#3146).
+    # 운영은 잠금을 잡기 전에 멈추고, 개발·스테이징은 남기고 계속한다.
+    problem = pooler_problem(raw_url)
+    if problem:
+        if _is_prod_env():
+            print(f"[migrate] ERROR: {problem} 기동을 중단한다.", flush=True)
+            return 1
+        print(f"[migrate] WARN: {problem}", flush=True)
     # DATABASE_URL 은 SQLAlchemy 형식(postgresql+psycopg://...) → psycopg 는 순수 postgresql://
-    url = os.environ["DATABASE_URL"].replace("postgresql+psycopg://", "postgresql://")
+    url = raw_url.replace("postgresql+psycopg://", "postgresql://")
     conn = psycopg.connect(url, autocommit=True, connect_timeout=_CONNECT_TIMEOUT_SECONDS)
     try:
         deadline = time.monotonic() + _LOCK_TIMEOUT_SECONDS

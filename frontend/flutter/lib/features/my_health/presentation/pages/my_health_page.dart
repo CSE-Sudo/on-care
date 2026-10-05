@@ -35,6 +35,7 @@ import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/features/my_health/presentation/widgets/trainer_sync_sheet.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_core/request_id.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -289,11 +290,12 @@ class _MyStateLoadFailed extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final AppLocalizations l = AppLocalizations.of(context);
     return AppCard(
-      child: AppErrorState(
+      // 실패한 조회의 오류로 원인 문구를 고른다(#3140).
+      child: appErrorStateFor(
+        context,
+        error: ref.watch(myHealthStateProvider).error,
         title: title,
-        retryLabel: l.actionRetry,
         retryKey: retryKey,
         onRetry: () => ref.invalidate(myHealthStateProvider),
         placement: AppStatePlacement.card,
@@ -318,10 +320,11 @@ class _ProfileCard extends ConsumerWidget {
       head = _ProfileHead(profile: health.requireValue.profile);
     } else if (!health.isLoading && health.hasError) {
       // 다시 시도 중에는 오류 대신 아래 로딩 모양이다 — 누른 것이 먹혔음을 보인다.
-      head = AppErrorState(
+      head = appErrorStateFor(
+        context,
         key: const Key('profileLoadFailed'),
+        error: health.error,
         title: l.myProfileLoadFailed,
-        retryLabel: l.actionRetry,
         retryKey: const Key('profileRetry'),
         onRetry: () => ref.invalidate(myHealthStateProvider),
         placement: AppStatePlacement.card,
@@ -1255,11 +1258,12 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
             AppCard(child: AppLoading(placement: AppStatePlacement.card)),
             SizedBox(height: OnCareSpacing.cardGap),
           ],
-          error: (_, _) => <Widget>[
+          error: (Object error, _) => <Widget>[
             AppCard(
-              child: AppErrorState(
+              child: appErrorStateFor(
+                context,
+                error: error,
                 title: l.myGraphLoadFailed,
-                retryLabel: l.actionRetry,
                 onRetry: () => ref.invalidate(activityCalendarProvider),
                 placement: AppStatePlacement.card,
               ),
@@ -1312,11 +1316,12 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
           loading: () => const <Widget>[
             AppCard(child: AppLoading(placement: AppStatePlacement.card)),
           ],
-          error: (_, _) => <Widget>[
+          error: (Object error, _) => <Widget>[
             AppCard(
-              child: AppErrorState(
+              child: appErrorStateFor(
+                context,
+                error: error,
                 title: l.myPointsShopLoadFailed,
-                retryLabel: l.actionRetry,
                 onRetry: () => ref.invalidate(pointsShopProvider),
                 placement: AppStatePlacement.card,
               ),
@@ -1579,10 +1584,11 @@ class _TrainerGymSection extends ConsumerWidget {
           loading: () => const AppCard(
             child: AppLoading(placement: AppStatePlacement.card),
           ),
-          error: (_, _) => AppCard(
-            child: AppErrorState(
+          error: (Object error, _) => AppCard(
+            child: appErrorStateFor(
+              context,
+              error: error,
               title: l.myGymLoadFailed,
-              retryLabel: l.actionRetry,
               onRetry: () => ref.invalidate(myGymProvider),
               placement: AppStatePlacement.card,
             ),

@@ -27,6 +27,9 @@ def _prod(**kw) -> Settings:
         recognizer="gemini",
         embedder="gemini",
         gemini_api_key="test-gemini-key",
+        # 운영은 메일 발송 설정이 필수다 — 없으면 가입 인증 코드를 못 보내 기동 거부(#3131).
+        smtp_host="smtp.example.com",
+        mail_from="no-reply@example.com",
     )
     base.update(kw)
     return Settings(**base)
@@ -70,6 +73,8 @@ def test_prod_accepts_litellm_recognizer_and_openai_embedder_when_configured():
         litellm_api_key="vk",
         embedder="openai",
         openai_api_key="sk-test",
+        # Gemini 키가 없으니 코치도 키가 있는 엔진으로 고른다(#3145).
+        coach_llm="litellm",
     )
     assert s.missing_ai_config() == []
 

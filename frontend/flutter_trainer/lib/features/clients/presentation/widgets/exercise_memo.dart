@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_core/clock.dart';
-
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
@@ -354,7 +353,7 @@ class _ExerciseMemoDialogState extends ConsumerState<_ExerciseMemoDialog> {
       setState(() => _busy = false);
       showAppToast(
         context,
-        serverDetailOr(l, error.message, l.clientTrainerMemoSaveFailed),
+        appErrorMessage(l, error, fallback: l.clientTrainerMemoSaveFailed),
         type: AppToastType.error,
       );
     } on Object {
