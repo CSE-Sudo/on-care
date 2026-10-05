@@ -225,7 +225,10 @@ flutter build ipa --release --dart-define-from-file=config/release.json
 2. 빌드 전에 `bash tool/check_release_defines.sh config/release.json` 을 돌립니다. 키가 빠졌거나 형식이
    틀리면(`ENV` 가 `prod`·`staging` 이 아님, 목업, `http://`·예시·로컬 주소, DSN 없음, 데모 전용 스위치
    `DEMO_BUILD`·`SHOW_DEMO_ENTRY`·`REAL_API` 가 남음) 빌드하지 말라는 오류와 함께 멈춥니다.
-3. `flutter build appbundle|ipa --release --dart-define-from-file=config/release.json` 으로 빌드합니다.
+3. `python3 ../tool/strip_demo_assets.py .` 로 pubspec 의 데모 전용 자산 구간(`# >>> demo-assets`)을 지웁니다.
+   데모 시드 사진·데모 대화 첨부가 스토어 빌드에 실리지 않게 합니다(#3157). 서명 빌드 워크플로는 이 단계를
+   빌드 직전에 돌립니다. 손으로 빌드했다면 끝난 뒤 `git checkout pubspec.yaml` 로 되돌립니다.
+4. `flutter build appbundle|ipa --release --dart-define-from-file=config/release.json` 으로 빌드합니다.
 
 빌드 단계를 건너뛰어도 앱이 한 번 더 막습니다. 릴리스 모드에서 `ENV` 가 `prod`·`staging` 이 아니거나,
 데모 빌드 표시(`DEMO_BUILD=true`) 없이 목업이거나, API 주소가 `https://` 가 아니거나 예시·로컬

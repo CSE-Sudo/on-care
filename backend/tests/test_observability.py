@@ -92,6 +92,7 @@ _COORDINATE_REQUESTS = [
     f"/v1/gyms?lat={_LAT}&lng={_LNG}",
     f"/v1/gyms/1?lat={_LAT}&lng={_LNG}",
     f"/v1/trainer/gyms/search?query={_SEARCH_WORD}&lat={_LAT}&lng={_LNG}",
+    f"/v1/trainer/gyms/nearby?lat={_LAT}&lng={_LNG}",
 ]
 
 

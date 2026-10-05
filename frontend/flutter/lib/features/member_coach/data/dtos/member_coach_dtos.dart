@@ -65,6 +65,24 @@ CoachRoutine coachRoutineFromJson(Map<String, Object?> json) {
   );
 }
 
+/// `/me/coach/routines/upcoming` (UpcomingRoutinesOut) → [UpcomingRoutines].
+/// 날짜가 깨지거나 운동이 없으면 null — 보여 줄 예정이 없다. (#3106)
+UpcomingRoutines? upcomingRoutinesFromJson(Map<String, Object?> json) {
+  final DateTime? startsOn = DateTime.tryParse(_str(json['starts_on']));
+  final Object? raw = json['names'];
+  final List<String> names = <String>[
+    if (raw is List<Object?>)
+      for (final Object? name in raw)
+        if (name is String && name.trim().isNotEmpty) name.trim(),
+  ];
+  if (startsOn == null || names.isEmpty) return null;
+  return UpcomingRoutines(
+    startsOn: startsOn,
+    sentOn: DateTime.tryParse(_str(json['sent_on'])) ?? startsOn,
+    names: names,
+  );
+}
+
 /// `RoutineOut.exercises` → [CoachRoutineExercise] 목록. (#709)
 ///
 /// 키가 아예 없던 예전 응답은 빈 목록이라, 화면이 예전처럼 [CoachRoutine.reason]

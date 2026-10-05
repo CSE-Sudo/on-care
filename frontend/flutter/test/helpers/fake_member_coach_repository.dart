@@ -108,6 +108,13 @@ class FakeMemberCoachRepository implements MemberCoachRepository {
   Stream<List<CoachMessage>> watchChat() =>
       Stream<List<CoachMessage>>.value(pageCoachChat(chat));
 
+  /// 운동 탭의 추천 개인운동 카드가 오늘 목록과 함께 읽는다(#3106). 예정이
+  /// 없는 회원이 기본이다.
+  UpcomingRoutines? upcoming;
+
+  @override
+  Future<UpcomingRoutines?> fetchUpcomingRoutines() async => upcoming;
+
   // ── 이 화면들이 부르지 않는 것 ─────────────────────────────────────────
   //
   // 비워 두지 않고 던진다. 조용한 기본값은 화면이 부르지 말아야 할 것을 불러도

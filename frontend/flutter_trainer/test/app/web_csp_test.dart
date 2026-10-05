@@ -185,4 +185,14 @@ void main() {
     expect(markup, contains('<script src="js/boot_status.js"></script>'));
     expect(directives()['script-src'], isNot(contains("'unsafe-inline'")));
   });
+
+  test('old service worker cleanup runs from a same-origin file (#3204)', () {
+    // 예전 빌드의 서비스 워커를 지우는 스크립트도 인라인으로 두면 'unsafe-inline' 을
+    // 열어야 한다. 같은 출처 파일이고, 정책은 그대로다. 워커를 더 쓰지 않으므로
+    // worker-src 는 pdf.js·drift 워커용 그대로다.
+    expect(File('web/js/sw_cleanup.js').existsSync(), isTrue);
+    expect(markup, contains('<script src="js/sw_cleanup.js"></script>'));
+    expect(directives()['script-src'], isNot(contains("'unsafe-inline'")));
+    expect(directives()['worker-src'], <String>["'self'", 'blob:']);
+  });
 }
