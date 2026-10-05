@@ -539,10 +539,10 @@ void main() {
     testWidgets('김민수 데모 시드에 리포트 등록 카드가 있다 (#1605)', (tester) async {
       await openMessages(tester);
 
-      expect(find.text('리포트가 등록되었어요'), findsOneWidget);
+      expect(find.text('주간 리포트를 보냈어요'), findsOneWidget);
       expect(find.text('리포트 탭으로 가기'), findsOneWidget);
       // 카드로 그리므로 본문은 말풍선으로 나타나지 않는다.
-      expect(find.text('이번 주 리포트 등록해 뒀어요. 확인해 보세요'), findsNothing);
+      expect(find.text('이번 주 리포트 보내 드렸어요. 확인해 보세요'), findsNothing);
     });
 
     testWidgets('리포트 전송 메시지는 일반 말풍선이 아니라 카드로 뜨고, 누르면 리포트로 이동한다 (#1378)', (
@@ -575,7 +575,7 @@ void main() {
       // 회원 앱과 같은 정보 구조 — 상태 문구, 대상 주, 다음 행동.
       final notice = find.descendant(
         of: card,
-        matching: find.text('리포트가 등록되었어요'),
+        matching: find.text('주간 리포트를 보냈어요'),
       );
       final goToReports = find.descendant(
         of: card,

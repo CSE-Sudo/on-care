@@ -27,7 +27,7 @@ _REMOVED_SUMMARY_FIELDS = (
         (
             2100,
             [],
-            "오늘 나트륨이 2,100mg으로 권장량(2,000mg)을 넘었어요.",
+            "오늘 나트륨이 2,100mg으로 목표(2,000mg)를 넘었어요.",
         ),
         (2100, ["라면"], "라면 섭취로 나트륨이 높아요."),
         (2100, ["김밥", "라면"], "김밥·라면 섭취로 나트륨이 높아요."),
@@ -48,7 +48,7 @@ def test_build_sodium_warning(
 
 def test_build_sodium_warning_uses_personal_goal():
     assert _build_sodium_warning(1600, [], 1500) == (
-        "오늘 나트륨이 1,600mg으로 권장량(1,500mg)을 넘었어요."
+        "오늘 나트륨이 1,600mg으로 목표(1,500mg)를 넘었어요."
     )
 
 
@@ -225,7 +225,7 @@ def test_dashboard_names_the_advice_it_chose(client, db_session):
     # 나트륨 경고가 있으면 그것이 조언이다 — 앱이 고르는 순서와 같다.
     assert (
         _advice_key(
-            sodium_warning="오늘 나트륨이 3,000mg으로 권장량(2,000mg)을 넘었어요.",
+            sodium_warning="오늘 나트륨이 3,000mg으로 목표(2,000mg)를 넘었어요.",
             sodium_source_names=[],
             exercise_advice_key="exercise_start",
         )

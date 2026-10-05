@@ -54,8 +54,8 @@ DEMO_NOTIFICATIONS: tuple[DemoNotification, ...] = (
     ),
     DemoNotification(
         "noti-demo-4",
-        "이번 주 리포트가 등록됐어요",
-        f"{TRAINER_NAME} 트레이너님이 이번 주 리포트를 등록했어요.",
+        "주간 리포트가 도착했어요",
+        f"{TRAINER_NAME} 트레이너님이 주간 리포트를 보냈어요.",
         notification_service.MEMBER_COACH_REPORT,
         timedelta(minutes=45),
     ),

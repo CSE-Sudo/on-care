@@ -197,7 +197,7 @@
   "weekdaySat": "토",
   "weekdaySun": "일",
   "clientsLoadFailed": "회원 정보를 불러오지 못했어요",
-  "clientsNew": "신규 회원 등록",
+  "clientsNew": "회원 연결",
   "clientsTitle": "회원 관리",
   "clientsManagementAttention": "관리 필요",
   "clientsFiltersClearAll": "전체 초기화",
@@ -209,11 +209,11 @@
   "clientsFilterLabel": "필터",
   "clientsPickHint": "왼쪽에서 회원을 선택하면\n대화·식단·운동 기록이 여기에 열려요",
   "clientsEmpty": "아직 담당 회원이 없어요",
-  "clientsEmptyConnectHint": "연결 코드를 받거나 담당 요청을 보내 회원을 연결하세요. 회원이 상담을 신청하면 상담 요청함에도 표시돼요.",
+  "clientsEmptyConnectHint": "연결 코드를 받거나 담당 요청을 보내 회원을 연결하세요. 회원이 상담을 신청하면 상담 요청에도 표시돼요.",
   "clientsEmptyForFilter": "{filter}에 해당하는 회원이 없어요",
   "clientsMemberCount": "{total}명",
   "clientsMemberCountFiltered": "{total}명 중 {shown}명",
-  "clientWeeklyRoutineAdherence": "주간 이행률",
+  "clientWeeklyRoutineAdherence": "주간 완료율",
   "clientRoutineAdherenceUnmeasured": "미집계",
   "clientsSignalDiscomfort": "통증·불편",
   "clientsSignalRecordGap": "기록 끊김",
@@ -225,10 +225,10 @@
   "clientsSignalExerciseGoalLow": "운동 목표 미달",
   "clientsSignalExerciseGoalLowPercent": "운동 목표 {percent}%",
   "clientsSignalCalorieOff": "칼로리 목표 이탈",
-  "clientsSignalCalorieOver": "칼로리 과다",
+  "clientsSignalCalorieOver": "칼로리 초과",
   "clientsSignalCalorieUnder": "칼로리 부족",
   "clientsSignalProteinLow": "단백질 부족",
-  "clientsSignalCalorieOverPercent": "칼로리 {percent}% 과다",
+  "clientsSignalCalorieOverPercent": "칼로리 {percent}% 초과",
   "clientsSignalCalorieUnderPercent": "칼로리 {percent}% 부족",
   "clientsSignalProteinPercent": "단백질 목표의 {percent}%",
   "clientsSignalRoutineMissedDays": "개인운동 {days}일 미수행",
@@ -261,13 +261,13 @@
   "memberHealthConditionsPrivateHint": "트레이너만 볼 내용은 메모에 남겨 주세요.",
   "memberHealthDietGoal": "식단 목표",
   "memberHealthExerciseGoal": "운동 목표",
-  "memberHealthGoalCalories": "일일 칼로리 제한 (kcal)",
-  "memberHealthGoalSodium": "일일 나트륨 제한 (mg)",
-  "memberHealthGoalSugar": "일일 당류 제한 (g)",
-  "memberHealthGoalCarbs": "일일 탄수화물 제한 (g)",
-  "memberHealthGoalProtein": "일일 단백질 제한 (g)",
-  "memberHealthGoalFat": "일일 지방 제한 (g)",
-  "memberHealthGoalBurnDaily": "일일 소모 칼로리 (kcal)",
+  "memberHealthGoalCalories": "하루 칼로리 목표 (kcal)",
+  "memberHealthGoalSodium": "하루 나트륨 목표 (mg)",
+  "memberHealthGoalSugar": "하루 당류 목표 (g)",
+  "memberHealthGoalCarbs": "하루 탄수화물 목표 (g)",
+  "memberHealthGoalProtein": "하루 단백질 목표 (g)",
+  "memberHealthGoalFat": "하루 지방 목표 (g)",
+  "memberHealthGoalBurnDaily": "하루 소모 칼로리 (kcal)",
   "memberHealthGoalCardioWeekly": "주간 유산소 (분)",
   "memberHealthGoalStrengthWeekly": "주간 근력 (세트)",
   "memberHealthGoalFlexibilityWeekly": "주간 스트레칭 (분)",
@@ -282,15 +282,15 @@
       }
     }
   },
-  "clientInviteTitle": "신규 회원 등록",
-  "clientInviteIntro": "회원 앱 MY 탭의 6자리 동기화 코드를 입력하면 바로 연결돼요.",
-  "clientInviteIntroImmediate": "회원 앱 MY 탭의 6자리 동기화 코드를 입력하면 바로 연결돼요.",
-  "clientConnectCodeLabel": "동기화 코드",
+  "clientInviteTitle": "회원 연결",
+  "clientInviteIntro": "회원 앱 MY 탭의 6자리 연결 코드를 입력하면 바로 연결돼요.",
+  "clientInviteIntroImmediate": "회원 앱 MY 탭의 6자리 연결 코드를 입력하면 바로 연결돼요.",
+  "clientConnectCodeLabel": "연결 코드",
   "clientConnectCodeRequired": "6자리를 모두 입력해 주세요",
   "clientConnectCodeInvalid": "코드가 맞지 않거나 만료됐어요. 회원에게 새 코드를 받아 주세요",
   "clientConnectAlreadyManaged": "이미 담당하고 있는 회원이에요. 회원 목록에서 찾아 주세요",
-  "clientInviteConnectAction": "회원 등록",
-  "clientInviteConnected": "{name}님을 회원으로 등록했어요",
+  "clientInviteConnectAction": "연결",
+  "clientInviteConnected": "{name}님과 연결했어요",
   "@clientInviteConnected": {
     "placeholders": {
       "name": {
@@ -341,7 +341,7 @@
   "metricCalories": "칼로리",
   "metricSodium": "나트륨",
   "metricSugar": "당류",
-  "clientDietMacrosMissing": "탄·단·지 기록 없음",
+  "clientDietMacrosMissing": "탄단지 기록 없음",
   "clientDietDayTotal": "하루 합계",
   "clientDietDayMealsFailed": "끼니 기록을 불러오지 못했어요",
   "@clientDietDayMealsFailed": {
@@ -389,7 +389,7 @@
   "chatLoadOlder": "이전 메시지 더 보기",
   "chatLoadOlderFailed": "이전 메시지를 불러오지 못했어요 · 다시 시도",
   "chatPdfOpenFailed": "PDF를 열지 못했어요. 다시 시도해 주세요",
-  "chatReportRegistered": "리포트가 등록되었어요",
+  "chatReportRegistered": "주간 리포트를 보냈어요",
   "chatReportOpenInReports": "리포트 탭으로 가기",
   "chatRoutineDelivered": "운동을 보냈어요",
   "chatRoutineDeliveredPt": "PT 프로그램과 개인운동을 보냈어요",
@@ -471,7 +471,7 @@
   "consultRejectTitle": "상담 요청 거절",
   "consultRejectNotice": "입력한 사유는 회원에게 알림으로 전달돼요.",
   "consultRejectHint": "예) 요청하신 시간에 다른 일정이 있어요.",
-  "consultStatusPending": "대기중",
+  "consultStatusPending": "대기 중",
   "consultStatusAccepted": "승인됨",
   "workoutRecords": "운동 기록",
   "workoutRecordsShowMore": "더보기",
@@ -558,7 +558,7 @@
   "clientTrendCaloriesBurned": "소모 칼로리",
   "reportsPickClient": "회원 선택",
   "reportsClientWeekly": "{name}님 주간 리포트",
-  "reportsCompletionByDay": "주간 운동 이행률",
+  "reportsCompletionByDay": "주간 운동 완료율",
   "reportsNoWorkoutsThisWeek": "이번 주 운동 기록이 없어요",
   "chartNoRecord": "기록 없음",
   "chartNotYet": "아직 오지 않은 날",
@@ -577,7 +577,7 @@
   "reportBodyGreeting": "{name}님, {range} 주간 리포트 정리해서 보내드려요.",
   "reportBodyCompletionGood": "운동은 평균 {avg}%로 잘 따라오셨어요.",
   "reportBodyCompletionSteady": "운동은 평균 {avg}%로 꾸준히 해 주셨어요.",
-  "reportBodyCompletionLow": "운동 이행률은 평균 {avg}%였어요. 많이 바쁘셨나 봐요.",
+  "reportBodyCompletionLow": "운동 완료율은 평균 {avg}%였어요. 많이 바쁘셨나 봐요.",
   "reportBodySilentDays": "{days}에는 기록이 하나도 없었어요. 그 요일이 늘 바쁘시면 15분짜리 짧은 프로그램으로 바꿔 둘게요.",
   "@reportBodySilentDays": {
     "placeholders": {
@@ -706,7 +706,7 @@
       }
     }
   },
-  "reportBodySugarOver": "당류는 하루 평균 {avg}g이었고, 기준({target}g)을 넘긴 날이 {days}일이었어요.",
+  "reportBodySugarOver": "당류는 하루 평균 {avg}g이었고, 목표({target}g)를 넘긴 날이 {days}일이었어요.",
   "@reportBodySugarOver": {
     "placeholders": {
       "avg": {
@@ -720,7 +720,7 @@
       }
     }
   },
-  "reportBodySugarOk": "당류는 하루 평균 {avg}g으로 기준({target}g) 안이었어요.",
+  "reportBodySugarOk": "당류는 하루 평균 {avg}g으로 목표({target}g) 안이었어요.",
   "@reportBodySugarOk": {
     "placeholders": {
       "avg": {
@@ -774,8 +774,8 @@
   "schedDetachedMember": "해제 회원",
   "schedDetachedMemberHint": "담당이 끝난 회원이라 회원 정보는 볼 수 없어요",
   "schedReservationLockedHint": "회원이 예약한 일정이에요. 시간을 바꾸거나 지울 수 없고, 약속을 거두려면 취소해 주세요.",
-  "schedEndedLockedHint": "끝난 PT는 메모·프로그램만 고칠 수 있어요.",
-  "schedDoneLockedHint": "완료한 PT는 메모·프로그램만 고칠 수 있어요. 날짜를 앞으로 옮기면 예정으로 되돌릴 수 있어요.",
+  "schedEndedLockedHint": "끝난 PT는 피드백·프로그램만 고칠 수 있어요.",
+  "schedDoneLockedHint": "완료한 PT는 피드백·프로그램만 고칠 수 있어요. 날짜를 앞으로 옮기면 예정으로 되돌릴 수 있어요.",
   "schedGroupPersonal": "개인운동",
   "schedRoutinesGoesOnComplete": "이 PT 의 프로그램을 보낼 때 회원에게 함께 가요.",
   "schedRoutinesNotSentYet": "아직 회원에게 가지 않았어요.",
@@ -804,7 +804,7 @@
   "schedRoutinesSkipFailed": "보내지 않기로 처리하지 못했어요. 잠시 후 다시 시도해 주세요.",
   "schedRoutinesLoadFailed": "개인운동을 불러오지 못했어요",
   "schedClientUnresolved": "이 일정의 회원을 특정할 수 없어요. 회원을 골라 주세요.",
-  "schedRoutinesUpdated": "개인운동을 고커어요.",
+  "schedRoutinesUpdated": "개인운동을 고쳤어요.",
   "schedRoutinesUpdateFailed": "개인운동을 고치지 못했어요. 다시 시도해 주세요.",
   "schedAddRoutines": "개인운동 추가",
   "schedRoutinesAdded": "개인운동을 붙였어요.",
@@ -1006,6 +1006,7 @@
   "myStatClients": "담당 회원",
   "myClientManagement": "회원 관리",
   "myClientRemove": "연결 해제",
+  "myClientRemoveConfirm": "해제",
   "myClientRemoveTitle": "{name} 회원과 연결을 해제할까요?",
   "@myClientRemoveTitle": {
     "placeholders": {
@@ -1134,7 +1135,7 @@
   "myGymEmpty": "소속 헬스장이 아직 없어요. 프로필 수정에서 설정해 주세요.",
   "myEditVisibleBody": "전문 분야·경력·소개·자격증·소속 헬스장은 회원 앱의 트레이너 소개에 그대로 나와요.",
   "myClientManagementNoteTitle": "연결을 해제해도 회원 기록은 남아요",
-  "myClientManagementNote": "회원 앱의 기록은 남아요. 다시 담당하려면 회원 탭의 신규 회원 등록에서 회원 ID로 연결해 주세요.",
+  "myClientManagementNote": "회원 앱의 기록은 남아요. 다시 담당하려면 회원 탭의 회원 연결에서 회원에게 받은 연결 코드를 입력해 주세요.",
   "myNotifConsultation": "상담 요청",
   "myNotifConsultationHint": "회원이 상담을 신청하거나 초대에 답하면 알려드려요",
   "myNotifReservation": "예약",
@@ -1581,7 +1582,7 @@
   "notifTplMemberWithdrawnTitle": "회원 탈퇴",
   "notifTplMemberWithdrawnBody": "{name} 회원이 탈퇴했어요.",
   "notifTplMemberDisconnectedTitle": "담당 연결 해제",
-  "notifTplMemberDisconnectedBody": "{name} 회원이 담당 연결을 끊었어요.",
+  "notifTplMemberDisconnectedBody": "{name} 회원이 담당 연결을 해제했어요.",
   "notifTplConsultRequestedTitle": "새 상담 요청이 도착했어요",
   "notifTplConsultCancelledTitle": "상담 요청이 취소됐어요",
   "notifTplConsultWithdrawnTitle": "회원 탈퇴로 상담 요청이 취소됐어요",
@@ -1793,7 +1794,7 @@
       }
     }
   },
-  "coachRoutineAdherenceTitle": "개인운동 이행",
+  "coachRoutineAdherenceTitle": "개인운동 완료",
   "coachRoutineAdherenceCell": "{date}: {done}/{total} 완료",
   "@coachRoutineAdherenceCell": {
     "placeholders": {
@@ -1861,7 +1862,7 @@
   "searchDetailNextSession": "다음 예약 {date} {time}",
   "searchDetailNoUpcoming": "예정된 예약 없음",
   "searchDetailLastRoutine": "마지막 프로그램 {when}",
-  "searchDetailCompletion": "이번 주 이행률 {percent}%",
+  "searchDetailCompletion": "이번 주 완료율 {percent}%",
   "navOperationsGroup": "운영",
   "navCoachingGroup": "코칭",
   "dashTodayTasks": "오늘 할 일",
@@ -2270,16 +2271,16 @@
   "programEditorWeight": "중량 kg",
   "reportsDemoSummarySteadyThisWeek": "{name}님은 이번 주 운동과 식단을 계획대로 잘 이어 갔어요. 지금 리듬을 지키면서 다음 주에는 운동 강도를 조금 올려 봐도 좋겠습니다.",
   "reportsDemoSummarySteadyPastWeek": "{name}님은 그 주 운동과 식단을 계획대로 잘 이어 갔어요. 이 리듬을 지키면서 운동 강도를 조금씩 올려 봐도 좋겠습니다.",
-  "reportsDemoSummaryCompletionThisWeek": "{name}님은 이번 주 운동 이행이 주춤했어요. 일정이 빠듯했는지 먼저 물어보고, 다음 주는 짧은 루틴부터 다시 붙여 보는 것을 권해 드려요.",
-  "reportsDemoSummaryCompletionPastWeek": "{name}님은 그 주 운동 이행이 주춤했어요. 일정이 빠듯했는지 먼저 물어보고, 짧은 루틴부터 다시 붙여 보는 것을 권해 드려요.",
+  "reportsDemoSummaryCompletionThisWeek": "{name}님은 이번 주 운동 완료율이 주춤했어요. 일정이 빠듯했는지 먼저 물어보고, 다음 주는 짧은 루틴부터 다시 붙여 보는 것을 권해 드려요.",
+  "reportsDemoSummaryCompletionPastWeek": "{name}님은 그 주 운동 완료율이 주춤했어요. 일정이 빠듯했는지 먼저 물어보고, 짧은 루틴부터 다시 붙여 보는 것을 권해 드려요.",
   "reportsDemoSummarySkippedThisWeek": "{name}님이 이번 주 몇몇 운동을 건너뛰었어요. 통증이나 난이도 때문인지 확인하고, 대신할 동작을 함께 정해 두면 좋겠습니다.",
   "reportsDemoSummarySkippedPastWeek": "{name}님이 그 주 몇몇 운동을 건너뛰었어요. 통증이나 난이도 때문인지 확인하고, 대신할 동작을 함께 정해 두면 좋겠습니다.",
   "reportsDemoSummarySodiumThisWeek": "{name}님은 이번 주 짠 식사가 잦았어요. 국물과 가공식품을 줄이는 작은 목표 하나를 함께 정해 보세요.",
   "reportsDemoSummarySodiumPastWeek": "{name}님은 그 주 짠 식사가 잦았어요. 국물과 가공식품을 줄이는 작은 목표 하나를 함께 정해 보세요.",
   "reportsDemoSummarySugarThisWeek": "{name}님은 이번 주 단 음식과 음료가 잦았어요. 간식을 과일이나 견과로 바꾸는 것부터 제안해 보세요.",
   "reportsDemoSummarySugarPastWeek": "{name}님은 그 주 단 음식과 음료가 잦았어요. 간식을 과일이나 견과로 바꾸는 것부터 제안해 보세요.",
-  "reportsDemoSummaryCaloriesThisWeek": "{name}님의 이번 주 섭취 열량이 목표에서 벗어났어요. 끼니를 거르거나 몰아 먹은 날이 있었는지 식단 기록을 함께 짚어 보세요.",
-  "reportsDemoSummaryCaloriesPastWeek": "{name}님의 그 주 섭취 열량이 목표에서 벗어났어요. 끼니를 거르거나 몰아 먹은 날이 있었는지 식단 기록을 함께 짚어 보세요.",
+  "reportsDemoSummaryCaloriesThisWeek": "{name}님의 이번 주 섭취 칼로리가 목표에서 벗어났어요. 끼니를 거르거나 몰아 먹은 날이 있었는지 식단 기록을 함께 짚어 보세요.",
+  "reportsDemoSummaryCaloriesPastWeek": "{name}님의 그 주 섭취 칼로리가 목표에서 벗어났어요. 끼니를 거르거나 몰아 먹은 날이 있었는지 식단 기록을 함께 짚어 보세요.",
   "reportsDemoSummaryMacroThisWeek": "{name}님은 이번 주 탄수화물·단백질·지방 배분이 목표와 달랐어요. 끼니 구성을 함께 점검해 균형을 맞춰 보세요.",
   "reportsDemoSummaryMacroPastWeek": "{name}님은 그 주 탄수화물·단백질·지방 배분이 목표와 달랐어요. 끼니 구성을 함께 점검해 균형을 맞춰 보세요.",
   "reportsBackToList": "회원 목록",
@@ -2312,7 +2313,7 @@
     "description": "Report AI card when the summary returns 429 daily_limit. No retry button — retrying gives the same result today (#3032)."
   },
   "reportsPdfFallbackClient": "회원",
-  "reportsPdfDocTitle": "주간 코칭 리포트",
+  "reportsPdfDocTitle": "주간 리포트",
   "reportsPdfClient": "회원  {name}",
   "@reportsPdfClient": {
     "placeholders": {
@@ -2361,13 +2362,13 @@
       }
     }
   },
-  "reportsPdfLabelCompletion": "운동 수행률",
-  "reportsPdfLabelSessions": "PT 진행",
-  "reportsPdfLabelSessionCount": "PT 진행 횟수",
+  "reportsPdfLabelCompletion": "운동 완료율",
+  "reportsPdfLabelSessions": "완료 PT",
+  "reportsPdfLabelSessionCount": "완료 PT",
   "reportsPdfLabelSodiumOver": "나트륨 목표 초과",
-  "reportsPdfLabelCalories": "평균 열량",
+  "reportsPdfLabelCalories": "평균 칼로리",
   "reportsPdfLabelSugar": "평균 당류",
-  "reportsPdfLabelCaloriesShort": "열량",
+  "reportsPdfLabelCaloriesShort": "칼로리",
   "reportsPdfLabelSodiumShort": "나트륨",
   "reportsPdfLabelSugarShort": "당류",
   "reportsPdfValuePercent": "{value}%",
@@ -2539,7 +2540,7 @@
   "reportsSentSubtitle": "보낸 리포트 보기",
   "reportsOpenDraft": "열기",
   "reportsReasonUnknown": "수치를 불러오는 중",
-  "reportsReasonCompletion": "이행 {percent}%",
+  "reportsReasonCompletion": "완료율 {percent}%",
   "@reportsReasonCompletion": {
     "placeholders": {
       "percent": {
@@ -2547,7 +2548,7 @@
       }
     }
   },
-  "reportsReasonSessionDone": "PT {count}회 전량 소화",
+  "reportsReasonSessionDone": "완료 PT {count}회",
   "@reportsReasonSessionDone": {
     "placeholders": {
       "count": {
@@ -2776,10 +2777,10 @@
   "reportsMemberFeedbackConditionGood": "좋았어요",
   "reportsMemberFeedbackConditionOk": "보통이었어요",
   "reportsMemberFeedbackConditionTired": "지쳤어요",
-  "reportsMemberFeedbackConditionBad": "많이 힘들었어요",
+  "reportsMemberFeedbackConditionBad": "많이 안 좋았어요",
   "reportsMemberFeedbackIntensityTooEasy": "너무 쉬웠어요",
-  "reportsMemberFeedbackIntensityRight": "적당했어요",
-  "reportsMemberFeedbackIntensityHard": "힘들었어요",
+  "reportsMemberFeedbackIntensityRight": "딱 맞았어요",
+  "reportsMemberFeedbackIntensityHard": "조금 힘들었어요",
   "reportsMemberFeedbackIntensityTooHard": "너무 힘들었어요",
   "reportsTrendUnavailable": "이 주의 운동 기록을 불러오지 못했어요",
   "reportsTrendNoGoal": "목표 없음",
@@ -2903,7 +2904,7 @@
   "summaryBasisPersonal": "개인 목표",
   "summaryDirOver": "초과",
   "summaryDirUnder": "부족",
-  "summaryCompletionLow": "운동 이행률 평균 {pct}% · 기준 {threshold}% 미만",
+  "summaryCompletionLow": "운동 완료율 평균 {pct}% · 기준 {threshold}% 미만",
   "@summaryCompletionLow": {
     "placeholders": {
       "pct": {
@@ -2914,7 +2915,7 @@
       }
     }
   },
-  "summaryCompletionTopic": "운동 이행률 {pct}%",
+  "summaryCompletionTopic": "운동 완료율 {pct}%",
   "@summaryCompletionTopic": {
     "placeholders": {
       "pct": {
@@ -2922,7 +2923,7 @@
       }
     }
   },
-  "summaryCompletionAvg": "운동 이행률 평균 {pct}%",
+  "summaryCompletionAvg": "운동 완료율 평균 {pct}%",
   "@summaryCompletionAvg": {
     "placeholders": {
       "pct": {

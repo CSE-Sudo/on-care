@@ -203,8 +203,8 @@ String? _homeSodiumWarning({
     final String total = _thousands(totalSodium);
     final String goal = _thousands(sodiumGoal);
     return en
-        ? 'Sodium is at $total mg today, over your target ($goal mg).'
-        : '오늘 나트륨이 ${total}mg으로 권장량(${goal}mg)을 넘었어요.';
+        ? 'Sodium is at $total mg today, over your goal ($goal mg).'
+        : '오늘 나트륨이 ${total}mg으로 목표(${goal}mg)를 넘었어요.';
   }
   return en
       ? 'Sodium is high from ${sourceNames.join(' and ')}.'

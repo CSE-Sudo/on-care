@@ -485,7 +485,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       // 긴 본문이라 낱말 중간(`회원 계` / `정과`)에서 끊기지 않게 한다.
       message: keepWords(l.myClientRemoveBody),
       cancelLabel: l.actionCancel,
-      confirmLabel: l.myClientRemove,
+      confirmLabel: l.myClientRemoveConfirm,
       destructive: true,
     );
     if (!confirmed || !mounted) return;

@@ -283,7 +283,7 @@ void main() {
       await tester.tap(
         find.descendant(
           of: find.byType(AppDialog),
-          matching: find.text('연결 해제'),
+          matching: find.text('해제'),
         ),
       );
       await tester.pumpAndSettle();

@@ -76,7 +76,7 @@ void main() {
         ),
       );
 
-      expect(find.text('리포트가 등록되었어요'), findsOneWidget);
+      expect(find.text('주간 리포트를 받았어요'), findsOneWidget);
       expect(find.text('8월 17일 ~ 8월 23일'), findsOneWidget);
       expect(find.text('PDF 미리보기'), findsOneWidget);
 
@@ -135,7 +135,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Weekly report added'), findsOneWidget);
+      expect(find.text('Weekly report received'), findsOneWidget);
       expect(find.text('8/17 – 8/23'), findsOneWidget);
       expect(find.text('Preview PDF'), findsOneWidget);
     });
@@ -171,9 +171,9 @@ void main() {
       await pumpChat(tester);
 
       expect(find.byType(CoachReportCard), findsOneWidget);
-      expect(find.text('리포트가 등록되었어요'), findsOneWidget);
+      expect(find.text('주간 리포트를 받았어요'), findsOneWidget);
       // 안내로 그리므로 본문은 말풍선으로 나타나지 않는다.
-      expect(find.text('이번 주 리포트 등록해 뒀어요. 확인해 보세요'), findsNothing);
+      expect(find.text('이번 주 리포트 보내 드렸어요. 확인해 보세요'), findsNothing);
     });
 
     testWidgets('안내에는 미리보기 버튼이 있다', (WidgetTester tester) async {

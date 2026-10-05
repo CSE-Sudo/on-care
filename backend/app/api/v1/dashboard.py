@@ -94,9 +94,9 @@ def _build_sodium_warning(
     if not source_names:
         return localized(
             f"오늘 나트륨이 {total_sodium_mg:,}mg으로 "
-            f"권장량({sodium_goal_mg:,}mg)을 넘었어요.",
+            f"목표({sodium_goal_mg:,}mg)를 넘었어요.",
             f"Sodium is at {total_sodium_mg:,} mg today, "
-            f"over your target ({sodium_goal_mg:,} mg).",
+            f"over your goal ({sodium_goal_mg:,} mg).",
             locale,
         )
 

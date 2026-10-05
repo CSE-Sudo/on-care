@@ -152,7 +152,7 @@ void main() {
       expect(en['ai_advice_params'], isEmpty);
       expect(
         en['sodium_warning'],
-        'Sodium is at 2,100 mg today, over your target (2,000 mg).',
+        'Sodium is at 2,100 mg today, over your goal (2,000 mg).',
       );
     });
 

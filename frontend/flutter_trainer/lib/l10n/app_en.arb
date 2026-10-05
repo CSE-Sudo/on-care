@@ -363,7 +363,7 @@
     "description": "Unit after a person count. Korean uses the counter 명; English omits it. Intentionally empty."
   },
   "clientsLoadFailed": "Couldn't load member data",
-  "clientsNew": "Register new member",
+  "clientsNew": "Connect member",
   "clientsTitle": "Member management",
   "clientsManagementAttention": "Needs attention",
   "clientsFiltersClearAll": "Clear all",
@@ -375,7 +375,7 @@
   "clientsFilterLabel": "Filters",
   "clientsPickHint": "Pick a member on the left to open\ntheir chat, meals and workouts here",
   "clientsEmpty": "No members yet",
-  "clientsEmptyConnectHint": "Connect members with the code they show you or by sending a coaching request. Consultation requests from members also appear in your inbox.",
+  "clientsEmptyConnectHint": "Connect members with their connection code or by sending a coaching request. Consultation requests from members also appear in your inbox.",
   "clientsEmptyForFilter": "No members match {filter}",
   "@clientsEmptyForFilter": {
     "placeholders": {
@@ -404,7 +404,7 @@
       }
     }
   },
-  "clientWeeklyRoutineAdherence": "Weekly adherence",
+  "clientWeeklyRoutineAdherence": "Weekly completion rate",
   "clientRoutineAdherenceUnmeasured": "Not measured",
   "clientsSignalDiscomfort": "Pain",
   "clientsSignalRecordGap": "No logs",
@@ -512,12 +512,12 @@
   "memberHealthConditionsPrivateHint": "Keep trainer-only notes in Memo.",
   "memberHealthDietGoal": "Nutrition goals",
   "memberHealthExerciseGoal": "Exercise goals",
-  "memberHealthGoalCalories": "Daily calories (kcal)",
-  "memberHealthGoalSodium": "Daily sodium (mg)",
-  "memberHealthGoalSugar": "Daily sugar (g)",
-  "memberHealthGoalCarbs": "Daily carbs (g)",
-  "memberHealthGoalProtein": "Daily protein (g)",
-  "memberHealthGoalFat": "Daily fat (g)",
+  "memberHealthGoalCalories": "Daily calorie goal (kcal)",
+  "memberHealthGoalSodium": "Daily sodium goal (mg)",
+  "memberHealthGoalSugar": "Daily sugar goal (g)",
+  "memberHealthGoalCarbs": "Daily carbs goal (g)",
+  "memberHealthGoalProtein": "Daily protein goal (g)",
+  "memberHealthGoalFat": "Daily fat goal (g)",
   "memberHealthGoalBurnDaily": "Daily burn (kcal)",
   "memberHealthGoalCardioWeekly": "Weekly cardio (min)",
   "memberHealthGoalStrengthWeekly": "Weekly strength (sets)",
@@ -533,15 +533,15 @@
       }
     }
   },
-  "clientInviteTitle": "Add a new member",
-  "clientInviteIntro": "Enter the 6-digit sync code from the member's MY tab to connect right away.",
-  "clientInviteIntroImmediate": "Enter the 6-digit sync code from the member's MY tab to connect right away.",
-  "clientConnectCodeLabel": "Sync code",
+  "clientInviteTitle": "Connect member",
+  "clientInviteIntro": "Enter the 6-digit connection code from the member's MY tab to connect right away.",
+  "clientInviteIntroImmediate": "Enter the 6-digit connection code from the member's MY tab to connect right away.",
+  "clientConnectCodeLabel": "Connection code",
   "clientConnectCodeRequired": "Enter all six digits",
   "clientConnectCodeInvalid": "That code is wrong or expired. Ask the member for a new one",
   "clientConnectAlreadyManaged": "You already manage this member. Find them in your member list",
-  "clientInviteConnectAction": "Register member",
-  "clientInviteConnected": "Registered {name} as a member",
+  "clientInviteConnectAction": "Connect",
+  "clientInviteConnected": "Connected with {name}",
   "@clientInviteConnected": {
     "placeholders": {
       "name": {
@@ -584,7 +584,7 @@
   "chatImageUnavailable": "Couldn't load the photo",
   "chatImageSendFailed": "Couldn't send the photo. Please try again",
   "chatImageAlreadySent": "An earlier send of this photo already went through. Please check the conversation.",
-  "clientTabDiet": "Meals",
+  "clientTabDiet": "Diet",
   "clientTabWorkout": "Workouts",
   "clientNotFound": "Member not found",
   "clientBackToList": "Back to members",
@@ -637,7 +637,7 @@
   "chatTooLong": "Message is too long (1000 characters max)",
   "chatSendFailed": "Couldn't send the message. Please try again",
   "chatPdfOpenFailed": "Couldn't open the PDF. Please try again",
-  "chatReportRegistered": "Weekly report added",
+  "chatReportRegistered": "Weekly report sent",
   "chatReportOpenInReports": "Go to Reports",
   "chatLoadFailed": "Couldn't load the conversation",
   "chatLoadOlder": "Load earlier messages",
@@ -975,7 +975,7 @@
       }
     }
   },
-  "reportsCompletionByDay": "Weekly workout completion",
+  "reportsCompletionByDay": "Weekly workout completion rate",
   "reportsNoWorkoutsThisWeek": "No workouts logged this week",
   "chartNoRecord": "Not logged",
   "chartNotYet": "Not yet",
@@ -1018,7 +1018,7 @@
       }
     }
   },
-  "reportBodyCompletionLow": "Workout completion came in at {avg}%. Sounds like a busy one.",
+  "reportBodyCompletionLow": "Workout completion rate came in at {avg}%. Sounds like a busy one.",
   "@reportBodyCompletionLow": {
     "placeholders": {
       "avg": {
@@ -1050,7 +1050,7 @@
       }
     }
   },
-  "reportBodySodiumOver": "Sodium averaged {avg} mg a day, and went over the {target} mg target on {days} days. Leaving half the broth behind saves 400–500 mg a day.",
+  "reportBodySodiumOver": "Sodium averaged {avg} mg a day, and went over the {target} mg goal on {days} days. Leaving half the broth behind saves 400–500 mg a day.",
   "@reportBodySodiumOver": {
     "placeholders": {
       "avg": {
@@ -1064,7 +1064,7 @@
       }
     }
   },
-  "reportBodySodiumOk": "Sodium averaged {avg} mg a day — comfortably inside the {target} mg target.",
+  "reportBodySodiumOk": "Sodium averaged {avg} mg a day — comfortably inside the {target} mg goal.",
   "@reportBodySodiumOk": {
     "placeholders": {
       "avg": {
@@ -1128,7 +1128,7 @@
       }
     }
   },
-  "reportBodyCaloriesOver": "Calories averaged {avg} kcal a day — {pct}% above your {target} kcal target, and over it on {days} days.",
+  "reportBodyCaloriesOver": "Calories averaged {avg} kcal a day — {pct}% above your {target} kcal goal, and over it on {days} days.",
   "@reportBodyCaloriesOver": {
     "placeholders": {
       "avg": {
@@ -1145,7 +1145,7 @@
       }
     }
   },
-  "reportBodyCaloriesUnder": "Calories averaged {avg} kcal a day — {pct}% below your {target} kcal target. Eating too little tends to cost muscle first.",
+  "reportBodyCaloriesUnder": "Calories averaged {avg} kcal a day — {pct}% below your {target} kcal goal. Eating too little tends to cost muscle first.",
   "@reportBodyCaloriesUnder": {
     "placeholders": {
       "avg": {
@@ -1159,7 +1159,7 @@
       }
     }
   },
-  "reportBodyCaloriesNearOver": "Calories averaged {avg} kcal a day, close to your {target} kcal target, but went over it on {days} days.",
+  "reportBodyCaloriesNearOver": "Calories averaged {avg} kcal a day, close to your {target} kcal goal, but went over it on {days} days.",
   "@reportBodyCaloriesNearOver": {
     "placeholders": {
       "avg": {
@@ -1173,7 +1173,7 @@
       }
     }
   },
-  "reportBodyCaloriesOk": "Calories averaged {avg} kcal a day — right around your {target} kcal target.",
+  "reportBodyCaloriesOk": "Calories averaged {avg} kcal a day — right around your {target} kcal goal.",
   "@reportBodyCaloriesOk": {
     "placeholders": {
       "avg": {
@@ -1184,7 +1184,7 @@
       }
     }
   },
-  "reportBodySugarOver": "Sugar averaged {avg} g a day and went over the {target} g limit on {days} days.",
+  "reportBodySugarOver": "Sugar averaged {avg} g a day and went over the {target} g goal on {days} days.",
   "@reportBodySugarOver": {
     "placeholders": {
       "avg": {
@@ -1198,7 +1198,7 @@
       }
     }
   },
-  "reportBodySugarOk": "Sugar averaged {avg} g a day, inside the {target} g limit.",
+  "reportBodySugarOk": "Sugar averaged {avg} g a day, inside the {target} g goal.",
   "@reportBodySugarOk": {
     "placeholders": {
       "avg": {
@@ -1259,17 +1259,17 @@
   },
   "schedCompleteFailed": "Couldn't mark it complete. Please try again",
   "schedGroupProgram": "PT program",
-  "schedDetachedMember": "Former client",
+  "schedDetachedMember": "Former member",
   "@schedDetachedMember": {
     "description": "담당이 끊긴 회원의 일정에 이름 대신 쓰는 말 (#2589)"
   },
-  "schedDetachedMemberHint": "Coaching has ended, so client details are hidden",
+  "schedDetachedMemberHint": "Coaching has ended, so member details are hidden",
   "schedReservationLockedHint": "Booked by the member. It can't be moved or deleted here; use Cancel to call it off.",
   "@schedReservationLockedHint": {
     "description": "Hint on a session card for a session the member booked through a reservation slot (#2756). Edit schedule and Delete are disabled."
   },
-  "schedEndedLockedHint": "A finished PT can only have its note and program edited.",
-  "schedDoneLockedHint": "A completed PT can only have its note and program edited. Move the date forward to reopen it as upcoming.",
+  "schedEndedLockedHint": "A finished PT can only have its feedback and program edited.",
+  "schedDoneLockedHint": "A completed PT can only have its feedback and program edited. Move the date forward to reopen it as upcoming.",
   "schedGroupPersonal": "Personal exercise",
   "schedRoutinesGoesOnComplete": "Goes to the member together with this PT's program.",
   "schedRoutinesNotSentYet": "Not sent to the member yet.",
@@ -1406,7 +1406,7 @@
   "schedAddNote": "Add feedback",
   "schedNoNote": "No memo yet",
   "schedNoteOnlyHint": "A consultation is recorded as a memo, not a program.",
-  "schedNoteHint": "Feedback for the member. Keep member notes in the client memo",
+  "schedNoteHint": "Feedback for the member. Keep notes about the member in their member memo",
   "schedNoteVisibleToMember": "Shown to the member as feedback once the PT is done",
   "schedConsultNote": "Consultation memo",
   "schedEditConsultNote": "Edit memo",
@@ -1420,7 +1420,7 @@
   "progEditTitle": "Edit program",
   "progAddTitle": "Add program",
   "progAddExercise": "Add exercise",
-  "progNoteHint": "Feedback for the member. Keep member notes in the client memo",
+  "progNoteHint": "Feedback for the member. Keep notes about the member in their member memo",
   "progSaving": "Saving...",
   "progSaveAction": "Save",
   "progSaveNoteAction": "Save",
@@ -1598,6 +1598,10 @@
   "myStatClients": "Members",
   "myClientManagement": "Member management",
   "myClientRemove": "Disconnect",
+  "myClientRemoveConfirm": "Disconnect",
+  "@myClientRemoveConfirm": {
+    "description": "Confirm button of the disconnect-member dialog. Noun form per the button rule (#3117); the row tooltip keeps myClientRemove."
+  },
   "myClientRemoveTitle": "Disconnect from {name}?",
   "@myClientRemoveTitle": {
     "placeholders": {
@@ -1792,7 +1796,7 @@
   "myGymEmpty": "No gym yet. Set yours in Edit profile.",
   "myEditVisibleBody": "Your specialty, career, introduction, certifications and gym appear on your trainer profile in the member app.",
   "myClientManagementNoteTitle": "Disconnecting keeps member records",
-  "myClientManagementNote": "Their records stay in the member app. To coach them again, add them by member ID from New member on the Members tab.",
+  "myClientManagementNote": "Their records stay in the member app. To coach them again, enter the connection code they give you under Connect member on the Members tab.",
   "myNotifConsultation": "Consultation requests",
   "myNotifConsultationHint": "When a member requests a consultation or answers your invite",
   "myNotifReservation": "Bookings",
@@ -1849,8 +1853,8 @@
   "coachTitle": "Programs",
   "coachSubtitle": "Create, assign, and manage exercise programs for each member",
   "coachSendFailed": "Couldn't send. Please try again",
-  "coachSwitchClientTitle": "Switch to another client?",
-  "coachSwitchClientBody": "You have unsent work. Switching clients discards the program and personal exercises you are building.",
+  "coachSwitchClientTitle": "Switch to another member?",
+  "coachSwitchClientBody": "You have unsent work. Switching members discards the program and personal exercises you are building.",
   "coachSwitchClientConfirm": "Switch",
   "coachDraftResumeTitle": "You have saved work",
   "coachDraftResumeBody": "The program you were building for {name} was saved automatically. Continue where you left off?",
@@ -1924,7 +1928,7 @@
   "coachDeliveryNothing": "Nothing sent",
   "coachHistoryFailed": "Couldn't load history",
   "coachHistoryEmpty": "You haven't sent any programs yet",
-  "aiReasonSodium": "Sodium is over target today, so lean into low-intensity cardio.",
+  "aiReasonSodium": "Sodium is over goal today, so lean into low-intensity cardio.",
   "aiReasonBalanced": "Today's meals are balanced, so the current intensity is fine to keep.",
   "aiReasonGoal": "Based on the {goal} goal and recent {last} activity.",
   "@aiReasonGoal": {
@@ -1987,12 +1991,12 @@
   },
   "aiAnalysedData": "Member status",
   "aiGoal": "Goal",
-  "aiOverTarget": " · over target",
-  "aiRecentCompletion": "Recent completion",
+  "aiOverTarget": " · over goal",
+  "aiRecentCompletion": "Recent completion rate",
   "aiNoCompletionData": "No activity logged this week",
   "aiCompletionLow": " · needs attention",
   "aiDietSignal": "Diet warning",
-  "aiSodiumOverDaysSuffix": " · over target on {days} of the last 7 days",
+  "aiSodiumOverDaysSuffix": " · over goal on {days} of the last 7 days",
   "@aiSodiumOverDaysSuffix": {
     "placeholders": {
       "days": {
@@ -2002,8 +2006,8 @@
   },
   "aiSugarAlsoOver": " · sugar also over",
   "aiDirectionLabel": "Direction",
-  "aiDirectionLower": "Lower intensity — recent completion is low",
-  "aiDirectionCardio": "More cardio — sodium is often over target",
+  "aiDirectionLower": "Lower intensity — recent completion rate is low",
+  "aiDirectionCardio": "More cardio — sodium is often over goal",
   "aiDirectionLowerAndCardio": "Lower intensity · more cardio",
   "aiDirectionKeep": "Keep current intensity",
   "aiDirectionNoData": "Not enough records yet",
@@ -2302,7 +2306,7 @@
   "slotNotFound": "Booking slot not found.",
   "slotTypeLockedByBooking": "Can't change the type of a slot that's already booked.",
   "authErrNotTrainer": "Please sign in with a trainer account.",
-  "aiBasisGoalCompletion": "{goal} · based on {rate}% completion",
+  "aiBasisGoalCompletion": "{goal} · based on a {rate}% completion rate",
   "@aiBasisGoalCompletion": {
     "placeholders": {
       "goal": {
@@ -2414,7 +2418,7 @@
       }
     }
   },
-  "notifTplMemberDisconnectedTitle": "Client disconnected",
+  "notifTplMemberDisconnectedTitle": "Member disconnected",
   "notifTplMemberDisconnectedBody": "{name} ended their connection with you.",
   "@notifTplMemberDisconnectedBody": {
     "placeholders": {
@@ -2427,7 +2431,7 @@
   "notifTplConsultCancelledTitle": "Consultation request cancelled",
   "notifTplConsultWithdrawnTitle": "Consultation request cancelled: member account deleted",
   "notifTplInviteAcceptedTitle": "Coaching request accepted",
-  "notifTplInviteAcceptedBody": "{name} is now your client.",
+  "notifTplInviteAcceptedBody": "{name} is now one of your members.",
   "@notifTplInviteAcceptedBody": {
     "placeholders": {
       "name": {
@@ -2744,7 +2748,7 @@
       }
     }
   },
-  "coachRoutineAdherenceTitle": "Personal exercise follow-through",
+  "coachRoutineAdherenceTitle": "Personal exercise completion",
   "coachRoutineAdherenceCell": "{date}: {done} of {total} done",
   "@coachRoutineAdherenceCell": {
     "placeholders": {
@@ -2859,7 +2863,7 @@
       }
     }
   },
-  "searchDetailCompletion": "{percent}% completion this week",
+  "searchDetailCompletion": "{percent}% completion rate this week",
   "@searchDetailCompletion": {
     "placeholders": {
       "percent": {
@@ -3020,7 +3024,7 @@
   },
   "clientGoalSuggestionPersonal": "Based on age, sex, height, weight, and health goals (2020 KDRIs and WHO guidelines)",
   "clientGoalSuggestionFallback": "Age, height, or weight is missing, so only the health goals adjust the defaults",
-  "clientGoalApplySuggestion": "Fill with suggestion",
+  "clientGoalApplySuggestion": "Use suggested goals",
   "clientTrainerMemoHint": "Note what you want to remember about this member",
   "clientTrainerMemoPrivate": "Only you can see this memo. It's hidden from the member.",
   "clientTrainerMemoAdd": "Add memo",
@@ -3174,7 +3178,7 @@
       }
     }
   },
-  "clientFeedbackSourceWeekly": "Weekly check-in · week of {date}",
+  "clientFeedbackSourceWeekly": "Weekly feedback · week of {date}",
   "@clientFeedbackSourceWeekly": {
     "placeholders": {
       "date": {
@@ -3509,7 +3513,7 @@
     }
   },
   "reportsActionSodium": "Ask them to leave half the broth and the pickled sides.",
-  "reportsActionSugar": "Some days went over the {target} g sugar target. Start with drinks and snacks.",
+  "reportsActionSugar": "Some days went over the {target} g sugar goal. Start with drinks and snacks.",
   "@reportsActionSugar": {
     "placeholders": {
       "target": {
@@ -3535,7 +3539,7 @@
       }
     }
   },
-  "reportsActionCalories": "Intake is under the {target} kcal target. Suggest one protein-led meal.",
+  "reportsActionCalories": "Intake is under the {target} kcal goal. Suggest one protein-led meal.",
   "@reportsActionCalories": {
     "placeholders": {
       "target": {
@@ -3549,7 +3553,7 @@
   "reportsAiFailed": "Couldn't create the summary. Please try again.",
   "reportsAiDailyLimit": "You've used today's AI limit. Please try again tomorrow.",
   "reportsPdfFallbackClient": "member",
-  "reportsPdfDocTitle": "Weekly coaching report",
+  "reportsPdfDocTitle": "Weekly report",
   "reportsPdfClient": "Member  {name}",
   "@reportsPdfClient": {
     "placeholders": {
@@ -3598,10 +3602,10 @@
       }
     }
   },
-  "reportsPdfLabelCompletion": "Workout completion",
-  "reportsPdfLabelSessions": "PT",
-  "reportsPdfLabelSessionCount": "PT completed",
-  "reportsPdfLabelSodiumOver": "Days over sodium target",
+  "reportsPdfLabelCompletion": "Workout completion rate",
+  "reportsPdfLabelSessions": "PT done",
+  "reportsPdfLabelSessionCount": "PT done",
+  "reportsPdfLabelSodiumOver": "Days over sodium goal",
   "reportsPdfLabelCalories": "Average calories",
   "reportsPdfLabelSugar": "Average sugar",
   "reportsPdfLabelCaloriesShort": "Calories",
@@ -3970,7 +3974,7 @@
     }
   },
   "reportsGridCalories": "Calories eaten",
-  "reportsGridCalorieTarget": "Target {value}",
+  "reportsGridCalorieTarget": "Goal {value}",
   "@reportsGridCalorieTarget": {
     "placeholders": {
       "value": {
@@ -3993,7 +3997,7 @@
       }
     }
   },
-  "reportsMacroShortfall": "{name} is well under target — worth raising in your feedback",
+  "reportsMacroShortfall": "{name} is well under goal — worth raising in your feedback",
   "@reportsMacroShortfall": {
     "placeholders": {
       "name": {
@@ -4027,10 +4031,10 @@
   "reportsMemberFeedbackConditionGood": "Good",
   "reportsMemberFeedbackConditionOk": "Okay",
   "reportsMemberFeedbackConditionTired": "Worn out",
-  "reportsMemberFeedbackConditionBad": "Really rough",
+  "reportsMemberFeedbackConditionBad": "Rough",
   "reportsMemberFeedbackIntensityTooEasy": "Too easy",
-  "reportsMemberFeedbackIntensityRight": "About right",
-  "reportsMemberFeedbackIntensityHard": "Hard",
+  "reportsMemberFeedbackIntensityRight": "Just right",
+  "reportsMemberFeedbackIntensityHard": "A bit hard",
   "reportsMemberFeedbackIntensityTooHard": "Too hard",
   "reportsTrendUnavailable": "Couldn't load this week's workout records",
   "reportsTrendNoGoal": "No goal",
@@ -4150,11 +4154,11 @@
       }
     }
   },
-  "summaryBasisDefault": "default target",
-  "summaryBasisPersonal": "personal target",
+  "summaryBasisDefault": "default goal",
+  "summaryBasisPersonal": "personal goal",
   "summaryDirOver": "above",
   "summaryDirUnder": "below",
-  "summaryCompletionLow": "Avg workout completion {pct}% · below the {threshold}% bar",
+  "summaryCompletionLow": "Avg workout completion rate {pct}% · below the {threshold}% bar",
   "@summaryCompletionLow": {
     "placeholders": {
       "pct": {
@@ -4165,7 +4169,7 @@
       }
     }
   },
-  "summaryCompletionTopic": "workout completion at {pct}%",
+  "summaryCompletionTopic": "workout completion rate at {pct}%",
   "@summaryCompletionTopic": {
     "placeholders": {
       "pct": {
@@ -4173,7 +4177,7 @@
       }
     }
   },
-  "summaryCompletionAvg": "Avg workout completion {pct}%",
+  "summaryCompletionAvg": "Avg workout completion rate {pct}%",
   "@summaryCompletionAvg": {
     "placeholders": {
       "pct": {
@@ -4214,7 +4218,7 @@
       }
     }
   },
-  "summarySodiumOverTopic": "sodium over target on {days} day(s)",
+  "summarySodiumOverTopic": "sodium over goal on {days} day(s)",
   "@summarySodiumOverTopic": {
     "placeholders": {
       "days": {
@@ -4247,7 +4251,7 @@
       }
     }
   },
-  "summarySugarOverTopic": "sugar over target on {days} day(s)",
+  "summarySugarOverTopic": "sugar over goal on {days} day(s)",
   "@summarySugarOverTopic": {
     "placeholders": {
       "days": {
@@ -4283,7 +4287,7 @@
       }
     }
   },
-  "summaryCaloriesTopic": "calories {direction} target",
+  "summaryCaloriesTopic": "calories {direction} goal",
   "@summaryCaloriesTopic": {
     "placeholders": {
       "direction": {
@@ -4299,7 +4303,7 @@
       }
     }
   },
-  "summaryMacro": "Avg {label} {avg} g · {pct}% {direction} the personal target of {target} g",
+  "summaryMacro": "Avg {label} {avg} g · {pct}% {direction} the personal goal of {target} g",
   "@summaryMacro": {
     "placeholders": {
       "label": {
@@ -4319,7 +4323,7 @@
       }
     }
   },
-  "summaryMacroTopic": "{label} {direction} target",
+  "summaryMacroTopic": "{label} {direction} goal",
   "@summaryMacroTopic": {
     "placeholders": {
       "label": {
@@ -4346,7 +4350,7 @@
       }
     }
   },
-  "summaryHeadlineSteady": "{name} stayed within target — the current intensity can stay as is.",
+  "summaryHeadlineSteady": "{name} stayed within their goals — the current intensity can stay as is.",
   "@summaryHeadlineSteady": {
     "placeholders": {
       "name": {
@@ -4379,7 +4383,7 @@
       }
     }
   },
-  "summaryHeadlineNeedsAdjust": "{name} was off target on {top} — next week needs adjusting.{rest}",
+  "summaryHeadlineNeedsAdjust": "{name} missed the goal on {top} — next week needs adjusting.{rest}",
   "@summaryHeadlineNeedsAdjust": {
     "placeholders": {
       "name": {

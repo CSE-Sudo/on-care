@@ -7,8 +7,8 @@ void main() {
   group('serverDetailText', () {
     test('문자열 detail 은 그 문장이다', () {
       expect(
-        serverDetailText(<String, Object?>{'detail': '담당 고객을 찾을 수 없습니다.'}),
-        '담당 고객을 찾을 수 없습니다.',
+        serverDetailText(<String, Object?>{'detail': '담당 회원을 찾을 수 없습니다.'}),
+        '담당 회원을 찾을 수 없습니다.',
       );
     });
 

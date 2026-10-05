@@ -100,7 +100,7 @@
   "homeDashboardLoadError": "Could not load the dashboard.",
   "homeDashboardEmpty": "No records yet today. Add a meal or workout to get started.",
   "homeAiAdviceTitle": "Today's combined AI advice",
-  "homeAdviceSodiumOver": "You went over the sodium target today. Try keeping the rest of your meals light.",
+  "homeAdviceSodiumOver": "You went over your sodium goal today. Try keeping the rest of your meals light.",
   "@homeAdviceSodiumOver": {
     "description": "Home AI advice when today's sodium is over the goal (#1943)."
   },
@@ -147,7 +147,7 @@
       }
     }
   },
-  "homeAiAdviceBody": "Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.",
+  "homeAiAdviceBody": "Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your trainer emphasized.",
   "homeAiAdviceNoRecord": "Log today's meals and workouts, and we'll put together advice for your day.",
   "homeMacroCarbs": "Carbs",
   "homeMacroProtein": "Protein",
@@ -201,7 +201,7 @@
       }
     }
   },
-  "homeRecBasisOverLimit": "over the daily limit",
+  "homeRecBasisOverLimit": "over the daily goal",
   "homeRecMealsTitle": "Recommended meals",
   "homeRecMealsErrorTitle": "Couldn't load meal suggestions",
   "@homeScheduleDate": {
@@ -292,7 +292,7 @@
   "dietMealLunch": "Lunch",
   "dietMealDinner": "Dinner",
   "dietMealSnack": "Snack",
-  "dietMealLateNight": "Late-night",
+  "dietMealLateNight": "Late-night snack",
   "dietMealSheetTitle": "{meal}",
   "dietFoodDbMatch": "Public DB · {name}",
   "@dietFoodDbMatch": {
@@ -406,7 +406,7 @@
   "dietAnalysisClose": "Close",
   "dietRecognizedFood": "Recognized Food",
   "dietNoRecognizedFood": "No food recognized",
-  "dietNutritionResult": "Nutrition Result",
+  "dietNutritionResult": "Nutrition Info",
   "dietSaved": "Meal saved",
   "dietSaveFailed": "Couldn't save. Please try again in a moment.",
   "dietManualAlreadySaved": "An earlier version of this meal was already saved. Please check your records.",
@@ -1129,7 +1129,7 @@
   "myPointsHistoryMoreFailed": "Couldn't load more. Please try again",
   "myPointsReasonDiet": "Meal log",
   "myPointsReasonExercise": "Workout log",
-  "myPointsReasonRoutine": "Recommended or assigned workout done",
+  "myPointsReasonRoutine": "Personal exercise done",
   "myPointsReasonPtRenewal": "PT renewal discount coupon",
   "myPointsReasonLocker": "Personal locker coupon",
   "myPointsReasonShield": "Streak shield",
@@ -1480,10 +1480,10 @@
   "myWithdrawContinue": "Continue deleting",
   "myCancel": "Cancel",
   "myGymTrainerTitle": "My Gym & Trainer",
-  "myConnectionDeleteTitle": "Remove Connection",
-  "myConnectionDeleteFailed": "Couldn't remove the connection. Please try again.",
-  "myDelete": "Remove",
-  "myGymDisconnectWithTrainerConfirm": "Disconnect {gym}?\nYour trainer link with {trainer} will also be removed.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged are not deleted, and you can see them again if you reconnect with the same trainer.",
+  "myConnectionDeleteTitle": "End connection",
+  "myConnectionDeleteFailed": "Couldn't disconnect. Please try again.",
+  "myDelete": "Disconnect",
+  "myGymDisconnectWithTrainerConfirm": "Disconnect {gym}?\nYour connection with trainer {trainer} will also end.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged are not deleted, and you can see them again if you reconnect with the same trainer.",
   "@myGymDisconnectWithTrainerConfirm": {
     "placeholders": {
       "gym": {
@@ -1502,7 +1502,7 @@
       }
     }
   },
-  "myTrainerDisconnectConfirm": "Disconnect trainer {trainer}?\nYour connection to {gym} will remain.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged are not deleted, and you can see them again if you reconnect with the same trainer.",
+  "myTrainerDisconnectConfirm": "Disconnect from {trainer}?\nYour connection to {gym} will remain.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged are not deleted, and you can see them again if you reconnect with the same trainer.",
   "@myTrainerDisconnectConfirm": {
     "placeholders": {
       "trainer": {
@@ -1650,7 +1650,7 @@
   "coachInviteExplain": "Accepting lets this trainer see your meal records, workout records, body information, health goals, and health notes & cautions. You'll be asked to agree to sharing before you accept.",
   "coachInviteAccept": "Accept",
   "coachInviteReject": "Decline",
-  "coachInviteAccepted": "{name} is now your coach",
+  "coachInviteAccepted": "{name} is now your trainer",
   "@coachInviteAccepted": {
     "placeholders": {
       "name": {
@@ -1709,7 +1709,7 @@
     "description": "Screen reader label for a photo the member sent in the trainer chat (#1665)."
   },
   "coachChatPdfOpenFailed": "Couldn't open the PDF. Please try again",
-  "coachChatReportRegistered": "Weekly report added",
+  "coachChatReportRegistered": "Weekly report received",
   "coachChatReportWeek": "{sm}/{sd} – {em}/{ed}",
   "@coachChatReportWeek": {
     "description": "Week the registered report covers, shown on the report card.",
@@ -2053,15 +2053,15 @@
   "exConsultCompletionInfo": "We'll let you know when the other party reviews your request.",
   "exConsultStatus": "Current Status",
   "exConsultPendingStatus": "Pending",
-  "exConsultAcceptedStatus": "Accepted",
-  "exConsultRejectedStatus": "Rejected",
+  "exConsultAcceptedStatus": "Approved",
+  "exConsultRejectedStatus": "Declined",
   "exReturnExercise": "Return to Exercise",
   "exConsultHistoryTitle": "My Consultation Requests",
   "exConsultHistoryEmpty": "You haven't sent any consultation requests yet.",
   "exConsultHistoryInProgress": "In Progress",
   "exConsultRejectedReasonLabel": "Reason for decline",
   "exConsultRejectedNoReason": "No reason was given. Try requesting a consultation with another trainer.",
-  "exConsultAcceptedGuide": "Your consultation is confirmed. If you decide to register, connect with the trainer using the code in the MY tab during the consultation.",
+  "exConsultAcceptedGuide": "Your consultation request was approved. If you decide to sign up, connect with the trainer using the connection code in the MY tab during the consultation.",
   "exMyReservations": "My bookings",
   "exCancelReservation": "Cancel booking",
   "exCancelKeep": "Keep",
@@ -2181,24 +2181,24 @@
   "@myFieldBirthInvalid": {
     "description": "Shared birth-date format message (#1887). Matches the YYYY-MM-DD rule the server enforces in profile_format.py."
   },
-  "trainerSyncEntryLabel": "Sync data with a trainer",
-  "trainerSyncEntryHint": "Connect with your trainer using a 6-digit code",
-  "trainerSyncTitle": "Sync data with a trainer",
-  "trainerSyncConsent": "Once the trainer who enters this code becomes your coach, they can see your meal records, workout records, body information, health goals, and health notes & cautions for coaching, consultations and writing reports. Disconnecting removes their access too, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don't agree.",
+  "trainerSyncEntryLabel": "Trainer connection code",
+  "trainerSyncEntryHint": "A 6-digit code to connect with your trainer and share your records",
+  "trainerSyncTitle": "Trainer connection code",
+  "trainerSyncConsent": "Once the trainer who enters this code becomes your trainer, they can see your meal records, workout records, body information, health goals, and health notes & cautions for coaching, consultations and writing reports. Disconnecting removes their access too, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don't agree.",
   "trainerShareDetailMore": "Show details",
   "trainerShareDetailLess": "Hide details",
   "trainerShareRecipientLabel": "Shared with",
-  "trainerShareRecipient": "The trainer connected as your coach",
+  "trainerShareRecipient": "The trainer connected with you",
   "trainerShareItemsLabel": "What is shared",
   "trainerShareItems": "Meal records, workout records, body information, health goals, and health notes & cautions",
   "trainerSharePurposeLabel": "Purpose",
   "trainerSharePurpose": "Coaching, consultations and writing reports",
   "trainerSharePeriodLabel": "How long",
-  "trainerSharePeriod": "Until you withdraw consent by disconnecting. Deleting the trainer connection in the MY tab withdraws it, and the trainer can no longer see your new records. Conversations you had and reports already delivered before then are not deleted.",
+  "trainerSharePeriod": "Until you withdraw consent by disconnecting. Disconnecting your trainer in the MY tab withdraws it, and the trainer can no longer see your new records. Conversations you had and reports already delivered before then are not deleted.",
   "trainerShareRefuseLabel": "Your right to refuse",
   "trainerShareRefuse": "You can say no. Without agreeing you can still use your personal records in the app; only the trainer connection won't be made.",
   "trainerSyncAgree": "Agree and get a code",
-  "trainerSyncHint": "Read these six digits out to your trainer.",
+  "trainerSyncHint": "Read this 6-digit connection code out to your trainer.",
   "trainerSyncCountdown": "Expires in {remaining}",
   "@trainerSyncCountdown": {
     "placeholders": {
@@ -2587,7 +2587,7 @@
   "@myGoalsDietSection": {
     "description": "Section label in the health goals sheet."
   },
-  "myGoalsExerciseSection": "Exercise targets",
+  "myGoalsExerciseSection": "Exercise goals",
   "myGoalBurnDaily": "Daily calories burned (kcal)",
   "myGoalCardioWeekly": "Weekly cardio (min)",
   "myGoalStrengthWeekly": "Weekly strength (sets)",
@@ -2614,27 +2614,27 @@
   "@myGoalsExerciseSection": {
     "description": "Section label in the health goals sheet."
   },
-  "myGoalCalories": "Daily calorie limit (kcal)",
+  "myGoalCalories": "Daily calorie goal (kcal)",
   "@myGoalCalories": {
     "description": "Health goal field label."
   },
-  "myGoalSodium": "Daily sodium limit (mg)",
+  "myGoalSodium": "Daily sodium goal (mg)",
   "@myGoalSodium": {
     "description": "Health goal field label."
   },
-  "myGoalSugar": "Daily sugar limit (g)",
+  "myGoalSugar": "Daily sugar goal (g)",
   "@myGoalSugar": {
     "description": "Health goal field label."
   },
-  "myGoalCarbs": "Daily carbohydrate limit (g)",
+  "myGoalCarbs": "Daily carbs goal (g)",
   "@myGoalCarbs": {
     "description": "Health goal field label."
   },
-  "myGoalProtein": "Daily protein limit (g)",
+  "myGoalProtein": "Daily protein goal (g)",
   "@myGoalProtein": {
     "description": "Health goal field label."
   },
-  "myGoalFat": "Daily fat limit (g)",
+  "myGoalFat": "Daily fat goal (g)",
   "@myGoalFat": {
     "description": "Health goal field label."
   },
@@ -2663,7 +2663,7 @@
       }
     }
   },
-  "myGoalMacroApplySuggestion": "Use suggested split",
+  "myGoalMacroApplySuggestion": "Use suggested goals",
   "@myGoalMacroApplySuggestion": {
     "description": "Button that fills the macro fields with the suggested grams."
   },
@@ -2709,9 +2709,9 @@
   "@myPointsDietAdd": {
     "description": "Point-earning action in the points guide."
   },
-  "myPointsRoutineComplete": "Complete a recommended or assigned workout",
+  "myPointsRoutineComplete": "Finish a personal exercise",
   "@myPointsRoutineComplete": {
-    "description": "Point-earning action in the points guide: completing a workout recommended by AI or assigned by the trainer."
+    "description": "Point-earning action in the points guide: finishing a personal exercise (sent by the trainer or recommended by AI)."
   },
   "myPointsExerciseAdd": "Log a workout yourself",
   "@myPointsExerciseAdd": {
@@ -2729,7 +2729,7 @@
       }
     }
   },
-  "coachRoutineTitle": "Recommended personal exercises",
+  "coachRoutineTitle": "Personal exercises",
   "coachRoutineAiTitle": "AI-recommended personal exercises",
   "coachUpcomingDate": "{weekday} {month}/{day}",
   "@coachUpcomingDate": {
@@ -2974,11 +2974,11 @@
       }
     }
   },
-  "demoAlertReportTitle": "This week's report is ready",
+  "demoAlertReportTitle": "Your weekly report is here",
   "@demoAlertReportTitle": {
     "description": "Title of a demo notification shown in tour mode."
   },
-  "demoAlertReportBody": "Trainer {trainerName} posted your report for this week.",
+  "demoAlertReportBody": "Trainer {trainerName} sent your weekly report.",
   "@demoAlertReportBody": {
     "description": "Body of a demo notification shown in tour mode.",
     "placeholders": {
@@ -3333,7 +3333,7 @@
   "@exerciseAdviceRoutineWeekNone": {
     "description": "Exercise tab AI advice sentence `routine_week_none` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
   },
-  "exerciseAdviceRoutineWeekOnly": "This week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} workouts. {rest, select, next_week{Next week} other{For the rest of the week}}, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
+  "exerciseAdviceRoutineWeekOnly": "This week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} personal exercises. {rest, select, next_week{Next week} other{For the rest of the week}}, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
   "@exerciseAdviceRoutineWeekOnly": {
     "description": "Exercise tab AI advice sentence `routine_week_only` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3348,7 +3348,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineWeekOnlyShort": "This week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} workouts.",
+  "exerciseAdviceRoutineWeekOnlyShort": "This week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} personal exercises.",
   "@exerciseAdviceRoutineWeekOnlyShort": {
     "description": "Exercise tab AI advice sentence `routine_week_only_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3451,7 +3451,7 @@
   "@exerciseAdviceRoutineLastWeekNone": {
     "description": "Exercise tab AI advice sentence `routine_last_week_none` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
   },
-  "exerciseAdviceRoutineLastWeekOnly": "Last week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} workouts. This week, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
+  "exerciseAdviceRoutineLastWeekOnly": "Last week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} personal exercises. This week, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
   "@exerciseAdviceRoutineLastWeekOnly": {
     "description": "Exercise tab AI advice sentence `routine_last_week_only` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3463,7 +3463,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineLastWeekOnlyShort": "Last week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} workouts.",
+  "exerciseAdviceRoutineLastWeekOnlyShort": "Last week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} personal exercises.",
   "@exerciseAdviceRoutineLastWeekOnlyShort": {
     "description": "Exercise tab AI advice sentence `routine_last_week_only_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3562,7 +3562,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineAllDoneTodayPart": "You did the {part, select, lower{lower-body} upper{upper-body} core{core} full{full-body} other{full-body}} workouts you often skip today. Keep it going!",
+  "exerciseAdviceRoutineAllDoneTodayPart": "You did the {part, select, lower{lower-body} upper{upper-body} core{core} full{full-body} other{full-body}} personal exercises you often skip today. Keep it going!",
   "@exerciseAdviceRoutineAllDoneTodayPart": {
     "description": "Exercise tab AI advice sentence `routine_all_done_today_part` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3605,7 +3605,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineAllMissedPartShort": "{part, select, lower{Lower-body} upper{Upper-body} core{Core} full{Full-body} other{Full-body}} workouts get skipped often. Move them up?",
+  "exerciseAdviceRoutineAllMissedPartShort": "{part, select, lower{Lower-body} upper{Upper-body} core{Core} full{Full-body} other{Full-body}} personal exercises get skipped often. Move them up?",
   "@exerciseAdviceRoutineAllMissedPartShort": {
     "description": "Exercise tab AI advice sentence `routine_all_missed_part_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3686,7 +3686,7 @@
   "@dietAdviceTodayMissingMeal": {
     "description": "Diet tab AI advice sentence `today_missing_meal` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text."
   },
-  "dietAdviceTodaySodiumOver": "Sodium **{sodiumMg} mg**, over the limit.",
+  "dietAdviceTodaySodiumOver": "Sodium **{sodiumMg} mg**, over your goal.",
   "@dietAdviceTodaySodiumOver": {
     "description": "Diet tab AI advice sentence `today_sodium_over` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
     "placeholders": {
@@ -4022,7 +4022,7 @@
   "weekIntensityRight": "Just right",
   "weekIntensityHard": "A bit hard",
   "weekIntensityTooHard": "Too hard",
-  "myCoachReportsEntry": "Trainer reports",
+  "myCoachReportsEntry": "Weekly reports",
   "myCoachReportsEntryHint": "Reports you received and feedback you sent",
   "coachReportsSectionTitle": "Reports received",
   "coachReportsEmpty": "No reports yet",

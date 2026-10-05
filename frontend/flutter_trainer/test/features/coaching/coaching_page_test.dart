@@ -1573,7 +1573,7 @@ void main() {
       }
       // 이행률 막대도 뺐다(#1029) — 이 줄에는 이제 이름·목표만 남는다.
       expect(
-        find.descendant(of: row, matching: find.text('운동 이행률')),
+        find.descendant(of: row, matching: find.text('운동 완료율')),
         findsNothing,
       );
       expect(tester.takeException(), isNull);

@@ -75,7 +75,7 @@ def _require_client(db: Session, trainer_id: str, member_id: str) -> TrainerClie
         )
     )
     if not data_consent_service.link_is_open(link):
-        raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail="담당 회원을 찾을 수 없습니다.")
     return link
 
 

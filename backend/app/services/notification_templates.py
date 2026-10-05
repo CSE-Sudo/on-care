@@ -263,7 +263,7 @@ def _trainer_member_disconnected(args: Args, locale: Locale) -> Rendered:
     name = _text(args, "member_name").strip()
     cancelled = _cancelled_sessions(args)
     if locale == "ko":
-        body = f"{name or '이름 없는'} 회원이 담당 연결을 끊었어요."
+        body = f"{name or '이름 없는'} 회원이 담당 연결을 해제했어요."
         if cancelled:
             body += f" 남은 일정 {cancelled}건은 취소됐어요."
         return "담당 연결 해제", body
@@ -273,7 +273,7 @@ def _trainer_member_disconnected(args: Args, locale: Locale) -> Rendered:
             f" {_plural(cancelled, 'remaining appointment was', 'remaining appointments were')}"
             " cancelled."
         )
-    return "Client disconnected", body
+    return "Member disconnected", body
 
 
 @_template(TRAINER_CONSULT_REQUESTED)
@@ -310,7 +310,7 @@ def _trainer_invite_accepted(args: Args, locale: Locale) -> Rendered:
     name = _text(args, "member_name")
     if locale == "ko":
         return "담당 요청이 수락되었어요", f"{name or '회원'} 회원이 담당으로 연결되었어요."
-    return "Coaching request accepted", f"{name or 'A member'} is now your client."
+    return "Coaching request accepted", f"{name or 'A member'} is now one of your members."
 
 
 @_template(TRAINER_INVITE_REJECTED)
@@ -352,20 +352,21 @@ def _trainer_member_message(args: Args, locale: Locale) -> Rendered:
     return f"Message from {name or 'a member'}", "Sent a photo" if photo_only else None
 
 
-#: 회원 주간 피드백 저장 값 → (한국어, 영어). 트레이너 웹 ARB 의
-#: `reportsMemberFeedbackCondition*`·`reportsMemberFeedbackIntensity*` 와 같은 말이다.
+#: 회원 주간 피드백 저장 값 → (한국어, 영어). 회원 앱 입력 시트의
+#: `weekCondition*`·`weekIntensity*` 와 같은 말이다 — 회원이 고른 말 그대로
+#: 트레이너에게 보인다(#3116). 트레이너 웹 `reportsMemberFeedback*` 도 같다.
 #: 저장 값 목록은 `trainer.weekly_feedback` 의 `_WEEKLY_FEEDBACK_*` 와 같다.
 _FEEDBACK_CONDITION: dict[str, tuple[str, str]] = {
     "great": ("아주 좋았어요", "Great"),
     "good": ("좋았어요", "Good"),
     "ok": ("보통이었어요", "Okay"),
     "tired": ("지쳤어요", "Worn out"),
-    "bad": ("많이 힘들었어요", "Really rough"),
+    "bad": ("많이 안 좋았어요", "Rough"),
 }
 _FEEDBACK_INTENSITY: dict[str, tuple[str, str]] = {
     "too_easy": ("너무 쉬웠어요", "Too easy"),
-    "right": ("적당했어요", "About right"),
-    "hard": ("힘들었어요", "Hard"),
+    "right": ("딱 맞았어요", "Just right"),
+    "hard": ("조금 힘들었어요", "A bit hard"),
     "too_hard": ("너무 힘들었어요", "Too hard"),
 }
 
@@ -521,11 +522,11 @@ def _member_trainer_connected(args: Args, locale: Locale) -> Rendered:
     if locale == "ko":
         return (
             "트레이너와 연결됐어요",
-            f"{name or '트레이너'} 트레이너가 담당 코치가 됐어요. 식단·운동 기록이 공유돼요.",
+            f"{name or '트레이너'} 트레이너가 담당 트레이너가 됐어요. 식단·운동 기록이 공유돼요.",
         )
     return (
         "Connected with a trainer",
-        f"{name or 'Your trainer'} is now your coach. Your meal and workout logs are shared.",
+        f"{name or 'Your trainer'} is now your trainer. Your meal and workout logs are shared.",
     )
 
 
@@ -535,9 +536,9 @@ def _member_coach_invite(args: Args, locale: Locale) -> Rendered:
     if locale == "ko":
         return (
             "담당 요청이 도착했어요",
-            f"{name or '트레이너'} 트레이너가 담당 코치가 되기를 요청했어요.",
+            f"{name or '트레이너'} 트레이너가 담당 트레이너가 되기를 요청했어요.",
         )
-    return "Coaching request received", f"{name or 'A trainer'} wants to be your coach."
+    return "Coaching request received", f"{name or 'A trainer'} wants to be your trainer."
 
 
 @_template(MEMBER_HEALTH_GOAL)
@@ -571,7 +572,7 @@ def _member_consult_approved(args: Args, locale: Locale) -> Rendered:
             f"Your consultation with {name or 'your trainer'} is confirmed "
             f"for {when}."
         )
-    title = "상담 요청이 수락되었어요" if locale == "ko" else "Consultation request accepted"
+    title = "상담 요청이 승인됐어요" if locale == "ko" else "Consultation request approved"
     return title, body if note is None else f"{body} {note}"
 
 
@@ -581,8 +582,8 @@ def _member_consult_rejected(args: Args, locale: Locale) -> Rendered:
     has_note = bool(args.get("has_note"))
     if locale == "ko":
         return (
-            "상담 요청이 반려되었어요",
-            None if has_note else "다른 트레이너에게 상담을 요청해 보세요.",
+            "상담 요청이 거절됐어요",
+            None if has_note else "다른 트레이너에게 상담을 신청해 보세요.",
         )
     return (
         "Consultation request declined",
@@ -594,7 +595,7 @@ def _member_consult_rejected(args: Args, locale: Locale) -> Rendered:
 def _member_consult_expired(args: Args, locale: Locale) -> Rendered:
     if locale == "ko":
         return (
-            "상담 신청이 만료되었어요",
+            "상담 요청이 만료됐어요",
             "트레이너가 시간 안에 확인하지 않았어요. 다른 시간으로 다시 신청해 보세요.",
         )
     return (
@@ -608,7 +609,7 @@ def _member_trainer_left(args: Args, locale: Locale) -> Rendered:
     name = _text(args, "trainer_name")
     if locale == "ko":
         return (
-            "담당 트레이너 연결이 해제되었어요",
+            "담당 트레이너 연결이 해제됐어요",
             f"{name or '트레이너'} 트레이너가 서비스를 떠났습니다. 새 트레이너를 찾아보세요.",
         )
     return (
@@ -626,17 +627,17 @@ def _member_trainer_disconnected(args: Args, locale: Locale) -> Rendered:
     name = _text(args, "trainer_name").strip()
     cancelled = _cancelled_sessions(args)
     if locale == "ko":
-        body = f"{name or '담당'} 트레이너와 담당 연결이 끊어졌어요."
+        body = f"{name or '담당'} 트레이너와 담당 연결이 해제됐어요."
         if cancelled:
             body += f" 남은 PT 일정 {cancelled}건도 취소됐어요."
-        return "담당 트레이너 연결 해제", body
+        return "담당 트레이너 연결이 해제됐어요", body
     body = f"Your connection with {name or 'your trainer'} has ended."
     if cancelled:
         body += (
             f" {_plural(cancelled, 'remaining PT session was', 'remaining PT sessions were')}"
             " cancelled too."
         )
-    return "Trainer connection ended", body
+    return "Your trainer connection ended", body
 
 
 @_template(MEMBER_TRAINER_LEFT_BOOKING)

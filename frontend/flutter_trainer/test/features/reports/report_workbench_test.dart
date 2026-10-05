@@ -338,9 +338,9 @@ void main() {
 
     // 운동 이행률 0 인 날을 따로 세어 `N일 무기록` 이라 말하지 않는다 — 기록
     // 끊김은 PT 관리 신호가 말한다(#2344).
-    await waitFor(tester, find.text('이행 75%'));
+    await waitFor(tester, find.text('완료율 75%'));
     expect(find.textContaining('무기록'), findsNothing);
-    expect(find.text('이행 75%'), findsOneWidget);
+    expect(find.text('완료율 75%'), findsOneWidget);
     // 식단 지표는 작업대에 오지 않는다 — 그 답은 리포트 본문의 식단 카드다.
     for (final String banned in <String>['나트륨', '칼로리', '당류']) {
       expect(
@@ -392,8 +392,8 @@ void main() {
     expect(tag.tone, AppTagTone.danger);
     expect(tag.icon, AppIcons.error);
     // 리포트 고유 배지는 그 뒤에 남는다.
-    await waitFor(tester, find.text('이행 80%'));
-    expect(find.text('이행 80%'), findsOneWidget);
+    await waitFor(tester, find.text('완료율 80%'));
+    expect(find.text('완료율 80%'), findsOneWidget);
     // 예전의 앱 로컬 노쇼 문구는 없다.
     expect(find.text('노쇼 1회'), findsNothing);
   });

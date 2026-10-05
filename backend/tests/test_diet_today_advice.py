@@ -52,7 +52,7 @@ def test_analysis_priority_sodium_then_calorie_then_protein():
     slots = ("breakfast",)
     over = svc.analysis_today(_totals(2300, 20, 2100, slots=slots), TARGETS, at)
     assert (over.key, over.params) == ("today_sodium_over", {"sodium_mg": 2100})
-    assert over.text == "나트륨 **2,100mg**, 권장량 초과예요."
+    assert over.text == "나트륨 **2,100mg**, 목표 초과예요."
     kcal = svc.analysis_today(_totals(2300, 20, 900, slots=slots), TARGETS, at)
     assert kcal.key == "today_calorie_over"
     protein = svc.analysis_today(_totals(500, 58, 900, slots=slots), TARGETS, at)

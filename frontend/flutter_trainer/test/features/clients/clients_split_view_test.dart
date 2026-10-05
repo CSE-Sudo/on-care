@@ -540,7 +540,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('통증·불편'), findsWidgets);
-    expect(find.text('칼로리 24% 과다'), findsWidgets);
+    expect(find.text('칼로리 24% 초과'), findsWidgets);
     // 헤더 버튼은 아이콘만이고, 신호 배지는 이름 아래 한 줄에 넘치는 만큼
     // `+N` 으로 묶인다(#2330) — 가장 좁은 칸에서도 넘치지 않는다.
     expect(find.byTooltip('리포트'), findsOneWidget);
