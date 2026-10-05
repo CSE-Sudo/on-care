@@ -189,6 +189,11 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
+      - name: Strip demo-only assets
+        # 데모 시드 사진·데모 대화 첨부는 스토어 빌드에 싣지 않는다(#3157). pubspec 의
+        # demo-assets 구간을 지운다 — 목업 코드는 릴리스 빌드에서 상수로 빠진다.
+        run: python3 ../tool/strip_demo_assets.py .
+
       - name: Build the signed app bundle
         # 키스토어는 러너 임시 폴더에, key.properties 는 Gradle 이 읽는 android/ 에 만들고
         # 이 단계가 어떻게 끝나든 trap 으로 둘 다 지운다. 값은 로그에 찍지 않는다.
@@ -359,6 +364,10 @@ jobs:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
+
+      - name: Strip demo-only assets
+        # 안드로이드 잡과 같다(#3157).
+        run: python3 ../tool/strip_demo_assets.py .
 
       - name: Build the signed IPA
         run: |
