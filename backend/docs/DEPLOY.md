@@ -357,7 +357,7 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
 **production 필수 파라미터(#3131)**: 메일 `MailFrom`·`SmtpHost`. 운영은 가입 이메일 확인을 끌 수 없어(#3038) 메일이
 없으면 가입 인증 코드를 보낼 수 없고 신규 가입이 모두 막히므로, 둘 중 하나라도 비면 서버가 기동을 거부한다.
 
-선택 파라미터: `Cpu`(기본 1024)·`Memory`(기본 2048), `AppleClientIds`·`GoogleClientIds`·`KakaoAppId`(#3035), 메일
+선택 파라미터: `Cpu`(기본 1024)·`Memory`(기본 2048), `GoogleClientIds`·`KakaoAppId`(#3035), 메일
 (`SmtpPort`·`PasswordResetMemberUrl`·`PasswordResetTrainerUrl`, staging 은 `MailFrom`·`SmtpHost` 도 선택), staging 전용
 `AllowDemoFallback`, 기본 VPC 가 아닌 곳에 둘 때 `SubnetIds`·`SecurityGroupIds`.
 
@@ -429,7 +429,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `ACCESS_TOKEN_EXPIRE_MINUTES`·`REFRESH_TOKEN_EXPIRE_DAYS`·`WEB_REFRESH_TOKEN_EXPIRE_DAYS` | `60`·`30`·`7`(#2913·#2828) — 데모 서비스에서 길게 바꾼 값이 운영으로 복사되지 않게 |
 | `AUDIT_RETENTION_DAYS`·`AUDIT_SENSITIVE_RETENTION_DAYS` | `365`·`730`(#2830) — 처리방침 보관 기간과 묶여 있다 |
 | `MAIL_PROVIDER`·`SMTP_STARTTLS`·`SMTP_SSL` | `smtp`·`true`·`false` — `MailFrom` 파라미터를 채웠을 때만 들어간다(#3033). `smtp` 라 서버·발신 주소가 비면 기동이 거부돼 빠뜨린 것이 바로 드러난다. 587 STARTTLS 기준 |
-| `GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID`·`APPLE_CLIENT_IDS` | 스택 파라미터(`GoogleClientIds`·`KakaoAppId`·`AppleClientIds`). 소셜 로그인 허용 `aud`(#3035) — Google 은 iOS·Android·웹 client_id(콤마 구분), 카카오는 콘솔의 숫자 앱 ID(`KAKAO_REST_API_KEY` 와 다른 값), Apple 은 번들 ID·Service ID. **비우면 그 로그인은 401 로 거부**. 네이버 로그인은 서버 측 코드 교환 전까지 501 로 닫혀 있어 설정이 없다 |
+| `GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` | 스택 파라미터(`GoogleClientIds`·`KakaoAppId`). 소셜 로그인 허용 `aud`(#3035) — Google 은 iOS·Android·웹 client_id(콤마 구분), 카카오는 콘솔의 숫자 앱 ID(`KAKAO_REST_API_KEY` 와 다른 값). **비우면 그 로그인은 401 로 거부**. 네이버·애플 로그인은 제공하지 않아 설정이 없다(#3218). |
 | `AI_GLOBAL_CALLS_PER_DAY`·`TRAINER_AI_CALLS_PER_DAY`·`LLM_MAX_OUTPUT_TOKENS` | `0`·`200`·`4096`(#3032) — 서버 전체 하루 AI 호출 합(DB 에서 KST 날짜로 셈, 0 이면 끔, 넘으면 폴백이 있는 기능은 규칙형 폴백·AI 코치 채팅·사진 분석은 503 `ai_capacity` + `Retry-After`)·트레이너 한 계정 하루 AI 호출(넘으면 429 `daily_limit`)·호출 한 번의 출력 토큰 천장. 출시 전 `AI_GLOBAL_CALLS_PER_DAY` 를 공급자 하루 예산 ÷ 호출당 비용으로 바꾼다(#480) |
 
 위 값 중 코드 기본값과 같은 것도 템플릿에 못 박는다(#3034) — 데모 서비스에서 바꾼 값이 운영으로
@@ -449,7 +449,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `PASSWORD_RESET_TRAINER_URL` | 트레이너 웹 재설정 화면 — **해시형** `https://<운영 도메인>/trainer/#/auth/password-reset`. 해시 없는 경로형(`/auth/password-reset`)은 정적 경로를 가리켜 코드가 버려진다. 운영에서 경로형·`http://` 면 기동 로그에 WARN(#3033) |
 
 **스택 파라미터로 정하는 값**: `CORS_ALLOW_ORIGINS`(https 만, `*`·빈 값·localhost 금지 — 운영 기동 거부, #3029), `GEMINI_MODEL`(아래 5-3),
-소셜 로그인 `aud`(`APPLE_CLIENT_IDS`·`GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` — 비우면 그 로그인은 401, #3035), 메일(`MAIL_FROM`·`SMTP_HOST`·`SMTP_PORT`·`PASSWORD_RESET_*_URL`).
+소셜 로그인 `aud`(`GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` — 비우면 그 로그인은 401, #3035), 메일(`MAIL_FROM`·`SMTP_HOST`·`SMTP_PORT`·`PASSWORD_RESET_*_URL`).
 
 그 밖의 키(`LOGIN_MAX_FAILURES` 같은 시도 제한·`SENTRY_ENVIRONMENT`·DB 풀 등)는 코드 기본값이 운영 값이라
 템플릿에 넣지 않았다(사유는 `tests/test_env_aws_example.py`, #3034). 바꿔야 하면 템플릿에 키를 더하고
