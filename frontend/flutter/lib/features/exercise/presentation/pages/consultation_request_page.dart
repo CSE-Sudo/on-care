@@ -21,6 +21,7 @@ import 'package:oncare/features/exercise/presentation/utils/exercise_goal_label.
 import 'package:oncare/features/exercise/presentation/utils/gym_phone.dart';
 import 'package:oncare/features/exercise/presentation/utils/slot_label.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -310,9 +311,10 @@ class _ConsultationRequestPageState
     } else if (nearbyAsync.isLoading || myGymAsync.isLoading) {
       body = const AppLoading();
     } else if (nearbyAsync.hasError || myGymAsync.hasError) {
-      body = AppErrorState(
+      body = appErrorStateFor(
+        context,
+        error: nearbyAsync.error ?? myGymAsync.error,
         title: l.exGymsLoadError,
-        retryLabel: l.actionRetry,
         onRetry: () {
           ref.invalidate(nearbyGymsProvider);
           ref.invalidate(myGymProvider);
@@ -508,10 +510,11 @@ class _SlotField extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s16),
         child: AppLoading(),
       ),
-      AsyncError<List<TrainerSlot>>() => AppErrorState(
+      AsyncError<List<TrainerSlot>>(:final Object error) => appErrorStateFor(
+        context,
         key: const Key('consult-slots-error'),
+        error: error,
         title: l.exConsultSlotsError,
-        retryLabel: l.actionRetry,
         onRetry: onRetry,
       ),
       AsyncValue<List<TrainerSlot>>(:final value)

@@ -112,6 +112,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get errorRateLimited => '요청이 많아 잠시 멈췄어요. 잠시 뒤 다시 시도해 주세요.';
 
   @override
+  String get errorNetwork => '인터넷 연결이 불안정해요. 연결을 확인한 뒤 다시 시도해 주세요.';
+
+  @override
+  String get errorServer => '서버에 잠시 문제가 생겼어요. 조금 뒤 다시 시도해 주세요.';
+
+  @override
+  String get errorInvalidRequest => '요청을 처리하지 못했어요. 입력한 내용을 확인해 주세요.';
+
+  @override
   String get dashboardMetricCalories => '칼로리';
 
   @override

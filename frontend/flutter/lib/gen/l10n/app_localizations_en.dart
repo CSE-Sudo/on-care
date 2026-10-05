@@ -117,6 +117,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Too many requests right now. Please try again in a moment.';
 
   @override
+  String get errorNetwork =>
+      'Your connection looks unstable. Check your network and try again.';
+
+  @override
+  String get errorServer =>
+      'Something went wrong on our side. Please try again in a moment.';
+
+  @override
+  String get errorInvalidRequest =>
+      'We couldn\'t process that request. Please check what you entered.';
+
+  @override
   String get dashboardMetricCalories => 'Calories';
 
   @override
