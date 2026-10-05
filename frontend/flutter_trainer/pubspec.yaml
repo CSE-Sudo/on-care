@@ -89,6 +89,9 @@ dependencies:
   # 주간 리포트 결과지(#2652). 회원 앱이 여는 리포트와 한 위젯·한 계산이다.
   oncare_report:
     path: ../../shared/oncare_report
+  # 카카오·구글 로그인(#330). 회원 앱과 같은 연동을 쓴다.
+  oncare_social_login:
+    path: ../../shared/oncare_social_login
   # 트레이너웹 아이콘도 회원앱과 같은 Material Symbols Rounded 한 세트에서만
   # 고른다(#2466). 목록은 lib/app/app_icons.dart 한 곳이다. 가변 글꼴 축(채움·
   # 굵기)을 쓰므로 회원앱과 같은 버전으로 묶는다.

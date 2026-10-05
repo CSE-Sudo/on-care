@@ -620,6 +620,12 @@ abstract class AppLocalizations {
   /// **'Social sign-in is coming soon. Please sign in with your email.'**
   String get authSocialComingSoon;
 
+  /// Shown when the browser blocks the Kakao sign-in pop-up window (#330).
+  ///
+  /// In en, this message translates to:
+  /// **'The sign-in window was blocked. Allow pop-ups for this site and try again.'**
+  String get authSocialPopupBlocked;
+
   /// No description provided for @authErrSignInFailed.
   ///
   /// In en, this message translates to:
@@ -6546,6 +6552,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t confirm your social account. Please sign in again.'**
   String get myDeleteReauthSocialFailed;
+
+  /// Shown in the account-deletion confirmation when no social sign-in is configured for this build (#330).
+  ///
+  /// In en, this message translates to:
+  /// **'Social sign-in isn\'t available in this version yet. Please contact support.'**
+  String get myDeleteReauthSocialUnavailable;
 
   /// No description provided for @myWithdrawReasonTitle.
   ///
