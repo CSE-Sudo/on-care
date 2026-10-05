@@ -7,20 +7,37 @@
 `tool/check_release_defines.sh` 가 같은 파일을 검사하고, 필수 값이 비면 거기서 멈춘다.
 
   필수 키(비어 있어도 쓴다): ENV ← APP_ENV, USE_MOCK_API(false 고정), API_BASE_URL, SENTRY_DSN
-  선택 키(값이 있을 때만): KAKAO_JS_KEY, KAKAO_MAP_ORIGIN, IOS_APP_STORE_ID
+  선택 키(값이 있을 때만): KAKAO_JS_KEY, KAKAO_MAP_ORIGIN, IOS_APP_STORE_ID,
+    KAKAO_NATIVE_APP_KEY, GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID(카카오·구글 로그인, #330)
+
+iOS 잡은 같은 값으로 로그인 URL 스킴 파일(ios/Flutter/Social.xcconfig)도 쓴다(#330).
+카카오 SDK 는 `kakao<네이티브 앱 키>`, 구글 로그인은 iOS client_id 를 뒤집은 스킴으로 앱에
+돌아온다. 값이 없는 쪽은 적지 않아 Debug/Release.xcconfig 의 자리표시 스킴이 남는다.
 
 사용: write_release_defines.py <출력 경로>
+      write_release_defines.py --ios-url-schemes <xcconfig 경로>
 """
 
 from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from collections.abc import Mapping
 from pathlib import Path
 
-OPTIONAL_KEYS = ("KAKAO_JS_KEY", "KAKAO_MAP_ORIGIN", "IOS_APP_STORE_ID")
+OPTIONAL_KEYS = (
+    "KAKAO_JS_KEY",
+    "KAKAO_MAP_ORIGIN",
+    "IOS_APP_STORE_ID",
+    "KAKAO_NATIVE_APP_KEY",
+    "GOOGLE_WEB_CLIENT_ID",
+    "GOOGLE_IOS_CLIENT_ID",
+)
+GOOGLE_CLIENT_ID_SUFFIX = ".apps.googleusercontent.com"
+KAKAO_APP_KEY = re.compile(r"[A-Za-z0-9]{16,64}")
+GOOGLE_CLIENT_PREFIX = re.compile(r"[A-Za-z0-9-]+")
 
 
 def release_defines(environ: Mapping[str, str]) -> dict[str, str]:
@@ -37,10 +54,37 @@ def release_defines(environ: Mapping[str, str]) -> dict[str, str]:
     return defines
 
 
+def ios_url_schemes(environ: Mapping[str, str]) -> str:
+    """iOS 로그인 URL 스킴 xcconfig 본문. 형식이 맞는 값만 적는다(나머지는 앞 단계 검사가 막는다)."""
+    lines = ["// member-app-release.yml 이 빌드 변수로 쓴 파일(#330). 커밋하지 않는다."]
+    kakao = environ.get("KAKAO_NATIVE_APP_KEY", "").strip()
+    if KAKAO_APP_KEY.fullmatch(kakao):
+        lines.append(f"KAKAO_URL_SCHEME = kakao{kakao}")
+    google = environ.get("GOOGLE_IOS_CLIENT_ID", "").strip()
+    prefix = google[: -len(GOOGLE_CLIENT_ID_SUFFIX)] if google.endswith(GOOGLE_CLIENT_ID_SUFFIX) else ""
+    if GOOGLE_CLIENT_PREFIX.fullmatch(prefix):
+        lines.append(f"GOOGLE_URL_SCHEME = com.googleusercontent.apps.{prefix}")
+    return "\n".join(lines) + "\n"
+
+
+def _write_url_schemes(path: Path) -> int:
+    text = ios_url_schemes(os.environ)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    written = [line.split(" = ", 1)[0] for line in text.splitlines() if " = " in line]
+    print(f"{path}: {', '.join(written) or '(로그인 스킴 없음)'}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = sys.argv[1:] if argv is None else argv
-    if len(args) != 1:
-        print("사용: write_release_defines.py <출력 경로>", file=sys.stderr)
+    if len(args) == 2 and args[0] == "--ios-url-schemes":
+        return _write_url_schemes(Path(args[1]))
+    if len(args) != 1 or args[0].startswith("--"):
+        print(
+            "사용: write_release_defines.py <출력 경로> | --ios-url-schemes <xcconfig 경로>",
+            file=sys.stderr,
+        )
         return 2
     out = Path(args[0])
     defines = release_defines(os.environ)
