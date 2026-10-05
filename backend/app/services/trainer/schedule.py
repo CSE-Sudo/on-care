@@ -1469,6 +1469,10 @@ def _rewrite_scheduled_routines(
     회원이 `AI 추천` 으로 본다. 프로그램 만들기가 이미 같은 규칙으로 움직인다
     (#2223). 여기서도 **서버가** 판단한다: 클라이언트가 보낸 `source` 를 그대로
     믿으면 길마다 규칙이 갈린다.
+
+    세트·횟수·중량·초는 처음 붙일 때([_add_scheduled_routines])와 같은 규칙으로
+    근력에만 남긴다(#3232). 고칠 때만 규칙이 빠지면 유산소로 바꾼 운동이 옛 세트를
+    들고 회원에게 간다.
     """
     base = rows[0]
     for index, item in enumerate(items):
@@ -1480,33 +1484,52 @@ def _rewrite_scheduled_routines(
                 trainer_id=base.trainer_id,
                 member_id=base.member_id,
                 schedule_id=base.schedule_id,
+                exercise_date=base.exercise_date,
                 status=ROUTINE_SCHEDULED,
                 delivery_kind=base.delivery_kind,
                 source="trainer",
-                client_request_id=_personal_request_key(
-                    base.client_request_id, index
+                # 키 없이 붙인 줄(일정 상세에서 처음 붙인 것, #2280)이면 새 줄도
+                # 키를 두지 않는다(#3232). `None` 을 글자로 이어 붙이면 같은
+                # 회원의 다른 PT 에서도 `None#routine1` 이 나와 유니크 제약에 걸린다.
+                client_request_id=(
+                    _personal_request_key(base.client_request_id, index)
+                    if base.client_request_id
+                    else None
                 ),
+                created_at=datetime.now(timezone.utc),
             )
             db.add(row)
+        strength = item.type == "근력"
+        sets = item.sets if strength else None
+        reps = item.reps if strength and item.hold_seconds is None else None
+        hold_seconds = item.hold_seconds if strength else None
+        weight = (
+            round(item.weight, 1)
+            if item.weight is not None and strength
+            else None
+        )
         touched = (
             row.name != item.name
             or row.minutes != item.minutes
             or row.duration_seconds != item.duration_seconds
             or row.type != item.type
-            or row.sets != item.sets
-            or row.reps != item.reps
-            or row.hold_seconds != item.hold_seconds
-            or row.weight != item.weight
+            or row.intensity != item.intensity
+            or row.sets != sets
+            or row.reps != reps
+            or row.hold_seconds != hold_seconds
+            or row.weight != weight
         )
         row.name = item.name
         row.minutes = item.minutes
         row.duration_seconds = item.duration_seconds
         row.type = item.type
-        row.sets = item.sets
-        row.reps = item.reps
-        row.hold_seconds = item.hold_seconds
-        row.weight = item.weight
-        # 효과만 고친 것은 운동을 바꾼 것이 아니라 출처를 건드리지 않는다(#2570).
+        row.intensity = item.intensity
+        row.sets = sets
+        row.reps = reps
+        row.hold_seconds = hold_seconds
+        row.weight = weight
+        # 사유·효과만 고친 것은 운동을 바꾼 것이 아니라 출처를 건드리지 않는다(#2570).
+        row.reason = item.reason
         row.effect = item.effect.strip()
         row.source = "trainer" if touched else item.source
         row.sort_order = base.sort_order + index
@@ -2059,6 +2082,13 @@ def update_session(
     if "member_id" in fields:
         # 빈 문자열은 '배정 해제'로 해석 → NULL 로 저장(""는 users.id FK 위반이라 500 유발).
         s.member_id = fields["member_id"] or None
+        if s.member_id != before_member_id:
+            # 붙어 있던 아직 보내지 않은 줄은 이전 회원의 것이다(#3232). 두면 완료
+            # 전송이 이전 회원의 줄을 올리면서 알림·개인운동 정리는 새 회원에게
+            # 간다. 개인운동은 이전 회원의 목표·상태로 짠 것이라 새 회원에게 옮기지
+            # 않고 걷는다. 프로그램은 일정에 그대로 남아, 전송 때 새 회원에게
+            # 새로 배정된다(`send_session_program`).
+            _clear_scheduled_routines(db, trainer_id, s.id)
     if "type" in fields:
         s.type = fields["type"]
     if "duration_minutes" in fields:
@@ -2592,7 +2622,11 @@ def complete_session(
         db.refresh(s)
         return _schedule_out(s)  # 동시 호출이 먼저 완료 처리함 — 기록 없이 현재 상태 반환
 
-    has_exercise_log = _sync_completed_records(db, s, trainer_id, note=note)
+    # 완료 요청에 메모가 없으면 미리 적어 둔 일정 메모가 그 PT 의 메모다(#3232) —
+    # 아래 알림과 같은 값을 이력에도 남긴다.
+    has_exercise_log = _sync_completed_records(
+        db, s, trainer_id, note=note or (s.note or "")
+    )
     if s.member_id:
         # 방금 전환한 이 호출만 알린다(#3027) — 멱등 재호출·동시 호출은 위에서
         # 돌아가 알림도 한 번뿐이다. 완료 요청에 메모가 없으면 미리 적어 둔 메모가
