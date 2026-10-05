@@ -17,6 +17,8 @@ HEALTHMATE = {
     "address": "서울 서대문구 신촌로 83",
     "hours": "05:30 - 24:00",
     "phone": "02-2345-6789",
+    "lat": 37.5548,
+    "lng": 126.9385,
 }
 ONCARE = {"id": "gym-oncare-sinchon", "name": "온케어짐 신촌점"}
 #: 카카오에서 발견한 실재 헬스장 — 부가 정보(GymProfile)가 없다.
@@ -88,6 +90,23 @@ def test_set_gym_links_the_place_and_syncs_the_texts(client, trainer):
     assert gym["address"] == HEALTHMATE["address"]
     assert gym["hours"] == HEALTHMATE["hours"]
     assert gym["phone"] == HEALTHMATE["phone"]
+
+
+def test_trainer_me_carries_the_gym_coordinates(client, trainer):
+    """트레이너 웹이 헬스장 찾기 지도를 검색 전에도 현재 소속 위치로 띄운다(#3206)."""
+    token, _trainer_id = trainer
+    before = client.get("/v1/trainer/me", headers=_auth(token)).json()["gym"]
+    assert before["lat"] is None and before["lng"] is None
+
+    client.put(
+        "/v1/trainer/me/gym", json={"gym_id": HEALTHMATE["id"]}, headers=_auth(token)
+    )
+    gym = client.get("/v1/trainer/me", headers=_auth(token)).json()["gym"]
+    assert gym["lat"] == pytest.approx(HEALTHMATE["lat"])
+    assert gym["lng"] == pytest.approx(HEALTHMATE["lng"])
+
+    cleared = client.delete("/v1/trainer/me/gym", headers=_auth(token)).json()["gym"]
+    assert cleared["lat"] is None and cleared["lng"] is None
 
 
 def test_set_gym_persists(client, trainer):
@@ -290,7 +309,7 @@ def test_trainer_me_response_contract_is_unchanged(client, trainer):
         "certifications", "gym",
     }
     # 트레이너 웹의 gym 계약 — 필드가 사라지면 화면이 빈다.
-    assert set(body["gym"]) == {"id", "name", "address", "hours", "phone"}
+    assert set(body["gym"]) == {"id", "name", "address", "hours", "phone", "lat", "lng"}
 
 
 def test_affiliated_trainer_shows_up_under_that_gym(client, trainer):

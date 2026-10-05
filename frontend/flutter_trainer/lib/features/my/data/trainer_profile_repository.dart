@@ -198,8 +198,8 @@ class MockTrainerProfileRepository implements TrainerProfileRepository {
       name: seedTrainerProfileFor(language).gym.name,
       address: seedTrainerProfileFor(language).gym.address,
       registered: true,
-      lat: 37.5579,
-      lng: 126.9368,
+      lat: kDemoTrainerGymLat,
+      lng: kDemoTrainerGymLng,
       phone: '02-1234-5678',
     ),
     TrainerGymCandidate(
@@ -267,6 +267,8 @@ class MockTrainerProfileRepository implements TrainerProfileRepository {
         // 카카오는 영업시간을 주지 않는다 — 서버와 같게 빈 값이다.
         hours: gym.id == kDemoTrainerGymId ? _profile.gym.hours : '',
         phone: gym.phone,
+        lat: gym.lat,
+        lng: gym.lng,
       ),
     );
     return _profile;
