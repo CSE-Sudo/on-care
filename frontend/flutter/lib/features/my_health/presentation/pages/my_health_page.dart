@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/points/points_rules.dart';
-import 'package:oncare/core/release/build_info.dart';
 import 'package:oncare/features/app_guide/presentation/controllers/app_guide_controller.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart';
@@ -220,29 +219,6 @@ class _MyNavRow extends StatelessWidget {
         color: OnCareColors.textTertiary,
       ),
       onTap: onTap,
-    );
-  }
-}
-
-/// 설정 카드의 `버전 정보` 줄(#3226) — `0.4.0 (7032) · 2026년 10월 5일 14:30 KST 배포`.
-///
-/// 다른 설정 줄과 같은 부품·아이콘 칸을 쓰되 누르지 않는 줄이라 화살표가 없다.
-/// 빌드 번호가 없는 로컬·테스트 빌드는 `0.4.0 · 개발 빌드` 로 보인다.
-class _BuildInfoRow extends ConsumerWidget {
-  const _BuildInfoRow();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return AppListRow(
-      key: const ValueKey<String>('my-build-info'),
-      leading: const _IconTile(icon: AppIcons.info),
-      title: l.buildInfoTitle,
-      subtitle: buildInfoSummary(
-        l,
-        Localizations.localeOf(context).toString(),
-        ref.watch(buildInfoProvider),
-      ),
     );
   }
 }
@@ -1562,10 +1538,6 @@ class _Settings extends StatelessWidget {
                 ),
                 const AppDivider(),
               ],
-              // 지금 떠 있는 빌드가 어느 배포인지(#3226). 누르는 줄이 아니라 정보 줄이라
-              // 화살표가 없다. 로그아웃 바로 위, 설정 목록의 끝에 둔다.
-              const _BuildInfoRow(),
-              const AppDivider(),
               // 위험 동작은 화면 안에서 빨간 글자 버튼으로 두고, 확정은 확인창의
               // 빨간 채움 버튼에서 한다(#1690). 확인 절차와 동작은 그대로다(#1472).
               Padding(

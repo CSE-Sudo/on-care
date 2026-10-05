@@ -1184,7 +1184,6 @@
   "myLegalTermsEffectiveDate": "시행일 2026. 10. 03.",
   "myLegalPrivacyEffectiveDate": "시행일 2026. 10. 05.",
   "myAppVersion": "On-Care · 버전 {version}",
-  "buildInfoTitle": "버전 정보",
   "buildInfoDevelopment": "개발 빌드",
   "buildInfoReleasedAt": "{date} KST 배포",
   "myAppName": "On-Care",
