@@ -745,9 +745,16 @@ class DioReportRepository implements ReportRepository {
       );
       final json = res.data;
       if (json == null) return (feedback: null, failed: true);
+      final MemberWeeklyFeedback? feedback = memberWeeklyFeedbackFromJson(
+        json,
+        weekStart,
+      );
+      // 답했다고 왔는데 컨디션·강도를 읽지 못했으면 `미응답` 이 아니라 `불러오지
+      // 못함` 이다 — 미응답으로 그리면 답한 회원의 결과지에 `아직 받지 못했어요`
+      // 가 실린다(#3246).
       return (
-        feedback: memberWeeklyFeedbackFromJson(json, weekStart),
-        failed: false,
+        feedback: feedback,
+        failed: feedback == null && json['submitted'] == true,
       );
     } on Object {
       // 네트워크 오류(404·500·끊김)뿐 아니라 모양이 다른 응답도 여기서 멈춘다
