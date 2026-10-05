@@ -304,11 +304,13 @@ jobs:
         # 잠금 파일이 해시까지 고정돼 있어 다시 풀지 않고(--disable-pip) 적힌 버전 그대로 본다.
         # 취약점이 있으면 pip-audit 자체가 0 이 아닌 코드로 끝나므로, 통과·실패는 결과 JSON 을
         # 허용 목록과 대조한 다음 단계가 정한다. JSON 이 없으면(조회 실패 등) 여기서 멈춘다.
+        # step 셸이 `bash -e` 라 종료 코드는 `|| status=$?` 로 받는다 — 그대로 두면 취약점이
+        # 하나만 있어도 여기서 끝나 허용 목록 대조까지 가지 못한다(#3235).
         run: |
           set -uo pipefail
+          status=0
           pip-audit --requirement requirements-dev.txt --require-hashes --disable-pip \
-            --progress-spinner off --desc on --format json --output audit.json
-          status=$?
+            --progress-spinner off --desc on --format json --output audit.json || status=$?
           echo "pip-audit exit code: ${status}"
           if [ ! -s audit.json ]; then
             echo "::error::pip-audit 결과(audit.json)가 없습니다. 위 로그에서 조회 실패 원인을 확인하세요."

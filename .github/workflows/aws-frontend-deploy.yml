@@ -97,6 +97,8 @@ jobs:
           fi
 
       # E2E 는 반드시 성공, 경로 필터 CI 는 실행이 있으면 성공. 아직 도는 CI 는 기다린다.
+      # shell 을 지정하지 않은 step 은 `bash -e` 로 돌아 `set -uo pipefail` 로는 -e 가 꺼지지 않는다.
+      # 0 이 아닌 종료 코드(10 = 대기)를 받아 분기하려면 `|| code=$?` 꼴로 받는다(#3235).
       - name: Check CI results for the commit
         env:
           GH_TOKEN: ${{ github.token }}
@@ -106,8 +108,8 @@ jobs:
           set -uo pipefail
           deadline=$(( $(date +%s) + WAIT_SECONDS ))
           while :; do
-            bash .github/scripts/frontend_ci_gate.sh "$SHA" > ci-gate.txt
-            code=$?
+            code=0
+            bash .github/scripts/frontend_ci_gate.sh "$SHA" > ci-gate.txt || code=$?
             cat ci-gate.txt
             [ "$code" -ne 10 ] && break
             if [ "$(date +%s)" -ge "$deadline" ]; then
@@ -143,8 +145,8 @@ jobs:
           bash .github/scripts/check_web_api_base_url.sh || exit 1
           deadline=$(( $(date +%s) + WAIT_SECONDS ))
           while :; do
-            bash .github/scripts/frontend_backend_order.sh "$API_BASE_URL" "$SHA" > order.txt
-            code=$?
+            code=0
+            bash .github/scripts/frontend_backend_order.sh "$API_BASE_URL" "$SHA" > order.txt || code=$?
             cat order.txt
             [ "$code" -ne 10 ] && break
             if [ "$BACKEND_DEPLOY_ENABLED" != "true" ]; then
