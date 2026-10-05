@@ -182,3 +182,108 @@ def test_new_key_for_same_text_is_a_new_chat(client, db_session, llm, small_limi
 
     assert again.status_code == 402
     assert again.json()["detail"]["code"] == "points_required"
+
+
+# ── 동시 전송과 잔액 부족 (#3240) ─────────────────────────────────────
+
+
+def _member_id(client, headers) -> str:
+    return client.get("/v1/users/me", headers=headers).json()["id"]
+
+
+def _ai_chat_ledger(db_session, member_id: str) -> list:
+    from app.models.models import PointsLedger
+    from app.services import ai_chat_quota_service
+
+    db_session.expire_all()
+    return list(
+        db_session.scalars(
+            select(PointsLedger).where(
+                PointsLedger.user_id == member_id,
+                PointsLedger.reason == ai_chat_quota_service.REASON_AI_CHAT,
+            )
+        ).all()
+    )
+
+
+def test_overlapping_sends_cannot_pass_the_balance(
+    client, db_session, llm, small_limits, monkeypatch
+):
+    """두 요청이 답을 기다리는 사이에 겹쳐도 잔액을 넘겨 쓰지 못한다.
+
+    예전에는 확인(`plan`)과 기록(`record`) 사이에 잠금이 없어 50P 로 동시에 보낸
+    요청이 모두 통과하고, 기록에서 잔액이 모자란 쪽은 무료로 답을 받았다. 이제는
+    LLM 을 부르기 전에 몫을 잡으므로 두 번째는 답하기 전에 거절된다.
+    """
+    from app.services import ai_chat_quota_service, points_service
+
+    monkeypatch.setattr(get_settings(), "coach_chat_paid_per_day", 3)
+    h = _member(client, db_session, points=50)
+    member_id = _member_id(client, h)
+    assert _send(client, h).status_code == 200  # 무료 1회를 쓴다.
+
+    first = ai_chat_quota_service.reserve(
+        db_session, member_id, pay_with_points=True, client_request_id=None
+    )
+    with pytest.raises(points_service.InsufficientPoints):
+        ai_chat_quota_service.reserve(
+            db_session, member_id, pay_with_points=True, client_request_id=None
+        )
+
+    db_session.expire_all()
+    assert points_service.balance(db_session, member_id) == 0
+    ai_chat_quota_service.release(db_session, member_id, first)
+    assert points_service.balance(db_session, member_id) == 50
+
+
+def test_overlapping_sends_cannot_pass_the_daily_limit(client, db_session, small_limits):
+    """무료 한도도 먼저 잡은 몫으로 센다 — 답을 기다리는 대화가 한도를 차지한다."""
+    from app.services import ai_chat_quota_service
+
+    h = _member(client, db_session, points=0)
+    member_id = _member_id(client, h)
+
+    ai_chat_quota_service.reserve(
+        db_session, member_id, pay_with_points=False, client_request_id=None
+    )
+    with pytest.raises(ai_chat_quota_service.PointsConsentRequired):
+        ai_chat_quota_service.reserve(
+            db_session, member_id, pay_with_points=False, client_request_id=None
+        )
+
+
+def test_a_paid_chat_without_an_ai_answer_leaves_no_charge(
+    client, db_session, llm, small_limits
+):
+    """포인트로 보냈는데 대체 답이 나오면 잡아 둔 차감을 없던 일로 한다 — 내역에도 없다."""
+    h = _member(client, db_session, points=100)
+    member_id = _member_id(client, h)
+    _send(client, h)
+
+    llm["fail"] = True
+    r = _send(client, h, pay_with_points=True)
+
+    assert r.status_code == 200, r.text
+    assert (r.json()["points_spent"], r.json()["balance_after"]) == (0, None)
+    quota = r.json()["quota"]
+    assert (quota["paid_left"], quota["balance"]) == (1, 100)
+    assert _ai_chat_ledger(db_session, member_id) == []
+
+
+def test_a_resend_while_the_first_is_waiting_is_in_progress(
+    client, db_session, llm, small_limits
+):
+    """같은 키의 요청이 아직 답을 기다리는 중이면 두 번째는 409 `in_progress` 다."""
+    from app.services import ai_chat_quota_service
+
+    h = _member(client, db_session, points=100)
+    member_id = _member_id(client, h)
+    key = uuid4().hex
+    ai_chat_quota_service.reserve(
+        db_session, member_id, pay_with_points=False, client_request_id=key
+    )
+
+    r = _send(client, h, client_request_id=key)
+
+    assert r.status_code == 409, r.text
+    assert r.json()["detail"]["code"] == "in_progress"

@@ -806,7 +806,10 @@ tag: diet|exercise (피드백은 식단·운동 두 건, #2706)
 - 거절은 `detail: { code, message }` 다. 동의 없음 402 `points_required`, 오늘 다 씀 429 `daily_limit`, 잔액 부족 409
   `insufficient_points`(+`shortfall`). 서버 전체 AI 상한에 걸리면 503 `ai_capacity` + `Retry-After`(#3032) — 무료 횟수·포인트를
   쓰지 않고 대화도 저장하지 않는다. 앱은 보낸 말을 거두고 입력칸에 되돌려 안내한다.
-- **AI 가 답했을 때만 센다.** 검색 기반 대체 답은 무료 횟수도 포인트도 쓰지 않는다. 포인트로 산 답은 원장에 `ai_chat` 사용 줄로 남고,
+- 한도와 잔액은 LLM 을 부르기 전에 잠금 아래에서 확인하고 그 대화의 몫(포인트면 차감까지)을 먼저 잡는다(#3240). 동시에 보낸 요청도
+  한도·잔액을 넘지 못하고, 잔액이 모자라면 답하기 전에 409 `insufficient_points` 다. 같은 `client_request_id` 가 아직 답을 기다리는
+  중이면 409 `in_progress`(앱은 일반 오류로 다룬다).
+- **AI 가 답했을 때만 센다.** 검색 기반 대체 답은 무료 횟수도 포인트도 쓰지 않는다(잡아 둔 몫을 거둔다 — 원장에 사용·반환 줄이 남지 않는다). 포인트로 산 답은 원장에 `ai_chat` 사용 줄로 남고,
   `points_spent`·`balance_after` 가 답변 아래 차감 표시(`−50P · 남은 포인트`)를 채운다. `GET /ai-coach/messages` 의 코치 답변도 같은
   두 값을 싣는다.
 - 같은 `client_request_id` 재전송은 저장한 답을 그대로 돌려주고 다시 세지 않는다.
