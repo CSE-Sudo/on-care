@@ -43,6 +43,37 @@ def unconfigured_social_providers(settings: Settings) -> list[str]:
     ]
 
 
+#: 구글 OAuth client_id 의 끝. 웹·Android·iOS 모두 이 꼴이다.
+_GOOGLE_CLIENT_ID_SUFFIX = ".apps.googleusercontent.com"
+
+
+def social_setting_problems(settings: Settings) -> list[str]:
+    """소셜 로그인 허용 설정의 **형식** 오류(#330). 있으면 기동을 막는다.
+
+    값이 비면 그 provider 만 거부하고 끝나지만(경고), 형식이 틀린 값은 설정한 사람이
+    "넣었다"고 믿는 채로 모든 로그인이 401 이 된다 — 흔한 실수가 카카오 REST 키(32자
+    16진수)를 숫자 앱 ID 자리에 넣는 것, 구글 client_secret 이나 프로젝트 번호를 client_id
+    자리에 넣는 것이다. 값 자체는 메시지에 담지 않는다.
+    """
+    problems: list[str] = []
+    kakao_app_id = settings.kakao_app_id_value
+    if kakao_app_id and not kakao_app_id.isdigit():
+        problems.append(
+            "KAKAO_APP_ID 는 카카오 콘솔 > 앱 설정의 숫자 앱 ID 여야 합니다 — REST API 키 같은 "
+            "다른 값이 들어 있으면 카카오 로그인이 모두 거부됩니다."
+        )
+    bad = [
+        cid for cid in settings.google_client_id_list
+        if not cid.endswith(_GOOGLE_CLIENT_ID_SUFFIX) or cid == _GOOGLE_CLIENT_ID_SUFFIX[1:]
+    ]
+    if bad:
+        problems.append(
+            f"GOOGLE_CLIENT_IDS 의 {len(bad)}개 항목이 OAuth client_id 형식"
+            f"(…{_GOOGLE_CLIENT_ID_SUFFIX})이 아닙니다 — 그 앱의 구글 로그인이 거부됩니다."
+        )
+    return problems
+
+
 def check(settings: Settings) -> list[str]:
     """설정을 점검하고 남긴 경고 문구를 돌려준다(테스트가 읽는다)."""
     warnings: list[str] = []
@@ -104,6 +135,17 @@ def check(settings: Settings) -> list[str]:
             "소셜 로그인 허용 앱 설정이 비어 다음 로그인을 거부합니다: "
             + ", ".join(missing)
             + ". 각 provider 개발자 콘솔의 값을 넣으세요."
+        )
+    # 형식이 틀린 값은 막는다(#330) — 비운 것과 달리 사람이 넣었다고 믿고 있다.
+    social_problems = social_setting_problems(settings)
+    if social_problems:
+        raise StartupConfigError(" ".join(social_problems))
+    # 카카오 웹 로그인은 서버가 인가 코드를 교환한다(#330). 앱 ID 만 있고 REST 키가 없으면
+    # 모바일 카카오 로그인은 되는데 웹만 401 이라, 원인을 찾기 어렵다.
+    if settings.kakao_app_id_value and not settings.kakao_login_rest_api_key_value:
+        warnings.append(
+            "KAKAO_APP_ID 는 있지만 KAKAO_LOGIN_REST_API_KEY 가 비어 웹(회원 웹·트레이너 웹) 카카오 "
+            "로그인의 인가 코드를 교환할 수 없습니다 — 같은 카카오 앱의 REST API 키를 넣으세요."
         )
 
     # --- 비밀번호 재설정 메일 링크(#3033) ---

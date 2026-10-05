@@ -342,7 +342,7 @@ def test_startup_warns_about_every_unconfigured_provider(caplog):
 
 def test_startup_names_only_the_missing_provider():
     settings = Settings(
-        _env_file=None, google_client_ids="g.test", kakao_app_id="1", apple_client_ids=""
+        _env_file=None, google_client_ids="g.apps.googleusercontent.com", kakao_app_id="1", apple_client_ids=""
     )
     [social] = [w for w in startup_checks.check(settings) if "소셜 로그인" in w]
     assert "APPLE_CLIENT_IDS" in social
@@ -352,7 +352,7 @@ def test_startup_names_only_the_missing_provider():
 
 def test_startup_is_quiet_when_every_provider_is_configured():
     settings = Settings(
-        _env_file=None, google_client_ids="g.test", kakao_app_id="1", apple_client_ids="a.test"
+        _env_file=None, google_client_ids="g.apps.googleusercontent.com", kakao_app_id="1", apple_client_ids="a.test"
     )
     assert not any("소셜 로그인" in w for w in startup_checks.check(settings))
     assert startup_checks.unconfigured_social_providers(settings) == []
