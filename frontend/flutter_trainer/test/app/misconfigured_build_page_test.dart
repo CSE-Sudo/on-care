@@ -48,6 +48,7 @@ void main() {
       '· ${_ko.misconfiguredBuildMockWithoutDemo}',
       '· ${_ko.misconfiguredBuildPlaceholderApiUrl}',
       '· ${_ko.misconfiguredBuildInsecureApiUrl}',
+      '· ${_ko.misconfiguredBuildDemoEntry}',
     ].join('\n');
     expect(find.text(details), findsOneWidget);
   });
@@ -99,5 +100,24 @@ void main() {
         MisconfiguredBuildPage.describe(_ko, p),
     };
     expect(lines, hasLength(ReleaseProblem.values.length));
+  });
+
+  testWidgets('데모 진입이 켜진 운영 빌드는 그 설정을 짚는다 (#3147)', (tester) async {
+    await _pump(
+      tester,
+      problems: const <ReleaseProblem>[
+        ReleaseProblem.demoEntryWithoutDemoBuild,
+      ],
+    );
+
+    expect(find.text('· ${_ko.misconfiguredBuildDemoEntry}'), findsOneWidget);
+    expect(find.textContaining('SHOW_DEMO_ENTRY'), findsOneWidget);
+  });
+
+  test('새 설정 문구는 영어에 한글이 없고 define 이름을 그대로 적는다 (#3147)', () {
+    final RegExp hangul = RegExp(r'[가-힣]');
+    expect(hangul.hasMatch(_en.misconfiguredBuildDemoEntry), isFalse);
+    expect(_en.misconfiguredBuildDemoEntry, contains('SHOW_DEMO_ENTRY'));
+    expect(_ko.misconfiguredBuildDemoEntry, contains('SHOW_DEMO_ENTRY'));
   });
 }

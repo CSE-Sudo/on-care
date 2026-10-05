@@ -112,7 +112,7 @@
   "sodium_mg": 380,
   "sugar_g": 18,
   "ai_comment": "오트밀로 식이섬유를 챙겼어요.",
-  "photo_asset": "assets/images/diet-oatmeal-banana.jpeg"
+  "photo_asset": "assets/demo/images/diet-oatmeal-banana.jpeg"
 }
 ```
 

@@ -227,11 +227,13 @@ class _AllRoutineAdherenceState extends ConsumerState<_AllRoutineAdherence> {
       (RoutineGroupAdherence r) => r.group.activeFrom == _selected,
       orElse: () => rings.last,
     );
+    // 기한 없는 따로 배정 중 오늘도 걸린 것만 — 끝난 일반 배정까지 `계속` 으로
+    // 적으면 지난 것을 지금 것처럼 말한다.
     final List<RoutineDayGroup> ongoing = <RoutineDayGroup>[
       for (final RoutineDayGroup g in days.groupsOf(
         days.routines.map((RoutineDayRoutine r) => r.id),
       ))
-        if (!g.personal) g,
+        if (!g.personal && g.activeOn(key.day)) g,
     ];
     final TextStyle caption = context.oncare
         .text(OnCareTypography.caption)

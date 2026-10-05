@@ -66,6 +66,22 @@ class ConsentStatus(BaseModel):
     consent_pending: list[str] = Field(default_factory=list)
 
 
+class OptionalConsentState(BaseModel):
+    """선택 동의 한 항목의 상태 — `GET`·`PUT`·`DELETE /users/me/consents/{kind}`. (#3136)
+
+    `agreed` 는 **지금 버전**에 철회하지 않은 동의가 있는가다. 약관이 바뀌어 옛
+    버전에만 동의한 계정은 `false` 이고, 앱은 다음 이용 때 다시 묻는다.
+    `version`·`agreed_at`·`revoked_at` 은 가장 최근 기록의 값이다(없으면 null).
+    """
+
+    kind: str
+    agreed: bool
+    current_version: str
+    version: Optional[str] = None
+    agreed_at: Optional[datetime] = None
+    revoked_at: Optional[datetime] = None
+
+
 # ---- GET /users/me/health ----
 class HealthProfileBrief(BaseModel):
     name: str

@@ -54,6 +54,20 @@ class DioMemberCoachRepository implements MemberCoachRepository {
   );
 
   @override
+  Future<UpcomingRoutines?> fetchUpcomingRoutines() async {
+    try {
+      final Response<Map<String, Object?>> res = await _dio
+          .get<Map<String, Object?>>('/me/coach/routines/upcoming');
+      final Map<String, Object?>? data = res.data;
+      return data == null ? null : upcomingRoutinesFromJson(data);
+    } on DioException catch (e) {
+      // 담당이 없으면 예정도 없다 — 목록처럼 빈 상태로 둔다.
+      if (e.response?.statusCode == 404) return null;
+      throw AppError.fromDio(e);
+    }
+  }
+
+  @override
   Future<CoachRoutine> completeRoutine(
     String routineId, {
     required int minutes,
