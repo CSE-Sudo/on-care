@@ -1821,7 +1821,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedEmptyWeek => 'Nothing scheduled this week.';
 
   @override
-  String get schedSlots => 'Open booking times';
+  String get schedSlots => 'Booking times';
 
   @override
   String get schedNewSession => 'New appointment';

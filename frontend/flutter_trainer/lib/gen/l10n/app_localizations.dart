@@ -3190,7 +3190,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedSlots.
   ///
   /// In en, this message translates to:
-  /// **'Open booking times'**
+  /// **'Booking times'**
   String get schedSlots;
 
   /// No description provided for @schedNewSession.

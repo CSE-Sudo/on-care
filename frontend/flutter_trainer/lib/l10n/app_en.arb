@@ -1301,7 +1301,7 @@
     }
   },
   "schedEmptyWeek": "Nothing scheduled this week.",
-  "schedSlots": "Open booking times",
+  "schedSlots": "Booking times",
   "schedNewSession": "New appointment",
   "schedLoadFailed": "Couldn't load the schedule",
   "schedEmptyDay": "Nothing scheduled for this day.\nUse New appointment above to add one.",
