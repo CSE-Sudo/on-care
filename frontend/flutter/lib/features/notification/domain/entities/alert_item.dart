@@ -154,6 +154,7 @@ class NotificationState {
     this.loading = false,
     this.loaded = false,
     this.failedToLoad = false,
+    this.loadError,
     this.hasMore = false,
     this.loadingMore = false,
   });
@@ -180,6 +181,10 @@ class NotificationState {
   /// 마지막 조회가 실패했는가. 화면이 재시도를 제안하는 근거다.
   final bool failedToLoad;
 
+  /// 마지막 조회를 실패하게 한 오류(#3140). 실패 안내가 원인(연결·서버·권한)을
+  /// 말하는 근거다. 실패하지 않았으면 null 이다.
+  final Object? loadError;
+
   /// 한 번도 받지 못한 채 조회가 실패해 **보여 줄 목록이 없는** 상태인가(#2877).
   ///
   /// 이때는 "알림이 없습니다" 를 그리면 안 된다 — 받아 본 적이 없는데 없다고 말하면
@@ -198,11 +203,15 @@ class NotificationState {
 
   int get unreadCount => items.where((AlertItem i) => !i.read).length;
 
+  /// [copyWith] 에서 [loadError] 를 넘기지 않았음을 null(오류 지움)과 가른다.
+  static const Object _keep = Object();
+
   NotificationState copyWith({
     List<AlertItem>? items,
     bool? loading,
     bool? loaded,
     bool? failedToLoad,
+    Object? loadError = _keep,
     bool? hasMore,
     bool? loadingMore,
   }) => NotificationState(
@@ -210,6 +219,7 @@ class NotificationState {
     loading: loading ?? this.loading,
     loaded: loaded ?? this.loaded,
     failedToLoad: failedToLoad ?? this.failedToLoad,
+    loadError: identical(loadError, _keep) ? this.loadError : loadError,
     hasMore: hasMore ?? this.hasMore,
     loadingMore: loadingMore ?? this.loadingMore,
   );

@@ -128,6 +128,85 @@ void main() {
     });
   });
 
+  group('routineOnlyAssignToJson — 정하지 않은 칸은 0 이 아니라 null', () {
+    // `hold_seconds: 0` 을 서버가 버티는 운동으로 읽어 일반 근력 운동의
+    // 횟수를 지웠다 — 회원은 `스쿼트 3세트 · 12회` 를 `스쿼트 3세트` 로 받았다.
+    Map<String, Object?> exerciseOf(Map<String, Object?> body, int index) {
+      final session =
+          (body['sessions']! as List<Object?>)[index]! as Map<String, Object?>;
+      return (session['exercises']! as List<Object?>).single!
+          as Map<String, Object?>;
+    }
+
+    final body = routineOnlyAssignToJson(
+      const <RoutineExercise>[
+        RoutineExercise(
+          name: '스쿼트',
+          minutes: 0,
+          type: '근력',
+          sets: 3,
+          reps: 12,
+        ),
+        RoutineExercise(
+          name: '플랭크',
+          minutes: 0,
+          type: '근력',
+          sets: 3,
+          reps: 10,
+          holdSeconds: 60,
+          isHold: true,
+        ),
+        RoutineExercise(name: '걷기', minutes: 30, type: '유산소'),
+      ],
+      programName: '이번 주 개인운동',
+      startDate: '2026-09-25',
+      activeDays: 7,
+    );
+
+    test('횟수만 있는 근력 운동은 횟수 그대로, 초는 null', () {
+      final squat = exerciseOf(body, 0);
+
+      expect(squat['reps'], 12);
+      expect(squat['sets'], 3);
+      expect(squat['hold_seconds'], isNull);
+      expect(squat['hold_seconds'], isNot(0));
+    });
+
+    test('버티는 운동은 초 그대로, 횟수는 null', () {
+      final plank = exerciseOf(body, 1);
+
+      expect(plank['hold_seconds'], 60);
+      expect(plank['reps'], isNull);
+      expect(plank['sets'], 3);
+    });
+
+    test('근력이 아닌 운동은 세트·횟수·초·중량이 모두 null', () {
+      final walk = exerciseOf(body, 2);
+
+      expect(walk['duration'], 30);
+      expect(walk['sets'], isNull);
+      expect(walk['reps'], isNull);
+      expect(walk['hold_seconds'], isNull);
+      expect(walk['weight'], isNull);
+    });
+
+    test('세트를 정하지 않은 근력 운동도 0 세트로 보내지 않는다', () {
+      final sent = routineOnlyAssignToJson(
+        const <RoutineExercise>[
+          RoutineExercise(name: '런지', minutes: 0, type: '근력', reps: 10),
+        ],
+        programName: '이번 주 개인운동',
+        startDate: '2026-09-25',
+        activeDays: 7,
+      );
+      final lunge = exerciseOf(sent, 0);
+
+      expect(lunge['sets'], isNull);
+      expect(lunge['reps'], 10);
+      expect(lunge['hold_seconds'], isNull);
+    });
+  });
+
   group('AI 제안 종결 — `suggestion_ids` (#2747)', () {
     const RoutineExercise fromSuggestion = RoutineExercise(
       name: '걷기',
