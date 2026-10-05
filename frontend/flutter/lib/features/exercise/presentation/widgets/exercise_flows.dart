@@ -415,6 +415,8 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
     final DateTime now = nowKst();
     final DateTime? picked = await showAppDatePicker(
       context: context,
+      // 기기 시간대가 아니라 KST 오늘에 테두리를 둔다(#3250).
+      currentDate: now,
       initialDate: _date,
       firstDate: DateTime(now.year - 2),
       // 앞으로 한 기록은 없다 — 아직 하지 않은 운동을 적을 자리가 아니다.

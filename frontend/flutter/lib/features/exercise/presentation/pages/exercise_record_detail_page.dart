@@ -142,6 +142,8 @@ class _ExerciseDayDetailPageState extends ConsumerState<ExerciseDayDetailPage> {
     final DateTime today = DateTime(now.year, now.month, now.day);
     final DateTime? picked = await showAppDatePicker(
       context: context,
+      // 기기 시간대가 아니라 KST 오늘에 테두리를 둔다(#3250).
+      currentDate: today,
       initialDate: _date,
       firstDate: DateTime(now.year - 2),
       // 앞으로 한 기록은 없다 — 아직 하지 않은 운동을 적을 자리가 아니다.

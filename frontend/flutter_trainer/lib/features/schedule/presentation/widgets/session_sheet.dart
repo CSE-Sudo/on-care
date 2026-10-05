@@ -692,6 +692,8 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
     }
     final picked = await showAppDatePicker(
       context: context,
+      // 기기 시간대가 아니라 KST 오늘에 테두리를 둔다(#3250).
+      currentDate: today,
       initialDate: _date,
       firstDate: first.subtract(const Duration(days: 365)),
       lastDate: today.add(const Duration(days: 365)),

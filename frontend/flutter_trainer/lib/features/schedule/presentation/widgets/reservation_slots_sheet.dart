@@ -86,6 +86,8 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
     final today = nowKst();
     final picked = await showAppDatePicker(
       context: context,
+      // 기기 시간대가 아니라 KST 오늘에 테두리를 둔다(#3250).
+      currentDate: today,
       initialDate: _date,
       firstDate: DateTime(today.year, today.month, today.day),
       lastDate: DateTime(today.year + 1, today.month, today.day),
