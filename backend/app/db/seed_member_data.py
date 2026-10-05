@@ -44,7 +44,7 @@ from app.core import clock
 from app.core.config import get_settings
 from app.core.week import monday_of
 from app.db.demo_fixture import FixtureRoutine, load_fixture
-from app.db.seed_member_logs import current_seed_text
+from app.db.seed_member_logs import current_seed_sentence, current_seed_text
 from app.db.seed_roster import HISTORY_WEEKS
 from app.db.seed_trainer import TRAINER_ID, _MEMBERS
 from app.db.session import SessionLocal
@@ -662,13 +662,19 @@ def _seed_schedule(db: Session, valid: set[str]) -> None:
         # 비워 둔다. 되붙이지 않으면 뒤따르는 주간 PT 시드가 이번 주에 그 회원의
         # 수업이 없다고 보고 한 번 더 깐다(#2695) — 주간 PT 행과 같은 처리다.
         by_id = {row.id: row for row in existing}
-        reattached = False
+        changed = False
         for i, (_time, _cname, mid, *_rest) in enumerate(_SCHEDULE):
             row = by_id.get(f"seed-schedule-{today}-{i}")
             if row is not None and row.member_id is None and mid and mid in valid:
                 row.member_id = mid
-                reattached = True
-        if reattached:
+                changed = True
+        # 오늘 이미 깐 타임라인의 메모도 옛 시드 문장이면 지금 문장으로(#3202).
+        for row in existing:
+            renamed = current_seed_sentence(row.note)
+            if renamed != row.note:
+                row.note = renamed
+                changed = True
+        if changed:
             _safe_commit(db)
         return
     fixture_today = _fixture_pt_day(clock.today())
@@ -888,7 +894,11 @@ def _seed_fixture_pt(db: Session, valid: set[str]) -> None:
     ).delete(synchronize_session=False)
     names = {user_id: name for user_id, _email, name, *_ in _MEMBERS}
     for row_id, day in wanted.items():
-        if db.get(models.TrainerSchedule, row_id) is not None:
+        existing = db.get(models.TrainerSchedule, row_id)
+        if existing is not None:
+            # 이미 깐 행의 메모가 옛 픽스처 문장이면 지금 문장으로 고친다(#3202).
+            # 트레이너가 고쳐 쓴 메모는 표에 없어 그대로다.
+            existing.note = current_seed_sentence(existing.note)
             continue
         db.add(models.TrainerSchedule(
             id=row_id,

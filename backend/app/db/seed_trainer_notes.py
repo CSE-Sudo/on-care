@@ -23,7 +23,7 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from app.core import clock
 from app.core.week import monday_of
-from app.db.seed_member_logs import current_seed_text
+from app.db.seed_member_logs import current_seed_sentence, current_seed_text
 from app.db.seed_trainer import TRAINER_ID, _MEMBERS
 from app.db.session import SessionLocal
 from app.models import models
@@ -221,6 +221,7 @@ def _trainer_has(db: Session, model, *where) -> bool:
 
 def seed_follow_ups(db: Session, today: date, valid: set[str]) -> None:
     if _trainer_has(db, models.TrainerFollowUpTask):
+        _rename_seed_follow_ups(db)
         return
     for i, (member, title, due, context, created_ago, done_ago) in enumerate(_FOLLOW_UPS):
         if member not in valid:
@@ -239,6 +240,26 @@ def seed_follow_ups(db: Session, today: date, valid: set[str]) -> None:
             updated_at=completed or created,
             completed_at=completed,
         ))
+
+
+def _rename_seed_follow_ups(db: Session) -> None:
+    """이미 넣은 시드 할 일(`seed-followup-`)의 제목을 지금 시드 문장으로 고친다.
+
+    할 일은 트레이너에게 하나라도 있으면 통째로 건너뛰므로, 문장을 바꿔도 이미
+    시드된 DB 에는 옛 제목이 남는다(#3202). 옛 문장과 정확히 같은 제목만 바꾸고
+    상태·기한·수정 시각은 그대로 둔다.
+    """
+    for row in db.scalars(
+        select(models.TrainerFollowUpTask).where(
+            models.TrainerFollowUpTask.trainer_id == TRAINER_ID,
+            models.TrainerFollowUpTask.id.like("seed-followup-%"),
+        )
+    ):
+        renamed = current_seed_sentence(row.title)
+        if renamed != row.title:
+            row.title = renamed
+            # 표기만 고친 것을 방금 손본 할 일처럼 보이지 않게 수정 시각을 둔다.
+            flag_modified(row, "updated_at")
 
 
 def seed_memos(db: Session, today: date, valid: set[str]) -> None:
@@ -344,6 +365,18 @@ def seed_past_pt_notes(db: Session, today: date) -> None:
             note = notes.get(row.member_id)
             if note and not row.note:
                 row.note = note
+    # 이미 메모가 달린 시드 PT 는 위에서 건너뛰므로, 옛 문장으로 단 메모만 지금
+    # 문장으로 고친다(#3202). 트레이너가 고쳐 쓴 메모는 표에 없어 그대로다.
+    for row in db.scalars(
+        select(models.TrainerSchedule).where(
+            models.TrainerSchedule.trainer_id == TRAINER_ID,
+            models.TrainerSchedule.id.like("seed-pt-%"),
+            models.TrainerSchedule.note != "",
+        )
+    ):
+        renamed = current_seed_sentence(row.note)
+        if renamed != row.note:
+            row.note = renamed
 
 
 def seed_past_consults(db: Session, today: date, valid: set[str]) -> None:
