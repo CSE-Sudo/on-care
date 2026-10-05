@@ -13,7 +13,11 @@
    비교 전에 DB 에서 원자적으로 올린다(#3238).
 
 코드는 계정이 아니라 (소문자 이메일, 용도)에 묶인다. 회원 가입 코드로 트레이너
-가입을 할 수 없고, 화면에서 이메일을 바꾸면 새 코드가 필요하다. 표에는 서버 비밀값
+가입을 할 수 없고, 화면에서 이메일을 바꾸면 새 코드가 필요하다.
+
+로그인 이메일 변경(#3230)도 같은 코드를 쓴다(용도 `email_change`). 바꿀 새 주소로 코드를
+보내고, 그 코드를 가져와야 이메일이 바뀐다 — 남의 주소로 바꿔 그 주소를 선점하거나
+그 주소의 소셜 로그인을 자기 계정으로 끌어오지 못하게 한다. 표에는 서버 비밀값
 (`JWT_SECRET`)으로 만든 HMAC 만 남긴다 — 6자리는 경우의 수가 백만뿐이라 소금 없는
 해시는 표가 새면 곧바로 풀린다.
 """
@@ -46,8 +50,11 @@ log = logging.getLogger(__name__)
 
 MEMBER_SIGNUP = "member_signup"
 TRAINER_SIGNUP = "trainer_signup"
+#: 로그인 이메일 변경(#3230). 가입 코드 요청(`POST /auth/register/email-code`)으로는
+#: 받을 수 없고 로그인한 회원의 `POST /users/me/email/code` 로만 받는다.
+EMAIL_CHANGE = "email_change"
 #: 받는 용도. 값은 API 계약(`purpose`)이다.
-PURPOSES: frozenset[str] = frozenset({MEMBER_SIGNUP, TRAINER_SIGNUP})
+PURPOSES: frozenset[str] = frozenset({MEMBER_SIGNUP, TRAINER_SIGNUP, EMAIL_CHANGE})
 #: 코드 자릿수.
 CODE_LENGTH = 6
 
@@ -108,17 +115,47 @@ def _close_open_codes(db: Session, email: str, purpose: str, *, now: datetime) -
 
 
 def _compose_code(
-    email: str, code: str, minutes: int, settings: Settings, locale: Locale | None
+    email: str,
+    code: str,
+    minutes: int,
+    settings: Settings,
+    locale: Locale | None,
+    purpose: str = MEMBER_SIGNUP,
 ) -> OutgoingMail:
     subject = localized(
         "[On-Care] 이메일 인증 코드", "[On-Care] Your email verification code", locale
     )
-    lines = [
+    changing = purpose == EMAIL_CHANGE
+    lead = (
         localized(
+            "On-Care 로그인 이메일을 이 주소로 바꾸기 위한 인증 코드를 보내 드립니다.",
+            "Here is the code to make this address your On-Care sign-in email.",
+            locale,
+        )
+        if changing
+        else localized(
             "On-Care 가입을 위해 이메일 인증 코드를 보내 드립니다.",
             "Here is the code to verify your email for your On-Care sign-up.",
             locale,
-        ),
+        )
+    )
+    ignore = (
+        localized(
+            "직접 요청하지 않으셨다면 이 메일을 무시하세요. 어떤 계정의 이메일도 이 주소로 "
+            "바뀌지 않습니다.",
+            "If you didn't ask for this, ignore this email. No account will switch to "
+            "this address.",
+            locale,
+        )
+        if changing
+        else localized(
+            "직접 가입하지 않으셨다면 이 메일을 무시하세요. 계정이 만들어지지 않습니다.",
+            "If you didn't try to sign up, ignore this email. No account will be created.",
+            locale,
+        )
+    )
+    lines = [
+        lead,
         "",
         localized("인증 코드", "Verification code", locale) + f": {code}",
         localized(
@@ -127,30 +164,37 @@ def _compose_code(
             locale,
         ),
         "",
-        localized(
-            "직접 가입하지 않으셨다면 이 메일을 무시하세요. 계정이 만들어지지 않습니다.",
-            "If you didn't try to sign up, ignore this email. No account will be created.",
-            locale,
-        ),
+        ignore,
     ]
     lines += support_lines(settings, locale)
     return OutgoingMail(to=email, subject=subject, body="\n".join(lines))
 
 
 def _compose_already_registered(
-    email: str, settings: Settings, locale: Locale | None
+    email: str, settings: Settings, locale: Locale | None, purpose: str = MEMBER_SIGNUP
 ) -> OutgoingMail:
     subject = localized(
         "[On-Care] 이미 가입된 이메일입니다", "[On-Care] You already have an account", locale
     )
-    lines = [
+    asked = (
         localized(
+            "다른 On-Care 계정의 로그인 이메일을 이 주소로 바꾸려는 인증 코드 요청이 "
+            "들어왔지만, 이 주소로는 이미 계정이 있어 바꿀 수 없습니다.",
+            "Someone asked for a code to switch another On-Care account to this email, "
+            "but an account already uses this address, so it can't be switched.",
+            locale,
+        )
+        if purpose == EMAIL_CHANGE
+        else localized(
             "이 이메일로 On-Care 가입 인증 코드 요청이 들어왔지만, 이 주소로는 이미 "
             "계정이 있습니다.",
             "Someone asked for an On-Care sign-up code for this email, but an account "
             "already uses this address.",
             locale,
-        ),
+        )
+    )
+    lines = [
+        asked,
         localized(
             "본인이라면 로그인하시고, 비밀번호가 기억나지 않으면 로그인 화면에서 "
             "비밀번호 재설정을 이용하세요.",
@@ -197,7 +241,7 @@ def request_code(
     )
     if registered is not None:
         try:
-            sender.send(_compose_already_registered(email, settings, locale))
+            sender.send(_compose_already_registered(email, settings, locale, purpose))
         except MailDeliveryError as exc:
             log.error("가입 안내 메일 발송 실패: to=%s err=%s", mask_email(email), exc)
         return None
@@ -220,7 +264,9 @@ def request_code(
     db.commit()
     try:
         sender.send(
-            _compose_code(email, code, settings.signup_email_code_minutes, settings, locale)
+            _compose_code(
+                email, code, settings.signup_email_code_minutes, settings, locale, purpose
+            )
         )
     except MailDeliveryError as exc:
         log.error("가입 인증 메일 발송 실패: to=%s err=%s", mask_email(email), exc)

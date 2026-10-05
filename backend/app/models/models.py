@@ -2559,7 +2559,7 @@ class EmailVerificationCode(Base):
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     #: 소문자로 정규화한 이메일.
     email: Mapped[str] = mapped_column(String(255))
-    #: `member_signup` | `trainer_signup`.
+    #: `member_signup` | `trainer_signup` | `email_change`(로그인 이메일 변경, #3230).
     purpose: Mapped[str] = mapped_column(String(32))
     code_hash: Mapped[str] = mapped_column(String(64))
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)

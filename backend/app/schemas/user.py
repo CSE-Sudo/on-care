@@ -269,6 +269,23 @@ class SignupEmailCodeRequest(BaseModel):
         return value
 
 
+class EmailChangeCodeRequest(BaseModel):
+    """로그인 이메일 변경 인증 코드 요청(`POST /users/me/email/code`, #3230).
+
+    바꿀 **새** 주소다. 가입과 같은 규칙으로 검사·정규화한다 — 코드는 정규화한 주소에
+    묶이므로 `PUT /users/me` 의 `email` 과 같은 값이어야 맞는다.
+    """
+
+    email: str
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _check_email(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return clean_email(value)
+        return value
+
+
 class SignupEmailCodeSent(BaseModel):
     """코드 요청 응답. 이미 가입된 주소여도 **같다** — 가입 여부를 드러내지 않는다."""
 
@@ -581,7 +598,14 @@ class ProfileUpdate(PartialUpdate):
     """
 
     nullable_fields: ClassVar[frozenset[str]] = frozenset(
-        {"height_cm", "weight_kg", "current_password", "social_provider", "social_token"}
+        {
+            "height_cm",
+            "weight_kg",
+            "current_password",
+            "social_provider",
+            "social_token",
+            "email_code",
+        }
     )
 
     #: 가입과 같은 기준으로 본다(#1887) — 비울 수 없고, 컬럼에 들어가는
@@ -614,6 +638,10 @@ class ProfileUpdate(PartialUpdate):
     current_password: Optional[str] = Field(default=None, max_length=256)
     social_provider: Optional[str] = Field(default=None, max_length=20)
     social_token: Optional[str] = Field(default=None, max_length=4096)
+    #: 로그인 이메일을 **실제로** 바꿀 때 새 주소로 받은 6자리 코드(#3230,
+    #: `POST /users/me/email/code`). 새 주소의 주인인지 확인한 뒤에만 바꾼다. 저장할
+    #: 항목이 아니다.
+    email_code: Optional[str] = Field(default=None, max_length=16)
 
     # 가입(`UserRegister`)과 같은 함수를 부른다. 두 경로가 다른 기준을 쓰면
     # 한쪽이 정리한 값을 다른 쪽이 되돌린다.

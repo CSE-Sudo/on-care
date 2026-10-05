@@ -97,7 +97,8 @@
 | DELETE | `/users/me` | 본문 `{ reasons?, current_password? \| social_provider?·social_token? }` → `{ status: "deleted" }`. 본인 확인 필수, 실패 400(#3039) |
 | GET | `/users/me/deletion-preview` | `{ points, active_coupons, upcoming_reservations, pending_consultations }` — 탈퇴하면 사라지거나 취소되는 것의 수(#3006). 아래 [탈퇴 미리보기](#탈퇴-미리보기-3006). 회원 전용(트레이너 403) |
 | GET | `/users/me/profile` | `ProfileView` — `{ id, name, email, phone, birth_date, gender, height_cm, weight_kg, conditions, daily_calories, daily_sodium_mg, daily_sugar_g, daily_carbs_g, daily_protein_g, daily_fat_g, weekly_workout_goal, weekly_exercise_minutes_goal, weekly_burn_goal, daily_burn_kcal, weekly_cardio_minutes, weekly_strength_sets, weekly_flexibility_minutes, onboarded, focus_changed_by, focus_changed_at }` — MY 프로필 통합 뷰 |
-| PUT | `/users/me` | 부분 수정 `{ name?, email?, phone?, birth_date?, gender?, height_cm?, weight_kg? }` → `ProfileView`. 이메일을 실제로 바꿀 때만 `current_password`(소셜 전용은 `social_provider`·`social_token`)를 함께 보내고, 그때 응답에 새 `access_token`·`refresh_token` 이 실린다(#3039). 다른 계정이 쓰는 이메일은 409, 전화번호를 빈 값으로 보내면 422. 형식 규칙은 아래 "인증" 의 연락처·이름·생년월일 절과 같다 |
+| PUT | `/users/me` | 부분 수정 `{ name?, email?, phone?, birth_date?, gender?, height_cm?, weight_kg? }` → `ProfileView`. 이메일을 실제로 바꿀 때만 `current_password`(소셜 전용은 `social_provider`·`social_token`)와 새 주소로 받은 `email_code`(#3230)를 함께 보내고, 그때 응답에 새 `access_token`·`refresh_token` 이 실린다(#3039). 아래 [로그인 이메일 변경](#로그인-이메일-변경-새-주소-확인-3230) 다른 계정이 쓰는 이메일은 409, 전화번호를 빈 값으로 보내면 422. 형식 규칙은 아래 "인증" 의 연락처·이름·생년월일 절과 같다 |
+| POST | `/users/me/email/code` | `{ email }` → **202** `{ expires_in_minutes, resend_after_seconds }` — 로그인 이메일을 바꾸기 전에 새 주소로 6자리 인증 코드를 보낸다(#3230). 가입 여부와 무관하게 같은 응답, 지금 이메일과 같으면 422 `email_unchanged`. 아래 [로그인 이메일 변경](#로그인-이메일-변경-새-주소-확인-3230) |
 | POST | `/users/me/onboarding` | 최초 온보딩 `{ name?, birth_date?, gender?, height_cm?, weight_kg?, conditions?, daily_*?, daily_burn_kcal?, weekly_cardio_minutes?, weekly_strength_sets?, weekly_flexibility_minutes? }` → `ProfileView`(`onboarded: true`). 보낸 필드만 반영한다 |
 | PUT | `/users/me/health-goals` | 건강 목표(식단 일일 6종 + 운동 7종) 부분 수정 → `ProfileView` |
 | GET | `/users/me/notification-settings` | `{ diet_log, exercise_reminder, trainer_message, ai_coaching, weekly_report }` — 회원 알림 수신 설정. 저장한 적이 없으면 서버 기본값(#489) |
@@ -2167,6 +2168,44 @@ CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 �
 바꾸면 토큰 세대가 올라 다른 기기가 모두 로그아웃되고, 응답 `ProfileView` 의 `access_token`·`refresh_token`
 (그 밖의 응답에서는 `null`)으로 이 기기가 이어 쓴다. **옛 주소로** 변경 안내 메일이 간다(새 주소는 가려서).
 
+### 로그인 이메일 변경: 새 주소 확인 (#3230)
+
+본인 확인(#3039)만으로는 자기 계정의 이메일을 **남의** 주소로 바꿀 수 있었다. 그 주소의 주인은 가입하려다
+409 를 받고(주소 선점), 그 주소의 구글·카카오 계정으로 로그인하면 바꾼 사람의 계정으로 들어갔다. 이제 새
+주소로 보낸 코드를 확인해야 바뀐다. 코드는 가입 이메일 인증(#3038)과 같은 6자리·같은 표(`email_verification_codes`,
+용도 `email_change`)·같은 유효 시간·같은 틀린 횟수 상한이다.
+
+**1) 코드 받기** — `POST /users/me/email/code` (회원 토큰 필요)
+
+```json
+{ "email": "new@example.com" }
+```
+
+→ **202** `{ "expires_in_minutes": 10, "resend_after_seconds": 60 }`
+
+- 응답은 그 주소의 가입 여부와 무관하게 **같다**. 이미 다른 계정이 쓰는 주소에는 코드 대신 "이미 계정이 있어
+  바꿀 수 없다" 는 안내 메일이 간다 — 접근 토큰만으로는 가입 여부를 알 수 없다.
+- 지금 쓰는 이메일과 같으면(대소문자 무시) **422** `detail={ code: "email_unchanged", message }`. 형식이 틀린
+  이메일 422, 시도 한도 429, 메일 발송 수단이 없으면 503(가입 코드와 같은 문구).
+- 시도 제한: IP 분당 한도(버킷 `users-email-code`), 회원 id 당 `SIGNUP_EMAIL_CODE_PER_WINDOW`회/
+  `SIGNUP_EMAIL_CODE_WINDOW_MINUTES`분, 받는 주소 하나당 같은 한도(가입 코드 요청과 **한 버킷**), 같은 주소의
+  다시 받기는 `SIGNUP_EMAIL_CODE_RESEND_SECONDS` 에 한 번.
+- 감사 로그 `account.email_change_code_request` 에 실제로 코드를 만들었는지(`success`)와 가린 주소가 남는다.
+
+**2) 바꾸기** — `PUT /users/me` 에 `email`·본인 확인 값·`email_code` 를 함께 보낸다.
+
+| 상황 | 응답 |
+|---|---|
+| 본인 확인 실패 | **400** 위 표(`reauth_required`·`invalid_current_password`·`invalid_reauth`) |
+| 다른 계정이 쓰는 이메일 | **409** (코드보다 먼저 본다) |
+| `email_code` 없음·빈 값 | **422** `detail={ code: "email_code_required", message }` |
+| 틀림·만료·사용됨·다른 용도(가입 코드)·틀린 횟수 초과 | **400** `detail={ code: "invalid_email_code", message }` |
+| 맞음 | **200**, 이메일이 바뀌고 `users.email_verified_at` 이 이 확인 시각이 된다 |
+
+바뀌기 전까지 이메일과 `email_verified_at` 은 옛 주소 그대로다. 실패한 요청은 이름·연락처 등 함께 보낸 다른
+칸도 저장하지 않는다. `SIGNUP_EMAIL_VERIFICATION=false`(테스트·E2E)면 코드를 보지 않고 바꾸며, 그때
+`email_verified_at` 은 `null`(확인하지 않은 주소)이다. 데모(앱 mock)는 코드 `000000` 을 받는다.
+
 ### 비밀번호 재설정 (#2824)
 
 로그아웃 상태에서 메일로 계정을 되찾는 길. 회원·트레이너 공용이다.
@@ -2242,6 +2281,7 @@ IP 를 바꿔 가며 한 계정을 노리는 시도는 계정 쪽 버킷이 막�
 | `POST /auth/login` | **이메일(대소문자 무시) 연속 실패** | `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `LOGIN_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429. 잠긴 동안에는 비밀번호를 확인하지 않는다. 성공하면 실패 기록을 지운다. 없는 이메일도 같이 센다 |
 | `POST /trainer/pairing-code/preview`·`POST /trainer/pairing-code` | IP + **트레이너 id** | 각각 분당 10, 트레이너 id 는 하루 `PAIRING_REDEEM_PER_DAY`(30) 도 함께. 두 엔드포인트가 한 버킷 |
 | `POST /auth/register/email-code` | IP + **이메일** + (이메일, 용도) | IP 는 분당 10. 같은 이메일은 `SIGNUP_EMAIL_CODE_WINDOW_MINUTES`(60분) 안에 `SIGNUP_EMAIL_CODE_PER_WINDOW`(5)번, 같은 (이메일, 용도)는 `SIGNUP_EMAIL_CODE_RESEND_SECONDS`(60초)에 한 번. 가입된 주소도 똑같이 센다(#3038) |
+| `POST /users/me/email/code` | IP + **회원 id** + **이메일** + (이메일, 용도) | 위 [로그인 이메일 변경](#로그인-이메일-변경-새-주소-확인-3230). 이메일 버킷은 가입 코드 요청과 함께 센다(#3230) |
 | `DELETE /users/me`·`DELETE /trainer/me`·이메일을 바꾸는 `PUT /users/me` | **사용자 id 연속 실패** | 본인 확인을 `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `PASSWORD_CHANGE_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429. 값을 아예 보내지 않은 400 은 세지 않는다(#3039) |
 | `POST /auth/register`·`POST /auth/trainer/register` | IP + **이메일(대소문자 무시)** | IP 는 분당 10. 같은 이메일은 시간당 `REGISTER_PER_EMAIL_PER_HOUR`(5) — 성공·409 를 가리지 않고 세고, 두 가입이 한 버킷이다(#2913). 409 문구는 그대로 |
 | `POST /trainer/me/password`·`POST /users/me/password` | IP + **사용자 id 연속 실패** | IP 는 분당 10. 현재 비밀번호를 `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `PASSWORD_CHANGE_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429(잠긴 동안 비밀번호를 확인하지 않는다). 틀린 시도는 감사 로그 `auth.password_change`(실패)에 남고, 성공하면 실패 기록을 지운다(#2913). 회원·트레이너가 같은 키 규칙·설정값을 쓴다(#3087) |
