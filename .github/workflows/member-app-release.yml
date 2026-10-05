@@ -1,0 +1,479 @@
+name: Member app signed build
+
+# 회원 앱 스토어 제출용 서명 빌드(#3148). 업로드 키·배포 인증서로 서명한 AAB(필요하면 IPA)를
+# 만들어 아티팩트로 남긴다. 스토어 업로드는 하지 않는다 — 산출물을 내려받아 Play Console·
+# App Store Connect 에 올린다(docs/mobile_release.md 7절).
+#
+#  - 실행: Actions 에서 수동 실행(main) 또는 `member-app-v<버전 이름>` 태그 푸시.
+#  - 비밀은 GitHub Environment `mobile-release` 에 둔다. 서명 비밀이 하나도 없으면 실패가
+#    아니라 안내를 남기고 빌드 잡을 건너뛴다. 일부만 있으면 설정 실수로 보고 멈춘다.
+#  - 빌드 전에 tool/check_release_defines.sh 로 define 파일을 검사한다(#3022).
+#  - 빌드 번호(versionCode·CFBundleVersion)는 main 커밋 수로 자동으로 채운다(#3226). 게이트가
+#    .github/scripts/release_build_stamp.sh 로 한 번 만들어 두 잡에 같은 값을 넘긴다.
+#  - 키스토어·key.properties·인증서·키체인·define 파일은 러너 임시 위치에만 만들고 끝나면 지운다.
+#    아티팩트에는 산출물과 빌드 정보만 올린다.
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        description: "앱 ENV(스토어 제출은 prod, 내부 배포만 staging)"
+        type: choice
+        options: [prod, staging]
+        default: prod
+  push:
+    tags:
+      - "member-app-v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: member-app-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # analyze-and-test·Mobile release config 와 같은 SDK(#659).
+  FLUTTER_VERSION: "3.44.9"
+  BUNDLE_ID: com.csesudo.oncare
+
+jobs:
+  gate:
+    name: Check signing secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: mobile-release
+    outputs:
+      android: ${{ steps.secrets.outputs.android }}
+      ios: ${{ steps.secrets.outputs.ios }}
+      app_env: ${{ steps.source.outputs.app_env }}
+      version: ${{ steps.source.outputs.version }}
+      build_number: ${{ steps.stamp.outputs.BUILD_NUMBER }}
+      release_date: ${{ steps.stamp.outputs.RELEASE_DATE }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # 태그 커밋이 main 에 들어 있는지 보려고 전체 이력을 받는다.
+          fetch-depth: 0
+
+      - name: Check the build source
+        # 서명 빌드는 main 에 병합된 커밋에서만 만든다. 태그 이름은 pubspec 버전 이름과 같아야
+        # 스토어 빌드와 저장소 이력이 1:1 로 맞는다(docs/mobile_release.md 1절).
+        id: source
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_ENV: ${{ inputs.env }}
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^version:[[:space:]]*\([0-9][0-9.]*\)+[0-9][0-9]*[[:space:]]*$/\1/p' frontend/flutter/pubspec.yaml)
+          if [ -z "$version" ]; then
+            echo "::error::frontend/flutter/pubspec.yaml 의 version(<이름>+<번호>)을 읽지 못했습니다."
+            exit 1
+          fi
+          if [ "$EVENT" = "push" ] && [ "$REF_TYPE" = "tag" ]; then
+            if [ "$REF_NAME" != "member-app-v$version" ]; then
+              echo "::error::태그 $REF_NAME 가 pubspec 버전 이름과 다릅니다. member-app-v$version 으로 태그를 답니다."
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+              echo "::error::태그 커밋이 main 에 없습니다. main 에 병합된 커밋에만 릴리스 태그를 답니다."
+              exit 1
+            fi
+            app_env=prod
+          elif [ "$EVENT" = "workflow_dispatch" ] && [ "$REF" = "refs/heads/main" ]; then
+            app_env="$INPUT_ENV"
+          else
+            echo "::error::서명 빌드는 main 에서 수동 실행하거나 member-app-v<버전> 태그로만 돕니다(지금: $EVENT $REF)."
+            exit 1
+          fi
+          case "$app_env" in prod | staging) ;; *) echo "::error::ENV 는 prod·staging 만 받습니다: '$app_env'"; exit 1 ;; esac
+          {
+            echo "version=$version"
+            echo "app_env=$app_env"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Stamp release build number and date
+        # 빌드 번호 = 이 커밋까지의 커밋 수(#3226). 위에서 전체 이력을 받았다(fetch-depth: 0).
+        # 지금까지 손으로 올린 pubspec 의 `+` 뒤 번호보다 커야 스토어가 받으므로 그 값을 하한으로 준다.
+        # 같은 커밋으로 다시 만들면 같은 번호다 — 스토어 빌드와 커밋이 1:1 로 맞는다.
+        id: stamp
+        run: |
+          set -euo pipefail
+          pubspec_build=$(sed -n 's/^version:[[:space:]]*[0-9][0-9.]*+\([0-9][0-9]*\)[[:space:]]*$/\1/p' frontend/flutter/pubspec.yaml)
+          MIN_BUILD_NUMBER="$pubspec_build" bash .github/scripts/release_build_stamp.sh "$GITHUB_OUTPUT"
+
+      - name: Check which signing secrets exist
+        # 값은 넘기지 않고 '있음/없음'만 env 로 받는다.
+        id: secrets
+        env:
+          HAS_ANDROID_KEYSTORE: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 != '' }}
+          HAS_ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_STORE_PASSWORD != '' }}
+          HAS_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS != '' }}
+          HAS_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD != '' }}
+          HAS_IOS_CERTIFICATE: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 != '' }}
+          HAS_IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD != '' }}
+          HAS_IOS_PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 != '' }}
+        run: |
+          set -euo pipefail
+          # 묶음의 비밀이 모두 있으면 true, 하나도 없으면 false, 일부만 있으면 설정 실수로 멈춘다.
+          group() {
+            local label="$1"
+            shift
+            local have=0 total=0 missing=()
+            for pair in "$@"; do
+              total=$((total + 1))
+              if [ "${pair#*=}" = "true" ]; then have=$((have + 1)); else missing+=("${pair%%=*}"); fi
+            done
+            if [ "$have" -eq "$total" ]; then
+              echo true
+            elif [ "$have" -eq 0 ]; then
+              echo false
+            else
+              echo "::error::$label 서명 비밀이 일부만 있습니다. 빠진 비밀: ${missing[*]}" >&2
+              return 1
+            fi
+          }
+          android=$(group Android \
+            "ANDROID_UPLOAD_KEYSTORE_BASE64=$HAS_ANDROID_KEYSTORE" \
+            "ANDROID_UPLOAD_STORE_PASSWORD=$HAS_ANDROID_STORE_PASSWORD" \
+            "ANDROID_UPLOAD_KEY_ALIAS=$HAS_ANDROID_KEY_ALIAS" \
+            "ANDROID_UPLOAD_KEY_PASSWORD=$HAS_ANDROID_KEY_PASSWORD")
+          ios=$(group iOS \
+            "IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64=$HAS_IOS_CERTIFICATE" \
+            "IOS_DISTRIBUTION_CERTIFICATE_PASSWORD=$HAS_IOS_CERTIFICATE_PASSWORD" \
+            "IOS_PROVISIONING_PROFILE_BASE64=$HAS_IOS_PROFILE")
+          {
+            echo "android=$android"
+            echo "ios=$ios"
+          } >> "$GITHUB_OUTPUT"
+          android_line="빌드"
+          ios_line="빌드"
+          if [ "$android" != true ]; then
+            android_line="건너뜀 — 업로드 키 비밀 없음"
+            echo "::notice title=Android 서명 빌드 건너뜀::Environment mobile-release 에 업로드 키 비밀이 없습니다. 등록 절차는 docs/mobile_release.md 7절."
+          fi
+          if [ "$ios" != true ]; then
+            ios_line="건너뜀 — 배포 인증서·프로필 비밀 없음"
+            echo "::notice title=iOS 서명 빌드 건너뜀::Environment mobile-release 에 배포 인증서·프로비저닝 프로필 비밀이 없습니다. 등록 절차는 docs/mobile_release.md 7절."
+          fi
+          {
+            echo "### 회원 앱 서명 빌드"
+            echo "- Android AAB: $android_line"
+            echo "- iOS IPA: $ios_line"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  android:
+    name: Signed AAB
+    needs: gate
+    if: needs.gate.outputs.android == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: mobile-release
+    defaults:
+      run:
+        working-directory: frontend/flutter
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Write the release define file
+        # 값을 셸 문자열로 이어 붙이지 않고 JSON 으로 쓴다. 선택 키는 값이 있을 때만 넣는다.
+        env:
+          APP_ENV: ${{ needs.gate.outputs.app_env }}
+          API_BASE_URL: ${{ vars.MEMBER_APP_API_BASE_URL }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN_MEMBER }}
+          KAKAO_JS_KEY: ${{ vars.MEMBER_APP_KAKAO_JS_KEY }}
+          KAKAO_MAP_ORIGIN: ${{ vars.MEMBER_APP_KAKAO_MAP_ORIGIN }}
+          IOS_APP_STORE_ID: ${{ vars.MEMBER_APP_IOS_APP_STORE_ID }}
+          KAKAO_NATIVE_APP_KEY: ${{ vars.MEMBER_APP_KAKAO_NATIVE_APP_KEY }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.MEMBER_APP_GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_IOS_CLIENT_ID: ${{ vars.MEMBER_APP_GOOGLE_IOS_CLIENT_ID }}
+          # 고객 지원 버전 줄(#3226)이 읽는 빌드 번호·배포 일시.
+          BUILD_NUMBER: ${{ needs.gate.outputs.build_number }}
+          RELEASE_DATE: ${{ needs.gate.outputs.release_date }}
+        run: python3 ../../tool/ci/write_release_defines.py config/release.json
+
+      - name: Check the release define file
+        run: bash tool/check_release_defines.sh config/release.json
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Strip demo-only assets
+        # 데모 시드 사진·데모 대화 첨부는 스토어 빌드에 싣지 않는다(#3157). pubspec 의
+        # demo-assets 구간을 지운다 — 목업 코드는 릴리스 빌드에서 상수로 빠진다.
+        run: python3 ../tool/strip_demo_assets.py .
+
+      - name: Build the signed app bundle
+        # 키스토어는 러너 임시 폴더에, key.properties 는 Gradle 이 읽는 android/ 에 만들고
+        # 이 단계가 어떻게 끝나든 trap 으로 둘 다 지운다. 값은 로그에 찍지 않는다.
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+          BUILD_NUMBER: ${{ needs.gate.outputs.build_number }}
+        run: |
+          set -euo pipefail
+          export JAVA_HOME="${JAVA_HOME_17_X64:-$JAVA_HOME}"
+          keystore="$RUNNER_TEMP/upload-keystore.jks"
+          trap 'rm -f "$keystore" android/key.properties' EXIT
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          {
+            echo "storeFile=$keystore"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > android/key.properties
+          flutter pub get
+          # versionCode 는 게이트가 만든 자동 번호다(#3226). pubspec 의 `+` 뒤 번호는 쓰지 않는다.
+          flutter build appbundle --release --dart-define-from-file=config/release.json \
+            --build-number="$BUILD_NUMBER"
+
+      - name: Verify the bundle signature
+        # 업로드 키로 서명됐는지(디버그 키가 아닌지) 확인한다. 인증서 지문은 공개 정보다.
+        run: |
+          set -euo pipefail
+          export JAVA_HOME="${JAVA_HOME_17_X64:-$JAVA_HOME}"
+          aab=build/app/outputs/bundle/release/app-release.aab
+          # 서명이 없으면 jarsigner 는 0 으로 끝나며 'jar is unsigned.' 만 찍는다.
+          verify=$("$JAVA_HOME/bin/jarsigner" -verify "$aab")
+          if ! printf '%s\n' "$verify" | grep -q '^jar verified\.'; then
+            echo "::error::번들 서명을 확인하지 못했습니다."
+            exit 1
+          fi
+          cert=$("$JAVA_HOME/bin/keytool" -printcert -jarfile "$aab")
+          if printf '%s' "$cert" | grep -q "CN=Android Debug"; then
+            echo "::error::번들이 디버그 키로 서명됐습니다."
+            exit 1
+          fi
+          printf '%s\n' "$cert" | grep -E '^[[:space:]]*(Owner|SHA256):' | tee "$RUNNER_TEMP/signer.txt"
+
+      - name: Write build info
+        env:
+          APP_ENV: ${{ needs.gate.outputs.app_env }}
+          VERSION: ${{ needs.gate.outputs.version }}
+          BUILD_NUMBER: ${{ needs.gate.outputs.build_number }}
+          RELEASE_DATE: ${{ needs.gate.outputs.release_date }}
+          API_BASE_URL: ${{ vars.MEMBER_APP_API_BASE_URL }}
+          REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/member-app-android"
+          mkdir -p "$out"
+          cp build/app/outputs/bundle/release/app-release.aab "$out/on-care-$VERSION.aab"
+          {
+            echo "app: On-Care 회원 앱 (Android AAB)"
+            echo "pubspec_version: $(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml)"
+            echo "build_number: $BUILD_NUMBER"
+            echo "release_date: $RELEASE_DATE"
+            echo "commit: $GITHUB_SHA"
+            echo "ref: $REF"
+            echo "run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo "flutter: $FLUTTER_VERSION"
+            echo "ENV: $APP_ENV"
+            echo "API_BASE_URL: $API_BASE_URL"
+            echo "define_keys: $(python3 -c 'import json;print(",".join(sorted(json.load(open("config/release.json")))))')"
+            echo "sha256: $(sha256sum "$out/on-care-$VERSION.aab" | cut -d' ' -f1)"
+            echo "signer:"
+            cat "$RUNNER_TEMP/signer.txt"
+          } > "$out/build-info.txt"
+          cat "$out/build-info.txt"
+
+      - name: Upload the app bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: member-app-aab-${{ needs.gate.outputs.version }}-${{ github.run_number }}
+          path: |
+            ${{ runner.temp }}/member-app-android/on-care-${{ needs.gate.outputs.version }}.aab
+            ${{ runner.temp }}/member-app-android/build-info.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Remove the release define file
+        if: always()
+        run: rm -f config/release.json
+
+  ios:
+    name: Signed IPA
+    needs: gate
+    if: needs.gate.outputs.ios == 'true'
+    runs-on: macos-15
+    timeout-minutes: 60
+    environment: mobile-release
+    defaults:
+      run:
+        working-directory: frontend/flutter
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Write the release define file
+        env:
+          APP_ENV: ${{ needs.gate.outputs.app_env }}
+          API_BASE_URL: ${{ vars.MEMBER_APP_API_BASE_URL }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN_MEMBER }}
+          KAKAO_JS_KEY: ${{ vars.MEMBER_APP_KAKAO_JS_KEY }}
+          KAKAO_MAP_ORIGIN: ${{ vars.MEMBER_APP_KAKAO_MAP_ORIGIN }}
+          IOS_APP_STORE_ID: ${{ vars.MEMBER_APP_IOS_APP_STORE_ID }}
+          KAKAO_NATIVE_APP_KEY: ${{ vars.MEMBER_APP_KAKAO_NATIVE_APP_KEY }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.MEMBER_APP_GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_IOS_CLIENT_ID: ${{ vars.MEMBER_APP_GOOGLE_IOS_CLIENT_ID }}
+          # 고객 지원 버전 줄(#3226)이 읽는 빌드 번호·배포 일시.
+          BUILD_NUMBER: ${{ needs.gate.outputs.build_number }}
+          RELEASE_DATE: ${{ needs.gate.outputs.release_date }}
+        run: python3 ../../tool/ci/write_release_defines.py config/release.json
+
+      - name: Check the release define file
+        run: bash tool/check_release_defines.sh config/release.json
+
+      - name: Write the login URL schemes
+        # 카카오·구글 로그인이 앱으로 돌아오는 URL 스킴(#330). 공개 식별자라 비밀이 아니다.
+        env:
+          KAKAO_NATIVE_APP_KEY: ${{ vars.MEMBER_APP_KAKAO_NATIVE_APP_KEY }}
+          GOOGLE_IOS_CLIENT_ID: ${{ vars.MEMBER_APP_GOOGLE_IOS_CLIENT_ID }}
+        run: python3 ../../tool/ci/write_release_defines.py --ios-url-schemes ios/Flutter/Social.xcconfig
+
+      - name: Install the signing certificate and profile
+        # 임시 키체인(무작위 비밀번호)에 배포 인증서를 넣고, 프로필을 설치한 뒤 Runner Release
+        # 설정만 수동 서명으로 바꾼다(작업 사본만, 커밋하지 않음). 인증서 파일은 넣은 즉시 지운다.
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          keychain="$RUNNER_TEMP/member-app-signing.keychain-db"
+          certificate="$RUNNER_TEMP/distribution.p12"
+          profile="$RUNNER_TEMP/member-app.mobileprovision"
+          keychain_password="$(openssl rand -hex 24)"
+          trap 'rm -f "$certificate"' EXIT
+
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          printf '%s' "$CERTIFICATE_BASE64" | base64 --decode > "$certificate"
+          security import "$certificate" -k "$keychain" -f pkcs12 -P "$CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security > /dev/null
+          rm -f "$certificate"
+          security set-key-partition-list -S apple-tool:,apple: -k "$keychain_password" "$keychain" > /dev/null
+          # 기존 검색 목록 앞에 임시 키체인을 더한다.
+          existing=()
+          while IFS= read -r line; do
+            line="${line#"${line%%[![:space:]]*}"}"
+            existing+=("${line//\"/}")
+          done < <(security list-keychains -d user)
+          security list-keychains -d user -s "$keychain" "${existing[@]}"
+
+          printf '%s' "$PROFILE_BASE64" | base64 --decode > "$profile"
+          security cms -D -i "$profile" > "$RUNNER_TEMP/member-app-profile.plist"
+          python3 ../../tool/ci/ios_release_signing.py \
+            --pbxproj ios/Runner.xcodeproj/project.pbxproj \
+            --profile-plist "$RUNNER_TEMP/member-app-profile.plist" \
+            --bundle-id "$BUNDLE_ID" \
+            --export-options "$RUNNER_TEMP/ExportOptions.plist" | tee "$RUNNER_TEMP/profile.txt"
+          uuid=$(sed -n 's/^profile_uuid=//p' "$RUNNER_TEMP/profile.txt")
+          # Xcode 16 은 UserData 아래를, 이전 Xcode 는 MobileDevice 아래를 읽는다.
+          for dir in "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" \
+                     "$HOME/Library/MobileDevice/Provisioning Profiles"; do
+            mkdir -p "$dir"
+            cp "$profile" "$dir/$uuid.mobileprovision"
+          done
+          {
+            echo "KEYCHAIN_PATH=$keychain"
+            echo "PROFILE_UUID=$uuid"
+          } >> "$GITHUB_ENV"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Strip demo-only assets
+        # 안드로이드 잡과 같다(#3157).
+        run: python3 ../tool/strip_demo_assets.py .
+
+      - name: Build the signed IPA
+        # CFBundleVersion 은 게이트가 만든 자동 번호다(#3226) — Android versionCode 와 같은 값.
+        env:
+          BUILD_NUMBER: ${{ needs.gate.outputs.build_number }}
+        run: |
+          set -euo pipefail
+          flutter pub get
+          flutter build ipa --release --dart-define-from-file=config/release.json \
+            --build-number="$BUILD_NUMBER" \
+            --export-options-plist="$RUNNER_TEMP/ExportOptions.plist"
+
+      - name: Write build info
+        env:
+          APP_ENV: ${{ needs.gate.outputs.app_env }}
+          VERSION: ${{ needs.gate.outputs.version }}
+          BUILD_NUMBER: ${{ needs.gate.outputs.build_number }}
+          RELEASE_DATE: ${{ needs.gate.outputs.release_date }}
+          API_BASE_URL: ${{ vars.MEMBER_APP_API_BASE_URL }}
+          REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/member-app-ios"
+          mkdir -p "$out"
+          ipa=$(find build/ios/ipa -maxdepth 1 -name '*.ipa' | head -n 1)
+          if [ -z "$ipa" ]; then
+            echo "::error::build/ios/ipa 에 IPA 가 없습니다."
+            exit 1
+          fi
+          cp "$ipa" "$out/on-care-$VERSION.ipa"
+          {
+            echo "app: On-Care 회원 앱 (iOS IPA)"
+            echo "pubspec_version: $(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml)"
+            echo "build_number: $BUILD_NUMBER"
+            echo "release_date: $RELEASE_DATE"
+            echo "commit: $GITHUB_SHA"
+            echo "ref: $REF"
+            echo "run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo "flutter: $FLUTTER_VERSION"
+            echo "ENV: $APP_ENV"
+            echo "API_BASE_URL: $API_BASE_URL"
+            echo "define_keys: $(python3 -c 'import json;print(",".join(sorted(json.load(open("config/release.json")))))')"
+            echo "provisioning_profile: $PROFILE_UUID"
+            echo "sha256: $(shasum -a 256 "$out/on-care-$VERSION.ipa" | cut -d' ' -f1)"
+          } > "$out/build-info.txt"
+          cat "$out/build-info.txt"
+
+      - name: Upload the IPA
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: member-app-ipa-${{ needs.gate.outputs.version }}-${{ github.run_number }}
+          path: |
+            ${{ runner.temp }}/member-app-ios/on-care-${{ needs.gate.outputs.version }}.ipa
+            ${{ runner.temp }}/member-app-ios/build-info.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Remove signing material
+        if: always()
+        run: |
+          rm -f config/release.json "$RUNNER_TEMP/distribution.p12" "$RUNNER_TEMP/member-app.mobileprovision" \
+            "$RUNNER_TEMP/member-app-profile.plist" "$RUNNER_TEMP/ExportOptions.plist"
+          if [ -n "${PROFILE_UUID:-}" ]; then
+            rm -f "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/$PROFILE_UUID.mobileprovision" \
+              "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          fi
+          if [ -n "${KEYCHAIN_PATH:-}" ]; then
+            security delete-keychain "$KEYCHAIN_PATH" || true
+          fi

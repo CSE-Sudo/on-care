@@ -81,7 +81,24 @@ void main() {
           // 카카오맵 SDK 와 SDK 가 이어 올리는 본체.
           'https://dapi.kakao.com',
           'https://t1.daumcdn.net',
+          // 구글 로그인 버튼(Google Identity Services, #330).
+          'https://accounts.google.com/gsi/client',
         ]),
+      );
+    });
+
+    test('Google sign-in button sources are open and nothing wider (#330)', () {
+      final Map<String, List<String>> d = directives();
+      expect(d['frame-src'], contains('https://accounts.google.com/gsi/'));
+      expect(d['style-src'], contains('https://accounts.google.com/gsi/style'));
+      // 구글 출처 전체(accounts.google.com)를 열지 않는다 — GIS 경로만.
+      for (final List<String> sources in d.values) {
+        expect(sources, isNot(contains('https://accounts.google.com')));
+      }
+      // 카카오 웹 로그인은 팝업 + 같은 출처 콜백이라 카카오 인증 출처를 열지 않는다.
+      expect(
+        d.values.expand((s) => s),
+        isNot(contains('https://kauth.kakao.com')),
       );
     });
 
@@ -118,15 +135,10 @@ void main() {
     });
 
     test('moved helpers ship next to index.html', () {
-      // index.html 은 글꼴 보정과 pdf.js 로더만 부른다. pdf.js 본체·워커는
-      // 로더가 `pdfjs/` 아래에서 올린다(#2818).
-      final String loader = File(
-        'web/js/pdfjs_loader.js',
-      ).readAsStringSync();
-      for (final String path in <String>[
-        'web/js/font_fix.js',
-        'web/js/pdfjs_loader.js',
-      ]) {
+      // index.html 은 pdf.js 로더만 부른다. pdf.js 본체·워커는 로더가
+      // `pdfjs/` 아래에서 올린다(#2818).
+      final String loader = File('web/js/pdfjs_loader.js').readAsStringSync();
+      for (final String path in <String>['web/js/pdfjs_loader.js']) {
         expect(File(path).existsSync(), isTrue, reason: path);
         expect(markup, contains(path.replaceFirst('web/', '')), reason: path);
       }
@@ -140,9 +152,7 @@ void main() {
     test('pdf.js loads before Flutter boots', () {
       // 로더가 pdf.js 를 올린 뒤에 Flutter 를 띄운다 — 먼저 뜨면 `printing` 이
       // 자기 로더(CDN)로 빠진다. index.html 은 Flutter 를 따로 부르지 않는다.
-      final String loader = File(
-        'web/js/pdfjs_loader.js',
-      ).readAsStringSync();
+      final String loader = File('web/js/pdfjs_loader.js').readAsStringSync();
       final int lib = loader.indexOf('pdf.min.js');
       final int boot = loader.indexOf('"flutter_bootstrap.js"');
       expect(lib, greaterThan(0));
@@ -150,8 +160,12 @@ void main() {
       expect(markup, isNot(contains('src="flutter_bootstrap.js"')));
     });
 
-    test('font fix still runs from <head>', () {
-      expect(head, contains('src="js/font_fix.js"'));
+    test('no HTML-renderer font fix is shipped', () {
+      // 웹은 CanvasKit 으로만 그려 HTML 렌더러용 글꼴 보정은 효과가 없고,
+      // 스크립트는 열려 있는 내내 0.15초마다 문서를 조회했다(#3159).
+      expect(File('web/js/font_fix.js').existsSync(), isFalse);
+      expect(markup, isNot(contains('font_fix')));
+      expect(markup, isNot(contains('flt-glass-pane')));
     });
   });
 
@@ -162,5 +176,15 @@ void main() {
       ).hasMatch(head),
       isTrue,
     );
+  });
+
+  test('old service worker cleanup runs from a same-origin file (#3204)', () {
+    // 예전 빌드의 서비스 워커를 지우는 스크립트도 인라인으로 두면 'unsafe-inline' 을
+    // 열어야 한다. 같은 출처 파일이고, 정책은 그대로다. 워커를 더 쓰지 않으므로
+    // worker-src 는 pdf.js·drift 워커용 그대로다.
+    expect(File('web/js/sw_cleanup.js').existsSync(), isTrue);
+    expect(markup, contains('<script src="js/sw_cleanup.js"></script>'));
+    expect(directives()['script-src'], isNot(contains("'unsafe-inline'")));
+    expect(directives()['worker-src'], <String>["'self'", 'blob:']);
   });
 }

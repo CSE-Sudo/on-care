@@ -387,12 +387,14 @@ def period_coach_message(
     today = days[-1]
     if today.over_sodium:
         return say(
-            f"오늘 나트륨 {today.sodium_mg}mg 로 권장량을 넘겼어요. 남은 끼니는 담백하게.",
-            f"Sodium is at {today.sodium_mg}mg today, over the limit. Keep the rest of your meals light.",
+            f"오늘 나트륨 {today.sodium_mg:,}mg으로 권장량을 넘겼어요. 남은 끼니는 담백하게.",
+            f"Sodium is at {today.sodium_mg:,} mg today, over the limit. "
+            "Keep the rest of your meals light.",
         )
     return say(
-        f"오늘 나트륨 {today.sodium_mg}mg 로 권장량 안이에요. 이대로 마무리해요.",
-        f"Sodium is at {today.sodium_mg}mg today, within the limit. Finish the day like this.",
+        f"오늘 나트륨 {today.sodium_mg:,}mg으로 권장량 안이에요. 이대로 마무리해요.",
+        f"Sodium is at {today.sodium_mg:,} mg today, within the limit. "
+        "Finish the day like this.",
     )
 
 

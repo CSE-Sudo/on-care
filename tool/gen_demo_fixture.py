@@ -147,67 +147,67 @@ AMOUNTS_G: dict[str, int] = {
 # 그렇다 — 에셋이 생기면 여기만 고치면 세 곳이 함께 따라온다.
 MEALS: dict[str, tuple[str, str, str, str, list[str]]] = {
     "breakfast-oatmeal-banana": (
-        "breakfast", "08:05", "assets/images/diet-oatmeal-banana.jpeg",
+        "breakfast", "08:05", "assets/demo/images/diet-oatmeal-banana.jpeg",
         "오트밀로 식이섬유를 챙긴 아침이에요.",
         ["oatmeal", "banana"],
     ),
     "breakfast-greek-yogurt-nuts": (
-        "breakfast", "08:30", "assets/images/diet-greek-yogurt-nuts.jpeg",
+        "breakfast", "08:30", "assets/demo/images/diet-greek-yogurt-nuts.jpeg",
         "단백질과 불포화지방을 고르게 섭취했어요.",
         ["greek-yogurt", "nuts"],
     ),
     "breakfast-egg-strawberry": (
-        "breakfast", "07:50", "assets/images/breakfast-scrambled-egg-strawberry.jpg",
+        "breakfast", "07:50", "assets/demo/images/breakfast-scrambled-egg-strawberry.jpg",
         "달걀 단백질에 과일로 비타민을 더했어요.",
         ["scrambled-egg", "strawberry"],
     ),
     "lunch-chicken-salad": (
-        "lunch", "12:30", "assets/images/diet-chicken-salad.jpg",
+        "lunch", "12:30", "assets/demo/images/diet-chicken-salad.jpg",
         "닭가슴살과 채소로 단백질·식이섬유를 챙겼어요.",
         ["chicken-salad"],
     ),
     "lunch-bibimbap": (
-        "lunch", "12:20", "assets/images/diet-vegetable-bibimbap.jpg",
+        "lunch", "12:20", "assets/demo/images/diet-vegetable-bibimbap.jpg",
         "야채가 풍부해요. 고추장을 줄이면 나트륨이 더 좋아져요.",
         ["bibimbap"],
     ),
     "lunch-jjamppong": (
-        "lunch", "12:50", "assets/images/lunch-jjamppong.jpg",
+        "lunch", "12:50", "assets/demo/images/lunch-jjamppong.jpg",
         "국물 나트륨이 높은 날이에요. 국물은 남기는 편이 좋아요.",
         ["jjamppong"],
     ),
     "lunch-doenjang-rice": (
-        "lunch", "12:10", "assets/images/diet-doenjang-rice.jpeg",
+        "lunch", "12:10", "assets/demo/images/diet-doenjang-rice.jpeg",
         "집밥 한 상이에요. 찌개 국물만 조금 남겨 보세요.",
         ["doenjang-jjigae", "rice"],
     ),
     "dinner-salmon-brown-rice": (
-        "dinner", "18:40", "assets/images/diet-salmon-brown-rice.jpeg",
+        "dinner", "18:40", "assets/demo/images/diet-salmon-brown-rice.jpeg",
         "연어의 지방과 현미밥의 복합 탄수화물 조합이 좋아요.",
         ["grilled-salmon", "brown-rice"],
     ),
     "dinner-doenjang-rice": (
-        "dinner", "19:10", "assets/images/diet-doenjang-rice.jpeg",
+        "dinner", "19:10", "assets/demo/images/diet-doenjang-rice.jpeg",
         "포만감은 좋지만 국물 나트륨이 높은 편이에요.",
         ["doenjang-jjigae", "rice"],
     ),
     "dinner-chicken-salad-sweet-potato": (
-        "dinner", "18:20", "assets/images/diet-chicken-salad-sweet-potato.jpg",
+        "dinner", "18:20", "assets/demo/images/diet-chicken-salad-sweet-potato.jpg",
         "가볍게 마무리한 저녁이에요.",
         ["chicken-salad", "sweet-potato"],
     ),
     "dinner-samgyeopsal": (
-        "dinner", "19:30", "assets/images/diet-samgyeopsal-rice-soju.jpg",
+        "dinner", "19:30", "assets/demo/images/diet-samgyeopsal-rice-soju.jpg",
         "고기와 술이 함께여서 칼로리가 크게 올라갔어요. 다음 날은 가볍게 시작해 보세요.",
         ["samgyeopsal", "rice", "soju"],
     ),
     "snack-coffee-nuts": (
-        "snack", "15:40", "assets/images/snack-coffee-nuts.jpg",
+        "snack", "15:40", "assets/demo/images/snack-coffee-nuts.jpg",
         "당류가 낮고 건강한 지방을 채운 간식이에요.",
         ["iced-americano", "nut-pack"],
     ),
     "snack-cake-latte": (
-        "snack", "21:10", "assets/images/snack-choco-cake-latte.jpg",
+        "snack", "21:10", "assets/demo/images/snack-choco-cake-latte.jpg",
         "디저트로 당류가 하루 목표를 넘었어요.",
         ["choco-cake", "cafe-latte"],
     ),

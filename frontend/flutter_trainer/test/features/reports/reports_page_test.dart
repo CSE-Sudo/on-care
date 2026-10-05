@@ -462,7 +462,7 @@ void main() {
 
     String rangeOf(DateTime start) {
       final DateTime end = start.add(const Duration(days: 6));
-      return '${start.month}월 ${start.day}일 – ${end.month}월 ${end.day}일';
+      return '${start.month}월 ${start.day}일 ~ ${end.month}월 ${end.day}일';
     }
 
     final DateTime thisWeek = weekStartOf(nowKst());
@@ -554,7 +554,7 @@ void main() {
     final DateTime weekEnd = lastWeek.add(const Duration(days: 6));
     expect(
       find.text(
-        '${lastWeek.month}월 ${lastWeek.day}일 – ${weekEnd.month}월 ${weekEnd.day}일',
+        '${lastWeek.month}월 ${lastWeek.day}일 ~ ${weekEnd.month}월 ${weekEnd.day}일',
       ),
       findsWidgets,
     );
@@ -605,7 +605,7 @@ void main() {
     await openReports(tester);
 
     expect(find.byType(ReportWeekNav), findsNothing);
-    expect(find.textContaining(' – '), findsNothing);
+    expect(find.textContaining(' ~ '), findsNothing);
   });
 
   testWidgets('헤더 검색 바가 다른 탭과 같은 인라인 모양이다 (#1177)', (tester) async {
@@ -855,7 +855,7 @@ void main() {
             find.byKey(const ValueKey<String>('report-send-preview-week')),
           )
           .data,
-      '${week.month}월 ${week.day}일 – ${weekEnd.month}월 ${weekEnd.day}일',
+      '${week.month}월 ${week.day}일 ~ ${weekEnd.month}월 ${weekEnd.day}일',
     );
     expect(find.text('김민수님 채팅으로 PDF 파일이 전송돼요'), findsOneWidget);
     // 보여 주는 것은 전송과 같은 생성기가 입력창의 글로 만든 PDF 다.
@@ -983,14 +983,14 @@ void main() {
     // '이전 주' 라고 쓰면 비교 카드의 '지난 주' 열과 같은 말이 되어 어느 주를
     // 보고 있는지 헷갈린다.
     expect(prevWeek, findsOneWidget);
-    expect(find.textContaining(' – '), findsWidgets);
+    expect(find.textContaining(' ~ '), findsWidgets);
     expect(find.text('이전 주'), findsNothing);
 
     await tester.tap(prevWeek);
     await settle(tester);
 
     // 과거 주로 옮겨도 마찬가지다 — 옮긴 주를 가리키는 말은 날짜 범위뿐이다.
-    expect(find.textContaining(' – '), findsWidgets);
+    expect(find.textContaining(' ~ '), findsWidgets);
     expect(find.text('이전 주'), findsNothing);
   });
 

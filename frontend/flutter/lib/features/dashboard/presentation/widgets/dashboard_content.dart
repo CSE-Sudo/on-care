@@ -311,7 +311,8 @@ class _DietNutritionCard extends ConsumerWidget {
                             l.chartA11y,
                             values: cfg.cur,
                             dayLabels: days,
-                            format: (double v) => '${nf.format(v)}${cfg.unit}',
+                            format: (double v) =>
+                                '${nf.format(v)}${unitGap(Localizations.localeOf(context).toString())}${cfg.unit}',
                             // 선은 오늘까지만 잇는다. 아직 오지 않은 요일을
                             // 읽으면 화면에 없는 값을 말하게 된다.
                             upTo: todayIdx,
@@ -407,7 +408,7 @@ class _MetricStatCard extends StatelessWidget {
                 fit: BoxFit.scaleDown,
                 child: Text(
                   indicator.max > 0
-                      ? '/${_metricNumber(indicator.max)}${indicator.unit}'
+                      ? '/${_metricNumber(indicator.max)}${unitGap(Localizations.localeOf(context).toString())}${indicator.unit}'
                       : indicator.unit,
                   maxLines: 1,
                   style: subStyle,

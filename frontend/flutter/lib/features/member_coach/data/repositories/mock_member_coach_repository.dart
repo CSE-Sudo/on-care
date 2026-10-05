@@ -437,6 +437,11 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     }
   }
 
+  /// 데모 회원(김민수)은 미래 시작일로 받은 개인운동이 없다 — 실서버 시드도
+  /// 같다. 예정 줄은 트레이너가 실제로 미래 시작일로 보냈을 때만 선다(#3106).
+  @override
+  Future<UpcomingRoutines?> fetchUpcomingRoutines() async => null;
+
   @override
   Future<List<CoachRoutine>> fetchRoutinesOn(DateTime day) async {
     await _restoreCompletions();

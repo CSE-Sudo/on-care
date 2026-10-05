@@ -124,9 +124,10 @@ Future<AppLocalizations> _pump(
 
 /// 배지 문구 그대로 — 화면이 쓰는 날짜·시각 형식을 따른다.
 String _badge(WidgetTester tester, AppLocalizations l, DateTime at) {
+  // 시각은 24시간제(`19:00`) — 같은 화면의 예약 목록과 같다(#3120).
   final String time = MaterialLocalizations.of(
     tester.element(find.byType(ExercisePage)),
-  ).formatTimeOfDay(TimeOfDay.fromDateTime(at));
+  ).formatTimeOfDay(TimeOfDay.fromDateTime(at), alwaysUse24HourFormat: true);
   return l.exNextPtSchedule('${DateFormat.MMMEd('ko').format(at)} $time');
 }
 

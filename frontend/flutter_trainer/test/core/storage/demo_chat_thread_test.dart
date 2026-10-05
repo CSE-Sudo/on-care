@@ -205,7 +205,7 @@ void main() {
     );
     expect(
       files[1].localBytes,
-      File('assets/images/diet-doenjang-rice.jpeg').readAsBytesSync(),
+      File('assets/demo/images/diet-doenjang-rice.jpeg').readAsBytesSync(),
     );
   });
 }

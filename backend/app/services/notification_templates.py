@@ -144,14 +144,28 @@ def _focus_label(args: Args, locale: Locale) -> str:
 
 
 def _when(args: Args, locale: Locale, key: str = "starts_at") -> str | None:
-    """서울 벽시계 시각 → `10월 01일 09:00` / `10/01 09:00`. 없으면 ``None``."""
+    """서울 벽시계 시각 → `10월 1일 09:00` / `10/1 09:00`. 없으면 ``None``.
+
+    날짜는 0 을 채우지 않고 시각은 24시간제(#3120).
+    """
     raw = args.get(key)
     if not raw:
         return None
     moment = datetime.fromisoformat(str(raw))
     if locale == "ko":
-        return f"{moment:%m월 %d일 %H:%M}"
-    return f"{moment:%m/%d %H:%M}"
+        return f"{moment.month}월 {moment.day}일 {moment:%H:%M}"
+    return f"{moment.month}/{moment.day} {moment:%H:%M}"
+
+
+def _day(raw: str, locale: Locale) -> str:
+    """`2026-10-01` → `10월 1일` / `10/1`. 날짜로 읽히지 않으면 받은 그대로 둔다."""
+    try:
+        day = date.fromisoformat(raw)
+    except ValueError:
+        return raw
+    if locale == "ko":
+        return f"{day.month}월 {day.day}일"
+    return f"{day.month}/{day.day}"
 
 
 def _plural(n: int, one: str, many: str) -> str:
@@ -264,7 +278,7 @@ def _trainer_member_disconnected(args: Args, locale: Locale) -> Rendered:
 
 @_template(TRAINER_CONSULT_REQUESTED)
 def _trainer_consult_requested(args: Args, locale: Locale) -> Rendered:
-    name, day = _text(args, "member_name"), _text(args, "preferred_date")
+    name, day = _text(args, "member_name"), _day(_text(args, "preferred_date"), locale)
     if locale == "ko":
         return "새 상담 요청이 도착했어요", f"{name or '회원'} 회원 · {day}"
     return "New consultation request", f"{name or 'Member'} · {day}"
@@ -272,7 +286,7 @@ def _trainer_consult_requested(args: Args, locale: Locale) -> Rendered:
 
 @_template(TRAINER_CONSULT_CANCELLED)
 def _trainer_consult_cancelled(args: Args, locale: Locale) -> Rendered:
-    name, day = _text(args, "member_name"), _text(args, "preferred_date")
+    name, day = _text(args, "member_name"), _day(_text(args, "preferred_date"), locale)
     if locale == "ko":
         return "상담 요청이 취소됐어요", f"{name or '회원'} 회원 · {day}"
     return "Consultation request cancelled", f"{name or 'Member'} · {day}"
@@ -282,7 +296,7 @@ def _trainer_consult_cancelled(args: Args, locale: Locale) -> Rendered:
 def _trainer_consult_withdrawn(args: Args, locale: Locale) -> Rendered:
     # 회원이 탈퇴해 대기 중이던 요청이 함께 사라졌다(#1632). 이름이 비면 탈퇴
     # 알림(`trainer_member_withdrawn`)과 같은 말을 대신 적는다.
-    name, day = _text(args, "member_name").strip(), _text(args, "preferred_date")
+    name, day = _text(args, "member_name").strip(), _day(_text(args, "preferred_date"), locale)
     if locale == "ko":
         return "회원 탈퇴로 상담 요청이 취소됐어요", f"{name or '이름 없는'} 회원 · {day}"
     return (
@@ -695,11 +709,11 @@ _SESSION_TYPE_EN: dict[str, str] = {
 
 
 def _slot(args: Args, locale: Locale) -> str:
-    """`2026-10-01 09:00 · 1:1 PT`. 날짜·시각은 저장된 모양 그대로다."""
+    """`10월 1일 09:00 · 1:1 PT` / `10/1 09:00 · 1:1 PT`. 시각은 저장된 모양 그대로다."""
     type_ = _text(args, "type")
     if locale != "ko":
         type_ = _SESSION_TYPE_EN.get(type_, type_)
-    return f"{_text(args, 'date')} {_text(args, 'time')} · {type_}"
+    return f"{_day(_text(args, 'date'), locale)} {_text(args, 'time')} · {type_}"
 
 
 @_template(MEMBER_SCHEDULE_ADDED)
@@ -722,13 +736,14 @@ def _member_schedule_cancelled(args: Args, locale: Locale) -> Rendered:
 
 @_template(MEMBER_SCHEDULE_SERIES)
 def _member_schedule_series(args: Args, locale: Locale) -> Rendered:
-    first, last, time = _text(args, "first"), _text(args, "last"), _text(args, "time")
+    time = _text(args, "time")
+    first, last = _day(_text(args, "first"), locale), _day(_text(args, "last"), locale)
     count = int(args["count"])
     if locale == "ko":
         return "반복 일정이 등록되었어요", f"{first} ~ {last} · {time} · {count}회"
     return (
         "Recurring sessions scheduled",
-        f"{first} ~ {last} · {time} · {_plural(count, 'session', 'sessions')}",
+        f"{first} – {last} · {time} · {_plural(count, 'session', 'sessions')}",
     )
 
 
@@ -819,7 +834,7 @@ def _member_challenge_result(args: Args, locale: Locale) -> Rendered:
     goal, reward = int(args["goal"]), int(args["reward"])
     succeeded = bool(args["succeeded"])
     if locale == "ko":
-        period = f"{start.month}월 {start.day}일~{end.month}월 {end.day}일"
+        period = f"{start.month}월 {start.day}일 ~ {end.month}월 {end.day}일"
         if succeeded:
             return (
                 f"주간 챌린지 성공! {reward:,}P를 받았어요",
@@ -831,7 +846,7 @@ def _member_challenge_result(args: Args, locale: Locale) -> Rendered:
             f"건 {int(args['stake']):,}P는 사라졌어요. "
             "다음 주 월·화요일에 다시 참가할 수 있어요.",
         )
-    period = f"{start.month}/{start.day}–{end.month}/{end.day}"
+    period = f"{start.month}/{start.day} – {end.month}/{end.day}"
     if succeeded:
         return (
             f"Weekly challenge complete! You earned {reward:,}P",

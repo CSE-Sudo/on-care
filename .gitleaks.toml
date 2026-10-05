@@ -37,3 +37,15 @@ condition = "AND"
 regexTarget = "line"
 regexes = ['''arn:aws:secretsmanager:[a-z0-9-]+:123456789012:secret:''']
 paths = ['''^infra/tests/.+\.py$''']
+
+[[allowlists]]
+description = "카카오·구글 로그인 테스트의 가짜 카카오 앱 키(#330) — 0~f 를 두 번 늘어놓은 이 값 하나만, 테스트·검사 스크립트 안에서만"
+condition = "AND"
+regexTarget = "secret"
+regexes = ['''^0123456789abcdef0123456789abcdef$''']
+paths = [
+  '''^frontend/[^/]+/test/.+\.dart$''',
+  '''^frontend/flutter/tool/test_[^/]+\.sh$''',
+  '''^shared/[^/]+/test/.+\.dart$''',
+  '''^tool/ci/test_[^/]+\.py$''',
+]

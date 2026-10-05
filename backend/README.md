@@ -66,7 +66,8 @@ uv pip compile --universal --python-version 3.12 --generate-hashes requirements-
 
 `--universal` 은 운영(리눅스)과 팀원 PC(macOS·Windows)에서 함께 쓰이는 잠금 파일을 만듭니다
 (예: `uvloop` 은 Windows 에서 빠지도록 조건이 붙습니다). Dependabot 이 매주 업데이트 PR 을
-올리고, 백엔드 CI 가 잠금 파일의 알려진 취약점(pip-audit)과 이미지 빌드·기동을 확인합니다.
+올리고, 백엔드 CI 가 잠금 파일의 알려진 취약점(pip-audit, 허용 목록 `audit-allowlist.toml` 밖이면
+실패), 린트(ruff, `ruff.toml`), 이미지 빌드와 개발·운영 설정 기동(`tests/fixtures/prod_smoke.env`)을 확인합니다.
 처리 규칙은 [docs/team_workflow.md](../docs/team_workflow.md) "의존성 업데이트 PR".
 
 ## DB 마이그레이션 (Alembic)
@@ -167,16 +168,16 @@ flutter run --dart-define=USE_MOCK_API=false --dart-define=API_BASE_URL=http://l
 
 식단 인식은 인식 엔진을 교체할 수 있습니다(factory 구조).
 현재 Gemini 무료 티어가 지역에서 회수되어(quota=0) 라이브 호출이 막혔으므로,
-**LiteLLM Virtual Key 를 통해 Claude 비전 모델로 우회**하여 라이브 호출을 확인했습니다.
+**LiteLLM Virtual Key 로 프록시 뒤의 비전 모델을 써서 우회**하여 라이브 호출을 확인했습니다.
 Gemini 키가 확보되면 `.env` 의 `RECOGNIZER=gemini` 로 즉시 전환 가능합니다.
 
 **설정 (.env)**
 ```
-RECOGNIZER=claude
+RECOGNIZER=litellm
 COACH_LLM=litellm
 LITELLM_BASE_URL=http://<litellm-host>:4000
 LITELLM_API_KEY=<Virtual Key>          # gitignored
-LITELLM_VISION_MODEL=claude-haiku-4-5-20251001
+LITELLM_VISION_MODEL=<비전 모델 이름>
 ```
 
 **요청**
@@ -184,12 +185,12 @@ LITELLM_VISION_MODEL=claude-haiku-4-5-20251001
 POST /v1/diet/analyze   (multipart: image=<음식 사진>, meal_type=lunch)
 ```
 
-**응답 (engine=claude, 실제 호출 결과)**
+**응답 (engine=litellm, 실제 호출 결과 — 엔진 이름은 현재 키로 표기)**
 ```json
 {
   "entry_id": "diet-c62ce45833ba",
   "analysis": {
-    "engine": "claude",
+    "engine": "litellm",
     "foods": [
       {"name": "혼합 견과류 및 건포도", "calories": 180, "sodium_mg": 95, "sugar_g": 15, "confidence": 0.75},
       {"name": "오이 및 채소 샐러드", "calories": 35, "sodium_mg": 45, "sugar_g": 3, "confidence": 0.85},
@@ -204,5 +205,5 @@ POST /v1/diet/analyze   (multipart: image=<음식 사진>, meal_type=lunch)
 }
 ```
 
-인식 엔진 선택: `RECOGNIZER=claude`(LiteLLM) | `gemini` | `yolo`(비교실험용 스텁).
+인식 엔진 선택: `RECOGNIZER=gemini`(기본) | `litellm`(LiteLLM 프록시 경유 비전 모델).
 엔진을 바꿔도 응답 형식(DietAnalysis)은 동일하므로 프론트는 영향받지 않습니다.

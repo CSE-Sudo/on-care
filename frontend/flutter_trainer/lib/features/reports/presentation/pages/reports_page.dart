@@ -457,7 +457,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     });
   }
 
-  /// `8월 3일 – 8월 9일` — 카드 제목 줄에 적는 지금 보고 있는 주.
+  /// `8월 3일 ~ 8월 9일` — 카드 제목 줄에 적는 지금 보고 있는 주.
   static String _weekRangeLabel(AppLocalizations l, DateTime weekStart) {
     final DateTime weekEnd = DateTime(
       weekStart.year,

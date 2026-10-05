@@ -111,7 +111,7 @@ KO_GOLDEN: dict[str, dict] = {'default': {'evidence': ['나트륨 평균 2,288mg
                         '칼로리 평균 1,624kcal · 기본 목표 2,000kcal 대비 부족 19%',
                         '외 2건 — 리포트 본문에서 확인'],
              'topics': ['나트륨 목표 초과 4일', '칼로리 부족', '건너뛴 운동 1가지'],
-             'message': '김민수님, 8월 10일 – 8월 16일 주간 리포트 정리해서 보내드려요.\n'
+             'message': '김민수님, 8월 10일 ~ 8월 16일 주간 리포트 정리해서 보내드려요.\n'
                         '\n'
                         '운동은 평균 87%로 잘 따라오셨어요. 다만 풀업은 건너뛰셨더라고요. 컨디션 때문이었다면 다음 PT 때 말씀해 '
                         '주세요. 대체 동작으로 바꿔 둘게요.\n'
@@ -124,7 +124,7 @@ KO_GOLDEN: dict[str, dict] = {'default': {'evidence': ['나트륨 평균 2,288mg
            'headline': '김민수 회원은 그 주 기록이 없어 다음 주 시작을 함께 잡아 주세요.',
            'points': [],
            'topics': [],
-           'message': '김민수님, 8월 10일 – 8월 16일 주간 리포트 정리해서 보내드려요.\n'
+           'message': '김민수님, 8월 10일 ~ 8월 16일 주간 리포트 정리해서 보내드려요.\n'
                       '\n'
                       '이 주에는 남은 기록이 없어서 정리해 드릴 내용이 없네요. 다음 주 시작을 같이 잡아 봐요.'},
  'steady': {'evidence': ['운동 완료율 평균 90%',
@@ -135,7 +135,7 @@ KO_GOLDEN: dict[str, dict] = {'default': {'evidence': ['나트륨 평균 2,288mg
                        '나트륨 평균 1,500mg · 기본 목표 2,000mg 초과 0일',
                        '칼로리 평균 2,000kcal'],
             'topics': [],
-            'message': '김민수님, 8월 10일 – 8월 16일 주간 리포트 정리해서 보내드려요.\n'
+            'message': '김민수님, 8월 10일 ~ 8월 16일 주간 리포트 정리해서 보내드려요.\n'
                        '\n'
                        '운동은 평균 90%로 잘 따라오셨어요.\n'
                        '\n'
@@ -147,7 +147,7 @@ KO_GOLDEN: dict[str, dict] = {'default': {'evidence': ['나트륨 평균 2,288mg
                 'headline': '김민수 회원은 운동 완료율 40%가 목표를 벗어나 다음 주 조정이 필요합니다.',
                 'points': ['운동 완료율 평균 40% · 기준 60% 미만'],
                 'topics': ['운동 완료율 40%'],
-                'message': '김민수님, 8월 10일 – 8월 16일 주간 리포트 정리해서 보내드려요.\n'
+                'message': '김민수님, 8월 10일 ~ 8월 16일 주간 리포트 정리해서 보내드려요.\n'
                            '\n'
                            '운동 완료율은 평균 40%였어요. 많이 바쁘셨나 봐요.\n'
                            '\n'
@@ -159,7 +159,7 @@ KO_GOLDEN: dict[str, dict] = {'default': {'evidence': ['나트륨 평균 2,288mg
                        'points': ['운동 완료율 평균 50% · 기준 60% 미만',
                                   '나트륨 평균 1,800mg · 기본 목표 2,000mg 초과 1일'],
                        'topics': ['운동 완료율 50%'],
-                       'message': '김민수님, 8월 10일 – 8월 16일 주간 리포트 정리해서 보내드려요.\n'
+                       'message': '김민수님, 8월 10일 ~ 8월 16일 주간 리포트 정리해서 보내드려요.\n'
                                   '\n'
                                   '운동 완료율은 평균 50%였어요. 많이 바쁘셨나 봐요.\n'
                                   '\n'
@@ -185,7 +185,7 @@ KO_GOLDEN: dict[str, dict] = {'default': {'evidence': ['나트륨 평균 2,288mg
                      '건너뛴 운동 3가지',
                      '탄수화물 초과',
                      '단백질 부족'],
-          'message': '김민수님, 8월 10일 – 8월 16일 주간 리포트 정리해서 보내드려요.\n'
+          'message': '김민수님, 8월 10일 ~ 8월 16일 주간 리포트 정리해서 보내드려요.\n'
                      '\n'
                      '운동 완료율은 평균 55%였어요. 많이 바쁘셨나 봐요. 다만 스쿼트, 런지, 플랭크는 건너뛰셨더라고요. 컨디션 '
                      '때문이었다면 다음 PT 때 말씀해 주세요. 대체 동작으로 바꿔 둘게요.\n'
@@ -198,7 +198,7 @@ KO_GOLDEN: dict[str, dict] = {'default': {'evidence': ['나트륨 평균 2,288mg
                'headline': '김민수 회원은 칼로리 부족이 목표를 벗어나 다음 주 조정이 필요합니다.',
                'points': ['칼로리 평균 1,250kcal · 기본 목표 2,000kcal 대비 부족 38%'],
                'topics': ['칼로리 부족'],
-               'message': '김민수님, 8월 10일 – 8월 16일 주간 리포트 정리해서 보내드려요.\n'
+               'message': '김민수님, 8월 10일 ~ 8월 16일 주간 리포트 정리해서 보내드려요.\n'
                           '\n'
                           '칼로리는 하루 평균 1,250kcal이에요.\n'
                           '\n'
@@ -212,7 +212,7 @@ KO_GOLDEN: dict[str, dict] = {'default': {'evidence': ['나트륨 평균 2,288mg
                           '운동 완료율 평균 80%',
                           '나트륨 평균 1,500mg · 기본 목표 2,000mg 초과 0일'],
                'topics': ['당류 목표 초과 2일'],
-               'message': '김민수님, 8월 10일 – 8월 16일 주간 리포트 정리해서 보내드려요.\n'
+               'message': '김민수님, 8월 10일 ~ 8월 16일 주간 리포트 정리해서 보내드려요.\n'
                           '\n'
                           '운동은 평균 80%로 잘 따라오셨어요.\n'
                           '\n'
@@ -223,7 +223,7 @@ KO_GOLDEN: dict[str, dict] = {'default': {'evidence': ['나트륨 평균 2,288mg
                      'headline': '김민수 회원은 나트륨 평균 2,400mg가 목표를 벗어나 다음 주 조정이 필요합니다.',
                      'points': ['나트륨 평균 2,400mg · 기본 목표 2,000mg 초과 0일'],
                      'topics': ['나트륨 평균 2,400mg'],
-                     'message': '김민수님, 8월 10일 – 8월 16일 주간 리포트 정리해서 보내드려요.\n'
+                     'message': '김민수님, 8월 10일 ~ 8월 16일 주간 리포트 정리해서 보내드려요.\n'
                                 '\n'
                                 '나트륨은 하루 평균 2,400mg으로 목표(2,000mg) 안에서 잘 지키고 계세요.\n'
                                 '\n'
@@ -294,8 +294,8 @@ def test_english_evidence_mirrors_the_korean_lines_one_to_one():
 
 def test_english_evidence_for_the_default_week():
     assert svc._evidence(_report(), "en") == [
-        "Avg sodium 2,288mg · over the default goal of 2,000mg on 4 days",
-        "Avg calories 1,624kcal · 19% below the default goal of 2,000kcal",
+        "Avg sodium 2,288 mg · over the default goal of 2,000 mg on 4 days",
+        "Avg calories 1,624 kcal · 19% below the default goal of 2,000 kcal",
         "Skipped exercises: 풀업",
         "Avg workout completion rate 87%",
     ]
@@ -305,20 +305,20 @@ def test_english_evidence_names_personal_targets():
     lines = svc._evidence(_report(**CASES["many"]), "en")
     assert lines == [
         "Avg workout completion rate 55% · below the 60% bar",
-        "Avg sodium 2,600mg · over the personal goal of 2,300mg on 5 days",
-        "Avg sugar 75g · over the personal goal of 40g on 4 days",
-        "Avg calories 2,600kcal · 24% above the personal goal of 2,100kcal",
+        "Avg sodium 2,600 mg · over the personal goal of 2,300 mg on 5 days",
+        "Avg sugar 75 g · over the personal goal of 40 g on 4 days",
+        "Avg calories 2,600 kcal · 24% above the personal goal of 2,100 kcal",
         "Skipped exercises: 스쿼트, 런지, 플랭크",
-        "Avg carbs 310g · 55% above the personal goal of 200g",
-        "Avg protein 55g · 54% below the personal goal of 120g",
+        "Avg carbs 310 g · 55% above the personal goal of 200 g",
+        "Avg protein 55 g · 54% below the personal goal of 120 g",
     ]
 
 
 def test_english_evidence_for_a_steady_week():
     assert svc._evidence(_report(**CASES["steady"]), "en") == [
         "Avg workout completion rate 90%",
-        "Avg sodium 1,500mg · over the default goal of 2,000mg on 0 days",
-        "Avg calories 2,000kcal",
+        "Avg sodium 1,500 mg · over the default goal of 2,000 mg on 0 days",
+        "Avg calories 2,000 kcal",
     ]
 
 
@@ -351,7 +351,7 @@ def test_english_sugar_average_topic_when_no_day_is_over():
 
 def test_english_sodium_average_topic_when_no_day_is_over():
     watch = svc.watchpoints(_report(**CASES["sodium_avg_over"]), "en")
-    assert [w.topic for w in watch] == ["avg sodium of 2,400mg"]
+    assert [w.topic for w in watch] == ["avg sodium of 2,400 mg"]
 
 
 def test_english_calorie_surplus_and_shortfall():
@@ -361,10 +361,10 @@ def test_english_calorie_surplus_and_shortfall():
     )
     under = svc.watchpoints(_report(**CASES["cal_under"]), "en")
     assert over[0].topic == "calories above goal"
-    assert "28% above the default goal of 2,000kcal" in over[0].text
+    assert "28% above the default goal of 2,000 kcal" in over[0].text
     assert under[0].topic == "calories below goal"
     assert under[0].text == (
-        "Avg calories 1,250kcal · 38% below the default goal of 2,000kcal"
+        "Avg calories 1,250 kcal · 38% below the default goal of 2,000 kcal"
     )
 
 
@@ -416,8 +416,8 @@ def test_english_rule_summary_names_the_good_and_the_watch():
         "on sodium over goal on 4 days. Keep an eye on 2 more items too."
     )
     assert out["points"] == [
-        "Avg sodium 2,288mg · over the default goal of 2,000mg on 4 days",
-        "Avg calories 1,624kcal · 19% below the default goal of 2,000kcal",
+        "Avg sodium 2,288 mg · over the default goal of 2,000 mg on 4 days",
+        "Avg calories 1,624 kcal · 19% below the default goal of 2,000 kcal",
         "2 more — see the full report",
     ]
 
@@ -464,7 +464,7 @@ def test_english_praise_for_sodium_reads_as_praise():
     avg = _outputs(
         _en_report(**{**CASES["good_sodium_over1"], "sodium_over_days": 0}), "en"
     )
-    assert "did well with sodium (avg 1,800mg)" in avg["headline"]
+    assert "did well with sodium (avg 1,800 mg)" in avg["headline"]
 
 
 def test_english_points_truncation_counts_the_hidden_lines():
@@ -661,9 +661,9 @@ def test_english_draft_for_a_week_that_needs_work():
         "You kept up well — 87% of your workouts done. One thing — 풀업 got skipped. "
         "If that was down to how you were feeling, tell me at our next PT and "
         "I'll swap in an alternative.\n\n"
-        "Sodium averaged 2,288mg a day, and went over the 2,000mg goal on 4 days. "
-        "Leaving half the broth behind saves 400–500mg a day. "
-        "Calories averaged 1,624kcal a day.\n\n"
+        "Sodium averaged 2,288 mg a day, and went over the 2,000 mg goal on 4 days. "
+        "Leaving half the broth behind saves 400–500 mg a day. "
+        "Calories averaged 1,624 kcal a day.\n\n"
         "Let's focus on just these things next week. "
         "I'll adjust your program and send it over."
     )
@@ -674,8 +674,8 @@ def test_english_draft_for_a_good_week():
     assert message == (
         "Hi Alex, here's your weekly report for 8/10 – 8/16.\n\n"
         "You kept up well — 90% of your workouts done.\n\n"
-        "Sodium averaged 1,500mg a day — comfortably inside the 2,000mg goal. "
-        "Calories averaged 2,000kcal a day.\n\n"
+        "Sodium averaged 1,500 mg a day — comfortably inside the 2,000 mg goal. "
+        "Calories averaged 2,000 kcal a day.\n\n"
         "Great work — let's keep this pace next week!"
     )
 
@@ -694,7 +694,7 @@ def test_english_draft_low_completion_and_single_day():
         _en_report(**CASES["good_sodium_over1"]), "en"
     )
     assert "Workout completion rate came in at 50%. Sounds like a busy week." in message
-    assert "went over the 2,000mg goal on 1 day." in message
+    assert "went over the 2,000 mg goal on 1 day." in message
 
 
 def test_english_draft_spans_a_month_boundary():

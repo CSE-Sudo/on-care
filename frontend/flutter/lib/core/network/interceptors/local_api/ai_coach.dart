@@ -292,7 +292,7 @@ extension _LocalApiAiCoach on LocalApiInterceptor {
           '나트륨을 줄이려면 국물은 남기고 건더기 위주로 드시고, 소금 대신 후추·마늘·레몬으로 '
               '간을 해보세요. 하루 목표는 2000mg 이하예요. 🌿',
           'To cut sodium, leave the broth and eat the solids, and season with pepper, '
-              'garlic or lemon instead of salt. Aim for 2,000mg or less a day. 🌿',
+              'garlic or lemon instead of salt. Aim for 2,000 mg or less a day. 🌿',
         ),
         <String>[_srcSodium],
       );
@@ -534,7 +534,7 @@ _aiCoachSeed =
         textEn:
             'Just leaving the broth cuts it by almost half. Next time, use '
             'only part of the seasoning packet and add an egg or tofu for '
-            'extra protein. Aim for 2,000mg or less a day. 🌿',
+            'extra protein. Aim for 2,000 mg or less a day. 🌿',
         sources: <String>[_srcSodium],
       ),
       (

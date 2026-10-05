@@ -41,7 +41,7 @@ class _SummaryServer implements HttpClientAdapter {
         'Alex did well with workout completion rate at 87%; next week, '
         "let's also work on sodium over goal on 4 days.",
     'points': <String>[
-      'Avg sodium 2,288mg · over the default goal of 2,000mg on 4 days',
+      'Avg sodium 2,288 mg · over the default goal of 2,000 mg on 4 days',
       'Avg workout completion rate 87%',
     ],
     'generated_by': 'rule',
@@ -197,13 +197,13 @@ void main() {
       final (ProviderContainer c, _SummaryServer server) = await _setUp();
       server.rawBody = jsonEncode(<String, Object?>{
         'headline': '  Solid week.  ',
-        'points': <Object?>['Avg calories 1,624kcal', 3, null],
+        'points': <Object?>['Avg calories 1,624 kcal', 3, null],
       });
 
       final ReportSummary summary = await fetch(c, en);
 
       expect(summary.headline, 'Solid week.');
-      expect(summary.points, <String>['Avg calories 1,624kcal']);
+      expect(summary.points, <String>['Avg calories 1,624 kcal']);
       // 계약에 없는 응답은 규칙 기반으로 읽는다 — 모델이 쓴 것처럼 보이지 않게.
       expect(summary.generatedBy, 'rule');
     });
@@ -327,7 +327,7 @@ void main() {
       await tester.tap(find.text(en.reportsAiUseAsDraft));
       await tester.pump();
       expect(drafts.single, startsWith('Alex did well with'));
-      expect(drafts.single, contains('· Avg sodium 2,288mg'));
+      expect(drafts.single, contains('· Avg sodium 2,288 mg'));
     });
 
     testWidgets('a Korean screen shows the Korean server summary', (

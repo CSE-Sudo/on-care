@@ -5,6 +5,7 @@ import 'package:oncare_core/network/session_refresh.dart';
 
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/auth_token.dart';
+import 'package:oncare_trainer/core/network/consent_gate.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/secure_token_store.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/consent_repositories.dart';
@@ -30,15 +31,20 @@ class SessionController extends StateNotifier<SessionState>
     addListener(_syncAccountScope, fireImmediately: false);
     // 실행 중 401 을 받은 인터셉터가 이 컨트롤러로 토큰을 회전한다(#1546).
     _refreshBridge = _ref.read(sessionRefreshBridgeProvider)..attach(this);
+    // 실행 중 트레이너 API 가 403 consent_required 를 주면 알려 온다(#3155).
+    _consentBridge = _ref.read(consentGateBridgeProvider)
+      ..attach(markConsentRequired);
     _restore();
   }
 
   final Ref _ref;
   late final SessionRefreshBridge _refreshBridge;
+  late final ConsentGateBridge _consentBridge;
 
   @override
   void dispose() {
     _refreshBridge.detach(this);
+    _consentBridge.detach(markConsentRequired);
     super.dispose();
   }
 
@@ -274,22 +280,18 @@ class SessionController extends StateNotifier<SessionState>
   }
 
   /// Social sign-in (kakao / google). Throws [AuthException].
-  Future<void> socialLogin({required String provider}) async {
+  ///
+  /// [token] 은 provider 에서 받은 토큰이다(구글 ID 토큰·카카오 access_token).
+  /// 로그인 화면과 탈퇴 본인 확인(#3039)이 같은 `trainerSocialLoginProvider` 로
+  /// 받는다(#330).
+  Future<void> socialLogin({
+    required String provider,
+    required String token,
+  }) async {
     _userActionStarted = true;
-    final tokens = await _repo.socialLogin(
-      provider: provider,
-      token: await socialProviderToken(provider),
-    );
+    final tokens = await _repo.socialLogin(provider: provider, token: token);
     await _establish(tokens);
   }
-
-  /// 소셜 로그인의 첫 단계 — [provider] 에서 받은 토큰. 로그인과 본인 확인
-  /// (#3039, 소셜로만 가입한 계정의 탈퇴)이 이 한 경로로 토큰을 얻는다.
-  ///
-  /// 트레이너 웹에는 아직 제공자 SDK 가 붙지 않아 데모 토큰을 쓴다 — 실서버
-  /// 빌드의 로그인 화면이 소셜 버튼을 꺼 두는 이유다(#2769).
-  Future<String> socialProviderToken(String provider) async =>
-      'demo-$provider-token';
 
   /// Persists fresh tokens and attaches the trainer profile from `/me`.
   /// Any failure clears the just-issued tokens and rethrows an
@@ -375,6 +377,22 @@ class SessionController extends StateNotifier<SessionState>
       status: state.status,
       profile: state.profile,
       consentRequired: stillRequired,
+    );
+  }
+
+  /// 서버가 [token] 세션에 필수 동의가 남았다고 했다 → 동의 화면으로. (#3155)
+  ///
+  /// 로그인 응답으로 알게 된 경우([_establish])와 달리 토큰은 이미 저장돼 있다
+  /// (복구한 세션이거나 쓰는 사이 문서 버전이 올랐다). 그대로 두어도 된다 —
+  /// 새로고침으로 복구해도 서버가 다시 403 을 주어 이 길로 돌아온다. 프로필은
+  /// 남겨 동의 화면 뒤에서도 같은 계정임을 지킨다. 이미 로그아웃했거나 다른
+  /// 계정으로 바뀐 뒤 늦게 온 응답은 버린다.
+  void markConsentRequired(String token) {
+    if (!_holdsToken(token) || state.consentRequired) return;
+    state = SessionState(
+      status: SessionStatus.authenticated,
+      profile: state.profile,
+      consentRequired: true,
     );
   }
 

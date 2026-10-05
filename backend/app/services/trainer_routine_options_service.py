@@ -307,6 +307,9 @@ def _exercise_name(item: object) -> str:
     운동" 으로 A안에 들어갔다.
     """
     if isinstance(item, dict):
+        # 값으로 적힌 기록은 `done: false` 가 안 한 운동이다 — 문장의 `✗` 와 같다.
+        if item.get("done") is False:
+            return ""
         text = str(item.get("name", ""))
     elif isinstance(item, str):
         text = item

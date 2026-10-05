@@ -122,7 +122,7 @@ void main() {
     final Rect right = tester.getRect(arrow(AppIcons.chevronRight));
 
     // 여섯 주를 넘기는 동안 날짜 문구의 길이가 여러 번 바뀐다
-    // (`9월 1일 – 9월 7일` ↔ `9월 28일 – 10월 4일`). 넘기면 `오늘` 도 나타난다.
+    // (`9월 1일 ~ 9월 7일` ↔ `9월 28일 ~ 10월 4일`). 넘기면 `오늘` 도 나타난다.
     for (var i = 0; i < 6; i++) {
       await tester.tap(arrow(AppIcons.chevronRight));
       await settle(tester);
