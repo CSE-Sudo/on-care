@@ -7812,6 +7812,36 @@ abstract class AppLocalizations {
   /// **'Forgot your password?'**
   String get authForgotPassword;
 
+  /// Text button next to 'Forgot your password?' on sign-in that opens the find-email screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Find your email'**
+  String get authFindEmail;
+
+  /// No description provided for @findEmailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Find your email'**
+  String get findEmailTitle;
+
+  /// No description provided for @findEmailSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the name and phone number you signed up with to find your email.'**
+  String get findEmailSubtitle;
+
+  /// No description provided for @findEmailAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Find email'**
+  String get findEmailAction;
+
+  /// Shown under the button and as a toast on the find-email screen while the lookup is not available yet.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding your email is coming soon.'**
+  String get findEmailComingSoon;
+
   /// No description provided for @passwordChangeTitle.
   ///
   /// In en, this message translates to:

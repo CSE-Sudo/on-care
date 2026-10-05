@@ -20,6 +20,7 @@ import 'package:oncare/features/app_guide/presentation/pages/guide_tour_page.dar
 import 'package:oncare/features/app_update/presentation/pages/update_required_page.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/auth/presentation/pages/consent_page.dart';
+import 'package:oncare/features/auth/presentation/pages/find_email_page.dart';
 import 'package:oncare/features/auth/presentation/pages/password_reset_page.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_up_page.dart';
@@ -88,7 +89,9 @@ String? sessionRedirect(
   // 링크가 아무 일도 하지 않는다.
   if (location == AppRoutes.passwordReset) return null;
   final onAuthRoute =
-      location == AppRoutes.signIn || location == AppRoutes.signUp;
+      location == AppRoutes.signIn ||
+      location == AppRoutes.signUp ||
+      location == AppRoutes.findEmail;
   // 동의가 남은 계정은 어느 주소로 가든 동의 화면에 붙든다(#2819). 데모에는
   // 계정이 없어 해당하지 않는다.
   if (status == SessionStatus.authenticated && consentRequired) {
@@ -308,6 +311,10 @@ GoRouter buildAppRouter({
       GoRoute(
         path: AppRoutes.consent,
         builder: (context, state) => const ConsentPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.findEmail,
+        builder: (context, state) => const FindEmailPage(),
       ),
       GoRoute(
         path: AppRoutes.passwordReset,

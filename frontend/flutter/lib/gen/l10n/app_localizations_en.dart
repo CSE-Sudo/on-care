@@ -4904,6 +4904,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authForgotPassword => 'Forgot your password?';
 
   @override
+  String get authFindEmail => 'Find your email';
+
+  @override
+  String get findEmailTitle => 'Find your email';
+
+  @override
+  String get findEmailSubtitle =>
+      'Enter the name and phone number you signed up with to find your email.';
+
+  @override
+  String get findEmailAction => 'Find email';
+
+  @override
+  String get findEmailComingSoon => 'Finding your email is coming soon.';
+
+  @override
   String get passwordChangeTitle => 'Change password';
 
   @override
