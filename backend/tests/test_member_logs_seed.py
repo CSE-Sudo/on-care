@@ -143,26 +143,55 @@ def test_split_keeps_the_day_totals():
     assert [m.meal_type for m in meals] == ["breakfast", "lunch", "dinner"]
 
 
-def test_routine_sessions_are_seeded_by_type(db_session):
-    from app.db.seed_member_logs import SESSION_ID_PREFIX
-    from app.models.models import ExerciseSession
+def test_history_days_carry_the_history_exercises(db_session):
+    """이력이 있는 날의 운동 세션은 **그 이력에서 한 운동**이다(#2508).
 
-    sessions = db_session.scalars(
-        select(ExerciseSession).where(
-            # 확장 회원은 이행률을 개인운동 완료로 남기므로(#2513) 루틴 기록에서
-            # 세션을 만드는 회원은 기록을 가진 지수다.
-            ExerciseSession.user_id == "user-jisu",
-            ExerciseSession.id.like(f"{SESSION_ID_PREFIX}%"),
-        )
-    ).all()
-    assert sessions
-    kinds = {s.type for s in sessions}
-    assert "strength" in kinds
-    for s in sessions:
-        assert s.minutes > 0 and s.calories > 0
-        if s.type == "strength":
-            assert s.sets
-        assert s.completed_at is not None
+    트레이너 웹은 그날 세션을 출처로 이력(PT·개인운동)에 붙여 줄마다 소모 kcal 을
+    적는다. 예전에는 요일 루틴(`seed-log-ex-`)이 `member` 로 남아 이력과 다른
+    운동을 말했다 — 줄은 비고 하루 합계에만 섞였다. 김민수 픽스처와 같은 모양이다.
+    """
+    from app.db.seed_member_data import _HISTORY_SESSION_PREFIX
+    from app.db.seed_member_logs import SESSION_ID_PREFIX
+    from app.models.models import ExerciseSession, RoutineHistory
+
+    for member in ("user-jisu", "user-sungho"):
+        history = db_session.scalars(
+            select(RoutineHistory).where(
+                RoutineHistory.member_id == member,
+                RoutineHistory.id.like("seed-hist-%"),
+            )
+        ).all()
+        assert history, f"{member}: 이력 시드가 없다"
+        sessions = db_session.scalars(
+            select(ExerciseSession).where(ExerciseSession.user_id == member)
+        ).all()
+        by_day: dict[str, list] = {}
+        for s in sessions:
+            for prefix in (_HISTORY_SESSION_PREFIX, SESSION_ID_PREFIX):
+                head = f"{prefix}{member}-"
+                if s.id.startswith(head):
+                    by_day.setdefault(s.id[len(head):len(head) + 10], []).append(s)
+        checked = 0
+        for h in history:
+            done = [
+                e["name"] for e in json.loads(h.exercises_json)
+                if e.get("done") is not False
+            ]
+            if not done:
+                continue
+            rows = by_day.get(h.date, [])
+            assert sorted(s.name for s in rows) == sorted(done), h.date
+            source = "trainer_pt" if h.kind_label.startswith("PT") else "assigned_routine"
+            for s in rows:
+                assert s.id.startswith(_HISTORY_SESSION_PREFIX)
+                assert s.source == source
+                assert s.calories == s.minutes * {"cardio": 7, "strength": 6}[s.type]
+                assert s.intensity == "moderate"
+                if s.type == "strength":
+                    assert s.sets
+                assert s.completed_at is not None
+            checked += 1
+        assert checked, f"{member}: 한 운동이 있는 이력 날이 없다"
 
 
 # ---- #2731 트레이너 기록 ------------------------------------------------------------

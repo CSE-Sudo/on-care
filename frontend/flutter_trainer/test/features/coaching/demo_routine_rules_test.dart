@@ -59,6 +59,11 @@ void main() {
       expect(historyExerciseName('걷기 ✓ (10분만)'), '걷기');
       expect(historyExerciseName('플랭크 ✗ (피로)'), '');
       expect(historyExerciseName(<String, Object?>{'name': '벤치프레스'}), '벤치프레스');
+      // 값으로 적힌 기록은 `done: false` 가 안 한 운동이다(#2508).
+      expect(
+        historyExerciseName(<String, Object?>{'name': '데드리프트', 'done': false}),
+        '',
+      );
       expect(
         frequentExercises(<List<Object?>>[
           <Object?>['걷기 25분 ✓', '데드리프트 ✗'],

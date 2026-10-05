@@ -1600,6 +1600,12 @@ Iterable<ClientDailyMetricsCompanion> _dailyMetrics(
   final today = DateTime(now.year, now.month, now.day);
   for (final _SeedDay d in _seedDays(client, now)) {
     final shares = _macroShares(d.day);
+    final List<Map<String, Object?>>? fromHistory = _historyRows(
+      client,
+      now,
+      d.date,
+      t,
+    );
     yield ClientDailyMetricsCompanion.insert(
       clientId: 'seed-client-${client.id}',
       date: ymd(d.date),
@@ -1616,17 +1622,95 @@ Iterable<ClientDailyMetricsCompanion> _dailyMetrics(
       assignedCount: Value(_routineFor(client.id, d.day, 100).length),
       exercisesJson: Value(
         jsonEncode(
-          d.date == today
-              ? _todayRows(
-                  client,
-                  _exercisesFor(client, d.completion, t, today: true),
-                  t,
-                )
-              : t.exercises(_routineFor(client.id, d.day, d.completion)),
+          fromHistory ??
+              (d.date == today
+                  ? _todayRows(
+                      client,
+                      _exercisesFor(client, d.completion, t, today: true),
+                      t,
+                    )
+                  : _memberRows(
+                      client,
+                      t.exercises(_routineFor(client.id, d.day, d.completion)),
+                    )),
         ),
       ),
     );
   }
+}
+
+/// 이력을 값까지 실린 객체로 적어 둔 회원인가 — 이지수·박성호(#2508).
+///
+/// 이 회원들은 그날 운동 행을 이력에서 만들고, 이력 없는 날의 행은 회원이 직접
+/// 적은 기록이다. 이력을 아직 문장으로 적어 둔 회원은 예전 그대로 둔다.
+bool _hasValueHistory(_Client client) => client.history.any(
+  (_History h) => h.exercises.any((Object e) => e is Map<String, Object?>),
+);
+
+/// 그날 이력(PT 세션·개인운동)에서 한 운동 → 운동 행. 그날 이력이 없거나 한
+/// 운동이 없으면 null 이다. (#2508)
+///
+/// 김민수 픽스처의 운동 행과 같은 모양이다 — 이력과 같은 이름이라 펼친 날의
+/// 줄마다 소모 kcal·강도가 서고, PT 는 `trainer_pt`, 개인운동은
+/// `assigned_routine` 출처로 그 이력에 붙는다. 예전에는 요일 루틴
+/// ([_routinePool])을 실어 이력과 다른 운동을 말했다 — 줄은 비고 합계만 그
+/// 운동을 셌다.
+List<Map<String, Object?>>? _historyRows(
+  _Client client,
+  DateTime now,
+  DateTime date,
+  _SeedText t,
+) {
+  if (!_hasValueHistory(client)) return null;
+  for (final _History h in client.history) {
+    if (_daysBefore(now, h.daysAgo) != date) continue;
+    final bool pt = h.label.startsWith('PT');
+    final List<Map<String, Object?>> rows = <Map<String, Object?>>[
+      for (final Object item in t.exercises(h.exercises))
+        if (item is Map<String, Object?> && item['done'] != false)
+          <String, Object?>{
+            for (final MapEntry<String, Object?> e in item.entries)
+              if (e.key != 'done') e.key: e.value,
+            'calories': _seedKcal(item),
+            'source': pt ? 'trainer_pt' : 'assigned_routine',
+            'intensity': 'moderate',
+          },
+    ];
+    return rows.isEmpty ? null : rows;
+  }
+  return null;
+}
+
+/// 회원이 직접 적은 운동 행 — 값으로 적힌 이력을 가진 회원만 출처·kcal·강도를
+/// 싣는다([_hasValueHistory]). 다른 회원은 받은 그대로다.
+List<Object> _memberRows(_Client client, List<Object> rows) {
+  if (!_hasValueHistory(client)) return rows;
+  return <Object>[
+    for (final Object row in rows)
+      if (row is Map<String, Object?>)
+        <String, Object?>{
+          ...row,
+          'calories': _seedKcal(row),
+          'source': 'member',
+          'intensity': 'moderate',
+        }
+      else
+        row,
+  ];
+}
+
+/// 운동 한 줄의 소모 kcal — 분 × 유형별 분당 소모(유산소 7·근력 6·스트레칭 3).
+/// 데모 주간 집계(`client_repository` 의 `_DemoKind`)와 서버 시드
+/// (`seed_member_logs._KCAL_PER_MINUTE`)가 같은 값으로 세어, 줄을 더하면
+/// 하루 합계가 된다.
+int _seedKcal(Map<String, Object?> row) {
+  final int minutes = (row['minutes'] as num?)?.toInt() ?? 0;
+  return minutes *
+      switch (row['type']) {
+        'strength' => 6,
+        'stretching' => 3,
+        _ => 7,
+      };
 }
 
 /// 끼니 수 → 그날 적은 끼니 자리(먹은 순서).
