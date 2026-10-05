@@ -159,7 +159,7 @@ const List<_Client> _clients = <_Client>[
         dayIndex: 1,
         file: _ChatFile.image(
           'soup-example.jpeg',
-          'assets/images/diet-doenjang-rice.jpeg',
+          'assets/demo/images/diet-doenjang-rice.jpeg',
         ),
       ),
       _Chat('client', '오늘은 국물 안 마셨어요! 걷기도 25분 했습니다', '수 19:05', dayIndex: 1),
@@ -238,7 +238,7 @@ const List<_Client> _clients = <_Client>[
         carbsG: 90,
         proteinG: 35,
         fatG: 20,
-        photoAsset: 'assets/images/lunch-bulgogi-brown-rice.jpg',
+        photoAsset: 'assets/demo/images/lunch-bulgogi-brown-rice.jpg',
       ),
       _Meal.of(
         '저녁',
@@ -246,7 +246,7 @@ const List<_Client> _clients = <_Client>[
         carbsG: 25,
         proteinG: 45,
         fatG: 40,
-        photoAsset: 'assets/images/diet-salmon-brown-rice.jpeg',
+        photoAsset: 'assets/demo/images/diet-salmon-brown-rice.jpeg',
       ),
     ],
     aiRoutine: <_Routine>[
@@ -334,7 +334,7 @@ const List<_Client> _clients = <_Client>[
         carbsG: 120,
         proteinG: 25,
         fatG: 30,
-        photoAsset: 'assets/images/lunch-jjajangmyeon.jpg',
+        photoAsset: 'assets/demo/images/lunch-jjajangmyeon.jpg',
       ),
       _Meal.of(
         '저녁',
@@ -346,7 +346,7 @@ const List<_Client> _clients = <_Client>[
         carbsG: 20,
         proteinG: 45,
         fatG: 50,
-        photoAsset: 'assets/images/dinner-samgyeopsal-ssam.jpg',
+        photoAsset: 'assets/demo/images/dinner-samgyeopsal-ssam.jpg',
       ),
     ],
     aiRoutine: <_Routine>[
@@ -516,7 +516,7 @@ const List<_Client> _clients = <_Client>[
         carbsG: 72,
         proteinG: 15,
         fatG: 19,
-        photoAsset: 'assets/images/diet-oatmeal-banana.jpeg',
+        photoAsset: 'assets/demo/images/diet-oatmeal-banana.jpeg',
       ),
       _Meal.of(
         '점심',
@@ -619,7 +619,7 @@ const List<_Client> _clients = <_Client>[
         carbsG: 90,
         proteinG: 35,
         fatG: 52,
-        photoAsset: 'assets/images/lunch-malatang.jpg',
+        photoAsset: 'assets/demo/images/lunch-malatang.jpg',
       ),
       _Meal.of(
         '저녁',
@@ -630,7 +630,7 @@ const List<_Client> _clients = <_Client>[
         carbsG: 95,
         proteinG: 60,
         fatG: 72,
-        photoAsset: 'assets/images/dinner-fried-chicken-beer.jpg',
+        photoAsset: 'assets/demo/images/dinner-fried-chicken-beer.jpg',
       ),
     ],
     aiRoutine: <_Routine>[
@@ -669,7 +669,7 @@ const List<_Client> _clients = <_Client>[
         // 회원이 그날 먹은 것을 사진으로 보냈다(#2669).
         file: _ChatFile.image(
           'malatang.jpg',
-          'assets/images/lunch-malatang.jpg',
+          'assets/demo/images/lunch-malatang.jpg',
         ),
       ),
       _Chat(
@@ -739,7 +739,7 @@ const List<_Client> _clients = <_Client>[
         carbsG: 80,
         proteinG: 10,
         fatG: 6,
-        photoAsset: 'assets/images/breakfast-onigiri.jpg',
+        photoAsset: 'assets/demo/images/breakfast-onigiri.jpg',
       ),
       _Meal.of(
         '점심',
@@ -910,7 +910,7 @@ const List<_Client> _clients = <_Client>[
         carbsG: 100,
         proteinG: 22,
         fatG: 20,
-        photoAsset: 'assets/images/diet-vegetable-bibimbap.jpg',
+        photoAsset: 'assets/demo/images/diet-vegetable-bibimbap.jpg',
       ),
       _Meal.of(
         '저녁',
@@ -1020,7 +1020,7 @@ const List<_Client> _clients = <_Client>[
         carbsG: 105,
         proteinG: 30,
         fatG: 25,
-        photoAsset: 'assets/images/diet-doenjang-rice.jpeg',
+        photoAsset: 'assets/demo/images/diet-doenjang-rice.jpeg',
       ),
     ],
     aiRoutine: <_Routine>[
@@ -1240,7 +1240,7 @@ const List<_Client> _clients = <_Client>[
         carbsG: 30,
         proteinG: 50,
         fatG: 22,
-        photoAsset: 'assets/images/diet-chicken-salad.jpg',
+        photoAsset: 'assets/demo/images/diet-chicken-salad.jpg',
       ),
     ],
     aiRoutine: <_Routine>[

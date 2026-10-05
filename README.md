@@ -177,7 +177,7 @@ Sources — 자체 온라인 설문(2026년, 응답 57명 / PT 경험자 37명) 
 <tbody>
 <tr><td><b>Frontend</b></td><td>Flutter · Dart · Riverpod · GoRouter (회원 앱(모바일) · 트레이너 웹 — 분리된 코드베이스, 아키텍처 패턴 미러링)</td></tr>
 <tr><td><b>Backend</b></td><td>FastAPI · SQLAlchemy · Alembic · JWT · Docker</td></tr>
-<tr><td><b>Database</b></td><td>PostgreSQL (Neon) · pgvector (식단 사진 축소본도 DB 에 저장) · 서버 파일 저장소(채팅 이미지, 주간 리포트 PDF)</td></tr>
+<tr><td><b>Database</b></td><td>PostgreSQL (Neon) · pgvector (식단 사진 축소본도 DB 에 저장) · 첨부 저장소 S3(운영) · 로컬 디스크(개발) (채팅 이미지, 주간 리포트 PDF)</td></tr>
 <tr><td><b>AI</b></td><td>Vision AI(VLM) 식단 인식 · LLM 코칭 · 임베딩 모델(768차원) + pgvector 벡터 검색 기반 RAG · 식약처 공공 영양성분 DB 매칭</td></tr>
 <tr><td><b>Infra</b></td><td>백엔드 AWS ECR + ECS Express Mode(Fargate, staging·production) · 프론트 GitHub Pages(데모, 커스텀 도메인) · 프론트 AWS S3 + CloudFront(<code>aws-frontend-deploy.yml</code>, 저장소 변수로 켬) · GitHub Actions (CI/CD)</td></tr>
 <tr><td><b>External API</b></td><td>카카오 (지도 JS SDK · 로컬 장소 검색) · 소셜 로그인 (카카오 · 구글) · 공공데이터포털 (식약처 영양성분 · 한국건강증진개발원 운동 MET — KOGL 제4유형)</td></tr>
