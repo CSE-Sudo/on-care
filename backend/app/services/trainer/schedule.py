@@ -1317,6 +1317,9 @@ def _raise_scheduled_program(
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.schedule_id == session.id,
+            # 지금 일정의 회원 줄만 올린다 — 회원을 바꾸기 전에 붙어 남은 줄이
+            # 이전 회원에게 가지 않게 한다(#3232).
+            TrainerRoutine.member_id == session.member_id,
             # 프로그램 줄만 — 개인운동은 `delivery_kind` 를 달고 있다(#2223).
             TrainerRoutine.delivery_kind.is_(None),
             TrainerRoutine.status == ROUTINE_SCHEDULED,
@@ -1376,6 +1379,9 @@ def _send_scheduled_routines(
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.schedule_id == session.id,
+            # 지금 일정의 회원 줄만 보낸다(#3232) — 알림·이전 개인운동 정리도 이
+            # 회원에게 간다.
+            TrainerRoutine.member_id == session.member_id,
             # 개인운동만 — PT 프로그램 줄도 같은 일정에 `scheduled` 로 붙어
             # 있지만(#2279) 그쪽은 `delivery_kind` 가 비어 있다.
             TrainerRoutine.delivery_kind.is_not(None),
@@ -1453,6 +1459,8 @@ def send_scheduled_routines(
         .where(
             TrainerRoutine.trainer_id == trainer_id,
             TrainerRoutine.schedule_id == session_id,
+            # 지금 일정의 회원 줄만(#3232).
+            TrainerRoutine.member_id == s.member_id,
             # 개인운동만 — PT 프로그램 줄도 같은 일정에 붙어 있다(#2279).
             TrainerRoutine.delivery_kind.is_not(None),
             TrainerRoutine.status == ROUTINE_SCHEDULED,
@@ -1470,6 +1478,7 @@ def send_scheduled_routines(
             .where(
                 TrainerRoutine.trainer_id == trainer_id,
                 TrainerRoutine.schedule_id == session_id,
+                TrainerRoutine.member_id == s.member_id,
                 # 개인운동만 — PT 프로그램 줄도 같은 일정에 붙어 있다(#2279).
                 TrainerRoutine.delivery_kind.is_not(None),
                 TrainerRoutine.status == ROUTINE_SCHEDULED,
