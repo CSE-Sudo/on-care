@@ -3937,12 +3937,6 @@ abstract class AppLocalizations {
   /// **'On-Care Trainer · Version {version}'**
   String myAppVersion(String version);
 
-  /// Label of the read-only settings row that shows the app version, build number and deploy time (#3226).
-  ///
-  /// In en, this message translates to:
-  /// **'Version'**
-  String get buildInfoTitle;
-
   /// Shown after the app version in the version row when the build has no build number (local run or test build) (#3226).
   ///
   /// In en, this message translates to:

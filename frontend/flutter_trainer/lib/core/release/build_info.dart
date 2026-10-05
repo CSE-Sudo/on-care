@@ -8,7 +8,7 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 /// 릴리스 웹 빌드(데모 Pages·운영)가 `--build-number` 와 함께
 /// `--dart-define=BUILD_NUMBER=...` 로 넣는다. 값은 빌드한 커밋까지의 커밋 수라
 /// 병합할 때마다 커지고, 같은 배포의 회원 앱과 같은 번호다. 로컬 실행·테스트
-/// 빌드에는 없어 빈 값이고, 그러면 설정의 `버전 정보` 가 개발 빌드로 보인다.
+/// 빌드에는 없어 빈 값이고, 그러면 고객 지원의 버전 줄이 개발 빌드로 보인다.
 const String kBuildNumber = String.fromEnvironment('BUILD_NUMBER');
 
 /// 이 번들을 빌드한 UTC 시각(ISO 8601, 예: `2026-10-05T05:30:00Z`). (#3226)
@@ -22,14 +22,19 @@ String formatReleaseDate(DateTime kst, String locale) {
   return DateFormat.yMMMd(locale).add_Hm().format(kst);
 }
 
-/// `버전 정보` 줄의 설명 한 줄 — 회원 앱과 같은 모양이다.
+/// 고객 지원 맨 아래 버전 줄의 한 줄 — 앱 이름·버전(빌드 번호)과 배포 일시.
 ///
-/// - 배포 빌드: `0.2.0 (7032) · 2026년 10월 5일 14:30 KST 배포`
-/// - 배포 일시를 읽지 못한 배포 빌드: `0.2.0 (7032)`
-/// - 개발 빌드: `0.2.0 · 개발 빌드` (버전 이름도 못 읽었으면 `개발 빌드`)
+/// 예전 버전 줄(#3047)에 빌드 번호와 배포 일시를 더한 것이다(#3226). 버전은 화면에
+/// 이 한 곳에만 보인다. 회원 앱와 같은 모양이다.
+///
+/// - 배포 빌드: `On-Care 트레이너 · 버전 0.2.0 (7032) · 2026년 10월 5일 14:30 KST 배포`
+/// - 배포 일시를 읽지 못한 배포 빌드: `On-Care 트레이너 · 버전 0.2.0 (7032)`
+/// - 개발 빌드: `On-Care 트레이너 · 버전 0.2.0 · 개발 빌드` (버전 이름도 못 읽었으면
+///   `On-Care 트레이너 · 개발 빌드`)
 String buildInfoSummary(AppLocalizations l, String locale, BuildInfo info) {
+  final String? label = info.versionLabel;
   final List<String> parts = <String>[
-    ?info.versionLabel,
+    if (label != null) l.myAppVersion(label) else l.myAppName,
     if (info.isDevelopmentBuild)
       l.buildInfoDevelopment
     else if (info.releasedAtKst case final DateTime at)

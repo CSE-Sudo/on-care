@@ -584,13 +584,6 @@ class _MyPageState extends ConsumerState<MyPage> {
             fullWidth: true,
             onPressed: _signOut,
           ),
-          // 지금 떠 있는 빌드가 어느 배포인지(#3226). 메뉴의 맨 끝이라 넓은 화면에서는
-          // 어느 하위 화면을 열어도 보이고, 좁은 화면에서는 설정 첫 화면에 보인다.
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s8),
-            child: AppDivider(),
-          ),
-          const _BuildInfoRow(),
         ],
       ),
     );
@@ -951,7 +944,7 @@ class _MyPageState extends ConsumerState<MyPage> {
 
   /// 고객 지원 — 회원 앱 `SupportPage` 와 같은 다섯 줄이다(#2227, #2264).
   /// FAQ·1:1 문의는 운영 중인 카카오톡 채널로 보내고, 약관·개인정보는 앱 안
-  /// 화면, 탈퇴는 따로 여는 화면이다. 앱 버전은 카드 아래 가운데.
+  /// 화면, 탈퇴는 따로 여는 화면이다. 앱 버전(빌드 번호·배포 일시)은 카드 아래 가운데.
   List<Widget> _supportCards() {
     final AppLocalizations l = AppLocalizations.of(context);
     final account = ref.watch(trainerAccountRepositoryProvider);
@@ -1015,11 +1008,15 @@ class _MyPageState extends ConsumerState<MyPage> {
       const SizedBox(height: OnCareSpacing.s12),
       Center(
         child: Text(
-          // 버전은 빌드에서 읽는다 — 읽기 전·읽지 못하면 앱 이름만.
-          switch (ref.watch(appVersionProvider).valueOrNull) {
-            final String version => l.myAppVersion(version),
-            null => l.myAppName,
-          },
+          // 웹에서 버전이 보이는 단 한 곳이다(#3047, #3226) — 버전 이름은 빌드에서
+          // 읽고, 빌드 번호·배포 일시를 붙인다. 회원 앱 고객 지원 하단과 같은 줄이다.
+          buildInfoSummary(
+            l,
+            Localizations.localeOf(context).toString(),
+            ref.watch(buildInfoProvider),
+          ),
+          key: const ValueKey<String>('support-app-version'),
+          textAlign: TextAlign.center,
           style: context.oncare
               .text(OnCareTypography.caption)
               .copyWith(color: OnCareColors.textTertiary),
@@ -1975,33 +1972,6 @@ class _CertsEditor extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-/// 설정 메뉴 맨 아래의 `버전 정보` 줄(#3226) — `0.2.0 (7032) · 2026년 10월 5일 14:30 KST 배포`.
-///
-/// 회원 앱 설정 카드의 같은 줄과 같은 내용이다. 누르는 줄이 아니라 화살표가 없다.
-/// 빌드 번호가 없는 로컬·테스트 빌드는 `0.2.0 · 개발 빌드` 로 보인다.
-class _BuildInfoRow extends ConsumerWidget {
-  const _BuildInfoRow();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return AppListRow(
-      key: const ValueKey<String>('my-build-info'),
-      leading: AppIcon(
-        AppIcons.info,
-        size: OnCareSize.iconMedium,
-        color: context.oncare.brand.primary,
-      ),
-      title: l.buildInfoTitle,
-      subtitle: buildInfoSummary(
-        l,
-        Localizations.localeOf(context).toString(),
-        ref.watch(buildInfoProvider),
-      ),
     );
   }
 }

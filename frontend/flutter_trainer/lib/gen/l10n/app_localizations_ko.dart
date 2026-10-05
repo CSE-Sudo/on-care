@@ -2139,9 +2139,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get buildInfoTitle => '버전 정보';
-
-  @override
   String get buildInfoDevelopment => '개발 빌드';
 
   @override

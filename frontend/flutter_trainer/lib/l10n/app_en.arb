@@ -1523,8 +1523,6 @@
       }
     }
   },
-  "buildInfoTitle": "Version",
-  "@buildInfoTitle": {"description": "Label of the read-only settings row that shows the app version, build number and deploy time (#3226)."},
   "buildInfoDevelopment": "Development build",
   "@buildInfoDevelopment": {"description": "Shown after the app version in the version row when the build has no build number (local run or test build) (#3226)."},
   "buildInfoReleasedAt": "Deployed {date} KST",

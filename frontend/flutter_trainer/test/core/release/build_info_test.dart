@@ -1,4 +1,4 @@
-/// 트레이너 웹 설정 `버전 정보` 줄의 문구와 provider(#3226).
+/// 트레이너 웹 고객 지원 버전 줄의 문구와 provider(#3226).
 ///
 /// 해석 규칙 자체(빌드 번호 검사·KST 변환)는 `shared/oncare_core` 테스트가 본다. 여기서는
 /// 트레이너 웹이 회원 앱과 같은 한 줄을 만드는지, define 이 없는 테스트 빌드가 개발
@@ -50,11 +50,11 @@ void main() {
     test('배포 빌드 — 회원 앱과 같은 버전(빌드 번호)·KST 배포 일시', () {
       expect(
         buildInfoSummary(_ko, 'ko', _released),
-        '0.2.0 (7032) · 2026년 10월 5일 14:30 KST 배포',
+        'On-Care 트레이너 · 버전 0.2.0 (7032) · 2026년 10월 5일 14:30 KST 배포',
       );
       expect(
         buildInfoSummary(_en, 'en', _released),
-        '0.2.0 (7032) · Deployed Oct 5, 2026 14:30 KST',
+        'On-Care Trainer · Version 0.2.0 (7032) · Deployed Oct 5, 2026 14:30 KST',
       );
     });
 
@@ -66,14 +66,20 @@ void main() {
       );
       expect(
         buildInfoSummary(_ko, 'ko', info),
-        '0.2.0 (7040) · 2026년 10월 6일 08:10 KST 배포',
+        'On-Care 트레이너 · 버전 0.2.0 (7040) · 2026년 10월 6일 08:10 KST 배포',
       );
     });
 
     test('개발 빌드 — pubspec 버전과 개발 빌드', () {
       final BuildInfo info = BuildInfo.fromDefines(version: '0.2.0');
-      expect(buildInfoSummary(_ko, 'ko', info), '0.2.0 · 개발 빌드');
-      expect(buildInfoSummary(_en, 'en', info), '0.2.0 · Development build');
+      expect(
+        buildInfoSummary(_ko, 'ko', info),
+        'On-Care 트레이너 · 버전 0.2.0 · 개발 빌드',
+      );
+      expect(
+        buildInfoSummary(_en, 'en', info),
+        'On-Care Trainer · Version 0.2.0 · Development build',
+      );
     });
 
     test('개발 빌드는 배포 일시가 있어도 적지 않는다', () {
@@ -81,11 +87,17 @@ void main() {
         version: '0.2.0',
         releaseDate: '2026-10-05T05:30:00Z',
       );
-      expect(buildInfoSummary(_ko, 'ko', info), '0.2.0 · 개발 빌드');
+      expect(
+        buildInfoSummary(_ko, 'ko', info),
+        'On-Care 트레이너 · 버전 0.2.0 · 개발 빌드',
+      );
     });
 
-    test('버전 이름을 못 읽은 개발 빌드는 개발 빌드만', () {
-      expect(buildInfoSummary(_ko, 'ko', const BuildInfo()), '개발 빌드');
+    test('버전 이름을 못 읽은 개발 빌드는 앱 이름과 개발 빌드만', () {
+      expect(
+        buildInfoSummary(_ko, 'ko', const BuildInfo()),
+        'On-Care 트레이너 · 개발 빌드',
+      );
     });
 
     test('배포 일시를 읽지 못한 배포 빌드는 버전(빌드 번호)만', () {
@@ -94,7 +106,10 @@ void main() {
         buildNumber: '7032',
         releaseDate: 'garbage',
       );
-      expect(buildInfoSummary(_ko, 'ko', info), '0.2.0 (7032)');
+      expect(
+        buildInfoSummary(_ko, 'ko', info),
+        'On-Care 트레이너 · 버전 0.2.0 (7032)',
+      );
     });
   });
 
