@@ -74,9 +74,27 @@ def social_setting_problems(settings: Settings) -> list[str]:
     return problems
 
 
+def places_search_problem(settings: Settings) -> str | None:
+    """헬스장 찾기가 카카오 실검색을 못 해 빈 목록이 되는 설정이면 그 이유(#3161).
+
+    키가 없거나 `PLACES_PROVIDER=seed` 면 장소 API 는 DB 장소만 읽는데, 데모 시드가
+    꺼진 서버는 데모 장소를 빼므로 결과가 비게 된다(#2914).
+    """
+    if settings.places_provider == "seed":
+        return "PLACES_PROVIDER=seed 라 카카오 장소 검색을 쓰지 않습니다"
+    if not (settings.kakao_rest_api_key or "").strip():
+        return "KAKAO_REST_API_KEY 가 비어 카카오 장소 검색을 쓰지 않습니다"
+    return None
+
+
 def check(settings: Settings) -> list[str]:
-    """설정을 점검하고 남긴 경고 문구를 돌려준다(테스트가 읽는다)."""
+    """설정을 점검하고 남긴 경고 문구를 돌려준다(테스트가 읽는다).
+
+    `errors` 는 기동은 막지 않지만 운영에서 기능이 사실상 멈춘 상태라 ERROR 로 남긴다.
+    돌려주는 목록에는 둘 다 들어간다.
+    """
     warnings: list[str] = []
+    errors: list[str] = []
 
     # --- DB 엔드포인트(#3146) ---
     # 운영은 설정 단계에서 거부한다. 개발·스테이징은 막지 않되 남긴다.
@@ -164,6 +182,28 @@ def check(settings: Settings) -> list[str]:
                     "(예: https://<도메인>/frontend/#/auth/password-reset)."
                 )
 
+    # --- 카카오 장소 검색 키(#3161) ---
+    # 장소 검색은 핵심 경로가 아니라 기동은 막지 않는다(로그인·기록은 계속 돈다). 다만
+    # 운영에서 빠뜨리면 헬스장 찾기가 늘 빈 목록이라, 회원은 "주변에 헬스장이 없다" 고
+    # 받아들이고 운영자는 문의가 올 때까지 모른다. 그래서 운영은 ERROR 로 남긴다.
+    # 개발은 키 없이 시드 장소로 도는 것이 정상이라 남기지 않는다.
+    places_problem = places_search_problem(settings)
+    if places_problem:
+        if settings.is_prod:
+            errors.append(
+                f"{places_problem} — 운영(env=prod)에서는 헬스장 찾기가 항상 빈 목록입니다"
+                "(데모 장소는 빼고 읽음, #2914). 운영 비밀의 KAKAO_REST_API_KEY 에 카카오 "
+                "REST API 키를 넣고 PLACES_PROVIDER 는 auto 또는 kakao 로 두세요."
+            )
+        elif settings.env.strip().lower() == "staging":
+            warnings.append(
+                f"{places_problem} — 스테이징(env=staging)의 헬스장 찾기는 DB 장소만 "
+                "보여 줍니다(데모 시드가 꺼져 있으면 빈 목록). 실검색을 확인하려면 "
+                "KAKAO_REST_API_KEY 를 넣으세요."
+            )
+
     for message in warnings:
         logger.warning("[startup] %s", message)
-    return warnings
+    for message in errors:
+        logger.error("[startup] %s", message)
+    return warnings + errors
