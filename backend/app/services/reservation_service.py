@@ -355,12 +355,18 @@ def _ensure_slot_free(
     duration_minutes: int,
     *,
     exclude_schedule_ids: list[str] | None = None,
+    exclude_slot_id: str | None = None,
 ) -> None:
-    """그 시간에 트레이너의 다른 일정이 없는지 본다. 겹치면 `ScheduleOverlap`. (#2284)
+    """그 시간에 트레이너의 다른 일정·열린 자리가 없는지 본다. 겹치면 `ScheduleOverlap`. (#2284)
 
     이미 일정이 있는 시간에 자리를 열면 회원이 그 자리를 잡는 순간 이중 예약이
     된다. 자리 자체가 만든 일정(예약된 자리를 옮길 때)은 [exclude_schedule_ids] 로
     뺀다 — 함께 움직이는 일정이 자기와 겹친다고 막으면 안 된다.
+
+    열린 다른 자리와 겹쳐도 막는다(#3241). 자리마다 한 사람 몫이라, 겹치는 두
+    자리를 두 회원이 잡으면 같은 시간에 PT 가 둘이 된다. [exclude_slot_id] 는 옮기는
+    자리 자신이다. 일정 확인([ensure_no_overlap])이 잡은 트레이너 단위 잠금 안에서
+    보므로 동시에 여는 두 자리도 서로를 본다.
     """
     local = _aware(starts_at).astimezone(SEOUL)
     trainer_schedule_service.ensure_no_overlap(
@@ -372,6 +378,24 @@ def _ensure_slot_free(
         exclude_ids=exclude_schedule_ids or (),
         message="이 시간에 이미 다른 일정이 있어 예약 자리를 열 수 없습니다.",
     )
+    start = _aware(starts_at)
+    end = start + timedelta(minutes=max(duration_minutes, 1))
+    query = select(TrainerReservationSlot).where(
+        TrainerReservationSlot.trainer_id == trainer_id,
+        TrainerReservationSlot.is_closed.is_(False),
+        # 하루보다 긴 자리는 없다 — 전날 늦게 시작한 자리까지만 본다.
+        TrainerReservationSlot.starts_at > start - timedelta(days=1),
+        TrainerReservationSlot.starts_at < end,
+    )
+    if exclude_slot_id is not None:
+        query = query.where(TrainerReservationSlot.id != exclude_slot_id)
+    for other in db.scalars(query).all():
+        other_start = _aware(other.starts_at)
+        other_end = other_start + timedelta(minutes=max(other.duration_minutes, 1))
+        if start < other_end and other_start < end:
+            raise trainer_schedule_service.ScheduleOverlap(
+                [], "이 시간에 이미 열린 예약 자리가 있습니다."
+            )
 
 
 def _booked_schedules(db: Session, slot_id: str) -> list[TrainerSchedule]:
@@ -471,6 +495,7 @@ def update_slot(
                 fields.get("starts_at", slot.starts_at),
                 fields.get("duration_minutes", slot.duration_minutes),
                 exclude_schedule_ids=[s.id for s in _booked_schedules(db, slot.id)],
+                exclude_slot_id=slot.id,
             )
     moving = "starts_at" in fields or "duration_minutes" in fields
     booked = _booked_schedules(db, slot.id) if moving else []
@@ -670,6 +695,10 @@ def reserve(
         raise SlotNotFound("예약 슬롯을 찾을 수 없습니다.")
     if slot.is_closed or slot.remaining <= 0 or _aware(slot.starts_at) <= current:
         raise SlotUnavailable("예약할 수 없는 슬롯입니다.")
+    # 자리 행 잠금은 그 자리의 경합만 막는다. 겹치는 다른 자리의 예약이나 트레이너의
+    # 일정 생성과 동시에 오면 둘 다 빈 시간으로 본다 — 확인부터 커밋까지 트레이너
+    # 단위로 직렬화한다(#3241).
+    trainer_schedule_service.lock_trainer_schedule(db, slot.trainer_id)
 
     assigned = db.scalar(
         select(TrainerClient.id).where(

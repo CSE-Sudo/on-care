@@ -843,29 +843,37 @@ def test_reserve_succeeds_next_to_another_session(client, db_session):
     assert response.status_code == 201, response.text
 
 
-def test_two_open_slots_at_the_same_time_cannot_both_be_booked(client, db_session):
-    """겹치는 자리 둘이 열려 있어도 두 번째 예약은 첫 예약의 일정과 겹쳐 막힌다."""
+def test_two_overlapping_slots_cannot_both_be_open(client, db_session):
+    """열린 자리와 겹치는 자리는 열 수 없다(#3241).
+
+    예전에는 겹치는 자리 둘이 함께 열려, 두 회원이 동시에 잡으면 두 예약이 서로의
+    일정을 보지 못하고 둘 다 들어갔다.
+    """
     trainer_id, token = _trainer(client, db_session)
-    _, first_token = _member(client, db_session, trainer_id)
-    first_slot = _open_slot(client, token, time="10:00").json()
-    second_slot = _open_slot(client, token, time="10:30").json()
-    # 두 번째 회원은 다른 트레이너 담당일 수 없으니 같은 트레이너의 담당을 하나 더 둔다.
-    _, second_token = _member(client, db_session, trainer_id)
+    assert _open_slot(client, token, time="10:00").status_code == 201
 
-    first = client.post(
-        "/v1/reservations",
-        json={"slot_id": first_slot["id"]},
-        headers=_auth(first_token),
-    )
-    second = client.post(
-        "/v1/reservations",
-        json={"slot_id": second_slot["id"]},
-        headers=_auth(second_token),
-    )
+    second = _open_slot(client, token, time="10:30")
 
-    assert first.status_code == 201, first.text
     assert second.status_code == 409, second.text
     assert second.json()["detail"]["code"] == SCHEDULE_OVERLAP_CODE
+    # 이어지는 자리는 겹치지 않는다.
+    assert _open_slot(client, token, time="11:00").status_code == 201
+
+
+def test_a_slot_cannot_move_onto_another_open_slot(client, db_session):
+    """열린 자리를 다른 열린 자리 위로 옮길 수 없다(#3241)."""
+    trainer_id, token = _trainer(client, db_session)
+    assert _open_slot(client, token, time="10:00").status_code == 201
+    later = _open_slot(client, token, time="13:00").json()
+
+    moved = client.put(
+        f"/v1/trainer/reservation-slots/{later['id']}",
+        json={"starts_at": _kst(DAY, "10:30").isoformat()},
+        headers=_auth(token),
+    )
+
+    assert moved.status_code == 409, moved.text
+    assert moved.json()["detail"]["code"] == SCHEDULE_OVERLAP_CODE
 
 
 # ---- 상담 승인 ----

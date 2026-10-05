@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
 from unittest.mock import Mock, call
 from uuid import uuid4
 
@@ -8,6 +8,8 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core import clock
+from app.core.clock import SEOUL
 from app.models.models import (
     TrainerReservation,
     TrainerReservationSlot,
@@ -168,7 +170,11 @@ def created_slots(db_session):
 def _create_slot(
     client, trainer_token: str, created_slots, *, session_type: str = "1:1 PT"
 ):
-    starts_at = datetime.now(timezone.utc) + timedelta(days=2)
+    # 열린 자리끼리는 겹칠 수 없다(#3241). 데모 자리(내일 13:00·모레 19:30)와
+    # 겹치지 않게, 언제 돌려도 같은 모레 아침 시각에 연다.
+    starts_at = datetime.combine(
+        clock.today() + timedelta(days=2), time(6, 0), tzinfo=SEOUL
+    )
     response = client.post(
         "/v1/trainer/reservation-slots",
         headers=_headers(trainer_token),

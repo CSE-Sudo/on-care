@@ -8,7 +8,7 @@ from collections.abc import Mapping, Sequence
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import exists, func, or_, select, update
+from sqlalchemy import exists, func, or_, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -577,6 +577,23 @@ SCHEDULE_OVERLAP_CODE = "schedule_overlap"
 _OCCUPYING_STATUSES = (SCHEDULE_UPCOMING, SCHEDULE_DONE)
 
 
+def lock_trainer_schedule(db: Session, trainer_id: str) -> None:
+    """이 트레이너의 겹침 검사와 그 뒤의 일정·자리 추가를 트랜잭션 끝까지 직렬화한다. (#3241)
+
+    겹침 검사는 "지금 커밋된 일정" 만 본다. 검사와 추가 사이에 다른 요청이 같은
+    시간을 잡으면 둘 다 빈 시간으로 보고 각자 넣는다 — 겹치는 두 자리를 두 회원이
+    동시에 잡거나, 트레이너가 일정을 만드는 순간 회원이 예약하면 이중 예약이 된다.
+    예약은 자리 행만 잠가 다른 자리와의 경합을 막지 못했다.
+
+    일정 행 잠금은 아직 없는 행을 잠글 수 없어 자문 잠금을 쓴다. 키에 트레이너
+    id 가 들어가 다른 트레이너와는 서로 기다리지 않고, 커밋·롤백과 함께 풀린다.
+    """
+    db.execute(
+        text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
+        {"key": f"trainer_schedule:{trainer_id}"},
+    )
+
+
 class ScheduleOverlap(Exception):
     """새로 잡거나 옮기려는 시간이 트레이너의 기존 일정과 겹친다. (#2284)
 
@@ -684,7 +701,12 @@ def ensure_no_overlap(
     exclude_ids: Sequence[str] = (),
     message: str | None = None,
 ) -> None:
-    """한 자리가 비어 있는지 확인하고, 겹치면 [ScheduleOverlap]. (#2284)"""
+    """한 자리가 비어 있는지 확인하고, 겹치면 [ScheduleOverlap]. (#2284)
+
+    확인 전에 트레이너 단위 잠금을 잡는다([lock_trainer_schedule], #3241) — 이
+    확인을 지난 요청이 커밋할 때까지 같은 트레이너의 다른 확인은 기다린다.
+    """
+    lock_trainer_schedule(db, trainer_id)
     conflicts = conflicting_sessions(
         db,
         trainer_id,
@@ -800,6 +822,8 @@ def create_recurring_sessions(
         raise ScheduleError("반복할 요일과 종료 기준을 지정해 주세요.")
 
     iso = [day.isoformat() for day in dates]
+    # 단건 생성과 같이 확인부터 추가까지 트레이너 단위로 직렬화한다(#3241).
+    lock_trainer_schedule(db, trainer_id)
     conflicts = conflicting_sessions(
         db,
         trainer_id,
