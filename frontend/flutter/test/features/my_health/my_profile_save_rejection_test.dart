@@ -16,6 +16,7 @@ import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/auth/domain/repositories/password_repository.dart'
     show ReissuedTokens;
+import 'package:oncare/features/my_health/presentation/controllers/email_change_code_providers.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -85,6 +86,9 @@ Future<(AppLocalizations, _ScriptedAccountRepository)> _openProfile(
     ProviderScope(
       overrides: <Override>[
         accountRepositoryProvider.overrideWithValue(repository),
+        // 이메일 변경 확인 코드 창은 데모 안내 여부를 앱 설정으로 정한다. 이
+        // 파일은 거절 처리만 보므로 안내는 끈다.
+        emailChangeDemoCodeHintProvider.overrideWithValue(false),
       ],
       child: MaterialApp(
         theme: AppTheme.light(),

@@ -15,6 +15,7 @@ import 'package:oncare/features/account/data/repositories/dio_account_repository
 import 'package:oncare/features/account/domain/entities/account_reauth.dart';
 import 'package:oncare/features/account/domain/entities/profile_update_rejected.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
+import 'package:oncare/features/auth/domain/signup_email_code.dart';
 
 import '../../helpers/mock_account_repository.dart';
 
@@ -215,8 +216,10 @@ void main() {
     });
 
     test('아무도 쓰지 않는 새 이메일이면 저장된다', () async {
+      // 새 주소 확인 코드까지 맞아야 바뀐다(#3230). 데모는 데모 코드를 받는다.
       final UserProfile saved = await repo.updateProfile(
         email: 'minsu.new@oncare.com',
+        emailCode: SignupEmailCode.demoCode,
         reauth: _reauth,
       );
       expect(saved.email, 'minsu.new@oncare.com');
@@ -308,6 +311,7 @@ void main() {
       final repo = MockAccountRepository();
       final UserProfile saved = await repo.updateProfile(
         email: 'trainer@oncare.com',
+        emailCode: SignupEmailCode.demoCode,
         reauth: _reauth,
       );
       expect(saved.email, 'trainer@oncare.com');
