@@ -273,7 +273,7 @@ class SignupEmailCodeSent(BaseModel):
 
 
 class SocialLoginRequest(BaseModel):
-    # provider 가 준 토큰 (kakao/naver=access_token, google=id_token)
+    # provider 가 준 토큰 (kakao=access_token, google=id_token)
     token: str
 
 
