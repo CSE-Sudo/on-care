@@ -507,30 +507,35 @@ Future<void> seedIfEmpty(
             ),
         ]);
 
-        final List<_History> history = fromFixture
-            ? fixtureClient.history
-            : client.history;
+        // 김민수는 픽스처의 날짜 그대로, 다른 회원의 이력은 실서버 시드
+        // (`seed_member_data._history_days`)처럼 리포트 이력 주마다 같은
+        // 요일에 한 번씩이다 — 한 번만 두면 지난 주들에 PT 기록이 없어 A/B
+        // 추천 근거가 실서버와 갈렸다(#3003).
+        final List<(int, _History)> history = fromFixture
+            ? <(int, _History)>[
+                for (final _History h in fixtureClient.history) (h.daysAgo, h),
+              ]
+            : _weeklyHistory(client);
         b.insertAll(db.clientRoutineHistory, <ClientRoutineHistoryCompanion>[
-          for (var i = 0; i < history.length; i++)
+          for (final (int i, (int daysAgo, _History h)) in history.indexed)
             ClientRoutineHistoryCompanion.insert(
-              id: 'seed-history-${client.id}-$i',
+              id: fromFixture
+                  ? 'seed-history-${client.id}-$i'
+                  : 'seed-history-${client.id}-$daysAgo',
               clientId: 'seed-client-${client.id}',
-              dateLabel: _historyLabel(now, history[i].daysAgo, t),
-              label: t(history[i].label),
-              completionRate: history[i].completionRate,
-              exercisesJson: jsonEncode(t.exercises(history[i].exercises)),
-              clientFeedback: Value(t(history[i].clientFeedback)),
-              trainerNote: Value(t(history[i].trainerNote)),
+              dateLabel: _historyLabel(now, daysAgo, t),
+              label: t(h.label),
+              completionRate: h.completionRate,
+              exercisesJson: jsonEncode(t.exercises(h.exercises)),
+              clientFeedback: Value(t(h.clientFeedback)),
+              trainerNote: Value(t(h.trainerNote)),
               // 하루치 개인운동 카드와 함께 최신 먼저 선다(#3003).
               sortOrder: Value(
                 fromFixture
                     ? i
-                    : _historyOrder(
-                        history[i].daysAgo,
-                        pt: history[i].label.startsWith('PT'),
-                      ),
+                    : _historyOrder(daysAgo, pt: h.label.startsWith('PT')),
               ),
-              completedAt: Value(_daysBefore(now, history[i].daysAgo)),
+              completedAt: Value(_daysBefore(now, daysAgo)),
             ),
           // 하루치 `개인운동` 카드 — 그날 개인운동 완료에서 만든다(#3003).
           if (!fromFixture) ..._personalCards(client, now, t),
@@ -1698,8 +1703,8 @@ List<Map<String, Object?>>? _historyRows(
   DateTime date,
   _SeedText t,
 ) {
-  for (final _History h in client.history) {
-    if (_daysBefore(now, h.daysAgo) != date) continue;
+  for (final (int daysAgo, _History h) in _weeklyHistory(client)) {
+    if (_daysBefore(now, daysAgo) != date) continue;
     final bool pt = h.label.startsWith('PT');
     final List<Map<String, Object?>> rows = <Map<String, Object?>>[
       for (final Object item in t.exercises(h.exercises))
@@ -1715,6 +1720,20 @@ List<Map<String, Object?>>? _historyRows(
     return rows.isEmpty ? null : rows;
   }
   return null;
+}
+
+/// 회원 이력 → (며칠 전, 이력). 리포트 이력 주마다 같은 요일에 한 번씩이고, 같은
+/// 날에 둘이 겹치면 앞의 것이다 — 실서버 `seed_member_data._history_days` 와 같다.
+List<(int, _History)> _weeklyHistory(_Client client) {
+  final Map<int, _History> byDay = <int, _History>{};
+  for (int week = 0; week < demoMetricsHistoryWeeks; week++) {
+    for (final _History h in client.history) {
+      byDay.putIfAbsent(h.daysAgo + week * 7, () => h);
+    }
+  }
+  return <(int, _History)>[
+    for (final MapEntry<int, _History> e in byDay.entries) (e.key, e.value),
+  ];
 }
 
 /// 운동 한 줄의 소모 kcal — 분 × 유형별 분당 소모(유산소 7·근력 6·스트레칭 3).

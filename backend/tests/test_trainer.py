@@ -483,10 +483,13 @@ def test_trainer_client_history_newest_first(client):
     assert r.status_code == 200, r.text
     hist = r.json()
     assert len(hist) >= 1
-    # 최신 우선: 오늘 기록이 맨 앞. (다른 테스트가 오늘자 PT 기록을 추가할 수 있어
-    # hist[0]의 라벨을 고정하지 않고, '오늘이 선두 + 하루치 개인운동 카드 존재'로
-    # 검증한다. 개인운동 카드는 시드한 개인운동 완료에서 만들어진다(#3003).)
-    assert "(오늘)" in hist[0]["date_label"]
+    # 최신 우선: 날짜가 내림차순이다. 오늘 기록이 맨 앞이라고 못 박지 않는다 —
+    # 시드한 개인운동 완료는 회원의 요일 표를 따라 쉬는 요일에는 없다(#3003). 하루치
+    # 개인운동 카드는 시드한 개인운동 완료에서 만들어진다.
+    dates = [h["date"] for h in hist]
+    assert all(dates), hist
+    assert dates == sorted(dates, reverse=True)
+    assert dates[0] <= clock.today().isoformat()
     assert any(h["kind"] == "personal_routine" for h in hist)
 
 

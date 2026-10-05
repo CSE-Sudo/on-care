@@ -12,7 +12,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// 후속 관리·메모·프로그램 초안은 트레이너가 직접 고치고 지우는 기록이라, 날이
 /// 바뀔 때마다 다시 심으면 지운 것이 되살아난다. 그래서 브라우저마다 **한 번만**
 /// 심는다. 심는 내용을 바꾸면 키의 버전을 올린다.
-const String trainerNotesSeedKey = 'trainer_demo_notes_v1';
+///
+/// `_v2` 는 운동 탭 출처 줄 메모를 하루치 개인운동·회원 추가·PT 이력에 달았다
+/// (#3003). 올리지 않으면 이미 심은 브라우저에 지운 손 카드의 메모가 남고, PT
+/// 메모가 옛 이력 id 를 가리킨다.
+const String trainerNotesSeedKey = 'trainer_demo_notes_v2';
 
 /// 데모 트레이너가 남겨 둔 후속 관리·메모·프로그램 초안을 심는다(#2667).
 ///
@@ -95,13 +99,14 @@ Future<void> seedDemoTrainerNotes(
                 : TrainerMemoSource.exerciseMemo,
             // 운동 탭 그날 출처 줄에 단 메모 — 그 줄의 메모 개수에 들어간다
             // (#2508). 하루치 개인운동·회원 추가는 날짜로, PT 는 그날 시드 PT
-            // 이력(이지수의 첫 이력)으로 가리킨다(`memoRefForHistory` 와 같다).
+            // 이력(`seed-history-{회원}-{며칠 전}`)으로 가리킨다
+            // (`memoRefForHistory` 와 같다).
             ref: m.ref == null
                 ? null
                 : TrainerMemoRef(
                     kind: m.ref!,
                     id: m.ref == TrainerMemoRefKind.ptSession
-                        ? 'seed-history-${m.client}-0'
+                        ? 'seed-history-${m.client}-$daysAgo'
                         : null,
                     day: ymd(daysFrom(daysAgo * -1)),
                   ),
