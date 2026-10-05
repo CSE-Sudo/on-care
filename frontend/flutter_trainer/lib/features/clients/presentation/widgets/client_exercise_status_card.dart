@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
@@ -151,10 +152,12 @@ class ClientExerciseStatusCard extends ConsumerWidget {
 /// ([ClientHistoryEntrySection], #3004) — 출처 알약 · 유형별 운동 줄 · 강도 ·
 /// 효과 · 소모 kcal.
 ///
-/// 이 이력에는 믿을 만한 날짜 필드가 없어(`dateLabel` 은 표시용 문자열) 그래프
-/// 처럼 기간으로 거를 수 없다 — 고객 탭의 `운동 기록` 도 같은 이유로 기간과
-/// 무관하게 전체를 보여준다. 대신 접힌 기본 상태에서는 가장 최근 기록 하나만
-/// 보이고, 아래 캐럿을 누르면 전체 이력으로 펼쳐진다.
+/// 위 그래프와 같은 기간의 기록만 보인다(#3004) — `오늘` 은 오늘, `이번 주` 는
+/// 이번 주 월~일, `전체` 는 전부. 날짜는 서버 운동일([historyDayOf], #2748)로
+/// 정하고, 날짜를 모르는 기록은 숨기지 않는다([historyInRange], #1114). 예전에는
+/// 이력에 믿을 만한 날짜가 없어 기간과 무관하게 전체를 보여, `이번 주` 에 지난
+/// 주 기록이 섞였다. 접힌 기본 상태에서는 가장 최근 기록 하나만 보이고, 아래
+/// 캐럿을 누르면 그 기간 기록이 다 펼쳐진다.
 class ClientWorkoutRecordsDetail extends ConsumerStatefulWidget {
   /// Creates the detail for [clientId] over [period].
   const ClientWorkoutRecordsDetail({
@@ -165,9 +168,8 @@ class ClientWorkoutRecordsDetail extends ConsumerStatefulWidget {
 
   final String clientId;
 
-  /// 지금 보고 있는 기간. 펼쳤을 때 얼마나 보여 줄지가 이 값에 달렸다 —
-  /// `이번 주` 는 한 주치를 그대로 늘어놓고, `전체` 는 정해진 높이 안에서
-  /// 스크롤한다.
+  /// 지금 보고 있는 기간 — 이 기간의 기록만 보인다. `전체` 는 정해진 높이
+  /// 안에서 스크롤한다.
   final ClientPeriod period;
 
   @override
@@ -177,8 +179,9 @@ class ClientWorkoutRecordsDetail extends ConsumerStatefulWidget {
 
 class _ClientWorkoutRecordsDetailState
     extends ConsumerState<ClientWorkoutRecordsDetail> {
-  /// `이번 주` 에서 펼쳤을 때 늘어놓는 최대 기록 수 — **한 주**다 (#1172).
-  static const int _weekLimit = 7;
+  /// 펼쳤을 때 이보다 많으면 `전체` 가 아니어도 정해진 높이 안에서 스크롤한다
+  /// — 한 주에 기록이 여럿인 날이 겹치면 카드가 끝없이 길어진다(#1172).
+  static const int _inlineMax = 7;
 
   /// 펼쳤는가. 접힌 기본 상태는 가장 최근 기록 하나다.
   ///
@@ -227,9 +230,6 @@ class _ClientWorkoutRecordsDetailState
         (ref.watch(assignedRoutinesProvider(widget.clientId)).valueOrNull ??
                 const <Object>[])
             .isNotEmpty;
-    // `전체` 만 안쪽 스크롤을 쓴다. `이번 주` 는 최대 일곱 줄이라 카드 높이를
-    // 넘기지 않고, 넘기지 않는 목록에 스크롤을 달면 바깥 스크롤과 겹친다.
-    final bool scrollsInside = widget.period == ClientPeriod.month;
     return Column(
       key: const ValueKey<String>('client-exercise-detail'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -245,7 +245,15 @@ class _ClientWorkoutRecordsDetailState
             icon: AppIcons.offline,
             placement: AppStatePlacement.card,
           ),
-          data: (List<RoutineHistoryEntry> all) {
+          data: (List<RoutineHistoryEntry> history) {
+            // 위 그래프와 같은 기간만 — `전체` 는 모든 기록이라 거르지 않는다.
+            final List<RoutineHistoryEntry> all =
+                widget.period == ClientPeriod.month
+                ? history
+                : historyInRange(
+                    history,
+                    clientRangeFor(widget.period, todayKst()),
+                  );
             // 오늘 개인운동이 맨 위에 서면 오늘의 하루치 개인운동 이력은 같은
             // 운동이라 뺀다 — 회원 상세 `오늘` 이 상자 하나로 묶는 것과 같다.
             final List<RoutineHistoryEntry> entries = hasToday
@@ -255,6 +263,22 @@ class _ClientWorkoutRecordsDetailState
                   ]
                 : all;
             if (entries.isEmpty && !hasToday) {
+              // `오늘`·`이번 주` 는 위 그래프가 이미 비었다고 말한다 — 큰 빈
+              // 상태를 한 번 더 세우지 않고 회원 상세처럼 한 줄로 적는다.
+              if (widget.period != ClientPeriod.month) {
+                return Padding(
+                  key: const ValueKey<String>('client-exercise-detail-empty'),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: OnCareSpacing.s8,
+                  ),
+                  child: Text(
+                    l.dietDayEmpty,
+                    style: context.oncare
+                        .text(OnCareTypography.bodySmall)
+                        .copyWith(color: OnCareColors.textTertiary),
+                  ),
+                );
+              }
               return AppEmptyState(
                 title: l.workoutEmpty,
                 icon: AppIcons.exercise,
@@ -273,11 +297,13 @@ class _ClientWorkoutRecordsDetailState
                   divided: hasToday || i > 0,
                 ),
             ];
-            final int limit = !_expanded
-                ? 1
-                : scrollsInside
-                ? items.length
-                : math.min(_weekLimit, items.length);
+            // `전체` 는 늘 안쪽 스크롤이다. `오늘`·`이번 주` 는 그 기간 기록이
+            // 몇 줄 안 되면 그대로 늘어놓는다 — 넘치지 않는 목록에 스크롤을
+            // 달면 바깥 스크롤과 겹친다.
+            final bool scrollsInside =
+                widget.period == ClientPeriod.month ||
+                items.length > _inlineMax;
+            final int limit = _expanded ? items.length : 1;
             final List<Widget> shown = items
                 .take(limit)
                 .toList(growable: false);
