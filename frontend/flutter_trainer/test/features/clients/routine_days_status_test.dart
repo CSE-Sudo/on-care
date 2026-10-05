@@ -357,7 +357,7 @@ void main() {
         seedClock: kMidWeekKst,
       );
       await c.read(trainerRoutineRepositoryProvider).assignProgram(
-        'seed-client-2',
+        'seed-client-10',
         <String, Object?>{
           'name': '이번 주 개인운동',
           'delivery_kind': 'routine_only',
@@ -380,7 +380,7 @@ void main() {
       );
       await goTo(
         tester,
-        AppRoutes.clientDetail('seed-client-2', section: 'workout'),
+        AppRoutes.clientDetail('seed-client-10', section: 'workout'),
       );
 
       // 오늘 — 운동 기록 맨 위 개인운동 상자. 알약 옆에 한 수와 보낸 날·끝나는
@@ -397,7 +397,8 @@ void main() {
         find.textContaining('체지방 감량에 도움', findRichText: true),
         findsWidgets,
       );
-      // 오늘 운동 행에 있는 개인운동은 한 것, 방금 보낸 것은 아직이다 — 데모도
+      // 신유나는 목요일에 개인운동 셋 중 둘을 했다(#3003). 오늘 운동 행에 있는
+      // 개인운동은 한 것, 방금 보낸 것은 아직이다 — 데모도
       // 실서버처럼 체크가 운동 행을 남긴 만큼만 한 것으로 센다(#2508).
       Finder rowsStarting(String prefix) => find.byWidgetPredicate(
         (Widget w) =>

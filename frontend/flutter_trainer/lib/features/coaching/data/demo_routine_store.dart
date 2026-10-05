@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/program_draft_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
@@ -163,12 +164,24 @@ class DemoRoutineStore {
                 (t) => OrderingTerm(expression: t.sortOrder),
               ]))
             .get();
+    // 신규 회원(임도현)은 오늘 보낸 `개인운동만` 이다 — 지난 날에는 걸린 것이
+    // 없다(#3003). 서버 시드도 같은 날에 같은 세 운동을 보낸 것으로 둔다.
+    final bool sentToday = seedClientIsNew(memberId);
+    final DateTime now = nowKst();
     return <AssignedRoutine>[
       for (final row in rows)
-        assignedFromExercise(
-          seedAiRoutineExercise(row),
-          id: 'assigned-${row.id}',
-        ),
+        assignedRoutineFromJson(<String, Object?>{
+          ...assignedRoutineToStoreJson(
+            assignedFromExercise(
+              seedAiRoutineExercise(row),
+              id: 'assigned-${row.id}',
+              deliveryKind: sentToday ? 'routine_only' : null,
+              date: sentToday ? DateTime(now.year, now.month, now.day) : null,
+            ),
+          ),
+          // 처방 강도도 시드가 정한다 — 서버 시드와 같은 값이다(#3003).
+          'intensity': seedAiRoutineIntensity(row.id),
+        }),
     ];
   }
 

@@ -371,7 +371,12 @@ const Map<String, String> _seedEnglish = <String, String>{
   '이번 주는 3번만 채워보죠. 무리 안 하는 게 더 중요해요 🙂':
       "Let's aim for just three this week. Not overdoing it matters more 🙂",
   '야식': 'Late-night snack',
-  // 날짜별 루틴(`_routinePool`)은 값까지 실린 객체라 이름만 옮긴다(#2667).
+  // 운동 기록의 운동 이름 — 값까지 실린 객체라 이름만 옮긴다(#2667, #3003).
+  '개인운동': 'Personal exercise',
+  '주말 러닝': 'Weekend run',
+  '가벼운 등산': 'Easy hike',
+  '스텝업': 'Step-up',
+  '케이블 크런치': 'Cable crunch',
   '푸시업': 'Push-up',
   '덤벨 플라이': 'Dumbbell fly',
   '바벨 로우': 'Barbell row',

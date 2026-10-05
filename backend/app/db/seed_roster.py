@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.core.week import monday_of
+from app.db import seed_workouts
 from app.db.session import SessionLocal
 from app.models import models
 from app.services import exercise_activity
@@ -146,13 +147,6 @@ _SUGAR_PER_KCAL = 0.022
 
 #: 상세 기록은 기존 3명만 둔다. 여기 12명의 식단은 지표를 만들기 위한 한 줄짜리다.
 _MEAL_NAME = "기록된 식사"
-#: 한 주에 거는 개인운동 한 벌 — (이름, 한글 유형, 분, 운동 기록 유형 코드, kcal).
-#: 셋이면 33·67·100 이 그대로 선다.
-_ROUTINE_SET = (
-    ("빠르게 걷기", "유산소", 30, "cardio", 150),
-    ("스쿼트", "근력", 15, "strength", 90),
-    ("전신 스트레칭", "스트레칭", 10, "stretching", 30),
-)
 _AWAITING_TEXT = "트레이너님, 이번 주 루틴 관련해서 여쭤볼 게 있어요."
 
 
@@ -165,6 +159,9 @@ def seed_roster_metrics() -> None:
                 continue  # 계정 시드가 건너뛴 회원(이메일 충돌 등)
             _seed_sodium_days(db, member_id, spec)
             _seed_completion_days(db, member_id, spec["completion"])
+            if not any(spec["completion"]):
+                _seed_new_member_routines(db, member_id)
+            _seed_member_logs(db, member_id)
             if spec.get("awaiting"):
                 _seed_awaiting_message(db, member_id)
         db.commit()
@@ -256,36 +253,46 @@ def _seed_one_sodium_day(
 
 
 def _seed_completion_days(db: Session, member_id: str, completion: list[int]) -> None:
-    """주마다 개인운동 한 벌을 걸고 그날 비율만큼 완료를 남긴다(멱등). (#2513)
+    """주마다 그 회원의 개인운동 한 벌을 걸고 그날 비율만큼 완료를 남긴다(멱등). (#2513, #3003)
 
     이행률은 저장값이 아니라 그날 걸린 개인운동과 완료에서 계산된다
-    (`trainer._common.week_completion_by_member`). 예전처럼 `routine_history` 에
+    (`trainer_service.week_completion_by_member`). 예전처럼 `routine_history` 에
     비율을 적으면 아무 화면도 읽지 않는다.
+
+    개인운동은 회원별 표([seed_workouts.ROUTINES])다 — 트레이너 웹 데모의 `aiRoutine`
+    과 같은 이름·양·강도. 예전에는 모두에게 같은 세 운동을 걸어 데모와 다른 운동을
+    말했다. 완료는 배정 순서 앞에서부터 이행률만큼이고(데모 `_RateDone` 과 같은 셈),
+    오늘도 그만큼 체크해 둔다 — `N개 중 M개 완료` 와 `예상 소모` 가 함께 보인다.
+    이미 깔린 행은 지금 값으로 고친다(옛 공통 운동이 남지 않게).
     """
     from app.db.seed_trainer import TRAINER_ID
 
+    routines = seed_workouts.ROUTINES.get(member_id, ())
     active = [i for i, rate in enumerate(completion) if rate > 0]
-    if not active:
+    if not active or not routines:
         return  # 기록 전무 — 개인운동을 받은 적 없는 회원이다
     first, last = active[0], active[-1]
     today = clock.today()
+    now = clock.now()
     this_monday = monday_of(today)
-    existing_routines = set(
-        db.scalars(
-            select(models.TrainerRoutine.id).where(
+    routine_rows = {
+        row.id: row
+        for row in db.scalars(
+            select(models.TrainerRoutine).where(
                 models.TrainerRoutine.member_id == member_id,
                 models.TrainerRoutine.id.like("seed-roster-rt-%"),
             )
         ).all()
-    )
-    existing_sessions = set(
-        db.scalars(
-            select(models.ExerciseSession.id).where(
+    }
+    session_rows = {
+        row.id: row
+        for row in db.scalars(
+            select(models.ExerciseSession).where(
                 models.ExerciseSession.user_id == member_id,
                 models.ExerciseSession.id.like("seed-roster-ex-%"),
             )
         ).all()
-    )
+    }
     for week in range(_HISTORY_WEEKS):
         monday = this_monday - timedelta(days=7 * week)
         begin = monday + timedelta(days=first)
@@ -293,57 +300,156 @@ def _seed_completion_days(db: Session, member_id: str, completion: list[int]) ->
             continue
         factor = _COMPLETION_FACTORS[week % len(_COMPLETION_FACTORS)]
         ids: list[str] = []
-        for order, (name, type_ko, minutes, _, _) in enumerate(_ROUTINE_SET):
+        for order, routine in enumerate(routines):
             routine_id = f"seed-roster-rt-{member_id}-{monday.isoformat()}-{order}"
             ids.append(routine_id)
-            if routine_id in existing_routines:
-                continue
-            existing_routines.add(routine_id)
-            db.add(models.TrainerRoutine(
+            row = routine_rows.get(routine_id)
+            if row is None:
+                row = models.TrainerRoutine(
+                    id=routine_id,
+                    trainer_id=TRAINER_ID,
+                    member_id=member_id,
+                    source="ai",
+                    status="approved",
+                    delivery_kind="routine_only",
+                    active_from=begin.isoformat(),
+                    ended_on=(monday + timedelta(days=last + 1)).isoformat(),
+                    exercise_date=begin.isoformat(),
+                    created_at=exercise_activity.noon(begin),
+                )
+                db.add(row)
+            _apply_routine(row, routine, order)
+        for offset in range(first, last + 1):
+            day = monday + timedelta(days=offset)
+            if day > today:
+                break  # 아직 오지 않은 날
+            rate = seed_workouts.day_rate(completion, offset, factor)
+            done = seed_workouts.done_count(rate, len(routines))
+            late = seed_workouts.is_late_day(member_id, day, done, today)
+            for order in range(done):
+                routine = routines[order]
+                session_id = f"seed-roster-ex-{member_id}-{day.isoformat()}-{order}"
+                row = session_rows.get(session_id)
+                if row is None:
+                    row = models.ExerciseSession(
+                        id=session_id,
+                        user_id=member_id,
+                        week_start=monday.isoformat(),
+                        day_label=_DAY_LABELS[offset],
+                        source="assigned_routine",
+                        assigned_trainer_id=TRAINER_ID,
+                    )
+                    db.add(row)
+                at = exercise_activity.noon(day)
+                if late and order == done - 1:
+                    # 다음 날 체크 — 운동한 날(`week_start`·`day_label`)은 그대로다.
+                    at = min(exercise_activity.noon(day + timedelta(days=1)), now)
+                strength = routine.strength
+                row.type = routine.code
+                row.name = routine.name
+                row.minutes = routine.minutes
+                row.calories = seed_workouts.kcal(routine.code, routine.minutes)
+                row.sets = routine.sets if strength else None
+                row.reps = routine.reps if strength else None
+                row.hold_seconds = routine.hold_seconds if strength else None
+                row.weight = routine.weight if strength else None
+                row.intensity = routine.intensity
+                row.assigned_routine_id = ids[order]
+                row.assigned_routine_name = routine.name
+                row.completed_at = at
+                row.created_at = at
+
+
+def _apply_routine(
+    row: models.TrainerRoutine, routine: seed_workouts.SeedRoutine, order: int
+) -> None:
+    """배정 행에 표의 값을 싣는다 — 새 행과 이미 깔린 행이 같은 값이 된다."""
+    strength = routine.strength
+    # 출처도 데모와 같다 — 시드 개인운동은 `AI 추천 · 트레이너 확인` 이다(데모
+    # `seedAiRoutineExercise`). 예전에는 `trainer` 라 화면 문구가 갈렸다.
+    row.source = "ai"
+    row.name = routine.name
+    row.minutes = routine.minutes
+    row.type = routine.type
+    row.reason = routine.reason
+    row.sets = routine.sets if strength else None
+    row.reps = routine.reps if strength else None
+    row.hold_seconds = routine.hold_seconds if strength else None
+    row.weight = routine.weight if strength else None
+    row.intensity = routine.intensity
+    row.sort_order = order + 1
+
+
+def _seed_new_member_routines(db: Session, member_id: str) -> None:
+    """기록이 없는 신규 회원(임도현)에게 **오늘 보낸** 개인운동만 건다(멱등). (#3003)
+
+    지난 날 기록은 두지 않는다 — 빈 상태를 보여 주는 회원이다. 오늘 보낸 개인운동은
+    오늘부터 7일 걸린다(트레이너가 `개인운동만` 을 보낸 것과 같다). 데모도 같은
+    날에 같은 세 운동을 보낸 것으로 둔다.
+    """
+    from app.db.seed_trainer import TRAINER_ID
+
+    routines = seed_workouts.ROUTINES.get(member_id, ())
+    today = clock.today()
+    for order, routine in enumerate(routines):
+        routine_id = f"seed-roster-rt-{member_id}-new-{order}"
+        row = db.get(models.TrainerRoutine, routine_id)
+        if row is None:
+            row = models.TrainerRoutine(
                 id=routine_id,
                 trainer_id=TRAINER_ID,
                 member_id=member_id,
-                name=name,
-                minutes=minutes,
-                type=type_ko,
-                source="trainer",
-                sort_order=order + 1,
+                source="ai",
                 status="approved",
                 delivery_kind="routine_only",
-                active_from=begin.isoformat(),
-                ended_on=(monday + timedelta(days=last + 1)).isoformat(),
-                exercise_date=begin.isoformat(),
-                created_at=exercise_activity.noon(begin),
-            ))
-        for offset in range(first, last + 1):
-            day = monday + timedelta(days=offset)
+            )
+            db.add(row)
+        _apply_routine(row, routine, order)
+        row.active_from = today.isoformat()
+        row.ended_on = (today + timedelta(days=7)).isoformat()
+        row.exercise_date = today.isoformat()
+        row.created_at = min(exercise_activity.noon(today), clock.now())
+
+
+def _seed_member_logs(db: Session, member_id: str) -> None:
+    """회원이 직접 적은 운동([seed_workouts.MEMBER_LOGS]) — 지난 날 그 요일마다 한 줄(멱등). (#3003)
+
+    출처 `member` 라 트레이너 화면의 `회원 추가` 로 선다. 트레이너 웹 데모의
+    `_memberLogs` 와 같은 요일·같은 값이다. 이행률에는 들지 않는다 — 해야 할 목록이
+    없는 운동이다(`week_completion_by_member`).
+    """
+    logs = seed_workouts.MEMBER_LOGS.get(member_id, ())
+    if not logs:
+        return
+    today = clock.today()
+    this_monday = monday_of(today)
+    for week in range(_HISTORY_WEEKS):
+        monday = this_monday - timedelta(days=7 * week)
+        for i, (weekday, exercise) in enumerate(logs):
+            day = monday + timedelta(days=weekday)
             if day >= today:
-                continue  # 오늘은 회원이 직접 체크한다 — 아직 오지 않은 날도
-            rate = min(100, round(completion[offset] * factor))
-            done = round(rate * len(_ROUTINE_SET) / 100)
-            for order in range(done):
-                name, _, minutes, kind, kcal = _ROUTINE_SET[order]
-                session_id = f"seed-roster-ex-{member_id}-{day.isoformat()}-{order}"
-                if session_id in existing_sessions:
-                    continue
-                existing_sessions.add(session_id)
-                at = exercise_activity.noon(day)
-                db.add(models.ExerciseSession(
-                    id=session_id,
-                    user_id=member_id,
-                    week_start=monday.isoformat(),
-                    day_label=_DAY_LABELS[offset],
-                    type=kind,
-                    name=name,
-                    minutes=minutes,
-                    calories=kcal,
-                    source="assigned_routine",
-                    assigned_routine_id=ids[order],
-                    assigned_trainer_id=TRAINER_ID,
-                    assigned_routine_name=name,
-                    completed_at=at,
-                    created_at=at,
-                ))
+                continue
+            session_id = f"seed-roster-mx-{member_id}-{day.isoformat()}-{i}"
+            if db.get(models.ExerciseSession, session_id) is not None:
+                continue
+            at = exercise_activity.noon(day)
+            db.add(models.ExerciseSession(
+                id=session_id,
+                user_id=member_id,
+                week_start=monday.isoformat(),
+                day_label=_DAY_LABELS[weekday],
+                type=exercise.type,
+                name=exercise.name,
+                minutes=exercise.minutes,
+                calories=exercise.calories,
+                sets=exercise.sets,
+                reps=exercise.reps,
+                weight=exercise.weight,
+                intensity=exercise.intensity,
+                source="member",
+                completed_at=at,
+                created_at=at,
+            ))
 
 
 def _seed_awaiting_message(db: Session, member_id: str) -> None:
