@@ -824,6 +824,36 @@ def test_weekly_report_buys_last_week_once(client, db_session):
     assert client.get("/v1/me/points/shop", headers=h).json()["balance"] == 700
 
 
+def test_weekly_report_retry_after_monday_returns_the_bought_week(
+    client, db_session, monkeypatch
+):
+    """같은 요청의 재시도는 그때 산 주를 돌려준다(#3240).
+
+    월요일 0시(KST)를 넘긴 재시도가 지금의 지난주를 받으면, 사지 않은 주를
+    받았다고 답한다. 포인트도 다시 쓰지 않는다.
+    """
+    from datetime import timedelta
+
+    _, h = _new_member(client, db_session, points=1000)
+    bought_week = weekly_report_purchase_service.target_week()
+    key = uuid4().hex
+
+    bought = _exchange(client, h, "weekly_report", request_id=key)
+    assert bought.status_code == 201, bought.text
+
+    # 한 주가 지났다 — 지금 사면 받는 주는 다음 주다.
+    monkeypatch.setattr(
+        weekly_report_purchase_service,
+        "target_week",
+        lambda today=None: bought_week + timedelta(days=7),
+    )
+    retried = _exchange(client, h, "weekly_report", request_id=key)
+
+    assert retried.status_code == 201, retried.text
+    assert retried.json()["weekly_report_week"] == bought_week.isoformat()
+    assert client.get("/v1/me/points/shop", headers=h).json()["balance"] == 700
+
+
 # ---- 헬스장 혜택 기능 플래그 (#2822) ----
 
 
