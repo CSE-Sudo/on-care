@@ -198,6 +198,97 @@ void main() {
       expect(gyms.last.distanceMeters, 320);
     });
 
+    Response<List<Object?>> gymListResponse(String path) =>
+        Response<List<Object?>>(
+          requestOptions: RequestOptions(path: path),
+          statusCode: 200,
+          data: <Object?>[
+            <String, Object?>{
+              'id': 'gym-1',
+              'name': '온케어짐',
+              'address': '서울',
+              'lat': 37.55,
+              'lng': 126.93,
+              'phone': '',
+              'distance_meters': 120,
+              'registered': true,
+            },
+            // id 가 없는 줄은 고를 수 없어 버린다.
+            <String, Object?>{'name': '이름만'},
+          ],
+        );
+
+    test(
+      'nearbyGyms sends coordinates to the nearby endpoint (#3223)',
+      () async {
+        when(
+          () => dio.get<List<Object?>>(
+            '/trainer/gyms/nearby',
+            queryParameters: any(named: 'queryParameters'),
+          ),
+        ).thenAnswer((_) async => gymListResponse('/trainer/gyms/nearby'));
+
+        final gyms = await repository.nearbyGyms(lat: 37.5548, lng: 126.9385);
+
+        verify(
+          () => dio.get<List<Object?>>(
+            '/trainer/gyms/nearby',
+            queryParameters: <String, Object?>{'lat': 37.5548, 'lng': 126.9385},
+          ),
+        ).called(1);
+        expect(gyms.map((g) => g.id), <String>['gym-1']);
+        expect(gyms.single.distanceMeters, 120);
+      },
+    );
+
+    test('searchGyms adds coordinates only when both are known', () async {
+      when(
+        () => dio.get<List<Object?>>(
+          '/trainer/gyms/search',
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenAnswer((_) async => gymListResponse('/trainer/gyms/search'));
+
+      await repository.searchGyms('헬스', lat: 37.5, lng: 126.9);
+      await repository.searchGyms('헬스', lat: 37.5);
+
+      final List<Object?> sent = verify(
+        () => dio.get<List<Object?>>(
+          '/trainer/gyms/search',
+          queryParameters: captureAny(named: 'queryParameters'),
+        ),
+      ).captured;
+      expect(sent, <Object?>[
+        <String, Object?>{'query': '헬스', 'lat': 37.5, 'lng': 126.9},
+        // 한쪽만 있는 좌표는 서버가 거절한다 — 보내지 않는다.
+        <String, Object?>{'query': '헬스'},
+      ]);
+    });
+
+    test('nearbyGyms maps server errors like search', () async {
+      when(
+        () => dio.get<List<Object?>>(
+          '/trainer/gyms/nearby',
+          queryParameters: any(named: 'queryParameters'),
+        ),
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/trainer/gyms/nearby'),
+          type: DioExceptionType.badResponse,
+          response: Response<Object?>(
+            requestOptions: RequestOptions(path: '/trainer/gyms/nearby'),
+            statusCode: 422,
+            data: <String, Object?>{'detail': '좌표를 확인해 주세요.'},
+          ),
+        ),
+      );
+
+      await expectLater(
+        repository.nearbyGyms(lat: 0, lng: 0),
+        throwsA(isA<AppError>()),
+      );
+    });
+
     test('update never sends gym text fields', () async {
       when(
         () => dio.put<Map<String, Object?>>(
@@ -358,21 +449,16 @@ void main() {
     });
 
     test('is case-insensitive in English', () async {
-      expect(
-        await ids('ONCARE gangnam', language: DemoLanguage.en),
-        <String>['gym-2'],
-      );
+      expect(await ids('ONCARE gangnam', language: DemoLanguage.en), <String>[
+        'gym-2',
+      ]);
     });
 
     test('never comes back empty for a real gym name — 데모 헬스장 전체', () async {
       // 데모에는 카카오가 없어 실제 상호는 찾을 수 없다. 빈 목록이면 가입한
       // 트레이너가 소속을 고르지 못한다.
       final List<String> found = await ids('스포애니 신림점');
-      expect(found, <String>[
-        kDemoTrainerGymId,
-        'gym-2',
-        'gym-demo-yeonhui',
-      ]);
+      expect(found, <String>[kDemoTrainerGymId, 'gym-2', 'gym-demo-yeonhui']);
     });
 
     test('a blank query searches nothing', () async {
@@ -390,6 +476,106 @@ void main() {
       );
       final profile = await repository.selectGym(yeonhui);
       expect(profile.gym.id, 'gym-demo-yeonhui');
+    });
+  });
+
+  group('mock nearby gyms (#3223)', () {
+    // 헬스메이트 신촌점 자리 — 데모 신촌점은 약 400m, 연희 스튜디오는 약 1.5km,
+    // 강남점은 7km 넘게 떨어져 있다.
+    const double lat = 37.5548;
+    const double lng = 126.9385;
+
+    test('returns every demo gym with its distance, nearest first', () async {
+      final repository = MockTrainerProfileRepository();
+      final List<TrainerGymCandidate> gyms = await repository.nearbyGyms(
+        lat: lat,
+        lng: lng,
+      );
+
+      expect(gyms.map((TrainerGymCandidate g) => g.id), <String>[
+        kDemoTrainerGymId,
+        'gym-demo-yeonhui',
+        'gym-2',
+      ]);
+      final List<int> distances = <int>[
+        for (final TrainerGymCandidate g in gyms) g.distanceMeters!,
+      ];
+      expect(distances, orderedEquals(<int>[...distances]..sort()));
+      expect(distances.first, inInclusiveRange(300, 500));
+      expect(distances.last, greaterThan(5000));
+    });
+
+    test('a demo gym at the exact spot is 0 m away', () async {
+      final repository = MockTrainerProfileRepository();
+      final List<TrainerGymCandidate> gyms = await repository.nearbyGyms(
+        lat: 37.4979,
+        lng: 127.0276,
+      );
+      expect(gyms.first.id, 'gym-2');
+      expect(gyms.first.distanceMeters, 0);
+      expect(gyms.first.distanceLabel, '0.0km');
+    });
+
+    test('name search fills distances only with coordinates', () async {
+      final repository = MockTrainerProfileRepository();
+      final TrainerGymCandidate plain = (await repository.searchGyms(
+        '강남',
+      )).single;
+      final TrainerGymCandidate located = (await repository.searchGyms(
+        '강남',
+        lat: lat,
+        lng: lng,
+      )).single;
+      expect(plain.distanceMeters, isNull);
+      expect(plain.distanceLabel, isNull);
+      expect(located.distanceMeters, greaterThan(5000));
+    });
+
+    test('a nearby result can be selected like a search result', () async {
+      final repository = MockTrainerProfileRepository();
+      final List<TrainerGymCandidate> gyms = await repository.nearbyGyms(
+        lat: lat,
+        lng: lng,
+      );
+      final profile = await repository.selectGym(gyms[1]);
+      expect(profile.gym.id, 'gym-demo-yeonhui');
+    });
+  });
+
+  group('TrainerGymCandidate.distanceLabel', () {
+    TrainerGymCandidate at(int? meters) => TrainerGymCandidate(
+      id: 'g',
+      name: 'g',
+      address: '',
+      registered: true,
+      distanceMeters: meters,
+    );
+
+    test('shows kilometres with one decimal like the member app', () {
+      expect(at(320).distanceLabel, '0.3km');
+      expect(at(1450).distanceLabel, '1.4km');
+      expect(at(12000).distanceLabel, '12.0km');
+      expect(at(null).distanceLabel, isNull);
+    });
+
+    test('withDistance keeps every other field', () {
+      const TrainerGymCandidate gym = TrainerGymCandidate(
+        id: 'gym-x',
+        name: '온케어짐',
+        address: '서울',
+        registered: false,
+        lat: 37.5,
+        lng: 126.9,
+        phone: '02-1',
+      );
+      final TrainerGymCandidate moved = gym.withDistance(42);
+      expect(moved.id, gym.id);
+      expect(moved.name, gym.name);
+      expect(moved.address, gym.address);
+      expect(moved.registered, isFalse);
+      expect((moved.lat, moved.lng), (37.5, 126.9));
+      expect(moved.phone, '02-1');
+      expect(moved.distanceMeters, 42);
     });
   });
 }
