@@ -3707,7 +3707,7 @@ abstract class AppLocalizations {
   /// No description provided for @myTrainerDisconnectConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Disconnect trainer {trainer}?\nYour connection to {gym} will remain.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged are not deleted, and you can see them again if you reconnect with the same trainer.'**
+  /// **'Disconnect from {trainer}?\nYour connection to {gym} will remain.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged are not deleted, and you can see them again if you reconnect with the same trainer.'**
   String myTrainerDisconnectConfirm(String trainer, String gym);
 
   /// No description provided for @myGymDetailTooltip.

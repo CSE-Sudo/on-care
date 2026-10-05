@@ -31,7 +31,7 @@ const Map<String, String> _seedEnglish = <String, String>{
       "Got it. I've sent Tuesday and Thursday as 15-minute low-intensity workouts 🙂",
   '동작 순서는 이 파일로 정리해 뒀어요': "I've put the moves in order in this file",
   '민수님, 요즘 나트륨이 목표(2,000mg) 근처에서 자주 걸리네요. 국·찌개가 잦으신 편인가요?':
-      'Minsu, your sodium has been hovering around the 2,000mg target lately. Do you eat a lot of soups and stews?',
+      'Minsu, your sodium has been hovering around the 2,000mg goal lately. Do you eat a lot of soups and stews?',
   '회사 구내식당이라 국물이 늘 나와요 😅': 'The office cafeteria always serves soup 😅',
   '국물만 절반 남기셔도 400~500mg은 빠져요. 그거 하나만 먼저 해보죠':
       "Leaving half the broth cuts 400–500mg. Let's start with just that",
@@ -44,7 +44,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   '내일 프로그램은 걷기 20분으로 조금 늘려서 보냈어요. 주말까지 이 페이스로 가봐요':
       "I've bumped tomorrow's program up a little to a 20-minute walk. Let's keep this pace through the weekend",
   '민수님, AI 식단 분석 잘 받았어요 👍 오늘 나트륨이 목표치를 좀 넘었는데 어떠셨어요?':
-      'Minsu, I got your AI diet analysis 👍 Your sodium went a bit over target today. How was your day?',
+      'Minsu, I got your AI diet analysis 👍 Your sodium went a bit over your goal today. How was your day?',
   '찌개 먹을 때 국물을 많이 마셨나봐요 😅': 'I guess I drank a lot of the stew broth 😅',
   '그렇군요! 오늘 PT 후에 부상이나 불편한 데는 없으셨나요?':
       "I see! Any injuries or discomfort after today's PT?",
@@ -91,7 +91,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   '생각보다 괜찮았어요. 숨이 금방 차더라고요 😮‍💨':
       'Better than I expected. I got out of breath quickly though 😮‍💨',
   '심폐 지구력 올라가는 과정이에요 💪 AI 분석 보니까 당류는 목표 안에 있고, 프로그램 다음 주부터 근력 비중 늘려볼게요. 식단도 AI 추천 참고해서 업데이트해 드릴게요':
-      "That's your endurance building 💪 The AI analysis shows your sugar is within target, so from next week I'll add more strength work. I'll update your meal plan with the AI suggestions too",
+      "That's your endurance building 💪 The AI analysis shows your sugar is within your goal, so from next week I'll add more strength work. I'll update your meal plan with the AI suggestions too",
   '근력 향상': 'Strength',
   '5일 전': '5 days ago',
   '삶은 계란 3개': '3 boiled eggs',
@@ -362,7 +362,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   '근력 서킷 25분 ✓': 'Strength circuit · 25 min ✓',
   '운동은 빠짐없이 하고 있어요': "I haven't missed a single workout",
   '완료율 100%인데 나트륨 7일 연속 초과. 식단 상담으로 전환.':
-      '100% completion but sodium over target 7 days straight. Switch to diet counseling.',
+      '100% completion but sodium over goal 7 days straight. Switch to diet counseling.',
   '서진님, 운동은 7일 다 채우셨어요. 다만 나트륨이 계속 2500 위예요':
       'Seojin, you completed all 7 days of workouts. Your sodium keeps staying above 2,500, though',
   '국물을 못 끊겠어요': 'I just cannot give up the broth',
@@ -602,7 +602,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   '회식 자리가 있었지만 소주는 한 잔만 마셨어요.':
       'There was a team dinner, but I only had one glass of soju.',
   '저녁에 가볍게 걸으니 잠이 잘 와요.': 'An easy evening walk helps me sleep.',
-  '혈압 수치가 목표 안에 들어왔어요!': 'My blood pressure is within the target!',
+  '혈압 수치가 목표 안에 들어왔어요!': 'My blood pressure is within my goal!',
   '야근이 계속돼서 자기 전에 스트레칭만 겨우 했어요.':
       'Late nights kept going, so I barely managed stretching before bed.',
   '회식이 많아서 PT도 한 번 빠졌어요. 죄송해요.':
