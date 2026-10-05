@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare_core/clock.dart';
+import 'package:oncare_core/licenses.dart';
 import 'package:oncare_kakao_map/oncare_kakao_map.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
@@ -13,6 +14,7 @@ import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
 // Session은 앱 전역 상태라 예외적으로 auth feature 의 provider 를 직접
 // 사용한다 (라우터의 인증 게이트와 동일한 소비자).
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
@@ -294,7 +296,7 @@ class _MyPageState extends ConsumerState<MyPage> {
           ? l.myGymChangeFailed
           : '${l.myGymChangeFailed} $localizedDetail';
     }
-    return serverDetailOr(l, detail, l.myProfileSaveFailed);
+    return appErrorMessage(l, error, fallback: l.myProfileSaveFailed);
   }
 
   void _applySavedProfile(TrainerProfile saved) {
@@ -977,6 +979,17 @@ class _MyPageState extends ConsumerState<MyPage> {
             onTap: () =>
                 context.push(AppRoutes.legalDocument(AppRoutes.legalPrivacy)),
           ),
+          // 오픈소스 라이선스(#3150) — 회원 앱 고객 지원과 같은 자리·같은 화면.
+          _SupportRow(
+            key: const ValueKey<String>('support-licenses'),
+            icon: AppIcons.info,
+            label: l.myOpenSourceLicensesTitle,
+            onTap: () => showOnCareLicenses(
+              context,
+              applicationName: l.myAppName,
+              applicationVersion: ref.read(appVersionProvider).valueOrNull,
+            ),
+          ),
           // 탈퇴는 약관·개인정보 다음, 따로 여는 화면이다(회원 앱 #2019). 데모
           // 빌드에는 지울 계정이 없어 막고 그 이유를 말한다.
           _SupportRow(
@@ -1337,7 +1350,7 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
       final AppLocalizations l = AppLocalizations.of(context);
       setState(() {
         _busy = false;
-        _error = serverDetailOr(l, e.message, l.myDeleteFailed);
+        _error = appErrorMessage(l, e, fallback: l.myDeleteFailed);
       });
       return;
     } on Object {
@@ -2532,7 +2545,7 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
         final AppLocalizations l = AppLocalizations.of(context);
         _fail(
           _PasswordField.current,
-          serverDetailOr(l, e.message, l.myPwChangeFailed),
+          appErrorMessage(l, e, fallback: l.myPwChangeFailed),
         );
       }
       return;

@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 
 from app.core.config import Settings
+from app.core.db_url import pooler_problem
 from app.services import attachment_store, password_reset
 
 logger = logging.getLogger("app.startup")
@@ -63,6 +64,12 @@ def check(settings: Settings) -> list[str]:
     """
     warnings: list[str] = []
     errors: list[str] = []
+
+    # --- DB 엔드포인트(#3146) ---
+    # 운영은 설정 단계에서 거부한다. 개발·스테이징은 막지 않되 남긴다.
+    db_problem = pooler_problem(settings.database_url)
+    if db_problem and not settings.is_prod:
+        warnings.append(db_problem)
 
     # --- 채팅 첨부 저장소(#2817) ---
     try:

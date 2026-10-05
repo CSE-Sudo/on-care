@@ -73,7 +73,8 @@ flutter build appbundle --release --dart-define-from-file=config/release.json
 3. 키스토어 파일과 비밀번호는 **팀 비밀번호 관리자(공유 금고)** 에만 둡니다. 저장소·이슈·PR·
    채팅방·메일에 파일이나 값을 붙이지 않습니다.
 4. 릴리스를 빌드하는 사람은 금고에서 키스토어를 받아 저장소 밖에 두고 `key.properties` 를
-   로컬로 만듭니다. 빌드가 끝나면 공용 PC 에서는 둘 다 지웁니다.
+   로컬로 만듭니다. 빌드가 끝나면 공용 PC 에서는 둘 다 지웁니다. 스토어 제출 빌드는 가능하면
+   [7절](#7-서명-빌드-워크플로-3148)의 서명 빌드 워크플로로 만들어, 키를 개인 PC 에 받지 않습니다.
 5. 담당자가 바뀌면 금고 접근 권한을 넘기고, 유출이 의심되면 Play Console 에서 업로드 키를
    재설정합니다.
 
@@ -282,3 +283,100 @@ Play 스토어 웹 페이지)을 엽니다. iOS 는 App Store 의 앱 ID 가 필
 
 값이 없으면 iOS 업데이트 화면은 버튼 대신 "App Store 에서 On-Care 를 업데이트해 주세요" 문구만
 보입니다. 첫 iOS 제출 전에 ID 를 넣어 빌드하는 것을 권장합니다.
+
+## 7. 서명 빌드 워크플로 (#3148)
+
+스토어에 올릴 AAB·IPA 는 개인 PC 대신 `.github/workflows/member-app-release.yml` 로 만듭니다.
+어떤 커밋·SDK·define 으로 만든 바이너리인지 실행 기록과 빌드 정보(`build-info.txt`)로 남고,
+업로드 키를 여러 사람이 각자 PC 에 받아 둘 필요가 없어집니다. 스토어 업로드는 자동화하지 않습니다.
+2·3절의 로컬 빌드는 워크플로를 쓸 수 없을 때의 대안으로 남깁니다.
+
+### 실행
+
+| 방법 | 조건 | 앱 ENV |
+| --- | --- | --- |
+| Actions → Member app signed build → Run workflow(`workflow_dispatch`) | **main** 에서만 | 입력값(`prod` 기본, 내부 배포는 `staging`) |
+| 태그 `member-app-v<버전 이름>` 푸시 | 태그 커밋이 main 에 들어 있고, 이름이 `pubspec.yaml` 버전 이름과 같아야 함 | `prod` |
+
+```bash
+# pubspec.yaml 이 version: 1.0.1+12 인 main 커밋에서
+git tag member-app-v1.0.1
+git push origin member-app-v1.0.1
+```
+
+잡 순서:
+
+1. **Check signing secrets** — 실행 조건(main·태그 이름)을 확인하고, 아래 비밀이 묶음별로 **있는지만**
+   봅니다. 묶음의 비밀이 하나도 없으면 실패가 아니라 안내(notice)와 실행 요약을 남기고 그 빌드 잡을
+   건너뜁니다. 일부만 있으면 설정 실수로 보고 멈춥니다.
+2. **Signed AAB**(ubuntu) — define 파일을 쓰고 `tool/check_release_defines.sh` 로 검사한 뒤
+   (5절과 같은 규칙, 통과해야 빌드), 업로드 키로 서명한 번들을 만들고 디버그 키 서명이 아닌지 확인합니다.
+3. **Signed IPA**(macOS, iOS 비밀이 있을 때만) — 같은 검사 뒤, 임시 키체인에 배포 인증서를 넣고
+   Runner Release 설정만 수동 서명으로 바꿔(러너의 작업 사본만, `tool/ci/ios_release_signing.py`)
+   App Store 배포용 IPA 를 만듭니다. 저장소의 Xcode 프로젝트는 개발자 PC 의 자동 서명 그대로입니다.
+
+키스토어·`key.properties`·인증서·프로필·키체인·`config/release.json` 은 러너 임시 위치에만 만들고 잡이
+끝나면 지웁니다. 비밀 값은 `env` 로만 넘기고 셸 본문에 직접 넣지 않으며, 로그에 찍지 않습니다.
+
+### 산출물 확인
+
+실행 화면 하단 Artifacts 에서 내려받습니다(보관 30일).
+
+| 아티팩트 | 내용 |
+| --- | --- |
+| `member-app-aab-<버전 이름>-<실행 번호>` | `on-care-<버전 이름>.aab`, `build-info.txt` |
+| `member-app-ipa-<버전 이름>-<실행 번호>` | `on-care-<버전 이름>.ipa`, `build-info.txt` |
+
+`build-info.txt` 에는 pubspec 버전, 커밋, 실행 주소, Flutter 버전, `ENV`, `API_BASE_URL`, define 키 목록,
+산출물 SHA-256, (AAB) 서명 인증서 소유자·지문, (IPA) 프로비저닝 프로필 UUID 가 있습니다. 비밀 값은
+적지 않습니다. 올리기 전에 커밋이 의도한 main 커밋인지, 서명 지문이 Play Console 의 **업로드 키**
+지문과 같은지 확인합니다.
+
+### Environment `mobile-release` 설정 (저장소 관리자)
+
+비밀은 저장소 비밀이 아니라 Environment `mobile-release` 에 둡니다. 운영 배포 Environment(`production`)와
+나누는 이유는, 그 Environment 의 AWS 역할 신뢰 조건을 태그 실행에 넓히지 않기 위해서입니다.
+
+- Deployment branches and tags: **Selected** — 브랜치 `main`, 태그 `member-app-v*`.
+- Required reviewers 를 켜면 실행마다 서명 비밀 확인과 빌드 잡(Android·iOS)이 각각 승인을 기다립니다.
+  스토어 업로드는 사람이 하므로 기본은 끄고, 필요하면 팀이 정합니다.
+- Environment 를 만들지 않고 실행하면 GitHub 이 보호 규칙 없는 빈 Environment 를 만들고, 비밀이 없으므로
+  두 빌드 잡은 건너뜁니다.
+
+**비밀(Secrets)** — 묶음별로 모두 넣거나 모두 비워 둡니다.
+
+| 이름 | 묶음 | 값 |
+| --- | --- | --- |
+| `ANDROID_UPLOAD_KEYSTORE_BASE64` | Android | 업로드 키스토어(`.jks`) 파일의 base64 |
+| `ANDROID_UPLOAD_STORE_PASSWORD` | Android | 키스토어 비밀번호(`key.properties` 의 `storePassword`) |
+| `ANDROID_UPLOAD_KEY_ALIAS` | Android | 키 별칭(`keyAlias`) |
+| `ANDROID_UPLOAD_KEY_PASSWORD` | Android | 키 비밀번호(`keyPassword`) |
+| `IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64` | iOS | Apple Distribution 인증서·개인 키를 내보낸 `.p12` 의 base64 |
+| `IOS_DISTRIBUTION_CERTIFICATE_PASSWORD` | iOS | `.p12` 내보내기 비밀번호 |
+| `IOS_PROVISIONING_PROFILE_BASE64` | iOS | 번들 ID `com.csesudo.oncare` 의 **App Store** 배포 프로비저닝 프로필(`.mobileprovision`)의 base64 |
+| `SENTRY_DSN_MEMBER` | 공통 | 회원 앱 Sentry DSN. 운영 웹 배포와 같은 이름이지만 Environment 비밀은 따로라 `mobile-release` 에도 넣습니다(#480). 비면 define 검사에서 멈춥니다 |
+
+iOS 프로필은 다른 앱·와일드카드·개발용·Ad Hoc 프로필이면 서명 단계에서 멈춥니다. 팀 ID 는 프로필에서 읽습니다.
+
+**변수(Variables)** — 비밀이 아닌 설정값입니다.
+
+| 이름 | define 키 | 필수 |
+| --- | --- | --- |
+| `MEMBER_APP_API_BASE_URL` | `API_BASE_URL` | 예 — `https://<운영 API 도메인>/v1` |
+| `MEMBER_APP_KAKAO_JS_KEY` | `KAKAO_JS_KEY` | 아니요(4절 헬스장 찾기 지도) |
+| `MEMBER_APP_KAKAO_MAP_ORIGIN` | `KAKAO_MAP_ORIGIN` | 아니요(4절) |
+| `MEMBER_APP_IOS_APP_STORE_ID` | `IOS_APP_STORE_ID` | 아니요(6절) |
+
+`ENV` 는 실행 방법(위 표), `USE_MOCK_API` 는 `false` 로 워크플로가 정합니다.
+
+등록은 키 보관 담당자가 금고에서 파일을 받아 자기 PC 에서 바로 넣고, 파일은 넣은 뒤 지웁니다.
+값을 이슈·PR·채팅에 붙이지 않습니다.
+
+```bash
+base64 -i oncare-upload.jks | gh secret set ANDROID_UPLOAD_KEYSTORE_BASE64 --env mobile-release
+gh secret set ANDROID_UPLOAD_STORE_PASSWORD --env mobile-release   # 프롬프트에 입력
+gh variable set MEMBER_APP_API_BASE_URL --env mobile-release --body 'https://<운영 API 도메인>/v1'
+```
+
+워크플로의 실행 조건·비밀 게이트·키 정리·아티팩트 구성은 `tool/ci/test_member_app_release.py` 가
+병합 전에 검사합니다(PR gate).

@@ -7,6 +7,7 @@ import 'package:oncare/features/notification/presentation/alert_navigation.dart'
 import 'package:oncare/features/notification/presentation/alert_text.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 알림 갈래 → 왼쪽 원에 그릴 아이콘과 화면 읽기용 이름. 갈래 자체는 서버가 주는
@@ -279,10 +280,11 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
                       side,
                       0,
                     ),
-                    child: AppErrorState(
+                    child: appErrorStateFor(
+                      context,
                       key: const Key('notificationFirstLoadFailed'),
+                      error: state.loadError,
                       title: l.alertLoadFailed,
-                      retryLabel: l.actionRetry,
                       retryKey: const Key('notificationFirstLoadRetry'),
                       onRetry: _refresh,
                       placement: AppStatePlacement.card,

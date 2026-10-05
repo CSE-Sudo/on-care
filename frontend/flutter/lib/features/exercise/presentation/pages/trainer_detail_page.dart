@@ -15,6 +15,7 @@ import 'package:oncare/features/exercise/presentation/widgets/consult_linked_not
 import 'package:oncare/features/exercise/presentation/widgets/trainer_reason_badges.dart';
 import 'package:oncare/features/exercise/presentation/widgets/trainer_report_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 class TrainerDetailPage extends ConsumerWidget {
@@ -59,9 +60,10 @@ class TrainerDetailPage extends ConsumerWidget {
         title: l.exTrainerNotFound,
         icon: AppIcons.info,
       ),
-      AsyncError<Trainer?>() => AppErrorState(
+      AsyncError<Trainer?>(:final Object error) => appErrorStateFor(
+        context,
+        error: error,
         title: l.exTrainersLoadError,
-        retryLabel: l.actionRetry,
         onRetry: () => ref.invalidate(trainerProvider(trainerId)),
       ),
       _ => const AppLoading(),
