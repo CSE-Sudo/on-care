@@ -3354,6 +3354,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrNotTrainer => '트레이너 계정으로 로그인해 주세요.';
 
   @override
+  String get authErrSocialEmailInUse =>
+      '이 이메일로 가입한 계정이 있어요. 처음 가입한 방법으로 로그인해 주세요.';
+
+  @override
   String aiBasisGoalCompletion(String goal, int rate) {
     return '$goal · 완료율 $rate% 기준';
   }

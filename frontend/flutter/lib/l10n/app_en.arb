@@ -2070,6 +2070,10 @@
   "authSignInUnavailable": "Can't sign in right now. Please try again in a moment",
   "authSessionExpired": "Your session has expired. Please sign in again",
   "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment",
+  "authSocialEmailInUse": "An account already uses this email. Please sign in the way you first signed up.",
+  "@authSocialEmailInUse": {
+    "description": "Error toast on sign-in when the social account's unverified email matches an existing account (409 social_email_in_use, #1551)."
+  },
   "authSocialComingSoon": "Social sign-in is coming soon. Please sign in with your email",
   "authTrainerAccountTitle": "This is a trainer account",
   "@authTrainerAccountTitle": {

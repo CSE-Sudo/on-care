@@ -6151,6 +6151,12 @@ abstract class AppLocalizations {
   /// **'Please sign in with a trainer account.'**
   String get authErrNotTrainer;
 
+  /// Error toast on trainer sign-in when the social account's unverified email matches an existing account (409 social_email_in_use, #1551).
+  ///
+  /// In en, this message translates to:
+  /// **'An account already uses this email. Please sign in the way you first signed up.'**
+  String get authErrSocialEmailInUse;
+
   /// No description provided for @aiBasisGoalCompletion.
   ///
   /// In en, this message translates to:

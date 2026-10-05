@@ -2169,6 +2169,10 @@
   "slotNotFound": "Booking slot not found.",
   "slotTypeLockedByBooking": "Can't change the type of a slot that's already booked.",
   "authErrNotTrainer": "Please sign in with a trainer account.",
+  "authErrSocialEmailInUse": "An account already uses this email. Please sign in the way you first signed up.",
+  "@authErrSocialEmailInUse": {
+    "description": "Error toast on trainer sign-in when the social account's unverified email matches an existing account (409 social_email_in_use, #1551)."
+  },
   "aiBasisGoalCompletion": "{goal} · based on {rate}% completion",
   "@aiBasisGoalCompletion": {
     "placeholders": {

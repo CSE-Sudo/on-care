@@ -3536,6 +3536,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authErrNotTrainer => 'Please sign in with a trainer account.';
 
   @override
+  String get authErrSocialEmailInUse =>
+      'An account already uses this email. Please sign in the way you first signed up.';
+
+  @override
   String aiBasisGoalCompletion(String goal, int rate) {
     return '$goal · based on $rate% completion';
   }

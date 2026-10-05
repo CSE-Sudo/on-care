@@ -31,6 +31,7 @@ final Map<AuthFailure, String Function(AppLocalizations)> _expected =
       AuthFailure.emailCodeRequired: (l) => l.signUpCodeRequired,
       AuthFailure.sessionExpired: (l) => l.authErrSessionExpired,
       AuthFailure.noSocialToken: (l) => l.authErrNoSocialToken,
+      AuthFailure.socialEmailInUse: (l) => l.authErrSocialEmailInUse,
       AuthFailure.emptyCredentials: (l) => l.authErrEmptyCredentials,
       AuthFailure.network: (l) => l.authErrNetwork,
       AuthFailure.emptyResponse: (l) => l.authErrEmptyResponse,

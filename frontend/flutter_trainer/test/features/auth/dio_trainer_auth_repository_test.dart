@@ -429,6 +429,65 @@ void main() {
     });
   });
 
+  group('socialLogin', () {
+    test('같은 이메일 계정이 있다는 409 를 socialEmailInUse 로 바꾼다 (#1551)', () async {
+      when(
+        () => dio.post<Map<String, Object?>>(
+          '/auth/social/kakao',
+          data: any(named: 'data'),
+        ),
+      ).thenThrow(
+        _httpError(
+          409,
+          '/auth/social/kakao',
+          body: <String, Object?>{
+            'detail': <String, Object?>{
+              'code': 'social_email_in_use',
+              'message': '이 이메일로 가입한 계정이 있어요.',
+            },
+          },
+        ),
+      );
+
+      await expectLater(
+        repo.socialLogin(provider: 'kakao', token: 't'),
+        throwsA(
+          isA<AuthException>().having(
+            (AuthException e) => e.failure,
+            'failure',
+            AuthFailure.socialEmailInUse,
+          ),
+        ),
+      );
+    });
+
+    test('코드가 다른 409 는 그대로 일반 실패다', () async {
+      when(
+        () => dio.post<Map<String, Object?>>(
+          '/auth/social/kakao',
+          data: any(named: 'data'),
+        ),
+      ).thenThrow(
+        _httpError(
+          409,
+          '/auth/social/kakao',
+          body: <String, Object?>{'detail': 'conflict'},
+        ),
+      );
+
+      await expectLater(
+        repo.socialLogin(provider: 'kakao', token: 't'),
+        throwsA(
+          isA<AuthException>().having(
+            (AuthException e) => e.failure,
+            'failure',
+            isNot(AuthFailure.socialEmailInUse),
+          ),
+        ),
+      );
+    });
+  });
+
   group('fetchProfile', () {
     test('maps a trainer body to a profile', () async {
       when(

@@ -184,12 +184,23 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
       return TrainerAuthTokens.fromJson(data);
     } on DioException catch (e) {
       final int? code = e.response?.statusCode;
+      // 소셜 로그인만 내는 응답이다(#1551) — 다른 요청에는 오지 않는다.
+      if (_isSocialEmailInUse(code, e.response?.data)) {
+        throw const AuthException(AuthFailure.socialEmailInUse);
+      }
       if (code == 401) throw AuthException(on401);
       if (code == 403 && on403 != null) throw AuthException(on403);
       throw _asAuth(e);
     } on FormatException catch (e) {
       throw AuthException(AuthFailure.emptyResponse, detail: e.message);
     }
+  }
+
+  /// 409 `detail: {code: social_email_in_use}` 인가(#1551).
+  static bool _isSocialEmailInUse(int? status, Object? body) {
+    final Object? detail = body is Map ? body['detail'] : null;
+    final Object? code = detail is Map ? detail['code'] : null;
+    return status == 409 && code == 'social_email_in_use';
   }
 
   /// Converts a transport failure into a user-facing [AuthException].
