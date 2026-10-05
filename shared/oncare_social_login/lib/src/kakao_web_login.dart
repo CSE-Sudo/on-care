@@ -165,9 +165,10 @@ class KakaoWebLogin {
       ..stopListening()
       ..timer?.cancel();
     if (message.error.isNotEmpty || message.code.isEmpty) {
-      // 동의 화면에서 '취소'·'동의하지 않음'은 사용자가 그만둔 것이다.
+      // 동의 화면에서 '취소'·'동의하지 않음'은 사용자가 그만둔 것이다. 오류 없이
+      // 코드만 비어 돌아온 것도 그만둔 것으로 본다. 그 밖의 카카오 오류는 실패다.
       pending.finish(
-        message.error == 'access_denied' || message.code.isEmpty
+        message.error == 'access_denied' || message.error.isEmpty
             ? const SocialSignInCancelled()
             : SocialSignInFailure(
                 SocialSignInFailureReason.providerError,
