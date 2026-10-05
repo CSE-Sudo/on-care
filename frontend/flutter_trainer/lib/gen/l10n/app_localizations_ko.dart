@@ -34,7 +34,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String schedCancelConfirm(String time, String name) {
-    return '$time $name 님 PT가 취소로 기록돼요. 일정은 지워지지 않아요.';
+    return '$time $name님 PT가 취소로 기록돼요. 일정은 지워지지 않아요.';
   }
 
   @override
@@ -60,7 +60,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String schedNoShowConfirm(String time, String name) {
-    return '$time $name 님이 오지 않은 것으로 기록돼요.';
+    return '$time $name님이 오지 않은 것으로 기록돼요.';
   }
 
   @override
@@ -565,7 +565,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientsSortNameDescending => '이름 내림차순';
 
   @override
-  String get clientsSortRecentMessage => '최근 대화순';
+  String get clientsSortRecentMessage => '최근 메시지순';
 
   @override
   String get clientsFilterLabel => '필터';
@@ -845,7 +845,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachTemplateNew => '새 템플릿';
 
   @override
-  String get coachTemplateEdit => '템플릿 편집';
+  String get coachTemplateEdit => '템플릿 수정';
 
   @override
   String get coachTemplateDelete => '삭제';
@@ -878,14 +878,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachTemplateSaveFailed => '템플릿을 저장하지 못했어요. 다시 시도해 주세요';
 
   @override
-  String get coachTemplateDeleteFailed => '템플릿을 지우지 못했어요. 다시 시도해 주세요';
+  String get coachTemplateDeleteFailed => '템플릿을 삭제하지 못했어요. 다시 시도해 주세요';
 
   @override
   String get coachTemplateAlreadyDeleted => '이미 지워진 템플릿이에요';
 
   @override
   String coachTemplateDeleteConfirm(String name) {
-    return '$name 템플릿을 지울까요?';
+    return '$name 템플릿을 삭제할까요?';
   }
 
   @override
@@ -1181,7 +1181,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get workoutRecords => '운동 기록';
 
   @override
-  String get workoutRecordsShowMore => '더보기';
+  String get workoutRecordsShowMore => '더 보기';
 
   @override
   String get workoutRecordsShowLess => '접기';
@@ -1334,7 +1334,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get reportsGoToChat => '채팅으로 이동하기';
+  String get reportsGoToChat => '메시지로 가기';
 
   @override
   String get reportsScheduleWarning => '이번 주 일정을 불러오지 못해 PT 횟수가 비어 있을 수 있어요';
@@ -1740,7 +1740,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get schedEmptyWeek => '이번 주에는 일정이 없어요.';
 
   @override
-  String get schedSlots => '예약 슬롯';
+  String get schedSlots => '예약 가능 시간';
 
   @override
   String get schedNewSession => '새 일정';
@@ -1940,7 +1940,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get progNoteHint => '회원에게 전할 피드백을 입력하세요. 회원 특이사항은 회원 상세 메모에 남겨 주세요';
 
   @override
-  String get progSaving => '저장 중...';
+  String get progSaving => '저장 중…';
 
   @override
   String get progSaveAction => '저장';
@@ -1973,7 +1973,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get progEmpty => '아직 계획된 프로그램이 없어요';
 
   @override
-  String get progEmptyHint => 'AI 추천 탭에서 프로그램을 만들어 보내거나, 채팅으로 미리 조율해 보세요.';
+  String get progEmptyHint => 'AI 추천 탭에서 프로그램을 만들어 보내거나, 메시지로 미리 조율해 보세요.';
 
   @override
   String schedSentTo(String name) {
@@ -1986,16 +1986,16 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get slotPastTime => '현재보다 이후 시간만 예약 슬롯으로 만들 수 있어요.';
+  String get slotPastTime => '현재보다 이후 시간만 예약 가능 시간으로 열 수 있어요.';
 
   @override
-  String get slotOpened => '예약 슬롯을 열었어요.';
+  String get slotOpened => '예약 가능 시간을 열었어요.';
 
   @override
   String get slotStartTime => '시작 시간';
 
   @override
-  String get slotCloseTitle => '예약 슬롯 닫기';
+  String get slotCloseTitle => '예약 가능 시간 닫기';
 
   @override
   String get slotCloseBody => '이미 잡힌 예약은 유지되고, 신규 예약만 멈춰요.';
@@ -2007,10 +2007,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get slotActionFailed => '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
-  String get slotManageTitle => '예약 슬롯 관리';
+  String get slotManageTitle => '예약 가능 시간 관리';
 
   @override
-  String get slotIntro => '회원이 예약할 시간을 열어요. 아래에 앞으로 열린 슬롯이 날짜별로 모여요.';
+  String get slotIntro => '회원이 예약할 시간을 열어요. 아래에 앞으로 열린 시간이 날짜별로 모여요.';
 
   @override
   String get slotOpenAction => '열기';
@@ -2019,10 +2019,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get slotReload => '다시 불러오기';
 
   @override
-  String get slotLoadFailed => '예약 슬롯을 불러오지 못했어요';
+  String get slotLoadFailed => '예약 가능 시간을 불러오지 못했어요';
 
   @override
-  String get slotEmpty => '열린 예약 슬롯이 없어요.';
+  String get slotEmpty => '열린 예약 가능 시간이 없어요.';
 
   @override
   String get slotClosedSummary => '예약 닫힘';
@@ -2056,7 +2056,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myTabSettings => '설정';
 
   @override
-  String get mySaving => '저장 중';
+  String get mySaving => '저장 중…';
 
   @override
   String get myEditProfile => '프로필 수정';
@@ -2163,7 +2163,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get myPasswordChanged => '비밀번호를 변경했어요';
+  String get myPasswordChanged => '비밀번호를 바꿨어요';
 
   @override
   String myCareerYears(int years) {
@@ -2481,10 +2481,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPwMismatch => '새 비밀번호가 서로 달라요';
 
   @override
-  String get myPwChangeFailed => '비밀번호를 변경할 수 없어요';
+  String get myPwChangeFailed => '비밀번호를 바꾸지 못했어요';
 
   @override
-  String get myPwChangeRetry => '변경하지 못했어요. 잠시 후 다시 시도해 주세요';
+  String get myPwChangeRetry => '바꾸지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String get myPwCurrent => '현재 비밀번호';
@@ -2587,7 +2587,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myNotifConsultation => '상담 요청';
 
   @override
-  String get myNotifConsultationHint => '회원이 상담을 신청하거나 초대에 답하면 알려 드려요';
+  String get myNotifConsultationHint => '회원이 상담을 신청하거나 담당 요청에 답하면 알려 드려요';
 
   @override
   String get myNotifReservation => '예약';
@@ -2780,7 +2780,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get coachGoToSchedule => '스케줄로 이동하기';
+  String get coachGoToSchedule => '스케줄로 가기';
 
   @override
   String get labelTomorrow => '내일';
@@ -3342,10 +3342,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrEmptyResponse => '응답이 비어 있어요.';
 
   @override
-  String get slotFutureOnly => '지금보다 이후 시간만 예약 슬롯으로 설정할 수 있어요.';
+  String get slotFutureOnly => '지금보다 이후 시간만 예약 가능 시간으로 열 수 있어요.';
 
   @override
-  String get slotNotFound => '예약 슬롯을 찾을 수 없어요.';
+  String get slotNotFound => '예약 가능 시간을 찾을 수 없어요.';
 
   @override
   String get slotTypeLockedByBooking => '이미 예약된 자리의 종류는 바꿀 수 없어요.';
@@ -4132,7 +4132,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientTrainerMemoDeleteTitle => '메모를 삭제할까요?';
 
   @override
-  String get clientTrainerMemoDeleteBody => '지운 메모는 되돌릴 수 없어요.';
+  String get clientTrainerMemoDeleteBody => '삭제한 메모는 되돌릴 수 없어요.';
 
   @override
   String get clientExerciseMemoAdd => '메모 남기기';
@@ -4969,7 +4969,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportsResendBody(String name, String date, String time) {
-    return '$name님에게 $date $time에 이 주 리포트를 보냈어요. 다시 보내면 회원 채팅에 한 번 더 도착해요.';
+    return '$name님에게 $date $time에 이 주 리포트를 보냈어요. 다시 보내면 회원에게 메시지로 한 번 더 도착해요.';
   }
 
   @override
@@ -5017,7 +5017,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportsPreviewDelivery(String name) {
-    return '$name님 채팅으로 PDF 파일이 전송돼요';
+    return '$name님에게 메시지로 PDF 파일이 전송돼요';
   }
 
   @override
@@ -5827,7 +5827,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get passwordResetDemoNote => '데모 모드에서는 메일이 가지 않아요. 코드 칸을 미리 채워 두었어요.';
 
   @override
-  String get passwordResetUnavailable => '지금은 재설정 메일을 보낼 수 없어요. 고객센터로 문의해 주세요.';
+  String get passwordResetUnavailable =>
+      '지금은 재설정 메일을 보낼 수 없어요. 고객 지원으로 문의해 주세요.';
 
   @override
   String get passwordResetDoneTitle => '비밀번호를 바꿨어요';

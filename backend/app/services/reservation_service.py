@@ -116,7 +116,7 @@ def hold_slot_for_consultation(
         .execution_options(populate_existing=True)
     )
     if slot is None:
-        raise SlotNotFound("예약 가능한 시간을 찾을 수 없어요.")
+        raise SlotNotFound("예약 가능 시간을 찾을 수 없어요.")
     if (
         slot.trainer_id != trainer_id
         or slot.session_type != CONSULTATION_SESSION_TYPE
@@ -398,7 +398,7 @@ def create_slot(
     duration_minutes: int | None = None,
 ) -> TrainerSlotOut:
     if _aware(starts_at) <= datetime.now(timezone.utc):
-        raise SlotUnavailable("지난 시간에는 예약 슬롯을 만들 수 없어요.")
+        raise SlotUnavailable("지난 시간에는 예약 가능 시간을 열 수 없어요.")
     resolved_minutes = duration_minutes or _SESSION_DURATION_MINUTES.get(
         session_type, 60
     )
@@ -435,7 +435,7 @@ def update_slot(
         .with_for_update()
     )
     if slot is None:
-        raise SlotNotFound("예약 슬롯을 찾을 수 없어요.")
+        raise SlotNotFound("예약 가능 시간을 찾을 수 없어요.")
 
     if "session_type" in fields:
         booked = (
@@ -457,7 +457,7 @@ def update_slot(
     if "starts_at" in fields and _aware(fields["starts_at"]) <= datetime.now(
         timezone.utc
     ):
-        raise SlotUnavailable("지난 시간으로 슬롯을 변경할 수 없어요.")
+        raise SlotUnavailable("예약 가능 시간을 지난 시간으로 바꿀 수 없어요.")
     reopening = fields.get("is_closed") is False and slot.is_closed
     if "starts_at" in fields or "duration_minutes" in fields or reopening:
         # 옮기거나 늘린 뒤의 시간, 또는 다시 여는 자리의 시간이 다른 일정과
@@ -667,9 +667,9 @@ def reserve(
         .with_for_update()
     )
     if slot is None:
-        raise SlotNotFound("예약 슬롯을 찾을 수 없어요.")
+        raise SlotNotFound("예약 가능 시간을 찾을 수 없어요.")
     if slot.is_closed or slot.remaining <= 0 or _aware(slot.starts_at) <= current:
-        raise SlotUnavailable("예약할 수 없는 슬롯이에요.")
+        raise SlotUnavailable("예약할 수 없는 시간이에요.")
 
     assigned = db.scalar(
         select(TrainerClient.id).where(
@@ -679,7 +679,7 @@ def reserve(
         )
     )
     if assigned is None:
-        raise SlotUnavailable("담당 트레이너의 슬롯만 예약할 수 있어요.")
+        raise SlotUnavailable("담당 트레이너의 예약 가능 시간만 예약할 수 있어요.")
     duplicate = db.scalar(
         select(TrainerReservation.id).where(
             TrainerReservation.member_id == member.id,
@@ -687,7 +687,7 @@ def reserve(
         )
     )
     if duplicate is not None:
-        raise DuplicateReservation("이미 예약한 슬롯이에요.")
+        raise DuplicateReservation("이미 예약한 시간이에요.")
 
     local = _aware(slot.starts_at).astimezone(SEOUL)
     # 자리를 연 뒤 트레이너가 그 시간에 다른 일정을 직접 잡았을 수 있다. 그대로
@@ -757,7 +757,7 @@ def reserve(
         db.rollback()
         constraint = getattr(getattr(exc.orig, "diag", None), "constraint_name", None)
         if constraint == "uq_reservation_member_slot":
-            raise DuplicateReservation("이미 예약한 슬롯이에요.") from exc
+            raise DuplicateReservation("이미 예약한 시간이에요.") from exc
         # Do not turn an unexpected schema/programming error into a misleading
         # 409. Let the global error handler report it as a server failure.
         raise

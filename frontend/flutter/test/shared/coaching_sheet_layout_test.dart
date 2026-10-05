@@ -70,7 +70,7 @@ void main() {
     expect(header, findsOneWidget);
     for (final Finder part in <Finder>[
       find.byType(OniAvatar),
-      find.text('AI 건강 도우미'),
+      find.text('AI 코치'),
       find.text('오늘의 맞춤 조언을 모아봤어요'),
     ]) {
       expect(find.descendant(of: header, matching: part), findsOneWidget);
@@ -80,14 +80,14 @@ void main() {
     final Rect avatar = tester.getRect(
       find.descendant(of: header, matching: find.byType(OniAvatar)),
     );
-    final Rect title = tester.getRect(find.text('AI 건강 도우미'));
+    final Rect title = tester.getRect(find.text('AI 코치'));
     expect(avatar.right, lessThan(title.left));
     expect(title.center.dy, greaterThan(avatar.top));
     expect(title.center.dy, lessThan(avatar.bottom));
 
     // 제목 글자는 메인 파랑이다.
-    final Text pill = tester.widget<Text>(find.text('AI 건강 도우미'));
-    final BuildContext ctx = tester.element(find.text('AI 건강 도우미'));
+    final Text pill = tester.widget<Text>(find.text('AI 코치'));
+    final BuildContext ctx = tester.element(find.text('AI 코치'));
     expect(pill.style?.color, ctx.oncare.brand.primary);
 
     // 회원 앱의 부분 창에는 닫기 X 를 두지 않는다 — 공용 X 도, 둥근 X 도

@@ -243,7 +243,7 @@ void main() {
 
       expect(find.text('이미 보낸 리포트예요'), findsOneWidget);
       expect(find.textContaining('김민수님에게'), findsWidgets);
-      expect(find.textContaining('다시 보내면 회원 채팅에 한 번 더 도착해요'), findsOneWidget);
+      expect(find.textContaining('다시 보내면 회원에게 메시지로 한 번 더 도착해요'), findsOneWidget);
 
       await tester.tap(find.text('취소'));
       await settle(tester);

@@ -352,7 +352,7 @@
   "dietPhotoUnsupportedFormat": "That photo format isn't supported. Please try a JPG or PNG photo.",
   "dietPhotoTooLarge": "That photo is too large. Please try a different one.",
   "dietOpenSettings": "Open Settings",
-  "dietOpenSettingsFailed": "Couldn't open Settings. Turn on camera and photo access under Settings > Oncare.",
+  "dietOpenSettingsFailed": "Couldn't open Settings. Turn on camera and photo access under Settings › Oncare.",
   "dietAnalyzing": "Analyzing…",
   "dietAnalysisFailed": "Analysis failed",
   "dietRecordDate": "Record date",
@@ -749,12 +749,12 @@
     }
   },
   "exSlotTypePersonalTraining": "1:1 PT",
-  "exSlotsEmpty": "No times available",
-  "exSlotsAllBooked": "All available times are fully booked",
-  "exSlotsLoadError": "Couldn't load available times.",
+  "exSlotsEmpty": "No open booking times",
+  "exSlotsAllBooked": "All open booking times are fully booked",
+  "exSlotsLoadError": "Couldn't load open booking times.",
   "exReserveFailed": "Couldn't book that time. Please try again.",
   "exReserveTimeTaken": "Your trainer already has something else at this time, so it can't be booked. Please pick another time.",
-  "exReserveConfirmedSlotGym": "{slot} · {gym} reservation confirmed",
+  "exReserveConfirmedSlotGym": "{slot} · {gym} booking confirmed",
   "@exReserveConfirmedSlotGym": {
     "placeholders": {
       "slot": {
@@ -866,8 +866,8 @@
   "myBenefitsShieldGuide": "Tap an empty day on the record graph to bridge it. Only days within the last 30 days.",
   "myBenefitsShieldUsedTitle": "Protected days",
   "myBenefitsShieldNoneUsed": "No protected days yet",
-  "myShopGraphColorTitle": "Graph colour",
-  "myShopGraphColorDescription": "Pick a new colour for the record graph on the points screen. Colours you unlock stay yours.",
+  "myShopGraphColorTitle": "Graph color",
+  "myShopGraphColorDescription": "Pick a new color for the record graph on the points screen. Colors you unlock stay yours.",
   "myGraphTitle": "Record graph",
   "myGraphMonthLabel": "{month}",
   "@myGraphMonthLabel": {
@@ -971,8 +971,8 @@
   },
   "myGraphProtectBuyAction": "Buy and use",
   "myGraphProtectBoughtNotUsed": "You bought a shield but couldn't use it. It's kept in My benefits.",
-  "myGraphColorTitle": "Graph colour",
-  "myGraphColorPickTitle": "Pick a colour to unlock",
+  "myGraphColorTitle": "Graph color",
+  "myGraphColorPickTitle": "Pick a color to unlock",
   "myGraphColorLocked": "Unlock for {cost}",
   "@myGraphColorLocked": {
     "placeholders": {
@@ -981,7 +981,7 @@
       }
     }
   },
-  "myGraphColorDone": "Graph colour changed",
+  "myGraphColorDone": "Graph color changed",
   "myGraphColorExchangeConfirm": "Unlock the {color} graph for {cost}? Once unlocked it stays yours.",
   "@myGraphColorExchangeConfirm": {
     "placeholders": {
@@ -993,8 +993,8 @@
       }
     }
   },
-  "myGraphColorUnlocked": "Graph colour unlocked",
-  "myGraphColorFailed": "Couldn't change the colour",
+  "myGraphColorUnlocked": "Graph color unlocked",
+  "myGraphColorFailed": "Couldn't change the color",
   "myGraphColorBlue": "Blue",
   "myGraphColorGreen": "Green",
   "myGraphColorPurple": "Purple",
@@ -1125,7 +1125,7 @@
   "myPointsReasonPtRenewal": "PT renewal discount coupon",
   "myPointsReasonLocker": "Personal locker coupon",
   "myPointsReasonShield": "Streak shield",
-  "myPointsReasonGraphColor": "Graph colour",
+  "myPointsReasonGraphColor": "Graph color",
   "myPointsReasonEmotePass": "Chat emotes for 24 hours",
   "myPointsReasonEmoteUnlock": "Chat emote",
   "myPointsReasonProfilePet": "Profile pet emoji",
@@ -1261,7 +1261,7 @@
       }
     }
   },
-  "myCouponTrainer": "Trainer",
+  "myCouponTrainer": "Your trainer",
   "myCouponGym": "Gym",
   "myCouponIssuedOn": "Redeemed on",
   "myCouponExpiry": "Expires",
@@ -1322,7 +1322,7 @@
   },
   "myDietTrayNeedTrainer": "Connect a trainer to receive it",
   "myDietTrayClaimable": "You're eligible! Pick it up at your trainer's gym",
-  "myDietTrayIssued": "Pick it up at {gym}. Before you go, ask your trainer in chat whether it's ready",
+  "myDietTrayIssued": "Pick it up at {gym}. Before you go, message your trainer to check whether it's ready",
   "@myDietTrayIssued": {
     "placeholders": {
       "gym": {
@@ -1341,7 +1341,7 @@
   "myDietTrayCouponBenefit": "Standard analysis tray",
   "myDietTrayStaffNote": "Tap after gym staff hands you the tray",
   "myDietTrayIssuedOn": "Received on",
-  "myDietTrayExpireNotice": "No expiry. Before you go to the gym, ask your trainer in chat whether the tray is ready.",
+  "myDietTrayExpireNotice": "No expiry. Before you go to the gym, message your trainer to check whether the tray is ready.",
   "myCouponStaffConfirmTitle": "Mark this coupon as used?",
   "myCouponStaffConfirmMessage": "For staff · This can't be undone once used",
   "myCouponUsedAt": "Used at",
@@ -1375,8 +1375,8 @@
       }
     }
   },
-  "myLogout": "Log out",
-  "myLogoutConfirm": "Log out of your account?",
+  "myLogout": "Sign out",
+  "myLogoutConfirm": "Sign out of your account?",
   "emoteSheetTitle": "Emotes",
   "emoteBuyTitle": "Buy emote",
   "emoteBuyConfirm": "Use this emote for {days} days for {cost}P?\nThe days start the moment you buy.",
@@ -1463,10 +1463,10 @@
   },
   "myWithdrawKeepPrivacy": "Your records are never shown to strangers. Only you and the trainer you are linked with can see them, and once you disconnect the trainer they are yours alone — you can do that from My Gym & Trainer on the MY tab.",
   "myWithdrawKeepRarelyUsed": "You do not have to log everything every day. The + in the middle lets you add a single meal or workout from any screen.",
-  "myWithdrawKeepHardToUse": "Tell us what got in the way and we will fix it. The 1:1 inquiry under MY > Customer support reaches us directly.",
-  "myWithdrawKeepNotifications": "Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification settings.",
+  "myWithdrawKeepHardToUse": "Tell us what got in the way and we will fix it. The 1:1 inquiry under MY › Customer support reaches us directly.",
+  "myWithdrawKeepNotifications": "Notifications can be switched off one kind at a time. Keep only what you want under MY › Notification settings.",
   "myWithdrawKeepAlternative": "Removing the app leaves your records untouched. Deleting the account is what erases them, and that cannot be undone.",
-  "myWithdrawKeepOther": "Whatever it is, tell us and we will act on it. Leave it in the 1:1 inquiry under MY > Customer support.",
+  "myWithdrawKeepOther": "Whatever it is, tell us and we will act on it. Leave it in the 1:1 inquiry under MY › Customer support.",
   "myWithdrawKeepDefault": "The diet and exercise records you have built up, your points and your unused coupons go with the account, and they cannot be restored. Upcoming bookings are cancelled.",
   "myWithdrawStay": "Keep using On-Care",
   "myWithdrawContinue": "Continue deleting",
@@ -1529,7 +1529,7 @@
   "myNotifTrainer": "Trainer message",
   "myNotifWeeklyReport": "Trainer weekly report",
   "myNotifExerciseDesc": "When your trainer sends personal exercises or a PT program, or leaves a PT record or feedback",
-  "myNotifTrainerDesc": "When your trainer sends you a chat message",
+  "myNotifTrainerDesc": "When your trainer sends you a message",
   "myNotifWeeklyReportDesc": "When your trainer sends your weekly report",
   "myNotifAlwaysSent": "PT bookings, changes and cancellations, and trainer connect or disconnect notices are always sent",
   "mySupportFaq": "FAQ",
@@ -1562,7 +1562,7 @@
   "@myAppName": {
     "description": "Support page footer when the build version cannot be read — the app name only (#3047)."
   },
-  "coachHeaderPill": "AI health assistant",
+  "coachHeaderPill": "AI Coach",
   "coachHeaderSubtitle": "Here's today's tailored advice",
   "coachCardDietTag": "Diet",
   "coachCardDietTitle": "Great breakfast — watch lunch sodium",
@@ -1575,7 +1575,7 @@
   "coachSheetErrorBody": "Check your connection and try again.",
   "coachSheetEmptyTitle": "Advice will appear as you log more",
   "coachSheetEmptyBody": "Try logging today's meals and workouts.",
-  "coachInviteTitle": "A trainer wants to coach you",
+  "coachInviteTitle": "Coaching request received",
   "coachInviteFrom": "Trainer {name}",
   "@coachInviteFrom": {
     "placeholders": {
@@ -1606,11 +1606,11 @@
   "coachInviteRejected": "Request declined",
   "coachInviteFailed": "Couldn't complete that. Please try again",
   "coachImageUnavailable": "Couldn't load the photo",
-  "coachChatSubtitle": "Personal trainer",
+  "coachChatSubtitle": "Your trainer",
   "@coachChatSubtitle": {
     "description": "Line under the trainer's name in the chat header. States the relationship only — nothing tracks whether the trainer is online or working, so it must not promise availability (#2089)."
   },
-  "coachChatLoadOlder": "Load older messages",
+  "coachChatLoadOlder": "Load earlier messages",
   "@coachChatLoadOlder": {
     "description": "Button above the trainer chat thread that fetches the previous page (#1943)."
   },
@@ -1635,7 +1635,7 @@
     "description": "Status under a photo the member is still uploading to the trainer chat (#1665)."
   },
   "coachPhotoSendFailed": "Couldn't send the photo",
-  "coachPhotoRetry": "Retry",
+  "coachPhotoRetry": "Send again",
   "coachPhotoDiscard": "Remove",
   "@coachPhotoDiscard": {
     "description": "Drops a photo that failed to send from the chat; nothing reaches the trainer (#1665)."
@@ -1828,8 +1828,8 @@
   "@aicInsightDelete": {
     "description": "Removes one detection from the AI coach insight log (#1975)."
   },
-  "aicInsightDeleteConfirm": "Remove this detection from your reference notes? What you wrote stays in the conversation.",
-  "aicInsightDeleteFailed": "Couldn't remove it. Please try again in a moment.",
+  "aicInsightDeleteConfirm": "Delete this detection from your reference notes? What you wrote stays in the conversation.",
+  "aicInsightDeleteFailed": "Couldn't delete it. Please try again in a moment.",
   "aicInsightHistoryTitle": "Reference notes",
   "@aicInsightHistoryTitle": {
     "description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."
@@ -1860,7 +1860,7 @@
   "@aicInsightHistoryFailed": {
     "description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."
   },
-  "aicRetentionNotice": "AI chat history is kept for the last {days} days",
+  "aicRetentionNotice": "AI Coach chats are kept for the last {days} days",
   "@aicRetentionNotice": {
     "description": "AI coach chat: how long the conversation is kept (#1823).",
     "placeholders": {
@@ -1869,11 +1869,11 @@
       }
     }
   },
-  "aicTrainerConnectedTitle": "Chat with your trainer",
+  "aicTrainerConnectedTitle": "Message your trainer",
   "@aicTrainerConnectedTitle": {
     "description": "AI coach chat: shown instead of the chat when the member has a trainer (#1823)."
   },
-  "aicTrainerConnectedBody": "You're connected with {name}. Members with a trainer chat with their trainer instead of the AI chatbot",
+  "aicTrainerConnectedBody": "You're connected with {name}. Members with a trainer message their trainer instead of using the AI Coach",
   "@aicTrainerConnectedBody": {
     "description": "AI coach chat: shown instead of the chat when the member has a trainer (#1823).",
     "placeholders": {
@@ -1901,7 +1901,7 @@
   "exViewConsultationRequest": "View consultation request",
   "exConsultTarget": "Consultation target",
   "exTrainerConsultType": "Trainer consultation",
-  "exAssignedTrainer": "Assigned trainer",
+  "exAssignedTrainer": "Your trainer",
   "exConsultDataSharingNotice": "Your request details (name, exercise goal, and message) go to this trainer for the consultation and stay with the request and its schedule after you send them. If you don't agree, you just can't send this request; everything else keeps working. Your meal and workout records are shared only if you register with a connection code after the consultation, with a separate consent.",
   "exConsultDataSharingAgree": "I have read this and agree to send my request details to this trainer",
   "exConsultDataSharingRequired": "Please agree to sending your request details before requesting a consultation",
@@ -1917,8 +1917,8 @@
     }
   },
   "coachInviteConsentAgree": "Agree and connect",
-  "exConsultSlotTitle": "Available times",
-  "exConsultSlotRequired": "Please choose an available time.",
+  "exConsultSlotTitle": "Open booking times",
+  "exConsultSlotRequired": "Please choose an open booking time.",
   "exConsultSlotsEmptyTitle": "No consultation times are open right now.",
   "exConsultSlotsEmptyBody": "Call {gym} at {phone} to ask for a consultation time.",
   "@exConsultSlotsEmptyBody": {
@@ -1939,7 +1939,7 @@
       }
     }
   },
-  "exConsultSlotsError": "Couldn't load the available times.",
+  "exConsultSlotsError": "Couldn't load the open booking times.",
   "exConsultSlotTaken": "Another member just took that time. Please choose another.",
   "exConsultTooManyPending": "You already have {count} consultation requests waiting for a reply. Wait for an answer or cancel one, then try again.",
   "@exConsultTooManyPending": {
@@ -2036,7 +2036,7 @@
     "description": "Splash message while the saved session is being restored (#1944)."
   },
   "authRestoreFailed": "Couldn't restore your sign-in — the connection looks unstable.",
-  "authRestoreRetry": "Try again",
+  "authRestoreRetry": "Retry",
   "authRestoreSignIn": "Go to sign in",
   "authTagline": "Log your meals and workouts — and get coaching back",
   "authEmailHint": "Email",
@@ -2115,7 +2115,7 @@
   "trainerSyncTitle": "Trainer connection code",
   "trainerSyncConsent": "Once the trainer who enters this code becomes your trainer, they can see your meal records, workout records, body information, health goals, and health notes & cautions for coaching, consultations and writing reports. Disconnecting removes their access too, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don't agree.",
   "trainerShareDetailMore": "Show details",
-  "trainerShareDetailLess": "Hide details",
+  "trainerShareDetailLess": "Show less",
   "trainerShareRecipientLabel": "Shared with",
   "trainerShareRecipient": "The trainer connected with you",
   "trainerShareItemsLabel": "What is shared",
@@ -2703,7 +2703,7 @@
   "coachRoutineUndone": "Completion undone",
   "coachRoutineUndoFailed": "Couldn't undo the completion.",
   "coachRoutineCancel": "Delete this personal exercise",
-  "coachRoutineCancelConfirm": "Remove '{name}' from the list? Anything you already logged stays.",
+  "coachRoutineCancelConfirm": "Delete '{name}' from the list? Anything you already logged stays.",
   "@coachRoutineCancelConfirm": {
     "placeholders": {
       "name": {
@@ -2749,7 +2749,7 @@
   "@coachRoutineSubmit": {
     "description": "Submit button of the completion dialog."
   },
-  "coachChatWithTrainer": "Chat with trainer",
+  "coachChatWithTrainer": "Message trainer",
   "@coachChatWithTrainer": {
     "description": "Opens the chat with the assigned trainer."
   },
@@ -2789,7 +2789,7 @@
   "@alertCategoryPtDone": {
     "description": "Notification category label for screen readers: a finished PT session or the trainer's feedback on it (#3027)."
   },
-  "alertCategoryTrainer": "Trainer",
+  "alertCategoryTrainer": "Your trainer",
   "@alertCategoryTrainer": {
     "description": "Notification category label for screen readers."
   },
@@ -3986,7 +3986,7 @@
   "passwordChangeNewHint": "New password (8+ characters, letters and numbers)",
   "passwordChangeConfirmHint": "Confirm new password",
   "passwordChangeNote": "This device stays signed in. Other devices will need to sign in again.",
-  "passwordChangeAction": "Change password",
+  "passwordChangeAction": "Change",
   "passwordChangeDone": "Password changed",
   "passwordChangeWrongCurrent": "Your current password is incorrect",
   "passwordChangeSameAsCurrent": "Choose a password different from your current one",

@@ -275,7 +275,7 @@ abstract class AppLocalizations {
   /// No description provided for @navConsultations.
   ///
   /// In en, this message translates to:
-  /// **'Requests'**
+  /// **'Consultation requests'**
   String get navConsultations;
 
   /// No description provided for @actionSave.
@@ -1139,7 +1139,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientsSortRecentMessage.
   ///
   /// In en, this message translates to:
-  /// **'Recent conversations'**
+  /// **'Recent messages'**
   String get clientsSortRecentMessage;
 
   /// No description provided for @clientsFilterLabel.
@@ -1223,13 +1223,13 @@ abstract class AppLocalizations {
   /// No description provided for @clientsSignalNoShow.
   ///
   /// In en, this message translates to:
-  /// **'No-shows'**
+  /// **'No-shows/cancels'**
   String get clientsSignalNoShow;
 
   /// No description provided for @clientsSignalNoShowCount.
   ///
   /// In en, this message translates to:
-  /// **'{count} no-shows'**
+  /// **'{count} no-shows/cancels'**
   String clientsSignalNoShowCount(int count);
 
   /// No description provided for @clientsSignalRoutineMissed.
@@ -1769,7 +1769,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientTabWorkout.
   ///
   /// In en, this message translates to:
-  /// **'Workouts'**
+  /// **'Exercise'**
   String get clientTabWorkout;
 
   /// No description provided for @clientNotFound.
@@ -1871,7 +1871,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientSignalLess.
   ///
   /// In en, this message translates to:
-  /// **'Less'**
+  /// **'Show less'**
   String get clientSignalLess;
 
   /// No description provided for @clientSignalMore.
@@ -2519,7 +2519,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsGoToChat.
   ///
   /// In en, this message translates to:
-  /// **'Go to chat'**
+  /// **'Go to messages'**
   String get reportsGoToChat;
 
   /// No description provided for @reportsScheduleWarning.
@@ -3190,7 +3190,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedSlots.
   ///
   /// In en, this message translates to:
-  /// **'Booking slots'**
+  /// **'Open booking times'**
   String get schedSlots;
 
   /// No description provided for @schedNewSession.
@@ -3436,7 +3436,7 @@ abstract class AppLocalizations {
   /// No description provided for @slotOverlapHint.
   ///
   /// In en, this message translates to:
-  /// **'The slot wasn\'t opened. Pick another time or move the overlapping appointment.'**
+  /// **'The time wasn\'t opened. Pick another time or move the overlapping appointment.'**
   String get slotOverlapHint;
 
   /// No description provided for @consultOverlapHint.
@@ -3568,7 +3568,7 @@ abstract class AppLocalizations {
   /// No description provided for @progSaving.
   ///
   /// In en, this message translates to:
-  /// **'Saving...'**
+  /// **'Saving…'**
   String get progSaving;
 
   /// No description provided for @progSaveAction.
@@ -3592,7 +3592,7 @@ abstract class AppLocalizations {
   /// No description provided for @progDeleteExercise.
   ///
   /// In en, this message translates to:
-  /// **'Remove exercise'**
+  /// **'Delete exercise'**
   String get progDeleteExercise;
 
   /// No description provided for @progSetsValue.
@@ -3622,7 +3622,7 @@ abstract class AppLocalizations {
   /// No description provided for @progEmptyHint.
   ///
   /// In en, this message translates to:
-  /// **'Build one in the AI suggestions tab, or agree on it over chat first.'**
+  /// **'Build one in the AI suggestions tab, or agree on it over messages first.'**
   String get progEmptyHint;
 
   /// No description provided for @schedSentTo.
@@ -3640,13 +3640,13 @@ abstract class AppLocalizations {
   /// No description provided for @slotPastTime.
   ///
   /// In en, this message translates to:
-  /// **'Booking slots can only be opened for future times.'**
+  /// **'Only future times can be opened for booking.'**
   String get slotPastTime;
 
   /// No description provided for @slotOpened.
   ///
   /// In en, this message translates to:
-  /// **'Booking slot opened.'**
+  /// **'Booking time opened.'**
   String get slotOpened;
 
   /// No description provided for @slotStartTime.
@@ -3658,7 +3658,7 @@ abstract class AppLocalizations {
   /// No description provided for @slotCloseTitle.
   ///
   /// In en, this message translates to:
-  /// **'Close booking slot'**
+  /// **'Close booking time'**
   String get slotCloseTitle;
 
   /// No description provided for @slotCloseBody.
@@ -3682,13 +3682,13 @@ abstract class AppLocalizations {
   /// No description provided for @slotManageTitle.
   ///
   /// In en, this message translates to:
-  /// **'Manage booking slots'**
+  /// **'Manage open booking times'**
   String get slotManageTitle;
 
   /// No description provided for @slotIntro.
   ///
   /// In en, this message translates to:
-  /// **'Open times for members to book. Every upcoming slot is listed below by date.'**
+  /// **'Open times for members to book. Every upcoming open time is listed below by date.'**
   String get slotIntro;
 
   /// No description provided for @slotOpenAction.
@@ -3706,13 +3706,13 @@ abstract class AppLocalizations {
   /// No description provided for @slotLoadFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load reservation slots'**
+  /// **'Couldn\'t load open booking times'**
   String get slotLoadFailed;
 
   /// No description provided for @slotEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No booking slots are open.'**
+  /// **'No open booking times.'**
   String get slotEmpty;
 
   /// No description provided for @slotClosedSummary.
@@ -3778,7 +3778,7 @@ abstract class AppLocalizations {
   /// No description provided for @mySaving.
   ///
   /// In en, this message translates to:
-  /// **'Saving'**
+  /// **'Saving…'**
   String get mySaving;
 
   /// No description provided for @myEditProfile.
@@ -4636,7 +4636,7 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Please check once before you leave'**
+  /// **'Please check once before you delete your account'**
   String get myWithdrawSubtitle;
 
   /// No description provided for @myPageTitle.
@@ -4714,7 +4714,7 @@ abstract class AppLocalizations {
   /// No description provided for @mySignOutConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Log out of this browser?'**
+  /// **'Sign out of this browser?'**
   String get mySignOutConfirm;
 
   /// No description provided for @myThisMonth.
@@ -4768,7 +4768,7 @@ abstract class AppLocalizations {
   /// No description provided for @myNotifConsultationHint.
   ///
   /// In en, this message translates to:
-  /// **'When a member requests a consultation or answers your invite'**
+  /// **'When a member requests a consultation or responds to your coaching request'**
   String get myNotifConsultationHint;
 
   /// No description provided for @myNotifReservation.
@@ -5326,7 +5326,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiAnalysing.
   ///
   /// In en, this message translates to:
-  /// **'AI is analysing…'**
+  /// **'AI is analyzing…'**
   String get aiAnalysing;
 
   /// No description provided for @aiGenerateCandidates.
@@ -6130,19 +6130,19 @@ abstract class AppLocalizations {
   /// No description provided for @slotFutureOnly.
   ///
   /// In en, this message translates to:
-  /// **'Booking slots can only be set for future times.'**
+  /// **'Only future times can be opened for booking.'**
   String get slotFutureOnly;
 
   /// No description provided for @slotNotFound.
   ///
   /// In en, this message translates to:
-  /// **'Booking slot not found.'**
+  /// **'Open booking time not found.'**
   String get slotNotFound;
 
   /// No description provided for @slotTypeLockedByBooking.
   ///
   /// In en, this message translates to:
-  /// **'Can\'t change the type of a slot that\'s already booked.'**
+  /// **'Can\'t change the type of a time that\'s already booked.'**
   String get slotTypeLockedByBooking;
 
   /// No description provided for @authErrNotTrainer.
@@ -6472,7 +6472,7 @@ abstract class AppLocalizations {
   /// No description provided for @myDeleteAction.
   ///
   /// In en, this message translates to:
-  /// **'Delete'**
+  /// **'Delete account'**
   String get myDeleteAction;
 
   /// No description provided for @myDeleteDemo.
@@ -6538,7 +6538,7 @@ abstract class AppLocalizations {
   /// No description provided for @myDeleteReauthSocialDone.
   ///
   /// In en, this message translates to:
-  /// **'Social account confirmed. Press Delete to continue.'**
+  /// **'Social account confirmed. Press Delete account to continue.'**
   String get myDeleteReauthSocialDone;
 
   /// No description provided for @myDeleteReauthSocialFailed.
@@ -6550,7 +6550,7 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawReasonTitle.
   ///
   /// In en, this message translates to:
-  /// **'Are you sure you want to leave?'**
+  /// **'Are you sure you want to delete your account?'**
   String get myWithdrawReasonTitle;
 
   /// No description provided for @myWithdrawReasonQuestion.
@@ -6628,13 +6628,13 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawKeepLeavingWork.
   ///
   /// In en, this message translates to:
-  /// **'If it\'s just a break, you can keep your account. Leaving disconnects all your members.'**
+  /// **'If it\'s just a break, you can keep your account. Deleting it disconnects all your members.'**
   String get myWithdrawKeepLeavingWork;
 
   /// No description provided for @myWithdrawKeepAlternative.
   ///
   /// In en, this message translates to:
-  /// **'Leaving removes member records, programs and reports from your console for good.'**
+  /// **'Deleting your account removes member records, programs and reports from your console for good.'**
   String get myWithdrawKeepAlternative;
 
   /// No description provided for @myWithdrawKeepOther.
@@ -6646,7 +6646,7 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawKeepDefault.
   ///
   /// In en, this message translates to:
-  /// **'Leaving removes your member connections and bookings, and your members are notified. This can\'t be undone.'**
+  /// **'Deleting your account removes your member connections and bookings, and your members are notified. This can\'t be undone.'**
   String get myWithdrawKeepDefault;
 
   /// No description provided for @myWithdrawNext.
@@ -6664,7 +6664,7 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawContinue.
   ///
   /// In en, this message translates to:
-  /// **'Continue leaving'**
+  /// **'Continue deleting'**
   String get myWithdrawContinue;
 
   /// No description provided for @workoutKindPersonal.
@@ -7660,7 +7660,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientFeedbackWeeklyNoNote.
   ///
   /// In en, this message translates to:
-  /// **'No note'**
+  /// **'No one-line feedback'**
   String get clientFeedbackWeeklyNoNote;
 
   /// No description provided for @clientFeedbackEmpty.
@@ -8784,7 +8784,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsResendBody.
   ///
   /// In en, this message translates to:
-  /// **'You already sent {name} this report on {date} at {time}. Sending it again delivers a second copy to their chat.'**
+  /// **'You already sent {name} this report on {date} at {time}. Sending it again delivers a second copy to their messages.'**
   String reportsResendBody(String name, String date, String time);
 
   /// No description provided for @reportsResendConfirm.
@@ -8874,7 +8874,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsPreviewDelivery.
   ///
   /// In en, this message translates to:
-  /// **'Sent to {name}\'s chat as a PDF file'**
+  /// **'Sent to {name} as a PDF file in messages'**
   String reportsPreviewDelivery(String name);
 
   /// No description provided for @reportsPreviewEditHint.

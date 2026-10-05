@@ -857,7 +857,7 @@ void main() {
           .data,
       '${week.month}월 ${week.day}일 – ${weekEnd.month}월 ${weekEnd.day}일',
     );
-    expect(find.text('김민수님 채팅으로 PDF 파일이 전송돼요'), findsOneWidget);
+    expect(find.text('김민수님에게 메시지로 PDF 파일이 전송돼요'), findsOneWidget);
     // 보여 주는 것은 전송과 같은 생성기가 입력창의 글로 만든 PDF 다.
     expect(pdf.calls, 1);
     expect(pdf.feedbacks, <String>[draft]);

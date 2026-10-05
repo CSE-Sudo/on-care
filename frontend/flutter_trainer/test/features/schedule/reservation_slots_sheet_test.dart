@@ -322,7 +322,7 @@ void main() {
         ],
       );
 
-      expect(find.text('열린 예약 슬롯이 없어요.'), findsOneWidget);
+      expect(find.text('열린 예약 가능 시간이 없어요.'), findsOneWidget);
     });
 
     testWidgets('회원이 잡아 간 자리가 열려 있는 목록에 바로 반영된다 (#1590)', (tester) async {

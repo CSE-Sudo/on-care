@@ -111,7 +111,7 @@ void main() {
           .widget<Text>(find.byKey(const Key('couponExpireNotice')))
           .data!
           .replaceAll('\u2060', ''),
-      contains('채팅으로 물어보세요'),
+      contains('메시지로 물어보세요'),
     );
     expect(
       find.descendant(

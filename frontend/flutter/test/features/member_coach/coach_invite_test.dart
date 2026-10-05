@@ -267,7 +267,7 @@ void main() {
       );
 
       expect(_inviteDialog('tci-1'), findsOneWidget);
-      expect(find.text('담당 요청이 왔어요'), findsOneWidget);
+      expect(find.text('담당 요청이 도착했어요'), findsOneWidget);
       expect(find.text('김트레이너 트레이너'), findsOneWidget);
       expect(find.text('온케어짐 신촌점 소속'), findsOneWidget);
       expect(find.text('센터에서 뵀던 담당입니다.'), findsOneWidget);

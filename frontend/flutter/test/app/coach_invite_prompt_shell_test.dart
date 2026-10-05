@@ -186,7 +186,7 @@ void main() {
     expect(repository.fetchInviteCalls, greaterThan(1));
     expect(location(), contains(AppRoutes.exercise));
     expect(find.byType(AppDialog), findsNothing);
-    expect(find.text('담당 요청이 왔어요'), findsNothing);
+    expect(find.text('담당 요청이 도착했어요'), findsNothing);
     expect(
       find.byKey(const ValueKey<String>('coach-invite-accept-tci-1')),
       findsNothing,
