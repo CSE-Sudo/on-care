@@ -67,7 +67,9 @@ def register_trainer(
     db.add(trainer)
     db.flush()
 
-    db.add(TrainerProfile(trainer_id=trainer.id))
+    # 가입 화면이 받은 번호를 프로필에 담는다. 스키마가 `010-0000-0000` 으로 맞춘
+    # 값이고, 번호 칸이 없던 옛 빌드는 빈 값이다(MY 에서 넣는다).
+    db.add(TrainerProfile(trainer_id=trainer.id, phone=payload.phone))
     # 가입 화면에서 체크한 동의도 같은 트랜잭션이다(#2819). 목록을 보내지 않은
     # 옛 빌드는 기록 없이 만들어지고, 로그인 직후 동의 화면을 거친다.
     if payload.consents is not None:

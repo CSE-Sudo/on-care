@@ -1610,7 +1610,7 @@ N명이면 첫 화면에서 요청이 2N개였다.
 |---|---|---|
 | POST | `/auth/register/email-code` | `{ email, purpose: "member_signup"\|"trainer_signup" }` → **202** `{ expires_in_minutes, resend_after_seconds }` — 가입 전 이메일 인증 코드(#3038). 가입 여부와 무관하게 같은 응답. 아래 [가입 이메일 인증](#가입-이메일-인증-3038) |
 | POST | `/auth/register` | `{ email, password, name, phone, email_code }` → **201** `{ id, name, email, role: "member" }` — 회원(`role=member`). 이미 가입된 이메일 409, 코드 없음 422 `email_code_required`, 틀린·만료 코드 400 `invalid_email_code`(#3038) |
-| POST | `/auth/trainer/register` | 같은 입력 → **201** `{ id, name, email, role: "trainer" }` — 트레이너(#475). 역할을 요청 필드로 가르지 않으려고 경로를 나눴다. 소속 헬스장은 가입 뒤 `PUT /trainer/me/gym`. 코드는 `purpose=trainer_signup` 으로 받은 것만 맞다 |
+| POST | `/auth/trainer/register` | 같은 입력 → **201** `{ id, name, email, role: "trainer" }` — 트레이너(#475). `phone` 은 회원과 같은 형식으로 받아 트레이너 프로필(`GET /trainer/me` 의 `phone`)에 담는다 — 트레이너 웹 가입 화면은 필수로 받고, 비어 있는 기존 트레이너는 MY 프로필에서 넣는다. 역할을 요청 필드로 가르지 않으려고 경로를 나눴다. 소속 헬스장은 가입 뒤 `PUT /trainer/me/gym`. 코드는 `purpose=trainer_signup` 으로 받은 것만 맞다 |
 | POST | `/auth/login` | form(`application/x-www-form-urlencoded`) `username`(이메일)·`password` → `{ access_token, refresh_token, token_type, consent_required, role }`. 틀리면 401. `role` 은 계정 역할(`member`·`trainer`) — 회원 앱은 저장 전에 보고 트레이너 계정이면 토큰을 폐기하고 트레이너 웹 안내를 보인다(#3137) |
 | POST | `/auth/refresh` | `{ refresh_token }` → 새 `{ access_token, refresh_token, token_type }`(회전). 무효·폐기된 토큰 401 |
 | POST | `/auth/logout` | `{ refresh_token }` → **204**. 그 refresh 토큰을 폐기한다. access 토큰은 요구하지 않고, 못 알아본 토큰에도 204 |
