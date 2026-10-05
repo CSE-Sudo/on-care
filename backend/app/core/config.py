@@ -149,6 +149,15 @@ class Settings(BaseSettings):
     # access_token 의 발급 앱(`/v1/user/access_token_info` 의 app_id)과 같아야 한다.
     # 장소 검색용 KAKAO_REST_API_KEY 와 다른 값이다. 비어 있으면 카카오 로그인은 거부된다.
     kakao_app_id: str = ""
+    # 카카오 웹 로그인(회원 웹·트레이너 웹)의 client_id — 같은 카카오 앱(KAKAO_APP_ID)의
+    # REST API 키 (#330). 로그인 창 주소(kauth.kakao.com/oauth/authorize)에 실려 브라우저에
+    # 보이는 값이라 비밀이 아니다. 앱 빌드도 같은 값을 받는다. 장소 검색용 KAKAO_REST_API_KEY
+    # 와 나눠 두면(콘솔에서 키를 따로 발급) 로그인 키가 보여도 장소 검색 한도는 지켜진다.
+    # 비어 있으면 웹 카카오 로그인의 인가 코드 교환을 거부한다(모바일 로그인은 무관).
+    kakao_login_rest_api_key: str = ""
+    # 위 키의 클라이언트 시크릿 (#330). 콘솔에서 그 키의 "클라이언트 시크릿"을 켰을 때만
+    # 넣는다(켰는데 비우면 카카오가 교환을 거절한다). 서버에만 둔다.
+    kakao_client_secret: str = Field("", repr=False)
 
     # --- 장소(O2O) ---
     # 카카오 Local REST 키. 있으면 실검색, 없으면 시드 폴백(recognizer 팩토리와 같은 철학).
@@ -446,6 +455,16 @@ class Settings(BaseSettings):
     def kakao_app_id_value(self) -> str:
         """허용 카카오 앱 ID(앞뒤 공백 제거, 미설정이면 빈 문자열)."""
         return (self.kakao_app_id or "").strip()
+
+    @property
+    def kakao_login_rest_api_key_value(self) -> str:
+        """카카오 웹 로그인 client_id(앞뒤 공백 제거, 미설정이면 빈 문자열)."""
+        return (self.kakao_login_rest_api_key or "").strip()
+
+    @property
+    def kakao_client_secret_value(self) -> str:
+        """카카오 클라이언트 시크릿(앞뒤 공백 제거, 미설정이면 빈 문자열)."""
+        return (self.kakao_client_secret or "").strip()
 
     @property
     def sqlalchemy_database_url(self) -> str:
