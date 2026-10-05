@@ -28,6 +28,7 @@ GitHub(main push) ─> Backend CI ─> backend-deploy.yml
 마이그레이션은 `scripts/migrate.py` 가 **PostgreSQL advisory lock 으로 직렬화**하므로, 배포 중 새
 태스크와 옛 태스크가 잠깐 함께 떠도 하나만 마이그레이션하고 나머지는 대기 후 no-op 이다(리뷰 #3).
 운영은 `AUTO_CREATE_TABLES=false` 로 두고 Alembic 을 스키마의 유일한 소스로 삼는다.
+파괴적 마이그레이션·스키마 되돌리기·백업은 2-1 "마이그레이션 운영 정책"을 따른다.
 
 > **DB 연결 한도**: `scripts/migrate.py` 는 `MIGRATE_CONNECT_TIMEOUT`(기본 10초) 안에 DB 에 붙지
 > 못하면 실패한다(#2912). 잘못된 호스트·막힌 보안 그룹에서 OS TCP 타임아웃(수 분)까지 기다려 헬스체크
@@ -182,6 +183,117 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
 - **마이그레이션은 되돌리지 않는다.** 그래서 **마이그레이션 호환 규칙**을 지킨다 — 한 배포의 스키마
   변경은 **직전 이미지와도 함께 돌 수 있어야** 한다. 칸·표를 지우거나 이름을 바꿀 때는 (1) 새 코드가
   옛 칸을 더 이상 읽지 않게 배포하고 (2) 다음 배포에서 지운다. NOT NULL 칸을 더할 때는 기본값을 함께 둔다.
+  무엇이 파괴적인지, 어떻게 승인하는지, 스키마를 정말 되돌려야 할 때는 아래 2-1 을 따른다.
+
+## 2-1) 마이그레이션 운영 정책 (#1552)
+
+### 실행 주체와 시점
+
+- **컨테이너가 기동할 때 스스로 실행한다.** 별도 일회성 마이그레이션 작업은 두지 않는다.
+  `scripts/start.sh` 가 uvicorn 보다 먼저 `scripts/migrate.py` 를 부르고, 이것이 `alembic upgrade head` 를
+  실행한다. 배포 워크플로는 스택의 이미지만 바꾸므로, 새 이미지의 첫 태스크가 뜨는 순간이 곧 마이그레이션
+  시점이다. 새 태스크가 마이그레이션하는 동안 **옛 이미지 태스크는 계속 요청을 받는다.**
+- **직렬화**: `migrate.py` 가 PostgreSQL advisory lock 을 잡은 태스크 하나만 alembic 을 돌린다. 다른
+  태스크는 `MIGRATE_LOCK_TIMEOUT`(기본 120초)까지 2초 간격으로 다시 시도하고, 앞 태스크가 끝나면 lock 을
+  잡아 alembic 을 실행한다(이미 head 라 no-op). 한도 안에 lock 을 못 잡으면 그 태스크는 뜨지 않는다.
+- **실패하면 뜨지 않는다(fail-closed).** DB 접속(`MIGRATE_CONNECT_TIMEOUT`, 기본 10초)·lock·alembic 중
+  하나라도 실패하면 `migrate.py` 가 0 이 아닌 값으로 끝나고, `start.sh` 는 `set -e` 라 uvicorn 을 띄우지
+  않는다. 새 태스크가 헬스체크를 통과하지 못하므로 그 배포는 실패하고 직전 이미지로 돌아간다(2절 "되돌리기").
+- **한 번에 하나의 트랜잭션**: `migrations/env.py` 는 밀린 revision 을 모두 한 트랜잭션에서 돌린다
+  (`transaction_per_migration` 미사용). Postgres 는 DDL 도 트랜잭션에 묶이므로, 중간 revision 이 실패하면
+  그 배포에서 적용하려던 revision 전체가 롤백되고 DB 는 배포 전 revision 에 남는다. 이 성질을 깨는
+  마이그레이션(`CREATE INDEX CONCURRENTLY` 같은 `autocommit_block`)은 지금 없고, 넣으려면 이 절을 먼저 고친다.
+- **오래 걸리는 데이터 변환은 피한다.** 마이그레이션이 lock 대기 한도(120초)보다 길어지면 함께 뜬 다른
+  태스크가 기동에 실패한다. 큰 표를 고치는 작업은 마이그레이션 밖의 스크립트(5-4 처럼 같은 이미지의
+  일회성 작업)로 나누고, 마이그레이션에는 스키마 변경만 남긴다.
+
+### 파괴적 마이그레이션
+
+아래 중 하나라도 `upgrade()` 에 있으면 **파괴적**이다 — 직전 이미지가 새 스키마에서 깨지거나, 지운 데이터를
+스키마 되돌리기로 되살릴 수 없다.
+
+| 분류 | 예 |
+|---|---|
+| 표·칸 삭제 | `op.drop_table`, `op.drop_column`, SQL `DROP TABLE`·`DROP COLUMN` |
+| 이름 변경 | `op.rename_table`, `alter_column(new_column_name=…)`, SQL `RENAME` |
+| 타입 축소·변경 | `alter_column(type_=…)`(예: `0018` Integer→Float), SQL `ALTER COLUMN … TYPE` |
+| 제약 강화·제거 | `alter_column(nullable=False)`, 기본값 없는 `add_column(nullable=False)`, `op.drop_constraint`, `op.drop_index`(unique 인덱스면 중복이 다시 들어올 수 있다) |
+| 데이터 삭제·변환 | `op.execute`·`conn.execute` 안의 `DELETE`·`UPDATE`·`TRUNCATE`(예: `0147` 트레이너 AI 스레드 삭제, `0053` 운동 종류 재분류) |
+
+`downgrade()` 안의 삭제는 해당하지 않는다. 표·칸·인덱스를 **더하는** 것, 기본값이 있는 NOT NULL 칸 추가,
+`INSERT` 는 파괴적이지 않다.
+
+### 승인 절차 — 두 번에 나눠 배포한다(expand / contract)
+
+1. **expand 배포**: 새 칸·표를 더하고(파괴적이지 않음), 새 코드가 새 칸에 쓰고 읽게 한다. 옛 칸은 그대로
+   두고 새 코드는 옛 칸을 더 이상 읽지 않는다. 이 배포가 운영에 나가 검증(2절 3단계)을 통과할 때까지 기다린다.
+2. **contract 배포**: 다음 PR 에서 옛 칸·표를 지운다. 이 시점의 직전 이미지는 1번 이미지라 옛 칸이 없어도
+   돈다. 데이터 삭제·변환만 있는 마이그레이션도, 그 데이터를 읽는 코드가 먼저 빠졌는지 같은 방식으로 본다.
+3. 파괴적 마이그레이션이 든 PR 은
+   - PR 본문의 체크박스("파괴적 마이그레이션 …")에 표시하고, 1번이 어느 PR·배포였는지 Notes 에 적는다.
+   - 다음 둘 중 하나로 승인한다.
+     - **파일 주석**(권장): 마이그레이션 파일에 `# destructive-migration: <사유>` 를 한 줄 둔다. 사유는 비울
+       수 없다(예: `# destructive-migration: 옛 칸을 읽지 않는 코드가 #1234 로 먼저 배포됨`). 사유가
+       마이그레이션과 함께 이력에 남는다.
+     - **PR 라벨** `destructive-migration`: 코드를 고치지 않고 PR 화면에서 승인할 때. PR 전체를 승인하므로
+       찾은 곳은 경고로 남는다. 라벨 사유는 PR Notes 에 적는다.
+   - **PR Gate** 의 `Review destructive migrations` 단계(`tool/ci/check_destructive_migrations.py`)가 이 PR 이
+     추가·변경한 `backend/migrations/versions/*.py` 에서 위 표의 연산·SQL 을 찾고, 주석도 라벨도 없으면
+     실패한다. 이미 main 에 있는 마이그레이션은 보지 않는다. 오탐이면 주석에 오탐 사유를 적어 통과시킨다.
+   - PR Gate 는 라벨을 붙이거나 뗄 때도 다시 돈다(`labeled`·`unlabeled`). 필수 검사라 라벨 이름으로 job 을
+     건너뛸 수 없어(skipped 는 통과로 친다) 어떤 라벨이 바뀌어도 gate 전체가 다시 돈다.
+4. 리뷰어는 직전 이미지(지금 운영 이미지)가 새 스키마에서 도는지, 지우는 데이터를 백업 없이 잃어도 되는지를
+   본다. 운영 배포가 재개된 뒤에는 배포 직전 백업(아래)이 통과한 것을 확인하고 병합한다.
+
+### 앱 되돌리기와 스키마 되돌리기
+
+- **앱 되돌리기**는 이미지만 바꾼다(2절 "되돌리기"의 자동·수동). 스키마는 새 revision 에 남으므로, 위
+  두 번 배포 규칙을 지켰다면 직전 이미지가 그대로 돈다. 대부분의 사고는 여기서 끝낸다.
+- **스키마 되돌리기**는 자동으로 하지 않는다. 컨테이너 기동은 `upgrade head` 만 하고 `downgrade` 를 부르지
+  않는다. 정말 필요하면 배포 담당이 직접 한다.
+  1. 배포를 멈춘다(저장소 변수 `BACKEND_DEPLOY_ENABLED` 를 `true` 가 아닌 값으로).
+  2. 같은 이미지의 일회성 작업이나 로컬에서 운영 `DATABASE_URL` 로 `alembic current` 를 확인하고
+     `alembic downgrade <revision>` 을 실행한다.
+  3. 그 revision 에 맞는 이미지로 2절 수동 되돌리기를 한다. 새 이미지가 다시 뜨면 `upgrade head` 로
+     되돌린 revision 을 다시 적용하므로, 원인을 고친 커밋을 배포하기 전까지 배포를 켜지 않는다.
+- `downgrade()` 는 **스키마만** 되돌린다. 지운 칸·행은 빈 칸으로 다시 생길 뿐 값은 돌아오지 않는다
+  (`0016` 의 downgrade 가 그렇고, `0147` 은 아무것도 하지 않는다). 데이터가 필요하면 백업에서 복구한다.
+
+### 백업·복구 — 배포 재개 시 도입
+
+운영 배포는 지금 멈춰 둔 상태라 백업 단계는 아직 없다. 배포를 다시 켤 때 아래 방식으로 넣는다
+(체크리스트는 다음 절).
+
+- **운영 배포 직전마다** 백엔드 이미지로 일회성 ECS 작업을 띄워 `pg_dump --format=custom` 을 실행하고
+  S3 백업 버킷에 올린다. 작업은 서비스와 같은 Secrets Manager 비밀의 `DATABASE_URL`
+  (`infra/backend-service.yml` 의 `Secrets`)을 쓴다 — 운영 DB 자격 증명을 GitHub 에 따로 두지 않는다.
+- **백업이 실패하면 production 배포를 멈춘다.** staging 은 백업하지 않는다.
+- 백업은 AWS 계정(배포 담당) 안에서 끝난다. Neon 계정은 다른 팀원 소유라 Neon 콘솔 조작에 기대지 않는다.
+  Neon 의 기본 시점 복구(PITR)는 덤이다 — 보관 기간은 요금제에 따른다.
+- 복구는 S3 덤프를 `pg_restore` 로 새 DB(로컬 docker Postgres·staging·새 Neon 브랜치)에 푼 뒤 필요한
+  표·행만 옮기거나 `DATABASE_URL` 을 바꾼다. 리허설을 한 번 하기 전까지는 복구 가능하다고 보지 않는다.
+
+### 배포 재개 체크리스트
+
+운영 배포(`BACKEND_DEPLOY_ENABLED=true`)를 다시 켜기 전에 끝낸다. 남은 일은 #1552 에서 추적한다.
+
+- [ ] `infra/backend-environment.yml` 에 백업 S3 버킷을 더한다 — 서버 측 암호화(SSE-S3 또는 KMS),
+      퍼블릭 액세스 전부 차단, TLS 만 허용하는 버킷 정책, 보관 기간(예: 30일) 뒤 자동 삭제 수명 주기 규칙.
+      리전은 백엔드·Neon 과 같은 `ap-southeast-1`.
+- [ ] 백업 작업이 쓰는 역할(`TaskRole` 또는 백업 전용 역할)에 그 버킷의 백업 접두사 `s3:PutObject` 만 준다.
+      배포 역할(`GitHubBackendDeployRole`)에는 그 작업을 띄우는 `ecs:RunTask`·`ecs:DescribeTasks` 와 역할
+      `iam:PassRole` 을 더한다.
+- [ ] 백엔드 `Dockerfile` 에 Neon 의 Postgres 주 버전과 같은(또는 더 새) `postgresql-client` 를 설치한다.
+      `pg_dump` 는 서버보다 옛 버전이면 거부한다 — Neon 버전은 `SELECT version();` 으로 확인한다.
+- [ ] `.github/workflows/backend-deploy-service.yml` 에서 production 일 때만 `Record rollback point` 다음,
+      `Deploy image` 전에 백업 단계를 둔다. 일회성 ECS 작업의 종료 코드가 0 이 아니거나 S3 에 객체가 없으면
+      잡을 실패시켜 배포하지 않는다. 잡 요약에 덤프 객체 키를 남긴다.
+- [ ] 첫 복구 리허설(배포 담당이 직접): S3 의 덤프를 받아 로컬 docker Postgres(`pgvector/pgvector` 이미지,
+      운영과 같은 주 버전)나 staging DB 에 `pg_restore` 하고, `alembic current` 가 운영과 같은지·주요 표의
+      행 수가 맞는지 본다. 걸린 시간을 이 절에 적는다.
+- [ ] `docs/privacy_processing.md` 의 위탁·보관 표에 S3 백업 보관을 더한다(같은 싱가포르 리전, 보관 기간,
+      탈퇴한 회원의 정보가 보관 기간 동안 백업에 남는다는 점).
+- [ ] Neon 계정 주인 팀원에게 지금 요금제의 시점 복구 가능 기간을 확인해 이 절에 적는다.
 
 ## 3) 처음 만들기 (#480)
 
@@ -245,7 +357,7 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
 **production 필수 파라미터(#3131)**: 메일 `MailFrom`·`SmtpHost`. 운영은 가입 이메일 확인을 끌 수 없어(#3038) 메일이
 없으면 가입 인증 코드를 보낼 수 없고 신규 가입이 모두 막히므로, 둘 중 하나라도 비면 서버가 기동을 거부한다.
 
-선택 파라미터: `Cpu`(기본 1024)·`Memory`(기본 2048), `AppleClientIds`·`GoogleClientIds`·`KakaoAppId`(#3035), 메일
+선택 파라미터: `Cpu`(기본 1024)·`Memory`(기본 2048), `GoogleClientIds`·`KakaoAppId`(#3035), 메일
 (`SmtpPort`·`PasswordResetMemberUrl`·`PasswordResetTrainerUrl`, staging 은 `MailFrom`·`SmtpHost` 도 선택), staging 전용
 `AllowDemoFallback`, 기본 VPC 가 아닌 곳에 둘 때 `SubnetIds`·`SecurityGroupIds`.
 
@@ -317,7 +429,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `ACCESS_TOKEN_EXPIRE_MINUTES`·`REFRESH_TOKEN_EXPIRE_DAYS`·`WEB_REFRESH_TOKEN_EXPIRE_DAYS` | `60`·`30`·`7`(#2913·#2828) — 데모 서비스에서 길게 바꾼 값이 운영으로 복사되지 않게 |
 | `AUDIT_RETENTION_DAYS`·`AUDIT_SENSITIVE_RETENTION_DAYS` | `365`·`730`(#2830) — 처리방침 보관 기간과 묶여 있다 |
 | `MAIL_PROVIDER`·`SMTP_STARTTLS`·`SMTP_SSL` | `smtp`·`true`·`false` — `MailFrom` 파라미터를 채웠을 때만 들어간다(#3033). `smtp` 라 서버·발신 주소가 비면 기동이 거부돼 빠뜨린 것이 바로 드러난다. 587 STARTTLS 기준 |
-| `GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID`·`APPLE_CLIENT_IDS` | 스택 파라미터(`GoogleClientIds`·`KakaoAppId`·`AppleClientIds`). 소셜 로그인 허용 `aud`(#3035) — Google 은 iOS·Android·웹 client_id(콤마 구분), 카카오는 콘솔의 숫자 앱 ID(`KAKAO_REST_API_KEY` 와 다른 값), Apple 은 번들 ID·Service ID. **비우면 그 로그인은 401 로 거부**. 네이버 로그인은 서버 측 코드 교환 전까지 501 로 닫혀 있어 설정이 없다 |
+| `GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` | 스택 파라미터(`GoogleClientIds`·`KakaoAppId`). 소셜 로그인 허용 `aud`(#3035) — Google 은 iOS·Android·웹 client_id(콤마 구분), 카카오는 콘솔의 숫자 앱 ID(`KAKAO_REST_API_KEY` 와 다른 값). **비우면 그 로그인은 401 로 거부**. 네이버·애플 로그인은 제공하지 않아 설정이 없다(#3218). |
 | `AI_GLOBAL_CALLS_PER_DAY`·`TRAINER_AI_CALLS_PER_DAY`·`LLM_MAX_OUTPUT_TOKENS` | `0`·`200`·`4096`(#3032) — 서버 전체 하루 AI 호출 합(DB 에서 KST 날짜로 셈, 0 이면 끔, 넘으면 폴백이 있는 기능은 규칙형 폴백·AI 코치 채팅·사진 분석은 503 `ai_capacity` + `Retry-After`)·트레이너 한 계정 하루 AI 호출(넘으면 429 `daily_limit`)·호출 한 번의 출력 토큰 천장. 출시 전 `AI_GLOBAL_CALLS_PER_DAY` 를 공급자 하루 예산 ÷ 호출당 비용으로 바꾼다(#480) |
 
 위 값 중 코드 기본값과 같은 것도 템플릿에 못 박는다(#3034) — 데모 서비스에서 바꾼 값이 운영으로
@@ -337,7 +449,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `PASSWORD_RESET_TRAINER_URL` | 트레이너 웹 재설정 화면 — **해시형** `https://<운영 도메인>/trainer/#/auth/password-reset`. 해시 없는 경로형(`/auth/password-reset`)은 정적 경로를 가리켜 코드가 버려진다. 운영에서 경로형·`http://` 면 기동 로그에 WARN(#3033) |
 
 **스택 파라미터로 정하는 값**: `CORS_ALLOW_ORIGINS`(https 만, `*`·빈 값·localhost 금지 — 운영 기동 거부, #3029), `GEMINI_MODEL`(아래 5-3),
-소셜 로그인 `aud`(`APPLE_CLIENT_IDS`·`GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` — 비우면 그 로그인은 401, #3035), 메일(`MAIL_FROM`·`SMTP_HOST`·`SMTP_PORT`·`PASSWORD_RESET_*_URL`).
+소셜 로그인 `aud`(`GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` — 비우면 그 로그인은 401, #3035), 메일(`MAIL_FROM`·`SMTP_HOST`·`SMTP_PORT`·`PASSWORD_RESET_*_URL`).
 
 그 밖의 키(`LOGIN_MAX_FAILURES` 같은 시도 제한·`SENTRY_ENVIRONMENT`·DB 풀 등)는 코드 기본값이 운영 값이라
 템플릿에 넣지 않았다(사유는 `tests/test_env_aws_example.py`, #3034). 바꿔야 하면 템플릿에 키를 더하고

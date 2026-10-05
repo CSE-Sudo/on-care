@@ -14,11 +14,10 @@ import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/web/leave_guard.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/routine_days_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
-import 'package:oncare_trainer/features/clients/domain/entities/routine_days.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_diet_period_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_exercise_status_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_section.dart';
-import 'package:oncare_trainer/features/clients/presentation/widgets/client_routine_status.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/client_routine_adherence_cards.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/diet_view.dart'
     show ClientDietAnalysisPanel;
 import 'package:oncare_trainer/features/coaching/data/coaching_draft_autosaver.dart';
@@ -2032,7 +2031,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
 /// 본문이 남는 높이를 모두 갖는다.
 class _SectionCard extends StatelessWidget {
   const _SectionCard({
-    super.key,
     required this.title,
     required this.icon,
     required this.child,
@@ -2104,41 +2102,6 @@ class _WeekCompletionBars extends StatelessWidget {
                   if (i < week.length && week[i] == null) i,
               },
             ),
-    );
-  }
-}
-
-/// 개인운동 이행 — 지금 걸린 개인운동을 보낸 날부터 7칸. (#2509)
-///
-/// 다음 프로그램을 짜는 자리에서 지난 개인운동을 회원이 매일 했는지 본다.
-/// 지금 걸린 개인운동이 없으면 카드를 두지 않는다(기한 없는 따로 배정만 있는
-/// 회원도 그렇다 — 칸의 시작점인 "보낸 날" 이 없다).
-class _RoutineAdherenceCard extends ConsumerWidget {
-  const _RoutineAdherenceCard({required this.clientId});
-
-  final String clientId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final RoutineDaysKey key = routineDaysKeyNow(clientId);
-    final RoutineDays? days = ref
-        .watch(clientRoutineDaysProvider(key))
-        .valueOrNull;
-    final RoutineDayGroup? group = days?.currentPersonal(key.day);
-    if (days == null || group == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: OnCareSpacing.s12),
-      child: _SectionCard(
-        key: ValueKey<String>('program-routine-adherence-card-$clientId'),
-        title: l.coachRoutineAdherenceTitle,
-        icon: AppIcons.personalRoutine,
-        child: ClientRoutineAdherenceStrip(
-          days: days,
-          group: group,
-          today: key.day,
-        ),
-      ),
     );
   }
 }
@@ -2248,29 +2211,35 @@ class _ClientDataSwitcherState extends ConsumerState<_ClientDataSwitcher> {
             topGap: OnCareSpacing.s12,
           ),
         ] else ...<Widget>[
-          // 요약 → 상세 순이다(#2509): 운동 현황(그래프) → 주간 운동 이행률 →
-          // 개인운동 이행 → 운동 기록. 예전에는 운동 기록이 운동 현황 카드 안
-          // 그래프 아래 붙어 있어, 이행률보다 먼저 긴 목록을 지나야 했다.
+          // 운동 현황(그래프 + 그 아래 운동 기록) → 주간 운동 이행률 → 개인운동
+          // 이행. 운동 기록은 접힌 기본이 최근 1건이라 그래프 카드 안에 둔다.
           ClientExerciseStatusCard(
             key: ValueKey<String>('program-workout-${widget.client.id}'),
             clientId: widget.client.id,
             period: _period,
+            showRecords: true,
           ),
           const SizedBox(height: OnCareSpacing.s12),
           _WeekCompletionBars(client: widget.client),
-          _RoutineAdherenceCard(clientId: widget.client.id),
-          const SizedBox(height: OnCareSpacing.s12),
-          _SectionCard(
-            key: ValueKey<String>(
-              'program-workout-records-${widget.client.id}',
-            ),
-            title: l.workoutRecords,
-            icon: AppIcons.exercise,
-            child: ClientWorkoutRecordsDetail(
+          // 개인운동 이행은 회원 상세 운동 탭과 같은 카드다(#3004) — 기간
+          // 토글과 같은 기간을 말한다. `오늘` 은 회원 상세처럼 카드를 두지
+          // 않는다 — 오늘 걸린 개인운동은 위 `운동 기록` 맨 위가 말한다.
+          if (_period == ClientPeriod.week)
+            ClientWeekRoutineAdherenceCard(
               clientId: widget.client.id,
-              period: _period,
+              cardKey: ValueKey<String>(
+                'program-routine-adherence-card-${widget.client.id}',
+              ),
+              padding: const EdgeInsets.only(top: OnCareSpacing.s12),
             ),
-          ),
+          if (_period == ClientPeriod.month)
+            ClientAllRoutineAdherenceCard(
+              clientId: widget.client.id,
+              cardKey: ValueKey<String>(
+                'program-routine-all-card-${widget.client.id}',
+              ),
+              padding: const EdgeInsets.only(top: OnCareSpacing.s12),
+            ),
         ],
       ],
     );

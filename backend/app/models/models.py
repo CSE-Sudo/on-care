@@ -11,7 +11,7 @@ ORM 모델 — 프론트 계약(LocalApiInterceptor + drift 스키마)에 맞춤
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
@@ -1165,7 +1165,7 @@ class SocialAccount(Base):
     )
     provider: Mapped[str] = mapped_column(
         String(20), index=True
-    )  # kakao|google|naver|apple
+    )  # kakao|google — 지난 provider 값(naver·apple)도 받는 자유 문자열(#3218)
     provider_user_id: Mapped[str] = mapped_column(String(128))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

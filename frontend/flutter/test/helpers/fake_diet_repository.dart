@@ -39,7 +39,7 @@ class FakeDietRepository implements DietRepository {
       carbsG: 10,
       proteinG: 13.5,
       fatG: 14.5,
-      photoAsset: 'assets/images/breakfast-scrambled-egg-strawberry.jpg',
+      photoAsset: 'assets/demo/images/breakfast-scrambled-egg-strawberry.jpg',
       aiComment: '단백질과 식이섬유의 깔끔한 조합으로, 소금 간과 기름만 조절하면 혈당과 혈압 모두 잡는 우수한 식단입니다.',
       foods: <FoodItem>[
         // 섭취량을 아는 음식과 모르는 음식을 한 끼니에 함께 둔다 — 서버가
@@ -80,7 +80,7 @@ class FakeDietRepository implements DietRepository {
       carbsG: 107,
       proteinG: 29,
       fatG: 22.5,
-      photoAsset: 'assets/images/lunch-jjamppong.jpg',
+      photoAsset: 'assets/demo/images/lunch-jjamppong.jpg',
       aiComment: '정제 면과 높은 나트륨으로 혈압·혈당 부담이 매우 크니, 국물은 남기고 야채 위주로 드시는 것이 좋습니다.',
       foods: <FoodItem>[
         FoodItem(
@@ -104,7 +104,7 @@ class FakeDietRepository implements DietRepository {
       carbsG: 3,
       proteinG: 2.5,
       fatG: 8,
-      photoAsset: 'assets/images/snack-coffee-nuts.jpg',
+      photoAsset: 'assets/demo/images/snack-coffee-nuts.jpg',
       aiComment: '당류와 칼로리가 낮고 견과류의 건강한 지방이 채워져 완벽한 간식입니다.',
       foods: <FoodItem>[
         FoodItem(
@@ -512,7 +512,7 @@ const List<DietEntry> _yesterdayEntries = <DietEntry>[
     carbsG: 69,
     proteinG: 11.3,
     fatG: 6.4,
-    photoAsset: 'assets/images/diet-oatmeal-banana.jpeg',
+    photoAsset: 'assets/demo/images/diet-oatmeal-banana.jpeg',
     aiComment: '오트밀로 식이섬유를 챙겼어요. 바나나가 들어가 당류는 다소 높은 편이에요.',
     foods: <FoodItem>[
       FoodItem(
@@ -545,7 +545,7 @@ const List<DietEntry> _yesterdayEntries = <DietEntry>[
     carbsG: 19,
     proteinG: 34,
     fatG: 11.1,
-    photoAsset: 'assets/images/diet-chicken-salad.jpg',
+    photoAsset: 'assets/demo/images/diet-chicken-salad.jpg',
     aiComment: '닭가슴살과 채소로 단백질과 식이섬유를 고르게 섭취했어요.',
     foods: <FoodItem>[
       FoodItem(
@@ -569,7 +569,7 @@ const List<DietEntry> _yesterdayEntries = <DietEntry>[
     carbsG: 85,
     proteinG: 30,
     fatG: 17.5,
-    photoAsset: 'assets/images/diet-doenjang-rice.jpeg',
+    photoAsset: 'assets/demo/images/diet-doenjang-rice.jpeg',
     aiComment: '밥과 찌개를 함께 섭취해 포만감은 좋지만 국물은 조금 남기면 좋아요.',
     foods: <FoodItem>[
       FoodItem(
@@ -605,7 +605,7 @@ const List<DietEntry> _twoDaysAgoEntries = <DietEntry>[
     carbsG: 14,
     proteinG: 23,
     fatG: 21,
-    photoAsset: 'assets/images/diet-greek-yogurt-nuts.jpeg',
+    photoAsset: 'assets/demo/images/diet-greek-yogurt-nuts.jpeg',
     aiComment: '그릭 요거트의 단백질과 견과류의 불포화지방을 고르게 섭취했어요.',
     foods: <FoodItem>[
       FoodItem(
@@ -638,7 +638,7 @@ const List<DietEntry> _twoDaysAgoEntries = <DietEntry>[
     carbsG: 92,
     proteinG: 20,
     fatG: 16,
-    photoAsset: 'assets/images/diet-vegetable-bibimbap.jpg',
+    photoAsset: 'assets/demo/images/diet-vegetable-bibimbap.jpg',
     aiComment: '야채가 풍부한 비빔밥이에요. 고추장을 줄이면 나트륨을 더 조절할 수 있어요.',
     foods: <FoodItem>[
       FoodItem(
@@ -662,7 +662,7 @@ const List<DietEntry> _twoDaysAgoEntries = <DietEntry>[
     carbsG: 77,
     proteinG: 41,
     fatG: 21,
-    photoAsset: 'assets/images/diet-salmon-brown-rice.jpeg',
+    photoAsset: 'assets/demo/images/diet-salmon-brown-rice.jpeg',
     aiComment: '연어의 지방과 현미밥의 복합 탄수화물 조합이 좋아요.',
     foods: <FoodItem>[
       FoodItem(

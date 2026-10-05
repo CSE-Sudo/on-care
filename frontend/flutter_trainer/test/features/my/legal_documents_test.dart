@@ -111,7 +111,7 @@ void main() {
         at: AppRoutes.legalDocument('terms'),
       );
 
-      // 처리방침만 연락처 변경(#3132)으로 시행일이 올랐다 — 약관은 그대로다.
+      // 처리방침만 연락처 변경(#3132)·위치정보 안내(#3136)로 시행일이 올랐다 — 약관은 그대로다.
       expect(find.text('시행일 2026. 10. 03.'), findsWidgets);
       expect(find.text('시행일 2026. 10. 05.'), findsNothing);
       expect(find.text('시행일 2026. 10. 01.'), findsNothing);

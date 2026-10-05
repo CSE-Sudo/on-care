@@ -97,6 +97,17 @@ class ProductionWebBuildTest(unittest.TestCase):
                 self.assertNotIn("SHOW_DEMO_ENTRY", step)
                 self.assertNotIn("REAL_API", step)
 
+    def test_builds_check_defines_before_building(self) -> None:
+        # 데모·목업 값이 섞인 운영 빌드를 빌드 전에 막는다(#3147). 검사한 인자
+        # 배열 그대로 빌드해야 검사와 빌드가 어긋나지 않는다.
+        check = 'check_web_release_defines.sh" "${args[@]}"'
+        build = 'flutter build web "${args[@]}"'
+        for step in self.builds:
+            with self.subTest(step=step.splitlines()[0]):
+                self.assertIn(check, step)
+                self.assertIn(build, step)
+                self.assertLess(step.index(check), step.index(build))
+
     def test_each_app_reads_its_own_dsn_secret(self) -> None:
         secrets = {}
         for step in self.builds:

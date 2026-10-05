@@ -20,19 +20,23 @@ const List<(String, List<String>, List<String>)> demoCautionRules =
       (
         '무릎',
         <String>['무릎', '슬개', '반월'],
-        <String>['러닝', '달리기', '점프', '스쿼트', '런지', '계단'],
+        <String>['러닝', '런닝', '달리기', '점프', '스쿼트', '런지', '계단'],
       ),
       (
         '허리',
         <String>['허리', '요추', '디스크'],
-        <String>['데드리프트', '윗몸', '점프', '러닝', '달리기'],
+        <String>['데드리프트', '윗몸', '점프', '러닝', '런닝', '달리기'],
       ),
       (
         '어깨',
         <String>['어깨', '회전근', '견관절'],
         <String>['숄더', '오버헤드', '푸시업', '벤치', '풀업'],
       ),
-      ('발목', <String>['발목', '족저'], <String>['러닝', '달리기', '점프', '줄넘기', '계단']),
+      (
+        '발목',
+        <String>['발목', '족저'],
+        <String>['러닝', '런닝', '달리기', '점프', '줄넘기', '계단'],
+      ),
     ];
 
 /// 이 말이 보이면 강도를 올리지 않고 전문가 확인을 권한다. 서버
@@ -79,6 +83,7 @@ const List<String> demoStretchKeywords = <String>['스트레칭', '요가', '폼
 const List<String> demoCardioKeywords = <String>[
   '걷기',
   '러닝',
+  '런닝',
   '자전거',
   '유산소',
   '인터벌',
@@ -183,6 +188,8 @@ String guessExerciseType(String name) {
 /// `걷기 ✓` 가 따로 세어진다. **안 한 운동(✗)은 빈 이름**이라 반복으로 세지
 /// 않는다.
 String historyExerciseName(Object? item) {
+  // 값으로 적힌 기록은 `done: false` 가 안 한 운동이다 — 문장의 `✗` 와 같다.
+  if (item is Map && item['done'] == false) return '';
   final Object? raw = item is Map ? item['name'] : item;
   if (raw is! String || raw.contains('✗')) return '';
   return raw
