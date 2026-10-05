@@ -13,6 +13,7 @@ from typing import Annotated, Any, ClassVar, Literal, TypeVar
 from pydantic import (
     BaseModel,
     BeforeValidator,
+    ConfigDict,
     Field,
     field_validator,
     model_validator,
@@ -710,6 +711,23 @@ class RoutineOut(BaseModel):
     delivery_kind: RoutineDeliveryKind | None = None
     #: 전송에 붙인 회원에게 한마디. 선택 입력이라 보통 빈 문자열이다(#2223).
     trainer_message: str = ""
+
+
+class UpcomingRoutinesOut(BaseModel):
+    """GET /me/coach/routines/upcoming — 아직 시작하지 않은 개인운동 한 묶음. (#3106)
+
+    트레이너가 `개인운동만` 을 미래 시작일로 보내면(#2656) 알림은 바로 가지만, 그날
+    목록(`/me/coach/routines`)은 시작일부터 그 운동을 싣는다. 회원 앱은 이 값으로
+    오늘 목록 아래에 `8/22(토)부터 · 빠르게 걷기 · …` 한 줄을 둔다. 둘 이상이면
+    가장 최근에 보낸 것 하나다.
+    """
+
+    #: 걸리기 시작하는 날 — 이날부터 그날 목록에 들어 체크할 수 있다.
+    starts_on: _date
+    #: 트레이너가 보낸 날.
+    sent_on: _date
+    #: 묶음의 운동 이름(배정 순서).
+    names: list[str]
 
 
 class RoutineCompleteOut(RoutineOut):
@@ -2064,6 +2082,67 @@ class TrainerKakaoGymSelect(BaseModel):
     """
     kakao_place_id: str = Field(min_length=1, max_length=30, pattern=r"^\d+$")
     name: str = Field(min_length=1, max_length=200)
+
+
+#: 헬스장 태그 개수·길이 상한(#2700). 회원 앱 목록 카드에 칩으로 한 줄 남짓 그려지는
+#: 값이라 길게 받을 이유가 없다.
+GYM_TAGS_MAX = 10
+GYM_TAG_MAX_LENGTH = 20
+
+
+class TrainerGymProfileOut(BaseModel):
+    """GET·PUT /trainer/me/gym/profile — 소속 헬스장의 부가 정보. (#2700)
+
+    회원 앱 헬스장 목록·상세(`GymOut`)에 그대로 나가는 값이다. 평점은 트레이너가
+    고치는 값이 아니라 싣지 않는다.
+    """
+    gym_id: str
+    name: str
+    weekday_hours: str
+    weekend_hours: str
+    phone: str
+    tags: list[str]
+
+
+class TrainerGymProfileUpdate(PartialUpdate):
+    """PUT /trainer/me/gym/profile — 소속 헬스장 부가 정보 부분 수정. (#2700)
+
+    보낸 칸만 바꾼다. 빈 문자열은 "비운다"이고, null 은 422 다(`PartialUpdate`).
+    길이 상한은 `gym_profiles` 컬럼 길이와 같다 — 넘치면 DB 가 막는다.
+
+    **평점은 받지 않는다.** 트레이너가 자기 헬스장 평점을 적게 두면 그 값은 평점이
+    아니다. 보내도 모르는 키로 버려지지 않게 422 로 막는다(`extra="forbid"`).
+    """
+    model_config = ConfigDict(extra="forbid")
+
+    weekday_hours: str | None = Field(default=None, max_length=50)
+    weekend_hours: str | None = Field(default=None, max_length=50)
+    #: 헬스장 대표번호 — 휴대전화 규칙(`normalize_phone`)을 걸지 않는다(#1914,
+    #: `TrainerMeUpdate.gym_phone` 주석). `02-332-1720` 같은 정상 번호가 막힌다.
+    phone: str | None = Field(default=None, max_length=20)
+    tags: list[str] | None = Field(default=None, max_length=GYM_TAGS_MAX)
+
+    @field_validator("weekday_hours", "weekend_hours", "phone")
+    @classmethod
+    def _strip(cls, value: str | None) -> str | None:
+        return value.strip() if isinstance(value, str) else value
+
+    @field_validator("tags")
+    @classmethod
+    def _clean_tags(cls, value: list[str] | None) -> list[str] | None:
+        """앞뒤 공백을 걷고, 빈 태그는 422, 같은 태그는 처음 것만 남긴다."""
+        if value is None:
+            return value
+        cleaned: list[str] = []
+        for raw in value:
+            tag = raw.strip()
+            if not tag:
+                raise ValueError("빈 태그는 저장할 수 없습니다.")
+            if len(tag) > GYM_TAG_MAX_LENGTH:
+                raise ValueError(f"태그는 {GYM_TAG_MAX_LENGTH}자 이하로 입력하세요.")
+            if tag not in cleaned:
+                cleaned.append(tag)
+        return cleaned
 
 
 # ---- 주간 리포트 (트레이너 → 회원) ----

@@ -21,7 +21,7 @@ from app.models.models import (
     TrainerReservationSlot,
     TrainerSchedule,
 )
-from app.services import notification_service, reservation_service
+from app.services import notification_service, notification_templates, reservation_service
 from app.services.trainer import _common as trainer_common_service
 from app.services.trainer import schedule as trainer_schedule_service
 
@@ -407,7 +407,9 @@ def test_api_moving_booked_slot_notifies_member(client, db_session, created_slot
     notices = _changed_notices(db_session)
     assert len(notices) == before + 1
     date, time = _local(moved)
-    assert f"{date} {time} · 1:1 PT" in {row.body for row in notices}
+    # 알림 본문 날짜는 알림 틀의 `10월 1일` 꼴이다(#3120) — 같은 규칙으로 만든다.
+    shown = notification_templates._day(date, "ko")
+    assert f"{shown} {time} · 1:1 PT" in {row.body for row in notices}
     schedule = db_session.get(TrainerSchedule, booked["schedule_id"])
     assert (schedule.date, schedule.time) == (date, time)
 

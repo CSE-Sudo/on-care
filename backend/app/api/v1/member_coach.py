@@ -26,7 +26,7 @@ from app.schemas.trainer_api import (
     ChatMessageOut, ChatSendRequest, MemberClientInviteOut,
     MemberCoachOut, MemberInviteAcceptRequest, MemberWeeklyFeedbackOut,
     MemberWeeklyFeedbackSaveRequest, RoutineCompleteOut, RoutineOut,
-    ScheduleSessionOut, WeeklyReportOut,
+    ScheduleSessionOut, UpcomingRoutinesOut, WeeklyReportOut,
 )
 from app.services import (
     emote_service,
@@ -123,6 +123,23 @@ def my_routines(
         return trainer_member_mirror_service.build_member_routines(db, current_user.id, day)
     except trainer_common_service.RoutineDayInFuture as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.get(
+    "/me/coach/routines/upcoming", response_model=UpcomingRoutinesOut | None
+)
+def my_upcoming_routines(
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> UpcomingRoutinesOut | None:
+    """아직 시작하지 않은 개인운동 한 묶음 — 없으면 `null`. (#3106)
+
+    미래 시작일로 받은 `개인운동만` 은 시작일 전까지 그날 목록에 없다. 회원 앱은
+    이 값으로 오늘 목록 아래에 `8/22(토)부터 · …` 한 줄을 둔다. 체크는 시작일부터다.
+    """
+    return trainer_member_mirror_service.build_member_upcoming_routines(
+        db, current_user.id
+    )
 
 
 @router.post(

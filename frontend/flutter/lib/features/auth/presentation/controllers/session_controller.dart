@@ -113,7 +113,8 @@ class SessionController extends StateNotifier<SessionState>
     _ref.read(sessionFeatureResetProvider)();
   }
 
-  /// 첫 설정 기기 기록을 지운다 — 계정 경계를 넘을 때마다 부른다. (#2630)
+  /// 첫 설정 기기 기록을 지운다 — 새 토큰으로 로그인할 때 부른다. (#2630)
+  /// 세션이 끝날 때는 홈 가이드까지 지우는 [_forgetAccountRecords] 를 쓴다.
   ///
   /// 그 기록은 프로필을 못 받아 왔을 때 "이 계정은 이미 끝냈다" 로 쓰는 보조
   /// 판단이다. 기기 전체에 하나로 남으면 앞 계정의 기록이 다음 계정의 판단에
@@ -124,6 +125,21 @@ class SessionController extends StateNotifier<SessionState>
       await _ref.read(appPrefsProvider).forgetOnboardingDone();
     } catch (_) {
       // 설정 저장소가 없거나 쓰기에 실패해도 세션 전환은 막지 않는다.
+    }
+  }
+
+  /// 계정에 매인 기기 기록(첫 설정·홈 가이드)을 모두 지운다 — 세션이 끝나는
+  /// 길(로그아웃·만료·갱신 거부)마다 부른다. (#3154)
+  ///
+  /// 다음에 이 기기로 들어오는 사람이 같은 계정이라는 보장이 없다. 첫 설정 기록만
+  /// 지우면 앞 계정이 끝낸 홈 가이드 기록이 남아, 다른 계정으로 로그인한 새
+  /// 회원이 첫 사용 안내를 한 번도 보지 못한다. 언어와 설치 표식은 기기의 것이라
+  /// 남는다([AppPrefs.clearAccountScoped]).
+  Future<void> _forgetAccountRecords() async {
+    try {
+      await _ref.read(appPrefsProvider).clearAccountScoped();
+    } catch (_) {
+      // 설정 저장소가 없거나 쓰기에 실패해도 로그아웃은 막지 않는다.
     }
   }
 
@@ -323,7 +339,7 @@ class SessionController extends StateNotifier<SessionState>
       await _ref.read(secureTokenStoreProvider).clear();
     } catch (_) {}
     if (!mounted || _userActionStarted) return;
-    await _forgetDeviceFirstRun();
+    await _forgetAccountRecords();
     if (!mounted || _userActionStarted) return;
     _setToken(null);
     state = const SessionState(status: SessionStatus.signedOut);
@@ -544,12 +560,13 @@ class SessionController extends StateNotifier<SessionState>
 
   /// 저장된 토큰을 지우고, 회원별 화면 상태를 비우고, 로그인 화면으로 보낸다.
   ///
-  /// 로그아웃과 실행 중 만료(#1546)가 함께 쓰는 마지막 단계다.
+  /// 로그아웃과 실행 중 만료(#1546)가 함께 쓰는 마지막 단계다. 계정에 매인
+  /// 기기 기록도 여기서 지운다(#3154).
   Future<void> _closeSession() async {
     try {
       await _ref.read(secureTokenStoreProvider).clear();
     } catch (_) {}
-    await _forgetDeviceFirstRun();
+    await _forgetAccountRecords();
     if (!mounted) return;
     _setToken(null);
     _resetFeatureState();

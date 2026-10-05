@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!-- 회원 앱 실행 화면(#3153). Flutter 가 첫 화면을 그리기 전까지 흰 바탕 가운데에
+     앱 로고를 둔다 — 첫 화면(모바일 페이지 배경 흰색)과 그대로 이어진다.
+     로고는 assets/images/oncare-logo.png 를 밀도별(120dp)로 줄인 drawable-*/launch_image.png 다.
+     Android 12 이상은 이 그림 대신 values-v31 의 windowSplashScreen* 를 쓴다. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/white" />
-
-    <!-- You can insert your own image assets here -->
-    <!-- <item>
+    <item android:drawable="@color/launch_background" />
+    <item>
         <bitmap
             android:gravity="center"
-            android:src="@mipmap/launch_image" />
-    </item> -->
+            android:src="@drawable/launch_image" />
+    </item>
 </layer-list>

@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 스케줄·리포트 탭의 주 이동 — `‹  [   ]  8월 31일 – 9월 6일  [오늘]  ›` (#2536).
+/// 스케줄·리포트 탭의 주 이동 — `‹  [   ]  8월 31일 ~ 9월 6일  [오늘]  ›` (#2536).
 ///
 /// **두 화살표가 자리를 지킨다.** 날짜는 고정 폭 자리([dateSlot])에 서고,
 /// `오늘` 은 두 화살표 **안쪽**, 날짜 오른쪽의 고정 폭 자리([todaySlot])에
-/// 앉는다. 주를 넘겨 날짜 문구가 길어지거나(`12월 28일 – 1월 3일`) `오늘` 이
+/// 앉는다. 주를 넘겨 날짜 문구가 길어지거나(`12월 28일 ~ 1월 3일`) `오늘` 이
 /// 나타나고 사라져도 화살표는 움직이지 않는다 — 날짜 폭만큼 사이가 벌어지던
 /// 때에는 같은 버튼을 누르려고 매번 다른 자리를 겨눠야 했다(#1009, #1295).
 ///
@@ -28,7 +28,7 @@ class WeekRangeNav extends StatelessWidget {
     this.nextKey,
   });
 
-  /// 보고 있는 주(`8월 31일 – 9월 6일`).
+  /// 보고 있는 주(`8월 31일 ~ 9월 6일`).
   final String label;
   final String previousTooltip;
   final String nextTooltip;
@@ -43,7 +43,7 @@ class WeekRangeNav extends StatelessWidget {
   final Key? previousKey;
   final Key? nextKey;
 
-  /// 날짜 자리의 폭 — 가장 긴 형식(`12월 28일 – 1월 3일`)이 들어가는 폭이다.
+  /// 날짜 자리의 폭 — 가장 긴 형식(`12월 28일 ~ 1월 3일`)이 들어가는 폭이다.
   /// 큰 글자 배율에서는 글자가 이 안에서 줄어든다.
   static const double dateSlot = 150;
 

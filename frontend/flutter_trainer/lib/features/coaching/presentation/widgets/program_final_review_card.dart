@@ -30,9 +30,12 @@ Future<ProgramAssignConfirmation?> showProgramAssignConfirmDialog(
     context: context,
     builder: (dialogContext) {
       final AppLocalizations l = AppLocalizations.of(dialogContext);
+      // 시각은 24시간제 — 예약 슬롯 창(`10:00 – 11:00`)과 같다(#3120).
+      final MaterialLocalizations m = MaterialLocalizations.of(dialogContext);
       final selectedRange =
-          '${registerStartTime.format(dialogContext)} – '
-          '${registerEndTime.format(dialogContext)}';
+          '${m.formatTimeOfDay(registerStartTime, alwaysUse24HourFormat: true)}'
+          ' – '
+          '${m.formatTimeOfDay(registerEndTime, alwaysUse24HourFormat: true)}';
       final TextStyle bodyStyle = dialogContext.oncare
           .text(OnCareTypography.bodySmall)
           .copyWith(color: OnCareColors.textSecondary);

@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/licenses.dart';
 import 'package:oncare_trainer/app/app.dart';
 import 'package:oncare_trainer/app/misconfigured_build_page.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
@@ -20,6 +21,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// asynchronously from secure storage once the tree is up.
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // 앱에 담긴 Pretendard 글꼴(OFL)을 오픈소스 라이선스 목록에 넣는다(#3150).
+  // 패키지 라이선스는 Flutter 가 모으지만 글꼴 같은 자산은 직접 넣어야 한다.
+  registerBundledLicenses();
 
   final config = AppConfig.fromEnvironment();
 
@@ -50,8 +54,13 @@ Future<void> bootstrap() async {
   // drift-backed local backend. 데모 모드에서만 시드한다(#2914) — drift 를 읽는
   // 저장소가 전부 `useMockApi` 분기 안에서만 만들어져, 실서버 빌드가 시드하면
   // 아무도 읽지 않는 데모 행을 기기에 써 넣기만 한다.
+  //
+  // 시드 함수는 기본 인자로 물려 있어, 상수 [kDemoCodeIncluded] 로 호출 자체를
+  // 감싸야 운영 릴리스 번들에서 시드가 빠진다(#3157).
   final db = AppDatabase();
-  await seedDemoStorage(config, db, prefs, demoLanguage);
+  if (kDemoCodeIncluded) {
+    await seedDemoStorage(config, db, prefs, demoLanguage);
+  }
 
   // 전역 오류 처리기. 보고와 별개로 콘솔에도 남긴다.
   installErrorHandlers(

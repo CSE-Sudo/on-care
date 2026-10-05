@@ -11,6 +11,7 @@ import 'package:oncare/features/dashboard/presentation/controllers/dashboard_con
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/controllers/location_consent_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_feedback_providers.dart';
@@ -98,6 +99,10 @@ Override sessionFeatureResetOverride() {
       ref.invalidate(notificationSettingsProvider);
       // 벨의 빨간 점. 되짚지 않으면 다음 폴링까지 앞 계정의 점이 남는다(#1936).
       ref.invalidate(notificationUnreadProvider);
+      // 위치정보 이용 동의(#3136)는 계정 단위다. 되짚지 않으면 앞 계정의 동의로
+      // 다음 계정의 위치를 읽는다. 저장소는 데모 판별을 따라 저절로 바뀐다.
+      ref.invalidate(locationConsentProvider);
+      ref.invalidate(locationConsentPromptedProvider);
     };
   });
 }

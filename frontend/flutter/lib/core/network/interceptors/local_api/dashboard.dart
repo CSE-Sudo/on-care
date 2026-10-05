@@ -181,6 +181,12 @@ extension _LocalApiDashboard on LocalApiInterceptor {
   }
 }
 
+/// 천 단위 쉼표(2100 → `2,100`). 서버 f-string `{n:,}` 과 같다.
+String _thousands(int value) => value.toString().replaceAllMapped(
+  RegExp(r'\B(?=(\d{3})+(?!\d))'),
+  (Match _) => ',',
+);
+
 /// 홈 나트륨 경고 — 서버 `dashboard._build_sodium_warning` 과 같은 문장.
 /// 목표 안이면 null. 음식 이름은 회원이 적은 데이터라 번역하지 않는다.
 String? _homeSodiumWarning({
@@ -192,9 +198,13 @@ String? _homeSodiumWarning({
   if (totalSodium <= sodiumGoal) return null;
   final bool en = lang == 'en';
   if (sourceNames.isEmpty) {
+    // 서버 `_build_sodium_warning` 과 같은 모양 — 천 단위 쉼표, 한국어는 단위에
+    // 조사를 붙이고 영어는 단위를 띄운다(#3120).
+    final String total = _thousands(totalSodium);
+    final String goal = _thousands(sodiumGoal);
     return en
-        ? 'Sodium is at ${totalSodium}mg today, over your goal (${sodiumGoal}mg).'
-        : '오늘 나트륨이 ${totalSodium}mg 으로 목표(${sodiumGoal}mg)를 넘었어요.';
+        ? 'Sodium is at $total mg today, over your goal ($goal mg).'
+        : '오늘 나트륨이 ${total}mg으로 목표(${goal}mg)를 넘었어요.';
   }
   return en
       ? 'Sodium is high from ${sourceNames.join(' and ')}.'

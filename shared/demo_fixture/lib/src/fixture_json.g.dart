@@ -221,7 +221,7 @@ const String kimMinsuFixtureJson = r'''
     "breakfast-oatmeal-banana": {
       "mealType": "breakfast",
       "timeLabel": "08:05",
-      "photoAsset": "assets/images/diet-oatmeal-banana.jpeg",
+      "photoAsset": "assets/demo/images/diet-oatmeal-banana.jpeg",
       "aiComment": "오트밀로 식이섬유를 챙긴 아침이에요.",
       "foods": [
         "oatmeal",
@@ -231,7 +231,7 @@ const String kimMinsuFixtureJson = r'''
     "breakfast-greek-yogurt-nuts": {
       "mealType": "breakfast",
       "timeLabel": "08:30",
-      "photoAsset": "assets/images/diet-greek-yogurt-nuts.jpeg",
+      "photoAsset": "assets/demo/images/diet-greek-yogurt-nuts.jpeg",
       "aiComment": "단백질과 불포화지방을 고르게 섭취했어요.",
       "foods": [
         "greek-yogurt",
@@ -241,7 +241,7 @@ const String kimMinsuFixtureJson = r'''
     "breakfast-egg-strawberry": {
       "mealType": "breakfast",
       "timeLabel": "07:50",
-      "photoAsset": "assets/images/breakfast-scrambled-egg-strawberry.jpg",
+      "photoAsset": "assets/demo/images/breakfast-scrambled-egg-strawberry.jpg",
       "aiComment": "달걀 단백질에 과일로 비타민을 더했어요.",
       "foods": [
         "scrambled-egg",
@@ -251,7 +251,7 @@ const String kimMinsuFixtureJson = r'''
     "lunch-chicken-salad": {
       "mealType": "lunch",
       "timeLabel": "12:30",
-      "photoAsset": "assets/images/diet-chicken-salad.jpg",
+      "photoAsset": "assets/demo/images/diet-chicken-salad.jpg",
       "aiComment": "닭가슴살과 채소로 단백질·식이섬유를 챙겼어요.",
       "foods": [
         "chicken-salad"
@@ -260,7 +260,7 @@ const String kimMinsuFixtureJson = r'''
     "lunch-bibimbap": {
       "mealType": "lunch",
       "timeLabel": "12:20",
-      "photoAsset": "assets/images/diet-vegetable-bibimbap.jpg",
+      "photoAsset": "assets/demo/images/diet-vegetable-bibimbap.jpg",
       "aiComment": "야채가 풍부해요. 고추장을 줄이면 나트륨이 더 좋아져요.",
       "foods": [
         "bibimbap"
@@ -269,7 +269,7 @@ const String kimMinsuFixtureJson = r'''
     "lunch-jjamppong": {
       "mealType": "lunch",
       "timeLabel": "12:50",
-      "photoAsset": "assets/images/lunch-jjamppong.jpg",
+      "photoAsset": "assets/demo/images/lunch-jjamppong.jpg",
       "aiComment": "국물 나트륨이 높은 날이에요. 국물은 남기는 편이 좋아요.",
       "foods": [
         "jjamppong"
@@ -278,7 +278,7 @@ const String kimMinsuFixtureJson = r'''
     "lunch-doenjang-rice": {
       "mealType": "lunch",
       "timeLabel": "12:10",
-      "photoAsset": "assets/images/diet-doenjang-rice.jpeg",
+      "photoAsset": "assets/demo/images/diet-doenjang-rice.jpeg",
       "aiComment": "집밥 한 상이에요. 찌개 국물만 조금 남겨 보세요.",
       "foods": [
         "doenjang-jjigae",
@@ -288,7 +288,7 @@ const String kimMinsuFixtureJson = r'''
     "dinner-salmon-brown-rice": {
       "mealType": "dinner",
       "timeLabel": "18:40",
-      "photoAsset": "assets/images/diet-salmon-brown-rice.jpeg",
+      "photoAsset": "assets/demo/images/diet-salmon-brown-rice.jpeg",
       "aiComment": "연어의 지방과 현미밥의 복합 탄수화물 조합이 좋아요.",
       "foods": [
         "grilled-salmon",
@@ -298,7 +298,7 @@ const String kimMinsuFixtureJson = r'''
     "dinner-doenjang-rice": {
       "mealType": "dinner",
       "timeLabel": "19:10",
-      "photoAsset": "assets/images/diet-doenjang-rice.jpeg",
+      "photoAsset": "assets/demo/images/diet-doenjang-rice.jpeg",
       "aiComment": "포만감은 좋지만 국물 나트륨이 높은 편이에요.",
       "foods": [
         "doenjang-jjigae",
@@ -308,7 +308,7 @@ const String kimMinsuFixtureJson = r'''
     "dinner-chicken-salad-sweet-potato": {
       "mealType": "dinner",
       "timeLabel": "18:20",
-      "photoAsset": "assets/images/diet-chicken-salad-sweet-potato.jpg",
+      "photoAsset": "assets/demo/images/diet-chicken-salad-sweet-potato.jpg",
       "aiComment": "가볍게 마무리한 저녁이에요.",
       "foods": [
         "chicken-salad",
@@ -318,7 +318,7 @@ const String kimMinsuFixtureJson = r'''
     "dinner-samgyeopsal": {
       "mealType": "dinner",
       "timeLabel": "19:30",
-      "photoAsset": "assets/images/diet-samgyeopsal-rice-soju.jpg",
+      "photoAsset": "assets/demo/images/diet-samgyeopsal-rice-soju.jpg",
       "aiComment": "고기와 술이 함께여서 칼로리가 크게 올라갔어요. 다음 날은 가볍게 시작해 보세요.",
       "foods": [
         "samgyeopsal",
@@ -329,7 +329,7 @@ const String kimMinsuFixtureJson = r'''
     "snack-coffee-nuts": {
       "mealType": "snack",
       "timeLabel": "15:40",
-      "photoAsset": "assets/images/snack-coffee-nuts.jpg",
+      "photoAsset": "assets/demo/images/snack-coffee-nuts.jpg",
       "aiComment": "당류가 낮고 건강한 지방을 채운 간식이에요.",
       "foods": [
         "iced-americano",
@@ -339,7 +339,7 @@ const String kimMinsuFixtureJson = r'''
     "snack-cake-latte": {
       "mealType": "snack",
       "timeLabel": "21:10",
-      "photoAsset": "assets/images/snack-choco-cake-latte.jpg",
+      "photoAsset": "assets/demo/images/snack-choco-cake-latte.jpg",
       "aiComment": "디저트로 당류가 하루 목표를 넘었어요.",
       "foods": [
         "choco-cake",

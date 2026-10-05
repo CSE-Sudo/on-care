@@ -14,7 +14,7 @@ tokeninfo 는 **구글이 서명한 유효한 토큰인지**만 본다. 그 토�
 - `aud`(발급 대상 client_id)가 `GOOGLE_CLIENT_IDS` 안에 있어야 한다.
 - `iss` 는 `accounts.google.com` 또는 `https://accounts.google.com`.
 - `exp` 는 tokeninfo 가 이미 보지만, 응답 값으로 한 번 더 확인한다.
-- 허용 목록이 비면 Apple 과 같이 **거부**한다(조용히 통과시키지 않는다).
+- 허용 목록이 비면 **거부**한다(조용히 통과시키지 않는다).
 """
 from __future__ import annotations
 

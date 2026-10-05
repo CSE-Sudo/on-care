@@ -92,6 +92,9 @@ class _SessionMemberCoachRepository implements MemberCoachRepository {
   @override
   Future<List<CoachRoutine>> fetchRoutinesOn(DateTime day) async =>
       const <CoachRoutine>[];
+
+  @override
+  Future<UpcomingRoutines?> fetchUpcomingRoutines() async => null;
   @override
   Future<CoachRoutine> completeRoutine(
     String routineId, {

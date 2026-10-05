@@ -317,7 +317,7 @@ def _report_message_ko(report: WeeklyReportOut) -> str:
         (report.completion_avg or 0) >= client_signals.COMPLETION_GOOD_PERCENT
         and report.sodium_over_days <= 2
     )
-    period = f"{start.month}월 {start.day}일 – {end.month}월 {end.day}일"
+    period = f"{start.month}월 {start.day}일 ~ {end.month}월 {end.day}일"
 
     paragraphs: list[str] = [
         # 첫 줄에 무슨 메시지인지가 있어야 한다 — 회원의 대화방에는 다른
@@ -433,17 +433,17 @@ def _report_message_en(report: WeeklyReportOut) -> str:
     sodium_limit = sodium_limit_mg(report.sodium_target)
     if report.sodium_avg is not None:
         diet.append(
-            f"Sodium averaged {report.sodium_avg:,}mg a day, and went over the "
-            f"{sodium_limit:,}mg goal on {_plural_days(report.sodium_over_days)}. "
-            "Leaving half the broth behind saves 400–500mg a day."
+            f"Sodium averaged {report.sodium_avg:,} mg a day, and went over the "
+            f"{sodium_limit:,} mg goal on {_plural_days(report.sodium_over_days)}. "
+            "Leaving half the broth behind saves 400–500 mg a day."
             if report.sodium_over_days > 0
-            else f"Sodium averaged {report.sodium_avg:,}mg a day — comfortably "
-            f"inside the {sodium_limit:,}mg goal."
+            else f"Sodium averaged {report.sodium_avg:,} mg a day — comfortably "
+            f"inside the {sodium_limit:,} mg goal."
         )
     recorded = [v for v in report.calories_week if v > 0]
     if recorded:
         diet.append(
-            f"Calories averaged {round(sum(recorded) / len(recorded)):,}kcal a day."
+            f"Calories averaged {round(sum(recorded) / len(recorded)):,} kcal a day."
         )
     if diet:
         paragraphs.append(" ".join(diet))

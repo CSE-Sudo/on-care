@@ -27,7 +27,7 @@ def _haversine_m(lat1: float, lng1: float, lat2: float, lng2: float) -> int:
     return int(r * 2 * math.asin(math.sqrt(a)))
 
 
-def _tags(profile: GymProfile | None) -> list[str]:
+def gym_tags(profile: GymProfile | None) -> list[str]:
     if profile is None or not profile.tags_json:
         return []
     try:
@@ -51,7 +51,7 @@ def _to_gym(
         # 평점 없음을 0 으로 내린다 — 프론트 Gym.rating 이 non-null 이고 0 이면
         # 뱃지를 감추기로 이미 합의돼 있다(#329).
         rating=profile.rating if profile and profile.rating is not None else 0.0,
-        tags=_tags(profile),
+        tags=gym_tags(profile),
         weekday_hours=(profile.weekday_hours or None) if profile else None,
         weekend_hours=(profile.weekend_hours or None) if profile else None,
         phone=(profile.phone or None) if profile else None,
