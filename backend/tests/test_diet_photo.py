@@ -173,13 +173,15 @@ def test_analyze_stores_the_photo_and_the_member_can_read_it(client, member_toke
 
 
 def test_the_day_view_carries_the_photo_of_the_meal_that_has_one(client, member_token):
-    # 사진이 붙지 않은 끼니도 한 건 만든다 — 사진 저장(#699) 이전 기록이 그렇다.
+    # 사진이 붙지 않은 끼니도 한 건 만든다 — 사진 저장(#699) 이전 기록·직접 기록이
+    # 그렇다. 읽을 수 없는 사진은 이제 분석 전에 415 라(#3041) 직접 기록으로 만든다.
     without = client.post(
-        "/v1/diet/analyze",
-        files={"image": ("food.jpg", b"\xff\xd8\xff\xe0 unreadable", "image/jpeg")},
-        data={"meal_type": "breakfast"},
+        "/v1/diet/entries",
+        json={"meal_type": "breakfast", "foods": [{"name": "바나나"}]},
         headers=_auth(member_token),
-    ).json()
+    )
+    assert without.status_code == 201, without.text
+    without_id = without.json()["id"]
     res = _analyze(client, member_token, _photo_bytes(), meal_type="snack")
     assert res.status_code == 200, res.text
     entry_id, photo_url = res.json()["entry_id"], res.json()["photo_url"]
@@ -188,17 +190,32 @@ def test_the_day_view_carries_the_photo_of_the_meal_that_has_one(client, member_
     assert day.status_code == 200
     entries = {e["id"]: e for e in day.json()["entries"]}
     assert entries[entry_id]["photo_url"] == photo_url
-    assert entries[without["entry_id"]]["photo_url"] is None
+    assert entries[without_id]["photo_url"] is None
 
 
-def test_a_meal_without_a_readable_photo_is_still_recorded(client, member_token):
-    """사진을 못 읽어도 끼니 기록은 남는다 — 사진은 기록의 부속이다."""
+def test_an_unreadable_photo_is_refused_before_anything_is_recorded(client, member_token):
+    """매직 넘버만 맞춘 파일은 인식 전에 415 — 끼니도 사진도 남지 않는다(#3041)."""
+    before = client.get("/v1/diet/days/today", headers=_auth(member_token)).json()
     res = client.post(
         "/v1/diet/analyze",
         files={"image": ("food.jpg", b"\xff\xd8\xff\xe0 not really a jpeg", "image/jpeg")},
         data={"meal_type": "dinner"},
         headers=_auth(member_token),
     )
+
+    assert res.status_code == 415, res.text
+    after = client.get("/v1/diet/days/today", headers=_auth(member_token)).json()
+    assert len(after["entries"]) == len(before["entries"])
+
+
+def test_a_meal_is_still_recorded_when_storing_its_photo_fails(
+    client, member_token, monkeypatch
+):
+    """사진 저장이 실패해도 끼니 기록은 남는다 — 사진은 기록의 부속이다."""
+    from app.services import diet_photo_service
+
+    monkeypatch.setattr(diet_photo_service, "_downscale_to_jpeg", lambda _data: None)
+    res = _analyze(client, member_token, _photo_bytes(), meal_type="dinner")
 
     assert res.status_code == 200, res.text
     assert res.json()["entry_id"]
@@ -339,8 +356,45 @@ def test_deleting_the_account_deletes_the_photos(client, db_session):
         "/", 1
     )[-1]
 
-    gone = client.delete("/v1/users/me", headers=_auth(token))
+    gone = client.request(
+        "DELETE", "/v1/users/me", json={"current_password": _PASSWORD},
+        headers=_auth(token),
+    )
     assert gone.status_code == 200, gone.text
 
     db_session.expire_all()
     assert db_session.scalar(select(DietPhoto).where(DietPhoto.id == photo_id)) is None
+
+
+def test_a_meal_photo_over_the_pixel_cap_is_never_stored(
+    client, member_token, monkeypatch
+):
+    """펼칠 픽셀이 상한을 넘는 사진은 펼치지도 저장하지도 않는다. (#3040)
+
+    서버 오류가 아니다. 저장 단계에서 걸리면 끼니는 사진 없이 남고, 인식 전 정리
+    단계(#3041)에서 걸리면 415 로 끝난다 — 어느 쪽이든 사진은 남지 않는다.
+    """
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "max_image_decode_pixels", 100_000)
+    res = _analyze(client, member_token, _photo_bytes((2400, 1600), fmt="PNG"))
+
+    assert res.status_code in (200, 415), res.text
+    if res.status_code == 200:
+        assert res.json()["entry_id"]
+        assert res.json()["photo_url"] is None
+
+
+def test_a_large_jpeg_meal_photo_is_reduced_while_decoding(
+    client, member_token, monkeypatch
+):
+    """JPEG 은 축소 디코딩한 크기로 센다 — 같은 상한에서도 사진이 저장된다. (#3040)"""
+    from app.core.config import get_settings
+
+    # 분석은 먼저 인식용 정리본(장변 1600)을 만든다(#3041). 원본 4800×3600
+    # (1728만 픽셀)은 두 변이 1600 이상으로 남는 1/2 로 펼쳐 432만이다.
+    monkeypatch.setattr(get_settings(), "max_image_decode_pixels", 5_000_000)
+    res = _analyze(client, member_token, _photo_bytes((4800, 3600)))
+
+    assert res.status_code == 200, res.text
+    assert res.json()["photo_url"]

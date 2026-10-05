@@ -1,0 +1,16 @@
+# gitleaks 탐지 예외 — 폐기(삭제)를 확인한 값의 탐지만, Fingerprint 한 줄씩 둔다.
+# 형식: <커밋 SHA>:<파일>:<규칙 ID>:<줄 번호>. 경로·규칙 단위로 넓히지 않는다.
+# 새 줄을 더할 때는 바로 위에 무엇이 왜 예외인지와 폐기 기록이 남은 이슈 번호를 적는다.
+
+# #3083: 2026-05-04 `backend/services/.env` 에 들어간 Gemini API 키. 같은 날 파일은 지웠지만
+# 이력에 남아 있다. 팀이 키를 교체했고, 폐기 일시·이상 호출 유무는 #3083 에 기록한다.
+3eed06d3fc12ffa414898a600e1385c360659ee7:backend/services/.env:gcp-api-key:1
+
+# #3083: 비밀값이 아닌 테스트 코드가 generic-api-key 규칙에 걸린 이력. 값이 아니라 테스트 입력이라 폐기할 것이 없다.
+# 재설정 코드 문자 집합 단언(회원 앱·트레이너 웹 password_reset_code_test.dart)
+3249775f7bd2fcd3b7d1470782adb80945fbe11e:frontend/flutter/test/features/auth/password_reset_code_test.dart:generic-api-key:10
+b7f75d04d85a639bdfdc06a60de5b52bf25c6977:frontend/flutter_trainer/test/features/auth/password_reset_code_test.dart:generic-api-key:10
+# 테스트 변수 이름 `member_token` 인자(test_consultation_decision.py)
+77c08d4eb85fad265837b3b44d5f78790e12f36c:backend/tests/test_consultation_decision.py:generic-api-key:363
+# 경로 조작 거절 테스트의 파일 이름 목록(test_attachment_store.py)
+8e12282f5b6332b22400ebb84510e3477bd2d987:backend/tests/test_attachment_store.py:generic-api-key:132

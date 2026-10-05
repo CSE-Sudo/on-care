@@ -4,15 +4,29 @@ import 'dart:math' as math;
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/seed_health_profiles.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/core/storage/seed_notifications.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/features/coaching/data/demo_routine_store.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/calorie_baseline.dart';
+import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart'
+    show
+        demoConsultationKey,
+        demoScheduleConsultations,
+        loadDemoScheduleConsultations,
+        writeDemoScheduleConsultations;
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart'
+    show ScheduleConsultation;
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
+import 'package:oncare_trainer/shared/models/client_chat_message.dart'
+    show ChatAttachmentKind, RoutineDeliveryNotice;
 import 'package:oncare_trainer/shared/models/client_signal.dart';
+import 'package:oncare_trainer/shared/services/demo_chat_files.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 // The roster itself is bulky enough to drown the seeding logic, so it
 // lives next door. `part` keeps the `_Client` family private to this
@@ -22,15 +36,45 @@ part 'seed_text_en.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v40']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v53']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
 ///
+/// `_v51` 은 이번 주 이행률 계열의 뜻을 바꿨다(#2513) — 걸린 것이 없는 날과
+/// 아직 오지 않은 날은 null, 0 은 "걸렸는데 하나도 안 했다" 다. 올리지 않으면
+/// 오늘 이미 시드된 브라우저의 로스터가 옛 0 을 `0%` 막대로 그린다.
+///
+/// `_v50` 은 김민수 대화에 트레이너가 보낸 PDF·사진을 붙였다(#2663). 올리지
+/// 않으면 오늘 이미 시드된 브라우저의 김민수 대화에 그 두 메시지가 없어 회원 앱
+/// 데모와 대화가 갈린다. (#2663 이 맡아 둔 `_v47` 은 그사이 main 이
+/// `_v49` 까지 올라 `_v50` 으로 옮겼다.)
+///
+/// `_v48` 은 김민수의 성별·나이를 로스터에 심었다(#2744). 올리지 않으면 오늘
+/// 이미 시드된 브라우저에서 김민수의 나이 칸이 비어 성별만 보인다. (`_v47` 은
+/// 병렬 작업 #2663 몫이라 건너뛴다.)
+///
+/// `_v46` 은 김민수를 뺀 회원의 지난 끼니를 최근 4주에서 리포트 이력 전체로
+/// 늘렸다(#2732). 올리지 않으면 오늘 이미 시드된 브라우저에서 4주보다 오래된
+/// 날짜를 펼쳐도 끼니 카드가 없다.
+///
+/// `_v45` 는 시드 상담 일정 5건에 상담 요청을 잇고, 3주 전 PT 에 취소·노쇼를
+/// 한 건씩 두고, 강서연·신유나 대화에 회원이 보낸 사진·PDF 를 붙였다(#2669).
+/// 올리지 않으면 오늘 이미 시드된 브라우저의 일정 카드에 `상담 요청 내용` 이
+/// 비고, 대화에 첨부가 없다. (`_v43`·`_v44` 는 병렬 작업 #2668·#2704·#2705
+/// 몫이라 건너뛴다.)
+///
+/// `_v42` 는 김민수의 지난 PT 를 공유 픽스처의 PT 날(지난 11주, 오늘과 같은 요일)에
+/// 맞췄다(#2694). 올리지 않으면 오늘 이미 시드된 브라우저가 매주 되풀이한 옛 수업을
+/// 그대로 들고 있어 회원 앱과 PT 날이 갈린다.
+///
+/// `_v41` 은 데모 알림함의 과거 알림을 심었다(#2628). 올리지 않으면 오늘 이미
+/// 시드된 브라우저의 알림함이 자정까지 비어 있다.
+///
 /// `_v40` 은 김민수를 뺀 회원의 지난 4주 끼니·성별·나이·지난 PT 메모·지난
 /// 상담을 심고, 날짜별 운동을 값까지 실린 객체로 바꿨다(#2667). 올리지 않으면
 /// 오늘 이미 시드된 브라우저에서 지난 날짜를 열어도 끼니 카드가 없다. (`_v39`
-/// 는 알림함 시드(#2628)가 먼저 잡아 두어 건너뛴다.)
+/// 는 건너뛰었다.)
 ///
 /// `_v38` 은 담당 회원 15명의 키·몸무게와 식단·운동 목표를 심었다(#2597).
 /// 올리지 않으면 오늘 이미 시드된 브라우저의 신체·목표 창이 자정까지 빈칸이다.
@@ -167,8 +211,10 @@ Future<void> seedIfEmpty(
 
   final String seededLanguage =
       await db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name;
-  if (await db.readValue('trainer_seeded_v40') == today &&
+  if (await db.readValue('trainer_seeded_v53') == today &&
       seededLanguage == language.name) {
+    // 일정 행이 동기로 읽는 상담 연결을 저장소에서 되살린다(#2669).
+    await loadDemoScheduleConsultations(db);
     return;
   }
 
@@ -273,9 +319,17 @@ Future<void> seedIfEmpty(
     await (db.delete(
       db.clientChatMessages,
     )..where((t) => t.id.like('seed-%'))).go();
+    // 시드 메시지에 붙였던 첨부 표시도 함께 치운다 — 메시지 순서가 바뀌면 같은
+    // id 의 다른 메시지에 옛 사진이 붙는다(#2669).
+    await (db.delete(
+      db.appKeyValues,
+    )..where((t) => t.key.like('${demoChatFileKeyPrefix}seed-%'))).go();
     await (db.delete(
       db.trainerScheduleEntries,
     )..where((t) => t.id.like('seed-%'))).go();
+    // 데모 배정·전달·제안 검토·PT 개인운동 상태(#2668)도 새 시드와 함께
+    // 처음으로 돌아간다 — 지운 일정·AI 운동을 가리키는 값이 남지 않게 한다.
+    await DemoRoutineStore.clear(db);
     // 날짜별 이력은 id 가 없다(고객+날짜가 키다) — 고객 id 로 지운다.
     await (db.delete(
       db.clientDailyMetrics,
@@ -330,7 +384,7 @@ Future<void> seedIfEmpty(
               lastRoutine: t(client.lastRoutine),
               weekCompletionJson: jsonEncode(
                 fromFixture
-                    ? fixtureClient.completionWeek
+                    ? _upToToday(fixtureClient.completionWeek, todayIndex)
                     : _upToToday(client.weekCompletion, todayIndex),
               ),
               sodiumWeekJson: Value(
@@ -381,6 +435,24 @@ Future<void> seedIfEmpty(
           ? 0
           : _lastChat(client.chat).dayIndex;
 
+      // 지난 전송 안내(#2672)의 시각 — 대화의 가장 이른 메시지 20분 전. 보낸
+      // 운동은 이 회원에게 처음 배정된 AI 개인운동이다(배정 시드와 같은 목록).
+      //
+      // 김민수는 빼 둔다 — 그의 대화는 회원 앱 데모와 같은 본문·순서여야 하는데
+      // 회원 앱 데모 대화에는 이 안내가 없다. 데모에서 실제로 보내면 생긴다.
+      final List<_Routine> deliveredRoutines = fromFixture
+          ? const <_Routine>[]
+          : client.aiRoutine;
+      DateTime? deliveryAt;
+      if (client.chat.isNotEmpty && deliveredRoutines.isNotEmpty) {
+        DateTime earliest = chatCreatedAt(client, 0, lastDayIndex);
+        for (var i = 1; i < client.chat.length; i++) {
+          final DateTime at = chatCreatedAt(client, i, lastDayIndex);
+          if (at.isBefore(earliest)) earliest = at;
+        }
+        deliveryAt = earliest.subtract(const Duration(minutes: 20));
+      }
+
       await db.batch((Batch b) {
         b.insertAll(db.clientDietEntries, <ClientDietEntriesCompanion>[
           for (var i = 0; i < diet.length; i++)
@@ -421,6 +493,11 @@ Future<void> seedIfEmpty(
               type: aiRoutine[i].type,
               reason: t(aiRoutine[i].reason),
               sortOrder: Value(i),
+              // 근력의 양(#2705). 다른 유형은 0 이다.
+              sets: Value(aiRoutine[i].sets),
+              reps: Value(aiRoutine[i].reps),
+              holdSeconds: Value(aiRoutine[i].holdSeconds),
+              weight: Value(aiRoutine[i].weight),
             ),
         ]);
 
@@ -468,6 +545,20 @@ Future<void> seedIfEmpty(
               // 시각 계산은 [chatCreatedAt] 한 곳에서 맡는다.
               createdAt: chatCreatedAt(client, i, lastDayIndex),
             ),
+          // 지난 전송 안내 한 건(#2672) — 이 회원의 첫 배정(시드 AI 운동)을 보낸
+          // 일이다. 실서버는 운동을 보내면 대화 가운데 안내를 남긴다. 대화가
+          // 시작되기 조금 전에 두어 마지막 메시지·안읽음은 그대로다.
+          if (deliveryAt != null)
+            ClientChatMessagesCompanion.insert(
+              id: 'seed-routine-${client.id}',
+              clientId: 'seed-client-${client.id}',
+              sender: 'trainer',
+              body: '',
+              timeLabel:
+                  '${deliveryAt.hour.toString().padLeft(2, '0')}:'
+                  '${deliveryAt.minute.toString().padLeft(2, '0')}',
+              createdAt: deliveryAt,
+            ),
         ]);
       });
 
@@ -475,11 +566,37 @@ Future<void> seedIfEmpty(
       // 화면이 파일명을 보고 리포트인지 짐작하지 않게 하기 위해서다. 실행 중에
       // 보내는 리포트도 같은 키에 같은 값을 쓴다.
       for (var i = 0; i < client.chat.length; i++) {
+        final _ChatFile? file = client.chat[i].file;
+        if (file == null) continue;
+        await db.putValue(
+          '${demoChatFileKeyPrefix}seed-chat-${client.id}-$i',
+          encodeDemoChatFile(
+            kind: file.kind,
+            name: file.name,
+            asset: file.asset,
+            lines: file.lines,
+          ),
+        );
+      }
+      if (deliveryAt != null) {
+        await db.putValue(
+          '${demoRoutineDeliveryKeyPrefix}seed-routine-${client.id}',
+          jsonEncode(
+            RoutineDeliveryNotice(
+              kind: 'routine_only',
+              routineNames: <String>[
+                for (final _Routine r in deliveredRoutines) t(r.name),
+              ],
+            ).toJson(),
+          ),
+        );
+      }
+      for (var i = 0; i < client.chat.length; i++) {
         if (!client.chat[i].report) continue;
         final DateTime at = chatCreatedAt(client, i, lastDayIndex);
         await db.putValue(
           'report_msg_seed-chat-${client.id}-$i',
-          ymd(DateTime(at.year, at.month, at.day - (at.weekday - 1))),
+          ymd(mondayOf(at)),
         );
       }
     }
@@ -520,11 +637,7 @@ Future<void> seedIfEmpty(
     // 이번 주 월요일 — 주간 시간표가 항상 월~일을 그리므로 요일 슬롯의 기준도
     // 같아야 한다. 날짜를 성분으로 옮긴다(Duration 은 서머타임이 있는 지역에서
     // 하루씩 밀린다).
-    final DateTime monday = DateTime(
-      now.year,
-      now.month,
-      now.day - (now.weekday - 1),
-    );
+    final DateTime monday = mondayOf(now);
     final seedClientIdByName = <String, String>{
       for (final _Client c in _clients) c.name: 'seed-client-${c.id}',
     };
@@ -570,10 +683,15 @@ Future<void> seedIfEmpty(
     // 코칭 화면의 `전송 이력` 에 보낸 것으로 줄지어 선다. 메모는 최근 두 주의
     // 회원별 첫 수업에만 둔다([_pastPtNotes], #2667) — 같은 메모가 열세 주
     // 반복되면 그 수업에 남긴 기록처럼 읽히지 않는다.
+    //
+    // 김민수는 되풀이하지 않는다 — 그의 지난 PT 는 공유 픽스처가 PT 날로 적은
+    // 날에만 선다(아래 `seed-schedule-f…`, #2694). 오늘 수업을 앞 주로 되풀이하면
+    // 회원 앱이 모르는 수업이 리포트에 선다.
     final List<({int weekday, String time, _SeedSession slot, int order})>
     recurring = <({int weekday, String time, _SeedSession slot, int order})>[
       for (var i = 0; i < _schedule.length; i++)
         if (_schedule[i].type == SessionType.personalTraining &&
+            _schedule[i].clientName != demo.memberName &&
             seedClientIdByName.containsKey(_schedule[i].clientName))
           (
             weekday: now.weekday,
@@ -592,12 +710,55 @@ Future<void> seedIfEmpty(
           ),
     ];
 
+    // 오늘 김민수의 수업 — 지난 PT 도 같은 시각·길이다(#2694).
+    final _Slot fixturePt = _schedule.firstWhere(
+      (_Slot s) => s.clientName == demo.memberName,
+    );
+
     // 지난 두 주 회원별 **첫** 수업 — PT 메모([_pastPtNotes])를 다는 자리.
     final Set<String> notedPt = <String>{};
     String pastPtNote(int back, String clientName) {
       if (back > _pastPtNotes.length) return '';
       if (!notedPt.add('$back/$clientName')) return '';
       return t(_pastPtNotes[back - 1][clientName] ?? '');
+    }
+
+    // 지난 회원 PT 한 건. 대부분 완료지만 몇 건은 취소·노쇼로 남는다
+    // ([_pastMiss]) — 취소는 수업 전날 저녁에 회원이 알렸고, 노쇼는 수업이
+    // 끝날 시각에 남긴다. 실서버가 남기는 기록과 같은 모양이다(#2669).
+    TrainerScheduleEntriesCompanion pastSession(int back, int k) {
+      final String name = recurring[k].slot.clientName;
+      final int minutes = recurring[k].slot.durationMinutes;
+      final DateTime day = dayOfWeek(recurring[k].weekday, weeksAgo: back);
+      final ({String status, String source, String reason})? miss = _pastMiss(
+        name,
+        back,
+      );
+      return TrainerScheduleEntriesCompanion.insert(
+        id: 'seed-schedule-p$back-$k',
+        date: ymd(day),
+        time: recurring[k].time,
+        clientId: Value(seedClientIdByName[name]),
+        clientName: Value(name),
+        type: const Value(SessionType.personalTraining),
+        durationMinutes: Value(minutes),
+        status: miss?.status ?? ScheduleStatus.done,
+        cancelledAt: Value(
+          miss?.status == ScheduleStatus.cancelled
+              ? DateTime(day.year, day.month, day.day - 1, 20)
+              : null,
+        ),
+        cancellationSource: Value(miss?.source ?? ''),
+        cancellationReason: Value(t(miss?.reason ?? '')),
+        noShowAt: Value(
+          miss?.status == ScheduleStatus.noShow
+              ? _at(day, recurring[k].time).add(Duration(minutes: minutes))
+              : null,
+        ),
+        note: Value(pastPtNote(back, name)),
+        programJson: const Value('[]'),
+        sortOrder: Value(recurring[k].order),
+      );
     }
 
     await db.batch((Batch b) {
@@ -646,28 +807,33 @@ Future<void> seedIfEmpty(
                         .slot
                         .clientName]] ??
                     demoReportHistoryWeeks))
-              TrainerScheduleEntriesCompanion.insert(
-                id: 'seed-schedule-p$back-$k',
-                date: ymd(dayOfWeek(recurring[k].weekday, weeksAgo: back)),
-                time: recurring[k].time,
-                clientId: Value(
-                  seedClientIdByName[recurring[k].slot.clientName],
-                ),
-                clientName: Value(recurring[k].slot.clientName),
-                type: const Value(SessionType.personalTraining),
-                durationMinutes: Value(recurring[k].slot.durationMinutes),
-                status: ScheduleStatus.done,
-                note: Value(pastPtNote(back, recurring[k].slot.clientName)),
-                programJson: const Value('[]'),
-                sortOrder: Value(recurring[k].order),
-              ),
+              pastSession(back, k),
+        // 김민수의 지난 PT — 공유 픽스처가 PT 날로 적은 날마다 오늘 수업과 같은
+        // 시각·길이의 끝난 수업이다(#2694). 회원 앱은 그날을 `18:00 수업 완료`
+        // 로 그리고, 실서버 시드도 같은 날에 같은 수업을 깐다. 메모는 픽스처가
+        // 그 수업에 적은 것이고, 프로그램은 다른 지난 수업처럼 비운다.
+        for (final FixtureDay day in fixtureClient.days)
+          if (day.isPt && day.date != today)
+            TrainerScheduleEntriesCompanion.insert(
+              id: 'seed-schedule-f${day.date}',
+              date: day.date,
+              time: fixturePt.time,
+              clientId: Value(seedClientIdByName[demo.memberName]),
+              clientName: Value(demo.memberName),
+              type: const Value(SessionType.personalTraining),
+              durationMinutes: Value(fixturePt.durationMinutes),
+              status: ScheduleStatus.done,
+              note: Value(t(day.trainerNote)),
+              programJson: const Value('[]'),
+              sortOrder: const Value(0),
+            ),
         // 지난 상담(#2667). 이번 주 상담만 있으면 AI 근거의 `상담 메모`(최근
         // 30일)가 요일에 따라 비었다.
         for (var i = 0; i < _pastConsults.length; i++)
           TrainerScheduleEntriesCompanion.insert(
             id: 'seed-schedule-c$i',
             date: ymd(_daysBefore(now, _pastConsults[i].daysAgo)),
-            time: '11:00',
+            time: _pastConsultTime,
             clientId: Value(seedClientIdByName[_pastConsults[i].clientName]),
             clientName: Value(_pastConsults[i].clientName),
             type: const Value(SessionType.consultation),
@@ -680,12 +846,70 @@ Future<void> seedIfEmpty(
       ]);
     });
 
+    // 시드 상담 일정마다 회원이 보낸 상담 요청을 잇는다(#2669). 실서버의 상담
+    // 일정은 수락한 요청에서 생기므로 `상담 요청 내용` 이 늘 붙어 있다. 실행 중에
+    // 수락해 생긴 연결은 그대로 두고, 지난 시드의 연결만 새로 갈아 끼운다.
+    await loadDemoScheduleConsultations(db);
+    demoScheduleConsultations.removeWhere(
+      (_, ScheduleConsultation c) => c.id.startsWith(_seedConsultPrefix),
+    );
+    for (var i = 0; i < _schedule.length; i++) {
+      final ({String goal, String message})? request =
+          _seedConsultRequests[_schedule[i].clientName];
+      if (_schedule[i].type != SessionType.consultation || request == null) {
+        continue;
+      }
+      demoScheduleConsultations[demoConsultationKey(
+        clientId: seedClientIdByName[_schedule[i].clientName],
+        date: today,
+        time: _schedule[i].time,
+      )] = ScheduleConsultation(
+        id: '$_seedConsultPrefix$i',
+        goalCode: request.goal,
+        message: t(request.message),
+      );
+    }
+    for (final p in placed) {
+      final _WeekSlot slot = _weekSchedule[p.index];
+      final ({String goal, String message})? request =
+          _seedConsultRequests[slot.clientName];
+      if (slot.type != SessionType.consultation || request == null) continue;
+      demoScheduleConsultations[demoConsultationKey(
+        clientId: seedClientIdByName[slot.clientName],
+        date: ymd(dayOfWeek(p.weekday)),
+        time: p.time,
+      )] = ScheduleConsultation(
+        id: '${_seedConsultPrefix}w${p.index}',
+        goalCode: request.goal,
+        message: t(request.message),
+      );
+    }
+    // 지난 상담(#2667)도 요청에서 생긴 상담이다 — 같은 규칙으로 잇는다.
+    for (var i = 0; i < _pastConsults.length; i++) {
+      final ({String goal, String message})? request =
+          _seedConsultRequests[_pastConsults[i].clientName];
+      if (request == null) continue;
+      demoScheduleConsultations[demoConsultationKey(
+        clientId: seedClientIdByName[_pastConsults[i].clientName],
+        date: ymd(_daysBefore(now, _pastConsults[i].daysAgo)),
+        time: _pastConsultTime,
+      )] = ScheduleConsultation(
+        id: '${_seedConsultPrefix}c$i',
+        goalCode: request.goal,
+        message: t(request.message),
+      );
+    }
+    await writeDemoScheduleConsultations(db);
+
     // 신체·목표는 저장된 값이 없는 회원에게만 넣는다 — 트레이너가 고친 값은
     // 날이 바뀌어도 남는다(#2597).
     await seedDemoHealthProfiles(db);
 
+    // 알림함의 과거 알림(#2628). 읽음 기록이 남도록 이미 있으면 두지 않는다.
+    await seedDemoNotifications(db, now: now);
+
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v40', today);
+    await db.putValue('trainer_seeded_v53', today);
     await db.putValue(seedLanguageKey, language.name);
   });
 }
@@ -895,11 +1119,26 @@ class _Food {
 }
 
 class _Routine {
-  const _Routine(this.name, this.minutes, this.type, this.reason);
+  const _Routine(
+    this.name,
+    this.minutes,
+    this.type,
+    this.reason, {
+    this.sets = 0,
+    this.reps = 0,
+    this.holdSeconds = 0,
+    this.weight = 0,
+  });
   final String name;
   final int minutes;
   final String type;
   final String reason;
+
+  /// 근력의 세트·횟수(또는 버티는 초)·중량(kg). 다른 유형은 0 이다. (#2705)
+  final int sets;
+  final int reps;
+  final int holdSeconds;
+  final double weight;
 }
 
 /// 김민수의 개인 운동 — **공유 픽스처**가 정한다. (#1170)
@@ -909,7 +1148,15 @@ class _Routine {
 /// 같은 회원의 같은 날에 서로 다른 운동을 말했다.
 List<_Routine> _fixtureRoutines(DemoFixture fixture) => <_Routine>[
   for (final FixtureRoutine r in fixture.routines)
-    _Routine(r.name, r.minutes, r.type, r.reason),
+    _Routine(
+      r.name,
+      r.minutes,
+      r.type,
+      r.reason,
+      sets: r.sets ?? 0,
+      reps: r.reps ?? 0,
+      weight: r.weight ?? 0,
+    ),
 ];
 
 class _History {
@@ -946,10 +1193,15 @@ class _Chat {
     this.timeLabel, {
     this.dayIndex = 0,
     this.report = false,
+    this.file,
   });
   final String sender; // trainer|client
   final String text;
   final String timeLabel;
+
+  /// 회원이 이 메시지에 붙여 보낸 사진·PDF(#2669). 시딩이 메시지 id 에 표시
+  /// ([demoChatFileKeyPrefix])를 남기고, 대화를 읽을 때 바이트를 만든다.
+  final _ChatFile? file;
 
   /// 주간 리포트 등록 안내인가. (#1421)
   ///
@@ -965,6 +1217,28 @@ class _Chat {
   /// 라벨만 '화/수' 로 갈라 놓고 `createdAt` 은 전부 몇 분 안에 몰려 있어서,
   /// 날짜로 묶으려는 쪽(대화 중간의 AI 분석 안내)에서 하루로 보였다.
   final int dayIndex;
+}
+
+/// 시드 메시지에 붙는 첨부 한 건(#2669) — [encodeDemoChatFile] 의 인자다.
+class _ChatFile {
+  const _ChatFile.image(this.name, String this.asset)
+    : kind = ChatAttachmentKind.image,
+      lines = const <String>[];
+
+  const _ChatFile.pdf(this.name, this.lines)
+    : kind = ChatAttachmentKind.pdf,
+      asset = null;
+
+  /// 앱 번들에 든 PDF 를 그대로 붙인다 — 트레이너가 보낸 운동 안내처럼 한글
+  /// 문서일 때다(#2663). 회원 앱 데모가 같은 파일을 같은 자리에 둔다.
+  const _ChatFile.pdfAsset(this.name, String this.asset)
+    : kind = ChatAttachmentKind.pdf,
+      lines = const <String>[];
+
+  final ChatAttachmentKind kind;
+  final String name;
+  final String? asset;
+  final List<String> lines;
 }
 
 /// 데모가 들고 있는 주 수(이번 주 포함). '최근 4주' 카드는 보고 있는 주에서
@@ -1199,6 +1473,16 @@ class _FixtureClient {
                   'name': t(e.name),
                   'type': e.type,
                   'minutes': e.minutes,
+                  // 펼친 날 줄마다 적는 소모 kcal(#2508) — 하루 합계와 같은
+                  // 픽스처 값이라 줄을 더하면 `총 소모` 가 된다.
+                  'calories': e.calories,
+                  // 픽스처에는 회원이 손으로 적은 기록이 없다 — PT 날은 트레이너
+                  // 지도 세션, 나머지 날은 개인운동을 한 기록이다. 백엔드 시드와
+                  // 같은 출처다(#2662, #2508).
+                  'source': day.isPt ? 'trainer_pt' : 'assigned_routine',
+                  // 백엔드 시드가 남기는 강도와 같다 — 트레이너 화면 운동 줄이
+                  // 강도 태그를 그린다(#2508).
+                  'intensity': 'moderate',
                   if (e.sets != null) 'sets': e.sets,
                   if (e.reps != null) 'reps': e.reps,
                   if (e.holdSeconds != null) 'hold_seconds': e.holdSeconds,
@@ -1269,7 +1553,7 @@ int _mealCountOf(int calories) =>
 /// **같은 요일 자리에** 같은 기록 습관으로 채운다. 기록이 아예 없는 날은 없다.
 Iterable<_SeedDay> _seedDays(_Client client, DateTime now) sync* {
   final today = DateTime(now.year, now.month, now.day);
-  final monday = today.subtract(Duration(days: today.weekday - 1));
+  final monday = mondayOf(today);
   final todayIndex = today.weekday - 1;
 
   for (var back = 0; back < demoMetricsHistoryWeeks; back++) {
@@ -1333,18 +1617,17 @@ Iterable<ClientDailyMetricsCompanion> _dailyMetrics(
       exercisesJson: Value(
         jsonEncode(
           d.date == today
-              ? _exercisesFor(client, d.completion, t, today: true)
+              ? _todayRows(
+                  client,
+                  _exercisesFor(client, d.completion, t, today: true),
+                  t,
+                )
               : t.exercises(_routineFor(client.id, d.day, d.completion)),
         ),
       ),
     );
   }
 }
-
-/// 지난 끼니를 심는 날 수(오늘 제외, #2667). 오늘과 합쳐 4주다 — 식단 분석·AI
-/// 식단 추천이 읽는 창(`allWindowDays`)이 28일이라, 그만큼 있어야 근거 일수가
-/// 실서버 회원처럼 찬다.
-const int _pastDietDays = 27;
 
 /// 끼니 수 → 그날 적은 끼니 자리(먹은 순서).
 const List<List<String>> _mealSlots = <List<String>>[
@@ -1386,21 +1669,21 @@ final Map<String, List<_Meal>> _mealTemplates = () {
   return pool;
 }();
 
-/// 고객의 지난 [_pastDietDays] 일 끼니(#2667).
+/// 고객의 지난 끼니 — 날짜별 지표가 있는 날 전부(#2667, #2732).
 ///
 /// 예전에는 오늘 끼니만 있어, 지난 날짜를 열면 합계만 있고 끼니 카드가
-/// 없었다. 식단 분석·AI 식단 추천도 근거가 오늘 하루뿐이었다.
+/// 없었다. 식단 분석·AI 식단 추천도 근거가 오늘 하루뿐이었다. 처음에는 최근
+/// 4주만 심어, 기간 뷰에서 그보다 오래된 날을 펼치면 여전히 합계뿐이었다 —
+/// 이제 리포트 이력([demoMetricsHistoryWeeks])의 모든 날을 채운다.
 ///
 /// 그날 합계([_seedDays])를 끼니로 **나눈다** — 끼니를 따로 지어내면 날짜를
 /// 펼쳤을 때 위의 합계와 아래 카드의 합이 갈린다. 끼니 수는 리포트 격자의
 /// 끼니 수([_mealCountOf])와 같다.
 List<_Meal> _pastDiet(_Client client, DateTime now) {
   final DateTime today = DateTime(now.year, now.month, now.day);
-  final DateTime from = DateTime(now.year, now.month, now.day - _pastDietDays);
   return <_Meal>[
     for (final _SeedDay d in _seedDays(client, now))
-      if (d.date.isBefore(today) && !d.date.isBefore(from) && d.calories > 0)
-        ..._mealsOf(client.id, d),
+      if (d.date.isBefore(today) && d.calories > 0) ..._mealsOf(client.id, d),
   ];
 }
 
@@ -1598,6 +1881,37 @@ List<String> _exercisesFor(
   return const <String>[];
 }
 
+/// 오늘 한 운동 이름 → 운동 행. 개인운동과 이름이 같은 것은 그 개인운동의
+/// 양(유형·분·세트·횟수·중량)을 싣는다(#2508) — 실서버에서 회원이 개인운동을
+/// 체크하면 그 값으로 운동 행이 남는다. 그래야 줄마다 소모 kcal 과 운동 시간이
+/// 선다. 개인운동이 아닌 이름은 적힌 그대로 둔다.
+List<Object> _todayRows(_Client client, List<String> names, _SeedText t) =>
+    <Object>[
+      for (final String name in names)
+        () {
+          for (final _Routine r in client.aiRoutine) {
+            final String routine = t(r.name);
+            if (name != routine && !name.startsWith('$routine ')) continue;
+            return <String, Object?>{
+              'name': routine,
+              'type': switch (r.type) {
+                '유산소' => 'cardio',
+                '근력' => 'strength',
+                '스트레칭' => 'stretching',
+                _ => 'other',
+              },
+              'minutes': r.minutes,
+              'intensity': 'moderate',
+              if (r.sets > 0) 'sets': r.sets,
+              if (r.reps > 0) 'reps': r.reps,
+              if (r.holdSeconds > 0) 'hold_seconds': r.holdSeconds,
+              if (r.weight > 0) 'weight': r.weight,
+            };
+          }
+          return name;
+        }(),
+    ];
+
 /// 시드의 운동 목록에서 **한 것만** 이름으로 추린다.
 ///
 /// 값까지 실린 객체(#1902)와, 손으로 적어 둔 옛 표기(`이름 ✓` / `이름 ✗`)를 함께
@@ -1634,9 +1948,17 @@ List<Map<String, Object?>> _routineFor(
 /// 채워져 있다. 운동 추이 카드가 오지 않은 날을 막대로 그리고, 주 평균도
 /// 그 날들을 포함해 실제보다 높게 나온다 — 화면은 비워 두고 평균만 포함하는
 /// 어긋남이 여기서 생겼다(#752).
-List<int> _upToToday(List<int> week, int todayIndex) => <int>[
-  for (var i = 0; i < week.length; i++) i <= todayIndex ? week[i] : 0,
-];
+///
+/// 이행률은 걸린 개인운동·PT 중 한 비율이라(#2513) 아직 오지 않은 날은 null
+/// 이다. 한 주 내내 0 인 회원(기록 전무)은 아직 아무것도 받지 않은 회원이라
+/// 모두 null 이다 — 0 은 "걸렸는데 하나도 안 했다" 라는 다른 뜻이다.
+List<int?> _upToToday(List<int> week, int todayIndex) {
+  final bool started = week.any((int v) => v > 0);
+  return <int?>[
+    for (var i = 0; i < week.length; i++)
+      started && i <= todayIndex ? week[i] : null,
+  ];
+}
 
 /// 시드의 "오래된→오늘" 계열을 **이번 주 월→일** 자리에 옮긴다.
 ///
@@ -1749,7 +2071,7 @@ const int _chatSpreadDays = 40;
 /// 알고 싶은 것은 "얼마나 됐나" 가 아니라 **언제였나** 이고, 그건 운동·식단
 /// 기록과 맞춰 보려면 날짜여야 한다.
 ///
-/// 백엔드 `trainer_service.relative_time_label` 과 같은 규칙이다 — 데모와 실
+/// 백엔드 `trainer._common.relative_time_label` 과 같은 규칙이다 — 데모와 실
 /// API 가 같은 자리에 다른 모양을 그리면 안 된다.
 String _lastTimeLabel(_Client client, DateTime now, _SeedText t) {
   if (client.chat.isEmpty) return '-';
@@ -1854,24 +2176,15 @@ const List<Map<String, String>> _pastPtNotes = <Map<String, String>>[
 ];
 
 /// 지난 상담(#2667). AI 루틴 추천의 근거 `상담 메모`(최근 30일)가 읽는 글이다.
-const List<({int daysAgo, String clientName, String note})> _pastConsults =
-    <({int daysAgo, String clientName, String note})>[
-      (
-        daysAgo: 11,
-        clientName: '한지호',
-        note: '식습관 상담. 회식이 주 2회라 야식 빈도부터 줄이기로 함.',
-      ),
-      (
-        daysAgo: 18,
-        clientName: '오세라',
-        note: '혈압 관리 상담. 가정 혈압 기록을 PT 전에 공유하기로 함.',
-      ),
-      (
-        daysAgo: 25,
-        clientName: '신유나',
-        note: '재활 목표 재설정 상담. 병원 소견상 무릎 굴곡은 120°까지.',
-      ),
-    ];
+/// 지난 상담([_pastConsults])의 시각.
+const String _pastConsultTime = '11:00';
+
+const List<({int daysAgo, String clientName, String note})>
+_pastConsults = <({int daysAgo, String clientName, String note})>[
+  (daysAgo: 11, clientName: '한지호', note: '식습관 상담. 회식이 주 2회라 야식 빈도부터 줄이기로 함.'),
+  (daysAgo: 18, clientName: '오세라', note: '혈압 관리 상담. 가정 혈압 기록을 PT 전에 공유하기로 함.'),
+  (daysAgo: 25, clientName: '신유나', note: '재활 목표 재설정 상담. 병원 소견상 무릎 굴곡은 120°까지.'),
+];
 
 class _Slot {
   const _Slot({
@@ -1946,6 +2259,66 @@ class _WeekSlot {
   final int durationMinutes;
   final String note;
   final List<Map<String, Object?>> program;
+}
+
+/// 시드 상담 일정에 붙는 상담 요청 id 의 앞머리(#2669).
+const String _seedConsultPrefix = 'seed-consultation-';
+
+/// 시드 상담 일정마다 회원이 보낸 상담 요청 — 상담받는 사람 이름으로 찾는다
+/// (#2669). 목표 코드는 서버 enum 이라 옮기지 않고, 문의 글만 시드 언어로
+/// 옮긴다. 일정 메모(트레이너가 적은 것)와 같은 이야기를 회원 쪽 말로 한다.
+const Map<String, ({String goal, String message})>
+_seedConsultRequests = <String, ({String goal, String message})>{
+  '정하윤': (goal: 'eating', message: '저녁 외식이 잦은데 식단 기록을 어떻게 이어 가면 좋을지 상담받고 싶어요.'),
+  '문가영': (goal: 'fitness', message: '수업을 오전 시간대로 옮길 수 있을지 여쭤보고 싶어요.'),
+  '조은비': (goal: 'rehab', message: '예전에 무릎을 다친 적이 있어요. 무리 없이 시작할 수 있을지 궁금해요.'),
+  '서지훈': (goal: 'exercise_habit', message: '주말에만 운동할 수 있는데 그래도 꾸준히 할 수 있을까요?'),
+  // 지난 상담(#2667)의 요청 — 상담 메모와 같은 이야기를 회원 쪽 말로 한다.
+  '한지호': (goal: 'eating', message: '회식이 잦아서 야식을 어떻게 줄일지 상담받고 싶어요.'),
+  '오세라': (goal: 'blood_pressure', message: '혈압이 다시 올라서 운동 강도를 같이 봐 주셨으면 해요.'),
+  '신유나': (goal: 'rehab', message: '무릎 재활 목표를 다시 잡고 싶어요. 병원 소견도 받아 뒀어요.'),
+  '윤가온': (
+    goal: 'weight_loss',
+    message: '체중 감량을 목표로 PT 를 알아보고 있어요. 퇴근 후 시간대가 좋아요.',
+  ),
+};
+
+/// 지난 PT 가운데 끝내 하지 못한 수업(#2669) — 취소·노쇼 기록이 일정에도
+/// 리포트에도 있어야 실서버 화면과 같다. 배준혁은 야근형·노쇼 회원이고,
+/// 강서연은 전날 저녁에 몸이 안 좋다고 알려 왔다. 3주 전에 둔다 — 지난 두
+/// 주의 첫 수업에는 진행한 수업의 메모([_pastPtNotes])가 달려 있어, 그 주를
+/// 노쇼·취소로 바꾸면 메모와 어긋난다. 그 회원의 그 주 수업이 없으면(요일이
+/// 오늘과 겹쳐 빠진 주) 아무것도 바뀌지 않는다.
+({String status, String source, String reason})? _pastMiss(
+  String clientName,
+  int weeksAgo,
+) => switch ((clientName, weeksAgo)) {
+  ('배준혁', seedPastMissWeeksAgo) => (
+    status: ScheduleStatus.noShow,
+    source: '',
+    reason: '',
+  ),
+  ('강서연', seedPastMissWeeksAgo) => (
+    status: ScheduleStatus.cancelled,
+    source: CancellationSource.member,
+    reason: '감기 기운이 있어 이번 수업은 쉬고 싶다고 연락함',
+  ),
+  _ => null,
+};
+
+/// [_pastMiss] 가 놓이는 주 — 몇 주 전인가. 테스트도 이 값으로 그 주를 찾는다.
+const int seedPastMissWeeksAgo = 3;
+
+/// [day] 의 [time](`HH:MM`) 벽시계 시각.
+DateTime _at(DateTime day, String time) {
+  final List<String> hm = time.split(':');
+  return DateTime(
+    day.year,
+    day.month,
+    day.day,
+    int.parse(hm[0]),
+    int.parse(hm[1]),
+  );
 }
 
 /// 트레이너의 한 주 — 10~22시 사이 짝수 정시는 1:1 PT, 그 사이 홀수
@@ -2441,7 +2814,7 @@ Iterable<ClientWeeklyFeedbacksCompanion> _weeklyFeedbacks(
   final List<_Feedback>? weeks = _demoFeedback[clientId];
   if (weeks == null) return;
   final DateTime today = DateTime(now.year, now.month, now.day);
-  final DateTime monday = today.subtract(Duration(days: today.weekday - 1));
+  final DateTime monday = mondayOf(today);
   for (final _Feedback f in weeks) {
     final DateTime week = monday.subtract(Duration(days: 7 * f.weeksAgo));
     yield ClientWeeklyFeedbacksCompanion.insert(

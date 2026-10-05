@@ -1,7 +1,9 @@
-# oncare-flutter
+# On-Care 회원 앱 (`frontend/flutter`)
 
-[Oncare Prototype (React/TS)](https://github.com/subin21cc/Oncareprototype) 에서 출발해 이후 **Figma 디자인 기준으로 재구성**한 On-Care 사용자 앱입니다.
-**Android / iOS / Web** 3개 타깃을 단일 코드베이스로 빌드하며, 웹은 GitHub Pages에 CI 배포됩니다.
+PT 를 받는 회원이 쓰는 On-Care 앱입니다. 트레이너 웹(`frontend/flutter_trainer`)과 백엔드(`backend`)를
+이 모노레포에서 함께 관리합니다. [Oncare Prototype (React/TS)](https://github.com/subin21cc/Oncareprototype) 에서
+출발해 **Figma 디자인 기준으로 재구성**했습니다.
+**Android / iOS / Web** 3개 타깃을 단일 코드베이스로 빌드하며, 웹은 저장소 루트 워크플로가 배포합니다(아래 CI / CD).
 
 > 현재 상태: **Stage 10 — Figma 리디자인 · 실데이터 재연결 반영** (기반: Stage 9 로컬 백엔드, v0.3.0+3)
 > (drift + LocalApiInterceptor 기반 로컬 백엔드 — `--dart-define=USE_MOCK_API=false` 한 줄로 FastAPI 전환 가능)
@@ -29,11 +31,11 @@ flutter run -d chrome \
   --dart-define=ENV=dev \
   --dart-define=API_BASE_URL=https://dev.api.oncare.example.com
 
-# Web (배포 빌드, GitHub Pages용 — 커스텀 도메인 ewhasudo.zapto.org/frontend)
+# Web (배포본과 같은 경로로 로컬 확인 — 배포 인자는 docs/frontend_deployment.md)
 flutter build web --release \
   --base-href "/frontend/" \
-  --dart-define=ENV=prod \
-  --dart-define=API_BASE_URL=https://api.oncare.example.com
+  --dart-define=KAKAO_JS_KEY=<카카오 JavaScript 키> \
+  --dart-define=DEMO_BUILD=true   # 목업 릴리스 빌드는 데모 표시가 있어야 뜬다(#3022)
 
 # 기능별 실 백엔드 전환 (REAL_API)
 # USE_MOCK_API 는 전역이라 끄면 로그인·홈·식단·운동·채팅이 한꺼번에 실서버로 넘어간다.
@@ -47,29 +49,26 @@ flutter run -d chrome \
 
 # Android
 flutter run -d <android-device>  # debug
-flutter build apk --release      # 또는 build appbundle
+# 스토어 빌드 — android/key.properties 와 config/release.json 필요(docs/mobile_release.md)
+bash tool/check_release_defines.sh config/release.json
+flutter build appbundle --release --dart-define-from-file=config/release.json
 
 # iOS
 flutter run -d <ios-device>      # debug
-flutter build ios --release      # Xcode에서 archive
+flutter build ios --release --dart-define-from-file=config/release.json  # Xcode에서 archive
 ```
 
 ## CI / CD
 
-`.github/workflows/`:
+워크플로는 저장소 **루트** `.github/workflows/` 에 있습니다.
 
-- **`deploy.yml`** — `push`(main) / `workflow_dispatch` 시 `flutter build web --base-href "/frontend/"` 후 정적 소개 페이지(`index.html`)와 함께 GitHub Pages에 자동 배포 → 커스텀 도메인 `https://ewhasudo.zapto.org/frontend/`
+- **`user-app-ci.yml`** — 회원 앱을 건드린 PR·푸시에서 `flutter analyze`·`flutter test`. 웹 빌드는 하지 않습니다.
+- **`deploy.yml`** — `main` 푸시 / `workflow_dispatch` 시 회원 앱(`--base-href "/frontend/"`)·트레이너 웹(`/trainer/`)을
+  빌드해 소개 페이지(`index.html`)와 함께 GitHub Pages 에 배포 → `https://ewhasudo.zapto.org/frontend/`
+- **`aws-frontend-deploy.yml`** — 저장소 변수 `AWS_FRONTEND_DEPLOY_ENABLED=true` 일 때만 같은 빌드를 S3 + CloudFront 로 배포
 
-### 최초 1회 설정
-
-워크플로우의 `actions/configure-pages@v5`에 `enablement: true`를 줘서 첫 실행 시 Pages site를 자동 provision 합니다.
-권한 정책으로 자동 활성화가 막힐 경우(organization 레포 등) **수동으로 한 번만** 활성화하세요:
-
-1. 레포 → **Settings → Pages**
-2. **Source**: `GitHub Actions` 로 변경
-3. Actions 탭에서 실패한 `Deploy GitHub Pages` 워크플로우를 **Re-run**
-
-(선택) **Settings → Secrets and variables → Actions → Variables** 에 `API_BASE_URL` 등록 — 미설정 시 dev 기본값 사용
+배포 빌드가 넘기는 인자(카카오 지도 키, 목 데이터·실서버 전환)와 실서버 전환 절차는
+[`docs/frontend_deployment.md`](../../docs/frontend_deployment.md) 가 기준입니다. 이 README 에는 배포용 변수를 따로 적지 않습니다.
 
 ## Stage 진행 현황
 

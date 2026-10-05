@@ -509,14 +509,14 @@ void main() {
     expect(content, contains('Period  2026-08-10 – 2026-08-16'));
     expect(content, contains('Key metrics'));
     expect(content, contains('• Workout completion: 72%'));
-    expect(content, contains('• PT sessions: 1/2 (50%)'));
+    expect(content, contains('• PT: 1/2 (50%)'));
     expect(content, contains('• Average sodium: 1890mg'));
     expect(content, contains('• Days over sodium target: 2 days'));
     expect(content, contains('• Average calories: 1863kcal'));
     expect(content, contains('• Average sugar: 21.4g'));
     expect(content, contains('Change from last week'));
     expect(content, contains('• Workout completion: +7%'));
-    expect(content, contains('• PT sessions completed: -1'));
+    expect(content, contains('• PT completed: -1'));
     expect(content, contains('Weekly trend (Mon–Sun)'));
     expect(content, contains('Workouts by day'));
     expect(content, contains('Mon: 80% · 스쿼트, 런지'));
@@ -563,7 +563,7 @@ void main() {
       feedback: '',
     );
     expect(en, contains('• Workout completion: Not measured'));
-    expect(en, contains('• PT sessions: Not measured'));
+    expect(en, contains('• PT: Not measured'));
     expect(en, contains('• Average sodium: Not measured'));
     expect(en, contains('No feedback'));
   });

@@ -14,9 +14,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logger/logger.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
+import 'package:oncare/core/logging/app_logger.dart';
+import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
@@ -26,7 +28,9 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+import '../../helpers/demo_exercise.dart';
 import '../../helpers/fixed_clock.dart';
+import '../../helpers/mock_account_repository.dart';
 import '../../helpers/record_span.dart';
 
 const AppConfig _config = AppConfig(
@@ -61,6 +65,7 @@ Finder _bars() => find.byWidgetPredicate(
 );
 
 Future<void> _openAllPeriod(WidgetTester tester) async {
+  final AppDatabase exerciseDb = await seededDemoDatabase(tester);
   useFixedKstDate();
   await tester.binding.setSurfaceSize(const Size(390, 900));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -70,6 +75,9 @@ Future<void> _openAllPeriod(WidgetTester tester) async {
         // 데모 픽스처가 들고 있는 35주를 `전체` 로 본다 — 기록 시작일이 정한다
         // (#2079).
         testRecordSpanOverride(exercise: testFirstExerciseRecordDate()),
+        // 운동은 앱의 데모와 같은 경로(로컬 목업 API + drift)로 돈다(#2724).
+        ...demoExerciseOverrides(exerciseDb),
+        appLoggerProvider.overrideWithValue(Logger(level: Level.off)),
         appConfigProvider.overrideWithValue(_config),
         accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
         memberCoachRepositoryProvider.overrideWithValue(

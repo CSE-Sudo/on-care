@@ -46,6 +46,27 @@ DATABASE_URL = os.environ["DATABASE_URL"]
 #: 두 임베더가 `embed_dim` 을 공유해 벡터 차원은 달라지지 않는다.
 os.environ.setdefault("EMBEDDER", "hash")
 
+#: 식단 사진 분석 한도(#2827). 데모 회원 한 사람이 스위트 전체에서 수십 번
+#: 분석하므로 기본값(분당 10·하루 20)이면 뒤쪽 테스트가 429 로 깨진다. 한도 자체는
+#: 그 테스트가 설정을 낮춰 확인한다.
+os.environ.setdefault("DIET_ANALYZE_PER_DAY", "100000")
+os.environ.setdefault("DIET_ANALYZE_PER_MINUTE", "100000")
+
+#: 트레이너 하루 AI 상한(#3032). 스위트 전체가 같은 DB·같은 날짜(시계 고정)를 쓰고
+#: 트레이너 계정을 여러 테스트가 공유하므로, 켜 두면 뒤쪽 테스트가 앞쪽의 호출 수에
+#: 따라 429 로 깨진다. DB 없이 서비스만 부르는 테스트도 가짜 트레이너 id 로 상한을
+#: 확인하려다 DB 에 닿는다. 상한 자체는 `test_ai_call_quota` 가 설정을 켜서 확인한다.
+#: 서버 전체 상한(`AI_GLOBAL_CALLS_PER_DAY`)은 기본이 꺼짐(0)이다.
+os.environ.setdefault("TRAINER_AI_CALLS_PER_DAY", "0")
+
+#: 테스트는 로컬 개발 환경(`.env.example`)과 같이 데모 폴백을 켠 채 돈다.
+#:
+#: 설정 기본값은 꺼짐이다(#2821) — 환경변수를 빠뜨린 배포 서버가 로그인 없는 요청을
+#: 데모 회원으로 처리하지 않게 하려는 것이다. 토큰 없이 데모 회원 화면을 읽는 기존
+#: 테스트는 개발 환경을 전제로 하므로 여기서 켠다. 기본값(꺼짐)의 동작은
+#: `test_prod_readiness` 가 설정을 직접 바꿔 확인한다.
+os.environ.setdefault("ALLOW_DEMO_FALLBACK", "true")
+
 
 #: 이 DB 를 비워도 되는가.
 #:
@@ -104,6 +125,32 @@ def _db_available() -> bool:
         return False
 
 
+@pytest.fixture(scope="session", autouse=True)
+def session_clock_pin():
+    """테스트 세션 동안 서비스 기준 날짜를 세션 시작일로 고정한다. (#2940)
+
+    `client` 의 시드는 세션 시작 때 한 번 '오늘'을 읽고, 요청은 그때그때 다시
+    읽는다. 실행이 KST 자정을 걸치면 둘이 하루 어긋나므로 `clock.now()` 를
+    [SessionClockPin.now] 로 바꿔 끼운다 — 시각은 흐르고 날짜만 묶인다.
+    `clock.today()`·`today_iso()` 는 모듈의 `now()` 를 거치므로 함께 고정된다.
+
+    autouse 세션 픽스처라 `client` 의 앱 기동(시드)보다 먼저 걸린다. 개별 테스트가
+    `monkeypatch.setattr(clock, "now", ...)` 로 넣는 값은 이 위에 덮이고, 그
+    테스트가 끝나면 다시 이 고정으로 돌아온다.
+    """
+    try:
+        from app.core import clock
+    except Exception:  # noqa: BLE001
+        yield None
+        return
+    from tests.session_clock import SessionClockPin
+
+    pin = SessionClockPin(clock.now)
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(clock, "now", pin.now)
+        yield pin
+
+
 @pytest.fixture(scope="session")
 def client():
     """FastAPI TestClient. DB 가 없으면 skip."""
@@ -134,21 +181,81 @@ def _reset_rate_limiter():
 
 
 @pytest.fixture(autouse=True)
+def _signup_email_verification_off(monkeypatch):
+    """가입 이메일 인증(#3038)은 끈 채 돈다.
+
+    가입을 거치는 수많은 테스트가 인증 코드 단계와 무관한 것을 확인한다 — 켜 두면
+    테스트마다 코드 요청·메일 가로채기를 붙여야 한다. 환경변수가 아니라 앱이 쓰는 설정
+    객체만 바꾼다: 환경변수로 끄면 테스트가 직접 만드는 운영(prod) 설정이 "운영은 끌 수
+    없다" 가드에 걸린다. 설정 기본값은 켜짐이고, 인증 흐름은 `test_signup_email_code`
+    가 다시 켜서 확인한다.
+    """
+    try:
+        from app.core.config import get_settings
+    except Exception:  # noqa: BLE001
+        yield
+        return
+    monkeypatch.setattr(get_settings(), "signup_email_verification", False)
+    yield
+
+
+#: 테스트용 인식기 이름. 결과는 개발용 스텁과 같지만 이름이 `stub` 이 아니다.
+TEST_RECOGNIZER = "test-vision"
+
+
+@pytest.fixture(autouse=True)
 def _force_stub_recognizer(monkeypatch):
-    """테스트는 결정론적 오프라인 인식기(stub)를 사용한다.
+    """테스트는 결정론적 오프라인 인식기를 사용한다.
 
     로컬 .env 에 실제 GEMINI_API_KEY 가 있으면 팩토리가 gemini 인식기를 골라,
     가짜 테스트 이미지가 실제 Vision API 로 나가 400(Unable to process image)을
-    유발한다. CI(키 없음→stub)와 동일 경로로 고정해 테스트를 .env 독립적으로 만든다."""
+    유발한다. CI(키 없음)와 동일 경로로 고정해 테스트를 .env 독립적으로 만든다.
+
+    스텁과 같은 식단을 돌려주되 이름은 `test-vision` 이다. 개발용 스텁(`stub`)
+    결과는 포인트·식판 조건에 세지 않으므로(#2812), 이름까지 스텁이면 "실제 인식기로
+    저장한 끼니" 를 전제로 한 적립·식판 테스트가 모두 0 이 된다. 스텁 자체의 규칙은
+    그 테스트가 `recognizer` 를 `stub` 으로 다시 고정해 확인한다."""
     try:
         from app.core.config import get_settings
-        monkeypatch.setattr(get_settings(), "recognizer", "stub")
+        from app.services.recognizer import factory
+        from app.services.recognizer.stub import StubFoodRecognizer
+
+        class _TestVisionRecognizer(StubFoodRecognizer):
+            name = TEST_RECOGNIZER
+
+        factory._registry()
+        monkeypatch.setitem(factory._REGISTRY, TEST_RECOGNIZER, _TestVisionRecognizer)
+        factory._build.cache_clear()
+        monkeypatch.setattr(get_settings(), "recognizer", TEST_RECOGNIZER)
     except Exception:  # noqa: BLE001, S110
         import warnings
         warnings.warn(
-            "recognizer 를 stub 으로 강제하지 못했습니다 — 테스트가 실제 Gemini Vision API 를 호출할 수 있습니다.",
+            "recognizer 를 테스트 인식기로 강제하지 못했습니다 — 테스트가 실제 Gemini Vision API 를 호출할 수 있습니다.",
             stacklevel=2,
         )
+    yield
+
+
+@pytest.fixture(autouse=True)
+def _pin_session_start_clock(monkeypatch):
+    """완료·노쇼의 시작 판정 시각을 오늘 KST 23:59 로 고정한다. (#2760)
+
+    완료·노쇼는 시작 시각이 지나야 열린다. 많은 테스트가 오늘 저녁 시각의 PT 를
+    만들어 완료하므로, 실제 시각을 쓰면 CI 가 도는 시간대에 따라 결과가 바뀐다.
+    오늘 일정은 모두 시작한 것으로 두고, 시작 전 판정을 보는 테스트는 스스로
+    `trainer.schedule._now_kst` 를 다시 고정한다.
+    """
+    try:
+        from app.core import clock
+        from app.services.trainer import schedule as trainer_schedule_service
+    except Exception:  # noqa: BLE001
+        yield
+        return
+    monkeypatch.setattr(
+        trainer_schedule_service,
+        "_now_kst",
+        lambda: clock.now().replace(hour=23, minute=59, second=0, microsecond=0),
+    )
     yield
 
 
@@ -162,3 +269,59 @@ def db_session(client):
         yield db
     finally:
         db.close()
+
+
+#: 테스트가 만드는 회원·트레이너 계정에 필수 동의를 함께 남길까. (#3088, #3155)
+#:
+#: 회원 데이터·AI API 와 트레이너 API 는 필수 동의가 끝난 계정만 받는다. 기존 테스트 다수가
+#: `consents` 없이 가입하거나 `User` 를 DB 에 직접 넣고 토큰을 만드는데, 그 계정은
+#: 모두 동의 화면을 거친 회원을 뜻한다. 가입 헬퍼가 100여 파일에 흩어져 있어
+#: 하나씩 고치는 대신, 회원 행이 생길 때 지금 버전의 필수 동의를 같은 트랜잭션에
+#: 남긴다. 동의하지 않은 계정이 필요한 테스트는 `without_default_consent` 를 쓴다.
+_DEFAULT_CONSENT = {"on": True}
+
+
+def _record_default_consent(mapper, connection, target) -> None:
+    if not _DEFAULT_CONSENT["on"]:
+        return
+    from sqlalchemy.dialects.postgresql import insert
+
+    from app.core import clock
+    from app.models.models import UserConsent
+    from app.services import signup_consent
+
+    # 아직 읽지 않은 서버 기본값(role)은 회원이다. 트레이너는 역할별 항목(건강정보
+    # 제외)을 남긴다.
+    role = target.__dict__.get("role") or "member"
+    now = clock.now()
+    rows = [
+        {
+            "user_id": target.id,
+            "kind": kind,
+            "version": signup_consent.CURRENT_VERSIONS[kind],
+            "agreed_at": now,
+        }
+        for kind in sorted(signup_consent.required_for(role))
+    ]
+    # 가입이 같은 항목을 이어서 남기면 그쪽은 이미 있는 행을 보고 건너뛴다.
+    connection.execute(insert(UserConsent.__table__).values(rows).on_conflict_do_nothing())
+
+
+try:
+    from sqlalchemy import event
+
+    from app.models.models import User as _User
+
+    event.listen(_User, "after_insert", _record_default_consent)
+except Exception:  # noqa: BLE001, S110 — 앱 의존성 없이 도는 순수 테스트
+    pass
+
+
+@pytest.fixture
+def without_default_consent():
+    """이 테스트가 만드는 회원·트레이너 계정에는 동의를 남기지 않는다. (#3088, #3155)"""
+    _DEFAULT_CONSENT["on"] = False
+    try:
+        yield
+    finally:
+        _DEFAULT_CONSENT["on"] = True

@@ -1,10 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/reservation_slot_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/reservation_slot.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
@@ -152,11 +153,16 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
 
   String _errorMessage(AppLocalizations l, Object error) {
     if (error is DioException) {
-      final data = error.response?.data;
-      if (data is Map<String, dynamic> && data['detail'] is String) {
-        // 서버가 보낸 사유는 한국어 화면에서만 그대로 쓴다. (#501)
-        return serverDetailOr(l, data['detail'] as String, l.slotActionFailed);
-      }
+      // 서버가 보낸 사유는 한국어 화면에서만 그대로 쓰고(#501), 사유가 없으면
+      // 원인별 안내로 물러난다 — Dio 의 영어 설명문은 화면에 올리지 않는다.
+      return appErrorMessage(
+        l,
+        AppError.fromDio(error),
+        fallback: l.slotActionFailed,
+      );
+    }
+    if (error is AppError) {
+      return appErrorMessage(l, error, fallback: l.slotActionFailed);
     }
     if (error is StateError) {
       // 목 리포지토리는 코드를 던진다 — 문구는 여기서 붙인다. (#501)
@@ -317,13 +323,15 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
         const SizedBox(height: OnCareSpacing.s12),
         slots.when(
           loading: () => const AppLoading(placement: AppStatePlacement.card),
-          error: (_, _) => Center(
-            child: AppButton(
-              label: l.slotReload,
-              leadingIcon: AppIcons.refresh,
-              variant: AppButtonVariant.secondary,
-              onPressed: () => ref.invalidate(reservationSlotsProvider),
-            ),
+          // 버튼만 두면 슬롯이 없는 것인지 못 읽은 것인지 알 수 없다(#2891) —
+          // 다른 화면처럼 이유 문구와 재시도를 함께 보인다.
+          error: (_, _) => AppErrorState(
+            key: const ValueKey<String>('slot-load-error'),
+            placement: AppStatePlacement.card,
+            title: l.slotLoadFailed,
+            retryLabel: l.slotReload,
+            retryKey: const ValueKey<String>('slot-load-retry'),
+            onRetry: () => ref.invalidate(reservationSlotsProvider),
           ),
           data: (allSlots) {
             // 고른 날의 슬롯만 보여 주던 것을 앞으로 열린 슬롯 전부로 넓힌다
@@ -387,8 +395,9 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
     ReservationSlot slot,
   ) {
     // 닫혔거나 이미 예약된 자리는 "골라 쓸 수 없는 자리"라 같은 회색으로
-    // 눌러 둔다 — 비어 있는 자리(흰 외곽선 구획)와 구분된다(#2468).
-    final taken = slot.isClosed || slot.booked;
+    // 눌러 둔다 — 비어 있는 자리(흰 외곽선 구획)와 구분된다(#2468). 다른
+    // 일정과 겹친 자리도 회원에게는 마감이라 같은 회색이다(#2761).
+    final taken = !slot.open;
     final TimeOfDay start = TimeOfDay.fromDateTime(slot.startsAt);
     final TimeOfDay end = TimeOfDay.fromDateTime(
       slot.startsAt.add(Duration(minutes: slot.durationMinutes)),
@@ -433,7 +442,21 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
                     .text(OnCareTypography.strong(OnCareTypography.body))
                     .copyWith(color: OnCareColors.textPrimary),
               )
-            else
+            else ...<Widget>[
+              // 자리를 연 뒤 같은 시간에 일정이 생겼다(#2761). 빈 자리처럼
+              // 보이면 트레이너는 회원이 왜 못 잡는지 모른다 — 겹침을 짚고,
+              // 쓰지 않을 자리면 바로 닫을 수 있게 삭제 버튼은 그대로 둔다.
+              if (slot.overlapped) ...<Widget>[
+                Tooltip(
+                  message: l.slotOverlappedHint,
+                  child: AppTag(
+                    key: ValueKey<String>('slot-overlapped-${slot.id}'),
+                    label: l.slotOverlappedSummary,
+                    tone: AppTagTone.caution,
+                  ),
+                ),
+                const SizedBox(width: OnCareSpacing.s8),
+              ],
               // 아직 아무도 잡지 않은 자리만 지울 수 있다 — 수정 대신
               // 삭제다(#1394).
               AppIconButton(
@@ -442,6 +465,7 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
                 color: OnCareColors.textTertiary,
                 onPressed: _saving ? null : () => _close(slot),
               ),
+            ],
           ],
         ),
       ),

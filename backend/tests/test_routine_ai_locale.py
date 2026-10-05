@@ -34,7 +34,7 @@ from app.services import routine_ai
 from app.services import routine_suggestion_service as suggestions
 from app.services import trainer_program_template_service as templates
 from app.services import trainer_routine_options_service as options_service
-from app.services import trainer_service
+from app.services.trainer import _common as trainer_common_service
 
 _HANGUL = re.compile(r"[가-힣]")
 
@@ -106,13 +106,13 @@ def test_every_legacy_label_maps_to_a_known_code():
 )
 def test_legacy_sentence_rows_are_read_back_as_codes(legacy, code):
     """코드로 바꾸기 전에 준비된 후보도 영어 화면에서 번역돼야 한다."""
-    assert trainer_service.suggestion_evidence(
+    assert trainer_common_service.suggestion_evidence(
         json.dumps([legacy], ensure_ascii=False)
     ) == [code]
 
 
 def test_legacy_mapping_ignores_surrounding_whitespace():
-    assert trainer_service.suggestion_evidence(
+    assert trainer_common_service.suggestion_evidence(
         json.dumps(["  혈압 관리 목표 "], ensure_ascii=False)
     ) == [suggestions.EV_BLOOD_PRESSURE]
 
@@ -123,7 +123,7 @@ def test_codes_and_free_text_pass_through_unchanged():
         [suggestions.EV_LOW_CARDIO, "직접 적은 근거", "custom note"],
         ensure_ascii=False,
     )
-    assert trainer_service.suggestion_evidence(raw) == [
+    assert trainer_common_service.suggestion_evidence(raw) == [
         suggestions.EV_LOW_CARDIO,
         "직접 적은 근거",
         "custom note",
@@ -132,7 +132,7 @@ def test_codes_and_free_text_pass_through_unchanged():
 
 @pytest.mark.parametrize("raw", ["", "not json", "{}", '"text"', "[1, null, \"\"]"])
 def test_broken_evidence_still_reads_as_an_empty_or_filtered_list(raw):
-    assert trainer_service.suggestion_evidence(raw) == []
+    assert trainer_common_service.suggestion_evidence(raw) == []
 
 
 def test_mixed_legacy_and_code_rows_keep_order_and_item_limit():
@@ -146,7 +146,7 @@ def test_mixed_legacy_and_code_rows_keep_order_and_item_limit():
         ],
         ensure_ascii=False,
     )
-    assert trainer_service.suggestion_evidence(raw) == [
+    assert trainer_common_service.suggestion_evidence(raw) == [
         suggestions.EV_BLOOD_PRESSURE,
         suggestions.EV_LOW_CARDIO,
         suggestions.EV_RECENT_PT,
@@ -907,3 +907,24 @@ def test_saved_templates_are_not_translated(client, lone_trainer):
     ).json()
     assert [r["name"] for r in rows] == ["내 하체 루틴"]
     assert rows[0]["exercises"][0]["name"] == "스쿼트"
+
+
+@pytest.mark.parametrize(
+    "signals",
+    [
+        _ALL_SIGNALS,
+        _RECORDS_ONLY,
+        suggestions._Signals(strength_heavy=True, total_minutes=100, strength_minutes=60),
+    ],
+)
+def test_strength_candidate_is_translated_and_keeps_its_amounts(signals):
+    """근력 후보도 이름·사유만 옮기고 세트·횟수·중량은 같다 (#2703)."""
+    ko = suggestions._suggestions_for(signals, "ko")[-1]
+    en = suggestions._suggestions_for(signals, "en")[-1]
+    assert ko.type == en.type == "근력"
+    assert (ko.sets, ko.reps, ko.weight, ko.evidence) == (
+        en.sets, en.reps, en.weight, en.evidence
+    )
+    assert not _has_hangul(en.name) and not _has_hangul(en.reason)
+    assert len(en.name) <= 100 and len(en.reason) <= 200
+    assert len(ko.reason) <= 200

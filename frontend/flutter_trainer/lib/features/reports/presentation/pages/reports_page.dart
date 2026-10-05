@@ -3,15 +3,17 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/member_report_history_provider.dart';
 import 'package:oncare_trainer/features/reports/data/report_send_log.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/calorie_baseline.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/report_queue.dart';
+import 'package:oncare_trainer/features/reports/domain/report_queue_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/client_report_view.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/member_report_history_view.dart';
@@ -100,8 +102,13 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   String _locationFor(String? clientId) =>
       AppRoutes.reportFor(clientId, weekStart: _weekParam);
 
-  /// Clients whose report was sent this session — keeps the button from
-  /// being pressed twice in a row by accident.
+  /// 이번 세션에 이 주 리포트를 보낸 회원.
+  ///
+  /// 작업대의 `전송 완료` 표시를 서버 기록이 다시 읽히기 전까지 바로 세우는
+  /// 데에만 쓴다. 전송을 막는 데 쓰지 않는다(#2770) — 예전에는 [_send] 가 이
+  /// 집합에 든 회원을 조용히 돌려보내, `다시 쓰기` 로 고친 리포트의 전송 버튼이
+  /// 아무 반응 없이 죽었다. 같은 리포트가 두 번 나가는 것은 서버 기록으로 묻는
+  /// 재전송 확인([_confirmResend])과 [_sending]·[_confirming] 이 막는다.
   final Set<String> _sent = <String>{};
 
   /// 작업대의 정렬. 기본은 손이 필요한 회원부터다(#2232).
@@ -129,6 +136,10 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
   /// A send is in flight for this client.
   String? _sending;
+
+  /// 전송 직전에 다시 읽은 수치가 화면과 달라 전송을 멈춘 리포트(`회원|주`).
+  /// ③ 에 안내가 서고, 다른 회원·주로 옮기거나 보내고 나면 걷힌다(#3100).
+  String? _staleFor;
 
   /// 다시 보낼지 묻는 창이 떠 있다 — 두 번 눌러 창이 둘 뜨지 않게 한다.
   bool _confirming = false;
@@ -159,10 +170,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   /// 사라져, 가져오기 전 글로 되돌릴 수 없다 — 이 값은 입력창 안의 글만
   /// 바꾼다(#2187).
   int _summaryEpoch = 0;
-
-  /// 입력창이 비었는가. 메뉴의 전송 항목을 잠그는 유일한 이유라, 이 값이
-  /// 바뀔 때만 다시 그린다 — 글자마다 화면 전체를 다시 그리지 않는다.
-  bool _feedbackBlank = false;
 
   /// 피드백 초안을 서버에 저장하는 중이다. (#821)
   bool _savingFeedback = false;
@@ -244,6 +251,8 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   /// 없애려던 바로 그 문제다.
   Future<void> _saveFeedback(WeeklyReport report, String body) async {
     if (_savingFeedback) return;
+    // 지금 편집기의 회원 초안만 저장한다(#2862).
+    if (report.client.id != _clientId) return;
     final AppLocalizations l = AppLocalizations.of(context);
     setState(() => _savingFeedback = true);
     try {
@@ -255,10 +264,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
             body: body,
           );
       ref.invalidate(
-        reportFeedbackDraftProvider((
-          client: report.client,
-          weekStart: report.weekStart,
-        )),
+        reportFeedbackDraftProvider(
+          ReportKey(client: report.client, weekStart: report.weekStart),
+        ),
       );
       if (!mounted) return;
       showAppToast(context, l.reportsFeedbackSaved, type: AppToastType.success);
@@ -274,11 +282,90 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     }
   }
 
+  /// 리포트 탭이 지난번에 보이던가. 탭이 다시 보일 때를 가린다.
+  bool? _visible;
+
+  /// 지금 화면에 선 리포트·작업대 요약의 provider.
+  ///
+  /// 명단을 아직 못 읽었으면 비어 있다 — 그때는 리포트도 아직 그려지지 않았다.
+  List<ProviderBase<Object?>> _shownReports() {
+    final List<TrainerClient>? roster = ref.read(clientsProvider).valueOrNull;
+    if (roster == null || roster.isEmpty) {
+      return const <ProviderBase<Object?>>[];
+    }
+    TrainerClient? inRoster(String? id) => id == null
+        ? null
+        : roster.where((TrainerClient c) => c.id == id).firstOrNull;
+    final TrainerClient? historyClient = _clientId == null
+        ? inRoster(_historyFor)
+        : null;
+    final DateTime? historyWeek = _historyWeek;
+    return <ProviderBase<Object?>>[
+      if (_clientId == null)
+        reportQueueProvider(
+          ReportQueueKey(clients: roster, weekStart: _weekStart),
+        ),
+      for (final TrainerClient? c in <TrainerClient?>[
+        inRoster(_clientId),
+        inRoster(_sentViewFor),
+      ])
+        if (c != null)
+          weeklyReportProvider(ReportKey(client: c, weekStart: _weekStart)),
+      if (historyClient != null && historyWeek != null)
+        weeklyReportProvider(
+          ReportKey(client: historyClient, weekStart: historyWeek),
+        ),
+    ];
+  }
+
+  /// 화면에 설 리포트·작업대 요약을 서버에서 다시 읽는다(#3100).
+  ///
+  /// 실서버 리포트는 한 번 읽고 끝나는 값이고 계정 동안 붙잡혀 있어, 다시 읽지
+  /// 않으면 처음 연 때의 수치가 탭을 오가도 그대로 남았다. 리포트 탭에 들어올
+  /// 때·탭이 다시 보일 때·회원이나 주를 옮길 때 부른다.
+  ///
+  /// **이미 읽어 둔 것만** 다시 읽는다 — 처음 여는 회원·주는 화면이 읽는 것이
+  /// 곧 최신이라, 여기서 또 부르면 같은 요청이 두 번 나간다. 그래서 무엇을
+  /// 다시 읽을지는 지금(화면이 새 값을 구독하기 전) 정하고, 실제 무효화는 build
+  /// 밖인 다음 프레임에 한다. 무효화하는 동안 화면은 이전 값을 그대로 그린다.
+  void _refreshCachedReports() {
+    final List<ProviderBase<Object?>> cached = _shownReports()
+        .where(ref.exists)
+        .toList();
+    if (cached.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      for (final ProviderBase<Object?> p in cached) {
+        ref.invalidate(p);
+      }
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // 다른 화면이 먼저 읽어 둔 리포트로 들어왔을 수 있다.
+    _refreshCachedReports();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 셸은 탭을 모두 살려 두고 보이지 않는 탭의 [TickerMode] 만 끈다 — 다시
+    // 켜지면 다른 탭에 다녀온 것이다.
+    final bool visible = TickerMode.valuesOf(context).enabled;
+    if (visible && _visible == false) _refreshCachedReports();
+    _visible = visible;
+  }
+
   @override
   void didUpdateWidget(ReportsPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.clientId != oldWidget.clientId) {
       _clientId = widget.clientId;
+      _missingNotified = null;
+      _staleFor = null;
+      _refreshCachedReports();
       // 다른 회원의 리포트는 처음부터 읽는다 — 앞 회원에서 ③까지 갔다고
       // 이 회원의 수치를 건너뛸 이유가 없다.
       _stage = 0;
@@ -301,15 +388,16 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   /// [didUpdateWidget] 에서 부른다.
   void _enterWeek(DateTime week) {
     _weekStart = week;
-    // A different week is a different report — allow sending again.
+    // 다른 주는 다른 리포트다 — 앞 주의 `전송 완료` 표시를 끌고 가지 않는다.
     _sent.clear();
     _stage = 0;
     _maxStage = 0;
     _sentViewFor = null;
     _feedbackDraft = null;
     _feedbackFor = null;
-    _feedbackBlank = false;
+    _staleFor = null;
     _dropPreview();
+    _refreshCachedReports();
   }
 
   /// 주를 옮기고 URL 에 싣는다.
@@ -352,11 +440,10 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     );
   }
 
-  /// 달력 날짜로 한 주씩 옮긴다. `Duration(days: 7)` 을 더하면 서머타임이
-  /// 있는 곳에서 자정이 한 시간 밀려 주가 어긋난다.
-  void _shiftWeek(int direction) => _moveToWeek(
-    DateTime(_weekStart.year, _weekStart.month, _weekStart.day + 7 * direction),
-  );
+  /// 달력 날짜로 한 주씩 옮긴다([shiftWeeks]). `Duration(days: 7)` 을 더하면
+  /// 서머타임이 있는 곳에서 자정이 한 시간 밀려 주가 어긋난다.
+  void _shiftWeek(int direction) =>
+      _moveToWeek(shiftWeeks(_weekStart, direction));
 
   /// 요약을 피드백 입력창으로 옮긴다.
   ///
@@ -366,7 +453,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     setState(() {
       _feedbackDraft = draft;
       _feedbackFor = _feedbackKey(report);
-      _feedbackBlank = draft.trim().isEmpty;
       _summaryEpoch++;
     });
   }
@@ -386,14 +472,44 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
   void _goToCurrentWeek() => _moveToWeek(weekStartOf(nowKst()));
 
+  /// 편집기에 열 회원 — 주소의 `client` 가 [roster] 에 있을 때만이다(#2862).
+  ///
+  /// 명단에 없으면 null 이다. 예전에는 명단의 첫 회원으로 갈음해, 담당 해제된
+  /// 회원의 북마크나 오타 난 주소로 들어오면 다른 회원의 리포트가 그려지고
+  /// 전송까지 그 회원에게 나갔다. 명단을 아직 못 읽었을 때도 null 이라 아무도
+  /// 고르지 않는다 — 기다렸다가 명단이 오면 다시 고른다.
+  TrainerClient? _editorClientIn(List<TrainerClient> roster) {
+    final String? id = _clientId;
+    if (id == null) return null;
+    return roster.where((TrainerClient c) => c.id == id).firstOrNull;
+  }
+
+  /// 안내를 이미 띄운 `client` 값 — 다시 그릴 때마다 토스트가 쌓이지 않게.
+  String? _missingNotified;
+
+  /// 명단에 없는 회원 주소로 들어왔다 — 한 번 알리고 작업대로 되돌린다(#2862).
+  ///
+  /// 주소는 방문 기록을 남기지 않고 바꾼다([Router.neglect]) — 뒤로 가기가 그
+  /// 주소로 돌아가 같은 안내를 다시 띄우면 안 된다. build 안에서 부르므로 실제
+  /// 이동은 다음 프레임에 한다.
+  void _leaveMissingClient(AppLocalizations l) {
+    final String? missing = _clientId;
+    if (missing == null || _missingNotified == missing) return;
+    _missingNotified = missing;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _clientId != missing) return;
+      showAppToast(context, l.clientNotFound);
+      Router.neglect(context, () => context.go(_locationFor(null)));
+    });
+  }
+
   /// 그 주에 저장된 초안. 아직 안 읽혔으면 null 이다 — 전송·PDF 처럼 지금
   /// 당장 값이 필요한 자리에서 쓴다. (#821)
   ReportFeedbackDraft? _savedDraftOf(WeeklyReport report) => ref
       .read(
-        reportFeedbackDraftProvider((
-          client: report.client,
-          weekStart: report.weekStart,
-        )),
+        reportFeedbackDraftProvider(
+          ReportKey(client: report.client, weekStart: report.weekStart),
+        ),
       )
       .valueOrNull;
 
@@ -413,10 +529,14 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     WeeklyReport? previous;
     try {
       previous = await ref.read(
-        weeklyReportProvider((
-          client: report.client,
-          weekStart: report.weekStart.subtract(const Duration(days: 7)),
-        )).future,
+        weeklyReportProvider(
+          ReportKey(
+            client: report.client,
+            // 달력 날짜로 한 주 앞 — `Duration` 으로 빼면 서머타임 시작 주
+            // 다음에 2주 전 리포트를 읽는다(#2774).
+            weekStart: shiftWeeks(report.weekStart, -1),
+          ),
+        ).future,
       );
     } catch (_) {
       // 전주 집계가 없어도 현재 주차 PDF는 생성할 수 있다.
@@ -438,19 +558,64 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   Future<void> _send(WeeklyReport report, String message) async {
     final AppLocalizations l = AppLocalizations.of(context);
     final id = report.client.id;
-    if (_sending != null || _confirming || _sent.contains(id)) return;
+    // 주소가 가리키는 회원의 리포트만 보낸다(#2862). 편집기가 다른 회원으로
+    // 바뀐 사이에 눌린 전송이 엉뚱한 채팅방으로 가지 않게 한 번 더 막는다.
+    if (id != _clientId) return;
+    // 빈 문구는 보내지 않는다 — 버튼이 잠겨 있지만 다른 길로 들어와도 빈
+    // 말풍선이나 서버의 기본 문장이 회원에게 가지 않게 한다(#2771).
+    if (message.trim().isEmpty) {
+      showAppToast(
+        context,
+        l.reportsSendNeedsFeedback,
+        type: AppToastType.error,
+      );
+      return;
+    }
+    // 연타·창 겹침만 막는다. 이미 보낸 회원이어도 여기서 돌려보내지 않는다 —
+    // 다시 쓰기 뒤의 재전송은 아래 확인창이 묻는다(#2770).
+    if (_sending != null || _confirming) return;
     // 이미 보낸 주면 한 번 더 묻는다(#2288). 기록은 서버에서 오므로 새로고침한
     // 뒤에도 이 확인이 선다 — 전에는 세션 메모리만 봐서 새로고침하면 같은
     // 리포트가 아무 확인 없이 두 번 나갔다.
     _confirming = true;
-    final bool proceed;
+    final int? previousCount;
     try {
-      proceed = await _confirmResend(l, report);
+      previousCount = await _confirmResend(l, report);
     } finally {
       _confirming = false;
     }
-    if (!proceed || !mounted) return;
+    if (previousCount == null || !mounted) return;
     setState(() => _sending = id);
+    // 보내기 직전에 서버 값을 다시 읽는다(#3100). 화면의 리포트는 편집기를
+    // 연 때의 집계라, 그 사이 회원이 더 기록했으면 옛 수치가 회원에게 나간다.
+    // 다시 읽지 못하면 옛 수치로 조용히 보내지 않는다.
+    final WeeklyReport latest;
+    try {
+      latest = await ref.refresh(
+        weeklyReportProvider(
+          ReportKey(client: report.client, weekStart: report.weekStart),
+        ).future,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _sending = null);
+      showAppToast(context, l.reportsSendFailed, type: AppToastType.error);
+      return;
+    }
+    if (!mounted) return;
+    // 수치가 바뀌었으면 보내지 않고 멈춘다. 손대지 않은 자동 문구도 트레이너가
+    // 확인한 글이라, 새 수치로 몰래 다시 만들어 보내면 본 것과 나간 것이
+    // 달라진다. 화면은 다시 읽은 값으로 미리보기·자동 문구를 새로 그리고(고친
+    // 문구는 그대로 둔다), 트레이너가 확인한 뒤 다시 누른다.
+    if (latest.contentKey != report.contentKey) {
+      setState(() {
+        _sending = null;
+        _staleFor = _feedbackKey(latest);
+        // 고치지 않은 입력창은 새 자동 문구로 다시 만든다.
+        if (_feedbackFor != _feedbackKey(latest)) _draftEpoch++;
+      });
+      return;
+    }
     try {
       final bytes = await _pdfForSend(l, report, message);
       await ref
@@ -462,21 +627,41 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
             fileName: reportPdfFileName(l, report),
             message: message,
           );
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() => _sending = null);
-      showAppToast(context, l.reportsSendFailed, type: AppToastType.error);
+      // 앱에서는 실패로 끝났어도 서버에는 저장됐을 수 있다(#2773) — 응답을
+      // 기다리다 끊긴 경우다. 기록을 다시 읽어, 서버에 남은 전송이 있으면
+      // 작업대가 `전송 완료` 로, 다시 보낼 때는 재전송 확인으로 따라잡는다.
+      ref.invalidate(reportSendHistoryProvider(weekStartOf(report.weekStart)));
+      ref.invalidate(memberReportHistoryProvider(id));
+      // 409 는 이 요청이 이미 처리됐다는 뜻이다 — `전송 실패` 라고 하면
+      // 트레이너가 회원이 못 받은 줄 알고 또 보낸다.
+      final bool alreadyDone = e is ServerError && e.statusCode == 409;
+      showAppToast(
+        context,
+        alreadyDone ? l.reportsSendAlreadyDone : l.reportsSendFailed,
+        type: alreadyDone ? AppToastType.info : AppToastType.error,
+      );
       return;
     }
     if (!mounted) return;
     ref
         .read(reportSendLogProvider.notifier)
-        .record(clientId: id, weekStart: report.weekStart, message: message);
+        .record(
+          clientId: id,
+          weekStart: report.weekStart,
+          message: message,
+          // 이번이 몇 번째인가 — 서버 기록이 돌아오기 전에도 `N회 보냄` 이
+          // 바로 는다(#2885).
+          previousCount: previousCount,
+        );
     // 서버 기록을 다시 읽는다 — 방금 보낸 것이 새로고침 뒤에도 남는 근거다.
     ref.invalidate(reportSendHistoryProvider(weekStartOf(report.weekStart)));
     ref.invalidate(memberReportHistoryProvider(id));
     setState(() {
       _sending = null;
+      _staleFor = null;
       _sent.add(id);
       // 보내고 나면 작업대로 돌아간다 — 다음 회원이 그 자리에 있다.
       _stage = 0;
@@ -548,10 +733,11 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
   /// [report] 의 회원에게 그 주 리포트가 이미 나갔으면 다시 보낼지 묻는다.
   ///
-  /// 보낸 적이 없으면 묻지 않고 true 다. 서버 기록을 읽지 못했으면 아는
+  /// 보내도 되면 지금까지 보낸 횟수를, 트레이너가 물렀으면 null 을 돌려준다.
+  /// 보낸 적이 없으면 묻지 않고 0 이다. 서버 기록을 읽지 못했으면 아는
   /// 만큼(세션 기록·데모 기록)으로 판단한다 — 그때 작업대에는 이력을 읽지
   /// 못했다는 경고가 이미 서 있다.
-  Future<bool> _confirmResend(AppLocalizations l, WeeklyReport report) async {
+  Future<int?> _confirmResend(AppLocalizations l, WeeklyReport report) async {
     final DateTime week = weekStartOf(report.weekStart);
     Map<String, ReportSendRecord> history = const <String, ReportSendRecord>{};
     try {
@@ -559,7 +745,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     } catch (_) {
       // 위 주석대로 아는 만큼으로 판단한다.
     }
-    if (!mounted) return false;
+    if (!mounted) return null;
     final List<TrainerClient> roster =
         ref.read(clientsProvider).valueOrNull ?? const <TrainerClient>[];
     final ReportSendRecord? previous = sendRecordFor(
@@ -571,9 +757,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       report.client.id,
       week,
     );
-    if (previous == null) return true;
+    if (previous == null) return 0;
     final DateTime at = previous.sentAt;
-    return showAppConfirmDialog(
+    final bool proceed = await showAppConfirmDialog(
       context: context,
       title: l.reportsResendTitle,
       message: l.reportsResendBody(
@@ -585,6 +771,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       confirmLabel: l.reportsResendConfirm,
       cancelLabel: l.actionCancel,
     );
+    return proceed ? previous.sendCount : null;
   }
 
   /// 리포트를 읽는 중이거나 못 읽은 주의 카드. 주 이동은 편집기 위쪽 줄에
@@ -593,10 +780,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        AppSectionHeader(
-          title: l.reportsWeekly,
-          icon: AppIcons.document,
-        ),
+        AppSectionHeader(title: l.reportsWeekly, icon: AppIcons.document),
         const SizedBox(height: OnCareSpacing.s12),
         child,
       ],
@@ -627,7 +811,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     );
     final ReportSendRecord? record = sendRecordFor(log, client.id, week);
     final AsyncValue<WeeklyReport> reportAsync = ref.watch(
-      weeklyReportProvider((client: client, weekStart: week)),
+      weeklyReportProvider(ReportKey(client: client, weekStart: week)),
     );
     final WeeklyReport? report = reportAsync.valueOrNull;
     if (record != null && report != null) {
@@ -637,7 +821,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
         record: record,
         // 편집기 ① 과 같은 칼로리 `평소` 를 견준다(#2425).
         calorieBaseline: ref.watch(
-          calorieBaselineProvider((client: client, weekStart: week)),
+          calorieBaselineProvider(ReportKey(client: client, weekStart: week)),
         ),
         backLabel: l.reportsHistoryBack,
         onBack: () => setState(() => _historyWeek = null),
@@ -667,14 +851,10 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     );
     final weekSessions = ref.watch(scheduleRangeProvider(range));
     // 초안 구독은 본문(LayoutBuilder)보다 위에서 해야 해 본문이 고른 고객을
-    // 볼 수 없다. 본문과 **같은 규칙**으로 여기서 한 번 더 고른다.
+    // 볼 수 없다. 본문과 **같은 규칙**([_editorClientIn])으로 여기서 한 번 더
+    // 고른다 — 명단에 없는 회원이면 아무도 고르지 않는다(#2862).
     final roster = clientsAsync.valueOrNull ?? const <TrainerClient>[];
-    final TrainerClient? openClient = roster.isEmpty
-        ? null
-        : roster.firstWhere(
-            (c) => c.id == _clientId,
-            orElse: () => roster.first,
-          );
+    final TrainerClient? openClient = _editorClientIn(roster);
     // 저장해 둔 초안이 도착하면 입력창을 그 문구로 다시 만든다. 이미 이 리포트를
     // 고치고 있었다면 건드리지 않는다 — 읽어 온 값이 트레이너가 방금 친 글을
     // 덮으면 안 된다. (#821)
@@ -684,10 +864,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     // 같은 [openClient] 이다.
     if (openClient != null) {
       ref.listen<AsyncValue<ReportFeedbackDraft>>(
-        reportFeedbackDraftProvider((
-          client: openClient,
-          weekStart: _weekStart,
-        )),
+        reportFeedbackDraftProvider(
+          ReportKey(client: openClient, weekStart: _weekStart),
+        ),
         (previous, next) {
           if (next.valueOrNull == null) return;
           if (_feedbackFor == _feedbackKeyOf(openClient.id, _weekStart)) {
@@ -725,19 +904,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               icon: AppIcons.reports,
             );
           }
-          // 이번 주 큐를 세우려면 회원별 리포트가 필요하다. 한 명이 실패해도
-          // 나머지 줄은 그대로 선다 — 작업대의 답은 "누가 남았나" 이고, 그
-          // 답은 수치 없이도 낼 수 있다.
-          final reports = <String, WeeklyReport>{};
-          bool anyLoading = false;
-          for (final TrainerClient c in clients) {
-            final AsyncValue<WeeklyReport> value = ref.watch(
-              weeklyReportProvider((client: c, weekStart: _weekStart)),
-            );
-            final WeeklyReport? data = value.valueOrNull;
-            if (data != null) reports[c.id] = data;
-            if (value.isLoading) anyLoading = true;
-          }
           // 기록 자체를 본다 — notifier 를 보면 상태가 바뀌어도 다시 그리지
           // 않아 전송한 회원이 큐에 남는다.
           // 데모 기록을 얹는다 — 작업대의 두 열이 다 차 있어야 이 화면이
@@ -750,7 +916,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           final AsyncValue<Map<String, ReportSendRecord>> history = ref.watch(
             reportSendHistoryProvider(_weekStart),
           );
-          if (history.isLoading) anyLoading = true;
           final Map<String, ReportSendRecord> sendLog = withDemoSends(
             mergeSendLogs(
               history.valueOrNull ?? const <String, ReportSendRecord>{},
@@ -788,7 +953,10 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
             return MemberReportHistoryView(
               client: historyClient,
               onBack: () => context.go(_locationFor(null)),
-              onView: (DateTime week) => setState(() => _historyWeek = week),
+              onView: (DateTime week) => setState(() {
+                _historyWeek = week;
+                _refreshCachedReports();
+              }),
               onOpenThisWeek: () =>
                   _openEditor(historyClient.id, weekStartOf(nowKst())),
             );
@@ -802,16 +970,35 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               sentFor,
               _weekStart,
             );
-            final WeeklyReport? sentReport = reports[sentFor];
+            // 작업대 요약은 수치 몇 개뿐이라 그대로 그릴 수 없다 — 그 회원의
+            // 리포트를 이때 읽는다(#2863).
+            final TrainerClient? sentClient = clients
+                .where((TrainerClient c) => c.id == sentFor)
+                .firstOrNull;
+            final AsyncValue<WeeklyReport>? sentAsync = sentClient == null
+                ? null
+                : ref.watch(
+                    weeklyReportProvider(
+                      ReportKey(client: sentClient, weekStart: _weekStart),
+                    ),
+                  );
+            final WeeklyReport? sentReport = sentAsync?.valueOrNull;
+            if (record != null &&
+                sentReport == null &&
+                (sentAsync?.isLoading ?? false)) {
+              return const AppLoading();
+            }
             if (record != null && sentReport != null) {
               return SentReportView(
                 report: sentReport,
                 record: record,
                 calorieBaseline: ref.watch(
-                  calorieBaselineProvider((
-                    client: sentReport.client,
-                    weekStart: sentReport.weekStart,
-                  )),
+                  calorieBaselineProvider(
+                    ReportKey(
+                      client: sentReport.client,
+                      weekStart: sentReport.weekStart,
+                    ),
+                  ),
                 ),
                 onBack: () => setState(() => _sentViewFor = null),
                 onHistory: () => _openHistory(sentFor),
@@ -830,6 +1017,25 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
           // ── 작업대 ──────────────────────────────────────────────────
           if (_clientId == null) {
+            // 큐는 작업대 요약 하나로 세운다(#2863) — 회원마다 리포트·피드백을
+            // 부르면 회원 N명에 요청이 2N개였다. 편집기·보낸 리포트·지난
+            // 리포트 화면에서는 부르지 않는다. 요약을 읽지 못해도 줄은 그대로
+            // 선다 — 작업대의 답은 "누가 남았나" 이고, 그 답은 수치 없이도 낼
+            // 수 있다.
+            final AsyncValue<Map<String, ReportQueueSummary>> queue = ref.watch(
+              reportQueueProvider(
+                ReportQueueKey(clients: clients, weekStart: _weekStart),
+              ),
+            );
+            final Map<String, ReportQueueSummary> summaries =
+                queue.valueOrNull ?? const <String, ReportQueueSummary>{};
+            final Map<String, WeeklyReport> reports = <String, WeeklyReport>{
+              for (final TrainerClient c in clients)
+                if (summaries[c.id] case final ReportQueueSummary s)
+                  c.id: s.toQueueReport(c, _weekStart),
+            };
+            final bool loading =
+                (queue.isLoading && !queue.hasValue) || history.isLoading;
             return ReportWorkbench(
               entries: buildReportQueue(
                 clients: clients,
@@ -842,31 +1048,44 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                   if (ymd(r.weekStart) == ymd(_weekStart)) r.clientId: r,
               },
               sort: _sort,
-              loading: anyLoading,
+              loading: loading,
               historyFailed: history.hasError && !history.isLoading,
               weekNav: weekNav,
               onSortChanged: (value) => setState(() => _sort = value),
               sentSort: _sentSort,
               onSentSortChanged: (value) => setState(() => _sentSort = value),
               onOpen: (entry) => _selectClient(entry.client.id),
-              onOpenSent: (entry) =>
-                  setState(() => _sentViewFor = entry.client.id),
+              onOpenSent: (entry) => setState(() {
+                _sentViewFor = entry.client.id;
+                _refreshCachedReports();
+              }),
               onHistory: (entry) => _openHistory(entry.client.id),
             );
           }
 
           // ── 편집기 ──────────────────────────────────────────────────
-          final selected = clients.firstWhere(
-            (c) => c.id == _clientId,
-            orElse: () => clients.first,
-          );
-          final reportKey = (client: selected, weekStart: _weekStart);
+          // 명단에 없는 회원이면 첫 회원으로 갈음하지 않는다(#2862) — 그러면
+          // 주소의 회원과 다른 사람의 리포트가 그려지고, 전송하면 그 사람
+          // 채팅방으로 나간다. 안내하고 작업대로 되돌린다.
+          final TrainerClient? selected = _editorClientIn(clients);
+          if (selected == null) {
+            _leaveMissingClient(l);
+            return const AppLoading();
+          }
+          final reportKey = ReportKey(client: selected, weekStart: _weekStart);
           final reportAsync = ref.watch(weeklyReportProvider(reportKey));
           // 저장해 둔 초안. 리포트와 따로 읽는다 — 초안은 트레이너가 쓰던
           // 글이고, 리포트가 다시 계산돼도 사라지면 안 된다.
           final savedDraft = ref
               .watch(reportFeedbackDraftProvider(reportKey))
               .valueOrNull;
+          // 보낼 문구가 비었는가 — 입력창 이벤트로 따로 들고 있지 않고, 늘 실제로
+          // 보낼 문구([_messageFor])에서 낸다(#2771). 따로 들고 있던 때는 회원을
+          // 바꾸거나 빈 초안을 저장한 뒤 새로 열면 입력창과 전송 버튼이 어긋났다.
+          final WeeklyReport? shownReport = reportAsync.valueOrNull;
+          final bool feedbackBlank =
+              shownReport != null &&
+              _messageFor(l, shownReport, savedDraft).trim().isEmpty;
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -959,6 +1178,19 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                       children: <Widget>[
                         // ③ 전송은 회원이 받을 PDF 를 그대로 보여 준다(#2402).
                         // 글을 고치려면 `이전` 으로 ② 에 돌아간다.
+                        if (_stage == ReportEditorStage.send.index &&
+                            _staleFor == _feedbackKey(data)) ...<Widget>[
+                          AppBanner(
+                            key: const ValueKey<String>(
+                              'reports-send-stale-notice',
+                            ),
+                            title: l.reportsSendStaleTitle,
+                            message: l.reportsSendStaleBody,
+                            icon: AppIcons.warning,
+                            tone: AppBannerTone.caution,
+                          ),
+                          const SizedBox(height: OnCareSpacing.s12),
+                        ],
                         if (_stage == ReportEditorStage.send.index)
                           ReportSendPreview(
                             report: data,
@@ -987,21 +1219,28 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                             // family 를 다시 읽는 것이라 새 API 가 없고, 오간
                             // 주는 캐시에 남는다.
                             calorieBaseline: ref.watch(
-                              calorieBaselineProvider((
-                                client: selected,
-                                weekStart: _weekStart,
-                              )),
+                              calorieBaselineProvider(
+                                ReportKey(
+                                  client: selected,
+                                  weekStart: _weekStart,
+                                ),
+                              ),
                             ),
                             onUseSummaryAsDraft: (draft) =>
                                 _useSummaryAsDraft(data, draft),
                             onFeedbackChanged: (text) {
+                              final bool wasBlank = _messageFor(
+                                l,
+                                data,
+                                savedDraft,
+                              ).trim().isEmpty;
                               _feedbackDraft = text;
                               _feedbackFor = _feedbackKey(data);
-                              // 비었는지가 바뀔 때만 다시 그린다 — 전송 항목을
-                              // 가르는 값이다.
-                              final blank = text.trim().isEmpty;
-                              if (blank != _feedbackBlank) {
-                                setState(() => _feedbackBlank = blank);
+                              // 비었는지가 바뀔 때만 다시 그린다 — 전송 버튼을
+                              // 가르는 값이다. 판정 자체는 아래 [feedbackBlank]
+                              // 가 늘 실제 문구에서 다시 낸다(#2771).
+                              if (text.trim().isEmpty != wasBlank) {
+                                setState(() {});
                               }
                             },
                           ),
@@ -1014,7 +1253,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               _StepFooter(
                 stage: _stage,
                 sending: _sending == selected.id,
-                canSend: !_feedbackBlank,
+                canSend: !feedbackBlank,
                 // ③ 에서는 미리보기 한 부가 다 만들어져야 인쇄할 수 있다.
                 pdf: _stage == ReportEditorStage.send.index ? _preview : null,
                 printing: _printing,

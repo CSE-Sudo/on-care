@@ -26,20 +26,25 @@ from app.schemas.trainer_api import (
     ChatMessageOut, ChatSendRequest, MemberClientInviteOut,
     MemberCoachOut, MemberInviteAcceptRequest, MemberWeeklyFeedbackOut,
     MemberWeeklyFeedbackSaveRequest, RoutineCompleteOut, RoutineOut,
-    ScheduleSessionOut,
+    ScheduleSessionOut, WeeklyReportOut,
 )
 from app.services import (
     emote_service,
     member_departure,
     trainer_client_invite_service,
-    trainer_service,
 )
+from app.services.trainer import chat as trainer_chat_service
+from app.services.trainer import _common as trainer_common_service
+from app.services.trainer import member_mirror as trainer_member_mirror_service
+from app.services.trainer import reports as trainer_reports_service
+from app.services.trainer import routines as trainer_routines_service
+from app.services.trainer import weekly_feedback as trainer_weekly_feedback_service
 
 router = APIRouter(tags=["member-coach"])
 
 
 def _my_trainer_or_404(db: Session, member_id: str) -> str:
-    trainer_id = trainer_service.get_member_trainer_id(db, member_id)
+    trainer_id = trainer_common_service.get_member_trainer_id(db, member_id)
     if trainer_id is None:
         raise HTTPException(status_code=404, detail="담당 트레이너가 없습니다.")
     return trainer_id
@@ -51,7 +56,7 @@ def my_coach(
     db: Annotated[Session, Depends(get_db)],
 ) -> MemberCoachOut:
     """내 담당 트레이너 요약."""
-    coach = trainer_service.build_member_coach(db, current_user.id)
+    coach = trainer_member_mirror_service.build_member_coach(db, current_user.id)
     if coach is None:
         raise HTTPException(status_code=404, detail="담당 트레이너가 없습니다.")
     return coach
@@ -59,7 +64,7 @@ def my_coach(
 
 @router.delete("/me/coach", status_code=204)
 def disconnect_my_coach(
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> None:
     """코치 관계 전체 해제 — MY 탭의 **헬스장** 휴지통.
@@ -77,12 +82,12 @@ def disconnect_my_coach(
     남긴다. 이미 주고받은 채팅·리포트는 지우지 않는다.
     """
     member_departure.notify_trainer(db, current_user, reason="disconnected")
-    trainer_service.disconnect_member_gym(db, current_user.id)
+    trainer_member_mirror_service.disconnect_member_gym(db, current_user.id)
 
 
 @router.delete("/me/coach/trainer", status_code=204)
 def disconnect_my_trainer(
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> None:
     """담당 트레이너만 해제 — 헬스장 연결은 남는다. MY 탭의 **트레이너** 휴지통.
@@ -94,7 +99,7 @@ def disconnect_my_trainer(
     공유 동의도 철회된다(#1631).
     """
     member_departure.notify_trainer(db, current_user, reason="disconnected")
-    trainer_service.disconnect_member_coach(db, current_user.id)
+    trainer_member_mirror_service.disconnect_member_coach(db, current_user.id)
 
 
 @router.get("/me/coach/routines", response_model=list[RoutineOut])
@@ -115,8 +120,8 @@ def my_routines(
     지난 날짜는 읽기 전용 기록이고, 아직 오지 않은 날은 422 다.
     """
     try:
-        return trainer_service.build_member_routines(db, current_user.id, day)
-    except trainer_service.RoutineDayInFuture as exc:
+        return trainer_member_mirror_service.build_member_routines(db, current_user.id, day)
+    except trainer_common_service.RoutineDayInFuture as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
@@ -129,8 +134,18 @@ def complete_my_routine(
     payload: AssignedRoutineCompleteRequest,
     member: RequireMember,
     db: Annotated[Session, Depends(get_db)],
+    day: Annotated[
+        date | None,
+        Query(
+            alias="date",
+            description="완료할 날(KST). 없으면 오늘. 그날 걸려 있던 배정만 된다.",
+        ),
+    ] = None,
 ) -> RoutineCompleteOut:
-    """나에게 배정된 루틴을 오늘의 운동 기록으로 완료한다 — 하루 한 번 (#2161).
+    """나에게 배정된 루틴을 그날의 운동 기록으로 완료한다 — 하루 한 번 (#2161).
+
+    지난 날짜도 된다(#2506) — 빠뜨린 체크를 나중에 한다. 아직 오지 않은 날은
+    422, 그날 목록에 없던 배정은 404 다.
 
     포인트 적립 결과(`points`)가 함께 온다 — AI 추천·트레이너 배정 모두 같은
     규칙이다(#1786).
@@ -138,9 +153,9 @@ def complete_my_routine(
     # intensity 는 AssignedRoutineCompleteRequest 의 Literal 에서 422 로 걸린다.
     # 담당 트레이너가 없는 회원도 AI 자동 추천을 수행한다(#782). 예전에는 여기서
     # 404 로 끊겨, 화면에 보이는 운동을 완료할 수 없었다.
-    trainer_id = trainer_service.get_member_trainer_id(db, member.id)
+    trainer_id = trainer_common_service.get_member_trainer_id(db, member.id)
     try:
-        return trainer_service.complete_assigned_routine(
+        return trainer_routines_service.complete_assigned_routine(
             db,
             trainer_id,
             member.id,
@@ -151,8 +166,11 @@ def complete_my_routine(
             reps=payload.reps,
             weight=payload.weight,
             intensity=payload.intensity,
+            day=day,
         )
-    except trainer_service.RoutineNotFound as exc:
+    except trainer_common_service.RoutineDayInFuture as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except trainer_routines_service.RoutineNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
@@ -164,19 +182,27 @@ def uncomplete_my_routine(
     routine_id: str,
     member: RequireMember,
     db: Annotated[Session, Depends(get_db)],
+    day: Annotated[
+        date | None,
+        Query(alias="date", description="되돌릴 날(KST). 없으면 오늘."),
+    ] = None,
 ) -> RoutineOut:
-    """완료 표시를 되돌린다 — 그 배정으로 남은 운동 기록을 지운다. (#1131)
+    """그날의 완료 표시를 되돌린다 — 그 배정으로 남은 운동 기록을 지운다. (#1131)
+
+    지난 날짜도 된다(#2506). 아직 오지 않은 날은 422 다.
 
     체크를 잘못 눌렀을 때 되돌릴 방법이 없으면, 하지 않은 운동이 주간 시간·
     칼로리에 그대로 남는다. 배정 자체는 지우지 않는다 — 지우는 것은 `수행`이지
     `할 일`이 아니다.
     """
-    trainer_id = trainer_service.get_member_trainer_id(db, member.id)
+    trainer_id = trainer_common_service.get_member_trainer_id(db, member.id)
     try:
-        return trainer_service.uncomplete_assigned_routine(
-            db, trainer_id, member.id, routine_id
+        return trainer_routines_service.uncomplete_assigned_routine(
+            db, trainer_id, member.id, routine_id, day=day
         )
-    except trainer_service.RoutineNotFound as exc:
+    except trainer_common_service.RoutineDayInFuture as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except trainer_routines_service.RoutineNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
@@ -193,10 +219,10 @@ def delete_my_routine(
     403 이다(404 가 아니라): 루틴은 분명히 있고 회원 화면에도 보인다.
     """
     try:
-        trainer_service.delete_own_routine(db, member.id, routine_id)
-    except trainer_service.RoutineNotCancellable as exc:
+        trainer_routines_service.delete_own_routine(db, member.id, routine_id)
+    except trainer_routines_service.RoutineNotCancellable as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
-    except trainer_service.RoutineNotFound as exc:
+    except trainer_routines_service.RoutineNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
@@ -206,7 +232,7 @@ def my_sessions(
     db: Annotated[Session, Depends(get_db)],
 ) -> list[ScheduleSessionOut]:
     """내 PT 세션(담당 트레이너 스케줄에서 나와 매칭된 것), 최신순."""
-    return trainer_service.build_member_sessions(db, current_user.id)
+    return trainer_member_mirror_service.build_member_sessions(db, current_user.id)
 
 
 @router.get("/me/coach/chat", response_model=list[ChatMessageOut])
@@ -225,7 +251,7 @@ def my_chat(
             before_dt = datetime.fromisoformat(before)
         except ValueError as e:
             raise HTTPException(status_code=422, detail="before 는 ISO datetime 이어야 합니다.") from e
-    return trainer_service.build_chat_thread(
+    return trainer_chat_service.build_chat_thread(
         db, trainer_id, current_user.id,
         limit=limit, before=before_dt, before_id=before_id, viewer="member",
     )
@@ -237,8 +263,8 @@ def my_unread(
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     """트레이너가 보낸 미확인 메시지 수."""
-    trainer_id = trainer_service.get_member_trainer_id(db, current_user.id)
-    count = trainer_service.member_unread_count(db, trainer_id, current_user.id) if trainer_id else 0
+    trainer_id = trainer_common_service.get_member_trainer_id(db, current_user.id)
+    count = trainer_member_mirror_service.member_unread_count(db, trainer_id, current_user.id) if trainer_id else 0
     return {"unread": count}
 
 
@@ -266,7 +292,7 @@ def send_to_coach(
     if not text:
         raise HTTPException(status_code=400, detail="빈 메시지는 보낼 수 없습니다.")
     try:
-        return trainer_service.send_message(
+        return trainer_chat_service.send_message(
             db,
             trainer_id,
             member.id,
@@ -276,14 +302,14 @@ def send_to_coach(
             client_request_id=payload.client_request_id,
             emote_id=emote_id,
         )
-    except trainer_service.IdempotencyConflict as exc:
+    except trainer_common_service.IdempotencyConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.post(
     "/me/coach/chat/image", response_model=ChatMessageOut, status_code=201
 )
-async def send_image_to_coach(
+def send_image_to_coach(
     member: RequireMember,
     db: Annotated[Session, Depends(get_db)],
     image: UploadFile = File(...),
@@ -304,7 +330,8 @@ async def send_image_to_coach(
     형식은 아이콘 하나로만 남는다(`ChatAttachmentOut`).
     """
     trainer_id = _my_trainer_or_404(db, member.id)
-    return await chat_attachments.receive_chat_image(
+    # 동기 라우트 — DB·파일 저장을 스레드풀에서 처리한다(#2835).
+    return chat_attachments.receive_chat_image(
         db,
         trainer_id=trainer_id,
         member_id=member.id,
@@ -322,7 +349,7 @@ def mark_coach_chat_read(
 ) -> dict:
     """담당 트레이너 스레드를 읽음 처리(트레이너 발신 메시지)."""
     trainer_id = _my_trainer_or_404(db, member.id)
-    n = trainer_service.mark_thread_read(db, trainer_id, member.id, "member")
+    n = trainer_chat_service.mark_thread_read(db, trainer_id, member.id, "member")
     return {"marked_read": n}
 
 
@@ -417,8 +444,8 @@ def _feedback_week(week_start: str | None) -> date:
                 status_code=422, detail="week_start 는 YYYY-MM-DD 여야 합니다."
             ) from exc
     else:
-        day = trainer_service.week_start_of(clock.today()) - timedelta(days=7)
-    return trainer_service.week_start_of(day)
+        day = trainer_reports_service.week_start_of(clock.today()) - timedelta(days=7)
+    return trainer_reports_service.week_start_of(day)
 
 
 @router.get("/me/coach/weekly-feedback", response_model=MemberWeeklyFeedbackOut)
@@ -432,7 +459,7 @@ def my_weekly_feedback(
     회원 앱 MY 탭이 `직전 주에 보낸 피드백` 을 이걸로 보여 주고, 같은 값으로
     이번 주에 물어볼지를 정한다.
     """
-    return trainer_service.get_member_weekly_feedback(
+    return trainer_weekly_feedback_service.get_member_weekly_feedback(
         db, user.id, _feedback_week(week_start)
     )
 
@@ -449,8 +476,8 @@ def save_my_weekly_feedback(
     현재 값으로 그 주의 답을 통째로 바꾸는 동작이라 여러 번 눌러도 결과가
     같다. 통신이 끊겨 다시 보낸 답이 두 줄로 남지 않는다.
     """
-    _my_trainer_or_404(db, user.id)
-    return trainer_service.save_member_weekly_feedback(
+    trainer_id = _my_trainer_or_404(db, user.id)
+    return trainer_weekly_feedback_service.save_member_weekly_feedback(
         db,
         user.id,
         _feedback_week(payload.week_start),
@@ -459,4 +486,51 @@ def save_my_weekly_feedback(
         pain_area=payload.pain_area,
         pain_on=payload.pain_on,
         note=payload.note,
+        # 담당 트레이너에게 알린다(#3026).
+        trainer_id=trainer_id,
     )
+
+
+# ---- 주간 리포트 (회원 본인, #2652) ----
+# 트레이너 웹 결과지와 **같은 계산**으로 회원 앱이 자기 주를 그리게 한다. 트레이너
+# 화면이 쓰는 `build_weekly_report` 를 그대로 부르되, 트레이너가 손보기 전의 자동
+# 초안(`message`)은 비워 보낸다 — 회원에게 가는 글은 트레이너가 보낸 것만이다.
+# 담당 트레이너가 없어도 읽을 수 있다(포인트로 교환한 리포트, #2022). 그때는 잡힌
+# PT 가 없으므로 수업 칸이 0 이다.
+
+
+def _my_report_week(week_start: str | None) -> date:
+    """리포트 주차를 그 주의 월요일로 정규화한다. 기본은 이번 주.
+
+    트레이너 리포트(`/trainer/clients/{id}/report`)와 같은 규칙으로, 아직 오지
+    않은 주는 거부한다 — 값이 전부 0 인 한 장을 만들 이유가 없다.
+    """
+    today = trainer_reports_service.week_start_of(clock.today())
+    if not week_start:
+        return today
+    try:
+        day = date.fromisoformat(week_start)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422, detail="week_start 는 YYYY-MM-DD 여야 합니다."
+        ) from exc
+    week = trainer_reports_service.week_start_of(day)
+    if week > today:
+        raise HTTPException(
+            status_code=422, detail="아직 오지 않은 주는 조회할 수 없습니다."
+        )
+    return week
+
+
+@router.get("/me/coach/weekly-report", response_model=WeeklyReportOut)
+def my_weekly_report(
+    user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+    week_start: str | None = Query(None, description="YYYY-MM-DD (기본: 이번 주)"),
+) -> WeeklyReportOut:
+    """내 한 주 리포트 — 트레이너 웹이 나를 두고 보는 것과 같은 값."""
+    trainer_id = trainer_common_service.get_member_trainer_id(db, user.id) or ""
+    report = trainer_reports_service.build_weekly_report(
+        db, trainer_id, user.id, _my_report_week(week_start)
+    )
+    return report.model_copy(update={"message": ""})

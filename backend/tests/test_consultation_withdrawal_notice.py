@@ -478,7 +478,10 @@ def _inbox(client, token: str, headers: dict | None = None) -> list[dict]:
 
 
 def _withdraw(client, member_token: str) -> None:
-    response = client.delete("/v1/users/me", headers=_auth(member_token))
+    response = client.request(
+        "DELETE", "/v1/users/me", json={"current_password": PASSWORD},
+        headers=_auth(member_token),
+    )
     assert response.status_code == 200, response.text
 
 

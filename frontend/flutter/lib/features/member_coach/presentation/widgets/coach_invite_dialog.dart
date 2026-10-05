@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/errors/app_error.dart';
+import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare/features/member_coach/presentation/widgets/trainer_share_consent_details.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -104,13 +106,32 @@ class _CoachInviteDialogState extends ConsumerState<CoachInviteDialog> {
     if (_sending != null || _consentOpen || _closed) return;
     final AppLocalizations l = AppLocalizations.of(context);
     _consentOpen = true;
-    final bool agreed = await showAppConfirmDialog(
-      context: context,
-      title: l.coachInviteConsentTitle,
-      message: l.coachInviteConsentBody(_invite.trainerName),
-      confirmLabel: l.coachInviteConsentAgree,
-      cancelLabel: l.actionCancel,
-    );
+    // 짧은 본문 아래에 공유 대상·항목·목적·기간·거부권을 펼쳐 볼 수 있게 둔다
+    // (#2826). 본문은 스크롤되고 버튼은 아래에 붙어, 펼쳐도 가려지지 않는다.
+    final bool agreed =
+        await showAppDialog<bool>(
+          context: context,
+          builder: (BuildContext dialogContext) => AppDialog(
+            title: l.coachInviteConsentTitle,
+            showClose: false,
+            footer: AppButtonPair(
+              cancelLabel: l.actionCancel,
+              onCancel: () => Navigator.pop(dialogContext, false),
+              confirmLabel: l.coachInviteConsentAgree,
+              onConfirm: () => Navigator.pop(dialogContext, true),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(l.coachInviteConsentBody(_invite.trainerName)),
+                const SizedBox(height: OnCareSpacing.s8),
+                const TrainerShareConsentDetails(),
+              ],
+            ),
+          ),
+        ) ??
+        false;
     _consentOpen = false;
     if (!mounted) return;
     if (!agreed) {
@@ -164,7 +185,11 @@ class _CoachInviteDialogState extends ConsumerState<CoachInviteDialog> {
       container
         ..invalidate(memberCoachProvider)
         ..invalidate(coachRoutinesProvider)
-        ..invalidate(coachSessionsProvider);
+        ..invalidate(coachSessionsProvider)
+        // 헬스장 탭·MY 의 연결 카드도 그 관계를 보여 준다. 다시 읽지 않으면
+        // 수락한 뒤에도 `연결된 트레이너 없음` 으로 남는다(#2659).
+        ..invalidate(myTrainerProvider)
+        ..invalidate(myGymProvider);
     }
     toast.show(
       accept

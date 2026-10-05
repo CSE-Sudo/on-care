@@ -20,10 +20,6 @@ enum NavBadge {
   /// rather than looked up from [navDestinations] — this destination is
   /// conditional, so it is not in that list. (#467)
   pendingConsultations,
-
-  /// Unread trainer notifications. Supplied by the sidebar directly for the
-  /// same reason as [pendingConsultations]. (#503)
-  unreadNotifications,
 }
 
 /// One entry in the sidebar. The order of [navDestinations] is the tab
@@ -70,7 +66,6 @@ enum NavLabel {
   coaching,
   reports,
   consultations,
-  notifications,
 }
 
 /// 라벨 키 → 현재 로케일의 문구.
@@ -82,8 +77,13 @@ String navLabel(AppLocalizations l, NavLabel label) => switch (label) {
   NavLabel.coaching => l.navCoaching,
   NavLabel.reports => l.navReports,
   NavLabel.consultations => l.navConsultations,
-  NavLabel.notifications => l.navNotifications,
 };
+
+/// 운영 화면(신고·계정 관리) 갈래 번호 — 내 정보·알림함 뒤에 붙는다 (#3008).
+///
+/// 운영자 계정에만 사이드바 행이 생기므로 [navDestinations] 에 넣지 않는다 —
+/// 넣으면 모든 트레이너의 갈래 순서가 운영자 여부에 따라 달라진다.
+int get adminBranchIndex => navDestinations.length + 2;
 
 const List<NavDestination> navDestinations = <NavDestination>[
   NavDestination(
@@ -123,26 +123,3 @@ const List<NavDestination> navDestinations = <NavDestination>[
     route: AppRoutes.reports,
   ),
 ];
-
-/// 상담 요청 — deliberately NOT in [navDestinations]. (#467)
-///
-/// That list defines branch order (index N here is branch N there), and the
-/// row is only shown against the real API. A conditional entry would make
-/// the list's length depend on build config, which is exactly what
-/// `AppShell.myBranchIndex` reads. Keeping it separate lets the sidebar
-/// render it with an explicit branch index and leaves the demo untouched.
-const NavDestination consultationsDestination = NavDestination(
-  label: NavLabel.consultations,
-  icon: AppIcons.consultation,
-  route: AppRoutes.consultations,
-  badge: NavBadge.pendingConsultations,
-);
-
-/// 알림함 — [consultationsDestination] 과 같은 이유로 [navDestinations] 밖에
-/// 둔다. 실 API 빌드에서만 보이고, 브랜치 인덱스를 사이드바가 직접 넘긴다. (#503)
-const NavDestination notificationsDestination = NavDestination(
-  label: NavLabel.notifications,
-  icon: AppIcons.notifications,
-  route: AppRoutes.notifications,
-  badge: NavBadge.unreadNotifications,
-);

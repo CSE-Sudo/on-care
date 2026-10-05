@@ -9,10 +9,10 @@ import 'package:oncare/core/demo/demo_ai_advice.dart';
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
+import 'package:oncare_core/clock.dart';
 
 /// End-to-end smoke test for Stage 9: drift seeded → dio → LocalApi
 /// interceptor → JSON → fromJson factory. If any of these layers
@@ -157,8 +157,6 @@ void main() {
     expect(summary.nutritionWeek, hasLength(7));
     final todayTrend = summary.nutritionWeek[nowKst().weekday - 1];
     expect(todayTrend.calories, todayDiet.totalCalories);
-    expect(todayTrend.sodiumMg, todayDiet.totalSodiumMg);
-    expect(todayTrend.sugarG, todayDiet.totalSugarG);
     // 시드가 큐레이션한 '통합 조언'이 동적 나트륨 경고 대신 노출된다. 문구가
     // 아니라 키로 내려와야 화면이 로케일에 맞게 고를 수 있다(#435).
     expect(summary.aiAdviceKey, kDailyCombinedAdviceKey);

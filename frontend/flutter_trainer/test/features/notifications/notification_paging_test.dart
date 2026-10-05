@@ -38,9 +38,6 @@ class _PagedRepo implements TrainerNotificationRepository {
   Completer<void>? gate;
 
   @override
-  bool get supportsInbox => true;
-
-  @override
   Future<TrainerNotificationPage> fetch({
     TrainerNotificationCursor? before,
   }) async {
@@ -470,14 +467,5 @@ void main() {
       );
     });
 
-    test('데모 저장소는 이어 받아도 빈 마지막 쪽이다', () async {
-      const repo = DemoNotificationRepository();
-
-      final TrainerNotificationPage page = await repo.fetch(before: _c('x'));
-
-      expect(page.items, isEmpty);
-      expect(page.hasMore, isFalse);
-      expect((await repo.watch().first).hasMore, isFalse);
-    });
   });
 }

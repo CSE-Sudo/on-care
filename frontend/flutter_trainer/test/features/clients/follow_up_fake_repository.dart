@@ -1,5 +1,5 @@
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/follow_up_task.dart';
 import 'package:oncare_trainer/shared/services/follow_up_task_repository.dart';
 
@@ -59,16 +59,6 @@ class FakeFollowUpRepository implements FollowUpTaskRepository {
               task.memberId == clientId &&
               (includeCompleted || !task.isCompleted),
         )
-        .toList()
-      ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
-  }
-
-  @override
-  Future<List<FollowUpTask>> fetchDue() async {
-    if (failReads) throw const NetworkError();
-    final today = todayKst();
-    return tasks
-        .where((task) => !task.isCompleted && !task.dueDate.isAfter(today))
         .toList()
       ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
   }

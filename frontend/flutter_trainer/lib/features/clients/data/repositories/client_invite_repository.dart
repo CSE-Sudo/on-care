@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
@@ -9,7 +10,7 @@ import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/storage/demo_member_directory.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_invite.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart'
     show readDemoUnregisteredClientIds, writeDemoUnregisteredClientIds;
@@ -201,7 +202,7 @@ class DemoClientInviteRepository implements ClientInviteRepository {
               sodiumMg: 0,
               sugarG: 0,
               lastRoutine: '-',
-              weekCompletionJson: '[0,0,0,0,0,0,0]',
+              weekCompletionJson: '[null,null,null,null,null,null,null]',
               // 회원이 이미 등록해 둔 실제 값 — 트레이너가 지금 입력하는
               // 값이 아니다.
               gender: Value(prospect.gender),
@@ -238,7 +239,7 @@ class DemoClientInviteRepository implements ClientInviteRepository {
 
     final MemberLookup found = await lookup(memberId);
     if (!found.canInvite) {
-      throw const ValidationError(message: '이미 담당하고 있는 회원이에요.');
+      throw const AlreadyManagedError();
     }
     return (memberId, found);
   }
@@ -377,12 +378,8 @@ class DioClientInviteRepository implements ClientInviteRepository {
     }
   }
 
-  String? _detail(DioException e) {
-    final data = e.response?.data;
-    if (data is! Map) return null;
-    final detail = data['detail'];
-    return detail is String ? detail : null;
-  }
+  // 객체형 `detail`(`code`·`message`)의 문장도 읽는다(#2911).
+  String? _detail(DioException e) => serverDetailText(e.response?.data);
 }
 
 /// 현재 모드에 맞는 저장소.

@@ -183,6 +183,37 @@ void main() {
     expect(find.text('9월 20일 보냄'), findsOneWidget);
   });
 
+  // 서버가 준 제출 시각은 UTC 순간이다. KST 오전 7시(= 전날 22:00Z)에 낸
+  // 피드백이 전날로 찍히지 않아야 한다(#2844).
+  testWidgets('KST 오전 7시에 보낸 피드백은 그날 날짜로 적는다', (tester) async {
+    await _pump(
+      tester,
+      feedback: _feedback(submittedAt: DateTime.utc(2026, 9, 20, 22)),
+    );
+
+    expect(find.text('9월 21일 보냄'), findsOneWidget);
+    expect(find.text('9월 20일 보냄'), findsNothing);
+  });
+
+  testWidgets('KST 오전 9시 이후에 보낸 피드백은 날짜가 그대로다', (tester) async {
+    await _pump(
+      tester,
+      // KST 2026-09-20 21:12
+      feedback: _feedback(submittedAt: DateTime.utc(2026, 9, 20, 12, 12)),
+    );
+
+    expect(find.text('9월 20일 보냄'), findsOneWidget);
+  });
+
+  testWidgets('시간대 없는 제출 시각은 KST 벽시계로 읽는다', (tester) async {
+    await _pump(
+      tester,
+      feedback: _feedback(submittedAt: DateTime(2026, 9, 21, 7)),
+    );
+
+    expect(find.text('9월 21일 보냄'), findsOneWidget);
+  });
+
   testWidgets('아직 안 낸 주는 답 대신 안내가 선다', (tester) async {
     await _pump(tester, feedback: MemberWeeklyFeedback.empty(_week));
 

@@ -1,10 +1,14 @@
 import 'package:dio/dio.dart';
 
+import 'package:oncare/features/account/domain/entities/account_deletion_preview.dart';
+import 'package:oncare/features/account/domain/entities/account_reauth.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
 import 'package:oncare/features/account/domain/entities/profile_update_rejected.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/domain/repositories/account_repository.dart';
+import 'package:oncare/features/auth/domain/repositories/password_repository.dart'
+    show ReissuedTokens;
 
 class DioAccountRepository implements AccountRepository {
   DioAccountRepository(this._dio);
@@ -17,11 +21,34 @@ class DioAccountRepository implements AccountRepository {
   }
 
   @override
-  Future<void> deleteAccount({List<String> reasons = const <String>[]}) async {
-    await _dio.delete<Map<String, Object?>>(
-      '/users/me',
-      data: <String, Object?>{'reasons': reasons},
+  Future<void> deleteAccount({
+    List<String> reasons = const <String>[],
+    AccountReauth? reauth,
+  }) async {
+    try {
+      await _dio.delete<Map<String, Object?>>(
+        '/users/me',
+        data: <String, Object?>{'reasons': reasons, ...?reauth?.toJson()},
+      );
+    } on DioException catch (e) {
+      // 본인 확인 거절(400)은 이유를 실어 올린다(#3039) — 화면이 창 안에서 다시
+      // 입력하게 한다. 401 이 아니므로 세션은 그대로다.
+      final AccountReauthRejected? rejected =
+          AccountReauthRejected.fromResponse(
+            e.response?.statusCode,
+            e.response?.data,
+          );
+      if (rejected != null) throw rejected;
+      rethrow;
+    }
+  }
+
+  @override
+  Future<AccountDeletionPreview> fetchDeletionPreview() async {
+    final res = await _dio.get<Map<String, Object?>>(
+      '/users/me/deletion-preview',
     );
+    return AccountDeletionPreview.fromJson(res.data!);
   }
 
   @override
@@ -68,6 +95,14 @@ class DioAccountRepository implements AccountRepository {
   }
 
   @override
+  Future<UserProfile> skipOnboarding() async {
+    final res = await _dio.post<Map<String, Object?>>(
+      '/users/me/onboarding/skip',
+    );
+    return UserProfile.fromJson(res.data!);
+  }
+
+  @override
   Future<UserProfile> updateProfile({
     String? name,
     String? email,
@@ -76,6 +111,8 @@ class DioAccountRepository implements AccountRepository {
     String? gender,
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
+    AccountReauth? reauth,
+    void Function(ReissuedTokens tokens)? onTokensReissued,
   }) async {
     final Response<Map<String, Object?>> res;
     try {
@@ -91,10 +128,19 @@ class DioAccountRepository implements AccountRepository {
           // 빼면 지움이 '손대지 않음'이 되어 비운 값이 되살아난다(#1941).
           if (heightCm != null) 'height_cm': heightCm.value,
           if (weightKg != null) 'weight_kg': weightKg.value,
+          // 이메일을 바꿀 때의 본인 확인(#3039).
+          ...?reauth?.toJson(),
         },
       );
     } on DioException catch (e) {
-      // 실서버: 이메일 중복(409)·연락처 비움(422)은 이유를 실어 올린다(#2639).
+      final AccountReauthRejected? reauthRejected =
+          AccountReauthRejected.fromResponse(
+            e.response?.statusCode,
+            e.response?.data,
+          );
+      if (reauthRejected != null) throw reauthRejected;
+      // 이메일 중복(409)·연락처 비움(422)은 이유를 실어 올린다(#2639). 데모의
+      // 로컬 목업 API 도 오류를 같은 예외로 돌려준다(#2743).
       final ProfileUpdateRejected? rejected =
           ProfileUpdateRejected.fromResponse(
             e.response?.statusCode,
@@ -103,17 +149,9 @@ class DioAccountRepository implements AccountRepository {
       if (rejected != null) throw rejected;
       rethrow;
     }
-    // 데모 인터셉터가 만든 오류 응답은 예외가 되지 않고 여기로 온다. 상태 코드를
-    // 보지 않으면 오류 본문을 프로필로 읽어 "저장되었어요" 로 넘어간다(#2639).
-    final int status = res.statusCode ?? 200;
-    if (status >= 400) {
-      throw ProfileUpdateRejected.fromResponse(status, res.data) ??
-          DioException.badResponse(
-            statusCode: status,
-            requestOptions: res.requestOptions,
-            response: res,
-          );
-    }
+    // 이메일을 바꾸면 서버가 새 토큰 한 쌍을 싣는다(#3039). 다른 저장은 null 이다.
+    final ReissuedTokens? tokens = ReissuedTokens.fromJson(res.data);
+    if (tokens != null) onTokensReissued?.call(tokens);
     return UserProfile.fromJson(res.data!);
   }
 

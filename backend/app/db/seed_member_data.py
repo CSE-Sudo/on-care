@@ -26,10 +26,12 @@
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from datetime import date, datetime, timedelta, timezone
 from typing import TypeVar
 
@@ -40,12 +42,19 @@ from sqlalchemy.orm import Session
 from app.services.health_focus import normalize_conditions
 from app.core import clock
 from app.core.config import get_settings
+from app.core.week import monday_of
 from app.db.demo_fixture import FixtureRoutine, load_fixture
 from app.db.seed_roster import HISTORY_WEEKS
 from app.db.seed_trainer import TRAINER_ID, _MEMBERS
 from app.db.session import SessionLocal
 from app.models import models
-from app.services import exercise_activity, exercise_types, points_service
+from app.services import (
+    chat_image_storage,
+    exercise_activity,
+    exercise_types,
+    points_service,
+    report_pdf_storage,
+)
 from app.services.coach import personal_ingest
 from app.services.coach.rag import has_personal_doc
 
@@ -123,7 +132,7 @@ _SODIUM_WEEK: dict[str, list[int]] = {
 }
 
 # 최근 운동 세션(최신순): (완료율, 종류라벨, 운동목록, 회원피드백, 트레이너메모).
-# 오늘/이틀전/나흘전 날짜로 시드. PT 세션은 trainer_id 를 붙인다.
+# 첫 세션 날([_HISTORY_START_DAYS])부터 이틀 간격으로 시드. PT 세션은 trainer_id 를 붙인다.
 _HISTORY: dict[str, list[tuple[int, str, list[str], str, str]]] = {
     "user-jisu": [
         (100, "AI 개인운동",
@@ -147,6 +156,19 @@ _HISTORY: dict[str, list[tuple[int, str, list[str], str, str]]] = {
         (0, "AI 개인운동", ["벤치프레스 ✗", "데드리프트 ✗", "유산소 ✗"],
          "못 갔어요 😓", ""),
     ],
+}
+
+
+#: 회원별 가장 최근 세션이 며칠 전인가. 트레이너 웹 데모(`seed_clients.dart` 의
+#: `history.daysAgo`)와 같은 날이다.
+#:
+#: 예전에는 둘 다 오늘부터 깔아, 오늘 타임라인(`_SCHEDULE`)과 같은 날 서로 다른
+#: 운동을 말했다 — 이지수는 12:00 에 데드리프트 PT 를 마쳤는데 오늘 이력은 AI
+#: 개인운동 런닝이었고, 박성호는 15:00 PT 가 아직 예정인데 오늘 PT 이력이 이미
+#: 완료로 서 있었다(#2567).
+_HISTORY_START_DAYS: dict[str, int] = {
+    "user-jisu": 1,
+    "user-sungho": 5,
 }
 
 
@@ -190,10 +212,13 @@ _CHAT: dict[str, list[tuple[str, str, int]]] = {
         ("trainer", "혈압약 드시는 시간은 그대로시죠? 유산소가 그 시간과 겹치지 않게 잡을게요", 5),
         ("client", "네, 아침 8시 그대로예요", 5),
         ("trainer", "확인했어요. 화·목은 15분 저강도로 바꿔서 보냈습니다 🙂", 5),
+        # 트레이너가 보낸 첨부(#2788) — 파일은 [_CHAT_FILES] 가 붙인다.
+        ("trainer", "동작 순서는 이 파일로 정리해 뒀어요", 5),
         # 2일차.
         ("trainer", "민수님, 요즘 나트륨이 목표(2,000mg) 근처에서 자주 걸리네요. 국·찌개가 잦으신 편인가요?", 4),
         ("client", "회사 구내식당이라 국물이 늘 나와요 😅", 4),
         ("trainer", "국물만 절반 남기셔도 400~500mg은 빠져요. 그거 하나만 먼저 해보죠", 4),
+        ("trainer", "이렇게 국은 건더기 위주로 드시면 돼요", 4),
         ("client", "오늘은 국물 안 마셨어요! 걷기도 25분 했습니다", 4),
         ("trainer", "좋아요 👏 그 한 가지만 지켜도 추이가 달라져요", 4),
         ("trainer", "내일 루틴은 걷기 20분으로 조금 늘려서 보냈어요. 주말까지 이 페이스로 가봐요", 4),
@@ -217,6 +242,65 @@ _CHAT: dict[str, list[tuple[str, str, int]]] = {
                     "도움 돼요. AI가 그에 맞는 루틴 다시 짜줬으니까 앱에서 확인해보세요 🙂", 0),
     ],
 }
+
+@dataclass(frozen=True)
+class _SeedChatFile:
+    """시드 메시지에 붙는 트레이너 첨부 한 건(#2788)."""
+
+    kind: str  # pdf|image — `ChatMessage.attachment_type`
+    file_name: str
+    source: str  # `demo_chat_files/` 안의 파일 이름
+
+    @property
+    def file_id(self) -> str:
+        # 서버가 뜰 때마다 같은 이름으로 다시 쓴다 — 저장소 규칙(32자리 16진수)을
+        # 따르는 결정론적 값이다.
+        return hashlib.md5(f"seed-chat-file:{self.source}".encode()).hexdigest()
+
+    def read(self) -> bytes:
+        return (_CHAT_FILE_DIR / self.source).read_bytes()
+
+
+_CHAT_FILE_DIR = Path(__file__).with_name("demo_chat_files")
+
+#: 시드 대화 본문 → 그 메시지에 붙는 첨부. (#2788)
+#:
+#: 회원 앱·트레이너 웹 데모의 김민수 대화에는 트레이너가 보낸 운동 안내 PDF 와
+#: 예시 사진이 있다(#2663). 데모 화면이 기준이라 실서버 시드도 같은 자리에 같은
+#: 파일을 둔다 — 바이트는 두 앱 번들(`frontend/flutter/assets/demo/
+#: coach-program-tue-thu.pdf`, `assets/images/diet-doenjang-rice.jpeg`)과 같다.
+_CHAT_FILES: dict[str, _SeedChatFile] = {
+    "동작 순서는 이 파일로 정리해 뒀어요": _SeedChatFile(
+        kind="pdf",
+        file_name="tue-thu-15min-program.pdf",
+        source="coach-program-tue-thu.pdf",
+    ),
+    "이렇게 국은 건더기 위주로 드시면 돼요": _SeedChatFile(
+        kind="image",
+        file_name="soup-example.jpeg",
+        source="soup-example.jpeg",
+    ),
+}
+
+
+def _store_chat_file(file: _SeedChatFile) -> bool:
+    """첨부 바이트를 저장소에 쓴다. 못 쓰면 False — 메시지는 글만 남긴다.
+
+    저장소가 로컬 디스크면 컨테이너가 바뀔 때 비지만, 시드는 서버가 뜰 때마다
+    돌아 다시 채운다. 운영 저장소(S3, #2817)에서는 같은 키를 덮어쓴다.
+    """
+    try:
+        data = file.read()
+        if file.kind == "pdf":
+            report_pdf_storage.save(data, file_id=file.file_id)
+        else:
+            # 번들 자산이라 정리하지 않는다 — 앱 번들과 바이트가 같아야 한다(#2829).
+            chat_image_storage.save(data, file_id=file.file_id, sanitize=False)
+    except Exception:  # noqa: BLE001 — 첨부 하나 때문에 기동이 죽으면 안 된다.
+        logger.warning("시드 대화 첨부 %s 를 저장하지 못했습니다.", file.source, exc_info=True)
+        return False
+    return True
+
 
 # 픽스처가 없는 회원의 AI 배정 루틴
 # (name, minutes, type, reason, sets, reps, hold_seconds, weight).
@@ -295,15 +379,20 @@ _HEALTH_PROFILE: dict[str, dict] = {
 }
 
 
+#: 픽스처 회원(김민수)의 PT 수업 시각·길이 — 회원 앱 데모(`18:00 수업 완료`)와
+#: 트레이너 웹 데모(`_schedule`)가 쓰는 값이다. 픽스처는 PT 날만 적고 시각은 적지
+#: 않으므로 세 곳이 이 값을 함께 쓴다. (#2694)
+_FIXTURE_PT_TIME = "18:00"
+_FIXTURE_PT_MINUTES = 50
+
 # 트레이너 오늘 타임라인 (time, client, member_id, type, duration, status, note, program).
 # member_id 는 유효 회원일 때만 연결(아니면 표시용 이름만). 프론트 TRAINER_SCHEDULE 정렬.
 _SCHEDULE: list[tuple[str, str, str | None, str, int, str, str, list[dict]]] = [
-    ("10:00", "김민수", "user-7d4e9a2c5f18", "1:1 PT", 60, "완료", "무릎 컨디션 양호. 레그프레스 중량 소폭 증가 가능.", [
-        {"name": "레그프레스", "type": "근력", "sets": 3, "reps": 12, "weight": 80},
-        {"name": "레그컬", "type": "근력", "sets": 3, "reps": 12, "weight": 40},
-        {"name": "카프레이즈", "type": "근력", "sets": 3, "reps": 20, "weight": 0},
-        {"name": "하체 스트레칭", "type": "스트레칭", "duration": 10},
-    ]),
+    # 김민수의 오늘 PT — 시각·길이는 회원 앱·트레이너 웹 데모와 같고, 메모·종목은
+    # 시드할 때 공유 픽스처의 오늘에서 채운다([_fixture_pt_slot]). 예전에는 10:00
+    # 레그프레스 수업이라 회원 앱의 `18:00 · 벤치프레스` 와 같은 날이 달랐다(#2694).
+    # 목록 자리는 그대로 둔다 — id(`seed-schedule-{날짜}-N`)가 밀리지 않게.
+    (_FIXTURE_PT_TIME, "김민수", "user-7d4e9a2c5f18", "1:1 PT", _FIXTURE_PT_MINUTES, "완료", "", []),
     ("12:00", "이지수", "user-jisu", "1:1 PT", 50, "완료", "데드리프트 자세 안정적. 다음 세션 60kg 도전.", [
         {"name": "데드리프트", "type": "근력", "sets": 4, "reps": 8, "weight": 55},
         {"name": "루마니안 데드리프트", "type": "근력", "sets": 3, "reps": 10, "weight": 40},
@@ -343,6 +432,7 @@ def seed_member_health_data() -> None:
             _seed_health_profile(db, user_id)
         _seed_schedule(db, valid)
         _seed_weekly_pt(db, valid)
+        _seed_fixture_pt(db, valid)
     finally:
         db.close()
     # 성별은 건강 프로필 행에 담기므로 **여기가 끝난 뒤** 채운다(#960). 먼저
@@ -559,18 +649,33 @@ def _seed_schedule(db: Session, valid: set[str]) -> None:
     # 오늘 타임라인이 이미 있으면 스킵(날짜 넘어가면 새로 시드). 타임라인 행만
     # 본다 — 주간 PT 시드(`_seed_weekly_pt`)가 앞선 날에 오늘 날짜로 넣어 둔
     # 수업이 있어도 오늘 타임라인은 깔려야 한다(#2452).
-    if db.scalar(
-        select(models.TrainerSchedule.id)
-        .where(
+    existing = db.scalars(
+        select(models.TrainerSchedule).where(
             models.TrainerSchedule.trainer_id == TRAINER_ID,
             models.TrainerSchedule.date == today,
             models.TrainerSchedule.id.like(f"seed-schedule-{today}-%"),
         )
-        .limit(1)
-    ) is not None:
+    ).all()
+    if existing:
+        # 회원 계정이 지워졌다 다시 만들어지면 FK(`SET NULL`)가 이 행들의 주인만
+        # 비워 둔다. 되붙이지 않으면 뒤따르는 주간 PT 시드가 이번 주에 그 회원의
+        # 수업이 없다고 보고 한 번 더 깐다(#2695) — 주간 PT 행과 같은 처리다.
+        by_id = {row.id: row for row in existing}
+        reattached = False
+        for i, (_time, _cname, mid, *_rest) in enumerate(_SCHEDULE):
+            row = by_id.get(f"seed-schedule-{today}-{i}")
+            if row is not None and row.member_id is None and mid and mid in valid:
+                row.member_id = mid
+                reattached = True
+        if reattached:
+            _safe_commit(db)
         return
+    fixture_today = _fixture_pt_day(clock.today())
     for i, (time, cname, mid, typ, dur, status, note, program) in enumerate(_SCHEDULE):
         member_id = mid if (mid and mid in valid) else None
+        if mid == load_fixture().user_app_seed_id and fixture_today is not None:
+            note = fixture_today.trainer_note
+            program = _fixture_pt_program(fixture_today)
         db.add(models.TrainerSchedule(
             id=f"seed-schedule-{today}-{i}",
             trainer_id=TRAINER_ID,
@@ -595,22 +700,25 @@ def _seed_schedule(db: Session, valid: set[str]) -> None:
 #: 리포트의 PT 횟수는 스케줄 행을 그대로 세므로(`build_weekly_report`) 여기서
 #: 심는 행이 곧 리포트 숫자다.
 #:
-#: 시각은 오늘 타임라인(`_SCHEDULE`)이 쓰는 10:00·12:00·15:00·17:00 칸과
+#: 시각은 오늘 타임라인(`_SCHEDULE`)이 쓰는 12:00·15:00·17:00·18:00 칸과
 #: 저녁 19시 이후를 피한다 — 오래 켜 둔 서버는 지난 날마다 타임라인이 깔려 있고,
 #: 저녁 칸은 트레이너가 직접 잡는 수업이 몰리는 자리다. 같은 요일 안에서도 서로
 #: 겹치지 않는다(테스트가 지킨다).
+#:
+#: 김민수는 없다 — 그의 PT 날은 공유 픽스처가 정한다([_seed_fixture_pt]). 매주
+#: 목요일 수업을 따로 깔면 회원 앱이 모르는 수업이 리포트에 1회로 선다. 그가
+#: 18:00 을 쓰면서 그 시각이던 네 명은 비워진 10:00 으로 옮겼다(#2694).
 _WEEKLY_PT: dict[str, list[tuple[int, str, int]]] = {
-    "user-7d4e9a2c5f18": [(3, "18:00", 50)],  # 김민수
-    "user-jisu": [(1, "13:00", 50), (4, "18:00", 60)],  # 이지수 — 주 2회
+    "user-jisu": [(1, "13:00", 50), (4, "10:00", 60)],  # 이지수 — 주 2회
     "user-sungho": [(2, "16:00", 45), (5, "13:00", 60)],  # 박성호 — 주 2회
     "user-hayun": [(5, "09:00", 45)],  # 정하윤
     "user-woojin": [(0, "09:00", 30), (4, "16:00", 30)],  # 최우진 — 주 2회
     "user-kangseoyeon": [(3, "09:00", 60)],  # 강서연
-    "user-dohyun": [(0, "18:00", 60), (6, "16:00", 50)],  # 임도현 — 주 2회
+    "user-dohyun": [(0, "10:00", 60), (6, "16:00", 50)],  # 임도현 — 주 2회
     "user-sera": [(1, "16:00", 50)],  # 오세라
-    "user-junhyuk": [(2, "18:00", 60)],  # 배준혁
+    "user-junhyuk": [(2, "10:00", 60)],  # 배준혁
     "user-yuna": [(1, "09:00", 45)],  # 신유나
-    "user-jiho": [(1, "18:00", 60)],  # 한지호
+    "user-jiho": [(1, "10:00", 60)],  # 한지호
     "user-gayoung": [(6, "13:00", 60)],  # 문가영
     "user-taekyung": [(3, "16:00", 45)],  # 류태경
     "user-seojin": [(2, "13:00", 30)],  # 백서진
@@ -650,8 +758,14 @@ def _seed_weekly_pt(db: Session, valid: set[str]) -> None:
     ) is None:
         return
     today = clock.today()
-    monday = today - timedelta(days=today.weekday())
+    monday = monday_of(today)
     names = {user_id: name for user_id, _email, name, *_ in _MEMBERS}
+    # 예전 시드가 깐 김민수의 목요일 수업을 걷어 낸다 — 자리표에서 빠졌다(#2694).
+    db.query(models.TrainerSchedule).filter(
+        models.TrainerSchedule.id.like(
+            f"seed-pt-{load_fixture().user_app_seed_id}-%"
+        )
+    ).delete(synchronize_session=False)
     for member_id, slots in _WEEKLY_PT.items():
         if member_id not in valid:
             continue
@@ -684,6 +798,9 @@ def _seed_weekly_pt(db: Session, valid: set[str]) -> None:
                     # 주인을 되붙인다 — 안 그러면 그 회원의 지난 주가 0회로 선다.
                     if existing.member_id is None:
                         existing.member_id = member_id
+                    # 자리표에서 시각을 옮겼으면 이미 깔린 행도 따라간다(#2694).
+                    if existing.time != at:
+                        existing.time = at
                     continue
                 db.add(models.TrainerSchedule(
                     id=row_id,
@@ -699,6 +816,95 @@ def _seed_weekly_pt(db: Session, valid: set[str]) -> None:
                     program_json="[]",
                     sort_order=_WEEKLY_PT_SORT_BASE + n,
                 ))
+    _safe_commit(db)
+
+
+#: 수업 프로그램의 유형 표기 — 트레이너 화면의 한국어 어휘(`ProgramItem.type`).
+_PROGRAM_TYPE_LABEL = {
+    exercise_types.CARDIO: "유산소",
+    exercise_types.STRENGTH: "근력",
+    exercise_types.STRETCHING: "스트레칭",
+}
+
+
+def _fixture_pt_day(day: date):
+    """픽스처가 [day] 를 김민수의 PT 날로 적었으면 그날, 아니면 None."""
+    for fixture_day in load_fixture().days_for(clock.today()):
+        if fixture_day.day == day and fixture_day.is_pt:
+            return fixture_day
+    return None
+
+
+def _fixture_pt_program(day) -> list[dict]:
+    """픽스처 PT 날의 운동 → 수업 프로그램. 회원 앱이 그날 `완료한 PT` 로 그리는
+    종목·세트·횟수·중량과 같은 값이다. 근력은 세트로, 나머지는 분으로 적는다.
+    """
+    items: list[dict] = []
+    for e in day.done_exercises:
+        kind = exercise_types.normalize(e.type)
+        label = _PROGRAM_TYPE_LABEL.get(kind, "기타")
+        if kind != exercise_types.STRENGTH:
+            items.append({"name": e.name, "type": label, "duration": e.minutes})
+            continue
+        item: dict = {"name": e.name, "type": label, "sets": e.sets}
+        # 한 세트는 회로든 초로든 한 번만 잰다(#1969).
+        if e.hold_seconds is not None:
+            item["hold_seconds"] = e.hold_seconds
+        elif e.reps is not None:
+            item["reps"] = e.reps
+        item["weight"] = e.weight or 0
+        items.append(item)
+    return items
+
+
+def _seed_fixture_pt(db: Session, valid: set[str]) -> None:
+    """픽스처가 PT 날로 적은 지난 날마다 김민수의 완료 수업을 둔다. (#2694)
+
+    회원 앱은 그날을 `18:00 수업 완료` 로 그리는데 트레이너 스케줄에 수업이 없으면
+    리포트가 그 주 PT 0회로 센다. 트레이너 웹 데모도 같은 날에 같은 수업을 깐다.
+    픽스처는 지난 11주의 오늘과 같은 요일을 PT 날로 적는다(`weeklyPt`).
+    오늘 몫은 오늘 타임라인(`_seed_schedule`)이 깐다.
+
+    픽스처는 "오늘로부터 며칠 전" 으로 적혀 날마다 날짜가 미끄러진다 — 오늘 기준의
+    자리가 아닌 예전 행은 지우고 다시 둔다. 행 id 가 날짜로 정해져 멱등이다.
+    """
+    member_id = load_fixture().user_app_seed_id
+    if member_id not in valid or db.scalar(
+        select(models.User.id).where(
+            models.User.id == TRAINER_ID, models.User.role == "trainer"
+        )
+    ) is None:
+        return
+    today = clock.today()
+    days = [
+        d for d in load_fixture().days_for(today) if d.is_pt and d.day < today
+    ]
+    prefix = f"{_FIXTURE_ID_PREFIX}pt-{member_id}-"
+    wanted = {f"{prefix}{d.iso}": d for d in days}
+    db.query(models.TrainerSchedule).filter(
+        models.TrainerSchedule.id.like(f"{prefix}%"),
+        models.TrainerSchedule.id.not_in(list(wanted)),
+    ).delete(synchronize_session=False)
+    names = {user_id: name for user_id, _email, name, *_ in _MEMBERS}
+    for row_id, day in wanted.items():
+        if db.get(models.TrainerSchedule, row_id) is not None:
+            continue
+        db.add(models.TrainerSchedule(
+            id=row_id,
+            trainer_id=TRAINER_ID,
+            member_id=member_id,
+            date=day.iso,
+            time=_FIXTURE_PT_TIME,
+            client_name=names.get(member_id, ""),
+            type="1:1 PT",
+            duration_minutes=_FIXTURE_PT_MINUTES,
+            status="완료",
+            note=day.trainer_note,
+            # 프로그램은 비운다 — 트레이너 웹 데모의 지난 수업과 같다. 붙이면 코칭
+            # 화면의 `전송 이력` 에 보낸 것으로 줄지어 선다.
+            program_json="[]",
+            sort_order=_WEEKLY_PT_SORT_BASE,
+        ))
     _safe_commit(db)
 
 
@@ -728,33 +934,53 @@ def _seed_chat(db: Session, member_id: str) -> None:
     # 날짜로 묶는 화면(하루치 AI 분석 안내)도 함께 어긋난다. CI 가 그 시간대에 걸리면
     # `test_demo_thread_spans_three_days` 가 아무 변경 없이 실패했다.
     #
-    # 묶음 안의 최대 간격이 34분이라 정오 기준이면 어떤 시각에 시드해도 자정을 넘지
+    # 묶음 안의 최대 간격이 38분이라 정오 기준이면 어떤 시각에 시드해도 자정을 넘지
     # 않는다. 오늘 정오가 아직 오지 않았으면 하루 뒤로 물러 미래 시각을 만들지 않는다.
     now = datetime.now(timezone.utc)
     span = timedelta(minutes=(len(thread) - 1) * 2)
     base = now.replace(hour=12, minute=0, second=0, microsecond=0)
     if base + span > now:
         base -= timedelta(days=1)
+    # 첨부 id 는 유일해야 한다 — 대화가 바뀌어 첨부가 다른 순번으로 옮겨 가면
+    # 옛 행과 새 행이 잠깐 같은 값을 들게 되므로, 시드 행의 첨부를 먼저 비운다.
+    for row in db.scalars(
+        select(models.ChatMessage).where(
+            models.ChatMessage.member_id == member_id,
+            models.ChatMessage.id.like(f"seed-chat-{member_id}-%"),
+            models.ChatMessage.attachment_file_id.is_not(None),
+        )
+    ):
+        row.attachment_file_id = None
+    db.flush()
     keep: set[str] = set()
     for i, (sender, text, days_ago) in enumerate(thread):
         cid = f"seed-chat-{member_id}-{i}"
         keep.add(cid)
         created_at = base - timedelta(days=days_ago) + timedelta(minutes=i * 2)
         sender_out = "member" if sender == "client" else "trainer"
+        file = _CHAT_FILES.get(text)
+        if file is not None and not _store_chat_file(file):
+            file = None
         row = db.get(models.ChatMessage, cid)
         if row is None:
-            db.add(models.ChatMessage(
+            row = models.ChatMessage(
                 id=cid,
                 trainer_id=TRAINER_ID,
                 member_id=member_id,
                 sender=sender_out,
                 body=text,
                 created_at=created_at,
-            ))
-            continue
+            )
+            db.add(row)
         row.sender = sender_out
         row.body = text
         row.created_at = created_at
+        # 첨부 칸도 늘 지금 대화의 것으로 덮는다 — 순번이 밀리면 예전에 첨부가
+        # 붙어 있던 id 에 다른 메시지가 온다.
+        row.attachment_type = file.kind if file else None
+        row.attachment_file_name = file.file_name if file else None
+        row.attachment_file_id = file.file_id if file else None
+        row.attachment_file_size = len(file.read()) if file else None
 
     stale = db.scalars(
         select(models.ChatMessage).where(
@@ -795,6 +1021,7 @@ def _seed_insight_memos(
 
     본문은 앱이 저장하는 요약과 같은 문구(`"무릎 불편 감지"`)다.
     """
+    kept: set[str] = set()
     for i, (sender, text, days_ago) in enumerate(thread):
         if sender != "client" or days_ago >= _INSIGHT_MEMO_DAYS:
             continue
@@ -805,6 +1032,7 @@ def _seed_insight_memos(
             continue
         insight_id = f"seed-chat-{member_id}-{i}:discomfort"
         memo_id = f"seed-memo-{member_id}-{i}"
+        kept.add(memo_id)
         created_at = base - timedelta(days=days_ago) + timedelta(minutes=i * 2)
         row = db.get(models.TrainerClientMemo, memo_id)
         if row is None:
@@ -823,6 +1051,16 @@ def _seed_insight_memos(
         row.body = f"{part} 불편 감지"
         row.insight_id = insight_id
         row.created_at = created_at
+    # 대화에 메시지가 끼어 순번이 밀리면 메모 id 도 바뀐다(#2788). 옛 id 의 메모를
+    # 남기면 같은 불편이 두 번 보인다.
+    for row in db.scalars(
+        select(models.TrainerClientMemo).where(
+            models.TrainerClientMemo.member_id == member_id,
+            models.TrainerClientMemo.id.like(f"seed-memo-{member_id}-%"),
+        )
+    ).all():
+        if row.id not in kept:
+            db.delete(row)
     _safe_commit(db)
 
 
@@ -1092,6 +1330,11 @@ def _seed_from_fixture(db: Session, member_id: str) -> None:
                 # 남아 최근 활동 판단이 어긋난다.
                 completed_at=exercise_activity.noon(day.day),
                 assigned_routine_id=routine_id,
+                # 픽스처에는 회원이 손으로 적은 기록이 없다 — PT 날은 트레이너
+                # 지도 세션, 나머지 날은 배정받은 개인운동을 한 기록이다. 비워
+                # 두면 `member` 로 떨어져 PT 가 `직접 기록한 운동` 에 서고 고칠
+                # 수 있게 된다. 회원 앱 데모와 같은 규칙이다(#2662, #2693).
+                source="trainer_pt" if day.is_pt else "assigned_routine",
             ))
 
     _safe_commit(db)
@@ -1232,7 +1475,8 @@ def _seed_history(db: Session, member_id: str) -> None:
         return
 
     today = clock.today()
-    # 오늘/이틀전/나흘전을 한 주기로 두고 과거 주까지 되풀이한다. 리포트가
+    start = _HISTORY_START_DAYS.get(member_id, 0)
+    # 첫 세션 날부터 이틀 간격을 한 주기로 두고 과거 주까지 되풀이한다. 리포트가
     # 과거 주로 이동할 수 있어, 이번 주만 채우면 이행률이 곧 비어 버린다(#752).
     #
     # 멱등성은 행 id(회원+날짜)로 지킨다. 예전처럼 "오늘 기록이 있으면 통째로
@@ -1248,7 +1492,7 @@ def _seed_history(db: Session, member_id: str) -> None:
     for week in range(_HISTORY_WEEKS):
         factor = _COMPLETION_FACTORS[week % len(_COMPLETION_FACTORS)]
         for idx, (rate, kind, exercises, feedback, note) in enumerate(sessions):
-            d = (today - timedelta(days=idx * 2 + week * 7)).isoformat()
+            d = (today - timedelta(days=start + idx * 2 + week * 7)).isoformat()
             hid = f"seed-hist-{member_id}-{d}"
             if hid in existing:
                 continue
@@ -1280,7 +1524,7 @@ def _seed_exercise(db: Session, member_id: str) -> None:
     if not week:
         return
     today = clock.today()
-    week_start = (today - timedelta(days=today.weekday())).isoformat()  # 이번 주 월요일
+    week_start = monday_of(today).isoformat()  # 이번 주 월요일
     added = False
     for day_label, ex_type, minutes, calories in week:
         idx = _WEEKDAY_INDEX.get(day_label)
@@ -1305,7 +1549,7 @@ def _seed_exercise(db: Session, member_id: str) -> None:
             # 그 요일의 시각을 함께 적는다 — 세 날짜 필드가 같은 날을 가리켜야
             # 시드 시각(`created_at`)이 최근 활동 판단에 새지 않는다. (#1264)
             completed_at=exercise_activity.noon(
-                today - timedelta(days=today.weekday() - idx)
+                monday_of(today) + timedelta(days=idx)
             ),
         ))
         added = True

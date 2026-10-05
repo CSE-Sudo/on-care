@@ -158,7 +158,7 @@ def _request_consultation(client, token: str, trainer_id: str) -> str:
 def test_a_signed_up_trainer_can_receive_and_accept_a_consultation(
     client, db_session
 ):
-    """가입 → 상담 요청 → 인박스 → 수락 → 상담 일정.
+    """가입 → 운영자 승인 → 상담 요청 → 인박스 → 수락 → 상담 일정.
 
     여기서 확인하는 것은 각 단계의 동작이 아니라 **가입 뒤 고른 소속이 상담
     대상 조건과 실제로 이어지는가**다. 상담은 헬스장 소속 트레이너에게만 걸 수
@@ -168,6 +168,7 @@ def test_a_signed_up_trainer_can_receive_and_accept_a_consultation(
     gym = _gym(db_session)
 
     trainer_id, trainer_token = _sign_up_trainer(client, gym)
+    # 운영자 승인 단계는 없다(#3008) — 가입하고 소속을 고르면 바로 상담 대상이다.
     member_id, member_token = _member(client)
     consultation_id = _request_consultation(client, member_token, trainer_id)
 

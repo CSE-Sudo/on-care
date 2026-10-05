@@ -3,10 +3,10 @@ ORM 모델 — 프론트 계약(LocalApiInterceptor + drift 스키마)에 맞춤
 
 핵심 정렬 사항:
 - 사용자 id 는 문자열(예: 'user-7d4e9a2c5f18')
-- 식단은 나트륨(sodium_mg)·당류(sugar_g)를 1급 지표로 (고혈압·당뇨 특화)
+- 식단은 칼로리·탄단지와 함께 나트륨(sodium_mg)·당류(sugar_g)를 1급 지표로 둔다(섭취기준 대비 관리)
 - drift 테이블(diet_entries, exercise_sessions, notifications)과 1:1 대응
 
-이번 STEP 1 에서는 테이블 생성만 검증하고, 살은 이후 STEP 에서 채웁니다.
+스키마 변경은 Alembic 마이그레이션(backend/alembic)으로 한다.
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ from datetime import datetime
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     CheckConstraint,
     DateTime,
@@ -58,6 +59,17 @@ class User(Base):
     role: Mapped[str] = mapped_column(
         String(20), default="member", server_default="member", index=True
     )
+    # 토큰 세대(#2766). 발급하는 토큰마다 이 값을 실어 두고, 검증 때 같은지 본다.
+    # 비밀번호를 바꾸면 1 올라가 다른 기기에 이미 나간 접근·refresh 토큰이 한꺼번에
+    # 무효가 된다(`jti` 폐기는 한 장씩이라 다른 기기 토큰을 모른다).
+    token_version: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    # 가입 때 메일로 받은 코드로 이메일 소유를 확인한 시각(#3038). 확인 절차 이전에
+    # 만든 계정·소셜 가입 계정은 비어 있다.
+    email_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -65,6 +77,12 @@ class User(Base):
     health_profile: Mapped["HealthProfile | None"] = relationship(
         back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
+
+
+# 이메일은 대소문자를 무시하고 하나다(#2816). 저장은 소문자로 하지만, 정규화 전에 들어온
+# 값이나 다른 경로로 쓴 값이 대소문자만 다른 계정을 만들지 못하게 DB 가 마지막으로 막는다.
+# 마이그레이션 `0134_users_email_lower_unique` 와 같은 이름·식이다.
+Index("uq_users_email_lower", func.lower(User.email), unique=True)
 
 
 class HealthProfile(Base):
@@ -82,7 +100,7 @@ class HealthProfile(Base):
     risk_level: Mapped[str] = mapped_column(
         String(20), default="low"
     )  # low|medium|high
-    conditions: Mapped[str] = mapped_column(Text, default="")  # "고혈압, 당뇨 전단계"
+    conditions: Mapped[str] = mapped_column(Text, default="")  # 건강 목표 칩 + 트레이너 메모, 예: "체중 감량, 근력 향상"
     # 자유 서술 회원 목표(`goals`)는 지웠다 — 목표는 건강 목표 칩(`conditions`)으로만
     # 고른다(#2358).
 
@@ -124,6 +142,12 @@ class HealthProfile(Base):
 
     # 온보딩 완료 여부(프론트 온보딩 게이팅용)
     onboarded: Mapped[bool] = mapped_column(Boolean, default=False)
+    # 첫 설정을 **건너뛰었는가**(#2855). 건너뛴 회원은 다음 로그인·세션 복구 때
+    # 첫 설정 화면으로 다시 끌려가지 않는다. 폼에서 앱을 닫은(건너뛰지 않은)
+    # 회원은 거짓 그대로라 지금처럼 다시 첫 설정으로 간다(#2630).
+    onboarding_skipped: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
+    )
 
     # 건강 목표(`conditions` 의 목표 칩)를 마지막으로 바꾼 사람·시각 (#1832).
     # 회원과 담당 트레이너가 같은 칸을 고치므로, 승인 대신 기록과 알림으로 서로
@@ -136,6 +160,18 @@ class HealthProfile(Base):
         String(64), nullable=True
     )
     focus_changed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # 건강상태·주의사항(`conditions` 에서 목표 칩을 뺀 글)을 마지막으로 바꾼
+    # 사람·시각 (#2942). 같은 칸이지만 목표 칩 기록과 따로 둔다 — 하나로 묶으면
+    # 칩 아래 `마지막 변경` 줄이 주의사항만 고친 저장에도 움직인다.
+    notes_changed_by: Mapped[str | None] = mapped_column(
+        String(10), nullable=True
+    )  # member|trainer
+    notes_changed_by_id: Mapped[str | None] = mapped_column(
+        String(64), nullable=True
+    )
+    notes_changed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 
@@ -691,6 +727,41 @@ class AccountDeletionReason(Base):
     )
 
 
+class UserConsent(Base):
+    """가입 동의 한 항목 — 누가 어느 문서의 어느 버전에 언제 동의했는가. (#2819)
+
+    항목(`kind`)은 `terms`·`privacy`·`health`·`age14` 이고, 버전은
+    `services/signup_consent.CURRENT_VERSIONS` 가 정한다. 문서가 바뀌면 새 버전의
+    행이 더해질 뿐 옛 행은 지우지 않는다 — 그때 무엇에 동의했는지가 이력이다.
+
+    계정이 지워지면 함께 지운다. 탈퇴한 계정의 동의 이력을 따로 보관할 근거는
+    처리방침 정비(#2820)에서 정한다.
+    """
+
+    __tablename__ = "user_consents"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    kind: Mapped[str] = mapped_column(String(20))
+    version: Mapped[str] = mapped_column(String(20))
+    agreed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    #: 철회한 시각. 지금 받는 항목은 모두 필수라 철회 화면이 없다. 더는 받지
+    #: 않는 마케팅 수신 동의(#3007)의 옛 행은 마이그레이션 0141 이 이 값을 채웠다
+    #: — 행은 지우지 않아 언제 동의했고 언제 거둬졌는지가 남는다. 선택 항목이
+    #: 다시 생기면 그것을 끄는 화면이 여기에 적는다.
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "kind", "version", name="uq_user_consents_user_kind_version"
+        ),
+    )
+
+
 class DietPhoto(Base):
     """끼니 사진 — 회원이 올린 사진의 축소본. (#699)
 
@@ -923,15 +994,28 @@ class ExerciseSession(Base):
     assigned_routine_name: Mapped[str] = mapped_column(
         String(100), default="", server_default=""
     )
-    member_note: Mapped[str] = mapped_column(Text, default="", server_default="")
     completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    #: 회원이 한 번에 저장한 요청의 멱등키와 그 안의 순서(#3095). 응답을 잃고
+    #: 다시 보낸 저장을 알아보는 데 쓴다 — 한 요청이 여러 행이라 키 하나로는
+    #: 행을 가리킬 수 없어 순서를 함께 둔다. 키 없이 저장한 기록·파생 기록·이
+    #: 칼럼 이전 기록은 둘 다 NULL 이다.
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    client_request_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
 
     __table_args__ = (
+        # 같은 저장 요청의 같은 자리는 한 행이다(#3095). 동시에 온 재시도가 두 벌을
+        # 넣지 못하게 하는 마지막 방어선이다. 키가 NULL 인 행은 걸리지 않는다.
+        UniqueConstraint(
+            "user_id",
+            "client_request_id",
+            "client_request_index",
+            name="uq_exercise_sessions_client_request",
+        ),
         # 배정 하나는 하루에 한 번 완료한다(#2161). 운동 기록의 날짜는
         # `(week_start, day_label)` 이라 그 둘로 하루를 가리킨다. 더블 탭·재전송이
         # 같은 날 기록 둘을 만들지 않게 하는 마지막 방어선이다. 수기 기록은
@@ -974,6 +1058,10 @@ class Notification(Base):
     # 알림이 가리키는 날짜(`YYYY-MM-DD`, #2292). 트레이너의 예약·상담 알림이
     # 스케줄을 그 날짜로 연다. 옛 알림에는 없다.
     target_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    # 이 알림만의 목적지(`action.target`, #2690). 비어 있으면 갈래별 표
+    # (`notifications._ACTION_BY_CATEGORY`)를 따른다. 같은 리마인더라도 나트륨
+    # 경고는 식단, 운동 목표는 운동으로 가야 할 때 쓴다 — 회원 앱 데모가 그렇다.
+    action_target: Mapped[str | None] = mapped_column(String(20), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -1010,9 +1098,9 @@ class MemberNotificationSetting(Base):
     ai_coaching: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=true(), default=True
     )
-    #: 주간 리포트만 기본 꺼짐 — 앱의 현재 기본값과 같다.
+    #: 트레이너 주간 리포트 알림. 다른 항목과 같이 기본 켜짐이다(#3025).
     weekly_report: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, server_default=false(), default=False
+        Boolean, nullable=False, server_default=true(), default=True
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -1020,10 +1108,10 @@ class MemberNotificationSetting(Base):
 
 
 class CoachDocument(Base):
-    """RAG 코치용 문서 + 임베딩 (STEP 7).
+    """RAG 코치용 문서 + 임베딩.
 
     두 종류의 문서가 공존:
-      - 개인 문서(환자 데이터): user_id = 특정 사용자  → 그 사용자만 검색됨
+      - 개인 문서(회원 기록 요약): user_id = 특정 회원  → 그 회원만 검색됨
       - 공공 문서(가이드라인 등): user_id = NULL        → 모든 사용자 공유
 
     검색 시 (user_id == 현재사용자 OR user_id IS NULL) 로 가져오면
@@ -1031,6 +1119,11 @@ class CoachDocument(Base):
     """
 
     __tablename__ = "coach_documents"
+    # 교체·삭제는 (user_id, source_ref) 로 좁힌다. 마이그레이션 0030 이 만든 인덱스를
+    # 모델에도 적어 `alembic check` 가 '지울 인덱스' 로 보지 않게 한다(#2838).
+    __table_args__ = (
+        Index("ix_coach_documents_user_source_ref", "user_id", "source_ref"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     # nullable: 공공 문서는 NULL(전체 공유), 개인 문서는 특정 user_id
@@ -1316,6 +1409,31 @@ class TrainerProfile(Base):
     reminder_lead_minutes: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default="30", default=30
     )
+    #: 예전 운영자 승인 상태(#2825). 승인 절차를 없애면서(#3008) 모든 행을
+    #: approved 로 채우고 기본값도 approved 로 바꿨다(0145). 어느 코드도 이 값으로
+    #: 노출·연결을 가르지 않는다 — 칸은 이력 보존용으로 남긴다.
+    verification_status: Mapped[str] = mapped_column(
+        String(16),
+        CheckConstraint(
+            "verification_status IN ('pending', 'approved', 'rejected')",
+            name="ck_trainer_profiles_verification_status",
+        ),
+        nullable=False,
+        server_default="approved",
+        default="approved",
+        index=True,
+    )
+    #: 예전 승인·반려 처리 시각과 운영자(#2825). 새로 채우지 않는다.
+    verification_decided_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    verification_decided_by: Mapped[str | None] = mapped_column(
+        String(64), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    #: 예전 반려 사유(#2825). 새로 채우지 않는다.
+    verification_note: Mapped[str] = mapped_column(
+        String(300), nullable=False, server_default="", default=""
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -1448,6 +1566,64 @@ class TrainerClientInvite(Base):
     )
 
 
+class TrainerReport(Base):
+    """회원이 트레이너를 신고한 기록. (#3008)
+
+    운영자 승인 절차를 없앤 자리의 사후 관리 경로다. 회원이 사칭·부적절한 메시지·
+    기타 사유로 신고하면 운영자가 트레이너 웹 `신고·계정 관리` 화면에서 보고
+    처리(resolved)하거나 넘긴다(dismissed). 필요하면 계정을 정지한다.
+
+    (trainer, reporter) 부분 유니크(처리 전일 때만) — 같은 회원이 같은 트레이너를
+    처리 전에 두 번 신고할 수 없다. 처리된 뒤 다시 신고하는 것은 된다.
+    """
+
+    __tablename__ = "trainer_reports"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    trainer_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    reporter_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: impersonation | inappropriate_message | other
+    reason: Mapped[str] = mapped_column(String(32))
+    #: 회원이 덧붙인 설명. 기타 사유면 비어 있을 수 없다(스키마가 막는다).
+    memo: Mapped[str] = mapped_column(String(200), server_default="", default="")
+    #: open | resolved | dismissed
+    status: Mapped[str] = mapped_column(
+        String(16), server_default="open", default="open"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    resolved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    resolved_by: Mapped[str | None] = mapped_column(
+        String(64), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "reason IN ('impersonation', 'inappropriate_message', 'other')",
+            name="ck_trainer_reports_reason",
+        ),
+        CheckConstraint(
+            "status IN ('open', 'resolved', 'dismissed')",
+            name="ck_trainer_reports_status",
+        ),
+        Index(
+            "uq_trainer_reports_open",
+            "trainer_id",
+            "reporter_id",
+            unique=True,
+            postgresql_where=text("status = 'open'"),
+        ),
+        Index("ix_trainer_reports_status_created", "status", "created_at"),
+    )
+
+
 class MemberPairingCode(Base):
     """회원이 트레이너에게 불러 주는 6자리 일회용 동기화 코드. (#1634)
 
@@ -1518,7 +1694,7 @@ class TrainerClientMemo(Base):
     insight_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     #: 채팅 인사이트 종류(discomfort|negativeFeedback). 직접 쓴 메모는 빈 문자열.
     insight_kind: Mapped[str] = mapped_column(String(32), default="")
-    #: 운동 기록 메모가 가리키는 기록의 갈래(pt_session|personal|member_log).
+    #: 운동 기록 메모가 가리키는 기록의 갈래(pt_session|personal|member_log|day).
     #: 다른 출처는 빈 문자열.
     ref_kind: Mapped[str] = mapped_column(String(16), default="", server_default="")
     #: 가리키는 이력 id(`routine_history.id` 또는 배정 수행 `exercise_sessions.id`).
@@ -1528,6 +1704,9 @@ class TrainerClientMemo(Base):
     ref_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
     #: 트레이너가 지은 루틴 이름. 서버가 붙인 고정 이름은 비운다(앱이 번역한다).
     ref_name: Mapped[str] = mapped_column(String(100), default="", server_default="")
+    #: 분류(#2622) — exercise|diet|pain|life, 고르지 않으면 빈 문자열.
+    #: 운동 기록 메모는 늘 'exercise' 다(서버가 채운다).
+    category: Mapped[str] = mapped_column(String(16), default="", server_default="")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -1547,6 +1726,11 @@ class TrainerClientMemo(Base):
         CheckConstraint(
             "source IN ('trainer', 'chat_insight', 'exercise_memo')",
             name="ck_trainer_client_memo_source",
+        ),
+        # 응답 스키마(TrainerMemoOut.category)도 정해진 값만 받는다 — source 와 같은 이유.
+        CheckConstraint(
+            "category IN ('', 'exercise', 'diet', 'pain', 'life')",
+            name="ck_trainer_client_memo_category",
         ),
         Index("ix_trainer_client_memos_pair", "trainer_id", "member_id"),
     )
@@ -1614,7 +1798,9 @@ class TrainerRoutine(Base):
     )
     source: Mapped[str] = mapped_column(String(20), default="ai")  # ai|trainer
     #: 검토 상태 — approved(회원에게 노출) | pending(트레이너 검토 대기) |
-    #: scheduled(PT 일정에 붙었고 아직 전송 전) | dismissed(추천하지 않기로 함).
+    #: scheduled(PT 일정에 붙었고 아직 전송 전) | dismissed(추천하지 않기로 함) |
+    #: consumed(프로그램 만들기 전송에 실려 나간 AI 제안 — 회원이 받는 것은 전송이
+    #: 만든 새 배정이다, #2747).
     #:
     #: 기본이 approved 인 것이 하위 호환의 핵심이다. 지금까지의 배정은 모두
     #: 트레이너가 보낸 것이므로 그대로 회원에게 보여야 한다. AI 가 만든 후보만
@@ -1724,6 +1910,12 @@ class TrainerProgramDraft(Base):
     #708 은 세션 하나만 담았고(`session_name`/`exercises_json`), #709 에서 세션
     배열로 올렸다. `0039_program_sessions` 가 기존 행을 세션 1개짜리 배열로
     옮긴다.
+
+    코칭 화면의 자동 보관(#2873)은 같은 표에 **회원별 작성 중 내용**을 둔다.
+    `member_id` 가 있으면 그 회원에게 짜던 것이고, 비어 있으면 위의 회원 없는
+    초안이다. 위저드 단계·후보·개인운동처럼 편집기 밖의 작성 상태는
+    `workspace_json` 에 객체 하나로 싣는다 — 화면 상태라 서버가 해석하지 않고,
+    크기만 스키마가 막는다.
     """
 
     __tablename__ = "trainer_program_drafts"
@@ -1737,6 +1929,14 @@ class TrainerProgramDraft(Base):
     period: Mapped[str] = mapped_column(String(100), default="")
     memo: Mapped[str] = mapped_column(Text, default="")
     sessions_json: Mapped[str] = mapped_column(Text, default="[]")
+    # 자동 보관한 회원(#2873). 회원이 탈퇴하면 그 회원에게 짜던 내용도 함께
+    # 사라진다.
+    member_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    workspace_json: Mapped[str] = mapped_column(
+        Text, default="{}", server_default="{}"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -1972,7 +2172,7 @@ class RoutineHistory(Base):
     #: 운동 목록. 옛 행·시드는 문장(`["레그프레스 3세트", ...]`)이고, 완료한 PT 는
     #: 값을 담은 객체(`{name, type, label, sets, …, duration_seconds}`)다 — 문장의
     #: `초` 는 버티는 운동의 초로 되읽혀 운동 시간의 초를 남길 수 없었다(#2546).
-    #: 두 모양 모두 `trainer_service.parse_history_exercise` 가 읽는다.
+    #: 두 모양 모두 `trainer._common.parse_history_exercise` 가 읽는다.
     exercises_json: Mapped[str] = mapped_column(Text, default="[]")
     client_feedback: Mapped[str] = mapped_column(Text, default="")
     trainer_note: Mapped[str] = mapped_column(Text, default="")
@@ -2019,6 +2219,13 @@ class ChatMessage(Base):
     # 실어 보낸 값을 그대로 들고 있는다. 일반 대화는 NULL 이라 예전 행과 조회
     # 흐름은 그대로다.
     report_week_start: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    # 이 메시지가 루틴 전송 안내라면 그 전송(종류·운동 이름)의 JSON. (#2672)
+    #
+    # 운동을 보내면 알림만 가고 채팅에는 남지 않아, 대화 속에서 "어제 보낸
+    # 루틴" 을 짚을 자리가 없었다. 리포트 전송 안내([report_week_start])처럼
+    # 보내는 쪽이 실어 둔 값으로 두 앱이 대화 가운데 안내 카드를 그린다. 일반
+    # 대화는 NULL 이다.
+    routine_delivery_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     # 이 메시지가 이모티콘이면 그 id(`oni_owoon` …). 본문은 이모티콘을 못 그리는
     # 자리(알림·미리보기)를 위한 글이고, 그림은 이 id 로 고른다. (#2020)
     emote_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
@@ -2222,19 +2429,32 @@ class AuditLog(Base):
     """보안 감사 로그 — 인증/관리자 이벤트 추적.
 
     user_id 는 FK 를 두지 않는다(사용자가 삭제돼도 감사 기록은 남아야 하므로).
-    event 예: auth.login, auth.register, auth.social, admin.public_doc_upload.
+    event 예: auth.login, auth.register, auth.social, admin.public_doc_upload,
+    trainer.client_read, consent.grant, consent.revoke, account.withdraw,
+    auth.password_change.
+
+    `user_id` 는 **행위자**, `target_user_id` 는 그 행위의 **대상 회원**이다
+    (#2830 — 트레이너가 누구의 기록을 봤는지, 누구의 동의가 오갔는지). 대상도
+    FK 가 없어 링크·계정 행이 지워져도 기록은 남는다. `resource` 는 열람한 기록
+    종류(diet·exercise·body·report) 같은 짧은 분류이고, 식단 내용 같은 개인정보
+    본문은 어느 칸에도 적지 않는다.
     """
 
     __tablename__ = "audit_logs"
+    __table_args__ = (
+        Index("ix_audit_logs_target_created", "target_user_id", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     event: Mapped[str] = mapped_column(String(50), index=True)
     user_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    target_user_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    resource: Mapped[str] = mapped_column(String(30), default="", server_default="")
     ip: Mapped[str] = mapped_column(String(64), default="")
     success: Mapped[bool] = mapped_column(Boolean, default=True)
     detail: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+        DateTime(timezone=True), server_default=func.now(), index=True
     )
 
 
@@ -2261,6 +2481,95 @@ class RevokedRefreshToken(Base):
     #: 이 토큰이 스스로 만료되는 시각. 정리 기준.
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     revoked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    #: 폐기 사유(#3086) — `rotated`(회전에 쓰임)·`logout`·`stale`(비밀번호 변경 전 세대).
+    #: 재사용이 왔을 때 회전된 지 얼마 안 된 토큰(동시 갱신)인지, 이미 끊긴 세션인지
+    #: 가른다. 이 칸이 생기기 전의 행은 비어 있다.
+    reason: Mapped[str | None] = mapped_column(String(16), nullable=True)
+
+
+class RevokedSession(Base):
+    """끊긴 로그인 세션 — refresh 토큰 재사용으로 탈취가 의심된 세션(#3086).
+
+    refresh 토큰 한 장(`jti`)만 폐기하면, 탈취한 쪽이 먼저 회전해 받은 다음 토큰들은
+    그대로 산다. 토큰의 세션 이름(`sid`)을 여기에 적어 그 세션에서 나간 토큰을 모두
+    `/auth/refresh` 에서 거부한다. 같은 계정의 다른 로그인(다른 기기)은 이름이 달라
+    끊기지 않는다.
+
+    `expires_at` 은 그 세션의 절대 수명이 끝나는 시각이다. 그 뒤로는 세션의 어떤
+    토큰도 만료돼 있으므로 폐기 기록과 함께 정리한다.
+    """
+
+    __tablename__ = "revoked_sessions"
+
+    sid: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    revoked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class PasswordResetToken(Base):
+    """비밀번호 재설정 코드(#2824).
+
+    메일로 보낸 일회용 코드의 **해시만** 담는다 — 표가 새어도 그것으로 비밀번호를
+    바꿀 수 없다. 코드는 짧은 시간만 유효하고(`expires_at`), 한 번 쓰면
+    `used_at` 이 찍혀 다시 쓸 수 없다. 같은 계정으로 새 코드를 보내면 앞서 보낸
+    코드는 쓴 것으로 닫는다. 코드는 80비트 난수라 맞혀 볼 수 없고, 확인 요청은
+    IP 별 rate limit 을 따로 받는다.
+    """
+
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: 정규화한 코드의 SHA-256(16진수). 확인 요청은 이 값으로 찾는다.
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class EmailVerificationCode(Base):
+    """가입 이메일 확인 코드(#3038).
+
+    계정을 만들기 전에 그 주소로 보낸 6자리 코드다. 계정이 아직 없어 사용자가 아니라
+    (이메일, 용도)에 묶는다. 원문은 담지 않고 서버 비밀값으로 만든 HMAC 만 담는다 —
+    6자리는 경우의 수가 백만뿐이라 소금 없는 해시는 표가 새면 곧바로 풀린다.
+
+    같은 (이메일, 용도)로 새 코드를 보내면 앞선 코드는 쓴 것으로 닫는다. 확인에 실패할
+    때마다 `attempts` 가 오르고 상한에 닿으면 그 코드는 더 받지 않는다.
+    """
+
+    __tablename__ = "email_verification_codes"
+    __table_args__ = (
+        Index("ix_email_verification_codes_email_purpose", "email", "purpose"),
+    )
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    #: 소문자로 정규화한 이메일.
+    email: Mapped[str] = mapped_column(String(255))
+    #: `member_signup` | `trainer_signup`.
+    purpose: Mapped[str] = mapped_column(String(32))
+    code_hash: Mapped[str] = mapped_column(String(64))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    attempts: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
 
@@ -2555,4 +2864,86 @@ class TrainerReportGoal(Base):
         UniqueConstraint(
             "member_id", "week_start", name="uq_trainer_report_goals_member_week"
         ),
+    )
+
+
+class DietAnalysisUsage(Base):
+    """식단 사진 분석이 외부 비전 모델을 부른 한 번 — 하루 상한을 센다. (#2827)
+
+    모델을 부르기 **직전에** 한 줄이 생긴다. 끼니(`diet_entries`)로 세지 않는 이유는
+    둘이다 — 음식을 못 찾은 사진(#2848)은 끼니를 남기지 않지만 모델 비용은 나가고,
+    끼니를 지우고 다시 찍으면 끼니 수로는 하루 상한이 다시 열린다. 같은 멱등키의
+    재전송은 모델을 부르지 않으므로 줄이 생기지 않는다. 모델 호출이 실패하면 그 줄을
+    지운다 — 회원 탓이 아닌 실패로 하루 상한을 깎지 않는다.
+    """
+
+    __tablename__ = "diet_analysis_usages"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: 부른 KST 날짜 `YYYY-MM-DD`. 하루 상한을 이 값으로 센다.
+    kst_date: Mapped[str] = mapped_column(String(10))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index("ix_diet_analysis_usages_user_date", "user_id", "kst_date"),
+    )
+
+
+class AiCallUsage(Base):
+    """하루 AI 호출 수 — 서버 전체·트레이너 계정 단위 상한을 센다. (#3032)
+
+    `bucket` 하나에 하루 한 행이다. `global` 은 서버 전체, `trainer:<id>` 는 그
+    트레이너의 고객 AI 코치·루틴 후보·리포트 요약 합이다. 외부 모델을 **실제로 부르기
+    직전에** `INSERT … ON CONFLICT DO UPDATE … WHERE calls < 상한` 으로 한 번에 더해,
+    여러 인스턴스가 동시에 불러도 상한을 넘지 않는다. 기능별 건수는 행으로 나누지 않고
+    메트릭(`ai_calls.*`)으로 본다 — 상한 판정을 한 행에서 끝내기 위해서다.
+    """
+
+    __tablename__ = "ai_call_usages"
+
+    #: KST 날짜 `YYYY-MM-DD`. 자정이 지나면 새 행에서 다시 센다.
+    kst_date: Mapped[str] = mapped_column(String(10), primary_key=True)
+    #: `global` 또는 `trainer:<트레이너 id>`.
+    bucket: Mapped[str] = mapped_column(String(80), primary_key=True)
+    #: 트레이너 버킷의 주인. 전역 버킷은 비어 있다. 트레이너가 탈퇴하면 함께 지운다.
+    trainer_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    calls: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0", default=0
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class RateLimitHit(Base):
+    """시도 제한 기록 한 번 — 분당 한도·로그인 실패 잠금·가입 한도를 센다. (#3143)
+
+    예전에는 프로세스 메모리에 셌다. 그래서 태스크·워커가 늘면 한도가 그 수만큼
+    느슨해지고, 재배포·재시작 때마다 로그인 잠금이 풀렸다. 이제 모든 태스크가 이 표
+    하나를 본다. 한 번 시도(또는 실패 잠금 버킷의 실패 한 번)가 한 행이고, `key` 는
+    `엔드포인트:IP`·`login-fail:<이메일>` 같은 버킷 이름이다.
+
+    창(window) 안의 행 수로 한도를 판정한다(메모리 구현과 같은 슬라이딩 창). 막힌
+    시도는 행을 남기지 않으므로 한 키의 행 수는 한도를 넘지 않는다. 판정과 기록은
+    키 단위 트랜잭션 잠금 안에서 하므로 여러 태스크가 동시에 세도 한도를 넘지 않는다.
+    `expires_at`(기록 시각 + 창)이 지난 행은 정리 대상이다.
+    """
+
+    __tablename__ = "rate_limit_hits"
+    __table_args__ = (
+        Index("ix_rate_limit_hits_key_hit_at", "key", "hit_at"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    key: Mapped[str] = mapped_column(Text, nullable=False)
+    hit_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
     )

@@ -90,6 +90,8 @@ def test_signup_creates_a_working_trainer_without_a_gym(client):
     me = client.get("/v1/trainer/me", headers=_auth(_login(client, payload["email"])))
     assert me.status_code == 200, me.text
     assert me.json()["gym"]["id"] is None
+    # 운영자 승인 단계는 없다(#3008) — 응답에 승인 상태가 없다.
+    assert "verification" not in me.json()
 
 
 def test_a_signed_up_trainer_can_pick_a_gym(client, db_session):

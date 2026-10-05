@@ -21,9 +21,10 @@ from pydantic import ValidationError
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.services import health_focus
+from app.services import ai_call_quota, health_focus
 from app.core import clock, metrics
 from app.core.locale import Locale, current_locale
+from app.core.week import monday_of
 from app.models.models import (
     ChatMessage,
     DietEntry,
@@ -55,6 +56,8 @@ from app.schemas.trainer_api import (
 from app.services import exercise_types, routine_ai
 from app.services.coach import prompt_safety
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
+from app.services.ai_log import log_ai_fallback
+from app.services.coach.llm_base import is_truncated, output_cap
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +81,11 @@ DEFAULT_INTENSITY: RoutineIntensityPreference = "moderate"
 #: `"레그프레스 3세트"` 처럼 이름 뒤에 세트/횟수가 자유 텍스트로 붙는다(모델
 #: docstring 참고). 숫자가 시작되는 지점 앞까지만 이름으로 본다.
 _TRAILING_COUNT_RE = re.compile(r"\s*\d.*$")
+
+#: 운동 기록 줄 끝의 수행 표시(#2714). 안 한 운동은 반복으로 세지 않는다.
+_SKIPPED_MARK = "✗"
+#: 한 운동 표시·괄호 메모가 시작되는 곳 — 그 앞까지가 이름이다.
+_DONE_OR_NOTE_RE = re.compile(r"[✓(]")
 
 
 @dataclass
@@ -110,6 +118,9 @@ LLM_TIMEOUT_SEC = 12.0
 
 #: 사고 예산. 지연을 지배하는 값이라 호출부마다 따로 두지 않는다(#579).
 LLM_THINKING_BUDGET = DEFAULT_THINKING_BUDGET
+#: 출력 토큰 상한(#3032). 두 후보(A·B)와 종목 몇 개, 사고 예산이 들어가는 값이다.
+#: 끊긴 JSON 은 계약 위반으로 보고 규칙형으로 내린다.
+LLM_MAX_OUTPUT_TOKENS = 2048
 
 #: 동시에 진행할 LLM 호출 수.
 LLM_MAX_CONCURRENCY = 4
@@ -289,6 +300,11 @@ def _exercise_name(item: object) -> str:
 
     `RoutineHistory.exercises_json` 은 `"레그프레스 3세트"` 처럼 이름 뒤에 자유
     텍스트가 붙는다. 숫자가 시작되는 지점부터는 이름이 아니라고 본다.
+
+    끝의 수행 표시와 괄호 메모도 뗀다(#2714) — `"걷기 ✓ (10분만)"` 은 `걷기` 다.
+    **안 한 운동(`✗`)은 빈 이름**이라 반복으로 세지 않는다. 떼지 않던 동안에는
+    `"데드리프트 ✗"` 가 그 이름대로 세어져, 하지 않은 운동이 "최근 자주 수행한
+    운동" 으로 A안에 들어갔다.
     """
     if isinstance(item, dict):
         text = str(item.get("name", ""))
@@ -296,6 +312,9 @@ def _exercise_name(item: object) -> str:
         text = item
     else:
         return ""
+    if _SKIPPED_MARK in text:
+        return ""
+    text = _DONE_OR_NOTE_RE.split(text, maxsplit=1)[0]
     return _TRAILING_COUNT_RE.sub("", text).strip()
 
 
@@ -492,7 +511,13 @@ def build_member_analysis(
         avg_completion_rate=round(float(completion or 0)),
         latest_routine=latest.name if latest is not None else "-",
         note=request.trainer_note.strip(),
-        recent_messages=_recent_chat_lines(db, trainer_id, member_id, today_date),
+        # 최근 대화 원문도 트레이너가 고르는 자료다(#2794) — 끄면 프롬프트에도,
+        # 규칙 폴백의 통증 판단에도 실리지 않는다. 예전에는 늘 실렸다.
+        recent_messages=(
+            _recent_chat_lines(db, trainer_id, member_id, today_date)
+            if "recent_chat" in sources
+            else []
+        ),
         insight_memos=(
             _recent_insight_memos(db, trainer_id, member_id, today_date)
             if "chat_insight" in sources
@@ -614,6 +639,15 @@ def _recent_trainer_memos(
     )
 
 
+#: 메모 분류(#2622) → 프롬프트에 붙이는 이름. 메모 창 칩과 같은 말이다.
+_MEMO_CATEGORY_LABELS = {
+    "exercise": "운동",
+    "diet": "식단",
+    "pain": "통증·부상",
+    "life": "생활·일정",
+}
+
+
 def _recent_memos(
     db: Session,
     trainer_id: str,
@@ -626,6 +660,9 @@ def _recent_memos(
 ) -> list[str]:
     """본인이 남긴 회원 메모 중 [sources] 의 최근 것을 `"MM.dd 본문"` 줄로(최신 먼저).
 
+    분류가 있는 메모는 `"MM.dd [통증·부상] 본문"` 처럼 분류를 앞에 붙인다(#2622) —
+    AI 가 운동과 무관한 일정 메모를 운동 지시로 읽지 않게 돕는다.
+
     `created_at` 은 timestamptz 라 KST 자정을 실제 시각으로 환산해 비교한다 —
     [_recent_chat_lines] 와 같은 이유다.
     """
@@ -635,7 +672,11 @@ def _recent_memos(
         tzinfo=clock.SEOUL,
     )
     rows = db.execute(
-        select(TrainerClientMemo.created_at, TrainerClientMemo.body)
+        select(
+            TrainerClientMemo.created_at,
+            TrainerClientMemo.body,
+            TrainerClientMemo.category,
+        )
         .where(
             TrainerClientMemo.trainer_id == trainer_id,
             TrainerClientMemo.member_id == member_id,
@@ -648,12 +689,14 @@ def _recent_memos(
     ).all()
 
     lines: list[str] = []
-    for created_at, body in rows:
+    for created_at, body, category in rows:
         text = _clip(body)
         if not text:
             continue
         local = created_at.astimezone(clock.SEOUL)
-        lines.append(f"{local:%m.%d} {text}")
+        label = _MEMO_CATEGORY_LABELS.get(category or "")
+        prefix = f"[{label}] " if label else ""
+        lines.append(f"{local:%m.%d} {prefix}{text}")
     return lines
 
 
@@ -723,11 +766,11 @@ def _recent_weekly_feedback(
     (`data_consent_at`, 담당이 시작될 때 적힌다)이 든 주부터만 읽는다. 동의
     시각이 없는 옛 링크는 가를 기준이 없어 두 주를 그대로 읽는다.
     """
-    this_week = today_date - timedelta(days=today_date.weekday())
+    this_week = monday_of(today_date)
     weeks = [this_week, this_week - timedelta(days=7)]
     if link.data_consent_at is not None:
         started = link.data_consent_at.astimezone(clock.SEOUL).date()
-        first_week = started - timedelta(days=started.weekday())
+        first_week = monday_of(started)
         weeks = [week for week in weeks if week >= first_week]
     if not weeks:
         return []
@@ -781,7 +824,12 @@ def _resolve_sources(request: RoutineOptionsRequest) -> list[RoutineContextSourc
         ROUTINE_DEFAULT_SOURCES if request.sources is None else request.sources
     )
     order: tuple[RoutineContextSource, ...] = (
-        "pt_feedback", "consult_memo", "trainer_memo", "chat_insight", "weekly_feedback",
+        "recent_chat",
+        "pt_feedback",
+        "consult_memo",
+        "trainer_memo",
+        "chat_insight",
+        "weekly_feedback",
     )
     return [source for source in order if source in chosen]
 
@@ -863,7 +911,9 @@ def _decode_json_object(text: str) -> dict:
     return parsed
 
 
-def _call_llm(prompt: str, system: str = _SYSTEM_PROMPT):
+def _call_llm(
+    prompt: str, system: str = _SYSTEM_PROMPT, *, trainer_id: str | None = None
+):
     """LLM 호출 + 타임아웃. 실패는 호출부가 잡아 규칙 폴백으로 내린다.
 
     [system] 은 부르는 쪽이 요청 언어로 골라 넘긴다(#2301). 워커 스레드에서는
@@ -883,16 +933,28 @@ def _call_llm(prompt: str, system: str = _SYSTEM_PROMPT):
     slots = _llm_slots
     if not slots.acquire(blocking=False):
         raise LLMBusyError("LLM 동시 호출 한도 초과 — 규칙 폴백")
+    try:
+        # 공급자를 고른 뒤에 센다 — 키가 없어 부르지 못하는 호출은 하루 상한(#3032)에 세지 않는다.
+        llm = get_coach_llm()
+        # 트레이너·서버 전체 하루 상한(#3032). 포화로 부르지 않은 호출은 세지 않게 자리를
+        # 잡은 뒤에 센다. 트레이너 상한은 호출부가 429 로, 전역 상한은 규칙형으로 옮긴다.
+        ai_call_quota.acquire(
+            ai_call_quota.FEATURE_ROUTINE_OPTIONS, trainer_id=trainer_id
+        )
+    except BaseException:
+        slots.release()
+        raise
 
     def _call():
         try:
             # json_mode 와 사고 예산은 **반드시 함께** 넘긴다. 기본값(사고 켜짐)으로는
             # 이 짧은 JSON 하나에도 10초 이상 걸려 클라이언트가 먼저 끊고 규칙형만
             # 보게 된다. json_mode 만 켜면 오히려 더 느려진다(실측은 coach/llm.py).
-            return get_coach_llm().generate(
+            return llm.generate(
                 system, prompt,
                 json_mode=True,
                 thinking_budget=LLM_THINKING_BUDGET,
+                max_output_tokens=output_cap(LLM_MAX_OUTPUT_TOKENS),
             )
         finally:
             # 타임아웃으로 호출부가 떠난 뒤라도 작업이 끝나면 자리를 반드시 돌려준다.
@@ -913,6 +975,8 @@ def _generate_with_llm(
     analysis: RoutineOptionAnalysisOut,
     request: RoutineOptionsRequest,
     locale: Locale = "ko",
+    *,
+    trainer_id: str | None = None,
 ) -> RoutineOptionsOut:
     prompt = json.dumps(
         {
@@ -923,7 +987,10 @@ def _generate_with_llm(
         },
         ensure_ascii=False,
     )
-    result = _call_llm(prompt, system_prompt(locale))
+    result = _call_llm(prompt, system_prompt(locale), trainer_id=trainer_id)
+    if is_truncated(result):
+        # 출력 상한에 끊긴 JSON 은 앞부분만으로도 파싱될 수 있어 따로 막는다(#3032).
+        raise RoutineContractError("LLM 응답이 출력 상한에 걸려 끊겼습니다.")
     payload = _decode_json_object(result.text)
     payload["analysis"] = analysis.model_dump()
     payload["generated_by"] = "ai"
@@ -972,7 +1039,18 @@ def generate_routine_options(
     started = time.monotonic()
     had_chat = bool(analysis.recent_messages)
     try:
-        options = _generate_with_llm(analysis, request, locale)
+        options = _generate_with_llm(analysis, request, locale, trainer_id=trainer_id)
+    except ai_call_quota.TrainerAiDailyLimitReached:
+        # 이 트레이너의 오늘 몫을 다 썼다 — 규칙형으로 덮지 않고 429 로 알린다(#3032).
+        # 규칙형 후보를 주면 "AI 가 만든 것" 과 구분이 안 돼 한도를 모른 채 계속 누른다.
+        raise
+    except ai_call_quota.AiCapacityReached:
+        # 서버 전체 상한 — 이 트레이너 탓이 아니다. 규칙형 후보로 화면을 이어 준다.
+        _record(started, reason="global_cap", had_chat_context=had_chat)
+        logger.info(
+            "맞춤 루틴 서버 AI 상한 도달 — 규칙 기반 폴백 사용 (trainer_id=%s)", trainer_id
+        )
+        return fallback
     except LLMBusyError:
         # 포화 — 장애가 아니다. 부르지 않았으니 stack trace 도 남길 게 없다.
         # 이 값이 자주 오르면 늘릴 것은 타임아웃이 아니라 동시성 한도다.
@@ -993,26 +1071,27 @@ def generate_routine_options(
             LLM_TIMEOUT_SEC, trainer_id, member_id,
         )
         return fallback
+    # 아래 두 폴백은 예외 메시지·스택을 남기지 않는다 — 계약 위반 메시지는 모델
+    # 출력을(`input_value=`), 공급자 오류는 프롬프트를 되풀이할 수 있다(#3090).
     except (ValidationError, RoutineContractError) as exc:
         # 계약 위반 — 공급자는 살아 있는데 응답이 규격에 안 맞는다. 프롬프트나
         # 스키마를 손볼 신호라 인프라 장애와 섞으면 안 된다.
         # 넓은 ValueError 가 아니라 이 두 타입만 잡는다 — COACH_LLM 오타 같은
         # 설정 오류도 ValueError 라, 그것까지 계약 위반으로 세면 지표가 엉킨다.
         _record(started, reason="contract", had_chat_context=had_chat)
-        logger.warning(
-            "맞춤 루틴 LLM 계약 위반 — 규칙 기반 폴백 사용 "
-            "(trainer_id=%s, member_id=%s): %s",
-            trainer_id, member_id, exc,
+        log_ai_fallback(
+            logger, "routine_options", "contract", exc=exc,
+            trainer_id=trainer_id, member_id=member_id,
         )
         return fallback
-    except Exception:  # noqa: BLE001 — 키 미설정·설정 오타·네트워크·5xx, 우리 쪽 버그
-        # 이쪽은 stack trace 를 남긴다. 예전엔 한 덩어리로 삼켜서, 스키마 필드
-        # 이름을 잘못 쓴 버그도 조용히 규칙형으로 내려가 아무도 몰랐다.
+    except Exception as exc:  # noqa: BLE001 — 키 미설정·설정 오타·네트워크·5xx, 우리 쪽 버그
+        # 이쪽은 ERROR 로, 예외 유형과 발생 위치를 남긴다. 예전엔 한 덩어리로
+        # 삼켜서, 스키마 필드 이름을 잘못 쓴 버그도 조용히 규칙형으로 내려가
+        # 아무도 몰랐다.
         _record(started, reason="infra", had_chat_context=had_chat)
-        logger.exception(
-            "맞춤 루틴 LLM 호출 실패 — 규칙 기반 폴백 사용 "
-            "(trainer_id=%s, member_id=%s)",
-            trainer_id, member_id,
+        log_ai_fallback(
+            logger, "routine_options", "infra", exc=exc, level=logging.ERROR,
+            trainer_id=trainer_id, member_id=member_id,
         )
         return fallback
 

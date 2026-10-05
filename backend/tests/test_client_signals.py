@@ -155,14 +155,25 @@ class World:
             created_at=_dt(_day(days_ago)),
         ))
 
-    def ai_chat(self, member_id: str, body: str, *, dismissed: bool = False):
+    def ai_chat(
+        self,
+        member_id: str,
+        body: str,
+        *,
+        dismissed: bool = False,
+        trainer_id: str | None = None,
+    ):
+        """회원 AI 챗봇 메시지. [trainer_id] 면 예전 트레이너 AI 코칭 스레드다(#3085)."""
         from app.models.models import AiConversation, AiMessage
 
         # 회원당 진행 중인 대화는 하나다(`uq_ai_conversations_active_member`).
-        conv = self._conversations.get(member_id)
+        key = (member_id, trainer_id)
+        conv = self._conversations.get(key)
         if conv is None:
-            conv = self._add(AiConversation(id=f"sig-conv-{uuid4().hex[:8]}", user_id=member_id))
-            self._conversations[member_id] = conv
+            conv = self._add(AiConversation(
+                id=f"sig-conv-{uuid4().hex[:8]}", user_id=member_id, trainer_id=trainer_id
+            ))
+            self._conversations[key] = conv
         self._add(AiMessage(
             id=f"sig-ai-{uuid4().hex[:8]}",
             conversation_id=conv.id,
@@ -231,10 +242,11 @@ def test_report_summary_uses_the_same_calorie_tolerance():
 
 
 def test_schedule_status_literals_match_the_schedule_contract():
-    from app.services import client_signals, trainer_service
+    from app.services import client_signals
+    from app.services.trainer import _common as trainer_common_service
 
-    assert client_signals._SCHEDULE_NO_SHOW == trainer_service.SCHEDULE_NO_SHOW
-    assert client_signals._SCHEDULE_CANCELLED == trainer_service.SCHEDULE_CANCELLED
+    assert client_signals._SCHEDULE_NO_SHOW == trainer_common_service.SCHEDULE_NO_SHOW
+    assert client_signals._SCHEDULE_CANCELLED == trainer_common_service.SCHEDULE_CANCELLED
 
 
 def test_calorie_off_target_is_symmetric():
@@ -323,6 +335,18 @@ def test_discomfort_from_ai_chatbot_skips_dismissed(world):
     assert "discomfort" not in world.kinds(m)
     world.ai_chat(m, "발목이 아파요")
     assert "discomfort" in world.kinds(m)
+
+
+def test_discomfort_ignores_trainer_ai_coach_thread(world):
+    """트레이너가 AI 에게 회원에 대해 물은 말은 회원의 호소가 아니다(#3085).
+
+    지금 트레이너와 예전 담당 트레이너의 스레드 모두 세지 않는다.
+    """
+    m = world.member()
+    world.keep_active(m)
+    _enough_exercise(world, m)
+    world.ai_chat(m, "이 회원 무릎이 아프다던데 하체 루틴 괜찮을까?", trainer_id=world.trainer_id)
+    assert "discomfort" not in world.kinds(m)
 
 
 def test_emote_message_is_not_read(world):

@@ -14,7 +14,9 @@ import 'package:oncare/features/exercise/presentation/utils/gym_phone.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connection_disconnect.dart';
 import 'package:oncare/features/exercise/presentation/widgets/consult_linked_notice.dart';
 import 'package:oncare/features/exercise/presentation/widgets/trainer_reason_badges.dart';
+import 'package:oncare/features/exercise/presentation/widgets/trainer_report_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 상세 머리의 헬스장 아이콘 상자 한 변.
@@ -61,9 +63,10 @@ class GymDetailPage extends ConsumerWidget {
     } else if (nearbyAsync.isLoading || myGymAsync.isLoading) {
       body = const AppLoading();
     } else if (nearbyAsync.hasError || myGymAsync.hasError) {
-      body = AppErrorState(
+      body = appErrorStateFor(
+        context,
+        error: nearbyAsync.error ?? myGymAsync.error,
         title: l.exGymsLoadError,
-        retryLabel: l.actionRetry,
         onRetry: () {
           ref.invalidate(gymFinderResultsProvider);
           ref.invalidate(myGymProvider);
@@ -92,8 +95,11 @@ class _GymDetails extends ConsumerWidget {
   Future<void> _disconnect(BuildContext context, WidgetRef ref) async {
     final AppLocalizations l = AppLocalizations.of(context);
     // 아직 읽는 중이면 `valueOrNull` 은 null 이다 — 담당이 있는데도 없다고
-    // 보고 "트레이너도 함께 해제됩니다" 를 빠뜨린다.
-    final Trainer? trainer = await ref.read(myTrainerProvider.future);
+    // 보고 "트레이너도 함께 해제됩니다" 를 빠뜨린다. 조회가 실패하면 그 안내만
+    // 빼고 확인 창은 띄운다 — 버튼이 무반응이 되지 않게(#2857).
+    final Trainer? trainer = await readConnectionForConfirm(
+      ref.read(myTrainerProvider.future),
+    );
     if (!context.mounted) return;
     final bool removed = await confirmDisconnect(
       context,
@@ -317,40 +323,57 @@ class _TrainerPickerSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final List<Trainer> trainers =
-        ref.watch(gymTrainersProvider(gym.id)).valueOrNull ?? const <Trainer>[];
+    final AsyncValue<List<Trainer>> trainersAsync = ref.watch(
+      gymTrainersProvider(gym.id),
+    );
     final List<ConsultationRequest> requests = ref.watch(
       consultationRequestControllerProvider,
     );
 
+    // 읽는 중·실패를 '소속 트레이너 없음' 과 가른다(#2857). 예전에는 셋 다 빈
+    // 목록으로 읽혀, 트레이너가 있는 헬스장에서도 회원이 상담을 포기했다.
     return AppSheet(
       showClose: false,
       title: l.exGymConsultPickTrainer,
       subtitle: l.exGymConsultPickTrainerHint,
-      child: trainers.isEmpty
-          ? AppEmptyState(
-              title: l.exGymConsultNoTrainers,
-              icon: AppIcons.personOff,
-              placement: AppStatePlacement.card,
-            )
-          : Column(
-              key: const Key('gym-consult-trainer-picker'),
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                for (
-                  int index = 0;
-                  index < trainers.length;
-                  index++
-                ) ...<Widget>[
-                  if (index > 0)
-                    const Padding(
-                      padding: EdgeInsets.only(left: _trainerDividerIndent),
-                      child: AppDivider(),
-                    ),
-                  _pickerRow(context, trainers[index], requests, l),
+      child: trainersAsync.when(
+        loading: () => const AppLoading(
+          key: Key('gym-consult-trainer-loading'),
+          placement: AppStatePlacement.card,
+        ),
+        error: (Object error, StackTrace _) => appErrorStateFor(
+          context,
+          key: const Key('gym-consult-trainer-error'),
+          error: error,
+          title: l.exGymTrainersLoadError,
+          onRetry: () => ref.invalidate(gymTrainersProvider(gym.id)),
+          placement: AppStatePlacement.card,
+        ),
+        data: (List<Trainer> trainers) => trainers.isEmpty
+            ? AppEmptyState(
+                title: l.exGymConsultNoTrainers,
+                icon: AppIcons.personOff,
+                placement: AppStatePlacement.card,
+              )
+            : Column(
+                key: const Key('gym-consult-trainer-picker'),
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  for (
+                    int index = 0;
+                    index < trainers.length;
+                    index++
+                  ) ...<Widget>[
+                    if (index > 0)
+                      const Padding(
+                        padding: EdgeInsets.only(left: _trainerDividerIndent),
+                        child: AppDivider(),
+                      ),
+                    _pickerRow(context, trainers[index], requests, l),
+                  ],
                 ],
-              ],
-            ),
+              ),
+      ),
     );
   }
 
@@ -389,6 +412,9 @@ class _TrainerPickerSheet extends ConsumerWidget {
 
 /// 이 헬스장에 소속된 트레이너 전원. 헬스장당 여러 명일 수 있으므로 목록으로
 /// 그리고, 한 명도 없으면 섹션 자체를 숨긴다.
+///
+/// 읽는 중에는 로딩을, 조회가 실패하면 오류와 다시 시도를 섹션 자리에 둔다
+/// (#2857). 예전에는 둘 다 '트레이너 없음' 처럼 섹션이 조용히 사라졌다.
 class _AffiliatedTrainers extends ConsumerWidget {
   const _AffiliatedTrainers({required this.gymId});
 
@@ -397,8 +423,34 @@ class _AffiliatedTrainers extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final List<Trainer> trainers =
-        ref.watch(gymTrainersProvider(gymId)).valueOrNull ?? const <Trainer>[];
+    final AsyncValue<List<Trainer>> trainersAsync = ref.watch(
+      gymTrainersProvider(gymId),
+    );
+    if (trainersAsync.hasError && !trainersAsync.isLoading) {
+      return _DetailSection(
+        icon: AppIcons.person,
+        title: l.exAffiliatedTrainer,
+        child: appErrorStateFor(
+          context,
+          key: const Key('gym-detail-trainers-error'),
+          error: trainersAsync.error,
+          title: l.exGymTrainersLoadError,
+          onRetry: () => ref.invalidate(gymTrainersProvider(gymId)),
+          placement: AppStatePlacement.inline,
+        ),
+      );
+    }
+    if (!trainersAsync.hasValue) {
+      return _DetailSection(
+        icon: AppIcons.person,
+        title: l.exAffiliatedTrainer,
+        child: const AppLoading(
+          key: Key('gym-detail-trainers-loading'),
+          placement: AppStatePlacement.inline,
+        ),
+      );
+    }
+    final List<Trainer> trainers = trainersAsync.requireValue;
     if (trainers.isEmpty) return const SizedBox.shrink();
 
     return _DetailSection(
@@ -416,8 +468,20 @@ class _AffiliatedTrainers extends ConsumerWidget {
             _AffiliatedTrainerRow(
               trainer: trainers[i],
               reasonKeyPrefix: 'gym-detail-trainer-${trainers[i].id}',
+              showReport: true,
             ),
           ],
+          // 소속은 트레이너가 직접 고른 것이다(#3008) — 운영자가 확인하지 않는다.
+          const AppDivider(),
+          const Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: OnCareSpacing.cardPadding,
+              vertical: OnCareSpacing.s12,
+            ),
+            child: SelfRegisteredAffiliationNote(
+              key: Key('gym-detail-self-registered'),
+            ),
+          ),
         ],
       ),
     );
@@ -430,10 +494,15 @@ class _AffiliatedTrainerRow extends StatelessWidget {
     required this.reasonKeyPrefix,
     this.onTap,
     this.trailingLabel,
+    this.showReport = false,
     super.key,
   });
 
   final Trainer trainer;
+
+  /// 제목 아래에 `신고` 버튼을 둘지 (#3008). 소속 트레이너 섹션만 켠다 —
+  /// 상담 트레이너 선택 시트는 고르는 자리라 다른 동작을 섞지 않는다.
+  final bool showReport;
 
   /// 추천 이유 태그의 키 접두어. 소속 트레이너 섹션과 상담 트레이너 시트가 한
   /// 트리에 함께 서므로(시트는 상세 위에 뜬다) 부르는 쪽이 제 이름을 준다.
@@ -445,6 +514,32 @@ class _AffiliatedTrainerRow extends StatelessWidget {
 
   /// 오른쪽 화살표 대신 보여 줄 상태 문구(예: "상담 요청 대기 중").
   final String? trailingLabel;
+
+  /// 제목 아래 줄 — 추천 이유 태그와 `신고` 버튼 (#3008).
+  ///
+  /// 신고 버튼은 화살표 옆이 아니라 여기 둔다. 오른쪽에 붙이면 제목 칸이 좁아져
+  /// 추천 이유 태그가 넘친다. 버튼이 탭을 먼저 받으므로 행의 상세 이동과 겹치지 않는다.
+  Widget? _below() {
+    final Widget? badges = trainer.reasons.isEmpty
+        ? null
+        : TrainerReasonBadges(
+            reasons: trainer.reasons,
+            keyPrefix: reasonKeyPrefix,
+          );
+    if (!showReport) return badges;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        ?badges,
+        TrainerReportButton(
+          key: Key('gym-detail-trainer-report-${trainer.id}'),
+          trainer: trainer,
+          compact: true,
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -464,12 +559,7 @@ class _AffiliatedTrainerRow extends StatelessWidget {
       leading: AppAvatar(name: trainer.name, size: AppAvatarSize.large),
       // 여기가 상담할 트레이너를 고르는 자리다 — 헬스장 찾기에서 봤던 근거를
       // 정작 고르는 화면에서 다시 찾게 두지 않는다 (#1881).
-      below: trainer.reasons.isEmpty
-          ? null
-          : TrainerReasonBadges(
-              reasons: trainer.reasons,
-              keyPrefix: reasonKeyPrefix,
-            ),
+      below: _below(),
       trailing: trailingLabel != null
           ? Text(
               trailingLabel!,

@@ -4,8 +4,11 @@ import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/drift.dart';
 
 import 'package:oncare/core/demo/demo_ai_advice.dart';
+import 'package:oncare/core/demo/demo_alert_keys.dart';
+import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/storage/app_database.dart';
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 하루 단위 코치 문구(날짜 → 문장)를 담는 키-값 키.
 ///
@@ -23,9 +26,40 @@ const String kDietDayMessagesKey = 'diet_day_messages';
 /// 만들어서 같은 날짜의 숫자가 서로 달랐다(#757). 지금은 셋 다 같은 픽스처를 읽는다
 /// — 며칠치를 채울지도 픽스처가 갖고 있다(`DemoFixture.historyWeeks`).
 
+/// 지금 시드 버전. 값은 시드가 마지막으로 돈 날짜(`YYYY-MM-DD`)다.
+///
+/// 시드 내용이 바뀌면 숫자를 올린다. 이전 플래그는 [kLegacySeedFlags] 가 알아서 지운다.
+/// 올리지 않으면 오늘 이미 시드된 설치가 예전 행을 그대로 들고 있다. 지난 이유들:
+/// v14 끼니별 AI 코멘트·사진, v15 과거 한 달치 식단(#671), v17 공유 픽스처(#757),
+/// v18 PT·기타 운동과 세트·횟수(#1265), v19 어제 스트레칭(#1361), v20 혜택 장부
+/// (#2664), v21 리포트 알림 갈래(#2660), v22 운동 출처·중량(#2662), v23 김민수 PT
+/// 요일(#2694).
+const int kSeedVersion = 23;
+
+/// [kSeedVersion] 의 플래그 키.
+const String kSeedFlag = 'seeded_v$kSeedVersion';
+
+/// 지난 시드 버전 플래그 — 부팅마다 지운다. 없는 키를 지우는 것은 아무 일도 하지
+/// 않으므로 v2 부터 빠짐없이 둔다.
+final List<String> kLegacySeedFlags = List<String>.unmodifiable(<String>[
+  for (int v = 2; v < kSeedVersion; v++) 'seeded_v$v',
+]);
+
+/// 혜택 시드가 생긴 v20 이후 버전으로 시드된 적이 있는 설치인가.
+Future<bool> _hadBenefitsSeed(AppDatabase db) async {
+  for (final String flag in const <String>[
+    'seeded_v20',
+    'seeded_v21',
+    'seeded_v22',
+  ]) {
+    if (await db.readValue(flag) != null) return true;
+  }
+  return false;
+}
+
 /// Date-aware idempotent seeder. Runs at bootstrap.
 ///
-/// **Flag format (v4+).** `AppKeyValues['seeded_v19']` stores the
+/// **Flag format (v4+).** `AppKeyValues[kSeedFlag]` stores the
 /// *date string* the seed last ran with (`YYYY-MM-DD`). Behaviour:
 ///
 /// - `null` (first ever boot, or upgrading from v1/v2) — wipe any
@@ -51,9 +85,15 @@ const String kDietDayMessagesKey = 'diet_day_messages';
 /// 스트레칭 breakdown the prototype shows.
 Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
   final now = nowKst();
-  final today = _fmtDate(now);
+  final today = wireDate(now);
 
-  final seedDate = await db.readValue('seeded_v19');
+  // 뺀 데모 알림(#2854)은 오늘 이미 시드된 설치에서도 걷어 낸다 — 날짜가
+  // 바뀌기를 기다리면 그날 하루 실서버에 없는 알림이 남는다.
+  await (db.delete(
+    db.notificationItems,
+  )..where((t) => t.id.isIn(kRetiredDemoAlertSeedIds))).go();
+
+  final seedDate = await db.readValue(kSeedFlag);
   if (seedDate == today) {
     // Already seeded for today — leave both seed rows and user rows
     // untouched.
@@ -74,34 +114,17 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
     )..where((t) => t.id.like('seed-%'))).go();
   });
 
-  // Drop legacy flags so existing installs receive the latest curated seed.
-  await db.deleteValue('seeded_v2');
-  await db.deleteValue('seeded_v3');
-  await db.deleteValue('seeded_v4');
-  await db.deleteValue('seeded_v5');
-  await db.deleteValue('seeded_v6');
-  await db.deleteValue('seeded_v7');
-  await db.deleteValue('seeded_v8');
-  await db.deleteValue('seeded_v9');
-  await db.deleteValue('seeded_v10');
-  await db.deleteValue('seeded_v11');
-  await db.deleteValue('seeded_v12');
-  // v14: 끼니별 AI 코멘트·사진이 행으로 내려오고 하루 코치 문구가 추가됐다.
-  // 플래그를 올리지 않으면 오늘 이미 시드된 설치가 빈 코멘트를 그대로 들고 있게 된다.
-  await db.deleteValue('seeded_v13');
-  // v15: 과거 한 달치 식단·지난 4주 운동이 추가됐다(#671). 올리지 않으면 오늘
-  // 이미 시드된 설치가 사흘치 그대로 남아 날짜를 옮겨도 여전히 비어 보인다.
-  await db.deleteValue('seeded_v14');
-  // v17: 식단·운동이 공유 픽스처에서 온다(#757). 올리지 않으면 오늘 이미 시드된
-  // 설치가 예전 값을 들고 있어 트레이너 앱과 나란히 놓았을 때 숫자가 어긋난다.
-  await db.deleteValue('seeded_v16');
-  // v18: 과거에 PT·기타 운동이 생기고, 운동 기록이 이름·세트·횟수를 함께 든다
-  // (#1265). 올리지 않으면 오늘 이미 시드된 설치가 그 값 없이 남아 근력을
-  // 분에서 되짚은 수로 보여 준다.
-  await db.deleteValue('seeded_v17');
-  // v19: 어제에 수행한 스트레칭이 한 건 생겼다(#1361). 올리지 않으면 오늘 이미
-  // 시드된 설치가 예전 하루를 그대로 들고 있어 이번 주 스트레칭 링이 계속 0 이다.
-  await db.deleteValue('seeded_v18');
+  // 혜택 장부는 혜택 시드가 처음 생긴 버전(v20)을 거친 적이 없는 설치의 첫
+  // 부팅에만 지워 다시 깐다 — 날짜만 바뀐 부팅이나 v20 이후 버전에서 올라온
+  // 설치는 회원이 데모에서 쌓은 포인트·쿠폰을 남긴다(실서버처럼, #2664).
+  if (seedDate == null && !await _hadBenefitsSeed(db)) {
+    await db.deleteValue(kDemoBenefitsKey);
+  }
+  // 지난 버전 플래그를 지워 기존 설치가 최신 시드를 받게 한다(#2914 에서 한 줄씩
+  // 지우던 것을 목록 하나로 접었다). 버전을 올린 이유는 [kSeedFlag] 문서에 있다.
+  for (final String flag in kLegacySeedFlags) {
+    await db.deleteValue(flag);
+  }
   // Also clear the curated KV advice so re-seed state is fully reset: this
   // version re-writes it below, but if a later seed drops or renames the key
   // an existing install would otherwise keep the stale text forever.
@@ -163,36 +186,26 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
               name: Value(e.name),
               sets: Value(e.type == 'strength' ? e.sets : null),
               reps: Value(e.type == 'strength' ? e.reps : null),
+              weight: Value(e.type == 'strength' ? e.weight : null),
+              // 픽스처에는 회원이 손으로 적은 기록이 없다 — PT 날은 트레이너
+              // 지도 세션, 나머지 날은 배정받은 개인운동을 한 기록이다. 비워
+              // 두면 `member` 로 떨어져 PT 가 `직접 기록한 운동` 에 서고 고칠
+              // 수 있게 된다(#499, #638, #2662).
+              source: Value(day.isPt ? 'trainer_pt' : 'assigned_routine'),
             ),
       ]);
     });
 
-    // ---- Today's schedule (2 events) ----
-    await db.batch((Batch b) {});
-
     // ---- Notifications ----
     await db.batch((Batch b) {
-      // 앱 데모 알림(`demoAlerts`)·백엔드 데모 계정 시드와 같은 목록이다(#1812).
+      // 백엔드 데모 계정 시드(`seed_notifications.py`)와 같은 목록·갈래다(#1812).
+      // 데모 알림함은 인터셉터 `GET /notifications` 로 이 행을 읽는다(#2660).
       b.insertAll(db.notificationItems, <NotificationItemsCompanion>[
-        NotificationItemsCompanion.insert(
-          id: 'seed-noti-1',
-          createdAt: now.subtract(const Duration(minutes: 10)),
-          title: '나트륨 섭취 주의',
-          body: '점심 짬뽕으로 오늘 나트륨이 4,657mg까지 올랐어요. 물을 충분히 드세요.',
-          category: 'reminder',
-        ),
-        NotificationItemsCompanion.insert(
-          id: 'seed-noti-8',
-          createdAt: now.subtract(const Duration(minutes: 20)),
-          title: '저녁 식단을 기록해 주세요',
-          body: '오늘 저녁 식단이 아직 없어요. 사진 한 장이면 돼요.',
-          category: 'reminder',
-        ),
         NotificationItemsCompanion.insert(
           id: 'seed-noti-5',
           createdAt: now.subtract(const Duration(minutes: 30)),
-          title: '새 운동 루틴이 도착했어요',
-          body: '$kDemoTrainerName 트레이너님이 무릎 상태에 맞춰 걷기 루틴으로 조정해 보냈어요.',
+          title: '새 개인운동이 왔어요',
+          body: '$kDemoTrainerName 트레이너님이 무릎 상태에 맞춰 걷기 위주 개인운동으로 조정해 보냈어요.',
           category: 'routine',
         ),
         NotificationItemsCompanion.insert(
@@ -200,14 +213,15 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
           createdAt: now.subtract(const Duration(minutes: 45)),
           title: '이번 주 리포트가 등록됐어요',
           body: '$kDemoTrainerName 트레이너님이 이번 주 리포트를 등록했어요.',
-          category: 'coach_chat',
+          category: 'coach_report',
         ),
         NotificationItemsCompanion.insert(
           id: 'seed-noti-2',
           createdAt: now.subtract(const Duration(hours: 1)),
           title: 'PT 수업 완료',
           body: '오늘 18:00 $kDemoTrainerName 트레이너와 12회차 PT를 마쳤어요!',
-          category: 'achievement',
+          // 실서버가 PT 완료 때 만드는 알림과 같은 갈래다(#3027).
+          category: 'pt_done',
         ),
         NotificationItemsCompanion.insert(
           id: 'seed-noti-3',
@@ -259,10 +273,5 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
     }),
   );
 
-  await db.putValue('seeded_v19', today);
+  await db.putValue(kSeedFlag, today);
 }
-
-String _fmtDate(DateTime d) =>
-    '${d.year.toString().padLeft(4, '0')}-'
-    '${d.month.toString().padLeft(2, '0')}-'
-    '${d.day.toString().padLeft(2, '0')}';

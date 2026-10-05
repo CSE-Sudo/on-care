@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
     show elapsedWeekdays;
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -112,7 +112,8 @@ void main() {
   });
 
   testWidgets('운동 쪽에 요일별 이행률 막대그래프가 보인다', (tester) async {
-    const week = <int>[80, 0, 90, 70, 60, 50, 40];
+    // 화요일은 걸린 것이 없던 날(null), 수요일은 걸렸는데 안 한 날(0)이다.
+    const week = <int?>[80, null, 0, 70, 60, 50, 40];
     await openCoaching(tester, <TrainerClient>[
       makeClient(id: 'week', name: '주간회원', weekCompletion: week),
     ]);
@@ -121,14 +122,16 @@ void main() {
     final chart = tester.widget<BarSeriesChart>(
       find.byKey(const ValueKey<String>('program-week-completion-chart')),
     );
-    expect(chart.values, week);
+    expect(chart.values, <int>[80, 0, 0, 70, 60, 50, 40]);
     expect(chart.maxValue, 100);
     expect(chart.valueSuffix, '%');
     // 아직 오지 않은 요일은 빈 트랙이다 — 0% 수행과 구분한다.
     expect(chart.pendingFromIndex, elapsedWeekdays(nowKst()));
-    // 지난 날인데 기록이 없는 요일도 0% 가 아니다. 화요일(index 1)이 그렇다.
+    // 걸린 것이 없던 지난 날은 0% 가 아니다(#2513). 화요일(index 1)이 그렇다.
+    // 걸렸는데 안 한 수요일(index 2)은 0% 막대다.
     final elapsed = elapsedWeekdays(nowKst());
     expect(chart.missingIndices.contains(1), elapsed > 1);
+    expect(chart.missingIndices.contains(2), isFalse);
   });
 
   testWidgets('주간 계열이 없는 회원은 그래프 자리에 안내가 뜬다', (tester) async {

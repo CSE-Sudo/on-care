@@ -513,6 +513,8 @@ class _FakeAuthRepository implements TrainerAuthRepository {
     required String email,
     required String password,
     required String name,
+    required String emailCode,
+    List<String>? consents,
   }) async => _tokens('register');
 
   @override

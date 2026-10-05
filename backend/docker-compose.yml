@@ -7,7 +7,9 @@ services:
       POSTGRES_PASSWORD: oncare
       POSTGRES_DB: oncare
     ports:
-      - "5432:5432"
+      # 이 PC 에서만 연다(#3089). 기본 계정(oncare/oncare)이라 0.0.0.0 에 열면 같은 Wi-Fi 의
+      # 다른 기기가 붙을 수 있다. app 컨테이너는 compose 내부망(db:5432)으로 붙는다.
+      - "127.0.0.1:5432:5432"
     volumes:
       - oncare_pgdata:/var/lib/postgresql/data
     healthcheck:

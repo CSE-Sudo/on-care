@@ -54,14 +54,13 @@ class TrainerClients extends Table {
 
   /// 회원이 자기 프로필에 등록한 성별(`male`/`female`/`other`). 트레이너가
   /// 신규 등록 시 입력하는 값이 아니다 — 회원 ID로 연결할 때 회원의 실제
-  /// 프로필에서 그대로 옮겨 온다. 비어 있으면 [TrainerClient.rosterGender] 가
-  /// 예전 행을 위한 표시용 폴백을 쓴다(#960) — 새로 연결되는 회원은 이 값이
-  /// 항상 채워지므로 폴백을 타지 않는다.
+  /// 프로필에서 그대로 옮겨 온다. 비어 있으면(회원이 성별을 적지 않았다)
+  /// [TrainerClient.rosterGender] 도 비고, 화면은 성별을 적지 않는다(#2870).
   TextColumn get gender => text().nullable()();
 
   /// 회원의 실제 나이 — 연결 시점에 회원 프로필의 생년월일로 계산해 저장한다.
-  /// null 이면 [TrainerClient.rosterAge] 가 예전 행을 위한 표시용 폴백을
-  /// 쓴다. 트레이너가 직접 입력하는 값이 아니다.
+  /// null 이면 화면은 나이를 적지 않는다(#2744). 트레이너가 직접 입력하는
+  /// 값이 아니다.
   IntColumn get age => integer().nullable()();
 
   @override
@@ -125,6 +124,15 @@ class ClientAiRoutines extends Table {
   TextColumn get type => text()(); // 유산소|근력|스트레칭
   TextColumn get reason => text()();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
+  /// 근력의 세트·횟수(또는 버티는 초)·중량(kg). 다른 유형은 0 이다. (#2705)
+  ///
+  /// 이 칸이 없던 동안에는 근력을 배정·PT 개인운동으로 쓰면 `0세트 · 0회` 로
+  /// 그려져, 시드 행 id 별 값 표로 메웠다(#2668).
+  IntColumn get sets => integer().withDefault(const Constant(0))();
+  IntColumn get reps => integer().withDefault(const Constant(0))();
+  IntColumn get holdSeconds => integer().withDefault(const Constant(0))();
+  RealColumn get weight => real().withDefault(const Constant(0))();
 
   @override
   Set<Column<Object>> get primaryKey => <Column<Object>>{id};
@@ -364,7 +372,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 20;
+  int get schemaVersion => 21;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -561,6 +569,36 @@ class AppDatabase extends _$AppDatabase {
             ]) {
           if (!await hasTable(table.actualTableName)) {
             await m.createTable(table);
+          }
+        }
+      }
+      // v21: 시드 AI 운동의 근력 양(#2705). 기본값이 0 이라 기존 행도 그대로
+      // 읽히고, 다음 재시딩이 실제 값을 채운다. 칸은 없는 것만 붙인다 — 같은
+      // 칸을 두 번 붙이면 거기서 죽는다. 표 자체가 없는 옛 DB 도 있어, 그때는
+      // 현재 정의로 만든다.
+      if (from < 21) {
+        final Set<String> columns = <String>{
+          for (final QueryRow row
+              in await m.database
+                  .customSelect(
+                    'PRAGMA table_info(${clientAiRoutines.actualTableName})',
+                  )
+                  .get())
+            row.read<String>('name'),
+        };
+        if (columns.isEmpty) {
+          await m.createTable(clientAiRoutines);
+        } else {
+          for (final GeneratedColumn<Object> column
+              in <GeneratedColumn<Object>>[
+                clientAiRoutines.sets,
+                clientAiRoutines.reps,
+                clientAiRoutines.holdSeconds,
+                clientAiRoutines.weight,
+              ]) {
+            if (!columns.contains(column.name)) {
+              await m.addColumn(clientAiRoutines, column);
+            }
           }
         }
       }

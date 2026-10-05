@@ -1,7 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 데모의 MY 프로필 펫 이모지. 서버 `profile_pet_service` 의 대역이다. (#2021)
 ///
@@ -10,7 +11,7 @@ import 'package:oncare/core/utils/clock.dart';
 ///
 /// MY 프로필 카드와 포인트 사용처가 **같은 원장**을 봐야 한다 — 따로 세면 사용처에서
 /// 샀는데 이름 옆은 비어 있는 화면이 된다.
-class DemoProfilePetBook {
+class DemoProfilePetBook implements DemoPersistable {
   DemoProfilePetBook({
     required DemoPointsLedger ledger,
     DateTime Function()? now,
@@ -29,6 +30,9 @@ class DemoProfilePetBook {
   String? _kind;
   DateTime? _expiresAt;
   int _sequence = 0;
+
+  @override
+  void Function()? onChanged;
 
   /// 남은 기간. 달고 있지 않거나 기간이 끝났으면 null.
   Duration? get remaining {
@@ -85,7 +89,23 @@ class DemoProfilePetBook {
     _kind = kind;
     _expiresAt = _now().add(const Duration(days: days));
     if (clientRequestId != null) _requests[clientRequestId] = kind;
+    onChanged?.call();
     return DemoCouponResult(201, _exchangeJson());
+  }
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'sequence': _sequence,
+    'kind': _kind,
+    'expires_at': _expiresAt?.toIso8601String(),
+  };
+
+  @override
+  void restore(Map<String, Object?> json) {
+    _sequence = (json['sequence'] as num?)?.toInt() ?? 0;
+    final Object? kind = json['kind'];
+    _kind = kind is String && kinds.contains(kind) ? kind : null;
+    _expiresAt = _kind == null ? null : demoParseTimeOrNull(json['expires_at']);
   }
 
   Map<String, Object?> _exchangeJson() => <String, Object?>{
@@ -100,7 +120,10 @@ class DemoProfilePetBook {
 }
 
 /// 목업 경로가 함께 쓰는 펫 원장 하나 — 사용처 교환과 MY 프로필 카드가 같은 것을 본다.
-final demoProfilePetBookProvider = Provider<DemoProfilePetBook>(
-  (ref) => DemoProfilePetBook(ledger: ref.watch(demoPointsLedgerProvider)),
-  name: 'demoProfilePetBook',
-);
+final demoProfilePetBookProvider = Provider<DemoProfilePetBook>((ref) {
+  final DemoProfilePetBook book = DemoProfilePetBook(
+    ledger: ref.watch(demoPointsLedgerProvider),
+  );
+  ref.watch(demoBenefitsStoreProvider).attach('pets', book);
+  return book;
+}, name: 'demoProfilePetBook');

@@ -1,17 +1,55 @@
+import 'dart:convert';
+
+import 'package:oncare/core/demo/demo_accounts.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
+import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/my_health/domain/entities/health_history.dart';
 import 'package:oncare/features/my_health/domain/repositories/my_health_repository.dart';
 
 class MockMyHealthRepository implements MyHealthRepository {
   /// [points] 를 주면 잔액을 목업 포인트 원장에서 읽는다(#1786) — 데모에서 식단·
   /// 운동을 기록하면 MY 잔액이 따라 오른다. 없으면 시작 잔액 그대로다.
-  const MockMyHealthRepository({this.points});
+  ///
+  /// [db] 를 주면 이름·이메일을 목업 인터셉터가 `PUT /users/me` 로 저장한 프로필
+  /// (`profile_overlay`)에서 읽는다(#2661) — 내 프로필에서 바꾼 값이 카드에도
+  /// 보인다. 없으면 데모 기본값 그대로다. 데모에서 가입한 계정으로 들어와
+  /// 있으면 그 계정의 프로필을 읽는다(#2665).
+  const MockMyHealthRepository({this.points, this.db});
 
   final DemoPointsLedger? points;
+  final AppDatabase? db;
+
+  /// 데모 회원의 기본 이름·이메일. 목업 인터셉터의 기본 프로필과 같다.
+  static const String _defaultName = '김민수';
+  static const String _defaultEmail = 'minsu@oncare.com';
+
+  /// 데모 회원의 계정 id. 목업 인터셉터의 기본 프로필과 같다.
+  static const String _defaultId = 'user-7d4e9a2c5f18';
+
+  Future<({String id, String name, String email})> _identity() async {
+    final AppDatabase? db = this.db;
+    if (db == null) {
+      return (id: _defaultId, name: _defaultName, email: _defaultEmail);
+    }
+    final Map<String, Object?>? account = await DemoAccounts(db).current();
+    final String? raw = await db.readValue(DemoAccounts.profileKeyOf(account));
+    final Object? overlay = raw == null || raw.isEmpty ? null : jsonDecode(raw);
+    String pick(String key, String fallback) {
+      final Object? v = overlay is Map ? overlay[key] : null;
+      return v is String && v.trim().isNotEmpty ? v : fallback;
+    }
+
+    return (
+      id: account?['id'] as String? ?? _defaultId,
+      name: pick('name', account?['name'] as String? ?? _defaultName),
+      email: pick('email', account?['email'] as String? ?? _defaultEmail),
+    );
+  }
 
   @override
   Future<MyHealthState> fetchState() async {
     await Future<void>.delayed(const Duration(milliseconds: 150));
+    final ({String id, String name, String email}) me = await _identity();
     return MyHealthState(
       // 트레이너웹 데모의 김민수(`seed-client-1`)와 같은 사람이고, 여기 적힌
       // 값은 이 계정의 **실제 id** 다 — 로그인·채팅·운동 픽스처가 모두 같은
@@ -24,35 +62,9 @@ class MockMyHealthRepository implements MyHealthRepository {
       // 수 없는 값인데 `user-demo` 는 그 감이 오지 않았고, 화면이 보여 주는
       // 값과 실제 계정 id 가 다르다는 사실을 아는 사람이 없으면 헷갈렸다.
       // 계정 id 자체를 그 형태로 바꾸면서 둘이 다시 하나가 됐다 (#1279).
-      profile: const UserProfile(
-        name: '김민수',
-        email: 'minsu@oncare.com',
-        id: 'user-7d4e9a2c5f18',
-      ),
-      risk: const RiskAlert(
-        title: '이번 주 관리 포인트',
-        body: '식단·운동 기록을 꾸준히 이어 가면 트레이너가 더 정확하게 도와줄 수 있어요.',
-        level: RiskLevel.medium,
-      ),
+      // 데모에서 가입한 계정은 그 계정의 id 다(#2665).
+      profile: UserProfile(name: me.name, email: me.email, id: me.id),
       activityPoints: points?.balance ?? kDemoOpeningPoints,
-      activityRank: 14,
-      settings: const <SettingsItem>[
-        SettingsItem(
-          label: '내 프로필',
-          icon: '👤',
-          kind: SettingsKind.myProfile,
-        ),
-        SettingsItem(
-          label: '알림 설정',
-          icon: '🔔',
-          kind: SettingsKind.notification,
-        ),
-        SettingsItem(
-          label: '고객 지원',
-          icon: '💬',
-          kind: SettingsKind.support,
-        ),
-      ],
     );
   }
 }

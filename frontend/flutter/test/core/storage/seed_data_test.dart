@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart';
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 시드가 읽는 것과 같은 픽스처. 테스트에서는 에셋 번들 대신 파일로 읽는다 — 번들이
 /// 준비됐는지에 기대지 않고 시드 자체만 본다.
@@ -124,7 +124,7 @@ void main() {
         reason: 'exercise sessions for the current week must be seeded',
       );
 
-      expect(await db.readValue('seeded_v19'), today);
+      expect(await db.readValue('seeded_v23'), today);
     });
 
     test('과거 식단은 날짜마다 값이 달라 추이가 직선이 되지 않는다', () async {
@@ -448,7 +448,7 @@ void main() {
     test('stale flag (different date) re-seeds with today', () async {
       // Pretend the seed last ran a week ago.
       await seedIfEmpty(db, fixture: _fixture);
-      await db.putValue('seeded_v19', '2020-01-01');
+      await db.putValue('seeded_v23', '2020-01-01');
 
       await seedIfEmpty(db, fixture: _fixture);
 
@@ -456,7 +456,7 @@ void main() {
       final diet = await db.select(db.dietEntries).get();
       expect(diet, isNotEmpty);
       expect(diet.where((r) => r.date == today).length, 3);
-      expect(await db.readValue('seeded_v19'), today);
+      expect(await db.readValue('seeded_v23'), today);
     });
 
     test('legacy seeded_v2=true flag is migrated and cleared', () async {
@@ -483,7 +483,7 @@ void main() {
 
       // Legacy flag cleared, current flag set to today.
       expect(await db.readValue('seeded_v2'), isNull);
-      expect(await db.readValue('seeded_v19'), _todayString());
+      expect(await db.readValue('seeded_v23'), _todayString());
 
       // Stale seed-prefixed row was wiped and replaced with today's
       // seed batch.
@@ -513,7 +513,7 @@ void main() {
 
       await seedIfEmpty(db, fixture: _fixture);
       // Force a re-seed by ageing the flag.
-      await db.putValue('seeded_v19', '2020-01-01');
+      await db.putValue('seeded_v23', '2020-01-01');
       await seedIfEmpty(db, fixture: _fixture);
 
       final diet = await db.select(db.dietEntries).get();
@@ -522,6 +522,39 @@ void main() {
         isTrue,
         reason: 'rows without a seed- prefix must never be touched',
       );
+    });
+
+    test('every legacy version flag is cleared in one pass', () async {
+      // 한 줄씩 지우던 목록을 반복문으로 접었다(#2914) — 중간 버전(v15 처럼
+      // 예전 목록에서 빠져 있던 것 포함)도 빠짐없이 지워져야 한다.
+      for (final String flag in <String>[
+        'seeded_v3',
+        'seeded_v15',
+        'seeded_v19',
+        'seeded_v22',
+      ]) {
+        await db.putValue(flag, '2020-01-01');
+      }
+
+      await seedIfEmpty(db, fixture: _fixture);
+
+      for (final String flag in kLegacySeedFlags) {
+        expect(await db.readValue(flag), isNull, reason: flag);
+      }
+      expect(await db.readValue(kSeedFlag), _todayString());
+    });
+  });
+
+  group('legacy seed flags', () {
+    test('cover every version before the current one', () {
+      expect(kLegacySeedFlags.first, 'seeded_v2');
+      expect(kLegacySeedFlags.last, 'seeded_v${kSeedVersion - 1}');
+      expect(kLegacySeedFlags, hasLength(kSeedVersion - 2));
+      expect(kLegacySeedFlags, isNot(contains(kSeedFlag)));
+    });
+
+    test('the current flag key follows the version', () {
+      expect(kSeedFlag, 'seeded_v$kSeedVersion');
     });
   });
 }

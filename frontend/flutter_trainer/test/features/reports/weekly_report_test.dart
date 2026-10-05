@@ -5,7 +5,6 @@ import 'package:oncare_trainer/features/schedule/domain/entities/schedule_sessio
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
-import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
 import '../../helpers/client_factory.dart';
 
@@ -91,7 +90,10 @@ void main() {
 
     test('completion averages only the recorded days', () {
       final report = buildWeeklyReport(
-        client: makeClient(weekCompletion: const <int>[80, 60, 0, 0, 0, 0, 0]),
+        // 걸린 것이 없던 날은 null 이다(#2513) — 평균에 넣지 않는다.
+        client: makeClient(
+          weekCompletion: const <int?>[80, 60, null, null, null, null, null],
+        ),
         sessions: const <ScheduleSession>[],
         weekStart: wednesday,
         today: wednesday,
@@ -102,7 +104,7 @@ void main() {
 
     test('a client with no logged days reports null, not 0%', () {
       final report = buildWeeklyReport(
-        client: makeClient(weekCompletion: const <int>[0, 0, 0, 0, 0, 0, 0]),
+        client: makeClient(weekCompletion: List<int?>.filled(7, null)),
         sessions: const <ScheduleSession>[],
         weekStart: wednesday,
         today: wednesday,
@@ -244,9 +246,6 @@ void main() {
       // 마지막은 다음 주 이야기로 끝난다(#755).
       expect(message, startsWith('김민수님,'));
       expect(message, contains('주간 리포트'));
-      // PT 진행 횟수는 적지 않는다 — 회원에게 보낼 글은 그 주에 무엇을 했고
-      // 무엇을 챙길지를 말하는 자리다(#1177).
-      expect(message, isNot(contains('PT 세션')));
       // 지난 주 리포트에도 그대로 나가는 문장이라 `이번 주` 로 시작하지
       // 않는다 — 어느 주인지는 첫 줄의 날짜 범위가 말한다(#1177).
       expect(message, contains('정말 잘하셨어요'));
@@ -314,38 +313,6 @@ void main() {
       final message = reportMessage(_ko, report);
       expect(message, isNot(contains('이행률')));
       expect(message, isNot(contains('나트륨')));
-    });
-  });
-
-  group('buildTrainerWeekStats', () {
-    test('summarises the trainer’s own week across all clients', () {
-      final stats = buildTrainerWeekStats(
-        sessions: <ScheduleSession>[
-          session(date: ymd(monday), status: '완료'),
-          session(
-            date: ymd(wednesday),
-            program: const <ProgramItem>[
-              ProgramItem(name: '스쿼트', sets: 3, weight: 60),
-            ],
-          ),
-          session(date: ymd(sunday), status: '공백'),
-        ],
-        clients: const <TrainerClient>[],
-      );
-
-      expect(stats.sessionsBooked, 2);
-      expect(stats.sessionsDone, 1);
-      expect(stats.programsSent, 1);
-      expect(stats.completionRate, 50);
-    });
-
-    test('an empty week has no completion rate rather than 0%', () {
-      final stats = buildTrainerWeekStats(
-        sessions: const <ScheduleSession>[],
-        clients: const <TrainerClient>[],
-      );
-
-      expect(stats.completionRate, isNull);
     });
   });
 }

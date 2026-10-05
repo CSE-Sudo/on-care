@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -11,15 +12,40 @@ String? focusLastChangedLabel(
   AppLocalizations l,
   MemberHealthProfile profile, {
   required String locale,
+}) => _lastChanged(
+  l,
+  profile.focusChangedBy,
+  profile.focusChangedAt,
+  locale: locale,
+);
+
+/// 건강상태·주의사항 글 아래 같은 모양의 한 줄. (#2942)
+///
+/// 목표 칩 기록과 따로다 — 주의사항만 고친 저장은 칩 줄을 움직이지 않는다.
+String? notesLastChangedLabel(
+  AppLocalizations l,
+  MemberHealthProfile profile, {
+  required String locale,
+}) => _lastChanged(
+  l,
+  profile.notesChangedBy,
+  profile.notesChangedAt,
+  locale: locale,
+);
+
+String? _lastChanged(
+  AppLocalizations l,
+  String? by,
+  DateTime? at, {
+  required String locale,
 }) {
-  final String? by = profile.focusChangedBy;
-  final DateTime? at = profile.focusChangedAt;
   if (by == null || at == null) return null;
   final String who = by == MemberHealthProfile.focusChangedByTrainer
       ? l.memberHealthFocusChangedByTrainer
       : l.memberHealthFocusChangedByMember;
   return l.memberHealthFocusLastChanged(
     who,
-    DateFormat.MMMd(locale).format(at),
+    // 브라우저 시간대가 아니라 KST 날짜로(#2893).
+    DateFormat.MMMd(locale).format(kstDateOf(at)),
   );
 }

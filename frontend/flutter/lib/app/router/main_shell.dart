@@ -5,23 +5,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/app_icons.dart';
-import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
+import 'package:oncare/app/router/day_change_refresh.dart';
+import 'package:oncare/app/router/member_refresh_targets.dart';
+import 'package:oncare/core/release/release_update.dart';
+import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/controllers/exercise_refresh.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_flows.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_invite_prompter.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/weekly_feedback_prompter.dart';
+import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/services/record_span_provider.dart';
 import 'package:oncare/shared/widgets/coaching_sheet.dart';
 import 'package:oncare/shared/widgets/member_bottom_nav.dart';
 import 'package:oncare/shared/widgets/oni_fab.dart';
+import 'package:oncare/shared/widgets/release_update_banner.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// Persistent `Scaffold` hosting the bottom navigation bar. Icons and
@@ -51,6 +58,10 @@ class MainShell extends ConsumerStatefulWidget {
 class _MainShellState extends ConsumerState<MainShell>
     with WidgetsBindingObserver {
   late int _lastIndex = widget.navigationShell.currentIndex;
+
+  /// 마지막으로 갱신한 날(KST). 날이 바뀐 복귀·MY 재진입에서만 기록 그래프·
+  /// 보호권·주간 챌린지를 다시 읽는다(#2852).
+  final DayChangeRefresher _dayChange = DayChangeRefresher();
 
   StatefulNavigationShell get navigationShell => widget.navigationShell;
 
@@ -85,24 +96,36 @@ class _MainShellState extends ConsumerState<MainShell>
     _refreshMemberData();
   }
 
+  /// 앱 복귀 때 비울 목록은 [memberResumeRefreshTargets] 한 곳에 있다(#2842).
   void _refreshMemberData() {
-    ref.invalidate(dashboardSummaryProvider);
-    // 홈의 AI 추천 식단도 함께 되짚는다. 무효화되는 곳이 세션 초기화 하나뿐이라,
-    // 앱을 켠 순간의 추천이 하루 종일 고정되고 첫 조회가 실패하면 기본 추천이
-    // 앱 수명 내내 남았다(#1938).
-    ref.invalidate(dietRecommendationsProvider);
-    ref.invalidate(exerciseWeekProvider);
-    ref.invalidate(coachRoutinesProvider);
-    ref.invalidate(coachRoutinesOnDayProvider);
-    ref.invalidate(coachSessionsProvider);
+    memberResumeRefreshTargets(nowKst()).forEach(ref.invalidate);
+    unawaited(refreshProfileQuietly(ref.read(profileProvider.notifier)));
+    // 헬스장 영역(내 헬스장·담당 트레이너·내 예약·예약 가능 시간)도 —
+    // 앱을 떠난 사이 트레이너가 예약을 취소하거나 연결을 해제했을 수 있다
+    // (#2856).
+    refreshGymTabData(ref.invalidate);
+    // 앱을 켜 둔 채 자정을 넘겼으면 그래프의 "오늘" 칸과 보호 가능 구간이 새
+    // 날짜 기준이어야 한다(#2852).
+    _dayChange.refreshIfDayChanged(ref.invalidate);
+    _recheckCoach();
+  }
+
+  /// 앱을 떠난 사이 트레이너가 담당을 해제했을 수 있다 — 담당 코치를 다시 읽고,
+  /// 사라졌으면 헤더·홈 트레이너 카드·대화가 함께 바뀐다(#2843).
+  void _recheckCoach() {
+    unawaited(
+      recheckMemberCoach(ProviderScope.containerOf(context, listen: false)),
+    );
   }
 
   void _refreshBranch(int index) {
     switch (index) {
       case 0:
-        ref.invalidate(dashboardSummaryProvider);
-        ref.invalidate(dietRecommendationsProvider);
-        ref.invalidate(coachSessionsProvider);
+        // 칼로리 목표(서버 요약)와 탄단지·운동 목표(프로필)가 같은 시점 값이
+        // 되도록 함께 비운다 — 목록은 [kHomeReentryRefreshTargets](#2842).
+        kHomeReentryRefreshTargets.forEach(ref.invalidate);
+        unawaited(refreshProfileQuietly(ref.read(profileProvider.notifier)));
+        _recheckCoach();
         break;
       case 1:
         // 방금 저장한 끼니가 보이도록 그날 자료를 다시 읽는다 — 저장 전 캐시가
@@ -111,6 +134,10 @@ class _MainShellState extends ConsumerState<MainShell>
         ref.invalidate(dietByDateProvider(nowKst()));
         // AI 맞춤 조언도 같은 이유로 다시 받는다(#2078).
         ref.invalidate(dietAdviceProvider);
+        // `이번 주`·`전체` 그래프와 그 시작일도 — 둘 다 오늘 캐시를 보지 않는다
+        // (#2625).
+        ref.invalidate(dietPeriodProvider);
+        ref.invalidate(recordSpanProvider);
         break;
       case 2:
         ref.invalidate(exerciseWeekProvider);
@@ -122,6 +149,14 @@ class _MainShellState extends ConsumerState<MainShell>
         // 된다(#2161).
         ref.invalidate(coachRoutinesOnDayProvider);
         ref.invalidate(coachSessionsProvider);
+        // 헬스장 영역도 함께 — `다음 PT` 는 코치 일정과 내 예약을 합쳐 계산하므로
+        // 한쪽만 새 값이면 엇갈린다. 다른 회원이 잡은 자리도 여기서 반영된다
+        // (#2856).
+        refreshGymTabData(ref.invalidate);
+        break;
+      case 3:
+        // MY 를 다시 열었을 때도 날이 바뀌었으면 기록 그래프를 새 날짜로(#2852).
+        _dayChange.refreshIfDayChanged(ref.invalidate);
         break;
       default:
         break;
@@ -175,16 +210,39 @@ class _MainShellState extends ConsumerState<MainShell>
   @override
   Widget build(BuildContext context) {
     ref.listen<AsyncValue<int>>(notificationUnreadProvider, _onUnreadChanged);
+    // 알림 목록을 미리 불러 둔다(#2688). 알림함에 들어갈 때 컨트롤러를 처음 만들면
+    // 첫 조회 동안 로딩 표시가 보인다 — 데모는 예전처럼 목록이 바로 떠야 하고,
+    // 실서버도 그 모양을 따른다. 세션이 바뀌어 무효화되면 여기서 다시 만든다.
+    ref.listen<NotificationState>(notificationControllerProvider, (_, _) {});
+    final bool showReleaseBanner = ref.watch(
+      releaseUpdateProvider.select((ReleaseUpdateState s) => s.showBanner),
+    );
     return Scaffold(
       // 페이지가 하단 바 뒤까지 이어지게 둔다 — 각 탭은 바 높이만큼 아래 여백을
       // 스스로 둔다.
       extendBody: true,
       // 받은 담당 요청은 어느 탭에 있든 가운데 창으로 뜬다(#1801). 탭 전체를
       // 감싸 두어 탭을 옮겨도 요청을 듣는 일이 끊기지 않는다.
-      body: CoachInvitePrompter(
-        // 주간 피드백은 담당 요청 안쪽이다 — 담당을 아직 수락하지도 않은
-        // 회원에게 한 주를 묻는 창이 먼저 뜨면 안 된다(#2232).
-        child: WeeklyFeedbackPrompter(child: navigationShell),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          // 회원 웹에 새 배포가 올라오면 셸 맨 위에 안내가 선다(#3023). 안내가
+          // 없으면 높이 0 이고, 자리는 늘 두어 탭 화면의 상태가 다시 만들어지지
+          // 않는다.
+          const ReleaseUpdateBanner(),
+          Expanded(
+            child: MediaQuery.removePadding(
+              context: context,
+              // 배너가 상태 표시줄 자리를 이미 썼다 — 탭 화면이 그만큼 또 띄우지 않게.
+              removeTop: showReleaseBanner,
+              child: CoachInvitePrompter(
+                // 주간 피드백은 담당 요청 안쪽이다 — 담당을 아직 수락하지도 않은
+                // 회원에게 한 주를 묻는 창이 먼저 뜨면 안 된다(#2232).
+                child: WeeklyFeedbackPrompter(child: navigationShell),
+              ),
+            ),
+          ),
+        ],
       ),
       // AI 조언 진입점이 이 자리에 있을지가 아직 정해지지 않아 **노출만** 끈다
       // (#862). 기능·라우트·provider 는 그대로라, 자리가 정해지면 이 상수를

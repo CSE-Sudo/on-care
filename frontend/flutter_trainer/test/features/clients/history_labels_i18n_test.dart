@@ -128,38 +128,43 @@ void main() {
     test('종류 코드로 화면 언어의 이름을 고른다', () {
       expect(
         routineKindLabel(_en, 'PT 세션 · 트레이너 지도', kind: 'pt_session'),
-        'PT session · Trainer-led',
+        'PT · Trainer-led',
       );
       expect(
         routineKindLabel(_en, 'AI 개인운동', kind: 'ai_personal'),
-        'AI personal exercise',
+        'Personal exercise',
       );
       expect(
         routineKindLabel(_en, '배정 루틴 수행', kind: 'assigned_routine'),
-        'Assigned routine',
+        'Personal exercise',
       );
     });
 
-    test('한국어 이름은 예전과 같다', () {
+    test('한국어 이름은 화면 용어를 쓴다 — 배정 루틴은 개인운동 (#3107)', () {
       expect(
         routineKindLabel(_ko, 'PT 세션 · 트레이너 지도', kind: 'pt_session'),
-        'PT 세션 · 트레이너 지도',
+        'PT · 트레이너 지도',
       );
       expect(
         routineKindLabel(_ko, '배정 루틴 수행', kind: 'assigned_routine'),
-        '배정 루틴 수행',
+        '개인운동 수행',
       );
-      expect(routineKindLabel(_ko, 'AI 개인운동'), 'AI 개인운동');
+      expect(routineKindLabel(_ko, 'AI 개인운동'), '개인운동');
     });
 
     test('코드가 없는 옛 서버·데모 행은 저장된 이름에서 코드를 되짚는다', () {
       expect(
         routineKindLabel(_en, 'PT 세션 · 트레이너 지도'),
-        'PT session · Trainer-led',
+        'PT · Trainer-led',
       );
-      expect(routineKindLabel(_en, '  AI 개인운동 '), 'AI personal exercise');
-      expect(routineKindLabel(_en, 'AI 루틴 · 자율 운동'), 'AI personal exercise');
-      expect(routineKindLabel(_en, '배정 루틴 수행'), 'Assigned routine');
+      expect(routineKindLabel(_en, '  AI 개인운동 '), 'Personal exercise');
+      expect(routineKindLabel(_en, 'AI 루틴 · 자율 운동'), 'Personal exercise');
+      // 하루치 개인운동 카드(#2510).
+      expect(
+        routineKindLabel(_en, '개인운동', kind: 'personal_routine'),
+        'Personal exercise',
+      );
+      expect(routineKindLabel(_en, '배정 루틴 수행'), 'Personal exercise');
     });
 
     test('트레이너가 지은 이름은 번역하지 않는다', () {
@@ -435,7 +440,7 @@ void main() {
       expect(routineHistoryDateLabel(_ko, h, now: _now), '9/27 (오늘)');
       expect(
         routineKindLabel(_en, h.label, kind: h.kind),
-        'PT session · Trainer-led',
+        'PT · Trainer-led',
       );
     });
 

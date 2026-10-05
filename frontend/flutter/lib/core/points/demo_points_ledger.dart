@@ -1,9 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/points/points_award.dart';
 import 'package:oncare/core/points/points_rules.dart';
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 // 원장을 쓰는 목업들이 규칙도 함께 읽으므로 같이 내보낸다.
 export 'package:oncare/core/points/points_rules.dart';
@@ -16,13 +18,17 @@ const int kDemoOpeningPoints = 25000;
 
 /// 목업 API 의 포인트 원장. 서버 `points_ledger` 의 대역이다. (#1786)
 ///
-/// 데모에서 기록을 만드는 곳이 셋으로 갈려 있다 — 식단은 `LocalApiInterceptor`,
-/// 운동은 `MockExerciseRepository`, 루틴 완료는 `MockMemberCoachRepository`.
-/// 셋이 이 원장 하나를 함께 써야 하루 한도와 MY 잔액이 한 숫자로 움직인다.
+/// 데모에서 기록을 만드는 곳이 둘로 갈려 있다 — 식단·운동은 `LocalApiInterceptor`
+/// (#2662), 루틴 완료는 `MockMemberCoachRepository`. 둘이 이 원장 하나를 함께
+/// 써야 하루 한도와 MY 잔액이 한 숫자로 움직인다.
 ///
 /// 규칙은 서버와 같다: 같은 기록은 한 번만, 한도를 넘으면 0, 기록을 지우면
 /// 회수하되 잔액은 0 아래로 내려가지 않고, 회수된 적립은 그날 한도에서 빠진다.
-class DemoPointsLedger {
+///
+/// 잔액·내역·적립은 [DemoBenefitsStore] 에 실려 새로고침 뒤에도 남는다(#2664).
+/// 사용 기록(반환 근거)은 싣지 않는다 — 돌려줄 수 있는 것은 쿠폰뿐이라 쿠폰 원장이
+/// 되살리며 [restoreSpend] 로 다시 건다.
+class DemoPointsLedger implements DemoPersistable {
   DemoPointsLedger({
     int openingBalance = kDemoOpeningPoints,
     DateTime Function()? now,
@@ -31,6 +37,11 @@ class DemoPointsLedger {
 
   final DateTime Function() _now;
   int _balance;
+
+  @override
+  void Function()? onChanged;
+
+  void _changed() => onChanged?.call();
 
   /// `sourceType/sourceId` → 그 기록이 받은 적립.
   final Map<String, _Earned> _earned = <String, _Earned>{};
@@ -50,7 +61,7 @@ class DemoPointsLedger {
         kind: kind,
         reason: reason,
         delta: delta,
-        day: _day(at),
+        day: wireDate(at),
         at: at,
       ),
     );
@@ -111,9 +122,9 @@ class DemoPointsLedger {
     if (existing != null) {
       return PointsAward(awarded: existing.liveDelta, balance: _balance);
     }
-    final String day = _day(_now());
+    final String day = wireDate(_now());
     final int live = _earned.values
-        .where((_Earned e) => e.rule == rule && e.day == day && !e.revoked)
+        .where((_Earned e) => e.rule == rule && e.day == day && !e.slotFreed)
         .length;
     if (live >= rule.dailyCap) {
       return PointsAward(awarded: 0, balance: _balance);
@@ -125,6 +136,7 @@ class DemoPointsLedger {
     );
     _balance += rule.points;
     _log('earn', _reasonOf(rule), rule.points);
+    _changed();
     return PointsAward(awarded: rule.points, balance: _balance);
   }
 
@@ -140,8 +152,10 @@ class DemoPointsLedger {
     if (existing == null || existing.revoked) return 0;
     final int taken = math.min(existing.delta, math.max(_balance, 0));
     existing.revoked = true;
+    existing.slotFreed = taken == existing.delta;
     _balance -= taken;
     _log('revoke', _reasonOf(existing.rule), -taken);
+    _changed();
     return taken;
   }
 
@@ -164,7 +178,15 @@ class DemoPointsLedger {
     _spentReason[sourceId] = reason;
     _balance -= cost;
     _log('spend', reason, -cost);
+    _changed();
     return true;
+  }
+
+  /// 되살린 쿠폰의 사용 기록을 다시 건다 — 잔액·내역은 건드리지 않는다(#2664).
+  /// 그 쿠폰이 취소되면 [refund] 가 이 값으로 돌려준다.
+  void restoreSpend(String sourceId, int cost, {required String reason}) {
+    _spent[sourceId] = cost;
+    _spentReason[sourceId] = reason;
   }
 
   /// [sourceId] 로 쓴 포인트를 돌려준다. 돌려준 포인트(0 이상).
@@ -177,6 +199,7 @@ class DemoPointsLedger {
     _refunded.add(sourceId);
     _balance += cost;
     _log('refund', _spentReason[sourceId] ?? 'refund', cost);
+    _changed();
     return cost;
   }
 
@@ -193,16 +216,78 @@ class DemoPointsLedger {
     if (amount <= 0 || !_credited.add(sourceId)) return 0;
     _balance += amount;
     _log('earn', reason, amount);
+    _changed();
     return amount;
+  }
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'balance': _balance,
+    'earned': <Map<String, Object?>>[
+      for (final MapEntry<String, _Earned> e in _earned.entries)
+        <String, Object?>{
+          'key': e.key,
+          'rule': e.value.rule.name,
+          'day': e.value.day,
+          'delta': e.value.delta,
+          'revoked': e.value.revoked,
+          'slot_freed': e.value.slotFreed,
+        },
+    ],
+    'entries': <Map<String, Object?>>[
+      for (final _Entry e in _entries)
+        <String, Object?>{
+          'id': e.id,
+          'kind': e.kind,
+          'reason': e.reason,
+          'delta': e.delta,
+          'day': e.day,
+          'at': e.at.toIso8601String(),
+        },
+    ],
+    'credited': _credited.toList(),
+  };
+
+  @override
+  void restore(Map<String, Object?> json) {
+    _balance = (json['balance']! as num).toInt();
+    _earned
+      ..clear()
+      ..addAll(<String, _Earned>{
+        for (final Map<String, Object?> row in demoRows(json['earned']))
+          row['key']! as String: _Earned(
+            rule: PointsRule.values.byName(row['rule']! as String),
+            day: row['day']! as String,
+            delta: (row['delta']! as num).toInt(),
+            revoked: row['revoked'] == true,
+            // 칸 기록 전에 저장된 행은 예전 규칙(회수하면 칸도 푼다)을 따른다.
+            slotFreed: (row['slot_freed'] ?? row['revoked']) == true,
+          ),
+      });
+    _entries
+      ..clear()
+      ..addAll(<_Entry>[
+        for (final Map<String, Object?> row in demoRows(json['entries']))
+          _Entry(
+            id: row['id']! as String,
+            kind: row['kind']! as String,
+            reason: row['reason']! as String,
+            delta: (row['delta']! as num).toInt(),
+            day: row['day']! as String,
+            at: demoParseTime(row['at']),
+          ),
+      ]);
+    _credited
+      ..clear()
+      ..addAll(<String>[
+        for (final Object? id
+            in (json['credited'] as List<Object?>?) ?? const <Object?>[])
+          if (id is String) id,
+      ]);
   }
 
   static String _key(String sourceType, String sourceId) =>
       '$sourceType/$sourceId';
-
-  static String _day(DateTime at) =>
-      '${at.year.toString().padLeft(4, '0')}-'
-      '${at.month.toString().padLeft(2, '0')}-'
-      '${at.day.toString().padLeft(2, '0')}';
 }
 
 class _Entry {
@@ -234,12 +319,22 @@ class _Entry {
 }
 
 class _Earned {
-  _Earned({required this.rule, required this.day, required this.delta});
+  _Earned({
+    required this.rule,
+    required this.day,
+    required this.delta,
+    this.revoked = false,
+    this.slotFreed = false,
+  });
 
   final PointsRule rule;
   final String day;
   final int delta;
-  bool revoked = false;
+  bool revoked;
+
+  /// 전액 회수돼 그날 한도 칸을 돌려줬는가(#3084). 잔액이 모자라 0P·일부만
+  /// 회수됐으면 칸은 그대로 — 서버 `_live_awards_on` 과 같은 규칙.
+  bool slotFreed;
 
   int get liveDelta => revoked ? 0 : delta;
 }
@@ -249,7 +344,8 @@ class _Earned {
 /// 계정 전환에 초기화하지 않는다 — 식단 기록을 든 drift DB 도 앱 수명 동안
 /// 남으므로, 원장만 비우면 남은 끼니를 지울 때 회수할 적립이 사라진다. 데모는
 /// 김민수 한 계정뿐이다.
-final demoPointsLedgerProvider = Provider<DemoPointsLedger>(
-  (ref) => DemoPointsLedger(),
-  name: 'demoPointsLedger',
-);
+final demoPointsLedgerProvider = Provider<DemoPointsLedger>((ref) {
+  final DemoPointsLedger ledger = DemoPointsLedger();
+  ref.watch(demoBenefitsStoreProvider).attach('points', ledger);
+  return ledger;
+}, name: 'demoPointsLedger');

@@ -84,7 +84,7 @@ class _WeeklyFeedbackSheetState extends ConsumerState<WeeklyFeedbackSheet> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    return AppSheet(
+    final Widget sheet = AppSheet(
       key: const Key('weeklyFeedbackSheet'),
       showClose: false,
       title: l.weeklyFeedbackSheetTitle,
@@ -224,6 +224,9 @@ class _WeeklyFeedbackSheetState extends ConsumerState<WeeklyFeedbackSheet> {
         ],
       ),
     );
+    // 보내는 동안은 뒤로 가기·바깥 탭으로 닫히지 않는다 — 닫히면 회원은 보냈는지
+    // 모른 채 같은 답을 다시 적는다(#3096).
+    return PopScope(canPop: !_sending, child: sheet);
   }
 
   Future<void> _pickPainDate() async {
@@ -262,7 +265,9 @@ class _WeeklyFeedbackSheetState extends ConsumerState<WeeklyFeedbackSheet> {
             note: _note.text,
           );
       toast.show(l.weeklyFeedbackSent, type: AppToastType.success);
-      navigator.pop(true);
+      // 이 시트가 이미 닫혔으면 아무것도 닫지 않는다 — 미리 잡아 둔 navigator 로
+      // 닫으면 아래 화면(코치 리포트 등)이 닫힌다(#3096).
+      if (mounted) navigator.pop(true);
     } on Object {
       // 못 보냈으면 시트를 닫지 않는다 — 닫고 나면 회원이 적은 말이 사라진다.
       if (!mounted) return;

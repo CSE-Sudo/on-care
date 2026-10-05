@@ -178,12 +178,12 @@ def test_exercise_english_has_no_korean_left(rendering):
 @pytest.mark.parametrize(
     ("count", "done", "left"),
     [
-        (1, "You finished your recommended workout today. Great job!",
-         "1 recommended workout left. Go down the list in order."),
-        (2, "You finished all 2 recommended workouts today. Great job!",
-         "2 recommended workouts left. Go down the list in order."),
-        (0, "You finished all 0 recommended workouts today. Great job!",
-         "0 recommended workouts left. Go down the list in order."),
+        (1, "You finished your personal exercise today. Great job!",
+         "1 personal exercise left. Go down the list in order."),
+        (2, "You finished all 2 personal exercises today. Great job!",
+         "2 personal exercises left. Go down the list in order."),
+        (0, "You finished all 0 personal exercises today. Great job!",
+         "0 personal exercises left. Go down the list in order."),
     ],
 )
 def test_exercise_english_plurals(count, done, left):
@@ -230,7 +230,7 @@ def test_exercise_english_body_parts(part, middle, start):
         == f"You did the {middle} workouts you often skip today. Keep it going!"
     )
     assert exercise_advice.advice("routine_all_missed_part", part=part).text_en.startswith(
-        f"{start} recommended workouts"
+        f"{start} personal exercises"
     )
 
 
@@ -323,7 +323,7 @@ def _ex_days(*specs: tuple[int, dict[str, int]]) -> list[ExerciseDayTotals]:
          "Today: 30 min and 210 kcal, mostly cardio. Wrap up with a stretch."),
         (_ex_days((0, {"strength": 40})), WEEK,
          "이번 주는 40분 하루뿐이에요. 한 번 더 나가면 흐름이 이어져요.",
-         "Just one day this week (40 min). One more session keeps the flow going."),
+         "Just one day this week (40 min). One more workout keeps the flow going."),
         (_ex_days((0, {"cardio": 30}), (1, {"cardio": 30})), WEEK,
          "이번 주 2일 60분이 유산소에 몰렸어요. 근력도 섞어 볼까요?",
          "This week's 2 days and 60 min leaned on cardio. Mix in some strength?"),

@@ -16,15 +16,14 @@ import 'package:oncare/app/app.dart';
 import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
-import 'package:oncare/features/dashboard/data/repositories/mock_dashboard_repository.dart';
+import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
-import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
-import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 
+import '../helpers/demo_exercise.dart';
+import '../helpers/fake_dashboard_repository.dart';
 import '../helpers/fake_diet_repository.dart';
 
 bool _isClipped(WidgetTester tester, String contains) {
@@ -51,6 +50,7 @@ bool _isClipped(WidgetTester tester, String contains) {
 
 void main() {
   testWidgets('헤더의 서비스 이름과 그래프 목표 라벨이 잘리지 않는다', (WidgetTester tester) async {
+    final AppDatabase exerciseDb = await seededDemoDatabase(tester);
     // 폰이 기준이다.
     tester.view.physicalSize = const Size(390, 1600);
     tester.view.devicePixelRatio = 1;
@@ -75,11 +75,10 @@ void main() {
           appConfigProvider.overrideWithValue(config),
           appLoggerProvider.overrideWithValue(Logger(level: Level.off)),
           dietRepositoryProvider.overrideWithValue(diet as DietRepository),
-          exerciseRepositoryProvider.overrideWithValue(
-            MockExerciseRepository() as ExerciseRepository,
-          ),
+          // 운동은 앱의 데모와 같은 경로(로컬 목업 API + drift)로 돈다(#2724).
+          ...demoExerciseOverrides(exerciseDb),
           dashboardRepositoryProvider.overrideWithValue(
-            MockDashboardRepository(diet) as DashboardRepository,
+            FakeDashboardRepository(diet) as DashboardRepository,
           ),
           sessionFeatureResetOverride(),
         ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
@@ -13,6 +14,7 @@ import 'package:oncare_trainer/features/clients/presentation/widgets/client_diet
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_diet_period_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_meal_photo.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_section.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/day_fetch_failed_line.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/nutrition_summary_card.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -802,7 +804,7 @@ String _grams(double value) => value == value.roundToDouble()
 /// 대체 문구를 지어내면 서버와 다른 기준으로 말하게 된다(#2271).
 ///
 /// 프로그램 탭 식단 칸도 같은 카드를 쓴다 — 트레이너가 회원 상세까지 들어오지
-/// 않아도 추천에 `예`/`아니오` 를 답할 수 있다. 오늘 기록이 없으면 회원 상세처럼
+/// 않아도 추천에 `예`/`아니요` 를 답할 수 있다. 오늘 기록이 없으면 회원 상세처럼
 /// 카드를 세우지 않는다: 빈 하루를 두고 한 판정을 읽히지 않는다.
 class ClientDietAnalysisPanel extends ConsumerWidget {
   const ClientDietAnalysisPanel({
@@ -823,7 +825,7 @@ class ClientDietAnalysisPanel extends ConsumerWidget {
     final ClientDietAnalysis analysis =
         ref
             .watch(
-              clientDietAdviceProvider((clientId: client.id, period: period)),
+              clientDietAdviceProvider(clientDietAdviceKey(client.id, period)),
             )
             .valueOrNull ??
         ClientDietAnalysis.empty;
@@ -1148,7 +1150,11 @@ class _DailyDietRecordsState extends ConsumerState<_DailyDietRecords> {
         key: const ValueKey<String>('diet-daily-records'),
         children: <Widget>[
           // 최근 날이 위다 — 트레이너가 먼저 궁금해하는 것은 어제와 오늘이다.
-          for (final ClientDietDay day in period.days.reversed)
+          // 오지 않은 날은 그리지 않는다(#2512) — `기록 없음` 이 아니라 아직
+          // 기록할 수 없는 날이다.
+          for (final ClientDietDay day in period.days.reversed.where(
+            (ClientDietDay d) => !d.date.isAfter(todayKst()),
+          ))
             ClientDayRecordTile(
               date: day.date,
               logged: day.logged,
@@ -1199,8 +1205,12 @@ class _DayMeals extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final ({String clientId, DateTime date}) dayKey = (
+      clientId: clientId,
+      date: date,
+    );
     final AsyncValue<List<ClientDietEntry>> async = ref.watch(
-      clientDietOnProvider((clientId: clientId, date: date)),
+      clientDietOnProvider(dayKey),
     );
     final MealLimits limits = mealLimitsOf(
       ref.watch(memberHealthProfileProvider(clientId)).valueOrNull,
@@ -1243,6 +1253,17 @@ class _DayMeals extends ConsumerWidget {
         // 끼니가 안 오는 날이 있다 — 데모 픽스처가 끼니를 들고 있는 날이
         // 며칠뿐이라서다. 그때는 합계 줄만 선다. 읽는 동안·실패했을 때도
         // 합계 줄은 남아 펼친 자리가 흔들리지 않는다.
+        //
+        // 실패는 빈 결과와 갈라 말한다(#2892) — 합계만 남기면 "끼니 기록이
+        // 없는 날" 로 읽힌다. 다시 읽는 동안(재시도)은 실패 줄을 내린다.
+        if (async.hasError && !async.isLoading) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s12),
+          DayFetchFailedLine(
+            key: ValueKey<String>('client-diet-day-failed-${ymd(date)}'),
+            message: l.clientDietDayMealsFailed,
+            onRetry: () => ref.invalidate(clientDietOnProvider(dayKey)),
+          ),
+        ],
         for (final ClientDietEntry meal in meals) ...<Widget>[
           const Padding(
             padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s12),

@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/active_polling_stream.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/reservation_slot_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/reservation_slot.dart';
@@ -49,6 +49,7 @@ class _ExternalSlotRepository implements ReservationSlotRepository {
         load: list,
         interval: null,
         refreshes: _revisions.stream,
+        keepPollingWhileInactive: true,
       );
 
   @override
@@ -78,6 +79,7 @@ ReservationSlot _slot({
   String? bookedByName,
   String id = 'slot-1',
   int daysAhead = 0,
+  bool overlapped = false,
 }) {
   final DateTime today = todayKst();
   return ReservationSlot(
@@ -87,6 +89,7 @@ ReservationSlot _slot({
     isClosed: false,
     sessionType: SessionType.personalTraining,
     bookedByName: bookedByName,
+    overlapped: overlapped,
   );
 }
 
@@ -381,6 +384,91 @@ void main() {
 
       expect(repository.listCalls, greaterThan(1));
       expect(find.text('김하늘'), findsOneWidget);
+    });
+    testWidgets('일정과 겹친 자리는 겹침 표시를 달고 지울 수 있다 (#2761)', (tester) async {
+      final repository = _ExternalSlotRepository(<ReservationSlot>[
+        _slot(booked: false, overlapped: true),
+      ]);
+      addTearDown(repository.dispose);
+      await openSheet(
+        tester,
+        extraOverrides: <Override>[
+          reservationSlotRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+
+      final Finder row = find.byKey(const ValueKey<String>('slot-row-slot-1'));
+      // 회원에게는 마감이지만 아직 트레이너가 연 자리다 — 겹침 표시와 함께
+      // 닫기(삭제) 버튼이 남는다.
+      expect(
+        find.descendant(
+          of: row,
+          matching: find.byKey(
+            const ValueKey<String>('slot-overlapped-slot-1'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: row, matching: find.text('일정과 겹침')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: row, matching: find.byIcon(AppIcons.delete)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('겹친 일정이 빠지면 겹침 표시가 사라진다 (#2761)', (tester) async {
+      final repository = _ExternalSlotRepository(<ReservationSlot>[
+        _slot(booked: false, overlapped: true),
+      ]);
+      addTearDown(repository.dispose);
+      await openSheet(
+        tester,
+        extraOverrides: <Override>[
+          reservationSlotRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      expect(
+        find.byKey(const ValueKey<String>('slot-overlapped-slot-1')),
+        findsOneWidget,
+      );
+
+      // 트레이너가 겹친 일정을 취소했다 — 자리를 닫은 적이 없으니 그대로 빈다.
+      repository.publish(<ReservationSlot>[_slot(booked: false)]);
+      await settle(tester);
+
+      expect(
+        find.byKey(const ValueKey<String>('slot-overlapped-slot-1')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('slot-row-slot-1')),
+          matching: find.byIcon(AppIcons.delete),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('상담 신청이 잡은 자리에는 회원 이름이 보인다 (#2758)', (tester) async {
+      final repository = _ExternalSlotRepository(<ReservationSlot>[
+        _slot(booked: true, bookedByName: '이서윤'),
+      ]);
+      addTearDown(repository.dispose);
+      await openSheet(
+        tester,
+        extraOverrides: <Override>[
+          reservationSlotRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+
+      expect(find.text('이서윤'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('slot-overlapped-slot-1')),
+        findsNothing,
+      );
     });
   });
 }

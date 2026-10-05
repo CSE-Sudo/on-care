@@ -3,8 +3,9 @@
 
   GET /dashboard/summary -> 홈 화면용 종합 집계
 
-식단/운동/일정 데이터를 모아 한 번에 반환합니다.
-권장 기준치(나트륨 2000mg, 당류 50g, 칼로리 2000kcal)는 고혈압·당뇨 관점 기본값.
+오늘 식단·이번 주 식단 추이·이번 주 운동을 모아 한 번에 반환합니다.
+세 지표의 목표는 회원 건강 목표(health_profile)이고, 목표를 정하지 않은 회원은
+일일 권장 기준치(칼로리 2000kcal, 나트륨 2000mg, 당류 50g)를 기본값으로 씁니다.
 """
 from __future__ import annotations
 
@@ -19,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser
 from app.core import clock
+from app.core.locale import Locale, localized
 from app.db.session import get_db
 from app.models.models import DietEntry, ExerciseSession
 from app.schemas.dashboard_api import (
@@ -26,41 +28,22 @@ from app.schemas.dashboard_api import (
     DashboardSummary,
 )
 from app.schemas.diet_api import calculate_macros
+from app.services import goal_defaults
 
 router = APIRouter(tags=["dashboard"])
 
 # 일일 권장 기준치. 나트륨은 WHO 권고, 당류는 2025 한국인 영양소 섭취기준의
 # 첨가당 권고(총에너지의 10% 이내 = 2,000kcal 기준 50g)를 따른다(#1652).
-_MAX_CALORIES = 2000
-_MAX_SODIUM_MG = 2000
-_MAX_SUGAR_G = 50
+# 값은 목표 미설정 기본값 원본(`goal_defaults`) 한 곳에 있다(#2906).
+_MAX_CALORIES = goal_defaults.DAILY_CALORIES
+_MAX_SODIUM_MG = goal_defaults.DAILY_SODIUM_MG
+_MAX_SUGAR_G = goal_defaults.DAILY_SUGAR_G
 
 # 요일 라벨(월=0 … 일=6) — 홈 주간 추이 차트 x축용
 _DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"]
 
-
-def _score_for(sodium_ok: bool, exercise_minutes: int) -> int:
-    """식단 균형(나트륨) + 운동량 기반 간이 주간 점수(0~100)."""
-    score = 50
-    if sodium_ok:
-        score += 20
-    if exercise_minutes >= 150:
-        score += 30
-    elif exercise_minutes > 0:
-        score += 15
-    return min(score, 100)
-
-
-def _avg_sodium_of_logged(days: list[DashboardNutritionDay]) -> float | None:
-    """기록된(칼로리>0) 날짜들의 평균 나트륨(mg). 기록이 없으면 None.
-
-    주간 점수를 이번 주·지난 주 모두 "기록된 날짜들의 평균 나트륨"으로 계산해
-    하루치와 주간 평균을 비교하는 왜곡을 막는다.
-    """
-    logged = [d for d in days if d.calories > 0]
-    if not logged:
-        return None
-    return sum(d.sodium_mg for d in logged) / len(logged)
+# 나트륨 경고가 짚는 상위 급원 음식 수.
+_SODIUM_SOURCE_COUNT = 2
 
 
 def _nutrition_week(
@@ -98,17 +81,67 @@ def _build_sodium_warning(
     total_sodium_mg: int,
     source_names: list[str],
     sodium_goal_mg: int = _MAX_SODIUM_MG,
+    locale: Locale | None = None,
 ) -> str | None:
+    """오늘 나트륨 경고 문장. 목표 안이면 None.
+
+    언어는 [locale], 생략하면 지금 요청의 언어다(#2299). 키를 아는 앱은 이 문장
+    대신 [_advice_key]·[_advice_params] 로 자기 문장을 그리고, 이 문장은 키를
+    모르는 옛 앱이 읽는다. 음식 이름은 회원이 적은 데이터라 번역하지 않는다.
+    """
     if total_sodium_mg <= sodium_goal_mg:
         return None
     if not source_names:
-        return (
+        return localized(
             f"오늘 나트륨이 {total_sodium_mg}mg 으로 "
-            f"권장량({sodium_goal_mg}mg)을 넘었어요."
+            f"권장량({sodium_goal_mg}mg)을 넘었어요.",
+            f"Sodium is at {total_sodium_mg}mg today, "
+            f"over your target ({sodium_goal_mg}mg).",
+            locale,
         )
 
-    top_source_names = "·".join(source_names[:2])
-    return f"{top_source_names} 섭취로 나트륨이 높아요."
+    top = source_names[:_SODIUM_SOURCE_COUNT]
+    return localized(
+        f"{'·'.join(top)} 섭취로 나트륨이 높아요.",
+        f"Sodium is high from {' and '.join(top)}.",
+        locale,
+    )
+
+
+def _exercise_feedback(
+    exercise_minutes: int, locale: Locale | None = None
+) -> tuple[str, str]:
+    """이번 주 운동 되먹임 — (문장, 로케일 독립 키).
+
+    분 기준(주 150분)은 앱 데모(`local_api_interceptor.dart`)와 같다. 문장은
+    요청 언어를 따른다(#2299).
+    """
+    if exercise_minutes >= 150:
+        return (
+            localized(
+                f"이번 주 {exercise_minutes}분 운동했어요. 목표 달성 중이에요!",
+                f"You worked out {exercise_minutes} minutes this week. You are on track!",
+                locale,
+            ),
+            "exercise_on_track",
+        )
+    if exercise_minutes > 0:
+        return (
+            localized(
+                f"이번 주 {exercise_minutes}분 운동했어요. 조금만 더 힘내요!",
+                f"You worked out {exercise_minutes} minutes this week. A little more to go!",
+                locale,
+            ),
+            "exercise_more",
+        )
+    return (
+        localized(
+            "이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.",
+            "Start moving this week — an easy walk is a good beginning.",
+            locale,
+        ),
+        "exercise_start",
+    )
 
 
 def _advice_key(
@@ -116,19 +149,30 @@ def _advice_key(
     sodium_warning: str | None,
     sodium_source_names: list[str],
     exercise_advice_key: str,
-) -> str | None:
+) -> str:
     """홈 조언으로 고른 문장의 로케일 독립 식별자. (#1943)
 
     앱이 고르는 순서와 **같은 순서**로 고른다(`ai_advice_text.dart`) — 나트륨
     경고가 있으면 그것이고, 없으면 운동 되먹임이다. 순서가 갈리면 키가 가리키는
     문장과 화면이 어긋난다.
 
-    음식 이름이 들어간 나트륨 경고는 키를 주지 않는다. 그 이름은 회원이 적은
-    데이터라 번역 대상이 아니고, 문장을 통째로 보내는 편이 맞다.
+    음식 이름이 든 나트륨 경고도 키를 준다(`sodium_over_sources`). 예전에는 그
+    이름이 번역 대상이 아니라며 키를 비우고 한국어 문장을 통째로 보냈는데, 그러면
+    영어 화면이 한국어 문장을 그렸다. 이름은 [_advice_params] 의 인자로 따로
+    싣고, 문장 틀은 앱 ARB 가 언어별로 갖는다.
     """
     if sodium_warning is not None:
-        return None if sodium_source_names else "sodium_over"
+        return "sodium_over_sources" if sodium_source_names else "sodium_over"
     return exercise_advice_key
+
+
+def _advice_params(
+    *, advice_key: str, sodium_source_names: list[str]
+) -> dict[str, list[str]]:
+    """[_advice_key] 문장에 끼울 값. 음식 이름이 든 나트륨 경고만 값이 있다."""
+    if advice_key == "sodium_over_sources":
+        return {"foods": sodium_source_names[:_SODIUM_SOURCE_COUNT]}
+    return {}
 
 
 def _rank_sodium_sources(foods_json_values: Iterable[str]) -> list[str]:
@@ -203,10 +247,9 @@ def dashboard_summary(
     source_names = _rank_sodium_sources(row.foods_json for row in diet_rows)
     sodium_warning = _build_sodium_warning(total_na, source_names, sodium_goal)
 
-    # --- 식단 주간 추이(이번 주 월~일 + 지난 주 월~일 비교선) ---
+    # --- 식단 주간 추이(이번 주 월~일) ---
     this_monday = today_dt - timedelta(days=today_dt.weekday())
     nutrition_week = _nutrition_week(db, uid, this_monday)
-    nutrition_week_prev = _nutrition_week(db, uid, this_monday - timedelta(days=7))
 
     # --- 이번 주 운동 집계 ---
     # 위 식단·주간 추이와 같은 스냅샷에서 뽑는다 — 여기서 시계를 다시 읽으면
@@ -217,54 +260,23 @@ def dashboard_summary(
         .where(ExerciseSession.week_start == week)
     ).all()
     exercise_minutes = sum(r.minutes for r in ex_rows)
-    exercise_calories = sum(r.calories for r in ex_rows)
-    exercise_count = len(ex_rows)
-    if exercise_minutes >= 150:
-        exercise_feedback = f"이번 주 {exercise_minutes}분 운동했어요. 목표 달성 중이에요!"
-        exercise_advice_key = "exercise_on_track"
-    elif exercise_minutes > 0:
-        exercise_feedback = f"이번 주 {exercise_minutes}분 운동했어요. 조금만 더 힘내요!"
-        exercise_advice_key = "exercise_more"
-    else:
-        exercise_feedback = "이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요."
-        exercise_advice_key = "exercise_start"
+    exercise_feedback, exercise_advice_key = _exercise_feedback(exercise_minutes)
 
-    # --- 주간 점수 + 지난주 대비 변화량(동일 공식으로 실제 차이 집계) ---
-    # 이번 주 점수도 지난주와 같은 방식(기록된 날짜들의 평균 나트륨)으로 계산한다.
-    # 하루치(total_na)를 주간 평균과 비교하면 왜곡되고, 오늘 아직 식사를 기록하지
-    # 않았을 때 total_na==0 이라 주간 식습관과 무관하게 나트륨 조건을 통과하는
-    # 문제가 있었다. 이번 주 기록이 아직 없으면 오늘 하루치로 폴백한다.
-    this_avg_sodium = _avg_sodium_of_logged(nutrition_week)
-    if this_avg_sodium is None:
-        this_avg_sodium = total_na
-    score = _score_for(this_avg_sodium <= sodium_goal, exercise_minutes)
-    last_week = (today_dt - timedelta(days=today_dt.weekday() + 7)).strftime("%Y-%m-%d")
-    last_ex_minutes = sum(
-        r.minutes for r in db.scalars(
-            select(ExerciseSession).where(ExerciseSession.user_id == uid)
-            .where(ExerciseSession.week_start == last_week)
-        ).all()
+    advice_key = _advice_key(
+        sodium_warning=sodium_warning,
+        sodium_source_names=source_names,
+        exercise_advice_key=exercise_advice_key,
     )
-    last_avg_sodium = _avg_sodium_of_logged(nutrition_week_prev) or 0
-    last_week_score = _score_for(last_avg_sodium <= sodium_goal, last_ex_minutes)
-    week_score_delta = score - last_week_score
-
     return DashboardSummary(
         indicators=indicators,
         macros=macros,
         diet_entries=len(diet_rows),
         exercise_minutes=exercise_minutes,
-        exercise_calories=exercise_calories,
-        exercise_count=exercise_count,
         nutrition_week=nutrition_week,
-        nutrition_week_prev=nutrition_week_prev,
-        week_score=score,
-        week_score_delta=week_score_delta,
         sodium_warning=sodium_warning,
         exercise_feedback=exercise_feedback,
-        ai_advice_key=_advice_key(
-            sodium_warning=sodium_warning,
-            sodium_source_names=source_names,
-            exercise_advice_key=exercise_advice_key,
+        ai_advice_key=advice_key,
+        ai_advice_params=_advice_params(
+            advice_key=advice_key, sodium_source_names=source_names,
         ),
     )

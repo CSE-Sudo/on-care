@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.core import clock
 from app.schemas.points_api import PointsOut
+from app.schemas.record_dates import not_after_today
 
 #: 계약 날짜 표기. `2026-08-01` 만 받는다.
 _YMD = re.compile(r"\d{4}-\d{2}-\d{2}")
@@ -87,6 +88,13 @@ class DietEntryOut(BaseModel):
 #: `source='member'`(회원 수기)와 같은 말이다.
 FoodSource = Literal["db", "mixed", "estimate", "member"]
 
+#: 끼니 구분(#2882). 직접 기록·사진 분석·수정이 같은 다섯 값을 받는다 — 한 곳만
+#: 열려 있으면 그 길로 들어온 엉뚱한 값이 끼니별 집계·트레이너 화면에서 어느
+#: 끼니에도 들지 않고, 컬럼(String(20))보다 긴 값은 DB 오류(500)가 된다.
+MealTypeLiteral = Literal["breakfast", "lunch", "dinner", "snack", "lateNight"]
+
+_HHMM = re.compile(r"([01]\d|2[0-3]):[0-5]\d")
+
 
 class EditedFood(RecognizedFood):
     """수정 화면이 되돌려 보내는 음식 한 줄. (#2105)
@@ -121,9 +129,24 @@ def _past_or_today(value: str | None) -> str | None:
         parsed = _date.fromisoformat(value)
     except ValueError as e:
         raise ValueError("date 는 YYYY-MM-DD 형식이어야 합니다.") from e
-    if parsed > clock.today():
-        raise ValueError("date 는 오늘보다 뒤일 수 없습니다.")
-    return parsed.isoformat()
+    return not_after_today(parsed).isoformat()
+
+
+def analyze_record_date(value: str | None) -> _date | None:
+    """사진 분석의 기록 날짜(`POST /diet/analyze` 의 선택 `date`, #2849).
+
+    직접 기록·수정과 같은 규칙(형식·앞날 금지)에 더해 **작년 1월 1일보다 앞선
+    날은 받지 않는다** — 앱의 날짜 고르기 범위와 같다. 사진 분석은 포인트를
+    적립하므로 아주 오래된 날로 기록을 몰아넣는 길을 열어 두지 않는다.
+    빠지면 None 이고, 그때 저장하는 날(KST 오늘)로 남긴다.
+    """
+    checked = _past_or_today(value)
+    if checked is None:
+        return None
+    parsed = _date.fromisoformat(checked)
+    if parsed < _date(clock.today().year - 1, 1, 1):
+        raise ValueError("date 는 작년 1월 1일보다 앞설 수 없습니다.")
+    return parsed
 
 
 class DietEntryUpdate(PartialUpdate):
@@ -135,7 +158,8 @@ class DietEntryUpdate(PartialUpdate):
     #: 식사의 사진을 나중에 올리는 일이 있어 실제로 먹은 날로 옮길 수 있어야
     #: 한다(#1241).
     date: str | None = None
-    meal_type: str | None = None
+    meal_type: MealTypeLiteral | None = None
+    #: 기록 시각(`HH:MM`, 24시간). 빈 문자열은 "시각 없음" 으로 받는다(#2882).
     time_label: str | None = None
     #: 고친 음식 목록(#1892). 오면 저장된 음식을 이 값으로 갈아 끼우고, 끼니
     #: 합계도 이 목록에서 다시 낸다 — 함께 온 합계 값보다 음식이 우선이다.
@@ -157,6 +181,14 @@ class DietEntryUpdate(PartialUpdate):
     def _valid_past_or_today(cls, value: str | None) -> str | None:
         return _past_or_today(value)
 
+    @field_validator("time_label")
+    @classmethod
+    def _valid_time_label(cls, value: str | None) -> str | None:
+        """`HH:MM` 이거나 빈 문자열. 다른 값은 목록의 시각 정렬을 흐트러뜨린다."""
+        if value is None or value == "" or _HHMM.fullmatch(value):
+            return value
+        raise ValueError("time_label 은 HH:MM 형식이어야 합니다.")
+
 
 class DietEntryCreate(BaseModel):
     """POST /diet/entries — 사진 없이 회원이 직접 적은 끼니(#2151).
@@ -166,7 +198,7 @@ class DietEntryCreate(BaseModel):
     """
     #: 기록 날짜(`YYYY-MM-DD`). 빠지면 저장하는 날(KST)이다. 앞날은 받지 않는다.
     date: str | None = None
-    meal_type: Literal["breakfast", "lunch", "dinner", "snack", "lateNight"]
+    meal_type: MealTypeLiteral
     #: 음식이 하나도 없는 끼니는 기록이 아니다.
     foods: list[EditedFood] = Field(..., min_length=1)
     #: 재시도 중복 저장 방지 키(선택). 사진 분석과 같은 컬럼·같은 제약을 쓴다.

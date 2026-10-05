@@ -11,6 +11,7 @@ import 'package:oncare/features/dashboard/presentation/widgets/dashboard_content
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
+import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/member_bottom_nav.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -37,7 +38,10 @@ class GuideTourPage extends ConsumerStatefulWidget {
 class _GuideTourPageState extends ConsumerState<GuideTourPage> {
   /// 예시 값은 가이드가 열려 있는 동안 **한 벌**이다. build 마다 다시 만들면
   /// 탭을 옮길 때마다 화면이 처음부터 자료를 받아 오는 것처럼 깜빡인다.
-  late final List<Override> _overrides = guideSampleOverrides();
+  /// 처음 그릴 때 만들어 그때의 화면 언어로 예시 음식 이름을 싣는다(#2878).
+  late final List<Override> _overrides = guideSampleOverrides(
+    AppLocalizations.of(context),
+  );
 
   @override
   void initState() {
@@ -114,9 +118,7 @@ class _SampleTab extends StatelessWidget {
 
   Widget _page(GuideTab tab) => switch (tab) {
     GuideTab.home => DashboardContent(adviceAnchorKey: anchors.homeAdvice),
-    GuideTab.diet => DietRecordPage(
-      nutritionAnchorKey: anchors.dietNutrition,
-    ),
+    GuideTab.diet => DietRecordPage(nutritionAnchorKey: anchors.dietNutrition),
     // 운동 탭은 `운동 기록`·`헬스장` 두 갈래다. 짚는 자리에 맞는 갈래를 펴
     // 두어야 한다 — 열쇠는 그 갈래가 그려질 때만 화면에 있다. 갈래가 바뀌면
     // 페이지를 새로 세운다(`ValueKey`).

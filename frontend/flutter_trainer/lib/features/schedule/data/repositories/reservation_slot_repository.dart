@@ -1,15 +1,23 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/active_polling_stream.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
-import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart'
+    show DemoConsultationRepository;
 import 'package:oncare_trainer/features/schedule/data/demo_reservation_slots.dart';
 import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/reservation_slot.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 
 abstract interface class ReservationSlotRepository {
   Future<List<ReservationSlot>> list();
@@ -25,6 +33,9 @@ abstract interface class ReservationSlotRepository {
 
   /// 자리의 시간이 다른 일정과 겹치면 `ScheduleOverlapError` 로 멈춘다
   /// (#2284). [update] 도 같다.
+  ///
+  /// [startsAt] 은 **KST 벽시계 값**이다(`nowKst()` 와 같은 모양) — 기기
+  /// 시간대와 관계없이 서울 시각으로 저장된다(#2759).
   Future<ReservationSlot> create({
     required DateTime startsAt,
     int durationMinutes = 60,
@@ -64,6 +75,7 @@ class DioReservationSlotRepository implements ReservationSlotRepository {
         load: list,
         interval: pollInterval,
         refreshes: _revisions.stream,
+        keepPollingWhileInactive: true,
       );
 
   void _bump() {
@@ -111,7 +123,9 @@ class DioReservationSlotRepository implements ReservationSlotRepository {
       () => _dio.post<Map<String, dynamic>>(
         '/trainer/reservation-slots',
         data: <String, dynamic>{
-          'starts_at': startsAt.toUtc().toIso8601String(),
+          // KST 벽시계 값이다 — `toUtc()` 는 브라우저 시간대로 읽어 KST 가
+          // 아닌 기기에서 다른 시각으로 저장됐다(#2759).
+          'starts_at': kstWallToUtc(startsAt).toIso8601String(),
           'duration_minutes': durationMinutes,
           'session_type': sessionType,
         },
@@ -132,7 +146,10 @@ class DioReservationSlotRepository implements ReservationSlotRepository {
       () => _dio.put<Map<String, dynamic>>(
         '/trainer/reservation-slots/$id',
         data: <String, dynamic>{
-          'starts_at': ?startsAt?.toUtc().toIso8601String(),
+          'starts_at': ?switch (startsAt) {
+            final DateTime at => kstWallToUtc(at).toIso8601String(),
+            null => null,
+          },
           'duration_minutes': ?durationMinutes,
           'session_type': ?sessionType,
         },
@@ -165,11 +182,90 @@ class SlotErrorCodes {
 class MockReservationSlotRepository implements ReservationSlotRepository {
   /// [seed] 는 처음부터 열려 있는 자리다. 기본은 빈 목록 — 앱의 목업 모드만
   /// 데모 자리([demoReservationSlots])를 넣어 만든다.
+  ///
+  /// [db] 가 있으면 트레이너가 열고 고치고 닫은 자리를 키-값 저장소에 적어
+  /// 두고 다시 읽는다(#2669) — 예전에는 메모리뿐이라 새로고침하면 사라졌다.
+  /// 시드 자리는 "오늘" 기준으로 매번 새로 만들고, 그 위에 저장해 둔 자리를
+  /// id 로 덮어 얹는다. 없으면(단위 테스트) 메모리에만 둔다.
   MockReservationSlotRepository({
     Iterable<ReservationSlot> seed = const <ReservationSlot>[],
+    this.db,
   }) : _slots = <ReservationSlot>[...seed];
 
   final List<ReservationSlot> _slots;
+
+  /// 바꾼 자리를 적어 두는 데모 저장소.
+  final AppDatabase? db;
+
+  /// 트레이너가 바꾼 자리 — id 로 찾는다. 저장소에 적는 것은 이것뿐이다.
+  final Map<String, ReservationSlot> _changed = <String, ReservationSlot>{};
+  bool _restored = false;
+
+  /// 바꾼 자리를 적어 두는 키.
+  static const String storageKey = 'demo_reservation_slots';
+
+  Future<void> _restore() async {
+    if (_restored) return;
+    _restored = true;
+    final String? saved = await db?.readValue(storageKey);
+    if (saved == null) return;
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(saved);
+    } on FormatException {
+      return;
+    }
+    if (decoded is! List) return;
+    for (final Object? item in decoded) {
+      if (item is! Map<String, Object?>) continue;
+      final Object? id = item['id'];
+      final DateTime? startsAt = DateTime.tryParse(
+        item['starts_at'] as String? ?? '',
+      );
+      if (id is! String || startsAt == null) continue;
+      _remember(
+        ReservationSlot(
+          id: id,
+          startsAt: startsAt,
+          durationMinutes: (item['duration_minutes'] as num?)?.toInt() ?? 60,
+          booked: item['booked'] == true,
+          isClosed: item['is_closed'] == true,
+          sessionType:
+              item['session_type'] as String? ?? SessionType.personalTraining,
+        ),
+      );
+    }
+  }
+
+  /// [slot] 을 목록에 넣거나 같은 id 를 바꾼다.
+  void _remember(ReservationSlot slot) {
+    _changed[slot.id] = slot;
+    final int index = _slots.indexWhere((s) => s.id == slot.id);
+    if (index < 0) {
+      _slots.add(slot);
+    } else {
+      _slots[index] = slot;
+    }
+  }
+
+  Future<void> _save(ReservationSlot slot) async {
+    _remember(slot);
+    await db?.putValue(
+      storageKey,
+      jsonEncode(<Object?>[
+        for (final ReservationSlot s in _changed.values)
+          <String, Object?>{
+            'id': s.id,
+            // 벽시계 그대로 적는다 — 읽을 때도 같은 벽시계로 돌아온다.
+            'starts_at': s.startsAt.toIso8601String(),
+            'duration_minutes': s.durationMinutes,
+            'booked': s.booked,
+            'is_closed': s.isClosed,
+            'session_type': s.sessionType,
+          },
+      ]),
+    );
+  }
 
   final StreamController<void> _revisions = StreamController<void>.broadcast();
 
@@ -181,6 +277,7 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
         load: list,
         interval: null,
         refreshes: _revisions.stream,
+        keepPollingWhileInactive: true,
       );
 
   void _bump() {
@@ -198,9 +295,76 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
 
   @override
   Future<List<ReservationSlot>> list() async {
+    await _restore();
     final now = nowKst();
-    return _slots.where((slot) => slot.startsAt.isAfter(now)).toList()
-      ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
+    final List<ReservationSlot> upcoming =
+        _slots.where((slot) => slot.startsAt.isAfter(now)).toList()
+          ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
+    return _againstSchedule(upcoming);
+  }
+
+  /// 데모 일정과 견준 자리 목록. (#2758, #2761)
+  ///
+  /// 서버는 자리 목록을 만들 때마다 그 시간의 일정을 본다 — 데모도 같은 답을
+  /// 내도록 일정 저장소(drift)를 읽어 [judgeDemoSlot] 으로 판정한다. 자리를
+  /// 바꿔 적지 않으므로 일정을 취소·이동하면 다음 조회에서 원래대로 돌아온다.
+  /// [db] 가 없으면(단위 테스트) 그대로 둔다.
+  Future<List<ReservationSlot>> _againstSchedule(
+    List<ReservationSlot> slots,
+  ) async {
+    final AppDatabase? database = db;
+    if (database == null || slots.isEmpty) return slots;
+    final Set<String> days = <String>{
+      for (final ReservationSlot slot in slots) ymd(slot.startsAt),
+    };
+    final rows =
+        await (database.select(database.trainerScheduleEntries)..where(
+              (t) =>
+                  t.date.isIn(days) &
+                  t.status.isIn(<String>[
+                    ScheduleStatus.upcoming,
+                    ScheduleStatus.done,
+                  ]),
+            ))
+            .get();
+    final Map<String, String> decisions = await _consultationDecisions(
+      database,
+    );
+    final List<DemoSlotSession> sessions = <DemoSlotSession>[
+      for (final row in rows)
+        (
+          date: row.date,
+          time: row.time,
+          durationMinutes: row.durationMinutes,
+          type: row.type,
+          clientName: row.clientName,
+        ),
+    ];
+    return <ReservationSlot>[
+      for (final ReservationSlot slot in slots)
+        judgeDemoSlot(holdDemoRequestSlot(slot, decisions), sessions),
+    ];
+  }
+
+  /// 데모 상담함의 결정 — 신청 id → `accepted`·`rejected`. 읽지 못하면 빈 표다.
+  static Future<Map<String, String>> _consultationDecisions(
+    AppDatabase database,
+  ) async {
+    final String? saved = await database.readValue(
+      DemoConsultationRepository.decisionsKey,
+    );
+    if (saved == null) return const <String, String>{};
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(saved);
+    } on FormatException {
+      return const <String, String>{};
+    }
+    if (decoded is! Map<String, Object?>) return const <String, String>{};
+    return <String, String>{
+      for (final MapEntry<String, Object?> e in decoded.entries)
+        if (e.value case {'status': final String status}) e.key: status,
+    };
   }
 
   @override
@@ -209,6 +373,7 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
     int durationMinutes = 60,
     required String sessionType,
   }) async {
+    await _restore();
     _validateFuture(startsAt);
     // 슬롯은 늘 한 사람 몫이라 새로 연 자리는 비어 있는 상태로 시작한다
     // (#1012, #1072).
@@ -220,7 +385,7 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
       isClosed: false,
       sessionType: sessionType,
     );
-    _slots.add(slot);
+    await _save(slot);
     _bump();
     return slot;
   }
@@ -232,6 +397,7 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
     int? durationMinutes,
     String? sessionType,
   }) async {
+    await _restore();
     final index = _slots.indexWhere((slot) => slot.id == id);
     if (index < 0) throw StateError('not_found');
     final old = _slots[index];
@@ -247,13 +413,14 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
       isClosed: old.isClosed,
       sessionType: sessionType ?? old.sessionType,
     );
-    _slots[index] = updated;
+    await _save(updated);
     _bump();
     return updated;
   }
 
   @override
   Future<ReservationSlot> close(String id) async {
+    await _restore();
     final index = _slots.indexWhere((slot) => slot.id == id);
     if (index < 0) throw StateError('not_found');
     final old = _slots[index];
@@ -265,10 +432,94 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
       isClosed: true,
       sessionType: old.sessionType,
     );
-    _slots[index] = closed;
+    await _save(closed);
     _bump();
     return closed;
   }
+}
+
+/// 대기 중인 데모 상담 신청이 고른 자리를 잡는다. (#2797)
+///
+/// [demoPendingRequestSlots] 의 자리이고 그 신청에 트레이너의 결정이 아직 없으면
+/// ([decisions] 에 없음) 예약된 자리다 — 실서버에서 신청이 자리를 잠그는 것과
+/// 같다. 거절한 신청은 자리를 놓고, 수락한 신청의 자리는 그 시각의 상담 일정이
+/// 잡는다([judgeDemoSlot]) — 그 상담을 취소하면 자리가 다시 빈다.
+ReservationSlot holdDemoRequestSlot(
+  ReservationSlot slot,
+  Map<String, String> decisions,
+) {
+  final ({String requestId, String memberName})? held =
+      demoPendingRequestSlots[slot.id];
+  if (held == null || slot.booked || slot.isClosed) return slot;
+  if (decisions.containsKey(held.requestId)) return slot;
+  return ReservationSlot(
+    id: slot.id,
+    startsAt: slot.startsAt,
+    durationMinutes: slot.durationMinutes,
+    booked: true,
+    isClosed: slot.isClosed,
+    sessionType: slot.sessionType,
+    bookedByName: held.memberName,
+  );
+}
+
+/// 데모 자리와 견줄 일정 한 건 — 시간을 차지하는(`예정`·`완료`) 것만 넘긴다.
+typedef DemoSlotSession = ({
+  String date,
+  String time,
+  int durationMinutes,
+  String type,
+  String clientName,
+});
+
+/// 데모 자리 하나를 그날 일정과 견준다. (#2758, #2761)
+///
+/// - 같은 시각에 시작하는 **상담** 일정은 그 자리로 신청해 수락된 상담이다 —
+///   서버에서는 신청이 자리를 잠그고 그 회원 이름이 실린다. 데모도 예약된
+///   자리로 그리고 이름을 단다. 그 상담을 취소하거나 옮기면 자리가 다시 빈다.
+/// - 그 밖에 시간이 겹치는 일정이 있으면 [ReservationSlot.overlapped] 다 —
+///   회원에게는 마감이다.
+///
+/// 닫혔거나 이미 예약된 자리는 그대로 둔다. 데모 일정은 같은 날만 본다 —
+/// 자정을 넘기는 일정까지 따지는 것은 서버 몫이다(일정 저장소와 같은 규칙).
+ReservationSlot judgeDemoSlot(
+  ReservationSlot slot,
+  Iterable<DemoSlotSession> sessions,
+) {
+  if (slot.isClosed || slot.booked) return slot;
+  final String day = ymd(slot.startsAt);
+  final String time =
+      '${slot.startsAt.hour.toString().padLeft(2, '0')}:'
+      '${slot.startsAt.minute.toString().padLeft(2, '0')}';
+  DemoSlotSession? heldBy;
+  var overlapped = false;
+  for (final DemoSlotSession session in sessions) {
+    if (session.date != day) continue;
+    if (!timeRangesOverlap(
+      session.time,
+      session.durationMinutes,
+      time,
+      slot.durationMinutes,
+    )) {
+      continue;
+    }
+    if (session.type == SessionType.consultation && session.time == time) {
+      heldBy ??= session;
+    } else {
+      overlapped = true;
+    }
+  }
+  if (heldBy == null && !overlapped) return slot;
+  return ReservationSlot(
+    id: slot.id,
+    startsAt: slot.startsAt,
+    durationMinutes: slot.durationMinutes,
+    booked: heldBy != null,
+    isClosed: slot.isClosed,
+    sessionType: slot.sessionType,
+    bookedByName: heldBy?.clientName,
+    overlapped: heldBy == null && overlapped,
+  );
 }
 
 final reservationSlotRepositoryProvider = Provider<ReservationSlotRepository>((
@@ -277,7 +528,10 @@ final reservationSlotRepositoryProvider = Provider<ReservationSlotRepository>((
   ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   final ReservationSlotRepository repository =
       ref.watch(appConfigProvider).useMockApi
-      ? MockReservationSlotRepository(seed: demoReservationSlots())
+      ? MockReservationSlotRepository(
+          seed: demoReservationSlots(),
+          db: ref.watch(appDatabaseProvider),
+        )
       : DioReservationSlotRepository(ref.watch(dioProvider));
   ref.onDispose(repository.dispose);
   return repository;

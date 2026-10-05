@@ -66,11 +66,9 @@ const int reportSignalSwingPoints = 15;
 
 /// [report] 의 한 주를 신호로 옮긴다. 순서가 곧 화면 순서다.
 List<ReportSignal> reportSignals(WeeklyReport report) {
-  final List<int> week = report.weekCompletion;
-  final List<int> logged = <int>[
-    for (final int v in week)
-      if (v > 0) v,
-  ];
+  // null 은 걸린 것이 없던 날, 0 은 걸렸는데 안 한 날이다(#2513).
+  final List<int?> week = report.weekCompletion;
+  final List<int> logged = <int>[for (final int? v in week) ?v];
   final int? completion = report.completionAvg;
   if (completion == null && logged.isEmpty) {
     return const <ReportSignal>[ReportSignal(ReportSignalKind.onboarding)];
@@ -80,7 +78,7 @@ List<ReportSignal> reportSignals(WeeklyReport report) {
     signals.add(ReportSignal(ReportSignalKind.completion, completion));
   }
   final int silent = week.length == weekdayCount
-      ? week.where((v) => v == 0).length
+      ? week.where((v) => v == null || v == 0).length
       : 0;
   // 앞 사흘과 뒤 사흘을 견준다. 같은 이행률 70% 라도 오르는 주와 무너지는
   // 주는 다음 주에 할 말이 다르다.
@@ -118,11 +116,8 @@ List<ClientSignal> reportAttentionSignals(TrainerClient client) =>
         if (s.kind.isAttention && !s.kind.isDiet) s,
     ];
 
-double? _mean(Iterable<int> values) {
-  final List<int> logged = <int>[
-    for (final int v in values)
-      if (v > 0) v,
-  ];
+double? _mean(Iterable<int?> values) {
+  final List<int> logged = <int>[for (final int? v in values) ?v];
   if (logged.isEmpty) return null;
   return logged.reduce((a, b) => a + b) / logged.length;
 }

@@ -27,7 +27,7 @@ def _auth(token: str) -> dict:
 # ---- 순수 로직 ----
 
 def test_week_start_of_normalises_any_day_to_monday():
-    from app.services.trainer_service import week_start_of
+    from app.services.trainer.reports import week_start_of
 
     monday = date(2026, 8, 3)
     for offset in range(7):
@@ -40,7 +40,7 @@ def test_meal_kr_labels_all_five_meal_types():
     키는 회원 앱 `MealType.name` 이다 — `lateNight` 만 camelCase 인 것은 그
     이름이 곧 전송값이기 때문이다.
     """
-    from app.services.trainer_service import _meal_kr
+    from app.services.trainer._common import _meal_kr
 
     assert _meal_kr("breakfast") == "아침"
     assert _meal_kr("lunch") == "점심"
@@ -51,7 +51,7 @@ def test_meal_kr_labels_all_five_meal_types():
 
 def test_meal_kr_does_not_fold_late_night_into_snack():
     """야식이 간식으로 접히면 밤늦게 먹은 것을 낮의 간식과 갈라 볼 수 없다."""
-    from app.services.trainer_service import _meal_kr
+    from app.services.trainer._common import _meal_kr
 
     assert _meal_kr("lateNight") != _meal_kr("snack")
 
@@ -59,7 +59,7 @@ def test_meal_kr_does_not_fold_late_night_into_snack():
 def test_meal_kr_passes_through_unknown_meal_types():
     """모르는 값은 간식으로 접지 않고 그대로 둔다 — 새 끼니가 조용히 섞이면
     트레이너가 틀린 근거로 코칭한다."""
-    from app.services.trainer_service import _meal_kr
+    from app.services.trainer._common import _meal_kr
 
     assert _meal_kr("brunch") == "brunch"
 
@@ -67,7 +67,7 @@ def test_meal_kr_passes_through_unknown_meal_types():
 def test_report_message_omits_figures_without_data():
     """기록이 없는 항목은 빈 값을 적지 않고 아예 뺀다 — '이행률 0%'는 거짓말."""
     from app.schemas.trainer_api import WeeklyReportOut
-    from app.services.trainer_service import report_message
+    from app.services.trainer.reports import report_message
 
     report = WeeklyReportOut(
         member_id="m", member_name="김민수",
@@ -84,7 +84,7 @@ def test_report_message_omits_figures_without_data():
 
 def test_report_message_praises_only_a_genuinely_good_week():
     from app.schemas.trainer_api import WeeklyReportOut
-    from app.services.trainer_service import report_message
+    from app.services.trainer.reports import report_message
 
     def message(completion: int, over_days: int) -> str:
         return report_message(WeeklyReportOut(
@@ -106,7 +106,7 @@ def test_report_message_praises_only_a_genuinely_good_week():
 def test_report_message_speaks_in_three_completion_bands():
     """좋음(80+)·보통(60~79)·낮음(<60) — 앱 초안과 같은 세 구간이다(#2345)."""
     from app.schemas.trainer_api import WeeklyReportOut
-    from app.services.trainer_service import report_message
+    from app.services.trainer.reports import report_message
 
     def message(completion: int, locale: str = "ko") -> str:
         return report_message(WeeklyReportOut(
@@ -486,7 +486,7 @@ def test_put_me_allows_clearing_the_phone(client):
 
 
 @pytest.mark.parametrize(
-    "gym_phone", ["02-1234-5678", "02-332-1720", "0502-5552-4212", "010-7616-9819"]
+    "gym_phone", ["02-1234-5678", "02-332-1720", "0502-5552-4212", "010-1234-5678"]
 )
 def test_gym_phone_keeps_every_shape_a_gym_number_takes(gym_phone):
     """헬스장 대표번호에는 휴대전화 규칙을 걸지 않는다. (DB 불필요)
@@ -502,43 +502,6 @@ def test_gym_phone_keeps_every_shape_a_gym_number_takes(gym_phone):
     from app.schemas.trainer_api import TrainerMeUpdate
 
     assert TrainerMeUpdate(gym_phone=gym_phone).gym_phone == gym_phone
-
-
-# ---- 고객 AI 코칭 ----
-
-def test_client_ai_coach_answers_about_the_member(client):
-    token = _trainer_token(client)
-    r = client.post(
-        "/v1/trainer/clients/user-jisu/ai-coach",
-        json={"message": "이번 주 식단에서 뭘 조정하면 좋을까요?"},
-        headers=_auth(token),
-    )
-    # LLM 키가 없어도 검색 기반 폴백이 답을 돌려준다.
-    assert r.status_code == 200, r.text
-    body = r.json()
-    assert body["member_id"] == "user-jisu"
-    assert body["reply"]
-
-
-def test_client_ai_coach_rejects_an_empty_message(client):
-    token = _trainer_token(client)
-    r = client.post(
-        "/v1/trainer/clients/user-jisu/ai-coach",
-        json={"message": "   "},
-        headers=_auth(token),
-    )
-    assert r.status_code == 400
-
-
-def test_client_ai_coach_of_someone_elses_client_is_404(client):
-    """남의 고객이면 존재조차 드러내지 않는다(권한 경계)."""
-    token = _trainer_token(client)
-    r = client.post(
-        "/v1/trainer/clients/user-nobody/ai-coach",
-        json={"message": "안녕하세요"},
-        headers=_auth(token),
-    )
-    assert r.status_code == 404
 
 
 # ---- 비밀번호 변경 ----
@@ -719,7 +682,7 @@ def test_report_carries_the_requested_weeks_daily_series(client, db_session):
     import json
 
     from app.models.models import DietEntry, ExerciseSession, RoutineHistory
-    from app.services.trainer_service import week_start_of
+    from app.services.trainer.reports import week_start_of
 
     last_week = week_start_of(clock.today()) - timedelta(days=7)
     sunday = (last_week + timedelta(days=6)).isoformat()
@@ -798,21 +761,24 @@ def test_report_carries_the_requested_weeks_daily_series(client, db_session):
     assert body["sodium_week"][1] == 2400
     assert body["calories_week"][1] == 700
     assert body["sugar_week"][1] == 12.5
-    assert body["week_completion"][1] == 80
+    # 이행률은 `routine_history` 가 아니라 그 주에 걸린 개인운동·잡힌 PT 로
+    # 센다(#2513) — 위 기록 행은 이행률에 들지 않는다. 요일 칸과 계열은 같은 값이다.
     # 그날 **실제로 한** 운동이 함께 온다(#754, #1288). 배정 목록이 아니라 운동
     # 기록에서 오므로 미수행(✗)은 실리지 않는다 — 배정에 날짜가 없어 "그날
     # 배정됐는데 안 했다" 가 만들어지지 않는다.
     assert len(body["days"]) == 7
-    assert body["days"][1]["completion"] == 80
+    assert [d["completion"] for d in body["days"]] == body["week_completion"]
     assert body["days"][1]["exercises"] == ["걷기 30분", "코어 강화"]
     assert all("✗" not in name for name in body["days"][1]["exercises"])
-    assert body["days"][0]["completion"] == 0
     assert body["days"][0]["exercises"] == []
     # 기록이 없는 날은 0 이고, 이번 주 수치가 섞여 들어오지 않는다.
     assert body["sodium_week"][0] == 0
     assert body["sodium_avg"] == 2400  # 기록된 하루만 나눈다
     assert body["sodium_over_days"] == 1
-    assert body["completion_avg"] == 80
+    recorded = [v for v in body["week_completion"] if v is not None]
+    assert body["completion_avg"] == (
+        round(sum(recorded) / len(recorded)) if recorded else None
+    )
 
 
 def test_report_lists_exercise_a_member_logged_alone(client, db_session):
@@ -824,7 +790,7 @@ def test_report_lists_exercise_a_member_logged_alone(client, db_session):
     볼 수 없었다.
     """
     from app.models.models import ExerciseSession, RoutineHistory
-    from app.services.trainer_service import week_start_of
+    from app.services.trainer.reports import week_start_of
 
     last_week = week_start_of(clock.today()) - timedelta(days=7)
     sunday = (last_week + timedelta(days=6)).isoformat()

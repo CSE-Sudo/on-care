@@ -10,9 +10,9 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/report_send_log.dart';
 import 'package:oncare_trainer/features/reports/domain/report_queue.dart';
@@ -246,7 +246,7 @@ void main() {
     // 첫 단계에서는 뒤로 갈 곳이 없어 버튼도 없다.
     expect(prev, findsNothing);
     // ① 은 읽는 단계다 — 요일 격자가 서고, 쓰는 자리는 없다.
-    expect(find.text('PT 세션'), findsOneWidget);
+    expect(find.text('PT'), findsOneWidget);
     expect(find.text('트레이너 피드백'), findsNothing);
 
     // ② 작성 — 요약과 입력창이 같은 화면에 선다. 단계 이름이 `작성` 인데
@@ -255,7 +255,7 @@ void main() {
     await settle(tester);
     expect(find.text('이번 주 요약'), findsOneWidget);
     expect(find.text('트레이너 피드백'), findsOneWidget);
-    expect(find.text('PT 세션'), findsNothing);
+    expect(find.text('PT'), findsNothing);
 
     await tester.tap(next);
     await settle(tester);
@@ -280,7 +280,7 @@ void main() {
     await tester.tap(prev);
     await settle(tester);
     expect(find.text('트레이너 피드백'), findsNothing);
-    expect(find.text('PT 세션'), findsOneWidget);
+    expect(find.text('PT'), findsOneWidget);
   });
 
   testWidgets('영어로 켜도 작업대에 한국어가 남지 않는다 (#501, #2232)', (tester) async {
@@ -325,7 +325,8 @@ void main() {
           sodiumMg: 4200,
           calories: 3400,
           sugarG: 90,
-          weekCompletion: const <int>[80, 0, 70, 0, 0, 60, 90],
+          // 걸린 것이 없던 날은 null — 평균은 걸린 날만(#2513).
+          weekCompletion: const <int?>[80, null, 70, null, null, 60, 90],
           // 서버가 식단 신호를 실어 보내도 작업대에는 오지 않는다.
           signals: const <ClientSignal>[
             ClientSignal(ClientSignalKind.calorieOff, percent: 22, over: true),

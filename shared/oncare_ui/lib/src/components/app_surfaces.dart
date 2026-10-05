@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:oncare_ui/src/components/app_button.dart';
 import 'package:oncare_ui/src/components/app_icon.dart';
+import 'package:oncare_ui/src/text/keep_words.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
 import 'package:oncare_ui/src/tokens/density.dart';
@@ -311,12 +312,18 @@ class AppSectionHeader extends StatelessWidget {
           );
     final Widget? end = trailing;
     if (end != null && trailingFit == AppSectionTrailingFit.wrap) {
-      return Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: OnCareSpacing.s12,
-        runSpacing: OnCareSpacing.s8,
-        children: <Widget>[titleBlock, end],
+      // `Wrap` 은 내용 폭만큼만 서서, 왼쪽 정렬 `Column` 안에서는
+      // `spaceBetween` 이 먹지 않고 끝 요소가 제목 바로 옆(왼쪽)에 붙었다.
+      // 폭을 꽉 채워 끝 요소를 오른쪽 끝으로 보낸다.
+      return SizedBox(
+        width: double.infinity,
+        child: Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: OnCareSpacing.s12,
+          runSpacing: OnCareSpacing.s8,
+          children: <Widget>[titleBlock, end],
+        ),
       );
     }
     return Row(
@@ -499,6 +506,10 @@ class AppListRow extends StatelessWidget {
 
   final VoidCallback? onTap;
   final bool selected;
+
+  /// 아직 읽지 않았다 — 제목을 한 단계 굵게 한다. 빨간 점은 뺐다(#2628): 읽지
+  /// 않은 행은 부르는 쪽이 옅은 채움으로도 가르고, 읽으면 채움이 사라져
+  /// 점까지 세 겹으로 알릴 까닭이 없었다.
   final bool unread;
 
   @override
@@ -586,10 +597,6 @@ class AppListRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (unread) ...<Widget>[
-                  const SizedBox(width: OnCareSpacing.s8),
-                  const _Dot(),
-                ],
                 if (trailing != null) ...<Widget>[
                   const SizedBox(width: OnCareSpacing.s8),
                   trailing!,
@@ -598,22 +605,6 @@ class AppListRow extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _Dot extends StatelessWidget {
-  const _Dot();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: OnCareSize.dot,
-      height: OnCareSize.dot,
-      decoration: const BoxDecoration(
-        color: OnCareColors.danger,
-        shape: BoxShape.circle,
       ),
     );
   }
@@ -667,6 +658,7 @@ class AppBanner extends StatelessWidget {
     this.expandChild = false,
     this.density = AppBannerDensity.regular,
     this.placement = AppBannerPlacement.inline,
+    this.resolved = false,
   }) : assert(
          placement == AppBannerPlacement.inline ||
              (tone == AppBannerTone.info &&
@@ -697,6 +689,11 @@ class AppBanner extends StatelessWidget {
   final AppBannerDensity density;
   final AppBannerPlacement placement;
 
+  /// 처리를 마친 안내 — 채움을 비워 흰 바탕으로 두고 톤 테두리만 남긴다.
+  /// 긴 대화에서 어디까지 처리했는지 바탕색으로 가른다(채팅 감지 배너의
+  /// `메모 추가` 뒤, #2950).
+  final bool resolved;
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
@@ -706,7 +703,9 @@ class AppBanner extends StatelessWidget {
       AppBannerTone.caution => OnCareColors.caution,
       AppBannerTone.danger => OnCareColors.danger,
     };
-    final Color fill = tone == AppBannerTone.info
+    final Color fill = resolved
+        ? OnCareColors.surfaceCard
+        : tone == AppBannerTone.info
         ? tokens.brand.surface
         : OnCareColors.onWhite(accent, OnCareAlpha.subtle);
     final Color border = tone == AppBannerTone.info
@@ -740,7 +739,9 @@ class AppBanner extends StatelessWidget {
     final Widget? messageText = message == null
         ? null
         : Text(
-            message,
+            // 카드 자리는 AI 요약·분석처럼 여러 문장이다 — 낱말 중간에서 줄을
+            // 바꾸지 않는다(#2969). 안내 한 줄짜리 inline 은 그대로 둔다.
+            card ? keepWords(message) : message,
             style: tokens
                 .text(
                   compact
@@ -806,7 +807,9 @@ class AppBanner extends StatelessWidget {
         ],
       );
     } else if (compact) {
-      content = Column(
+      // compact 의 [trailing] 은 제목 줄이 아니라 배너 전체 높이의 세로
+      // 가운데에 선다 — 제목·본문 두 줄 옆의 `메모 추가` 알약(#2950).
+      final Widget body = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: columnSize,
         children: <Widget>[
@@ -825,12 +828,19 @@ class AppBanner extends StatelessWidget {
                       .copyWith(color: accent),
                 ),
               ),
-              ...end(),
             ],
           ),
           ...below(OnCareSpacing.s2),
         ],
       );
+      content = trailing == null
+          ? body
+          : Row(
+              children: <Widget>[
+                Expanded(child: body),
+                ...end(),
+              ],
+            );
     } else {
       content = Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1108,6 +1118,7 @@ class AppEmptyState extends StatelessWidget {
         if (actionLabel != null) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s4),
           AppButton(
+            key: actionKey,
             label: actionLabel!,
             onPressed: onAction,
             variant: AppButtonVariant.text,

@@ -12,6 +12,7 @@
   기록을 열 수 없다(남의 회원과 같은 404).
 * 트레이너 혼자 재등록해 동의를 되살릴 수 없다(409).
 * 이미 주고받은 채팅·리포트는 지워지지 않는다.
+* 회원 메모는 출처와 상관없이 남고, 새 동의로 다시 이어져야 다시 보인다(#2520).
 * 마이그레이션이 이미 끊긴 링크의 옛 동의를 비운다.
 """
 from __future__ import annotations
@@ -36,6 +37,7 @@ from app.models.models import (
     Place,
     TrainerClient,
     TrainerClientInvite,
+    TrainerClientMemo,
     TrainerProfile,
     TrainerReportFeedback,
     User,
@@ -409,7 +411,10 @@ def test_member_withdrawal_leaves_no_consent_behind(client, db_session):
     """탈퇴하면 링크 행이 계정과 함께 지워진다 — 남는 동의가 없다."""
     member_id, member_token, trainer_id, _ = _linked(client, db_session)
 
-    response = client.request("DELETE", "/v1/users/me", headers=_auth(member_token))
+    response = client.request(
+        "DELETE", "/v1/users/me", json={"current_password": PASSWORD},
+        headers=_auth(member_token),
+    )
 
     assert response.status_code == 200, response.text
     db_session.expire_all()
@@ -427,6 +432,7 @@ def test_trainer_withdrawal_leaves_no_consent_behind(client, db_session):
     response = client.request(
         "DELETE",
         "/v1/trainer/me",
+        json={"current_password": PASSWORD},
         headers=_auth(trainer_token),
     )
 
@@ -702,6 +708,160 @@ def test_revoking_keeps_the_member_record_itself(client, db_session):
     assert db_session.get(User, member_id) is not None
     me = client.get("/v1/users/me", headers=_auth(member_token))
     assert me.status_code == 200, me.text
+
+
+def _memos_of_every_source(db_session, trainer_id: str, member_id: str) -> list[str]:
+    """세 출처의 메모를 하나씩 남긴다. 만든 메모 id 를 돌려준다."""
+    rows = [
+        TrainerClientMemo(
+            id=f"memo-{uuid4().hex[:12]}",
+            trainer_id=trainer_id,
+            member_id=member_id,
+            body="어깨 가동 범위 다시 확인",
+            source="trainer",
+        ),
+        TrainerClientMemo(
+            id=f"memo-{uuid4().hex[:12]}",
+            trainer_id=trainer_id,
+            member_id=member_id,
+            body="무릎 불편 감지",
+            source="chat_insight",
+            insight_id=f"insight-{uuid4().hex[:8]}",
+            insight_kind="discomfort",
+        ),
+        TrainerClientMemo(
+            id=f"memo-{uuid4().hex[:12]}",
+            trainer_id=trainer_id,
+            member_id=member_id,
+            body="스쿼트 무릎 안쪽 모임",
+            source="exercise_memo",
+            ref_kind="member_log",
+            ref_date="2026-09-28",
+        ),
+    ]
+    db_session.add_all(rows)
+    db_session.commit()
+    return [row.id for row in rows]
+
+
+def _memos(client, trainer_token: str, member_id: str):
+    return client.get(
+        f"/v1/trainer/clients/{member_id}/memos", headers=_auth(trainer_token)
+    )
+
+
+@pytest.mark.parametrize(
+    "who", ["member_releases", "member_leaves_gym", "trainer_removes"]
+)
+def test_revoking_keeps_memos_of_every_source_but_closes_them(
+    client, db_session, who
+):
+    """담당 해제(= 동의 철회)는 메모를 지우지 않고 열람만 막는다. (#2520)
+
+    끊은 쪽이 누구든, 출처(직접·채팅 감지·운동 기록)가 무엇이든 같다.
+    """
+    member_id, member_token, trainer_id, trainer_token = _linked(client, db_session)
+    memo_ids = _memos_of_every_source(db_session, trainer_id, member_id)
+
+    if who == "member_releases":
+        response = client.delete("/v1/me/coach/trainer", headers=_auth(member_token))
+    elif who == "member_leaves_gym":
+        response = client.delete("/v1/me/coach", headers=_auth(member_token))
+    else:
+        response = client.delete(
+            f"/v1/trainer/clients/{member_id}", headers=_auth(trainer_token)
+        )
+    assert response.status_code == 204, response.text
+
+    db_session.expire_all()
+    for memo_id in memo_ids:
+        assert db_session.get(TrainerClientMemo, memo_id) is not None
+    blocked = _memos(client, trainer_token, member_id)
+    assert blocked.status_code == 404
+    assert blocked.json()["detail"] == GUARD_DETAIL
+
+
+def test_memos_stay_closed_when_the_trainer_re_registers_alone(client, db_session):
+    """트레이너 혼자서는 되살릴 수 없으니 메모도 다시 열리지 않는다. (#2520)"""
+    member_id, _, trainer_id, trainer_token = _linked(client, db_session)
+    _memos_of_every_source(db_session, trainer_id, member_id)
+    assert (
+        client.delete(
+            f"/v1/trainer/clients/{member_id}", headers=_auth(trainer_token)
+        ).status_code
+        == 204
+    )
+
+    restored = client.put(
+        f"/v1/trainer/clients/{member_id}/registration", headers=_auth(trainer_token)
+    )
+
+    assert restored.status_code == 409, restored.text
+    assert _memos(client, trainer_token, member_id).status_code == 404
+
+
+def test_a_new_consent_brings_back_the_old_memos(client, db_session):
+    """회원이 다시 동의해 같은 트레이너와 이어지면 옛 메모가 그대로 보인다. (#2520)
+
+    채팅·리포트와 같은 기준이다 — 철회는 앞으로의 열람만 막는다.
+    """
+    member_id, member_token, trainer_id, trainer_token = _linked(client, db_session)
+    memo_ids = _memos_of_every_source(db_session, trainer_id, member_id)
+    assert client.delete("/v1/me/coach/trainer", headers=_auth(member_token)).status_code == 204
+
+    _pair_by_code(client, member_token, trainer_token)
+
+    response = _memos(client, trainer_token, member_id)
+    assert response.status_code == 200, response.text
+    by_id = {memo["id"]: memo["source"] for memo in response.json()}
+    assert set(by_id) == set(memo_ids)
+    assert set(by_id.values()) == {"trainer", "chat_insight", "exercise_memo"}
+
+
+def test_another_trainer_does_not_see_the_old_memos(client, db_session):
+    """메모는 쓴 트레이너의 것이다 — 새 담당에게 넘어가지 않는다. (#2520)"""
+    member_id, member_token, old_id, _ = _linked(client, db_session)
+    _memos_of_every_source(db_session, old_id, member_id)
+    new_id, new_token = _trainer(client, db_session)
+    assert client.delete("/v1/me/coach/trainer", headers=_auth(member_token)).status_code == 204
+
+    _pair_by_code(client, member_token, new_token)
+
+    response = _memos(client, new_token, member_id)
+    assert response.status_code == 200, response.text
+    assert response.json() == []
+
+
+def test_trainer_withdrawal_removes_the_memos(client, db_session):
+    """트레이너 탈퇴는 `trainer_id` CASCADE 로 그 트레이너의 메모를 함께 지운다. (#2520)"""
+    member_id, _, trainer_id, trainer_token = _linked(client, db_session)
+    memo_ids = _memos_of_every_source(db_session, trainer_id, member_id)
+
+    response = client.request(
+        "DELETE", "/v1/trainer/me", json={"current_password": PASSWORD},
+        headers=_auth(trainer_token),
+    )
+
+    assert response.status_code == 200, response.text
+    db_session.expire_all()
+    for memo_id in memo_ids:
+        assert db_session.get(TrainerClientMemo, memo_id) is None
+
+
+def test_member_withdrawal_removes_the_memos(client, db_session):
+    """회원 탈퇴는 `member_id` CASCADE 로 그 회원에 대한 메모를 함께 지운다. (#2520)"""
+    member_id, member_token, trainer_id, _ = _linked(client, db_session)
+    memo_ids = _memos_of_every_source(db_session, trainer_id, member_id)
+
+    response = client.request(
+        "DELETE", "/v1/users/me", json={"current_password": PASSWORD},
+        headers=_auth(member_token),
+    )
+
+    assert response.status_code == 200, response.text
+    db_session.expire_all()
+    for memo_id in memo_ids:
+        assert db_session.get(TrainerClientMemo, memo_id) is None
 
 
 # ---------------------------------------------------------------------------

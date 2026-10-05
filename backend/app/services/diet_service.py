@@ -2,13 +2,14 @@
 식단 도메인 서비스 — 라우터에서 분리한 집계·코칭·저장 로직.
 
 diet 라우터가 오늘 집계·나트륨 코칭·엔트리 저장/멱등을 직접 수행해 두꺼웠던 것을
-여기로 이관한다(exercise_service/health_service 와 일관성). 동작·응답 계약은 불변이며,
+여기로 이관한다(exercise_service 와 일관성). 동작·응답 계약은 불변이며,
 라우터는 HTTP 관심사(업로드·인식기 디스패치·에러 매핑)만 담당한다.
 """
 from __future__ import annotations
 
 import json
 import logging
+import math
 import uuid
 from dataclasses import dataclass
 from datetime import date as date_type, timedelta
@@ -19,7 +20,7 @@ from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.core.locale import Locale, current_locale, localized
-from app.models.models import DietEntry
+from app.models.models import DietEntry, HealthProfile
 from app.schemas.diet import DietAnalysis, RecognizedFood
 from app.schemas.diet_api import (
     DietDayTotalsOut, DietEntryCreate, DietEntryOut, DietEntryUpdate,
@@ -40,10 +41,14 @@ logger = logging.getLogger(__name__)
 # 숫자가 무엇을 재고 나온 값인가" 가 사라져 회원이 양을 고쳐도 다시 셀 근거가 없다.
 # 비례 환산에 필요한 건 DB 재조회가 아니라 이 한 값이다. 없을 수 있다(양을 못 얻은
 # 인식·이 필드 이전 기록) — 읽는 쪽이 null 을 견딘다.
+#
+# `display_name` 은 영어 화면에서 분석한 음식의 표시 이름이다(#2850). 있을 때만
+# 남긴다 — 한국어 화면·수기 입력 기록에 null 칸을 늘리지 않는다.
 _FOOD_STORAGE_FIELDS = (
-    "name", "amount_g", "calories", "sodium_mg", "sugar_g",
+    "name", "display_name", "amount_g", "calories", "sodium_mg", "sugar_g",
     "carbs_g", "protein_g", "fat_g", "source",
 )
+_OPTIONAL_FOOD_FIELDS = frozenset({"display_name"})
 # 하루 나트륨 상한. WHO 권고(2,000mg)를 쓴다 — 2025 한국인 영양소 섭취기준의
 # 성인 만성질환위험감소섭취량 2,300mg 보다 엄격한 쪽이다. 예전에는 이 값이
 # DASH(고혈압 식이) 상한이라는 이름을 달고 있었는데, 지금 타깃은 고혈압
@@ -56,12 +61,53 @@ def today_str() -> str:
 
 
 def load_foods(foods_json: str) -> list[dict]:
-    """저장된 foods_json → 표시용 음식 목록. 저장 대상 밖의 키는 버린다."""
-    foods = json.loads(foods_json) if foods_json else []
-    return [
-        {field: food[field] for field in _FOOD_STORAGE_FIELDS if field in food}
-        for food in foods
-    ]
+    """저장된 foods_json → 표시용 음식 목록. 저장 대상 밖의 키는 버린다.
+
+    항목이 딕셔너리라는 보장이 없다. `["김치찌개", 42, null]` 처럼 문자열·숫자가
+    섞인 기록이 있고(#724), 숫자 항목에서 `field in food` 가 TypeError 를 내 그 날의
+    식단 조회 전체가 500 이 됐다. 트레이너 쪽(`trainer.roster._food_names`)과 같은
+    규칙으로 문자열은 이름으로 살리고, 나머지(숫자·null 등)는 건너뛴다.
+    """
+    try:
+        foods = json.loads(foods_json) if foods_json else []
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(foods, list):
+        return []
+    out: list[dict] = []
+    for food in foods:
+        if isinstance(food, dict):
+            item = {field: food[field] for field in _FOOD_STORAGE_FIELDS if field in food}
+        elif isinstance(food, str) and food.strip():
+            item = {"name": food.strip()}
+        else:
+            continue
+        item["calories"] = _food_calories(item.get("calories"))
+        out.append(item)
+    return out
+
+
+def _food_calories(value: object) -> int:
+    """음식 한 줄의 칼로리를 응답용 정수로 접는다. 모르면 0 이다.
+
+    사진 인식이 칼로리를 읽지 못하면 `None` 으로 저장되고(`recognizer/parse.py`
+    `as_bounded_int`, 영양 DB 보강도 붙지 않은 경우), 옛 문자열 항목은 칼로리 키
+    자체가 없다(#724). 앱은 음식마다 정수 칼로리를 받는다고 보고 읽으므로, 한
+    줄이라도 `null` 이면 그날 식단 전체의 파싱이 실패했다. 끼니 합계도 이미 None 을
+    0 으로 센다(`DietAnalysis.compute_totals`) — 같은 규칙이다.
+    """
+    if isinstance(value, bool):
+        return 0
+    if isinstance(value, str):
+        try:
+            value = float(value.strip())
+        except ValueError:
+            return 0
+    if isinstance(value, int):
+        return max(0, value)
+    if isinstance(value, float) and math.isfinite(value):
+        return max(0, round(value))
+    return 0
 
 
 def store_foods(foods: list[RecognizedFood]) -> list[dict]:
@@ -71,7 +117,11 @@ def store_foods(foods: list[RecognizedFood]) -> list[dict]:
     더하면 고친 뒤에 화면이 달라진다.
     """
     return [
-        {field: getattr(food, field) for field in _FOOD_STORAGE_FIELDS}
+        {
+            field: getattr(food, field)
+            for field in _FOOD_STORAGE_FIELDS
+            if field not in _OPTIONAL_FOOD_FIELDS or getattr(food, field) is not None
+        }
         for food in foods
     ]
 
@@ -127,13 +177,45 @@ def _entry_out(entry: DietEntry, photo_id: str | None = None) -> DietEntryOut:
 
 
 def coach_message(
-    total_sodium_mg: int, has_entries: bool, locale: Locale | None = None
+    total_sodium_mg: int,
+    has_entries: bool,
+    locale: Locale | None = None,
+    *,
+    is_past: bool = False,
+    sodium_limit_mg: int | None = None,
 ) -> str:
-    """오늘 나트륨 기준 코칭 메시지. 하루 상한을 넘으면 알린다.
+    """하루 나트륨 기준 코칭 메시지. 하루 상한을 넘으면 알린다.
+
+    [is_past] 면 **그날** 을 되짚는 문장이다(#2644). 이 문장은 식단 탭에서 지난
+    날짜를 고를 때 그날의 AI 피드백으로 뜨는데, 예전에는 날짜와 무관하게
+    "오늘 … 저녁은 …" 이라 지난 화요일을 보면서 오늘 이야기를 읽었다.
+
+    상한은 [sodium_limit_mg](회원 나트륨 목표), 없으면 [SODIUM_LIMIT_MG] 다.
+    홈 나트륨 경고가 회원 목표를 쓰는데 이 문장만 고정 기준이면, 목표를 낮춘
+    회원에게 두 화면이 서로 다른 판정을 말한다.
 
     언어는 [locale], 생략하면 지금 요청의 언어다(헤더가 없으면 한국어). (#2299)
     """
-    if total_sodium_mg > SODIUM_LIMIT_MG:
+    limit = sodium_limit_mg or SODIUM_LIMIT_MG
+    if is_past:
+        if total_sodium_mg > limit:
+            return localized(
+                "그날은 나트륨 섭취가 많았어요. 다음 날은 국물·양념을 줄여 균형을 맞춰 봐요.",
+                "Sodium ran high that day. Go easy on soups and sauces the next day to balance it out.",
+                locale,
+            )
+        if not has_entries:
+            return localized(
+                "이날은 식단 기록이 없어요.",
+                "No meals were logged that day.",
+                locale,
+            )
+        return localized(
+            "나트륨을 목표 안에서 지킨 균형 잡힌 하루였어요.",
+            "A well-balanced day with sodium within your target.",
+            locale,
+        )
+    if total_sodium_mg > limit:
         return localized(
             "오늘 나트륨 섭취가 많았어요. 저녁은 담백한 구이/샐러드로 균형을 맞춰봐요!",
             "You had a lot of sodium today. Balance it out with a light grilled dish or salad for dinner!",
@@ -150,6 +232,14 @@ def coach_message(
         "A well-balanced day. Keep it up tomorrow!",
         locale,
     )
+
+
+def member_sodium_limit(db: Session, user_id: str) -> int:
+    """회원 하루 나트륨 목표(mg). 프로필에 없으면 [SODIUM_LIMIT_MG]."""
+    goal = db.scalar(
+        select(HealthProfile.daily_sodium_mg).where(HealthProfile.user_id == user_id)
+    )
+    return goal or SODIUM_LIMIT_MG
 
 
 #: 기간 조언이 다루는 구간. 정의는 [period_window] 하나뿐이다 — 운동 조언
@@ -307,7 +397,10 @@ def period_coach_message(
 
 
 def build_day(db: Session, user_id: str, date: str) -> DietTodayResponse:
-    """지정 날짜 식단 집계(칼로리·나트륨·당류·macros + 코칭 메시지)."""
+    """지정 날짜 식단 집계(칼로리·나트륨·당류·macros + 코칭 메시지).
+
+    코칭 메시지는 지난 날짜면 그날을 되짚는 문장이고, 기준은 회원 나트륨 목표다.
+    """
     rows = db.scalars(
         select(DietEntry)
         .where(DietEntry.user_id == user_id, DietEntry.date == date)
@@ -333,13 +426,25 @@ def build_day(db: Session, user_id: str, date: str) -> DietTodayResponse:
         total_sodium_mg=total_na,
         total_sugar_g=total_sugar,
         macros=calculate_macros(total_carbs, total_protein, total_fat),
-        ai_coach_message=coach_message(total_na, bool(rows)),
+        ai_coach_message=coach_message(
+            total_na,
+            bool(rows),
+            is_past=date < today_str(),
+            sodium_limit_mg=member_sodium_limit(db, user_id),
+        ),
     )
 
 
 def build_today(db: Session, user_id: str) -> DietTodayResponse:
     """오늘 식단 집계. 기존 today 엔드포인트의 동작을 유지한다."""
     return build_day(db, user_id, today_str())
+
+
+def period_floor(last: date_type) -> date_type:
+    """[last] 로 끝나는 기간 집계가 거슬러 올라갈 수 있는 가장 이른 날. (#2833)"""
+    if last.toordinal() <= MAX_PERIOD_DAYS:
+        return date_type.min
+    return last - timedelta(days=MAX_PERIOD_DAYS - 1)
 
 
 def first_entry_date(db: Session, user_id: str) -> str | None:
@@ -350,6 +455,15 @@ def first_entry_date(db: Session, user_id: str) -> str | None:
         .order_by(DietEntry.date.asc())
         .limit(1)
     )
+
+
+#: 기간 집계(`GET /diet/days`)가 한 번에 만드는 날의 최대 수(약 3년, #2833).
+#:
+#: 응답은 구간의 모든 날을 0 으로 채운 배열이라, `from=0001-01-01` 이나 기기 시계
+#: 오류로 아주 옛날 날짜에 남은 기록 하나가 수십만 칸을 만들어 워커를 묶는다.
+#: 구간이 이보다 길면 시작을 끝에서 이만큼으로 끌어올리고, 응답 `from_date` 에
+#: 실제 시작일을 싣는다(`activity_calendar_service.MAX_DAYS` 와 같은 방식).
+MAX_PERIOD_DAYS = 1100
 
 
 def build_period(
@@ -370,6 +484,9 @@ def build_period(
 
     [end] 가 오늘보다 뒤면 오늘로 당긴다 — 아직 오지 않은 날은 그래프의 칸이
     아니다(`activity_calendar_service.calendar` 와 같은 규칙).
+
+    구간은 끝에서 거슬러 [MAX_PERIOD_DAYS] 일까지다. 그보다 이른 시작(주어진 값이든
+    첫 기록일이든)은 그 하한으로 끌어올린다(#2833).
     """
     today = clock.today()
     last = min(end or today, today)
@@ -379,6 +496,7 @@ def build_period(
         first = date_type.fromisoformat(first_recorded) if first_recorded else last
     if first > last:
         first = last
+    first = max(first, period_floor(last))
 
     rows = db.scalars(
         select(DietEntry).where(
@@ -535,20 +653,25 @@ def find_by_idempotency(db: Session, user_id: str, key: str) -> DietEntry | None
 def save_analyzed_entry(
     db: Session, user_id: str, meal_type: str, analysis: DietAnalysis,
     idempotency_key: str | None,
+    record_date: date_type | None = None,
 ) -> tuple[DietEntry, bool]:
     """분석 결과를 diet_entries 에 저장. 반환: (entry, is_new).
 
     동시 재시도가 유니크 제약(user_id, idempotency_key)에 걸리면 이미 저장된 엔트리를
     반환한다(is_new=False, 중복 저장·재적재 방지). 신규 저장 시 개인 RAG 문서로도 적재.
+
+    `record_date` 는 기록을 남길 날이다(#2849). 지난 날짜 화면에서 연 추가가 싣고,
+    빠지면 저장하는 날이다. 검증(앞날 금지·범위)은 라우터 경계에서 끝난다.
     """
     foods_for_storage = store_foods(analysis.foods)
     # 날짜와 시각은 같은 시계 스냅샷에서 뽑는다. 따로 읽으면 KST 자정 사이에
     # date 는 어제, time_label 은 오늘이 되어 한 행 안에서 어긋난다.
     recorded_at = clock.now()
+    entry_date = record_date or recorded_at.date()
     entry = DietEntry(
         id=f"diet-{uuid.uuid4().hex[:12]}",
         user_id=user_id,
-        date=recorded_at.date().isoformat(),
+        date=entry_date.isoformat(),
         meal_type=meal_type,
         time_label=recorded_at.strftime("%H:%M"),
         foods_json=json.dumps(foods_for_storage, ensure_ascii=False),
@@ -567,7 +690,7 @@ def save_analyzed_entry(
     db.add(entry)
     # 보호한 날에 기록이 생기면 그날 쓴 보호권을 되돌린다(#1788) — 식단 한 끼도
     # 기록이라 보호가 필요 없어진다. 기록과 같은 트랜잭션에서 부른다.
-    streak_shield_service.refund_for_record(db, user_id, recorded_at.date())
+    streak_shield_service.refund_for_record(db, user_id, entry_date)
     try:
         db.commit()
     except IntegrityError:
@@ -612,7 +735,7 @@ def save_manual_entry(
     if payload.idempotency_key:
         existing = find_by_idempotency(db, user_id, payload.idempotency_key)
         if existing is not None:
-            return _entry_out(existing)
+            return _replayed_manual_entry(existing, payload)
     # 회원이 적은 값이라 탄수화물 0 도 적은 값이다 — 수정에서 방금 0 으로 바꾼
     # 것과 같이 본다(#1893).
     for number, food in enumerate(payload.foods, start=1):
@@ -654,7 +777,7 @@ def save_manual_entry(
             else None
         )
         if existing is not None:
-            return _entry_out(existing)
+            return _replayed_manual_entry(existing, payload)
         raise
     db.refresh(entry)
     # RAG 적재가 롤백하면 이 인스턴스가 만료된다 — 응답은 그 전에 만든다.
@@ -683,6 +806,33 @@ def get_owned_entry(db: Session, user_id: str, entry_id: str) -> DietEntry | Non
 
 class NutritionInconsistentError(ValueError):
     """영양 수치가 서로 어긋난다 — 당류가 탄수화물을 넘는 경우 등."""
+
+
+class IdempotencyConflictError(ValueError):
+    """같은 멱등키로 다른 내용을 저장하려 했다(#3095). 라우터가 409 로 바꾼다."""
+
+
+def _replayed_manual_entry(existing: DietEntry, payload: DietEntryCreate) -> DietEntryOut:
+    """같은 키로 이미 저장한 끼니. 내용이 다르면 [IdempotencyConflictError].
+
+    같은 키는 같은 저장 시도라는 약속이다. 응답을 잃은 뒤 회원이 음식·끼니·날짜를
+    고쳐 다시 보낸 것을 처음 기록으로 받아 주면, 고친 내용이 아무 알림 없이
+    버려진다(#3095). 날짜가 빠진 요청은 "저장한 날" 이라 날짜는 보낸 경우에만
+    비교한다.
+    """
+    sent_foods = json.loads(
+        json.dumps(store_foods(payload.foods), ensure_ascii=False)
+    )
+    same = (
+        existing.meal_type == payload.meal_type
+        and (payload.date is None or existing.date == payload.date)
+        and json.loads(existing.foods_json or "[]") == sent_foods
+    )
+    if not same:
+        raise IdempotencyConflictError(
+            "같은 idempotency_key로 다른 끼니를 저장할 수 없습니다."
+        )
+    return _entry_out(existing)
 
 
 def _sugar_exceeds_carbs(

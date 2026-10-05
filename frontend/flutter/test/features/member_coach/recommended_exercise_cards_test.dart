@@ -4,12 +4,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
-import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/features/ai_coach/data/repositories/mock_ai_coach_repository.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
@@ -22,6 +19,8 @@ import 'package:oncare/features/member_coach/presentation/widgets/coach_card.dar
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+
+import '../../helpers/mock_ai_coach_repository.dart';
 
 /// 코칭 포인트 — 운동 주간 데이터의 `aiCoachMessage` 자리에 들어가는 값.
 
@@ -84,6 +83,7 @@ class _SecondsRoutineRepository extends MockMemberCoachRepository {
     required int minutes,
     int? durationSeconds,
     String intensity = 'moderate',
+    DateTime? day,
   }) async {
     sentMinutes = minutes;
     sentDurationSeconds = durationSeconds;
@@ -217,11 +217,9 @@ void main() {
           supportedLocales: AppLocalizations.supportedLocales,
           home: const Scaffold(
             body: SingleChildScrollView(
-              child: Column(
-                children: <Widget>[
-                  Padding(padding: EdgeInsets.all(24), child: AiCoachingCard()),
-                  CoachCard(),
-                ],
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: AiCoachingCard(),
               ),
             ),
           ),
@@ -351,7 +349,11 @@ void main() {
     // 남은 줄은 검정 그대로 — 다음에 할 것이 먼저 읽혀야 한다.
     expect(colorOf(_aiRoutine.name), OnCareColors.textPrimary);
     expect(colorOf(done.name), isNot(OnCareColors.textPrimary));
-    expect(colorOf(done.reason), isNot(colorOf(_aiRoutine.reason)));
+    // 이유 줄은 낱말 단위로 줄을 바꾼다(#2969) — 화면 글자도 그렇게 찾는다.
+    expect(
+      colorOf(keepWords(done.reason)),
+      isNot(colorOf(keepWords(_aiRoutine.reason))),
+    );
   });
 
   testWidgets('추천 개인운동 카드가 한 영역에 트레이너·AI 추천을 함께 담는다 (#782)', (
@@ -384,25 +386,6 @@ void main() {
     expect(
       find.descendant(of: coaching, matching: find.text(_aiRoutine.name)),
       findsOneWidget,
-    );
-  });
-
-  testWidgets('추천 운동이 같은 화면에 두 번 나오지 않는다 (#782)', (WidgetTester tester) async {
-    await pumpRecommendationCards(tester, const <CoachRoutine>[
-      _trainerRoutine,
-      _aiRoutine,
-    ]);
-
-    // 예전에는 트레이너 추천이 CoachCard 에, AI 추천이 별도 카드에 있었다.
-    // 한 곳으로 모았으므로 각 운동은 화면에 한 번만 나와야 한다.
-    expect(find.text(_trainerRoutine.name), findsOneWidget);
-    expect(find.text(_aiRoutine.name), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byType(CoachCard),
-        matching: find.text(_trainerRoutine.name),
-      ),
-      findsNothing,
     );
   });
 
@@ -465,18 +448,6 @@ void main() {
     // 빈 추천 카드를 만들지 않는다 — AI 가 매번 운동을 지어낼 이유가 없다.
     expect(find.text('추천 개인운동'), findsNothing);
     expect(find.text('현재 추천할 수 있는 AI 맞춤 운동이 없어요'), findsNothing);
-  });
-
-  testWidgets('담당 트레이너 카드는 관계와 소통만 남긴다 (#782)', (WidgetTester tester) async {
-    await pumpRecommendationCards(tester, const <CoachRoutine>[
-      _trainerRoutine,
-    ]);
-
-    // 프로필 이동과 채팅은 그대로 남는다.
-    expect(find.byKey(const Key('assignedTrainerProfile')), findsOneWidget);
-    expect(find.text('트레이너와 채팅'), findsOneWidget);
-    // 추천 운동 목록은 AI 코칭으로 옮겼다.
-    expect(find.text('트레이너 추천 추가 개인운동'), findsNothing);
   });
 
   testWidgets('여러 세션짜리 프로그램은 프로그램 이름과 세션 구분을 함께 보여 준다 (#709)', (
@@ -559,7 +530,7 @@ void main() {
       findsNothing,
     );
     expect(
-      find.descendant(of: coaching, matching: find.text('허리 부담 완화')),
+      find.descendant(of: coaching, matching: find.text(keepWords('허리 부담 완화'))),
       findsOneWidget,
     );
   });
@@ -673,50 +644,6 @@ void main() {
 
     expect(find.text('완료 루틴'), findsOneWidget);
     expect(find.textContaining('트레이너 피드백'), findsNothing);
-  });
-
-  testWidgets('담당 트레이너 프로필은 트레이너 상세 경로로 이동한다', (WidgetTester tester) async {
-    final GoRouter router = GoRouter(
-      routes: <RouteBase>[
-        GoRoute(
-          path: '/',
-          builder: (_, _) => const Scaffold(body: CoachCard()),
-        ),
-        GoRoute(
-          path: AppRoutes.trainerDetail,
-          builder: (_, GoRouterState state) => Scaffold(
-            body: Text('trainer:${state.pathParameters['trainerId']}'),
-          ),
-        ),
-      ],
-    );
-    addTearDown(router.dispose);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: <Override>[
-          memberCoachProvider.overrideWith((ref) async => _trainer),
-          coachRoutinesProvider.overrideWith(
-            (ref) async => const <CoachRoutine>[],
-          ),
-          coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
-          myTrainerProvider.overrideWith((ref) async => _assignedTrainer),
-        ],
-        child: MaterialApp.router(
-          routerConfig: router,
-          theme: AppTheme.light(),
-          locale: const Locale('ko'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('assignedTrainerProfile')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('trainer:${_assignedTrainer.id}'), findsOneWidget);
   });
 
   testWidgets('트레이너 채팅은 말풍선 가장자리 시간과 입력창을 표시하고 메시지를 전송한다', (
@@ -987,7 +914,7 @@ void main() {
     expect(trigger, findsOneWidget);
     expect(tester.widget(trigger), isA<AppIconButton>());
     // 줄에는 빨간 글자가 남지 않는다 — 문구는 확인창에서만 읽힌다.
-    expect(find.text('이 개인 운동 삭제'), findsNothing);
+    expect(find.text('이 개인운동 삭제'), findsNothing);
   });
 
   testWidgets('개인 운동 삭제 확인창의 왼쪽 버튼은 `유지` 다 (#1782)', (

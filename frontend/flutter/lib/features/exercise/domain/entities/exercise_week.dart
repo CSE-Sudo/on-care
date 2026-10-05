@@ -1,12 +1,19 @@
 import 'package:oncare/core/points/points_award.dart';
+import 'package:oncare_rules/oncare_rules.dart'
+    show
+        kExerciseTypeCardio,
+        kExerciseTypeStrength,
+        kExerciseTypeStretching,
+        normalizeExerciseType;
 
 /// "N일 연속" — 운동한 요일 중 **가장 긴 연속 구간**의 길이. 활성 일수의 단순
 /// 합계가 아니다(월·수·금 운동은 3일이 아니라 1일 연속).
 ///
 /// 요일별 분 하나만 보고 계산하므로 저장된 세션 목록이 없어도, 그리고 세션에
 /// 없는 분(오늘 체크한 AI 추천 운동)이 더해진 뒤에도 같은 규칙으로 다시 셀 수
-/// 있다. 세 생산자(mock 저장소·LocalApiInterceptor·FastAPI)가 이 정의를 공유해
-/// 운동 탭의 '연속' 카드가 어느 경로에서든 같은 뜻이 된다.
+/// 있다. 데모 생산자(LocalApiInterceptor)가 이 함수를 쓰고 FastAPI
+/// (`exercise_service._longest_streak`)가 같은 정의를 따라, 운동 탭의 '연속'
+/// 카드가 어느 경로에서든 같은 뜻이 된다.
 ///
 /// **운동만 센다.** 식단도 세는 기록 연속(연속 기록 보호권이 지키는 값)과는 다른
 /// 값이고, 보호권으로 이어 붙인 날도 여기에는 들어가지 않는다 — 운동 탭의 이
@@ -27,17 +34,22 @@ int longestActiveStreak(List<double> dailyMinutes) {
 
 enum ExerciseType { cardio, strength, yoga, walking, stretching, other }
 
-/// 서버·저장소가 쓰는 유형 코드 → [ExerciseType].
+/// 유형 표기(영문 코드·한글 라벨·옛 값) → [ExerciseType].
 ///
-/// 표준 어휘는 네 가지(cardio·strength·flexibility·other)인데 이 enum 은 옛
+/// 표준 어휘는 네 가지(cardio·strength·stretching·other)인데 이 enum 은 옛
 /// 이름을 아직 값으로 들고 있다 — `flexibility` 를 이름으로 찾으면 못 찾아
 /// **스트레칭 기록이 기타로 떨어졌다**. 옛 값도 자기 버킷으로 접어 읽는다. (#996)
-ExerciseType _exerciseTypeFromString(String s) => switch (s) {
-  'cardio' || 'walking' => ExerciseType.cardio,
-  'strength' => ExerciseType.strength,
-  'flexibility' || 'stretching' || 'yoga' => ExerciseType.stretching,
-  _ => ExerciseType.other,
-};
+///
+/// 접는 표는 서버 `exercise_types.normalize` 와 같은 공용 표
+/// ([normalizeExerciseType]) 하나다 — `유산소`·`근력` 같은 한글 라벨도 기타로
+/// 떨어지지 않는다(#2861).
+ExerciseType exerciseTypeFromCode(String? value) =>
+    switch (normalizeExerciseType(value)) {
+      kExerciseTypeCardio => ExerciseType.cardio,
+      kExerciseTypeStrength => ExerciseType.strength,
+      kExerciseTypeStretching => ExerciseType.stretching,
+      _ => ExerciseType.other,
+    };
 
 /// Workout intensity, persisted so the edit sheet reopens at the saved
 /// level and calorie estimates stay consistent. Order matches the
@@ -92,6 +104,29 @@ enum ExerciseCalorieSource {
   bool get isGrounded => this != ExerciseCalorieSource.estimate;
 }
 
+/// 직접 기록한 운동의 개인 기록 태그. (#2971)
+///
+/// 서버가 회원의 지난 기록과 견줘 기록마다 하나를 정한다 — 평가가 아니라 사실만
+/// 알린다. 우선순위는 [maxWeight] → [longest] → [first] 다.
+enum ExerciseRecord {
+  /// 같은 근력 운동을 전에 든 어떤 중량보다 무겁다.
+  maxWeight,
+
+  /// 같은 운동(근력 외)을 전에 한 어떤 시간보다 길다.
+  longest,
+
+  /// 이 이름으로 처음 적은 운동이다.
+  first;
+
+  /// 서버 값(`max_weight` 등). 모르는 값·null 은 태그 없음이다.
+  static ExerciseRecord? fromJson(Object? value) => switch (value) {
+    'max_weight' => maxWeight,
+    'longest' => longest,
+    'first' => first,
+    _ => null,
+  };
+}
+
 class ExerciseSession {
   const ExerciseSession({
     this.id,
@@ -116,6 +151,7 @@ class ExerciseSession {
     this.weight,
     this.date,
     this.pointsAward,
+    this.record,
   });
 
   final String? id;
@@ -123,6 +159,9 @@ class ExerciseSession {
   /// 이 기록을 새로 추가해 받은 포인트(#1786). 생성 응답에만 있고, 주간 목록의
   /// 기록은 null 이다.
   final PointsAward? pointsAward;
+
+  /// 개인 기록 태그(#2971). 직접 기록한 운동에만 있고, 없으면 null 이다.
+  final ExerciseRecord? record;
   final String dayLabel;
   final ExerciseType type;
   final int minutes;
@@ -192,7 +231,7 @@ class ExerciseSession {
       ExerciseSession(
         id: json['id'] as String?,
         dayLabel: json['day_label']! as String,
-        type: _exerciseTypeFromString(json['type']! as String),
+        type: exerciseTypeFromCode(json['type']! as String),
         minutes: (json['minutes']! as num).toInt(),
         calories: (json['calories']! as num).toInt(),
         calorieSource: ExerciseCalorieSource.fromJson(json['calorie_source']),
@@ -214,6 +253,7 @@ class ExerciseSession {
         weight: (json['weight'] as num?)?.toDouble(),
         date: DateTime.tryParse(json['date'] as String? ?? ''),
         pointsAward: PointsAward.fromJson(json['points']),
+        record: ExerciseRecord.fromJson(json['record']),
       );
 }
 
@@ -293,10 +333,9 @@ class ExerciseWeek {
     return ExerciseWeek(
       sessions: const <ExerciseSession>[],
       dailyMinutes: numbers('daily_minutes'),
-      dayLabels:
-          ((json['day_labels'] as List<Object?>?) ?? const <Object?>[])
-              .whereType<String>()
-              .toList(growable: false),
+      dayLabels: ((json['day_labels'] as List<Object?>?) ?? const <Object?>[])
+          .whereType<String>()
+          .toList(growable: false),
       totalMinutes: (json['total_minutes'] as num?)?.toInt() ?? 0,
       totalCalories: (json['total_calories'] as num?)?.toInt() ?? 0,
       streakDays: (json['streak_days'] as num?)?.toInt() ?? 0,

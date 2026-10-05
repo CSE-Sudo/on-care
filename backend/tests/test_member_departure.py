@@ -153,7 +153,10 @@ def test_withdrawal_leaves_a_notice_that_outlives_the_member(client, db_session)
     _, trainer_token = _trainer(client, db_session)
     _link(client, member_token, trainer_token)
 
-    response = client.delete("/v1/users/me", headers=_auth(member_token))
+    response = client.request(
+        "DELETE", "/v1/users/me", json={"current_password": PASSWORD},
+        headers=_auth(member_token),
+    )
 
     assert response.status_code == 200, response.text
     assert db_session.get(User, member_id) is None
@@ -202,7 +205,10 @@ def test_a_member_without_a_trainer_leaves_no_notice(client, db_session):
         Notification.category == TRAINER_MEMBER_LEFT_KIND
     ).count()
 
-    response = client.delete("/v1/users/me", headers=_auth(member_token))
+    response = client.request(
+        "DELETE", "/v1/users/me", json={"current_password": PASSWORD},
+        headers=_auth(member_token),
+    )
 
     assert response.status_code == 200, response.text
     db_session.expire_all()

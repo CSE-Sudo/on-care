@@ -1,7 +1,7 @@
 import 'dart:convert';
 
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/follow_up_task.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
@@ -85,15 +85,18 @@ Future<void> seedDemoTrainerNotes(
           TrainerMemo(
             id: 'memo-seed-note-$i',
             body: pick(m.body),
-            source: m.memberLog
-                ? TrainerMemoSource.exerciseMemo
-                : TrainerMemoSource.trainer,
-            ref: m.memberLog
-                ? TrainerMemoRef(
-                    kind: TrainerMemoRefKind.memberLog,
+            source: m.history == null
+                ? TrainerMemoSource.trainer
+                : TrainerMemoSource.exerciseMemo,
+            // 운동 탭 그날 출처 줄(시드 이력 한 건)에 단 메모 — 그 줄의 메모
+            // 개수에 들어간다(#2508).
+            ref: m.history == null
+                ? null
+                : TrainerMemoRef(
+                    kind: TrainerMemoRefKind.personal,
+                    id: 'seed-history-${m.client}-${m.history}',
                     day: ymd(daysFrom(m.daysAgo * -1)),
-                  )
-                : null,
+                  ),
             createdAt: at,
             updatedAt: at,
           ).toJson(),
@@ -271,11 +274,12 @@ typedef _SeedMemo = ({
   int client,
   int daysAgo,
   ({String ko, String en}) body,
-  bool memberLog,
+  int? history,
 });
 
 /// 트레이너가 회원 상세에 직접 쓴 메모. AI 추천 근거 `트레이너 메모`(최근
-/// 14일)가 읽는다. [memberLog] 는 운동 탭 기록 카드에서 남긴 메모다(#2332).
+/// 14일)가 읽는다. [history] 가 있으면 운동 탭에서 그 시드 이력(순번)의 출처
+/// 줄에 남긴 메모다(#2332, #2508) — 같은 날([daysAgo]) 이력이어야 한다.
 const List<_SeedMemo> _memos = <_SeedMemo>[
   (
     client: 8,
@@ -284,7 +288,7 @@ const List<_SeedMemo> _memos = <_SeedMemo>[
       ko: '혈압약 복용 시간이 아침 7시로 바뀜. 고강도 인터벌은 당분간 빼기.',
       en: 'Blood pressure meds moved to 7 a.m. Leave out high-intensity intervals for now.',
     ),
-    memberLog: false,
+    history: null,
   ),
   (
     client: 10,
@@ -293,7 +297,7 @@ const List<_SeedMemo> _memos = <_SeedMemo>[
       ko: '무릎 굴곡 110°까지 통증 없음. 다음 주부터 스쿼트 깊이를 조금씩 늘리기.',
       en: 'Knee flexion pain-free to 110°. Start deepening squats a little from next week.',
     ),
-    memberLog: false,
+    history: null,
   ),
   (
     client: 9,
@@ -302,7 +306,7 @@ const List<_SeedMemo> _memos = <_SeedMemo>[
       ko: '야근은 주로 화·목. 그날은 15분 홈트로 대신하도록 안내함.',
       en: 'Overtime is mostly Tue/Thu. Suggested a 15-minute home workout on those days.',
     ),
-    memberLog: false,
+    history: null,
   ),
   (
     client: 13,
@@ -311,7 +315,7 @@ const List<_SeedMemo> _memos = <_SeedMemo>[
       ko: '벌크업 중 체중은 주 0.3kg 증가가 목표. 저녁 탄수화물 늘리기로 합의.',
       en: 'Bulking target is +0.3kg a week. Agreed to add carbs at dinner.',
     ),
-    memberLog: false,
+    history: null,
   ),
   (
     client: 11,
@@ -320,7 +324,7 @@ const List<_SeedMemo> _memos = <_SeedMemo>[
       ko: '회식이 있는 주는 점심을 가볍게 — 본인이 먼저 제안함.',
       en: 'On weeks with work dinners, a lighter lunch — his own idea.',
     ),
-    memberLog: false,
+    history: null,
   ),
   (
     client: 6,
@@ -329,7 +333,7 @@ const List<_SeedMemo> _memos = <_SeedMemo>[
       ko: '주말 러닝은 혼자서도 꾸준히 이어 가는 중.',
       en: 'Keeping up weekend runs on her own.',
     ),
-    memberLog: true,
+    history: 0,
   ),
 ];
 

@@ -2,32 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
-import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/features/notification/presentation/pages/notification_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-const AppConfig _mockConfig = AppConfig(
-  environment: Environment.dev,
-  apiBaseUrl: 'https://dev.api.test',
-  useMockApi: true,
-);
+import '../../helpers/demo_notifications.dart';
 
 Future<void> _pumpNotificationPage(
   WidgetTester tester,
   Brightness platformBrightness, {
   Locale locale = const Locale('ko'),
 }) async {
-  // 데모 알림이 열 건이라 모든 줄이 그려지도록 화면을 길게 둔다(#1812).
+  // 데모 알림이 일곱 건이라 모든 줄이 그려지도록 화면을 길게 둔다(#1812).
   tester.view.physicalSize = const Size(800, 2400);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   tester.platformDispatcher.platformBrightnessTestValue = platformBrightness;
   addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+  // 데모 알림함은 로컬 인터셉터가 drift 시드로 답한다(#2660).
+  final AppDatabase db = (await tester.runAsync(seededDemoDatabase))!;
+  addTearDown(() => tester.runAsync(db.close));
   await tester.pumpWidget(
     ProviderScope(
-      overrides: <Override>[appConfigProvider.overrideWithValue(_mockConfig)],
+      overrides: demoNotificationOverrides(db),
       child: MaterialApp(
         theme: AppTheme.light(),
         // 이 파일은 한국어 문구로 화면을 찾는다. 로케일을 고정하지 않으면
@@ -52,22 +51,22 @@ void main() {
       locale: const Locale('en'),
     );
 
-    expect(find.text('Watch your sodium'), findsOneWidget);
+    expect(find.text('New personal exercises'), findsOneWidget);
     expect(find.text('Scheduled maintenance'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey<String>('notification-time-a1')),
+      find.byKey(const ValueKey<String>('notification-time-seed-noti-5')),
       findsOneWidget,
     );
     expect(
       tester
           .widget<Text>(
-            find.byKey(const ValueKey<String>('notification-time-a1')),
+            find.byKey(const ValueKey<String>('notification-time-seed-noti-5')),
           )
           .data,
-      '10m ago',
+      '30m ago',
     );
-    expect(find.text('나트륨 섭취 주의'), findsNothing);
-    expect(find.text('10분 전'), findsNothing);
+    expect(find.text('새 개인운동이 왔어요'), findsNothing);
+    expect(find.text('30분 전'), findsNothing);
   });
 
   for (final Brightness brightness in Brightness.values) {
@@ -88,7 +87,7 @@ void main() {
           theme.colorScheme.surfaceContainerHigh,
           OnCareBrand.member.surface,
         );
-        expect(find.text('나트륨 섭취 주의'), findsOneWidget);
+        expect(find.text('새 개인운동이 왔어요'), findsOneWidget);
         expect(find.text('서비스 점검 안내'), findsOneWidget);
         // 개발용 가상 푸시 버튼은 목/데모 빌드에도 두지 않는다(#1242).
         expect(find.text('Simulate push'), findsNothing);
@@ -107,7 +106,8 @@ void main() {
     final ProviderContainer container = ProviderScope.containerOf(pageContext);
 
     await tester.tap(find.text('모두 읽음'));
-    await tester.pump();
+    // 읽음 요청이 인터셉터를 거쳐 끝나기까지 기다린다 — 남은 타이머가 없어야 한다.
+    await tester.pumpAndSettle();
     expect(container.read(notificationControllerProvider).unreadCount, 0);
   });
 
@@ -164,7 +164,7 @@ void main() {
       container
           .read(notificationControllerProvider.notifier)
           .markRead(unread.first.id);
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(rowColor(tester, unread.first.id), OnCareColors.surfaceCard);
       for (final other in unread.skip(1)) {
@@ -177,7 +177,7 @@ void main() {
       final ProviderContainer container = containerOf(tester);
 
       await tester.tap(find.text('모두 읽음'));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       for (final item in container.read(notificationControllerProvider).items) {
         expect(rowColor(tester, item.id), OnCareColors.surfaceCard);

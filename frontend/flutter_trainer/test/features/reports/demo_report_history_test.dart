@@ -39,7 +39,6 @@ final List<String> _ids = <String>[
 ];
 
 /// 신규·적응 중 회원.
-const Set<String> _newcomers = <String>{'seed-client-7', 'seed-client-15'};
 
 List<DemoReportWeek> _history(String id, {DateTime? today}) =>
     demoReportHistoryFor(clientId: id, today: today ?? _today);
@@ -58,7 +57,9 @@ void main() {
   group('demoReportHistoryFor — 주 수와 가입 시점', () {
     test('오래된 회원은 이번 주 포함 열네 주, 지난 주만 열세 주 이상이다', () {
       for (final String id in _ids) {
-        if (_newcomers.contains(id)) continue;
+        // 붙은 주가 적힌 회원(신규·적응 중, 11주 전 PT 를 시작한 김민수 #2694)은
+        // 아래 시험이 본다.
+        if (demoMemberJoinedWeeksAgo.containsKey(id)) continue;
         final List<DemoReportWeek> weeks = _history(id);
         expect(weeks, hasLength(demoReportHistoryWeeks), reason: id);
         expect(

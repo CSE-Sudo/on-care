@@ -31,9 +31,12 @@ from sqlalchemy.orm import Session
 
 from app.core.locale import Locale, current_locale, localized
 from app.schemas.trainer_api import ReportSummaryOut, WeeklyReportOut
-from app.services import client_signals, trainer_service
+from app.services import ai_call_quota, client_signals, goal_defaults, korean_josa
+from app.services.trainer import reports as trainer_reports_service
 from app.services.coach import prompt_safety
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
+from app.services.ai_log import log_ai_fallback
+from app.services.coach.llm_base import is_truncated, output_cap
 
 logger = logging.getLogger(__name__)
 
@@ -41,9 +44,10 @@ logger = logging.getLogger(__name__)
 #: 먼저다(#1430) — 같은 1,900kcal 이 어떤 회원에게는 부족이고 어떤 회원에게는
 #: 초과다. 적어 둔 것이 없을 때만 이 값을 쓰고, 근거 문장에 어느 기준을 썼는지
 #: 함께 적는다.
-SODIUM_TARGET_MG = 2000
-CALORIE_TARGET_KCAL = 2000
-SUGAR_TARGET_G = 50
+#: 값은 목표 미설정 기본값 원본(`goal_defaults`) 한 곳에 있다(#2906).
+SODIUM_TARGET_MG = goal_defaults.DAILY_SODIUM_MG
+CALORIE_TARGET_KCAL = goal_defaults.DAILY_CALORIES
+SUGAR_TARGET_G = goal_defaults.DAILY_SUGAR_G
 
 #: 칼로리가 목표에서 이만큼 벗어나면 주의로 본다. 하루하루가 목표에 딱 맞는
 #: 주는 없으므로 좁게 잡으면 매주 주의가 뜬다. 회원 목록의 `칼로리 목표 이탈`
@@ -69,6 +73,8 @@ SODIUM_OVER_DAYS = 2
 MAX_POINTS = 3
 
 LLM_TIMEOUT_SECONDS = 10.0
+#: 출력 토큰 상한(#3032). 헤드라인 한 줄과 근거 세 줄, 사고 예산이 들어가는 값.
+LLM_MAX_OUTPUT_TOKENS = 1024
 _MAX_CONCURRENT_LLM = 4
 _llm_slots = threading.Semaphore(_MAX_CONCURRENT_LLM)
 _executor = ThreadPoolExecutor(max_workers=_MAX_CONCURRENT_LLM)
@@ -140,7 +146,7 @@ def generate_summary(
     요청 컨텍스트를 보지 못하므로, 언어는 여기서 한 번 정해 끝까지 넘긴다.
     """
     locale = locale or current_locale()
-    report = trainer_service.build_weekly_report(db, trainer_id, member_id, week)
+    report = trainer_reports_service.build_weekly_report(db, trainer_id, member_id, week)
     evidence = _evidence(report, locale)
     fallback = _rule_summary(report, evidence, locale)
     if not evidence:
@@ -158,14 +164,30 @@ def generate_summary(
         ensure_ascii=False,
     )
     try:
-        result = _call_llm(prompt, locale)
+        result = _call_llm(prompt, locale, trainer_id=trainer_id)
+        if is_truncated(result):
+            # 출력 상한에 끊긴 응답은 계약 위반이다(#3032).
+            raise ValueError("리포트 요약 LLM 응답이 출력 상한에 걸려 끊김")
         return _decode(result.text, report, evidence, locale)
-    except (json.JSONDecodeError, ValidationError, ValueError):
-        logger.warning("리포트 요약 LLM 계약 위반 — 규칙 기반 요약 사용", exc_info=True)
+    except ai_call_quota.TrainerAiDailyLimitReached:
+        # 이 트레이너의 오늘 몫을 다 썼다 — 라우터가 429 `daily_limit` 로 옮긴다(#3032).
+        raise
+    except ai_call_quota.AiCapacityReached:
+        logger.info("리포트 요약 서버 AI 상한 도달 — 규칙 기반 요약 사용")
+    # 규칙 기반 요약으로 폴백한다. 예외 메시지·스택은 남기지 않는다 — 계약 위반
+    # 메시지(`ValidationError`·`JSONDecodeError`)는 모델 출력을 그대로 싣는다(#3090).
+    except (json.JSONDecodeError, ValidationError, ValueError) as exc:
+        log_ai_fallback(
+            logger, "report_summary", "contract", exc=exc,
+            trainer_id=trainer_id, member_id=member_id,
+        )
     except FutureTimeout:
         logger.warning("리포트 요약 LLM 타임아웃 — 규칙 기반 요약 사용")
-    except Exception:
-        logger.exception("리포트 요약 LLM 호출 실패 — 규칙 기반 요약 사용")
+    except Exception as exc:  # noqa: BLE001 — 공급자 장애·우리 쪽 버그
+        log_ai_fallback(
+            logger, "report_summary", "error", exc=exc, level=logging.ERROR,
+            trainer_id=trainer_id, member_id=member_id,
+        )
     return fallback
 
 
@@ -262,6 +284,10 @@ def watchpoints(
     report: WeeklyReportOut, locale: Locale | None = None
 ) -> list[Watchpoint]:
     """그 주의 주의사항 전부. **판정은 여기 한 곳에서만 한다.**
+
+    트레이너 웹 데모(`report_summary.dart` 의 `summaryWatchpoints`)가 같은 판정을
+    옮겨 들고 있다. 기준이나 판정을 바꾸면 `scripts/gen_report_summary_cases.py`
+    로 공유 사례 파일을 다시 만든다 — 두 쪽 테스트가 그 파일과 대조한다(#2906).
 
     운동 이행률·건너뛴 운동·나트륨·당류·칼로리·탄단지를 같은 기준으로 본다.
     LLM 입력과 규칙 기반 대체 요약, 다음 주 조치가 이 목록을 함께 쓴다.
@@ -482,30 +508,10 @@ def _skipped_exercises(report: WeeklyReportOut) -> list[str]:
             if "✗" in line:
                 # 분량을 뗀 이름으로 묶는다 — 같은 운동을 요일마다 건너뛴 것이
                 # 서로 다른 운동 셋으로 읽히면 안 된다(#1177).
-                name = trainer_service.exercise_base_name(line)
+                name = trainer_reports_service.exercise_base_name(line)
                 if name and name not in names:
                     names.append(name)
     return names[:MAX_POINTS]
-
-
-def _has_batchim(word: str) -> bool:
-    """마지막 글자를 소리 내어 읽었을 때 받침이 있는가.
-
-    조사를 고르는 유일한 기준이다. 한글만 보던 때에는 `81%`·`1,916mg` 처럼
-    숫자·단위로 끝나는 말이 전부 받침 없음으로 떨어져 조사가 반쯤 어긋났다.
-    앱의 `hasFinalConsonant` 와 같은 규칙이다(#1177).
-    """
-    word = word.strip()
-    if not word:
-        return False
-    last = word[-1]
-    if "가" <= last <= "힣":
-        return (ord(last) - 0xAC00) % 28 != 0
-    if last.isdigit():
-        # 영·일·삼·육·칠·팔에 받침이 있다.
-        return int(last) in {0, 1, 3, 6, 7, 8}
-    # 화면에 쓰는 단위는 모두 모음으로 끝나게 읽힌다(퍼센트·밀리그램·그램).
-    return False
 
 
 def _points(
@@ -605,16 +611,21 @@ def _rule_summary(
     elif good:
         kept = good[0]
         headline = (
-            f"{name} 고객은 {kept}{'으로' if _has_batchim(kept) else '로'} 잘 지켰고, "
-            f"다음 주는 {top}{'을' if _has_batchim(top) else '를'} 함께 챙기면 좋겠습니다."
+            f"{name} 고객은 {kept}{korean_josa.particle(kept, '으로', '로')} 잘 지켰고, "
+            f"다음 주는 {top}{korean_josa.particle(top, '을', '를')} 함께 챙기면 좋겠습니다."
             f"{rest}"
         )
     else:
-        subject = "이" if _has_batchim(top) else "가"
+        subject = korean_josa.particle(top, "이", "가")
         headline = (
             f"{name} 고객은 {top}{subject} 목표를 벗어나 다음 주 조정이 필요합니다.{rest}"
         )
     return _out(report, headline, _points(report, evidence, locale), "rule")
+
+
+#: AI 가 쓴 headline 의 최대 길이(#3090). 프롬프트는 "한 문장" 을 요구한다. 영어 한
+#: 문장(잘한 점 + 챙길 점)이 한국어보다 길어 두 언어를 함께 담는 값으로 둔다.
+HEADLINE_MAX = 200
 
 
 def _decode(
@@ -625,9 +636,15 @@ def _decode(
 ) -> ReportSummaryOut:
     """모델 응답을 검사한다. 근거를 지어냈으면 계약 위반으로 본다."""
     raw = json.loads(text)
+    if not isinstance(raw, dict):
+        raise ValueError("LLM 응답이 JSON 객체가 아닙니다.")
     headline = str(raw.get("headline", "")).strip()
     if not headline:
         raise ValueError("LLM 응답에 headline 이 없습니다.")
+    # 한 문장이어야 할 칸에 긴 글이 오면 요약 카드에 그대로 뜬다(#3090). 자르지 않고
+    # 계약 위반으로 본다 — 중간에서 끊긴 문장보다 규칙 기반 한 문장이 낫다.
+    if len(headline) > HEADLINE_MAX:
+        raise ValueError("LLM 응답의 headline 이 너무 깁니다.")
     points = [str(p).strip() for p in raw.get("points", []) if str(p).strip()]
     if not points or not set(points).issubset(evidence):
         raise ValueError("LLM 응답의 근거가 입력 데이터와 다릅니다.")
@@ -648,24 +665,36 @@ def _out(
     )
 
 
-def _call_llm(prompt: str, locale: Locale = "ko"):
+def _call_llm(prompt: str, locale: Locale = "ko", *, trainer_id: str | None = None):
     """요청을 최대 10초로 제한하고 지연 호출의 무한 적체를 막는다.
 
     [locale] 은 호출하는 쪽에서 정해 넘긴다 — 여기서 도는 스레드는 요청 컨텍스트를
     보지 못해 :func:`current_locale` 이 늘 기본값을 돌려준다.
+
+    트레이너·서버 전체 하루 상한(#3032)은 자리를 잡은 뒤, 모델을 부르기 직전에 센다.
     """
     if not _llm_slots.acquire(blocking=False):
         raise RuntimeError("리포트 요약 LLM 동시 호출 한도 초과")
+    try:
+        # 공급자를 고른 뒤에 센다 — 키가 없어 부르지 못하는 호출은 하루 상한(#3032)에 세지 않는다.
+        llm = get_coach_llm()
+        ai_call_quota.acquire(
+            ai_call_quota.FEATURE_REPORT_SUMMARY, trainer_id=trainer_id
+        )
+    except BaseException:
+        _llm_slots.release()
+        raise
     system_prompt = _system_prompt(locale)
 
     def _call():
         try:
-            return get_coach_llm().generate(
+            return llm.generate(
                 system_prompt,
                 prompt,
                 json_mode=True,
                 thinking_budget=DEFAULT_THINKING_BUDGET,
                 timeout_seconds=LLM_TIMEOUT_SECONDS,
+                max_output_tokens=output_cap(LLM_MAX_OUTPUT_TOKENS),
             )
         finally:
             _llm_slots.release()

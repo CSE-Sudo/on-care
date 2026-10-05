@@ -1,13 +1,15 @@
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
+import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/prefs_provider.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
@@ -20,6 +22,7 @@ import 'package:oncare_trainer/features/coaching/domain/entities/routine_context
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
+import 'package:oncare_trainer/features/coaching/domain/routine_generate_limits.dart';
 import 'package:oncare_trainer/features/coaching/presentation/pages/ai_routine_options_flow.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -46,7 +49,8 @@ const _client = TrainerClient(
   sodiumMg: 2100,
   sugarG: 40,
   lastRoutine: '저강도 유산소',
-  weekCompletion: <int>[100, 0, 60, 0, 0, 0, 0],
+  // 걸린 것이 없던 날은 null(#2513) — 걸린 날 100·60 의 평균 80%.
+  weekCompletion: <int?>[100, null, 60, null, null, null, null],
   sodiumWeek: <int>[],
 );
 
@@ -236,6 +240,20 @@ String? _unitOf(WidgetTester tester, Finder field) {
       .data;
 }
 
+/// 데모 AI 제안 저장소의 메모리판. (#2668)
+///
+/// 앱의 데모 provider 는 검토 상태를 데모 DB 에 남기고 승인한 제안을 배정
+/// 저장소로 넘기는데, 이 위젯 테스트는 DB 를 열지 않는다 — 제안 목록만 필요하다.
+Override _demoSuggestions() => trainerRoutineSuggestionRepositoryProvider
+    .overrideWithValue(MockTrainerRoutineSuggestionRepository());
+
+/// 데모 A/B 생성 저장소의 DB 없는 판(고정 스냅샷). (#2668)
+///
+/// 앱의 데모 provider 는 회원 스냅샷을 데모 DB 에서 읽는다 — 이 위젯 테스트가
+/// 그 DB 를 열면 실제 파일 경로를 찾다 멈춘다.
+Override _demoOptions() => trainerRoutineOptionsRepositoryProvider
+    .overrideWithValue(const MockTrainerRoutineOptionsRepository());
+
 void main() {
   // 이 파일의 흐름 테스트는 `MaterialApp(locale: ko)` 로 띄운다. 데모 저장소는
   // 화면 언어를 위젯 밖([trainerResolvedLocaleProvider] — 브라우저 언어)에서
@@ -250,8 +268,14 @@ void main() {
 
   group('trainerRoutineOptionsRepositoryProvider', () {
     test('mock when USE_MOCK_API=true', () {
+      // 데모 저장소는 데모 DB 를 받는다(#2668) — 실제 DB 를 열지 않게 메모리로.
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(db.close);
       final c = ProviderContainer(
-        overrides: <Override>[appConfigProvider.overrideWithValue(_mockConfig)],
+        overrides: <Override>[
+          appConfigProvider.overrideWithValue(_mockConfig),
+          appDatabaseProvider.overrideWithValue(db),
+        ],
       );
       addTearDown(c.dispose);
       expect(
@@ -278,9 +302,12 @@ void main() {
     test('mock generator respects the requested time at both limits', () async {
       const repo = MockTrainerRoutineOptionsRepository();
 
-      // 5 는 RoutineMinutesSlider 의 실제 최소값이다 — 예전엔 A안 하한이 10 이라
-      // `clamp(10, 5)`로 죽었다.
-      for (final minutes in <int>[5, 10, 180]) {
+      // 10·180 은 서버가 받는 생성 조건 총 시간의 양 끝이다(#2871). 범위 밖
+      // 값은 데모도 실서버처럼 ValidationError 로 거절한다.
+      for (final minutes in <int>[
+        kRoutineGenerateMinMinutes,
+        kRoutineGenerateMaxMinutes,
+      ]) {
         final options = await repo.generate(
           'm1',
           availableMinutes: minutes,
@@ -376,7 +403,9 @@ void main() {
             if (suggestions != null)
               trainerRoutineSuggestionRepositoryProvider.overrideWithValue(
                 _StaticSuggestionRepository(suggestions),
-              ),
+              )
+            else
+              _demoSuggestions(),
           ],
           child: MaterialApp(
             locale: locale,
@@ -1076,18 +1105,32 @@ void main() {
       expect(find.text('운동 직접 등록'), findsNothing);
     });
 
-    testWidgets('데모에서는 목표 기반 기본 추천 안내가 보이지 않는다', (tester) async {
-      // 데모 회원은 기록이 없어 생성기가 늘 template 상태를 돌려준다.
+    testWidgets('데모도 기록이 적은 회원에게 그 사실을 그대로 말한다 (#2674)', (tester) async {
+      // 예전에는 데모에서만 이 상태를 숨겼다(#1028). 이제 데모도 시드한 기록으로
+      // 상태를 세므로 실서버와 같게 보인다.
       await pumpFlow(tester, response: _templateOptions());
       await generate(tester);
 
-      expect(find.text('목표 기반 기본 추천'), findsNothing);
-      expect(find.text('목표 기반 추천안 생성'), findsNothing);
+      expect(find.text('목표 기반 기본 추천'), findsOneWidget);
 
-      // 데이터 기반 흐름의 문구만 남는다.
       await tester.tap(find.byKey(const ValueKey<String>('routine-stage-0')));
       await tester.pumpAndSettle();
-      expect(find.text('맞춤 추천안 후보 생성'), findsOneWidget);
+      expect(find.text('목표 기반 추천안 생성'), findsOneWidget);
+    });
+
+    testWidgets('규칙형도 참고한 최근 대화를 보여 준다 (#2674)', (tester) async {
+      // 규칙형은 대화에서 통증 부위를 읽어 동작을 뺀다(#1440) — 무엇을 봤는지
+      // 트레이너가 확인할 수 있어야 한다.
+      await pumpFlow(
+        tester,
+        response: _templateOptions(
+          recentMessages: const <String>['회원: 무릎이 아파요'],
+        ),
+      );
+      await generate(tester);
+
+      expect(find.text('참고한 최근 대화'), findsOneWidget);
+      expect(find.textContaining('무릎이 아파요'), findsOneWidget);
     });
 
     testWidgets('실 API 모드에서는 기록이 적은 회원에게 그 사실을 그대로 말한다', (tester) async {
@@ -1113,6 +1156,7 @@ void main() {
           ProviderScope(
             overrides: <Override>[
               appConfigProvider.overrideWithValue(_mockConfig),
+              _demoSuggestions(),
               trainerRoutineOptionsRepositoryProvider.overrideWithValue(repo),
             ],
             child: MaterialApp(
@@ -1181,6 +1225,7 @@ void main() {
           ProviderScope(
             overrides: <Override>[
               appConfigProvider.overrideWithValue(_mockConfig),
+              _demoSuggestions(),
               trainerRoutineOptionsRepositoryProvider.overrideWithValue(repo),
             ],
             child: MaterialApp(
@@ -1227,6 +1272,7 @@ void main() {
           ProviderScope(
             overrides: <Override>[
               appConfigProvider.overrideWithValue(_mockConfig),
+              _demoSuggestions(),
               trainerRoutineOptionsRepositoryProvider.overrideWithValue(repo),
             ],
             child: MaterialApp(
@@ -1275,7 +1321,9 @@ void main() {
         ProviderScope(
           overrides: <Override>[
             appConfigProvider.overrideWithValue(_mockConfig),
+            _demoSuggestions(),
             trainerRoutineRepositoryProvider.overrideWithValue(assigned),
+            _demoOptions(),
           ],
           child: MaterialApp(
             locale: const Locale('ko'),
@@ -1571,7 +1619,9 @@ void main() {
       ProviderScope(
         overrides: <Override>[
           appConfigProvider.overrideWithValue(_mockConfig),
+          _demoSuggestions(),
           trainerRoutineRepositoryProvider.overrideWithValue(repository),
+          _demoOptions(),
         ],
         child: MaterialApp(
           locale: const Locale('ko'),
@@ -1620,6 +1670,7 @@ void main() {
         ProviderScope(
           overrides: <Override>[
             appConfigProvider.overrideWithValue(_mockConfig),
+            _demoSuggestions(),
             sharedPreferencesProvider.overrideWithValue(prefs),
             accountEmailProvider.overrideWith((Ref ref) => account),
             trainerRoutineOptionsRepositoryProvider.overrideWithValue(repo),
@@ -1659,6 +1710,7 @@ void main() {
       await generateNow(tester);
 
       expect(repo.lastSources, <RoutineContextSource>{
+        RoutineContextSource.recentChat,
         RoutineContextSource.ptFeedback,
         RoutineContextSource.trainerMemo,
         RoutineContextSource.chatInsight,
@@ -1682,6 +1734,7 @@ void main() {
       await generateNow(tester);
 
       expect(repo.lastSources, <RoutineContextSource>{
+        RoutineContextSource.recentChat,
         RoutineContextSource.ptFeedback,
         RoutineContextSource.consultMemo,
         RoutineContextSource.trainerMemo,
@@ -1689,7 +1742,13 @@ void main() {
       });
       expect(
         prefs.getStringList('ai_routine_sources.trainer@oncare.com'),
-        <String>['pt_feedback', 'consult_memo', 'trainer_memo', 'chat_insight'],
+        <String>[
+          'recent_chat',
+          'pt_feedback',
+          'consult_memo',
+          'trainer_memo',
+          'chat_insight',
+        ],
       );
     });
 
@@ -1699,6 +1758,14 @@ void main() {
         account: 'trainer@oncare.com',
         stored: <String, Object>{
           'ai_routine_sources.trainer@oncare.com': <String>['chat_insight'],
+          'ai_routine_sources_seen.trainer@oncare.com': <String>[
+            'recent_chat',
+            'pt_feedback',
+            'consult_memo',
+            'trainer_memo',
+            'chat_insight',
+            'weekly_feedback',
+          ],
           // 다른 계정의 선택은 섞이지 않는다.
           'ai_routine_sources.other@oncare.com': <String>['consult_memo'],
         },
@@ -1711,6 +1778,42 @@ void main() {
       await generateNow(tester);
 
       expect(repo.lastSources, isEmpty);
+    });
+
+    testWidgets('최근 대화가 생기기 전에 저장한 선택은 최근 대화를 켠 채 시작한다 (#2794)', (
+      tester,
+    ) async {
+      // 예전 선택(다섯 가지만 보고 고른 것)에는 `recent_chat` 이 없다 — 그렇다고
+      // 꺼진 채 시작하면 업데이트만으로 대화가 AI 에서 빠진다.
+      final (repo, _) = await pumpWithPrefs(
+        tester,
+        account: 'trainer@oncare.com',
+        stored: <String, Object>{
+          'ai_routine_sources.trainer@oncare.com': <String>['chat_insight'],
+        },
+      );
+
+      await generateNow(tester);
+
+      expect(repo.lastSources, <RoutineContextSource>{
+        RoutineContextSource.recentChat,
+        RoutineContextSource.chatInsight,
+      });
+    });
+
+    testWidgets('최근 대화를 끄면 요청에서 빠진다 (#2794)', (tester) async {
+      final (repo, _) = await pumpWithPrefs(tester);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('ai-source-recent_chat')),
+      );
+      await tester.pump();
+      await generateNow(tester);
+
+      expect(
+        repo.lastSources,
+        isNot(contains(RoutineContextSource.recentChat)),
+      );
     });
   });
 }
@@ -1778,18 +1881,21 @@ class _CapturingOptionsRepository implements TrainerRoutineOptionsRepository {
 
 /// 기록이 거의 없는 회원의 응답 — 서버가 [RecommendationStatus.template] 을
 /// 돌려주는 상태 (#776). 데모는 언제나 이 상태다.
-RoutineOptions _templateOptions() {
-  const analysis = MemberAnalysis(
+RoutineOptions _templateOptions({
+  List<String> recentMessages = const <String>[],
+}) {
+  final analysis = MemberAnalysis(
     goal: '체중 감량',
     sodiumTodayMg: 1800,
     sodiumOverTarget: false,
     avgCompletionRate: 40,
     latestRoutine: '-',
     note: '',
+    recentMessages: recentMessages,
   );
-  return const RoutineOptions(
+  return RoutineOptions(
     analysis: analysis,
-    planA: RoutinePlan(
+    planA: const RoutinePlan(
       key: 'A',
       label: '회복·지속 중심',
       totalMinutes: 20,
@@ -1800,7 +1906,7 @@ RoutineOptions _templateOptions() {
       reason: '가볍게 시작',
       rationale: '목표 기준 기본 구성',
     ),
-    planB: RoutinePlan(
+    planB: const RoutinePlan(
       key: 'B',
       label: '강도·운동량 중심',
       totalMinutes: 30,
@@ -1895,6 +2001,7 @@ Future<void> _pumpFlowWithOptionsError(
     ProviderScope(
       overrides: <Override>[
         appConfigProvider.overrideWithValue(_mockConfig),
+        _demoSuggestions(),
         trainerRoutineOptionsRepositoryProvider.overrideWithValue(
           _ThrowingOptionsRepository(error),
         ),
@@ -1933,6 +2040,28 @@ void _rateLimitMessageTests() {
     expect(find.text('AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요'), findsNothing);
   });
 
+  testWidgets('하루 상한(429 daily_limit)은 내일 다시라고 안내한다 (#3032)', (tester) async {
+    // 오늘 몫을 다 쓴 것이라 "잠시 후" 라고 하면 트레이너가 계속 다시 누른다.
+    await _pumpFlowWithOptionsError(
+      tester,
+      const RateLimitedError(code: RateLimitedError.dailyLimitCode),
+    );
+
+    expect(find.text('오늘 AI 생성 한도를 다 썼어요. 내일 다시 이용해 주세요'), findsOneWidget);
+    expect(find.text('AI 생성을 너무 자주 요청했어요. 잠시 후 다시 시도해 주세요'), findsNothing);
+    expect(find.text('AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요'), findsNothing);
+  });
+
+  testWidgets('코드가 다른 429 는 기존 "잠시 후" 문구다 (#3032)', (tester) async {
+    await _pumpFlowWithOptionsError(
+      tester,
+      const RateLimitedError(code: 'rate_limited'),
+    );
+
+    expect(find.text('AI 생성을 너무 자주 요청했어요. 잠시 후 다시 시도해 주세요'), findsOneWidget);
+    expect(find.text('오늘 AI 생성 한도를 다 썼어요. 내일 다시 이용해 주세요'), findsNothing);
+  });
+
   testWidgets('그 밖의 실패는 기존 문구를 그대로 쓴다 (#582)', (tester) async {
     await _pumpFlowWithOptionsError(tester, const ServerError(statusCode: 500));
 
@@ -1958,11 +2087,16 @@ class _StaticMemoRepository implements TrainerMemoRepository {
     String? insightId,
     String insightKind = '',
     TrainerMemoRef? ref,
+    TrainerMemoCategory category = TrainerMemoCategory.none,
   }) async => throw UnsupportedError('not used');
 
   @override
-  Future<TrainerMemo> update(String clientId, String memoId, String body) =>
-      throw UnsupportedError('not used');
+  Future<TrainerMemo> update(
+    String clientId,
+    String memoId,
+    String body, {
+    TrainerMemoCategory? category,
+  }) => throw UnsupportedError('not used');
 
   @override
   Future<void> delete(String clientId, String memoId) async =>

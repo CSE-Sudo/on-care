@@ -2,7 +2,7 @@
 사용자 라우터 — 프론트 계약 정렬.
 
   GET  /users/me           -> { id, name, email }
-  GET  /users/me/health    -> { profile, risk, activity_points, activity_rank, settings[] }
+  GET  /users/me/health    -> { profile, activity_points }
   POST /auth/login         -> { access_token, token_type }   (Stage 4 대비)
   POST /auth/register      -> { id, name, email }             (Stage 4 대비)
 
@@ -12,21 +12,34 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 from typing import Annotated
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentUser, RequireMember
-from app.core.rate_limit import rate_limit
+from app.api.deps import CurrentUser, RequireMember, RequireUser
+from app.core import clock
+from app.core.config import get_settings
+from app.core.locale import get_request_locale
+from app.core.rate_limit import (
+    PasswordChangeGuard,
+    check_key,
+    clear_failures,
+    ensure_unlocked,
+    limiter,
+    rate_limit,
+    record_failure,
+    register_email_key,
+)
+from app.services import audit as audit_service
 from app.services.audit import client_ip, record as audit
+from app.services.audit_email import masked_email
 from app.core.security import (
-    create_access_token,
-    create_refresh_token,
     decode_refresh_claims,
     hash_password,
     verify_password,
@@ -35,15 +48,25 @@ from app.db.session import get_db
 from app.models.models import AccountDeletionReason, HealthProfile, User
 from app.schemas.user import (
     AccountDeleteRequest,
+    AccountDeletionPreview,
+    ConsentStatus,
+    ConsentSubmit,
+    MemberPasswordChange,
+    PasswordChanged,
+    PasswordResetConfirm,
+    PasswordResetDone,
+    PasswordResetRequest,
+    PasswordResetRequested,
+    SignupEmailCodeRequest,
+    SignupEmailCodeSent,
     HealthGoalsUpdate,
     HealthProfileBrief,
+    LoginToken,
     OnboardingRequest,
     PairingCodeOut,
     ProfileUpdate,
     ProfileView,
     RefreshRequest,
-    RiskInfo,
-    SettingItem,
     Token,
     TrainerRegister,
     UserHealth,
@@ -51,25 +74,76 @@ from app.schemas.user import (
     UserRegister,
 )
 from app.services import (
+    account_deletion_preview,
+    account_notice,
+    attachment_cleanup,
+    auth_tokens,
     consultation_service,
+    data_consent_service,
     health_goal_change,
     member_departure,
     member_pairing_service,
     name_change,
+    password_reset,
+    reauth,
     reservation_service,
+    signup_consent,
+    signup_email_code,
     token_revocation,
     trainer_signup_service,
     weekly_challenge_service,
 )
-from app.services.health_service import DEMO_SETTINGS
+from app.services.diet_coach_inputs import effective_protein_g
+from app.services.contact_format import normalize_email
 from app.services.profile_format import name_from_email
 
 router = APIRouter(tags=["users"])
 
 
 @router.get("/users/me", response_model=UserMe)
-def get_me(current_user: CurrentUser) -> UserMe:
-    return UserMe(id=current_user.id, name=current_user.name, email=current_user.email)
+def get_me(
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> UserMe:
+    # 아직 동의하지 않은 필수 항목을 함께 준다(#2819). 앱은 이 값으로 다른
+    # 화면보다 먼저 동의 화면을 띄운다.
+    pending = signup_consent.pending_kinds(db, current_user)
+    return UserMe(
+        id=current_user.id,
+        name=current_user.name,
+        email=current_user.email,
+        role=current_user.role,
+        consent_required=bool(pending),
+        consent_pending=pending,
+    )
+
+
+@router.post("/users/me/consents", response_model=ConsentStatus)
+def submit_consents(
+    payload: ConsentSubmit,
+    user: RequireUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> ConsentStatus:
+    """가입 뒤 동의 화면에서 받은 항목을 남긴다. (#2819)
+
+    동의 절차가 생기기 전에 가입한 계정, 소셜 로그인으로 처음 들어온 계정, 문서
+    버전이 올라간 계정이 다음 로그인 때 거치는 화면이 부른다. 회원·트레이너 모두
+    쓴다 — 필수 항목은 계정 역할로 고른다.
+
+    필수 항목이 하나라도 빠지면 아무것도 남기지 않고 422 다. 일부만 남기면
+    화면은 다시 뜨는데 어떤 항목은 이미 동의한 것으로 남아, 무엇에 언제 동의했는지
+    이력이 흐려진다.
+    """
+    missing = signup_consent.missing_required(user.role, payload.consents)
+    if missing:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "consent_required", "missing": missing},
+        )
+    signup_consent.record(db, user.id, payload.consents)
+    db.commit()
+    pending = signup_consent.pending_kinds(db, user)
+    return ConsentStatus(consent_required=bool(pending), consent_pending=pending)
 
 
 @router.get("/users/me/health", response_model=UserHealth)
@@ -81,22 +155,8 @@ def get_my_health(
     weekly_challenge_service.settle_quietly(db, current_user.id)
     profile = current_user.health_profile
 
-    # risk: 저장된 프로필 있으면 사용, 없으면 기본 문구(프론트 mock 과 동일).
-    # 기본 문구는 질환을 말하지 않는다 — 예전에는 프로필이 없는 모든 회원에게
-    # "고혈압·당뇨 위험 주의" 를 지어 보냈다. 폐기된 이전 타깃의 흔적이고,
-    # 회원의 기록과 무관한 건강 경고다.
-    if profile and profile.risk_title:
-        risk = RiskInfo(
-            title=profile.risk_title, body=profile.risk_body, level=profile.risk_level
-        )
-        rank = profile.activity_rank
-    else:
-        risk = RiskInfo(
-            title="이번 주 관리 포인트",
-            body="식단·운동 기록을 꾸준히 이어 가면 트레이너가 더 정확하게 도와줄 수 있어요.",
-            level="medium",
-        )
-        rank = 14
+    # 위험 문구·활동 순위·설정 메뉴는 싣지 않는다(#2903). 앱이 읽지 않는 자리에
+    # 고정 문구·고정 순위 14·데모 설정 목록을 채워 보냈다.
 
     # 포인트는 위험도와 따로 읽는다(#1786). 예전에는 위험 문구가 없는 프로필에
     # 데모 숫자 1240 을 돌려줘, 기록으로 적립해도 화면의 잔액이 움직이지 않았다.
@@ -107,10 +167,7 @@ def get_my_health(
         profile=HealthProfileBrief(
             id=current_user.id, name=current_user.name, email=current_user.email
         ),
-        risk=risk,
         activity_points=points,
-        activity_rank=rank,
-        settings=[SettingItem(**s) for s in DEMO_SETTINGS],
     )
 
 
@@ -144,6 +201,7 @@ def _profile_view(user: User) -> ProfileView:
         daily_sugar_g=p.daily_sugar_g if p else None,
         daily_carbs_g=p.daily_carbs_g if p else None,
         daily_protein_g=p.daily_protein_g if p else None,
+        effective_daily_protein_g=effective_protein_g(p),
         daily_fat_g=p.daily_fat_g if p else None,
         weekly_workout_goal=p.weekly_workout_goal if p else None,
         weekly_exercise_minutes_goal=(p.weekly_exercise_minutes_goal if p else None),
@@ -153,8 +211,12 @@ def _profile_view(user: User) -> ProfileView:
         weekly_strength_sets=p.weekly_strength_sets if p else None,
         weekly_flexibility_minutes=(p.weekly_flexibility_minutes if p else None),
         onboarded=p.onboarded if p else False,
+        onboarding_skipped=bool(p.onboarding_skipped) if p else False,
+        has_password=bool(user.hashed_password),
         focus_changed_by=p.focus_changed_by if p else None,
         focus_changed_at=p.focus_changed_at if p else None,
+        notes_changed_by=p.notes_changed_by if p else None,
+        notes_changed_at=p.notes_changed_at if p else None,
     )
 
 
@@ -193,6 +255,24 @@ def submit_onboarding(
     return _profile_view(user)
 
 
+@router.post("/users/me/onboarding/skip", response_model=ProfileView)
+def skip_onboarding(
+    user: RequireMember,
+    db: Annotated[Session, Depends(get_db)],
+) -> ProfileView:
+    """첫 설정 건너뛰기를 계정에 남긴다(#2855).
+
+    건너뛴 회원은 다음 로그인·세션 복구 때 첫 설정 화면으로 다시 가지 않는다.
+    값은 아무것도 저장하지 않는다 — 건너뛴 것이지 끝낸 것이 아니라 `onboarded`
+    는 그대로다. 여러 번 불러도 결과가 같다.
+    """
+    profile = _get_or_create_profile(db, user)
+    profile.onboarding_skipped = True
+    db.commit()
+    db.refresh(user)
+    return _profile_view(user)
+
+
 @router.put("/users/me/health-goals", response_model=ProfileView)
 def update_health_goals(
     payload: HealthGoalsUpdate,
@@ -220,16 +300,54 @@ def update_me(
     payload: ProfileUpdate,
     user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
+    request: Request,
 ) -> ProfileView:
-    """내 프로필 모달 저장: 이름/이메일(중복검사)/전화/생년월일."""
+    """내 프로필 모달 저장: 이름/이메일(중복검사)/전화/생년월일.
+
+    로그인 이메일을 **실제로** 바꾸는 저장만 본인 확인을 거친다(#3039,
+    `services/reauth.py`). 바꾸면 토큰 세대가 올라 다른 기기가 모두 로그아웃되고,
+    응답의 새 토큰 한 쌍으로 이 기기가 이어 쓴다. 예전 주소로 변경 안내 메일이 간다
+    — 본인이 아니면 알아챌 수 있다. 이름·연락처만 고치는 저장은 예전과 같다.
+    """
     data = payload.model_dump(exclude_unset=True)
 
     new_email = data.get("email")
+    email_changed = new_email is not None and new_email != user.email.lower()
+    old_email = user.email
+    if email_changed:
+        # 중복 확인(409)보다 먼저 본다 — 확인 없이 409 를 받으면 아무 주소나 넣어 가입
+        # 여부를 알아낼 수 있다.
+        reauth.require(
+            db,
+            user,
+            action=reauth.CHANGE_EMAIL,
+            ip=client_ip(request),
+            current_password=payload.current_password,
+            social_provider=payload.social_provider,
+            social_token=payload.social_token,
+        )
     if new_email is not None and new_email != user.email:
-        dup = db.scalar(select(User).where(User.email == new_email, User.id != user.id))
+        # 대소문자만 다른 주소도 같은 이메일이다(#2816). `new_email` 은 스키마가
+        # 이미 소문자로 맞췄다.
+        dup = db.scalar(
+            select(User).where(
+                func.lower(User.email) == new_email, User.id != user.id
+            )
+        )
         if dup is not None:
             raise HTTPException(status_code=409, detail="이미 사용 중인 이메일입니다.")
         user.email = new_email
+        # 위 중복 조회는 빠른 실패용이다. 같은 새 이메일로 바꾸는 요청(또는 같은
+        # 이메일 가입)이 겹치면 둘 다 조회를 통과하고 `users.email` 유일 제약에서
+        # 만난다 — 500 대신 조회로 막았을 때와 같은 409 로 옮긴다(#2911). 아래
+        # 조회의 자동 flush 에서 터지지 않도록 이메일만 여기서 먼저 내려 보낸다.
+        try:
+            db.flush()
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(
+                status_code=409, detail="이미 사용 중인 이메일입니다."
+            ) from None
     if data.get("name") is not None:
         name_before = user.name
         user.name = data["name"]
@@ -259,9 +377,28 @@ def update_me(
         if field in data:
             setattr(profile, field, data[field])
 
+    if email_changed:
+        # 이메일과 세대는 한 트랜잭션이다 — 이메일만 바뀌면 옛 기기가 계속 로그인돼
+        # 있고, 세대만 오르면 이메일은 그대로인데 모든 기기가 끊긴다.
+        auth_tokens.bump_version(user)
+        audit_service.stage(
+            db,
+            event=audit_service.EMAIL_CHANGE,
+            user_id=user.id,
+            target_user_id=user.id,
+            ip=client_ip(request),
+        )
     db.commit()
     db.refresh(user)
-    return _profile_view(user)
+    view = _profile_view(user)
+    if email_changed:
+        account_notice.send_email_changed(
+            old_email, new_email or "", locale=get_request_locale(request)
+        )
+        tokens = auth_tokens.issue_token_pair(user)
+        view.access_token = tokens.access_token
+        view.refresh_token = tokens.refresh_token
+    return view
 
 
 # ---- 트레이너와 데이터 동기화 (#1634) ----
@@ -326,10 +463,24 @@ DELETION_REASONS: frozenset[str] = frozenset(
 )
 
 
+@router.get("/users/me/deletion-preview", response_model=AccountDeletionPreview)
+def get_deletion_preview(
+    user: RequireMember,
+    db: Annotated[Session, Depends(get_db)],
+) -> AccountDeletionPreview:
+    """탈퇴하면 사라지는 포인트·쿠폰과 취소되는 예약·상담 요청의 수(#3006).
+
+    탈퇴 확인창이 연다. [delete_me] 가 실제로 지우는 범위를 숫자로 미리 보여 줄
+    뿐이고, 아무것도 바꾸지 않는다. 트레이너 계정은 403 이다(회원 전용).
+    """
+    return account_deletion_preview.preview(db, user.id)
+
+
 @router.delete("/users/me")
 def delete_me(
     user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
+    request: Request,
     payload: AccountDeleteRequest | None = None,
 ) -> dict:
     """회원 탈퇴. 예약 좌석을 복구한 뒤 프로필·식단·운동·일정·알림·
@@ -341,7 +492,18 @@ def delete_me(
     시각뿐이다.
 
     사유는 없어도 된다. 탈퇴를 막는 조건이 아니라 물어보는 자리일 뿐이다.
+    본인 확인은 늘 필요하다(#3039) — 현재 비밀번호, 소셜 전용 계정은 다시 로그인한
+    provider 토큰.
     """
+    reauth.require(
+        db,
+        user,
+        action=reauth.DELETE_ACCOUNT,
+        ip=client_ip(request),
+        current_password=payload.current_password if payload else None,
+        social_provider=payload.social_provider if payload else None,
+        social_token=payload.social_token if payload else None,
+    )
     for reason in sorted(set(payload.reasons if payload else []) & DELETION_REASONS):
         db.add(
             AccountDeletionReason(
@@ -359,12 +521,203 @@ def delete_me(
     # 담당 링크는 회원과 함께 CASCADE 로 사라진다 — 지우기 전에 담당 트레이너에게
     # 알린다. 알림은 트레이너 계정에 달려 탈퇴 뒤에도 남는다(#2174).
     member_departure.notify_trainer(db, user, reason="withdrawn")
+    # 동의 종료·탈퇴를 감사 기록으로 남긴다 — 링크와 계정이 사라져도 남는다(#2830).
+    data_consent_service.stage_account_withdrawal(db, user, ip=client_ip(request))
+    # 채팅 첨부의 바이트는 DB 밖에 있어 CASCADE 가 닿지 않는다 — 행이 사라지기
+    # 전에 목록을 잡아 두고, 커밋이 끝난 뒤에 지운다(#2817).
+    attachments = attachment_cleanup.files_in_threads(db, member_id=user.id)
     db.delete(user)
     db.commit()
+    attachment_cleanup.purge(attachments)
     return {"status": "deleted"}
 
 
+@router.post(
+    "/users/me/password",
+    status_code=200,
+    response_model=PasswordChanged,
+    dependencies=[Depends(rate_limit("member-password-change"))],
+)
+def change_my_password(
+    request: Request,
+    payload: MemberPasswordChange,
+    user: RequireMember,
+    db: Annotated[Session, Depends(get_db)],
+) -> PasswordChanged:
+    """회원 비밀번호 변경(#2824). 트레이너 `POST /trainer/me/password` 와 같은 규약.
+
+    현재 비밀번호가 맞아야 하고 같은 값으로는 바꿀 수 없다. 바꾸면 토큰 세대가
+    올라 다른 기기의 접근·refresh 토큰이 모두 끊기고(#2766), 요청한 기기는 응답의
+    새 토큰 한 쌍으로 이어 쓴다.
+
+    소셜 로그인 전용 계정(비밀번호 없음)은 409 다 — 확인할 현재 비밀번호가 없다.
+    현재 비밀번호 불일치는 401 이 아니라 400 이다. 토큰은 유효하므로 앱이
+    로그아웃으로 오인하면 안 된다.
+
+    시도 제한(#3087): IP 한도에 더해 트레이너와 같은 **계정 단위 실패 잠금**을 건다.
+    접근 토큰을 손에 넣은 쪽이 IP 를 바꿔 가며 현재 비밀번호를 맞혀 보면, 맞히는
+    순간 다른 기기 토큰까지 끊고 계정을 가져간다. `login_lockout_seconds` 창 안에
+    `password_change_max_failures` 번 틀리면 남은 시간 동안 429 다. 잠금 판정은
+    비밀번호 확인보다 먼저 하고, 소셜 전용 계정(409)은 세지 않는다.
+    """
+    if not user.hashed_password:
+        raise HTTPException(
+            status_code=409,
+            detail="소셜 로그인 계정은 비밀번호가 없어 바꿀 수 없습니다.",
+        )
+    guard = PasswordChangeGuard(user.id)
+    guard.ensure_unlocked()
+    if not verify_password(payload.current_password, user.hashed_password):
+        guard.record_failure()
+        audit(
+            db,
+            event="auth.password_change",
+            user_id=user.id,
+            ip=client_ip(request),
+            success=False,
+            detail="current_password_mismatch",
+        )
+        raise HTTPException(status_code=400, detail="현재 비밀번호가 일치하지 않습니다.")
+    guard.clear()
+    if verify_password(payload.new_password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="현재와 다른 비밀번호를 입력해 주세요.")
+    user.hashed_password = hash_password(payload.new_password)
+    # 비밀번호와 세대는 한 트랜잭션으로 — 하나만 반영되면 옛 토큰이 살아남거나
+    # 비밀번호는 그대로인데 모든 기기가 끊긴다.
+    auth_tokens.bump_version(user)
+    db.commit()
+    audit(
+        db,
+        event="auth.password_change",
+        user_id=user.id,
+        ip=client_ip(request),
+        success=True,
+    )
+    tokens = auth_tokens.issue_token_pair(user)
+    return PasswordChanged(
+        access_token=tokens.access_token, refresh_token=tokens.refresh_token
+    )
+
+
 # ---- 인증 (Stage 4 대비, 지금도 동작) ----
+
+
+def _check_register_email(email: str) -> None:
+    """같은 이메일 가입 시도 상한(#2913).
+
+    가입은 이미 있는 이메일에 409 를 주므로 IP 한도만으로는 IP 를 바꿔 가며 특정
+    이메일의 가입 여부를 계속 물을 수 있다. 이메일 단위로 한 시간에 몇 번까지만
+    받는다. 성공·실패를 가리지 않고 센다 — 세는 기준이 결과에 따라 갈리면 그 차이로
+    다시 가입 여부가 드러난다. 문구(409·429)는 그대로라 화면 변화는 없다.
+    """
+    check_key(
+        register_email_key(email),
+        get_settings().register_per_email_per_hour,
+        3600.0,
+    )
+
+
+#: 가입 인증 코드 오류 문구(#3038). 화면은 `code` 로 가르고 `message` 를 그대로 보인다.
+_EMAIL_CODE_REQUIRED = {
+    "code": "email_code_required",
+    "message": "이메일 인증 코드를 입력해 주세요.",
+}
+_INVALID_EMAIL_CODE = {
+    "code": "invalid_email_code",
+    "message": "인증 코드가 맞지 않거나 만료되었습니다. 코드를 다시 받아 주세요.",
+}
+
+
+def _consume_signup_code(
+    db: Session, request: Request, *, email: str, code: str | None, purpose: str
+) -> datetime | None:
+    """가입 요청의 인증 코드를 확인하고 쓴 것으로 표시한다(#3038).
+
+    확인한 시각(`users.email_verified_at`)을 돌려준다. 서버가 확인을 끈 경우
+    (`SIGNUP_EMAIL_VERIFICATION=false`, 테스트·E2E)는 보지 않고 None. 코드 사용 표시는
+    커밋하지 않는다 — 계정 생성과 한 트랜잭션이라, 가입이 실패하면 코드도 살아 있다.
+    """
+    if not get_settings().signup_email_verification:
+        return None
+    if not (code or "").strip():
+        raise HTTPException(status_code=422, detail=_EMAIL_CODE_REQUIRED)
+    now = clock.now()
+    try:
+        signup_email_code.consume(db, email, purpose, code or "", now=now)
+    except signup_email_code.InvalidEmailCode:
+        audit(
+            db,
+            event="auth.signup_code_verify",
+            ip=client_ip(request),
+            success=False,
+            detail=masked_email(email),
+        )
+        raise HTTPException(status_code=400, detail=_INVALID_EMAIL_CODE) from None
+    return now
+
+
+@router.post(
+    "/auth/register/email-code",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=SignupEmailCodeSent,
+    dependencies=[Depends(rate_limit("auth-signup-code"))],
+)
+def request_signup_email_code(
+    payload: SignupEmailCodeRequest,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+) -> SignupEmailCodeSent:
+    """가입 전에 그 이메일로 6자리 인증 코드를 보낸다. 회원·트레이너 공용(#3038).
+
+    **응답은 가입 여부와 무관하게 같다**(202). 이미 가입된 주소에는 코드 대신
+    "이미 계정이 있다"는 안내 메일이 간다 — 주인만 그 차이를 안다.
+
+    시도 제한은 세 겹이다. IP 별 분당 한도(`auth-signup-code`), 한 이메일로 보내는
+    메일 수(`SIGNUP_EMAIL_CODE_PER_WINDOW`, 여러 IP 에서 한 사람에게 메일을 쏟아붓는 것을
+    막는다), 같은 (이메일, 용도)의 다시 받기 간격(`SIGNUP_EMAIL_CODE_RESEND_SECONDS`).
+    가입된 주소도 똑같이 세므로 429 로 가입 여부가 드러나지 않는다.
+
+    서버에 메일 발송 수단이 없으면(운영인데 SMTP 설정이 비었을 때) 503 이다.
+    """
+    settings = get_settings()
+    if settings.rate_limit_enabled:
+        limiter.check(
+            f"signup-code-email:{payload.email}",
+            settings.signup_email_code_per_window,
+            settings.signup_email_code_window_minutes * 60.0,
+        )
+        if settings.signup_email_code_resend_seconds > 0:
+            limiter.check(
+                f"signup-code-resend:{payload.purpose}:{payload.email}",
+                1,
+                float(settings.signup_email_code_resend_seconds),
+            )
+    try:
+        issued = signup_email_code.request_code(
+            db,
+            payload.email,
+            payload.purpose,
+            now=clock.now(),
+            settings=settings,
+            locale=get_request_locale(request),
+        )
+    except signup_email_code.CodeUnavailable:
+        raise HTTPException(
+            status_code=503,
+            detail="지금은 인증 메일을 보낼 수 없습니다. 잠시 후 다시 시도해 주세요.",
+        ) from None
+    audit(
+        db,
+        event="auth.signup_code_request",
+        ip=client_ip(request),
+        # 응답과 달리 감사 로그에는 실제로 코드를 만들었는지 남긴다(운영자만 본다).
+        success=issued is not None,
+        detail=masked_email(payload.email),
+    )
+    return SignupEmailCodeSent(
+        expires_in_minutes=settings.signup_email_code_minutes,
+        resend_after_seconds=settings.signup_email_code_resend_seconds,
+    )
 
 
 @router.post(
@@ -378,19 +731,32 @@ def register(
     payload: UserRegister,
     db: Annotated[Session, Depends(get_db)],
 ) -> UserMe:
-    exists = db.scalar(select(User).where(User.email == payload.email))
+    _check_register_email(payload.email)
+    # `payload.email` 은 스키마가 소문자로 맞췄다. 대소문자만 다른 기존 주소도
+    # 같은 이메일로 보고 거절한다(#2816).
+    exists = db.scalar(select(User).where(func.lower(User.email) == payload.email))
     if exists:
         audit(
             db,
             event="auth.register",
             ip=client_ip(request),
             success=False,
-            detail=payload.email,
+            detail=masked_email(payload.email),
         )
         raise HTTPException(status_code=409, detail="이미 가입된 이메일입니다.")
+    # 중복 확인 뒤에 코드를 본다 — 가입된 주소는 코드를 받을 수 없으므로(안내 메일만
+    # 간다) 순서를 바꾸면 409 대신 400 이 되어 원인을 알 수 없다.
+    verified_at = _consume_signup_code(
+        db,
+        request,
+        email=payload.email,
+        code=payload.email_code,
+        purpose=signup_email_code.MEMBER_SIGNUP,
+    )
     user = User(
         id=f"user-{uuid.uuid4().hex[:12]}",
         email=payload.email,
+        email_verified_at=verified_at,
         # 이름을 보내지 않으면 이메일 로컬 파트로 채운다. 컬럼 길이(100)에
         # 맞춰 자르는 것이 `name_from_email` 의 몫이다 — 이메일은 255자까지
         # 받으므로(#1780), 자르지 않으면 이름을 안 보냈을 뿐인데 가입이 500 으로
@@ -404,6 +770,12 @@ def register(
     # 회원을 알아볼 방법도 없었다.
     if payload.phone:
         db.add(HealthProfile(user_id=user.id, phone=payload.phone))
+    # 가입 화면에서 체크한 동의를 계정과 **한 트랜잭션**으로 남긴다(#2819).
+    # 나눠 커밋하면 동의 기록 없는 계정이 남는다. 목록을 보내지 않은 옛 빌드는
+    # 기록 없이 만들어지고, 로그인 직후 동의 화면을 거친다.
+    if payload.consents is not None:
+        db.flush()
+        signup_consent.record(db, user.id, payload.consents)
     try:
         db.commit()
     except IntegrityError:
@@ -415,7 +787,7 @@ def register(
     audit(
         db, event="auth.register", user_id=user.id, ip=client_ip(request), success=True
     )
-    return UserMe(id=user.id, name=user.name, email=user.email)
+    return UserMe(id=user.id, name=user.name, email=user.email, role=user.role)
 
 
 @router.post(
@@ -437,17 +809,29 @@ def register_trainer(
     소속 헬스장은 여기서 정하지 않는다 — 가입 뒤 `PUT /trainer/me/gym` 으로 고른다
     (#1627). 소속이 없는 동안에는 상담 대상이 아니다(#443·#451).
 
-    회원 가입과 같은 rate limit 버킷을 쓴다.
+    회원 가입과 같은 rate limit 버킷을 쓴다(IP·이메일 둘 다).
     """
+    _check_register_email(payload.email)
     try:
-        trainer = trainer_signup_service.register_trainer(db, payload)
+        # 중복 확인(409)이 코드 확인보다 먼저다 — 회원 가입과 같은 순서.
+        trainer_signup_service.ensure_email_available(db, payload.email)
+        verified_at = _consume_signup_code(
+            db,
+            request,
+            email=payload.email,
+            code=payload.email_code,
+            purpose=signup_email_code.TRAINER_SIGNUP,
+        )
+        trainer = trainer_signup_service.register_trainer(
+            db, payload, email_verified_at=verified_at
+        )
     except trainer_signup_service.TrainerEmailTaken as exc:
         audit(
             db,
             event="auth.trainer_register",
             ip=client_ip(request),
             success=False,
-            detail=payload.email,
+            detail=masked_email(payload.email),
         )
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
@@ -458,40 +842,62 @@ def register_trainer(
         ip=client_ip(request),
         success=True,
     )
-    return UserMe(id=trainer.id, name=trainer.name, email=trainer.email)
+    return UserMe(
+        id=trainer.id, name=trainer.name, email=trainer.email, role=trainer.role
+    )
+
+
+def _login_lock_key(username: str) -> str:
+    """로그인 실패 잠금 버킷 키. 대소문자·앞뒤 공백만 다른 입력은 같은 계정이다."""
+    return f"login-fail:{normalize_email(username)}"
 
 
 @router.post(
     "/auth/login",
-    response_model=Token,
+    response_model=LoginToken,
     dependencies=[Depends(rate_limit("auth-login"))],
 )
 def login(
     request: Request,
     form: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Annotated[Session, Depends(get_db)],
-) -> Token:
-    user = db.scalar(select(User).where(User.email == form.username))
+) -> LoginToken:
+    """이메일·비밀번호 로그인.
+
+    IP 한도(`auth-login`)에 더해 **이메일 단위 실패 잠금**을 건다(#2815). IP 를
+    바꿔 가며 한 계정을 노리면 IP 버킷은 매번 새로 시작하지만, 이메일 버킷은 한
+    곳에 모인다. 잠금 판정은 비밀번호 확인보다 먼저 한다 — 잠긴 동안에는 맞는
+    비밀번호인지 여부도 응답에 드러나지 않는다. 없는 이메일도 똑같이 세고 잠가
+    가입 여부가 갈리지 않게 한다.
+    """
+    settings = get_settings()
+    lock_key = _login_lock_key(form.username)
+    lock_window = float(settings.login_lockout_seconds)
+    ensure_unlocked(lock_key, settings.login_max_failures, lock_window)
+    # 가입이 소문자로 저장하므로 입력도 같은 규칙으로 맞춰 찾는다(#2816) — 모바일
+    # 키보드가 첫 글자를 대문자로 바꿔도 같은 계정이다.
+    user = db.scalar(
+        select(User).where(func.lower(User.email) == normalize_email(form.username))
+    )
     if (
         not user
         or not user.is_active
         or not verify_password(form.password, user.hashed_password)
     ):
+        record_failure(lock_key, lock_window)
         audit(
             db,
             event="auth.login",
             ip=client_ip(request),
             success=False,
-            detail=form.username,
+            detail=masked_email(form.username),
         )
         raise HTTPException(
             status_code=401, detail="이메일 또는 비밀번호가 올바르지 않습니다."
         )
+    clear_failures(lock_key)
     audit(db, event="auth.login", user_id=user.id, ip=client_ip(request), success=True)
-    return Token(
-        access_token=create_access_token(user.id),
-        refresh_token=create_refresh_token(user.id),
-    )
+    return auth_tokens.issue_login_tokens(db, user)
 
 
 @router.post(
@@ -518,22 +924,79 @@ def refresh(
     user = db.scalar(select(User).where(User.id == claims.subject))
     if user is None or not user.is_active:
         raise invalid
+    if not auth_tokens.is_current(user, claims.token_version):
+        # 비밀번호 변경 전에 발급된 refresh 토큰(#2766). 다른 기기에 남은 세션이다 —
+        # 회전해 주면 비밀번호를 바꾼 의미가 없다. 폐기 표에도 적어 같은 토큰이
+        # 다시 와도 같은 결과가 되게 한다(세대 칸이 되돌려져도 살아나지 않게).
+        token_revocation.revoke(
+            db,
+            jti=claims.jti,
+            user_id=user.id,
+            expires_at=claims.expires_at,
+            reason=token_revocation.REASON_STALE,
+        )
+        audit(
+            db,
+            event="auth.refresh_stale",
+            user_id=user.id,
+            ip=client_ip(request),
+            success=False,
+        )
+        raise invalid
+    if claims.session_id is not None and token_revocation.is_session_revoked(
+        db, claims.session_id
+    ):
+        # 재사용으로 탈취가 의심돼 끊긴 세션의 토큰(#3086).
+        audit(
+            db,
+            event="auth.refresh_session_revoked",
+            user_id=user.id,
+            ip=client_ip(request),
+            success=False,
+        )
+        raise invalid
+    if auth_tokens.session_expired(claims):
+        # 최초 로그인으로부터 세션 절대 수명이 지났다 — 다시 로그인한다(#3086).
+        audit(
+            db,
+            event="auth.refresh_session_expired",
+            user_id=user.id,
+            ip=client_ip(request),
+            success=False,
+        )
+        raise invalid
     first_use = token_revocation.revoke(
-        db, jti=claims.jti, user_id=user.id, expires_at=claims.expires_at
+        db,
+        jti=claims.jti,
+        user_id=user.id,
+        expires_at=claims.expires_at,
+        reason=token_revocation.REASON_ROTATED,
     )
     if not first_use:
-        # 로그아웃된 토큰이거나 이미 회전에 쓰인 토큰이다. 어느 쪽이든 여기서 끝난다.
+        # 로그아웃된 토큰이거나 이미 회전에 쓰인 토큰이다. 이 요청은 여기서 끝나고,
+        # 유예를 넘긴 회전 토큰이면 그 세션 전체를 끊는다(#3086).
         audit(
             db,
             event="auth.refresh_reuse",
             user_id=user.id,
             ip=client_ip(request),
             success=False,
+            detail=token_revocation.handle_reuse(
+                db,
+                jti=claims.jti,
+                user_id=user.id,
+                session_id=claims.session_id,
+                session_expires_at=auth_tokens.session_expires_at(claims),
+            ),
         )
         raise invalid
-    return Token(
-        access_token=create_access_token(user.id),
-        refresh_token=create_refresh_token(user.id),
+    # 웹으로 발급된 토큰은 헤더가 없어도 웹 수명으로 회전한다(#2828).
+    # 로그인 세션 이름·최초 인증 시각은 그대로 이어 받는다(#3086).
+    return auth_tokens.issue_token_pair(
+        user,
+        web=claims.web,
+        session_id=claims.session_id,
+        auth_time=claims.auth_time,
     )
 
 
@@ -568,7 +1031,11 @@ def logout(
         )
         return None
     token_revocation.revoke(
-        db, jti=claims.jti, user_id=claims.subject, expires_at=claims.expires_at
+        db,
+        jti=claims.jti,
+        user_id=claims.subject,
+        expires_at=claims.expires_at,
+        reason=token_revocation.REASON_LOGOUT,
     )
     audit(
         db,
@@ -578,3 +1045,106 @@ def logout(
         success=True,
     )
     return None
+
+
+# ---- 비밀번호 재설정 (#2824) ----
+
+
+@router.post(
+    "/auth/password-reset/request",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=PasswordResetRequested,
+    dependencies=[Depends(rate_limit("auth-password-reset-request"))],
+)
+def request_password_reset(
+    payload: PasswordResetRequest,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+) -> PasswordResetRequested:
+    """재설정 코드를 메일로 보낸다. 회원·트레이너 공용.
+
+    **응답은 계정 존재 여부와 무관하게 같다**(202). 가입되지 않은 이메일, 쉬는
+    계정, 소셜 로그인 전용 계정에는 아무것도 보내지 않지만 응답으로는 알 수 없다.
+
+    시도 제한은 두 겹이다. IP 별 분당 한도(`auth-password-reset-request`)와,
+    한 이메일로 보내는 메일 수 한도(`PASSWORD_RESET_EMAIL_PER_WINDOW`). 뒤의 것은
+    여러 IP 에서 한 사람에게 메일을 쏟아붓는 것을 막는다 — 계정이 없는 주소도 똑같이
+    세므로 429 로 가입 여부가 드러나지 않는다.
+
+    서버에 메일 발송 수단이 없으면(운영인데 SMTP 설정이 비었을 때) 503 이다.
+    """
+    settings = get_settings()
+    if settings.rate_limit_enabled:
+        limiter.check(
+            f"pw-reset-email:{normalize_email(payload.email)}",
+            settings.password_reset_email_per_window,
+            settings.password_reset_email_window_minutes * 60.0,
+        )
+    try:
+        issued = password_reset.request_reset(
+            db,
+            payload.email,
+            now=clock.now(),
+            settings=settings,
+            locale=get_request_locale(request),
+        )
+    except password_reset.ResetUnavailable:
+        raise HTTPException(
+            status_code=503,
+            detail="지금은 비밀번호 재설정 메일을 보낼 수 없습니다. 고객센터로 문의해 주세요.",
+        ) from None
+    audit(
+        db,
+        event="auth.password_reset_request",
+        user_id=issued.user_id if issued else None,
+        ip=client_ip(request),
+        # 감사 로그에는 실제로 코드를 만들었는지 남긴다 — 응답과 달리 운영자만 본다.
+        success=issued is not None,
+    )
+    return PasswordResetRequested(
+        expires_in_minutes=settings.password_reset_token_minutes
+    )
+
+
+@router.post(
+    "/auth/password-reset/confirm",
+    response_model=PasswordResetDone,
+    dependencies=[Depends(rate_limit("auth-password-reset-confirm"))],
+)
+def confirm_password_reset(
+    payload: PasswordResetConfirm,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+) -> PasswordResetDone:
+    """코드와 새 비밀번호로 비밀번호를 바꾼다.
+
+    코드가 없거나 만료됐거나 이미 쓰였으면 모두 400 `invalid_reset_token` 하나다 —
+    어느 쪽인지 갈라 알려 줄 이유가 없다. 바꾸면 토큰 세대가 올라 모든 기기의
+    세션이 끊긴다(#2766). 새 토큰은 주지 않으므로 새 비밀번호로 다시 로그인한다.
+    """
+    try:
+        user = password_reset.confirm_reset(
+            db, payload.token, payload.new_password, now=clock.now()
+        )
+    except password_reset.InvalidResetCode:
+        audit(
+            db,
+            event="auth.password_reset_confirm",
+            ip=client_ip(request),
+            success=False,
+        )
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "invalid_reset_token",
+                "message": "재설정 코드가 올바르지 않거나 만료되었습니다. 다시 요청해 주세요.",
+            },
+        ) from None
+    audit(
+        db,
+        event="auth.password_reset_confirm",
+        user_id=user.id,
+        ip=client_ip(request),
+        success=True,
+    )
+    return PasswordResetDone()

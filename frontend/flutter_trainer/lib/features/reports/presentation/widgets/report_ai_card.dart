@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
+import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
@@ -13,9 +14,9 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 그래서 `피드백으로 가져오기` 가 이 카드의 본래 동선이고, 문장이 마음에 안
 /// 들면 다시 생성한다(#755).
 ///
-/// 데모에는 모델이 없어 수치에서 조립한 문장이 온다. 실서버도 공급자 장애면
-/// 같은 문장으로 되돌아온다 — 그 경우 `생성` 배지를 달지 않아, 트레이너가 이
-/// 문장을 어디까지 믿을지 알 수 있다.
+/// 실서버는 공급자 장애면 수치에서 조립한 문장으로 되돌아온다 — 그 경우 `생성`
+/// 배지를 달지 않아, 트레이너가 이 문장을 어디까지 믿을지 알 수 있다. 데모는
+/// 모델이 없어 미리 써 둔 고정본을 `생성` 요약으로 보여 준다(#2669).
 ///
 /// 화면의 AI 카드는 이것 하나다 — 대시보드 `활동 피드백` 카드와 같은 옅은 남색
 /// 카드형 배너([AppBannerPlacement.card])에 AI 아이콘 제목을 단다.
@@ -45,19 +46,46 @@ class ReportAiCard extends ConsumerWidget {
     final l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final ReportSummaryKey key = (
-      report: (client: report.client, weekStart: report.weekStart),
+      report: ReportKey(client: report.client, weekStart: report.weekStart),
       locale: Localizations.localeOf(context),
     );
     final summary = ref.watch(reportSummaryProvider(key));
     final Widget content = summary.when(
       loading: () => const AppLoading(placement: AppStatePlacement.card),
-      // 생성이 실패해도 카드가 비지 않는다 — 예전 안내문으로 되돌아가 그
-      // 자리에 무엇이 올지는 말해 준다.
-      error: (_, _) => Text(
-        l.reportsAiUnavailable,
-        style: tokens
-            .text(OnCareTypography.bodySmall)
-            .copyWith(color: OnCareColors.textSecondary),
+      // 생성이 실패해도 카드가 비지 않는다 — 실패를 말하고 그 자리에서 다시
+      // 시도하게 한다(#2885). 예전에는 안내문만 남아, 일시적 실패 뒤에는
+      // 화면을 나갔다 오는 것 말고 길이 없었다.
+      //
+      // 단, 오늘 AI 몫을 다 쓴 경우(429 `daily_limit`, #3032)는 다시 눌러도 같은
+      // 결과라 다시 시도 버튼 없이 하루 한도만 알린다.
+      error: (error, _) => error is RateLimitedError && error.isDailyLimit
+          ? Text(
+              key: const ValueKey<String>('reports-ai-daily-limit'),
+              l.reportsAiDailyLimit,
+              style: tokens
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textSecondary),
+            )
+          : Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(
+            l.reportsAiFailed,
+            style: tokens
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textSecondary),
+          ),
+          const SizedBox(height: OnCareSpacing.s8),
+          AppButton(
+            key: const ValueKey<String>('reports-ai-retry'),
+            label: l.actionRetry,
+            leadingIcon: AppIcons.refresh,
+            variant: AppButtonVariant.text,
+            size: OnCareButtonSize.small,
+            onPressed: () => ref.invalidate(reportSummaryProvider(key)),
+          ),
+        ],
       ),
       data: (value) => _SummaryBody(
         summary: value,

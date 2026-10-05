@@ -3,23 +3,25 @@ AI 코치 서비스.
 
 설계(사용자 요구사항 반영):
 - 코칭을 '식단 코치'와 '운동 코치'로 도메인 분리해서 각각 생성한 뒤 합친다.
-- STEP 7에서 각 도메인 코치를 RAG 기반으로 교체한다:
-    * 검색 자료 = 개인 문서(환자 데이터, user_id=본인) + 공공 문서(user_id=NULL)
+- 각 도메인 코치는 RAG 로 만든다(`coach/domain_coaches.py`):
+    * 검색 자료 = 회원 개인 기록 요약(user_id=본인) + 공공 문서(user_id=NULL)
     * 식단 코치는 domain='diet' 자료를, 운동 코치는 domain='exercise' 자료를 위주로 검색
-    * 다른 사용자의 개인 문서는 절대 섞이지 않음 (user_id 격리)
+    * 다른 회원의 개인 문서는 절대 섞이지 않음 (user_id 격리)
 
-현재(STEP 6)는 RAG 전이라, 사용자의 실제 식단·운동 데이터를 읽어
-'규칙 기반'으로 제안을 생성한다. 구조(도메인 분리)는 STEP 7과 동일하게 유지하므로
-나중에 내부 구현만 LLM 호출로 바꾸면 된다.
+키·자료가 없거나 LLM 호출이 실패하면, 이 모듈의 규칙 기반 코치가 회원의 실제
+식단·운동 기록을 읽어 제안을 만든다(폴백). 두 경로의 응답 형식은 같다.
+
+인사말과 규칙 문구는 요청 언어(`Accept-Language`, #2297)로 만든다(#2707). 헤더가
+없으면 지금까지처럼 한국어다.
 """
 from __future__ import annotations
-
-from datetime import timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core import clock
+from app.core.locale import localized
+from app.core.week import monday_of
 from app.models.models import DietEntry, ExerciseSession
 from app.schemas.misc_api import AiCoachFeedback, CoachSuggestion
 from app.services import diet_service
@@ -35,7 +37,7 @@ _SODIUM_PATTERN_MIN_DAYS = 3
 def _week_bounds() -> tuple[str, str]:
     """이번 주(월~오늘, `YYYY-MM-DD`). 아직 오지 않은 날은 기록이 없어 의미가 없다."""
     today = clock.today()
-    monday = today - timedelta(days=today.weekday())
+    monday = monday_of(today)
     return monday.isoformat(), today.isoformat()
 
 
@@ -108,14 +110,24 @@ def _diet_today_priority(db: Session, user_id: str) -> CoachSuggestion | None:
 
     if not rows:
         return CoachSuggestion(
-            tag="diet", title="오늘 식단을 기록해 보세요",
-            body="사진 한 장이면 칼로리와 나트륨을 분석해 드려요. 첫 끼니부터 시작해 볼까요?",
+            tag="diet",
+            title=localized("오늘 식단을 기록해 보세요", "Log today's meals"),
+            body=localized(
+                "사진 한 장이면 칼로리와 나트륨을 분석해 드려요. 첫 끼니부터 시작해 볼까요?",
+                "One photo is all it takes to analyze calories and sodium. "
+                "Shall we start with your first meal?",
+            ),
         )
     if total_na > diet_service.SODIUM_LIMIT_MG:
         return CoachSuggestion(
-            tag="diet", title="나트륨 섭취가 많아요",
-            body=f"오늘 나트륨이 약 {total_na}mg 으로 권장량을 넘었어요. "
-                 "저녁은 국물을 남기고 채소를 늘려 균형을 맞춰봐요.",
+            tag="diet",
+            title=localized("나트륨 섭취가 많아요", "High sodium today"),
+            body=localized(
+                f"오늘 나트륨이 약 {total_na}mg 으로 권장량을 넘었어요. "
+                "저녁은 국물을 남기고 채소를 늘려 균형을 맞춰봐요.",
+                f"Today's sodium is about {total_na}mg, over the recommended amount. "
+                "At dinner, leave the broth and add more vegetables to balance it out.",
+            ),
         )
     return None
 
@@ -136,18 +148,28 @@ def _diet_weekly_or_default(db: Session, user_id: str) -> CoachSuggestion:
     # 둔다 — 초과일이 기준을 채우면 기록일수는 이미 그만큼 채워진 것이다.
     if week.days_over_sodium >= _SODIUM_PATTERN_MIN_DAYS:
         return CoachSuggestion(
-            tag="diet", title="이번 주 나트륨이 계속 높았어요",
-            body=f"이번 주 기록한 {week.days_logged}일 중 {week.days_over_sodium}일 "
-                 "나트륨이 권장량을 넘었어요. 오늘처럼 낮게 유지하는 날을 늘려봐요.",
+            tag="diet",
+            title=localized("이번 주 나트륨이 계속 높았어요", "Sodium ran high this week"),
+            body=localized(
+                f"이번 주 기록한 {week.days_logged}일 중 {week.days_over_sodium}일 "
+                "나트륨이 권장량을 넘었어요. 오늘처럼 낮게 유지하는 날을 늘려봐요.",
+                f"Sodium went over the recommended amount on {week.days_over_sodium} "
+                f"of the {week.days_logged} days you logged this week. "
+                "Try to have more low-sodium days like today.",
+            ),
         )
     return CoachSuggestion(
-        tag="diet", title="식단 균형이 좋아요",
-        body="오늘 나트륨 섭취가 안정적이에요. 이대로 꾸준히 유지해봐요!",
+        tag="diet",
+        title=localized("식단 균형이 좋아요", "Nicely balanced meals"),
+        body=localized(
+            "오늘 나트륨 섭취가 안정적이에요. 이대로 꾸준히 유지해봐요!",
+            "Your sodium intake is steady today. Keep it up!",
+        ),
     )
 
 
 def _diet_suggestion(db: Session, user_id: str) -> CoachSuggestion:
-    """식단 도메인 코치 (STEP 7에서 RAG+LLM 으로 교체) — 규칙 기반 폴백 전체.
+    """식단 도메인 코치의 규칙 기반 폴백 전체.
 
     오늘 우선 여부와 이번 주 패턴을 한 번에 판단하는 단독 진입점. `diet_coach()`
     는 오늘 조회를 한 번만 하려고 이 함수 대신 `_diet_today_priority()` +
@@ -161,7 +183,7 @@ def _diet_suggestion(db: Session, user_id: str) -> CoachSuggestion:
 
 
 def _exercise_suggestion(db: Session, user_id: str) -> CoachSuggestion:
-    """운동 도메인 코치 (STEP 7에서 RAG+LLM 으로 교체)."""
+    """운동 도메인 코치의 규칙 기반 폴백."""
     week = monday_of_this_week_str()
     rows = db.scalars(
         select(ExerciseSession)
@@ -172,50 +194,32 @@ def _exercise_suggestion(db: Session, user_id: str) -> CoachSuggestion:
 
     if total_min == 0:
         return CoachSuggestion(
-            tag="exercise", title="이번 주 운동을 시작해 보세요",
-            body="가벼운 30분 걷기부터 시작하면 혈압·혈당 관리에 도움이 돼요.",
+            tag="exercise",
+            title=localized("이번 주 운동을 시작해 보세요", "Start this week's workouts"),
+            body=localized(
+                "가벼운 30분 걷기부터 시작하면 혈압·혈당 관리에 도움이 돼요.",
+                "Start with a light 30-minute walk. "
+                "It helps with blood pressure and blood sugar.",
+            ),
         )
     if total_min < 150:
         return CoachSuggestion(
-            tag="exercise", title="조금만 더 움직여봐요",
-            body=f"이번 주 {total_min}분 운동했어요. 주 150분을 목표로 가볍게 더해봐요.",
-        )
-    return CoachSuggestion(
-        tag="exercise", title="운동량이 충분해요",
-        body=f"이번 주 {total_min}분! 권장 운동량을 잘 채우고 있어요. 멋져요!",
-    )
-
-
-def _hydration_suggestion(db: Session, user_id: str) -> CoachSuggestion:
-    """수분 제안 — 오늘 나트륨/시간대 기반 간단 규칙(고정 문구 대체).
-
-    RAG/LLM 전까지 규칙 기반으로 개인화한다: 나트륨이 높으면 배출을 위해 물을
-    더 권하고, 그렇지 않으면 시간대에 맞춰 다르게 안내한다.
-    """
-    today = clock.today_iso()
-    total_na = sum(
-        r.sodium_mg for r in db.scalars(
-            select(DietEntry).where(DietEntry.user_id == user_id)
-            .where(DietEntry.date == today)
-        ).all()
-    )
-    if total_na > diet_service.SODIUM_LIMIT_MG:
-        return CoachSuggestion(
-            tag="hydration", title="물을 더 챙기세요",
-            body=(
-                f"오늘 나트륨이 {total_na}mg으로 높아요. "
-                "물을 충분히 마시면 나트륨 배출에 도움이 됩니다."
+            tag="exercise",
+            title=localized("조금만 더 움직여봐요", "Let's move a little more"),
+            body=localized(
+                f"이번 주 {total_min}분 운동했어요. 주 150분을 목표로 가볍게 더해봐요.",
+                f"You've exercised {total_min} minutes this week. "
+                "Aim for 150 minutes a week and add a little more.",
             ),
         )
-    hour = clock.now().hour
-    if hour < 11:
-        body = "아침 물 한 잔으로 하루를 시작해 보세요. 하루 6~8잔이 목표예요."
-    elif hour < 18:
-        body = "지금까지 물을 얼마나 드셨나요? 틈틈이 마셔 6~8잔을 채워요."
-    else:
-        body = "오늘 물 6~8잔을 채웠는지 확인해요. 자기 전 과한 수분은 피하세요."
     return CoachSuggestion(
-        tag="hydration", title="수분 섭취 잊지 마세요", body=body,
+        tag="exercise",
+        title=localized("운동량이 충분해요", "Great activity level"),
+        body=localized(
+            f"이번 주 {total_min}분! 권장 운동량을 잘 채우고 있어요. 멋져요!",
+            f"{total_min} minutes this week! "
+            "You're meeting the recommended amount. Nice work!",
+        ),
     )
 
 
@@ -223,23 +227,32 @@ def build_feedback(db: Session, user_id: str, user_name: str) -> AiCoachFeedback
     """
     도메인별 코치를 각각 호출해 합친다.
 
-    STEP 7: 식단·운동 코치는 RAG 기반(domain_coaches)으로 동작.
-    RAG 가 불가(키 미설정/자료 없음)하면 내부에서 STEP 6 규칙 기반으로 자동 폴백.
+    식단·운동 코치는 RAG 기반(domain_coaches)으로 동작한다.
+    RAG 가 불가(키 미설정/자료 없음/실패)하면 내부에서 규칙 기반으로 자동 폴백한다.
     """
     hour = clock.now().hour
     if hour < 11:
-        greeting = f"{user_name}님, 좋은 아침이에요! 오늘도 건강하게 시작해봐요."
+        greeting = localized(
+            f"{user_name}님, 좋은 아침이에요! 오늘도 건강하게 시작해봐요.",
+            f"Good morning, {user_name}! Let's start the day healthy.",
+        )
     elif hour < 18:
-        greeting = f"{user_name}님, 오늘 하루도 잘 보내고 계신가요?"
+        greeting = localized(
+            f"{user_name}님, 오늘 하루도 잘 보내고 계신가요?",
+            f"Hi {user_name}, how's your day going?",
+        )
     else:
-        greeting = f"{user_name}님, 오늘 하루 어떠셨나요? 마무리도 건강하게요."
+        greeting = localized(
+            f"{user_name}님, 오늘 하루 어떠셨나요? 마무리도 건강하게요.",
+            f"How was your day, {user_name}? Let's wrap it up healthy.",
+        )
 
     # 지연 import (순환 참조 방지: domain_coaches 가 coach_service 를 import)
     from app.services.coach.domain_coaches import diet_coach, exercise_coach
 
+    # 카드는 데모와 같은 식단·운동 두 장이다(#2706) — 데모 화면이 기준이다.
     suggestions = [
         diet_coach(db, user_id),       # 식단 RAG 코치 (실패 시 규칙 폴백)
         exercise_coach(db, user_id),   # 운동 RAG 코치 (실패 시 규칙 폴백)
-        _hydration_suggestion(db, user_id),  # 나트륨/시간대 기반 수분 제안
     ]
     return AiCoachFeedback(greeting=greeting, suggestions=suggestions)

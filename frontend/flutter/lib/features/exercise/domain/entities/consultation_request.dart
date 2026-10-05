@@ -1,5 +1,5 @@
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 상담 요청의 상태.
 ///
@@ -27,6 +27,7 @@ class ConsultationRequest {
     this.trainerGymName,
     this.slotStartsAt,
     this.slotDurationMinutes,
+    this.cancelledByTrainer = false,
   });
 
   /// 서버가 접수하며 준 id 로 갈아끼울 때 쓴다 — 화면이 만든 임시 id 는 트레이너
@@ -50,6 +51,7 @@ class ConsultationRequest {
         trainerGymName: trainerGymName,
         slotStartsAt: slotStartsAt,
         slotDurationMinutes: slotDurationMinutes,
+        cancelledByTrainer: cancelledByTrainer,
       );
 
   final String id;
@@ -93,6 +95,11 @@ class ConsultationRequest {
   /// 승인·거절된 시각. 대기 중이면 null.
   final DateTime? decidedAt;
 
+  /// 트레이너가 수락했던 상담 일정을 취소·삭제해 [ConsultationStatus.cancelled]
+  /// 가 된 요청인가(#2758). 내가 취소한 요청과 상태는 같지만, 다시 신청하라는
+  /// 안내가 필요하다.
+  final bool cancelledByTrainer;
+
   /// 아직 답을 기다리는 중인가.
   bool get isPending => status == ConsultationStatus.pending;
 }
@@ -117,9 +124,9 @@ ConsultationRequest consultationFromJson(Map<String, Object?> j) {
     preferredTimeSlot: preferredTimeSlotFromWire(
       j['preferred_time_slot'] as String?,
     ),
-    slotStartsAt: DateTime.tryParse(
-      (j['slot_starts_at'] as String?) ?? '',
-    )?.toLocal(),
+    // 서버 시각은 KST 벽시계로 읽는다 — preferredDate 의 기본값(nowKst)과
+    // 같은 기준이어야 한다(#2876).
+    slotStartsAt: _kstOrNull(j['slot_starts_at']),
     slotDurationMinutes: (j['slot_duration_minutes'] as num?)?.toInt(),
     message: j['message'] as String?,
     status: switch (j['status']) {
@@ -137,5 +144,13 @@ ConsultationRequest consultationFromJson(Map<String, Object?> j) {
       _ => null,
     },
     decidedAt: DateTime.tryParse((j['decided_at'] as String?) ?? ''),
+    cancelledByTrainer: j['cancelled_by_trainer'] == true,
   );
 }
+
+/// 서버가 준 시각 문자열을 KST 벽시계로 읽는다. 없거나 읽을 수 없으면 null.
+DateTime? _kstOrNull(Object? raw) =>
+    switch (DateTime.tryParse((raw as String?) ?? '')) {
+      final DateTime t => toKst(t),
+      null => null,
+    };

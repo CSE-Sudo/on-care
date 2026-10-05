@@ -14,6 +14,9 @@ import 'dart:ui' show Locale;
 
 import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_rules/oncare_rules.dart'
+    show endsWithHangul, normalizeExerciseType, normalizeExerciseTypeKo;
+import 'package:oncare_ui/oncare_ui.dart' show mondayOf;
 
 /// 하루치 운동 합계. **기록이 있는 날만** 들어온다 — 쉰 날과 적지 않은 날은 다르다.
 typedef ExerciseDayTotals = ({
@@ -32,13 +35,9 @@ double _avg(List<int> values) => values.isEmpty
     ? 0
     : values.fold<int>(0, (int a, int b) => a + b) / values.length;
 
-/// 운동 유형 코드 → 사람이 읽는 라벨. 서버 `exercise_types.label_for` 와 같다.
-String exerciseTypeLabel(String code) => switch (code) {
-  'cardio' || 'walking' => '유산소',
-  'strength' => '근력',
-  'flexibility' || 'stretching' || 'yoga' => '스트레칭',
-  _ => '기타',
-};
+/// 운동 유형 표기 → 사람이 읽는 라벨. 코드·한글 라벨·옛 값을 모두 받고 모르는
+/// 값은 `기타` 다 — 서버 `exercise_types.normalize_ko` 와 같은 공용 표다(#2861).
+String exerciseTypeLabel(String code) => normalizeExerciseTypeKo(code);
 
 /// 그날 가장 오래 한 유형. 같으면 유산소 → 근력 → 스트레칭 → 기타 순이다.
 String _mainType(Map<String, int> byType) {
@@ -172,13 +171,6 @@ ExerciseAdvice exercisePeriodAdviceOf(
   });
 }
 
-/// [exercisePeriodAdviceOf] 의 한국어 문장.
-String exercisePeriodAdvice(
-  List<ExerciseDayTotals> days,
-  String period, {
-  List<RoutineAdviceDay> routineDays = const <RoutineAdviceDay>[],
-}) => exercisePeriodAdviceOf(days, period, routineDays: routineDays).message;
-
 // --- 추천 개인운동 기준 조언 (#2162) ------------------------------------------
 //
 // 서버 `routine_advice.py` 의 재현이다. 규칙도 문장도 서버가 원본이고, 두 쪽이
@@ -293,23 +285,14 @@ DateTime routineAdviceFetchStart(String period, DateTime today) {
   final DateTime day = DateTime(today.year, today.month, today.day);
   if (period == kPeriodToday) return day;
   if (period == kPeriodWeek) {
-    return DateTime(day.year, day.month, day.day - (day.weekday - 1) - 7);
+    final DateTime monday = mondayOf(day);
+    return DateTime(monday.year, monday.month, monday.day - 7);
   }
   return DateTime(day.year, day.month, day.day - (kAllPeriodWeeks * 7 - 1));
 }
 
-/// 유형 표기 → 코드. 서버 `exercise_types.normalize` 와 같다.
-String _typeCode(String type) => switch (type.trim()) {
-  'cardio' || '유산소' || 'walking' || '걷기' => 'cardio',
-  'strength' || '근력' => 'strength',
-  'stretching' ||
-  '스트레칭' ||
-  'yoga' ||
-  '요가' ||
-  'flexibility' ||
-  '유연성' => 'stretching',
-  _ => 'other',
-};
+/// 유형 표기 → 코드. 서버 `exercise_types.normalize` 와 같은 공용 표다(#2861).
+String _typeCode(String type) => normalizeExerciseType(type);
 
 const List<String> _typeOrder = <String>[
   'cardio',
@@ -373,10 +356,6 @@ ExerciseAdvice? routineCoachAdvice(List<RoutineAdviceDay> days, String period) {
   return _routineAll(days);
 }
 
-/// [routineCoachAdvice] 의 한국어 문장.
-String? routineCoachMessage(List<RoutineAdviceDay> days, String period) =>
-    routineCoachAdvice(days, period)?.message;
-
 ExerciseAdvice _routineToday(RoutineAdviceDay day) {
   final List<String> pending = <String>[
     for (final RoutineAdviceItem i in day.routines)
@@ -400,7 +379,7 @@ ExerciseAdvice _routineToday(RoutineAdviceDay day) {
   final String then = two ? pending[1] : '';
   // 한글로 끝나지 않는 이름에는 조사를 붙일 수 없다 — 마친 운동을 말하는 문장을
   // 건너뛴다.
-  if (done.isNotEmpty && hasFinalConsonant(done.last) != null) {
+  if (done.isNotEmpty && endsWithHangul(done.last)) {
     final String finished = done.last;
     return _firstFit(<ExerciseAdvice>[
       if (two)
@@ -446,11 +425,7 @@ ExerciseAdvice _routineToday(RoutineAdviceDay day) {
 
 ExerciseAdvice _routineWeek(List<RoutineAdviceDay> days) {
   final DateTime today = _dateOnly(days.last.date);
-  final DateTime monday = DateTime.utc(
-    today.year,
-    today.month,
-    today.day - (today.weekday - 1),
-  );
+  final DateTime monday = _dateOnly(mondayOf(today));
   final DateTime lastMonday = DateTime.utc(
     monday.year,
     monday.month,
@@ -662,7 +637,7 @@ ExerciseAdvice _doneTodayPraise(String key) {
       'part': part,
     });
   }
-  final String named = hasFinalConsonant(key) == null
+  final String named = !endsWithHangul(key)
       ? 'routine_all_done_today_name_plain'
       : 'routine_all_done_today_name';
   return _firstFit(<ExerciseAdvice>[
@@ -765,7 +740,7 @@ ExerciseAdvice _routineAll(List<RoutineAdviceDay> days) {
         }),
       ]);
     }
-    final bool plain = hasFinalConsonant(key) == null;
+    final bool plain = !endsWithHangul(key);
     return _firstFit(<ExerciseAdvice>[
       _advice(
         plain ? 'routine_all_missed_name_plain' : 'routine_all_missed_name',

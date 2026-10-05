@@ -59,6 +59,8 @@ TRAINER_INVITE_REJECTED = "trainer_invite_rejected"
 TRAINER_RESERVATION_BOOKED = "trainer_reservation_booked"
 TRAINER_RESERVATION_CANCELLED = "trainer_reservation_cancelled"
 TRAINER_MEMBER_MESSAGE = "trainer_member_message"
+#: 담당 회원이 주간 피드백(컨디션·운동 강도·통증)을 냈다(#3026).
+TRAINER_MEMBER_WEEKLY_FEEDBACK = "trainer_member_weekly_feedback"
 
 # 트레이너가 한 일로 회원이 받는 알림.
 MEMBER_COACH_MESSAGE = "member_coach_message"
@@ -82,6 +84,9 @@ MEMBER_SCHEDULE_SERIES = "member_schedule_series"
 MEMBER_COUPON_EXPIRING = "member_coupon_expiring"
 MEMBER_COUPON_CANCELLED = "member_coupon_cancelled"
 MEMBER_CHALLENGE_RESULT = "member_challenge_result"
+#: 트레이너가 회원 PT 를 완료 처리했다 / 완료 PT 에 처음 피드백을 적었다(#3027).
+MEMBER_PT_COMPLETED = "member_pt_completed"
+MEMBER_PT_FEEDBACK = "member_pt_feedback"
 
 _TEMPLATES: dict[str, _Renderer] = {}
 
@@ -162,7 +167,7 @@ def _seconds(args: Args) -> int:
 
 
 def _amount(args: Args, locale: Locale) -> str:
-    """배정 한 건의 양. 한국어는 `trainer_service._amount_label` 과 같은 문장이다."""
+    """배정 한 건의 양. 한국어는 `trainer._common._amount_label` 과 같은 문장이다."""
     sets = args.get("sets")
     reps = args.get("reps")
     hold = args.get("hold_seconds")
@@ -251,7 +256,7 @@ def _trainer_member_disconnected(args: Args, locale: Locale) -> Rendered:
     body = f"{name or 'A member'} ended their connection with you."
     if cancelled:
         body += (
-            f" {_plural(cancelled, 'remaining session was', 'remaining sessions were')}"
+            f" {_plural(cancelled, 'remaining appointment was', 'remaining appointments were')}"
             " cancelled."
         )
     return "Client disconnected", body
@@ -333,6 +338,75 @@ def _trainer_member_message(args: Args, locale: Locale) -> Rendered:
     return f"Message from {name or 'a member'}", "Sent a photo" if photo_only else None
 
 
+#: 회원 주간 피드백 저장 값 → (한국어, 영어). 트레이너 웹 ARB 의
+#: `reportsMemberFeedbackCondition*`·`reportsMemberFeedbackIntensity*` 와 같은 말이다.
+#: 저장 값 목록은 `trainer.weekly_feedback` 의 `_WEEKLY_FEEDBACK_*` 와 같다.
+_FEEDBACK_CONDITION: dict[str, tuple[str, str]] = {
+    "great": ("아주 좋았어요", "Great"),
+    "good": ("좋았어요", "Good"),
+    "ok": ("보통이었어요", "Okay"),
+    "tired": ("지쳤어요", "Worn out"),
+    "bad": ("많이 힘들었어요", "Really rough"),
+}
+_FEEDBACK_INTENSITY: dict[str, tuple[str, str]] = {
+    "too_easy": ("너무 쉬웠어요", "Too easy"),
+    "right": ("적당했어요", "About right"),
+    "hard": ("힘들었어요", "Hard"),
+    "too_hard": ("너무 힘들었어요", "Too hard"),
+}
+
+
+def _feedback_label(table: dict[str, tuple[str, str]], value: str, locale: Locale) -> str:
+    """저장 값 → 화면 말. 모르는 값은 받은 그대로 둔다 — 사라지는 것보다 낫다."""
+    pair = table.get(value)
+    if pair is None:
+        return value
+    return pair[0] if locale == "ko" else pair[1]
+
+
+@_template(TRAINER_MEMBER_WEEKLY_FEEDBACK)
+def _trainer_member_weekly_feedback(args: Args, locale: Locale) -> Rendered:
+    """회원 주간 피드백 도착(#3026).
+
+    통증이 있으면 제목이 달라진다 — 다음 PT 프로그램을 바꿔야 할 수 있는 답이라
+    알림함에서 먼저 눈에 띄어야 한다. **아픈 곳(회원이 쓴 글)은 싣지 않는다**:
+    건강 정보가 알림 미리보기에 드러나지 않게 하는 `trainer_health_notes`(#2619)와
+    같은 규칙이고, 누르면 그 글이 있는 '피드백' 탭이 바로 열린다.
+    """
+    name = _text(args, "member_name")
+    pain = bool(args.get("pain"))
+    revised = bool(args.get("revised"))
+    condition = _feedback_label(_FEEDBACK_CONDITION, _text(args, "condition"), locale)
+    intensity = _feedback_label(_FEEDBACK_INTENSITY, _text(args, "intensity"), locale)
+    ko = locale == "ko"
+    # 빠진 값은 칸째 뺀다 — `컨디션  · ` 처럼 빈 칸이 남지 않게.
+    parts: list[str] = []
+    if condition:
+        parts.append(f"컨디션 {condition}" if ko else f"Condition: {condition}")
+    if intensity:
+        parts.append(f"운동 강도 {intensity}" if ko else f"Intensity: {intensity}")
+    if pain:
+        parts.append("통증 있음" if ko else "Pain reported")
+    body = " · ".join(parts)
+    if ko:
+        who = f"{name} 회원이" if name else "회원이"
+        if pain:
+            title = f"{who} 통증을 알렸어요"
+        elif revised:
+            title = f"{who} 주간 피드백을 수정했어요"
+        else:
+            title = f"{who} 주간 피드백을 보냈어요"
+        return title, body
+    who = name or "A member"
+    if pain:
+        title = f"{who} reported pain"
+    elif revised:
+        title = f"{who} updated their weekly feedback"
+    else:
+        title = f"{who} sent their weekly feedback"
+    return title, body
+
+
 # --------------------------------------------------------------------------
 # 트레이너가 한 일로 회원이 받는 알림
 # --------------------------------------------------------------------------
@@ -356,9 +430,11 @@ def _member_coach_message(args: Args, locale: Locale) -> Rendered:
 def _member_routine_assigned(args: Args, locale: Locale) -> Rendered:
     name = _text(args, "name")
     amount = _amount(args, locale)
+    # 한 건 배정은 개인운동이다 — 회원 앱 채팅 안내(`개인운동을 받았어요`)와
+    # 운동 탭 목록(`추천 개인운동`)이 같은 이름으로 부른다(#3107).
     if locale == "ko":
-        return "새 운동 루틴이 배정되었어요", f"{name} · {amount}"
-    return "New workout routine assigned", f"{name} · {amount}"
+        return "새 개인운동이 왔어요", f"{name} · {amount}"
+    return "New personal exercise", f"{name} · {amount}"
 
 
 @_template(MEMBER_ROUTINE_PROGRAM)
@@ -371,6 +447,12 @@ def _member_routine_program(args: Args, locale: Locale) -> Rendered:
     # `개인운동만` 을 여럿 보내면 운동 하나가 세션 하나다(#2581). 프로그램 이름
     # (예전 `이번 주 개인운동`)과 `세션 N개` 는 개인운동 묶음에 맞지 않는다.
     routine_only = bool(args.get("routine_only")) and multi
+    # 미래 시작일로 보낸 개인운동(#2656) — 알림은 지금 가지만 회원 목록에는
+    # 그날부터 뜬다. 제목이 그날을 말해야 오늘 열어 보고 헷갈리지 않는다.
+    starts_on = _starts_on(args)
+    # 제목은 무엇을 받았는지 말한다 — 개인운동이면 `개인운동`, 아니면 PT
+    # 프로그램이다(#3107). `personal` 이 없는 예전 알림은 `routine_only` 로 가린다.
+    personal = bool(args.get("personal")) or bool(args.get("routine_only"))
     if locale == "ko":
         if routine_only:
             body = f"개인운동 {sessions}개 · {duration}"
@@ -378,7 +460,9 @@ def _member_routine_program(args: Args, locale: Locale) -> Rendered:
             body = f"{name} · 세션 {sessions}개 · {duration}"
         else:
             body = f"{name} · {duration}"
-        return "새 운동 루틴이 배정되었어요", body
+        if starts_on is not None:
+            return f"{starts_on.month}/{starts_on.day}부터 할 개인운동이 왔어요", body
+        return ("새 개인운동이 왔어요" if personal else "새 PT 프로그램이 왔어요"), body
     if routine_only:
         body = (
             f"{_plural(sessions, 'personal exercise', 'personal exercises')}"
@@ -388,7 +472,33 @@ def _member_routine_program(args: Args, locale: Locale) -> Rendered:
         body = f"{name} · {_plural(sessions, 'session', 'sessions')} · {duration}"
     else:
         body = f"{name} · {duration}"
-    return "New workout routine assigned", body
+    if starts_on is not None:
+        return (
+            f"Personal exercises starting {_MONTHS[starts_on.month - 1]} {starts_on.day}",
+            body,
+        )
+    if personal:
+        title = "New personal exercise" if sessions == 1 else "New personal exercises"
+        return title, body
+    return "New PT program", body
+
+
+#: 영어 알림의 달 이름. `strftime("%b")` 는 서버 로케일을 탄다.
+_MONTHS = (
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+)
+
+
+def _starts_on(args: Args) -> date | None:
+    """`starts_on`(YYYY-MM-DD) → 날짜. 없거나 깨졌으면 None. (#2656)"""
+    raw = args.get("starts_on")
+    if not isinstance(raw, str):
+        return None
+    try:
+        return date.fromisoformat(raw)
+    except ValueError:
+        return None
 
 
 @_template(MEMBER_TRAINER_CONNECTED)
@@ -530,6 +640,48 @@ def _member_trainer_left_booking(args: Args, locale: Locale) -> Rendered:
 
 
 # --------------------------------------------------------------------------
+# PT 수업 완료·피드백 — 트레이너가 마친 수업을 회원에게 (#3027)
+# --------------------------------------------------------------------------
+
+
+def _session_number(args: Args) -> int | None:
+    """완료 PT 의 회차(`trainer._common._done_pt_numbers` 와 같은 번호). 없으면 ``None``."""
+    try:
+        n = int(args.get("session_number") or 0)
+    except (TypeError, ValueError):
+        return None
+    return n if n > 0 else None
+
+
+@_template(MEMBER_PT_COMPLETED)
+def _member_pt_completed(args: Args, locale: Locale) -> Rendered:
+    """PT 완료. 본문은 트레이너 피드백이 있으면 그 글 그대로다(번역하지 않는다)."""
+    name = _text(args, "trainer_name").strip()
+    n = _session_number(args)
+    has_note = bool(args.get("has_note"))
+    if locale == "ko":
+        who = f"{name or '담당'} 트레이너와"
+        title = f"{who} {n}회차 PT를 마쳤어요" if n else f"{who} PT를 마쳤어요"
+        return title, None if has_note else "운동 기록에 남겼어요"
+    who = name or "your trainer"
+    title = (
+        f"You finished PT session {n} with {who}"
+        if n
+        else f"You finished a PT session with {who}"
+    )
+    return title, None if has_note else "Saved to your workout log"
+
+
+@_template(MEMBER_PT_FEEDBACK)
+def _member_pt_feedback(args: Args, locale: Locale) -> Rendered:
+    """완료한 PT 에 트레이너가 처음 피드백을 적었다. 본문은 그 글 그대로다."""
+    name = _text(args, "trainer_name").strip()
+    if locale == "ko":
+        return "트레이너 피드백이 도착했어요", None
+    return f"New PT feedback from {name or 'your trainer'}", None
+
+
+# --------------------------------------------------------------------------
 # 일정 — 트레이너가 잡고 바꾼 회원 일정
 # --------------------------------------------------------------------------
 
@@ -602,6 +754,11 @@ _COUPON_CANCELLED_TITLE: dict[str, tuple[str, str]] = {
 _COUPON_CANCEL_REASON: dict[str, tuple[str, str]] = {
     "trainer": ("담당 트레이너 연결이 해제되어", "your trainer connection ended"),
     "gym": ("헬스장 연결이 해제되어", "your gym connection ended"),
+    # 헬스장 혜택 제공을 멈춤(#2822) — `scripts/cancel_gym_benefit_coupons.py`.
+    "service": (
+        "헬스장 혜택 제공을 잠시 멈추게 되어",
+        "gym benefits are paused for now",
+    ),
 }
 
 

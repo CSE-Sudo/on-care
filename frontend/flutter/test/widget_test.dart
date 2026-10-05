@@ -11,16 +11,20 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
+import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
-import 'package:oncare/features/dashboard/data/repositories/mock_dashboard_repository.dart';
 import 'package:oncare/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_period_view.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
-import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
+import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
+import 'package:oncare/features/exercise/domain/entities/gym.dart';
+import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
+import 'package:oncare/features/exercise/domain/entities/trainer.dart';
+import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
+import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_activity_status.dart';
@@ -28,17 +32,32 @@ import 'package:oncare/features/member_coach/data/repositories/mock_member_coach
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
+import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/locale_provider.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+import 'helpers/demo_exercise.dart';
 import 'helpers/diet_period_tabs.dart';
 import 'helpers/fake_activity_calendar_repository.dart';
+import 'helpers/fake_dashboard_repository.dart';
 import 'helpers/fake_diet_repository.dart';
+import 'helpers/fake_notification_repository.dart';
 
 class _CountingMemberCoachRepository extends MockMemberCoachRepository {
   int routineLoads = 0;
   int sessionLoads = 0;
+  int coachLoads = 0;
+
+  /// 끄면 트레이너가 웹에서 담당을 해제한 것과 같다(#2843).
+  bool assigned = true;
+
+  @override
+  Future<MemberCoach?> fetchCoach() {
+    coachLoads += 1;
+    return assigned ? super.fetchCoach() : Future<MemberCoach?>.value();
+  }
 
   @override
   Future<List<CoachRoutine>> fetchRoutines() {
@@ -53,6 +72,53 @@ class _CountingMemberCoachRepository extends MockMemberCoachRepository {
   }
 }
 
+/// 헬스장 영역 조회를 센다(#2856). 값은 데모 저장소 그대로다.
+class _CountingGymRepository extends MockGymRepository {
+  int gymLoads = 0;
+  int trainerLoads = 0;
+  int reservationLoads = 0;
+  int slotLoads = 0;
+
+  @override
+  Future<Gym?> fetchMyGym() {
+    gymLoads += 1;
+    return super.fetchMyGym();
+  }
+
+  @override
+  Future<Trainer?> fetchMyTrainer() {
+    trainerLoads += 1;
+    return super.fetchMyTrainer();
+  }
+
+  @override
+  Future<List<MyReservation>> fetchMyReservations({
+    int limit = reservationPageSize,
+    DateTime? before,
+    String? beforeId,
+  }) {
+    reservationLoads += 1;
+    return super.fetchMyReservations(
+      limit: limit,
+      before: before,
+      beforeId: beforeId,
+    );
+  }
+
+  @override
+  Future<List<TrainerSlot>> fetchSlots(String trainerId) {
+    slotLoads += 1;
+    return super.fetchSlots(trainerId);
+  }
+
+  List<int> get counts => <int>[
+    gymLoads,
+    trainerLoads,
+    reservationLoads,
+    slotLoads,
+  ];
+}
+
 void main() {
   // 저장된 세션이 없다고 답해 준다 — 없으면 복구가 끝나지 않아 시작
   // 화면(#1944)에 머문다.
@@ -62,7 +128,9 @@ void main() {
     WidgetTester tester, {
     Locale? locale,
     MemberCoachRepository? memberCoachRepository,
+    GymRepository? gymRepository,
   }) async {
+    final AppDatabase exerciseDb = await seededDemoDatabase(tester);
     const config = AppConfig(
       environment: Environment.dev,
       apiBaseUrl: 'https://dev.api.test',
@@ -87,9 +155,8 @@ void main() {
           dietRepositoryProvider.overrideWithValue(diet as DietRepository),
           // Same reason — exercise repo defaults to DioExerciseRepository
           // (Stage 9.6); swap to the in-memory mock here.
-          exerciseRepositoryProvider.overrideWithValue(
-            MockExerciseRepository() as ExerciseRepository,
-          ),
+          // 운동은 앱의 데모와 같은 경로(로컬 목업 API + drift)로 돈다(#2724).
+          ...demoExerciseOverrides(exerciseDb),
           // 기록 그래프(#2075)의 데모 저장소는 식단·색·보호권을 목업 API 에서
           // 받아 와 dio + drift 가 있어야 답이 온다 — 위 식단 저장소와 같은
           // 이유로 메모리 대역을 끼운다(없으면 포인트 화면이 계속 기다린다).
@@ -100,12 +167,18 @@ void main() {
           // 9.8); the smoke test only inspects the nav, so the mock is
           // plenty.
           dashboardRepositoryProvider.overrideWithValue(
-            MockDashboardRepository(diet) as DashboardRepository,
+            FakeDashboardRepository(diet) as DashboardRepository,
           ),
           if (memberCoachRepository != null)
             memberCoachRepositoryProvider.overrideWithValue(
               memberCoachRepository,
             ),
+          if (gymRepository != null)
+            gymRepositoryProvider.overrideWithValue(gymRepository),
+          // 알림함은 데모에서도 Dio + drift 를 탄다(#2660) — 식단처럼 가짜로 덮는다.
+          notificationRepositoryProvider.overrideWithValue(
+            FakeNotificationRepository(),
+          ),
           sessionFeatureResetOverride(),
           if (locale != null) localeProvider.overrideWith((ref) => locale),
         ],
@@ -219,6 +292,56 @@ void main() {
     expect(find.text('MY'), findsAtLeastNWidgets(1));
   });
 
+  // 운동 탭의 헬스장 영역(내 헬스장·담당 트레이너·내 예약·예약 가능 시간)은
+  // autoDispose 가 아니라 처음 읽은 값이 남았다 — 트레이너가 웹에서 예약을
+  // 취소해도 회원 앱은 옛 예약과 `다음 PT` 를 보였다(#2856).
+  testWidgets('gym area refreshes on exercise tab entry and app resume', (
+    tester,
+  ) async {
+    final _CountingGymRepository gyms = _CountingGymRepository();
+    await pumpApp(tester, locale: const Locale('ko'), gymRepository: gyms);
+
+    // 화면에 붙어 있는 것처럼 네 값을 듣는다 — 어느 하위 탭이 열려 있든
+    // 셸의 갱신이 네 값을 모두 다시 읽게 하는지만 본다.
+    final ProviderContainer container = ProviderScope.containerOf(
+      tester.element(find.byType(OncareApp)),
+    );
+    final List<ProviderSubscription<Object?>> subs =
+        <ProviderSubscription<Object?>>[
+          container.listen(myGymProvider, (_, _) {}),
+          container.listen(myTrainerProvider, (_, _) {}),
+          container.listen(myReservationsProvider, (_, _) {}),
+          container.listen(trainerSlotsProvider('trainer-kim'), (_, _) {}),
+        ];
+    addTearDown(() {
+      for (final ProviderSubscription<Object?> sub in subs) {
+        sub.close();
+      }
+    });
+    await tester.pumpAndSettle();
+    final List<int> beforeEntry = gyms.counts;
+    expect(beforeEntry, everyElement(greaterThan(0)));
+
+    await tester.tap(find.text('운동').last);
+    await tester.pumpAndSettle();
+
+    final List<int> afterEntry = gyms.counts;
+    for (int i = 0; i < afterEntry.length; i++) {
+      expect(afterEntry[i], greaterThan(beforeEntry[i]), reason: 'entry #$i');
+    }
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pumpAndSettle();
+
+    final List<int> afterResume = gyms.counts;
+    for (int i = 0; i < afterResume.length; i++) {
+      expect(afterResume[i], greaterThan(afterEntry[i]), reason: 'resume #$i');
+    }
+  });
+
   testWidgets('member coaching data refreshes on branch entry and app resume', (
     tester,
   ) async {
@@ -244,6 +367,51 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.sessionLoads, greaterThan(beforeResume));
+  });
+
+  testWidgets('담당이 해제된 채 앱으로 돌아오면 헤더가 AI 챗봇 입구로 바뀐다 (#2843)', (
+    tester,
+  ) async {
+    final repository = _CountingMemberCoachRepository();
+    await pumpApp(
+      tester,
+      locale: const Locale('ko'),
+      memberCoachRepository: repository,
+    );
+    expect(find.byKey(const Key('trainerChatHeaderButton')), findsWidgets);
+    final int beforeResume = repository.coachLoads;
+
+    // 앱을 떠난 사이 트레이너가 웹에서 담당을 해제했다.
+    repository.assigned = false;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pumpAndSettle();
+
+    expect(repository.coachLoads, greaterThan(beforeResume));
+    expect(find.byKey(const Key('trainerChatHeaderButton')), findsNothing);
+    expect(find.byKey(const Key('aiChatHeaderButton')), findsWidgets);
+  });
+
+  testWidgets('홈 탭에 다시 들어오면 담당 코치를 다시 확인한다 (#2843)', (tester) async {
+    final repository = _CountingMemberCoachRepository();
+    await pumpApp(
+      tester,
+      locale: const Locale('ko'),
+      memberCoachRepository: repository,
+    );
+
+    await tester.tap(find.text('운동').last);
+    await tester.pumpAndSettle();
+    final int beforeHome = repository.coachLoads;
+    repository.assigned = false;
+
+    await tester.tap(find.text('홈').last);
+    await tester.pumpAndSettle();
+
+    expect(repository.coachLoads, greaterThan(beforeHome));
+    expect(find.byKey(const Key('aiChatHeaderButton')), findsWidgets);
   });
 
   testWidgets('record sheet has no fixed bottom gap without a system inset', (
@@ -443,8 +611,19 @@ void main() {
 
     // 포인트 카드는 내 헬스장 · 트레이너 섹션 아래라(#1785) 첫 화면에서 내려가
     // 있다. 스크롤한 뒤 한 번 그려야 누를 좌표가 새 자리를 따른다.
+    // 목록은 지연 생성이라, 담당 트레이너 카드의 신고 버튼(#3008)만큼 카드가
+    // 내려가면 첫 그림에 아직 없다. 찾을 때까지 MY 목록을 내린다.
     final banner = find.byKey(const Key('pointsBanner'));
-    await tester.ensureVisible(banner);
+    await tester.scrollUntilVisible(
+      banner,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(MyHealthPage),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await tester.pumpAndSettle();
 
     // 포인트 카드 화살표는 카드 안쪽 여백만큼 떨어진 오른쪽 끝에 선다.
@@ -564,7 +743,9 @@ void main() {
     // 한국어로 노출됐다. 이제 ARB 를 거쳐 영어로 나오고 한국어 리터럴은 없어야 한다.
     expect(find.text("Today's combined AI advice"), findsAtLeastNWidgets(1));
     expect(
-      find.text(lookupAppLocalizations(const Locale('en')).homeAiAdviceBody),
+      find.text(
+        keepWords(lookupAppLocalizations(const Locale('en')).homeAiAdviceBody),
+      ),
       findsOneWidget,
     );
     expect(find.text('오늘의 AI 통합 조언'), findsNothing);
@@ -584,8 +765,6 @@ void main() {
       expect(en.coachCardExerciseTitle, '3 workouts this week');
       expect(en.homeAiAdviceTitle, "Today's combined AI advice");
       expect(ko.homeAiAdviceTitle, '오늘의 AI 통합 조언');
-      expect(en.homeSodiumExceededBadge, 'Sodium over');
-      expect(ko.homeSodiumExceededBadge, '나트륨 초과');
 
       // 영어 리소스에 한글이 남아 있지 않아야 한다.
       expect(hangul.hasMatch(en.coachCardDietBody), isFalse);
@@ -638,36 +817,6 @@ void main() {
     );
   });
 
-  test('운동 탭 UI 골격 문구가 로케일을 따른다 (#367)', () {
-    final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
-    final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-    final RegExp hangul = RegExp('[가-힣]');
-
-    // 회귀: 운동 현황 카드·도넛·툴팁의 골격 문구가 한국어로 굳어 있어
-    // 영어 로케일에서 지표 라벨만 영어로 나왔다.
-    expect(en.exTodayTotalTime, "Today's total time");
-    expect(ko.exTodayTotalTime, '오늘 총 운동 시간');
-    expect(en.exRest, 'Rest');
-    expect(ko.exRest, '휴식');
-    expect(en.exAiRecommendedExercise, 'AI recommended exercise');
-    expect(ko.exAiRecommendedExercise, 'AI 추천 운동');
-
-    // 이번 달 막대 차트의 주차 라벨.
-    expect(en.exWeekNumber(3), 'Week 3');
-    expect(ko.exWeekNumber(3), '3주');
-
-    for (final String s in <String>[
-      en.exTodayTotalTime,
-      en.exRest,
-      en.exAiRecommendedExercise,
-      en.exWeekNumber(1),
-      en.unitMinutes,
-      en.unitMinutesValue(8),
-    ]) {
-      expect(hangul.hasMatch(s), isFalse, reason: s);
-    }
-  });
-
   test('분 단위는 기존 공용 키를 재사용한다 (#367)', () {
     final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
     final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
@@ -684,26 +833,16 @@ void main() {
     final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
     final RegExp hangul = RegExp('[가-힣]');
 
-    // 신규 키 5개 — 나머지 17곳은 기존 키를 재사용했다.
+    // 화면에서 빠진 문구의 키는 ARB 에서 지웠다(#2905) — 지금 쓰는 키만 본다.
     // '운동 유형' 은 신규 키를 만들지 않고 기존 exExerciseType('운동 종류')으로
     // 합쳤다. exercise_flows 가 같은 개념에 이미 그 키를 쓰고 있어, 두 시트가
     // 서로 다른 말을 하던 것이 정리된다.
     expect(en.exExerciseType, 'Exercise Type');
     expect(ko.exExerciseType, '운동 종류');
-    expect(en.exExerciseContent, 'What you did');
-    expect(en.exViewDetail, 'View details');
-    expect(en.exRegister, 'Register');
-    expect(en.exGymRegistered('Gangnam Gym'), 'Registered Gangnam Gym');
-    expect(ko.exGymRegistered('강남 짐'), '강남 짐을(를) 등록했어요');
 
     for (final String s in <String>[
       en.exExerciseType,
-      en.exExerciseContent,
-      en.exViewDetail,
-      en.exRegister,
-      en.exGymRegistered('Gym'),
       // 재사용한 기존 키도 영문 값이 멀쩡한지 함께 본다.
-      en.exStatTime,
       en.exExerciseDuration,
       en.exEnterDuration,
       en.dietDeleteFailed,

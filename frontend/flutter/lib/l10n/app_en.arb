@@ -5,6 +5,57 @@
   "@appTitle": {
     "description": "Application name shown in window/AppBar titles."
   },
+  "notFoundTitle": "Page not found",
+  "@notFoundTitle": {
+    "description": "Title of the 404 page shown for an address that matches no screen (#2633)."
+  },
+  "notFoundMessage": "The link may be broken, or the page may no longer exist. Please check the address and try again.",
+  "notFoundGoHome": "Go home",
+  "@notFoundGoHome": {
+    "description": "404 page button for a signed-in (or demo) member; goes to the home dashboard."
+  },
+  "notFoundGoSignIn": "Go to sign in",
+  "updateRequiredTitle": "A new version is available",
+  "@updateRequiredTitle": {
+    "description": "Title of the full-screen page shown when this build is older than the server's minimum supported version (#3045)."
+  },
+  "updateRequiredMessage": "Please update On-Care to keep using it.",
+  "updateRequiredVersions": "Your version {current} · Required {min}",
+  "@updateRequiredVersions": {
+    "description": "Current and minimum versions on the update page (#3045).",
+    "placeholders": {
+      "current": {
+        "type": "String",
+        "example": "0.4.0"
+      },
+      "min": {
+        "type": "String",
+        "example": "0.5.0"
+      }
+    }
+  },
+  "updateRequiredAction": "Update",
+  "@updateRequiredAction": {
+    "description": "Button on the update page; opens the store page of the app."
+  },
+  "updateRequiredStoreHint": "Please update On-Care from the App Store.",
+  "@updateRequiredStoreHint": {
+    "description": "Shown instead of the button when there is no store link to open (App Store ID not configured)."
+  },
+  "updateRequiredOpenFailed": "Couldn't open the store. Please update On-Care from the store app.",
+  "@notFoundGoSignIn": {
+    "description": "404 page button when nobody is signed in; goes to the sign-in screen."
+  },
+  "misconfiguredBuildTitle": "This build is misconfigured",
+  "@misconfiguredBuildTitle": {
+    "description": "Heading of the startup screen shown instead of the app when a release build was made with development or demo settings."
+  },
+  "misconfiguredBuildMessage": "This build was made with settings that can't be used for real users, so the app didn't open. Please share the details below with whoever released it.",
+  "misconfiguredBuildDetailsTitle": "Build settings to fix",
+  "misconfiguredBuildDevEnvironment": "ENV is not prod or staging",
+  "misconfiguredBuildMockWithoutDemo": "It uses demo data without the demo build flag (USE_MOCK_API, DEMO_BUILD)",
+  "misconfiguredBuildPlaceholderApiUrl": "The API address is an example or local address (API_BASE_URL)",
+  "misconfiguredBuildInsecureApiUrl": "The API address does not start with https:// (API_BASE_URL)",
   "navDashboard": "Home",
   "navDiet": "Diet",
   "navExercise": "Exercise",
@@ -14,12 +65,28 @@
   "pageAiCoachTitle": "AI Coach",
   "pageNotificationTitle": "Notifications",
   "actionRetry": "Retry",
-  "errorNetwork": "Network problem",
-  "errorUnauthorized": "Sign in required",
-  "errorNotFound": "Not found",
-  "errorServer": "Server error",
   "errorCancelled": "Cancelled",
   "errorUnknown": "Something went wrong",
+  "errorForbidden": "You don't have access to this feature. Please check the required consent or your trainer connection.",
+  "@errorForbidden": {
+    "description": "403 from the server: signed in, but not allowed to use this feature (missing consent or trainer link). Never suggests signing in again (#2859)."
+  },
+  "errorRateLimited": "Too many requests right now. Please try again in a moment.",
+  "@errorRateLimited": {
+    "description": "429 from the server: too many requests; it will work again shortly (#2859)."
+  },
+  "errorNetwork": "Your connection looks unstable. Check your network and try again.",
+  "@errorNetwork": {
+    "description": "Connection lost or timed out — the member should check the network (#3140)."
+  },
+  "errorServer": "Something went wrong on our side. Please try again in a moment.",
+  "@errorServer": {
+    "description": "5xx from the server: a temporary server problem the member cannot fix (#3140)."
+  },
+  "errorInvalidRequest": "We couldn't process that request. Please check what you entered.",
+  "@errorInvalidRequest": {
+    "description": "400/422 without a usable server reason: the request was rejected (#3140)."
+  },
   "dashboardMetricCalories": "Calories",
   "dashboardMetricExercise": "Weekly exercise",
   "homeDashboardLoadError": "Could not load the dashboard.",
@@ -51,8 +118,29 @@
   "@homeAdviceExerciseStart": {
     "description": "Home AI advice when nothing was logged this week (#1943)."
   },
+  "homeAdviceSodiumOverSources": "Sodium is high from {foods}.",
+  "@homeAdviceSodiumOverSources": {
+    "description": "Home AI advice when today's sodium is over the goal, naming the foods that added the most sodium. {foods} is the member's own food names, not translated (#2644).",
+    "placeholders": {
+      "foods": {
+        "type": "String"
+      }
+    }
+  },
+  "homeAdviceFoodPair": "{first} and {second}",
+  "@homeAdviceFoodPair": {
+    "description": "Joins the two top sodium foods in the home AI advice (#2644).",
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "second": {
+        "type": "String"
+      }
+    }
+  },
   "homeAiAdviceBody": "Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.",
-  "homeSodiumExceededBadge": "Sodium over",
+  "homeAiAdviceNoRecord": "Log today's meals and workouts, and we'll put together advice for your day.",
   "homeMacroCarbs": "Carbs",
   "homeMacroProtein": "Protein",
   "homeMacroFat": "Fat",
@@ -70,7 +158,6 @@
       }
     }
   },
-  "homeWeeklyExerciseTrend": "Exercise trend",
   "homeExerciseTrendUnavailable": "Couldn't load this week's workout history.",
   "homeExerciseBurned": "Calories",
   "homeMealReasonSodium": "Great for sodium control",
@@ -108,7 +195,7 @@
   },
   "homeRecBasisOverLimit": "over the daily limit",
   "homeRecMealsTitle": "Recommended meals",
-  "homeViewAll": "View all",
+  "homeRecMealsErrorTitle": "Couldn't load meal suggestions",
   "@homeScheduleDate": {
     "placeholders": {
       "weekday": {
@@ -124,7 +211,6 @@
   },
   "unitKcal": "kcal",
   "unitMinutes": "min",
-  "unitSets": "sets",
   "unitKcalValue": "{count} kcal",
   "@unitKcalValue": {
     "placeholders": {
@@ -175,19 +261,11 @@
   "dietAddMeal": "Add Meal",
   "dietEmptyLog": "No meals logged.\nAdd a meal with a photo!",
   "dietLoadError": "Couldn't load your diet.",
+  "dietMealNotFound": "This meal was deleted or doesn't exist",
+  "dietMealNotFoundMessage": "Check your meals again in the Diet tab.",
+  "dietMealNotFoundAction": "Go to Diet",
   "dietPeriodAverage": "Daily average",
   "dietPeriodEmpty": "No meals were logged in this period.",
-  "dietPeriodRange": "{start} - {end}",
-  "@dietPeriodRange": {
-    "placeholders": {
-      "start": {
-        "type": "String"
-      },
-      "end": {
-        "type": "String"
-      }
-    }
-  },
   "dietPeriodNoRecord": "No record",
   "dietPeriodNotYet": "Not yet",
   "dietPeriodOverGoal": "{amount} {unit} over goal",
@@ -310,6 +388,11 @@
   "dietAnalysisBadRequest": "The photo couldn't be read. Please pick a different one.",
   "dietAnalysisUnauthorized": "Your session expired. Please sign in again to log this meal.",
   "dietAnalysisNotImplemented": "Photo analysis is unavailable right now. Please log the meal manually.",
+  "dietAnalysisNoFood": "We couldn't find any food in this photo. Pick another photo or add the meal manually.",
+  "dietAnalysisDailyLimit": "You've used today's photo analyses. They reset tomorrow — for now you can add the meal manually.",
+  "dietAnalysisRateLimited": "Too many photo analyses in a short time. Try again in a moment or add the meal manually.",
+  "dietAnalysisUnavailable": "Photo analysis is unavailable right now. Please add the meal manually.",
+  "dietAnalysisAiCapacity": "AI features are taking a break due to high demand. They reopen tomorrow — for now you can add the meal manually.",
   "dietAnalysisPickAnother": "Pick another photo",
   "dietAnalysisSignIn": "Sign in again",
   "dietAnalysisClose": "Close",
@@ -318,6 +401,7 @@
   "dietNutritionResult": "Nutrition Result",
   "dietSaved": "Meal saved",
   "dietSaveFailed": "Couldn't save. Please try again in a moment.",
+  "dietManualAlreadySaved": "An earlier version of this meal was already saved. Please check your records.",
   "dietDeleteTitle": "Delete Meal Record",
   "dietDeleteConfirm": "Delete this meal record?",
   "dietDeleteWhenEmpty": "No food is left. Delete this meal record?",
@@ -352,12 +436,6 @@
   "exGymTab": "Gym",
   "exMyGymSection": "My Gym",
   "exConnected": "Connected",
-  "exRecommendedGyms": "Recommended Gyms",
-  "exRecommendedTrainers": "Recommended Trainers",
-  "exSeeMore": "See more",
-  "exNoConnectedGym": "You don't have a connected gym yet.",
-  "exNoRecommendedGyms": "No gym recommendations yet.",
-  "exNoRecommendedTrainers": "No trainer recommendations yet.",
   "exTrainerAffiliation": "Gym",
   "exTrainerIntroSection": "About the trainer",
   "exTrainerCareer": "{career} of experience",
@@ -372,7 +450,7 @@
   "exTrainerCertifications": "Certifications",
   "exTrainerRecommendationReason": "A great fit for reaching my health goals",
   "exNearbyGymsMapLabel": "Gyms near me",
-  "exWeekSummary": "This Week's Summary",
+  "exGymMapUnavailable": "Couldn't load the map",
   "exActivityTitle": "Activity",
   "exBurnWeekOfMonthTitle": "Burned in week {week}, {month}/",
   "@exBurnWeekOfMonthTitle": {
@@ -399,27 +477,6 @@
   "exLoadEmpty": "No records yet.",
   "exThisWeek": "This week",
   "exPeriodAll": "All",
-  "exExerciseContent": "What you did",
-  "exViewDetail": "View details",
-  "exRegister": "Register",
-  "exGymRegistered": "Registered {gym}",
-  "@exGymRegistered": {
-    "placeholders": {
-      "gym": {
-        "type": "String"
-      }
-    }
-  },
-  "exWeekNumber": "Week {n}",
-  "@exWeekNumber": {
-    "placeholders": {
-      "n": {
-        "type": "int"
-      }
-    }
-  },
-  "exTodayTotalTime": "Today's total time",
-  "exRest": "Rest",
   "exRestSeconds": "Rest {seconds}s",
   "@exRestSeconds": {
     "placeholders": {
@@ -428,11 +485,6 @@
       }
     }
   },
-  "exAiRecommendedExercise": "AI recommended exercise",
-  "exStatTime": "Time",
-  "exStatCalories": "Calories",
-  "exStatStreak": "Streak",
-  "exUnitStreakDays": "day streak",
   "exStreakCheer": "{days} days in a row!",
   "@exStreakCheer": {
     "placeholders": {
@@ -454,15 +506,16 @@
       }
     }
   },
-  "exCompletedPtNoProgram": "No workout program was recorded.",
-  "exCompletedPtFeedback": "{coachName} · Today's feedback",
-  "@exCompletedPtFeedback": {
+  "exPtSessionNumber": "Session {count}",
+  "@exPtSessionNumber": {
+    "description": "PT card chip — which session with the assigned trainer this was (#2666).",
     "placeholders": {
-      "coachName": {
-        "type": "String"
+      "count": {
+        "type": "int"
       }
     }
   },
+  "exCompletedPtNoProgram": "No workout program was recorded.",
   "exAddExercise": "Add Exercise",
   "exDurationMinutes": "{minutes} min",
   "@exDurationMinutes": {
@@ -477,7 +530,6 @@
   "exExerciseType": "Exercise Type",
   "exExerciseDate": "Date",
   "exExerciseName": "Exercise Name",
-  "exExerciseNameHint": "e.g. Squat, Treadmill",
   "exExerciseNameHintCardio": "e.g. Treadmill, Indoor cycling",
   "exExerciseNameHintStrength": "e.g. Squat, Bench press",
   "exExerciseNameHintFlexibility": "e.g. Full-body stretch, Yoga",
@@ -509,6 +561,15 @@
   "@exRepsCount": {
     "placeholders": {
       "reps": {
+        "type": "int"
+      }
+    }
+  },
+  "exHoldSecondsCount": "{seconds} sec",
+  "@exHoldSecondsCount": {
+    "description": "One set of a hold exercise in seconds (#3138). Same shape as the trainer web progHoldValue",
+    "placeholders": {
+      "seconds": {
         "type": "int"
       }
     }
@@ -575,10 +636,30 @@
   },
   "exQueueDiscard": "Discard",
   "exOwnRecords": "Workouts you logged",
-  "exOwnRecordsEmpty": "No workouts logged yet",
-  "exOwnRecordSource": "Self-logged",
+  "exOwnRecordsEmpty": "No workouts logged",
+  "exRecordDetailOpen": "Details",
+  "@exRecordDetailOpen": {
+    "description": "Text link at the bottom of the self-logged workouts card — opens that day's workout detail; same wording as the home card link (#2507)."
+  },
+  "exRecordDetailInfo": "Workout details",
+  "exRecordDetailTotalCalories": "Total calories burned",
+  "exBurnedPrefix": "Burned",
+  "exRecordMaxWeight": "Heaviest yet",
+  "exRecordLongest": "Longest yet",
+  "exRecordFirst": "First time",
+  "exRecordDateChange": "Change date",
+  "exRecordDateMoved": "Moved to {date}",
+  "@exRecordDateMoved": {
+    "description": "Confirmation after moving a day's self-logged workouts to another day.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "exRecordDateFailed": "Couldn't change the date. Please try again shortly.",
   "exCompletedPtDayTitle": "Completed PT",
-  "exCompletedRoutineDayTitle": "Completed solo workout",
+  "exCompletedRoutineDayTitle": "Completed personal exercises",
   "exDeleteExercise": "Delete workout",
   "exDeleteExerciseBody": "Deleting this record cannot be undone.",
   "exDeleted": "Workout deleted",
@@ -588,12 +669,25 @@
   "exFindGym": "Find a Gym",
   "exGymDetailTitle": "Gym Details",
   "exTrainerDetailTitle": "Trainer Details",
-  "exDistance": "Distance",
   "exRating": "Rating",
   "exAffiliatedTrainer": "Affiliated Trainer",
   "exRecommendationReason": "Why we recommend this trainer",
   "exGymNotFound": "Couldn't find this gym.",
   "exTrainerNotFound": "Couldn't find this trainer.",
+  "exTrainerReport": "Report trainer",
+  "exTrainerReportShort": "Report",
+  "exTrainerReportReasonLabel": "Reason",
+  "exTrainerReportReasonImpersonation": "Impersonation",
+  "exTrainerReportReasonInappropriateMessage": "Inappropriate message",
+  "exTrainerReportReasonOther": "Other",
+  "exTrainerReportMemoLabel": "Details",
+  "exTrainerReportMemoHint": "Tell us what happened",
+  "exTrainerReportMemoRequired": "Add details to report for another reason",
+  "exTrainerReportNotice": "Only operators see reports. The trainer isn't told who reported them.",
+  "exTrainerReportSubmit": "Submit report",
+  "exTrainerReportSubmitted": "Report received. An operator will review it.",
+  "exTrainerReportAlreadyOpen": "You already have an open report. An operator is reviewing it.",
+  "exTrainerSelfRegisteredAffiliation": "Affiliation registered by the trainer",
   "exGymSearchPlaceholder": "Search by area or gym name",
   "exSortRecommended": "Recommended",
   "exSortDistance": "Distance",
@@ -608,7 +702,6 @@
   },
   "exNoSearchResults": "No search results.",
   "exTrainersLoadError": "Couldn't load trainers.",
-  "exGymSearchHint": "Search by gym or area",
   "exNearbyGyms": "Nearby gyms",
   "exGymListCollapse": "Collapse list",
   "@exGymListCollapse": {
@@ -618,40 +711,7 @@
   "@exGymListExpand": {
     "description": "Brings the gym result list back under the map"
   },
-  "exAiAnalysis": "✦ AI analysis",
-  "exNoGymMatch": "No gyms match '{query}'",
-  "@exNoGymMatch": {
-    "placeholders": {
-      "query": {
-        "type": "String"
-      }
-    }
-  },
   "exGymsLoadError": "Couldn't load gyms.",
-  "exAiTopPick": "✦ AI top pick",
-  "exGymDetailHint": "See trainers and request a consultation",
-  "exReasonTrainer": "Personal trainer {name}{role} on site",
-  "@exReasonTrainer": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      },
-      "role": {
-        "type": "String"
-      }
-    }
-  },
-  "exReasonHours": "Open {hours}{weekend}",
-  "@exReasonHours": {
-    "placeholders": {
-      "hours": {
-        "type": "String"
-      },
-      "weekend": {
-        "type": "String"
-      }
-    }
-  },
   "exGymWeekdayHours": "Weekdays {hours}",
   "@exGymWeekdayHours": {
     "placeholders": {
@@ -688,9 +748,7 @@
       }
     }
   },
-  "exSlotFull": "Fully booked",
   "exSlotTypePersonalTraining": "1:1 PT",
-  "exSlotTypeConsultation": "Consultation",
   "exSlotsEmpty": "No times available",
   "exSlotsAllBooked": "All available times are fully booked",
   "exSlotsLoadError": "Could not load available times.",
@@ -715,15 +773,14 @@
       }
     }
   },
-  "exGymInfo": "Gym Info",
-  "exConsultButton": "💬 1:1 Consult",
   "exAddress": "Address",
   "exHours": "Hours",
   "exPhone": "Phone",
   "exSpecialty": "Specialties",
-  "exKakaoMapArea": "Kakao Map area",
   "myTabTitle": "MY",
   "myDefaultUserName": "User",
+  "myProfileLoadFailed": "Couldn't load your profile",
+  "myPointsLoadFailed": "Couldn't load your points balance",
   "mySettingsTitle": "Settings",
   "myProfileTitle": "My Profile",
   "myNotifTitle": "Notification Settings",
@@ -1106,7 +1163,6 @@
   "myBenefitsEmptyMessage": "Redeem your points for a coupon.",
   "myBenefitsLoadFailed": "Couldn't load benefits",
   "challengeTitle": "Weekly workout challenge",
-  "challengeShort": "Weekly challenge",
   "challengeShortWithRange": "Weekly challenge · {range}",
   "@challengeShortWithRange": {
     "description": "Title of the progress row in the exercise tab, naming the week it covers.",
@@ -1184,46 +1240,6 @@
       }
     }
   },
-  "challengeWeekTitle": "Challenge {range}",
-  "@challengeWeekTitle": {
-    "placeholders": {
-      "range": {
-        "type": "String"
-      }
-    }
-  },
-  "challengeStatusActive": "In progress",
-  "challengeStatusSucceeded": "Completed",
-  "challengeStatusFailed": "Missed",
-  "challengeResultSucceeded": "{progress} of {goal} workouts · {reward} earned",
-  "@challengeResultSucceeded": {
-    "placeholders": {
-      "goal": {
-        "type": "int"
-      },
-      "progress": {
-        "type": "int"
-      },
-      "reward": {
-        "type": "String"
-      }
-    }
-  },
-  "challengeResultFailed": "{progress} of {goal} workouts · {stake} stake lost",
-  "@challengeResultFailed": {
-    "placeholders": {
-      "goal": {
-        "type": "int"
-      },
-      "progress": {
-        "type": "int"
-      },
-      "stake": {
-        "type": "String"
-      }
-    }
-  },
-  "challengeLoadFailed": "Couldn't load challenges",
   "myCouponStatusUsable": "Available",
   "myCouponStatusUsed": "Used",
   "myCouponStatusExpired": "Expired",
@@ -1377,6 +1393,8 @@
   "emoteBuyAction": "Buy",
   "emoteBought": "You can send this emote now",
   "emoteBuyFailed": "We could not buy the emote. Please try again in a moment.",
+  "emoteAlreadyUnlocked": "This emote is already unlocked. You can send it now",
+  "emoteTrainerRequired": "You need a trainer to buy emotes",
   "emoteShortfall": "Not enough points",
   "emoteLoadFailed": "We could not load the emotes",
   "emoteSendFailed": "We could not send the emote",
@@ -1386,7 +1404,44 @@
   "@myWithdrawTitle": {
     "description": "Account deletion entry at the end of the MY settings list (#1935)."
   },
-  "myWithdrawConfirm": "Deleting your account erases the diet, exercise and health records you saved, and removes your trainer link and the messages you exchanged. This cannot be undone.",
+  "myWithdrawConfirm": "Deleting your account erases the diet, exercise and health records you saved, removes your trainer link and the messages you exchanged, and deletes your points, unused coupons, shields and decorative items. Upcoming PT bookings and pending consultation requests are cancelled. This cannot be undone.",
+  "myWithdrawLosePoints": "• Your balance of {points}P will be deleted",
+  "@myWithdrawLosePoints": {
+    "description": "Withdrawal confirmation line, shown only when the member has points left (#3006).",
+    "placeholders": {
+      "points": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "myWithdrawLoseCoupons": "{count, plural, =1{• Your unused coupon will be deleted} other{• Your {count} unused coupons will be deleted}}",
+  "@myWithdrawLoseCoupons": {
+    "description": "Withdrawal confirmation line, shown only when the member has usable coupons (#3006).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "myWithdrawCancelReservations": "{count, plural, =1{• Your upcoming PT booking will be cancelled} other{• Your {count} upcoming PT bookings will be cancelled}}",
+  "@myWithdrawCancelReservations": {
+    "description": "Withdrawal confirmation line, shown only when the member has upcoming bookings (#3006).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "myWithdrawCancelConsultations": "{count, plural, =1{• Your pending consultation request will be cancelled} other{• Your {count} pending consultation requests will be cancelled}}",
+  "@myWithdrawCancelConsultations": {
+    "description": "Withdrawal confirmation line, shown only when the member has pending consultation requests (#3006).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "myWithdrawAction": "Delete account",
   "myWithdrawFailed": "We could not delete your account. Please try again in a moment.",
   "myWithdrawReasonTitle": "Are you sure you want to delete your account?",
@@ -1412,12 +1467,13 @@
   "myWithdrawKeepNotifications": "Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification Settings.",
   "myWithdrawKeepAlternative": "Removing the app leaves your records untouched. Deleting the account is what erases them, and that cannot be undone.",
   "myWithdrawKeepOther": "Whatever it is, tell us and we will act on it. Leave it in the 1:1 Inquiry under MY > Customer Support.",
-  "myWithdrawKeepDefault": "The diet and exercise records you have built up go with the account, and they cannot be restored.",
+  "myWithdrawKeepDefault": "The diet and exercise records you have built up, your points and your unused coupons go with the account, and they cannot be restored. Upcoming bookings are cancelled.",
   "myWithdrawStay": "Keep using On-Care",
   "myWithdrawContinue": "Continue deleting",
   "myCancel": "Cancel",
   "myGymTrainerTitle": "My Gym & Trainer",
   "myConnectionDeleteTitle": "Remove Connection",
+  "myConnectionDeleteFailed": "Couldn't remove the connection. Please try again.",
   "myDelete": "Remove",
   "myGymDisconnectWithTrainerConfirm": "Disconnect {gym}?\nYour trainer link with {trainer} will also be removed.\nYour data-sharing consent will also be withdrawn, so the trainer will no longer see your new records. Messages and reports you have already exchanged are not deleted, and you can see them again if you reconnect with the same trainer.",
   "@myGymDisconnectWithTrainerConfirm": {
@@ -1469,20 +1525,47 @@
   "myFieldGender": "Gender",
   "myFieldHeight": "Height (cm)",
   "myFieldWeight": "Weight (kg)",
-  "myFieldGoals": "Health and exercise goals",
-  "myNotifDietLog": "Diet log reminder",
-  "myNotifExercise": "Exercise reminder",
+  "myNotifExercise": "Exercises & programs",
   "myNotifTrainer": "Trainer message",
-  "myNotifAiCoaching": "AI coaching tips",
-  "myNotifWeeklyReport": "Weekly report",
+  "myNotifWeeklyReport": "Trainer weekly report",
+  "myNotifExerciseDesc": "When your trainer sends personal exercises or a PT program, or leaves a PT record or feedback",
+  "myNotifTrainerDesc": "When your trainer sends you a chat message",
+  "myNotifWeeklyReportDesc": "When your trainer sends your weekly report",
+  "myNotifAlwaysSent": "PT session bookings, changes and cancellations, and trainer connect or disconnect notices are always sent",
   "mySupportFaq": "FAQ",
   "mySupportInquiry": "1:1 Inquiry",
   "myLegalTermsTitle": "Terms of Service",
   "myLegalPrivacyTitle": "Privacy Policy",
-  "myLegalTermsBody": "Article 1 (Purpose)\nThese Terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and its members in connection with the use of the health management service (the \"Service\") the Company provides.\n\nArticle 2 (Effect and Amendment of the Terms)\n(1) These Terms apply to every member who uses the Service.\n(2) The Company may amend these Terms within the limits of applicable law. Any amendment is announced inside the Service together with its effective date and the reason for the change.\n\nArticle 3 (Provision of the Service)\nThe Company provides features that support a member's health management, including diet records, exercise records, health indicator tracking and AI coaching. The specific contents of the Service may change in line with the Company's policy.\n\nArticle 4 (Obligations of the Member)\nMembers must enter their own health information accurately. Information provided by the Service does not replace a medical diagnosis or treatment. If you have a health problem, please consult a qualified medical institution.\n\nArticle 5 (Limitation of Liability)\nTo the extent permitted by law, the Company is not liable for decisions a member makes on the basis of information obtained through the Service, nor for the consequences of those decisions.\n\nAddendum\nThese Terms take effect on 1 January 2026.\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.",
-  "myLegalPrivacyBody": "On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members' personal information with care.\n\n1. Personal information collected\nFor membership registration and provision of the Service, the Company collects your name, email address, phone number and date of birth, together with health-related information such as diet, exercise and health indicators.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features, deliver personalised AI coaching, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nAs a rule, a member's personal information is destroyed without delay when the member withdraws from the Service. Where applicable law requires it to be retained, it is stored securely for the period the law prescribes.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member's consent, except where a law specifically provides otherwise.\n\n5. Sharing with your trainer and withdrawing consent\nWhen you agree to data sharing by requesting a consultation, accepting a coaching request or issuing a pairing code, your assigned trainer can see your meal records, workout records, body information and health goals. You can withdraw this consent at any time by removing your trainer or gym connection in the MY tab, and consent is also treated as withdrawn when the trainer ends the coaching relationship. The Company records when consent was given and when it was withdrawn. After you withdraw, the trainer can no longer see your new records, and reconnecting with the same trainer requires your consent again. Conversations you exchanged with the trainer and reports delivered before the withdrawal are not deleted.\n\n6. Rights of the user\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted.\n\n7. Personal information protection officer\nFor enquiries about personal information, please contact customer support (support@oncare.com).\n\nEffective date: 1 January 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.",
-  "myLegalEffectiveDate": "Effective Jan 1, 2026",
-  "myAppVersion": "On-Care · Version 1.0.0",
+  "myOpenSourceLicensesTitle": "Open-source licenses",
+  "@myOpenSourceLicensesTitle": {
+    "description": "MY support row that opens the open-source license list (packages and the bundled Pretendard font, #3150)."
+  },
+  "myLegalTermsBody": "Article 1 (Purpose)\nThese Terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and its members in connection with the use of the health management service (the \"Service\") the Company provides.\n\nArticle 2 (Effect and Amendment of the Terms)\n(1) These Terms apply to every member who uses the Service.\n(2) The Company may amend these Terms within the limits of applicable law. Any amendment is announced inside the Service before it takes effect, together with its effective date and the reason for the change.\n(3) Where an amendment requires consent, the Company asks for consent again. A member who does not agree to the amended Terms may terminate the agreement.\n\nArticle 3 (Membership and Accounts)\n(1) Only people aged 14 or over may sign up.\n(2) Each person uses one account. You may not sign up with someone else's details, or transfer or lend your account to anyone else.\n(3) You are responsible for your account details, including your password and linked social logins. If you find that someone else is using your account, change your password at once and tell the Company.\n\nArticle 4 (Provision of the Service)\nThe Company provides features that support a member's health management, including diet records, exercise records, health indicator tracking, AI coaching, and linking, messaging and booking with an assigned trainer. The specific contents of the Service may change in line with the Company's policy.\n\nArticle 5 (Points)\n(1) Members receive points for the activities described in the app, such as logging meals and workouts. The points for each activity and the daily limits follow the guidance in the app.\n(2) Points can only be exchanged for coupons and items inside the Service. Points have no cash value, cannot be cashed out or refunded, and cannot be transferred to anyone else.\n(3) If you delete a record that earned points, those points are taken back. Points obtained by abnormal means, such as uploading the same record repeatedly, may also be taken back.\n(4) The Company may change how points are earned and what items cost, and announces the change inside the Service beforehand. Coupons and items already exchanged are not affected.\n(5) When you delete your account, your remaining points and their history are deleted with it and cannot be restored.\n\nArticle 6 (Coupons and Exchange Items)\n(1) Members may exchange points for the coupons described in the app, such as a PT renewal discount coupon or a personal locker coupon. The benefit of a coupon is provided on site by the assigned trainer or gym linked to the member.\n(2) A coupon can only be used within the validity period shown in the app. A coupon exchanged for points is valid for 30 days from the day of exchange. An expired coupon lapses, and the points spent on it are not returned.\n(3) If your link to the trainer or gym where the coupon is used ends, any unused coupon for it is cancelled and the points spent on it are returned.\n(4) A coupon is used when staff on site have checked it and you then tap \"Mark as used\" on your own phone. A coupon marked as used cannot be restored.\n(5) Coupons cannot be transferred or exchanged for cash.\n\nArticle 7 (Time-Limited Items and Shields)\n(1) Decorative items such as profile pets and emotes can be used only for the period shown in the app, and disappear when it ends.\n(2) A streak shield keeps your recording streak from breaking on a day you could not record. How to use it and how many you can hold follow the guidance in the app.\n(3) The items and shields in this Article also have no cash value, cannot be transferred, and are deleted when you delete your account.\n\nArticle 8 (Bookings and Consultation Requests)\n(1) Members may book PT in the times their assigned trainer has opened, or send a trainer a consultation request. When you can request or cancel, and when a pending consultation request expires, follow the guidance in the app.\n(2) The PT contract itself, and its payment and refunds, is a separate agreement between the member and the trainer or gym. The Company provides the tools for linking and booking.\n\nArticle 9 (Obligations of the Member)\nMembers must enter their own health information accurately. Information provided by the Service does not replace a medical diagnosis or treatment. If you have a health problem, please consult a qualified medical institution.\n\nArticle 10 (Restrictions on Use)\nIf a member does any of the following, the Company may, after notice, restrict all or part of their use of the Service or suspend the account. Where it is urgent, for example to protect other users, the Company restricts first and notifies right after.\n- Using someone else's details or transferring an account\n- Obtaining points or using coupons by abnormal means\n- Harming trainers or other users through abuse or harassment\n- Interfering with the operation of the Service\n\nArticle 11 (Termination and Its Effects)\n(1) Members may terminate the agreement at any time by deleting their account from the MY tab.\n(2) Deleting your account erases your profile, diet, exercise and health records, AI coach conversations, and your link and messages with your assigned trainer. Your remaining points and their history, unused coupons, shields and decorative items are deleted as well. Nothing deleted can be restored.\n(3) Upcoming PT bookings and pending consultation requests are cancelled, and the trainers concerned are told that you have left.\n(4) Records that the destruction procedure of the Privacy Policy says are kept, such as sessions already on a trainer's schedule, remain to that extent.\n\nArticle 12 (Changes to and Suspension of the Service)\n(1) The Company may change the Service or end some of its features, and announces any change that affects members inside the Service beforehand.\n(2) The Company may suspend the Service temporarily for unavoidable reasons such as maintenance or replacement of equipment, outages or natural disasters. If notice could not be given in advance, it is given afterwards.\n(3) If the Company ends the Service as a whole, it announces this beforehand together with how remaining points and unused coupons will be handled.\n\nArticle 13 (Limitation of Liability)\nTo the extent permitted by law, the Company is not liable for decisions a member makes on the basis of information obtained through the Service, nor for the consequences of those decisions.\n\nArticle 14 (Dispute Resolution and Jurisdiction)\n(1) The Company and members will negotiate in good faith to settle any dispute about the Service amicably. Members may send questions or complaints to the contact given in the Privacy Policy.\n(2) If a dispute is not settled by negotiation and a lawsuit is filed, the court with jurisdiction under the Civil Procedure Act of Korea has jurisdiction.\n(3) These Terms and the use of the Service are governed by the laws of the Republic of Korea.\n\nAddendum\nThese Terms take effect on 3 October 2026.\n- 3 October 2026: added membership and accounts, points, coupons and exchange items, time-limited items and shields, bookings and consultation requests, restrictions on use, termination and its effects, changes to and suspension of the Service, and dispute resolution and jurisdiction\n- 1 October 2026: first issued\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.",
+  "myLegalPrivacyBody": "On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members' personal information with care.\n\n1. Personal information collected\n(1) Sign-up: email address, password (stored encrypted) and name. If you sign up with a social login (Kakao, Google, Naver or Apple), we receive the member identifier, email address and name that service passes on.\n(2) Profile and first setup: phone number, date of birth, gender, height, weight, health goals and diet and exercise targets.\n(3) Information you leave while using the Service: meal records and food photos, workout records, health indicators such as body weight, conversations with the AI coach, messages and attached photos exchanged with your trainer, and consultation and booking requests.\n(4) Information generated automatically: access logs such as sign-ins and password changes (time and IP address), and, when an error occurs, the error details, device type, operating system and app version.\n(5) Location: only if you allow your current location in gym search, we receive the device's current coordinates and use them to search nearby. They are not saved to your account.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features such as food photo analysis and nutrition calculation, deliver personalised AI coaching, connect you with a trainer, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nA member's personal information is kept until the member withdraws from the Service, and is then destroyed without delay following section 10. The following records are kept for the stated period and then destroyed.\n- Access logs such as sign-ins: one year (covering the three-month retention of sign-in records required by the Protection of Communications Secrets Act)\n- Records of trainers opening members' health information, of data-sharing consent being given or withdrawn, and of account deletion: two years (processing records kept under the Standards for Personal Information Security Measures)\nA reason chosen when deleting an account is kept only as a reason code and a time, with no link to the member.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member's consent. Sharing with your trainer follows section 5, and processing entrusted to service providers follows sections 6 and 7. The exception is where a law specifically provides otherwise.\n\n5. Sharing with your trainer and withdrawing consent\nWhen you agree to data sharing by requesting a consultation, accepting a coaching request or issuing a pairing code, your assigned trainer can see your meal records, workout records, body information, health goals, and health notes & cautions. You can withdraw this consent at any time by removing your trainer or gym connection in the MY tab, and consent is also treated as withdrawn when the trainer ends the coaching relationship. The Company records when consent was given and when it was withdrawn. After you withdraw, the trainer can no longer see your new records, and reconnecting with the same trainer requires your consent again. Conversations you exchanged with the trainer and reports delivered before the withdrawal are not deleted.\n\n6. Entrusted processing\nThe Company entrusts the following work to outside providers to deliver the Service. If a provider changes, this policy is updated to say so.\n- Amazon Web Services, Inc.: running the servers and storing chat photos and report PDFs\n- Neon: running the database (account information and all records)\n- Google LLC: food photo recognition, generating AI coach answers and recommendations, and building the search index the AI coach uses to look up your records (Gemini API)\n- Kakao Corp.: gym and place search and map display\n- Functional Software, Inc. (Sentry): collecting and analysing app and server errors\n\n7. Transfer of personal information overseas\nTo perform its contract with members, the Company has personal information processed and stored overseas as follows, and discloses this in this policy under Article 28-8(1)(3) of the Personal Information Protection Act. Each transfer happens over an encrypted network connection whenever the Service is used.\n(1) Amazon Web Services, Inc. / Singapore / member information and records in general, chat photo attachments and report PDFs / running the servers and storing files / until the member withdraws or the contract with the provider ends\n(2) Neon / Singapore / account, profile, diet, workout and health records and conversation records / running the database / until the member withdraws or the contract with the provider ends\n(3) Google LLC / the United States and other countries where Google operates data centres / food photos, the diet and workout records, body information and health goals needed for analysis, and conversations with the AI coach / AI analysis, answer generation and search indexing / for the period set in the provider's terms of service after the request is processed\n(4) Functional Software, Inc. (Sentry) / the United States / error details, device type, operating system and app version (name, email address, IP address and request contents are not sent) / error analysis / the provider's retention period\nEach time you save a meal or workout record, its contents are sent to (3) to build the AI coach's search index. If you do not want your information transferred overseas, you can refuse by deleting your account, but you will then be unable to use the Service.\n\n8. Processing of sensitive (health) information\nHealth information such as diet and workout records, body information, health goals, and health notes & cautions is processed under Article 23 of the Personal Information Protection Act only with a separate consent obtained at sign-up, apart from other personal information. It is shared with your trainer only with the consent described in section 5.\n\n9. Children under 14\nThe Company does not accept sign-ups from children under 14, and confirms at sign-up that you are 14 or older.\n\n10. Destruction procedure and method\n(1) Procedure: when you delete your account in the MY tab, the Company immediately deletes the account together with your profile, meal and workout records and food photos, AI coach conversations and search index, notifications, social login links, and your trainer connection and conversations (including attached photos and report PDF files). Pending consultation requests and bookings are cancelled, and the trainers involved are told that you have left. Sessions already on a trainer's schedule keep your display name and the date and time as the trainer's work record. Records kept under section 3 are deleted automatically when their period ends.\n(2) Method: information held as electronic files is deleted from the database and file storage, and copies remaining in database recovery backups disappear when the backup retention period ends. The Company does not handle personal information on paper.\n\n11. Automatic collection tools\nThe Company does not use cookies or tracking tools for advertising or behavioural analysis. On the web, sign-in information is kept in browser storage to keep you signed in, and is removed when you sign out or clear your browser data.\n\n12. Safeguards\nThe Company stores passwords encrypted, encrypts traffic in transit, and limits trainers' access to member information by assignment. When a trainer opens a member's health information, only the trainer, the member, the kind of information and the time are recorded, never the health information itself. Error reports are sent with names, email addresses, IP addresses and request contents removed.\n\n13. Rights of the user and how to exercise them\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted. You can edit your profile, delete your account and withdraw trainer-sharing consent in the MY tab. For any other request, contact the address in section 14 and it will be handled without delay.\n\n14. Personal information protection officer\nThe Company has appointed a personal information protection officer who oversees the processing of personal information and handles related complaints and remedies.\n- Position: Personal information protection officer, On-Care service operations team\n- Contact: {contact}\n\n15. Remedies for infringement\nFor reports or advice about an infringement of personal information, you can contact the following bodies (in Korea).\n- Personal Information Dispute Mediation Committee: 1833-6972 (www.kopico.go.kr)\n- Personal Information Infringement Report Center: 118 (privacy.kisa.or.kr)\n- Supreme Prosecutors' Office: 1301 (www.spo.go.kr)\n- Korean National Police Agency: 182 (ecrm.police.go.kr)\n\n16. Changes to this policy\nIf this policy changes, the Company announces it in the app before the effective date, and asks for consent again where the change requires it.\n- 5 October 2026: changed the contact address of the personal information protection officer\n- 3 October 2026: added entrusted processing, overseas transfer, sensitive information, children under 14, destruction procedure, automatic collection tools, safeguards, protection officer and remedies sections\n- 1 October 2026: first issued\n\nEffective date: 5 October 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.",
+  "@myLegalPrivacyBody": {
+    "description": "Privacy policy body. {contact} is the privacy officer contact, filled from LegalContact.privacyOfficerEmail in shared/oncare_core (the single definition point, #3005).",
+    "placeholders": {
+      "contact": {
+        "type": "String"
+      }
+    }
+  },
+  "myLegalTermsEffectiveDate": "Effective Oct 3, 2026",
+  "myLegalPrivacyEffectiveDate": "Effective Oct 5, 2026",
+  "myAppVersion": "On-Care · Version {version}",
+  "@myAppVersion": {
+    "description": "Footer of the support page. The version is read from the build (pubspec.yaml), never hard-coded (#3047).",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "0.4.0"
+      }
+    }
+  },
+  "myAppName": "On-Care",
+  "@myAppName": {
+    "description": "Support page footer when the build version cannot be read — the app name only (#3047)."
+  },
   "coachHeaderPill": "AI Health Assistant",
   "coachHeaderSubtitle": "Here are today's tailored tips",
   "coachCardDietTag": "Diet",
@@ -1492,6 +1575,10 @@
   "coachCardExerciseTitle": "3 workouts this week",
   "coachCardExerciseBody": "You finished three workouts this week — staying consistent is what counts. Take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.",
   "coachCardWaterTag": "Hydration",
+  "coachSheetErrorTitle": "Couldn't load your advice",
+  "coachSheetErrorBody": "Check your connection and try again.",
+  "coachSheetEmptyTitle": "Advice will appear as you log more",
+  "coachSheetEmptyBody": "Try logging today's meals and workouts.",
   "coachInviteTitle": "A trainer wants to coach you",
   "coachInviteFrom": "Trainer {name}",
   "@coachInviteFrom": {
@@ -1509,7 +1596,7 @@
       }
     }
   },
-  "coachInviteExplain": "Accepting lets this trainer see your meal and workout records.",
+  "coachInviteExplain": "Accepting lets this trainer see your meal records, workout records, body information, health goals, and health notes & cautions. You'll be asked to agree to sharing before you accept.",
   "coachInviteAccept": "Accept",
   "coachInviteReject": "Decline",
   "coachInviteAccepted": "{name} is now your coach",
@@ -1527,12 +1614,18 @@
   "@coachChatSubtitle": {
     "description": "Line under the trainer's name in the chat header. States the relationship only — nothing tracks whether the trainer is online or working, so it must not promise availability (#2089)."
   },
-  "coachChatBack": "Back",
   "coachChatLoadOlder": "Load older messages",
   "@coachChatLoadOlder": {
     "description": "Button above the trainer chat thread that fetches the previous page (#1943)."
   },
   "coachChatLoadFailed": "Couldn't load the conversation",
+  "coachChatUnassigned": "Your trainer is no longer assigned, so you can't send messages here",
+  "@coachChatUnassigned": {
+    "description": "Trainer chat notice shown instead of the thread once the server reports the assignment ended; the input is disabled (#2843)."
+  },
+  "coachChatEmptyTitle": "Start a conversation with {trainer}",
+  "@coachChatEmptyTitle": {"placeholders": {"trainer": {"type": "String"}}},
+  "coachChatEmptyBody": "Send a photo of what you ate today or ask about your workouts",
   "coachChatSendFailed": "Couldn't send your message. Please try again",
   "coachPhotoAttach": "Send a photo",
   "@coachPhotoAttach": {
@@ -1578,25 +1671,7 @@
       }
     }
   },
-  "coachChatReportOpenPdf": "Open PDF",
   "coachChatReportPreviewPdf": "Preview PDF",
-  "coachReportPdfDocTitle": "Weekly report",
-  "coachReportPdfDocTitleContinued": "Weekly report (cont.)",
-  "coachReportPdfPeriod": "Period {from} – {to}",
-  "@coachReportPdfPeriod": {
-    "description": "Week the previewed report covers, printed under the title.",
-    "placeholders": {
-      "from": {
-        "type": "String"
-      },
-      "to": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfSectionMetrics": "Key metrics",
-  "coachReportPdfSectionTrend": "Daily trend",
-  "coachReportPdfSectionDaily": "Day by day",
   "coachReportPdfBullet": "· {label}: {value}",
   "@coachReportPdfBullet": {
     "description": "One metric line in the previewed report.",
@@ -1609,266 +1684,6 @@
       }
     }
   },
-  "coachReportPdfLabelWorkoutDays": "Days trained",
-  "coachReportPdfLabelWorkoutMinutes": "Total workout time",
-  "coachReportPdfLabelBurned": "Calories burned",
-  "coachReportPdfLabelSessions": "PT sessions",
-  "coachReportPdfLabelCalories": "Average intake",
-  "coachReportPdfLabelSodium": "Average sodium",
-  "coachReportPdfLabelSugar": "Average sugar",
-  "coachReportPdfLabelMinutesShort": "Workout time",
-  "coachReportPdfLabelCaloriesShort": "Intake",
-  "coachReportPdfLabelSodiumShort": "Sodium",
-  "coachReportPdfLabelSugarShort": "Sugar",
-  "coachReportPdfValueDays": "{value} days",
-  "@coachReportPdfValueDays": {
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfValueMinutes": "{value} min",
-  "@coachReportPdfValueMinutes": {
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfValueKcal": "{value} kcal",
-  "@coachReportPdfValueKcal": {
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfValueMg": "{value} mg",
-  "@coachReportPdfValueMg": {
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfValueGram": "{value} g",
-  "@coachReportPdfValueGram": {
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfAttendance": "{done} of {booked}",
-  "@coachReportPdfAttendance": {
-    "description": "PT sessions completed out of the ones booked that week.",
-    "placeholders": {
-      "done": {
-        "type": "String"
-      },
-      "booked": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfNoData": "No data",
-  "coachReportPdfDay": "{weekday} — workout {exercise}, intake {intake}",
-  "@coachReportPdfDay": {
-    "description": "One weekday line in the previewed report.",
-    "placeholders": {
-      "weekday": {
-        "type": "String"
-      },
-      "exercise": {
-        "type": "String"
-      },
-      "intake": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfSectionTrainerNote": "Trainer feedback",
-  "@coachReportPdfSectionTrainerNote": {
-    "description": "Section heading for the message the trainer sent with the report."
-  },
-  "coachReportPdfNoTrainerNote": "No feedback came with this report.",
-  "@coachReportPdfNoTrainerNote": {
-    "description": "Shown under the trainer-message heading when the report arrived without a note."
-  },
-  "coachReportPdfSectionChange": "Change from last week",
-  "@coachReportPdfSectionChange": {
-    "description": "Section heading comparing this week with the previous one."
-  },
-  "coachReportPdfSectionMacros": "Average macros",
-  "@coachReportPdfSectionMacros": {
-    "description": "Section heading for average carbs / protein / fat."
-  },
-  "coachReportPdfLabelLoggedDays": "Days with meals logged",
-  "@coachReportPdfLabelLoggedDays": {
-    "description": "Metric label: how many days of the week have diet records."
-  },
-  "coachReportPdfLabelSodiumOver": "Days over the sodium goal",
-  "@coachReportPdfLabelSodiumOver": {
-    "description": "Metric label: days whose sodium exceeded the member's daily goal."
-  },
-  "coachReportPdfLabelPtDone": "PT sessions done",
-  "@coachReportPdfLabelPtDone": {
-    "description": "Metric label used when only completed PT sessions are known."
-  },
-  "coachReportPdfValueSessions": "{value} sessions",
-  "@coachReportPdfValueSessions": {
-    "description": "A count of PT sessions with its unit.",
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfLabelCardio": "Cardio",
-  "@coachReportPdfLabelCardio": {
-    "description": "Metric label for cardio minutes."
-  },
-  "coachReportPdfLabelStrength": "Strength",
-  "@coachReportPdfLabelStrength": {
-    "description": "Metric label for strength minutes."
-  },
-  "coachReportPdfLabelStretching": "Stretching",
-  "@coachReportPdfLabelStretching": {
-    "description": "Metric label for stretching minutes."
-  },
-  "coachReportPdfSectionTypes": "Minutes by workout type",
-  "@coachReportPdfSectionTypes": {
-    "description": "Section heading breaking the week's minutes down by workout type."
-  },
-  "coachReportPdfNoSessions": "None booked",
-  "@coachReportPdfNoSessions": {
-    "description": "Shown for PT when nothing was booked and nothing was recorded."
-  },
-  "coachReportPdfBandPeriod": "Period",
-  "@coachReportPdfBandPeriod": {
-    "description": "Header band cell title for the reported week."
-  },
-  "coachReportPdfSectionGoals": "Against your goals",
-  "@coachReportPdfSectionGoals": {
-    "description": "Section heading for the goal gauges."
-  },
-  "coachReportPdfColumnMetric": "Metric",
-  "@coachReportPdfColumnMetric": {
-    "description": "Summary table column: the metric name."
-  },
-  "coachReportPdfColumnThisWeek": "This week",
-  "@coachReportPdfColumnThisWeek": {
-    "description": "Summary table column: this week's value."
-  },
-  "coachReportPdfColumnLastWeek": "Last week",
-  "@coachReportPdfColumnLastWeek": {
-    "description": "Summary table column: last week's value."
-  },
-  "coachReportPdfColumnChange": "Change",
-  "@coachReportPdfColumnChange": {
-    "description": "Summary table column: the difference between the two weeks."
-  },
-  "coachReportPdfColumnWeekday": "Day",
-  "@coachReportPdfColumnWeekday": {
-    "description": "Daily table column: the weekday."
-  },
-  "coachReportPdfColumnWorkout": "Workout",
-  "@coachReportPdfColumnWorkout": {
-    "description": "Daily table column: what was done that day."
-  },
-  "coachReportPdfColumnIntake": "Intake",
-  "@coachReportPdfColumnIntake": {
-    "description": "Daily table column: calories eaten that day."
-  },
-  "coachReportPdfUpcoming": "Still to come",
-  "@coachReportPdfUpcoming": {
-    "description": "Daily table cell for a weekday that has not happened yet."
-  },
-  "coachReportPdfGoalOf": "{value} (goal {target})",
-  "@coachReportPdfGoalOf": {
-    "description": "Text form of a gauge: the value and the goal it is measured against.",
-    "placeholders": {
-      "value": {
-        "type": "String"
-      },
-      "target": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfChartTarget": "goal {value}",
-  "@coachReportPdfChartTarget": {
-    "description": "Label on a chart's dashed goal line.",
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfDayUpcoming": "{weekday} — still to come",
-  "@coachReportPdfDayUpcoming": {
-    "description": "Daily line for a weekday that has not happened yet.",
-    "placeholders": {
-      "weekday": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfChange": "· {label}: {current} (last week {previous}, {delta})",
-  "@coachReportPdfChange": {
-    "description": "One comparison line: this week's value, last week's, and the difference.",
-    "placeholders": {
-      "label": {
-        "type": "String"
-      },
-      "current": {
-        "type": "String"
-      },
-      "previous": {
-        "type": "String"
-      },
-      "delta": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfDeltaUp": "+{value}",
-  "@coachReportPdfDeltaUp": {
-    "description": "Difference when this week is higher.",
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfDeltaDown": "-{value}",
-  "@coachReportPdfDeltaDown": {
-    "description": "Difference when this week is lower.",
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfDeltaSame": "no change",
-  "@coachReportPdfDeltaSame": {
-    "description": "Difference when both weeks are equal."
-  },
-  "coachReportPdfNoPreviousWeek": "There are no records from last week to compare with.",
-  "@coachReportPdfNoPreviousWeek": {
-    "description": "Shown under the comparison heading when the previous week has nothing."
-  },
-  "coachReportPdfSodiumTargetNote": "The sodium goal is the {target}mg daily target you set on the MY screen.",
-  "@coachReportPdfSodiumTargetNote": {
-    "description": "Footnote naming the sodium goal the over-days count was measured against.",
-    "placeholders": {
-      "target": {
-        "type": "String"
-      }
-    }
-  },
-  "coachReportPdfPreviewNote": "Built from your own records for the week the trainer's report covers.",
   "coachReportPdfFileName": "weekly-report_{date}.pdf",
   "@coachReportPdfFileName": {
     "placeholders": {
@@ -1878,17 +1693,23 @@
     }
   },
   "coachChatInputHint": "Message your trainer...",
-  "coachChatDemoAnalyzed": "AI analyzed your diet and exercise data",
-  "coachChatDemoReportSent": "A summary report was sent to {trainer}",
-  "@coachChatDemoReportSent": {
+  "coachChatRoutineReceived": "Your trainer sent a workout",
+  "coachChatRoutineReceivedPt": "You received a PT program and personal exercises",
+  "coachChatRoutineReceivedPersonal": "You received personal exercises",
+  "coachChatRoutineReceivedAfterCancel": "You received personal exercises in place of the cancelled PT",
+  "coachChatRoutineReceivedProgram": "You received a PT program",
+  "coachChatRoutineReceivedMore": "{names} and {count} more",
+  "@coachChatRoutineReceivedMore": {
+    "description": "Routine delivery notice: first names, then how many more.",
     "placeholders": {
-      "trainer": {
+      "names": {
         "type": "String"
+      },
+      "count": {
+        "type": "int"
       }
     }
   },
-  "coachChatDemoRoutineReceived": "You received a personalized workout recommendation",
-  "coachChatDemoNotified": "It was also delivered as a notification",
   "coachChatDateDivider": "{date}",
   "@coachChatDateDivider": {
     "description": "Chat date divider with full date and weekday.",
@@ -1905,7 +1726,6 @@
   "navDietOptionSub": "Nutrition analysis from a photo",
   "navExerciseOptionSub": "Log the type and duration",
   "aicHeaderSubtitle": "Ask me anytime",
-  "aicDatePillToday": "Today",
   "aicMedicalDisclaimer": "The AI coach is a reference for diet and exercise habits, not a diagnosis or prescription. Please consult a doctor about symptoms.",
   "aicInputHint": "Ask the AI anything",
   "aicQuotaFreeLeft": "{count, plural, =1{1 free chat left today} other{{count} free chats left today}}",
@@ -1931,6 +1751,7 @@
     }
   },
   "aicQuotaExhausted": "You've used today's chats. They reopen tomorrow",
+  "aicAiCapacity": "AI features are taking a break due to high demand. Please try again tomorrow",
   "aicQuotaFindTrainer": "Find a trainer",
   "aicPaidConfirmTitle": "Keep chatting with points?",
   "aicPaidConfirmMessage": "You've used today's free chats. Sending this one costs {cost} (up to {limit} today).\n\nBalance {balance}",
@@ -1974,6 +1795,30 @@
         "type": "String"
       }
     }
+  },
+  "aicBodyPartKnee": "Knee",
+  "@aicBodyPartKnee": {
+    "description": "Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as \"무릎\" or \"Knee\"."
+  },
+  "aicBodyPartBack": "Back",
+  "@aicBodyPartBack": {
+    "description": "Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as \"허리\" or \"Back\"."
+  },
+  "aicBodyPartAnkle": "Ankle",
+  "@aicBodyPartAnkle": {
+    "description": "Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as \"발목\" or \"Ankle\"."
+  },
+  "aicBodyPartShoulder": "Shoulder",
+  "@aicBodyPartShoulder": {
+    "description": "Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as \"어깨\" or \"Shoulder\"."
+  },
+  "aicBodyPartWrist": "Wrist",
+  "@aicBodyPartWrist": {
+    "description": "Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as \"손목\" or \"Wrist\"."
+  },
+  "aicBodyPartNeck": "Neck",
+  "@aicBodyPartNeck": {
+    "description": "Body part name filled into aicInsightDiscomfortPart (#2736). The detector reports it as \"목\" or \"Neck\"."
   },
   "aicInsightDiscomfort": "Pain noted",
   "@aicInsightDiscomfort": {
@@ -2052,6 +1897,7 @@
   "exGymConsultPickTrainer": "Choose a trainer",
   "exGymConsultPickTrainerHint": "Your request goes to one trainer.",
   "exGymConsultNoTrainers": "No trainers are affiliated yet.",
+  "exGymTrainersLoadError": "Couldn't load this gym's trainers.",
   "exTrainerConsultRequest": "Request a Trainer Consultation",
   "exConsultPendingCta": "Consultation Request Pending",
   "exConsultLinkedToOtherTrainer": "You're connected with your trainer. To request a consultation with another trainer, disconnect from your trainer first.",
@@ -2060,13 +1906,13 @@
   "exConsultTarget": "Consultation Target",
   "exTrainerConsultType": "Trainer Consultation",
   "exAssignedTrainer": "Assigned Trainer",
-  "exConsultDataSharingNotice": "Your request details (name, exercise goal, and message) go to this trainer. Your meal and workout records are shared only if you register with a connection code after the consultation, with a separate consent.",
+  "exConsultDataSharingNotice": "Your request details (name, exercise goal, and message) go to this trainer for the consultation and stay with the request and its schedule after you send them. If you don't agree, you just can't send this request; everything else keeps working. Your meal and workout records are shared only if you register with a connection code after the consultation, with a separate consent.",
   "exConsultDataSharingAgree": "I have read this and agree to send my request details to this trainer",
   "exConsultDataSharingRequired": "Please agree to sending your request details before requesting a consultation",
   "exConsultDataSharingLinked": "This is your trainer, so your meal and workout records and body information are already shared. No need to agree again.",
   "exConsultGoalPrefilled": "We filled this in from your health goals in MY. Feel free to change it for this consultation.",
   "coachInviteConsentTitle": "Before you connect",
-  "coachInviteConsentBody": "Once {name} becomes your trainer, they can see your meal records, workout records, body information and health goals. Disconnecting also revokes that access.",
+  "coachInviteConsentBody": "Once {name} becomes your trainer, they can see your meal records, workout records, body information, health goals, and health notes & cautions for coaching, consultations and writing reports. Disconnecting also revokes that access, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don't agree.",
   "@coachInviteConsentBody": {
     "placeholders": {
       "name": {
@@ -2132,24 +1978,13 @@
   "exConsultConfirmedAt": "Confirmed time",
   "exConsultExpired": "Expired",
   "exConsultExpiredBody": "The trainer did not respond in time. Try requesting another time.",
+  "exConsultCancelledByTrainerBody": "The trainer cancelled this consultation. Try requesting another time.",
   "exExerciseGoal": "Exercise Goal",
   "exGoalHealth": "Health Management",
   "exOptionOther": "Other",
   "exOtherGoalHint": "Please describe your specific exercise goal in the message.",
   "exPreferredDate": "Preferred Date",
   "exTimeFlexible": "Discuss Later",
-  "exTimeRangeTitle": "Select time",
-  "exTimeRangeStartTime": "Start time",
-  "exTimeRangeEndTime": "End time",
-  "exTimeRangeStartHourStep": "Start hour",
-  "exTimeRangeStartMinuteStep": "Start minute",
-  "exTimeRangeEndHourStep": "End hour",
-  "exTimeRangeEndMinuteStep": "End minute",
-  "exSlotAm": "AM",
-  "exSlotPm": "PM",
-  "exTimeRangeInvalidEnd": "End time must be later than the start time.",
-  "exTimeRangePrevStep": "Previous step",
-  "exTimeRangeNextStep": "Next step",
   "exConsultMessage": "Message",
   "exConsultMessageHint": "Share your exercise experience or anything helpful for the consultation.",
   "exSendConsultRequest": "Send Consultation Request",
@@ -2164,7 +1999,6 @@
   "exConsultAcceptedStatus": "Accepted",
   "exConsultRejectedStatus": "Rejected",
   "exReturnExercise": "Return to Exercise",
-  "exConsultStatusSection": "Consultation Request Status",
   "exConsultHistoryTitle": "My Consultation Requests",
   "exConsultHistoryEmpty": "You haven't sent any consultation requests yet.",
   "exConsultHistoryInProgress": "In Progress",
@@ -2177,6 +2011,9 @@
   "exCancelConfirmTitle": "Cancel this booking?",
   "exCancelFailed": "Couldn't cancel the booking. Please try again in a moment",
   "exReservationPast": "Past booking",
+  "exReservationPastMore": "Show {count} more past bookings",
+  "@exReservationPastMore": {"placeholders": {"count": {"type": "int"}}},
+  "exReservationPastLess": "Hide past bookings",
   "exCancelConfirmBody": "The {when} booking is cancelled and the slot reopens.",
   "@exCancelConfirmBody": {
     "placeholders": {
@@ -2223,12 +2060,29 @@
     "description": "Red text under the email field on sign-in/sign-up when it is empty (#1784)."
   },
   "authEmailInvalid": "Enter a valid email address",
+  "authEmailTooLong": "Email addresses can be up to 255 characters",
+  "@authEmailTooLong": {
+    "description": "Red text under the email field when the address is longer than the server limit (#2908). The limit matches the users.email column and EMAIL_MAX_LENGTH in contact_format.py."
+  },
   "authPasswordEmpty": "Enter your password",
   "authSignInFailed": "Sign-in failed. Check your email and password",
   "authSignInNetworkFailed": "Check your internet connection and try again",
   "authSignInUnavailable": "Can't sign in right now. Please try again in a moment",
   "authSessionExpired": "Your session has expired. Please sign in again",
   "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment",
+  "authSocialComingSoon": "Social sign-in is coming soon. Please sign in with your email",
+  "authTrainerAccountTitle": "This is a trainer account",
+  "@authTrainerAccountTitle": {
+    "description": "Title of the sign-in banner shown when a trainer account tries to sign in to the member app (#3137)."
+  },
+  "authTrainerAccountMessage": "The member app is for member accounts. Please sign in to the trainer web with your trainer account",
+  "@authTrainerAccountMessage": {
+    "description": "Body of the trainer-account sign-in banner. The issued tokens are discarded (#3137)."
+  },
+  "authTrainerAccountOpenWeb": "Open trainer web",
+  "@authTrainerAccountOpenWeb": {
+    "description": "Banner action that opens the trainer web on the same origin. Shown on web builds only (#3137)."
+  },
   "signUpTitle": "Sign up",
   "signUpSubtitle": "Create an On-Care account and start managing your health",
   "signUpNameHint": "Name",
@@ -2263,7 +2117,19 @@
   "trainerSyncEntryLabel": "Sync data with a trainer",
   "trainerSyncEntryHint": "Connect with your trainer using a 6-digit code",
   "trainerSyncTitle": "Sync data with a trainer",
-  "trainerSyncConsent": "Once the trainer who enters this code becomes your coach, they can see your diet log, exercise log, body info, and health goals. Disconnecting removes their access too.",
+  "trainerSyncConsent": "Once the trainer who enters this code becomes your coach, they can see your meal records, workout records, body information, health goals, and health notes & cautions for coaching, consultations and writing reports. Disconnecting removes their access too, but the conversations you had and the reports already delivered before then remain. You can keep using your personal records even if you don't agree.",
+  "trainerShareDetailMore": "Show details",
+  "trainerShareDetailLess": "Hide details",
+  "trainerShareRecipientLabel": "Shared with",
+  "trainerShareRecipient": "The trainer connected as your coach",
+  "trainerShareItemsLabel": "What is shared",
+  "trainerShareItems": "Meal records, workout records, body information, health goals, and health notes & cautions",
+  "trainerSharePurposeLabel": "Purpose",
+  "trainerSharePurpose": "Coaching, consultations and writing reports",
+  "trainerSharePeriodLabel": "How long",
+  "trainerSharePeriod": "Until you withdraw consent by disconnecting. Deleting the trainer connection in the MY tab withdraws it, and the trainer can no longer see your new records. Conversations you had and reports already delivered before then are not deleted.",
+  "trainerShareRefuseLabel": "Your right to refuse",
+  "trainerShareRefuse": "You can say no. Without agreeing you can still use your personal records in the app; only the trainer connection won't be made.",
   "trainerSyncAgree": "Agree and get a code",
   "trainerSyncHint": "Read these six digits out to your trainer.",
   "trainerSyncCountdown": "Expires in {remaining}",
@@ -2283,6 +2149,21 @@
   },
   "signUpEmailTaken": "That email is already registered. Please sign in.",
   "signUpFailed": "Sign-up failed. Please try again in a moment.",
+  "consentAll": "Agree to all",
+  "consentRequiredTag": "[Required]",
+  "consentOptionalTag": "[Optional]",
+  "consentView": "View",
+  "consentTerms": "Terms of Service",
+  "consentPrivacy": "Collection and use of personal information",
+  "consentHealth": "Processing of health information (sensitive data)",
+  "consentHealthDetail": "Covers your diet and exercise logs, body data such as weight, health goals, and health notes & cautions. We ask for this separately from other personal information.",
+  "consentAge14": "I am 14 years of age or older",
+  "consentAge14Detail": "You must be 14 or older to sign up.",
+  "consentRequiredHint": "Agree to all required items to continue.",
+  "consentPageTitle": "Agreements",
+  "consentPageSubtitle": "Please review and agree to the items below to keep using On-Care.",
+  "consentPageAction": "Agree and continue",
+  "consentPageFailed": "Couldn't save your agreement. Please try again in a moment.",
   "onboardSkip": "Do this later",
   "onboardPrevious": "Back",
   "onboardNext": "Next",
@@ -2379,7 +2260,7 @@
   "@guidePointsTitle": {
     "description": "Spotlight guide step: the MY tab points card (#1857)."
   },
-  "guidePointsBody": "Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a recommended workout +{routine}P\nSpend them in MY › Use Points",
+  "guidePointsBody": "Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use Points",
   "@guidePointsBody": {
     "description": "Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).",
     "placeholders": {
@@ -2394,6 +2275,12 @@
       }
     }
   },
+  "guideSampleFoodScrambledEggs": "Scrambled eggs",
+  "guideSampleFoodWholeWheatToast": "Whole-wheat toast",
+  "guideSampleFoodChickenSalad": "Chicken breast salad",
+  "guideSampleFoodBrownRice": "Brown rice",
+  "guideSampleFoodGrilledSalmon": "Grilled salmon",
+  "guideSampleFoodRoastedVegetables": "Roasted vegetables",
   "onboardRequiredTag": "(required)",
   "@onboardRequiredTag": {
     "description": "Onboarding step 1: the basic info step must be filled in (#1830)."
@@ -2527,6 +2414,8 @@
   "@aiCoachFailure": {
     "description": "Bubble shown when the coach reply could not be fetched."
   },
+  "aicResend": "Send again",
+  "aicSendFailedMine": "Not sent · Long-press to edit",
   "actionCancel": "Cancel",
   "@actionCancel": {
     "description": "Generic cancel button in shared dialogs."
@@ -2567,6 +2456,9 @@
   "@myHealthGoalsTitle": {
     "description": "Title of the health goals sheet."
   },
+  "myFirstRunPromptTitle": "Enter your basics for tailored goals",
+  "myFirstRunPromptBody": "You skipped the first-time setup. Add your birth date, height and weight and we will suggest diet and exercise goals that fit you.",
+  "myFirstRunPromptAction": "Enter basics",
   "myGoalsFocusSection": "What you want to focus on",
   "myGoalsFocusHint": "Pick what you want to focus on in your health care. (up to 2)",
   "myGoalsFocusLastChanged": "Last changed by {who} · {date}",
@@ -2591,7 +2483,7 @@
   },
   "healthNotesLabel": "Health notes & cautions",
   "healthNotesHint": "e.g. Left knee surgery, herniated disc",
-  "healthNotesHelper": "Used when recommending workouts",
+  "healthNotesHelper": "Used for recommendations",
   "healthFocusWeightLoss": "Weight loss",
   "@healthFocusWeightLoss": {
     "description": "Health goal chip in onboarding and MY health goals."
@@ -2708,18 +2600,6 @@
   "@myGoalMacroApplySuggestion": {
     "description": "Button that fills the macro fields with the suggested grams."
   },
-  "myGoalWorkoutCount": "Weekly workout count goal",
-  "@myGoalWorkoutCount": {
-    "description": "Health goal field label."
-  },
-  "myGoalWorkoutMinutes": "Weekly workout minutes goal",
-  "@myGoalWorkoutMinutes": {
-    "description": "Health goal field label."
-  },
-  "myGoalWorkoutCalories": "Weekly calories burned goal (kcal)",
-  "@myGoalWorkoutCalories": {
-    "description": "Health goal field label."
-  },
   "myGoalUnsetHint": "Dimmed values are the baseline used before you set a goal",
   "@myGoalUnsetHint": {
     "description": "Footnote under a read-only health-goal card that has fields the member has never set. The number shown is the app-wide baseline in force, not the personalized recommendation the edit form offers."
@@ -2752,6 +2632,8 @@
   "@myNotificationSaveFailed": {
     "description": "Shown when saving notification settings fails."
   },
+  "myNotifLoadFailed": "Couldn't load notification settings",
+  "myNotifLoadFailedBody": "These are default values and may differ from your saved settings",
   "myPointsGuideTitle": "How to earn points",
   "@myPointsGuideTitle": {
     "description": "Title of the points guide dialog."
@@ -2780,17 +2662,16 @@
       }
     }
   },
-  "coachAssignedTrainer": "My trainer",
-  "@coachAssignedTrainer": {
-    "description": "Header of the assigned trainer card."
+  "coachRoutineTitle": "Recommended personal exercises",
+  "coachRoutineAiTitle": "AI-recommended personal exercises",
+  "coachRoutinePastEditHint": "You can add a missed check now. Your trainer will see it as checked later.",
+  "@coachRoutinePastEditHint": {
+    "description": "Shown after tapping the pencil on a past day's recommended exercises — past checks are allowed and marked as late for the trainer (#2506)."
   },
-  "coachPointsTitle": "This week's coaching points",
-  "@coachPointsTitle": {
-    "description": "Section title in the coaching card."
+  "coachRoutinePastEditDone": "Done",
+  "@coachRoutinePastEditDone": {
+    "description": "Leaves the past-day check editing mode (#2506)."
   },
-  "coachRoutineTitle": "Recommended solo workouts",
-  "coachRoutineAiTitle": "AI recommended solo workouts",
-  "coachRoutinePastReadOnly": "What you did that day. Past days can't be checked.",
   "@coachRoutineAiTitle": {
     "description": "Card title when the member has no trainer — every line is AI recommended (#2015)."
   },
@@ -2825,7 +2706,7 @@
   },
   "coachRoutineUndone": "Completion undone",
   "coachRoutineUndoFailed": "Could not undo the completion.",
-  "coachRoutineCancel": "Delete this workout",
+  "coachRoutineCancel": "Delete this personal exercise",
   "coachRoutineCancelConfirm": "Remove '{name}' from the list? Anything you already logged stays.",
   "@coachRoutineCancelConfirm": {
     "placeholders": {
@@ -2838,7 +2719,7 @@
   "@coachCardRoutineUndoTitle": {
     "description": "Title of the dialog confirming undoing a completed recommended workout."
   },
-  "coachCardRoutineCancelTitle": "Delete this workout?",
+  "coachCardRoutineCancelTitle": "Delete this personal exercise?",
   "@coachCardRoutineCancelTitle": {
     "description": "Title of the dialog confirming removal of a recommended workout."
   },
@@ -2846,8 +2727,8 @@
   "@coachRoutineKeep": {
     "description": "Left button of the cancel/undo confirmation dialogs for a recommended workout; closes the dialog and keeps it as is."
   },
-  "coachRoutineCancelled": "Workout deleted",
-  "coachRoutineCancelFailed": "Couldn't delete the workout",
+  "coachRoutineCancelled": "Personal exercise deleted",
+  "coachRoutineCancelFailed": "Couldn't delete the personal exercise",
   "@coachRoutineDone": {
     "description": "Marks a routine as completed."
   },
@@ -2862,15 +2743,6 @@
   "coachRoutinePlannedIntensity": "Suggested {level}",
   "@coachRoutinePlannedIntensity": {
     "description": "The intensity the trainer suggests for a routine.",
-    "placeholders": {
-      "level": {
-        "type": "String"
-      }
-    }
-  },
-  "coachRoutineDoneIntensity": "Logged {level}",
-  "@coachRoutineDoneIntensity": {
-    "description": "The intensity the member logged for a completed routine.",
     "placeholders": {
       "level": {
         "type": "String"
@@ -2893,6 +2765,10 @@
   "@coachTrainerNone": {
     "description": "Tooltip when no trainer is assigned yet."
   },
+  "coachTrainerRetrying": "Couldn't load your trainer. Trying again",
+  "@coachTrainerRetrying": {
+    "description": "Toast from the header chat button when the assigned-trainer lookup failed; tapping also retries (#2843)."
+  },
   "alertCategoryReminder": "Reminder",
   "@alertCategoryReminder": {
     "description": "Notification category badge."
@@ -2905,13 +2781,17 @@
   "@alertCategoryCoachReport": {
     "description": "Notification category label for screen readers."
   },
-  "alertCategoryRoutine": "Workout routine",
+  "alertCategoryRoutine": "Exercises & programs",
   "@alertCategoryRoutine": {
     "description": "Notification category label for screen readers."
   },
   "alertCategorySchedule": "PT schedule",
   "@alertCategorySchedule": {
     "description": "Notification category label for screen readers."
+  },
+  "alertCategoryPtDone": "PT record",
+  "@alertCategoryPtDone": {
+    "description": "Notification category label for screen readers: a finished PT session or the trainer's feedback on it (#3027)."
   },
   "alertCategoryTrainer": "Trainer",
   "@alertCategoryTrainer": {
@@ -2953,6 +2833,9 @@
   "@alertLoadFailed": {
     "description": "Shown when the notification list fails to refresh."
   },
+  "alertMarkAllReadFailed": "Couldn't mark all as read. Please try again shortly",
+  "alertCoachChatFailed": "Couldn't load your trainer, so the chat can't open. Please try again shortly",
+  "alertCoachChatNoTrainer": "You have no assigned trainer, so the chat can't open",
   "alertTimeJustNow": "Just now",
   "@alertTimeJustNow": {
     "description": "Relative time for a notification less than a minute old."
@@ -2988,27 +2871,11 @@
       }
     }
   },
-  "demoAlertSodiumTitle": "Watch your sodium",
-  "@demoAlertSodiumTitle": {
-    "description": "Title of a demo notification shown in tour mode."
-  },
-  "demoAlertSodiumBody": "Lunch jjamppong pushed today's sodium to 4,657mg. Drink plenty of water.",
-  "@demoAlertSodiumBody": {
-    "description": "Body of a demo notification shown in tour mode."
-  },
-  "demoAlertDinnerTitle": "Log your dinner",
-  "@demoAlertDinnerTitle": {
-    "description": "Title of a demo notification shown in tour mode."
-  },
-  "demoAlertDinnerBody": "No dinner logged yet today. One photo is all it takes.",
-  "@demoAlertDinnerBody": {
-    "description": "Body of a demo notification shown in tour mode."
-  },
-  "demoAlertRoutineTitle": "A new workout routine arrived",
+  "demoAlertRoutineTitle": "New personal exercises",
   "@demoAlertRoutineTitle": {
     "description": "Title of a demo notification shown in tour mode."
   },
-  "demoAlertRoutineBody": "Trainer {trainerName} adjusted it to a walking routine for your knee.",
+  "demoAlertRoutineBody": "Trainer {trainerName} adjusted them to walking-focused exercises for your knee.",
   "@demoAlertRoutineBody": {
     "description": "Body of a demo notification shown in tour mode.",
     "placeholders": {
@@ -3030,11 +2897,11 @@
       }
     }
   },
-  "demoAlertPtDoneTitle": "PT session complete",
+  "demoAlertPtDoneTitle": "PT complete",
   "@demoAlertPtDoneTitle": {
     "description": "Title of a demo notification shown in tour mode."
   },
-  "demoAlertPtDoneBody": "You finished PT session 12 with Trainer {trainerName} at 18:00 today!",
+  "demoAlertPtDoneBody": "You finished your 12th PT with Trainer {trainerName} at 18:00 today!",
   "@demoAlertPtDoneBody": {
     "description": "Body of a demo notification shown in tour mode.",
     "placeholders": {
@@ -3074,10 +2941,6 @@
   "demoAlertMaintenanceBody": "Maintenance is scheduled for tomorrow, 02:00–03:00.",
   "@demoAlertMaintenanceBody": {
     "description": "Body of a demo notification shown in tour mode."
-  },
-  "exPtLogTitle": "Today's completed PT",
-  "@exPtLogTitle": {
-    "description": "Title of the completed PT session card."
   },
   "exPtFeedbackTitle": "Today's feedback",
   "exNextPtSchedule": "Next PT · {when}",
@@ -3143,7 +3006,6 @@
   "a11ySendMessage": "Send message",
   "a11yClearSearch": "Clear search",
   "a11yRemoveFood": "Remove food",
-  "a11yOpenCalendar": "Open schedule calendar",
   "a11yPrevWeek": "Previous week",
   "a11yNextWeek": "Next week",
   "exConsultHistoryCancelTitle": "Cancel this consultation request?",
@@ -3151,16 +3013,10 @@
   "@exConsultHistoryCancelAction": {
     "description": "Confirm button of the cancel-consultation dialog. Sits next to Keep, like Cancel booking (#2554)."
   },
+  "exConsultCancelFailed": "Couldn't cancel the consultation request. Please try again.",
+  "exConsultCancelStale": "This request was already handled. It now shows its latest status.",
+  "exConsultHistoryLoadError": "Couldn't load your consultation requests.",
   "exConsultHistoryCancelBody": "A cancelled request can't be restored.",
-  "exDemoPtSessionCount": "Session 12 with Trainer {trainerName}",
-  "@exDemoPtSessionCount": {
-    "placeholders": {
-      "trainerName": {
-        "type": "String"
-      }
-    }
-  },
-  "exDemoPtFeedback": "Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!",
   "pointsRewardBadge": "+{points}P",
   "@pointsRewardBadge": {
     "description": "Points earned badge on the save toast (shown after a star icon), e.g. +50P.",
@@ -3177,6 +3033,10 @@
   "gymLocationUnavailable": "Could not get your location. Please try again.",
   "gymLocateAction": "Find near my location",
   "gymLocationSettings": "Settings",
+  "gymDefaultAreaTitle": "Showing gyms around Sinchon",
+  "gymDefaultAreaMessage": "Allow location access to see gyms near you.",
+  "gymUseLocation": "Use location",
+  "gymDistanceSortNeedsLocation": "Sort by distance needs your current location.",
   "exGymCopyPhone": "Copy phone number",
   "exGymPhoneCopied": "Phone number copied.",
   "exerciseAdviceRecordEmptyToday": "No workout logged today yet. How about a 10-minute walk to start?",
@@ -3206,7 +3066,7 @@
       }
     }
   },
-  "exerciseAdviceRecordWeekOneDay": "Just one day this week ({minutes} min). One more session keeps the flow going.",
+  "exerciseAdviceRecordWeekOneDay": "Just one day this week ({minutes} min). One more workout keeps the flow going.",
   "@exerciseAdviceRecordWeekOneDay": {
     "description": "Exercise tab AI advice sentence `record_week_one_day` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3268,7 +3128,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineTodayAllDone": "You finished {count, plural, =1{your recommended workout} other{all {count} recommended workouts}} today. Great job!",
+  "exerciseAdviceRoutineTodayAllDone": "You finished {count, plural, =1{your personal exercise} other{all {count} personal exercises}} today. Great job!",
   "@exerciseAdviceRoutineTodayAllDone": {
     "description": "Exercise tab AI advice sentence `routine_today_all_done` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3331,7 +3191,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineTodayLeft": "{count, plural, =1{1 recommended workout left} other{{count} recommended workouts left}}. Go down the list in order.",
+  "exerciseAdviceRoutineTodayLeft": "{count, plural, =1{1 personal exercise left} other{{count} personal exercises left}}. Go down the list in order.",
   "@exerciseAdviceRoutineTodayLeft": {
     "description": "Exercise tab AI advice sentence `routine_today_left` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3340,7 +3200,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineTodayStartOrder": "Start today's recommended workouts with {next} → {then}.",
+  "exerciseAdviceRoutineTodayStartOrder": "Start today's personal exercises with {next} → {then}.",
   "@exerciseAdviceRoutineTodayStartOrder": {
     "description": "Exercise tab AI advice sentence `routine_today_start_order` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3361,7 +3221,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineWeekNoneToday": "No recommended workouts this week yet. Start with {next} today?",
+  "exerciseAdviceRoutineWeekNoneToday": "You haven't done your personal exercises this week yet. Start with {next} today?",
   "@exerciseAdviceRoutineWeekNoneToday": {
     "description": "Exercise tab AI advice sentence `routine_week_none_today` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3370,7 +3230,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineWeekNoneNext": "No recommended workouts this week yet. Try {next} first.",
+  "exerciseAdviceRoutineWeekNoneNext": "You haven't done your personal exercises this week yet. Try {next} first.",
   "@exerciseAdviceRoutineWeekNoneNext": {
     "description": "Exercise tab AI advice sentence `routine_week_none_next` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3379,7 +3239,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineWeekNone": "No recommended workouts this week yet. Try one today.",
+  "exerciseAdviceRoutineWeekNone": "You haven't done your personal exercises this week yet. Try one today.",
   "@exerciseAdviceRoutineWeekNone": {
     "description": "Exercise tab AI advice sentence `routine_week_none` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
   },
@@ -3407,7 +3267,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineWeekSkew": "{share}% of this week's recommended workouts were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. {rest, select, next_week{Next week} other{For the rest of the week}}, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
+  "exerciseAdviceRoutineWeekSkew": "{share}% of this week's personal exercises were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. {rest, select, next_week{Next week} other{For the rest of the week}}, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
   "@exerciseAdviceRoutineWeekSkew": {
     "description": "Exercise tab AI advice sentence `routine_week_skew` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3425,7 +3285,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineWeekSkewShort": "{share}% of this week's recommended workouts were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
+  "exerciseAdviceRoutineWeekSkewShort": "{share}% of this week's personal exercises were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
   "@exerciseAdviceRoutineWeekSkewShort": {
     "description": "Exercise tab AI advice sentence `routine_week_skew_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3437,7 +3297,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineWeekPraise": "You kept up with this week's recommended workouts {how, select, even{across the board} other{steadily}}. Keep it going!",
+  "exerciseAdviceRoutineWeekPraise": "You kept up with this week's personal exercises {how, select, even{across the board} other{steadily}}. Keep it going!",
   "@exerciseAdviceRoutineWeekPraise": {
     "description": "Exercise tab AI advice sentence `routine_week_praise` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3446,7 +3306,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineWeekCountsToday": "You did {completed} of {assigned} recommended workouts this week. Continue with {next} today.",
+  "exerciseAdviceRoutineWeekCountsToday": "You did {completed} of {assigned} personal exercises this week. Continue with {next} today.",
   "@exerciseAdviceRoutineWeekCountsToday": {
     "description": "Exercise tab AI advice sentence `routine_week_counts_today` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3461,7 +3321,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineWeekCountsKeep": "You did {completed} of {assigned} recommended workouts this week. {rest, select, next_week{Keep it going next week.} other{Keep it going for the rest of the week.}}",
+  "exerciseAdviceRoutineWeekCountsKeep": "You did {completed} of {assigned} personal exercises this week. {rest, select, next_week{Keep it going next week.} other{Keep it going for the rest of the week.}}",
   "@exerciseAdviceRoutineWeekCountsKeep": {
     "description": "Exercise tab AI advice sentence `routine_week_counts_keep` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3476,7 +3336,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineWeekCounts": "You did {completed} of {assigned} recommended workouts this week.",
+  "exerciseAdviceRoutineWeekCounts": "You did {completed} of {assigned} personal exercises this week.",
   "@exerciseAdviceRoutineWeekCounts": {
     "description": "Exercise tab AI advice sentence `routine_week_counts` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3488,7 +3348,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineLastWeekNoneNext": "No recommended workouts last week. This week, start with {next}.",
+  "exerciseAdviceRoutineLastWeekNoneNext": "You didn't do your personal exercises last week. This week, start with {next}.",
   "@exerciseAdviceRoutineLastWeekNoneNext": {
     "description": "Exercise tab AI advice sentence `routine_last_week_none_next` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3497,7 +3357,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineLastWeekNone": "No recommended workouts last week. Take them one at a time this week.",
+  "exerciseAdviceRoutineLastWeekNone": "You didn't do your personal exercises last week. Take them one at a time this week.",
   "@exerciseAdviceRoutineLastWeekNone": {
     "description": "Exercise tab AI advice sentence `routine_last_week_none` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
   },
@@ -3522,7 +3382,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineLastWeekSkew": "{share}% of last week's recommended workouts were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. This week, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
+  "exerciseAdviceRoutineLastWeekSkew": "{share}% of last week's personal exercises were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. This week, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
   "@exerciseAdviceRoutineLastWeekSkew": {
     "description": "Exercise tab AI advice sentence `routine_last_week_skew` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3537,7 +3397,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineLastWeekSkewShort": "{share}% of last week's recommended workouts were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
+  "exerciseAdviceRoutineLastWeekSkewShort": "{share}% of last week's personal exercises were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.",
   "@exerciseAdviceRoutineLastWeekSkewShort": {
     "description": "Exercise tab AI advice sentence `routine_last_week_skew_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3549,7 +3409,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineLastWeekPraise": "You kept up with last week's recommended workouts {how, select, even{across the board} other{steadily}}. Keep it going this week!",
+  "exerciseAdviceRoutineLastWeekPraise": "You kept up with last week's personal exercises {how, select, even{across the board} other{steadily}}. Keep it going this week!",
   "@exerciseAdviceRoutineLastWeekPraise": {
     "description": "Exercise tab AI advice sentence `routine_last_week_praise` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3558,7 +3418,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineLastWeekCountsMore": "You did {completed} of {assigned} recommended workouts last week. Let's do more this week.",
+  "exerciseAdviceRoutineLastWeekCountsMore": "You did {completed} of {assigned} personal exercises last week. Let's do more this week.",
   "@exerciseAdviceRoutineLastWeekCountsMore": {
     "description": "Exercise tab AI advice sentence `routine_last_week_counts_more` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3570,7 +3430,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineLastWeekCounts": "You did {completed} of {assigned} recommended workouts last week.",
+  "exerciseAdviceRoutineLastWeekCounts": "You did {completed} of {assigned} personal exercises last week.",
   "@exerciseAdviceRoutineLastWeekCounts": {
     "description": "Exercise tab AI advice sentence `routine_last_week_counts` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3582,7 +3442,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineAllNew": "Day {days} with your recommended list. After a week, we'll point out what gets skipped.",
+  "exerciseAdviceRoutineAllNew": "Day {days} with your personal exercises. After a week, we'll point out what gets skipped.",
   "@exerciseAdviceRoutineAllNew": {
     "description": "Exercise tab AI advice sentence `routine_all_new` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3591,7 +3451,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineAllNoneNext": "Day {days} with your recommended list. Start with {next} today?",
+  "exerciseAdviceRoutineAllNoneNext": "Day {days} with your personal exercises. Start with {next} today?",
   "@exerciseAdviceRoutineAllNoneNext": {
     "description": "Exercise tab AI advice sentence `routine_all_none_next` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3603,7 +3463,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineAllNone": "Day {days} with your recommended list. Try one today.",
+  "exerciseAdviceRoutineAllNone": "Day {days} with your personal exercises. Try one today.",
   "@exerciseAdviceRoutineAllNone": {
     "description": "Exercise tab AI advice sentence `routine_all_none` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3646,7 +3506,7 @@
   "@exerciseAdviceRoutineAllDoneToday": {
     "description": "Exercise tab AI advice sentence `routine_all_done_today` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
   },
-  "exerciseAdviceRoutineAllMissedPart": "{part, select, lower{Lower-body} upper{Upper-body} core{Core} full{Full-body} other{Full-body}} recommended workouts get skipped often. Try doing them first?",
+  "exerciseAdviceRoutineAllMissedPart": "{part, select, lower{Lower-body} upper{Upper-body} core{Core} full{Full-body} other{Full-body}} personal exercises get skipped often. Try doing them first?",
   "@exerciseAdviceRoutineAllMissedPart": {
     "description": "Exercise tab AI advice sentence `routine_all_missed_part` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3706,11 +3566,11 @@
       }
     }
   },
-  "exerciseAdviceRoutineAllMissed": "Some recommended workouts get skipped often. Try reordering your list?",
+  "exerciseAdviceRoutineAllMissed": "Some personal exercises get skipped often. Try reordering your list?",
   "@exerciseAdviceRoutineAllMissed": {
     "description": "Exercise tab AI advice sentence `routine_all_missed` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO."
   },
-  "exerciseAdviceRoutineAllPraise": "{weeks, plural, =1{1 week} other{{weeks} weeks}} of steady recommended workouts. Keep it up!",
+  "exerciseAdviceRoutineAllPraise": "{weeks, plural, =1{1 week} other{{weeks} weeks}} of keeping up with your personal exercises. Keep it up!",
   "@exerciseAdviceRoutineAllPraise": {
     "description": "Exercise tab AI advice sentence `routine_all_praise` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -3719,7 +3579,7 @@
       }
     }
   },
-  "exerciseAdviceRoutineAllRate": "You've done {pct}% of your recommended workouts. Try not to skip a day.",
+  "exerciseAdviceRoutineAllRate": "You've done {pct}% of your personal exercises. Try not to skip a day.",
   "@exerciseAdviceRoutineAllRate": {
     "description": "Exercise tab AI advice sentence `routine_all_rate` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.",
     "placeholders": {
@@ -4077,7 +3937,8 @@
   "coachReportsSectionTitle": "Reports received",
   "coachReportsEmpty": "No reports yet",
   "coachReportsEmptyHint": "Weekly reports from your trainer land here",
-  "coachReportOpen": "Open report",
+  "coachReportsLoadFailed": "Couldn't load your reports",
+  "weeklyFeedbackLoadFailed": "Couldn't load the weekly feedback you sent",
   "coachReportSentOn": "Sent {month}/{day}",
   "@coachReportSentOn": {
     "placeholders": {
@@ -4122,5 +3983,82 @@
       }
     }
   },
-  "weeklyFeedbackNowButton": "Send feedback now"
+  "weeklyFeedbackNowButton": "Send feedback now",
+  "authForgotPassword": "Forgot your password?",
+  "passwordChangeTitle": "Change password",
+  "passwordChangeCurrentHint": "Current password",
+  "passwordChangeNewHint": "New password (8+ characters, letters and numbers)",
+  "passwordChangeConfirmHint": "Confirm new password",
+  "passwordChangeNote": "This device stays signed in. Other devices will need to sign in again.",
+  "passwordChangeAction": "Change password",
+  "passwordChangeDone": "Password changed",
+  "passwordChangeWrongCurrent": "Your current password is incorrect",
+  "passwordChangeSameAsCurrent": "Choose a password different from your current one",
+  "passwordChangeDemoTitle": "Demo accounts can't change passwords",
+  "passwordChangeDemoBody": "Demo mode has no server account. Sign in with a real account to change your password here.",
+  "passwordChangeSocialTitle": "This account has no password",
+  "passwordChangeSocialBody": "Accounts that sign in with Kakao or Google are managed by that service.",
+  "passwordTooManyAttempts": "Too many attempts. Please try again in a moment.",
+  "passwordTemporaryFailure": "Couldn't complete the request. Please try again shortly.",
+  "passwordResetTitle": "Reset password",
+  "passwordResetRequestSubtitle": "We'll email a reset code to the address you signed up with.",
+  "passwordResetSendAction": "Send code",
+  "passwordResetHaveCode": "I already have a code",
+  "passwordResetSentTitle": "Check your email",
+  "passwordResetSentBody": "If an account uses {email}, we've sent a code you can use once within {minutes} minutes.",
+  "@passwordResetSentBody": {
+    "description": "Shown after a reset request. Same text whether or not the account exists.",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "passwordResetConfirmSubtitle": "Enter the code from the email and your new password.",
+  "passwordResetCodeHint": "16-character reset code",
+  "passwordResetCodeEmpty": "Enter the code",
+  "passwordResetCodeMalformed": "Enter the 16-character code from the email",
+  "passwordResetCodeInvalid": "This code is wrong or has expired. Request a new one.",
+  "passwordResetConfirmAction": "Save new password",
+  "passwordResetResend": "Send a new code",
+  "passwordResetDemoNote": "Demo mode doesn't send email. The code is filled in for you.",
+  "passwordResetUnavailable": "We can't send reset emails right now. Please contact support.",
+  "passwordResetDoneTitle": "Password reset",
+  "passwordResetDoneBody": "Sign in with your new password. You've been signed out on every device.",
+  "passwordResetBackToSignIn": "Go to sign in",
+  "signUpEmailCodeSend": "Send code",
+  "signUpEmailCodeHint": "Verification code",
+  "signUpEmailCodeResend": "Resend",
+  "signUpEmailCodeResendIn": "Resend in {seconds}s",
+  "@signUpEmailCodeResendIn": {"description": "Resend button while the cooldown runs (#3038)", "placeholders": {"seconds": {"type": "int"}}},
+  "signUpEmailCodeRemaining": "6-digit code from the email · expires in {time}",
+  "@signUpEmailCodeRemaining": {"description": "Helper under the sign-up code field with the time left, m:ss (#3038)", "placeholders": {"time": {"type": "String"}}},
+  "signUpEmailCodeExpired": "This code has expired. Request a new one.",
+  "signUpEmailCodeEmpty": "Enter the 6-digit code",
+  "signUpEmailCodeInvalid": "This code is wrong or has expired. Request a new one.",
+  "signUpEmailCodeDemoNote": "Demo mode doesn't send email. Enter {code} as the code.",
+  "@signUpEmailCodeDemoNote": {"description": "Demo-only hint with the code the mock accepts (#3038)", "placeholders": {"code": {"type": "String"}}},
+  "signUpEmailCodeUnavailable": "We can't send verification emails right now. Please try again later.",
+  "reauthTitle": "Confirm it's you",
+  "reauthEmailMessage": "Changing your email changes your sign-in ID and the address password reset emails go to.",
+  "@reauthEmailMessage": {"description": "Re-auth dialog text before an email change (#3039)"},
+  "reauthPasswordPrompt": "Enter your current password to continue.",
+  "reauthPasswordRequired": "Enter your current password",
+  "reauthSocialPrompt": "This account has no password. Sign in again with the social account you signed up with.",
+  "reauthSocialAction": "Sign in again with a social account",
+  "reauthSocialConfirmed": "Social account confirmed",
+  "reauthSocialRequired": "Sign in again with your social account",
+  "reauthSocialInvalid": "We couldn't confirm your social account. Please sign in again.",
+  "reauthSocialUnavailable": "Social sign-in isn't available in this version yet. Please contact support.",
+  "releaseUpdateTitle": "A new version is available",
+  "@releaseUpdateTitle": {"description": "Title of the banner shown when a newer web release has been deployed while this tab is open (#3023)."},
+  "releaseUpdateMessage": "Reload to get the latest version. Save anything you're working on first.",
+  "@releaseUpdateMessage": {"description": "Body of the new-release banner."},
+  "releaseUpdateReload": "Reload",
+  "@releaseUpdateReload": {"description": "Button that reloads the page to load the new release."},
+  "releaseUpdateDismiss": "Dismiss",
+  "@releaseUpdateDismiss": {"description": "Tooltip of the button that hides the new-release banner for this release."}
 }

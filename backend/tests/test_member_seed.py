@@ -106,6 +106,34 @@ def test_fixture_sessions_record_the_day_they_happened(client, db_session):
         assert clock.to_seoul(row.completed_at).date() == day, row.id
 
 
+def test_fixture_sessions_carry_pt_and_routine_source(client, db_session):
+    """픽스처 운동은 PT 날이면 `trainer_pt`, 그 밖은 `assigned_routine` 이다. (#2693)
+
+    픽스처에는 회원이 손으로 적은 기록이 없다. 출처를 비우면 `member` 로 떨어져
+    PT 가 `직접 기록한 운동` 에 서고 고칠 수 있게 된다 — 회원 앱 데모와 같은
+    규칙이어야 두 경로가 같은 카드를 그린다(#2662).
+    """
+    from app.db.demo_fixture import load_fixture
+    from app.models.models import ExerciseSession
+
+    pt_days = {
+        day.iso for day in load_fixture().days_for(clock.today()) if day.is_pt
+    }
+    rows = db_session.scalars(
+        select(ExerciseSession).where(
+            ExerciseSession.user_id == _MEMBER_ID,
+            ExerciseSession.id.like("seed-fix-ex-%"),
+        )
+    ).all()
+    assert rows, "픽스처 운동 시드가 없다"
+
+    for row in rows:
+        day = row.id.removeprefix(f"seed-fix-ex-{_MEMBER_ID}-")[:10]
+        expected = "trainer_pt" if day in pt_days else "assigned_routine"
+        assert row.source == expected, row.id
+    assert any(row.source == "trainer_pt" for row in rows)
+
+
 def test_no_personal_doc_points_at_a_deleted_seed_row(client, db_session):
     """지워진 시드 행을 가리키는 개인 RAG 문서가 남지 않는다.
 
@@ -181,6 +209,118 @@ def test_seeded_days_match_the_fixture(client, db_session):
         assert row.completion_rate == days[row.date].completion, (
             f"{row.date} 이행률이 픽스처와 다릅니다."
         )
+
+
+def test_today_pt_schedule_matches_the_fixture_pt(client, db_session):
+    """김민수 오늘 PT 일정과 운동 기록 PT 카드가 같은 운동을 말한다(#2567).
+
+    일정 프로그램·이력 줄·픽스처가 종목과 세트·횟수(초)·중량까지 같다. 예전에는
+    일정이 `10:00 · 레그프레스 …` 를 따로 지어내, 같은 날 운동 기록의 PT 카드
+    (`벤치프레스 …`)와 달랐다.
+    """
+    import json
+
+    from app.db.demo_fixture import load_fixture
+    from app.models.models import RoutineHistory, TrainerSchedule
+    from app.services.trainer._common import parse_history_exercise
+
+    today = clock.today()
+    fixture_day = load_fixture().days_for(today)[-1]
+    assert fixture_day.is_pt
+
+    slot = db_session.scalar(
+        select(TrainerSchedule).where(
+            TrainerSchedule.member_id == _MEMBER_ID,
+            TrainerSchedule.date == today.isoformat(),
+            TrainerSchedule.id.like(f"seed-schedule-{today.isoformat()}-%"),
+        )
+    )
+    assert slot is not None, "김민수 오늘 PT 일정 시드가 없습니다."
+    program = [
+        (
+            item["name"],
+            item.get("sets"),
+            item.get("reps"),
+            item.get("hold_seconds"),
+            item.get("weight"),
+        )
+        for item in json.loads(slot.program_json)
+    ]
+    expected = [
+        (e.name, e.sets, e.reps, e.hold_seconds, e.weight)
+        for e in fixture_day.exercises
+    ]
+    assert program == expected
+
+    history = db_session.scalar(
+        select(RoutineHistory).where(
+            RoutineHistory.member_id == _MEMBER_ID,
+            RoutineHistory.date == today.isoformat(),
+            RoutineHistory.id.like("seed-%"),
+        )
+    )
+    assert history is not None, "김민수 오늘 PT 이력 시드가 없습니다."
+    items = [
+        parse_history_exercise(raw) for raw in json.loads(history.exercises_json)
+    ]
+    assert [
+        (i.name, i.sets, i.reps, i.hold_seconds, i.weight) for i in items
+    ] == expected
+
+
+def test_seeded_history_cards_show_the_amounts(client):
+    """PT 세션·AI 개인운동 이력 카드에 세트·횟수·중량·시간이 선다(#2567)."""
+    r = client.post(
+        "/v1/auth/login",
+        data={"username": "trainer@oncare.com", "password": "oncare123"},
+    )
+    assert r.status_code == 200, r.text
+    headers = {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+    hist = client.get(
+        f"/v1/trainer/clients/{_MEMBER_ID}/history", headers=headers
+    ).json()
+    # 다른 테스트가 남긴 실제 PT 완료 이력은 소관이 아니다.
+    items = [
+        item
+        for entry in hist
+        if entry["id"].startswith("seed-")
+        for item in entry["exercise_items"]
+    ]
+    assert items, "김민수 이력 시드가 없습니다."
+    for item in items:
+        if item["type"] == "strength":
+            assert item["sets"], item
+        else:
+            assert item["minutes"], item
+
+
+def test_timeline_members_history_does_not_contradict_today(client, db_session):
+    """오늘 타임라인의 회원은 오늘 이력이 없거나, 있으면 같은 운동이다(#2567)."""
+    import json
+
+    from app.db.seed_member_data import _SCHEDULE
+    from app.models.models import RoutineHistory
+    from app.services.trainer._common import parse_history_exercise
+
+    today = clock.today().isoformat()
+    for _t, name, member_id, _typ, _dur, _status, _note, program in _SCHEDULE:
+        if not member_id or not program:
+            continue
+        row = db_session.scalar(
+            select(RoutineHistory).where(
+                RoutineHistory.member_id == member_id,
+                RoutineHistory.date == today,
+                RoutineHistory.id.like("seed-%"),
+            )
+        )
+        if row is None:
+            continue
+        names = [
+            parse_history_exercise(raw).name
+            for raw in json.loads(row.exercises_json)
+        ]
+        assert names == [item["name"] for item in program], name
 
 
 def test_health_profile_seeded_once(client, db_session):

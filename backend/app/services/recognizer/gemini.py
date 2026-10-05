@@ -13,15 +13,19 @@ from __future__ import annotations
 
 import asyncio
 import json
-import math
 import time
 
 from google import genai
 from google.genai import types
 
 from app.core.config import get_settings
-from app.schemas.diet import DietAnalysis, RecognizedFood
-from app.services.recognizer.base import FoodRecognizer
+from app.schemas.diet import DietAnalysis
+from app.services import ai_call_quota
+from app.services.coach.llm import gemini_truncated
+from app.services.coach.llm_base import output_cap
+from app.services.recognizer.base import RECOGNIZER_MAX_OUTPUT_TOKENS, FoodRecognizer
+from app.services.recognizer.locale_prompt import localized_prompt
+from app.services.recognizer.parse import parse_payload
 
 _PROMPT = """당신은 전문 영양사입니다. 업로드된 음식 사진을 분석해 아래 JSON 스키마로만 응답하세요.
 설명, 마크다운, 코드블록 없이 순수 JSON만 출력합니다.
@@ -44,6 +48,8 @@ _PROMPT = """당신은 전문 영양사입니다. 업로드된 음식 사진을 
 }
 
 음식이 여러 개면 foods 에 모두 넣으세요. 모르는 값은 null 로 두세요.
+사진에 음식이 보이지 않으면(풍경·사람·빈 그릇 등) 음식을 지어내지 말고 foods 를
+빈 배열 [] 로 두세요.
 amount_g 는 **사진에 실제로 담긴 양**을 그램으로 추정하세요(그릇 크기·조각 수를
 근거로). 공공 영양 DB 가 100g 당 값을 갖고 있어 이 값으로 환산합니다 — 영양
 수치보다 이쪽이 더 중요합니다.
@@ -57,52 +63,49 @@ class GeminiVisionRecognizer(FoodRecognizer):
         settings = get_settings()
         if not settings.gemini_api_key:
             raise RuntimeError("GEMINI_API_KEY 가 설정되지 않았습니다. .env 를 확인하세요.")
-        # 타임아웃(ms). 지연 응답이 작업 스레드를 오래 점유하지 않게 함
+        # 타임아웃(ms). 지연 응답이 작업 스레드를 오래 점유하지 않게 함. 값은 설정에서
+        # 읽는다 — 운영 중 조정하려고 배포할 일이 없게(#2912).
         self._client = genai.Client(
             api_key=settings.gemini_api_key,
-            http_options=types.HttpOptions(timeout=60_000),
+            http_options=types.HttpOptions(
+                timeout=int(settings.recognizer_timeout_seconds * 1000)
+            ),
         )
         self._model = settings.gemini_model
 
     async def recognize(self, image_bytes: bytes, mime_type: str) -> DietAnalysis:
+        # 요청 언어는 컨텍스트 변수라 작업 스레드로 넘기기 전에 고른다. (#2850)
+        prompt = localized_prompt(_PROMPT)
+        # 서버 전체 하루 상한(#3032). 사진 분석은 규칙형 대안이 없어, 넘으면 라우터가
+        # 503 `ai_capacity` 로 답하고 회원의 하루 몫을 돌려준다.
+        await asyncio.to_thread(ai_call_quota.acquire, ai_call_quota.FEATURE_DIET_PHOTO)
         start = time.perf_counter()
         response = await asyncio.to_thread(
             self._client.models.generate_content,
             model=self._model,
             contents=[
-                _PROMPT,
+                prompt,
                 types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
             ],
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 temperature=0.2,
+                # 출력 토큰 상한(#3032).
+                max_output_tokens=output_cap(RECOGNIZER_MAX_OUTPUT_TOKENS),
             ),
         )
         latency_ms = int((time.perf_counter() - start) * 1000)
+        if gemini_truncated(response):
+            # 끊긴 JSON 은 음식 일부만 저장될 수 있다 — 인식 실패(502)로 돌린다.
+            raise RuntimeError("식단 인식 응답이 출력 상한에 걸려 끊김")
         return self._parse(response.text or "", latency_ms)
 
     def _parse(self, raw: str, latency_ms: int) -> DietAnalysis:
-        foods: list[RecognizedFood] = []
-        coach_comment = ""
+        # 값 검사·상한은 두 인식기가 같은 규칙을 쓴다(#3090, `parse.py`).
         try:
-            data = json.loads(raw)
-            coach_comment = str(data.get("coach_comment", "") or "")
-            for f in data.get("foods", []):
-                foods.append(
-                    RecognizedFood(
-                        name=str(f.get("name", "알 수 없음")),
-                        amount_g=_as_amount_g(f.get("amount_g")),
-                        calories=_as_int(f.get("calories")),
-                        carbs_g=_as_macro_float(f.get("carbs_g")),
-                        protein_g=_as_macro_float(f.get("protein_g")),
-                        fat_g=_as_macro_float(f.get("fat_g")),
-                        sodium_mg=_as_int(f.get("sodium_mg")),
-                        sugar_g=_as_int(f.get("sugar_g")),
-                        confidence=_as_float(f.get("confidence")),
-                    )
-                )
-        except (json.JSONDecodeError, AttributeError):
-            pass
+            foods, coach_comment = parse_payload(json.loads(raw))
+        except json.JSONDecodeError:
+            foods, coach_comment = [], ""
 
         return DietAnalysis(
             engine=self.name,
@@ -111,47 +114,3 @@ class GeminiVisionRecognizer(FoodRecognizer):
             latency_ms=latency_ms,
             raw_model_output=raw,
         ).compute_totals()
-
-
-def _as_int(v) -> int | None:
-    if v is None:
-        return None
-    try:
-        return int(round(float(v)))
-    except (TypeError, ValueError):
-        return None
-
-
-def _as_float(v) -> float | None:
-    if v is None:
-        return None
-    try:
-        return float(v)
-    except (TypeError, ValueError):
-        return None
-
-
-def _as_amount_g(v) -> float | None:
-    """사진에 담긴 양(g). 0·음수·비유한값은 "모름"(None)으로 눕힌다. (#2090)
-
-    `RecognizedFood.amount_g` 는 `gt=0` 이라 0 을 그대로 넘기면 검증 오류로 응답
-    파싱 전체가 깨진다. 모델이 0 을 줬다는 건 양을 모른다는 뜻이다 — 보정이
-    알려진 1회 섭취량으로 폴백하거나 추정치를 유지한다(`litellm_vision` 과 같은 규칙).
-    """
-    if v is None:
-        return None
-    try:
-        value = float(v)
-    except (TypeError, ValueError):
-        return None
-    return value if math.isfinite(value) and value > 0 else None
-
-
-def _as_macro_float(v) -> float | None:
-    if v is None:
-        return None
-    try:
-        value = float(v)
-    except (TypeError, ValueError):
-        return None
-    return value if math.isfinite(value) and value >= 0 else None

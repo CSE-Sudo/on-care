@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,7 +10,12 @@ import 'package:oncare_trainer/app/shell/nav_destinations.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
+import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
+import 'package:oncare_trainer/shared/models/trainer_client.dart';
+import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart'
     show AppButton, AppButtonVariant, AppTextField;
 
@@ -26,6 +33,7 @@ ConsultationRequest _request({
   DateTime? createdAt,
   DateTime? slotStartsAt,
   int? slotDurationMinutes,
+  bool cancelledByTrainer = false,
 }) => ConsultationRequest(
   id: id,
   memberId: 'user-$id',
@@ -40,6 +48,7 @@ ConsultationRequest _request({
   message: message,
   status: status,
   createdAt: createdAt,
+  cancelledByTrainer: cancelledByTrainer,
 );
 
 /// A stand-in inbox that reports itself enabled (so the nav row renders)
@@ -133,18 +142,85 @@ class _FakeConsultationRepository implements ConsultationRepository {
   }
 }
 
+/// 승인·거절 응답을 테스트가 풀 때까지 붙잡아 두는 인박스. (#3103)
+class _HeldDecisionRepository extends _FakeConsultationRepository {
+  _HeldDecisionRepository({super.requests});
+
+  final Completer<void> gate = Completer<void>();
+
+  /// 붙잡은 결정을 실패로 끝낼 오류. null 이면 성공한다.
+  AppError? decisionFailure;
+
+  /// 대기 목록 첫 쪽을 읽은 횟수 — 대시보드 상담 카드 무효화를 센다.
+  int pendingFetches = 0;
+
+  @override
+  Future<List<ConsultationRequest>> fetch({
+    String status = 'pending',
+    int limit = consultationPageSize,
+    DateTime? before,
+    String? beforeId,
+  }) {
+    if (status == 'pending' && before == null) pendingFetches++;
+    return super.fetch(
+      status: status,
+      limit: limit,
+      before: before,
+      beforeId: beforeId,
+    );
+  }
+
+  @override
+  Future<ConsultationAcceptResult> accept(String id) async {
+    await gate.future;
+    if (decisionFailure != null) throw decisionFailure!;
+    return super.accept(id);
+  }
+
+  @override
+  Future<void> reject(String id, {String? note}) async {
+    await gate.future;
+    if (decisionFailure != null) throw decisionFailure!;
+    return super.reject(id, note: note);
+  }
+}
+
+/// 승인이 주어진 오류로 바로 실패하는 인박스 — 오류 문구를 본다.
+class _FailingAcceptRepository extends _FakeConsultationRepository {
+  _FailingAcceptRepository(this.acceptFailure, {super.requests});
+
+  final AppError acceptFailure;
+
+  @override
+  Future<ConsultationAcceptResult> accept(String id) async {
+    throw acceptFailure;
+  }
+}
+
 Future<ProviderContainer> _pumpInbox(
   WidgetTester tester,
   _FakeConsultationRepository repo, {
   String? at,
+  List<Override> extraOverrides = const <Override>[],
 }) => pumpTrainerApp(
   tester,
   token: 'demo-token',
   at: at ?? AppRoutes.consultations,
   extraOverrides: <Override>[
     consultationRepositoryProvider.overrideWithValue(repo),
+    ...extraOverrides,
   ],
 );
+
+/// 상담함 창 안에서만 찾는다 — 창은 스케줄 위에 뜨므로(#2717) 같은 이름이
+/// 뒤의 시간표에도 있다.
+Finder _inInbox(Finder finder) => find.descendant(
+  of: find.byKey(const ValueKey<String>('consultations-dialog')),
+  matching: finder,
+);
+
+/// 상담함 창의 스크롤 영역.
+Finder get _inboxScrollable => _inInbox(find.byType(Scrollable)).first;
 
 void main() {
   testWidgets('renders a pending request with its decision actions', (
@@ -156,8 +232,8 @@ void main() {
     );
 
     expect(find.text('상담 요청'), findsWidgets);
-    expect(find.text('김민수'), findsOneWidget);
-    expect(find.text('체중 감량'), findsOneWidget);
+    expect(_inInbox(find.text('김민수')), findsOneWidget);
+    expect(_inInbox(find.text('체중 감량')), findsOneWidget);
     // 건강관리 목적은 회원이 따로 고르지 않는 파생값이라 카드에 보이지
     // 않는다 — 운동 목표 하나로 충분하다.
     expect(find.text('건강관리 목적'), findsNothing);
@@ -181,32 +257,33 @@ void main() {
     expect(find.text('헬스장 문의'), findsNothing);
   });
 
-  testWidgets('offers a route back to the schedule', (tester) async {
+  testWidgets('상담함 주소는 스케줄 위에 창을 열고 주소에서 쿼리를 지운다 (#2717)', (tester) async {
     await _pumpInbox(tester, _FakeConsultationRepository());
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('consultations-back-to-schedule')),
+    // 페이지가 아니라 스케줄·대시보드 버튼이 여는 것과 같은 창이다.
+    expect(
+      find.byKey(const ValueKey<String>('consultations-dialog')),
+      findsOneWidget,
     );
-    await settle(tester);
-
+    expect(find.text('스케줄로 돌아가기'), findsNothing);
+    // 창을 닫은 뒤 새로고침해도 다시 뜨지 않게 쿼리를 지운다.
     expect(currentLocation(tester), AppRoutes.schedule);
   });
 
-  testWidgets('dashboard entry returns to the dashboard', (tester) async {
-    await _pumpInbox(
-      tester,
-      _FakeConsultationRepository(),
-      at: AppRoutes.consultationsFromDashboard(),
-    );
+  for (final String legacy in <String>[
+    AppRoutes.legacyConsultations,
+    AppRoutes.legacyScheduleConsultations,
+  ]) {
+    testWidgets('옛 상담함 주소($legacy)도 같은 창을 연다 (#2717)', (tester) async {
+      await _pumpInbox(tester, _FakeConsultationRepository(), at: legacy);
 
-    expect(find.text('대시보드로 돌아가기'), findsOneWidget);
-    await tester.tap(
-      find.byKey(const ValueKey<String>('consultations-back-to-schedule')),
-    );
-    await settle(tester);
-
-    expect(currentLocation(tester), AppRoutes.dashboard);
-  });
+      expect(
+        find.byKey(const ValueKey<String>('consultations-dialog')),
+        findsOneWidget,
+      );
+      expect(currentLocation(tester), AppRoutes.schedule);
+    });
+  }
 
   testWidgets('consultations remain inside the schedule workspace', (
     tester,
@@ -232,8 +309,11 @@ void main() {
     // 수락하면 이 자리가 그대로 첫 일정이 된다 — 트레이너는 무엇을 수락하는지
     // 여기서 본다. 길이는 자리가 들고 있다(코드 상수 30분을 더하지 않는다).
     expect(find.text(_ko.consultChosenSlot), findsOneWidget);
-    expect(find.textContaining('19:00–19:30'), findsOneWidget);
-    expect(find.textContaining(_ko.consultSlotDuration(30)), findsOneWidget);
+    expect(_inInbox(find.textContaining('19:00–19:30')), findsOneWidget);
+    expect(
+      _inInbox(find.textContaining(_ko.consultSlotDuration(30))),
+      findsOneWidget,
+    );
   });
 
   testWidgets('승인은 시각을 묻지 않고 고른 자리로 일정을 만든다 (#1873)', (tester) async {
@@ -268,7 +348,7 @@ void main() {
 
   for (final entry in <(String, String)>[
     ('스케줄', AppRoutes.consultations),
-    ('대시보드', AppRoutes.consultationsFromDashboard()),
+    ('옛 주소', AppRoutes.legacyScheduleConsultations),
   ]) {
     testWidgets('${entry.$1} 상담 거절은 위험 색상과 일정 충돌 예시를 쓴다', (tester) async {
       await _pumpInbox(
@@ -325,6 +405,29 @@ void main() {
     expect(find.text('승인'), findsNothing);
   });
 
+  for (final (bool byTrainer, String label) in <(bool, String)>[
+    (true, '일정 취소로 철회'),
+    (false, '취소됨'),
+  ]) {
+    testWidgets('취소된 신청은 대기중이 아니라 $label 로 보인다 (#2758)', (tester) async {
+      final repo = _FakeConsultationRepository(
+        requests: <ConsultationRequest>[
+          _request(status: 'cancelled', cancelledByTrainer: byTrainer),
+        ],
+      );
+      await _pumpInbox(tester, repo);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('consultation-filter-all')),
+      );
+      await settle(tester);
+
+      expect(_inInbox(find.text(label)), findsOneWidget);
+      expect(_inInbox(find.text('대기중')), findsNothing);
+      // 끝난 신청이라 결정 버튼이 없다.
+      expect(_inInbox(find.text('승인')), findsNothing);
+    });
+  }
+
   testWidgets('an empty inbox explains itself instead of showing nothing', (
     tester,
   ) async {
@@ -350,10 +453,7 @@ void main() {
     await withWideSurface(tester, () async {
       await pumpTrainerApp(tester, token: 'demo-token');
 
-      expect(
-        find.text(navLabel(_ko, consultationsDestination.label)),
-        findsNothing,
-      );
+      expect(find.text(navLabel(_ko, NavLabel.consultations)), findsNothing);
       for (final destination in navDestinations) {
         expect(find.text(navLabel(_ko, destination.label)), findsWidgets);
       }
@@ -387,13 +487,17 @@ void main() {
     final Finder more = find.byKey(
       const ValueKey<String>('consultation-load-more'),
     );
-    await tester.scrollUntilVisible(more, 400);
+    await tester.scrollUntilVisible(more, 400, scrollable: _inboxScrollable);
     await tester.tap(more);
     await tester.pumpAndSettle();
 
     // 커서는 받은 쪽의 **가장 오래된** 요청이다 — 최신순 목록의 마지막 줄.
     expect(repo.cursors.single.$2, 'consult-new-0');
-    await tester.scrollUntilVisible(find.text('지난 요청'), 400);
+    await tester.scrollUntilVisible(
+      find.text('지난 요청'),
+      400,
+      scrollable: _inboxScrollable,
+    );
     expect(find.text('지난 요청'), findsOneWidget);
     // 다 받았으면 버튼은 사라진다 — 남아 있으면 눌러도 아무 일이 없다.
     expect(more, findsNothing);
@@ -413,9 +517,242 @@ void main() {
         ],
       );
 
+      expect(find.text(navLabel(_ko, NavLabel.consultations)), findsNothing);
+    });
+  });
+
+  group('응답 전에 카드가 사라져도 갱신을 마친다 (#3103)', () {
+    late int clientBuilds;
+    late int todayBuilds;
+
+    /// 명단·오늘 일정을 세는 override. 상담 창이 닫혀도 무효화가 닿는지 본다.
+    List<Override> counters() => <Override>[
+      clientsProvider.overrideWith((ref) {
+        clientBuilds++;
+        return Stream<List<TrainerClient>>.value(const <TrainerClient>[]);
+      }),
+      todayScheduleProvider.overrideWith((ref) {
+        todayBuilds++;
+        return Stream<List<ScheduleSession>>.value(const <ScheduleSession>[]);
+      }),
+    ];
+
+    setUp(() {
+      clientBuilds = 0;
+      todayBuilds = 0;
+    });
+
+    Future<ProviderContainer> open(
+      WidgetTester tester,
+      _HeldDecisionRepository repo,
+    ) async {
+      final ProviderContainer container = await _pumpInbox(
+        tester,
+        repo,
+        extraOverrides: counters(),
+      );
+      // 창 밖의 화면(명단·오늘 일정·대시보드 상담 카드)이 보고 있는 상태.
+      for (final ProviderListenable<Object?> p in <ProviderListenable<Object?>>[
+        clientsProvider,
+        todayScheduleProvider,
+        pendingConsultationsOnceProvider,
+      ]) {
+        final ProviderSubscription<Object?> sub = container.listen(
+          p,
+          (_, _) {},
+        );
+        addTearDown(sub.close);
+      }
+      await settle(tester);
+      return container;
+    }
+
+    void closeInbox(WidgetTester tester) {
+      Navigator.of(
+        tester.element(
+          find.byKey(const ValueKey<String>('consultations-dialog')),
+        ),
+      ).pop();
+    }
+
+    _HeldDecisionRepository slotRequestRepo() => _HeldDecisionRepository(
+      requests: <ConsultationRequest>[
+        _request(
+          slotStartsAt: DateTime(2026, 8, 12, 19),
+          slotDurationMinutes: 60,
+        ),
+      ],
+    );
+
+    testWidgets('승인 중 상담 창을 닫아도 명단·일정·상담 카드를 다시 읽는다', (tester) async {
+      final repo = slotRequestRepo();
+      await open(tester, repo);
+      final int clientsBefore = clientBuilds;
+      final int todayBefore = todayBuilds;
+      final int pendingBefore = repo.pendingFetches;
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('consultation-accept-consult-1')),
+      );
+      await tester.pump();
+      closeInbox(tester);
+      await settle(tester);
       expect(
-        find.text(navLabel(_ko, consultationsDestination.label)),
+        find.byKey(const ValueKey<String>('consultations-dialog')),
         findsNothing,
+      );
+
+      repo.gate.complete();
+      await settle(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(repo.accepted, <String>['consult-1']);
+      expect(clientBuilds, greaterThan(clientsBefore));
+      expect(todayBuilds, greaterThan(todayBefore));
+      expect(repo.pendingFetches, greaterThan(pendingBefore));
+    });
+
+    testWidgets('승인 중 필터를 바꿔 카드가 다시 그려져도 갱신을 마친다', (tester) async {
+      final repo = slotRequestRepo();
+      await open(tester, repo);
+      final int clientsBefore = clientBuilds;
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('consultation-accept-consult-1')),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('consultation-filter-all')),
+      );
+      await settle(tester);
+
+      repo.gate.complete();
+      await settle(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(clientBuilds, greaterThan(clientsBefore));
+    });
+
+    testWidgets('거절 중 상담 창을 닫아도 상담 카드를 다시 읽는다', (tester) async {
+      final repo = _HeldDecisionRepository(
+        requests: <ConsultationRequest>[_request()],
+      );
+      await open(tester, repo);
+      final int pendingBefore = repo.pendingFetches;
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('consultation-reject-consult-1')),
+      );
+      await settle(tester);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('consultation-reject-confirm')),
+      );
+      await tester.pump();
+      closeInbox(tester);
+      await settle(tester);
+
+      repo.gate.complete();
+      await settle(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(repo.rejected.single.$1, 'consult-1');
+      expect(repo.pendingFetches, greaterThan(pendingBefore));
+    });
+
+    testWidgets('승인이 실패한 뒤 창이 닫혀 있어도 예외 없이 상담 수를 다시 읽는다', (tester) async {
+      final repo = slotRequestRepo()
+        ..decisionFailure = const NetworkError(message: 'offline');
+      final ProviderContainer container = await open(tester, repo);
+      int countBuilds = 0;
+      final ProviderSubscription<Object?> count = container.listen(
+        consultationPendingCountProvider,
+        (_, _) => countBuilds++,
+      );
+      addTearDown(count.close);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('consultation-accept-consult-1')),
+      );
+      await tester.pump();
+      closeInbox(tester);
+      await settle(tester);
+      final int countBefore = countBuilds;
+
+      repo.gate.complete();
+      await settle(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(repo.accepted, isEmpty);
+      expect(countBuilds, greaterThan(countBefore));
+    });
+  });
+
+  group('승인 실패 문구에 Dio 원문이 뜨지 않는다', () {
+    // 예전에는 서버 사유가 없으면 `AppError.message` 가 Dio 의 영어 설명문이라
+    // "This exception was thrown because …" 이 한국어 화면에 그대로 떴다.
+    Future<void> acceptWith(
+      WidgetTester tester,
+      AppError failure, {
+      Locale locale = const Locale('ko'),
+    }) async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-token',
+        at: AppRoutes.consultations,
+        locale: locale,
+        extraOverrides: <Override>[
+          consultationRepositoryProvider.overrideWithValue(
+            _FailingAcceptRepository(
+              failure,
+              requests: <ConsultationRequest>[_request()],
+            ),
+          ),
+        ],
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('consultation-accept-consult-1')),
+      );
+      await settle(tester);
+    }
+
+    testWidgets('연결 오류는 연결 안내다', (tester) async {
+      await acceptWith(tester, const NetworkError());
+
+      expect(find.text(_ko.errorNetworkUnstable), findsOneWidget);
+      expect(find.textContaining('exception'), findsNothing);
+    });
+
+    testWidgets('사유 없는 5xx 는 서버 일시 문제 안내다', (tester) async {
+      await acceptWith(tester, const ServerError(statusCode: 502));
+
+      expect(find.text(_ko.errorServerTemporary), findsOneWidget);
+    });
+
+    testWidgets('422 목록형(사유 없음)은 화면의 기본 문구다', (tester) async {
+      await acceptWith(tester, const ValidationError());
+
+      expect(find.text(_ko.consultActionFailed), findsOneWidget);
+    });
+
+    testWidgets('서버가 사유를 주면 그 사유를 보인다', (tester) async {
+      await acceptWith(
+        tester,
+        const ServerError(statusCode: 409, message: '이미 처리된 상담 요청입니다.'),
+      );
+
+      expect(find.text('이미 처리된 상담 요청입니다.'), findsOneWidget);
+    });
+
+    testWidgets('영어 화면의 연결 오류는 영어 안내다', (tester) async {
+      await acceptWith(
+        tester,
+        const NetworkError(),
+        locale: const Locale('en'),
+      );
+
+      expect(
+        find.text(AppLocalizationsEn().errorNetworkUnstable),
+        findsOneWidget,
       );
     });
   });

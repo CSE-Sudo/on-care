@@ -3,17 +3,19 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_core/request_id.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/core/utils/request_id.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/presentation/pages/consultations_page.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
+import 'package:oncare_trainer/features/schedule/domain/session_client_resolver.dart';
+import 'package:oncare_trainer/features/schedule/presentation/schedule_action_error.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/cancel_session_dialog.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/consultation_inbox_action.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/reservation_slots_sheet.dart';
@@ -47,13 +49,22 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 새로고침해도 그 자리에 남는다.
 class SchedulePage extends ConsumerStatefulWidget {
   /// Creates the schedule tab.
-  const SchedulePage({super.key, this.date, this.sessionId});
+  const SchedulePage({
+    super.key,
+    this.date,
+    this.sessionId,
+    this.openInbox = false,
+  });
 
   /// Browsed day as `YYYY-MM-DD`; invalid or absent means today.
   final String? date;
 
   /// Session selected by a deep link from the dashboard.
   final String? sessionId;
+
+  /// 들어오자마자 상담 요청함 창을 연다 — 알림·옛 주소가 상담함으로 보낼 때
+  /// ([AppRoutes.consultations]). 연 뒤에는 주소에서 쿼리를 지운다(#2717).
+  final bool openInbox;
 
   @override
   ConsumerState<SchedulePage> createState() => _SchedulePageState();
@@ -68,7 +79,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   ///
   /// 고른 날에서 **파생한다** — 따로 들고 있으면 둘이 어긋날 수 있다. "주만
   /// 넘기고 고른 날은 유지" 같은 요구가 생기면 그때 상태로 승격한다.
-  DateTime get _weekStart => _mondayOf(_selectedDay);
+  DateTime get _weekStart => mondayOf(_selectedDay);
 
   /// Session shown in the detail panel.
   late String? _selectedSessionId = widget.sessionId;
@@ -91,10 +102,6 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  /// [d] 가 속한 주의 월요일.
-  static DateTime _mondayOf(DateTime d) =>
-      _dateOnly(d).subtract(Duration(days: d.weekday - DateTime.monday));
-
   /// Parses a `YYYY-MM-DD` route parameter, falling back to today. A
   /// malformed date in the URL should land the trainer on today rather
   /// than an error page.
@@ -104,8 +111,27 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.openInbox) _openInboxFromLink();
+  }
+
+  /// 주소가 부른 상담 요청함 창을 연다. 쿼리를 먼저 지워, 창을 닫은 뒤
+  /// 새로고침이나 뒤로 가기로 창이 다시 뜨지 않게 한다.
+  void _openInboxFromLink() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.go(
+        AppRoutes.scheduleAt(date: widget.date, sessionId: widget.sessionId),
+      );
+      showConsultationsDialog(context);
+    });
+  }
+
+  @override
   void didUpdateWidget(SchedulePage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.openInbox && !oldWidget.openInbox) _openInboxFromLink();
     // The URL is the source of truth: a link from the dashboard, or
     // back/forward, must move the calendar.
     if (widget.date != oldWidget.date) {
@@ -131,7 +157,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
 
   /// `-1` = 지난 주, `+1` = 다음 주. 고른 날을 함께 옮긴다.
   void _shiftWeek(int direction) =>
-      _selectDay(_selectedDay.add(Duration(days: 7 * direction)));
+      _selectDay(addCalendarDays(_selectedDay, 7 * direction));
 
   /// 입력 폼 크기(560)의 가운데 모달로 [child] 를 연다(#1250, #1706).
   ///
@@ -285,9 +311,33 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     if (!ok || !mounted) return;
     try {
       await ref.read(scheduleRepositoryProvider).deleteSession(s.id);
-    } catch (_) {
-      if (!mounted) return;
-      showAppToast(context, l.schedDeleteFailed, type: AppToastType.error);
+    } catch (error) {
+      // 서버 사유(회원 예약 일정은 지울 수 없다는 409 등)를 보인다(#2756).
+      _showActionError(error, l.schedDeleteFailed);
+    }
+  }
+
+  /// 일정 동작이 실패했을 때 알린다 — 스케줄 화면 동작이 모두 이 길로 간다.
+  /// (#2888)
+  ///
+  /// 서버 사유가 있으면 그것을, 없으면 동작별 [fallback] 을 띄운다. 일정 상태가
+  /// 그새 바뀌어 거절됐으면(409) 그 주를 다시 읽어 화면을 서버 상태에 맞춘다 —
+  /// 다른 탭에서 이미 노쇼로 마무리한 PT 를 이 화면이 예정으로 들고 있으면 같은
+  /// 동작을 되풀이하게 된다. [sessionId] 를 주면 그 PT 의 개인운동도 다시 읽는다.
+  void _showActionError(Object error, String fallback, {String? sessionId}) {
+    if (!mounted) return;
+    final AppLocalizations l = AppLocalizations.of(context);
+    showAppToast(
+      context,
+      scheduleActionErrorMessage(l, error, fallback),
+      type: AppToastType.error,
+    );
+    if (!isScheduleStateConflict(error)) return;
+    ref.invalidate(scheduleRangeProvider);
+    if (sessionId != null) {
+      setState(() {
+        _routinesRevision[sessionId] = (_routinesRevision[sessionId] ?? 0) + 1;
+      });
     }
   }
 
@@ -311,11 +361,11 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       await ref
           .read(scheduleRepositoryProvider)
           .completeSession(s.id, note: '');
-    } catch (_) {
+    } catch (error) {
       // A DB or programJson-decode failure must not escape to the UI —
       // the session stays 예정 and the trainer is told (review PR 237).
-      if (!mounted) return;
-      showAppToast(context, l.schedCompleteFailed, type: AppToastType.error);
+      // 서버가 사유를 주면(시작 전이라 완료할 수 없다는 400 등) 그것을 보인다.
+      _showActionError(error, l.schedCompleteFailed);
     }
   }
 
@@ -336,8 +386,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   /// 붙일 수 없어(`예정` 세션만 찾는다) 고치는 자리가 이 창뿐이다.
   Future<void> _sendRoutinesOnly(ScheduleSession session) async {
     final l = AppLocalizations.of(context);
-    final rows =
-        _unsentRoutines[session.id] ?? const <RoutineExercise>[];
+    final rows = _unsentRoutines[session.id] ?? const <RoutineExercise>[];
     if (rows.isEmpty) return;
     final edited = await showAppDialog<List<RoutineExercise>>(
       context: context,
@@ -351,20 +400,14 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       await ref
           .read(scheduleRepositoryProvider)
           .sendScheduledRoutines(session.id, items: edited);
-    } catch (_) {
-      if (!mounted) return;
-      showAppToast(
-        context,
-        l.schedRoutinesSendFailed,
-        type: AppToastType.error,
-      );
+    } catch (error) {
+      _showActionError(error, l.schedRoutinesSendFailed, sessionId: session.id);
       return;
     }
     if (!mounted) return;
     setState(() {
       _unsentRoutines[session.id] = const <RoutineExercise>[];
-      _routinesRevision[session.id] =
-          (_routinesRevision[session.id] ?? 0) + 1;
+      _routinesRevision[session.id] = (_routinesRevision[session.id] ?? 0) + 1;
     });
     showAppToast(context, l.schedRoutinesSent, type: AppToastType.success);
   }
@@ -391,20 +434,18 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       await ref
           .read(scheduleRepositoryProvider)
           .updateScheduledRoutines(session.id, edited);
-    } catch (_) {
-      if (!mounted) return;
-      showAppToast(
-        context,
+    } catch (error) {
+      _showActionError(
+        error,
         l.schedRoutinesUpdateFailed,
-        type: AppToastType.error,
+        sessionId: session.id,
       );
       return;
     }
     if (!mounted) return;
     setState(() {
       _unsentRoutines[session.id] = edited;
-      _routinesRevision[session.id] =
-          (_routinesRevision[session.id] ?? 0) + 1;
+      _routinesRevision[session.id] = (_routinesRevision[session.id] ?? 0) + 1;
     });
     showAppToast(context, l.schedRoutinesUpdated, type: AppToastType.success);
   }
@@ -416,20 +457,15 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       await ref
           .read(scheduleRepositoryProvider)
           .dismissScheduledRoutines(session.id);
-    } catch (_) {
-      if (!mounted) return;
-      showAppToast(
-        context,
-        l.schedRoutinesSendFailed,
-        type: AppToastType.error,
-      );
+    } catch (error) {
+      // 보내려던 것이 아니다 — 전송 실패 문구를 쓰지 않는다(#2888).
+      _showActionError(error, l.schedRoutinesSkipFailed, sessionId: session.id);
       return;
     }
     if (!mounted) return;
     setState(() {
       _unsentRoutines[session.id] = const <RoutineExercise>[];
-      _routinesRevision[session.id] =
-          (_routinesRevision[session.id] ?? 0) + 1;
+      _routinesRevision[session.id] = (_routinesRevision[session.id] ?? 0) + 1;
     });
     showAppToast(context, l.schedRoutinesSkipped);
   }
@@ -440,8 +476,8 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   /// 지표 때문이다 — 트레이너 사정의 취소와 고객 취소를 구분하지 않으면 나중에
   /// 회원의 낮은 이행률을 잘못 읽는다.
   ///
-  /// 같은 창에서 `노쇼` 도 고른다(#2175). [allowNoShow] 는 오늘·지난 PT 에서만
-  /// 참이다 — 오지 않았다는 사실은 그 시간이 지나야 안다.
+  /// 같은 창에서 `노쇼` 도 고른다(#2175). [allowNoShow] 는 시작 시각이 지난
+  /// PT 에서만 참이다 — 오지 않았다는 사실은 그 시간이 지나야 안다(#2760).
   Future<void> _confirmCancel(
     ScheduleSession s, {
     required bool allowNoShow,
@@ -464,12 +500,11 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
           reason: result.reason,
         );
       }
-    } catch (_) {
-      if (!mounted) return;
-      showAppToast(
-        context,
+    } catch (error) {
+      // 서버 사유(시작 전이라 노쇼 불가, 이미 마무리된 세션 등)를 보인다(#2888).
+      _showActionError(
+        error,
         result.noShow ? l.schedNoShowFailed : l.schedCancelFailed,
-        type: AppToastType.error,
       );
     }
   }
@@ -478,9 +513,33 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   ///
   /// 멱등키를 실어 보내므로 실패 후 다시 눌러도 회원의 루틴이 두 벌 생기지
   /// 않는다. 성공하면 세션 행에 남아, 화면이 '전송됨' 을 사실대로 말한다.
+  ///
+  /// 개인운동이 하나도 없으면 보내기 직전에 한 번 붙잡는다(#2280) — 보낸 뒤에는
+  /// 이 PT 에 개인운동을 붙일 수 없어, "나중에 보내야지" 하고 PT 만 보내면 그
+  /// 기회가 사라진다. 막지는 않는다: 개인운동을 줄 수 없는 날도 있다.
   Future<void> _sendProgram(ScheduleSession s) async {
     if (_sendingProgramId != null) return;
     final AppLocalizations l = AppLocalizations.of(context);
+    // 읽어 온 뒤 하나도 없다는 것을 알 때만 묻는다 — 읽지 못한 PT 에 없다고
+    // 말하지 않는다.
+    if ((_unsentRoutines[s.id]?.isEmpty ?? false) &&
+        acceptsFirstPersonalRoutines(s)) {
+      final choice = await showNoPersonalRoutineDialog(
+        context,
+        title: l.schedNoRoutinesSendTitle,
+        body: l.schedNoRoutinesSendBody,
+        skipLabel: l.schedNoRoutinesSendSkip,
+      );
+      if (choice == null || !mounted) return;
+      // 붙이러 가면 보내지 않는다 — 붙인 뒤 돌아와 트레이너가 다시 보낸다.
+      // 코칭 탭에서 `PT에 반영` 을 누른 것이 회원 전송까지 되면, 누른
+      // 버튼과 일어난 일이 달라진다.
+      if (choice == NoPersonalRoutineChoice.add) {
+        _goAddRoutines(s);
+        return;
+      }
+      if (_sendingProgramId != null) return;
+    }
     setState(() => _sendingProgramId = s.id);
     try {
       await ref
@@ -502,25 +561,79 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
         l.schedSentTo(s.clientName),
         type: AppToastType.success,
       );
-    } catch (_) {
-      if (!mounted) return;
-      showAppToast(context, l.coachSendFailed, type: AppToastType.error);
+    } catch (error) {
+      _showActionError(error, l.coachSendFailed, sessionId: s.id);
     } finally {
       if (mounted) setState(() => _sendingProgramId = null);
     }
   }
 
+  /// 개인운동이 없는 PT 의 `개인운동 추가` — 그 회원의 코칭 탭 개인운동
+  /// 단계로 간다. (#2280)
+  ///
+  /// 개인운동은 AI 제안을 받아 짜는 것이라 스케줄에서 빈 창으로 짜지 않는다.
+  /// 프로그램도 AI 로 한 번 짜고, 고치는 것만 이 카드의 부분 창에서 한다.
+  /// 붙이면 코칭 탭이 이 일정으로 돌려보낸다.
+  void _goAddRoutines(ScheduleSession s) {
+    final String? clientId = _sessionClientId(s);
+    if (clientId == null) {
+      _goPickClient(s);
+      return;
+    }
+    context.go(
+      AppRoutes.coachingAttach(
+        clientId,
+        sessionId: s.id,
+        date: s.date,
+        requestId: newClientRequestId(),
+      ),
+    );
+  }
+
+  /// 이 일정의 회원 id — 일정에 실린 id 가 먼저다. (#2864)
+  ///
+  /// 이름은 표시 전용이라 동명이인을 가르지 못한다. id 가 없는 예전 일정만
+  /// 이름으로 찾되, 정확히 한 명이 일치할 때만 쓴다
+  /// ([resolveSessionClientId]). 명단을 아직 읽지 못했으면 일정의 id 를 믿는다.
+  String? _sessionClientId(ScheduleSession s) {
+    final clients = ref.read(clientsProvider).valueOrNull;
+    return resolveSessionClientId(
+      s,
+      clients == null
+          ? null
+          : <ScheduleClientKey>[
+              for (final c in clients) (id: c.id, name: c.name),
+            ],
+    );
+  }
+
+  /// 회원을 특정할 수 없을 때 — 회원 목록으로 보내 고르게 한다. (#2864)
+  ///
+  /// 상담(미등록 고객) 일정은 원래 회원 id 가 없으므로 안내 없이 목록으로
+  /// 간다. 그 밖의 경우는 왜 목록으로 왔는지 알린다 — 동명이인 가운데 아무나
+  /// 골라 엉뚱한 회원에게 프로그램을 보내는 것보다 한 번 더 고르는 편이 낫다.
+  void _goPickClient(ScheduleSession s) {
+    final bool consultation =
+        s.consultation != null || s.type == SessionType.consultation;
+    if (!consultation) {
+      showAppToast(context, AppLocalizations.of(context).schedClientUnresolved);
+    }
+    context.go(AppRoutes.clients);
+  }
+
   /// 계획 없는 세션의 `프로그램 추가` — 이 카드 안이 아니라 그 고객의 코칭
   /// 탭으로 이동한다. 프로그램은 AI 코칭 탭에서 짓고 보내는 것이라, 스케줄
   /// 카드에는 편집기를 두지 않는다(#1247).
+  ///
+  /// 회원은 일정의 id 로 찾는다(#2864) — 이름으로 찾던 때에는 동명이인 중
+  /// 명단 앞쪽 회원의 코칭 탭이 열렸다.
   void _openProgram(ScheduleSession s) {
-    final clients = ref.read(clientsProvider).valueOrNull ?? const [];
-    final match = clients.where((c) => c.name == s.clientName);
-    if (match.isEmpty) {
-      context.go(AppRoutes.clients);
+    final String? clientId = _sessionClientId(s);
+    if (clientId == null) {
+      _goPickClient(s);
       return;
     }
-    context.go(AppRoutes.coachingFor(match.first.id));
+    context.go(AppRoutes.coachingFor(clientId));
   }
 
   String get _selectedYmd => ymd(_selectedDay);
@@ -556,10 +669,6 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     ref.watch(clientsProvider);
     // 오늘 버튼 계산은 [_todayControl] 안에 있다 — 그 버튼이 헤더가 아니라
     // 날짜 행에 살기 때문이다(#882).
-    final consultationInbox = ref.watch(consultationInboxEnabledProvider);
-    final pendingConsultations = consultationInbox
-        ? ref.watch(consultationPendingCountProvider).valueOrNull
-        : null;
 
     return AppWebPage(
       title: l.schedTitle,
@@ -567,24 +676,6 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       // 검색 바는 헤더 가운데 자리다 — 다른 탭과 같은 가로 위치에 서고, 자리가
       // 모자라면 스스로 아이콘으로 접힌다.
       headerCenter: const ClientSearchBar(),
-      actions: <Widget>[
-        AppButton(
-          key: const ValueKey<String>('schedule-open-slots'),
-          label: l.schedSlots,
-          // `오늘` 과 같은 네이비 외곽선이다 — 둘 다 페이지 배경 위에 선다(#2180).
-          variant: AppButtonVariant.strongOutline,
-          leadingIcon: AppIcons.eventAvailable,
-          onPressed: () => _openReservationSlotsSheet(),
-        ),
-        // 상담 확인은 맨 오른쪽이다(#882, #1009). 예약 슬롯 왼쪽에 있을 때는
-        // 알림 배지가 그 버튼과 겹쳐, 몇 건 밀렸는지가 배지 색으로도 잘 읽히지
-        // 않았다.
-        if (consultationInbox)
-          ConsultationInboxAction(
-            pending: pendingConsultations,
-            onTap: () => showConsultationsDialog(context),
-          ),
-      ],
       // 날짜 행은 async `when()` **바깥**에 있다: 주를 넘길 때마다 새 provider
       // 가 `loading` 으로 시작하는데, 그때 페이지 전체를 스피너로 비우면 날짜
       // 행이 깜빡인다. 격자만 async 상태를 따른다(review PR 245).
@@ -598,21 +689,44 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   /// 넘길 때마다 일곱 개가 함께 흔들린다.
   Widget _buildTimetable() {
     final AppLocalizations l = AppLocalizations.of(context);
+    final consultationInbox = ref.watch(consultationInboxEnabledProvider);
+    final pendingConsultations = consultationInbox
+        ? ref.watch(consultationPendingCountProvider).valueOrNull
+        : null;
     final start = _weekStart;
-    final end = start.add(const Duration(days: 6));
+    final end = addCalendarDays(start, 6);
     final range = (from: ymd(start), to: ymd(end));
     final week = ref.watch(scheduleRangeProvider(range));
 
     // 날짜 행은 **시간표 쪽 열 안**에 있다. 페이지 폭 전체에 걸쳐 두면 `오늘`
     // 이 상세 패널 위에 떠, 무엇을 조작하는 버튼인지 자리로 말하지 못한다.
     // 시간표 안에 두면 오른쪽 끝이 일요일 칸 위로 온다(#988).
-    final navBar = Padding(
+    // 예약 슬롯·상담 요청 — 화면 머리 오른쪽 끝은 모든 탭이 알림 종 하나만
+    // 두는 자리라 머리에서 내렸다(#2628). 넓은 화면에서는 상세 패널 칸의 머리에,
+    // 좁은 화면에서는 날짜 행의 `새 일정` 왼쪽에 선다.
+    final List<Widget> intakeActions = <Widget>[
+      AppButton(
+        key: const ValueKey<String>('schedule-open-slots'),
+        label: l.schedSlots,
+        // `오늘` 과 같은 네이비 외곽선이다 — 둘 다 페이지 배경 위에 선다(#2180).
+        variant: AppButtonVariant.strongOutline,
+        leadingIcon: AppIcons.eventAvailable,
+        onPressed: () => _openReservationSlotsSheet(),
+      ),
+      if (consultationInbox)
+        ConsultationInboxAction(
+          pending: pendingConsultations,
+          onTap: () => showConsultationsDialog(context),
+        ),
+    ];
+    Widget navBar({required bool withIntake}) => Padding(
       padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
       child: ScheduleDateNavBar(
         start: start,
         end: end,
         onShift: _shiftWeek,
         trailing: _todayControl(),
+        actions: withIntake ? intakeActions : const <Widget>[],
         // `새 일정` 은 이 행의 오른쪽 끝, 일요일 칸 위에 선다. 예전에는 페이지
         // 헤더의 다른 문서 액션과 섞여 있어, 무엇을 조작하는 버튼인지 시간표와
         // 자리로 이어지지 않았다(#882 와 같은 이유).
@@ -685,7 +799,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
             final stacked = Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                navBar,
+                navBar(withIntake: true),
                 Expanded(child: grid),
               ],
             );
@@ -712,13 +826,12 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
                 ],
               );
             }
-            // 머리(날짜 행 · 패널 제목)를 **한 줄에** 세우고 몸(격자 · 카드)을
-            // 그 아래 한 줄에 세운다. 날짜 행을 시간표 열 안에만 두었더니
-            // 왼쪽은 그 높이만큼 내려가고 오른쪽은 맨 위에서 시작해, 두 열의
-            // 머리가 어긋났다 — 가로로 훑을 때 눈이 한 번 더 움직인다(#1008).
+            // 머리(날짜 행 · 패널 칸 머리)를 **한 줄에** 세우고 몸(격자 · 카드)을
+            // 그 아래 한 줄에 세운다 — 같은 `Row` 라 높이가 저절로 맞는다(#1008).
             //
-            // 같은 `Row` 에 넣으면 높이가 저절로 맞는다. 어느 한쪽의 높이를
-            // 상수로 베껴 두면 그 값이 바뀌는 순간 조용히 어긋난다.
+            // 패널 칸의 머리에는 예약 슬롯·상담 요청이 서고, `상세 일정` 제목은
+            // 그 아래 카드 위로 내려간다(#2628). 둘 다 시간표에 일정을 들이는
+            // 동작이라 `새 일정` 과 같은 높이에 선다.
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
@@ -730,11 +843,36 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
                         padding: const EdgeInsets.only(
                           right: OnCareLayout.splitGap,
                         ),
-                        child: navBar,
+                        child: navBar(withIntake: false),
                       ),
                     ),
                     const SizedBox(width: OnCareSize.hairline),
-                    SizedBox(width: _panelWidth, child: _panelHeader()),
+                    SizedBox(
+                      width: _panelWidth,
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          left: OnCareSpacing.s16,
+                          bottom: OnCareSpacing.s8,
+                        ),
+                        child: Row(
+                          key: const ValueKey<String>(
+                            'schedule-intake-actions',
+                          ),
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: <Widget>[
+                            for (
+                              int i = 0;
+                              i < intakeActions.length;
+                              i++
+                            ) ...<Widget>[
+                              if (i > 0)
+                                const SizedBox(width: OnCareSpacing.s8),
+                              intakeActions[i],
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 Expanded(
@@ -755,7 +893,18 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
                       ),
                       SizedBox(
                         width: _panelWidth,
-                        child: _buildWeekDetail(selected, withTitle: false),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            _panelHeader(),
+                            Expanded(
+                              child: _buildWeekDetail(
+                                selected,
+                                withTitle: false,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -768,11 +917,11 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     );
   }
 
-  /// 상세 패널의 폭. 날짜 행과 패널 머리글이 같은 값을 써야 두 열의 경계가
-  /// 위아래로 이어진다.
+  /// 상세 패널의 폭.
   static const double _panelWidth = OnCareLayout.splitListWidth;
 
-  /// 날짜 행과 한 줄에 서는 패널 머리글. (#1008)
+  /// 넓은 화면의 패널 머리글 — 시간표 머리와 같은 높이에서 시작한다(#1008,
+  /// #2628). 선택한 일정이 없어도 자리를 말한다.
   ///
   /// 문구가 `스케줄` 이던 때에는 페이지 제목과 같은 말이라 그 자리가 무엇인지
   /// 말하지 못했다 — 왼쪽 격자도 스케줄이고 오른쪽 카드도 스케줄이다.
@@ -799,15 +948,15 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   Widget _buildWeekDetail(ScheduleSession? session, {bool withTitle = true}) {
     final l = AppLocalizations.of(context);
     if (session == null) {
-      return AppEmptyState(
-        title: l.schedEmptyDay,
-        icon: AppIcons.eventBusy,
-      );
+      return AppEmptyState(title: l.schedEmptyDay, icon: AppIcons.eventBusy);
     }
 
     final day = DateTime.tryParse(session.date) ?? _selectedDay;
-    final today = _dateOnly(nowKst());
-    final isFuture = day.isAfter(today);
+    final DateTime now = nowKst();
+    final today = _dateOnly(now);
+    // 날짜가 아니라 시작 시각으로 가른다(#2760) — 오늘 저녁 PT 를 오전에
+    // 완료·노쇼로 처리하면 하지 않은 운동이 기록되거나 오지 않았다고 적힌다.
+    final bool started = sessionHasStarted(session, now);
     final dateText = day == today
         ? l.labelToday
         : l.dateMonthDay(day.month, day.day);
@@ -815,7 +964,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       key: const Key('week-detail'),
       padding: const EdgeInsets.all(OnCareSpacing.s16),
       children: <Widget>[
-        // 넓은 화면에서는 제목이 날짜 행과 한 줄에 서므로 여기서는 빼둔다.
+        // 넓은 화면에서는 패널 머리글([_panelHeader])이 따로 서므로 빼둔다.
         if (withTitle) ...<Widget>[
           Text(l.schedDetailTitle, style: _panelTitleStyle()),
           const SizedBox(height: OnCareSpacing.s12),
@@ -829,15 +978,14 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
           onDelete: () => _confirmDelete(session),
           // 담당이 끊긴 회원의 일정은 완료할 수 없다 — 회원 운동 기록에 적히는
           // 일이라 서버가 막는다(#2281, #2589).
-          onComplete:
-              (session.isUpcoming && !isFuture && !session.memberDetached)
+          onComplete: (session.isUpcoming && started && !session.memberDetached)
               ? () => _confirmComplete(session)
               : null,
           // 취소는 앞으로의 약속에도 열려 있다 — 거두는 것이 취소다. 노쇼는
-          // 같은 창의 선택지로, 지나간 약속에만 선다: 오지 않았다는 사실은 그
-          // 시간이 지나야 안다(#871, #2175).
+          // 같은 창의 선택지로, 시작 시각이 지난 약속에만 선다: 오지 않았다는
+          // 사실은 그 시간이 지나야 안다(#871, #2175, #2760).
           onCancel: session.isUpcoming
-              ? () => _confirmCancel(session, allowNoShow: !isFuture)
+              ? () => _confirmCancel(session, allowNoShow: started)
               : null,
           programDateLabel: dateText,
           sendingProgram: _sendingProgramId == session.id,
@@ -848,14 +996,26 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
           personalRoutines: session.memberDetached
               ? null
               : SessionPersonalRoutines(
+                  // 코칭 탭에서 붙이고 돌아오면(#2280) 이 화면은 그동안 떠
+                  // 있지 않아 바뀐 것을 모른다 — 붙인 쪽이 올린 판번호로 다시
+                  // 읽는다.
                   key: ValueKey<String>(
                     'personal-routines-${session.id}'
-                    '-${_routinesRevision[session.id] ?? 0}',
+                    '-${_routinesRevision[session.id] ?? 0}'
+                    '-${ref.watch(scheduledRoutinesRevisionProvider)}',
                   ),
                   sessionId: session.id,
                   finished: !session.isUpcoming,
-                  onChanged: (rows) =>
-                      setState(() => _unsentRoutines[session.id] = rows),
+                  showEmpty: acceptsFirstPersonalRoutines(session),
+                  onAdd: () => _goAddRoutines(session),
+                  // 읽지 못했으면 null — 있는지 없는지 모르는 채로 둔다.
+                  onChanged: (rows) => setState(() {
+                    if (rows == null) {
+                      _unsentRoutines.remove(session.id);
+                    } else {
+                      _unsentRoutines[session.id] = rows;
+                    }
+                  }),
                 ),
           hasUnsentRoutines:
               (_unsentRoutines[session.id] ?? const <RoutineExercise>[])

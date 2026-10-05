@@ -11,7 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
+import 'package:oncare/features/exercise/data/repositories/dio_exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
@@ -21,15 +21,19 @@ import 'package:oncare/features/exercise/presentation/controllers/streak_shield_
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/shared/services/record_span_provider.dart';
 
+import '../../helpers/demo_exercise.dart';
+import '../../helpers/fixed_clock.dart';
+
 /// 고정 금요일 — 이번 주 월요일은 2024-01-01, 지난 주 월요일은 2023-12-25.
 final DateTime _friday = DateTime(2024, 1, 5);
 final DateTime _thisMonday = DateTime(2024);
 final DateTime _lastMonday = DateTime(2023, 12, 25);
 final DateTime _lastThursday = DateTime(2023, 12, 28);
 
-/// 조언을 몇 번 받았는지 센다. 기록은 목업 저장소 그대로다.
-class _CountingRepository extends MockExerciseRepository {
-  _CountingRepository() : super(today: _friday);
+/// 조언·주 조회를 몇 번 받았는지 센다. 기록은 앱의 데모와 같은 로컬 목업
+/// API(빈 메모리 drift)가 든다(#2724). 오늘은 [_friday] 로 고정한다.
+class _CountingRepository extends DioExerciseRepository {
+  _CountingRepository() : super(demoExerciseDio(emptyDemoDatabase()));
 
   int adviceCalls = 0;
   final List<DateTime> weekCalls = <DateTime>[];
@@ -70,6 +74,9 @@ bool _has(ExerciseWeek w, String? id) =>
     w.sessions.any((ExerciseSession s) => s.id == id);
 
 void main() {
+  // 로컬 목업 API 가 오늘을 시계로 정한다 — 지난 주·이번 주가 고정 금요일 기준이다.
+  setUp(() => useFixedKstDate(_friday));
+
   group('대상 목록', () {
     test('다섯 경로가 함께 비울 것을 모두 담는다', () {
       final List<ProviderOrFamily> seen = <ProviderOrFamily>[];

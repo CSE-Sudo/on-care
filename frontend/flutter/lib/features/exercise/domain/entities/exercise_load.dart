@@ -1,4 +1,10 @@
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
+import 'package:oncare_ui/oncare_ui.dart'
+    show
+        kGoalDefaultDailyBurnKcal,
+        kGoalDefaultWeeklyCardioMinutes,
+        kGoalDefaultWeeklyFlexibilityMinutes,
+        kGoalDefaultWeeklyStrengthSets;
 
 /// 운동 유형마다 **재는 단위가 다르다**는 사실을 그대로 인정하는 모델.
 ///
@@ -32,13 +38,17 @@ int setsFromStrengthMinutes(double minutes) =>
 /// (2.3세트) 아무 뜻이 없는 숫자가 된다.
 class ExerciseLoadGoals {
   const ExerciseLoadGoals({
-    // 고혈압·당뇨 관리가 목적인 회원이 **매일** 닿을 수 있는 선으로 잡는다.
+    // PT 를 받는 회원이 수업이 없는 날에도 **매일** 닿을 수 있는 선으로 잡는다.
     // 500kcal(MY 기본값)은 하루 한 시간 넘게 움직여야 나오는 수라, 꾸준히 한
     // 주에도 목표선을 한 번도 못 넘어 그래프가 늘 '실패' 로만 읽혔다.
-    this.dailyBurnKcal = 300,
-    this.weeklyCardioMinutes = 150, // WHO: 주 150분 중강도 유산소
-    this.weeklyStrengthSets = 21, // 하루 3세트 × 7일
-    this.weeklyFlexibilityMinutes = 60,
+    //
+    // 값은 공용 패키지 `oncare_ui` 의 `kGoalDefault…` 한 곳에 있다(#2906).
+    this.dailyBurnKcal = kGoalDefaultDailyBurnKcal * 1.0,
+    // WHO: 주 150분 중강도 유산소
+    this.weeklyCardioMinutes = kGoalDefaultWeeklyCardioMinutes * 1.0,
+    // 하루 3세트 × 7일
+    this.weeklyStrengthSets = kGoalDefaultWeeklyStrengthSets * 1.0,
+    this.weeklyFlexibilityMinutes = kGoalDefaultWeeklyFlexibilityMinutes * 1.0,
     this.cardioDaysPerWeek = 5,
     this.strengthDaysPerWeek = 7,
     this.flexibilityDaysPerWeek = 6,

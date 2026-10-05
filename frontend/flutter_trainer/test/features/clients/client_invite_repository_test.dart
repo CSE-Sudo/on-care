@@ -8,6 +8,7 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/core/storage/demo_member_directory.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_invite_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_invite.dart';
@@ -273,6 +274,24 @@ void main() {
       expect(found.hasTrainer, isTrue);
       expect(found.coachedByMe, isTrue);
       expect(found.canInvite, isFalse);
+    });
+
+    test('이미 담당 중인 회원의 코드는 타입 있는 오류로 막는다 (#2893)', () async {
+      // 문장이 아니라 타입이다 — 연결 창이 로케일에 맞는 문구로 바꾼다.
+      await expectLater(
+        demo.previewPairingCode(demoAlreadyLinkedPairingCode),
+        throwsA(
+          isA<AlreadyManagedError>().having(
+            (AlreadyManagedError e) => e.message,
+            'message',
+            isNull,
+          ),
+        ),
+      );
+      await expectLater(
+        demo.redeemPairingCode(demoAlreadyLinkedPairingCode),
+        throwsA(isA<AlreadyManagedError>()),
+      );
     });
 
     test('an unknown member id is not found', () {

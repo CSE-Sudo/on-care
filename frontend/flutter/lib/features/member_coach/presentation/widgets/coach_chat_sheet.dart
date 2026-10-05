@@ -1,25 +1,30 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/app/app_icons.dart';
-import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/member_coach/data/repositories/chat_pdf_repository.dart';
+import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/coach_photo_send_controller.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_feedback_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_notice.dart';
+import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_scroll.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_image_attachment.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_photo_picker.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_report_card.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_report_opener.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/emote_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_report/oncare_report.dart' show PdfPagesView;
 import 'package:oncare_ui/oncare_ui.dart';
-import 'package:printing/printing.dart';
 
 /// 루트 화면 위에 채팅 페이지를 열어 하단 내비게이션과 플로팅 버튼을 가린다.
 Future<void> openTrainerChatPage(
@@ -47,8 +52,29 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
   final TextEditingController _input = TextEditingController();
   final ScrollController _scroll = ScrollController();
 
-  /// 마지막으로 그린 메시지 수. 길이가 바뀐 프레임에서만 스크롤한다.
-  int _lastCount = -1;
+  /// 마지막으로 스크롤을 맞춘 대화의 양 끝. 끝이 바뀐 프레임에서만
+  /// 스크롤한다(#2640).
+  ChatEdges? _lastEdges;
+
+  /// 메시지 id → 자리 표시. 지금 가장 오래된 메시지 하나와, 옛 쪽이 붙은 뒤
+  /// 되돌리는 중인 메시지 하나만 들고 있다.
+  final Map<String, GlobalKey> _anchorKeys = <String, GlobalKey>{};
+
+  /// 되돌리는 중인 메시지 id — 끝나면 null.
+  String? _restoringAnchorId;
+
+  set _anchorKeyId(String? oldestId) {
+    _anchorKeys.removeWhere(
+      (String id, GlobalKey _) => id != oldestId && id != _restoringAnchorId,
+    );
+    if (oldestId != null) {
+      _anchorKeys.putIfAbsent(
+        oldestId,
+        () => GlobalKey(debugLabel: 'coach-chat-anchor'),
+      );
+    }
+  }
+
   bool _sending = false;
 
   /// OS 사진 선택기가 떠 있는 동안 다시 열지 않는다 — image_picker 는 겹친
@@ -59,84 +85,16 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
   ///
   /// 서버 응답 순서에 기대지 않고 발생 시각으로 정렬한다. 같은 시각에는 id를
   /// 보조 기준으로 써 새로고침할 때마다 순서가 바뀌지 않게 한다(#2127).
-  List<Widget> _chatChildren(
-    List<CoachMessage> messages, {
-    required bool showDemoBanners,
-  }) {
+  List<Widget> _chatChildren(List<CoachMessage> messages) {
     final List<CoachMessage> timeline = List<CoachMessage>.of(messages)
       ..sort((CoachMessage first, CoachMessage second) {
         final int byTime = first.createdAt.compareTo(second.createdAt);
         return byTime != 0 ? byTime : first.id.compareTo(second.id);
       });
-    return showDemoBanners
-        ? _withDemoBanners(timeline)
-        : _withoutDemoBanners(timeline);
-  }
-
-  Widget _chatItem(CoachMessage message) {
-    final DateTime? weekStart = message.reportWeekStart;
-    if (weekStart != null) {
-      return _ReportNotice(
-        key: ValueKey<String>('coach-message-bubble-${message.id}'),
-        message: message,
-        weekStart: weekStart,
-      );
-    }
-    return _MessageRow(message: message, trainerName: widget.trainerName);
-  }
-
-  /// 데모 안내 배너를 **하루 단위로** 끼워 넣은 목록을 만든다.
-  ///
-  /// 배너가 스레드 맨 앞·맨 뒤에 하나씩만 있으면, 사흘치 대화에서 "분석은 이
-  /// 대화가 시작되기 전에 딱 한 번 있었다"로 읽힌다. 실제로는 매일 그날 데이터를
-  /// 분석해 그 대화가 시작되고, 트레이너가 조정한 루틴을 보내며 끝난다 — 그래서
-  /// 날이 바뀌는 자리마다 앞뒤로 붙인다. (#543)
-  ///
-  /// 날짜 판정은 `createdAt` 으로 한다. `timeLabel` 은 화면에 보일 문자열일
-  /// 뿐이라 거기서 날짜를 파내면 표시 문구가 곧 로직이 된다.
-  ///
-  /// 시드 메시지에 대해서만 자른다. 데모 중에 내가 보낸 답장은 오늘 날짜라
-  /// 그대로 두면 내 말풍선 앞에 "분석했어요" 가 끼어든다.
-  List<Widget> _withDemoBanners(List<CoachMessage> messages) {
     final List<Widget> out = <Widget>[];
-    final int lastSeeded = messages.lastIndexWhere(
-      (message) => message.id.startsWith('seed-'),
-    );
-    for (int i = 0; i < messages.length; i++) {
-      final CoachMessage m = messages[i];
-      final bool seeded = m.id.startsWith('seed-');
-      final bool newDay =
-          i == 0 || !_sameDay(messages[i - 1].createdAt, m.createdAt);
-      if (newDay) {
-        if (seeded && i > 0) {
-          out.add(
-            _ReceivedBanner(key: ValueKey<String>('received-before-${m.id}')),
-          );
-          out.add(const SizedBox(height: OnCareSpacing.s8));
-        }
-        out.add(_dateDivider(m.createdAt));
-        out.add(const SizedBox(height: OnCareSpacing.s8));
-        if (seeded) {
-          out.add(_AnalyzedBanner(trainerName: widget.trainerName));
-          out.add(const SizedBox(height: OnCareSpacing.s16));
-        }
-      }
-      out.add(_chatItem(m));
-      if (i == lastSeeded) {
-        out.add(const _ReceivedBanner());
-        if (i != messages.length - 1) {
-          out.add(const SizedBox(height: OnCareSpacing.s16));
-        }
-      }
-    }
-    return out;
-  }
-
-  List<Widget> _withoutDemoBanners(List<CoachMessage> messages) {
-    final List<Widget> out = <Widget>[];
-    for (int i = 0; i < messages.length; i++) {
-      final message = messages[i];
-      if (i == 0 || !_sameDay(messages[i - 1].createdAt, message.createdAt)) {
+    for (int i = 0; i < timeline.length; i++) {
+      final CoachMessage message = timeline[i];
+      if (i == 0 || !_sameDay(timeline[i - 1].createdAt, message.createdAt)) {
         out
           ..add(_dateDivider(message.createdAt))
           ..add(const SizedBox(height: OnCareSpacing.s8));
@@ -146,13 +104,43 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     return out;
   }
 
+  Widget _chatItem(CoachMessage message) {
+    final Widget item = _chatItemBody(message);
+    // 가장 오래된 메시지에는 자리 표시를 단다 — 옛 쪽이 그 앞에 붙은 뒤 이
+    // 메시지를 같은 자리로 되돌리는 기준이다(#2640).
+    final GlobalKey? anchor = _anchorKeys[message.id];
+    return anchor == null ? item : KeyedSubtree(key: anchor, child: item);
+  }
+
+  Widget _chatItemBody(CoachMessage message) {
+    final DateTime? weekStart = message.reportWeekStart;
+    if (weekStart != null) {
+      return _ReportNotice(
+        key: ValueKey<String>('coach-message-bubble-${message.id}'),
+        message: message,
+        weekStart: weekStart,
+      );
+    }
+    final CoachRoutineDelivery? delivery = message.routineDelivery;
+    if (delivery != null) {
+      return Padding(
+        key: ValueKey<String>('coach-routine-delivery-${message.id}'),
+        padding: const EdgeInsets.only(bottom: OnCareSpacing.s16),
+        child: CoachRoutineDeliveryNotice(delivery: delivery),
+      );
+    }
+    return _MessageRow(message: message, trainerName: widget.trainerName);
+  }
+
   /// 날짜 구분선. 요일까지 로케일 형식(`yMMMMEEEEd`)으로 적는다.
   ///
   /// 규격 구분선은 날짜 글자를 줄이지 않는다. 영어 전체 날짜에 글자 배율 1.3 이면
   /// 폰 폭보다 길어져 넘치므로, 그때만 줄 폭에 맞춰 통째로 줄인다 — 평소에는
   /// 가용 폭 그대로다. (패키지 구분선이 긴 날짜를 감당하게 되면 걷어낸다.)
   Widget _dateDivider(DateTime date) {
-    final DateTime localDate = date.toLocal();
+    // 서버 시각(UTC 순간)을 KST 날짜로 — 기기 시간대가 달라도 KST 오전 0~9시
+    // 메시지가 전날 구분선 아래로 가지 않는다(#2876).
+    final DateTime localDate = kstDateOf(date);
     final Widget divider = AppChatDateDivider(
       AppLocalizations.of(context).coachChatDateDivider(localDate),
       key: ValueKey<String>(
@@ -172,13 +160,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     );
   }
 
-  static bool _sameDay(DateTime a, DateTime b) {
-    final localA = a.toLocal();
-    final localB = b.toLocal();
-    return localA.year == localB.year &&
-        localA.month == localB.month &&
-        localA.day == localB.day;
-  }
+  static bool _sameDay(DateTime a, DateTime b) => isSameKstDay(a, b);
 
   /// 대화를 열거나 메시지가 늘면 맨 아래를 보여 준다.
   ///
@@ -201,6 +183,67 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
         _scrollToBottom(previousMax: max, attemptsLeft: attemptsLeft - 1);
       }
     });
+  }
+
+  /// 옛 쪽이 [anchorId] 앞에 붙은 뒤에도 그 메시지를 **보던 자리에** 둔다.
+  /// (#2640)
+  ///
+  /// 붙이기 전 그 메시지의 화면 위치를 잡아 두고, 붙인 뒤 같은 위치로 스크롤을
+  /// 옮긴다. 옛 쪽이 길면 붙인 직후 그 메시지가 아직 만들어지지 않았을 수
+  /// 있다(ListView 는 보이는 근처만 만든다). 그때는 먼저 목록 끝에서의 거리로
+  /// 가까이 옮기고, 다음 프레임에 만들어진 메시지로 정확히 맞춘다.
+  void _keepPositionAfterPrepend(String anchorId) {
+    final double? anchorTop = _globalTopOf(anchorId);
+    final double? fromBottom = _scroll.hasClients
+        ? _scroll.position.maxScrollExtent - _scroll.position.pixels
+        : null;
+    if (anchorTop == null && fromBottom == null) return;
+    _restoringAnchorId = anchorId;
+    _anchorKeys.putIfAbsent(
+      anchorId,
+      () => GlobalKey(debugLabel: 'coach-chat-anchor'),
+    );
+    void settle(int attemptsLeft) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scroll.hasClients) return;
+        final ScrollPosition position = _scroll.position;
+        final double? top = _globalTopOf(anchorId);
+        final double target;
+        if (top != null && anchorTop != null) {
+          target = position.pixels + (top - anchorTop);
+        } else if (fromBottom != null) {
+          target = position.maxScrollExtent - fromBottom;
+        } else {
+          _restoringAnchorId = null;
+          return;
+        }
+        final double clamped = target.clamp(
+          position.minScrollExtent,
+          position.maxScrollExtent,
+        );
+        final bool done =
+            (clamped - position.pixels).abs() < 0.5 &&
+            (top != null || anchorTop == null);
+        if (done || attemptsLeft <= 1) {
+          if (!done) position.jumpTo(clamped);
+          _restoringAnchorId = null;
+          return;
+        }
+        position.jumpTo(clamped);
+        WidgetsBinding.instance.scheduleFrame();
+        settle(attemptsLeft - 1);
+      });
+    }
+
+    settle(12);
+  }
+
+  /// [id] 메시지의 화면 위 끝(전역 좌표). 아직 만들어지지 않았으면 null.
+  double? _globalTopOf(String id) {
+    final RenderObject? box = _anchorKeys[id]?.currentContext
+        ?.findRenderObject();
+    if (box is! RenderBox || !box.attached || !box.hasSize) return null;
+    return box.localToGlobal(Offset.zero).dy;
   }
 
   Future<void> _markRead() async {
@@ -289,7 +332,35 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final chat = ref.watch(coachChatProvider);
-    final bool showDemoBanners = ref.watch(appConfigProvider).useMockApi;
+    // 서버가 대화를 404 로 답하면 담당이 해제된 것이다(#2843). 빈 대화로 그리지
+    // 않고 안내를 띄우며 입력을 막는다.
+    final bool unassigned = chat.error is CoachUnassignedException;
+    // 폴링으로 새 리포트 안내가 오면 받은 리포트 목록도 다시 읽는다(#2643) —
+    // 예전에는 앱을 다시 켜기 전까지 목록에 나타나지 않았다.
+    ref.listen<AsyncValue<List<CoachMessage>>>(coachChatProvider, (
+      AsyncValue<List<CoachMessage>>? previous,
+      AsyncValue<List<CoachMessage>> next,
+    ) {
+      // 해제를 처음 알게 된 순간 담당 코치도 다시 읽는다 — 대화방을 나가면
+      // 헤더가 AI 챗봇 입구로, 홈 트레이너 카드가 사라진 모습으로 바뀐다.
+      if (next.error is CoachUnassignedException &&
+          previous?.error is! CoachUnassignedException) {
+        unawaited(
+          recheckMemberCoach(ProviderScope.containerOf(context, listen: false)),
+        );
+      }
+      final List<CoachMessage>? before = previous?.valueOrNull;
+      final List<CoachMessage>? after = next.valueOrNull;
+      // 보낸 사진이 대화에 들어왔으면 대기 목록에서 뺀다 — 원본 바이트가
+      // 화면을 오래 열어 둔 만큼 쌓이지 않게(#2880).
+      if (after != null) {
+        ref.read(coachPhotoSendProvider.notifier).settle(after);
+      }
+      if (before == null || after == null) return;
+      if (hasNewReportNotice(before, after)) {
+        ref.invalidate(sentReportNoticesProvider);
+      }
+    });
     return Scaffold(
       backgroundColor: OnCareColors.surfaceCard,
       body: SafeArea(
@@ -361,11 +432,22 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
             Expanded(
               child: chat.when(
                 loading: () => const AppLoading(),
-                // 재시도 동작은 원래 없었다 — 문구만 규격 빈 화면 틀에 담는다.
-                error: (_, _) => AppEmptyState(
-                  title: l.coachChatLoadFailed,
-                  icon: AppIcons.error,
-                ),
+                // 해제는 다시 받아도 같으니 안내만, 그 밖의 실패는 다음 폴링까지
+                // 기다리지 않고 다시 받을 수 있게 한다(#2880).
+                error: (Object error, _) => error is CoachUnassignedException
+                    ? AppEmptyState(
+                        key: const ValueKey<String>('coach-chat-unassigned'),
+                        title: l.coachChatUnassigned,
+                        icon: AppIcons.disconnect,
+                      )
+                    : appErrorStateFor(
+                        context,
+                        key: const ValueKey<String>('coach-chat-error'),
+                        error: error,
+                        title: l.coachChatLoadFailed,
+                        retryKey: const ValueKey<String>('coach-chat-retry'),
+                        onRetry: () => ref.invalidate(coachChatProvider),
+                      ),
                 data: (latest) {
                   // 폴링이 주는 최신 쪽 앞에, 손으로 더 받아 온 옛 쪽을 붙여
                   // 그린다(#1943). 둘을 한 provider 에 두면 15초마다 새로 받는
@@ -373,40 +455,66 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                   final CoachChatHistoryState history = ref.watch(
                     coachChatHistoryProvider,
                   );
-                  final List<CoachMessage> thread = <CoachMessage>[
-                    ...history.messages,
-                    ...latest,
-                  ];
+                  // 같은 메시지가 양쪽에 있으면 id 로 하나만 남긴다(#2640) —
+                  // 옛 쪽을 받은 뒤로는 history 가 폴링한 최신 쪽도 모아 둔다.
+                  final List<CoachMessage> thread = mergeCoachThread(
+                    history.messages,
+                    latest,
+                  );
                   // 내가 보낸 사진(#1665). 서버가 받은 것은 대화를 다시 받아
                   // 올 때까지 그 메시지로 끼워 두고(id 로 겹침을 거른다),
                   // 아직 못 받은 것은 대화 끝에 상태와 함께 둔다.
                   final List<PendingCoachPhoto> photos = ref.watch(
                     coachPhotoSendProvider,
                   );
-                  final Set<String> threadIds = <String>{
-                    for (final CoachMessage m in thread) m.id,
-                  };
-                  final List<CoachMessage> messages = <CoachMessage>[
-                    ...thread,
-                    for (final PendingCoachPhoto p in photos)
-                      if (p.message case final CoachMessage sent?
-                          when !threadIds.contains(sent.id))
-                        sent,
-                  ];
+                  final List<CoachMessage> messages = mergeCoachThread(
+                    <CoachMessage>[
+                      for (final PendingCoachPhoto p in photos) ?p.message,
+                    ],
+                    thread,
+                  );
                   final List<PendingCoachPhoto> unsent = <PendingCoachPhoto>[
                     for (final PendingCoachPhoto p in photos)
                       if (p.status != CoachPhotoSendStatus.sent) p,
                   ];
-                  final int count = messages.length + unsent.length;
-                  // 길이가 바뀐 프레임에서만 — 매 빌드마다 부르면 사용자가
-                  // 위로 올려 읽는 중에도 아래로 끌어내린다.
-                  if (count != _lastCount) {
-                    _lastCount = count;
-                    _scrollToBottom();
+                  // 연결만 되고 아직 주고받은 것이 없으면 입력줄 위가 통째로
+                  // 비었다. 무엇을 보내면 되는지 안내한다(#2880).
+                  if (messages.isEmpty && unsent.isEmpty) {
+                    return AppEmptyState(
+                      key: const ValueKey<String>('coach-chat-empty'),
+                      title: l.coachChatEmptyTitle(widget.trainerName),
+                      message: l.coachChatEmptyBody,
+                      icon: AppIcons.chat,
+                    );
+                  }
+                  final ChatEdges edges = ChatEdges(
+                    oldestId: messages.firstOrNull?.id,
+                    newestId: unsent.isNotEmpty
+                        ? 'pending-${unsent.last.requestId}'
+                        : messages.lastOrNull?.id,
+                    count: messages.length + unsent.length,
+                  );
+                  // 무엇이 바뀐 프레임인지 보고 스크롤한다 — 매 빌드마다 부르면
+                  // 사용자가 위로 올려 읽는 중에도 아래로 끌어내린다. 옛 쪽이
+                  // 앞에 붙은 때는 보던 자리를 지킨다(#2640).
+                  final ChatScrollAction action = chatScrollAction(
+                    _lastEdges,
+                    edges,
+                  );
+                  if (action != ChatScrollAction.none) {
+                    final ChatEdges? previous = _lastEdges;
+                    _lastEdges = edges;
+                    if (action == ChatScrollAction.keepPosition &&
+                        previous?.oldestId != null) {
+                      _keepPositionAfterPrepend(previous!.oldestId!);
+                    } else {
+                      _scrollToBottom();
+                    }
                     // Mark newly polled trainer messages read while this
                     // full-screen route is visible, then refresh its badge.
                     Future<void>.microtask(_markRead);
                   }
+                  _anchorKeyId = edges.oldestId;
                   return ListView(
                     controller: _scroll,
                     padding: const EdgeInsets.fromLTRB(
@@ -442,10 +550,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                                   ),
                           ),
                         ),
-                      ..._chatChildren(
-                        messages,
-                        showDemoBanners: showDemoBanners,
-                      ),
+                      ..._chatChildren(messages),
                       for (final PendingCoachPhoto photo in unsent)
                         _PendingPhotoRow(
                           key: ValueKey<String>(
@@ -471,7 +576,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                 onEmote: _pickEmote,
                 attachTooltip: l.coachPhotoAttach,
                 onAttach: _picking ? null : _attachPhoto,
-                enabled: !_sending,
+                enabled: !_sending && !unassigned,
                 onSend: _send,
               ),
             ),
@@ -482,44 +587,38 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
   }
 }
 
-/// 데모 전용 안내 배너 — 트레이너 앱의 같은 배너를 회원 시점으로 옮긴 것.
+/// 루틴 전송 안내 — 트레이너가 운동을 보낸 자리에 대화 가운데 안내로 선다. (#2672)
 ///
-/// 트레이너 화면은 "AI가 김민수님의 … 분석했어요 / 루틴이 김민수님에게
-/// 전송됐어요" 라고 말한다. 같은 사건을 받는 쪽에서 보면 "내 데이터를
-/// 분석했어요 / 루틴을 받았어요" 가 된다 — 내용은 같고 시점만 다르다. (#543)
-///
-/// 실 모드에서는 그리지 않는다. 서버가 실제로 그 순간을 알려주는 것이 아니라
-/// 데모 대화의 맥락을 설명하는 장치이기 때문이다.
-class _AnalyzedBanner extends StatelessWidget {
-  const _AnalyzedBanner({required this.trainerName});
+/// 알림과 함께 대화에도 남아, "어제 받은 루틴" 에 대한 이야기가 그 전송 바로
+/// 아래에 이어진다. 트레이너 웹의 같은 안내와 같은 제목·같은 이름 줄이다.
+class CoachRoutineDeliveryNotice extends StatelessWidget {
+  const CoachRoutineDeliveryNotice({required this.delivery, super.key});
 
-  final String trainerName;
+  final CoachRoutineDelivery delivery;
+
+  /// 이름으로 적는 운동 수. 나머지는 개수로 접는다 — 서버 본문과 같다.
+  static const int _shownNames = 3;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final List<String> names = <String>[
+      ...delivery.programNames,
+      ...delivery.routineNames,
+    ];
+    final String shown = names.take(_shownNames).join(' · ');
+    final int more = names.length - _shownNames;
     return CoachChatNotice(
-      icon: AppIcons.ai,
-      title: l.coachChatDemoAnalyzed,
-      subtitle: l.coachChatDemoReportSent(trainerName),
-    );
-  }
-}
-
-class _ReceivedBanner extends StatelessWidget {
-  const _ReceivedBanner({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    // #1239 이후로는 "완료" 배너를 두 앱이 함께 쓰는 완료 초록으로
-    // 칠했는데, 이 배너는 상태 완료가 아니라 "개인 추천운동을 받았다"는
-    // 안내다 — 위 [_AnalyzedBanner]와 같은 흐름의 다음 단계라, 초록이
-    // 아니라 그 배너와 같은 안내(info) 톤으로 맞춘다(#1379).
-    return CoachChatNotice(
-      icon: AppIcons.checkCircle,
-      title: l.coachChatDemoRoutineReceived,
-      subtitle: l.coachChatDemoNotified,
+      icon: AppIcons.routine,
+      title: switch (delivery.kind) {
+        'pt_with_routine' => l.coachChatRoutineReceivedPt,
+        // 개인운동 한 건(AI 제안 승인 포함)도 개인운동이다 — 알림 제목과 같은 이름(#3107).
+        'routine' || 'routine_only' => l.coachChatRoutineReceivedPersonal,
+        'cancelled_routine_only' => l.coachChatRoutineReceivedAfterCancel,
+        'program' => l.coachChatRoutineReceivedProgram,
+        _ => l.coachChatRoutineReceived,
+      },
+      subtitle: more > 0 ? l.coachChatRoutineReceivedMore(shown, more) : shown,
     );
   }
 }
@@ -564,6 +663,12 @@ class _MessageRow extends ConsumerWidget {
     );
   }
 
+  /// 본문 글줄을 그릴지. 글 없이 보낸 사진은 본문이 빈 문자열이라, 그대로
+  /// 그리면 사진 위에 빈 글줄과 간격만큼 여백이 생겼다(#2880). 첨부가 없으면
+  /// 빈 본문이어도 말풍선 높이를 지키려고 그린다.
+  bool get _hasText =>
+      message.body.trim().isNotEmpty || message.attachment == null;
+
   /// 말풍선 내용. 리포트 등록 안내는 여기로 오지 않는다 — 그것은 말풍선이
   /// 아니라 대화 가운데 안내라, 스레드를 세울 때 갈라진다(#1600).
   Widget _body(BuildContext context, WidgetRef ref) {
@@ -579,10 +684,11 @@ class _MessageRow extends ConsumerWidget {
             id: emote,
             semanticLabel: AppLocalizations.of(context).a11yEmote,
           )
-        else
+        else if (_hasText)
           Text(message.body),
         if (message.attachment case final attachment?) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s8),
+          if (message.emoteId != null || _hasText)
+            const SizedBox(height: OnCareSpacing.s8),
           // 사진은 대화 안에서 그리고, 리포트 PDF 는 내려받는
           // 카드로 둔다. 사진을 카드로 두면 볼 때마다 파일을
           // 열어야 한다. (#921)
@@ -723,11 +829,8 @@ Future<void> openPdfPreviewPage(
 
 /// [openPdfPreviewPage] 가 여는 화면 — 머리에 파일 이름과 `<`, 아래는 미리보기.
 ///
-/// `build` 는 **부를 때마다 복사본**을 준다. 웹에서 미리보기는 pdf.js 로 그리는데,
-/// pdf.js 는 받은 바이트의 버퍼를 워커로 넘기면서(transfer) 원본을 비워 버린다.
-/// 같은 바이트를 그대로 다시 주면 두 번째 렌더가 `ArrayBuffer ... is already
-/// detached` 로 죽고, 그리다 만 미리보기가 스피너만 도는 채로 남는다. 미리보기는
-/// 화면 크기·용지 설정이 바뀔 때마다 다시 그리므로 두 번째 호출은 반드시 온다.
+/// 쪽을 굽는 일은 공용 [PdfPagesView] 가 한다 — 웹에서 `printing` 의
+/// `PdfPreview` 는 CSP 에 막혀 스피너만 돌았다(#2828).
 class PdfPreviewPage extends StatelessWidget {
   const PdfPreviewPage({
     required this.bytes,
@@ -743,29 +846,10 @@ class PdfPreviewPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
     return Scaffold(
       key: pageKey,
       appBar: AppTopBar(title: fileName),
-      body: PdfPreview(
-        build: (_) async => Uint8List.fromList(bytes),
-        pdfFileName: fileName,
-        allowSharing: false,
-        // 미리보기가 실패했을 때 스피너를 계속 돌리면 회원은 느린 것과
-        // 안 되는 것을 구별할 수 없다.
-        onError: (_, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(OnCareSpacing.s24),
-            child: Text(
-              l.coachChatPdfOpenFailed,
-              textAlign: TextAlign.center,
-              style: tokens
-                  .text(OnCareTypography.bodySmall)
-                  .copyWith(color: OnCareColors.textSecondary),
-            ),
-          ),
-        ),
-      ),
+      body: PdfPagesView(pdf: bytes, failedText: l.coachChatPdfOpenFailed),
     );
   }
 }
@@ -773,8 +857,8 @@ class PdfPreviewPage extends StatelessWidget {
 /// 리포트 등록 안내 — 대화 가운데 안내 배너와 `PDF 미리보기`. (#1600, #1577)
 ///
 /// 누르면 트레이너가 보낸 파일을 연다. 열 파일이 없으면(데모, 그리고 본문만
-/// 보낸 리포트) 같은 주를 회원 기록으로 정리한 문서를 만들어 같은 미리보기로
-/// 연다 — 리포트 화면이 보여 주는 통계를 회원도 그 자리에서 볼 수 있어야 한다.
+/// 보낸 리포트) 트레이너 웹과 같은 결과지를 세워 같은 미리보기로 연다(#2652) —
+/// 트레이너가 보는 한 장을 회원도 그 자리에서 볼 수 있어야 한다.
 class _ReportNotice extends ConsumerStatefulWidget {
   const _ReportNotice({
     required this.message,
@@ -813,7 +897,6 @@ class _ReportNoticeState extends ConsumerState<_ReportNotice> {
       // 문서를 열면 회원은 같은 주 리포트를 두 벌 가진 셈이 된다(#2232).
       await openCoachReport(
         context,
-        ref,
         message: widget.message,
         weekStart: widget.weekStart,
       );

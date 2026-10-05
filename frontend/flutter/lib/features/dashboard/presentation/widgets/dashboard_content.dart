@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
@@ -22,10 +21,12 @@ import 'package:oncare/features/notification/presentation/controllers/notificati
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/exercise_goals_provider.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare/shared/widgets/chart_a11y_labels.dart';
 import 'package:oncare/shared/widgets/coaching_sheet.dart';
 import 'package:oncare/shared/widgets/member_tab_header.dart';
 import 'package:oncare/shared/widgets/metric_trend_chart.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// The Home tab, rebuilt to match the On-Care Figma redesign.
@@ -64,11 +65,15 @@ class DashboardContent extends StatelessWidget {
                 .watch(dashboardSummaryProvider)
                 .when(
                   loading: () => const AppLoading(),
-                  error: (Object error, StackTrace stackTrace) => AppErrorState(
-                    title: AppLocalizations.of(context).homeDashboardLoadError,
-                    retryLabel: AppLocalizations.of(context).actionRetry,
-                    onRetry: () => ref.invalidate(dashboardSummaryProvider),
-                  ),
+                  error: (Object error, StackTrace stackTrace) =>
+                      appErrorStateFor(
+                        context,
+                        error: error,
+                        title: AppLocalizations.of(
+                          context,
+                        ).homeDashboardLoadError,
+                        onRetry: () => ref.invalidate(dashboardSummaryProvider),
+                      ),
                   data: (DashboardSummary summary) => _DashboardData(
                     adviceAnchorKey: adviceAnchorKey,
                     summary: summary,
@@ -183,7 +188,7 @@ class _CoachingBanner extends StatelessWidget {
         color: tokens.brand.primary,
       ),
       child: Text(
-        aiAdviceBody(l, summary),
+        keepWords(aiAdviceBody(l, summary)),
         style: tokens
             .text(OnCareTypography.bodySmall)
             .copyWith(color: OnCareColors.textPrimary),
@@ -239,7 +244,7 @@ class _DietNutritionCard extends ConsumerWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     // 탄단지 목표는 식단 탭 하루 요약과 **같은 값**을 쓴다. 홈만 따로 기본값을
     // 들고 있으면 회원이 목표를 고쳤을 때 두 화면이 다른 목표를 말한다.
-    final UserProfile? profile = ref.watch(profileProvider).asData?.value;
+    final UserProfile? profile = ref.watch(profileProvider).valueOrNull;
     final _NutData cfg = _calorieWeek(summary);
     final List<String> days = weekDayLabels(l);
     final int todayIdx = _todayIndex();
@@ -418,11 +423,9 @@ class _MetricStatCard extends StatelessWidget {
 
 /// 이번 주의 시작(월요일). 운동 탭과 같은 기준으로 잘라야 홈이 같은 한 주를
 /// 말한다.
-DateTime _thisMonday() {
-  final DateTime n = nowKst();
-  final DateTime d = DateTime(n.year, n.month, n.day);
-  return d.subtract(Duration(days: d.weekday - 1));
-}
+///
+/// 달력으로 센다 — 24시간 단위로 빼면 서머타임 시간대에서 하루 어긋난다(#2890).
+DateTime _thisMonday() => mondayOf(todayKst());
 
 /// 홈의 운동 카드 — 제목 줄 아래에 운동 탭 `운동 현황 · 이번 주` 와 **같은
 /// 카드**를 그린다 (#1183).
@@ -791,7 +794,7 @@ Map<String, _RecMeal> _recMealsByKey(AppLocalizations l) => <String, _RecMeal>{
     l.homeMealTagHighProtein,
   ),
   'tofu': _RecMeal(
-    'assets/images/rec-tofu-broccoli.png',
+    'assets/images/rec-tofu-broccoli.jpg',
     '🥦',
     l.homeMealTofu,
     l.homeMealReasonLowCal,
@@ -872,12 +875,21 @@ class _RecommendedMeals extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    // valueOrNull 이라 로딩·에러에서 기본 추천이 그대로 그려진다. 스켈레톤을 두면
-    // 홈 진입 때 카드가 한 번 비었다가 채워져 화면이 깜빡인다(목업 모드에서는
-    // 결과가 기본값과 같아 아예 아무 변화도 보이지 않는다).
-    final MealRecommendations recs =
-        ref.watch(dietRecommendationsProvider).valueOrNull ??
-        MealRecommendations.fallback;
+    final AsyncValue<MealRecommendations> async = ref.watch(
+      dietRecommendationsProvider,
+    );
+    // 데모(목업)는 지금처럼 로딩·에러에서도 기본 추천을 그린다 — 결과가 기본값과
+    // 같아 깜빡임도 없다. 실서버에서 고정 5종을 `AI 추천` 으로 그리면 회원 기록과
+    // 무관한 추천이 개인화된 것처럼 보이므로, 받기 전·실패에는 로딩·오류 칸을
+    // 둔다(#2813).
+    final MealRecommendations? loaded = async.valueOrNull;
+    if (loaded == null && !ref.watch(mealRecsDemoFallbackProvider)) {
+      return _RecommendedMealsState(
+        error: async.hasError && !async.isLoading ? async.error : null,
+        onRetry: () => ref.invalidate(dietRecommendationsProvider),
+      );
+    }
+    final MealRecommendations recs = loaded ?? MealRecommendations.fallback;
     // 첫 장의 `트레이너 추천` 은 담당 트레이너가 실제로 골라 확정한 메뉴일 때만
     // 붙는다(#2380). 예전에는 담당이 있기만 하면 AI 카드 첫 장에 배지를 달았다.
     // 서버가 담당·동의를 이미 보지만, 담당이 없는 화면에 트레이너 추천이 새지
@@ -940,6 +952,55 @@ class _RecommendedMeals extends ConsumerWidget {
             ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// 실서버에서 추천을 받기 전·받지 못했을 때의 `추천 식단` 칸. (#2813)
+///
+/// 제목은 그대로 두고 카드 줄 자리에 로딩 또는 오류·다시 시도를 둔다 — 고정
+/// 추천을 `AI 추천` 으로 그리지 않는다.
+class _RecommendedMealsState extends StatelessWidget {
+  const _RecommendedMealsState({required this.error, required this.onRetry});
+
+  /// 추천 조회를 실패하게 한 오류. 아직 받는 중이면 null 이다 — 오류 칸의
+  /// 설명이 이 오류의 원인을 말한다(#3140).
+  final Object? error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    return Column(
+      key: const ValueKey<String>('home-rec-meals-state'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(
+          l.homeRecMealsTitle,
+          style: tokens
+              .text(OnCareTypography.titleSmall)
+              .copyWith(color: OnCareColors.textPrimary),
+        ),
+        const SizedBox(height: OnCareSpacing.s12),
+        AppCard(
+          child: error != null
+              ? appErrorStateFor(
+                  context,
+                  key: const ValueKey<String>('home-rec-meals-error'),
+                  error: error,
+                  title: l.homeRecMealsErrorTitle,
+                  retryKey: const ValueKey<String>('home-rec-meals-retry'),
+                  onRetry: onRetry,
+                  placement: AppStatePlacement.card,
+                )
+              : const AppLoading(
+                  key: ValueKey<String>('home-rec-meals-loading'),
+                  placement: AppStatePlacement.card,
+                ),
+        ),
+        const SizedBox(height: OnCareSpacing.s16),
       ],
     );
   }

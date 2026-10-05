@@ -213,18 +213,21 @@ void main() {
   group('recordedCompletionMean', () {
     test('a recorded week under the threshold reads as low', () {
       final mean = recordedCompletionMean(
-        makeClient(weekCompletion: const <int>[40, 30, 50, 0, 0, 0, 0]),
+        makeClient(
+          weekCompletion: const <int?>[40, 30, 50, null, null, null, null],
+        ),
       );
       expect(mean, 40);
       expect(mean! < lowCompletionThreshold, isTrue);
     });
 
-    test('a client who has logged nothing yet has no mean, not 0%', () {
+    test('a client with nothing assigned yet has no mean, not 0%', () {
       // A client registered this morning must not read as failing —
-      // that trains the trainer to ignore the badge.
+      // that trains the trainer to ignore the badge. 걸린 것이 없는 날은
+      // null 이다(#2513).
       expect(
         recordedCompletionMean(
-          makeClient(weekCompletion: const <int>[0, 0, 0, 0, 0, 0, 0]),
+          makeClient(weekCompletion: List<int?>.filled(7, null)),
         ),
         isNull,
       );
@@ -234,13 +237,34 @@ void main() {
       );
     });
 
-    test('averages only the days that were recorded', () {
-      // 90% on the one day they trained is not a 13% week.
+    test('averages only the days that had something assigned', () {
+      // 90% on the one day they had work is not a 13% week.
       expect(
         recordedCompletionMean(
-          makeClient(weekCompletion: const <int>[90, 0, 0, 0, 0, 0, 0]),
+          makeClient(
+            weekCompletion: const <int?>[
+              90,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+            ],
+          ),
         ),
         90,
+      );
+    });
+
+    test('a day given work and left undone counts as 0% (#2513)', () {
+      expect(
+        recordedCompletionMean(
+          makeClient(
+            weekCompletion: const <int?>[90, 0, null, null, null, null, null],
+          ),
+        ),
+        45,
       );
     });
   });

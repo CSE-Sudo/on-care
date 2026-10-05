@@ -6,7 +6,9 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/app_sidebar.dart';
 import 'package:oncare_trainer/app/shell/nav_destinations.dart';
 import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
+import 'package:oncare_trainer/features/notifications/presentation/widgets/notification_bell.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/widgets/release_update_banner.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// Persistent console shell: a left [AppSidebar] plus the active branch.
@@ -45,6 +47,9 @@ class AppShell extends StatefulWidget {
   /// 끼우면 `myBranchIndex` 가 밀려 푸터 선택이 조용히 깨진다. (#503)
   static int get notificationsBranchIndex => myBranchIndex + 1;
 
+  /// Branch index of 신고·계정 관리 — 운영자 전용, 알림함 뒤 (#3008).
+  static int get adminReportsBranchIndex => adminBranchIndex;
+
   /// Root location of branch [index] — what a sidebar tap opens when there
   /// is no [StatefulNavigationShell] to switch (the 404 page sits outside
   /// the shell route). Out-of-range indexes fall back to the 대시보드.
@@ -54,6 +59,7 @@ class AppShell extends StatefulWidget {
     }
     if (index == myBranchIndex) return AppRoutes.my;
     if (index == notificationsBranchIndex) return AppRoutes.notifications;
+    if (index == adminReportsBranchIndex) return AppRoutes.adminReports;
     return AppRoutes.dashboard;
   }
 
@@ -106,9 +112,19 @@ class _AppShellState extends State<AppShell> {
           widget.navigationShell.currentIndex == AppShell.myBranchIndex,
       onSelect: _goBranch,
       onHome: _goDashboard,
-      body: PageScrollResetScope(
-        notifier: _scrollReset,
-        child: widget.navigationShell,
+      // 새 배포 안내는 콘텐츠 영역 맨 위에 선다(#3023). 안내가 없으면 높이 0 이라
+      // 화면이 그대로다 — 자리는 늘 두어 브랜치 화면의 상태가 다시 만들어지지 않는다.
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          const ReleaseUpdateBanner(),
+          Expanded(
+            child: PageScrollResetScope(
+              notifier: _scrollReset,
+              child: widget.navigationShell,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -177,6 +193,13 @@ class AppShellFrame extends StatelessWidget {
       );
     }
 
+    // 알림 종은 모든 화면 머리 오른쪽 끝에 한 번 준다(#2628). 좁은 화면은
+    // 위쪽 막대에 둔다 — 머리에도 두면 종이 둘이 된다.
+    final Widget page = AppWebHeaderTrailing(
+      trailing: const NotificationBell(),
+      child: body,
+    );
+
     return Scaffold(
       backgroundColor: OnCareColors.surfacePage,
       body: Row(
@@ -189,7 +212,7 @@ class AppShellFrame extends StatelessWidget {
             onSelect: onSelect,
             onHome: onHome,
           ),
-          Expanded(child: body),
+          Expanded(child: page),
         ],
       ),
     );
@@ -231,34 +254,39 @@ class _CompactBar extends StatelessWidget implements PreferredSizeWidget {
               onPressed: () => Scaffold.of(context).openDrawer(),
             ),
             const SizedBox(width: OnCareSpacing.s4),
-            Flexible(
-              child: InkWell(
-                key: const ValueKey<String>('compact-brand-home'),
-                onTap: onHome,
-                borderRadius: OnCareRadius.mdAll,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: OnCareSpacing.s4,
-                  ),
-                  child: Text.rich(
-                    TextSpan(
-                      children: <InlineSpan>[
-                        const TextSpan(
-                          text: 'On-Care ',
-                          style: TextStyle(color: OnCareColors.textPrimary),
-                        ),
-                        TextSpan(
-                          text: l.appWordmarkTrainer,
-                          style: TextStyle(color: tokens.brand.primary),
-                        ),
-                      ],
+            // 로고가 남는 폭을 다 쓰고 알림 종은 오른쪽 끝에 붙는다(#2628).
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: InkWell(
+                  key: const ValueKey<String>('compact-brand-home'),
+                  onTap: onHome,
+                  borderRadius: OnCareRadius.mdAll,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: OnCareSpacing.s4,
                     ),
-                    maxLines: 1,
-                    style: tokens.text(OnCareTypography.titleMedium),
+                    child: Text.rich(
+                      TextSpan(
+                        children: <InlineSpan>[
+                          const TextSpan(
+                            text: 'On-Care ',
+                            style: TextStyle(color: OnCareColors.textPrimary),
+                          ),
+                          TextSpan(
+                            text: l.appWordmarkTrainer,
+                            style: TextStyle(color: tokens.brand.primary),
+                          ),
+                        ],
+                      ),
+                      maxLines: 1,
+                      style: tokens.text(OnCareTypography.titleMedium),
+                    ),
                   ),
                 ),
               ),
             ),
+            const NotificationBell(),
           ],
         ),
       ),

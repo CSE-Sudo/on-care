@@ -1,12 +1,33 @@
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart'
+    show
+        kGoalDefaultDailyCalories,
+        kGoalDefaultDailyCarbsG,
+        kGoalDefaultDailyFatG,
+        kGoalDefaultDailyProteinG,
+        kGoalDefaultDailySodiumMg,
+        kGoalDefaultDailySugarG,
+        kGoalDefaultProteinGPerKg;
+
 /// GET /users/me/profile — the consolidated profile the settings modals
 /// edit (내 프로필 + 건강 목표).
 class UserProfile {
-  static const int defaultDailyCalories = 2000;
-  static const int defaultDailySodiumMg = 2000;
-  static const int defaultDailySugarG = 50;
-  static const int defaultDailyCarbsG = 275;
-  static const int defaultDailyProteinG = 100;
-  static const int defaultDailyFatG = 55;
+  // 목표를 세우지 않은 회원의 기준선. 값은 공용 패키지 `oncare_ui` 의
+  // `kGoalDefault…` 한 곳에 있고(#2906), 서버와는 원본 표
+  // `shared/oncare_rules/vectors/goal_defaults.json` 으로 대조한다.
+  static const int defaultDailyCalories = kGoalDefaultDailyCalories;
+  static const int defaultDailySodiumMg = kGoalDefaultDailySodiumMg;
+  static const int defaultDailySugarG = kGoalDefaultDailySugarG;
+  static const int defaultDailyCarbsG = kGoalDefaultDailyCarbsG;
+
+  /// 체중도 개인 목표도 없을 때의 단백질 목표 — 서버
+  /// `diet_coach_inputs.DEFAULT_PROTEIN_G` 와 같다(#2898). 예전 100g 은 식단
+  /// 분석 기준(60g)과 달라, 카드와 분석이 같은 날을 다르게 판단했다.
+  static const int defaultDailyProteinG = kGoalDefaultDailyProteinG;
+
+  /// 체중 1kg 당 단백질 목표(g) — 서버 `PROTEIN_G_PER_KG` 와 같다(#2898).
+  static const double proteinGPerKg = kGoalDefaultProteinGPerKg;
+  static const int defaultDailyFatG = kGoalDefaultDailyFatG;
 
   /// [focusChangedBy] 값 — 건강 목표를 마지막으로 바꾼 사람(#1832).
   static const String focusChangedByMember = 'member';
@@ -15,6 +36,7 @@ class UserProfile {
   const UserProfile({
     required this.id,
     this.onboarded = false,
+    this.onboardingSkipped = false,
     required this.name,
     required this.email,
     this.phone = '',
@@ -29,6 +51,7 @@ class UserProfile {
     this.dailyCarbsG,
     this.dailyProteinG,
     this.dailyFatG,
+    this.serverEffectiveDailyProteinG,
     this.weeklyWorkoutGoal,
     this.weeklyExerciseMinutesGoal,
     this.weeklyBurnGoal,
@@ -38,6 +61,9 @@ class UserProfile {
     this.weeklyFlexibilityMinutes,
     this.focusChangedBy,
     this.focusChangedAt,
+    this.hasPassword = true,
+    this.notesChangedBy,
+    this.notesChangedAt,
   });
 
   final String id;
@@ -45,6 +71,14 @@ class UserProfile {
   /// 첫 설정(온보딩)을 끝냈는가. 서버가 첫 저장 때 참으로 표시한다(#1927).
   /// 기기가 아니라 계정에 붙는 값이라, 기기를 바꿔도 다시 묻지 않는다.
   final bool onboarded;
+
+  /// 첫 설정을 **건너뛰었는가**(#2855). 건너뛴 회원은 다음 로그인·세션 복구 때
+  /// 첫 설정 화면으로 다시 가지 않는다. 이것도 계정에 붙는 값이라 기기를 바꿔도
+  /// 유지된다. 폼에서 앱을 닫은(건너뛰지 않은) 회원은 거짓이다.
+  final bool onboardingSkipped;
+
+  /// 첫 설정을 다시 묻지 않을 계정 — 끝냈거나 건너뛰었다(#2855).
+  bool get firstRunSettled => onboarded || onboardingSkipped;
 
   final String name;
   final String email;
@@ -71,7 +105,35 @@ class UserProfile {
   int get effectiveDailySodiumMg => dailySodiumMg ?? defaultDailySodiumMg;
   int get effectiveDailySugarG => dailySugarG ?? defaultDailySugarG;
   int get effectiveDailyCarbsG => dailyCarbsG ?? defaultDailyCarbsG;
-  int get effectiveDailyProteinG => dailyProteinG ?? defaultDailyProteinG;
+
+  /// 서버가 계산해 준 실효 단백질 목표(`effective_daily_protein_g`, #2898).
+  /// 옛 응답·목업이면 null 이고, 그때는 [effectiveDailyProteinG] 가 같은 규칙을
+  /// 앱에서 계산한다.
+  final int? serverEffectiveDailyProteinG;
+
+  /// 단백질 목표 — 개인 목표 → 서버 실효값 → 체중 × 1.2g → 60g. 식단 분석·조언과
+  /// 같은 분모다(#2898).
+  int get effectiveDailyProteinG =>
+      dailyProteinG ??
+      serverEffectiveDailyProteinG ??
+      proteinTargetFromWeight(weightKg) ??
+      defaultDailyProteinG;
+
+  /// 체중 기반 단백질 목표. 체중이 없으면 null.
+  static int? proteinTargetFromWeight(double? weightKg) =>
+      weightKg != null && weightKg > 0
+      ? _pyRound(weightKg * proteinGPerKg)
+      : null;
+
+  /// 파이썬 `round()` 와 같은 반올림(0.5 는 짝수 쪽) — 서버와 같은 수를 낸다.
+  static int _pyRound(double x) {
+    final int f = x.floor();
+    final double diff = x - f;
+    if (diff > 0.5) return f + 1;
+    if (diff < 0.5) return f;
+    return f.isEven ? f : f + 1;
+  }
+
   int get effectiveDailyFatG => dailyFatG ?? defaultDailyFatG;
 
   // 주간 운동 목표 — 트레이너 앱이 고객 목표로 읽는 값이다. 회원 화면은 아래
@@ -99,8 +161,20 @@ class UserProfile {
   /// 건강 목표를 마지막으로 바꾼 시각(로컬 시각). 바꾼 적이 없으면 null.
   final DateTime? focusChangedAt;
 
+  /// 이메일 비밀번호가 있는 계정인가(#2824). 소셜 로그인 전용 계정은 거짓이라
+  /// MY 비밀번호 변경이 "바꿀 비밀번호가 없음" 을 말한다. 이 값을 주지 않는
+  /// 서버(필드 추가 이전)에서는 참으로 둔다 — 그때는 서버의 409 가 같은 안내를 낸다.
+  final bool hasPassword;
+  /// 건강상태·주의사항을 마지막으로 바꾼 사람 — [focusChangedByMember] 또는
+  /// [focusChangedByTrainer](#2942). 목표 칩 기록과 따로다. 바꾼 적이 없으면 null.
+  final String? notesChangedBy;
+
+  /// 건강상태·주의사항을 마지막으로 바꾼 시각(로컬 시각). 바꾼 적이 없으면 null.
+  final DateTime? notesChangedAt;
+
   factory UserProfile.fromJson(Map<String, Object?> json) => UserProfile(
     onboarded: (json['onboarded'] as bool?) ?? false,
+    onboardingSkipped: (json['onboarding_skipped'] as bool?) ?? false,
     id: (json['id'] as String?) ?? '',
     name: (json['name'] as String?) ?? '',
     email: (json['email'] as String?) ?? '',
@@ -116,6 +190,10 @@ class UserProfile {
     dailyCarbsG: (json['daily_carbs_g'] as num?)?.toInt(),
     dailyProteinG: (json['daily_protein_g'] as num?)?.toInt(),
     dailyFatG: (json['daily_fat_g'] as num?)?.toInt(),
+    serverEffectiveDailyProteinG: switch (json['effective_daily_protein_g']) {
+      final num v when v > 0 => v.toInt(),
+      _ => null,
+    },
     weeklyWorkoutGoal: (json['weekly_workout_goal'] as num?)?.toInt(),
     weeklyExerciseMinutesGoal: (json['weekly_exercise_minutes_goal'] as num?)
         ?.toInt(),
@@ -130,7 +208,22 @@ class UserProfile {
       _ => null,
     },
     focusChangedAt: switch (json['focus_changed_at']) {
-      final String at => DateTime.tryParse(at)?.toLocal(),
+      final String at => switch (DateTime.tryParse(at)) {
+        final DateTime t => toKst(t),
+        null => null,
+      },
+      _ => null,
+    },
+    hasPassword: (json['has_password'] as bool?) ?? true,
+    notesChangedBy: switch (json['notes_changed_by']) {
+      final String by when by.isNotEmpty => by,
+      _ => null,
+    },
+    notesChangedAt: switch (json['notes_changed_at']) {
+      final String at => switch (DateTime.tryParse(at)) {
+        final DateTime t => toKst(t),
+        null => null,
+      },
       _ => null,
     },
   );

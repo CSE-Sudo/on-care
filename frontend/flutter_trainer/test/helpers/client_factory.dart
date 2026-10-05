@@ -20,10 +20,12 @@ TrainerClient makeClient({
   String lastMessage = '안녕하세요',
   String lastTime = '방금',
   String lastRoutine = '오늘',
-  List<int>? weekCompletion,
+  List<int?>? weekCompletion,
   List<int>? sodiumWeek,
   List<int> caloriesWeek = const <int>[],
   List<ClientSignal> signals = const <ClientSignal>[],
+  String gender = '',
+  int? age,
 }) {
   return TrainerClient(
     id: id,
@@ -45,5 +47,7 @@ TrainerClient makeClient({
         sodiumWeek ?? const <int>[1500, 1500, 1500, 1500, 1500, 1500, 1500],
     caloriesWeek: caloriesWeek,
     signals: signals,
+    gender: gender,
+    age: age,
   );
 }

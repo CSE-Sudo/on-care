@@ -9,7 +9,9 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 /// 받은 포인트가 없으면(하루 한도·적립 대상 아님·적립을 모르는 서버) null 이다 —
 /// 그때는 적립 표시 없이 저장 알림만 뜬다.
 String? pointsRewardLabel(AppLocalizations l, PointsAward? award) =>
-    award != null && award.hasReward ? l.pointsRewardBadge(award.awarded) : null;
+    award != null && award.hasReward
+    ? l.pointsRewardBadge(award.awarded)
+    : null;
 
 /// 기록을 저장·삭제한 뒤 MY 의 포인트 잔액을 다시 읽는다. (#1786)
 ///
@@ -18,8 +20,12 @@ String? pointsRewardLabel(AppLocalizations l, PointsAward? award) =>
 ///
 /// 운동 기록이 바뀌면 주간 챌린지 진행(운동한 날 수)도 달라지므로 함께 다시
 /// 읽는다(#1789). 보고 있는 화면이 없으면 무효화는 아무 일도 하지 않는다.
-void refreshPointsBalance(WidgetRef ref) {
-  ref
-    ..invalidate(myHealthStateProvider)
-    ..invalidate(weeklyChallengeProvider);
+void refreshPointsBalance(WidgetRef ref) =>
+    invalidatePointsBalance(ref.invalidate);
+
+/// [refreshPointsBalance] 와 같은 일을 `WidgetRef` 없이 한다. 화면이 이미 닫힌
+/// 뒤 `ProviderContainer.invalidate` 로 비워야 하는 자리가 쓴다(#2847).
+void invalidatePointsBalance(void Function(ProviderOrFamily) invalidate) {
+  invalidate(myHealthStateProvider);
+  invalidate(weeklyChallengeProvider);
 }

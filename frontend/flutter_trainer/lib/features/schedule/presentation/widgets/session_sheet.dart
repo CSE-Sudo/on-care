@@ -1,9 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_core/request_id.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/core/utils/request_id.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_recurrence.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
@@ -46,6 +49,23 @@ class SessionSheet extends ConsumerStatefulWidget {
   @override
   ConsumerState<SessionSheet> createState() => _SessionSheetState();
 }
+
+/// 수정하는 회차의 **서버에 반영된** 값 — 바뀐 칸을 가를 기준이다(#3102).
+///
+/// 저장은 여러 요청(되돌리기 → 고치기 → 반복 만들기 → 완료)으로 나뉜다. 앞
+/// 요청만 반영된 뒤 실패한 창에서 다시 저장할 때, 창을 열 때 받은 값과 비교하면
+/// 이미 끝난 되돌리기를 또 보내 서버가 거절한다. 요청이 성공할 때마다 이 값을
+/// 그 결과로 옮겨 재시도가 남은 단계만 보내게 한다.
+typedef _SavedFields = ({
+  bool done,
+  String date,
+  String time,
+  int durationMinutes,
+  String clientName,
+  String? clientId,
+  String type,
+  String note,
+});
 
 class _SessionSheetState extends ConsumerState<SessionSheet> {
   static const List<String> _types = SessionType.all;
@@ -96,6 +116,31 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
   /// 예약 슬롯의 `typeLocked`와 같은 자리다: 값만 보여주고 잠근다(#1396).
   late bool _clientLocked;
 
+  /// 취소·노쇼로 끝난 세션인가 — 일정 칸을 모두 읽기 전용으로 그린다(#2889).
+  ///
+  /// 서버는 마무리된 세션의 메모·프로그램 밖의 변경을 409 로 거절한다. 메뉴가
+  /// 이미 `일정 수정` 을 잠그지만, 다른 진입로가 생겨도 같은 규칙이 되도록 창도
+  /// 스스로 잠근다.
+  bool get _endedLocked {
+    final e = widget.existing;
+    return e != null && (e.isCancelled || e.isNoShow);
+  }
+
+  /// 완료 세션인데 날짜를 앞으로 옮기지 않았는가(#2889).
+  ///
+  /// 완료 세션의 일정은 날짜를 미래로 옮겨 예정으로 되돌릴 때만 바꿀 수 있다
+  /// (#1396). 그 전에는 날짜 칸만 열고, 회원·종류·시각·반복은 잠근다 —
+  /// 그대로 저장하면 서버가 409 로 거절한다.
+  bool get _doneLocked {
+    final e = widget.existing;
+    if (e == null || !e.isDone) return false;
+    final String picked = ymd(_date);
+    return picked == e.date || picked.compareTo(ymd(todayKst())) <= 0;
+  }
+
+  /// 일정 칸(회원·종류·시각·반복)이 잠겼는가.
+  bool get _scheduleLocked => _endedLocked || _doneLocked;
+
   /// [base] plus [current] when it isn't already offered.
   static List<T> _withCurrent<T>(List<T> base, T? current) {
     if (current == null || base.contains(current)) return List<T>.of(base);
@@ -107,6 +152,18 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
     super.initState();
     final e = widget.existing;
     _note = TextEditingController(text: e?.note ?? '');
+    if (e != null) {
+      _saved = (
+        done: e.status == ScheduleStatus.done,
+        date: e.date,
+        time: e.time,
+        durationMinutes: e.durationMinutes,
+        clientName: e.clientName,
+        clientId: e.clientId,
+        type: e.type,
+        note: e.note,
+      );
+    }
 
     final roster = widget.clients;
     if (e != null && e.clientName.isNotEmpty) {
@@ -184,7 +241,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
   /// 수정에서 보낼 회원 id — 고른 회원이 바뀌었을 때만 보낸다. 그대로면 서버의
   /// 값을 건드리지 않는다: 담당이 해제된 회원의 옛 회차를 고치다 404 를 받거나,
   /// 이름만 가진 회차의 비어 있는 id 를 지우는 일이 없게(#2586).
-  String? _changedClientId(ScheduleSession e) {
+  String? _changedClientId(_SavedFields e) {
     final id = _pickedClientId;
     return id == e.clientId ? null : id;
   }
@@ -206,9 +263,90 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
   /// 화면이 보여 준 회차 수와 실제로 만들어지는 수가 어긋나지 않는다.
   List<DateTime> get _occurrences => seriesOccurrences(_date, _rule);
 
+  /// 지난 반복 등록 시도의 (입력 지문, 멱등키).
+  ({String fingerprint, String id})? _seriesRequest;
+
   /// 반복 등록 시도 하나의 멱등키. 재시도에 같은 값을 다시 보내야 회차가 두 벌
-  /// 생기지 않는다 — 시트를 여는 동안 고정한다.
-  late final String _requestId = newClientRequestId();
+  /// 생기지 않는다 — 입력이 지난 시도와 같으면 그 키를 다시 쓴다.
+  ///
+  /// 입력(시작일·시각·요일·종료일·회원·종류·메모)을 바꿨으면 다른 요청이므로
+  /// 새 키를 만든다. 창 하나에 키를 고정하면, 응답만 잃은 뒤 시간을 바꿔 다시
+  /// 저장한 요청을 서버가 같은 시도로 보고 옛 시간의 회차를 돌려준다 —
+  /// 트레이너가 고른 새 시간이 조용히 버려진다(#3102). 코칭 화면의
+  /// `_requestIdFor` 와 같은 방식이다.
+  String _seriesRequestIdFor({
+    required DateTime start,
+    required WeeklyRecurrence rule,
+    required int durationMinutes,
+    required String note,
+  }) {
+    final until = rule.until;
+    final fingerprint = jsonEncode(<Object?>[
+      ymd(start),
+      _time,
+      rule.weekdays.toList()..sort(),
+      until == null ? null : ymd(until),
+      durationMinutes,
+      _client,
+      _pickedClientId,
+      _type,
+      note,
+    ]);
+    final pending = _seriesRequest;
+    if (pending != null && pending.fingerprint == fingerprint) {
+      return pending.id;
+    }
+    final id = newClientRequestId();
+    _seriesRequest = (fingerprint: fingerprint, id: id);
+    return id;
+  }
+
+  /// 수정하는 회차의 서버에 반영된 값. 새 일정이면 null.
+  _SavedFields? _saved;
+
+  /// 수정 + 반복에서 이미 만든 회차(그 시도의 멱등키와 함께). 재시도는 미리보기·
+  /// 만들기를 건너뛰고 남은 완료 처리만 이어 간다(#3102).
+  ({String requestId, List<ScheduleSession> sessions})? _createdSeries;
+
+  /// 수정 + 반복에서 완료 처리까지 끝낸 회차 id.
+  final Set<String> _completedIds = <String>{};
+
+  /// 반복 미리보기 뒤 만들기. 같은 키로 이미 만들어졌으면(응답만 잃은 재시도)
+  /// 미리보기 충돌을 보지 않고 같은 키로 다시 불러 그 회차를 돌려받는다 — 미리
+  /// 보기가 방금 만든 자기 회차와 겹친다고 막으면 재시도가 영원히 통과하지
+  /// 못한다(#3102). 그 밖의 충돌은 [ScheduleSeriesConflictError] 로 올린다.
+  Future<List<ScheduleSession>> _previewThenCreate(
+    ScheduleRepository repo, {
+    required DateTime start,
+    required WeeklyRecurrence rule,
+    required int durationMinutes,
+    required String note,
+    required String requestId,
+  }) async {
+    // 만들기 전에 충돌을 먼저 본다. 서버도 같은 검사로 409 를 주지만, 화면이
+    // 겹친 회차를 짚어 주려면 목록이 필요하다(#870).
+    final preview = await repo.previewRecurring(
+      start: start,
+      time: _time,
+      rule: rule,
+      durationMinutes: durationMinutes,
+      clientRequestId: requestId,
+    );
+    if (!preview.alreadyCreated && preview.conflicts.isNotEmpty) {
+      throw ScheduleSeriesConflictError(preview.conflicts);
+    }
+    return repo.addRecurringSessions(
+      start: start,
+      time: _time,
+      rule: rule,
+      clientName: _client,
+      clientId: _pickedClientId,
+      type: _type,
+      durationMinutes: durationMinutes,
+      note: note,
+      clientRequestId: requestId,
+    );
+  }
 
   Future<void> _save() async {
     if (_saving) return;
@@ -224,8 +362,10 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
     }
     final e = widget.existing;
     final String newDate = ymd(_date);
-    final bool reopening =
-        e != null && e.status == ScheduleStatus.done && newDate != e.date;
+    // 창을 열 때 받은 값이 아니라 서버에 반영된 값과 비교한다 — 되돌리기만
+    // 성공하고 다음 단계가 실패한 재시도가 되돌리기를 또 보내지 않게(#3102).
+    final saved = _saved;
+    final bool reopening = saved != null && saved.done && newDate != saved.date;
     if (reopening) {
       // 완료 세션은 미래로만 되돌린다 — 오늘·과거는 "완료 취소"이지 반복
       // 시작 회차를 다시 잡는 일이 아니다(#1396).
@@ -246,33 +386,19 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
       if (e == null && _repeatDays.isNotEmpty) {
         final start = _date;
         final rule = _rule;
-        // 만들기 전에 충돌을 먼저 본다. 서버도 같은 검사로 409 를 주지만, 화면이
-        // 겹친 회차를 짚어 주려면 목록이 필요하다(#870).
-        final preview = await repo.previewRecurring(
+        final note = _note.text.trim();
+        await _previewThenCreate(
+          repo,
           start: start,
-          time: _time,
           rule: rule,
           durationMinutes: duration,
-        );
-        if (preview.conflicts.isNotEmpty) {
-          if (mounted) {
-            setState(() {
-              _saving = false;
-              _conflicts = preview.conflicts;
-            });
-          }
-          return;
-        }
-        await repo.addRecurringSessions(
-          start: start,
-          time: _time,
-          rule: rule,
-          clientName: _client,
-          clientId: _pickedClientId,
-          type: _type,
-          durationMinutes: duration,
-          note: _note.text.trim(),
-          clientRequestId: _requestId,
+          note: note,
+          requestId: _seriesRequestIdFor(
+            start: start,
+            rule: rule,
+            durationMinutes: duration,
+            note: note,
+          ),
         );
       } else if (e == null) {
         await repo.addSession(
@@ -290,21 +416,11 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
         // 만든다(#1396).
         await _saveEditAsRepeatStart(repo, e, duration, newDate, reopening);
       } else {
-        if (reopening) await repo.reopenSession(e.id, date: newDate);
-        await repo.updateSession(
-          e.id,
-          date: newDate == e.date ? null : newDate,
-          clientName: _client,
-          clientId: _changedClientId(e),
-          time: _time,
-          type: _type,
-          durationMinutes: duration,
-          note: _note.text.trim(),
-        );
+        await _applyEdit(repo, e, duration, newDate, reopening);
       }
     } on ScheduleSeriesConflictError catch (error) {
-      // 서버가 막은 경우(미리보기 뒤에 다른 일정이 생겼을 때)도 같은 자리에
-      // 같은 목록을 보여 준다.
+      // 미리보기가 찾은 충돌과, 서버가 막은 경우(미리보기 뒤에 다른 일정이
+      // 생겼을 때) 모두 같은 자리에 같은 목록을 보여 준다.
       if (mounted) {
         setState(() {
           _saving = false;
@@ -323,12 +439,18 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
         });
       }
       return;
-    } catch (_) {
+    } catch (error) {
       // Surface the failure and keep the sheet open so the input isn't
-      // lost (review PR 218).
+      // lost (review PR 218). 서버가 사유를 주면(마무리된 세션·회원 예약
+      // 일정의 409 등) 그 사유를 보인다 — 일반 문구만으로는 왜 안 되는지,
+      // 무엇을 하면 되는지 알 수 없다(#2754·#2756).
       if (!mounted) return;
       setState(() => _saving = false);
-      showAppToast(context, l.schedSaveFailed, type: AppToastType.error);
+      showAppToast(
+        context,
+        appErrorMessage(l, error, fallback: l.schedSaveFailed),
+        type: AppToastType.error,
+      );
       return;
     }
     if (mounted) setState(() => _saving = false);
@@ -350,51 +472,138 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
     String newDate,
     bool reopening,
   ) async {
-    if (reopening) await repo.reopenSession(e.id, date: newDate);
-    await repo.updateSession(
-      e.id,
-      date: newDate == e.date ? null : newDate,
-      clientName: _client,
-      clientId: _changedClientId(e),
-      time: _time,
-      type: _type,
-      durationMinutes: duration,
-      note: _note.text.trim(),
-    );
+    await _applyEdit(repo, e, duration, newDate, reopening);
 
     // 이 회차가 이미 시리즈의 첫 회차다 — 나머지는 그다음 날부터, 같은
     // 종료일까지 만든다.
     final until = _repeatUntil;
     if (until == null) return;
-    final nextStart = _date.add(const Duration(days: 1));
+    // 달력의 다음 날이다 — 24시간을 더하면 서머타임이 끝나는 날 같은 날
+    // 23:00 이 되어 첫 회차와 겹친다는 충돌로 저장이 막혔다(#2890).
+    final nextStart = addCalendarDays(_date, 1);
     if (nextStart.isAfter(until)) return;
     final rule = WeeklyRecurrence(weekdays: _repeatDays, until: until);
-    final preview = await repo.previewRecurring(
+    final requestId = _seriesRequestIdFor(
       start: nextStart,
-      time: _time,
       rule: rule,
-      durationMinutes: duration,
-    );
-    if (preview.conflicts.isNotEmpty) {
-      throw ScheduleSeriesConflictError(preview.conflicts);
-    }
-    final created = await repo.addRecurringSessions(
-      start: nextStart,
-      time: _time,
-      rule: rule,
-      clientName: _client,
-      clientId: _pickedClientId,
-      type: _type,
       durationMinutes: duration,
       note: '',
-      clientRequestId: _requestId,
     );
-    final today = ymd(todayKst());
+    // 같은 시도로 이미 만들었으면 다시 만들지 않고 남은 완료만 이어 간다 —
+    // 완료 처리 중간에 실패한 재시도가 자기 회차와 겹친다고 멈추지 않게(#3102).
+    final made = _createdSeries;
+    final List<ScheduleSession> created;
+    if (made != null && made.requestId == requestId) {
+      created = made.sessions;
+    } else {
+      created = await _previewThenCreate(
+        repo,
+        start: nextStart,
+        rule: rule,
+        durationMinutes: duration,
+        note: '',
+        requestId: requestId,
+      );
+      _createdSeries = (requestId: requestId, sessions: created);
+    }
+    // 이미 시작한 회차만 완료한다 — 오늘이라도 시작 전이면 서버가 완료를
+    // 거절한다(#2760). 그 회차는 예정으로 남는다. 앞선 시도에서 완료한 회차는
+    // 건너뛴다 — 다시 보내면 서버가 이미 완료라고 거절한다.
+    final DateTime now = nowKst();
     for (final session in created) {
-      if (session.date.compareTo(today) <= 0) {
+      if (_completedIds.contains(session.id) ||
+          session.status == ScheduleStatus.done) {
+        continue;
+      }
+      if (sessionHasStarted(session, now)) {
         await repo.completeSession(session.id);
+        _completedIds.add(session.id);
       }
     }
+  }
+
+  /// 기존 회차 [e] 에 시트의 입력을 반영한다 — **바뀐 칸만** 보낸다(#2754).
+  ///
+  /// 서버는 마무리된 세션·회원 예약 일정에서 메모·프로그램 말고 다른 칸이
+  /// 오기만 해도 거절한다. 메모만 고친 저장에 시간·종류까지 실으면 그 거절에
+  /// 걸리므로, 값이 그대로인 칸은 null('그대로')로 둔다.
+  ///
+  /// 완료 회차를 미래로 옮길 때는([reopening]) 날짜·시각·길이를 되돌리기
+  /// 요청 하나에 함께 싣는다(#2757). 서버가 그 자리의 겹침을 기록을 지우기
+  /// 전에 보므로, 겹치면 완료 기록이 그대로 남는다. 나머지 칸(회원·종류·
+  /// 메모)은 되돌린 뒤 이어서 고친다 — 그때는 예정 세션이라 거절되지 않는다.
+  ///
+  /// 바뀐 칸은 창을 열 때 받은 값이 아니라 [_saved](서버에 반영된 값)와
+  /// 비교하고, 요청이 성공할 때마다 [_saved] 를 옮긴다 — 되돌리기만 반영된 뒤
+  /// 실패한 재시도가 되돌리기를 다시 보내지 않고 남은 칸만 고친다(#3102).
+  Future<void> _applyEdit(
+    ScheduleRepository repo,
+    ScheduleSession session,
+    int duration,
+    String newDate,
+    bool reopening,
+  ) async {
+    var e = _saved!;
+    if (reopening) {
+      await repo.reopenSession(
+        session.id,
+        date: newDate,
+        time: _time == e.time ? null : _time,
+        durationMinutes: duration == e.durationMinutes ? null : duration,
+      );
+      e = (
+        done: false,
+        date: newDate,
+        time: _time,
+        durationMinutes: duration,
+        clientName: e.clientName,
+        clientId: e.clientId,
+        type: e.type,
+        note: e.note,
+      );
+      _saved = e;
+    }
+    final String note = _note.text.trim();
+    final String? clientName = _client == e.clientName ? null : _client;
+    final String? clientId = _changedClientId(e);
+    final String? type = _type == e.type ? null : _type;
+    final String? changedNote = note == e.note ? null : note;
+    // 되돌리기가 날짜·시각·길이를 이미 옮겼으면 [e] 가 그 값이라 여기서는
+    // 비어 나간다.
+    final String? date = newDate == e.date ? null : newDate;
+    final String? changedTime = _time == e.time ? null : _time;
+    final int? changedDuration = duration == e.durationMinutes
+        ? null
+        : duration;
+    if (date == null &&
+        clientName == null &&
+        clientId == null &&
+        changedTime == null &&
+        type == null &&
+        changedDuration == null &&
+        changedNote == null) {
+      return;
+    }
+    await repo.updateSession(
+      session.id,
+      date: date,
+      clientName: clientName,
+      clientId: clientId,
+      time: changedTime,
+      type: type,
+      durationMinutes: changedDuration,
+      note: changedNote,
+    );
+    _saved = (
+      done: e.done,
+      date: newDate,
+      time: _time,
+      durationMinutes: duration,
+      clientName: _client,
+      clientId: clientId ?? e.clientId,
+      type: _type,
+      note: note,
+    );
   }
 
   /// 완료 세션을 미래로 옮기기 전 확인. 되돌리면 완료가 남긴 운동 기록이
@@ -425,7 +634,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
         context: context,
         initialRange: DateTimeRange(
           start: _date,
-          end: _repeatUntil ?? _date.add(const Duration(days: 56)),
+          end: _repeatUntil ?? addCalendarDays(_date, 56),
         ),
         firstDate: first.subtract(const Duration(days: 365)),
         lastDate: today.add(const Duration(days: 7 * maxSeriesOccurrences)),
@@ -472,7 +681,8 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
         confirmLabel: widget.existing == null
             ? l.schedAddAction
             : l.schedSaveAction,
-        onConfirm: _saving ? null : _save,
+        // 취소·노쇼 세션은 이 창에서 바꿀 수 있는 칸이 없다(#2889).
+        onConfirm: _saving || _endedLocked ? null : _save,
         confirmLoading: _saving,
       ),
       child: _fields(l),
@@ -480,10 +690,22 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
   }
 
   Widget _fields(AppLocalizations l) {
+    final bool locked = _scheduleLocked;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
+        // 끝난 세션은 왜 칸이 잠겼는지 먼저 말한다(#2889).
+        if (locked) ...<Widget>[
+          Text(
+            _endedLocked ? l.schedEndedLockedHint : l.schedDoneLockedHint,
+            key: const ValueKey<String>('session-sheet-locked-hint'),
+            style: context.oncare
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+        ],
         // 고객·유형은 같은 층위의 선택이라 한 줄에 묶는다 — 세로로
         // 나란한 두 드롭다운이 각자 한 줄을 다 쓸 이유가 없다(#1090).
         Row(
@@ -505,7 +727,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
                         child: Text(c.name),
                       ),
                 ],
-                onChanged: _clientLocked ? null : _pickClient,
+                onChanged: _clientLocked || locked ? null : _pickClient,
               ),
             ),
             const SizedBox(width: OnCareSpacing.s8),
@@ -521,7 +743,9 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
                       child: Text(sessionTypeLabel(l, t)),
                     ),
                 ],
-                onChanged: (v) => setState(() => _type = v ?? _type),
+                onChanged: locked
+                    ? null
+                    : (v) => setState(() => _type = v ?? _type),
               ),
             ),
           ],
@@ -541,68 +765,9 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
         ),
         const SizedBox(height: OnCareSpacing.s12),
         // 반복은 수정에서도 켤 수 있다(#1396) — 이 회차를 반복의 시작
-        // 회차로 삼고, 나머지는 새로 만든다(`_save` 참고).
-        _fieldLabel(l.schedRepeat),
-        const SizedBox(height: OnCareSpacing.s8),
-        // `반복 없음` 이 기본값이다 — `매주` 하나를 껐다 켰다 하는 토글로
-        // 둔다. 켜면 옆에 요일 칩이 붙는다.
-        Wrap(
-          spacing: OnCareSpacing.s4,
-          runSpacing: OnCareSpacing.s4,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: <Widget>[
-            AppChoiceChip(
-              key: const ValueKey<String>('repeat-weekly'),
-              label: l.schedRepeatWeekly,
-              selected: _repeatDays.isNotEmpty,
-              onSelected: (_) => setState(() {
-                if (_repeatDays.isNotEmpty) {
-                  _repeatDays.clear();
-                  _repeatUntil = null;
-                } else {
-                  // 켜는 순간의 기본값은 **시작일의 요일**이다. 빈 상태로
-                  // 켜면 "매주" 를 골랐는데 아무 회차도 없는 화면이 된다.
-                  _repeatDays.add(_date.weekday);
-                  // 종료일도 바로 채워 미리보기가 곧장 뜨게 한다 — 위 날짜
-                  // 필드를 눌러 언제든 다시 고를 수 있다.
-                  _repeatUntil ??= _date.add(const Duration(days: 56));
-                }
-              }),
-            ),
-            if (_repeatDays.isNotEmpty)
-              for (var day = 1; day <= 7; day++)
-                AppChoiceChip(
-                  key: ValueKey<String>('repeat-day-$day'),
-                  label: weekdayNames(l)[day - 1],
-                  selected: _repeatDays.contains(day),
-                  onSelected: (_) => setState(() {
-                    if (_repeatDays.contains(day)) {
-                      if (_repeatDays.length > 1) {
-                        // 마지막 요일까지 끄면 `매주` 인데 회차가 없는
-                        // 상태가 된다 — 끄려면 `매주` 를 다시 눌러 반복
-                        // 자체를 끈다.
-                        _repeatDays.remove(day);
-                      }
-                    } else {
-                      _repeatDays.add(day);
-                    }
-                  }),
-                ),
-          ],
-        ),
-        if (_repeatDays.isNotEmpty) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s8),
-          // 종료일은 위 날짜 필드에서 시작일과 함께 범위로 고른다 — 요일을
-          // 고르면 회차 수는 아래 미리보기가 그대로 계산해 준다.
-          SessionRepeatPreview(dates: _occurrences),
-          if (_conflicts.isNotEmpty) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s8),
-            SessionRepeatConflicts(
-              total: _occurrences.length,
-              conflicts: _conflicts,
-            ),
-          ],
-        ],
+        // 회차로 삼고, 나머지는 새로 만든다(`_save` 참고). 끝난 세션은
+        // 반복의 시작 회차가 될 수 없어 세우지 않는다(#2889).
+        if (!locked) ..._repeatFields(l),
         if (widget.existing == null) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s12),
           // PT 에 적는 글은 PT 를 마친 뒤 회원 앱에 가는 트레이너 피드백이고,
@@ -640,6 +805,71 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
     );
   }
 
+  /// 반복 칸 — 라벨·`매주` 토글·요일·미리보기. 끝난 세션에는 세우지 않는다(#2889).
+  List<Widget> _repeatFields(AppLocalizations l) => <Widget>[
+    _fieldLabel(l.schedRepeat),
+    const SizedBox(height: OnCareSpacing.s8),
+    // `반복 없음` 이 기본값이다 — `매주` 하나를 껐다 켰다 하는 토글로
+    // 둔다. 켜면 옆에 요일 칩이 붙는다.
+    Wrap(
+      spacing: OnCareSpacing.s4,
+      runSpacing: OnCareSpacing.s4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: <Widget>[
+        AppChoiceChip(
+          key: const ValueKey<String>('repeat-weekly'),
+          label: l.schedRepeatWeekly,
+          selected: _repeatDays.isNotEmpty,
+          onSelected: (_) => setState(() {
+            if (_repeatDays.isNotEmpty) {
+              _repeatDays.clear();
+              _repeatUntil = null;
+            } else {
+              // 켜는 순간의 기본값은 **시작일의 요일**이다. 빈 상태로
+              // 켜면 "매주" 를 골랐는데 아무 회차도 없는 화면이 된다.
+              _repeatDays.add(_date.weekday);
+              // 종료일도 바로 채워 미리보기가 곧장 뜨게 한다 — 위 날짜
+              // 필드를 눌러 언제든 다시 고를 수 있다.
+              _repeatUntil ??= addCalendarDays(_date, 56);
+            }
+          }),
+        ),
+        if (_repeatDays.isNotEmpty)
+          for (var day = 1; day <= 7; day++)
+            AppChoiceChip(
+              key: ValueKey<String>('repeat-day-$day'),
+              label: weekdayNames(l)[day - 1],
+              selected: _repeatDays.contains(day),
+              onSelected: (_) => setState(() {
+                if (_repeatDays.contains(day)) {
+                  if (_repeatDays.length > 1) {
+                    // 마지막 요일까지 끄면 `매주` 인데 회차가 없는
+                    // 상태가 된다 — 끄려면 `매주` 를 다시 눌러 반복
+                    // 자체를 끈다.
+                    _repeatDays.remove(day);
+                  }
+                } else {
+                  _repeatDays.add(day);
+                }
+              }),
+            ),
+      ],
+    ),
+    if (_repeatDays.isNotEmpty) ...<Widget>[
+      const SizedBox(height: OnCareSpacing.s8),
+      // 종료일은 위 날짜 필드에서 시작일과 함께 범위로 고른다 — 요일을
+      // 고르면 회차 수는 아래 미리보기가 그대로 계산해 준다.
+      SessionRepeatPreview(dates: _occurrences),
+      if (_conflicts.isNotEmpty) ...<Widget>[
+        const SizedBox(height: OnCareSpacing.s8),
+        SessionRepeatConflicts(
+          total: _occurrences.length,
+          conflicts: _conflicts,
+        ),
+      ],
+    ],
+  ];
+
   /// 필드 위 라벨 — `AppTextField`/`AppSelectField` 의 라벨과 같은 모양이다.
   Widget _fieldLabel(String text) {
     return Text(
@@ -658,12 +888,14 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
     required String value,
     required IconData icon,
     required VoidCallback onTap,
+    bool enabled = true,
   }) {
     final OnCareTokens tokens = context.oncare;
     return GestureDetector(
       key: key,
       behavior: HitTestBehavior.opaque,
-      onTap: onTap,
+      // 잠긴 칸은 눌러도 선택창을 열지 않는다(#2889).
+      onTap: enabled ? onTap : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
@@ -672,15 +904,21 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
           const SizedBox(height: OnCareSpacing.s8),
           InputDecorator(
             decoration: InputDecoration(
+              enabled: enabled,
               suffixIcon: AppIcon(icon, size: OnCareSize.iconSmall),
             ),
             child: Text(
               value,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: OnCareTypography.numeric(
-                tokens.text(OnCareTypography.body),
-              ).copyWith(color: OnCareColors.textPrimary),
+              style:
+                  OnCareTypography.numeric(
+                    tokens.text(OnCareTypography.body),
+                  ).copyWith(
+                    color: enabled
+                        ? OnCareColors.textPrimary
+                        : OnCareColors.textTertiary,
+                  ),
             ),
           ),
         ],
@@ -696,6 +934,7 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
       value: l.schedTimeRange(_time, _endTime),
       icon: AppIcons.clock,
       onTap: _pickTimeRange,
+      enabled: !_scheduleLocked,
     );
   }
 
@@ -719,6 +958,9 @@ class _SessionSheetState extends ConsumerState<SessionSheet> {
           : ymd(_date),
       icon: AppIcons.calendar,
       onTap: _pickDate,
+      // 완료 세션은 날짜를 앞으로 옮겨 예정으로 되돌릴 수 있다(#1396) —
+      // 취소·노쇼만 날짜까지 잠근다(#2889).
+      enabled: !_endedLocked,
     );
   }
 }

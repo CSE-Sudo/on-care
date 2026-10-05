@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/member_report_history_provider.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
@@ -265,7 +265,9 @@ class _HistoryRow extends ConsumerWidget {
     if (preview.isEmpty) {
       final WeeklyReport? report = ref
           .watch(
-            weeklyReportProvider((client: client, weekStart: item.weekStart)),
+            weeklyReportProvider(
+              ReportKey(client: client, weekStart: item.weekStart),
+            ),
           )
           .valueOrNull;
       if (report != null) {

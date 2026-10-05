@@ -130,9 +130,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get actionChange => '변경';
 
   @override
-  String get actionBack => '뒤로';
-
-  @override
   String get actionAdd => '추가';
 
   @override
@@ -152,6 +149,31 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get notFoundGoSignIn => '로그인하러 가기';
+
+  @override
+  String get misconfiguredBuildTitle => '이 빌드는 잘못 구성됐어요';
+
+  @override
+  String get misconfiguredBuildMessage =>
+      '실제 사용자에게 쓸 수 없는 설정으로 빌드되어 앱을 열지 않았어요. 배포 담당자에게 아래 내용을 알려 주세요.';
+
+  @override
+  String get misconfiguredBuildDetailsTitle => '고쳐야 할 빌드 설정';
+
+  @override
+  String get misconfiguredBuildDevEnvironment => 'ENV 가 prod 또는 staging 이 아니에요';
+
+  @override
+  String get misconfiguredBuildMockWithoutDemo =>
+      '데모 빌드 표시 없이 데모 데이터를 쓰고 있어요 (USE_MOCK_API, DEMO_BUILD)';
+
+  @override
+  String get misconfiguredBuildPlaceholderApiUrl =>
+      'API 주소가 예시·로컬 주소예요 (API_BASE_URL)';
+
+  @override
+  String get misconfiguredBuildInsecureApiUrl =>
+      'API 주소가 https:// 로 시작하지 않아요 (API_BASE_URL)';
 
   @override
   String get appWordmarkTrainer => '트레이너';
@@ -207,10 +229,46 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authPasswordConfirm => '비밀번호 확인';
 
   @override
-  String get authLegalNotice => '가입하면 아래 문서에 동의하는 것으로 봅니다';
+  String get authSignUpAndStart => '가입하고 시작하기';
 
   @override
-  String get authSignUpAndStart => '가입하고 시작하기';
+  String get consentAll => '전체 동의';
+
+  @override
+  String get consentRequiredTag => '[필수]';
+
+  @override
+  String get consentOptionalTag => '[선택]';
+
+  @override
+  String get consentView => '보기';
+
+  @override
+  String get consentTerms => '이용약관 동의';
+
+  @override
+  String get consentPrivacy => '개인정보 수집·이용 동의';
+
+  @override
+  String get consentAge14 => '만 14세 이상이에요';
+
+  @override
+  String get consentAge14Detail => '만 14세 미만은 가입할 수 없어요.';
+
+  @override
+  String get consentRequiredHint => '필수 항목에 모두 동의해야 다음으로 넘어갈 수 있어요.';
+
+  @override
+  String get consentPageTitle => '서비스 이용 동의';
+
+  @override
+  String get consentPageSubtitle => '계속 이용하려면 아래 항목을 확인하고 동의해 주세요.';
+
+  @override
+  String get consentPageAction => '동의하고 계속하기';
+
+  @override
+  String get consentPageFailed => '동의를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get authHasAccount => '이미 계정이 있으신가요?';
@@ -220,6 +278,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get authSocialSignInFailed => '소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get authSocialComingSoon => '소셜 로그인은 준비 중이에요. 이메일로 로그인해 주세요.';
 
   @override
   String get authErrSignInFailed => '로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
@@ -238,6 +299,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get authErrEmailInvalid => '이메일 형식이 올바르지 않아요';
+
+  @override
+  String get authErrEmailTooLong => '이메일은 255자까지 입력할 수 있어요';
 
   @override
   String get authErrPasswordEmpty => '비밀번호를 입력해 주세요';
@@ -279,25 +343,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashActivityTabChat => '메시지';
 
   @override
-  String get dashActivityTabDiet => '식단';
-
-  @override
   String get dashActivityTabClient => '회원';
 
   @override
   String get dashLoadFailed => '대시보드를 불러오지 못했어요';
 
   @override
-  String get dashTodayReservations => '오늘 예약';
-
-  @override
   String get dashUnitCount => '건';
 
   @override
   String get dashUnitPeople => '명';
-
-  @override
-  String get dashSeeInSchedule => '스케줄에서 보기';
 
   @override
   String get dashMyClients => '담당 회원';
@@ -349,11 +404,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashChurnRiskEmpty => '지금은 이탈 위험 신호가 없어요.';
 
   @override
-  String get dashActivityDifficultyTitle => '운동 목표 미달·배정 루틴 미수행';
+  String get dashChurnRiskLoading => '최근 운동 기록 확인 중';
+
+  @override
+  String get dashChurnRiskUnavailable => '확인할 수 없음 · 눌러서 다시 시도';
+
+  @override
+  String get dashActivityFeedbackLoading => '최근 운동 기록을 확인하고 있어요.';
+
+  @override
+  String get dashActivityFeedbackUnavailable =>
+      '최근 운동 기록을 불러오지 못해 활동 피드백을 확인할 수 없어요. 이탈 위험 카드를 눌러 다시 시도해 주세요.';
+
+  @override
+  String get dashActivityDifficultyTitle => '운동 목표 미달·개인운동 미수행';
 
   @override
   String dashActivityDifficultyDesc(String names) {
-    return '$names 회원이 이번 주 운동 목표에 못 미치거나 배정 루틴을 하지 않았어요. 다음 세션 전에 난이도를 낮추고 최근 피드백을 확인해 주세요.';
+    return '$names 회원이 이번 주 운동 목표에 못 미치거나 개인운동을 하지 않았어요. 다음 PT 전에 난이도를 낮추고 최근 피드백을 확인해 주세요.';
   }
 
   @override
@@ -385,17 +453,6 @@ class AppLocalizationsKo extends AppLocalizations {
       '아직 담당 회원이 없어요. 회원을 등록하면 식단·운동 데이터를 모아 코칭 포인트를 짚어 드릴게요.';
 
   @override
-  String get dashAttentionTitle => '확인 필요 회원';
-
-  @override
-  String dashMoreCount(int count) {
-    return '+$count명';
-  }
-
-  @override
-  String get dashNoAttention => '지금 챙길 회원이 없어요';
-
-  @override
   String get dashTodaySchedule => '오늘의 일정';
 
   @override
@@ -420,6 +477,16 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String dashScheduleMinutesLeft(int minutes) {
     return '$minutes분 뒤';
+  }
+
+  @override
+  String dashScheduleInProgress(String time, String name) {
+    return '진행 중 $time · $name';
+  }
+
+  @override
+  String dashScheduleMinutesToEnd(int minutes) {
+    return '$minutes분 남음';
   }
 
   @override
@@ -504,15 +571,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientsFilterLabel => '필터';
 
   @override
-  String clientsToolbarCount(int shown, int active) {
-    return '$shown명 · 활성 $active명';
-  }
-
-  @override
   String get clientsPickHint => '왼쪽에서 회원을 선택하면\n대화·식단·운동 기록이 여기에 열려요';
 
   @override
   String get clientsEmpty => '아직 담당 회원이 없어요';
+
+  @override
+  String get clientsEmptyConnectHint =>
+      '연결 코드를 받거나 담당 요청을 보내 회원을 연결하세요. 회원이 상담을 신청하면 상담 요청함에도 표시돼요.';
 
   @override
   String clientsEmptyForFilter(String filter) {
@@ -558,7 +624,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get clientsSignalRoutineMissed => '배정 루틴 미수행';
+  String get clientsSignalRoutineMissed => '개인운동 미수행';
 
   @override
   String get clientsSignalExerciseGoalLow => '운동 목표 미달';
@@ -597,7 +663,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String clientsSignalRoutineMissedDays(int days) {
-    return '배정 루틴 $days일 미수행';
+    return '개인운동 $days일 미수행';
   }
 
   @override
@@ -678,6 +744,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get memberHealthConditions => '건강상태·주의사항';
 
   @override
+  String get memberHealthConditionsShared => '회원에게도 보여요 · 추천할 때 참고해요';
+
+  @override
+  String get memberHealthConditionsPrivateHint => '트레이너만 볼 내용은 메모에 남겨 주세요.';
+
+  @override
   String get memberHealthDietGoal => '식단 목표';
 
   @override
@@ -714,18 +786,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get memberHealthGoalFlexibilityWeekly => '주간 스트레칭 (분)';
 
   @override
-  String get memberHealthWeeklyGoal => '주간 운동 목표';
-
-  @override
-  String get memberHealthWeeklyCount => '횟수';
-
-  @override
-  String get memberHealthWeeklyMinutes => '시간(분)';
-
-  @override
-  String get memberHealthWeeklyBurn => '소모 kcal';
-
-  @override
   String memberHealthRange(String min, String max) {
     return '$min~$max 범위로 입력해 주세요.';
   }
@@ -748,6 +808,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get clientConnectCodeInvalid => '코드가 맞지 않거나 만료됐어요. 회원에게 새 코드를 받아 주세요';
+
+  @override
+  String get clientConnectAlreadyManaged => '이미 담당하고 있는 회원이에요. 회원 목록에서 찾아 주세요';
 
   @override
   String get clientInviteConnectAction => '회원 등록';
@@ -785,9 +848,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachTemplateEdit => '템플릿 편집';
 
   @override
-  String get coachTemplateSaveAsMine => '내 템플릿으로 저장';
-
-  @override
   String get coachTemplateDelete => '삭제';
 
   @override
@@ -821,15 +881,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachTemplateDeleteFailed => '템플릿을 지우지 못했어요. 다시 시도해 주세요';
 
   @override
+  String get coachTemplateAlreadyDeleted => '이미 지워진 템플릿이에요';
+
+  @override
   String coachTemplateDeleteConfirm(String name) {
     return '$name 템플릿을 지울까요?';
   }
 
   @override
   String get coachTemplateLoadFailed => '템플릿을 불러오지 못했어요';
-
-  @override
-  String get coachTemplateStarterHint => '기본 구성이에요. 고치면 내 템플릿으로 저장돼요';
 
   @override
   String get chatEmoteLabel => '이모티콘';
@@ -842,6 +902,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get chatImageSendFailed => '사진을 보내지 못했어요. 다시 시도해 주세요';
+
+  @override
+  String get chatImageAlreadySent => '앞서 보낸 사진이 이미 전송돼 있어요. 대화를 확인해 주세요';
 
   @override
   String get clientTabDiet => '식단';
@@ -874,6 +937,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientDietDayTotal => '하루 합계';
 
   @override
+  String get clientDietDayMealsFailed => '끼니 기록을 불러오지 못했어요';
+
+  @override
   String clientDietTotalCalories(String calories) {
     return '총 $calories kcal';
   }
@@ -891,9 +957,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get metricFat => '지방';
-
-  @override
-  String get clientActive => '활성';
 
   @override
   String get clientDormant => '휴면';
@@ -931,20 +994,30 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatLoadFailed => '대화를 불러오지 못했어요';
 
   @override
-  String chatDemoAnalyzed(String name) {
-    return 'AI가 $name님의 식단·운동 데이터를 분석했어요';
+  String get chatLoadOlder => '이전 메시지 더 보기';
+
+  @override
+  String get chatLoadOlderFailed => '이전 메시지를 불러오지 못했어요 · 다시 시도';
+
+  @override
+  String get chatRoutineDelivered => '운동을 보냈어요';
+
+  @override
+  String get chatRoutineDeliveredPt => 'PT 프로그램과 개인운동을 보냈어요';
+
+  @override
+  String get chatRoutineDeliveredPersonal => '개인운동을 보냈어요';
+
+  @override
+  String get chatRoutineDeliveredAfterCancel => '취소된 PT 대신 개인운동을 보냈어요';
+
+  @override
+  String get chatRoutineDeliveredProgram => 'PT 프로그램을 보냈어요';
+
+  @override
+  String chatRoutineDeliveredMore(String names, int count) {
+    return '$names 외 $count개';
   }
-
-  @override
-  String get chatDemoReportSent => '트레이너님께 요약 리포트가 전송됐어요';
-
-  @override
-  String chatDemoRoutineSent(String name) {
-    return '개인 추천운동이 $name님에게 전송됐어요';
-  }
-
-  @override
-  String get chatDemoNotified => '회원 앱에 알림이 전달됐어요';
 
   @override
   String get chatInputHint => '메시지 입력...';
@@ -1007,41 +1080,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatInsightMemoSaveFailed => '메모에 추가하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
-  String coachSheetTitle(String name) {
-    return '$name 코칭 상담';
-  }
-
-  @override
-  String get coachSheetSubtitle => '이 회원의 식단·운동 기록을 근거로 답해요.';
-
-  @override
-  String get coachSheetHint => '예) 나트륨이 계속 높은데 어떤 식단을 권할까요?';
-
-  @override
-  String get coachSheetSources => '근거';
-
-  @override
-  String get coachSheetAsk => '물어보기';
-
-  @override
-  String get coachSheetAskAgain => '다시 묻기';
-
-  @override
   String get consultTitle => '상담 요청';
-
-  @override
-  String get consultBackToSchedule => '스케줄로 돌아가기';
-
-  @override
-  String get consultBackToDashboard => '대시보드로 돌아가기';
-
-  @override
-  String consultPendingCount(int count) {
-    return '대기 중 $count건';
-  }
-
-  @override
-  String get consultNoPending => '대기 중인 요청이 없어요';
 
   @override
   String get consultFilterAll => '전체';
@@ -1086,21 +1125,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get consultRejected => '상담 요청을 거절했어요';
 
   @override
-  String consultScheduleConflict(String name, String time) {
-    return '$name님 $time 일정과 겹쳐요';
-  }
-
-  @override
   String get consultDecisionNote => '거절 사유';
 
   @override
-  String get consultTargetTrainer => '트레이너 지정';
-
-  @override
   String get consultExerciseGoal => '운동 목표';
-
-  @override
-  String get consultHealthPurpose => '건강관리 목적';
 
   @override
   String get consultChosenSlot => '고른 시간';
@@ -1109,6 +1137,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String consultSlotDuration(int minutes) {
     return '$minutes분';
   }
+
+  @override
+  String get consultStatusCancelled => '취소됨';
+
+  @override
+  String get consultStatusCancelledByTrainer => '일정 취소로 철회';
 
   @override
   String get consultStatusExpired => '만료됨';
@@ -1159,16 +1193,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get workoutEmpty => '아직 운동 기록이 없어요';
 
   @override
-  String get routinesAssigned => '배정된 프로그램';
-
-  @override
-  String get routineNew => '새 프로그램';
-
-  @override
   String get routinesLoadFailed => '프로그램을 불러오지 못했어요';
-
-  @override
-  String get routinesEmpty => '아직 이 회원에게 배정된 프로그램이 없어요';
 
   @override
   String minutesShort(int minutes) {
@@ -1186,15 +1211,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get ptProgramHistory => 'PT 프로그램 이력';
-
-  @override
-  String get scheduleLoadFailed => '일정을 불러오지 못했어요';
-
-  @override
-  String get ptSessionsEmpty => '등록된 PT 세션이 없어요';
-
-  @override
   String get labelToday => '오늘';
 
   @override
@@ -1203,22 +1219,16 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get programNone => '등록된 프로그램 없음';
-
-  @override
   String get legendDone => '완료';
 
   @override
   String get clientFeedback => '회원 피드백';
 
   @override
-  String get workoutKindAiPersonal => 'AI 개인운동';
+  String get workoutKindPtSession => 'PT · 트레이너 지도';
 
   @override
-  String get workoutKindPtSession => 'PT 세션 · 트레이너 지도';
-
-  @override
-  String get workoutKindAssignedRoutine => '배정 루틴 수행';
+  String get workoutKindAssignedRoutine => '개인운동 수행';
 
   @override
   String get dietLoadFailed => '식단을 불러오지 못했어요';
@@ -1230,9 +1240,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietDayEmpty => '기록 없음';
 
   @override
-  String get dietMacros => '탄단지';
-
-  @override
   String get clientNutritionSummary => '영양 요약';
 
   @override
@@ -1240,16 +1247,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get dietAchieveRate => '달성률';
-
-  @override
-  String dietAmountOver(String amount) {
-    return '목표보다 $amount 많아요';
-  }
-
-  @override
-  String dietAmountRemaining(String amount) {
-    return '목표까지 $amount 남았어요';
-  }
 
   @override
   String get consultStatusRejected => '거절됨';
@@ -1322,6 +1319,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsSendFailed => '리포트 전송에 실패했어요. 다시 시도해 주세요';
 
   @override
+  String get reportsSendStaleTitle => '그사이 회원 기록이 바뀌었어요';
+
+  @override
+  String get reportsSendStaleBody =>
+      '아직 보내지 않았어요. 새 수치로 다시 만든 리포트를 확인한 뒤 보내 주세요';
+
+  @override
+  String get reportsSendAlreadyDone => '이미 전송된 리포트예요. 전송 기록을 다시 불러왔어요';
+
+  @override
   String reportsSent(String name) {
     return '$name님에게 리포트를 보냈어요';
   }
@@ -1330,18 +1337,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsGoToChat => '채팅으로 이동하기';
 
   @override
-  String get reportsScheduleWarning => '이번 주 일정을 불러오지 못해 세션 수가 비어 있을 수 있어요';
+  String get reportsScheduleWarning => '이번 주 일정을 불러오지 못해 PT 횟수가 비어 있을 수 있어요';
 
   @override
   String get unitTimes => '회';
 
   @override
   String get unitMinutes => '분';
-
-  @override
-  String clientTrendWorkoutDaysValue(int days) {
-    return '$days일';
-  }
 
   @override
   String get clientPeriodToday => '오늘';
@@ -1365,12 +1367,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exBurnWeekTitle => '이번 주 소모';
 
   @override
-  String get exBurnMonthTitle => '이번 달 소모';
-
-  @override
-  String get exBurnDayTitle => '소모';
-
-  @override
   String get exBurnAllTitle => '평균 소모';
 
   @override
@@ -1390,15 +1386,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exTypeOther => '기타';
 
   @override
-  String clientPeriodLoggedDays(int days) {
-    return '$days일 기록';
-  }
-
-  @override
   String get clientPeriodEmpty => '이 기간에 기록이 없어요';
-
-  @override
-  String get clientDietTrendTitle => '영양 추이';
 
   @override
   String get unitKcal => 'kcal';
@@ -1413,22 +1401,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientTrendTodayEmpty => '오늘 기록된 운동이 없어요';
 
   @override
-  String get clientTrendTodayTotal => '오늘 총 운동 시간';
-
-  @override
-  String get clientTrendWorkoutDays => '운동한 날';
-
-  @override
-  String get clientTrendWorkoutCount => '운동 횟수';
-
-  @override
   String get clientTrendWorkoutMinutes => '운동 시간';
 
   @override
   String get clientTrendCaloriesBurned => '소모 칼로리';
-
-  @override
-  String get clientTrendSegmentTime => '시간';
 
   @override
   String get reportsPickClient => '회원 선택';
@@ -1439,39 +1415,10 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get reportsCompletionAvg => '운동 이행률';
-
-  @override
-  String get reportsWeeklyCompletion => '주간 이행률';
-
-  @override
   String get reportsCompletionByDay => '주간 운동 이행률';
 
   @override
   String get reportsNoWorkoutsThisWeek => '이번 주 운동 기록이 없어요';
-
-  @override
-  String reportsMetricTrend(String metric) {
-    return '$metric 추이';
-  }
-
-  @override
-  String reportsNoLastWeekMetricTrend(String metric) {
-    return '지난 주 $metric 추이는 아직 없어요';
-  }
-
-  @override
-  String reportsNoMetricRecords(String metric) {
-    return '이번 주 $metric 기록이 아직 없어요';
-  }
-
-  @override
-  String get reportsDietTrend => '주간 식단 추이';
-
-  @override
-  String workoutDoneOfTotal(int total, int done) {
-    return '$total개 중 $done개 완료';
-  }
 
   @override
   String get chartNoRecord => '기록 없음';
@@ -1519,7 +1466,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportBodySkipped(String names) {
-    return '다만 $names 건너뛰셨더라고요. 컨디션 때문이었다면 다음 세션 때 말씀해 주세요. 대체 동작으로 바꿔 둘게요.';
+    return '다만 $names 건너뛰셨더라고요. 컨디션 때문이었다면 다음 PT 때 말씀해 주세요. 대체 동작으로 바꿔 둘게요.';
   }
 
   @override
@@ -1554,11 +1501,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get reportBodySessionsNone => '이 주에는 진행한 PT 세션이 없었어요.';
+  String get reportBodySessionsNone => '이 주에는 진행한 PT가 없었어요.';
 
   @override
   String reportBodyExerciseCount(int total, int done) {
-    return '배정된 개인 운동 $total개 중 $done개를 완료하셨어요.';
+    return '배정된 개인운동 $total개 중 $done개를 완료하셨어요.';
   }
 
   @override
@@ -1608,7 +1555,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportBodyMemberPain(String area) {
-    return '$area 아프셨다고 남겨 주셨는데, 다음 세션 전에 상태를 꼭 다시 알려 주세요. 그 부위는 강도를 낮춰 둘게요.';
+    return '$area 아프셨다고 남겨 주셨는데, 다음 PT 전에 상태를 꼭 다시 알려 주세요. 그 부위는 강도를 낮춰 둘게요.';
   }
 
   @override
@@ -1648,7 +1595,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportTipSessionsNone => '다음 주 PT 일정도 이번에 같이 잡아 둘게요.';
 
   @override
-  String get reportTipSessionsMissed => '빠진 PT 세션은 다음 주에 보강 일정으로 잡아 드릴게요.';
+  String get reportTipSessionsMissed => '빠진 PT는 다음 주에 보강 일정으로 잡아 드릴게요.';
 
   @override
   String get reportTipKeep => '지금 루틴은 그대로 유지하면서, 운동 강도만 조금씩 올려 볼게요.';
@@ -1675,7 +1622,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String schedCompleteConfirm(String time, String name) {
-    return '$time $name님 세션을 완료할까요?';
+    return '$time $name님 PT를 완료할까요?';
   }
 
   @override
@@ -1689,6 +1636,17 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get schedDetachedMemberHint => '담당이 끝난 회원이라 회원 정보는 볼 수 없어요';
+
+  @override
+  String get schedReservationLockedHint =>
+      '회원이 예약한 일정이에요. 시간을 바꾸거나 지울 수 없고, 약속을 거두려면 취소해 주세요.';
+
+  @override
+  String get schedEndedLockedHint => '끝난 PT는 메모·프로그램만 고칠 수 있어요.';
+
+  @override
+  String get schedDoneLockedHint =>
+      '완료한 PT는 메모·프로그램만 고칠 수 있어요. 날짜를 앞으로 옮기면 예정으로 되돌릴 수 있어요.';
 
   @override
   String get schedGroupPersonal => '개인운동';
@@ -1740,19 +1698,42 @@ class AppLocalizationsKo extends AppLocalizations {
   String get schedRoutinesSkipped => '보내지 않기로 했어요.';
 
   @override
+  String get schedRoutinesSkipFailed => '보내지 않기로 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get schedRoutinesLoadFailed => '개인운동을 불러오지 못했어요';
+
+  @override
+  String get schedClientUnresolved => '이 일정의 회원을 특정할 수 없어요. 회원을 골라 주세요.';
+
+  @override
   String get schedRoutinesUpdated => '개인운동을 고커어요.';
 
   @override
   String get schedRoutinesUpdateFailed => '개인운동을 고치지 못했어요. 다시 시도해 주세요.';
 
   @override
-  String schedTimeRange(String start, String end) {
-    return '$start–$end';
-  }
+  String get schedAddRoutines => '개인운동 추가';
 
   @override
-  String schedBlockTime(String range, String duration) {
-    return '$range ($duration)';
+  String get schedRoutinesAdded => '개인운동을 붙였어요.';
+
+  @override
+  String get schedNoRoutines => '개인운동 없음';
+
+  @override
+  String get schedNoRoutinesSendTitle => '개인운동 없이 보낼까요?';
+
+  @override
+  String get schedNoRoutinesSendBody =>
+      '이 PT에는 개인운동이 없어요. 보낸 뒤에는 이 PT에 개인운동을 붙일 수 없어요.';
+
+  @override
+  String get schedNoRoutinesSendSkip => '개인운동 없이 보내기';
+
+  @override
+  String schedTimeRange(String start, String end) {
+    return '$start–$end';
   }
 
   @override
@@ -1789,28 +1770,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get schedFieldDate => '날짜';
 
   @override
-  String get schedFieldStartDate => '시작 날짜';
-
-  @override
   String get schedFieldDateRange => '시작 - 종료일';
 
   @override
   String get schedFieldTime => '시간';
-
-  @override
-  String get schedHourSuffix => '시간';
-
-  @override
-  String get schedMinuteSuffix => '분';
-
-  @override
-  String get schedFieldDuration => '소요 시간';
-
-  @override
-  String get schedFieldStart => '시작';
-
-  @override
-  String get schedFieldEnd => '종료';
 
   @override
   String get schedEndBeforeStart => '종료 시간은 시작 시간보다 늦어야 해요';
@@ -1820,22 +1783,19 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get schedReopenBody =>
-      '완료된 세션을 앞으로 옮기면 예정 상태로 되돌아가고, 그 완료가 남긴 운동 기록은 사라져요.';
+      '완료된 PT를 앞으로 옮기면 예정 상태로 되돌아가고, 그 완료가 남긴 운동 기록은 사라져요.';
 
   @override
   String get schedReopenConfirm => '예정으로 바꾸기';
 
   @override
-  String get schedReopenPastBlocked => '완료된 세션은 미래 날짜로만 옮길 수 있어요';
+  String get schedReopenPastBlocked => '완료된 PT는 미래 날짜로만 옮길 수 있어요';
 
   @override
   String get schedTimeRangeTitle => '시간 선택';
 
   @override
   String get schedTimeRangeConfirm => '확인';
-
-  @override
-  String get schedTimeRangeInvalid => '올바른 시간을 입력하세요 (HH:mm)';
 
   @override
   String get schedTimePickerTimeLabel => '시각';
@@ -1880,9 +1840,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get schedRepeatWeekly => '매주';
-
-  @override
-  String get schedRepeatDays => '반복 요일';
 
   @override
   String schedRepeatPreview(int count, String first, String last) {
@@ -1998,24 +1955,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get progDeleteExercise => '운동 삭제';
 
   @override
-  String get progSets => '세트';
-
-  @override
-  String get progReps => '횟수/시간';
-
-  @override
-  String get progWeight => '중량';
-
-  @override
-  String get progType => '유형';
-
-  @override
-  String get progDuration => '시간(분)';
-
-  @override
-  String get progOptional => '선택';
-
-  @override
   String progSetsValue(int sets) {
     return '$sets세트';
   }
@@ -2053,13 +1992,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get slotOpened => '예약 슬롯을 열었습니다.';
 
   @override
-  String get slotEditTitle => '예약 슬롯 수정';
-
-  @override
   String get slotStartTime => '시작 시간';
-
-  @override
-  String get slotUpdated => '예약 슬롯을 수정했습니다.';
 
   @override
   String get slotCloseTitle => '예약 슬롯 닫기';
@@ -2086,6 +2019,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get slotReload => '다시 불러오기';
 
   @override
+  String get slotLoadFailed => '예약 슬롯을 불러오지 못했어요';
+
+  @override
   String get slotEmpty => '열린 예약 슬롯이 없습니다.';
 
   @override
@@ -2095,7 +2031,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get slotBookedSummary => '예약됨';
 
   @override
-  String get slotOpenSummary => '비어 있음';
+  String get slotOverlappedSummary => '일정과 겹침';
+
+  @override
+  String get slotOverlappedHint =>
+      '이 시간에 다른 일정이 있어 회원에게는 마감으로 보여요. 쓰지 않을 자리면 닫아 주세요.';
 
   @override
   String get slotCloseAction => '예약 닫기';
@@ -2140,6 +2080,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myNotifNotReady => '곧 끌 수 있어요 — 지금은 항상 받아요';
 
   @override
+  String get myNotifLoading => '알림 설정을 불러오는 중이에요';
+
+  @override
+  String get myNotifLoadFailed => '알림 설정을 불러오지 못했어요. 다시 시도해 주세요';
+
+  @override
   String get myNotifNewMessageHint => '회원이 메시지를 보내면 알림함과 사이드바 숫자로 알려드려요';
 
   @override
@@ -2173,9 +2119,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myLoginAccount => '로그인 계정';
 
   @override
-  String get myLegal => '약관 및 정책';
-
-  @override
   String get mySupportTitle => '고객 지원';
 
   @override
@@ -2189,9 +2132,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get mySupportOpenFailed => '링크를 열지 못했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String get mySupportEntryHint => 'FAQ·문의와 약관, 계정 정리를 한곳에서 볼 수 있어요';
 
   @override
   String myAppVersion(String version) {
@@ -2208,24 +2148,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myLegalPrivacyTitle => '개인정보 처리방침';
 
   @override
-  String get myLegalEffectiveDate => '시행일 2026. 01. 01.';
+  String get myOpenSourceLicensesTitle => '오픈소스 라이선스';
+
+  @override
+  String get myLegalTermsEffectiveDate => '시행일 2026. 10. 03.';
+
+  @override
+  String get myLegalPrivacyEffectiveDate => '시행일 2026. 10. 05.';
 
   @override
   String get myLegalTermsBody =>
-      '제1조 (목적)\n이 약관은 On-Care(이하 \"회사\")가 제공하는 트레이너 콘솔(이하 \"서비스\")의 이용과 관련하여 회사와 트레이너 회원(이하 \"트레이너\") 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.\n\n제2조 (약관의 효력 및 변경)\n① 이 약관은 서비스를 이용하는 모든 트레이너에게 효력이 발생합니다.\n② 회사는 관련 법령을 위반하지 않는 범위에서 이 약관을 변경할 수 있으며, 변경 시 적용일자와 변경 사유를 명시하여 서비스 내에 공지합니다.\n\n제3조 (서비스의 제공)\n회사는 담당 회원 관리, 식단·운동 기록 열람, 일정 관리, 메시지, AI 코칭 프로그램 생성, 리포트 작성 및 전송 등 트레이너의 지도 업무를 돕는 기능을 제공합니다. 서비스의 구체적인 내용은 회사의 정책에 따라 변경될 수 있습니다.\n\n제4조 (계정)\n① 트레이너 계정과 회원 계정은 분리되어 있으며, 하나의 계정으로 두 서비스를 함께 이용할 수 없습니다.\n② 트레이너는 자격증·경력 등 프로필 정보를 사실대로 입력하여야 하며, 계정 정보의 관리 책임은 트레이너에게 있습니다.\n\n제5조 (회원 정보 취급 의무)\n① 트레이너는 담당 관계가 성립한 회원의 식단·운동·건강 기록에 한하여 열람할 수 있습니다.\n② 열람한 정보는 상담·코칭·리포트 작성 목적으로만 이용하여야 하며, 이를 외부에 게시하거나 제3자에게 제공·유출해서는 안 됩니다.\n③ 담당 관계가 종료되면 해당 회원 정보에 대한 열람 권한도 함께 종료됩니다.\n\n제6조 (금지 행위)\n트레이너는 의료 행위에 해당하는 진단·처방을 하거나, 회원의 동의 없이 회원 정보를 서비스 밖으로 옮기는 행위를 하여서는 안 됩니다.\n\n제7조 (책임의 제한)\n서비스가 제공하는 AI 코칭 결과와 통계는 지도를 돕기 위한 참고 자료입니다. 회원에게 전달하는 지도 내용에 대한 최종 판단과 책임은 트레이너에게 있으며, 회사는 법령이 허용하는 범위 내에서 그 결과에 대하여 책임을 부담하지 않습니다.\n\n제8조 (이용 계약의 해지)\n트레이너는 언제든지 탈퇴할 수 있습니다. 탈퇴 시 담당 회원과의 연결과 예정된 일정이 함께 종료되며, 해당 회원에게 그 사실이 안내됩니다.\n\n부칙\n이 약관은 2026년 1월 1일부터 시행합니다.';
+      '제1조 (목적)\n이 약관은 On-Care(이하 \"회사\")가 제공하는 트레이너 콘솔(이하 \"서비스\")의 이용과 관련하여 회사와 트레이너 회원(이하 \"트레이너\") 간의 권리, 의무 및 책임사항을 규정함을 목적으로 합니다.\n\n제2조 (약관의 효력 및 변경)\n① 이 약관은 서비스를 이용하는 모든 트레이너에게 효력이 발생합니다.\n② 회사는 관련 법령을 위반하지 않는 범위에서 이 약관을 변경할 수 있으며, 변경 시 적용일자와 변경 사유를 명시하여 적용일 전에 서비스 내에 공지합니다.\n③ 동의가 필요한 변경은 다시 동의를 받습니다. 트레이너는 변경된 약관에 동의하지 않으면 이용 계약을 해지할 수 있습니다.\n\n제3조 (서비스의 제공)\n회사는 담당 회원 관리, 식단·운동 기록 열람, 일정 관리, 메시지, AI 코칭 프로그램 생성, 리포트 작성 및 전송 등 트레이너의 지도 업무를 돕는 기능을 제공합니다. 서비스의 구체적인 내용은 회사의 정책에 따라 변경될 수 있습니다.\n\n제4조 (계정)\n① 트레이너 계정과 회원 계정은 분리되어 있으며, 하나의 계정으로 두 서비스를 함께 이용할 수 없습니다.\n② 트레이너는 자격증·경력 등 프로필 정보를 사실대로 입력하여야 하며, 계정 정보의 관리 책임은 트레이너에게 있습니다.\n\n제5조 (회원 신고)\n① 트레이너는 가입하고 소속 헬스장을 고르면 별도의 승인 절차 없이 회원 앱의 트레이너 목록과 상담 신청 대상에 나타나고 회원과 연결할 수 있습니다.\n② 회원은 사칭, 사실과 다른 프로필, 부적절한 메시지 등을 이유로 트레이너를 신고할 수 있으며, 회사 운영자는 신고 내용을 확인해 제9조에 따라 이용을 제한할 수 있습니다.\n\n제6조 (회원 정보 취급 의무)\n① 트레이너는 담당 관계가 성립한 회원의 식단·운동·건강 기록에 한하여 열람할 수 있습니다.\n② 열람한 정보는 상담·코칭·리포트 작성 목적으로만 이용하여야 하며, 이를 외부에 게시하거나 제3자에게 제공·유출해서는 안 됩니다.\n③ 담당 관계가 종료되면 해당 회원 정보에 대한 열람 권한도 함께 종료됩니다.\n\n제7조 (회원 쿠폰의 사용 처리)\n① 회원이 포인트로 교환한 PT 재등록 할인 쿠폰은 그 회원의 담당 트레이너와 소속 헬스장에서 쓰입니다. 트레이너와 소속 헬스장은 쿠폰에 표시된 할인을 현장에서 제공합니다.\n② 쿠폰은 트레이너 또는 헬스장 직원이 회원 휴대폰의 쿠폰 화면에서 쿠폰 종류와 유효기간을 확인한 뒤, 회원이 사용 완료를 눌러 사용합니다. 사용 처리한 쿠폰은 되돌릴 수 없습니다.\n③ 담당 관계가 끝나거나 트레이너가 탈퇴하면 그 회원의 사용 전 PT 재등록 쿠폰은 취소되고 회원에게 포인트가 돌아갑니다.\n\n제8조 (금지 행위)\n트레이너는 의료 행위에 해당하는 진단·처방을 하거나, 회원의 동의 없이 회원 정보를 서비스 밖으로 옮기는 행위를 하여서는 안 됩니다.\n\n제9조 (이용 제한)\n회사는 트레이너가 이 약관을 어기거나, 사실과 다른 프로필로 회원을 모으거나, 회원에게 피해를 주면 미리 알린 뒤 서비스 이용의 일부 또는 전부를 제한하거나 계정을 정지할 수 있습니다. 회원의 피해를 막아야 하는 등 급한 경우에는 먼저 제한한 뒤 바로 알립니다.\n\n제10조 (책임의 제한)\n서비스가 제공하는 AI 코칭 결과와 통계는 지도를 돕기 위한 참고 자료입니다. 회원에게 전달하는 지도 내용에 대한 최종 판단과 책임은 트레이너에게 있으며, 회사는 법령이 허용하는 범위 내에서 그 결과에 대하여 책임을 부담하지 않습니다.\n\n제11조 (이용 계약의 해지)\n① 트레이너는 언제든지 MY 메뉴에서 탈퇴할 수 있습니다.\n② 탈퇴하면 계정과 함께 프로필, 회원과의 대화, 배정한 루틴, 일정과 예약 가능 시간이 지워지고, 담당 회원과의 연결과 예정된 예약이 함께 종료되며 해당 회원에게 그 사실이 안내됩니다.\n③ 담당 회원의 사용 전 PT 재등록 쿠폰은 취소되고 회원에게 포인트가 돌아갑니다.\n\n제12조 (서비스의 변경과 중단)\n회사는 서비스의 내용을 바꾸거나 설비 점검·장애 등 부득이한 사유로 서비스를 일시 중단할 수 있으며, 트레이너에게 영향이 있는 경우 미리 알리고, 미리 알릴 수 없었던 경우에는 사후에 알립니다.\n\n제13조 (분쟁 해결과 관할)\n① 회사와 트레이너는 서비스와 관련한 분쟁을 원만하게 해결하기 위해 성실히 협의합니다.\n② 협의로 해결되지 않아 소송이 제기되는 경우 민사소송법에 따른 관할 법원을 관할 법원으로 합니다.\n③ 이 약관과 서비스 이용에는 대한민국 법을 적용합니다.\n\n부칙\n이 약관은 2026년 10월 3일부터 시행합니다.\n- 2026년 10월 3일: 회원 신고, 회원 쿠폰의 사용 처리, 이용 제한, 이용 계약 해지의 효과, 서비스의 변경과 중단, 분쟁 해결과 관할 조항 추가\n- 2026년 10월 1일: 제정';
 
   @override
-  String get myLegalPrivacyBody =>
-      'On-Care(이하 \"회사\")는 「개인정보 보호법」 등 관련 법령을 준수하며, 트레이너와 회원의 개인정보를 소중히 보호합니다.\n\n1. 수집하는 개인정보 항목\n회사는 트레이너 가입 및 서비스 제공을 위하여 이름, 이메일, 연락처와 함께 소속 헬스장, 자격증, 경력, 전문 분야 등 프로필 정보와 서비스 접속 기록을 수집합니다.\n\n2. 개인정보의 수집 및 이용 목적\n수집한 정보는 트레이너 식별과 자격 확인, 담당 회원 연결, 일정·메시지·리포트 기능 제공, 서비스 개선 및 문의 응대의 목적으로만 이용됩니다.\n\n3. 담당 회원 정보의 열람과 처리\n① 트레이너는 담당 관계가 성립한 회원에 한하여 그 회원이 기록한 식단·운동·체중 등 건강 정보를 서비스 안에서 열람할 수 있습니다.\n② 이 정보의 개인정보처리자는 회사이며, 트레이너는 회사가 정한 범위 안에서 코칭과 리포트 작성 목적으로만 이를 처리합니다.\n③ 트레이너가 작성해 전송한 리포트와 메시지는 해당 회원에게 전달되고 서비스에 기록으로 남습니다.\n④ 담당 관계가 종료되면 해당 회원 정보에 대한 열람 권한은 즉시 회수되며, 회원은 자신의 정보 제공에 대한 동의를 언제든지 철회할 수 있습니다.\n\n4. 개인정보의 보유 및 이용 기간\n트레이너의 개인정보는 원칙적으로 탈퇴 시 지체 없이 파기합니다. 다만 관련 법령에 따라 보존할 필요가 있는 경우 해당 기간 동안 안전하게 보관합니다. 회원에게 전송된 리포트와 메시지는 회원의 기록이므로 회원의 보관 기간을 따릅니다.\n\n5. 개인정보의 제3자 제공\n회사는 트레이너와 회원의 동의 없이 개인정보를 외부에 제공하지 않습니다. 다만 법령에 특별한 규정이 있는 경우는 예외로 합니다.\n\n6. 안전성 확보 조치\n회사는 회원 정보에 대한 접근 권한을 담당 관계를 기준으로 제한하고, 전송 구간을 암호화하며, 접속 기록을 보관합니다.\n\n7. 이용자의 권리\n트레이너는 언제든지 자신의 개인정보를 조회·수정하거나 처리 정지 및 삭제를 요청할 수 있습니다.\n\n8. 개인정보 보호책임자\n개인정보와 관련한 문의는 고객 지원(support@oncare.com)으로 연락하실 수 있습니다.\n\n시행일: 2026년 1월 1일';
-
-  @override
-  String get myAppInfo => '앱 정보';
-
-  @override
-  String get myService => '서비스';
-
-  @override
-  String get myVersion => '버전';
+  String myLegalPrivacyBody(String contact) {
+    return 'On-Care(이하 \"회사\")는 「개인정보 보호법」 등 관련 법령을 준수하며, 트레이너와 회원의 개인정보를 소중히 보호합니다.\n\n1. 수집하는 개인정보 항목\n① 트레이너 가입: 이메일, 비밀번호(암호화하여 저장), 이름, 연락처.\n② 프로필과 자격 확인: 소속 헬스장, 자격증, 경력, 전문 분야 등 프로필 정보.\n③ 서비스 이용 중 남기는 정보: 회원에게 보낸 메시지와 첨부 사진, 리포트와 코칭 내용, 일정·예약 정보, 회원 메모.\n④ 자동으로 생성되는 정보: 로그인·비밀번호 변경 등 접속 기록(일시, IP 주소)과, 오류가 났을 때의 오류 내용·브라우저와 운영체제 종류·앱 버전.\n\n2. 개인정보의 수집 및 이용 목적\n수집한 정보는 트레이너 식별과 운영자의 신고 처리와 계정 관리, 담당 회원 연결, 일정·메시지·리포트 기능 제공, 서비스 개선 및 문의 응대의 목적으로만 이용됩니다.\n\n3. 담당 회원 정보의 열람과 처리\n① 트레이너는 담당 관계가 성립한 회원에 한하여 그 회원이 기록한 식단·운동·체중 등 건강 정보를 서비스 안에서 열람할 수 있습니다.\n② 이 정보의 개인정보처리자는 회사이며, 트레이너는 회사가 정한 범위 안에서 코칭과 리포트 작성 목적으로만 이를 처리합니다. 회원의 건강정보는 민감정보로서 회원의 별도 동의와 데이터 공유 동의가 있을 때만 열람할 수 있습니다.\n③ 트레이너가 작성해 전송한 리포트와 메시지는 해당 회원에게 전달되고 서비스에 기록으로 남습니다.\n④ 담당 관계가 종료되면 해당 회원 정보에 대한 열람 권한은 즉시 회수되며, 회원은 자신의 정보 제공에 대한 동의를 언제든지 철회할 수 있습니다.\n\n4. 개인정보의 보유 및 이용 기간\n트레이너의 개인정보는 탈퇴 시까지 보유·이용하며, 탈퇴하면 8항의 절차에 따라 지체 없이 파기합니다. 다만 다음 기록은 정해진 기간 동안 보관한 뒤 파기합니다.\n- 로그인 등 접속 기록: 1년(「통신비밀보호법」상 로그인 기록 보존 의무 3개월 포함)\n- 트레이너의 회원 건강정보 열람 기록, 정보 제공 동의·철회 기록, 탈퇴 기록: 2년(「개인정보의 안전성 확보조치 기준」에 따른 처리 기록 보관)\n회원에게 전송된 리포트와 메시지는 회원의 기록이므로 회원의 보관 기간을 따릅니다.\n\n5. 개인정보의 제3자 제공\n회사는 트레이너와 회원의 동의 없이 개인정보를 외부에 제공하지 않습니다. 업무 처리를 맡기는 위탁은 6항과 7항을 따릅니다. 다만 법령에 특별한 규정이 있는 경우는 예외로 합니다.\n\n6. 개인정보 처리의 위탁\n회사는 서비스 제공을 위해 다음 업무를 외부 업체에 위탁합니다. 수탁자가 바뀌면 이 처리방침을 고쳐 알립니다.\n- Amazon Web Services, Inc.: 서버 운영, 채팅 사진·리포트 PDF 파일 보관\n- Neon: 데이터베이스 운영(계정 정보와 모든 기록 보관)\n- Google LLC: AI 코칭 프로그램·루틴 후보와 리포트 요약 생성(Gemini API)\n- 주식회사 카카오: 헬스장 검색과 지도 표시\n- Functional Software, Inc.(Sentry): 웹·서버 오류 수집과 분석\n\n7. 개인정보의 국외 이전\n회사는 트레이너와의 계약을 이행하기 위해 다음과 같이 개인정보를 국외에서 처리·보관하도록 위탁하며, 「개인정보 보호법」 제28조의8 제1항 제3호에 따라 이 처리방침으로 알립니다. 이전은 서비스를 이용할 때마다 암호화된 네트워크로 전송하는 방법으로 이루어집니다.\n① Amazon Web Services, Inc. / 싱가포르 / 트레이너 정보와 기록 전반, 채팅 첨부 사진과 리포트 PDF / 서버 운영과 파일 보관 / 탈퇴 또는 위탁 계약 종료 시까지\n② Neon / 싱가포르 / 계정·프로필, 메시지·리포트·일정 기록 / 데이터베이스 운영 / 탈퇴 또는 위탁 계약 종료 시까지\n③ Google LLC / 미국 등 Google이 운영하는 데이터센터 소재 국가 / AI 기능을 쓸 때 입력한 코칭 조건과 담당 회원의 운동 기록·주간 리포트 수치 / AI 프로그램·요약 생성 / 요청 처리 후 수탁자의 서비스 약관에서 정한 기간\n④ Functional Software, Inc.(Sentry) / 미국 / 오류 내용, 브라우저와 운영체제 종류·앱 버전(이름·이메일·IP 주소·요청 내용은 보내지 않음) / 오류 분석 / 수탁자의 보관 기간\n국외 이전을 원하지 않으면 탈퇴로 거부할 수 있으나, 이 경우 서비스를 이용할 수 없습니다.\n\n8. 개인정보의 파기 절차 및 방법\n① 절차: 트레이너가 탈퇴하면 즉시 계정과 함께 프로필, 담당 회원과의 연결과 대화(첨부 사진·리포트 PDF 파일 포함), 루틴·프로그램, 일정과 예약 가능 시간, 알림을 삭제하고, 담당 회원과 예약한 회원에게 그 사실을 알립니다. 회원이 보낸 상담 요청은 회원의 기록이므로 트레이너 정보만 지운 채 남습니다. 4항에 따라 보관하는 기록은 기간이 지나면 자동으로 삭제합니다.\n② 방법: 전자적 파일 형태의 정보는 데이터베이스와 파일 저장소에서 삭제하며, 데이터베이스 복구용 백업에 남은 사본은 백업 보관 기간이 지나면 함께 사라집니다. 회사는 개인정보를 종이 문서로 처리하지 않습니다.\n\n9. 개인정보 자동 수집 장치의 설치·운영 및 거부\n회사는 광고·행태 분석을 위한 쿠키나 추적 도구를 쓰지 않습니다. 로그인 상태를 유지하기 위해 브라우저 저장소에 인증 정보를 보관하며, 로그아웃하거나 브라우저 데이터를 지우면 삭제됩니다.\n\n10. 안전성 확보 조치\n회사는 비밀번호를 암호화하여 저장하고, 회원 정보에 대한 접근 권한을 담당 관계를 기준으로 제한하며, 전송 구간을 암호화합니다. 열람 기록에는 열람한 트레이너, 대상 회원, 정보의 종류와 시각만 남기며 건강정보의 내용은 담지 않습니다. 오류 보고에서는 이름·이메일·IP 주소와 요청 내용을 지우고 보냅니다.\n\n11. 만 14세 미만 아동의 개인정보\n회사는 만 14세 미만 아동의 가입을 받지 않으며, 가입할 때 만 14세 이상인지 확인합니다.\n\n12. 이용자의 권리\n트레이너는 언제든지 자신의 개인정보를 조회·수정하거나 처리 정지 및 삭제를 요청할 수 있습니다. 프로필 수정과 탈퇴는 MY 메뉴에서 할 수 있고, 그 밖의 요청은 13항의 연락처로 보내 주시면 지체 없이 조치합니다.\n\n13. 개인정보 보호책임자\n회사는 개인정보 처리에 관한 업무를 총괄하고 관련 불만 처리와 피해 구제를 위해 개인정보 보호책임자를 지정하고 있습니다.\n- 직책: On-Care 서비스 운영팀 개인정보 보호책임자\n- 연락처: $contact\n\n14. 권익침해 구제 방법\n개인정보 침해에 대한 신고나 상담이 필요하면 다음 기관에 문의할 수 있습니다.\n- 개인정보분쟁조정위원회: 국번없이 1833-6972 (www.kopico.go.kr)\n- 개인정보침해신고센터: 국번없이 118 (privacy.kisa.or.kr)\n- 대검찰청: 국번없이 1301 (www.spo.go.kr)\n- 경찰청: 국번없이 182 (ecrm.police.go.kr)\n\n15. 처리방침의 변경\n이 처리방침을 바꾸면 시행일 전에 서비스 안에 알리며, 동의가 필요한 변경은 다시 동의를 받습니다.\n- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경\n- 2026년 10월 3일: 처리 위탁·국외 이전·파기 절차·자동 수집 장치·만 14세 미만·보호책임자·권익침해 구제 항목 추가\n- 2026년 10월 1일: 제정\n\n시행일: 2026년 10월 5일';
+  }
 
   @override
   String get myPasswordChanged => '비밀번호를 변경했어요';
@@ -2280,7 +2218,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myClientRemoveBody =>
-      '연결을 해제하면 이 회원의 스케줄, 프로그램·루틴, 리포트, 메시지, 메모가 트레이너 화면에서 보이지 않아요. 회원 계정과 회원 앱의 기록은 그대로 남아요.';
+      '연결을 해제하면 이 회원의 스케줄, 프로그램·개인운동, 리포트, 메시지, 메모가 트레이너 화면에서 보이지 않아요. 회원 계정과 회원 앱의 기록은 그대로 남아요.';
 
   @override
   String get myClientRemoveSuccess => '회원과 연결을 해제했어요';
@@ -2298,7 +2236,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myBasicInfo => '기본 정보';
 
   @override
-  String get myStatSessionsDone => '완료 세션';
+  String get myStatSessionsDone => '완료 PT';
 
   @override
   String get myStatRoutinesSent => '프로그램 전송';
@@ -2347,6 +2285,188 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myGymHiddenAction => '헬스장 설정';
+
+  @override
+  String get navAdminGroup => '운영';
+
+  @override
+  String get navAdminReports => '신고·계정 관리';
+
+  @override
+  String get adminReportsTitle => '신고·계정 관리';
+
+  @override
+  String get adminReportsSubtitle =>
+      '회원이 보낸 트레이너 신고를 확인하고, 필요하면 트레이너 계정을 정지하거나 풀어요.';
+
+  @override
+  String get adminSectionReports => '신고';
+
+  @override
+  String get adminSectionTrainers => '트레이너';
+
+  @override
+  String get adminReportFilterOpen => '처리 전';
+
+  @override
+  String get adminReportFilterClosed => '처리됨';
+
+  @override
+  String get adminReportStatusResolved => '조치함';
+
+  @override
+  String get adminReportStatusDismissed => '넘김';
+
+  @override
+  String get adminReasonImpersonation => '소속·신원 사칭';
+
+  @override
+  String get adminReasonInappropriateMessage => '부적절한 메시지';
+
+  @override
+  String get adminReasonOther => '기타';
+
+  @override
+  String get adminFieldTarget => '대상';
+
+  @override
+  String get adminFieldReason => '사유';
+
+  @override
+  String get adminFieldMemo => '내용';
+
+  @override
+  String get adminFieldReportedAt => '신고일';
+
+  @override
+  String get adminFieldResolvedAt => '처리일';
+
+  @override
+  String get adminFieldOpenReports => '처리 전 신고';
+
+  @override
+  String adminOpenReportsCount(int count) {
+    return '$count건';
+  }
+
+  @override
+  String get adminReportsLoadFailed => '신고 목록을 불러오지 못했어요';
+
+  @override
+  String get adminReportsEmptyOpen => '처리할 신고가 없어요';
+
+  @override
+  String get adminReportsEmpty => '해당하는 신고가 없어요';
+
+  @override
+  String get adminTrainerSearchHint => '이름이나 이메일로 찾기';
+
+  @override
+  String get adminStateActive => '이용 중';
+
+  @override
+  String get adminResolve => '조치함';
+
+  @override
+  String get adminDismiss => '넘김';
+
+  @override
+  String adminResolveTitle(String name) {
+    return '$name 신고를 조치함으로 닫을까요?';
+  }
+
+  @override
+  String get adminResolveBody =>
+      '계정 정지 같은 조치를 마친 신고를 닫아요. 신고를 닫아도 계정 상태는 바뀌지 않아요.';
+
+  @override
+  String adminDismissTitle(String name) {
+    return '$name 신고를 넘길까요?';
+  }
+
+  @override
+  String get adminDismissBody => '조치가 필요 없는 신고를 닫아요. 계정 상태는 바뀌지 않아요.';
+
+  @override
+  String get adminReportResolved => '신고를 조치함으로 닫았어요';
+
+  @override
+  String get adminReportDismissed => '신고를 넘겼어요';
+
+  @override
+  String get adminRefresh => '새로고침';
+
+  @override
+  String get adminFilterAll => '전체';
+
+  @override
+  String get adminStatusSuspended => '정지됨';
+
+  @override
+  String get adminTrainersLoadFailed => '트레이너 목록을 불러오지 못했어요';
+
+  @override
+  String get adminActionRetryLater => '잠시 뒤 다시 시도해 주세요.';
+
+  @override
+  String get adminTrainersEmpty => '해당하는 트레이너가 없어요';
+
+  @override
+  String get adminTrainerUnnamed => '이름 없는 트레이너';
+
+  @override
+  String get adminFieldEmail => '이메일';
+
+  @override
+  String get adminFieldGym => '소속';
+
+  @override
+  String get adminFieldSignedUp => '가입일';
+
+  @override
+  String get adminGymNone => '소속 헬스장이 없어요';
+
+  @override
+  String get adminSuspend => '계정 정지';
+
+  @override
+  String get adminUnsuspend => '정지 해제';
+
+  @override
+  String adminSuspendTitle(String name) {
+    return '$name 계정을 정지할까요?';
+  }
+
+  @override
+  String get adminSuspendBody =>
+      '정지하면 바로 로그아웃되고 다시 로그인할 수 없어요. 담당 회원 연결은 모두 해제되어 회원에게 알림이 가고, 시작 전 PT 일정은 취소돼요. 정지를 풀어도 연결은 돌아오지 않아요.';
+
+  @override
+  String adminUnsuspendTitle(String name) {
+    return '$name 계정 정지를 풀까요?';
+  }
+
+  @override
+  String get adminUnsuspendBody =>
+      '다시 로그인할 수 있어요. 해제된 담당 회원 연결은 회원이 다시 동의해야 이어져요.';
+
+  @override
+  String adminSuspended(String name) {
+    return '$name 계정을 정지했어요';
+  }
+
+  @override
+  String adminSuspendedReleased(String name, int count) {
+    return '$name 계정을 정지하고 담당 회원 $count명의 연결을 해제했어요';
+  }
+
+  @override
+  String adminUnsuspended(String name) {
+    return '$name 계정 정지를 풀었어요';
+  }
+
+  @override
+  String get adminActionFailed => '처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.';
 
   @override
   String get myGymEditHint => '이름으로 찾아 소속 헬스장을 골라 주세요. 회원은 이 헬스장으로 트레이너님을 찾아요.';
@@ -2482,16 +2602,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myNotifMemberUpdatesHint => '회원이 목표·이름을 바꾸거나 연결을 끊으면 알려드려요';
 
   @override
-  String get routineTypeWalking => '걷기';
-
-  @override
   String get routineTypeCardio => '유산소';
 
   @override
   String get routineTypeStrength => '근력';
-
-  @override
-  String get routineTypeYoga => '요가';
 
   @override
   String get routineTypeStretching => '스트레칭';
@@ -2609,25 +2723,43 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachSubtitle => '회원별 운동 프로그램을 만들고 배정·관리하세요';
 
   @override
-  String get coachMemberSummary => '회원 요약';
-
-  @override
-  String get reportsDataInsufficient => '데이터 부족';
-
-  @override
   String get coachSendFailed => '전송에 실패했어요. 다시 시도해 주세요';
 
   @override
-  String get coachScheduleFailed => '스케줄 등록에 실패했어요. 다시 시도해 주세요';
+  String get coachSwitchClientTitle => '다른 회원으로 바꿀까요?';
+
+  @override
+  String get coachSwitchClientBody =>
+      '아직 보내지 않은 작성 내용이 있어요. 회원을 바꾸면 지금 짠 프로그램과 개인운동이 사라져요.';
+
+  @override
+  String get coachSwitchClientConfirm => '바꾸기';
+
+  @override
+  String get coachDraftResumeTitle => '저장해 둔 작성 내용이 있어요';
+
+  @override
+  String coachDraftResumeBody(String name) {
+    return '$name 회원에게 짜던 프로그램이 자동으로 저장되어 있어요. 이어서 쓸까요?';
+  }
+
+  @override
+  String get coachDraftResume => '이어서 쓰기';
+
+  @override
+  String get coachDraftDiscard => '버리기';
+
+  @override
+  String get personalRoutineTargetLoadFailed => 'PT 일정을 불러오지 못했어요';
+
+  @override
+  String get personalRoutineStartPast => '시작일이 지나 오늘로 바꿨어요. 확인하고 다시 보내 주세요';
+
+  @override
+  String get schedRoutinesReadFailed => '붙어 있는 개인운동을 확인하지 못했어요. 다시 시도해 주세요';
 
   @override
   String get coachNoClients => '등록된 회원이 없어요';
-
-  @override
-  String get coachRecommended => 'AI 추천안';
-
-  @override
-  String get coachBackToList => '추천 목록으로';
 
   @override
   String get coachTrainerAdded => '트레이너 추가';
@@ -2644,30 +2776,14 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String coachRegisteredAttachedExisting(String date) {
-    return '$date에 이미 예정된 세션이 있어 그 세션에 프로그램만 추가됐어요 — 고른 시간 범위는 적용되지 않았어요';
+    return '$date에 이미 예정된 PT가 있어 그 PT에 프로그램만 추가됐어요 — 고른 시간 범위는 적용되지 않았어요';
   }
-
-  @override
-  String coachRegisterOn(String date) {
-    return '$date PT 스케줄에 등록';
-  }
-
-  @override
-  String get coachRegisterAction => 'PT 스케줄에 등록';
 
   @override
   String get coachGoToSchedule => '스케줄로 이동하기';
 
   @override
   String get labelTomorrow => '내일';
-
-  @override
-  String get coachRequestCustom => 'AI에게 맞춤 추천 요청하기';
-
-  @override
-  String coachRequestBlurb(String name) {
-    return '$name님의 데이터를 분석해 회복형·강화형 후보를 만들고 이 화면에서 비교·수정할 수 있어요.';
-  }
 
   @override
   String get coachTemplates => '프로그램 템플릿';
@@ -2720,20 +2836,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachHistoryEmpty => '아직 보낸 프로그램이 없어요';
 
   @override
-  String get coachHomework => '개인';
-
-  @override
-  String get coachPersonalTraining => 'PT';
-
-  @override
-  String get coachTrainer => '트레이너';
-
-  @override
-  String coachSessionProgramSummary(String name, int count) {
-    return '$name 외 $count개';
-  }
-
-  @override
   String get aiReasonSodium => '오늘 나트륨이 목표를 초과해 저강도 유산소 비중을 높이는 것이 좋아요.';
 
   @override
@@ -2766,23 +2868,26 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiGenerateFailed => 'AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요';
 
   @override
+  String aiGenerateInvalidConditions(int min, int max) {
+    return '생성 조건을 확인해 주세요. 총 운동 시간은 $min~$max분 사이여야 해요';
+  }
+
+  @override
+  String aiGenerateMinutesHelper(int min, int max) {
+    return '$min~$max분 사이로 입력해 주세요';
+  }
+
+  @override
   String get aiGenerateRateLimited => 'AI 생성을 너무 자주 요청했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get aiGenerateDailyLimit => '오늘 AI 생성 한도를 다 썼어요. 내일 다시 이용해 주세요';
 
   @override
   String get aiExerciseNameRequired => '운동 이름을 입력해 주세요';
 
   @override
   String get aiKeepOneExercise => '운동을 하나 이상 남겨 주세요';
-
-  @override
-  String aiRoutineSent(String name) {
-    return '$name님에게 프로그램을 전송했어요';
-  }
-
-  @override
-  String aiCustomRoutineNamed(String option) {
-    return 'AI 맞춤 추천안 ($option)';
-  }
 
   @override
   String get aiCustomRoutineName => 'AI 맞춤 추천안';
@@ -2806,9 +2911,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiGoal => '목표';
-
-  @override
-  String get aiTodaySodium => '오늘 나트륨';
 
   @override
   String get aiOverTarget => ' · 목표 초과';
@@ -2886,20 +2988,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiEditsApplied => '선택하고 수정한 내용이 최종 추천 목록에 반영됐어요.';
 
   @override
-  String aiGoToChat(String name) {
-    return '$name님 채팅으로 이동';
-  }
-
-  @override
-  String get aiSending => '전송 중…';
-
-  @override
-  String get aiSendToClient => '회원에게 전송';
-
-  @override
-  String get aiGoToChatHint => '아래 버튼에서 회원 채팅으로 이동해 바로 안내할 수 있어요.';
-
-  @override
   String get aiApplyToTemplate => '프로그램에 반영';
 
   @override
@@ -2915,7 +3003,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiStepDone => '프로그램 검토';
 
   @override
-  String get aiSkipPtProgram => 'PT 없이 개인운동만 짜기';
+  String get aiSkipPtProgram => '개인운동만 짜기';
 
   @override
   String get routineEvidenceRecentPtFeedback => '최근 PT 피드백 반영';
@@ -3007,31 +3095,21 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiPersonalStepBlurbRoutineOnly =>
-      '이번 한 주 동안 회원이 혼자 할 운동이에요. 최소 한 개를 정해 주세요.';
+      '회원이 혼자 할 운동이에요. 시작일에 PT가 있으면 그 PT에 붙고, 없으면 바로 한 주 동안 보내요. 최소 한 개를 정해 주세요.';
 
   @override
   String get aiPersonalStepEmpty => '아직 정한 개인운동이 없어요. 아래에서 직접 더해 주세요.';
 
   @override
-  String get aiPersonalStepNext => '다음';
-
-  @override
   String get aiKeepOnePersonalRoutine => '개인운동을 최소 한 개는 정해 주세요.';
-
-  @override
-  String get aiRoutineOnlyReviewTitle => '이대로 회원에게 보낼게요';
 
   @override
   String get aiRoutineOnlyStartDate => '시작일';
 
   @override
-  String aiRoutineOnlyWeekRange(String start, String end) {
-    return '$start ~ $end 매일 표시';
+  String aiRoutineOnlyWeeklyHint(String start, String end) {
+    return '$start부터 $end까지 7일간 회원 앱에 매일 떠요. 다음 주 분은 그때 다시 보내 주세요.';
   }
-
-  @override
-  String get aiRoutineOnlyWeeklyHint =>
-      '보낸 날부터 7일간 회원 앱에 매일 떠요. 다음 주 분은 그때 다시 보내 주세요.';
 
   @override
   String get aiRoutineOnlySend => '회원에게 보내기';
@@ -3043,9 +3121,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiRoutineOnlySent => '개인운동을 회원에게 보냈어요.';
 
   @override
-  String get aiRoutineOnlySendFailed => '개인운동을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요.';
-
-  @override
   String get aiRoutineOnlyProgramName => '이번 주 개인운동';
 
   @override
@@ -3053,6 +3128,49 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get progPersonalRoutinesWhen => '이 PT를 완료할 때 회원에게 함께 가요.';
+
+  @override
+  String get progNoRoutinesRegisterTitle => '개인운동 없이 일정을 추가할까요?';
+
+  @override
+  String get progNoRoutinesRegisterBody =>
+      'PT마다 개인운동을 최소 한 개 붙여 주세요. 지금 붙이지 않으면 PT 프로그램을 보내기 전에 스케줄의 일정 상세에서 붙일 수 있어요.';
+
+  @override
+  String get progNoRoutinesRegisterSkip => '개인운동 없이 추가';
+
+  @override
+  String get progPersonalRoutinesEmpty => '아직 개인운동이 없어요. PT마다 최소 한 개를 붙여 주세요.';
+
+  @override
+  String get aiAttachTargetPt => '지금 짜는 PT에 붙일 개인운동이에요.';
+
+  @override
+  String get aiAttachRoutines => 'PT에 반영';
+
+  @override
+  String get aiAttachedLabel => '반영했어요';
+
+  @override
+  String aiRoutineTargetPt(String date, String time) {
+    return '$date $time PT에 붙이기';
+  }
+
+  @override
+  String aiRoutineOnlyAttachHint(String date, String time) {
+    return '$date $time PT에 붙어요. 회원에게는 스케줄에서 이 PT를 보낼 때 함께 가요.';
+  }
+
+  @override
+  String get aiReplaceRoutinesTitle => '이미 개인운동이 있어요';
+
+  @override
+  String aiReplaceRoutinesBody(int count, String names) {
+    return '이 PT에 개인운동 $count개($names)가 붙어 있어요. 새로 짠 것으로 교체할까요?';
+  }
+
+  @override
+  String get aiReplaceRoutinesConfirm => '교체';
 
   @override
   String programRoutineOnlyConfirmBody(
@@ -3064,12 +3182,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get progPersonalRoutinesTitle => '이 PT 에 붙일 개인운동';
-
-  @override
-  String progPersonalRoutinesCount(int count) {
-    return '함께 보낼 개인운동 $count개';
-  }
+  String get progPersonalRoutinesTitle => '이 PT에 붙일 개인운동';
 
   @override
   String get aiStepperLabel => '맞춤 추천안 생성 진행 단계';
@@ -3113,9 +3226,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiConditionsAutoHint => '비워두면 최근 기록이나 목표를 기준으로 자동 설정돼요.';
 
   @override
-  String get aiConditionsEditToggle => '추천 조건 수정';
-
-  @override
   String get aiPromptTitle => 'AI에게 원하는 프로그램을 말해 주세요';
 
   @override
@@ -3145,6 +3255,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiSourceChatInsight => '채팅 감지 메모';
+
+  @override
+  String get aiSourceRecentChat => '최근 대화';
 
   @override
   String get aiSourceWeeklyFeedback => '회원 주간 피드백';
@@ -3208,18 +3321,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get filterAll => '전체';
 
   @override
-  String metricOverBy(String unit) {
-    return '$unit 초과';
-  }
-
-  @override
   String get authErrInvalidCredentials => '이메일 또는 비밀번호가 올바르지 않습니다.';
 
   @override
   String get authErrEmailTaken => '이미 가입된 이메일입니다.';
 
   @override
-  String get authErrSessionExpired => '세션이 만료됐어요. 다시 로그인해 주세요.';
+  String get authErrSessionExpired => '로그인이 만료됐어요. 다시 로그인해 주세요.';
 
   @override
   String get authErrNoSocialToken => '소셜 로그인 토큰이 없어요';
@@ -3234,18 +3342,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrEmptyResponse => '응답이 비어 있어요.';
 
   @override
-  String get coachDemoUnavailable => '데모 모드에서는 AI 코칭을 사용할 수 없어요';
-
-  @override
-  String get coachNotMyClient => '담당 회원이 아니에요';
-
-  @override
-  String get coachAskFailed => '질문을 보낼 수 없어요';
-
-  @override
-  String get coachRateLimited => '질문을 너무 자주 보냈어요. 1분 뒤에 다시 물어봐 주세요';
-
-  @override
   String get slotFutureOnly => '현재보다 이후 시간만 예약 슬롯으로 설정할 수 있습니다.';
 
   @override
@@ -3253,9 +3349,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get slotTypeLockedByBooking => '이미 예약된 자리의 종류는 바꿀 수 없습니다.';
-
-  @override
-  String get slotSessionType => '종류';
 
   @override
   String get authErrNotTrainer => '트레이너 계정으로 로그인해 주세요.';
@@ -3281,19 +3374,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String schedHourLabel(String hour) {
-    return '$hour시';
-  }
-
-  @override
-  String schedMinuteLabel(String minute) {
-    return '$minute분';
-  }
-
-  @override
-  String get progDefaultReps => '10회';
-
-  @override
   String get appTitleSpaced => 'On - Care 트레이너';
 
   @override
@@ -3301,6 +3381,18 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get notifTitle => '알림';
+
+  @override
+  String get notifSeeAll => '전체 보기';
+
+  @override
+  String get notifGroupAll => '전체';
+
+  @override
+  String get notifGroupMessages => '메시지';
+
+  @override
+  String get notifGroupEmpty => '이 종류의 알림이 없어요';
 
   @override
   String get notifReadAll => '모두 읽음';
@@ -3423,6 +3515,34 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notifTplMemberPhotoBody => '사진을 보냈어요';
 
   @override
+  String notifTplWeeklyFeedbackTitle(String name) {
+    return '$name 회원이 주간 피드백을 보냈어요';
+  }
+
+  @override
+  String notifTplWeeklyFeedbackRevisedTitle(String name) {
+    return '$name 회원이 주간 피드백을 수정했어요';
+  }
+
+  @override
+  String notifTplWeeklyFeedbackPainTitle(String name) {
+    return '$name 회원이 통증을 알렸어요';
+  }
+
+  @override
+  String notifTplWeeklyFeedbackCondition(String value) {
+    return '컨디션 $value';
+  }
+
+  @override
+  String notifTplWeeklyFeedbackIntensity(String value) {
+    return '운동 강도 $value';
+  }
+
+  @override
+  String get notifTplWeeklyFeedbackPain => '통증 있음';
+
+  @override
   String get notifAllRead => '모두 확인했어요';
 
   @override
@@ -3447,15 +3567,35 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myDeleteBody =>
-      '담당 회원 연결과 예약이 사라지고, 회원에게 알림이 전달돼요. 이 작업은 되돌릴 수 없어요.';
+      '프로필과 회원과의 대화, 보낸 PT 프로그램·개인운동, 일정과 예약 가능 시간이 지워지고, 담당 회원 연결과 예정된 예약이 종료되며 회원에게 알림이 전달돼요. 담당 회원의 사용 전 PT 재등록 쿠폰은 취소되고 포인트가 회원에게 돌아가요. 이 작업은 되돌릴 수 없어요.';
 
   @override
   String get myDeleteFailed => '탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
-  String myDeleteConfirmPrompt(String name) {
-    return '계속하려면 이름($name)을 입력해 주세요';
-  }
+  String get myDeleteReauthPrompt => '본인 확인을 위해 현재 비밀번호를 입력해 주세요';
+
+  @override
+  String get myDeleteReauthWrongPassword => '현재 비밀번호가 일치하지 않아요';
+
+  @override
+  String get myDeleteReauthSocialPrompt =>
+      '소셜 계정으로 가입한 계정이에요. 본인 확인을 위해 소셜 계정으로 다시 로그인해 주세요.';
+
+  @override
+  String get myDeleteReauthSocialAction => '소셜 계정으로 다시 로그인';
+
+  @override
+  String get myDeleteReauthKakao => '카카오로 다시 로그인';
+
+  @override
+  String get myDeleteReauthGoogle => '구글로 다시 로그인';
+
+  @override
+  String get myDeleteReauthSocialDone => '소셜 계정을 확인했어요. 탈퇴를 누르면 진행돼요.';
+
+  @override
+  String get myDeleteReauthSocialFailed => '소셜 계정 확인에 실패했어요. 다시 로그인해 주세요.';
 
   @override
   String get myWithdrawReasonTitle => '정말 탈퇴하시겠어요?';
@@ -3523,69 +3663,141 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myWithdrawContinue => '탈퇴 계속';
 
   @override
-  String get routineAlreadyGone => '이미 삭제된 프로그램이에요';
+  String get workoutKindPersonal => '개인운동';
 
   @override
-  String get workoutPendingTitle => '매일 하는 개인 운동';
+  String workoutRoutineDay(int month, int day, String weekday) {
+    return '$month/$day($weekday)';
+  }
 
   @override
-  String get workoutRoutineDoneToday => '오늘 완료';
+  String workoutRoutineDoneOf(int done, int total) {
+    return '$total개 중 $done개 완료';
+  }
+
+  @override
+  String workoutRoutineSentUntil(String sent, String end) {
+    return '$sent 보냄 · $end까지';
+  }
+
+  @override
+  String workoutRoutineWeekSummary(int days, int full) {
+    return '$days일 중 모두 완료 $full일';
+  }
+
+  @override
+  String workoutRoutineWeekLate(String weekday, int count) {
+    return '$weekday $count건 늦게';
+  }
+
+  @override
+  String get workoutRoutineWeekFirstDay => '오늘 시작';
+
+  @override
+  String workoutRoutineWeekSent(String date, String names) {
+    return '$date 보냄 · $names';
+  }
+
+  @override
+  String workoutRoutineWeekOngoing(String names) {
+    return '계속 · $names';
+  }
+
+  @override
+  String workoutRoutineWeekMore(String names, int count) {
+    return '$names 외 $count개';
+  }
+
+  @override
+  String workoutRoutineAllCount(int count) {
+    return '$count번 보냄';
+  }
+
+  @override
+  String workoutRoutineAllAverage(int percent) {
+    return '평균 $percent%';
+  }
+
+  @override
+  String workoutRoutineAllSent(String date) {
+    return '$date 보냄';
+  }
+
+  @override
+  String workoutRoutineAllUntil(String date) {
+    return '~$date';
+  }
+
+  @override
+  String workoutRoutineAllUntilShort(String date, int days) {
+    return '~$date · $days일';
+  }
+
+  @override
+  String workoutRoutineAllOngoing(int day) {
+    return '진행 중 · $day일째';
+  }
+
+  @override
+  String get workoutRoutineAllFirstDay => '오늘 시작';
+
+  @override
+  String workoutRoutineAllRing(String date, int percent) {
+    return '$date 보낸 개인운동, $percent% 완료';
+  }
+
+  @override
+  String get coachRoutineAdherenceTitle => '개인운동 이행';
+
+  @override
+  String coachRoutineAdherenceSummary(int days, int full) {
+    return '지난 $days일 중 모두 완료 $full일';
+  }
+
+  @override
+  String coachRoutineAdherenceLate(String weekday, int count) {
+    return '$weekday요일 $count건은 다음 날 체크';
+  }
+
+  @override
+  String get coachRoutineAdherenceFirstDay => '오늘 보낸 개인운동이에요';
+
+  @override
+  String coachRoutineAdherenceCell(String date, int done, int total) {
+    return '$date: $done/$total 완료';
+  }
+
+  @override
+  String workoutTotalBurned(String calories) {
+    return '총 소모 $calories kcal';
+  }
+
+  @override
+  String workoutLineBurned(String calories) {
+    return '소모 $calories kcal';
+  }
+
+  @override
+  String workoutLineEstimated(String calories) {
+    return '예상 소모 $calories kcal';
+  }
+
+  @override
+  String workoutIntensityPerformed(String level) {
+    return '수행 $level';
+  }
+
+  @override
+  String get workoutDaySourcePt => 'PT';
 
   @override
   String get workoutUndatedTitle => '날짜를 알 수 없는 기록';
 
   @override
-  String get workoutMemberLogTitle => '직접 기록';
+  String get workoutMemberLogTitle => '회원 추가';
 
   @override
-  String get workoutPendingCancel => '배정 취소';
-
-  @override
-  String get routineUpdateFailed => '프로그램을 수정하지 못했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String get routineUpdated => '프로그램을 수정했어요';
-
-  @override
-  String get routineDeleteTitle => '프로그램을 삭제할까요?';
-
-  @override
-  String get routineDeleteFailed => '프로그램을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String get routineDeleted => '프로그램을 삭제했어요';
-
-  @override
-  String get routineEdit => '프로그램 수정';
-
-  @override
-  String get routineDelete => '프로그램 삭제';
-
-  @override
-  String get routineNameRequired => '프로그램 이름을 입력해 주세요';
-
-  @override
-  String get routineNameTooLong => '프로그램 이름은 100자 이내로 입력해 주세요';
-
-  @override
-  String get routineMinutesRange => '시간은 0~600분 사이로 입력해 주세요';
-
-  @override
-  String get routineReasonTooLong => '사유는 200자 이내로 입력해 주세요';
-
-  @override
-  String get routineFieldName => '프로그램 이름';
-
-  @override
-  String get routineFieldMinutesLabel => '시간(분)';
-
-  @override
-  String get routineFieldReason => '사유 (선택)';
-
-  @override
-  String routineDeleteBody(String name) {
-    return '$name 배정이 회원 앱에서도 사라져요.';
-  }
+  String get workoutDayExercisesFailed => '운동 기록을 불러오지 못했어요';
 
   @override
   String get searchClients => '회원 검색';
@@ -3686,8 +3898,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashTodoReport => '리포트';
 
   @override
-  String dashTodoConsultationSubtitle(int month, int day) {
-    return '$month/$day 상담 요청';
+  String dashTodoConsultationSubtitle(String when) {
+    return '희망 $when';
   }
 
   @override
@@ -3704,6 +3916,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get dashTaskLoadFailed => '할 일 상태를 불러오지 못했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get dashTaskDayChanged => '날짜가 바뀌어 오늘 할 일로 새로 불러왔어요. 다시 눌러 주세요';
 
   @override
   String get dashTaskDismissTitle => '이 항목을 삭제할까요?';
@@ -3767,9 +3982,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get messagesBackToList => '대화 목록';
-
-  @override
   String get messagesNoPreview => '아직 대화가 없어요';
 
   @override
@@ -3798,6 +4010,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get clientProfileSectionTitle => '신체·목표';
+
+  @override
+  String get clientMemoDialogTitle => '메모·피드백';
 
   @override
   String get clientTrainerMemo => '메모';
@@ -3938,22 +4153,27 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String clientMemoTagPtSession(String date) {
-    return 'PT 세션 · $date';
+    return 'PT · $date';
   }
 
   @override
   String clientMemoTagPersonal(String date) {
-    return '개인 운동 · $date';
+    return '개인운동 · $date';
   }
 
   @override
   String clientMemoTagPersonalNamed(String date, String name) {
-    return '개인 운동 · $date $name';
+    return '개인운동 · $date $name';
   }
 
   @override
   String clientMemoTagMemberLog(String date) {
-    return '회원 기록 · $date';
+    return '회원 추가 · $date';
+  }
+
+  @override
+  String clientMemoTagDay(String date) {
+    return '운동 기록 · $date';
   }
 
   @override
@@ -3966,73 +4186,100 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientMemoSearchEmpty => '찾는 메모가 없어요.';
 
   @override
-  String get followUp => '후속 관리';
+  String get clientMemoCategoryExercise => '운동';
 
   @override
-  String followUpTitle(String name) {
-    return '$name님 후속 관리';
+  String get clientMemoCategoryDiet => '식단';
+
+  @override
+  String get clientMemoCategoryPain => '통증·부상';
+
+  @override
+  String get clientMemoCategoryLife => '생활·일정';
+
+  @override
+  String get clientMemoRecordLink => '운동 기록 연결 (선택)';
+
+  @override
+  String get clientMemoRecordNone => '연결 안 함';
+
+  @override
+  String get clientMemoRecordEmpty => '최근 14일 운동 기록이 없어요';
+
+  @override
+  String clientMemoRecordDay(String month, String day, String weekday) {
+    return '$month/$day ($weekday)';
   }
 
   @override
-  String get followUpHint => '다시 확인할 내용을 적어 주세요';
-
-  @override
-  String get followUpAdd => '후속 관리 추가';
-
-  @override
-  String get followUpDue => '확인 예정일';
-
-  @override
-  String followUpDueOn(String date) {
-    return '$date 확인';
+  String clientMemoRecordPtSession(String date) {
+    return '$date PT';
   }
 
   @override
-  String get followUpOverdue => '기한 지남';
-
-  @override
-  String get followUpContext => '관련 화면';
-
-  @override
-  String get followUpContextGeneral => '회원 상세';
-
-  @override
-  String get followUpContextDiet => '식단';
-
-  @override
-  String get followUpContextExercise => '운동';
-
-  @override
-  String get followUpContextMessage => '메시지';
-
-  @override
-  String get followUpContextProgram => '프로그램';
-
-  @override
-  String get followUpContextSchedule => '일정';
-
-  @override
-  String get followUpComplete => '완료';
-
-  @override
-  String followUpCount(int count) {
-    return '$count건';
+  String clientMemoRecordPersonal(String date) {
+    return '$date 개인운동';
   }
 
   @override
-  String get followUpEmpty => '남은 후속 관리가 없어요.';
+  String clientMemoRecordPersonalNamed(String date, String name) {
+    return '$date 개인운동 · $name';
+  }
 
   @override
-  String get followUpDashboardEmpty => '오늘 처리할 후속 관리가 없어요.';
+  String clientMemoRecordMemberLog(String date) {
+    return '$date 회원 추가';
+  }
 
   @override
-  String get followUpLoadFailed => '후속 관리를 불러오지 못했어요. 잠시 후 다시 시도해 주세요';
+  String clientMemoRecordExerciseDay(String date) {
+    return '$date 운동 기록';
+  }
 
   @override
-  String get followUpSaveFailed => '후속 관리를 저장하지 못했어요. 잠시 후 다시 시도해 주세요';
+  String get clientMemoTabMemo => '메모';
 
   @override
-  String get followUpCompleteFailed => '완료 처리하지 못했어요. 잠시 후 다시 시도해 주세요';
+  String get clientMemoTabFeedback => '피드백';
+
+  @override
+  String get clientFeedbackPrivate => '회원과 주고받은 피드백이에요. 누르면 쓴 자리로 가서 고칠 수 있어요.';
+
+  @override
+  String get clientFeedbackToMember => '트레이너 → 회원';
+
+  @override
+  String get clientFeedbackFromMember => '회원 → 트레이너';
+
+  @override
+  String clientFeedbackSourcePt(String date) {
+    return 'PT · $date';
+  }
+
+  @override
+  String clientFeedbackSourceReport(String date) {
+    return '리포트 · $date 주';
+  }
+
+  @override
+  String clientFeedbackSourceWeekly(String date) {
+    return '주간 피드백 · $date 주';
+  }
+
+  @override
+  String get clientFeedbackWeeklyNoNote => '한 줄 피드백 없음';
+
+  @override
+  String get clientFeedbackEmpty => '아직 주고받은 피드백이 없어요.';
+
+  @override
+  String get clientFeedbackLoadFailed => '피드백을 불러오지 못했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get clientFeedbackSearchHint => '피드백 검색 (본문·출처·방향)';
+
+  @override
+  String get clientFeedbackSearchEmpty => '찾는 피드백이 없어요.';
 
   @override
   String programEditorDefaultName(String goal) {
@@ -4043,36 +4290,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get programEditorSaveUnsupported => '프로그램 이름을 입력해 주세요';
 
   @override
-  String get programEditorSaveEdit => '수정 저장';
-
-  @override
-  String get programSavedTitle => '저장한 프로그램';
-
-  @override
-  String programSavedExerciseCount(int count) {
-    return '운동 $count개';
-  }
-
-  @override
-  String get programSavedNew => '새 프로그램';
-
-  @override
   String get programDraftSaved => '프로그램을 저장했어요';
-
-  @override
-  String get programDraftSaveFailed => '프로그램을 저장하지 못했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String get programDraftLoadFailed => '저장한 프로그램을 불러오지 못했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String get programDraftDeleteFailed => '프로그램을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String get programDraftDeleteTitle => '저장한 프로그램을 삭제할까요?';
-
-  @override
-  String get programDraftDeleteBody => '이미 배정한 프로그램과 등록한 일정은 그대로 남아요.';
 
   @override
   String programAssignConfirmAttachBody(
@@ -4109,6 +4327,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get programEditorRegisterDatePast => '지난 날짜예요. 오늘 이후 날짜를 골라 주세요';
+
+  @override
+  String get programEditorSending => '일정에 추가하는 중이에요';
+
+  @override
+  String get programEditorAlreadySent => '방금 보낸 구성이에요. 새 구성을 반영하면 다시 보낼 수 있어요';
 
   @override
   String get coachSendNetworkFailed => '네트워크 연결을 확인한 뒤 다시 시도해 주세요';
@@ -4157,40 +4381,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get programEditorAddSchedule => '일정 추가';
 
   @override
-  String get programReviewTitle => '전송 확인';
-
-  @override
-  String programReviewBlurb(String name) {
-    return '아래 구성 그대로 $name님에게 전송돼요. 확인한 뒤 전송해 주세요.';
-  }
-
-  @override
-  String get programReviewBack => '편집기로 돌아가 수정';
-
-  @override
-  String programReviewSessionSummary(int count) {
-    return '운동 $count개';
-  }
-
-  @override
-  String get programEditorInfo => '프로그램 정보';
-
-  @override
-  String get programEditorName => '프로그램명';
-
-  @override
-  String get programEditorGoal => '목표 (선택)';
-
-  @override
-  String get programEditorPeriod => '기간 (선택)';
-
-  @override
-  String get programEditorAiHint => 'AI 코칭 보조 제안을 첫 세션에 로컬 초안으로 반영할 수 있어요.';
-
-  @override
-  String get programEditorApply => '편집기에 반영';
-
-  @override
   String get programEditorExerciseConfig => '운동 구성';
 
   @override
@@ -4203,6 +4393,20 @@ class AppLocalizationsKo extends AppLocalizations {
   String programTemplateSessionPickerBody(String name) {
     return '\'$name\' 템플릿을 추가할 세션을 골라 주세요.';
   }
+
+  @override
+  String get programEditorAiReapplyTitle => 'AI 운동을 새 안으로 바꿀까요?';
+
+  @override
+  String programEditorAiReapplyBody(int count) {
+    return '앞서 반영한 AI 운동 $count개를 새 안으로 바꿔요. 직접 추가하거나 고친 운동은 그대로 남아요.';
+  }
+
+  @override
+  String get programEditorAiReapplyReplace => '바꾸기';
+
+  @override
+  String get programEditorAiReapplyAppend => '뒤에 추가';
 
   @override
   String programEditorSessionNameTyped(String type) {
@@ -4270,34 +4474,77 @@ class AppLocalizationsKo extends AppLocalizations {
   String get programEditorWeight => '중량 kg';
 
   @override
-  String get programEditorDuration => '시간 분';
-
-  @override
-  String get programEditorDistance => '거리 m';
-
-  @override
-  String reportsComparisonTitle(String week) {
-    return '$week vs 지난 주';
+  String reportsDemoSummarySteadyThisWeek(String name) {
+    return '$name님은 이번 주 운동과 식단을 계획대로 잘 이어 갔어요. 지금 리듬을 지키면서 다음 주에는 운동 강도를 조금 올려 봐도 좋겠습니다.';
   }
 
   @override
-  String get reportsGoThisWeek => '이번 주로';
+  String reportsDemoSummarySteadyPastWeek(String name) {
+    return '$name님은 그 주 운동과 식단을 계획대로 잘 이어 갔어요. 이 리듬을 지키면서 운동 강도를 조금씩 올려 봐도 좋겠습니다.';
+  }
 
   @override
-  String get reportsSummaryEmptyClient =>
-      '회원을 선택하면 그 주의 리포트 요약과 코칭 제안이 여기에 표시돼요';
+  String reportsDemoSummaryCompletionThisWeek(String name) {
+    return '$name님은 이번 주 운동 이행이 주춤했어요. 일정이 빠듯했는지 먼저 물어보고, 다음 주는 짧은 루틴부터 다시 붙여 보는 것을 권해 드려요.';
+  }
 
   @override
-  String get reportsLastWeek => '지난 주';
+  String reportsDemoSummaryCompletionPastWeek(String name) {
+    return '$name님은 그 주 운동 이행이 주춤했어요. 일정이 빠듯했는지 먼저 물어보고, 짧은 루틴부터 다시 붙여 보는 것을 권해 드려요.';
+  }
 
   @override
-  String get reportsSelectedWeek => '선택 주';
+  String reportsDemoSummarySkippedThisWeek(String name) {
+    return '$name님이 이번 주 몇몇 운동을 건너뛰었어요. 통증이나 난이도 때문인지 확인하고, 대신할 동작을 함께 정해 두면 좋겠습니다.';
+  }
+
+  @override
+  String reportsDemoSummarySkippedPastWeek(String name) {
+    return '$name님이 그 주 몇몇 운동을 건너뛰었어요. 통증이나 난이도 때문인지 확인하고, 대신할 동작을 함께 정해 두면 좋겠습니다.';
+  }
+
+  @override
+  String reportsDemoSummarySodiumThisWeek(String name) {
+    return '$name님은 이번 주 짠 식사가 잦았어요. 국물과 가공식품을 줄이는 작은 목표 하나를 함께 정해 보세요.';
+  }
+
+  @override
+  String reportsDemoSummarySodiumPastWeek(String name) {
+    return '$name님은 그 주 짠 식사가 잦았어요. 국물과 가공식품을 줄이는 작은 목표 하나를 함께 정해 보세요.';
+  }
+
+  @override
+  String reportsDemoSummarySugarThisWeek(String name) {
+    return '$name님은 이번 주 단 음식과 음료가 잦았어요. 간식을 과일이나 견과로 바꾸는 것부터 제안해 보세요.';
+  }
+
+  @override
+  String reportsDemoSummarySugarPastWeek(String name) {
+    return '$name님은 그 주 단 음식과 음료가 잦았어요. 간식을 과일이나 견과로 바꾸는 것부터 제안해 보세요.';
+  }
+
+  @override
+  String reportsDemoSummaryCaloriesThisWeek(String name) {
+    return '$name님의 이번 주 섭취 열량이 목표에서 벗어났어요. 끼니를 거르거나 몰아 먹은 날이 있었는지 식단 기록을 함께 짚어 보세요.';
+  }
+
+  @override
+  String reportsDemoSummaryCaloriesPastWeek(String name) {
+    return '$name님의 그 주 섭취 열량이 목표에서 벗어났어요. 끼니를 거르거나 몰아 먹은 날이 있었는지 식단 기록을 함께 짚어 보세요.';
+  }
+
+  @override
+  String reportsDemoSummaryMacroThisWeek(String name) {
+    return '$name님은 이번 주 탄수화물·단백질·지방 배분이 목표와 달랐어요. 끼니 구성을 함께 점검해 균형을 맞춰 보세요.';
+  }
+
+  @override
+  String reportsDemoSummaryMacroPastWeek(String name) {
+    return '$name님은 그 주 탄수화물·단백질·지방 배분이 목표와 달랐어요. 끼니 구성을 함께 점검해 균형을 맞춰 보세요.';
+  }
 
   @override
   String get reportsBackToList => '회원 목록';
-
-  @override
-  String get reportsPreviousLoadFailed => '지난주 데이터를 불러오지 못했어요.';
 
   @override
   String get reportsAverageSodium => '평균 나트륨';
@@ -4331,51 +4578,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsFeedbackHint => '회원에게 전달할 코칭 피드백을 작성하세요.';
 
   @override
-  String get reportsRecentWeeks => '최근 4주 평균';
-
-  @override
-  String get reportsWeekTotal => '주 합계';
-
-  @override
-  String reportsGoalOf(String value) {
-    return '목표 $value';
-  }
-
-  @override
-  String get reportsCompareWith => '지난 주 대비';
-
-  @override
-  String reportsMoreExercises(int count) {
-    return '+$count개';
-  }
-
-  @override
-  String reportsRecordedDays(int days) {
-    return '기록 $days일';
-  }
-
-  @override
-  String reportsAdherenceChip(String value) {
-    return '이행률 평균 $value';
-  }
-
-  @override
-  String get reportsBurnByDay => '주간 소모 칼로리';
-
-  @override
-  String get reportsBurnEstimateNote => '소모 칼로리는 운동 유형·시간·강도로 낸 추정치예요.';
-
-  @override
-  String chartGoalLabel(String value) {
-    return '목표\n$value';
-  }
-
-  @override
-  String reportsWeeksAgo(int count) {
-    return '$count주 전';
-  }
-
-  @override
   String get reportsAiTitle => '이번 주 요약';
 
   @override
@@ -4404,7 +4606,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportsActionSkipped(String names) {
-    return '$names 대체 동작을 준비해 다음 세션에서 맞춰 주세요.';
+    return '$names 대체 동작을 준비해 다음 PT에서 맞춰 주세요.';
   }
 
   @override
@@ -4421,29 +4623,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsAiGenerated => 'AI 생성';
 
   @override
-  String get reportsAiLoading => '이번 주 요약을 만들고 있어요…';
-
-  @override
   String get reportsAiUseAsDraft => '피드백으로 가져오기';
 
   @override
   String get reportsAiRegenerate => '다시 생성';
 
   @override
-  String get reportsAiUnavailable =>
-      '실제 리포트 요약 API 연결 후 사용할 수 있어요. 현재 문구는 자동 생성하지 않습니다.';
+  String get reportsAiFailed => '요약을 만들지 못했어요. 다시 시도해 주세요.';
 
   @override
-  String get reportsPdfGenerationFailed => 'PDF를 생성하지 못했어요. 다시 시도해 주세요.';
+  String get reportsAiDailyLimit => '오늘 AI 생성 한도를 다 썼어요. 내일 다시 이용해 주세요.';
 
   @override
   String get reportsPdfFallbackClient => '회원';
 
   @override
   String get reportsPdfDocTitle => '주간 코칭 리포트';
-
-  @override
-  String get reportsPdfDocTitleContinued => '주간 코칭 리포트 (계속)';
 
   @override
   String reportsPdfClient(String name) {
@@ -4604,11 +4799,13 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get clientWorkoutSourceAi => 'AI';
-
-  @override
   String coachClientDemographics(String gender, int age) {
     return '$gender · $age세';
+  }
+
+  @override
+  String coachClientAge(int age) {
+    return '$age세';
   }
 
   @override
@@ -4619,9 +4816,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get routineFormIncrease => '늘리기';
-
-  @override
-  String get reportsWorkbenchTitle => '이번 주 리포트';
 
   @override
   String get reportsPending => '미전송';
@@ -4853,7 +5047,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsPreviewZoomOut => '축소';
 
   @override
-  String get reportsGridPtSession => 'PT 세션';
+  String get reportsGridPtSession => 'PT';
 
   @override
   String reportsGridPtPerWeek(int count) {
@@ -4861,7 +5055,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get reportsGridPersonal => '개인 운동';
+  String get reportsGridPersonal => '개인운동';
 
   @override
   String get reportsGridPersonalUnit => '수행 / 배정';
@@ -4896,11 +5090,6 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String reportsMacroValueOfTarget(String name, int value, int target) {
     return '$name $value / ${target}g';
-  }
-
-  @override
-  String reportsMacroNoValue(String name) {
-    return '$name 기록 없음';
   }
 
   @override
@@ -4978,25 +5167,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportsTrendNoGoal => '목표 없음';
-
-  @override
-  String reportsTrendOfGoal(String value, String goal) {
-    return '$value / $goal';
-  }
-
-  @override
-  String get reportsTrendCompliance => '주간 이행률';
-
-  @override
-  String get reportsTrendBurn => '주간 소모';
-
-  @override
-  String get reportsTrendStreak => '연속 기록';
-
-  @override
-  String reportsTrendStreakDays(int days) {
-    return '$days일';
-  }
 
   @override
   String get reportsExerciseTrend => '운동 추세';
@@ -5416,6 +5586,35 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String clientDietAnalysisWeekBreakfastSnackFood(String food, int count) {
+    return '아침 대신 먹은 것은 $food $count번이 가장 많았어요.';
+  }
+
+  @override
+  String clientDietAnalysisWeekProteinAvg(String value) {
+    return '모자란 날은 하루 평균 $value 정도였어요.';
+  }
+
+  @override
+  String clientDietAnalysisWeekGoodAvg(String kcal, String protein) {
+    return '하루 평균 $kcal, 단백질 $protein을 드셨어요.';
+  }
+
+  @override
+  String clientDietAnalysisWeekVsLast(
+    int prevLogged,
+    int prevDays,
+    String way,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(way, {
+      'more': '보다 늘었어요',
+      'less': '보다 줄었어요',
+      'other': '와 비슷해요',
+    });
+    return '지난주($prevLogged일 중 $prevDays일)$_temp0.';
+  }
+
+  @override
   String clientDietAnalysisAllFew(int days) {
     return '최근 4주 기록이 $days일이라, 7일이 넘으면 흐름을 짚어 드릴게요.';
   }
@@ -5510,7 +5709,13 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get clientDietRecNo => '아니오';
+  String get clientDietRecNo => '아니요';
+
+  @override
+  String get clientDietRecPrev => '이전 추천';
+
+  @override
+  String get clientDietRecForward => '다음 추천';
 
   @override
   String get clientDietRecYes => '예, 추천할게요';
@@ -5575,112 +5780,132 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get reportsSheetInfoMember => '회원';
+  String get authForgotPassword => '비밀번호를 잊으셨나요?';
 
   @override
-  String get reportsSheetInfoPeriod => '기간';
+  String get passwordResetTitle => '비밀번호 재설정';
 
   @override
-  String get reportsSheetInfoMealDays => '식단 기록';
+  String get passwordResetRequestSubtitle => '가입한 이메일로 재설정 코드를 보내 드려요.';
 
   @override
-  String reportsSheetDaysOf(String days, String due) {
-    return '$days/$due일';
+  String get passwordResetSendAction => '코드 받기';
+
+  @override
+  String get passwordResetHaveCode => '이미 코드가 있어요';
+
+  @override
+  String get passwordResetSentTitle => '메일을 확인해 주세요';
+
+  @override
+  String passwordResetSentBody(String email, int minutes) {
+    return '$email 로 가입된 계정이 있다면 $minutes분 동안 한 번 쓸 수 있는 코드를 보냈어요.';
   }
 
   @override
-  String get reportsSheetDietTitle => '식단 분석';
+  String get passwordResetConfirmSubtitle => '메일로 받은 코드와 새 비밀번호를 입력해 주세요.';
 
   @override
-  String get reportsSheetDietHint => '하루 평균 · 목표 대비';
+  String get passwordResetCodeHint => '재설정 코드 16자리';
 
   @override
-  String get reportsSheetExerciseTitle => '운동 분석';
+  String get passwordResetCodeEmpty => '코드를 입력해 주세요';
 
   @override
-  String get reportsSheetExerciseHint => '이번 주 · 목표 대비';
+  String get passwordResetCodeMalformed => '메일에 적힌 16자리 코드를 입력해 주세요';
 
   @override
-  String get reportsSheetDailyTitle => '요일별 기록';
+  String get passwordResetCodeInvalid => '코드가 맞지 않거나 만료됐어요. 코드를 다시 받아 주세요.';
 
   @override
-  String get reportsSheetDailyCompletion => '수행률';
+  String get passwordResetConfirmAction => '새 비밀번호 저장';
 
   @override
-  String get reportsSheetDailyCalories => '열량';
+  String get passwordResetResend => '코드 다시 받기';
 
   @override
-  String get reportsSheetDailyMeals => '끼니';
+  String get passwordResetDemoNote => '데모 모드에서는 메일이 가지 않아요. 코드 칸을 미리 채워 두었어요.';
 
   @override
-  String get reportsSheetDailyWorkouts => '운동';
+  String get passwordResetUnavailable => '지금은 재설정 메일을 보낼 수 없어요. 고객센터로 문의해 주세요.';
 
   @override
-  String get reportsSheetTrendTitle => '추이';
+  String get passwordResetDoneTitle => '비밀번호를 바꿨어요';
 
   @override
-  String get reportsSheetTrendWeekly => '주별 운동 달성률 (8주)';
+  String get passwordResetDoneBody => '새 비밀번호로 다시 로그인해 주세요. 모든 기기의 로그인이 끝났어요.';
 
   @override
-  String get reportsSheetTrendDaily => '요일별 섭취 열량 · 목표선';
+  String get passwordResetBackToSignIn => '로그인하러 가기';
 
   @override
-  String get reportsSheetBandUnder => '부족';
+  String get passwordResetTooMany => '시도가 너무 많아요. 잠시 후 다시 시도해 주세요.';
 
   @override
-  String get reportsSheetBandNormal => '적정';
+  String get passwordResetTemporaryFailure => '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
-  String get reportsSheetBandOver => '초과';
+  String get signUpCodeSend => '인증 코드 받기';
 
   @override
-  String reportsSheetGoal(String value) {
-    return '목표 $value';
+  String get signUpCodeLabel => '인증 코드';
+
+  @override
+  String get signUpCodeSentNotice =>
+      '메일로 받은 6자리 코드를 입력해 주세요. 이미 가입된 이메일이면 코드 대신 안내 메일이 가요.';
+
+  @override
+  String signUpCodeRemaining(String time) {
+    return '남은 시간 $time';
   }
 
   @override
-  String get reportsSheetAttendance => 'PT 출석';
+  String get signUpCodeExpired => '코드가 만료됐어요. 다시 받아 주세요.';
 
   @override
-  String get reportsSheetScoreTitle => '주간 관리 점수';
+  String get signUpCodeResend => '다시 받기';
 
   @override
-  String get reportsSheetScoreUnit => '/100점';
-
-  @override
-  String get reportsSheetScoreFormula =>
-      '운동 수행률·PT 출석·식단 기록·열량 적정일 비율의 평균입니다. 기록이 없는 항목은 빠집니다.';
-
-  @override
-  String get reportsSheetScoreNone => '점수를 낼 기록이 없어요';
-
-  @override
-  String get reportsSheetEvalTitle => '항목별 평가';
-
-  @override
-  String get reportsSheetAverageTitle => '4주 평균 대비';
-
-  @override
-  String get reportsSheetAverageNow => '이번 주';
-
-  @override
-  String get reportsSheetAverageBase => '4주 평균';
-
-  @override
-  String get reportsSheetAverageChange => '변화';
-
-  @override
-  String get reportsSheetMealDaysLabel => '식단 기록일';
-
-  @override
-  String get reportsSheetFootnote =>
-      '범위는 이번 주 기록을 회원의 목표와 견줍니다. 기록이 없는 항목은 미집계로 표시합니다.';
-
-  @override
-  String get reportsSheetCalorieDays => '열량 적정일';
-
-  @override
-  String reportsSheetPeriodValue(String start, String end) {
-    return '$start ~ $end';
+  String signUpCodeResendIn(int seconds) {
+    return '$seconds초 뒤 다시 받기';
   }
+
+  @override
+  String signUpCodeDemoNote(String code) {
+    return '데모 모드에서는 메일이 가지 않아요. 인증 코드로 $code 를 입력해 주세요.';
+  }
+
+  @override
+  String get signUpCodeInvalid => '인증 코드가 맞지 않거나 만료됐어요. 코드를 다시 받아 주세요.';
+
+  @override
+  String get signUpCodeRequired => '이메일 인증 코드를 입력해 주세요.';
+
+  @override
+  String get signUpCodeTooMany => '요청이 너무 많아요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get signUpCodeUnavailable => '지금은 인증 메일을 보낼 수 없어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get signUpCodeRequestFailed => '인증 코드를 보내지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get releaseUpdateTitle => '새 버전이 배포되었어요';
+
+  @override
+  String get releaseUpdateMessage =>
+      '새로고침하면 최신 화면으로 바뀌어요. 작성 중인 내용이 있으면 먼저 저장해 주세요.';
+
+  @override
+  String get releaseUpdateReload => '새로고침';
+
+  @override
+  String get releaseUpdateDismiss => '안내 닫기';
+
+  @override
+  String get errorNetworkUnstable => '연결이 불안정합니다. 네트워크를 확인하고 다시 시도해 주세요.';
+
+  @override
+  String get errorServerTemporary => '서버에 일시적인 문제가 있습니다. 잠시 후 다시 시도해 주세요.';
 }

@@ -10,6 +10,8 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
 
 from pathlib import Path
 
@@ -25,19 +27,43 @@ logger = logging.getLogger(__name__)
 
 DEMO_USER_ID = "user-7d4e9a2c5f18"
 
+#: 데모 장소(서울시청 인근, 카카오맵 실연동 전까지 사용). 이름·주소는 지어낸 값이다.
+#: 정리 스크립트(`scripts/purge_demo_data.py`)도 이 목록을 본다(#2811).
+DEMO_PLACES: tuple[tuple[str, str, str, str, float, float], ...] = (
+    ("place-1", "온케어 내과의원", "medical", "서울 중구 세종대로 110", 37.5660, 126.9785),
+    ("place-2", "헬스플러스 피트니스", "fitness", "서울 중구 을지로 50", 37.5663, 126.9820),
+    ("place-3", "그린샐러드 키친", "healthy_food", "서울 중구 명동길 20", 37.5638, 126.9850),
+    ("place-4", "건강약국", "pharmacy", "서울 중구 태평로 30", 37.5650, 126.9770),
+    ("place-5", "한강공원 러닝트랙", "fitness", "서울 영등포구 여의동로 330", 37.5283, 126.9325),
+)
 
-def init_db() -> None:
-    settings = get_settings()
 
+def _ensure_vector_extension(settings) -> None:
+    """pgvector 확장을 켠다 — **create_all 을 쓰는 개발 환경에서만.** (#2912)
+
+    운영은 Alembic 이 스키마의 정답이고 확장도 마이그레이션(`0001_baseline`)이 만든다.
+    그런데도 매 기동마다 `CREATE EXTENSION` 을 보내면, 이미 있어도 권한 확인과 카탈로그
+    잠금을 거치고 확장 생성 권한이 없는 운영 DB 역할에서는 경고·실패의 원인이 된다.
+    create_all 은 vector 타입이 있어야 테이블을 만들 수 있으니 개발에서는 그대로 둔다.
+    """
+    if not settings.auto_create_tables:
+        return
     with engine.connect() as conn:
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         conn.commit()
 
-    # 개발 편의: create_all(멱등). 운영은 Alembic(`alembic upgrade head`)을 정답으로 삼고
-    # AUTO_CREATE_TABLES=false 로 꺼둔다.
+
+def init_db() -> None:
+    settings = get_settings()
+
+    _ensure_vector_extension(settings)
+
+    # 개발 편의: create_all(멱등). 운영·CI 는 Alembic(`alembic upgrade head`)을 정답으로
+    # 삼고 AUTO_CREATE_TABLES=false 로 꺼둔다 — CI 가 이 보정에 기대면 마이그레이션을
+    # 빠뜨린 모델 변경이 테스트를 통과한다(#2838). 스키마 보정은 여기 두지 않고
+    # 마이그레이션으로만 한다.
     if settings.auto_create_tables:
         Base.metadata.create_all(bind=engine)
-        _relax_points_coupon_cost()
 
     # 참조 데이터: 공공 식품영양성분 DB(데모/운영 무관, 멱등)
     _seed_food_nutrients()
@@ -73,41 +99,22 @@ def init_db() -> None:
         # 경고가 동작할 최소 기록만 따로 채운다(#572).
         from app.db.seed_roster import seed_roster_metrics
         seed_roster_metrics()
+        # 위 두 시드가 하루 한 줄로 남긴 최근 4주를 끼니·운동 세션으로 채운다(#2729).
+        # 합계를 나누므로 로스터·리포트 지표는 그대로다.
+        from app.db.seed_member_logs import seed_member_logs
+        seed_member_logs()
+        # 데모 트레이너의 후속 관리·메모·초안·지난 PT/상담 메모(#2731). 주간 PT 가
+        # 깔린 뒤라야 지난 수업에 메모를 달 수 있다.
+        from app.db.seed_trainer_notes import seed_trainer_notes
+        seed_trainer_notes()
+        # 데모 계정은 가입 동의를 마친 상태로 둔다(#2819). 동의 행이 없으면 로그인
+        # 직후 동의 화면에 붙잡혀 시연·E2E 가 그 뒤 화면으로 가지 못한다.
+        _seed_demo_consents()
         # 시드 기록을 개인 RAG 문서로 적재(#604). **모든 시드가 끝난 뒤**여야 한다 —
         # 확장 회원(4~15)의 기록은 바로 위에서 만들어지므로, 앞에서 훑으면 첫 기동에
         # 그들 문서가 통째로 빠지고 재기동해야 채워진다.
         from app.db.seed_member_data import ingest_seeded_documents
         ingest_seeded_documents()
-
-    _promote_admins()  # ADMIN_EMAILS 사용자를 관리자로 승격(멱등)
-
-
-def _relax_points_coupon_cost() -> None:
-    """create_all 로 만든 옛 DB 의 `cost > 0` 제약을 `cost >= 0` 으로 바꾼다(#2150).
-
-    create_all 은 이미 있는 표의 제약을 고치지 않는다. 식판 수령 쿠폰은 0P 라 옛
-    제약이 남은 로컬·테스트 DB 에서는 받기가 깨진다. 운영은 Alembic
-    `0087_points_coupons_zero_cost` 가 같은 일을 한다. 이미 바뀌었으면 아무것도 하지
-    않는다.
-    """
-    with engine.begin() as conn:
-        current = conn.scalar(
-            text(
-                "SELECT pg_get_constraintdef(oid) FROM pg_constraint "
-                "WHERE conname = 'ck_points_coupons_cost'"
-            )
-        )
-        if current is None or ">=" in current:
-            return
-        conn.execute(
-            text("ALTER TABLE points_coupons DROP CONSTRAINT ck_points_coupons_cost")
-        )
-        conn.execute(
-            text(
-                "ALTER TABLE points_coupons ADD CONSTRAINT ck_points_coupons_cost "
-                "CHECK (cost >= 0)"
-            )
-        )
 
 
 def _seed_demo_user() -> None:
@@ -130,25 +137,25 @@ def _seed_demo_user() -> None:
         db.close()
 
 
-def _promote_admins() -> None:
-    """ADMIN_EMAILS(콤마구분)에 있는 사용자를 관리자로 승격(멱등)."""
-    from sqlalchemy import func
+#: 데모 시드가 쓰는 이메일 도메인. 실제 가입 계정은 이 도메인을 쓰지 않는다.
+DEMO_EMAIL_DOMAINS = ("@oncare.com", "@oncare.demo")
 
-    emails = get_settings().admin_email_set
-    if not emails:
-        return
+
+def _seed_demo_consents() -> None:
+    """데모 계정마다 역할별 필수 동의를 지금 버전으로 남긴다(멱등, #2819)."""
+    from app.services import signup_consent
+
     db: Session = SessionLocal()
     try:
-        users = db.scalars(
-            select(models.User).where(func.lower(models.User.email).in_(emails))
-        ).all()
-        changed = False
-        for u in users:
-            if not u.is_admin:
-                u.is_admin = True
-                changed = True
-        if changed:
-            db.commit()
+        users = db.scalars(select(models.User)).all()
+        for user in users:
+            email = (user.email or "").lower()
+            if not email.endswith(DEMO_EMAIL_DOMAINS):
+                continue
+            signup_consent.record(
+                db, user.id, signup_consent.required_for(user.role)
+            )
+        db.commit()
     finally:
         db.close()
 
@@ -556,6 +563,46 @@ def _seed_exercise_catalog() -> None:
 
 
 _PUBLIC_COACH_DOCS_VERSION = "coach_public_docs"
+#: 공개 문서 재적재를 한 인스턴스로 묶는 advisory lock 키(#2912).
+_PUBLIC_COACH_DOCS_LOCK = "seed:coach_public_docs"
+
+
+@contextmanager
+def _session_advisory_lock(key: str) -> Iterator[bool]:
+    """세션 단위 advisory lock 을 **전용 연결**에서 기다리지 않고 잡는다.
+
+    트랜잭션 잠금(`pg_advisory_xact_lock`)은 커밋마다 풀려, 커밋을 여러 번 하는
+    작업을 끝까지 묶지 못한다. 세션 잠금은 커밋과 무관하게 연결이 살아 있는 동안
+    유지되므로, 작업 세션과 다른 연결에 쥐어 두고 끝나면 직접 푼다. 프로세스가
+    죽으면 연결이 끊기며 DB 가 잠금을 풀어 준다.
+
+    잡았으면 True, 다른 연결이 쥐고 있으면 False 를 내준다.
+    """
+    conn = engine.connect()
+    try:
+        acquired = bool(
+            conn.execute(
+                text("SELECT pg_try_advisory_lock(hashtext(:key))"), {"key": key}
+            ).scalar()
+        )
+        # 잠금을 쥔 채 'idle in transaction' 으로 남지 않게 트랜잭션은 닫는다.
+        conn.commit()
+        try:
+            yield acquired
+        finally:
+            if acquired:
+                try:
+                    conn.execute(
+                        text("SELECT pg_advisory_unlock(hashtext(:key))"), {"key": key}
+                    )
+                    conn.commit()
+                except Exception:  # noqa: BLE001
+                    # 풀지 못한 잠금을 쥔 연결을 풀에 돌려보내지 않는다 — 버리면
+                    # 연결이 끊기며 DB 가 잠금을 푼다.
+                    conn.invalidate()
+                    raise
+    finally:
+        conn.close()
 
 #: 시드가 넣은 공개 문서의 `source`. 관리자가 직접 올린 공공 문서
 #: (`POST /coach/documents/public`, 기본 `source="public"`)와 구분하려고 따로 둔다 —
@@ -579,7 +626,6 @@ def _seed_public_coach_docs() -> None:
     기동에서 다시 시도한다 — 여기서 적어 두면 빈 근거가 최신 상태로 굳는다.
     """
     from app.data.coach_public_docs import PUBLIC_DOCS
-    from app.services.coach.rag import ingest_document
 
     docs = [
         {"title": doc.title, "domain": doc.domain, "content": doc.read()}
@@ -606,50 +652,66 @@ def _seed_public_coach_docs() -> None:
     try:
         if up_to_date(db):
             return
-        # 같은 DB 를 쓰는 인스턴스가 동시에 뜨면 한 곳만 바꾼다. 임베딩까지 잠금
-        # 안에서 도는데, 경쟁하는 쪽은 같이 기동하는 인스턴스뿐이다.
-        db.execute(
-            text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
-            {"key": "seed:coach_public_docs"},
-        )
-        db.expire_all()
-        if up_to_date(db):
-            db.rollback()
-            return
-
-        db.execute(
-            delete(models.CoachDocument).where(
-                models.CoachDocument.user_id.is_(None),
-                models.CoachDocument.source == PUBLIC_DOC_SOURCE,
-            )
-        )
-        failed = 0
-        for doc in docs:
-            try:
-                ingest_document(
-                    db, doc["content"], user_id=None,
-                    domain=doc["domain"], source=PUBLIC_DOC_SOURCE,
-                    title=doc["title"],
-                )
-            except Exception:  # noqa: BLE001 — 적재 실패가 기동을 막지 않도록
-                # 조용히 삼키면 RAG 가 빈 채로 코치가 규칙 폴백에 갇혀 원인 파악이
-                # 어렵다.
-                logger.warning(
-                    "공개 근거 문서 적재 실패 — 임베딩 제공자(EMBEDDER) 설정 확인 필요: %s",
-                    doc["title"],
-                    exc_info=True,
-                )
-                failed += 1
+        db.rollback()
+        # 같은 DB 를 쓰는 인스턴스가 동시에 뜨면 한 곳만 바꾼다(#2912). 문서마다
+        # 커밋하므로 트랜잭션 잠금은 첫 커밋에서 풀린다 — 세션 잠금을 전용 연결로
+        # 끝까지 쥔다. 기다리지 않는다: 잠금을 못 잡았으면 다른 인스턴스가 같은
+        # DB 에 같은 문서를 적재하는 중이고, 이 인스턴스가 임베딩 API 를 기다리며
+        # 기동을 늦출 이유가 없다. 그쪽이 실패하면 지문이 남지 않아 다음 기동이
+        # 다시 시도한다.
+        with _session_advisory_lock(_PUBLIC_COACH_DOCS_LOCK) as acquired:
+            if not acquired:
+                logger.info("다른 인스턴스가 공개 근거 문서를 적재하고 있어 건너뛴다.")
+                return
+            db.expire_all()
+            if up_to_date(db):
                 db.rollback()
-        if failed:
-            return
-        db.merge(models.ReferenceDataVersion(
-            name=_PUBLIC_COACH_DOCS_VERSION, fingerprint=fingerprint
-        ))
-        db.commit()
+                return
+            if not _reload_public_coach_docs(db, docs, fingerprint):
+                return
     finally:
         db.close()
     logger.info("공개 근거 문서를 다시 적재했다(%d건)", len(docs))
+
+
+def _reload_public_coach_docs(db: Session, docs: list[dict], fingerprint: str) -> bool:
+    """시드 공개 문서를 [docs] 로 바꾸고 지문을 남긴다. 하나라도 실패하면 False.
+
+    잠금은 호출자가 쥔다.
+    """
+    from app.services.coach.rag import ingest_document
+
+    db.execute(
+        delete(models.CoachDocument).where(
+            models.CoachDocument.user_id.is_(None),
+            models.CoachDocument.source == PUBLIC_DOC_SOURCE,
+        )
+    )
+    failed = 0
+    for doc in docs:
+        try:
+            ingest_document(
+                db, doc["content"], user_id=None,
+                domain=doc["domain"], source=PUBLIC_DOC_SOURCE,
+                title=doc["title"],
+            )
+        except Exception:  # noqa: BLE001 — 적재 실패가 기동을 막지 않도록
+            # 조용히 삼키면 RAG 가 빈 채로 코치가 규칙 폴백에 갇혀 원인 파악이
+            # 어렵다.
+            logger.warning(
+                "공개 근거 문서 적재 실패 — 임베딩 제공자(EMBEDDER) 설정 확인 필요: %s",
+                doc["title"],
+                exc_info=True,
+            )
+            failed += 1
+            db.rollback()
+    if failed:
+        return False
+    db.merge(models.ReferenceDataVersion(
+        name=_PUBLIC_COACH_DOCS_VERSION, fingerprint=fingerprint
+    ))
+    db.commit()
+    return True
 
 
 def _seed_demo_places() -> None:
@@ -658,14 +720,7 @@ def _seed_demo_places() -> None:
     try:
         if db.scalar(select(models.Place).limit(1)):
             return
-        demo = [
-            ("place-1", "온케어 내과의원", "medical", "서울 중구 세종대로 110", 37.5660, 126.9785),
-            ("place-2", "헬스플러스 피트니스", "fitness", "서울 중구 을지로 50", 37.5663, 126.9820),
-            ("place-3", "그린샐러드 키친", "healthy_food", "서울 중구 명동길 20", 37.5638, 126.9850),
-            ("place-4", "건강약국", "pharmacy", "서울 중구 태평로 30", 37.5650, 126.9770),
-            ("place-5", "한강공원 러닝트랙", "fitness", "서울 영등포구 여의동로 330", 37.5283, 126.9325),
-        ]
-        for pid, name, cat, addr, lat, lng in demo:
+        for pid, name, cat, addr, lat, lng in DEMO_PLACES:
             db.add(models.Place(id=pid, name=name, category=cat, address=addr, lat=lat, lng=lng))
         db.commit()
     finally:

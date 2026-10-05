@@ -17,6 +17,14 @@ class AppRoutes {
   /// Trainer 회원가입 screen (name/email/password).
   static const String signUp = '/auth/sign-up';
 
+  /// 가입 동의(#2819) — 동의가 남은 계정이 로그인하면 다른 화면보다 먼저 온다.
+  static const String consent = '/auth/consent';
+
+  /// 비밀번호 재설정(#2824). 로그인 화면과 재설정 메일의 링크(`?token=…`)가
+  /// 연다. 세션 상태와 상관없이 열린다 — 링크를 어느 상태에서 열어도 코드를
+  /// 잃지 않는다.
+  static const String passwordReset = '/auth/password-reset';
+
   // --- Main navigation (StatefulShellRoute branches) ---
 
   /// 대시보드 — the console's home; what needs doing today.
@@ -72,24 +80,49 @@ class AppRoutes {
   static bool isLegalPath(String path) =>
       path == legal || path.startsWith('$legal/');
 
-  /// 스케줄 하위의 상담 요청 인박스. (#467, #1228)
-  static const String consultationsSegment = 'consultations';
-  static const String consultations = '$schedule/$consultationsSegment';
+  /// 스케줄을 열면서 그 위에 상담 요청함 **창**을 띄우라는 쿼리. (#2717)
+  static const String inboxParam = 'inbox';
 
-  /// 이전 독립 탭 주소. 기존 링크는 새 스케줄 하위 주소로 리다이렉트한다.
+  /// 상담 요청함 — 스케줄 위에 뜨는 창이다. 페이지가 따로 없다(#2717).
+  ///
+  /// 알림처럼 상담함으로 보내야 하는 길은 이 주소로 스케줄에 가고, 스케줄이
+  /// 창을 연 뒤 쿼리를 지운다 — 스케줄·대시보드 버튼이 여는 창과 같은 창이다.
+  static const String consultations = '$schedule?$inboxParam=1';
+
+  /// 예전 상담함 주소들 — 독립 탭(`/consultations`)과 스케줄 하위 페이지
+  /// (`/schedule/consultations`). 남은 링크는 [consultations] 로 보낸다.
   static const String legacyConsultations = '/consultations';
+  static const String legacyScheduleConsultations = '$schedule/consultations';
 
-  /// 대시보드에서 열었음을 남겨 돌아가기 동선을 복원한다.
-  static String consultationsFromDashboard() => Uri(
-    path: consultations,
-    queryParameters: const <String, String>{'from': 'dashboard'},
-  ).toString();
+  /// 신고·계정 관리 — 운영자 계정에만 보이는 운영 화면 (#3008).
+  ///
+  /// 운영자가 아니면 주소로 열어도 찾을 수 없음 안내만 그린다.
+  static const String adminReports = '/admin/reports';
 
   /// 알림함 — 놓친 변화를 나중에 확인하는 자리. (#503)
   ///
-  /// 상담 요청과 같은 이유로 nav 행은 실 API 빌드에서만 보인다(데모에는 알림을
-  /// 만드는 회원 백엔드가 없다). 라우트 자체는 항상 등록해 딥링크가 살아 있다.
+  /// 들어오는 길은 화면 머리의 알림 종이다(#2628). 사이드바 탭이 아니다.
   static const String notifications = '/notifications';
+
+  /// 알림 화면 — [from] 은 종을 누른 화면이다. 알림 화면의 뒤로 가기가 그리로
+  /// 돌아간다(#2628). 셸의 갈래를 옮겨 오므로 되돌아갈 이력이 남지 않는다.
+  static String notificationsFrom(String? from) =>
+      from == null || from.isEmpty || from.startsWith(notifications)
+      ? notifications
+      : Uri(
+          path: notifications,
+          queryParameters: <String, String>{'from': from},
+        ).toString();
+
+  /// 알림 화면 뒤로 가기가 갈 곳. 콘솔 안의 주소만 받는다 — 밖으로 나가는
+  /// 주소나 알림 화면 자신이면 대시보드다.
+  static String notificationsBackTarget(String? from) =>
+      from != null &&
+          from.startsWith('/') &&
+          !from.startsWith('//') &&
+          !from.startsWith(notifications)
+      ? from
+      : dashboard;
 
   // --- Client detail ---
 
@@ -145,11 +178,15 @@ class AppRoutes {
   ///
   /// [openHealthNotes] 는 들어가자마자 신체·목표 창의 `건강 목표` 탭을 연다 —
   /// 주의사항 알림에서 온 길이다(#2619).
+  ///
+  /// [openFeedback] 은 메모 창의 `피드백` 탭을 연다 — 회원 주간 피드백 알림에서
+  /// 온 길이다(#3026). 둘 다 주면 [openHealthNotes] 가 이긴다(한 번에 창 하나).
   static String clientDetail(
     String id, {
     String? section,
     String? filter,
     bool openHealthNotes = false,
+    bool openFeedback = false,
   }) {
     final safeSection = clientSections.contains(section)
         ? section!
@@ -157,12 +194,15 @@ class AppRoutes {
     final path = '$clients/${Uri.encodeComponent(id)}/$safeSection';
     // 빈 맵을 넘기면 `?` 만 붙은 주소가 나온다 — 필터가 없을 때는 쿼리 자체를
     // 만들지 않는다.
-    if (filter == null && !openHealthNotes) return path;
+    if (filter == null && !openHealthNotes && !openFeedback) return path;
     return Uri(
       path: path,
       queryParameters: <String, String>{
         'f': ?filter,
-        if (openHealthNotes) clientOpenParam: clientOpenHealthNotes,
+        if (openHealthNotes)
+          clientOpenParam: clientOpenHealthNotes
+        else if (openFeedback)
+          clientOpenParam: clientOpenFeedback,
       },
     ).toString();
   }
@@ -170,6 +210,7 @@ class AppRoutes {
   /// [clientDetail] 이 창을 열라고 알리는 쿼리 이름과 값.
   static const String clientOpenParam = 'open';
   static const String clientOpenHealthNotes = 'health-notes';
+  static const String clientOpenFeedback = 'feedback';
 
   /// Builds the 고객 list filtered to a preset. Used by the dashboard
   /// KPI cards (`unread` = 답장 필요, `attention` = 주의 고객).
@@ -177,6 +218,14 @@ class AppRoutes {
     path: clients,
     queryParameters: <String, String>{'f': filter},
   ).toString();
+
+  /// 회원 목록 — [filter] 가 있으면 그 필터를 건 목록, 없으면 전체 목록. (#2893)
+  ///
+  /// 상세를 닫을 때 돌아갈 자리다. 예전에는 닫기가 늘 [clients] 로 가, '주의
+  /// 회원' 처럼 걸러 둔 목록에서 한 명을 닫을 때마다 필터가 풀렸다 — 메시지
+  /// 탭([messagesFor])은 같은 상황에서 필터를 지킨다.
+  static String clientsWith(String? filter) =>
+      filter == null ? clients : clientsFiltered(filter);
 
   /// Builds the standalone 메시지 workspace with an optional selected client
   /// and conversation filter (`all` | `unread` | `attention`).
@@ -189,6 +238,29 @@ class AppRoutes {
   static String coachingFor(String clientId) => Uri(
     path: coaching,
     queryParameters: <String, String>{'client': clientId},
+  ).toString();
+
+  /// [clientId] 회원의 코칭 탭을 **그 PT 에 개인운동 붙이기**로 연다. (#2280)
+  ///
+  /// 일정 상세의 `개인운동 없음` 에서 온다. 개인운동은 AI 제안을 받아 짜는
+  /// 것이라 코칭 탭의 개인운동 단계에서 짜고, 붙이면 [date] 의 그 일정
+  /// ([sessionId])으로 돌아간다.
+  ///
+  /// [requestId] 는 누를 때마다 새로 만든다. 같은 PT 를 다시 누르면 주소가
+  /// 같아, 한 번 닫은 흐름으로 읽혀 다시 열리지 않았다.
+  static String coachingAttach(
+    String clientId, {
+    required String sessionId,
+    required String date,
+    required String requestId,
+  }) => Uri(
+    path: coaching,
+    queryParameters: <String, String>{
+      'client': clientId,
+      'attach': sessionId,
+      'd': date,
+      'r': requestId,
+    },
   ).toString();
 
   /// Builds the 리포트 tab focused on [clientId].
@@ -258,25 +330,6 @@ class AppRoutes {
       queryParameters: <String, String>{'d': ?date, 'session': ?sessionId},
     ).toString();
   }
-
-  /// 후속 관리 할 일이 열어야 할 화면. (#869)
-  ///
-  /// 새 deep-link 체계를 만들지 않고 **이미 있는 route 를 고른다** — 할 일은
-  /// "이 고객의 무엇을 다시 볼 것인가"라서, 그 무엇은 이미 화면을 갖고 있다.
-  ///
-  /// [contextWire] 는 서버 계약값(`context_type`)이다. 도메인 타입 대신 문자열을
-  /// 받아 라우트 표가 특정 feature 의 enum 에 매이지 않게 둔다. 모르는 값은 고객
-  /// 상세로 보낸다 — 갈 곳이 없다고 아무 데도 가지 않는 것보다, 그 고객 화면까지
-  /// 데려다주는 편이 낫다.
-  static String followUpTarget(String clientId, String contextWire) =>
-      switch (contextWire) {
-        'message' => messagesFor(clientId),
-        'program' => coachingFor(clientId),
-        'schedule' => scheduleAt(),
-        'diet' => clientDetail(clientId, section: 'diet'),
-        'exercise' => clientDetail(clientId, section: 'workout'),
-        _ => clientDetail(clientId),
-      };
 
   /// Builds the 내 정보 page on a given [tab] (`profile` | `settings`).
   static String mySection(String tab) =>

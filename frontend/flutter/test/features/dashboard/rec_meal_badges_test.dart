@@ -11,6 +11,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
@@ -59,10 +60,6 @@ const DashboardSummary _summary = DashboardSummary(
   ),
   dietEntries: 1,
   exerciseMinutes: 30,
-  exerciseCalories: 300,
-  exerciseCount: 1,
-  weekScore: 80,
-  weekScoreDelta: 5,
   sodiumWarning: '',
   exerciseFeedback: '',
 );
@@ -96,6 +93,7 @@ Future<void> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: <Override>[
+        mealRecsDemoFallbackProvider.overrideWithValue(true),
         memberCoachProvider.overrideWith((Ref ref) async => coach),
         dashboardSummaryProvider.overrideWith((Ref ref) async => _summary),
         if (recs != null)
@@ -189,6 +187,30 @@ void main() {
         );
       }
     }
+  });
+
+  testWidgets('카탈로그 카드는 번들된 추천 사진을 그대로 그린다', (WidgetTester tester) async {
+    await _pump(tester, coach: _coach);
+
+    final List<String> photos = tester
+        .widgetList<Image>(find.byType(Image))
+        .map((Image w) => w.image)
+        .whereType<AssetImage>()
+        .where((AssetImage a) => a.package == null)
+        .map((AssetImage a) => a.assetName)
+        .where((String name) => name.startsWith('assets/images/rec-'))
+        .toList();
+    // 두부 카드 사진은 원본 PNG 를 같은 화면 다른 사진 크기의 JPEG 로 바꿨다.
+    expect(photos, contains('assets/images/rec-tofu-broccoli.jpg'));
+    expect(photos, hasLength(kDefaultMealKeys.length));
+    for (final String photo in photos) {
+      final ByteData? bytes = await tester.runAsync(
+        () => rootBundle.load(photo),
+      );
+      expect(bytes?.lengthInBytes, greaterThan(0), reason: photo);
+    }
+    // 사진을 못 읽으면 이모지 칸으로 떨어진다 — 하나도 없어야 한다.
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('담당이 있어도 확정한 추천이 없으면 트레이너 추천이 없다', (WidgetTester tester) async {

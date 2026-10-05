@@ -29,6 +29,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fixed_clock.dart';
 
+/// 심긴 모든 고객의 미완료 후속 관리.
+Future<List<FollowUpTask>> _pendingFollowUps(SharedPreferences prefs) async {
+  const String prefix = 'trainer_follow_ups:';
+  final LocalFollowUpTaskRepository repository = LocalFollowUpTaskRepository(
+    prefs,
+  );
+  final List<FollowUpTask> tasks = <FollowUpTask>[];
+  for (final String key in prefs.getKeys()) {
+    if (!key.startsWith(prefix)) continue;
+    tasks.addAll(await repository.fetchForClient(key.substring(prefix.length)));
+  }
+  return tasks;
+}
+
 void main() {
   late AppDatabase db;
   late DriftClientRepository repo;
@@ -100,16 +114,32 @@ void main() {
       );
     });
 
-    test('4주 전보다 오래된 날에는 끼니를 심지 않는다', () async {
-      final List<ClientDietEntryRow> old =
-          await (db.select(db.clientDietEntries)..where(
+    test('4주보다 오래된 날도 끼니 카드가 합계와 같다 (#2732)', () async {
+      // 기간 뷰는 리포트 이력 전체를 그린다 — 오래된 날을 펼쳐도 카드가 있어야 한다.
+      final String old = ymd(DateTime(2026, 8, 20 - 60));
+      final List<ClientDailyMetricRow> metrics =
+          await (db.select(db.clientDailyMetrics)..where(
                 (t) =>
-                    t.clientId.like('seed-client-%') &
-                    t.clientId.equals('seed-client-1').not() &
-                    t.date.isSmallerThanValue(ymd(DateTime(2026, 8, 20 - 27))),
+                    t.clientId.equals('seed-client-2') &
+                    t.date.isSmallerOrEqualValue(old),
               ))
               .get();
-      expect(old, isEmpty);
+      final List<ClientDailyMetricRow> eaten = metrics
+          .where((ClientDailyMetricRow m) => m.calories > 0)
+          .toList();
+      expect(eaten, isNotEmpty);
+      for (final ClientDailyMetricRow m in eaten) {
+        final List<ClientDietEntry> meals = await repo.fetchDietOn(
+          'seed-client-2',
+          DateTime.parse(m.date),
+        );
+        expect(meals, hasLength(m.mealCount), reason: m.date);
+        expect(
+          meals.fold<int>(0, (int a, ClientDietEntry e) => a + e.calories),
+          m.calories,
+          reason: m.date,
+        );
+      }
     });
   });
 
@@ -158,7 +188,7 @@ void main() {
     });
   });
 
-  test('성별·나이를 로스터에 심는다 — 김민수는 픽스처 몫이라 비운다', () async {
+  test('성별·나이를 로스터에 심는다 — 김민수도 백엔드 시드와 같은 값이다 (#2744)', () async {
     final List<TrainerClientRow> rows = await db
         .select(db.trainerClients)
         .get();
@@ -167,14 +197,13 @@ void main() {
     );
     expect(yuna.gender, 'female');
     expect(yuna.age, 41);
+    // 나이 폴백이 없어졌으므로 김민수도 비워 두면 데모 화면에 나이가 빠진다.
     final TrainerClientRow minsu = rows.firstWhere(
       (TrainerClientRow r) => r.id == 'seed-client-1',
     );
-    expect(minsu.gender, isNull);
-    expect(minsu.age, isNull);
-    for (final TrainerClientRow r in rows.where(
-      (TrainerClientRow r) => r.id != 'seed-client-1',
-    )) {
+    expect(minsu.gender, 'male');
+    expect(minsu.age, 36);
+    for (final TrainerClientRow r in rows) {
       expect(r.gender, isNotNull, reason: r.name);
       expect(r.age, isNotNull, reason: r.name);
     }
@@ -271,11 +300,13 @@ void main() {
       final LocalFollowUpTaskRepository followUps = LocalFollowUpTaskRepository(
         prefs,
       );
-      final List<FollowUpTask> due = await followUps.fetchDue();
-      expect(due, isNotEmpty);
-      // 기한이 지난 할 일도 오늘 할 일에 선다.
+      final List<FollowUpTask> pending = await _pendingFollowUps(prefs);
+      expect(pending, isNotEmpty);
+      // 기한이 지난 할 일도 심는다.
       expect(
-        due.any((FollowUpTask t) => t.dueDate.isBefore(DateTime(2026, 8, 20))),
+        pending.any(
+          (FollowUpTask t) => t.dueDate.isBefore(DateTime(2026, 8, 20)),
+        ),
         isTrue,
       );
       final List<FollowUpTask> jisu = await followUps.fetchForClient(
@@ -320,10 +351,9 @@ void main() {
         language: DemoLanguage.en,
         clock: kMidWeekKst,
       );
-      final List<FollowUpTask> due = await LocalFollowUpTaskRepository(
-        prefs,
-      ).fetchDue();
-      for (final FollowUpTask t in due) {
+      final List<FollowUpTask> pending = await _pendingFollowUps(prefs);
+      expect(pending, isNotEmpty);
+      for (final FollowUpTask t in pending) {
         expect(RegExp('[가-힣]').hasMatch(t.title), isFalse, reason: t.title);
       }
     });

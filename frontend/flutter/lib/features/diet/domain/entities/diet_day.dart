@@ -56,9 +56,20 @@ class FoodItem {
     this.proteinG = 0,
     this.fatG = 0,
     this.source = FoodSource.estimate,
+    this.displayName,
   });
+
+  /// 서버에 저장된 음식 이름. 사진 분석이면 공공 영양 DB 가 매칭하는 한국어
+  /// 이름이다 — 화면에는 [label] 을 쓴다.
   final String name;
   final int calories;
+
+  /// 화면 언어로 된 표시 이름(#2850). 영어 화면에서 분석한 음식에만 있다 —
+  /// 한국어 화면·수기 입력·이 필드 이전 기록은 null 이다.
+  final String? displayName;
+
+  /// 화면에 보일 이름 — 표시 이름이 있으면 그것, 없으면 [name].
+  String get label => displayName ?? name;
 
   /// 그 음식을 얼마나 먹었나(g) — 아래 영양이 **무엇을 재고 나온 값인가** 다.
   ///
@@ -82,7 +93,7 @@ class FoodItem {
 
   factory FoodItem.fromJson(Map<String, Object?> json) => FoodItem(
     name: json['name']! as String,
-    calories: (json['calories']! as num).toInt(),
+    calories: kcalOf(json['calories']),
     // 0 이나 음수는 기준이 될 수 없다 — 없는 것과 같이 null 로 접는다.
     amountG: switch ((json['amount_g'] as num?)?.toDouble()) {
       final double g when g > 0 => g,
@@ -94,8 +105,33 @@ class FoodItem {
     proteinG: (json['protein_g'] as num?)?.toDouble() ?? 0,
     fatG: (json['fat_g'] as num?)?.toDouble() ?? 0,
     source: FoodSource.fromJson(json['source']),
+    displayName: displayNameOf(json['display_name']),
   );
 }
+
+/// 칼로리 값을 읽는다. 없음·`null`·숫자가 아닌 값은 0 kcal 이다.
+///
+/// 사진 인식이 칼로리를 읽지 못한 음식은 서버에 `null` 로 남고, 옛 문자열 항목은
+/// 칼로리 키가 없다(#724). 예전에는 한 줄이라도 그러면 null 단언에서 예외가 나
+/// 그날 식단 전체가 오류 화면이 됐다. 모르는 칼로리를 0 으로 세는 것은 서버 끼니
+/// 합계(`compute_totals`)와 같은 규칙이고, 하루 합계([DietDayTotals])도 그대로 맞는다.
+/// 음수는 의미가 없으므로 0 으로 접는다.
+int kcalOf(Object? value) {
+  final num? n = switch (value) {
+    final num v => v,
+    final String s => num.tryParse(s.trim()),
+    _ => null,
+  };
+  if (n == null || !n.isFinite || n <= 0) return 0;
+  return n.round();
+}
+
+/// 서버 `display_name` 을 읽는다. 비었거나 문자열이 아니면 없는 것과 같다 —
+/// 빈 표시 이름이 원래 이름을 가리면 카드에 음식 이름이 사라진다. (#2850)
+String? displayNameOf(Object? value) => switch (value) {
+  final String s when s.trim().isNotEmpty => s.trim(),
+  _ => null,
+};
 
 class DietEntry {
   const DietEntry({
@@ -112,6 +148,7 @@ class DietEntry {
     this.aiComment = '',
     this.photoAsset,
     this.photoUrl,
+    this.thumbEmoji,
   });
 
   final String? id;
@@ -139,6 +176,12 @@ class DietEntry {
   /// [photoAsset]: the demo asset is a stand-in for exactly this.
   final String? photoUrl;
 
+  /// 사진이 없을 때 그릴 이모지를 정해 둔 값(#2878). 사용 가이드의 예시 끼니처럼
+  /// 언어마다 음식 이름이 달라지는 자료가 쓴다 — 이모지 표는 한국어 이름으로
+  /// 고르므로, 영어 이름이면 끼니 기본 이모지로 떨어진다. 서버 응답에는 없고,
+  /// null 이면 음식 이름으로 고른다.
+  final String? thumbEmoji;
+
   factory DietEntry.fromJson(Map<String, Object?> json) => DietEntry(
     id: json['id'] as String?,
     mealType: _mealFromString(json['meal_type']! as String),
@@ -147,7 +190,7 @@ class DietEntry {
         .cast<Map<String, Object?>>()
         .map(FoodItem.fromJson)
         .toList(),
-    totalCalories: (json['total_calories']! as num).toInt(),
+    totalCalories: kcalOf(json['total_calories']),
     sodiumMg: (json['sodium_mg'] as num?)?.toInt() ?? 0,
     sugarG: (json['sugar_g'] as num?)?.toDouble() ?? 0,
     carbsG: (json['carbs_g'] as num?)?.toDouble() ?? 0,
@@ -216,14 +259,14 @@ class DietDay {
         .cast<Map<String, Object?>>()
         .map(DietEntry.fromJson)
         .toList(),
-    totalCalories: (json['total_calories']! as num).toInt(),
-    totalSodiumMg: (json['total_sodium_mg']! as num).toInt(),
-    totalSugarG: (json['total_sugar_g']! as num).toDouble(),
+    totalCalories: kcalOf(json['total_calories']),
+    totalSodiumMg: (json['total_sodium_mg'] as num?)?.toInt() ?? 0,
+    totalSugarG: (json['total_sugar_g'] as num?)?.toDouble() ?? 0,
     macros: switch (json['macros']) {
       final Map<String, Object?> macros => DietMacros.fromJson(macros),
       _ => const DietMacros.zero(),
     },
-    aiCoachMessage: json['ai_coach_message']! as String,
+    aiCoachMessage: (json['ai_coach_message'] as String?) ?? '',
   );
 }
 

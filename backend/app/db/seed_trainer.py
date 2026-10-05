@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -117,6 +117,30 @@ _MEMBER_GENDERS: dict[str, str] = {
     "user-eunchae": "female",       # 노은채
 }
 
+#: 담당 회원의 생년월일(#2728). 트레이너 웹 로스터의 `성별 · 나이` 가 읽는다.
+#:
+#: 트레이너 웹 데모(`frontend/flutter_trainer/lib/core/storage/seed_clients.dart` 의
+#: `_clientDemographics`)와 **같은 나이**가 나오게 골랐다 — 생일은 모두 연초~9월이라
+#: 데모를 시연하는 가을에 두 화면의 나이가 같다. 비어 있던 시절에는 앱이 회원 id
+#: 해시로 나이를 지어내, 같은 회원이 데모와 실서버에서 다른 나이였다. 김민수는
+#: 회원 앱 시드(`seed_member_data._HEALTH_PROFILE`)가 이미 넣는다.
+_MEMBER_BIRTH_DATES: dict[str, str] = {
+    "user-jisu": "1997-04-12",          # 이지수 29
+    "user-sungho": "1992-02-08",        # 박성호 34
+    "user-hayun": "1999-06-30",         # 정하윤 27
+    "user-woojin": "1995-04-17",        # 최우진 31
+    "user-kangseoyeon": "1993-01-04",   # 강서연 33
+    "user-dohyun": "1988-07-19",        # 임도현 38
+    "user-sera": "1980-03-11",          # 오세라 46
+    "user-junhyuk": "1990-08-02",       # 배준혁 36
+    "user-yuna": "1985-08-25",          # 신유나 41
+    "user-jiho": "1982-09-09",          # 한지호 44
+    "user-gayoung": "2001-02-27",       # 문가영 25
+    "user-taekyung": "1998-05-14",      # 류태경 28
+    "user-seojin": "1987-05-06",        # 백서진 39
+    "user-eunchae": "2003-03-01",       # 노은채 23
+}
+
 #: 담당 회원의 키·몸무게와 식단·운동 목표(#2597). 트레이너 웹 신체·목표 창이
 #: 읽는 값이다.
 #:
@@ -197,7 +221,9 @@ def _demo_password_hash() -> str:
 def _email_taken_by_other(db: Session, email: str, user_id: str) -> bool:
     """이 이메일을 가진 '다른 id' 의 사용자가 이미 있으면 True(유니크 충돌 예방)."""
     other = db.scalar(
-        select(models.User.id).where(models.User.email == email, models.User.id != user_id)
+        select(models.User.id).where(
+            func.lower(models.User.email) == email.lower(), models.User.id != user_id
+        )
     )
     return other is not None
 
@@ -328,7 +354,7 @@ def seed_member_genders() -> None:
 
 def _seed_member_genders(db: Session) -> None:
     """[seed_member_genders] 본문 — 성별과 건강 목표(#1818), 키·몸무게와 식단·운동
-    목표(#2597). 이미 값이 있으면 건드리지 않는다 — 트레이너나 회원이 입력한 값이
+    목표(#2597), 생년월일(#2728). 이미 값이 있으면 건드리지 않는다 — 트레이너나 회원이 입력한 값이
     시드로 덮이면, 화면에서 고친 것이 재기동마다 되돌아온다."""
     changed = False
     focus_by_member = {user_id: focus for user_id, _e, _n, focus, _a, _d, _o in _MEMBERS}
@@ -341,13 +367,21 @@ def _seed_member_genders(db: Session) -> None:
         )
         focus = focus_by_member.get(user_id, "")
         body_goals = _MEMBER_BODY_GOALS.get(user_id)
+        birth_date = _MEMBER_BIRTH_DATES.get(user_id, "")
         if profile is None:
-            profile = models.HealthProfile(user_id=user_id, gender=gender, conditions=focus)
+            profile = models.HealthProfile(
+                user_id=user_id, gender=gender, conditions=focus,
+                birth_date=birth_date,
+            )
             if body_goals is not None:
                 _fill_body_goals(profile, body_goals)
             db.add(profile)
             changed = True
             continue
+        # 생년월일도 비어 있을 때만 채운다(#2728) — 회원이 적은 값을 덮지 않는다.
+        if birth_date and not profile.birth_date:
+            profile.birth_date = birth_date
+            changed = True
         # 키·몸무게·목표도 같은 규칙이다 — 비어 있는 묶음만 채운다(#2597).
         if body_goals is not None and _fill_body_goals(profile, body_goals):
             changed = True

@@ -23,15 +23,15 @@ void main() {
     dio.close();
   });
 
-  test('GET /ai-coach/feedback returns greeting + 3 suggestions', () async {
+  test('GET /ai-coach/feedback returns diet + exercise', () async {
     final res = await dio.get<Map<String, Object?>>('/ai-coach/feedback');
     expect(res.statusCode, 200);
     expect(res.data!['greeting'], isNotEmpty);
     final suggestions = (res.data!['suggestions']! as List<Object?>)
         .cast<Map<String, Object?>>();
-    expect(suggestions.length, 3);
-    final tags = suggestions.map((s) => s['tag']! as String).toSet();
-    expect(tags, containsAll(<String>['diet', 'exercise', 'hydration']));
+    // 실서버와 같은 식단·운동 두 건 — 데모 코칭 시트의 카드 구성이다(#2706).
+    final tags = suggestions.map((s) => s['tag']! as String).toList();
+    expect(tags, <String>['diet', 'exercise']);
   });
 
   test('GET /users/me returns the demo profile', () async {
@@ -40,21 +40,14 @@ void main() {
     expect(res.data!['email'], 'minsu@oncare.com');
   });
 
-  test('GET /users/me/health returns the full MyHealthState shape', () async {
+  test('GET /users/me/health returns the same shape as the server', () async {
     final res = await dio.get<Map<String, Object?>>('/users/me/health');
     expect(res.statusCode, 200);
     final body = res.data!;
+    // 실서버와 같은 두 키뿐 — 고정 위험 문구·순위·설정 메뉴는 없다(#2903).
+    expect(body.keys.toSet(), <String>{'profile', 'activity_points'});
     expect((body['profile']! as Map)['name'], '김민수');
-    expect((body['risk']! as Map)['level'], 'medium');
-    expect(body.containsKey('indicators'), isFalse);
     expect(body['activity_points'], kDemoOpeningPoints);
-    final settings = (body['settings']! as List<Object?>)
-        .cast<Map<String, Object?>>();
-    expect(settings.map((s) => s['kind']).toList(), <String>[
-      'my-profile',
-      'notification',
-      'support',
-    ]);
   });
 
   test('GET /places/nearby returns every category when unfiltered', () async {
@@ -113,10 +106,10 @@ void main() {
     const sinchonLat = 37.5559;
     const sinchonLng = 126.9368;
     const expected = <String, int>{
-      '휘트니스에이든': 126,
-      '빌드업짐 PT 신촌점': 133,
-      '신인규피티스튜디오': 177,
-      '하이핏': 186,
+      '온케어 핏스튜디오': 126,
+      '온케어 PT랩': 133,
+      '온케어 1:1 스튜디오': 177,
+      '온케어 무브랩': 186,
     };
 
     final res = await dio.get<List<Object?>>(
@@ -159,6 +152,22 @@ void main() {
     expect(res.statusCode, 200);
     expect(res.data!['status'], 'ok');
     expect(res.data!['backend'], 'drift-local');
+    expect(res.data!['commit_sha'], 'unknown');
+  });
+
+  test('GET /version matches the server keys including commit_sha', () async {
+    final res = await dio.get<Map<String, Object?>>('/version');
+    expect(res.statusCode, 200);
+    expect(res.data!['api_version'], 'v1');
+    expect(res.data!.keys.toSet(), <String>{
+      'api_version',
+      'app_version',
+      'min_app_version',
+      'commit_sha',
+    });
+    expect(res.data!['commit_sha'], 'unknown');
+    // 데모는 최소 지원 버전을 두지 않는다 — 업데이트 화면이 뜨지 않는다(#3045).
+    expect(res.data!['min_app_version'], isNull);
   });
 
   test('POST /ai-coach/chat returns a grounded reply with sources', () async {
@@ -295,6 +304,7 @@ void main() {
         'email': 'new@oncare.com',
         'password': 'password123',
         'name': '홍길동',
+        'email_code': '000000',
       },
     );
     expect(res.statusCode, 201);
@@ -309,6 +319,7 @@ void main() {
       data: <String, Object?>{
         'email': 'solo@oncare.com',
         'password': 'password123',
+        'email_code': '000000',
       },
     );
     expect(res.statusCode, 201);
@@ -334,6 +345,7 @@ void main() {
             'email': 'policy@oncare.com',
             'password': password,
             'name': '정책',
+            'email_code': '000000',
           },
           options: Options(validateStatus: (int? s) => true),
         );
@@ -446,7 +458,11 @@ void main() {
       data: <String, Object?>{'name': '탈퇴예정'},
     );
 
-    final del = await dio.delete<Map<String, Object?>>('/users/me');
+    // 탈퇴는 본인 확인을 거친다(#3039). 테스트 전용 값이다.
+    final del = await dio.delete<Map<String, Object?>>(
+      '/users/me',
+      data: <String, Object?>{'current_password': 'pw-current-1'},
+    );
     expect(del.statusCode, 200);
     expect(del.data!['status'], 'deleted');
 

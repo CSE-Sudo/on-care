@@ -41,6 +41,9 @@ def seeded(client, db_session):
         profile.focus_changed_by,
         profile.focus_changed_by_id,
         profile.focus_changed_at,
+        profile.notes_changed_by,
+        profile.notes_changed_by_id,
+        profile.notes_changed_at,
     )
     yield {
         "trainer": _login(client, "trainer@oncare.com"),
@@ -57,6 +60,9 @@ def seeded(client, db_session):
         profile.focus_changed_by,
         profile.focus_changed_by_id,
         profile.focus_changed_at,
+        profile.notes_changed_by,
+        profile.notes_changed_by_id,
+        profile.notes_changed_at,
     ) = original
     db_session.execute(
         delete(Notification).where(
@@ -111,10 +117,10 @@ def test_notes_change_ignores_goals_and_order(before, after, changed):
     assert health_goal_change.notes_changed(before, after) is changed
 
 
-def test_member_notes_change_tells_the_trainer_without_recording(client, seeded):
+def test_member_notes_change_tells_the_trainer_and_records_apart(client, seeded):
     """회원이 적은 주의사항은 담당 트레이너가 바로 알아야 한다(#2619).
 
-    `바꾼 사람` 기록은 목표 칩만의 것이라 남기지 않는다.
+    목표 칩 기록(`focus_changed_*`)은 건드리지 않고, 주의사항은 따로 남긴다(#2942).
     """
     current = client.get("/v1/users/me/profile", headers=_h(seeded["member"])).json()
     goals = ", ".join(
@@ -127,6 +133,15 @@ def test_member_notes_change_tells_the_trainer_without_recording(client, seeded)
     )
     assert saved.status_code == 200, saved.text
     assert saved.json()["focus_changed_at"] == current["focus_changed_at"]
+    assert saved.json()["notes_changed_by"] == "member"
+    assert saved.json()["notes_changed_at"] is not None
+
+    # 트레이너 창도 같은 마지막 변경을 읽는다.
+    trainer_view = client.get(
+        f"/v1/trainer/clients/{MEMBER_ID}/health-profile", headers=_h(seeded["trainer"])
+    ).json()
+    assert trainer_view["notes_changed_by"] == "member"
+    assert trainer_view["notes_changed_at"] == saved.json()["notes_changed_at"]
 
     notices = _goal_notices(client, seeded["trainer"], trainer=True)
     assert len(notices) == 1
@@ -218,6 +233,34 @@ def test_trainer_change_is_recorded_and_the_member_is_told(client, seeded):
     member_view = client.get("/v1/users/me/profile", headers=_h(seeded["member"])).json()
     assert member_view["focus_changed_by"] == "trainer"
     assert _goal_notices(client, seeded["trainer"], trainer=True) == []
+
+
+def test_trainer_notes_change_is_recorded_without_telling_the_member(client, seeded):
+    """트레이너가 주의사항만 고치면 기록만 남긴다(#2942) — 회원 알림은 없다.
+
+    회원은 MY 건강 목표의 글 아래 `마지막 변경` 줄로 안다. 목표 칩 기록은 그대로다.
+    """
+    current = client.get(
+        f"/v1/trainer/clients/{MEMBER_ID}/health-profile", headers=_h(seeded["trainer"])
+    ).json()
+    goals = ", ".join(
+        t for t in current["conditions"].split(", ") if t in health_focus.FOCUS_OPTIONS
+    )
+    saved = client.put(
+        f"/v1/trainer/clients/{MEMBER_ID}/health-profile",
+        headers=_h(seeded["trainer"]),
+        json={"conditions": f"{goals}, 오른쪽 어깨 충돌 증후군"},
+    )
+    assert saved.status_code == 200, saved.text
+    body = saved.json()
+    assert body["notes_changed_by"] == "trainer"
+    assert body["notes_changed_at"] is not None
+    assert body["focus_changed_by"] == current["focus_changed_by"]
+    assert body["focus_changed_at"] == current["focus_changed_at"]
+
+    member_view = client.get("/v1/users/me/profile", headers=_h(seeded["member"])).json()
+    assert member_view["notes_changed_by"] == "trainer"
+    assert _goal_notices(client, seeded["member"], trainer=False) == []
 
 
 def test_trainer_saving_other_fields_does_not_count(client, seeded):

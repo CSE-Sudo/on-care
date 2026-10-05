@@ -22,6 +22,7 @@ class ClientChatMessage {
     this.attachment,
     this.reportWeekStart,
     this.emoteId,
+    this.routineDelivery,
   });
 
   /// Row id (`seed-chat-…` for seeds, `chat-…` for runtime replies).
@@ -52,8 +53,59 @@ class ClientChatMessage {
   /// 읽는 글이라 함께 온다.
   final String? emoteId;
 
+  /// 루틴 전송 안내라면 무엇을 보냈나(#2672). 일반 대화는 null 이다.
+  ///
+  /// 리포트 안내([reportWeekStart])처럼 말풍선이 아니라 대화 가운데 카드로
+  /// 그린다. 본문은 카드를 못 그리는 자리(고객 목록의 마지막 메시지)가 읽는다.
+  final RoutineDeliveryNotice? routineDelivery;
+
   /// Whether this message was sent by the trainer.
   bool get fromTrainer => sender == ChatSender.trainer;
+}
+
+/// 채팅 가운데 루틴 전송 안내 — 한 번의 전송에 무엇이 갔나. (#2672)
+class RoutineDeliveryNotice {
+  /// Creates the notice.
+  const RoutineDeliveryNotice({
+    required this.kind,
+    this.programNames = const <String>[],
+    this.routineNames = const <String>[],
+  });
+
+  /// JSON(서버 `RoutineDeliveryCardOut`, 데모 표시 행) → 안내. 모양이 다르면
+  /// null — 안내 카드 하나 때문에 대화가 뜨지 않는 편보다 일반 메시지로 둔다.
+  static RoutineDeliveryNotice? fromJson(Object? value) {
+    if (value is! Map) return null;
+    final Object? kind = value['kind'];
+    if (kind is! String || kind.isEmpty) return null;
+    List<String> names(Object? raw) => <String>[
+      if (raw is List)
+        for (final Object? name in raw)
+          if (name is String && name.isNotEmpty) name,
+    ];
+    return RoutineDeliveryNotice(
+      kind: kind,
+      programNames: names(value['program_names']),
+      routineNames: names(value['routine_names']),
+    );
+  }
+
+  /// `pt_with_routine` · `routine_only` · `cancelled_routine_only` · `routine`
+  /// · `program`.
+  final String kind;
+
+  /// 함께 간 PT 프로그램의 운동 이름.
+  final List<String> programNames;
+
+  /// 함께 간 개인운동 이름.
+  final List<String> routineNames;
+
+  /// 저장용 JSON — 서버와 같은 키다.
+  Map<String, Object?> toJson() => <String, Object?>{
+    'kind': kind,
+    'program_names': programNames,
+    'routine_names': routineNames,
+  };
 }
 
 /// 첨부의 종류. 화면이 그릴 방법을 이 값으로 정한다.
@@ -92,11 +144,11 @@ class ChatAttachment {
   final int fileSize;
   final String downloadPath;
 
-  /// 데모에서 보낸 사진의 바이트. (#2493)
+  /// 데모 대화의 사진·PDF 바이트. (#2493, #2669)
   ///
   /// 데모에는 [downloadPath] 로 내려받을 서버가 없다. 값이 있으면 화면은 받아
-  /// 오지 않고 이 바이트를 그대로 그린다 — 회원앱 `CoachAttachment.localBytes`
-  /// 와 같은 자리다.
+  /// 오지 않고 이 바이트를 그대로 그리거나 연다 — 회원앱
+  /// `CoachAttachment.localBytes` 와 같은 자리다.
   final Uint8List? localBytes;
 
   bool get isImage => kind == ChatAttachmentKind.image;

@@ -1,15 +1,17 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:oncare_core/request_id.dart';
 
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/utils/request_id.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 
 class TrainerChatPdfRepository {
@@ -52,6 +54,18 @@ abstract interface class TrainerChatImageRepository {
   });
 }
 
+/// 이 사진이 다른 한마디와 함께 이미 전송돼 있다 — 서버 409. (#3095)
+///
+/// 응답을 잃은 전송이 서버에는 남아 있고, 그 뒤 같은 멱등키로 다른 내용이
+/// 왔다는 뜻이다. 화면은 대화를 다시 읽어 이미 간 사진을 보여 준다. 키는
+/// 저장소가 버렸으므로 다시 보내면 새 메시지로 간다.
+class ChatImageAlreadySent implements Exception {
+  const ChatImageAlreadySent();
+
+  @override
+  String toString() => 'ChatImageAlreadySent';
+}
+
 /// 데모의 사진 전송. 서버 대신 드리프트 대화에 붙인다. (#2493)
 class DemoTrainerChatImageRepository implements TrainerChatImageRepository {
   const DemoTrainerChatImageRepository(this._chat);
@@ -78,8 +92,21 @@ class DioTrainerChatImageRepository implements TrainerChatImageRepository {
   final Dio _dio;
 
   /// 같은 전송 시도에 붙는 멱등키. 끊긴 네트워크로 다시 눌러도 사진이 두 번
-  /// 가지 않게, 파일과 회원 조합마다 한 번만 만들고 재사용한다.
+  /// 가지 않게, 회원·파일·한마디 조합마다 한 번만 만들고 재사용한다.
+  ///
+  /// 한마디도 열쇠에 넣는다(#3095). 빼면 실패 뒤 한마디를 고쳐 같은 사진을 다시
+  /// 보낼 때 같은 키로 나가, 서버가 "다른 메시지" 라며 409 를 계속 낸다.
+  /// 칸을 `/` 로 이으면 파일 이름·한마디의 `/` 때문에 다른 조합이 같은 열쇠가
+  /// 되므로 JSON 목록으로 묶는다.
   final Map<String, String> _requestIds = <String, String>{};
+
+  @visibleForTesting
+  static String requestKeyOf(
+    String clientId,
+    String fileName,
+    int length,
+    String message,
+  ) => jsonEncode(<Object>[clientId, fileName, length, message]);
 
   @override
   Future<void> send({
@@ -88,7 +115,7 @@ class DioTrainerChatImageRepository implements TrainerChatImageRepository {
     required String fileName,
     String message = '',
   }) async {
-    final key = '$clientId/$fileName/${bytes.length}';
+    final key = requestKeyOf(clientId, fileName, bytes.length, message);
     final requestId = _requestIds.putIfAbsent(key, newClientRequestId);
     try {
       await _dio.post<Map<String, Object?>>(
@@ -111,6 +138,12 @@ class DioTrainerChatImageRepository implements TrainerChatImageRepository {
       _requestIds.remove(key);
     } on DioException catch (e) {
       final status = e.response?.statusCode;
+      if (status == 409) {
+        // 이 키로는 이미 다른 사진 메시지가 가 있다. 키를 버려 다음 전송은 새
+        // 시도가 되게 하고, 화면이 대화를 다시 읽게 알린다.
+        _requestIds.remove(key);
+        throw const ChatImageAlreadySent();
+      }
       if (status == 413 || status == 415) {
         final body = e.response?.data;
         final detail = body is Map ? body['detail'] : null;
@@ -125,9 +158,13 @@ final trainerChatImageRepositoryProvider = Provider<TrainerChatImageRepository>(
   (ref) {
     ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
     if (ref.watch(appConfigProvider).useMockApi) {
-      return DemoTrainerChatImageRepository(
-        DriftChatRepository(ref.watch(appDatabaseProvider)),
+      // 사진을 보내도 회원이 답한다(#2790).
+      final chat = DemoRepliesChatRepository(
+        ref.watch(appDatabaseProvider),
+        replyDelay: demoChatReplyDelay,
       );
+      ref.onDispose(chat.dispose);
+      return DemoTrainerChatImageRepository(chat);
     }
     return DioTrainerChatImageRepository(ref.watch(dioProvider));
   },

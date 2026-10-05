@@ -1,6 +1,7 @@
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
+import 'package:oncare_trainer/shared/utils/roster_unread.dart';
 
 /// A client that needs attention today, with the PT 관리 신호 that put them
 /// there (#2244) — the same signals and order the 회원 list shows.
@@ -116,15 +117,14 @@ DashboardSummary buildDashboardSummary({
   required Map<String, int> unread,
 }) {
   final attention = <AttentionClient>[];
-  var unreadTotal = 0;
-  var unreadClients = 0;
+  // 사이드바 배지·메시지 칩과 같은 도우미로 센다(#2868).
+  final unreadTotals = rosterUnreadOf(
+    rosterIds: clients.map((client) => client.id),
+    unread: unread,
+  );
 
   for (final client in clients) {
     final pending = unread[client.id] ?? 0;
-    if (pending > 0) {
-      unreadTotal += pending;
-      unreadClients++;
-    }
     final signals = rosterSignalsFor(client, unread: pending);
     if (signals.isNotEmpty) {
       attention.add(AttentionClient(client: client, signals: signals));
@@ -149,8 +149,8 @@ DashboardSummary buildDashboardSummary({
   return DashboardSummary(
     activeClients: clients.where((c) => c.active).length,
     totalClients: clients.length,
-    unreadTotal: unreadTotal,
-    unreadClients: unreadClients,
+    unreadTotal: unreadTotals.messages,
+    unreadClients: unreadTotals.conversations,
     attention: attention,
     weeklyCompletion: _meanWeeklyCompletion(clients),
     healthAttentionCount: clients.where(needsAttention).length,
@@ -158,7 +158,8 @@ DashboardSummary buildDashboardSummary({
 }
 
 /// Mean completion per weekday across every client that has a full week
-/// of data. Days no client recorded stay 0.
+/// of data. 그날 걸린 것이 있던 회원만 평균에 든다(null 은 빠진다, #2513).
+/// Days no client had anything assigned stay 0.
 List<int> _meanWeeklyCompletion(List<TrainerClient> clients) {
   final weeks = clients
       .map((c) => c.weekCompletion)
@@ -167,6 +168,13 @@ List<int> _meanWeeklyCompletion(List<TrainerClient> clients) {
   if (weeks.isEmpty) return const <int>[];
   return <int>[
     for (var day = 0; day < weekdayCount; day++)
-      (weeks.map((w) => w[day]).reduce((a, b) => a + b) / weeks.length).round(),
+      () {
+        final List<int> values = <int>[
+          for (final List<int?> w in weeks) ?w[day],
+        ];
+        return values.isEmpty
+            ? 0
+            : (values.reduce((a, b) => a + b) / values.length).round();
+      }(),
   ];
 }

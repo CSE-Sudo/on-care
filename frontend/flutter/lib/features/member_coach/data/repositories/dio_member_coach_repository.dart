@@ -3,13 +3,15 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 
 import 'package:oncare/core/errors/app_error.dart';
-import 'package:oncare/core/utils/active_polling_stream.dart';
-import 'package:oncare/core/utils/request_id.dart';
-import 'package:oncare/core/utils/wire_date.dart';
+import 'package:oncare/core/network/request_timeouts.dart';
 import 'package:oncare/features/member_coach/data/dtos/member_coach_dtos.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
+import 'package:oncare_core/active_polling_stream.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_core/request_id.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Reads the member's coach + received routines + chat from the FastAPI
 /// backend. The chat thread is the same one the trainer app writes to, so
@@ -57,10 +59,15 @@ class DioMemberCoachRepository implements MemberCoachRepository {
     required int minutes,
     int? durationSeconds,
     String intensity = 'moderate',
+    DateTime? day,
   }) async {
     try {
       final Response<Map<String, Object?>> response = await _dio.post(
         '/me/coach/routines/$routineId/complete',
+        // 지난 날짜만 싣는다(#2506) — 없으면 서버가 오늘로 적는다.
+        queryParameters: day == null
+            ? null
+            : <String, Object?>{'date': wireDate(day)},
         data: <String, Object?>{
           'minutes': minutes,
           // 서버는 0 이하를 거절한다(422) — 초가 없거나 0 이면 키를 싣지 않고
@@ -81,10 +88,16 @@ class DioMemberCoachRepository implements MemberCoachRepository {
   }
 
   @override
-  Future<CoachRoutine> uncompleteRoutine(String routineId) async {
+  Future<CoachRoutine> uncompleteRoutine(
+    String routineId, {
+    DateTime? day,
+  }) async {
     try {
       final Response<Map<String, Object?>> response = await _dio.delete(
         '/me/coach/routines/$routineId/complete',
+        queryParameters: day == null
+            ? null
+            : <String, Object?>{'date': wireDate(day)},
       );
       final Map<String, Object?>? data = response.data;
       if (data == null) {
@@ -114,12 +127,14 @@ class DioMemberCoachRepository implements MemberCoachRepository {
     final List<CoachMessage> messages = await _getList(
       '/me/coach/chat',
       coachMessageFromJson,
+      // 대화의 404 는 "기록 없음" 이 아니라 담당 해제다(#2843).
+      notFoundMeansUnassigned: true,
       // 커서는 시각과 id 를 함께 넘긴다 — 같은 초에 들어온 메시지가 둘이면
       // 시각만으로는 경계가 갈리지 않는다(서버도 같은 짝으로 본다).
       query: before == null
           ? null
           : <String, Object?>{
-              'before': before.createdAt.toUtc().toIso8601String(),
+              'before': kstWallToUtc(before.createdAt).toIso8601String(),
               'before_id': before.id,
             },
     );
@@ -136,6 +151,8 @@ class DioMemberCoachRepository implements MemberCoachRepository {
       activePollingStream<List<CoachMessage>>(
         load: fetchChat,
         interval: pollInterval,
+        // 해제는 잠깐의 실패가 아니다 — 받아 둔 대화가 있어도 알린다.
+        surfaceError: (Object error) => error is CoachUnassignedException,
       );
 
   @override
@@ -185,6 +202,9 @@ class DioMemberCoachRepository implements MemberCoachRepository {
               'message': text.trim(),
               'client_request_id': clientRequestId,
             }),
+            // 느린 회선에서도 사진을 끝까지 올리도록 보내기 한도만 늘린다(#3141).
+            // 서버는 받은 사진을 저장만 하므로 응답 대기는 전역 한도 그대로다.
+            options: Options(sendTimeout: photoUploadSendTimeout),
           );
       final Map<String, Object?>? data = res.data;
       if (data == null) {
@@ -320,6 +340,7 @@ class DioMemberCoachRepository implements MemberCoachRepository {
     String path,
     T Function(Map<String, Object?>) fromJson, {
     Map<String, Object?>? query,
+    bool notFoundMeansUnassigned = false,
   }) async {
     try {
       final res = await _dio.get<List<dynamic>>(path, queryParameters: query);
@@ -333,7 +354,10 @@ class DioMemberCoachRepository implements MemberCoachRepository {
           })
           .toList(growable: false);
     } on DioException catch (e) {
-      if (e.response?.statusCode == 404) return <T>[];
+      if (e.response?.statusCode == 404) {
+        if (notFoundMeansUnassigned) throw const CoachUnassignedException();
+        return <T>[];
+      }
       throw AppError.fromDio(e);
     }
   }

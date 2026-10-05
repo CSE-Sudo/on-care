@@ -27,6 +27,47 @@ enum TrainerMemoSource {
   };
 }
 
+/// What a memo is about — picked by the trainer on a hand-written memo. (#2622)
+///
+/// [none] is "not picked" (the tag reads `직접 작성`). Exercise-record memos are
+/// always [exercise] and chat-insight memos always [none]; the server fills
+/// both from the source.
+enum TrainerMemoCategory {
+  none,
+  exercise,
+  diet,
+  pain,
+  life;
+
+  /// The backend wire value (`category` on `/trainer/clients/{id}/memos`).
+  String get wire => switch (this) {
+    TrainerMemoCategory.none => '',
+    TrainerMemoCategory.exercise => 'exercise',
+    TrainerMemoCategory.diet => 'diet',
+    TrainerMemoCategory.pain => 'pain',
+    TrainerMemoCategory.life => 'life',
+  };
+
+  /// Unknown values read as [none] — a newer server's category must not
+  /// break the whole memo list.
+  static TrainerMemoCategory fromWire(String? value) => switch (value) {
+    'exercise' => TrainerMemoCategory.exercise,
+    'diet' => TrainerMemoCategory.diet,
+    'pain' => TrainerMemoCategory.pain,
+    'life' => TrainerMemoCategory.life,
+    _ => TrainerMemoCategory.none,
+  };
+
+  /// The ones a trainer can pick, in chip order.
+  static const List<TrainerMemoCategory> picks = <TrainerMemoCategory>[
+    TrainerMemoCategory.exercise,
+    TrainerMemoCategory.diet,
+    TrainerMemoCategory.life,
+    // 통증·부상은 따로 챙길 신호라 맨 끝에, 고르면 빨강이다.
+    TrainerMemoCategory.pain,
+  ];
+}
+
 /// Which kind of workout record an exercise memo points at. (#2332)
 enum TrainerMemoRefKind {
   /// A PT session the trainer ran.
@@ -35,19 +76,26 @@ enum TrainerMemoRefKind {
   /// A personal workout — an assigned routine or an AI personal routine.
   personal,
 
-  /// The member's own logs for one day (one card per day, no id).
-  memberLog;
+  /// The member's own logs for one day (one card per day, no id). Only read
+  /// now — new date-linked memos are [day].
+  memberLog,
+
+  /// Every workout record of one day (#2508). The workout tab keeps one memo
+  /// spot per date row.
+  day;
 
   String get wire => switch (this) {
     TrainerMemoRefKind.ptSession => 'pt_session',
     TrainerMemoRefKind.personal => 'personal',
     TrainerMemoRefKind.memberLog => 'member_log',
+    TrainerMemoRefKind.day => 'day',
   };
 
   static TrainerMemoRefKind? fromWire(String? value) => switch (value) {
     'pt_session' => TrainerMemoRefKind.ptSession,
     'personal' => TrainerMemoRefKind.personal,
     'member_log' => TrainerMemoRefKind.memberLog,
+    'day' => TrainerMemoRefKind.day,
     _ => null,
   };
 }
@@ -84,6 +132,7 @@ class TrainerMemo {
     this.insightId,
     this.insightKind = '',
     this.ref,
+    this.category = TrainerMemoCategory.none,
   });
 
   final String id;
@@ -101,6 +150,9 @@ class TrainerMemo {
 
   /// The workout record an exercise memo was left from; null otherwise.
   final TrainerMemoRef? ref;
+
+  /// What the memo is about (#2622). [TrainerMemoCategory.none] when not picked.
+  final TrainerMemoCategory category;
 
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -127,6 +179,7 @@ class TrainerMemo {
               day: json['ref_date'] as String?,
               name: json['ref_name'] as String? ?? '',
             ),
+      category: TrainerMemoCategory.fromWire(json['category'] as String?),
       createdAt: DateTime.parse(json['created_at']! as String),
       updatedAt: DateTime.parse(
         json['updated_at'] as String? ?? json['created_at']! as String,
@@ -144,17 +197,23 @@ class TrainerMemo {
     'ref_id': ref?.id,
     'ref_date': ref?.day,
     'ref_name': ref?.name ?? '',
+    'category': category.wire,
     'created_at': createdAt.toIso8601String(),
     'updated_at': updatedAt.toIso8601String(),
   };
 
-  TrainerMemo copyWith({String? body, DateTime? updatedAt}) => TrainerMemo(
+  TrainerMemo copyWith({
+    String? body,
+    TrainerMemoCategory? category,
+    DateTime? updatedAt,
+  }) => TrainerMemo(
     id: id,
     body: body ?? this.body,
     source: source,
     insightId: insightId,
     insightKind: insightKind,
     ref: ref,
+    category: category ?? this.category,
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );

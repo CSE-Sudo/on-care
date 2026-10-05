@@ -12,15 +12,18 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:oncare/app/app_theme.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
+import 'package:oncare/features/account/domain/entities/account_reauth.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
+import 'package:oncare/features/auth/domain/repositories/password_repository.dart'
+    show ReissuedTokens;
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+
+import '../../helpers/mock_account_repository.dart';
 
 /// 저장이 실제로 불렸는지 세는 저장소.
 class _CountingAccountRepository extends MockAccountRepository {
@@ -37,6 +40,8 @@ class _CountingAccountRepository extends MockAccountRepository {
     String? gender,
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
+    AccountReauth? reauth,
+    void Function(ReissuedTokens tokens)? onTokensReissued,
   }) {
     saves++;
     return super.updateProfile(
@@ -47,6 +52,8 @@ class _CountingAccountRepository extends MockAccountRepository {
       gender: gender,
       heightCm: heightCm,
       weightKg: weightKg,
+      reauth: reauth,
+      onTokensReissued: onTokensReissued,
     );
   }
 }
@@ -108,6 +115,25 @@ void main() {
 
     expect(find.text(l.authEmailInvalid), findsOneWidget);
     expect(repo.saves, 0, reason: '형식이 틀린 이메일은 서버로 보내지 않는다');
+  });
+
+  testWidgets('255자를 넘는 이메일은 저장을 보내지 않고 길이 문구로 알린다', (
+    WidgetTester tester,
+  ) async {
+    // 서버 `contact_format.EMAIL_MAX_LENGTH` 와 같은 상한이다(#2908). 전에는
+    // 화면이 형식만 보고 통과시켜 저장 실패 토스트만 남았다.
+    final (AppLocalizations l, _CountingAccountRepository repo) =
+        await _openProfile(tester);
+    const String domain = '@oncare.com';
+    final String tooLong =
+        '${'a' * (AppInputRules.emailMaxLength + 1 - domain.length)}$domain';
+
+    await tester.enterText(find.byKey(_email), tooLong);
+    await _save(tester, l);
+
+    expect(find.text(l.authEmailTooLong), findsOneWidget);
+    expect(find.text(l.authEmailInvalid), findsNothing);
+    expect(repo.saves, 0, reason: '너무 긴 이메일은 서버로 보내지 않는다');
   });
 
   testWidgets('이메일 칸을 비워도 저장을 보내지 않는다', (WidgetTester tester) async {

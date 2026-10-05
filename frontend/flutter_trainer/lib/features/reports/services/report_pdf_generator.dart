@@ -4,7 +4,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oncare_trainer/app/app_theme.dart';
+import 'package:oncare_report/oncare_report.dart'
+    show reportSheetFrame, reportSheetOnePage;
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/calorie_baseline.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
@@ -15,7 +16,6 @@ import 'package:oncare_trainer/features/reports/presentation/widgets/report_resu
 import 'package:oncare_trainer/features/reports/services/report_pdf_image.dart';
 import 'package:oncare_trainer/features/reports/services/report_widget_capture.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_ui/oncare_ui.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -171,9 +171,11 @@ class ReportPdfGenerator {
       // ③ 전송 단계에서는 편집기가 직전 주들을 더는 보고 있지 않아 치워졌을
       // 수 있다 — 다시 읽어 둔다.
       for (int back = 1; back <= kCalorieBaselineWeeks; back++) {
-        final ReportKey key = (
+        final ReportKey key = ReportKey(
           client: report.client,
-          weekStart: report.weekStart.subtract(Duration(days: 7 * back)),
+          // [calorieBaselineProvider] 와 같은 주 목록이어야 캐시를 함께
+          // 쓴다 — 둘 다 달력 날짜로 옮긴다(#2774).
+          weekStart: shiftWeeks(report.weekStart, -back),
         );
         keep.add(scope.listen(weeklyReportProvider(key), (_, _) {}));
         past.add(
@@ -200,49 +202,28 @@ class ReportPdfGenerator {
     );
   }
 
-  /// 화면 밖 트리가 앱 안에서처럼 그려지도록 테마·로케일·provider 를 두른다.
+  /// 화면 밖 트리가 앱 안에서처럼 그려지도록 provider 를 두르고, 테마·로케일은
+  /// 회원 앱과 같은 틀(`reportSheetFrame`)에 맡긴다 — 두 앱이 같은 한 장을
+  /// 굽는다(#2652).
   static Widget _frame(
     ProviderContainer scope,
     AppLocalizations l,
     Widget sheet,
   ) => UncontrolledProviderScope(
     container: scope,
-    child: Localizations(
+    child: reportSheetFrame(
       locale: Locale(l.localeName),
       delegates: AppLocalizations.localizationsDelegates,
-      child: MediaQuery(
-        // 문서는 사용자의 글자 배율과 상관없이 같은 크기로 나가야 한다.
-        data: const MediaQueryData(textScaler: TextScaler.noScaling),
-        child: Theme(
-          data: AppTheme.light(),
-          child: Material(color: OnCareColors.surfaceCard, child: sheet),
-        ),
-      ),
+      sheet: sheet,
     ),
   );
 
   /// 구운 결과지를 A4 한 쪽에 가득 얹는다. 결과지가 A4 비율이라 여백이
   /// 남지 않는다.
-  Future<Uint8List> _onePage(CapturedWidget shot) async {
-    const PdfPageFormat format = PdfPageFormat.a4;
-    final pw.Document document = pw.Document();
-    final pw.ImageProvider image = await embedReportImage(
-      document.document,
-      shot,
-      encode: encodeImage,
-      yieldFrame: yieldFrame,
-    );
-    document.addPage(
-      pw.Page(
-        pageFormat: format,
-        margin: pw.EdgeInsets.zero,
-        build: (_) =>
-            pw.Image(image, width: format.width, height: format.height),
-      ),
-    );
-    // 날 RGB 로 실은 그림의 압축이 여기서 돈다 — 도는 동안 양보한다.
-    return document.save(enableEventLoopBalancing: true);
-  }
+  ///
+  /// 회원 앱이 여는 리포트와 같은 함수로 싣는다(#2652).
+  Future<Uint8List> _onePage(CapturedWidget shot) =>
+      reportSheetOnePage(shot, encode: encodeImage, yieldFrame: yieldFrame);
 
   // ── 글자 문서(물러설 자리) ──────────────────────────────────────────────
 
@@ -351,8 +332,8 @@ class ReportPdfGenerator {
     final data = await image.toByteData(format: ui.ImageByteFormat.png);
     image.dispose();
     picture.dispose();
-    // 화면에 뜨지 않는 내부 오류다 — 호출부가 잡아서 로케일이 붙은
-    // `reportsPdfGenerationFailed` 를 대신 보여 준다.
+    // 화면에 뜨지 않는 내부 오류다 — 호출부(리포트 전송)가 잡아서 로케일이
+    // 붙은 실패 토스트를 대신 보여 준다.
     if (data == null) throw StateError('failed to rasterize a PDF page');
     return data.buffer.asUint8List();
   }
@@ -511,11 +492,15 @@ class ReportPdfGenerator {
     );
   }
 
-  static String _series(AppLocalizations l, List<num> values, _Unit unit) {
-    if (values.length != 7 || values.every((value) => value == 0)) {
+  /// 요일 계열 한 줄. 0 과 null(이행률의 "걸린 것 없음", #2513)은 `-` 다.
+  static String _series(AppLocalizations l, List<num?> values, _Unit unit) {
+    if (values.length != 7 ||
+        values.every((value) => value == null || value == 0)) {
       return l.reportsPdfNoData;
     }
-    return values.map((value) => value == 0 ? '-' : unit('$value')).join(' / ');
+    return values
+        .map((value) => value == null || value == 0 ? '-' : unit('$value'))
+        .join(' / ');
   }
 
   /// 코드 유닛이 아니라 코드 포인트(`runes`) 단위로 자른다. `substring` 은 UTF-16

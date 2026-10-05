@@ -17,6 +17,9 @@ part of 'seed_data.dart';
 ///  * 식단 차트(칼로리·나트륨·당류)는 주간 계열을 그대로 그린다.
 ///  * 배지(필터·상세·대시보드)는 수치에서 계산하지 않는다 — 서버가 계산하는
 ///    PT 관리 신호라 데모는 회원마다 `signals` 로 정해 둔다(아래).
+///    정해 둔 값은 서버 규칙에서 나올 수 있어야 한다 — 서버가 만든 사례 파일
+///    `shared/oncare_rules/vectors/client_signals_cases.json` 의 판정으로
+///    `test/shared/models/client_signals_cases_test.dart` 가 대조한다(#2906).
 ///
 /// 수치를 고칠 때 지켜야 하는 두 가지:
 ///
@@ -124,6 +127,17 @@ const List<_Client> _clients = <_Client>[
       _Chat('trainer', '혈압약 드시는 시간은 그대로시죠? 유산소가 그 시간과 겹치지 않게 잡을게요', '화 10:26'),
       _Chat('client', '네, 아침 8시 그대로예요', '화 10:29'),
       _Chat('trainer', '확인했어요. 화·목은 15분 저강도로 바꿔서 보냈습니다 🙂', '화 10:34'),
+      // 트레이너가 보낸 첨부(#2663) — 회원 앱 시드와 같은 자리·같은 파일이다
+      // (`frontend/flutter/lib/features/member_coach/data/demo_coach_files.dart`).
+      _Chat(
+        'trainer',
+        '동작 순서는 이 파일로 정리해 뒀어요',
+        '화 10:35',
+        file: _ChatFile.pdfAsset(
+          'tue-thu-15min-program.pdf',
+          'assets/demo/coach-program-tue-thu.pdf',
+        ),
+      ),
       // 2일차.
       _Chat(
         'trainer',
@@ -137,6 +151,16 @@ const List<_Client> _clients = <_Client>[
         '국물만 절반 남기셔도 400~500mg은 빠져요. 그거 하나만 먼저 해보죠',
         '수 12:52',
         dayIndex: 1,
+      ),
+      _Chat(
+        'trainer',
+        '이렇게 국은 건더기 위주로 드시면 돼요',
+        '수 12:53',
+        dayIndex: 1,
+        file: _ChatFile.image(
+          'soup-example.jpeg',
+          'assets/images/diet-doenjang-rice.jpeg',
+        ),
       ),
       _Chat('client', '오늘은 국물 안 마셨어요! 걷기도 25분 했습니다', '수 19:05', dayIndex: 1),
       _Chat('trainer', '좋아요 👏 그 한 가지만 지켜도 추이가 달라져요', '수 19:20', dayIndex: 1),
@@ -227,8 +251,8 @@ const List<_Client> _clients = <_Client>[
     ],
     aiRoutine: <_Routine>[
       _Routine('인터벌 런닝', 25, '유산소', '체지방 연소 효율↑'),
-      _Routine('스쿼트', 15, '근력', '하체 근력 강화'),
-      _Routine('플랭크', 10, '근력', '코어 안정화'),
+      _Routine('스쿼트', 15, '근력', '하체 근력 강화', sets: 3, reps: 12, weight: 40),
+      _Routine('플랭크', 10, '근력', '코어 안정화', sets: 3, holdSeconds: 30),
     ],
     history: <_History>[
       _History(
@@ -326,8 +350,8 @@ const List<_Client> _clients = <_Client>[
       ),
     ],
     aiRoutine: <_Routine>[
-      _Routine('벤치프레스', 20, '근력', '상체 근력 목표'),
-      _Routine('데드리프트', 15, '근력', '전신 근력 향상'),
+      _Routine('벤치프레스', 20, '근력', '상체 근력 목표', sets: 4, reps: 8, weight: 65),
+      _Routine('데드리프트', 15, '근력', '전신 근력 향상', sets: 3, reps: 8, weight: 70),
       _Routine('유산소 쿨다운', 10, '유산소', '나트륨 배출 지원'),
     ],
     history: <_History>[
@@ -425,7 +449,7 @@ const List<_Client> _clients = <_Client>[
     aiRoutine: <_Routine>[
       _Routine('저강도 걷기', 25, '유산소', '회복기 심박 관리'),
       _Routine('골반 안정화', 15, '스트레칭', '산후 코어 재활'),
-      _Routine('밴드 로우', 12, '근력', '상체 자세 교정'),
+      _Routine('밴드 로우', 12, '근력', '상체 자세 교정', sets: 3, reps: 15),
     ],
     history: <_History>[
       _History(
@@ -529,7 +553,7 @@ const List<_Client> _clients = <_Client>[
     ],
     aiRoutine: <_Routine>[
       _Routine('LSD 러닝', 45, '유산소', '유산소 기반 다지기'),
-      _Routine('힙 힌지 드릴', 12, '근력', '러닝 이코노미 개선'),
+      _Routine('힙 힌지 드릴', 12, '근력', '러닝 이코노미 개선', sets: 3, reps: 12),
       _Routine('종아리 스트레칭', 10, '스트레칭', '부상 예방'),
     ],
     history: <_History>[
@@ -611,7 +635,7 @@ const List<_Client> _clients = <_Client>[
     ],
     aiRoutine: <_Routine>[
       _Routine('주말 회복 걷기', 30, '유산소', '주말 나트륨 배출'),
-      _Routine('전신 서킷', 20, '근력', '평일 프로그램 유지'),
+      _Routine('전신 서킷', 20, '근력', '평일 프로그램 유지', sets: 4, reps: 12),
       _Routine('상체 스트레칭', 10, '스트레칭', '피로 해소'),
     ],
     history: <_History>[
@@ -638,7 +662,16 @@ const List<_Client> _clients = <_Client>[
     ],
     chat: <_Chat>[
       _Chat('trainer', '서연님, 평일은 완벽한데 주말에 나트륨이 3100까지 올라갔어요', '16:40'),
-      _Chat('client', '주말엔 약속이 많아서요 😅 마라탕이 문제였나봐요', '16:45'),
+      _Chat(
+        'client',
+        '주말엔 약속이 많아서요 😅 마라탕이 문제였나봐요',
+        '16:45',
+        // 회원이 그날 먹은 것을 사진으로 보냈다(#2669).
+        file: _ChatFile.image(
+          'malatang.jpg',
+          'assets/images/lunch-malatang.jpg',
+        ),
+      ),
       _Chat(
         'trainer',
         '주말만 따로 15분짜리 가벼운 프로그램으로 잡아드릴게요. 안 하는 것보다 훨씬 나아요 🙂',
@@ -669,7 +702,7 @@ const List<_Client> _clients = <_Client>[
     diet: <_Meal>[],
     aiRoutine: <_Routine>[
       _Routine('체력 측정 걷기', 20, '유산소', '기초 체력 파악'),
-      _Routine('맨몸 스쿼트', 10, '근력', '하체 기준선 측정'),
+      _Routine('맨몸 스쿼트', 10, '근력', '하체 기준선 측정', sets: 3, reps: 15),
       _Routine('전신 스트레칭', 10, '스트레칭', '가동범위 확인'),
     ],
     history: <_History>[],
@@ -732,7 +765,7 @@ const List<_Client> _clients = <_Client>[
     aiRoutine: <_Routine>[
       _Routine('저강도 걷기', 20, '유산소', '혈압 우선 안정'),
       _Routine('호흡 이완', 10, '스트레칭', '교감신경 완화'),
-      _Routine('의자 스쿼트', 8, '근력', '최소 부하로 재시작'),
+      _Routine('의자 스쿼트', 8, '근력', '최소 부하로 재시작', sets: 2, reps: 10),
     ],
     history: <_History>[
       _History(
@@ -816,7 +849,7 @@ const List<_Client> _clients = <_Client>[
     aiRoutine: <_Routine>[
       _Routine('퇴근 후 걷기', 15, '유산소', '짧게라도 유지'),
       _Routine('목·어깨 스트레칭', 10, '스트레칭', '장시간 착석 보완'),
-      _Routine('플랭크', 5, '근력', '최소 코어 유지'),
+      _Routine('플랭크', 5, '근력', '최소 코어 유지', sets: 3, holdSeconds: 20),
     ],
     history: <_History>[
       _History(
@@ -893,7 +926,7 @@ const List<_Client> _clients = <_Client>[
     ],
     aiRoutine: <_Routine>[
       _Routine('실내 자전거', 20, '유산소', '무릎 부담 없는 유산소'),
-      _Routine('레그 익스텐션', 12, '근력', '대퇴사두 재건'),
+      _Routine('레그 익스텐션', 12, '근력', '대퇴사두 재건', sets: 3, reps: 12, weight: 20),
       _Routine('무릎 가동범위', 10, '스트레칭', '재활 프로토콜'),
     ],
     history: <_History>[
@@ -921,6 +954,20 @@ const List<_Client> _clients = <_Client>[
     chat: <_Chat>[
       _Chat('trainer', '유나님, 나트륨 추이가 2800에서 1700까지 내려왔어요 👏', '13:15'),
       _Chat('client', '이번 주는 다 지켰어요 :)', '13:22'),
+      // 재진 소견서를 PDF 로 보냈다(#2669). 트레이너의 다음 말이 그 내용을
+      // 받아 걷기를 얹는다.
+      _Chat(
+        'client',
+        '정형외과 재진 소견서도 보내드려요. 걷기는 괜찮대요',
+        '13:23',
+        file: _ChatFile.pdf('knee-follow-up.pdf', <String>[
+          'Orthopedic Follow-up Note',
+          'Region: Right knee',
+          'Findings: Swelling resolved. Range of motion within normal limits.',
+          'Recommendation: Resume low-impact walking.',
+          'Avoid deep squats for two more weeks.',
+        ]),
+      ),
       _Chat('trainer', '무릎 상태 괜찮으면 다음 주에 걷기 조금 얹어볼게요', '13:25'),
     ],
   ),
@@ -978,7 +1025,7 @@ const List<_Client> _clients = <_Client>[
     ],
     aiRoutine: <_Routine>[
       _Routine('트레드밀 경사 걷기', 25, '유산소', '정체 구간 자극 변화'),
-      _Routine('풀업 어시스트', 12, '근력', '상체 자극 전환'),
+      _Routine('풀업 어시스트', 12, '근력', '상체 자극 전환', sets: 3, reps: 8),
       _Routine('전신 스트레칭', 10, '스트레칭', '회복'),
     ],
     history: <_History>[
@@ -1039,7 +1086,7 @@ const List<_Client> _clients = <_Client>[
     aiRoutine: <_Routine>[
       _Routine('가벼운 걷기', 20, '유산소', '복귀 준비'),
       _Routine('전신 스트레칭', 15, '스트레칭', '휴식기 스트레칭 유지'),
-      _Routine('맨몸 스쿼트', 8, '근력', '최소 근력 유지'),
+      _Routine('맨몸 스쿼트', 8, '근력', '최소 근력 유지', sets: 3, reps: 12),
     ],
     history: <_History>[
       _History(
@@ -1112,8 +1159,8 @@ const List<_Client> _clients = <_Client>[
       ),
     ],
     aiRoutine: <_Routine>[
-      _Routine('스쿼트', 25, '근력', '하체 볼륨 확보'),
-      _Routine('벤치프레스', 25, '근력', '상체 볼륨 확보'),
+      _Routine('스쿼트', 25, '근력', '하체 볼륨 확보', sets: 5, reps: 8, weight: 80),
+      _Routine('벤치프레스', 25, '근력', '상체 볼륨 확보', sets: 5, reps: 8, weight: 60),
       _Routine('유산소 쿨다운', 10, '유산소', '나트륨 배출'),
     ],
     history: <_History>[
@@ -1198,7 +1245,7 @@ const List<_Client> _clients = <_Client>[
     ],
     aiRoutine: <_Routine>[
       _Routine('러닝머신', 30, '유산소', '나트륨 배출 지원'),
-      _Routine('전신 근력 서킷', 25, '근력', '현 프로그램 유지'),
+      _Routine('전신 근력 서킷', 25, '근력', '현 프로그램 유지', sets: 3, reps: 12),
       _Routine('스트레칭', 10, '스트레칭', '회복'),
     ],
     history: <_History>[
@@ -1268,7 +1315,7 @@ const List<_Client> _clients = <_Client>[
     ],
     aiRoutine: <_Routine>[
       _Routine('걷기', 20, '유산소', '습관 형성 우선'),
-      _Routine('맨몸 스쿼트', 8, '근력', '부담 없는 시작'),
+      _Routine('맨몸 스쿼트', 8, '근력', '부담 없는 시작', sets: 3, reps: 15),
       _Routine('전신 스트레칭', 10, '스트레칭', '운동 후 회복'),
     ],
     history: <_History>[
@@ -1301,10 +1348,13 @@ const List<_Client> _clients = <_Client>[
 /// 읽히기도 했다. 성별은 백엔드 시드(`seed_trainer._MEMBER_GENDERS`)와 같다.
 /// 나이는 회원의 이야기(재활·혈압 관리·첫 운동 …)에 맞춰 골랐다.
 ///
-/// 김민수는 여기 없다 — 그는 회원 앱 데모 계정과 같은 사람이라 공유 픽스처가
-/// 정하는 값을 두 앱이 함께 쓴다.
+/// 김민수(1)의 값은 백엔드 시드의 회원 프로필(`seed_member_data` 의
+/// `birth_date` 1990-01-15, `_MEMBER_GENDERS` 의 male)에서 온다. 예전에는 여기
+/// 없어 id 해시 폴백 나이가 보였는데, 그 폴백이 사라져(#2744) 데모에도 실제
+/// 나이를 둔다.
 const Map<int, ({String gender, int age})> _clientDemographics =
     <int, ({String gender, int age})>{
+      1: (gender: 'male', age: 36),
       2: (gender: 'female', age: 29),
       3: (gender: 'male', age: 34),
       4: (gender: 'female', age: 27),

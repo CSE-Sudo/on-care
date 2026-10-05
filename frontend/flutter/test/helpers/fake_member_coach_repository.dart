@@ -5,12 +5,14 @@
 /// 갈림길을 한 화면 안에서 만들 수 없다. 여기서는 그 갈림길만 만든다.
 library;
 
+import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare/features/member_coach/domain/coach_chat_thread.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 담당 코치 하나와, 주마다의 답과, 대화 몇 줄.
 class FakeMemberCoachRepository implements MemberCoachRepository {
@@ -43,6 +45,9 @@ class FakeMemberCoachRepository implements MemberCoachRepository {
   /// 보내기가 실패하는가.
   final bool failSave;
 
+  /// 채워 두면 보내기가 이것이 풀릴 때까지 기다린다 — 보내는 중의 화면을 본다.
+  Completer<void>? saveGate;
+
   /// 저장소로 넘어온 답들 — 화면이 무엇을 보냈는지 본다.
   final List<MemberWeeklyFeedback> saved = <MemberWeeklyFeedback>[];
 
@@ -69,6 +74,8 @@ class FakeMemberCoachRepository implements MemberCoachRepository {
     DateTime? painOn,
     String note = '',
   }) async {
+    final Completer<void>? gate = saveGate;
+    if (gate != null) await gate.future;
     if (failSave) throw StateError('weekly feedback save failed');
     final String area = painArea.trim();
     final MemberWeeklyFeedback value = MemberWeeklyFeedback(
@@ -86,13 +93,20 @@ class FakeMemberCoachRepository implements MemberCoachRepository {
     return value;
   }
 
+  /// [fetchChat] 이 받은 커서들 — 첫 쪽은 null 이다.
+  final List<CoachMessage?> chatCursors = <CoachMessage?>[];
+
+  /// 서버처럼 한 쪽씩 준다 — 최신 [chatPageSize] 건, 커서가 있으면 그 앞 한
+  /// 쪽(#2640, #2643). 전부를 한 번에 주면 쪽을 넘기는 길이 시험되지 않는다.
   @override
-  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
-      List<CoachMessage>.of(chat);
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async {
+    chatCursors.add(before);
+    return pageCoachChat(chat, before: before);
+  }
 
   @override
   Stream<List<CoachMessage>> watchChat() =>
-      Stream<List<CoachMessage>>.value(List<CoachMessage>.of(chat));
+      Stream<List<CoachMessage>>.value(pageCoachChat(chat));
 
   // ── 이 화면들이 부르지 않는 것 ─────────────────────────────────────────
   //
@@ -112,10 +126,11 @@ class FakeMemberCoachRepository implements MemberCoachRepository {
     required int minutes,
     int? durationSeconds,
     String intensity = 'moderate',
+    DateTime? day,
   }) => throw UnimplementedError();
 
   @override
-  Future<CoachRoutine> uncompleteRoutine(String routineId) =>
+  Future<CoachRoutine> uncompleteRoutine(String routineId, {DateTime? day}) =>
       throw UnimplementedError();
 
   @override
@@ -180,3 +195,12 @@ CoachMessage plainMessage({String id = 'p1', String body = '안녕하세요'}) =
       timeLabel: '오후 1:00',
       createdAt: DateTime(2026, 9, 18, 13),
     );
+
+/// 대화 한 줄 — [minute] 분에 온 트레이너 메시지. 쪽 넘기기를 볼 때 쓴다.
+CoachMessage chatLine(int minute, {String? id, DateTime? base}) => CoachMessage(
+  id: id ?? 'c${minute.toString().padLeft(4, '0')}',
+  sender: CoachSender.trainer,
+  body: '메시지 $minute',
+  timeLabel: '오전 9:00',
+  createdAt: (base ?? DateTime(2026, 9, 1, 9)).add(Duration(minutes: minute)),
+);

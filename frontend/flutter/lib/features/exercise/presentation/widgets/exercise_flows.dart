@@ -1,20 +1,21 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/app/app_icons.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
+import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_refresh.dart';
 import 'package:oncare/features/exercise/presentation/widgets/own_exercise_records.dart';
 import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_rules/oncare_rules.dart' show minutesFromSeconds;
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 조작이 멎은 뒤 칼로리 미리보기를 부르기까지 기다리는 시간. 애니메이션이
@@ -99,13 +100,21 @@ Future<bool> showExerciseAddSheet(
 /// 목록에서 바로 지울 수 있어야 추가한 기록을 되돌릴 자리가 생긴다. 서버가 준
 /// id 가 없는 기록(데모 시드의 옛 행)은 지울 수 없다 — 조용히 실패하는 대신
 /// 그렇다고 말한다.
+///
+/// 지우기와 갱신은 저장(#2879)처럼 앱 수명의 [ExerciseChangeRunner] 가 한다
+/// (#3096). 요청 중에 부른 화면이 닫혀도 [ref] 를 다시 쓰지 않으므로, 서버가
+/// 지웠는데 `삭제하지 못했어요` 가 뜨거나 목록·그래프가 옛 값으로 남지 않는다.
+/// [onDeleteStart] 는 확인 뒤 요청을 보내기 직전에 부른다 — 부른 화면이 그동안
+/// 닫히지 않게 막는 자리다.
 Future<bool> confirmDeleteExerciseSession(
   BuildContext context,
   WidgetRef ref,
-  ExerciseSession session,
-) async {
+  ExerciseSession session, {
+  VoidCallback? onDeleteStart,
+}) async {
   final AppLocalizations l = AppLocalizations.of(context);
   final AppToastHost toast = AppToastHost.of(context);
+  final ExerciseChangeRunner runner = ref.read(exerciseChangeRunnerProvider);
   final String? id = session.id;
   if (id == null) {
     toast.show(l.exCannotDelete, type: AppToastType.error);
@@ -121,12 +130,12 @@ Future<bool> confirmDeleteExerciseSession(
     destructive: true,
   );
   if (!confirmed) return false;
+  onDeleteStart?.call();
   try {
-    await ref.read(exerciseRepositoryProvider).deleteSession(id);
     // 추가 경로와 같은 갱신이다(#2634) — 이번 주·지난 주 목록과 그래프, AI
     // 조언, MY 기록 달력·보호권, 회수된 적립(#1786)과 주간 챌린지가 함께
     // 최신이 된다.
-    refreshAfterExerciseChange(ref.invalidate);
+    await runner.run((ExerciseRepository r) => r.deleteSession(id));
     toast.show(l.exDeleted, type: AppToastType.success);
     return true;
   } on Object {
@@ -371,13 +380,12 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
   /// 환산 규칙이 서버(`ExerciseSessionCreate._minutes_from_seconds`)와 **같아야**
   /// 한다. 미리보기로 받은 칼로리를 그대로 저장하는 것이 #1312 의 요구인데,
   /// 앱과 서버가 같은 초를 다른 분으로 읽으면 저장 뒤 숫자가 달라진다.
-  /// 45초짜리 운동이 반올림으로 0분이 되어 거절되지도 않는다.
+  /// 45초짜리 운동이 반올림으로 0분이 되어 거절되지도 않는다. 반올림도 서버와
+  /// 같은 짝수 쪽이라 2분 30초는 저장 뒤와 같은 2분이다 — 공용 규칙
+  /// [minutesFromSeconds] 한 곳을 쓴다(#2860).
   int get _effectiveMinutes => _isStrength
       ? _strengthMinutes
-      : _minutesFromSeconds(_duration.inSeconds);
-
-  static int _minutesFromSeconds(int seconds) =>
-      seconds <= 0 ? 0 : math.max(1, (seconds / 60).round());
+      : minutesFromSeconds(_duration.inSeconds);
 
   /// 편집 시트 안에서 지운다 — 목록 줄에는 더 이상 휴지통을 두지 않는다.
   /// 지우기는 되돌릴 수 없는 동작이라, 고치는 화면 안에 한 번 더 들어와야만
@@ -385,12 +393,22 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
   Future<void> _delete() async {
     final ExerciseSession? session = widget.session;
     if (session == null || _saving) return;
+    // 지우는 동안 `_saving` 을 세워 뒤로 가기·바깥 탭으로 시트가 닫히지 않게
+    // 한다(#3096).
     final bool deleted = await confirmDeleteExerciseSession(
       context,
       ref,
       session,
+      onDeleteStart: () {
+        if (mounted) setState(() => _saving = true);
+      },
     );
-    if (deleted && mounted) Navigator.of(context).pop(true);
+    if (!mounted) return;
+    if (deleted) {
+      Navigator.of(context).pop(true);
+    } else {
+      setState(() => _saving = false);
+    }
   }
 
   Future<void> _pickDate() async {
@@ -533,9 +551,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
     // 모아 둔 운동이 있으면 폼은 이름이 찼을 때만 함께 싣는다 — 마지막 운동을
     // `운동 하나 더` 로 담은 뒤 곧바로 저장하는 흐름이 막히지 않는다. 모아 둔
     // 것이 없으면 지금까지처럼 폼의 한 건이 저장 대상이다.
-    final List<ExerciseSessionDraft> drafts = <ExerciseSessionDraft>[
-      ..._queue,
-    ];
+    final List<ExerciseSessionDraft> drafts = <ExerciseSessionDraft>[..._queue];
     if (_queue.isEmpty || _formHasName) {
       final ExerciseSessionDraft? draft = _draftFromForm();
       if (draft == null) return;
@@ -553,15 +569,20 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
     try {
       // 한 요청으로 보낸다 — 서버가 전부 저장하거나 하나도 저장하지 않는다.
       // 날짜는 모아 둔 것까지 지금 고른 날로 맞춘다.
+      // 저장이 성공하면 주간 그래프·조언 등을 비우는 것까지 runner 가 한다 —
+      // 저장 중에 시트를 내려도 빠지지 않는다(#2879).
       final ExerciseSessionsAdded added = await ref
-          .read(exerciseRepositoryProvider)
-          .addSessions(<ExerciseSessionDraft>[
-            for (final ExerciseSessionDraft d in drafts) d.withDate(_date),
-          ]);
-      // Sheet dismissed mid-save → don't pop the page below.
-      if (!mounted) return;
-      _refreshAfterSave();
-      navigator.pop(true);
+          .read(exerciseChangeRunnerProvider)
+          .run(
+            (ExerciseRepository repository) => repository.addSessions(
+              <ExerciseSessionDraft>[
+                for (final ExerciseSessionDraft d in drafts) d.withDate(_date),
+              ],
+            ),
+          );
+      // Sheet dismissed mid-save → don't pop the page below. 저장 알림(받은
+      // 포인트)은 앱 맨 위 오버레이에 뜨므로 시트가 없어도 띄운다.
+      if (mounted) navigator.pop(true);
       toast.show(
         drafts.length > 1 ? l.exLoggedCount(drafts.length) : l.exLogged,
         type: AppToastType.success,
@@ -569,16 +590,13 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
         rewardLabel: pointsRewardLabel(l, added.points),
       );
     } catch (_) {
-      // 모아 둔 목록은 그대로 남는다 — 저장은 전부 안 됐으니 다시 누르면 된다.
+      // 모아 둔 목록은 그대로 남는다. 응답만 잃고 서버에는 저장됐을 수 있지만,
+      // 같은 목록을 다시 누르면 같은 멱등키로 나가 서버가 처음 결과를 돌려준다
+      // (#3095) — 기록·포인트가 두 벌 생기지 않는다.
       if (mounted) setState(() => _saving = false);
       toast.show(l.exSaveFailed, type: AppToastType.error);
     }
   }
-
-  /// 저장·수정 뒤에 다시 읽을 것들 — 삭제·추천 개인운동 완료와 같은 함수다
-  /// (#2634). 지난 주 날짜로 적거나 옮긴 기록(#2629), AI 조언(#2631), 날짜를
-  /// 옮긴 뒤의 주간 챌린지까지 함께 비운다.
-  void _refreshAfterSave() => refreshAfterExerciseChange(ref.invalidate);
 
   Future<void> _saveEdit() async {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -595,26 +613,29 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
 
     setState(() => _saving = true);
     try {
+      // 저장·수정 뒤에 다시 읽을 것들은 삭제·추천 개인운동 완료와 같은 함수로
+      // 비운다(#2634). 시트가 아니라 runner 가 비워 저장 중에 시트를 내려도
+      // 빠지지 않는다(#2879).
       await ref
-          .read(exerciseRepositoryProvider)
-          .updateSession(
-            id: editing.id!,
-            type: draft.type,
-            name: draft.name,
-            minutes: draft.minutes,
-            calories: draft.calories,
-            intensity: draft.intensity,
-            date: draft.date,
-            sets: draft.sets,
-            reps: draft.reps,
-            holdSeconds: draft.holdSeconds,
-            durationSeconds: draft.durationSeconds,
-            weight: draft.weight,
+          .read(exerciseChangeRunnerProvider)
+          .run(
+            (ExerciseRepository repository) => repository.updateSession(
+              id: editing.id!,
+              type: draft.type,
+              name: draft.name,
+              minutes: draft.minutes,
+              calories: draft.calories,
+              intensity: draft.intensity,
+              date: draft.date,
+              sets: draft.sets,
+              reps: draft.reps,
+              holdSeconds: draft.holdSeconds,
+              durationSeconds: draft.durationSeconds,
+              weight: draft.weight,
+            ),
           );
       // Sheet dismissed mid-save → don't pop the page below.
-      if (!mounted) return;
-      _refreshAfterSave();
-      navigator.pop(true);
+      if (mounted) navigator.pop(true);
       toast.show(l.exUpdated, type: AppToastType.success);
     } catch (_) {
       if (mounted) setState(() => _saving = false);

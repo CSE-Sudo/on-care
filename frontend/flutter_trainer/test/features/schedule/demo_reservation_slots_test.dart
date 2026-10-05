@@ -1,10 +1,10 @@
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/schedule/data/demo_reservation_slots.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/reservation_slot_repository.dart';
@@ -130,5 +130,55 @@ void main() {
         reason: id,
       );
     }
+  });
+
+  group('상담 대기 신청이 잡은 자리 (#2797)', () {
+    final DateTime now = DateTime(2026, 9, 28, 6);
+    ReservationSlot slotOf(String id) =>
+        demoReservationSlots(now: now).firstWhere((s) => s.id == id);
+
+    test('시드 요청은 모두 데모 상담 자리를 고르고, 그 자리는 빈 상담 자리와 다르다', () {
+      for (final MapEntry<String, ({String requestId, String memberName})> e
+          in demoPendingRequestSlots.entries) {
+        expect(slotOf(e.key).sessionType, SessionType.consultation);
+      }
+      // 회원 앱 데모 사용자가 신청해 볼 빈 상담 자리가 남는다.
+      expect(
+        demoReservationSlots(now: now).where(
+          (s) =>
+              s.sessionType == SessionType.consultation &&
+              !demoPendingRequestSlots.containsKey(s.id),
+        ),
+        isNotEmpty,
+      );
+    });
+
+    test('결정 전에는 신청자 이름으로 예약된 자리다', () {
+      final ReservationSlot held = holdDemoRequestSlot(
+        slotOf('slot-kim-6'),
+        const <String, String>{},
+      );
+      expect(held.booked, isTrue);
+      expect(held.bookedByName, '김하늘');
+    });
+
+    test('거절·수락으로 결정되면 신청이 자리를 놓는다', () {
+      for (final String status in <String>['rejected', 'accepted']) {
+        final ReservationSlot slot = holdDemoRequestSlot(
+          slotOf('slot-kim-7'),
+          <String, String>{'demo-consultation-2': status},
+        );
+        // 수락한 신청의 자리는 그 시각의 상담 일정이 잡는다([judgeDemoSlot]).
+        expect(slot.booked, isFalse, reason: status);
+      }
+    });
+
+    test('신청이 고르지 않은 자리는 그대로다', () {
+      final ReservationSlot slot = slotOf('slot-kim-3');
+      expect(
+        holdDemoRequestSlot(slot, const <String, String>{}).booked,
+        slot.booked,
+      );
+    });
   });
 }

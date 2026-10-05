@@ -6,13 +6,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
+import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/dashboard/presentation/widgets/dashboard_content.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
@@ -23,6 +24,8 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/member_tab_header.dart';
 import 'package:oncare/shared/widgets/metric_trend_chart.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+
+import '../../helpers/mock_account_repository.dart';
 
 void main() {
   const liveSummary = DashboardSummary(
@@ -47,19 +50,15 @@ void main() {
     ),
     dietEntries: 4,
     exerciseMinutes: 45,
-    exerciseCalories: 520,
-    exerciseCount: 4,
     nutritionWeek: <NutritionDay>[
-      NutritionDay(label: '월', calories: 1100, sodiumMg: 110, sugarG: 11),
-      NutritionDay(label: '화', calories: 1200, sodiumMg: 120, sugarG: 12),
-      NutritionDay(label: '수', calories: 1300, sodiumMg: 130, sugarG: 13),
-      NutritionDay(label: '목', calories: 1400, sodiumMg: 140, sugarG: 14),
-      NutritionDay(label: '금', calories: 1500, sodiumMg: 150, sugarG: 15),
-      NutritionDay(label: '토', calories: 1600, sodiumMg: 160, sugarG: 16),
-      NutritionDay(label: '일', calories: 1700, sodiumMg: 170, sugarG: 17),
+      NutritionDay(label: '월', calories: 1100),
+      NutritionDay(label: '화', calories: 1200),
+      NutritionDay(label: '수', calories: 1300),
+      NutritionDay(label: '목', calories: 1400),
+      NutritionDay(label: '금', calories: 1500),
+      NutritionDay(label: '토', calories: 1600),
+      NutritionDay(label: '일', calories: 1700),
     ],
-    weekScore: 85,
-    weekScoreDelta: 12,
     sodiumWarning: '김치찌개·배추김치 섭취로 나트륨이 높아요.',
     exerciseFeedback: '이번 주 운동 목표의 80%를 달성했어요.',
   );
@@ -98,6 +97,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
+          mealRecsDemoFallbackProvider.overrideWithValue(true),
           accountRepositoryProvider.overrideWithValue(
             MockAccountRepository(profile: profile),
           ),
@@ -251,6 +251,75 @@ void main() {
     expect(find.text('다시 시도'), findsOneWidget);
   });
 
+  group('오류 상태의 설명은 원인을 말한다 (#3140)', () {
+    Future<AppLocalizations> pumpFailing(
+      WidgetTester tester,
+      Object error, {
+      Locale locale = const Locale('ko'),
+    }) async {
+      await pumpDashboard(
+        tester,
+        load: () => Future<DashboardSummary>.error(error),
+        locale: locale,
+      );
+      await tester.pump();
+      await tester.pump();
+      return AppLocalizations.of(tester.element(find.byType(DashboardContent)));
+    }
+
+    testWidgets('연결이 끊기면 연결 확인 안내', (WidgetTester tester) async {
+      final AppLocalizations l = await pumpFailing(
+        tester,
+        const NetworkError(),
+      );
+
+      expect(find.text(l.homeDashboardLoadError), findsOneWidget);
+      expect(find.text(l.errorNetwork), findsOneWidget);
+      expect(find.text(l.errorServer), findsNothing);
+      expect(find.text(l.actionRetry), findsOneWidget);
+    });
+
+    testWidgets('서버가 5xx 면 일시 문제 안내', (WidgetTester tester) async {
+      final AppLocalizations l = await pumpFailing(
+        tester,
+        const ServerError(statusCode: 503),
+      );
+
+      expect(find.text(l.homeDashboardLoadError), findsOneWidget);
+      expect(find.text(l.errorServer), findsOneWidget);
+      expect(find.text(l.errorNetwork), findsNothing);
+    });
+
+    testWidgets('영어 화면도 원인별 영어 문구', (WidgetTester tester) async {
+      final AppLocalizations l = await pumpFailing(
+        tester,
+        const NetworkError(),
+        locale: const Locale('en'),
+      );
+
+      expect(find.text(l.errorNetwork), findsOneWidget);
+    });
+
+    testWidgets('다시 시도는 지금처럼 다시 받는다', (WidgetTester tester) async {
+      int loads = 0;
+      await pumpDashboard(
+        tester,
+        load: () {
+          loads++;
+          return Future<DashboardSummary>.error(const NetworkError());
+        },
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(loads, 1);
+
+      await tester.tap(find.text('다시 시도'));
+      await tester.pump();
+      await tester.pump();
+      expect(loads, 2);
+    });
+  });
+
   testWidgets('shows empty state with zero values', (
     WidgetTester tester,
   ) async {
@@ -265,8 +334,6 @@ void main() {
         macros: DietMacros.zero(),
         dietEntries: 0,
         exerciseMinutes: 0,
-        weekScore: 50,
-        weekScoreDelta: 0,
         sodiumWarning: null,
       ),
     );
@@ -317,8 +384,6 @@ void main() {
         ),
         dietEntries: 3,
         exerciseMinutes: 0,
-        weekScore: 60,
-        weekScoreDelta: 0,
         sodiumWarning: null,
       ),
     );
@@ -342,7 +407,8 @@ void main() {
 
     // "탄수화물" - "203.6" - "/275g" 순으로 읽혀야 한다.
     expect(find.text('/275g'), findsOneWidget);
-    expect(find.text('/100g'), findsOneWidget);
+    // 체중도 목표도 없는 회원 — 식단 분석과 같은 60g(#2898).
+    expect(find.text('/60g'), findsOneWidget);
     expect(find.text('/55g'), findsOneWidget);
 
     // 라벨에는 단위를 달지 않는다 — 좁은 카드에서 라벨이 먼저 축소되던 문제.
@@ -395,11 +461,6 @@ void main() {
         macros: DietMacros.zero(),
         dietEntries: 1,
         exerciseMinutes: 30,
-        exerciseCalories: 300,
-        exerciseCount: 1,
-        exerciseBurnGoal: 800,
-        weekScore: 60,
-        weekScoreDelta: 0,
         sodiumWarning: null,
       ),
       profile: const UserProfile(
@@ -458,7 +519,7 @@ void main() {
       expect(find.text('운동 추이 (kcal)'), findsNothing);
       // 오늘의 일정 카드는 화면에서 내려 뒀다 (#1055).
       expect(find.text('병원 정기검진'), findsNothing);
-      expect(find.textContaining('김치찌개·배추김치'), findsOneWidget);
+      expect(find.textContaining(keepWords('김치찌개·배추김치')), findsOneWidget);
       expect(
         find.byKey(const ValueKey<String>('dashboard-nutrition-chart')),
         findsOneWidget,

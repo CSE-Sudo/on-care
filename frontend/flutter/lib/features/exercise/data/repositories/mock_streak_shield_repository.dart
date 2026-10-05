@@ -1,20 +1,21 @@
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/entities/streak_shield.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/repositories/streak_shield_repository.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 데모 모드의 보호권 저장소. 규칙은 [DemoStreakShieldBook] 이 서버와 같게 들고
 /// 있다. (#1788)
 ///
 /// 보호권이 지키는 것은 **기록 연속**이라 식단과 운동을 함께 봐야 하는데, 데모의
-/// 두 기록은 사는 곳이 다르다 — 운동은 목업 운동 저장소, 식단은 로컬 목업 API 의
-/// drift 다. 그래서 두 저장소에 [_maxWalk] 일치를 물어 날짜별 기록 여부를 만든다.
+/// 두 기록은 저장소가 다르다 — 운동 저장소와 식단 저장소(둘 다 로컬 목업 API 의
+/// drift)다. 그래서 두 저장소에 [_maxWalk] 일치를 물어 날짜별 기록 여부를 만든다.
 ///
 /// 하루씩 묻지 않는다: 운동은 구간이 걸치는 주를 나란히 읽고(주간 응답 하나가 그
 /// 주 7일을 준다), 식단은 그중 운동이 없는 날만 나란히 읽는다. 기다리는 것은
@@ -76,7 +77,7 @@ class MockStreakShieldRepository implements StreakShieldRepository {
 
     final List<DateTime> mondays = <DateTime>[
       for (
-        DateTime monday = _mondayOf(first);
+        DateTime monday = mondayOf(first);
         !monday.isAfter(last);
         monday = _shift(monday, 7)
       )
@@ -116,8 +117,6 @@ class MockStreakShieldRepository implements StreakShieldRepository {
 
   static DateTime _shift(DateTime d, int days) =>
       DateTime(d.year, d.month, d.day + days);
-
-  static DateTime _mondayOf(DateTime d) => _shift(d, 1 - d.weekday);
 
   static String _key(DateTime d) => '${d.year}-${d.month}-${d.day}';
 }

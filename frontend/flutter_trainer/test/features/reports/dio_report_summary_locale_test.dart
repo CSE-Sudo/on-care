@@ -5,11 +5,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/network/accept_language_interceptor.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
-import 'package:oncare_trainer/core/network/interceptors/accept_language_interceptor.dart';
 import 'package:oncare_trainer/core/storage/prefs_provider.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
@@ -229,7 +229,7 @@ void main() {
   group('reportSummaryProvider', () {
     test('each language is its own request and its own answer', () async {
       final (ProviderContainer c, _SummaryServer server) = await _setUp();
-      final ReportKey report = (client: client, weekStart: weekStart);
+      final ReportKey report = ReportKey(client: client, weekStart: weekStart);
 
       final ReportSummary english = await c.read(
         reportSummaryProvider((

@@ -10,7 +10,7 @@ from pathlib import Path
 
 from app.db.demo_fixture import FIXTURE_PATH, load_fixture
 from app.services import exercise_types
-from app.services.exercise_service import estimate_calories
+from app.services.exercise_catalog import energy
 
 #: Flutter 두 앱이 읽는 원본. 백엔드 이미지는 `backend/` 만 담아서 같은 파일을
 #: 한 벌 더 갖고 있다 — 두 파일이 어긋나면 두 앱과 백엔드의 숫자가 갈라진다.
@@ -88,12 +88,15 @@ def test_exercise_calories_match_the_app_estimate():
     예전에는 픽스처만 분당 7.5·5 로 낮았다. 그래서 데모의 30분 유산소는
     225kcal 인데, 같은 운동을 회원이 직접 기록하면 270kcal 이 나왔다 — 같은
     사람의 같은 운동이 어느 경로로 들어왔는지에 따라 다른 숫자가 됐다.
+
+    비교 대상은 이름이 종목표에 붙지 않을 때 서버가 실제로 쓰는 유형 폴백
+    (`energy.fallback`)이다 — 픽스처는 체중·종목 없이 유형·분만 적는다.
     """
     for day in load_fixture().days_for(date(2026, 8, 16)):
         for exercise in day.exercises:
-            assert exercise.calories == estimate_calories(
+            assert exercise.calories == energy.fallback(
                 exercise.type, exercise.minutes, "moderate"
-            ), f"{day.iso} {exercise.name}"
+            ).calories, f"{day.iso} {exercise.name}"
 
 
 def test_exercise_types_use_the_standard_vocabulary():
@@ -185,3 +188,29 @@ def test_strength_always_says_how_many_sets():
                 assert exercise.sets is None, f"{day.iso}: {exercise.name}"
                 continue
             assert exercise.sets, f"{day.iso}: {exercise.name} 에 세트가 없다"
+
+
+def test_history_line_carries_the_values_the_trainer_reads_back():
+    """이력 한 줄에 값이 실린다 — 트레이너 화면이 그 줄에서 되읽는 값이다(#2567).
+
+    예전에는 `벤치프레스 ✓` 처럼 이름만 적어, PT 세션·AI 개인운동 이력 카드에
+    세트·횟수·중량·시간이 서지 않았다. 실제 PT 완료가 적는 줄과 같은 모양이어야
+    `parse_history_exercise` 가 픽스처와 같은 값을 돌려준다.
+    """
+    from app.services.trainer._common import parse_history_exercise
+
+    for day in load_fixture().days_for(date(2026, 8, 16)):
+        for exercise in day.exercises:
+            item = parse_history_exercise(exercise.label)
+            where = f"{day.iso}: {exercise.label}"
+            assert item.name == exercise.name, where
+            assert item.done == exercise.done, where
+            if exercise_types.normalize(exercise.type) == exercise_types.STRENGTH:
+                assert item.sets == exercise.sets, where
+                assert item.reps == (
+                    None if exercise.hold_seconds else exercise.reps
+                ), where
+                assert item.hold_seconds == exercise.hold_seconds, where
+                assert item.weight == exercise.weight, where
+            else:
+                assert item.minutes == exercise.minutes, where

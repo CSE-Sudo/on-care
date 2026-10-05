@@ -389,11 +389,11 @@ def test_routine_assignment_reaches_the_member_in_english(client, db_session):
     assert assigned.status_code == 201, assigned.text
 
     en = _member_inbox(client, member_token, EN)[0]
-    assert en["title"] == "New workout routine assigned"
+    assert en["title"] == "New personal exercise"
     assert en["body"] == "Interval run · 30 min"
     assert en["action"] == {"label": "View workouts", "target": "exercise"}
     ko = _member_inbox(client, member_token)[0]
-    assert (ko["title"], ko["body"]) == ("새 운동 루틴이 배정되었어요", "Interval run · 30분")
+    assert (ko["title"], ko["body"]) == ("새 개인운동이 왔어요", "Interval run · 30분")
 
 
 def test_trainer_goal_change_reaches_the_member_in_english(client, db_session):
@@ -432,6 +432,10 @@ ACTION_LABELS = {
     "benefits": ("내 혜택 보기", "View my benefits"),
     "points_shop": ("포인트 사용처 보기", "View points shop"),
     "health_goals": ("목표 보기", "View goals"),
+    # PT 일정 — 운동 탭의 다음 PT 배지·예약(#3028).
+    "member_schedule": ("일정 보기", "View schedule"),
+    # PT 수업 완료·피드백 도착 — 운동 탭의 PT 기록(#3027).
+    "pt_done": ("PT 기록 보기", "View PT record"),
 }
 
 
@@ -445,7 +449,7 @@ def test_action_labels_follow_the_request_language(client, db_session, category,
     assert _member_inbox(client, member_token, EN)[0]["action"]["label"] == en_label
 
 
-@pytest.mark.parametrize("category", ["system", "member_schedule", "brand_new"])
+@pytest.mark.parametrize("category", ["system", "brand_new"])
 def test_categories_without_an_action_stay_without_one(client, db_session, category):
     _, _, member_id, member_token = _pair(client, db_session)
     _add_row(db_session, member_id, title="t", body="b", category=category)

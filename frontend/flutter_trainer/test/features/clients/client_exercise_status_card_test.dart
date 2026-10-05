@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
@@ -403,11 +403,8 @@ void main() {
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: SingleChildScrollView(
-            child: ClientExerciseStatusCard(
-              clientId: 'c1',
-              clientName: '김민수',
-              period: period,
-            ),
+            // 상세는 운동 현황 카드 밖 따로 선 위젯이다(#2509).
+            child: ClientWorkoutRecordsDetail(clientId: 'c1', period: period),
           ),
         ),
       ),
@@ -635,9 +632,8 @@ void main() {
             supportedLocales: AppLocalizations.supportedLocales,
             home: const Scaffold(
               body: SingleChildScrollView(
-                child: ClientExerciseStatusCard(
+                child: ClientWorkoutRecordsDetail(
                   clientId: 'c1',
-                  clientName: '김민수',
                   period: ClientPeriod.week,
                 ),
               ),
@@ -653,7 +649,7 @@ void main() {
         withDate(ptToday(), DateTime(2026, 8, 20)),
       ]);
 
-      expect(find.text('8/20 (오늘) · PT 세션 · 트레이너 지도'), findsOneWidget);
+      expect(find.text('8/20 (오늘) · PT · 트레이너 지도'), findsOneWidget);
       expect(find.text('스쿼트 · 3세트 · 12회 · 40kg'), findsOneWidget);
       expect(find.text('걷기 · 30분 · 가벼움'), findsOneWidget);
     });
@@ -664,7 +660,7 @@ void main() {
       ]);
 
       expect(
-        find.text('8/19 (Yesterday) · PT session · Trainer-led'),
+        find.text('8/19 (Yesterday) · PT · Trainer-led'),
         findsOneWidget,
       );
       expect(find.textContaining('어제'), findsNothing);
@@ -690,7 +686,7 @@ void main() {
         ),
       ]);
 
-      expect(find.text('8/18 · Assigned routine'), findsOneWidget);
+      expect(find.text('8/18 · Personal exercise'), findsOneWidget);
       expect(find.textContaining('배정 루틴'), findsNothing);
     });
   });

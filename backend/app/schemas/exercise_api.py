@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date as date_, datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.schemas.exercise_limits import (
     MAX_EXERCISE_HOLD_SECONDS,
@@ -15,6 +15,7 @@ from app.schemas.exercise_limits import (
     MAX_EXERCISE_WEIGHT_KG,
 )
 from app.schemas.points_api import PointsOut
+from app.schemas.record_dates import not_after_today
 
 #: 회원이 고를 수 있는 운동 유형. 저장 값은 이 넷뿐이다(#996).
 ExerciseTypeIn = Literal["cardio", "strength", "flexibility", "other"]
@@ -55,7 +56,9 @@ class ExerciseSessionOut(BaseModel):
     calorie_source: str = "estimate"
     intensity: str  # light|moderate|high
     date_label: str
-    time_label: str
+    #: PT 수업 시각(`HH:MM`). 개인운동·회원 기록은 언제 했는지를 남기지 않아
+    #: 비어 있다(null) — 유형별 시각을 지어내지 않는다. (#2692)
+    time_label: str | None = None
     items: list[str]
     # 기록 출처: member | trainer_pt | assigned_routine. 앱은 파생 기록을
     # 수기 기록과 구분하고 수정·삭제를 감춘다.
@@ -63,6 +66,10 @@ class ExerciseSessionOut(BaseModel):
     source: str = "member"
     assigned_routine_id: str | None = None
     assigned_routine_name: str = ""
+    #: 개인 기록 태그 — max_weight(같은 근력 운동 최고 중량) | longest(같은 운동
+    #: 최장 시간) | first(처음 적은 운동) | None. 직접 기록한 운동만, 한 기록에
+    #: 하나다. 평가가 아니라 사실만 알린다. (#2971)
+    record: str | None = None
     #: 개인 운동 피드백은 회원(#1825)·트레이너(#2517) 모두 없앴다. 늘 빈
     #: 문자열이며, 이 칸을 읽는 옛 앱을 위해 모양만 남긴다.
     member_note: str = ""
@@ -226,6 +233,18 @@ class ExerciseSessionCreate(BaseModel):
     #: 주인지를 담지 못해, 지난 날짜를 골라도 늘 이번 주로 저장됐다.
     date: date_ | None = None
 
+    @field_validator("date")
+    @classmethod
+    def _past_or_today(cls, value: date_ | None) -> date_ | None:
+        """아직 오지 않은 날은 받지 않는다(#3042) — 식단과 같은 규칙·문구.
+
+        추가(목록의 어느 한 항목이라도)·수정이 모두 이 스키마라 한 곳에서 두 경로가
+        막힌다. 하지 않은 운동을 미리 적어 포인트·주간 챌린지를 앞당기지 못한다.
+        """
+        if value is None:
+            return None
+        return not_after_today(value)
+
     @model_validator(mode="after")
     def _minutes_from_seconds(self) -> ExerciseSessionCreate:
         """분과 초를 한 값으로 맞춘다. (#1969, #2071)
@@ -258,6 +277,10 @@ class ExerciseSessionsCreate(BaseModel):
     sessions: list[ExerciseSessionCreate] = Field(
         min_length=1, max_length=MAX_EXERCISE_SESSIONS_PER_REQUEST
     )
+    #: 저장 시도 단위 멱등키(선택, #3095). 응답을 잃은 뒤 같은 목록을 같은 키로
+    #: 다시 보내면 새로 저장·적립하지 않고 처음 결과를 돌려준다. 같은 키에 다른
+    #: 목록이 오면 409 다. 없으면 지금처럼 매번 새로 저장한다.
+    client_request_id: str | None = Field(default=None, min_length=1, max_length=64)
 
 
 class ExerciseCalorieRequest(BaseModel):
@@ -308,7 +331,11 @@ class ExerciseCalorieResponse(BaseModel):
 
 
 class AssignedRoutineCompleteRequest(BaseModel):
-    """회원이 배정 루틴을 실제 수행한 결과."""
+    """회원이 배정 루틴을 실제 수행한 결과.
+
+    개인 운동 회원 피드백(`member_note`)은 없앴다(#1825, #2624). 옛 앱이 보내도
+    모르는 칸이라 무시되고 422 가 나지 않는다.
+    """
 
     minutes: int = Field(..., gt=0, le=MAX_EXERCISE_MINUTES)
     #: 근력 루틴이면 실제로 한 세트 수·횟수·중량. 수기 기록과 같은 값을 남겨야
@@ -322,6 +349,3 @@ class AssignedRoutineCompleteRequest(BaseModel):
     #: 적지 않게 한다 — `minutes` 는 여전히 받는다(옛 앱·집계).
     duration_seconds: int | None = Field(None, gt=0, le=MAX_EXERCISE_SECONDS)
     intensity: ExerciseIntensityIn = "moderate"
-    #: 개인 운동 피드백은 없앴다(#1825). 옛 앱이 보내도 422 가 나지 않게 받기만 하고
-    #: 저장하지 않는다.
-    member_note: str = Field(default="", max_length=1000)

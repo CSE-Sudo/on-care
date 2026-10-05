@@ -9,7 +9,7 @@ from sqlalchemy import select
 
 from app.core import clock
 from app.models.models import TrainerSchedule
-from app.services import trainer_service
+from app.services.trainer import schedule as trainer_schedule_service
 
 
 def _tok(client) -> str:
@@ -138,6 +138,8 @@ def test_preview_shows_the_occurrences_before_saving(client):
     assert preview.status_code == 200, preview.text
     assert len(preview.json()["dates"]) == 6
     assert preview.json()["conflicts"] == []
+    # 키 없이 부르면 예전과 같다 — 새 칸은 기본값으로 채워진다(#3102).
+    assert preview.json()["already_created"] is False
 
     listed = client.get(
         "/v1/trainer/schedule",
@@ -245,6 +247,72 @@ def test_retrying_the_same_request_creates_one_series(client, cleanup_sessions):
     ]
 
 
+def _preview(client, token: str, **over):
+    body = {
+        "date": _next_monday().isoformat(),
+        "time": "19:00",
+        "client_name": "이지수",
+        "member_id": "user-jisu",
+        "type": "1:1 PT",
+        "duration_minutes": 60,
+        "weekdays": [1],
+        "count": 4,
+    }
+    body.update(over)
+    return client.post(
+        "/v1/trainer/schedule/recurring/preview", json=body, headers=_h(token)
+    )
+
+
+def test_preview_with_the_same_key_skips_its_own_series(client, cleanup_sessions):
+    """만들기는 커밋됐는데 응답만 잃은 재시도 — 미리보기가 자기 회차와 겹친다고
+    막지 않고 `already_created` 로 알려, 같은 키로 만들기를 다시 부르게 한다(#3102)."""
+    token = _tok(client)
+    request_id = f"req-{uuid4().hex[:10]}"
+    first = _create(
+        client, token, cleanup_sessions,
+        weekdays=[1, 3], count=4, time="19:40", client_request_id=request_id,
+    )
+    assert first.status_code == 201, first.text
+
+    same = _preview(
+        client, token,
+        weekdays=[1, 3], count=4, time="19:40", client_request_id=request_id,
+    )
+    assert same.status_code == 200, same.text
+    assert same.json()["conflicts"] == []
+    assert same.json()["already_created"] is True
+
+    retried = _create(
+        client, token, cleanup_sessions,
+        weekdays=[1, 3], count=4, time="19:40", client_request_id=request_id,
+    )
+    assert retried.status_code == 201, retried.text
+    assert [item["id"] for item in retried.json()] == [
+        item["id"] for item in first.json()
+    ]
+
+
+def test_preview_with_another_key_still_reports_the_series(client, cleanup_sessions):
+    """다른 시도(다른 키·키 없음)에게 그 회차는 여전히 차 있는 자리다."""
+    token = _tok(client)
+    created = _create(
+        client, token, cleanup_sessions,
+        weekdays=[1], count=2, time="19:45",
+        client_request_id=f"req-{uuid4().hex[:10]}",
+    )
+    assert created.status_code == 201, created.text
+    own_ids = {item["id"] for item in created.json()}
+
+    for extra in ({"client_request_id": f"req-{uuid4().hex[:10]}"}, {}):
+        other = _preview(
+            client, token, weekdays=[1], count=2, time="19:45", **extra
+        )
+        assert other.status_code == 200, other.text
+        assert {item["id"] for item in other.json()["conflicts"]} == own_ids
+        assert other.json()["already_created"] is False
+
+
 def test_one_occurrence_moves_without_touching_the_others(
     client, cleanup_sessions
 ):
@@ -307,7 +375,7 @@ def test_series_is_capped(client, cleanup_sessions):
         time="19:50",
     )
     assert created.status_code == 201, created.text
-    assert len(created.json()) == trainer_service.MAX_SERIES_OCCURRENCES
+    assert len(created.json()) == trainer_schedule_service.MAX_SERIES_OCCURRENCES
 
 
 def test_invalid_recurrence_is_rejected(client):

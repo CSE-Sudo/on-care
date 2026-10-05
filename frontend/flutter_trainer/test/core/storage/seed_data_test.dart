@@ -5,10 +5,10 @@ import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/calorie_baseline.dart';
@@ -49,7 +49,7 @@ void main() {
       expect(
         clients.map((c) => c.name).toSet().length,
         15,
-        reason: '이름이 겹치면 addClient 의 중복 검사와 스케줄 폴백이 어긋난다',
+        reason: '일정 이름 폴백(lower(trim(name)))은 시드 회원 이름이 겹치지 않는다는 전제다',
       );
 
       // Every client must be coachable and chartable, whatever else their
@@ -68,7 +68,7 @@ void main() {
       }
 
       expect(await db.select(db.clientChatMessages).get(), isNotEmpty);
-      expect(await db.readValue('trainer_seeded_v40'), _todayString());
+      expect(await db.readValue('trainer_seeded_v53'), _todayString());
     });
 
     test(
@@ -141,12 +141,14 @@ void main() {
           (jsonDecode(c.sodiumWeekJson) as List<Object?>)
               .map((e) => (e! as num).toInt())
               .toList();
-      List<int> week(TrainerClientRow c) =>
+      // 걸린 것이 없는 날은 null 이다(#2513).
+      List<int?> week(TrainerClientRow c) =>
           (jsonDecode(c.weekCompletionJson) as List<Object?>)
-              .map((e) => e! as int)
+              .map((e) => (e as num?)?.toInt())
               .toList();
+      // 앱과 같은 규칙 — 걸린 날만 평균내고, 0 은 걸렸는데 안 한 날이라 센다.
       bool low(TrainerClientRow c) {
-        final recorded = week(c).where((d) => d > 0).toList();
+        final recorded = week(c).whereType<int>().toList();
         if (recorded.isEmpty) return false;
         return recorded.reduce((a, b) => a + b) / recorded.length < 60;
       }
@@ -348,6 +350,7 @@ void main() {
         expect(s.date.compareTo(mondayYmd), lessThan(0), reason: s.date);
         expect(
           s.id.startsWith('seed-schedule-p') ||
+              s.id.startsWith('seed-schedule-f') ||
               s.id.startsWith('seed-schedule-c'),
           isTrue,
           reason: '${s.date} ${s.id}',
@@ -481,13 +484,13 @@ void main() {
 
     test('stale flag (different date) re-seeds schedule onto today', () async {
       await seedIfEmpty(db);
-      await db.putValue('trainer_seeded_v40', '2020-01-01');
+      await db.putValue('trainer_seeded_v53', '2020-01-01');
 
       await seedIfEmpty(db);
 
       final schedule = await db.select(db.trainerScheduleEntries).get();
       expect(schedule.any((s) => s.date == _todayString()), isTrue);
-      expect(await db.readValue('trainer_seeded_v40'), _todayString());
+      expect(await db.readValue('trainer_seeded_v53'), _todayString());
     });
 
     test(
@@ -679,7 +682,7 @@ void main() {
         expect(week.length, 7);
         expect(week.any((v) => (v as num) > 0), isTrue);
 
-        expect(await db.readValue('trainer_seeded_v40'), today);
+        expect(await db.readValue('trainer_seeded_v53'), today);
       },
     );
 
@@ -788,7 +791,7 @@ void main() {
           );
 
       // Force a re-seed.
-      await db.putValue('trainer_seeded_v40', '2020-01-01');
+      await db.putValue('trainer_seeded_v53', '2020-01-01');
       await seedIfEmpty(db);
 
       final chat = await db.select(db.clientChatMessages).get();
@@ -906,7 +909,7 @@ void main() {
         'daily_calories': 1700,
       });
 
-      await db.putValue('trainer_seeded_v40', '2020-01-01');
+      await db.putValue('trainer_seeded_v53', '2020-01-01');
       await seedIfEmpty(db);
 
       final p = await repository.fetchHealthProfile('seed-client-2');

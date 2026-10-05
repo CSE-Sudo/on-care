@@ -11,11 +11,12 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import select, tuple_
+from sqlalchemy import func, select, tuple_
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.core import clock
@@ -33,29 +34,48 @@ from app.services import notification_templates
 TRAINER_MESSAGE = "notif_trainer_message"
 EXERCISE = "notif_exercise_reminder"
 WEEKLY_REPORT = "notif_weekly_report"
+#: 식단 기록·AI 코칭 알림 키. **이 kind 로 만드는 알림은 없다**(#2854) — 회원 앱은
+#: 두 스위치를 더는 그리지도 보내지도 않는다. 이미 저장된 회원 설정 값과 예전 앱
+#: 버전이 깨지지 않도록 저장·응답에서는 당장 빼지 않는다.
 DIET_LOG = "notif_diet_log"
 AI_COACHING = "notif_ai_coaching"
 
-#: 설정 키 → 기본값. 사용자 앱의 현재 기본값과 같다(주간 리포트만 꺼짐).
+#: PT 일정·담당 관계가 바뀐 일을 알리는 kind(#3024) — 일정 등록·변경·취소·삭제,
+#: 담당 연결·담당 요청·담당 해제, 트레이너 탈퇴. 회원 수신 설정 키가 아니라
+#: [ALWAYS_DELIVERED] 에 든다.
+#:
+#: 예전에는 일정 알림이 `EXERCISE`('운동 리마인더'), 담당 해제·탈퇴가
+#: `TRAINER_MESSAGE`('트레이너 메시지')에 실려, 리마인더나 채팅을 끈 회원이 PT
+#: 취소와 담당 해제를 듣지 못했다. 취소된 약속을 모르고 나가거나 '내 담당 코치'가
+#: 조용히 비는 쪽이 알림 하나 더 받는 쪽보다 나쁘다.
+PT_LINK_NOTICE = "pt_link_notice"
+
+#: 설정 키 → 기본값. 모두 켜짐이다.
+#:
+#: 트레이너 주간 리포트도 켜 둔다(#3025). 예전에는 리포트 알림이 없던 시기의
+#: 앱 하드코딩 값(`false`)을 그대로 옮겨 꺼져 있었고, 트레이너가 한 주를 정리해
+#: 보낸 리포트가 회원 알림함에 아무 흔적 없이 도착했다.
 DEFAULTS: dict[str, bool] = {
     DIET_LOG: True,
     EXERCISE: True,
     TRAINER_MESSAGE: True,
     AI_COACHING: True,
-    WEEKLY_REPORT: False,
+    WEEKLY_REPORT: True,
 }
 
 #: 알림 종류 → 목록에 실릴 기본 category.
 #:
 #: **`kind` 는 목적지가 아니라 알림 수신 설정 키다.** 같은 키로 서로 다른 곳을
-#: 가리키는 알림이 나간다 — 루틴 배정과 일정 등록이 둘 다 `EXERCISE` 이고, 연결
-#: 해제와 예약 취소가 둘 다 `TRAINER_MESSAGE` 다. 그래서 여기서 유도한 값만으로는
+#: 가리키는 알림이 나간다 — 루틴 배정과 PT 연결 루틴이 둘 다 `EXERCISE` 이고, 일정
+#: 등록과 담당 해제가 둘 다 [PT_LINK_NOTICE] 다. 그래서 여기서 유도한 값만으로는
 #: 앱이 갈 곳을 정할 수 없다(#636).
 #:
 #: 호출부가 `queue(category=...)` 로 목적지를 밝히면 그 값이 우선한다. 이 표는
 #: 밝히지 않은 호출부를 위한 기본값이다.
 _CATEGORY: dict[str, str] = {
     TRAINER_MESSAGE: "system",
+    # 호출부가 모두 category 를 밝힌다. 밝히지 않으면 일정으로 둔다.
+    PT_LINK_NOTICE: "member_schedule",
     EXERCISE: "reminder",
     WEEKLY_REPORT: "achievement",
     DIET_LOG: "reminder",
@@ -105,24 +125,14 @@ def get_settings(db: Session, member_id: str) -> dict[str, bool]:
 def update_settings(
     db: Session, member_id: str, fields: dict[str, bool]
 ) -> dict[str, bool]:
-    """보낸 항목만 반영한다. 없던 행은 기본값에서 시작해 만든다."""
-    # 바꿀 게 없으면 행을 만들지 않는다. 행 없음 == 기본값이므로 빈 요청에
-    # 기본값 행을 새로 남기는 것은 의미 없는 쓰기다(리뷰).
-    if not fields:
-        return get_settings(db, member_id)
+    """보낸 항목만 반영한다. 없던 행은 기본값에서 시작해 만든다.
 
-    row = db.get(MemberNotificationSetting, member_id)
-    if row is None:
-        row = MemberNotificationSetting(
-            member_id=member_id,
-            diet_log=DEFAULTS[DIET_LOG],
-            exercise_reminder=DEFAULTS[EXERCISE],
-            trainer_message=DEFAULTS[TRAINER_MESSAGE],
-            ai_coaching=DEFAULTS[AI_COACHING],
-            weekly_report=DEFAULTS[WEEKLY_REPORT],
-        )
-        db.add(row)
-
+    한 문장(`INSERT … ON CONFLICT DO UPDATE`)으로 쓴다(#3092). 앱은 토글마다 따로
+    저장하므로 설정을 처음 바꾸는 회원이 토글 두 개를 빠르게 바꾸면 요청 둘이
+    함께 "행 없음" 을 보고 각자 넣었고, 늦은 쪽이 기본키 충돌로 500 이 되어 그
+    토글이 되돌아갔다. 충돌하면 **보낸 칸만** 덮어쓰므로 서로 다른 토글이 동시에
+    와도 둘 다 남는다.
+    """
     column_by_key = {
         DIET_LOG: "diet_log",
         EXERCISE: "exercise_reminder",
@@ -130,12 +140,27 @@ def update_settings(
         AI_COACHING: "ai_coaching",
         WEEKLY_REPORT: "weekly_report",
     }
-    for key, column in column_by_key.items():
-        if key in fields:
-            setattr(row, column, bool(fields[key]))
+    sent = {
+        column: bool(fields[key])
+        for key, column in column_by_key.items()
+        if key in fields
+    }
+    # 바꿀 게 없으면 행을 만들지 않는다. 행 없음 == 기본값이므로 빈 요청에
+    # 기본값 행을 새로 남기는 것은 의미 없는 쓰기다(리뷰).
+    if not sent:
+        return get_settings(db, member_id)
+    defaults = {column: DEFAULTS[key] for key, column in column_by_key.items()}
 
+    db.execute(
+        insert(MemberNotificationSetting)
+        .values(member_id=member_id, **{**defaults, **sent})
+        .on_conflict_do_update(
+            index_elements=["member_id"],
+            set_={**sent, "updated_at": func.now()},
+        )
+    )
+    # 커밋이 이 세션에 올라온 행을 만료시키므로 아래 조회는 방금 쓴 값을 읽는다.
     db.commit()
-    db.refresh(row)
     return get_settings(db, member_id)
 
 
@@ -149,7 +174,11 @@ def wants(db: Session, member_id: str, kind: str) -> bool:
     나면 세션이 실패 상태로 남아, 이어지는 `db.commit()`(메시지·루틴·일정을
     저장하는 그 커밋)까지 함께 죽는다. 설정을 못 읽었다는 이유로 메시지가 사라지면
     안 된다(리뷰). savepoint 를 되돌리면 바깥 트랜잭션은 멀쩡하다.
+
+    끌 수 없는 kind([ALWAYS_DELIVERED])는 설정을 읽지 않고 받는다(#2854).
     """
+    if kind in ALWAYS_DELIVERED:
+        return True
     try:
         with db.begin_nested():
             return get_settings(db, member_id).get(kind, True)
@@ -179,6 +208,22 @@ def texts(
     return {"title": title, "body": body}
 
 
+#: 회원 앱이 아는 알림 목적지(`action.target`). 회원 앱
+#: `DioNotificationRepository._targetFrom` 과 같은 목록이다(#3028). [queue] 의
+#: `action_target` 은 이 안에서만 받는다 — 앱이 모르는 값을 저장하면 그 알림은 목록에
+#: 실리지만 눌러도 아무 데도 가지 않는다.
+MEMBER_ACTION_TARGETS: frozenset[str] = frozenset({
+    "dashboard",
+    "coach_chat",
+    "exercise",
+    "diet",
+    "my_benefits",
+    "points_shop",
+    "health_goals",
+    "consultations",
+})
+
+
 def queue(
     db: Session,
     *,
@@ -189,6 +234,8 @@ def queue(
     category: str | None = None,
     template: str | None = None,
     template_args: Mapping[str, Any] | None = None,
+    invite_id: str | None = None,
+    action_target: str | None = None,
 ) -> Notification | None:
     """알림을 세션에 **추가만** 한다(커밋하지 않는다). 꺼져 있으면 None.
 
@@ -206,29 +253,41 @@ def queue(
 
     [template] 을 주면 [title] 대신 문장 틀로 한국어 제목·본문을 만들고 틀과
     인자를 함께 남긴다(#2302, [texts] 참고).
+
+    [invite_id] 는 담당 요청 알림이 가리키는 요청이다 — 앱이 알림에서 바로
+    수락·거절하는 데 쓴다.
+
+    [action_target] 은 **이 알림 한 건의 목적지**다(#3028). 주면
+    `Notification.action_target` 에 남아 갈래별 액션 표보다 우선한다 — 갈래(아이콘)는
+    같은데 갈 곳만 다른 알림을 갈래를 바꿔 끼우지 않고 나타낸다. 예전에는 이 칸을
+    데모 시드만 채웠다(#2690). 회원 앱이 모르는 값([MEMBER_ACTION_TARGETS] 밖)은
+    호출부의 실수라 저장 전에 `ValueError` 로 막는다. 수신 설정 확인보다 먼저 보므로
+    꺼져 있는 회원이어도 같은 오류가 난다.
     """
+    if action_target is not None and action_target not in MEMBER_ACTION_TARGETS:
+        raise ValueError(f"회원 앱이 모르는 알림 목적지입니다: {action_target!r}")
     if not wants(db, member_id, kind):
         return None
     notification = Notification(
         id=f"noti-{uuid.uuid4().hex[:12]}",
         user_id=member_id,
         category=category or _CATEGORY.get(kind, "system"),
+        invite_id=invite_id,
         read=False,
+        action_target=action_target,
         **texts(title=title, body=body, template=template, template_args=template_args),
     )
     db.add(notification)
     return notification
 
 
-def unread_count(db: Session, member_id: str) -> int:
-    """읽지 않은 알림 수. 테스트와 배지가 같은 계산을 쓰게 한다."""
-    rows = db.scalars(
-        select(Notification.id).where(
-            Notification.user_id == member_id,
-            Notification.read.is_(False),
-        )
-    ).all()
-    return len(rows)
+def unread_count(db: Session, user_id: str) -> int:
+    """읽지 않은 알림 수. 배지 API(`GET /notifications/unread-count`)가 이 계산을 쓴다."""
+    return db.scalar(
+        select(func.count())
+        .select_from(Notification)
+        .where(Notification.user_id == user_id, Notification.read.is_(False))
+    ) or 0
 
 
 #: 회원 알림의 목적지. `Notification.category` 에 그대로 저장되고, 앱이 이 값에
@@ -263,14 +322,29 @@ MEMBER_BENEFITS = "benefits"
 #: `notifications.category` 가 `String(20)` 이라 20자를 넘기면 안 된다.
 MEMBER_POINTS_SHOP = "points_shop"
 
+#: 트레이너가 회원 PT 를 완료했다 / 완료 PT 에 피드백을 적었다 → 운동 탭의 PT 기록
+#: (#3027). 일정 갈래(달력 아이콘)와 나눈 까닭은 회원 앱 알림함이 갈래로 아이콘을
+#: 고르기 때문이다 — 끝난 수업의 기록은 앞으로의 약속과 다른 말이다. 수신 설정 키는
+#: 회원 운동 기록에 관한 알림이라 [EXERCISE] 를 쓴다.
+#: `notifications.category` 가 `String(20)` 이라 20자를 넘기면 안 된다.
+MEMBER_PT_DONE = "pt_done"
+
 #: 포인트 쿠폰 알림의 kind. 회원 수신 설정 키가 아니다 — 설정 화면에 스위치가
-#: 없고 `wants` 는 모르는 kind 를 받는 쪽으로 둔다. 쿠폰 사용·취소는 회원의
-#: 포인트가 움직인 일이라 끌 수 있는 알림으로 두지 않는다.
+#: 없고 [ALWAYS_DELIVERED] 에 든다. 쿠폰 사용·취소는 회원의 포인트가 움직인
+#: 일이라 끌 수 있는 알림으로 두지 않는다.
 POINTS_COUPON = "points_coupon"
 
 #: 주간 운동 챌린지 결과 알림의 kind(#1789). 쿠폰 알림과 같은 이유로 수신 설정
 #: 스위치가 없다 — 건 포인트를 돌려받았는지·잃었는지 알려 주는 알림이다.
 WEEKLY_CHALLENGE = "weekly_challenge"
+
+#: 끌 수 없는 회원 알림 kind(#2854). 회원 수신 설정에 스위치가 없고, 설정과 무관하게
+#: 늘 만든다 — 회원의 포인트가 움직인 일([POINTS_COUPON]·[WEEKLY_CHALLENGE])과
+#: 약속·담당 관계가 바뀐 일([PT_LINK_NOTICE], #3024)이다. 예전에는 `wants` 가
+#: 모르는 kind 를 받는 쪽으로 두는 기본값에 이 규칙이 숨어 있었다.
+ALWAYS_DELIVERED: frozenset[str] = frozenset(
+    {POINTS_COUPON, WEEKLY_CHALLENGE, PT_LINK_NOTICE}
+)
 
 MEMBER_COACH_INVITE = "coach_invite"
 #: 담당 트레이너가 회원 건강 목표를 바꿨다 → MY 건강 목표(#1832).
@@ -300,6 +374,11 @@ TRAINER_CONSULT_WITHDRAWN_KIND = "consult_withdrawn"
 TRAINER_INVITE_ACCEPTED_KIND = "invite_accepted"
 #: 회원이 담당 요청을 거절했다 → 고객 목록. 담당이 아니라 상세는 열 수 없다(#2292).
 TRAINER_INVITE_REJECTED_KIND = "invite_rejected"
+#: 담당 회원이 주간 피드백(컨디션·강도·통증)을 냈다 → 그 회원 메모 창 '피드백' 탭
+#: (`subject_id`·`target_date`=주 시작, #3026). 같은 주의 안 읽은 알림이 있으면 새로
+#: 만들지 않고 그 행을 고쳐 쓴다(`trainer.weekly_feedback`). 수신 설정 스위치는
+#: 아직 없다 — 종류별 설정은 #2420 몫이다.
+TRAINER_WEEKLY_FEEDBACK_KIND = "weekly_feedback"
 
 #: 종류별 트레이너 수신 설정 컬럼. 없으면 항상 보낸다 — 상담 요청·예약은 끄면
 #: 트레이너가 놓쳐도 되는 종류가 아니고, 설정 화면에도 그 스위치가 없다.
@@ -452,6 +531,7 @@ def expired_notifications(
     days: int = READ_RETENTION_DAYS,
     now: datetime | None = None,
     user_id: str | None = None,
+    exclude_ids: Collection[str] = (),
 ) -> list[Notification]:
     """정리 대상 알림(오래된 순).
 
@@ -465,6 +545,8 @@ def expired_notifications(
     )
     if user_id is not None:
         query = query.where(Notification.user_id == user_id)
+    if exclude_ids:
+        query = query.where(Notification.id.not_in(sorted(exclude_ids)))
     return list(
         db.scalars(query.order_by(Notification.created_at, Notification.id)).all()
     )
@@ -476,9 +558,12 @@ def purge_expired(
     days: int = READ_RETENTION_DAYS,
     now: datetime | None = None,
     user_id: str | None = None,
+    exclude_ids: Collection[str] = (),
 ) -> int:
     """[expired_notifications] 가 고른 것을 지우고 건수를 돌려준다."""
-    rows = expired_notifications(db, days=days, now=now, user_id=user_id)
+    rows = expired_notifications(
+        db, days=days, now=now, user_id=user_id, exclude_ids=exclude_ids
+    )
     for row in rows:
         db.delete(row)
     db.commit()

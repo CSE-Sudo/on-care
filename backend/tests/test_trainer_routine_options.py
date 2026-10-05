@@ -23,6 +23,7 @@ from app.core import clock, metrics
 from app.db.seed_trainer import TRAINER_ID
 from app.db.session import SessionLocal
 from app.models.models import (
+    ChatMessage,
     MemberWeeklyFeedback,
     RoutineHistory,
     TrainerClient,
@@ -179,6 +180,7 @@ def _seed_memo(
     body: str,
     days_ago: int,
     source: str = "chat_insight",
+    category: str = "",
 ) -> None:
     """`days_ago` 일 전 KST 정오에 남긴 메모 한 건(#1655)."""
     db = SessionLocal()
@@ -196,6 +198,7 @@ def _seed_memo(
                     else None
                 ),
                 insight_kind="discomfort" if source == "chat_insight" else "",
+                category=category,
                 created_at=datetime.combine(
                     clock.today() - timedelta(days=days_ago),
                     time_of_day(12, 0),
@@ -667,8 +670,13 @@ def test_slot_is_returned_when_scheduling_fails(monkeypatch):
             raise RuntimeError("cannot schedule new futures after shutdown")
 
     monkeypatch.setattr(trainer_routine_options_service, "_executor", _DeadExecutor())
+    # 공급자 고르기는 자리를 잡은 뒤에 한다(#3032). 키 없는 환경의 "공급자 없음" 오류로
+    # 우연히 통과하지 않게, 실제로 `submit()` 까지 가는 가짜 공급자를 둔다.
+    monkeypatch.setattr(
+        trainer_routine_options_service, "get_coach_llm", lambda: _FakeLlm("{}")
+    )
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError, match="cannot schedule"):
         trainer_routine_options_service._call_llm("prompt")
 
     assert slots.acquire(blocking=False), "스케줄링 실패로 자리가 누수됐다"
@@ -839,6 +847,16 @@ def test_exercise_name_strips_the_free_text_set_count():
     assert fn("실내 자전거 20분") == "실내 자전거"
     assert fn({"name": "플랭크", "type": "근력"}) == "플랭크"
     assert fn(123) == ""
+
+
+def test_exercise_name_drops_marks_and_skips_undone_exercises():
+    """수행 표시·괄호 메모를 떼고, 안 한 운동은 세지 않는다(#2714)."""
+    fn = trainer_routine_options_service._exercise_name
+    assert fn("스쿼트 3세트 · 12회 · 40kg ✓") == "스쿼트"
+    assert fn("걷기 ✓ (10분만)") == "걷기"
+    assert fn("걷기 ✓") == "걷기"
+    assert fn("데드리프트 ✗") == ""
+    assert fn("플랭크 ✗ (피로)") == ""
 
 
 def test_guess_intensity_maps_exercise_type_to_a_preference():
@@ -1233,7 +1251,8 @@ def test_default_sources_leave_consult_memos_out(client):
 
         today = clock.today()
         assert analysis.sources == [
-            "pt_feedback", "trainer_memo", "chat_insight", "weekly_feedback",
+            "recent_chat", "pt_feedback", "trainer_memo", "chat_insight",
+            "weekly_feedback",
         ]
         assert analysis.pt_feedbacks == [
             f"{today - timedelta(days=1):%m.%d} 스쿼트 자세 좋아짐"
@@ -1313,7 +1332,7 @@ def test_turned_off_sources_reach_neither_prompt_nor_fallback(client, monkeypatc
         analysis = body["analysis"]
         assert analysis["sources"] == []
         for key in (
-            "pt_feedbacks", "consult_memos", "trainer_memos",
+            "recent_messages", "pt_feedbacks", "consult_memos", "trainer_memos",
             "insight_memos", "weekly_feedback",
         ):
             assert analysis[key] == [], key
@@ -1456,3 +1475,80 @@ def test_prompt_guards_the_new_sources():
         assert key in prompt, key
     assert prompt_safety.TRAINER_RECORD_GUARD in prompt
     assert prompt_safety.MEMBER_FEEDBACK_GUARD in prompt
+
+
+def _seed_chat_line(member_id: str, body: str) -> None:
+    """오늘 회원이 남긴 대화 한 줄(#2794)."""
+    db = SessionLocal()
+    try:
+        db.add(
+            ChatMessage(
+                id=f"chat-{member_id}-{uuid4().hex[:8]}",
+                trainer_id=TRAINER_ID,
+                member_id=member_id,
+                sender="member",
+                body=body,
+                created_at=clock.now(),
+            )
+        )
+        db.commit()
+    finally:
+        db.close()
+
+
+def _clear_chat(member_id: str) -> None:
+    db = SessionLocal()
+    try:
+        db.execute(delete(ChatMessage).where(ChatMessage.member_id == member_id))
+        db.commit()
+    finally:
+        db.close()
+
+
+def test_recent_chat_is_a_source_the_trainer_can_turn_off(client):
+    """최근 대화 원문도 고르는 자료다(#2794) — 끄면 분석에 실리지 않는다."""
+    member_id = _register_and_link_member(client)
+    try:
+        _seed_chat_line(member_id, "어제부터 무릎이 아파요")
+
+        with_chat = _analysis_for(member_id, sources=["recent_chat"])
+        without = _analysis_for(member_id, sources=["pt_feedback"])
+        default = _analysis_for(member_id, sources=None)
+
+        assert any("무릎" in line for line in with_chat.recent_messages)
+        assert without.recent_messages == []
+        # 고르지 않았으면(예전 클라이언트) 기본값에 들어 있어 예전처럼 실린다.
+        assert "recent_chat" in default.sources
+        assert any("무릎" in line for line in default.recent_messages)
+    finally:
+        _clear_chat(member_id)
+        _cleanup_member(member_id)
+
+
+def test_trainer_memo_lines_carry_their_category(client):
+    """분류가 있는 직접 메모는 `[분류]` 를 앞에 붙여 넘긴다(#2622)."""
+    member_id = _register_and_link_member(client)
+    try:
+        _seed_memo(
+            member_id, suffix="pain", body="허리 디스크 이력", days_ago=1,
+            source="trainer", category="pain",
+        )
+        _seed_memo(
+            member_id, suffix="plain", body="분류 없는 메모", days_ago=2,
+            source="trainer",
+        )
+        _seed_memo(
+            member_id, suffix="ex", body="걷기 꾸준함", days_ago=3,
+            source="exercise_memo", category="exercise",
+        )
+
+        analysis = _analysis_for(member_id, sources=["trainer_memo"])
+
+        today = clock.today()
+        assert analysis.trainer_memos == [
+            f"{today - timedelta(days=1):%m.%d} [통증·부상] 허리 디스크 이력",
+            f"{today - timedelta(days=2):%m.%d} 분류 없는 메모",
+            f"{today - timedelta(days=3):%m.%d} [운동] 걷기 꾸준함",
+        ]
+    finally:
+        _cleanup_member(member_id)

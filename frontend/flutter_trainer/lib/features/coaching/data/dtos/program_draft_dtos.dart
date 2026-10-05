@@ -209,6 +209,22 @@ List<Map<String, Object?>> personalRoutinesToJson(
   ];
 }
 
+/// 이미 있는 PT 에 붙은 개인운동을 고치거나 처음 붙이는 본문
+/// (`PUT /trainer/schedule/{id}/routines`, #2224·#2280).
+///
+/// 그 개인운동을 채운 대기 중 AI 제안 id 도 싣는다(#2747) — 서버가 같은
+/// 트랜잭션에서 닫는다. 일정 상세에서 고친 줄처럼 제안에서 오지 않았으면
+/// 키를 싣지 않아 옛 본문과 같다.
+Map<String, Object?> scheduledRoutinesUpdateToJson(
+  List<RoutineExercise> items,
+) {
+  final List<String> suggestionIds = suggestionIdsOf(items);
+  return <String, Object?>{
+    'personal_routines': personalRoutinesToJson(items),
+    if (suggestionIds.isNotEmpty) 'suggestion_ids': suggestionIds,
+  };
+}
+
 /// `개인운동만` 전송 본문 — 운동 하나가 세션 하나다. (#2223)
 ///
 /// 운동별로 나누는 이유는 회원이 `걷기는 했고 플랭크는 안 했다` 를 하나씩
@@ -223,6 +239,7 @@ Map<String, Object?> routineOnlyAssignToJson(
   String? clientRequestId,
 }) {
   final List<Map<String, Object?>> items = personalRoutinesToJson(routines);
+  final List<String> suggestionIds = suggestionIdsOf(routines);
   return <String, Object?>{
     'name': routines.length == 1 ? routines.single.name : programName,
     'sessions': <Map<String, Object?>>[
@@ -239,13 +256,18 @@ Map<String, Object?> routineOnlyAssignToJson(
     'start_date': startDate,
     'active_days': activeDays,
     'client_request_id': ?clientRequestId,
+    // 개인운동을 채운 대기 중 AI 제안 — 서버가 배정과 같은 트랜잭션에서
+    // 닫는다(#2747). 없으면 싣지 않아 옛 서버에도 같은 본문이 간다.
+    if (suggestionIds.isNotEmpty) 'suggestion_ids': suggestionIds,
   };
 }
 
 /// 배정 항목([personalRoutinesToJson])을 세션의 운동 항목 모양으로 옮긴다.
 ///
-/// 세션은 유형에 맞지 않는 칸도 0 으로 받는다(`ProgramDraftExercise`) — 배정
-/// 입력처럼 빼 버리면 세션 요약이 값을 못 찾는다.
+/// 정하지 않은 칸은 0 이 아니라 `null` 로 보낸다 — [programExerciseToJson] 과
+/// 같은 규칙이다. 0 으로 채우던 동안에는 `hold_seconds: 0` 이 "버티는 운동"
+/// 으로 읽혀(#1969) 서버가 일반 근력 운동의 횟수를 지웠고, 회원은 `스쿼트
+/// 3세트 · 12회` 를 `스쿼트 3세트` 로 받았다.
 Map<String, Object?> _sessionExercise(Map<String, Object?> item, int index) {
   final bool strength = item['type'] == '근력';
   return <String, Object?>{
@@ -254,10 +276,10 @@ Map<String, Object?> _sessionExercise(Map<String, Object?> item, int index) {
     'type': item['type'],
     'duration': strength ? 0 : item['minutes'],
     'duration_seconds': strength ? null : item['duration_seconds'],
-    'sets': item['sets'] ?? 0,
-    'reps': item['reps'] ?? 0,
-    'hold_seconds': item['hold_seconds'] ?? 0,
-    'weight': item['weight'] ?? 0,
+    'sets': item['sets'],
+    'reps': item['reps'],
+    'hold_seconds': item['hold_seconds'],
+    'weight': item['weight'],
     'source': item['source'],
     'effect': ?item['effect'],
   };

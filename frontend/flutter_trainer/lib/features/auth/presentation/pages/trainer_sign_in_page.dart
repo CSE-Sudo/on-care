@@ -84,26 +84,33 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
       AppRoutes.resumeTarget(GoRouterState.of(context).uri.toString()) ??
       AppRoutes.dashboard;
 
+  /// 데모는 늘 대시보드에서 시작한다(#2765). 이어 갈 자리(`?from=`)는 실서버
+  /// 계정의 주소라(회원 id 포함) 데모 데이터에는 없다 — 이어 가면 '찾을 수 없음'
+  /// 이 뜨고, 이전 사용자의 위치를 다음 사람에게 보여 주는 셈이 된다.
   void _enterDemo() {
-    final destination = _destination;
     ref.read(sessionControllerProvider.notifier).enterDemo();
-    context.go(destination);
+    context.go(AppRoutes.dashboard);
   }
 
   void _onSignUp() => context.push(AppRoutes.signUp);
 
+  /// 이 빌드에서 소셜 로그인을 쓸 수 있는가(#2769).
+  ///
+  /// 실제 카카오·구글 연동(#330) 전이라 데모(목업) 빌드에서만 연다. 전에는 실서버
+  /// 빌드에서 이 버튼이 고정된 계정으로 바로 로그인해, 배포 주소에 들어온 누구나
+  /// 그 계정의 담당 회원 정보를 볼 수 있었다. 연동이 끝나면 여기서 다시 연다.
+  bool get _socialAvailable => ref.read(appConfigProvider).useMockApi;
+
   Future<void> _social(String provider) async {
-    if (_loading) return;
+    if (_loading || !_socialAvailable) return;
     final destination = _destination;
     setState(() => _loading = true);
     try {
-      // #330: 실제 SDK 연동 전에는 실 서버의 시드 데모 계정으로 로그인한다.
-      final session = ref.read(sessionControllerProvider.notifier);
-      if (ref.read(appConfigProvider).useMockApi) {
-        await session.socialLogin(provider: provider);
-      } else {
-        await session.login(email: 'trainer@oncare.com', password: 'oncare123');
-      }
+      // #330: 실제 SDK 연동 시 provider 토큰 교환으로 바꾼다. 그 전에는 데모
+      // 빌드의 목업 저장소만 이 길을 탄다(실서버 빌드는 버튼이 꺼져 있다).
+      await ref
+          .read(sessionControllerProvider.notifier)
+          .socialLogin(provider: provider);
       if (!mounted) return;
       context.go(destination);
     } catch (_) {
@@ -166,6 +173,7 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
     // `/auth/register` 로 나가 role='member' 계정이 생겼고, 그 계정은
     // `/trainer/me` 에서 403 이라 가입해도 아무것도 할 수 없었다.
     const signUpEnabled = true;
+    final bool socialAvailable = ref.watch(appConfigProvider).useMockApi;
     return AppAuthLayout(
       // 브랜드 — On-Care 로고(테두리 없이 크게).
       logo: Image.asset(
@@ -223,7 +231,21 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),
             ),
-            const SizedBox(height: OnCareSpacing.s24),
+            // 비밀번호를 잊은 트레이너가 메일로 되찾는 입구(#2824). 회원 앱
+            // 로그인과 같은 자리 — 비밀번호 칸 바로 아래 오른쪽이다.
+            Align(
+              alignment: Alignment.centerRight,
+              child: AppButton(
+                key: const ValueKey<String>('trainer-login-forgot-password'),
+                label: l.authForgotPassword,
+                onPressed: _loading
+                    ? null
+                    : () => context.push(AppRoutes.passwordReset),
+                variant: AppButtonVariant.text,
+                size: OnCareButtonSize.small,
+              ),
+            ),
+            const SizedBox(height: OnCareSpacing.s12),
             AppButton(
               key: const ValueKey<String>('trainer-login-submit'),
               label: l.authSignInAction,
@@ -237,22 +259,40 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
             const SizedBox(height: OnCareSpacing.s16),
             // 회원앱 로그인과 같은 모양 — 가운데에 나란히 놓인 원형 아이콘
             // 버튼이다(#1783).
+            //
+            // 실서버 빌드에서는 자리를 지킨 채 꺼 두고 아래에 '준비 중' 안내를
+            // 단다 — 숨기면 화면 배치가 바뀐다(#2769).
             AppSocialLoginRow(
               children: <Widget>[
                 AppSocialLoginButton(
                   key: const ValueKey<String>('trainer-login-kakao'),
                   provider: AppSocialProvider.kakao,
                   label: l.authKakaoAction,
-                  onPressed: _loading ? null : () => _social('kakao'),
+                  onPressed: _loading || !socialAvailable
+                      ? null
+                      : () => _social('kakao'),
                 ),
                 AppSocialLoginButton(
                   key: const ValueKey<String>('trainer-login-google'),
                   provider: AppSocialProvider.google,
                   label: l.authGoogleAction,
-                  onPressed: _loading ? null : () => _social('google'),
+                  onPressed: _loading || !socialAvailable
+                      ? null
+                      : () => _social('google'),
                 ),
               ],
             ),
+            if (!socialAvailable) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s8),
+              Text(
+                l.authSocialComingSoon,
+                key: const ValueKey<String>('trainer-login-social-soon'),
+                textAlign: TextAlign.center,
+                style: tokens
+                    .text(OnCareTypography.bodySmall)
+                    .copyWith(color: OnCareColors.textSecondary),
+              ),
+            ],
             const SizedBox(height: OnCareSpacing.s12),
             if (signUpEnabled)
               // Wrap, not Row: 영어 문구("Don't have an account?" +

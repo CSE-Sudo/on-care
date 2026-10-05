@@ -1,11 +1,14 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/network/accept_language_interceptor.dart';
 
 import 'package:oncare_trainer/core/config/app_config.dart';
-import 'package:oncare_trainer/core/network/interceptors/accept_language_interceptor.dart';
+import 'package:oncare_trainer/core/network/auth_token.dart';
+import 'package:oncare_trainer/core/network/client_platform.dart';
+import 'package:oncare_trainer/core/network/consent_gate.dart';
 import 'package:oncare_trainer/core/network/interceptors/api_logging_interceptor.dart';
-import 'package:oncare_trainer/core/network/interceptors/auth_interceptor.dart';
 import 'package:oncare_trainer/core/network/interceptors/client_access_interceptor.dart';
+import 'package:oncare_trainer/shared/services/locale_provider.dart';
 
 /// App-wide `Dio` instance, wired with language + auth + logging interceptors from
 /// the current [AppConfig]. Feature data sources read this provider
@@ -24,6 +27,8 @@ final dioProvider = Provider<Dio>((ref) {
       receiveTimeout: const Duration(seconds: 15),
       sendTimeout: const Duration(seconds: 10),
       contentType: Headers.jsonContentType,
+      // 웹 빌드는 자기가 웹이라고 알린다 — 서버가 짧은 refresh 토큰을 준다(#2828).
+      headers: clientPlatformHeaders(),
       // Surface 4xx/5xx as DioException so callers react via try/catch
       // instead of dereferencing a null body in a fromJson factory.
       validateStatus: (int? status) => status != null && status < 400,
@@ -33,8 +38,14 @@ final dioProvider = Provider<Dio>((ref) {
   // 화면 언어는 요청마다 읽는다 — 언어를 바꿔도 Dio 를 다시 만들지 않는다(#2297).
   // 실행 중 만료된 토큰은 갱신 뒤 원 요청을 한 번 다시 보낸다(#1546).
   dio.interceptors
-    ..add(AcceptLanguageInterceptor(ref))
-    ..add(AuthInterceptor(ref, retryClient: dio));
+    ..add(
+      AcceptLanguageInterceptor(() => ref.read(trainerResolvedLocaleProvider)),
+    )
+    ..add(authInterceptorFor(ref, retryClient: dio))
+    // 필수 동의가 남은 트레이너는 서버가 403 으로 막는다 — 동의 화면으로 보낸다(#3155).
+    ..add(
+      ConsentRequiredInterceptor(() => ref.read(consentGateBridgeProvider)),
+    );
   // 담당이 해제된 회원의 404 를 로스터 재검증으로 잇는다(#2281).
   dio.interceptors.add(
     ClientAccessInterceptor(ref.watch(clientAccessLostProvider).report),

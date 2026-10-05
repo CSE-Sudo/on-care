@@ -67,7 +67,6 @@ class AppIcons {
   static const IconData request = Symbols.assignment_rounded;
   static const IconData ai = Symbols.auto_awesome_rounded;
 
-
   // --- 날짜·시간·장소 ---
   static const IconData calendar = Symbols.calendar_today_rounded;
   static const IconData clock = Symbols.schedule_rounded;
@@ -83,6 +82,9 @@ class AppIcons {
   static const IconData goal = Symbols.flag_rounded;
   static const IconData favorite = Symbols.favorite_rounded;
   static const IconData sync = Symbols.sync_rounded;
+
+  /// 앱 업데이트 — 최소 지원 버전보다 낮은 빌드의 업데이트 화면(#3045).
+  static const IconData appUpdate = Symbols.system_update_rounded;
 
   // --- 혜택·쿠폰 ---
   /// 쿠폰 한 장 — 내 혜택의 빈 화면·없는 쿠폰, 앱이 모르는 교환 항목(#1787).
@@ -132,6 +134,7 @@ class AppIcons {
   static const IconData remove = Symbols.remove_rounded;
   static const IconData edit = Symbols.edit_rounded;
   static const IconData delete = Symbols.delete_rounded;
+
   /// 채팅 이모티콘 창을 여는 웃는 얼굴. (#2020)
   static const IconData emote = Symbols.sentiment_satisfied_rounded;
 

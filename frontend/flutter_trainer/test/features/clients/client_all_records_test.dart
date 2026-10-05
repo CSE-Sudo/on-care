@@ -91,4 +91,46 @@ void main() {
       expect(ClientRecordSpan.empty.dietFirstDate, isNull);
     });
   });
+
+  // 서버 기간 집계와 같은 상한(#2833) — 날짜가 잘못 들어간 옛 기록 하나가 그래프를
+  // 수십만 칸으로 늘리지 않는다.
+  group('`전체` 구간 상한(#2833)', () {
+    test('식단은 오늘에서 거슬러 1100일까지다', () {
+      final ClientDateRange range = clientRangeFor(
+        ClientPeriod.month,
+        today,
+        firstRecord: DateTime(1970),
+      );
+
+      expect(range.from, DateTime(2026, 9, 24 - (kClientMaxPeriodDays - 1)));
+      expect(range.to, today);
+      expect(clientRangeDates(range), hasLength(kClientMaxPeriodDays));
+    });
+
+    test('운동은 이번 주에서 거슬러 160주 전 월요일까지다', () {
+      final ClientDateRange range = clientRangeFor(
+        ClientPeriod.month,
+        today,
+        exercise: true,
+        firstRecord: DateTime(1970, 1, 7),
+      );
+
+      expect(range.from.weekday, DateTime.monday);
+      expect(
+        range.from,
+        DateTime(2026, 9, 21 - (kClientMaxExerciseWeeks - 1) * 7),
+      );
+      expect(clientRangeWeekStarts(range), hasLength(kClientMaxExerciseWeeks));
+    });
+
+    test('상한 안쪽 구간은 그대로다', () {
+      final ClientDateRange range = clientRangeFor(
+        ClientPeriod.month,
+        today,
+        firstRecord: DateTime(2024, 5, 2),
+      );
+
+      expect(range.from, DateTime(2024, 5, 2));
+    });
+  });
 }

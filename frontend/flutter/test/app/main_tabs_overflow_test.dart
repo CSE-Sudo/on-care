@@ -20,16 +20,15 @@ import 'package:oncare/app/app.dart';
 import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
-import 'package:oncare/features/dashboard/data/repositories/mock_dashboard_repository.dart';
+import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
-import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
-import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/shared/services/locale_provider.dart';
 
+import '../helpers/demo_exercise.dart';
+import '../helpers/fake_dashboard_repository.dart';
 import '../helpers/fake_diet_repository.dart';
 
 void main() {
@@ -37,6 +36,7 @@ void main() {
     testWidgets('로그인부터 주요 탭까지 넘치지 않는다 — ${locale.languageCode}', (
       WidgetTester tester,
     ) async {
+      final AppDatabase exerciseDb = await seededDemoDatabase(tester);
       final List<String> overflows = <String>[];
       final void Function(FlutterErrorDetails)? previous = FlutterError.onError;
       FlutterError.onError = (FlutterErrorDetails details) {
@@ -73,11 +73,10 @@ void main() {
             appConfigProvider.overrideWithValue(config),
             appLoggerProvider.overrideWithValue(Logger(level: Level.off)),
             dietRepositoryProvider.overrideWithValue(diet as DietRepository),
-            exerciseRepositoryProvider.overrideWithValue(
-              MockExerciseRepository() as ExerciseRepository,
-            ),
+            // 운동은 앱의 데모와 같은 경로(로컬 목업 API + drift)로 돈다(#2724).
+            ...demoExerciseOverrides(exerciseDb),
             dashboardRepositoryProvider.overrideWithValue(
-              MockDashboardRepository(diet) as DashboardRepository,
+              FakeDashboardRepository(diet) as DashboardRepository,
             ),
             sessionFeatureResetOverride(),
             localeProvider.overrideWith((Ref ref) => locale),

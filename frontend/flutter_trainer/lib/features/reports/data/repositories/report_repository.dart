@@ -1,20 +1,29 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
-import 'package:flutter/widgets.dart' show Locale;
+import 'package:flutter/widgets.dart' show Locale, immutable;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_core/network/accept_language_interceptor.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
-import 'package:oncare_trainer/core/network/interceptors/accept_language_interceptor.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/core/storage/demo_language.dart';
+import 'package:oncare_trainer/core/storage/seed_data.dart'
+    show seedLanguageKey;
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/reports/data/demo_report_history.dart';
+import 'package:oncare_trainer/features/reports/data/demo_report_summary.dart';
+import 'package:oncare_trainer/features/reports/data/repositories/calorie_baseline.dart'
+    show kCalorieBaselineWeeks;
 import 'package:oncare_trainer/features/reports/domain/member_report_history.dart';
 import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
+import 'package:oncare_trainer/features/reports/domain/report_queue_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/report_send_record.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
@@ -23,6 +32,8 @@ import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repo
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
+import 'package:oncare_trainer/shared/services/client_repository.dart'
+    show trainerClientFromRow;
 
 /// 회원별 지난 리포트 한 쪽의 주 수 — 서버의 기본값과 같다(#2393).
 const int memberReportHistoryPageSize = 12;
@@ -47,6 +58,20 @@ abstract interface class ReportRepository {
   /// source emits once (fetch → value), like the other API repositories.
   Stream<WeeklyReport> watch({
     required TrainerClient client,
+    required DateTime weekStart,
+  });
+
+  /// [clients] 의 [weekStart] 주 작업대 요약 — 회원 전원을 한 번에. (#2863)
+  ///
+  /// 작업대는 줄 순서·신호에 쓰는 몇 값만 있으면 된다. 회원마다 [watch] 로
+  /// 리포트 본문과 회원 피드백을 통째로 불러 큐를 세우면 회원 N명에 요청이
+  /// 2N개 나가고, 주를 옮길 때마다 다시 나간다. 실서버는
+  /// `GET /trainer/reports/queue` 한 번이고, 데모는 같은 값을 시드에서 낸다.
+  ///
+  /// 실서버의 회원 목록은 서버가 정한다(담당·동의가 유효한 회원). 화면은 받은
+  /// 값을 회원 id 로 명단에 붙이고, 값이 없는 회원은 수치 없이 줄만 세운다.
+  Stream<List<ReportQueueSummary>> watchQueue({
+    required List<TrainerClient> clients,
     required DateTime weekStart,
   });
 
@@ -160,8 +185,86 @@ class LocalReportRepository implements ReportRepository {
             // 회원이 낸 답(#2232). 없는 주가 정상이라 null 로 돌아오고,
             // 화면이 그때 "아직 받지 못함"을 그린다.
             memberFeedback: await _memberFeedback(client.id, start),
+            // 회원 목표 — 실서버 응답의 `*_target` 과 같은 출처(건강 프로필)다.
+            // 안 넘기면 판정·주간 표가 공통 상수를 써서 실서버와 다르게 읽힌다.
+            targets: await _targets(client.id),
+            // ① 칼로리 `평소` — 실서버 `calorie_baseline` 과 같은 규칙(#2863).
+            calorieBaseline: await _calorieBaseline(client.id, start),
           ),
         );
+  }
+
+  /// [monday] 앞 [kCalorieBaselineWeeks] 주 동안 칼로리를 기록한 날의 하루
+  /// 평균. 기록이 없으면 null. (#2863)
+  ///
+  /// 예전 화면이 직전 4주 리포트의 `caloriesWeek` 에서 0 을 빼고 평균하던 것과
+  /// 같은 값이다 — 그 배열도 이 표의 `calories` 를 날짜별로 담았다.
+  Future<double?> _calorieBaseline(String clientId, DateTime monday) async {
+    // 달력 날짜로 뺀다 — 서머타임 전환 주에 `Duration` 은 날짜를 어긋낸다(#2774).
+    final DateTime from = DateTime(
+      monday.year,
+      monday.month,
+      monday.day - 7 * kCalorieBaselineWeeks,
+    );
+    final DateTime to = DateTime(monday.year, monday.month, monday.day - 1);
+    final rows =
+        await (_db.select(_db.clientDailyMetrics)..where(
+              (t) =>
+                  t.clientId.equals(clientId) &
+                  t.date.isBiggerOrEqualValue(ymd(from)) &
+                  t.date.isSmallerOrEqualValue(ymd(to)),
+            ))
+            .get();
+    final List<int> recorded = <int>[
+      for (final ClientDailyMetricRow row in rows)
+        if (row.calories > 0) row.calories,
+    ];
+    if (recorded.isEmpty) return null;
+    return recorded.fold<int>(0, (int a, int b) => a + b) / recorded.length;
+  }
+
+  /// 데모 작업대 요약 — 회원별 리포트에서 같은 값을 뽑는다(#2863). 실서버
+  /// 요약도 회원별 리포트와 같은 규칙으로 센다.
+  @override
+  Stream<List<ReportQueueSummary>> watchQueue({
+    required List<TrainerClient> clients,
+    required DateTime weekStart,
+  }) => reportQueueFromReports(this, clients: clients, weekStart: weekStart);
+
+  /// 데모 건강 프로필(`member_health_profile:<id>`)의 하루 목표.
+  Future<ReportTargets> _targets(String clientId) async {
+    final String? saved = await _db.readValue(
+      'member_health_profile:$clientId',
+    );
+    if (saved == null) return const ReportTargets();
+    final Map<String, Object?> values;
+    try {
+      final Object? decoded = jsonDecode(saved);
+      if (decoded is! Map<String, Object?>) return const ReportTargets();
+      values = decoded;
+    } on FormatException {
+      return const ReportTargets();
+    }
+    num? at(String key) => switch (values[key]) {
+      final num n when n > 0 => n,
+      _ => null,
+    };
+    return ReportTargets(
+      calories: at('daily_calories')?.toInt(),
+      sodium: at('daily_sodium_mg')?.toInt(),
+      sugar: at('daily_sugar_g')?.toDouble(),
+      carbs: at('daily_carbs_g')?.toDouble(),
+      protein: at('daily_protein_g')?.toDouble(),
+      // 실서버 `effective_protein_target` 과 같은 규칙(#2898).
+      effectiveProtein:
+          (at('daily_protein_g')?.toInt() ??
+                  MemberHealthProfile.proteinTargetFromWeight(
+                    at('weight_kg')?.toDouble(),
+                  ) ??
+                  MemberHealthProfile.defaultDailyProteinG)
+              .toDouble(),
+      fat: at('daily_fat_g')?.toDouble(),
+    );
   }
 
   @override
@@ -170,10 +273,10 @@ class LocalReportRepository implements ReportRepository {
     required DateTime weekStart,
     required AppLocalizations l,
   }) async {
-    // 데모에는 모델이 없다. 실서버가 공급자 장애에서 쓰는 것과 **같은** 규칙
-    // 기반 요약을 쓴다 — 데모에서 본 문장이 실서버의 실패 화면과 같아진다.
+    // 데모에는 모델이 없다. 실서버가 평소 보여 주는 `생성` 요약을 데모에서도
+    // 보이도록, 미리 써 둔 머리 문장에 규칙 요약의 근거 줄을 붙인다(#2669).
     final report = await watch(client: client, weekStart: weekStart).first;
-    return ruleReportSummary(l, report, client);
+    return demoGeneratedReportSummary(l, report, client);
   }
 
   /// 저장된 운동 목록을 방어적으로 디코드. 깨진 값은 빈 목록으로.
@@ -202,7 +305,11 @@ class LocalReportRepository implements ReportRepository {
   /// 그 주(월→일)의 요일별 값. 기록이 하나도 없으면 null — 화면이 "없다"고
   /// 말할 수 있어야 한다(0 으로 채우면 "하루 0kcal" 처럼 읽힌다).
   Future<WeekSeries?> _weekSeries(String clientId, DateTime monday) async {
-    final sunday = monday.add(const Duration(days: 6));
+    // 달력 날짜로 더한다 — 그 주에 서머타임 전환이 있으면 `Duration` 은
+    // 날짜를 하루 어긋나게 한다(#2774).
+    DateTime dayOf(int offset) =>
+        DateTime(monday.year, monday.month, monday.day + offset);
+    final sunday = dayOf(6);
     final rows =
         await (_db.select(_db.clientDailyMetrics)..where(
               (t) =>
@@ -215,8 +322,7 @@ class LocalReportRepository implements ReportRepository {
     final byDate = <String, ClientDailyMetricRow>{
       for (final row in rows) row.date: row,
     };
-    ClientDailyMetricRow? on(int day) =>
-        byDate[ymd(monday.add(Duration(days: day)))];
+    ClientDailyMetricRow? on(int day) => byDate[ymd(dayOf(day))];
     return WeekSeries(
       days: <ReportDay>[
         for (var d = 0; d < 7; d++)
@@ -232,7 +338,8 @@ class LocalReportRepository implements ReportRepository {
           ),
       ],
       mealCounts: <int>[for (var d = 0; d < 7; d++) on(d)?.mealCount ?? 0],
-      completion: <int>[for (var d = 0; d < 7; d++) on(d)?.completion ?? 0],
+      // 그날 행이 없으면 걸린 것이 없던 날이다(null, #2513).
+      completion: <int?>[for (var d = 0; d < 7; d++) on(d)?.completion],
       sodium: <int>[for (var d = 0; d < 7; d++) on(d)?.sodiumMg ?? 0],
       calories: <int>[for (var d = 0; d < 7; d++) on(d)?.calories ?? 0],
       sugar: <double>[for (var d = 0; d < 7; d++) on(d)?.sugarG ?? 0],
@@ -280,7 +387,10 @@ class LocalReportRepository implements ReportRepository {
     required Uint8List bytes,
     required String fileName,
     required String message,
-  }) {
+  }) async {
+    // 실서버와 같은 규칙 — 빈 문구는 받지 않는다(#2771). 그대로 넣으면 회원
+    // 채팅에 빈 말풍선 리포트가 선다.
+    if (message.trim().isEmpty) throw const ValidationError();
     // 데모/드리프트에는 첨부 저장소가 없다 — 대신 reportWeekStart를 실어
     // 보내, 채팅 화면이 이 메시지를 리포트 전송 안내로 구분해 그리게 한다.
     return _chat.sendTrainerMessage(
@@ -376,8 +486,14 @@ class LocalReportRepository implements ReportRepository {
   /// 데모 회원의 지난 리포트 이력([demoReportHistoryFor])에 실행 중 보낸
   /// 것을 얹는다(#2394). 같은 주는 실행 중 기록이 이긴다 — 작업대의 주 단위
   /// 기록([sentReports])과 같은 규칙이라 두 화면이 같은 주를 다르게 말하지
-  /// 않는다. 데모 기록은 본문이 비어 있어, 목록이 그 주 수치로 만든 초안의
-  /// 첫 줄로 채운다(#2423).
+  /// 않는다.
+  ///
+  /// 실서버처럼 줄마다 **보낸 본문의 첫 줄과 PDF 표시**를 싣는다(#2669). 데모
+  /// 기록은 본문을 저장하지 않으므로 그 주 수치로 만든 초안([reportMessage])을
+  /// 시드 언어로 채운다 — 수치와 따로 노는 고정 문장을 두지 않는다는 #2423 의
+  /// 규칙 그대로다. 공유 메뉴의 기본 전송이 PDF 라서(#1378) 데모의 보낸
+  /// 리포트는 모두 PDF 로 나간 것으로 둔다 — 실행 중 기록도 `sendPdf` 가
+  /// 남긴 것뿐이다.
   @override
   Future<MemberReportHistoryPage> memberReportHistory({
     required String clientId,
@@ -405,9 +521,47 @@ class LocalReportRepository implements ReportRepository {
     final int size = limit < 1 ? 1 : limit;
     final List<MemberReportHistoryItem> page = all.take(size).toList();
     return MemberReportHistoryPage(
-      items: page,
+      items: await _withDemoBodies(clientId, page),
       nextBefore: all.length > size ? page.last.weekStart : null,
     );
+  }
+
+  /// [items] 에 PDF 표시를 달고, 본문이 빈 줄은 그 주 초안의 첫 줄로 채운다.
+  Future<List<MemberReportHistoryItem>> _withDemoBodies(
+    String clientId,
+    List<MemberReportHistoryItem> items,
+  ) async {
+    final TrainerClientRow? row = await (_db.select(
+      _db.trainerClients,
+    )..where((t) => t.id.equals(clientId))).getSingleOrNull();
+    final TrainerClient? client = row == null
+        ? null
+        : trainerClientFromRow(row);
+    final AppLocalizations l = lookupAppLocalizations(
+      Locale(await _db.readValue(seedLanguageKey) ?? DemoLanguage.ko.name),
+    );
+    return <MemberReportHistoryItem>[
+      for (final MemberReportHistoryItem item in items)
+        MemberReportHistoryItem(
+          weekStart: item.weekStart,
+          sentAt: item.sentAt,
+          read: item.read,
+          sendCount: item.sendCount,
+          feedbackPreview: item.feedbackPreview.isNotEmpty || client == null
+              ? item.feedbackPreview
+              : reportFeedbackPreview(
+                  reportMessage(
+                    l,
+                    await watch(
+                      client: client,
+                      weekStart: item.weekStart,
+                    ).first,
+                  ),
+                ),
+          messageId: item.messageId,
+          hasPdf: true,
+        ),
+    ];
   }
 
   /// 실행 중에 [clientId] 에게 보낸 리포트를 주마다 하나씩 — 가장 최근 전송과
@@ -535,6 +689,32 @@ class DioReportRepository implements ReportRepository {
         throw const ServerError();
       }
       return weeklyReportFromJson(json, client, memberFeedback: await feedback);
+    } on DioException catch (e) {
+      throw AppError.fromDio(e);
+    }
+  }
+
+  @override
+  Stream<List<ReportQueueSummary>> watchQueue({
+    required List<TrainerClient> clients,
+    required DateTime weekStart,
+  }) {
+    return Stream<List<ReportQueueSummary>>.fromFuture(_fetchQueue(weekStart));
+  }
+
+  /// 작업대 요약 한 번(#2863). 회원 목록은 서버가 정한다 — [clients] 를
+  /// 보내지 않는다.
+  Future<List<ReportQueueSummary>> _fetchQueue(DateTime weekStart) async {
+    try {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/trainer/reports/queue',
+        queryParameters: <String, String>{
+          'week_start': ymd(weekStartOf(weekStart)),
+        },
+      );
+      final json = res.data;
+      if (json == null) throw const ServerError();
+      return reportQueueFromJson(json);
     } on DioException catch (e) {
       throw AppError.fromDio(e);
     }
@@ -750,6 +930,12 @@ WeeklyReport weeklyReportFromJson(
           .whereType<num>()
           .map((n) => n.toDouble())
           .toList(growable: false);
+  // 이행률은 걸린 것이 없는 날이 null 이다(#2513) — 자리를 지켜야 요일이 밀리지
+  // 않는다.
+  List<int?> nullableInts(String key) =>
+      (json[key] as List<Object?>? ?? const <Object?>[])
+          .map((Object? v) => v is num ? v.toInt() : null)
+          .toList(growable: false);
   final weekStart =
       DateTime.tryParse(json['week_start'] as String? ?? '') ??
       weekStartOf(nowKst());
@@ -762,7 +948,7 @@ WeeklyReport weeklyReportFromJson(
     completionAvg: optInt('completion_avg'),
     sodiumOverDays: optInt('sodium_over_days') ?? 0,
     sodiumAvg: optInt('sodium_avg'),
-    weekCompletion: ints('week_completion'),
+    weekCompletion: nullableInts('week_completion'),
     sodiumWeek: ints('sodium_week'),
     caloriesWeek: ints('calories_week'),
     sugarWeek: doubles('sugar_week'),
@@ -771,6 +957,9 @@ WeeklyReport weeklyReportFromJson(
     carbsWeek: doubles('carbs_week'),
     proteinWeek: doubles('protein_week'),
     fatWeek: doubles('fat_week'),
+    // 요일별 끼니 기록 수(#2772). 없으면 빈 목록이라 끼니 줄이 `–` 로 서고
+    // 끼니 문장이 빠진다 — 이 칸이 없던 옛 응답과 같은 동작이다.
+    mealCounts: ints('meal_counts'),
     // 회원이 적어 둔 하루 목표. 없으면 null 이고 판정이 공통 상수로
     // 되돌아간다(#1430).
     calorieTarget: optInt('calorie_target'),
@@ -778,6 +967,9 @@ WeeklyReport weeklyReportFromJson(
     sugarTarget: (json['sugar_target'] as num?)?.toDouble(),
     carbsTarget: (json['carbs_target'] as num?)?.toDouble(),
     proteinTarget: (json['protein_target'] as num?)?.toDouble(),
+    // 실효 단백질 목표(#2898). 옛 응답이면 null 이고 막대가 공통 기본값을 쓴다.
+    effectiveProteinTarget: (json['effective_protein_target'] as num?)
+        ?.toDouble(),
     fatTarget: (json['fat_target'] as num?)?.toDouble(),
     days: <ReportDay>[
       for (final day in (json['days'] as List<Object?>? ?? const <Object?>[]))
@@ -787,10 +979,116 @@ WeeklyReport weeklyReportFromJson(
             exercises: (day['exercises'] as List<Object?>? ?? const <Object?>[])
                 .whereType<String>()
                 .toList(growable: false),
+            assigned: _assignedOf(day['assigned']),
+            // 그날 완료한 개인운동 수(#3115). 옛 응답이면 null 이다.
+            assignedDone: (day['assigned_done'] as num?)?.toInt(),
           ),
     ],
     memberFeedback: memberFeedback,
+    // 직전 4주 칼로리 `평소`(#2863). 기록이 없으면 null 로 온다.
+    calorieBaseline: (json['calorie_baseline'] as num?)?.toDouble(),
   );
+}
+
+/// 그날 배정된 개인운동 수(#2772). 없거나 0 이하면 null — 배정을 모르는
+/// 날이다. 0 을 그대로 두면 쉬는 날이 `0 / 0` 으로 그려진다(#2232, 데모
+/// `assignedCount` 와 같은 규칙).
+int? _assignedOf(Object? value) =>
+    value is num && value > 0 ? value.toInt() : null;
+
+/// Decodes `ReportQueueOut`. (#2863)
+///
+/// 회원 id 를 읽지 못한 줄은 버린다 — 누구의 수치인지 모르는 값을 줄에 붙이지
+/// 않는다. 평균은 기록이 없으면 null 로 온다(0% 가 아니다).
+List<ReportQueueSummary> reportQueueFromJson(Map<String, dynamic> json) {
+  final Object? items = json['items'];
+  if (items is! List) return const <ReportQueueSummary>[];
+  int count(Object? value) => value is num && value >= 0 ? value.toInt() : 0;
+  return <ReportQueueSummary>[
+    for (final Object? item in items)
+      if (item is Map<String, dynamic> &&
+          item['member_id'] is String &&
+          (item['member_id']! as String).isNotEmpty)
+        ReportQueueSummary(
+          clientId: item['member_id']! as String,
+          sessionsBooked: count(item['sessions_booked']),
+          sessionsDone: count(item['sessions_done']),
+          completionAvg: (item['completion_avg'] as num?)?.toInt(),
+          // 걸린 것이 없는 날은 null 이다(#2513) — 버리면 칸이 앞으로
+          // 당겨져 요일이 어긋난다.
+          weekCompletion: <int?>[
+            for (final Object? v
+                in item['week_completion'] as List<Object?>? ??
+                    const <Object?>[])
+              v is num ? v.toInt() : null,
+          ],
+        ),
+  ];
+}
+
+/// 회원별 [ReportRepository.watch] 를 묶어 작업대 요약을 낸다(#2863).
+///
+/// 데모 저장소가 쓴다 — 데모는 요청이 없는 로컬 계산이라 회원마다 읽어도
+/// 비용이 없고, 회원별 리포트와 **같은 값**이 나온다는 것이 그대로 보장된다.
+/// 회원마다 첫 값(또는 오류)이 모두 온 뒤에 처음 내보내고, 그 뒤에는 한
+/// 회원의 리포트가 바뀔 때마다 다시 내보낸다. 리포트를 읽지 못한 회원은
+/// 빠진다 — 작업대는 그 회원 줄을 수치 없이 세운다.
+Stream<List<ReportQueueSummary>> reportQueueFromReports(
+  ReportRepository repository, {
+  required List<TrainerClient> clients,
+  required DateTime weekStart,
+}) {
+  final List<TrainerClient> unique = <TrainerClient>[
+    for (final MapEntry<String, TrainerClient> e in <String, TrainerClient>{
+      for (final TrainerClient c in clients) c.id: c,
+    }.entries)
+      e.value,
+  ];
+  if (unique.isEmpty) {
+    return Stream<List<ReportQueueSummary>>.value(const <ReportQueueSummary>[]);
+  }
+  final Map<String, ReportQueueSummary> latest = <String, ReportQueueSummary>{};
+  final Set<String> settled = <String>{};
+  final List<StreamSubscription<WeeklyReport>> subscriptions =
+      <StreamSubscription<WeeklyReport>>[];
+  late final StreamController<List<ReportQueueSummary>> controller;
+
+  void emit() {
+    if (settled.length < unique.length || controller.isClosed) return;
+    controller.add(<ReportQueueSummary>[
+      for (final TrainerClient c in unique) ?latest[c.id],
+    ]);
+  }
+
+  controller = StreamController<List<ReportQueueSummary>>(
+    onListen: () {
+      for (final TrainerClient c in unique) {
+        subscriptions.add(
+          repository
+              .watch(client: c, weekStart: weekStart)
+              .listen(
+                (WeeklyReport report) {
+                  latest[c.id] = ReportQueueSummary.fromReport(report);
+                  settled.add(c.id);
+                  emit();
+                },
+                onError: (Object _, StackTrace _) {
+                  latest.remove(c.id);
+                  settled.add(c.id);
+                  emit();
+                },
+              ),
+        );
+      }
+    },
+    onCancel: () async {
+      for (final StreamSubscription<WeeklyReport> s in subscriptions) {
+        await s.cancel();
+      }
+      unawaited(controller.close());
+    },
+  );
+  return controller.stream;
 }
 
 /// Decodes `ReportSendsOut`. (#2288)
@@ -939,8 +1237,45 @@ final reportRepositoryProvider = Provider<ReportRepository>((ref) {
   return DioReportRepository(ref.watch(dioProvider));
 }, name: 'reportRepository');
 
-/// Identifies one client's report week.
-typedef ReportKey = ({TrainerClient client, DateTime weekStart});
+/// 한 회원의 한 주 리포트를 찾는 열쇠.
+///
+/// [client] 는 리포트를 만들 때 쓰는 **실어 나르는 값**일 뿐, 같은 열쇠인지는
+/// 회원 id·이름·주로만 가린다(#2768). 실서버 명단은 30초마다 다시 읽혀 내용이
+/// 같은 새 [TrainerClient] 를 내보내는데, 객체를 그대로 열쇠로 쓰면 폴링 한
+/// 번마다 리포트·초안·요약 provider 가 전부 새 열쇠가 되어 다시 불렸다 — 편집기가
+/// 로딩 카드로 깜빡이며 입력 포커스를 잃고, 요약(모델 호출)이 다시 생성됐다.
+///
+/// 이름은 열쇠에 넣는다. 리포트 본문·PDF 가 `report.client.name` 으로 인사를
+/// 쓰므로, 이름이 바뀌면 새로 읽어야 화면과 보낼 문서에 새 이름이 선다. 그 밖의
+/// 명단 필드(최근 대화·신호 등)는 폴링마다 바뀔 수 있어 열쇠에 넣지 않는다.
+@immutable
+class ReportKey {
+  /// [client] 의 [weekStart] 주.
+  const ReportKey({required this.client, required this.weekStart});
+
+  /// 리포트를 만들 때 넘기는 회원. 열쇠의 같음에는 id·이름만 쓴다.
+  final TrainerClient client;
+
+  /// 그 주의 월요일.
+  final DateTime weekStart;
+
+  /// 회원 id — 열쇠의 중심.
+  String get clientId => client.id;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ReportKey &&
+      other.client.id == client.id &&
+      other.client.name == client.name &&
+      other.weekStart == weekStart;
+
+  @override
+  int get hashCode => Object.hash(client.id, client.name, weekStart);
+
+  @override
+  String toString() =>
+      'ReportKey(${client.id}, ${weekStart.toIso8601String()})';
+}
 
 /// Streams a client's weekly report.
 final weeklyReportProvider = StreamProvider.autoDispose
@@ -949,6 +1284,63 @@ final weeklyReportProvider = StreamProvider.autoDispose
       return ref
           .watch(reportRepositoryProvider)
           .watch(client: key.client, weekStart: key.weekStart);
+    });
+
+/// 작업대 요약을 찾는 열쇠 — 그 주와 명단. (#2863)
+///
+/// 명단은 회원 id·이름의 순서 목록으로만 같음을 가린다([ReportKey] 와 같은
+/// 까닭) — 실서버 명단은 30초마다 내용이 같은 새 객체로 다시 오는데, 그때마다
+/// 요약을 다시 부르면 작업대가 로딩으로 깜빡인다. 회원이 늘거나 빠지거나
+/// 이름이 바뀌면 새 열쇠다.
+@immutable
+class ReportQueueKey {
+  /// [clients] 의 [weekStart] 주.
+  ReportQueueKey({
+    required List<TrainerClient> clients,
+    required DateTime weekStart,
+  }) : clients = List<TrainerClient>.unmodifiable(clients),
+       weekStart = weekStartOf(weekStart),
+       _signature = <String>[
+         for (final TrainerClient c in clients) '${c.id}\u0000${c.name}',
+       ].join('\u0001');
+
+  /// 요약을 붙일 명단.
+  final List<TrainerClient> clients;
+
+  /// 그 주의 월요일.
+  final DateTime weekStart;
+
+  final String _signature;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ReportQueueKey &&
+      other.weekStart == weekStart &&
+      other._signature == _signature;
+
+  @override
+  int get hashCode => Object.hash(weekStart, _signature);
+
+  @override
+  String toString() =>
+      'ReportQueueKey(${clients.length}, ${weekStart.toIso8601String()})';
+}
+
+/// 작업대 요약 — `회원 id → 요약`. (#2863)
+///
+/// 작업대는 이것 하나만 구독한다. 회원별 리포트·피드백([weeklyReportProvider])
+/// 은 편집기·보낸 리포트를 열 때만 읽는다.
+final reportQueueProvider = StreamProvider.autoDispose
+    .family<Map<String, ReportQueueSummary>, ReportQueueKey>((ref, key) {
+      keepAliveForAccount(ref);
+      return ref
+          .watch(reportRepositoryProvider)
+          .watchQueue(clients: key.clients, weekStart: key.weekStart)
+          .map(
+            (List<ReportQueueSummary> items) => <String, ReportQueueSummary>{
+              for (final ReportQueueSummary s in items) s.clientId: s,
+            },
+          );
     });
 
 /// 그 주에 저장돼 있는 피드백 초안. (#821)

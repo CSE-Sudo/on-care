@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -6,6 +7,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
@@ -302,7 +304,10 @@ void main() {
   group('consultationRepositoryProvider', () {
     test('demo mode exposes the seeded schedule inbox', () {
       final container = ProviderContainer(
-        overrides: <Override>[appConfigProvider.overrideWithValue(_demoConfig)],
+        overrides: <Override>[
+          appConfigProvider.overrideWithValue(_demoConfig),
+          appDatabaseProvider.overrideWithValue(_memoryDb()),
+        ],
       );
       addTearDown(container.dispose);
 
@@ -333,7 +338,10 @@ void main() {
 
     test('the demo badge count includes the seeded request', () async {
       final container = ProviderContainer(
-        overrides: <Override>[appConfigProvider.overrideWithValue(_demoConfig)],
+        overrides: <Override>[
+          appConfigProvider.overrideWithValue(_demoConfig),
+          appDatabaseProvider.overrideWithValue(_memoryDb()),
+        ],
       );
       addTearDown(container.dispose);
 
@@ -455,12 +463,14 @@ void main() {
       // 자리가 정한 시각·길이 그대로 **상담** 일정이 잡힌다. 메모 칸은 트레이너만
       // 보는 상담 메모 자리라 회원 문의 글을 넣지 않는다(#2584).
       final DateTime start = request.slotStartsAt!;
+      // 시드 요청은 데모 상담 자리의 시각을 그대로 쓴다(#2669).
+      final String hm = request.preferredTimeCode;
       verify(
         () => scheduleRepository.addSession(
           date: ymd(start),
           clientName: request.memberName,
           clientId: request.memberId,
-          time: '19:00',
+          time: hm,
           type: SessionType.consultation,
           durationMinutes: request.slotDurationMinutes!,
           note: '',
@@ -471,10 +481,17 @@ void main() {
           demoScheduleConsultations[demoConsultationKey(
             clientId: request.memberId,
             date: ymd(start),
-            time: '19:00',
+            time: hm,
           )];
       expect(consultation?.id, request.id);
       expect(consultation?.message, request.message);
     });
   });
+}
+
+/// 데모 저장소가 결정을 적는 메모리 DB(#2669). 테스트가 끝나면 닫는다.
+AppDatabase _memoryDb() {
+  final AppDatabase db = AppDatabase.forTesting(NativeDatabase.memory());
+  addTearDown(db.close);
+  return db;
 }

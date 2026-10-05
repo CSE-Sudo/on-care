@@ -5,13 +5,17 @@ from datetime import date, timedelta
 
 from app.api.v1.notifications import _action_for
 from app.db.demo_fixture import load_fixture
-from app.db.seed_notifications import DEMO_NOTIFICATIONS, LEGACY_DEMO_NOTIFICATION_IDS
+from app.db.seed_notifications import (
+    DEMO_NOTIFICATIONS,
+    LEGACY_DEMO_NOTIFICATION_IDS,
+    demo_time_ago,
+)
 from app.services import notification_service
 
 
-def test_seed_has_nine_unique_notifications_newest_first():
+def test_seed_has_seven_unique_notifications_newest_first():
     ids = [n.id for n in DEMO_NOTIFICATIONS]
-    assert len(ids) == 9
+    assert len(ids) == 7
     assert len(set(ids)) == len(ids)
     ages = [n.ago for n in DEMO_NOTIFICATIONS]
     assert ages == sorted(ages), "최신순이어야 목록 순서와 time_ago 가 맞는다"
@@ -27,23 +31,53 @@ def test_seed_drops_the_previous_target_wording():
 
 def test_unread_alerts_sit_on_top():
     reads = [n.read for n in DEMO_NOTIFICATIONS]
-    assert reads.count(False) == 7
+    assert reads.count(False) == 5
     first_read = reads.index(True)
     assert all(reads[first_read:]), "읽은 알림 뒤에 안 읽은 알림이 끼지 않는다"
 
 
 def _target(title: str) -> str | None:
     item = next(n for n in DEMO_NOTIFICATIONS if n.title == title)
-    action = _action_for(item.category)
+    action = _action_for(item.category, "ko", item.target)
     return None if action is None else action.target
 
 
 def test_each_alert_opens_the_same_screen_as_the_app_demo():
-    assert _target("새 운동 루틴이 도착했어요") == "exercise"
+    # 회원 앱 데모 목록(`demo_alert_keys.dart` 의 `kDemoAlertActionBySeedId`)과 같다.
+    # 리마인더라도 운동 목표는 운동이다(#2690).
+    assert _target("새 개인운동이 왔어요") == "exercise"
     assert _target("이번 주 리포트가 등록됐어요") == "coach_chat"
+    assert _target("PT 수업 완료") == "exercise"
     assert _target("트레이너 피드백 도착") == "coach_chat"
+    assert _target("이번 주 운동 목표까지 조금 남았어요") == "exercise"
+    assert _target("식단 기록을 꾸준히 이어가고 있어요") == "dashboard"
     # 공지는 갈 곳이 없다 — 앱 데모도 같은 알림에 목적지를 두지 않는다.
     assert _target("서비스 점검 안내") is None
+
+
+def test_alert_specific_target_keeps_the_category_label_when_it_matches():
+    # 갈래별 표와 목적지가 같으면 그 라벨이다. 다르면 목적지 라벨이다(#2690).
+    assert _action_for("routine", "ko", "exercise").label == "운동 보기"
+    assert _action_for("reminder", "ko", "diet").label == "식단 보기"
+    assert _action_for("reminder", "en", "diet").label == "View meals"
+    assert _action_for("system", "ko", None) is None
+
+
+def test_demo_alerts_show_the_same_times_as_the_app_demo():
+    # 회원 앱 데모와 같은 문구 — 하루 지난 알림은 "어제" 다(#2691).
+    assert [demo_time_ago(n.ago, "ko") for n in DEMO_NOTIFICATIONS] == [
+        "30분 전",
+        "45분 전",
+        "1시간 전",
+        "2시간 전",
+        "3시간 전",
+        "어제",
+        "어제",
+    ]
+    assert demo_time_ago(timedelta(minutes=10), "en") == "10 min ago"
+    assert demo_time_ago(timedelta(hours=1), "en") == "1 hour ago"
+    assert demo_time_ago(timedelta(hours=26), "en") == "yesterday"
+    assert demo_time_ago(timedelta(days=3), "ko") == "3일 전"
 
 
 def test_report_and_feedback_use_different_categories():
@@ -67,9 +101,38 @@ def test_categories_are_known_backend_categories():
         notification_service.MEMBER_ROUTINE,
         notification_service.MEMBER_SCHEDULE,
         notification_service.MEMBER_CONSULTATION,
+        notification_service.MEMBER_PT_DONE,
     }
     assert {n.category for n in DEMO_NOTIFICATIONS} <= known
     assert all(len(n.category) <= 20 for n in DEMO_NOTIFICATIONS), "컬럼 길이 20"
+
+
+def test_pt_completion_alert_uses_the_same_category_as_the_server():
+    """실서버가 PT 완료 때 만드는 알림과 같은 갈래다(#3027) — 아이콘·라벨이 같아야 한다."""
+    by_title = {n.title: n for n in DEMO_NOTIFICATIONS}
+    item = by_title["PT 수업 완료"]
+    assert item.category == notification_service.MEMBER_PT_DONE
+    assert item.target == "exercise"
+
+
+def test_pt_done_action_reads_as_a_pt_record():
+    assert _action_for(notification_service.MEMBER_PT_DONE, "ko", None).label == "PT 기록 보기"
+    assert _action_for(notification_service.MEMBER_PT_DONE, "en", None).label == "View PT record"
+    # 데모 알림처럼 목적지가 갈래 표와 같으면 갈래 라벨을 그대로 쓴다.
+    assert (
+        _action_for(notification_service.MEMBER_PT_DONE, "ko", "exercise").label
+        == "PT 기록 보기"
+    )
+
+
+def test_recategorised_demo_alerts_are_backfilled_for_seeded_databases():
+    from app.db.seed_notifications import _LEGACY_CATEGORY_BY_ID
+
+    ids = {n.id for n in DEMO_NOTIFICATIONS}
+    assert set(_LEGACY_CATEGORY_BY_ID) <= ids
+    by_id = {n.id: n.category for n in DEMO_NOTIFICATIONS}
+    for nid, legacy in _LEGACY_CATEGORY_BY_ID.items():
+        assert by_id[nid] != legacy, "옮긴 뒤 갈래가 예전과 같으면 표에 둘 까닭이 없다"
 
 
 # ── 문구가 데모 픽스처(김민수)와 같은 사실을 말하는지 ──────────────────────
@@ -81,20 +144,22 @@ def _body(title: str) -> str:
     return next(n.body for n in DEMO_NOTIFICATIONS if n.title == title)
 
 
-def test_sodium_alert_quotes_todays_fixture_total():
-    today = load_fixture().days_for(date(2026, 9, 15))[-1]
-    assert f"{today.sodium_mg:,}mg" in _body("나트륨 섭취 주의")
+def test_seed_has_no_diet_alerts_the_server_never_sends():
+    # 실서버에는 식단 기록·나트륨 알림을 만드는 코드가 없다(#2854). 데모에서만 보이면
+    # 실서비스로 옮긴 회원에게 기능이 사라진 것으로 보인다.
+    text = " ".join(f"{n.title} {n.body}" for n in DEMO_NOTIFICATIONS)
+    for word in ("나트륨", "저녁 식단"):
+        assert word not in text
+    assert all(n.target != "diet" for n in DEMO_NOTIFICATIONS)
 
 
-def test_dinner_reminder_is_for_a_day_without_dinner():
-    today = load_fixture().days_for(date(2026, 9, 15))[-1]
-    assert "dinner" not in {m.meal_type for m in today.meals}
-    item = next(n for n in DEMO_NOTIFICATIONS if n.title == "저녁 식단을 기록해 주세요")
-    assert not item.read and item.ago < timedelta(hours=1), "오늘 저녁 알림이다"
+def test_removed_diet_alerts_are_cleared_from_seeded_databases():
+    # 이미 시드된 데모 DB 에 남은 두 행을 다음 시드가 걷어 낸다.
+    assert {"noti-demo-1", "noti-demo-2"} <= set(LEGACY_DEMO_NOTIFICATION_IDS)
 
 
 def test_routine_alert_names_a_routine_in_the_fixture():
-    assert "걷기" in _body("새 운동 루틴이 도착했어요")
+    assert "걷기" in _body("새 개인운동이 왔어요")
     assert any("걷기" in r.name for r in load_fixture().routines)
 
 

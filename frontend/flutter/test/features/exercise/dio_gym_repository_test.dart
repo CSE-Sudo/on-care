@@ -123,15 +123,40 @@ void main() {
     expect(g.hasCoordinates, isTrue);
   });
 
-  test('거리 계산을 서버가 하도록 좌표를 함께 보낸다', () async {
+  test('회원 위치가 없으면 목록은 기본 검색 영역을 검색 중심으로 보낸다 (#3044)', () async {
     final adapter = _StubAdapter(<String, Object?>{'/gyms': _gymsJson});
     await DioGymRepository(_dio(adapter)).fetchNearby();
 
     expect(adapter.calls, contains('GET /gyms'));
-    // 경로만 보면 lat/lng 가 빠져도 통과한다 — 값까지 확인한다.
+    // 경로만 보면 lat/lng 가 빠져도 통과한다 — 값까지 확인한다. 목록은 검색
+    // 중심이 필요하다. 그 거리는 화면이 감춘다.
     final Map<String, dynamic> q = adapter.queryOf('/gyms');
-    expect(q['lat'], kGymSearchLat);
-    expect(q['lng'], kGymSearchLng);
+    expect(q['lat'], kGymDefaultAreaLat);
+    expect(q['lng'], kGymDefaultAreaLng);
+  });
+
+  test('회원 위치가 없으면 /me/gym 에 좌표를 싣지 않는다 (#3044)', () async {
+    // 예전에는 늘 신촌 좌표가 실려, 회원과 무관한 거리가 엔티티에 들어왔다.
+    final adapter = _StubAdapter(<String, Object?>{'/me/gym': _gymDetailJson});
+    await DioGymRepository(_dio(adapter)).fetchMyGym();
+
+    final Map<String, dynamic> q = adapter.queryOf('/me/gym');
+    expect(q.containsKey('lat'), isFalse);
+    expect(q.containsKey('lng'), isFalse);
+  });
+
+  test('좌표가 하나만 있으면 /me/gym 에 싣지 않는다', () async {
+    // 서버는 한쪽만 오면 422 다 — 반쪽 좌표는 아예 보내지 않는다.
+    final adapter = _StubAdapter(<String, Object?>{
+      '/me/gym': _gymDetailJson,
+      '/gyms': '[]',
+    });
+    final repo = DioGymRepository(_dio(adapter), lat: 35.1);
+    await repo.fetchMyGym();
+    await repo.fetchNearby();
+
+    expect(adapter.queryOf('/me/gym'), isEmpty);
+    expect(adapter.queryOf('/gyms')['lat'], kGymDefaultAreaLat);
   });
 
   test('GET /trainers 응답이 Trainer 로 매핑된다', () async {
@@ -177,10 +202,8 @@ void main() {
     expect(gym!.rating, 4.7);
     expect(gym.tags, isNotEmpty);
     expect(adapter.calls, <String>['GET /me/gym']);
-    // 거리 표시는 서버가 계산한다.
-    final Map<String, dynamic> q = adapter.queryOf('/me/gym');
-    expect(q['lat'], kGymSearchLat);
-    expect(q['lng'], kGymSearchLng);
+    // 회원 위치가 없으니 좌표를 싣지 않는다(#3044).
+    expect(adapter.queryOf('/me/gym'), isEmpty);
   });
 
   group('내 예약 목록 (#980)', () {
@@ -199,15 +222,16 @@ void main() {
     });
 
     test('이어 받기는 마지막 예약의 (starts_at, id) 를 UTC 로 넘긴다', () async {
-      // 엔티티는 화면용 로컬 시각을 들고 있다. 그대로 보내면 서버가 UTC 로 읽어
-      // 쪽 경계가 시간대만큼 밀린다.
+      // 엔티티는 화면용 KST 벽시계를 들고 있다(#2876). 그대로 보내면 서버가
+      // UTC 로 읽어 쪽 경계가 9시간 밀린다.
       final adapter = _StubAdapter(<String, Object?>{
         '/reservations/me': _reservationsJson,
       });
 
       await DioGymRepository(_dio(adapter)).fetchMyReservations(
         limit: 10,
-        before: DateTime.utc(2026, 3, 2, 1).toLocal(),
+        // KST 2026-03-02 10:00 = 01:00Z
+        before: DateTime(2026, 3, 2, 10),
         beforeId: 'resv-1',
       );
 
@@ -234,4 +258,44 @@ void main() {
       'DELETE /me/coach/trainer',
     ]);
   });
+
+  group('소속 트레이너 조회 (#2857)', () {
+    test('서버에 없는 헬스장(404)은 소속 트레이너가 없는 것과 같다', () async {
+      // 카카오로 찾은 헬스장은 서버 목록에 없다 — 화면이 이를 조회 실패로
+      // 보이면 그런 카드마다 오류가 뜬다.
+      final repo = DioGymRepository(_dio(_StubAdapter(<String, Object?>{})));
+      expect(await repo.fetchTrainersByGym('kakao-123'), isEmpty);
+    });
+
+    test('서버 오류는 그대로 올라가 화면이 다시 시도를 보인다', () async {
+      final repo = DioGymRepository(
+        Dio(BaseOptions(baseUrl: 'http://x/v1'))
+          ..httpClientAdapter = _StatusAdapter(500),
+      );
+      await expectLater(
+        repo.fetchTrainersByGym('gym-oncare-sinchon'),
+        throwsA(isA<DioException>()),
+      );
+    });
+  });
+}
+
+/// 모든 요청에 [status] 로 답하는 어댑터.
+class _StatusAdapter implements HttpClientAdapter {
+  _StatusAdapter(this.status);
+
+  final int status;
+
+  @override
+  Future<ResponseBody> fetch(RequestOptions options, _, _) async =>
+      ResponseBody.fromString(
+        '{"detail":"error"}',
+        status,
+        headers: <String, List<String>>{
+          Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+        },
+      );
+
+  @override
+  void close({bool force = false}) {}
 }

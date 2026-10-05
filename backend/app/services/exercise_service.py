@@ -23,9 +23,10 @@ from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.core.locale import Locale
-from app.models.models import ExerciseSession
+from app.core.week import monday_of
+from app.models.models import ExerciseSession, TrainerSchedule
 from app.services import (
-    exercise_activity, exercise_types, period_window, routine_advice,
+    exercise_activity, exercise_types, goal_defaults, period_window, routine_advice,
 )
 from app.services.exercise_advice import Advice, advice
 from app.services.exercise_catalog import energy, resolver
@@ -93,7 +94,7 @@ def first_session_date(db: Session, user_id: str) -> str | None:
 
 def monday_of_this_week_str() -> str:
     today = clock.today()
-    return (today - timedelta(days=today.weekday())).isoformat()
+    return monday_of(today).isoformat()
 
 
 def monday_of_str(day: str) -> str:
@@ -106,7 +107,7 @@ def monday_of_str(day: str) -> str:
         d = date.fromisoformat(day)
     except (TypeError, ValueError):
         return monday_of_this_week_str()
-    return (d - timedelta(days=d.weekday())).isoformat()
+    return monday_of(d).isoformat()
 
 
 def weekday_label_of(day: str) -> str:
@@ -116,20 +117,6 @@ def weekday_label_of(day: str) -> str:
     except (TypeError, ValueError):
         return WEEKDAY_LABELS[clock.today().weekday()]
     return WEEKDAY_LABELS[d.weekday()]
-
-
-def estimate_calories(type_: str, minutes: int, intensity: str) -> int:
-    """유형·분·강도만으로 추정하는 **폴백**. 운동 이름도 체중도 안 볼 때다.
-
-    이름이 있으면 [estimate] 를 쓴다 — 이 함수는 같은 `유산소 30분` 이면 달리기든
-    자전거든, 회원 체중이 몇이든 같은 값을 낸다(#1312). 그래도 남겨 둔 이유는
-    이름이 종목표에 붙지 않는 기록이 늘 있기 때문이고, 그때 화면마다 값이
-    갈리지 않으려면 폴백도 한 곳이어야 하기 때문이다(#1131).
-
-    운동 유형은 정규화해서 본다 — 옛 값(`walking`·`yoga`)으로 저장된 기록도
-    같은 표를 타야 회원 화면에서 칼로리가 갈리지 않는다.
-    """
-    return energy.fallback(type_, minutes, intensity).calories
 
 
 def member_weight_kg(db: Session, user_id: str) -> float | None:
@@ -209,12 +196,84 @@ def _date_label_for_day(day_label: str) -> str:
     return f"{day_label}요일"
 
 
-def _default_time_label(t: str) -> str:
-    return {
-        exercise_types.CARDIO: "07:30",
-        exercise_types.STRENGTH: "18:00",
-        exercise_types.STRETCHING: "20:00",
-    }.get(exercise_types.normalize(t), "15:00")
+#: PT 완료가 파생시킨 운동 기록 id 의 앞머리 — 뒤는 그 수업(`trainer_schedule`)
+#: 의 id 다. 트레이너 서비스가 이 앞머리로 기록을 만든다(`_derived_exercise_id`).
+PT_EXERCISE_ID_PREFIX = "sched-ex-"
+
+
+def pt_session_times(db: Session, rows: Sequence) -> dict[str, str]:
+    """PT 기록 id → 그 수업의 시각(`HH:MM`). (#2692, #2694)
+
+    시각 태그는 "○○ 수업 완료" 로 읽힌다. PT 는 트레이너가 완료해 보낸 수업이라
+    그 일정의 시각이 곧 답이다 — 운동 유형으로 지어내면 19:00 수업이 18:00 으로
+    적힌다.
+
+    완료 처리로 생긴 기록은 id 가 그 수업을 가리킨다(`sched-ex-{수업 id}`). 픽스처
+    회원의 시드 기록처럼 수업과 id 로 이어지지 않은 PT 는 **같은 날 그 회원의 완료
+    수업** 시각을 쓴다. 둘 다 없으면 담지 않는다 — 태그를 비워 둔다.
+    """
+    pt_rows = [
+        r for r in rows
+        if (getattr(r, "source", "member") or "member") == "trainer_pt"
+    ]
+    if not pt_rows:
+        return {}
+    by_schedule = {
+        r.id[len(PT_EXERCISE_ID_PREFIX):]: r.id
+        for r in pt_rows
+        if r.id.startswith(PT_EXERCISE_ID_PREFIX)
+    }
+    times: dict[str, str] = {}
+    if by_schedule:
+        for sid, at in db.execute(
+            select(TrainerSchedule.id, TrainerSchedule.time).where(
+                TrainerSchedule.id.in_(list(by_schedule))
+            )
+        ).all():
+            if at:
+                times[by_schedule[sid]] = at
+
+    rest: dict[tuple[str, str], list[str]] = {}
+    for r in pt_rows:
+        if r.id in times:
+            continue
+        day = session_date_of(r)
+        if day is None:
+            continue
+        rest.setdefault((r.user_id, day.isoformat()), []).append(r.id)
+    if rest:
+        found = db.execute(
+            select(
+                TrainerSchedule.member_id, TrainerSchedule.date, TrainerSchedule.time
+            ).where(
+                TrainerSchedule.member_id.in_({m for m, _d in rest}),
+                TrainerSchedule.date.in_({d for _m, d in rest}),
+                TrainerSchedule.status == "완료",
+            )
+        ).all()
+        # 하루에 두 번 받았으면 앞선 수업이다 — 그날의 첫 PT 카드가 서는 자리다.
+        earliest: dict[tuple[str, str], str] = {}
+        for member_id, day, at in found:
+            key = (member_id, day)
+            if at and (key not in earliest or at < earliest[key]):
+                earliest[key] = at
+        for key, ids in rest.items():
+            if key in earliest:
+                for row_id in ids:
+                    times[row_id] = earliest[key]
+    return times
+
+
+def _time_label_of(r, pt_times: dict[str, str] | None) -> str | None:
+    """세션의 시각 태그 — PT 수업 시각만 있다. (#2692)
+
+    배정 개인운동과 회원 기록은 언제 했는지를 남기지 않으므로 비운다. 예전에는
+    유형별 기본 시각(유산소 07:30 …)을 지어내, 지난 날짜의 `완료한 개인운동`
+    카드에 하지 않은 수업의 `07:30 수업 완료` 가 섰다. 데모(#2662)와 같은 규칙이다.
+    """
+    if (getattr(r, "source", "member") or "member") != "trainer_pt":
+        return None
+    return (pt_times or {}).get(r.id)
 
 
 def _default_items(t: str) -> list[str]:
@@ -232,17 +291,32 @@ def _bucket(t: str) -> str:
 
 #: 프로필에 목표가 없을 때 쓰는 기본값. 회원 앱의 `UserProfile` 기본값과 같다 —
 #: 두 앱이 다른 기본값을 쓰면 같은 회원의 그래프에 다른 목표선이 그려진다.
-DEFAULT_WEEKLY_MINUTES_GOAL = 150
-DEFAULT_WEEKLY_BURN_GOAL = 500
+DEFAULT_WEEKLY_MINUTES_GOAL = goal_defaults.WEEKLY_CARDIO_MINUTES
+#: 하루 소모 칼로리 목표의 기본값. 회원 앱 `ExerciseLoadGoals.dailyBurnKcal`·트레이너
+#: 웹 `kDailyBurnKcal` 과 같다. 원본은 `goal_defaults`(#2906).
+DEFAULT_DAILY_BURN_KCAL = goal_defaults.DAILY_BURN_KCAL
+#: 주간 소모 칼로리 목표의 기본값 — 하루 기본값 × 7.
+DEFAULT_WEEKLY_BURN_GOAL = DEFAULT_DAILY_BURN_KCAL * 7
 
 
 def weekly_goals(profile) -> tuple[int, int]:
-    """(주간 운동 시간 목표, 주간 소모 칼로리 목표). 프로필이 없으면 기본값."""
+    """(주간 운동 시간 목표, 주간 소모 칼로리 목표). 프로필이 없으면 기본값.
+
+    소모 칼로리는 저장된 주간 목표 → 회원의 하루 소모 목표 × 7 → 기본값 순서다
+    (#2726). 회원 앱 운동 탭과 트레이너 운동 현황 도넛은 **하루 목표 × 7** 을
+    주간 목표로 쓴다. 예전에는 주간 목표가 비면 공통 500kcal 이라, 하루 400kcal 을
+    정한 회원의 주간 목표선이 앱 2,800kcal · 서버 500kcal 로 갈렸다.
+    """
     minutes = getattr(profile, "weekly_exercise_minutes_goal", None)
     calories = getattr(profile, "weekly_burn_goal", None)
+    daily = getattr(profile, "daily_burn_kcal", None)
+    if not (calories and calories > 0):
+        calories = (
+            daily * 7 if daily and daily > 0 else DEFAULT_WEEKLY_BURN_GOAL
+        )
     return (
         minutes if minutes and minutes > 0 else DEFAULT_WEEKLY_MINUTES_GOAL,
-        calories if calories and calories > 0 else DEFAULT_WEEKLY_BURN_GOAL,
+        calories,
     )
 
 
@@ -259,6 +333,20 @@ def _longest_streak(daily: list[int]) -> int:
         run = run + 1 if m > 0 else 0
         best = max(best, run)
     return best
+
+
+#: 기간 집계(`GET /exercise/weeks`)가 한 번에 만드는 주의 최대 수(약 3년, #2833).
+#: 식단 쪽 `diet_service.MAX_PERIOD_DAYS` 와 같은 이유로 둔다 — 아주 이른 `from` 이나
+#: 날짜가 잘못 들어간 기록 하나가 수만 주를 만들지 않게 한다.
+MAX_PERIOD_WEEKS = 160
+
+
+def period_floor_monday(last_monday: date) -> date:
+    """[last_monday] 주로 끝나는 기간 집계가 거슬러 올라갈 수 있는 가장 이른 월요일."""
+    span = timedelta(weeks=MAX_PERIOD_WEEKS - 1)
+    if last_monday - date.min < span:
+        return date.min  # 0001-01-01 은 월요일이다
+    return last_monday - span
 
 
 def build_period(
@@ -280,6 +368,10 @@ def build_period(
 
     [start] 를 주지 않으면 **첫 기록이 있는 주**부터다. 기록이 하나도 없으면
     이번 주 한 칸이다. 월요일이 아닌 날짜는 그 주의 월요일로 맞춘다.
+
+    구간은 끝 주에서 거슬러 [MAX_PERIOD_WEEKS] 주까지다. 그보다 이른 시작(주어진
+    값이든 첫 기록 주든)은 그 하한으로 끌어올리고, 응답 `from_week` 가 실제 시작
+    주를 알린다(#2833).
     """
     today = clock.today()
     last_monday = _monday_of(min(end or today, today))
@@ -292,6 +384,7 @@ def build_period(
         )
     if first_monday > last_monday:
         first_monday = last_monday
+    first_monday = max(first_monday, period_floor_monday(last_monday))
 
     rows = db.scalars(
         select(ExerciseSession).where(
@@ -338,11 +431,17 @@ def build_period(
 
 
 def _monday_of(day: date) -> date:
-    return day - timedelta(days=day.weekday())
+    return monday_of(day)
 
 
-def build_current_week(rows: list) -> dict:
-    """ExerciseSession row 리스트 → 프론트 계약 형태의 dict."""
+def build_current_week(
+    rows: list, pt_times: dict[str, str] | None = None
+) -> dict:
+    """ExerciseSession row 리스트 → 프론트 계약 형태의 dict.
+
+    [pt_times] 는 PT 기록 id → 수업 시각이다([pt_session_times]). 없으면 PT
+    기록도 시각 없이 나간다 — 지어내지 않는다. (#2692)
+    """
     per_day = {l: 0 for l in WEEKDAY_LABELS}
     per_day_cal = {l: 0 for l in WEEKDAY_LABELS}
     per_cardio = {l: 0 for l in WEEKDAY_LABELS}
@@ -392,7 +491,7 @@ def build_current_week(rows: list) -> dict:
             "trainer_feedback": "",
             "completed_at": getattr(r, "completed_at", None),
             "date_label": _date_label_for_day(r.day_label),
-            "time_label": _default_time_label(r.type),
+            "time_label": _time_label_of(r, pt_times),
             # 회원이 적은 이름이 있으면 그게 이 기록의 내용이다. 없을 때만
             # 유형별 기본 문구로 채운다 — 이름 칸이 생기기 전 기록들이다. (#1276)
             "items": (

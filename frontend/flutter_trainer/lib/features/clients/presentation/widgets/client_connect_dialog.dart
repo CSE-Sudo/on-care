@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/utils/server_message.dart';
+import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_invite_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_invite.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/pairing_code_input.dart';
@@ -124,10 +123,8 @@ class _ClientConnectDialogState extends ConsumerState<ClientConnectDialog> {
     try {
       await repository.redeemPairingCode(_code.text.trim());
       ref.invalidate(pendingClientInvitesProvider);
-      // 데모(즉시 연결)와 실 API 모두 고객 탭과 고객 관리가 같은 목록을 보므로
-      // 두 provider 를 함께 새로고침한다.
+      // 데모(즉시 연결)와 실 API 모두 고객 탭이 이 목록을 본다.
       ref.invalidate(clientsProvider);
-      ref.invalidate(managedClientsProvider);
       // 미등록 동안 걸러졌던 오늘 일정·안읽음 배지도 다시 보인다(#1623).
       invalidateClientVisibilityDependentViews(ref);
       if (!mounted) return;
@@ -155,11 +152,9 @@ class _ClientConnectDialogState extends ConsumerState<ClientConnectDialog> {
   /// 한국어가 새지 않게 한다).
   String _messageFor(AppLocalizations l, Object error) => switch (error) {
     NotFoundError() => l.clientConnectCodeInvalid,
-    AppError(:final String? message) => serverDetailOr(
-      l,
-      message,
-      l.clientInviteFailed,
-    ),
+    // 타입으로 받은 사유는 로케일 문구로 — 한국어 문장이 새지 않는다(#2893).
+    AlreadyManagedError() => l.clientConnectAlreadyManaged,
+    AppError() => appErrorMessage(l, error, fallback: l.clientInviteFailed),
     _ => l.clientInviteFailed,
   };
 
@@ -180,7 +175,7 @@ class _ClientConnectDialogState extends ConsumerState<ClientConnectDialog> {
       if (!mounted) return;
       showAppToast(
         context,
-        serverDetailOr(l, error.message, l.clientInviteCancelFailed),
+        appErrorMessage(l, error, fallback: l.clientInviteCancelFailed),
         type: AppToastType.error,
       );
     } finally {
@@ -364,14 +359,21 @@ class _PairedMemberCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: OnCareSpacing.s4),
-                    Flexible(
-                      child: Text(
-                        demographics,
-                        overflow: TextOverflow.ellipsis,
-                        style: clientDemographicsStyle(context),
+                    // 성별·나이를 모두 모르면 목록(ClientIdentityBlock)처럼
+                    // 칸을 그리지 않는다(#2814, #2870).
+                    if (demographics.isNotEmpty) ...<Widget>[
+                      const SizedBox(width: OnCareSpacing.s4),
+                      Flexible(
+                        child: Text(
+                          demographics,
+                          key: const ValueKey<String>(
+                            'client-connect-demographics',
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          style: clientDemographicsStyle(context),
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
                 if (paired.goal.isNotEmpty) ...<Widget>[

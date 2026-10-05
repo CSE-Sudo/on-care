@@ -1,57 +1,59 @@
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_signal.dart';
+import 'package:oncare_ui/oncare_ui.dart'
+    show
+        kGoalDefaultDailyCalories,
+        kGoalDefaultDailySodiumMg,
+        kGoalDefaultDailySugarG;
+
+// 아래 세 기본 목표는 회원 앱과 함께 쓰는 공용 패키지 `oncare_ui` 의
+// `kGoalDefault…` 한 곳에 있다(#2906). 서버와는 원본 표
+// `shared/oncare_rules/vectors/goal_defaults.json` 으로 대조한다.
 
 /// Daily sodium target (mg). Over this, the list card metric, the diet
 /// summary tile, and the AI comment all flip to the warning case.
-const int sodiumTargetMg = 2000;
+const int sodiumTargetMg = kGoalDefaultDailySodiumMg;
 
 /// Daily calorie target (kcal). The weekly trend chart colours a day red
 /// above this, the same way the member app's home tab does.
-const int calorieTargetKcal = 2000;
+const int calorieTargetKcal = kGoalDefaultDailyCalories;
 
 /// Daily sugar target (g). Over this, the diet summary 당류 tile warns.
-const int sugarTargetG = 50;
+const int sugarTargetG = kGoalDefaultDailySugarG;
 
-/// 이름과 어울리지 않게 떨어지던 로스터 회원의 성별.
-///
-/// 데모 로스터도 실 API 시드도 성별을 저장하지 않아, 표시용 값은 회원 id 의
-/// 코드 포인트 합으로 만들어진다([TrainerClient.rosterGender]). 그 값이 이름과
-/// 어긋난 회원만 여기 적어 둔다 — 나머지는 지금 보이는 대로 둔다(#960).
-const Map<String, String> _rosterGenderByName = <String, String>{
-  '한지호': 'male',
-  '신유나': 'female',
-  '문가영': 'female',
-  // 오세라는 지금 보이는 여성 그대로다. 이름을 적어 두는 이유는 id 로 만든
-  // 값이 데모에서는 여성, 실 API(`user-sera`)에서는 남성으로 갈리기 때문이다.
-  '오세라': 'female',
-};
-
-/// 로스터가 보여 주는 성별 — 저장된 값이 있으면 그것, 없으면 고정된 폴백.
+/// 로스터가 보여 주는 성별 — 저장된 값(`male`/`female`/`other`)이 있으면
+/// 그것, 없으면 빈 문자열(미입력·서버가 가림).
 ///
 /// [TrainerClient.rosterGender] 의 알맹이를 밖으로 꺼낸 것이다. 신규 고객
 /// 등록의 확인 카드도 같은 값을 보여야 하기 때문이다 (#1634) — 목록은
 /// `남성 · 23세` 라고 하는데 확인 카드가 아무 말도 없으면, 트레이너가 지금
 /// 잇는 사람이 목록의 그 사람인지 견줄 수가 없다.
-String rosterGenderFor({
-  required String id,
-  required String name,
-  String gender = '',
-}) {
+///
+/// 예전에는 id 로 만든 값이 이름과 어긋나는 데모 회원 넷을 이름으로 고쳐 두는
+/// 표가 있었다(#960). 이제 트레이너 웹 데모(#2667)와 실서버 시드가 모두 회원
+/// 성별을 저장하므로 폴백은 회원이 성별을 적지 않았을 때만 선다 — 이름으로
+/// 고칠 회원이 남지 않아 표를 지웠다(#2734).
+///
+/// 회원 앱에서 성별은 선택 입력이다. 예전에는 값이 없으면 회원 id 문자 코드
+/// 합의 짝홀로 `남성`/`여성` 을 지어냈는데, 트레이너는 그 값이 회원이 적은
+/// 것인지 화면이 만든 것인지 가를 수 없어 실제와 다른 성별을 믿게 됐다. 서버가
+/// 담당 해제·동의 철회 회원의 성별을 비워 보낼 때(#2814)도 가린 자리에 엉뚱한
+/// 성별이 다시 보였다. 나이(#2744)와 같이 "모르면 적지 않는다" 로 바꿨다(#2870).
+String rosterGenderFor({String gender = ''}) {
   if (gender == 'male' || gender == 'female' || gender == 'other') {
     return gender;
   }
-  final fixed = _rosterGenderByName[name];
-  if (fixed != null) return fixed;
-  return _demographicSeedOf(id).isEven ? 'female' : 'male';
+  return '';
 }
 
-/// 로스터가 보여 주는 나이 — 저장된 값이 있으면 그것, 없으면 고정된 폴백.
-int rosterAgeFor({required String id, int? age}) =>
-    age ?? 20 + (_demographicSeedOf(id) % 20);
-
-int _demographicSeedOf(String id) =>
-    id.runes.fold<int>(0, (sum, rune) => sum + rune);
+/// 로스터가 보여 주는 나이 — 생년월일로 센 값이 있을 때만, 없으면 `null`.
+///
+/// 예전에는 값이 없으면 회원 id 해시로 20~39 사이 나이를 지어냈다. 그러면
+/// 6자리 코드로 연결할 때 확인 카드가 보여 준 진짜 나이와 연결 뒤 목록의
+/// 나이가 달라, 트레이너는 어느 쪽이 맞는지 알 수 없었다(#2744). 지금은 서버
+/// 로스터가 생년월일로 센 나이를 싣고, 없으면 화면이 나이를 적지 않는다.
+int? rosterAgeFor({int? age}) => age;
 
 /// A trainer's client, as shown on the 고객 관리 list and detail screens.
 /// Decoded from the drift `TrainerClients` row (the `weekCompletionJson`
@@ -153,7 +155,10 @@ class TrainerClient {
   final DateTime? lastRoutineDate;
 
   /// This week's daily completion rates (7 entries, 월→일).
-  final List<int> weekCompletion;
+  ///
+  /// 그날 걸린 개인운동·잡힌 PT 중 한 비율이다(#2513). 아무것도 걸리지 않은
+  /// 날과 아직 오지 않은 날은 null 이고, 0 은 "걸렸는데 하나도 안 했다" 다.
+  final List<int?> weekCompletion;
 
   /// This week's daily sodium (mg), 월→일 — the same fixed window as
   /// [weekCompletion], with days that haven't come yet at 0 (today's
@@ -166,23 +171,14 @@ class TrainerClient {
   final List<int> caloriesWeek;
   final List<double> sugarWeek;
 
-  /// Stable display gender for roster rows that predate demographic fields.
-  ///
-  /// The demo roster is presentation fixture data. Keeping the fallback on
-  /// the stable client id means same-name members still receive distinct,
-  /// repeatable identity details without changing the persisted Drift schema.
-  ///
-  /// id 로 만든 값이라 이름과는 무관하게 정해지고, 그래서 몇몇 회원은 이름과
-  /// 어울리지 않는 성별로 떴다(#960). 그런 이름만 [_rosterGenderByName] 에
-  /// 적어 둔다 — 로스터가 데모 fixture 라 이름이 곧 그 회원이고, id 는 데모
-  /// (`seed-client-8`)와 실 API(`user-sera`)가 서로 달라 한쪽만 고치면 두 모드가
-  /// 갈린다.
-  String get rosterGender =>
-      rosterGenderFor(id: id, name: name, gender: gender);
+  /// 로스터가 보여 주는 성별. 회원이 성별을 적지 않았거나 서버가 가린 회원
+  /// (담당 해제·동의 철회, #2814)이면 빈 문자열이고, 화면은 그때 성별을 적지
+  /// 않는다(#2870, [rosterGenderFor]).
+  String get rosterGender => rosterGenderFor(gender: gender);
 
-  /// Roster age, constrained to the requested twenties/thirties fixture range
-  /// when the source does not provide one.
-  int get rosterAge => rosterAgeFor(id: id, age: age);
+  /// 로스터가 보여 주는 나이. 생년월일이 없는 회원은 `null` 이고, 화면은
+  /// 그때 나이를 적지 않는다(#2744).
+  int? get rosterAge => rosterAgeFor(age: age);
 
   /// Sodium exceeds the [sodiumTargetMg] daily target — surfaced as a
   /// warning on the list card and counted by the AI summary.

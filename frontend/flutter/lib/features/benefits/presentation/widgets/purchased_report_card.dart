@@ -4,25 +4,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/app/app_icons.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/ai_coach/presentation/widgets/insight_history_sheet.dart';
 import 'package:oncare/features/benefits/presentation/benefit_labels.dart';
 import 'package:oncare/features/benefits/presentation/widgets/benefit_cards.dart';
-import 'package:oncare/features/member_coach/domain/entities/member_weekly_report.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_report_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/features/member_coach/services/member_report_pdf_generator.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_report/oncare_report.dart' show ReportSheetInputs;
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 포인트로 받은 주간 리포트 한 주 — 내 혜택의 카드. (#2022)
 ///
 /// 보는 자리를 새로 만들지 않는다. 트레이너가 채팅으로 등록한 리포트와 **같은
-/// 문서**(회원 기록으로 세운 리포트)를 같은 PDF 미리보기로 연다. 다른 점은 하나다 —
-/// 트레이너가 쓴 것이 아니라 트레이너 메시지가 없고, 그 자리에 그 주의 감지 기록을
-/// 싣는다(`MemberReportSource.points`).
+/// 결과지**(트레이너 웹과 같은 한 장, #2652)를 같은 PDF 미리보기로 연다. 다른 점은
+/// 하나다 — 트레이너가 쓴 것이 아니라 트레이너 피드백 칸에 그 주의 감지 기록을
+/// 싣는다(`pointsReportFeedback`).
 class PurchasedReportCard extends ConsumerStatefulWidget {
   const PurchasedReportCard({super.key, required this.weekStart});
 
@@ -45,7 +45,7 @@ class _PurchasedReportCardState extends ConsumerState<PurchasedReportCard> {
     // 내 혜택의 다른 카드(쿠폰·보호권)와 같은 줄 모양이다. 채팅의 리포트 안내는
     // 대화 가운데 서는 배너라 목록에 두면 폭이 들쭉날쭉하다.
     return AppCard(
-      key: ValueKey<String>('purchased-report-${_ymd(widget.weekStart)}'),
+      key: ValueKey<String>('purchased-report-${wireDate(widget.weekStart)}'),
       child: Row(
         children: <Widget>[
           const BenefitIconTile(icon: AppIcons.document),
@@ -88,23 +88,24 @@ class _PurchasedReportCardState extends ConsumerState<PurchasedReportCard> {
     final AppLocalizations l = AppLocalizations.of(context);
     final AppToastHost toast = AppToastHost.of(context);
     try {
-      final MemberWeeklyReport report = await ref.read(
-        memberWeeklyReportProvider(widget.weekStart).future,
+      final ReportSheetInputs inputs = await loadMemberReportSheet(
+        ref.read,
+        weekStart: widget.weekStart,
+        languageCode: l.localeName,
       );
       final List<String>? insights = await _insightLines(l);
       final Uint8List bytes = await ref
           .read(memberReportPdfGeneratorProvider)
           .generate(
             l: l,
-            report: report,
-            source: MemberReportSource.points,
-            insightLines: insights,
+            inputs: inputs,
+            feedback: pointsReportFeedback(l, insights),
           );
       if (!mounted) return;
       await openPdfPreviewPage(
         context,
         bytes,
-        l.coachReportPdfFileName(_ymd(widget.weekStart)),
+        l.coachReportPdfFileName(wireDate(widget.weekStart)),
       );
     } catch (_) {
       toast.show(l.coachChatPdfOpenFailed, type: AppToastType.error);
@@ -137,8 +138,11 @@ const int _insightKindsShown = 3;
 /// 건만으로 문서가 두 장이 된다 — 리포트는 한 장에 담는다(#1619). 언제 무슨 말을
 /// 했는지는 AI 코치의 감지 기록 창에서 본다.
 ///
-/// 감지 시각은 KST 로 옮겨 날짜를 판정한다 — 기기 시간대로 자르면 월요일 새벽에
-/// 쓴 말이 지난주로 넘어간다. 그 주에 감지가 없으면 빈 목록이다.
+/// 감지 시각은 KST 벽시계로 날짜를 판정한다 — 기기 시간대로 자르면 월요일 새벽에
+/// 쓴 말이 지난주로 넘어간다. 기록은 [ChatInsightRecord.fromJson] 에서 이미 KST
+/// 벽시계(UTC 아님)가 되어 오므로 `toUtc()` 로 다시 옮기지 않는다 — 그러면 필드를
+/// 기기 시간대로 읽어 KST 밖 기기에서 한 주가 밀린다(#3098). [toKst] 는 UTC 값만
+/// 바꾸므로 두 번 거쳐도 안전하다. 그 주에 감지가 없으면 빈 목록이다.
 List<String> weeklyInsightLines(
   AppLocalizations l,
   List<ChatInsightRecord> records,
@@ -159,7 +163,7 @@ List<String> weeklyInsightLines(
   final List<(DateTime, ChatInsightRecord)> inWeek =
       <(DateTime, ChatInsightRecord)>[
         for (final ChatInsightRecord r in records)
-          if (_kst(r.createdAt) case final DateTime at
+          if (toKst(r.createdAt) case final DateTime at
               when !at.isBefore(monday) && at.isBefore(nextMonday))
             (at, r),
       ]..sort(
@@ -190,20 +194,3 @@ List<String> weeklyInsightLines(
     ].join(' · '),
   ];
 }
-
-DateTime _kst(DateTime at) {
-  final DateTime seoul = at.toUtc().add(kstOffset);
-  return DateTime(
-    seoul.year,
-    seoul.month,
-    seoul.day,
-    seoul.hour,
-    seoul.minute,
-    seoul.second,
-  );
-}
-
-String _ymd(DateTime value) =>
-    '${value.year.toString().padLeft(4, '0')}-'
-    '${value.month.toString().padLeft(2, '0')}-'
-    '${value.day.toString().padLeft(2, '0')}';

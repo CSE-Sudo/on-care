@@ -326,12 +326,6 @@ abstract class AppLocalizations {
   /// **'Change'**
   String get actionChange;
 
-  /// No description provided for @actionBack.
-  ///
-  /// In en, this message translates to:
-  /// **'Back'**
-  String get actionBack;
-
   /// No description provided for @actionAdd.
   ///
   /// In en, this message translates to:
@@ -373,6 +367,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Go to sign in'**
   String get notFoundGoSignIn;
+
+  /// Heading of the startup screen shown instead of the app when a release build was made with development or demo settings.
+  ///
+  /// In en, this message translates to:
+  /// **'This build is misconfigured'**
+  String get misconfiguredBuildTitle;
+
+  /// No description provided for @misconfiguredBuildMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This build was made with settings that can\'t be used for real users, so the app didn\'t open. Please share the details below with whoever released it.'**
+  String get misconfiguredBuildMessage;
+
+  /// No description provided for @misconfiguredBuildDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Build settings to fix'**
+  String get misconfiguredBuildDetailsTitle;
+
+  /// No description provided for @misconfiguredBuildDevEnvironment.
+  ///
+  /// In en, this message translates to:
+  /// **'ENV is not prod or staging'**
+  String get misconfiguredBuildDevEnvironment;
+
+  /// No description provided for @misconfiguredBuildMockWithoutDemo.
+  ///
+  /// In en, this message translates to:
+  /// **'It uses demo data without the demo build flag (USE_MOCK_API, DEMO_BUILD)'**
+  String get misconfiguredBuildMockWithoutDemo;
+
+  /// No description provided for @misconfiguredBuildPlaceholderApiUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'The API address is an example or local address (API_BASE_URL)'**
+  String get misconfiguredBuildPlaceholderApiUrl;
+
+  /// No description provided for @misconfiguredBuildInsecureApiUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'The API address does not start with https:// (API_BASE_URL)'**
+  String get misconfiguredBuildInsecureApiUrl;
 
   /// Second word of the sidebar wordmark, rendered in the navy primary next to 'On-Care'.
   ///
@@ -476,17 +512,89 @@ abstract class AppLocalizations {
   /// **'Confirm password'**
   String get authPasswordConfirm;
 
-  /// No description provided for @authLegalNotice.
-  ///
-  /// In en, this message translates to:
-  /// **'By signing up you agree to'**
-  String get authLegalNotice;
-
   /// No description provided for @authSignUpAndStart.
   ///
   /// In en, this message translates to:
   /// **'Sign up and start'**
   String get authSignUpAndStart;
+
+  /// No description provided for @consentAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree to all'**
+  String get consentAll;
+
+  /// No description provided for @consentRequiredTag.
+  ///
+  /// In en, this message translates to:
+  /// **'[Required]'**
+  String get consentRequiredTag;
+
+  /// No description provided for @consentOptionalTag.
+  ///
+  /// In en, this message translates to:
+  /// **'[Optional]'**
+  String get consentOptionalTag;
+
+  /// No description provided for @consentView.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get consentView;
+
+  /// No description provided for @consentTerms.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get consentTerms;
+
+  /// No description provided for @consentPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection and use of personal information'**
+  String get consentPrivacy;
+
+  /// No description provided for @consentAge14.
+  ///
+  /// In en, this message translates to:
+  /// **'I am 14 years of age or older'**
+  String get consentAge14;
+
+  /// No description provided for @consentAge14Detail.
+  ///
+  /// In en, this message translates to:
+  /// **'You must be 14 or older to sign up.'**
+  String get consentAge14Detail;
+
+  /// No description provided for @consentRequiredHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree to all required items to continue.'**
+  String get consentRequiredHint;
+
+  /// No description provided for @consentPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Agreements'**
+  String get consentPageTitle;
+
+  /// No description provided for @consentPageSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Please review and agree to the items below to keep using On-Care.'**
+  String get consentPageSubtitle;
+
+  /// No description provided for @consentPageAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Agree and continue'**
+  String get consentPageAction;
+
+  /// No description provided for @consentPageFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save your agreement. Please try again in a moment.'**
+  String get consentPageFailed;
 
   /// No description provided for @authHasAccount.
   ///
@@ -505,6 +613,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Social sign-in failed. Please try again in a moment.'**
   String get authSocialSignInFailed;
+
+  /// No description provided for @authSocialComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Social sign-in is coming soon. Please sign in with your email.'**
+  String get authSocialComingSoon;
 
   /// No description provided for @authErrSignInFailed.
   ///
@@ -541,6 +655,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a valid email address'**
   String get authErrEmailInvalid;
+
+  /// Red text under the email field when the address is longer than the server limit (#2908). The limit matches the users.email column and EMAIL_MAX_LENGTH in contact_format.py.
+  ///
+  /// In en, this message translates to:
+  /// **'Email addresses can be up to 255 characters'**
+  String get authErrEmailTooLong;
 
   /// No description provided for @authErrPasswordEmpty.
   ///
@@ -620,12 +740,6 @@ abstract class AppLocalizations {
   /// **'Messages'**
   String get dashActivityTabChat;
 
-  /// No description provided for @dashActivityTabDiet.
-  ///
-  /// In en, this message translates to:
-  /// **'Diet'**
-  String get dashActivityTabDiet;
-
   /// No description provided for @dashActivityTabClient.
   ///
   /// In en, this message translates to:
@@ -638,12 +752,6 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the dashboard'**
   String get dashLoadFailed;
 
-  /// No description provided for @dashTodayReservations.
-  ///
-  /// In en, this message translates to:
-  /// **'Today\'s bookings'**
-  String get dashTodayReservations;
-
   /// Unit after a booking count. Korean uses the counter 건; English omits it because the tile label already says what is being counted. Intentionally empty.
   ///
   /// In en, this message translates to:
@@ -655,12 +763,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **''**
   String get dashUnitPeople;
-
-  /// No description provided for @dashSeeInSchedule.
-  ///
-  /// In en, this message translates to:
-  /// **'View in schedule'**
-  String get dashSeeInSchedule;
 
   /// No description provided for @dashMyClients.
   ///
@@ -752,16 +854,40 @@ abstract class AppLocalizations {
   /// **'No members are at churn risk right now.'**
   String get dashChurnRiskEmpty;
 
+  /// No description provided for @dashChurnRiskLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking recent workouts'**
+  String get dashChurnRiskLoading;
+
+  /// No description provided for @dashChurnRiskUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable · Tap to retry'**
+  String get dashChurnRiskUnavailable;
+
+  /// No description provided for @dashActivityFeedbackLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking recent workouts.'**
+  String get dashActivityFeedbackLoading;
+
+  /// No description provided for @dashActivityFeedbackUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load recent workouts, so activity feedback is unavailable. Tap the churn risk card to retry.'**
+  String get dashActivityFeedbackUnavailable;
+
   /// No description provided for @dashActivityDifficultyTitle.
   ///
   /// In en, this message translates to:
-  /// **'Behind exercise goal / routine skipped'**
+  /// **'Behind exercise goal / missed personal exercises'**
   String get dashActivityDifficultyTitle;
 
   /// No description provided for @dashActivityDifficultyDesc.
   ///
   /// In en, this message translates to:
-  /// **'{names} are behind this week\'s exercise goal or skipped an assigned routine. Lower the difficulty before the next session and check recent feedback.'**
+  /// **'{names} are behind this week\'s exercise goal or skipped their personal exercises. Lower the difficulty before the next PT and check recent feedback.'**
   String dashActivityDifficultyDesc(String names);
 
   /// No description provided for @dashActivityInactiveTitle.
@@ -806,24 +932,6 @@ abstract class AppLocalizations {
   /// **'No members yet. Once you add one, I\'ll gather their diet and workout data and point out what to coach.'**
   String get dashAiNoClients;
 
-  /// No description provided for @dashAttentionTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Members to check'**
-  String get dashAttentionTitle;
-
-  /// No description provided for @dashMoreCount.
-  ///
-  /// In en, this message translates to:
-  /// **'+{count}'**
-  String dashMoreCount(int count);
-
-  /// No description provided for @dashNoAttention.
-  ///
-  /// In en, this message translates to:
-  /// **'No one needs attention right now'**
-  String get dashNoAttention;
-
   /// No description provided for @dashTodaySchedule.
   ///
   /// In en, this message translates to:
@@ -865,6 +973,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'in {minutes} min'**
   String dashScheduleMinutesLeft(int minutes);
+
+  /// Dashboard banner when today's session has started but not yet ended (#2865).
+  ///
+  /// In en, this message translates to:
+  /// **'In progress: {time} · {name}'**
+  String dashScheduleInProgress(String time, String name);
+
+  /// Minutes until the in-progress session ends (#2865).
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min left'**
+  String dashScheduleMinutesToEnd(int minutes);
 
   /// No description provided for @dashPreparePt.
   ///
@@ -1028,12 +1148,6 @@ abstract class AppLocalizations {
   /// **'Filters'**
   String get clientsFilterLabel;
 
-  /// No description provided for @clientsToolbarCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{shown} members · {active} active'**
-  String clientsToolbarCount(int shown, int active);
-
   /// No description provided for @clientsPickHint.
   ///
   /// In en, this message translates to:
@@ -1045,6 +1159,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No members yet'**
   String get clientsEmpty;
+
+  /// No description provided for @clientsEmptyConnectHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect members with the code they show you or by sending a coaching request. Consultation requests from members also appear in your inbox.'**
+  String get clientsEmptyConnectHint;
 
   /// No description provided for @clientsEmptyForFilter.
   ///
@@ -1115,7 +1235,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientsSignalRoutineMissed.
   ///
   /// In en, this message translates to:
-  /// **'Routine skipped'**
+  /// **'Missed exercise'**
   String get clientsSignalRoutineMissed;
 
   /// No description provided for @clientsSignalExerciseGoalLow.
@@ -1175,7 +1295,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientsSignalRoutineMissedDays.
   ///
   /// In en, this message translates to:
-  /// **'Routine skipped {days}d'**
+  /// **'Missed exercise {days}d'**
   String clientsSignalRoutineMissedDays(int days);
 
   /// No description provided for @clientsSignalUnanswered.
@@ -1328,6 +1448,18 @@ abstract class AppLocalizations {
   /// **'Conditions and cautions'**
   String get memberHealthConditions;
 
+  /// No description provided for @memberHealthConditionsShared.
+  ///
+  /// In en, this message translates to:
+  /// **'The member sees this too · Used for recommendations'**
+  String get memberHealthConditionsShared;
+
+  /// No description provided for @memberHealthConditionsPrivateHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep trainer-only notes in Memo.'**
+  String get memberHealthConditionsPrivateHint;
+
   /// No description provided for @memberHealthDietGoal.
   ///
   /// In en, this message translates to:
@@ -1400,30 +1532,6 @@ abstract class AppLocalizations {
   /// **'Weekly stretching (min)'**
   String get memberHealthGoalFlexibilityWeekly;
 
-  /// No description provided for @memberHealthWeeklyGoal.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly exercise goal'**
-  String get memberHealthWeeklyGoal;
-
-  /// No description provided for @memberHealthWeeklyCount.
-  ///
-  /// In en, this message translates to:
-  /// **'Sessions'**
-  String get memberHealthWeeklyCount;
-
-  /// No description provided for @memberHealthWeeklyMinutes.
-  ///
-  /// In en, this message translates to:
-  /// **'Minutes'**
-  String get memberHealthWeeklyMinutes;
-
-  /// No description provided for @memberHealthWeeklyBurn.
-  ///
-  /// In en, this message translates to:
-  /// **'Calories burned'**
-  String get memberHealthWeeklyBurn;
-
   /// No description provided for @memberHealthRange.
   ///
   /// In en, this message translates to:
@@ -1465,6 +1573,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That code is wrong or expired. Ask the member for a new one'**
   String get clientConnectCodeInvalid;
+
+  /// No description provided for @clientConnectAlreadyManaged.
+  ///
+  /// In en, this message translates to:
+  /// **'You already manage this member. Find them in your member list'**
+  String get clientConnectAlreadyManaged;
 
   /// No description provided for @clientInviteConnectAction.
   ///
@@ -1532,12 +1646,6 @@ abstract class AppLocalizations {
   /// **'Edit template'**
   String get coachTemplateEdit;
 
-  /// No description provided for @coachTemplateSaveAsMine.
-  ///
-  /// In en, this message translates to:
-  /// **'Save as my template'**
-  String get coachTemplateSaveAsMine;
-
   /// No description provided for @coachTemplateDelete.
   ///
   /// In en, this message translates to:
@@ -1604,6 +1712,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t delete the template. Please try again'**
   String get coachTemplateDeleteFailed;
 
+  /// No description provided for @coachTemplateAlreadyDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'This template was already deleted'**
+  String get coachTemplateAlreadyDeleted;
+
   /// No description provided for @coachTemplateDeleteConfirm.
   ///
   /// In en, this message translates to:
@@ -1615,12 +1729,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load templates'**
   String get coachTemplateLoadFailed;
-
-  /// No description provided for @coachTemplateStarterHint.
-  ///
-  /// In en, this message translates to:
-  /// **'A starter block. Editing saves it as your own'**
-  String get coachTemplateStarterHint;
 
   /// No description provided for @chatEmoteLabel.
   ///
@@ -1645,6 +1753,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t send the photo. Please try again'**
   String get chatImageSendFailed;
+
+  /// No description provided for @chatImageAlreadySent.
+  ///
+  /// In en, this message translates to:
+  /// **'An earlier send of this photo already went through. Please check the conversation.'**
+  String get chatImageAlreadySent;
 
   /// No description provided for @clientTabDiet.
   ///
@@ -1706,6 +1820,12 @@ abstract class AppLocalizations {
   /// **'Day total'**
   String get clientDietDayTotal;
 
+  /// Shown under the day total when the expanded day's meals fail to load (#2892)
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load this day\'s meals'**
+  String get clientDietDayMealsFailed;
+
   /// 트레이너 웹 식단 합계 kcal — 오늘 끼니 카드의 네 칸 오른쪽 끝과 펼친 날 하루 합계 줄 오른쪽 끝. 음식 kcal 과 구분되게 총을 붙인다. calories 는 천 단위 구분이 된 숫자. (#2421)
   ///
   /// In en, this message translates to:
@@ -1735,12 +1855,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Fat'**
   String get metricFat;
-
-  /// No description provided for @clientActive.
-  ///
-  /// In en, this message translates to:
-  /// **'Active'**
-  String get clientActive;
 
   /// No description provided for @clientDormant.
   ///
@@ -1808,29 +1922,53 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the conversation'**
   String get chatLoadFailed;
 
-  /// No description provided for @chatDemoAnalyzed.
+  /// 회원 메시지 맨 위 — 서버가 주는 최신 50건 앞의 메시지를 한 쪽 더 받는 버튼(#2749). 위로 끝까지 스크롤해도 같은 일이 일어난다.
   ///
   /// In en, this message translates to:
-  /// **'AI analysed {name}\'s meals and workouts'**
-  String chatDemoAnalyzed(String name);
+  /// **'Load earlier messages'**
+  String get chatLoadOlder;
 
-  /// No description provided for @chatDemoReportSent.
+  /// 이전 메시지 한 쪽을 받지 못했을 때 같은 자리의 버튼. 누르면 다시 받는다(#2749).
   ///
   /// In en, this message translates to:
-  /// **'A summary report was sent to you'**
-  String get chatDemoReportSent;
+  /// **'Couldn\'t load earlier messages · Retry'**
+  String get chatLoadOlderFailed;
 
-  /// No description provided for @chatDemoRoutineSent.
+  /// No description provided for @chatRoutineDelivered.
   ///
   /// In en, this message translates to:
-  /// **'A personalized workout recommendation was sent to {name}'**
-  String chatDemoRoutineSent(String name);
+  /// **'Workout sent'**
+  String get chatRoutineDelivered;
 
-  /// No description provided for @chatDemoNotified.
+  /// No description provided for @chatRoutineDeliveredPt.
   ///
   /// In en, this message translates to:
-  /// **'The member app was notified'**
-  String get chatDemoNotified;
+  /// **'PT program and personal exercises sent'**
+  String get chatRoutineDeliveredPt;
+
+  /// No description provided for @chatRoutineDeliveredPersonal.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercises sent'**
+  String get chatRoutineDeliveredPersonal;
+
+  /// No description provided for @chatRoutineDeliveredAfterCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercises sent in place of the cancelled PT'**
+  String get chatRoutineDeliveredAfterCancel;
+
+  /// No description provided for @chatRoutineDeliveredProgram.
+  ///
+  /// In en, this message translates to:
+  /// **'PT program sent'**
+  String get chatRoutineDeliveredProgram;
+
+  /// No description provided for @chatRoutineDeliveredMore.
+  ///
+  /// In en, this message translates to:
+  /// **'{names} and {count} more'**
+  String chatRoutineDeliveredMore(String names, int count);
 
   /// No description provided for @chatInputHint.
   ///
@@ -1940,71 +2078,11 @@ abstract class AppLocalizations {
   /// **'Couldn\'t add the memo. Please try again.'**
   String get chatInsightMemoSaveFailed;
 
-  /// No description provided for @coachSheetTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Coaching for {name}'**
-  String coachSheetTitle(String name);
-
-  /// No description provided for @coachSheetSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Answers are grounded in this member\'s meals and workouts.'**
-  String get coachSheetSubtitle;
-
-  /// No description provided for @coachSheetHint.
-  ///
-  /// In en, this message translates to:
-  /// **'e.g. Sodium keeps running high — what meals should I suggest?'**
-  String get coachSheetHint;
-
-  /// No description provided for @coachSheetSources.
-  ///
-  /// In en, this message translates to:
-  /// **'Sources'**
-  String get coachSheetSources;
-
-  /// No description provided for @coachSheetAsk.
-  ///
-  /// In en, this message translates to:
-  /// **'Ask'**
-  String get coachSheetAsk;
-
-  /// No description provided for @coachSheetAskAgain.
-  ///
-  /// In en, this message translates to:
-  /// **'Ask again'**
-  String get coachSheetAskAgain;
-
   /// No description provided for @consultTitle.
   ///
   /// In en, this message translates to:
   /// **'Consultation requests'**
   String get consultTitle;
-
-  /// No description provided for @consultBackToSchedule.
-  ///
-  /// In en, this message translates to:
-  /// **'Back to schedule'**
-  String get consultBackToSchedule;
-
-  /// No description provided for @consultBackToDashboard.
-  ///
-  /// In en, this message translates to:
-  /// **'Back to dashboard'**
-  String get consultBackToDashboard;
-
-  /// No description provided for @consultPendingCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} pending'**
-  String consultPendingCount(int count);
-
-  /// No description provided for @consultNoPending.
-  ///
-  /// In en, this message translates to:
-  /// **'No pending requests'**
-  String get consultNoPending;
 
   /// No description provided for @consultFilterAll.
   ///
@@ -2078,35 +2156,17 @@ abstract class AppLocalizations {
   /// **'Request declined'**
   String get consultRejected;
 
-  /// No description provided for @consultScheduleConflict.
-  ///
-  /// In en, this message translates to:
-  /// **'Overlaps {name}\'s {time} session'**
-  String consultScheduleConflict(String name, String time);
-
   /// No description provided for @consultDecisionNote.
   ///
   /// In en, this message translates to:
   /// **'Reason'**
   String get consultDecisionNote;
 
-  /// No description provided for @consultTargetTrainer.
-  ///
-  /// In en, this message translates to:
-  /// **'Direct request'**
-  String get consultTargetTrainer;
-
   /// No description provided for @consultExerciseGoal.
   ///
   /// In en, this message translates to:
   /// **'Training goal'**
   String get consultExerciseGoal;
-
-  /// No description provided for @consultHealthPurpose.
-  ///
-  /// In en, this message translates to:
-  /// **'Health management purpose'**
-  String get consultHealthPurpose;
 
   /// No description provided for @consultChosenSlot.
   ///
@@ -2119,6 +2179,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{minutes} min'**
   String consultSlotDuration(int minutes);
+
+  /// No description provided for @consultStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get consultStatusCancelled;
+
+  /// No description provided for @consultStatusCancelledByTrainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdrawn (session cancelled)'**
+  String get consultStatusCancelledByTrainer;
 
   /// No description provided for @consultStatusExpired.
   ///
@@ -2216,29 +2288,11 @@ abstract class AppLocalizations {
   /// **'No workouts logged yet'**
   String get workoutEmpty;
 
-  /// No description provided for @routinesAssigned.
-  ///
-  /// In en, this message translates to:
-  /// **'Assigned programs'**
-  String get routinesAssigned;
-
-  /// No description provided for @routineNew.
-  ///
-  /// In en, this message translates to:
-  /// **'New program'**
-  String get routineNew;
-
   /// No description provided for @routinesLoadFailed.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t load programs'**
   String get routinesLoadFailed;
-
-  /// No description provided for @routinesEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No programs assigned to this member yet'**
-  String get routinesEmpty;
 
   /// No description provided for @minutesShort.
   ///
@@ -2258,24 +2312,6 @@ abstract class AppLocalizations {
   /// **'{seconds} sec'**
   String secondsShort(int seconds);
 
-  /// No description provided for @ptProgramHistory.
-  ///
-  /// In en, this message translates to:
-  /// **'PT program history'**
-  String get ptProgramHistory;
-
-  /// No description provided for @scheduleLoadFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load the schedule'**
-  String get scheduleLoadFailed;
-
-  /// No description provided for @ptSessionsEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No PT sessions yet'**
-  String get ptSessionsEmpty;
-
   /// No description provided for @labelToday.
   ///
   /// In en, this message translates to:
@@ -2287,12 +2323,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{type} · {minutes} min'**
   String sessionTypeAndDuration(String type, int minutes);
-
-  /// No description provided for @programNone.
-  ///
-  /// In en, this message translates to:
-  /// **'No program recorded'**
-  String get programNone;
 
   /// No description provided for @legendDone.
   ///
@@ -2306,22 +2336,16 @@ abstract class AppLocalizations {
   /// **'Member feedback'**
   String get clientFeedback;
 
-  /// No description provided for @workoutKindAiPersonal.
-  ///
-  /// In en, this message translates to:
-  /// **'AI personal exercise'**
-  String get workoutKindAiPersonal;
-
   /// Workout history kind for a completed PT session (server kind code pt_session).
   ///
   /// In en, this message translates to:
-  /// **'PT session · Trainer-led'**
+  /// **'PT · Trainer-led'**
   String get workoutKindPtSession;
 
   /// Workout history kind for a completed assigned routine that has no name (server kind code assigned_routine).
   ///
   /// In en, this message translates to:
-  /// **'Assigned routine'**
+  /// **'Personal exercise'**
   String get workoutKindAssignedRoutine;
 
   /// No description provided for @dietLoadFailed.
@@ -2342,12 +2366,6 @@ abstract class AppLocalizations {
   /// **'No record'**
   String get dietDayEmpty;
 
-  /// No description provided for @dietMacros.
-  ///
-  /// In en, this message translates to:
-  /// **'Macros'**
-  String get dietMacros;
-
   /// No description provided for @clientNutritionSummary.
   ///
   /// In en, this message translates to:
@@ -2365,18 +2383,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Progress'**
   String get dietAchieveRate;
-
-  /// No description provided for @dietAmountOver.
-  ///
-  /// In en, this message translates to:
-  /// **'{amount} over the goal'**
-  String dietAmountOver(String amount);
-
-  /// No description provided for @dietAmountRemaining.
-  ///
-  /// In en, this message translates to:
-  /// **'{amount} remaining to the goal'**
-  String dietAmountRemaining(String amount);
 
   /// No description provided for @consultStatusRejected.
   ///
@@ -2486,6 +2492,24 @@ abstract class AppLocalizations {
   /// **'Couldn\'t send the report. Please try again'**
   String get reportsSendFailed;
 
+  /// No description provided for @reportsSendStaleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The member\'s records changed in the meantime'**
+  String get reportsSendStaleTitle;
+
+  /// No description provided for @reportsSendStaleBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing was sent yet. Review the report rebuilt with the new numbers, then send it'**
+  String get reportsSendStaleBody;
+
+  /// Toast when the server says this report send was already processed (409, #2773).
+  ///
+  /// In en, this message translates to:
+  /// **'This report was already sent. Send history has been refreshed'**
+  String get reportsSendAlreadyDone;
+
   /// No description provided for @reportsSent.
   ///
   /// In en, this message translates to:
@@ -2501,7 +2525,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsScheduleWarning.
   ///
   /// In en, this message translates to:
-  /// **'This week\'s schedule didn\'t load, so session counts may be missing'**
+  /// **'This week\'s schedule didn\'t load, so PT counts may be missing'**
   String get reportsScheduleWarning;
 
   /// No description provided for @unitTimes.
@@ -2515,12 +2539,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'min'**
   String get unitMinutes;
-
-  /// No description provided for @clientTrendWorkoutDaysValue.
-  ///
-  /// In en, this message translates to:
-  /// **'{days, plural, =1{1 day} other{{days} days}}'**
-  String clientTrendWorkoutDaysValue(int days);
 
   /// No description provided for @clientPeriodToday.
   ///
@@ -2564,18 +2582,6 @@ abstract class AppLocalizations {
   /// **'Burned this week'**
   String get exBurnWeekTitle;
 
-  /// No description provided for @exBurnMonthTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Burned this month'**
-  String get exBurnMonthTitle;
-
-  /// No description provided for @exBurnDayTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Burned'**
-  String get exBurnDayTitle;
-
   /// No description provided for @exBurnAllTitle.
   ///
   /// In en, this message translates to:
@@ -2606,23 +2612,11 @@ abstract class AppLocalizations {
   /// **'Other'**
   String get exTypeOther;
 
-  /// No description provided for @clientPeriodLoggedDays.
-  ///
-  /// In en, this message translates to:
-  /// **'{days, plural, =1{1 day logged} other{{days} days logged}}'**
-  String clientPeriodLoggedDays(int days);
-
   /// No description provided for @clientPeriodEmpty.
   ///
   /// In en, this message translates to:
   /// **'Nothing was logged in this period'**
   String get clientPeriodEmpty;
-
-  /// No description provided for @clientDietTrendTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Nutrition trend'**
-  String get clientDietTrendTitle;
 
   /// No description provided for @unitKcal.
   ///
@@ -2648,24 +2642,6 @@ abstract class AppLocalizations {
   /// **'No workout logged today'**
   String get clientTrendTodayEmpty;
 
-  /// No description provided for @clientTrendTodayTotal.
-  ///
-  /// In en, this message translates to:
-  /// **'Today\'s total'**
-  String get clientTrendTodayTotal;
-
-  /// No description provided for @clientTrendWorkoutDays.
-  ///
-  /// In en, this message translates to:
-  /// **'Active days'**
-  String get clientTrendWorkoutDays;
-
-  /// No description provided for @clientTrendWorkoutCount.
-  ///
-  /// In en, this message translates to:
-  /// **'Workouts'**
-  String get clientTrendWorkoutCount;
-
   /// No description provided for @clientTrendWorkoutMinutes.
   ///
   /// In en, this message translates to:
@@ -2677,12 +2653,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Calories burned'**
   String get clientTrendCaloriesBurned;
-
-  /// No description provided for @clientTrendSegmentTime.
-  ///
-  /// In en, this message translates to:
-  /// **'Time'**
-  String get clientTrendSegmentTime;
 
   /// No description provided for @reportsPickClient.
   ///
@@ -2696,18 +2666,6 @@ abstract class AppLocalizations {
   /// **'{name}\'s weekly report'**
   String reportsClientWeekly(String name);
 
-  /// No description provided for @reportsCompletionAvg.
-  ///
-  /// In en, this message translates to:
-  /// **'Workout completion'**
-  String get reportsCompletionAvg;
-
-  /// No description provided for @reportsWeeklyCompletion.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly completion'**
-  String get reportsWeeklyCompletion;
-
   /// No description provided for @reportsCompletionByDay.
   ///
   /// In en, this message translates to:
@@ -2719,36 +2677,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No workouts logged this week'**
   String get reportsNoWorkoutsThisWeek;
-
-  /// No description provided for @reportsMetricTrend.
-  ///
-  /// In en, this message translates to:
-  /// **'{metric} trend'**
-  String reportsMetricTrend(String metric);
-
-  /// No description provided for @reportsNoLastWeekMetricTrend.
-  ///
-  /// In en, this message translates to:
-  /// **'No {metric} trend for last week yet'**
-  String reportsNoLastWeekMetricTrend(String metric);
-
-  /// No description provided for @reportsNoMetricRecords.
-  ///
-  /// In en, this message translates to:
-  /// **'No {metric} logged this week yet'**
-  String reportsNoMetricRecords(String metric);
-
-  /// No description provided for @reportsDietTrend.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly diet trend'**
-  String get reportsDietTrend;
-
-  /// No description provided for @workoutDoneOfTotal.
-  ///
-  /// In en, this message translates to:
-  /// **'{done} of {total} done'**
-  String workoutDoneOfTotal(int total, int done);
 
   /// No description provided for @chartNoRecord.
   ///
@@ -2813,7 +2741,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodySkipped.
   ///
   /// In en, this message translates to:
-  /// **'One thing — {names} got skipped. If that was a condition thing, tell me at the next session and I\'ll swap in an alternative.'**
+  /// **'One thing — {names} got skipped. If that was a condition thing, tell me at our next PT and I\'ll swap in an alternative.'**
   String reportBodySkipped(String names);
 
   /// No description provided for @reportBodySodiumOver.
@@ -2849,19 +2777,19 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodySessionsAll.
   ///
   /// In en, this message translates to:
-  /// **'You made all {booked} of your booked PT sessions.'**
+  /// **'For PT, you made all {booked} that were booked.'**
   String reportBodySessionsAll(int booked);
 
   /// No description provided for @reportBodySessionsSome.
   ///
   /// In en, this message translates to:
-  /// **'You made {done} of your {booked} booked PT sessions.'**
+  /// **'For PT, you made {done} of the {booked} that were booked.'**
   String reportBodySessionsSome(int booked, int done);
 
   /// No description provided for @reportBodySessionsNone.
   ///
   /// In en, this message translates to:
-  /// **'There were no PT sessions this week.'**
+  /// **'There was no PT this week.'**
   String get reportBodySessionsNone;
 
   /// No description provided for @reportBodyExerciseCount.
@@ -2926,7 +2854,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportBodyMemberPain.
   ///
   /// In en, this message translates to:
-  /// **'You mentioned pain in your {area}. Let me know how it feels before the next session — I\'ll ease off that area.'**
+  /// **'You mentioned pain in your {area}. Let me know how it feels before our next PT — I\'ll ease off that area.'**
   String reportBodyMemberPain(String area);
 
   /// No description provided for @reportBodyMemberTooHard.
@@ -2992,13 +2920,13 @@ abstract class AppLocalizations {
   /// No description provided for @reportTipSessionsNone.
   ///
   /// In en, this message translates to:
-  /// **'Let\'s book next week\'s PT sessions together now.'**
+  /// **'Let\'s book next week\'s PT together now.'**
   String get reportTipSessionsNone;
 
   /// No description provided for @reportTipSessionsMissed.
   ///
   /// In en, this message translates to:
-  /// **'I\'ll set up make-up slots next week for the sessions we missed.'**
+  /// **'I\'ll set up make-up slots next week for the PT we missed.'**
   String get reportTipSessionsMissed;
 
   /// No description provided for @reportTipKeep.
@@ -3028,7 +2956,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedDeleteConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Delete the {time} PT session with {name}?'**
+  /// **'Delete {name}\'s {time} PT appointment?'**
   String schedDeleteConfirm(String time, String name);
 
   /// No description provided for @schedDeleteFailed.
@@ -3046,7 +2974,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedCompleteConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Mark the {time} session with {name} as complete?'**
+  /// **'Mark {name}\'s {time} PT as complete?'**
   String schedCompleteConfirm(String time, String name);
 
   /// No description provided for @schedCompleteFailed.
@@ -3072,6 +3000,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Coaching has ended, so client details are hidden'**
   String get schedDetachedMemberHint;
+
+  /// Hint on a session card for a session the member booked through a reservation slot (#2756). Edit schedule and Delete are disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Booked by the member. It can\'t be moved or deleted here; use Cancel to call it off.'**
+  String get schedReservationLockedHint;
+
+  /// No description provided for @schedEndedLockedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A finished PT can only have its note and program edited.'**
+  String get schedEndedLockedHint;
+
+  /// No description provided for @schedDoneLockedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A completed PT can only have its note and program edited. Move the date forward to reopen it as upcoming.'**
+  String get schedDoneLockedHint;
 
   /// No description provided for @schedGroupPersonal.
   ///
@@ -3163,6 +3109,24 @@ abstract class AppLocalizations {
   /// **'Marked as not sent.'**
   String get schedRoutinesSkipped;
 
+  /// No description provided for @schedRoutinesSkipFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t mark the personal exercise as not sent. Please try again.'**
+  String get schedRoutinesSkipFailed;
+
+  /// No description provided for @schedRoutinesLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load personal exercises'**
+  String get schedRoutinesLoadFailed;
+
+  /// No description provided for @schedClientUnresolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t tell which member this session is for. Please pick the member.'**
+  String get schedClientUnresolved;
+
   /// No description provided for @schedRoutinesUpdated.
   ///
   /// In en, this message translates to:
@@ -3175,17 +3139,47 @@ abstract class AppLocalizations {
   /// **'Couldn\'t update the personal exercise. Please try again.'**
   String get schedRoutinesUpdateFailed;
 
+  /// No description provided for @schedAddRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'Add personal exercise'**
+  String get schedAddRoutines;
+
+  /// No description provided for @schedRoutinesAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise added.'**
+  String get schedRoutinesAdded;
+
+  /// No description provided for @schedNoRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'No personal exercise'**
+  String get schedNoRoutines;
+
+  /// No description provided for @schedNoRoutinesSendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send without personal exercise?'**
+  String get schedNoRoutinesSendTitle;
+
+  /// No description provided for @schedNoRoutinesSendBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This PT has no personal exercise. Once sent, you can no longer add personal exercise to this PT.'**
+  String get schedNoRoutinesSendBody;
+
+  /// No description provided for @schedNoRoutinesSendSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Send without it'**
+  String get schedNoRoutinesSendSkip;
+
   /// No description provided for @schedTimeRange.
   ///
   /// In en, this message translates to:
   /// **'{start}–{end}'**
   String schedTimeRange(String start, String end);
-
-  /// No description provided for @schedBlockTime.
-  ///
-  /// In en, this message translates to:
-  /// **'{range} ({duration})'**
-  String schedBlockTime(String range, String duration);
 
   /// No description provided for @schedEmptyWeek.
   ///
@@ -3253,12 +3247,6 @@ abstract class AppLocalizations {
   /// **'Date'**
   String get schedFieldDate;
 
-  /// No description provided for @schedFieldStartDate.
-  ///
-  /// In en, this message translates to:
-  /// **'Start date'**
-  String get schedFieldStartDate;
-
   /// No description provided for @schedFieldDateRange.
   ///
   /// In en, this message translates to:
@@ -3270,36 +3258,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Time'**
   String get schedFieldTime;
-
-  /// No description provided for @schedHourSuffix.
-  ///
-  /// In en, this message translates to:
-  /// **'hr'**
-  String get schedHourSuffix;
-
-  /// No description provided for @schedMinuteSuffix.
-  ///
-  /// In en, this message translates to:
-  /// **'min'**
-  String get schedMinuteSuffix;
-
-  /// No description provided for @schedFieldDuration.
-  ///
-  /// In en, this message translates to:
-  /// **'Duration'**
-  String get schedFieldDuration;
-
-  /// No description provided for @schedFieldStart.
-  ///
-  /// In en, this message translates to:
-  /// **'Start'**
-  String get schedFieldStart;
-
-  /// No description provided for @schedFieldEnd.
-  ///
-  /// In en, this message translates to:
-  /// **'End'**
-  String get schedFieldEnd;
 
   /// No description provided for @schedEndBeforeStart.
   ///
@@ -3316,7 +3274,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedReopenBody.
   ///
   /// In en, this message translates to:
-  /// **'Moving a completed session forward switches it back to upcoming, and the workout log it created will be removed.'**
+  /// **'Moving a completed PT forward switches it back to upcoming, and the workout log it created will be removed.'**
   String get schedReopenBody;
 
   /// No description provided for @schedReopenConfirm.
@@ -3328,7 +3286,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedReopenPastBlocked.
   ///
   /// In en, this message translates to:
-  /// **'A completed session can only move to a future date'**
+  /// **'A completed PT can only move to a future date'**
   String get schedReopenPastBlocked;
 
   /// No description provided for @schedTimeRangeTitle.
@@ -3342,12 +3300,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Confirm'**
   String get schedTimeRangeConfirm;
-
-  /// No description provided for @schedTimeRangeInvalid.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter a valid time (HH:mm)'**
-  String get schedTimeRangeInvalid;
 
   /// No description provided for @schedTimePickerTimeLabel.
   ///
@@ -3432,12 +3384,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Weekly'**
   String get schedRepeatWeekly;
-
-  /// No description provided for @schedRepeatDays.
-  ///
-  /// In en, this message translates to:
-  /// **'Repeat on'**
-  String get schedRepeatDays;
 
   /// No description provided for @schedRepeatPreview.
   ///
@@ -3649,42 +3595,6 @@ abstract class AppLocalizations {
   /// **'Remove exercise'**
   String get progDeleteExercise;
 
-  /// No description provided for @progSets.
-  ///
-  /// In en, this message translates to:
-  /// **'Sets'**
-  String get progSets;
-
-  /// No description provided for @progReps.
-  ///
-  /// In en, this message translates to:
-  /// **'Reps/time'**
-  String get progReps;
-
-  /// No description provided for @progWeight.
-  ///
-  /// In en, this message translates to:
-  /// **'Weight'**
-  String get progWeight;
-
-  /// No description provided for @progType.
-  ///
-  /// In en, this message translates to:
-  /// **'Type'**
-  String get progType;
-
-  /// No description provided for @progDuration.
-  ///
-  /// In en, this message translates to:
-  /// **'Duration (min)'**
-  String get progDuration;
-
-  /// No description provided for @progOptional.
-  ///
-  /// In en, this message translates to:
-  /// **'Optional'**
-  String get progOptional;
-
   /// No description provided for @progSetsValue.
   ///
   /// In en, this message translates to:
@@ -3739,23 +3649,11 @@ abstract class AppLocalizations {
   /// **'Booking slot opened.'**
   String get slotOpened;
 
-  /// No description provided for @slotEditTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit booking slot'**
-  String get slotEditTitle;
-
   /// No description provided for @slotStartTime.
   ///
   /// In en, this message translates to:
   /// **'Start time'**
   String get slotStartTime;
-
-  /// No description provided for @slotUpdated.
-  ///
-  /// In en, this message translates to:
-  /// **'Booking slot updated.'**
-  String get slotUpdated;
 
   /// No description provided for @slotCloseTitle.
   ///
@@ -3805,6 +3703,12 @@ abstract class AppLocalizations {
   /// **'Reload'**
   String get slotReload;
 
+  /// No description provided for @slotLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load reservation slots'**
+  String get slotLoadFailed;
+
   /// No description provided for @slotEmpty.
   ///
   /// In en, this message translates to:
@@ -3823,11 +3727,17 @@ abstract class AppLocalizations {
   /// **'Booked'**
   String get slotBookedSummary;
 
-  /// No description provided for @slotOpenSummary.
+  /// No description provided for @slotOverlappedSummary.
   ///
   /// In en, this message translates to:
-  /// **'Open'**
-  String get slotOpenSummary;
+  /// **'Overlaps a session'**
+  String get slotOverlappedSummary;
+
+  /// No description provided for @slotOverlappedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Another session is booked at this time, so members see it as full. Close it if you will not use it.'**
+  String get slotOverlappedHint;
 
   /// No description provided for @slotCloseAction.
   ///
@@ -3913,6 +3823,18 @@ abstract class AppLocalizations {
   /// **'Coming soon — always on for now'**
   String get myNotifNotReady;
 
+  /// Notification settings card row shown while the saved settings are loading; switches stay disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading notification settings…'**
+  String get myNotifLoading;
+
+  /// Notification settings card row when loading the saved settings failed; shown with a retry button and switches stay disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load notification settings. Please try again'**
+  String get myNotifLoadFailed;
+
   /// No description provided for @myNotifNewMessageHint.
   ///
   /// In en, this message translates to:
@@ -3979,12 +3901,6 @@ abstract class AppLocalizations {
   /// **'Signed in as'**
   String get myLoginAccount;
 
-  /// No description provided for @myLegal.
-  ///
-  /// In en, this message translates to:
-  /// **'Terms & policies'**
-  String get myLegal;
-
   /// No description provided for @mySupportTitle.
   ///
   /// In en, this message translates to:
@@ -4015,12 +3931,6 @@ abstract class AppLocalizations {
   /// **'Couldn\'t open the link. Please try again in a moment'**
   String get mySupportOpenFailed;
 
-  /// No description provided for @mySupportEntryHint.
-  ///
-  /// In en, this message translates to:
-  /// **'FAQ, inquiries, policies and account clean-up in one place'**
-  String get mySupportEntryHint;
-
   /// No description provided for @myAppVersion.
   ///
   /// In en, this message translates to:
@@ -4045,41 +3955,35 @@ abstract class AppLocalizations {
   /// **'Privacy Policy'**
   String get myLegalPrivacyTitle;
 
-  /// No description provided for @myLegalEffectiveDate.
+  /// MY support row that opens the open-source license list (packages and the bundled Pretendard font, #3150).
   ///
   /// In en, this message translates to:
-  /// **'Effective Jan 1, 2026'**
-  String get myLegalEffectiveDate;
+  /// **'Open-source licenses'**
+  String get myOpenSourceLicensesTitle;
+
+  /// No description provided for @myLegalTermsEffectiveDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Effective Oct 3, 2026'**
+  String get myLegalTermsEffectiveDate;
+
+  /// No description provided for @myLegalPrivacyEffectiveDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Effective Oct 5, 2026'**
+  String get myLegalPrivacyEffectiveDate;
 
   /// No description provided for @myLegalTermsBody.
   ///
   /// In en, this message translates to:
-  /// **'This English text is provided for convenience; the Korean original governs.\n\n1. Purpose\nThese terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and trainers using the On-Care trainer console (the \"Service\").\n\n2. Effect and amendment\nThese terms apply to every trainer using the Service. The Company may amend them within the limits of applicable law, announcing the effective date and the reason inside the Service.\n\n3. The Service\nThe Company provides member management, access to diet and workout records, scheduling, messaging, AI coaching programs, and report writing and delivery. The details may change with Company policy.\n\n4. Accounts\nTrainer accounts and member accounts are separate; one account cannot be used for both. Trainers must enter certification and career details truthfully and are responsible for keeping their credentials safe.\n\n5. Handling member information\nTrainers may open the diet, workout and health records only of members they are assigned to. Those records may be used solely for coaching, consultation and reports, and must never be published or handed to a third party. When an assignment ends, the access ends with it.\n\n6. Prohibited conduct\nTrainers must not make medical diagnoses or prescriptions, and must not move member information outside the Service without that member\'s consent.\n\n7. Limitation of liability\nAI coaching output and statistics are reference material. The final judgement about the guidance given to a member rests with the trainer, and the Company bears no liability for that outcome to the extent permitted by law.\n\n8. Termination\nA trainer may delete their account at any time. Doing so ends their member assignments and upcoming sessions, and the affected members are notified.\n\nAddendum\nThese terms take effect on January 1, 2026.'**
+  /// **'This English text is provided for convenience; the Korean original governs.\n\n1. Purpose\nThese terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and trainers using the On-Care trainer console (the \"Service\").\n\n2. Effect and amendment\nThese terms apply to every trainer using the Service. The Company may amend them within the limits of applicable law, announcing the effective date and the reason inside the Service before the amendment takes effect. Where an amendment requires consent, the Company asks again, and a trainer who does not agree may terminate the agreement.\n\n3. The Service\nThe Company provides member management, access to diet and workout records, scheduling, messaging, AI coaching programs, and report writing and delivery. The details may change with Company policy.\n\n4. Accounts\nTrainer accounts and member accounts are separate; one account cannot be used for both. Trainers must enter certification and career details truthfully and are responsible for keeping their credentials safe.\n\n5. Member reports\nThere is no separate approval step: once a trainer signs up and picks their gym, they appear in the member app\'s trainer list and as a consultation target, and can link with members. Members can report a trainer for impersonation, a false profile or inappropriate messages, and a Company operator reviews the report and may restrict use under section 9.\n\n6. Handling member information\nTrainers may open the diet, workout and health records only of members they are assigned to. Those records may be used solely for coaching, consultation and reports, and must never be published or handed to a third party. When an assignment ends, the access ends with it.\n\n7. Redeeming member coupons\nPT renewal discount coupons that members exchange for points are used with that member\'s assigned trainer and the trainer\'s gym, which provide the discount shown on the coupon on site. A coupon is used when the trainer or gym staff have checked the coupon type and validity on the member\'s phone and the member then taps \"Mark as used\"; a used coupon cannot be restored. If the assignment ends or the trainer deletes their account, the member\'s unused PT renewal coupons are cancelled and the points are returned to the member.\n\n8. Prohibited conduct\nTrainers must not make medical diagnoses or prescriptions, and must not move member information outside the Service without that member\'s consent.\n\n9. Restrictions on use\nIf a trainer breaches these terms, attracts members with a false profile or harms members, the Company may, after notice, restrict all or part of their use of the Service or suspend the account. Where it is urgent, for example to protect members, the Company restricts first and notifies right after.\n\n10. Limitation of liability\nAI coaching output and statistics are reference material. The final judgement about the guidance given to a member rests with the trainer, and the Company bears no liability for that outcome to the extent permitted by law.\n\n11. Termination\nA trainer may delete their account from the MY menu at any time. Doing so erases their profile, messages with members, assigned routines, schedule and open booking times, and ends their member assignments and upcoming bookings; the affected members are notified. The unused PT renewal coupons of their assigned members are cancelled and the points are returned to those members.\n\n12. Changes to and suspension of the Service\nThe Company may change the Service, or suspend it temporarily for unavoidable reasons such as maintenance or outages. It announces anything that affects trainers beforehand, or afterwards if advance notice was not possible.\n\n13. Dispute resolution and jurisdiction\nThe Company and trainers will negotiate in good faith to settle any dispute about the Service amicably. If a dispute is not settled and a lawsuit is filed, the court with jurisdiction under the Civil Procedure Act of Korea has jurisdiction. These terms are governed by the laws of the Republic of Korea.\n\nAddendum\nThese terms take effect on October 3, 2026.\n- October 3, 2026: added member reports, redeeming member coupons, restrictions on use, effects of termination, changes to and suspension of the Service, and dispute resolution and jurisdiction\n- October 1, 2026: first issued'**
   String get myLegalTermsBody;
 
-  /// No description provided for @myLegalPrivacyBody.
+  /// Privacy policy body. {contact} is the privacy officer contact, filled from LegalContact.privacyOfficerEmail in shared/oncare_core (the single definition point, #3005).
   ///
   /// In en, this message translates to:
-  /// **'This English text is provided for convenience; the Korean original governs.\n\n1. Information collected\nFor trainer sign-up and service delivery, On-Care (the \"Company\") collects name, email and phone number, along with gym affiliation, certifications, career, speciality and service access logs.\n\n2. Purpose of collection and use\nThe information is used only to identify trainers and verify their credentials, to connect them with assigned members, to provide scheduling, messaging and reports, and to improve the service and answer enquiries.\n\n3. Access to and processing of member information\nA trainer may open the diet, workout and body-weight records of members they are assigned to, inside the Service. The Company is the controller of those records; the trainer processes them only for coaching and reports, within the scope the Company sets. Reports and messages a trainer sends are delivered to that member and kept in the Service as a record. When an assignment ends, the trainer\'s access is revoked immediately, and a member may withdraw consent to share their information at any time.\n\n4. Retention\nA trainer\'s personal information is destroyed without delay on account deletion, unless the law requires it to be kept, in which case it is stored securely for that period. Reports and messages already delivered belong to the member\'s record and follow the member\'s retention period.\n\n5. Provision to third parties\nThe Company does not provide personal information to outside parties without consent, except where the law specifically requires it.\n\n6. Safeguards\nAccess to member information is limited by assignment, traffic is encrypted in transit, and access logs are retained.\n\n7. Your rights\nA trainer may review or correct their personal information, or request that its processing stop and that it be deleted, at any time.\n\n8. Privacy officer\nFor privacy enquiries, contact customer support (support@oncare.com).\n\nEffective: January 1, 2026'**
-  String get myLegalPrivacyBody;
-
-  /// No description provided for @myAppInfo.
-  ///
-  /// In en, this message translates to:
-  /// **'About'**
-  String get myAppInfo;
-
-  /// No description provided for @myService.
-  ///
-  /// In en, this message translates to:
-  /// **'Service'**
-  String get myService;
-
-  /// No description provided for @myVersion.
-  ///
-  /// In en, this message translates to:
-  /// **'Version'**
-  String get myVersion;
+  /// **'This English text is provided for convenience; the Korean original governs.\n\n1. Information collected\n(1) Trainer sign-up: email, password (stored encrypted), name and phone number.\n(2) Profile and credential check: gym affiliation, certifications, career, speciality and other profile details.\n(3) Information you leave while using the Service: messages and attached photos sent to members, reports and coaching content, schedules and bookings, and member notes.\n(4) Information generated automatically: access logs such as sign-ins and password changes (time and IP address), and, when an error occurs, the error details, browser and operating system type and app version.\n\n2. Purpose of collection and use\nThe information is used only to identify trainers and to let an operator handle reports and manage accounts, to connect them with assigned members, to provide scheduling, messaging and reports, and to improve the service and answer enquiries.\n\n3. Access to and processing of member information\nA trainer may open the diet, workout and body-weight records of members they are assigned to, inside the Service. The Company is the controller of those records; the trainer processes them only for coaching and reports, within the scope the Company sets. Members\' health information is sensitive information and can be opened only with the member\'s separate consent and data-sharing consent. Reports and messages a trainer sends are delivered to that member and kept in the Service as a record. When an assignment ends, the trainer\'s access is revoked immediately, and a member may withdraw consent to share their information at any time.\n\n4. Retention\nA trainer\'s personal information is kept until account deletion, and is then destroyed without delay following section 8. The following records are kept for the stated period and then destroyed.\n- Access logs such as sign-ins: one year (covering the three-month retention of sign-in records required by the Protection of Communications Secrets Act)\n- Records of trainers opening members\' health information, of consent being given or withdrawn, and of account deletion: two years (processing records kept under the Standards for Personal Information Security Measures)\nReports and messages already delivered belong to the member\'s record and follow the member\'s retention period.\n\n5. Provision to third parties\nThe Company does not provide personal information to outside parties without consent. Processing entrusted to service providers follows sections 6 and 7. The exception is where the law specifically requires it.\n\n6. Entrusted processing\nThe Company entrusts the following work to outside providers to deliver the Service. If a provider changes, this policy is updated to say so.\n- Amazon Web Services, Inc.: running the servers and storing chat photos and report PDFs\n- Neon: running the database (account information and all records)\n- Google LLC: generating AI coaching programs, routine suggestions and report summaries (Gemini API)\n- Kakao Corp.: gym search and map display\n- Functional Software, Inc. (Sentry): collecting and analysing web and server errors\n\n7. Transfer of personal information overseas\nTo perform its contract with trainers, the Company has personal information processed and stored overseas as follows, and discloses this in this policy under Article 28-8(1)(3) of the Personal Information Protection Act. Each transfer happens over an encrypted network connection whenever the Service is used.\n(1) Amazon Web Services, Inc. / Singapore / trainer information and records in general, chat photo attachments and report PDFs / running the servers and storing files / until account deletion or the end of the contract with the provider\n(2) Neon / Singapore / account and profile, message, report and schedule records / running the database / until account deletion or the end of the contract with the provider\n(3) Google LLC / the United States and other countries where Google operates data centres / coaching conditions entered when using AI features, and assigned members\' workout records and weekly report figures / generating AI programs and summaries / for the period set in the provider\'s terms of service after the request is processed\n(4) Functional Software, Inc. (Sentry) / the United States / error details, browser and operating system type and app version (name, email address, IP address and request contents are not sent) / error analysis / the provider\'s retention period\nIf you do not want your information transferred overseas, you can refuse by deleting your account, but you will then be unable to use the Service.\n\n8. Destruction procedure and method\n(1) Procedure: when a trainer deletes their account, the Company immediately deletes the account together with the profile, member connections and conversations (including attached photos and report PDF files), routines and programs, schedules and bookable times, and notifications, and tells assigned and booked members. Consultation requests sent by members belong to the members\' records and remain with the trainer\'s details removed. Records kept under section 4 are deleted automatically when their period ends.\n(2) Method: information held as electronic files is deleted from the database and file storage, and copies remaining in database recovery backups disappear when the backup retention period ends. The Company does not handle personal information on paper.\n\n9. Automatic collection tools\nThe Company does not use cookies or tracking tools for advertising or behavioural analysis. Sign-in information is kept in browser storage to keep you signed in, and is removed when you sign out or clear your browser data.\n\n10. Safeguards\nPasswords are stored encrypted, access to member information is limited by assignment, and traffic is encrypted in transit. An access record holds only the trainer, the member, the kind of information and the time, never the health information itself. Error reports are sent with names, email addresses, IP addresses and request contents removed.\n\n11. Children under 14\nThe Company does not accept sign-ups from children under 14, and confirms at sign-up that you are 14 or older.\n\n12. Your rights\nA trainer may review or correct their personal information, or request that its processing stop and that it be deleted, at any time. You can edit your profile and delete your account from the MY menu; for any other request, contact the address in section 13 and it will be handled without delay.\n\n13. Privacy officer\nThe Company has appointed a personal information protection officer who oversees the processing of personal information and handles related complaints and remedies.\n- Position: Personal information protection officer, On-Care service operations team\n- Contact: {contact}\n\n14. Remedies for infringement\nFor reports or advice about an infringement of personal information, you can contact the following bodies (in Korea).\n- Personal Information Dispute Mediation Committee: 1833-6972 (www.kopico.go.kr)\n- Personal Information Infringement Report Center: 118 (privacy.kisa.or.kr)\n- Supreme Prosecutors\' Office: 1301 (www.spo.go.kr)\n- Korean National Police Agency: 182 (ecrm.police.go.kr)\n\n15. Changes to this policy\nIf this policy changes, the Company announces it in the Service before the effective date, and asks for consent again where the change requires it.\n- October 5, 2026: changed the contact address of the privacy officer\n- October 3, 2026: added entrusted processing, overseas transfer, destruction procedure, automatic collection tools, children under 14, protection officer and remedies sections\n- October 1, 2026: first issued\n\nEffective: October 5, 2026'**
+  String myLegalPrivacyBody(String contact);
 
   /// No description provided for @myPasswordChanged.
   ///
@@ -4174,7 +4078,7 @@ abstract class AppLocalizations {
   /// No description provided for @myClientRemoveBody.
   ///
   /// In en, this message translates to:
-  /// **'After you disconnect, this member\'s schedules, programs and routines, reports, messages, and notes won\'t show in the trainer app. Their account and member app records stay as they are.'**
+  /// **'After you disconnect, this member\'s schedules, programs and personal exercises, reports, messages, and notes won\'t show in the trainer app. Their account and member app records stay as they are.'**
   String get myClientRemoveBody;
 
   /// No description provided for @myClientRemoveSuccess.
@@ -4210,7 +4114,7 @@ abstract class AppLocalizations {
   /// No description provided for @myStatSessionsDone.
   ///
   /// In en, this message translates to:
-  /// **'Sessions done'**
+  /// **'PT done'**
   String get myStatSessionsDone;
 
   /// No description provided for @myStatRoutinesSent.
@@ -4308,6 +4212,330 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Set gym'**
   String get myGymHiddenAction;
+
+  /// No description provided for @navAdminGroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin'**
+  String get navAdminGroup;
+
+  /// No description provided for @navAdminReports.
+  ///
+  /// In en, this message translates to:
+  /// **'Reports & accounts'**
+  String get navAdminReports;
+
+  /// No description provided for @adminReportsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reports & accounts'**
+  String get adminReportsTitle;
+
+  /// No description provided for @adminReportsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review members\' reports about trainers, and suspend or restore trainer accounts when needed.'**
+  String get adminReportsSubtitle;
+
+  /// No description provided for @adminSectionReports.
+  ///
+  /// In en, this message translates to:
+  /// **'Reports'**
+  String get adminSectionReports;
+
+  /// No description provided for @adminSectionTrainers.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainers'**
+  String get adminSectionTrainers;
+
+  /// No description provided for @adminReportFilterOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get adminReportFilterOpen;
+
+  /// No description provided for @adminReportFilterClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get adminReportFilterClosed;
+
+  /// No description provided for @adminReportStatusResolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Actioned'**
+  String get adminReportStatusResolved;
+
+  /// No description provided for @adminReportStatusDismissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismissed'**
+  String get adminReportStatusDismissed;
+
+  /// No description provided for @adminReasonImpersonation.
+  ///
+  /// In en, this message translates to:
+  /// **'Impersonation'**
+  String get adminReasonImpersonation;
+
+  /// No description provided for @adminReasonInappropriateMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Inappropriate messages'**
+  String get adminReasonInappropriateMessage;
+
+  /// No description provided for @adminReasonOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get adminReasonOther;
+
+  /// No description provided for @adminFieldTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer'**
+  String get adminFieldTarget;
+
+  /// No description provided for @adminFieldReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason'**
+  String get adminFieldReason;
+
+  /// No description provided for @adminFieldMemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get adminFieldMemo;
+
+  /// No description provided for @adminFieldReportedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Reported'**
+  String get adminFieldReportedAt;
+
+  /// No description provided for @adminFieldResolvedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get adminFieldResolvedAt;
+
+  /// No description provided for @adminFieldOpenReports.
+  ///
+  /// In en, this message translates to:
+  /// **'Open reports'**
+  String get adminFieldOpenReports;
+
+  /// No description provided for @adminOpenReportsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 report} other{{count} reports}}'**
+  String adminOpenReportsCount(int count);
+
+  /// No description provided for @adminReportsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load reports'**
+  String get adminReportsLoadFailed;
+
+  /// No description provided for @adminReportsEmptyOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'No reports to review'**
+  String get adminReportsEmptyOpen;
+
+  /// No description provided for @adminReportsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching reports'**
+  String get adminReportsEmpty;
+
+  /// No description provided for @adminTrainerSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name or email'**
+  String get adminTrainerSearchHint;
+
+  /// No description provided for @adminStateActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get adminStateActive;
+
+  /// No description provided for @adminResolve.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark actioned'**
+  String get adminResolve;
+
+  /// No description provided for @adminDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get adminDismiss;
+
+  /// No description provided for @adminResolveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Close the report on {name} as actioned?'**
+  String adminResolveTitle(String name);
+
+  /// No description provided for @adminResolveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Close a report once you\'ve taken action, such as suspending the account. Closing it doesn\'t change the account.'**
+  String get adminResolveBody;
+
+  /// No description provided for @adminDismissTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss the report on {name}?'**
+  String adminDismissTitle(String name);
+
+  /// No description provided for @adminDismissBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Close a report that needs no action. The account doesn\'t change.'**
+  String get adminDismissBody;
+
+  /// No description provided for @adminReportResolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Report closed as actioned'**
+  String get adminReportResolved;
+
+  /// No description provided for @adminReportDismissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Report dismissed'**
+  String get adminReportDismissed;
+
+  /// No description provided for @adminRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get adminRefresh;
+
+  /// No description provided for @adminFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get adminFilterAll;
+
+  /// No description provided for @adminStatusSuspended.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspended'**
+  String get adminStatusSuspended;
+
+  /// No description provided for @adminTrainersLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load trainers'**
+  String get adminTrainersLoadFailed;
+
+  /// No description provided for @adminActionRetryLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Please try again in a moment.'**
+  String get adminActionRetryLater;
+
+  /// No description provided for @adminTrainersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No trainers here'**
+  String get adminTrainersEmpty;
+
+  /// No description provided for @adminTrainerUnnamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unnamed trainer'**
+  String get adminTrainerUnnamed;
+
+  /// No description provided for @adminFieldEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get adminFieldEmail;
+
+  /// No description provided for @adminFieldGym.
+  ///
+  /// In en, this message translates to:
+  /// **'Gym'**
+  String get adminFieldGym;
+
+  /// No description provided for @adminFieldSignedUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed up'**
+  String get adminFieldSignedUp;
+
+  /// No description provided for @adminGymNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No gym yet'**
+  String get adminGymNone;
+
+  /// No description provided for @adminSuspend.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspend account'**
+  String get adminSuspend;
+
+  /// No description provided for @adminUnsuspend.
+  ///
+  /// In en, this message translates to:
+  /// **'Lift suspension'**
+  String get adminUnsuspend;
+
+  /// No description provided for @adminSuspendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspend {name}\'s account?'**
+  String adminSuspendTitle(String name);
+
+  /// No description provided for @adminSuspendBody.
+  ///
+  /// In en, this message translates to:
+  /// **'They are signed out right away and can\'t sign in again. All member connections end, members are notified, and upcoming PT sessions are cancelled. Lifting the suspension does not restore those connections.'**
+  String get adminSuspendBody;
+
+  /// No description provided for @adminUnsuspendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Lift {name}\'s suspension?'**
+  String adminUnsuspendTitle(String name);
+
+  /// No description provided for @adminUnsuspendBody.
+  ///
+  /// In en, this message translates to:
+  /// **'They can sign in again. Ended member connections only come back when the member agrees again.'**
+  String get adminUnsuspendBody;
+
+  /// No description provided for @adminSuspended.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspended {name}\'s account'**
+  String adminSuspended(String name);
+
+  /// No description provided for @adminSuspendedReleased.
+  ///
+  /// In en, this message translates to:
+  /// **'Suspended {name}\'s account and ended {count} member connections'**
+  String adminSuspendedReleased(String name, int count);
+
+  /// No description provided for @adminUnsuspended.
+  ///
+  /// In en, this message translates to:
+  /// **'Lifted {name}\'s suspension'**
+  String adminUnsuspended(String name);
+
+  /// No description provided for @adminActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t complete that. Please try again in a moment.'**
+  String get adminActionFailed;
 
   /// No description provided for @myGymEditHint.
   ///
@@ -4567,12 +4795,6 @@ abstract class AppLocalizations {
   /// **'When a member changes goals or name, or disconnects'**
   String get myNotifMemberUpdatesHint;
 
-  /// Display label for the '걷기' routine type. The stored/wire value stays Korean — see kRoutineTypes.
-  ///
-  /// In en, this message translates to:
-  /// **'Walking'**
-  String get routineTypeWalking;
-
   /// No description provided for @routineTypeCardio.
   ///
   /// In en, this message translates to:
@@ -4584,12 +4806,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Strength'**
   String get routineTypeStrength;
-
-  /// No description provided for @routineTypeYoga.
-  ///
-  /// In en, this message translates to:
-  /// **'Yoga'**
-  String get routineTypeYoga;
 
   /// No description provided for @routineTypeStretching.
   ///
@@ -4807,47 +5023,77 @@ abstract class AppLocalizations {
   /// **'Create, assign, and manage exercise programs for each member'**
   String get coachSubtitle;
 
-  /// No description provided for @coachMemberSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'Member summary'**
-  String get coachMemberSummary;
-
-  /// No description provided for @reportsDataInsufficient.
-  ///
-  /// In en, this message translates to:
-  /// **'Insufficient data'**
-  String get reportsDataInsufficient;
-
   /// No description provided for @coachSendFailed.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t send. Please try again'**
   String get coachSendFailed;
 
-  /// No description provided for @coachScheduleFailed.
+  /// No description provided for @coachSwitchClientTitle.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t add it to the schedule. Please try again'**
-  String get coachScheduleFailed;
+  /// **'Switch to another client?'**
+  String get coachSwitchClientTitle;
+
+  /// No description provided for @coachSwitchClientBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unsent work. Switching clients discards the program and personal exercises you are building.'**
+  String get coachSwitchClientBody;
+
+  /// No description provided for @coachSwitchClientConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch'**
+  String get coachSwitchClientConfirm;
+
+  /// No description provided for @coachDraftResumeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You have saved work'**
+  String get coachDraftResumeTitle;
+
+  /// Body of the coaching screen's resume prompt for an autosaved draft.
+  ///
+  /// In en, this message translates to:
+  /// **'The program you were building for {name} was saved automatically. Continue where you left off?'**
+  String coachDraftResumeBody(String name);
+
+  /// No description provided for @coachDraftResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get coachDraftResume;
+
+  /// No description provided for @coachDraftDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get coachDraftDiscard;
+
+  /// No description provided for @personalRoutineTargetLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load PT appointments'**
+  String get personalRoutineTargetLoadFailed;
+
+  /// No description provided for @personalRoutineStartPast.
+  ///
+  /// In en, this message translates to:
+  /// **'The start date has passed, so it\'s now set to today. Check it and send again'**
+  String get personalRoutineStartPast;
+
+  /// No description provided for @schedRoutinesReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check the attached personal exercises. Please try again'**
+  String get schedRoutinesReadFailed;
 
   /// No description provided for @coachNoClients.
   ///
   /// In en, this message translates to:
   /// **'No members yet'**
   String get coachNoClients;
-
-  /// No description provided for @coachRecommended.
-  ///
-  /// In en, this message translates to:
-  /// **'AI suggestions'**
-  String get coachRecommended;
-
-  /// No description provided for @coachBackToList.
-  ///
-  /// In en, this message translates to:
-  /// **'Back to suggestions'**
-  String get coachBackToList;
 
   /// No description provided for @coachTrainerAdded.
   ///
@@ -4870,20 +5116,8 @@ abstract class AppLocalizations {
   /// No description provided for @coachRegisteredAttachedExisting.
   ///
   /// In en, this message translates to:
-  /// **'There was already a session planned on {date}, so the program was only attached to it — the time range you picked wasn\'t applied'**
+  /// **'There was already a PT planned on {date}, so the program was only attached to it — the time range you picked wasn\'t applied'**
   String coachRegisteredAttachedExisting(String date);
-
-  /// No description provided for @coachRegisterOn.
-  ///
-  /// In en, this message translates to:
-  /// **'Add to the {date} PT schedule'**
-  String coachRegisterOn(String date);
-
-  /// No description provided for @coachRegisterAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Add to PT schedule'**
-  String get coachRegisterAction;
 
   /// No description provided for @coachGoToSchedule.
   ///
@@ -4896,18 +5130,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tomorrow'**
   String get labelTomorrow;
-
-  /// No description provided for @coachRequestCustom.
-  ///
-  /// In en, this message translates to:
-  /// **'Ask AI for a custom suggestion'**
-  String get coachRequestCustom;
-
-  /// No description provided for @coachRequestBlurb.
-  ///
-  /// In en, this message translates to:
-  /// **'We\'ll analyse {name}\'s data, draft a recovery and a push option, and let you compare and edit them here.'**
-  String coachRequestBlurb(String name);
 
   /// No description provided for @coachTemplates.
   ///
@@ -4978,7 +5200,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachDeliveryRoutineSection.
   ///
   /// In en, this message translates to:
-  /// **'Personal workout'**
+  /// **'Personal exercises'**
   String get coachDeliveryRoutineSection;
 
   /// No description provided for @coachDeliveryNothing.
@@ -4998,30 +5220,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You haven\'t sent any programs yet'**
   String get coachHistoryEmpty;
-
-  /// No description provided for @coachHomework.
-  ///
-  /// In en, this message translates to:
-  /// **'Personal'**
-  String get coachHomework;
-
-  /// No description provided for @coachPersonalTraining.
-  ///
-  /// In en, this message translates to:
-  /// **'PT'**
-  String get coachPersonalTraining;
-
-  /// No description provided for @coachTrainer.
-  ///
-  /// In en, this message translates to:
-  /// **'Trainer'**
-  String get coachTrainer;
-
-  /// No description provided for @coachSessionProgramSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'{name} + {count} more'**
-  String coachSessionProgramSummary(String name, int count);
 
   /// No description provided for @aiReasonSodium.
   ///
@@ -5083,11 +5281,29 @@ abstract class AppLocalizations {
   /// **'AI generation failed. Please try again in a moment'**
   String get aiGenerateFailed;
 
+  /// No description provided for @aiGenerateInvalidConditions.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the generation conditions. Total time must be between {min} and {max} minutes'**
+  String aiGenerateInvalidConditions(int min, int max);
+
+  /// No description provided for @aiGenerateMinutesHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter between {min} and {max} minutes'**
+  String aiGenerateMinutesHelper(int min, int max);
+
   /// No description provided for @aiGenerateRateLimited.
   ///
   /// In en, this message translates to:
   /// **'Too many generation requests. Please try again shortly'**
   String get aiGenerateRateLimited;
+
+  /// No description provided for @aiGenerateDailyLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve used today\'s AI limit. Please try again tomorrow'**
+  String get aiGenerateDailyLimit;
 
   /// No description provided for @aiExerciseNameRequired.
   ///
@@ -5100,18 +5316,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Keep at least one exercise'**
   String get aiKeepOneExercise;
-
-  /// No description provided for @aiRoutineSent.
-  ///
-  /// In en, this message translates to:
-  /// **'Program sent to {name}'**
-  String aiRoutineSent(String name);
-
-  /// No description provided for @aiCustomRoutineNamed.
-  ///
-  /// In en, this message translates to:
-  /// **'AI custom suggestion ({option})'**
-  String aiCustomRoutineNamed(String option);
 
   /// Routine name sent when the trainer leaves the name blank (#2301).
   ///
@@ -5154,12 +5358,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Goal'**
   String get aiGoal;
-
-  /// No description provided for @aiTodaySodium.
-  ///
-  /// In en, this message translates to:
-  /// **'Sodium today'**
-  String get aiTodaySodium;
 
   /// No description provided for @aiOverTarget.
   ///
@@ -5299,30 +5497,6 @@ abstract class AppLocalizations {
   /// **'Your choice and edits are now in the final suggestion list.'**
   String get aiEditsApplied;
 
-  /// No description provided for @aiGoToChat.
-  ///
-  /// In en, this message translates to:
-  /// **'Open chat with {name}'**
-  String aiGoToChat(String name);
-
-  /// No description provided for @aiSending.
-  ///
-  /// In en, this message translates to:
-  /// **'Sending…'**
-  String get aiSending;
-
-  /// No description provided for @aiSendToClient.
-  ///
-  /// In en, this message translates to:
-  /// **'Send to member'**
-  String get aiSendToClient;
-
-  /// No description provided for @aiGoToChatHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Use the button below to jump into their chat and explain it.'**
-  String get aiGoToChatHint;
-
   /// No description provided for @aiApplyToTemplate.
   ///
   /// In en, this message translates to:
@@ -5356,7 +5530,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiSkipPtProgram.
   ///
   /// In en, this message translates to:
-  /// **'Skip PT — personal exercise only'**
+  /// **'Personal exercise only'**
   String get aiSkipPtProgram;
 
   /// Evidence chip on an AI personal-exercise suggestion; server code recent_pt_feedback (#2301).
@@ -5512,7 +5686,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiPersonalStepBlurbRoutineOnly.
   ///
   /// In en, this message translates to:
-  /// **'What the member does on their own this week. Pick at least one.'**
+  /// **'What the member does on their own. If there is a PT on the start date it attaches to that PT; otherwise it goes out now for a week. Pick at least one.'**
   String get aiPersonalStepBlurbRoutineOnly;
 
   /// No description provided for @aiPersonalStepEmpty.
@@ -5521,23 +5695,11 @@ abstract class AppLocalizations {
   /// **'No personal exercise yet. Add one below.'**
   String get aiPersonalStepEmpty;
 
-  /// No description provided for @aiPersonalStepNext.
-  ///
-  /// In en, this message translates to:
-  /// **'Next'**
-  String get aiPersonalStepNext;
-
   /// No description provided for @aiKeepOnePersonalRoutine.
   ///
   /// In en, this message translates to:
   /// **'Keep at least one personal exercise.'**
   String get aiKeepOnePersonalRoutine;
-
-  /// No description provided for @aiRoutineOnlyReviewTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Sending this to the member'**
-  String get aiRoutineOnlyReviewTitle;
 
   /// No description provided for @aiRoutineOnlyStartDate.
   ///
@@ -5545,17 +5707,11 @@ abstract class AppLocalizations {
   /// **'Start date'**
   String get aiRoutineOnlyStartDate;
 
-  /// No description provided for @aiRoutineOnlyWeekRange.
-  ///
-  /// In en, this message translates to:
-  /// **'Shown daily {start} – {end}'**
-  String aiRoutineOnlyWeekRange(String start, String end);
-
   /// No description provided for @aiRoutineOnlyWeeklyHint.
   ///
   /// In en, this message translates to:
-  /// **'Appears in the member app every day for 7 days from today. Send next week\'s set again then.'**
-  String get aiRoutineOnlyWeeklyHint;
+  /// **'Appears in the member app every day for 7 days, {start} to {end}. Send next week\'s set again then.'**
+  String aiRoutineOnlyWeeklyHint(String start, String end);
 
   /// No description provided for @aiRoutineOnlySend.
   ///
@@ -5575,12 +5731,6 @@ abstract class AppLocalizations {
   /// **'Personal exercise sent to the member.'**
   String get aiRoutineOnlySent;
 
-  /// No description provided for @aiRoutineOnlySendFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not send the personal exercise. Please try again shortly.'**
-  String get aiRoutineOnlySendFailed;
-
   /// No description provided for @aiRoutineOnlyProgramName.
   ///
   /// In en, this message translates to:
@@ -5599,6 +5749,78 @@ abstract class AppLocalizations {
   /// **'Goes to the member when you complete this PT.'**
   String get progPersonalRoutinesWhen;
 
+  /// No description provided for @progNoRoutinesRegisterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to schedule without personal exercise?'**
+  String get progNoRoutinesRegisterTitle;
+
+  /// No description provided for @progNoRoutinesRegisterBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Each PT should come with at least one personal exercise. If you skip it now, you can still add it from the session details in Schedule before sending the PT program.'**
+  String get progNoRoutinesRegisterBody;
+
+  /// No description provided for @progNoRoutinesRegisterSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Add without it'**
+  String get progNoRoutinesRegisterSkip;
+
+  /// No description provided for @progPersonalRoutinesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No personal exercise yet. Add at least one for each PT.'**
+  String get progPersonalRoutinesEmpty;
+
+  /// No description provided for @aiAttachTargetPt.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise for the PT you are putting together.'**
+  String get aiAttachTargetPt;
+
+  /// No description provided for @aiAttachRoutines.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply to PT'**
+  String get aiAttachRoutines;
+
+  /// No description provided for @aiAttachedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Applied'**
+  String get aiAttachedLabel;
+
+  /// No description provided for @aiRoutineTargetPt.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach to the {date} {time} PT'**
+  String aiRoutineTargetPt(String date, String time);
+
+  /// No description provided for @aiRoutineOnlyAttachHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Attaches to the {date} {time} PT. It reaches the member when you send that PT from Schedule.'**
+  String aiRoutineOnlyAttachHint(String date, String time);
+
+  /// No description provided for @aiReplaceRoutinesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise already attached'**
+  String get aiReplaceRoutinesTitle;
+
+  /// No description provided for @aiReplaceRoutinesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This PT already has {count} personal exercise(s) ({names}). Replace them with the new ones?'**
+  String aiReplaceRoutinesBody(int count, String names);
+
+  /// No description provided for @aiReplaceRoutinesConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get aiReplaceRoutinesConfirm;
+
   /// No description provided for @programRoutineOnlyConfirmBody.
   ///
   /// In en, this message translates to:
@@ -5610,12 +5832,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Personal exercise for this PT'**
   String get progPersonalRoutinesTitle;
-
-  /// No description provided for @progPersonalRoutinesCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} personal exercises going with it'**
-  String progPersonalRoutinesCount(int count);
 
   /// No description provided for @aiStepperLabel.
   ///
@@ -5689,12 +5905,6 @@ abstract class AppLocalizations {
   /// **'Leave blank to auto-fill from recent history or goals.'**
   String get aiConditionsAutoHint;
 
-  /// No description provided for @aiConditionsEditToggle.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit recommended conditions'**
-  String get aiConditionsEditToggle;
-
   /// No description provided for @aiPromptTitle.
   ///
   /// In en, this message translates to:
@@ -5754,6 +5964,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Chat-detected memos'**
   String get aiSourceChatInsight;
+
+  /// Source the AI may read — the raw recent chat with the member (last 14 days, up to 10, #2794)
+  ///
+  /// In en, this message translates to:
+  /// **'Recent chat'**
+  String get aiSourceRecentChat;
 
   /// No description provided for @aiSourceWeeklyFeedback.
   ///
@@ -5869,12 +6085,6 @@ abstract class AppLocalizations {
   /// **'All'**
   String get filterAll;
 
-  /// No description provided for @metricOverBy.
-  ///
-  /// In en, this message translates to:
-  /// **'{unit} over'**
-  String metricOverBy(String unit);
-
   /// No description provided for @authErrInvalidCredentials.
   ///
   /// In en, this message translates to:
@@ -5890,7 +6100,7 @@ abstract class AppLocalizations {
   /// No description provided for @authErrSessionExpired.
   ///
   /// In en, this message translates to:
-  /// **'Your session expired. Please sign in again.'**
+  /// **'Your sign-in expired. Please sign in again.'**
   String get authErrSessionExpired;
 
   /// No description provided for @authErrNoSocialToken.
@@ -5917,30 +6127,6 @@ abstract class AppLocalizations {
   /// **'The response was empty.'**
   String get authErrEmptyResponse;
 
-  /// No description provided for @coachDemoUnavailable.
-  ///
-  /// In en, this message translates to:
-  /// **'AI coaching isn\'t available in demo mode'**
-  String get coachDemoUnavailable;
-
-  /// No description provided for @coachNotMyClient.
-  ///
-  /// In en, this message translates to:
-  /// **'That isn\'t one of your members'**
-  String get coachNotMyClient;
-
-  /// No description provided for @coachAskFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t send your question'**
-  String get coachAskFailed;
-
-  /// No description provided for @coachRateLimited.
-  ///
-  /// In en, this message translates to:
-  /// **'You\'ve sent too many questions. Please try again in a minute'**
-  String get coachRateLimited;
-
   /// No description provided for @slotFutureOnly.
   ///
   /// In en, this message translates to:
@@ -5958,12 +6144,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Can\'t change the type of a slot that\'s already booked.'**
   String get slotTypeLockedByBooking;
-
-  /// No description provided for @slotSessionType.
-  ///
-  /// In en, this message translates to:
-  /// **'Type'**
-  String get slotSessionType;
 
   /// No description provided for @authErrNotTrainer.
   ///
@@ -5995,24 +6175,6 @@ abstract class AppLocalizations {
   /// **'· {name} · {minutes} min '**
   String aiBulletExercise(String name, int minutes);
 
-  /// No description provided for @schedHourLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'{hour}:00'**
-  String schedHourLabel(String hour);
-
-  /// No description provided for @schedMinuteLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'{minute} min'**
-  String schedMinuteLabel(String minute);
-
-  /// No description provided for @progDefaultReps.
-  ///
-  /// In en, this message translates to:
-  /// **'10 reps'**
-  String get progDefaultReps;
-
   /// Login screen wordmark with the spaced hyphen used in the visual design.
   ///
   /// In en, this message translates to:
@@ -6030,6 +6192,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Notifications'**
   String get notifTitle;
+
+  /// No description provided for @notifSeeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get notifSeeAll;
+
+  /// No description provided for @notifGroupAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get notifGroupAll;
+
+  /// No description provided for @notifGroupMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages'**
+  String get notifGroupMessages;
+
+  /// No description provided for @notifGroupEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications of this kind'**
+  String get notifGroupEmpty;
 
   /// No description provided for @notifReadAll.
   ///
@@ -6223,6 +6409,42 @@ abstract class AppLocalizations {
   /// **'Sent a photo'**
   String get notifTplMemberPhotoBody;
 
+  /// Trainer notification title when a member submits their weekly feedback (#3026).
+  ///
+  /// In en, this message translates to:
+  /// **'{name} sent their weekly feedback'**
+  String notifTplWeeklyFeedbackTitle(String name);
+
+  /// Title when a member re-submits weekly feedback the trainer has already read (#3026).
+  ///
+  /// In en, this message translates to:
+  /// **'{name} updated their weekly feedback'**
+  String notifTplWeeklyFeedbackRevisedTitle(String name);
+
+  /// Title when the weekly feedback reports pain. The pain area itself is never shown in the notification (#3026).
+  ///
+  /// In en, this message translates to:
+  /// **'{name} reported pain'**
+  String notifTplWeeklyFeedbackPainTitle(String name);
+
+  /// No description provided for @notifTplWeeklyFeedbackCondition.
+  ///
+  /// In en, this message translates to:
+  /// **'Condition: {value}'**
+  String notifTplWeeklyFeedbackCondition(String value);
+
+  /// No description provided for @notifTplWeeklyFeedbackIntensity.
+  ///
+  /// In en, this message translates to:
+  /// **'Intensity: {value}'**
+  String notifTplWeeklyFeedbackIntensity(String value);
+
+  /// No description provided for @notifTplWeeklyFeedbackPain.
+  ///
+  /// In en, this message translates to:
+  /// **'Pain reported'**
+  String get notifTplWeeklyFeedbackPain;
+
   /// No description provided for @notifAllRead.
   ///
   /// In en, this message translates to:
@@ -6268,7 +6490,7 @@ abstract class AppLocalizations {
   /// No description provided for @myDeleteBody.
   ///
   /// In en, this message translates to:
-  /// **'Your member links and bookings are removed and your members are notified. This can\'t be undone.'**
+  /// **'Your profile, messages with members, the PT programs and personal exercises you sent, schedule and open booking times are deleted, your member links and upcoming bookings end, and your members are notified. Their unused PT renewal coupons are cancelled and the points are returned to them. This can\'t be undone.'**
   String get myDeleteBody;
 
   /// No description provided for @myDeleteFailed.
@@ -6277,11 +6499,53 @@ abstract class AppLocalizations {
   /// **'Couldn\'t delete your account. Please try again in a moment'**
   String get myDeleteFailed;
 
-  /// No description provided for @myDeleteConfirmPrompt.
+  /// No description provided for @myDeleteReauthPrompt.
   ///
   /// In en, this message translates to:
-  /// **'Type your name ({name}) to continue'**
-  String myDeleteConfirmPrompt(String name);
+  /// **'Enter your current password to confirm it\'s you'**
+  String get myDeleteReauthPrompt;
+
+  /// No description provided for @myDeleteReauthWrongPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Your current password is incorrect'**
+  String get myDeleteReauthWrongPassword;
+
+  /// No description provided for @myDeleteReauthSocialPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'This account uses social sign-in. Sign in again with your social account to confirm it\'s you.'**
+  String get myDeleteReauthSocialPrompt;
+
+  /// No description provided for @myDeleteReauthSocialAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in again with your social account'**
+  String get myDeleteReauthSocialAction;
+
+  /// No description provided for @myDeleteReauthKakao.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in again with Kakao'**
+  String get myDeleteReauthKakao;
+
+  /// No description provided for @myDeleteReauthGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in again with Google'**
+  String get myDeleteReauthGoogle;
+
+  /// No description provided for @myDeleteReauthSocialDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Social account confirmed. Press Delete to continue.'**
+  String get myDeleteReauthSocialDone;
+
+  /// No description provided for @myDeleteReauthSocialFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t confirm your social account. Please sign in again.'**
+  String get myDeleteReauthSocialFailed;
 
   /// No description provided for @myWithdrawReasonTitle.
   ///
@@ -6403,23 +6667,173 @@ abstract class AppLocalizations {
   /// **'Continue leaving'**
   String get myWithdrawContinue;
 
-  /// No description provided for @routineAlreadyGone.
+  /// No description provided for @workoutKindPersonal.
   ///
   /// In en, this message translates to:
-  /// **'That program is already gone'**
-  String get routineAlreadyGone;
+  /// **'Personal exercise'**
+  String get workoutKindPersonal;
 
-  /// No description provided for @workoutPendingTitle.
+  /// No description provided for @workoutRoutineDay.
   ///
   /// In en, this message translates to:
-  /// **'Daily personal exercises'**
-  String get workoutPendingTitle;
+  /// **'{month}/{day} ({weekday})'**
+  String workoutRoutineDay(int month, int day, String weekday);
 
-  /// No description provided for @workoutRoutineDoneToday.
+  /// No description provided for @workoutRoutineDoneOf.
   ///
   /// In en, this message translates to:
-  /// **'Done today'**
-  String get workoutRoutineDoneToday;
+  /// **'{done} of {total} done'**
+  String workoutRoutineDoneOf(int done, int total);
+
+  /// No description provided for @workoutRoutineSentUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent {sent} · until {end}'**
+  String workoutRoutineSentUntil(String sent, String end);
+
+  /// No description provided for @workoutRoutineWeekSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'All done {full} of {days} days'**
+  String workoutRoutineWeekSummary(int days, int full);
+
+  /// No description provided for @workoutRoutineWeekLate.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} late on {weekday}'**
+  String workoutRoutineWeekLate(String weekday, int count);
+
+  /// No description provided for @workoutRoutineWeekFirstDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Starts today'**
+  String get workoutRoutineWeekFirstDay;
+
+  /// No description provided for @workoutRoutineWeekSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent {date} · {names}'**
+  String workoutRoutineWeekSent(String date, String names);
+
+  /// No description provided for @workoutRoutineWeekOngoing.
+  ///
+  /// In en, this message translates to:
+  /// **'Ongoing · {names}'**
+  String workoutRoutineWeekOngoing(String names);
+
+  /// No description provided for @workoutRoutineWeekMore.
+  ///
+  /// In en, this message translates to:
+  /// **'{names} +{count} more'**
+  String workoutRoutineWeekMore(String names, int count);
+
+  /// No description provided for @workoutRoutineAllCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent {count} times'**
+  String workoutRoutineAllCount(int count);
+
+  /// No description provided for @workoutRoutineAllAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% on average'**
+  String workoutRoutineAllAverage(int percent);
+
+  /// No description provided for @workoutRoutineAllSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent {date}'**
+  String workoutRoutineAllSent(String date);
+
+  /// No description provided for @workoutRoutineAllUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'until {date}'**
+  String workoutRoutineAllUntil(String date);
+
+  /// No description provided for @workoutRoutineAllUntilShort.
+  ///
+  /// In en, this message translates to:
+  /// **'until {date} · {days} days'**
+  String workoutRoutineAllUntilShort(String date, int days);
+
+  /// No description provided for @workoutRoutineAllOngoing.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress · day {day}'**
+  String workoutRoutineAllOngoing(int day);
+
+  /// No description provided for @workoutRoutineAllFirstDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Starts today'**
+  String get workoutRoutineAllFirstDay;
+
+  /// No description provided for @workoutRoutineAllRing.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise sent {date}, {percent}% done'**
+  String workoutRoutineAllRing(String date, int percent);
+
+  /// No description provided for @coachRoutineAdherenceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise follow-through'**
+  String get coachRoutineAdherenceTitle;
+
+  /// No description provided for @coachRoutineAdherenceSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'All done on {full} of the past {days} days'**
+  String coachRoutineAdherenceSummary(int days, int full);
+
+  /// No description provided for @coachRoutineAdherenceLate.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} on {weekday} checked later'**
+  String coachRoutineAdherenceLate(String weekday, int count);
+
+  /// No description provided for @coachRoutineAdherenceFirstDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent today'**
+  String get coachRoutineAdherenceFirstDay;
+
+  /// No description provided for @coachRoutineAdherenceCell.
+  ///
+  /// In en, this message translates to:
+  /// **'{date}: {done} of {total} done'**
+  String coachRoutineAdherenceCell(String date, int done, int total);
+
+  /// No description provided for @workoutTotalBurned.
+  ///
+  /// In en, this message translates to:
+  /// **'{calories} kcal burned'**
+  String workoutTotalBurned(String calories);
+
+  /// No description provided for @workoutLineBurned.
+  ///
+  /// In en, this message translates to:
+  /// **'{calories} kcal burned'**
+  String workoutLineBurned(String calories);
+
+  /// No description provided for @workoutLineEstimated.
+  ///
+  /// In en, this message translates to:
+  /// **'Est. {calories} kcal burned'**
+  String workoutLineEstimated(String calories);
+
+  /// No description provided for @workoutIntensityPerformed.
+  ///
+  /// In en, this message translates to:
+  /// **'Did {level}'**
+  String workoutIntensityPerformed(String level);
+
+  /// No description provided for @workoutDaySourcePt.
+  ///
+  /// In en, this message translates to:
+  /// **'PT'**
+  String get workoutDaySourcePt;
 
   /// No description provided for @workoutUndatedTitle.
   ///
@@ -6430,104 +6844,14 @@ abstract class AppLocalizations {
   /// No description provided for @workoutMemberLogTitle.
   ///
   /// In en, this message translates to:
-  /// **'Logged by member'**
+  /// **'Added by member'**
   String get workoutMemberLogTitle;
 
-  /// No description provided for @workoutPendingCancel.
+  /// Shown in the expanded day when its workouts fail to load (#2892)
   ///
   /// In en, this message translates to:
-  /// **'Cancel assignment'**
-  String get workoutPendingCancel;
-
-  /// No description provided for @routineUpdateFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t update the program. Please try again in a moment'**
-  String get routineUpdateFailed;
-
-  /// No description provided for @routineUpdated.
-  ///
-  /// In en, this message translates to:
-  /// **'Program updated'**
-  String get routineUpdated;
-
-  /// No description provided for @routineDeleteTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete this program?'**
-  String get routineDeleteTitle;
-
-  /// No description provided for @routineDeleteFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t delete the program. Please try again in a moment'**
-  String get routineDeleteFailed;
-
-  /// No description provided for @routineDeleted.
-  ///
-  /// In en, this message translates to:
-  /// **'Program deleted'**
-  String get routineDeleted;
-
-  /// No description provided for @routineEdit.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit program'**
-  String get routineEdit;
-
-  /// No description provided for @routineDelete.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete program'**
-  String get routineDelete;
-
-  /// No description provided for @routineNameRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter a program name'**
-  String get routineNameRequired;
-
-  /// No description provided for @routineNameTooLong.
-  ///
-  /// In en, this message translates to:
-  /// **'Keep the name to 100 characters or fewer'**
-  String get routineNameTooLong;
-
-  /// No description provided for @routineMinutesRange.
-  ///
-  /// In en, this message translates to:
-  /// **'Duration must be between 0 and 600 minutes'**
-  String get routineMinutesRange;
-
-  /// No description provided for @routineReasonTooLong.
-  ///
-  /// In en, this message translates to:
-  /// **'Keep the reason to 200 characters or fewer'**
-  String get routineReasonTooLong;
-
-  /// No description provided for @routineFieldName.
-  ///
-  /// In en, this message translates to:
-  /// **'Program name'**
-  String get routineFieldName;
-
-  /// No description provided for @routineFieldMinutesLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Duration (min)'**
-  String get routineFieldMinutesLabel;
-
-  /// No description provided for @routineFieldReason.
-  ///
-  /// In en, this message translates to:
-  /// **'Reason (optional)'**
-  String get routineFieldReason;
-
-  /// No description provided for @routineDeleteBody.
-  ///
-  /// In en, this message translates to:
-  /// **'{name} disappears from the member\'s app too.'**
-  String routineDeleteBody(String name);
+  /// **'Couldn\'t load this day\'s workouts'**
+  String get workoutDayExercisesFailed;
 
   /// Label/tooltip of the console header's client search.
   ///
@@ -6697,11 +7021,11 @@ abstract class AppLocalizations {
   /// **'Report'**
   String get dashTodoReport;
 
-  /// No description provided for @dashTodoConsultationSubtitle.
+  /// Subtitle of a consultation-request task: the member's preferred (or chosen slot) date and time, not the date the request arrived.
   ///
   /// In en, this message translates to:
-  /// **'Consultation request for {month}/{day}'**
-  String dashTodoConsultationSubtitle(int month, int day);
+  /// **'Preferred: {when}'**
+  String dashTodoConsultationSubtitle(String when);
 
   /// Subtitle of the demo carried-over task shown before real history exists.
   ///
@@ -6732,6 +7056,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load your task status. Please try again in a moment'**
   String get dashTaskLoadFailed;
+
+  /// Toast when a task tap arrives after midnight on a dashboard opened the previous day; the tap is ignored and today's list is reloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'The date changed, so today\'s tasks were reloaded. Please tap again'**
+  String get dashTaskDayChanged;
 
   /// No description provided for @dashTaskDismissTitle.
   ///
@@ -6841,12 +7171,6 @@ abstract class AppLocalizations {
   /// **'Unread {count}'**
   String messagesFilterUnreadCount(int count);
 
-  /// No description provided for @messagesBackToList.
-  ///
-  /// In en, this message translates to:
-  /// **'Conversation list'**
-  String get messagesBackToList;
-
   /// No description provided for @messagesNoPreview.
   ///
   /// In en, this message translates to:
@@ -6906,6 +7230,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Body and goals'**
   String get clientProfileSectionTitle;
+
+  /// No description provided for @clientMemoDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Memos & feedback'**
+  String get clientMemoDialogTitle;
 
   /// No description provided for @clientTrainerMemo.
   ///
@@ -7156,26 +7486,32 @@ abstract class AppLocalizations {
   /// No description provided for @clientMemoTagPtSession.
   ///
   /// In en, this message translates to:
-  /// **'PT session · {date}'**
+  /// **'PT · {date}'**
   String clientMemoTagPtSession(String date);
 
   /// No description provided for @clientMemoTagPersonal.
   ///
   /// In en, this message translates to:
-  /// **'Personal workout · {date}'**
+  /// **'Personal exercise · {date}'**
   String clientMemoTagPersonal(String date);
 
   /// No description provided for @clientMemoTagPersonalNamed.
   ///
   /// In en, this message translates to:
-  /// **'Personal workout · {date} {name}'**
+  /// **'Personal exercise · {date} {name}'**
   String clientMemoTagPersonalNamed(String date, String name);
 
   /// No description provided for @clientMemoTagMemberLog.
   ///
   /// In en, this message translates to:
-  /// **'Member\'s log · {date}'**
+  /// **'Added by member · {date}'**
   String clientMemoTagMemberLog(String date);
+
+  /// No description provided for @clientMemoTagDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout · {date}'**
+  String clientMemoTagDay(String date);
 
   /// No description provided for @clientMemoEdited.
   ///
@@ -7195,131 +7531,161 @@ abstract class AppLocalizations {
   /// **'No memos match your search.'**
   String get clientMemoSearchEmpty;
 
-  /// No description provided for @followUp.
+  /// No description provided for @clientMemoCategoryExercise.
   ///
   /// In en, this message translates to:
-  /// **'Follow-ups'**
-  String get followUp;
+  /// **'Exercise'**
+  String get clientMemoCategoryExercise;
 
-  /// No description provided for @followUpTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Follow-ups on {name}'**
-  String followUpTitle(String name);
-
-  /// No description provided for @followUpHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Note what you want to check again'**
-  String get followUpHint;
-
-  /// No description provided for @followUpAdd.
-  ///
-  /// In en, this message translates to:
-  /// **'Add follow-up'**
-  String get followUpAdd;
-
-  /// No description provided for @followUpDue.
-  ///
-  /// In en, this message translates to:
-  /// **'Check on'**
-  String get followUpDue;
-
-  /// No description provided for @followUpDueOn.
-  ///
-  /// In en, this message translates to:
-  /// **'Check on {date}'**
-  String followUpDueOn(String date);
-
-  /// No description provided for @followUpOverdue.
-  ///
-  /// In en, this message translates to:
-  /// **'Overdue'**
-  String get followUpOverdue;
-
-  /// No description provided for @followUpContext.
-  ///
-  /// In en, this message translates to:
-  /// **'Opens'**
-  String get followUpContext;
-
-  /// No description provided for @followUpContextGeneral.
-  ///
-  /// In en, this message translates to:
-  /// **'Member detail'**
-  String get followUpContextGeneral;
-
-  /// No description provided for @followUpContextDiet.
+  /// No description provided for @clientMemoCategoryDiet.
   ///
   /// In en, this message translates to:
   /// **'Diet'**
-  String get followUpContextDiet;
+  String get clientMemoCategoryDiet;
 
-  /// No description provided for @followUpContextExercise.
+  /// No description provided for @clientMemoCategoryPain.
   ///
   /// In en, this message translates to:
-  /// **'Workout'**
-  String get followUpContextExercise;
+  /// **'Pain · injury'**
+  String get clientMemoCategoryPain;
 
-  /// No description provided for @followUpContextMessage.
+  /// No description provided for @clientMemoCategoryLife.
   ///
   /// In en, this message translates to:
-  /// **'Messages'**
-  String get followUpContextMessage;
+  /// **'Life · schedule'**
+  String get clientMemoCategoryLife;
 
-  /// No description provided for @followUpContextProgram.
+  /// No description provided for @clientMemoRecordLink.
   ///
   /// In en, this message translates to:
-  /// **'Program'**
-  String get followUpContextProgram;
+  /// **'Link a workout (optional)'**
+  String get clientMemoRecordLink;
 
-  /// No description provided for @followUpContextSchedule.
+  /// No description provided for @clientMemoRecordNone.
   ///
   /// In en, this message translates to:
-  /// **'Schedule'**
-  String get followUpContextSchedule;
+  /// **'No link'**
+  String get clientMemoRecordNone;
 
-  /// No description provided for @followUpComplete.
+  /// No description provided for @clientMemoRecordEmpty.
   ///
   /// In en, this message translates to:
-  /// **'Done'**
-  String get followUpComplete;
+  /// **'No workouts in the last 14 days'**
+  String get clientMemoRecordEmpty;
 
-  /// No description provided for @followUpCount.
+  /// No description provided for @clientMemoRecordDay.
   ///
   /// In en, this message translates to:
-  /// **'{count} left'**
-  String followUpCount(int count);
+  /// **'{month}/{day} ({weekday})'**
+  String clientMemoRecordDay(String month, String day, String weekday);
 
-  /// No description provided for @followUpEmpty.
+  /// No description provided for @clientMemoRecordPtSession.
   ///
   /// In en, this message translates to:
-  /// **'No follow-ups left.'**
-  String get followUpEmpty;
+  /// **'{date} PT'**
+  String clientMemoRecordPtSession(String date);
 
-  /// No description provided for @followUpDashboardEmpty.
+  /// No description provided for @clientMemoRecordPersonal.
   ///
   /// In en, this message translates to:
-  /// **'Nothing to follow up on today.'**
-  String get followUpDashboardEmpty;
+  /// **'{date} Personal exercise'**
+  String clientMemoRecordPersonal(String date);
 
-  /// No description provided for @followUpLoadFailed.
+  /// No description provided for @clientMemoRecordPersonalNamed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load follow-ups. Please try again.'**
-  String get followUpLoadFailed;
+  /// **'{date} Personal exercise · {name}'**
+  String clientMemoRecordPersonalNamed(String date, String name);
 
-  /// No description provided for @followUpSaveFailed.
+  /// No description provided for @clientMemoRecordMemberLog.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t save the follow-up. Please try again.'**
-  String get followUpSaveFailed;
+  /// **'{date} Added by member'**
+  String clientMemoRecordMemberLog(String date);
 
-  /// No description provided for @followUpCompleteFailed.
+  /// No description provided for @clientMemoRecordExerciseDay.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t mark it done. Please try again.'**
-  String get followUpCompleteFailed;
+  /// **'{date} workout'**
+  String clientMemoRecordExerciseDay(String date);
+
+  /// No description provided for @clientMemoTabMemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Memos'**
+  String get clientMemoTabMemo;
+
+  /// No description provided for @clientMemoTabFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback'**
+  String get clientMemoTabFeedback;
+
+  /// No description provided for @clientFeedbackPrivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback you and the member exchanged. Tap one to edit it where it was written.'**
+  String get clientFeedbackPrivate;
+
+  /// No description provided for @clientFeedbackToMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer → member'**
+  String get clientFeedbackToMember;
+
+  /// No description provided for @clientFeedbackFromMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Member → trainer'**
+  String get clientFeedbackFromMember;
+
+  /// No description provided for @clientFeedbackSourcePt.
+  ///
+  /// In en, this message translates to:
+  /// **'PT · {date}'**
+  String clientFeedbackSourcePt(String date);
+
+  /// No description provided for @clientFeedbackSourceReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Report · week of {date}'**
+  String clientFeedbackSourceReport(String date);
+
+  /// No description provided for @clientFeedbackSourceWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly check-in · week of {date}'**
+  String clientFeedbackSourceWeekly(String date);
+
+  /// No description provided for @clientFeedbackWeeklyNoNote.
+  ///
+  /// In en, this message translates to:
+  /// **'No note'**
+  String get clientFeedbackWeeklyNoNote;
+
+  /// No description provided for @clientFeedbackEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No feedback exchanged yet.'**
+  String get clientFeedbackEmpty;
+
+  /// No description provided for @clientFeedbackLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load feedback. Try again in a moment'**
+  String get clientFeedbackLoadFailed;
+
+  /// No description provided for @clientFeedbackSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search feedback (text, source, direction)'**
+  String get clientFeedbackSearchHint;
+
+  /// No description provided for @clientFeedbackSearchEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No feedback matches your search.'**
+  String get clientFeedbackSearchEmpty;
 
   /// No description provided for @programEditorDefaultName.
   ///
@@ -7333,65 +7699,11 @@ abstract class AppLocalizations {
   /// **'Give the program a name first.'**
   String get programEditorSaveUnsupported;
 
-  /// No description provided for @programEditorSaveEdit.
-  ///
-  /// In en, this message translates to:
-  /// **'Save changes'**
-  String get programEditorSaveEdit;
-
-  /// No description provided for @programSavedTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Saved programs'**
-  String get programSavedTitle;
-
-  /// No description provided for @programSavedExerciseCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} exercises'**
-  String programSavedExerciseCount(int count);
-
-  /// No description provided for @programSavedNew.
-  ///
-  /// In en, this message translates to:
-  /// **'New program'**
-  String get programSavedNew;
-
   /// No description provided for @programDraftSaved.
   ///
   /// In en, this message translates to:
   /// **'Program saved.'**
   String get programDraftSaved;
-
-  /// No description provided for @programDraftSaveFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t save the program. Please try again.'**
-  String get programDraftSaveFailed;
-
-  /// No description provided for @programDraftLoadFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t open the saved program. Please try again.'**
-  String get programDraftLoadFailed;
-
-  /// No description provided for @programDraftDeleteFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t delete the program. Please try again.'**
-  String get programDraftDeleteFailed;
-
-  /// No description provided for @programDraftDeleteTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete this saved program?'**
-  String get programDraftDeleteTitle;
-
-  /// No description provided for @programDraftDeleteBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Programs you already assigned and sessions you scheduled stay as they are.'**
-  String get programDraftDeleteBody;
 
   /// No description provided for @programAssignConfirmAttachBody.
   ///
@@ -7407,7 +7719,7 @@ abstract class AppLocalizations {
   /// No description provided for @programAssignConfirmChooseBody.
   ///
   /// In en, this message translates to:
-  /// **'{name} has several PT sessions on {date} that overlap the time you picked ({selected}). Choose the session to attach this program to. The picked time won\'t be applied.'**
+  /// **'{name} has several PT appointments on {date} that overlap the time you picked ({selected}). Choose which one to attach this program to. The picked time won\'t be applied.'**
   String programAssignConfirmChooseBody(
     String name,
     String date,
@@ -7417,7 +7729,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachAttachTargetChanged.
   ///
   /// In en, this message translates to:
-  /// **'The PT session to attach to has changed. Tap Add to schedule again to check'**
+  /// **'The PT appointment to attach to has changed. Tap Add to schedule again to check'**
   String get coachAttachTargetChanged;
 
   /// No description provided for @coachScheduleOverlap.
@@ -7443,6 +7755,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That date has passed. Pick today or a later date'**
   String get programEditorRegisterDatePast;
+
+  /// No description provided for @programEditorSending.
+  ///
+  /// In en, this message translates to:
+  /// **'Adding to the schedule'**
+  String get programEditorSending;
+
+  /// No description provided for @programEditorAlreadySent.
+  ///
+  /// In en, this message translates to:
+  /// **'You just sent this setup. Apply a new one to send again'**
+  String get programEditorAlreadySent;
 
   /// No description provided for @coachSendNetworkFailed.
   ///
@@ -7500,7 +7824,7 @@ abstract class AppLocalizations {
   /// No description provided for @programAssignConfirmBody.
   ///
   /// In en, this message translates to:
-  /// **'A new PT session will be created for {name} on {date} at {time} with this program.'**
+  /// **'A new PT appointment will be created for {name} on {date} at {time} with this program.'**
   String programAssignConfirmBody(String name, String date, String time);
 
   /// No description provided for @programEditorSaveTemplate.
@@ -7514,66 +7838,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add to schedule'**
   String get programEditorAddSchedule;
-
-  /// No description provided for @programReviewTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Confirm & send'**
-  String get programReviewTitle;
-
-  /// No description provided for @programReviewBlurb.
-  ///
-  /// In en, this message translates to:
-  /// **'Exactly what you see below is what {name} receives. Check it, then send.'**
-  String programReviewBlurb(String name);
-
-  /// No description provided for @programReviewBack.
-  ///
-  /// In en, this message translates to:
-  /// **'Back to the editor'**
-  String get programReviewBack;
-
-  /// No description provided for @programReviewSessionSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} exercises'**
-  String programReviewSessionSummary(int count);
-
-  /// No description provided for @programEditorInfo.
-  ///
-  /// In en, this message translates to:
-  /// **'Program information'**
-  String get programEditorInfo;
-
-  /// No description provided for @programEditorName.
-  ///
-  /// In en, this message translates to:
-  /// **'Program name'**
-  String get programEditorName;
-
-  /// No description provided for @programEditorGoal.
-  ///
-  /// In en, this message translates to:
-  /// **'Goal (optional)'**
-  String get programEditorGoal;
-
-  /// No description provided for @programEditorPeriod.
-  ///
-  /// In en, this message translates to:
-  /// **'Period (optional)'**
-  String get programEditorPeriod;
-
-  /// No description provided for @programEditorAiHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Apply AI coaching suggestions to the first session as a local draft.'**
-  String get programEditorAiHint;
-
-  /// No description provided for @programEditorApply.
-  ///
-  /// In en, this message translates to:
-  /// **'Apply to editor'**
-  String get programEditorApply;
 
   /// No description provided for @programEditorExerciseConfig.
   ///
@@ -7598,6 +7862,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose a session for the \'{name}\' template.'**
   String programTemplateSessionPickerBody(String name);
+
+  /// No description provided for @programEditorAiReapplyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace the AI exercises with the new plan?'**
+  String get programEditorAiReapplyTitle;
+
+  /// No description provided for @programEditorAiReapplyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Replaces the AI exercises added earlier ({count}) with the new plan. Exercises you added or edited stay.'**
+  String programEditorAiReapplyBody(int count);
+
+  /// No description provided for @programEditorAiReapplyReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get programEditorAiReapplyReplace;
+
+  /// No description provided for @programEditorAiReapplyAppend.
+  ///
+  /// In en, this message translates to:
+  /// **'Add after'**
+  String get programEditorAiReapplyAppend;
 
   /// No description provided for @programEditorSessionNameTyped.
   ///
@@ -7713,59 +8001,95 @@ abstract class AppLocalizations {
   /// **'Weight kg'**
   String get programEditorWeight;
 
-  /// No description provided for @programEditorDuration.
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
   /// In en, this message translates to:
-  /// **'Time min'**
-  String get programEditorDuration;
+  /// **'{name} kept workouts and meals on plan this week. Hold this rhythm and consider nudging the training intensity up next week.'**
+  String reportsDemoSummarySteadyThisWeek(String name);
 
-  /// No description provided for @programEditorDistance.
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
   /// In en, this message translates to:
-  /// **'Distance m'**
-  String get programEditorDistance;
+  /// **'{name} kept workouts and meals on plan that week. Hold this rhythm and consider nudging the training intensity up gradually.'**
+  String reportsDemoSummarySteadyPastWeek(String name);
 
-  /// No description provided for @reportsComparisonTitle.
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
   /// In en, this message translates to:
-  /// **'{week} vs last week'**
-  String reportsComparisonTitle(String week);
+  /// **'{name}\'s workouts slipped this week. Ask whether the schedule was tight, then rebuild with a shorter routine next week.'**
+  String reportsDemoSummaryCompletionThisWeek(String name);
 
-  /// No description provided for @reportsGoThisWeek.
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
   /// In en, this message translates to:
-  /// **'Go to this week'**
-  String get reportsGoThisWeek;
+  /// **'{name}\'s workouts slipped that week. Ask whether the schedule was tight, then rebuild with a shorter routine.'**
+  String reportsDemoSummaryCompletionPastWeek(String name);
 
-  /// Placeholder in the report summary slot before a client is picked.
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
   /// In en, this message translates to:
-  /// **'Select a member to see their weekly summary and coaching suggestions here'**
-  String get reportsSummaryEmptyClient;
+  /// **'{name} skipped a few exercises this week. Check whether pain or difficulty was the reason and agree on substitutes together.'**
+  String reportsDemoSummarySkippedThisWeek(String name);
 
-  /// No description provided for @reportsLastWeek.
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
   /// In en, this message translates to:
-  /// **'Last week'**
-  String get reportsLastWeek;
+  /// **'{name} skipped a few exercises that week. Check whether pain or difficulty was the reason and agree on substitutes together.'**
+  String reportsDemoSummarySkippedPastWeek(String name);
 
-  /// No description provided for @reportsSelectedWeek.
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
   ///
   /// In en, this message translates to:
-  /// **'Selected week'**
-  String get reportsSelectedWeek;
+  /// **'{name} had salty meals often this week. Set one small goal together, such as cutting back on soups and processed foods.'**
+  String reportsDemoSummarySodiumThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} had salty meals often that week. Set one small goal together, such as cutting back on soups and processed foods.'**
+  String reportsDemoSummarySodiumPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} had sweets and sugary drinks often this week. Start by suggesting fruit or nuts as snacks instead.'**
+  String reportsDemoSummarySugarThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} had sweets and sugary drinks often that week. Start by suggesting fruit or nuts as snacks instead.'**
+  String reportsDemoSummarySugarPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s intake drifted from the calorie goal this week. Review the meal log together for skipped or oversized meals.'**
+  String reportsDemoSummaryCaloriesThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s intake drifted from the calorie goal that week. Review the meal log together for skipped or oversized meals.'**
+  String reportsDemoSummaryCaloriesPastWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s carb, protein and fat split differed from the goals this week. Go over meal composition together to rebalance it.'**
+  String reportsDemoSummaryMacroThisWeek(String name);
+
+  /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s carb, protein and fat split differed from the goals that week. Go over meal composition together to rebalance it.'**
+  String reportsDemoSummaryMacroPastWeek(String name);
 
   /// No description provided for @reportsBackToList.
   ///
   /// In en, this message translates to:
   /// **'Member list'**
   String get reportsBackToList;
-
-  /// No description provided for @reportsPreviousLoadFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load last week\'s data.'**
-  String get reportsPreviousLoadFailed;
 
   /// No description provided for @reportsAverageSodium.
   ///
@@ -7827,72 +8151,6 @@ abstract class AppLocalizations {
   /// **'Write coaching feedback for the member.'**
   String get reportsFeedbackHint;
 
-  /// No description provided for @reportsRecentWeeks.
-  ///
-  /// In en, this message translates to:
-  /// **'Last 4 weekly averages'**
-  String get reportsRecentWeeks;
-
-  /// No description provided for @reportsWeekTotal.
-  ///
-  /// In en, this message translates to:
-  /// **'Week total'**
-  String get reportsWeekTotal;
-
-  /// No description provided for @reportsGoalOf.
-  ///
-  /// In en, this message translates to:
-  /// **'Goal {value}'**
-  String reportsGoalOf(String value);
-
-  /// No description provided for @reportsCompareWith.
-  ///
-  /// In en, this message translates to:
-  /// **'vs last week'**
-  String get reportsCompareWith;
-
-  /// No description provided for @reportsMoreExercises.
-  ///
-  /// In en, this message translates to:
-  /// **'+{count} more'**
-  String reportsMoreExercises(int count);
-
-  /// No description provided for @reportsRecordedDays.
-  ///
-  /// In en, this message translates to:
-  /// **'{days} days logged'**
-  String reportsRecordedDays(int days);
-
-  /// No description provided for @reportsAdherenceChip.
-  ///
-  /// In en, this message translates to:
-  /// **'Adherence avg {value}'**
-  String reportsAdherenceChip(String value);
-
-  /// No description provided for @reportsBurnByDay.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly calories burned'**
-  String get reportsBurnByDay;
-
-  /// No description provided for @reportsBurnEstimateNote.
-  ///
-  /// In en, this message translates to:
-  /// **'Calories burned are estimated from workout type, duration, and intensity.'**
-  String get reportsBurnEstimateNote;
-
-  /// No description provided for @chartGoalLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Goal\n{value}'**
-  String chartGoalLabel(String value);
-
-  /// No description provided for @reportsWeeksAgo.
-  ///
-  /// In en, this message translates to:
-  /// **'{count}w ago'**
-  String reportsWeeksAgo(int count);
-
   /// No description provided for @reportsAiTitle.
   ///
   /// In en, this message translates to:
@@ -7938,7 +8196,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsActionSkipped.
   ///
   /// In en, this message translates to:
-  /// **'Prepare alternatives for {names} for the next session.'**
+  /// **'Prepare alternatives for {names} for the next PT.'**
   String reportsActionSkipped(String names);
 
   /// No description provided for @reportsActionUnlogged.
@@ -7959,12 +8217,6 @@ abstract class AppLocalizations {
   /// **'AI generated'**
   String get reportsAiGenerated;
 
-  /// No description provided for @reportsAiLoading.
-  ///
-  /// In en, this message translates to:
-  /// **'Writing this week\'s summary…'**
-  String get reportsAiLoading;
-
   /// No description provided for @reportsAiUseAsDraft.
   ///
   /// In en, this message translates to:
@@ -7977,17 +8229,17 @@ abstract class AppLocalizations {
   /// **'Regenerate'**
   String get reportsAiRegenerate;
 
-  /// No description provided for @reportsAiUnavailable.
+  /// No description provided for @reportsAiFailed.
   ///
   /// In en, this message translates to:
-  /// **'Available after the report summary API is connected. No summary is generated now.'**
-  String get reportsAiUnavailable;
+  /// **'Couldn\'t create the summary. Please try again.'**
+  String get reportsAiFailed;
 
-  /// No description provided for @reportsPdfGenerationFailed.
+  /// No description provided for @reportsAiDailyLimit.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t generate the PDF. Please try again.'**
-  String get reportsPdfGenerationFailed;
+  /// **'You\'ve used today\'s AI limit. Please try again tomorrow.'**
+  String get reportsAiDailyLimit;
 
   /// No description provided for @reportsPdfFallbackClient.
   ///
@@ -8000,12 +8252,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Weekly coaching report'**
   String get reportsPdfDocTitle;
-
-  /// No description provided for @reportsPdfDocTitleContinued.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly coaching report (continued)'**
-  String get reportsPdfDocTitleContinued;
 
   /// No description provided for @reportsPdfClient.
   ///
@@ -8064,13 +8310,13 @@ abstract class AppLocalizations {
   /// No description provided for @reportsPdfLabelSessions.
   ///
   /// In en, this message translates to:
-  /// **'PT sessions'**
+  /// **'PT'**
   String get reportsPdfLabelSessions;
 
   /// No description provided for @reportsPdfLabelSessionCount.
   ///
   /// In en, this message translates to:
-  /// **'PT sessions completed'**
+  /// **'PT completed'**
   String get reportsPdfLabelSessionCount;
 
   /// No description provided for @reportsPdfLabelSodiumOver.
@@ -8253,17 +8499,17 @@ abstract class AppLocalizations {
   /// **'{date}'**
   String chatDateDivider(DateTime date);
 
-  /// Tag on a pending assigned routine that the AI suggested.
-  ///
-  /// In en, this message translates to:
-  /// **'AI'**
-  String get clientWorkoutSourceAi;
-
   /// No description provided for @coachClientDemographics.
   ///
   /// In en, this message translates to:
   /// **'{gender} · Age {age}'**
   String coachClientDemographics(String gender, int age);
+
+  /// Age-only identity label when the member has no gender on file or the server hides it (#2814, #2870).
+  ///
+  /// In en, this message translates to:
+  /// **'Age {age}'**
+  String coachClientAge(int age);
 
   /// No description provided for @coachTemplateMenu.
   ///
@@ -8282,12 +8528,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Increase'**
   String get routineFormIncrease;
-
-  /// No description provided for @reportsWorkbenchTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'This week\'s reports'**
-  String get reportsWorkbenchTitle;
 
   /// No description provided for @reportsPending.
   ///
@@ -8688,7 +8928,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsGridPtSession.
   ///
   /// In en, this message translates to:
-  /// **'PT sessions'**
+  /// **'PT'**
   String get reportsGridPtSession;
 
   /// No description provided for @reportsGridPtPerWeek.
@@ -8700,7 +8940,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsGridPersonal.
   ///
   /// In en, this message translates to:
-  /// **'Personal workouts'**
+  /// **'Personal exercises'**
   String get reportsGridPersonal;
 
   /// No description provided for @reportsGridPersonalUnit.
@@ -8756,12 +8996,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{name} {value} / {target}g'**
   String reportsMacroValueOfTarget(String name, int value, int target);
-
-  /// No description provided for @reportsMacroNoValue.
-  ///
-  /// In en, this message translates to:
-  /// **'{name} not logged'**
-  String reportsMacroNoValue(String name);
 
   /// No description provided for @reportsMacroShortfall.
   ///
@@ -8906,36 +9140,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No goal'**
   String get reportsTrendNoGoal;
-
-  /// No description provided for @reportsTrendOfGoal.
-  ///
-  /// In en, this message translates to:
-  /// **'{value} / {goal}'**
-  String reportsTrendOfGoal(String value, String goal);
-
-  /// No description provided for @reportsTrendCompliance.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly completion'**
-  String get reportsTrendCompliance;
-
-  /// No description provided for @reportsTrendBurn.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly burn'**
-  String get reportsTrendBurn;
-
-  /// No description provided for @reportsTrendStreak.
-  ///
-  /// In en, this message translates to:
-  /// **'Streak'**
-  String get reportsTrendStreak;
-
-  /// No description provided for @reportsTrendStreakDays.
-  ///
-  /// In en, this message translates to:
-  /// **'{days} days'**
-  String reportsTrendStreakDays(int days);
 
   /// No description provided for @reportsExerciseTrend.
   ///
@@ -9376,6 +9580,30 @@ abstract class AppLocalizations {
   /// **'All {days} logged days {scope, select, last{last week} other{this week}} stayed within the goals.'**
   String clientDietAnalysisWeekGood(String scope, int days);
 
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.
+  ///
+  /// In en, this message translates to:
+  /// **'{food} replaced breakfast most often ({count} times).'**
+  String clientDietAnalysisWeekBreakfastSnackFood(String food, int count);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.
+  ///
+  /// In en, this message translates to:
+  /// **'Those days averaged {value} a day.'**
+  String clientDietAnalysisWeekProteinAvg(String value);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.
+  ///
+  /// In en, this message translates to:
+  /// **'Averaged {kcal} and {protein} protein a day.'**
+  String clientDietAnalysisWeekGoodAvg(String kcal, String protein);
+
+  /// 트레이너웹 회원 상세 식단 탭 `식단 분석` — 이번 주 근거·비교 문장.
+  ///
+  /// In en, this message translates to:
+  /// **'{way, select, more{Up from last week} less{Down from last week} other{About the same as last week}} ({prevDays} of {prevLogged} days).'**
+  String clientDietAnalysisWeekVsLast(int prevLogged, int prevDays, String way);
+
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
   /// In en, this message translates to:
@@ -9403,13 +9631,13 @@ abstract class AppLocalizations {
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
   /// In en, this message translates to:
-  /// **'Days meeting the protein goal rose from {before} to {after} over the last 2 weeks.'**
+  /// **'Days meeting the protein goal rose from {before} in the prior 2 weeks to {after} in the last 2 weeks.'**
   String clientDietAnalysisAllProteinTrendUp(int before, int after);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
   /// In en, this message translates to:
-  /// **'Days meeting the protein goal fell from {before} to {after} over the last 2 weeks.'**
+  /// **'Days meeting the protein goal fell from {before} in the prior 2 weeks to {after} in the last 2 weeks.'**
   String clientDietAnalysisAllProteinTrendDown(int before, int after);
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
@@ -9470,6 +9698,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No'**
   String get clientDietRecNo;
+
+  /// AI 식단 추천 카운터 왼쪽 꺾쇠 툴팁 — 같은 묶음 안 앞 후보로.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous pick'**
+  String get clientDietRecPrev;
+
+  /// AI 식단 추천 카운터 오른쪽 꺾쇠 툴팁 — 같은 묶음 안 다음 후보로(거절 아님).
+  ///
+  /// In en, this message translates to:
+  /// **'Next pick'**
+  String get clientDietRecForward;
 
   /// 트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).
   ///
@@ -9543,209 +9783,245 @@ abstract class AppLocalizations {
   /// **'{slot, select, breakfast{Breakfast} lunch{Lunch} dinner{Dinner} lateNight{Late-night snack} other{Snack}}'**
   String clientDietRecSlot(String slot);
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @authForgotPassword.
   ///
   /// In en, this message translates to:
-  /// **'Member'**
-  String get reportsSheetInfoMember;
+  /// **'Forgot your password?'**
+  String get authForgotPassword;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @passwordResetTitle.
   ///
   /// In en, this message translates to:
-  /// **'Period'**
-  String get reportsSheetInfoPeriod;
+  /// **'Reset password'**
+  String get passwordResetTitle;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @passwordResetRequestSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Meal logs'**
-  String get reportsSheetInfoMealDays;
+  /// **'We\'ll email a reset code to the address you signed up with.'**
+  String get passwordResetRequestSubtitle;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @passwordResetSendAction.
   ///
   /// In en, this message translates to:
-  /// **'{days}/{due} days'**
-  String reportsSheetDaysOf(String days, String due);
+  /// **'Send code'**
+  String get passwordResetSendAction;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @passwordResetHaveCode.
   ///
   /// In en, this message translates to:
-  /// **'Diet analysis'**
-  String get reportsSheetDietTitle;
+  /// **'I already have a code'**
+  String get passwordResetHaveCode;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @passwordResetSentTitle.
   ///
   /// In en, this message translates to:
-  /// **'Daily average vs. goal'**
-  String get reportsSheetDietHint;
+  /// **'Check your email'**
+  String get passwordResetSentTitle;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// Shown after a reset request. Same text whether or not the account exists.
   ///
   /// In en, this message translates to:
-  /// **'Exercise analysis'**
-  String get reportsSheetExerciseTitle;
+  /// **'If an account uses {email}, we\'ve sent a code you can use once within {minutes} minutes.'**
+  String passwordResetSentBody(String email, int minutes);
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @passwordResetConfirmSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'This week vs. goal'**
-  String get reportsSheetExerciseHint;
+  /// **'Enter the code from the email and your new password.'**
+  String get passwordResetConfirmSubtitle;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @passwordResetCodeHint.
   ///
   /// In en, this message translates to:
-  /// **'Daily log'**
-  String get reportsSheetDailyTitle;
+  /// **'16-character reset code'**
+  String get passwordResetCodeHint;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @passwordResetCodeEmpty.
   ///
   /// In en, this message translates to:
-  /// **'Done'**
-  String get reportsSheetDailyCompletion;
+  /// **'Enter the code'**
+  String get passwordResetCodeEmpty;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @passwordResetCodeMalformed.
   ///
   /// In en, this message translates to:
-  /// **'Calories'**
-  String get reportsSheetDailyCalories;
+  /// **'Enter the 16-character code from the email'**
+  String get passwordResetCodeMalformed;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @passwordResetCodeInvalid.
   ///
   /// In en, this message translates to:
-  /// **'Meals'**
-  String get reportsSheetDailyMeals;
+  /// **'This code is wrong or has expired. Request a new one.'**
+  String get passwordResetCodeInvalid;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @passwordResetConfirmAction.
   ///
   /// In en, this message translates to:
-  /// **'Workouts'**
-  String get reportsSheetDailyWorkouts;
+  /// **'Save new password'**
+  String get passwordResetConfirmAction;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @passwordResetResend.
   ///
   /// In en, this message translates to:
-  /// **'Trends'**
-  String get reportsSheetTrendTitle;
+  /// **'Send a new code'**
+  String get passwordResetResend;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @passwordResetDemoNote.
   ///
   /// In en, this message translates to:
-  /// **'Weekly exercise achievement (8 weeks)'**
-  String get reportsSheetTrendWeekly;
+  /// **'Demo mode doesn\'t send email. The code is filled in for you.'**
+  String get passwordResetDemoNote;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @passwordResetUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'Daily calories · goal line'**
-  String get reportsSheetTrendDaily;
+  /// **'We can\'t send reset emails right now. Please contact support.'**
+  String get passwordResetUnavailable;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @passwordResetDoneTitle.
   ///
   /// In en, this message translates to:
-  /// **'Low'**
-  String get reportsSheetBandUnder;
+  /// **'Password reset'**
+  String get passwordResetDoneTitle;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @passwordResetDoneBody.
   ///
   /// In en, this message translates to:
-  /// **'On target'**
-  String get reportsSheetBandNormal;
+  /// **'Sign in with your new password. You\'ve been signed out on every device.'**
+  String get passwordResetDoneBody;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @passwordResetBackToSignIn.
   ///
   /// In en, this message translates to:
-  /// **'High'**
-  String get reportsSheetBandOver;
+  /// **'Go to sign in'**
+  String get passwordResetBackToSignIn;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @passwordResetTooMany.
   ///
   /// In en, this message translates to:
-  /// **'Goal {value}'**
-  String reportsSheetGoal(String value);
+  /// **'Too many attempts. Please try again in a moment.'**
+  String get passwordResetTooMany;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @passwordResetTemporaryFailure.
   ///
   /// In en, this message translates to:
-  /// **'PT attendance'**
-  String get reportsSheetAttendance;
+  /// **'Couldn\'t complete the request. Please try again shortly.'**
+  String get passwordResetTemporaryFailure;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @signUpCodeSend.
   ///
   /// In en, this message translates to:
-  /// **'Weekly care score'**
-  String get reportsSheetScoreTitle;
+  /// **'Send code'**
+  String get signUpCodeSend;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @signUpCodeLabel.
   ///
   /// In en, this message translates to:
-  /// **'/100'**
-  String get reportsSheetScoreUnit;
+  /// **'Verification code'**
+  String get signUpCodeLabel;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// Same text whether or not the email already has an account.
   ///
   /// In en, this message translates to:
-  /// **'Average of workout completion, PT attendance, meal logging and on-target calorie days. Items without records are left out.'**
-  String get reportsSheetScoreFormula;
+  /// **'Enter the 6-digit code from the email. If this email already has an account, you\'ll get a notice instead of a code.'**
+  String get signUpCodeSentNotice;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// Remaining validity of the sign-up email code; time looks like 9:41.
   ///
   /// In en, this message translates to:
-  /// **'No records to score yet'**
-  String get reportsSheetScoreNone;
+  /// **'Expires in {time}'**
+  String signUpCodeRemaining(String time);
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @signUpCodeExpired.
   ///
   /// In en, this message translates to:
-  /// **'Evaluation'**
-  String get reportsSheetEvalTitle;
+  /// **'The code has expired. Request a new one.'**
+  String get signUpCodeExpired;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @signUpCodeResend.
   ///
   /// In en, this message translates to:
-  /// **'vs. 4-week average'**
-  String get reportsSheetAverageTitle;
+  /// **'Resend'**
+  String get signUpCodeResend;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @signUpCodeResendIn.
   ///
   /// In en, this message translates to:
-  /// **'This week'**
-  String get reportsSheetAverageNow;
+  /// **'Resend in {seconds}s'**
+  String signUpCodeResendIn(int seconds);
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @signUpCodeDemoNote.
   ///
   /// In en, this message translates to:
-  /// **'4-wk avg'**
-  String get reportsSheetAverageBase;
+  /// **'Demo mode doesn\'t send email. Enter {code} as the code.'**
+  String signUpCodeDemoNote(String code);
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @signUpCodeInvalid.
   ///
   /// In en, this message translates to:
-  /// **'Change'**
-  String get reportsSheetAverageChange;
+  /// **'This code is wrong or has expired. Request a new one.'**
+  String get signUpCodeInvalid;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @signUpCodeRequired.
   ///
   /// In en, this message translates to:
-  /// **'Meal log days'**
-  String get reportsSheetMealDaysLabel;
+  /// **'Enter the email verification code.'**
+  String get signUpCodeRequired;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @signUpCodeTooMany.
   ///
   /// In en, this message translates to:
-  /// **'Ranges compare this week with the member\'s goals. Items without records show as Not measured.'**
-  String get reportsSheetFootnote;
+  /// **'Too many requests. Please try again in a moment.'**
+  String get signUpCodeTooMany;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @signUpCodeUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'On-target calorie days'**
-  String get reportsSheetCalorieDays;
+  /// **'We can\'t send verification emails right now. Please try again later.'**
+  String get signUpCodeUnavailable;
 
-  /// 리포트 PDF 한 장 결과지 (#2485).
+  /// No description provided for @signUpCodeRequestFailed.
   ///
   /// In en, this message translates to:
-  /// **'{start} – {end}'**
-  String reportsSheetPeriodValue(String start, String end);
+  /// **'Couldn\'t send the code. Please try again shortly.'**
+  String get signUpCodeRequestFailed;
+
+  /// Title of the banner shown when a newer web release has been deployed while this tab is open (#3023).
+  ///
+  /// In en, this message translates to:
+  /// **'A new version is available'**
+  String get releaseUpdateTitle;
+
+  /// Body of the new-release banner.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload to get the latest version. Save anything you\'re working on first.'**
+  String get releaseUpdateMessage;
+
+  /// Button that reloads the page to load the new release.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload'**
+  String get releaseUpdateReload;
+
+  /// Tooltip of the button that hides the new-release banner for this release.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get releaseUpdateDismiss;
+
+  /// Shown in error toasts and error states when a request failed because of a network error or timeout, instead of the HTTP library's own English message.
+  ///
+  /// In en, this message translates to:
+  /// **'The connection is unstable. Please check your network and try again.'**
+  String get errorNetworkUnstable;
+
+  /// Shown in error toasts and error states when the server answered with a 5xx status and gave no reason of its own.
+  ///
+  /// In en, this message translates to:
+  /// **'The server is having a temporary problem. Please try again in a moment.'**
+  String get errorServerTemporary;
 }
 
 class _AppLocalizationsDelegate

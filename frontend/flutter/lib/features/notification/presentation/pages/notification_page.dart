@@ -7,6 +7,7 @@ import 'package:oncare/features/notification/presentation/alert_navigation.dart'
 import 'package:oncare/features/notification/presentation/alert_text.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 알림 갈래 → 왼쪽 원에 그릴 아이콘과 화면 읽기용 이름. 갈래 자체는 서버가 주는
@@ -43,6 +44,11 @@ import 'package:oncare_ui/oncare_ui.dart';
   AlertCategory.schedule => (
     label: l.alertCategorySchedule,
     icon: AppIcons.eventAvailable,
+  ),
+  // 끝난 PT 의 기록 — 운동 기록과 같은 기록 아이콘(#3027).
+  AlertCategory.ptDone => (
+    label: l.alertCategoryPtDone,
+    icon: AppIcons.exerciseLog,
   ),
   AlertCategory.trainerLink => (
     label: l.alertCategoryTrainer,
@@ -101,6 +107,13 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
   /// 그대로 보인다.
   static const double _loadMoreThreshold = 320;
 
+  /// 이동이 진행 중인 알림 id(#3097).
+  ///
+  /// 대화 알림은 코치 정보를 새로 받은 뒤에 대화 화면을 연다. 그 사이 같은 줄을
+  /// 한 번 더 누르면 대화 화면이 두 겹 쌓여 뒤로 가기를 두 번 해야 했다. 이동이
+  /// 끝날 때까지 다른 줄 탭을 받지 않고, 누른 줄에 작은 로딩 표시를 단다.
+  String? _openingId;
+
   @override
   void initState() {
     super.initState();
@@ -128,6 +141,34 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
     return ref.read(notificationControllerProvider.notifier).refresh();
   }
 
+  /// 모두 읽음. 서버 쓰기가 실패하면 컨트롤러가 읽음 표시를 되돌리고, 여기서
+  /// 사정을 알린다(#2877).
+  Future<void> _markAllRead() async {
+    final bool ok = await ref
+        .read(notificationControllerProvider.notifier)
+        .markAllRead();
+    if (ok || !mounted) return;
+    showAppToast(
+      context,
+      AppLocalizations.of(context).alertMarkAllReadFailed,
+      type: AppToastType.error,
+    );
+  }
+
+  /// 알림이 말하는 화면으로 간다. 이동이 끝날 때까지 다른 줄 탭은 무시한다(#3097).
+  Future<void> _open(AlertItem item) async {
+    if (_openingId != null) return;
+    setState(() => _openingId = item.id);
+    // 읽음 처리를 기다리지 않고 이동한다 — 서버 왕복 동안 화면이 멈춰 있으면
+    // 누른 것이 먹지 않은 것처럼 보인다.
+    ref.read(notificationControllerProvider.notifier).markRead(item.id);
+    try {
+      await openAlertTarget(context, ref, item);
+    } finally {
+      if (mounted) setState(() => _openingId = null);
+    }
+  }
+
   /// 바닥 근처면 다음 쪽을 잇는다. 중복 호출·더 없음은 컨트롤러가 막는다.
   void _maybeLoadMore() {
     if (!mounted || !_scroll.hasClients) return;
@@ -142,7 +183,16 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
     final state = ref.watch(notificationControllerProvider);
     final notifier = ref.read(notificationControllerProvider.notifier);
     final double side = context.oncare.density.pagePadding;
-    final bool showRetry = state.failedToLoad;
+    // 받아 둔 목록이 있을 때만 맨 위 배너로 알린다. 한 번도 받지 못했으면 본문
+    // 자리에 실패 안내만 그린다(#2877) — 배너 아래 "알림이 없습니다" 가 같이 서면
+    // 받아 본 적도 없는데 없다고 말하는 셈이다.
+    final bool showRetry = state.failedToLoad && !state.failedFirstLoad;
+    // 받은 쪽은 모두 읽었어도 서버에 오래된 안 읽음이 남아 있을 수 있다(#2877).
+    // 벨 점과 같은 서버 미읽음 수를 함께 봐야 벨에는 점이 있는데 모두 읽음이
+    // 눌리지 않는 일이 없다.
+    final int serverUnread =
+        ref.watch(notificationUnreadProvider).valueOrNull ?? 0;
+    final bool canMarkAllRead = state.unreadCount > 0 || serverUnread > 0;
     final int leading = showRetry ? 1 : 0;
     final int bodyCount = state.items.isEmpty ? 1 : state.items.length;
     // 더 받을 것이 남아 있을 때만 꼬리를 단다. 빈 목록에는 달지 않는다 — 받을 것이
@@ -160,7 +210,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
         actions: <Widget>[
           AppButton(
             label: l.alertMarkAllRead,
-            onPressed: state.unreadCount == 0 ? null : notifier.markAllRead,
+            onPressed: canMarkAllRead ? _markAllRead : null,
             variant: AppButtonVariant.text,
             size: OnCareButtonSize.small,
           ),
@@ -222,6 +272,25 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
                     ),
                   );
                 }
+                if (state.failedFirstLoad) {
+                  return Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      side,
+                      OnCareSpacing.s48,
+                      side,
+                      0,
+                    ),
+                    child: appErrorStateFor(
+                      context,
+                      key: const Key('notificationFirstLoadFailed'),
+                      error: state.loadError,
+                      title: l.alertLoadFailed,
+                      retryKey: const Key('notificationFirstLoadRetry'),
+                      onRetry: _refresh,
+                      placement: AppStatePlacement.card,
+                    ),
+                  );
+                }
                 if (state.items.isEmpty) {
                   return Padding(
                     padding: EdgeInsets.fromLTRB(
@@ -240,14 +309,20 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
                 // 마지막 칸은 이어 받기 표시다. 과거 알림이 남아 있는 동안만 그린다.
                 if (j >= state.items.length) return const _LoadingMoreFooter();
                 final AlertItem item = state.items[j];
+                final bool navigable = isAlertNavigable(item);
                 return _AlertTile(
                   item: item,
-                  // 읽음 처리를 기다리지 않고 이동한다 — 서버 왕복 동안 화면이
-                  // 멈춰 있으면 누른 것이 먹지 않은 것처럼 보인다.
-                  onTap: () {
-                    notifier.markRead(item.id);
-                    openAlertTarget(context, ref, item);
-                  },
+                  navigable: navigable,
+                  opening: _openingId == item.id,
+                  onTap: navigable
+                      ? () => _open(item)
+                      // 갈 곳이 없는 알림은 안 읽었을 때만 눌러 읽음으로 바꾼다.
+                      // 줄 바탕이 흰색으로 바뀌는 것이 반응이다(#2877).
+                      : item.read
+                      ? null
+                      : () {
+                          if (_openingId == null) notifier.markRead(item.id);
+                        },
                 );
               },
             ),
@@ -262,10 +337,23 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
 ///
 /// 줄 바탕이 읽음 상태를 말한다([alertRowBackground]). 읽고 나면 흰 바탕이 되어
 /// 새 알림만 옅은 파랑으로 남는다.
+///
+/// 갈 곳이 없는 알림([navigable] 이 거짓)은 눌림 물결도, 버튼이라는 화면 읽기
+/// 표시도 주지 않는다(#2877). 눌리는 모양인데 아무 일도 없으면 고장으로 보인다.
 class _AlertTile extends StatelessWidget {
-  const _AlertTile({required this.item, required this.onTap});
+  const _AlertTile({
+    required this.item,
+    required this.navigable,
+    required this.onTap,
+    this.opening = false,
+  });
   final AlertItem item;
-  final VoidCallback onTap;
+  final bool navigable;
+  final VoidCallback? onTap;
+
+  /// 이 알림이 말하는 화면으로 가는 중이다 — 갈래 아이콘 자리에 작은 로딩
+  /// 표시(#3097). 줄 오른쪽에 붙이면 본문 폭이 줄어 줄 높이가 튄다.
+  final bool opening;
 
   @override
   Widget build(BuildContext context) {
@@ -274,62 +362,75 @@ class _AlertTile extends StatelessWidget {
     final display = _categoryDisplay(l, item.category);
     final text = alertText(l, item);
     final double side = tokens.density.pagePadding;
-    return Semantics(
-      key: ValueKey<String>('notification-row-${item.id}'),
-      button: true,
-      label: display.label,
-      child: Material(
-        color: alertRowBackground(tokens.brand, read: item.read),
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: side,
-              vertical: OnCareSpacing.s16,
-            ),
-            child: Row(
+    final Widget content = Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: side,
+        vertical: OnCareSpacing.s16,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _CategoryBadge(
+            icon: display.icon,
+            loadingKey: opening
+                ? ValueKey<String>('notification-opening-${item.id}')
+                : null,
+          ),
+          const SizedBox(width: OnCareSpacing.s16),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                _CategoryBadge(icon: display.icon),
-                const SizedBox(width: OnCareSpacing.s16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        text.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: tokens
-                            .text(OnCareTypography.titleSmall)
-                            .copyWith(color: OnCareColors.textPrimary),
-                      ),
-                      if (text.body.trim().isNotEmpty) ...<Widget>[
-                        const SizedBox(height: OnCareSpacing.s4),
-                        Text(
-                          text.body,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: tokens
-                              .text(OnCareTypography.body)
-                              .copyWith(color: OnCareColors.textSecondary),
-                        ),
-                      ],
-                      const SizedBox(height: OnCareSpacing.s4),
-                      Text(
-                        alertTimeAgo(l, item),
-                        key: ValueKey<String>('notification-time-${item.id}'),
-                        style: OnCareTypography.numeric(
-                          tokens.text(OnCareTypography.caption),
-                        ).copyWith(color: OnCareColors.textTertiary),
-                      ),
-                    ],
+                Text(
+                  text.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: tokens
+                      .text(OnCareTypography.titleSmall)
+                      .copyWith(color: OnCareColors.textPrimary),
+                ),
+                if (text.body.trim().isNotEmpty) ...<Widget>[
+                  const SizedBox(height: OnCareSpacing.s4),
+                  Text(
+                    text.body,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: tokens
+                        .text(OnCareTypography.body)
+                        .copyWith(color: OnCareColors.textSecondary),
                   ),
+                ],
+                const SizedBox(height: OnCareSpacing.s4),
+                Text(
+                  alertTimeAgo(l, item),
+                  key: ValueKey<String>('notification-time-${item.id}'),
+                  style: OnCareTypography.numeric(
+                    tokens.text(OnCareTypography.caption),
+                  ).copyWith(color: OnCareColors.textTertiary),
                 ),
               ],
             ),
           ),
-        ),
+        ],
+      ),
+    );
+    return Semantics(
+      key: ValueKey<String>('notification-row-${item.id}'),
+      button: navigable,
+      label: display.label,
+      child: Material(
+        color: alertRowBackground(tokens.brand, read: item.read),
+        child: navigable
+            ? InkWell(
+                key: ValueKey<String>('notification-ink-${item.id}'),
+                onTap: onTap,
+                child: content,
+              )
+            : GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onTap,
+                child: content,
+              ),
       ),
     );
   }
@@ -341,8 +442,11 @@ class _AlertTile extends StatelessWidget {
 /// 원이 있던 때와 같게 두어 제목·본문이 시작하는 위치는 그대로다. 색은 본문과 같은
 /// 회색이라 글 흐름에 섞이고, 읽음 상태는 아이콘이 아니라 줄 바탕이 말한다.
 class _CategoryBadge extends StatelessWidget {
-  const _CategoryBadge({required this.icon});
+  const _CategoryBadge({required this.icon, this.loadingKey});
   final IconData icon;
+
+  /// 있으면 아이콘 대신 이 키로 작은 로딩 표시를 그린다(#3097).
+  final Key? loadingKey;
 
   @override
   Widget build(BuildContext context) {
@@ -350,11 +454,13 @@ class _CategoryBadge extends StatelessWidget {
       width: OnCareSize.avatarLarge,
       height: OnCareSize.avatarLarge,
       child: Center(
-        child: AppIcon(
-          icon,
-          size: OnCareSize.iconMedium,
-          color: OnCareColors.textSecondary,
-        ),
+        child: loadingKey != null
+            ? AppLoading.inline(key: loadingKey)
+            : AppIcon(
+                icon,
+                size: OnCareSize.iconMedium,
+                color: OnCareColors.textSecondary,
+              ),
       ),
     );
   }

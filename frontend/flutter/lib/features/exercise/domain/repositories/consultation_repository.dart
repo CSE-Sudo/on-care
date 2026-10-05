@@ -15,6 +15,11 @@ const String kConsultationSessionType = '1:1 PT';
 /// 신청 직후 만료되는 자리를 고를 수 있다(#1873).
 const Duration kConsultationSlotMinLead = Duration(hours: 4);
 
+/// 답을 기다리는 상담 요청을 동시에 둘 수 있는 수. 서버 설정
+/// `consultation_max_pending`(backend/app/core/config.py) 의 기본값과 같다 —
+/// 데모 대역이 실서버와 같은 자리에서 [TooManyPendingConsultations] 를 낸다(#3099).
+const int kConsultationMaxPending = 3;
+
 /// 상담 신청 접수·조회. (#327)
 abstract class ConsultationRepository {
   /// 접수된 상담 id. 같은 대상에 이미 대기 중이면 [DuplicatePendingConsultation].
@@ -29,6 +34,11 @@ abstract class ConsultationRepository {
   /// 접수 시 서버가 409 로 알려 주고, 컨트롤러가 그 응답으로 목록을 채운다.
   Future<List<ConsultationRequest>> fetchMine({int limit});
 
+  /// 대기 중인 신청을 취소한다.
+  ///
+  /// 트레이너가 이미 결정했거나 만료돼 대기 중이 아니면
+  /// [ConsultationNoLongerPending], 서버에 없는 id 면 [ConsultationNotFound]
+  /// 다(#2858). 둘 다 화면이 서버 목록을 다시 받아 카드를 실제 상태로 맞춘다.
   Future<void> cancel(String consultationId) async {}
 
   /// 상담을 신청할 수 있는 그 트레이너의 빈 자리. (#1873)
@@ -74,6 +84,17 @@ class TooManyPendingConsultations implements Exception {
 /// 신청한 적이 없다 — 섞으면 "이미 대기 중" 으로 잘못 표시한다.
 class ConsultationLinkedToOtherTrainer implements Exception {
   const ConsultationLinkedToOtherTrainer();
+}
+
+/// 취소하려던 신청이 이미 대기 중이 아니다 — 트레이너가 승인·거절했거나
+/// 만료됐다. 서버 409. (#2858)
+class ConsultationNoLongerPending implements Exception {
+  const ConsultationNoLongerPending();
+}
+
+/// 취소하려던 신청이 서버에 없다. 서버 404. (#2858)
+class ConsultationNotFound implements Exception {
+  const ConsultationNotFound();
 }
 
 /// 서버가 429 로 거절한 경우 — 24시간 신청 한도를 넘었다. (#1628)

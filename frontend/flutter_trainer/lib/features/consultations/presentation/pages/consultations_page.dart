@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
-import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/consultations/data/dtos/consultation_dtos.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
@@ -51,59 +49,24 @@ String _slotLabel(AppLocalizations l, ConsultationRequest request) {
 /// name, and a member who asked the gym. The second kind is badged, since
 /// any trainer at that gym can pick it up and the first to accept wins.
 ///
-/// The demo build never reaches this page: its repository reports no inbox
-/// and the sidebar row is not rendered (see [consultationInboxEnabledProvider]).
+/// 상담함은 **창**으로만 뜬다 — 스케줄·대시보드 버튼과 알림이 모두
+/// [showConsultationsDialog] 로 연다(#2717). 예전 페이지 모드와 그 `돌아가기`
+/// 링크는 들어온 길마다 모양이 달라 없앴다. 데모도 시드 요청으로 같은 창을
+/// 보여 준다([DemoConsultationRepository], #2669).
 class ConsultationsPage extends ConsumerWidget {
-  /// Creates the inbox page.
-  const ConsultationsPage({super.key, this.returnTo, this.modal = false});
-
-  /// Entry surface (`dashboard` or null/default schedule).
-  final String? returnTo;
-
-  /// Whether the inbox is being shown over its entry surface.
-  ///
-  /// 모달이면 페이지 틀 없이 [AppDialog] 안에 **목록만** 넣는다 — 창의
-  /// 제목·닫기 X 가 페이지 헤더를 대신한다.
-  final bool modal;
+  /// Creates the inbox dialog body.
+  const ConsultationsPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
-
-    if (modal) {
-      return KeyedSubtree(
-        key: const ValueKey<String>('consultations-dialog'),
-        child: AppDialog(
-          title: l.consultTitle,
-          size: AppDialogSize.large,
-          child: const _Inbox(),
-        ),
-      );
-    }
-
-    final fromDashboard = returnTo == 'dashboard';
-    return AppWebPage(
-      title: l.consultTitle,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: AppBackLink(
-                key: const ValueKey<String>('consultations-back-to-schedule'),
-                label: fromDashboard
-                    ? l.consultBackToDashboard
-                    : l.consultBackToSchedule,
-                onPressed: () => context.go(
-                  fromDashboard ? AppRoutes.dashboard : AppRoutes.schedule,
-                ),
-              ),
-            ),
-            const SizedBox(height: OnCareSpacing.s8),
-            const _Inbox(),
-          ],
-        ),
+    // 창의 제목·닫기 X 가 페이지 헤더를 대신한다 — 안에는 **목록만** 둔다.
+    return KeyedSubtree(
+      key: const ValueKey<String>('consultations-dialog'),
+      child: AppDialog(
+        title: l.consultTitle,
+        size: AppDialogSize.large,
+        child: const _Inbox(),
       ),
     );
   }
@@ -113,7 +76,7 @@ class ConsultationsPage extends ConsumerWidget {
 Future<void> showConsultationsDialog(BuildContext context) =>
     showAppDialog<void>(
       context: context,
-      builder: (_) => const ConsultationsPage(modal: true),
+      builder: (_) => const ConsultationsPage(),
     );
 
 /// 필터 칩 + 요청 목록. 페이지와 모달이 같은 것을 쓴다.
@@ -160,11 +123,7 @@ class _Inbox extends ConsumerWidget {
           error: (error, _) => AppErrorState(
             placement: AppStatePlacement.card,
             title: l.consultLoadFailed,
-            message: serverDetailOr(
-              l,
-              error is AppError ? error.message : null,
-              l.consultRetryLater,
-            ),
+            message: appErrorMessage(l, error, fallback: l.consultRetryLater),
             retryLabel: l.actionRetry,
             onRetry: () => ref.invalidate(consultationsProvider),
           ),
@@ -230,12 +189,24 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
   /// 않았다. 신청은 대기로 남아 있으므로 카드 안, 승인 버튼 바로 위에 남긴다.
   List<ScheduleSession>? _overlaps;
 
-  Future<void> _run(Future<void> Function() action, String success) async {
+  /// 응답을 기다리는 사이 카드가 사라질 수 있다 — 상담 창을 닫거나 필터를
+  /// 바꾸거나 폴링이 처리된 요청을 목록에서 뺀다. 그래서 await 전에 앱의
+  /// [ProviderContainer] 를 잡아 두고 갱신은 그것으로만 한다(#3103). 사라진
+  /// 위젯의 `ref` 는 `StateError` 를 던져 갱신이 빠졌다. 토스트·버튼 상태는
+  /// 카드가 남아 있을 때만 바꾼다.
+  ProviderContainer _container() =>
+      ProviderScope.containerOf(context, listen: false);
+
+  Future<void> _run(
+    Future<void> Function(ProviderContainer container) action,
+    String success,
+  ) async {
     setState(() => _busy = true);
+    final ProviderContainer container = _container();
     final AppLocalizations l = AppLocalizations.of(context);
     final String failureText = l.consultActionFailed;
     try {
-      await action();
+      await action(container);
       if (!mounted) return;
       showAppToast(context, success, type: AppToastType.success);
     } on AppError catch (e) {
@@ -243,14 +214,14 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
       // another trainer at the same gym accepted it first. Refresh before
       // showing the reason, or the card stays actionable and the trainer
       // can keep pressing 승인 on something already decided (review).
-      ref.invalidate(consultationsProvider);
-      ref.invalidate(consultationPendingCountProvider);
+      container.invalidate(consultationsProvider);
+      container.invalidate(consultationPendingCountProvider);
       if (!mounted) return;
       // 409 carries the server's reason (이미 처리됨 / 다른 트레이너가 담당 중)
       // — that sentence is the whole point, so it is shown verbatim.
       showAppToast(
         context,
-        serverDetailOr(l, e.message, failureText),
+        appErrorMessage(l, e, fallback: failureText),
         type: AppToastType.error,
       );
     } finally {
@@ -269,10 +240,11 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
       _busy = true;
       _overlaps = null;
     });
+    final ProviderContainer container = _container();
     final AppLocalizations l = AppLocalizations.of(context);
     final request = widget.request;
     try {
-      final result = await acceptConsultation(ref, request.id);
+      final result = await acceptConsultation(container, request.id);
       if (!mounted) return;
       showAppToast(
         context,
@@ -284,12 +256,12 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
     } on ScheduleOverlapError catch (e) {
       if (mounted) setState(() => _overlaps = e.conflicts);
     } on AppError catch (e) {
-      ref.invalidate(consultationsProvider);
-      ref.invalidate(consultationPendingCountProvider);
+      container.invalidate(consultationsProvider);
+      container.invalidate(consultationPendingCountProvider);
       if (!mounted) return;
       showAppToast(
         context,
-        serverDetailOr(l, e.message, l.consultActionFailed),
+        appErrorMessage(l, e, fallback: l.consultActionFailed),
         type: AppToastType.error,
       );
     } finally {
@@ -303,9 +275,11 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
       context: context,
       builder: (_) => const _RejectDialog(),
     );
-    if (note == null) return;
+    // 사유 창을 띄운 사이 카드가 사라졌으면(폴링이 목록에서 뺐다) 보내지 않는다.
+    if (note == null || !mounted) return;
     await _run(
-      () => rejectConsultation(ref, widget.request.id, note: note),
+      (ProviderContainer container) =>
+          rejectConsultation(container, widget.request.id, note: note),
       l.consultRejected,
     );
   }
@@ -348,7 +322,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
               // 승인·거절 결과를 카드 우측 상단 태그로 바로 보여준다. 대기 중은
               // 태그를 달지 않는다 — 위 `대기 N` 필터가 이미 그 상태를 말하고
               // 있어, 카드마다 또 붙이면 같은 말을 반복하는 셈이다.
-              if (!request.isPending) _StatusTag(status: request.status),
+              if (!request.isPending) _StatusTag(request: request),
             ],
           ),
           const SizedBox(height: OnCareSpacing.s12),
@@ -476,19 +450,25 @@ class _RejectDialogState extends State<_RejectDialog> {
 
 /// 승인·거절 — 카드 우측 상단에 톤으로 구분해 붙인다.
 class _StatusTag extends StatelessWidget {
-  const _StatusTag({required this.status});
+  const _StatusTag({required this.request});
 
-  /// `pending` | `accepted` | `rejected`.
-  final String status;
+  final ConsultationRequest request;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final (String label, AppTagTone tone) = switch (status) {
+    final (String label, AppTagTone tone) = switch (request.status) {
       'accepted' => (l.consultStatusAccepted, AppTagTone.success),
       'rejected' => (l.consultStatusRejected, AppTagTone.danger),
       // 시간 안에 확인하지 못해 자리가 풀린 요청 — 거절(판단)과 구분한다(#1873).
       'expired' => (l.consultStatusExpired, AppTagTone.neutral),
+      // 트레이너가 상담 일정을 취소·삭제해 철회된 신청과 회원이 직접 취소한
+      // 신청을 가른다(#2758). 예전에는 둘 다 `대기중` 으로 보였다.
+      'cancelled' when request.cancelledByTrainer => (
+        l.consultStatusCancelledByTrainer,
+        AppTagTone.neutral,
+      ),
+      'cancelled' => (l.consultStatusCancelled, AppTagTone.neutral),
       _ => (l.consultStatusPending, AppTagTone.caution),
     };
     return AppTag(label: label, tone: tone);

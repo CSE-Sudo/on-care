@@ -37,6 +37,12 @@ const String _path = '/chat/attachments/member-photo';
 
 /// 회원이 보낸 사진 한 장만 있는 스레드.
 class _MemberPhotoRepository implements ChatRepository {
+  @override
+  Future<List<ClientChatMessage>> fetchOlder(
+    String clientId, {
+    required ClientChatMessage before,
+  }) async => const <ClientChatMessage>[];
+
   _MemberPhotoRepository({this.body = ''});
 
   final String body;
@@ -87,6 +93,7 @@ class _NoMemoRepository implements TrainerMemoRepository {
     String? insightId,
     String insightKind = '',
     TrainerMemoRef? ref,
+    TrainerMemoCategory category = TrainerMemoCategory.none,
   }) => throw UnimplementedError();
 
   @override
@@ -98,8 +105,12 @@ class _NoMemoRepository implements TrainerMemoRepository {
       const <TrainerMemo>[];
 
   @override
-  Future<TrainerMemo> update(String clientId, String memoId, String body) =>
-      throw UnimplementedError();
+  Future<TrainerMemo> update(
+    String clientId,
+    String memoId,
+    String body, {
+    TrainerMemoCategory? category,
+  }) => throw UnimplementedError();
 }
 
 Future<void> _pumpChat(

@@ -33,7 +33,15 @@ void main() {
       );
       expect(
         DietAnalysisFailure.fromError(_fromStatus(403)),
-        DietAnalysisFailure.unauthorized,
+        DietAnalysisFailure.forbidden,
+      );
+      expect(
+        DietAnalysisFailure.fromError(_fromStatus(429)),
+        DietAnalysisFailure.rateLimited,
+      );
+      expect(
+        DietAnalysisFailure.fromError(_fromStatus(422)),
+        DietAnalysisFailure.badRequest,
       );
       expect(
         DietAnalysisFailure.fromError(_fromStatus(501)),
@@ -88,13 +96,175 @@ void main() {
       );
     });
 
+    test('코드 없는 429 는 잠시 뒤 다시 시도할 분당 한도로 본다', () {
+      expect(
+        DietAnalysisFailure.fromError(_fromStatus(429)),
+        DietAnalysisFailure.rateLimited,
+      );
+      expect(
+        DietAnalysisFailure.fromError(_fromStatus(422)),
+        DietAnalysisFailure.badRequest,
+      );
+    });
+
+    test('저장소가 던진 코드 거절은 그 이유를 그대로 쓴다', () {
+      for (final DietAnalysisFailure f in <DietAnalysisFailure>[
+        DietAnalysisFailure.noFood,
+        DietAnalysisFailure.dailyLimit,
+        DietAnalysisFailure.rateLimited,
+        DietAnalysisFailure.unavailable,
+      ]) {
+        expect(DietAnalysisFailure.fromError(DietAnalysisRejected(f)), f);
+      }
+    });
+
     test('같은 사진 재시도가 통할 수 있을 때만 canRetry 가 참이다', () {
       expect(DietAnalysisFailure.unsupportedFormat.canRetry, isFalse);
       expect(DietAnalysisFailure.badRequest.canRetry, isFalse);
       expect(DietAnalysisFailure.unauthorized.canRetry, isFalse);
+      expect(DietAnalysisFailure.forbidden.canRetry, isFalse);
+      expect(DietAnalysisFailure.rateLimited.canRetry, isTrue);
       expect(DietAnalysisFailure.notImplemented.canRetry, isFalse);
       expect(DietAnalysisFailure.recognitionFailed.canRetry, isTrue);
       expect(DietAnalysisFailure.temporary.canRetry, isTrue);
+      expect(DietAnalysisFailure.noFood.canRetry, isFalse);
+      expect(DietAnalysisFailure.dailyLimit.canRetry, isFalse);
+      expect(DietAnalysisFailure.unavailable.canRetry, isFalse);
+      expect(DietAnalysisFailure.rateLimited.canRetry, isTrue);
     });
+
+    test('사진 길이 막힌 거절만 직접 추가를 권한다', () {
+      expect(
+        DietAnalysisFailure.values
+            .where((DietAnalysisFailure f) => f.offersManualEntry)
+            .toSet(),
+        <DietAnalysisFailure>{
+          DietAnalysisFailure.noFood,
+          DietAnalysisFailure.dailyLimit,
+          DietAnalysisFailure.rateLimited,
+          DietAnalysisFailure.unavailable,
+          DietAnalysisFailure.aiCapacity,
+        },
+      );
+    });
+  });
+
+  group('DietAnalysisFailure.fromCode', () {
+    test('서버 detail.code 를 거절 이유로 옮긴다', () {
+      expect(
+        DietAnalysisFailure.fromCode('no_food_detected'),
+        DietAnalysisFailure.noFood,
+      );
+      expect(
+        DietAnalysisFailure.fromCode('daily_limit'),
+        DietAnalysisFailure.dailyLimit,
+      );
+      expect(
+        DietAnalysisFailure.fromCode('rate_limited'),
+        DietAnalysisFailure.rateLimited,
+      );
+      expect(
+        DietAnalysisFailure.fromCode('analysis_unavailable'),
+        DietAnalysisFailure.unavailable,
+      );
+      expect(
+        DietAnalysisFailure.fromCode('ai_capacity'),
+        DietAnalysisFailure.aiCapacity,
+      );
+      expect(DietAnalysisFailure.fromCode('unknown'), isNull);
+      expect(DietAnalysisFailure.fromCode(null), isNull);
+      expect(DietAnalysisFailure.fromCode(42), isNull);
+    });
+  });
+
+  group('DietAnalysisRejected.fromResponseData', () {
+    test('{detail: {code, message}} 를 읽는다', () {
+      final DietAnalysisRejected? r = DietAnalysisRejected.fromResponseData(
+        <String, Object?>{
+          'detail': <String, Object?>{
+            'code': 'daily_limit',
+            'message': '오늘 사진 분석 횟수를 다 썼어요.',
+          },
+        },
+      );
+      expect(r?.failure, DietAnalysisFailure.dailyLimit);
+      expect(r?.message, '오늘 사진 분석 횟수를 다 썼어요.');
+    });
+
+    test('코드가 없거나 모양이 다르면 null — AppError 로 넘긴다', () {
+      expect(DietAnalysisRejected.fromResponseData(null), isNull);
+      expect(DietAnalysisRejected.fromResponseData('oops'), isNull);
+      expect(
+        DietAnalysisRejected.fromResponseData(<String, Object?>{
+          'detail': '문자열 detail',
+        }),
+        isNull,
+      );
+      expect(
+        DietAnalysisRejected.fromResponseData(<String, Object?>{
+          'detail': <Object?>[
+            <String, Object?>{'type': 'missing'},
+          ],
+        }),
+        isNull,
+      );
+      expect(
+        DietAnalysisRejected.fromResponseData(<String, Object?>{
+          'detail': <String, Object?>{'code': 'rate_limited', 'message': 3},
+        })?.message,
+        isNull,
+      );
+    });
+  });
+
+  group('403·429 구분 (#2859)', () {
+    test('403 은 로그인 만료가 아니다 — 권한·동의 문제다', () {
+      expect(
+        DietAnalysisFailure.fromError(_fromStatus(403)),
+        isNot(DietAnalysisFailure.unauthorized),
+      );
+      expect(
+        DietAnalysisFailure.fromError(const ForbiddenError()),
+        DietAnalysisFailure.forbidden,
+      );
+    });
+
+    test('429 는 잠시 뒤 다시 할 수 있는 실패다', () {
+      expect(
+        DietAnalysisFailure.fromError(const RateLimitedError()),
+        DietAnalysisFailure.rateLimited,
+      );
+      expect(DietAnalysisFailure.rateLimited.canRetry, isTrue);
+    });
+
+    test('검증 오류(400·422)는 다른 사진을 고르게 한다', () {
+      expect(
+        DietAnalysisFailure.fromError(const ValidationError(statusCode: 400)),
+        DietAnalysisFailure.badRequest,
+      );
+      expect(
+        DietAnalysisFailure.fromError(const ValidationError(statusCode: 422)),
+        DietAnalysisFailure.badRequest,
+      );
+    });
+
+    test('목업이 상태 코드로 던지는 400 도 같은 뜻이다', () {
+      expect(
+        DietAnalysisFailure.fromError(const ServerError(statusCode: 400)),
+        DietAnalysisFailure.badRequest,
+      );
+    });
+
+    test('401 은 지금처럼 로그인 만료다', () {
+      expect(
+        DietAnalysisFailure.fromError(const UnauthorizedError()),
+        DietAnalysisFailure.unauthorized,
+      );
+    });
+  });
+
+  test('서버 전체 AI 상한은 다시 시도 대신 직접 추가를 권한다 (#3032)', () {
+    expect(DietAnalysisFailure.aiCapacity.canRetry, isFalse);
+    expect(DietAnalysisFailure.aiCapacity.offersManualEntry, isTrue);
   });
 }

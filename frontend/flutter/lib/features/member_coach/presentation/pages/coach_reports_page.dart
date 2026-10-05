@@ -19,6 +19,8 @@ import 'package:oncare/features/member_coach/presentation/widgets/coach_report_o
 import 'package:oncare/features/member_coach/presentation/widgets/sent_weekly_feedback_card.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/weekly_feedback_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 받은 리포트 목록과 직전 주 피드백.
@@ -43,10 +45,13 @@ class CoachReportsPage extends ConsumerWidget {
             child: AppLoading(placement: AppStatePlacement.card),
           ),
           // 피드백을 못 읽는 것이 리포트 목록을 막을 이유는 아니다 — 칸만 비운다.
-          error: (Object _, StackTrace _) => AppCard(
-            child: AppErrorState(
-              title: l.weeklyFeedbackSendFailed,
-              retryLabel: l.actionRetry,
+          error: (Object error, StackTrace _) => AppCard(
+            child: appErrorStateFor(
+              context,
+              // 읽기 실패다 — `보내지 못했어요` 로 안내하면 무엇을 다시 해야
+              // 하는지 알 수 없다(#2643).
+              error: error,
+              title: l.weeklyFeedbackLoadFailed,
               onRetry: () => ref.invalidate(lastWeekFeedbackProvider),
               placement: AppStatePlacement.card,
             ),
@@ -63,10 +68,12 @@ class CoachReportsPage extends ConsumerWidget {
           loading: () => const AppCard(
             child: AppLoading(placement: AppStatePlacement.card),
           ),
-          error: (Object _, StackTrace _) => AppCard(
-            child: AppErrorState(
-              title: l.coachChatPdfOpenFailed,
-              retryLabel: l.actionRetry,
+          error: (Object error, StackTrace _) => AppCard(
+            child: appErrorStateFor(
+              context,
+              // 목록을 읽지 못한 것이지 문서를 열지 못한 것이 아니다(#2643).
+              error: error,
+              title: l.coachReportsLoadFailed,
               onRetry: () => ref.invalidate(sentReportNoticesProvider),
               placement: AppStatePlacement.card,
             ),
@@ -128,12 +135,14 @@ class _ReportRowState extends ConsumerState<_ReportRow> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final DateTime sentAt = widget.notice.sentAt;
+    // 서버 시각(UTC 순간)을 표시 직전에 KST 로 바꾼다 — 그대로 쓰면 KST 오전
+    // 0~9시에 보낸 리포트가 전날로 보인다(#2844). 정렬·비교는 원래 값을 쓴다.
+    final DateTime sentAt = toKst(widget.notice.sentAt);
     return AppCard(
       padding: EdgeInsets.zero,
       child: AppListRow(
         key: ValueKey<String>(
-          'coach-report-${ymdOfReportWeek(widget.notice.weekStart)}',
+          'coach-report-${wireDate(widget.notice.weekStart)}',
         ),
         title: weekRangeLabel(l, widget.notice.weekStart),
         subtitle: l.coachReportSentOn(sentAt.month, sentAt.day),
@@ -154,7 +163,6 @@ class _ReportRowState extends ConsumerState<_ReportRow> {
     try {
       await openCoachReport(
         context,
-        ref,
         message: widget.notice.message,
         weekStart: widget.notice.weekStart,
       );

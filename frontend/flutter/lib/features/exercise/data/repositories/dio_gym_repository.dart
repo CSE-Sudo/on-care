@@ -6,21 +6,27 @@ import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
+import 'package:oncare_core/clock.dart';
 
 /// 헬스장·트레이너 디렉터리 실 API. (#324)
 ///
 /// 회원의 "내 헬스장"과 "내 트레이너"는 서버에서도 각각의 링크다 — 헬스장은
 /// `GET /me/gym`, 담당 트레이너는 `GET /me/coach`. 그래서 트레이너만 해제해도
 /// 헬스장 카드는 남는다(#444).
+///
+/// [lat]·[lng] 는 **회원의 현재 위치**다. 위치를 얻기 전이면 `null` 이다 — 그때
+/// `/gyms` 는 기본 검색 영역(신촌)을 검색 중심으로 보내고, `/me/gym` 에는 좌표를
+/// 싣지 않는다. 회원과 무관한 지점에서 잰 거리를 받아 돌릴 이유가 없다(#3044).
 class DioGymRepository implements GymRepository {
-  DioGymRepository(
-    this._dio, {
-    this.lat = kGymSearchLat,
-    this.lng = kGymSearchLng,
-  });
-  final double lat;
-  final double lng;
+  DioGymRepository(this._dio, {this.lat, this.lng});
+  final double? lat;
+  final double? lng;
   final Dio _dio;
+
+  /// 회원 좌표가 둘 다 있을 때만 싣는 query.
+  Map<String, Object?>? get _memberCoordinates => lat == null || lng == null
+      ? null
+      : <String, Object?>{'lat': lat, 'lng': lng};
 
   static Gym _gym(Map<String, Object?> j) => Gym(
     id: j['id']! as String,
@@ -87,12 +93,28 @@ class DioGymRepository implements GymRepository {
   }
 
   @override
-  Future<List<Gym>> fetchNearby() =>
-      _list('/gyms', _gym, query: <String, Object?>{'lat': lat, 'lng': lng});
+  Future<List<Gym>> fetchNearby() => _list(
+    '/gyms',
+    _gym,
+    // 목록은 검색 중심이 필요하다 — 회원 위치가 없으면 기본 검색 영역을 보낸다.
+    // 그 거리는 화면이 감춘다(#3044).
+    query:
+        _memberCoordinates ??
+        <String, Object?>{'lat': kGymDefaultAreaLat, 'lng': kGymDefaultAreaLng},
+  );
 
   @override
-  Future<List<Trainer>> fetchTrainersByGym(String gymId) =>
-      _list('/gyms/$gymId/trainers', _trainer);
+  Future<List<Trainer>> fetchTrainersByGym(String gymId) async {
+    try {
+      return await _list('/gyms/$gymId/trainers', _trainer);
+    } on DioException catch (e) {
+      // 카카오로 찾은 헬스장처럼 서버에 없는 헬스장은 404 다 — 소속 트레이너가
+      // 없는 것과 같다. 화면이 조회 실패(다시 시도)와 '없음' 을 가르므로(#2857),
+      // 여기서 빈 목록으로 옮기지 않으면 그런 카드마다 오류가 뜬다.
+      if (e.response?.statusCode == 404) return const <Trainer>[];
+      rethrow;
+    }
+  }
 
   @override
   Future<List<Trainer>> fetchAllTrainers() => _list('/trainers', _trainer);
@@ -118,9 +140,11 @@ class DioGymRepository implements GymRepository {
     // 404 여도 헬스장은 남아 있어야 한다(#444). 응답이 목록·상세와 같은 형태라
     // 상세를 한 번 더 읽을 필요도 없다.
     try {
+      // 좌표는 회원 위치를 얻었을 때만 싣는다. 없으면 서버는 거리 없이(0) 준다
+      // (#3044).
       final res = await _dio.get<Map<String, Object?>>(
         '/me/gym',
-        queryParameters: <String, Object?>{'lat': lat, 'lng': lng},
+        queryParameters: _memberCoordinates,
       );
       if (res.data != null) return _gym(res.data!);
     } on DioException catch (e) {
@@ -160,9 +184,10 @@ class DioGymRepository implements GymRepository {
     MyReservation.fromJson,
     query: <String, Object?>{
       'limit': limit,
-      // 커서는 서버가 준 시각 그대로여야 한다 — 엔티티는 화면용으로 로컬 시각을
-      // 들고 있으므로 UTC 로 되돌려 보낸다.
-      if (before != null) 'before': before.toUtc().toIso8601String(),
+      // 커서는 서버가 준 시각 그대로여야 한다 — 엔티티는 화면용으로 KST 벽시계를
+      // 들고 있으므로 UTC 로 되돌려 보낸다. `toUtc()` 는 기기 시간대로 읽어
+      // KST 가 아닌 기기에서 어긋난다(#2876).
+      if (before != null) 'before': kstWallToUtc(before).toIso8601String(),
       'before_id': ?beforeId,
     },
   );

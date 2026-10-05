@@ -8,9 +8,11 @@ library;
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 
 void main() {
   MockMemberCoachRepository coachOf(MockGymRepository gym) =>
@@ -42,7 +44,12 @@ void main() {
 
     await gym.disconnectMyTrainer();
 
-    expect(await coach.fetchChat(), isEmpty);
+    // 실서버의 대화 404 처럼 해제 신호를 준다(#2843) — 빈 목록이면 대화방이
+    // 안내 없이 비어 보인다.
+    await expectLater(
+      coach.fetchChat(),
+      throwsA(isA<CoachUnassignedException>()),
+    );
     expect(await coach.unreadCount(), 0);
   });
 
@@ -78,7 +85,10 @@ void main() {
     test('글을 보내면 실패하고 대화에 붙지 않는다', () async {
       linked = false;
 
-      await expectLater(coach.sendMessage('해제 뒤 인사'), throwsStateError);
+      await expectLater(
+        coach.sendMessage('해제 뒤 인사'),
+        throwsA(isA<NotFoundError>()),
+      );
 
       linked = true;
       final List<CoachMessage> thread = await coach.fetchChat();
@@ -95,7 +105,7 @@ void main() {
           mimeType: 'image/jpeg',
           clientRequestId: 'detached-photo',
         ),
-        throwsStateError,
+        throwsA(isA<NotFoundError>()),
       );
 
       linked = true;

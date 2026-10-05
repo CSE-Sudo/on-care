@@ -11,10 +11,11 @@
   <meta property="og:description" content="HealthMate AI: 회원·트레이너 연동 식단·운동 관리 서비스 “On-Care” — 흩어진 트레이너–회원 대화를 데이터 기반 코칭으로" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="On-Care" />
-  <meta property="og:url" content="https://ewhasudo.zapto.org/" />
+  <!-- og:url·canonical 은 특정 도메인에 묶지 않는다(#2841). 배포 워크플로가 아래 표시 줄을 자기 배포 도메인의
+       태그로 바꾸고, 바꾸지 않는 배포에서는 태그가 없어 미리보기·검색엔진이 접속한 주소를 그대로 쓴다. -->
+  <!-- SITE_URL_META -->
   <meta name="twitter:card" content="summary" />
   <meta name="theme-color" content="#f5f9fc" />
-  <link rel="canonical" href="https://ewhasudo.zapto.org/" />
   <link rel="icon" type="image/png" href="data:image/png;base64,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" />
   <link rel="apple-touch-icon" sizes="180x180" href="/docs/assets/landing/apple-touch-icon.png" />
   <link rel="manifest" href="/docs/assets/landing/manifest.json" />
@@ -250,6 +251,7 @@
     .foot-col h5 { color: #fff; font-size: .82rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 14px; }
     .foot-col a { display: block; font-size: .9rem; color: #9db4c4; margin-bottom: 9px; transition: color .15s; }
     .foot-col a:hover { color: var(--brand-2); }
+    .foot-col a.foot-strong { color: #fff; font-weight: 700; }
     .foot-bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding-top: 24px; font-size: .84rem; color: #7f98a9; }
 
     /* reveal — visible by default; the hidden state is applied only after JS
@@ -305,8 +307,8 @@
         <a href="https://github.com/CSE-Sudo/on-care" target="_blank" rel="noopener" class="icon-link" aria-label="GitHub">
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.34-1.3-1.7-1.3-1.7-1.06-.72.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.79 2.73 1.27 3.4.97.1-.76.41-1.27.74-1.56-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.5 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.69 5.4-5.25 5.69.42.36.8 1.08.8 2.18v3.23c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5Z"/></svg>
         </a>
-        <a href="https://ewhasudo.zapto.org/trainer/" target="_blank" rel="noopener" class="btn btn-outline">트레이너 웹</a>
-        <a href="https://ewhasudo.zapto.org/frontend/#/dashboard" target="_blank" rel="noopener" class="btn btn-primary">
+        <a href="trainer/" target="_blank" rel="noopener" class="btn btn-outline">트레이너 웹</a>
+        <a href="frontend/#/dashboard" target="_blank" rel="noopener" class="btn btn-primary">
           <span>회원 앱</span>
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
         </a>
@@ -325,11 +327,11 @@
       <p class="hero-tag">HealthMate AI: 회원·트레이너 연동 식단·운동 관리 서비스 “On-Care”</p>
       <p class="hero-sub">회원이 음식 사진 한 장·간단한 입력만 하면, 앱이 식단과 운동을 회원별·날짜별로 정리해 트레이너에게 전달합니다. 트레이너는 흩어진 메시지 대신 정리된 리포트 위에서 코칭하고, 그 코칭은 다시 회원에게 돌아옵니다.</p>
       <div class="hero-cta">
-        <a href="https://ewhasudo.zapto.org/frontend/#/dashboard" target="_blank" rel="noopener" class="btn btn-primary">
+        <a href="frontend/#/dashboard" target="_blank" rel="noopener" class="btn btn-primary">
           회원 앱 바로가기
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
         </a>
-        <a href="https://ewhasudo.zapto.org/trainer/" target="_blank" rel="noopener" class="btn btn-ghost">
+        <a href="trainer/" target="_blank" rel="noopener" class="btn btn-ghost">
           트레이너 웹 바로가기
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
         </a>
@@ -448,7 +450,7 @@
             <li>트레이너·헬스장 찾기와 상담 요청, 담당 트레이너 연결</li>
             <li>담당 트레이너와의 채팅, AI 코치 추천</li>
           </ul>
-          <a href="https://ewhasudo.zapto.org/frontend/#/dashboard" target="_blank" rel="noopener" class="btn btn-primary">
+          <a href="frontend/#/dashboard" target="_blank" rel="noopener" class="btn btn-primary">
             회원 앱 열기
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>
@@ -463,7 +465,7 @@
             <li>세션 일정과 운동 프로그램 관리, 회원 기록에 자동 반영</li>
             <li>상담 요청 수락·거절과 회원 채팅</li>
           </ul>
-          <a href="https://ewhasudo.zapto.org/trainer/" target="_blank" rel="noopener" class="btn btn-outline">
+          <a href="trainer/" target="_blank" rel="noopener" class="btn btn-outline">
             트레이너 웹 열기
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>
@@ -695,10 +697,10 @@
         <h2>지금, On-Care를 직접 사용해 보세요</h2>
         <p>별도 설치 없이 웹에서 바로 사용할 수 있습니다. 회원 앱과 트레이너 웹을 나란히 열어 양쪽 흐름을 함께 확인해 보세요.</p>
         <div class="hero-cta">
-          <a href="https://ewhasudo.zapto.org/frontend/#/dashboard" target="_blank" rel="noopener" class="btn btn-primary">회원 앱 바로가기
+          <a href="frontend/#/dashboard" target="_blank" rel="noopener" class="btn btn-primary">회원 앱 바로가기
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>
-          <a href="https://ewhasudo.zapto.org/trainer/" target="_blank" rel="noopener" class="btn btn-ghost">트레이너 웹 바로가기
+          <a href="trainer/" target="_blank" rel="noopener" class="btn btn-ghost">트레이너 웹 바로가기
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>
           <a href="https://youtu.be/C4ivM_dlAww?si=8iOWmOpSxcpQmlU3" target="_blank" rel="noopener" class="btn btn-ghost">
@@ -719,8 +721,8 @@
         </div>
         <div class="foot-col">
           <h5>Product</h5>
-          <a href="https://ewhasudo.zapto.org/frontend/#/dashboard" target="_blank" rel="noopener">회원 앱</a>
-          <a href="https://ewhasudo.zapto.org/trainer/" target="_blank" rel="noopener">트레이너 웹</a>
+          <a href="frontend/#/dashboard" target="_blank" rel="noopener">회원 앱</a>
+          <a href="trainer/" target="_blank" rel="noopener">트레이너 웹</a>
           <a href="https://youtu.be/C4ivM_dlAww?si=8iOWmOpSxcpQmlU3" target="_blank" rel="noopener">데모 영상</a>
           <a href="#features">기능</a>
           <a href="#architecture">시스템 구조</a>
@@ -731,6 +733,12 @@
           <a href="#compare">경쟁 분석</a>
           <a href="#business">비즈니스 모델</a>
           <a href="#team">팀 소개</a>
+        </div>
+        <div class="foot-col">
+          <h5>Legal</h5>
+          <!-- 처리방침은 다른 안내와 구분되게 굵게 둔다(개인정보 보호법 시행령 제31조). -->
+          <a href="legal/privacy.html" class="foot-strong">개인정보 처리방침</a>
+          <a href="legal/terms.html">이용약관</a>
         </div>
       </div>
       <div class="foot-bottom">

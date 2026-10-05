@@ -15,11 +15,13 @@ import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/core/storage/app_database.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/benefits/data/repositories/dio_activity_calendar_repository.dart';
 import 'package:oncare/features/benefits/data/repositories/dio_benefits_repository.dart';
 import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
+import 'package:oncare_core/clock.dart';
+
+import '../../helpers/strict_dio.dart';
 
 const String _monday = '2026-09-14';
 final DateTime _tuesday = DateTime(2026, 9, 15);
@@ -40,8 +42,14 @@ void main() {
     db = AppDatabase.forTesting(NativeDatabase.memory());
     ledger = DemoPointsLedger(openingBalance: 2000);
     shields = DemoStreakShieldBook(ledger: ledger, now: () => now);
-    dio = Dio(BaseOptions(baseUrl: 'https://example.test'));
-    repo = DioActivityCalendarRepository(dio);
+    // 상태 코드를 그대로 보려고 오류 응답도 응답으로 받는다 — 로컬 목업 API 는
+    // 실서버처럼 오류를 예외로 돌려준다(#2743).
+    dio = Dio(
+      BaseOptions(
+        baseUrl: 'https://example.test',
+        validateStatus: (int? _) => true,
+      ),
+    );
     dio.interceptors.add(
       LocalApiInterceptor(
         db,
@@ -50,6 +58,7 @@ void main() {
         shields: shields,
       ),
     );
+    repo = DioActivityCalendarRepository(strictDioOf(dio));
     await db.batch((b) {
       b.insertAll(db.exerciseSessions, <ExerciseSessionsCompanion>[
         ExerciseSessionsCompanion.insert(
@@ -102,7 +111,7 @@ void main() {
   );
 
   Future<List<String>> shopIds() async =>
-      (await DioBenefitsRepository(dio).fetchShop()).items
+      (await DioBenefitsRepository(strictDioOf(dio)).fetchShop()).items
           .map((ShopItem i) => i.id)
           .toList();
 

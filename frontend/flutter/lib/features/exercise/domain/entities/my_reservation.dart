@@ -5,6 +5,8 @@
 /// 알 수 없다.
 library;
 
+import 'package:oncare_core/clock.dart';
+
 class MyReservation {
   const MyReservation({
     required this.id,
@@ -29,7 +31,8 @@ class MyReservation {
     id: json['id']! as String,
     slotId: json['slot_id']! as String,
     trainerId: json['trainer_id']! as String,
-    startsAt: DateTime.parse(json['starts_at']! as String).toLocal(),
+    // KST 벽시계로 읽는다 — 다음 PT 계산이 KST 인 nowKst 와 견준다(#2876).
+    startsAt: toKst(DateTime.parse(json['starts_at']! as String)),
     cancellable: (json['cancellable'] as bool?) ?? false,
   );
 }

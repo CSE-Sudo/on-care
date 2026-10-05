@@ -5,13 +5,16 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/not_found_page.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/app_shell.dart';
+import 'package:oncare_trainer/core/observability/error_reporter.dart';
+import 'package:oncare_trainer/features/admin/presentation/pages/admin_reports_page.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare_trainer/features/auth/presentation/pages/trainer_consent_page.dart';
+import 'package:oncare_trainer/features/auth/presentation/pages/trainer_password_reset_page.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_sign_in_page.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_sign_up_page.dart';
 import 'package:oncare_trainer/features/clients/presentation/pages/clients_page.dart';
 import 'package:oncare_trainer/features/coaching/presentation/pages/coaching_page.dart';
-import 'package:oncare_trainer/features/consultations/presentation/pages/consultations_page.dart';
 import 'package:oncare_trainer/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:oncare_trainer/features/messages/presentation/pages/messages_page.dart';
 import 'package:oncare_trainer/features/my/presentation/pages/legal_document_page.dart';
@@ -40,16 +43,52 @@ import 'package:oncare_trainer/features/schedule/presentation/pages/schedule_pag
 /// [location] is the full location (path **and** query) — the parked
 /// destination rides on the query, so a path-only value would lose it.
 ///
+/// [resume] 는 로그인 화면으로 보낼 때 지금 자리를 `?from=` 으로 실을지다
+/// (#2765). 세션 만료·첫 실행 딥링크처럼 사용자가 의도하지 않게 밀려난 경우만
+/// 이어 간다. 사용자가 **직접** 로그아웃·탈퇴했다면 거짓이다 — 그 자리(탈퇴 화면,
+/// 이전 트레이너의 회원 상세)를 다음에 로그인하는 사람이 이어 받으면 안 된다.
+///
+/// 데모로 들어갈 때는 이어 갈 자리를 보지 않고 대시보드로 간다(#2765). 실린
+/// 자리는 실서버 계정의 주소라 데모 데이터에는 없다.
+///
 /// Returning `null` means "no redirect — stay put".
-String? sessionRedirect(SessionStatus status, String location) {
+String? sessionRedirect(
+  SessionStatus status,
+  String location, {
+  bool resume = true,
+  bool consentRequired = false,
+}) {
   final path = Uri.tryParse(location)?.path ?? location;
+  // 문서는 동의하기 전에 읽을 수 있어야 한다 — 동의 화면의 `보기` 도 여기로 온다.
   if (AppRoutes.isLegalPath(path)) return null;
+  // 재설정 메일의 링크는 어느 상태에서 열려도 그 자리에 둔다(#2824). 로그인
+  // 화면으로 보내면 주소의 코드를 잃는다.
+  if (path == AppRoutes.passwordReset) return null;
+  // 동의가 남은 계정은 어느 주소로 가든 동의 화면에 붙든다(#2819). 데모에는
+  // 계정이 없어 해당하지 않는다.
+  if (status == SessionStatus.authenticated && consentRequired) {
+    return path == AppRoutes.consent ? null : AppRoutes.consent;
+  }
+  if (path == AppRoutes.consent) {
+    return switch (status) {
+      SessionStatus.unknown || SessionStatus.signedOut => AppRoutes.signIn,
+      SessionStatus.demo || SessionStatus.authenticated => AppRoutes.dashboard,
+    };
+  }
   final onAuthRoute = path == AppRoutes.signIn || path == AppRoutes.signUp;
   switch (status) {
     case SessionStatus.unknown:
     case SessionStatus.signedOut:
-      return onAuthRoute ? null : AppRoutes.signInResuming(location);
+      if (onAuthRoute) {
+        // 직접 로그아웃했는데 로그인 화면 주소에 이전 자리가 남아 있으면(가드보다
+        // 먼저 이동이 일어난 경우 등) 걷어 낸다.
+        return !resume && AppRoutes.resumeTarget(location) != null
+            ? path
+            : null;
+      }
+      return resume ? AppRoutes.signInResuming(location) : AppRoutes.signIn;
     case SessionStatus.demo:
+      return onAuthRoute || path == '/' ? AppRoutes.dashboard : null;
     case SessionStatus.authenticated:
       if (onAuthRoute) {
         return AppRoutes.resumeTarget(location) ??
@@ -79,11 +118,12 @@ String? clientChatRedirect(String? id, String? section) {
   return AppRoutes.messagesFor(id);
 }
 
-/// Builds the trainer routing tree: an eight-branch [StatefulShellRoute]
+/// Builds the trainer routing tree: a nine-branch [StatefulShellRoute]
 /// behind an auth gate, plus the auth routes.
 ///
 /// Branches 0–5 are the sidebar destinations in [navDestinations] order;
-/// branch 6 is 내 정보 and branch 7 is 알림함. 상담 요청은 스케줄 branch의
+/// branch 6 is 내 정보, branch 7 is 알림함 and branch 8 is 신고·계정 관리
+/// (운영자 전용, #3008). 상담 요청은 스케줄 branch의
 /// 하위 페이지라, 열어 둔 동안에도 사이드바는 스케줄을 현재 작업 공간으로
 /// 표시한다(#1228).
 ///
@@ -100,6 +140,8 @@ GoRouter buildAppRouter({
   required SessionStatus Function() readStatus,
   required Listenable refresh,
   String? initialLocation,
+  bool Function()? readResume,
+  bool Function()? readConsentRequired,
 }) {
   return GoRouter(
     initialLocation: initialLocation,
@@ -109,6 +151,8 @@ GoRouter buildAppRouter({
       // Full location, not `matchedLocation`: the parked destination
       // rides on the query string.
       state.uri.toString(),
+      resume: readResume?.call() ?? true,
+      consentRequired: readConsentRequired?.call() ?? false,
     ),
     // A URL that matches no route — mistyped, or a stale link whose prefix
     // is a real screen (`/clients/<id>/diet/old`) and so survives the
@@ -161,6 +205,10 @@ GoRouter buildAppRouter({
                             state.uri.queryParameters[AppRoutes
                                 .clientOpenParam] ==
                             AppRoutes.clientOpenHealthNotes,
+                        openFeedback:
+                            state.uri.queryParameters[AppRoutes
+                                .clientOpenParam] ==
+                            AppRoutes.clientOpenFeedback,
                       ),
                     ),
                   ),
@@ -186,15 +234,9 @@ GoRouter buildAppRouter({
                 builder: (context, state) => SchedulePage(
                   date: state.uri.queryParameters['d'],
                   sessionId: state.uri.queryParameters['session'],
+                  openInbox:
+                      state.uri.queryParameters[AppRoutes.inboxParam] == '1',
                 ),
-                routes: <RouteBase>[
-                  GoRoute(
-                    path: AppRoutes.consultationsSegment,
-                    builder: (context, state) => ConsultationsPage(
-                      returnTo: state.uri.queryParameters['from'],
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
@@ -202,8 +244,12 @@ GoRouter buildAppRouter({
             routes: <RouteBase>[
               GoRoute(
                 path: AppRoutes.coaching,
-                builder: (context, state) =>
-                    CoachingPage(clientId: state.uri.queryParameters['client']),
+                builder: (context, state) => CoachingPage(
+                  clientId: state.uri.queryParameters['client'],
+                  attachSessionId: state.uri.queryParameters['attach'],
+                  attachDate: state.uri.queryParameters['d'],
+                  attachRequest: state.uri.queryParameters['r'],
+                ),
               ),
             ],
           ),
@@ -239,7 +285,18 @@ GoRouter buildAppRouter({
             routes: <RouteBase>[
               GoRoute(
                 path: AppRoutes.notifications,
-                builder: (context, state) => const NotificationsPage(),
+                builder: (context, state) =>
+                    NotificationsPage(from: state.uri.queryParameters['from']),
+              ),
+            ],
+          ),
+          // 운영 화면도 맨 뒤에 붙인다 — 운영자가 아니면 화면이 찾을 수 없음
+          // 안내를 그린다(#3008).
+          StatefulShellBranch(
+            routes: <RouteBase>[
+              GoRoute(
+                path: AppRoutes.adminReports,
+                builder: (context, state) => const AdminReportsPage(),
               ),
             ],
           ),
@@ -247,6 +304,10 @@ GoRouter buildAppRouter({
       ),
       GoRoute(
         path: AppRoutes.legacyConsultations,
+        redirect: (context, state) => AppRoutes.consultations,
+      ),
+      GoRoute(
+        path: AppRoutes.legacyScheduleConsultations,
         redirect: (context, state) => AppRoutes.consultations,
       ),
       // 셸 밖에 둔다 — 사이드바를 띄우려면 세션이 있어야 하는데, 이 문서는
@@ -272,6 +333,16 @@ GoRouter buildAppRouter({
         path: AppRoutes.signUp,
         builder: (context, state) => const TrainerSignUpPage(),
       ),
+      GoRoute(
+        path: AppRoutes.consent,
+        builder: (context, state) => const TrainerConsentPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.passwordReset,
+        builder: (context, state) => TrainerPasswordResetPage(
+          initialCode: state.uri.queryParameters['token'],
+        ),
+      ),
     ],
   );
 }
@@ -290,9 +361,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     (_, _) => refresh.value++,
   );
   ref.onDispose(refresh.dispose);
-  return buildAppRouter(
+  final router = buildAppRouter(
     readStatus: () => ref.read(sessionControllerProvider).status,
     refresh: refresh,
     initialLocation: ref.read(routerInitialLocationProvider),
+    // 직접 로그아웃·탈퇴한 뒤에는 이전 자리를 잇지 않는다(#2765).
+    readResume: () => !ref.read(signedOutByUserProvider),
+    readConsentRequired: () =>
+        ref.read(sessionControllerProvider).consentRequired,
   );
+  // 오류 보고에 화면 경로 패턴(값이 빠진 `/legal/:document` 형태)을 싣는다 (#2839).
+  ref
+      .read(errorReporterProvider)
+      .attachRouteResolver(
+        () => router.routerDelegate.currentConfiguration.fullPath,
+      );
+  return router;
 });

@@ -118,6 +118,44 @@ void main() {
     ];
   }
 
+  /// 활동 피드백 세 신호가 한 명씩 걸리는 로스터. (#2891)
+  ///
+  /// 활동 피드백은 이제 최근 세션을 실제로 읽은 뒤에 센다. 데모 시드의 식단
+  /// 신호 회원은 모두 최근 7일 안에 트레이너 메모가 남은 완료 세션이 있어
+  /// `식단 피드백 미완료` 가 0명이다 — 예전에 이 카드가 세 줄을 다 그린 것은
+  /// 세션을 빈 목록으로 계산했기 때문이었다. 시드에 세션이 없는 id 의 회원을
+  /// 써서 세 신호를 모두 띄운다.
+  List<Override> activityFeedbackRosterOverrides() {
+    final List<TrainerClient> roster = <TrainerClient>[
+      makeClient(
+        id: 'activity-exercise',
+        name: '운동 미달 회원',
+        signals: const <ClientSignal>[
+          ClientSignal(ClientSignalKind.exerciseGoalLow, percent: 30),
+        ],
+      ),
+      makeClient(
+        id: 'activity-gap',
+        name: '기록 끊김 회원',
+        signals: const <ClientSignal>[
+          ClientSignal(ClientSignalKind.recordGap, days: 7),
+        ],
+      ),
+      makeClient(
+        id: 'activity-diet',
+        name: '식단 피드백 회원',
+        signals: const <ClientSignal>[
+          ClientSignal(ClientSignalKind.calorieOff, percent: 20, over: true),
+        ],
+      ),
+    ];
+    return <Override>[
+      clientsProvider.overrideWith(
+        (ref) => Stream<List<TrainerClient>>.value(roster),
+      ),
+    ];
+  }
+
   testWidgets('is the landing page after a restored session', (tester) async {
     await openDashboard(tester);
     expect(find.text('대시보드'), findsWidgets);
@@ -231,7 +269,7 @@ void main() {
     expect(find.text('오늘의 일정'), findsOneWidget);
     // 이름과 성별·나이(회색)는 별도 Text 로 그린다.
     expect(find.text('김민수'), findsWidgets);
-    expect(find.text('남성 · 35세'), findsWidgets);
+    expect(find.text('남성 · 36세'), findsWidgets);
     expect(find.text('1:1 PT'), findsWidgets);
     expect(find.text('완료'), findsWidgets);
     // 스케줄 화면과 같은 시작–종료 범위를 쓰며, 각 일정의 실제 소요
@@ -303,11 +341,14 @@ void main() {
   testWidgets('활동 피드백 spells out the three activity-feedback signals', (
     tester,
   ) async {
-    await openDashboard(tester);
+    await openDashboard(
+      tester,
+      extraOverrides: activityFeedbackRosterOverrides(),
+    );
 
     expect(find.text('활동 피드백'), findsOneWidget);
     // 세 항목 모두 PT 관리 신호 기준이다(#2244).
-    expect(find.text('운동 목표 미달·배정 루틴 미수행'), findsOneWidget);
+    expect(find.text('운동 목표 미달·개인운동 미수행'), findsOneWidget);
     expect(find.text('기록 끊김'), findsOneWidget);
     expect(find.text('식단 피드백 미완료'), findsOneWidget);
     expect(find.textContaining('난이도를 낮추고'), findsOneWidget);
@@ -323,7 +364,10 @@ void main() {
     testWidgets('활동 피드백의 ${scenario.kind} 버튼이 그 활동에 맞는 화면으로 이동한다', (
       tester,
     ) async {
-      await openDashboard(tester);
+      await openDashboard(
+        tester,
+        extraOverrides: activityFeedbackRosterOverrides(),
+      );
 
       final button = find.byKey(
         ValueKey<String>('ai-summary-cta-${scenario.kind}'),

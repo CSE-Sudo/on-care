@@ -108,7 +108,8 @@ def test_demo_trainer_client_links_seeded(client, db_session):
 # ---- 리뷰 반영: prod 데모 시드 안전장치(순수, DB 불필요) ----
 
 
-def test_prod_demo_seed_requires_strong_password():
+def test_prod_rejects_demo_seed():
+    """운영에서는 데모 시드를 켤 수 없다 — 비밀번호 강도와 상관없다(#2811)."""
     import pytest
 
     from app.core.config import Settings
@@ -118,19 +119,19 @@ def test_prod_demo_seed_requires_strong_password():
         env="prod",
         jwt_secret="a-strong-enough-production-secret-value-01234567",
         cors_allow_origins="https://app.example.com",
-        auto_create_tables=False,  # 운영 스키마 가드(#288) 충족 — 이 테스트는 데모 비번 강도만 검증
+        auto_create_tables=False,  # 운영 스키마 가드(#288) 충족 — 이 테스트는 데모 시드 가드만 검증
+        gemini_api_key="test-gemini-key",  # 운영 AI 키 가드(#2812) 충족
+        # conftest 가 EMBEDDER=hash 를 환경변수로 심으므로 운영 값을 명시한다.
+        recognizer="gemini",
+        embedder="gemini",
+        # 운영은 메일 발송 설정이 필수다 — 없으면 가입 인증 코드를 못 보내 기동 거부(#3131).
+        smtp_host="smtp.example.com",
+        mail_from="no-reply@example.com",
     )
-    # 기본값 + 데모 시드 → 기동 거부
-    with pytest.raises(ValueError):
-        Settings(**common, seed_demo_data=True)
-    # 빈 문자열·짧은 문자열·기본값 모두 거부(강도 검증)
-    for weak in ("", "short", "oncare123", "abc12345678"):  # 마지막은 11자(<12)
+    for password in ("", "short", "oncare123", "Str0ng!Demo#Pass"):
         with pytest.raises(ValueError):
-            Settings(**common, seed_demo_data=True, demo_login_password=weak)
-    # 기본값이 아니고 12자 이상이면 데이터 든 데모 계정을 운영에도 둘 수 있음
-    ok = Settings(**common, seed_demo_data=True, demo_login_password="Str0ng!Demo#Pass")
-    assert ok.demo_login_password == "Str0ng!Demo#Pass"
-    # 데모 시드를 끄면(운영 기본 권장) 당연히 통과
+            Settings(**common, seed_demo_data=True, demo_login_password=password)
+    # 데모 시드를 끄면(운영 기본) 통과
     off = Settings(**common, seed_demo_data=False)
     assert off.seed_demo_data is False
 
@@ -492,7 +493,7 @@ def test_history_excludes_other_trainers_records(client, db_session):
     """다른 트레이너가 작성한 기록/메모는 이 트레이너의 조회에 노출되지 않는다(PR 250-#1)."""
     from app.db.seed_trainer import TRAINER_ID
     from app.models.models import RoutineHistory, User
-    from app.services.trainer_service import build_client_history
+    from app.services.trainer.roster import build_client_history
 
     db_session.add(
         User(
@@ -683,6 +684,17 @@ def test_trainer_client_exercise_week_accepts_week_start(client, db_session):
         date.fromisoformat(monday_of_this_week_str()) - timedelta(days=7)
     ).isoformat()
 
+    # 시드가 지난 주 월요일에 이미 운동을 깔아 둘 수 있다 — 루틴 이력으로 만든
+    # 세션 등(#2726). 넣기 전 값을 기준으로 증가분만 본다.
+    before_last = client.get(
+        url, headers=_auth(token), params={"week_start": last_monday}
+    )
+    assert before_last.status_code == 200, before_last.text
+    base_minutes = before_last.json()["daily_minutes"][0]
+    base_calories = before_last.json()["daily_calories"][0]
+    before_current = client.get(url, headers=_auth(token))
+    assert before_current.status_code == 200, before_current.text
+
     row = ExerciseSession(
         id=f"test-exercise-week-{uuid4().hex[:10]}",
         user_id="user-jisu",
@@ -700,19 +712,22 @@ def test_trainer_client_exercise_week_accepts_week_start(client, db_session):
         )
         assert response.status_code == 200, response.text
         body = response.json()
-        assert body["daily_minutes"][0] == 33
-        assert body["daily_calories"][0] == 222
+        assert body["daily_minutes"][0] == base_minutes + 33
+        assert body["daily_calories"][0] == base_calories + 222
 
         # 월요일이 아닌 날을 줘도 그 주로 맞춘다.
         midweek = (date.fromisoformat(last_monday) + timedelta(days=3)).isoformat()
         same = client.get(url, headers=_auth(token), params={"week_start": midweek})
         assert same.status_code == 200, same.text
-        assert same.json()["daily_minutes"][0] == 33
+        assert same.json()["daily_minutes"][0] == base_minutes + 33
 
         # 이번 주에는 그 기록이 없다 — 인자를 빼면 예전 동작 그대로다.
         current = client.get(url, headers=_auth(token))
         assert current.status_code == 200, current.text
-        assert current.json()["daily_minutes"][0] != 33
+        assert (
+            current.json()["daily_minutes"][0]
+            == before_current.json()["daily_minutes"][0]
+        )
     finally:
         db_session.delete(row)
         db_session.commit()

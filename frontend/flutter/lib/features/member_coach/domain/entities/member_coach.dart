@@ -29,7 +29,7 @@ class MemberCoach {
 ///
 /// 추천 개인운동은 매일 새로 체크하는 목록이라, 기간을 되짚는 쪽(운동 AI 맞춤
 /// 조언, #2162)은 날마다 "무엇이 걸려 있었고 무엇을 했나" 를 읽는다. 실서버의
-/// `trainer_service.member_routine_days` 와 같은 모양이다.
+/// `trainer._common.member_routine_days` 와 같은 모양이다.
 typedef RoutineDay = ({DateTime date, List<CoachRoutine> routines});
 
 /// A routine the member received from their coach — `/me/coach/routines`.
@@ -57,6 +57,7 @@ class CoachRoutine {
     this.pointsAward,
     this.sets,
     this.reps,
+    this.holdSeconds,
     this.weight,
   });
 
@@ -133,6 +134,13 @@ class CoachRoutine {
   /// 목록만 분으로 적어, 같은 기록이 화면마다 다른 수가 됐다(#1262, #1901).
   final int? sets;
   final int? reps;
+
+  /// 버티는 근력 운동(플랭크 등)의 한 세트 버티는 시간(초). (#1969, #3138)
+  ///
+  /// 서버는 [reps] 와 한 자리를 나눠 써서, 이 값이 있으면 횟수가 비어 온다.
+  /// 받을 칸이 없던 동안 회원 화면에는 `3세트` 만 남아 몇 초를 버티라는
+  /// 배정인지 보이지 않았다. 버티지 않는 운동과 옛 응답은 null 이다.
+  final int? holdSeconds;
   final double? weight;
 
   /// 이 루틴이 여러 세션짜리 프로그램의 한 세션인가.
@@ -155,6 +163,9 @@ class CoachRoutine {
     type: type,
     reason: reason,
     source: source,
+    // 권한 강도도 트레이너가 정한 값이다(#2160). 빠뜨리면 체크하는 순간 기본값
+    // `보통` 으로 바뀌어, `가벼움` 을 권한 운동이 `권장 보통` 으로 보였다.
+    intensity: intensity,
     effect: effect,
     deliveryKind: deliveryKind,
     // 배정된 초는 트레이너가 정한 값이라 완료 표시에 흔들리지 않는다(#2221).
@@ -174,6 +185,7 @@ class CoachRoutine {
     // 세트·횟수·중량은 트레이너가 정한 배정 값이라 완료 표시에 흔들리지 않는다.
     sets: sets,
     reps: reps,
+    holdSeconds: holdSeconds,
     weight: weight,
     // 적립은 그 응답 한 번의 일이라 복사본에 따라가지 않는다 — 넘길 때만 싣는다.
     pointsAward: pointsAward,
@@ -195,6 +207,7 @@ class CoachSession {
     required this.status,
     this.note = '',
     this.program = const <CoachProgramItem>[],
+    this.sessionNumber,
   });
 
   /// Server id.
@@ -225,6 +238,10 @@ class CoachSession {
   /// The workout program attached by the trainer.
   final List<CoachProgramItem> program;
 
+  /// 완료한 PT 가 담당 트레이너와의 몇 번째 수업인가(1부터). 서버가 완료 PT 에만
+  /// 싣는다 — 예정·취소·상담과 옛 서버 응답은 null 이다. (#2697)
+  final int? sessionNumber;
+
   /// Whether this session is still ahead.
   ///
   /// **예정인 것만** 앞으로의 일정이다. 예전에는 "완료가 아닌 것" 으로 판정했는데,
@@ -251,6 +268,7 @@ class CoachProgramItem {
     required this.weight,
     this.duration = 0,
     this.durationSeconds,
+    this.holdSeconds,
   });
 
   final String name;
@@ -273,6 +291,10 @@ class CoachProgramItem {
   /// 같은 운동 시간을 초로(#2221). 트레이너가 `45초` 로 적은 운동이 [duration]
   /// 으로는 `1분` 이 된다. 근력 항목과, 시간을 적지 않은 항목은 null 이다.
   final int? durationSeconds;
+
+  /// 버티는 근력 항목의 한 세트 버티는 시간(초). 이 값이 있으면 서버가
+  /// [reps] 를 비워 보내므로(0) 화면은 횟수 대신 `N초` 를 적는다. (#3138)
+  final int? holdSeconds;
 }
 
 /// Chat message viewpoint for the member: their own message vs the coach's.
@@ -289,6 +311,7 @@ class CoachMessage {
     this.attachment,
     this.reportWeekStart,
     this.emoteId,
+    this.routineDelivery,
   });
 
   final String id;
@@ -312,7 +335,34 @@ class CoachMessage {
   /// 읽는 글이라 함께 온다. 그림은 이 id 로 고른다.
   final String? emoteId;
 
+  /// 이 메시지가 루틴 전송 안내라면 그 전송. (#2672)
+  ///
+  /// 트레이너가 운동을 보내면 알림과 함께 대화에도 이 안내가 남는다 — 알림은
+  /// 지나가지만 대화는 "어제 받은 루틴" 을 짚을 수 있는 기록이다. 리포트
+  /// 안내([reportWeekStart])처럼 보내는 쪽이 실어 보낸 값으로만 판단한다.
+  final CoachRoutineDelivery? routineDelivery;
+
   bool get fromMe => sender == CoachSender.me;
+}
+
+/// 루틴 전송 안내 — 무엇을 보냈나. 서버 `RoutineDeliveryCardOut`. (#2672)
+///
+/// [kind] 는 `pt_with_routine` · `routine_only` · `cancelled_routine_only` ·
+/// `routine` 이다. 운동 이름은 트레이너가 적은 그대로라 번역하지 않는다.
+class CoachRoutineDelivery {
+  const CoachRoutineDelivery({
+    required this.kind,
+    this.programNames = const <String>[],
+    this.routineNames = const <String>[],
+  });
+
+  final String kind;
+
+  /// 함께 간 PT 프로그램의 운동 이름.
+  final List<String> programNames;
+
+  /// 보낸 개인운동 이름.
+  final List<String> routineNames;
 }
 
 /// 첨부의 종류. 화면이 그릴 방법을 이 값으로 정한다.
@@ -376,6 +426,7 @@ class CoachRoutineExercise {
     required this.name,
     this.sets,
     this.reps,
+    this.holdSeconds,
     this.weight,
     this.duration,
     this.durationSeconds,
@@ -388,6 +439,10 @@ class CoachRoutineExercise {
   /// 근력의 세트 수·한 세트당 횟수·중량(kg).
   final int? sets;
   final int? reps;
+
+  /// 버티는 근력 운동의 한 세트 버티는 시간(초). 있으면 [reps] 가 비어 온다.
+  /// (#1969, #3138)
+  final int? holdSeconds;
   final double? weight;
 
   /// 유산소·스트레칭의 운동 시간(분). [durationSeconds] 에서 반올림한 값이다.

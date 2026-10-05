@@ -20,14 +20,17 @@ from app.schemas.trainer_api import (
 from app.services import notification_templates as nt
 from app.services.coach.personal_ingest import exercise_text
 from app.services.exercise_duration import format_duration
-from app.services.trainer_service import (
-    _program_item_label,
+from app.services.trainer._common import (
     _program_items,
     _program_notification_args,
     _program_row_seconds,
-    _program_seconds_and_type,
     _session_seconds,
     _session_summary,
+)
+from app.services.trainer.schedule import (
+    _personal_row_seconds,
+    _program_item_label,
+    _program_seconds_and_type,
 )
 
 
@@ -151,10 +154,10 @@ def test_program_notification_adds_seconds_before_folding():
     )
     assert (args["seconds"], args["minutes"]) == (135, 2)
     assert nt.render(nt.MEMBER_ROUTINE_PROGRAM, args, "ko") == (
-        "새 운동 루틴이 배정되었어요", "코어 · 세션 3개 · 2분 15초",
+        "새 PT 프로그램이 왔어요", "코어 · 세션 3개 · 2분 15초",
     )
     assert nt.render(nt.MEMBER_ROUTINE_PROGRAM, args, "en") == (
-        "New workout routine assigned", "코어 · 3 sessions · 2 min 15 sec",
+        "New PT program", "코어 · 3 sessions · 2 min 15 sec",
     )
 
 
@@ -163,6 +166,30 @@ def test_program_row_without_exercises_reads_its_minutes():
     assert _program_row_seconds(_routine([], 30)) == 1800
     strength = _routine([{"id": "e1", "name": "스쿼트", "type": "근력", "sets": 3}], 9)
     assert _program_row_seconds(strength) == 9 * 60
+
+
+def test_personal_row_seconds_reads_the_row_itself():
+    """PT 에 붙인 개인운동 알림은 줄 하나의 칸으로 시간을 센다. (#3107)
+
+    프로그램 줄 규칙으로 읽으면 운동 구성이 없어 분으로 떨어진다 — 근력만
+    붙이면 `개인운동 2개 · 0분`, 45초 운동은 1분이 됐다.
+    """
+    cardio = TrainerRoutine(name="버피", type="유산소", minutes=1, duration_seconds=45)
+    strength = TrainerRoutine(name="스쿼트", type="근력", minutes=0, sets=3)
+    legacy = TrainerRoutine(name="걷기", type="유산소", minutes=30)
+    assert _personal_row_seconds(cardio) == 45
+    assert _personal_row_seconds(strength) == 9 * 60
+    assert _personal_row_seconds(legacy) == 30 * 60
+    args = _program_notification_args(
+        "스쿼트",
+        sessions=2,
+        seconds=_personal_row_seconds(cardio) + _personal_row_seconds(strength),
+        multi=True,
+        routine_only=True,
+    )
+    assert nt.render(nt.MEMBER_ROUTINE_PROGRAM, args, "ko") == (
+        "새 개인운동이 왔어요", "개인운동 2개 · 9분 45초",
+    )
 
 
 @pytest.mark.parametrize(

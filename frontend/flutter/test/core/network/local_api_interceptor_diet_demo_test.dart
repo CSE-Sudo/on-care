@@ -23,7 +23,7 @@ import 'package:logger/logger.dart';
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart';
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 
 String _dateString(DateTime d) =>
     '${d.year.toString().padLeft(4, '0')}-'
@@ -81,9 +81,7 @@ void main() {
     test('지난 날짜도 그 날짜의 문장을 쓴다', () async {
       final DateTime now = nowKst();
       final yesterday = _dateString(now.subtract(const Duration(days: 1)));
-      final res = await dio.get<Map<String, Object?>>(
-        '/diet/days/$yesterday',
-      );
+      final res = await dio.get<Map<String, Object?>>('/diet/days/$yesterday');
 
       // 문장은 픽스처가 갖고 있다 — 여기에 다시 적으면 두 벌이 되어 한쪽만 고쳤을 때
       // 조용히 갈린다(#757).
@@ -119,7 +117,8 @@ void main() {
       final res = await dio.get<Map<String, Object?>>('/diet/days/2020-01-01');
 
       expect(res.data!['entries'], isEmpty);
-      expect(res.data!['ai_coach_message'], contains('아직'));
+      // 지난 날짜라 "아직 오늘 …" 이 아니라 그날 기록이 없다는 문장이다(#2644).
+      expect(res.data!['ai_coach_message'], '이날은 식단 기록이 없어요.');
     });
   });
 

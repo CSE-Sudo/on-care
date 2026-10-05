@@ -29,11 +29,29 @@ void showInsightHistorySheet(BuildContext context, WidgetRef ref) {
 String insightLabel(AppLocalizations l, ChatInsight insight) =>
     switch (insight.kind) {
       ChatInsightKind.discomfort => switch (insight.bodyPart) {
-        final String part => l.aicInsightDiscomfortPart(part),
+        final String part => l.aicInsightDiscomfortPart(
+          insightBodyPartLabel(l, part),
+        ),
         null => l.aicInsightDiscomfort,
       },
       ChatInsightKind.negativeFeedback => l.aicInsightNegative,
     };
+
+/// 감지된 부위 이름을 화면 언어로 옮긴다(#2736).
+///
+/// 감지는 실서버(`coach/insights.py`)·데모(`detectChatInsight`) 모두 회원이 쓴
+/// 말의 언어로 부위 이름을 돌려준다(`무릎`·`Knee`). 그대로 끼우면 영어 화면에
+/// `무릎 pain noted` 가 나오므로 두 이름을 모두 알아보고 화면 언어로 바꾼다.
+/// 모르는 이름은 그대로 둔다.
+String insightBodyPartLabel(AppLocalizations l, String part) => switch (part) {
+  '무릎' || 'Knee' => l.aicBodyPartKnee,
+  '허리' || 'Back' => l.aicBodyPartBack,
+  '발목' || 'Ankle' => l.aicBodyPartAnkle,
+  '어깨' || 'Shoulder' => l.aicBodyPartShoulder,
+  '손목' || 'Wrist' => l.aicBodyPartWrist,
+  '목' || 'Neck' => l.aicBodyPartNeck,
+  _ => part,
+};
 
 /// 최근 30일 감지 기록 창(#1824).
 class InsightHistorySheet extends ConsumerWidget {
@@ -92,9 +110,15 @@ class _InsightRow extends ConsumerWidget {
   ///
   /// 되돌릴 수 없으므로 **확인창을 먼저 거친다.** 문구는 무엇이 사라지고 무엇이
   /// 남는지 말한다 — 회원이 쓴 말까지 지워지는 줄 알면 누르지 못한다.
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+  Future<void> _confirmDelete(BuildContext context) async {
     final AppLocalizations l = AppLocalizations.of(context);
     final AppToastHost toast = AppToastHost.of(context);
+    // 요청 뒤 갱신은 컨테이너로 한다 — 지우는 중에 시트를 닫아도 화면 `ref` 를
+    // 다시 쓰지 않고, 운동 탭 추천도 새 값이 된다(#3096).
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.aicInsightDelete,
@@ -105,16 +129,18 @@ class _InsightRow extends ConsumerWidget {
     );
     if (!ok) return;
     try {
-      await ref.read(aiCoachRepositoryProvider).dismissInsight(record.messageId);
+      await container
+          .read(aiCoachRepositoryProvider)
+          .dismissInsight(record.messageId);
     } on Object {
       toast.show(l.aicInsightDeleteFailed, type: AppToastType.error);
       return;
     }
-    ref.invalidate(aiCoachInsightsProvider);
+    container.invalidate(aiCoachInsightsProvider);
     // 담당이 없는 회원의 AI 추천은 이 감지로 좁혀져 있다(#2016). 이 창은 운동
     // 탭의 추천 칸에서도 열린다 — 탭을 옮기지 않으니 목록을 여기서 다시 받아야
     // 치운 감지로 뺐던 운동이 그 자리에서 돌아온다.
-    ref.invalidate(coachRoutinesProvider);
+    container.invalidate(coachRoutinesProvider);
   }
 
   @override
@@ -155,7 +181,7 @@ class _InsightRow extends ConsumerWidget {
                 label: l.aicInsightDelete,
                 variant: AppButtonVariant.destructiveText,
                 size: OnCareButtonSize.small,
-                onPressed: () => _confirmDelete(context, ref),
+                onPressed: () => _confirmDelete(context),
               ),
             ],
           ),

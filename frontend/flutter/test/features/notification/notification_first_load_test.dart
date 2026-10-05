@@ -7,7 +7,8 @@
 ///
 ///  * 첫 조회가 끝나기 전, 목록이 비어 있으면 로딩 표시를 그린다.
 ///  * 서버가 빈 목록을 주면 그때 빈 상태를 그린다.
-///  * 첫 조회가 실패하면 로딩 표시를 내리고 재시도 배너와 빈 상태를 그린다.
+///  * 첫 조회가 실패하면 로딩 표시를 내리고 실패 안내와 재시도만 그린다 —
+///    빈 상태("알림이 없습니다")는 그리지 않는다(#2877).
 ///  * 한 번 받은 뒤의 새로고침은 빈 상태를 로딩 표시로 바꾸지 않는다.
 ///  * 목/데모 시드는 처음부터 받은 목록이다.
 library;
@@ -20,7 +21,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/features/notification/data/repositories/mock_notification_repository.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/domain/repositories/notification_repository.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
@@ -42,6 +42,7 @@ const AppConfig _mockConfig = AppConfig(
 
 const Key _firstLoading = Key('notificationFirstLoading');
 const Key _retryBanner = Key('notificationRetryBanner');
+const Key _firstLoadFailed = Key('notificationFirstLoadFailed');
 
 AlertItem _alert(String id) => AlertItem(
   id: id,
@@ -251,19 +252,27 @@ void main() {
       await refreshing;
     });
 
-    test('목/데모 시드는 처음부터 받은 목록이고 조회하지 않는다', () async {
-      final repo = _GatedRepo(<AlertItem>[]);
+    // 데모도 실서버와 같은 경로다 — 로컬 인터셉터가 답할 뿐 조회는 똑같이 한다(#2660).
+    test('목/데모 모드도 첫 조회로 받는다', () async {
+      final repo = _GatedRepo(<AlertItem>[_alert('a')])
+        ..gate = Completer<void>();
       final container = _container(repo, config: _mockConfig);
 
-      final NotificationState state = container.read(
+      final NotificationState before = container.read(
         notificationControllerProvider,
       );
-      expect(state.loaded, isTrue);
-      expect(state.loading, isFalse);
-      expect(state.items, demoAlerts);
-      expect(state.awaitingFirstLoad, isFalse);
+      expect(before.loaded, isFalse);
+      expect(before.awaitingFirstLoad, isTrue);
+
+      repo.gate!.complete();
       await _settle();
-      expect(repo.fetchCalls, 0);
+
+      final NotificationState after = container.read(
+        notificationControllerProvider,
+      );
+      expect(after.loaded, isTrue);
+      expect(after.items, hasLength(1));
+      expect(repo.fetchCalls, 1);
     });
   });
 
@@ -299,7 +308,7 @@ void main() {
       expect(find.byType(AppEmptyState), findsOneWidget);
     });
 
-    testWidgets('첫 조회가 실패하면 로딩 표시를 내리고 재시도 배너와 빈 상태를 그린다', (
+    testWidgets('첫 조회가 실패하면 로딩 표시를 내리고 실패 안내와 재시도만 그린다', (
       WidgetTester tester,
     ) async {
       final repo = _GatedRepo(<AlertItem>[])
@@ -313,8 +322,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(_firstLoading), findsNothing);
-      expect(find.byKey(_retryBanner), findsOneWidget);
-      expect(find.byType(AppEmptyState), findsOneWidget);
+      expect(find.byKey(_firstLoadFailed), findsOneWidget);
+      // 받아 본 적이 없는데 "없다" 고 말하지 않는다(#2877).
+      expect(find.text('알림이 없습니다'), findsNothing);
+      // 같은 안내를 배너로 한 번 더 얹지 않는다.
+      expect(find.byKey(_retryBanner), findsNothing);
     });
 
     testWidgets('받은 뒤 다시 조회하는 동안에는 빈 상태를 그대로 둔다', (WidgetTester tester) async {
@@ -336,17 +348,20 @@ void main() {
       expect(find.byType(AppEmptyState), findsOneWidget);
     });
 
-    testWidgets('데모 모드는 로딩 표시 없이 바로 목록을 그린다', (WidgetTester tester) async {
-      final repo = _GatedRepo(<AlertItem>[])..gate = Completer<void>();
+    testWidgets('데모 모드도 첫 조회 중에는 로딩 표시를 그린다', (WidgetTester tester) async {
+      final repo = _GatedRepo(<AlertItem>[_alert('a')])
+        ..gate = Completer<void>();
       await _pumpPage(tester, repo, config: _mockConfig);
       await tester.pump();
 
-      expect(find.byKey(_firstLoading), findsNothing);
+      expect(find.byKey(_firstLoading), findsOneWidget);
       expect(find.byType(AppEmptyState), findsNothing);
-      expect(
-        find.byKey(ValueKey<String>('notification-row-${demoAlerts.first.id}')),
-        findsOneWidget,
-      );
+
+      repo.gate!.complete();
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(_firstLoading), findsNothing);
+      expect(find.text('알림 a'), findsOneWidget);
     });
   });
 }

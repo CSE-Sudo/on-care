@@ -1,15 +1,18 @@
+import 'package:drift/drift.dart' show DatabaseConnection;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app.dart';
 import 'package:oncare_trainer/app/router/app_router.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/prefs_provider.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
+import 'package:oncare_trainer/core/utils/kst_clock_provider.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_analysis.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
@@ -47,6 +50,10 @@ const AppConfig kTestAppConfigWithDemoEntry = AppConfig(
   showDemoEntry: true,
 );
 
+/// 테스트가 빌드 정보로 주입하는 버전 이름(#3047). `pubspec.yaml` 의 실제 버전과
+/// 일부러 다르게 둔다 — 화면이 버전을 문구에 박지 않고 빌드에서 읽는지 본다.
+const String kTestBuildVersion = '9.8.7';
+
 /// Pumps the full trainer app for a widget test, backed by a fresh
 /// in-memory (seeded) drift DB and an optional persisted session token.
 ///
@@ -72,6 +79,13 @@ const AppConfig kTestAppConfigWithDemoEntry = AppConfig(
 /// 시드만 고정하고 `nowKst()` 를 두면 둘이 어긋난다 — 시드는 목요일 기준으로
 /// 수업을 놓는데 화면은 실제 오늘로 완료·예정을 가른다. 한쪽만 고정하는 것은
 /// 고정하지 않은 것과 다를 바 없어, 여기서 함께 묶는다.
+///
+/// [kstClock] 은 화면이 구독하는 분 단위 KST 시계([kstClockProvider])다. 주지
+/// 않으면 지금([nowKst]) 한 번만 내고 멈춘 시계를 쓴다. 실제 시계는 다음 분
+/// 경계까지 타이머를 걸어 두는데, 이 컨테이너는 위젯 트리가 내려간 **뒤**
+/// tearDown 에서 버려지므로, 시계를 보지도 않는 테스트가 "A Timer is still
+/// pending" 으로 실패한다([stillBadges] 와 같은 이유). 분·자정 경과를 재는
+/// 테스트는 자기 스트림을 넘긴다.
 Future<ProviderContainer> pumpTrainerApp(
   WidgetTester tester, {
   String? token,
@@ -82,6 +96,7 @@ Future<ProviderContainer> pumpTrainerApp(
   bool demoEntry = false,
   Locale locale = const Locale('ko'),
   DateTime? seedClock,
+  Stream<DateTime>? kstClock,
 }) async {
   // A persisted session lives in secure storage now (access + refresh).
   // Reset the in-memory mock per test so state never leaks between them.
@@ -95,7 +110,7 @@ Future<ProviderContainer> pumpTrainerApp(
   PackageInfo.setMockInitialValues(
     appName: 'oncare_trainer',
     packageName: 'oncare_trainer',
-    version: '0.1.0',
+    version: kTestBuildVersion,
     buildNumber: '1',
     buildSignature: '',
   );
@@ -115,7 +130,19 @@ Future<ProviderContainer> pumpTrainerApp(
   tester.platformDispatcher.localesTestValue = <Locale>[locale];
   addTearDown(tester.platformDispatcher.clearLocalesTestValue);
 
-  final db = AppDatabase.forTesting(NativeDatabase.memory());
+  // drift 는 마지막 구독자가 떠난 쿼리 스트림을 한 이벤트 루프 뒤
+  // (`Timer.run`)에 치운다. 그 타이머는 구독을 끊는 자리의 zone 에 걸리는데,
+  // 여러 리포트를 묶는 작업대 요약(`reportQueueFromReports`, #2863)처럼
+  // StreamController 로 감싼 스트림은 끊기가 테스트 본문의 fake async zone 에서
+  // 돈다. 테스트가 끝난 뒤에는 그 zone 을 아무도 펌프하지 않아 타이머가 영영
+  // 울리지 않고, 정리 단계의 `db.close()` 가 그 타이머를 기다리며 멈춘다.
+  // 테스트에서는 바로 치우게 둔다 — drift 가 테스트용으로 둔 옵션이다.
+  final db = AppDatabase.forTesting(
+    DatabaseConnection(
+      NativeDatabase.memory(),
+      closeStreamsSynchronously: true,
+    ),
+  );
   if (seedClock != null) useFixedKstDate(seedClock);
   if (seed) await seedIfEmpty(db, clock: seedClock);
   addTearDown(() async => db.close());
@@ -129,6 +156,9 @@ Future<ProviderContainer> pumpTrainerApp(
       appDatabaseProvider.overrideWithValue(db),
       if (bootAt != null)
         routerInitialLocationProvider.overrideWithValue(bootAt),
+      kstClockProvider.overrideWith(
+        (ref) => kstClock ?? Stream<DateTime>.value(nowKst()),
+      ),
       ...extraOverrides,
     ],
   );
@@ -234,9 +264,6 @@ class _StillClientRepository implements ClientRepository {
   const _StillClientRepository();
 
   @override
-  bool get supportsRosterMutations => false;
-
-  @override
   Stream<List<TrainerClient>> watchClients() =>
       Stream<List<TrainerClient>>.value(const <TrainerClient>[]);
 
@@ -320,14 +347,6 @@ class _StillClientRepository implements ClientRepository {
     String clientId,
     ClientDateRange range,
   ) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
-
-  @override
-  Future<bool> clientNameExists(String name) =>
-      throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
-
-  @override
-  Future<bool> addClient({required String name, required String goal}) =>
-      throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 
   @override
   Future<void> setClientActive(String id, bool active) =>

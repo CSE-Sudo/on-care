@@ -1,3 +1,4 @@
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
@@ -69,13 +70,37 @@ class RoutineHistoryEntry {
   final String? kind;
 }
 
+/// 이 기록이 붙는 날 — KST 달력일, 시각은 0시. 모르면 `null`. (#2748)
+///
+/// 서버가 정한 운동일([RoutineHistoryEntry.date])이 먼저다. 지난 날짜로 소급
+/// 체크한 기록(#2506)이나 지난 주 운동을 오늘 고친 배정 기록(#1264)은 완료 시각이
+/// 오늘이어도 그 운동을 한 날에 붙어야 한다.
+///
+/// `date` 를 주지 않는 옛 서버는 완료 시각으로 정한다. 실 API 의 완료 시각은
+/// UTC 라 그대로 날짜를 자르면 KST 오전 9시 전에 마친 운동이 전날로 간다 — KST
+/// 로 옮긴 뒤 자른다. UTC 가 아닌 값(데모가 KST 벽시계로 만든 시각)은 그대로
+/// 자른다.
+///
+/// 일자 묶음·기간 필터·메모 참조 날짜가 모두 이 함수를 쓴다. 한 곳이라도 다른
+/// 기준을 쓰면 카드가 놓인 줄과 메모가 가리키는 날이 갈린다.
+DateTime? historyDayOf(RoutineHistoryEntry entry) {
+  final DateTime? date = entry.date;
+  if (date != null) return DateTime(date.year, date.month, date.day);
+  final DateTime? at = entry.completedAt;
+  if (at == null) return null;
+  final DateTime wall = at.isUtc ? at.add(kstOffset) : at;
+  return DateTime(wall.year, wall.month, wall.day);
+}
+
 /// [range] 안에 있는 기록만. 시작·끝 모두 **포함**이고 시각은 버린다 —
 /// 서버가 주는 완료 시각은 하루 중 아무 때나이므로, 마지막 날 0시와 견주면
 /// 그날 저녁 운동이 통째로 빠진다.
 ///
-/// [RoutineHistoryEntry.completedAt] 이 없는 기록은 **늘 남긴다**. 날짜를 모르는
-/// 것과 그 기간이 아닌 것은 다른 말이고, 모른다고 숨기면 트레이너 눈에는
-/// 기록이 사라진 것으로 보인다(#1114).
+/// 날짜는 [historyDayOf] 로 정한다 — 화면의 일자 묶음과 같은 기준이다(#2748).
+///
+/// 날짜를 모르는 기록은 **늘 남긴다**. 날짜를 모르는 것과 그 기간이 아닌 것은
+/// 다른 말이고, 모른다고 숨기면 트레이너 눈에는 기록이 사라진 것으로
+/// 보인다(#1114).
 List<RoutineHistoryEntry> historyInRange(
   Iterable<RoutineHistoryEntry> entries,
   ClientDateRange range,
@@ -88,9 +113,8 @@ List<RoutineHistoryEntry> historyInRange(
   final DateTime to = DateTime(range.to.year, range.to.month, range.to.day);
   return entries
       .where((RoutineHistoryEntry entry) {
-        final DateTime? at = entry.completedAt;
-        if (at == null) return true;
-        final DateTime day = DateTime(at.year, at.month, at.day);
+        final DateTime? day = historyDayOf(entry);
+        if (day == null) return true;
         return !day.isBefore(from) && !day.isAfter(to);
       })
       .toList(growable: false);
@@ -106,6 +130,7 @@ const Map<String, String> _kindByStoredLabel = <String, String>{
   // 옛 시드·픽스처의 이름. 지금은 `AI 개인운동` 으로 부른다(#1453).
   'AI 루틴 · 자율 운동': 'ai_personal',
   '배정 루틴 수행': 'assigned_routine',
+  '개인운동': 'personal_routine',
 };
 
 /// 화면에 그리는 기록 종류 이름. (#1453, #2300)
@@ -117,7 +142,10 @@ String routineKindLabel(AppLocalizations l, String raw, {String? kind}) {
   final String? code = routineKindCode(raw, kind: kind);
   return switch (code) {
     'pt_session' => l.workoutKindPtSession,
-    'ai_personal' => l.workoutKindAiPersonal,
+    // 하루치 개인운동 카드는 `개인운동` 이다(#2510) — 데모·옛 서버의 `AI 개인운동`
+    // 도 같은 하루치 카드라 같은 이름으로 부른다. AI 가 짠 것만 담는 카드가
+    // 아니다(트레이너가 보낸 것도 섞인다).
+    'ai_personal' || 'personal_routine' => l.workoutKindPersonal,
     // 서버는 이름 없는 배정에만 이 코드를 붙인다 — 이름이 있으면 코드가 없다.
     'assigned_routine' => l.workoutKindAssignedRoutine,
     _ => raw,

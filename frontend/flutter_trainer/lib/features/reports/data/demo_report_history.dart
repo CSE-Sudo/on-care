@@ -1,4 +1,4 @@
-import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/reports/domain/report_send_record.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
@@ -85,7 +85,10 @@ demoSentReports = <({String clientId, int daysAgo, int hour, bool read})>[
 ///
 ///  * 임도현 — 이번 주에 붙은 신규. 기록도 대화도 아직 없다.
 ///  * 노은채 — 지난 주에 붙어 첫 운동을 막 마쳤다(`첫 기록`).
+///  * 김민수 — 11주 전에 첫 PT 를 받았고 오늘이 12회차다. 그의 수업 날은 공유
+///    픽스처가 정한다(`weeklyPt`, #2694).
 const Map<String, int> demoMemberJoinedWeeksAgo = <String, int>{
+  'seed-client-1': 11,
   'seed-client-7': 0,
   'seed-client-15': 1,
 };
@@ -184,11 +187,9 @@ ReportSendRecord? demoCurrentWeekRecord(String clientId, DateTime now) {
   final DateTime monday = weekStartOf(now);
   for (final demo in demoSentReports) {
     if (demo.clientId != clientId) continue;
-    final DateTime day = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: demo.daysAgo));
+    // 달력 날짜로 뺀다 — `Duration` 은 서머타임 전환을 넘으면 전날 23시가
+    // 되어 하루 이른 날로 적힌다(#2774).
+    final DateTime day = DateTime(now.year, now.month, now.day - demo.daysAgo);
     final DateTime sentAt = day.isBefore(monday)
         ? DateTime(monday.year, monday.month, monday.day, demo.hour)
         : DateTime(day.year, day.month, day.day, demo.hour);

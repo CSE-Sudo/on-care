@@ -2,18 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
-import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/dashboard/presentation/widgets/dashboard_content.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
+
+import '../../helpers/mock_account_repository.dart';
 
 /// 홈 요약 — 일정 한 건만 있는 최소 형태.
 const DashboardSummary _summary = DashboardSummary(
@@ -30,10 +32,6 @@ const DashboardSummary _summary = DashboardSummary(
   ),
   dietEntries: 1,
   exerciseMinutes: 30,
-  exerciseCalories: 300,
-  exerciseCount: 1,
-  weekScore: 80,
-  weekScoreDelta: 5,
   sodiumWarning: '',
   exerciseFeedback: '',
 );
@@ -58,6 +56,7 @@ Future<void> _pump(WidgetTester tester, {List<CoachSession>? sessions}) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: <Override>[
+        mealRecsDemoFallbackProvider.overrideWithValue(true),
         accountRepositoryProvider.overrideWithValue(
           MockAccountRepository(
             profile: const UserProfile(
@@ -145,7 +144,8 @@ void main() {
     });
 
     testWidgets('데모 홈 일정은 지금과 같다', (WidgetTester tester) async {
-      // override 없이 — 데모는 목 저장소가 빈 목록을 주므로 카드가 그대로다.
+      // override 없이 — 데모 목 저장소의 오늘 PT 는 이미 끝난 수업이고 다음
+      // 예정은 한 주 뒤라(#2659), 오늘의 일정에는 서지 않는다.
       await _pump(tester);
 
       expect(find.text('병원 정기검진'), findsOneWidget);

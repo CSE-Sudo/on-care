@@ -122,6 +122,10 @@ class AppTextField extends StatelessWidget {
     final OnCareTokens tokens = context.oncare;
     final bool multiline = maxLines == null || maxLines! > 1;
     final double height = _fieldHeight(tokens.density, size);
+    // 이메일 칸은 자동 대문자·자동 고침을 끈다(#2816). 첫 글자가 대문자로 바뀌어도
+    // 서버가 소문자로 맞춰 같은 계정을 찾지만, 자동 고침이 주소를 다른 단어로
+    // 바꾸는 것은 서버가 되돌릴 수 없다.
+    final bool email = keyboardType == TextInputType.emailAddress;
     return _Labeled(
       label: label,
       child: TextField(
@@ -135,6 +139,11 @@ class AppTextField extends StatelessWidget {
         maxLines: obscureText ? 1 : maxLines,
         maxLength: maxLength,
         keyboardType: keyboardType,
+        // 자동 대문자는 TextField 기본값(none) 그대로 둔다. 이메일이 아닌 칸의
+        // 자동 고침은 null 로 넘겨 TextField 가 autofillHints 로 정하게 한다
+        // (true 를 박으면 비밀번호 칸 같은 추론을 덮어쓴다).
+        autocorrect: email ? false : null,
+        enableSuggestions: !email,
         textInputAction: textInputAction,
         inputFormatters: inputFormatters,
         onChanged: onChanged,
@@ -342,6 +351,86 @@ class AppPasswordToggle extends StatelessWidget {
       tooltip: obscure ? showLabel : hideLabel,
       color: OnCareColors.textTertiary,
       onPressed: onPressed,
+    );
+  }
+}
+
+/// 누르면 고르는 창(날짜·시간 등)을 여는 칸(#2950) — 입력창과 같은 채움·
+/// 테두리·반경에 앞 아이콘·값·펼침 화살표를 둔다.
+///
+/// 화면마다 `InkWell` 로 직접 그리던 "누르는 칸"을 한 부품으로 모았다. 앞
+/// 아이콘은 브랜드색(무엇을 고르는 칸인지), 값은 본문색, 화살표는 옅은
+/// 회색이다. [compact] 면 옆 버튼(medium)과 높이를 맞추고 내용만큼만
+/// 넓어지며, 아니면 입력창 높이로 가로를 채운다.
+class AppPickerField extends StatelessWidget {
+  const AppPickerField({
+    super.key,
+    required this.value,
+    required this.onTap,
+    this.icon,
+    this.compact = false,
+  });
+
+  final String value;
+  final VoidCallback? onTap;
+  final IconData? icon;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    const BorderRadius radius = BorderRadius.all(Radius.circular(12));
+    final IconData? icon = this.icon;
+    final Text text = Text(
+      value,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: tokens
+          .text(
+            compact
+                ? OnCareTypography.strong(OnCareTypography.bodySmall)
+                : OnCareTypography.body,
+          )
+          .copyWith(color: OnCareColors.textPrimary),
+    );
+    return Material(
+      color: OnCareColors.surfaceCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: radius,
+        side: BorderSide(color: OnCareColors.lineStrong),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          constraints: BoxConstraints(
+            minHeight: compact
+                ? tokens.density.buttonHeight(OnCareButtonSize.medium)
+                : tokens.density.inputMedium,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s12),
+          child: Row(
+            mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
+            children: <Widget>[
+              if (icon != null) ...<Widget>[
+                AppIcon(
+                  icon,
+                  size: OnCareSize.iconSmall,
+                  color: tokens.brand.primary,
+                ),
+                const SizedBox(width: OnCareSpacing.s8),
+              ],
+              if (compact) text else Expanded(child: text),
+              const SizedBox(width: OnCareSpacing.s8),
+              AppIcon(
+                AppIcon.setOf(context).dropdown,
+                size: OnCareSize.iconMedium,
+                color: OnCareColors.textTertiary,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

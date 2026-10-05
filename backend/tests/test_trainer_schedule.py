@@ -152,7 +152,7 @@ def test_program_schedule_rolls_back_assignment_when_schedule_fails(
     client, db_session, monkeypatch
 ):
     """일정 쓰기가 실패하면 배정도 남지 않는다 — 반쪽 성공이 없다. (#1580)"""
-    from app.services import trainer_service
+    from app.services.trainer import schedule as trainer_schedule_service
 
     token = _tok(client)
     day = (clock.today() + timedelta(days=63)).isoformat()
@@ -161,7 +161,7 @@ def test_program_schedule_rolls_back_assignment_when_schedule_fails(
     def fail(*_args, **_kwargs):
         raise RuntimeError("schedule write failed")
 
-    monkeypatch.setattr(trainer_service, "_add_session", fail)
+    monkeypatch.setattr(trainer_schedule_service, "_add_session", fail)
     try:
         with pytest.raises(RuntimeError):
             client.post(
@@ -390,7 +390,7 @@ def test_schedule_update_member_id_empty_unassigns(client, db_session):
     c = client.post(
         "/v1/trainer/schedule",
         json={
-            "date": _today(), "time": "17:30", "client_name": "이지수",
+            "date": _today(), "time": "16:00", "client_name": "이지수",
             "member_id": "user-jisu", "type": "1:1 PT", "duration_minutes": 40,
         },
         headers=_h(token),
@@ -425,7 +425,7 @@ def test_schedule_update_rejects_null_for_non_nullable_fields(
     token = _tok(client)
     # 파라미터마다 세션이 하나씩 생긴다 — 지우지 않으면 실행 한 번에 여섯 건이
     # 그대로 남아 이 파일에서 가장 크게 누적된다(#558).
-    sid = make_pt_session(token, time="17:40", duration_minutes=40)
+    sid = make_pt_session(token, time="16:10", duration_minutes=40)
 
     r = client.put(
         f"/v1/trainer/schedule/{sid}",
@@ -486,7 +486,7 @@ def test_complete_session_logs_history_and_is_idempotent(
     # 오늘 예정 세션 생성(user-jisu 매칭). 픽스처가 테스트 끝에 지워 이력이 쌓이지 않는다.
     sid = make_pt_session(
         token,
-        time="18:30",
+        time="19:00",
         duration_minutes=40,
         program=[
             {"name": "레그프레스", "type": "근력", "sets": 3, "weight": 80.0},
@@ -563,7 +563,9 @@ def test_booked_dates(client):
 
 
 def test_completed_session_cannot_be_edited(client, make_pt_session):
-    """완료된 세션 수정은 409 — 스케줄과 운동기록이 어긋나지 않게 한다(리뷰 재-#2)."""
+    """완료된 세션의 약속 수정은 409 — 스케줄과 운동기록이 어긋나지 않게 한다(리뷰 재-#2).
+
+    메모는 약속을 바꾸지 않아 완료 뒤에도 남길 수 있다(#2754)."""
     token = _tok(client)
     # 픽스처로 만들어 테스트 끝에 지운다 — 완료가 남기는 이력이 쌓이면 60건 상한에
     # 닿아 다른 테스트가 깨진다(#558).
@@ -582,9 +584,18 @@ def test_completed_session_cannot_be_edited(client, make_pt_session):
         headers=_h(token),
     )
     assert r.status_code == 409
-    # note 등 다른 필드 수정도 409
-    assert client.put(
+    # 메모만 고치는 것은 완료 뒤에도 된다(#2754)
+    noted = client.put(
         f"/v1/trainer/schedule/{sid}", json={"note": "바꿈"}, headers=_h(token)
+    )
+    assert noted.status_code == 200, noted.text
+    assert noted.json()["note"] == "바꿈"
+    assert noted.json()["status"] == "완료"
+    # 메모와 함께 시각을 바꾸는 요청은 여전히 409
+    assert client.put(
+        f"/v1/trainer/schedule/{sid}",
+        json={"note": "또", "time": "09:30"},
+        headers=_h(token),
     ).status_code == 409
     # 기록은 여전히 원래 회원(user-jisu)에 남아 있고 다른 회원으로 옮겨가지 않았다
     jisu_hist = client.get("/v1/trainer/clients/user-jisu/history", headers=_h(token)).json()
@@ -594,7 +605,7 @@ def test_completed_session_cannot_be_edited(client, make_pt_session):
 def test_schedule_invalid_date_time_422(client):
     """달력상 불가능한 날짜/시간은 create·update 모두 422(DB 저장 방지, 리뷰 재-#4)."""
     token = _tok(client)
-    # 시드 타임라인(10:00 PT)과 겹치지 않는 시각 — 겹치면 422 전에 409 가 난다.
+    # 시드 타임라인과 겹치지 않는 시각 — 겹치면 422 전에 409 가 난다.
     base = {"date": _today(), "time": "08:00", "type": "1:1 PT"}
     url = "/v1/trainer/schedule"
     # 잘못된 날짜
@@ -630,10 +641,12 @@ def test_schedule_range_returns_every_day_in_one_request(client):
     """주 캘린더가 7일치를 한 번에 읽는다 — 하루짜리 요청 7번이 아니라."""
     token = _sched_token(client)
     made = []
+    # 시드가 쓰지 않는 이른 시각이다 — 지난 날에는 회원 주간 PT(09:00·10:00·
+    # 13:00·16:00)가 깔려 있어, 그 칸에 두면 겹침(409)으로 떨어진다(#2694).
     for day in ("2026-09-07", "2026-09-09", "2026-09-13"):
         r = client.post(
             "/v1/trainer/schedule",
-            json={"date": day, "time": "10:00", "client_name": "범위테스트",
+            json={"date": day, "time": "07:00", "client_name": "범위테스트",
                   "type": "1:1 PT", "duration_minutes": 60},
             headers=_sched_auth(token),
         )
@@ -658,7 +671,7 @@ def test_schedule_range_excludes_days_outside_the_window(client):
     token = _sched_token(client)
     r = client.post(
         "/v1/trainer/schedule",
-        json={"date": "2026-09-20", "time": "10:00", "client_name": "창밖",
+        json={"date": "2026-09-20", "time": "07:00", "client_name": "창밖",
               "type": "1:1 PT", "duration_minutes": 60},
         headers=_sched_auth(token),
     )
@@ -1122,10 +1135,17 @@ def test_send_completed_program_assigns_routine_once(client, db_session, make_pt
         ],
     )
 
-    # 시드에 이미 배정된 루틴이 있으므로 개수의 **변화**로 센다.
-    before = client.get("/v1/trainer/clients/user-jisu/routines", headers=_h(token))
-    assert before.status_code == 200
-    before_count = len(before.json())
+    def _sent_rows() -> list[TrainerRoutine]:
+        # PT 프로그램은 매일 목록에 걸지 않으므로(#3115) 목록이 아니라 보낸 줄로 센다.
+        db_session.expire_all()
+        return list(
+            db_session.scalars(
+                select(TrainerRoutine).where(
+                    TrainerRoutine.member_id == "user-jisu",
+                    TrainerRoutine.client_request_id.like("send-1#%"),
+                )
+            ).all()
+        )
 
     # 완료 전에는 보낼 수 없다 — 아직 한 것이 아니라 할 것이다.
     early = client.post(
@@ -1147,10 +1167,10 @@ def test_send_completed_program_assigns_routine_once(client, db_session, make_pt
     assert sent.status_code == 200, sent.text
     assert sent.json()["program_sent"] is True
 
-    routines = client.get(
-        "/v1/trainer/clients/user-jisu/routines", headers=_h(token)
-    ).json()
-    assert len(routines) == before_count + 1, "전송이 회원 루틴을 만들지 않았다"
+    sent_rows = _sent_rows()
+    assert len(sent_rows) == 1, "전송이 회원 루틴을 만들지 않았다"
+    # 보낸 기록으로 남지만 매일 하는 개인운동 목록에는 걸리지 않는다(#3115).
+    assert sent_rows[0].ended_on == sent_rows[0].active_from
 
     # 두 번째 호출은 멱등 — 회원 루틴이 겹치지 않는다.
     again = client.post(
@@ -1160,10 +1180,7 @@ def test_send_completed_program_assigns_routine_once(client, db_session, make_pt
     )
     assert again.status_code == 200
     assert again.json()["program_sent"] is True
-    after = client.get(
-        "/v1/trainer/clients/user-jisu/routines", headers=_h(token)
-    ).json()
-    assert len(after) == len(routines), "재전송이 회원 루틴을 늘렸다"
+    assert len(_sent_rows()) == 1, "재전송이 회원 루틴을 늘렸다"
 
     # 조회 경로도 전송 사실을 그대로 말한다.
     listed = client.get(
@@ -1174,7 +1191,7 @@ def test_send_completed_program_assigns_routine_once(client, db_session, make_pt
 
 
 def test_send_completed_program_forwards_item_type_and_duration(
-    client, make_pt_session
+    client, db_session, make_pt_session
 ):
     """전송된 프로그램의 운동 항목도 트레이너가 적은 type/분을 그대로 옮긴다(#1233).
 
@@ -1201,12 +1218,16 @@ def test_send_completed_program_forwards_item_type_and_duration(
     )
     assert sent.status_code == 200, sent.text
 
-    routines = client.get(
-        "/v1/trainer/clients/user-jisu/routines", headers=_h(token)
-    ).json()
-    routine = next(r for r in routines if r["reason"] == "달리기")
-    assert routine["type"] == "유산소"
-    assert routine["minutes"] == 20
+    db_session.expire_all()
+    routine = db_session.scalar(
+        select(TrainerRoutine).where(
+            TrainerRoutine.member_id == "user-jisu",
+            TrainerRoutine.client_request_id.like("send-type-1#%"),
+        )
+    )
+    assert routine is not None
+    assert routine.type == "유산소"
+    assert routine.minutes == 20
 
 
 def test_send_program_requires_a_linked_member_and_a_program(client, make_pt_session):

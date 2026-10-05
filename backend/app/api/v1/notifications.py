@@ -12,12 +12,17 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select, tuple_, update
+from sqlalchemy import select, tuple_, update
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser, RequireMember
 from app.core.locale import Locale, RequestLocale, localized
 from app.core.pagination import DEFAULT_PAGE, MAX_PAGE, parse_before
+from app.db.seed_notifications import (
+    DEMO_AGO_BY_ID,
+    demo_time_ago,
+    slide_demo_notifications,
+)
 from app.db.session import get_db
 from app.models.models import Notification
 from app.schemas.misc_api import NotificationAction, NotificationOut
@@ -41,8 +46,6 @@ router = APIRouter(tags=["notifications"])
 _ACTION_BY_CATEGORY: dict[str, tuple[str, str, str]] = {
     # 성격만 나타내던 기존 값들.
     "reminder": ("기록하러 가기", "Log now", "dashboard"),
-    # 일정을 여는 화면이 회원 앱에 없다(#1928) — 액션을 달면 눌러도 갈 곳이 없어
-    # 고장 난 버튼이 된다. 회원이 일정을 볼 자리가 생기면 그때 되돌린다.
     "health_check": ("기록하러 가기", "Log now", "dashboard"),
     "achievement": ("대시보드 보기", "View dashboard", "dashboard"),
     # 트레이너가 한 일 — 예전에는 전부 `system` 으로 뭉쳐 갈 곳이 없었다(#636).
@@ -51,9 +54,13 @@ _ACTION_BY_CATEGORY: dict[str, tuple[str, str, str]] = {
     # 알림함 아이콘만 다르다(#2085).
     notification_service.MEMBER_COACH_REPORT: ("리포트 보기", "View report", "coach_chat"),
     notification_service.MEMBER_ROUTINE: ("운동 보기", "View workouts", "exercise"),
-    # MEMBER_SCHEDULE 은 액션을 달지 않는다(#1928). 회원 앱에 일정 화면이 없어
-    # 어디로 보내든 알림이 말한 것을 보여 줄 수 없다 — 읽음 처리만 하고 제자리에
-    # 두는 편이 갈 곳 없는 버튼보다 낫다.
+    # PT 일정 등록·변경·취소·인계, 담당 해제·트레이너 탈퇴로 취소된 일정(#3028).
+    # 운동 탭이 트레이너 일정과 회원 예약을 합친 다음 PT 배지와 헬스장 패널의 예약
+    # 목록을 함께 보여 주는 곳이다. 예전에는 회원 앱에 일정을 볼 자리가 없어(#1928)
+    # 액션을 달지 않았고, 일정 알림만 눌러도 아무 화면이 열리지 않았다.
+    notification_service.MEMBER_SCHEDULE: ("일정 보기", "View schedule", "exercise"),
+    # PT 수업 완료·피드백 도착 — 운동 탭의 PT 기록(완료 PT 카드와 피드백)(#3027).
+    notification_service.MEMBER_PT_DONE: ("PT 기록 보기", "View PT record", "exercise"),
     notification_service.MEMBER_COACH_INVITE: ("요청 확인", "View request", "exercise"),
     notification_service.MEMBER_CONSULTATION: ("트레이너 보기", "View trainer", "exercise"),
     # 상담 요청의 승인·거절·만료 — 결과와 사유가 있는 내 상담 요청(#2067).
@@ -71,8 +78,27 @@ _ACTION_BY_CATEGORY: dict[str, tuple[str, str, str]] = {
 }
 
 
-def _action_for(category: str, locale: Locale = "ko") -> NotificationAction | None:
+#: 알림별 목적지(`Notification.action_target`, #2690)의 라벨. 갈래별 표와 목적지가
+#: 같으면 그 라벨을 쓰고, 여기 없는 목적지는 "보기" 다.
+_LABEL_BY_TARGET: dict[str, tuple[str, str]] = {
+    "diet": ("식단 보기", "View meals"),
+    "exercise": ("운동 보기", "View workouts"),
+    "dashboard": ("홈 보기", "View home"),
+    "coach_chat": ("대화 보기", "View chat"),
+}
+
+
+def _action_for(
+    category: str, locale: Locale = "ko", target: str | None = None
+) -> NotificationAction | None:
+    """알림의 행동 유도. [target] 이 있으면 그 목적지, 없으면 갈래별 표다(#2690)."""
     entry = _ACTION_BY_CATEGORY.get(category)
+    if target:
+        if entry is not None and entry[2] == target:
+            ko, en = entry[0], entry[1]
+        else:
+            ko, en = _LABEL_BY_TARGET.get(target, ("보기", "View"))
+        return NotificationAction(label=localized(ko, en, locale), target=target)
     if entry is None:
         return None
     ko, en, target = entry
@@ -89,11 +115,18 @@ def notification_out(row: Notification, locale: Locale) -> NotificationOut:
         title=row.title, body=row.body, template=row.template,
         template_args=row.template_args, locale=locale,
     )
+    # 데모 계정 알림은 회원 앱 데모처럼 정해 둔 시각으로 보인다(#2691).
+    demo_ago = DEMO_AGO_BY_ID.get(row.id)
     return NotificationOut(
         id=row.id, title=title, body=body, category=row.category,
         read=row.read, created_at=row.created_at,
-        time_ago=_time_ago(row.created_at, locale),
-        action=_action_for(row.category, locale), invite_id=row.invite_id,
+        time_ago=(
+            demo_time_ago(demo_ago, locale)
+            if demo_ago is not None
+            else _time_ago(row.created_at, locale)
+        ),
+        action=_action_for(row.category, locale, row.action_target),
+        invite_id=row.invite_id,
         template=row.template, args=row.template_args,
     )
 
@@ -143,6 +176,11 @@ def list_notifications(
         db.rollback()
     # 끝난 주의 챌린지 결과 알림도 같은 이유로 여기서 생긴다(#1789).
     weekly_challenge_service.settle_quietly(db, current_user.id)
+    # 데모 계정 알림은 날이 바뀌면 오늘로 옮긴다 — 회원 앱 데모와 같다(#2691).
+    try:
+        slide_demo_notifications(db, current_user.id)
+    except Exception:  # noqa: BLE001 — 옮기지 못해도 알림 목록은 그대로 준다
+        db.rollback()
     query = select(Notification).where(Notification.user_id == current_user.id)
     cursor = parse_before(before)
     if cursor is not None:
@@ -206,17 +244,12 @@ def unread_count(
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     """미확인 알림 수(배지용)."""
-    n = db.scalar(
-        select(func.count())
-        .select_from(Notification)
-        .where(Notification.user_id == current_user.id, Notification.read.is_(False))
-    ) or 0
-    return {"unread": n}
+    return {"unread": notification_service.unread_count(db, current_user.id)}
 
 
 @router.post("/notifications/read-all")
 def mark_all_read(
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     """내 미확인 알림을 모두 읽음 처리."""
@@ -232,7 +265,7 @@ def mark_all_read(
 @router.post("/notifications/{notification_id}/read", status_code=200)
 def mark_read(
     notification_id: str,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     row = db.scalar(select(Notification).where(Notification.id == notification_id))
@@ -246,7 +279,7 @@ def mark_read(
 @router.delete("/notifications/{notification_id}")
 def delete_notification(
     notification_id: str,
-    current_user: CurrentUser,
+    current_user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     """알림 삭제(본인 소유만)."""

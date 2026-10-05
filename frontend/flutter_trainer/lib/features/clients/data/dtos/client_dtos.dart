@@ -10,19 +10,24 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 /// mapping is unit-testable and shared with any future source.
 
 /// `GET /v1/trainer/clients` element → [TrainerClient].
+///
+/// 담당이 해제된 관계(`registered: false`)는 서버가 성별·나이·건강 목표를 비워
+/// 보낸다(#2814). 그 규칙이 빠진 옛 서버를 만나도 화면에 남지 않게 여기서도
+/// 한 번 더 비운다. 동의 철회는 서버만 아는 상태라 서버 값을 그대로 믿는다.
 TrainerClient trainerClientFromJson(Map<String, Object?> json) {
+  final bool registered = json['registered'] != false;
   return TrainerClient(
     id: _str(json['id']),
     name: _str(json['name']),
     avatar: _str(json['avatar']),
-    gender: _str(json['gender']),
-    age: _nullableInt(json['age']),
-    goal: _str(json['goal']),
+    gender: registered ? _str(json['gender']) : '',
+    age: registered ? _nullableInt(json['age']) : null,
+    goal: registered ? _str(json['goal']) : '',
     lastMessage: _str(json['last_message']),
     lastTime: _str(json['last_time']),
     lastMessageAt: DateTime.tryParse(_str(json['last_message_at'])),
     active: json['active'] == true,
-    registered: json['registered'] != false,
+    registered: registered,
     calories: _int(json['calories']),
     sodiumMg: _int(json['sodium_mg']),
     sugarG: _double(json['sugar_g']),
@@ -31,7 +36,8 @@ TrainerClient trainerClientFromJson(Map<String, Object?> json) {
     fatG: _double(json['fat_g']),
     lastRoutine: _str(json['last_routine']),
     lastRoutineDate: _dayOrNull(json['last_routine_date']),
-    weekCompletion: _intList(json['week_completion']),
+    // 걸린 것이 없는 날은 null 이다(#2513) — 자리를 지켜야 요일이 밀리지 않는다.
+    weekCompletion: _nullableIntList(json['week_completion']),
     sodiumWeek: _intList(json['sodium_week']),
     caloriesWeek: _intList(json['calories_week']),
     sugarWeek: _doubleList(json['sugar_week']),
@@ -151,8 +157,9 @@ List<TrainerClient> prioritizeClients(
     if (attention != 0) return attention;
     // Ties break on who spoke most recently — when two clients both need
     // attention, the one mid-conversation is the one to open first.
-    // Absent when the source has no chat signal (the real API's roster
-    // endpoint doesn't carry one), which degrades to the incoming order.
+    // 데모는 [lastChatAt] 이, 실서버는 로스터의 `last_message_at`
+    // ([TrainerClient.lastMessageAt]) 이 이 신호를 준다. 둘 다 없으면 들어온
+    // 차례를 지킨다.
     final chat = (lastChatAt[b.$1.id] ?? b.$1.lastMessageAt ?? epoch).compareTo(
       lastChatAt[a.$1.id] ?? a.$1.lastMessageAt ?? epoch,
     );
@@ -168,10 +175,11 @@ List<TrainerClient> prioritizeClients(
 /// 나트륨이 넘쳤는지는 그 대화를 열지 말지를 정하는 기준이 아니고, 그
 /// 판단이 필요한 사람은 `관리 필요` 로 좁혀 본다([prioritizeClients]).
 ///
-/// [lastChatAt] 이 없는 고객은 뒤로 간다(대화가 없다는 뜻이다). 값이 같으면
-/// 들어온 차례를 지킨다 — 정렬이 흔들리면 목록이 매번 다시 배열된다.
-/// 실 API 의 로스터 엔드포인트는 아직 채팅 시각을 주지 않아 그 모드에서는
-/// 들어온 차례 그대로다([prioritizeClients] 와 같은 한계다).
+/// 마지막 대화 시각은 [lastChatAt](데모의 채팅 표)에서 먼저 찾고, 없으면
+/// 로스터가 실어 온 [TrainerClient.lastMessageAt](실서버 `last_message_at`)을
+/// 쓴다 — [prioritizeClients] 와 같은 규칙이다(#3011). 둘 다 없는 고객은 뒤로
+/// 간다(대화가 없다는 뜻이다). 값이 같으면 들어온 차례를 지킨다 — 정렬이
+/// 흔들리면 목록이 매번 다시 배열된다.
 List<TrainerClient> sortByLatestMessage(
   List<TrainerClient> clients, {
   Map<String, DateTime> lastChatAt = const <String, DateTime>{},
@@ -181,8 +189,8 @@ List<TrainerClient> sortByLatestMessage(
   ];
   final epoch = DateTime.utc(1970);
   decorated.sort((a, b) {
-    final chat = (lastChatAt[b.$1.id] ?? epoch).compareTo(
-      lastChatAt[a.$1.id] ?? epoch,
+    final chat = (lastChatAt[b.$1.id] ?? b.$1.lastMessageAt ?? epoch).compareTo(
+      lastChatAt[a.$1.id] ?? a.$1.lastMessageAt ?? epoch,
     );
     if (chat != 0) return chat;
     return a.$2.compareTo(b.$2);
@@ -205,6 +213,11 @@ double _double(Object? v) => v is num ? v.toDouble() : 0;
 List<int> _intList(Object? v) => v is List
     ? v.whereType<num>().map((n) => n.toInt()).toList(growable: false)
     : const <int>[];
+
+/// 빈 자리(null)를 지키는 정수 계열 — 이행률처럼 null 이 "값 없음" 인 것.
+List<int?> _nullableIntList(Object? v) => v is List
+    ? v.map((Object? n) => n is num ? n.toInt() : null).toList(growable: false)
+    : const <int?>[];
 
 /// 당류처럼 소수를 유지해야 하는 계열. `_intList` 로 읽으면 6.3 이 6 이 된다.
 List<double> _doubleList(Object? v) => v is List

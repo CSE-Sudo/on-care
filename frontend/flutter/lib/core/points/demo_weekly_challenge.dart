@@ -1,9 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart' show DemoCouponResult;
 import 'package:oncare/core/points/demo_points_ledger.dart';
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// [monday] 주에 운동 기록이 있는 날들(자정으로 자른 날짜).
 typedef DemoExerciseDays = Future<Set<DateTime>> Function(DateTime monday);
@@ -20,9 +22,9 @@ typedef DemoExerciseDays = Future<Set<DateTime>> Function(DateTime monday);
 /// 판정은 읽는 쪽이 먼저 부른다 — 목업 API 가 챌린지·사용처·잔액·알림함을 답하기
 /// 전에 부른다. 서버의 늦은 판정과 같은 자리다.
 ///
-/// 운동한 날은 목업 운동 저장소가 붙이는 [recordedDays] 로 센다. 저장소가 아직
-/// 만들어지지 않았으면 목업 API 가 자기 운동 표로 센다.
-class DemoWeeklyChallenge {
+/// 운동한 날은 목업 API 가 자기 운동 표(drift)로 센다(#2662). 시험은
+/// [recordedDays] 로 출처를 갈아 끼울 수 있다.
+class DemoWeeklyChallenge implements DemoPersistable {
   DemoWeeklyChallenge({
     required DemoPointsLedger ledger,
     DateTime Function()? now,
@@ -42,8 +44,11 @@ class DemoWeeklyChallenge {
   final List<_DemoChallenge> _challenges = <_DemoChallenge>[];
   int _sequence = 0;
 
-  /// 목업 운동 저장소가 붙이는 운동한 날 출처. 앱의 목업 모드에서 회원이 추가한
-  /// 운동은 그 저장소에만 있다.
+  @override
+  void Function()? onChanged;
+
+  /// 운동한 날 출처를 갈아 끼우는 시험용 자리. 앱에서는 비어 있고, 목업 API 가
+  /// 자기 운동 표(drift)로 센다(#2662).
   Set<DateTime> Function(DateTime monday)? recordedDays;
 
   /// 참가하면 걸릴 목표 — 서버 `goal_for` 와 같은 규칙.
@@ -54,7 +59,7 @@ class DemoWeeklyChallenge {
 
   /// 주가 끝난 진행 중 챌린지를 판정한다. 이번에 판정한 것의 결과 알림을 돌려준다.
   Future<List<DemoChallengeNotice>> settleDue(DemoExerciseDays daysOf) async {
-    final DateTime thisMonday = _mondayOf(_today());
+    final DateTime thisMonday = mondayOf(_today());
     final List<DemoChallengeNotice> notices = <DemoChallengeNotice>[];
     for (final _DemoChallenge c in List<_DemoChallenge>.of(_challenges)) {
       if (c.status != _active || !c.weekStart.isBefore(thisMonday)) continue;
@@ -73,6 +78,7 @@ class DemoWeeklyChallenge {
       if (succeeded) _ledger.credit(c.id, c.reward);
       notices.add(_notice(c, days: days, succeeded: succeeded));
     }
+    if (notices.isNotEmpty) onChanged?.call();
     return notices;
   }
 
@@ -82,7 +88,7 @@ class DemoWeeklyChallenge {
     int? goal,
   }) async {
     final DateTime today = _today();
-    final DateTime monday = _mondayOf(today);
+    final DateTime monday = mondayOf(today);
     final _DemoChallenge? row = _forWeek(monday);
     final int balance = _ledger.balance;
     final int progress = _count(await daysOf(monday), monday, today);
@@ -94,9 +100,9 @@ class DemoWeeklyChallenge {
         ? 'insufficient_points'
         : null;
     return <String, Object?>{
-      'week_start': _ymd(monday),
-      'week_end': _ymd(_addDays(monday, 6)),
-      'join_until': _ymd(_addDays(monday, 1)),
+      'week_start': wireDate(monday),
+      'week_end': wireDate(_addDays(monday, 6)),
+      'join_until': wireDate(_addDays(monday, 1)),
       'stake': row?.stake ?? stake,
       'reward': row?.reward ?? reward,
       'goal': row?.goal ?? goalOf(goal),
@@ -124,7 +130,7 @@ class DemoWeeklyChallenge {
       }
     }
     final DateTime today = _today();
-    final DateTime monday = _mondayOf(today);
+    final DateTime monday = mondayOf(today);
     if (_forWeek(monday) != null) {
       return _error(409, '이번 주 챌린지에 이미 참가했어요.');
     }
@@ -138,13 +144,51 @@ class DemoWeeklyChallenge {
       id: 'chl-demo-${++_sequence}',
       weekStart: monday,
       goal: goalOf(goal),
+      joinedAt: _now(),
       clientRequestId: clientRequestId,
     );
     if (!_ledger.spend(challenge.id, stake, reason: 'challenge_stake')) {
       return _error(409, '포인트가 부족해요.');
     }
     _challenges.add(challenge);
+    onChanged?.call();
     return DemoCouponResult(201, await _joinJson(challenge, daysOf));
+  }
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'sequence': _sequence,
+    'challenges': <Map<String, Object?>>[
+      for (final _DemoChallenge c in _challenges)
+        <String, Object?>{
+          'id': c.id,
+          'week_start': c.weekStart.toIso8601String(),
+          'goal': c.goal,
+          'joined_at': c.joinedAt.toIso8601String(),
+          'status': c.status,
+          'final_days': c.finalDays,
+          'settled_at': c.settledAt?.toIso8601String(),
+        },
+    ],
+  };
+
+  @override
+  void restore(Map<String, Object?> json) {
+    _sequence = (json['sequence'] as num?)?.toInt() ?? 0;
+    _challenges
+      ..clear()
+      ..addAll(<_DemoChallenge>[
+        for (final Map<String, Object?> row in demoRows(json['challenges']))
+          _DemoChallenge(
+              id: row['id']! as String,
+              weekStart: demoParseTime(row['week_start']),
+              goal: (row['goal']! as num).toInt(),
+              joinedAt: demoParseTime(row['joined_at']),
+            )
+            ..status = row['status']! as String
+            ..finalDays = (row['final_days'] as num?)?.toInt()
+            ..settledAt = demoParseTimeOrNull(row['settled_at']),
+      ]);
   }
 
   /// `GET /me/challenges` — 최근 주 먼저, 최대 20.
@@ -178,9 +222,6 @@ class DemoWeeklyChallenge {
     final DateTime now = _now();
     return DateTime(now.year, now.month, now.day);
   }
-
-  static DateTime _mondayOf(DateTime day) =>
-      DateTime(day.year, day.month, day.day - (day.weekday - DateTime.monday));
 
   static DateTime _addDays(DateTime day, int days) =>
       DateTime(day.year, day.month, day.day + days);
@@ -221,8 +262,8 @@ class DemoWeeklyChallenge {
     final int days = c.finalDays ?? progress ?? 0;
     return <String, Object?>{
       'id': c.id,
-      'week_start': _ymd(c.weekStart),
-      'week_end': _ymd(_addDays(c.weekStart, 6)),
+      'week_start': wireDate(c.weekStart),
+      'week_end': wireDate(_addDays(c.weekStart, 6)),
       'goal': c.goal,
       'progress': days,
       'stake': c.stake,
@@ -261,11 +302,6 @@ class DemoWeeklyChallenge {
 
   static DemoCouponResult _error(int status, String detail) =>
       DemoCouponResult(status, <String, Object?>{'detail': detail});
-
-  static String _ymd(DateTime day) =>
-      '${day.year.toString().padLeft(4, '0')}-'
-      '${day.month.toString().padLeft(2, '0')}-'
-      '${day.day.toString().padLeft(2, '0')}';
 }
 
 /// 판정 결과 알림 한 건. 목업 API 가 알림함에 넣는다(`category: benefits`).
@@ -286,8 +322,9 @@ class _DemoChallenge {
     required this.id,
     required this.weekStart,
     required this.goal,
+    required this.joinedAt,
     this.clientRequestId,
-  }) : joinedAt = nowKst();
+  });
 
   final String id;
   final DateTime weekStart;
@@ -301,11 +338,14 @@ class _DemoChallenge {
   DateTime? settledAt;
 }
 
-/// 목업 경로가 함께 쓰는 주간 챌린지 하나 — 목업 API 와 목업 운동 저장소가 같은
+/// 목업 경로가 함께 쓰는 주간 챌린지 하나 — 목업 API 와 혜택 화면이 같은
 /// 인스턴스를 본다. 포인트는 [demoPointsLedgerProvider] 에서 빠지고 들어온다.
 ///
 /// 계정 전환에 초기화하지 않는다 — 건 포인트가 든 원장과 함께 앱 수명 동안 남는다.
-final demoWeeklyChallengeProvider = Provider<DemoWeeklyChallenge>(
-  (ref) => DemoWeeklyChallenge(ledger: ref.watch(demoPointsLedgerProvider)),
-  name: 'demoWeeklyChallenge',
-);
+final demoWeeklyChallengeProvider = Provider<DemoWeeklyChallenge>((ref) {
+  final DemoWeeklyChallenge challenge = DemoWeeklyChallenge(
+    ledger: ref.watch(demoPointsLedgerProvider),
+  );
+  ref.watch(demoBenefitsStoreProvider).attach('challenges', challenge);
+  return challenge;
+}, name: 'demoWeeklyChallenge');

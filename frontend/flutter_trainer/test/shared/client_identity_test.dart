@@ -38,7 +38,12 @@ void main() {
       tester.widget<Text>(find.text(data));
 
   testWidgets('밀도가 이름 글씨·아바타 크기를 정한다', (tester) async {
-    final TrainerClient client = makeClient(name: '가회원', goal: goal);
+    // 성별·나이를 모두 모르면 그 글자를 그리지 않으므로(#2870) 성별을 준다.
+    final TrainerClient client = makeClient(
+      name: '가회원',
+      goal: goal,
+      gender: 'female',
+    );
     for (final ClientRowDensity density in ClientRowDensity.values) {
       await pumpBlock(tester, ClientRow(client: client, density: density));
       final BuildContext context = tester.element(find.byType(ClientRow));
@@ -82,6 +87,33 @@ void main() {
     expect(find.text(goal), findsNothing);
   });
 
+  // 회원 관리 목록·상세·메시지 행이 함께 쓰는 자리다(#2744). 생년월일이 없는
+  // 회원에게 id 해시로 지은 나이를 적지 않는다.
+  testWidgets('회원 행은 서버가 준 나이만 적고, 없으면 성별만 적는다', (tester) async {
+    await pumpBlock(
+      tester,
+      Column(
+        children: <Widget>[
+          ClientIdentityBlock(
+            client: makeClient(
+              id: 'user-a',
+              name: '가회원',
+              gender: 'female',
+              age: 41,
+            ),
+          ),
+          ClientIdentityBlock(
+            client: makeClient(id: 'user-b', name: '나회원', gender: 'male'),
+          ),
+        ],
+      ),
+    );
+    expect(find.text('여성 · 41세'), findsOneWidget);
+    expect(find.text('남성'), findsOneWidget);
+  });
+
+  // 줄 수를 세는 테스트라 성별을 준다 — 성별·나이를 모두 모르면 그 글자는
+  // 그리지 않는다(#2870).
   testWidgets('둘째 줄은 바꾸거나 숨길 수 있고, 비면 줄을 만들지 않는다', (tester) async {
     await pumpBlock(
       tester,
@@ -89,17 +121,32 @@ void main() {
         children: <Widget>[
           ClientIdentityBlock(
             key: const ValueKey<String>('detail'),
-            client: makeClient(id: 'a', name: '가회원', goal: goal),
+            client: makeClient(
+              id: 'a',
+              name: '가회원',
+              goal: goal,
+              gender: 'female',
+            ),
             detail: '9월 28일 전송',
           ),
           ClientIdentityBlock(
             key: const ValueKey<String>('hidden'),
-            client: makeClient(id: 'b', name: '나회원', goal: goal),
+            client: makeClient(
+              id: 'b',
+              name: '나회원',
+              goal: goal,
+              gender: 'male',
+            ),
             showDetail: false,
           ),
           ClientIdentityBlock(
             key: const ValueKey<String>('empty'),
-            client: makeClient(id: 'c', name: '다회원', goal: ''),
+            client: makeClient(
+              id: 'c',
+              name: '다회원',
+              goal: '',
+              gender: 'female',
+            ),
           ),
         ],
       ),

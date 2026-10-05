@@ -11,12 +11,13 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/clock.dart';
 
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/chat_pdf_repository.dart';
-import 'package:oncare_trainer/features/clients/data/repositories/client_coach_repository.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_invite_repository.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/presentation/controllers/roster_view.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_meal_photo.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_program_draft_repository.dart';
@@ -36,7 +37,6 @@ import 'package:oncare_trainer/features/notifications/domain/entities/trainer_no
 import 'package:oncare_trainer/features/reports/data/report_send_log.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
-import 'package:oncare_trainer/features/reports/services/report_pdf_sender.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/reservation_slot_repository.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -135,12 +135,6 @@ void main() {
       clients.any((TrainerClient c) => c.name == t.memberName);
 
   group('회원 목록', () {
-    test('managedClientsProvider — B 에게 B 의 회원만', () async {
-      final result = await switchAccounts(managedClientsProvider);
-      expect(rosterOf(result.forA.requireValue, TestTrainer.a), isTrue);
-      expectOnlyB(result.seenByB, rosterOf);
-    });
-
     test('clientsProvider — B 에게 B 의 회원만', () async {
       final result = await switchAccounts(clientsProvider);
       expect(rosterOf(result.forA.requireValue, TestTrainer.a), isTrue);
@@ -228,7 +222,7 @@ void main() {
         makeClient(id: t.memberId, name: t.memberName);
 
     ReportKey keyOf(TestTrainer t) =>
-        (client: clientOf(t), weekStart: weekStartOf(nowKst()));
+        ReportKey(client: clientOf(t), weekStart: weekStartOf(nowKst()));
 
     test('weeklyReportProvider — B 에게 B 의 리포트만', () async {
       await signIn(TestTrainer.a);
@@ -308,6 +302,28 @@ void main() {
     });
   });
 
+  group('회원 식단·운동 기록 (#3103)', () {
+    // 계정 동안 붙잡아 두지 않게 바꿨다 — 그래도 B 에게 A 의 기록이 실리지
+    // 않아야 한다. 같은 회원 id 로 두 계정을 연다.
+    const String sharedId = 'shared';
+
+    test('clientDietProvider — B 에게 B 의 식단만', () async {
+      bool dietOf(List<ClientDietEntry> items, TestTrainer t) =>
+          items.any((ClientDietEntry e) => e.items == t.mealItems);
+      final result = await switchAccounts(clientDietProvider(sharedId));
+      expect(dietOf(result.forA.requireValue, TestTrainer.a), isTrue);
+      expectOnlyB(result.seenByB, dietOf);
+    });
+
+    test('clientHistoryProvider — B 에게 B 의 운동 기록만', () async {
+      bool historyOf(List<RoutineHistoryEntry> items, TestTrainer t) =>
+          items.any((RoutineHistoryEntry e) => e.label == t.workoutLabel);
+      final result = await switchAccounts(clientHistoryProvider(sharedId));
+      expect(historyOf(result.forA.requireValue, TestTrainer.a), isTrue);
+      expectOnlyB(result.seenByB, historyOf);
+    });
+  });
+
   group('끼니 사진', () {
     test('같은 경로의 사진도 B 의 토큰으로 다시 받는다', () async {
       const String path = '/trainer/clients/shared/diet/photos/p1';
@@ -337,7 +353,9 @@ void main() {
       final sub = container.listen(trainerSettingsProvider, (_, _) {});
       // A 는 기본값(켜짐)과 다른 값을 저장해 두었다.
       await waitUntil(
-        () => sub.read().newMessageAlerts == TestTrainer.a.newMessageAlerts,
+        () =>
+            sub.read().valueOrNull?.newMessageAlerts ==
+            TestTrainer.a.newMessageAlerts,
       );
 
       await signOutClosing(<ProviderSubscription<Object?>>[sub]);
@@ -345,18 +363,19 @@ void main() {
 
       final subB = container.listen(trainerSettingsProvider, (_, _) {});
       addTearDown(subB.close);
-      // 새로 만든 컨트롤러는 A 의 값이 아니라 기본값에서 출발해 B 의 값을 읽는다.
-      expect(
-        subB.read().newMessageAlerts,
-        isNot(TestTrainer.a.newMessageAlerts),
-      );
+      // 새로 만든 컨트롤러는 A 의 값이 아니라 "아직 모름" 에서 출발해 B 의 값을
+      // 읽는다(#2883).
+      expect(subB.read().hasValue, isFalse);
       await waitUntil(
         () => backend.requests.any(
           (r) => r.account == TestTrainer.b && r.path == '/trainer/me/settings',
         ),
       );
       await settleAsync();
-      expect(subB.read().newMessageAlerts, TestTrainer.b.newMessageAlerts);
+      expect(
+        subB.read().valueOrNull?.newMessageAlerts,
+        TestTrainer.b.newMessageAlerts,
+      );
     });
 
     test('rosterViewProvider — A 가 고른 필터가 B 에게 남지 않는다', () async {
@@ -410,7 +429,6 @@ void main() {
           'schedule': scheduleRepositoryProvider,
           'reservationSlot': reservationSlotRepositoryProvider,
           'consultation': consultationRepositoryProvider,
-          'clientCoach': clientCoachRepositoryProvider,
           'clientInvite': clientInviteRepositoryProvider,
           'chatPdf': trainerChatPdfRepositoryProvider,
           'chatImage': trainerChatImageRepositoryProvider,
@@ -425,7 +443,6 @@ void main() {
           'routine': trainerRoutineRepositoryProvider,
           'notification': trainerNotificationRepositoryProvider,
           'report': reportRepositoryProvider,
-          'pdfSender': reportPdfSenderProvider,
         };
 
     for (final MapEntry<String, ProviderListenable<Object>> entry

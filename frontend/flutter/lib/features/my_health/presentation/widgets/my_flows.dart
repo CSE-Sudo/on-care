@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/core/app_version/app_version.dart';
+import 'package:oncare/features/account/domain/entities/account_reauth.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
@@ -14,13 +16,20 @@ import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/account/presentation/focus_change_label.dart';
 import 'package:oncare/features/account/presentation/health_focus_label.dart';
+import 'package:oncare/features/auth/domain/repositories/password_repository.dart'
+    show ReissuedTokens;
 import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
+import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/my_health/domain/support_links.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
+import 'package:oncare/features/my_health/presentation/widgets/account_reauth_dialog.dart';
 import 'package:oncare/features/notification/data/repositories/notification_settings_repository.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
+import 'package:oncare_core/legal_contact.dart';
+import 'package:oncare_core/licenses.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -117,6 +126,20 @@ Widget _formShell(
   return PopScope(canPop: !saving, child: page);
 }
 
+/// 구획 제목 줄 끝의 `마지막 변경: 트레이너 · 9월 16일` (#1832, #2942).
+/// 회원과 담당 트레이너가 같은 칸을 고치므로 누가 언제 바꿨는지 남긴다. 바꾼 적이
+/// 없으면 null 이라 줄 끝이 비어 있다.
+Widget? _lastChangedTag(BuildContext context, String? label, Key key) =>
+    label == null
+    ? null
+    : Text(
+        label,
+        key: key,
+        style: context.oncare
+            .text(OnCareTypography.caption)
+            .copyWith(color: OnCareColors.textTertiary),
+      );
+
 /// 폼 칸을 묶는 카드.
 Widget _card(List<Widget> children) => AppCard(
   child: Column(
@@ -140,14 +163,18 @@ Widget _listCard(List<Widget> children) => AppCard(
 /// 않아, 기본값이 내 설정인 것처럼 보이고 그대로 저장하면 서버에 있던 실제 값이
 /// 기본값으로 덮였다(#789). 읽지 못했으면 읽지 못했다고 말하고, 저장 자체를
 /// 막는 것이 맞다.
-Widget _loadFailed(BuildContext context, VoidCallback onRetry) {
+///
+/// 설명은 [error] 의 원인(연결·서버·권한)에서 고르고, 원인을 가릴 수 없을 때만
+/// 지금의 안내 문구로 떨어진다(#3140).
+Widget _loadFailed(BuildContext context, Object error, VoidCallback onRetry) {
   final AppLocalizations l = AppLocalizations.of(context);
   return KeyedSubtree(
     key: const Key('mySettingsRetry'),
-    child: AppErrorState(
+    child: appErrorStateFor(
+      context,
+      error: error,
       title: l.mySettingsLoadFailed,
       message: l.mySettingsLoadFailedBody,
-      retryLabel: l.actionRetry,
       onRetry: onRetry,
     ),
   );
@@ -196,8 +223,8 @@ class ProfileSettingsPage extends ConsumerWidget {
           _shell(context, l.myProfileTitle, const <Widget>[AppLoading()]),
       // 건강 목표와 같은 이유로 폼을 그리지 않는다 — 빈 프로필을 저장하면
       // 이름·연락처가 지워진다(#789).
-      error: (_, _) => _shell(context, l.myProfileTitle, <Widget>[
-        _loadFailed(context, () => ref.invalidate(profileProvider)),
+      error: (Object error, _) => _shell(context, l.myProfileTitle, <Widget>[
+        _loadFailed(context, error, () => ref.invalidate(profileProvider)),
       ]),
     );
   }
@@ -498,8 +525,12 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
       toast.show(l.myProfileSaved, type: AppToastType.success);
       return;
     }
-    setState(() => _saving = true);
-    try {
+    // 이메일을 바꿀 때만 본인 확인을 거친다(#3039). 대소문자만 다른 것은 같은
+    // 주소다 — 서버도 그렇게 비교한다.
+    final bool emailChanged =
+        email != null &&
+        email.toLowerCase() != _base.email.trim().toLowerCase();
+    Future<void> send({AccountReauth? reauth}) async {
       _base = await ref
           .read(accountRepositoryProvider)
           .updateProfile(
@@ -510,31 +541,86 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
             gender: gender,
             heightCm: heightCm,
             weightKg: weightKg,
+            reauth: reauth,
+            // 이메일이 바뀌면 다른 기기의 세션이 끊기고 이 기기에 새 토큰이
+            // 온다 — 비밀번호 변경과 같이 받아 넣어야 로그인이 이어진다.
+            onTokensReissued: _adoptTokens,
             // 자유 입력 운동 목표는 `건강 목표` 화면으로 옮겼다(#1471) —
             // 여기서 보내지 않으므로 그 화면에서 정한 값이 덮이지 않는다.
           );
-      // Sheet dismissed mid-save → don't touch ref/pop the page below.
+    }
+
+    if (emailChanged) {
+      // 저장 버튼의 진행 표시는 켜지 않는다 — 창이 떠 있는 동안 진행 중인 것은
+      // 창 안의 확정 버튼이고, 창 뒤에서 도는 표시는 회원에게 보이지도 않는다.
+      final AccountReauthDialogOutcome outcome = await showAccountReauthDialog(
+        context: context,
+        message: l.reauthEmailMessage,
+        confirmLabel: l.mySave,
+        hasPassword: _base.hasPassword,
+        onSubmit: (AccountReauth reauth) => send(reauth: reauth),
+      );
       if (!mounted) return;
-      // MY 카드의 이름·이메일은 `/users/me/health` 에서 온다. 프로필만 되짚으면
-      // "저장되었어요" 를 보고 돌아온 화면이 옛 이름 그대로다(#1930).
+      switch (outcome.result) {
+        case AccountReauthDialogResult.done:
+          _onSaved(toast, l);
+        case AccountReauthDialogResult.cancelled:
+          // 취소하면 편집 상태 그대로 둔다 — 바꾼 값을 다시 고칠 수 있다.
+          return;
+        case AccountReauthDialogResult.failed:
+          _onSaveFailed(outcome.error, toast, l);
+      }
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      await send();
+    } on Object catch (e) {
+      _onSaveFailed(e, toast, l);
+      return;
+    }
+    _onSaved(toast, l);
+  }
+
+  /// 이메일 변경으로 새로 받은 토큰을 세션에 넣는다(#3039).
+  ///
+  /// 이미 저장은 끝났다 — 넣다가 실패해도 실패로 알리지 않는다. 이 기기는 다음
+  /// 요청의 401 에서 만료 안내와 함께 다시 로그인한다(비밀번호 변경과 같다).
+  void _adoptTokens(ReissuedTokens tokens) {
+    unawaited(
       ref
-        ..invalidate(profileProvider)
-        ..invalidate(myHealthStateProvider);
-      setState(() {
-        _saving = false;
-        _editing = false;
-      });
-      toast.show(l.myProfileSaved, type: AppToastType.success);
-    } on ProfileUpdateRejected catch (e) {
+          .read(sessionControllerProvider.notifier)
+          .adoptReissuedTokens(access: tokens.access, refresh: tokens.refresh)
+          .catchError((Object _) {}),
+    );
+  }
+
+  void _onSaved(AppToastHost toast, AppLocalizations l) {
+    // Sheet dismissed mid-save → don't touch ref/pop the page below.
+    if (!mounted) return;
+    // MY 카드의 이름·이메일은 `/users/me/health` 에서 온다. 프로필만 되짚으면
+    // "저장되었어요" 를 보고 돌아온 화면이 옛 이름 그대로다(#1930).
+    ref
+      ..invalidate(profileProvider)
+      ..invalidate(myHealthStateProvider);
+    setState(() {
+      _saving = false;
+      _editing = false;
+    });
+    toast.show(l.myProfileSaved, type: AppToastType.success);
+  }
+
+  void _onSaveFailed(Object? error, AppToastHost toast, AppLocalizations l) {
+    if (error is ProfileUpdateRejected) {
       // 다시 눌러도 같은 값이면 또 막힌다 — "잠시 후 다시" 대신 무엇을 고칠지
       // 말한다. 편집 상태는 그대로 두어 바로 고칠 수 있게 한다(#2639).
       if (!mounted) return;
-      final String message = _showRejection(e.reason, l);
+      final String message = _showRejection(error.reason, l);
       toast.show(message, type: AppToastType.error);
-    } catch (_) {
-      if (mounted) setState(() => _saving = false);
-      toast.show(l.mySaveFailed, type: AppToastType.error);
+      return;
     }
+    if (mounted) setState(() => _saving = false);
+    toast.show(l.mySaveFailed, type: AppToastType.error);
   }
 
   /// 거절 사유를 해당 칸 아래에 걸고, 토스트로 띄울 문구를 돌려준다.
@@ -711,6 +797,8 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
             icon: AppIcons.edit,
             tooltip: l.actionEdit,
             size: AppIconButtonSize.small,
+            // 연필은 앱 전체에서 회색이다 — 목록의 `›` 와 같은 색(#2507).
+            color: OnCareColors.textTertiary,
             onPressed: _beginEdit,
           ),
       ],
@@ -737,9 +825,10 @@ class HealthGoalsPage extends ConsumerWidget {
       data: (UserProfile p) => _GoalsForm(initial: p),
       loading: () =>
           _shell(context, l.myHealthGoalsTitle, const <Widget>[AppLoading()]),
-      error: (_, _) => _shell(context, l.myHealthGoalsTitle, <Widget>[
-        _loadFailed(context, () => ref.invalidate(profileProvider)),
-      ]),
+      error: (Object error, _) =>
+          _shell(context, l.myHealthGoalsTitle, <Widget>[
+            _loadFailed(context, error, () => ref.invalidate(profileProvider)),
+          ]),
     );
   }
 }
@@ -1039,7 +1128,8 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     _kSodium => UserProfile.defaultDailySodiumMg,
     _kSugar => UserProfile.defaultDailySugarG,
     _kCarbs => UserProfile.defaultDailyCarbsG,
-    _kProtein => UserProfile.defaultDailyProteinG,
+    // 단백질은 식단 분석과 같은 실효 목표다 — 체중이 있으면 체중 × 1.2g(#2898).
+    _kProtein => _base.effectiveDailyProteinG,
     _kFat => UserProfile.defaultDailyFatG,
     _kBurn => kDefaultExerciseLoadGoals.dailyBurnKcal.round(),
     _kCardio => kDefaultExerciseLoadGoals.weeklyCardioMinutes.round(),
@@ -1272,6 +1362,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final String locale = Localizations.localeOf(context).toString();
     // 칼로리와 탄단지는 서로 다른 값이 아니다 — 탄·단은 4kcal/g, 지방은
     // 9kcal/g 이라 셋이 정해지면 칼로리도 정해진다. 두 방향을 세기를 달리해
     // 잇는다: 탄단지를 고치면 칼로리를 **바꾸고**, 칼로리를 고치면 탄단지에는
@@ -1295,10 +1386,34 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
       l.myHealthGoalsTitle,
       footer,
       <Widget>[
+        // 첫 설정을 건너뛴 회원에게 다시 들어갈 길을 둔다(#2855). 건너뛰기가
+        // 계정에 남아 로그인할 때 더는 첫 설정으로 끌려가지 않으므로, 기본
+        // 정보(생년월일·키·체중)를 넣을 자리는 여기다. 끝내면 사라진다.
+        if (!_editing &&
+            _base.onboardingSkipped &&
+            !_base.onboarded) ...<Widget>[
+          AppBanner(
+            key: const Key('firstRunPrompt'),
+            title: l.myFirstRunPromptTitle,
+            message: l.myFirstRunPromptBody,
+            actionLabel: l.myFirstRunPromptAction,
+            onAction: () => context.push<void>(AppRoutes.onboardingResume),
+          ),
+          const SizedBox(height: OnCareSpacing.sectionGap),
+        ],
         // 순서: 관리 초점 → 자유 입력 운동 목표 → 수치형 운동 목표 → 식단 목표
         // (#1471). 온보딩 2단계가 묻는 것과 같은 순서라, 두 화면이 같은 이야기를
         // 같은 차례로 한다.
-        AppSectionHeader(title: l.myGoalsFocusSection),
+        // 담당 트레이너도 같은 목표를 고친다 — 누가 언제 바꿨는지 구획 제목 줄
+        // 끝에 남긴다(#1832). 아래 주의사항 구획과 같은 자리다(#2942).
+        AppSectionHeader(
+          title: l.myGoalsFocusSection,
+          trailing: _lastChangedTag(
+            context,
+            focusLastChangedLabel(l, _base, locale: locale),
+            const Key('goalFocusLastChanged'),
+          ),
+        ),
         const SizedBox(height: OnCareSpacing.s8),
         _card(<Widget>[
           if (_editing) ...<Widget>[
@@ -1354,29 +1469,21 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
                       ],
                     ),
             ),
-          // 담당 트레이너도 같은 목표를 고친다 — 누가 언제 바꿨는지 칩 아래에
-          // 남긴다(#1832).
-          if (focusLastChangedLabel(
-                l,
-                _base,
-                locale: Localizations.localeOf(context).toString(),
-              )
-              case final String changed) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s12),
-            Text(
-              changed,
-              key: const Key('goalFocusLastChanged'),
-              style: context.oncare
-                  .text(OnCareTypography.caption)
-                  .copyWith(color: OnCareColors.textTertiary),
-            ),
-          ],
         ]),
         const SizedBox(height: OnCareSpacing.s20),
         // 부상·통증처럼 운동을 짤 때 피해야 할 것(#2619). 목표 칩과 같은
         // `conditions` 칸에 담기지만, 고르는 목표와 적는 주의사항은 다른 이야기라
         // 구획을 나눈다. 담당 트레이너도 같은 글을 보고 고친다.
-        AppSectionHeader(title: l.healthNotesLabel),
+        // 담당 트레이너가 고친 글은 알림이 오지 않는다 — 누가 언제 바꿨는지
+        // 구획 제목 줄 끝에 남긴다(#2942). 목표 칩 기록과 따로다.
+        AppSectionHeader(
+          title: l.healthNotesLabel,
+          trailing: _lastChangedTag(
+            context,
+            notesLastChangedLabel(l, _base, locale: locale),
+            const Key('goalConditionsLastChanged'),
+          ),
+        ),
         const SizedBox(height: OnCareSpacing.s8),
         _card(<Widget>[
           if (_editing)
@@ -1564,7 +1671,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
               keyboardType: TextInputType.number,
               inputFormatters: _digitsOnly,
               hint: split == null
-                  ? '${UserProfile.defaultDailyProteinG}'
+                  ? '${_base.effectiveDailyProteinG}'
                   : '${split.protein}',
               errorText: _errors.of(_kProtein),
               onChanged: (_) {
@@ -1649,6 +1756,8 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
             icon: AppIcons.edit,
             tooltip: l.actionEdit,
             size: AppIconButtonSize.small,
+            // 연필은 앱 전체에서 회색이다 — 목록의 `›` 와 같은 색(#2507).
+            color: OnCareColors.textTertiary,
             onPressed: _beginEdit,
           ),
       ],
@@ -1749,18 +1858,31 @@ class _MacroSuggestionRow extends StatelessWidget {
 /// Localized label for a notification toggle, keyed off its stable prefKey.
 String _notifLabel(AppLocalizations l, String prefKey) {
   switch (prefKey) {
-    case 'notif_diet_log':
-      return l.myNotifDietLog;
     case 'notif_exercise_reminder':
       return l.myNotifExercise;
     case 'notif_trainer_message':
       return l.myNotifTrainer;
-    case 'notif_ai_coaching':
-      return l.myNotifAiCoaching;
     case 'notif_weekly_report':
       return l.myNotifWeeklyReport;
     default:
       return prefKey;
+  }
+}
+
+/// 스위치 아래 한 줄 설명 — 그 스위치가 **실제로 끄는 알림**을 말한다(#3024).
+///
+/// 이름만 있을 때는 '운동 리마인더'를 끄면 PT 취소 알림까지 끊기는지, '주간
+/// 리포트'가 포인트로 만드는 리포트인지 알 수 없었다(#3025).
+String? _notifDescription(AppLocalizations l, String prefKey) {
+  switch (prefKey) {
+    case 'notif_exercise_reminder':
+      return l.myNotifExerciseDesc;
+    case 'notif_trainer_message':
+      return l.myNotifTrainerDesc;
+    case 'notif_weekly_report':
+      return l.myNotifWeeklyReportDesc;
+    default:
+      return null;
   }
 }
 
@@ -1773,69 +1895,66 @@ Future<void> openNotificationSettingsPage(BuildContext context) {
   return context.push<void>(AppRoutes.mySettingsPath('notifications'));
 }
 
-class NotificationSettingsPage extends ConsumerStatefulWidget {
+class NotificationSettingsPage extends ConsumerWidget {
   const NotificationSettingsPage({super.key});
 
-  @override
-  ConsumerState<NotificationSettingsPage> createState() =>
-      _NotificationSettingsPageState();
-}
-
-class _NotificationSettingsPageState
-    extends ConsumerState<NotificationSettingsPage> {
-  /// 이 화면에서 바꾼 값. 서버 응답을 기다리는 동안에도 스위치가 즉시 움직여야
-  /// 한다 — 왕복을 기다리면 눌리지 않는 것처럼 보인다.
-  ///
-  /// 저장에 **성공한 값도 여기 남는다.** 지우면 최초 조회값으로 돌아가는데,
-  /// 서버에는 저장된 값이 남아 있어 화면과 어긋난다.
-  final Map<String, bool> _local = <String, bool>{};
-
-  /// 키별 최신 요청 번호. 늦게 도착한 옛 응답이 최신 상태를 덮어쓰는 것을 막는다.
-  final Map<String, int> _requestSeq = <String, int>{};
-
-  /// 화면에 그릴 값 — 내가 바꾼 값이 우선, 없으면 서버 값.
-  bool _valueOf(String key, Map<String, bool> saved, bool fallback) =>
-      _local[key] ?? saved[key] ?? fallback;
-
-  Future<void> _persist(String key, bool value, bool previous) async {
-    final int seq = (_requestSeq[key] ?? 0) + 1;
-    _requestSeq[key] = seq;
-    setState(() => _local[key] = value);
+  /// 바꾼 값과 되돌림은 [NotificationSettingsController] 가 맡는다(#2851).
+  /// 화면 State 에만 두면 화면을 닫는 순간 사라져, 다시 들어왔을 때 최초
+  /// 조회값이 보이고 회원이 다시 누르면 서버 값이 뒤집혔다.
+  Future<void> _persist(
+    BuildContext context,
+    WidgetRef ref,
+    String key,
+    bool value,
+  ) async {
     final AppToastHost toast = AppToastHost.of(context);
-    final AppLocalizations l = AppLocalizations.of(context);
-    try {
-      await ref
-          .read(notificationSettingsRepositoryProvider)
-          .setValue(key, value);
-    } on Object {
-      if (!mounted) return;
-      // 이 요청을 기다리는 사이 더 눌렀다면, 옛 실패로 최신 상태를 되돌리지
-      // 않는다(리뷰).
-      if (_requestSeq[key] != seq) return;
-      // 되돌릴 곳은 **직전 값**이지 최초 조회값이 아니다. 한 번 저장에 성공한 뒤
-      // 다음 저장이 실패하면 최초값으로 돌아가 서버와 어긋난다(리뷰).
-      setState(() => _local[key] = previous);
-      toast.show(l.myNotificationSaveFailed, type: AppToastType.error);
-    }
+    final String failed = AppLocalizations.of(context).myNotificationSaveFailed;
+    final bool saved = await ref
+        .read(notificationSettingsProvider.notifier)
+        .setValue(key, value);
+    if (!saved) toast.show(failed, type: AppToastType.error);
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final Map<String, bool> saved =
-        ref.watch(notificationSettingsProvider).valueOrNull ??
-        <String, bool>{
-          for (final NotificationSettingItem item in kNotificationSettingItems)
-            item.key: item.fallback,
-        };
+    final AsyncValue<NotificationSettingsState> async = ref.watch(
+      notificationSettingsProvider,
+    );
+    final NotificationSettingsState? settings = async.valueOrNull;
+    if (settings == null) {
+      // 첫 조회 중 — 기본값을 서버 값처럼 먼저 그리면, 응답이 오며 스위치가
+      // 뒤집혀 보인다.
+      return _shell(context, l.myNotifTitle, const <Widget>[
+        AppLoading(key: Key('notificationSettingsLoading')),
+      ]);
+    }
     return _shell(context, l.myNotifTitle, <Widget>[
+      if (settings.loadFailed) ...<Widget>[
+        // 기본값을 조용히 보여 주지 않는다 — 서버 값과 다를 수 있다는 것을
+        // 알리고 다시 읽을 길을 둔다. 토글은 그대로 쓸 수 있다(끌 방법이
+        // 사라지면 안 된다).
+        AppBanner(
+          key: const Key('notificationSettingsLoadFailed'),
+          tone: AppBannerTone.danger,
+          icon: AppIcons.offline,
+          title: l.myNotifLoadFailed,
+          message: l.myNotifLoadFailedBody,
+          actionLabel: l.actionRetry,
+          onAction: async.isLoading
+              ? null
+              : () => ref.invalidate(notificationSettingsProvider),
+        ),
+        const SizedBox(height: OnCareSpacing.s12),
+      ],
       _listCard(<Widget>[
         for (int i = 0; i < kNotificationSettingItems.length; i++) ...<Widget>[
           if (i > 0) const AppDivider(),
           AppListRow(
             title: _notifLabel(l, kNotificationSettingItems[i].key),
+            subtitle: _notifDescription(l, kNotificationSettingItems[i].key),
             // 스위치에 **이름을 붙인다**(#1942). 제목과 스위치가 따로 읽히면
-            // 음성 안내에는 정체 불명의 `switch, on` 이 다섯 개 이어져, 순서를
+            // 음성 안내에는 정체 불명의 `switch, on` 이 여러 개 이어져, 순서를
             // 외운 사람만 어느 알림을 끄는지 안다.
             trailing: Semantics(
               label: _notifLabel(l, kNotificationSettingItems[i].key),
@@ -1843,26 +1962,28 @@ class _NotificationSettingsPageState
               // 두 번 나온다.
               excludeSemantics: true,
               child: Switch(
-                value: _valueOf(
-                  kNotificationSettingItems[i].key,
-                  saved,
-                  kNotificationSettingItems[i].fallback,
-                ),
-                onChanged: (bool v) => _persist(
-                  kNotificationSettingItems[i].key,
-                  v,
-                  // 실패했을 때 돌아갈 곳 — 지금 화면에 보이는 값.
-                  _valueOf(
-                    kNotificationSettingItems[i].key,
-                    saved,
-                    kNotificationSettingItems[i].fallback,
-                  ),
-                ),
+                value: settings.valueOf(kNotificationSettingItems[i].key),
+                onChanged: (bool v) =>
+                    _persist(context, ref, kNotificationSettingItems[i].key, v),
               ),
             ),
           ),
         ],
       ]),
+      const SizedBox(height: OnCareSpacing.s12),
+      // 끌 수 없는 알림을 밝혀 둔다(#3024) — PT 일정과 담당 관계 알림은
+      // 서버가 스위치와 상관없이 보낸다. 스위치 목록만 보면 이것도 끌 수
+      // 있는 것처럼 읽힌다.
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s4),
+        child: Text(
+          l.myNotifAlwaysSent,
+          key: const Key('notificationSettingsAlwaysSent'),
+          style: context.oncare
+              .text(OnCareTypography.caption)
+              .copyWith(color: OnCareColors.textTertiary),
+        ),
+      ),
     ]);
   }
 }
@@ -1916,6 +2037,15 @@ class SupportPage extends StatelessWidget {
           () => _openLegal(context, _LegalDoc.privacy),
         ),
         const AppDivider(),
+        // 오픈소스 라이선스(#3150) — 의존 패키지와 앱에 담긴 Pretendard 글꼴의
+        // 고지. Flutter 기본 목록 화면을 앱 테마 그대로 연다.
+        _supportRow(
+          context,
+          AppIcons.info,
+          l.myOpenSourceLicensesTitle,
+          () => openOpenSourceLicenses(context),
+        ),
+        const AppDivider(),
         // 탈퇴는 MY 설정 목록 맨 끝이 아니라 여기다(#2019). 로그아웃 바로
         // 아래에 두면 빨간 글자 둘이 나란히 서서 어느 쪽이 되돌릴 수 없는
         // 동작인지 흐려진다. 약관·개인정보 다음, 계정을 정리하는 줄로 묶는다.
@@ -1927,15 +2057,29 @@ class SupportPage extends StatelessWidget {
         ),
       ]),
       const SizedBox(height: OnCareSpacing.s12),
-      Center(
-        child: Text(
-          l.myAppVersion,
-          style: context.oncare
-              .text(OnCareTypography.caption)
-              .copyWith(color: OnCareColors.textTertiary),
-        ),
-      ),
+      const Center(child: SupportAppVersionLine()),
     ]);
+  }
+}
+
+/// 고객 지원 맨 아래 버전 줄(#3047). 버전은 빌드에서 읽는다 — 예전에는 번역
+/// 문구에 `1.0.0` 이 박혀 실제 빌드와 상관없이 늘 같았다. 읽기 전·읽지 못하면
+/// 앱 이름만 보인다(트레이너 웹과 같은 규칙).
+class SupportAppVersionLine extends ConsumerWidget {
+  const SupportAppVersionLine({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return Text(
+      switch (ref.watch(appVersionProvider).valueOrNull) {
+        final String version => l.myAppVersion(version),
+        null => l.myAppName,
+      },
+      style: context.oncare
+          .text(OnCareTypography.caption)
+          .copyWith(color: OnCareColors.textTertiary),
+    );
   }
 }
 
@@ -1960,6 +2104,21 @@ Future<void> _openExternal(BuildContext context, String url) async {
   if (!opened) {
     toast.show(l.mySupportOpenFailed, type: AppToastType.error);
   }
+}
+
+/// 오픈소스 라이선스 목록을 연다(#3150). 머리에는 앱 이름과, 읽었으면 버전을
+/// 싣는다 — 고객 지원 아래 버전 줄과 같은 값이다.
+void openOpenSourceLicenses(BuildContext context) {
+  final AppLocalizations l = AppLocalizations.of(context);
+  final String? version = ProviderScope.containerOf(
+    context,
+    listen: false,
+  ).read(appVersionProvider).valueOrNull;
+  showOnCareLicenses(
+    context,
+    applicationName: l.myAppName,
+    applicationVersion: version,
+  );
 }
 
 void _openLegal(BuildContext context, _LegalDoc doc) {
@@ -2007,7 +2166,13 @@ class LegalDocumentPage extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final bool isTerms = document == _LegalDoc.terms.name;
     final String title = isTerms ? l.myLegalTermsTitle : l.myLegalPrivacyTitle;
-    final String body = isTerms ? l.myLegalTermsBody : l.myLegalPrivacyBody;
+    final String body = isTerms
+        ? l.myLegalTermsBody
+        : l.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
+    // 두 문서는 시행일이 따로 간다 — 처리방침만 고쳐도 약관 날짜는 그대로다(#2820).
+    final String effectiveDate = isTerms
+        ? l.myLegalTermsEffectiveDate
+        : l.myLegalPrivacyEffectiveDate;
     return _shell(context, title, <Widget>[
       _card(<Widget>[
         Text(
@@ -2020,7 +2185,7 @@ class LegalDocumentPage extends StatelessWidget {
       const SizedBox(height: OnCareSpacing.s12),
       Center(
         child: Text(
-          l.myLegalEffectiveDate,
+          effectiveDate,
           style: context.oncare
               .text(OnCareTypography.caption)
               .copyWith(color: OnCareColors.textTertiary),

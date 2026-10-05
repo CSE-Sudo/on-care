@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 목업 API 의 연속 기록 보호권. 서버 `streak_shield_service` 의 대역이다. (#1788)
 ///
@@ -19,7 +21,7 @@ import 'package:oncare/core/utils/clock.dart';
 ///
 /// 기록은 이 원장이 들고 있지 않다. 데모에서 기록을 가진 곳(목업 저장소, 로컬
 /// 목업 API 의 drift)이 그날 기록이 있는지를 `hasRecordOn` 으로 알려 준다.
-class DemoStreakShieldBook {
+class DemoStreakShieldBook implements DemoPersistable {
   DemoStreakShieldBook({
     required DemoPointsLedger ledger,
     DateTime Function()? now,
@@ -45,6 +47,9 @@ class DemoStreakShieldBook {
   final DateTime Function() _now;
   final List<_DemoShield> _shields = <_DemoShield>[];
   int _sequence = 0;
+
+  @override
+  void Function()? onChanged;
 
   /// 쓰지 않은 보호권 수.
   int get held => _shields.where((_DemoShield s) => s.protectedOn == null).length;
@@ -76,6 +81,7 @@ class DemoStreakShieldBook {
     );
     if (!_ledger.spend(shield.id, cost, reason: itemId)) return _error(409, '포인트가 부족해요.');
     _shields.add(shield);
+    onChanged?.call();
     return DemoCouponResult(201, _exchangeJson(shield));
   }
 
@@ -95,7 +101,7 @@ class DemoStreakShieldBook {
       'used': <Map<String, Object?>>[
         for (final _DemoShield s in used)
           <String, Object?>{
-            'date': _ymd(s.protectedOn!),
+            'date': wireDate(s.protectedOn!),
             'used_at': s.usedAt?.toIso8601String(),
           },
       ],
@@ -104,12 +110,12 @@ class DemoStreakShieldBook {
           : recordStreakDays(hasRecordOn),
       // 창은 보유 수와 상관없이 내려 준다 — 보호권이 없으면 그래프가 교환과
       // 사용을 한 번에 잇는다. 어느 날이 실제로 비었는지는 기록 그래프가 가린다.
-      'protectable_from': _ymd(DateTime(
+      'protectable_from': wireDate(DateTime(
         yesterday.year,
         yesterday.month,
         yesterday.day - (protectWindowDays - 1),
       )),
-      'protectable_to': _ymd(yesterday),
+      'protectable_to': wireDate(yesterday),
     };
   }
 
@@ -157,6 +163,7 @@ class DemoStreakShieldBook {
     shield
       ..protectedOn = d
       ..usedAt = _now();
+    onChanged?.call();
     return DemoCouponResult(200, statusJson(hasRecordOn: hasRecordOn));
   }
 
@@ -174,7 +181,38 @@ class DemoStreakShieldBook {
     shield
       ..protectedOn = null
       ..usedAt = null;
+    onChanged?.call();
     return true;
+  }
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'sequence': _sequence,
+    'shields': <Map<String, Object?>>[
+      for (final _DemoShield s in _shields)
+        <String, Object?>{
+          'id': s.id,
+          'acquired_at': s.acquiredAt.toIso8601String(),
+          'protected_on': s.protectedOn?.toIso8601String(),
+          'used_at': s.usedAt?.toIso8601String(),
+        },
+    ],
+  };
+
+  @override
+  void restore(Map<String, Object?> json) {
+    _sequence = (json['sequence'] as num?)?.toInt() ?? 0;
+    _shields
+      ..clear()
+      ..addAll(<_DemoShield>[
+        for (final Map<String, Object?> row in demoRows(json['shields']))
+          _DemoShield(
+              id: row['id']! as String,
+              acquiredAt: demoParseTime(row['acquired_at']),
+            )
+            ..protectedOn = demoParseTimeOrNull(row['protected_on'])
+            ..usedAt = demoParseTimeOrNull(row['used_at']),
+      ]);
   }
 
   // ---- 내부 ----
@@ -209,7 +247,7 @@ class DemoStreakShieldBook {
       'acquired_at': shield.acquiredAt.toIso8601String(),
       'protected_on': shield.protectedOn == null
           ? null
-          : _ymd(shield.protectedOn!),
+          : wireDate(shield.protectedOn!),
       'used_at': shield.usedAt?.toIso8601String(),
     },
     'spent': cost,
@@ -220,11 +258,6 @@ class DemoStreakShieldBook {
       DemoCouponResult(status, <String, Object?>{'detail': detail});
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
-
-  static String _ymd(DateTime day) =>
-      '${day.year.toString().padLeft(4, '0')}-'
-      '${day.month.toString().padLeft(2, '0')}-'
-      '${day.day.toString().padLeft(2, '0')}';
 }
 
 class _DemoShield {
@@ -242,7 +275,10 @@ class _DemoShield {
 /// 목업 경로가 함께 쓰는 보호권 원장 하나 — 목업 API(사용처 교환·보호권 조회)와
 /// 목업 저장소(보호한 날 되돌리기)가 같은 인스턴스를 본다. 포인트는
 /// [demoPointsLedgerProvider] 에서 빠진다.
-final demoStreakShieldBookProvider = Provider<DemoStreakShieldBook>(
-  (ref) => DemoStreakShieldBook(ledger: ref.watch(demoPointsLedgerProvider)),
-  name: 'demoStreakShieldBook',
-);
+final demoStreakShieldBookProvider = Provider<DemoStreakShieldBook>((ref) {
+  final DemoStreakShieldBook book = DemoStreakShieldBook(
+    ledger: ref.watch(demoPointsLedgerProvider),
+  );
+  ref.watch(demoBenefitsStoreProvider).attach('shields', book);
+  return book;
+}, name: 'demoStreakShieldBook');

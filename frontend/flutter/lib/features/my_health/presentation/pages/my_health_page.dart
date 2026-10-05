@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/points/points_rules.dart';
-import 'package:oncare/core/utils/request_id.dart';
 import 'package:oncare/features/app_guide/presentation/controllers/app_guide_controller.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart';
@@ -36,11 +35,13 @@ import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/features/my_health/presentation/widgets/trainer_sync_sheet.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
+import 'package:oncare_core/request_id.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// Stable identifiers for the settings rows, decoupled from their localized
 /// display labels so the switch never keys off a translated string.
-enum _MySetting { profile, goals, notif, guide, support }
+enum _MySetting { profile, password, goals, notif, guide, support }
 
 /// MY 탭 — 프로필 카드, 내 트레이너 · 헬스장 섹션, 활동 포인트 카드, 설정 목록과
 /// 로그아웃 순서다. 포인트 카드는 트레이너 · 헬스장 아래에 둔다(#1785).
@@ -58,6 +59,10 @@ class MyHealthPage extends ConsumerWidget {
     switch (id) {
       case _MySetting.profile:
         openProfilePage(context);
+      case _MySetting.password:
+        context.push<void>(
+          AppRoutes.mySettingsPath(AppRoutes.passwordSettingsSection),
+        );
       case _MySetting.goals:
         openGoalsPage(context);
       case _MySetting.notif:
@@ -97,8 +102,11 @@ class MyHealthPage extends ConsumerWidget {
     // 응답에 실려 온다 — 색만 읽는 경로가 따로 없다. 그 값은 auto-dispose 가
     // 아니라 세션에 한 번만 읽고, 사용처 화면이 어차피 같은 값을 쓰므로 여기서
     // 먼저 읽어도 요청이 늘지 않는다. 읽기 전에는 기본 색(회원앱 파랑)이다.
-    final String? graphColor =
-        ref.watch(activityCalendarProvider).valueOrNull?.color.current;
+    final String? graphColor = ref
+        .watch(activityCalendarProvider)
+        .valueOrNull
+        ?.color
+        .current;
     return AppPage(
       // MainShell 은 `extendBody` 라 이 화면의 아래 여백(padding.bottom)에 하단
       // 내비 높이가 이미 들어 있다. 마지막 항목이 내비 뒤에 숨지 않게 그만큼 띄운다.
@@ -114,7 +122,7 @@ class MyHealthPage extends ConsumerWidget {
         ],
       ),
       children: <Widget>[
-        _ProfileCard(profile: health.valueOrNull?.profile),
+        _ProfileCard(health: health),
         const SizedBox(height: OnCareSpacing.sectionGap),
         _TrainerGymSection(onFindGym: () => context.go(AppRoutes.exerciseGym)),
         const SizedBox(height: OnCareSpacing.sectionGap),
@@ -123,10 +131,18 @@ class MyHealthPage extends ConsumerWidget {
         const _CoachReportsEntry(),
         KeyedSubtree(
           key: pointsAnchorKey,
-          child: _PointsCard(
-            points: health.valueOrNull?.activityPoints,
-            graphColor: graphColor,
-          ),
+          // 잔액을 모르는 동안(첫 조회 실패)에는 사용처로 들어가는 카드 대신 오류와
+          // 다시 시도를 둔다(#2853) — 모르는 잔액으로 교환을 시작하지 않는다.
+          child: !health.hasValue && !health.isLoading && health.hasError
+              ? _MyStateLoadFailed(
+                  key: const Key('pointsLoadFailed'),
+                  title: l.myPointsLoadFailed,
+                  retryKey: const Key('pointsRetry'),
+                )
+              : _PointsCard(
+                  points: health.valueOrNull?.activityPoints,
+                  graphColor: graphColor,
+                ),
         ),
         const SizedBox(height: OnCareSpacing.sectionGap),
         KeyedSubtree(
@@ -260,10 +276,92 @@ class _IconTile extends StatelessWidget {
   }
 }
 
-class _ProfileCard extends ConsumerWidget {
-  const _ProfileCard({required this.profile});
+/// MY 정보(`myHealthStateProvider`) 첫 조회가 실패했을 때 카드 자리에 서는
+/// 오류 안내와 다시 시도(#2853). 기록 그래프·사용처의 오류 카드와 같은 부품이다.
+class _MyStateLoadFailed extends ConsumerWidget {
+  const _MyStateLoadFailed({
+    super.key,
+    required this.title,
+    required this.retryKey,
+  });
 
-  final UserProfile? profile;
+  final String title;
+  final Key retryKey;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return AppCard(
+      // 실패한 조회의 오류로 원인 문구를 고른다(#3140).
+      child: appErrorStateFor(
+        context,
+        error: ref.watch(myHealthStateProvider).error,
+        title: title,
+        retryKey: retryKey,
+        onRetry: () => ref.invalidate(myHealthStateProvider),
+        placement: AppStatePlacement.card,
+      ),
+    );
+  }
+}
+
+class _ProfileCard extends ConsumerWidget {
+  const _ProfileCard({required this.health});
+
+  /// 세 상태를 나눠 그린다(#2853) — 값이 있으면(재조회 중·재조회 실패 포함)
+  /// 그 값을, 첫 조회 중이면 빈 자리와 스피너를, 첫 조회가 실패하면 오류와
+  /// 다시 시도를. 예전에는 값만 넘겨 받아 셋 다 "사용자"·빈 이메일로 그렸다.
+  final AsyncValue<MyHealthState> health;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final Widget head;
+    if (health.hasValue) {
+      head = _ProfileHead(profile: health.requireValue.profile);
+    } else if (!health.isLoading && health.hasError) {
+      // 다시 시도 중에는 오류 대신 아래 로딩 모양이다 — 누른 것이 먹혔음을 보인다.
+      head = appErrorStateFor(
+        context,
+        key: const Key('profileLoadFailed'),
+        error: health.error,
+        title: l.myProfileLoadFailed,
+        retryKey: const Key('profileRetry'),
+        onRetry: () => ref.invalidate(myHealthStateProvider),
+        placement: AppStatePlacement.card,
+      );
+    } else {
+      // 첫 조회 중 — 가짜 이름("사용자")을 그리지 않는다. 아바타 자리는 비운
+      // 원으로 남겨 값이 들어와도 아래 동기화 행이 움직이지 않는다.
+      head = const Row(
+        key: Key('profileLoading'),
+        children: <Widget>[
+          AppAvatar(name: '', size: AppAvatarSize.xLarge),
+          SizedBox(width: OnCareSpacing.s12),
+          AppLoading.inline(),
+        ],
+      );
+    }
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          head,
+          const SizedBox(height: OnCareSpacing.s12),
+          const AppDivider(),
+          const SizedBox(height: OnCareSpacing.s12),
+          // 동기화 코드는 MY 정보와 따로 받으므로 조회 실패와 상관없이 쓸 수 있다.
+          const _TrainerSyncRow(),
+        ],
+      ),
+    );
+  }
+}
+
+/// 프로필 카드 윗줄 — 아바타·이름(+펫)·이메일.
+class _ProfileHead extends ConsumerWidget {
+  const _ProfileHead({required this.profile});
+
+  final UserProfile profile;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -271,42 +369,32 @@ class _ProfileCard extends ConsumerWidget {
     // 포인트로 단 펫(#2021). 읽는 중이거나 읽지 못하면 이름만 그린다.
     final ProfilePet? pet = ref.watch(profilePetProvider).valueOrNull;
     final AppLocalizations l = AppLocalizations.of(context);
-    final String name = profile?.name ?? '';
-    final String email = profile?.email ?? '';
+    final String name = profile.name;
+    final String email = profile.email;
+    // 서버가 이름을 비워 보낸 경우에만 기본 이름이다 — 조회 실패·로딩이 아니다.
     final String displayName = name.isEmpty ? l.myDefaultUserName : name;
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
+    return Row(
+      children: <Widget>[
+        AppAvatar(name: displayName, size: AppAvatarSize.xLarge),
+        const SizedBox(width: OnCareSpacing.s12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              AppAvatar(name: displayName, size: AppAvatarSize.xLarge),
-              const SizedBox(width: OnCareSpacing.s12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    ProfileNameLine(name: displayName, pet: pet),
-                    if (email.isNotEmpty)
-                      Text(
-                        email,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: tokens
-                            .text(OnCareTypography.bodySmall)
-                            .copyWith(color: OnCareColors.textSecondary),
-                      ),
-                  ],
+              ProfileNameLine(name: displayName, pet: pet),
+              if (email.isNotEmpty)
+                Text(
+                  email,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: tokens
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textSecondary),
                 ),
-              ),
             ],
           ),
-          const SizedBox(height: OnCareSpacing.s12),
-          const AppDivider(),
-          const SizedBox(height: OnCareSpacing.s12),
-          const _TrainerSyncRow(),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -389,11 +477,16 @@ class _TrainerSyncRow extends ConsumerWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () async {
+          // 시트가 닫힐 때 이 줄이 이미 치워졌어도 비울 수 있게 먼저 잡는다(#3096).
+          final ProviderContainer container = ProviderScope.containerOf(
+            context,
+            listen: false,
+          );
           await showTrainerSyncSheet(context);
           // 시트를 여는 동안 트레이너가 코드를 쓰면 서버에는 담당·헬스장 연결이
           // 생긴다. 셋 다 폴링 없는 provider 라 다시 읽지 않으면, 벨 알림은
           // 연결됐다고 하는데 바로 아래 섹션은 `없음` 으로 남는다(#1931).
-          ref
+          container
             ..invalidate(myGymProvider)
             ..invalidate(myTrainerProvider)
             ..invalidate(memberCoachProvider);
@@ -582,7 +675,9 @@ class _PointsCardState extends State<_PointsCard>
                 builder: (BuildContext context, Widget? _) {
                   final int? shown = _shown(points);
                   return Text(
-                    shown != null ? l.myPointsCost(shown) : '—P',
+                    // 첫 조회 중에는 비워 둔다(#2853) — "—P" 같은 가짜 잔액을
+                    // 그리지 않는다. 실패는 이 카드 대신 오류 카드가 선다.
+                    shown != null ? l.myPointsCost(shown) : '',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: OnCareTypography.numeric(
@@ -609,6 +704,10 @@ Future<void> _openPointsBenefitsPage(BuildContext context, int? points) {
   return context.push<void>(AppRoutes.myPoints, extra: points);
 }
 
+/// 색 고르기 결과(#3098). `unavailable` 이면 기록 그래프를 읽지 못해 시트를 열지
+/// 못했다 — `choice` 가 null 이어도 "고르지 않음" 과 다르다.
+typedef _GraphColorPick = ({GraphColorChoice? choice, bool unavailable});
+
 /// 포인트 사용처 — 포인트를 쿠폰으로 교환한다. (#1787)
 ///
 /// 예전 카드 셋(결제 차감 할인·예측 리포트·레시피)은 지금 서비스와 맞지 않았고
@@ -632,13 +731,22 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
   /// 두 교환이 겹치면 잔액 표시가 어느 쪽 응답을 따를지 알 수 없다.
   String? _exchanging;
 
+  // 이 화면의 요청 뒤 갱신은 화면 `ref` 가 아니라 요청 전에 잡은 컨테이너로
+  // 한다(#3096). 잔액·펫·달력·보호권 provider 는 autoDispose 가 아니라, 화면을
+  // 떠난 뒤 갱신을 건너뛰면 MY 가 옛 값을 계속 보인다. 토스트·setState 만
+  // `mounted` 로 거른다.
+
   Future<void> _exchange(ShopItem item) async {
     if (item.id == kGraphColorItem) {
       // 색은 하나씩 연다(#2076) — 어느 색을 열지 먼저 고르고 나서 확인창이다.
-      final GraphColorChoice? choice = await _pickGraphColor(
-        lockedOnly: true,
-      );
-      if (choice == null || !mounted) return;
+      final _GraphColorPick pick = await _pickGraphColor(lockedOnly: true);
+      if (!mounted) return;
+      if (pick.unavailable) {
+        _toastGraphColorUnavailable();
+        return;
+      }
+      final GraphColorChoice? choice = pick.choice;
+      if (choice == null) return;
       await _exchangeItem(item, option: choice.color);
       return;
     }
@@ -664,6 +772,10 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     final bool isPet = item.id == kProfilePetItem && option != null;
     // 주간 리포트(#2022)는 어느 주를 받는지 말한다 — 지난주다.
     final bool isReport = item.id == kWeeklyReportItem;
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.myPointsExchangeConfirmTitle,
@@ -692,29 +804,33 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     if (!ok || !mounted || _exchanging != null) return;
     setState(() => _exchanging = item.id);
     try {
-      await ref
+      await container
           .read(benefitsRepositoryProvider)
           .exchange(
             item.id,
             option: option,
             clientRequestId: newClientRequestId(),
           );
-      if (!mounted) return;
       // 잔액·교환 가능 여부·보유 쿠폰이 함께 바뀌었다. MY 잔액도 다시 읽는다.
-      ref
+      container
         ..invalidate(pointsShopProvider)
         ..invalidate(myCouponsProvider)
         ..invalidate(myHealthStateProvider);
       if (item.id == kStreakShieldItem) {
         // 보호권(#1788)은 내 혜택의 보유 수와 기록 그래프의 `보호권 쓰기` 를 바꾼다.
-        ref
+        container
           ..invalidate(myStreakShieldsProvider)
           ..invalidate(exerciseWeekProvider)
           ..invalidate(activityCalendarProvider);
       }
+      // 받은 리포트는 내 혜택에서 연다 — 트레이너 리포트와 같은 문서다.
+      if (isReport) container.invalidate(myWeeklyReportsProvider);
+      // 단 펫은 MY 프로필 이름 옆에 바로 보인다(#2021).
+      if (isPet) container.invalidate(profilePetProvider);
+      // 연 색은 그 자리에서 그래프 색이 된다(#2076).
+      if (isColor) container.invalidate(activityCalendarProvider);
+      if (!mounted) return;
       if (isReport) {
-        // 받은 리포트는 내 혜택에서 연다 — 트레이너 리포트와 같은 문서다.
-        ref.invalidate(myWeeklyReportsProvider);
         showAppToast(
           context,
           l.myWeeklyReportDone,
@@ -725,15 +841,12 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         return;
       }
       if (isPet) {
-        // 단 펫은 MY 프로필 이름 옆에 바로 보인다(#2021). 내 혜택으로 보낼 것이 없다.
-        ref.invalidate(profilePetProvider);
+        // 내 혜택으로 보낼 것이 없다.
         showAppToast(context, l.myProfilePetDone, type: AppToastType.success);
         return;
       }
       if (isColor) {
-        // 연 색은 그 자리에서 그래프 색이 된다(#2076). 쿠폰이 아니라 내 혜택으로
-        // 보낼 것이 없으므로 안내만 띄운다.
-        ref.invalidate(activityCalendarProvider);
+        // 쿠폰이 아니라 내 혜택으로 보낼 것이 없으므로 안내만 띄운다.
         showAppToast(
           context,
           l.myGraphColorUnlocked,
@@ -749,10 +862,10 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         onAction: () => context.push<void>(AppRoutes.myBenefits),
       );
     } on Object {
-      if (!mounted) return;
       // 그사이 조건이 바뀌었을 수 있다(다른 기기에서 교환 등) — 목록을 다시 읽어
       // 막힌 이유를 카드에 보여 준다.
-      ref.invalidate(pointsShopProvider);
+      container.invalidate(pointsShopProvider);
+      if (!mounted) return;
       showAppToast(context, l.myPointsExchangeFailed, type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _exchanging = null);
@@ -762,29 +875,62 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
   /// 보호권 사용 요청이 나가 있다(#1788). 교환·참가와 겹치지 않게 서로 막는다.
   bool _usingShield = false;
 
-  /// 색 고르기 시트를 띄우고 고른 색을 돌려준다. 아무것도 고르지 않으면 null.
+  /// 색 고르기 시트를 띄우고 고른 색을 돌려준다. 아무것도 고르지 않으면 `choice`
+  /// 가 null 이다.
+  ///
+  /// 기록 그래프를 아직 읽지 못했으면(로딩 중) 한 번 기다려 본다. 그래도 색 상태를
+  /// 얻지 못하면 `unavailable` 이다 — "고르지 않음" 과 갈라, 버튼이 아무 반응 없이
+  /// 끝나지 않고 실패를 알리게 한다(#3098).
   ///
   /// [lockedOnly] 는 사용처 카드에서 들어온 길이다 — 아직 열지 않은 색만 보여 준다.
-  Future<GraphColorChoice?> _pickGraphColor({
-    bool lockedOnly = false,
-  }) async {
-    final GraphColorState? color = ref
+  Future<_GraphColorPick> _pickGraphColor({bool lockedOnly = false}) async {
+    GraphColorState? color = ref
         .read(activityCalendarProvider)
         .valueOrNull
         ?.color;
-    if (color == null) return null;
-    return showAppSheet<GraphColorChoice>(
+    if (color == null) {
+      try {
+        color = (await ref.read(activityCalendarProvider.future)).color;
+      } on Object {
+        color = null;
+      }
+    }
+    if (color == null || !mounted) {
+      return (choice: null, unavailable: color == null);
+    }
+    final GraphColorState state = color;
+    final GraphColorChoice? choice = await showAppSheet<GraphColorChoice>(
       context: context,
       builder: (BuildContext ctx) =>
-          GraphColorSheet(state: color, lockedOnly: lockedOnly),
+          GraphColorSheet(state: state, lockedOnly: lockedOnly),
+    );
+    return (choice: choice, unavailable: false);
+  }
+
+  /// 기록 그래프를 읽지 못해 색 시트를 열 수 없을 때(#3098).
+  void _toastGraphColorUnavailable() {
+    showAppToast(
+      context,
+      AppLocalizations.of(context).myGraphColorFailed,
+      type: AppToastType.error,
     );
   }
 
   /// 그래프 카드의 팔레트 버튼 — 연 색은 바로 바꾸고, 열지 않은 색은 교환으로 잇는다.
   Future<void> _changeGraphColor() async {
     final AppLocalizations l = AppLocalizations.of(context);
-    final GraphColorChoice? choice = await _pickGraphColor();
-    if (choice == null || !mounted) return;
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
+    final _GraphColorPick pick = await _pickGraphColor();
+    if (!mounted) return;
+    if (pick.unavailable) {
+      _toastGraphColorUnavailable();
+      return;
+    }
+    final GraphColorChoice? choice = pick.choice;
+    if (choice == null) return;
     if (choice.unlock) {
       // 여기서도 값을 치르는 길은 사용처 교환과 같은 확인창을 탄다.
       final ShopItem? item = ref
@@ -798,11 +944,11 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
       return;
     }
     try {
-      await ref
+      await container
           .read(activityCalendarRepositoryProvider)
           .selectColor(choice.color);
+      container.invalidate(activityCalendarProvider);
       if (!mounted) return;
-      ref.invalidate(activityCalendarProvider);
       showAppToast(context, l.myGraphColorDone, type: AppToastType.success);
     } on Object {
       if (!mounted) return;
@@ -822,6 +968,10 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
       await _buyAndUseShield(date);
       return;
     }
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.myGraphProtectConfirmTitle,
@@ -836,22 +986,18 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     if (!ok || !mounted || _usingShield) return;
     setState(() => _usingShield = true);
     try {
-      await ref.read(streakShieldRepositoryProvider).use(date);
-      if (!mounted) return;
+      await container.read(streakShieldRepositoryProvider).use(date);
       // 달력 칸·연속·보유 수가 함께 바뀌었다. 내 혜택의 보호한 날도 다시 읽는다.
-      ref
+      container
         ..invalidate(activityCalendarProvider)
         ..invalidate(myStreakShieldsProvider)
         ..invalidate(pointsShopProvider);
-      showAppToast(
-        context,
-        l.myGraphProtectDone,
-        type: AppToastType.success,
-      );
-    } on Object {
       if (!mounted) return;
+      showAppToast(context, l.myGraphProtectDone, type: AppToastType.success);
+    } on Object {
       // 그사이 날이 바뀌었거나 그날 기록이 생겼을 수 있다 — 다시 읽어 상태를 맞춘다.
-      ref.invalidate(activityCalendarProvider);
+      container.invalidate(activityCalendarProvider);
+      if (!mounted) return;
       showAppToast(context, l.myGraphProtectFailed, type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _usingShield = false);
@@ -867,9 +1013,9 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     final AppLocalizations l = AppLocalizations.of(context);
     ShopItem? item;
     try {
-      item = (await ref.read(pointsShopProvider.future)).items
-          .where((ShopItem i) => i.id == kStreakShieldItem)
-          .firstOrNull;
+      item = (await ref.read(
+        pointsShopProvider.future,
+      )).items.where((ShopItem i) => i.id == kStreakShieldItem).firstOrNull;
     } on Object {
       item = null;
     }
@@ -897,14 +1043,18 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
       cancelLabel: l.myCancel,
     );
     if (!ok || !mounted || _usingShield || _exchanging != null) return;
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     setState(() => _usingShield = true);
     bool bought = false;
     try {
-      await ref
+      await container
           .read(benefitsRepositoryProvider)
           .exchange(kStreakShieldItem, clientRequestId: newClientRequestId());
       bought = true;
-      await ref.read(streakShieldRepositoryProvider).use(date);
+      await container.read(streakShieldRepositoryProvider).use(date);
       if (!mounted) return;
       showAppToast(context, l.myGraphProtectDone, type: AppToastType.success);
     } on Object {
@@ -916,16 +1066,14 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
       );
     } finally {
       // 잔액·보유 수·달력 칸·연속이 함께 바뀌었다(교환만 됐어도 잔액과 보유 수는
-      // 바뀌었다). MY 잔액도 다시 읽는다.
-      if (mounted) {
-        ref
-          ..invalidate(activityCalendarProvider)
-          ..invalidate(myStreakShieldsProvider)
-          ..invalidate(exerciseWeekProvider)
-          ..invalidate(pointsShopProvider)
-          ..invalidate(myHealthStateProvider);
-        setState(() => _usingShield = false);
-      }
+      // 바뀌었다). MY 잔액도 다시 읽는다. 화면을 떠났어도 비운다(#3096).
+      container
+        ..invalidate(activityCalendarProvider)
+        ..invalidate(myStreakShieldsProvider)
+        ..invalidate(exerciseWeekProvider)
+        ..invalidate(pointsShopProvider)
+        ..invalidate(myHealthStateProvider);
+      if (mounted) setState(() => _usingShield = false);
     }
   }
 
@@ -936,6 +1084,10 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
   /// 받는지와 1인 1회를 밝힌 뒤 받는다. 포인트는 쓰지 않는다.
   Future<void> _claimTray() async {
     final AppLocalizations l = AppLocalizations.of(context);
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.myDietTrayClaimConfirmTitle,
@@ -946,14 +1098,14 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     if (!ok || !mounted || _claimingTray) return;
     setState(() => _claimingTray = true);
     try {
-      await ref
+      await container
           .read(benefitsRepositoryProvider)
           .claimDietTray(clientRequestId: newClientRequestId());
-      if (!mounted) return;
       // 카드 상태와 내 혜택의 쿠폰이 함께 바뀌었다.
-      ref
+      container
         ..invalidate(dietTrayProvider)
         ..invalidate(myCouponsProvider);
+      if (!mounted) return;
       showAppToast(
         context,
         l.myDietTrayClaimDone,
@@ -962,9 +1114,9 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         onAction: () => context.push<void>(AppRoutes.myBenefits),
       );
     } on Object {
-      if (!mounted) return;
       // 그사이 날이 넘어가 조건이 바뀌었거나 담당이 끊겼을 수 있다 — 다시 읽는다.
-      ref.invalidate(dietTrayProvider);
+      container.invalidate(dietTrayProvider);
+      if (!mounted) return;
       showAppToast(context, l.myDietTrayClaimFailed, type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _claimingTray = false);
@@ -977,6 +1129,10 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
   /// 주간 챌린지 참가 — 파란 2열 확인창에서 건 포인트·목표·보상을 밝힌 뒤 건다.
   Future<void> _joinChallenge(WeeklyChallenge state) async {
     final AppLocalizations l = AppLocalizations.of(context);
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.challengeJoinConfirmTitle,
@@ -991,15 +1147,15 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     if (!ok || !mounted || _joiningChallenge || _exchanging != null) return;
     setState(() => _joiningChallenge = true);
     try {
-      await ref
+      await container
           .read(challengeRepositoryProvider)
           .join(clientRequestId: newClientRequestId());
-      if (!mounted) return;
       // 참가 기록·잔액·교환 가능 여부가 함께 바뀌었다. MY 잔액도 다시 읽는다.
-      ref
+      container
         ..invalidate(weeklyChallengeProvider)
         ..invalidate(pointsShopProvider)
         ..invalidate(myHealthStateProvider);
+      if (!mounted) return;
       showAppToast(
         context,
         l.challengeJoinDone,
@@ -1008,9 +1164,9 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         onAction: () => context.push<void>(AppRoutes.myBenefits),
       );
     } on Object {
-      if (!mounted) return;
       // 그사이 요일이 넘어갔거나 잔액이 바뀌었을 수 있다 — 다시 읽어 이유를 보여 준다.
-      ref.invalidate(weeklyChallengeProvider);
+      container.invalidate(weeklyChallengeProvider);
+      if (!mounted) return;
       showAppToast(context, l.challengeJoinFailed, type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _joiningChallenge = false);
@@ -1035,7 +1191,7 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         !_usingShield &&
         !_claimingTray;
     final int? balance = shop.valueOrNull?.balance ?? widget.points;
-    return AppPage(
+    final Widget page = AppPage(
       key: const Key('pointsBenefitsPage'),
       bottomInset: MediaQuery.paddingOf(context).bottom,
       header: AppTopBar(
@@ -1102,11 +1258,12 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
             AppCard(child: AppLoading(placement: AppStatePlacement.card)),
             SizedBox(height: OnCareSpacing.cardGap),
           ],
-          error: (_, _) => <Widget>[
+          error: (Object error, _) => <Widget>[
             AppCard(
-              child: AppErrorState(
+              child: appErrorStateFor(
+                context,
+                error: error,
                 title: l.myGraphLoadFailed,
-                retryLabel: l.actionRetry,
                 onRetry: () => ref.invalidate(activityCalendarProvider),
                 placement: AppStatePlacement.card,
               ),
@@ -1125,17 +1282,20 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         ),
         // 분석용 식판(#2150) — 기록 그래프 바로 아래. 사진 기록이 쌓이는 흐름과 "며칠
         // 더 찍으면 받는가" 를 한눈에 잇는다. 불러오는 중·실패면 아무것도 그리지 않는다
-        // (식판을 못 읽었다고 교환까지 막지 않는다).
+        // (식판을 못 읽었다고 교환까지 막지 않는다). 제휴 헬스장이 없어 식판을 줄 수
+        // 없는 서버(`enabled` 거짓, #2822)도 그리지 않는다.
         ...tray.maybeWhen(
           data: (DietTray data) => <Widget>[
-            DietTrayCard(
-              tray: data,
-              busy: _claimingTray,
-              onClaim: idle ? _claimTray : null,
-              onViewCoupon: (Coupon coupon) =>
-                  context.push<void>(AppRoutes.myCouponDetailPath(coupon.id)),
-            ),
-            const SizedBox(height: OnCareSpacing.cardGap),
+            if (data.enabled) ...<Widget>[
+              DietTrayCard(
+                tray: data,
+                busy: _claimingTray,
+                onClaim: idle ? _claimTray : null,
+                onViewCoupon: (Coupon coupon) =>
+                    context.push<void>(AppRoutes.myCouponDetailPath(coupon.id)),
+              ),
+              const SizedBox(height: OnCareSpacing.cardGap),
+            ],
           ],
           orElse: () => const <Widget>[],
         ),
@@ -1156,11 +1316,12 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
           loading: () => const <Widget>[
             AppCard(child: AppLoading(placement: AppStatePlacement.card)),
           ],
-          error: (_, _) => <Widget>[
+          error: (Object error, _) => <Widget>[
             AppCard(
-              child: AppErrorState(
+              child: appErrorStateFor(
+                context,
+                error: error,
                 title: l.myPointsShopLoadFailed,
-                retryLabel: l.actionRetry,
                 onRetry: () => ref.invalidate(pointsShopProvider),
                 placement: AppStatePlacement.card,
               ),
@@ -1200,6 +1361,9 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         ),
       ],
     );
+    // 교환·보호권·식판·챌린지 요청 중에는 뒤로 가기로 떠나지 않는다 — 결과 안내를
+    // 놓친 회원이 다시 눌러 이중 차감을 의심하게 된다(#3096).
+    return PopScope(canPop: idle, child: page);
   }
 }
 
@@ -1329,6 +1493,7 @@ class _Settings extends StatelessWidget {
 
   static const List<_SettingItem> _items = <_SettingItem>[
     _SettingItem(AppIcons.person, _MySetting.profile),
+    _SettingItem(AppIcons.lock, _MySetting.password),
     _SettingItem(AppIcons.goal, _MySetting.goals),
     _SettingItem(AppIcons.notifications, _MySetting.notif),
     _SettingItem(AppIcons.guide, _MySetting.guide),
@@ -1339,6 +1504,8 @@ class _Settings extends StatelessWidget {
     switch (id) {
       case _MySetting.profile:
         return l.myProfileTitle;
+      case _MySetting.password:
+        return l.passwordChangeTitle;
       case _MySetting.goals:
         return l.myHealthGoalsTitle;
       case _MySetting.notif:
@@ -1417,10 +1584,11 @@ class _TrainerGymSection extends ConsumerWidget {
           loading: () => const AppCard(
             child: AppLoading(placement: AppStatePlacement.card),
           ),
-          error: (_, _) => AppCard(
-            child: AppErrorState(
+          error: (Object error, _) => AppCard(
+            child: appErrorStateFor(
+              context,
+              error: error,
               title: l.myGymLoadFailed,
-              retryLabel: l.actionRetry,
               onRetry: () => ref.invalidate(myGymProvider),
               placement: AppStatePlacement.card,
             ),

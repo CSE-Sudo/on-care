@@ -5,12 +5,13 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/member_report_history.dart';
+import 'package:oncare_trainer/features/reports/domain/report_queue_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/report_send_record.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
@@ -45,6 +46,12 @@ class _SummaryFailsRepository implements ReportRepository {
     DateTime? before,
     int limit = memberReportHistoryPageSize,
   }) async => const MemberReportHistoryPage.empty();
+
+  @override
+  Stream<List<ReportQueueSummary>> watchQueue({
+    required List<TrainerClient> clients,
+    required DateTime weekStart,
+  }) => reportQueueFromReports(this, clients: clients, weekStart: weekStart);
 
   @override
   Stream<WeeklyReport> watch({
@@ -119,12 +126,18 @@ class _ReportFailsOncePerKeyRepository implements ReportRepository {
   );
 
   @override
+  Stream<List<ReportQueueSummary>> watchQueue({
+    required List<TrainerClient> clients,
+    required DateTime weekStart,
+  }) => reportQueueFromReports(this, clients: clients, weekStart: weekStart);
+
+  @override
   Stream<WeeklyReport> watch({
     required TrainerClient client,
     required DateTime weekStart,
   }) {
     final key = '${client.id}/${weekStart.toIso8601String()}';
-    calls.add((client: client, weekStart: weekStart));
+    calls.add(ReportKey(client: client, weekStart: weekStart));
     final attempt = (_attempts[key] ?? 0) + 1;
     _attempts[key] = attempt;
     if (attempt == 1) {
@@ -302,7 +315,7 @@ void main() {
 
     expect(find.text('리포트'), findsWidgets);
     // ① 은 지표를 나란히 세우던 비교 표가 아니라 요일 격자다(#2232).
-    expect(find.text('PT 세션'), findsOneWidget);
+    expect(find.text('PT'), findsOneWidget);
     // 피드백 입력창은 ③ 전송 단계로 내려갔다 — ① 이번 주 확인은 읽기만
     // 하는 단계라 입력이 없다(#2232).
     expect(find.text('트레이너 피드백'), findsNothing);
@@ -322,7 +335,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(ClientReportView),
-        matching: find.text('남성 · 35세'),
+        matching: find.text('남성 · 36세'),
       ),
       findsNothing,
     );
@@ -989,10 +1002,11 @@ void main() {
       find.text('실제 리포트 요약 API 연결 후 사용할 수 있어요. 현재 문구는 자동 생성하지 않습니다.'),
       findsNothing,
     );
-    // 데모에는 모델이 없어 수치에서 조립한 문장이 온다 — 그래서 'AI 생성'
-    // 배지는 달리지 않는다. 트레이너가 이 문장을 어디까지 믿을지 알아야 한다.
-    expect(find.text('AI 생성'), findsNothing);
-    expect(find.textContaining('운동 이행률'), findsWidgets);
+    // 데모는 모델 대신 미리 써 둔 고정본을 생성 요약으로 보여 준다(#2669) —
+    // 실서버에서 늘 보이는 'AI 생성' 배지가 데모에서도 보인다.
+    expect(find.text('AI 생성'), findsOneWidget);
+    // 근거 줄은 규칙 요약의 것이고, 데모도 회원이 적어 둔 목표로 판정한다.
+    expect(find.textContaining('개인 목표'), findsWidgets);
   });
 
   testWidgets('요약 카드가 다음 주 할 일까지 적어 아래를 채운다 (#1177)', (tester) async {
@@ -1026,8 +1040,9 @@ void main() {
 
     final after = tester.widget<TextField>(field).controller!.text;
     expect(after, isNot(before), reason: '입력창이 요약으로 바뀌지 않았다');
-    // 제목 줄과 근거가 함께 들어가야 트레이너가 손볼 재료가 된다.
-    expect(after, contains('회원은'));
+    // 제목 줄과 근거가 함께 들어가야 트레이너가 손볼 재료가 된다. 데모 제목
+    // 줄은 회원 이름으로 시작하는 고정본이다(#2669).
+    expect(after, contains('님'));
     expect(after, contains('· '));
   });
 
@@ -1072,7 +1087,9 @@ void main() {
     expect(tester.widget<TextField>(field).controller!.text, draft);
   });
 
-  testWidgets('요약 생성이 실패해도 카드가 안내문으로 돌아간다 (#755)', (tester) async {
+  testWidgets('요약 생성이 실패해도 카드가 비지 않고 실패와 다시 시도를 띄운다 (#755, #2885)', (
+    tester,
+  ) async {
     await openReports(
       stage: 1,
       tester,
@@ -1081,9 +1098,15 @@ void main() {
       ],
     );
 
+    expect(find.text('요약을 만들지 못했어요. 다시 시도해 주세요.'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('reports-ai-retry')),
+      findsOneWidget,
+    );
+    // 예전 안내문으로 되돌아가지 않는다 — 그 문구는 실패를 말하지 않는다.
     expect(
       find.text('실제 리포트 요약 API 연결 후 사용할 수 있어요. 현재 문구는 자동 생성하지 않습니다.'),
-      findsOneWidget,
+      findsNothing,
     );
   });
 
@@ -1372,7 +1395,7 @@ void main() {
     expect(find.text('지난 주 목표 달성'), findsNothing);
     expect(find.text('지난 주에 고른 목표가 없어요'), findsNothing);
     // 회원의 답 · 이번 주 수치 · 운동 추세 — 빠진 자리 없이 이어진다.
-    expect(find.text('PT 세션'), findsOneWidget);
+    expect(find.text('PT'), findsOneWidget);
     expect(cardNumbers(tester), <int>[1, 2, 3]);
   });
 
@@ -2002,6 +2025,12 @@ class _DraftStore implements ReportRepository {
     DateTime? before,
     int limit = memberReportHistoryPageSize,
   }) async => const MemberReportHistoryPage.empty();
+
+  @override
+  Stream<List<ReportQueueSummary>> watchQueue({
+    required List<TrainerClient> clients,
+    required DateTime weekStart,
+  }) => reportQueueFromReports(this, clients: clients, weekStart: weekStart);
 
   @override
   Stream<WeeklyReport> watch({

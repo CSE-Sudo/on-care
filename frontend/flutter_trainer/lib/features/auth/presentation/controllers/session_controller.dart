@@ -1,12 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/network/session_refresh.dart';
 
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/auth_token.dart';
-import 'package:oncare_trainer/core/network/session_refresh.dart';
+import 'package:oncare_trainer/core/network/consent_gate.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/secure_token_store.dart';
+import 'package:oncare_trainer/features/auth/data/repositories/consent_repositories.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
@@ -29,15 +31,20 @@ class SessionController extends StateNotifier<SessionState>
     addListener(_syncAccountScope, fireImmediately: false);
     // 실행 중 401 을 받은 인터셉터가 이 컨트롤러로 토큰을 회전한다(#1546).
     _refreshBridge = _ref.read(sessionRefreshBridgeProvider)..attach(this);
+    // 실행 중 트레이너 API 가 403 consent_required 를 주면 알려 온다(#3155).
+    _consentBridge = _ref.read(consentGateBridgeProvider)
+      ..attach(markConsentRequired);
     _restore();
   }
 
   final Ref _ref;
   late final SessionRefreshBridge _refreshBridge;
+  late final ConsentGateBridge _consentBridge;
 
   @override
   void dispose() {
     _refreshBridge.detach(this);
+    _consentBridge.detach(markConsentRequired);
     super.dispose();
   }
 
@@ -80,6 +87,14 @@ class SessionController extends StateNotifier<SessionState>
   Future<void> _tokenStorageTail = Future<void>.value();
 
   TrainerAuthRepository get _repo => _ref.read(trainerAuthRepositoryProvider);
+
+  /// 동의가 끝날 때까지 저장하지 않고 들고 있는 토큰. (#2819)
+  ///
+  /// 동의가 남은 세션을 저장해 두면, 동의 화면에서 새로고침만 해도 복구가
+  /// 동의 없이 들여보낸다 — 복구는 `/trainer/me` 만 보고 동의 여부를 모른다.
+  /// 저장하지 않으면 새로고침은 로그인 화면으로 돌아가고, 다시 로그인하면 서버가
+  /// 다시 동의를 요구한다. 동의를 마치면 그때 저장한다.
+  TrainerAuthTokens? _consentPendingTokens;
   SecureTokenStore get _tokens => _ref.read(secureTokenStoreProvider);
 
   void _setAccessToken(String? token) {
@@ -177,6 +192,8 @@ class SessionController extends StateNotifier<SessionState>
     AuthFailure.emailTaken ||
     AuthFailure.passwordWeak ||
     AuthFailure.passwordTooLong ||
+    AuthFailure.emailCodeInvalid ||
+    AuthFailure.emailCodeRequired ||
     AuthFailure.noSocialToken ||
     AuthFailure.emptyCredentials => false,
   };
@@ -248,12 +265,16 @@ class SessionController extends StateNotifier<SessionState>
     required String email,
     required String password,
     required String name,
+    required String emailCode,
+    List<String>? consents,
   }) async {
     _userActionStarted = true;
     final tokens = await _repo.register(
       email: email,
       password: password,
       name: name,
+      emailCode: emailCode,
+      consents: consents,
     );
     await _establish(tokens);
   }
@@ -263,24 +284,42 @@ class SessionController extends StateNotifier<SessionState>
     _userActionStarted = true;
     final tokens = await _repo.socialLogin(
       provider: provider,
-      token: 'demo-$provider-token',
+      token: await socialProviderToken(provider),
     );
     await _establish(tokens);
   }
+
+  /// 소셜 로그인의 첫 단계 — [provider] 에서 받은 토큰. 로그인과 본인 확인
+  /// (#3039, 소셜로만 가입한 계정의 탈퇴)이 이 한 경로로 토큰을 얻는다.
+  ///
+  /// 트레이너 웹에는 아직 제공자 SDK 가 붙지 않아 데모 토큰을 쓴다 — 실서버
+  /// 빌드의 로그인 화면이 소셜 버튼을 꺼 두는 이유다(#2769).
+  Future<String> socialProviderToken(String provider) async =>
+      'demo-$provider-token';
 
   /// Persists fresh tokens and attaches the trainer profile from `/me`.
   /// Any failure clears the just-issued tokens and rethrows an
   /// [AuthException] (role rejection keeps its specific message).
   Future<void> _establish(TrainerAuthTokens tokens) async {
-    await _persist(tokens);
+    // 동의가 남았으면 저장하지 않는다 — 앞 계정의 저장 토큰도 지워, 새로고침이
+    // 앞 계정으로 되살아나지 않게 한다(#2819, [_consentPendingTokens]).
+    if (tokens.consentRequired) {
+      await _clearPersistedTokens();
+      _consentPendingTokens = tokens;
+    } else {
+      await _persist(tokens);
+      _consentPendingTokens = null;
+    }
     _setAccessToken(tokens.access);
     try {
       final profile = await _repo.fetchProfile(tokens.access);
       if (!mounted) return;
       _ref.read(sessionExpiredNoticeProvider.notifier).state = false;
+      _ref.read(signedOutByUserProvider.notifier).state = false;
       state = SessionState(
         status: SessionStatus.authenticated,
         profile: profile,
+        consentRequired: tokens.consentRequired,
       );
     } catch (e) {
       // 로그인·가입·소셜이 실패한 것이라 이 만료도 그 사용자 행동의 일부다 —
@@ -301,6 +340,7 @@ class SessionController extends StateNotifier<SessionState>
     // over any launch-time refresh save that is already in flight.
     unawaited(_clearPersistedTokens());
     _setAccessToken(null);
+    _ref.read(signedOutByUserProvider.notifier).state = false;
     state = const SessionState(status: SessionStatus.demo);
   }
 
@@ -313,13 +353,62 @@ class SessionController extends StateNotifier<SessionState>
     if (status != SessionStatus.authenticated && status != SessionStatus.demo) {
       return;
     }
-    state = SessionState(status: status, profile: profile);
+    state = SessionState(
+      status: status,
+      profile: profile,
+      consentRequired: state.consentRequired,
+    );
+  }
+
+  /// 동의 화면에서 체크한 항목을 남긴다 → `POST /users/me/consents`. (#2819)
+  ///
+  /// 서버가 남은 동의가 없다고 하면 들고 있던 토큰을 그제야 저장하고 동의 요구를
+  /// 푼다 — 라우터 가드가 동의 화면을 걷어 낸다. 실패는 그대로 던진다(화면이
+  /// 알린다). 그 사이 로그아웃·다른 계정 로그인이 있었다면 결과를 버린다.
+  Future<void> submitConsents(List<String> consents) async {
+    final String? token = _ref.read(authAccessTokenProvider);
+    final bool stillRequired = await _ref
+        .read(consentRepositoryProvider)
+        .submit(consents);
+    if (token == null || !_holdsToken(token)) return;
+    if (!stillRequired) {
+      final TrainerAuthTokens? pending = _consentPendingTokens;
+      _consentPendingTokens = null;
+      if (pending != null) await _persist(pending);
+      if (!_holdsToken(token)) return;
+    }
+    state = SessionState(
+      status: state.status,
+      profile: state.profile,
+      consentRequired: stillRequired,
+    );
+  }
+
+  /// 서버가 [token] 세션에 필수 동의가 남았다고 했다 → 동의 화면으로. (#3155)
+  ///
+  /// 로그인 응답으로 알게 된 경우([_establish])와 달리 토큰은 이미 저장돼 있다
+  /// (복구한 세션이거나 쓰는 사이 문서 버전이 올랐다). 그대로 두어도 된다 —
+  /// 새로고침으로 복구해도 서버가 다시 403 을 주어 이 길로 돌아온다. 프로필은
+  /// 남겨 동의 화면 뒤에서도 같은 계정임을 지킨다. 이미 로그아웃했거나 다른
+  /// 계정으로 바뀐 뒤 늦게 온 응답은 버린다.
+  void markConsentRequired(String token) {
+    if (!_holdsToken(token) || state.consentRequired) return;
+    state = SessionState(
+      status: SessionStatus.authenticated,
+      profile: state.profile,
+      consentRequired: true,
+    );
   }
 
   /// Signs out — revokes the session server-side, clears persisted tokens,
   /// and returns to the login screen.
+  ///
+  /// 사용자가 직접 끝낸 세션이라 로그인 화면 주소에 지금 자리를 싣지 않는다
+  /// (#2765). 탈퇴도 이 길로 온다. 상태가 바뀌기 **전에** 표시해야 라우터 가드가
+  /// 로그아웃 상태를 처음 볼 때 이미 이 값을 읽는다.
   Future<void> signOut() async {
     _userActionStarted = true;
+    _ref.read(signedOutByUserProvider.notifier).state = true;
     // 지우기 **전에** 서버에 알린다 — 지운 뒤에는 폐기할 토큰이 없다.
     await _revokeSession();
     // 사용자가 직접 요청한 만료다 — 자기 자신의 가드에 막히면 안 된다.
@@ -388,12 +477,109 @@ class SessionController extends StateNotifier<SessionState>
       access: tokens.access,
       refresh: tokens.refresh.isEmpty ? stored : tokens.refresh,
     );
+    // 계정 확인보다 **먼저** 저장한다. 갱신 토큰은 일회용이라 방금 쓴 [stored] 는
+    // 서버에서 이미 폐기됐다. 아래에서 다른 계정의 토큰으로 밝혀져도, 저장소는 그
+    // 계정(다른 탭)의 세션이므로 회전 결과를 돌려놓아야 그 탭이 다음 회전에서
+    // 끊기지 않는다(#2764).
     await _persist(rotated);
     if (!_holdsToken(staleToken)) {
       return const TokenRefreshResult.unavailable();
     }
-    _setAccessToken(rotated.access);
-    return TokenRefreshResult.refreshed(rotated.access);
+
+    // 저장소의 갱신 토큰은 같은 출처의 모든 탭이 공유한다(웹 `FlutterSecureStorage`
+    // = localStorage). 다른 탭이 다른 트레이너로 다시 로그인했다면 방금 받은 토큰은
+    // **그 계정의 것**이다. 그대로 쓰면 화면은 이전 트레이너인데 요청은 새 계정
+    // 명의로 나간다 — 회전 결과의 주인을 확인하고 나서야 채택한다(#2764).
+    final _AccountCheck check = await _checkSameAccount(rotated.access);
+    if (!_holdsToken(staleToken)) {
+      return const TokenRefreshResult.unavailable();
+    }
+    switch (check) {
+      case _AccountCheck.same:
+        _setAccessToken(rotated.access);
+        return TokenRefreshResult.refreshed(rotated.access);
+      case _AccountCheck.other:
+        await _endSwitchedAccountSession(staleToken);
+        return const TokenRefreshResult.rejected();
+      case _AccountCheck.unknown:
+        // 확인을 못 했다(연결 실패·서버 오류) — 다른 계정의 토큰일 수 있으니 채택하지
+        // 않되, 세션도 끝내지 않는다. 회전 결과는 저장소에 있어 다음 401 때 그것으로
+        // 다시 회전하고 다시 확인한다.
+        return const TokenRefreshResult.unavailable();
+    }
+  }
+
+  /// [access] 의 주인이 이 탭에 로그인한 트레이너와 같은가(#2764).
+  ///
+  /// 프로필 이메일로 비교한다 — 세션이 들고 있는 계정 식별자가 이메일뿐이고, 계정
+  /// 경계([_syncAccountScope])도 같은 값을 쓴다. 토큰을 클라이언트에서 디코드해
+  /// `sub` 를 보는 길은 요청이 하나 줄지만 클라이언트가 JWT 구조에 묶인다.
+  Future<_AccountCheck> _checkSameAccount(String access) async {
+    final String? mine = _accountKey(state.profile?.email);
+    if (mine == null) return _AccountCheck.unknown;
+    final TrainerProfile profile;
+    try {
+      profile = await _repo.fetchProfile(access);
+    } on NotTrainerException {
+      // 트레이너가 아닌 계정의 토큰이다 — 이 탭의 계정일 수 없다.
+      return _AccountCheck.other;
+    } catch (_) {
+      // 방금 받은 토큰의 401 을 포함해 모두 "모름"으로 둔다. 확인 실패만으로
+      // 이 탭의 세션을 끝내면 잠깐 끊긴 사용자에게 재로그인을 요구하게 된다.
+      return _AccountCheck.unknown;
+    }
+    return _accountKey(profile.email) == mine
+        ? _AccountCheck.same
+        : _AccountCheck.other;
+  }
+
+  /// 이메일 비교용 정규화. 비어 있으면 비교할 수 없다.
+  static String? _accountKey(String? email) {
+    final String key = (email ?? '').trim().toLowerCase();
+    return key.isEmpty ? null : key;
+  }
+
+  /// 다른 탭이 다른 계정으로 로그인해 이 탭의 세션을 이을 수 없다 — **이 탭만**
+  /// 로그아웃 상태로 보내고 만료 안내를 띄운다(#2764).
+  ///
+  /// [_endExpiredSession] 과 달리 저장소를 지우지 않는다. 저장소의 토큰은 다른 탭이
+  /// 지금 쓰는 계정의 것이라, 지우면 그 탭까지 다음 회전에서 끊긴다. 서버 폐기
+  /// (`/auth/logout`)도 같은 이유로 부르지 않는다.
+  Future<void> _endSwitchedAccountSession(String staleToken) async {
+    if (!_holdsToken(staleToken)) return;
+    // 사용자가 끝낸 세션이 아니다 — 로그인 뒤 원래 자리로 잇는다.
+    _ref.read(signedOutByUserProvider.notifier).state = false;
+    _setAccessToken(null);
+    state = const SessionState(status: SessionStatus.signedOut);
+    _ref.read(sessionExpiredNoticeProvider.notifier).state = true;
+  }
+
+  /// 비밀번호 변경 응답이 준 새 토큰으로 갈아 끼운다(#2766).
+  ///
+  /// 서버는 비밀번호를 바꾸면 그 전에 발급한 토큰을 모두 무효로 만든다. 이 기기도
+  /// 예외가 아니어서, 응답의 새 토큰을 메모리와 저장소에 넣어야 로그아웃되지 않는다.
+  /// 메모리를 먼저 바꾼다 — 그 사이 401 을 받은 요청은 인터셉터가 새 토큰으로
+  /// 다시 보낸다(회전하지 않는다). 프로필·계정 경계는 그대로다(같은 계정).
+  Future<void> adoptReissuedTokens(TrainerAuthTokens tokens) async {
+    if (!mounted || state.status != SessionStatus.authenticated) return;
+    if (tokens.access.isEmpty) return;
+    _setAccessToken(tokens.access);
+    String? keptRefresh;
+    if (tokens.refresh.isEmpty) {
+      try {
+        await _serializeTokenStorage(() async {
+          keptRefresh = await _tokens.readRefreshToken();
+        });
+      } catch (_) {
+        keptRefresh = null;
+      }
+    }
+    await _persist(
+      TrainerAuthTokens(
+        access: tokens.access,
+        refresh: tokens.refresh.isEmpty ? (keptRefresh ?? '') : tokens.refresh,
+      ),
+    );
   }
 
   /// 갱신이 거부되었다 — 로그아웃과 같은 길([_expire])로 세션을 닫고 로그인
@@ -402,6 +588,8 @@ class SessionController extends StateNotifier<SessionState>
   /// 서버는 이미 이 갱신 토큰을 받지 않으므로 폐기(`/auth/logout`)는 부르지 않는다.
   Future<void> _endExpiredSession(String staleToken) async {
     if (!_holdsToken(staleToken)) return;
+    // 만료는 사용자가 끝낸 세션이 아니다 — 로그인 뒤 원래 자리로 잇는다.
+    _ref.read(signedOutByUserProvider.notifier).state = false;
     // 로그인한 뒤라 사용자 행동 가드는 이미 켜져 있다. 그 가드는 **복구**가 뒤늦게
     // 세션을 덮지 못하게 하는 것이고, 이 만료는 지금 세션에 대한 것이다.
     await _expire(userInitiated: true);
@@ -489,8 +677,21 @@ class SessionController extends StateNotifier<SessionState>
     if (!mounted) return;
     if (!userInitiated && _userActionStarted) return;
     _setAccessToken(null);
+    _consentPendingTokens = null;
     state = const SessionState(status: SessionStatus.signedOut);
   }
+}
+
+/// 회전으로 받은 토큰의 주인 확인 결과(#2764).
+enum _AccountCheck {
+  /// 이 탭의 계정이다 — 채택한다.
+  same,
+
+  /// 다른 계정이다 — 채택하지 않고 이 탭의 세션을 끝낸다.
+  other,
+
+  /// 확인하지 못했다 — 채택하지도, 끝내지도 않는다.
+  unknown,
 }
 
 /// 실행 중 세션이 만료되어 로그인 화면으로 보냈다 — 로그인 화면이 한 번 안내하고
@@ -501,6 +702,18 @@ class SessionController extends StateNotifier<SessionState>
 final sessionExpiredNoticeProvider = StateProvider<bool>(
   (ref) => false,
   name: 'sessionExpiredNotice',
+);
+
+/// 지금의 로그아웃 상태가 **사용자가 직접** 로그아웃·탈퇴한 결과인가(#2765).
+///
+/// 라우터 가드는 이 값이 참이면 로그인 화면 주소에 이전 자리(`?from=`)를 싣지
+/// 않는다. 세션 만료·첫 실행 딥링크는 거짓이라 지금처럼 이어 간다. 새 세션
+/// (로그인·가입·소셜·데모)이 시작되면 거짓으로 돌아간다.
+///
+/// 세션 상태에 넣지 않는 이유는 [sessionExpiredNoticeProvider] 와 같다.
+final signedOutByUserProvider = StateProvider<bool>(
+  (ref) => false,
+  name: 'signedOutByUser',
 );
 
 /// Exposes the trainer session state + controller app-wide.

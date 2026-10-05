@@ -177,7 +177,6 @@ READ_ENDPOINTS: list[tuple[str, str, dict]] = [
     ("routine-suggestions", "/routine-suggestions", {}),
     ("memos", "/memos", {}),
     ("follow-ups", "/follow-ups", {}),
-    ("ai-coach-history", "/ai-coach", {}),
     ("report", "/report", {}),
     ("report-summary", "/report/summary", {}),
     ("report-feedback", "/report/feedback", {}),
@@ -215,7 +214,6 @@ WRITE_ENDPOINTS: list[tuple[str, str, str, dict | None]] = [
         {"title": "해제 뒤 할 일", "due_date": "2099-01-01"},
     ),
     ("routine-options", "POST", "/routine-options", {}),
-    ("ai-coach", "POST", "/ai-coach", {"message": "이 회원 식단 어때요?"}),
     ("report-feedback-put", "PUT", "/report/feedback", {"body": "해제 뒤 코멘트"}),
     ("report-goals-put", "PUT", "/report/goals", {"goals": ["해제 뒤 목표"]}),
     ("report-send", "POST", "/report/send", {"message": "해제 뒤 리포트"}),
@@ -287,7 +285,7 @@ def test_multipart_sends_are_blocked_after_detach(client, db_session, pair):
     pdf = client.post(
         f"{base}/report/send-pdf",
         files={"pdf": ("report.pdf", b"%PDF-1.4\n%%EOF", "application/pdf")},
-        data={"week_start": _this_monday()},
+        data={"week_start": _this_monday(), "message": "이번 주 리포트"},
         headers=pair.headers,
     )
     _assert_guard(pdf)
@@ -764,21 +762,21 @@ def test_link_seeded_inactive_is_blocked(client, db_session):
 
 
 def test_has_active_client_link(db_session, pair):
-    from app.services import trainer_service
+    from app.services.trainer import _common as trainer_common_service
 
-    assert trainer_service.has_active_client_link(
+    assert trainer_common_service.has_active_client_link(
         db_session, pair.trainer_id, pair.member_id
     )
     link = db_session.get(TrainerClient, pair.link_id)
     link.active = False
     db_session.commit()
-    assert not trainer_service.has_active_client_link(
+    assert not trainer_common_service.has_active_client_link(
         db_session, pair.trainer_id, pair.member_id
     )
-    assert not trainer_service.has_active_client_link(
+    assert not trainer_common_service.has_active_client_link(
         db_session, pair.trainer_id, "nobody"
     )
-    assert not trainer_service.has_active_client_link(
+    assert not trainer_common_service.has_active_client_link(
         db_session, "nobody", pair.member_id
     )
 
@@ -999,10 +997,10 @@ def _revoke_but_keep_active(db_session, p: Pair) -> None:
 
 
 def test_has_active_client_link_needs_consent(db_session, pair):
-    from app.services import trainer_service
+    from app.services.trainer import _common as trainer_common_service
 
     _revoke_but_keep_active(db_session, pair)
-    assert not trainer_service.has_active_client_link(
+    assert not trainer_common_service.has_active_client_link(
         db_session, pair.trainer_id, pair.member_id
     )
 

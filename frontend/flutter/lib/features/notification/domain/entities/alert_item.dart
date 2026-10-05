@@ -13,11 +13,15 @@ enum AlertCategory {
   /// 트레이너가 등록한 주간 리포트(`coach_report`, #2085).
   coachReport,
 
-  /// 새 운동 루틴(`routine`).
+  /// 새 개인운동·PT 프로그램(`routine`).
   routine,
 
   /// PT 일정 등록·변경·취소(`member_schedule`).
   schedule,
+
+  /// 트레이너가 PT 를 완료했다·완료 PT 에 피드백을 적었다(`pt_done`, #3027).
+  /// 앞으로의 약속(일정)이 아니라 끝난 수업의 기록이라 갈래를 나눴다.
+  ptDone,
 
   /// 담당 트레이너 요청·연결·해제(`coach_invite`·`consultation_result`).
   trainerLink,
@@ -95,7 +99,6 @@ class AlertItem {
     this.action,
     this.createdAt = '',
     this.messageKey,
-    this.age,
   });
 
   final String id;
@@ -115,7 +118,7 @@ class AlertItem {
   /// 달라질 수 있고(정밀도·오프셋), 커서는 서버가 준 값과 **같아야** 경계가 맞는다.
   /// 화면에 보이는 시각은 별도로 [timeAgo] 가 담당한다.
   ///
-  /// 데모 알림처럼 서버에서 오지 않은 항목은 비어 있다 — 목 모드는 쪽을 나누지 않는다.
+  /// 서버에서 오지 않은 항목(테스트 대역 등)은 비어 있다 — 그 뒤로는 이어 받지 않는다.
   final String createdAt;
 
   /// 서버가 지정한 이동 경로. 없으면 읽음 처리만 한다.
@@ -124,10 +127,6 @@ class AlertItem {
   /// 데모 알림 문구의 키(`demo_alert_keys.dart`). 있으면 화면이 [title]·[body]
   /// 대신 로케일에 맞는 문장을 쓴다. 서버가 만든 알림은 번역본이 없어 비어 있다. (#1812)
   final String? messageKey;
-
-  /// 데모 알림이 만들어진 지 얼마나 됐는가. 서버 시각([createdAt])이 없는 데모
-  /// 알림도 화면이 로케일에 맞는 상대 시각을 그리게 한다. (#1812)
-  final Duration? age;
 
   AlertItem copyWith({bool? read}) => AlertItem(
     id: id,
@@ -141,7 +140,6 @@ class AlertItem {
     action: action,
     createdAt: createdAt,
     messageKey: messageKey,
-    age: age,
   );
 }
 
@@ -156,6 +154,7 @@ class NotificationState {
     this.loading = false,
     this.loaded = false,
     this.failedToLoad = false,
+    this.loadError,
     this.hasMore = false,
     this.loadingMore = false,
   });
@@ -166,7 +165,7 @@ class NotificationState {
   /// 기존 목록을 그대로 보여 준다.
   final bool loading;
 
-  /// 목록을 한 번이라도 받았는가(#2638). 목/데모 시드로 시작하면 처음부터 참이다.
+  /// 목록을 한 번이라도 받았는가(#2638).
   ///
   /// [loading] 만으로는 "아직 받는 중" 과 "받아 봤더니 없음" 을 가를 수 없다 —
   /// 둘 다 목록이 비어 있다. 받은 적이 없는 채로 비어 있으면 화면은 빈 상태 대신
@@ -182,6 +181,16 @@ class NotificationState {
   /// 마지막 조회가 실패했는가. 화면이 재시도를 제안하는 근거다.
   final bool failedToLoad;
 
+  /// 마지막 조회를 실패하게 한 오류(#3140). 실패 안내가 원인(연결·서버·권한)을
+  /// 말하는 근거다. 실패하지 않았으면 null 이다.
+  final Object? loadError;
+
+  /// 한 번도 받지 못한 채 조회가 실패해 **보여 줄 목록이 없는** 상태인가(#2877).
+  ///
+  /// 이때는 "알림이 없습니다" 를 그리면 안 된다 — 받아 본 적이 없는데 없다고 말하면
+  /// 트레이너가 보낸 알림을 회원이 놓친다. 화면은 실패 안내와 재시도만 그린다.
+  bool get failedFirstLoad => failedToLoad && !loaded && items.isEmpty;
+
   /// 더 받아 올 과거 알림이 남아 있을 수 있는가. (#965)
   ///
   /// 서버가 청한 만큼 꽉 채워 줬으면 참이다. 마지막 쪽이 정확히 한 쪽 크기였다면
@@ -194,11 +203,15 @@ class NotificationState {
 
   int get unreadCount => items.where((AlertItem i) => !i.read).length;
 
+  /// [copyWith] 에서 [loadError] 를 넘기지 않았음을 null(오류 지움)과 가른다.
+  static const Object _keep = Object();
+
   NotificationState copyWith({
     List<AlertItem>? items,
     bool? loading,
     bool? loaded,
     bool? failedToLoad,
+    Object? loadError = _keep,
     bool? hasMore,
     bool? loadingMore,
   }) => NotificationState(
@@ -206,6 +219,7 @@ class NotificationState {
     loading: loading ?? this.loading,
     loaded: loaded ?? this.loaded,
     failedToLoad: failedToLoad ?? this.failedToLoad,
+    loadError: identical(loadError, _keep) ? this.loadError : loadError,
     hasMore: hasMore ?? this.hasMore,
     loadingMore: loadingMore ?? this.loadingMore,
   );

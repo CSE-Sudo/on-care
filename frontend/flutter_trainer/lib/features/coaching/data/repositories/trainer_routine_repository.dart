@@ -1,15 +1,19 @@
 import 'dart:async';
 
-import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
+import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/features/coaching/data/demo_routine_store.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/dio_trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/sent_delivery.dart';
+import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
 
 /// Assigns a routine to a member and reads their assigned routines.
@@ -18,8 +22,9 @@ import 'package:oncare_trainer/shared/services/locale_provider.dart';
 /// member app reads via `/me/coach/routines`). Two implementations sit
 /// behind this contract, selected by [trainerRoutineRepositoryProvider] via
 /// [AppConfig.useMockApi]:
-///  * [MockTrainerRoutineRepository] — demo / `USE_MOCK_API=true` (no-op
-///    send; the demo has no member app to receive it);
+///  * [MockTrainerRoutineRepository] — demo / `USE_MOCK_API=true` (keeps
+///    assignments in the local drift DB; there is no member app to receive
+///    them);
 ///  * [DioTrainerRoutineRepository] — the real FastAPI backend.
 abstract interface class TrainerRoutineRepository {
   /// Assigns [routine] to [memberId] (POST /trainer/clients/{id}/routines).
@@ -71,31 +76,37 @@ abstract interface class TrainerRoutineRepository {
   Future<void> deleteRoutine(String memberId, String routineId);
 }
 
-/// 데모용 배정 저장소 — 메모리에 들고 있는다.
+/// 데모용 배정 저장소.
 ///
 /// 예전에는 목록이 늘 비어 있고 취소는 `StateError` 를 던지는 no-op 이었다.
 /// 데모에는 루틴을 받을 회원 백엔드가 없다는 이유였는데, 그 바람에 **개인 운동
 /// 취소를 데모에서 확인할 방법이 없었다**(#1020). 배정을 실제로 들고 있으면
 /// 취소가 목록에서 사라지는 것까지 데모로 보인다.
 ///
-/// 배정(`assignRoutine`)은 여전히 조용히 성공한다 — 데모의 '전송됨' 피드백은
-/// 로컬 채팅·스케줄 쓰기가 만든다.
+/// [db] 를 주면 배정·마지막 전달을 drift 에 남긴다(#2668) — 새로고침해도
+/// 그대로이고, 스케줄에서 PT 와 함께 보낸 개인운동(`DriftScheduleRepository`
+/// 가 같은 [DemoRoutineStore] 에 남긴다)도 이 목록과 마지막 전달에 보인다.
+/// 회원마다 처음 배정은 시드가 정한다([DemoRoutineStore.seedAssigned]).
+///
+/// [db] 가 없으면(단위 테스트) 메모리에 들고, 김민수만 픽스처 배정을 갖는다.
 class MockTrainerRoutineRepository implements TrainerRoutineRepository {
-  /// Creates the demo repository, seeded for [seedClientId].
-  MockTrainerRoutineRepository();
+  /// Creates the demo repository.
+  MockTrainerRoutineRepository({AppDatabase? db})
+    : _db = db,
+      _store = db == null ? null : DemoRoutineStore(db);
 
-  /// 회원별 배정. 시연에 쓰는 고객만 채워 둔다.
+  final AppDatabase? _db;
+  final DemoRoutineStore? _store;
+
+  /// 회원별 배정 — [_store] 가 없을 때만 쓴다.
   final Map<String, List<AssignedRoutine>> _byMember =
-      <String, List<AssignedRoutine>>{
-        for (final String memberId in _seededMembers)
-          memberId: List<AssignedRoutine>.from(_seedRoutines),
-      };
+      <String, List<AssignedRoutine>>{};
 
-  /// 데모에서 마지막으로 보낸 묶음. 데모에는 전송 이력 표가 없어 메모리로
-  /// 기억한다.
+  /// 데모에서 마지막으로 보낸 묶음 — [_store] 가 없을 때만 쓴다.
   final Map<String, SentDelivery> _lastDelivery = <String, SentDelivery>{};
 
   /// 회원별로 마지막에 `개인운동만` 으로 보낸 줄 id — 다음에 보낼 때 내린다.
+  /// [_store] 가 없을 때만 쓴다.
   final Map<String, Set<String>> _personalIds = <String, Set<String>>{};
 
   final Map<String, StreamController<List<AssignedRoutine>>> _controllers =
@@ -110,51 +121,77 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
     _controllers.clear();
   }
 
-  /// 데모 시드가 만드는 고객 id. 김민수 하나면 시연에 충분하다 — 명단 전원에게
-  /// 배정을 뿌리면 어느 고객을 열어도 같은 루틴이 있어 오히려 가짜처럼 보인다.
-  static const List<String> _seededMembers = <String>['seed-client-1'];
+  /// 메모리 모드의 회원 목록. 처음 읽을 때 시드한다 — 김민수만 픽스처 배정이
+  /// 있다.
+  List<AssignedRoutine> _memoryListFor(String memberId) =>
+      _byMember.putIfAbsent(
+        memberId,
+        () => memberId == demoFixtureMemberId
+            ? demoFixtureAssignedRoutines()
+            : <AssignedRoutine>[],
+      );
 
-  /// 배정된 개인 운동 — **공유 픽스처**가 정한다. (#1170)
-  ///
-  /// 예전에는 이 목록을 여기에 손으로 적어 두었다(`저강도 유산소 20분` ·
-  /// `코어 서킷 15분`). 회원 앱과 프로그램 탭도 각자 적어 두어서, 같은 회원의
-  /// 같은 날에 세 화면이 서로 다른 운동을 말했다. 이제 셋 다
-  /// `shared/demo_fixture` 의 `routines` 하나만 읽는다.
-  ///
-  /// AI 추천과 트레이너가 보낸 것이 섞여 있어, 두 출처가 화면에서 어떻게
-  /// 갈리는지도 그대로 보인다.
-  static final List<AssignedRoutine> _seedRoutines = <AssignedRoutine>[
-    for (final FixtureRoutine r in DemoFixture.load().routines)
-      AssignedRoutine(
-        id: r.id,
-        name: r.name,
-        minutes: r.minutes,
-        type: r.type,
-        reason: r.reason,
-        source: r.source,
-        // 근력은 세트·횟수·중량으로 읽는다(#1276) — 픽스처가 그 값을 들지
-        // 않던 동안 데모의 근력 배정은 `10분` 한 줄로만 보였다.
-        sets: r.sets,
-        reps: r.reps,
-        weight: r.weight,
-      ),
-  ];
-
-  List<AssignedRoutine> _listFor(String memberId) =>
-      _byMember[memberId] ?? const <AssignedRoutine>[];
-
-  void _emit(String memberId) {
-    _controllers[memberId]?.add(
-      List<AssignedRoutine>.unmodifiable(_listFor(memberId)),
-    );
+  Future<List<AssignedRoutine>> _listFor(String memberId) async {
+    final DemoRoutineStore? store = _store;
+    if (store != null) return store.assigned(memberId);
+    return _memoryListFor(memberId);
   }
 
+  Future<void> _writeList(String memberId, List<AssignedRoutine> rows) async {
+    final DemoRoutineStore? store = _store;
+    if (store != null) {
+      // 지켜보는 쪽은 drift 가 깨운다([DemoRoutineStore.watchAssigned]).
+      await store.writeAssigned(memberId, rows);
+      return;
+    }
+    _byMember[memberId] = rows;
+    _controllers[memberId]?.add(List<AssignedRoutine>.unmodifiable(rows));
+  }
+
+  /// 새 배정 id. 웹의 시각은 밀리초 해상도라 같은 순간의 두 줄이 겹치지 않게
+  /// 순번을 붙인다.
+  String _newId(String name) =>
+      'demo-${DateTime.now().microsecondsSinceEpoch}-${_seq++}-$name';
+  int _seq = 0;
+
+  /// 한 건 배정 — AI 제안 승인이 이 길로 온다(#2668). 실서버에서 승인하면 그
+  /// 회원에게 배정되듯, 데모도 배정 목록 맨 앞에 넣는다. 아무것도 하지 않던
+  /// 동안에는 승인한 제안이 목록에서 빠질 뿐 어디에도 들어가지 않았다.
   @override
   Future<void> assignRoutine(
     String memberId,
     AssignedRoutine routine, {
     String? clientRequestId,
-  }) async {}
+  }) async {
+    final AssignedRoutine added = AssignedRoutine(
+      id: routine.id.isEmpty ? _newId(routine.name) : routine.id,
+      name: routine.name,
+      minutes: routine.minutes,
+      type: routine.type,
+      reason: routine.reason,
+      source: routine.source,
+      effect: routine.effect,
+      date: routine.date,
+      intensity: routine.intensity,
+      sets: routine.sets,
+      reps: routine.reps,
+      holdSeconds: routine.holdSeconds,
+      durationSeconds: routine.durationSeconds,
+      weight: routine.weight,
+    );
+    await _writeList(memberId, <AssignedRoutine>[
+      added,
+      ...await _listFor(memberId),
+    ]);
+    // 채팅에도 남긴다(#2672) — 실서버 단건 배정·제안 승인과 같다.
+    await _store?.postDeliveryCard(
+      memberId,
+      RoutineDeliveryNotice(
+        kind: 'routine',
+        routineNames: <String>[added.name],
+      ),
+    );
+  }
 
   @override
   /// 데모에는 받을 회원 백엔드가 없지만 **배정 목록에는 남긴다**(#2224).
@@ -169,67 +206,122 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
     final sessions = payload['sessions'];
     if (sessions is! List) return;
     final DateTime? date = _parseDate(payload['start_date']);
+    final bool personal = payload['delivery_kind'] != null;
     final added = <AssignedRoutine>[
       for (final session in sessions)
         if (session is Map<String, Object?>)
-          for (final ex in (session['exercises'] as List<Object?>? ??
-              const <Object?>[]))
+          for (final ex
+              in (session['exercises'] as List<Object?>? ?? const <Object?>[]))
             if (ex is Map<String, Object?>)
               AssignedRoutine(
-                id: 'demo-${DateTime.now().microsecondsSinceEpoch}-'
-                    '${(ex['name'] as String?) ?? ''}',
+                id: _newId((ex['name'] as String?) ?? ''),
                 name: (ex['name'] as String?) ?? '',
                 minutes: (ex['duration'] as num?)?.toInt() ?? 0,
                 type: (ex['type'] as String?) ?? '기타',
                 reason: '',
                 source: (ex['source'] as String?) ?? 'trainer',
+                effect: (ex['effect'] as String?) ?? '',
                 date: date,
                 sets: (ex['sets'] as num?)?.toInt(),
                 reps: (ex['reps'] as num?)?.toInt(),
                 holdSeconds: (ex['hold_seconds'] as num?)?.toInt(),
+                // 초를 함께 남겨야 `45초` 가 분으로 접혀 `1분` 으로 보이지
+                // 않는다 — 실서버도 초를 저장한다(#2521, #2755). 근력은
+                // 세트로 재므로 비운다.
+                durationSeconds: ex['type'] == '근력'
+                    ? null
+                    : (ex['duration_seconds'] as num?)?.toInt(),
                 weight: (ex['weight'] as num?)?.toDouble(),
+                deliveryKind: personal ? DeliveryKinds.routineOnly : null,
               ),
     ];
     if (added.isEmpty) return;
     // `개인운동만` 을 새로 보내면 이전에 보낸 개인운동은 내려간다(#2514) —
     // 서버와 같은 규칙이다. 씨앗 배정은 서버 시드처럼 기한 없는 배정이라
     // 그대로 둔다.
-    final Set<String> previous = _personalIds[memberId] ?? const <String>{};
-    final bool personal = payload['delivery_kind'] != null;
-    // 새로 보낸 것이 맨 앞이다 — 목록은 최신순이다.
-    _byMember[memberId] = <AssignedRoutine>[
-      ...added,
-      for (final AssignedRoutine r in _listFor(memberId))
-        if (!personal || !previous.contains(r.id)) r,
-    ];
-    if (personal) {
-      _personalIds[memberId] = <String>{
-        for (final AssignedRoutine r in added) r.id,
-      };
+    final Set<String> newIds = <String>{
+      for (final AssignedRoutine r in added) r.id,
+    };
+    // 보낸 날은 전송한 오늘이다 — 시작일을 미래로 골라도 서버처럼 행을 만든
+    // 날을 보낸 날로 적는다(#2656). 시작일로 적으면 데모 이력만 '내일' 이 된다.
+    final DateTime now = nowKst();
+    final DateTime sentOn = DateTime(now.year, now.month, now.day);
+    final DemoRoutineStore? store = _store;
+    if (store != null) {
+      // 이 전송의 개인운동을 채운 AI 제안을 닫는다 — 실서버가 배정과 같은
+      // 트랜잭션에서 하는 일이다(#2747). 데모 제안 저장소는 검토한 제안을
+      // 이 기억에서 걸러 낸다.
+      await store.addReviewedSuggestions(<String>[
+        for (final Object? id
+            in payload['suggestion_ids'] as List<Object?>? ?? const <Object?>[])
+          if (id is String) id,
+      ]);
+      final Set<String> previous = personal
+          ? await store.readPersonalIds(memberId)
+          : const <String>{};
+      // 직전 전송으로도 기억한다(#2225). 이 길은 PT 일정이 붙지 않는
+      // `개인운동만` 이다 — PT 와 함께 가는 것은 스케줄 저장소가 남긴다.
+      await store.recordDelivery(
+        memberId,
+        StoredDelivery(
+          kind: DeliveryKinds.routineOnly,
+          sentOn: sentOn,
+          routines: added,
+        ),
+        replacing: previous,
+        // 미래 시작일이면 이전 개인운동은 그날 교대한다 — 서버와 같다(#2656).
+        retireOn: personal ? date : null,
+      );
+      if (personal) await store.writePersonalIds(memberId, newIds);
+      return;
     }
-    // 직전 전송으로 기억한다(#2225). 데모에는 PT 일정이 붙지 않는 `개인운동만`
-    // 경로뿐이라 종류도 그것이다.
+    final Set<String> previous = _personalIds[memberId] ?? const <String>{};
+    // 새로 보낸 것이 맨 앞이다 — 목록은 최신순이다.
+    await _writeList(memberId, <AssignedRoutine>[
+      ...added,
+      for (final AssignedRoutine r in _memoryListFor(memberId))
+        if (!personal || !previous.contains(r.id)) r,
+    ]);
+    if (personal) _personalIds[memberId] = newIds;
     _lastDelivery[memberId] = SentDelivery(
       kind: DeliveryKinds.routineOnly,
-      sentOn: date,
+      sentOn: sentOn,
       routines: added,
     );
-    _emit(memberId);
   }
 
+  /// 마지막 전달. PT 와 함께 간 것·취소된 PT 뒤에 보낸 것도 스케줄 저장소가
+  /// 남긴 그대로 돌려준다(#2668) — 예전에는 늘 `개인운동만` 이라 전송 이력의
+  /// PT 동반·취소 표시를 데모에서 볼 수 없었다.
   @override
-  Future<SentDelivery?> fetchLatestDelivery(String memberId) async =>
-      _lastDelivery[memberId] ?? _seededDelivery(memberId);
+  Future<SentDelivery?> fetchLatestDelivery(String memberId) async {
+    final DemoRoutineStore? store = _store;
+    if (store == null) {
+      return _lastDelivery[memberId] ??
+          _seededDelivery(_memoryListFor(memberId));
+    }
+    final StoredDelivery? stored = await store.readDelivery(memberId);
+    if (stored == null) return _seededDelivery(await store.assigned(memberId));
+    final String? sessionId = stored.sessionId;
+    return SentDelivery(
+      kind: stored.kind,
+      sentOn: stored.sentOn,
+      // 일정은 지금 모습으로 다시 읽는다 — 보낸 뒤 바뀐 상태가 그대로 보인다.
+      session: sessionId == null
+          ? null
+          : await DriftScheduleRepository(_db!).sessionById(sessionId),
+      routines: stored.routines,
+    );
+  }
 
-  /// 이 세션에서 아직 아무것도 보내지 않았을 때의 직전 전송. (#2225)
+  /// 아직 아무것도 보내지 않았을 때의 직전 전송. (#2225)
   ///
   /// 씨앗 배정은 **이미 회원에게 간 것**이다. 그런데 기억해 둔 전송이 없다고
   /// 비워 두면, 데모를 처음 연 트레이너는 전송 이력이 늘 비어 있는 화면을 본다
   /// — 실제 백엔드는 지난 전송을 보여 주므로 두 곳이 다르게 움직인다.
   ///
-  /// 데모에는 PT 일정이 붙는 경로가 없어 종류는 `개인운동만` 이다.
-  SentDelivery? _seededDelivery(String memberId) {
-    final List<AssignedRoutine> rows = _listFor(memberId);
+  /// 씨앗 배정은 PT 일정에 붙지 않은 배정이라 종류는 `개인운동만` 이다.
+  static SentDelivery? _seededDelivery(List<AssignedRoutine> rows) {
     if (rows.isEmpty) return null;
     DateTime? sentOn;
     for (final r in rows) {
@@ -248,6 +340,12 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
 
   @override
   Stream<List<AssignedRoutine>> watchAssignedRoutines(String memberId) {
+    final DemoRoutineStore? store = _store;
+    if (store != null) {
+      return store
+          .watchAssigned(memberId)
+          .map(List<AssignedRoutine>.unmodifiable);
+    }
     // 수명은 [dispose] 가 쥔다 — provider 가 버려질 때 한꺼번에 닫는다. 여기서
     // 닫으면 다음 구독자가 죽은 스트림을 받는다.
     // ignore: close_sinks
@@ -259,7 +357,7 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
     // 구독하는 쪽이 첫 값을 곧바로 받아야 한다 — 브로드캐스트 스트림은 지난
     // 값을 다시 주지 않는다.
     return controller.stream.startWith(
-      List<AssignedRoutine>.unmodifiable(_listFor(memberId)),
+      List<AssignedRoutine>.unmodifiable(_memoryListFor(memberId)),
     );
   }
 
@@ -278,16 +376,16 @@ class MockTrainerRoutineRepository implements TrainerRoutineRepository {
 
   @override
   Future<void> deleteRoutine(String memberId, String routineId) async {
-    final List<AssignedRoutine>? mine = _byMember[memberId];
-    final int at =
-        mine?.indexWhere((AssignedRoutine r) => r.id == routineId) ?? -1;
+    final List<AssignedRoutine> mine = await _listFor(memberId);
     // 실서버와 같은 예외다 — 없는 것을 지우려 하면 404 를 `StateError` 로
     // 옮기므로, 화면이 한 갈래만 다루면 된다.
-    if (mine == null || at < 0) {
+    if (!mine.any((AssignedRoutine r) => r.id == routineId)) {
       throw StateError('routine not found: $routineId');
     }
-    mine.removeAt(at);
-    _emit(memberId);
+    await _writeList(memberId, <AssignedRoutine>[
+      for (final AssignedRoutine r in mine)
+        if (r.id != routineId) r,
+    ]);
   }
 }
 
@@ -301,16 +399,18 @@ extension _StartWith<T> on Stream<T> {
 }
 
 /// Selects the real Dio-backed routine repository against the FastAPI
-/// backend, or the demo no-op for `USE_MOCK_API=true`.
+/// backend, or the demo repository for `USE_MOCK_API=true`.
 final trainerRoutineRepositoryProvider = Provider<TrainerRoutineRepository>((
   ref,
 ) {
   ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   final config = ref.watch(appConfigProvider);
   if (config.useMockApi) {
-    // 배정을 메모리에 들고 있으므로 const 가 아니다. provider 가 계정마다
-    // 한 번 만들어 그 세션이 사는 동안 같은 목록을 보게 한다.
-    final MockTrainerRoutineRepository demo = MockTrainerRoutineRepository();
+    // 배정은 데모 DB 에 남는다(#2668) — 새로고침해도, 스케줄에서 보낸 것도
+    // 같은 목록에 보인다.
+    final MockTrainerRoutineRepository demo = MockTrainerRoutineRepository(
+      db: ref.watch(appDatabaseProvider),
+    );
     ref.onDispose(demo.dispose);
     return demo;
   }

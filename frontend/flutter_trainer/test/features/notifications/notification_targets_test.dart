@@ -61,9 +61,6 @@ class _FakeRepo implements TrainerNotificationRepository {
   final List<String> readCalls = <String>[];
 
   @override
-  bool get supportsInbox => true;
-
-  @override
   Future<TrainerNotificationPage> fetch({
     TrainerNotificationCursor? before,
   }) async => TrainerNotificationPage(items: _rows);
@@ -184,7 +181,8 @@ void main() {
         ),
         AppRoutes.consultations,
       );
-      expect(AppRoutes.consultations, '/schedule/consultations');
+      // 상담함은 스케줄 위의 창이다 — 페이지 주소가 따로 없다(#2717).
+      expect(AppRoutes.consultations, '/schedule?inbox=1');
     });
 
     test('희망 날짜가 없어도 회원이 있으면 상담 요청함이다', () {
@@ -402,9 +400,10 @@ void main() {
           await _tap(tester, 'noti-consult');
 
           expect(repo.readCalls, <String>['noti-consult']);
+          expect(Uri.parse(currentLocation(tester)).path, AppRoutes.schedule);
           expect(
-            Uri.parse(currentLocation(tester)).path,
-            AppRoutes.consultations,
+            find.byKey(const ValueKey<String>('consultations-dialog')),
+            findsOneWidget,
           );
         });
       });

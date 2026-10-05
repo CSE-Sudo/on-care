@@ -320,6 +320,84 @@ void main() {
     expect(banner, findsWidgets);
   });
 
+  group('상세를 닫으면 걸어 둔 목록 필터로 돌아온다 (#2893)', () {
+    String locationOf(WidgetTester tester) => GoRouter.of(
+      tester.element(find.byType(ClientsPage)),
+    ).routerDelegate.currentConfiguration.uri.toString();
+
+    test('돌아갈 목록 경로 — 필터가 있으면 그 필터, 없으면 전체', () {
+      expect(AppRoutes.clientsWith(null), AppRoutes.clients);
+      expect(
+        AppRoutes.clientsWith('attention'),
+        AppRoutes.clientsFiltered('attention'),
+      );
+      expect(AppRoutes.clientsWith('unread'), '/clients?f=unread');
+    });
+
+    testWidgets('주의 회원 목록 → 회원 열기 → 닫기 = 같은 필터의 목록', (tester) async {
+      tester.view.physicalSize = const Size(1440, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.clientsFiltered('attention'),
+      );
+      await tester.pumpAndSettle();
+
+      final first = tester.widgetList<ClientCard>(find.byType(ClientCard)).first;
+      await tester.tap(card(first.client.name));
+      await tester.pumpAndSettle();
+      expect(locationOf(tester), contains('f=attention'));
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('client-detail-back')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(locationOf(tester), AppRoutes.clientsFiltered('attention'));
+      expect(find.byType(ClientDetailView), findsNothing);
+      // 필터 배너가 그대로 남는다 — 다시 걸 필요가 없다.
+      expect(find.textContaining('주의 회원'), findsWidgets);
+    });
+
+    testWidgets('좁은 화면(상세만 보이는 배치)에서도 필터를 지킨다', (tester) async {
+      tester.view.physicalSize = const Size(700, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.clientDetail('seed-client-1', filter: 'unread'),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('client-detail-back')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(locationOf(tester), AppRoutes.clientsFiltered('unread'));
+    });
+
+    testWidgets('필터 없는 목록에서는 지금처럼 전체 목록으로 돌아온다', (tester) async {
+      await openWide(tester);
+
+      await scrollToCard(tester, '김민수');
+      await tester.tap(card('김민수'));
+      await settle(tester);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('client-detail-back')),
+      );
+      await settle(tester);
+
+      expect(locationOf(tester), AppRoutes.clients);
+    });
+  });
+
   testWidgets('the list is ordered by priority: most urgent signal first', (
     tester,
   ) async {

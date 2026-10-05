@@ -1,18 +1,24 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/core/storage/seed_data.dart'
+    show seedLanguageKey;
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/dio_chat_repository.dart';
+import 'package:oncare_trainer/features/clients/domain/chat_thread_paging.dart';
 import 'package:oncare_trainer/shared/models/chat_preview.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart'
-    show demoUnregisteredClientIdsSnapshot;
+    show clientsProvider, demoUnregisteredClientIdsSnapshot;
+import 'package:oncare_trainer/shared/services/demo_chat_files.dart';
+import 'package:oncare_trainer/shared/utils/roster_unread.dart';
 
 /// Reads and sends messages in a trainer↔member chat thread.
 ///
@@ -26,7 +32,21 @@ import 'package:oncare_trainer/shared/services/client_repository.dart'
 /// emits a single fetch, so callers invalidate the thread/unread providers
 /// after send/read (see [ChatView]).
 abstract interface class ChatRepository {
+  /// 대화의 **최신 쪽**(최대 [chatPageSize] 건, 오래된→최신). (#2749)
+  ///
+  /// 서버는 대화 전부가 아니라 최신 한 쪽만 준다. 그 앞은 [fetchOlder] 로
+  /// 이어 받고, 화면은 둘을 [mergeChatThread] 로 합쳐 그린다.
   Stream<List<ClientChatMessage>> watchThread(String clientId);
+
+  /// [before] 보다 앞선 한 쪽 — 그 앞의 최신 [chatPageSize] 건(오래된→최신).
+  /// (#2749)
+  ///
+  /// [before] 는 지금 가진 가장 오래된 메시지다. 서버 커서와 같이 시각과 id 를
+  /// 함께 본다. 받은 것이 [chatPageSize] 건보다 적으면 그 앞에는 없다.
+  Future<List<ClientChatMessage>> fetchOlder(
+    String clientId, {
+    required ClientChatMessage before,
+  });
 
   /// [reportWeekStart]가 있으면 이 메시지는 리포트 PDF 전송 안내다(#1378) —
   /// 데모/드리프트 구현만 이 값을 저장한다. 실서버는 `/report/send-pdf`가
@@ -50,28 +70,79 @@ class DriftChatRepository implements ChatRepository {
 
   final AppDatabase _db;
 
-  /// Streams a client's messages in chronological order.
+  /// Streams the newest page of a client's messages in chronological order.
+  ///
+  /// 서버와 같은 계약이다(#2749) — 최신 [chatPageSize] 건만 흘리고, 그 앞은
+  /// [fetchOlder] 로 준다. 데모가 언제나 전부를 주면 쪽 사이의 경계가 데모에서만
+  /// 없어 보여, 이어 받기가 데모로는 확인되지 않는다.
   @override
   Stream<List<ClientChatMessage>> watchThread(String clientId) {
     final query = _db.select(_db.clientChatMessages)
       ..where((t) => t.clientId.equals(clientId))
-      ..orderBy(<OrderingTerm Function($ClientChatMessagesTable)>[
-        (t) => OrderingTerm(expression: t.createdAt),
-      ]);
-    return query.watch().asyncMap((rows) async {
-      final ids = rows.map((r) => r.id).toList();
-      final weeks = await _markers(_reportKeyPrefix, ids);
-      final images = await _markers(_imageKeyPrefix, ids);
-      return rows
-          .map(
-            (row) => _toEntity(
-              row,
-              weeks[row.id],
-              _imageAttachment(row.id, images[row.id]),
-            ),
-          )
-          .toList();
-    });
+      ..orderBy(_newestFirst)
+      ..limit(chatPageSize);
+    return query.watch().asyncMap(
+      (rows) => _toEntities(rows.reversed.toList(growable: false)),
+    );
+  }
+
+  /// [before] 앞의 한 쪽. 서버의 (`created_at`, `id`) 복합 커서와 같은 경계다.
+  @override
+  Future<List<ClientChatMessage>> fetchOlder(
+    String clientId, {
+    required ClientChatMessage before,
+  }) async {
+    final query = _db.select(_db.clientChatMessages)
+      ..where(
+        (t) =>
+            t.clientId.equals(clientId) &
+            (t.createdAt.isSmallerThanValue(before.createdAt) |
+                (t.createdAt.equals(before.createdAt) &
+                    t.id.isSmallerThanValue(before.id))),
+      )
+      ..orderBy(_newestFirst)
+      ..limit(chatPageSize);
+    final rows = await query.get();
+    return _toEntities(rows.reversed.toList(growable: false));
+  }
+
+  /// 최신 것부터 — 같은 시각이면 id 로 가른다([compareChatMessages] 의 반대).
+  static final List<OrderingTerm Function($ClientChatMessagesTable)>
+  _newestFirst = <OrderingTerm Function($ClientChatMessagesTable)>[
+    (t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc),
+    (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc),
+  ];
+
+  /// 행(오래된→최신)을 첨부 표시와 함께 메시지로 푼다.
+  Future<List<ClientChatMessage>> _toEntities(
+    List<ClientChatMessageRow> rows,
+  ) async {
+    final ids = rows.map((r) => r.id).toList();
+    final weeks = await _markers(_reportKeyPrefix, ids);
+    // 루틴 전송 안내(#2672) — 보낸 쪽이 남긴 표시 행이다.
+    final deliveries = await _markers(demoRoutineDeliveryKeyPrefix, ids);
+    final images = await _markers(_imageKeyPrefix, ids);
+    // 회원이 보낸 것으로 시드한 사진·PDF(#2669).
+    final files = <String, ChatAttachment>{};
+    for (final MapEntry<String, String> e in (await _markers(
+      demoChatFileKeyPrefix,
+      ids,
+    )).entries) {
+      final ChatAttachment? file =
+          _demoImages[e.key] ?? await decodeDemoChatFile(e.key, e.value);
+      if (file == null) continue;
+      files[e.key] = _demoImages[e.key] = file;
+    }
+    return rows
+        .map(
+          (row) => _toEntity(
+            row,
+            weeks[row.id],
+            files[row.id] ?? _imageAttachment(row.id, images[row.id]),
+            delivery: deliveries[row.id],
+          ),
+        )
+        .toList();
   }
 
   /// 이 배치의 메시지 중 [prefix] 표시가 붙은 것의 값.
@@ -288,15 +359,24 @@ class DriftChatRepository implements ChatRepository {
   static const String _reportKeyPrefix = 'report_msg_';
   static const String _imageKeyPrefix = 'chat_image_';
 
-  /// 풀어 둔 데모 사진. 메시지 id 가 키다([_imageAttachment]).
+  /// 풀어 둔 데모 사진·파일. 메시지 id 가 키다([_imageAttachment]).
   static final Map<String, ChatAttachment> _demoImages =
       <String, ChatAttachment>{};
 
   ClientChatMessage _toEntity(
     ClientChatMessageRow row,
     String? weekStart,
-    ChatAttachment? attachment,
-  ) {
+    ChatAttachment? attachment, {
+    String? delivery,
+  }) {
+    RoutineDeliveryNotice? notice;
+    if (delivery != null) {
+      try {
+        notice = RoutineDeliveryNotice.fromJson(jsonDecode(delivery));
+      } on FormatException {
+        notice = null;
+      }
+    }
     return ClientChatMessage(
       id: row.id,
       sender: row.sender == 'trainer' ? ChatSender.trainer : ChatSender.client,
@@ -306,6 +386,7 @@ class DriftChatRepository implements ChatRepository {
       attachment: attachment,
       reportWeekStart: weekStart == null ? null : DateTime.tryParse(weekStart),
       emoteId: row.emoteId,
+      routineDelivery: notice,
     );
   }
 
@@ -314,13 +395,146 @@ class DriftChatRepository implements ChatRepository {
       '${t.minute.toString().padLeft(2, '0')}';
 }
 
+/// 데모 저장소에 **회원 자동 답장**을 더한 것(#2790).
+///
+/// 실서버에서는 회원이 실제로 답한다. 데모에는 답할 사람이 없어, 보내도 대화가
+/// 거기서 멈춘 채로 보였다. 잠시 뒤 짧은 답을 하나 붙인다 — 답이 오는 모양(새
+/// 말풍선, 닫아 둔 동안의 안 읽음 배지, 고객 목록 미리보기)을 데모에서도 볼 수
+/// 있게 한다. 회원 앱 데모의 트레이너 자동 답장(#2663)과 짝이다.
+///
+/// 데모 프로바이더만 이것을 쓴다 — 시험이 직접 만드는 [DriftChatRepository] 는
+/// 답하지 않아 남은 타이머를 신경 쓰지 않는다.
+class DemoRepliesChatRepository extends DriftChatRepository {
+  /// [replyDelay] 만큼 지나 답한다.
+  DemoRepliesChatRepository(super.db, {required this.replyDelay});
+
+  /// 보낸 뒤 회원이 답하기까지의 시간.
+  final Duration replyDelay;
+
+  @override
+  Future<void> sendTrainerMessage({
+    required String clientId,
+    required String text,
+    DateTime? reportWeekStart,
+    String? emoteId,
+  }) async {
+    await super.sendTrainerMessage(
+      clientId: clientId,
+      text: text,
+      reportWeekStart: reportWeekStart,
+      emoteId: emoteId,
+    );
+    // 빈 글은 보내지지 않았다. 리포트 등록 안내는 대화가 아니라 알림이라 답을
+    // 붙이지 않는다.
+    if ((text.trim().isEmpty && emoteId == null) || reportWeekStart != null) {
+      return;
+    }
+    _scheduleReply(clientId);
+  }
+
+  @override
+  Future<void> sendTrainerImage({
+    required String clientId,
+    required Uint8List bytes,
+    required String fileName,
+    String message = '',
+  }) async {
+    await super.sendTrainerImage(
+      clientId: clientId,
+      bytes: bytes,
+      fileName: fileName,
+      message: message,
+    );
+    _scheduleReply(clientId);
+  }
+
+  /// 돌아가며 쓰는 답 — (한국어, 영어). 데모 내용 언어를 따른다.
+  static const List<(String, String)> _replies = <(String, String)>[
+    ('네, 확인했어요! 오늘 해 볼게요 💪', "Got it! I'll give it a try today 💪"),
+    (
+      '알겠습니다 🙂 해 보고 다시 말씀드릴게요',
+      "Okay 🙂 I'll try it and let you know how it goes",
+    ),
+    ('감사합니다! 다음 PT 때 뵐게요', 'Thank you! See you at the next PT'),
+  ];
+
+  int _replySeq = 0;
+  final Set<Timer> _replyTimers = <Timer>{};
+
+  void _scheduleReply(String clientId) {
+    final (String ko, String en) = _replies[_replySeq++ % _replies.length];
+    late final Timer timer;
+    timer = Timer(replyDelay, () {
+      _replyTimers.remove(timer);
+      unawaited(_reply(clientId, ko: ko, en: en));
+    });
+    _replyTimers.add(timer);
+  }
+
+  Future<void> _reply(
+    String clientId, {
+    required String ko,
+    required String en,
+  }) async {
+    try {
+      // 기다리는 사이 담당을 종료했으면 답할 회원이 없다.
+      if (demoUnregisteredClientIdsSnapshot(_db).contains(clientId)) return;
+      final String text = await _db.readValue(seedLanguageKey) == 'en'
+          ? en
+          : ko;
+      final now = nowKst();
+      await _db.transaction(() async {
+        await _db
+            .into(_db.clientChatMessages)
+            .insert(
+              ClientChatMessagesCompanion.insert(
+                id: 'chat-$clientId-reply-${now.microsecondsSinceEpoch}',
+                clientId: clientId,
+                sender: 'client',
+                body: text,
+                timeLabel: DriftChatRepository._timeLabel(now),
+                createdAt: now,
+              ),
+            );
+        await (_db.update(
+          _db.trainerClients,
+        )..where((t) => t.id.equals(clientId))).write(
+          TrainerClientsCompanion(
+            lastMessage: Value(text),
+            lastTime: const Value(ChatPreviewCode.justNow),
+          ),
+        );
+      });
+    } on Object {
+      // 데모 답장이 못 붙었다고 보낸 쪽을 깨지 않는다(DB 를 닫은 뒤 등).
+    }
+  }
+
+  /// 기다리던 답장을 거둔다 — 저장소를 버릴 때 부른다.
+  void dispose() {
+    for (final Timer timer in _replyTimers) {
+      timer.cancel();
+    }
+    _replyTimers.clear();
+  }
+}
+
+/// 데모 회원 자동 답장까지의 시간(#2790).
+const Duration demoChatReplyDelay = Duration(seconds: 2);
+
 /// Provides the [ChatRepository]: the real Dio-backed source (thread shared
 /// with the member app) or the local drift source for demo / `USE_MOCK_API`.
 final chatRepositoryProvider = Provider<ChatRepository>((ref) {
   ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
   final config = ref.watch(appConfigProvider);
   if (config.useMockApi) {
-    return DriftChatRepository(ref.watch(appDatabaseProvider));
+    // 보내면 잠시 뒤 회원이 답한다 — 실서버에서는 회원이 실제로 답한다(#2790).
+    final repo = DemoRepliesChatRepository(
+      ref.watch(appDatabaseProvider),
+      replyDelay: demoChatReplyDelay,
+    );
+    ref.onDispose(repo.dispose);
+    return repo;
   }
   return DioChatRepository(ref.watch(dioProvider));
 });
@@ -337,3 +551,18 @@ final chatThreadProvider = StreamProvider.autoDispose
     .family<List<ClientChatMessage>, String>((ref, clientId) {
       return ref.watch(chatRepositoryProvider).watchThread(clientId);
     });
+
+/// 명단 회원만 더한 안읽음 합계 — 사이드바 배지가 읽는다. (#2868)
+///
+/// 명단(`clientsProvider`)이나 안읽음 맵이 아직 없으면 `null` — 사이드바는
+/// 배지를 그리지 않고 기다린다. 대시보드·메시지 탭은 이미 명단을 들고 있어
+/// [rosterUnreadOf] 를 직접 부른다.
+final rosterUnreadProvider = Provider.autoDispose<RosterUnread?>((ref) {
+  final unread = ref.watch(unreadCountsProvider).valueOrNull;
+  final clients = ref.watch(clientsProvider).valueOrNull;
+  if (unread == null || clients == null) return null;
+  return rosterUnreadOf(
+    rosterIds: clients.map((client) => client.id),
+    unread: unread,
+  );
+});

@@ -20,6 +20,12 @@ import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
 
 class _FakeChatRepository implements ChatRepository {
+  @override
+  Future<List<ClientChatMessage>> fetchOlder(
+    String clientId, {
+    required ClientChatMessage before,
+  }) async => const <ClientChatMessage>[];
+
   _FakeChatRepository({this.failRead = false});
 
   final bool failRead;
@@ -67,9 +73,6 @@ class _FakeNotificationRepository implements TrainerNotificationRepository {
   int countCalls = 0;
 
   int get _unread => chat.readCalls.isEmpty || chat.failRead ? unreadBefore : 0;
-
-  @override
-  bool get supportsInbox => true;
 
   @override
   Future<TrainerNotificationPage> fetch({

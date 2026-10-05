@@ -6,6 +6,9 @@
 > 둘 다 `useMockApi` 기본값이 `true` 입니다. dart-define 없이 실행하면 각각
 > **자기 로컬 drift DB** 를 보기 때문에, 둘 다 잘 도는 것처럼 보여도 서로의
 > 데이터는 절대 보이지 않습니다. 상호작용을 확인하려면 아래 3단계를 모두 거쳐야 합니다.
+>
+> 배포 웹 빌드는 이 값을 워크플로가 명시해서 넘깁니다 — 운영은 실서버 고정, Pages 데모는
+> 목업입니다. [`frontend_deployment.md`](frontend_deployment.md#운영-빌드는-실서버를-봅니다) 참고.
 
 ## Flutter 버전 — 3.44.9
 
@@ -26,11 +29,12 @@ Flutter SDK 는 git 체크아웃이라 태그로 오갈 수 있습니다. 올리
 **iOS 를 맡은 Mac 팀원도 같습니다.** Flutter 버전은 플랫폼별이 아니라 SDK 하나라서,
 같은 `flutter` 로 iOS 를 빌드합니다. 다만 **CI 가 잡아 주지 않습니다** — 모든
 워크플로가 `ubuntu-latest` 라 iOS 잡이 아예 없고, 안드로이드도 빌드하지 않습니다.
-웹만 CI 가 지킵니다.
+웹 코드만 CI 가 지킵니다.
 
 | 플랫폼 | 버전이 어긋나면 CI 가 알려 주나 |
 | --- | --- |
-| 웹 (회원 앱·트레이너 웹) | 예 — analyze·test·build 를 돌립니다 |
+| 웹 — 회원 앱 | PR 에서는 analyze·test 만(`user-app-ci.yml`). 웹 빌드는 `main` 배포(`deploy.yml`)에서 처음 돕니다 |
+| 웹 — 트레이너 웹 | 예 — PR 에서 analyze·test·웹 빌드(`trainer-ci.yml`) |
 | 안드로이드 | 아니오 |
 | iOS | 아니오 — 잡 자체가 없습니다 |
 
@@ -51,6 +55,19 @@ docker compose up -d --build
 ```
 
 → http://localhost:8000/docs (모든 경로는 `/v1/...`)
+
+Postgres(`5432`)는 이 PC 에서만 열립니다(`127.0.0.1` 에 묶음, #3089). 기본 계정이라 같은 Wi-Fi 의 다른 기기에는 열지 않습니다. 호스트의 pytest·psql 은 지금처럼 `localhost:5432` 로 붙습니다.
+
+예전에 만든 `.env` 를 그대로 쓴다면 두 줄을 확인합니다(#2821). 데모 폴백은 이제 기본이 꺼짐이라
+토큰 없이 데모 회원 화면을 보려면 `ALLOW_DEMO_FALLBACK=true` 가 있어야 하고, 컨테이너 기동
+스크립트는 `ENV` 가 비어 있으면 뜨지 않습니다(`.env.example` 은 둘 다 들어 있습니다).
+
+가입에는 이메일 인증 코드가 필요합니다(#3038). 로컬은 메일을 실제로 보내지 않고 서버 로그에
+코드를 찍습니다(본문은 DEBUG 로그라 `.env` 에 `LOG_LEVEL=DEBUG` 를 두고 `docker compose logs app` 에서
+6자리 코드를 읽습니다). 화면 확인만 할 때는
+`.env` 에 `SIGNUP_EMAIL_VERIFICATION=false` 를 두면 코드 없이 가입됩니다(운영에서는 끌 수 없습니다).
+앱을 데모 모드(`USE_MOCK_API=true`)로 띄우면 코드는 `000000` 입니다. 탈퇴와 로그인 이메일 변경은
+현재 비밀번호를 한 번 더 묻습니다(#3039).
 
 AI 키는 없어도 됩니다. `GEMINI_API_KEY` 가 비어 있으면 식단 인식이 오프라인 스텁으로
 폴백해서 `/v1/diet/analyze` 가 그대로 동작합니다(CI 와 같은 경로).
@@ -79,6 +96,11 @@ docker compose ps             # app, db 모두 Up
 docker compose logs app       # alembic upgrade 성공 후 uvicorn 기동
 ```
 
+요청 로그는 `app.access: GET '/v1/...' -> 200 (…ms)` 처럼 경로만 남습니다. 컨테이너는 운영과 같은
+`scripts/start.sh` 로 떠서 uvicorn 기본 액세스 로그(쿼리·IP 포함)를 끕니다(#3031). 컨테이너 없이
+`uvicorn app.main:app --reload` 로 직접 띄울 때도 위치 좌표를 로그에 남기고 싶지 않으면
+`--no-access-log` 를 더합니다(개발에서는 선택).
+
 ## 2. 회원 앱 (모바일)
 
 로컬 검증은 Chrome 으로 띄우는 편이 빠릅니다. 실제 배포 타깃은 iOS/Android 입니다.
@@ -90,6 +112,21 @@ flutter run -d chrome \
   --dart-define=USE_MOCK_API=false \
   --dart-define=API_BASE_URL=http://localhost:8000/v1
 ```
+
+헬스장 찾기 지도를 에뮬레이터·시뮬레이터에서 보려면 **개발용** 카카오 앱의 JavaScript 키를 넣습니다
+(#3043). 모바일은 지도 문서를 `http://localhost` 출처로 띄우므로, 개발용 앱의 JavaScript SDK 도메인에
+`http://localhost` 가 있어야 합니다. 운영 키의 허용 목록에는 넣지 않습니다(#2913).
+
+```bash
+flutter run -d <에뮬레이터·시뮬레이터 id> \
+  --dart-define=USE_MOCK_API=false \
+  --dart-define=API_BASE_URL=http://10.0.2.2:8000/v1 \
+  --dart-define=KAKAO_JS_KEY=<개발용 카카오 JavaScript 키>
+```
+
+키가 없거나 지도를 불러오지 못하면 지도 자리에 "지도를 불러오지 못했어요" 만 보이고 목록은 그대로
+쓸 수 있습니다. 데모(`USE_MOCK_API=true`)는 예전 그림 지도를 그대로 씁니다. `10.0.2.2` 는 안드로이드
+에뮬레이터에서 본 PC 의 주소이고, iOS 시뮬레이터는 `localhost` 를 그대로 씁니다.
 
 ### 안드로이드 실기기에서 실행 (#1882)
 
@@ -163,14 +200,20 @@ flutter build apk --debug
 
 받는 폰에서 **알 수 없는 앱 설치** 를 허용해야 합니다(설정 → 보안 및 개인 정보 보호 → 알 수
 없는 앱 설치 → APK 를 여는 앱에 허용). 디버그 키로 서명된 물건이라 스토어 배포에는 쓸 수
-없습니다.
+없습니다. 릴리스 빌드(`--release`)는 업로드 키가 든 `android/key.properties` 가 있어야 하며,
+없으면 빌드가 멈춥니다 — [mobile_release.md](mobile_release.md) 참고.
 
 **선언된 권한**
 
 `image_picker` 가 여는 두 경로 모두 안드로이드에서는 **런타임 권한이 필요 없습니다.** 사진
 선택은 시스템 사진 선택기(Android 13+)나 `ACTION_GET_CONTENT` 로 열리고, 촬영은
-`ACTION_IMAGE_CAPTURE` 로 기본 카메라 앱에 넘깁니다. 그래서 매니페스트에는 `INTERNET` 만
-있습니다.
+`ACTION_IMAGE_CAPTURE` 로 기본 카메라 앱에 넘깁니다. 그래서 매니페스트에 카메라·사진 권한은
+없고, 선언된 권한은 아래 셋입니다.
+
+| 권한 | 쓰는 곳 |
+| --- | --- |
+| `INTERNET` | 실 API 호출·식단 사진 업로드 |
+| `ACCESS_COARSE_LOCATION` · `ACCESS_FINE_LOCATION` | 헬스장 찾기 화면이 현재 위치 기준으로 가까운 헬스장을 보여 줄 때(`geolocator`, `gym_location_controller.dart`). 화면에 들어가 위치를 쓸 때만 런타임 권한을 묻습니다 |
 
 **그래서 Android 13 이상에서는 권한 다이얼로그가 아예 뜨지 않습니다.** 안 뜨는 것이 정상이고
 앱이 깨진 것이 아닙니다. 확인할 것은 다이얼로그가 아니라 **취소했을 때 시트로 조용히
@@ -184,8 +227,8 @@ flutter build apk --debug
 > `READ_MEDIA_IMAGES` 도 지금은 필요 없습니다. 앱 안에서 최근 사진 썸네일을 직접 읽는
 > #1845(카카오톡식 최근 사진 시트)를 착수할 때 `photo_manager` 도입과 함께 결정할 항목입니다.
 
-iOS 는 `ios/Runner/Info.plist` 에 `NSCameraUsageDescription`·`NSPhotoLibraryUsageDescription`
-문구가 이미 들어 있습니다(#526). 실기기 설치는 Mac 을 쓰는 팀원이 무료 Apple ID 로 진행하며,
+iOS 는 `ios/Runner/Info.plist` 에 `NSCameraUsageDescription`·`NSPhotoLibraryUsageDescription`·
+`NSLocationWhenInUseUsageDescription` 문구가 들어 있습니다(#526, #2823). 실기기 설치는 Mac 을 쓰는 팀원이 무료 Apple ID 로 진행하며,
 절차는 #1882 에 있습니다.
 
 ## 3. 트레이너 웹
@@ -200,7 +243,8 @@ flutter run -d chrome \
 
 ## 데모 계정
 
-`SEED_DEMO_DATA=true`(기본값)면 시드 계정이 생성됩니다. 비밀번호는 모두
+`SEED_DEMO_DATA=true` 면 시드 계정이 생성됩니다. 서버 기본값은 `false` 라(#2811)
+`backend/.env.example` 을 복사해 쓰거나 직접 켜야 합니다. 비밀번호는 모두
 `.env` 의 `DEMO_LOGIN_PASSWORD`(기본 `oncare123`)입니다.
 
 | 역할 | 이메일 | 비고 |
@@ -412,6 +456,9 @@ bash tool/run_consultation_e2e.sh
 시드 회원 셋은 **이미 `trainer-demo` 담당**입니다. 그 회원으로는 "승인이 담당 연결을
 만든다"를 검증할 수 없고, 한 번 승인해 버리면 다음 실행이 같은 상태에서 시작하지 못합니다.
 그래서 실행마다 `POST /auth/register` 로 새로 만들고 끝나면 `DELETE /users/me` 로 지웁니다.
+가입 이메일 인증(#3038)은 러너에서 받을 메일함이 없어 `e2e-ci.yml` 이 `SIGNUP_EMAIL_VERIFICATION=false`
+로 끄고, 탈퇴 본인 확인(#3039)은 하네스가 가입 때 쓴 비밀번호를 함께 보냅니다. 로컬에서 돌릴 때도
+백엔드 `.env` 에 같은 값을 둡니다.
 
 승인 사이클과 거절 사이클이 서로를 막으므로(승인 뒤에는 담당이 생깁니다) 계정을 둘 씁니다.
 

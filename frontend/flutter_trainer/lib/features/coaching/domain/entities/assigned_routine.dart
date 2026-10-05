@@ -9,6 +9,7 @@ class AssignedRoutine {
     required this.type,
     required this.reason,
     required this.source,
+    this.effect = '',
     this.completed = false,
     this.date,
     this.intensity = 'moderate',
@@ -60,6 +61,11 @@ class AssignedRoutine {
 
   /// Why this routine — surfaced to the member.
   final String reason;
+
+  /// 효과 한 줄 — 회원 앱이 운동 이름 아래 그리는 문장(#2570). 서버가 비면
+  /// 문구표로 채워 내려 준다. 옛 배정·데모 시드는 비어 있을 수 있어, 그때만
+  /// [reason] 으로 떨어진다(#2951).
+  final String effect;
 
   /// `ai` (AI-suggested) or `trainer` (hand-assigned).
   final String source;

@@ -11,9 +11,11 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logger/logger.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
+import 'package:oncare/core/logging/app_logger.dart';
+import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
@@ -24,6 +26,8 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart' show ChartReveal;
 
+import '../../helpers/demo_exercise.dart';
+import '../../helpers/mock_account_repository.dart';
 import '../../helpers/painter_ink.dart';
 
 /// [painter] 를 [size] 로 그려 **거의 불투명하고 트랙보다 진한**(RGB 합 600
@@ -66,11 +70,15 @@ void main() {
 
   /// 진입 애니메이션이 도는 중을 봐야 하므로 `pumpAndSettle` 은 쓰지 않는다.
   Future<void> pumpExercise(WidgetTester tester) async {
+    final AppDatabase exerciseDb = await seededDemoDatabase(tester);
     await tester.binding.setSurfaceSize(const Size(800, 1800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
+          // 운동은 앱의 데모와 같은 경로(로컬 목업 API + drift)로 돈다(#2724).
+          ...demoExerciseOverrides(exerciseDb),
+          appLoggerProvider.overrideWithValue(Logger(level: Level.off)),
           appConfigProvider.overrideWithValue(
             const AppConfig(
               environment: Environment.dev,

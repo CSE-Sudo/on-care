@@ -14,7 +14,8 @@ from app.models.models import (
     TrainerSchedule,
     User,
 )
-from app.services import reservation_service, trainer_service
+from app.services import reservation_service
+from app.services.trainer import schedule as trainer_schedule_service
 
 
 def test_reserve_flushes_schedule_before_reservation() -> None:
@@ -71,15 +72,15 @@ def test_reserved_schedule_is_blocked_from_regular_update_and_delete() -> None:
     db.get.return_value = schedule
     db.scalar.return_value = "reservation-test"
 
-    with pytest.raises(trainer_service.ScheduleConflict):
-        trainer_service.update_session(
+    with pytest.raises(trainer_schedule_service.ScheduleConflict):
+        trainer_schedule_service.update_session(
             db,
             "trainer-demo",
             schedule.id,
             {"time": "09:00"},
         )
-    with pytest.raises(trainer_service.ScheduleConflict):
-        trainer_service.delete_session(db, "trainer-demo", schedule.id)
+    with pytest.raises(trainer_schedule_service.ScheduleConflict):
+        trainer_schedule_service.delete_session(db, "trainer-demo", schedule.id)
 
     db.commit.assert_not_called()
     db.delete.assert_not_called()
@@ -399,7 +400,10 @@ def test_member_account_deletion_restores_slot_and_removes_schedule(
     schedule_id = schedule.id
     slot_id = slot.id
 
-    deleted = client.delete("/v1/users/me", headers=_headers(member_token))
+    deleted = client.request(
+        "DELETE", "/v1/users/me", json={"current_password": password},
+        headers=_headers(member_token),
+    )
 
     assert deleted.status_code == 200, deleted.text
     db_session.expire_all()

@@ -52,13 +52,26 @@ void main() {
   }
 
   group('로컬(데모) 저장소', () {
-    test('저장한 적 없으면 기본값 — 주간 리포트만 꺼짐', () async {
+    test('저장한 적 없으면 기본값 — 모두 켜짐(#3025)', () async {
       final prefs = await SharedPreferences.getInstance();
       final repo = LocalNotificationSettingsRepository(prefs);
 
       final settings = await repo.fetch();
 
+      expect(settings['notif_exercise_reminder'], isTrue);
       expect(settings['notif_trainer_message'], isTrue);
+      expect(settings['notif_weekly_report'], isTrue);
+    });
+
+    test('예전에 끈 주간 리포트는 기기에 남은 값 그대로다', () async {
+      // 데모 기기 저장은 마이그레이션 대상이 아니다 — 기본값만 바뀐다.
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'notif_weekly_report': false,
+      });
+      final prefs = await SharedPreferences.getInstance();
+
+      final settings = await LocalNotificationSettingsRepository(prefs).fetch();
+
       expect(settings['notif_weekly_report'], isFalse);
     });
 
@@ -76,9 +89,7 @@ void main() {
   group('Dio(실모드) 저장소', () {
     test('접두사를 뗀 서버 필드를 읽는다', () async {
       when(
-        () => dio.get<Map<String, Object?>>(
-          '/users/me/notification-settings',
-        ),
+        () => dio.get<Map<String, Object?>>('/users/me/notification-settings'),
       ).thenAnswer(
         (_) async => _ok<Map<String, Object?>>(<String, Object?>{
           'diet_log': false,
@@ -91,17 +102,71 @@ void main() {
 
       final settings = await DioNotificationSettingsRepository(dio).fetch();
 
-      expect(settings['notif_diet_log'], isFalse);
       expect(settings['notif_trainer_message'], isFalse);
       expect(settings['notif_weekly_report'], isTrue);
+    });
+
+    test('서버가 남겨 둔 식단 기록·AI 코칭 값은 읽지 않는다', () async {
+      // 이미 저장된 회원 값 때문에 서버는 두 필드를 계속 준다(#2854). 앱은
+      // 그 알림을 만드는 곳이 없어 스위치를 뺐으므로 오류 없이 무시한다.
+      when(
+        () => dio.get<Map<String, Object?>>('/users/me/notification-settings'),
+      ).thenAnswer(
+        (_) async => _ok<Map<String, Object?>>(<String, Object?>{
+          'diet_log': false,
+          'exercise_reminder': true,
+          'trainer_message': true,
+          'ai_coaching': false,
+          'weekly_report': false,
+        }),
+      );
+
+      final settings = await DioNotificationSettingsRepository(dio).fetch();
+
+      expect(settings.keys, isNot(contains('notif_diet_log')));
+      expect(settings.keys, isNot(contains('notif_ai_coaching')));
+      expect(settings.length, kNotificationSettingItems.length);
+    });
+
+    test('서버가 끔으로 준 주간 리포트는 기본값이 아니라 끔으로 읽는다', () async {
+      // 기본값이 켜짐으로 바뀌어도(#3025) 회원이 다시 끈 값은 그대로다.
+      when(
+        () => dio.get<Map<String, Object?>>('/users/me/notification-settings'),
+      ).thenAnswer(
+        (_) async => _ok<Map<String, Object?>>(<String, Object?>{
+          'exercise_reminder': true,
+          'trainer_message': true,
+          'weekly_report': false,
+        }),
+      );
+
+      final settings = await DioNotificationSettingsRepository(dio).fetch();
+
+      expect(settings['notif_weekly_report'], isFalse);
+    });
+
+    test('항목 정의는 모두 기본 켜짐이고 키는 그대로다', () {
+      // 키는 서버와 공유하는 계약이라 라벨이 바뀌어도(#3024) 그대로 둔다.
+      expect(
+        kNotificationSettingItems.map((NotificationSettingItem i) => i.key),
+        <String>[
+          'notif_exercise_reminder',
+          'notif_trainer_message',
+          'notif_weekly_report',
+        ],
+      );
+      expect(
+        kNotificationSettingItems.every(
+          (NotificationSettingItem i) => i.fallback,
+        ),
+        isTrue,
+      );
     });
 
     test('서버가 모르는 항목은 기본값으로 둔다', () async {
       // 배포 시점이 어긋나 필드가 빠져 와도 토글이 사라지면 안 된다.
       when(
-        () => dio.get<Map<String, Object?>>(
-          '/users/me/notification-settings',
-        ),
+        () => dio.get<Map<String, Object?>>('/users/me/notification-settings'),
       ).thenAnswer(
         (_) async => _ok<Map<String, Object?>>(<String, Object?>{
           'trainer_message': false,
@@ -111,8 +176,9 @@ void main() {
       final settings = await DioNotificationSettingsRepository(dio).fetch();
 
       expect(settings['notif_trainer_message'], isFalse);
-      expect(settings['notif_diet_log'], isTrue);
-      expect(settings['notif_weekly_report'], isFalse);
+      expect(settings['notif_exercise_reminder'], isTrue);
+      // 서버 기본값(켜짐)과 같다(#3025).
+      expect(settings['notif_weekly_report'], isTrue);
       expect(settings.length, kNotificationSettingItems.length);
     });
 
@@ -161,12 +227,11 @@ void main() {
       );
     });
 
-    test('조회 실패해도 기본값으로 화면을 그린다', () async {
-      // 설정을 못 읽었다고 토글을 감추면 사용자가 끌 방법이 사라진다.
+    test('조회 실패하면 기본값으로 그리되 실패 사실을 남긴다', () async {
+      // 설정을 못 읽었다고 토글을 감추면 사용자가 끌 방법이 사라진다. 다만
+      // 기본값을 서버 값처럼 보이면 안 되므로 실패 표시가 함께 온다(#2851).
       when(
-        () => dio.get<Map<String, Object?>>(
-          '/users/me/notification-settings',
-        ),
+        () => dio.get<Map<String, Object?>>('/users/me/notification-settings'),
       ).thenThrow(
         DioException(
           requestOptions: RequestOptions(
@@ -179,8 +244,9 @@ void main() {
 
       final settings = await c.read(notificationSettingsProvider.future);
 
-      expect(settings['notif_trainer_message'], isTrue);
-      expect(settings['notif_weekly_report'], isFalse);
+      expect(settings.loadFailed, isTrue);
+      expect(settings.valueOf('notif_trainer_message'), isTrue);
+      expect(settings.valueOf('notif_weekly_report'), isTrue);
     });
   });
 }

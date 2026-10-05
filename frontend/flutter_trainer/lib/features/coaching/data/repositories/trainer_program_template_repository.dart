@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,6 +7,7 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
+import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_template.dart';
 import 'package:oncare_trainer/shared/services/locale_provider.dart';
 
@@ -20,9 +23,9 @@ import 'package:oncare_trainer/shared/services/locale_provider.dart';
 abstract interface class TrainerProgramTemplateRepository {
   /// 이 빌드에서 템플릿을 만들고 고칠 수 있는가.
   ///
-  /// 데모(#1028)는 계정도 백엔드도 없어 앱을 새로고침하면 저장한 것이
-  /// 사라진다 — 그래도 세션 동안은 실제로 저장·수정·삭제가 된다. 실 API
-  /// 모드만 새로고침·재로그인 뒤에도 남는다.
+  /// 데모(#1028)도 저장·수정·삭제가 된다. 데모는 이 브라우저의 로컬 저장소에
+  /// 남겨 새로고침해도 그대로다(#2669). 실 API 모드는 재로그인·다른 기기에서도
+  /// 남는다.
   bool get supportsEditing;
 
   /// 내 템플릿(최근 수정 먼저). 저장한 것이 없으면 시작 구성.
@@ -47,14 +50,14 @@ abstract interface class TrainerProgramTemplateRepository {
   Future<void> delete(String id);
 }
 
-/// 데모: 시작 구성으로 열리고, 저장은 이 세션 동안만 메모리에 남는다.
+/// 데모: 시작 구성으로 열리고, 저장한 것은 키-값 저장소에 남는다.
 ///
 /// 시작 구성은 실 API 가 시작 구성으로 주는 것과 **같은 셋**이다 — 데모
 /// 화면이 예전과 똑같이 보여야 하고, 두 빌드가 다른 템플릿을 보여 줄 이유도
 /// 없다. 다만 프로그램 탭의 `저장` 버튼(#1028)이 이 저장소로 곧장 쓰기 때문에,
 /// 계정도 백엔드도 없는 데모에서마저 저장이 항상 실패하면 그 버튼이 거짓말을
-/// 하는 화면이 된다. 앱을 새로고침하면 사라진다 — 그 이상의 영속성은 실 API
-/// 모드에서만 보장한다.
+/// 하는 화면이 된다. [db] 가 있으면 저장한 템플릿을 거기 적어 새로고침해도
+/// 남긴다(#2669). 없으면(단위 테스트) 메모리에만 둔다.
 ///
 /// 시작 구성은 저장된 행이 아니라 곁들이는 예시 목록이라, 트레이너가 처음
 /// 무언가를 저장했다고 그 자리에서 사라지면 안 된다 — 방금까지 보이던
@@ -65,15 +68,67 @@ class MockTrainerProgramTemplateRepository
   /// [languageCode] 는 목록을 읽는 순간의 화면 언어다. 시작 구성은 저장된 값이
   /// 아니라 읽을 때 만드는 값이라 실서버처럼 그 언어로 준다(#2301). 트레이너가
   /// 저장한 것은 옮기지 않는다. 생략하면 한국어다.
-  MockTrainerProgramTemplateRepository({String Function()? languageCode})
-    : _languageCode = languageCode ?? _korean;
+  MockTrainerProgramTemplateRepository({
+    String Function()? languageCode,
+    this.db,
+  }) : _languageCode = languageCode ?? _korean;
 
   final String Function() _languageCode;
+
+  /// 저장한 템플릿을 적어 두는 데모 저장소.
+  final AppDatabase? db;
 
   static String _korean() => 'ko';
 
   final List<ProgramTemplate> _saved = <ProgramTemplate>[];
   int _nextId = 0;
+  bool _restored = false;
+
+  /// 저장한 템플릿을 적어 두는 키 — `{next_id, templates: [...]}`.
+  static const String storageKey = 'demo_program_templates';
+
+  Future<void> _restore() async {
+    if (_restored) return;
+    _restored = true;
+    final String? saved = await db?.readValue(storageKey);
+    if (saved == null) return;
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(saved);
+    } on FormatException {
+      return;
+    }
+    if (decoded is! Map<String, Object?>) return;
+    final Object? templates = decoded['templates'];
+    if (templates is List) {
+      for (final Object? item in templates) {
+        if (item is Map<String, Object?> && item['id'] is String) {
+          _saved.add(ProgramTemplate.fromJson(item));
+        }
+      }
+    }
+    _nextId = (decoded['next_id'] as num?)?.toInt() ?? _saved.length;
+  }
+
+  Future<void> _persist() async {
+    await db?.putValue(
+      storageKey,
+      jsonEncode(<String, Object?>{
+        'next_id': _nextId,
+        'templates': <Object?>[
+          for (final ProgramTemplate t in _saved)
+            <String, Object?>{
+              'id': t.id,
+              'name': t.name,
+              'goal': t.goal,
+              'exercises': <Object?>[
+                for (final TemplateExercise e in t.exercises) e.toJson(),
+              ],
+            },
+        ],
+      }),
+    );
+  }
 
   /// 시작 구성. 데모 화면이 무엇을 보여 주는지 테스트가 그대로 읽는다.
   static const List<ProgramTemplate> starters = <ProgramTemplate>[
@@ -158,10 +213,13 @@ class MockTrainerProgramTemplateRepository
   /// 저장한 것(최근 저장 먼저) 뒤에 시작 구성을 늘 이어 붙인다 — 저장했다고
   /// 시작 구성이 사라지지 않는다.
   @override
-  Future<List<ProgramTemplate>> list() async => <ProgramTemplate>[
-    ..._saved.reversed,
-    ...startersFor(_languageCode()),
-  ];
+  Future<List<ProgramTemplate>> list() async {
+    await _restore();
+    return <ProgramTemplate>[
+      ..._saved.reversed,
+      ...startersFor(_languageCode()),
+    ];
+  }
 
   @override
   Future<ProgramTemplate> create({
@@ -169,6 +227,7 @@ class MockTrainerProgramTemplateRepository
     required String goal,
     required List<TemplateExercise> exercises,
   }) async {
+    await _restore();
     final template = ProgramTemplate(
       id: 'local:${_nextId++}',
       name: name,
@@ -176,6 +235,7 @@ class MockTrainerProgramTemplateRepository
       exercises: exercises,
     );
     _saved.add(template);
+    await _persist();
     return template;
   }
 
@@ -186,6 +246,7 @@ class MockTrainerProgramTemplateRepository
     required String goal,
     required List<TemplateExercise> exercises,
   }) async {
+    await _restore();
     final index = _saved.indexWhere((t) => t.id == id);
     if (index == -1) throw const NotFoundError();
     final updated = ProgramTemplate(
@@ -195,12 +256,19 @@ class MockTrainerProgramTemplateRepository
       exercises: exercises,
     );
     _saved[index] = updated;
+    await _persist();
     return updated;
   }
 
   @override
   Future<void> delete(String id) async {
-    _saved.removeWhere((t) => t.id == id);
+    await _restore();
+    // 실서버처럼 없는 템플릿은 404 다(#3101) — 조용히 성공하면 데모만 다른
+    // 탭에서 지운 템플릿을 지운 것처럼 보인다.
+    final index = _saved.indexWhere((t) => t.id == id);
+    if (index == -1) throw const NotFoundError();
+    _saved.removeAt(index);
+    await _persist();
   }
 }
 
@@ -297,6 +365,12 @@ class DioTrainerProgramTemplateRepository
         throw ValidationError(message: detail is String ? detail : null);
       }
       throw AppError.fromDio(e);
+    } on AppError {
+      rethrow;
+    } on Object {
+      // 응답이 약속한 모양이 아니다(#2896) — 해석 오류를 그대로 올리면 화면이
+      // 어느 실패인지 가리지 못한다. 서버 쪽 실패로 묶어 올린다.
+      throw const ServerError();
     }
   }
 }
@@ -309,6 +383,7 @@ final trainerProgramTemplateRepositoryProvider =
         return MockTrainerProgramTemplateRepository(
           languageCode: () =>
               ref.read(trainerResolvedLocaleProvider).languageCode,
+          db: ref.watch(appDatabaseProvider),
         );
       }
       return DioTrainerProgramTemplateRepository(ref.watch(dioProvider));

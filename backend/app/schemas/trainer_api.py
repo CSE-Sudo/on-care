@@ -6,6 +6,7 @@ GET /trainer/me 응답:
 """
 from __future__ import annotations
 
+import json
 from datetime import date as _date, datetime as _datetime
 from typing import Annotated, Any, ClassVar, Literal, TypeVar
 
@@ -93,6 +94,12 @@ class TrainerMe(BaseModel):
     intro: str
     certifications: list[str]
     gym: TrainerGymOut
+    #: 운영자 계정인가(#3008). 트레이너 웹이 `신고·계정 관리` 메뉴를 보일지 정한다 —
+    #: 실제 차단은 `/admin/*` 의 `RequireAdmin` 이 한다.
+    is_admin: bool = False
+    #: 비밀번호로 로그인하는 계정인가(#3039). 탈퇴 본인 확인에서 현재 비밀번호
+    #: 칸과 소셜 다시 로그인 중 무엇을 보일지 고른다. 회원 `ProfileView` 와 같은 뜻.
+    has_password: bool = True
 
 
 class ClientSignalOut(BaseModel):
@@ -135,6 +142,9 @@ class TrainerClientOut(BaseModel):
     #: 카드가 이름 옆에 적는 성별(male|female|other). 저장된 적이 없으면 빈 값이고,
     #: 그때는 앱이 스스로 표시값을 정한다(#960).
     gender: str = ""
+    #: 생년월일로 계산한 만 나이. 회원이 넣지 않았으면 `None` — 앱이 표시값을
+    #: 정한다(#2728).
+    age: int | None = None
     goal: str
     last_message: str
     last_time: str
@@ -158,7 +168,10 @@ class TrainerClientOut(BaseModel):
     #: — 앱은 이 날짜로 `오늘`·`N일 전` 을 로케일에 맞춰 직접 그린다. 옛 앱을 위해
     #: `last_routine` 도 계속 보낸다.
     last_routine_date: str | None = None
-    week_completion: list[int]   # 이번 주 일별 완료율 7개(월→일)
+    #: 이번 주 일별 이행률 7개(월→일). 그날 걸린 개인운동·잡힌 PT 중 한 비율이다
+    #: (#2513). 아무것도 걸리지 않은 날과 아직 오지 않은 날은 null 이다 — 0 은
+    #: "걸렸는데 하나도 안 했다" 라는 다른 뜻이다.
+    week_completion: list[int | None]
     sodium_week: list[int]       # 최근 7일 일별 나트륨(오래된→오늘)
     #: 최근 7일 일별 칼로리·당류. 나트륨과 같은 창이라 세 지표를 한 그래프에서
     #: 바꿔 가며 볼 수 있다(#746). 당류만 소수를 유지한다.
@@ -196,6 +209,9 @@ class MemberHealthProfileOut(BaseModel):
     daily_sugar_g: int | None = None
     daily_carbs_g: int | None = None
     daily_protein_g: int | None = None
+    #: 식단 분석이 실제로 쓰는 하루 단백질 목표(#2898) — 개인 목표 → 체중 × 1.2g
+    #: → 60g. 영양 요약 카드 분모가 이 값이다.
+    effective_daily_protein_g: int | None = None
     daily_fat_g: int | None = None
     #: 운동 탭이 실제로 견주는 목표 (#1139) — 회원 앱 마이페이지가 쓰는 값이다.
     #: 트레이너 화면도 같은 필드를 읽고 저장해야 한 쪽에서 고친 목표가 다른
@@ -212,6 +228,9 @@ class MemberHealthProfileOut(BaseModel):
     #: 건강 목표를 마지막으로 바꾼 사람(`member`|`trainer`)과 시각(#1832).
     focus_changed_by: str | None = None
     focus_changed_at: _datetime | None = None
+    #: 건강상태·주의사항을 마지막으로 바꾼 사람과 시각(#2942). 목표 칩 기록과 따로다.
+    notes_changed_by: str | None = None
+    notes_changed_at: _datetime | None = None
 
 
 class MemberHealthProfileUpdate(PartialUpdate):
@@ -296,7 +315,9 @@ class ClientDietEntryOut(BaseModel):
 #: - ``pt_session``: 완료한 PT 세션 (`PT 세션 · 트레이너 지도`)
 #: - ``ai_personal``: AI 개인운동 (`AI 개인운동`, 옛 `AI 루틴 · 자율 운동`)
 #: - ``assigned_routine``: 이름 없는 배정 루틴 수행 (`배정 루틴 수행`)
-RoutineHistoryKind = Literal["pt_session", "ai_personal", "assigned_routine"]
+RoutineHistoryKind = Literal[
+    "pt_session", "ai_personal", "assigned_routine", "personal_routine"
+]
 
 
 class RoutineHistoryExerciseOut(BaseModel):
@@ -320,8 +341,16 @@ class RoutineHistoryExerciseOut(BaseModel):
     weight: float | None = None
     #: `light` | `moderate` | `high`. 강도를 적은 기록(배정 수행)만 채운다.
     intensity: str | None = None
+    #: 하루치 `개인운동` 카드(#2510)의 **한** 줄에서 트레이너가 처방한 강도.
+    #: [intensity] 는 회원이 실제로 고른 강도라, 둘이 다르면 트레이너 화면이
+    #: 처방을 회색으로 두고 `수행 …` 을 붙인다(#2508). 안 한 줄은 [intensity]
+    #: 가 곧 처방이라 비운다.
+    prescribed_intensity: str | None = None
     #: 실제로 했는가(`✓`/`✗`). 표시가 없던 기록은 한 것으로 본다.
     done: bool = True
+    #: 하루치 `개인운동` 카드(#2510)에서 한 줄이 가리키는 운동 기록 id. 트레이너
+    #: 메모가 줄마다 이 값으로 그 완료를 가리킨다(#2332). 하지 않은 줄은 비어 있다.
+    session_id: str | None = None
 
 
 class RoutineHistoryOut(BaseModel):
@@ -369,6 +398,19 @@ class ChatAttachmentOut(BaseModel):
     download_path: str
 
 
+class RoutineDeliveryCardOut(BaseModel):
+    """채팅 가운데 루틴 전송 안내 — 무엇을 보냈나. (#2672)
+
+    [kind] 는 `pt_with_routine`(PT 프로그램과 개인운동) · `routine_only`(개인운동만)
+    · `cancelled_routine_only`(취소·노쇼 PT 뒤 개인운동) · `routine`(단건 배정·AI
+    제안 승인). 운동 이름은 회원·트레이너가 적은 그대로라 번역하지 않는다.
+    """
+
+    kind: str
+    program_names: list[str] = Field(default_factory=list)
+    routine_names: list[str] = Field(default_factory=list)
+
+
 class ChatMessageOut(BaseModel):
     """채팅 메시지 — 프론트 ClientChatMessage 계약 정렬.
 
@@ -389,6 +431,9 @@ class ChatMessageOut(BaseModel):
     # 이 값으로 대화 가운데 안내 상자를 그린다(#1600). 첨부 유무와는 별개다 —
     # 리포트는 PDF 없이 본문만으로도 나간다.
     report_week_start: str | None = None
+    # 루틴 전송 안내라면 그 전송(#2672), 아니면 None. 두 앱이 리포트 안내처럼
+    # 대화 가운데 카드로 그린다.
+    routine_delivery: RoutineDeliveryCardOut | None = None
 
 
 class ChatSendRequest(BaseModel):
@@ -506,8 +551,14 @@ def _drop_fields_not_in_type(model: _ProgramLike) -> _ProgramLike:
         # 한 세트는 회로든 초로든 한 번만 잰다(#1969). 버티는 운동이면 초가
         # 맞고 횟수를 비운다 — 둘이 함께 남으면 `플랭크 3세트 · 10회 · 60초`
         # 처럼 한 줄이 두 단위로 자기를 말한다.
-        if model.hold_seconds is not None:
+        #
+        # 0 이하의 초는 "버티지 않음" 이다 — 빈 칸을 0 으로 채워 보내는
+        # 클라이언트가 있어, 0 을 버티기로 읽으면 일반 근력 운동의 횟수가
+        # 지워진 채 저장됐다(`스쿼트 3세트 · 12회` → `스쿼트 3세트`).
+        if model.hold_seconds is not None and model.hold_seconds > 0:
             model.reps = None
+        else:
+            model.hold_seconds = None
     else:
         model.sets = None
         model.reps = None
@@ -863,6 +914,24 @@ def _check_program_total_exercises(
     return sessions
 
 
+#: 자동 보관 작성 상태(`workspace`)를 JSON 으로 옮긴 길이 상한(#2873). 위저드의
+#: A/B 후보·분석과 개인운동을 넉넉히 담고, 한 요청이 화면 상태라며 큰 덩어리를
+#: 밀어 넣는 것은 막는다.
+PROGRAM_WORKSPACE_MAX_CHARS = 64_000
+
+
+def _check_program_workspace(
+    workspace: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """작성 상태가 [PROGRAM_WORKSPACE_MAX_CHARS] 를 넘지 않는지 본다(#2873)."""
+    if workspace is not None and (
+        len(json.dumps(workspace, ensure_ascii=False))
+        > PROGRAM_WORKSPACE_MAX_CHARS
+    ):
+        raise ValueError("작성 상태가 너무 큽니다.")
+    return workspace
+
+
 class TrainerProgramDraftOut(BaseModel):
     """저장된 프로그램 초안. 세션은 저장한 순서 그대로 돌아온다."""
     id: str
@@ -871,6 +940,11 @@ class TrainerProgramDraftOut(BaseModel):
     period: str
     memo: str
     sessions: list[ProgramDraftSession]
+    #: 자동 보관한 회원(#2873). 회원 없는 초안(#708)은 비어 있다.
+    member_id: str | None = None
+    #: 편집기 밖의 작성 상태 — 위저드 단계·후보·개인운동(#2873). 화면이 쓰고
+    #: 화면이 읽는 값이라 서버는 해석하지 않는다.
+    workspace: dict[str, Any] = Field(default_factory=dict)
     created_at: _datetime
     updated_at: _datetime
 
@@ -887,6 +961,8 @@ class TrainerProgramDraftSummary(BaseModel):
     period: str
     session_count: int
     exercise_count: int
+    #: 자동 보관한 회원(#2873). 회원 없는 초안은 비어 있다.
+    member_id: str | None = None
     updated_at: _datetime
 
 
@@ -901,8 +977,13 @@ class TrainerProgramDraftCreate(BaseModel):
     sessions: list[ProgramDraftSession] = Field(
         default_factory=list, max_length=_PROGRAM_MAX_SESSIONS
     )
+    #: 코칭 화면이 자동 보관하는 회원(#2873). 담당 회원이 아니면 404 다.
+    #: 비우면 지금까지처럼 회원 없는 초안이다.
+    member_id: str | None = Field(default=None, min_length=1, max_length=64)
+    workspace: dict[str, Any] | None = None
 
     _v_total = field_validator("sessions")(_check_program_total_exercises)
+    _v_workspace = field_validator("workspace")(_check_program_workspace)
 
 
 class TrainerProgramDraftUpdate(PartialUpdate):
@@ -919,8 +1000,12 @@ class TrainerProgramDraftUpdate(PartialUpdate):
     sessions: list[ProgramDraftSession] | None = Field(
         default=None, max_length=_PROGRAM_MAX_SESSIONS
     )
+    #: 작성 상태는 통째로 교체한다(#2873). 회원은 바꾸지 않는다 — 다른 회원에게
+    #: 짜던 내용이 되면 새 초안이다.
+    workspace: dict[str, Any] | None = None
 
     _v_total = field_validator("sessions")(_check_program_total_exercises)
+    _v_workspace = field_validator("workspace")(_check_program_workspace)
 
 
 class PersonalRoutineItem(BaseModel):
@@ -970,6 +1055,10 @@ class PersonalRoutineItem(BaseModel):
 #: 다른 상한을 두면 같은 목록이 한쪽에서만 거절된다.
 _MAX_PERSONAL_ROUTINES = _PROGRAM_MAX_SESSIONS
 
+#: 위저드가 개인운동 단계를 채운 AI 제안 id(#2747). 개인운동 한 줄이 제안 하나라
+#: 개인운동 상한과 같다.
+_SuggestionId = Annotated[str, Field(min_length=1, max_length=64)]
+
 
 class ScheduleRoutineUpdateRequest(BaseModel):
     """PT 에 붙은 개인운동을 고친다 — 보내지 않는다. (#2224)
@@ -980,6 +1069,11 @@ class ScheduleRoutineUpdateRequest(BaseModel):
 
     personal_routines: list[PersonalRoutineItem] = Field(
         min_length=1, max_length=_MAX_PERSONAL_ROUTINES
+    )
+    # 이 개인운동을 채운 대기 중 AI 제안 — 고치기와 같은 트랜잭션에서 닫는다
+    # (#2747). 이미 있는 PT 에 붙이는 길도 프로그램 만들기와 같은 규칙이다.
+    suggestion_ids: list[_SuggestionId] = Field(
+        default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
     )
 
 
@@ -1031,6 +1125,13 @@ class ProgramAssignRequest(BaseModel):
     #: 은 7 을 보내 보낸 날부터 한 주 동안 걸어 두고, 다음 주 분은 트레이너가
     #: 다시 보낸다. 비우면 트레이너가 철회할 때까지 걸려 있는 기존 배정이다.
     active_days: int | None = Field(default=None, ge=1, le=31)
+    #: 이 전송에 실린 개인운동을 채운 **대기 중 AI 제안** id(#2747). 배정과 같은
+    #: 트랜잭션에서 그 제안을 닫는다 — 대기로 남으면 다음 위저드가 보낸 제안을
+    #: 다시 채우고, 쌓인 대기가 백로그 한도를 막아 새 제안이 끊긴다. 남의
+    #: 제안·이미 검토한 제안 id 는 조용히 무시한다.
+    suggestion_ids: list[_SuggestionId] = Field(
+        default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
+    )
 
     _v_total = field_validator("sessions")(_check_program_total_exercises)
 
@@ -1042,7 +1143,14 @@ TrainerMemoSource = Literal["trainer", "chat_insight", "exercise_memo"]
 
 #: 운동 기록 메모가 가리키는 기록의 갈래. 앱이 출처 태그(`PT 세션 · 9/23`,
 #: `개인 운동 · 9/23 코어 강화`, `회원 기록 · 9/23`)를 그리는 데 쓴다.
-TrainerMemoRefKind = Literal["pt_session", "personal", "member_log"]
+#: `day` 는 그날 운동 기록 전체에 단 메모다(#2508). `member_log` 는 그 전에 회원 직접
+#: 기록 카드에 남긴 메모로, 읽기만 한다.
+TrainerMemoRefKind = Literal["pt_session", "personal", "member_log", "day"]
+
+#: 메모 분류(#2622). 트레이너가 직접 쓴 메모에서 고른다 — 운동·식단·통증·부상·
+#: 생활·일정. 빈 문자열은 고르지 않은 것이다(태그는 `직접 작성`). 운동 기록 메모는
+#: 서버가 늘 'exercise' 로 채우고, 채팅 감지 메모는 비어 있다.
+TrainerMemoCategory = Literal["", "exercise", "diet", "pain", "life"]
 
 
 class TrainerMemoOut(BaseModel):
@@ -1060,6 +1168,8 @@ class TrainerMemoOut(BaseModel):
     ref_date: str | None = None
     #: 트레이너가 지은 루틴 이름. 고정 이름(PT 세션 등)은 비어 있다.
     ref_name: str = ""
+    #: 분류(#2622). 고르지 않았으면 빈 문자열.
+    category: TrainerMemoCategory = ""
     created_at: _datetime
     updated_at: _datetime
 
@@ -1080,6 +1190,13 @@ class TrainerMemoCreateRequest(BaseModel):
     ref_id: str | None = Field(default=None, max_length=64)
     #: 회원 직접 기록 카드는 하루치 묶음이라 id 대신 그 날(YYYY-MM-DD)을 보낸다.
     ref_date: _date | None = None
+    #: 날짜로 가리킬 때 그날의 어느 상자인가(#2508) — 운동 탭 `오늘` 의
+    #: `개인운동`(personal)·`회원 추가`(member_log) 상자, 또는 그날 전체(day,
+    #: 기본). `ref_date` 와만 함께 보낸다.
+    ref_kind: Literal["personal", "member_log", "day"] | None = None
+    #: 분류(#2622). 직접 쓴 메모만 고른다. 운동 기록 메모는 보내지 않아도
+    #: 'exercise' 가 되고, 다른 분류를 보내면 422 다.
+    category: TrainerMemoCategory = ""
 
     @model_validator(mode="after")
     def _reject_mismatched_source(self) -> TrainerMemoCreateRequest:
@@ -1102,18 +1219,66 @@ class TrainerMemoCreateRequest(BaseModel):
                 )
         elif has_ref:
             raise ValueError(f"{self.source} 메모에는 기록 연결을 보낼 수 없습니다.")
+        if self.ref_kind is not None and self.ref_date is None:
+            raise ValueError("ref_kind 는 ref_date 와 함께 보내야 합니다.")
+        # 분류는 트레이너가 고르는 값이다 — 채팅 감지 메모는 감지 이유가 태그이고,
+        # 운동 기록 메모는 언제나 운동이다.
+        if self.source == "chat_insight" and self.category:
+            raise ValueError("chat_insight 메모에는 분류를 보낼 수 없습니다.")
+        if self.source == "exercise_memo" and self.category not in ("", "exercise"):
+            raise ValueError("exercise_memo 메모의 분류는 exercise 입니다.")
         return self
 
 
 class TrainerMemoUpdateRequest(PartialUpdate):
-    """메모 부분 수정. 본문만 고칠 수 있다.
+    """메모 부분 수정. 본문과, 직접 쓴 메모의 분류(#2622)를 고칠 수 있다.
 
     `source`·`insight_id` 는 "이 메모가 어디서 왔나"라는 사실이라 고칠 값이 아니다 —
     채팅에서 생긴 메모를 손봤다고 직접 쓴 메모가 되지는 않고, `insight_id` 를
-    바꿀 수 있으면 중복 방지 키가 무너진다.
+    바꿀 수 있으면 중복 방지 키가 무너진다. 운동 기록·채팅 감지 메모의 분류도
+    출처에서 정해지므로 바꿀 수 없다(바꾸려 하면 400).
     """
 
     body: str | None = Field(default=None, min_length=1, max_length=500)
+    #: 빈 문자열은 분류를 지운다(`직접 작성` 으로 돌아간다).
+    category: TrainerMemoCategory | None = None
+
+
+#: 회원 피드백 모아 보기의 출처(#2615). 'pt_session' 은 완료 PT 세션 피드백
+#: (`TrainerSchedule.note`), 'report' 는 보낸 주간 리포트, 'weekly' 는 회원이
+#: 쓴 주간 피드백이다.
+ClientFeedbackKind = Literal["pt_session", "report", "weekly"]
+
+#: 피드백의 방향. 앞의 둘은 트레이너가 회원에게, 'weekly' 는 회원이 트레이너에게.
+ClientFeedbackDirection = Literal["to_member", "from_member"]
+
+
+class ClientFeedbackOut(BaseModel):
+    """회원 한 명과 주고받은 피드백 한 건 — 읽기 전용 모아 보기(#2615).
+
+    고치는 곳은 원래 자리(스케줄 일정·리포트 주·회원 앱) 하나뿐이다. 그래서
+    앱이 그 자리로 가는 데 쓰는 값(`schedule_id`·`week_start`)을 함께 준다.
+    """
+
+    #: 출처 안에서 유일한 값에 출처를 붙였다(`pt_session:<id>` 등).
+    id: str
+    kind: ClientFeedbackKind
+    direction: ClientFeedbackDirection
+    #: 그 피드백이 붙는 날(YYYY-MM-DD). PT 는 수업 날, 리포트·주간 피드백은 그 주 월요일.
+    date: str
+    #: 피드백 글. 주간 피드백은 한 줄 피드백(비어 있을 수 있다 — 칩만 고른 주).
+    body: str = ""
+    #: PT 세션 피드백의 일정 id — 앱이 스케줄의 그 일정으로 간다.
+    schedule_id: str | None = None
+    #: 리포트·주간 피드백의 주(월요일) — 앱이 리포트의 그 주로 간다.
+    week_start: str | None = None
+    #: 리포트를 보낸 시각·주간 피드백을 마지막으로 고친 시각. PT 는 없다.
+    at: _datetime | None = None
+    #: 주간 피드백 칩(회원 앱 값 그대로 — great|good|ok|tired|bad 등). 앱이 번역한다.
+    condition: str = ""
+    intensity: str = ""
+    pain_area: str = ""
+    pain_on: str = ""
 
 
 #: 후속 관리 할 일이 가리키는 업무 갈래. 할 일에서 어느 화면으로 갈지를 고르는
@@ -1194,19 +1359,25 @@ RoutineIntensityLabel = Literal["낮음", "보통", "높음"]
 
 #: AI 추천이 읽을 수 있는 트레이너 쪽 자료(#2587).
 #:
+#: * recent_chat — 회원과의 최근 대화 원문(최근 14일 · 최신 10건, #2794)
 #: * pt_feedback — 완료한 PT 일정의 글(트레이너 피드백)
 #: * consult_memo — 상담 일정의 글(상담 메모, 트레이너만 본다)
 #: * trainer_memo — 회원 상세에서 트레이너가 직접 쓴 메모(`source='trainer'`)
 #: * chat_insight — 채팅 감지에서 남긴 메모(`source='chat_insight'`)
 #: * weekly_feedback — 회원이 남긴 주간 피드백
 RoutineContextSource = Literal[
-    "pt_feedback", "consult_memo", "trainer_memo", "chat_insight", "weekly_feedback"
+    "recent_chat",
+    "pt_feedback",
+    "consult_memo",
+    "trainer_memo",
+    "chat_insight",
+    "weekly_feedback",
 ]
 
 #: 트레이너가 고르지 않았을 때의 기본값. 상담 메모만 뺀다 — 등록 상담처럼
 #: 운동 구성과 무관하거나 민감한 내용이 섞이는 자리라, 넣을지는 트레이너가 켠다.
 ROUTINE_DEFAULT_SOURCES: tuple[RoutineContextSource, ...] = (
-    "pt_feedback", "trainer_memo", "chat_insight", "weekly_feedback",
+    "recent_chat", "pt_feedback", "trainer_memo", "chat_insight", "weekly_feedback",
 )
 
 #: 자료별 최대 건수. 서비스의 조회 limit 이 이 값을 그대로 쓴다 — 이유는
@@ -1232,7 +1403,7 @@ class RoutineOptionsRequest(BaseModel):
     #: 폴백에 들어간다. 보내지 않으면(`None`) [ROUTINE_DEFAULT_SOURCES] 를 쓴다 —
     #: 이 필드 이전의 클라이언트도 같은 기본값으로 동작한다. 빈 목록은 "아무 자료도
     #: 넣지 않음" 이라는 명시적 선택이라 기본값으로 바꾸지 않는다.
-    sources: list[RoutineContextSource] | None = Field(default=None, max_length=5)
+    sources: list[RoutineContextSource] | None = Field(default=None, max_length=6)
 
 
 #: 분석에 싣는 최근 대화 최대 건수. 서비스의 조회 limit 이 이 값을 그대로 쓴다 —
@@ -1454,6 +1625,14 @@ class ScheduleSessionOut(BaseModel):
     #: 수업 기록으로만 남는다 — 이름은 `해제 회원`, `member_id`·글·프로그램·취소
     #: 사유는 비어 있고, 회원 상세·코칭으로 이어지지 않는다.
     member_detached: bool = False
+    #: 회원이 예약 슬롯으로 잡은 일정인가(#2756). 예약이 시각·회원·좌석을 갖고
+    #: 있어 일반 일정 수정(시각·회원·종류·길이)·삭제·되돌리기는 409 다. 메모·
+    #: 프로그램은 고칠 수 있고, 일정을 거두려면 취소한다.
+    is_reservation: bool = False
+    #: 완료한 PT 가 담당 트레이너와의 몇 번째 수업인가(1부터, #2697). 회원 응답의
+    #: 완료 PT 에만 싣는다 — 예정·취소·노쇼·상담과 트레이너 응답은 null 이다.
+    #: 회원 목록이 최근 100건으로 잘리므로 앱이 세면 그보다 오래된 회원에게 틀린다.
+    session_number: int | None = None
 
 
 class DeliveryOut(BaseModel):
@@ -1474,6 +1653,77 @@ class DeliveryOut(BaseModel):
     session: ScheduleSessionOut | None = None
     #: 회원이 혼자 할 개인운동. `개인운동만` 전송은 이 목록이 전부다.
     routines: list[RoutineOut] = Field(default_factory=list)
+
+
+#: 그날 걸린 개인운동 하나의 결과(#2508).
+#:
+#: * `done` — 그날 완료.
+#: * `late` — 그날 완료를 다음 날 이후에 체크했다. 완료로 센다.
+#: * `missed` — 하지 않았다. **오늘 이전**만 이 값이다.
+#: * `pending` — 오늘, 아직 하지 않았다.
+RoutineDayStatus = Literal["done", "late", "missed", "pending"]
+
+
+class TrainerRoutineDayItemOut(BaseModel):
+    """그날 칸 하나 — 어느 배정이 그날 어떻게 되었나. (#2508)"""
+
+    routine_id: str
+    status: RoutineDayStatus
+    #: 완료(`done`·`late`)로 남은 운동 기록 id. 트레이너 메모가 이 값을 가리킨다.
+    session_id: str | None = None
+
+
+class TrainerRoutineDayOut(BaseModel):
+    """하루치 — 그날 걸린 개인운동과 결과(배정 순서). 빈 날도 한 칸이다. (#2508)"""
+
+    date: _date
+    items: list[TrainerRoutineDayItemOut] = Field(default_factory=list)
+
+
+class TrainerRoutineDayRoutineOut(BaseModel):
+    """기간 안에 한 번이라도 걸렸던 배정 하나. (#2508)
+
+    화면은 [sent_on]·[ended_on]·[personal] 이 같은 줄을 한 배정 묶음으로 묶어
+    머리 줄("9/29(화) 보낸 개인운동 · 10/5(월)까지")을 그리고, `active_from`
+    ~`ended_on` 전날을 회색 띠로 칠한다.
+    """
+
+    id: str
+    name: str
+    #: 유산소|근력|스트레칭|기타 — 배정의 한글 유형 그대로다.
+    type: str
+    #: ai|trainer
+    source: str
+    sort_order: int
+    #: 회원 목록에 뜨는 첫날.
+    active_from: _date
+    #: 회원 목록에서 내려가는 날 — **그날은 뜨지 않는다**. 기한 없는 배정은 null.
+    ended_on: _date | None = None
+    #: 트레이너가 보낸 날. 시작일을 미래로 고른 `개인운동만` 은 [active_from]
+    #: 보다 이르다(#2656).
+    sent_on: _date
+    #: 개인운동(한 주씩 보내는 것)인가. 거짓이면 기한 없는 따로 배정이다.
+    personal: bool
+    #: 배정에 적힌 양 — 줄을 `[유형] 이름 · 세부 · 효과` 로 그린다. 근력은
+    #: 세트·횟수(또는 버틴 초)·중량, 나머지는 시간이다. 없는 칸은 null.
+    minutes: int = 0
+    duration_seconds: int | None = None
+    sets: int | None = None
+    reps: int | None = None
+    hold_seconds: int | None = None
+    weight: float | None = None
+    #: 효과 한 줄 — 회원 앱과 같은 값(적힌 값, 없으면 문구표, #2570).
+    effect: str = ""
+
+
+class TrainerRoutineDaysOut(BaseModel):
+    """`GET /trainer/clients/{id}/routine-days` — 날짜별 개인운동 이행. (#2508)"""
+
+    #: 읽은 기간(양끝 포함). 걸린 적이 없으면 둘 다 null 이고 목록이 빈다.
+    start: _date | None = None
+    end: _date | None = None
+    routines: list[TrainerRoutineDayRoutineOut] = Field(default_factory=list)
+    days: list[TrainerRoutineDayOut] = Field(default_factory=list)
 
 
 class ScheduleProgramSendRequest(BaseModel):
@@ -1557,6 +1807,10 @@ class ScheduleRecurringPreviewOut(BaseModel):
     dates: list[str]
     #: 그 자리에 이미 있는 세션. 비어 있지 않으면 생성은 409 로 막힌다.
     conflicts: list[ScheduleSessionOut]
+    #: 같은 `client_request_id` 로 이미 만들어진 시리즈가 있다(응답만 잃은 재시도).
+    #: 그 회차는 `conflicts` 에서 빠진다 — 같은 키로 만들기를 다시 부르면 그
+    #: 회차들을 그대로 돌려받는다. (#3102)
+    already_created: bool = False
 
 
 class ProgramScheduleRequest(BaseModel):
@@ -1590,6 +1844,11 @@ class ProgramScheduleRequest(BaseModel):
     #: 두기만 한다. 비어 있어도 받는다: 개인운동 단계가 생기기 전에 만들어진
     #: 초안과 옛 앱이 그대로 보낼 수 있어야 한다.
     personal_routines: list[PersonalRoutineItem] = Field(
+        default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
+    )
+    #: [personal_routines] 를 채운 대기 중 AI 제안 id(#2747). 일정 등록과 같은
+    #: 트랜잭션에서 닫는다 — [ProgramAssignRequest.suggestion_ids] 와 같은 규약.
+    suggestion_ids: list[_SuggestionId] = Field(
         default_factory=list, max_length=_MAX_PERSONAL_ROUTINES
     )
 
@@ -1658,11 +1917,21 @@ class ScheduleReopenRequest(BaseModel):
     자리이기 때문이다.
     """
     date: str
+    #: 옮길 시각·길이(#2757). 주면 겹침 검사와 반영을 되돌리기 한 요청 안에서
+    #: 끝낸다 — 따로 보내면 되돌린 뒤의 수정이 겹침으로 멈춰도 되돌리기는 이미
+    #: 커밋돼 있다. 없으면 지금 값을 쓴다.
+    time: str | None = Field(default=None, max_length=10)
+    duration_minutes: int | None = Field(default=None, ge=0, le=600)
 
     @field_validator("date")
     @classmethod
     def _v_date(cls, v: str) -> str:
         return _validate_ymd(v)
+
+    @field_validator("time")
+    @classmethod
+    def _v_time(cls, v: str | None) -> str | None:
+        return _validate_hhmm(v) if v is not None else v
 
 
 class ScheduleCancelRequest(BaseModel):
@@ -1801,36 +2070,6 @@ class TrainerKakaoGymSelect(BaseModel):
     name: str = Field(min_length=1, max_length=200)
 
 
-# ---- 트레이너용 AI 코칭 (회원 데이터 기반) ----
-
-class ClientCoachRequest(BaseModel):
-    """트레이너가 담당 고객에 대해 AI에게 묻는 질문."""
-    message: str = Field(min_length=1, max_length=1000)
-
-
-class ClientCoachMessageOut(BaseModel):
-    """복원된 문답 한 줄 (#588).
-
-    `role` 은 저장값을 그대로 쓴다(user|coach). 회원 앱의 채팅 계약과 같은 값이라
-    프론트가 두 화면에서 같은 분기를 쓸 수 있다.
-    """
-    role: str
-    content: str
-    sources: list[str] = Field(default_factory=list)
-
-
-class ClientCoachOut(BaseModel):
-    """AI 답변 + 근거.
-
-    회원 앱의 `/ai-coach/chat` 과 같은 RAG 파이프라인이지만, 검색 스코프가
-    **호출한 트레이너가 아니라 담당 회원**이라는 점이 다르다 — 트레이너가
-    자기 자신의(비어 있는) 기록으로 코칭받는 일이 없도록.
-    """
-    member_id: str
-    reply: str
-    sources: list[str] = []
-
-
 # ---- 주간 리포트 (트레이너 → 회원) ----
 
 class WeeklyReportDayOut(BaseModel):
@@ -1839,10 +2078,22 @@ class WeeklyReportDayOut(BaseModel):
     이행률만으로는 67% 가 어디서 나온 값인지 화면에서 알 수 없다. 배정된
     운동과 건너뛴 운동을 함께 내려 주면 분모·분자가 드러난다(#754).
     """
-    completion: int              # 0..100 (0 = 그날 기록 없음)
+    #: 0..100 — 그날 걸린 개인운동·잡힌 PT 중 한 비율(#2513). 아무것도 걸리지
+    #: 않은 날과 아직 오지 않은 날은 null 이다(0 은 "하나도 안 했다").
+    completion: int | None = None
     #: 운동 이름. 끝의 '✓'/'✗' 는 수행 여부를 나타내는 저장 규칙이며 화면은
     #: 그 표시를 읽어 아이콘으로 바꿔 그린다(운동 기록 탭과 같은 규칙).
     exercises: list[str] = Field(default_factory=list)
+    #: 그날 회원 목록에 걸려 있던 추천 개인운동 수 — 개인운동 칸의 분모다(#2772).
+    #: 추천 개인운동은 매일 리셋되는 목록이라 그날 걸려 있던 배정을 센다
+    #: (#2161). 배정이 없던 날과 아직 오지 않은 날은 null 이다 — 0 은 쉬는
+    #: 날과 구분되지 않아 쓰지 않고, null 이면 화면이 실제로 한 운동 수로
+    #: 되돌아간다(#2232, 데모와 같은 규칙).
+    assigned: int | None = None
+    #: 그중 그날 완료한 수 — [assigned] 의 짝인 분자다(#3115). `exercises` 는
+    #: 직접 기록·PT 기록까지 담아 개인운동 완료 수로 쓸 수 없다. [assigned] 가
+    #: null 인 날은 이것도 null 이다.
+    assigned_done: int | None = None
 
 
 class WeeklyReportOut(BaseModel):
@@ -1858,7 +2109,7 @@ class WeeklyReportOut(BaseModel):
     sodium_avg: int | None
     #: 그 주(월→일)의 요일별 값. 로스터의 같은 이름 필드는 **이번 주** 것이라
     #: 과거 주 화면에 쓸 수 없다 — 리포트는 자기 주의 계열을 직접 들고 온다(#752).
-    week_completion: list[int] = Field(default_factory=list)
+    week_completion: list[int | None] = Field(default_factory=list)
     sodium_week: list[int] = Field(default_factory=list)
     calories_week: list[int] = Field(default_factory=list)
     sugar_week: list[float] = Field(default_factory=list)
@@ -1868,6 +2119,11 @@ class WeeklyReportOut(BaseModel):
     carbs_week: list[float] = Field(default_factory=list)
     protein_week: list[float] = Field(default_factory=list)
     fat_week: list[float] = Field(default_factory=list)
+    #: 그 주(월→일)의 요일별 끼니 기록 수 — 그날 `DietEntry` 수다(#2772).
+    #: 칼로리가 답하지 못하는 값이다 — 0kcal 인 날은 안 먹은 날이 아니라 안
+    #: 적은 날이다(#2232). 기록 없는 날과 아직 오지 않은 날은 0 이고, 아직
+    #: 오지 않은 날을 `–` 로 그리는 것은 화면 규칙이다.
+    meal_counts: list[int] = Field(default_factory=list)
     #: 그 회원의 하루 목표. 건강 프로필에 적혀 있으면 그 값, 없으면 null 이다
     #: (#1430). 주의사항 판정이 고정 상수보다 이 값을 먼저 쓴다 — 같은 1,900kcal
     #: 이 어떤 회원에게는 부족이고 어떤 회원에게는 초과다. 근거 문장도 어느
@@ -1877,17 +2133,33 @@ class WeeklyReportOut(BaseModel):
     sugar_target: float | None = None
     carbs_target: float | None = None
     protein_target: float | None = None
+    #: 개인 단백질 목표가 없어도 채워지는 실효 목표(#2898) — 식단 분석과 같은
+    #: 규칙(개인 목표 → 체중 × 1.2g → 60g). 리포트 막대 분모가 이 값이다.
+    #: `protein_target` 은 '이 회원의 목표'와 기본값을 가르려고 그대로 둔다.
+    effective_protein_target: float | None = None
     fat_target: float | None = None
     #: 월→일 7칸. 이행률과 함께 그날의 운동 내역을 담는다(#754).
     days: list[WeeklyReportDayOut] = Field(default_factory=list)
+    #: 칼로리 `평소` — 직전 4주(28일)에 기록한 날의 하루 평균 kcal(#2863).
+    #: 편집기가 이번 주 칼로리를 견주는 기준이다. 예전에는 앱이 직전 4주
+    #: 리포트·회원 피드백을 통째로 다시 불러 계산했다. 기록이 없으면 null.
+    calorie_baseline: float | None = None
     message: str                 # 회원에게 전송될 본문(미리보기와 동일)
+
+
+#: 리포트 요약 headline 의 응답 상한(#3090). 회원 이름(최대 100자)이 들어간 규칙 기반
+#: 영어 문장까지 넉넉히 담는다. AI 문장은 이보다 짧은 선에서 먼저 걸러진다.
+REPORT_HEADLINE_MAX = 400
 
 
 class ReportSummaryOut(BaseModel):
     """리포트 요약 — 트레이너가 피드백 초안으로 가져다 고칠 재료."""
     member_id: str
     week_start: str              # YYYY-MM-DD (월요일)
-    headline: str                # 이번 주를 한 문장으로
+    #: 이번 주를 한 문장으로. AI 문장은 200자를 넘으면 규칙 기반으로 바뀐다
+    #: (`trainer_report_summary_service.HEADLINE_MAX`, #3090). 이 상한은 회원 이름이
+    #: 들어가는 규칙 기반 문장까지 담는 바깥 계약이다.
+    headline: str = Field(max_length=REPORT_HEADLINE_MAX)
     #: 근거가 된 수치 문장. 리포트 화면이 이미 보여 주는 값만 담는다 — 요약과
     #: 그래프가 다른 값을 말하면 트레이너가 어느 쪽을 믿어야 할지 모른다.
     points: list[str] = Field(default_factory=list)
@@ -1998,6 +2270,26 @@ class ReportSendOut(BaseModel):
     send_count: int = Field(ge=1)
 
 
+class ReportQueueItemOut(BaseModel):
+    """리포트 작업대 한 줄의 수치 — 담당 회원 한 명의 그 주. (#2863)
+
+    작업대가 줄 순서와 신호를 세우는 데 쓰는 값만 싣는다. 같은 회원의
+    `WeeklyReportOut` 과 **같은 규칙·같은 값**이다(`sessions_*`·`completion_avg`·
+    `week_completion`). 식단·회원 피드백은 편집기를 열 때 리포트가 따로 준다.
+    """
+    member_id: str
+    sessions_booked: int
+    sessions_done: int
+    completion_avg: int | None   # 기록이 없으면 null (0% 아님)
+    week_completion: list[int | None] = Field(default_factory=list)
+
+
+class ReportQueueOut(BaseModel):
+    """그 주 리포트 작업대 — 열람할 수 있는 담당 회원 전원의 요약. (#2863)"""
+    week_start: str              # YYYY-MM-DD (월요일)
+    items: list[ReportQueueItemOut] = Field(default_factory=list)
+
+
 class ReportSendsOut(BaseModel):
     """그 주에 리포트가 나간 담당 회원들. 보낸 적이 없으면 빈 목록이다. (#2288)"""
     week_start: str              # YYYY-MM-DD (월요일)
@@ -2066,8 +2358,11 @@ class TrainerNotificationOut(BaseModel):
     """트레이너 알림함 항목. (#503)
 
     `category` 는 회원 알림의 집합(reminder|health_check|achievement|system)이 아니라
-    트레이너 전용 값이다 — `message`|`consultation`|`reservation`. 한 테이블을
-    공유하지만 읽는 화면과 이동할 곳이 다르다.
+    트레이너 전용 값이다 — `message`|`consultation`|`reservation`|`health_goal`|
+    `member_name`|`member_left`|`consult_withdrawn`|`invite_accepted`|
+    `invite_rejected`|`weekly_feedback`(#3026, 회원 주간 피드백 → 그 회원 메모 창
+    '피드백' 탭, `subject_id`·`target_date`=주 시작). 한 테이블을 공유하지만 읽는
+    화면과 이동할 곳이 다르다.
     """
 
     id: str
@@ -2129,6 +2424,25 @@ class TrainerTaskProgressSave(BaseModel):
         if self.completed_today + self.completed_carried_over > self.total:
             raise ValueError("완료 수는 전체 할 일 수보다 많을 수 없습니다.")
         return self
+
+
+class TrainerTaskKeyChange(BaseModel):
+    """할 일 키 하나의 변경 — 그날 행에 이 키만 더하거나 뺀다. (#2886)
+
+    통째 저장(`TrainerTaskProgressSave`)은 나중에 도착한 쪽이 그날 전체를 덮어써,
+    탭·기기 두 곳에서 서로 다른 할 일을 체크하면 한쪽 체크가 사라졌다. 이 요청은
+    누른 키 하나만 바꾸고 합계는 서버가 저장된 집합에서 다시 낸다.
+
+    - `keys`: 화면이 지금 보여 주는 미션 키(지운 것 제외). 처음 보는 미션을 그날
+      목록에 올린다.
+    - `seen`: 이 화면이 그날 한 번이라도 본 미션 키. 저장된 키 중 여기 있으면서
+      `keys` 에 없는 것은 화면에서 사라진 미션(처리한 상담 등)이라 목록에서 뺀다.
+      여기 없는 저장 키는 이 화면이 모르는 미션이라 그대로 둔다(#2763).
+    """
+    key: _TaskKey
+    action: Literal["check", "uncheck", "dismiss"]
+    keys: list[_TaskKey] = Field(default_factory=list, max_length=1000)
+    seen: list[_TaskKey] = Field(default_factory=list, max_length=1000)
 
 
 class TrainerNotificationSettings(BaseModel):

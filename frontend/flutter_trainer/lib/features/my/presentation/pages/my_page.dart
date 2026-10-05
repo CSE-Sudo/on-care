@@ -5,21 +5,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_core/licenses.dart';
 import 'package:oncare_kakao_map/oncare_kakao_map.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
 // Session은 앱 전역 상태라 예외적으로 auth feature 의 provider 를 직접
-// 사용한다 (라우터의 인증 게이트와 동일한 소비자). TODO: 실 백엔드
-// 도입 시 세션 계층을 core/session 으로 승격해 이 의존을 정리한다.
+// 사용한다 (라우터의 인증 게이트와 동일한 소비자).
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/core/utils/keep_words.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/core/web/current_position.dart';
 import 'package:oncare_trainer/core/web/leave_guard.dart';
+import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_card.dart';
@@ -155,6 +156,7 @@ class _MyPageState extends ConsumerState<MyPage> {
     if (want == _leaveGuarded) return;
     _leaveGuarded = want;
     setLeaveGuard(
+      this,
       want
           ? () => mounted && _section == _MySection.edit && !_saving && _isDirty
           : null,
@@ -163,7 +165,7 @@ class _MyPageState extends ConsumerState<MyPage> {
 
   @override
   void dispose() {
-    if (_leaveGuarded) setLeaveGuard(null);
+    if (_leaveGuarded) setLeaveGuard(this, null);
     for (final c in _fields.values) {
       c.dispose();
     }
@@ -295,7 +297,7 @@ class _MyPageState extends ConsumerState<MyPage> {
           ? l.myGymChangeFailed
           : '${l.myGymChangeFailed} $localizedDetail';
     }
-    return serverDetailOr(l, detail, l.myProfileSaveFailed);
+    return appErrorMessage(l, error, fallback: l.myProfileSaveFailed);
   }
 
   void _applySavedProfile(TrainerProfile saved) {
@@ -335,7 +337,8 @@ class _MyPageState extends ConsumerState<MyPage> {
       destructive: true,
     );
     if (!ok || !mounted) return;
-    // The router's auth gate redirects to the login screen.
+    // The router's auth gate redirects to the login screen — 직접 로그아웃이라
+    // 지금 자리(`?from=`)를 싣지 않는다(#2765).
     await ref.read(sessionControllerProvider.notifier).signOut();
   }
 
@@ -355,7 +358,6 @@ class _MyPageState extends ConsumerState<MyPage> {
     try {
       await ref.read(clientRepositoryProvider).removeClient(client.id);
       ref.invalidate(clientsProvider);
-      ref.invalidate(managedClientsProvider);
       invalidateClientVisibilityDependentViews(ref);
       if (!mounted) return;
       showAppToast(context, l.myClientRemoveSuccess);
@@ -367,36 +369,27 @@ class _MyPageState extends ConsumerState<MyPage> {
     }
   }
 
-  /// 계정 탈퇴. 이름 확인을 받은 뒤에만 나가고, 성공하면 로그아웃과 같은 경로로
-  /// 로그인 화면에 도달한다(라우터의 인증 게이트). (#505)
+  /// 계정 탈퇴. 확인창이 본인 확인(#3039)과 탈퇴 요청까지 맡고, 성공해야 닫힌다.
+  /// 그 뒤에는 로그아웃과 같은 경로로 로그인 화면에 도달한다(라우터의 인증
+  /// 게이트). (#505)
+  ///
+  /// 본인 확인이 거절되면(400) 확인창 안에 알리고 세션은 그대로 둔다 — 토큰은
+  /// 아직 유효하다.
   Future<void> _deleteAccount() async {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final confirmed = await showAppDialog<bool>(
+    final bool? deleted = await showAppDialog<bool>(
       context: context,
-      builder: (_) => _DeleteAccountDialog(name: _profile.name),
+      builder: (_) => _DeleteAccountDialog(
+        hasPassword: _profile.hasPassword,
+        reasons: <String>[
+          for (final _WithdrawReason r in _WithdrawReason.values)
+            if (_withdrawReasons.contains(r)) r.code,
+        ],
+      ),
     );
-    if (confirmed != true || !mounted) return;
-
-    try {
-      await ref
-          .read(trainerAccountRepositoryProvider)
-          .deleteAccount(
-            reasons: <String>[
-              for (final _WithdrawReason r in _WithdrawReason.values)
-                if (_withdrawReasons.contains(r)) r.code,
-            ],
-          );
-    } on AppError catch (e) {
-      if (!mounted) return;
-      showAppToast(
-        context,
-        serverDetailOr(l, e.message, l.myDeleteFailed),
-        type: AppToastType.error,
-      );
-      return;
-    }
+    if (deleted != true || !mounted) return;
     // 계정이 사라졌으므로 남은 토큰은 무효다 — 세션을 비워 인증 게이트가
-    // 로그인 화면으로 돌려보내게 한다.
+    // 로그인 화면으로 돌려보내게 한다. 탈퇴 화면 주소를 다음 사람이 이어 받지
+    // 않도록 `?from=` 없이 간다(#2765).
     await ref.read(sessionControllerProvider.notifier).signOut();
   }
 
@@ -780,9 +773,14 @@ class _MyPageState extends ConsumerState<MyPage> {
   /// 상담·예약·담당 회원 소식은 서버에 설정 칸이 생기기 전에는 값이 `null` 이라
   /// 스위치를 막고 그렇다고 말한다 — 눌러도 서버가 켜짐으로 되돌려 보내면
   /// 저장된 것처럼 보이다가 조용히 되돌아간다.
+  ///
+  /// 서버 값을 받기 전·받지 못했을 때는 모든 스위치를 끔으로 막고, 맨 위 줄에
+  /// 불러오는 중 또는 실패와 다시 시도를 둔다(#2883). 기본값(켬)을 보여 주면
+  /// 꺼 둔 알림이 켜진 것처럼 보이고, 그 상태로 누르면 서버 값을 덮어썼다.
   Widget _notificationCard() {
     final AppLocalizations l = AppLocalizations.of(context);
-    final settings = ref.watch(trainerSettingsProvider);
+    final AsyncValue<TrainerSettings> load = ref.watch(trainerSettingsProvider);
+    final TrainerSettings? settings = load.valueOrNull;
     final controller = ref.read(trainerSettingsProvider.notifier);
     Widget row({
       required String key,
@@ -791,10 +789,11 @@ class _MyPageState extends ConsumerState<MyPage> {
       required bool? value,
       required Future<void> Function(bool) onChanged,
     }) {
-      final bool ready = value != null;
+      final bool loaded = settings != null;
+      final bool ready = loaded && value != null;
       return AppListRow(
         title: title,
-        subtitle: ready ? hint : l.myNotifNotReady,
+        subtitle: !loaded || value != null ? hint : l.myNotifNotReady,
         // 스위치에 이름을 붙인다 — 제목과 따로 읽히면 음성 안내에는
         // 정체 불명의 `switch, on` 만 남는다(회원 앱 #1942).
         trailing: Semantics(
@@ -802,7 +801,7 @@ class _MyPageState extends ConsumerState<MyPage> {
           excludeSemantics: true,
           child: Switch(
             key: ValueKey<String>('my-notif-$key'),
-            value: value ?? true,
+            value: loaded && (value ?? true),
             onChanged: ready ? (v) => _applySetting(() => onChanged(v)) : null,
           ),
         ),
@@ -811,32 +810,51 @@ class _MyPageState extends ConsumerState<MyPage> {
 
     return _SettingsCard(
       rows: <Widget>[
+        if (load.hasError && settings == null)
+          AppListRow(
+            key: const ValueKey<String>('my-notif-load-failed'),
+            title: l.myNotifLoadFailed,
+            trailing: AppButton(
+              key: const ValueKey<String>('my-notif-retry'),
+              label: l.actionRetry,
+              leadingIcon: AppIcons.refresh,
+              variant: AppButtonVariant.secondary,
+              size: OnCareButtonSize.small,
+              onPressed: controller.reload,
+            ),
+          )
+        else if (settings == null)
+          AppListRow(
+            key: const ValueKey<String>('my-notif-loading'),
+            title: l.myNotifLoading,
+            trailing: const AppLoading.inline(),
+          ),
         row(
           key: 'new-message',
           title: l.myNotifNewMessage,
           hint: l.myNotifNewMessageHint,
-          value: settings.newMessageAlerts,
+          value: settings?.newMessageAlerts,
           onChanged: controller.setNewMessageAlerts,
         ),
         row(
           key: 'consultation',
           title: l.myNotifConsultation,
           hint: l.myNotifConsultationHint,
-          value: settings.consultationAlerts,
+          value: settings?.consultationAlerts,
           onChanged: controller.setConsultationAlerts,
         ),
         row(
           key: 'reservation',
           title: l.myNotifReservation,
           hint: l.myNotifReservationHint,
-          value: settings.reservationAlerts,
+          value: settings?.reservationAlerts,
           onChanged: controller.setReservationAlerts,
         ),
         row(
           key: 'member-updates',
           title: l.myNotifMemberUpdates,
           hint: l.myNotifMemberUpdatesHint,
-          value: settings.memberUpdateAlerts,
+          value: settings?.memberUpdateAlerts,
           onChanged: controller.setMemberUpdateAlerts,
         ),
       ],
@@ -961,6 +979,17 @@ class _MyPageState extends ConsumerState<MyPage> {
             label: l.myLegalPrivacyTitle,
             onTap: () =>
                 context.push(AppRoutes.legalDocument(AppRoutes.legalPrivacy)),
+          ),
+          // 오픈소스 라이선스(#3150) — 회원 앱 고객 지원과 같은 자리·같은 화면.
+          _SupportRow(
+            key: const ValueKey<String>('support-licenses'),
+            icon: AppIcons.info,
+            label: l.myOpenSourceLicensesTitle,
+            onTap: () => showOnCareLicenses(
+              context,
+              applicationName: l.myAppName,
+              applicationVersion: ref.read(appVersionProvider).valueOrNull,
+            ),
           ),
           // 탈퇴는 약관·개인정보 다음, 따로 여는 화면이다(회원 앱 #2019). 데모
           // 빌드에는 지울 계정이 없어 막고 그 이유를 말한다.
@@ -1208,49 +1237,152 @@ class _WithdrawKeepItem extends StatelessWidget {
   }
 }
 
-/// 탈퇴 확인 — 트레이너 이름을 그대로 입력해야 진행된다.
-class _DeleteAccountDialog extends StatefulWidget {
-  const _DeleteAccountDialog({required this.name});
+/// 탈퇴 확인 — 본인 확인을 받아야 진행된다(#3039).
+///
+/// 비밀번호 계정은 현재 비밀번호를, 소셜로만 가입한 계정([hasPassword] false)은
+/// 소셜 계정 재로그인을 받는다. 예전에는 화면에 보이는 이름을 그대로 치게 했는데,
+/// 남의 세션을 쥔 사람도 칠 수 있는 값이라 확인이 되지 않았다.
+///
+/// 탈퇴 요청도 이 창이 보낸다 — 틀린 비밀번호를 창 안에서 바로 고칠 수 있게.
+/// 성공하면 `true` 로 닫힌다.
+class _DeleteAccountDialog extends ConsumerStatefulWidget {
+  const _DeleteAccountDialog({
+    required this.hasPassword,
+    required this.reasons,
+  });
 
-  final String name;
+  final bool hasPassword;
+
+  /// 탈퇴 화면에서 고른 사유 코드(#2264).
+  final List<String> reasons;
 
   @override
-  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+  ConsumerState<_DeleteAccountDialog> createState() =>
+      _DeleteAccountDialogState();
 }
 
-class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
-  final TextEditingController _input = TextEditingController();
-  bool _matches = false;
+class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
+  final TextEditingController _password = TextEditingController();
+  bool _busy = false;
+  String? _error;
 
-  @override
-  void initState() {
-    super.initState();
-    _input.addListener(() {
-      final next = _input.text.trim() == widget.name.trim();
-      if (next != _matches) setState(() => _matches = next);
-    });
-  }
+  /// 소셜 재로그인으로 받은 확인 값. 받기 전에는 탈퇴 버튼이 꺼져 있다.
+  SocialReauth? _social;
 
   @override
   void dispose() {
-    _input.dispose();
+    _password.dispose();
     super.dispose();
+  }
+
+  TrainerReauth? get _reauth => widget.hasPassword
+      ? (_password.text.isEmpty ? null : PasswordReauth(_password.text))
+      : _social;
+
+  void _onPasswordEdited(String _) {
+    // 버튼의 켜짐이 입력마다 바뀐다. 오류는 고치기 시작하면 지운다.
+    setState(() => _error = null);
+  }
+
+  /// 소셜 계정으로 다시 로그인해 확인 토큰을 받는다 — 로그인 화면의 소셜
+  /// 로그인과 같은 경로다([SessionController.socialProviderToken]). 세션은
+  /// 바꾸지 않는다.
+  Future<void> _reauthWithSocial(String provider) async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final String token = await ref
+          .read(sessionControllerProvider.notifier)
+          .socialProviderToken(provider);
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _social = token.isEmpty
+            ? null
+            : SocialReauth(provider: provider, token: token);
+        if (token.isEmpty) {
+          _error = AppLocalizations.of(context).myDeleteReauthSocialFailed;
+        }
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _social = null;
+        _error = AppLocalizations.of(context).myDeleteReauthSocialFailed;
+      });
+    }
+  }
+
+  Future<void> _submit() async {
+    final TrainerReauth? reauth = _reauth;
+    if (_busy || reauth == null) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final NavigatorState navigator = Navigator.of(context);
+    try {
+      await ref
+          .read(trainerAccountRepositoryProvider)
+          .deleteAccount(reauth: reauth, reasons: widget.reasons);
+    } on ReauthRejected catch (e) {
+      if (!mounted) return;
+      final AppLocalizations l = AppLocalizations.of(context);
+      setState(() {
+        _busy = false;
+        // 소셜 확인은 한 번 쓰면 다시 받아야 한다 — 실패한 토큰을 들고 있지 않는다.
+        if (reauth is SocialReauth) _social = null;
+        _error = switch (e.reason) {
+          ReauthFailure.required =>
+            widget.hasPassword
+                ? l.myPwCurrentRequired
+                : l.myDeleteReauthSocialFailed,
+          ReauthFailure.invalidPassword => l.myDeleteReauthWrongPassword,
+          ReauthFailure.invalidSocial => l.myDeleteReauthSocialFailed,
+        };
+      });
+      return;
+    } on AppError catch (e) {
+      if (!mounted) return;
+      final AppLocalizations l = AppLocalizations.of(context);
+      setState(() {
+        _busy = false;
+        _error = appErrorMessage(l, e, fallback: l.myDeleteFailed);
+      });
+      return;
+    } on Object {
+      if (!mounted) return;
+      final AppLocalizations l = AppLocalizations.of(context);
+      setState(() {
+        _busy = false;
+        _error = l.myDeleteFailed;
+      });
+      return;
+    }
+    if (!mounted) return;
+    navigator.pop(true);
   }
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     return AppDialog(
       title: l.myDeleteTitle,
       showClose: false,
       footer: AppButtonPair(
         cancelLabel: l.actionCancel,
-        onCancel: () => Navigator.of(context).pop(false),
+        onCancel: _busy ? null : () => Navigator.of(context).pop(false),
         confirmKey: const ValueKey<String>('delete-account-submit'),
         confirmLabel: l.myDeleteAction,
+        confirmLoading: _busy,
         destructive: true,
-        // 이름이 맞아야 눌린다 — 확인 절차가 형식만 남지 않도록.
-        onConfirm: _matches ? () => Navigator.of(context).pop(true) : null,
+        // 본인 확인 값이 있어야 눌린다 — 확인 절차가 형식만 남지 않도록.
+        onConfirm: _reauth == null || _busy ? null : _submit,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1258,12 +1390,73 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
         children: <Widget>[
           Text(l.myDeleteBody),
           const SizedBox(height: OnCareSpacing.s16),
-          AppTextField(
-            key: const ValueKey<String>('delete-account-confirm'),
-            label: l.myDeleteConfirmPrompt(widget.name),
-            controller: _input,
-            autofocus: true,
-          ),
+          if (widget.hasPassword)
+            // 같은 화면 비밀번호 변경 창의 현재 비밀번호 칸과 같은 부품이다.
+            AppTextField(
+              key: const ValueKey<String>('delete-account-password'),
+              controller: _password,
+              label: l.myDeleteReauthPrompt,
+              obscureText: true,
+              autofocus: true,
+              enabled: !_busy,
+              errorText: _error,
+              autofillHints: const <String>[AutofillHints.password],
+              onChanged: _onPasswordEdited,
+              onSubmitted: (_) => _submit(),
+            )
+          else ...<Widget>[
+            Text(
+              l.myDeleteReauthSocialPrompt,
+              style: tokens
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textSecondary),
+            ),
+            const SizedBox(height: OnCareSpacing.s12),
+            Text(
+              l.myDeleteReauthSocialAction,
+              key: const ValueKey<String>('delete-account-social'),
+              textAlign: TextAlign.center,
+              style: tokens
+                  .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                  .copyWith(color: OnCareColors.textPrimary),
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            // 로그인 화면과 같은 소셜 버튼이다(#1783).
+            AppSocialLoginRow(
+              children: <Widget>[
+                AppSocialLoginButton(
+                  key: const ValueKey<String>('delete-account-reauth-kakao'),
+                  provider: AppSocialProvider.kakao,
+                  label: l.myDeleteReauthKakao,
+                  onPressed: _busy ? null : () => _reauthWithSocial('kakao'),
+                ),
+                AppSocialLoginButton(
+                  key: const ValueKey<String>('delete-account-reauth-google'),
+                  provider: AppSocialProvider.google,
+                  label: l.myDeleteReauthGoogle,
+                  onPressed: _busy ? null : () => _reauthWithSocial('google'),
+                ),
+              ],
+            ),
+            if (_social != null) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s12),
+              AppBanner(
+                key: const ValueKey<String>('delete-account-social-done'),
+                tone: AppBannerTone.success,
+                title: l.myDeleteReauthSocialDone,
+                density: AppBannerDensity.compact,
+              ),
+            ],
+            if (_error != null) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s12),
+              AppBanner(
+                key: const ValueKey<String>('delete-account-error'),
+                tone: AppBannerTone.danger,
+                title: _error!,
+                density: AppBannerDensity.compact,
+              ),
+            ],
+          ],
         ],
       ),
     );
@@ -1747,7 +1940,7 @@ class _CertsEditor extends StatelessWidget {
                 // 아이콘 하나뿐인 버튼이라 무엇을 지우는지 툴팁이 접근성
                 // 이름으로 말한다(#972).
                 AppIconButton(
-                  icon: AppIcons.close,
+                  icon: AppIcons.delete,
                   tooltip: l.a11yRemoveCertification,
                   color: OnCareColors.textTertiary,
                   onPressed: () => onRemove(i),
@@ -2372,10 +2565,16 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
       _errorField = null;
     });
     final navigator = Navigator.of(context);
+    final SessionController session = ref.read(
+      sessionControllerProvider.notifier,
+    );
     try {
-      await ref
+      final TrainerAuthTokens? reissued = await ref
           .read(trainerAccountRepositoryProvider)
           .changePassword(currentPassword: current, newPassword: next);
+      // 서버는 변경 전에 발급한 토큰을 모두 끊는다 — 이 기기는 응답의 새 토큰으로
+      // 이어 쓴다(#2766). 다른 기기는 다음 요청 때 로그인 화면으로 간다.
+      if (reissued != null) await session.adoptReissuedTokens(reissued);
     } on NewPasswordRejected catch (e) {
       // 새 비밀번호가 서버 기준에 걸렸다 — 새 비밀번호 칸 아래에 이 앱의 문구로.
       if (mounted) {
@@ -2396,7 +2595,7 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
         final AppLocalizations l = AppLocalizations.of(context);
         _fail(
           _PasswordField.current,
-          serverDetailOr(l, e.message, l.myPwChangeFailed),
+          appErrorMessage(l, e, fallback: l.myPwChangeFailed),
         );
       }
       return;

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/utils/server_message.dart';
+import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/client_feedback_section.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/exercise_memo.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/nutrition_summary_card.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -37,19 +38,19 @@ Future<void> showClientProfileDialog(
   BuildContext context, {
   required String clientId,
   required String clientName,
-  String fallbackGender = '',
   int? ageYears,
   ClientProfileSection section = ClientProfileSection.health,
   bool openHealthNotes = false,
+  bool openFeedback = false,
 }) => showAppDialog<void>(
   context: context,
   builder: (_) => ClientProfileDialog(
     clientId: clientId,
     clientName: clientName,
-    fallbackGender: fallbackGender,
     ageYears: ageYears,
     section: section,
     openHealthNotes: openHealthNotes,
+    openFeedback: openFeedback,
   ),
 );
 
@@ -63,10 +64,10 @@ class ClientProfileDialog extends StatelessWidget {
     super.key,
     required this.clientId,
     required this.clientName,
-    this.fallbackGender = '',
     this.ageYears,
     this.section = ClientProfileSection.health,
     this.openHealthNotes = false,
+    this.openFeedback = false,
   });
 
   /// The client whose profile or memos are shown.
@@ -74,9 +75,6 @@ class ClientProfileDialog extends StatelessWidget {
 
   /// Named in the memo section heading.
   final String clientName;
-
-  /// 저장된 성별이 없을 때 열어 둘 값 — 로스터가 이미 말하고 있는 성별이다(#960).
-  final String fallbackGender;
 
   /// 회원 나이(만). 권장값 계산에만 쓴다(#2359). 서버가 준 값만 넘긴다 —
   /// 모르면 비워 두고, 권장값은 기본 기준에 건강 목표만 반영한다.
@@ -87,6 +85,9 @@ class ClientProfileDialog extends StatelessWidget {
 
   /// 신체·목표 창을 건강상태·주의사항이 있는 `건강 목표` 탭으로 연다(#2619).
   final bool openHealthNotes;
+
+  /// 메모 창을 회원과 주고받은 글이 있는 `피드백` 탭으로 연다(#3026).
+  final bool openFeedback;
 
   @override
   Widget build(BuildContext context) {
@@ -99,15 +100,20 @@ class ClientProfileDialog extends StatelessWidget {
       // 그린다(#2596).
       ClientProfileSection.health => _HealthProfileSection(
         clientId: clientId,
-        fallbackGender: fallbackGender,
         ageYears: ageYears,
         openHealthNotes: openHealthNotes,
       ),
       ClientProfileSection.memo => AppDialog(
         key: const ValueKey<String>('client-memo-dialog'),
-        title: l.clientTrainerMemo,
+        title: l.clientMemoDialogTitle,
         size: AppDialogSize.medium,
-        child: _MemoSection(clientId: clientId, clientName: clientName),
+        // 메모·피드백 탭을 오갈 때 창 높이가 바뀌지 않게 고정한다(#2955).
+        fixedHeight: true,
+        child: _MemoDialogBody(
+          clientId: clientId,
+          clientName: clientName,
+          openFeedback: openFeedback,
+        ),
       ),
     };
   }
@@ -123,13 +129,11 @@ class ClientProfileDialog extends StatelessWidget {
 class _HealthProfileSection extends ConsumerStatefulWidget {
   const _HealthProfileSection({
     required this.clientId,
-    this.fallbackGender = '',
     this.ageYears,
     this.openHealthNotes = false,
   });
 
   final String clientId;
-  final String fallbackGender;
   final int? ageYears;
   final bool openHealthNotes;
 
@@ -213,7 +217,10 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
     if (_initialized) return;
     _initialized = true;
     _base = profile;
-    _gender = profile.gender.isEmpty ? widget.fallbackGender : profile.gender;
+    // 서버 값 그대로 연다 — 비어 있으면 `미설정` 이다(#2745). 예전에는 로스터가
+    // 이름·id 로 추정한 성별로 채워, 몸무게만 고쳐 저장해도 그 추정값이 바뀐
+    // 칸으로 잡혀 회원 건강 프로필에 저장됐다. 권장값 계산도 추정 성별을 썼다.
+    _gender = profile.gender;
     _height.text = _displayNumber(profile.heightCm);
     _weight.text = _displayNumber(profile.weightKg);
     _focus = parseHealthFocus(profile.conditions);
@@ -284,9 +291,12 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
     };
     if (base == null) {
       return <String, Object?>{
-        ...all,
-        'conditions': mergeHealthFocus(_conditions.text, _focus),
-      };
+          ...all,
+          'conditions': mergeHealthFocus(_conditions.text, _focus),
+        }
+        // 기준 값을 모르면 고르지 않은 성별은 보내지 않는다 — 빈 값이 회원이
+        // 넣어 둔 성별을 지울 수 있다(#2745).
+        ..removeWhere((key, value) => key == 'gender' && value == '');
     }
     final Map<String, Object?> before = <String, Object?>{
       'gender': base.gender,
@@ -468,7 +478,8 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       l.memberHealthGoalProtein,
       AppGoalRanges.dailyProteinG,
       true,
-      hint: '$proteinTargetG',
+      // 비워 두면 식단 분석이 쓰는 실효 목표(#2898)다 — 체중이 있으면 체중 × 1.2g.
+      hint: '${_base?.effectiveDailyProteinG ?? proteinTargetG}',
     ),
     _NumberField(
       'client-goal-fat',
@@ -540,6 +551,13 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       _saving = true;
       _saved = false;
     });
+    // 저장 중 창을 닫아도 갱신은 마친다 — await 전에 앱의 컨테이너를 잡아 둔다
+    // (#3103). 사라진 위젯의 `ref` 는 `StateError` 를 던져 명단·그래프 목표선
+    // 갱신이 빠졌다.
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     try {
       final Map<String, Object?> changed = await _changedValues();
       if (changed.isEmpty) {
@@ -553,16 +571,16 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
         });
         return;
       }
-      final MemberHealthProfile saved = await ref
+      final MemberHealthProfile saved = await container
           .read(clientRepositoryProvider)
           .updateHealthProfile(widget.clientId, changed);
       _base = saved;
       // 저장한 값이 이 화면에도 바로 남는다 — 다음에 창을 열 때 서버에서 다시
       // 읽는다(#1449).
-      ref.invalidate(clientsProvider);
+      container.invalidate(clientsProvider);
       // 식단·운동 그래프의 목표선도 이 프로필을 본다(#2156) — 트레이너가 고친
       // 목표가 창을 닫자마자 그래프에 그어진다.
-      ref.invalidate(memberHealthProfileProvider(widget.clientId));
+      container.invalidate(memberHealthProfileProvider(widget.clientId));
       if (!mounted) return;
       // 저장한 값이 곧 보기 상태의 값이다(#2596).
       setState(() {
@@ -576,7 +594,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       final l = AppLocalizations.of(context);
       showAppToast(
         context,
-        serverDetailOr(l, error.message, l.memberHealthSaveFailed),
+        appErrorMessage(l, error, fallback: l.memberHealthSaveFailed),
         type: AppToastType.error,
       );
       setState(() => _saving = false);
@@ -610,6 +628,30 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       basis: base.basis,
       focus: _focus,
       weightKg: weight,
+    );
+  }
+
+  /// 제목·칸 이름 한 줄과 그 줄 끝의 회색 작은 글씨(#2942) — `마지막 변경` 기록이나
+  /// 메모 안내. [end] 가 없으면 제목만 그린다.
+  Widget _headedRow(Widget heading, String? end, Key endKey) {
+    if (end == null) return heading;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: <Widget>[
+        heading,
+        const SizedBox(width: OnCareSpacing.s8),
+        Expanded(
+          child: Text(
+            end,
+            key: endKey,
+            textAlign: TextAlign.end,
+            style: context.oncare
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
+        ),
+      ],
     );
   }
 
@@ -685,7 +727,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
             child: Text(
               name,
               style: tokens
-                  .text(OnCareTypography.bodySmall)
+                  .text(OnCareTypography.body)
                   .copyWith(color: OnCareColors.textPrimary),
             ),
           ),
@@ -697,7 +739,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
               child: Text(
                 unit,
                 style: tokens
-                    .text(OnCareTypography.caption)
+                    .text(OnCareTypography.bodySmall)
                     .copyWith(color: OnCareColors.textSecondary),
               ),
             ),
@@ -729,7 +771,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
           textAlign: TextAlign.end,
           style:
               OnCareTypography.numeric(
-                context.oncare.text(OnCareTypography.bodySmall),
+                context.oncare.text(OnCareTypography.body),
               ).copyWith(
                 color: text.isEmpty
                     ? OnCareColors.textTertiary
@@ -744,9 +786,13 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       context,
       name,
       AppTextField(
-        key: field.id.startsWith('client-goal-')
-            ? ValueKey<String>(field.id)
-            : null,
+        // 키·몸무게 칸도 이름을 단다 — 몸무게만 고친 저장이 다른 칸을 싣지
+        // 않는지 보는 자리다(#2745).
+        key: ValueKey<String>(
+          field.id.startsWith('client-goal-')
+              ? field.id
+              : 'client-body-${field.id}',
+        ),
         controller: field.controller,
         hint: field.hint,
         textAlign: TextAlign.end,
@@ -780,6 +826,8 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       key: const ValueKey<String>('client-profile-dialog'),
       title: l.clientProfileSectionTitle,
       size: AppDialogSize.medium,
+      // 신체·목표 탭을 오갈 때 창 높이가 바뀌지 않게 고정한다(#2955).
+      fixedHeight: true,
       trailing: _editing || !_profileLoaded
           ? null
           : AppIconButton(
@@ -802,9 +850,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
         if (snapshot.hasError) {
           final error = snapshot.error;
           return Text(
-            error is AppError
-                ? serverDetailOr(l, error.message, l.memberHealthLoadFailed)
-                : l.memberHealthLoadFailed,
+            appErrorMessage(l, error, fallback: l.memberHealthLoadFailed),
           );
         }
         if (!snapshot.hasData) {
@@ -818,6 +864,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
         final TextStyle groupStyle = tokens
             .text(OnCareTypography.titleSmall)
             .copyWith(color: OnCareColors.textPrimary);
+        final String locale = Localizations.localeOf(context).toString();
         // 흐린 숫자가 무엇인지 — 회원 앱 MY 의 각주와 같은 말이다(#2331).
         final Widget defaultHint = Text(
           l.clientGoalDefaultHint,
@@ -843,7 +890,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
                       ),
                       textAlign: TextAlign.end,
                       style: tokens
-                          .text(OnCareTypography.bodySmall)
+                          .text(OnCareTypography.body)
                           .copyWith(
                             color: _gender.isEmpty
                                 ? OnCareColors.textTertiary
@@ -887,7 +934,13 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
             number(1, l.clientBodyWeight, l.routineUnitKg),
           ],
           _HealthTab.focus => <Widget>[
-            Text(l.memberHealthFocus, style: groupStyle),
+            // 회원도 같은 목표를 고친다 — 누가 언제 바꿨는지 제목 줄 끝에
+            // 남긴다(#1832). 아래 주의사항과 같은 자리 규칙이다(#2942).
+            _headedRow(
+              Text(l.memberHealthFocus, style: groupStyle),
+              focusLastChangedLabel(l, profile, locale: locale),
+              const ValueKey<String>('client-focus-last-changed'),
+            ),
             const SizedBox(height: OnCareSpacing.s8),
             Wrap(
               spacing: OnCareSpacing.s8,
@@ -908,39 +961,46 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
                   ),
               ],
             ),
-            // 회원도 같은 목표를 고친다 — 누가 언제 바꿨는지 칩 아래에 남긴다(#1832).
-            if (focusLastChangedLabel(
-                  l,
-                  profile,
-                  locale: Localizations.localeOf(context).toString(),
-                )
-                case final String changed) ...<Widget>[
-              const SizedBox(height: OnCareSpacing.s8),
-              Text(
-                changed,
-                key: const ValueKey<String>('client-focus-last-changed'),
-                style: tokens
-                    .text(OnCareTypography.caption)
-                    .copyWith(color: OnCareColors.textTertiary),
-              ),
-            ],
             const SizedBox(height: OnCareSpacing.s8),
             // 목표 칩은 세지 않는다 — 서버도 칩을 뺀 글만 센다(#2618).
-            if (_editing)
+            //
+            // 이 글은 회원도 보고 고치는 공유 건강 정보다(#2619) — 트레이너만
+            // 볼 메모가 아니다. 쓰는 사람이 공개 범위를 알도록 칸 아래에
+            // 회원에게 보인다는 것과 AI 가 읽는다는 것을 밝힌다(#2518).
+            //
+            // 칸 이름 줄 끝은 보기 상태에서는 누가 언제 바꿨는지(#2942), 고치는
+            // 중에는 비공개 내용을 메모로 보내는 안내다 — 회색 줄이 글 아래에
+            // 겹겹이 쌓이지 않는다.
+            if (_editing) ...<Widget>[
+              _headedRow(
+                Text(
+                  l.memberHealthConditions,
+                  style: tokens
+                      .text(OnCareTypography.label)
+                      .copyWith(color: OnCareColors.textSecondary),
+                ),
+                l.memberHealthConditionsPrivateHint,
+                const ValueKey<String>('client-conditions-private-hint'),
+              ),
+              const SizedBox(height: OnCareSpacing.s8),
               AppTextField(
                 key: const ValueKey<String>('client-conditions-input'),
                 controller: _conditions,
-                label: l.memberHealthConditions,
+                helper: l.memberHealthConditionsShared,
                 maxLines: 2,
                 maxLength: AppTextLimits.entry,
                 showCounter: true,
-              )
-            else ...<Widget>[
-              Text(
-                l.memberHealthConditions,
-                style: tokens
-                    .text(OnCareTypography.caption)
-                    .copyWith(color: OnCareColors.textSecondary),
+              ),
+            ] else ...<Widget>[
+              _headedRow(
+                Text(
+                  l.memberHealthConditions,
+                  style: tokens
+                      .text(OnCareTypography.caption)
+                      .copyWith(color: OnCareColors.textSecondary),
+                ),
+                notesLastChangedLabel(l, profile, locale: locale),
+                const ValueKey<String>('client-conditions-last-changed'),
               ),
               const SizedBox(height: OnCareSpacing.s4),
               Text(
@@ -955,6 +1015,14 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
                           ? OnCareColors.textTertiary
                           : OnCareColors.textPrimary,
                     ),
+              ),
+              const SizedBox(height: OnCareSpacing.s4),
+              Text(
+                l.memberHealthConditionsShared,
+                key: const ValueKey<String>('client-conditions-shared'),
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textTertiary),
               ),
             ],
             // `회원 목표` 글 칸은 없앴다(#2330) — 목표는 위 칩으로 고른다. 글
@@ -1193,6 +1261,68 @@ class _NumberField {
   double get max => range.max.toDouble();
 }
 
+enum _MemoTab { memo, feedback }
+
+/// 메모 창 본문 — `메모 | 피드백` 두 탭. (#2615)
+///
+/// 메모는 트레이너만 보는 글이고, 피드백은 회원과 주고받은 글이다(#2574 용어
+/// 규칙). 헤더의 `메모` 버튼은 하나 그대로 두고 창 안에서 나눈다 — "이 회원에
+/// 대해 남긴 것" 을 찾는 자리가 둘로 갈라지지 않게.
+class _MemoDialogBody extends StatefulWidget {
+  const _MemoDialogBody({
+    required this.clientId,
+    required this.clientName,
+    this.openFeedback = false,
+  });
+
+  final String clientId;
+  final String clientName;
+  final bool openFeedback;
+
+  @override
+  State<_MemoDialogBody> createState() => _MemoDialogBodyState();
+}
+
+class _MemoDialogBodyState extends State<_MemoDialogBody> {
+  late _MemoTab _tab = widget.openFeedback ? _MemoTab.feedback : _MemoTab.memo;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        AppSegmentedToggle<_MemoTab>(
+          key: const ValueKey<String>('client-memo-tabs'),
+          expand: true,
+          // 신체·목표 창의 탭과 같은 thumb 모양(#2469).
+          style: AppSegmentedToggleStyle.thumb,
+          selected: _tab,
+          onChanged: (_MemoTab tab) => setState(() => _tab = tab),
+          segments: <AppSegment<_MemoTab>>[
+            AppSegment<_MemoTab>(
+              value: _MemoTab.memo,
+              label: l.clientMemoTabMemo,
+            ),
+            AppSegment<_MemoTab>(
+              value: _MemoTab.feedback,
+              label: l.clientMemoTabFeedback,
+            ),
+          ],
+        ),
+        const SizedBox(height: OnCareSpacing.s16),
+        switch (_tab) {
+          _MemoTab.memo => _MemoSection(
+            clientId: widget.clientId,
+            clientName: widget.clientName,
+          ),
+          _MemoTab.feedback => ClientFeedbackSection(clientId: widget.clientId),
+        },
+      ],
+    );
+  }
+}
+
 /// 메모 목록 — 예전 `ClientMemoDialog` 의 내용을 다이얼로그 밖으로 꺼낸 것이다.
 class _MemoSection extends ConsumerStatefulWidget {
   const _MemoSection({required this.clientId, required this.clientName});
@@ -1216,6 +1346,16 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
   /// 메모 검색어. 목록을 화면에서만 거른다 — 서버에 다시 묻지 않는다.
   final TextEditingController _query = TextEditingController();
 
+  /// 새 메모의 분류(#2622). 고르지 않으면 `직접 작성` 이다.
+  TrainerMemoCategory _category = TrainerMemoCategory.none;
+
+  /// `운동` 분류에서 이은 운동 기록. 고르면 운동 탭 카드에서 남긴 메모와
+  /// 같은 운동 기록 메모가 된다(#2622).
+  TrainerMemoRef? _record;
+
+  /// 수정 중인 직접 메모의 분류.
+  TrainerMemoCategory _editCategory = TrainerMemoCategory.none;
+
   @override
   void dispose() {
     _draft.dispose();
@@ -1236,7 +1376,11 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
       if (!mounted) return;
       setState(() => _busy = false);
       _toast(
-        serverDetailOr(AppLocalizations.of(context), error.message, fallback),
+        appErrorMessage(
+          AppLocalizations.of(context),
+          error,
+          fallback: fallback,
+        ),
       );
     } on Object {
       if (!mounted) return;
@@ -1253,18 +1397,38 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
     final body = _draft.text.trim();
     if (body.isEmpty) return;
     final l = AppLocalizations.of(context);
+    final TrainerMemoRef? record = _record;
     await _run(() async {
-      await ref
-          .read(trainerMemoRepositoryProvider)
-          .create(widget.clientId, body: body);
+      final TrainerMemoRepository repo = ref.read(
+        trainerMemoRepositoryProvider,
+      );
+      if (record != null) {
+        // 기록을 이으면 운동 탭 카드에서 남긴 메모와 같은 메모다 — 출처 태그도
+        // `PT 세션 · 9/30` 으로 같다. 서버가 그 기록에서 이름·날짜를 읽는다.
+        await repo.create(
+          widget.clientId,
+          body: body,
+          source: TrainerMemoSource.exerciseMemo,
+          ref: record,
+          category: TrainerMemoCategory.exercise,
+        );
+      } else {
+        await repo.create(widget.clientId, body: body, category: _category);
+      }
       _draft.clear();
+      _category = TrainerMemoCategory.none;
+      _record = null;
     }, l.clientTrainerMemoSaveFailed);
   }
 
   Future<void> _saveEdit(TrainerMemo memo) async {
     final body = _edit.text.trim();
     if (body.isEmpty) return;
-    if (body == memo.body) {
+    // 분류는 직접 쓴 메모만 바꾼다 — 다른 출처는 출처가 분류를 정한다.
+    final bool canRecategorize = memo.source == TrainerMemoSource.trainer;
+    final bool categoryChanged =
+        canRecategorize && _editCategory != memo.category;
+    if (body == memo.body && !categoryChanged) {
       setState(() => _editingId = null);
       return;
     }
@@ -1272,9 +1436,91 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
     await _run(() async {
       await ref
           .read(trainerMemoRepositoryProvider)
-          .update(widget.clientId, memo.id, body);
+          .update(
+            widget.clientId,
+            memo.id,
+            body,
+            category: categoryChanged ? _editCategory : null,
+          );
       _editingId = null;
     }, l.clientTrainerMemoSaveFailed);
+  }
+
+  /// 분류 칩 한 줄(#2622) — 하나만 고르고, 고른 칩을 다시 누르면 풀린다.
+  Widget _categoryChips({
+    required String keyPrefix,
+    required TrainerMemoCategory selected,
+    required ValueChanged<TrainerMemoCategory> onChanged,
+  }) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return Wrap(
+      spacing: OnCareSpacing.s8,
+      runSpacing: OnCareSpacing.s8,
+      children: <Widget>[
+        for (final TrainerMemoCategory category in TrainerMemoCategory.picks)
+          AppChoiceChip(
+            key: ValueKey<String>('$keyPrefix-${category.wire}'),
+            label: memoCategoryLabel(l, category),
+            selected: selected == category,
+            danger: category == TrainerMemoCategory.pain,
+            onSelected: _busy
+                ? null
+                : (bool on) =>
+                      onChanged(on ? category : TrainerMemoCategory.none),
+          ),
+      ],
+    );
+  }
+
+  /// `운동` 분류에서만 서는 운동 기록 연결(선택) — 최근 14일 기록에서 고른다.
+  Widget _recordPicker(AppLocalizations l) {
+    final AsyncValue<List<TrainerMemoRef>> options = ref.watch(
+      memoRecordOptionsProvider(widget.clientId),
+    );
+    // 목록을 못 읽어도 메모는 남길 수 있어야 한다 — 연결 칸만 비운다.
+    final List<TrainerMemoRef> refs =
+        options.valueOrNull ?? const <TrainerMemoRef>[];
+    final TrainerMemoRef? picked = _record == null
+        ? null
+        : refs.where((r) => sameMemoRecord(r, _record!)).firstOrNull;
+    // 분류 칩 옆에 서므로 위 라벨을 두지 않는다 — 칩과 높이가 어긋난다.
+    // 무엇을 고르는 칸인지는 비어 있을 때의 힌트가 말한다.
+    return AppSelectField<TrainerMemoRef?>(
+      key: const ValueKey<String>('client-memo-record'),
+      hint: options.isLoading
+          ? null
+          : refs.isEmpty
+          ? l.clientMemoRecordEmpty
+          : l.clientMemoRecordLink,
+      value: picked,
+      onChanged: _busy || refs.isEmpty
+          ? null
+          : (TrainerMemoRef? value) => setState(() => _record = value),
+      // 고를 기록이 없으면 항목을 비운다 — `연결 안 함` 항목이 남아 있으면
+      // 그것이 선택된 값으로 그려져 빈 이유(힌트)가 보이지 않는다.
+      items: <DropdownMenuItem<TrainerMemoRef?>>[
+        // `연결 안 함` 은 무언가 고른 뒤에만 둔다 — 처음부터 있으면 그것이
+        // 선택된 값으로 그려져 무엇을 고르는 칸인지(힌트)가 가려진다.
+        if (picked != null)
+          DropdownMenuItem<TrainerMemoRef?>(
+            key: const ValueKey<String>('client-memo-record-none'),
+            child: Text(l.clientMemoRecordNone),
+          ),
+        for (final TrainerMemoRef option in refs)
+          DropdownMenuItem<TrainerMemoRef?>(
+            // 한 날에 날짜로 가리키는 기록(개인운동·회원 추가)이 둘 설 수
+            // 있어 종류까지 키에 넣는다.
+            key: ValueKey<String>(
+              'client-memo-record-${option.id ?? '${option.kind.wire}-${option.day}'}',
+            ),
+            value: option,
+            child: Text(
+              memoRecordOptionLabel(l, option),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+      ],
+    );
   }
 
   Future<void> _delete(TrainerMemo memo) async {
@@ -1348,6 +1594,36 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
           ],
         ),
         const SizedBox(height: OnCareSpacing.s8),
+        // 분류 칩 한 줄(#2622). 안내·글자 수 줄은 입력칸에 대한 말이라 입력칸에
+        // 붙여 두고, 분류는 그 아래 `메모 추가` 바로 위에서 고른다.
+        // 기록 연결은 칩 줄 오른쪽 빈칸에 선다. 자리는 늘 잡아 두어 칸이
+        // 생기고 사라져도 칩과 `메모 추가` 가 밀리지 않는다.
+        Row(
+          children: <Widget>[
+            _categoryChips(
+              keyPrefix: 'client-memo-category',
+              selected: _category,
+              onChanged: (TrainerMemoCategory category) => setState(() {
+                _category = category;
+                // 기록 연결은 `운동` 일 때만 뜻이 있다.
+                if (category != TrainerMemoCategory.exercise) _record = null;
+              }),
+            ),
+            const SizedBox(width: OnCareSpacing.s12),
+            Expanded(
+              child: SizedBox(
+                height: tokens.density.inputMedium,
+                child: AnimatedSwitcher(
+                  duration: OnCareMotion.fast,
+                  child: _category == TrainerMemoCategory.exercise
+                      ? _recordPicker(l)
+                      : const SizedBox.shrink(),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: OnCareSpacing.s8),
         AppActionRow(
           actions: <Widget>[
             AppButton(
@@ -1364,13 +1640,11 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
           error: (error, _) => AppErrorState(
             key: const ValueKey<String>('client-memo-retry'),
             placement: AppStatePlacement.card,
-            title: error is AppError
-                ? serverDetailOr(
-                    l,
-                    error.message,
-                    l.clientTrainerMemoLoadFailed,
-                  )
-                : l.clientTrainerMemoLoadFailed,
+            title: appErrorMessage(
+              l,
+              error,
+              fallback: l.clientTrainerMemoLoadFailed,
+            ),
             retryLabel: l.actionRetry,
             onRetry: () =>
                 ref.invalidate(trainerMemosProvider(widget.clientId)),
@@ -1415,19 +1689,27 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
     );
   }
 
-  /// 검색어가 본문이나 출처 태그에 든 메모만. 대소문자와 앞뒤 공백은 가리지 않는다.
+  /// 검색어가 본문·출처 태그·분류 이름에 든 메모만. 대소문자와 앞뒤 공백은
+  /// 가리지 않는다. 기록을 이은 운동 메모는 태그가 `PT 세션 · 9/30` 이어도
+  /// `운동` 으로 찾힌다(#2622).
   List<TrainerMemo> _matching(AppLocalizations l, List<TrainerMemo> list) {
     final query = _query.text.trim().toLowerCase();
     if (query.isEmpty) return list;
     return <TrainerMemo>[
       for (final memo in list)
         if (memo.body.toLowerCase().contains(query) ||
-            _sourceLabel(l, memo).toLowerCase().contains(query))
+            _sourceLabel(l, memo).toLowerCase().contains(query) ||
+            (memo.category != TrainerMemoCategory.none &&
+                memoCategoryLabel(
+                  l,
+                  memo.category,
+                ).toLowerCase().contains(query)))
           memo,
     ];
   }
 
-  /// 메모의 출처 태그 문구 — 태그와 검색이 같은 말을 쓴다.
+  /// 메모의 출처 태그 문구 — 태그와 검색이 같은 말을 쓴다. 직접 쓴 메모는
+  /// 고른 분류(#2622), 고르지 않았으면 `직접 작성` 이다.
   static String _sourceLabel(AppLocalizations l, TrainerMemo memo) =>
       switch (memo.source) {
         TrainerMemoSource.chatInsight => _insightReasonLabel(
@@ -1436,7 +1718,7 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
         ),
         TrainerMemoSource.exerciseMemo when memo.ref != null =>
           exerciseMemoTagLabel(l, memo.ref!),
-        _ => l.clientMemoTagManual,
+        _ => memoCategoryLabel(l, memo.category),
       };
 
   Widget _memoTile(AppLocalizations l, TrainerMemo memo) {
@@ -1475,6 +1757,30 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
                         tone: AppTagTone.brand,
                         icon: AppIcons.exercise,
                       ),
+                    // 분류를 고른 직접 메모(#2622). `운동` 은 기록을 이은 운동
+                    // 메모와 같은 색·아이콘이라 둘이 한 갈래로 읽힌다. 나머지
+                    // 분류(통증 제외)는 `직접 작성` 과 같은 기본 톤에 이름만 바뀐다.
+                    _ when memo.category == TrainerMemoCategory.exercise =>
+                      AppTag(
+                        key: ValueKey<String>(
+                          'client-memo-category-${memo.id}',
+                        ),
+                        label: _sourceLabel(l, memo),
+                        tone: AppTagTone.brand,
+                        icon: AppIcons.exercise,
+                      ),
+                    // `통증·부상` 은 채팅의 `신체 불편 표현 감지` 와 같은 사실이라
+                    // 같은 빨강·경고 아이콘이다.
+                    _ when memo.category == TrainerMemoCategory.pain => AppTag(
+                      key: ValueKey<String>('client-memo-category-${memo.id}'),
+                      label: _sourceLabel(l, memo),
+                      tone: AppTagTone.danger,
+                      icon: AppIcons.warning,
+                    ),
+                    _ when memo.category != TrainerMemoCategory.none => AppTag(
+                      key: ValueKey<String>('client-memo-category-${memo.id}'),
+                      label: _sourceLabel(l, memo),
+                    ),
                     _ => AppTag(
                       key: ValueKey<String>('client-memo-manual-${memo.id}'),
                       label: _sourceLabel(l, memo),
@@ -1492,12 +1798,14 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
                   icon: AppIcons.edit,
                   tooltip: l.actionEdit,
                   size: AppIconButtonSize.small,
+                  // 연필·휴지통은 신체·목표 연필과 같은 진한 회색이다.
                   color: OnCareColors.textSecondary,
                   onPressed: _busy || _editingId != null
                       ? null
                       : () => setState(() {
                           _editingId = memo.id;
                           _edit.text = memo.body;
+                          _editCategory = memo.category;
                         }),
                 ),
                 AppIconButton(
@@ -1505,7 +1813,7 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
                   icon: AppIcons.delete,
                   tooltip: l.actionDelete,
                   size: AppIconButtonSize.small,
-                  color: OnCareColors.textTertiary,
+                  color: OnCareColors.textSecondary,
                   onPressed: _busy || _editingId != null
                       ? null
                       : () => _delete(memo),
@@ -1514,20 +1822,39 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
             ],
           ),
           const SizedBox(height: OnCareSpacing.s4),
-          if (editing)
+          if (editing) ...<Widget>[
             AppTextField(
               key: ValueKey<String>('client-memo-edit-${memo.id}'),
               controller: _edit,
               maxLines: 3,
               maxLength: _maxLength,
               enabled: !_busy,
-            )
-          else
-            Text(
-              memo.body,
-              style: tokens
-                  .text(OnCareTypography.body)
-                  .copyWith(color: OnCareColors.textPrimary),
+            ),
+            // 직접 쓴 메모만 분류를 바꾼다(#2622). 기록을 이은 운동 메모·채팅
+            // 감지 메모는 출처가 무엇에 대한 메모인지 이미 말한다.
+            if (memo.source == TrainerMemoSource.trainer) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s8),
+              _categoryChips(
+                keyPrefix: 'client-memo-edit-category',
+                selected: _editCategory,
+                onChanged: (TrainerMemoCategory category) =>
+                    setState(() => _editCategory = category),
+              ),
+            ],
+          ] else
+            // 본문·날짜는 태그 글자와 같은 선에서 시작한다 — 태그 배경 끝에
+            // 붙으면 글이 왼쪽으로 쏠려 보인다.
+            Padding(
+              // 태그 안쪽 여백(`AppTag` 의 좌우 8)만큼.
+              padding: const EdgeInsetsDirectional.only(
+                start: OnCareSpacing.s8,
+              ),
+              child: Text(
+                memo.body,
+                style: tokens
+                    .text(OnCareTypography.body)
+                    .copyWith(color: OnCareColors.textPrimary),
+              ),
             ),
           const SizedBox(height: OnCareSpacing.s4),
           Row(
@@ -1535,14 +1862,19 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
               Expanded(
                 // 언제 남겼는지를 적는다(#2516). 예전에는 수정 시각만 보여
                 // 처음 남긴 날도, 고친 적이 있는지도 알 수 없었다.
-                child: Text(
-                  key: ValueKey<String>('client-memo-time-${memo.id}'),
-                  memo.isEdited
-                      ? '${_dayLabel(memo.createdAt)} · ${l.clientMemoEdited}'
-                      : _dayLabel(memo.createdAt),
-                  style: OnCareTypography.numeric(
-                    tokens.text(OnCareTypography.caption),
-                  ).copyWith(color: OnCareColors.textTertiary),
+                child: Padding(
+                  padding: EdgeInsetsDirectional.only(
+                    start: editing ? 0 : OnCareSpacing.s8,
+                  ),
+                  child: Text(
+                    key: ValueKey<String>('client-memo-time-${memo.id}'),
+                    memo.isEdited
+                        ? '${_dayLabel(memo.createdAt)} · ${l.clientMemoEdited}'
+                        : _dayLabel(memo.createdAt),
+                    style: OnCareTypography.numeric(
+                      tokens.text(OnCareTypography.caption),
+                    ).copyWith(color: OnCareColors.textTertiary),
+                  ),
                 ),
               ),
               if (editing) ...<Widget>[
@@ -1583,8 +1915,9 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
     }
   }
 
+  /// 메모 시각은 KST 벽시계로 보인다 — 브라우저 시간대와 상관없이(#2893).
   static String _dayLabel(DateTime at) {
-    final local = at.toLocal();
+    final DateTime local = toKst(at);
     String two(int v) => v.toString().padLeft(2, '0');
     return '${local.year}.${two(local.month)}.${two(local.day)} '
         '${two(local.hour)}:${two(local.minute)}';

@@ -13,9 +13,12 @@ import 'package:oncare/features/exercise/presentation/controllers/consultation_r
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_feedback_providers.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/features/notification/data/repositories/notification_settings_repository.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
+import 'package:oncare/shared/services/record_span_provider.dart';
+import 'package:oncare/shared/widgets/coaching_sheet.dart';
 
 /// Connects session transitions to account-specific feature state.
 ///
@@ -59,6 +62,12 @@ Override sessionFeatureResetOverride() {
       // 앞 세션의 목록이 남는다(#1801).
       ref.invalidate(coachInvitesProvider);
       ref.invalidate(selectedCoachInviteProvider);
+      // 주간 피드백 물음을 `나중에` 로 물린 표시(#2232) — 앞 계정이 물린 것이
+      // 남으면 새 계정에게 그 주의 피드백을 묻지 않는다(#2632).
+      ref.invalidate(weeklyFeedbackDismissedProvider);
+      // 코칭 시트에서 이미 본 카드 수 — 앞 계정이 본 수가 남으면 새 계정의
+      // 코칭 배지가 사라진 채로 시작한다(#2632).
+      ref.invalidate(coachingSeenCountProvider);
       ref.invalidate(myHealthStateProvider);
       // 포인트 사용처·내 쿠폰(#1787). auto-dispose 지만 화면을 연 채 전환하면
       // 앞 계정의 잔액·교환 가능 여부·쿠폰이 남는다.
@@ -75,17 +84,19 @@ Override sessionFeatureResetOverride() {
       // 기록 그래프·그래프 색(#2075, #2076) — 보호권과 같은 이유다. auto-dispose 가
       // 아니라 되짚지 않으면 앞 계정의 기록과 색이 그대로 남는다.
       ref.invalidate(activityCalendarProvider);
+      // 기록 시작일(#2236) — `전체` 그래프가 어디서부터 그릴지 정한다. auto-dispose
+      // 가 아니라 되짚지 않으면 앞 계정의 첫 기록일부터 그린다(#2632).
+      ref.invalidate(recordSpanProvider);
       // 주간 챌린지(#1789) — 같은 이유로 앞 계정의 참가·진행이 남지 않게 한다.
       ref.invalidate(weeklyChallengeProvider);
-      // 목 저장소는 읽음 처리를 세션 동안 기억한다 — 다시 만들지 않으면 앞
-      // 계정의 읽음 상태로 시작한다(#1936).
+      // 알림은 저장소에서 다시 읽는다 — 앞 계정의 목록·읽음 상태로 시작하지 않게
+      // 한다(#1936). 데모는 로그인할 때 인터셉터가 시드 알림 읽음을 되돌린다(#2660).
       ref.invalidate(notificationRepositoryProvider);
       ref.invalidate(notificationControllerProvider);
       // 알림 수신 설정은 실 백엔드에서 계정 단위다. 여기 없으면 앞 계정의 토글이
       // 앱을 다시 켤 때까지 남는다.
       ref.invalidate(notificationSettingsProvider);
-      // 벨의 빨간 점. 목 모드는 한 번 내보내고 끝이라, 되짚지 않으면 앞 계정의
-      // 점이 앱을 다시 켤 때까지 남는다(#1936).
+      // 벨의 빨간 점. 되짚지 않으면 다음 폴링까지 앞 계정의 점이 남는다(#1936).
       ref.invalidate(notificationUnreadProvider);
     };
   });

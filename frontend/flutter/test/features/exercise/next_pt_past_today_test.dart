@@ -8,8 +8,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart' show DateFormat;
+import 'package:logger/logger.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/core/logging/app_logger.dart';
+import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
@@ -19,6 +22,7 @@ import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
+import '../../helpers/demo_exercise.dart';
 import '../../helpers/fixed_clock.dart';
 
 const Gym _gym = Gym(
@@ -59,10 +63,23 @@ CoachSession _session(String id, DateTime date, String time) => CoachSession(
   status: '예정',
 );
 
+/// 오늘 새벽에 끝낸 수업. `다음 PT` 는 `오늘 완료한 PT` 카드 안에 서는데, 그
+/// 카드는 데모도 실서버처럼 오늘 완료 수업이 있을 때만 선다(#2694). 끝난
+/// 수업은 다음 PT 가 아니다.
+final CoachSession _doneToday = CoachSession(
+  id: 'done-today',
+  date: DateTime(2026, 8, 20),
+  time: '06:00',
+  type: '1:1 PT',
+  durationMinutes: 50,
+  status: '완료',
+);
+
 Future<AppLocalizations> _pump(
   WidgetTester tester, {
   required List<CoachSession> sessions,
 }) async {
+  final AppDatabase exerciseDb = await seededDemoDatabase(tester);
   useFixedKstDate(_afternoon);
   tester.view.physicalSize = const Size(420, 2200);
   tester.view.devicePixelRatio = 1;
@@ -71,6 +88,9 @@ Future<AppLocalizations> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: <Override>[
+        // 운동은 앱의 데모와 같은 경로(로컬 목업 API + drift)로 돈다(#2724).
+        ...demoExerciseOverrides(exerciseDb),
+        appLoggerProvider.overrideWithValue(Logger(level: Level.off)),
         appConfigProvider.overrideWithValue(
           const AppConfig(
             environment: Environment.dev,
@@ -84,7 +104,9 @@ Future<AppLocalizations> _pump(
           (ref) async => const <MyReservation>[],
         ),
         memberCoachProvider.overrideWith((ref) async => _coach),
-        coachSessionsProvider.overrideWith((ref) async => sessions),
+        coachSessionsProvider.overrideWith(
+          (ref) async => <CoachSession>[_doneToday, ...sessions],
+        ),
         coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
       ],
       child: MaterialApp(

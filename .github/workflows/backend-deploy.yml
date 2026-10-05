@@ -1,11 +1,25 @@
-name: Backend Deploy (ECR + App Runner)
+name: Backend Deploy (ECR + ECS Express Mode)
 
-# 배포 job은 기본적으로 비활성화된다. 배포 플랫폼과 인프라가 준비된 뒤
-# Repository Variable BACKEND_DEPLOY_ENABLED=true를 설정하면 활성화된다.
-# 현재 구현은 AWS ECR + App Runner 전용이며 최종 플랫폼 결정 후 바뀔 수 있다.
-# AWS 사용 시 필요한 GitHub Secrets:
-#   AWS_DEPLOY_ROLE_ARN   OIDC로 assume할 IAM 역할 ARN
-#   APPRUNNER_SERVICE_ARN 배포 대상 App Runner 서비스 ARN
+# 배포 job 은 기본적으로 꺼져 있다. 인프라 스택(infra/backend-*.yml)을 #480 에서 적용하고
+# 아래 변수를 채운 뒤 Repository Variable BACKEND_DEPLOY_ENABLED=true 로 켠다.
+# 절차는 backend/docs/DEPLOY.md 에 있다.
+#
+# 흐름(#3016, #3019)
+#   resolve → build(이미지 한 번 빌드, digest 고정)
+#     → deploy-staging(BACKEND_STAGING_DEPLOY_ENABLED=true 일 때만)
+#     → deploy-production(GitHub Environment "production" 승인 뒤)
+#   staging 이 켜져 있으면 staging 이 통과해야 운영으로 간다. 두 환경은 같은 digest 를 쓴다.
+#   각 환경 배포는 실패하면 직전 이미지로 되돌린다(backend-deploy-service.yml).
+#
+# Repository Variables
+#   BACKEND_DEPLOY_ENABLED            true 일 때만 동작
+#   BACKEND_STAGING_DEPLOY_ENABLED    true 면 운영 전에 staging 을 먼저 배포·검증
+#   AWS_BACKEND_REGION                배포 리전(기본 ap-southeast-1 — Neon DB 와 같은 리전)
+#   AWS_BACKEND_IMAGE_PUSH_ROLE_ARN   이미지 푸시 역할(infra/backend-bootstrap.yml 출력)
+# Environment Variables(production·staging 각각)
+#   AWS_BACKEND_DEPLOY_ROLE_ARN       환경별 배포 역할(infra/backend-environment.yml 출력)
+#   AWS_BACKEND_CFN_ROLE_ARN          CloudFormation 서비스 역할(같은 스택 출력)
+#   BACKEND_STACK_NAME                서비스 스택 이름(기본 oncare-backend-<environment>)
 on:
   workflow_run:
     workflows: ["Backend CI"]
@@ -14,14 +28,22 @@ on:
   workflow_dispatch:
     inputs:
       sha:
-        description: "Backend CI를 통과한 main 커밋의 전체 SHA(40자)"
+        description: "Backend CI를 통과한 main 커밋의 전체 SHA(40자). 이전 커밋을 넣으면 그 커밋으로 되돌린다"
         required: true
         type: string
+      target:
+        description: "배포 대상"
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - staging
+          - production
 
 permissions:
   actions: read
   contents: read
-  id-token: write
 
 # 진행 중인 배포를 취소하지 않고 한 번에 하나씩 실행한다.
 concurrency:
@@ -29,13 +51,11 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # Keep App Runner and the Neon database in Singapore to avoid cross-region
-  # latency and data transfer for the demo environment.
   AWS_REGION: ${{ vars.AWS_BACKEND_REGION || 'ap-southeast-1' }}
   ECR_REPOSITORY: oncare-backend
 
 jobs:
-  build-and-deploy:
+  resolve:
     runs-on: ubuntu-latest
     if: >-
       ${{ vars.BACKEND_DEPLOY_ENABLED == 'true' &&
@@ -46,6 +66,9 @@ jobs:
             github.event.workflow_run.head_repository.full_name == github.repository) ||
            (github.event_name == 'workflow_dispatch' &&
             github.ref == 'refs/heads/main')) }}
+    outputs:
+      sha: ${{ steps.target.outputs.sha }}
+      target: ${{ steps.target.outputs.target }}
     steps:
       - name: Resolve and verify deploy commit
         id: target
@@ -56,6 +79,7 @@ jobs:
           WORKFLOW_RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
           WORKFLOW_RUN_REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name }}
           MANUAL_SHA: ${{ inputs.sha }}
+          MANUAL_TARGET: ${{ inputs.target }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
@@ -68,8 +92,10 @@ jobs:
               exit 1
             fi
             TARGET_SHA="$WORKFLOW_RUN_SHA"
+            TARGET=all
           else
             TARGET_SHA="$MANUAL_SHA"
+            TARGET="${MANUAL_TARGET:-all}"
           fi
           TARGET_SHA=$(printf '%s' "$TARGET_SHA" | tr '[:upper:]' '[:lower:]')
 
@@ -77,6 +103,10 @@ jobs:
             echo "::error::배포 SHA는 40자리 전체 커밋 SHA여야 합니다."
             exit 1
           fi
+          case "$TARGET" in
+            all|staging|production) ;;
+            *) echo "::error::알 수 없는 배포 대상: $TARGET"; exit 1 ;;
+          esac
 
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             MATCHES=$(gh api \
@@ -101,42 +131,83 @@ jobs:
             fi
           fi
 
-          echo "sha=$TARGET_SHA" >> "$GITHUB_OUTPUT"
-          echo "Verified deploy commit: $TARGET_SHA"
+          {
+            echo "sha=$TARGET_SHA"
+            echo "target=$TARGET"
+          } >> "$GITHUB_OUTPUT"
+          echo "Verified deploy commit: $TARGET_SHA (target: $TARGET)"
 
+  build:
+    needs: resolve
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      image: ${{ steps.image.outputs.identifier }}
+    steps:
       # 배포 권한(OIDC)을 쓰는 외부 action은 불변 커밋 SHA로 고정한다.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ steps.target.outputs.sha }}
+          ref: ${{ needs.resolve.outputs.sha }}
           persist-credentials: false
 
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
+      - name: Check image push role
+        env:
+          PUSH_ROLE: ${{ vars.AWS_BACKEND_IMAGE_PUSH_ROLE_ARN }}
+        run: |
+          if [ -z "$PUSH_ROLE" ]; then
+            echo "::error::Repository Variable AWS_BACKEND_IMAGE_PUSH_ROLE_ARN 이 없습니다(infra/backend-bootstrap.yml 출력, #480)."
+            exit 1
+          fi
+
+      # 이미지 푸시 역할은 ECR 쓰기만 가진다. 서비스는 바꾸지 못한다(#3019).
+      - name: Configure AWS credentials (image push)
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          role-to-assume: ${{ vars.AWS_BACKEND_IMAGE_PUSH_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: ecr
-        uses: aws-actions/amazon-ecr-login@d539f0932e70871a027e9d5a9d8fc38589180a64 # v2
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2
 
+      # 태그는 불변이다. 같은 커밋을 다시 배포(되돌리기 포함)하면 새로 빌드하지 않고
+      # 이미 올라간 이미지의 digest 를 그대로 쓴다.
       - name: Build and push immutable image
         id: image
         working-directory: backend
         env:
           REGISTRY: ${{ steps.ecr.outputs.registry }}
-          SHA: ${{ steps.target.outputs.sha }}
+          SHA: ${{ needs.resolve.outputs.sha }}
         run: |
           set -euo pipefail
-          TAGGED_IMAGE="$REGISTRY/$ECR_REPOSITORY:$SHA"
-          docker build -t "$TAGGED_IMAGE" .
-          docker push "$TAGGED_IMAGE"
+          digest_of() {
+            aws ecr describe-images \
+              --repository-name "$ECR_REPOSITORY" \
+              --image-ids imageTag="$SHA" \
+              --query 'imageDetails[0].imageDigest' \
+              --output text
+          }
 
-          DIGEST=$(aws ecr describe-images \
-            --repository-name "$ECR_REPOSITORY" \
-            --image-ids imageTag="$SHA" \
-            --query 'imageDetails[0].imageDigest' \
-            --output text)
+          if DIGEST=$(digest_of 2> "$RUNNER_TEMP/describe.err"); then
+            echo "이미 올라간 이미지를 씁니다: $SHA"
+          elif grep -q ImageNotFoundException "$RUNNER_TEMP/describe.err"; then
+            TAGGED_IMAGE="$REGISTRY/$ECR_REPOSITORY:$SHA"
+            # 커밋 SHA 를 이미지에 넣는다(#3029) — /v1/version·/v1/healthz 의 commit_sha 와
+            # Sentry release 가 이 값을 쓰고, 배포 뒤 검증 단계가 배포한 SHA 와 대조한다.
+            docker build \
+              --build-arg GIT_SHA="$SHA" \
+              --label org.opencontainers.image.revision="$SHA" \
+              -t "$TAGGED_IMAGE" .
+            docker push "$TAGGED_IMAGE"
+            DIGEST=$(digest_of)
+          else
+            cat "$RUNNER_TEMP/describe.err" >&2
+            echo "::error::ECR 이미지 조회에 실패했습니다."
+            exit 1
+          fi
+
           if ! [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
             echo "::error::ECR 이미지 digest를 확인하지 못했습니다: $DIGEST"
             exit 1
@@ -144,88 +215,37 @@ jobs:
 
           IMAGE_IDENTIFIER="$REGISTRY/$ECR_REPOSITORY@$DIGEST"
           echo "identifier=$IMAGE_IDENTIFIER" >> "$GITHUB_OUTPUT"
-          echo "Pushed immutable image: $IMAGE_IDENTIFIER"
+          echo "Immutable image: $IMAGE_IDENTIFIER"
 
-      - name: Update App Runner source and wait for operation
-        env:
-          SVC: ${{ secrets.APPRUNNER_SERVICE_ARN }}
-          IMAGE_IDENTIFIER: ${{ steps.image.outputs.identifier }}
-        run: |
-          set -euo pipefail
+  deploy-staging:
+    needs: [resolve, build]
+    if: >-
+      ${{ vars.BACKEND_STAGING_DEPLOY_ENABLED == 'true' &&
+          needs.resolve.outputs.target != 'production' }}
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/backend-deploy-service.yml
+    with:
+      environment: staging
+      expected_env: staging
+      image: ${{ needs.build.outputs.image }}
+      sha: ${{ needs.resolve.outputs.sha }}
 
-          SOURCE_FILE="$RUNNER_TEMP/source-configuration.json"
-          aws apprunner describe-service \
-            --service-arn "$SVC" \
-            --query 'Service.SourceConfiguration' \
-            --output json |
-            jq --arg image "$IMAGE_IDENTIFIER" '
-              if .ImageRepository == null then
-                error("App Runner service is not configured with ImageRepository")
-              else
-                .ImageRepository.ImageIdentifier = $image
-                | .AutoDeploymentsEnabled = false
-              end
-            ' > "$SOURCE_FILE"
-
-          OP=$(aws apprunner update-service \
-            --service-arn "$SVC" \
-            --source-configuration "file://$SOURCE_FILE" \
-            --query OperationId \
-            --output text)
-          if [ -z "$OP" ] || [ "$OP" = "None" ]; then
-            echo "::error::App Runner update-service OperationId를 받지 못했습니다."
-            exit 1
-          fi
-          echo "Started App Runner operation: $OP"
-
-          for i in $(seq 1 40); do
-            STATUS=$(aws apprunner list-operations \
-              --service-arn "$SVC" \
-              --query "OperationSummaryList[?Id=='$OP'].Status | [0]" \
-              --output text)
-            echo "[$i] operation $OP status: $STATUS"
-            case "$STATUS" in
-              SUCCEEDED)
-                break
-                ;;
-              PENDING|IN_PROGRESS|None|"")
-                if [ "$i" -eq 40 ]; then
-                  echo "::error::App Runner 작업이 제한 시간 안에 완료되지 않았습니다."
-                  exit 1
-                fi
-                sleep 15
-                ;;
-              FAILED|ROLLBACK_IN_PROGRESS|ROLLBACK_FAILED|ROLLBACK_SUCCEEDED)
-                echo "::error::App Runner 작업 실패: $STATUS (OperationId: $OP)"
-                exit 1
-                ;;
-              *)
-                echo "::error::알 수 없는 App Runner 작업 상태: $STATUS"
-                exit 1
-                ;;
-            esac
-          done
-
-          DEPLOYED_IMAGE=$(aws apprunner describe-service \
-            --service-arn "$SVC" \
-            --query 'Service.SourceConfiguration.ImageRepository.ImageIdentifier' \
-            --output text)
-          if [ "$DEPLOYED_IMAGE" != "$IMAGE_IDENTIFIER" ]; then
-            echo "::error::App Runner 이미지 불일치: expected=$IMAGE_IDENTIFIER actual=$DEPLOYED_IMAGE"
-            exit 1
-          fi
-
-          URL=$(aws apprunner describe-service \
-            --service-arn "$SVC" \
-            --query 'Service.ServiceUrl' \
-            --output text)
-          for i in $(seq 1 10); do
-            if curl -fsS "https://$URL/v1/healthz" > /dev/null; then
-              echo "healthz OK: immutable deploy verified"
-              exit 0
-            fi
-            echo "healthz not ready, retry $i"
-            sleep 10
-          done
-          echo "::error::배포 후 /v1/healthz가 응답하지 않습니다."
-          exit 1
+  # staging 이 꺼져 있거나(skipped) 통과했을 때만. staging 실패·취소면 운영으로 가지 않는다.
+  deploy-production:
+    needs: [resolve, build, deploy-staging]
+    if: >-
+      ${{ !cancelled() &&
+          needs.build.result == 'success' &&
+          (needs.deploy-staging.result == 'success' || needs.deploy-staging.result == 'skipped') &&
+          needs.resolve.outputs.target != 'staging' }}
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/backend-deploy-service.yml
+    with:
+      environment: production
+      expected_env: prod
+      image: ${{ needs.build.outputs.image }}
+      sha: ${{ needs.resolve.outputs.sha }}

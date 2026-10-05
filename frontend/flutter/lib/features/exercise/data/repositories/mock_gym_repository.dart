@@ -1,11 +1,11 @@
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
+import 'package:oncare_core/clock.dart';
 
 /// In-memory gym + trainer data matching the prototype's `GymCard` /
 /// `GymFinder` mocks. The user starts connected to 온케어짐 신촌점 and to
@@ -166,12 +166,12 @@ class MockGymRepository implements GymRepository {
           '시작해 천천히 강도를 올립니다.',
       certifications: <String>['건강운동관리사', '노인스포츠지도사'],
     ),
-    // 카카오 Local 에서 온 주변 헬스장의 소속 트레이너(#329). gymId 가 카카오
-    // place id 라서 데모 픽스처와 실 API 응답 양쪽에 그대로 붙는다.
-    // **시연용 가상 인물이다** — 실재 업체의 실제 트레이너가 아니다.
+    // 비제휴 가상 헬스장의 소속 트레이너(#329). gymId 가 백엔드 데모 시드와 같아
+    // 데모 픽스처와 실 API 응답 양쪽에 그대로 붙는다.
+    // **시연용 가상 인물이고 소속도 가상 헬스장이다** — 실재 업체에 붙이지 않는다(#2811).
     Trainer(
       id: 'trainer-demo-jung',
-      gymId: '11621774', // 휘트니스에이든
+      gymId: 'gym-demo-fitstudio', // 온케어 핏스튜디오
       name: '정수빈',
       role: '퍼스널 트레이너',
       reasons: <String>['감량 정체기', '체성분 관리'],
@@ -183,7 +183,7 @@ class MockGymRepository implements GymRepository {
     ),
     Trainer(
       id: 'trainer-demo-ha',
-      gymId: '11621774',
+      gymId: 'gym-demo-fitstudio',
       name: '하윤슬',
       role: '체형 교정 트레이너',
       reasons: <String>['목·어깨 교정', '사무직 자세'],
@@ -195,7 +195,7 @@ class MockGymRepository implements GymRepository {
     ),
     Trainer(
       id: 'trainer-demo-han',
-      gymId: '1558845892', // 하이핏
+      gymId: 'gym-demo-movelab', // 온케어 무브랩
       name: '한서준',
       role: '퍼스널 트레이너',
       reasons: <String>['기구 입문'],
@@ -207,7 +207,7 @@ class MockGymRepository implements GymRepository {
     ),
     Trainer(
       id: 'trainer-demo-oh',
-      gymId: '1558845892',
+      gymId: 'gym-demo-movelab',
       name: '오태린',
       role: '그룹 PT 트레이너',
       reasons: <String>['3~5인 그룹'],
@@ -219,7 +219,7 @@ class MockGymRepository implements GymRepository {
     ),
     Trainer(
       id: 'trainer-demo-seo',
-      gymId: '328969863', // 빌드업짐 PT 신촌점
+      gymId: 'gym-demo-ptlab', // 온케어 PT랩
       name: '서지안',
       role: '재활 전문 트레이너',
       reasons: <String>['재활 후 복귀', '통증 관리'],
@@ -231,7 +231,7 @@ class MockGymRepository implements GymRepository {
     ),
     Trainer(
       id: 'trainer-demo-nam',
-      gymId: '328969863',
+      gymId: 'gym-demo-ptlab',
       name: '남도윤',
       role: '퍼스널 트레이너',
       reasons: <String>['스쿼트 자세 교정', '근력 향상', '영상 피드백'],
@@ -243,7 +243,7 @@ class MockGymRepository implements GymRepository {
     ),
     Trainer(
       id: 'trainer-demo-moon',
-      gymId: '696444256', // 신인규피티스튜디오
+      gymId: 'gym-demo-onestudio', // 온케어 1:1 스튜디오
       name: '문하람',
       role: '퍼스널 트레이너',
       reasons: <String>['주간 식단', '식습관 개선', '1:1 전담'],
@@ -255,7 +255,7 @@ class MockGymRepository implements GymRepository {
     ),
     Trainer(
       id: 'trainer-demo-bae',
-      gymId: '696444256',
+      gymId: 'gym-demo-onestudio',
       name: '배시우',
       role: '러닝 코치',
       reasons: <String>['러닝 자세 교정'],
@@ -339,6 +339,45 @@ class MockGymRepository implements GymRepository {
     _myTrainerId = null;
   }
 
+  /// 담당 트레이너를 다시 잇는다 — 데모에서 담당 요청을 수락했을 때다(#2659).
+  ///
+  /// 트레이너는 한 헬스장 소속이라 헬스장 연결도 그 트레이너의 헬스장으로 맞춘다.
+  /// 헬스장까지 끊은 뒤 수락해도 담당만 있고 헬스장은 없는 화면이 나오지 않는다.
+  void linkTrainer(String trainerId) {
+    final Trainer? trainer = trainerById(trainerId);
+    if (trainer == null) {
+      throw StateError('trainer not found: $trainerId');
+    }
+    _myTrainerId = trainer.id;
+    _myGymId = trainer.gymId;
+  }
+
+  /// 트레이너 한 사람 — 기다리지 않는다. 상담 신청(#2659)처럼 접수 한 번 안에서
+  /// 이름을 채우는 자리가 쓴다. [fetchTrainer] 의 지연을 타면 위젯 테스트의 가짜
+  /// 시간대에서 접수가 끝나지 않는다.
+  Trainer? trainerById(String trainerId) =>
+      _trainers.where((Trainer trainer) => trainer.id == trainerId).firstOrNull;
+
+  /// 헬스장 이름. 목록에 없는 헬스장(카카오 발견 헬스장)이면 null.
+  String? gymNameOf(String gymId) =>
+      _gyms.where((Gym gym) => gym.id == gymId).firstOrNull?.name;
+
+  /// 자리 한 칸. 없으면 null.
+  TrainerSlot? slotById(String slotId) =>
+      _slots.where((TrainerSlot slot) => slot.id == slotId).firstOrNull;
+
+  /// 상담 신청이 자리를 잡거나 놓는다(#2659).
+  ///
+  /// 실서버는 신청을 받으면 고른 자리를 잠그고, 취소·거절되면 푼다. 데모도 같은
+  /// 자리를 헬스장 탭과 상담 폼이 함께 보므로, 신청한 자리가 헬스장 탭에서 계속
+  /// `예약 가능` 으로 남으면 두 화면이 어긋난다. 예약([reserve])과 달리 내 예약
+  /// 목록에는 넣지 않는다 — 트레이너가 수락하기 전까지는 예약이 아니다.
+  void setSlotBooked(String slotId, {required bool booked}) {
+    final int i = _slots.indexWhere((TrainerSlot slot) => slot.id == slotId);
+    if (i < 0) return;
+    _slots[i] = _slots[i].copyWith(booked: booked);
+  }
+
   // ── 예약 슬롯 ──────────────────────────────────────────────────────────
   //
   // 슬롯은 트레이너마다 다르다. 시각은 저장소를 만든 시점의 "오늘"을 기준으로
@@ -395,12 +434,30 @@ class MockGymRepository implements GymRepository {
         booked: false,
         sessionType: '상담',
       ),
+      // 다른 회원이 신청해 대기 중인 상담 자리 둘(#2797) — 트레이너 웹 데모
+      // 상담함의 신청들이 고른 자리라 여기서는 마감이다. 빈 상담 자리
+      // (`slot-kim-3`·`slot-kim-5`)는 데모 사용자가 신청해 볼 수 있게 남긴다.
+      TrainerSlot(
+        id: 'slot-kim-6',
+        trainerId: 'trainer-kim',
+        startsAt: _at(today, 3, 22, 0),
+        booked: true,
+        sessionType: '상담',
+      ),
       TrainerSlot(
         id: 'slot-kim-4',
         trainerId: 'trainer-kim',
         startsAt: _at(today, 4, 6, 30),
         booked: false,
         sessionType: '1:1 PT',
+      ),
+      // 다른 회원의 재상담 신청이 잡은 자리(#2797).
+      TrainerSlot(
+        id: 'slot-kim-7',
+        trainerId: 'trainer-kim',
+        startsAt: _at(today, 5, 7, 0),
+        booked: true,
+        sessionType: '상담',
       ),
       TrainerSlot(
         id: 'slot-kim-5',

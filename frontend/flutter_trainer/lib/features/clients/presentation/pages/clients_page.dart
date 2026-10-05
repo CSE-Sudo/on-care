@@ -37,6 +37,7 @@ class ClientsPage extends ConsumerStatefulWidget {
     this.section,
     this.filter,
     this.openHealthNotes = false,
+    this.openFeedback = false,
   });
 
   /// Client whose detail is open, or null for the plain list.
@@ -50,6 +51,9 @@ class ClientsPage extends ConsumerStatefulWidget {
 
   /// 주의사항 알림에서 왔다 — 상세가 신체·목표 창의 `건강 목표` 탭을 연다(#2619).
   final bool openHealthNotes;
+
+  /// 회원 주간 피드백 알림에서 왔다 — 상세가 메모 창의 `피드백` 탭을 연다(#3026).
+  final bool openFeedback;
 
   @override
   ConsumerState<ClientsPage> createState() => _ClientsPageState();
@@ -143,14 +147,6 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
           subtitle: activeFilter != ClientFilter.all || view.filters.isNotEmpty
               ? l.clientsMemberCountFiltered(list.length, all.length)
               : l.clientsMemberCount(all.length),
-          actions: <Widget>[
-            if (canConnect)
-              AppButton(
-                label: l.clientsNew,
-                leadingIcon: AppIcons.addClient,
-                onPressed: () => _openConnectDialog(context),
-              ),
-          ],
           body: LayoutBuilder(
             builder: (context, constraints) {
               // [AppSplitView] 과 같은 폭·같은 기준으로 잰다 — 좁은 폭에서
@@ -160,17 +156,34 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   if (wide || selected == null) ...<Widget>[
-                    _MemberManagementToolbar(
-                      managementFilters: view.filters,
-                      sort: view.sort,
-                      preset: activeFilter,
-                      onClearPreset: _clearFilters,
-                      onFiltersChanged: (value) =>
-                          ref.read(rosterViewProvider.notifier).state = view
-                              .copyWith(filters: value),
-                      onSortChanged: (value) =>
-                          ref.read(rosterViewProvider.notifier).state = view
-                              .copyWith(sort: value),
+                    // `신규 회원 등록` 은 필터 줄 오른쪽 끝이다 — 화면 머리 오른쪽
+                    // 끝은 모든 탭이 알림 종 하나만 두는 자리다(#2628).
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: _MemberManagementToolbar(
+                            managementFilters: view.filters,
+                            sort: view.sort,
+                            preset: activeFilter,
+                            onClearPreset: _clearFilters,
+                            onFiltersChanged: (value) =>
+                                ref.read(rosterViewProvider.notifier).state =
+                                    view.copyWith(filters: value),
+                            onSortChanged: (value) =>
+                                ref.read(rosterViewProvider.notifier).state =
+                                    view.copyWith(sort: value),
+                          ),
+                        ),
+                        if (canConnect) ...<Widget>[
+                          const SizedBox(width: OnCareSpacing.s8),
+                          AppButton(
+                            key: const ValueKey<String>('clients-new'),
+                            label: l.clientsNew,
+                            leadingIcon: AppIcons.addClient,
+                            onPressed: () => _openConnectDialog(context),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: OnCareSpacing.s12),
                   ],
@@ -183,6 +196,13 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                         unread: unread,
                         filter: activeFilter,
                         managementFilters: view.filters,
+                        // 담당 회원이 0명일 때 빈 상태가 연결 방법을 알린다
+                        // (#3012). 운영자 승인 단계가 없어(#3008) 가입한
+                        // 트레이너는 바로 연결 창을 연다.
+                        canConnect: canConnect,
+                        onConnect: canConnect
+                            ? () => _openConnectDialog(context)
+                            : null,
                         // 목록 카드의 오른쪽 테두리·그림자가 스크롤 영역에
                         // 잘리지 않게, 분할일 때만 한 칸 비워 둔다.
                         trailingPadding: wide ? OnCareSpacing.s8 : 0,
@@ -204,6 +224,7 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                               section: widget.section,
                               showBack: !wide,
                               openHealthNotes: widget.openHealthNotes,
+                              openFeedback: widget.openFeedback,
                               // 한 번 열었으면 주소에서 지운다 — 새로 고칠 때마다
                               // 창이 다시 뜨지 않게.
                               onHealthNotesOpened: () => context.replace(
@@ -220,7 +241,11 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                                   filter: widget.filter,
                                 ),
                               ),
-                              onClose: () => context.go(AppRoutes.clients),
+                              // 걸어 둔 목록 필터(`f`)를 들고 돌아간다(#2893).
+                              filter: widget.filter,
+                              onClose: () => context.go(
+                                AppRoutes.clientsWith(widget.filter),
+                              ),
                             ),
                     ),
                   ),
@@ -593,16 +618,10 @@ class _RefreshOnBranchResumeState extends State<_RefreshOnBranchResume> {
 /// Shared page chrome so the loading/error/data states keep the same
 /// header instead of the title flickering in after the stream resolves.
 class _Frame extends StatelessWidget {
-  const _Frame({
-    required this.subtitle,
-    required this.body,
-    this.actions = const <Widget>[],
-  });
+  const _Frame({required this.subtitle, required this.body});
 
   final String? subtitle;
   final Widget body;
-
-  final List<Widget> actions;
 
   @override
   Widget build(BuildContext context) {
@@ -612,7 +631,6 @@ class _Frame extends StatelessWidget {
       subtitle: subtitle,
       // 고객 검색은 헤더 가운데 자리다 — 탭을 옮겨도 같은 가로 위치에 선다.
       headerCenter: const ClientSearchBar(),
-      actions: actions,
       body: body,
     );
   }
@@ -627,6 +645,8 @@ class _RosterList extends StatelessWidget {
     required this.managementFilters,
     required this.trailingPadding,
     required this.onOpen,
+    this.canConnect = false,
+    this.onConnect,
   });
 
   final List<TrainerClient> clients;
@@ -637,19 +657,35 @@ class _RosterList extends StatelessWidget {
   final double trailingPadding;
   final ValueChanged<String> onOpen;
 
+  /// 이 빌드에 회원 연결 경로가 있는가([clientInvitesEnabledProvider]).
+  final bool canConnect;
+
+  /// 빈 상태의 `신규 회원 등록` — 툴바 버튼과 같은 연결 창을 연다(#3012).
+  /// 연결 경로가 꺼진 빌드면 null 이라 버튼을 그리지 않는다.
+  final VoidCallback? onConnect;
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    // 걸러서 0명이 아니라 정말 담당 회원이 없을 때만 연결 방법을 알린다 —
+    // 필터로 빈 목록은 툴바가 빠져나가는 길을 맡는다(#2205).
+    final bool noMembers =
+        filter == ClientFilter.all && managementFilters.isEmpty;
     return ListView(
       padding: EdgeInsets.only(right: trailingPadding),
       children: <Widget>[
         // 걸러져 있다는 표시와 빠져나가는 길은 툴바의 파란 글자가 맡는다(#2205).
         if (clients.isEmpty)
           AppEmptyState(
+            key: const ValueKey<String>('clients-empty'),
             title: filter == ClientFilter.all
                 ? l.clientsEmpty
                 : l.clientsEmptyForFilter(filter.label(l)),
+            message: noMembers && canConnect ? l.clientsEmptyConnectHint : null,
             icon: AppIcons.clients,
+            actionLabel: noMembers && onConnect != null ? l.clientsNew : null,
+            onAction: noMembers ? onConnect : null,
+            actionKey: const ValueKey<String>('clients-empty-connect'),
             placement: AppStatePlacement.card,
           )
         else

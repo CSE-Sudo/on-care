@@ -4,12 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/app/shell/app_shell.dart';
 import 'package:oncare_trainer/app/shell/nav_destinations.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
+import 'package:oncare_trainer/features/admin/presentation/pages/admin_reports_page.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/my/data/trainer_settings.dart';
-import 'package:oncare_trainer/features/notifications/data/repositories/notification_repository.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
@@ -67,13 +66,14 @@ class AppSidebar extends ConsumerWidget {
     // trainer looks at the sidebar between tasks.
     // 알림 설정이 이 배지를 끈다 — 설정 화면이 "사이드바 뱃지로 알려드려요"
     // 라고 적어 두고 정작 아무 데서도 읽지 않아, 꺼도 배지가 그대로였다(#817).
-    final settings = ref.watch(trainerSettingsProvider);
-    final unread = settings.newMessageAlerts
-        ? ref
-              .watch(unreadCountsProvider)
-              .valueOrNull
-              ?.values
-              .fold<int>(0, (sum, n) => sum + n)
+    // 설정을 받기 전·받지 못했을 때는 켠 쪽(배지 보임)으로 둔다(#2883).
+    final bool newMessageAlerts =
+        ref.watch(trainerSettingsProvider).valueOrNull?.newMessageAlerts ??
+        true;
+    // 명단에 있는 회원 몫만 더한다 — 해제 회원 몫이 지울 수 없는 숫자로
+    // 남지 않게, 대시보드·메시지 칩과 같은 규칙으로(#2868).
+    final unread = newMessageAlerts
+        ? ref.watch(rosterUnreadProvider)?.messages
         : null;
     // 완료한 수업은 빠진 '남은 일감' 수. 대시보드 KPI 의 '오늘 예약' 과는
     // 다른 숫자이고, 달라야 한다(#860).
@@ -81,15 +81,10 @@ class AppSidebar extends ConsumerWidget {
         .watch(todayPendingSessionCountProvider)
         .valueOrNull;
     final profile = ref.watch(sessionControllerProvider).profile;
-    // 상담 요청 only exists against the real API — the demo has no member
-    // backend to receive requests from, so the row is not built at all
-    // there and the demo sidebar stays exactly as it was. (#467)
-    // 알림함도 실 API 빌드에서만 — 데모에는 알림을 만드는 회원 백엔드가 없어
-    // 늘 비어 있는 행이 하나 더 생길 뿐이다. (#503)
-    final notificationInbox = ref.watch(notificationInboxEnabledProvider);
-    final unreadNotifications = notificationInbox
-        ? ref.watch(trainerUnreadNotificationsProvider).valueOrNull
-        : null;
+    final bool adminConsole = ref.watch(adminConsoleEnabledProvider);
+    // 상담 요청은 사이드바 행이 아니라 스케줄·대시보드에서 창으로 열고, 데모도
+    // 시드 요청으로 같은 창을 보여 준다(#2669). 알림은 사이드바가 아니라 화면
+    // 머리의 알림 종이다(#2628).
 
     return Container(
       width: expanded
@@ -131,7 +126,6 @@ class AppSidebar extends ConsumerWidget {
                         // navDestinations and is rendered below with its
                         // count passed in directly.
                         NavBadge.pendingConsultations => null,
-                        NavBadge.unreadNotifications => null,
                         NavBadge.none => null,
                       },
                       onTap: () {
@@ -140,18 +134,18 @@ class AppSidebar extends ConsumerWidget {
                       },
                     ),
                   ],
-                  if (notificationInbox)
-                    _NavTile(
-                      destination: notificationsDestination,
-                      selected:
-                          currentIndex == AppShell.notificationsBranchIndex,
+                  // 운영자 계정에만 보인다(#3008). 데모에는 없다.
+                  if (adminConsole) ...<Widget>[
+                    if (expanded) AppOverline(l.navAdminGroup),
+                    _AdminTile(
+                      selected: currentIndex == adminBranchIndex,
                       expanded: expanded,
-                      badgeCount: unreadNotifications,
                       onTap: () {
-                        onSelect(AppShell.notificationsBranchIndex);
+                        onSelect(adminBranchIndex);
                         onNavigate?.call();
                       },
                     ),
+                  ],
                 ],
               ),
             ),
@@ -296,6 +290,37 @@ class _NavTile extends StatelessWidget {
           selected: selected,
           collapsed: !expanded,
           badgeCount: badgeCount ?? 0,
+          onTap: onTap,
+        ),
+      ),
+    );
+  }
+}
+
+/// 신고·계정 관리 — 운영자 전용 행 (#3008). [_NavTile] 과 같은 부품이다.
+class _AdminTile extends StatelessWidget {
+  const _AdminTile({
+    required this.selected,
+    required this.expanded,
+    required this.onTap,
+  });
+
+  final bool selected;
+  final bool expanded;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s2),
+      child: Semantics(
+        inMutuallyExclusiveGroup: true,
+        child: AppSidebarItem(
+          key: const ValueKey<String>('sidebar-${AppRoutes.adminReports}'),
+          icon: AppIcons.attention,
+          label: AppLocalizations.of(context).navAdminReports,
+          selected: selected,
+          collapsed: !expanded,
           onTap: onTap,
         ),
       ),

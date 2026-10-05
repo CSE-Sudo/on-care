@@ -89,8 +89,9 @@ PairedMember _paired() => const PairedMember(
 void main() {
   Future<void> pumpDialog(
     WidgetTester tester,
-    _FakeInviteRepository repository,
-  ) async {
+    _FakeInviteRepository repository, {
+    Locale locale = const Locale('ko'),
+  }) async {
     await tester.binding.setSurfaceSize(const Size(430, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -103,7 +104,7 @@ void main() {
           // 실제 앱 테마로 띄운다 — 기본 테마에는 없는 입력 채움·테두리가
           // 코드 상자 위에 겹쳐 그려진 적이 있다(#1636).
           theme: AppTheme.light(),
-          locale: const Locale('ko'),
+          locale: locale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Builder(
@@ -172,9 +173,10 @@ void main() {
     expect(find.text('체지방 감량'), findsOneWidget);
   });
 
-  testWidgets('성별·나이를 안 넣은 회원도 목록과 같은 표기로 뜬다', (tester) async {
-    // 목록은 `남성 · 23세` 라고 하는데 확인 카드만 아무 말이 없으면, 트레이너가
-    // 지금 잇는 사람이 목록의 그 사람인지 견줄 수 없다. 목록과 같은 폴백을 쓴다.
+  testWidgets('성별·나이를 안 넣은 회원은 구분 문구 없이 뜬다 (#2814, #2870)', (tester) async {
+    // 확인 카드는 목록과 같은 표기를 쓴다. 성별·나이 모두 지어내지 않으므로
+    // (#2744·#2814·#2870) 구분 문구 자리가 아예 없고 이름과 목표만 남는다 —
+    // 목록도 같은 회원을 똑같이 적는다.
     final repository = _FakeInviteRepository(
       paired: const PairedMember(
         memberId: 'user-8f2a41c9d6e3',
@@ -188,7 +190,54 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.textContaining(RegExp(r'(남성|여성|기타) · \d+세')), findsOneWidget);
+    expect(find.text('이수아'), findsOneWidget);
+    expect(find.text('체지방 감량'), findsOneWidget);
+    expect(find.textContaining(RegExp(r'남성|여성|기타')), findsNothing);
+    expect(find.textContaining(RegExp(r'\d+세')), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('client-connect-demographics')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('성별만 안 넣은 회원은 나이만 뜬다 (#2870)', (tester) async {
+    final repository = _FakeInviteRepository(
+      paired: const PairedMember(
+        memberId: 'user-8f2a41c9d6e3',
+        name: '이수아',
+        age: 29,
+        goal: '체지방 감량',
+      ),
+    );
+    await pumpDialog(tester, repository);
+
+    await enterCode(tester, '979030');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('29세'), findsOneWidget);
+    expect(find.textContaining(RegExp(r'남성|여성|기타')), findsNothing);
+  });
+
+  testWidgets('id 가 무엇이든 성별을 지어내지 않는다 (#2870)', (tester) async {
+    // 예전 폴백은 id 문자 코드 합의 짝홀로 성별을 골랐다 — 짝·홀 두 id 를 다
+    // 넣어 어느 쪽도 성별이 나오지 않는지 본다.
+    for (final id in <String>['seed-client-1', 'seed-client-2']) {
+      final repository = _FakeInviteRepository(
+        paired: PairedMember(memberId: id, name: '이수아', goal: '체지방 감량'),
+      );
+      await pumpDialog(tester, repository);
+      await enterCode(tester, '979030');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        find.textContaining(RegExp(r'남성|여성|기타')),
+        findsNothing,
+        reason: id,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+    }
   });
 
   testWidgets('확인하고 눌러야 연결된다', (tester) async {
@@ -235,6 +284,49 @@ void main() {
 
     expect(find.text('이미 다른 트레이너가 담당 중인 회원이에요.'), findsOneWidget);
     expect(find.text('이 회원이 맞나요?'), findsNothing);
+  });
+
+  group('이미 담당 중인 회원 — 타입 있는 오류를 로케일 문구로 (#2893)', () {
+    for (final (Locale locale, String expected) in <(Locale, String)>[
+      (const Locale('ko'), '이미 담당하고 있는 회원이에요. 회원 목록에서 찾아 주세요'),
+      (
+        const Locale('en'),
+        'You already manage this member. Find them in your member list',
+      ),
+    ]) {
+      testWidgets('${locale.languageCode} 화면', (tester) async {
+        final repository = _FakeInviteRepository(
+          failure: const AlreadyManagedError(),
+        );
+        await pumpDialog(tester, repository, locale: locale);
+
+        await enterCode(tester, '567812');
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.text(expected), findsOneWidget);
+        // 확인 화면으로 넘어가지 않는다.
+        expect(
+          find.byKey(const ValueKey<String>('client-connect-result')),
+          findsNothing,
+        );
+      });
+    }
+
+    testWidgets('영어 화면에서 한국어 사유 문장은 새지 않는다', (tester) async {
+      // 실서버가 준 한국어 사유는 영어 화면에서 일반 문구로 물러난다 — 타입
+      // 있는 오류만 자기 문구를 갖는다.
+      final repository = _FakeInviteRepository(
+        failure: const ValidationError(message: '이미 다른 트레이너가 담당 중인 회원이에요.'),
+      );
+      await pumpDialog(tester, repository, locale: const Locale('en'));
+
+      await enterCode(tester, '979030');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.textContaining('이미'), findsNothing);
+    });
   });
 
   testWidgets('코드 상자 위에 입력창이 겹쳐 그려지지 않는다', (tester) async {

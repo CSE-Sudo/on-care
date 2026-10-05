@@ -1,12 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare/core/points/demo_benefits_store.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 데모의 채팅 이모티콘 — 하나씩 사서 7일 동안 쓴다. 서버 `emote_service` 의
 /// 대역이다. (#2153)
-class DemoEmoteBook {
+class DemoEmoteBook implements DemoPersistable {
   DemoEmoteBook({required DemoPointsLedger ledger, DateTime Function()? now})
     : _ledger = ledger,
       _now = now ?? nowKst;
@@ -14,7 +15,14 @@ class DemoEmoteBook {
   final DemoPointsLedger _ledger;
   final DateTime Function() _now;
   final Map<String, DateTime> _expiresAt = <String, DateTime>{};
+
+  /// 끝난 구매의 키. 같은 키로 다시 오면 다시 쓰지 않고 지금 상태를 준다 —
+  /// 서버 `client_request_id` 와 같다. (#2845)
+  final Set<String> _requestIds = <String>{};
   int _sequence = 0;
+
+  @override
+  void Function()? onChanged;
 
   static const int cost = 50;
   static const int days = 7;
@@ -51,21 +59,32 @@ class DemoEmoteBook {
   }
 
   /// `POST /me/emotes/{emote_id}/unlock`.
-  DemoCouponResult unlock(String emoteId) {
+  ///
+  /// 거절의 `detail` 은 서버와 같이 `{code, message}` 다. (#2845)
+  DemoCouponResult unlock(String emoteId, {String? clientRequestId}) {
     if (!AppEmotes.has(emoteId)) {
       return const DemoCouponResult(404, <String, Object?>{
         'detail': '없는 이모티콘이에요.',
       });
     }
+    if (clientRequestId != null && _requestIds.contains(clientRequestId)) {
+      return DemoCouponResult(200, stateJson());
+    }
     if (unlocked.containsKey(emoteId)) {
       return const DemoCouponResult(409, <String, Object?>{
-        'detail': '이미 쓰고 있는 이모티콘이에요.',
+        'detail': <String, Object?>{
+          'code': 'already_unlocked',
+          'message': '이미 쓰고 있는 이모티콘이에요.',
+        },
       });
     }
     final int shortfall = cost - _ledger.balance;
     if (shortfall > 0) {
       return DemoCouponResult(400, <String, Object?>{
-        'detail': '포인트가 ${shortfall}P 부족해요.',
+        'detail': <String, Object?>{
+          'code': 'insufficient_points',
+          'message': '포인트가 ${shortfall}P 부족해요.',
+        },
       });
     }
     if (!_ledger.spend(
@@ -74,16 +93,56 @@ class DemoEmoteBook {
       reason: 'emote_unlock',
     )) {
       return const DemoCouponResult(400, <String, Object?>{
-        'detail': '포인트가 부족해요.',
+        'detail': <String, Object?>{
+          'code': 'insufficient_points',
+          'message': '포인트가 부족해요.',
+        },
       });
     }
+    if (clientRequestId != null) _requestIds.add(clientRequestId);
     _expiresAt[emoteId] = _now().add(const Duration(days: days));
+    onChanged?.call();
     return DemoCouponResult(200, stateJson());
+  }
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'sequence': _sequence,
+    'request_ids': _requestIds.toList(),
+    'expires_at': <String, Object?>{
+      for (final MapEntry<String, DateTime> e in _expiresAt.entries)
+        e.key: e.value.toIso8601String(),
+    },
+  };
+
+  @override
+  void restore(Map<String, Object?> json) {
+    _sequence = (json['sequence'] as num?)?.toInt() ?? 0;
+    final Object? keys = json['request_ids'];
+    _requestIds
+      ..clear()
+      ..addAll(<String>[
+        if (keys is List<Object?>)
+          for (final Object? k in keys)
+            if (k is String) k,
+      ]);
+    final Object? saved = json['expires_at'];
+    _expiresAt
+      ..clear()
+      ..addAll(<String, DateTime>{
+        if (saved is Map<Object?, Object?>)
+          for (final MapEntry<Object?, Object?> e in saved.entries)
+            if (e.key case final String id when AppEmotes.has(id))
+              id: demoParseTime(e.value),
+      });
   }
 }
 
 /// 목업 경로가 함께 쓰는 이모티콘 원장 하나.
-final demoEmoteBookProvider = Provider<DemoEmoteBook>(
-  (ref) => DemoEmoteBook(ledger: ref.watch(demoPointsLedgerProvider)),
-  name: 'demoEmoteBook',
-);
+final demoEmoteBookProvider = Provider<DemoEmoteBook>((ref) {
+  final DemoEmoteBook book = DemoEmoteBook(
+    ledger: ref.watch(demoPointsLedgerProvider),
+  );
+  ref.watch(demoBenefitsStoreProvider).attach('emotes', book);
+  return book;
+}, name: 'demoEmoteBook');

@@ -7,9 +7,11 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logger/logger.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare/core/logging/app_logger.dart';
+import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
@@ -18,6 +20,9 @@ import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
+
+import '../../helpers/demo_exercise.dart';
 
 const Gym _gym = Gym(
   id: 'gym-next-pt',
@@ -49,6 +54,7 @@ Future<AppLocalizations> _pump(
   WidgetTester tester, {
   required List<MyReservation> reservations,
 }) async {
+  final AppDatabase exerciseDb = await seededDemoDatabase(tester);
   tester.view.physicalSize = const Size(420, 2200);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -56,6 +62,9 @@ Future<AppLocalizations> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: <Override>[
+        // 운동은 앱의 데모와 같은 경로(로컬 목업 API + drift)로 돈다(#2724).
+        ...demoExerciseOverrides(exerciseDb),
+        appLoggerProvider.overrideWithValue(Logger(level: Level.off)),
         appConfigProvider.overrideWithValue(
           const AppConfig(
             environment: Environment.dev,
@@ -67,10 +76,23 @@ Future<AppLocalizations> _pump(
         myTrainerProvider.overrideWith((ref) async => _trainer),
         myReservationsProvider.overrideWith((ref) async => reservations),
         memberCoachProvider.overrideWith((ref) async => _coach),
-        // 트레이너가 잡아 준 일정은 없다 — 예약만으로 다음 PT 가 서야 한다.
-        coachSessionsProvider.overrideWith(
-          (ref) async => const <CoachSession>[],
-        ),
+        // 트레이너가 잡아 준 다음 일정은 없다 — 예약만으로 다음 PT 가 서야 한다.
+        // 오늘 끝낸 수업 하나만 있다: `다음 PT` 는 `오늘 완료한 PT` 카드 안에
+        // 서는데, 그 카드는 데모도 실서버처럼 오늘 완료 수업이 있을 때만 선다
+        // (#2694).
+        coachSessionsProvider.overrideWith((ref) async {
+          final DateTime today = nowKst();
+          return <CoachSession>[
+            CoachSession(
+              id: 'done-today',
+              date: DateTime(today.year, today.month, today.day),
+              time: '06:00',
+              type: '1:1 PT',
+              durationMinutes: 50,
+              status: '완료',
+            ),
+          ];
+        }),
         coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
       ],
       child: MaterialApp(

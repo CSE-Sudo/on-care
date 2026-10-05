@@ -1,12 +1,18 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:oncare_core/active_polling_stream.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/session/account_scope.dart';
-import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
+import 'package:oncare_trainer/core/storage/app_database.dart';
+import 'package:oncare_trainer/core/storage/demo_language.dart';
+import 'package:oncare_trainer/core/storage/seed_notifications.dart';
+import 'package:oncare_trainer/core/utils/poll_intervals.dart';
 import 'package:oncare_trainer/features/notifications/domain/entities/trainer_notification.dart';
 
 /// 트레이너 알림함을 읽고 읽음 처리한다. (#503)
@@ -14,17 +20,13 @@ import 'package:oncare_trainer/features/notifications/domain/entities/trainer_no
 /// 두 구현이 [trainerNotificationRepositoryProvider] 뒤에 있고
 /// [AppConfig.useMockApi] 로 갈린다.
 ///
-///  * [DemoNotificationRepository] — 데모. 알림을 만드는 회원 백엔드가 없어
-///    항상 비어 있다. 상담 인박스(#467)와 같은 이유로, 늘 "없어요"만 말하는
-///    진입점을 데모에 남기지 않는다.
+///  * [DemoNotificationRepository] — 데모. 로컬 DB 에 심어 둔 과거 알림을
+///    읽는다(#2628). 예전에는 늘 비어 있어 진입점을 감췄다(#503).
 ///  * [DioNotificationRepository] — 실 백엔드(`/trainer/notifications`).
 ///
 /// 회원용 `/notifications` 를 쓰지 않는 이유: 그 경로는 트레이너 계정을 403 으로
 /// 막는 **회원 전용**이다(역할 분리). 저장되는 행은 같은 테이블이다.
 abstract interface class TrainerNotificationRepository {
-  /// 이 빌드에서 알림함을 쓸 수 있는가. 데모에서는 진입점을 감춘다.
-  bool get supportsInbox;
-
   /// 받은 알림 한 쪽(최신순). [before] 가 없으면 첫 쪽이다.
   ///
   /// 서버는 한 쪽(기본 100건)만 준다. 다음 쪽이 있으면
@@ -48,37 +50,120 @@ abstract interface class TrainerNotificationRepository {
   Future<int> markAllRead();
 }
 
-/// 데모: 알림함이 없다. 읽기는 빈 결과로 성공해, 딥링크로 들어와도 오류가
-/// 아니라 빈 화면이 된다.
+/// 데모: 로컬 DB 에 심어 둔 과거 알림을 읽는다(#2628).
+///
+/// 알림은 다 확인해도 이전 기록이 남는 화면이다. 데모에는 알림을 새로 만드는
+/// 회원 백엔드가 없지만, 시드가 트레이너가 받는 종류를 골고루 심어 두고
+/// 읽음 처리도 그 값을 고쳐 남긴다. 한 쪽에 모두 담는다.
 class DemoNotificationRepository implements TrainerNotificationRepository {
-  const DemoNotificationRepository();
+  const DemoNotificationRepository(this._db, {this.language = DemoLanguage.ko});
 
-  @override
-  bool get supportsInbox => false;
+  final AppDatabase _db;
 
-  /// 어느 쪽을 물어도 빈 마지막 쪽이다 — 이어 받기가 끝없이 돌지 않는다.
+  /// `3시간 전` 같은 상대 시각의 언어. 실 서버는 요청 언어로 적어 보낸다.
+  final DemoLanguage language;
+
+  Future<List<Map<String, Object?>>> _rows() async =>
+      _decode(await _db.readValue(demoNotificationsKey));
+
+  static List<Map<String, Object?>> _decode(String? raw) {
+    if (raw == null || raw.isEmpty) return <Map<String, Object?>>[];
+    final Object? decoded = jsonDecode(raw);
+    if (decoded is! List) return <Map<String, Object?>>[];
+    return <Map<String, Object?>>[
+      for (final Object? row in decoded)
+        if (row is Map<String, Object?>) Map<String, Object?>.of(row),
+    ];
+  }
+
+  TrainerNotificationPage _page(List<Map<String, Object?>> rows) {
+    // 데모의 '지금'(서울 벽시계)을 같은 순간의 UTC 로 — 시드와 같은 시계다.
+    final DateTime wall = nowKst();
+    final DateTime now = DateTime.utc(
+      wall.year,
+      wall.month,
+      wall.day,
+      wall.hour,
+      wall.minute,
+      wall.second,
+    ).subtract(kstOffset);
+    final List<TrainerNotification> items = <TrainerNotification>[
+      for (final Map<String, Object?> row in rows)
+        TrainerNotification.fromJson(<String, Object?>{
+          ...row,
+          'time_ago': demoTimeAgo(
+            DateTime.parse(row['created_at']! as String),
+            now: now,
+            korean: language == DemoLanguage.ko,
+          ),
+        }),
+    ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return TrainerNotificationPage(items: items);
+  }
+
   @override
   Future<TrainerNotificationPage> fetch({
     TrainerNotificationCursor? before,
-  }) async => TrainerNotificationPage.empty;
+  }) async =>
+      // 한 쪽에 모두 담았다 — 이어 받을 쪽이 없다.
+      before == null ? _page(await _rows()) : TrainerNotificationPage.empty;
 
-  /// 데모에는 알림을 만드는 회원 백엔드가 없다. 폴링해 봐야 같은 빈 목록을
-  /// 다시 세는 요청이라, 한 번 내고 끝낸다.
-  @override
-  Stream<TrainerNotificationPage> watch() =>
-      Stream<TrainerNotificationPage>.value(TrainerNotificationPage.empty);
-
-  @override
-  Future<int> unreadCount() async => 0;
-
-  @override
-  Stream<int> watchUnreadCount() => Stream<int>.value(0);
+  Stream<List<Map<String, Object?>>> _watchRows() =>
+      (_db.select(_db.appKeyValues)
+            ..where((t) => t.key.equals(demoNotificationsKey)))
+          .watchSingleOrNull()
+          .map((AppKeyValue? row) => _decode(row?.value));
 
   @override
-  Future<void> markRead(String id) async {}
+  Stream<TrainerNotificationPage> watch() => _watchRows().map(_page);
 
   @override
-  Future<int> markAllRead() async => 0;
+  Future<int> unreadCount() async =>
+      (await _rows()).where((r) => r['read'] != true).length;
+
+  @override
+  Stream<int> watchUnreadCount() =>
+      _watchRows().map((rows) => rows.where((r) => r['read'] != true).length);
+
+  @override
+  Future<void> markRead(String id) async {
+    final List<Map<String, Object?>> rows = await _rows();
+    for (final Map<String, Object?> row in rows) {
+      if (row['id'] == id) row['read'] = true;
+    }
+    await _db.putValue(demoNotificationsKey, jsonEncode(rows));
+  }
+
+  @override
+  Future<int> markAllRead() async {
+    final List<Map<String, Object?>> rows = await _rows();
+    int marked = 0;
+    for (final Map<String, Object?> row in rows) {
+      if (row['read'] != true) {
+        row['read'] = true;
+        marked++;
+      }
+    }
+    await _db.putValue(demoNotificationsKey, jsonEncode(rows));
+    return marked;
+  }
+}
+
+/// 서버 `notification_service.time_ago` 와 같은 상대 시각 문구.
+@visibleForTesting
+String demoTimeAgo(DateTime at, {required DateTime now, required bool korean}) {
+  final int sec = now.difference(at).inSeconds;
+  if (sec < 60) return korean ? '방금 전' : 'just now';
+  if (sec < 3600) {
+    final int n = sec ~/ 60;
+    return korean ? '$n분 전' : '$n min ago';
+  }
+  if (sec < 86400) {
+    final int n = sec ~/ 3600;
+    return korean ? '$n시간 전' : '$n ${n == 1 ? 'hour' : 'hours'} ago';
+  }
+  final int n = sec ~/ 86400;
+  return korean ? '$n일 전' : '$n ${n == 1 ? 'day' : 'days'} ago';
 }
 
 /// 다음 쪽 커서가 실리는 응답 헤더(#2293). 서버 `trainer.py` 와 같은 이름이다.
@@ -99,9 +184,6 @@ class DioNotificationRepository implements TrainerNotificationRepository {
   /// 알림함과 그 배지를 다시 읽는 주기. 두 값이 같은 주기를 쓰는 이유는
   /// 알림함을 열어 둔 채로 배지만 올라가면 목록과 숫자가 어긋나 보여서다.
   final Duration pollInterval;
-
-  @override
-  bool get supportsInbox => true;
 
   /// 본문은 전과 같은 배열이고, 다음 쪽 커서는 응답 헤더로 온다(#2293).
   /// 헤더가 없으면 마지막 쪽이다.
@@ -140,11 +222,15 @@ class DioNotificationRepository implements TrainerNotificationRepository {
       activePollingStream<TrainerNotificationPage>(
         load: fetch,
         interval: pollInterval,
+        keepPollingWhileInactive: true,
       );
 
   @override
-  Stream<int> watchUnreadCount() =>
-      activePollingStream<int>(load: unreadCount, interval: pollInterval);
+  Stream<int> watchUnreadCount() => activePollingStream<int>(
+    load: unreadCount,
+    interval: pollInterval,
+    keepPollingWhileInactive: true,
+  );
 
   @override
   Future<int> unreadCount() async {
@@ -187,16 +273,13 @@ final trainerNotificationRepositoryProvider =
     Provider<TrainerNotificationRepository>((ref) {
       ref.watch(accountScopeProvider); // 계정이 바뀌면 새로 만든다(#2285).
       if (ref.watch(appConfigProvider).useMockApi) {
-        return const DemoNotificationRepository();
+        return DemoNotificationRepository(
+          ref.watch(appDatabaseProvider),
+          language: ref.watch(demoLanguageProvider),
+        );
       }
       return DioNotificationRepository(ref.watch(dioProvider));
     }, name: 'trainerNotificationRepository');
-
-/// 알림함에 들어갈 수 있는 빌드인가 — 사이드바 진입점 노출 조건.
-final notificationInboxEnabledProvider = Provider<bool>(
-  (ref) => ref.watch(trainerNotificationRepositoryProvider).supportsInbox,
-  name: 'notificationInboxEnabled',
-);
 
 /// 받은 알림의 첫 쪽.
 ///
@@ -205,9 +288,15 @@ final notificationInboxEnabledProvider = Provider<bool>(
 ///
 /// 첫 쪽보다 오래된 알림은 [trainerNotificationPagingProvider] 가 이어 받는다
 /// (#2293). 화면은 둘을 [mergeTrainerNotifications] 로 합쳐 그린다.
+///
+/// **목록을 보는 동안만** 산다(#2767). 알림 종 팝오버나 알림 화면이 닫히면
+/// 구독이 끝나 폴링도 멈춘다. 전에는 계정 동안 붙잡아 두어(`keepAliveForAccount`)
+/// 한 번 연 뒤로는 아무도 보지 않는 목록을 20초마다 다시 받았다. 배지 숫자는
+/// [trainerUnreadNotificationsProvider] 가 따로 맡으니 목록을 살려 둘 이유가
+/// 없다. 다시 열면 첫 쪽을 새로 받는다. 계정 경계는 저장소 provider 가
+/// [accountScopeProvider] 를 보므로 그대로 지켜진다.
 final trainerNotificationsProvider =
     StreamProvider.autoDispose<TrainerNotificationPage>((ref) {
-      keepAliveForAccount(ref);
       return ref.watch(trainerNotificationRepositoryProvider).watch();
     }, name: 'trainerNotifications');
 
@@ -217,6 +306,146 @@ final trainerUnreadNotificationsProvider = StreamProvider.autoDispose<int>((
 ) {
   return ref.watch(trainerNotificationRepositoryProvider).watchUnreadCount();
 }, name: 'trainerUnreadNotifications');
+
+/// 읽음 처리를 보냈지만 서버가 센 미읽음 수에는 아직 비치지 않은 알림. (#2762)
+///
+/// 알림을 누르면 화면은 바로 그 알림의 자리로 간다. 서버 숫자는 읽음 요청이
+/// 끝나고 다시 읽어야 바뀌므로, 그 사이 배지는 여기 담긴 수만큼 미리 뺀다.
+/// 새 숫자가 오거나 요청이 실패하면 [NotificationReadTracker] 가 꺼낸다.
+/// 계정이 바뀌면 비운다.
+final trainerPendingNotificationReadsProvider = StateProvider<Set<String>>((
+  ref,
+) {
+  ref.watch(accountScopeProvider);
+  return const <String>{};
+}, name: 'trainerPendingNotificationReads');
+
+/// 보냈지만 서버가 센 미읽음 수에는 아직 비치지 않은 '모두 읽음' 요청 수. (#2884)
+///
+/// 하나라도 있으면 배지는 0 이다. 새 숫자가 오거나 요청이 실패하면
+/// [NotificationReadTracker.markAllRead] 가 줄인다. 계정이 바뀌면 비운다.
+final trainerPendingReadAllProvider = StateProvider<int>((ref) {
+  ref.watch(accountScopeProvider);
+  return 0;
+}, name: 'trainerPendingReadAll');
+
+/// 배지·알림 화면이 그리는 미읽음 수. 아직 모르면 `null`. (#2762)
+///
+/// 서버 수([trainerUnreadNotificationsProvider])에서 읽음 처리 중인 알림을
+/// 미리 뺀다 — 누른 알림이 다음 폴링(20초)까지 배지에 남지 않게 한다.
+final trainerUnreadBadgeProvider = Provider.autoDispose<int?>((ref) {
+  if (ref.watch(trainerPendingReadAllProvider) > 0) return 0;
+  final int? unread = ref.watch(trainerUnreadNotificationsProvider).valueOrNull;
+  if (unread == null) return null;
+  final int pending = ref.watch(trainerPendingNotificationReadsProvider).length;
+  return unread - pending < 0 ? 0 : unread - pending;
+}, name: 'trainerUnreadBadge');
+
+/// 알림 한 건의 읽음 처리 — 화면 수명과 무관하게 끝까지 간다. (#2762)
+///
+/// 알림 종 팝오버는 항목을 누르는 순간 닫히고, 그 위젯의 `ref`·`context` 도
+/// 함께 끝난다. 전에는 그 `ref` 로 읽음 요청 뒤의 갱신을 이어 가다 예외가 나
+/// 이동과 배지 갱신이 모두 빠졌다. 그래서 여기서는 앱 전체의
+/// [ProviderContainer] 만 쓴다.
+class NotificationReadTracker {
+  const NotificationReadTracker(this._container);
+
+  final ProviderContainer _container;
+
+  /// [id] 를 읽음으로 보낸다. 배지는 요청 전에 미리 줄이고, 실패하면 되돌린다.
+  Future<void> markRead(String id) async {
+    _pend(id);
+    final TrainerNotificationRepository repository = _container.read(
+      trainerNotificationRepositoryProvider,
+    );
+    try {
+      await repository.markRead(id);
+    } on Object {
+      // 실패하면 미리 뺀 몫을 돌려 둔다 — 다음 조회에서 다시 미읽음으로 보인다.
+      _unpend(id);
+      return;
+    }
+    // 이어 받은 과거 쪽은 다시 읽지 않으므로 여기서 읽음을 비춘다. 알림 화면을
+    // 떠났으면 그 상태도 이미 버려졌다.
+    if (_container.exists(trainerNotificationPagingProvider)) {
+      _container.read(trainerNotificationPagingProvider.notifier).markRead(id);
+    }
+    // 서버가 읽음을 센 새 숫자가 오면 미리 뺀 몫을 거둔다. 새 숫자가 오기 전에
+    // 거두면 배지가 옛 숫자로 한 번 튀어 오른다.
+    late final ProviderSubscription<AsyncValue<int>> watching;
+    watching = _container.listen<AsyncValue<int>>(
+      trainerUnreadNotificationsProvider,
+      (AsyncValue<int>? _, AsyncValue<int> next) {
+        if (next.isLoading) return;
+        watching.close();
+        _unpend(id);
+      },
+    );
+    _container
+      ..invalidate(trainerNotificationsProvider)
+      ..invalidate(trainerUnreadNotificationsProvider);
+  }
+
+  /// 받은 알림 전체를 읽음으로 보낸다. 배지는 요청 전에 0 으로 두고, 실패하면
+  /// 되돌린다. 성공 여부를 돌려준다 — 안내는 부른 쪽이 잡아 둔 토스트로 띄운다.
+  /// (#2884)
+  ///
+  /// 단건과 같은 이유로 [ProviderContainer] 만 쓴다. 팝오버의 '모두 읽음' 은
+  /// 응답이 오기 전에 팝오버가 닫힐 수 있다.
+  Future<bool> markAllRead() async {
+    _pendReadAll(1);
+    final TrainerNotificationRepository repository = _container.read(
+      trainerNotificationRepositoryProvider,
+    );
+    try {
+      await repository.markAllRead();
+    } on Object {
+      _pendReadAll(-1);
+      return false;
+    }
+    // 서버는 쪽과 무관하게 전체를 읽음으로 바꾼다. 받아 둔 과거 쪽도 같게
+    // 비춘다. 알림 화면을 연 적이 없으면 새로 만들지 않는다.
+    if (_container.exists(trainerNotificationPagingProvider)) {
+      _container.read(trainerNotificationPagingProvider.notifier).markAllRead();
+    }
+    late final ProviderSubscription<AsyncValue<int>> watching;
+    watching = _container.listen<AsyncValue<int>>(
+      trainerUnreadNotificationsProvider,
+      (AsyncValue<int>? _, AsyncValue<int> next) {
+        if (next.isLoading) return;
+        watching.close();
+        _pendReadAll(-1);
+      },
+    );
+    _container
+      ..invalidate(trainerNotificationsProvider)
+      ..invalidate(trainerUnreadNotificationsProvider);
+    return true;
+  }
+
+  void _pendReadAll(int delta) {
+    final StateController<int> pending = _container.read(
+      trainerPendingReadAllProvider.notifier,
+    );
+    final int next = pending.state + delta;
+    pending.state = next < 0 ? 0 : next;
+  }
+
+  void _pend(String id) {
+    final StateController<Set<String>> pending = _container.read(
+      trainerPendingNotificationReadsProvider.notifier,
+    );
+    pending.state = <String>{...pending.state, id};
+  }
+
+  void _unpend(String id) {
+    final StateController<Set<String>> pending = _container.read(
+      trainerPendingNotificationReadsProvider.notifier,
+    );
+    if (!pending.state.contains(id)) return;
+    pending.state = <String>{...pending.state}..remove(id);
+  }
+}
 
 /// 첫 쪽 뒤에 이어 받은 과거 알림. (#2293)
 ///

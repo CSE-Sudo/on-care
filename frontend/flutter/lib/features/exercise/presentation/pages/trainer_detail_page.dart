@@ -13,7 +13,9 @@ import 'package:oncare/features/exercise/presentation/controllers/exercise_contr
 import 'package:oncare/features/exercise/presentation/widgets/connection_disconnect.dart';
 import 'package:oncare/features/exercise/presentation/widgets/consult_linked_notice.dart';
 import 'package:oncare/features/exercise/presentation/widgets/trainer_reason_badges.dart';
+import 'package:oncare/features/exercise/presentation/widgets/trainer_report_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 class TrainerDetailPage extends ConsumerWidget {
@@ -58,9 +60,10 @@ class TrainerDetailPage extends ConsumerWidget {
         title: l.exTrainerNotFound,
         icon: AppIcons.info,
       ),
-      AsyncError<Trainer?>() => AppErrorState(
+      AsyncError<Trainer?>(:final Object error) => appErrorStateFor(
+        context,
+        error: error,
         title: l.exTrainersLoadError,
-        retryLabel: l.actionRetry,
         onRetry: () => ref.invalidate(trainerProvider(trainerId)),
       ),
       _ => const AppLoading(),
@@ -105,8 +108,11 @@ class _TrainerDetails extends ConsumerWidget {
   Future<void> _disconnect(BuildContext context, WidgetRef ref) async {
     final AppLocalizations l = AppLocalizations.of(context);
     // 아직 읽는 중이면 `valueOrNull` 은 null 이라 확인 문구에서 헬스장 이름이
-    // 빠진다.
-    final Gym? myGym = await ref.read(myGymProvider.future);
+    // 빠진다. 조회가 실패해도 확인 창은 띄운다 — 버튼이 무반응이 되지
+    // 않게(#2857).
+    final Gym? myGym = await readConnectionForConfirm(
+      ref.read(myGymProvider.future),
+    );
     if (!context.mounted) return;
     final bool removed = await confirmDisconnect(
       context,
@@ -307,6 +313,15 @@ class _TrainerDetails extends ConsumerWidget {
                 onTap: () => _disconnect(context, ref),
               ),
             ],
+            // 운영자 승인 없이 활동하는 트레이너라(#3008) 사칭·부적절한 메시지를
+            // 회원이 알릴 길을 둔다. 상담·연결 동작보다 앞서지 않게 맨 아래다.
+            const SizedBox(height: OnCareSpacing.s12),
+            Center(
+              child: TrainerReportButton(
+                key: const Key('trainer-detail-report'),
+                trainer: trainer,
+              ),
+            ),
           ],
         ),
       ),
@@ -325,7 +340,7 @@ class _AffiliatedGymRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
-    return Material(
+    final Widget row = Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () => context.push(AppRoutes.gymDetailPath(gym.id)),
@@ -371,6 +386,25 @@ class _AffiliatedGymRow extends StatelessWidget {
           ],
         ),
       ),
+    );
+    // 소속은 트레이너가 가입할 때 직접 고른 것이고 운영자가 확인하지 않는다
+    // (#3008). 회원이 그 사실을 알고 판단하도록 헬스장 이름과 같은 세로선에서
+    // 한 줄 덧붙인다.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        row,
+        const SizedBox(height: OnCareSpacing.s4),
+        const Padding(
+          padding: EdgeInsets.only(
+            left: OnCareSize.iconSmall + OnCareSpacing.s8,
+          ),
+          child: SelfRegisteredAffiliationNote(
+            key: Key('trainer-detail-self-registered'),
+          ),
+        ),
+      ],
     );
   }
 }

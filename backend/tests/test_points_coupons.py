@@ -15,7 +15,7 @@ import pytest
 from sqlalchemy import func, select, update
 
 from app.core import clock
-from app.core.security import create_access_token
+from app.core.security import create_access_token, hash_password
 from app.models.models import (
     AuditLog,
     HealthProfile,
@@ -752,7 +752,14 @@ def test_trainer_account_deletion_refunds_renewal_coupon(
     assert r.json()["coupon"]["gym_name"] == GYM_NAME
     coupon_id = r.json()["coupon"]["id"]
 
-    deleted = client.delete("/v1/trainer/me", headers=_headers(trainer_id))
+    # 이 파일의 트레이너는 비밀번호 없이 만든다 — 탈퇴 본인 확인(#3039)용으로 하나 준다.
+    trainer = db_session.get(User, trainer_id)
+    trainer.hashed_password = hash_password("coupon-pw-1234")
+    db_session.commit()
+    deleted = client.request(
+        "DELETE", "/v1/trainer/me", json={"current_password": "coupon-pw-1234"},
+        headers=_headers(trainer_id),
+    )
     assert deleted.status_code == 200, deleted.text
 
     assert _balance(client, h) == 21000
@@ -815,3 +822,196 @@ def test_weekly_report_buys_last_week_once(client, db_session):
     assert [r["week_start"] for r in listed["reports"]] == [last_monday]
     assert _shop_item(client, h, "weekly_report")["blocked_reason"] == "week_owned"
     assert client.get("/v1/me/points/shop", headers=h).json()["balance"] == 700
+
+
+# ---- 헬스장 혜택 기능 플래그 (#2822) ----
+
+
+SERVICE_PAUSED = "헬스장 혜택 제공을 잠시 멈추게 되어"
+
+
+@pytest.fixture
+def benefits_off(monkeypatch):
+    """제휴 확정 전 실서비스 — 데모 시드와 헬스장 혜택 플래그가 모두 꺼진 서버."""
+    from app.core.config import get_settings
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "seed_demo_data", False)
+    monkeypatch.setattr(settings, "gym_benefits_enabled", False)
+
+
+def _shop(client, headers) -> dict:
+    r = client.get("/v1/me/points/shop", headers=headers)
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+def test_gym_benefits_follow_flag_and_demo_seed(monkeypatch):
+    from app.core.config import get_settings
+    from app.services import points_coupon_service as pcs
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "seed_demo_data", False)
+    monkeypatch.setattr(settings, "gym_benefits_enabled", False)
+    assert pcs.gym_benefits_enabled() is False
+    monkeypatch.setattr(settings, "gym_benefits_enabled", True)
+    assert pcs.gym_benefits_enabled() is True
+    # 데모 서버는 플래그와 상관없이 연다 — 데모 화면은 그대로다.
+    monkeypatch.setattr(settings, "gym_benefits_enabled", False)
+    monkeypatch.setattr(settings, "seed_demo_data", True)
+    assert pcs.gym_benefits_enabled() is True
+
+
+def test_gym_benefit_ids_cover_every_on_site_coupon():
+    from app.services import points_coupon_service as pcs
+
+    assert pcs.GYM_BENEFIT_IDS == {"pt_renewal", "locker_month", "diet_tray"}
+
+
+def test_gym_benefits_are_off_by_default_in_settings():
+    from app.core.config import Settings
+
+    assert Settings(_env_file=None).gym_benefits_enabled is False
+
+
+def test_shop_hides_gym_benefits_when_flag_is_off(
+    client, db_session, trainer_id, gym_id, benefits_off
+):
+    member_id, h = _new_member(client, db_session, points=50000)
+    _link(db_session, member_id, trainer_id)
+    _link_gym(db_session, member_id, gym_id)
+
+    body = _shop(client, h)
+    assert body["gym_benefits_enabled"] is False
+    ids = [i["id"] for i in body["items"]]
+    assert "pt_renewal" not in ids
+    assert "locker_month" not in ids
+    # 현장 혜택이 아닌 사용처는 그대로다.
+    assert "streak_shield" in ids
+    assert "graph_color" in ids
+
+
+def test_shop_keeps_gym_benefits_when_flag_is_on(
+    client, db_session, trainer_id, gym_id, benefits_off, monkeypatch
+):
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "gym_benefits_enabled", True)
+    member_id, h = _new_member(client, db_session, points=50000)
+    _link(db_session, member_id, trainer_id)
+    _link_gym(db_session, member_id, gym_id)
+
+    body = _shop(client, h)
+    assert body["gym_benefits_enabled"] is True
+    ids = [i["id"] for i in body["items"]]
+    assert ids[:2] == ["pt_renewal", "locker_month"]
+
+
+def test_demo_server_shop_is_unchanged(client, db_session, trainer_id, gym_id):
+    """데모 시드가 켜진 서버(CI 기본)는 지금처럼 두 항목을 싣는다."""
+    member_id, h = _new_member(client, db_session, points=50000)
+    body = _shop(client, h)
+    assert body["gym_benefits_enabled"] is True
+    assert {"pt_renewal", "locker_month"} <= {i["id"] for i in body["items"]}
+
+
+@pytest.mark.parametrize("item", ["pt_renewal", "locker_month"])
+def test_exchange_rejects_gym_benefits_when_flag_is_off(
+    client, db_session, trainer_id, gym_id, benefits_off, item
+):
+    member_id, h = _new_member(client, db_session, points=50000)
+    _link(db_session, member_id, trainer_id)
+    _link_gym(db_session, member_id, gym_id)
+
+    r = _exchange(client, h, item, request_id=f"off-{item}")
+    assert r.status_code == 404, r.text
+    # 포인트도 쿠폰도 그대로다.
+    assert _balance(client, h) == 50000
+    db_session.expire_all()
+    assert (
+        db_session.scalar(
+            select(func.count())
+            .select_from(PointsCoupon)
+            .where(PointsCoupon.user_id == member_id)
+        )
+        == 0
+    )
+
+
+def test_exchange_of_other_items_still_works_when_flag_is_off(
+    client, db_session, benefits_off
+):
+    member_id, h = _new_member(client, db_session, points=50000)
+    r = _exchange(client, h, "streak_shield", request_id="off-shield")
+    assert r.status_code == 201, r.text
+
+
+def test_cancel_script_refunds_issued_gym_coupons(
+    client, db_session, trainer_id, gym_id, monkeypatch
+):
+    """혜택을 닫기 전에 발급된 쿠폰은 정리 스크립트가 취소하고 포인트를 돌려준다."""
+    from app.core.config import get_settings
+    from scripts import cancel_gym_benefit_coupons as script
+
+    member_id, h = _new_member(client, db_session, points=28300)
+    _link(db_session, member_id, trainer_id)
+    _link_gym(db_session, member_id, gym_id)
+    renewal_id = _exchange(client, h, "pt_renewal").json()["coupon"]["id"]
+    locker_id = _exchange(client, h, "locker_month").json()["coupon"]["id"]
+    assert _balance(client, h) == 300
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "seed_demo_data", False)
+    monkeypatch.setattr(settings, "gym_benefits_enabled", False)
+
+    db_session.expire_all()
+    plan = script.build_plan(db_session)
+    assert member_id in plan.member_ids
+    assert plan.coupons_by_item.get("pt_renewal", 0) >= 1
+    assert plan.coupons_by_item.get("locker_month", 0) >= 1
+    # 미리보기는 아무것도 바꾸지 않는다.
+    assert _coupon(db_session, renewal_id).status == "issued"
+
+    script.apply_plan(db_session, script.CancelPlan(member_ids=[member_id]))
+
+    assert _coupon(db_session, renewal_id).status == "cancelled"
+    assert _coupon(db_session, locker_id).status == "cancelled"
+    assert _refunds(db_session, member_id) == sorted(
+        [(21000, renewal_id), (7000, locker_id)]
+    )
+    assert _balance(client, h) == 28300
+    db_session.expire_all()
+    bodies = db_session.scalars(
+        select(Notification.body).where(
+            Notification.user_id == member_id,
+            Notification.title.in_([RENEWAL_CANCELLED, LOCKER_CANCELLED]),
+        )
+    ).all()
+    assert len(bodies) == 2
+    assert all(SERVICE_PAUSED in b for b in bodies)
+
+    # 두 번 돌려도 같다 — 반환은 한 번뿐이다.
+    script.apply_plan(db_session, script.CancelPlan(member_ids=[member_id]))
+    assert _balance(client, h) == 28300
+    assert len(_refunds(db_session, member_id)) == 2
+
+
+def test_cancel_script_forfeits_expired_coupons(
+    client, db_session, gym_id, benefits_off, monkeypatch
+):
+    """기한이 지난 쿠폰은 돌려주지 않고 만료로 내린다(소멸 규칙)."""
+    from app.core.config import get_settings
+    from scripts import cancel_gym_benefit_coupons as script
+
+    monkeypatch.setattr(get_settings(), "gym_benefits_enabled", True)
+    member_id, h = _new_member(client, db_session, points=7000)
+    _link_gym(db_session, member_id, gym_id)
+    locker_id = _exchange(client, h, "locker_month").json()["coupon"]["id"]
+    _set_expiry(db_session, locker_id, clock.now() - timedelta(minutes=1))
+    monkeypatch.setattr(get_settings(), "gym_benefits_enabled", False)
+
+    script.apply_plan(db_session, script.CancelPlan(member_ids=[member_id]))
+
+    assert _coupon(db_session, locker_id).status == "expired"
+    assert _refunds(db_session, member_id) == []
+    assert _balance(client, h) == 0

@@ -5,12 +5,12 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_core/clock.dart';
 
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
-import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
@@ -65,6 +65,11 @@ void main() {
     late AppDatabase db;
 
     setUp(() async {
+      // 오늘의 끝으로 고정한다 — 아래 테스트는 오늘 16:00·17:00·18:00 수업을
+      // 완료한다. 완료는 시작 시각이 지나야 되므로(#2760) 실제 시각에 맡기면
+      // 낮에 돌릴 때 깨진다.
+      final DateTime real = nowKst();
+      useFixedKstDate(DateTime(real.year, real.month, real.day, 23, 59));
       db = AppDatabase.forTesting(NativeDatabase.memory());
       await seedIfEmpty(db);
     });
@@ -409,9 +414,9 @@ void main() {
       expect(history.where((h) => h.id.startsWith('hist-')), isEmpty);
     });
 
-    test('client sessions match on the same normalisation as the uniqueness '
-        'guard (trim + lowercase)', () async {
-      // addClient blocks duplicates on lower(trim(name)) but addSession
+    test('client sessions match on the same normalisation as the seeded '
+        'name uniqueness (trim + lowercase)', () async {
+      // Seeded names are unique on lower(trim(name)) but addSession
       // stores the trainer's raw input. An exact compare here returned
       // nothing for a name saved with stray whitespace, and the weekly
       // report then showed 0 sessions with no error (CodeRabbit #377).
@@ -439,6 +444,71 @@ void main() {
       final after = await repo.watchToday().first;
       expect(after.length, before.length - 1);
       expect(after.where((s) => s.clientName == '윤가온'), isEmpty);
+    });
+
+    // ---- #3093 완료 뒤 수정·삭제·되돌리기가 완료 이력을 따라간다 ----
+
+    Future<String> completeParkSession(DriftScheduleRepository repo) async {
+      final target = (await repo.watchToday().first).firstWhere(
+        (s) => s.clientName == '박성호',
+      );
+      await repo.completeSession(target.id, note: '완료 때 메모');
+      return target.id;
+    }
+
+    Future<List<ClientRoutineHistoryRow>> historyOf(String id) async =>
+        (await db.select(db.clientRoutineHistory).get())
+            .where((h) => h.id.startsWith('hist-$id-'))
+            .toList();
+
+    test('완료 뒤 프로그램을 고치면 완료 이력의 운동도 바뀐다', () async {
+      final repo = DriftScheduleRepository(db);
+      final id = await completeParkSession(repo);
+
+      await repo.updateProgram(
+        id,
+        program: const <ProgramItem>[
+          ProgramItem(name: '스쿼트', sets: 5, weight: 80),
+        ],
+        note: '완료 때 메모',
+      );
+
+      final logged = (await historyOf(id)).single;
+      expect(logged.exercisesJson, contains('스쿼트'));
+      expect(logged.exercisesJson, isNot(contains('벤치프레스')));
+      expect(logged.trainerNote, '완료 때 메모');
+    });
+
+    test('완료 뒤 메모만 고쳐도 완료 이력의 메모가 바뀐다', () async {
+      final repo = DriftScheduleRepository(db);
+      final id = await completeParkSession(repo);
+      final before = (await historyOf(id)).single;
+
+      await repo.updateSession(id, note: '끝난 뒤 남긴 메모');
+
+      final logged = (await historyOf(id)).single;
+      expect(logged.trainerNote, '끝난 뒤 남긴 메모');
+      expect(logged.exercisesJson, before.exercisesJson);
+    });
+
+    test('완료 세션을 지우면 완료 이력도 지워진다', () async {
+      final repo = DriftScheduleRepository(db);
+      final id = await completeParkSession(repo);
+      expect(await historyOf(id), hasLength(1));
+
+      await repo.deleteSession(id);
+
+      expect(await historyOf(id), isEmpty);
+    });
+
+    test('완료 세션을 예정으로 되돌리면 완료 이력도 지워진다', () async {
+      final repo = DriftScheduleRepository(db);
+      final id = await completeParkSession(repo);
+      final DateTime future = nowKst().add(const Duration(days: 40));
+
+      await repo.reopenSession(id, date: ymd(future), time: '06:00');
+
+      expect(await historyOf(id), isEmpty);
     });
   });
 
@@ -711,8 +781,9 @@ void main() {
       );
     });
 
-    // 진입점은 헤더 액션이고, 대기 건수는 빨간 배지로 뜬다(#882).
-    testWidgets('상담 요청 진입점은 대기 건수를 빨간 배지로 보여 준다', (tester) async {
+    // 진입점은 헤더 액션이고(#882), 대기 건수는 알림 종·사이드바 숫자와 같은
+    // 남색 배지로 뜬다 — 빨강은 경고 신호에만 쓴다(#2669, #2806).
+    testWidgets('상담 요청 진입점은 대기 건수를 남색 배지로 보여 준다', (tester) async {
       await openSchedule(tester);
 
       final Finder entry = find.byKey(const Key('consult-inbox-entry'));
@@ -734,16 +805,16 @@ void main() {
                   )
                   .decoration!
               as BoxDecoration;
-      expect(fill.color, OnCareColors.danger);
+      expect(fill.color, OnCareBrand.trainer.primary);
       expect(
         find.descendant(of: entry, matching: find.text('2')),
         findsOneWidget,
       );
     });
 
-    testWidgets('빨간 배지가 아이콘을 가리지 않고 네모 모서리에 붙는다 (#987)', (tester) async {
+    testWidgets('숫자 배지가 아이콘을 가리지 않고 네모 모서리에 붙는다 (#987)', (tester) async {
       // 배지가 아이콘을 감싸던 때에는 지름 16px 짜리 원이 17px 아이콘의 절반을
-      // 덮어, 남는 것이 빨간 원뿐이었다. 배지는 숫자를 **더하는** 표시이지
+      // 덮어, 남는 것이 배지 원뿐이었다. 배지는 숫자를 **더하는** 표시이지
       // 아이콘을 대체하는 표시가 아니다.
       await openSchedule(tester);
 
@@ -776,8 +847,8 @@ void main() {
       );
     });
 
-    testWidgets('대기 건이 없으면 빨간 배지를 달지 않는다', (tester) async {
-      // 빨강은 처리할 것이 있을 때만 뜬다 — 0건에도 뜨면 몇 번 겪고 나서
+    testWidgets('대기 건이 없으면 숫자 배지를 달지 않는다', (tester) async {
+      // 배지는 처리할 것이 있을 때만 뜬다 — 0건에도 뜨면 몇 번 겪고 나서
       // 아무도 안 보게 된다.
       await pumpTrainerApp(
         tester,
@@ -1232,7 +1303,9 @@ void main() {
       );
       expect(find.textContaining('16:00\u201316:45'), findsWidgets);
       expect(find.text('덤벨 플라이'), findsOneWidget);
-      expect(find.textContaining('4세트'), findsOneWidget);
+      // 프로그램 줄의 양을 정확히 본다 — 그 PT 에 붙은 개인운동(회원의 근력
+      // 운동, #2668)도 `4세트` 를 적을 수 있어 부분 일치로는 둘이 잡힌다.
+      expect(find.text('4세트 · 8회 · 65kg'), findsOneWidget);
       // 프로그램만 고쳤으므로 원래 메모는 그대로 남는다.
       expect(find.text('벤치 컨디션 확인 필요.'), findsNothing);
     });
@@ -1287,7 +1360,9 @@ void main() {
     // 자리는 하나지만 하는 일이 둘이다 — 처음 적는 것과 고치는 것. 아무것도
     // 적지 않았는데 `메모 수정` 이라고 부르면, 어딘가에 이미 메모가 있는데 못
     // 찾고 있는 것처럼 읽힌다(#1011).
-    testWidgets('PT 에 글이 있으면 `피드백 수정`, 없으면 `피드백 추가` (#1011, #2574)', (tester) async {
+    testWidgets('PT 에 글이 있으면 `피드백 수정`, 없으면 `피드백 추가` (#1011, #2574)', (
+      tester,
+    ) async {
       await openSchedule(tester);
 
       final Finder noteChip = find.byKey(
@@ -1299,10 +1374,7 @@ void main() {
       await openEditMenu(tester);
       expect(noteActionLabel(tester), '피드백 수정');
       expect(
-        find.descendant(
-          of: noteChip,
-          matching: find.byIcon(AppIcons.note),
-        ),
+        find.descendant(of: noteChip, matching: find.byIcon(AppIcons.note)),
         findsOneWidget,
         // 메모 아이콘은 하나다(#2466) — 수정·추가는 글씨가 가른다.
         reason: '메모가 있어도 없어도 같은 메모 아이콘이다',
@@ -1314,10 +1386,7 @@ void main() {
       await openEditMenu(tester);
       expect(noteActionLabel(tester), '피드백 추가');
       expect(
-        find.descendant(
-          of: noteChip,
-          matching: find.byIcon(AppIcons.note),
-        ),
+        find.descendant(of: noteChip, matching: find.byIcon(AppIcons.note)),
         findsOneWidget,
       );
     });
@@ -1359,6 +1428,8 @@ void main() {
       tester,
     ) async {
       await openSchedule(tester);
+      // 같은 날 저녁 — 16:00 수업이 시작한 뒤라 완료가 열린다(#2760).
+      useFixedKstDate(kMidWeekEveningKst);
       await openSession(tester, '박성호'); // 예정 session
 
       await revealInPanel(
@@ -1398,6 +1469,7 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
       await openSchedule(tester);
+      useFixedKstDate(kMidWeekEveningKst);
 
       await openSession(tester, '박성호');
 
@@ -1431,17 +1503,10 @@ void main() {
       // 있다(#1025). 목록이 길어 스크롤 곡예 대신 화면을 키운다.
       //
       // 메모는 더 이상 완료 처리에서 받지 않으므로(#1106) 그 문구로 찾지
-      // 않는다 — 방금 생긴 PT 기록의 종류로 확인한다.
-      expect(find.text('PT 세션 · 트레이너 지도'), findsWidgets);
-      // 날짜는 미션 카드가 아니라 그 줄이 말한다.
-      const List<String> weekdays = <String>['월', '화', '수', '목', '금', '토', '일'];
-      final DateTime today = nowKst();
-      expect(
-        find.text(
-          '${today.month}월 ${today.day}일 (${weekdays[today.weekday - 1]})',
-        ),
-        findsOneWidget,
-      );
+      // 않는다 — 방금 생긴 PT 기록의 출처 상자(`PT`)로 확인한다(#2508).
+      // `오늘` 은 날짜 줄 없이 그날 출처 상자만 선다(#2508) — 기간 제목이
+      // 이미 오늘이다.
+      expect(find.text('PT'), findsWidgets);
     });
 
     testWidgets('a future session offers no 완료 action', (tester) async {
@@ -1731,6 +1796,9 @@ void main() {
           ),
         ],
       );
+      // 같은 토요일 저녁 — 시드가 오늘 놓는 16:00 박성호 수업까지 시작한
+      // 뒤다. 완료는 시작 시각이 지나야 열린다(#2760).
+      useFixedKstDate(DateTime(2026, 8, 22, 21));
       await goTo(tester, AppRoutes.schedule);
 
       await openSession(tester, '박성호'); // 예정 session

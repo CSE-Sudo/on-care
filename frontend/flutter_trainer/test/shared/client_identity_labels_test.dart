@@ -15,7 +15,7 @@ Future<String> _label(
   WidgetTester tester,
   Locale locale, {
   required String gender,
-  required int age,
+  required int? age,
 }) async {
   late String out;
   await tester.pumpWidget(
@@ -60,14 +60,48 @@ void main() {
       );
     });
 
-    testWidgets('모르는 성별 값은 기타로 읽는다', (tester) async {
+    testWidgets('성별 미입력은 기타가 아니라 나이만 적는다 (#2870)', (tester) async {
       expect(
         await _label(tester, const Locale('en'), gender: '', age: 50),
-        'Other · Age 50',
+        'Age 50',
       );
       expect(
+        await _label(tester, const Locale('ko'), gender: '', age: 50),
+        '50세',
+      );
+      // 세 가지 밖의 값도 미입력으로 읽는다 — 기타로 지어내지 않는다.
+      expect(
         await _label(tester, const Locale('ko'), gender: 'unknown', age: 50),
-        '기타 · 50세',
+        '50세',
+      );
+    });
+
+    testWidgets('성별·나이 둘 다 모르면 빈 문구다 (#2870)', (tester) async {
+      expect(
+        await _label(tester, const Locale('ko'), gender: '', age: null),
+        '',
+      );
+      expect(
+        await _label(tester, const Locale('en'), gender: '', age: null),
+        '',
+      );
+    });
+
+    testWidgets('회원이 직접 고른 기타는 그대로 기타다', (tester) async {
+      expect(
+        await _label(tester, const Locale('ko'), gender: 'other', age: null),
+        '기타',
+      );
+    });
+
+    testWidgets('나이가 없으면 성별만 적는다 (#2744)', (tester) async {
+      expect(
+        await _label(tester, const Locale('ko'), gender: 'female', age: null),
+        '여성',
+      );
+      expect(
+        await _label(tester, const Locale('en'), gender: 'male', age: null),
+        'Male',
       );
     });
 

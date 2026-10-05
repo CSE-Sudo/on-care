@@ -56,6 +56,9 @@ CoachRoutine coachRoutineFromJson(Map<String, Object?> json) {
     // null 이라 화면이 예전처럼 분으로 떨어진다(#1901).
     sets: json['sets'] is num ? (json['sets']! as num).toInt() : null,
     reps: json['reps'] is num ? (json['reps']! as num).toInt() : null,
+    // 버티는 운동의 초(#3138). 서버가 `reps` 와 한 자리를 나눠 쓰므로, 이 값이
+    // 있으면 횟수는 비어 온다.
+    holdSeconds: _positiveIntOrNull(json['hold_seconds']),
     weight: json['weight'] is num ? (json['weight']! as num).toDouble() : null,
     // 완료 응답(`RoutineCompleteOut`)에만 있다(#1786).
     pointsAward: PointsAward.fromJson(json['points']),
@@ -90,6 +93,7 @@ CoachRoutineExercise _coachRoutineExercise(Map<String, Object?> entry) {
     name: _str(entry['name']),
     sets: _intOrNull(entry['sets']),
     reps: _intOrNull(entry['reps']),
+    holdSeconds: _positiveIntOrNull(entry['hold_seconds']),
     weight: _doubleOrNull(entry['weight']),
     duration: duration,
     durationSeconds: _durationSeconds(entry['duration_seconds'], duration),
@@ -127,6 +131,7 @@ CoachSession coachSessionFromJson(Map<String, Object?> json) {
         : 0,
     status: _str(json['status']),
     note: _str(json['note']),
+    sessionNumber: _positiveIntOrNull(json['session_number']),
     program: rawProgram is List<Object?>
         ? rawProgram
               .map((Object? item) {
@@ -146,6 +151,7 @@ CoachSession coachSessionFromJson(Map<String, Object?> json) {
                     item['duration_seconds'],
                     duration,
                   ),
+                  holdSeconds: _positiveIntOrNull(item['hold_seconds']),
                 );
               })
               .toList(growable: false)
@@ -171,6 +177,28 @@ CoachMessage coachMessageFromJson(Map<String, Object?> json) {
     attachment: _attachment(json['attachment']),
     reportWeekStart: _reportWeekStart(json['report_week_start']),
     emoteId: json['emote_id'] is String ? json['emote_id']! as String : null,
+    routineDelivery: _routineDelivery(json['routine_delivery']),
+  );
+}
+
+/// 루틴 전송 안내라면 그 전송. (#2672)
+///
+/// 리포트 안내([_reportWeekStart])처럼 모양이 어긋나면 안내를 포기하고 일반
+/// 메시지로 둔다 — 본문 한 줄(`운동을 보냈어요: …`)은 그대로 읽힌다.
+CoachRoutineDelivery? _routineDelivery(Object? value) {
+  if (value is! Map<String, Object?>) return null;
+  final Object? kind = value['kind'];
+  if (kind is! String) return null;
+  List<String> names(Object? raw) => raw is List
+      ? <String>[
+          for (final Object? name in raw)
+            if (name is String) name,
+        ]
+      : const <String>[];
+  return CoachRoutineDelivery(
+    kind: kind,
+    programNames: names(value['program_names']),
+    routineNames: names(value['routine_names']),
   );
 }
 

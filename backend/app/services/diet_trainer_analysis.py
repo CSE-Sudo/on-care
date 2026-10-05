@@ -3,8 +3,11 @@
 회원 앱의 식단 조언(`diet_period_advice`·`diet_week_advice`·`diet_all_advice`)과
 **같은 기간·같은 판정**을 쓰되, 트레이너가 읽기 좋은 서술로 말한다.
 
-  * 회원 앱은 45자 안의 한 줄 + AI 한 문장이다. 트레이너 웹은 화면이 넓어 두 문장까지
-    쓰고, 무엇 **때문에** 그랬는지(원인 음식·끼니)를 붙인다.
+  * 회원 앱은 45자 안의 한 줄 + AI 한 문장이라 문제를 **하나만** 고른다. 트레이너 웹은
+    걸린 문제를 **두 가지까지** 말하고, 각각 무엇 **때문에** 그랬는지(원인 음식·끼니)를
+    붙이며, 이번 주는 첫 문제를 지난주와 견준다. 다만 프로그램 탭 옆 좁은 칸에도 뜨므로
+    모두 합쳐 **4문장**([MAX_SENTENCES])을 넘기지 않는다 — 첫 문제·근거·비교·둘째 문제
+    순으로 채우고 넘치면 뒤를 버린다.
   * **AI 를 부르지 않는다.** 그래서 화면 제목도 `AI 분석` 이 아니라 `식단 분석` 이다.
     회원 앱 조언의 AI 문장은 회원에게 하는 말이라 싣지 않는다.
   * 문장은 로케일과 무관한 키·값(`sentences`)으로도 나간다 — 트레이너 웹이 자기
@@ -23,6 +26,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 
+from app.core.week import monday_of
 from app.services import diet_all_advice as all_advice
 from app.services import diet_coach_inputs as inputs
 from app.services import diet_week_advice as week_advice
@@ -48,6 +52,9 @@ _NUTRIENT_FIELD = {"sodium": "sodium_mg", "sugar": "sugar_g", "calorie": "calori
 _ENTRY_FIELD = {"sodium": "sodium_mg", "sugar": "sugar_g", "calorie": "total_calories"}
 #: 전체 — 원인 음식은 두 가지까지 이름을 댄다.
 TOP_FOODS = 2
+#: 이번 주·전체 — 말할 문제 수와 문장 수. 프로그램 탭 옆 좁은 칸에서 3~4줄이다.
+MAX_FINDINGS = 2
+MAX_SENTENCES = 4
 
 _SLOT_KO = {
     "breakfast": "아침", "lunch": "점심", "dinner": "저녁",
@@ -81,6 +88,12 @@ _KO: dict[str, str] = {
     "tr_week_protein_short": "{scope_ko} 기록한 {logged}일 중 {days}일 단백질이 목표의 "
                              "80%에 못 미쳤어요.",
     "tr_week_good": "{scope_ko} 기록한 {days}일 모두 목표 안에서 드셨어요.",
+    "tr_week_breakfast_snack_food": "아침 대신 먹은 것은 {food} {count}번이 가장 많았어요.",
+    "tr_week_protein_avg": "모자란 날은 하루 평균 {value} 정도였어요.",
+    "tr_week_good_avg": "하루 평균 {kcal}, 단백질 {protein}을 드셨어요.",
+    "tr_week_vs_last_more": "지난주({prev_logged}일 중 {prev_days}일)보다 늘었어요.",
+    "tr_week_vs_last_less": "지난주({prev_logged}일 중 {prev_days}일)보다 줄었어요.",
+    "tr_week_vs_last_same": "지난주({prev_logged}일 중 {prev_days}일)와 비슷해요.",
     "tr_all_few": "최근 4주 기록이 {days}일이라, 7일이 넘으면 흐름을 짚어 드릴게요.",
     "tr_all_slot_sodium": "최근 4주 동안 {slot_ko} 나트륨이 {days}번 목표의 절반을 넘었어요.",
     "tr_all_carb_heavy": "최근 4주 섭취 열량 중 탄수화물이 {pct}%로 높은 편이에요.",
@@ -119,15 +132,21 @@ _EN: dict[str, str] = {
     "tr_week_protein_short": "Protein fell below 80% of the goal on {days} of {logged} "
                              "logged days {scope_en}.",
     "tr_week_good": "All {days} logged days {scope_en} stayed within the goals.",
+    "tr_week_breakfast_snack_food": "{food} replaced breakfast most often ({count} times).",
+    "tr_week_protein_avg": "Those days averaged {value} a day.",
+    "tr_week_good_avg": "Averaged {kcal} and {protein} protein a day.",
+    "tr_week_vs_last_more": "Up from last week ({prev_days} of {prev_logged} days).",
+    "tr_week_vs_last_less": "Down from last week ({prev_days} of {prev_logged} days).",
+    "tr_week_vs_last_same": "About the same as last week ({prev_days} of {prev_logged} days).",
     "tr_all_few": "Only {days} days logged in the last 4 weeks. The trend shows after 7.",
     "tr_all_slot_sodium": "In the last 4 weeks, {slot_en} sodium went over half the goal "
                           "{days} times.",
     "tr_all_carb_heavy": "Carbs made up {pct}% of calories in the last 4 weeks.",
     "tr_all_protein_light": "Protein made up only {pct}% of calories in the last 4 weeks.",
-    "tr_all_protein_trend_up": "Days meeting the protein goal rose from {before} to {after} "
-                               "over the last 2 weeks.",
-    "tr_all_protein_trend_down": "Days meeting the protein goal fell from {before} to "
-                                 "{after} over the last 2 weeks.",
+    "tr_all_protein_trend_up": "Days meeting the protein goal rose from {before} in the "
+                               "prior 2 weeks to {after} in the last 2 weeks.",
+    "tr_all_protein_trend_down": "Days meeting the protein goal fell from {before} in the "
+                                 "prior 2 weeks to {after} in the last 2 weeks.",
     "tr_all_frequent": "{food} was the most common {slot_en} in the last 4 weeks "
                        "({count} times).",
     "tr_all_repeated": "{food1} and {food2} make up much of the last 4 weeks' log.",
@@ -207,7 +226,7 @@ def _ko_fields(params: dict[str, str | int]) -> dict[str, str | int]:
         out["weekday_en"] = _WEEKDAY_EN[int(params["weekday"])]
     if "kcal" in params:
         out["kcal"] = _fmt(int(params["kcal"]), "calorie")
-    for k in ("gap", "avg"):
+    for k in ("gap", "avg", "protein"):
         if k in params:
             out[k] = _fmt(int(params[k]), "protein")
     if nutrient == "protein" and "value" in params:
@@ -307,47 +326,143 @@ def today_sentences(
 # ── 이번 주 ─────────────────────────────────────────────────────────────
 
 
-def week_sentences(
-    entries, targets: inputs.DietTargets, now: datetime
-) -> tuple[date, date, int, list[Sentence]]:
-    scope, start, end, records, finding = week_advice.decide_week(entries, targets, now)
-    if finding is None:
-        return start, end, 0, [Sentence("tr_week_empty")]
-    logged = len(records)
-    p = finding.analysis.params
-    if finding.kind == "breakfast":
-        if finding.analysis.key == "week_skip_breakfast_snack":
-            s = Sentence("tr_week_skip_breakfast_snack", {
-                "scope": scope, "logged": logged, "days": p["days"],
-                "snack_days": p["snack_days"],
-            })
-        else:
-            s = Sentence("tr_week_skip_breakfast",
-                         {"scope": scope, "logged": logged, "days": p["days"]})
-        return start, end, logged, [s]
-    if finding.kind == "good":
-        return start, end, logged, [Sentence("tr_week_good", {"scope": scope, "days": logged})]
-    if finding.kind == "protein":
-        return start, end, logged, [Sentence(
-            "tr_week_protein_short", {"scope": scope, "logged": logged, "days": p["days"]},
-        )]
+def _week_hits(
+    records: dict[date, week_advice.DayRecord],
+    targets: inputs.DietTargets,
+    *,
+    today: date,
+    now_time: time,
+) -> dict[str, list[week_advice.DayRecord]]:
+    """종류별로 걸린 날 — 회원 앱 `week_advice.find` 와 같은 선이다."""
+    days = sorted(records.values(), key=lambda r: r.day)
+    finished = [
+        r for r in days
+        if r.day < today or (r.day == today and now_time >= week_advice.BREAKFAST_DEADLINE)
+    ]
+    closed = [r for r in days if r.day < today]
+    return {
+        "breakfast": [r for r in finished if "breakfast" not in r.slots],
+        "sodium": [r for r in days if r.sodium_mg > targets.sodium_mg],
+        "calorie": [
+            r for r in days if r.kcal > targets.calories * week_advice.CALORIE_OVER_RATIO
+        ],
+        "sugar": [r for r in days if r.sugar_g > targets.sugar_g],
+        "protein": [
+            r for r in closed
+            if r.main_meals >= week_advice.PROTEIN_MIN_MEALS
+            and r.protein_g < targets.protein_g * week_advice.PROTEIN_SHORT_RATIO
+        ],
+    }
 
+
+def _week_kinds(hits: dict[str, list]) -> list[str]:
+    """말할 종류 — 아침 습관이 먼저, 그다음 걸린 날이 많은 영양(같으면 과잉이 먼저)."""
+    out = ["breakfast"] if len(hits["breakfast"]) >= week_advice.SKIP_BREAKFAST_MIN else []
+    order = week_advice._FOCUS_ORDER
+    focus = [k for k in order if len(hits[k]) >= week_advice.FOCUS_MIN_DAYS]
+    focus.sort(key=lambda k: (-len(hits[k]), order.index(k)))
+    return (out + focus)[:MAX_FINDINGS]
+
+
+def _week_finding(kind: str, hit: list, scope: str, logged: int) -> list[Sentence]:
+    """[문제 문장, 근거 문장] — 근거가 없으면 한 문장이다."""
+    snacks = set(week_advice._SNACKS)
+    if kind == "breakfast":
+        snack_days = [r for r in hit if r.slots & snacks]
+        if len(snack_days) < week_advice.SKIP_SNACK_MIN:
+            return [Sentence("tr_week_skip_breakfast",
+                             {"scope": scope, "logged": logged, "days": len(hit)})]
+        out = [Sentence("tr_week_skip_breakfast_snack", {
+            "scope": scope, "logged": logged, "days": len(hit), "snack_days": len(snack_days),
+        })]
+        top = Counter(
+            n for r in snack_days for m in r.meals if m[0] in snacks for n in m[1]
+        ).most_common(1)
+        if top:
+            out.append(Sentence("tr_week_breakfast_snack_food",
+                                {"food": top[0][0], "count": top[0][1]}))
+        return out
+    if kind == "protein":
+        avg = round(sum(r.protein_g for r in hit) / len(hit))
+        return [
+            Sentence("tr_week_protein_short",
+                     {"scope": scope, "logged": logged, "days": len(hit)}),
+            Sentence("tr_week_protein_avg", {"nutrient": "protein", "value": avg}),
+        ]
     out = [Sentence("tr_week_over", {
-        "scope": scope, "logged": logged, "days": p["days"], "nutrient": finding.kind,
+        "scope": scope, "logged": logged, "days": len(hit), "nutrient": kind,
     })]
-    index = {"calorie": 2, "sodium": 4, "sugar": 5}[finding.kind]
+    index = {"calorie": 2, "sodium": 4, "sugar": 5}[kind]
     best = None
-    for day in finding.days:
-        for meal in records[day].meals:
+    for r in hit:
+        for meal in r.meals:
             if best is None or meal[index] > best[1][index]:
-                best = (day, meal)
+                best = (r.day, meal)
     if best is not None and best[1][1]:
         day, meal = best
         out.append(Sentence("tr_week_cause", {
             "weekday": day.weekday(), "slot": meal[0], "food": ", ".join(meal[1]),
-            "food_value": meal[index], "nutrient": finding.kind,
+            "food_value": meal[index], "nutrient": kind,
         }))
-    return start, end, logged, out
+    return out
+
+
+def _cap(groups: list[list[Sentence]], compare: Sentence | None) -> list[Sentence]:
+    """첫 문제 → 비교 → 첫 근거 → 둘째 문제·근거 순으로, [MAX_SENTENCES] 에서 자른다.
+
+    비교는 첫 문제 바로 뒤다 — 근거 뒤에 두면 무엇을 견준 것인지 읽히지 않는다.
+    """
+    ordered = [groups[0][0]] + ([compare] if compare else []) + list(groups[0][1:])
+    for g in groups[1:]:
+        ordered += g
+    return ordered[:MAX_SENTENCES]
+
+
+def week_sentences(
+    entries, targets: inputs.DietTargets, now: datetime
+) -> tuple[date, date, int, list[Sentence]]:
+    """이번 주 — 걸린 문제를 두 가지까지, 각각 근거를 붙이고 첫 문제는 지난주와 견준다.
+
+    판정 선은 회원 앱(`week_advice.find`)과 같지만, 회원 앱처럼 첫 문제에서 멈추지 않는다.
+    """
+    today = now.date()
+    at = now.timetz().replace(tzinfo=None)
+    records_all = week_advice.day_records(entries)
+    scope, start, end = week_advice.week_window(today, set(records_all))
+    records = {d: r for d, r in records_all.items() if start <= d <= end}
+    if not records:
+        return start, end, 0, [Sentence("tr_week_empty")]
+    logged = len(records)
+    hits = _week_hits(records, targets, today=today, now_time=at)
+    kinds = _week_kinds(hits)
+    if not kinds:
+        days = list(records.values())
+        return start, end, logged, [
+            Sentence("tr_week_good", {"scope": scope, "days": logged}),
+            Sentence("tr_week_good_avg", {
+                "kcal": round(sum(r.kcal for r in days) / logged),
+                "protein": round(sum(r.protein_g for r in days) / logged),
+            }),
+        ]
+    groups = [_week_finding(k, hits[k], scope, logged) for k in kinds]
+
+    # 지난주 — 이번 주를 볼 때만 견준다(지난주를 돌아볼 때는 그 전 주를 읽지 않는다).
+    compare = None
+    if scope == "this":
+        prev = {d: r for d, r in records_all.items() if start - timedelta(days=7) <= d < start}
+        if prev:
+            prev_hits = _week_hits(prev, targets, today=today, now_time=at)
+            prev_days = len(prev_hits[kinds[0]])
+            # 기록한 날 수가 주마다 달라 비율로 견준다.
+            now_rate = len(hits[kinds[0]]) / logged
+            prev_rate = prev_days / len(prev)
+            way = "same" if now_rate == prev_rate else (
+                "more" if now_rate > prev_rate else "less"
+            )
+            compare = Sentence(f"tr_week_vs_last_{way}", {
+                "prev_logged": len(prev), "prev_days": prev_days,
+            })
+    return start, end, logged, _cap(groups, compare)
 
 
 # ── 전체(최근 4주) ──────────────────────────────────────────────────────
@@ -364,18 +479,11 @@ def _foods_sentence(counts: Counter) -> Sentence | None:
     })
 
 
-def all_sentences(entries, targets: inputs.DietTargets, today: date) -> tuple[int, list[Sentence]]:
-    # 트레이너 화면은 지난주에 말한 종류를 건너뛰지 않는다 — 회원 앱처럼 매주 관점을
-    # 바꾸면 트레이너는 같은 회원의 가장 큰 문제를 한 주 걸러 한 번만 보게 된다.
-    records, analysis, finding = all_advice.decide_all(entries, targets, today, None)
-    days = len(records)
-    p = analysis.params
-    key = analysis.key
-    if key == "all_few_records":
-        return days, [Sentence("tr_all_few", {"days": days})]
-    if finding is None:
-        return days, [Sentence("tr_all_good", {"days": days})]
-
+def _all_finding(
+    f: all_advice.Finding, records, entries, targets: inputs.DietTargets, *, with_foods: bool
+) -> list[Sentence]:
+    p = f.analysis.params
+    key = f.analysis.key
     if key == "all_slot_sodium":
         slot = str(p["slot"])
         limit = targets.sodium_mg * all_advice.SLOT_SODIUM_RATIO
@@ -383,23 +491,41 @@ def all_sentences(entries, targets: inputs.DietTargets, today: date) -> tuple[in
             name for r in records.values() for m in r.meals
             if m[0] == slot and m[4] > limit for name in m[1]
         )
+        extra = _foods_sentence(counts)
         out = [Sentence("tr_all_slot_sodium", {"slot": slot, "days": p["days"]})]
-        extra = _foods_sentence(counts)
-        return days, out + ([extra] if extra else [])
+        return out + ([extra] if extra else [])
     if key in ("all_carb_heavy", "all_protein_light"):
-        counts = Counter(n for e in entries for n in inputs.food_names(e))
         out = [Sentence("tr_" + key, {"pct": p["pct"]})]
-        extra = _foods_sentence(counts)
-        return days, out + ([extra] if extra else [])
+        extra = _foods_sentence(Counter(n for e in entries for n in inputs.food_names(e)))
+        return out + ([extra] if extra and with_foods else [])
     if key in ("all_protein_trend_up", "all_protein_trend_down"):
-        return days, [Sentence("tr_" + key, {"before": p["before"], "after": p["after"]})]
+        return [Sentence("tr_" + key, {"before": p["before"], "after": p["after"]})]
     if key == "all_frequent_menu":
-        return days, [Sentence("tr_all_frequent", {
+        return [Sentence("tr_all_frequent", {
             "slot": p["slot"], "food": p["food"], "count": p["count"],
         })]
-    if key == "all_repeated_foods":
-        return days, [Sentence("tr_all_repeated", {"food1": p["food1"], "food2": p["food2"]})]
-    return days, [Sentence("tr_all_good", {"days": days})]
+    return [Sentence("tr_all_repeated", {"food1": p["food1"], "food2": p["food2"]})]
+
+
+def all_sentences(entries, targets: inputs.DietTargets, today: date) -> tuple[int, list[Sentence]]:
+    """전체(최근 4주) — 회원 앱 후보 중 앞의 두 가지까지, 각각 원인 음식을 붙인다.
+
+    트레이너 화면은 지난주에 말한 종류를 건너뛰지 않는다 — 회원 앱처럼 매주 관점을
+    바꾸면 트레이너는 같은 회원의 가장 큰 문제를 한 주 걸러 한 번만 보게 된다.
+    """
+    records = week_advice.day_records(entries)
+    days = len(records)
+    if days < all_advice.MIN_DAYS:
+        return days, [Sentence("tr_all_few", {"days": days})]
+    found = all_advice.candidates(entries, records, targets, today)[:MAX_FINDINGS]
+    if not found:
+        return days, [Sentence("tr_all_good", {"days": days})]
+    # 반복 음식이 함께 나오면 편중 뒤의 "자주 먹은 음식" 은 같은 말이라 뺀다.
+    repeated = any(f.kind == "repeated" for f in found)
+    groups = [
+        _all_finding(f, records, entries, targets, with_foods=not repeated) for f in found
+    ]
+    return days, _cap(groups, None)
 
 
 # ── 조회 ────────────────────────────────────────────────────────────────
@@ -419,7 +545,7 @@ def analysis(db, member_id: str, period: str, *, now: datetime) -> Analysis:
         return Analysis(period, today.isoformat(), today.isoformat(),
                         1 if entries else 0, tuple(sentences))
     if period == PERIOD_WEEK:
-        two_weeks = today - timedelta(days=today.weekday() + 7)
+        two_weeks = monday_of(today) - timedelta(days=7)
         entries = inputs.entries_between(db, member_id, two_weeks, today)
         start, end, logged, sentences = week_sentences(entries, targets, now)
         return Analysis(period, start.isoformat(), end.isoformat(), logged, tuple(sentences))

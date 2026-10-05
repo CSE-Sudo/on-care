@@ -1,27 +1,47 @@
-import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_core/clock.dart';
+import 'package:oncare_report/oncare_report.dart'
+    show
+        ReportSheetAnswers,
+        ReportSheetDay,
+        ReportSheetWeek,
+        calorieTolerance,
+        recordedMean,
+        sugarLimitG;
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/korean_josa.dart';
+import 'package:oncare_trainer/core/utils/korean_josa_l10n.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
 import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
     show elapsedWeekdays, weekdayCount;
 import 'package:oncare_trainer/features/reports/domain/member_weekly_feedback.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
+export 'package:oncare_report/oncare_report.dart'
+    show calorieTolerance, recordedMean, sugarLimitG;
 export 'package:oncare_trainer/core/utils/korean_josa.dart'
     show hasFinalConsonant;
+export 'package:oncare_trainer/core/utils/korean_josa_l10n.dart'
+    show withParticle;
 
 /// Monday of the week containing [day], stripped to a date.
-DateTime weekStartOf(DateTime day) {
-  // 달력 날짜로 뺀다 — `Duration` 으로 빼면 서머타임이 있는 곳에서 자정이
-  // 한 시간 밀려 전날 23시가 된다.
-  return DateTime(
-    day.year,
-    day.month,
-    day.day - (day.weekday - DateTime.monday),
-  );
+///
+/// 두 앱이 함께 쓰는 `oncare_ui` 의 [mondayOf] 로 센다(#2908) — 리포트 주 키가
+/// 회원 앱·서버와 같은 날을 같은 주로 묶는다.
+DateTime weekStartOf(DateTime day) => mondayOf(day);
+
+/// [weekStart] 가 속한 주의 월요일에서 [weeks] 주 옮긴 월요일. 음수면 앞 주다.
+///
+/// 주를 옮기는 곳은 전부 이것을 쓴다(#2774). `Duration(days: 7)` 로 빼면
+/// 서머타임이 시작된 주는 167시간뿐이라, 월요일 0시에서 빼면 전 주 월요일이
+/// 아니라 그 전날 일요일 23시가 되고 — 그 날짜는 2주 전 주에 속한다.
+DateTime shiftWeeks(DateTime weekStart, int weeks) {
+  final DateTime monday = weekStartOf(weekStart);
+  return DateTime(monday.year, monday.month, monday.day + 7 * weeks);
 }
 
 /// One client's week, as the trainer would summarise it to them.
@@ -29,7 +49,10 @@ DateTime weekStartOf(DateTime day) {
 /// This is the retention loop of an O2O coaching product: the member
 /// stays because they can see they improved. Everything here is derived
 /// from data the two apps already share — no new tracking.
-class WeeklyReport {
+///
+/// 결과지(`oncare_report`)가 이 타입을 그대로 받는다 — 회원 앱이 여는 리포트와
+/// 같은 위젯·같은 계산이다(#2652).
+class WeeklyReport implements ReportSheetWeek {
   /// Creates a report.
   const WeeklyReport({
     required this.client,
@@ -40,7 +63,7 @@ class WeeklyReport {
     required this.sodiumOverDays,
     required this.sodiumAvg,
     required this.isCurrentWeek,
-    this.weekCompletion = const <int>[],
+    this.weekCompletion = const <int?>[],
     this.sodiumWeek = const <int>[],
     this.caloriesWeek = const <int>[],
     this.sugarWeek = const <double>[],
@@ -52,80 +75,108 @@ class WeeklyReport {
     this.sugarTarget,
     this.carbsTarget,
     this.proteinTarget,
+    this.effectiveProteinTarget,
     this.fatTarget,
     this.days = const <ReportDay>[],
     this.mealCounts = const <int>[],
     this.memberFeedback,
+    this.calorieBaseline,
   });
 
   /// Who the report is about.
   final TrainerClient client;
 
   /// Monday of the reported week.
+  @override
   final DateTime weekStart;
 
   /// PT sessions booked in the week.
+  @override
   final int sessionsBooked;
 
   /// Of those, how many were completed.
+  @override
   final int sessionsDone;
 
   /// Mean routine completion (%) across recorded days; null when the
   /// client logged nothing.
+  @override
   final int? completionAvg;
 
   /// Days over the sodium target; null when unknown for this week.
   final int? sodiumOverDays;
 
   /// Mean daily sodium (mg); null when there's no history.
+  @override
   final int? sodiumAvg;
 
   /// Whether [weekStart] is the week we're currently in. Charts no longer
   /// depend on this — the report carries its own week — but the headline
   /// still says "이번 주" or "선택 주".
+  @override
   final bool isCurrentWeek;
 
   /// 그 주(월→일)의 요일별 값. **로스터의 같은 이름 필드를 쓰지 않는다** —
   /// 그건 이번 주 것이라, 과거 주를 열면 지난 주 날짜 아래 이번 주 수치가
   /// 실린다. 트레이너는 그 리포트를 회원에게 그대로 보낼 수 있다(#752).
-  final List<int> weekCompletion;
+  @override
+  final List<int?> weekCompletion;
 
   /// 그 주의 일별 나트륨(mg).
+  @override
   final List<int> sodiumWeek;
 
   /// 그 주의 일별 칼로리(kcal).
+  @override
   final List<int> caloriesWeek;
 
   /// 그 주의 일별 당류(g). 소수를 유지한다.
+  @override
   final List<double> sugarWeek;
 
   /// 그 주의 일별 탄수화물·단백질·지방(g).
   ///
   /// 칼로리 총량만으로는 같은 2,000kcal 이 밥에서 왔는지 기름에서 왔는지
   /// 알 수 없다 — 비교 그래프가 칼로리를 이 셋으로 쌓아 그린다(#1177).
+  @override
   final List<double> carbsWeek;
+  @override
   final List<double> proteinWeek;
+  @override
   final List<double> fatWeek;
 
   /// 그 회원이 적어 둔 하루 목표. 없으면 null 이고, 판정 쪽이 공통 상수로
   /// 되돌아간다(#1430) — 같은 1,900kcal 이 어떤 회원에게는 부족이고 어떤
   /// 회원에게는 초과다. null 과 상수를 구분해 둬야 근거 문장이 어느 기준을
   /// 썼는지 말할 수 있다.
+  @override
   final int? calorieTarget;
+  @override
   final int? sodiumTarget;
+  @override
   final double? sugarTarget;
+  @override
   final double? carbsTarget;
+  @override
   final double? proteinTarget;
+
+  /// 개인 목표가 없어도 채워지는 실효 단백질 목표(#2898) — 식단 분석과 같은
+  /// 규칙(개인 목표 → 체중 × 1.2g → 60g). 리포트 막대 분모다. 판정은 여전히
+  /// [proteinTarget] 만 본다 — 지어낸 기준으로 균형을 나무라지 않는다.
+  final double? effectiveProteinTarget;
+  @override
   final double? fatTarget;
 
   /// 요일별 상세(월→일). 이행률과 그날 배정된 운동을 함께 담는다 — 67% 가
   /// 어디서 나온 값인지 화면에서 보이게 하는 자료다(#754).
+  @override
   final List<ReportDay> days;
 
   /// 그 주의 요일별 **끼니 기록 횟수**. (#2232)
   ///
   /// 칼로리 계열로는 이걸 대신할 수 없다. 0kcal 인 날은 "안 먹었다"가 아니라
   /// "안 적었다"이고, 리포트 ① 격자가 짚으려는 것이 정확히 그 날들이다.
+  @override
   final List<int> mealCounts;
 
   /// 회원이 그 주에 남긴 세 문항. 아직 안 냈으면 null. (#2232)
@@ -134,8 +185,26 @@ class WeeklyReport {
   /// 그 둘은 다음 주 처방이 정반대라, 갈림길은 회원 본인의 답이 정한다.
   final MemberWeeklyFeedback? memberFeedback;
 
+  /// 직전 4주(`kCalorieBaselineWeeks`) 동안 기록한 날의 하루 평균 칼로리 — ①
+  /// 섭취 칼로리 줄이 견주는 `평소`. (#2232, #2863)
+  ///
+  /// 리포트와 함께 온다. 예전에는 화면이 직전 4주 리포트(와 회원 피드백)를
+  /// 통째로 다시 불러 칼로리 배열만 꺼내 썼다. 기록이 없으면 null 이고, 그때는
+  /// 비교 줄을 그리지 않는다 — `평소 0kcal` 은 굶었다는 뜻으로 읽힌다.
+  final double? calorieBaseline;
+
+  @override
+  String get memberName => client.name;
+
+  @override
+  ReportSheetAnswers? get answers => memberFeedback;
+
   /// Sunday of the reported week.
-  DateTime get weekEnd => weekStart.add(const Duration(days: 6));
+  ///
+  /// 달력 날짜로 더한다 — 그 주 안에 서머타임 전환이 있으면 `Duration` 은
+  /// 자정을 한 시간 밀어 날짜가 어긋난다(#2774).
+  DateTime get weekEnd =>
+      DateTime(weekStart.year, weekStart.month, weekStart.day + 6);
 
   /// 문서에 실리는 내용 전부를 이은 열쇠. (#2484)
   ///
@@ -166,10 +235,12 @@ class WeeklyReport {
       sugarTarget,
       carbsTarget,
       proteinTarget,
+      effectiveProteinTarget,
       fatTarget,
       for (final ReportDay day in days)
-        '${day.completion}:${day.assigned}:${day.exercises.join('␟')}',
+        '${day.completion}:${day.assigned}:${day.assignedDone}:${day.exercises.join('␟')}',
       mealCounts.join(','),
+      calorieBaseline,
       if (member == null)
         '-'
       else
@@ -235,6 +306,11 @@ class WeeklyReport {
   /// 당류 판정에 쓰는 하루 기준.
   double get sugarLimit => sugarTarget ?? sugarLimitG;
 
+  /// 나트륨 초과를 가르는 하루 기준(mg) — 회원 목표, 없으면 공통 기준.
+  /// [sodiumOverDays] 를 센 기준과 같다(#2885). 문장에 적는 목표가 이것과
+  /// 다르면 `목표 1,500mg` 옆에 2,000mg 기준 초과일이 선다.
+  int get sodiumLimit => sodiumLimitOf(sodiumTarget);
+
   /// 기록된 날의 하루 평균 당류. 기록이 없으면 null.
   double? get sugarMean => recordedMean(sugarWeek);
 
@@ -252,13 +328,6 @@ class WeeklyReport {
   int get mealLoggedDays => mealCounts.where((n) => n > 0).length;
 }
 
-/// 칼로리가 목표에서 이만큼 벗어나면 주의로 본다. 하루하루가 목표에 딱 맞는
-/// 주는 없으므로 좁게 잡으면 매주 주의가 뜬다. 백엔드와 같은 값이다.
-const double calorieTolerance = 0.15;
-
-/// 당류 하루 기준(g) — 회원 목표가 없을 때 쓴다.
-const double sugarLimitG = 50;
-
 /// Builds [client]'s report for the week starting [weekStart].
 ///
 /// [sessions] should be that client's sessions; entries outside the week
@@ -271,12 +340,18 @@ WeeklyReport buildWeeklyReport({
   DateTime? today,
   WeekSeries? week,
   MemberWeeklyFeedback? memberFeedback,
+  ReportTargets targets = const ReportTargets(),
+  double? calorieBaseline,
 }) {
   final start = weekStartOf(weekStart);
   final end = start.add(const Duration(days: 6));
+  // 상담은 PT 가 아니다(#2741) — 리포트가 세는 것은 PT 횟수다. 상담이 있던 주가
+  // PT 1회 더로 읽히고 이행률 분모도 커졌다. 실서버 `build_weekly_report` 와 같다.
   final inWeek = sessions.where((s) {
     final day = DateTime.tryParse(s.date);
-    if (day == null || s.isGap) return false;
+    if (day == null || s.isGap || s.type == SessionType.consultation) {
+      return false;
+    }
     return !day.isBefore(start) && !day.isAfter(end);
   }).toList();
 
@@ -287,7 +362,9 @@ WeeklyReport buildWeeklyReport({
   final isThisWeek = start == weekStartOf(today ?? nowKst());
   final series = week ?? (isThisWeek ? WeekSeries.of(client) : null);
   // Same "recorded days only" rule the 주의 badge and 고객 검색 use.
-  final mean = series == null ? null : recordedMean(series.completion)?.round();
+  final mean = series == null
+      ? null
+      : completionMean(series.completion)?.round();
 
   return WeeklyReport(
     isCurrentWeek: isThisWeek,
@@ -296,9 +373,13 @@ WeeklyReport buildWeeklyReport({
     sessionsBooked: inWeek.length,
     sessionsDone: inWeek.where((s) => s.isDone).length,
     completionAvg: mean,
-    sodiumOverDays: series == null ? null : sodiumOverDaysOf(series.sodium),
+    // 초과일은 그 회원의 나트륨 목표로 센다 — 실서버 `sodium_over_days` 와
+    // 같은 기준이다(#2885).
+    sodiumOverDays: series == null
+        ? null
+        : sodiumOverDaysOf(series.sodium, sodiumLimitOf(targets.sodium)),
     sodiumAvg: series == null ? null : recordedMean(series.sodium)?.round(),
-    weekCompletion: series?.completion ?? const <int>[],
+    weekCompletion: series?.completion ?? const <int?>[],
     days: series?.days ?? const <ReportDay>[],
     sodiumWeek: series?.sodium ?? const <int>[],
     caloriesWeek: series?.calories ?? const <int>[],
@@ -307,24 +388,70 @@ WeeklyReport buildWeeklyReport({
     proteinWeek: series?.protein ?? const <double>[],
     fatWeek: series?.fat ?? const <double>[],
     mealCounts: series?.mealCounts ?? const <int>[],
+    calorieTarget: targets.calories,
+    sodiumTarget: targets.sodium,
+    sugarTarget: targets.sugar,
+    carbsTarget: targets.carbs,
+    proteinTarget: targets.protein,
+    effectiveProteinTarget: targets.effectiveProtein,
+    fatTarget: targets.fat,
     memberFeedback: memberFeedback,
+    calorieBaseline: calorieBaseline,
   );
 }
 
+/// 이행률 평균 — 걸린 것이 있던 날(null 이 아닌 날)만. 0% 인 날도 든다(#2513).
+double? completionMean(List<int?> week) {
+  final List<int> recorded = <int>[for (final int? v in week) ?v];
+  if (recorded.isEmpty) return null;
+  return recorded.reduce((int a, int b) => a + b) / recorded.length;
+}
+
+/// 회원이 적어 둔 하루 목표 — 리포트 판정이 공통 상수보다 먼저 쓴다(#1430).
+///
+/// 실서버는 리포트 응답의 `*_target` 으로 받고(`weeklyReportFromJson`),
+/// 데모는 건강 프로필에서 읽어 [buildWeeklyReport] 에 넘긴다(#2669). 적어 두지
+/// 않은 칸은 null 이고, 그 칸만 공통 상수로 되돌아간다.
+class ReportTargets {
+  /// Creates targets. 기본값은 "목표 없음" 이다.
+  const ReportTargets({
+    this.calories,
+    this.sodium,
+    this.sugar,
+    this.carbs,
+    this.protein,
+    this.effectiveProtein,
+    this.fat,
+  });
+
+  final int? calories;
+  final int? sodium;
+  final double? sugar;
+  final double? carbs;
+  final double? protein;
+
+  /// 실효 단백질 목표(#2898) — [WeeklyReport.effectiveProteinTarget].
+  final double? effectiveProtein;
+  final double? fat;
+}
+
 /// 리포트의 하루 — 이행률과 그날 배정된 운동.
-class ReportDay {
+class ReportDay implements ReportSheetDay {
   /// Creates a day.
   const ReportDay({
     required this.completion,
     this.exercises = const <String>[],
     this.assigned,
+    this.assignedDone,
   });
 
   /// 그날 이행률(%). 0 은 기록이 없다는 뜻이다.
+  @override
   final int completion;
 
   /// 배정된 운동 이름. 끝의 '✗' 는 건너뛴 운동을 뜻하는 저장 규칙이다 —
   /// 운동 기록 탭과 같은 규칙을 쓴다.
+  @override
   final List<String> exercises;
 
   /// 그날 **배정된** 개인 운동 수. 모르면 null 이고, 그때는 [exercises] 의
@@ -333,10 +460,20 @@ class ReportDay {
   /// 데모의 [exercises] 는 실제로 한 운동만 담아서(#1288) 하나도 안 한 날이
   /// 빈 목록으로 남는다 — 그 길이를 분모로 쓰면 `0 / 0` 이 되어, 리포트 ①
   /// 격자가 짚으려는 바로 그 날이 아무 일도 없던 날처럼 보인다.
+  @override
   final int? assigned;
 
-  /// 건너뛰지 않은 운동 수.
-  int get done => exercises.where((e) => !e.contains('✗')).length;
+  /// 그중 그날 완료한 수(#3115). 모르면(옛 응답·데모) null 이다.
+  @override
+  final int? assignedDone;
+
+  /// 완료한 운동 수 — 배정을 알면 그 완료, 모르면 건너뛰지 않은 운동 수.
+  ///
+  /// [exercises] 는 그날 남은 운동 기록 전부(직접 기록·PT 기록 포함)라, 분모가
+  /// 그날 걸린 개인운동일 때 그 길이를 분자로 쓰면 실제보다 많아진다(#3115).
+  int get done =>
+      (assigned != null ? assignedDone : null) ??
+      exercises.where((e) => !e.contains('✗')).length;
 
   /// 배정된 운동 수.
   int get total => assigned ?? exercises.length;
@@ -361,7 +498,8 @@ class WeekSeries {
   /// 로스터가 준 이번 주 계열.
   factory WeekSeries.of(TrainerClient client) => WeekSeries(
     days: <ReportDay>[
-      for (final rate in client.weekCompletion) ReportDay(completion: rate),
+      for (final rate in client.weekCompletion)
+        ReportDay(completion: rate ?? 0),
     ],
     completion: client.weekCompletion,
     sodium: client.sodiumWeek,
@@ -369,8 +507,8 @@ class WeekSeries {
     sugar: client.sugarWeek,
   );
 
-  /// 일별 이행률(%).
-  final List<int> completion;
+  /// 일별 이행률(%). 걸린 것이 없던 날은 null(#2513).
+  final List<int?> completion;
 
   /// 일별 나트륨(mg).
   final List<int> sodium;
@@ -394,19 +532,17 @@ class WeekSeries {
   final List<int> mealCounts;
 }
 
-/// 기록된 날(0 초과)만의 평균. 하나도 없으면 null — 0 으로 보고하면
-/// "아무것도 안 했다"는 거짓말이 된다.
-double? recordedMean(List<num> series) {
-  final recorded = series.where((v) => v > 0).toList(growable: false);
-  if (recorded.isEmpty) return null;
-  // fold<double> 로 더한다 — `List<int>` 를 `List<num>` 으로 받으면 reduce 의
-  // 결합 함수가 런타임 타입(int)과 맞지 않아 던진다.
-  return recorded.fold<double>(0, (sum, v) => sum + v) / recorded.length;
-}
+/// 나트륨 초과를 가르는 하루 기준(mg) — 회원 목표 [target], 없거나 0 이하면
+/// 공통 기준. 실서버 `sodium_limit_mg` 와 같은 규칙이다(#2885).
+int sodiumLimitOf(int? target) =>
+    target != null && target > 0 ? target : sodiumTargetMg;
 
-/// 나트륨 목표를 넘긴 날 수.
-int sodiumOverDaysOf(List<int> sodium) =>
-    sodium.where((mg) => mg > sodiumTargetMg).length;
+/// 나트륨 하루 기준 [limit](기본: 공통 기준)을 넘긴 날 수.
+///
+/// 리포트는 회원 목표를 넘긴다(#2885) — 공통 기준으로 세면 목표가 1,500mg 인
+/// 회원의 1,800mg 날이 목표 안으로 읽힌다.
+int sodiumOverDaysOf(List<int> sodium, [int limit = sodiumTargetMg]) =>
+    sodium.where((mg) => mg > limit).length;
 
 /// The message body sent to the member's chat thread.
 ///
@@ -533,7 +669,8 @@ List<String> _dietSentences(AppLocalizations l, WeeklyReport report) {
   if (sodium != null) {
     final over = report.sodiumOverDays ?? 0;
     final String avg = formatNumber(sodium);
-    final String target = formatNumber(sodiumTargetMg);
+    // 초과일을 센 기준과 같은 목표를 적는다(#2885).
+    final String target = formatNumber(report.sodiumLimit);
     diet.add(
       over > 0
           ? l.reportBodySodiumOver(avg, target, over)
@@ -627,7 +764,9 @@ List<String> _nextWeekTips(AppLocalizations l, WeeklyReport report) {
 /// 이번 주라면 아직 오지 않은 요일은 세지 않는다 — 목요일에 "금·토·일이
 /// 비었다" 고 하면 오지도 않은 날을 나무라는 말이 된다.
 List<String> silentWeekdayNames(AppLocalizations l, WeeklyReport report) {
-  final List<int> week = report.weekCompletion;
+  // 0 은 걸렸는데 하나도 안 한 날이다. 걸린 것이 없던 날(null)은 회원이
+  // 비운 날이 아니다(#2513).
+  final List<int?> week = report.weekCompletion;
   if (week.length != weekdayCount) return const <String>[];
   final int upTo = report.isCurrentWeek
       ? elapsedWeekdays(nowKst())
@@ -672,7 +811,12 @@ String exerciseBaseName(String line) {
   var name = line.replaceAll('✗', '').replaceAll('✓', '').trim();
   final cut = name.indexOf('·');
   if (cut > 0) name = name.substring(0, cut).trim();
-  final RegExp amount = RegExp(r'\s*\d+(?:\.\d+)?\s*(?:분|초|kg|km|회|세트)$');
+  // 영어 분량(`30 min`, `12 reps`)도 뗀다 — 영어 리포트에서 같은 운동이
+  // 분량마다 다른 운동으로 세어지지 않게(#2885).
+  final RegExp amount = RegExp(
+    r'\s*\d+(?:\.\d+)?\s*(?:분|초|kg|km|회|세트|mins?|secs?|reps?|sets?)$',
+    caseSensitive: false,
+  );
   while (amount.hasMatch(name)) {
     name = name.replaceAll(amount, '').trim();
   }
@@ -682,57 +826,3 @@ String exerciseBaseName(String line) {
 /// `은`/`는` 을 받침에 맞춰 붙인다. 규칙은 [withTopicJosa] 에 있다.
 String _topicParticle(AppLocalizations l, String word) =>
     withParticle(l, word, '은', '는');
-
-/// 한국어일 때만 받침에 맞는 조사를 붙인다. 다른 언어에는 조사가 없다 —
-/// 영어 문장에 `Squat은` 이 남으면 안 된다.
-String withParticle(
-  AppLocalizations l,
-  String word,
-  String afterConsonant,
-  String afterVowel,
-) {
-  if (l.localeName != 'ko') return word;
-  return '$word${hasFinalConsonant(word) ? afterConsonant : afterVowel}';
-}
-
-/// The trainer's own week — the numbers that answer "how am I doing?".
-class TrainerWeekStats {
-  /// Creates the stats.
-  const TrainerWeekStats({
-    required this.sessionsBooked,
-    required this.sessionsDone,
-    required this.activeClients,
-    required this.programsSent,
-  });
-
-  /// Sessions booked this week.
-  final int sessionsBooked;
-
-  /// Sessions completed this week.
-  final int sessionsDone;
-
-  /// Clients marked 활성.
-  final int activeClients;
-
-  /// Sessions that carry a program (i.e. a routine was prepared).
-  final int programsSent;
-
-  /// Completion rate as a percentage; null when nothing was booked.
-  int? get completionRate => sessionsBooked == 0
-      ? null
-      : ((sessionsDone / sessionsBooked) * 100).round();
-}
-
-/// Aggregates the trainer's week from every session in the range.
-TrainerWeekStats buildTrainerWeekStats({
-  required List<ScheduleSession> sessions,
-  required List<TrainerClient> clients,
-}) {
-  final booked = sessions.where((s) => !s.isGap).toList();
-  return TrainerWeekStats(
-    sessionsBooked: booked.length,
-    sessionsDone: booked.where((s) => s.isDone).length,
-    activeClients: clients.where((c) => c.active).length,
-    programsSent: booked.where((s) => s.program.isNotEmpty).length,
-  );
-}

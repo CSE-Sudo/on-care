@@ -7,24 +7,28 @@ library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
-import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
+import 'package:oncare/features/exercise/data/repositories/dio_exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_session_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/member_coach/data/dtos/member_coach_dtos.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare_core/clock.dart';
+
+import '../../helpers/demo_exercise.dart';
 
 void main() {
   late DemoPointsLedger ledger;
-  late MockExerciseRepository exercise;
+  late DioExerciseRepository exercise;
   late MockMemberCoachRepository coach;
 
   setUp(() {
     ledger = DemoPointsLedger();
-    exercise = MockExerciseRepository(points: ledger);
-    coach = MockMemberCoachRepository(exercise: exercise, points: ledger);
+    // 앱의 데모와 같은 경로 — 기록은 로컬 목업 API(drift)에, 적립은 같은 원장에(#2724).
+    final backend = demoExerciseBackend(emptyDemoDatabase(), points: ledger);
+    exercise = backend.repository;
+    coach = MockMemberCoachRepository(exercise: backend.api, points: ledger);
   });
 
   Future<List<CoachRoutine>> routinesFrom(String source) async =>
@@ -129,32 +133,23 @@ void main() {
 
   group('데모 운동 직접 추가', () {
     test('+20P 를 받고, 지우면 회수한다', () async {
-      final ExerciseSession added = (await exercise.addSessions(<ExerciseSessionDraft>[
-        ExerciseSessionDraft(
-          type: ExerciseType.cardio,
-          minutes: 20,
-          calories: 100,
-          date: nowKst(),
-          name: '걷기',
-        ),
-      ])).sessions.single;
-      expect(added.pointsAward?.awarded, 20);
+      final ExerciseSessionsAdded result = await exercise
+          .addSessions(<ExerciseSessionDraft>[
+            ExerciseSessionDraft(
+              type: ExerciseType.cardio,
+              minutes: 20,
+              calories: 100,
+              date: nowKst(),
+              name: '걷기',
+            ),
+          ]);
+      final ExerciseSession added = result.sessions.single;
+      // 적립은 응답 전체에 한 번 실린다 — 실서버와 같은 모양이다(#2544).
+      expect(result.points?.awarded, 20);
       expect(ledger.balance, kDemoOpeningPoints + 20);
 
       await exercise.deleteSession(added.id!);
       expect(ledger.balance, kDemoOpeningPoints);
-    });
-
-    test('원장이 없으면 적립 없이 기록만 남는다', () async {
-      final ExerciseSession added = (await MockExerciseRepository().addSessions(<ExerciseSessionDraft>[
-        ExerciseSessionDraft(
-          type: ExerciseType.cardio,
-          minutes: 20,
-          calories: 100,
-          date: nowKst(),
-        ),
-      ])).sessions.single;
-      expect(added.pointsAward, isNull);
     });
   });
 

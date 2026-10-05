@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,6 +21,7 @@ import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 class GymTab extends ConsumerWidget {
@@ -62,8 +65,9 @@ class GymTab extends ConsumerWidget {
     // 담당이 있으면 헤더의 채팅 버튼이 그 자리를 맡는다.
     //
     // 조회 중에는 찾기 화면을 미리 보여 주지 않는다. 잠깐 떴다 사라지면 연결이
-    // 풀린 것처럼 읽힌다.
-    if (myGymAsync.isLoading) {
+    // 풀린 것처럼 읽힌다. 탭 재진입·앱 복귀로 다시 읽는 중에는 이전 값을 그대로
+    // 그린다 — 카드가 로딩으로 비었다가 다시 그려지면 깜빡인다(#2856).
+    if (myGymAsync.isLoading && !myGymAsync.hasValue) {
       return const Padding(
         padding: EdgeInsets.symmetric(horizontal: OnCareSpacing.s20),
         child: Align(
@@ -135,26 +139,30 @@ class _MyGymSection extends StatelessWidget {
   final VoidCallback onRetry;
   final VoidCallback? onTrainerChatTap;
 
-  Widget _error(AppLocalizations l) => AppCard(
-    child: AppErrorState(
-      title: l.exGymsLoadError,
-      retryLabel: l.actionRetry,
-      onRetry: onRetry,
-      placement: AppStatePlacement.card,
-    ),
-  );
+  /// [error] 는 조회를 실패하게 한 오류다. 연결된 헬스장이 없는데 이 자리에 온
+  /// 경우는 오류가 없어(null) 원인 없이 제목만 남는다(#3140).
+  Widget _error(BuildContext context, AppLocalizations l, Object? error) =>
+      AppCard(
+        child: appErrorStateFor(
+          context,
+          error: error,
+          title: l.exGymsLoadError,
+          onRetry: onRetry,
+          placement: AppStatePlacement.card,
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return gymAsync.when(
       loading: () => const AppLoading(placement: AppStatePlacement.card),
-      error: (Object _, StackTrace _) => _error(l),
+      error: (Object error, StackTrace _) => _error(context, l, error),
       // 연결된 헬스장이 없는 경우는 이 위젯에 오지 않는다 — 탭이 찾기 화면을
       // 대신 그린다 (#1133). 그래도 방어적으로 빈 상태를 오류처럼 다루지 않고
       // 재시도 자리를 남긴다.
       data: (Gym? gym) => gym == null
-          ? _error(l)
+          ? _error(context, l, null)
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
@@ -274,14 +282,20 @@ class _ReservationPanelState extends ConsumerState<_ReservationPanel> {
     if (_reserving != null) return;
     final AppToastHost toast = AppToastHost.of(context);
     final String label = _when(context, l, slot.startsAt);
+    // 요청 뒤 갱신은 컨테이너로 한다 — 예약 중에 화면을 떠나도 `내 예약`·자리
+    // 목록이 옛 값으로 남지 않는다(#3096).
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     setState(() => _reserving = slot.id);
     try {
-      await ref.read(gymRepositoryProvider).reserve(slot.id);
+      await container.read(gymRepositoryProvider).reserve(slot.id);
     } on SlotTimeTakenError {
       // 트레이너가 그 시간을 다른 일정으로 쓰게 됐다(#2284). 다시 눌러도 같은
       // 결과라 재시도 대신 다른 시간을 고르게 하고, 자리 목록을 새로 읽는다.
       if (mounted) setState(() => _reserving = null);
-      ref.invalidate(trainerSlotsProvider(widget.trainer.id));
+      container.invalidate(trainerSlotsProvider(widget.trainer.id));
       toast.show(l.exReserveTimeTaken, type: AppToastType.error);
       return;
     } catch (_) {
@@ -289,12 +303,12 @@ class _ReservationPanelState extends ConsumerState<_ReservationPanel> {
       toast.show(l.exReserveFailed, type: AppToastType.error);
       return;
     }
+    // 잔여 자리를 다시 읽어, 방금 잡은 자리가 목록에도 반영되게 한다.
+    container.invalidate(trainerSlotsProvider(widget.trainer.id));
+    // 방금 잡은 예약이 '내 예약'에도 나타나야 취소가 걸린다. (#502)
+    container.invalidate(myReservationsProvider);
     if (!mounted) return;
     setState(() => _reserving = null);
-    // 잔여 자리를 다시 읽어, 방금 잡은 자리가 목록에도 반영되게 한다.
-    ref.invalidate(trainerSlotsProvider(widget.trainer.id));
-    // 방금 잡은 예약이 '내 예약'에도 나타나야 취소가 걸린다. (#502)
-    ref.invalidate(myReservationsProvider);
     toast.show(
       l.exReserveConfirmedSlotGym(label, widget.gym.name),
       type: AppToastType.success,
@@ -309,6 +323,11 @@ class _ReservationPanelState extends ConsumerState<_ReservationPanel> {
     if (_reserving != null || _cancelling != null) return;
     final AppToastHost toast = AppToastHost.of(context);
     final String label = _when(context, l, reservation.startsAt);
+    // 예약과 같은 규칙이다 — 요청 뒤 갱신은 컨테이너로 한다(#3096).
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.exCancelConfirmTitle,
@@ -321,17 +340,19 @@ class _ReservationPanelState extends ConsumerState<_ReservationPanel> {
 
     setState(() => _cancelling = reservation.id);
     try {
-      await ref.read(gymRepositoryProvider).cancelReservation(reservation.id);
+      await container
+          .read(gymRepositoryProvider)
+          .cancelReservation(reservation.id);
     } catch (_) {
       if (mounted) setState(() => _cancelling = null);
       toast.show(l.exCancelFailed, type: AppToastType.error);
       return;
     }
+    // 좌석이 돌아왔으므로 슬롯도 함께 다시 읽는다.
+    container.invalidate(trainerSlotsProvider(widget.trainer.id));
+    container.invalidate(myReservationsProvider);
     if (!mounted) return;
     setState(() => _cancelling = null);
-    // 좌석이 돌아왔으므로 슬롯도 함께 다시 읽는다.
-    ref.invalidate(trainerSlotsProvider(widget.trainer.id));
-    ref.invalidate(myReservationsProvider);
     toast.show(l.exCancelDone(label), type: AppToastType.success);
   }
 
@@ -544,7 +565,15 @@ class _SlotNotice extends StatelessWidget {
 ///
 /// 예약 패널 안에 두는 이유: 자리를 잡은 곳과 무르는 곳이 같아야 회원이 찾는다.
 /// 별도 '예약 내역' 화면을 만들면 한 번 보고 다시 안 여는 자리가 하나 더 생긴다.
-class _MyReservations extends StatelessWidget {
+/// 트레이너 패널이 처음부터 보여 주는 지난 예약 수. (#2879)
+///
+/// 서버는 지난 예약도 함께 준다(쪽 크기 50). 모두 그리면 PT 를 꾸준히 받는
+/// 회원일수록 패널이 지난 줄로 길어져 다가오는 예약과 빈 자리 고르기가 아래로
+/// 밀린다. 최근 몇 건만 두고 나머지는 `더 보기` 로 접는다.
+@visibleForTesting
+const int kRecentPastReservations = 3;
+
+class _MyReservations extends StatefulWidget {
   const _MyReservations({
     required this.reservations,
     required this.label,
@@ -562,9 +591,36 @@ class _MyReservations extends StatelessWidget {
   final ValueChanged<MyReservation> onCancel;
 
   @override
+  State<_MyReservations> createState() => _MyReservationsState();
+}
+
+class _MyReservationsState extends State<_MyReservations> {
+  /// 접어 둔 지난 예약까지 펼쳤는가.
+  bool _showAllPast = false;
+
+  @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
+    // 다가오는 예약(취소 가능)은 모두, 지난 예약은 최근 몇 건만 — 목록은 이미
+    // 다가오는 것 먼저, 지난 것은 최근 것부터 정렬돼 온다.
+    final List<MyReservation> upcoming = widget.reservations
+        .where((MyReservation r) => r.cancellable)
+        .toList(growable: false);
+    final List<MyReservation> past = widget.reservations
+        .where((MyReservation r) => !r.cancellable)
+        .toList(growable: false);
+    final int hiddenPast = _showAllPast
+        ? 0
+        : math.max(0, past.length - kRecentPastReservations);
+    final List<MyReservation> shown = <MyReservation>[
+      ...upcoming,
+      ...past.take(past.length - hiddenPast),
+    ];
+    final String Function(DateTime) label = widget.label;
+    final String? cancelling = widget.cancelling;
+    final bool disabled = widget.disabled;
+    final ValueChanged<MyReservation> onCancel = widget.onCancel;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(OnCareSpacing.s12),
@@ -582,7 +638,7 @@ class _MyReservations extends StatelessWidget {
                 .text(OnCareTypography.strong(OnCareTypography.caption))
                 .copyWith(color: tokens.brand.primary),
           ),
-          for (final MyReservation r in reservations) ...<Widget>[
+          for (final MyReservation r in shown) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s4),
             Row(
               children: <Widget>[
@@ -619,6 +675,18 @@ class _MyReservations extends StatelessWidget {
                     size: OnCareButtonSize.small,
                   ),
               ],
+            ),
+          ],
+          if (past.length > kRecentPastReservations) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s4),
+            AppButton(
+              key: const Key('reservations-past-toggle'),
+              label: _showAllPast
+                  ? l.exReservationPastLess
+                  : l.exReservationPastMore(hiddenPast),
+              onPressed: () => setState(() => _showAllPast = !_showAllPast),
+              variant: AppButtonVariant.text,
+              size: OnCareButtonSize.small,
             ),
           ],
         ],

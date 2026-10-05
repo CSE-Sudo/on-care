@@ -1,0 +1,5 @@
+# 인프라 CI(.github/workflows/infra-ci.yml)가 쓰는 도구. 버전을 고정해 새 릴리스가
+# 아무 변경 없이 검사를 깨뜨리지 않게 한다. 올릴 때는 의도적으로 올린다.
+cfn-lint==1.57.1
+PyYAML==6.0.3
+pytest==9.1.1

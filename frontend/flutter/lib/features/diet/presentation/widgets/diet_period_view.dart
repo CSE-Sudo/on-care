@@ -4,13 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat, NumberFormat;
 import 'package:oncare/app/app_icons.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/diet/domain/entities/diet_period.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare/shared/widgets/chart_a11y_labels.dart';
 import 'package:oncare/shared/widgets/metric_trend_chart.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 영양 요약 카드의 기준 높이. 오늘·이번 주·전체 세 화면이 함께 쓴다 — 기간
@@ -140,11 +141,9 @@ class _DietPeriodViewState extends ConsumerState<DietPeriodView> {
       : NumberFormat('#,##0.#').format(v);
 
   void _retry() {
-    // 실패는 날짜별 provider 에 남아 있다. 집계만 무효화하면 같은 에러를 다시
-    // 읽어 와 아무 일도 일어나지 않는다.
-    for (final DateTime d in dietRangeDates(widget.range)) {
-      ref.invalidate(dietByDateProvider(d));
-    }
+    // 집계는 `GET /diet/days` 한 번이다(#2236) — 날짜별 캐시를 읽지 않으므로
+    // 이 범위의 집계만 비우면 된다. 예전처럼 날짜 수만큼 날짜별 캐시를 비우면
+    // `전체` 범위에서는 쓰이지도 않는 무효화가 수백 번 돈다(#2625).
     ref.invalidate(dietPeriodProvider(widget.range));
   }
 
@@ -163,9 +162,10 @@ class _DietPeriodViewState extends ConsumerState<DietPeriodView> {
         // 자리다. 카드 밖에 두면 카드가 제 기간을 스스로 말하지 않는다.
         async.when(
           loading: () => const AppLoading(placement: AppStatePlacement.card),
-          error: (Object e, StackTrace _) => AppErrorState(
+          error: (Object e, StackTrace _) => appErrorStateFor(
+            context,
+            error: e,
             title: l.dietLoadError,
-            retryLabel: l.actionRetry,
             onRetry: _retry,
             placement: AppStatePlacement.card,
           ),

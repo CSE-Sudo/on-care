@@ -56,6 +56,21 @@ def assigned_routine(client, db_session):
     db_session.commit()
 
 
+def _personal_line(history: list[dict], session_id: str | None, *, name: str = ""):
+    """하루치 `개인운동` 카드에서 그 완료 줄을 찾는다(#2510). (카드, 줄)."""
+    for row in history:
+        if row.get("kind") != "personal_routine":
+            continue
+        for item in row["exercise_items"]:
+            if not item["done"]:
+                continue
+            if (session_id and item["session_id"] == session_id) or (
+                not session_id and name and item["name"] == name
+            ):
+                return row, item
+    raise AssertionError("개인운동 카드에서 그 완료 줄을 찾지 못했다")
+
+
 def test_completion_and_history_share_one_record(client, assigned_routine):
     trainer_token, routine = assigned_routine
     member_token = _login(client, "jisu@oncare.com")
@@ -88,7 +103,8 @@ def test_completion_and_history_share_one_record(client, assigned_routine):
     )
     assert retried.status_code == 200, retried.text
     assert retried.json()["completed_at"] == completion_time
-    # 개인 운동 피드백은 받기만 하고 저장·노출하지 않는다(#1825).
+    # 개인 운동 회원 피드백은 없앴다(#1825, #2624) — 옛 앱이 보내도 무시하고
+    # 응답 칸은 빈 문자열로 남는다.
     assert retried.json()["member_note"] == ""
 
     week = client.get("/v1/exercise/weeks/current", headers=member_headers).json()
@@ -104,10 +120,11 @@ def test_completion_and_history_share_one_record(client, assigned_routine):
     history = client.get(
         f"/v1/trainer/clients/{MEMBER_ID}/history", headers=trainer_headers
     ).json()
-    history_row = next(
-        row for row in history if row["assigned_routine_id"] == routine["id"]
-    )
-    assert history_row["id"] == session["id"]
+    # 개인운동 완료는 하루 한 장 `개인운동` 카드의 한 줄이다(#2510). 줄이 그
+    # 운동 기록을 가리킨다 — 트레이너 메모가 이 id 로 단다.
+    history_row, line = _personal_line(history, session["id"])
+    assert history_row["kind"] == "personal_routine"
+    assert line["name"] == routine["name"]
     assert history_row["client_feedback"] == ""
     # 개인 운동 트레이너 피드백도 없앴다(#2517) — 응답 칸은 늘 비어 있다.
     assert history_row["trainer_note"] == ""
@@ -158,7 +175,7 @@ def test_snapshot_survives_routine_deletion(client, assigned_routine):
     completed = client.post(
         f"/v1/me/coach/routines/{routine['id']}/complete",
         headers=member_headers,
-        json={"minutes": 30, "member_note": "완료"},
+        json={"minutes": 30},
     )
     assert completed.status_code == 200, completed.text
 
@@ -177,8 +194,8 @@ def test_snapshot_survives_routine_deletion(client, assigned_routine):
     history = client.get(
         f"/v1/trainer/clients/{MEMBER_ID}/history", headers=trainer_headers
     ).json()
-    row = next(item for item in history if item["assigned_routine_id"] == routine["id"])
-    assert row["label"] == routine["name"]
+    _, line = _personal_line(history, None, name=routine["name"])
+    assert line["name"] == routine["name"]
 
     sessions = client.get(
         "/v1/exercise/weeks/current", headers=member_headers
@@ -201,7 +218,7 @@ def test_routine_feedback_endpoint_is_gone(client, assigned_routine):
     history = client.get(
         f"/v1/trainer/clients/{MEMBER_ID}/history", headers=trainer_headers
     ).json()
-    row = next(item for item in history if item["assigned_routine_id"] == routine["id"])
+    row, _ = _personal_line(history, None, name=routine["name"])
 
     response = client.put(
         f"/v1/trainer/clients/{MEMBER_ID}/history/{row['id']}/feedback",
@@ -235,7 +252,7 @@ def test_member_can_undo_a_completion(client, assigned_routine):
     completed = client.post(
         f"/v1/me/coach/routines/{routine['id']}/complete",
         headers=member_headers,
-        json={"minutes": 25, "intensity": "moderate", "member_note": ""},
+        json={"minutes": 25, "intensity": "moderate"},
     )
     assert completed.status_code == 200, completed.text
     assert (
@@ -275,7 +292,7 @@ def test_member_can_undo_a_completion(client, assigned_routine):
     redone = client.post(
         f"/v1/me/coach/routines/{routine['id']}/complete",
         headers=member_headers,
-        json={"minutes": 12, "intensity": "light", "member_note": "다시"},
+        json={"minutes": 12, "intensity": "light"},
     )
     assert redone.status_code == 200, redone.text
     assert redone.json()["completed_minutes"] == 12
@@ -318,7 +335,7 @@ def test_the_trainers_sets_and_weight_reach_the_members_record(client, db_sessio
             f"/v1/me/coach/routines/{routine['id']}/complete",
             headers=member_headers,
             # 회원은 세트·중량을 적지 않았다.
-            json={"minutes": 36, "intensity": "high", "member_note": ""},
+            json={"minutes": 36, "intensity": "high"},
         )
         assert completed.status_code == 200, completed.text
 

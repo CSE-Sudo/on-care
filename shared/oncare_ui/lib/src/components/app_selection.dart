@@ -22,10 +22,15 @@ class AppChoiceChip extends StatelessWidget {
     required this.selected,
     required this.onSelected,
     this.icon,
+    this.danger = false,
   });
 
   final String label;
   final bool selected;
+
+  /// 참이면 고른 모양이 브랜드 대신 위험 빨강이다 — `통증·부상` 처럼 고른
+  /// 뒤 붙는 태그가 빨강인 분류가 고를 때부터 같은 색을 쓴다.
+  final bool danger;
 
   /// `null` 이면 비활성이다.
   final ValueChanged<bool>? onSelected;
@@ -38,17 +43,25 @@ class AppChoiceChip extends StatelessWidget {
     final Color foreground = !enabled
         ? OnCareColors.textDisabled
         : selected
-        ? tokens.brand.primary
+        ? (danger ? OnCareColors.danger : tokens.brand.primary)
         : OnCareColors.textPrimary;
     return Semantics(
       button: true,
       selected: selected,
       child: Material(
-        color: selected ? tokens.brand.surface : OnCareColors.surfaceCard,
+        color: !selected
+            ? OnCareColors.surfaceCard
+            : danger
+            ? OnCareColors.onWhite(OnCareColors.danger, OnCareAlpha.subtle)
+            : tokens.brand.surface,
         shape: RoundedRectangleBorder(
           borderRadius: OnCareRadius.mdAll,
           side: BorderSide(
-            color: selected ? tokens.brand.border : OnCareColors.lineStrong,
+            color: !selected
+                ? OnCareColors.lineStrong
+                : danger
+                ? OnCareColors.danger
+                : tokens.brand.border,
           ),
         ),
         clipBehavior: Clip.antiAlias,
@@ -337,6 +350,7 @@ class AppTag extends StatelessWidget {
     this.icon,
     this.accent,
     this.onTap,
+    this.onTint = false,
   });
 
   final String label;
@@ -357,6 +371,10 @@ class AppTag extends StatelessWidget {
   /// 채움은 톤과 같은 규칙으로 그 색의 8% 다.
   final Color? accent;
 
+  /// 같은 톤의 8% 바탕(배너 등) 위에 놓일 때 — 채움을 한 단계 진하게(16%)
+  /// 칠해 바탕과 구분한다. 채팅 감지 배너의 `메모 추가` 알약이 쓴다(#2950).
+  final bool onTint;
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
@@ -369,7 +387,9 @@ class AppTag extends StatelessWidget {
           AppTagTone.caution => OnCareColors.caution,
           AppTagTone.danger => OnCareColors.danger,
         };
-    final Color fill = this.accent != null
+    final Color fill = onTint
+        ? OnCareColors.onWhite(accent, OnCareAlpha.medium)
+        : this.accent != null
         ? OnCareColors.onWhite(accent, OnCareAlpha.subtle)
         : switch (tone) {
             AppTagTone.neutral => OnCareColors.surfaceInput,
@@ -414,10 +434,16 @@ class AppTag extends StatelessWidget {
 }
 
 /// 카운트 배지 — 빨간 원, 최소 20, 99 를 넘으면 "99+".
+///
+/// [color] 를 주면 그 색 원이다. 트레이너 웹 메시지 목록의 안읽음 수는
+/// 사이드바 숫자와 같은 브랜드 남색을 쓴다(#2669).
 class AppCountBadge extends StatelessWidget {
-  const AppCountBadge({super.key, required this.count});
+  const AppCountBadge({super.key, required this.count, this.color});
 
   final int count;
+
+  /// 원 색. 비우면 [OnCareColors.danger] 다.
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -433,8 +459,8 @@ class AppCountBadge extends StatelessWidget {
           ? EdgeInsets.zero
           : const EdgeInsets.symmetric(horizontal: OnCareSpacing.s4),
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        color: OnCareColors.danger,
+      decoration: BoxDecoration(
+        color: color ?? OnCareColors.danger,
         borderRadius: OnCareRadius.pillAll,
       ),
       child: Text(

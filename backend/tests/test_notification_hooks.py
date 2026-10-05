@@ -182,7 +182,7 @@ def test_routine_assignment_creates_a_notification(client, db_session):
     )
 
     assert assigned.status_code == 201, assigned.text
-    assert "새 운동 루틴이 배정되었어요" in _titles(client, member_token)
+    assert "새 개인운동이 왔어요" in _titles(client, member_token)
 
 
 def test_schedule_creates_a_notification(client, db_session):
@@ -213,7 +213,7 @@ def test_report_creates_its_own_notification_kind(client, db_session):
     리포트도 채팅으로 전달되므로, 종류를 서비스가 판단하면 둘을 구분할 수 없다.
     """
     trainer_token, member_id, member_token, _ = _pair(client, db_session)
-    # 기본값은 주간 리포트 꺼짐이므로, 받도록 켜고 확인한다.
+    # 기본값이 켜짐이지만(#3025) 이 테스트는 종류만 본다 — 켜 둔 상태를 고정한다.
     client.put(
         "/v1/users/me/notification-settings",
         headers=_auth(member_token),
@@ -428,8 +428,12 @@ def test_cancelling_an_empty_slot_tells_nobody(client, db_session):
     assert _titles(client, member_token) == []
 
 
-def test_a_schedule_change_can_be_switched_off(client, db_session):
-    """운동 알림을 끄면 변경 알림도 오지 않는다 — 등록 알림과 같은 종류다."""
+def test_a_schedule_change_cannot_be_switched_off(client, db_session):
+    """운동 스위치를 꺼도 변경 알림은 온다(#3024).
+
+    일정 알림은 회원 수신 설정 키가 아니라 끌 수 없는 알림이다 — 리마인더를
+    끈 회원이 옮겨진 PT 를 모른 채 옛 시간에 나가면 안 된다.
+    """
     trainer_token, member_id, member_token, _ = _pair(client, db_session)
     session_id = _schedule(client, trainer_token, member_id)
     client.put(
@@ -437,7 +441,6 @@ def test_a_schedule_change_can_be_switched_off(client, db_session):
         headers=_auth(member_token),
         json={"exercise_reminder": False},
     )
-    before = _titles(client, member_token)
 
     moved = client.put(
         f"/v1/trainer/schedule/{session_id}",
@@ -446,7 +449,7 @@ def test_a_schedule_change_can_be_switched_off(client, db_session):
     )
 
     assert moved.status_code == 200, moved.text
-    assert _titles(client, member_token) == before
+    assert "일정이 변경되었어요" in _titles(client, member_token)
 
 
 def test_a_settings_read_failure_still_delivers_the_message(
@@ -530,7 +533,7 @@ def test_an_empty_settings_update_creates_no_row(client, db_session):
 
 
 def test_settings_default_matches_the_app(client, db_session):
-    """저장한 적이 없으면 앱의 현재 기본값과 같다(주간 리포트만 꺼짐)."""
+    """저장한 적이 없으면 앱의 기본값과 같다 — 모두 켜짐(#3025)."""
     _, _, member_token, _ = _pair(client, db_session)
 
     settings = client.get(
@@ -543,7 +546,7 @@ def test_settings_default_matches_the_app(client, db_session):
     assert body["exercise_reminder"] is True
     assert body["diet_log"] is True
     assert body["ai_coaching"] is True
-    assert body["weekly_report"] is False
+    assert body["weekly_report"] is True
 
 
 def test_settings_survive_a_new_session(client, db_session):
@@ -620,8 +623,8 @@ def test_a_disabled_kind_still_delivers_the_message(client, db_session):
     assert any(m["body"] == "메시지는 도착해야 합니다" for m in thread.json())
 
 
-def test_report_is_off_by_default(client, db_session):
-    """주간 리포트는 기본 꺼짐이라 켜기 전에는 알림이 없다."""
+def test_report_is_on_by_default(client, db_session):
+    """설정을 건드린 적 없는 회원도 트레이너 주간 리포트 알림을 받는다(#3025)."""
     trainer_token, member_id, member_token, _ = _pair(client, db_session)
 
     client.post(
@@ -630,7 +633,45 @@ def test_report_is_off_by_default(client, db_session):
         json={"message": "이번 주 리포트"},
     )
 
+    assert "주간 리포트가 도착했어요" in _titles(client, member_token)
+
+
+def test_report_can_still_be_switched_off(client, db_session):
+    """기본값이 켜짐이어도 스위치로 끌 수 있다."""
+    trainer_token, member_id, member_token, _ = _pair(client, db_session)
+    client.put(
+        "/v1/users/me/notification-settings",
+        headers=_auth(member_token),
+        json={"weekly_report": False},
+    )
+
+    client.post(
+        f"/v1/trainer/clients/{member_id}/report/send",
+        headers=_auth(trainer_token),
+        json={"message": "이번 주 리포트"},
+    )
+
     assert "주간 리포트가 도착했어요" not in _titles(client, member_token)
+
+
+def test_changing_another_switch_keeps_the_report_on(client, db_session):
+    """다른 스위치 하나만 바꿔도 리포트 알림은 켜진 채로 남는다(#3025).
+
+    행이 없을 때 나머지 칸을 기본값으로 채우므로, 예전에는 이 경로로
+    회원이 고르지 않은 `false` 가 저장됐다.
+    """
+    _, member_id, member_token, _ = _pair(client, db_session)
+
+    updated = client.put(
+        "/v1/users/me/notification-settings",
+        headers=_auth(member_token),
+        json={"trainer_message": False},
+    )
+
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["weekly_report"] is True
+    db_session.expire_all()
+    assert db_session.get(MemberNotificationSetting, member_id).weekly_report is True
 
 
 def test_trainer_cannot_use_the_member_settings_endpoint(client, db_session):
@@ -643,3 +684,181 @@ def test_trainer_cannot_use_the_member_settings_endpoint(client, db_session):
     )
 
     assert response.status_code == 403, response.text
+
+
+# --- 끌 수 없는 일정·담당 알림 (#3024) ---------------------------------------
+
+
+def _switch_off(client, member_token: str, **fields: bool) -> None:
+    response = client.put(
+        "/v1/users/me/notification-settings",
+        headers=_auth(member_token),
+        json=fields,
+    )
+    assert response.status_code == 200, response.text
+
+
+def test_schedule_creation_reaches_a_member_with_both_switches_off(
+    client, db_session
+):
+    trainer_token, member_id, member_token, _ = _pair(client, db_session)
+    _switch_off(
+        client, member_token, exercise_reminder=False, trainer_message=False
+    )
+
+    _schedule(client, trainer_token, member_id)
+
+    assert "새 일정이 등록되었어요" in _titles(client, member_token)
+
+
+def test_schedule_deletion_reaches_a_member_with_the_exercise_switch_off(
+    client, db_session
+):
+    trainer_token, member_id, member_token, _ = _pair(client, db_session)
+    session_id = _schedule(client, trainer_token, member_id)
+    _switch_off(client, member_token, exercise_reminder=False)
+
+    removed = client.delete(
+        f"/v1/trainer/schedule/{session_id}", headers=_auth(trainer_token)
+    )
+
+    assert removed.status_code in (200, 204), removed.text
+    assert "일정이 취소되었어요" in _titles(client, member_token)
+
+
+def test_schedule_cancel_reaches_a_member_with_the_exercise_switch_off(
+    client, db_session
+):
+    trainer_token, member_id, member_token, _ = _pair(client, db_session)
+    session_id = _schedule(client, trainer_token, member_id)
+    _switch_off(client, member_token, exercise_reminder=False)
+
+    cancelled = client.post(
+        f"/v1/trainer/schedule/{session_id}/cancel",
+        headers=_auth(trainer_token),
+        json={"source": "trainer"},
+    )
+
+    assert cancelled.status_code == 200, cancelled.text
+    assert "일정이 취소되었어요" in _titles(client, member_token)
+
+
+def test_handing_a_session_over_tells_the_old_member_even_when_switched_off(
+    client, db_session
+):
+    """다른 회원으로 넘긴 일정 — 원래 회원은 스위치와 상관없이 취소를 듣는다."""
+    trainer_token, member_id, member_token, _ = _pair(client, db_session)
+    session_id = _schedule(client, trainer_token, member_id)
+    _switch_off(client, member_token, exercise_reminder=False)
+
+    unassigned = client.put(
+        f"/v1/trainer/schedule/{session_id}",
+        headers=_auth(trainer_token),
+        json={"member_id": ""},
+    )
+
+    assert unassigned.status_code == 200, unassigned.text
+    assert "일정이 취소되었어요" in _titles(client, member_token)
+
+
+def test_schedule_notice_keeps_the_schedule_category(client, db_session):
+    """kind 만 바뀌고 목적지(category)는 그대로다."""
+    trainer_token, member_id, member_token, _ = _pair(client, db_session)
+
+    _schedule(client, trainer_token, member_id)
+
+    item = next(
+        i for i in _items(client, member_token)
+        if i["title"] == "새 일정이 등록되었어요"
+    )
+    assert item["category"] == notification_service.MEMBER_SCHEDULE
+
+
+def test_routine_assignment_still_follows_the_exercise_switch(client, db_session):
+    """루틴 배정은 '개인운동·프로그램' 스위치로 끈다 — 기존 동작 그대로."""
+    trainer_token, member_id, member_token, _ = _pair(client, db_session)
+    _switch_off(client, member_token, exercise_reminder=False)
+
+    assigned = client.post(
+        f"/v1/trainer/clients/{member_id}/routines",
+        headers=_auth(trainer_token),
+        json={
+            "name": "인터벌 러닝",
+            "minutes": 30,
+            "type": "유산소",
+            "reason": "체력 향상",
+            "source": "trainer",
+        },
+    )
+
+    assert assigned.status_code == 201, assigned.text
+    assert "새 개인운동이 왔어요" not in _titles(client, member_token)
+
+
+def test_disconnecting_reaches_a_member_with_the_message_switch_off(
+    client, db_session
+):
+    """담당 해제는 '트레이너 메시지'를 꺼도 온다 — 담당이 조용히 비면 안 된다."""
+    trainer_token, member_id, member_token, _ = _pair(client, db_session)
+    _switch_off(client, member_token, trainer_message=False)
+
+    removed = client.delete(
+        f"/v1/trainer/clients/{member_id}", headers=_auth(trainer_token)
+    )
+
+    assert removed.status_code == 204, removed.text
+    assert "담당 트레이너 연결 해제" in _titles(client, member_token)
+
+
+def test_disconnecting_with_a_pending_session_reports_the_cancellation(
+    client, db_session
+):
+    trainer_token, member_id, member_token, _ = _pair(client, db_session)
+    _schedule(client, trainer_token, member_id)
+    _switch_off(
+        client, member_token, exercise_reminder=False, trainer_message=False
+    )
+
+    removed = client.delete(
+        f"/v1/trainer/clients/{member_id}", headers=_auth(trainer_token)
+    )
+
+    assert removed.status_code == 204, removed.text
+    item = next(
+        i for i in _items(client, member_token)
+        if i["title"] == "담당 트레이너 연결 해제"
+    )
+    assert "1건" in item["body"]
+    assert item["category"] == notification_service.MEMBER_SCHEDULE
+
+
+def test_coach_chat_still_follows_the_message_switch(client, db_session):
+    """채팅 알림은 '트레이너 메시지' 스위치로 끈다 — 기존 동작 그대로."""
+    trainer_token, member_id, member_token, _ = _pair(client, db_session)
+    _switch_off(client, member_token, trainer_message=False)
+
+    sent = client.post(
+        f"/v1/trainer/clients/{member_id}/chat",
+        headers=_auth(trainer_token),
+        json={"text": "꺼 두었으니 알림은 없다"},
+    )
+
+    assert sent.status_code == 201, sent.text
+    assert not any("메시지" in t for t in _titles(client, member_token))
+
+
+def test_settings_api_keeps_its_keys(client, db_session):
+    """스위치 범위만 바뀌고 저장 키·응답 모양은 그대로다 — 예전 앱이 깨지지 않는다."""
+    _, _, member_token, _ = _pair(client, db_session)
+
+    body = client.get(
+        "/v1/users/me/notification-settings", headers=_auth(member_token)
+    ).json()
+
+    assert {
+        "trainer_message",
+        "exercise_reminder",
+        "weekly_report",
+        "diet_log",
+        "ai_coaching",
+    } <= set(body)

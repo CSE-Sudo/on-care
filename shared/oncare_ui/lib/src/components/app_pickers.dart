@@ -28,8 +28,8 @@ import 'package:oncare_ui/src/tokens/typography.dart';
 /// 탭으로 고르는 것도 둘 다 항상 된다. 입력창에 타이핑하면
 /// [MaterialLocalizations.parseCompactDate] 로 즉시 해석해 달력도 같이 움직이고,
 /// 달력에서 고르면 입력창 글자도 같이 바뀐다. 아래에 `취소 / 확인` 을 두고,
-/// 오른쪽 위 X 는 [showClose] 가 정한다 — 비워 두면 [AppDialog] 기본값대로 웹은
-/// X 없이 `취소` 로만 닫고(#2465) 모바일은 X 를 둔다. 회원 앱은 부분 창에 X 를
+/// 오른쪽 위 X 는 [showClose] 가 정한다 — 비워 두면 [AppDialog] 기본값대로 X 와
+/// 하단 `취소` 를 함께 둔다(#2983). 회원 앱은 부분 창에 X 를
 /// 두지 않아 꺼서 쓴다(#2170). 달 이동 꺾쇠·달 보기
 /// 삼각형은 앱의 아이콘 묶음(#1803)으로 그린다.
 Future<DateTime?> showAppDatePicker({

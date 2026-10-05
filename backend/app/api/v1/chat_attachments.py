@@ -10,14 +10,16 @@
 """
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import PurePath
+from urllib.parse import quote
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from starlette.responses import FileResponse
+from starlette.responses import StreamingResponse
 
 from app.api.deps import RequireUser
 from app.core.config import get_settings
@@ -25,13 +27,16 @@ from app.db.session import get_db
 from app.models.models import ChatMessage, TrainerClient
 from app.schemas.trainer_api import ChatMessageOut
 from app.services import (
+    attachment_store,
     chat_image_storage,
     data_consent_service,
     report_pdf_storage,
-    trainer_service,
 )
+from app.services.trainer import chat as trainer_chat_service
+from app.services.trainer import _common as trainer_common_service
 
 router = APIRouter(tags=["chat-attachments"])
+logger = logging.getLogger(__name__)
 
 #: 어느 종류든 "찾을 수 없습니다" 로 끝난다. 권한이 없는 사람에게 파일의
 #: 존재 여부를 알려 주지 않기 위해서다.
@@ -43,7 +48,7 @@ def download_chat_attachment(
     file_id: str,
     user: RequireUser,
     db: Annotated[Session, Depends(get_db)],
-) -> FileResponse:
+) -> StreamingResponse:
     message = db.scalar(
         select(ChatMessage).where(
             ChatMessage.attachment_file_id == file_id,
@@ -70,31 +75,80 @@ def download_chat_attachment(
 
     if message.attachment_type == "image":
         try:
-            path, media_type = chat_image_storage.path_for(file_id)
+            blob, media_type = chat_image_storage.open_image(file_id)
         except FileNotFoundError as exc:
             raise HTTPException(status_code=404, detail=_NOT_FOUND) from exc
+        except attachment_store.StoreError as exc:
+            raise _store_unavailable() from exc
         # 사진은 대화 안에서 그려야 한다 — `attachment` 로 주면 브라우저가
         # 내려받기로 처리해 스레드에 아무것도 보이지 않는다.
-        return FileResponse(
-            path,
+        return _stream(
+            blob,
             media_type=media_type,
             filename=message.attachment_file_name or "photo",
-            content_disposition_type="inline",
+            disposition="inline",
         )
 
     try:
-        path = report_pdf_storage.path_for(file_id)
+        blob = report_pdf_storage.open_pdf(file_id)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=_NOT_FOUND) from exc
-    return FileResponse(
-        path,
+    except attachment_store.StoreError as exc:
+        raise _store_unavailable() from exc
+    return _stream(
+        blob,
         media_type="application/pdf",
         filename=message.attachment_file_name or "weekly-report.pdf",
-        content_disposition_type="attachment",
+        disposition="attachment",
     )
 
 
-async def receive_chat_image(
+def _store_unavailable() -> HTTPException:
+    """저장소 장애. 파일이 없다는 404 와 구분해야 앱이 다시 시도할 수 있다."""
+    logger.exception("첨부 저장소를 읽지 못했습니다.")
+    return HTTPException(
+        status_code=503, detail="첨부를 잠시 불러올 수 없습니다. 다시 시도해 주세요."
+    )
+
+
+def _content_disposition(disposition: str, filename: str) -> str:
+    """`FileResponse` 와 같은 규칙의 Content-Disposition.
+
+    ASCII 로 그대로 적을 수 있으면 `filename="…"`, 아니면 RFC 5987 의
+    `filename*=utf-8''…` 로 적는다 — 한글 파일명이 깨지지 않게.
+    """
+    quoted = quote(filename)
+    if quoted != filename:
+        return f"{disposition}; filename*=utf-8''{quoted}"
+    return f'{disposition}; filename="{filename}"'
+
+
+def _stream(
+    blob: attachment_store.OpenedBlob,
+    *,
+    media_type: str,
+    filename: str,
+    disposition: Literal["inline", "attachment"],
+) -> StreamingResponse:
+    """권한 확인이 끝난 첨부를 서버가 흘려보낸다. (#2817)
+
+    저장소가 S3 여도 서명 URL 을 내주지 않는다 — 링크가 새면 권한 확인 없이
+    열리고, 동의 철회(#1631)·담당 해제 뒤에도 만료 전까지 열린다. 바이트가
+    서버를 거치는 비용보다 그 판단을 한 곳에 두는 쪽이 중요하다.
+    """
+    headers = {
+        "Content-Disposition": _content_disposition(disposition, filename),
+        # 사용자가 올린 바이트다. 브라우저가 형식을 다시 추측하지 않게 한다.
+        "X-Content-Type-Options": "nosniff",
+        # 권한이 바뀌면 바로 막혀야 하므로 중간 캐시에 남기지 않는다.
+        "Cache-Control": "private, no-store",
+    }
+    if blob.size is not None:
+        headers["Content-Length"] = str(blob.size)
+    return StreamingResponse(blob.iter_chunks(), media_type=media_type, headers=headers)
+
+
+def receive_chat_image(
     db: Session,
     *,
     trainer_id: str,
@@ -114,13 +168,18 @@ async def receive_chat_image(
     형식은 **바이트를 보고 판정한다.** 확장자와 `Content-Type` 은 보내는 쪽이
     자유롭게 적을 수 있어, 그 말을 믿으면 `image/png` 라고 적힌 아무 파일이나
     저장된다.
+
+    **동기 함수다(#2835).** DB 조회·커밋, 파일 저장(`os.fsync`)이 모두 동기라
+    이벤트 루프에서 돌면 그동안 같은 프로세스의 다른 요청(헬스체크 포함)이 멈춘다.
+    호출하는 라우트도 `def` 로 두어 FastAPI 스레드풀에서 돌게 하고, 업로드는
+    `UploadFile.file` 을 동기로 읽는다.
     """
     viewer = "trainer" if sender == "trainer" else "member"
     text = message.strip()
 
     # 재시도는 기존 메시지를 바로 돌려줘 파일을 다시 쓰지 않는다(PDF 와 같은 규약).
     if client_request_id:
-        existing = trainer_service.find_message_by_client_request(
+        existing = trainer_chat_service.find_message_by_client_request(
             db, trainer_id, member_id, sender, client_request_id
         )
         if existing is not None:
@@ -129,10 +188,10 @@ async def receive_chat_image(
                     status_code=409,
                     detail="같은 client_request_id에 다른 메시지를 보낼 수 없습니다.",
                 )
-            return trainer_service.chat_message_out(existing, viewer)
+            return trainer_chat_service.chat_message_out(existing, viewer)
 
     settings = get_settings()
-    data = await image.read(settings.max_chat_image_bytes + 1)
+    data = image.file.read(settings.max_chat_image_bytes + 1)
     if len(data) > settings.max_chat_image_bytes:
         raise HTTPException(status_code=413, detail="이미지 용량이 너무 큽니다.")
     try:
@@ -149,8 +208,15 @@ async def receive_chat_image(
 
     file_id: str | None = None
     try:
-        file_id, _, _ = chat_image_storage.save(data)
-        sent = trainer_service.send_message(
+        # 저장 전에 회전 적용·메타데이터(EXIF 위치 등) 제거·재인코딩을 거친다
+        # (#2829). 동기 핸들러라 이미 스레드풀에서 돌므로 이벤트 루프를 막지 않는다.
+        # 디코딩할 수 없는 파일은 저장하지 않고 415 다.
+        try:
+            stored = chat_image_storage.save(data)
+        except chat_image_storage.UnsupportedImage as exc:
+            raise HTTPException(status_code=415, detail=str(exc)) from exc
+        file_id = stored.file_id
+        sent = trainer_chat_service.send_message(
             db,
             trainer_id,
             member_id,
@@ -162,14 +228,15 @@ async def receive_chat_image(
             attachment_type="image",
             attachment_file_name=display_name,
             attachment_file_id=file_id,
-            attachment_file_size=len(data),
+            # 상대가 내려받는 것은 정리한 파일이다 — 크기도 그 값이다.
+            attachment_file_size=stored.size,
         )
         # 동시 재시도 두 건이 모두 사전 조회를 통과할 수 있다. DB 멱등키에서
         # 진 요청이 기존 메시지를 반환했다면, 그 요청이 쓴 여분 파일을 지운다.
         if sent.attachment is None or sent.attachment.file_id != file_id:
             chat_image_storage.delete(file_id)
         return sent
-    except trainer_service.IdempotencyConflict as exc:
+    except trainer_common_service.IdempotencyConflict as exc:
         if file_id:
             chat_image_storage.delete(file_id)
         raise HTTPException(status_code=409, detail=str(exc)) from exc

@@ -1,6 +1,10 @@
+import 'package:oncare/features/account/domain/entities/account_deletion_preview.dart';
+import 'package:oncare/features/account/domain/entities/account_reauth.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/measure_update.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
+import 'package:oncare/features/auth/domain/repositories/password_repository.dart'
+    show ReissuedTokens;
 
 abstract class AccountRepository {
   Future<UserProfile> fetchProfile();
@@ -10,7 +14,17 @@ abstract class AccountRepository {
   /// social accounts.
   /// 고른 탈퇴 사유를 함께 보낸다(#2019). 사유는 탈퇴를 막는 조건이 아니라
   /// 물어보는 자리라, 비어 있어도 탈퇴는 그대로 진행된다.
-  Future<void> deleteAccount({List<String> reasons = const <String>[]});
+  ///
+  /// 탈퇴는 언제나 본인 확인([reauth])을 거친다(#3039). 서버가 받아 주지 않으면
+  /// [AccountReauthRejected] 를 던진다 — 세션은 그대로다.
+  Future<void> deleteAccount({
+    List<String> reasons = const <String>[],
+    AccountReauth? reauth,
+  });
+
+  /// GET /users/me/deletion-preview — 탈퇴하면 사라지는 포인트·쿠폰과 취소되는
+  /// 예약·상담 요청의 건수(#3006). 탈퇴 확인창이 이 숫자로 무엇을 잃는지 말한다.
+  Future<AccountDeletionPreview> fetchDeletionPreview();
 
   /// PUT /users/me/health-goals — 건강 목표(식단 일일 6종 + 주간 운동 3종).
   ///
@@ -59,11 +73,22 @@ abstract class AccountRepository {
     int? weeklyFlexibilityMinutes,
   });
 
+  /// POST /users/me/onboarding/skip — 첫 설정 건너뛰기를 계정에 남긴다(#2855).
+  ///
+  /// 값은 아무것도 저장하지 않는다. 응답 프로필의 [UserProfile.onboardingSkipped]
+  /// 가 참이 되고, 다음 로그인·세션 복구에서 첫 설정으로 다시 보내지 않는다.
+  Future<UserProfile> skipOnboarding();
+
   /// PUT /users/me — update basic profile (name/email/phone/birth).
   ///
   /// 키·몸무게는 [MeasureUpdate] 로 받는다 — 인자를 주지 않으면 손대지 않고,
   /// [MeasureUpdate.clear] 는 값을 지운다. `num?` 하나로는 그 둘을 표현할 수
   /// 없어 비운 칸이 "손대지 않음"으로 나갔다(#1941).
+  ///
+  /// 이메일을 **바꿀 때만** 본인 확인([reauth])이 필요하다(#3039). 확인이 막히면
+  /// [AccountReauthRejected] 다. 이메일이 바뀌면 서버가 다른 기기의 세션을 끊고
+  /// 이 기기에 새 토큰 한 쌍을 주는데, 그 쌍을 [onTokensReissued] 로 넘긴다 —
+  /// 받은 쪽이 세션에 넣어야 이 기기의 로그인이 이어진다.
   Future<UserProfile> updateProfile({
     String? name,
     String? email,
@@ -72,5 +97,7 @@ abstract class AccountRepository {
     String? gender,
     MeasureUpdate? heightCm,
     MeasureUpdate? weightKg,
+    AccountReauth? reauth,
+    void Function(ReissuedTokens tokens)? onTokensReissued,
   });
 }

@@ -31,7 +31,8 @@ class AiAdviceCard extends StatelessWidget {
     // 읽힌다. 표시만 떼고, 서버는 그대로 보낸다(나중에 강조를 켤 수 있게).
     return AiAdviceShell(
       title: title,
-      child: Text(message.replaceAll('**', ''), style: style),
+      // 여러 문장이라 낱말 중간에서 줄을 바꾸지 않는다(#2969).
+      child: Text(keepWords(message.replaceAll('**', '')), style: style),
     );
   }
 }
