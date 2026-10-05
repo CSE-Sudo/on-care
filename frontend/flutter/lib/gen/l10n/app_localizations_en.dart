@@ -1237,6 +1237,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your trainer already has something else at this time, so it can\'t be booked. Please pick another time.';
 
   @override
+  String get exReserveUpcomingExists =>
+      'You already have an upcoming booking. To change the time, cancel it first.';
+
+  @override
   String exReserveConfirmedSlotGym(String slot, String gym) {
     return '$slot · $gym reservation confirmed';
   }

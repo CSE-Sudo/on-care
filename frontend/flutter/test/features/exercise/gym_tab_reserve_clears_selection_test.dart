@@ -1,12 +1,17 @@
 /// 예약이 잡히면 고른 자리를 비운다 — 내 예약을 다시 받는 동안 확정 버튼이
-/// 다시 켜져 두 번째 자리를 잡을 수 있었다. (#3240)
+/// 다시 켜져 두 번째 자리를 잡을 수 있었다. 그 틈에 서버가 "다가오는 예약 있음"
+/// 409 로 막으면 일반 실패가 아니라 먼저 취소하라고 알린다. (#3240)
 library;
 
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/features/exercise/data/repositories/dio_gym_repository.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
@@ -18,8 +23,37 @@ import 'package:oncare/features/exercise/presentation/controllers/exercise_contr
 import 'package:oncare/features/exercise/presentation/widgets/gym_tab.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/gen/l10n/app_localizations_ko.dart';
 
 import '../../support/consultation_test_support.dart';
+
+final AppLocalizationsKo _ko = AppLocalizationsKo();
+
+/// `POST /reservations` 에 정해 둔 상태·본문으로 답하는 어댑터.
+class _ReserveAdapter implements HttpClientAdapter {
+  _ReserveAdapter(this.status, this.body);
+
+  final int status;
+  final Object? body;
+
+  @override
+  Future<ResponseBody> fetch(RequestOptions options, _, _) async =>
+      ResponseBody.fromString(
+        jsonEncode(body),
+        status,
+        headers: <String, List<String>>{
+          Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+        },
+      );
+
+  @override
+  void close({bool force = false}) {}
+}
+
+DioGymRepository _dioRepo(int status, Object? body) => DioGymRepository(
+  Dio(BaseOptions(baseUrl: 'http://localhost'))
+    ..httpClientAdapter = _ReserveAdapter(status, body),
+);
 
 const Gym _gym = Gym(
   id: 'gym-pt',
@@ -86,6 +120,37 @@ class _HostState extends State<_Host> {
 }
 
 void main() {
+  group('DioGymRepository.reserve', () {
+    test('409 upcoming_reservation → UpcomingReservationError', () async {
+      await expectLater(
+        _dioRepo(409, <String, Object?>{
+          'detail': <String, Object?>{
+            'code': 'upcoming_reservation',
+            'message': '이미 다가오는 예약이 있습니다.',
+          },
+        }).reserve('slot-1'),
+        throwsA(
+          isA<UpcomingReservationError>().having(
+            (e) => e.slotId,
+            'slotId',
+            'slot-1',
+          ),
+        ),
+      );
+    });
+
+    test('문자열 detail 의 409 는 지금처럼 마감(StateError)', () async {
+      await expectLater(
+        _dioRepo(409, <String, Object?>{
+          'detail': '이미 예약한 슬롯입니다.',
+        }).reserve('slot-1'),
+        throwsA(
+          allOf(isA<StateError>(), isNot(isA<UpcomingReservationError>())),
+        ),
+      );
+    });
+  });
+
   Future<int Function()> pumpTab(
     WidgetTester tester, {
     required GymRepository repository,
@@ -185,6 +250,22 @@ void main() {
     expect(repo.reserveCalls, 1);
     expect(reservedCalls(), 0);
     expect(confirm, findsOneWidget);
+    await drainToast(tester);
+  });
+
+  testWidgets('다가오는 예약이 있다는 409 면 먼저 취소하라고 알린다', (WidgetTester tester) async {
+    final repo = _ReserveRepository(
+      error: const UpcomingReservationError('slot-open'),
+    );
+    final reservedCalls = await pumpTab(tester, repository: repo);
+
+    await tapReserve(tester);
+
+    expect(repo.reserveCalls, 1);
+    expect(find.text(_ko.exReserveUpcomingExists), findsOneWidget);
+    expect(find.text(_ko.exReserveFailed), findsNothing);
+    // 예약이 잡힌 것이 아니므로 선택 해제 콜백은 부르지 않는다.
+    expect(reservedCalls(), 0);
     await drainToast(tester);
   });
 }

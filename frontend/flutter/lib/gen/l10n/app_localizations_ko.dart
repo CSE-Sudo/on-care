@@ -1181,6 +1181,10 @@ class AppLocalizationsKo extends AppLocalizations {
       '트레이너의 다른 일정과 겹쳐 이 시간은 예약할 수 없어요. 다른 시간을 골라 주세요';
 
   @override
+  String get exReserveUpcomingExists =>
+      '이미 다가오는 예약이 있어요. 다른 시간으로 바꾸려면 먼저 예약을 취소해 주세요';
+
+  @override
   String exReserveConfirmedSlotGym(String slot, String gym) {
     return '$slot · $gym 예약이 확정됐어요';
   }

@@ -2228,6 +2228,12 @@ abstract class AppLocalizations {
   /// **'Your trainer already has something else at this time, so it can\'t be booked. Please pick another time.'**
   String get exReserveTimeTaken;
 
+  /// No description provided for @exReserveUpcomingExists.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have an upcoming booking. To change the time, cancel it first.'**
+  String get exReserveUpcomingExists;
+
   /// No description provided for @exReserveConfirmedSlotGym.
   ///
   /// In en, this message translates to:

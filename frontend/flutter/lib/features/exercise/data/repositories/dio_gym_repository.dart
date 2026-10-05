@@ -229,6 +229,11 @@ class DioGymRepository implements GymRepository {
       if (code == 409 && _isScheduleOverlap(e.response?.data)) {
         throw SlotTimeTakenError(slotId);
       }
+      // 다가오는 예약이 이미 있으면 코드로 따로 온다(#3240).
+      if (code == 409 &&
+          _detailCode(e.response?.data) == 'upcoming_reservation') {
+        throw UpcomingReservationError(slotId);
+      }
       if (code == 409 || code == 410) {
         throw StateError('slot no longer bookable: $slotId');
       }
@@ -237,9 +242,13 @@ class DioGymRepository implements GymRepository {
   }
 
   /// 서버의 시간 겹침 409 인가 — `detail.code == 'schedule_overlap'`. (#2284)
-  static bool _isScheduleOverlap(Object? body) {
-    if (body is! Map) return false;
+  static bool _isScheduleOverlap(Object? body) =>
+      _detailCode(body) == 'schedule_overlap';
+
+  /// 409 본문 `detail.code`. 문자열 `detail` 이면 null.
+  static Object? _detailCode(Object? body) {
+    if (body is! Map) return null;
     final detail = body['detail'];
-    return detail is Map && detail['code'] == 'schedule_overlap';
+    return detail is Map ? detail['code'] : null;
   }
 }

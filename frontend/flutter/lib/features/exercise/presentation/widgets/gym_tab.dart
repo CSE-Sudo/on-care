@@ -311,6 +311,15 @@ class _ReservationPanelState extends ConsumerState<_ReservationPanel> {
       container.invalidate(trainerSlotsProvider(widget.trainer.id));
       toast.show(l.exReserveTimeTaken, type: AppToastType.error);
       return;
+    } on UpcomingReservationError {
+      // 다가오는 예약이 이미 있다(#3240) — 예약 직후 목록을 다시 받는 틈에 다른
+      // 자리를 눌렀거나 다른 기기에서 잡았다. 다시 눌러도 같은 결과라 먼저 취소하라고
+      // 알리고, 내 예약을 다시 읽어 잡혀 있는 예약을 보여 준다.
+      if (mounted) setState(() => _reserving = null);
+      container.invalidate(myReservationsProvider);
+      container.invalidate(trainerSlotsProvider(widget.trainer.id));
+      toast.show(l.exReserveUpcomingExists, type: AppToastType.error);
+      return;
     } catch (_) {
       if (mounted) setState(() => _reserving = null);
       toast.show(l.exReserveFailed, type: AppToastType.error);

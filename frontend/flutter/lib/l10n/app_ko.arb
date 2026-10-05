@@ -491,6 +491,7 @@
   "exSlotsLoadError": "예약 시간을 불러오지 못했어요.",
   "exReserveFailed": "예약에 실패했어요. 잠시 후 다시 시도해 주세요",
   "exReserveTimeTaken": "트레이너의 다른 일정과 겹쳐 이 시간은 예약할 수 없어요. 다른 시간을 골라 주세요",
+  "exReserveUpcomingExists": "이미 다가오는 예약이 있어요. 다른 시간으로 바꾸려면 먼저 예약을 취소해 주세요",
   "exReserveConfirmedSlotGym": "{slot} · {gym} 예약이 확정됐어요",
   "exReserveConfirm": "{slot} 예약 확정",
   "exAddress": "주소",
