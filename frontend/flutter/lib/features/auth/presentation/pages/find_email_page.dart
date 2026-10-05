@@ -19,7 +19,8 @@ enum FindEmailField { name, phone }
 /// **아직 찾기는 동작하지 않는다.** 서버에 찾는 경로가 없고, 번호의 주인을
 /// 확인할 수단(문자 인증)도 없다. 확인 없이 이메일을 알려 주면 남의 번호로 가입
 /// 여부와 이메일을 알아낼 수 있으므로, 어떻게 알려 줄지(가린 이메일·안내 메일 등)
-/// 정하기 전까지는 입력만 검사하고 요청을 보내지 않은 채 준비 중이라고 안내한다.
+/// 정하기 전까지는 입력만 검사하고 요청을 보내지 않은 채 준비 중이라고 토스트로
+/// 알린다. 화면에는 준비 중 문구를 늘 띄워 두지 않는다.
 class FindEmailPage extends StatefulWidget {
   const FindEmailPage({super.key});
 
@@ -118,16 +119,6 @@ class _FindEmailPageState extends State<FindEmailPage> {
             onPressed: _find,
             size: OnCareButtonSize.large,
             fullWidth: true,
-          ),
-          const SizedBox(height: OnCareSpacing.s8),
-          // 로그인 화면의 소셜 '준비 중' 안내와 같은 자리·모양이다(#2769).
-          Text(
-            l.findEmailComingSoon,
-            key: const ValueKey<String>('findEmail-soon'),
-            textAlign: TextAlign.center,
-            style: context.oncare
-                .text(OnCareTypography.bodySmall)
-                .copyWith(color: OnCareColors.textSecondary),
           ),
           const SizedBox(height: OnCareSpacing.s8),
           Center(

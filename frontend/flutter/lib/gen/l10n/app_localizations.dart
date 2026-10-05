@@ -7836,7 +7836,7 @@ abstract class AppLocalizations {
   /// **'Find email'**
   String get findEmailAction;
 
-  /// Shown under the button and as a toast on the find-email screen while the lookup is not available yet.
+  /// Toast shown when the find-email button is pressed while the lookup is not available yet.
   ///
   /// In en, this message translates to:
   /// **'Finding your email is coming soon.'**

@@ -3994,7 +3994,7 @@
   "findEmailAction": "Find email",
   "findEmailComingSoon": "Finding your email is coming soon.",
   "@findEmailComingSoon": {
-    "description": "Shown under the button and as a toast on the find-email screen while the lookup is not available yet."
+    "description": "Toast shown when the find-email button is pressed while the lookup is not available yet."
   },
   "passwordChangeTitle": "Change password",
   "passwordChangeCurrentHint": "Current password",

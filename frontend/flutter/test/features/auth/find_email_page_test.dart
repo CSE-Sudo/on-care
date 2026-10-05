@@ -95,8 +95,8 @@ void main() {
     expect(find.byType(FindEmailPage), findsOneWidget);
     expect(find.text(l.findEmailTitle), findsWidgets);
     expect(find.text(l.findEmailSubtitle), findsOneWidget);
-    // 화면에 들어서자마자 준비 중임을 알린다.
-    expect(_key('findEmail-soon'), findsOneWidget);
+    // 준비 중 문구는 화면에 늘 띄워 두지 않는다 — 눌렀을 때 토스트로만 알린다.
+    expect(find.text(l.findEmailComingSoon), findsNothing);
   });
 
   testWidgets('뒤로 가면 로그인 화면으로 돌아간다', (tester) async {
@@ -141,8 +141,8 @@ void main() {
     await _tap(tester, _key('findEmail-submit'));
     expect(_errorOf(tester, 'findEmail-name'), isNull);
     expect(_errorOf(tester, 'findEmail-phone'), isNull);
-    // 칸 아래 안내 + 토스트.
-    expect(find.text(l.findEmailComingSoon), findsNWidgets(2));
+    // 토스트로만 알린다.
+    expect(find.text(l.findEmailComingSoon), findsOneWidget);
     expect(find.byType(FindEmailPage), findsOneWidget);
   });
 
