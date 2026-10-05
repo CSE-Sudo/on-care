@@ -502,6 +502,9 @@ Fargate 태스크의 디스크는 재배포·재시작 때 비므로 운영은 S
       배포한 커밋). 실패했다면 `Roll back to previous image` 단계 결과와 잡 요약을 본다.
 - [ ] 기동 로그에 `[startup]` WARN 이 없다(데모 폴백, staging 의 로컬 첨부 저장소). 운영 데모 시드·운영
       로컬 첨부 저장소는 WARN 이 아니라 기동 거부다.
+- [ ] **헬스장 찾기가 비지 않는다(#3161).** 기동 로그에 `KAKAO_REST_API_KEY`·`PLACES_PROVIDER=seed` 를 말하는
+      `[startup]` ERROR 가 없다. 키가 비거나 `PLACES_PROVIDER=seed` 면 서버는 뜨지만 회원 앱 헬스장 찾기가
+      항상 빈 목록이다(데모 장소는 빼고 읽음, #2914). 배포 뒤 회원 앱에서 한 번 검색해 결과가 나오는지 본다.
 - [ ] **AI 비용 상한이 정해져 있다(#3032).** `GEMINI_API_KEY` 가 결제가 연결된 프로젝트의 키다
       (무료 등급 금지). 공급자 콘솔에 예산 알림을 걸고, 그 예산으로 `AI_GLOBAL_CALLS_PER_DAY` 를 0 이
       아닌 값으로 둔다. 운영 중에는 `ai_calls.rejected{reason=global_cap}` 메트릭이 늘면 상한이나
