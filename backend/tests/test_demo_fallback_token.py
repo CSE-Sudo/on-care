@@ -104,7 +104,7 @@ def _person(user_id: str, *, role: str = "member", active: bool = True, tv: int 
 @pytest.fixture
 def consent_ok(monkeypatch):
     """동의 확인은 이 테스트의 관심이 아니다(#3088 은 따로 본다)."""
-    monkeypatch.setattr(deps, "ensure_member_consented", lambda request, user, db: None)
+    monkeypatch.setattr(deps, "ensure_consented", lambda request, user, db: None)
 
 
 def _call(request: Request, db: _FakeDb):
