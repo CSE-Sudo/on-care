@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from datetime import date, timedelta
 
 from sqlalchemy import select
@@ -42,6 +43,22 @@ MEAL_ID_PREFIX = "seed-meal-"
 
 #: 운동 세션 id 머리.
 SESSION_ID_PREFIX = "seed-log-ex-"
+
+#: 시드 문구에서 바뀐 표기 — (옛 표기 정규식, 지금 표기). 이미 시드된 DB 의 시드
+#: 행이 옛 표기를 그대로 들고 있지 않게, 시드가 다시 돌 때 갈아 끼운다(#3201).
+#: `런닝머신` 은 운동 카탈로그의 별칭이라 그대로 둔다.
+_RENAMED_SEED_TERMS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"런닝(?!머신)"), "러닝"),
+)
+
+
+def current_seed_text(text: str | None) -> str | None:
+    """시드가 만든 문구를 지금 시드 표기로 고친다 — 바뀐 표기가 없으면 그대로."""
+    if not text:
+        return text
+    for pattern, replacement in _RENAMED_SEED_TERMS:
+        text = pattern.sub(replacement, text)
+    return text
 
 #: 회원 → 트레이너 웹 데모의 회원 번호(`seed-client-N`). 루틴을 돌려 고르는 씨앗이라
 #: 데모와 같은 날 같은 운동이 나온다.
@@ -152,7 +169,7 @@ _ROUTINE_POOL: tuple[tuple[tuple[str, str, int, int | None, int | None, float | 
         ("페이스 풀", "strength", 9, 3, 15, 15, None),
     ),
     (
-        ("런닝", "cardio", 30, None, None, None, None),
+        ("러닝", "cardio", 30, None, None, None, None),
         ("사이클", "cardio", 20, None, None, None, None),
         ("코어 서킷", "strength", 9, 3, 12, None, None),
     ),
@@ -340,6 +357,24 @@ def routine_for(number: int, day: date, completion: int):
     return items[:done]
 
 
+def _rename_seed_sessions(db: Session, member_id: str) -> None:
+    """이미 넣은 시드 세션(`seed-log-ex-`)의 운동 이름을 지금 시드 표기로 고친다.
+
+    세션은 결정론적 id 로 한 번만 넣으므로, 표기를 바꿔도 이미 시드된 DB 에는 옛
+    이름이 남는다(#3201). 이름 외의 값(시간·세트·완료 시각)은 건드리지 않는다.
+    회원이 시드 세션을 고쳐 다른 이름을 적었으면 옛 표기가 아니라 그대로 남는다.
+    """
+    for row in db.scalars(
+        select(models.ExerciseSession).where(
+            models.ExerciseSession.user_id == member_id,
+            models.ExerciseSession.id.like(f"{SESSION_ID_PREFIX}{member_id}-%"),
+        )
+    ):
+        renamed = current_seed_text(row.name)
+        if renamed != row.name:
+            row.name = renamed
+
+
 def seed_routine_sessions(
     db: Session, member_id: str, number: int, today: date
 ) -> None:
@@ -376,6 +411,7 @@ def seed_routine_sessions(
             continue
         local = done_at.astimezone(clock.SEOUL) if done_at.tzinfo else done_at
         member_days.add(local.date().isoformat())
+    _rename_seed_sessions(db, member_id)
     for day_str, rate in rate_by_day.items():
         day = date.fromisoformat(day_str)
         if day_str in member_days:

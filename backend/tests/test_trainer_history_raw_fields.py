@@ -208,7 +208,7 @@ def _item(**kw) -> dict:
             "벤치프레스 4세트 · 8회 · 62.5kg",
             _item(name="벤치프레스", type="strength", sets=4, reps=8, weight=62.5),
         ),
-        ("인터벌 런닝 25분 ✓", _item(name="인터벌 런닝", minutes=25)),
+        ("인터벌 러닝 25분 ✓", _item(name="인터벌 러닝", minutes=25)),
         # 이름에 공백이 있어도 이름으로 남는다
         (
             "인클라인 덤벨 3세트 · 10회 · 26kg",

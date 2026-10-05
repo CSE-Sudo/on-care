@@ -44,6 +44,7 @@ from app.core import clock
 from app.core.config import get_settings
 from app.core.week import monday_of
 from app.db.demo_fixture import FixtureRoutine, load_fixture
+from app.db.seed_member_logs import current_seed_text
 from app.db.seed_roster import HISTORY_WEEKS
 from app.db.seed_trainer import TRAINER_ID, _MEMBERS
 from app.db.session import SessionLocal
@@ -136,13 +137,13 @@ _SODIUM_WEEK: dict[str, list[int]] = {
 _HISTORY: dict[str, list[tuple[int, str, list[str], str, str]]] = {
     "user-jisu": [
         (100, "AI 개인운동",
-         ["인터벌 런닝 25분 ✓", "스쿼트 3세트 · 12회 · 40kg ✓", "플랭크 3세트 · 3회 · 0kg ✓"],
-         "런닝이 힘들었는데 다 했어요! 숨이 많이 찼어요",
-         "심폐지구력 향상 중. 다음 주 런닝 강도 소폭 올릴 예정."),
+         ["인터벌 러닝 25분 ✓", "스쿼트 3세트 · 12회 · 40kg ✓", "플랭크 3세트 · 3회 · 0kg ✓"],
+         "러닝이 힘들었는데 다 했어요! 숨이 많이 찼어요",
+         "심폐지구력 향상 중. 다음 주 러닝 강도 소폭 올릴 예정."),
         (100, "PT 세션 · 트레이너 지도",
          ["데드리프트 3세트 · 8회 · 55kg", "런지 3세트 · 12회 · 10kg", "코어 서킷 2세트 · 12회 · 0kg"],
          "데드리프트 자세 교정 도움 많이 됐어요!", ""),
-        (67, "AI 개인운동", ["런닝 25분 ✓", "스쿼트 ✓", "플랭크 ✗ (피로)"],
+        (67, "AI 개인운동", ["러닝 25분 ✓", "스쿼트 ✓", "플랭크 ✗ (피로)"],
          "마지막 플랭크는 너무 지쳐서 못 했어요", ""),
     ],
     "user-sungho": [
@@ -227,10 +228,10 @@ _CHAT: dict[str, list[tuple[str, str, int]]] = {
         ("client", "찌개 먹을 때 국물을 많이 마셨나봐요 😅", 0),
         ("trainer", "그렇군요! 오늘 PT 후에 부상이나 불편한 데는 없으셨나요?", 0),
         ("client", "무릎이 가볍게 당기긴 했는데 괜찮아요", 0),
-        ("trainer", "확인했어요. AI가 오늘 식단 기반으로 유산소 프로그램을 추천했는데, 무릎 상태 감안해서 런닝 대신 걷기로 조정해서 보낼게요. 다음 PT 때 봐요 💪", 0),
+        ("trainer", "확인했어요. AI가 오늘 식단 기반으로 유산소 프로그램을 추천했는데, 무릎 상태 감안해서 러닝 대신 걷기로 조정해서 보낼게요. 다음 PT 때 봐요 💪", 0),
     ],
     "user-jisu": [
-        ("trainer", "지수님, AI 운동 데이터 수신했어요 — 오늘 인터벌 런닝 25분 완료! 컨디션은 어때요?", 0),
+        ("trainer", "지수님, AI 운동 데이터 수신했어요 — 오늘 인터벌 러닝 25분 완료! 컨디션은 어때요?", 0),
         ("client", "생각보다 괜찮았어요. 숨이 금방 차더라고요 😮‍💨", 0),
         ("trainer", "심폐 지구력 올라가는 과정이에요 💪 AI 분석 보니까 당류는 목표 안에 있고, "
                     "루틴 다음 주부터 근력 비중 늘려볼게요. 식단도 AI 추천 참고해서 업데이트해 드릴게요", 0),
@@ -322,7 +323,7 @@ _ROUTINES: dict[
     ],
 ] = {
     "user-jisu": [
-        ("인터벌 런닝", 25, "유산소", "체지방 연소 효율↑", None, None, None, None),
+        ("인터벌 러닝", 25, "유산소", "체지방 연소 효율↑", None, None, None, None),
         ("스쿼트", 15, "근력", "하체 근력 강화", 3, 12, None, 40.0),
         ("플랭크", 10, "근력", "코어 안정화", 3, None, 45, 0.0),
     ],
@@ -1482,13 +1483,32 @@ def _seed_history(db: Session, member_id: str) -> None:
     # 멱등성은 행 id(회원+날짜)로 지킨다. 예전처럼 "오늘 기록이 있으면 통째로
     # 건너뛰기" 로 두면, 오늘치가 이미 있는 DB 에는 과거 주가 영영 채워지지
     # 않는다.
-    existing = set(
-        db.scalars(
-            select(models.RoutineHistory.id).where(
+    #
+    existing: dict[str, models.RoutineHistory] = {
+        row.id: row
+        for row in db.scalars(
+            select(models.RoutineHistory).where(
                 models.RoutineHistory.member_id == member_id
             )
         ).all()
-    )
+    }
+    # 이미 있는 시드 행(`seed-hist-`)의 표시 문구는 지금 시드 표기로 고쳐 쓴다
+    # (#3201). 건너뛰기만 하면 한 번 시드된 DB(공유 Neon 포함)가 옛 표기(`런닝`)를
+    # 그대로 들고 있어, 실연동 화면이 목업과 다른 이름을 보인다. 이 행은 시드만
+    # 만들고 고치는 API 가 없다.
+    #
+    # 자리별로 지금 튜플을 덮어쓰지 않는 까닭: 날짜가 오늘 기준이라, 며칠 전에
+    # 시드된 행은 지금 계산으로는 다른 순번(또는 아예 빈 날)에 놓인다. 덮어쓰면
+    # 이행률과 운동 목록이 엇갈리고, 순번 밖의 옛 행은 그대로 남는다. 그래서 행이
+    # 든 문구에서 바뀐 표기만 갈아 끼우고, 이행률·날짜·담당 트레이너는 처음 넣은
+    # 값을 그대로 둔다.
+    for hid, row in existing.items():
+        if not hid.startswith(f"seed-hist-{member_id}-"):
+            continue
+        row.kind_label = current_seed_text(row.kind_label)
+        row.exercises_json = current_seed_text(row.exercises_json)
+        row.client_feedback = current_seed_text(row.client_feedback)
+        row.trainer_note = current_seed_text(row.trainer_note)
     for week in range(_HISTORY_WEEKS):
         factor = _COMPLETION_FACTORS[week % len(_COMPLETION_FACTORS)]
         for idx, (rate, kind, exercises, feedback, note) in enumerate(sessions):
@@ -1496,8 +1516,7 @@ def _seed_history(db: Session, member_id: str) -> None:
             hid = f"seed-hist-{member_id}-{d}"
             if hid in existing:
                 continue
-            existing.add(hid)
-            db.add(models.RoutineHistory(
+            row = models.RoutineHistory(
                 id=hid,
                 member_id=member_id,
                 trainer_id=TRAINER_ID if kind.startswith("PT") else None,
@@ -1509,7 +1528,9 @@ def _seed_history(db: Session, member_id: str) -> None:
                 # 이번 주 것만 실제 대화를 남긴다.
                 client_feedback=feedback if week == 0 else "",
                 trainer_note=note if week == 0 else "",
-            ))
+            )
+            existing[hid] = row
+            db.add(row)
     _safe_commit(db)
 
 
