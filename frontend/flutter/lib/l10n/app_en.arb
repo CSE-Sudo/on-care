@@ -2516,7 +2516,7 @@
   "@myGoalsDietSection": {
     "description": "Section label in the health goals sheet."
   },
-  "myGoalsExerciseSection": "Exercise targets",
+  "myGoalsExerciseSection": "Exercise goals",
   "myGoalBurnDaily": "Daily calories burned (kcal)",
   "myGoalCardioWeekly": "Weekly cardio (min)",
   "myGoalStrengthWeekly": "Weekly strength (sets)",

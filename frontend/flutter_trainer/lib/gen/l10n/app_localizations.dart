@@ -5224,7 +5224,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiReasonSodium.
   ///
   /// In en, this message translates to:
-  /// **'Sodium is over target today, so lean into low-intensity cardio.'**
+  /// **'Sodium is over goal today, so lean into low-intensity cardio.'**
   String get aiReasonSodium;
 
   /// No description provided for @aiReasonBalanced.
@@ -5362,7 +5362,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiOverTarget.
   ///
   /// In en, this message translates to:
-  /// **' · over target'**
+  /// **' · over goal'**
   String get aiOverTarget;
 
   /// No description provided for @aiRecentCompletion.
@@ -5392,7 +5392,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiSodiumOverDaysSuffix.
   ///
   /// In en, this message translates to:
-  /// **' · over target on {days} of the last 7 days'**
+  /// **' · over goal on {days} of the last 7 days'**
   String aiSodiumOverDaysSuffix(int days);
 
   /// No description provided for @aiSugarAlsoOver.
@@ -5416,7 +5416,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiDirectionCardio.
   ///
   /// In en, this message translates to:
-  /// **'More cardio — sodium is often over target'**
+  /// **'More cardio — sodium is often over goal'**
   String get aiDirectionCardio;
 
   /// No description provided for @aiDirectionLowerAndCardio.
@@ -8178,7 +8178,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsActionSugar.
   ///
   /// In en, this message translates to:
-  /// **'Some days went over the {target}g sugar target. Start with drinks and snacks.'**
+  /// **'Some days went over the {target}g sugar goal. Start with drinks and snacks.'**
   String reportsActionSugar(String target);
 
   /// No description provided for @reportsActionLowCompletion.
@@ -8208,7 +8208,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsActionCalories.
   ///
   /// In en, this message translates to:
-  /// **'Intake is under the {target}kcal target. Suggest one protein-led meal.'**
+  /// **'Intake is under the {target}kcal goal. Suggest one protein-led meal.'**
   String reportsActionCalories(String target);
 
   /// No description provided for @reportsAiGenerated.
@@ -8322,7 +8322,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsPdfLabelSodiumOver.
   ///
   /// In en, this message translates to:
-  /// **'Days over sodium target'**
+  /// **'Days over sodium goal'**
   String get reportsPdfLabelSodiumOver;
 
   /// No description provided for @reportsPdfLabelCalories.
@@ -8982,7 +8982,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsGridCalorieTarget.
   ///
   /// In en, this message translates to:
-  /// **'Target {value}'**
+  /// **'Goal {value}'**
   String reportsGridCalorieTarget(String value);
 
   /// No description provided for @reportsMacroNone.
@@ -9000,7 +9000,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsMacroShortfall.
   ///
   /// In en, this message translates to:
-  /// **'{name} is well under target — worth raising in your feedback'**
+  /// **'{name} is well under goal — worth raising in your feedback'**
   String reportsMacroShortfall(String name);
 
   /// No description provided for @reportsMemberFeedbackTitle.
@@ -9276,13 +9276,13 @@ abstract class AppLocalizations {
   /// No description provided for @summaryBasisDefault.
   ///
   /// In en, this message translates to:
-  /// **'default target'**
+  /// **'default goal'**
   String get summaryBasisDefault;
 
   /// No description provided for @summaryBasisPersonal.
   ///
   /// In en, this message translates to:
-  /// **'personal target'**
+  /// **'personal goal'**
   String get summaryBasisPersonal;
 
   /// No description provided for @summaryDirOver.
@@ -9336,7 +9336,7 @@ abstract class AppLocalizations {
   /// No description provided for @summarySodiumOverTopic.
   ///
   /// In en, this message translates to:
-  /// **'sodium over target on {days} day(s)'**
+  /// **'sodium over goal on {days} day(s)'**
   String summarySodiumOverTopic(String days);
 
   /// No description provided for @summarySodiumAvgTopic.
@@ -9354,7 +9354,7 @@ abstract class AppLocalizations {
   /// No description provided for @summarySugarOverTopic.
   ///
   /// In en, this message translates to:
-  /// **'sugar over target on {days} day(s)'**
+  /// **'sugar over goal on {days} day(s)'**
   String summarySugarOverTopic(String days);
 
   /// No description provided for @summarySugarAvgTopic.
@@ -9378,7 +9378,7 @@ abstract class AppLocalizations {
   /// No description provided for @summaryCaloriesTopic.
   ///
   /// In en, this message translates to:
-  /// **'calories {direction} target'**
+  /// **'calories {direction} goal'**
   String summaryCaloriesTopic(String direction);
 
   /// No description provided for @summaryCaloriesAvg.
@@ -9390,7 +9390,7 @@ abstract class AppLocalizations {
   /// No description provided for @summaryMacro.
   ///
   /// In en, this message translates to:
-  /// **'Avg {label} {avg}g · {pct}% {direction} the personal target of {target}g'**
+  /// **'Avg {label} {avg}g · {pct}% {direction} the personal goal of {target}g'**
   String summaryMacro(
     String label,
     String avg,
@@ -9402,7 +9402,7 @@ abstract class AppLocalizations {
   /// No description provided for @summaryMacroTopic.
   ///
   /// In en, this message translates to:
-  /// **'{label} {direction} target'**
+  /// **'{label} {direction} goal'**
   String summaryMacroTopic(String label, String direction);
 
   /// No description provided for @summaryMorePoints.
@@ -9420,7 +9420,7 @@ abstract class AppLocalizations {
   /// No description provided for @summaryHeadlineSteady.
   ///
   /// In en, this message translates to:
-  /// **'{name} stayed within target — the current intensity can stay as is.'**
+  /// **'{name} stayed within their goals — the current intensity can stay as is.'**
   String summaryHeadlineSteady(String name);
 
   /// No description provided for @summaryHeadlineRest.
@@ -9443,7 +9443,7 @@ abstract class AppLocalizations {
   /// No description provided for @summaryHeadlineNeedsAdjust.
   ///
   /// In en, this message translates to:
-  /// **'{name} was off target on {top} — next week needs adjusting.{rest}'**
+  /// **'{name} missed the goal on {top} — next week needs adjusting.{rest}'**
   String summaryHeadlineNeedsAdjust(String name, String top, String rest);
 
   /// No description provided for @reportsPdfFileSuffix.

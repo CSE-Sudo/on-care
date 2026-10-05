@@ -39,9 +39,9 @@ class _SummaryServer implements HttpClientAdapter {
     'week_start': '2026-08-10',
     'headline':
         'Alex did well with workout completion rate at 87%; next week, '
-        "let's also work on sodium over target on 4 days.",
+        "let's also work on sodium over goal on 4 days.",
     'points': <String>[
-      'Avg sodium 2,288mg · over the default target of 2,000mg on 4 days',
+      'Avg sodium 2,288mg · over the default goal of 2,000mg on 4 days',
       'Avg workout completion rate 87%',
     ],
     'generated_by': 'rule',

@@ -2993,7 +2993,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiReasonSodium =>
-      'Sodium is over target today, so lean into low-intensity cardio.';
+      'Sodium is over goal today, so lean into low-intensity cardio.';
 
   @override
   String get aiReasonBalanced =>
@@ -3075,7 +3075,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiGoal => 'Goal';
 
   @override
-  String get aiOverTarget => ' · over target';
+  String get aiOverTarget => ' · over goal';
 
   @override
   String get aiRecentCompletion => 'Recent completion rate';
@@ -3091,7 +3091,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aiSodiumOverDaysSuffix(int days) {
-    return ' · over target on $days of the last 7 days';
+    return ' · over goal on $days of the last 7 days';
   }
 
   @override
@@ -3105,7 +3105,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Lower intensity — recent completion rate is low';
 
   @override
-  String get aiDirectionCardio => 'More cardio — sodium is often over target';
+  String get aiDirectionCardio => 'More cardio — sodium is often over goal';
 
   @override
   String get aiDirectionLowerAndCardio => 'Lower intensity · more cardio';
@@ -4824,7 +4824,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsActionSugar(String target) {
-    return 'Some days went over the ${target}g sugar target. Start with drinks and snacks.';
+    return 'Some days went over the ${target}g sugar goal. Start with drinks and snacks.';
   }
 
   @override
@@ -4847,7 +4847,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsActionCalories(String target) {
-    return 'Intake is under the ${target}kcal target. Suggest one protein-led meal.';
+    return 'Intake is under the ${target}kcal goal. Suggest one protein-led meal.';
   }
 
   @override
@@ -4915,7 +4915,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsPdfLabelSessionCount => 'PT done';
 
   @override
-  String get reportsPdfLabelSodiumOver => 'Days over sodium target';
+  String get reportsPdfLabelSodiumOver => 'Days over sodium goal';
 
   @override
   String get reportsPdfLabelCalories => 'Average calories';
@@ -5324,7 +5324,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsGridCalorieTarget(String value) {
-    return 'Target $value';
+    return 'Goal $value';
   }
 
   @override
@@ -5338,7 +5338,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsMacroShortfall(String name) {
-    return '$name is well under target — worth raising in your feedback';
+    return '$name is well under goal — worth raising in your feedback';
   }
 
   @override
@@ -5508,10 +5508,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get summaryBasisDefault => 'default target';
+  String get summaryBasisDefault => 'default goal';
 
   @override
-  String get summaryBasisPersonal => 'personal target';
+  String get summaryBasisPersonal => 'personal goal';
 
   @override
   String get summaryDirOver => 'above';
@@ -5551,7 +5551,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String summarySodiumOverTopic(String days) {
-    return 'sodium over target on $days day(s)';
+    return 'sodium over goal on $days day(s)';
   }
 
   @override
@@ -5566,7 +5566,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String summarySugarOverTopic(String days) {
-    return 'sugar over target on $days day(s)';
+    return 'sugar over goal on $days day(s)';
   }
 
   @override
@@ -5587,7 +5587,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String summaryCaloriesTopic(String direction) {
-    return 'calories $direction target';
+    return 'calories $direction goal';
   }
 
   @override
@@ -5603,12 +5603,12 @@ class AppLocalizationsEn extends AppLocalizations {
     String direction,
     String pct,
   ) {
-    return 'Avg $label ${avg}g · $pct% $direction the personal target of ${target}g';
+    return 'Avg $label ${avg}g · $pct% $direction the personal goal of ${target}g';
   }
 
   @override
   String summaryMacroTopic(String label, String direction) {
-    return '$label $direction target';
+    return '$label $direction goal';
   }
 
   @override
@@ -5623,7 +5623,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String summaryHeadlineSteady(String name) {
-    return '$name stayed within target — the current intensity can stay as is.';
+    return '$name stayed within their goals — the current intensity can stay as is.';
   }
 
   @override
@@ -5643,7 +5643,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String summaryHeadlineNeedsAdjust(String name, String top, String rest) {
-    return '$name was off target on $top — next week needs adjusting.$rest';
+    return '$name missed the goal on $top — next week needs adjusting.$rest';
   }
 
   @override

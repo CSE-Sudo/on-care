@@ -224,8 +224,8 @@ def _targets(report: WeeklyReportOut) -> dict[str, float]:
 def _personal(report: WeeklyReportOut, field: str, locale: Locale = "ko") -> str:
     """근거 문장에 붙일 기준 꼬리표. 개인 목표인지 공통 기본값인지 밝힌다."""
     if getattr(report, field):
-        return localized("개인 목표", "personal target", locale)
-    return localized("기본 목표", "default target", locale)
+        return localized("개인 목표", "personal goal", locale)
+    return localized("기본 목표", "default goal", locale)
 
 
 def _days_en(n: int) -> str:
@@ -368,7 +368,7 @@ def watchpoints(
                     f"당류 목표 초과 {sugar_over}일"
                     if sugar_over
                     else f"당류 평균 {sugar_mean:,.0f}g",
-                    f"sugar over target on {_days_en(sugar_over)}"
+                    f"sugar over goal on {_days_en(sugar_over)}"
                     if sugar_over
                     else f"avg sugar of {sugar_mean:,.0f}g",
                     locale,
@@ -398,7 +398,7 @@ def watchpoints(
                     75,
                     localized(
                         f"칼로리 {direction}",
-                        f"calories {direction} target",
+                        f"calories {direction} goal",
                         locale,
                     ),
                 )
@@ -425,13 +425,13 @@ def watchpoints(
                         f"{label_ko} 평균 {mean:,.0f}g · 개인 목표 {target:,.0f}g "
                         f"대비 {direction} {pct}%",
                         f"Avg {label_en} {mean:,.0f}g · {pct}% {direction} "
-                        f"the personal target of {target:,.0f}g",
+                        f"the personal goal of {target:,.0f}g",
                         locale,
                     ),
                     60,
                     localized(
                         f"{label_ko} {direction}",
-                        f"{label_en} {direction} target",
+                        f"{label_en} {direction} goal",
                         locale,
                     ),
                 )
@@ -446,7 +446,7 @@ def _sodium_topic(report: WeeklyReportOut, locale: Locale) -> str:
     if report.sodium_over_days:
         return localized(
             f"나트륨 목표 초과 {report.sodium_over_days}일",
-            f"sodium over target on {_days_en(report.sodium_over_days)}",
+            f"sodium over goal on {_days_en(report.sodium_over_days)}",
             locale,
         )
     return localized(
@@ -567,12 +567,12 @@ def _rule_summary(
         )
     if report.sodium_avg is not None and not any(w.kind == "sodium" for w in watch):
         # 영어는 `did well with` 뒤에 오므로 '잘 지킨 나트륨' 으로 읽히게 쓴다 —
-        # 주의 쪽 표현(`sodium over target on 1 day`)을 그대로 두면 칭찬 자리에서
+        # 주의 쪽 표현(`sodium over goal on 1 day`)을 그대로 두면 칭찬 자리에서
         # 초과만 말하는 문장이 된다.
         good.append(
             localized(
                 _sodium_topic(report, "ko"),
-                f"sodium ({_days_en(report.sodium_over_days)} over target)"
+                f"sodium ({_days_en(report.sodium_over_days)} over goal)"
                 if report.sodium_over_days
                 else f"sodium (avg {report.sodium_avg:,}mg)",
                 locale,
@@ -582,7 +582,7 @@ def _rule_summary(
     if not watch:
         headline = localized(
             f"{name} 회원은 기록이 목표 범위 안에 있어 지금 강도를 유지해도 좋습니다.",
-            f"{name} stayed within target — the current intensity can stay as is.",
+            f"{name} stayed within their goals — the current intensity can stay as is.",
             locale,
         )
         return _out(report, headline, _points(report, evidence, locale), "rule")

@@ -294,8 +294,8 @@ def test_english_evidence_mirrors_the_korean_lines_one_to_one():
 
 def test_english_evidence_for_the_default_week():
     assert svc._evidence(_report(), "en") == [
-        "Avg sodium 2,288mg · over the default target of 2,000mg on 4 days",
-        "Avg calories 1,624kcal · 19% below the default target of 2,000kcal",
+        "Avg sodium 2,288mg · over the default goal of 2,000mg on 4 days",
+        "Avg calories 1,624kcal · 19% below the default goal of 2,000kcal",
         "Skipped exercises: 풀업",
         "Avg workout completion rate 87%",
     ]
@@ -305,19 +305,19 @@ def test_english_evidence_names_personal_targets():
     lines = svc._evidence(_report(**CASES["many"]), "en")
     assert lines == [
         "Avg workout completion rate 55% · below the 60% bar",
-        "Avg sodium 2,600mg · over the personal target of 2,300mg on 5 days",
-        "Avg sugar 75g · over the personal target of 40g on 4 days",
-        "Avg calories 2,600kcal · 24% above the personal target of 2,100kcal",
+        "Avg sodium 2,600mg · over the personal goal of 2,300mg on 5 days",
+        "Avg sugar 75g · over the personal goal of 40g on 4 days",
+        "Avg calories 2,600kcal · 24% above the personal goal of 2,100kcal",
         "Skipped exercises: 스쿼트, 런지, 플랭크",
-        "Avg carbs 310g · 55% above the personal target of 200g",
-        "Avg protein 55g · 54% below the personal target of 120g",
+        "Avg carbs 310g · 55% above the personal goal of 200g",
+        "Avg protein 55g · 54% below the personal goal of 120g",
     ]
 
 
 def test_english_evidence_for_a_steady_week():
     assert svc._evidence(_report(**CASES["steady"]), "en") == [
         "Avg workout completion rate 90%",
-        "Avg sodium 1,500mg · over the default target of 2,000mg on 0 days",
+        "Avg sodium 1,500mg · over the default goal of 2,000mg on 0 days",
         "Avg calories 2,000kcal",
     ]
 
@@ -346,7 +346,7 @@ def test_english_sugar_average_topic_when_no_day_is_over():
     over = report.model_copy(update={"sugar_target": 92})
     watch = svc.watchpoints(over, "en")
     assert [w.kind for w in watch] == ["sugar"]
-    assert watch[0].topic == "sugar over target on 1 day"
+    assert watch[0].topic == "sugar over goal on 1 day"
 
 
 def test_english_sodium_average_topic_when_no_day_is_over():
@@ -360,11 +360,11 @@ def test_english_calorie_surplus_and_shortfall():
         "en",
     )
     under = svc.watchpoints(_report(**CASES["cal_under"]), "en")
-    assert over[0].topic == "calories above target"
-    assert "28% above the default target of 2,000kcal" in over[0].text
-    assert under[0].topic == "calories below target"
+    assert over[0].topic == "calories above goal"
+    assert "28% above the default goal of 2,000kcal" in over[0].text
+    assert under[0].topic == "calories below goal"
     assert under[0].text == (
-        "Avg calories 1,250kcal · 38% below the default target of 2,000kcal"
+        "Avg calories 1,250kcal · 38% below the default goal of 2,000kcal"
     )
 
 
@@ -383,7 +383,7 @@ def test_english_macro_labels_are_lowercase_mid_sentence():
     watch = [
         w for w in svc.watchpoints(_report(**CASES["many"]), "en") if w.kind == "macro"
     ]
-    assert [w.topic for w in watch] == ["carbs above target", "protein below target"]
+    assert [w.topic for w in watch] == ["carbs above goal", "protein below goal"]
 
 
 def test_judgement_does_not_depend_on_the_language():
@@ -413,11 +413,11 @@ def test_english_rule_summary_names_the_good_and_the_watch():
     out = _outputs(_report(), "en")
     assert out["headline"] == (
         "김민수 did well with workout completion rate at 87%; next week, let's also work "
-        "on sodium over target on 4 days. Keep an eye on 2 more items too."
+        "on sodium over goal on 4 days. Keep an eye on 2 more items too."
     )
     assert out["points"] == [
-        "Avg sodium 2,288mg · over the default target of 2,000mg on 4 days",
-        "Avg calories 1,624kcal · 19% below the default target of 2,000kcal",
+        "Avg sodium 2,288mg · over the default goal of 2,000mg on 4 days",
+        "Avg calories 1,624kcal · 19% below the default goal of 2,000kcal",
         "2 more — see the full report",
     ]
 
@@ -433,7 +433,7 @@ def test_english_rule_summary_for_a_week_without_records():
 def test_english_rule_summary_for_a_steady_week():
     out = _outputs(_en_report(**CASES["steady"]), "en")
     assert out["headline"] == (
-        "Alex stayed within target — the current intensity can stay as is."
+        "Alex stayed within their goals — the current intensity can stay as is."
     )
     assert len(out["points"]) == 3
 
@@ -458,7 +458,7 @@ def test_english_praise_for_sodium_reads_as_praise():
     """칭찬 자리에 `sodium over target on 1 day` 를 그대로 넣지 않는다."""
     out = _outputs(_en_report(**CASES["good_sodium_over1"]), "en")
     assert out["headline"] == (
-        "Alex did well with sodium (1 day over target); next week, let's also "
+        "Alex did well with sodium (1 day over goal); next week, let's also "
         "work on workout completion rate at 50%."
     )
     avg = _outputs(
