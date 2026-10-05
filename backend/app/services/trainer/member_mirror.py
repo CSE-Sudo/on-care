@@ -43,6 +43,7 @@ from app.services.trainer._common import (
 from app.services.trainer.routines import (
     build_routines,
 )
+from app.services.trainer.schedule import _reservation_schedule_ids
 
 
 # ---- 회원측 미러 (내 담당 코치 / 받은 루틴 / 채팅 / 내 세션) ----
@@ -304,11 +305,21 @@ def build_member_sessions(db: Session, member_id: str) -> list[ScheduleSessionOu
         .limit(_MEMBER_SESSIONS_LIMIT)
     ).all()
     numbers = _done_pt_numbers(db, member_id, trainer_id)
-    return [_member_schedule_out(s, numbers.get(s.id)) for s in rows]
+    # 예약 소유 여부를 행마다 묻지 않고 한 번에 모은다(#3242).
+    reserved = _reservation_schedule_ids(db, {s.id for s in rows})
+    return [
+        _member_schedule_out(
+            s, numbers.get(s.id), is_reservation=s.id in reserved
+        )
+        for s in rows
+    ]
 
 
 def _member_schedule_out(
-    s: TrainerSchedule, session_number: int | None = None
+    s: TrainerSchedule,
+    session_number: int | None = None,
+    *,
+    is_reservation: bool | None = None,
 ) -> ScheduleSessionOut:
     """회원에게 내보내는 세션 — `note` 는 **완료된 PT** 것만 싣는다(#2515).
 
@@ -321,7 +332,7 @@ def _member_schedule_out(
     때 남는 `담당 해제`(`DETACH_CANCEL_REASON`)는 트레이너만 보는 기록이다.
     회원 앱은 취소 주체·시각만 쓴다.
     """
-    out = _schedule_out(s)
+    out = _schedule_out(s, is_reservation=is_reservation)
     if s.status != SCHEDULE_DONE or s.type == "상담":
         out.note = ""
     out.cancellation_reason = ""
