@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_core/clock.dart';
-
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/utils/server_message.dart';
+import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_feedback_section.dart';
@@ -595,7 +594,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       final l = AppLocalizations.of(context);
       showAppToast(
         context,
-        serverDetailOr(l, error.message, l.memberHealthSaveFailed),
+        appErrorMessage(l, error, fallback: l.memberHealthSaveFailed),
         type: AppToastType.error,
       );
       setState(() => _saving = false);
@@ -851,9 +850,7 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
         if (snapshot.hasError) {
           final error = snapshot.error;
           return Text(
-            error is AppError
-                ? serverDetailOr(l, error.message, l.memberHealthLoadFailed)
-                : l.memberHealthLoadFailed,
+            appErrorMessage(l, error, fallback: l.memberHealthLoadFailed),
           );
         }
         if (!snapshot.hasData) {
@@ -1379,7 +1376,11 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
       if (!mounted) return;
       setState(() => _busy = false);
       _toast(
-        serverDetailOr(AppLocalizations.of(context), error.message, fallback),
+        appErrorMessage(
+          AppLocalizations.of(context),
+          error,
+          fallback: fallback,
+        ),
       );
     } on Object {
       if (!mounted) return;
@@ -1639,13 +1640,11 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
           error: (error, _) => AppErrorState(
             key: const ValueKey<String>('client-memo-retry'),
             placement: AppStatePlacement.card,
-            title: error is AppError
-                ? serverDetailOr(
-                    l,
-                    error.message,
-                    l.clientTrainerMemoLoadFailed,
-                  )
-                : l.clientTrainerMemoLoadFailed,
+            title: appErrorMessage(
+              l,
+              error,
+              fallback: l.clientTrainerMemoLoadFailed,
+            ),
             retryLabel: l.actionRetry,
             onRetry: () =>
                 ref.invalidate(trainerMemosProvider(widget.clientId)),

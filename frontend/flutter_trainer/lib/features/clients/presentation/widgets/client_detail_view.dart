@@ -7,7 +7,7 @@ import 'package:oncare_core/visible_periodic_timer.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/utils/server_message.dart';
+import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/features/clients/domain/repositories/client_data_refresher.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_profile_dialog.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/diet_view.dart';
@@ -247,7 +247,7 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
       final AppLocalizations l = AppLocalizations.of(context);
       showAppToast(
         context,
-        serverDetailOr(l, error.message, l.clientStatusChangeFailed),
+        appErrorMessage(l, error, fallback: l.clientStatusChangeFailed),
         type: AppToastType.error,
       );
     } on Object {

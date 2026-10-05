@@ -364,7 +364,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey<String>('client-memo-add')));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('메모를 저장하지 못했어요'), findsOneWidget);
+    // 연결 오류는 원인별 안내다 — Dio 영어 원문이 아니다.
+    expect(find.textContaining('연결이 불안정합니다'), findsOneWidget);
     expect(find.text('이미 있던 메모'), findsOneWidget);
     // The draft is still in the field, so the retry costs no retyping.
     expect(
