@@ -116,7 +116,7 @@ void main() {
       matching: find.textContaining(text),
     );
     // 그 주 수치로 만든 초안이다 — 인사말이 첫 문단이다.
-    expect(inView('주간 리포트 정리해서 보내드려요'), findsOneWidget);
+    expect(inView('주간 리포트 정리해서 보내 드려요'), findsOneWidget);
     // 예전 목표별 고정 문장은 남지 않는다.
     expect(inView('체력은 쉬지 않고 이어 가는 게 핵심이에요'), findsNothing);
   });

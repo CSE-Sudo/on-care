@@ -916,7 +916,7 @@ void main() {
       await settle(tester);
 
       expect(find.text('예약 슬롯 관리'), findsOneWidget);
-      expect(find.textContaining('회원이 예약할 시간을 엽니다'), findsOneWidget);
+      expect(find.textContaining('회원이 예약할 시간을 열어요'), findsOneWidget);
       expect(find.text('열기'), findsOneWidget);
     });
 
