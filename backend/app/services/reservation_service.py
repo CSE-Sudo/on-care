@@ -43,6 +43,14 @@ class CapacityConflict(Exception):
     pass
 
 
+class UpcomingReservationExists(DuplicateReservation):
+    """다가오는 예약이 이미 있어 새 자리를 잡을 수 없음 — 409. (#3240)
+
+    1:1 PT 라 다음 일정은 하나면 충분하고, 자리를 옮기려면 먼저 취소한다(#1072).
+    회원 앱만 이 규칙을 지키면 예약 직후 목록을 다시 받는 틈에 두 번째 자리가 잡혔다.
+    """
+
+
 def _aware(value: datetime) -> datetime:
     return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
 
@@ -717,6 +725,13 @@ def reserve(
     )
     if duplicate is not None:
         raise DuplicateReservation("이미 예약한 슬롯입니다.")
+    # 회원 앱이 `내 예약` 에 "예약됨" 으로 보여 주는 다가오는 예약과 같은 기준이다.
+    # 회원의 예약 자리는 담당 트레이너 것뿐이라 위의 트레이너 단위 잠금이 같은
+    # 회원의 동시 예약도 줄 세운다.
+    if count_upcoming_for_member(db, member.id, now=current) > 0:
+        raise UpcomingReservationExists(
+            "이미 다가오는 예약이 있습니다. 다른 시간으로 바꾸려면 먼저 취소해 주세요."
+        )
 
     local = _aware(slot.starts_at).astimezone(SEOUL)
     # 자리를 연 뒤 트레이너가 그 시간에 다른 일정을 직접 잡았을 수 있다. 그대로
