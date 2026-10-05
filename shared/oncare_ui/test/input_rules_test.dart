@@ -70,6 +70,13 @@ void main() {
       final String atLimit = '가' * AppInputRules.nameMaxLength;
       expect(AppInputRules.name('  $atLimit  '), isNull);
     });
+
+    test('글자 수는 서버처럼 코드포인트로 센다 (#3250)', () {
+      // 😀 는 UTF-16 으로 두 단위지만 한 글자다.
+      final String emoji = '😀' * AppInputRules.nameMaxLength;
+      expect(AppInputRules.name(emoji), isNull);
+      expect(AppInputRules.name('$emoji😀'), AppInputError.nameTooLong);
+    });
   });
 
   group('생년월일', () {

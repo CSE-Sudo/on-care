@@ -727,6 +727,8 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
           : widget.registerDate,
       firstDate: today,
       lastDate: today.add(const Duration(days: 365)),
+      // 오늘 테두리는 기기 시각이 아니라 서울의 오늘이다(#3250).
+      currentDate: today,
     );
     if (picked == null) return;
     widget.onRegisterDateChanged(

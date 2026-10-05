@@ -225,7 +225,9 @@ class _Bar extends StatelessWidget {
                 ),
               ),
             Container(
-              height: (plot * ratio).clamp(2.0, plot),
+              // 칸이 2px 보다 낮으면 하한이 상한을 넘어 `clamp` 가
+              // 던진다(#3250) — 그때는 칸 높이가 곧 하한이다.
+              height: (plot * ratio).clamp(plot < 2.0 ? plot : 2.0, plot),
               decoration: BoxDecoration(
                 color: pending || missing ? OnCareColors.lineSubtle : color,
                 borderRadius: const BorderRadius.vertical(top: OnCareRadius.sm),
