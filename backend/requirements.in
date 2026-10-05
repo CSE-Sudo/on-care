@@ -19,8 +19,8 @@ python-multipart>=0.0.9
 # 담을 크기가 아니고, 재인코딩이 EXIF(촬영 위치 포함)도 함께 털어 낸다.
 pillow>=10.0
 python-dotenv>=1.0
-google-genai>=1.0
-openai>=1.40
+google-genai>=2.27.0
+openai>=3.23.0
 # 채팅 첨부(사진·리포트 PDF)의 운영 저장소 S3(#2817). 컨테이너 디스크는 재배포·
 # 스케일 아웃에서 비므로 운영 바이트는 버킷에 둔다. 로컬 개발은 쓰지 않는다.
 boto3>=1.34
