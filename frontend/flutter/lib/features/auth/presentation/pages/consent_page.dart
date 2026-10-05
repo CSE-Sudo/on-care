@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/router/member_refresh_targets.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/account/presentation/first_run_route.dart';
 import 'package:oncare/features/auth/domain/signup_consent.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/auth/presentation/widgets/signup_consent_block.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 로그인 뒤 동의 화면. (#2819)
@@ -52,6 +55,20 @@ class _ConsentPageState extends ConsumerState<ConsentPage> {
       showAppToast(context, l.consentPageFailed, type: AppToastType.error);
       return;
     }
+    final SessionState session = container.read(sessionControllerProvider);
+    if (!session.isAuthenticated || session.consentRequired) {
+      // 그 사이 로그아웃·다른 계정 로그인으로 결과를 버렸거나, 서버가 아직 동의가
+      // 남았다고 했다. 가드가 화면을 옮기지 않으면 버튼을 다시 쓸 수 있게 둔다 —
+      // 로딩에 묶이면 로그아웃까지 막혀 이 화면에 갇힌다(#3231).
+      if (mounted) setState(() => _saving = false);
+      return;
+    }
+    // 동의가 남아 있던 동안 읽은 계정 데이터는 403 으로 실패한 채 캐시에 남아
+    // 있다. 로그인 화면이 첫 화면을 정하려 읽은 프로필이 그렇다 — 비우지 않으면
+    // 아래 판단이 그 오류를 받아, 첫 설정을 마친 회원을 첫 설정 화면으로 보낸다
+    // (#3231). 앱을 쓰다 동의 화면으로 온 경우의 홈·기록 캐시도 함께 비운다.
+    container.invalidate(profileProvider);
+    memberResumeRefreshTargets(nowKst()).forEach(container.invalidate);
     // 가드는 홈으로 보낸다. 첫 설정이 남은 계정(소셜 첫 가입 등)은 그리로 옮긴다.
     try {
       final String next = await firstRouteAfterSignIn(container);
@@ -59,6 +76,7 @@ class _ConsentPageState extends ConsumerState<ConsentPage> {
     } catch (_) {
       // 판단에 실패해도 홈에 있다 — 첫 설정은 다음 복구 때 다시 묻는다.
     }
+    if (mounted) setState(() => _saving = false);
   }
 
   Future<void> _signOut() async {
