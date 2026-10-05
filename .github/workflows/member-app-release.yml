@@ -8,6 +8,8 @@ name: Member app signed build
 #  - 비밀은 GitHub Environment `mobile-release` 에 둔다. 서명 비밀이 하나도 없으면 실패가
 #    아니라 안내를 남기고 빌드 잡을 건너뛴다. 일부만 있으면 설정 실수로 보고 멈춘다.
 #  - 빌드 전에 tool/check_release_defines.sh 로 define 파일을 검사한다(#3022).
+#  - 빌드 번호(versionCode·CFBundleVersion)는 main 커밋 수로 자동으로 채운다(#3226). 게이트가
+#    .github/scripts/release_build_stamp.sh 로 한 번 만들어 두 잡에 같은 값을 넘긴다.
 #  - 키스토어·key.properties·인증서·키체인·define 파일은 러너 임시 위치에만 만들고 끝나면 지운다.
 #    아티팩트에는 산출물과 빌드 정보만 올린다.
 on:
@@ -45,6 +47,8 @@ jobs:
       ios: ${{ steps.secrets.outputs.ios }}
       app_env: ${{ steps.source.outputs.app_env }}
       version: ${{ steps.source.outputs.version }}
+      build_number: ${{ steps.stamp.outputs.BUILD_NUMBER }}
+      release_date: ${{ steps.stamp.outputs.RELEASE_DATE }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -91,6 +95,16 @@ jobs:
             echo "version=$version"
             echo "app_env=$app_env"
           } >> "$GITHUB_OUTPUT"
+
+      - name: Stamp release build number and date
+        # 빌드 번호 = 이 커밋까지의 커밋 수(#3226). 위에서 전체 이력을 받았다(fetch-depth: 0).
+        # 지금까지 손으로 올린 pubspec 의 `+` 뒤 번호보다 커야 스토어가 받으므로 그 값을 하한으로 준다.
+        # 같은 커밋으로 다시 만들면 같은 번호다 — 스토어 빌드와 커밋이 1:1 로 맞는다.
+        id: stamp
+        run: |
+          set -euo pipefail
+          pubspec_build=$(sed -n 's/^version:[[:space:]]*[0-9][0-9.]*+\([0-9][0-9]*\)[[:space:]]*$/\1/p' frontend/flutter/pubspec.yaml)
+          MIN_BUILD_NUMBER="$pubspec_build" bash .github/scripts/release_build_stamp.sh "$GITHUB_OUTPUT"
 
       - name: Check which signing secrets exist
         # 값은 넘기지 않고 '있음/없음'만 env 로 받는다.
@@ -180,6 +194,9 @@ jobs:
           KAKAO_NATIVE_APP_KEY: ${{ vars.MEMBER_APP_KAKAO_NATIVE_APP_KEY }}
           GOOGLE_WEB_CLIENT_ID: ${{ vars.MEMBER_APP_GOOGLE_WEB_CLIENT_ID }}
           GOOGLE_IOS_CLIENT_ID: ${{ vars.MEMBER_APP_GOOGLE_IOS_CLIENT_ID }}
+          # 고객 지원 버전 줄(#3226)이 읽는 빌드 번호·배포 일시.
+          BUILD_NUMBER: ${{ needs.gate.outputs.build_number }}
+          RELEASE_DATE: ${{ needs.gate.outputs.release_date }}
         run: python3 ../../tool/ci/write_release_defines.py config/release.json
 
       - name: Check the release define file
@@ -205,6 +222,7 @@ jobs:
           STORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+          BUILD_NUMBER: ${{ needs.gate.outputs.build_number }}
         run: |
           set -euo pipefail
           export JAVA_HOME="${JAVA_HOME_17_X64:-$JAVA_HOME}"
@@ -219,7 +237,9 @@ jobs:
             echo "keyPassword=$KEY_PASSWORD"
           } > android/key.properties
           flutter pub get
-          flutter build appbundle --release --dart-define-from-file=config/release.json
+          # versionCode 는 게이트가 만든 자동 번호다(#3226). pubspec 의 `+` 뒤 번호는 쓰지 않는다.
+          flutter build appbundle --release --dart-define-from-file=config/release.json \
+            --build-number="$BUILD_NUMBER"
 
       - name: Verify the bundle signature
         # 업로드 키로 서명됐는지(디버그 키가 아닌지) 확인한다. 인증서 지문은 공개 정보다.
@@ -244,6 +264,8 @@ jobs:
         env:
           APP_ENV: ${{ needs.gate.outputs.app_env }}
           VERSION: ${{ needs.gate.outputs.version }}
+          BUILD_NUMBER: ${{ needs.gate.outputs.build_number }}
+          RELEASE_DATE: ${{ needs.gate.outputs.release_date }}
           API_BASE_URL: ${{ vars.MEMBER_APP_API_BASE_URL }}
           REF: ${{ github.ref }}
         run: |
@@ -254,6 +276,8 @@ jobs:
           {
             echo "app: On-Care 회원 앱 (Android AAB)"
             echo "pubspec_version: $(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml)"
+            echo "build_number: $BUILD_NUMBER"
+            echo "release_date: $RELEASE_DATE"
             echo "commit: $GITHUB_SHA"
             echo "ref: $REF"
             echo "run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
@@ -308,6 +332,9 @@ jobs:
           KAKAO_NATIVE_APP_KEY: ${{ vars.MEMBER_APP_KAKAO_NATIVE_APP_KEY }}
           GOOGLE_WEB_CLIENT_ID: ${{ vars.MEMBER_APP_GOOGLE_WEB_CLIENT_ID }}
           GOOGLE_IOS_CLIENT_ID: ${{ vars.MEMBER_APP_GOOGLE_IOS_CLIENT_ID }}
+          # 고객 지원 버전 줄(#3226)이 읽는 빌드 번호·배포 일시.
+          BUILD_NUMBER: ${{ needs.gate.outputs.build_number }}
+          RELEASE_DATE: ${{ needs.gate.outputs.release_date }}
         run: python3 ../../tool/ci/write_release_defines.py config/release.json
 
       - name: Check the release define file
@@ -383,16 +410,22 @@ jobs:
         run: python3 ../tool/strip_demo_assets.py .
 
       - name: Build the signed IPA
+        # CFBundleVersion 은 게이트가 만든 자동 번호다(#3226) — Android versionCode 와 같은 값.
+        env:
+          BUILD_NUMBER: ${{ needs.gate.outputs.build_number }}
         run: |
           set -euo pipefail
           flutter pub get
           flutter build ipa --release --dart-define-from-file=config/release.json \
+            --build-number="$BUILD_NUMBER" \
             --export-options-plist="$RUNNER_TEMP/ExportOptions.plist"
 
       - name: Write build info
         env:
           APP_ENV: ${{ needs.gate.outputs.app_env }}
           VERSION: ${{ needs.gate.outputs.version }}
+          BUILD_NUMBER: ${{ needs.gate.outputs.build_number }}
+          RELEASE_DATE: ${{ needs.gate.outputs.release_date }}
           API_BASE_URL: ${{ vars.MEMBER_APP_API_BASE_URL }}
           REF: ${{ github.ref }}
         run: |
@@ -408,6 +441,8 @@ jobs:
           {
             echo "app: On-Care 회원 앱 (iOS IPA)"
             echo "pubspec_version: $(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml)"
+            echo "build_number: $BUILD_NUMBER"
+            echo "release_date: $RELEASE_DATE"
             echo "commit: $GITHUB_SHA"
             echo "ref: $REF"
             echo "run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
