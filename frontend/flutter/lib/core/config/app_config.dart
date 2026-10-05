@@ -3,6 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum Environment { dev, staging, prod }
 
+/// 데모 배포(GitHub Pages) 빌드 표시 — `--dart-define=DEMO_BUILD=true` (#3022).
+///
+/// 컴파일 타임 상수다. [kDemoCodeIncluded] 가 이 값으로 목업 코드의 포함 여부를 정한다.
+const bool kDemoBuild = bool.fromEnvironment('DEMO_BUILD');
+
+/// 목업·데모 코드(로컬 API·시드·목업 저장소)가 이 빌드에 들어가는가(#3157).
+///
+/// 데모 빌드이거나 릴리스가 아닌 빌드(`flutter run`·테스트·프로파일)면 참이다. 운영
+/// 릴리스 빌드(`DEMO_BUILD` 없음)에서는 **상수 false** 라 [AppConfig.useMockApi] 가
+/// 늘 false 로 접히고, 그 뒤의 목업 분기 전체를 dart2js·AOT 가 트리 셰이킹한다 —
+/// 데모 계정·시드 인물·로컬 API 가 운영 배포물에 실리지 않는다. 운영 빌드 산출물에
+/// 데모 문자열이 없는지는 `tool/ci/check_prod_web_bundle.py` 가 CI 에서 확인한다.
+const bool kDemoCodeIncluded = kDemoBuild || !kReleaseMode;
+
 /// 릴리스 빌드로 내보내면 안 되는 설정 조합 하나(#3022).
 ///
 /// 컴파일 타임 기본값은 로컬 개발용이다(`ENV=dev`·`USE_MOCK_API=true`·예시 주소).
@@ -130,13 +144,13 @@ class AppConfig {
   const AppConfig({
     required this.environment,
     required this.apiBaseUrl,
-    required this.useMockApi,
+    required bool useMockApi,
     this.sentryDsn,
     this.realApiFeatures = const <String>{},
     this.showDemoEntry = false,
     this.iosAppStoreId,
     this.demoBuild = false,
-  });
+  }) : mockApiRequested = useMockApi;
 
   final Environment environment;
 
@@ -147,7 +161,15 @@ class AppConfig {
 
   /// When true, `LocalApiInterceptor` short-circuits any HTTP request
   /// matching a known path and answers from the drift-backed demo store.
-  final bool useMockApi;
+  ///
+  /// [mockApiRequested] 는 빌드 값 그대로이고, 이 값은 [kDemoCodeIncluded] 를 함께
+  /// 본다 — 운영 릴리스에서는 늘 false 라 목업 분기가 번들에서 빠진다(#3157).
+  bool get useMockApi => kDemoCodeIncluded && mockApiRequested;
+
+  /// 빌드 값(`USE_MOCK_API`) 그대로 — 목업을 요청했는가. 릴리스 가드
+  /// ([releaseProblems])는 이 값을 본다. 운영 릴리스에 목업을 잘못 요청한 빌드도
+  /// 가드가 알아채야 해서다.
+  final bool mockApiRequested;
 
   /// 목업 모드에서도 **실 백엔드를 쓸 기능 키** 목록.
   ///
@@ -223,10 +245,10 @@ class AppConfig {
   /// * 데모 진입(`SHOW_DEMO_ENTRY`)·부분 실연동(`REAL_API`)은 데모 빌드에서만 된다
   ///   (#3147). 데모 Pages 는 `DEMO_BUILD=true` 를 넘기므로 지금처럼 뜬다.
   List<ReleaseProblem> releaseProblems() {
-    final bool demoMock = useMockApi && demoBuild;
+    final bool demoMock = mockApiRequested && demoBuild;
     return <ReleaseProblem>[
       if (isDev && !demoMock) ReleaseProblem.devEnvironment,
-      if (useMockApi && !demoBuild) ReleaseProblem.mockWithoutDemoBuild,
+      if (mockApiRequested && !demoBuild) ReleaseProblem.mockWithoutDemoBuild,
       if (showDemoEntry && !demoBuild) ReleaseProblem.demoEntryWithoutDemoBuild,
       if (realApiFeatures.isNotEmpty && !demoBuild)
         ReleaseProblem.realApiWithoutDemoBuild,
@@ -257,7 +279,7 @@ class AppConfig {
     const showDemoEntry = bool.fromEnvironment('SHOW_DEMO_ENTRY');
     const iosAppStoreId = String.fromEnvironment('IOS_APP_STORE_ID');
     // 데모 Pages 빌드만 넘긴다(#3022). 릴리스 가드가 목업을 허용하는 근거다.
-    const demoBuild = bool.fromEnvironment('DEMO_BUILD');
+    const demoBuild = kDemoBuild;
     return AppConfig(
       environment: env,
       apiBaseUrl: apiBaseUrl,

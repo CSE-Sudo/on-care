@@ -250,6 +250,11 @@ jobs:
           # 익명 GitHub API 호출은 러너끼리 IP 를 나눠 써 한도에 걸린다(#2135, #2912).
           GITHUB_TOKEN: ${{ github.token }}
 
+      # 데모 전용 자산(데모 시드 사진·데모 대화 첨부)은 운영 번들에 싣지 않는다(#3157).
+      - name: Strip demo-only assets
+        working-directory: frontend/flutter
+        run: python3 ../tool/strip_demo_assets.py .
+
       - name: Build Flutter web
         working-directory: frontend/flutter
         # 운영 빌드: 실서버(USE_MOCK_API=false)·운영 환경(ENV=prod — 라우터 진단 로그와
@@ -287,6 +292,10 @@ jobs:
           # 익명 GitHub API 호출은 러너끼리 IP 를 나눠 써 한도에 걸린다(#2135, #2912).
           GITHUB_TOKEN: ${{ github.token }}
 
+      - name: Strip demo-only assets (trainer)
+        working-directory: frontend/flutter_trainer
+        run: python3 ../tool/strip_demo_assets.py .
+
       - name: Build Flutter web (trainer)
         working-directory: frontend/flutter_trainer
         # 소속 헬스장 찾기 지도(#2543). 회원 앱과 같은 카카오맵 JS 키를 쓰고, 카카오
@@ -312,6 +321,13 @@ jobs:
           # 않았는지 빌드 전에 본다(#3147). 검사한 인자 그대로 빌드한다.
           bash "$GITHUB_WORKSPACE/.github/scripts/check_web_release_defines.sh" "${args[@]}"
           flutter build web "${args[@]}"
+
+      # 올리기 전에 산출물을 직접 연다 — 목업 분기·데모 자산이 섞였으면 배포를 멈춘다(#3157).
+      - name: Check production bundles have no demo code or assets
+        run: |
+          set -euo pipefail
+          python3 tool/ci/check_prod_web_bundle.py --app member frontend/flutter/build/web
+          python3 tool/ci/check_prod_web_bundle.py --app trainer frontend/flutter_trainer/build/web
 
       - name: Prepare deploy files
         run: |
