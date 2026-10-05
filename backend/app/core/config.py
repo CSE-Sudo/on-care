@@ -112,7 +112,7 @@ class Settings(BaseSettings):
     # 트레이너의 회원 기록 열람(`trainer.client_read`)은 같은 (트레이너, 회원, 자원)
     # 조합을 이 시간(분) 안에 한 번만 남긴다 — 화면을 넘길 때마다 쌓이지 않게.
     audit_read_dedupe_minutes: int = 10
-    # 보존 기간(일). 지난 기록은 기동 시 정리한다. 0 이면 정리하지 않는다.
+    # 보존 기간(일). 지난 기록은 기동 때와 하루마다 정리한다(#3144). 0 이면 정리하지 않는다.
     # 인증·계정 이벤트(접속 기록)는 1년, 건강정보 열람·동의·탈퇴 기록은 2년.
     audit_retention_days: int = 365
     audit_sensitive_retention_days: int = 730

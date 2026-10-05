@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -531,6 +531,7 @@ def expired_notifications(
     days: int = READ_RETENTION_DAYS,
     now: datetime | None = None,
     user_id: str | None = None,
+    exclude_ids: Collection[str] = (),
 ) -> list[Notification]:
     """정리 대상 알림(오래된 순).
 
@@ -544,6 +545,8 @@ def expired_notifications(
     )
     if user_id is not None:
         query = query.where(Notification.user_id == user_id)
+    if exclude_ids:
+        query = query.where(Notification.id.not_in(sorted(exclude_ids)))
     return list(
         db.scalars(query.order_by(Notification.created_at, Notification.id)).all()
     )
@@ -555,9 +558,12 @@ def purge_expired(
     days: int = READ_RETENTION_DAYS,
     now: datetime | None = None,
     user_id: str | None = None,
+    exclude_ids: Collection[str] = (),
 ) -> int:
     """[expired_notifications] 가 고른 것을 지우고 건수를 돌려준다."""
-    rows = expired_notifications(db, days=days, now=now, user_id=user_id)
+    rows = expired_notifications(
+        db, days=days, now=now, user_id=user_id, exclude_ids=exclude_ids
+    )
     for row in rows:
         db.delete(row)
     db.commit()
