@@ -42,7 +42,7 @@ const Map<String, List<RoutineSuggestion>> demoMemberSuggestionsKo =
           name: '햄스트링 스트레칭',
           minutes: 10,
           type: '스트레칭',
-          reason: '인터벌 런닝과 스쿼트가 이어지는 주예요. 허벅지 뒤쪽을 풀어 회복을 돕기 좋아요.',
+          reason: '인터벌 러닝과 스쿼트가 이어지는 주예요. 허벅지 뒤쪽을 풀어 회복을 돕기 좋아요.',
           evidence: <String>[RoutineEvidence.recentRecord],
         ),
       ],

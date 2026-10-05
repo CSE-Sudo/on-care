@@ -196,7 +196,7 @@ const List<_Client> _clients = <_Client>[
       ),
       _Chat(
         'trainer',
-        '확인했어요. AI가 오늘 식단 기반으로 유산소 프로그램을 추천했는데, 무릎 상태 감안해서 런닝 대신 걷기로 조정해서 보낼게요. 다음 PT 때 봐요 💪',
+        '확인했어요. AI가 오늘 식단 기반으로 유산소 프로그램을 추천했는데, 무릎 상태 감안해서 러닝 대신 걷기로 조정해서 보낼게요. 다음 PT 때 봐요 💪',
         '18:18',
         dayIndex: 2,
       ),
@@ -250,7 +250,7 @@ const List<_Client> _clients = <_Client>[
       ),
     ],
     aiRoutine: <_Routine>[
-      _Routine('인터벌 런닝', 25, '유산소', '체지방 연소 효율↑'),
+      _Routine('인터벌 러닝', 25, '유산소', '체지방 연소 효율↑'),
       _Routine('스쿼트', 15, '근력', '하체 근력 강화', sets: 3, reps: 12, weight: 40),
       _Routine('플랭크', 10, '근력', '코어 안정화', sets: 3, holdSeconds: 30),
     ],
@@ -260,12 +260,12 @@ const List<_Client> _clients = <_Client>[
         label: 'AI 개인운동',
         completionRate: 100,
         exercises: <String>[
-          '인터벌 런닝 25분 ✓',
+          '인터벌 러닝 25분 ✓',
           '스쿼트 3세트 · 12회 · 40kg ✓',
           '플랭크 3세트 · 3회 · 0kg ✓',
         ],
-        clientFeedback: '런닝이 힘들었는데 다 했어요! 숨이 많이 찼어요',
-        trainerNote: '심폐지구력 향상 중. 다음 주 런닝 강도 소폭 올릴 예정.',
+        clientFeedback: '러닝이 힘들었는데 다 했어요! 숨이 많이 찼어요',
+        trainerNote: '심폐지구력 향상 중. 다음 주 러닝 강도 소폭 올릴 예정.',
       ),
       _History(
         daysAgo: 3,
@@ -283,7 +283,7 @@ const List<_Client> _clients = <_Client>[
         daysAgo: 5,
         label: 'AI 개인운동',
         completionRate: 67,
-        exercises: <String>['런닝 25분 ✓', '스쿼트 ✓', '플랭크 ✗ (피로)'],
+        exercises: <String>['러닝 25분 ✓', '스쿼트 ✓', '플랭크 ✗ (피로)'],
         clientFeedback: '마지막 플랭크는 너무 지쳐서 못 했어요',
         trainerNote: '',
       ),
@@ -291,7 +291,7 @@ const List<_Client> _clients = <_Client>[
     chat: <_Chat>[
       _Chat(
         'trainer',
-        '지수님, AI 운동 데이터 수신했어요 — 오늘 인터벌 런닝 25분 완료! 컨디션은 어때요?',
+        '지수님, AI 운동 데이터 수신했어요 — 오늘 인터벌 러닝 25분 완료! 컨디션은 어때요?',
         '20:05',
       ),
       _Chat('client', '생각보다 괜찮았어요. 숨이 금방 차더라고요 😮‍💨', '20:08'),

@@ -1028,7 +1028,7 @@ void main() {
       expect(minsu.first.type, '유산소');
 
       final jisu = await repo.watchRoutine('seed-client-2').first;
-      expect(jisu.first.name, '인터벌 런닝');
+      expect(jisu.first.name, '인터벌 러닝');
     });
 
     test(
@@ -1998,7 +1998,7 @@ void main() {
         expect(
           find.descendant(
             of: find.byType(ProgramEditorWorkspace),
-            matching: find.text('인터벌 런닝'),
+            matching: find.text('인터벌 러닝'),
           ),
           findsOneWidget,
         );

@@ -452,7 +452,7 @@ const List<_SeedDraft> _drafts = <_SeedDraft>[
             weight: 0,
           ),
           (
-            name: (ko: '런닝', en: 'Running'),
+            name: (ko: '러닝', en: 'Running'),
             type: '유산소',
             minutes: 20,
             sets: 0,

@@ -1815,7 +1815,7 @@ final List<List<Map<String, Object?>>> _routinePool =
         _strength('페이스 풀', 3, 15, weight: 15),
       ],
       <Map<String, Object?>>[
-        <String, Object?>{'name': '런닝', 'type': 'cardio', 'minutes': 30},
+        <String, Object?>{'name': '러닝', 'type': 'cardio', 'minutes': 30},
         <String, Object?>{'name': '사이클', 'type': 'cardio', 'minutes': 20},
         _strength('코어 서킷', 3, 12),
       ],
@@ -2962,7 +2962,7 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
       weeksAgo: 3,
       condition: 'great',
       intensity: 'right',
-      note: '런닝할 때 숨찬 게 확실히 줄었어요!',
+      note: '러닝할 때 숨찬 게 확실히 줄었어요!',
     ),
     _Feedback(
       weeksAgo: 4,
@@ -2998,7 +2998,7 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
       weeksAgo: 9,
       condition: 'ok',
       intensity: 'right',
-      note: '회식이 두 번 있었어요. 그래도 다음 날 런닝은 했어요.',
+      note: '회식이 두 번 있었어요. 그래도 다음 날 러닝은 했어요.',
     ),
     _Feedback(
       weeksAgo: 11,
@@ -3012,7 +3012,7 @@ const Map<int, List<_Feedback>> _demoFeedback = <int, List<_Feedback>>{
       intensity: 'hard',
       painArea: '왼쪽 발목',
       painDay: 4,
-      note: '런닝하다 발목을 살짝 접질렸어요. 지금은 괜찮아요.',
+      note: '러닝하다 발목을 살짝 접질렸어요. 지금은 괜찮아요.',
     ),
   ],
   // 박성호 — 휴면. 몸이 아니라 일정(출장·회사 일)이 막고 있고, 나올 때는 벤치 중량에 욕심이

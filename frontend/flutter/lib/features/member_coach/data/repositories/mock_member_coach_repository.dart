@@ -329,7 +329,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     _seed(
       18,
       CoachSender.trainer,
-      '확인했어요. AI가 오늘 식단 기반으로 유산소 프로그램을 추천했는데, 무릎 상태 감안해서 런닝 대신 걷기로 조정해서 보낼게요. 다음 PT 때 봐요 💪',
+      '확인했어요. AI가 오늘 식단 기반으로 유산소 프로그램을 추천했는데, 무릎 상태 감안해서 러닝 대신 걷기로 조정해서 보낼게요. 다음 PT 때 봐요 💪',
       '18:18',
       day: 2,
     ),
