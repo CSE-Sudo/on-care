@@ -41,7 +41,7 @@ void main() {
     expect(error.message, '승인을 기다리고 있어요.');
   });
 
-  test('사유가 없으면 Dio 문구로 물러난다', () {
+  test('422 목록형 detail 은 사유가 없어 null 이다 — Dio 원문으로 메우지 않는다', () {
     final AppError error = AppError.fromDio(
       _bad(422, <String, Object?>{
         'detail': <Object?>[
@@ -50,6 +50,16 @@ void main() {
       }),
     );
 
-    expect(error.message, 'technical dio text');
+    expect(error, isA<ValidationError>());
+    expect(error.message, isNull);
+    // 원문은 디버깅을 위해 원인에만 남는다.
+    expect(error.cause, isA<DioException>());
+  });
+
+  test('본문이 없으면 사유가 없다', () {
+    final AppError error = AppError.fromDio(_bad(500, null));
+
+    expect(error, isA<ServerError>());
+    expect(error.message, isNull);
   });
 }
