@@ -1209,6 +1209,8 @@
   "myLocationConsentAgreed": "위치정보 이용에 동의했어요.",
   "myLocationConsentRevoked": "위치정보 이용 동의를 철회했어요.",
   "myAppVersion": "On-Care · 버전 {version}",
+  "buildInfoDevelopment": "개발 빌드",
+  "buildInfoReleasedAt": "{date} KST 배포",
   "myAppName": "On-Care",
   "coachHeaderPill": "AI 건강 도우미",
   "coachHeaderSubtitle": "오늘의 맞춤 조언을 모아봤어요",

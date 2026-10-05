@@ -17,6 +17,8 @@
 #  - API_BASE_URL: https:// 로 시작, /v1 로 끝(끝 / 금지), 자리표시자(<…>·example·.test·localhost) 금지
 #  - SENTRY_DSN: 비어 있지 않은 https:// 주소, 자리표시자 금지
 #  - DEMO_BUILD·SHOW_DEMO_ENTRY 가 true 이면 실패, REAL_API 는 비어 있어야 함(목업 전용 스위치)
+#  - BUILD_NUMBER·RELEASE_DATE(#3226)는 선택 — 있으면 양의 정수·UTC ISO 8601(`…Z`)이어야 함.
+#    서명 빌드 워크플로가 커밋 수·빌드 시각으로 채우고, 설정 화면 `버전 정보` 가 읽는다
 #  - 모르는 키는 경고만
 set -euo pipefail
 
@@ -52,7 +54,7 @@ if not isinstance(data, dict):
 
 KNOWN = {"ENV", "USE_MOCK_API", "API_BASE_URL", "SENTRY_DSN", "DEMO_BUILD",
          "SHOW_DEMO_ENTRY", "REAL_API", "KAKAO_JS_KEY",
-         "KAKAO_MAP_ORIGIN", "IOS_APP_STORE_ID"}
+         "KAKAO_MAP_ORIGIN", "IOS_APP_STORE_ID", "BUILD_NUMBER", "RELEASE_DATE"}
 PLACEHOLDER = re.compile(
     r"[<>]|(^|[./@])example\.(com|org|net)([/:]|$)|\.(example|test|invalid|localhost)([/:]|$)"
     r"|//(localhost|127\.0\.0\.1)([/:]|$)",
@@ -123,6 +125,14 @@ if map_origin:
 store_id = text("IOS_APP_STORE_ID")
 if store_id and not store_id.isdigit():
     errors.append("IOS_APP_STORE_ID 는 App Store Connect 의 숫자 Apple ID 여야 합니다(#3045).")
+
+# 설정 화면 버전 정보(#3226). 틀린 값은 앱이 "없음"으로 읽어 개발 빌드로 보이므로 여기서 막는다.
+build_number = text("BUILD_NUMBER")
+if build_number and not re.fullmatch(r"[1-9][0-9]*", build_number):
+    errors.append(f"BUILD_NUMBER 는 양의 정수여야 합니다(지금: {build_number}).")
+release_date = text("RELEASE_DATE")
+if release_date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", release_date):
+    errors.append("RELEASE_DATE 는 UTC ISO 8601(YYYY-MM-DDTHH:MM:SSZ)이어야 합니다.")
 
 real_api = text("REAL_API")
 if real_api:

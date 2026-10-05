@@ -4082,6 +4082,18 @@ abstract class AppLocalizations {
   /// **'On-Care · Version {version}'**
   String myAppVersion(String version);
 
+  /// Shown after the app version in the version row when the build has no build number (local run or test build) (#3226).
+  ///
+  /// In en, this message translates to:
+  /// **'Development build'**
+  String get buildInfoDevelopment;
+
+  /// Deploy time in the version row. The date is the build time converted to Korea Standard Time and formatted for the current locale (#3226).
+  ///
+  /// In en, this message translates to:
+  /// **'Deployed {date} KST'**
+  String buildInfoReleasedAt(String date);
+
   /// Support page footer when the build version cannot be read — the app name only (#3047).
   ///
   /// In en, this message translates to:
