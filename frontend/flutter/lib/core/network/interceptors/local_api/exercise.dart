@@ -488,9 +488,8 @@ extension _LocalApiExercise on LocalApiInterceptor {
     final date = DateTime(monday.year, monday.month, monday.day + dayIdx);
     final now = nowKst();
     final today = DateTime(now.year, now.month, now.day);
-    final delta = today
-        .difference(DateTime(date.year, date.month, date.day))
-        .inDays;
+    // 시각을 버리고 달력으로 센다 — 서머타임 기기에서도 하루가 어긋나지 않는다(#3250).
+    final delta = calendarDaysBetween(date, today);
     if (delta == 0) return '오늘';
     if (delta == 1) return '어제';
     return '${date.month}월 ${date.day}일';
