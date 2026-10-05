@@ -8,7 +8,9 @@ provider 가 준 이메일과 같은 기존 계정에 확인 없이 소셜 계�
   - kakao: `kakao_account.is_email_valid` 와 `is_email_verified` 가 **둘 다** 참
   - naver: 공식 검증 플래그가 없어 늘 거짓
   - apple: `email_verified`(문자열·bool)
-- 확인되지 않은 이메일은 기존 계정에 연결하지 않고, 새 계정의 이메일로도 쓰지 않는다
+- 확인되지 않은 이메일이 기존 계정의 이메일과 같으면 연결도, 새 계정도 만들지 않고
+  409 `social_email_in_use` 로 "처음 가입한 방법으로 로그인" 을 안내한다.
+- 같은 계정이 없으면 새 계정을 만들되 그 주소를 계정 이메일로 쓰지 않는다
   (`{provider}_{id}@social.oncare` 대체 이메일).
 - 확인된 이메일은 지금처럼 같은 이메일 계정에 연결된다.
 
@@ -25,7 +27,7 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from sqlalchemy import func, select
 
-from app.models.models import SocialAccount, User
+from app.models.models import AuditLog, SocialAccount, User
 from app.services.social import apple as apple_mod
 from app.services.social.apple import AppleVerifier
 from app.services.social.base import SocialIdentity, SocialProviderResponseError
@@ -244,6 +246,31 @@ def _links(db, user_id: str) -> int:
     )
 
 
+def _user_by_email(db, email: str) -> User | None:
+    db.expire_all()
+    return db.scalar(select(User).where(func.lower(User.email) == email.lower()))
+
+
+def _social_account(db, provider: str, uid: str) -> SocialAccount | None:
+    db.expire_all()
+    return db.scalar(
+        select(SocialAccount).where(
+            SocialAccount.provider == provider, SocialAccount.provider_user_id == uid
+        )
+    )
+
+
+def _email_in_use_audits(db, provider: str) -> int:
+    db.expire_all()
+    return db.scalar(
+        select(func.count()).select_from(AuditLog).where(
+            AuditLog.event == "auth.social",
+            AuditLog.success.is_(False),
+            AuditLog.detail == f"{provider} reason=email_in_use",
+        )
+    )
+
+
 def _me(client, token: str) -> dict:
     r = client.get("/v1/users/me", headers={"Authorization": f"Bearer {token}"})
     assert r.status_code == 200, r.text
@@ -269,19 +296,21 @@ def test_unverified_email_does_not_link_existing_account(client, db_session, mon
         SocialIdentity(provider=provider, provider_user_id=uid, email=owner.email.upper(), name="남"),
     )
 
+    before = _email_in_use_audits(db_session, provider)
+
     r = client.post(f"/v1/auth/social/{provider}", json={"token": "any"})
 
-    assert r.status_code == 200, r.text
-    me = _me(client, r.json()["access_token"])
-    assert me["id"] != owner.id
-    # 확인 안 된 주소를 새 계정에도 쓰지 않는다 — 대체 이메일
-    assert me["email"] == f"{provider}_{uid}@social.oncare".lower()
+    # 로그인시키지 않고, 같은 이메일의 계정이 있다고 알린다. 토큰은 없다.
+    assert r.status_code == 409, r.text
+    assert r.json()["detail"]["code"] == "social_email_in_use"
+    assert r.json()["detail"]["message"]
+    assert "access_token" not in r.json()
     assert _links(db_session, owner.id) == 0
-
-    # 다시 로그인해도 같은 새 계정(소셜 계정 연결로 찾는다), 기존 계정은 그대로
-    again = client.post(f"/v1/auth/social/{provider}", json={"token": "any"})
-    assert _me(client, again.json()["access_token"])["id"] == me["id"]
-    assert _links(db_session, owner.id) == 0
+    # 조용히 따로 계정을 만들지도 않는다.
+    assert _user_by_email(db_session, f"{provider}_{uid}@social.oncare") is None
+    assert _social_account(db_session, provider, uid) is None
+    # 인증은 됐지만 로그인하지 않았다 — 실패 감사에 이유가 붙는다.
+    assert _email_in_use_audits(db_session, provider) == before + 1
 
 
 def test_unverified_email_is_not_stored_on_new_account(client, db_session, monkeypatch):
@@ -295,9 +324,38 @@ def test_unverified_email_is_not_stored_on_new_account(client, db_session, monke
     r = client.post("/v1/auth/social/kakao", json={"token": "any"})
 
     assert r.status_code == 200, r.text
-    assert _me(client, r.json()["access_token"])["email"] == f"kakao_{uid}@social.oncare"
-    db_session.expire_all()
-    assert db_session.scalar(select(User).where(func.lower(User.email) == unclaimed)) is None
+    me = _me(client, r.json()["access_token"])
+    assert me["email"] == f"kakao_{uid}@social.oncare"
+    assert _user_by_email(db_session, unclaimed) is None
+
+    # 다시 로그인해도 같은 계정이다(소셜 계정 연결로 찾는다).
+    again = client.post("/v1/auth/social/kakao", json={"token": "any"})
+    assert again.status_code == 200, again.text
+    assert _me(client, again.json()["access_token"])["id"] == me["id"]
+
+
+def test_already_linked_account_logs_in_even_if_email_now_unverified(
+    client, db_session, monkeypatch
+):
+    """이미 연결된 소셜 계정은 이메일 확인과 무관하게 그 계정으로 들어간다."""
+    owner = _existing_user(db_session)
+    uid = f"kakao-{uuid4().hex[:10]}"
+    _fake_identity(
+        monkeypatch,
+        SocialIdentity(
+            provider="kakao", provider_user_id=uid, email=owner.email, email_verified=True
+        ),
+    )
+    assert client.post("/v1/auth/social/kakao", json={"token": "any"}).status_code == 200
+
+    _fake_identity(
+        monkeypatch,
+        SocialIdentity(provider="kakao", provider_user_id=uid, email=owner.email),
+    )
+    r = client.post("/v1/auth/social/kakao", json={"token": "any"})
+
+    assert r.status_code == 200, r.text
+    assert _me(client, r.json()["access_token"])["id"] == owner.id
 
 
 @pytest.mark.parametrize("provider", ["google", "kakao", "apple"])
@@ -330,7 +388,8 @@ def test_api_kakao_unverified_email_through_adapter_does_not_link(client, db_ses
 
     r = client.post("/v1/auth/social/kakao", json={"token": SECRET_TOKEN})
 
-    assert r.status_code == 200, r.text
+    assert r.status_code == 409, r.text
+    assert r.json()["detail"]["code"] == "social_email_in_use"
     assert _links(db_session, owner.id) == 0
 
 
@@ -343,5 +402,6 @@ def test_api_google_unverified_email_through_adapter_does_not_link(client, db_se
 
     r = client.post("/v1/auth/social/google", json={"token": SECRET_TOKEN})
 
-    assert r.status_code == 200, r.text
+    assert r.status_code == 409, r.text
+    assert r.json()["detail"]["code"] == "social_email_in_use"
     assert _links(db_session, owner.id) == 0

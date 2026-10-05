@@ -36,6 +36,16 @@ router = APIRouter(tags=["auth"])
 
 _AUTH_FAILED = "소셜 인증에 실패했습니다."
 _PROVIDER_BAD_RESPONSE = "소셜 로그인 제공자의 응답을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요."
+#: 확인되지 않은 이메일이 기존 계정의 이메일과 같을 때(#1551). 화면은 `code` 로 가른다.
+#: 기존 계정이 비밀번호로 가입했는지 다른 소셜로 가입했는지는 밝히지 않는다.
+_EMAIL_IN_USE = {
+    "code": "social_email_in_use",
+    "message": "이 이메일로 가입한 계정이 있어요. 처음 가입한 방법으로 로그인해 주세요.",
+}
+
+
+class SocialEmailInUse(Exception):
+    """provider 가 확인하지 않은 이메일이 기존 계정의 이메일과 같다(#1551)."""
 
 
 def _placeholder_email(identity: SocialIdentity) -> str:
@@ -59,11 +69,20 @@ def _find_or_create_user(db: Session, identity: SocialIdentity) -> User:
     #
     # provider 가 소유를 확인한 이메일일 때만 그 이메일을 쓴다(#1551). 확인되지 않은
     # 이메일로 기존 계정을 찾으면, 남의 주소를 provider 계정에 적어 넣는 것만으로 그
-    # 사람 계정에 로그인된다. 새 계정의 이메일로도 쓰지 않는다 — 계정 이메일은 재설정
-    # 메일·가입 중복 확인이 믿는 값이라, 확인 안 된 주소를 넣으면 주인이 그 주소로
-    # 가입하지 못하고(409) 주소를 선점당한다. 이때는 provider 신원으로 만든 대체
-    # 이메일로 새 계정을 만든다(이메일이 없을 때와 같다).
-    email = normalize_email(identity.email or "") if identity.email_verified else ""
+    # 사람 계정에 로그인된다.
+    #
+    # - 확인 안 된 이메일이 **기존 계정의 이메일과 같으면** 연결도, 새 계정도 만들지
+    #   않고 [SocialEmailInUse] 로 끝낸다. 조용히 따로 계정을 만들면 주인은 기록이 빈
+    #   두 번째 계정에 들어가 영문을 모른다. 앱은 "처음 가입한 방법으로 로그인" 을 안내한다.
+    # - 같은 계정이 없으면 새 계정을 만들되 그 주소를 계정 이메일로 쓰지 않는다 — 계정
+    #   이메일은 재설정 메일·가입 중복 확인이 믿는 값이라, 확인 안 된 주소를 넣으면
+    #   주인이 그 주소로 가입하지 못하고(409) 주소를 선점당한다. provider 신원으로
+    #   만든 대체 이메일을 쓴다(이메일이 없을 때와 같다).
+    claimed = normalize_email(identity.email or "")
+    if claimed and not identity.email_verified:
+        if db.scalar(select(User.id).where(func.lower(User.email) == claimed)):
+            raise SocialEmailInUse()
+    email = claimed if identity.email_verified else ""
     user: User | None = None
     if email:
         user = db.scalar(select(User).where(func.lower(User.email) == email))
@@ -148,4 +167,12 @@ async def social_login(
         )
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=_PROVIDER_BAD_RESPONSE)
 
-    return await run_in_threadpool(_complete_login, db, identity, ip, provider)
+    try:
+        return await run_in_threadpool(_complete_login, db, identity, ip, provider)
+    except SocialEmailInUse:
+        # 인증은 됐지만 로그인시키지 않았다 — 실패로 남기고 이유를 붙인다(#1551).
+        await run_in_threadpool(
+            audit, db, event="auth.social", ip=ip, success=False,
+            detail=f"{provider} reason=email_in_use",
+        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=_EMAIL_IN_USE)
