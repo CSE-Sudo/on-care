@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_social_login/oncare_social_login.dart';
 
 enum Environment { dev, staging, prod }
 
@@ -126,6 +127,7 @@ class AppConfig {
     this.showDemoEntry = false,
     this.iosAppStoreId,
     this.demoBuild = false,
+    this.socialLogin = const SocialLoginConfig(),
   });
 
   final Environment environment;
@@ -168,10 +170,15 @@ class AppConfig {
     return false;
   }
 
-  /// #330 실제 OAuth SDK 연동 전, 고정 토큰을 기기 안 목업에만 보낸다.
-  /// 실 인증을 쓰는 설정에서는 소셜 버튼이 꺼지고 '준비 중' 안내가 뜬다(#2769).
+  /// 소셜 로그인을 기기 안 목업으로 보내는가 — 고정 토큰을 쓴다(데모·개발).
+  ///
+  /// 실 인증을 쓰는 설정은 [socialLogin] 의 키로 카카오·구글 SDK 를 부른다(#330).
+  /// 키가 없는 provider 는 버튼이 꺼지고, 하나도 없으면 '준비 중' 안내가 뜬다(#2769).
   bool get usesMockSocialLogin =>
       useMockApi && !isProd && !isRealApi('POST', '/auth/social');
+
+  /// 카카오·구글 로그인 키(`KAKAO_NATIVE_APP_KEY` 등, #330). 모두 공개 식별자다.
+  final SocialLoginConfig socialLogin;
 
   /// 로그인 화면에 "로그인 없이 데모 둘러보기" 진입을 노출할지. (#1526)
   ///
@@ -259,6 +266,7 @@ class AppConfig {
       iosAppStoreId: iosAppStoreId.trim().isEmpty ? null : iosAppStoreId.trim(),
       // ignore: avoid_redundant_argument_values
       demoBuild: demoBuild,
+      socialLogin: SocialLoginConfig.fromEnvironment(),
     );
   }
 }

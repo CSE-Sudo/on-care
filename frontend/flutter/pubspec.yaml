@@ -60,6 +60,9 @@ dependencies:
   # 주간 리포트 결과지(#2652). 트레이너 웹과 같은 계산·같은 한 장을 쓴다.
   oncare_report:
     path: ../../shared/oncare_report
+  # 카카오·구글 로그인(#330). 트레이너 웹과 같은 연동을 쓴다.
+  oncare_social_login:
+    path: ../../shared/oncare_social_login
 
   # --- Local persistence ---
   drift: ^2.20.3

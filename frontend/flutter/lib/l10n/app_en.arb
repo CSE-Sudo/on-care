@@ -2071,6 +2071,10 @@
   "authSessionExpired": "Your session has expired. Please sign in again",
   "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment",
   "authSocialComingSoon": "Social sign-in is coming soon. Please sign in with your email",
+  "authSocialPopupBlocked": "The sign-in window was blocked. Allow pop-ups for this site and try again",
+  "@authSocialPopupBlocked": {
+    "description": "Shown when the browser blocks the Kakao sign-in pop-up window on the web (#330)."
+  },
   "authTrainerAccountTitle": "This is a trainer account",
   "@authTrainerAccountTitle": {
     "description": "Title of the sign-in banner shown when a trainer account tries to sign in to the member app (#3137)."

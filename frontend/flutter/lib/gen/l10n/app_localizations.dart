@@ -5156,6 +5156,12 @@ abstract class AppLocalizations {
   /// **'Social sign-in is coming soon. Please sign in with your email'**
   String get authSocialComingSoon;
 
+  /// Shown when the browser blocks the Kakao sign-in pop-up window on the web (#330).
+  ///
+  /// In en, this message translates to:
+  /// **'The sign-in window was blocked. Allow pop-ups for this site and try again'**
+  String get authSocialPopupBlocked;
+
   /// Title of the sign-in banner shown when a trainer account tries to sign in to the member app (#3137).
   ///
   /// In en, this message translates to:
