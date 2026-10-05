@@ -347,6 +347,8 @@ AI 코치 채팅·식단 조언·운동 추천 프롬프트가 읽는다. 그래
 | PUT | `/trainer/me/gym` | 소속 헬스장 설정·변경(fitness `Place`만; 없으면 404) |
 | GET | `/trainer/gyms/search?query=&lat=&lng=` | 소속으로 고를 헬스장 검색 — 등록된 헬스장 먼저, 카카오 결과 뒤(#2543) |
 | PUT | `/trainer/me/gym/kakao` | 카카오 검색 결과로 소속 설정 `{kakao_place_id, name}` — 카카오로 재확인, 아니면 404, 카카오 불가 503(#2543) |
+| GET | `/trainer/me/gym/profile` | 소속 헬스장 영업시간(평일·주말)·전화·태그 — 소속 없으면 409(#2700) |
+| PUT | `/trainer/me/gym/profile` | 위 값 부분 수정. 소속 트레이너 누구나, 마지막 저장이 남는다. 같은 헬스장 소속 트레이너의 `gym_hours`·`gym_phone` 복사본도 함께 갱신. 평점은 받지 않는다(#2700) |
 | DELETE | `/trainer/me/gym` | 소속 해제(원래 없어도 200) |
 | POST | `/trainer/me/password` | 비밀번호 변경(현재 비밀번호 확인). 성공하면 토큰 세대를 올려 다른 기기 토큰을 끊고, 요청 기기용 새 토큰 한 쌍을 돌려준다(#2766) |
 | GET | `/trainer/me/settings` | 알림 수신 설정 |

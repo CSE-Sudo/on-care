@@ -10028,6 +10028,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The server is having a temporary problem. Please try again in a moment.'**
   String get errorServerTemporary;
+
+  /// Button on the gym card and title of the screen where an affiliated trainer edits the gym hours, phone and tags (#2700).
+  ///
+  /// In en, this message translates to:
+  /// **'Edit gym info'**
+  String get myGymInfoEdit;
+
+  /// No description provided for @myGymInfoSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown as-is on the gym list and detail in the member app. Any trainer at this gym can edit it, and the last save stays.'**
+  String get myGymInfoSubtitle;
+
+  /// No description provided for @myGymInfoCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Gym info members see'**
+  String get myGymInfoCardTitle;
+
+  /// No description provided for @myGymWeekdayHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekday hours'**
+  String get myGymWeekdayHours;
+
+  /// No description provided for @myGymWeekendHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekend hours'**
+  String get myGymWeekendHours;
+
+  /// No description provided for @myGymHoursHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 06:00 - 23:00'**
+  String get myGymHoursHint;
+
+  /// No description provided for @myGymPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Main phone'**
+  String get myGymPhone;
+
+  /// No description provided for @myGymPhoneHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 02-123-4567'**
+  String get myGymPhoneHint;
+
+  /// No description provided for @myGymTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get myGymTags;
+
+  /// No description provided for @myGymAddTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a tag...'**
+  String get myGymAddTag;
+
+  /// No description provided for @myGymTagsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No tags yet.'**
+  String get myGymTagsEmpty;
+
+  /// No description provided for @myGymInfoLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the gym info.'**
+  String get myGymInfoLoadFailed;
+
+  /// No description provided for @myGymInfoSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the gym info.'**
+  String get myGymInfoSaveFailed;
+
+  /// No description provided for @a11yRemoveGymTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove tag'**
+  String get a11yRemoveGymTag;
+
+  /// No description provided for @myGymTagsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown as chips on the gym card in the member app. Up to {max} tags, {length} characters each.'**
+  String myGymTagsHint(int max, int length);
+
+  /// No description provided for @myGymTagsFull.
+  ///
+  /// In en, this message translates to:
+  /// **'You can add up to {max} tags'**
+  String myGymTagsFull(int max);
+
+  /// No description provided for @myGymTagTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'A tag can be up to {length} characters'**
+  String myGymTagTooLong(int length);
+
+  /// No description provided for @myGymHoursWeekday.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekdays {hours}'**
+  String myGymHoursWeekday(String hours);
+
+  /// No description provided for @myGymHoursWeekend.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekends {hours}'**
+  String myGymHoursWeekend(String hours);
 }
 
 class _AppLocalizationsDelegate
