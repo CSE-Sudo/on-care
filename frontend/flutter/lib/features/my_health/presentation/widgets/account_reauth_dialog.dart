@@ -40,6 +40,11 @@ class AccountReauthDialogOutcome {
 /// 않으면([AccountReauthRejected]) 창을 닫지 않고 그 자리에 이유를 적는다 —
 /// 400 이라 세션은 그대로이고 로그아웃하지 않는다. 다른 실패는 창을 닫고
 /// [AccountReauthDialogResult.failed] 로 돌려준다.
+///
+/// 바깥 클릭·Esc·뒤로 가기로는 닫지 않는다 — `취소` 로만 닫는다(#3245). 요청이
+/// 도는 동안 창이 닫히면 서버에서는 탈퇴·변경이 끝났는데 부른 쪽은 `취소` 로
+/// 받는다. 그래도 창이 다른 길로 먼저 닫혔다면 부른 쪽이 [onSubmit] 이 돌려준
+/// 요청의 끝을 직접 확인한다.
 Future<AccountReauthDialogOutcome> showAccountReauthDialog({
   required BuildContext context,
   required String message,
@@ -51,6 +56,7 @@ Future<AccountReauthDialogOutcome> showAccountReauthDialog({
   final AccountReauthDialogOutcome? outcome =
       await showAppDialog<AccountReauthDialogOutcome>(
         context: context,
+        dismissible: false,
         builder: (_) => AccountReauthDialog(
           message: message,
           confirmLabel: confirmLabel,
@@ -147,6 +153,10 @@ class _AccountReauthDialogState extends ConsumerState<AccountReauthDialog> {
       _failure = null;
     });
     final NavigatorState navigator = Navigator.of(context);
+    // 요청이 끝났을 때 이 창이 아직 맨 위인지 본다. 창이 이미 닫혔는데 그대로
+    // 닫으면 아래 화면이 닫힌다(#3245).
+    final ModalRoute<Object?>? route = ModalRoute.of(context);
+    bool stillOpen() => navigator.mounted && (route?.isCurrent ?? false);
     try {
       await widget.onSubmit(reauth);
     } on AccountReauthRejected catch (e) {
@@ -159,14 +169,14 @@ class _AccountReauthDialogState extends ConsumerState<AccountReauthDialog> {
       });
       return;
     } on Object catch (e) {
-      if (navigator.mounted) {
+      if (stillOpen()) {
         navigator.pop(
           AccountReauthDialogOutcome(AccountReauthDialogResult.failed, e),
         );
       }
       return;
     }
-    if (navigator.mounted) {
+    if (stillOpen()) {
       navigator.pop(
         const AccountReauthDialogOutcome(AccountReauthDialogResult.done),
       );
