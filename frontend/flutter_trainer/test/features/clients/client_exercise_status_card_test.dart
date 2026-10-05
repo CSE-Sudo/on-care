@@ -403,7 +403,7 @@ void main() {
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: SingleChildScrollView(
-            // 상세는 운동 현황 카드 밖 따로 선 위젯이다(#2509).
+            // 상세만 따로 띄운다 — 화면에서는 운동 현황 카드 안 그래프 아래다.
             child: ClientWorkoutRecordsDetail(clientId: 'c1', period: period),
           ),
         ),
@@ -644,14 +644,24 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('한국어 화면은 예전과 같은 글자다', (tester) async {
+    // 기록 한 건은 회원 상세 운동 탭과 같은 모양이다(#3004) — 출처 알약 옆에
+    // 날짜, 그 아래 `이름 · 값` 줄과 강도 태그.
+    testWidgets('한국어 화면은 날짜·출처 알약·운동 줄로 적는다', (tester) async {
       await pumpIn(tester, const Locale('ko'), <RoutineHistoryEntry>[
         withDate(ptToday(), DateTime(2026, 8, 20)),
       ]);
 
-      expect(find.text('8/20 (오늘) · PT · 트레이너 지도'), findsOneWidget);
-      expect(find.text('스쿼트 · 3세트 · 12회 · 40kg'), findsOneWidget);
-      expect(find.text('걷기 · 30분 · 가벼움'), findsOneWidget);
+      expect(find.text('8/20 (오늘)'), findsOneWidget);
+      expect(find.text('PT'), findsOneWidget);
+      expect(
+        find.textContaining('스쿼트 · 3세트 · 12회 · 40kg', findRichText: true),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('걷기 · 30분', findRichText: true),
+        findsOneWidget,
+      );
+      expect(find.text('가벼움'), findsOneWidget);
     });
 
     testWidgets('영어 화면에는 한국어 날짜·종류·단위가 없다', (tester) async {
@@ -659,10 +669,8 @@ void main() {
         withDate(ptToday(), DateTime(2026, 8, 19)),
       ]);
 
-      expect(
-        find.text('8/19 (Yesterday) · PT · Trainer-led'),
-        findsOneWidget,
-      );
+      expect(find.text('8/19 (Yesterday)'), findsOneWidget);
+      expect(find.text('PT'), findsOneWidget);
       expect(find.textContaining('어제'), findsNothing);
       expect(find.textContaining('트레이너 지도'), findsNothing);
       expect(find.textContaining('세트'), findsNothing);
@@ -686,7 +694,8 @@ void main() {
         ),
       ]);
 
-      expect(find.text('8/18 · Personal exercise'), findsOneWidget);
+      expect(find.text('8/18'), findsOneWidget);
+      expect(find.text('Personal exercise'), findsOneWidget);
       expect(find.textContaining('배정 루틴'), findsNothing);
     });
   });
