@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import logging
+import math
 
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -25,6 +26,7 @@ from starlette.concurrency import run_in_threadpool
 from app.core.config import get_settings
 from app.models.models import GymProfile, Place, TrainerProfile, User
 from app.schemas.trainer_api import TrainerGymCandidate, TrainerMe
+from app.services.gym_service import _haversine_m
 from app.services.trainer import gym as trainer_gym_service
 from app.services.places import kakao
 
@@ -33,6 +35,13 @@ logger = logging.getLogger(__name__)
 #: 등록된 헬스장 중 이름이 맞는 것을 몇 개까지 먼저 보일지. 카카오 결과(최대 15)와
 #: 합쳐도 한 화면에서 훑을 수 있는 길이로 둔다.
 _REGISTERED_LIMIT = 10
+
+#: 현재 위치 주변 찾기(#3223)의 반경. 회원 앱 헬스장 찾기(`/places/nearby`)의
+#: 기본 반경과 같다 — 걸어서·차로 다닐 만한 거리다.
+NEARBY_RADIUS_M = 2000
+
+#: 주변 찾기에서 카카오에 보낼 검색어. 회원 앱의 fitness 카테고리 검색어와 같다.
+_NEARBY_KAKAO_QUERY = "헬스장"
 
 
 class GymLookupUnavailable(Exception):
@@ -100,11 +109,42 @@ async def search(
     같은 헬스장이 두 줄로 나오면 어느 쪽을 골라야 하는지 헷갈린다. 카카오 호출이
     실패하면 등록된 결과만 돌려준다(검색 자체가 막히면 소속을 바꿀 수 없다).
     """
-    out = await run_in_threadpool(_registered_candidates, db, query)
-    seen = {c.id for c in out}
+    out = await run_in_threadpool(_registered_candidates, db, query, lat, lng)
+    return await _with_kakao(db, out, query, lat, lng, radius_m=None)
 
+
+async def nearby(
+    db: Session, lat: float, lng: float, radius_m: int = NEARBY_RADIUS_M
+) -> list[TrainerGymCandidate]:
+    """현재 위치 주변 헬스장 — 소속을 지도·내 위치로 고르게 한다. (#3223)
+
+    [radius_m] 안의 등록 헬스장과 카카오의 '헬스장' 검색 결과를 합쳐 가까운
+    순으로 준다. 이름 검색과 같은 규칙으로 등록된 곳은 한 번만 싣는다. 카카오를
+    쓸 수 없으면 등록 헬스장만 준다. 좌표는 이 요청에서만 쓰고 어디에도 남기지
+    않는다 — 회원 앱 헬스장 찾기와 같다.
+    """
+    out = await run_in_threadpool(_registered_nearby, db, lat, lng, radius_m)
+    merged = await _with_kakao(
+        db, out, _NEARBY_KAKAO_QUERY, lat, lng, radius_m=radius_m
+    )
+    # 카카오 결과에도 거리가 있다. 반경 밖 줄은 등록 쪽에서 이미 걸렀다.
+    merged.sort(key=lambda c: (c.distance_meters is None, c.distance_meters or 0))
+    return merged
+
+
+async def _with_kakao(
+    db: Session,
+    out: list[TrainerGymCandidate],
+    query: str,
+    lat: float | None,
+    lng: float | None,
+    *,
+    radius_m: int | None,
+) -> list[TrainerGymCandidate]:
+    """[out](등록 헬스장) 뒤에 카카오 결과를 붙인다. 카카오가 없거나 실패하면 그대로."""
     if not kakao_enabled():
         return out
+    seen = {c.id for c in out}
 
     settings = get_settings()
     try:
@@ -112,6 +152,7 @@ async def search(
             query, lat, lng,
             api_key=settings.kakao_rest_api_key,
             timeout=settings.kakao_timeout_seconds,
+            radius_m=radius_m,
         )
     except Exception as exc:  # noqa: BLE001 — 외부 API 실패가 검색을 깨지 않도록
         # 예외 repr 에 좌표가 든 요청 URL 이 들어갈 수 있어 타입만 남긴다.
@@ -133,15 +174,58 @@ async def search(
     return out
 
 
-def _registered_candidates(db: Session, query: str) -> list[TrainerGymCandidate]:
-    """등록된 헬스장 후보(전화번호 포함). 동기 DB — 스레드풀에서 부른다."""
-    return [
-        TrainerGymCandidate(
-            id=p.id, name=p.name, address=p.address, lat=p.lat, lng=p.lng,
-            phone=_phone_of(db, p.id), registered=True,
+def _distance_to(place: Place, lat: float | None, lng: float | None) -> int | None:
+    """기준 좌표에서 [place] 까지 거리(m). 어느 쪽이든 좌표가 없으면 None."""
+    if lat is None or lng is None or place.lat is None or place.lng is None:
+        return None
+    return _haversine_m(lat, lng, place.lat, place.lng)
+
+
+def _candidate(
+    db: Session, place: Place, lat: float | None, lng: float | None
+) -> TrainerGymCandidate:
+    return TrainerGymCandidate(
+        id=place.id, name=place.name, address=place.address,
+        lat=place.lat, lng=place.lng, phone=_phone_of(db, place.id),
+        distance_meters=_distance_to(place, lat, lng), registered=True,
+    )
+
+
+def _registered_candidates(
+    db: Session, query: str, lat: float | None = None, lng: float | None = None
+) -> list[TrainerGymCandidate]:
+    """등록된 헬스장 후보(전화번호 포함). 동기 DB — 스레드풀에서 부른다.
+
+    좌표를 주면 거리도 채운다 — 카카오 결과와 같은 기준으로 보이게(#3223).
+    """
+    return [_candidate(db, p, lat, lng) for p in _registered_matches(db, query)]
+
+
+def _registered_nearby(
+    db: Session, lat: float, lng: float, radius_m: int
+) -> list[TrainerGymCandidate]:
+    """[radius_m] 안의 등록 헬스장을 가까운 순으로. 동기 DB. (#3223)
+
+    위경도 사각형으로 먼저 좁히고 정확한 거리로 다시 거른다 — 전체 헬스장을
+    읽어 거리를 재지 않는다.
+    """
+    dlat = radius_m / 111_320
+    dlng = radius_m / (111_320 * max(math.cos(math.radians(lat)), 0.01))
+    places = db.scalars(
+        select(Place).where(
+            Place.category == "fitness",
+            Place.lat.is_not(None),
+            Place.lng.is_not(None),
+            Place.lat.between(lat - dlat, lat + dlat),
+            Place.lng.between(lng - dlng, lng + dlng),
         )
-        for p in _registered_matches(db, query)
+    )
+    out = [
+        c for c in (_candidate(db, p, lat, lng) for p in places)
+        if c.distance_meters is not None and c.distance_meters <= radius_m
     ]
+    out.sort(key=lambda c: c.distance_meters or 0)
+    return out[:_REGISTERED_LIMIT]
 
 
 def _select_existing(
