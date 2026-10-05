@@ -493,3 +493,71 @@ def test_routine_only_for_today_still_runs_from_today(db_session, pair):
     ).first()
     assert "starts_on" not in (note.template_args or {})
 
+
+# ─────────────────────── #3106 회원 앱의 예정 한 줄 ────────────────────────
+
+
+def _send(db_session, pair: Pair, start: date, *names: str):
+    return trainer_routines_service.assign_program(
+        db_session, pair.trainer_id, pair.member_id,
+        name="이번 주 개인운동",
+        sessions=[_draft(n) for n in names],
+        delivery_kind=DELIVERY_ROUTINE_ONLY,
+        start_date=start,
+        active_days=PERSONAL_ROUTINE_ACTIVE_DAYS,
+        chat_card=False,
+    )
+
+
+def test_member_sees_the_upcoming_routines_until_they_start(client, db_session, pair, monkeypatch):
+    """미래 시작일로 받은 개인운동은 시작 전까지 예정으로, 시작일부터 그날 목록에 선다."""
+    start = TODAY + timedelta(days=4)
+    _send(db_session, pair, start, "걷기", "자전거")
+    headers = _h(pair.member_id)
+
+    upcoming = client.get("/v1/me/coach/routines/upcoming", headers=headers)
+    assert upcoming.status_code == 200, upcoming.text
+    assert upcoming.json() == {
+        "starts_on": start.isoformat(),
+        # 보낸 날은 오늘이다 — 걸리는 첫날이 아니다.
+        "sent_on": TODAY.isoformat(),
+        "names": ["걷기", "자전거"],
+    }
+    listed = client.get("/v1/me/coach/routines", headers=headers).json()
+    assert not {r["name"] for r in listed} & {"걷기", "자전거"}
+
+    # 시작일 — 그날 목록으로 넘어가고 예정에서 빠진다.
+    moment = datetime(start.year, start.month, start.day, 12, tzinfo=clock.SEOUL)
+    monkeypatch.setattr(clock, "now", lambda: moment)
+    assert client.get("/v1/me/coach/routines/upcoming", headers=headers).json() is None
+    listed = client.get("/v1/me/coach/routines", headers=headers).json()
+    assert {"걷기", "자전거"} <= {r["name"] for r in listed}
+
+
+def test_upcoming_is_the_latest_approved_send_only(db_session, pair):
+    """다시 보내면 가장 최근 묶음 하나, 승인되지 않은 후보는 들지 않는다."""
+    from app.services.trainer import member_mirror
+
+    assert member_mirror.build_member_upcoming_routines(db_session, pair.member_id) is None
+
+    candidate = _routine(
+        db_session, pair, "검토 중 후보",
+        active_from=TODAY + timedelta(days=2), ended_on=TODAY + timedelta(days=9), sent=TODAY,
+    )
+    candidate.status = "pending"
+    db_session.commit()
+    assert member_mirror.build_member_upcoming_routines(db_session, pair.member_id) is None
+
+    _send(db_session, pair, TODAY + timedelta(days=4), "걷기")
+    _send(db_session, pair, TODAY + timedelta(days=6), "런지", "플랭크")
+    up = member_mirror.build_member_upcoming_routines(db_session, pair.member_id)
+    assert up is not None
+    assert up.starts_on == TODAY + timedelta(days=6)
+    assert up.names == ["런지", "플랭크"]
+
+    # 더 이른 시작일로 다시 보내면 늦은 묶음은 걸리기 전에 내려가고 새 것만 남는다.
+    _send(db_session, pair, TODAY + timedelta(days=3), "스쿼트")
+    up = member_mirror.build_member_upcoming_routines(db_session, pair.member_id)
+    assert up is not None
+    assert (up.starts_on, up.names) == (TODAY + timedelta(days=3), ["스쿼트"])
+

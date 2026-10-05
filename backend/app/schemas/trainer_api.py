@@ -712,6 +712,23 @@ class RoutineOut(BaseModel):
     trainer_message: str = ""
 
 
+class UpcomingRoutinesOut(BaseModel):
+    """GET /me/coach/routines/upcoming — 아직 시작하지 않은 개인운동 한 묶음. (#3106)
+
+    트레이너가 `개인운동만` 을 미래 시작일로 보내면(#2656) 알림은 바로 가지만, 그날
+    목록(`/me/coach/routines`)은 시작일부터 그 운동을 싣는다. 회원 앱은 이 값으로
+    오늘 목록 아래에 `8/22(토)부터 · 빠르게 걷기 · …` 한 줄을 둔다. 둘 이상이면
+    가장 최근에 보낸 것 하나다.
+    """
+
+    #: 걸리기 시작하는 날 — 이날부터 그날 목록에 들어 체크할 수 있다.
+    starts_on: _date
+    #: 트레이너가 보낸 날.
+    sent_on: _date
+    #: 묶음의 운동 이름(배정 순서).
+    names: list[str]
+
+
 class RoutineCompleteOut(RoutineOut):
     """POST /me/coach/routines/{id}/complete 응답 — 이번 완료의 포인트 적립을 더한다. (#1786)
 
