@@ -98,7 +98,9 @@ def test_naver_apple_removal_is_folded_into_the_unreleased_revision():
     assert _privacy_version() == date(2026, 10, 5)
     ko = _privacy_body("flutter", "ko")
     en = _privacy_body("flutter", "en")
-    assert "- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경, 소셜 로그인 수단에서 네이버·애플 제외" in ko
+    # 같은 날짜 개정(위치정보 동의 안내, #3136)과 한 줄로 합쳐져 있다.
+    assert "- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경," in ko
+    assert "소셜 로그인 수단에서 네이버·애플 제외" in ko
     assert "removed Naver and Apple from the social login options" in en
     # 수집 항목에는 실제로 제공하는 소셜 로그인만 남는다.
     assert "소셜 로그인(카카오·구글)" in ko

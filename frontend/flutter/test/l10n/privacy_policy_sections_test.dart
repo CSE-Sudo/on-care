@@ -193,9 +193,11 @@ void main() {
           .split('\n')
           .where((String line) => line.contains('애플') || line.contains('네이버'))
           .toList();
-      expect(koLines, <String>[
-        '- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경, 소셜 로그인 수단에서 네이버·애플 제외',
-      ]);
+      // 같은 날짜 개정(위치정보 동의 안내, #3136)과 한 줄로 합쳐져 있다.
+      const String koRevision =
+          '- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경, 위치정보 이용 동의 절차와 '
+          '위치기반서비스 이용약관 안내 추가(1항 ⑤), 소셜 로그인 수단에서 네이버·애플 제외';
+      expect(koLines, <String>[koRevision]);
       final List<String> enLines = en
           .myLegalPrivacyBody(LegalContact.privacyOfficerEmail)
           .split('\n')
@@ -205,8 +207,9 @@ void main() {
           .toList();
       const String enRevision =
           '- 5 October 2026: changed the contact address of the personal '
-          'information protection officer, and removed Naver and Apple from the '
-          'social login options';
+          'information protection officer, added the location consent step and '
+          'the Location-Based Services Terms to (5) of section 1, and removed '
+          'Naver and Apple from the social login options';
       expect(enLines, <String>[enRevision]);
     });
 
