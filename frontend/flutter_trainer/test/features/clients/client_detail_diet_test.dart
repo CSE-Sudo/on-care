@@ -297,7 +297,7 @@ void main() {
 
       // 헤더의 경고 배지는 그대로다 — 카드에서 내린 것은 막대뿐이다. 김민수의
       // 배지는 PT 관리 신호의 칼로리 이탈이다(#2243).
-      expect(find.text('칼로리 18% 과다'), findsOneWidget);
+      expect(find.text('칼로리 18% 초과'), findsOneWidget);
       // 나트륨·당류 막대는 없다 — 회원 앱 `오늘` 카드와 같다(회원 앱 #1986,
       // #2156). 그 자리에 탄·단·지 진행 바가 선다.
       expect(
@@ -333,7 +333,7 @@ void main() {
       // 합계가 사라져도 통과한다 — 아침 카드 범위로 좁힌다.
       Finder inBreakfast(Finder f) =>
           find.descendant(of: mealCardFinder('아침'), matching: f);
-      expect(inBreakfast(find.text('총 247 kcal')), findsOneWidget);
+      expect(inBreakfast(find.text('총 247kcal')), findsOneWidget);
       // 막대 아래 네 칸 — 탄수화물(당류) / 단백질 / 지방 | 나트륨. 칸 머리의
       // 비중은 칼로리로 잰다(탄·단 4kcal, 지 9kcal → 41.6 · 64 · 133.2 kcal).
       String column(String key) => tester
@@ -415,7 +415,7 @@ void main() {
       expect(find.text('치킨  400g', findRichText: true), findsOneWidget);
       expect(find.text('맥주  750g', findRichText: true), findsOneWidget);
       expect(find.text('치킨, 맥주'), findsNothing);
-      expect(find.text('960 kcal'), findsOneWidget);
+      expect(find.text('960kcal'), findsOneWidget);
     });
 
     testWidgets('macro values wrap without overflow on a narrow screen', (

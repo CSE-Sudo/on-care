@@ -19,7 +19,7 @@ _MEMBER_ID = "user-7d4e9a2c5f18"
 # (sender, body) — 프론트 두 앱의 시드와 글자까지 같아야 한다. 백엔드는
 # 회원을 'member' 로 저장하고 트레이너 API 응답에서만 'client' 로 바꾼다.
 _EXPECTED: list[tuple[str, str]] = [
-    ("trainer", "민수님, 지난주 기록 정리해 봤는데 요일마다 이행률이 들쭉날쭉하네요. 바쁜 요일이 정해져 있나요?"),
+    ("trainer", "민수님, 지난주 기록 정리해 봤는데 요일마다 완료율이 들쭉날쭉하네요. 바쁜 요일이 정해져 있나요?"),
     ("member", "화요일이랑 목요일이 야근이 많아요 😥"),
     ("trainer", "그럼 그 이틀은 15분짜리 짧은 루틴으로 바꿔 둘게요. 안 하는 것보다 훨씬 낫습니다"),
     ("member", "그 정도면 퇴근하고도 할 수 있을 것 같아요"),
@@ -169,7 +169,7 @@ def test_trainer_files_are_seeded_in_the_same_places_as_the_apps(client, db_sess
     assert media_type == "image/jpeg"
     image_bytes = blob.read_all()
     assert image_bytes == (
-        frontend / "assets" / "images" / "diet-doenjang-rice.jpeg"
+        frontend / "assets" / "demo" / "images" / "diet-doenjang-rice.jpeg"
     ).read_bytes()
     assert image.attachment_file_size == len(image_bytes)
 

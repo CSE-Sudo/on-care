@@ -403,7 +403,7 @@ void main() {
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: SingleChildScrollView(
-            // 상세는 운동 현황 카드 밖 따로 선 위젯이다(#2509).
+            // 상세만 따로 띄운다 — 화면에서는 운동 현황 카드 안 그래프 아래다.
             child: ClientWorkoutRecordsDetail(clientId: 'c1', period: period),
           ),
         ),
@@ -470,31 +470,53 @@ void main() {
       expect(find.textContaining('어제 기록'), findsNothing);
     });
 
-    testWidgets('이번 주는 한 번에 한 주치를 펼치고 버튼은 하나만 남는다 (#1426)', (tester) async {
+    /// 오늘(8/20 목)부터 하루씩 거슬러 [count] 일 — 날마다 기록 하나.
+    List<RoutineHistoryEntry> datedDays(int count) => <RoutineHistoryEntry>[
+      for (int i = 0; i < count; i++)
+        RoutineHistoryEntry(
+          id: 'dated-$i',
+          dateLabel: '$i일 전 기록',
+          label: 'PT 세션',
+          completionRate: 100,
+          exercises: <ClientExerciseItem>[
+            ClientExerciseItem.nameOnly('레그프레스 3세트 × 12회 · 80kg ✓'),
+          ],
+          clientFeedback: '',
+          trainerNote: '',
+          date: DateTime(2026, 8, 20 - i),
+          kind: 'pt_session',
+        ),
+    ];
+
+    testWidgets('이번 주는 이번 주 기록만 펼치고 버튼은 하나만 남는다 (#1426, #3004)', (
+      tester,
+    ) async {
+      useFixedKstDate();
       // 목록이 길어지면 버튼이 화면 밖으로 내려가 탭이 빗나간다.
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = const Size(900, 4000);
       addTearDown(tester.view.reset);
-      // 스무 건 — 한 주(7)를 넘고도 남는다.
-      await tester.pumpWidget(detailApp(manyDays(20)));
+      // 스무 날 — 이번 주(8/17 월 ~ 8/20 목)는 넷이다.
+      await tester.pumpWidget(detailApp(datedDays(20)));
       await tester.pumpAndSettle();
 
-      Finder day(int i) => find.textContaining('$i일 전 기록');
+      Finder day(int i) =>
+          find.byKey(ValueKey<String>('workout-entry-dated-$i'));
 
       // 접힌 기본은 가장 최근 하나다.
       expect(day(0), findsOneWidget);
       expect(day(1), findsNothing);
 
-      // `더보기` 는 한 번이다 — 한 주치가 한꺼번에 열리고, 그 뒤로 더 내려가는
-      // 버튼은 나오지 않는다.
+      // `더보기` 는 한 번이다 — 이번 주 기록이 한꺼번에 열리고, 지난주 기록은
+      // 위 그래프 기간 밖이라 보이지 않는다.
       await tester.tap(toggle);
       await tester.pumpAndSettle();
-      expect(day(6), findsOneWidget);
-      expect(day(7), findsNothing);
+      expect(day(3), findsOneWidget);
+      expect(day(4), findsNothing);
       expect(toggle, findsNothing, reason: '펼친 뒤 `더보기` 가 다시 나오면 안 된다');
       expect(collapse, findsOneWidget);
 
-      // 이번 주는 일곱 줄이라 안쪽 스크롤을 만들지 않는다.
+      // 몇 줄 안 되면 안쪽 스크롤을 만들지 않는다.
       expect(
         find.byKey(const ValueKey<String>('client-exercise-detail-scroll')),
         findsNothing,
@@ -506,6 +528,31 @@ void main() {
       expect(day(1), findsNothing);
       expect(collapse, findsNothing);
       expect(toggle, findsOneWidget);
+    });
+
+    testWidgets('오늘은 오늘 기록만, 없으면 한 줄로 적는다 (#3004)', (tester) async {
+      useFixedKstDate();
+      await tester.pumpWidget(
+        detailApp(datedDays(3).skip(1).toList(), period: ClientPeriod.today),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey<String>('workout-entry-dated-1')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('client-exercise-detail-empty')),
+        findsOneWidget,
+      );
+      expect(find.text('기록 없음'), findsOneWidget);
+    });
+
+    testWidgets('날짜를 모르는 기록은 이번 주에도 남는다 (#1114)', (tester) async {
+      useFixedKstDate();
+      await tester.pumpWidget(detailApp(history()));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('오늘 기록'), findsOneWidget);
     });
 
     testWidgets('전체는 정해진 높이 안에서 전체 기록을 스크롤한다 (#1426)', (tester) async {
@@ -644,14 +691,24 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('한국어 화면은 예전과 같은 글자다', (tester) async {
+    // 기록 한 건은 회원 상세 운동 탭과 같은 모양이다(#3004) — 출처 알약 옆에
+    // 날짜, 그 아래 `이름 · 값` 줄과 강도 태그.
+    testWidgets('한국어 화면은 날짜·출처 알약·운동 줄로 적는다', (tester) async {
       await pumpIn(tester, const Locale('ko'), <RoutineHistoryEntry>[
         withDate(ptToday(), DateTime(2026, 8, 20)),
       ]);
 
-      expect(find.text('8/20 (오늘) · PT · 트레이너 지도'), findsOneWidget);
-      expect(find.text('스쿼트 · 3세트 · 12회 · 40kg'), findsOneWidget);
-      expect(find.text('걷기 · 30분 · 가벼움'), findsOneWidget);
+      expect(find.text('8/20 (오늘)'), findsOneWidget);
+      expect(find.text('PT'), findsOneWidget);
+      expect(
+        find.textContaining('스쿼트 · 3세트 · 12회 · 40kg', findRichText: true),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('걷기 · 30분', findRichText: true),
+        findsOneWidget,
+      );
+      expect(find.text('가벼움'), findsOneWidget);
     });
 
     testWidgets('영어 화면에는 한국어 날짜·종류·단위가 없다', (tester) async {
@@ -659,10 +716,8 @@ void main() {
         withDate(ptToday(), DateTime(2026, 8, 19)),
       ]);
 
-      expect(
-        find.text('8/19 (Yesterday) · PT · Trainer-led'),
-        findsOneWidget,
-      );
+      expect(find.text('8/19 (Yesterday)'), findsOneWidget);
+      expect(find.text('PT'), findsOneWidget);
       expect(find.textContaining('어제'), findsNothing);
       expect(find.textContaining('트레이너 지도'), findsNothing);
       expect(find.textContaining('세트'), findsNothing);
@@ -686,7 +741,8 @@ void main() {
         ),
       ]);
 
-      expect(find.text('8/18 · Personal exercise'), findsOneWidget);
+      expect(find.text('8/18'), findsOneWidget);
+      expect(find.text('Personal exercise'), findsOneWidget);
       expect(find.textContaining('배정 루틴'), findsNothing);
     });
   });

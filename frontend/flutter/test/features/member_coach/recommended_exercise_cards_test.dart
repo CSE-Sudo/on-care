@@ -368,7 +368,7 @@ void main() {
 
     // 예전에는 조언(맨 위)과 추천 운동(맨 아래)이 멀리 떨어져 있었다.
     // 카드 제목은 `AI 코칭` 이 아니라 내용 그대로 `추천 개인운동` 이다 (#1130).
-    expect(find.text('추천 개인운동'), findsOneWidget);
+    expect(find.text('개인운동'), findsOneWidget);
     expect(find.text('AI 코칭'), findsNothing);
     // `PT 와 다음 PT 사이…` 안내 문구도 뺐다.
     expect(find.textContaining('다음 PT'), findsNothing);
@@ -446,7 +446,7 @@ void main() {
     // 코칭 포인트가 이 카드를 떠난 뒤로, 추천이 없으면 카드에 남는 말이 없다.
     expect(find.text('AI 코칭'), findsNothing);
     // 빈 추천 카드를 만들지 않는다 — AI 가 매번 운동을 지어낼 이유가 없다.
-    expect(find.text('추천 개인운동'), findsNothing);
+    expect(find.text('개인운동'), findsNothing);
     expect(find.text('현재 추천할 수 있는 AI 맞춤 운동이 없어요'), findsNothing);
   });
 

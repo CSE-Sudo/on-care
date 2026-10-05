@@ -180,6 +180,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'The API address does not start with https:// (API_BASE_URL)';
 
   @override
+  String get misconfiguredBuildDemoEntry =>
+      'The demo entry is shown on the sign-in screen without the demo build flag (SHOW_DEMO_ENTRY, DEMO_BUILD)';
+
+  @override
   String get appWordmarkTrainer => 'Trainer';
 
   @override
@@ -292,6 +296,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get authSocialComingSoon =>
       'Social sign-in is coming soon. Please sign in with your email.';
+
+  @override
+  String get authSocialPopupBlocked =>
+      'The sign-in window was blocked. Allow pop-ups for this site and try again.';
 
   @override
   String get authErrSignInFailed =>
@@ -559,7 +567,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientsLoadFailed => 'Couldn\'t load member data';
 
   @override
-  String get clientsNew => 'Register new member';
+  String get clientsNew => 'Connect member';
 
   @override
   String get clientsTitle => 'Member management';
@@ -597,7 +605,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientsEmptyConnectHint =>
-      'Connect members with the code they show you or by sending a coaching request. Consultation requests from members also appear in your inbox.';
+      'Connect members with their connection code or by sending a coaching request. Consultation requests from members also appear in your inbox.';
 
   @override
   String clientsEmptyForFilter(String filter) {
@@ -615,7 +623,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get clientWeeklyRoutineAdherence => 'Weekly adherence';
+  String get clientWeeklyRoutineAdherence => 'Weekly completion rate';
 
   @override
   String get clientRoutineAdherenceUnmeasured => 'Not measured';
@@ -779,22 +787,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memberHealthExerciseGoal => 'Exercise goals';
 
   @override
-  String get memberHealthGoalCalories => 'Daily calories (kcal)';
+  String get memberHealthGoalCalories => 'Daily calorie goal (kcal)';
 
   @override
-  String get memberHealthGoalSodium => 'Daily sodium (mg)';
+  String get memberHealthGoalSodium => 'Daily sodium goal (mg)';
 
   @override
-  String get memberHealthGoalSugar => 'Daily sugar (g)';
+  String get memberHealthGoalSugar => 'Daily sugar goal (g)';
 
   @override
-  String get memberHealthGoalCarbs => 'Daily carbs (g)';
+  String get memberHealthGoalCarbs => 'Daily carbs goal (g)';
 
   @override
-  String get memberHealthGoalProtein => 'Daily protein (g)';
+  String get memberHealthGoalProtein => 'Daily protein goal (g)';
 
   @override
-  String get memberHealthGoalFat => 'Daily fat (g)';
+  String get memberHealthGoalFat => 'Daily fat goal (g)';
 
   @override
   String get memberHealthGoalBurnDaily => 'Daily burn (kcal)';
@@ -814,18 +822,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get clientInviteTitle => 'Add a new member';
+  String get clientInviteTitle => 'Connect member';
 
   @override
   String get clientInviteIntro =>
-      'Enter the 6-digit sync code from the member\'s MY tab to connect right away.';
+      'Enter the 6-digit connection code from the member\'s MY tab to connect right away.';
 
   @override
   String get clientInviteIntroImmediate =>
-      'Enter the 6-digit sync code from the member\'s MY tab to connect right away.';
+      'Enter the 6-digit connection code from the member\'s MY tab to connect right away.';
 
   @override
-  String get clientConnectCodeLabel => 'Sync code';
+  String get clientConnectCodeLabel => 'Connection code';
 
   @override
   String get clientConnectCodeRequired => 'Enter all six digits';
@@ -839,11 +847,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'You already manage this member. Find them in your member list';
 
   @override
-  String get clientInviteConnectAction => 'Register member';
+  String get clientInviteConnectAction => 'Connect';
 
   @override
   String clientInviteConnected(String name) {
-    return 'Registered $name as a member';
+    return 'Connected with $name';
   }
 
   @override
@@ -939,7 +947,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'An earlier send of this photo already went through. Please check the conversation.';
 
   @override
-  String get clientTabDiet => 'Meals';
+  String get clientTabDiet => 'Diet';
 
   @override
   String get clientTabWorkout => 'Workouts';
@@ -1018,7 +1026,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatPdfOpenFailed => 'Couldn\'t open the PDF. Please try again';
 
   @override
-  String get chatReportRegistered => 'Weekly report added';
+  String get chatReportRegistered => 'Weekly report sent';
 
   @override
   String get chatReportOpenInReports => 'Go to Reports';
@@ -1477,7 +1485,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get reportsCompletionByDay => 'Weekly workout completion';
+  String get reportsCompletionByDay => 'Weekly workout completion rate';
 
   @override
   String get reportsNoWorkoutsThisWeek => 'No workouts logged this week';
@@ -1513,7 +1521,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportBodyCompletionLow(int avg) {
-    return 'Workout completion came in at $avg%. Sounds like a busy one.';
+    return 'Workout completion rate came in at $avg%. Sounds like a busy one.';
   }
 
   @override
@@ -1533,12 +1541,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportBodySodiumOver(String avg, String target, int days) {
-    return 'Sodium averaged ${avg}mg a day, and went over the ${target}mg target on $days days. Leaving half the broth behind saves 400-500mg a day.';
+    return 'Sodium averaged $avg mg a day, and went over the $target mg goal on $days days. Leaving half the broth behind saves 400–500 mg a day.';
   }
 
   @override
   String reportBodySodiumOk(String avg, String target) {
-    return 'Sodium averaged ${avg}mg a day — comfortably inside the ${target}mg target.';
+    return 'Sodium averaged $avg mg a day — comfortably inside the $target mg goal.';
   }
 
   @override
@@ -1588,32 +1596,32 @@ class AppLocalizationsEn extends AppLocalizations {
     String pct,
     int days,
   ) {
-    return 'Calories averaged ${avg}kcal a day — $pct% above your ${target}kcal target, and over it on $days days.';
+    return 'Calories averaged $avg kcal a day — $pct% above your $target kcal goal, and over it on $days days.';
   }
 
   @override
   String reportBodyCaloriesUnder(String avg, String target, String pct) {
-    return 'Calories averaged ${avg}kcal a day — $pct% below your ${target}kcal target. Eating too little tends to cost muscle first.';
+    return 'Calories averaged $avg kcal a day — $pct% below your $target kcal goal. Eating too little tends to cost muscle first.';
   }
 
   @override
   String reportBodyCaloriesNearOver(String avg, String target, int days) {
-    return 'Calories averaged ${avg}kcal a day, close to your ${target}kcal target, but went over it on $days days.';
+    return 'Calories averaged $avg kcal a day, close to your $target kcal goal, but went over it on $days days.';
   }
 
   @override
   String reportBodyCaloriesOk(String avg, String target) {
-    return 'Calories averaged ${avg}kcal a day — right around your ${target}kcal target.';
+    return 'Calories averaged $avg kcal a day — right around your $target kcal goal.';
   }
 
   @override
   String reportBodySugarOver(String avg, String target, int days) {
-    return 'Sugar averaged ${avg}g a day and went over the ${target}g limit on $days days.';
+    return 'Sugar averaged $avg g a day and went over the $target g goal on $days days.';
   }
 
   @override
   String reportBodySugarOk(String avg, String target) {
-    return 'Sugar averaged ${avg}g a day, inside the ${target}g limit.';
+    return 'Sugar averaged $avg g a day, inside the $target g goal.';
   }
 
   @override
@@ -1705,11 +1713,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedGroupProgram => 'PT program';
 
   @override
-  String get schedDetachedMember => 'Former client';
+  String get schedDetachedMember => 'Former member';
 
   @override
   String get schedDetachedMemberHint =>
-      'Coaching has ended, so client details are hidden';
+      'Coaching has ended, so member details are hidden';
 
   @override
   String get schedReservationLockedHint =>
@@ -1717,11 +1725,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedEndedLockedHint =>
-      'A finished PT can only have its note and program edited.';
+      'A finished PT can only have its feedback and program edited.';
 
   @override
   String get schedDoneLockedHint =>
-      'A completed PT can only have its note and program edited. Move the date forward to reopen it as upcoming.';
+      'A completed PT can only have its feedback and program edited. Move the date forward to reopen it as upcoming.';
 
   @override
   String get schedGroupPersonal => 'Personal exercise';
@@ -1982,7 +1990,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedNoteHint =>
-      'Feedback for the member. Keep member notes in the client memo';
+      'Feedback for the member. Keep notes about the member in their member memo';
 
   @override
   String get schedNoteVisibleToMember =>
@@ -2028,7 +2036,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get progNoteHint =>
-      'Feedback for the member. Keep member notes in the client memo';
+      'Feedback for the member. Keep notes about the member in their member memo';
 
   @override
   String get progSaving => 'Saving...';
@@ -2254,6 +2262,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get buildInfoDevelopment => 'Development build';
+
+  @override
+  String buildInfoReleasedAt(String date) {
+    return 'Deployed $date KST';
+  }
+
+  @override
   String get myAppName => 'On-Care Trainer';
 
   @override
@@ -2277,7 +2293,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String myLegalPrivacyBody(String contact) {
-    return 'This English text is provided for convenience; the Korean original governs.\n\n1. Information collected\n(1) Trainer sign-up: email, password (stored encrypted), name and phone number.\n(2) Profile and credential check: gym affiliation, certifications, career, speciality and other profile details.\n(3) Information you leave while using the Service: messages and attached photos sent to members, reports and coaching content, schedules and bookings, and member notes.\n(4) Information generated automatically: access logs such as sign-ins and password changes (time and IP address), and, when an error occurs, the error details, browser and operating system type and app version.\n\n2. Purpose of collection and use\nThe information is used only to identify trainers and to let an operator handle reports and manage accounts, to connect them with assigned members, to provide scheduling, messaging and reports, and to improve the service and answer enquiries.\n\n3. Access to and processing of member information\nA trainer may open the diet, workout and body-weight records of members they are assigned to, inside the Service. The Company is the controller of those records; the trainer processes them only for coaching and reports, within the scope the Company sets. Members\' health information is sensitive information and can be opened only with the member\'s separate consent and data-sharing consent. Reports and messages a trainer sends are delivered to that member and kept in the Service as a record. When an assignment ends, the trainer\'s access is revoked immediately, and a member may withdraw consent to share their information at any time.\n\n4. Retention\nA trainer\'s personal information is kept until account deletion, and is then destroyed without delay following section 8. The following records are kept for the stated period and then destroyed.\n- Access logs such as sign-ins: one year (covering the three-month retention of sign-in records required by the Protection of Communications Secrets Act)\n- Records of trainers opening members\' health information, of consent being given or withdrawn, and of account deletion: two years (processing records kept under the Standards for Personal Information Security Measures)\nReports and messages already delivered belong to the member\'s record and follow the member\'s retention period.\n\n5. Provision to third parties\nThe Company does not provide personal information to outside parties without consent. Processing entrusted to service providers follows sections 6 and 7. The exception is where the law specifically requires it.\n\n6. Entrusted processing\nThe Company entrusts the following work to outside providers to deliver the Service. If a provider changes, this policy is updated to say so.\n- Amazon Web Services, Inc.: running the servers and storing chat photos and report PDFs\n- Neon: running the database (account information and all records)\n- Google LLC: generating AI coaching programs, routine suggestions and report summaries (Gemini API)\n- Kakao Corp.: gym search and map display\n- Functional Software, Inc. (Sentry): collecting and analysing web and server errors\n\n7. Transfer of personal information overseas\nTo perform its contract with trainers, the Company has personal information processed and stored overseas as follows, and discloses this in this policy under Article 28-8(1)(3) of the Personal Information Protection Act. Each transfer happens over an encrypted network connection whenever the Service is used.\n(1) Amazon Web Services, Inc. / Singapore / trainer information and records in general, chat photo attachments and report PDFs / running the servers and storing files / until account deletion or the end of the contract with the provider\n(2) Neon / Singapore / account and profile, message, report and schedule records / running the database / until account deletion or the end of the contract with the provider\n(3) Google LLC / the United States and other countries where Google operates data centres / coaching conditions entered when using AI features, and assigned members\' workout records and weekly report figures / generating AI programs and summaries / for the period set in the provider\'s terms of service after the request is processed\n(4) Functional Software, Inc. (Sentry) / the United States / error details, browser and operating system type and app version (name, email address, IP address and request contents are not sent) / error analysis / the provider\'s retention period\nIf you do not want your information transferred overseas, you can refuse by deleting your account, but you will then be unable to use the Service.\n\n8. Destruction procedure and method\n(1) Procedure: when a trainer deletes their account, the Company immediately deletes the account together with the profile, member connections and conversations (including attached photos and report PDF files), routines and programs, schedules and bookable times, and notifications, and tells assigned and booked members. Consultation requests sent by members belong to the members\' records and remain with the trainer\'s details removed. Records kept under section 4 are deleted automatically when their period ends.\n(2) Method: information held as electronic files is deleted from the database and file storage, and copies remaining in database recovery backups disappear when the backup retention period ends. The Company does not handle personal information on paper.\n\n9. Automatic collection tools\nThe Company does not use cookies or tracking tools for advertising or behavioural analysis. Sign-in information is kept in browser storage to keep you signed in, and is removed when you sign out or clear your browser data.\n\n10. Safeguards\nPasswords are stored encrypted, access to member information is limited by assignment, and traffic is encrypted in transit. An access record holds only the trainer, the member, the kind of information and the time, never the health information itself. Error reports are sent with names, email addresses, IP addresses and request contents removed.\n\n11. Children under 14\nThe Company does not accept sign-ups from children under 14, and confirms at sign-up that you are 14 or older.\n\n12. Your rights\nA trainer may review or correct their personal information, or request that its processing stop and that it be deleted, at any time. You can edit your profile and delete your account from the MY menu; for any other request, contact the address in section 13 and it will be handled without delay.\n\n13. Privacy officer\nThe Company has appointed a personal information protection officer who oversees the processing of personal information and handles related complaints and remedies.\n- Position: Personal information protection officer, On-Care service operations team\n- Contact: $contact\n\n14. Remedies for infringement\nFor reports or advice about an infringement of personal information, you can contact the following bodies (in Korea).\n- Personal Information Dispute Mediation Committee: 1833-6972 (www.kopico.go.kr)\n- Personal Information Infringement Report Center: 118 (privacy.kisa.or.kr)\n- Supreme Prosecutors\' Office: 1301 (www.spo.go.kr)\n- Korean National Police Agency: 182 (ecrm.police.go.kr)\n\n15. Changes to this policy\nIf this policy changes, the Company announces it in the Service before the effective date, and asks for consent again where the change requires it.\n- October 5, 2026: changed the contact address of the privacy officer\n- October 3, 2026: added entrusted processing, overseas transfer, destruction procedure, automatic collection tools, children under 14, protection officer and remedies sections\n- October 1, 2026: first issued\n\nEffective: October 5, 2026';
+    return 'This English text is provided for convenience; the Korean original governs.\n\n1. Information collected\n(1) Trainer sign-up: email, password (stored encrypted), name and phone number.\n(2) Profile and credential check: gym affiliation, certifications, career, speciality and other profile details.\n(3) Information you leave while using the Service: messages and attached photos sent to members, reports and coaching content, schedules and bookings, and member notes.\n(4) Information generated automatically: access logs such as sign-ins and password changes (time and IP address), and, when an error occurs, the error details, browser and operating system type and app version.\n(5) Location: the trainer web does not receive your device\'s location information.\n\n2. Purpose of collection and use\nThe information is used only to identify trainers and to let an operator handle reports and manage accounts, to connect them with assigned members, to provide scheduling, messaging and reports, and to improve the service and answer enquiries.\n\n3. Access to and processing of member information\nA trainer may open the diet, workout and body-weight records of members they are assigned to, inside the Service. The Company is the controller of those records; the trainer processes them only for coaching and reports, within the scope the Company sets. Members\' health information is sensitive information and can be opened only with the member\'s separate consent and data-sharing consent. Reports and messages a trainer sends are delivered to that member and kept in the Service as a record. When an assignment ends, the trainer\'s access is revoked immediately, and a member may withdraw consent to share their information at any time.\n\n4. Retention\nA trainer\'s personal information is kept until account deletion, and is then destroyed without delay following section 8. The following records are kept for the stated period and then destroyed.\n- Access logs such as sign-ins: one year (covering the three-month retention of sign-in records required by the Protection of Communications Secrets Act)\n- Records of trainers opening members\' health information, of consent being given or withdrawn, and of account deletion: two years (processing records kept under the Standards for Personal Information Security Measures)\nReports and messages already delivered belong to the member\'s record and follow the member\'s retention period.\n\n5. Provision to third parties\nThe Company does not provide personal information to outside parties without consent. Processing entrusted to service providers follows sections 6 and 7. The exception is where the law specifically requires it.\n\n6. Entrusted processing\nThe Company entrusts the following work to outside providers to deliver the Service. If a provider changes, this policy is updated to say so.\n- Amazon Web Services, Inc.: running the servers and storing chat photos and report PDFs\n- Neon: running the database (account information and all records)\n- Google LLC: generating AI coaching programs, routine suggestions and report summaries (Gemini API)\n- Kakao Corp.: gym search and map display\n- Functional Software, Inc. (Sentry): collecting and analysing web and server errors\n\n7. Transfer of personal information overseas\nTo perform its contract with trainers, the Company has personal information processed and stored overseas as follows, and discloses this in this policy under Article 28-8(1)(3) of the Personal Information Protection Act. Each transfer happens over an encrypted network connection whenever the Service is used.\n(1) Amazon Web Services, Inc. / Singapore / trainer information and records in general, chat photo attachments and report PDFs / running the servers and storing files / until account deletion or the end of the contract with the provider\n(2) Neon / Singapore / account and profile, message, report and schedule records / running the database / until account deletion or the end of the contract with the provider\n(3) Google LLC / the United States and other countries where Google operates data centres / coaching conditions entered when using AI features, and assigned members\' workout records and weekly report figures / generating AI programs and summaries / for the period set in the provider\'s terms of service after the request is processed\n(4) Functional Software, Inc. (Sentry) / the United States / error details, browser and operating system type and app version (name, email address, IP address and request contents are not sent) / error analysis / the provider\'s retention period\nIf you do not want your information transferred overseas, you can refuse by deleting your account, but you will then be unable to use the Service.\n\n8. Destruction procedure and method\n(1) Procedure: when a trainer deletes their account, the Company immediately deletes the account together with the profile, member connections and conversations (including attached photos and report PDF files), routines and programs, schedules and bookable times, and notifications, and tells assigned and booked members. Consultation requests sent by members belong to the members\' records and remain with the trainer\'s details removed. Records kept under section 4 are deleted automatically when their period ends.\n(2) Method: information held as electronic files is deleted from the database and file storage, and copies remaining in database recovery backups disappear when the backup retention period ends. The Company does not handle personal information on paper.\n\n9. Automatic collection tools\nThe Company does not use cookies or tracking tools for advertising or behavioural analysis. Sign-in information is kept in browser storage to keep you signed in, and is removed when you sign out or clear your browser data.\n\n10. Safeguards\nPasswords are stored encrypted, access to member information is limited by assignment, and traffic is encrypted in transit. An access record holds only the trainer, the member, the kind of information and the time, never the health information itself. Error reports are sent with names, email addresses, IP addresses and request contents removed.\n\n11. Children under 14\nThe Company does not accept sign-ups from children under 14, and confirms at sign-up that you are 14 or older.\n\n12. Your rights\nA trainer may review or correct their personal information, or request that its processing stop and that it be deleted, at any time. You can edit your profile and delete your account from the MY menu; for any other request, contact the address in section 13 and it will be handled without delay.\n\n13. Privacy officer\nThe Company has appointed a personal information protection officer who oversees the processing of personal information and handles related complaints and remedies.\n- Position: Personal information protection officer, On-Care service operations team\n- Contact: $contact\n\n14. Remedies for infringement\nFor reports or advice about an infringement of personal information, you can contact the following bodies (in Korea).\n- Personal Information Dispute Mediation Committee: 1833-6972 (www.kopico.go.kr)\n- Personal Information Infringement Report Center: 118 (privacy.kisa.or.kr)\n- Supreme Prosecutors\' Office: 1301 (www.spo.go.kr)\n- Korean National Police Agency: 182 (ecrm.police.go.kr)\n\n15. Changes to this policy\nIf this policy changes, the Company announces it in the Service before the effective date, and asks for consent again where the change requires it.\n- October 5, 2026: changed the contact address of the privacy officer, and added that the trainer web does not receive location information ((5) of section 1)\n- October 3, 2026: added entrusted processing, overseas transfer, destruction procedure, automatic collection tools, children under 14, protection officer and remedies sections\n- October 1, 2026: first issued\n\nEffective: October 5, 2026';
   }
 
   @override
@@ -2339,6 +2355,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myClientRemove => 'Disconnect';
 
   @override
+  String get myClientRemoveConfirm => 'Disconnect';
+
+  @override
   String myClientRemoveTitle(String name) {
     return 'Disconnect from $name?';
   }
@@ -2396,6 +2415,33 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get myGymSearchFailed =>
       'Couldn\'t search gyms. Please try again in a moment.';
+
+  @override
+  String get myGymLocateAction => 'Find near my location';
+
+  @override
+  String get myGymNearbyCaption =>
+      'Gyms near your current location. Your location is not saved.';
+
+  @override
+  String get myGymNearbyEmpty =>
+      'No gyms found within 2 km of your location. Try searching by name.';
+
+  @override
+  String get myGymLocationDenied =>
+      'Allow location access to find gyms near you.';
+
+  @override
+  String get myGymLocationBlocked =>
+      'Allow location access in your browser site settings, then try again.';
+
+  @override
+  String get myGymLocationDisabled =>
+      'Turn on device location services, then try again.';
+
+  @override
+  String get myGymLocationUnavailable =>
+      'Could not get your location. Try again or search by name.';
 
   @override
   String get myGymCurrent => 'Current gym';
@@ -2726,7 +2772,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myClientManagementNote =>
-      'Their records stay in the member app. To coach them again, add them by member ID from New member on the Members tab.';
+      'Their records stay in the member app. To coach them again, enter the connection code they give you under Connect member on the Members tab.';
 
   @override
   String get myNotifConsultation => 'Consultation requests';
@@ -2878,11 +2924,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachSendFailed => 'Couldn\'t send. Please try again';
 
   @override
-  String get coachSwitchClientTitle => 'Switch to another client?';
+  String get coachSwitchClientTitle => 'Switch to another member?';
 
   @override
   String get coachSwitchClientBody =>
-      'You have unsent work. Switching clients discards the program and personal exercises you are building.';
+      'You have unsent work. Switching members discards the program and personal exercises you are building.';
 
   @override
   String get coachSwitchClientConfirm => 'Switch';
@@ -2993,7 +3039,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiReasonSodium =>
-      'Sodium is over target today, so lean into low-intensity cardio.';
+      'Sodium is over goal today, so lean into low-intensity cardio.';
 
   @override
   String get aiReasonBalanced =>
@@ -3075,10 +3121,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiGoal => 'Goal';
 
   @override
-  String get aiOverTarget => ' · over target';
+  String get aiOverTarget => ' · over goal';
 
   @override
-  String get aiRecentCompletion => 'Recent completion';
+  String get aiRecentCompletion => 'Recent completion rate';
 
   @override
   String get aiNoCompletionData => 'No activity logged this week';
@@ -3091,7 +3137,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aiSodiumOverDaysSuffix(int days) {
-    return ' · over target on $days of the last 7 days';
+    return ' · over goal on $days of the last 7 days';
   }
 
   @override
@@ -3101,10 +3147,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiDirectionLabel => 'Direction';
 
   @override
-  String get aiDirectionLower => 'Lower intensity — recent completion is low';
+  String get aiDirectionLower =>
+      'Lower intensity — recent completion rate is low';
 
   @override
-  String get aiDirectionCardio => 'More cardio — sodium is often over target';
+  String get aiDirectionCardio => 'More cardio — sodium is often over goal';
 
   @override
   String get aiDirectionLowerAndCardio => 'Lower intensity · more cardio';
@@ -3537,7 +3584,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aiBasisGoalCompletion(String goal, int rate) {
-    return '$goal · based on $rate% completion';
+    return '$goal · based on a $rate% completion rate';
   }
 
   @override
@@ -3635,7 +3682,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get notifTplMemberDisconnectedTitle => 'Client disconnected';
+  String get notifTplMemberDisconnectedTitle => 'Member disconnected';
 
   @override
   String notifTplMemberDisconnectedBody(String name) {
@@ -3657,7 +3704,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String notifTplInviteAcceptedBody(String name) {
-    return '$name is now your client.';
+    return '$name is now one of your members.';
   }
 
   @override
@@ -3786,6 +3833,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get myDeleteReauthSocialFailed =>
       'Couldn\'t confirm your social account. Please sign in again.';
+
+  @override
+  String get myDeleteReauthSocialUnavailable =>
+      'Social sign-in isn\'t available in this version yet. Please contact support.';
 
   @override
   String get myWithdrawReasonTitle => 'Are you sure you want to leave?';
@@ -3940,20 +3991,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get coachRoutineAdherenceTitle => 'Personal exercise follow-through';
-
-  @override
-  String coachRoutineAdherenceSummary(int days, int full) {
-    return 'All done on $full of the past $days days';
-  }
-
-  @override
-  String coachRoutineAdherenceLate(String weekday, int count) {
-    return '$count on $weekday checked later';
-  }
-
-  @override
-  String get coachRoutineAdherenceFirstDay => 'Sent today';
+  String get coachRoutineAdherenceTitle => 'Personal exercise completion';
 
   @override
   String coachRoutineAdherenceCell(String date, int done, int total) {
@@ -4047,7 +4085,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String searchDetailCompletion(int percent) {
-    return '$percent% completion this week';
+    return '$percent% completion rate this week';
   }
 
   @override
@@ -4304,7 +4342,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Age, height, or weight is missing, so only the health goals adjust the defaults';
 
   @override
-  String get clientGoalApplySuggestion => 'Fill with suggestion';
+  String get clientGoalApplySuggestion => 'Use suggested goals';
 
   @override
   String get clientTrainerMemoHint =>
@@ -4479,7 +4517,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String clientFeedbackSourceWeekly(String date) {
-    return 'Weekly check-in · week of $date';
+    return 'Weekly feedback · week of $date';
   }
 
   @override
@@ -4823,7 +4861,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsActionSugar(String target) {
-    return 'Some days went over the ${target}g sugar target. Start with drinks and snacks.';
+    return 'Some days went over the $target g sugar goal. Start with drinks and snacks.';
   }
 
   @override
@@ -4846,7 +4884,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsActionCalories(String target) {
-    return 'Intake is under the ${target}kcal target. Suggest one protein-led meal.';
+    return 'Intake is under the $target kcal goal. Suggest one protein-led meal.';
   }
 
   @override
@@ -4870,7 +4908,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsPdfFallbackClient => 'member';
 
   @override
-  String get reportsPdfDocTitle => 'Weekly coaching report';
+  String get reportsPdfDocTitle => 'Weekly report';
 
   @override
   String reportsPdfClient(String name) {
@@ -4905,16 +4943,16 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get reportsPdfLabelCompletion => 'Workout completion';
+  String get reportsPdfLabelCompletion => 'Workout completion rate';
 
   @override
-  String get reportsPdfLabelSessions => 'PT';
+  String get reportsPdfLabelSessions => 'PT done';
 
   @override
-  String get reportsPdfLabelSessionCount => 'PT completed';
+  String get reportsPdfLabelSessionCount => 'PT done';
 
   @override
-  String get reportsPdfLabelSodiumOver => 'Days over sodium target';
+  String get reportsPdfLabelSodiumOver => 'Days over sodium goal';
 
   @override
   String get reportsPdfLabelCalories => 'Average calories';
@@ -4938,17 +4976,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsPdfValueMg(String value) {
-    return '${value}mg';
+    return '$value mg';
   }
 
   @override
   String reportsPdfValueKcal(String value) {
-    return '${value}kcal';
+    return '$value kcal';
   }
 
   @override
   String reportsPdfValueGram(String value) {
-    return '${value}g';
+    return '$value g';
   }
 
   @override
@@ -5323,7 +5361,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsGridCalorieTarget(String value) {
-    return 'Target $value';
+    return 'Goal $value';
   }
 
   @override
@@ -5332,12 +5370,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsMacroValueOfTarget(String name, int value, int target) {
-    return '$name $value / ${target}g';
+    return '$name $value / $target g';
   }
 
   @override
   String reportsMacroShortfall(String name) {
-    return '$name is well under target — worth raising in your feedback';
+    return '$name is well under goal — worth raising in your feedback';
   }
 
   @override
@@ -5392,16 +5430,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsMemberFeedbackConditionTired => 'Worn out';
 
   @override
-  String get reportsMemberFeedbackConditionBad => 'Really rough';
+  String get reportsMemberFeedbackConditionBad => 'Rough';
 
   @override
   String get reportsMemberFeedbackIntensityTooEasy => 'Too easy';
 
   @override
-  String get reportsMemberFeedbackIntensityRight => 'About right';
+  String get reportsMemberFeedbackIntensityRight => 'Just right';
 
   @override
-  String get reportsMemberFeedbackIntensityHard => 'Hard';
+  String get reportsMemberFeedbackIntensityHard => 'A bit hard';
 
   @override
   String get reportsMemberFeedbackIntensityTooHard => 'Too hard';
@@ -5507,10 +5545,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get summaryBasisDefault => 'default target';
+  String get summaryBasisDefault => 'default goal';
 
   @override
-  String get summaryBasisPersonal => 'personal target';
+  String get summaryBasisPersonal => 'personal goal';
 
   @override
   String get summaryDirOver => 'above';
@@ -5520,17 +5558,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String summaryCompletionLow(String pct, String threshold) {
-    return 'Avg workout completion $pct% · below the $threshold% bar';
+    return 'Avg workout completion rate $pct% · below the $threshold% bar';
   }
 
   @override
   String summaryCompletionTopic(String pct) {
-    return 'workout completion at $pct%';
+    return 'workout completion rate at $pct%';
   }
 
   @override
   String summaryCompletionAvg(String pct) {
-    return 'Avg workout completion $pct%';
+    return 'Avg workout completion rate $pct%';
   }
 
   @override
@@ -5545,32 +5583,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String summarySodium(String avg, String basis, String target, String days) {
-    return 'Avg sodium ${avg}mg · over the $basis of ${target}mg on $days day(s)';
+    return 'Avg sodium $avg mg · over the $basis of $target mg on $days day(s)';
   }
 
   @override
   String summarySodiumOverTopic(String days) {
-    return 'sodium over target on $days day(s)';
+    return 'sodium over goal on $days day(s)';
   }
 
   @override
   String summarySodiumAvgTopic(String avg) {
-    return 'avg sodium ${avg}mg';
+    return 'avg sodium $avg mg';
   }
 
   @override
   String summarySugar(String avg, String basis, String target, String days) {
-    return 'Avg sugar ${avg}g · over the $basis of ${target}g on $days day(s)';
+    return 'Avg sugar $avg g · over the $basis of $target g on $days day(s)';
   }
 
   @override
   String summarySugarOverTopic(String days) {
-    return 'sugar over target on $days day(s)';
+    return 'sugar over goal on $days day(s)';
   }
 
   @override
   String summarySugarAvgTopic(String avg) {
-    return 'avg sugar ${avg}g';
+    return 'avg sugar $avg g';
   }
 
   @override
@@ -5581,17 +5619,17 @@ class AppLocalizationsEn extends AppLocalizations {
     String direction,
     String pct,
   ) {
-    return 'Avg calories ${avg}kcal · $pct% $direction the $basis of ${target}kcal';
+    return 'Avg calories $avg kcal · $pct% $direction the $basis of $target kcal';
   }
 
   @override
   String summaryCaloriesTopic(String direction) {
-    return 'calories $direction target';
+    return 'calories $direction goal';
   }
 
   @override
   String summaryCaloriesAvg(String avg) {
-    return 'Avg calories ${avg}kcal';
+    return 'Avg calories $avg kcal';
   }
 
   @override
@@ -5602,12 +5640,12 @@ class AppLocalizationsEn extends AppLocalizations {
     String direction,
     String pct,
   ) {
-    return 'Avg $label ${avg}g · $pct% $direction the personal target of ${target}g';
+    return 'Avg $label $avg g · $pct% $direction the personal goal of $target g';
   }
 
   @override
   String summaryMacroTopic(String label, String direction) {
-    return '$label $direction target';
+    return '$label $direction goal';
   }
 
   @override
@@ -5622,7 +5660,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String summaryHeadlineSteady(String name) {
-    return '$name stayed within target — the current intensity can stay as is.';
+    return '$name stayed within their goals — the current intensity can stay as is.';
   }
 
   @override
@@ -5642,7 +5680,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String summaryHeadlineNeedsAdjust(String name, String top, String rest) {
-    return '$name was off target on $top — next week needs adjusting.$rest';
+    return '$name missed the goal on $top — next week needs adjusting.$rest';
   }
 
   @override
@@ -6012,7 +6050,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String clientDietRecNutrition(String kcal, String protein, String sodium) {
-    return '${kcal}kcal · protein ${protein}g · sodium ${sodium}mg';
+    return '$kcal kcal · protein $protein g · sodium $sodium mg';
   }
 
   @override
@@ -6152,14 +6190,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t send the code. Please try again shortly.';
 
   @override
-  String get releaseUpdateTitle => 'A new version is available';
+  String get releaseUpdateTitle => 'The app has been updated';
 
   @override
   String get releaseUpdateMessage =>
-      'Reload to get the latest version. Save anything you\'re working on first.';
+      'Refresh to switch to the latest version. Save anything you\'re working on first.';
 
   @override
-  String get releaseUpdateReload => 'Reload';
+  String get releaseUpdateReload => 'Refresh';
 
   @override
   String get releaseUpdateDismiss => 'Dismiss';
@@ -6171,4 +6209,72 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorServerTemporary =>
       'The server is having a temporary problem. Please try again in a moment.';
+
+  @override
+  String get myGymInfoEdit => 'Edit gym info';
+
+  @override
+  String get myGymInfoSubtitle =>
+      'Shown as-is on the gym list and detail in the member app. Any trainer at this gym can edit it, and the last save stays.';
+
+  @override
+  String get myGymInfoCardTitle => 'Gym info members see';
+
+  @override
+  String get myGymWeekdayHours => 'Weekday hours';
+
+  @override
+  String get myGymWeekendHours => 'Weekend hours';
+
+  @override
+  String get myGymHoursHint => 'e.g. 06:00 - 23:00';
+
+  @override
+  String get myGymPhone => 'Main phone';
+
+  @override
+  String get myGymPhoneHint => 'e.g. 02-123-4567';
+
+  @override
+  String get myGymTags => 'Tags';
+
+  @override
+  String get myGymAddTag => 'Add a tag...';
+
+  @override
+  String get myGymTagsEmpty => 'No tags yet.';
+
+  @override
+  String get myGymInfoLoadFailed => 'Couldn\'t load the gym info.';
+
+  @override
+  String get myGymInfoSaveFailed => 'Couldn\'t save the gym info.';
+
+  @override
+  String get a11yRemoveGymTag => 'Remove tag';
+
+  @override
+  String myGymTagsHint(int max, int length) {
+    return 'Shown as chips on the gym card in the member app. Up to $max tags, $length characters each.';
+  }
+
+  @override
+  String myGymTagsFull(int max) {
+    return 'You can add up to $max tags';
+  }
+
+  @override
+  String myGymTagTooLong(int length) {
+    return 'A tag can be up to $length characters';
+  }
+
+  @override
+  String myGymHoursWeekday(String hours) {
+    return 'Weekdays $hours';
+  }
+
+  @override
+  String myGymHoursWeekend(String hours) {
+    return 'Weekends $hours';
+  }
 }

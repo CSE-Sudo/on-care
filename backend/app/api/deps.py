@@ -5,7 +5,8 @@
 그래서 current_user 는 다음 규칙으로 동작합니다:
 
   1) Authorization: Bearer <유효한 토큰> 이 있으면 → 그 사용자
-  2) 없거나 무효하면 → 데모 사용자(user-7d4e9a2c5f18) 로 폴백
+  2) 토큰이 아예 없으면 → 데모 사용자(user-7d4e9a2c5f18) 로 폴백(켜진 환경에서만)
+  3) 토큰이 있는데 무효·만료·지난 세대이거나 사용자가 없으면 → 폴백과 무관하게 401 (#3160)
 
 이렇게 하면 프론트가 USE_MOCK_API=false 로 전환해도(아직 토큰 없음)
 화면이 데모 데이터로 정상 렌더되고, Stage 4 에서 로그인이 붙으면
@@ -41,35 +42,42 @@ def get_current_user(
     request: Request,
     db: Annotated[Session, Depends(get_db)],
 ) -> User:
-    """토큰이 유효하면 그 사용자. 없거나 무효하면:
-    - 개발/스테이징(demo_fallback_enabled): 데모 사용자로 폴백
-    - 운영(prod): 401 (폴백 비활성)
+    """토큰이 유효하면 그 사용자.
+
+    - 토큰이 **없으면**: 개발/스테이징(demo_fallback_enabled)은 데모 사용자, 운영(prod)은 401.
+    - 토큰이 **있는데** 무효·만료·지난 세대이거나 사용자가 없으면: 폴백과 무관하게 401.
+      스테이징에서 만료 토큰이 데모 회원으로 처리되면 테스터에게 남의(데모) 기록이 보이고
+      그 상태로 기록하면 데모 계정에 쌓인다. 401 을 받아야 앱이 갱신 토큰을 돌리고, 그것도
+      거부되면 운영과 같이 로그인 화면으로 간다(#3160).
     """
+    unauthorized = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="인증이 필요합니다.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     token = _extract_bearer(request)
     if token:
         try:
             claims = decode_access_claims(token)
-            user = db.scalar(select(User).where(User.id == claims.subject))
-            # 비밀번호 변경 전에 발급된 토큰(#2766)은 무효한 토큰과 같다.
-            if user is not None and not auth_tokens.is_current(user, claims.token_version):
-                raise jwt.InvalidTokenError("지난 세대 토큰")
-            if user is not None:
-                if not user.is_active:
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail="인증이 필요합니다.",
-                        headers={"WWW-Authenticate": "Bearer"},
-                    )
-                # 회원 전용 API. 트레이너 계정은 /trainer/* 를 쓴다(역할 분리).
-                if user.role == "trainer":
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="회원 전용 API 입니다.",
-                    )
-                ensure_consented(request, user, db)
-                return user
         except jwt.InvalidTokenError:
-            pass
+            raise unauthorized from None
+        user = db.scalar(select(User).where(User.id == claims.subject))
+        # 탈퇴 등으로 사라진 사용자, 비밀번호 변경 전에 발급된 토큰(#2766), 비활성 계정은
+        # 무효한 토큰과 같다.
+        if (
+            user is None
+            or not auth_tokens.is_current(user, claims.token_version)
+            or not user.is_active
+        ):
+            raise unauthorized
+        # 회원 전용 API. 트레이너 계정은 /trainer/* 를 쓴다(역할 분리).
+        if user.role == "trainer":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="회원 전용 API 입니다.",
+            )
+        ensure_consented(request, user, db)
+        return user
 
     if get_settings().demo_fallback_enabled:
         demo = db.scalar(select(User).where(User.id == DEMO_USER_ID))
@@ -77,11 +85,7 @@ def get_current_user(
             raise HTTPException(status_code=500, detail="데모 사용자가 시드되지 않았습니다.")
         return demo
 
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="인증이 필요합니다.",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+    raise unauthorized
 
 
 def require_auth(

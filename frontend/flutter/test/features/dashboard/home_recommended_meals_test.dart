@@ -296,7 +296,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('2,400mg'), findsOneWidget);
-    expect(find.textContaining('권장 초과'), findsOneWidget);
+    expect(find.textContaining('목표 초과'), findsOneWidget);
   });
 
   testWidgets('개인화되지 않으면 근거 줄이 아예 없다', (WidgetTester tester) async {
@@ -308,7 +308,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('평균 나트륨'), findsNothing);
-    expect(find.textContaining('권장 초과'), findsNothing);
+    expect(find.textContaining('목표 초과'), findsNothing);
   });
 
   testWidgets('앱이 모르는 key 는 버리고 카드 수를 유지한다', (WidgetTester tester) async {

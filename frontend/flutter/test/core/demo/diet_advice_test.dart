@@ -177,7 +177,7 @@ void main() {
       expect(dietAdviceText(ko, advice), '단백질 **32g** 더 필요해요. 저녁은 **연어** 어때요?');
       expect(
         dietAdviceText(en, advice),
-        '**32g** more protein to go. How about **연어** for dinner?',
+        '**32 g** more protein to go. How about **연어** for dinner?',
       );
       final DietAdvice old = DietAdvice.fromJson(<String, Object?>{
         'message': '예전 한 문장',

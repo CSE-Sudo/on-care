@@ -200,16 +200,23 @@ async def search_gyms(
     lng: float | None,
     api_key: str,
     timeout: float = 3.0,
+    radius_m: int | None = None,
 ) -> list[dict]:
     """헬스장 이름으로 카카오 키워드 검색. 실패하면 예외(호출부가 폴백).
 
-    `/places/nearby` 와 달리 반경으로 자르지 않는다 — 트레이너는 자기 헬스장
-    이름을 알고 찾으므로, 좌표는 정렬·거리 표시에만 쓴다. 사람이 고를 목록이라
-    캐시하지 않는다(같은 검색어가 반복될 일이 드물다).
+    이름 검색은 반경으로 자르지 않는다 — 트레이너는 자기 헬스장 이름을 알고
+    찾으므로, 좌표는 정렬·거리 표시에만 쓴다. [radius_m] 을 주면(현재 위치 주변
+    찾기, #3223) `/places/nearby` 처럼 반경 안을 가까운 순으로 받는다. 사람이 고를
+    목록이라 캐시하지 않는다(같은 검색어가 반복될 일이 드물다).
     """
     params: dict[str, str | int] = {"query": query, "size": 15}
     if lat is not None and lng is not None:
         params.update({"x": str(lng), "y": str(lat)})
+        if radius_m is not None:
+            params.update({
+                "radius": min(max(radius_m, 1), 20000),
+                "sort": "distance",
+            })
     headers = {"Authorization": f"KakaoAK {api_key}"}
     async with httpx.AsyncClient(timeout=timeout) as client:
         resp = await client.get(_KAKAO_KEYWORD_URL, params=params, headers=headers)

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/app_version/app_version.dart';
+import 'package:oncare/core/release/build_info.dart';
 import 'package:oncare/features/account/domain/entities/account_reauth.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
@@ -22,6 +23,7 @@ import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
+import 'package:oncare/features/exercise/presentation/controllers/location_consent_controller.dart';
 import 'package:oncare/features/my_health/domain/support_links.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/features/my_health/presentation/widgets/account_reauth_dialog.dart';
@@ -2100,6 +2102,17 @@ class SupportPage extends StatelessWidget {
           () => _openLegal(context, _LegalDoc.privacy),
         ),
         const AppDivider(),
+        // 위치기반서비스 이용약관과 그 동의 스위치(#3136). 헬스장 찾기에서 받은
+        // 동의를 여기서 거둘 수 있다.
+        _supportRow(
+          context,
+          AppIcons.location,
+          l.myLegalLocationTitle,
+          () => _openLegal(context, _LegalDoc.location),
+        ),
+        const AppDivider(),
+        const LocationConsentRow(),
+        const AppDivider(),
         // 오픈소스 라이선스(#3150) — 의존 패키지와 앱에 담긴 Pretendard 글꼴의
         // 고지. Flutter 기본 목록 화면을 앱 테마 그대로 연다.
         _supportRow(
@@ -2125,9 +2138,12 @@ class SupportPage extends StatelessWidget {
   }
 }
 
-/// 고객 지원 맨 아래 버전 줄(#3047). 버전은 빌드에서 읽는다 — 예전에는 번역
-/// 문구에 `1.0.0` 이 박혀 실제 빌드와 상관없이 늘 같았다. 읽기 전·읽지 못하면
-/// 앱 이름만 보인다(트레이너 웹과 같은 규칙).
+/// 고객 지원 맨 아래 버전 줄(#3047, #3226) — 앱에서 버전이 보이는 단 한 곳이다.
+///
+/// `On-Care · 버전 0.4.0 (7032) · 2026년 10월 5일 14:30 KST 배포`. 버전 이름은 빌드에서
+/// 읽는다 — 예전에는 번역 문구에 `1.0.0` 이 박혀 실제 빌드와 상관없이 늘 같았다.
+/// 빌드 번호가 없는 로컬·테스트 빌드는 `On-Care · 버전 0.4.0 · 개발 빌드` 다. 문구
+/// 조립은 트레이너 웹과 같은 규칙이다([buildInfoSummary]).
 class SupportAppVersionLine extends ConsumerWidget {
   const SupportAppVersionLine({super.key});
 
@@ -2135,10 +2151,13 @@ class SupportAppVersionLine extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
     return Text(
-      switch (ref.watch(appVersionProvider).valueOrNull) {
-        final String version => l.myAppVersion(version),
-        null => l.myAppName,
-      },
+      buildInfoSummary(
+        l,
+        Localizations.localeOf(context).toString(),
+        ref.watch(buildInfoProvider),
+      ),
+      key: const ValueKey<String>('support-app-version'),
+      textAlign: TextAlign.center,
       style: context.oncare
           .text(OnCareTypography.caption)
           .copyWith(color: OnCareColors.textTertiary),
@@ -2217,7 +2236,68 @@ Widget _supportRow(
 
 /// The in-app legal documents surfaced from customer support. Titles and
 /// bodies are resolved from localizations via [_LegalDocSheet].
-enum _LegalDoc { terms, privacy }
+enum _LegalDoc { terms, privacy, location }
+
+/// 위치정보 이용 동의 스위치(#3136).
+///
+/// 켜면 동의를 남기고, 끄면 철회한다. 철회하면 헬스장 찾기가 들고 있던 회원
+/// 위치도 버린다. 저장에 실패하면 스위치는 그대로이고 실패를 알린다.
+class LocationConsentRow extends ConsumerStatefulWidget {
+  const LocationConsentRow({super.key});
+
+  @override
+  ConsumerState<LocationConsentRow> createState() => _LocationConsentRowState();
+}
+
+class _LocationConsentRowState extends ConsumerState<LocationConsentRow> {
+  bool _saving = false;
+
+  Future<void> _set(bool value) async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final AppToastHost toast = AppToastHost.of(context);
+    setState(() => _saving = true);
+    final LocationConsentController controller = ref.read(
+      locationConsentProvider.notifier,
+    );
+    final bool saved = value
+        ? await controller.agree()
+        : await controller.revoke();
+    if (!mounted) return;
+    setState(() => _saving = false);
+    if (!saved) {
+      toast.show(l.locationConsentSaveFailed, type: AppToastType.error);
+      return;
+    }
+    toast.show(value ? l.myLocationConsentAgreed : l.myLocationConsentRevoked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final bool? agreed = ref.watch(locationConsentProvider).valueOrNull;
+    return AppListRow(
+      key: const ValueKey<String>('my-location-consent'),
+      leading: AppIcon(
+        AppIcons.location,
+        size: OnCareSize.iconMedium,
+        color: context.oncare.brand.primary,
+      ),
+      title: l.myLocationConsentTitle,
+      subtitle: l.myLocationConsentHint,
+      // 스위치에 이름을 붙인다 — 알림 설정과 같은 이유다(#1942).
+      trailing: Semantics(
+        label: l.myLocationConsentTitle,
+        excludeSemantics: true,
+        child: Switch(
+          key: const ValueKey<String>('my-location-consent-switch'),
+          value: agreed ?? false,
+          // 읽는 중·저장 중에는 누를 수 없다 — 모르는 값을 뒤집지 않는다.
+          onChanged: agreed == null || _saving ? null : _set,
+        ),
+      ),
+    );
+  }
+}
 
 class LegalDocumentPage extends StatelessWidget {
   const LegalDocumentPage({super.key, required this.document});
@@ -2227,15 +2307,31 @@ class LegalDocumentPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final bool isTerms = document == _LegalDoc.terms.name;
-    final String title = isTerms ? l.myLegalTermsTitle : l.myLegalPrivacyTitle;
-    final String body = isTerms
-        ? l.myLegalTermsBody
-        : l.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
-    // 두 문서는 시행일이 따로 간다 — 처리방침만 고쳐도 약관 날짜는 그대로다(#2820).
-    final String effectiveDate = isTerms
-        ? l.myLegalTermsEffectiveDate
-        : l.myLegalPrivacyEffectiveDate;
+    final _LegalDoc doc = _LegalDoc.values.firstWhere(
+      (_LegalDoc d) => d.name == document,
+      orElse: () => _LegalDoc.privacy,
+    );
+    final String title = switch (doc) {
+      _LegalDoc.terms => l.myLegalTermsTitle,
+      _LegalDoc.privacy => l.myLegalPrivacyTitle,
+      _LegalDoc.location => l.myLegalLocationTitle,
+    };
+    final String body = switch (doc) {
+      _LegalDoc.terms => l.myLegalTermsBody,
+      _LegalDoc.privacy => l.myLegalPrivacyBody(
+        LegalContact.privacyOfficerEmail,
+      ),
+      // 위치정보관리책임자는 개인정보 보호책임자가 겸한다(#3136).
+      _LegalDoc.location => l.myLegalLocationBody(
+        LegalContact.privacyOfficerEmail,
+      ),
+    };
+    // 문서마다 시행일이 따로 간다 — 처리방침만 고쳐도 약관 날짜는 그대로다(#2820).
+    final String effectiveDate = switch (doc) {
+      _LegalDoc.terms => l.myLegalTermsEffectiveDate,
+      _LegalDoc.privacy => l.myLegalPrivacyEffectiveDate,
+      _LegalDoc.location => l.myLegalLocationEffectiveDate,
+    };
     return _shell(context, title, <Widget>[
       _card(<Widget>[
         Text(

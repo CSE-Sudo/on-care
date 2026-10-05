@@ -11,7 +11,7 @@ ORM 모델 — 프론트 계약(LocalApiInterceptor + drift 스키마)에 맞춤
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
@@ -448,7 +448,7 @@ class DietEntry(Base):
     sugar_g: Mapped[float] = mapped_column(Float, default=0.0)
     engine: Mapped[str] = mapped_column(
         String(20), default=""
-    )  # 인식 엔진(gemini|yolo)
+    )  # 인식 엔진(gemini|litellm|stub)
     # 사진 분석이 만든 식단평(#1932). 앱이 끼니 카드 아래 한 줄로 보여 준다.
     # 손으로 적은 끼니와 이 컬럼 이전 기록은 빈 문자열이다.
     ai_comment: Mapped[str] = mapped_column(Text, default="", server_default="")
@@ -1165,7 +1165,7 @@ class SocialAccount(Base):
     )
     provider: Mapped[str] = mapped_column(
         String(20), index=True
-    )  # kakao|google|naver|apple
+    )  # kakao|google — 지난 provider 값(naver·apple)도 받는 자유 문자열(#3218)
     provider_user_id: Mapped[str] = mapped_column(String(128))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

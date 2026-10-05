@@ -12,11 +12,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/app_version/app_version.dart';
+import 'package:oncare/core/release/build_info.dart';
 import 'package:oncare/features/my_health/domain/support_links.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/gen/l10n/app_localizations_en.dart';
 import 'package:oncare/gen/l10n/app_localizations_ko.dart';
+import 'package:oncare_core/build_info.dart';
 
 /// `url_launcher` 플랫폼 호출을 가로채 어떤 URL 로 나갔는지 기록한다.
 class _LaunchRecorder {
@@ -50,12 +52,15 @@ Future<void> _pumpSupport(
   WidgetTester tester, {
   Locale locale = const Locale('ko'),
   String? version = '0.4.0',
+  BuildInfo? info,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
       // 버전 줄은 빌드 정보에서 읽는다(#3047). 테스트에는 플랫폼이 없어 값을 준다.
+      // [info] 를 주면 배포 빌드(빌드 번호·배포 일시)로 띄운다(#3226).
       overrides: <Override>[
         appVersionProvider.overrideWith((ref) async => version),
+        if (info != null) buildInfoProvider.overrideWithValue(info),
       ],
       child: MaterialApp(
         theme: AppTheme.light(),
@@ -128,27 +133,65 @@ void main() {
     expect(kSupportChatUrl.startsWith(kSupportChannelUrl), isTrue);
   });
 
-  group('버전 줄 (#3047)', () {
+  group('버전 줄 (#3047, #3226)', () {
     final AppLocalizationsKo ko = AppLocalizationsKo();
     final AppLocalizationsEn en = AppLocalizationsEn();
+    final BuildInfo released = BuildInfo.fromDefines(
+      version: '0.4.0',
+      buildNumber: '7032',
+      releaseDate: '2026-10-05T05:30:00Z',
+    );
+    Finder line() => find.byKey(const ValueKey<String>('support-app-version'));
 
-    testWidgets('빌드 버전을 그대로 보인다', (WidgetTester tester) async {
+    testWidgets('배포 빌드는 버전(빌드 번호)과 KST 배포 일시를 한 줄에 보인다', (
+      WidgetTester tester,
+    ) async {
+      await _pumpSupport(tester, info: released);
+
+      expect(
+        find.text('On-Care · 버전 0.4.0 (7032) · 2026년 10월 5일 14:30 KST 배포'),
+        findsOneWidget,
+      );
+      expect(line(), findsOneWidget);
+    });
+
+    testWidgets('영어 화면은 영어 문구와 날짜 형식이다', (WidgetTester tester) async {
+      await _pumpSupport(tester, locale: const Locale('en'), info: released);
+
+      expect(
+        find.text(
+          'On-Care · Version 0.4.0 (7032) · Deployed Oct 5, 2026 14:30 KST',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('빌드 번호가 없는 빌드는 빌드 버전과 개발 빌드', (WidgetTester tester) async {
       await _pumpSupport(tester, version: '1.2.3');
 
-      expect(find.text('On-Care · 버전 1.2.3'), findsOneWidget);
-      expect(find.text(ko.myAppVersion('1.2.3')), findsOneWidget);
+      expect(find.text('On-Care · 버전 1.2.3 · 개발 빌드'), findsOneWidget);
+      expect(
+        find.text('${ko.myAppVersion('1.2.3')} · ${ko.buildInfoDevelopment}'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('영어 화면도 빌드 버전을 보인다', (WidgetTester tester) async {
+    testWidgets('영어 개발 빌드도 빌드 버전을 보인다', (WidgetTester tester) async {
       await _pumpSupport(tester, locale: const Locale('en'), version: '1.2.3');
 
-      expect(find.text(en.myAppVersion('1.2.3')), findsOneWidget);
+      expect(
+        find.text('${en.myAppVersion('1.2.3')} · ${en.buildInfoDevelopment}'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('읽지 못하면 앱 이름만 보인다', (WidgetTester tester) async {
+    testWidgets('읽지 못하면 앱 이름과 개발 빌드만 보인다', (WidgetTester tester) async {
       await _pumpSupport(tester, version: null);
 
-      expect(find.text(ko.myAppName), findsOneWidget);
+      expect(
+        find.text('${ko.myAppName} · ${ko.buildInfoDevelopment}'),
+        findsOneWidget,
+      );
       expect(find.textContaining('버전'), findsNothing);
     });
 
@@ -156,7 +199,7 @@ void main() {
       await _pumpSupport(tester, version: '2.3.4');
 
       expect(find.textContaining('1.0.0'), findsNothing);
-      expect(find.text(ko.myAppVersion('2.3.4')), findsOneWidget);
+      expect(find.textContaining(ko.myAppVersion('2.3.4')), findsOneWidget);
     });
   });
 }

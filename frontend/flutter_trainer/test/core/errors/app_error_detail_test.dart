@@ -20,11 +20,11 @@ DioException _bad(int status, Object? body) {
 void main() {
   test('문자열 detail 은 기존처럼 메시지가 된다', () {
     final AppError error = AppError.fromDio(
-      _bad(404, <String, Object?>{'detail': '고객을 찾을 수 없습니다.'}),
+      _bad(404, <String, Object?>{'detail': '회원을 찾을 수 없습니다.'}),
     );
 
     expect(error, isA<NotFoundError>());
-    expect(error.message, '고객을 찾을 수 없습니다.');
+    expect(error.message, '회원을 찾을 수 없습니다.');
   });
 
   test('객체 detail 은 message 가 메시지가 된다', () {

@@ -141,11 +141,6 @@ class Settings(BaseSettings):
     audit_sensitive_retention_days: int = 730
 
     # --- 소셜 로그인 ---
-    # Apple 로그인에서 허용할 `aud`(client_id) 목록, 콤마 구분.
-    # iOS 앱은 번들 ID, 웹은 Service ID 로 서로 다른 aud 를 받으므로 복수를 허용한다.
-    # 비어 있으면 Apple 로그인은 검증 불가로 **거부**된다(조용히 통과시키면 다른 앱용
-    # Apple 토큰으로도 로그인이 뚫린다).
-    apple_client_ids: str = ""
     # Google 로그인에서 허용할 id_token `aud`(OAuth client_id) 목록, 콤마 구분 (#3035).
     # iOS·Android·Web client_id 가 서로 다르므로 복수를 허용한다. 비어 있으면 Google
     # 로그인은 **거부**된다 — aud 를 보지 않으면 다른 앱이 받은 구글 토큰으로도 로그인된다.
@@ -154,6 +149,15 @@ class Settings(BaseSettings):
     # access_token 의 발급 앱(`/v1/user/access_token_info` 의 app_id)과 같아야 한다.
     # 장소 검색용 KAKAO_REST_API_KEY 와 다른 값이다. 비어 있으면 카카오 로그인은 거부된다.
     kakao_app_id: str = ""
+    # 카카오 웹 로그인(회원 웹·트레이너 웹)의 client_id — 같은 카카오 앱(KAKAO_APP_ID)의
+    # REST API 키 (#330). 로그인 창 주소(kauth.kakao.com/oauth/authorize)에 실려 브라우저에
+    # 보이는 값이라 비밀이 아니다. 앱 빌드도 같은 값을 받는다. 장소 검색용 KAKAO_REST_API_KEY
+    # 와 나눠 두면(콘솔에서 키를 따로 발급) 로그인 키가 보여도 장소 검색 한도는 지켜진다.
+    # 비어 있으면 웹 카카오 로그인의 인가 코드 교환을 거부한다(모바일 로그인은 무관).
+    kakao_login_rest_api_key: str = ""
+    # 위 키의 클라이언트 시크릿 (#330). 콘솔에서 그 키의 "클라이언트 시크릿"을 켰을 때만
+    # 넣는다(켰는데 비우면 카카오가 교환을 거절한다). 서버에만 둔다.
+    kakao_client_secret: str = Field("", repr=False)
 
     # --- 장소(O2O) ---
     # 카카오 Local REST 키. 있으면 실검색, 없으면 시드 폴백(recognizer 팩토리와 같은 철학).
@@ -211,7 +215,7 @@ class Settings(BaseSettings):
     attachment_s3_endpoint_url: str = ""
 
     # --- AI 엔진 ---
-    recognizer: str = "gemini"        # gemini | claude(litellm) | yolo
+    recognizer: str = "gemini"        # gemini | litellm
     # 인식 후 공공 식품영양성분 DB 로 영양 수치 보강(정확도↑). 순수 LLM 비교실험 시 false.
     nutrition_db_enrich: bool = True
     #: 참조표에 바로 붙지 않는 운동 이름을 AI 로 종목에 접는다(#1312). 끄면 표
@@ -323,10 +327,6 @@ class Settings(BaseSettings):
     # 헬스장 현장 혜택(PT 재등록 할인·락커 쿠폰·분석용 식판)을 실제로 열지(#2822).
     # 제휴 헬스장이 없는 동안은 꺼 둔다. 데모 시드가 켜진 서버는 이 값과 상관없이 연다.
     gym_benefits_enabled: bool = False
-    # 예전 관리자 이메일 목록. 기동 때 이 주소의 계정을 관리자로 올리던 동작은 없앴다
-    # (#3037) — 그 주소로 먼저 가입한 사람이 관리자가 됐다. 관리자 지정은
-    # `scripts/grant_admin.py` 로만 한다. 값이 남아 있으면 기동 로그가 경고한다.
-    admin_emails: str = ""
 
     # --- 운영 배포 하드닝 ---
     force_https: bool = False       # HTTP→HTTPS 리다이렉트(프록시 뒤면 X-Forwarded-Proto 신뢰)
@@ -447,11 +447,6 @@ class Settings(BaseSettings):
         return not self.is_prod
 
     @property
-    def apple_client_id_list(self) -> list[str]:
-        """허용 Apple `aud` 목록(공백·빈 항목 제거)."""
-        return _comma_list(self.apple_client_ids)
-
-    @property
     def google_client_id_list(self) -> list[str]:
         """허용 Google `aud` 목록(공백·빈 항목 제거)."""
         return _comma_list(self.google_client_ids)
@@ -460,6 +455,16 @@ class Settings(BaseSettings):
     def kakao_app_id_value(self) -> str:
         """허용 카카오 앱 ID(앞뒤 공백 제거, 미설정이면 빈 문자열)."""
         return (self.kakao_app_id or "").strip()
+
+    @property
+    def kakao_login_rest_api_key_value(self) -> str:
+        """카카오 웹 로그인 client_id(앞뒤 공백 제거, 미설정이면 빈 문자열)."""
+        return (self.kakao_login_rest_api_key or "").strip()
+
+    @property
+    def kakao_client_secret_value(self) -> str:
+        """카카오 클라이언트 시크릿(앞뒤 공백 제거, 미설정이면 빈 문자열)."""
+        return (self.kakao_client_secret or "").strip()
 
     @property
     def sqlalchemy_database_url(self) -> str:
@@ -642,13 +647,13 @@ class Settings(BaseSettings):
         engine = self.recognizer.strip().lower()
         if engine == "gemini":
             return None if self.gemini_api_key else "RECOGNIZER=gemini 인데 GEMINI_API_KEY 가 비어 있음"
-        if engine == "claude":
+        if engine == "litellm":
             if self.litellm_base_url and self.litellm_api_key:
                 return None
-            return "RECOGNIZER=claude 인데 LITELLM_BASE_URL·LITELLM_API_KEY 가 비어 있음"
+            return "RECOGNIZER=litellm 인데 LITELLM_BASE_URL·LITELLM_API_KEY 가 비어 있음"
         if engine == "stub":
             return "RECOGNIZER=stub 은 개발용 고정 식단이라 운영에서 쓸 수 없음"
-        return f"RECOGNIZER={engine} 는 운영에서 쓸 수 있는 인식기가 아님(gemini|claude)"
+        return f"RECOGNIZER={engine} 는 운영에서 쓸 수 있는 인식기가 아님(gemini|litellm)"
 
     def embedder_problem(self) -> str | None:
         """설정된 임베더를 실제로 쓸 수 없는 이유. 쓸 수 있으면 None. (#2812)"""

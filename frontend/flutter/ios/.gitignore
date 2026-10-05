@@ -32,3 +32,6 @@ Runner/GeneratedPluginRegistrant.*
 !default.mode2v3
 !default.pbxuser
 !default.perspectivev3
+
+# 카카오·구글 로그인 URL 스킴(#330) — 환경마다 다른 값이라 커밋하지 않는다.
+Flutter/Social.xcconfig

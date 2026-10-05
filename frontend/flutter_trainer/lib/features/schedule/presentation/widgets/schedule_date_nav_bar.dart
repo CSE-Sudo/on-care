@@ -3,7 +3,7 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/widgets/week_range_nav.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 날짜 내비게이션 행 — `‹ 8월 31일 – 9월 6일 [오늘] ›` 그리고 오른쪽
+/// 날짜 내비게이션 행 — `‹ 8월 31일 ~ 9월 6일 [오늘] ›` 그리고 오른쪽
 /// 끝(일요일 칸 위)의 `+ 새 일정`. (#882, #1009)
 ///
 /// 화살표·날짜·`오늘` 묶음은 [WeekRangeNav] 다 — 리포트 탭과 같은 부품이다.

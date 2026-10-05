@@ -156,6 +156,17 @@ class BuildStepsTest(unittest.TestCase):
                 self.assertLess(write, check)
                 self.assertLess(check, built)
 
+    def test_demo_assets_are_stripped_before_each_build(self) -> None:
+        # 데모 전용 자산(데모 시드 사진·데모 대화 첨부)은 스토어 빌드에 싣지 않는다(#3157).
+        for name, build in (("android", "flutter build appbundle"), ("ios", "flutter build ipa")):
+            job = jobs()[name]
+            with self.subTest(job=name):
+                strip = step_named(job, "Strip demo-only assets")
+                self.assertIn("python3 ../tool/strip_demo_assets.py .", run_body(strip))
+                self.assertLess(
+                    step_index(job, "tool/strip_demo_assets.py"), step_index(job, build)
+                )
+
     def test_builds_use_the_define_file_only(self) -> None:
         for name, build in (("android", "flutter build appbundle"), ("ios", "flutter build ipa")):
             job = jobs()[name]
@@ -165,8 +176,37 @@ class BuildStepsTest(unittest.TestCase):
                 joined = re.sub(r"\s*\\\n\s*", " ", commands[0])
                 self.assertIn(f"{build} --release {FROM_FILE}", joined)
                 self.assertNotIn("--dart-define=", joined)
-                self.assertNotIn("--build-number", joined)
+                # 빌드 번호는 게이트의 자동 번호로만 덮는다(#3226). 버전 이름은 pubspec 그대로다.
+                self.assertIn('--build-number="$BUILD_NUMBER"', joined)
+                self.assertIn("BUILD_NUMBER: ${{ needs.gate.outputs.build_number }}", commands[0])
                 self.assertNotIn("--build-name", joined)
+
+    def test_gate_stamps_one_build_number_for_both_jobs(self) -> None:
+        gate = jobs()["gate"]
+        step = step_named(gate, "Stamp release build number and date")
+        self.assertIn("        id: stamp\n", step)
+        body = run_body(step)
+        self.assertIn('bash .github/scripts/release_build_stamp.sh "$GITHUB_OUTPUT"', body)
+        # 손으로 올리던 pubspec 의 `+` 뒤 번호가 하한이다 — versionCode 가 뒤로 가지 않는다.
+        self.assertIn('MIN_BUILD_NUMBER="$pubspec_build"', body)
+        self.assertIn("frontend/flutter/pubspec.yaml", body)
+        self.assertIn("      build_number: ${{ steps.stamp.outputs.BUILD_NUMBER }}\n", gate)
+        self.assertIn("      release_date: ${{ steps.stamp.outputs.RELEASE_DATE }}\n", gate)
+        # 커밋 수를 세려면 전체 이력이 있어야 한다.
+        self.assertIn("fetch-depth: 0", gate)
+        self.assertLess(step_index(gate, "Check the build source"),
+                        step_index(gate, "Stamp release build number and date"))
+
+    def test_define_file_carries_the_build_stamp(self) -> None:
+        for name in ("android", "ios"):
+            job = jobs()[name]
+            write = step_named(job, "Write the release define file")
+            info = step_named(job, "Write build info")
+            with self.subTest(job=name):
+                self.assertIn("BUILD_NUMBER: ${{ needs.gate.outputs.build_number }}", write)
+                self.assertIn("RELEASE_DATE: ${{ needs.gate.outputs.release_date }}", write)
+                self.assertIn('echo "build_number: $BUILD_NUMBER"', info)
+                self.assertIn('echo "release_date: $RELEASE_DATE"', info)
 
     def test_release_defines_read_member_values(self) -> None:
         for name in ("android", "ios"):
@@ -176,6 +216,16 @@ class BuildStepsTest(unittest.TestCase):
                 self.assertIn("API_BASE_URL: ${{ vars.MEMBER_APP_API_BASE_URL }}", step)
                 # 운영 웹과 같은 회원 앱 DSN 비밀을 쓴다.
                 self.assertIn("SENTRY_DSN: ${{ secrets.SENTRY_DSN_MEMBER }}", step)
+                # 카카오·구글 로그인 공개 식별자(#330)는 변수로 받는다.
+                for key in ("KAKAO_NATIVE_APP_KEY", "GOOGLE_WEB_CLIENT_ID", "GOOGLE_IOS_CLIENT_ID"):
+                    self.assertIn(f"{key}: ${{{{ vars.MEMBER_APP_{key} }}}}", step)
+
+    def test_ios_writes_login_url_schemes_before_building(self) -> None:
+        job = jobs()["ios"]
+        step = step_named(job, "Write the login URL schemes")
+        self.assertIn("--ios-url-schemes ios/Flutter/Social.xcconfig", step)
+        self.assertNotIn("secrets.", step)
+        self.assertLess(step_index(job, "--ios-url-schemes"), step_index(job, "flutter build ipa"))
 
     def test_flutter_version_matches_the_user_app_ci(self) -> None:
         pinned = re.search(r'FLUTTER_VERSION: "([0-9.]+)"', workflow_text())
@@ -313,6 +363,52 @@ class WriteReleaseDefinesTest(unittest.TestCase):
         self.assertEqual(got["IOS_APP_STORE_ID"], "123")
         self.assertNotIn("KAKAO_MAP_ORIGIN", got)
 
+    def test_social_login_keys_are_optional_defines(self) -> None:
+        got = defines.release_defines({
+            "KAKAO_NATIVE_APP_KEY": " 0123456789abcdef0123456789abcdef ",
+            "GOOGLE_WEB_CLIENT_ID": "1-web.apps.googleusercontent.com",
+            "GOOGLE_IOS_CLIENT_ID": "",
+        })
+        self.assertEqual(got["KAKAO_NATIVE_APP_KEY"], "0123456789abcdef0123456789abcdef")
+        self.assertEqual(got["GOOGLE_WEB_CLIENT_ID"], "1-web.apps.googleusercontent.com")
+        self.assertNotIn("GOOGLE_IOS_CLIENT_ID", got)
+
+    def test_ios_url_schemes_from_social_keys(self) -> None:
+        text = defines.ios_url_schemes({
+            "KAKAO_NATIVE_APP_KEY": "0123456789abcdef0123456789abcdef",
+            "GOOGLE_IOS_CLIENT_ID": "123-ioshash.apps.googleusercontent.com",
+        })
+        self.assertIn("KAKAO_URL_SCHEME = kakao0123456789abcdef0123456789abcdef\n", text)
+        self.assertIn("GOOGLE_URL_SCHEME = com.googleusercontent.apps.123-ioshash\n", text)
+
+    def test_ios_url_schemes_skip_missing_or_malformed_values(self) -> None:
+        text = defines.ios_url_schemes({"KAKAO_NATIVE_APP_KEY": "<키>", "GOOGLE_IOS_CLIENT_ID": "GOCSPX-x"})
+        self.assertNotIn("KAKAO_URL_SCHEME", text)
+        self.assertNotIn("GOOGLE_URL_SCHEME", text)
+        self.assertNotIn("GOOGLE_URL_SCHEME", defines.ios_url_schemes({}))
+
+    def test_main_writes_ios_url_schemes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "Flutter" / "Social.xcconfig"
+            old = dict(os.environ)
+            try:
+                os.environ.clear()
+                os.environ.update({"KAKAO_NATIVE_APP_KEY": "0123456789abcdef0123456789abcdef"})
+                with redirect_stdout(io.StringIO()):
+                    self.assertEqual(defines.main(["--ios-url-schemes", str(out)]), 0)
+            finally:
+                os.environ.clear()
+                os.environ.update(old)
+            self.assertIn("KAKAO_URL_SCHEME", out.read_text(encoding="utf-8"))
+
+    def test_build_stamp_keys_only_when_set(self) -> None:
+        got = defines.release_defines({"BUILD_NUMBER": " 7032 ", "RELEASE_DATE": "2026-10-05T05:30:00Z"})
+        self.assertEqual(got["BUILD_NUMBER"], "7032")
+        self.assertEqual(got["RELEASE_DATE"], "2026-10-05T05:30:00Z")
+        empty = defines.release_defines({"BUILD_NUMBER": "", "RELEASE_DATE": "  "})
+        self.assertNotIn("BUILD_NUMBER", empty)
+        self.assertNotIn("RELEASE_DATE", empty)
+
     def test_mock_api_cannot_be_overridden(self) -> None:
         self.assertEqual(defines.release_defines({"USE_MOCK_API": "true"})["USE_MOCK_API"], "false")
 
@@ -340,6 +436,7 @@ class WriteReleaseDefinesTest(unittest.TestCase):
     def test_usage(self) -> None:
         with redirect_stderr(io.StringIO()):
             self.assertEqual(defines.main([]), 2)
+            self.assertEqual(defines.main(["--ios-url-schemes"]), 2)
 
 
 def profile_plist(**overrides) -> bytes:

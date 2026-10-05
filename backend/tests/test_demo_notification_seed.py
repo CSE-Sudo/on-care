@@ -46,7 +46,7 @@ def test_each_alert_opens_the_same_screen_as_the_app_demo():
     # 회원 앱 데모 목록(`demo_alert_keys.dart` 의 `kDemoAlertActionBySeedId`)과 같다.
     # 리마인더라도 운동 목표는 운동이다(#2690).
     assert _target("새 개인운동이 왔어요") == "exercise"
-    assert _target("이번 주 리포트가 등록됐어요") == "coach_chat"
+    assert _target("주간 리포트가 도착했어요") == "coach_chat"
     assert _target("PT 수업 완료") == "exercise"
     assert _target("트레이너 피드백 도착") == "coach_chat"
     assert _target("이번 주 운동 목표까지 조금 남았어요") == "exercise"
@@ -86,7 +86,7 @@ def test_report_and_feedback_use_different_categories():
     둘이 같은 갈래면 회원 앱 알림함에서 리포트도 말풍선으로 보인다.
     """
     by_title = {n.title: n.category for n in DEMO_NOTIFICATIONS}
-    assert by_title["이번 주 리포트가 등록됐어요"] == notification_service.MEMBER_COACH_REPORT
+    assert by_title["주간 리포트가 도착했어요"] == notification_service.MEMBER_COACH_REPORT
     assert by_title["트레이너 피드백 도착"] == notification_service.MEMBER_COACH_CHAT
 
 

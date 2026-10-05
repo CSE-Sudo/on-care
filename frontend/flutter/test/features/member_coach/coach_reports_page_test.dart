@@ -413,7 +413,7 @@ void main() {
 
       expect(find.text('받은 리포트'), findsOneWidget);
       expect(find.text('보낸 주간 피드백'), findsOneWidget);
-      expect(find.text('트레이너 리포트'), findsOneWidget);
+      expect(find.text('주간 리포트'), findsOneWidget);
     });
 
     testWidgets('영어에서 모든 자리가 번역되어 있다', (tester) async {
@@ -423,7 +423,7 @@ void main() {
         locale: 'en',
       );
 
-      expect(find.text('Trainer reports'), findsOneWidget);
+      expect(find.text('Weekly reports'), findsOneWidget);
       expect(find.text('Reports received'), findsOneWidget);
       expect(find.text('Weekly feedback you sent'), findsOneWidget);
     });

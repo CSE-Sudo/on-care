@@ -138,7 +138,7 @@ void main() {
     final Finder sugar = find.descendant(
       of: find
           .ancestor(
-            of: find.text('일일 당류 제한 (g)'),
+            of: find.text('하루 당류 목표 (g)'),
             matching: find.byType(Column),
           )
           .first,

@@ -72,13 +72,13 @@ class ReportSheetLocalizationsEn extends ReportSheetLocalizations {
   }
 
   @override
-  String get reportsPdfDocTitle => 'Weekly coaching report';
+  String get reportsPdfDocTitle => 'Weekly report';
 
   @override
-  String get reportsPdfLabelCompletion => 'Workout completion';
+  String get reportsPdfLabelCompletion => 'Workout completion rate';
 
   @override
-  String get reportsPdfLabelSessions => 'PT';
+  String get reportsPdfLabelSessions => 'PT done';
 
   @override
   String get reportsPdfNoData => 'Not measured';
@@ -93,17 +93,17 @@ class ReportSheetLocalizationsEn extends ReportSheetLocalizations {
 
   @override
   String reportsPdfValueGram(String value) {
-    return '${value}g';
+    return '$value g';
   }
 
   @override
   String reportsPdfValueKcal(String value) {
-    return '${value}kcal';
+    return '$value kcal';
   }
 
   @override
   String reportsPdfValueMg(String value) {
-    return '${value}mg';
+    return '$value mg';
   }
 
   @override
@@ -117,7 +117,7 @@ class ReportSheetLocalizationsEn extends ReportSheetLocalizations {
   }
 
   @override
-  String get reportsSheetAttendance => 'PT attendance';
+  String get reportsSheetAttendance => 'PT done';
 
   @override
   String get reportsSheetAverageBase => '4-wk avg';
@@ -147,7 +147,7 @@ class ReportSheetLocalizationsEn extends ReportSheetLocalizations {
   String get reportsSheetDailyCalories => 'Calories';
 
   @override
-  String get reportsSheetDailyCompletion => 'Done';
+  String get reportsSheetDailyCompletion => 'Completion';
 
   @override
   String get reportsSheetDailyMeals => 'Meals';
@@ -206,7 +206,7 @@ class ReportSheetLocalizationsEn extends ReportSheetLocalizations {
 
   @override
   String get reportsSheetScoreFormula =>
-      'Average of workout completion, PT attendance, meal logging and on-target calorie days. Items without records are left out.';
+      'Average of workout completion rate, PT done, meal logging and on-target calorie days. Items without records are left out.';
 
   @override
   String get reportsSheetScoreNone => 'No records to score yet';
@@ -289,16 +289,16 @@ class ReportSheetLocalizationsEn extends ReportSheetLocalizations {
   String get reportsMemberFeedbackConditionTired => 'Worn out';
 
   @override
-  String get reportsMemberFeedbackConditionBad => 'Really rough';
+  String get reportsMemberFeedbackConditionBad => 'Rough';
 
   @override
   String get reportsMemberFeedbackIntensityTooEasy => 'Too easy';
 
   @override
-  String get reportsMemberFeedbackIntensityRight => 'About right';
+  String get reportsMemberFeedbackIntensityRight => 'Just right';
 
   @override
-  String get reportsMemberFeedbackIntensityHard => 'Hard';
+  String get reportsMemberFeedbackIntensityHard => 'A bit hard';
 
   @override
   String get reportsMemberFeedbackIntensityTooHard => 'Too hard';

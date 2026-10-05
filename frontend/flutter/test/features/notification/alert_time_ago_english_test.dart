@@ -58,7 +58,7 @@ void main() {
     const AlertItem item = AlertItem(
       id: 'n1',
       title: 'Session cancelled',
-      body: '2026-10-01 09:00 · Consultation',
+      body: '10/1 09:00 · Consultation',
       timeAgo: '3 hours ago',
       category: AlertCategory.reminder,
     );
