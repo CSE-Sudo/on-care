@@ -375,7 +375,8 @@ jobs:
             exit 1
           fi
 
-          for key in index.html member/index.html trainer/index.html legal/privacy.html legal/terms.html \n            assets/landing/manifest.json assets/landing/apple-touch-icon.png; do
+          for key in index.html member/index.html trainer/index.html legal/privacy.html legal/terms.html \
+            assets/landing/manifest.json assets/landing/apple-touch-icon.png; do
             SIZE=$(aws s3api head-object --bucket "$BUCKET" --key "$PREFIX/$key" \
               --query 'ContentLength' --output text)
             if [ "${SIZE:-0}" -le 0 ]; then
