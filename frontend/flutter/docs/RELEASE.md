@@ -14,20 +14,20 @@ Android / iOS 릴리즈 절차와 버전 관리 정책을 정리합니다.
 
 | 워크플로 | 언제 | 어디로 |
 | --- | --- | --- |
-| [`deploy.yml`](../../../.github/workflows/deploy.yml) | `main` 푸시·수동 실행 | GitHub Pages — 회원 앱 <https://ewhasudo.zapto.org/frontend/>, 트레이너 웹 `/trainer/`, 소개 페이지 `/` |
-| [`aws-frontend-deploy.yml`](../../../.github/workflows/aws-frontend-deploy.yml) | 저장소 변수 `AWS_FRONTEND_DEPLOY_ENABLED` 가 `true` 일 때만 | S3 + CloudFront, 같은 `/frontend/`·`/trainer/` 경로 |
+| [`deploy.yml`](../../../.github/workflows/deploy.yml) | `main` 푸시·수동 실행 | GitHub Pages — 회원 앱 <https://cse-sudo.github.io/on-care/member/>, 트레이너 웹 `/on-care/trainer/`, 소개 페이지 `/on-care/` |
+| [`aws-frontend-deploy.yml`](../../../.github/workflows/aws-frontend-deploy.yml) | 저장소 변수 `AWS_FRONTEND_DEPLOY_ENABLED` 가 `true` 일 때만 | S3 + CloudFront, 도메인 루트의 `/member/`·`/trainer/` 경로 |
 
-- **base-href**: `/frontend/` (트레이너 웹은 `/trainer/`)
+- **base-href**: Pages 는 `/on-care/member/`(저장소 경로 아래), AWS 는 `/member/` (트레이너 웹은 같은 자리의 `trainer/`)
 - **URL 전략**: Hash (`#/...`) — 정적 호스팅의 404 fallback 불필요
 - **빌드 인자**: 카카오 지도 키와 목 데이터·실서버 전환(`USE_MOCK_API`·`API_BASE_URL`)을 어떻게 넘기는지,
   배포 스위치와 확인 절차는 [`docs/frontend_deployment.md`](../../../docs/frontend_deployment.md) 가 기준입니다.
   `USE_MOCK_API` 를 넘기지 않은 빌드는 기본값(`true`)대로 목 데이터로 돕니다.
 
-수동 빌드(로컬에서 배포본과 같은 경로로 확인할 때):
+수동 빌드(로컬에서 AWS 배포본과 같은 경로로 확인할 때 — Pages 경로로 보려면 `/on-care/member/`):
 
 ```bash
 flutter build web --release \
-  --base-href "/frontend/" \
+  --base-href "/member/" \
   --dart-define=KAKAO_JS_KEY=<카카오 JavaScript 키> \
   --dart-define=DEMO_BUILD=true
 # 실서버로 붙여 보려면 DEMO_BUILD 대신 아래 세 줄을 넣는다
@@ -144,6 +144,6 @@ git push origin v0.1.0+1
 3. [`CHANGELOG.md`](../CHANGELOG.md) 새 섹션 작성.
 4. 릴리즈 PR 또는 직접 commit (`chore(release): v0.1.0`).
 5. 태그 push.
-6. Web은 `main` 병합 시 자동 배포되며 <https://ewhasudo.zapto.org/frontend/> 에서 확인.
+6. Web은 `main` 병합 시 자동 배포되며 <https://cse-sudo.github.io/on-care/member/> 에서 확인.
 7. Android `.aab` 빌드 → Play Console 업로드.
 8. iOS Archive → Distribute → TestFlight.

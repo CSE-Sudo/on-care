@@ -160,9 +160,9 @@ Resources:
           var uri = request.uri;
 
           // 끝 `/` 없는 앱 주소는 `/` 를 붙여 돌려보낸다. 앱 경로의 응답 헤더 정책은
-          // `/frontend/*`·`/trainer/*` 동작에만 걸리므로, 여기서 바로 index.html 을 주면
+          // `/member/*`·`/trainer/*` 동작에만 걸리므로, 여기서 바로 index.html 을 주면
           // 소개 페이지 정책으로 앱이 나간다(#3017).
-          if (uri === '/frontend' || uri === '/trainer') {
+          if (uri === '/member' || uri === '/trainer') {
             return {
               statusCode: 301,
               statusDescription: 'Moved Permanently',
@@ -170,10 +170,10 @@ Resources:
             };
           }
 
-          if (uri === '/frontend/') {
-            request.uri = '/frontend/index.html';
-          } else if (uri.indexOf('/frontend/') === 0 && !uri.split('/').pop().includes('.')) {
-            request.uri = '/frontend/index.html';
+          if (uri === '/member/') {
+            request.uri = '/member/index.html';
+          } else if (uri.indexOf('/member/') === 0 && !uri.split('/').pop().includes('.')) {
+            request.uri = '/member/index.html';
           } else if (uri === '/trainer/') {
             request.uri = '/trainer/index.html';
           } else if (uri.indexOf('/trainer/') === 0 && !uri.split('/').pop().includes('.')) {
@@ -282,7 +282,7 @@ Resources:
           - !Ref AWS::NoValue
         # 두 앱 경로는 앱 헤더 정책을 쓴다. 캐시·함수는 기본 동작과 같다.
         CacheBehaviors:
-          - PathPattern: /frontend/*
+          - PathPattern: /member/*
             AllowedMethods:
               - GET
               - HEAD

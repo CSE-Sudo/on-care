@@ -2,7 +2,7 @@
 # 운영 프론트 릴리스 정리(#3128).
 #
 # 릴리스는 `releases/<40자 SHA>/` 아래에 통째로 올라간다. 릴리스마다 루트 `version.txt` 가
-# 있고, 열린 탭의 새 배포 감지용으로 `frontend/version.txt`·`trainer/version.txt` 도 같이
+# 있고, 열린 탭의 새 배포 감지용으로 `member/version.txt`·`trainer/version.txt` 도 같이
 # 있다(#3023). `*/version.txt` 키를 그대로 "릴리스" 로 세면 릴리스 하나가 셋으로 세어지고,
 # 보호 목록(`releases/<sha>/`)과 하위 prefix(`releases/<sha>/trainer/`)가 같은 문자열이 아니라
 # 직전 릴리스의 앱 폴더가 지워진다. 그래서 여기서는 모든 키를 릴리스 루트로 정규화해

@@ -165,7 +165,7 @@ Environment 이름은 대소문자를 가리지 않으므로 신뢰 정책은 `S
 6. IAM 역할의 `sub`에서 조직명만 갱신되고 ID와 `main` 제한이 유지되는지 확인합니다.
 7. GitHub Actions에서 최신 실패한 `main` 배포를 재실행합니다. OIDC 인증, 업로드, 릴리스 전환과
    배포 검증까지 모두 성공해야 복구 완료입니다. CloudFront의 `/version.txt`가 실행 커밋 SHA와
-   일치하고 `/`, `/frontend/`, `/trainer/`가 응답하는지도 확인합니다.
+   일치하고 `/`, `/member/`, `/trainer/`가 응답하는지도 확인합니다.
 
 이 방법은 AWS에 적용된 템플릿을 재사용하므로 최신 코드의 다른 인프라 변경을 함께 적용하지 않습니다.
 IAM 콘솔에서 역할만 직접 수정하면 CloudFormation 파라미터에 옛 조직명이 남을 수 있으므로
@@ -215,7 +215,7 @@ CloudFormation 스택과 세 변수를 확인하고 배포할 `main` 커밋이 �
 
 ```text
 https://<DistributionDomainName>/
-https://<DistributionDomainName>/frontend/
+https://<DistributionDomainName>/member/
 https://<DistributionDomainName>/trainer/
 https://<DistributionDomainName>/version.txt
 ```
@@ -231,11 +231,11 @@ https://<DistributionDomainName>/version.txt
 | 워크플로 | `.github/workflows/deploy.yml` | `.github/workflows/aws-frontend-deploy.yml` |
 | 호스팅 | GitHub Pages | S3 + CloudFront |
 | 백엔드 | 목업(브라우저 drift DB). 수동 `real` 은 staging 백엔드 | 운영 백엔드 고정 |
-| 도메인 | 지금의 데모 도메인(`ewhasudo.zapto.org`) — 계속 Pages | **운영 도메인**(팀이 소유·갱신 책임을 지는 도메인). 정하기 전에는 CloudFront 기본 도메인 |
+| 도메인 | GitHub Pages 기본 주소(`cse-sudo.github.io/on-care`) — 커스텀 도메인 없음 | **운영 도메인**(팀이 소유·갱신 책임을 지는 도메인). 정하기 전에는 CloudFront 기본 도메인 |
 | 응답 헤더 | 바꿀 수 없음 — 앱 `index.html` 의 meta CSP 만 | 템플릿의 응답 헤더 정책(9절) |
 
-- 데모 도메인은 사람이 주기적으로 갱신해야 살아 있는 무료 DNS 라(#2000) **운영 도메인·운영 인증서의 근거로 쓰지 않습니다.** CloudFront 로 옮기지도 않고, Pages 배포를 중단하는 단계도 없습니다.
-- 운영 도메인을 무엇으로 할지는 #2000 에서 정합니다. 이 문서와 템플릿은 그 값을 받을 자리만 둡니다(6절).
+- 데모 주소는 GitHub 이 소유한 Pages 기본 주소라 **운영 도메인·운영 인증서의 근거로 쓰지 않습니다.** 예전에 붙였던 무료 다이내믹 DNS 는 #2000 에서 뗐습니다. CloudFront 로 옮기지도 않고, Pages 배포를 중단하는 단계도 없습니다.
+- 운영 도메인을 무엇으로 할지는 운영 배포를 다시 켤 때 정합니다. 이 문서와 템플릿은 그 값을 받을 자리만 둡니다(6절).
 - AWS 배포에 문제가 생기거나 작업 기간 동안 배포 비용을 멈추고 싶으면 `AWS_FRONTEND_DEPLOY_ENABLED=false`로 변경해 추가 배포를 즉시 중단할 수 있습니다. 데모 사이트는 영향을 받지 않습니다. **현재가 이 상태이며**, 다시 켜는 기준은 [`frontend_deployment.md`](frontend_deployment.md#aws-배포-스위치)에 있습니다.
 
 ## 6. 운영 도메인 연결
@@ -281,7 +281,7 @@ https://<DistributionDomainName>/version.txt
 | 무효화 후 smoke check | 같음 — 자동 롤백 후 워크플로 실패 처리 |
 | 응답 보안 헤더 확인([9절](#9-응답-보안-헤더-3017)) | 같음 — 헤더 정책은 스택 쪽이라 되돌린 뒤 스택 파라미터(`ApiOrigin`)를 확인 |
 
-- 릴리스 보관: 최신 5개 릴리스를 남기고 그보다 오래된 릴리스는 배포 성공 시 정리합니다. 현재 릴리스와 직전 릴리스는 개수와 무관하게 항상 보존합니다. 릴리스는 `releases/<sha>/` 루트 하나로 세며(앱 폴더의 `frontend/version.txt`·`trainer/version.txt` 를 따로 세지 않음), 삭제도 언제나 루트 단위로만 합니다. 규칙은 [`.github/scripts/frontend_release_prune.sh`](../.github/scripts/frontend_release_prune.sh) 에 있고, PR gate 가 가짜 키 목록으로 경계를 검사합니다.
+- 릴리스 보관: 최신 5개 릴리스를 남기고 그보다 오래된 릴리스는 배포 성공 시 정리합니다. 현재 릴리스와 직전 릴리스는 개수와 무관하게 항상 보존합니다. 릴리스는 `releases/<sha>/` 루트 하나로 세며(앱 폴더의 `member/version.txt`·`trainer/version.txt` 를 따로 세지 않음), 삭제도 언제나 루트 단위로만 합니다. 규칙은 [`.github/scripts/frontend_release_prune.sh`](../.github/scripts/frontend_release_prune.sh) 에 있고, PR gate 가 가짜 키 목록으로 경계를 검사합니다.
 - 버킷 버전 관리가 켜져 있어 실수로 덮어쓰거나 지운 객체도 30일 안에는 복구할 수 있습니다.
 - 수동 롤백이 필요하면 distribution의 origin path를 되돌릴 릴리스로 바꾸고 `/*`를 무효화합니다.
 - 스택은 지금 릴리스 경로를 `ReleaseOriginPath` 파라미터로만 압니다. 전환·롤백 뒤 스택을 갱신할 때는 반드시 [스택 갱신 스크립트](#스택-갱신은-언제나-현재-릴리스-경로와-함께-3129)를 써서 살아 있는 값을 넘깁니다. `aws cloudformation deploy` 를 직접 부르면 스택이 기억하는 옛 경로(또는 빈 값)로 되돌아갑니다.
@@ -328,17 +328,17 @@ CloudFront 가 모든 응답에 보안 헤더를 붙입니다. meta 태그로는
 
 | 경로 | 정책 | 내용 |
 | --- | --- | --- |
-| `/frontend/*`, `/trainer/*` | `FrontendAppResponseHeadersPolicy` | HSTS 1년(`includeSubDomains`), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`(카메라·위치만 자기 출처), CSP — 두 앱 `web/index.html` 의 meta CSP 와 같은 지시어 + `frame-ancestors 'none'`, `connect-src` 는 `'self'`·`ApiOrigin`·CanvasKit·글꼴·카카오 SDK 출처만 |
+| `/member/*`, `/trainer/*` | `FrontendAppResponseHeadersPolicy` | HSTS 1년(`includeSubDomains`), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`(카메라·위치만 자기 출처), CSP — 두 앱 `web/index.html` 의 meta CSP 와 같은 지시어 + `frame-ancestors 'none'`, `connect-src` 는 `'self'`·`ApiOrigin`·CanvasKit·글꼴·카카오 SDK 출처만 |
 | 그 밖(`/`, `version.txt` 등) | `FrontendLandingResponseHeadersPolicy` | 같은 보안 헤더 + 소개 페이지용 CSP(인라인 스크립트 허용, 외부 요청 `connect-src 'self'` 만) |
 
 - 브라우저는 meta CSP 와 헤더 CSP 를 **둘 다** 적용하므로 운영에서는 헤더 쪽이 실제 한도입니다. meta 의 `connect-src https: localhost` 는 로컬 개발·데모용으로 남겨 둡니다.
 - 지시어를 바꿀 때는 템플릿과 두 `index.html` 을 같이 바꿉니다. PR Gate 의 `tool/ci/test_frontend_csp.py` 가 둘이 어긋나면 막습니다.
 - 웹에서 오류 보고(Sentry)를 켜면 수집 출처를 `ExtraConnectSources` 에 넣습니다(예 `https://o123.ingest.us.sentry.io`).
-- `/frontend`·`/trainer`(끝 `/` 없음)는 `/` 를 붙인 주소로 301 이동합니다. 앱 헤더 정책이 `/frontend/*`·`/trainer/*` 에만 걸리기 때문입니다.
+- `/member`·`/trainer`(끝 `/` 없음)는 `/` 를 붙인 주소로 301 이동합니다. 앱 헤더 정책이 `/member/*`·`/trainer/*` 에만 걸리기 때문입니다.
 - 배포 뒤 검증 단계가 [`frontend_security_headers.sh`](../.github/scripts/frontend_security_headers.sh) 로 세 경로의 헤더를 보고, 빠졌거나 `connect-src` 가 `API_BASE_URL` 출처로 좁혀져 있지 않으면 실패 → 직전 릴리스로 되돌립니다. 손으로 볼 때는 다음과 같습니다.
 
   ```bash
-  curl -sI https://<배포 주소>/frontend/ | grep -iE 'strict-transport|x-frame|content-security|referrer|x-content-type'
+  curl -sI https://<배포 주소>/member/ | grep -iE 'strict-transport|x-frame|content-security|referrer|x-content-type'
   ```
 
 - HSTS preload 목록 등록은 운영 도메인이 정해진 뒤 따로 판단합니다(지금은 `preload` 없음).

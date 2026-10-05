@@ -83,7 +83,7 @@ class ProductionWebBuildTest(unittest.TestCase):
 
     def test_both_apps_are_built(self) -> None:
         self.assertEqual(len(self.builds), 2)
-        self.assertTrue(any('"/frontend/"' in step for step in self.builds))
+        self.assertTrue(any('"/member/"' in step for step in self.builds))
         self.assertTrue(any('"/trainer/"' in step for step in self.builds))
 
     def test_builds_pin_real_server_prod_and_sentry(self) -> None:
@@ -102,7 +102,7 @@ class ProductionWebBuildTest(unittest.TestCase):
         for step in self.builds:
             match = re.search(r"SENTRY_DSN: \$\{\{ secrets\.(SENTRY_DSN_[A-Z]+) \}\}", step)
             self.assertIsNotNone(match, step.splitlines()[0])
-            app = "member" if '"/frontend/"' in step else "trainer"
+            app = "member" if '"/member/"' in step else "trainer"
             secrets[app] = match.group(1)
         self.assertEqual(secrets, {"member": "SENTRY_DSN_MEMBER", "trainer": "SENTRY_DSN_TRAINER"})
 

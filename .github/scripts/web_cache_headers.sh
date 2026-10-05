@@ -20,7 +20,7 @@ AWS_CLI="${AWS_CLI:-aws}"
 ENTRY_CACHE_CONTROL="no-cache"
 ASSET_CACHE_CONTROL="public,max-age=300"
 
-# 이름이 고정된 진입 파일. 폴더(frontend/·trainer/)와 무관하게 파일 이름으로 가른다.
+# 이름이 고정된 진입 파일. 폴더(member/·trainer/)와 무관하게 파일 이름으로 가른다.
 ENTRY_FILES=(
   index.html
   flutter_bootstrap.js
@@ -40,11 +40,11 @@ ENTRY_FILES=(
 VERIFY_KEYS=(
   "index.html=$ENTRY_CACHE_CONTROL"
   "version.txt=$ENTRY_CACHE_CONTROL"
-  "frontend/index.html=$ENTRY_CACHE_CONTROL"
-  "frontend/flutter_bootstrap.js=$ENTRY_CACHE_CONTROL"
-  "frontend/main.dart.js=$ENTRY_CACHE_CONTROL"
-  "frontend/version.txt=$ENTRY_CACHE_CONTROL"
-  "frontend/canvaskit/canvaskit.wasm=$ASSET_CACHE_CONTROL"
+  "member/index.html=$ENTRY_CACHE_CONTROL"
+  "member/flutter_bootstrap.js=$ENTRY_CACHE_CONTROL"
+  "member/main.dart.js=$ENTRY_CACHE_CONTROL"
+  "member/version.txt=$ENTRY_CACHE_CONTROL"
+  "member/canvaskit/canvaskit.wasm=$ASSET_CACHE_CONTROL"
   "trainer/index.html=$ENTRY_CACHE_CONTROL"
   "trainer/flutter_bootstrap.js=$ENTRY_CACHE_CONTROL"
   "trainer/main.dart.js=$ENTRY_CACHE_CONTROL"

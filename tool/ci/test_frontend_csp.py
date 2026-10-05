@@ -154,7 +154,7 @@ class FrontendCspTest(unittest.TestCase):
 
     def test_app_paths_use_app_policy_and_default_uses_landing_policy(self) -> None:
         dist = resource_block(self.template, "FrontendDistribution")
-        for pattern in ("/frontend/*", "/trainer/*"):
+        for pattern in ("/member/*", "/trainer/*"):
             behaviour = re.search(
                 rf"- PathPattern: {re.escape(pattern)}\n(.*?)(?=\n          - PathPattern:|\n        DefaultCacheBehavior:)",
                 dist, re.DOTALL)
@@ -168,7 +168,7 @@ class FrontendCspTest(unittest.TestCase):
 
     def test_router_redirects_app_roots_without_slash(self) -> None:
         router = resource_block(self.template, "FrontendRouterFunction")
-        self.assertIn("uri === '/frontend' || uri === '/trainer'", router)
+        self.assertIn("uri === '/member' || uri === '/trainer'", router)
         self.assertIn("statusCode: 301", router)
 
     def test_custom_domain_is_optional_and_paired(self) -> None:

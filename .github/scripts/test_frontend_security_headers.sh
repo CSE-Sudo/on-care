@@ -17,7 +17,7 @@ url="${*: -1}"
 path="${url#https://*/}"
 case "$path" in
   "") slug=root ;;
-  frontend/) slug=frontend ;;
+  member/) slug=member ;;
   trainer/) slug=trainer ;;
   *) slug=other ;;
 esac
@@ -38,7 +38,7 @@ landing_csp="default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 
 write_fixture() {
   local dir="$1" slug csp
   mkdir -p "$dir"
-  for slug in root frontend trainer; do
+  for slug in root member trainer; do
     if [ "$slug" = root ]; then csp="$landing_csp"; else csp="$app_csp"; fi
     printf 'HTTP/2 200\r\ncontent-type: text/html\r\nstrict-transport-security: max-age=31536000; includeSubDomains\r\nx-frame-options: DENY\r\nx-content-type-options: nosniff\r\nreferrer-policy: strict-origin-when-cross-origin\r\ncontent-security-policy: %s\r\n\r\n' "$csp" > "$dir/$slug"
   done
@@ -66,7 +66,7 @@ d=$(case_dir ok); expect pass '세 경로 모두 정상' "$d"
 d=$(case_dir origin-case); expect pass 'API 출처 대소문자·끝 / 무시' "$d" 'https://API.oncare.test/'
 
 d=$(case_dir hsts-missing)
-sed -i.bak '/strict-transport-security/d' "$d/frontend"; expect fail 'HSTS 누락' "$d"
+sed -i.bak '/strict-transport-security/d' "$d/member"; expect fail 'HSTS 누락' "$d"
 
 d=$(case_dir hsts-short)
 sed -i.bak 's/max-age=31536000/max-age=300/' "$d/root"; expect fail 'HSTS max-age 1년 미만' "$d"
@@ -78,7 +78,7 @@ d=$(case_dir nosniff)
 sed -i.bak '/x-content-type-options/d' "$d/root"; expect fail 'nosniff 누락' "$d"
 
 d=$(case_dir referrer)
-sed -i.bak '/referrer-policy/d' "$d/frontend"; expect fail 'Referrer-Policy 누락' "$d"
+sed -i.bak '/referrer-policy/d' "$d/member"; expect fail 'Referrer-Policy 누락' "$d"
 
 d=$(case_dir csp-missing)
 sed -i.bak '/content-security-policy/d' "$d/trainer"; expect fail 'CSP 헤더 누락' "$d"
@@ -87,7 +87,7 @@ d=$(case_dir fa)
 sed -i.bak "s/frame-ancestors 'none'/frame-ancestors 'self'/" "$d/root"; expect fail "frame-ancestors 'self'" "$d"
 
 d=$(case_dir wide)
-sed -i.bak "s#connect-src 'self' $api#connect-src 'self' https: $api#" "$d/frontend"
+sed -i.bak "s#connect-src 'self' $api#connect-src 'self' https: $api#" "$d/member"
 expect fail 'connect-src 에 https: 전체가 그대로' "$d"
 
 d=$(case_dir local)
