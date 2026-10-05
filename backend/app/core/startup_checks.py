@@ -27,7 +27,6 @@ class StartupConfigError(RuntimeError):
 _SOCIAL_APP_SETTINGS = (
     ("google", "GOOGLE_CLIENT_IDS", lambda s: bool(s.google_client_id_list)),
     ("kakao", "KAKAO_APP_ID", lambda s: bool(s.kakao_app_id_value)),
-    ("apple", "APPLE_CLIENT_IDS", lambda s: bool(s.apple_client_id_list)),
 )
 
 

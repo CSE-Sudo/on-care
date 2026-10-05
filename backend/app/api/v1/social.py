@@ -2,7 +2,7 @@
 
   POST /auth/social/{provider}  { token }  ->  { access_token, refresh_token }
 
-provider(kakao/google/naver/apple)에서 토큰을 검증해 사용자를 찾거나 만들고,
+provider(kakao/google/naver)에서 토큰을 검증해 사용자를 찾거나 만들고,
 우리 서비스의 JWT(access+refresh)를 발급한다.
 """
 from __future__ import annotations

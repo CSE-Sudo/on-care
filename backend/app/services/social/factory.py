@@ -1,7 +1,6 @@
 """소셜 provider → Verifier 팩토리."""
 from __future__ import annotations
 
-from app.services.social.apple import AppleVerifier
 from app.services.social.base import SocialVerifier
 from app.services.social.google import GoogleVerifier
 from app.services.social.kakao import KakaoVerifier
@@ -11,7 +10,6 @@ _VERIFIERS: dict[str, type[SocialVerifier]] = {
     "kakao": KakaoVerifier,
     "google": GoogleVerifier,
     "naver": NaverVerifier,
-    "apple": AppleVerifier,
 }
 
 
