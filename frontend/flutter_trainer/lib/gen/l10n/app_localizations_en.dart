@@ -2398,8 +2398,31 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t search gyms. Please try again in a moment.';
 
   @override
-  String get myGymDemoNotice =>
-      'The demo shows sample gyms instead of real ones. In the live service you can find your own gym by name.';
+  String get myGymLocateAction => 'Find near my location';
+
+  @override
+  String get myGymNearbyCaption =>
+      'Gyms near your current location. Your location is not saved.';
+
+  @override
+  String get myGymNearbyEmpty =>
+      'No gyms found within 2 km of your location. Try searching by name.';
+
+  @override
+  String get myGymLocationDenied =>
+      'Allow location access to find gyms near you.';
+
+  @override
+  String get myGymLocationBlocked =>
+      'Allow location access in your browser site settings, then try again.';
+
+  @override
+  String get myGymLocationDisabled =>
+      'Turn on device location services, then try again.';
+
+  @override
+  String get myGymLocationUnavailable =>
+      'Could not get your location. Try again or search by name.';
 
   @override
   String get myGymCurrent => 'Current gym';
