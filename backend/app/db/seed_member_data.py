@@ -671,7 +671,7 @@ def _seed_schedule(db: Session, valid: set[str]) -> None:
             _safe_commit(db)
         return
     fixture_today = _fixture_pt_day(clock.today())
-    for i, (time, cname, mid, typ, dur, status, note, program) in enumerate(_SCHEDULE):
+    for i, (slot_time, cname, mid, typ, dur, status, note, program) in enumerate(_SCHEDULE):
         member_id = mid if (mid and mid in valid) else None
         if mid == load_fixture().user_app_seed_id and fixture_today is not None:
             note = fixture_today.trainer_note
@@ -681,7 +681,7 @@ def _seed_schedule(db: Session, valid: set[str]) -> None:
             trainer_id=TRAINER_ID,
             member_id=member_id,
             date=today,
-            time=time,
+            time=slot_time,
             client_name=cname,
             type=typ,
             duration_minutes=dur,

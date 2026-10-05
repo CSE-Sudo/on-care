@@ -22,6 +22,8 @@ def _prod(**kw) -> Settings:
         gemini_api_key="test-gemini-key",
         recognizer="gemini",
         embedder="gemini",
+        # 운영은 장소 검색 키가 비면 오류 로그를 남긴다(#3161).
+        kakao_rest_api_key="test-kakao-rest-key",
         # 운영은 첨부를 S3 에 둬야 기동한다(#3029).
         attachment_s3_bucket="oncare-prod",
         # 운영은 소셜 토큰의 발급 앱을 확인한다(#3035). 비우면 그 provider 로그인을
