@@ -912,7 +912,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | Method | Path | 응답 |
 |---|---|---|
 | GET | `/trainers/{trainer_id}/slots` | `[{ id, trainer_id, starts_at, capacity, remaining, is_closed, overlapped }]` |
-| POST | `/reservations` | 입력 `{ slot_id }` → `{ id, slot_id, schedule_id, status, created_at }`. 다가오는 예약(시작 전·취소되지 않은 일정)이 이미 있으면 **409** — 다음 일정은 하나이고 옮기려면 먼저 취소한다(#1072, #3240) |
+| POST | `/reservations` | 입력 `{ slot_id }` → `{ id, slot_id, schedule_id, status, created_at }`. 다가오는 예약(시작 전·취소되지 않은 일정)이 이미 있으면 **409** `detail = { code: "upcoming_reservation", message }` — 다음 일정은 하나이고 옮기려면 먼저 취소한다(#1072, #3240) |
 | GET | `/reservations/me` | `[{ id, slot_id, trainer_id, starts_at, cancellable }]` — 내 예약 (다가오는 것부터, 기본 50건·커서). 회원·트레이너가 취소한 예약은 빠진다(#2283) |
 | DELETE | `/reservations/{id}` | 취소 → `{ status: "cancelled" }` |
 

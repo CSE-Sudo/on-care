@@ -660,6 +660,8 @@ def test_a_member_keeps_only_one_upcoming_reservation(client, created_slots):
         json={"slot_id": second["id"]},
     )
     assert again.status_code == 409, again.text
+    # 앱이 마감과 구분해 안내하도록 코드를 싣는다.
+    assert again.json()["detail"]["code"] == "upcoming_reservation"
 
     cancelled = client.delete(
         f"/v1/reservations/{booked.json()['id']}", headers=_headers(member_token)
