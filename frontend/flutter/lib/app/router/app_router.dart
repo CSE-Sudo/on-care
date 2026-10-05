@@ -256,6 +256,7 @@ GoRouter buildAppRouter({
           'notifications' => const NotificationSettingsPage(),
           'terms' => const LegalDocumentPage(document: 'terms'),
           'privacy' => const LegalDocumentPage(document: 'privacy'),
+          'location' => const LegalDocumentPage(document: 'location'),
           'withdraw' => const WithdrawPage(),
           AppRoutes.passwordSettingsSection => const PasswordChangePage(),
           _ => const SupportPage(),

@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """공개 URL 로 여는 개인정보 처리방침·이용약관 페이지를 만든다(#3005).
 
+위치기반서비스 이용약관(#3136)도 같은 방식으로 `legal/location.html` 에 둔다. 위치를
+쓰는 것은 회원 앱뿐이라 이 문서에는 회원 앱 두 언어만 싣는다.
+
 앱 안의 두 문서(회원 앱·트레이너 웹의 ARB)가 원본이다. 스토어 심사와 가입 전
 안내는 앱 밖에서 열리는 주소를 요구하므로, 같은 본문을 정적 HTML 로 옮겨
 `legal/privacy.html`·`legal/terms.html` 에 둔다. 손으로 따로 고치면 앱과 공개
@@ -84,6 +87,12 @@ class Doc:
     date_key: str
     heading: str
     lead: str
+    #: 이 문서를 가진 앱. 기본은 두 앱 모두다.
+    apps: tuple[str, ...] = ("flutter", "flutter_trainer")
+
+    def sources(self) -> tuple[Source, ...]:
+        """이 문서를 싣는 앱·언어 묶음 — [SOURCES] 순서 그대로."""
+        return tuple(s for s in SOURCES if s.app in self.apps)
 
 
 DOCS: tuple[Doc, ...] = (
@@ -104,6 +113,16 @@ DOCS: tuple[Doc, ...] = (
         "이용약관",
         "On-Care 회원 앱과 트레이너 웹을 쓰는 조건을 안내합니다. "
         "앱 안의 약관과 같은 글입니다.",
+    ),
+    Doc(
+        "location",
+        "myLegalLocationTitle",
+        "myLegalLocationBody",
+        "myLegalLocationEffectiveDate",
+        "위치기반서비스 이용약관",
+        "On-Care 회원 앱의 헬스장 찾기가 기기의 현재 위치를 어떻게 쓰는지 "
+        "안내합니다. 앱 안의 약관과 같은 글입니다.",
+        apps=("flutter",),
     ),
 )
 
@@ -276,7 +295,7 @@ _STYLE = """
 def render_page(doc: Doc, contact: str, landing: Landing, root: Path = ROOT) -> str:
     sections: list[str] = []
     chips: list[str] = []
-    for source in SOURCES:
+    for source in doc.sources():
         arb = read_arb(source.app, source.lang, root)
         body = str(arb[doc.body_key]).replace("{contact}", contact)
         title = html.escape(f"{source.label} · {arb[doc.title_key]}", quote=False)

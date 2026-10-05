@@ -245,7 +245,7 @@ GitHub Actions API 에서 그 SHA 의 `main` push 에 대한 Backend CI 성공 �
 **production 필수 파라미터(#3131)**: 메일 `MailFrom`·`SmtpHost`. 운영은 가입 이메일 확인을 끌 수 없어(#3038) 메일이
 없으면 가입 인증 코드를 보낼 수 없고 신규 가입이 모두 막히므로, 둘 중 하나라도 비면 서버가 기동을 거부한다.
 
-선택 파라미터: `Cpu`(기본 1024)·`Memory`(기본 2048), `AdminEmails`, `AppleClientIds`·`GoogleClientIds`·`KakaoAppId`(#3035), 메일
+선택 파라미터: `Cpu`(기본 1024)·`Memory`(기본 2048), `AppleClientIds`·`GoogleClientIds`·`KakaoAppId`(#3035), 메일
 (`SmtpPort`·`PasswordResetMemberUrl`·`PasswordResetTrainerUrl`, staging 은 `MailFrom`·`SmtpHost` 도 선택), staging 전용
 `AllowDemoFallback`, 기본 VPC 가 아닌 곳에 둘 때 `SubnetIds`·`SecurityGroupIds`.
 
@@ -337,7 +337,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 | `PASSWORD_RESET_TRAINER_URL` | 트레이너 웹 재설정 화면 — **해시형** `https://<운영 도메인>/trainer/#/auth/password-reset`. 해시 없는 경로형(`/auth/password-reset`)은 정적 경로를 가리켜 코드가 버려진다. 운영에서 경로형·`http://` 면 기동 로그에 WARN(#3033) |
 
 **스택 파라미터로 정하는 값**: `CORS_ALLOW_ORIGINS`(https 만, `*`·빈 값·localhost 금지 — 운영 기동 거부, #3029), `GEMINI_MODEL`(아래 5-3),
-`ADMIN_EMAILS`(쓰지 않음 — 비워 둔다, 아래 "관리자 지정", #3037), 소셜 로그인 `aud`(`APPLE_CLIENT_IDS`·`GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` — 비우면 그 로그인은 401, #3035), 메일(`MAIL_FROM`·`SMTP_HOST`·`SMTP_PORT`·`PASSWORD_RESET_*_URL`).
+소셜 로그인 `aud`(`APPLE_CLIENT_IDS`·`GOOGLE_CLIENT_IDS`·`KAKAO_APP_ID` — 비우면 그 로그인은 401, #3035), 메일(`MAIL_FROM`·`SMTP_HOST`·`SMTP_PORT`·`PASSWORD_RESET_*_URL`).
 
 그 밖의 키(`LOGIN_MAX_FAILURES` 같은 시도 제한·`SENTRY_ENVIRONMENT`·DB 풀 등)는 코드 기본값이 운영 값이라
 템플릿에 넣지 않았다(사유는 `tests/test_env_aws_example.py`, #3034). 바꿔야 하면 템플릿에 키를 더하고
@@ -370,8 +370,8 @@ CREATE EXTENSION IF NOT EXISTS vector;
 ### 관리자 지정 (#3037)
 
 관리자는 환경 변수로 정하지 않는다. 예전 `ADMIN_EMAILS` 는 기동할 때 그 주소로 가입된 계정을
-올려, 운영자보다 **먼저 그 주소로 가입한 사람**이 관리자가 됐다. 이제 값이 남아 있으면 기동 로그에
-경고만 하고 아무도 올리지 않는다. 운영 DB 에 붙은 셸에서 다음 순서로 지정한다.
+올려, 운영자보다 **먼저 그 주소로 가입한 사람**이 관리자가 됐다. 그 설정과 템플릿 파라미터(`AdminEmails`)는
+지웠다(#3162) — 예전 환경에 값이 남아 있어도 알 수 없는 키로 무시되고 아무도 올리지 않는다. 운영 DB 에 붙은 셸에서 다음 순서로 지정한다.
 
 ```bash
 python -m scripts.grant_admin --email ops@example.com                       # 1) 조회만: id·가입일·역할·인증 시각
@@ -502,6 +502,9 @@ Fargate 태스크의 디스크는 재배포·재시작 때 비므로 운영은 S
       배포한 커밋). 실패했다면 `Roll back to previous image` 단계 결과와 잡 요약을 본다.
 - [ ] 기동 로그에 `[startup]` WARN 이 없다(데모 폴백, staging 의 로컬 첨부 저장소). 운영 데모 시드·운영
       로컬 첨부 저장소는 WARN 이 아니라 기동 거부다.
+- [ ] **헬스장 찾기가 비지 않는다(#3161).** 기동 로그에 `KAKAO_REST_API_KEY`·`PLACES_PROVIDER=seed` 를 말하는
+      `[startup]` ERROR 가 없다. 키가 비거나 `PLACES_PROVIDER=seed` 면 서버는 뜨지만 회원 앱 헬스장 찾기가
+      항상 빈 목록이다(데모 장소는 빼고 읽음, #2914). 배포 뒤 회원 앱에서 한 번 검색해 결과가 나오는지 본다.
 - [ ] **AI 비용 상한이 정해져 있다(#3032).** `GEMINI_API_KEY` 가 결제가 연결된 프로젝트의 키다
       (무료 등급 금지). 공급자 콘솔에 예산 알림을 걸고, 그 예산으로 `AI_GLOBAL_CALLS_PER_DAY` 를 0 이
       아닌 값으로 둔다. 운영 중에는 `ai_calls.rejected{reason=global_cap}` 메트릭이 늘면 상한이나

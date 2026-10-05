@@ -14,7 +14,9 @@ import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/gym_location_controller.dart';
+import 'package:oncare/features/exercise/presentation/controllers/location_consent_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/gym_trainer_line.dart';
+import 'package:oncare/features/exercise/presentation/widgets/location_consent_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare/shared/widgets/member_tab_header.dart';
@@ -107,8 +109,19 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
 
   /// 이미 허용된 권한이면 화면을 열 때 **조용히** 위치를 얻는다(#3044). 권한 창은
   /// 띄우지 않는다 — 묻는 것은 회원이 [위치 사용]·현재 위치 버튼을 눌렀을 때뿐이다.
+  ///
+  /// 위치정보 이용 동의가 없으면 OS 권한 상태도 보지 않는다(#3136). 이번 실행에서
+  /// 처음 연 것이면 동의 시트를 한 번 띄우고, 동의하면 [위치 사용] 을 누른 것처럼
+  /// 이어 간다. 데모 세션은 신촌을 회원 위치처럼 쓰므로 여기까지 오지 않는다.
   Future<void> _locateIfAllowed() async {
     if (!mounted || ref.read(gymSearchAreaProvider).isUserLocation) return;
+    if (!await _hasConsent()) {
+      if (!mounted || ref.read(locationConsentPromptedProvider)) return;
+      ref.read(locationConsentPromptedProvider.notifier).state = true;
+      await _useLocation();
+      return;
+    }
+    if (!mounted) return;
     final GymLocationAccess access = await ref
         .read(gymLocationServiceProvider)
         .checkAccess();
@@ -117,8 +130,40 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
     if (access == GymLocationAccess.granted) await _locate(silent: true);
   }
 
+  /// 위치정보 이용 동의가 있는가(#3136). 읽지 못하면 없는 것으로 본다.
+  Future<bool> _hasConsent() async {
+    try {
+      return await ref.read(locationConsentProvider.future);
+    } on Object {
+      return false;
+    }
+  }
+
+  /// 동의가 없으면 동의 시트를 띄우고, 동의하면 서버에 남긴다(#3136). 동의가
+  /// 있거나 이번에 남겼으면 `true` — 그때만 OS 권한 창·위치 읽기로 넘어간다.
+  Future<bool> _ensureConsent() async {
+    if (await _hasConsent()) return true;
+    if (!mounted) return false;
+    if (!await showLocationConsentSheet(context)) return false;
+    final bool saved = await ref.read(locationConsentProvider.notifier).agree();
+    if (!saved && mounted) {
+      AppToastHost.of(context).show(
+        AppLocalizations.of(context).locationConsentSaveFailed,
+        type: AppToastType.error,
+      );
+    }
+    return saved && mounted;
+  }
+
+  /// 현재 위치 버튼 — 동의를 먼저 확인한다(#3136).
+  Future<void> _locateWithConsent() async {
+    if (await _ensureConsent()) await _locate();
+  }
+
   /// 위치를 얻어 기준 좌표를 회원 위치로 바꾼다. [silent] 면 실패해도 알리지
   /// 않는다 — 회원이 누르지 않았는데 오류 토스트가 뜨면 안 된다.
+  ///
+  /// 동의 확인([_ensureConsent])을 거친 경로에서만 부른다.
   Future<void> _locate({bool silent = false}) async {
     if (_locating) return;
     setState(() => _locating = true);
@@ -174,12 +219,14 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
       (_access == GymLocationAccess.blocked ||
           _access == GymLocationAccess.disabled);
 
-  void _useLocation() {
+  Future<void> _useLocation() async {
+    // 동의 전에는 권한 창도, 설정 화면도 열지 않는다(#3136).
+    if (!await _ensureConsent()) return;
     if (_opensSettings) {
-      ref.read(gymLocationServiceProvider).openSettingsFor(_access);
+      await ref.read(gymLocationServiceProvider).openSettingsFor(_access);
       return;
     }
-    _locate();
+    await _locate();
   }
 
   String _query = '';
@@ -290,7 +337,7 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
                       AppIconButton(
                         key: const Key('gym-current-location'),
                         tooltip: l.gymLocateAction,
-                        onPressed: _locating ? null : _locate,
+                        onPressed: _locating ? null : _locateWithConsent,
                         icon: AppIcons.location,
                         glyph: _locating ? const AppLoading.inline() : null,
                       ),
