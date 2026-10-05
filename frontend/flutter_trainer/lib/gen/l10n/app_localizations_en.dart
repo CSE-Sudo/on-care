@@ -3575,6 +3575,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authErrNotTrainer => 'Please sign in with a trainer account.';
 
   @override
+  String get authErrTooManyAttempts =>
+      'Too many attempts. Please try again in a moment.';
+
+  @override
+  String authErrTooManyAttemptsMinutes(int minutes) {
+    return 'Too many attempts. Please try again in $minutes min.';
+  }
+
+  @override
+  String get authErrSignedUpSignInFailed =>
+      'Your account was created. Please sign in.';
+
+  @override
   String aiBasisGoalCompletion(String goal, int rate) {
     return '$goal · based on $rate% completion';
   }

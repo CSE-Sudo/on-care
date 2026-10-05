@@ -488,10 +488,17 @@ class _MyPageState extends ConsumerState<MyPage> {
     );
     if (!confirmed || !mounted) return;
     setState(() => _removingClients.add(client.id));
+    // 해제하는 사이 MY 를 떠나도 명단·일정은 다시 읽어야 한다. 해제된 화면의
+    // `ref` 는 StateError 를 내고 아래 catch 가 삼켜, 해제한 회원이 명단에
+    // 남았다(#3248). 컨테이너는 앱과 수명이 같다.
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     try {
       await ref.read(clientRepositoryProvider).removeClient(client.id);
-      ref.invalidate(clientsProvider);
-      invalidateClientVisibilityDependentViews(ref);
+      container.invalidate(clientsProvider);
+      invalidateClientVisibilityDependentViewsIn(container);
       if (!mounted) return;
       showAppToast(context, l.myClientRemoveSuccess);
     } catch (_) {

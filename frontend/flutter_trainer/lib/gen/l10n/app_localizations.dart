@@ -6211,6 +6211,24 @@ abstract class AppLocalizations {
   /// **'Please sign in with a trainer account.'**
   String get authErrNotTrainer;
 
+  /// No description provided for @authErrTooManyAttempts.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please try again in a moment.'**
+  String get authErrTooManyAttempts;
+
+  /// No description provided for @authErrTooManyAttemptsMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please try again in {minutes} min.'**
+  String authErrTooManyAttemptsMinutes(int minutes);
+
+  /// No description provided for @authErrSignedUpSignInFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account was created. Please sign in.'**
+  String get authErrSignedUpSignInFailed;
+
   /// No description provided for @aiBasisGoalCompletion.
   ///
   /// In en, this message translates to:

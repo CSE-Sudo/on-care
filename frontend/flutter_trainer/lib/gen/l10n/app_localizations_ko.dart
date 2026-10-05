@@ -3388,6 +3388,17 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrNotTrainer => '트레이너 계정으로 로그인해 주세요.';
 
   @override
+  String get authErrTooManyAttempts => '시도가 너무 많아 잠시 막혔어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String authErrTooManyAttemptsMinutes(int minutes) {
+    return '시도가 너무 많아 잠시 막혔어요. $minutes분 뒤에 다시 시도해 주세요.';
+  }
+
+  @override
+  String get authErrSignedUpSignInFailed => '가입은 완료됐어요. 로그인해 주세요.';
+
+  @override
   String aiBasisGoalCompletion(String goal, int rate) {
     return '$goal · 완료율 $rate% 기준';
   }

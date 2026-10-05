@@ -2300,6 +2300,16 @@
   "slotNotFound": "Booking slot not found.",
   "slotTypeLockedByBooking": "Can't change the type of a slot that's already booked.",
   "authErrNotTrainer": "Please sign in with a trainer account.",
+  "authErrTooManyAttempts": "Too many attempts. Please try again in a moment.",
+  "authErrTooManyAttemptsMinutes": "Too many attempts. Please try again in {minutes} min.",
+  "@authErrTooManyAttemptsMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "authErrSignedUpSignInFailed": "Your account was created. Please sign in.",
   "aiBasisGoalCompletion": "{goal} · based on {rate}% completion",
   "@aiBasisGoalCompletion": {
     "placeholders": {

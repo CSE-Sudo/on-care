@@ -297,9 +297,15 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
+      // 보는 쪽이 있어야 산다(#3248) — 화면처럼 듣고 있는 상태에서 본다.
+      final reservations = container.listen(
+        todayReservationCountProvider,
+        (_, _) {},
+      );
+      addTearDown(reservations.close);
 
       await container.read(todayScheduleProvider.future);
-      expect(container.read(todayReservationCountProvider).value, 4);
+      expect(reservations.read().value, 4);
     });
 
     // 배지는 '남은 일감' 을 말한다. 시드의 오늘은 완료 2 · 공백 2 · 예정 2 라
@@ -313,12 +319,22 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
+      final pending = container.listen(
+        todayPendingSessionCountProvider,
+        (_, _) {},
+      );
+      final reservations = container.listen(
+        todayReservationCountProvider,
+        (_, _) {},
+      );
+      addTearDown(pending.close);
+      addTearDown(reservations.close);
 
       final sessions = await container.read(todayScheduleProvider.future);
       expect(sessions.where((s) => s.isDone).length, 2, reason: '시드 전제');
 
-      expect(container.read(todayPendingSessionCountProvider).value, 2);
-      expect(container.read(todayReservationCountProvider).value, 4);
+      expect(pending.read().value, 2);
+      expect(reservations.read().value, 4);
     });
 
     test('스케줄을 못 읽으면 배지도 값 없음으로 남는다', () async {
@@ -334,15 +350,17 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
+      final pending = container.listen(
+        todayPendingSessionCountProvider,
+        (_, _) {},
+      );
+      addTearDown(pending.close);
 
       await expectLater(
         container.read(todayScheduleProvider.future),
         throwsStateError,
       );
-      expect(
-        container.read(todayPendingSessionCountProvider).valueOrNull,
-        isNull,
-      );
+      expect(pending.read().valueOrNull, isNull);
     });
 
     test('스케줄을 못 읽으면 0 이 아니라 값 없음으로 남는다', () async {
@@ -357,12 +375,41 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
+      final reservations = container.listen(
+        todayReservationCountProvider,
+        (_, _) {},
+      );
+      addTearDown(reservations.close);
 
       await expectLater(
         container.read(todayScheduleProvider.future),
         throwsStateError,
       );
-      expect(container.read(todayReservationCountProvider).valueOrNull, isNull);
+      expect(reservations.read().valueOrNull, isNull);
+    });
+
+    // 로그아웃으로 사이드바가 사라지면 오늘 스케줄 폴링도 멈춰야 한다(#3248).
+    test('배지를 보는 쪽이 없어지면 오늘 스케줄도 놓는다', () async {
+      final container = ProviderContainer(
+        overrides: <Override>[
+          scheduleRepositoryProvider.overrideWithValue(
+            DriftScheduleRepository(db),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      final pending = container.listen(
+        todayPendingSessionCountProvider,
+        (_, _) {},
+      );
+      await container.read(todayScheduleProvider.future);
+      expect(container.exists(todayScheduleProvider), isTrue);
+
+      pending.close();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(container.exists(todayPendingSessionCountProvider), isFalse);
+      expect(container.exists(todayScheduleProvider), isFalse);
     });
   });
 

@@ -182,10 +182,133 @@ void main() {
     });
   });
 
+  // 시도 제한(429)은 알 수 없는 오류가 아니다 — 잠긴 줄 알려야 다시 누르지
+  // 않는다(#3248).
+  group('429', () {
+    DioException rateLimited(String path, {String? retryAfter}) => DioException(
+      requestOptions: RequestOptions(path: path),
+      type: DioExceptionType.badResponse,
+      response: Response<Object?>(
+        requestOptions: RequestOptions(path: path),
+        statusCode: 429,
+        data: <String, Object?>{'detail': '요청이 너무 많습니다.'},
+        headers: Headers.fromMap(<String, List<String>>{
+          if (retryAfter != null) 'retry-after': <String>[retryAfter],
+        }),
+      ),
+    );
+
+    test('로그인 잠금은 tooManyAttempts 와 남은 시간이다', () async {
+      when(
+        () => dio.post<Map<String, Object?>>(
+          '/auth/login',
+          data: any(named: 'data'),
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(rateLimited('/auth/login', retryAfter: '900'));
+
+      await expectLater(
+        repo.login(email: 'e@x.com', password: 'pw'),
+        throwsA(
+          isA<AuthException>()
+              .having((e) => e.failure, 'failure', AuthFailure.tooManyAttempts)
+              .having(
+                (e) => e.retryAfter,
+                'retryAfter',
+                const Duration(minutes: 15),
+              ),
+        ),
+      );
+    });
+
+    test('Retry-After 가 없으면 남은 시간은 모름이다', () async {
+      when(
+        () => dio.post<Map<String, Object?>>(
+          '/auth/login',
+          data: any(named: 'data'),
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(rateLimited('/auth/login'));
+
+      await expectLater(
+        repo.login(email: 'e@x.com', password: 'pw'),
+        throwsA(
+          isA<AuthException>()
+              .having((e) => e.failure, 'failure', AuthFailure.tooManyAttempts)
+              .having((e) => e.retryAfter, 'retryAfter', isNull),
+        ),
+      );
+    });
+
+    test('가입 429 도 tooManyAttempts 다 — "로그인 중 문제" 가 아니다', () async {
+      when(
+        () => dio.post<Map<String, Object?>>(
+          '/auth/trainer/register',
+          data: any(named: 'data'),
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(rateLimited('/auth/trainer/register', retryAfter: '60'));
+
+      await expectLater(
+        repo.register(
+          email: 'e@x.com',
+          password: 'pw',
+          name: '김',
+          emailCode: '123456',
+        ),
+        throwsA(
+          isA<AuthException>().having(
+            (e) => e.failure,
+            'failure',
+            AuthFailure.tooManyAttempts,
+          ),
+        ),
+      );
+    });
+  });
+
   group('register', () {
     // 회원용 `/auth/register` 가 아니라 트레이너 전용 경로다 — 그쪽은
     // role='member' 를 만들어 `/trainer/me` 가 403 인 계정이 생겼다. (#475)
     const String path = '/auth/trainer/register';
+
+    test('계정을 만든 뒤 로그인이 실패하면 signedUpSignInFailed 다 (#3248)', () async {
+      when(
+        () => dio.post<Map<String, Object?>>(
+          path,
+          data: any(named: 'data'),
+          options: any(named: 'options'),
+        ),
+      ).thenAnswer((_) async => _ok(<String, Object?>{'id': 'u1'}, path));
+      when(
+        () => dio.post<Map<String, Object?>>(
+          '/auth/login',
+          data: any(named: 'data'),
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/auth/login'),
+          type: DioExceptionType.connectionError,
+        ),
+      );
+
+      await expectLater(
+        repo.register(
+          email: 'e@x.com',
+          password: 'pw',
+          name: '김',
+          emailCode: '123456',
+        ),
+        throwsA(
+          isA<AuthException>().having(
+            (e) => e.failure,
+            'failure',
+            AuthFailure.signedUpSignInFailed,
+          ),
+        ),
+      );
+    });
 
     test('maps 409 to a duplicate-email AuthException', () async {
       when(

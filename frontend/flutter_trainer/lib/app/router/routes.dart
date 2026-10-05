@@ -353,6 +353,9 @@ class AppRoutes {
     my,
     legacyConsultations,
     notifications,
+    // 운영 화면도 새로 고침 뒤 제자리로 돌아온다(#3248). 운영자가 아니면 화면이
+    // 찾을 수 없음 안내만 그린다.
+    adminReports,
   ];
 
   /// Is [location] an in-app destination the app may return to?
