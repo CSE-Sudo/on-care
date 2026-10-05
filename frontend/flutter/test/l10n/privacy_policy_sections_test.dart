@@ -176,6 +176,58 @@ void main() {
     });
   });
 
+  group('소셜 로그인 수단 (#3217)', () {
+    // 애플 로그인은 제공하지 않는다 — 유료 Apple Developer 계정을 쓰지 않기로 했다.
+    // 처리방침이 쓰지 않는 수집 경로를 적으면 사실과 다른 고지가 된다.
+    test('수집 항목에 카카오·구글·네이버만 적는다', () {
+      final String k = ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
+      final String e = en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
+      expect(k, contains('소셜 로그인(카카오·구글·네이버)으로 가입하면'));
+      expect(e, contains('social login (Kakao, Google or Naver)'));
+    });
+
+    test('애플은 제외를 알리는 개정 이력에만 남는다', () {
+      final List<String> koLines = ko
+          .myLegalPrivacyBody(LegalContact.privacyOfficerEmail)
+          .split('\n')
+          .where((String line) => line.contains('애플'))
+          .toList();
+      expect(koLines, <String>[
+        '- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경, 소셜 로그인 수단에서 애플 제외',
+      ]);
+      final List<String> enLines = en
+          .myLegalPrivacyBody(LegalContact.privacyOfficerEmail)
+          .split('\n')
+          .where((String line) => line.contains('Apple'))
+          .toList();
+      const String enRevision =
+          '- 5 October 2026: changed the contact address of the personal '
+          'information protection officer, and removed Apple from the social '
+          'login options';
+      expect(enLines, <String>[enRevision]);
+    });
+
+    test('미배포 판에 합쳐 시행일은 그대로다', () {
+      // 2026-10-05 판(#3132)이 아직 배포되지 않아 같은 날짜 개정에 합쳤다.
+      // 시행일과 서버 동의 버전(`CURRENT_VERSIONS`)이 함께 2026-10-05 로 남는다.
+      expect(
+        ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+        contains('시행일: 2026년 10월 5일'),
+      );
+      expect(
+        en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+        contains('Effective date: 5 October 2026'),
+      );
+      expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 05.');
+      expect(en.myLegalPrivacyEffectiveDate, 'Effective Oct 5, 2026');
+    });
+
+    test('이용약관에는 소셜 로그인 수단으로 애플이 없다', () {
+      expect(ko.myLegalTermsBody, isNot(contains('애플')));
+      expect(en.myLegalTermsBody, isNot(contains('Apple')));
+    });
+  });
+
   group('보관 기간과 파기', () {
     test('감사 기록 보관 기간(1년·2년)이 서버 설정과 같다', () {
       expect(
