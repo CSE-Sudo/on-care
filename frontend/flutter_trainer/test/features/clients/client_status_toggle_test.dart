@@ -108,7 +108,8 @@ void main() {
     await tester.tap(_badge);
     await settle(tester);
 
-    expect(find.textContaining('상태를 바꾸지 못했어요'), findsOneWidget);
+    // 연결 오류는 원인별 안내다 — Dio 영어 원문이 아니다.
+    expect(find.textContaining('연결이 불안정합니다'), findsOneWidget);
     // 서버가 받지 않은 값이 화면에 확정처럼 남지 않는다.
     expect(find.descendant(of: _badge, matching: find.text('휴면')), findsOne);
 

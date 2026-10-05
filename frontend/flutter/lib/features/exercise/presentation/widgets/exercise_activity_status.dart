@@ -10,6 +10,7 @@ import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/exercise_goals_provider.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -1321,12 +1322,13 @@ class _AllPeriodView extends ConsumerWidget {
           loading: () => const _Card(child: Center(child: AppLoading.inline())),
           // 문구만 두면 빠져나갈 길이 없다 — 탭을 옮겨 와도 같은 오류가 남는다.
           // 다시 받을 버튼을 둔다(#2879).
-          error: (Object _, StackTrace _) => _Card(
+          error: (Object error, StackTrace _) => _Card(
             child: Center(
-              child: AppErrorState(
+              child: appErrorStateFor(
+                context,
                 key: const Key('exercise-all-period-error'),
+                error: error,
                 title: l.exLoadError,
-                retryLabel: l.actionRetry,
                 retryKey: const Key('exercise-all-period-retry'),
                 onRetry: () => ref.invalidate(exerciseAllPeriodProvider),
                 placement: AppStatePlacement.inline,
