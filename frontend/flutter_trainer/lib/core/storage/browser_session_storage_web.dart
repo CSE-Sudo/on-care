@@ -49,7 +49,7 @@ void _claimTab(TokenSessionStorage session) {
       TokenKeyspace.trainer.refreshKey,
     ],
     newTabId: _newTabId,
-    now: DateTime.now(),
+    now: _epochNow(),
   );
   // 떠날 때 표시를 지우고, 뒤로 가기 캐시에서 돌아오면 다시 남긴다.
   web.window.addEventListener(
@@ -67,7 +67,7 @@ void _claimTab(TokenSessionStorage session) {
     ((web.PageTransitionEvent event) {
       if (!event.persisted) return;
       try {
-        BrowserTabClaim.mark(markers, id, DateTime.now());
+        BrowserTabClaim.mark(markers, id, _epochNow());
       } on Object {
         // 위와 같다.
       }
@@ -117,3 +117,8 @@ class _LocalTabMarkers implements TabMarkerStore {
     for (int i = 0; i < _storage.length; i++) ?_storage.key(i),
   ];
 }
+
+/// 탭 표시용 지금 시각. 표시는 epoch 밀리초로 저장·비교하므로(`BrowserTabClaim`)
+/// 시간대와 무관하다 — KST 벽시계(`nowKst()`)가 아니라 epoch 값 그대로 쓴다.
+DateTime _epochNow() =>
+    DateTime.fromMillisecondsSinceEpoch(DateTime.now().millisecondsSinceEpoch);
