@@ -1563,6 +1563,13 @@ class TrainerClientInvite(Base):
         Index(
             "ix_trainer_client_invites_member_status", "member_id", "status"
         ),
+        # 마이그레이션 0050 의 제약과 같은 이름·식이다(#3251). 모델에 없으면
+        # `create_all` 로 만드는 테스트 DB 가 잘못된 상태값을 받아 운영과 달라진다.
+        # 운영 DB 에는 이미 있어 새 마이그레이션은 필요 없다.
+        CheckConstraint(
+            "status IN ('pending', 'accepted', 'rejected', 'cancelled')",
+            name="ck_trainer_client_invite_status",
+        ),
     )
 
 
