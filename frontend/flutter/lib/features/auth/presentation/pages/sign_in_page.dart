@@ -10,8 +10,10 @@ import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/auth/presentation/sign_in_failure.dart';
 import 'package:oncare/features/auth/presentation/social_provider_token.dart';
+import 'package:oncare/features/auth/presentation/trainer_web_address.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// 로그인 화면 로고의 한 변. 인증 틀 안에서 가장 먼저 눈에 드는 그림이다.
 const double _kLogoSize = 128;
@@ -118,6 +120,8 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
+      // 트레이너 계정은 토스트 대신 화면 위 안내가 남는다(#3137).
+      if (e is TrainerAccountSignInRejected) return;
       // 비밀번호 탓은 서버가 자격 증명을 거절했을 때만 한다(#1940).
       showAppToast(
         context,
@@ -159,9 +163,10 @@ class _SignInPageState extends ConsumerState<SignInPage> {
           .socialLogin(provider: provider, token: token);
       final String next = await firstRouteAfterSignIn(container);
       if (next != AppRoutes.dashboard) router?.go(next);
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
+      if (e is TrainerAccountSignInRejected) return;
       showAppToast(context, l.authSocialSignInFailed, type: AppToastType.error);
     }
   }
@@ -191,6 +196,12 @@ class _SignInPageState extends ConsumerState<SignInPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
+            // 트레이너 계정으로 로그인하려 했다(#3137). 다음 로그인 시도까지
+            // 남겨, 같은 계정으로 다시 시도하지 않고 트레이너 웹으로 가게 한다.
+            if (ref.watch(trainerAccountNoticeProvider)) ...<Widget>[
+              _TrainerAccountNotice(address: trainerWebAddress()),
+              const SizedBox(height: OnCareSpacing.s16),
+            ],
             AppTextField(
               key: const ValueKey<String>('member-login-email'),
               controller: _email,
@@ -328,6 +339,32 @@ class _SignInPageState extends ConsumerState<SignInPage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 트레이너 계정 안내 — 회원 앱 대신 트레이너 웹을 쓰라고 알린다. (#3137)
+///
+/// 웹 빌드는 같은 배포의 트레이너 웹을 여는 버튼을 단다. 모바일 앱은 열 주소를
+/// 정할 기준이 없어 문구만 보인다.
+class _TrainerAccountNotice extends StatelessWidget {
+  const _TrainerAccountNotice({required this.address});
+
+  final Uri? address;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final Uri? target = address;
+    return AppBanner(
+      key: const ValueKey<String>('member-login-trainer-account'),
+      tone: AppBannerTone.caution,
+      title: l.authTrainerAccountTitle,
+      message: l.authTrainerAccountMessage,
+      actionLabel: target == null ? null : l.authTrainerAccountOpenWeb,
+      onAction: target == null
+          ? null
+          : () => launchUrl(target, webOnlyWindowName: '_self'),
     );
   }
 }

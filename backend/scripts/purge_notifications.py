@@ -7,7 +7,9 @@
 **읽은 알림 중 만들어진 지 90일이 지난 것**뿐이다. 미확인 알림은 아무리 오래돼도
 남긴다(사용자가 못 본 알림을 서버가 지우면 무엇이 사라졌는지 알 길이 없다).
 
-자동으로 돌지 않는다. 삭제는 되돌릴 수 없어서 사람이 실행한다.
+기본 기준(90일)의 정리는 백엔드가 기동 때와 하루마다 스스로 돈다
+(`app/services/retention.py`, #3144). 이 명령은 대상을 먼저 보거나(`--dry-run`), 기준을
+바꾸거나, 한 사람만 정리할 때 쓴다.
 
     python -m scripts.purge_notifications --dry-run     # 대상만 본다
     python -m scripts.purge_notifications               # 실제로 지운다

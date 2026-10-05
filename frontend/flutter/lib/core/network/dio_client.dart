@@ -8,6 +8,7 @@ import 'package:oncare/core/network/client_platform.dart';
 import 'package:oncare/core/network/consent_gate.dart';
 import 'package:oncare/core/network/interceptors/api_logging_interceptor.dart';
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
+import 'package:oncare/core/network/request_timeouts.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
@@ -26,9 +27,10 @@ final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
       baseUrl: config.apiBaseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 15),
-      sendTimeout: const Duration(seconds: 10),
+      connectTimeout: apiConnectTimeout,
+      receiveTimeout: apiReceiveTimeout,
+      // 사진 업로드는 요청 단위로 늘린다(`photoUploadSendTimeout`, #3141).
+      sendTimeout: apiSendTimeout,
       contentType: Headers.jsonContentType,
       // 웹 빌드는 자기가 웹이라고 알린다 — 서버가 짧은 refresh 토큰을 준다(#2828).
       headers: clientPlatformHeaders(),

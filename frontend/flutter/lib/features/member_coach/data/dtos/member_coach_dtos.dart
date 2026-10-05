@@ -56,6 +56,9 @@ CoachRoutine coachRoutineFromJson(Map<String, Object?> json) {
     // null 이라 화면이 예전처럼 분으로 떨어진다(#1901).
     sets: json['sets'] is num ? (json['sets']! as num).toInt() : null,
     reps: json['reps'] is num ? (json['reps']! as num).toInt() : null,
+    // 버티는 운동의 초(#3138). 서버가 `reps` 와 한 자리를 나눠 쓰므로, 이 값이
+    // 있으면 횟수는 비어 온다.
+    holdSeconds: _positiveIntOrNull(json['hold_seconds']),
     weight: json['weight'] is num ? (json['weight']! as num).toDouble() : null,
     // 완료 응답(`RoutineCompleteOut`)에만 있다(#1786).
     pointsAward: PointsAward.fromJson(json['points']),
@@ -90,6 +93,7 @@ CoachRoutineExercise _coachRoutineExercise(Map<String, Object?> entry) {
     name: _str(entry['name']),
     sets: _intOrNull(entry['sets']),
     reps: _intOrNull(entry['reps']),
+    holdSeconds: _positiveIntOrNull(entry['hold_seconds']),
     weight: _doubleOrNull(entry['weight']),
     duration: duration,
     durationSeconds: _durationSeconds(entry['duration_seconds'], duration),
@@ -147,6 +151,7 @@ CoachSession coachSessionFromJson(Map<String, Object?> json) {
                     item['duration_seconds'],
                     duration,
                   ),
+                  holdSeconds: _positiveIntOrNull(item['hold_seconds']),
                 );
               })
               .toList(growable: false)

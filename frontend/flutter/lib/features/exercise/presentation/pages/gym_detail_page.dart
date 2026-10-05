@@ -16,6 +16,7 @@ import 'package:oncare/features/exercise/presentation/widgets/consult_linked_not
 import 'package:oncare/features/exercise/presentation/widgets/trainer_reason_badges.dart';
 import 'package:oncare/features/exercise/presentation/widgets/trainer_report_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 상세 머리의 헬스장 아이콘 상자 한 변.
@@ -62,9 +63,10 @@ class GymDetailPage extends ConsumerWidget {
     } else if (nearbyAsync.isLoading || myGymAsync.isLoading) {
       body = const AppLoading();
     } else if (nearbyAsync.hasError || myGymAsync.hasError) {
-      body = AppErrorState(
+      body = appErrorStateFor(
+        context,
+        error: nearbyAsync.error ?? myGymAsync.error,
         title: l.exGymsLoadError,
-        retryLabel: l.actionRetry,
         onRetry: () {
           ref.invalidate(gymFinderResultsProvider);
           ref.invalidate(myGymProvider);
@@ -339,10 +341,11 @@ class _TrainerPickerSheet extends ConsumerWidget {
           key: Key('gym-consult-trainer-loading'),
           placement: AppStatePlacement.card,
         ),
-        error: (Object _, StackTrace _) => AppErrorState(
+        error: (Object error, StackTrace _) => appErrorStateFor(
+          context,
           key: const Key('gym-consult-trainer-error'),
+          error: error,
           title: l.exGymTrainersLoadError,
-          retryLabel: l.actionRetry,
           onRetry: () => ref.invalidate(gymTrainersProvider(gym.id)),
           placement: AppStatePlacement.card,
         ),
@@ -427,10 +430,11 @@ class _AffiliatedTrainers extends ConsumerWidget {
       return _DetailSection(
         icon: AppIcons.person,
         title: l.exAffiliatedTrainer,
-        child: AppErrorState(
+        child: appErrorStateFor(
+          context,
           key: const Key('gym-detail-trainers-error'),
+          error: trainersAsync.error,
           title: l.exGymTrainersLoadError,
-          retryLabel: l.actionRetry,
           onRetry: () => ref.invalidate(gymTrainersProvider(gymId)),
           placement: AppStatePlacement.inline,
         ),

@@ -7,6 +7,7 @@ import 'package:oncare/features/member_coach/domain/repositories/emote_repositor
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_core/request_id.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -155,9 +156,10 @@ class _EmoteSheetState extends ConsumerState<_EmoteSheet> {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           if (async.hasError && state == null)
-            AppErrorState(
+            appErrorStateFor(
+              context,
+              error: async.error,
               title: l.emoteLoadFailed,
-              retryLabel: l.actionRetry,
               onRetry: () => ref.invalidate(emoteStateProvider),
             )
           else if (state == null)

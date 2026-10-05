@@ -21,6 +21,7 @@ import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 class GymTab extends ConsumerWidget {
@@ -138,26 +139,30 @@ class _MyGymSection extends StatelessWidget {
   final VoidCallback onRetry;
   final VoidCallback? onTrainerChatTap;
 
-  Widget _error(AppLocalizations l) => AppCard(
-    child: AppErrorState(
-      title: l.exGymsLoadError,
-      retryLabel: l.actionRetry,
-      onRetry: onRetry,
-      placement: AppStatePlacement.card,
-    ),
-  );
+  /// [error] 는 조회를 실패하게 한 오류다. 연결된 헬스장이 없는데 이 자리에 온
+  /// 경우는 오류가 없어(null) 원인 없이 제목만 남는다(#3140).
+  Widget _error(BuildContext context, AppLocalizations l, Object? error) =>
+      AppCard(
+        child: appErrorStateFor(
+          context,
+          error: error,
+          title: l.exGymsLoadError,
+          onRetry: onRetry,
+          placement: AppStatePlacement.card,
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return gymAsync.when(
       loading: () => const AppLoading(placement: AppStatePlacement.card),
-      error: (Object _, StackTrace _) => _error(l),
+      error: (Object error, StackTrace _) => _error(context, l, error),
       // 연결된 헬스장이 없는 경우는 이 위젯에 오지 않는다 — 탭이 찾기 화면을
       // 대신 그린다 (#1133). 그래도 방어적으로 빈 상태를 오류처럼 다루지 않고
       // 재시도 자리를 남긴다.
       data: (Gym? gym) => gym == null
-          ? _error(l)
+          ? _error(context, l, null)
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[

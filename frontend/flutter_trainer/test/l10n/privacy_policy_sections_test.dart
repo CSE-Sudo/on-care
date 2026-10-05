@@ -189,11 +189,11 @@ void main() {
   test('시행일이 자리표시자가 아니고 두 언어가 같으며 개정 이력이 있다', () {
     expect(
       ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-      contains('시행일: 2026년 10월 3일'),
+      contains('시행일: 2026년 10월 5일'),
     );
     expect(
       en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
-      contains('Effective: October 3, 2026'),
+      contains('Effective: October 5, 2026'),
     );
     expect(
       ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
@@ -211,8 +211,44 @@ void main() {
       en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
       contains('October 1, 2026: first issued'),
     );
-    expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 03.');
-    expect(en.myLegalPrivacyEffectiveDate, 'Effective Oct 3, 2026');
+    expect(ko.myLegalPrivacyEffectiveDate, '시행일 2026. 10. 05.');
+    expect(en.myLegalPrivacyEffectiveDate, 'Effective Oct 5, 2026');
+  });
+
+  test('보호책임자 연락처 변경이 개정 이력의 맨 위에 있다 (#3132)', () {
+    final String k = ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
+    final String e = en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail);
+    expect(k, contains('- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경'));
+    expect(
+      e,
+      contains(
+        '- October 5, 2026: changed the contact address of the privacy officer',
+      ),
+    );
+    expect(k.indexOf('2026년 10월 5일:'), lessThan(k.indexOf('2026년 10월 3일:')));
+    expect(
+      e.indexOf('October 5, 2026:'),
+      lessThan(e.indexOf('October 3, 2026:')),
+    );
+  });
+
+  test('보호책임자 연락처가 팀 수신 주소로 채워진다 (#3132)', () {
+    expect(LegalContact.privacyOfficerEmail, 'sudo.capstone@gmail.com');
+    expect(
+      ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('연락처: sudo.capstone@gmail.com'),
+    );
+    expect(
+      en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      contains('Contact: sudo.capstone@gmail.com'),
+    );
+    for (final String body in <String>[
+      ko.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+      en.myLegalPrivacyBody(LegalContact.privacyOfficerEmail),
+    ]) {
+      expect(body, isNot(contains('{contact}')));
+      expect(body, isNot(contains('@oncare.com')));
+    }
   });
 
   test('약관 시행일은 처리방침과 따로 간다', () {
