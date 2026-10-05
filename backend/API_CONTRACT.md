@@ -1267,7 +1267,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/trainer/clients/{member_id}/report/send` | `{ week_start?, message? }` → **201** `ChatMessageOut` — 리포트를 회원 채팅으로 보낸다 |
 | POST | `/trainer/pairing-code/preview` | `{ code }` → `{ member_id, name, gender, age, goal }` — 연결하지 않고 보여 준다(#1634) |
 | POST | `/trainer/pairing-code` | `{ code }` → 같은 모양 — 6자리 코드로 담당 관계를 바로 만든다 |
-| GET | `/trainer/client-invites?status=` | `TrainerClientInviteOut[]` — 보낸 담당 요청. `status` 는 `pending`(기본)\|`all` |
+| GET | `/trainer/client-invites?status=` | `TrainerClientInviteOut[]` — 보낸 담당 요청. `status` 는 `pending`(기본)\|`all`. 수락 전 요청이라 회원 이메일은 싣지 않는다(`member_id`·`member_name` 만, #3239) |
 | POST | `/trainer/client-invites` | `{ member_id, message? }` → **201** `TrainerClientInviteOut`. 없는 회원 404, 회원 계정이 아니면 422, 이미 담당 중이거나 대기 요청이 있으면 409 |
 | DELETE | `/trainer/client-invites/{invite_id}` | `{ status: "cancelled" }` — 보낸 요청을 거둔다. 없음 404, 이미 결정됨 409 |
 | GET | `/trainer/consultations?status=&limit=&before=&before_id=` | `TrainerConsultationOut[]` — 나를 지정한 상담 요청 한 쪽(기본 미처리, 최신 50건, #980) |

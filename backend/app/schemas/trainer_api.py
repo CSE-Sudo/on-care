@@ -2604,12 +2604,15 @@ class TrainerClientInviteCreate(BaseModel):
 
 
 class TrainerClientInviteOut(BaseModel):
-    """트레이너가 보고 있는 '보낸 요청' 카드."""
+    """트레이너가 보고 있는 '보낸 요청' 카드.
+
+    회원 이메일은 싣지 않는다(#3239) — 수락 전인 요청만으로 회원의 연락처가
+    트레이너에게 가면 안 된다. 연결 코드 미리보기(`PairedMemberOut`)와 같은 범위다.
+    """
 
     id: str
     member_id: str
     member_name: str
-    member_email: str
     message: str | None = None
     status: Literal["pending", "accepted", "rejected", "cancelled"]
     created_at: _datetime

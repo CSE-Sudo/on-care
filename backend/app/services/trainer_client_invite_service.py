@@ -568,7 +568,6 @@ def _to_trainer_out(
                 id=row.id,
                 member_id=row.member_id,
                 member_name=member.name if member else "회원",
-                member_email=member.email if member else "",
                 message=row.message,
                 status=row.status,
                 created_at=row.created_at,
