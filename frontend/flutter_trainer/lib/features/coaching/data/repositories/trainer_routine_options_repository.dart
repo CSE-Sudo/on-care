@@ -255,7 +255,7 @@ class MockTrainerRoutineOptionsRepository
           'A short, easy-to-sustain recovery program',
         ),
         rationale: en
-            ? 'Sodium today ${sodium}mg$sodiumLabel, recent workout '
+            ? 'Sodium today $sodium mg$sodiumLabel, recent workout '
                   'completion $completion% → focusing on consistency with '
                   'low-strain cardio and stretching.$noteSuffix$safety'
             : '오늘 나트륨 ${sodium}mg$sodiumLabel, 최근 운동 완료율 $completion% → '

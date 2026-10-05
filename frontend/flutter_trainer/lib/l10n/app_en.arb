@@ -1048,7 +1048,7 @@
       }
     }
   },
-  "reportBodySodiumOver": "Sodium averaged {avg}mg a day, and went over the {target}mg target on {days} days. Leaving half the broth behind saves 400-500mg a day.",
+  "reportBodySodiumOver": "Sodium averaged {avg} mg a day, and went over the {target} mg target on {days} days. Leaving half the broth behind saves 400–500 mg a day.",
   "@reportBodySodiumOver": {
     "placeholders": {
       "avg": {
@@ -1062,7 +1062,7 @@
       }
     }
   },
-  "reportBodySodiumOk": "Sodium averaged {avg}mg a day — comfortably inside the {target}mg target.",
+  "reportBodySodiumOk": "Sodium averaged {avg} mg a day — comfortably inside the {target} mg target.",
   "@reportBodySodiumOk": {
     "placeholders": {
       "avg": {
@@ -1126,7 +1126,7 @@
       }
     }
   },
-  "reportBodyCaloriesOver": "Calories averaged {avg}kcal a day — {pct}% above your {target}kcal target, and over it on {days} days.",
+  "reportBodyCaloriesOver": "Calories averaged {avg} kcal a day — {pct}% above your {target} kcal target, and over it on {days} days.",
   "@reportBodyCaloriesOver": {
     "placeholders": {
       "avg": {
@@ -1143,7 +1143,7 @@
       }
     }
   },
-  "reportBodyCaloriesUnder": "Calories averaged {avg}kcal a day — {pct}% below your {target}kcal target. Eating too little tends to cost muscle first.",
+  "reportBodyCaloriesUnder": "Calories averaged {avg} kcal a day — {pct}% below your {target} kcal target. Eating too little tends to cost muscle first.",
   "@reportBodyCaloriesUnder": {
     "placeholders": {
       "avg": {
@@ -1157,7 +1157,7 @@
       }
     }
   },
-  "reportBodyCaloriesNearOver": "Calories averaged {avg}kcal a day, close to your {target}kcal target, but went over it on {days} days.",
+  "reportBodyCaloriesNearOver": "Calories averaged {avg} kcal a day, close to your {target} kcal target, but went over it on {days} days.",
   "@reportBodyCaloriesNearOver": {
     "placeholders": {
       "avg": {
@@ -1171,7 +1171,7 @@
       }
     }
   },
-  "reportBodyCaloriesOk": "Calories averaged {avg}kcal a day — right around your {target}kcal target.",
+  "reportBodyCaloriesOk": "Calories averaged {avg} kcal a day — right around your {target} kcal target.",
   "@reportBodyCaloriesOk": {
     "placeholders": {
       "avg": {
@@ -1182,7 +1182,7 @@
       }
     }
   },
-  "reportBodySugarOver": "Sugar averaged {avg}g a day and went over the {target}g limit on {days} days.",
+  "reportBodySugarOver": "Sugar averaged {avg} g a day and went over the {target} g limit on {days} days.",
   "@reportBodySugarOver": {
     "placeholders": {
       "avg": {
@@ -1196,7 +1196,7 @@
       }
     }
   },
-  "reportBodySugarOk": "Sugar averaged {avg}g a day, inside the {target}g limit.",
+  "reportBodySugarOk": "Sugar averaged {avg} g a day, inside the {target} g limit.",
   "@reportBodySugarOk": {
     "placeholders": {
       "avg": {
@@ -2448,7 +2448,7 @@
   },
   "notifTplWhen": "{month}/{day} {time}",
   "@notifTplWhen": {
-    "description": "Seoul wall-clock date and time of a session. month and day are two digits, time is HH:mm.",
+    "description": "Seoul wall-clock date and time of a session. month and day have no leading zero, time is 24-hour HH:mm.",
     "placeholders": {
       "month": {
         "type": "String"
@@ -3486,7 +3486,7 @@
     }
   },
   "reportsActionSodium": "Ask them to leave half the broth and the pickled sides.",
-  "reportsActionSugar": "Some days went over the {target}g sugar target. Start with drinks and snacks.",
+  "reportsActionSugar": "Some days went over the {target} g sugar target. Start with drinks and snacks.",
   "@reportsActionSugar": {
     "placeholders": {
       "target": {
@@ -3512,7 +3512,7 @@
       }
     }
   },
-  "reportsActionCalories": "Intake is under the {target}kcal target. Suggest one protein-led meal.",
+  "reportsActionCalories": "Intake is under the {target} kcal target. Suggest one protein-led meal.",
   "@reportsActionCalories": {
     "placeholders": {
       "target": {
@@ -3592,7 +3592,7 @@
       }
     }
   },
-  "reportsPdfValueMg": "{value}mg",
+  "reportsPdfValueMg": "{value} mg",
   "@reportsPdfValueMg": {
     "placeholders": {
       "value": {
@@ -3600,7 +3600,7 @@
       }
     }
   },
-  "reportsPdfValueKcal": "{value}kcal",
+  "reportsPdfValueKcal": "{value} kcal",
   "@reportsPdfValueKcal": {
     "placeholders": {
       "value": {
@@ -3608,7 +3608,7 @@
       }
     }
   },
-  "reportsPdfValueGram": "{value}g",
+  "reportsPdfValueGram": "{value} g",
   "@reportsPdfValueGram": {
     "placeholders": {
       "value": {
@@ -3956,7 +3956,7 @@
     }
   },
   "reportsMacroNone": "No meals logged yet, so macros can't be shown",
-  "reportsMacroValueOfTarget": "{name} {value} / {target}g",
+  "reportsMacroValueOfTarget": "{name} {value} / {target} g",
   "@reportsMacroValueOfTarget": {
     "placeholders": {
       "name": {
@@ -4174,7 +4174,7 @@
       }
     }
   },
-  "summarySodium": "Avg sodium {avg}mg · over the {basis} of {target}mg on {days} day(s)",
+  "summarySodium": "Avg sodium {avg} mg · over the {basis} of {target} mg on {days} day(s)",
   "@summarySodium": {
     "placeholders": {
       "avg": {
@@ -4199,7 +4199,7 @@
       }
     }
   },
-  "summarySodiumAvgTopic": "avg sodium {avg}mg",
+  "summarySodiumAvgTopic": "avg sodium {avg} mg",
   "@summarySodiumAvgTopic": {
     "placeholders": {
       "avg": {
@@ -4207,7 +4207,7 @@
       }
     }
   },
-  "summarySugar": "Avg sugar {avg}g · over the {basis} of {target}g on {days} day(s)",
+  "summarySugar": "Avg sugar {avg} g · over the {basis} of {target} g on {days} day(s)",
   "@summarySugar": {
     "placeholders": {
       "avg": {
@@ -4232,7 +4232,7 @@
       }
     }
   },
-  "summarySugarAvgTopic": "avg sugar {avg}g",
+  "summarySugarAvgTopic": "avg sugar {avg} g",
   "@summarySugarAvgTopic": {
     "placeholders": {
       "avg": {
@@ -4240,7 +4240,7 @@
       }
     }
   },
-  "summaryCalories": "Avg calories {avg}kcal · {pct}% {direction} the {basis} of {target}kcal",
+  "summaryCalories": "Avg calories {avg} kcal · {pct}% {direction} the {basis} of {target} kcal",
   "@summaryCalories": {
     "placeholders": {
       "avg": {
@@ -4268,7 +4268,7 @@
       }
     }
   },
-  "summaryCaloriesAvg": "Avg calories {avg}kcal",
+  "summaryCaloriesAvg": "Avg calories {avg} kcal",
   "@summaryCaloriesAvg": {
     "placeholders": {
       "avg": {
@@ -4276,7 +4276,7 @@
       }
     }
   },
-  "summaryMacro": "Avg {label} {avg}g · {pct}% {direction} the personal target of {target}g",
+  "summaryMacro": "Avg {label} {avg} g · {pct}% {direction} the personal target of {target} g",
   "@summaryMacro": {
     "placeholders": {
       "label": {
@@ -4858,7 +4858,7 @@
   "@clientDietRecConfirmFailed": {
     "description": "트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379)."
   },
-  "clientDietRecNutrition": "{kcal}kcal · protein {protein}g · sodium {sodium}mg",
+  "clientDietRecNutrition": "{kcal} kcal · protein {protein} g · sodium {sodium} mg",
   "@clientDietRecNutrition": {
     "description": "트레이너웹 회원 상세 식단 탭 `식단 분석`·`AI 식단 추천` (#2379).",
     "placeholders": {

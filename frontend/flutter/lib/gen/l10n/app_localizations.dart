@@ -605,7 +605,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeRecBasisSodium.
   ///
   /// In en, this message translates to:
-  /// **'{days}-day avg sodium {sodium}mg'**
+  /// **'{days}-day avg sodium {sodium} mg'**
   String homeRecBasisSodium(int days, String sodium);
 
   /// No description provided for @homeRecBasisOverLimit.
@@ -7481,7 +7481,7 @@ abstract class AppLocalizations {
   /// Diet tab AI advice sentence `today_sodium_over` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
   ///
   /// In en, this message translates to:
-  /// **'Sodium **{sodiumMg}mg**, over the limit.'**
+  /// **'Sodium **{sodiumMg} mg**, over the limit.'**
   String dietAdviceTodaySodiumOver(int sodiumMg);
 
   /// Diet tab AI advice sentence `today_calorie_over` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
@@ -7493,7 +7493,7 @@ abstract class AppLocalizations {
   /// Diet tab AI advice sentence `today_protein_left` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.
   ///
   /// In en, this message translates to:
-  /// **'**{proteinG}g** more protein to go.'**
+  /// **'**{proteinG} g** more protein to go.'**
   String dietAdviceTodayProteinLeft(int proteinG);
 
   /// Diet tab AI advice sentence `today_balanced` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.

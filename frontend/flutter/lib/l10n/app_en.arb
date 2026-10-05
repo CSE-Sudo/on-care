@@ -190,7 +190,7 @@
   "homeTrainerPickReasonCalorieHigh": "A filling meal",
   "homeTrainerPickReasonSugarLow": "Less sugar",
   "homeTrainerPickReasonFiberHigh": "More fiber",
-  "homeRecBasisSodium": "{days}-day avg sodium {sodium}mg",
+  "homeRecBasisSodium": "{days}-day avg sodium {sodium} mg",
   "@homeRecBasisSodium": {
     "placeholders": {
       "days": {
@@ -3670,7 +3670,7 @@
   "@dietAdviceTodayMissingMeal": {
     "description": "Diet tab AI advice sentence `today_missing_meal` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text."
   },
-  "dietAdviceTodaySodiumOver": "Sodium **{sodiumMg}mg**, over the limit.",
+  "dietAdviceTodaySodiumOver": "Sodium **{sodiumMg} mg**, over the limit.",
   "@dietAdviceTodaySodiumOver": {
     "description": "Diet tab AI advice sentence `today_sodium_over` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
     "placeholders": {
@@ -3690,7 +3690,7 @@
       }
     }
   },
-  "dietAdviceTodayProteinLeft": "**{proteinG}g** more protein to go.",
+  "dietAdviceTodayProteinLeft": "**{proteinG} g** more protein to go.",
   "@dietAdviceTodayProteinLeft": {
     "description": "Diet tab AI advice sentence `today_protein_left` (#2255). The server sends this key and its params; the Korean copy must match backend diet_advice_copy._KO. Text inside ** marks emphasis; the card strips the marks and shows plain text.",
     "placeholders": {

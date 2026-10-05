@@ -510,10 +510,10 @@ void main() {
     expect(content, contains('Key metrics'));
     expect(content, contains('• Workout completion: 72%'));
     expect(content, contains('• PT: 1/2 (50%)'));
-    expect(content, contains('• Average sodium: 1890mg'));
+    expect(content, contains('• Average sodium: 1890 mg'));
     expect(content, contains('• Days over sodium target: 2 days'));
-    expect(content, contains('• Average calories: 1863kcal'));
-    expect(content, contains('• Average sugar: 21.4g'));
+    expect(content, contains('• Average calories: 1863 kcal'));
+    expect(content, contains('• Average sugar: 21.4 g'));
     expect(content, contains('Change from last week'));
     expect(content, contains('• Workout completion: +7%'));
     expect(content, contains('• PT completed: -1'));

@@ -169,7 +169,11 @@ class ProgramNutritionSummaryCard extends StatelessWidget {
                                 ).copyWith(color: calorieColor),
                               ),
                               TextSpan(
-                                text: ' / ${calories.goal} ${calories.unit}',
+                                // ko `/ 2,000kcal` · en `/ 2,000 kcal`(#3120).
+                                text:
+                                    ' / ${calories.goal}'
+                                    '${unitGap(Localizations.localeOf(context).toString())}'
+                                    '${calories.unit}',
                                 style: tokens
                                     .text(
                                       OnCareTypography.strong(

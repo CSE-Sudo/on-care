@@ -296,7 +296,7 @@ void main() {
   group('reportMessage — 영어', () {
     test('칼로리를 넘긴 주를 영어로도 같은 판정으로 적는다', () {
       final message = reportMessage(_en, _overWeek());
-      expect(message, contains('36% above your 2,000kcal target'));
+      expect(message, contains('36% above your 2,000 kcal target'));
       expect(message, contains('There was no PT this week.'));
       expect(message, isNot(contains('Great work')));
       expect(message, isNot(contains('은 ')));

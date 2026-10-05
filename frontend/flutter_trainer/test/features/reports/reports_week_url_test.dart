@@ -58,10 +58,10 @@ void main() {
     const ValueKey<String>('report-step-next'),
   );
 
-  /// 작업대 카드 제목 줄의 주 표시 — `8월 10일 – 8월 16일`.
+  /// 작업대 카드 제목 줄의 주 표시 — `8월 10일 ~ 8월 16일`.
   String koRange(DateTime monday) {
     final DateTime sunday = DateTime(monday.year, monday.month, monday.day + 6);
-    return '${monday.month}월 ${monday.day}일 – '
+    return '${monday.month}월 ${monday.day}일 ~ '
         '${sunday.month}월 ${sunday.day}일';
   }
 

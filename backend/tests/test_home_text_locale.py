@@ -29,7 +29,7 @@ def test_sodium_warning_follows_the_locale():
         plain = _build_sodium_warning(2500, [])
         named = _build_sodium_warning(2500, ["라면", "김치"])
     assert not _HANGUL.search(plain)
-    assert "2500mg" in plain
+    assert "2,500 mg" in plain
     # 음식 이름은 회원이 적은 그대로 둔다.
     assert named == "Sodium is high from 라면 and 김치."
 

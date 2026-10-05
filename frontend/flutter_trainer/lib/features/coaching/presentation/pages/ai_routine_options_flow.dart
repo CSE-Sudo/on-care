@@ -1292,12 +1292,11 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
   );
 
-  /// `08.31  무릎 불편감이 …` — 날짜와 요약을 한 줄에 둔다.
+  /// `8/31  무릎 불편감이 …` — 날짜와 요약을 한 줄에 둔다. 날짜는 트레이너 웹의
+  /// 짧은 날짜 꼴(`M/d`, 0 을 채우지 않음)이다(#3120).
   Widget _insightMemoLine(TrainerMemo memo) {
     final DateTime date = _kstDateOf(memo.createdAt);
-    final String day =
-        '${date.month.toString().padLeft(2, '0')}.'
-        '${date.day.toString().padLeft(2, '0')}';
+    final String day = '${date.month}/${date.day}';
     return Padding(
       padding: const EdgeInsets.only(bottom: OnCareSpacing.s4),
       child: Row(

@@ -2194,7 +2194,7 @@ void main() {
         find.text('오늘에 이미 예정된 PT가 있어 그 PT에 프로그램만 추가됐어요 — 고른 시간 범위는 적용되지 않았어요'),
         findsOneWidget,
       );
-      expect(find.text('오늘 스케줄에 등록됐어요'), findsNothing);
+      expect(find.text('오늘 일정에 추가했어요'), findsNothing);
 
       // The 스케줄 tab shows the registered plan on his 예정 session.
       await goTo(tester, AppRoutes.schedule);
@@ -2219,7 +2219,7 @@ void main() {
       await settle(tester);
       // 회원 전송 문구는 더 이상 뜨지 않는다(#1536) — 일정 등록 토스트가
       // 흐름이 끝까지 성공했다는 신호를 대신한다.
-      expect(find.text('오늘 스케줄에 등록됐어요'), findsOneWidget);
+      expect(find.text('오늘 일정에 추가했어요'), findsOneWidget);
 
       // Routine delivery is shown in the member's routine feed, not as a
       // trainer-authored blue chat bubble.
@@ -2274,7 +2274,7 @@ void main() {
 
       await _sendProgram(tester);
       await settle(tester);
-      expect(find.text('내일 스케줄에 등록됐어요'), findsOneWidget);
+      expect(find.text('내일 일정에 추가했어요'), findsOneWidget);
 
       // Booked under tomorrow's date, not today's. Reading a drift stream
       // must run outside the fake-async zone (`runAsync`), otherwise the
@@ -2361,7 +2361,7 @@ void main() {
 
       await _sendProgram(tester);
       await settle(tester);
-      expect(find.text('내일 스케줄에 등록됐어요'), findsOneWidget);
+      expect(find.text('내일 일정에 추가했어요'), findsOneWidget);
 
       final tomorrow = ymd(nowKst().add(const Duration(days: 1)));
       final rows = await tester.runAsync(
@@ -2393,7 +2393,7 @@ void main() {
 
       // 회원 전송 문구는 더 이상 뜨지 않는다(#1536) — 일정 등록 토스트와
       // "스케줄로 이동하기" 액션이 완료 안내를 대신한다.
-      expect(find.text('오늘 스케줄에 등록됐어요'), findsOneWidget);
+      expect(find.text('오늘 일정에 추가했어요'), findsOneWidget);
       expect(find.text('스케줄로 이동하기'), findsOneWidget);
 
       await tester.pump(const Duration(seconds: 4)); // reset window
@@ -2489,7 +2489,7 @@ void main() {
       // must not be left disabled by the previous client's guard. The
       // editor is a lazy list, so bring the button back into view first.
       final send = await _ensureSendButtonReady(tester);
-      expect(find.text('오늘 스케줄에 등록됐어요'), findsNothing);
+      expect(find.text('오늘 일정에 추가했어요'), findsNothing);
       expect(tester.widget<AppButton>(send).onPressed, isNotNull);
       await tester.pump(const Duration(seconds: 5));
       await settle(tester);
@@ -2520,7 +2520,7 @@ void main() {
       await settle(tester);
 
       expect(find.text('전송에 실패했어요. 다시 시도해 주세요'), findsNothing);
-      expect(find.text('오늘 스케줄에 등록됐어요'), findsOneWidget);
+      expect(find.text('오늘 일정에 추가했어요'), findsOneWidget);
     });
 
     testWidgets('A → B → A cannot double-register while A is still saving', (
@@ -2675,7 +2675,7 @@ void main() {
       // lands on 이지수, and her edit survives — 김민수's reset timer must
       // not fire against her (review PR 239). 새 등록 토스트에는 회원
       // 이름이 없으므로(#1536) 문구 하나로 두 회원 다 대신 검증한다.
-      expect(find.text('오늘 스케줄에 등록됐어요'), findsNothing);
+      expect(find.text('오늘 일정에 추가했어요'), findsNothing);
       await tester.scrollUntilVisible(
         find.text('레그프레스 5세트'),
         150,
@@ -2762,7 +2762,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(const ValueKey<String>('program-assign-confirm')),
-          matching: find.textContaining('오전 10:00 – 오전 11:00'),
+          matching: find.textContaining('10:00 – 11:00'),
         ),
         findsOneWidget,
       );
@@ -2776,7 +2776,7 @@ void main() {
         find.byKey(const ValueKey<String>('program-assign-confirm')),
         findsNothing,
       );
-      expect(find.text('오늘 스케줄에 등록됐어요'), findsNothing);
+      expect(find.text('오늘 일정에 추가했어요'), findsNothing);
       // 취소했으니 편집기 내용도 그대로 남아 있고, 다시 눌러 보낼 수 있다.
       expect(tester.widget<AppButton>(send).onPressed, isNotNull);
     });
@@ -3334,7 +3334,7 @@ void main() {
       );
 
       await tapSend(tester);
-      expect(find.text('오늘 스케줄에 등록됐어요'), findsNothing);
+      expect(find.text('오늘 일정에 추가했어요'), findsNothing);
       await tapSend(tester);
 
       expect(scheduleRepo.assignments, hasLength(2));

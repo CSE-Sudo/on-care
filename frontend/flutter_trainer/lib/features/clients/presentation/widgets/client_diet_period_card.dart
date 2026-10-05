@@ -327,7 +327,8 @@ class _Body extends StatelessWidget {
                                       ),
                                   children: <InlineSpan>[
                                     TextSpan(
-                                      text: ' / ${format(goal)} $unit',
+                                      text:
+                                          ' / ${format(goal)}${unitGap(locale)}$unit',
                                       style: tokens
                                           .text(OnCareTypography.bodySmall)
                                           .copyWith(
@@ -407,7 +408,8 @@ class _Body extends StatelessWidget {
                             l.chartA11y,
                             values: values,
                             dayLabels: days,
-                            format: (double v) => '${format(v)} $unit',
+                            format: (double v) =>
+                                '${format(v)}${unitGap(locale)}$unit',
                             upTo: today,
                           ),
                         ),
@@ -666,7 +668,11 @@ class _PeriodBars extends StatelessWidget {
       return spans;
     }
     spans.add(_swatch(over ? OnCareColors.danger : brand.dietChart));
-    spans.add(TextSpan(text: '$label   ${format(value)} $unit'));
+    spans.add(
+      TextSpan(
+        text: '$label   ${format(value)}${unitGap(dayFormat.locale)}$unit',
+      ),
+    );
     // 칼로리 뒤에는 그 칼로리가 어디서 왔는지를 적는다 — 숫자 하나만 보고는
     // 같은 2,000kcal 이 밥에서 왔는지 기름에서 왔는지 알 수 없다.
     final ClientDietDay? day = _dayAt(i);

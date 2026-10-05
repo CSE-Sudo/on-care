@@ -503,7 +503,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashLeaveFeedback => '피드백 남기기';
 
   @override
-  String get dashSessionSent => '전송됨';
+  String get dashSessionSent => '보냄';
 
   @override
   String get dashSessionPrepared => '준비됨';
@@ -512,7 +512,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashSessionNoteWritten => '작성 완료';
 
   @override
-  String get dashSessionSentNo => '전송 안됨';
+  String get dashSessionSentNo => '안 보냄';
 
   @override
   String get dashSessionPreparedNo => '준비 안됨';
@@ -945,7 +945,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String clientDietTotalCalories(String calories) {
-    return '총 $calories kcal';
+    return '총 ${calories}kcal';
   }
 
   @override
@@ -1286,7 +1286,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String dateMonthDayWeekday(int month, int day, String weekday) {
-    return '$month월 $day일 ($weekday)';
+    return '$month/$day ($weekday)';
   }
 
   @override
@@ -1301,7 +1301,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String dateRange(String start, String end) {
-    return '$start – $end';
+    return '$start ~ $end';
   }
 
   @override
@@ -1690,7 +1690,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get schedRoutineSent => '전송됨';
+  String get schedRoutineSent => '보냄';
 
   @override
   String get schedRoutinesSent => '개인운동을 회원에게 보냈어요.';
@@ -1981,7 +1981,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String schedSentTo(String name) {
-    return '$name님에게 전송됨';
+    return '$name님에게 보냄';
   }
 
   @override
@@ -2708,7 +2708,7 @@ class AppLocalizationsKo extends AppLocalizations {
         intl.NumberFormat.decimalPattern(localeName);
     final String countString = countNumberFormat.format(count);
 
-    return '$countString kcal';
+    return '${countString}kcal';
   }
 
   @override
@@ -2775,7 +2775,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String coachRegisteredOn(String date) {
-    return '$date 스케줄에 등록됐어요';
+    return '$date 일정에 추가했어요';
   }
 
   @override
@@ -3714,7 +3714,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String workoutRoutineAllCount(int count) {
-    return '$count번 보냄';
+    return '$count회 보냄';
   }
 
   @override
@@ -3760,17 +3760,17 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String workoutTotalBurned(String calories) {
-    return '총 소모 $calories kcal';
+    return '총 소모 ${calories}kcal';
   }
 
   @override
   String workoutLineBurned(String calories) {
-    return '소모 $calories kcal';
+    return '소모 ${calories}kcal';
   }
 
   @override
   String workoutLineEstimated(String calories) {
-    return '예상 소모 $calories kcal';
+    return '예상 소모 ${calories}kcal';
   }
 
   @override
@@ -3897,7 +3897,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashTodoCarriedOverDemoSubtitle => '어제 남긴 식단 피드백';
 
   @override
-  String get dashTodoProgramSubtitle => '최근 등록한 프로그램 없음';
+  String get dashTodoProgramSubtitle => '최근 보낸 프로그램 없음';
 
   @override
   String get dashTodoReportSubtitle => '이번 주 리포트 작성 대상';
@@ -4809,7 +4809,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get routineFormIncrease => '늘리기';
 
   @override
-  String get reportsPending => '미전송';
+  String get reportsPending => '안 보냄';
 
   @override
   String reportsCountPeople(int count) {
@@ -4833,7 +4833,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportsSendProgress(int done, int total) {
-    return '$done / $total 전송';
+    return '$done / $total 보냄';
   }
 
   @override
@@ -4845,7 +4845,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsQueueAllSent => '이번 주 리포트를 모두 보냈어요';
 
   @override
-  String get reportsSentColumn => '전송 완료';
+  String get reportsSentColumn => '보냄';
 
   @override
   String get reportsSentColumnEmpty => '아직 보낸 리포트가 없어요';
@@ -4890,7 +4890,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportsSentOn(String date) {
-    return '$date 전송';
+    return '$date 보냄';
   }
 
   @override
@@ -4909,7 +4909,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportsSentAt(String date, String time) {
-    return '$date $time 전송';
+    return '$date $time 보냄';
   }
 
   @override
@@ -4930,7 +4930,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsHistoryBack => '지난 리포트';
 
   @override
-  String get reportsHistoryUnsent => '미전송';
+  String get reportsHistoryUnsent => '안 보냄';
 
   @override
   String get reportsHistoryThisWeek => '이번 주';
@@ -4949,7 +4949,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportsHistorySendCount(int count) {
-    return '$count번 보냄';
+    return '$count회 보냄';
   }
 
   @override
@@ -4968,7 +4968,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportsSendHistoryFailed =>
-      '전송 이력을 불러오지 못했어요. 이미 보낸 회원이 미전송으로 보일 수 있어요.';
+      '전송 이력을 불러오지 못했어요. 이미 보낸 회원이 안 보냄으로 보일 수 있어요.';
 
   @override
   String get reportsStepReview => '확인';
@@ -5578,7 +5578,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String clientDietAnalysisWeekBreakfastSnackFood(String food, int count) {
-    return '아침 대신 먹은 것은 $food $count번이 가장 많았어요.';
+    return '아침 대신 먹은 것은 $food $count회가 가장 많았어요.';
   }
 
   @override
@@ -5619,7 +5619,7 @@ class AppLocalizationsKo extends AppLocalizations {
       'lateNight': '야식',
       'other': '간식',
     });
-    return '최근 4주 동안 $_temp0 나트륨이 $days번 목표의 절반을 넘었어요.';
+    return '최근 4주 동안 $_temp0 나트륨이 $days회 목표의 절반을 넘었어요.';
   }
 
   @override
@@ -5651,7 +5651,7 @@ class AppLocalizationsKo extends AppLocalizations {
       'lateNight': '야식',
       'other': '간식',
     });
-    return '최근 4주 동안 $_temp0 메뉴로 $food $count번이 가장 많았어요.';
+    return '최근 4주 동안 $_temp0 메뉴로 $food $count회가 가장 많았어요.';
   }
 
   @override
@@ -5666,7 +5666,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String clientDietAnalysisFoodsOne(String food1, int count1) {
-    return '$food1 $count1번이 대부분이에요.';
+    return '$food1 $count1회가 대부분이에요.';
   }
 
   @override
@@ -5676,7 +5676,7 @@ class AppLocalizationsKo extends AppLocalizations {
     String food2,
     int count2,
   ) {
-    return '$food1 $count1번, $food2 $count2번이 대부분이에요.';
+    return '$food1 $count1회, $food2 $count2회가 대부분이에요.';
   }
 
   @override

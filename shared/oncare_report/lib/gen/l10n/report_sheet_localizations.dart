@@ -254,19 +254,19 @@ abstract class ReportSheetLocalizations {
   /// No description provided for @reportsPdfValueGram.
   ///
   /// In en, this message translates to:
-  /// **'{value}g'**
+  /// **'{value} g'**
   String reportsPdfValueGram(String value);
 
   /// No description provided for @reportsPdfValueKcal.
   ///
   /// In en, this message translates to:
-  /// **'{value}kcal'**
+  /// **'{value} kcal'**
   String reportsPdfValueKcal(String value);
 
   /// No description provided for @reportsPdfValueMg.
   ///
   /// In en, this message translates to:
-  /// **'{value}mg'**
+  /// **'{value} mg'**
   String reportsPdfValueMg(String value);
 
   /// No description provided for @reportsPdfValuePercent.

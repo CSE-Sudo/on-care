@@ -388,7 +388,11 @@ class _PeriodBody extends StatelessWidget {
                                               ),
                                         ),
                                         TextSpan(
-                                          text: ' / ${format(goal)} $unit',
+                                          // ko `/ 2,000kcal` · en `/ 2,000 kcal`.
+                                          text:
+                                              ' / ${format(goal)}'
+                                              '${unitGap(Localizations.localeOf(context).toString())}'
+                                              '$unit',
                                           style: tokens
                                               .text(OnCareTypography.bodySmall)
                                               .copyWith(
@@ -552,7 +556,10 @@ class _WeekTrend extends StatelessWidget {
             l.chartA11y,
             values: values,
             dayLabels: days,
-            format: (double v) => '${format(v)} $unit',
+            format: (double v) =>
+                '${format(v)}'
+                '${unitGap(Localizations.localeOf(context).toString())}'
+                '$unit',
             upTo: today,
           ),
         ),
@@ -759,7 +766,12 @@ class _PeriodBars extends StatelessWidget {
     }
     // 막대와 같은 색이어야 툴팁의 첫 줄이 그 막대를 가리킨다.
     spans.add(_swatch(over ? OnCareColors.danger : color));
-    spans.add(TextSpan(text: '$metricLabel   ${format(value)} $unit'));
+    spans.add(
+      TextSpan(
+        text:
+            '$metricLabel   ${format(value)}${unitGap(dayFormat.locale)}$unit',
+      ),
+    );
     // 칼로리 뒤에는 그 칼로리가 어디서 왔는지를 적는다.
     final DietPeriodDay? day = _dayAt(i);
     if (day != null && day.hasMacros) {

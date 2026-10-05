@@ -28,7 +28,7 @@ TrainerNotification _notice(
 }) => TrainerNotification(
   id: id,
   title: title,
-  body: '이지수 회원 · 10월 02일 10:00',
+  body: '이지수 회원 · 10월 2일 10:00',
   kind: kind,
   read: read,
   createdAt: DateTime.utc(2026, 9, 27, 10),

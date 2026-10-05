@@ -144,7 +144,7 @@ void main() {
       clients: _roster,
     );
 
-    expect(find.text('0 / 2 전송'), findsOneWidget);
+    expect(find.text('0 / 2 보냄'), findsOneWidget);
     // 아직 아무도 안 보냈으니 전송 완료 열은 비어 있다고 말한다.
     expect(find.text('아직 보낸 리포트가 없어요'), findsOneWidget);
 
@@ -157,7 +157,7 @@ void main() {
         );
     await settle(tester);
 
-    expect(find.text('1 / 2 전송'), findsOneWidget);
+    expect(find.text('1 / 2 보냄'), findsOneWidget);
     // 보낸 회원은 큐에서 빠지고 전송 완료 열로 옮겨 간다.
     expect(queueOrder(tester), <String>['h']);
     expect(
@@ -437,7 +437,7 @@ void main() {
         clients: _roster,
       );
 
-      expect(find.text('0 / 2 전송'), findsOneWidget);
+      expect(find.text('0 / 2 보냄'), findsOneWidget);
       expect(tester.widget<Text>(percent()).data, '0%');
 
       container

@@ -306,7 +306,7 @@ class AppLocalizationsKo extends AppLocalizations {
         intl.NumberFormat.decimalPattern(localeName);
     final String countString = countNumberFormat.format(count);
 
-    return '$countString kcal';
+    return '${countString}kcal';
   }
 
   @override
@@ -2410,7 +2410,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String coachChatReportWeek(int sm, int sd, int em, int ed) {
-    return '$sm월 $sd일 – $em월 $ed일';
+    return '$sm월 $sd일 ~ $em월 $ed일';
   }
 
   @override

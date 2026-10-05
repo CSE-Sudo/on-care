@@ -31,7 +31,7 @@ const Map<String, String> _seedEnglish = <String, String>{
       "Got it. I've sent Tuesday and Thursday as 15-minute low-intensity sessions 🙂",
   '동작 순서는 이 파일로 정리해 뒀어요': "I've put the moves in order in this file",
   '민수님, 요즘 나트륨이 목표(2,000mg) 근처에서 자주 걸리네요. 국·찌개가 잦으신 편인가요?':
-      'Minsu, your sodium has been hovering around the 2,000mg target lately. Do you eat a lot of soups and stews?',
+      'Minsu, your sodium has been hovering around the 2,000 mg target lately. Do you eat a lot of soups and stews?',
   '회사 구내식당이라 국물이 늘 나와요 😅': 'The office cafeteria always serves soup 😅',
   '국물만 절반 남기셔도 400~500mg은 빠져요. 그거 하나만 먼저 해보죠':
       "Leaving half the broth cuts 400–500mg. Let's start with just that",
