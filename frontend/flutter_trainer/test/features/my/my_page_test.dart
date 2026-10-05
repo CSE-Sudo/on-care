@@ -112,6 +112,13 @@ class _EmptySearchRepository implements TrainerProfileRepository {
   @override
   Future<TrainerProfile> selectGym(TrainerGymCandidate gym) =>
       _delegate.selectGym(gym);
+
+  @override
+  Future<TrainerGymInfo> fetchGymInfo() => _delegate.fetchGymInfo();
+
+  @override
+  Future<TrainerGymInfo> updateGymInfo(TrainerGymInfoUpdate update) =>
+      _delegate.updateGymInfo(update);
 }
 
 /// 브라우저 위치 대신 정해 둔 결과를 주는 위치 서비스(#3223).
