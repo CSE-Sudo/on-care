@@ -102,22 +102,14 @@
   <title>On-Care 트레이너</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- Ensure full Korean + emoji glyph coverage for the HTML web renderer.
-       Flutter renders text inside the <flt-glass-pane> shadow DOM with an empty
-       font-family, which can drop some Hangul/emoji glyphs (칭/짐/촌 등이 두부로
-       보이는 증상). Setting the font on the shadow HOST (flt-glass-pane /
-       flutter-view / body) lets the shadow content inherit it. Native
-       (iOS/Android) rendering is unaffected. 사용자 앱(frontend/flutter)의
-       동일 픽스와 폰트 스택을 맞춘다 — 두 앱의 한글이 달라 보이면 안 된다. -->
-  <style>
-    flt-glass-pane, flutter-view, body {
-      font-family: 'Apple SD Gothic Neo', 'AppleGothic', 'Malgun Gothic',
-        'Noto Sans KR', 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Noto Color Emoji', sans-serif !important;
-    }
-  </style>
-  <!-- 위 스타일을 shadow DOM 변화마다 다시 거는 스크립트(인라인 금지 — CSP). -->
-  <script src="js/font_fix.js"></script>
+  <!-- 한글·이모지 표시: 웹은 CanvasKit 으로만 그린다. 한글은 앱에 번들한 Pretendard,
+       그 밖의 글자(이모지 등)는 엔진의 대체 글꼴(fonts.gstatic.com — CSP font-src 허용)이
+       맡는다. HTML 렌더러용 글꼴 보정 스타일·스크립트는 CanvasKit 에서 효과가 없어
+       지웠다(#3159). -->
+  <!-- 예전 빌드가 설치한 서비스 워커를 지운다(#3204). 지금 빌드는 워커를 등록하지
+       않는다(web/flutter_bootstrap.js). 남은 워커가 옛 main.dart.js 를 내주면 새로고침해도
+       새 배포로 바뀌지 않는다. 인라인 금지(CSP)라 같은 출처 파일로 둔다. -->
+  <script src="js/sw_cleanup.js"></script>
 </head>
 <body>
   <!-- 부팅 중 로딩 표시(#3152). 첫 프레임 전 화면 전체를 덮고, 첫 프레임에서 지운다. -->

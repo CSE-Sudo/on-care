@@ -103,6 +103,39 @@ def test_matcher_folds_free_input_to_one_activity(query: str, expected: str):
     assert matched is not None and matched.name == expected
 
 
+class _SeedRow:
+    """적재될 시드 행 흉내 — `_exercise_catalog_seed_rows()` 의 dict 를 감싼다."""
+
+    def __init__(self, row: dict) -> None:
+        self.name = row["name"]
+        self.name_norm = row["name_norm"]
+        self.aliases_norm = row["aliases_norm"]
+
+
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        # 회원이 흔히 적는 `런닝` 표기도 같은 종목이다(#3215).
+        ("런닝 30분", "달리기"),
+        ("런닝", "달리기"),
+        ("인터벌 런닝", "인터벌 러닝"),
+        # `런닝` 별칭이 `런닝머신` 을 달리기로 끌어가면 안 된다 — 정확 일치가 먼저이고,
+        # 포함 일치도 가장 긴 이름이 이긴다.
+        ("런닝머신", "러닝머신"),
+        ("런닝머신 30분", "러닝머신"),
+        ("런닝머신 걷기", "트레드밀 걷기"),
+        ("러닝 30분", "달리기"),
+    ],
+)
+def test_seed_catalog_folds_runeng_spelling(query: str, expected: str):
+    """실제 적재 행(큐레이션+공공데이터)으로 붙여 본다 — 지문 `exercise_catalog` 대상."""
+    from app.db.init_db import _exercise_catalog_seed_rows
+
+    rows = [_SeedRow(row) for row in _exercise_catalog_seed_rows()]
+    matched = matcher.match_in_rows(rows, query)
+    assert matched is not None and matched.name == expected
+
+
 @pytest.mark.parametrize("query", ["", "PT 하체날", "오늘 운동", "프레스"])
 def test_matcher_prefers_fallback_over_wrong_activity(query: str):
     """애매하면 붙이지 않는다 — 틀린 종목으로 계산한 값은 어림값보다 나쁘다."""

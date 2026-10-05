@@ -268,7 +268,7 @@ _CHAT_FILE_DIR = Path(__file__).with_name("demo_chat_files")
 #: 회원 앱·트레이너 웹 데모의 김민수 대화에는 트레이너가 보낸 운동 안내 PDF 와
 #: 예시 사진이 있다(#2663). 데모 화면이 기준이라 실서버 시드도 같은 자리에 같은
 #: 파일을 둔다 — 바이트는 두 앱 번들(`frontend/flutter/assets/demo/
-#: coach-program-tue-thu.pdf`, `assets/images/diet-doenjang-rice.jpeg`)과 같다.
+#: coach-program-tue-thu.pdf`, `assets/demo/images/diet-doenjang-rice.jpeg`)과 같다.
 _CHAT_FILES: dict[str, _SeedChatFile] = {
     "동작 순서는 이 파일로 정리해 뒀어요": _SeedChatFile(
         kind="pdf",
@@ -671,7 +671,7 @@ def _seed_schedule(db: Session, valid: set[str]) -> None:
             _safe_commit(db)
         return
     fixture_today = _fixture_pt_day(clock.today())
-    for i, (time, cname, mid, typ, dur, status, note, program) in enumerate(_SCHEDULE):
+    for i, (slot_time, cname, mid, typ, dur, status, note, program) in enumerate(_SCHEDULE):
         member_id = mid if (mid and mid in valid) else None
         if mid == load_fixture().user_app_seed_id and fixture_today is not None:
             note = fixture_today.trainer_note
@@ -681,7 +681,7 @@ def _seed_schedule(db: Session, valid: set[str]) -> None:
             trainer_id=TRAINER_ID,
             member_id=member_id,
             date=today,
-            time=time,
+            time=slot_time,
             client_name=cname,
             type=typ,
             duration_minutes=dur,

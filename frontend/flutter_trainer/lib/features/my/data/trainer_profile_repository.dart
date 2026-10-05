@@ -85,6 +85,79 @@ class TrainerGymCandidate {
   bool get hasLocation => lat != null && lng != null;
 }
 
+/// 소속 헬스장의 부가 정보 — `GET·PUT /trainer/me/gym/profile`(#2700).
+///
+/// 회원 앱 헬스장 목록·상세에 그대로 나가는 값이다. 평점은 트레이너가 고치는
+/// 값이 아니라 담지 않는다.
+class TrainerGymInfo {
+  const TrainerGymInfo({
+    required this.gymId,
+    required this.name,
+    this.weekdayHours = '',
+    this.weekendHours = '',
+    this.phone = '',
+    this.tags = const <String>[],
+  });
+
+  factory TrainerGymInfo.fromJson(Map<String, Object?> json) => TrainerGymInfo(
+    gymId: json['gym_id']! as String,
+    name: json['name'] as String? ?? '',
+    weekdayHours: json['weekday_hours'] as String? ?? '',
+    weekendHours: json['weekend_hours'] as String? ?? '',
+    phone: json['phone'] as String? ?? '',
+    tags: List<String>.unmodifiable(
+      (json['tags'] as List<Object?>? ?? const <Object?>[]).whereType<String>(),
+    ),
+  );
+
+  final String gymId;
+  final String name;
+  final String weekdayHours;
+  final String weekendHours;
+  final String phone;
+  final List<String> tags;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'gym_id': gymId,
+    'name': name,
+    'weekday_hours': weekdayHours,
+    'weekend_hours': weekendHours,
+    'phone': phone,
+    'tags': tags,
+  };
+}
+
+/// `PUT /trainer/me/gym/profile` 로 보내는 값(#2700). 화면은 네 칸을 늘 함께
+/// 보낸다 — 빈 문자열·빈 목록은 "비운다"이다.
+class TrainerGymInfoUpdate {
+  const TrainerGymInfoUpdate({
+    required this.weekdayHours,
+    required this.weekendHours,
+    required this.phone,
+    required this.tags,
+  });
+
+  /// 서버 상한과 같다 — 태그 개수·한 태그 글자 수.
+  static const int maxTags = 10;
+  static const int maxTagLength = 20;
+
+  /// 영업시간 칸·전화 칸 글자 수 상한(`gym_profiles` 컬럼 길이).
+  static const int maxHoursLength = 50;
+  static const int maxPhoneLength = 20;
+
+  final String weekdayHours;
+  final String weekendHours;
+  final String phone;
+  final List<String> tags;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'weekday_hours': weekdayHours,
+    'weekend_hours': weekendHours,
+    'phone': phone,
+    'tags': tags,
+  };
+}
+
 abstract class TrainerProfileRepository {
   Future<TrainerProfile> fetch();
 
@@ -96,6 +169,14 @@ abstract class TrainerProfileRepository {
   /// [gym] 을 소속으로 정한다. 처음 고른 카카오 헬스장은 서버가 이때 목록에
   /// 넣는다.
   Future<TrainerProfile> selectGym(TrainerGymCandidate gym);
+
+  /// 소속 헬스장의 영업시간·전화·태그(#2700). 소속이 없으면 409 오류다.
+  Future<TrainerGymInfo> fetchGymInfo();
+
+  /// 소속 헬스장 정보를 고친다. 소속 트레이너 누구나 고칠 수 있고 마지막
+  /// 저장이 남는다. 프로필의 `gym.hours`·`gym.phone` 도 서버가 함께 바꾸므로
+  /// 화면은 저장 뒤 [fetch] 로 프로필을 다시 읽는다.
+  Future<TrainerGymInfo> updateGymInfo(TrainerGymInfoUpdate update);
 }
 
 class DioTrainerProfileRepository implements TrainerProfileRepository {
@@ -142,6 +223,35 @@ class DioTrainerProfileRepository implements TrainerProfileRepository {
             data: <String, Object?>{'kakao_place_id': gym.id, 'name': gym.name},
           ),
   );
+
+  @override
+  Future<TrainerGymInfo> fetchGymInfo() => _gymInfoCall(
+    () => _dio.get<Map<String, Object?>>('/trainer/me/gym/profile'),
+  );
+
+  @override
+  Future<TrainerGymInfo> updateGymInfo(TrainerGymInfoUpdate update) =>
+      _gymInfoCall(
+        () => _dio.put<Map<String, Object?>>(
+          '/trainer/me/gym/profile',
+          data: update.toJson(),
+        ),
+      );
+
+  Future<TrainerGymInfo> _gymInfoCall(
+    Future<Response<Map<String, Object?>>> Function() call,
+  ) async {
+    try {
+      final response = await call();
+      final data = response.data;
+      if (data == null) {
+        throw const ServerError(message: '헬스장 정보 응답이 비어 있습니다.');
+      }
+      return TrainerGymInfo.fromJson(data);
+    } on DioException catch (error) {
+      throw _mapDio(error);
+    }
+  }
 
   Future<TrainerProfile> _profileCall(
     Future<Response<Map<String, Object?>>> Function() call,
@@ -203,6 +313,12 @@ class MockTrainerProfileRepository implements TrainerProfileRepository {
 
   /// 고친 값을 적어 두는 키. 시드 프로필 위에 얹을 칸만 담는다.
   static const String storageKey = 'demo_trainer_profile';
+
+  /// 데모에서 고친 헬스장 정보를 헬스장 id 별로 적어 두는 키(#2700).
+  static const String gymInfoStorageKey = 'demo_trainer_gym_info';
+
+  /// 헬스장 id → 고친 헬스장 정보. 처음 읽을 때 [gymInfoStorageKey] 에서 채운다.
+  Map<String, TrainerGymInfo>? _gymInfos;
 
   Future<TrainerProfile> _current() async {
     if (_restored) return _profile;
@@ -355,7 +471,101 @@ class MockTrainerProfileRepository implements TrainerProfileRepository {
     await _persist();
     return _profile;
   }
+
+  Future<Map<String, TrainerGymInfo>> _savedGymInfos() async {
+    final Map<String, TrainerGymInfo>? cached = _gymInfos;
+    if (cached != null) return cached;
+    final Map<String, TrainerGymInfo> infos = <String, TrainerGymInfo>{};
+    final String? saved = await db?.readValue(gymInfoStorageKey);
+    if (saved != null) {
+      try {
+        final Object? decoded = jsonDecode(saved);
+        if (decoded is Map<String, Object?>) {
+          for (final MapEntry<String, Object?> entry in decoded.entries) {
+            final Object? value = entry.value;
+            if (value is Map<String, Object?> && value['gym_id'] is String) {
+              infos[entry.key] = TrainerGymInfo.fromJson(value);
+            }
+          }
+        }
+      } on FormatException {
+        // 깨진 값은 버리고 프로필에서 다시 만든다.
+      }
+    }
+    return _gymInfos = infos;
+  }
+
+  @override
+  Future<TrainerGymInfo> fetchGymInfo() async {
+    final TrainerProfile profile = await _current();
+    final String? gymId = profile.gym.id;
+    if (gymId == null) {
+      throw const ServerError(
+        statusCode: 409,
+        message: '소속 헬스장이 없습니다. 헬스장을 먼저 설정하세요.',
+      );
+    }
+    final TrainerGymInfo? saved = (await _savedGymInfos())[gymId];
+    if (saved != null) return saved;
+    // 고친 적이 없으면 소속을 정할 때 복사해 둔 값에서 시작한다 — 서버도
+    // 평일 영업시간·전화를 그 자리에 복사한다.
+    return TrainerGymInfo(
+      gymId: gymId,
+      name: profile.gym.name,
+      weekdayHours: profile.gym.hours,
+      phone: profile.gym.phone,
+    );
+  }
+
+  @override
+  Future<TrainerGymInfo> updateGymInfo(TrainerGymInfoUpdate update) async {
+    final TrainerGymInfo current = await fetchGymInfo();
+    final TrainerGymInfo next = TrainerGymInfo(
+      gymId: current.gymId,
+      name: current.name,
+      weekdayHours: update.weekdayHours.trim(),
+      weekendHours: update.weekendHours.trim(),
+      phone: update.phone.trim(),
+      tags: List<String>.unmodifiable(<String>{
+        for (final String tag in update.tags)
+          if (tag.trim().isNotEmpty) tag.trim(),
+      }),
+    );
+    final Map<String, TrainerGymInfo> infos = await _savedGymInfos();
+    infos[next.gymId] = next;
+    await db?.putValue(
+      gymInfoStorageKey,
+      jsonEncode(<String, Object?>{
+        for (final MapEntry<String, TrainerGymInfo> e in infos.entries)
+          e.key: e.value.toJson(),
+      }),
+    );
+    // 서버처럼 프로필의 복사본(평일 영업시간·전화)도 맞춘다.
+    _profile = _profile.copyWith(
+      gym: TrainerGym(
+        id: _profile.gym.id,
+        name: _profile.gym.name,
+        address: _profile.gym.address,
+        hours: next.weekdayHours,
+        phone: next.phone,
+        lat: _profile.gym.lat,
+        lng: _profile.gym.lng,
+      ),
+    );
+    await _persist();
+    return next;
+  }
 }
+
+/// 프로필의 소속 헬스장 카드가 보이는 헬스장 정보 — 태그·주말 영업시간(#2700).
+///
+/// 소속이 있을 때만 읽는다. 헬스장 정보를 저장하거나 소속을 바꾸면 화면이
+/// 무효화한다.
+final trainerGymInfoProvider = FutureProvider.autoDispose<TrainerGymInfo>((
+  ref,
+) {
+  return ref.watch(trainerProfileRepositoryProvider).fetchGymInfo();
+}, name: 'trainerGymInfo');
 
 final trainerProfileRepositoryProvider = Provider<TrainerProfileRepository>((
   ref,

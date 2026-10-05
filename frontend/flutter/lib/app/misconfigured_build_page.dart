@@ -62,6 +62,8 @@ class MisconfiguredBuildPage extends StatelessWidget {
     ReleaseProblem.mockWithoutDemoBuild => l.misconfiguredBuildMockWithoutDemo,
     ReleaseProblem.placeholderApiUrl => l.misconfiguredBuildPlaceholderApiUrl,
     ReleaseProblem.insecureApiUrl => l.misconfiguredBuildInsecureApiUrl,
+    ReleaseProblem.demoEntryWithoutDemoBuild => l.misconfiguredBuildDemoEntry,
+    ReleaseProblem.realApiWithoutDemoBuild => l.misconfiguredBuildRealApi,
   };
 
   @override

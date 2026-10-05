@@ -170,7 +170,7 @@ def _six_weeks_of_squats_with_a_varying_extra() -> list[list[str]]:
     """스쿼트만 매주 반복하고 나머지 한 종목은 매번 바꾼다 — "스쿼트"만 반복
     이름으로 잡혀야 한다(#776 personalized 판정에 반복 운동 근거로 쓴다)."""
     fillers = ["플랭크", "런지", "버피", "힙쓰러스트", "마운틴클라이머", "사이드 플랭크"]
-    return [[f"스쿼트 3세트", f"{name} 2세트"] for name in fillers]
+    return [["스쿼트 3세트", f"{name} 2세트"] for name in fillers]
 
 
 def _seed_memo(
