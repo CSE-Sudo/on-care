@@ -1503,7 +1503,7 @@ N명이면 첫 화면에서 요청이 2N개였다.
 |---|---|---|
 | `POST` | `/trainer/clients/{member_id}/chat/image` | 트레이너 → 담당 회원 (#921) |
 | `POST` | `/me/coach/chat/image` | 회원 → 담당 트레이너 (#1665) |
-| `GET` | `/chat/attachments/{file_id}` | 그 스레드의 두 사람 — 내려받기 |
+| `GET` | `/chat/attachments/{file_id}` | 그 스레드의 두 사람 — 내려받기. 회원·트레이너 공용이라 `RequireUser` 로 받지만 필수 동의는 확인한다 — 남았으면 파일을 찾기 전에 403 `consent_required` (#3239) |
 
 - 요청은 `multipart/form-data` 다: `image`(파일, 필수)·`message`(글, 선택, 1000자)·`client_request_id`
   (선택, 1~64자). 응답은 `201` 에 `ChatMessageOut` 이고 `attachment` 가
