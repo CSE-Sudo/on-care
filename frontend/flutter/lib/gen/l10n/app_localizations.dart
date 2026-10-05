@@ -4082,6 +4082,18 @@ abstract class AppLocalizations {
   /// **'On-Care · Version {version}'**
   String myAppVersion(String version);
 
+  /// Shown after the app version in the version row when the build has no build number (local run or test build) (#3226).
+  ///
+  /// In en, this message translates to:
+  /// **'Development build'**
+  String get buildInfoDevelopment;
+
+  /// Deploy time in the version row. The date is the build time converted to Korea Standard Time and formatted for the current locale (#3226).
+  ///
+  /// In en, this message translates to:
+  /// **'Deployed {date} KST'**
+  String buildInfoReleasedAt(String date);
+
   /// Support page footer when the build version cannot be read — the app name only (#3047).
   ///
   /// In en, this message translates to:
@@ -5305,6 +5317,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Social sign-in is coming soon. Please sign in with your email'**
   String get authSocialComingSoon;
+
+  /// Shown when the browser blocks the Kakao sign-in pop-up window on the web (#330).
+  ///
+  /// In en, this message translates to:
+  /// **'The sign-in window was blocked. Allow pop-ups for this site and try again'**
+  String get authSocialPopupBlocked;
 
   /// Title of the sign-in banner shown when a trainer account tries to sign in to the member app (#3137).
   ///

@@ -168,6 +168,8 @@
   "authErrEmptyCredentials": "Enter your email and password",
   "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment.",
   "authSocialComingSoon": "Social sign-in is coming soon. Please sign in with your email.",
+  "authSocialPopupBlocked": "The sign-in window was blocked. Allow pop-ups for this site and try again.",
+  "@authSocialPopupBlocked": {"description": "Shown when the browser blocks the Kakao sign-in pop-up window (#330)."},
   "authErrSignInFailed": "Sign-in failed. Please try again in a moment.",
   "authSessionExpired": "Your session has expired. Please sign in again.",
   "authErrNameEmpty": "Enter your name",
@@ -1535,6 +1537,18 @@
       }
     }
   },
+  "buildInfoDevelopment": "Development build",
+  "@buildInfoDevelopment": {"description": "Shown after the app version in the version row when the build has no build number (local run or test build) (#3226)."},
+  "buildInfoReleasedAt": "Deployed {date} KST",
+  "@buildInfoReleasedAt": {
+    "description": "Deploy time in the version row. The date is the build time converted to Korea Standard Time and formatted for the current locale (#3226).",
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "Oct 5, 2026 14:30"
+      }
+    }
+  },
   "myAppName": "On-Care Trainer",
   "myLegalTermsTitle": "Terms of Service",
   "myLegalPrivacyTitle": "Privacy Policy",
@@ -2548,6 +2562,8 @@
   "myDeleteReauthGoogle": "Sign in again with Google",
   "myDeleteReauthSocialDone": "Social account confirmed. Press Delete to continue.",
   "myDeleteReauthSocialFailed": "Couldn't confirm your social account. Please sign in again.",
+  "myDeleteReauthSocialUnavailable": "Social sign-in isn't available in this version yet. Please contact support.",
+  "@myDeleteReauthSocialUnavailable": {"description": "Shown in the account-deletion confirmation when no social sign-in is configured for this build (#330)."},
   "myWithdrawReasonTitle": "Are you sure you want to leave?",
   "myWithdrawReasonQuestion": "What didn't work for you?",
   "myWithdrawReasonHint": "Pick as many as you like, or skip.",

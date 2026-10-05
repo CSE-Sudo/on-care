@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_social_login/oncare_social_login.dart';
 
 /// Deployment environment. Selected at build time via `--dart-define=ENV`.
 enum Environment { dev, staging, prod }
@@ -99,6 +100,7 @@ class AppConfig {
     this.showDemoEntry = false,
     this.sentryDsn,
     this.demoBuild = false,
+    this.socialLogin = const SocialLoginConfig(),
   }) : mockApiRequested = useMockApi;
 
   final Environment environment;
@@ -144,6 +146,14 @@ class AppConfig {
   /// 릴리스 빌드에서 목업을 허용하는 유일한 근거다. 데모 배포 워크플로(`deploy.yml`)만
   /// 넘기고, 운영 웹 빌드는 넘기지 않는다. 회원 앱과 같은 이름·같은 기본값이다.
   final bool demoBuild;
+
+  /// 카카오·구글 로그인 키(`KAKAO_LOGIN_REST_API_KEY`·`GOOGLE_WEB_CLIENT_ID`, #330).
+  /// 모두 공개 식별자다. 키가 없는 provider 는 로그인 화면에서 꺼진다.
+  final SocialLoginConfig socialLogin;
+
+  /// 소셜 로그인을 목업 저장소로 보내는가 — 고정 데모 토큰을 쓴다(데모·개발).
+  /// 실서버 빌드는 [socialLogin] 의 키로 provider 로그인을 연다(#330).
+  bool get usesMockSocialLogin => useMockApi;
 
   /// 실 네트워크로 나가는 요청이 있는가.
   bool get usesNetwork => !useMockApi;
@@ -195,6 +205,7 @@ class AppConfig {
       sentryDsn: sentryDsn.isEmpty ? null : sentryDsn,
       // ignore: avoid_redundant_argument_values
       demoBuild: demoBuild,
+      socialLogin: SocialLoginConfig.fromEnvironment(),
     );
   }
 }
