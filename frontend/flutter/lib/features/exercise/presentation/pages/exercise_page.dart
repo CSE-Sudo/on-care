@@ -24,6 +24,7 @@ import 'package:oncare/features/member_coach/presentation/widgets/trainer_chat_h
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare/shared/widgets/member_tab_header.dart';
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -295,9 +296,10 @@ class _RecordTabState extends ConsumerState<_RecordTab> {
       loading: () => const AppLoading(placement: AppStatePlacement.card),
       error: (Object e, StackTrace _) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s24),
-        child: AppErrorState(
+        child: appErrorStateFor(
+          context,
+          error: e,
           title: l.exLoadError,
-          retryLabel: l.actionRetry,
           onRetry: () => ref.invalidate(exerciseWeekProvider),
           placement: AppStatePlacement.card,
         ),
@@ -519,7 +521,7 @@ class _ExerciseSelectedDay extends ConsumerWidget {
           // 받지 못한 것을 "기록이 없어요" 로 말하지 않는다(#2635) — 이번 주
           // 오류와 같은 모양으로, 그 주를 다시 받을 자리를 준다.
           error: (Object e, StackTrace _) =>
-              _pastWeekError(context, ref, weekStart),
+              _pastWeekError(context, ref, weekStart, e),
           data: (ExerciseWeek week) =>
               _ExerciseDayDetail(week: week, date: date),
         );
@@ -527,14 +529,21 @@ class _ExerciseSelectedDay extends ConsumerWidget {
 }
 
 /// 지난 주를 받지 못했을 때. 이번 주 오류와 같은 문구·버튼이다. (#2635)
-Widget _pastWeekError(BuildContext context, WidgetRef ref, DateTime weekStart) {
+/// 설명은 [error] 의 원인에서 고른다(#3140).
+Widget _pastWeekError(
+  BuildContext context,
+  WidgetRef ref,
+  DateTime weekStart,
+  Object error,
+) {
   final AppLocalizations l = AppLocalizations.of(context);
   return Padding(
     padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s24),
-    child: AppErrorState(
+    child: appErrorStateFor(
+      context,
       key: const Key('exercisePastWeekError'),
+      error: error,
       title: l.exLoadError,
-      retryLabel: l.actionRetry,
       onRetry: () => ref.invalidate(exercisePastWeekProvider(weekStart)),
       placement: AppStatePlacement.card,
     ),
@@ -932,7 +941,7 @@ class _PtLogCard extends ConsumerWidget {
 /// PT 종목 한 줄의 값 — 유형(없으면 비움)·이름·운동량.
 typedef _LineData = ({ExerciseType? type, String name, String amount});
 
-/// PT 프로그램 한 줄의 운동량 — `4세트 · 12회 · 10kg`·`30분`.
+/// PT 프로그램 한 줄의 운동량 — `4세트 · 12회 · 10kg`·`3세트 · 60초`·`30분`.
 String _ptProgramAmount(AppLocalizations l, CoachProgramItem item) {
   // 서버 계약상 근력이 아닌 항목은 세트 대신 duration(분)을 갖는다. 이 값을
   // 버리면 러닝머신·스트레칭이 이름만 남아, 데모와 같은 회귀가 실 API에서도
@@ -947,14 +956,16 @@ String _ptProgramAmount(AppLocalizations l, CoachProgramItem item) {
     );
     return time;
   }
-  // 세트 → 횟수 → 중량. 입력 화면이 묻는 순서 그대로다 (#1310) — 트레이너가
-  // 적은 순서와 회원이 읽는 순서가 다르면 같은 한 줄이 두 앱에서 달라 보인다.
-  final String details = <String>[
-    if (item.sets > 0) l.exSetsCount(item.sets),
-    if (item.reps > 0) l.exRepsCount(item.reps),
-    if (item.weight > 0) exerciseWeightLabel(l, item.weight),
-  ].join(' · ');
-  return details;
+  // 세트 → 횟수(버티는 운동이면 초) → 중량. 입력 화면이 묻는 순서 그대로다
+  // (#1310, #3138) — 트레이너가 적은 순서와 회원이 읽는 순서가 다르면 같은 한
+  // 줄이 두 앱에서 달라 보인다.
+  return strengthAmountParts(
+    l,
+    sets: item.sets,
+    reps: item.reps,
+    holdSeconds: item.holdSeconds,
+    weight: item.weight,
+  ).join(' · ');
 }
 
 /// "오늘 완료한 PT" 카드 — 데모와 실서버가 같은 모양이다. (#2666)

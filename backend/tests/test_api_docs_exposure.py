@@ -37,6 +37,9 @@ def _prod(**overrides) -> Settings:
         gemini_api_key="test-gemini-key",
         recognizer="gemini",
         embedder="gemini",
+        # 운영은 메일 발송 설정이 필수다 — 없으면 가입 인증 코드를 못 보내 기동 거부(#3131).
+        smtp_host="smtp.example.com",
+        mail_from="no-reply@example.com",
         **overrides,
     )
 

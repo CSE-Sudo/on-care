@@ -770,11 +770,13 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 - 대상은 `read = true` 이고 `created_at` 이 90일보다 오래된 행뿐입니다.
 - **미확인 알림은 아무리 오래돼도 지우지 않습니다.** 사용자가 보지 않은 알림을 서버가
   지우면 무엇이 사라졌는지 알 길이 없고, 배지 수도 그만큼 조용히 줄어듭니다.
-- 자동으로 돌지 않습니다. 삭제는 되돌릴 수 없어 **사람이 실행**합니다:
+- 서버가 기동 때와 그 뒤 하루마다 감사 로그 정리와 함께 지웁니다(`app/services/retention.py`, #3144).
+  대상을 먼저 보거나 기준·사용자를 바꿔 손으로 정리할 때는 스크립트를 씁니다:
 
   ```
   python -m scripts.purge_notifications --dry-run   # 대상만 본다
   python -m scripts.purge_notifications             # 실제로 지운다
+  python -m scripts.purge_retention                 # 감사 로그·알림 정기 정리를 지금 한 번
   ```
 
 - 정리 대상 선정(`expired_notifications`)은 지우는 일과 분리돼 있고 테스트가 있습니다
@@ -1609,10 +1611,10 @@ N명이면 첫 화면에서 요청이 2N개였다.
 | POST | `/auth/register/email-code` | `{ email, purpose: "member_signup"\|"trainer_signup" }` → **202** `{ expires_in_minutes, resend_after_seconds }` — 가입 전 이메일 인증 코드(#3038). 가입 여부와 무관하게 같은 응답. 아래 [가입 이메일 인증](#가입-이메일-인증-3038) |
 | POST | `/auth/register` | `{ email, password, name, phone, email_code }` → **201** `{ id, name, email, role: "member" }` — 회원(`role=member`). 이미 가입된 이메일 409, 코드 없음 422 `email_code_required`, 틀린·만료 코드 400 `invalid_email_code`(#3038) |
 | POST | `/auth/trainer/register` | 같은 입력 → **201** `{ id, name, email, role: "trainer" }` — 트레이너(#475). 역할을 요청 필드로 가르지 않으려고 경로를 나눴다. 소속 헬스장은 가입 뒤 `PUT /trainer/me/gym`. 코드는 `purpose=trainer_signup` 으로 받은 것만 맞다 |
-| POST | `/auth/login` | form(`application/x-www-form-urlencoded`) `username`(이메일)·`password` → `{ access_token, refresh_token, token_type }`. 틀리면 401 |
+| POST | `/auth/login` | form(`application/x-www-form-urlencoded`) `username`(이메일)·`password` → `{ access_token, refresh_token, token_type, consent_required, role }`. 틀리면 401. `role` 은 계정 역할(`member`·`trainer`) — 회원 앱은 저장 전에 보고 트레이너 계정이면 토큰을 폐기하고 트레이너 웹 안내를 보인다(#3137) |
 | POST | `/auth/refresh` | `{ refresh_token }` → 새 `{ access_token, refresh_token, token_type }`(회전). 무효·폐기된 토큰 401 |
 | POST | `/auth/logout` | `{ refresh_token }` → **204**. 그 refresh 토큰을 폐기한다. access 토큰은 요구하지 않고, 못 알아본 토큰에도 204 |
-| POST | `/auth/social/{provider}` | `{ token }` → `{ access_token, refresh_token, token_type }`. 실패 응답은 아래 절 |
+| POST | `/auth/social/{provider}` | `{ token }` → `{ access_token, refresh_token, token_type, consent_required, role }`(`role` 은 위 `/auth/login` 과 같다, #3137). 실패 응답은 아래 절 |
 | POST | `/auth/password-reset/request` | `{ email }` → **202** `{ status: "requested", expires_in_minutes }` — 계정 유무와 무관하게 같은 응답(#2824). 아래 [비밀번호 재설정](#비밀번호-재설정-2824) |
 | POST | `/auth/password-reset/confirm` | `{ token, new_password }` → `{ status: "reset" }`. 코드 없음·만료·사용됨은 400 `invalid_reset_token`(#2824) |
 
@@ -1691,8 +1693,9 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
   이미 지금 버전에 동의한 항목은 다시 쓰지 않는다 — 처음 동의한 시각이 남는다.
 - 문서 버전은 `services/signup_consent.CURRENT_VERSIONS` 한 곳이 정한다. 약관·처리방침 본문을
   고치면 그 항목의 버전을 올린다. 처리방침은 위탁·국외 이전·파기 절차 절을 더하며 `privacy` 가
-  `2026-10-03` 으로 올랐다(#2820) — 그 전 버전에만 동의한 계정은 다시 동의할 때까지 회원 데이터 API
-  가 403 이고, 동의 화면을 다시 거친다. 버전 날짜는 두 앱 처리방침 본문의 시행일과 같아야 한다.
+  `2026-10-03` 으로 올랐고(#2820), 보호책임자 연락처를 팀 수신 주소로 바꾸며 `2026-10-05` 로 다시
+  올랐다(#3132) — 그 전 버전에만 동의한 계정은 다시 동의할 때까지 회원 데이터 API 가 403 이고,
+  동의 화면을 다시 거친다. 버전 날짜는 두 앱 처리방침 본문의 시행일과 같아야 한다.
 - **필수 동의 확인(#3088)** — 회원 계정은 역할의 필수 항목(`terms`·`privacy`·`health`·`age14`)에
   지금 버전으로 동의해 두어야 회원 의존성(`CurrentUser`·`RequireMember`)을 쓰는 API 를 부를 수 있다.
   남은 항목이 있으면 **403** `{ detail: { code: "consent_required", missing: [...] } }` — 위 422 와
@@ -2265,7 +2268,7 @@ CORS 와일드카드, 기본·짧은 `DEMO_LOGIN_PASSWORD` 로 켠 데모 시드
   관리자 지정·해제 `admin.grant`·`admin.revoke`(`target_user_id` 에 대상, `scripts/grant_admin.py`), 가입 인증 코드
   요청 `auth.signup_code_request`·확인 실패 `auth.signup_code_verify`(이메일은 키를 둔 해시만).
 - 보존 기간: 접속 기록 365일(`AUDIT_RETENTION_DAYS`), 열람·동의·탈퇴 기록 730일
-  (`AUDIT_SENSITIVE_RETENTION_DAYS`). 서버 기동 때 지난 기록을 정리한다.
+  (`AUDIT_SENSITIVE_RETENTION_DAYS`). 서버가 기동 때와 그 뒤 하루마다 지난 기록을 정리한다(#3144).
 
 ## 도메인 핵심 (놓치면 안 되는 차별점)
 

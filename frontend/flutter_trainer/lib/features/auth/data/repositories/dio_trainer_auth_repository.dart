@@ -157,7 +157,11 @@ class DioTrainerAuthRepository implements TrainerAuthRepository {
       }
       if (code == 401) {
         // Surfaced to SessionController so it can attempt a token refresh.
-        throw UnauthorizedError(message: e.message);
+        // 서버 사유만 싣는다 — Dio 원문은 화면에 뜰 수 있는 자리에 두지 않는다.
+        throw UnauthorizedError(
+          message: serverDetailText(e.response?.data),
+          cause: e,
+        );
       }
       // Transport failures (network/timeout/5xx) surface as a typed
       // [AppError] — NOT [AuthException] — so SessionController's restore

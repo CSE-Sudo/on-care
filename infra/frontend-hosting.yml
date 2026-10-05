@@ -67,6 +67,18 @@ Parameters:
       - 'false'
     Description: Also trust the branch-based subject during the move to GitHub Environments
 
+  # 지금 서비스 중인 릴리스 경로(#3129). 릴리스 전환은 배포 워크플로가 distribution 의
+  # OriginPath 를 직접 바꾸는 방식이라 스택은 그 값을 모른다. 여기 값이 비어 있거나 옛 값이면
+  # 스택을 갱신하는 순간 CloudFormation 이 OriginPath 를 그 값으로 덮어써 빈 버킷 루트(또는
+  # 정리된 옛 릴리스)를 서비스한다. 그래서 스택 갱신은 언제나 살아 있는 distribution 에서 현재
+  # 값을 읽어 넘긴다 — .github/scripts/frontend_hosting_stack.sh deploy 가 그 일을 한다.
+  # 첫 생성 때만 빈 값(버킷 루트)이다.
+  ReleaseOriginPath:
+    Type: String
+    Default: ''
+    AllowedPattern: '^(/releases/[0-9a-f]{40})?$'
+    Description: Current release origin path (/releases/<sha>), read from the live distribution on every stack update
+
 Rules:
   # 도메인과 인증서는 함께 채우거나 함께 비운다(#3021).
   CustomDomainNeedsCertificate:
@@ -317,6 +329,8 @@ Resources:
           - DomainName: !GetAtt FrontendBucket.RegionalDomainName
             Id: frontend-s3-origin
             OriginAccessControlId: !GetAtt FrontendOriginAccessControl.Id
+            # 배포 워크플로가 바꿔 둔 릴리스 경로를 스택 갱신이 지우지 않게 파라미터로 받는다(#3129).
+            OriginPath: !Ref ReleaseOriginPath
             S3OriginConfig:
               OriginAccessIdentity: ''
         PriceClass: PriceClass_200
@@ -421,7 +435,8 @@ Resources:
                   - cloudfront:GetInvalidation
                 Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution}'
               # 릴리스 전환은 distribution 의 OriginPath 를 바꾸는 것이 전부다.
-              # 검증 실패 시 되돌리는 것도 같은 권한을 쓴다.
+              # 검증 실패 시 되돌리는 것도 같은 권한을 쓴다. 스택은 이 값을 ReleaseOriginPath
+              # 파라미터로만 알므로, 스택 갱신 때는 현재 OriginPath 를 읽어 넘긴다(#3129).
               - Sid: SwitchFrontendRelease
                 Effect: Allow
                 Action:
