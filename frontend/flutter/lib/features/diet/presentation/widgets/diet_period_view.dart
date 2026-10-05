@@ -8,6 +8,7 @@ import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/diet/domain/entities/diet_period.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare/shared/widgets/chart_a11y_labels.dart';
 import 'package:oncare/shared/widgets/metric_trend_chart.dart';
 import 'package:oncare_core/clock.dart';
@@ -161,9 +162,10 @@ class _DietPeriodViewState extends ConsumerState<DietPeriodView> {
         // 자리다. 카드 밖에 두면 카드가 제 기간을 스스로 말하지 않는다.
         async.when(
           loading: () => const AppLoading(placement: AppStatePlacement.card),
-          error: (Object e, StackTrace _) => AppErrorState(
+          error: (Object e, StackTrace _) => appErrorStateFor(
+            context,
+            error: e,
             title: l.dietLoadError,
-            retryLabel: l.actionRetry,
             onRetry: _retry,
             placement: AppStatePlacement.card,
           ),

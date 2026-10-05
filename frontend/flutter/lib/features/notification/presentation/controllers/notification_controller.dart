@@ -44,7 +44,13 @@ class NotificationController extends StateNotifier<NotificationState> {
     // 다시 받기 시작하면 실패 표시를 내린다(#2877) — 재시도 중에도 실패 안내가
     // 남아 있으면 누른 것이 먹지 않은 것처럼 보인다. 받아 본 적 없이 비어 있으면
     // 화면이 첫 로딩 표시로 돌아간다.
-    if (mounted) state = state.copyWith(loading: true, failedToLoad: false);
+    if (mounted) {
+      state = state.copyWith(
+        loading: true,
+        failedToLoad: false,
+        loadError: null,
+      );
+    }
     try {
       final items = await _repo.fetchPage(limit: notificationPageSize);
       if (!mounted) return;
@@ -57,10 +63,15 @@ class NotificationController extends StateNotifier<NotificationState> {
         hasMore: items.length >= notificationPageSize,
       );
       onChanged?.call();
-    } catch (_) {
+    } catch (error) {
       // 실패해도 **이미 받아 둔 목록은 지우지 않는다.** 화면이 재시도를 제안한다.
+      // 오류는 들고 간다 — 첫 조회 실패 안내가 원인을 말한다(#3140).
       if (!mounted) return;
-      state = state.copyWith(loading: false, failedToLoad: true);
+      state = state.copyWith(
+        loading: false,
+        failedToLoad: true,
+        loadError: error,
+      );
     } finally {
       // 쓰기가 끝난 읽음 처리는 이 조회까지만 덧입히면 된다. 다음 조회는 쓰기 뒤에
       // 나가므로 서버가 이미 읽음으로 답한다.

@@ -146,6 +146,9 @@ class LoginToken(Token):
     """
 
     consent_required: bool = False
+    # 이 계정의 역할(`member`|`trainer`). 회원 앱은 저장 전에 이 값을 보고 트레이너
+    # 계정의 토큰을 버린다(#3137) — 받아 두면 로그인 직후부터 회원 API 가 모두 403 이다.
+    role: str = "member"
 
 
 class RefreshRequest(BaseModel):
