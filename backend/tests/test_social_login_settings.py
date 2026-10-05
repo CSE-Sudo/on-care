@@ -100,7 +100,8 @@ def test_malformed_google_client_id_stops_startup(value):
     [problem] = startup_checks.social_setting_problems(settings)
     assert "GOOGLE_CLIENT_IDS" in problem
     assert "1개" in problem
-    assert value not in problem
+    # 안내는 형식 힌트(…apps.googleusercontent.com)를 담는다 — 그 밖에 입력값이 찍히지 않는다.
+    assert value not in problem.replace("(….apps.googleusercontent.com)", "")
     with pytest.raises(StartupConfigError):
         startup_checks.check(settings)
 
