@@ -21,7 +21,7 @@ from starlette.concurrency import run_in_threadpool
 from app.api.deps import CurrentUser
 from app.core.config import get_settings
 from app.db import demo_ids
-from app.db.session import get_db
+from app.db.session import get_db, release_connection
 from app.models.models import Place
 from app.schemas.misc_api import PlaceOut
 from app.services.places import kakao
@@ -75,6 +75,10 @@ async def places_nearby(
     settings = get_settings()
     demo = demo_ids.demo_data_enabled()
     if _use_kakao(settings) and settings.kakao_rest_api_key:
+        # 카카오 응답을 기다리는 동안 인증이 연 연결을 쥐지 않는다(#3242). 풀이
+        # 프로세스당 15개라, 카카오가 느려지면 장소와 무관한 API 까지 연결 대기에
+        # 걸린다. 여기까지는 읽기뿐이고, 시드 폴백은 다음 쿼리 때 새로 빌린다.
+        await run_in_threadpool(release_connection, db)
         try:
             places = await kakao.search_nearby(
                 lat, lng, category, radius_m,
