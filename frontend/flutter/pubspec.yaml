@@ -19,14 +19,14 @@ dependencies:
 
   # --- State management & DI ---
   # 코드 생성(@riverpod)과 hooks 는 쓰지 않는다 — provider 를 직접 선언한다.
-  flutter_riverpod: ^2.6.1
+  flutter_riverpod: ^3.1.0
 
   # --- Routing ---
   go_router: ^14.6.2
 
   # --- Networking ---
   # 요청 로깅은 core/network/interceptors/api_logging_interceptor.dart 가 한다.
-  dio: ^5.7.0
+  dio: ^5.11.1
   # NOTE: `retrofit` + `retrofit_generator` are reintroduced in Stage 4
   # when real API clients land. The 9.7.0 generator is currently
   # incompatible with retrofit 4.9.2 (switch on Parser is non-exhaustive
@@ -62,10 +62,10 @@ dependencies:
     path: ../../shared/oncare_report
 
   # --- Local persistence ---
-  drift: ^2.20.3
-  drift_flutter: ^0.2.4
+  drift: ^2.31.0
+  drift_flutter: ^0.2.8
   sqlite3_flutter_libs: ^0.5.24
-  flutter_secure_storage: ^9.2.2
+  flutter_secure_storage: ^11.2.0
   shared_preferences: ^2.3.2
 
   # --- UI ---
@@ -78,7 +78,7 @@ dependencies:
 
   # --- i18n / utilities ---
   intl: any
-  logger: ^2.4.0
+  logger: ^2.8.0
 
   # --- Maps ---
   # 지도는 카카오맵으로 통일(#329) — 백엔드 장소 검색이 카카오 Local 이라 베이스맵도
@@ -86,16 +86,16 @@ dependencies:
   # HtmlElementView 로 직접 삽입하므로 pub 의존성이 필요 없다.
   url_launcher: ^6.3.1
   # 인증된 API로 받은 리포트 PDF binary를 앱 안에서 미리보기한다(#778).
-  printing: ^5.14.2
+  printing: ^5.15.1
   # 첨부가 없는 리포트는 회원 기록으로 문서를 만들어 같은 미리보기로 연다(#1600).
   # printing 이 전이 의존성으로 끌고 오지만, 직접 import 하므로 명시한다.
-  pdf: ^3.11.3
+  pdf: ^3.13.1
   image_picker: ^1.2.3
-  geolocator: ^14.0.2
+  geolocator: ^14.1.1
   sentry_flutter: ^8.14.2
   # 빌드 버전을 읽는다 — 고객 지원 버전 줄(#3047)·최소 지원 버전 확인(#3045).
   # 트레이너 웹과 같은 버전을 쓴다.
-  package_info_plus: ^9.0.1
+  package_info_plus: ^10.2.2
 
   # NOTE: Social-login SDKs (google_sign_in / kakao_flutter_sdk_user) are
   # added in Stage 4 when the auth feature is implemented (Naver and Apple
@@ -112,12 +112,12 @@ dev_dependencies:
 
   # --- Codegen ---
   # drift 스키마(app_database.g.dart)가 유일한 생성 대상이다.
-  build_runner: ^2.4.13
+  build_runner: ^2.7.1
   drift_dev: ^2.20.3
 
   # --- Lint plugins ---
-  custom_lint: ^0.7.6
-  riverpod_lint: ^2.6.3
+  custom_lint: ^0.8.1
+  riverpod_lint: ^3.1.0
 
   # --- Test helpers ---
   # 골든 테스트는 flutter_test 의 matchesGoldenFile 을 쓴다.
