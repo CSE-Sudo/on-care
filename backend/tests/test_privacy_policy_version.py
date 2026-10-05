@@ -88,8 +88,8 @@ def test_contact_change_is_recorded_in_the_history(app: str):
     assert "changed the contact address" in _privacy_body(app, "en")
 
 
-def test_apple_removal_is_folded_into_the_unreleased_revision():
-    """애플 로그인 제외(#3217)는 미배포 2026-10-05 판에 합쳤다 — 버전을 새로 만들지 않는다.
+def test_naver_apple_removal_is_folded_into_the_unreleased_revision():
+    """네이버·애플 로그인 제외(#3217)는 미배포 2026-10-05 판에 합쳤다 — 버전을 새로 만들지 않는다.
 
     같은 날짜 안에서 두 번째 버전을 만들 수 없고(버전이 날짜 문자열), 그 판은 아직
     배포 전이라 재동의를 다시 요구할 실익이 없다. 그래서 동의 버전은 그대로이고,
@@ -98,19 +98,23 @@ def test_apple_removal_is_folded_into_the_unreleased_revision():
     assert _privacy_version() == date(2026, 10, 5)
     ko = _privacy_body("flutter", "ko")
     en = _privacy_body("flutter", "en")
-    assert "- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경, 소셜 로그인 수단에서 애플 제외" in ko
-    assert "removed Apple from the social login options" in en
+    assert "- 2026년 10월 5일: 개인정보 보호책임자 연락처 변경, 소셜 로그인 수단에서 네이버·애플 제외" in ko
+    assert "removed Naver and Apple from the social login options" in en
     # 수집 항목에는 실제로 제공하는 소셜 로그인만 남는다.
-    assert "소셜 로그인(카카오·구글·네이버)" in ko
-    assert "social login (Kakao, Google or Naver)" in en
+    assert "소셜 로그인(카카오·구글)" in ko
+    assert "social login (Kakao or Google)" in en
 
 
 @pytest.mark.parametrize("app", _APPS)
 @pytest.mark.parametrize("lang", ["ko", "en"])
-def test_apple_appears_only_in_the_revision_history(app: str, lang: str):
-    """애플은 제외를 알리는 개정 이력 줄 말고는 처리방침에 나오지 않는다(#3217)."""
-    word = "애플" if lang == "ko" else "Apple"
-    lines = [line for line in _privacy_body(app, lang).splitlines() if word in line]
+def test_naver_apple_appear_only_in_the_revision_history(app: str, lang: str):
+    """네이버·애플은 제외를 알리는 개정 이력 줄 말고는 처리방침에 나오지 않는다(#3217)."""
+    words = ("네이버", "애플") if lang == "ko" else ("Naver", "Apple")
+    lines = [
+        line
+        for line in _privacy_body(app, lang).splitlines()
+        if any(word in line for word in words)
+    ]
     for line in lines:
         assert line.startswith(("- 2026년 10월 5일: ", "- 5 October 2026: ")), line
 
