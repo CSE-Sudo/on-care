@@ -35,6 +35,7 @@ from app.services.trainer._common import (
     _active_link,
     _cancel_sessions_on_detach,
     _done_pt_numbers,
+    _reservation_schedule_ids,
     _schedule_out,
     get_member_trainer_id,
     member_routine_days,
@@ -43,7 +44,6 @@ from app.services.trainer._common import (
 from app.services.trainer.routines import (
     build_routines,
 )
-from app.services.trainer.schedule import _reservation_schedule_ids
 
 
 # ---- 회원측 미러 (내 담당 코치 / 받은 루틴 / 채팅 / 내 세션) ----

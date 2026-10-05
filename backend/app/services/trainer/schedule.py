@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.core import clock
 from app.models.models import (
     ExerciseSession, RoutineHistory,
-    TrainerClient, TrainerReservation, TrainerRoutine, TrainerSchedule, User,
+    TrainerClient, TrainerRoutine, TrainerSchedule, User,
 )
 from app.schemas.trainer_api import (
     DeliveryOut,
@@ -65,6 +65,7 @@ from app.services.trainer._common import (
     _program_routines_for_request,
     _program_row_seconds,
     _release_cancelled_reservation,
+    _reservation_schedule_ids,
     _retire_personal_routines,
     _routine_out,
     _routine_outs,
@@ -188,19 +189,6 @@ def _personal_row_seconds(row: TrainerRoutine) -> int:
     return _exercise_seconds(
         row.type, row.duration_seconds, row.sets
     ) or row.minutes * 60
-
-
-def _reservation_schedule_ids(db: Session, session_ids: set[str]) -> set[str]:
-    """[session_ids] 중 회원 예약이 소유한 일정. [_is_reservation_schedule] 의 묶음판."""
-    if not session_ids:
-        return set()
-    return set(
-        db.scalars(
-            select(TrainerReservation.schedule_id).where(
-                TrainerReservation.schedule_id.in_(sorted(session_ids))
-            )
-        ).all()
-    )
 
 
 def _linked_member_ids(

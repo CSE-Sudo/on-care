@@ -1566,6 +1566,21 @@ def _is_reservation_schedule(db: Session, session_id: str) -> bool:
     ) is not None
 
 
+def _reservation_schedule_ids(db: Session, session_ids: set[str]) -> set[str]:
+    """[session_ids] 중 회원 예약이 소유한 일정. [_is_reservation_schedule] 의 묶음판.
+
+    일정 목록(`schedule`)과 회원 PT 목록(`member_mirror`)이 함께 쓴다."""
+    if not session_ids:
+        return set()
+    return set(
+        db.scalars(
+            select(TrainerReservation.schedule_id).where(
+                TrainerReservation.schedule_id.in_(sorted(session_ids))
+            )
+        ).all()
+    )
+
+
 def _clock_minutes(value: str) -> int:
     """`HH:MM` 을 자정부터의 분으로. 형식이 다르면 ValueError."""
     hour, minute = value.split(":")
