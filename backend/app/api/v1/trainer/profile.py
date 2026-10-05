@@ -121,6 +121,22 @@ async def trainer_search_gyms(
     return await trainer_gym_search.search(db, q, lat, lng)
 
 
+@router.get("/trainer/gyms/nearby", response_model=list[TrainerGymCandidate])
+async def trainer_nearby_gyms(
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+    lat: float = Query(ge=-90, le=90, description="트레이너의 현재 위도"),
+    lng: float = Query(ge=-180, le=180, description="트레이너의 현재 경도"),
+) -> list[TrainerGymCandidate]:
+    """현재 위치 주변의 소속 후보 헬스장 — 가까운 순. (#3223)
+
+    `trainer_gym_search.NEARBY_RADIUS_M` 안의 등록 헬스장과 카카오 결과를 합친다.
+    고르는 길은 이름 검색 결과와 같다(`registered` 로 갈린다). 좌표는 이 요청의
+    거리 계산에만 쓰고 저장하지 않는다.
+    """
+    return await trainer_gym_search.nearby(db, lat, lng)
+
+
 @router.put("/trainer/me/gym/kakao", response_model=TrainerMe)
 async def trainer_set_kakao_gym(
     payload: TrainerKakaoGymSelect,

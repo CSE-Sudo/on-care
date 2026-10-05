@@ -1879,6 +1879,7 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은
 | Method | Path | Body / Query → Response |
 |---|---|---|
 | GET | `/trainer/gyms/search` | `query`(1~100자, 이름·주소), `lat`·`lng`(선택, 쌍으로) → `[{ id, name, address, lat, lng, phone, distance_meters, registered }]` |
+| GET | `/trainer/gyms/nearby` | `lat`(-90~90)·`lng`(-180~180) 필수 → 같은 모양, 가까운 순 (#3223) |
 | PUT | `/trainer/me/gym` | `{ gym_id }` — `registered=true` 인 결과 → `TrainerMe` |
 | PUT | `/trainer/me/gym/kakao` | `{ kakao_place_id(숫자), name }` — `registered=false` 인 결과 → `TrainerMe` |
 
@@ -1886,7 +1887,16 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은
   카카오 키워드 검색 결과를 싣는다. 카카오 결과 중 이미 등록된 곳은 `registered=true` 로 한 번만
   나온다. 카카오 결과는 `category_name` 에 `스포츠시설` 이 든 곳만 — 필라테스·크로스핏 스튜디오는
   들어가고 음식점·병원은 빠진다. 카카오 키가 없거나 호출이 실패하면 등록된 결과만 200 으로 준다.
-- `distance_meters` 는 좌표를 보냈을 때만 채운다(카카오 결과만). `lat`·`lng` 는 지도 핀용이다.
+- 등록 헬스장 비교는 **띄어쓰기와 단어 순서를 보지 않는다**(#3223). 검색어를 띄어쓰기로 나눈
+  단어가 모두 이름이나 주소(띄어쓰기를 뺀 값)에 들어 있으면 맞는다 — `온케어짐신촌`·`신촌 온케어짐`
+  모두 `온케어짐 신촌점` 을 찾는다. 대소문자는 무시하고 `%`·`_` 는 글자 그대로 비교한다.
+- `distance_meters` 는 좌표를 보냈을 때 채운다(등록 헬스장은 서버가 계산, 카카오 결과는 카카오
+  값). `lat`·`lng` 는 지도 핀용이다.
+- `/trainer/gyms/nearby` 는 트레이너 웹의 "현재 위치로 찾기"용이다. 반경 2km 안의 등록 헬스장과
+  카카오 `헬스장` 검색(같은 반경, 거리순)을 합쳐 가까운 순으로 준다. 이미 등록된 카카오 결과는
+  `registered=true` 로 한 번만. 카카오 키가 없거나 실패하면 등록 헬스장만 200. 좌표가 없거나
+  범위를 벗어나면 **422**, 회원 토큰은 **403**. **좌표는 저장하지 않는다**(회원 앱
+  `/places/nearby` 와 같다).
 - `PUT /trainer/me/gym/kakao` 는 **클라이언트가 보낸 이름·주소를 저장하지 않는다.** `name` 으로
   카카오를 다시 검색해 id 가 같은 헬스장을 찾고 그 값으로 `places`·`gym_profiles`
   (`is_partner=false`, 전화만)를 만든다. 찾지 못하거나 헬스장이 아니면 **404**, 카카오를 쓸 수
