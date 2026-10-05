@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 실행 화면 바탕색(#3153). 모바일 회원 앱 페이지 배경(OnCareColors.surfaceCard)과 같은 흰색이다.
+     앱은 라이트 전용이라(#1604) 다크 모드에서도 같은 값을 쓴다. -->
+<resources>
+    <color name="launch_background">#FFFFFF</color>
+</resources>

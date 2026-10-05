@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare_core/clock.dart';
+import 'package:oncare_core/licenses.dart';
 import 'package:oncare_kakao_map/oncare_kakao_map.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
@@ -977,6 +978,17 @@ class _MyPageState extends ConsumerState<MyPage> {
             label: l.myLegalPrivacyTitle,
             onTap: () =>
                 context.push(AppRoutes.legalDocument(AppRoutes.legalPrivacy)),
+          ),
+          // 오픈소스 라이선스(#3150) — 회원 앱 고객 지원과 같은 자리·같은 화면.
+          _SupportRow(
+            key: const ValueKey<String>('support-licenses'),
+            icon: AppIcons.info,
+            label: l.myOpenSourceLicensesTitle,
+            onTap: () => showOnCareLicenses(
+              context,
+              applicationName: l.myAppName,
+              applicationVersion: ref.read(appVersionProvider).valueOrNull,
+            ),
           ),
           // 탈퇴는 약관·개인정보 다음, 따로 여는 화면이다(회원 앱 #2019). 데모
           // 빌드에는 지울 계정이 없어 막고 그 이유를 말한다.

@@ -92,6 +92,7 @@
 |---|---|---|
 | GET | `/users/me` | `{ id(str), name, email, role, consent_required, consent_pending[] }` (아래 "가입 동의" 참고, #2819). `role` 은 계정 역할 — 이 API 는 회원 전용이라 늘 `member` 이고 트레이너 토큰은 403. 회원 앱은 세션 복원 때 `role` 이 있으면 `member` 인지 확인하고, 없으면(옛 서버) 그대로 들어간다(#3054) |
 | POST | `/users/me/consents` | `{ consents: [항목] }` → `{ consent_required, consent_pending[] }` (#2819) |
+| GET, PUT, DELETE | `/users/me/consents/{kind}` | 선택 동의(`location`) 상태 조회·동의·철회 → `{ kind, agreed, current_version, version, agreed_at, revoked_at }`. 회원 전용, 선택 항목 아닌 `kind` 는 422 (아래 "선택 동의 — 위치정보 이용" 참고, #3136) |
 | GET | `/users/me/health` | `{ profile: { id, name, email }, activity_points }` — MY 계정 카드. 위험 문구(`risk`)·활동 순위(`activity_rank`)·설정 메뉴(`settings[]`)는 앱이 읽지 않는 고정값이라 뺐다(#2903) |
 | DELETE | `/users/me` | 본문 `{ reasons?, current_password? \| social_provider?·social_token? }` → `{ status: "deleted" }`. 본인 확인 필수, 실패 400(#3039) |
 | GET | `/users/me/deletion-preview` | `{ points, active_coupons, upcoming_reservations, pending_consultations }` — 탈퇴하면 사라지거나 취소되는 것의 수(#3006). 아래 [탈퇴 미리보기](#탈퇴-미리보기-3006). 회원 전용(트레이너 403) |
@@ -1693,9 +1694,10 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
   이미 지금 버전에 동의한 항목은 다시 쓰지 않는다 — 처음 동의한 시각이 남는다.
 - 문서 버전은 `services/signup_consent.CURRENT_VERSIONS` 한 곳이 정한다. 약관·처리방침 본문을
   고치면 그 항목의 버전을 올린다. 처리방침은 위탁·국외 이전·파기 절차 절을 더하며 `privacy` 가
-  `2026-10-03` 으로 올랐고(#2820), 보호책임자 연락처를 팀 수신 주소로 바꾸며 `2026-10-05` 로 다시
-  올랐다(#3132) — 그 전 버전에만 동의한 계정은 다시 동의할 때까지 회원 데이터 API 가 403 이고,
-  동의 화면을 다시 거친다. 버전 날짜는 두 앱 처리방침 본문의 시행일과 같아야 한다.
+  `2026-10-03` 으로 올랐고(#2820), 보호책임자 연락처를 팀 수신 주소로 바꾸고 위치정보 이용 동의
+  안내를 더하며 `2026-10-05` 로 다시 올랐다(#3132·#3136) — 그 전 버전에만 동의한 계정은 다시
+  동의할 때까지 회원 데이터 API 가 403 이고, 동의 화면을 다시 거친다. 버전 날짜는 두 앱 처리방침
+  본문의 시행일과 같아야 한다.
 - **필수 동의 확인(#3088)** — 회원 계정은 역할의 필수 항목(`terms`·`privacy`·`health`·`age14`)에
   지금 버전으로 동의해 두어야 회원 의존성(`CurrentUser`·`RequireMember`)을 쓰는 API 를 부를 수 있다.
   남은 항목이 있으면 **403** `{ detail: { code: "consent_required", missing: [...] } }` — 위 422 와
@@ -1704,13 +1706,29 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
   - 동의 없이도 열려 있는 경로: `GET /users/me`(동의 필요 여부 조회), `POST /users/me/consents`,
     `DELETE /users/me`(탈퇴), `/auth/*`(로그인·refresh·로그아웃·비밀번호 재설정·소셜 로그인),
     계정 데이터가 없는 공개 경로. 목록은 `api/deps.CONSENT_EXEMPT_ROUTES` 한 곳에 있다.
-  - 트레이너 계정은 이 확인을 거치지 않는다(트레이너 필수 동의 강제는 따로 정한다).
+  - **트레이너 계정(#3155)** 도 같은 규칙이다. 트레이너의 필수 항목(`terms`·`privacy`·`age14`)이
+    남았으면 트레이너 의존성(`RequireTrainer`)을 쓰는 API 가 같은 모양의 403 을 준다. 동의 없이도
+    열린 트레이너 경로는 `GET /trainer/me`(트레이너 웹이 로그인·세션 복구 때 읽는 프로필)와
+    `DELETE /trainer/me`(탈퇴)뿐이다. 트레이너 웹도 이 403 을 받으면 세션을 "동의 필요" 로 바꿔
+    동의 화면(`/auth/consent`)으로 보낸다.
   - 회원 앱은 이 403 을 받으면 세션을 "동의 필요" 로 바꿔 동의 화면으로 보낸다. 앱을 쓰는 사이
     문서 버전이 올라도 다음 데이터 요청에서 동의 화면으로 넘어간다.
   - 회원 의존성 없이 `RequireUser` 로만 사용자를 받는 라우트가 생기면
     `tests/test_member_consent_gate.py` 가 실패한다(예외는 그 파일의 목록에 이유와 함께 적는다).
 - 국외 이전 동의는 따로 받지 않는다(#2820). 계약 이행을 위한 처리 위탁·보관이라 처리방침 공개로
   갈음한다(「개인정보 보호법」 제28조의8 제1항 제3호). 위탁·이전 표는 `docs/privacy_processing.md`.
+- **선택 동의 — 위치정보 이용(#3136)**: `location` 은 가입 필수가 아니다. 회원 앱이 헬스장 찾기에서
+  현재 위치를 쓰기 전에 받고, MY 에서 철회한다. 필수 판정에 들지 않아 동의하지 않아도 데이터 API 는
+  막히지 않는다. 가입·재동의의 `consents` 목록으로는 받지 않는다(넣으면 422).
+  - `GET /users/me/consents/{kind}` — 지금 상태. `PUT` 은 지금 버전으로 동의, `DELETE` 는 철회
+    (행은 남기고 `revoked_at` 만 적는다, 기록이 없어도 200). 세 경로 모두 회원 전용(`RequireMember`,
+    필수 동의가 남았으면 403 `consent_required`, 트레이너는 403)이고, `kind` 는 선택 항목(`location`)만
+    받는다 — 필수 항목·모르는 값은 경로에서 **422**.
+  - 응답 `{ kind, agreed, current_version, version, agreed_at, revoked_at }`. `agreed` 는 **지금 버전**에
+    철회하지 않은 동의가 있는가다. 위치기반서비스 이용약관 버전(`CURRENT_VERSIONS["location"]`)이
+    오르면 옛 버전에만 동의한 계정은 `false` 가 되어 앱이 다시 묻는다. 나머지는 가장 최근 기록의 값이다.
+  - 서버는 좌표를 저장하지 않는다. `GET /places/nearby` 는 동의 여부를 보지 않는다 — 기본 검색 영역의
+    좌표와 기기 좌표를 서버가 구분할 수 없어, 동의 전에는 앱이 기기 좌표를 읽지도 보내지도 않는다.
 
 ### 가입 연락처 형식 (#1780)
 
@@ -2004,7 +2022,7 @@ CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 �
 세대(`users.token_version`, 처음 0)를 두고, 발급하는 접근·refresh 토큰에 그 값을 `tv`
 클레임으로 싣는다. 검증하는 쪽(`deps.py` 의 모든 의존성, `POST /auth/refresh`)은 토큰의
 세대가 계정의 지금 세대와 다르면 **무효한 토큰과 같이** 다룬다 — 엄격 의존성은 401,
-`CurrentUser` 는 무효 토큰과 같은 폴백 규칙, refresh 는 401 + `auth.refresh_stale` 감사 로그
+`CurrentUser` 도 무효 토큰과 같이 401(데모 폴백 없음, #3160), refresh 는 401 + `auth.refresh_stale` 감사 로그
 (그 `jti` 는 폐기 표에도 적는다). `tv` 가 없는 예전 토큰은 0세대로 읽으므로 배포만으로
 끊기는 세션은 없다. 정수가 아닌 `tv` 는 거부한다.
 
@@ -2198,10 +2216,10 @@ IP 를 바꿔 가며 한 계정을 노리는 시도는 계정 쪽 버킷이 막�
 
 | 의존성 | 토큰 없을 때 | 역할 제한 |
 |---|---|---|
-| `CurrentUser` | 환경에 따라 데모 사용자 폴백 또는 401 (아래) | 트레이너 계정이면 **403**. 필수 동의가 남은 회원이면 403 `consent_required` (#3088) |
+| `CurrentUser` | 환경에 따라 데모 사용자 폴백 또는 401 (아래). 토큰이 **있는데** 무효·만료면 항상 401 (#3160) | 트레이너 계정이면 **403**. 필수 동의가 남은 회원이면 403 `consent_required` (#3088) |
 | `RequireUser` | 401 | 없음 |
 | `RequireMember` | 401 | 회원만. 트레이너면 403. 필수 동의가 남았으면 403 `consent_required` (#3088) |
-| `RequireTrainer` | 401 | 트레이너만. 회원이면 403 |
+| `RequireTrainer` | 401 | 트레이너만. 회원이면 403. 필수 동의가 남았으면 403 `consent_required` (#3155) |
 | `RequireAdmin` | 401 | `is_admin` 아니면 403 |
 
 읽기 화면은 `CurrentUser`, 쓰기·삭제는 `RequireMember`, 트레이너 앱(`/v1/trainer/*`)은
@@ -2217,7 +2235,12 @@ IP 를 바꿔 가며 한 계정을 노리는 시도는 계정 쪽 버킷이 막�
 
 ### 데모 폴백은 환경으로 갈린다
 
-`CurrentUser` 에 유효한 토큰이 없을 때의 동작은 설정이 정한다 (`app/core/config.py`).
+`CurrentUser` 에 토큰이 **아예 없을** 때의 동작은 설정이 정한다 (`app/core/config.py`).
+
+토큰을 **보냈는데** 쓸 수 없으면(서명 불일치·만료·지난 세대·없는 사용자·비활성 계정) 폴백이
+켜져 있어도 **401** 이다(#3160). 스테이징에서 실계정 테스터의 접근 토큰이 만료되는 순간 데모 회원의
+기록이 보이던 문제를 막는다 — 401 을 받은 앱은 refresh 를 시도하고, 그것도 거부되면 운영과 같이
+로그인 화면으로 간다.
 
 ```python
 demo_fallback_enabled = allow_demo_fallback and not is_prod

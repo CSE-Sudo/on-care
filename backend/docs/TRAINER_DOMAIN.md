@@ -31,12 +31,15 @@
   - `get_current_user` — 토큰 있으면 그 사용자, 없으면 데모 회원(회원 앱 계약 유지).
     단, 비활성 계정은 기존 토큰을 포함해 401이며, **trainer 역할이 회원 데이터
     엔드포인트로 새어들지 않도록** 트레이너 계정엔 403.
-  - `RequireTrainer` / `require_trainer` — 트레이너 전용 라우터 가드(회원 계정 403).
+  - `RequireTrainer` / `require_trainer` — 트레이너 전용 라우터 가드(회원 계정 403, 필수 동의가
+    남은 트레이너는 403 `consent_required`, #3155).
   - `RequireMember` / `require_member` — 회원 전용 라우터 가드.
 - 가입 동의(#2819): 트레이너 가입은 이용약관·개인정보 수집·이용·만 14세 이상 확인에 항목별로
   동의해야 끝난다(선택 항목 없음, 마케팅 수신 동의는 #3007 에서 제거). 회원에게만 있는 건강정보 처리 동의는 트레이너에게 묻지 않는다.
   동의가 남은 트레이너 계정은 로그인 응답의 `consent_required` 로 알 수 있고, 트레이너 웹은
-  `POST /users/me/consents` 로 동의를 마칠 때까지 동의 화면에 붙든다. 항목·버전·422 규칙은
+  `POST /users/me/consents` 로 동의를 마칠 때까지 동의 화면에 붙든다. 서버도 직접 확인한다(#3155) —
+  동의가 남은 트레이너는 `GET`·`DELETE /trainer/me` 말고는 트레이너 API 가 403 `consent_required`
+  이고, 트레이너 웹은 이 403 을 받으면 동의 화면으로 돌아간다. 항목·버전·422 규칙은
   [API_CONTRACT.md](../API_CONTRACT.md) 의 `가입 동의 (#2819)` 가 기준이다.
 
 ## 3. 데이터 모델 (마이그레이션 `0012_trainer_domain`)

@@ -6,7 +6,7 @@
   GET  /diet/days/{date}         -> 지정 날짜 식단 집계
   GET  /diet/recommendations     -> 홈 AI 추천 식단(카탈로그에서 개인화 선택)
   POST /diet/analyze             -> 사진 정리(EXIF 제거) → 인식 → diet_entries 저장(+ 사진 축소본, 포인트 적립)
-  POST /diet/analyze?engine=yolo -> 엔진 강제(비교실험 — 운영에서는 관리자만, #2812)
+  POST /diet/analyze?engine=gemini -> 엔진 강제(비교실험 — 운영에서는 관리자만, #2812)
   GET  /diet/photos/{photo_id}   -> 내 끼니 사진 원본 바이트(본인만)
   POST /diet/entries             -> 사진 없이 직접 적은 끼니 저장(포인트 없음)
   PUT/DELETE /diet/entries/{id}  -> 끼니/영양소 수정·삭제(본인 소유만, 삭제는 적립 회수)
@@ -297,7 +297,7 @@ async def diet_analyze(
     ),
     engine: str | None = Query(
         None,
-        description="엔진 강제('gemini'|'yolo'). 비교실험용 — 운영에서는 관리자만 적용된다.",
+        description="엔진 강제('gemini'|'litellm'). 비교실험용 — 운영에서는 관리자만 적용된다.",
     ),
 ) -> DietAnalyzeResponse:
     image_bytes = await image.read()

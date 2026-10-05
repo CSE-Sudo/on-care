@@ -18,6 +18,7 @@ on:
       - ".github/workflows/backend-deploy-service.yml"
       - ".github/workflows/aws-frontend-deploy.yml"
       - ".github/workflows/deploy.yml"
+      - ".github/workflows/member-app-release.yml"
       - ".github/workflows/infra-ci.yml"
   pull_request:
     paths:
@@ -27,6 +28,7 @@ on:
       - ".github/workflows/backend-deploy-service.yml"
       - ".github/workflows/aws-frontend-deploy.yml"
       - ".github/workflows/deploy.yml"
+      - ".github/workflows/member-app-release.yml"
       - ".github/workflows/infra-ci.yml"
 
 permissions:
@@ -79,6 +81,7 @@ jobs:
           .github/workflows/backend-deploy-service.yml
           .github/workflows/aws-frontend-deploy.yml
           .github/workflows/deploy.yml
+          .github/workflows/member-app-release.yml
           .github/workflows/infra-ci.yml
 
       # 랜딩 링크·데모 분기 검사는 PR gate 가 이미 돌린다.
