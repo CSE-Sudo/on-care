@@ -16,7 +16,7 @@ from app.core.config import DEFAULT_DEMO_PASSWORD, DEFAULT_JWT_SECRET, Settings
 ENV_EXAMPLE = Path(__file__).resolve().parents[1] / ".env.example"
 
 # 활성 줄(`KEY=값`)과 "기본값을 쓰는 선택 키"로 주석 처리한 줄(`# KEY=값`)을 모두 키로 본다.
-# 설명 주석(`#   예: APPLE_CLIENT_IDS=…`)은 `#` 뒤 공백이 하나를 넘어 걸리지 않는다.
+# 설명 주석(`#   예: GOOGLE_CLIENT_IDS=…`)은 `#` 뒤 공백이 하나를 넘어 걸리지 않는다.
 _ACTIVE = re.compile(r"^([A-Z][A-Z0-9_]*)=(.*)$")
 _OPTIONAL = re.compile(r"^# ([A-Z][A-Z0-9_]*)=(.*)$")
 

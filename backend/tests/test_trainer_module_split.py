@@ -91,6 +91,7 @@ TRAINER_ROUTES = frozenset({
     "GET /v1/trainer/follow-ups",
     "PUT /v1/trainer/follow-ups/{task_id}",
     "POST /v1/trainer/follow-ups/{task_id}/complete",
+    "GET /v1/trainer/gyms/nearby",
     "GET /v1/trainer/gyms/search",
     "DELETE /v1/trainer/me",
     "GET /v1/trainer/me",

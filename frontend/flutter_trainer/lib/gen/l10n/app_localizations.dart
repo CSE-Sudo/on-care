@@ -4183,6 +4183,48 @@ abstract class AppLocalizations {
   /// **'Couldn\'t search gyms. Please try again in a moment.'**
   String get myGymSearchFailed;
 
+  /// No description provided for @myGymLocateAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Find near my location'**
+  String get myGymLocateAction;
+
+  /// No description provided for @myGymNearbyCaption.
+  ///
+  /// In en, this message translates to:
+  /// **'Gyms near your current location. Your location is not saved.'**
+  String get myGymNearbyCaption;
+
+  /// No description provided for @myGymNearbyEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No gyms found within 2 km of your location. Try searching by name.'**
+  String get myGymNearbyEmpty;
+
+  /// No description provided for @myGymLocationDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow location access to find gyms near you.'**
+  String get myGymLocationDenied;
+
+  /// No description provided for @myGymLocationBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow location access in your browser site settings, then try again.'**
+  String get myGymLocationBlocked;
+
+  /// No description provided for @myGymLocationDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on device location services, then try again.'**
+  String get myGymLocationDisabled;
+
+  /// No description provided for @myGymLocationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not get your location. Try again or search by name.'**
+  String get myGymLocationUnavailable;
+
   /// No description provided for @myGymCurrent.
   ///
   /// In en, this message translates to:
@@ -6786,24 +6828,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Personal exercise follow-through'**
   String get coachRoutineAdherenceTitle;
-
-  /// No description provided for @coachRoutineAdherenceSummary.
-  ///
-  /// In en, this message translates to:
-  /// **'All done on {full} of the past {days} days'**
-  String coachRoutineAdherenceSummary(int days, int full);
-
-  /// No description provided for @coachRoutineAdherenceLate.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} on {weekday} checked later'**
-  String coachRoutineAdherenceLate(String weekday, int count);
-
-  /// No description provided for @coachRoutineAdherenceFirstDay.
-  ///
-  /// In en, this message translates to:
-  /// **'Sent today'**
-  String get coachRoutineAdherenceFirstDay;
 
   /// No description provided for @coachRoutineAdherenceCell.
   ///

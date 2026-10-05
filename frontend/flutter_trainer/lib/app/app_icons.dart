@@ -229,6 +229,10 @@ class AppIcons {
   /// 모두 읽음.
   static const IconData markAllRead = Symbols.done_all_rounded;
   static const IconData search = Symbols.search_rounded;
+
+  /// 현재 위치 — 소속 헬스장 찾기의 `현재 위치로 찾기`(#3223). 회원앱 헬스장
+  /// 찾기의 현재 위치 버튼과 같은 그림이다.
+  static const IconData location = Symbols.location_on_rounded;
   static const IconData send = Symbols.send_rounded;
   static const IconData refresh = Symbols.refresh_rounded;
   static const IconData undo = Symbols.undo_rounded;

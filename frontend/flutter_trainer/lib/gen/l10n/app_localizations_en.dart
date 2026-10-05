@@ -2402,6 +2402,33 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t search gyms. Please try again in a moment.';
 
   @override
+  String get myGymLocateAction => 'Find near my location';
+
+  @override
+  String get myGymNearbyCaption =>
+      'Gyms near your current location. Your location is not saved.';
+
+  @override
+  String get myGymNearbyEmpty =>
+      'No gyms found within 2 km of your location. Try searching by name.';
+
+  @override
+  String get myGymLocationDenied =>
+      'Allow location access to find gyms near you.';
+
+  @override
+  String get myGymLocationBlocked =>
+      'Allow location access in your browser site settings, then try again.';
+
+  @override
+  String get myGymLocationDisabled =>
+      'Turn on device location services, then try again.';
+
+  @override
+  String get myGymLocationUnavailable =>
+      'Could not get your location. Try again or search by name.';
+
+  @override
   String get myGymCurrent => 'Current gym';
 
   @override
@@ -3945,19 +3972,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachRoutineAdherenceTitle => 'Personal exercise follow-through';
-
-  @override
-  String coachRoutineAdherenceSummary(int days, int full) {
-    return 'All done on $full of the past $days days';
-  }
-
-  @override
-  String coachRoutineAdherenceLate(String weekday, int count) {
-    return '$count on $weekday checked later';
-  }
-
-  @override
-  String get coachRoutineAdherenceFirstDay => 'Sent today';
 
   @override
   String coachRoutineAdherenceCell(String date, int done, int total) {

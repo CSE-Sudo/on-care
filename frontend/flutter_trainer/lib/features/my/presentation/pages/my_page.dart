@@ -19,7 +19,6 @@ import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
-import 'package:oncare_trainer/core/web/current_position.dart';
 import 'package:oncare_trainer/core/web/leave_guard.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/presentation/auth_input_error_text.dart';
@@ -27,6 +26,7 @@ import 'package:oncare_trainer/features/auth/presentation/controllers/session_co
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_card.dart';
 import 'package:oncare_trainer/features/my/data/app_version.dart';
 import 'package:oncare_trainer/features/my/data/trainer_account_repository.dart';
+import 'package:oncare_trainer/features/my/data/trainer_location_service.dart';
 import 'package:oncare_trainer/features/my/data/trainer_profile_repository.dart';
 import 'package:oncare_trainer/features/my/data/trainer_settings.dart';
 import 'package:oncare_trainer/features/my/domain/support_links.dart';
@@ -2573,14 +2573,22 @@ class _ManagedClientRow extends StatelessWidget {
   }
 }
 
-/// 소속 헬스장 고르기 — 이름으로 찾아 목록이나 지도 핀에서 고른다(#2543).
+/// 소속 헬스장 고르기 — 이름이나 현재 위치로 찾아 목록이나 지도 핀에서 고른다
+/// (#2543, #3223).
+///
+/// 회원 앱 헬스장 찾기처럼 검색 칸 바로 아래에 지도를 먼저 두고, "현재 위치로
+/// 찾기"는 브라우저 위치로 주변 헬스장을 가까운 순으로 보인다. 위치는 이 화면이
+/// 열려 있는 동안 메모리에만 두고 저장하지 않는다. 위치 안내는 지도 위에 겹치지
+/// 않고 지도 위쪽 줄에 둔다 — 웹 지도(플랫폼 뷰)는 위에 겹친 Flutter 위젯의 클릭을
+/// 가로챈다.
 ///
 /// 직접 적는 칸은 없다. 직접 적은 이름은 서버 목록(`places`)에 없어 회원에게
 /// 노출되지 않는데도 화면에는 소속이 있는 것처럼 보였다. 검색 결과는 서버가
 /// 등록된 헬스장과 카카오 장소를 합쳐 준다 — 여기서는 어느 쪽인지 가리지 않는다.
 ///
 /// 고른 헬스장은 저장을 눌러야 바뀐다(다른 프로필 칸과 같다). 지도는 카카오
-/// JS 키가 주입된 빌드에서만 뜨고, 없으면 목록만으로 고른다. 지도는 검색 전에도
+/// JS 키가 주입된 빌드에서만 뜨고, 없으면 목록만으로 고른다. 검색 전에는 현재
+/// 소속 헬스장을 중심·핀으로 보여 준다(#3206). 지도는 검색 전에도
 /// 떠서 현재 소속을 보여 주고, 소속이 없으면 트레이너의 현재 위치에서 시작한다
 /// (#3206).
 class _GymPicker extends ConsumerStatefulWidget {
@@ -2622,27 +2630,22 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
   /// 남기지 않고 목록만 보인다.
   bool _mapUnavailable = false;
 
-  /// 브라우저에서 읽은 현재 위치. 소속 좌표가 없을 때만 묻고, 못 읽으면 null.
-  ({double lat, double lng})? _here;
+  /// "현재 위치로 찾기"로 얻은 좌표. 이 화면 안에서만 쓰고 저장하지 않는다.
+  TrainerPosition? _position;
+  bool _locating = false;
+  TrainerLocationFailure? _locationFailure;
 
-  /// 지도 중심 — 고른 헬스장 → 첫 결과 → 현재 소속 → 현재 위치, 모두 없으면
-  /// 서울시청.
+  /// 지금 목록이 현재 위치 주변 결과인가(이름 검색 결과가 아니라).
+  bool _nearby = false;
+
+  /// 지도 중심 — 내 위치, 고른 헬스장, 첫 결과, 현재 소속 순. 기본은 서울시청.
   static const double _defaultLat = 37.5665;
   static const double _defaultLng = 126.9780;
   static const double _mapHeight = 240;
 
-  @override
-  void initState() {
-    super.initState();
-    // 소속이 있으면 지도는 그 헬스장에서 시작하므로 위치 권한을 묻지 않는다.
-    if (isKakaoMapConfigured && !widget.current.hasLocation) _locate();
-  }
-
-  Future<void> _locate() async {
-    final ({double lat, double lng})? here = await readCurrentPosition();
-    if (!mounted || here == null) return;
-    setState(() => _here = here);
-  }
+  /// 지도 확대 단계. 주변 찾기는 반경 2km 가 한눈에 들어오게 한 단계 넓힌다.
+  static const int _mapLevel = 4;
+  static const int _nearbyMapLevel = 5;
 
   @override
   void dispose() {
@@ -2660,29 +2663,58 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
   Future<void> _search() async {
     _debounce?.cancel();
     final String query = _query.text.trim();
-    final int seq = ++_seq;
     if (query.isEmpty) {
+      // 이름을 지우면 위치를 얻어 둔 경우 주변 결과로 돌아간다.
+      final TrainerPosition? position = _position;
+      if (position != null) return _loadNearby(position);
+      ++_seq;
       setState(() {
         _results = const <TrainerGymCandidate>[];
         _searched = false;
         _failed = false;
         _loading = false;
+        _nearby = false;
       });
       return;
     }
+    final TrainerPosition? position = _position;
+    await _load(
+      nearby: false,
+      fetch: (TrainerProfileRepository repo) =>
+          repo.searchGyms(query, lat: position?.lat, lng: position?.lng),
+    );
+  }
+
+  Future<void> _loadNearby(TrainerPosition position) => _load(
+    nearby: true,
+    fetch: (TrainerProfileRepository repo) =>
+        repo.nearbyGyms(lat: position.lat, lng: position.lng),
+  );
+
+  /// 결과를 불러온다. 이름 검색과 주변 찾기가 같은 목록·같은 순번을 쓴다 — 늦게
+  /// 온 쪽이 새 결과를 덮지 않는다.
+  Future<void> _load({
+    required bool nearby,
+    required Future<List<TrainerGymCandidate>> Function(
+      TrainerProfileRepository repo,
+    )
+    fetch,
+  }) async {
+    final int seq = ++_seq;
     setState(() {
       _loading = true;
       _failed = false;
     });
     try {
-      final List<TrainerGymCandidate> found = await ref
-          .read(trainerProfileRepositoryProvider)
-          .searchGyms(query);
+      final List<TrainerGymCandidate> found = await fetch(
+        ref.read(trainerProfileRepositoryProvider),
+      );
       if (!mounted || seq != _seq) return;
       setState(() {
         _results = found;
         _searched = true;
         _loading = false;
+        _nearby = nearby;
       });
     } catch (_) {
       if (!mounted || seq != _seq) return;
@@ -2690,9 +2722,48 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
         _failed = true;
         _searched = true;
         _loading = false;
+        _nearby = nearby;
       });
     }
   }
+
+  /// 브라우저 위치를 얻어 주변 헬스장을 찾는다. 트레이너가 버튼을 눌렀을 때만
+  /// 부른다 — 권한 창이 이때 뜬다.
+  Future<void> _locate() async {
+    if (_locating) return;
+    _debounce?.cancel();
+    setState(() {
+      _locating = true;
+      _locationFailure = null;
+    });
+    try {
+      final TrainerPosition position = await ref
+          .read(trainerLocationServiceProvider)
+          .locate();
+      if (!mounted) return;
+      // 주변 결과는 이름과 상관없다 — 남은 검색어가 목록을 설명하지 않게 비운다.
+      _query.clear();
+      setState(() {
+        _position = position;
+        _locating = false;
+      });
+      await _loadNearby(position);
+    } on TrainerLocationFailure catch (failure) {
+      if (!mounted) return;
+      setState(() {
+        _locationFailure = failure;
+        _locating = false;
+      });
+    }
+  }
+
+  String _locationMessage(AppLocalizations l, TrainerLocationFailure failure) =>
+      switch (failure) {
+        TrainerLocationFailure.denied => l.myGymLocationDenied,
+        TrainerLocationFailure.blocked => l.myGymLocationBlocked,
+        TrainerLocationFailure.disabled => l.myGymLocationDisabled,
+        TrainerLocationFailure.unavailable => l.myGymLocationUnavailable,
+      };
 
   ({double lat, double lng})? get _focus {
     final TrainerGymCandidate? picked = widget.picked;
@@ -2704,7 +2775,7 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
     }
     final TrainerGym current = widget.current;
     if (current.hasLocation) return (lat: current.lat!, lng: current.lng!);
-    return _here;
+    return null;
   }
 
   /// 검색 결과가 없을 때(검색 전·검색어를 지운 뒤) 지도에 찍을 핀 — 고른
@@ -2761,6 +2832,10 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
                 ),
           ];
     final ({double lat, double lng})? focus = _focus;
+    final TrainerPosition? position = _position;
+    final TrainerLocationFailure? locationFailure = _locationFailure;
+    final double centerLat = position?.lat ?? focus?.lat ?? _defaultLat;
+    final double centerLng = position?.lng ?? focus?.lng ?? _defaultLng;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2778,7 +2853,53 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
           onChanged: _onChanged,
           onSubmitted: (_) => _search(),
         ),
+        const SizedBox(height: OnCareSpacing.s8),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: AppButton(
+            key: const ValueKey<String>('gym-locate'),
+            label: l.myGymLocateAction,
+            variant: AppButtonVariant.brandOutline,
+            size: OnCareButtonSize.small,
+            leadingIcon: AppIcons.location,
+            loading: _locating,
+            onPressed: _locating ? null : _locate,
+          ),
+        ),
+        if (locationFailure != null) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s4),
+          Text(
+            _locationMessage(l, locationFailure),
+            key: const ValueKey<String>('gym-location-error'),
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.danger),
+          ),
+        ],
         const SizedBox(height: OnCareSpacing.s12),
+        // 지도가 먼저다 — 회원 앱 헬스장 찾기와 같은 순서(#3223). 지도 위에는
+        // 아무것도 겹치지 않는다.
+        if (isKakaoMapConfigured && !_mapUnavailable) ...<Widget>[
+          ClipRRect(
+            borderRadius: OnCareRadius.mdAll,
+            child: SizedBox(
+              key: const ValueKey<String>('gym-map'),
+              height: _mapHeight,
+              child: KakaoMapView(
+                centerLat: centerLat,
+                centerLng: centerLng,
+                level: position != null ? _nearbyMapLevel : _mapLevel,
+                markers: markers,
+                onMarkerTap: _pickById,
+                onUnavailable: () {
+                  if (mounted) setState(() => _mapUnavailable = true);
+                },
+                fallback: const SizedBox.shrink(),
+              ),
+            ),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+        ],
         if (_loading)
           Text(
             l.myGymSearching,
@@ -2795,39 +2916,29 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
           )
         else if (_searched && _results.isEmpty)
           Text(
-            l.myGymSearchEmpty,
+            _nearby ? l.myGymNearbyEmpty : l.myGymSearchEmpty,
+            key: const ValueKey<String>('gym-empty'),
             style: tokens
                 .text(OnCareTypography.caption)
                 .copyWith(color: OnCareColors.textSecondary),
+          )
+        else if (_nearby)
+          Text(
+            l.myGymNearbyCaption,
+            key: const ValueKey<String>('gym-nearby-caption'),
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
           ),
-        if (isKakaoMapConfigured && !_mapUnavailable) ...<Widget>[
-          ClipRRect(
-            borderRadius: OnCareRadius.mdAll,
-            child: SizedBox(
-              key: const ValueKey<String>('gym-map'),
-              height: _mapHeight,
-              child: KakaoMapView(
-                centerLat: focus?.lat ?? _defaultLat,
-                centerLng: focus?.lng ?? _defaultLng,
-                level: 4,
-                markers: markers,
-                onMarkerTap: _pickById,
-                onUnavailable: () {
-                  if (mounted) setState(() => _mapUnavailable = true);
-                },
-                fallback: const SizedBox.shrink(),
-              ),
-            ),
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-        ],
+        if (_loading || _failed || _searched)
+          const SizedBox(height: OnCareSpacing.s8),
         for (final TrainerGymCandidate gym in _results)
           Padding(
             padding: const EdgeInsets.only(bottom: OnCareSpacing.s4),
             child: AppListRow(
               key: ValueKey<String>('gym-result-${gym.id}'),
               title: gym.name,
-              subtitle: gym.address.isEmpty ? null : gym.address,
+              subtitle: _subtitle(gym),
               selected: gym.id == pickedId,
               trailing: gym.id == pickedId
                   ? AppIcon(AppIcons.check, color: tokens.brand.primary)
@@ -2837,6 +2948,16 @@ class _GymPickerState extends ConsumerState<_GymPicker> {
           ),
       ],
     );
+  }
+
+  /// 결과 줄 아래 글 — 주소, 거리를 알면 그 뒤에 거리.
+  String? _subtitle(TrainerGymCandidate gym) {
+    final String? distance = gym.distanceLabel;
+    final List<String> parts = <String>[
+      if (gym.address.isNotEmpty) gym.address,
+      ?distance,
+    ];
+    return parts.isEmpty ? null : parts.join(' · ');
   }
 
   /// 지금 소속(또는 저장하면 바뀔 헬스장) 한 줄.

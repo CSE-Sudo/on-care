@@ -1609,6 +1609,13 @@
   "myGymSearching": "Searching…",
   "myGymSearchEmpty": "No gyms found. Try a different name or add the neighborhood.",
   "myGymSearchFailed": "Couldn't search gyms. Please try again in a moment.",
+  "myGymLocateAction": "Find near my location",
+  "myGymNearbyCaption": "Gyms near your current location. Your location is not saved.",
+  "myGymNearbyEmpty": "No gyms found within 2 km of your location. Try searching by name.",
+  "myGymLocationDenied": "Allow location access to find gyms near you.",
+  "myGymLocationBlocked": "Allow location access in your browser site settings, then try again.",
+  "myGymLocationDisabled": "Turn on device location services, then try again.",
+  "myGymLocationUnavailable": "Could not get your location. Try again or search by name.",
   "myGymCurrent": "Current gym",
   "myGymPicked": "Saving will switch you to this gym",
   "myGymNone": "None yet",
@@ -2722,29 +2729,6 @@
     }
   },
   "coachRoutineAdherenceTitle": "Personal exercise follow-through",
-  "coachRoutineAdherenceSummary": "All done on {full} of the past {days} days",
-  "@coachRoutineAdherenceSummary": {
-    "placeholders": {
-      "days": {
-        "type": "int"
-      },
-      "full": {
-        "type": "int"
-      }
-    }
-  },
-  "coachRoutineAdherenceLate": "{count} on {weekday} checked later",
-  "@coachRoutineAdherenceLate": {
-    "placeholders": {
-      "weekday": {
-        "type": "String"
-      },
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "coachRoutineAdherenceFirstDay": "Sent today",
   "coachRoutineAdherenceCell": "{date}: {done} of {total} done",
   "@coachRoutineAdherenceCell": {
     "placeholders": {

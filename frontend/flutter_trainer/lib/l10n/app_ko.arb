@@ -1028,6 +1028,13 @@
   "myGymSearching": "찾는 중이에요",
   "myGymSearchEmpty": "찾는 헬스장이 없어요. 이름을 다르게 적거나 동네 이름을 붙여 보세요.",
   "myGymSearchFailed": "헬스장을 찾지 못했어요. 잠시 뒤 다시 시도해 주세요.",
+  "myGymLocateAction": "현재 위치로 찾기",
+  "myGymNearbyCaption": "현재 위치에서 가까운 헬스장이에요. 위치는 저장하지 않아요.",
+  "myGymNearbyEmpty": "현재 위치 2km 안에서 헬스장을 찾지 못했어요. 이름으로 찾아 보세요.",
+  "myGymLocationDenied": "위치 사용을 허용하면 주변 헬스장을 찾을 수 있어요.",
+  "myGymLocationBlocked": "브라우저 사이트 설정에서 위치 사용을 허용한 뒤 다시 눌러 주세요.",
+  "myGymLocationDisabled": "기기의 위치 서비스를 켠 뒤 다시 눌러 주세요.",
+  "myGymLocationUnavailable": "현재 위치를 가져오지 못했어요. 다시 시도하거나 이름으로 찾아 보세요.",
   "myGymCurrent": "현재 소속",
   "myGymPicked": "저장하면 이 헬스장으로 바뀌어요",
   "myGymNone": "아직 없어요",
@@ -1783,29 +1790,6 @@
     }
   },
   "coachRoutineAdherenceTitle": "개인운동 이행",
-  "coachRoutineAdherenceSummary": "지난 {days}일 중 모두 완료 {full}일",
-  "@coachRoutineAdherenceSummary": {
-    "placeholders": {
-      "days": {
-        "type": "int"
-      },
-      "full": {
-        "type": "int"
-      }
-    }
-  },
-  "coachRoutineAdherenceLate": "{weekday}요일 {count}건은 다음 날 체크",
-  "@coachRoutineAdherenceLate": {
-    "placeholders": {
-      "weekday": {
-        "type": "String"
-      },
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "coachRoutineAdherenceFirstDay": "오늘 보낸 개인운동이에요",
   "coachRoutineAdherenceCell": "{date}: {done}/{total} 완료",
   "@coachRoutineAdherenceCell": {
     "placeholders": {

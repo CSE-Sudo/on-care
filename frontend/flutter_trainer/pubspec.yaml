@@ -86,6 +86,9 @@ dependencies:
   # 소속 헬스장 찾기 지도(#2543). 회원 앱 헬스장 찾기와 같은 위젯이다.
   oncare_kakao_map:
     path: ../../shared/oncare_kakao_map
+  # 소속 헬스장 찾기의 "현재 위치로 찾기"(#3223). 회원 앱 헬스장 찾기와 같은
+  # 패키지·버전이다. 웹에서는 브라우저 위치 권한을 묻는다.
+  geolocator: ^14.0.2
   # 주간 리포트 결과지(#2652). 회원 앱이 여는 리포트와 한 위젯·한 계산이다.
   oncare_report:
     path: ../../shared/oncare_report
