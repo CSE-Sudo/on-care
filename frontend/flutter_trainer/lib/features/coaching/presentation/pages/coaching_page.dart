@@ -9,8 +9,8 @@ import 'package:oncare_core/request_id.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/core/web/leave_guard.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/routine_days_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
@@ -666,9 +666,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       setState(() => _savingTemplate = false);
       showAppToast(
         context,
-        error is AppError
-            ? serverDetailOr(l, error.message, l.coachTemplateSaveFailed)
-            : l.coachTemplateSaveFailed,
+        appErrorMessage(l, error, fallback: l.coachTemplateSaveFailed),
         type: AppToastType.error,
       );
       return false;
@@ -1609,10 +1607,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   String _attachFailureMessage(AppLocalizations l, Object error) =>
       switch (error) {
         NetworkError() => l.coachSendNetworkFailed,
-        AppError(:final String? message) => serverDetailOr(
+        AppError() => appErrorMessage(
           l,
-          message,
-          l.schedRoutinesUpdateFailed,
+          error,
+          fallback: l.schedRoutinesUpdateFailed,
         ),
         _ => l.schedRoutinesUpdateFailed,
       };

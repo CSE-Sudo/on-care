@@ -82,12 +82,13 @@ def session_expired(claims: RefreshClaims, *, now: datetime | None = None) -> bo
 
 
 def issue_login_tokens(db: Session, user: User) -> LoginToken:
-    """로그인·소셜 로그인 응답 — 토큰 한 쌍과 동의 화면이 필요한지. (#2819)"""
+    """로그인·소셜 로그인 응답 — 토큰 한 쌍, 동의 화면이 필요한지(#2819), 역할(#3137)."""
     pair = issue_token_pair(user)
     return LoginToken(
         access_token=pair.access_token,
         refresh_token=pair.refresh_token,
         consent_required=signup_consent.is_required(db, user),
+        role=user.role or "member",
     )
 
 

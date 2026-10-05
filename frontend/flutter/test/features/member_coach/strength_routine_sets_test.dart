@@ -197,6 +197,48 @@ void main() {
     });
   });
 
+  group('`개인운동만` 으로 받은 근력 운동의 횟수', () {
+    // 트레이너 웹이 빈 칸을 `hold_seconds: 0` 으로 채워 보내던 동안 서버가 이를
+    // 버티는 운동으로 읽어 횟수를 지웠다 — 회원은 `스쿼트 3세트 · 12회` 를
+    // `스쿼트 3세트` 로 받았다. 고친 서버가 내려보내는 모양 그대로 그린다.
+    Map<String, Object?> routineOnlyJson({int? reps, int? holdSeconds}) =>
+        <String, Object?>{
+          'id': 'r-routine-only',
+          'name': '스쿼트',
+          'minutes': 0,
+          'type': '근력',
+          'reason': '',
+          'source': 'trainer',
+          'delivery_kind': 'routine_only',
+          'sets': 3,
+          'reps': reps,
+          'hold_seconds': holdSeconds,
+          'weight': 0,
+        };
+
+    testWidgets('추천 개인운동 행에 횟수가 보인다', (WidgetTester tester) async {
+      final AppLocalizations l = await _pump(tester, <CoachRoutine>[
+        coachRoutineFromJson(routineOnlyJson(reps: 12)),
+      ]);
+
+      expect(
+        find.text('근력 · ${l.exSetsCount(3)} · ${l.exRepsCount(12)}'),
+        findsOneWidget,
+      );
+      expect(find.text('근력 · ${l.exSetsCount(3)}'), findsNothing);
+    });
+
+    test('횟수는 그대로, 비어 온 초는 횟수를 가리지 않는다', () {
+      final CoachRoutine routine = coachRoutineFromJson(
+        routineOnlyJson(reps: 12),
+      );
+
+      expect(routine.isRoutineOnly, isTrue);
+      expect(routine.sets, 3);
+      expect(routine.reps, 12);
+    });
+  });
+
   test('서버 응답의 sets·reps·weight 를 읽는다', () {
     final CoachRoutine routine = coachRoutineFromJson(<String, Object?>{
       'id': 'r-1',

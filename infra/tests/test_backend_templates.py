@@ -1,7 +1,7 @@
 """백엔드 인프라 템플릿이 배포 규칙을 지키는지 본다(#3016, #3019, #3020).
 
 cfn-lint 는 문법·리소스 스키마만 본다. 여기서는 이 서비스가 정한 규칙 —
-태스크 1 고정, 첨부 버킷 접두사 권한, 배포 역할의 OIDC subject·PassRole 범위,
+태스크 수 범위와 공유 시도 제한 저장소, 첨부 버킷 접두사 권한, 배포 역할의 OIDC subject·PassRole 범위,
 운영에서 데모 설정이 꺼지는지 — 를 검사한다.
 """
 from __future__ import annotations
@@ -47,12 +47,22 @@ def test_service_is_express_gateway_service() -> None:
 
 
 @pytest.mark.parametrize("name", ["MinTaskCount", "MaxTaskCount"])
-def test_task_count_is_pinned_to_one(name: str) -> None:
-    # 시도 제한이 프로세스 메모리에 있어 태스크가 늘면 한도가 느슨해진다.
+def test_task_count_defaults_to_one_and_can_scale_out(name: str) -> None:
+    # 시도 제한이 DB 공유 저장소로 옮겨져(#3143) 태스크를 늘려도 한도가 느슨해지지 않는다.
     param = SERVICE["Parameters"][name]
     assert param["Default"] == 1
-    assert param["AllowedValues"] == [1]
+    assert "AllowedValues" not in param
+    assert param["MinValue"] == 1
+    # 상한은 DB 연결 수 계산(DEPLOY.md)이 감당하는 범위로 둔다.
+    assert 1 < param["MaxValue"] <= 4
     assert _service_props()["ScalingTarget"][name] == {"Ref": name}
+
+
+def test_rate_limit_uses_the_shared_database_store() -> None:
+    # 태스크가 1 을 넘을 수 있으므로 시도 제한은 반드시 공유 저장소에 센다(#3143).
+    env = _container_env()
+    assert env["RATE_LIMIT_STORE"] == "database"
+    assert env["RATE_LIMIT_ENABLED"] == "true"
 
 
 def test_single_worker_and_one_proxy_hop() -> None:

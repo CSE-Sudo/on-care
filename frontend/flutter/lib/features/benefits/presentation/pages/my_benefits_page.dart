@@ -12,6 +12,7 @@ import 'package:oncare/features/benefits/presentation/widgets/streak_shield_card
 import 'package:oncare/features/exercise/domain/entities/streak_shield.dart';
 import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 내 혜택 — 포인트로 교환한 쿠폰을 모아 본다. (#1787)
@@ -45,11 +46,12 @@ class MyBenefitsPage extends ConsumerWidget {
           loading: () => const <Widget>[
             AppCard(child: AppLoading(placement: AppStatePlacement.card)),
           ],
-          error: (_, _) => <Widget>[
+          error: (Object error, _) => <Widget>[
             AppCard(
-              child: AppErrorState(
+              child: appErrorStateFor(
+                context,
+                error: error,
                 title: l.myBenefitsLoadFailed,
-                retryLabel: l.actionRetry,
                 onRetry: () => ref.invalidate(myCouponsProvider),
                 placement: AppStatePlacement.card,
               ),
@@ -89,11 +91,12 @@ class MyBenefitsPage extends ConsumerWidget {
           loading: () => const <Widget>[
             AppCard(child: AppLoading(placement: AppStatePlacement.card)),
           ],
-          error: (_, _) => <Widget>[
+          error: (Object error, _) => <Widget>[
             AppCard(
-              child: AppErrorState(
+              child: appErrorStateFor(
+                context,
+                error: error,
                 title: l.myBenefitsLoadFailed,
-                retryLabel: l.actionRetry,
                 onRetry: () => ref.invalidate(myStreakShieldsProvider),
                 placement: AppStatePlacement.card,
               ),

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/core/utils/server_message.dart';
+import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_program_template_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_template.dart';
@@ -133,10 +132,10 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
       if (!mounted) return;
       // 저장이 막힌 것은 어느 한 칸의 잘못이 아니다. 창 아래에 세운다.
       setState(
-        () => _saveError = serverDetailOr(
+        () => _saveError = appErrorMessage(
           l,
-          error.message,
-          l.coachTemplateSaveFailed,
+          error,
+          fallback: l.coachTemplateSaveFailed,
         ),
       );
     } on Object {
