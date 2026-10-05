@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/app/app_icons.dart';
-import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/auth/domain/signup_email_code.dart';
+import 'package:oncare/features/my_health/presentation/controllers/email_change_code_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -143,11 +143,6 @@ class _EmailChangeCodeDialogState extends ConsumerState<EmailChangeCodeDialog> {
     Navigator.pop(context, _code.text.trim());
   }
 
-  /// 데모(기기 안 목업)가 이메일 변경을 받을 때만 받아 주는 코드를 안내한다.
-  /// 실 서버로 보내는 데모는 진짜 메일이 가므로 안내하지 않는다.
-  bool _demoHint(AppConfig config) =>
-      config.useMockApi && !config.isRealApi('POST', '/users/me/email/code');
-
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -215,7 +210,7 @@ class _EmailChangeCodeDialogState extends ConsumerState<EmailChangeCodeDialog> {
               density: AppBannerDensity.compact,
             ),
           ],
-          if (_demoHint(ref.watch(appConfigProvider))) ...<Widget>[
+          if (ref.watch(emailChangeDemoCodeHintProvider)) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s8),
             AppBanner(
               key: const ValueKey<String>('email-change-code-demo'),
