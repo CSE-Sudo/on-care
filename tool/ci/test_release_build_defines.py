@@ -106,6 +106,14 @@ class ProductionWebBuildTest(unittest.TestCase):
             secrets[app] = match.group(1)
         self.assertEqual(secrets, {"member": "SENTRY_DSN_MEMBER", "trainer": "SENTRY_DSN_TRAINER"})
 
+    def test_both_apps_pass_social_login_ids_from_variables(self) -> None:
+        """카카오·구글 로그인(#330) — 두 웹 앱이 같은 저장소 변수를 받는다(비밀이 아님)."""
+        for step in self.builds:
+            with self.subTest(step=step.splitlines()[0]):
+                for key in ("KAKAO_LOGIN_REST_API_KEY", "GOOGLE_WEB_CLIENT_ID"):
+                    self.assertIn(f"{key}: ${{{{ vars.{key} }}}}", step)
+                    self.assertIn(f'--dart-define={key}="${key}"', step)
+
     def test_missing_dsn_only_warns(self) -> None:
         check = [step for step in steps(AWS_DEPLOY) if "Check Sentry DSN secrets" in step]
         self.assertEqual(len(check), 1)
@@ -120,6 +128,17 @@ class DemoWebBuildTest(unittest.TestCase):
         for step in builds:
             with self.subTest(step=step.splitlines()[0]):
                 self.assertIn("--dart-define=DEMO_BUILD=true", step)
+
+    def test_social_login_ids_only_reach_real_server_builds(self) -> None:
+        """목업 데모는 기기 안 토큰으로 로그인한다 — 로그인 값은 실서버 분기에서만 넘긴다."""
+        for step in web_build_steps(DEMO_DEPLOY):
+            with self.subTest(step=step.splitlines()[0]):
+                real = step.split('if [ "$WEB_USE_MOCK_API" = "false" ]; then', 1)
+                self.assertEqual(len(real), 2)
+                branch = re.split(r"(?m)^\s*fi\s*$", real[1], maxsplit=1)[0]
+                for key in ("KAKAO_LOGIN_REST_API_KEY", "GOOGLE_WEB_CLIENT_ID"):
+                    self.assertIn(f'--dart-define={key}="${key}"', branch)
+                    self.assertNotIn(f"--dart-define={key}", real[0])
 
 
 class StoreReleaseDefinesTest(unittest.TestCase):
