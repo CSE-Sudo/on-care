@@ -6334,7 +6334,7 @@ abstract class AppLocalizations {
   /// Section title in the coaching card.
   ///
   /// In en, this message translates to:
-  /// **'Recommended personal exercises'**
+  /// **'Personal exercises'**
   String get coachRoutineTitle;
 
   /// Card title when the member has no trainer — every line is AI recommended (#2015).

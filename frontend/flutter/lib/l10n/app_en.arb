@@ -2658,7 +2658,7 @@
       }
     }
   },
-  "coachRoutineTitle": "Recommended personal exercises",
+  "coachRoutineTitle": "Personal exercises",
   "coachRoutineAiTitle": "AI-recommended personal exercises",
   "coachRoutinePastEditHint": "You can add a missed check now. Your trainer will see it as checked later.",
   "@coachRoutinePastEditHint": {
