@@ -298,6 +298,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Social sign-in is coming soon. Please sign in with your email.';
 
   @override
+  String get authSocialPopupBlocked =>
+      'The sign-in window was blocked. Allow pop-ups for this site and try again.';
+
+  @override
   String get authErrSignInFailed =>
       'Sign-in failed. Please try again in a moment.';
 
@@ -3825,6 +3829,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get myDeleteReauthSocialFailed =>
       'Couldn\'t confirm your social account. Please sign in again.';
+
+  @override
+  String get myDeleteReauthSocialUnavailable =>
+      'Social sign-in isn\'t available in this version yet. Please contact support.';
 
   @override
   String get myWithdrawReasonTitle => 'Are you sure you want to leave?';

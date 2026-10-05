@@ -321,6 +321,9 @@ jobs:
           API_BASE_URL: ${{ vars.API_BASE_URL }}
           KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN_TRAINER }}
+          # 카카오·구글 로그인(#330). 회원 웹과 같은 값이다. 비우면 그 버튼은 '준비 중'.
+          KAKAO_LOGIN_REST_API_KEY: ${{ vars.KAKAO_LOGIN_REST_API_KEY }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
         run: |
           set -euo pipefail
           args=(
@@ -330,6 +333,8 @@ jobs:
             --dart-define=BUILD_NUMBER="$BUILD_NUMBER"
             --dart-define=RELEASE_DATE="$RELEASE_DATE"
             --dart-define=KAKAO_JS_KEY="$KAKAO_JS_KEY"
+            --dart-define=KAKAO_LOGIN_REST_API_KEY="$KAKAO_LOGIN_REST_API_KEY"
+            --dart-define=GOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
             --dart-define=USE_MOCK_API=false
             --dart-define=API_BASE_URL="$API_BASE_URL"
             --dart-define=ENV=prod

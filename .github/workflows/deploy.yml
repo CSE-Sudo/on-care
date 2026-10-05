@@ -167,6 +167,9 @@ jobs:
         env:
           KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
           API_BASE_URL: ${{ vars.STAGING_API_BASE_URL }}
+          # 카카오·구글 로그인(#330)은 실서버 빌드에서만 넘긴다(목업은 기기 안 토큰).
+          KAKAO_LOGIN_REST_API_KEY: ${{ vars.KAKAO_LOGIN_REST_API_KEY }}
+          GOOGLE_WEB_CLIENT_ID: ${{ vars.GOOGLE_WEB_CLIENT_ID }}
         run: |
           set -euo pipefail
           args=(
@@ -178,6 +181,8 @@ jobs:
           )
           if [ "$WEB_USE_MOCK_API" = "false" ]; then
             args+=(--dart-define=API_BASE_URL="$API_BASE_URL")
+            args+=(--dart-define=KAKAO_LOGIN_REST_API_KEY="$KAKAO_LOGIN_REST_API_KEY")
+            args+=(--dart-define=GOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID")
           fi
           # 열린 탭의 새 버전 안내가 비교할 릴리스 SHA(#3023).
           args+=(--dart-define=RELEASE_SHA="$GITHUB_SHA")

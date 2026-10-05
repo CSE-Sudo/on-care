@@ -287,6 +287,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authSocialComingSoon => '소셜 로그인은 준비 중이에요. 이메일로 로그인해 주세요.';
 
   @override
+  String get authSocialPopupBlocked =>
+      '로그인 창이 차단됐어요. 이 사이트의 팝업을 허용한 뒤 다시 시도해 주세요.';
+
+  @override
   String get authErrSignInFailed => '로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
@@ -3630,6 +3634,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myDeleteReauthSocialFailed => '소셜 계정 확인에 실패했어요. 다시 로그인해 주세요.';
+
+  @override
+  String get myDeleteReauthSocialUnavailable =>
+      '이 버전에서는 아직 소셜 계정 확인을 할 수 없어요. 고객 지원으로 문의해 주세요.';
 
   @override
   String get myWithdrawReasonTitle => '정말 탈퇴하시겠어요?';
