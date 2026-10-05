@@ -33,7 +33,7 @@ def ping() -> dict[str, str]:
 
 @router.get("/healthz")
 def healthz() -> dict[str, object]:
-    """Liveness — 프로세스 생존만 확인(DB 무관). App Runner liveness 용.
+    """Liveness — 프로세스 생존만 확인(DB 무관). ECS 컨테이너·로드 밸런서 헬스체크용.
 
     배포 직후 **어떤 설정으로 떴는지**도 함께 싣는다(#2821). 백엔드의 안전장치는
     대부분 `ENV=prod` 일 때만 켜지는데, 그 값이 실제로 들어갔는지 확인할 길이

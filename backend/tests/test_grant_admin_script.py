@@ -4,7 +4,7 @@
 **먼저 가입한 사람**이 관리자가 됐다. 이제 관리자는 운영자가 계정 id 를 직접 확인한
 뒤 이 스크립트로만 바뀐다.
 
-앞부분은 DB 없이 도는 순수 검사(기동 경고), 뒷부분(`db_session`)은 CI 의 Postgres 에서
+앞부분은 DB 없이 도는 순수 검사(남은 설정), 뒷부분(`db_session`)은 CI 의 Postgres 에서
 돈다. `main()` 은 앱의 `SessionLocal` 을 쓰므로 같은 DB 를 본다.
 """
 from __future__ import annotations
@@ -25,18 +25,21 @@ from scripts import grant_admin
 PREFIX = "grant-admin-"
 
 
-# ---- 기동 경고 (DB 불필요) ----
+# ---- 남은 설정 (DB 불필요) ----
 
 
-def test_leftover_admin_emails_is_warned(caplog):
-    settings = Settings(_env_file=None, admin_emails="ops@example.com")
+def test_admin_emails_setting_is_gone():
+    """설정 자체를 없앴다(#3162) — 값을 넣을 자리가 있으면 쓰인다고 믿게 된다."""
+    assert "admin_emails" not in Settings.model_fields
+
+
+def test_leftover_admin_emails_env_is_ignored(monkeypatch, caplog):
+    """예전 환경에 값이 남아 있어도 알 수 없는 키로 무시하고 그대로 뜬다."""
+    monkeypatch.setenv("ADMIN_EMAILS", "ops@example.com")
+    settings = Settings(_env_file=None)
+    assert not hasattr(settings, "admin_emails")
     with caplog.at_level(logging.WARNING, logger="app.startup"):
         warnings = startup_checks.check(settings)
-    assert any("ADMIN_EMAILS" in w and "grant_admin" in w for w in warnings)
-
-
-def test_no_warning_without_admin_emails():
-    warnings = startup_checks.check(Settings(_env_file=None, admin_emails=""))
     assert not any("ADMIN_EMAILS" in w for w in warnings)
 
 
