@@ -6149,7 +6149,7 @@ abstract class AppLocalizations {
   /// Section label in the health goals sheet.
   ///
   /// In en, this message translates to:
-  /// **'Exercise targets'**
+  /// **'Exercise goals'**
   String get myGoalsExerciseSection;
 
   /// No description provided for @myGoalBurnDaily.

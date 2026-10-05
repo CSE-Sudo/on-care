@@ -505,7 +505,7 @@ def test_rule_plans_in_english():
     assert a["label"] == "Recovery & consistency"
     assert b["label"] == "Intensity & volume"
     assert "the set goal" in b["rationale"]
-    assert "(over target)" in a["rationale"]
+    assert "(over goal)" in a["rationale"]
     assert [e["name"] for e in b["exercises"]] == ["Interval running", "Squat", "Plank"]
 
 

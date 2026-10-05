@@ -1879,7 +1879,7 @@
   "coachDeliveryNothing": "Nothing sent",
   "coachHistoryFailed": "Couldn't load history",
   "coachHistoryEmpty": "You haven't sent any programs yet",
-  "aiReasonSodium": "Sodium is over target today, so lean into low-intensity cardio.",
+  "aiReasonSodium": "Sodium is over goal today, so lean into low-intensity cardio.",
   "aiReasonBalanced": "Today's meals are balanced, so the current intensity is fine to keep.",
   "aiReasonGoal": "Based on the {goal} goal and recent {last} activity.",
   "@aiReasonGoal": {
@@ -1924,12 +1924,12 @@
   },
   "aiAnalysedData": "Member status",
   "aiGoal": "Goal",
-  "aiOverTarget": " · over target",
+  "aiOverTarget": " · over goal",
   "aiRecentCompletion": "Recent completion rate",
   "aiNoCompletionData": "No activity logged this week",
   "aiCompletionLow": " · needs attention",
   "aiDietSignal": "Diet warning",
-  "aiSodiumOverDaysSuffix": " · over target on {days} of the last 7 days",
+  "aiSodiumOverDaysSuffix": " · over goal on {days} of the last 7 days",
   "@aiSodiumOverDaysSuffix": {
     "placeholders": {
       "days": {
@@ -1940,7 +1940,7 @@
   "aiSugarAlsoOver": " · sugar also over",
   "aiDirectionLabel": "Direction",
   "aiDirectionLower": "Lower intensity — recent completion rate is low",
-  "aiDirectionCardio": "More cardio — sodium is often over target",
+  "aiDirectionCardio": "More cardio — sodium is often over goal",
   "aiDirectionLowerAndCardio": "Lower intensity · more cardio",
   "aiDirectionKeep": "Keep current intensity",
   "aiDirectionNoData": "Not enough records yet",
@@ -3175,7 +3175,7 @@
     }
   },
   "reportsActionSodium": "Ask them to leave half the broth and the pickled sides.",
-  "reportsActionSugar": "Some days went over the {target}g sugar target. Start with drinks and snacks.",
+  "reportsActionSugar": "Some days went over the {target}g sugar goal. Start with drinks and snacks.",
   "@reportsActionSugar": {
     "placeholders": {
       "target": {
@@ -3201,7 +3201,7 @@
       }
     }
   },
-  "reportsActionCalories": "Intake is under the {target}kcal target. Suggest one protein-led meal.",
+  "reportsActionCalories": "Intake is under the {target}kcal goal. Suggest one protein-led meal.",
   "@reportsActionCalories": {
     "placeholders": {
       "target": {
@@ -3267,7 +3267,7 @@
   "reportsPdfLabelCompletion": "Workout completion rate",
   "reportsPdfLabelSessions": "PT done",
   "reportsPdfLabelSessionCount": "PT done",
-  "reportsPdfLabelSodiumOver": "Days over sodium target",
+  "reportsPdfLabelSodiumOver": "Days over sodium goal",
   "reportsPdfLabelCalories": "Average calories",
   "reportsPdfLabelSugar": "Average sugar",
   "reportsPdfLabelCaloriesShort": "Calories",
@@ -3636,7 +3636,7 @@
     }
   },
   "reportsGridCalories": "Calories eaten",
-  "reportsGridCalorieTarget": "Target {value}",
+  "reportsGridCalorieTarget": "Goal {value}",
   "@reportsGridCalorieTarget": {
     "placeholders": {
       "value": {
@@ -3659,7 +3659,7 @@
       }
     }
   },
-  "reportsMacroShortfall": "{name} is well under target — worth raising in your feedback",
+  "reportsMacroShortfall": "{name} is well under goal — worth raising in your feedback",
   "@reportsMacroShortfall": {
     "placeholders": {
       "name": {
@@ -3801,8 +3801,8 @@
   "@reportsGridCalorieTargetDefault": {
     "placeholders": { "kcal": { "type": "String" } }
   },
-  "summaryBasisDefault": "default target",
-  "summaryBasisPersonal": "personal target",
+  "summaryBasisDefault": "default goal",
+  "summaryBasisPersonal": "personal goal",
   "summaryDirOver": "above",
   "summaryDirUnder": "below",
   "summaryCompletionLow": "Avg workout completion rate {pct}% · below the {threshold}% bar",
@@ -3829,7 +3829,7 @@
   "@summarySodium": {
     "placeholders": { "avg": { "type": "String" }, "basis": { "type": "String" }, "target": { "type": "String" }, "days": { "type": "String" } }
   },
-  "summarySodiumOverTopic": "sodium over target on {days} day(s)",
+  "summarySodiumOverTopic": "sodium over goal on {days} day(s)",
   "@summarySodiumOverTopic": {
     "placeholders": { "days": { "type": "String" } }
   },
@@ -3841,7 +3841,7 @@
   "@summarySugar": {
     "placeholders": { "avg": { "type": "String" }, "basis": { "type": "String" }, "target": { "type": "String" }, "days": { "type": "String" } }
   },
-  "summarySugarOverTopic": "sugar over target on {days} day(s)",
+  "summarySugarOverTopic": "sugar over goal on {days} day(s)",
   "@summarySugarOverTopic": {
     "placeholders": { "days": { "type": "String" } }
   },
@@ -3853,7 +3853,7 @@
   "@summaryCalories": {
     "placeholders": { "avg": { "type": "String" }, "basis": { "type": "String" }, "target": { "type": "String" }, "direction": { "type": "String" }, "pct": { "type": "String" } }
   },
-  "summaryCaloriesTopic": "calories {direction} target",
+  "summaryCaloriesTopic": "calories {direction} goal",
   "@summaryCaloriesTopic": {
     "placeholders": { "direction": { "type": "String" } }
   },
@@ -3861,11 +3861,11 @@
   "@summaryCaloriesAvg": {
     "placeholders": { "avg": { "type": "String" } }
   },
-  "summaryMacro": "Avg {label} {avg}g · {pct}% {direction} the personal target of {target}g",
+  "summaryMacro": "Avg {label} {avg}g · {pct}% {direction} the personal goal of {target}g",
   "@summaryMacro": {
     "placeholders": { "label": { "type": "String" }, "avg": { "type": "String" }, "target": { "type": "String" }, "direction": { "type": "String" }, "pct": { "type": "String" } }
   },
-  "summaryMacroTopic": "{label} {direction} target",
+  "summaryMacroTopic": "{label} {direction} goal",
   "@summaryMacroTopic": {
     "placeholders": { "label": { "type": "String" }, "direction": { "type": "String" } }
   },
@@ -3877,7 +3877,7 @@
   "@summaryHeadlineNoData": {
     "placeholders": { "name": { "type": "String" } }
   },
-  "summaryHeadlineSteady": "{name} stayed within target — the current intensity can stay as is.",
+  "summaryHeadlineSteady": "{name} stayed within their goals — the current intensity can stay as is.",
   "@summaryHeadlineSteady": {
     "placeholders": { "name": { "type": "String" } }
   },
@@ -3889,7 +3889,7 @@
   "@summaryHeadlineGoodCare": {
     "placeholders": { "name": { "type": "String" }, "kept": { "type": "String" }, "top": { "type": "String" }, "rest": { "type": "String" } }
   },
-  "summaryHeadlineNeedsAdjust": "{name} was off target on {top} — next week needs adjusting.{rest}",
+  "summaryHeadlineNeedsAdjust": "{name} missed the goal on {top} — next week needs adjusting.{rest}",
   "@summaryHeadlineNeedsAdjust": {
     "placeholders": { "name": { "type": "String" }, "top": { "type": "String" }, "rest": { "type": "String" } }
   },

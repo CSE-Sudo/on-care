@@ -151,7 +151,7 @@ class MockTrainerRoutineOptionsRepository
     final bool sodiumOver = member?.sodiumOver ?? true;
     // 서버 규칙형과 같다 — 목표를 넘을 때만 꼬리표를 단다.
     final String sodiumLabel = sodiumOver
-        ? t(' (목표 초과)', ' (over target)')
+        ? t(' (목표 초과)', ' (over goal)')
         : '';
     final note = trainerNote.trim();
     final noteSuffix = note.isEmpty

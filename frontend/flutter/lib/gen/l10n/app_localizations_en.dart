@@ -3578,7 +3578,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGoalsDietSection => 'Diet goals';
 
   @override
-  String get myGoalsExerciseSection => 'Exercise targets';
+  String get myGoalsExerciseSection => 'Exercise goals';
 
   @override
   String get myGoalBurnDaily => 'Daily calories burned (kcal)';
