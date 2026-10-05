@@ -46,6 +46,7 @@ from app.schemas.health_goal_ranges import (
     WeeklyWorkoutGoal,
 )
 from app.schemas.partial_update import PartialUpdate
+from app.schemas.record_dates import is_hhmm, parse_ymd
 from app.schemas.text_limits import TEXT_ENTRY_MAX, TEXT_LINE_MAX, TEXT_LONG_MAX
 from app.schemas.points_api import PointsOut
 from app.services.password_policy import check_new_password
@@ -55,18 +56,22 @@ from app.services import exercise_types
 
 
 def _validate_ymd(v: str) -> str:
+    """`YYYY-MM-DD` 이고 달력에 있는 날. 원문을 그대로 저장하므로 표기 하나만 받는다.
+
+    `fromisoformat` 만 쓰면 `20261005`·`2026-W40-1` 도 통과해, 문자열로 저장된 날짜의
+    범위 조회·정렬·`until < date` 비교가 어긋났다(#3243).
+    """
     try:
-        _date.fromisoformat(v)  # 2026-99-99 / 2026-02-31 등 달력상 불가능한 값 거부
+        parse_ymd(v)  # 2026-99-99 / 2026-02-31 등 달력상 불가능한 값도 거부
     except ValueError as e:
         raise ValueError("유효한 날짜(YYYY-MM-DD)가 아닙니다.") from e
     return v
 
 
 def _validate_hhmm(v: str) -> str:
-    try:
-        _datetime.strptime(v, "%H:%M")  # 25:99 / 빈 문자열 등 거부
-    except ValueError as e:
-        raise ValueError("유효한 시간(HH:MM)이 아닙니다.") from e
+    """`HH:MM`(두 자리). `strptime` 은 `9:5` 도 받아 시각 정렬이 어긋났다(#3243)."""
+    if not is_hhmm(v):  # 25:99 / 빈 문자열 / 9:5 등 거부
+        raise ValueError("유효한 시간(HH:MM)이 아닙니다.")
     return v
 
 
