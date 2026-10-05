@@ -277,7 +277,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 |---|---|---|
 | `DATABASE_URL` | 그 환경 DB 의 직접 엔드포인트 | 예 |
 | `JWT_SECRET` | `openssl rand -hex 32`. **환경마다 다르게**. 32바이트 미만이면 운영 기동 거부(#3029) | 예 |
-| `GEMINI_API_KEY` | 사진 인식·임베딩. 운영은 없으면 기동 거부(#2812). **결제가 연결된 프로젝트의 키(유료 등급)만**(#3032) — 무료 등급은 입력(회원 음식 사진·건강 기록·코치 대화)이 제공자의 서비스 개선에 쓰일 수 있고 한도가 낮다. 결제 연결은 #480 | 예 |
+| `GEMINI_API_KEY` | 사진 인식·임베딩·코치 LLM(`COACH_LLM=gemini`). 운영은 없으면 기동 거부(#2812·#3145). **결제가 연결된 프로젝트의 키(유료 등급)만**(#3032) — 무료 등급은 입력(회원 음식 사진·건강 기록·코치 대화)이 제공자의 서비스 개선에 쓰일 수 있고 한도가 낮다. 결제 연결은 #480 | 예 |
 | `KAKAO_REST_API_KEY` | 장소 실검색. 빈 값이면 헬스장 찾기가 사실상 빈다(시드로 채우지 않음, #2914) | 키는 있어야 함 |
 | `SENTRY_DSN` | 오류 수집(#2839). 빈 값이면 꺼짐 | 키는 있어야 함 |
 | `SMTP_USERNAME`·`SMTP_PASSWORD` | `MailFrom` 파라미터를 채웠을 때만 읽는다. 운영은 메일이 필수라 항상 채운다(#3131) | 운영 예, staging 은 메일을 켤 때 |
@@ -287,7 +287,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 | 키 | 값/설명 |
 |---|---|
-| `ENV` | production `prod`, staging `staging` (fail-fast 하드닝은 `prod` 에서만). **비우면 컨테이너가 뜨지 않는다**(`scripts/start.sh`, #2821) |
+| `ENV` | production `prod`, staging `staging` (fail-fast 하드닝은 `prod` 에서만). **비우면 컨테이너가 뜨지 않는다**(`scripts/start.sh`, #2821). 허용값은 `dev`·`staging`·`prod` 뿐이고(대소문자·공백 무시, `production` 은 `prod`), `prd`·`live` 같은 다른 표기는 기동 거부(#3145) |
 | `SEED_DEMO_DATA` | production `false`, staging `true` |
 | `ALLOW_DEMO_FALLBACK` | production `false`, staging 은 파라미터 `AllowDemoFallback` |
 | `AUTO_CREATE_TABLES` | `false` (Alembic 이 정답) |

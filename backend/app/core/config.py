@@ -21,6 +21,11 @@ DEFAULT_DEMO_PASSWORD = "oncare123"
 MIN_PROD_JWT_SECRET_BYTES = 32
 # CORS 허용 출처 코드 기본값(로컬 개발용). 운영에서 이 값 그대로면 키를 빠뜨린 것이다.
 DEFAULT_CORS_ALLOW_ORIGINS = "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000"
+# 허용하는 실행 환경(#3145). 운영 가드는 `prod` 에서만 켜지므로, 오타·다른 표기
+# (`prd`·`live`)가 조용히 개발 환경으로 뜨지 않게 이 밖의 값은 기동에서 거부한다.
+ENV_VALUES = ("dev", "staging", "prod")
+# 같은 뜻의 다른 표기 → 허용값. 대소문자·앞뒤 공백은 따로 걷어 낸다.
+ENV_ALIASES = {"production": "prod"}
 # 운영 CORS 출처에 있으면 안 되는 개발 호스트(#3029).
 _LOCAL_CORS_HOSTS = ("localhost", "127.0.0.1", "[::1]")
 
@@ -29,7 +34,23 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # --- 환경 ---
-    env: str = "dev"  # dev | staging | prod
+    # dev | staging | prod. `PROD`·` prod `·`production` 은 `prod` 로 읽고, 그 밖의 값은
+    # 기동을 거부한다(#3145) — 운영 가드가 모두 `prod` 에 걸려 있어 오타 하나로 꺼지면 안 된다.
+    env: Literal["dev", "staging", "prod"] = "dev"
+
+    @field_validator("env", mode="before")
+    @classmethod
+    def _normalize_env(cls, value: object) -> object:
+        if not isinstance(value, str):
+            return value
+        normalized = value.strip().lower()
+        normalized = ENV_ALIASES.get(normalized, normalized)
+        if normalized not in ENV_VALUES:
+            raise ValueError(
+                f"ENV 는 {'·'.join(ENV_VALUES)} 중 하나여야 합니다(받은 값 {value!r}). "
+                "운영 기동 가드는 ENV=prod 에서만 켜지므로 다른 표기는 받지 않습니다."
+            )
+        return normalized
 
     # --- API ---
     api_v1_prefix: str = "/v1"
@@ -589,10 +610,13 @@ class Settings(BaseSettings):
             # 내려간다. 운영에서 그대로 뜨면 사진과 무관한 음식이 끼니로 저장되고
             # 포인트까지 나가며, 의미 없는 벡터가 RAG 테이블에 섞인다(#2812).
             # 조용히 뜨는 대신 기동을 거부해 배포 단계에서 바로 드러나게 한다.
+            # 코치 LLM 은 첫 호출 때 만들어져서, 키를 빠뜨리면 코치 답변·식단 문장·메뉴
+            # 계획·리포트 요약이 운영에서 처음 불릴 때에야 실패한다(#3145). 함께 막는다.
             problems = self.missing_ai_config()
             if problems:
                 raise ValueError(
-                    "운영(env=prod)에서는 사진 인식·임베딩 키가 필요합니다: " + "; ".join(problems)
+                    "운영(env=prod)에서는 사진 인식·임베딩·코치 LLM 키가 필요합니다: "
+                    + "; ".join(problems)
                 )
             # 운영은 가입 이메일 확인을 끌 수 없으므로(#3038) 메일을 못 보내면 가입 코드를
             # 받을 수 없어 신규 가입이 모두 막히고, 비밀번호 재설정도 503 이 된다. 첫 가입
@@ -634,9 +658,33 @@ class Settings(BaseSettings):
             return "EMBEDDER=hash 는 개발용 해시 벡터라 운영에서 쓸 수 없음"
         return f"EMBEDDER={chosen} 는 알 수 없는 임베더"
 
+    def coach_llm_problem(self) -> str | None:
+        """설정된 코치 LLM 을 실제로 쓸 수 없는 이유. 쓸 수 있으면 None. (#3145)
+
+        `app/services/coach/llm.py` 의 구현이 생성 때 요구하는 값과 같다.
+        """
+        chosen = self.coach_llm.strip().lower()
+        if chosen == "gemini":
+            return None if self.gemini_api_key else "COACH_LLM=gemini 인데 GEMINI_API_KEY 가 비어 있음"
+        if chosen == "openai":
+            return None if self.openai_api_key else "COACH_LLM=openai 인데 OPENAI_API_KEY 가 비어 있음"
+        if chosen == "litellm":
+            if self.litellm_base_url and self.litellm_api_key and self.litellm_chat_model:
+                return None
+            return "COACH_LLM=litellm 인데 LITELLM_BASE_URL·LITELLM_API_KEY·LITELLM_CHAT_MODEL 중 빈 값이 있음"
+        return f"COACH_LLM={chosen} 는 알 수 없는 코치 LLM(gemini|openai|litellm)"
+
     def missing_ai_config(self) -> list[str]:
         """운영 기동을 막는 AI 설정 문제 목록. 비어 있으면 통과."""
-        return [p for p in (self.recognizer_problem(), self.embedder_problem()) if p]
+        return [
+            p
+            for p in (
+                self.recognizer_problem(),
+                self.embedder_problem(),
+                self.coach_llm_problem(),
+            )
+            if p
+        ]
 
 
 def _comma_list(raw: str | None) -> list[str]:
