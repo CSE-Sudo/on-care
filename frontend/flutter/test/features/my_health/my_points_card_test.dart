@@ -51,7 +51,9 @@ void main() {
             ),
           ),
           // 사용처 화면은 교환 목록을 읽는다(#1787) — 가짜 저장소로 채운다.
-          benefitsRepositoryProvider.overrideWithValue(FakeBenefitsRepository()),
+          benefitsRepositoryProvider.overrideWithValue(
+            FakeBenefitsRepository(),
+          ),
           // 사용처 화면은 주간 챌린지도 읽는다(#1789).
           challengeRepositoryProvider.overrideWithValue(
             FakeChallengeRepository(),
@@ -130,7 +132,11 @@ void main() {
       findsNothing,
     );
     expect(find.byTooltip('포인트 적립 안내'), findsNothing);
-    expect(find.byIcon(AppIcons.info), findsNothing);
+    // 설정 카드의 `버전 정보` 줄(#3226)도 정보 아이콘을 쓰므로 카드 안만 본다.
+    expect(
+      find.descendant(of: banner(), matching: find.byIcon(AppIcons.info)),
+      findsNothing,
+    );
     // 카드 구성은 별 아이콘·잔액·화살표다.
     expect(
       find.descendant(of: banner(), matching: find.byIcon(AppIcons.star)),
@@ -179,9 +185,7 @@ void main() {
     expect(arrow.color, OnCareColors.textOnFill);
   });
 
-  testWidgets('포인트 카드 바탕은 회원이 고른 기록 그래프 색을 따른다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('포인트 카드 바탕은 회원이 고른 기록 그래프 색을 따른다', (WidgetTester tester) async {
     await pumpHome(tester, const MyHealthPage(), graphColor: 'pink');
 
     final Material material = tester.widget<Material>(
