@@ -622,6 +622,33 @@ def _raw_full(name, kcal, na, sugar, carbs, protein, fat):
     return row
 
 
+def test_import_caps_sugar_at_carbs():
+    """#3243: 고른 원본 행의 당류가 탄수화물보다 크면 탄수화물로 내린다.
+
+    그대로 두면 이 음식이 든 끼니는 회원이 손대지 않아도 수정할 때 422 가 난다.
+    탄수화물이 빈 행은 견줄 것이 없어 당류를 그대로 둔다.
+    """
+    from scripts.import_food_nutrients import aggregate
+
+    [capped] = aggregate([_raw_full("살구", "30", "1", "7.39", "7.12", "1.2", "0.05")], "음식")
+    assert (capped["sugar_g"], capped["carbs_g"]) == (7.12, 7.12)
+
+    [blank] = aggregate([_raw("레몬차", "레몬차", "가정식(분석 함량)", "100g", "60", "3", "16.3")], "음식")
+    assert (blank["sugar_g"], blank["carbs_g"]) == (16.3, None)
+
+
+def test_food_seed_sugar_never_exceeds_carbs():
+    """#3243: 시드(큐레이션 + 공공 집계본)에 당류 > 탄수화물인 행이 없다."""
+    from app.db.init_db import _food_nutrient_seed_rows
+
+    bad = [
+        (r["name"], r["sugar_g"], r["carbs_g"])
+        for r in _food_nutrient_seed_rows()
+        if r["carbs_g"] is not None and (r["sugar_g"] or 0) > r["carbs_g"]
+    ]
+    assert bad == []
+
+
 def test_import_takes_all_values_from_one_source_row():
     """#2100: 영양소마다 따로 중앙값을 내면 열량과 탄·단·지가 다른 제품에서 온다.
 

@@ -116,6 +116,15 @@ DB 가, 양은 비전 모델이 대는 역할 분담이다.
 
 정할 수 없으면 비운다 — 틀린 1인분으로 환산한 값이 "공공 DB 근거" 로 표시되는 것보다
 인식기 추정치를 두는 편이 낫다(`enrich` 의 폴백 원칙). `serving_basis` 열이 그 근거다.
+
+## 당류는 탄수화물을 넘지 않게 맞춘다 (#3243)
+
+당류는 탄수화물의 일부지만, 원본은 둘을 따로 분석하거나 탄수화물을 차감법으로 내서
+고른 한 행에서도 당류가 탄수화물보다 조금 큰 일이 있다(`살구` 7.39 ↔ 7.12, `문어류`
+0.2 ↔ 0). 그 값이 그대로 끼니에 들어가면 회원이 손대지 않은 음식 때문에 끼니 수정이
+422 가 된다(`diet_service._sugar_exceeds_carbs`). 반올림한 뒤 견주어 당류를 탄수화물로
+내린다 — 둘 중 측정 오차가 커지는 쪽은 작은 값이고, 탄수화물이 열량 셈에 쓰이므로
+그 값을 지킨다. 탄수화물이 빈 행은 견줄 것이 없어 그대로 둔다.
 """
 from __future__ import annotations
 
@@ -716,6 +725,8 @@ def aggregate(rows: list[dict[str, str]], dataset: str) -> list[dict[str, object
 
         # 1인분 힌트: 인식기가 양을 못 줬을 때만 쓰는 폴백. 근거가 없으면 비운다.
         serving, serving_basis = _serving(group, dataset, row)
+        carbs = _round_or_none(value("탄수화물(g)"), 2)
+        sugar = _sugar_within_carbs(_round_or_none(value("당류(g)"), 2), carbs)
 
         out.append(
             {
@@ -724,8 +735,8 @@ def aggregate(rows: list[dict[str, str]], dataset: str) -> list[dict[str, object
                 "serving_size_g": None if serving is None else round(serving, 1),
                 "calories": round(value("에너지(kcal)"), 1),
                 "sodium_mg": _round_or_none(value("나트륨(mg)"), 1),
-                "sugar_g": _round_or_none(value("당류(g)"), 2),
-                "carbs_g": _round_or_none(value("탄수화물(g)"), 2),
+                "sugar_g": sugar,
+                "carbs_g": carbs,
                 "protein_g": _round_or_none(value("단백질(g)"), 2),
                 "fat_g": _round_or_none(value("지방(g)"), 2),
                 "sample_count": len(group),
@@ -744,6 +755,13 @@ def _mode(values: list[str]) -> str:
 
 def _round_or_none(value: float | None, digits: int) -> float | None:
     return None if value is None else round(value, digits)
+
+
+def _sugar_within_carbs(sugar: float | None, carbs: float | None) -> float | None:
+    """당류가 탄수화물을 넘으면 탄수화물로 내린다. 하나라도 비었으면 그대로. (#3243)"""
+    if sugar is None or carbs is None or sugar <= carbs:
+        return sugar
+    return carbs
 
 
 def main(argv: list[str] | None = None) -> int:
