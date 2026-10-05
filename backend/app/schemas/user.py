@@ -167,8 +167,14 @@ class LoginToken(Token):
     role: str = "member"
 
 
+#: 무인증 경로가 받는 토큰 칸의 길이 상한(#3238). 우리 refresh JWT 는 수백 자, provider
+#: 토큰(카카오 access_token·구글 id_token)도 2KB 를 넘지 않는다 — 본인 확인 칸
+#: (`ReauthFields.social_token`)과 같은 값이다.
+TOKEN_MAX_LENGTH = 4096
+
+
 class RefreshRequest(BaseModel):
-    refresh_token: str
+    refresh_token: str = Field(max_length=TOKEN_MAX_LENGTH)
 
 
 class PasswordChanged(Token):
@@ -274,7 +280,7 @@ class SignupEmailCodeSent(BaseModel):
 
 class SocialLoginRequest(BaseModel):
     # provider 가 준 토큰 (kakao=access_token, google=id_token)
-    token: str
+    token: str = Field(max_length=TOKEN_MAX_LENGTH)
 
 
 class UserRegister(BaseModel):

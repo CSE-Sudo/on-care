@@ -96,12 +96,28 @@ app = FastAPI(
 )
 
 
+#: 표의 다른 규칙에 걸리지 않는 모든 요청의 본문 상한(#3238). 앱이 보내는 JSON 은 가장
+#: 큰 것도 수십 KB 다 — 그 몇십 배를 두어 정상 요청은 걸리지 않고, 수백 MB 짜리 본문이
+#: 메모리에 올라가 파싱되는 일만 막는다.
+DEFAULT_MAX_BODY_BYTES = 1024 * 1024
+#: 로그인·가입·refresh 등 무인증 `/auth/*` 경로의 본문 상한(#3238). 토큰 없이 누구나
+#: 보낼 수 있는 경로라 가장 좁게 잡는다. 가장 큰 정상 본문(가입: 동의 목록 포함)도 수 KB 다.
+AUTH_MAX_BODY_BYTES = 64 * 1024
+#: 관리자 공공 문서 적재(`/coach/documents/public`) 본문 상한. 문서 원문을 JSON 으로
+#: 받는 유일한 경로라 기본 상한에서 뺀다.
+COACH_DOC_MAX_BODY_BYTES = 10 * 1024 * 1024
+_BODY_TOO_LARGE = "요청이 너무 큽니다."
+
+
 def body_limit_rules(s: Settings) -> tuple[BodyLimitRule, ...]:
     """경로별 요청 본문 상한 표(#2832). 처음 맞는 규칙 하나가 적용된다.
 
-    파일을 받는 경로에만 건다 — 전역으로 걸면 대량 텍스트를 JSON 본문으로 받는
-    엔드포인트(coach-docs 문서 적재 등)까지 같은 상한에 묶인다. 파일을 받는 새
-    라우트를 만들면 여기에 더한다(`tests/test_upload_body_limit_guard.py`).
+    파일을 받는 경로는 그 파일에 맞는 상한을 따로 둔다. 파일을 받는 새 라우트를
+    만들면 여기에 더한다(`tests/test_upload_body_limit_guard.py`).
+
+    맨 끝은 **모든 경로의 기본 상한**이다(#3238). 예전에는 업로드 경로에만 걸어
+    `/auth/register`·`/auth/login`·`/auth/refresh` 같은 무인증 경로가 큰 본문을 그대로
+    읽었다. 기본보다 큰 본문이 필요한 경로(관리자 문서 적재)만 위에서 따로 연다.
     """
     v1 = re.escape(s.api_v1_prefix)
     chat_image = s.max_chat_image_bytes + s.upload_body_slack_bytes
@@ -137,6 +153,16 @@ def body_limit_rules(s: Settings) -> tuple[BodyLimitRule, ...]:
             f"PDF 용량이 너무 큽니다(최대 {s.max_report_pdf_bytes // (1024 * 1024)}MB).",
             regex=True,
         ),
+        # 관리자 공공 문서 적재 — 문서 원문을 JSON 본문으로 받는다.
+        BodyLimitRule(
+            f"{s.api_v1_prefix}/coach/documents/public",
+            COACH_DOC_MAX_BODY_BYTES,
+            _BODY_TOO_LARGE,
+        ),
+        # 무인증 경로(로그인·가입·refresh·소셜·비밀번호 재설정)는 가장 좁게.
+        BodyLimitRule(f"{s.api_v1_prefix}/auth/", AUTH_MAX_BODY_BYTES, _BODY_TOO_LARGE),
+        # 나머지 모든 경로의 기본 상한(#3238). 반드시 맨 끝이다 — 처음 맞는 규칙이 이긴다.
+        BodyLimitRule("/", DEFAULT_MAX_BODY_BYTES, _BODY_TOO_LARGE),
     )
 
 

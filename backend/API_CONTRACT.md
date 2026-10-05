@@ -1614,7 +1614,7 @@ N명이면 첫 화면에서 요청이 2N개였다.
 | POST | `/auth/register` | `{ email, password, name, phone, email_code }` → **201** `{ id, name, email, role: "member" }` — 회원(`role=member`). 이미 가입된 이메일 409, 코드 없음 422 `email_code_required`, 틀린·만료 코드 400 `invalid_email_code`(#3038) |
 | POST | `/auth/trainer/register` | 같은 입력 → **201** `{ id, name, email, role: "trainer" }` — 트레이너(#475). 역할을 요청 필드로 가르지 않으려고 경로를 나눴다. 소속 헬스장은 가입 뒤 `PUT /trainer/me/gym`. 코드는 `purpose=trainer_signup` 으로 받은 것만 맞다 |
 | POST | `/auth/login` | form(`application/x-www-form-urlencoded`) `username`(이메일)·`password` → `{ access_token, refresh_token, token_type, consent_required, role }`. 틀리면 401. `role` 은 계정 역할(`member`·`trainer`) — 회원 앱은 저장 전에 보고 트레이너 계정이면 토큰을 폐기하고 트레이너 웹 안내를 보인다(#3137) |
-| POST | `/auth/refresh` | `{ refresh_token }` → 새 `{ access_token, refresh_token, token_type }`(회전). 무효·폐기된 토큰 401 |
+| POST | `/auth/refresh` | `{ refresh_token }` → 새 `{ access_token, refresh_token, token_type }`(회전). 무효·폐기된 토큰 401, 4096자를 넘는 `refresh_token` 422(#3238) |
 | POST | `/auth/logout` | `{ refresh_token }` → **204**. 그 refresh 토큰을 폐기한다. access 토큰은 요구하지 않고, 못 알아본 토큰에도 204 |
 | POST | `/auth/social/{provider}` | `{ token }` → `{ access_token, refresh_token, token_type, consent_required, role }`(`role` 은 위 `/auth/login` 과 같다, #3137). 실패 응답은 아래 절 |
 | POST | `/auth/password-reset/request` | `{ email }` → **202** `{ status: "requested", expires_in_minutes }` — 계정 유무와 무관하게 같은 응답(#2824). 아래 [비밀번호 재설정](#비밀번호-재설정-2824) |
@@ -1643,6 +1643,12 @@ N명이면 첫 화면에서 요청이 2N개였다.
   저장한다.
 - 401·502 모두 실패 감사 로그(`auth.social`, `success=false`, `detail`=provider)를 남긴다.
   감사·서버 로그·응답 어디에도 토큰과 provider 응답 본문은 남기지 않는다.
+- 토큰 검증은 통과했어도 그 계정이 쉬는(정지된, `is_active=false`) 계정이면 **401**
+  `소셜 인증에 실패했습니다.` 이고 토큰을 주지 않는다 — 비밀번호 로그인·refresh 와 같다(#3238). 감사
+  로그 `detail` 에 `reason=inactive` 가 붙는다.
+- 같은 신원의 **첫** 로그인이 동시에 와도 500 이 아니다(#3238). 늦은 요청은 먼저 끝난 요청이 만든
+  연결을 다시 찾아 같은 계정으로 로그인한다.
+- `token` 은 4096자까지다. 넘으면 **422**.
 
 ### 소셜 토큰 발급 앱 확인 (#3035)
 
@@ -2184,6 +2190,8 @@ CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 �
 - 시도 제한: IP 별 분당 한도(버킷 `auth-password-reset-request`) + 이메일 하나당
   `PASSWORD_RESET_EMAIL_PER_WINDOW`회/`PASSWORD_RESET_EMAIL_WINDOW_MINUTES`분(기본 3회/15분).
   이메일 한도는 계정이 없는 주소도 똑같이 세므로 429 로 가입 여부가 드러나지 않는다.
+- **응답 시간도 갈리지 않게** 메일은 응답을 보낸 뒤 보낸다(#3238). 예전에는 계정이 있을 때만 SMTP
+  발송을 기다려, 본문이 같아도 응답이 늦으면 가입된 주소였다. 만료 코드 정리·커밋도 두 경우 모두 한다.
 - 서버가 메일을 보낼 수 없으면 **503**(아래 메일 발송 설정).
 
 **2) 확인** — `POST /auth/password-reset/confirm` (버킷 `auth-password-reset-confirm`)
@@ -2238,8 +2246,25 @@ IP 를 바꿔 가며 한 계정을 노리는 시도는 계정 쪽 버킷이 막�
 | `POST /auth/register`·`POST /auth/trainer/register` | IP + **이메일(대소문자 무시)** | IP 는 분당 10. 같은 이메일은 시간당 `REGISTER_PER_EMAIL_PER_HOUR`(5) — 성공·409 를 가리지 않고 세고, 두 가입이 한 버킷이다(#2913). 409 문구는 그대로 |
 | `POST /trainer/me/password`·`POST /users/me/password` | IP + **사용자 id 연속 실패** | IP 는 분당 10. 현재 비밀번호를 `LOGIN_LOCKOUT_SECONDS`(900초) 안에 `PASSWORD_CHANGE_MAX_FAILURES`(5)번 틀리면 남은 시간 동안 429(잠긴 동안 비밀번호를 확인하지 않는다). 틀린 시도는 감사 로그 `auth.password_change`(실패)에 남고, 성공하면 실패 기록을 지운다(#2913). 회원·트레이너가 같은 키 규칙·설정값을 쓴다(#3087) |
 
+연속 실패 잠금(로그인·비밀번호 변경·본인 확인)은 시도를 비밀번호·소셜 토큰 확인 **전에** 센다(#3238).
+확인이 맞으면 지우므로 결과는 "틀린 횟수" 와 같다. 예전에는 잠금을 본 뒤 틀렸을 때 셌는데, 그 사이
+bcrypt 확인을 기다리는 동시 요청이 모두 잠금 판정을 통과해 한 창에서 한도의 몇 배를 시도할 수 있었다.
+
 한도 저장소는 프로세스 메모리라 인스턴스가 여럿이면 한도도 그 배수가 된다. 운영 인스턴스가
 하나를 넘게 되면 공유 저장소 구현으로 바꾼다(`app/core/rate_limit.py`).
+
+### 요청 본문 상한 (#3238)
+
+모든 요청에 본문 상한이 있다. 본문을 다 읽기 전에(`Content-Length` 가 있으면 한 바이트도 읽기 전에)
+**413** `{"detail": "요청이 너무 큽니다."}` 로 끊는다. 처음 맞는 규칙 하나가 적용된다(`app/main.py`
+`body_limit_rules`).
+
+| 경로 | 상한 |
+|---|---|
+| 파일 업로드(식단 사진·채팅 사진·리포트 PDF)·AI 코치 채팅 | 각 절의 값(위 업로드 절·AI 코치 절) |
+| `POST /coach/documents/public`(관리자 문서 적재) | 10MiB |
+| `/auth/*`(로그인·가입·refresh·소셜·비밀번호 재설정 등 무인증 경로) | 64KiB |
+| 그 밖의 모든 경로 | 1MiB |
 
 ### 의존성 네 갈래
 

@@ -8,8 +8,9 @@
    대신 "이미 계정이 있다"는 안내를 보낸다. 호출부는 어느 쪽이든 **같은 응답**을 준다
    — 응답이 다르면 아무 주소나 넣어 가입 여부를 알아낼 수 있다.
 2. **확인** — 가입 요청이 코드를 가져오면 가장 최근 코드와 비교한다. 맞으면 쓴 것으로
-   표시한다(커밋은 계정 생성과 한 트랜잭션). 틀리면 실패 횟수를 올려 바로 커밋한다 —
-   가입이 실패해도 횟수는 남아야 한다. 상한에 닿은 코드는 더 받지 않는다.
+   표시한다(커밋은 계정 생성과 한 트랜잭션). 틀리면 실패 횟수를 바로 커밋한다 —
+   가입이 실패해도 횟수는 남아야 한다. 상한에 닿은 코드는 더 받지 않는다. 횟수는
+   비교 전에 DB 에서 원자적으로 올린다(#3238).
 
 코드는 계정이 아니라 (소문자 이메일, 용도)에 묶인다. 회원 가입 코드로 트레이너
 가입을 할 수 없고, 화면에서 이메일을 바꾸면 새 코드가 필요하다. 표에는 서버 비밀값
@@ -237,14 +238,21 @@ def consume(
 ) -> None:
     """가장 최근 코드와 비교해 맞으면 쓴 것으로 표시한다(커밋은 호출부).
 
-    맞지 않으면 실패 횟수를 올려 **바로 커밋**하고 [InvalidEmailCode] — 호출부는 이
-    예외 뒤에 계정을 만들지 않으므로 커밋할 다른 변경이 없다. 횟수가 상한에 닿은 코드,
-    만료·사용된 코드, 다른 용도의 코드는 모두 같은 예외다.
+    맞지 않으면 [InvalidEmailCode] 이고 실패 횟수는 **커밋된 채** 남는다 — 호출부는
+    이 예외 뒤에 계정을 만들지 않으므로 커밋할 다른 변경이 없다. 횟수가 상한에 닿은
+    코드, 만료·사용된 코드, 다른 용도의 코드는 모두 같은 예외다.
+
+    시도 한 번은 비교하기 **전에** DB 에서 한 문장으로 센다(#3238). 예전에는 횟수를
+    읽어 파이썬에서 `+= 1` 했다 — 동시에 온 요청이 같은 값을 읽고 서로의 증가분을
+    덮어써, 한 번에 여러 개를 보내면 코드 한 장당 상한이 무력해졌다. 이제 상한 아래인
+    행만 올리는 `UPDATE … WHERE attempts < 상한` 이라, 행 잠금이 요청을 줄 세우고 한
+    코드로 비교에 들어가는 요청은 상한을 넘지 않는다. 맞힌 시도도 하나로 세지만, 그
+    코드는 쓴 것으로 닫히므로 더 셀 일이 없다.
     """
     settings = settings or get_settings()
     normalized = normalize_code(code)
-    row = db.scalar(
-        select(EmailVerificationCode)
+    row = db.execute(
+        select(EmailVerificationCode.id, EmailVerificationCode.code_hash)
         .where(
             EmailVerificationCode.email == email.lower(),
             EmailVerificationCode.purpose == purpose,
@@ -252,16 +260,30 @@ def consume(
         )
         .order_by(EmailVerificationCode.created_at.desc(), EmailVerificationCode.id.desc())
         .limit(1)
+    ).first()
+    if row is None:
+        raise InvalidEmailCode()
+    claimed = db.execute(
+        update(EmailVerificationCode)
+        .where(
+            EmailVerificationCode.id == row.id,
+            EmailVerificationCode.used_at.is_(None),
+            EmailVerificationCode.expires_at > now,
+            EmailVerificationCode.attempts < settings.signup_email_code_max_attempts,
+        )
+        .values(attempts=EmailVerificationCode.attempts + 1)
+        .execution_options(synchronize_session=False)
     )
-    if (
-        row is None
-        or row.expires_at <= now
-        or row.attempts >= settings.signup_email_code_max_attempts
-    ):
+    if not claimed.rowcount:
+        # 만료·사용됐거나 상한에 닿았다. 걸린 행이 없어 잠근 것도 바꾼 것도 없다.
         raise InvalidEmailCode()
     expected = hash_code(email, purpose, normalized, settings=settings)
     if len(normalized) != CODE_LENGTH or not hmac.compare_digest(row.code_hash, expected):
-        row.attempts += 1
         db.commit()
         raise InvalidEmailCode()
-    row.used_at = now
+    db.execute(
+        update(EmailVerificationCode)
+        .where(EmailVerificationCode.id == row.id)
+        .values(used_at=now)
+        .execution_options(synchronize_session=False)
+    )

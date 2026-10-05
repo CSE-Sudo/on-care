@@ -16,7 +16,7 @@ from datetime import datetime
 from typing import Annotated
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -29,11 +29,10 @@ from app.core.locale import get_request_locale
 from app.core.rate_limit import (
     PasswordChangeGuard,
     check_key,
+    claim_attempt,
     clear_failures,
-    ensure_unlocked,
     limiter,
     rate_limit,
-    record_failure,
     register_email_key,
 )
 from app.services import audit as audit_service
@@ -624,8 +623,9 @@ def change_my_password(
     시도 제한(#3087): IP 한도에 더해 트레이너와 같은 **계정 단위 실패 잠금**을 건다.
     접근 토큰을 손에 넣은 쪽이 IP 를 바꿔 가며 현재 비밀번호를 맞혀 보면, 맞히는
     순간 다른 기기 토큰까지 끊고 계정을 가져간다. `login_lockout_seconds` 창 안에
-    `password_change_max_failures` 번 틀리면 남은 시간 동안 429 다. 잠금 판정은
-    비밀번호 확인보다 먼저 하고, 소셜 전용 계정(409)은 세지 않는다.
+    `password_change_max_failures` 번 틀리면 남은 시간 동안 429 다. 시도는 비밀번호
+    확인보다 먼저 세고 맞으면 지운다(#3238) — 동시 요청도 한도만큼만 확인에 들어간다.
+    소셜 전용 계정(409)은 세지 않는다.
     """
     if not user.hashed_password:
         raise HTTPException(
@@ -633,9 +633,8 @@ def change_my_password(
             detail="소셜 로그인 계정은 비밀번호가 없어 바꿀 수 없습니다.",
         )
     guard = PasswordChangeGuard(user.id)
-    guard.ensure_unlocked()
+    guard.claim()
     if not verify_password(payload.current_password, user.hashed_password):
-        guard.record_failure()
         audit(
             db,
             event="auth.password_change",
@@ -936,11 +935,15 @@ def login(
     곳에 모인다. 잠금 판정은 비밀번호 확인보다 먼저 한다 — 잠긴 동안에는 맞는
     비밀번호인지 여부도 응답에 드러나지 않는다. 없는 이메일도 똑같이 세고 잠가
     가입 여부가 갈리지 않게 한다.
+
+    시도는 확인 **전에** 세고(`claim_attempt`), 맞으면 지운다(#3238). 잠금을 보고
+    나서 틀린 뒤에 세면, 그 사이 bcrypt 확인을 기다리는 동시 요청이 모두 잠금 판정을
+    통과해 한 창에서 한도보다 훨씬 많이 맞혀 볼 수 있었다.
     """
     settings = get_settings()
     lock_key = _login_lock_key(form.username)
     lock_window = float(settings.login_lockout_seconds)
-    ensure_unlocked(lock_key, settings.login_max_failures, lock_window)
+    claim_attempt(lock_key, settings.login_max_failures, lock_window)
     # 가입이 소문자로 저장하므로 입력도 같은 규칙으로 맞춰 찾는다(#2816) — 모바일
     # 키보드가 첫 글자를 대문자로 바꿔도 같은 계정이다.
     user = db.scalar(
@@ -951,7 +954,6 @@ def login(
         or not user.is_active
         or not verify_password(form.password, user.hashed_password)
     ):
-        record_failure(lock_key, lock_window)
         audit(
             db,
             event="auth.login",
@@ -1126,6 +1128,7 @@ def logout(
 def request_password_reset(
     payload: PasswordResetRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Annotated[Session, Depends(get_db)],
 ) -> PasswordResetRequested:
     """재설정 코드를 메일로 보낸다. 회원·트레이너 공용.
@@ -1137,6 +1140,9 @@ def request_password_reset(
     한 이메일로 보내는 메일 수 한도(`PASSWORD_RESET_EMAIL_PER_WINDOW`). 뒤의 것은
     여러 IP 에서 한 사람에게 메일을 쏟아붓는 것을 막는다 — 계정이 없는 주소도 똑같이
     세므로 429 로 가입 여부가 드러나지 않는다.
+
+    메일은 응답을 보낸 뒤에 보낸다(#3238). 그 자리에서 보내면 SMTP 를 기다리는 만큼
+    계정이 있는 주소만 응답이 늦어, 본문이 같아도 시간으로 가입 여부가 드러난다.
 
     서버에 메일 발송 수단이 없으면(운영인데 SMTP 설정이 비었을 때) 503 이다.
     """
@@ -1154,6 +1160,7 @@ def request_password_reset(
             now=clock.now(),
             settings=settings,
             locale=get_request_locale(request),
+            schedule=background_tasks.add_task,
         )
     except password_reset.ResetUnavailable:
         raise HTTPException(
