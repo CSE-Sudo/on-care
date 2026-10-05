@@ -656,14 +656,15 @@ def list_report_sends(db: Session, trainer_id: str, week: date) -> ReportSendsOu
     어느 길로 보냈든 여기서 한 번에 보인다. 앱이 들고 있던 기록은 새로고침하면
     사라져, 이미 보낸 회원이 미전송으로 돌아가 같은 리포트가 두 번 나갔다.
 
-    담당이 살아 있는 회원만 싣는다 — 해제된 회원의 기록은 다른 트레이너 화면
-    에서 읽을 이유가 없고, 실으면 해제 사실이 응답으로 드러난다(#2281).
+    담당이 살아 있고 데이터 공유 동의가 유효한 회원만 싣는다 — 해제된 회원의
+    기록은 다른 트레이너 화면에서 읽을 이유가 없고, 실으면 해제 사실이 응답으로
+    드러난다(#2281). 동의를 철회한 회원도 다른 집계(#2868)와 같은 경계로 뺀다(#3239).
     한 회원에게 여러 번 보냈으면 **가장 최근 것** 하나로 접고 횟수를 함께 준다.
     """
     week_iso = week_start_of(week).isoformat()
     active_members = select(TrainerClient.member_id).where(
         TrainerClient.trainer_id == trainer_id,
-        TrainerClient.active.is_(True),
+        data_consent_service.open_link_clause(),
     )
     rows = db.scalars(
         _report_sends_query(trainer_id).where(
