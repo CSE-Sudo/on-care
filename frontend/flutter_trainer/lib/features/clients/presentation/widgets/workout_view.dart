@@ -13,6 +13,7 @@ import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dar
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_day_record_tile.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_exercise_status_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_section.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/client_routine_adherence_cards.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_routine_status.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/day_fetch_failed_line.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/exercise_memo.dart';
@@ -76,9 +77,9 @@ class _WorkoutViewState extends ConsumerState<WorkoutView> {
       // 이미 같은 기간을 말하고 있어, 한 문장 해석이 기록을 밀어내기만 했다.
       const SizedBox(height: OnCareSpacing.s16),
       if (_period == ClientPeriod.week)
-        _WeekRoutineAdherence(clientId: client.id),
+        ClientWeekRoutineAdherenceCard(clientId: client.id),
       if (_period == ClientPeriod.month)
-        _AllRoutineAdherence(clientId: client.id),
+        ClientAllRoutineAdherenceCard(clientId: client.id),
       // 기록은 이 목록 하나다. 예전에는 날짜별 목록 아래에 `운동 기록` 카드
       // 목록이 또 있어, 이번 주·전체에서 같은 날의 같은 운동이 두 벌로
       // 나왔다(#1025). 미션 카드는 버리지 않고 이 목록의 펼친 자리로 들어왔다.
@@ -94,372 +95,6 @@ class _WorkoutViewState extends ConsumerState<WorkoutView> {
     return ListView(
       padding: const EdgeInsets.all(OnCareSpacing.s16),
       children: children,
-    );
-  }
-}
-
-/// `이번 주` 개인운동 이행 — 프로그램 화면 `개인운동 이행` 카드와 같은 그림을
-/// 이번 주 월~일 7칸으로 그린다. (#2508)
-///
-/// 위 링은 유형별 시간이 목표에 닿았는지를 말할 뿐, "보낸 개인운동을 했나" 는
-/// 펼친 날을 하나씩 열어야 알았다. 두 화면이 같은 단계 색으로 같은 말을 한다.
-/// 이번 주 오늘까지 걸린 개인운동이 하나도 없으면 두지 않는다.
-class _WeekRoutineAdherence extends ConsumerWidget {
-  const _WeekRoutineAdherence({required this.clientId});
-
-  final String clientId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final RoutineDaysKey key = routineDaysKeyNow(clientId);
-    final RoutineDays? days = ref
-        .watch(clientRoutineDaysProvider(key))
-        .valueOrNull;
-    final DateTime monday = clientMondayOf(key.day);
-    if (days == null ||
-        !days
-            .between(monday, key.day)
-            .any((RoutineDay d) => d.items.isNotEmpty)) {
-      return const SizedBox.shrink();
-    }
-    final TextStyle caption = context.oncare
-        .text(OnCareTypography.caption)
-        .copyWith(color: OnCareColors.textSecondary);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: OnCareSpacing.s16),
-      child: AppCard(
-        key: const ValueKey<String>('workout-routine-adherence-card'),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            // 했나(요약)는 제목 줄 오른쪽, 무엇을 보냈나는 칸 아래 — 두 말을
-            // 한 줄에 잇지 않는다. 좁으면 요약이 다음 줄로 넘어간다.
-            AppSectionHeader(
-              title: l.coachRoutineAdherenceTitle,
-              icon: AppIcons.personalRoutine,
-              trailingFit: AppSectionTrailingFit.wrap,
-              trailing: Text(
-                routineWeekSummary(l, days, monday, key.day),
-                key: const ValueKey<String>(
-                  'workout-routine-adherence-summary',
-                ),
-                style: caption,
-              ),
-            ),
-            const SizedBox(height: OnCareSpacing.s12),
-            ClientRoutineAdherenceStrip.week(
-              days: days,
-              monday: monday,
-              today: key.day,
-            ),
-            const SizedBox(height: OnCareSpacing.s8),
-            for (final (int i, String line) in routineWeekSentLines(
-              l,
-              days,
-              monday,
-              key.day,
-            ).indexed)
-              Text(
-                line,
-                key: ValueKey<String>('workout-routine-adherence-sent-$i'),
-                style: caption,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 링 한 칸의 최소 폭 — 링과 `8/18(화) 보냄` 이 들어갈 만큼.
-const double _ringSlotMin = 104;
-
-/// 링 지름.
-const double _ringSize = 72;
-
-/// `전체` 개인운동 이행 — 보낸 개인운동 기간마다 링 하나. (#2508)
-///
-/// 위 막대는 주마다 얼마나 움직였나를 말할 뿐, "보낸 지도를 따라왔나" 는
-/// 날을 하나씩 열어야 알았다. 달력 주가 아니라 **보낸 기간** 단위로 묶어,
-/// 트레이너가 보낸 것마다 얼마나 했는지와 그 흐름을 본다. 링을 고르면 그
-/// 7일이 `이번 주` 카드와 같은 칸으로 펼쳐진다. 링이 폭보다 많으면 위 막대처럼
-/// 옆으로 스크롤한다(최근 것이 기본).
-class _AllRoutineAdherence extends ConsumerStatefulWidget {
-  const _AllRoutineAdherence({required this.clientId});
-
-  final String clientId;
-
-  @override
-  ConsumerState<_AllRoutineAdherence> createState() =>
-      _AllRoutineAdherenceState();
-}
-
-class _AllRoutineAdherenceState extends ConsumerState<_AllRoutineAdherence> {
-  final ScrollController _scroll = ScrollController();
-
-  /// 처음 한 번 최근 링(오른쪽 끝)으로 옮겼나.
-  bool _placed = false;
-
-  /// 고른 링의 시작일. 비우면 가장 최근 링이다.
-  DateTime? _selected;
-
-  @override
-  void dispose() {
-    _scroll.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final RoutineDaysKey key = routineDaysKeyNow(widget.clientId);
-    final RoutineDays? days = ref
-        .watch(clientRoutineDaysProvider(key))
-        .valueOrNull;
-    if (days == null) return const SizedBox.shrink();
-    final List<RoutineGroupAdherence> rings = routineGroupAdherence(
-      days,
-      key.day,
-    );
-    if (rings.isEmpty) return const SizedBox.shrink();
-    final RoutineGroupAdherence selected = rings.lastWhere(
-      (RoutineGroupAdherence r) => r.group.activeFrom == _selected,
-      orElse: () => rings.last,
-    );
-    final List<RoutineDayGroup> ongoing = <RoutineDayGroup>[
-      for (final RoutineDayGroup g in days.groupsOf(
-        days.routines.map((RoutineDayRoutine r) => r.id),
-      ))
-        if (!g.personal) g,
-    ];
-    final TextStyle caption = context.oncare
-        .text(OnCareTypography.caption)
-        .copyWith(color: OnCareColors.textSecondary);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: OnCareSpacing.s16),
-      child: AppCard(
-        key: const ValueKey<String>('workout-routine-all-card'),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            AppSectionHeader(
-              title: l.coachRoutineAdherenceTitle,
-              icon: AppIcons.personalRoutine,
-              trailingFit: AppSectionTrailingFit.wrap,
-              // `7번 보냄` 옆에 평균을 연한 파랑 태그로 — 이 카드가 답하는
-              // 말이 평균이다.
-              trailing: Row(
-                key: const ValueKey<String>('workout-routine-all-summary'),
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Text(l.workoutRoutineAllCount(rings.length), style: caption),
-                  const SizedBox(width: OnCareSpacing.s8),
-                  AppTag(
-                    key: const ValueKey<String>('workout-routine-all-average'),
-                    label: switch (routineAllAverage(rings)) {
-                      final int avg => l.workoutRoutineAllAverage(avg),
-                      null => l.workoutRoutineAllFirstDay,
-                    },
-                    tone: AppTagTone.brand,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: OnCareSpacing.s12),
-            LayoutBuilder(
-              builder: (BuildContext context, BoxConstraints constraints) {
-                // 다 들어가면 폭을 나눠 채운다. 넘치면 위 `전체` 막대처럼
-                // 옆으로 스크롤하고, 처음에는 최근 링이 보이게 오른쪽 끝에
-                // 둔다 — 화살표는 두지 않는다(같은 탭의 두 그래프가 같은
-                // 방식으로 넘어간다).
-                final double viewport = constraints.maxWidth;
-                final int fit = (viewport / _ringSlotMin).floor().clamp(
-                  1,
-                  rings.length,
-                );
-                final double slot = viewport / fit;
-                final bool scrolls = fit < rings.length;
-                if (scrolls) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (!mounted || !_scroll.hasClients || _placed) return;
-                    _placed = true;
-                    _scroll.jumpTo(_scroll.position.maxScrollExtent);
-                  });
-                }
-                return SingleChildScrollView(
-                  key: const ValueKey<String>('workout-routine-all-rings'),
-                  controller: _scroll,
-                  scrollDirection: Axis.horizontal,
-                  physics: scrolls
-                      ? const BouncingScrollPhysics()
-                      : const NeverScrollableScrollPhysics(),
-                  child: Row(
-                    children: <Widget>[
-                      for (final RoutineGroupAdherence r in rings)
-                        SizedBox(
-                          width: slot,
-                          child: _RoutineRing(
-                            ring: r,
-                            // 하나뿐이면 고를 것이 없다 — 폭 전체에 선택
-                            // 배경을 깔면 빈 회색 상자가 된다.
-                            selected:
-                                rings.length > 1 && identical(r, selected),
-                            onTap: () =>
-                                setState(() => _selected = r.group.activeFrom),
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: OnCareSpacing.s12),
-            // 고른 링의 7일 — `이번 주` 카드와 같은 칸이다.
-            ClientRoutineAdherenceStrip.period(
-              days: days.only(<String>{
-                for (final RoutineDayRoutine r in selected.group.routines) r.id,
-              }),
-              group: selected.group,
-              today: key.day,
-            ),
-            const SizedBox(height: OnCareSpacing.s8),
-            Text(
-              // 보낸 날은 고른 링이 말한다 — 여기서는 무엇을 보냈나만.
-              routineGroupNames(l, selected.group),
-              key: const ValueKey<String>('workout-routine-all-names'),
-              style: caption,
-            ),
-            for (final RoutineDayGroup g in ongoing)
-              Text(
-                l.workoutRoutineWeekOngoing(routineGroupNames(l, g)),
-                style: caption,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 링 하나 — 가운데 완료율, 아래 보낸 날 · 끝난 날(또는 진행 중 며칠째).
-///
-/// 완료 수(`9/14개`)는 적지 않는다 — 가운데 % 가 같은 말을 한다.
-class _RoutineRing extends StatelessWidget {
-  const _RoutineRing({
-    required this.ring,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final RoutineGroupAdherence ring;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final RoutineDayGroup g = ring.group;
-    final int? percent = ring.percent;
-    final DateTime? last = g.lastDay;
-    final TextStyle caption = context.oncare
-        .text(OnCareTypography.caption)
-        .copyWith(color: OnCareColors.textSecondary);
-    final String key = '${g.activeFrom.month}-${g.activeFrom.day}';
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: percent == null
-          ? null
-          : l.workoutRoutineAllRing(routineDayLabel(l, g.sentOn), percent),
-      child: Material(
-        color: selected ? OnCareColors.surfacePage : Colors.transparent,
-        borderRadius: OnCareRadius.mdAll,
-        child: InkWell(
-          key: ValueKey<String>('workout-routine-all-ring-$key'),
-          borderRadius: OnCareRadius.mdAll,
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: OnCareSpacing.s8,
-              horizontal: OnCareSpacing.s4,
-            ),
-            child: Column(
-              children: <Widget>[
-                SizedBox.square(
-                  dimension: _ringSize,
-                  child: AppRingGauge(
-                    value: (percent ?? 0) / 100,
-                    color: context.oncare.brand.primary,
-                    stroke: 8,
-                    child: Center(
-                      child: Text(
-                        percent == null ? '-' : '$percent%',
-                        style: OnCareTypography.numeric(
-                          context.oncare.text(
-                            OnCareTypography.strong(OnCareTypography.body),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: OnCareSpacing.s4),
-                Text(
-                  l.workoutRoutineAllSent(routineDayLabel(l, g.sentOn)),
-                  style: context.oncare.text(
-                    OnCareTypography.strong(OnCareTypography.caption),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                // 진행 중은 `이번 주` 칸의 오늘처럼 브랜드색 알약으로 알린다
-                // — 회색 글자 한 줄로는 끝난 링과 구분되지 않았다.
-                if (ring.ongoing)
-                  Container(
-                    key: ValueKey<String>('workout-routine-all-ongoing-$key'),
-                    margin: const EdgeInsets.symmetric(
-                      vertical: OnCareSpacing.s2,
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: OnCareSpacing.s8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.oncare.brand.primary,
-                      borderRadius: OnCareRadius.pillAll,
-                    ),
-                    child: Text(
-                      l.workoutRoutineAllOngoing(ring.day),
-                      style: context.oncare
-                          .text(
-                            OnCareTypography.strong(OnCareTypography.caption),
-                          )
-                          .copyWith(color: OnCareColors.textOnFill),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  )
-                else
-                  Text(
-                    last == null
-                        ? ''
-                        // 7일을 다 채우지 못하고 바뀐 묶음은 걸린 일수를 함께
-                        // 적는다 — 칸의 빈 테두리와 같은 말이다.
-                        : last.difference(g.activeFrom).inDays + 1 < 7
-                        ? l.workoutRoutineAllUntilShort(
-                            routineDayLabel(l, last),
-                            last.difference(g.activeFrom).inDays + 1,
-                          )
-                        : l.workoutRoutineAllUntil(routineDayLabel(l, last)),
-                    style: caption,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
@@ -1080,16 +715,81 @@ class _RowTotals extends StatelessWidget {
   }
 }
 
+/// 이력 한 건 — 프로그램 화면 `운동 기록` 카드의 한 덩어리. (#3004)
+///
+/// 회원 상세 운동 탭의 펼친 날과 같은 모양이다 — 출처 알약(PT·개인운동),
+/// 유형별로 묶은 운동 줄과 강도·효과, 줄마다 소모 kcal, 메모. 카드는 날짜별이
+/// 아니라 기록별 목록이라 알약 옆에 그날을 적는다. kcal 은 그날 운동 행에서
+/// 읽는다 — 회원 상세가 펼친 날과 같은 캐시다.
+class ClientHistoryEntrySection extends ConsumerWidget {
+  /// Creates the section for [entry] of [clientId].
+  const ClientHistoryEntrySection({
+    super.key,
+    required this.clientId,
+    required this.entry,
+    this.divided = true,
+  });
+
+  /// The member the record belongs to.
+  final String clientId;
+
+  /// The record drawn.
+  final RoutineHistoryEntry entry;
+
+  /// 위에 가르는 선을 두는가. 목록의 첫 기록은 두지 않는다.
+  final bool divided;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final DateTime? day = historyDayOf(entry);
+    final List<ClientExerciseItem> dayItems = day == null
+        ? const <ClientExerciseItem>[]
+        : ref
+                  .watch(
+                    clientExercisesOnProvider((
+                      clientId: clientId,
+                      date: DateTime(day.year, day.month, day.day),
+                    )),
+                  )
+                  .valueOrNull ??
+              const <ClientExerciseItem>[];
+    return _EntryRow(
+      clientId: clientId,
+      entry: entry,
+      dayItems: dayItems,
+      divided: divided,
+      note: Text(
+        routineHistoryDateLabel(l, entry),
+        key: ValueKey<String>('workout-entry-date-${entry.id}'),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: context.oncare
+            .text(OnCareTypography.strong(OnCareTypography.caption))
+            .copyWith(color: OnCareColors.textPrimary),
+      ),
+    );
+  }
+}
+
 /// 이력 한 건 → 펼친 날의 출처 한 덩어리. PT 는 `PT`, 하루치 개인운동은 `개인운동`.
 class _EntryRow extends StatelessWidget {
   const _EntryRow({
     required this.clientId,
     required this.entry,
     this.dayItems = const <ClientExerciseItem>[],
+    this.note,
+    this.divided = true,
   });
 
   final String clientId;
   final RoutineHistoryEntry entry;
+
+  /// [_SourceSection.note].
+  final Widget? note;
+
+  /// [_SourceSection.divided].
+  final bool divided;
 
   /// 그날 운동 기록 행 — 이 줄의 소모 kcal 을 여기서 센다. 이력 줄에는 kcal
   /// 이 없다.
@@ -1105,6 +805,8 @@ class _EntryRow extends StatelessWidget {
     );
     return _SourceSection(
       key: ValueKey<String>('workout-entry-${entry.id}'),
+      note: note,
+      divided: divided,
       tag: AppTag(
         label: code == 'pt_session'
             ? l.workoutDaySourcePt
@@ -1153,23 +855,33 @@ class _SourceSection extends StatelessWidget {
     required this.tag,
     required this.lines,
     this.memo,
+    this.note,
+    this.divided = true,
   });
 
   final Widget tag;
   final List<_Line> lines;
   final Widget? memo;
 
+  /// 알약 옆 덧붙이는 말 — 프로그램 화면 `운동 기록` 은 여기에 날짜를 적는다.
+  final Widget? note;
+
+  /// 위에 가르는 선을 두는가. 목록의 첫 덩어리는 두지 않는다.
+  final bool divided;
+
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s12),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: OnCareColors.lineSubtle)),
-      ),
+      decoration: divided
+          ? const BoxDecoration(
+              border: Border(top: BorderSide(color: OnCareColors.lineSubtle)),
+            )
+          : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          _CardTop(tag: tag, memo: memo),
+          _CardTop(tag: tag, note: note, memo: memo),
           const SizedBox(height: OnCareSpacing.s8),
           Padding(
             padding: const EdgeInsets.only(left: _tagInset),
@@ -1505,18 +1217,25 @@ class _LineRow extends StatelessWidget {
                       ),
                     // 효과는 같은 줄 끝에 옅게 — 앞에 중간 점을 두지 않는다
                     // (#2951). 세부와 같은 말로 읽히지 않게 간격과 색으로만
-                    // 가른다.
-                    if (effect != null && effect.isNotEmpty) ...<InlineSpan>[
-                      const WidgetSpan(
-                        child: SizedBox(width: OnCareSpacing.s8),
+                    // 가른다. 한 덩어리로 두어, 남은 폭에 다 들어가지 않으면
+                    // 통째로 다음 줄로 넘긴다 — 프로그램 화면의 좁은 열에서
+                    // `체지 / 방 감량에 도움` 처럼 낱말 가운데서 끊겼다(#3004).
+                    if (effect != null && effect.isNotEmpty)
+                      WidgetSpan(
+                        alignment: PlaceholderAlignment.baseline,
+                        baseline: TextBaseline.alphabetic,
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            left: OnCareSpacing.s8,
+                          ),
+                          child: Text(
+                            effect,
+                            style: tokens
+                                .text(OnCareTypography.caption)
+                                .copyWith(color: OnCareColors.textTertiary),
+                          ),
+                        ),
                       ),
-                      TextSpan(
-                        text: effect,
-                        style: tokens
-                            .text(OnCareTypography.caption)
-                            .copyWith(color: OnCareColors.textTertiary),
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -1740,6 +1459,48 @@ class _CardFooter extends StatelessWidget {
   }
 }
 
+/// 오늘 운동한 날의 하루치 `개인운동` 이력인가 — [ClientTodayRoutineSection]
+/// 이 같은 운동을 말하므로 기록 목록에서 뺀다.
+bool isTodayPersonalEntry(RoutineHistoryEntry entry) {
+  final DateTime? day = historyDayOf(entry);
+  return _isPersonalDay(entry) && day != null && ymd(day) == ymd(todayKst());
+}
+
+/// 프로그램 화면 `운동 기록` 맨 위의 오늘 개인운동 — 회원 상세 운동 탭 `오늘`
+/// 맨 위 상자([_PersonalTodayCard])와 같은 내용을 상자 없이 그린다. (#3004)
+///
+/// 지금 걸린 개인운동과 오늘 했는지(한 것 · 아직, 예상 소모 · 소모 kcal,
+/// 총 소모). 지금 걸린 개인운동이 없으면 두지 않는다.
+class ClientTodayRoutineSection extends ConsumerWidget {
+  /// Creates the today section for [clientId].
+  const ClientTodayRoutineSection({super.key, required this.clientId});
+
+  /// The member whose assigned routines are drawn.
+  final String clientId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final List<AssignedRoutine> routines =
+        ref.watch(assignedRoutinesProvider(clientId)).valueOrNull ??
+        const <AssignedRoutine>[];
+    if (routines.isEmpty) return const SizedBox.shrink();
+    final DateTime today = todayKst();
+    // 오늘 한 개인운동 이력(하루치 카드) — 운동한 날로 고른다(#2748).
+    final RoutineHistoryEntry? entry =
+        (ref.watch(clientHistoryProvider(clientId)).valueOrNull ??
+                const <RoutineHistoryEntry>[])
+            .where(isTodayPersonalEntry)
+            .firstOrNull;
+    return _PersonalTodayCard(
+      clientId: clientId,
+      date: today,
+      routines: routines,
+      entry: entry,
+      boxed: false,
+    );
+  }
+}
+
 /// `오늘` 맨 위 개인운동 상자 — 지금 걸린 개인운동과 오늘 했는지. (#2508)
 ///
 /// 머리 줄은 다른 상자와 같다: 왼쪽 `개인운동` 알약, 한 수(`2/4`)와 보낸 날·
@@ -1754,11 +1515,16 @@ class _PersonalTodayCard extends ConsumerWidget {
     required this.date,
     required this.routines,
     this.entry,
+    this.boxed = true,
   });
 
   final String clientId;
   final DateTime date;
   final List<AssignedRoutine> routines;
+
+  /// 상자로 그리는가. 거짓이면 테두리 없이 다른 기록 한 건과 같은 자리에
+  /// 선다 — 프로그램 화면 그래프 카드 안 `운동 기록` 맨 위(#3004).
+  final bool boxed;
 
   /// 오늘 한 개인운동 이력(하루치 카드) — 없으면 아직 아무것도 안 한 날이다.
   final RoutineHistoryEntry? entry;
@@ -1808,94 +1574,115 @@ class _PersonalTodayCard extends ConsumerWidget {
     ];
     final int doneCount = routines.where(doneToday).length;
     final String? sent = _todayWindow(l, days, key.day);
-    return AppCard(
-      key: const ValueKey<String>('workout-pending-routines'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          _CardTop(
-            tag: AppTag(label: l.workoutKindPersonal, tone: AppTagTone.brand),
-            note: Text.rich(
-              key: const ValueKey<String>('workout-pending-window'),
-              TextSpan(
-                children: <InlineSpan>[
-                  // `3/6` 은 날짜처럼 읽혀 문장으로 적는다.
-                  TextSpan(
-                    text: l.workoutRoutineDoneOf(doneCount, routines.length),
-                    style: context.oncare
-                        .text(OnCareTypography.strong(OnCareTypography.caption))
-                        .copyWith(color: OnCareColors.textSecondary),
+    final Widget body = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _CardTop(
+          tag: AppTag(label: l.workoutKindPersonal, tone: AppTagTone.brand),
+          note: Text.rich(
+            key: const ValueKey<String>('workout-pending-window'),
+            TextSpan(
+              children: <InlineSpan>[
+                // `3/6` 은 날짜처럼 읽혀 문장으로 적는다.
+                TextSpan(
+                  text: l.workoutRoutineDoneOf(doneCount, routines.length),
+                  style: context.oncare
+                      .text(OnCareTypography.strong(OnCareTypography.caption))
+                      .copyWith(color: OnCareColors.textSecondary),
+                ),
+                // 보낸 날·끝나는 날은 한 덩어리 — 프로그램 화면의 좁은 열에서는
+                // 잘라 내지 않고 통째로 다음 줄로 넘긴다(#3004).
+                if (sent != null)
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.baseline,
+                    baseline: TextBaseline.alphabetic,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: OnCareSpacing.s8),
+                      child: Text(
+                        sent,
+                        style: context.oncare
+                            .text(OnCareTypography.caption)
+                            .copyWith(color: OnCareColors.textTertiary),
+                      ),
+                    ),
                   ),
-                  if (sent != null) TextSpan(text: '   $sent'),
-                ],
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: context.oncare
-                  .text(OnCareTypography.caption)
-                  .copyWith(color: OnCareColors.textTertiary),
-            ),
-            // 그날 개인운동 상자에 다는 메모.
-            memo: ExerciseMemoButton(
-              clientId: clientId,
-              memoRef: TrainerMemoRef(
-                kind: TrainerMemoRefKind.personal,
-                day: ymd(date),
-              ),
-            ),
-          ),
-          const SizedBox(height: OnCareSpacing.s8),
-          // 알약 글씨가 시작하는 자리에 내용을 맞춘다 — 알약 배경 끝이 아니라.
-          Padding(
-            padding: const EdgeInsets.only(left: _tagInset),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                _GroupedLines(
-                  key: const ValueKey<String>('workout-pending-list'),
-                  showCalories: true,
-                  lines: <_Line>[
-                    for (final AssignedRoutine routine in ordered)
-                      () {
-                        final bool done = doneToday(routine);
-                        final ClientExerciseItem? row = done
-                            ? rowOf(routine)
-                            : null;
-                        return _Line(
-                          key: ValueKey<String>(
-                            done
-                                ? 'workout-routine-done-${routine.id}'
-                                : 'workout-routine-pending-${routine.id}',
-                          ),
-                          type: routine.type,
-                          name: routine.name,
-                          detail: _pendingRoutineAmountLabel(l, routine),
-                          // 한 운동은 회원이 고른 강도, 아직은 처방 강도다.
-                          intensity: row?.intensity ?? routine.intensity,
-                          planned: done ? routine.intensity : null,
-                          effect: _effectOf(l, routine),
-                          mark: done ? _LineMark.done : _LineMark.pending,
-                          // 안 한 운동은 유형·시간·강도로 어림한 예상값을 옅게 —
-                          // 프로그램 화면이 보낼 때 보여 준 값과 같은 식이다.
-                          calories: done ? row?.calories : _estimateOf(routine),
-                          estimated: !done,
-                        );
-                      }(),
-                  ],
-                ),
-                _CardFooter(
-                  done: <ClientExerciseItem>[
-                    for (final ClientExerciseItem item in rows)
-                      if (item.done) item,
-                  ],
-                  calories: _caloriesOf(rows),
-                ),
               ],
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: context.oncare
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
           ),
-        ],
-      ),
+          // 그날 개인운동 상자에 다는 메모.
+          memo: ExerciseMemoButton(
+            clientId: clientId,
+            memoRef: TrainerMemoRef(
+              kind: TrainerMemoRefKind.personal,
+              day: ymd(date),
+            ),
+          ),
+        ),
+        const SizedBox(height: OnCareSpacing.s8),
+        // 알약 글씨가 시작하는 자리에 내용을 맞춘다 — 알약 배경 끝이 아니라.
+        Padding(
+          padding: const EdgeInsets.only(left: _tagInset),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              _GroupedLines(
+                key: const ValueKey<String>('workout-pending-list'),
+                showCalories: true,
+                lines: <_Line>[
+                  for (final AssignedRoutine routine in ordered)
+                    () {
+                      final bool done = doneToday(routine);
+                      final ClientExerciseItem? row = done
+                          ? rowOf(routine)
+                          : null;
+                      return _Line(
+                        key: ValueKey<String>(
+                          done
+                              ? 'workout-routine-done-${routine.id}'
+                              : 'workout-routine-pending-${routine.id}',
+                        ),
+                        type: routine.type,
+                        name: routine.name,
+                        detail: _pendingRoutineAmountLabel(l, routine),
+                        // 한 운동은 회원이 고른 강도, 아직은 처방 강도다.
+                        intensity: row?.intensity ?? routine.intensity,
+                        planned: done ? routine.intensity : null,
+                        effect: _effectOf(l, routine),
+                        mark: done ? _LineMark.done : _LineMark.pending,
+                        // 안 한 운동은 유형·시간·강도로 어림한 예상값을 옅게 —
+                        // 프로그램 화면이 보낼 때 보여 준 값과 같은 식이다.
+                        calories: done ? row?.calories : _estimateOf(routine),
+                        estimated: !done,
+                      );
+                    }(),
+                ],
+              ),
+              _CardFooter(
+                done: <ClientExerciseItem>[
+                  for (final ClientExerciseItem item in rows)
+                    if (item.done) item,
+                ],
+                calories: _caloriesOf(rows),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
+    const Key boxKey = ValueKey<String>('workout-pending-routines');
+    if (!boxed) {
+      return Padding(
+        key: boxKey,
+        padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s12),
+        child: body,
+      );
+    }
+    return AppCard(key: boxKey, child: body);
   }
 
   /// 아직 안 한 개인운동의 예상 소모 kcal — 근력은 세트를 분으로 바꿔 센다.

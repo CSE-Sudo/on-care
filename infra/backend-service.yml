@@ -56,9 +56,6 @@ Parameters:
     Type: String
     AllowedPattern: '^[a-z0-9][a-z0-9.-]*$'
     Description: Pinned Gemini model name (DEPLOY.md 5-3)
-  AppleClientIds:
-    Type: String
-    Default: ''
   # 소셜 로그인 허용 aud(#3035). 비우면 그 공급자 로그인은 401 로 거부된다.
   GoogleClientIds:
     Type: String
@@ -125,7 +122,6 @@ Mappings:
 
 Conditions:
   IsStaging: !Equals [!Ref EnvironmentName, staging]
-  HasAppleClientIds: !Not [!Equals [!Ref AppleClientIds, '']]
   HasGoogleClientIds: !Not [!Equals [!Ref GoogleClientIds, '']]
   HasKakaoAppId: !Not [!Equals [!Ref KakaoAppId, '']]
   HasKakaoLoginRestApiKey: !Not [!Equals [!Ref KakaoLoginRestApiKey, '']]
@@ -253,11 +249,6 @@ Resources:
             Value: '365'
           - Name: AUDIT_SENSITIVE_RETENTION_DAYS
             Value: '730'
-          - !If
-            - HasAppleClientIds
-            - Name: APPLE_CLIENT_IDS
-              Value: !Ref AppleClientIds
-            - !Ref AWS::NoValue
           - !If
             - HasGoogleClientIds
             - Name: GOOGLE_CLIENT_IDS

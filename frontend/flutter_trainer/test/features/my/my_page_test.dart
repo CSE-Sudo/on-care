@@ -6,8 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare_trainer/features/my/data/trainer_location_service.dart';
 import 'package:oncare_trainer/features/my/data/trainer_profile_repository.dart';
 import 'package:oncare_trainer/features/my/presentation/pages/my_page.dart';
+import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -20,8 +22,17 @@ class _GymFailureRepository implements TrainerProfileRepository {
   Future<TrainerProfile> fetch() => _delegate.fetch();
 
   @override
-  Future<List<TrainerGymCandidate>> searchGyms(String query) =>
-      _delegate.searchGyms(query);
+  Future<List<TrainerGymCandidate>> searchGyms(
+    String query, {
+    double? lat,
+    double? lng,
+  }) => _delegate.searchGyms(query, lat: lat, lng: lng);
+
+  @override
+  Future<List<TrainerGymCandidate>> nearbyGyms({
+    required double lat,
+    required double lng,
+  }) => _delegate.nearbyGyms(lat: lat, lng: lng);
 
   @override
   Future<TrainerProfile> update(TrainerProfileUpdate update) =>
@@ -31,6 +42,13 @@ class _GymFailureRepository implements TrainerProfileRepository {
   Future<TrainerProfile> selectGym(TrainerGymCandidate gym) {
     throw const ServerError(message: '헬스장 연결 요청이 실패했습니다.');
   }
+
+  @override
+  Future<TrainerGymInfo> fetchGymInfo() => _delegate.fetchGymInfo();
+
+  @override
+  Future<TrainerGymInfo> updateGymInfo(TrainerGymInfoUpdate update) =>
+      _delegate.updateGymInfo(update);
 }
 
 class _UpdateFailureRepository implements TrainerProfileRepository {
@@ -38,8 +56,17 @@ class _UpdateFailureRepository implements TrainerProfileRepository {
   Future<TrainerProfile> fetch() async => seedTrainerProfile;
 
   @override
-  Future<List<TrainerGymCandidate>> searchGyms(String query) async =>
-      const <TrainerGymCandidate>[];
+  Future<List<TrainerGymCandidate>> searchGyms(
+    String query, {
+    double? lat,
+    double? lng,
+  }) async => const <TrainerGymCandidate>[];
+
+  @override
+  Future<List<TrainerGymCandidate>> nearbyGyms({
+    required double lat,
+    required double lng,
+  }) async => const <TrainerGymCandidate>[];
 
   @override
   Future<TrainerProfile> update(TrainerProfileUpdate update) {
@@ -49,7 +76,72 @@ class _UpdateFailureRepository implements TrainerProfileRepository {
   @override
   Future<TrainerProfile> selectGym(TrainerGymCandidate gym) =>
       throw UnimplementedError();
+
+  @override
+  Future<TrainerGymInfo> fetchGymInfo() => throw UnimplementedError();
+
+  @override
+  Future<TrainerGymInfo> updateGymInfo(TrainerGymInfoUpdate update) =>
+      throw UnimplementedError();
 }
+
+/// 검색·주변 찾기가 늘 빈 목록인 저장소 — 서버가 맞는 헬스장을 못 찾은 경우.
+class _EmptySearchRepository implements TrainerProfileRepository {
+  final MockTrainerProfileRepository _delegate = MockTrainerProfileRepository();
+
+  @override
+  Future<TrainerProfile> fetch() => _delegate.fetch();
+
+  @override
+  Future<List<TrainerGymCandidate>> searchGyms(
+    String query, {
+    double? lat,
+    double? lng,
+  }) async => const <TrainerGymCandidate>[];
+
+  @override
+  Future<List<TrainerGymCandidate>> nearbyGyms({
+    required double lat,
+    required double lng,
+  }) async => const <TrainerGymCandidate>[];
+
+  @override
+  Future<TrainerProfile> update(TrainerProfileUpdate update) =>
+      _delegate.update(update);
+
+  @override
+  Future<TrainerProfile> selectGym(TrainerGymCandidate gym) =>
+      _delegate.selectGym(gym);
+
+  @override
+  Future<TrainerGymInfo> fetchGymInfo() => _delegate.fetchGymInfo();
+
+  @override
+  Future<TrainerGymInfo> updateGymInfo(TrainerGymInfoUpdate update) =>
+      _delegate.updateGymInfo(update);
+}
+
+/// 브라우저 위치 대신 정해 둔 결과를 주는 위치 서비스(#3223).
+class _FakeLocationService implements TrainerLocationService {
+  _FakeLocationService.at(TrainerPosition this._position) : _failure = null;
+  _FakeLocationService.failing(TrainerLocationFailure this._failure)
+    : _position = null;
+
+  final TrainerPosition? _position;
+  final TrainerLocationFailure? _failure;
+  int calls = 0;
+
+  @override
+  Future<TrainerPosition> locate() async {
+    calls++;
+    final TrainerLocationFailure? failure = _failure;
+    if (failure != null) throw failure;
+    return _position!;
+  }
+}
+
+/// 헬스메이트 신촌점 자리 — 데모 신촌점이 가장 가깝고, 강남점이 가장 멀다.
+const TrainerPosition _sinchon = TrainerPosition(lat: 37.5548, lng: 126.9385);
 
 void main() {
   group('MyPage', () {
@@ -138,9 +230,7 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('회원 관리 검색은 이름으로만 목록을 거르고 지우면 전체로 돌아간다', (
-      tester,
-    ) async {
+    testWidgets('회원 관리 검색은 이름으로만 목록을 거르고 지우면 전체로 돌아간다', (tester) async {
       await openClientManagement(tester);
       final int all = managedRows().evaluate().length;
       expect(all, greaterThan(1));
@@ -191,7 +281,10 @@ void main() {
       await tester.tap(find.byTooltip('연결 해제').first);
       await tester.pumpAndSettle();
       await tester.tap(
-        find.descendant(of: find.byType(AppDialog), matching: find.text('연결 해제')),
+        find.descendant(
+          of: find.byType(AppDialog),
+          matching: find.text('연결 해제'),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -534,13 +627,250 @@ void main() {
     });
 
     testWidgets('찾는 헬스장이 없으면 그렇다고 말한다 — 직접 적는 칸은 없다', (tester) async {
-      await openEdit(tester);
+      // 데모 저장소는 빈 목록을 주지 않는다(#3223) — 서버가 빈 목록을 준 경우다.
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.my,
+        extraOverrides: <Override>[
+          trainerProfileRepositoryProvider.overrideWithValue(
+            _EmptySearchRepository(),
+          ),
+        ],
+      );
+      await tester.tap(find.text('프로필 수정'));
+      await settle(tester);
       await searchGym(tester, '없는 스튜디오');
       expect(
         find.text('찾는 헬스장이 없어요. 이름을 다르게 적거나 동네 이름을 붙여 보세요.'),
         findsOneWidget,
       );
       expect(find.byKey(const ValueKey<String>('gym-address')), findsNothing);
+    });
+
+    testWidgets('데모에서 실제 헬스장 이름을 쳐도 고를 헬스장이 나온다 (#3223)', (tester) async {
+      await openEdit(tester);
+      await searchGym(tester, '스포애니 신림점');
+
+      expect(
+        find.text('찾는 헬스장이 없어요. 이름을 다르게 적거나 동네 이름을 붙여 보세요.'),
+        findsNothing,
+      );
+      for (final String id in <String>[
+        kDemoTrainerGymId,
+        'gym-2',
+        'gym-demo-yeonhui',
+      ]) {
+        expect(find.byKey(ValueKey<String>('gym-result-$id')), findsOneWidget);
+      }
+
+      // 나온 헬스장을 골라 저장할 수 있다 — 가입 직후 막히지 않는다.
+      await tapResult(tester, 'gym-2');
+      await tester.tap(find.text('저장'));
+      await settle(tester);
+      expect(currentLocation(tester), AppRoutes.mySection('profile'));
+      expect(find.text('온케어짐 강남점'), findsWidgets);
+    });
+
+    testWidgets('붙여 쓴 이름으로도 데모 헬스장을 찾는다 (#3223)', (tester) async {
+      await openEdit(tester);
+      await searchGym(tester, '온케어짐강남');
+      expect(
+        find.byKey(const ValueKey<String>('gym-result-gym-2')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('gym-result-$kDemoTrainerGymId')),
+        findsNothing,
+      );
+    });
+
+    /// 위치 서비스를 [service] 로 바꿔 프로필 수정 화면을 연다.
+    Future<void> openEditWithLocation(
+      WidgetTester tester,
+      TrainerLocationService service, {
+      TrainerProfileRepository? repository,
+    }) async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.my,
+        extraOverrides: <Override>[
+          trainerLocationServiceProvider.overrideWithValue(service),
+          if (repository != null)
+            trainerProfileRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      await tester.tap(find.text('프로필 수정'));
+      await settle(tester);
+    }
+
+    Future<void> tapLocate(WidgetTester tester) async {
+      final Finder button = find.byKey(const ValueKey<String>('gym-locate'));
+      await tester.ensureVisible(button);
+      await tester.pump();
+      await tester.tap(button);
+      await settle(tester);
+    }
+
+    double topOf(WidgetTester tester, String key) =>
+        tester.getTopLeft(find.byKey(ValueKey<String>(key))).dy;
+
+    testWidgets('현재 위치로 찾으면 주변 헬스장이 가까운 순으로 나온다 (#3223)', (tester) async {
+      final service = _FakeLocationService.at(_sinchon);
+      await openEditWithLocation(tester, service);
+      // 버튼을 누르기 전에는 위치를 읽지 않는다.
+      expect(service.calls, 0);
+      expect(find.text('현재 위치로 찾기'), findsOneWidget);
+
+      await tapLocate(tester);
+      expect(service.calls, 1);
+      expect(find.text('현재 위치에서 가까운 헬스장이에요. 위치는 저장하지 않아요.'), findsOneWidget);
+      final double sinchon = topOf(tester, 'gym-result-$kDemoTrainerGymId');
+      final double yeonhui = topOf(tester, 'gym-result-gym-demo-yeonhui');
+      final double gangnam = topOf(tester, 'gym-result-gym-2');
+      expect(sinchon, lessThan(yeonhui));
+      expect(yeonhui, lessThan(gangnam));
+      // 결과 줄에 주소와 거리가 함께 나온다.
+      expect(find.textContaining('km'), findsWidgets);
+      expect(find.textContaining('서울 강남구 강남대로 396 · '), findsOneWidget);
+    });
+
+    testWidgets('주변 결과에서 고른 헬스장도 저장하면 소속이 된다 (#3223)', (tester) async {
+      await openEditWithLocation(tester, _FakeLocationService.at(_sinchon));
+      await tapLocate(tester);
+      await tapResult(tester, 'gym-demo-yeonhui');
+      expect(find.text('저장하면 이 헬스장으로 바뀌어요'), findsOneWidget);
+
+      await tester.tap(find.text('저장'));
+      await settle(tester);
+      expect(currentLocation(tester), AppRoutes.mySection('profile'));
+      expect(find.text('온케어 연희 스튜디오'), findsWidgets);
+    });
+
+    testWidgets('위치를 얻은 뒤 이름으로 찾으면 거리가 붙고, 지우면 주변으로 돌아간다', (tester) async {
+      await openEditWithLocation(tester, _FakeLocationService.at(_sinchon));
+      await tapLocate(tester);
+
+      await searchGym(tester, '강남');
+      expect(
+        find.byKey(const ValueKey<String>('gym-result-gym-2')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('gym-result-$kDemoTrainerGymId')),
+        findsNothing,
+      );
+      // 이름 검색 결과에는 주변 안내를 달지 않는다.
+      expect(
+        find.byKey(const ValueKey<String>('gym-nearby-caption')),
+        findsNothing,
+      );
+      expect(find.textContaining('서울 강남구 강남대로 396 · '), findsOneWidget);
+
+      await searchGym(tester, '');
+      expect(
+        find.byKey(const ValueKey<String>('gym-nearby-caption')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('gym-result-$kDemoTrainerGymId')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('위치를 얻기 전 이름 검색에는 거리가 없다', (tester) async {
+      await openEditWithLocation(tester, _FakeLocationService.at(_sinchon));
+      await searchGym(tester, '강남');
+      expect(find.text('서울 강남구 강남대로 396'), findsOneWidget);
+      expect(find.textContaining('서울 강남구 강남대로 396 · '), findsNothing);
+    });
+
+    for (final ({TrainerLocationFailure failure, String message}) scenario
+        in <({TrainerLocationFailure failure, String message})>[
+          (
+            failure: TrainerLocationFailure.denied,
+            message: '위치 사용을 허용하면 주변 헬스장을 찾을 수 있어요.',
+          ),
+          (
+            failure: TrainerLocationFailure.blocked,
+            message: '브라우저 사이트 설정에서 위치 사용을 허용한 뒤 다시 눌러 주세요.',
+          ),
+          (
+            failure: TrainerLocationFailure.disabled,
+            message: '기기의 위치 서비스를 켠 뒤 다시 눌러 주세요.',
+          ),
+          (
+            failure: TrainerLocationFailure.unavailable,
+            message: '현재 위치를 가져오지 못했어요. 다시 시도하거나 이름으로 찾아 보세요.',
+          ),
+        ]) {
+      testWidgets('위치를 못 얻으면(${scenario.failure.name}) 까닭을 알린다 (#3223)', (
+        tester,
+      ) async {
+        final service = _FakeLocationService.failing(scenario.failure);
+        await openEditWithLocation(tester, service);
+        await tapLocate(tester);
+
+        expect(find.text(scenario.message), findsOneWidget);
+        // 결과도, 주변 안내도 없다 — 이름 검색은 그대로 쓸 수 있다.
+        expect(
+          find.byKey(const ValueKey<String>('gym-nearby-caption')),
+          findsNothing,
+        );
+        await searchGym(tester, '강남');
+        expect(
+          find.byKey(const ValueKey<String>('gym-result-gym-2')),
+          findsOneWidget,
+        );
+        // 다시 누르면 다시 묻는다.
+        await tapLocate(tester);
+        expect(service.calls, 2);
+      });
+    }
+
+    testWidgets('주변에 헬스장이 없으면 이름으로 찾으라고 알린다', (tester) async {
+      await openEditWithLocation(
+        tester,
+        _FakeLocationService.at(_sinchon),
+        repository: _EmptySearchRepository(),
+      );
+      await tapLocate(tester);
+      expect(
+        find.text('현재 위치 2km 안에서 헬스장을 찾지 못했어요. 이름으로 찾아 보세요.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('현재 위치 버튼은 검색 칸 바로 아래, 결과 목록 위에 있다', (tester) async {
+      await openEditWithLocation(tester, _FakeLocationService.at(_sinchon));
+      await tapLocate(tester);
+      final double search = topOf(tester, 'gym-search');
+      final double locate = topOf(tester, 'gym-locate');
+      final double firstResult = topOf(tester, 'gym-result-$kDemoTrainerGymId');
+      expect(search, lessThan(locate));
+      expect(locate, lessThan(firstResult));
+      // 테스트 빌드에는 카카오 키가 없어 지도 자리를 비워 둔다.
+      expect(find.byKey(const ValueKey<String>('gym-map')), findsNothing);
+    });
+
+    test('현재 위치 찾기 문구는 영어로도 있다', () async {
+      final AppLocalizations en = await AppLocalizations.delegate.load(
+        const Locale('en'),
+      );
+      expect(en.myGymLocateAction, 'Find near my location');
+      expect(
+        en.myGymLocationBlocked,
+        'Allow location access in your browser site settings, then try again.',
+      );
+      expect(
+        en.myGymNearbyCaption,
+        'Gyms near your current location. Your location is not saved.',
+      );
+      expect(
+        en.myGymNearbyEmpty,
+        'No gyms found within 2 km of your location. Try searching by name.',
+      );
     });
 
     testWidgets('소속이 없으면 내 정보에 회원에게 보이지 않는다고 알린다', (tester) async {
@@ -559,6 +889,94 @@ void main() {
     testWidgets('소속이 있으면 안내하지 않는다', (tester) async {
       await openTab(tester);
       expect(find.byKey(const ValueKey<String>('my-gym-hidden')), findsNothing);
+    });
+
+    /// 소속 헬스장 카드의 `헬스장 정보 수정` 으로 들어가 값이 올 때까지 기다린다.
+    Future<void> openGymInfo(WidgetTester tester) async {
+      await openTab(tester);
+      final Finder button = find.byKey(
+        const ValueKey<String>('my-gym-info-edit'),
+      );
+      await tester.ensureVisible(button);
+      await tester.pump();
+      await tester.tap(button);
+      await settle(tester);
+    }
+
+    testWidgets('소속 헬스장 정보를 고치면 내 정보 카드에 반영된다 (#2700)', (tester) async {
+      await openGymInfo(tester);
+      expect(currentLocation(tester), AppRoutes.mySection('gymInfo'));
+      expect(
+        find.byKey(const ValueKey<String>('gym-info-weekday')),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('gym-info-weekday')),
+        '05:00 - 24:00',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('gym-info-phone')),
+        '02-332-1720',
+      );
+      final Finder tagInput = find.byKey(
+        const ValueKey<String>('gym-tag-input'),
+      );
+      await tester.ensureVisible(tagInput);
+      await tester.enterText(tagInput, '샤워실');
+      await tester.tap(find.byKey(const ValueKey<String>('gym-tag-add')));
+      await tester.pump();
+      expect(find.byKey(const ValueKey<String>('gym-tag-샤워실')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey<String>('gym-info-save')));
+      await settle(tester);
+      expect(currentLocation(tester), AppRoutes.mySection('profile'));
+      expect(find.text('05:00 - 24:00'), findsOneWidget);
+      expect(find.text('02-332-1720'), findsOneWidget);
+      // 태그는 수정 화면이 아니라 카드의 헬스장 이름 옆에도 보인다.
+      expect(
+        find.byKey(const ValueKey<String>('my-gym-tag-샤워실')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('태그는 지울 수 있고, 같은 태그는 한 번만 들어간다', (tester) async {
+      await openGymInfo(tester);
+      final Finder tagInput = find.byKey(
+        const ValueKey<String>('gym-tag-input'),
+      );
+      final Finder add = find.byKey(const ValueKey<String>('gym-tag-add'));
+      await tester.ensureVisible(tagInput);
+      await tester.enterText(tagInput, '24시간');
+      await tester.tap(add);
+      await tester.pump();
+      await tester.enterText(tagInput, ' 24시간 ');
+      // 태그 줄이 생기며 버튼이 아래로 밀려, 다시 화면으로 올린 뒤 누른다.
+      await tester.ensureVisible(add);
+      await tester.pumpAndSettle();
+      await tester.tap(add);
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('gym-tag-24시간')),
+        findsOneWidget,
+      );
+
+      // 태그 줄이 상단 바 아래로 밀려 있을 수 있어, 누르기 전에 화면으로 올린다.
+      final Finder remove = find.byTooltip('태그 지우기');
+      await tester.ensureVisible(remove);
+      await tester.pumpAndSettle();
+      await tester.tap(remove);
+      await tester.pump();
+      expect(find.byKey(const ValueKey<String>('gym-tag-24시간')), findsNothing);
+      expect(find.text('아직 태그가 없어요.'), findsOneWidget);
+    });
+
+    testWidgets('소속이 없으면 헬스장 정보 수정 버튼이 없다', (tester) async {
+      await openWithoutGym(tester);
+      expect(
+        find.byKey(const ValueKey<String>('my-gym-info-edit')),
+        findsNothing,
+      );
     });
 
     testWidgets('소속 헬스장은 필수다 — 고르지 않으면 저장하지 않고 칸 아래에 알린다', (tester) async {

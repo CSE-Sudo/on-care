@@ -60,7 +60,7 @@ void main() {
       pastDay.entries
           .firstWhere((entry) => entry.mealType == MealType.dinner)
           .photoAsset,
-      'assets/images/diet-salmon-brown-rice.jpeg',
+      'assets/demo/images/diet-salmon-brown-rice.jpeg',
     );
   });
 

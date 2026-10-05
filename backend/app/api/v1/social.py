@@ -3,7 +3,7 @@
   POST /auth/social/{provider}  { token }  ->  { access_token, refresh_token }
   POST /auth/social/kakao/code  { code, redirect_uri }  ->  { access_token }  (웹, #330)
 
-provider(kakao/google/naver/apple)에서 토큰을 검증해 사용자를 찾거나 만들고,
+provider(kakao/google)에서 토큰을 검증해 사용자를 찾거나 만들고,
 우리 서비스의 JWT(access+refresh)를 발급한다. 카카오 웹 로그인은 SDK 가 토큰을 주지
 않아, 먼저 인가 코드를 서버에서 카카오 access_token 으로 바꾼 뒤 같은 로그인 길을 탄다.
 """

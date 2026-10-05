@@ -66,7 +66,8 @@ uv pip compile --universal --python-version 3.12 --generate-hashes requirements-
 
 `--universal` 은 운영(리눅스)과 팀원 PC(macOS·Windows)에서 함께 쓰이는 잠금 파일을 만듭니다
 (예: `uvloop` 은 Windows 에서 빠지도록 조건이 붙습니다). Dependabot 이 매주 업데이트 PR 을
-올리고, 백엔드 CI 가 잠금 파일의 알려진 취약점(pip-audit)과 이미지 빌드·기동을 확인합니다.
+올리고, 백엔드 CI 가 잠금 파일의 알려진 취약점(pip-audit, 허용 목록 `audit-allowlist.toml` 밖이면
+실패), 린트(ruff, `ruff.toml`), 이미지 빌드와 개발·운영 설정 기동(`tests/fixtures/prod_smoke.env`)을 확인합니다.
 처리 규칙은 [docs/team_workflow.md](../docs/team_workflow.md) "의존성 업데이트 PR".
 
 ## DB 마이그레이션 (Alembic)

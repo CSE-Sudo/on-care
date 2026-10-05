@@ -141,11 +141,6 @@ class Settings(BaseSettings):
     audit_sensitive_retention_days: int = 730
 
     # --- 소셜 로그인 ---
-    # Apple 로그인에서 허용할 `aud`(client_id) 목록, 콤마 구분.
-    # iOS 앱은 번들 ID, 웹은 Service ID 로 서로 다른 aud 를 받으므로 복수를 허용한다.
-    # 비어 있으면 Apple 로그인은 검증 불가로 **거부**된다(조용히 통과시키면 다른 앱용
-    # Apple 토큰으로도 로그인이 뚫린다).
-    apple_client_ids: str = ""
     # Google 로그인에서 허용할 id_token `aud`(OAuth client_id) 목록, 콤마 구분 (#3035).
     # iOS·Android·Web client_id 가 서로 다르므로 복수를 허용한다. 비어 있으면 Google
     # 로그인은 **거부**된다 — aud 를 보지 않으면 다른 앱이 받은 구글 토큰으로도 로그인된다.
@@ -450,11 +445,6 @@ class Settings(BaseSettings):
         if self.expose_api_docs is not None:
             return self.expose_api_docs
         return not self.is_prod
-
-    @property
-    def apple_client_id_list(self) -> list[str]:
-        """허용 Apple `aud` 목록(공백·빈 항목 제거)."""
-        return _comma_list(self.apple_client_ids)
 
     @property
     def google_client_id_list(self) -> list[str]:
