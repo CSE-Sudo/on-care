@@ -60,12 +60,15 @@ void main() {
       expect(session.time, '18:00');
       expect(session.durationMinutes, 50);
       expect(session.type, '1:1 PT');
-      // 버티는 운동은 버틴 시간을 이름에 붙인다 — 트레이너 웹의 `플랭크 60초`.
+      // 버티는 운동은 버틴 시간을 이름이 아니라 초 칸에 싣는다 — 실서버
+      // `ProgramItem.hold_seconds` 와 같은 자리다(#3138).
       final CoachProgramItem plank = session.program.singleWhere(
         (CoachProgramItem item) => item.name.startsWith('플랭크'),
       );
-      expect(plank.name, '플랭크 60초');
+      expect(plank.name, '플랭크');
       expect(plank.sets, 3);
+      expect(plank.holdSeconds, 60);
+      expect(plank.reps, 0);
       final CoachProgramItem bench = session.program.first;
       expect(bench.name, '벤치프레스');
       expect(bench.sets, 4);

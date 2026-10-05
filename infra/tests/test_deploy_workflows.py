@@ -11,6 +11,8 @@ from typing import Any
 
 import yaml
 
+from cfn_yaml import load_template
+
 WORKFLOWS = Path(__file__).resolve().parents[2] / ".github" / "workflows"
 
 
@@ -78,6 +80,117 @@ def test_demo_real_build_uses_staging_backend() -> None:
 def test_production_frontend_rejects_staging_backend() -> None:
     text = _steps_text("aws-frontend-deploy.yml")
     assert "FORBIDDEN_API_BASE_URL: ${{ vars.STAGING_API_BASE_URL }}" in text
+
+
+# ---- Environment 이름 ↔ OIDC 신뢰 조건(#3133) ----
+#
+# 배포 역할은 `environment:<이름>` 형식 subject 만 믿고, 그 Environment 의 보호 규칙(배포 브랜치
+# `main`, 운영 승인자)이 곧 배포 경계다. 워크플로의 `environment:` 이름이 템플릿의 이름과
+# 어긋나면 배포가 인증 단계에서 멈추거나, 보호 규칙이 없는 다른 Environment 로 역할을 받게 된다.
+
+# 배포 역할이 믿는 Environment(템플릿) 밖에서 쓰는 Environment — 사유와 함께.
+_NON_AWS_ENVIRONMENTS = {
+    "github-pages": "데모 Pages 배포(deploy.yml). AWS 역할을 받지 않는다.",
+    "mobile-release": "회원 앱 서명 빌드(member-app-release.yml). 서명 비밀만 두고 AWS 역할을 받지 않는다(#3148).",
+}
+
+
+def _backend_environments() -> list[str]:
+    template = load_template("backend-environment.yml")
+    return template["Parameters"]["EnvironmentName"]["AllowedValues"]
+
+
+def _frontend_environment() -> str:
+    template = load_template("frontend-hosting.yml")
+    return template["Parameters"]["GitHubEnvironment"]["Default"]
+
+
+def _all_workflows() -> dict[str, dict[str, Any]]:
+    return {path.name: _workflow(path.name) for path in sorted(WORKFLOWS.glob("*.yml"))}
+
+
+def _job_environments() -> list[tuple[str, str, str]]:
+    """(워크플로, job, Environment 이름). 재사용 워크플로 호출은 넘기는 `environment` 입력을 본다."""
+    found = []
+    for name, workflow in _all_workflows().items():
+        for job_id, job in workflow.get("jobs", {}).items():
+            if "environment" in job:
+                found.append((name, job_id, _environment_name(job)))
+            uses = job.get("uses", "")
+            if uses.startswith("./.github/workflows/") and "environment" in job.get("with", {}):
+                found.append((name, job_id, job["with"]["environment"]))
+    return found
+
+
+def test_backend_template_trusts_production_and_staging() -> None:
+    assert _backend_environments() == ["production", "staging"]
+    assert _frontend_environment() == "production"
+
+
+def test_every_workflow_environment_is_a_trusted_name_or_known_exception() -> None:
+    trusted = set(_backend_environments()) | {_frontend_environment()}
+    for workflow, job, environment in _job_environments():
+        if environment == "${{ inputs.environment }}":
+            # 재사용 워크플로 안쪽 — 호출하는 쪽의 값을 아래 검사에서 본다.
+            assert workflow == "backend-deploy-service.yml", (workflow, job)
+            continue
+        assert environment in trusted | set(_NON_AWS_ENVIRONMENTS), (workflow, job, environment)
+
+
+def test_environment_names_match_templates_exactly() -> None:
+    # 이름 비교는 IAM 쪽에서 대소문자를 가리지 않지만, 문서·보호 규칙과 한 이름으로 맞춘다.
+    # 저장소에 남은 `Production` 은 같은 Environment 다(대소문자 무시) — 워크플로는 소문자로 쓴다.
+    for workflow, job, environment in _job_environments():
+        if environment.startswith("${{"):
+            continue
+        assert environment == environment.lower(), (workflow, job, environment)
+
+
+def test_backend_service_inputs_cover_both_environments() -> None:
+    callers = {
+        environment
+        for workflow, _, environment in _job_environments()
+        if workflow == "backend-deploy.yml"
+    }
+    assert callers == set(_backend_environments())
+
+
+def test_aws_deploy_roles_are_assumed_only_inside_trusted_environments() -> None:
+    # 배포 역할(Environment subject)을 받는 job 은 반드시 그 Environment 에서 돈다.
+    # 이미지 푸시 역할(브랜치 subject)만 예외다.
+    trusted = set(_backend_environments()) | {_frontend_environment()}
+    for name, workflow in _all_workflows().items():
+        for job_id, job in workflow.get("jobs", {}).items():
+            for step in job.get("steps", []):
+                role = step.get("with", {}).get("role-to-assume")
+                if not role:
+                    continue
+                if role == "${{ vars.AWS_BACKEND_IMAGE_PUSH_ROLE_ARN }}":
+                    assert "environment" not in job, (name, job_id)
+                    continue
+                environment = _environment_name(job) if "environment" in job else None
+                assert environment is not None, (name, job_id, role)
+                assert environment in trusted or environment == "${{ inputs.environment }}", (
+                    name,
+                    job_id,
+                    environment,
+                )
+
+
+def test_no_vercel_environment_or_config_left() -> None:
+    root = WORKFLOWS.parents[1]
+    assert not (root / "vercel.json").exists()
+    for workflow, job, environment in _job_environments():
+        assert environment.lower() != "preview", (workflow, job)
+
+
+def test_environment_protection_is_documented() -> None:
+    root = WORKFLOWS.parents[1]
+    deploy = (root / "backend" / "docs" / "DEPLOY.md").read_text(encoding="utf-8")
+    for needle in ("`production`", "`staging`", "Required reviewers", "Selected branches and tags", "`Preview`"):
+        assert needle in deploy, needle
+    frontend = (root / "docs" / "frontend_deployment.md").read_text(encoding="utf-8")
+    assert "backend/docs/DEPLOY.md" in frontend
 
 
 def _step(workflow: str, job: str, name: str) -> dict[str, Any]:

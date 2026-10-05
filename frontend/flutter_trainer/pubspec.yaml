@@ -140,10 +140,15 @@ flutter:
     - assets/demo/
     - assets/demo/images/
     # <<< demo-assets
+    # Pretendard 글꼴 라이선스 전문 — 기동 때 라이선스 목록에 넣는다(#3150).
+    # OFL 은 글꼴을 함께 배포할 때 라이선스 고지를 요구한다.
+    - assets/fonts/Pretendard-OFL.txt
 
   fonts:
     # Pretendard (SIL OFL 1.1) — 두 앱 공통 한글 UI 서체 (#995).
     # 정적 4종만 담는다: 400/500/600/700 이 타입 스케일이 실제로 쓰는 굵기다.
+    # 파일은 KS X 1001 한글·라틴·기호로 줄인 서브셋이다(#3142). 다시 만들 때는
+    # tool/fonts/subset_pretendard.py, 글자 누락 검사는 tool/ci/check_font_coverage.py.
     - family: Pretendard
       fonts:
         - asset: assets/fonts/Pretendard-Regular.otf

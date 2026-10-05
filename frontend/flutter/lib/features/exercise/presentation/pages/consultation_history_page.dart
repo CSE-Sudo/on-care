@@ -8,6 +8,7 @@ import 'package:oncare/features/exercise/domain/repositories/consultation_reposi
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/consultation_request_card.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 내 상담 요청 전체 내역(#948). 운동 탭은 대기 중이거나 가장 최근 요청 1건만
@@ -34,6 +35,9 @@ class _ConsultationHistoryPageState
   /// 열 때 받는 서버 목록이 실패했는가. (#2858)
   bool _failed = false;
 
+  /// 그 실패의 오류 — 오류 안내가 원인을 말한다(#3140).
+  Object? _error;
+
   @override
   void initState() {
     super.initState();
@@ -45,13 +49,15 @@ class _ConsultationHistoryPageState
   /// 낸 회원이 다시 신청하려다 중복 대기에 막혔다.
   Future<void> _load() async {
     if (!_loading) setState(() => _loading = true);
-    final bool ok = await ref
-        .read(consultationRequestControllerProvider.notifier)
-        .refresh();
+    final ConsultationRequestController controller = ref.read(
+      consultationRequestControllerProvider.notifier,
+    );
+    final bool ok = await controller.refresh();
     if (!mounted) return;
     setState(() {
       _loading = false;
       _failed = !ok;
+      _error = ok ? null : controller.lastRestoreError;
     });
   }
 
@@ -119,10 +125,11 @@ class _ConsultationHistoryPageState
               placement: AppStatePlacement.card,
             )
           else if (_failed)
-            AppErrorState(
+            appErrorStateFor(
+              context,
               key: const Key('consult-history-error'),
+              error: _error,
               title: l.exConsultHistoryLoadError,
-              retryLabel: l.actionRetry,
               onRetry: () => unawaited(_load()),
               placement: AppStatePlacement.card,
             )

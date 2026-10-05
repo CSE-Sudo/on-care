@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare_core/licenses.dart';
 import 'package:oncare_trainer/app/app.dart';
 import 'package:oncare_trainer/app/misconfigured_build_page.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
@@ -20,6 +21,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// asynchronously from secure storage once the tree is up.
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // 앱에 담긴 Pretendard 글꼴(OFL)을 오픈소스 라이선스 목록에 넣는다(#3150).
+  // 패키지 라이선스는 Flutter 가 모으지만 글꼴 같은 자산은 직접 넣어야 한다.
+  registerBundledLicenses();
 
   final config = AppConfig.fromEnvironment();
 

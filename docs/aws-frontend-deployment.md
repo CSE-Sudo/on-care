@@ -136,8 +136,10 @@ bash .github/scripts/frontend_hosting_stack.sh deploy oncare-frontend \
 1. **스택 먼저**: 최신 `infra/frontend-hosting.yml` 로 스택을 갱신합니다([스택 갱신 스크립트](#스택-갱신은-언제나-현재-릴리스-경로와-함께-3129)). 새 파라미터 `GitHubEnvironment`(기본
    `production`)·`AllowBranchOidcSubject`(기본 `true`)가 생기고, 역할은 Environment 형식과 브랜치 형식을 **둘 다**
    믿습니다. 변경 세트에서 `GitHubFrontendDeployRole` 의 신뢰 정책·설명만 바뀌는지 확인합니다.
-2. 저장소 Settings → Environments 에서 `production`(이미 있는 `Production` 이 같은 환경입니다)의 배포 브랜치를
-   `main` 으로 두고, 필요하면 승인자를 지정합니다. 승인자를 두면 프런트·백엔드 운영 배포가 같은 승인을 기다립니다.
+2. 저장소 Settings → Environments 에서 `production`(이미 있는 `Production` 이 같은 환경입니다)에 보호 규칙을
+   채웁니다 — 배포 브랜치 `main` 만, 필수 승인자(배포 담당·백엔드 담당), 관리자 우회 끔. 정확한 값과 순서는
+   [`backend/docs/DEPLOY.md`](../backend/docs/DEPLOY.md) 1절 "GitHub Environment 설정" 에 있습니다(#3133).
+   승인자를 두면 프런트·백엔드 운영 배포가 같은 승인을 기다립니다.
 3. 이 워크플로를 `main` 에서 한 번 돌려 `Configure AWS credentials` 가 통과하는지 봅니다.
 4. **브랜치 형식 제거**: `bash .github/scripts/frontend_hosting_stack.sh deploy oncare-frontend AllowBranchOidcSubject=false` 로 스택을 다시 적용합니다. 이제 Environment 밖에서 돈
    job 은 이 역할을 맡을 수 없습니다.
