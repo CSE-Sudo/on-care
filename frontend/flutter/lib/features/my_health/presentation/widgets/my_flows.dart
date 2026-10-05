@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/app_version/app_version.dart';
+import 'package:oncare/core/release/build_info.dart';
 import 'package:oncare/features/account/domain/entities/account_reauth.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
@@ -2074,9 +2075,12 @@ class SupportPage extends StatelessWidget {
   }
 }
 
-/// 고객 지원 맨 아래 버전 줄(#3047). 버전은 빌드에서 읽는다 — 예전에는 번역
-/// 문구에 `1.0.0` 이 박혀 실제 빌드와 상관없이 늘 같았다. 읽기 전·읽지 못하면
-/// 앱 이름만 보인다(트레이너 웹과 같은 규칙).
+/// 고객 지원 맨 아래 버전 줄(#3047, #3226) — 앱에서 버전이 보이는 단 한 곳이다.
+///
+/// `On-Care · 버전 0.4.0 (7032) · 2026년 10월 5일 14:30 KST 배포`. 버전 이름은 빌드에서
+/// 읽는다 — 예전에는 번역 문구에 `1.0.0` 이 박혀 실제 빌드와 상관없이 늘 같았다.
+/// 빌드 번호가 없는 로컬·테스트 빌드는 `On-Care · 버전 0.4.0 · 개발 빌드` 다. 문구
+/// 조립은 트레이너 웹과 같은 규칙이다([buildInfoSummary]).
 class SupportAppVersionLine extends ConsumerWidget {
   const SupportAppVersionLine({super.key});
 
@@ -2084,10 +2088,13 @@ class SupportAppVersionLine extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
     return Text(
-      switch (ref.watch(appVersionProvider).valueOrNull) {
-        final String version => l.myAppVersion(version),
-        null => l.myAppName,
-      },
+      buildInfoSummary(
+        l,
+        Localizations.localeOf(context).toString(),
+        ref.watch(buildInfoProvider),
+      ),
+      key: const ValueKey<String>('support-app-version'),
+      textAlign: TextAlign.center,
       style: context.oncare
           .text(OnCareTypography.caption)
           .copyWith(color: OnCareColors.textTertiary),

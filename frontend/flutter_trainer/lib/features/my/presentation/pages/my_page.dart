@@ -17,6 +17,7 @@ import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
 // 사용한다 (라우터의 인증 게이트와 동일한 소비자).
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/errors/app_error_message.dart';
+import 'package:oncare_trainer/core/release/build_info.dart';
 import 'package:oncare_trainer/core/storage/demo_language.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
@@ -27,6 +28,7 @@ import 'package:oncare_trainer/features/auth/presentation/controllers/session_co
 import 'package:oncare_trainer/features/auth/presentation/trainer_social_login.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_card.dart';
 import 'package:oncare_trainer/features/my/data/app_version.dart';
+import 'package:oncare_trainer/features/my/data/build_info.dart';
 import 'package:oncare_trainer/features/my/data/trainer_account_repository.dart';
 import 'package:oncare_trainer/features/my/data/trainer_location_service.dart';
 import 'package:oncare_trainer/features/my/data/trainer_profile_repository.dart';
@@ -1221,7 +1223,7 @@ class _MyPageState extends ConsumerState<MyPage> {
 
   /// 고객 지원 — 회원 앱 `SupportPage` 와 같은 다섯 줄이다(#2227, #2264).
   /// FAQ·1:1 문의는 운영 중인 카카오톡 채널로 보내고, 약관·개인정보는 앱 안
-  /// 화면, 탈퇴는 따로 여는 화면이다. 앱 버전은 카드 아래 가운데.
+  /// 화면, 탈퇴는 따로 여는 화면이다. 앱 버전(빌드 번호·배포 일시)은 카드 아래 가운데.
   List<Widget> _supportCards() {
     final AppLocalizations l = AppLocalizations.of(context);
     final account = ref.watch(trainerAccountRepositoryProvider);
@@ -1285,11 +1287,15 @@ class _MyPageState extends ConsumerState<MyPage> {
       const SizedBox(height: OnCareSpacing.s12),
       Center(
         child: Text(
-          // 버전은 빌드에서 읽는다 — 읽기 전·읽지 못하면 앱 이름만.
-          switch (ref.watch(appVersionProvider).valueOrNull) {
-            final String version => l.myAppVersion(version),
-            null => l.myAppName,
-          },
+          // 웹에서 버전이 보이는 단 한 곳이다(#3047, #3226) — 버전 이름은 빌드에서
+          // 읽고, 빌드 번호·배포 일시를 붙인다. 회원 앱 고객 지원 하단과 같은 줄이다.
+          buildInfoSummary(
+            l,
+            Localizations.localeOf(context).toString(),
+            ref.watch(buildInfoProvider),
+          ),
+          key: const ValueKey<String>('support-app-version'),
+          textAlign: TextAlign.center,
           style: context.oncare
               .text(OnCareTypography.caption)
               .copyWith(color: OnCareColors.textTertiary),

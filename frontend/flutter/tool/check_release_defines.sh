@@ -20,6 +20,8 @@
 #  - KAKAO_NATIVE_APP_KEY: 있으면 영숫자 16~64자(카카오 네이티브 앱 키, #330)
 #  - GOOGLE_WEB_CLIENT_ID·GOOGLE_IOS_CLIENT_ID: 있으면 <번호>-<해시>.apps.googleusercontent.com,
 #    iOS client_id 는 웹 client_id 와 함께 있어야 함(iOS 구글 로그인이 둘 다 쓴다)
+#  - BUILD_NUMBER·RELEASE_DATE(#3226)는 선택 — 있으면 양의 정수·UTC ISO 8601(`…Z`)이어야 함.
+#    서명 빌드 워크플로가 커밋 수·빌드 시각으로 채우고, 설정 화면 `버전 정보` 가 읽는다
 #  - 모르는 키는 경고만
 set -euo pipefail
 
@@ -56,7 +58,7 @@ if not isinstance(data, dict):
 KNOWN = {"ENV", "USE_MOCK_API", "API_BASE_URL", "SENTRY_DSN", "DEMO_BUILD",
          "SHOW_DEMO_ENTRY", "REAL_API", "KAKAO_JS_KEY",
          "KAKAO_MAP_ORIGIN", "IOS_APP_STORE_ID", "KAKAO_NATIVE_APP_KEY",
-         "GOOGLE_WEB_CLIENT_ID", "GOOGLE_IOS_CLIENT_ID"}
+         "GOOGLE_WEB_CLIENT_ID", "GOOGLE_IOS_CLIENT_ID", "BUILD_NUMBER", "RELEASE_DATE"}
 PLACEHOLDER = re.compile(
     r"[<>]|(^|[./@])example\.(com|org|net)([/:]|$)|\.(example|test|invalid|localhost)([/:]|$)"
     r"|//(localhost|127\.0\.0\.1)([/:]|$)",
@@ -143,6 +145,13 @@ if google_ios and not google_web:
     errors.append("GOOGLE_IOS_CLIENT_ID 만 있습니다. iOS 구글 로그인은 GOOGLE_WEB_CLIENT_ID 도 씁니다.")
 if google_web and google_ios and google_web == google_ios:
     errors.append("GOOGLE_WEB_CLIENT_ID 와 GOOGLE_IOS_CLIENT_ID 가 같습니다. 클라이언트 유형별 값을 넣으세요.")
+# 설정 화면 버전 정보(#3226). 틀린 값은 앱이 "없음"으로 읽어 개발 빌드로 보이므로 여기서 막는다.
+build_number = text("BUILD_NUMBER")
+if build_number and not re.fullmatch(r"[1-9][0-9]*", build_number):
+    errors.append(f"BUILD_NUMBER 는 양의 정수여야 합니다(지금: {build_number}).")
+release_date = text("RELEASE_DATE")
+if release_date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", release_date):
+    errors.append("RELEASE_DATE 는 UTC ISO 8601(YYYY-MM-DDTHH:MM:SSZ)이어야 합니다.")
 
 real_api = text("REAL_API")
 if real_api:

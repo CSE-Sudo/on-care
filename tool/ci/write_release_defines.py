@@ -8,7 +8,10 @@
 
   필수 키(비어 있어도 쓴다): ENV ← APP_ENV, USE_MOCK_API(false 고정), API_BASE_URL, SENTRY_DSN
   선택 키(값이 있을 때만): KAKAO_JS_KEY, KAKAO_MAP_ORIGIN, IOS_APP_STORE_ID,
-    KAKAO_NATIVE_APP_KEY, GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID(카카오·구글 로그인, #330)
+    KAKAO_NATIVE_APP_KEY, GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID(카카오·구글 로그인, #330),
+                          BUILD_NUMBER, RELEASE_DATE
+  BUILD_NUMBER·RELEASE_DATE 는 고객 지원 버전 줄(#3226)이 읽는 빌드 번호·배포 일시다.
+  워크플로 게이트가 `.github/scripts/release_build_stamp.sh` 로 만들어 넘긴다.
 
 iOS 잡은 같은 값으로 로그인 URL 스킴 파일(ios/Flutter/Social.xcconfig)도 쓴다(#330).
 카카오 SDK 는 `kakao<네이티브 앱 키>`, 구글 로그인은 iOS client_id 를 뒤집은 스킴으로 앱에
@@ -34,6 +37,8 @@ OPTIONAL_KEYS = (
     "KAKAO_NATIVE_APP_KEY",
     "GOOGLE_WEB_CLIENT_ID",
     "GOOGLE_IOS_CLIENT_ID",
+    "BUILD_NUMBER",
+    "RELEASE_DATE",
 )
 GOOGLE_CLIENT_ID_SUFFIX = ".apps.googleusercontent.com"
 KAKAO_APP_KEY = re.compile(r"[A-Za-z0-9]{16,64}")

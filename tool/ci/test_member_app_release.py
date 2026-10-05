@@ -176,8 +176,37 @@ class BuildStepsTest(unittest.TestCase):
                 joined = re.sub(r"\s*\\\n\s*", " ", commands[0])
                 self.assertIn(f"{build} --release {FROM_FILE}", joined)
                 self.assertNotIn("--dart-define=", joined)
-                self.assertNotIn("--build-number", joined)
+                # 빌드 번호는 게이트의 자동 번호로만 덮는다(#3226). 버전 이름은 pubspec 그대로다.
+                self.assertIn('--build-number="$BUILD_NUMBER"', joined)
+                self.assertIn("BUILD_NUMBER: ${{ needs.gate.outputs.build_number }}", commands[0])
                 self.assertNotIn("--build-name", joined)
+
+    def test_gate_stamps_one_build_number_for_both_jobs(self) -> None:
+        gate = jobs()["gate"]
+        step = step_named(gate, "Stamp release build number and date")
+        self.assertIn("        id: stamp\n", step)
+        body = run_body(step)
+        self.assertIn('bash .github/scripts/release_build_stamp.sh "$GITHUB_OUTPUT"', body)
+        # 손으로 올리던 pubspec 의 `+` 뒤 번호가 하한이다 — versionCode 가 뒤로 가지 않는다.
+        self.assertIn('MIN_BUILD_NUMBER="$pubspec_build"', body)
+        self.assertIn("frontend/flutter/pubspec.yaml", body)
+        self.assertIn("      build_number: ${{ steps.stamp.outputs.BUILD_NUMBER }}\n", gate)
+        self.assertIn("      release_date: ${{ steps.stamp.outputs.RELEASE_DATE }}\n", gate)
+        # 커밋 수를 세려면 전체 이력이 있어야 한다.
+        self.assertIn("fetch-depth: 0", gate)
+        self.assertLess(step_index(gate, "Check the build source"),
+                        step_index(gate, "Stamp release build number and date"))
+
+    def test_define_file_carries_the_build_stamp(self) -> None:
+        for name in ("android", "ios"):
+            job = jobs()[name]
+            write = step_named(job, "Write the release define file")
+            info = step_named(job, "Write build info")
+            with self.subTest(job=name):
+                self.assertIn("BUILD_NUMBER: ${{ needs.gate.outputs.build_number }}", write)
+                self.assertIn("RELEASE_DATE: ${{ needs.gate.outputs.release_date }}", write)
+                self.assertIn('echo "build_number: $BUILD_NUMBER"', info)
+                self.assertIn('echo "release_date: $RELEASE_DATE"', info)
 
     def test_release_defines_read_member_values(self) -> None:
         for name in ("android", "ios"):
@@ -371,6 +400,14 @@ class WriteReleaseDefinesTest(unittest.TestCase):
                 os.environ.clear()
                 os.environ.update(old)
             self.assertIn("KAKAO_URL_SCHEME", out.read_text(encoding="utf-8"))
+
+    def test_build_stamp_keys_only_when_set(self) -> None:
+        got = defines.release_defines({"BUILD_NUMBER": " 7032 ", "RELEASE_DATE": "2026-10-05T05:30:00Z"})
+        self.assertEqual(got["BUILD_NUMBER"], "7032")
+        self.assertEqual(got["RELEASE_DATE"], "2026-10-05T05:30:00Z")
+        empty = defines.release_defines({"BUILD_NUMBER": "", "RELEASE_DATE": "  "})
+        self.assertNotIn("BUILD_NUMBER", empty)
+        self.assertNotIn("RELEASE_DATE", empty)
 
     def test_mock_api_cannot_be_overridden(self) -> None:
         self.assertEqual(defines.release_defines({"USE_MOCK_API": "true"})["USE_MOCK_API"], "false")
