@@ -28,12 +28,17 @@ class GymTab extends ConsumerWidget {
   const GymTab({
     required this.selectedSlot,
     required this.onSlot,
+    this.onReserved,
     this.gymAnchorKey,
     super.key,
   });
 
   final String? selectedSlot;
   final ValueChanged<String> onSlot;
+
+  /// 예약이 잡힌 뒤 부른다 — 부모가 고른 자리를 비운다(#3240). 비우지 않으면 내
+  /// 예약을 다시 받는 동안 확정 버튼이 다시 켜져 두 번째 예약을 누를 수 있었다.
+  final VoidCallback? onReserved;
 
   /// 사용 가이드가 `내 헬스장` 카드의 자리를 재는 열쇠(#1857). 운동 탭은 이
   /// 값을 주지 않는다 — 가이드 화면만 자기 사본에 달아 쓴다.
@@ -105,6 +110,7 @@ class GymTab extends ConsumerWidget {
               trainer: ref.watch(myTrainerProvider).valueOrNull,
               selectedSlot: selectedSlot,
               onSlot: onSlot,
+              onReserved: onReserved,
               onRetry: () => ref.invalidate(myGymProvider),
               onTrainerChatTap: showTrainerChat
                   ? () => openTrainerChatPage(
@@ -126,6 +132,7 @@ class _MyGymSection extends StatelessWidget {
     required this.trainer,
     required this.selectedSlot,
     required this.onSlot,
+    required this.onReserved,
     required this.onRetry,
     required this.onTrainerChatTap,
   });
@@ -136,6 +143,7 @@ class _MyGymSection extends StatelessWidget {
   final Trainer? trainer;
   final String? selectedSlot;
   final ValueChanged<String> onSlot;
+  final VoidCallback? onReserved;
   final VoidCallback onRetry;
   final VoidCallback? onTrainerChatTap;
 
@@ -187,6 +195,7 @@ class _MyGymSection extends StatelessWidget {
                     trainer: trainer!,
                     selectedSlot: selectedSlot,
                     onSlot: onSlot,
+                    onReserved: onReserved,
                   ),
                 ],
               ],
@@ -240,6 +249,7 @@ class _ReservationPanel extends ConsumerStatefulWidget {
     required this.trainer,
     required this.selectedSlot,
     required this.onSlot,
+    this.onReserved,
   });
 
   final Gym gym;
@@ -248,6 +258,9 @@ class _ReservationPanel extends ConsumerStatefulWidget {
   /// 선택된 슬롯 id. 부모(운동 탭)가 들고 있다.
   final String? selectedSlot;
   final ValueChanged<String> onSlot;
+
+  /// 예약이 잡힌 뒤 고른 자리를 비우라고 부모에게 알린다([GymTab.onReserved]).
+  final VoidCallback? onReserved;
 
   @override
   ConsumerState<_ReservationPanel> createState() => _ReservationPanelState();
@@ -308,6 +321,9 @@ class _ReservationPanelState extends ConsumerState<_ReservationPanel> {
     // 방금 잡은 예약이 '내 예약'에도 나타나야 취소가 걸린다. (#502)
     container.invalidate(myReservationsProvider);
     if (!mounted) return;
+    // 고른 자리를 비운다(#3240) — 내 예약을 다시 받아 자리 목록이 내려가기 전까지
+    // 확정 버튼이 다시 켜져, 그 틈에 다른 자리를 잡을 수 있었다.
+    widget.onReserved?.call();
     setState(() => _reserving = null);
     toast.show(
       l.exReserveConfirmedSlotGym(label, widget.gym.name),

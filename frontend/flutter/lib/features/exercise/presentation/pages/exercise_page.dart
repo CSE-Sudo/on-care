@@ -156,6 +156,8 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
       );
       notifier.state = notifier.state == s ? null : s;
     },
+    onReserved: () =>
+        ref.read(exerciseSelectedReservationSlotProvider.notifier).state = null,
   );
 }
 
