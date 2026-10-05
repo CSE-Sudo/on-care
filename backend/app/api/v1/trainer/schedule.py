@@ -279,12 +279,15 @@ def trainer_schedule_routines(
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
 ) -> list[RoutineOut]:
-    """그 PT 일정에 붙어 있는(아직 회원에게 가지 않은) 개인운동. (#2223)
+    """그 PT 일정에 붙어 있는 개인운동 — 아직 보내지 않은 것과 보낸 것. (#2223)
 
-    일정 상세가 "이 PT 와 함께 갈 개인운동"을 보여 주는 데 쓴다(#2224). 보낸
-    뒤에는 배정 목록(`GET .../routines`)으로 옮겨 가므로 여기서는 빠진다. 남의
-    일정은 조건에서 걸러져 빈 목록이 된다 — 없는 일정과 같은 답이라 어느 id 가
-    실재하는지 알려 주지 않는다.
+    일정 상세가 "이 PT 와 함께 갈(간) 개인운동"을 보여 주는 데 쓴다(#2224). 보낸
+    뒤에도 빠지지 않는다 — 그 PT 에 무엇을 딸려 보냈는지 볼 데가 여기뿐이다. 건마다
+    `pending_send` 로 아직 보낼 것인지 가른다. 보내지 않기로 한 것(`dismissed`)은
+    뺀다.
+
+    남의 일정, 담당이 해제됐거나 동의가 철회된 회원의 일정은 빈 목록이다(#3239) —
+    없는 일정과 같은 답이라 어느 id 가 실재하는지 알려 주지 않는다.
     """
     return trainer_schedule_service.list_scheduled_routines(db, trainer.id, session_id)
 
