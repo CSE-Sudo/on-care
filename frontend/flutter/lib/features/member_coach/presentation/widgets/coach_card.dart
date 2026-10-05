@@ -854,6 +854,8 @@ String _routineAmountLabel(AppLocalizations l, CoachRoutine routine) {
             : null),
     sets: routine.sets ?? only?.sets,
     reps: routine.reps ?? only?.reps,
+    // 버티는 운동이면 횟수 대신 초다(#3138) — `3세트 · 60초`.
+    holdSeconds: routine.holdSeconds ?? only?.holdSeconds,
     weight: routine.weight ?? only?.weight,
     setsFromMinutesWhenUnknown: false,
   );
