@@ -2049,7 +2049,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String myGymDisconnectWithTrainerConfirm(String gym, String trainer) {
-    return '$gym 연결을 해제할까요?\n담당 트레이너 $trainer 연결도 함께 해제돼요.\n데이터 공유 동의도 함께 철회되어 트레이너가 회원님의 새 기록을 더는 볼 수 없어요. 이미 주고받은 대화와 리포트는 지워지지 않고, 같은 트레이너와 다시 연결하면 다시 볼 수 있어요.';
+    return '$gym 연결을 해제할까요?\n$trainer 트레이너와의 연결도 함께 해제돼요.\n데이터 공유 동의도 함께 철회되어 트레이너가 회원님의 새 기록을 더는 볼 수 없어요. 이미 주고받은 대화와 리포트는 지워지지 않고, 같은 트레이너와 다시 연결하면 다시 볼 수 있어요.';
   }
 
   @override
@@ -2059,7 +2059,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String myTrainerDisconnectConfirm(String trainer, String gym) {
-    return '담당 트레이너 $trainer 연결을 해제할까요?\n$gym 헬스장 연결은 유지돼요.\n데이터 공유 동의도 함께 철회되어 트레이너가 회원님의 새 기록을 더는 볼 수 없어요. 이미 주고받은 대화와 리포트는 지워지지 않고, 같은 트레이너와 다시 연결하면 다시 볼 수 있어요.';
+    return '$trainer 트레이너와의 연결을 해제할까요?\n$gym 헬스장 연결은 유지돼요.\n데이터 공유 동의도 함께 철회되어 트레이너가 회원님의 새 기록을 더는 볼 수 없어요. 이미 주고받은 대화와 리포트는 지워지지 않고, 같은 트레이너와 다시 연결하면 다시 볼 수 있어요.';
   }
 
   @override
@@ -3504,7 +3504,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get coachRoutineTitle => '추천 개인운동';
+  String get coachRoutineTitle => '개인운동';
 
   @override
   String get coachRoutineAiTitle => 'AI 추천 개인운동';

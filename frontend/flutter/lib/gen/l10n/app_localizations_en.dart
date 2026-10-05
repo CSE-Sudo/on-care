@@ -3694,7 +3694,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get coachRoutineTitle => 'Recommended personal exercises';
+  String get coachRoutineTitle => 'Personal exercises';
 
   @override
   String get coachRoutineAiTitle => 'AI-recommended personal exercises';
