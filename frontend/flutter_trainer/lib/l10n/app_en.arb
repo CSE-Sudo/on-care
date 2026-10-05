@@ -1535,6 +1535,18 @@
       }
     }
   },
+  "buildInfoDevelopment": "Development build",
+  "@buildInfoDevelopment": {"description": "Shown after the app version in the version row when the build has no build number (local run or test build) (#3226)."},
+  "buildInfoReleasedAt": "Deployed {date} KST",
+  "@buildInfoReleasedAt": {
+    "description": "Deploy time in the version row. The date is the build time converted to Korea Standard Time and formatted for the current locale (#3226).",
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "Oct 5, 2026 14:30"
+      }
+    }
+  },
   "myAppName": "On-Care Trainer",
   "myLegalTermsTitle": "Terms of Service",
   "myLegalPrivacyTitle": "Privacy Policy",
