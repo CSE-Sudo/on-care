@@ -181,7 +181,7 @@ void main() {
 
     expect(find.byType(AppDialog), findsOneWidget);
     expect(find.textContaining('온케어짐 신촌점'), findsWidgets);
-    expect(find.textContaining('김트레이너 연결도 함께 해제돼요'), findsOneWidget);
+    expect(find.textContaining('김트레이너 트레이너와의 연결도 함께 해제돼요'), findsOneWidget);
   });
 
   testWidgets('취소하면 연결이 유지된다', (WidgetTester tester) async {
