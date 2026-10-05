@@ -7,7 +7,10 @@
 `tool/check_release_defines.sh` 가 같은 파일을 검사하고, 필수 값이 비면 거기서 멈춘다.
 
   필수 키(비어 있어도 쓴다): ENV ← APP_ENV, USE_MOCK_API(false 고정), API_BASE_URL, SENTRY_DSN
-  선택 키(값이 있을 때만): KAKAO_JS_KEY, KAKAO_MAP_ORIGIN, IOS_APP_STORE_ID
+  선택 키(값이 있을 때만): KAKAO_JS_KEY, KAKAO_MAP_ORIGIN, IOS_APP_STORE_ID,
+                          BUILD_NUMBER, RELEASE_DATE
+  BUILD_NUMBER·RELEASE_DATE 는 설정 화면 `버전 정보`(#3226)가 읽는 빌드 번호·배포 일시다.
+  워크플로 게이트가 `.github/scripts/release_build_stamp.sh` 로 만들어 넘긴다.
 
 사용: write_release_defines.py <출력 경로>
 """
@@ -20,7 +23,13 @@ import sys
 from collections.abc import Mapping
 from pathlib import Path
 
-OPTIONAL_KEYS = ("KAKAO_JS_KEY", "KAKAO_MAP_ORIGIN", "IOS_APP_STORE_ID")
+OPTIONAL_KEYS = (
+    "KAKAO_JS_KEY",
+    "KAKAO_MAP_ORIGIN",
+    "IOS_APP_STORE_ID",
+    "BUILD_NUMBER",
+    "RELEASE_DATE",
+)
 
 
 def release_defines(environ: Mapping[str, str]) -> dict[str, str]:

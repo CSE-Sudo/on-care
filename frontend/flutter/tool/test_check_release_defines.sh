@@ -45,6 +45,14 @@ expect fail '지도 출처 https localhost' "$(good prod '"false"' "$GOOD_URL" "
 expect fail '지도 출처 경로 포함' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"KAKAO_MAP_ORIGIN":"https://app.oncare.kr/frontend"')"
 expect pass 'iOS 앱 ID 숫자' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"IOS_APP_STORE_ID":"1234567890"')"
 expect fail 'iOS 앱 ID 자리표시자' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"IOS_APP_STORE_ID":"<Apple ID>"')"
+# 빌드 번호·배포 일시(#3226) — 선택 키지만 있으면 형식을 본다.
+expect pass '빌드 번호·배포 일시' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"BUILD_NUMBER":"7032","RELEASE_DATE":"2026-10-05T05:30:00Z"')"
+expect pass '빌드 번호 JSON 숫자' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"BUILD_NUMBER":7032')"
+expect fail '빌드 번호 0' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"BUILD_NUMBER":"0"')"
+expect fail '빌드 번호 글자' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"BUILD_NUMBER":"abc"')"
+expect fail '빌드 번호 음수' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"BUILD_NUMBER":"-3"')"
+expect fail '배포 일시 시간대 없음' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"RELEASE_DATE":"2026-10-05T05:30:00"')"
+expect fail '배포 일시 날짜만' "$(good prod '"false"' "$GOOD_URL" "$GOOD_DSN" ',"RELEASE_DATE":"2026-10-05"')"
 
 # 필수 키 누락
 expect fail 'ENV 누락' "{\"USE_MOCK_API\":\"false\",\"API_BASE_URL\":\"$GOOD_URL\",\"SENTRY_DSN\":\"$GOOD_DSN\"}"
