@@ -692,7 +692,7 @@ void main() {
     expect(find.text('12회차'), findsOneWidget);
     expect(find.text('50분'), findsOneWidget);
     // 피드백은 그날 픽스처 트레이너 메모다 — 예전 데모의 고정 문구가 아니다.
-    expect(find.text('무릎 가동범위 체크 필요. 다음 세션 중량 조절 예정.'), findsOneWidget);
+    expect(find.text('무릎 가동범위 체크 필요. 다음 PT 중량 조절 예정.'), findsOneWidget);
   });
 
   testWidgets('담당 트레이너가 없으면 완료한 PT 칸이 서지 않는다 (#2014)', (

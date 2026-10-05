@@ -257,7 +257,7 @@ void main() {
 
     testWidgets('서버가 거절하면 사유가 남고 다이얼로그는 닫히지 않는다', (tester) async {
       final repository = _FakeTemplateRepository()
-        ..failure = const ValidationError(message: '템플릿은 최대 30개까지 저장할 수 있습니다.');
+        ..failure = const ValidationError(message: '템플릿은 최대 30개까지 저장할 수 있어요.');
       await _pumpDialog(tester, repository);
 
       await tester.enterText(
@@ -268,7 +268,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey<String>('template-save')));
       await tester.pumpAndSettle();
 
-      expect(find.text('템플릿은 최대 30개까지 저장할 수 있습니다.'), findsOneWidget);
+      expect(find.text('템플릿은 최대 30개까지 저장할 수 있어요.'), findsOneWidget);
       expect(find.byType(ProgramTemplateDialog), findsOneWidget);
     });
   });

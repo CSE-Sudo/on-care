@@ -457,10 +457,10 @@ def _candidates_for(
                 type="스트레칭",
                 reason=localized(
                     "최근 2주 기록에 치우침이나 건강 신호가 없어요. "
-                    "다음 수업 준비용으로 가장 가벼운 스트레칭만 두었어요.",
+                    "다음 PT 준비용으로 가장 가벼운 스트레칭만 두었어요.",
                     "No imbalance or health flags in the last 2 weeks. "
                     "Only the lightest stretch is suggested, to prepare for "
-                    "the next session.",
+                    "the next PT.",
                     locale,
                 ),
                 evidence=(
@@ -534,9 +534,9 @@ def _strength_candidate(signals: _Signals, locale: Locale) -> _Candidate:
         minutes=10,
         type="근력",
         reason=localized(
-            "다음 수업까지 맨몸 하체 근력 하나로 흐름을 이어 가기 좋아요.",
+            "다음 PT까지 맨몸 하체 근력 하나로 흐름을 이어 가기 좋아요.",
             "One bodyweight lower-body move keeps the rhythm until the next "
-            "session.",
+            "PT.",
             locale,
         ),
         evidence=(
@@ -551,10 +551,10 @@ def _strength_candidate(signals: _Signals, locale: Locale) -> _Candidate:
 def _pt_days_ago(days: int, locale: Locale) -> str:
     """최근 PT 가 며칠 전이었나 — 오늘이면 `오늘`."""
     if days <= 0:
-        return localized("오늘 PT 가 있었어요.", "There was a PT session today.", locale)
+        return localized("오늘 PT 가 있었어요.", "You had PT today.", locale)
     return localized(
         f"{days}일 전 PT 가 있었어요.",
-        f"There was a PT session {days} day{'s' if days != 1 else ''} ago.",
+        f"You had PT {days} day{'s' if days != 1 else ''} ago.",
         locale,
     )
 
@@ -577,8 +577,8 @@ def _recovery_reason(signals: _Signals, locale: Locale) -> str:
         parts.append(_pt_days_ago(signals.days_since_pt, locale))
     parts.append(
         localized(
-            "다음 수업 전까지 회복 스트레칭으로 풀어 두기 좋아요.",
-            "A recovery stretch helps loosen up before the next session.",
+            "다음 PT 전까지 회복 스트레칭으로 풀어 두기 좋아요.",
+            "A recovery stretch helps loosen up before the next PT.",
             locale,
         )
     )

@@ -52,10 +52,10 @@ def trainer_save_task_progress(
 ) -> TrainerTaskProgressDayOut:
     """그날의 진행 상태를 통째로 저장한다. KST 오늘·어제만 받는다."""
     if not _is_ymd(day):
-        raise HTTPException(status_code=422, detail="날짜는 YYYY-MM-DD 형식이어야 합니다.")
+        raise HTTPException(status_code=422, detail="날짜는 YYYY-MM-DD 형식이어야 해요.")
     if day not in trainer_task_progress_service.writable_dates():
         raise HTTPException(
-            status_code=422, detail="오늘 또는 어제(KST)만 저장할 수 있습니다."
+            status_code=422, detail="오늘 또는 어제(KST)만 저장할 수 있어요."
         )
     return trainer_task_progress_service.save_day(db, trainer.id, day, payload)
 
@@ -76,9 +76,9 @@ def trainer_change_task_key(
     반영 뒤의 그날 상태라 앱이 다른 기기의 변경까지 받아 그린다.
     """
     if not _is_ymd(day):
-        raise HTTPException(status_code=422, detail="날짜는 YYYY-MM-DD 형식이어야 합니다.")
+        raise HTTPException(status_code=422, detail="날짜는 YYYY-MM-DD 형식이어야 해요.")
     if day not in trainer_task_progress_service.writable_dates():
         raise HTTPException(
-            status_code=422, detail="오늘 또는 어제(KST)만 저장할 수 있습니다."
+            status_code=422, detail="오늘 또는 어제(KST)만 저장할 수 있어요."
         )
     return trainer_task_progress_service.apply_key(db, trainer.id, day, payload)

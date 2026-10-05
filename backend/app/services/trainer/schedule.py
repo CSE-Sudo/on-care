@@ -389,7 +389,7 @@ def _existing_schedule_out(
     )
     if not same_payload:
         raise IdempotencyConflict(
-            "같은 client_request_id에 다른 스케줄을 생성할 수 없습니다."
+            "같은 client_request_id에 다른 스케줄을 생성할 수 없어요."
         )
     return _schedule_out(session)
 
@@ -524,7 +524,7 @@ class ScheduleSeriesConflict(Exception):
     """
 
     def __init__(self, conflicts: list[ScheduleSessionOut]) -> None:
-        super().__init__("겹치는 일정이 있습니다.")
+        super().__init__("겹치는 일정이 있어요.")
         self.conflicts = conflicts
 
 
@@ -588,7 +588,7 @@ class ScheduleOverlap(Exception):
     def __init__(
         self,
         conflicts: list[ScheduleSessionOut],
-        message: str = "같은 시간에 이미 다른 일정이 있습니다.",
+        message: str = "같은 시간에 이미 다른 일정이 있어요.",
     ) -> None:
         super().__init__(message)
         self.conflicts = conflicts
@@ -1406,10 +1406,10 @@ def send_scheduled_routines(
     _ensure_session_member_linked(db, trainer_id, s)
     if s.status == SCHEDULE_UPCOMING:
         raise ScheduleError(
-            "아직 예정인 PT 입니다. 완료할 때 개인운동이 함께 나갑니다."
+            "아직 예정인 PT예요. 완료할 때 개인운동이 함께 나가요."
         )
     if not s.member_id:
-        raise ScheduleError("회원이 없는 일정입니다.")
+        raise ScheduleError("회원이 없는 일정이에요.")
     rows = db.scalars(
         select(TrainerRoutine)
         .where(
@@ -1422,10 +1422,10 @@ def send_scheduled_routines(
         .order_by(TrainerRoutine.sort_order, TrainerRoutine.id)
     ).all()
     if not rows:
-        raise ScheduleError("보낼 개인운동이 없습니다.")
+        raise ScheduleError("보낼 개인운동이 없어요.")
     if items is not None:
         if not items:
-            raise ScheduleError("보낼 개인운동이 없습니다.")
+            raise ScheduleError("보낼 개인운동이 없어요.")
         _rewrite_scheduled_routines(db, rows, items)
         rows = db.scalars(
             select(TrainerRoutine)
@@ -1596,14 +1596,14 @@ def _ensure_routine_attachable(
     - 취소·노쇼: 열리지 않은 PT 다음에 할 운동을 새로 짜는 자리가 아니다.
     """
     if not s.member_id:
-        raise ScheduleError("회원이 연결되지 않은 일정입니다.")
+        raise ScheduleError("회원이 연결되지 않은 일정이에요.")
     _ensure_session_member_linked(db, trainer_id, s)
     if not _program_items(s.program_json):
-        raise ScheduleError("PT 프로그램이 없는 일정입니다.")
+        raise ScheduleError("PT 프로그램이 없는 일정이에요.")
     if s.program_sent_at is not None:
-        raise ScheduleError("이미 보낸 PT에는 개인운동을 붙일 수 없습니다.")
+        raise ScheduleError("이미 보낸 PT에는 개인운동을 붙일 수 없어요.")
     if s.status in {SCHEDULE_CANCELLED, SCHEDULE_NO_SHOW}:
-        raise ScheduleError("취소된 PT에는 개인운동을 붙일 수 없습니다.")
+        raise ScheduleError("취소된 PT에는 개인운동을 붙일 수 없어요.")
 
 
 def dismiss_scheduled_routines(
@@ -1620,7 +1620,7 @@ def dismiss_scheduled_routines(
     if s is None:
         return None
     if s.status == SCHEDULE_UPCOMING:
-        raise ScheduleError("아직 예정인 PT 입니다.")
+        raise ScheduleError("아직 예정인 PT예요.")
     changed = db.execute(
         update(TrainerRoutine)
         .where(
@@ -1672,7 +1672,7 @@ def _replayed_program_schedule(
     session = created or attached
     if session is None:
         raise IdempotencyConflict(
-            "이미 처리된 요청입니다. 일정을 확인한 뒤 새로 추가해 주세요."
+            "이미 처리된 요청이에요. 일정을 확인한 뒤 새로 추가해 주세요."
         )
     return ProgramScheduleOut(
         routines=[_routine_out(db, rt) for rt in routines],
@@ -1764,12 +1764,12 @@ def assign_program_with_schedule(
         target = next((s for s in candidates if s.id == session_id), None)
         if target is None:
             raise AttachTargetConflict(
-                "고른 PT 일정이 더는 이 시간대의 예정 PT가 아닙니다. 다시 확인해 주세요.",
+                "고른 PT 일정이 더는 이 시간대의 예정 PT가 아니에요. 다시 확인해 주세요.",
                 candidates,
             )
     elif len(candidates) > 1:
         raise AttachTargetConflict(
-            "고른 시간대와 겹치는 PT 일정이 여러 개입니다. 연결할 회차를 골라 주세요.",
+            "고른 시간대와 겹치는 PT 일정이 여러 개예요. 연결할 회차를 골라 주세요.",
             candidates,
         )
     else:
@@ -1998,7 +1998,7 @@ def update_session(
         {"program", "note"}
     ):
         raise ScheduleConflict(
-            "예약으로 생성된 일정은 일반 일정 화면에서 수정할 수 없습니다."
+            "예약으로 생성된 일정은 일반 일정 화면에서 수정할 수 없어요."
         )
     if s.status in SCHEDULE_TERMINAL and not set(fields).issubset(
         _TERMINAL_EDITABLE_FIELDS
@@ -2008,7 +2008,7 @@ def update_session(
         # 메모·아직 보내지 않은 프로그램은 그 약속을 바꾸지 않아 연다 — 수업이
         # 끝난 뒤 기록을 남기는 것이 가장 자연스러운 흐름이다(#2754).
         raise ScheduleConflict(
-            "완료·취소·노쇼로 마무리된 PT는 피드백·프로그램만 수정할 수 있습니다."
+            "완료·취소·노쇼로 마무리된 PT는 피드백·프로그램만 수정할 수 있어요."
         )
     if (
         "program" in fields
@@ -2019,7 +2019,7 @@ def update_session(
     ):
         # 회원이 이미 받은 프로그램을 말없이 바꾸지 않는다(#1247). 메모만 고치며
         # 같은 프로그램을 함께 실어 보낸 요청은 막지 않는다.
-        raise ScheduleConflict("이미 보낸 프로그램은 수정할 수 없습니다.")
+        raise ScheduleConflict("이미 보낸 프로그램은 수정할 수 없어요.")
     if {"date", "time", "duration_minutes"} & set(fields):
         # 바꾼 뒤의 시간이 다른 일정과 겹치는지 **바꾸기 전에** 본다. 자기 자신은
         # 빼고 본다 — 길이만 늘려도 원래 자리와 겹친다고 거절하면 안 된다. (#2284)
@@ -2116,7 +2116,7 @@ def delete_session(db: Session, trainer_id: str, session_id: str) -> bool:
         return False
     if _is_reservation_schedule(db, session_id):
         raise ScheduleConflict(
-            "예약으로 생성된 일정은 일반 일정 화면에서 삭제할 수 없습니다."
+            "예약으로 생성된 일정은 일반 일정 화면에서 삭제할 수 없어요."
         )
     # 완료 세션은 완료 시 파생된 기록을 갖는다 — 트레이너 이력(sched-hist-{id})과
     # 회원 운동 기록(sched-ex-{id}) 두 개다. 세션을 지우면 둘 다 함께 지워 고아
@@ -2198,12 +2198,12 @@ def reopen_session(
     _ensure_session_member_linked(db, trainer_id, s)
     if _is_reservation_schedule(db, session_id):
         raise ScheduleConflict(
-            "예약으로 생성된 일정은 일반 일정 화면에서 되돌릴 수 없습니다."
+            "예약으로 생성된 일정은 일반 일정 화면에서 되돌릴 수 없어요."
         )
     if s.status != SCHEDULE_DONE:
-        raise ScheduleConflict("완료된 PT만 예정으로 되돌릴 수 있습니다.")
+        raise ScheduleConflict("완료된 PT만 예정으로 되돌릴 수 있어요.")
     if new_date <= today_iso():
-        raise ScheduleConflict("미래 날짜로만 되돌릴 수 있습니다.")
+        raise ScheduleConflict("미래 날짜로만 되돌릴 수 있어요.")
     new_time = time if time is not None else s.time
     new_duration = (
         duration_minutes if duration_minutes is not None else s.duration_minutes
@@ -2451,15 +2451,15 @@ def send_session_program(
     if s is None:
         return None
     if not s.member_id:
-        raise ScheduleError("회원이 연결되지 않은 일정입니다.")
+        raise ScheduleError("회원이 연결되지 않은 일정이에요.")
     # 해제 전에 잡아 둔 일정이라도 해제 뒤에는 회원에게 루틴을 보내지 않는다. (#2281)
     if not has_active_client_link(db, trainer_id, s.member_id):
-        raise ClientLinkDetached("담당 회원을 찾을 수 없습니다.")
+        raise ClientLinkDetached("담당 회원을 찾을 수 없어요.")
     if s.status != "완료":
-        raise ScheduleError("완료한 일정만 보낼 수 있습니다.")
+        raise ScheduleError("완료한 일정만 보낼 수 있어요.")
     items = _program_items(s.program_json)
     if not items:
-        raise ScheduleError("보낼 프로그램이 없습니다.")
+        raise ScheduleError("보낼 프로그램이 없어요.")
     if s.program_sent_at is not None:
         return _schedule_out(s)  # 멱등 no-op
 
@@ -2565,16 +2565,16 @@ def complete_session(
         return None
     _ensure_session_member_linked(db, trainer_id, s)
     if s.status == "공백":
-        raise ScheduleError("빈 슬롯은 완료할 수 없습니다.")
+        raise ScheduleError("빈 슬롯은 완료할 수 없어요.")
     if not session_has_started(s.date, s.time):
-        raise ScheduleError("시작 전 일정은 완료할 수 없습니다.")
+        raise ScheduleError("시작 전 일정은 완료할 수 없어요.")
     if s.status == SCHEDULE_DONE:
         return _schedule_out(s)  # 멱등 no-op
     if s.status in SCHEDULE_TERMINAL:
         # 진행되지 않은 것으로 마무리한 세션을 완료로 되돌리면 하지 않은 PT 가
         # 회원 운동 기록으로 적재된다.
         raise ScheduleConflict(
-            "취소·노쇼로 마무리된 PT는 완료할 수 없습니다."
+            "취소·노쇼로 마무리된 PT는 완료할 수 없어요."
         )
 
     # 조건부 전환(예정 → 완료). rowcount==1 인 호출만 '방금 전환한' 것이므로 그 호출만
@@ -2659,7 +2659,7 @@ def cancel_session(
     if s is None:
         return None
     if s.status == SCHEDULE_GAP:
-        raise ScheduleError("빈 슬롯은 취소할 수 없습니다.")
+        raise ScheduleError("빈 슬롯은 취소할 수 없어요.")
     if s.status == SCHEDULE_CANCELLED:
         # 멱등 no-op. 다만 예약 좌석을 풀지 않던 때(#2283 이전)에 취소된 일정은
         # 예약이 남아 있을 수 있어, 다시 누르면 그 자리만 마저 풀어 준다.
@@ -2672,10 +2672,10 @@ def cancel_session(
         return _schedule_out(s)
     if s.status in SCHEDULE_TERMINAL:
         raise ScheduleConflict(
-            "완료·노쇼로 마무리된 PT는 취소할 수 없습니다."
+            "완료·노쇼로 마무리된 PT는 취소할 수 없어요."
         )
     if source not in CANCELLATION_SOURCES:
-        raise ScheduleError("취소 주체가 올바르지 않습니다.")
+        raise ScheduleError("취소 주체가 올바르지 않아요.")
 
     # 조건부 전환(예정 → 취소). 동시에 들어온 취소·완료 요청 중 하나만 이긴다 —
     # rowcount 가 0 이면 그 사이에 다른 전이가 끝난 것이라 현재 상태를 그대로 준다.
@@ -2740,14 +2740,14 @@ def mark_session_no_show(
     if s is None:
         return None
     if s.status == SCHEDULE_GAP:
-        raise ScheduleError("빈 슬롯은 노쇼 처리할 수 없습니다.")
+        raise ScheduleError("빈 슬롯은 노쇼 처리할 수 없어요.")
     if not session_has_started(s.date, s.time):
-        raise ScheduleError("시작 전 일정은 노쇼 처리할 수 없습니다.")
+        raise ScheduleError("시작 전 일정은 노쇼 처리할 수 없어요.")
     if s.status == SCHEDULE_NO_SHOW:
         return _schedule_out(s)  # 멱등 no-op
     if s.status in SCHEDULE_TERMINAL:
         raise ScheduleConflict(
-            "완료·취소로 마무리된 PT는 노쇼 처리할 수 없습니다."
+            "완료·취소로 마무리된 PT는 노쇼 처리할 수 없어요."
         )
 
     changed = db.execute(

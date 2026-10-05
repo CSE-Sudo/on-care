@@ -64,7 +64,7 @@ TrainerNotification _row(
 final List<TrainerNotification> _rows = <TrainerNotification>[
   _row(
     'goal',
-    title: '회원 건강 목표 변경',
+    title: '회원 건강 목표가 바뀌었어요',
     body: '지수 회원이 건강 목표를 바꿨어요: 근력 향상 · 재활',
     template: 'trainer_health_goal',
     args: <String, Object?>{
@@ -108,7 +108,7 @@ void main() {
     expect(find.text('Message from 지수'), findsOneWidget);
     // 메시지 본문은 회원이 쓴 문장 그대로다.
     expect(find.text('오늘 수업 시간 조정 가능할까요?'), findsOneWidget);
-    expect(find.text('회원 건강 목표 변경'), findsNothing);
+    expect(find.text('회원 건강 목표가 바뀌었어요'), findsNothing);
     expect(find.text('지수 회원의 메시지'), findsNothing);
   });
 
@@ -122,7 +122,7 @@ void main() {
   testWidgets('한국어 화면의 문장은 틀 이전과 같다', (tester) async {
     await _pump(tester, locale: const Locale('ko'));
 
-    expect(find.text('회원 건강 목표 변경'), findsOneWidget);
+    expect(find.text('회원 건강 목표가 바뀌었어요'), findsOneWidget);
     expect(find.text('지수 회원이 건강 목표를 바꿨어요: 근력 향상 · 재활'), findsOneWidget);
     expect(find.text('지수 회원의 메시지'), findsOneWidget);
     expect(find.text('오늘 수업 시간 조정 가능할까요?'), findsOneWidget);

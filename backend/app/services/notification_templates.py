@@ -219,7 +219,7 @@ def _trainer_health_goal(args: Args, locale: Locale) -> Rendered:
     name = _text(args, "member_name")
     label = _focus_label(args, locale)
     if locale == "ko":
-        return "회원 건강 목표 변경", f"{name} 회원이 건강 목표를 바꿨어요: {label}"
+        return "회원 건강 목표가 바뀌었어요", f"{name} 회원이 건강 목표를 바꿨어요: {label}"
     return "Member goals changed", f"{name or 'A member'} changed their health goals: {label}"
 
 
@@ -229,7 +229,7 @@ def _trainer_health_notes(args: Args, locale: Locale) -> Rendered:
     with_focus = bool(args.get("with_focus"))
     if locale == "ko":
         what = "건강 목표와 건강상태·주의사항을" if with_focus else "건강상태·주의사항을"
-        return "회원 주의사항 변경", f"{name} 회원이 {what} 바꿨어요"
+        return "회원 주의사항이 바뀌었어요", f"{name} 회원이 {what} 바꿨어요"
     what = "health goals and health notes" if with_focus else "health notes"
     return "Member health notes changed", f"{name or 'A member'} updated their {what}"
 
@@ -238,7 +238,7 @@ def _trainer_health_notes(args: Args, locale: Locale) -> Rendered:
 def _trainer_member_renamed(args: Args, locale: Locale) -> Rendered:
     old, new = _text(args, "old_name"), _text(args, "new_name")
     if locale == "ko":
-        return "회원 이름 변경", f"{old} 회원이 이름을 바꿨어요: {new}"
+        return "회원 이름이 바뀌었어요", f"{old} 회원이 이름을 바꿨어요: {new}"
     return "Member renamed", f"{old} changed their name to {new}."
 
 
@@ -246,7 +246,7 @@ def _trainer_member_renamed(args: Args, locale: Locale) -> Rendered:
 def _trainer_member_withdrawn(args: Args, locale: Locale) -> Rendered:
     name = _text(args, "member_name").strip()
     if locale == "ko":
-        return "회원 탈퇴", f"{name or '이름 없는'} 회원이 탈퇴했어요."
+        return "회원이 탈퇴했어요", f"{name or '이름 없는'} 회원이 탈퇴했어요."
     return "Member account deleted", f"{name or 'A member'} deleted their account."
 
 
@@ -266,7 +266,7 @@ def _trainer_member_disconnected(args: Args, locale: Locale) -> Rendered:
         body = f"{name or '이름 없는'} 회원이 담당 연결을 해제했어요."
         if cancelled:
             body += f" 남은 일정 {cancelled}건은 취소됐어요."
-        return "담당 연결 해제", body
+        return "담당 연결이 해제됐어요", body
     body = f"{name or 'A member'} ended their connection with you."
     if cancelled:
         body += (
@@ -309,7 +309,7 @@ def _trainer_consult_withdrawn(args: Args, locale: Locale) -> Rendered:
 def _trainer_invite_accepted(args: Args, locale: Locale) -> Rendered:
     name = _text(args, "member_name")
     if locale == "ko":
-        return "담당 요청이 수락되었어요", f"{name or '회원'} 회원이 담당으로 연결되었어요."
+        return "담당 요청이 수락됐어요", f"{name or '회원'} 회원이 담당으로 연결됐어요."
     return "Coaching request accepted", f"{name or 'A member'} is now one of your members."
 
 
@@ -317,7 +317,7 @@ def _trainer_invite_accepted(args: Args, locale: Locale) -> Rendered:
 def _trainer_invite_rejected(args: Args, locale: Locale) -> Rendered:
     name = _text(args, "member_name")
     if locale == "ko":
-        return "담당 요청이 거절되었어요", f"{name or '회원'} 회원이 담당 요청을 거절했어요."
+        return "담당 요청이 거절됐어요", f"{name or '회원'} 회원이 담당 요청을 거절했어요."
     return "Coaching request declined", f"{name or 'A member'} declined your coaching request."
 
 
@@ -336,7 +336,7 @@ def _trainer_reservation_cancelled(args: Args, locale: Locale) -> Rendered:
     when = _when(args, locale)
     if locale == "ko":
         body = f"{name} 회원 · {when}" if when is not None else f"{name} 회원"
-        return "예약이 취소되었습니다", body
+        return "예약이 취소됐어요", body
     who = name or "Member"
     return "Booking cancelled", f"{who} · {when}" if when is not None else who
 
@@ -546,7 +546,7 @@ def _member_health_goal(args: Args, locale: Locale) -> Rendered:
     name = _text(args, "trainer_name")
     label = _focus_label(args, locale)
     if locale == "ko":
-        return "건강 목표가 바뀌었어요", f"{name} 트레이너님이 건강 목표를 바꿨어요: {label}"
+        return "건강 목표가 바뀌었어요", f"{name} 트레이너가 건강 목표를 바꿨어요: {label}"
     return (
         "Your health goals changed",
         f"{name or 'Your trainer'} changed your health goals: {label}",
@@ -565,7 +565,7 @@ def _member_consult_approved(args: Args, locale: Locale) -> Rendered:
     if locale == "ko":
         body = (
             f"{name or '트레이너'} 트레이너와의 상담이 확정됐어요. "
-            f"상담 일시는 {when} 입니다."
+            f"상담 일시: {when}"
         )
     else:
         body = (
@@ -610,7 +610,7 @@ def _member_trainer_left(args: Args, locale: Locale) -> Rendered:
     if locale == "ko":
         return (
             "담당 트레이너 연결이 해제됐어요",
-            f"{name or '트레이너'} 트레이너가 서비스를 떠났습니다. 새 트레이너를 찾아보세요.",
+            f"{name or '트레이너'} 트레이너가 서비스를 떠났어요. 새 트레이너를 찾아보세요.",
         )
     return (
         "Your trainer connection ended",
@@ -634,7 +634,7 @@ def _member_trainer_disconnected(args: Args, locale: Locale) -> Rendered:
     body = f"Your connection with {name or 'your trainer'} has ended."
     if cancelled:
         body += (
-            f" {_plural(cancelled, 'remaining PT session was', 'remaining PT sessions were')}"
+            f" {_plural(cancelled, 'remaining PT appointment was', 'remaining PT appointments were')}"
             " cancelled too."
         )
     return "Your trainer connection ended", body
@@ -645,17 +645,17 @@ def _member_trainer_left_booking(args: Args, locale: Locale) -> Rendered:
     name = _text(args, "trainer_name")
     if locale == "ko":
         return (
-            "예약한 수업이 취소되었어요",
-            f"{name or '트레이너'} 트레이너가 서비스를 떠나 예약이 취소되었습니다.",
+            "예약한 PT가 취소됐어요",
+            f"{name or '트레이너'} 트레이너가 서비스를 떠나 예약이 취소됐어요.",
         )
     return (
-        "Your booked session was cancelled",
+        "Your booked PT was cancelled",
         f"{name or 'Your trainer'} left the service, so your booking was cancelled.",
     )
 
 
 # --------------------------------------------------------------------------
-# PT 수업 완료·피드백 — 트레이너가 마친 수업을 회원에게 (#3027)
+# PT 완료·피드백 — 트레이너가 마친 PT를 회원에게 (#3027)
 # --------------------------------------------------------------------------
 
 
@@ -680,9 +680,9 @@ def _member_pt_completed(args: Args, locale: Locale) -> Rendered:
         return title, None if has_note else "운동 기록에 남겼어요"
     who = name or "your trainer"
     title = (
-        f"You finished PT session {n} with {who}"
+        f"You finished PT #{n} with {who}"
         if n
-        else f"You finished a PT session with {who}"
+        else f"You finished PT with {who}"
     )
     return title, None if has_note else "Saved to your workout log"
 
@@ -718,19 +718,19 @@ def _slot(args: Args, locale: Locale) -> str:
 
 @_template(MEMBER_SCHEDULE_ADDED)
 def _member_schedule_added(args: Args, locale: Locale) -> Rendered:
-    title = "새 일정이 등록되었어요" if locale == "ko" else "New session scheduled"
+    title = "새 일정이 등록됐어요" if locale == "ko" else "New appointment scheduled"
     return title, _slot(args, locale)
 
 
 @_template(MEMBER_SCHEDULE_CHANGED)
 def _member_schedule_changed(args: Args, locale: Locale) -> Rendered:
-    title = "일정이 변경되었어요" if locale == "ko" else "Session rescheduled"
+    title = "일정이 변경됐어요" if locale == "ko" else "Appointment rescheduled"
     return title, _slot(args, locale)
 
 
 @_template(MEMBER_SCHEDULE_CANCELLED)
 def _member_schedule_cancelled(args: Args, locale: Locale) -> Rendered:
-    title = "일정이 취소되었어요" if locale == "ko" else "Session cancelled"
+    title = "일정이 취소됐어요" if locale == "ko" else "Appointment cancelled"
     return title, _slot(args, locale)
 
 
@@ -740,10 +740,10 @@ def _member_schedule_series(args: Args, locale: Locale) -> Rendered:
     first, last = _day(_text(args, "first"), locale), _day(_text(args, "last"), locale)
     count = int(args["count"])
     if locale == "ko":
-        return "반복 일정이 등록되었어요", f"{first} ~ {last} · {time} · {count}회"
+        return "반복 일정이 등록됐어요", f"{first} ~ {last} · {time} · {count}회"
     return (
-        "Recurring sessions scheduled",
-        f"{first} – {last} · {time} · {_plural(count, 'session', 'sessions')}",
+        "Recurring appointments scheduled",
+        f"{first} – {last} · {time} · {_plural(count, 'appointment', 'appointments')}",
     )
 
 

@@ -365,13 +365,13 @@ def test_global_500_detail_follows_locale(with_mw):
     c = _boom_app(with_mw)
     ko = c.get("/boom")
     assert ko.status_code == 500
-    assert ko.json()["detail"] == "내부 서버 오류가 발생했습니다."
+    assert ko.json()["detail"] == "내부 서버 오류가 발생했어요."
     en = c.get("/boom", headers={"Accept-Language": "en-US,en;q=0.9"})
     assert en.status_code == 500
     assert en.json()["detail"] == "An internal server error occurred."
     assert "SECRET" not in en.text
     unsupported = c.get("/boom", headers={"Accept-Language": "ja"})
-    assert unsupported.json()["detail"] == "내부 서버 오류가 발생했습니다."
+    assert unsupported.json()["detail"] == "내부 서버 오류가 발생했어요."
 
 
 # ---------------------------------------------------------------------------

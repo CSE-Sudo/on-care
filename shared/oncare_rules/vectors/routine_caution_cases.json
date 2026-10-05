@@ -574,7 +574,7 @@
      "무릎"
     ],
     "escalate": false,
-    "ko": " 주의사항(무릎) 반영: 해당 부위 부담 동작을 뺐습니다.",
+    "ko": " 주의사항(무릎) 반영: 해당 부위 부담 동작을 뺐어요.",
     "en": " Cautions (knee) applied: removed movements that load those areas."
    },
    {
@@ -583,13 +583,13 @@
      "발목"
     ],
     "escalate": true,
-    "ko": " 주의사항(허리, 발목) 반영: 해당 부위 부담 동작을 뺐습니다. 강도는 올리지 않았습니다 — 전문가 확인 후 조정하세요.",
+    "ko": " 주의사항(허리, 발목) 반영: 해당 부위 부담 동작을 뺐어요. 강도는 올리지 않았어요 — 전문가 확인 후 조정해 주세요.",
     "en": " Cautions (lower back, ankle) applied: removed movements that load those areas. Intensity was not raised — adjust after a professional check."
    },
    {
     "cautions": [],
     "escalate": true,
-    "ko": " 강도는 올리지 않았습니다 — 전문가 확인 후 조정하세요.",
+    "ko": " 강도는 올리지 않았어요 — 전문가 확인 후 조정해 주세요.",
     "en": " Intensity was not raised — adjust after a professional check."
    }
   ]

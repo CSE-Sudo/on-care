@@ -64,7 +64,7 @@ def trainer_create_routine_suggestion(
     """AI 개인운동 후보를 검토 대기로 등록한다. 회원에게는 아직 보이지 않는다."""
     _require_client(db, trainer.id, member_id)
     if not payload.name.strip():
-        raise HTTPException(status_code=400, detail="운동 이름이 필요합니다.")
+        raise HTTPException(status_code=400, detail="운동 이름이 필요해요.")
     return trainer_routine_suggestions_service.create_routine_suggestion(
         db,
         trainer.id,
@@ -97,7 +97,7 @@ def trainer_approve_routine_suggestion(
     fields = payload.model_dump(exclude_unset=True)
     name = fields.get("name")
     if name is not None and not name.strip():
-        raise HTTPException(status_code=400, detail="운동 이름이 필요합니다.")
+        raise HTTPException(status_code=400, detail="운동 이름이 필요해요.")
     try:
         return trainer_routine_suggestions_service.approve_routine_suggestion(
             db,

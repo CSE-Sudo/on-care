@@ -389,7 +389,7 @@ def test_pt_alerts_read_in_english(client, db_session, pair):
     _complete(client, pair, sid)
 
     row = _of(_member_inbox(client, pair, "en"), "pt_done")[0]
-    assert row["title"] == "You finished PT session 1 with 박코치"
+    assert row["title"] == "You finished PT #1 with 박코치"
     assert row["body"] == "Saved to your workout log"
     assert row["action"] == {"label": "View PT record", "target": "exercise"}
 

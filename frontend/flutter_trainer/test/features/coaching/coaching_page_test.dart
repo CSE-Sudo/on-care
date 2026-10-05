@@ -2517,7 +2517,7 @@ void main() {
       await _sendProgram(tester);
       await settle(tester);
 
-      expect(find.text('전송에 실패했어요. 다시 시도해 주세요'), findsNothing);
+      expect(find.text('보내지 못했어요. 다시 시도해 주세요'), findsNothing);
       expect(find.text('오늘 일정에 추가했어요'), findsOneWidget);
     });
 
@@ -3317,7 +3317,7 @@ void main() {
 
       await tapSend(tester);
 
-      expect(find.text('전송에 실패했어요. 다시 시도해 주세요'), findsOneWidget);
+      expect(find.text('보내지 못했어요. 다시 시도해 주세요'), findsOneWidget);
       expect(
         find.text('응답을 받지 못했어요. 회원의 받은 루틴을 확인한 뒤 필요한 경우에만 다시 보내주세요'),
         findsNothing,

@@ -449,7 +449,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     final DateTime date = DateTime(day.year, day.month, day.day);
     // 실서버처럼 아직 오지 않은 날은 목록이 없다(422).
     if (date.isAfter(today)) {
-      throw ArgumentError.value(day, 'day', '아직 오지 않은 날입니다.');
+      throw ArgumentError.value(day, 'day', '아직 오지 않은 날이에요.');
     }
     return _routinesOn(date, today: date == today);
   }
@@ -695,7 +695,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     if (day == null) return today;
     final DateTime date = DateTime(day.year, day.month, day.day);
     if (date.isAfter(today)) {
-      throw ArgumentError.value(day, 'day', '아직 오지 않은 날입니다.');
+      throw ArgumentError.value(day, 'day', '아직 오지 않은 날이에요.');
     }
     return date;
   }
@@ -707,8 +707,8 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     if (_hasCoach()) {
       // 로그인은 유효하고 권한이 없는 것이다 — 401 이 아니라 403(#2859).
       throw const ForbiddenError(
-        message: '담당 트레이너가 배정한 개인운동은 회원이 직접 취소할 수 없습니다.',
-        detail: '담당 트레이너가 배정한 개인운동은 회원이 직접 취소할 수 없습니다.',
+        message: '담당 트레이너가 배정한 개인운동은 회원이 직접 취소할 수 없어요.',
+        detail: '담당 트레이너가 배정한 개인운동은 회원이 직접 취소할 수 없어요.',
       );
     }
     // 실서버처럼 행은 남기고 오늘부터 목록에서 뺀다 — 지난 날짜에 걸려 있던
@@ -985,7 +985,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   void _requireCoachForChat() {
     // 실서버는 404 다 — 앱에는 [NotFoundError] 로 닿는다(#3099).
     if (!_hasCoach()) {
-      throw const NotFoundError(detail: '담당 트레이너가 없습니다.');
+      throw const NotFoundError(detail: '담당 트레이너가 없어요.');
     }
   }
 
@@ -1064,7 +1064,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   }) async {
     // 실서버 `_my_trainer_or_404` 와 같은 404 다(#3099).
     if (!_hasCoach()) {
-      throw const NotFoundError(detail: '담당 트레이너가 없습니다.');
+      throw const NotFoundError(detail: '담당 트레이너가 없어요.');
     }
     _seedFeedback();
     final DateTime week = mondayOf(weekStart);

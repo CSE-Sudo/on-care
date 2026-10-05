@@ -34,7 +34,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String schedCancelConfirm(String time, String name) {
-    return '$time $name 님 PT가 취소로 기록됩니다. 일정은 지워지지 않아요.';
+    return '$time $name 님 PT가 취소로 기록돼요. 일정은 지워지지 않아요.';
   }
 
   @override
@@ -50,7 +50,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get schedCancelByOther => '기타';
 
   @override
-  String get schedCancelReasonHint => '사유 (선택, 트레이너만 봅니다)';
+  String get schedCancelReasonHint => '사유 (선택, 트레이너만 봐요)';
 
   @override
   String get schedCancelFailed => '취소 처리하지 못했어요. 잠시 후 다시 시도해 주세요';
@@ -60,7 +60,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String schedNoShowConfirm(String time, String name) {
-    return '$time $name 님이 오지 않은 것으로 기록됩니다.';
+    return '$time $name 님이 오지 않은 것으로 기록돼요.';
   }
 
   @override
@@ -72,11 +72,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get schedDeleteMeansRemove => '기록이 지워집니다. 진행되지 않은 PT는 취소·노쇼로 남기세요.';
+  String get schedDeleteMeansRemove => '기록이 지워져요. 진행되지 않은 PT는 취소·노쇼로 남기세요.';
 
   @override
   String get schedDeleteMeansRemoveFinished =>
-      '기록이 지워집니다. 이미 완료한 일정이라 되돌릴 수 없어요.';
+      '기록이 지워져요. 이미 완료한 일정이라 되돌릴 수 없어요.';
 
   @override
   String get scheduleStatusGap => '공백';
@@ -281,7 +281,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrEmptyCredentials => '이메일과 비밀번호를 입력해 주세요';
 
   @override
-  String get authSocialSignInFailed => '소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
+  String get authSocialSignInFailed => '소셜 로그인을 하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get authSocialComingSoon => '소셜 로그인은 준비 중이에요. 이메일로 로그인해 주세요.';
@@ -291,10 +291,10 @@ class AppLocalizationsKo extends AppLocalizations {
       '로그인 창이 차단됐어요. 이 사이트의 팝업을 허용한 뒤 다시 시도해 주세요.';
 
   @override
-  String get authErrSignInFailed => '로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
+  String get authErrSignInFailed => '로그인하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
-  String get authSessionExpired => '로그인이 만료되었어요. 다시 로그인해 주세요.';
+  String get authSessionExpired => '로그인이 만료됐어요. 다시 로그인해 주세요.';
 
   @override
   String get authErrNameEmpty => '이름을 입력해 주세요';
@@ -330,19 +330,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrPasswordMismatch => '비밀번호가 일치하지 않아요';
 
   @override
-  String get authErrSignUpFailed => '가입에 실패했어요. 잠시 후 다시 시도해 주세요.';
+  String get authErrSignUpFailed => '가입하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get dashTitle => '대시보드';
 
   @override
-  String get dashActivityRecommendRoutine => '프로그램 구성을 조정해보세요.';
+  String get dashActivityRecommendRoutine => '프로그램 구성을 조정해 보세요.';
 
   @override
   String get dashActivityRecommendChat => '메시지에서 안부를 물어보세요.';
 
   @override
-  String get dashActivityRecommendDiet => '식단에서 피드백을 남겨보세요.';
+  String get dashActivityRecommendDiet => '식단에서 피드백을 남겨 보세요.';
 
   @override
   String get dashActivityTabProgram => '프로그램';
@@ -987,7 +987,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatTooLong => '메시지가 너무 길어요 (최대 1000자)';
 
   @override
-  String get chatSendFailed => '메시지 전송에 실패했어요. 다시 시도해 주세요';
+  String get chatSendFailed => '메시지를 보내지 못했어요. 다시 시도해 주세요';
 
   @override
   String get chatPdfOpenFailed => 'PDF를 열지 못했어요. 다시 시도해 주세요';
@@ -1324,7 +1324,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsWeekly => '주간 리포트';
 
   @override
-  String get reportsSendFailed => '리포트 전송에 실패했어요. 다시 시도해 주세요';
+  String get reportsSendFailed => '리포트를 보내지 못했어요. 다시 시도해 주세요';
 
   @override
   String get reportsSendStaleTitle => '그사이 회원 기록이 바뀌었어요';
@@ -1444,7 +1444,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportBodyGreeting(String name, String range) {
-    return '$name님, $range 주간 리포트 정리해서 보내드려요.';
+    return '$name님, $range 주간 리포트 정리해서 보내 드려요.';
   }
 
   @override
@@ -1479,7 +1479,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportBodySodiumOver(String avg, String target, int days) {
-    return '나트륨은 하루 평균 ${avg}mg이었고, 목표(${target}mg)를 넘긴 날이 $days일이었어요. 국물을 절반만 남기셔도 하루 400~500mg은 줄어듭니다.';
+    return '나트륨은 하루 평균 ${avg}mg이었고, 목표(${target}mg)를 넘긴 날이 $days일이었어요. 국물을 절반만 남기셔도 하루 400~500mg은 줄어요.';
   }
 
   @override
@@ -1623,7 +1623,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get schedDeleteFailed => '일정 삭제에 실패했어요. 다시 시도해 주세요';
+  String get schedDeleteFailed => '일정을 삭제하지 못했어요. 다시 시도해 주세요';
 
   @override
   String get schedCompleteTitle => '일정 완료';
@@ -1634,7 +1634,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get schedCompleteFailed => '완료 처리에 실패했어요. 다시 시도해 주세요';
+  String get schedCompleteFailed => '완료 처리하지 못했어요. 다시 시도해 주세요';
 
   @override
   String get schedGroupProgram => 'PT 프로그램';
@@ -1760,7 +1760,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get schedEmptyDay => '이 날짜에는 일정이 없어요.\n위의 「새 일정」으로 추가해 보세요.';
 
   @override
-  String get schedSaveFailed => '일정 저장에 실패했어요. 다시 시도해 주세요';
+  String get schedSaveFailed => '일정을 저장하지 못했어요. 다시 시도해 주세요';
 
   @override
   String get schedAddTitle => '새 일정 추가';
@@ -1836,7 +1836,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get schedTimePickerNextStep => '다음 단계';
 
   @override
-  String get schedTimePickerEndBeforeStart => '종료 시간이 시작 시간보다 빠릅니다';
+  String get schedTimePickerEndBeforeStart => '종료 시간이 시작 시간보다 빨라요';
 
   @override
   String schedClockHourSemantics(String hour) {
@@ -1862,7 +1862,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String schedRepeatConflictTitle(int total, int count) {
-    return '총 $total회 중 $count개의 일정이 겹칩니다';
+    return '총 $total회 중 $count개의 일정이 겹쳐요';
   }
 
   @override
@@ -1900,7 +1900,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get schedNoNote => '아직 남긴 메모가 없어요';
 
   @override
-  String get schedNoteOnlyHint => '상담은 프로그램 대신 메모로 남깁니다.';
+  String get schedNoteOnlyHint => '상담은 프로그램 대신 메모로 남겨요.';
 
   @override
   String get schedNoteHint => '회원에게 전할 피드백을 입력하세요. 회원 특이사항은 회원 상세 메모에 남겨 주세요';
@@ -1933,7 +1933,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get progInvalid => '운동 이름과 세트 수를 확인해 주세요';
 
   @override
-  String get progSaveFailed => '프로그램 저장에 실패했어요. 다시 시도해 주세요';
+  String get progSaveFailed => '프로그램을 저장하지 못했어요. 다시 시도해 주세요';
 
   @override
   String get progEditTitle => '프로그램 수정';
@@ -1997,7 +1997,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get slotPastTime => '현재보다 이후 시간만 예약 슬롯으로 만들 수 있어요.';
 
   @override
-  String get slotOpened => '예약 슬롯을 열었습니다.';
+  String get slotOpened => '예약 슬롯을 열었어요.';
 
   @override
   String get slotStartTime => '시작 시간';
@@ -2006,19 +2006,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get slotCloseTitle => '예약 슬롯 닫기';
 
   @override
-  String get slotCloseBody => '이미 잡힌 예약은 유지되고, 신규 예약만 중단됩니다.';
+  String get slotCloseBody => '이미 잡힌 예약은 유지되고, 신규 예약만 멈춰요.';
 
   @override
-  String get slotClosed => '신규 예약을 닫았습니다.';
+  String get slotClosed => '신규 예약을 닫았어요.';
 
   @override
-  String get slotActionFailed => '요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.';
+  String get slotActionFailed => '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get slotManageTitle => '예약 슬롯 관리';
 
   @override
-  String get slotIntro => '회원이 예약할 시간을 엽니다. 아래에 앞으로 열린 슬롯이 날짜별로 모입니다.';
+  String get slotIntro => '회원이 예약할 시간을 열어요. 아래에 앞으로 열린 슬롯이 날짜별로 모여요.';
 
   @override
   String get slotOpenAction => '열기';
@@ -2030,7 +2030,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get slotLoadFailed => '예약 슬롯을 불러오지 못했어요';
 
   @override
-  String get slotEmpty => '열린 예약 슬롯이 없습니다.';
+  String get slotEmpty => '열린 예약 슬롯이 없어요.';
 
   @override
   String get slotClosedSummary => '예약 닫힘';
@@ -2052,10 +2052,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myCareerInvalid => '경력은 0~80 사이의 연수로 입력해 주세요.';
 
   @override
-  String get myProfileSaveFailed => '프로필을 저장하지 못했습니다.';
+  String get myProfileSaveFailed => '프로필을 저장하지 못했어요.';
 
   @override
-  String get myGymChangeFailed => '소속 헬스장 변경에 실패했습니다. 나머지 프로필 정보는 저장됐어요.';
+  String get myGymChangeFailed => '소속 헬스장을 바꾸지 못했어요. 나머지 프로필 정보는 저장됐어요.';
 
   @override
   String get myTabProfile => '내 정보';
@@ -2094,7 +2094,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myNotifLoadFailed => '알림 설정을 불러오지 못했어요. 다시 시도해 주세요';
 
   @override
-  String get myNotifNewMessageHint => '회원이 메시지를 보내면 알림함과 사이드바 숫자로 알려드려요';
+  String get myNotifNewMessageHint => '회원이 메시지를 보내면 알림함과 사이드바 숫자로 알려 드려요';
 
   @override
   String get myLanguageApp => '화면 언어';
@@ -2525,7 +2525,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPwChangeFailed => '비밀번호를 변경할 수 없어요';
 
   @override
-  String get myPwChangeRetry => '변경에 실패했어요. 잠시 후 다시 시도해 주세요';
+  String get myPwChangeRetry => '변경하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String get myPwCurrent => '현재 비밀번호';
@@ -2628,19 +2628,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myNotifConsultation => '상담 요청';
 
   @override
-  String get myNotifConsultationHint => '회원이 상담을 신청하거나 초대에 답하면 알려드려요';
+  String get myNotifConsultationHint => '회원이 상담을 신청하거나 초대에 답하면 알려 드려요';
 
   @override
   String get myNotifReservation => '예약';
 
   @override
-  String get myNotifReservationHint => '회원이 예약을 신청하거나 바꾸면 알려드려요';
+  String get myNotifReservationHint => '회원이 예약을 신청하거나 바꾸면 알려 드려요';
 
   @override
   String get myNotifMemberUpdates => '담당 회원 소식';
 
   @override
-  String get myNotifMemberUpdatesHint => '회원이 목표·이름을 바꾸거나 연결을 끊으면 알려드려요';
+  String get myNotifMemberUpdatesHint => '회원이 목표·이름을 바꾸거나 연결을 끊으면 알려 드려요';
 
   @override
   String get routineTypeCardio => '유산소';
@@ -2715,11 +2715,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get routineFieldCalories => '예상 소모 칼로리';
 
   @override
-  String get routineCaloriesNeedName => '운동 이름을 적어주세요';
+  String get routineCaloriesNeedName => '운동 이름을 적어 주세요';
 
   @override
   String get routineCaloriesRoughEstimate =>
-      '운동 종류 평균으로 낸 어림값 · 회원이 수행하면 체중까지 반영된 값이 기록됩니다';
+      '운동 종류 평균으로 낸 어림값 · 회원이 수행하면 체중까지 반영된 값이 기록돼요';
 
   @override
   String get routineUnitHours => '시간';
@@ -2764,7 +2764,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachSubtitle => '회원별 운동 프로그램을 만들고 배정·관리하세요';
 
   @override
-  String get coachSendFailed => '전송에 실패했어요. 다시 시도해 주세요';
+  String get coachSendFailed => '보내지 못했어요. 다시 시도해 주세요';
 
   @override
   String get coachSwitchClientTitle => '다른 회원으로 바꿀까요?';
@@ -2906,7 +2906,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiOptionExisting => '기존안';
 
   @override
-  String get aiGenerateFailed => 'AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요';
+  String get aiGenerateFailed => 'AI로 만들지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String aiGenerateInvalidConditions(int min, int max) {
@@ -3362,10 +3362,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get filterAll => '전체';
 
   @override
-  String get authErrInvalidCredentials => '이메일 또는 비밀번호가 올바르지 않습니다.';
+  String get authErrInvalidCredentials => '이메일 또는 비밀번호가 올바르지 않아요.';
 
   @override
-  String get authErrEmailTaken => '이미 가입된 이메일입니다.';
+  String get authErrEmailTaken => '이미 가입된 이메일이에요.';
 
   @override
   String get authErrSessionExpired => '로그인이 만료됐어요. 다시 로그인해 주세요.';
@@ -3383,13 +3383,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrEmptyResponse => '응답이 비어 있어요.';
 
   @override
-  String get slotFutureOnly => '현재보다 이후 시간만 예약 슬롯으로 설정할 수 있습니다.';
+  String get slotFutureOnly => '지금보다 이후 시간만 예약 슬롯으로 설정할 수 있어요.';
 
   @override
-  String get slotNotFound => '예약 슬롯을 찾을 수 없습니다.';
+  String get slotNotFound => '예약 슬롯을 찾을 수 없어요.';
 
   @override
-  String get slotTypeLockedByBooking => '이미 예약된 자리의 종류는 바꿀 수 없습니다.';
+  String get slotTypeLockedByBooking => '이미 예약된 자리의 종류는 바꿀 수 없어요.';
 
   @override
   String get authErrNotTrainer => '트레이너 계정으로 로그인해 주세요.';
@@ -3454,7 +3454,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notifNoEarlier => '더 지난 알림이 없어요';
 
   @override
-  String get notifTplHealthGoalTitle => '회원 건강 목표 변경';
+  String get notifTplHealthGoalTitle => '회원 건강 목표가 바뀌었어요';
 
   @override
   String notifTplHealthGoalBody(String name, String goals) {
@@ -3462,7 +3462,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get notifTplHealthNotesTitle => '회원 주의사항 변경';
+  String get notifTplHealthNotesTitle => '회원 주의사항이 바뀌었어요';
 
   @override
   String notifTplHealthNotesBody(String name) {
@@ -3478,7 +3478,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notifTplNoGoals => '목표 없음';
 
   @override
-  String get notifTplMemberRenamedTitle => '회원 이름 변경';
+  String get notifTplMemberRenamedTitle => '회원 이름이 바뀌었어요';
 
   @override
   String notifTplMemberRenamedBody(String oldName, String newName) {
@@ -3486,7 +3486,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get notifTplMemberWithdrawnTitle => '회원 탈퇴';
+  String get notifTplMemberWithdrawnTitle => '회원이 탈퇴했어요';
 
   @override
   String notifTplMemberWithdrawnBody(String name) {
@@ -3494,7 +3494,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get notifTplMemberDisconnectedTitle => '담당 연결 해제';
+  String get notifTplMemberDisconnectedTitle => '담당 연결이 해제됐어요';
 
   @override
   String notifTplMemberDisconnectedBody(String name) {
@@ -3511,15 +3511,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notifTplConsultWithdrawnTitle => '회원 탈퇴로 상담 요청이 취소됐어요';
 
   @override
-  String get notifTplInviteAcceptedTitle => '담당 요청이 수락되었어요';
+  String get notifTplInviteAcceptedTitle => '담당 요청이 수락됐어요';
 
   @override
   String notifTplInviteAcceptedBody(String name) {
-    return '$name 회원이 담당으로 연결되었어요.';
+    return '$name 회원이 담당으로 연결됐어요.';
   }
 
   @override
-  String get notifTplInviteRejectedTitle => '담당 요청이 거절되었어요';
+  String get notifTplInviteRejectedTitle => '담당 요청이 거절됐어요';
 
   @override
   String notifTplInviteRejectedBody(String name) {
@@ -3530,7 +3530,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notifTplReservationBookedTitle => '새 예약이 들어왔어요';
 
   @override
-  String get notifTplReservationCancelledTitle => '예약이 취소되었습니다';
+  String get notifTplReservationCancelledTitle => '예약이 취소됐어요';
 
   @override
   String notifTplMemberWithDetail(String name, String detail) {
@@ -3587,7 +3587,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notifAllRead => '모두 확인했어요';
 
   @override
-  String get notifReadAllFailed => '읽음 처리에 실패했어요. 잠시 후 다시 시도해 주세요';
+  String get notifReadAllFailed => '읽음 처리하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String notifUnreadCount(int count) {
@@ -3636,14 +3636,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myDeleteReauthSocialDone => '소셜 계정을 확인했어요. 탈퇴를 누르면 진행돼요.';
 
   @override
-  String get myDeleteReauthSocialFailed => '소셜 계정 확인에 실패했어요. 다시 로그인해 주세요.';
+  String get myDeleteReauthSocialFailed => '소셜 계정을 확인하지 못했어요. 다시 로그인해 주세요.';
 
   @override
   String get myDeleteReauthSocialUnavailable =>
       '이 버전에서는 아직 소셜 계정 확인을 할 수 없어요. 고객 지원으로 문의해 주세요.';
 
   @override
-  String get myWithdrawReasonTitle => '정말 탈퇴하시겠어요?';
+  String get myWithdrawReasonTitle => '정말 탈퇴할까요?';
 
   @override
   String get myWithdrawReasonQuestion => '어떤 점이 아쉬우셨나요?';
@@ -4507,12 +4507,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportsDemoSummarySteadyThisWeek(String name) {
-    return '$name님은 이번 주 운동과 식단을 계획대로 잘 이어 갔어요. 지금 리듬을 지키면서 다음 주에는 운동 강도를 조금 올려 봐도 좋겠습니다.';
+    return '$name님은 이번 주 운동과 식단을 계획대로 잘 이어 갔어요. 지금 리듬을 지키면서 다음 주에는 운동 강도를 조금 올려 봐도 좋겠어요.';
   }
 
   @override
   String reportsDemoSummarySteadyPastWeek(String name) {
-    return '$name님은 그 주 운동과 식단을 계획대로 잘 이어 갔어요. 이 리듬을 지키면서 운동 강도를 조금씩 올려 봐도 좋겠습니다.';
+    return '$name님은 그 주 운동과 식단을 계획대로 잘 이어 갔어요. 이 리듬을 지키면서 운동 강도를 조금씩 올려 봐도 좋겠어요.';
   }
 
   @override
@@ -4527,12 +4527,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportsDemoSummarySkippedThisWeek(String name) {
-    return '$name님이 이번 주 몇몇 운동을 건너뛰었어요. 통증이나 난이도 때문인지 확인하고, 대신할 동작을 함께 정해 두면 좋겠습니다.';
+    return '$name님이 이번 주 몇몇 운동을 건너뛰었어요. 통증이나 난이도 때문인지 확인하고, 대신할 동작을 함께 정해 두면 좋겠어요.';
   }
 
   @override
   String reportsDemoSummarySkippedPastWeek(String name) {
-    return '$name님이 그 주 몇몇 운동을 건너뛰었어요. 통증이나 난이도 때문인지 확인하고, 대신할 동작을 함께 정해 두면 좋겠습니다.';
+    return '$name님이 그 주 몇몇 운동을 건너뛰었어요. 통증이나 난이도 때문인지 확인하고, 대신할 동작을 함께 정해 두면 좋겠어요.';
   }
 
   @override
@@ -5210,7 +5210,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsCardWeekTitle => '이번 주';
 
   @override
-  String get reportsCardWeekSubtitle => '한 축에 겹쳐 보면 같이 무너진 날이 보입니다';
+  String get reportsCardWeekSubtitle => '한 축에 겹쳐 보면 같이 무너진 날이 보여요';
 
   @override
   String get reportsAiSubtitle => 'AI가 수치에서 자동 작성';
@@ -5408,7 +5408,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String summaryHeadlineSteady(String name) {
-    return '$name 회원은 기록이 목표 범위 안에 있어 지금 강도를 유지해도 좋습니다.';
+    return '$name 회원은 기록이 목표 범위 안에 있어 지금 강도를 유지해도 좋아요.';
   }
 
   @override
@@ -5423,12 +5423,12 @@ class AppLocalizationsKo extends AppLocalizations {
     String top,
     String rest,
   ) {
-    return '$name 회원은 $kept 잘 지켰고, 다음 주는 $top 함께 챙기면 좋겠습니다.$rest';
+    return '$name 회원은 $kept 잘 지켰고, 다음 주는 $top 함께 챙기면 좋겠어요.$rest';
   }
 
   @override
   String summaryHeadlineNeedsAdjust(String name, String top, String rest) {
-    return '$name 회원은 $top 목표를 벗어나 다음 주 조정이 필요합니다.$rest';
+    return '$name 회원은 $top 목표를 벗어나 다음 주 조정이 필요해요.$rest';
   }
 
   @override
@@ -5923,7 +5923,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get signUpCodeRequestFailed => '인증 코드를 보내지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
-  String get releaseUpdateTitle => '앱이 업데이트되었어요';
+  String get releaseUpdateTitle => '앱이 업데이트됐어요';
 
   @override
   String get releaseUpdateMessage =>
@@ -5939,7 +5939,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get errorNetworkUnstable => '연결이 불안정합니다. 네트워크를 확인하고 다시 시도해 주세요.';
 
   @override
-  String get errorServerTemporary => '서버에 일시적인 문제가 있습니다. 잠시 후 다시 시도해 주세요.';
+  String get errorServerTemporary => '서버에 일시적인 문제가 있어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get myGymInfoEdit => '헬스장 정보 수정';

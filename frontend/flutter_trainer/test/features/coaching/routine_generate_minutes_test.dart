@@ -407,7 +407,7 @@ void main() {
         find.text('생성 조건을 확인해 주세요. 총 운동 시간은 10~180분 사이여야 해요'),
         findsOneWidget,
       );
-      expect(find.text('AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요'), findsNothing);
+      expect(find.text('AI로 만들지 못했어요. 잠시 후 다시 시도해 주세요'), findsNothing);
     });
   });
 }

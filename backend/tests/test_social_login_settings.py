@@ -31,7 +31,7 @@ from tests.social_provider_fakes import (
     use_app_ids,
 )
 
-AUTH_FAILED_DETAIL = "소셜 인증에 실패했습니다."
+AUTH_FAILED_DETAIL = "소셜 계정을 인증하지 못했어요."
 WEB_KEY_WARNING = "KAKAO_LOGIN_REST_API_KEY"
 
 

@@ -67,7 +67,7 @@ void main() {
     test('409 는 이메일 중복이다', () {
       expect(
         ProfileUpdateRejected.fromResponse(409, <String, Object?>{
-          'detail': '이미 사용 중인 이메일입니다.',
+          'detail': '이미 사용 중인 이메일이에요.',
         })?.reason,
         ProfileUpdateRejection.emailTaken,
       );
@@ -83,7 +83,7 @@ void main() {
     test('422 가 문장이면 연락처 비움이다', () {
       expect(
         ProfileUpdateRejected.fromResponse(422, <String, Object?>{
-          'detail': '전화번호는 비울 수 없습니다.',
+          'detail': '전화번호는 비울 수 없어요.',
         })?.reason,
         ProfileUpdateRejection.phoneRequired,
       );
@@ -125,7 +125,7 @@ void main() {
   group('DioAccountRepository.updateProfile — 실서버 예외', () {
     test('409 는 이메일 중복으로 올린다', () async {
       final repo = _serverRepo(409, <String, Object?>{
-        'detail': '이미 사용 중인 이메일입니다.',
+        'detail': '이미 사용 중인 이메일이에요.',
       });
       await expectLater(
         repo.updateProfile(email: 'trainer@oncare.com'),
@@ -135,7 +135,7 @@ void main() {
 
     test('문장 422 는 연락처 비움으로 올린다', () async {
       final repo = _serverRepo(422, <String, Object?>{
-        'detail': '전화번호는 비울 수 없습니다.',
+        'detail': '전화번호는 비울 수 없어요.',
       });
       await expectLater(
         repo.updateProfile(phone: ''),

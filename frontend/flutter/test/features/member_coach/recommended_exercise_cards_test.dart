@@ -842,7 +842,7 @@ void main() {
 
     final TextField input = tester.widget<TextField>(find.byType(TextField));
     expect(input.controller?.text, '다시 보낼 메시지');
-    expect(find.text('메시지 전송에 실패했어요. 다시 시도해 주세요'), findsOneWidget);
+    expect(find.text('메시지를 보내지 못했어요. 다시 시도해 주세요'), findsOneWidget);
   });
 
   testWidgets('PDF attachment를 파일명과 크기가 있는 카드로 표시한다', (tester) async {

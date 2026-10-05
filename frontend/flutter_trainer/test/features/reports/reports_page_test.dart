@@ -964,7 +964,7 @@ void main() {
     // No false "sent" — the trainer would otherwise believe the member
     // got a report that never arrived.
     expect(sentRow('seed-client-1'), findsNothing);
-    expect(find.text('리포트 전송에 실패했어요. 다시 시도해 주세요'), findsOneWidget);
+    expect(find.text('리포트를 보내지 못했어요. 다시 시도해 주세요'), findsOneWidget);
     // 실패해도 ③ 에 머물러 다시 보낼 수 있고, 작성한 피드백도 남아 있다.
     expect(preview, findsOneWidget);
     expect(sendEnabled(tester), isTrue);
