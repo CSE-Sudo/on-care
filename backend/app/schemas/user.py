@@ -261,6 +261,22 @@ class SocialLoginRequest(BaseModel):
     token: str
 
 
+class KakaoCodeExchangeRequest(BaseModel):
+    """카카오 웹 로그인 창이 돌려준 인가 코드 (#330).
+
+    `redirect_uri` 는 로그인 창을 열 때 쓴 값과 **글자 그대로** 같아야 카카오가 교환해 준다.
+    """
+
+    code: str = Field(min_length=1, max_length=2048)
+    redirect_uri: str = Field(min_length=1, max_length=2048)
+
+
+class KakaoCodeExchangeResponse(BaseModel):
+    """교환한 카카오 access_token. 앱은 이 값을 `POST /auth/social/kakao` 의 `token` 으로 쓴다."""
+
+    access_token: str
+
+
 class UserRegister(BaseModel):
     #: 형식은 `contact_format.clean_email` 이 본다(#1780). 앞뒤 공백을 잘라내고
     #: 소문자로 맞춰 저장한다(#2816) — 로그인·중복 확인도 같은 규칙으로 비교한다.

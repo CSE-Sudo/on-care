@@ -1,9 +1,11 @@
 """소셜 로그인 라우터.
 
   POST /auth/social/{provider}  { token }  ->  { access_token, refresh_token }
+  POST /auth/social/kakao/code  { code, redirect_uri }  ->  { access_token }  (웹, #330)
 
 provider(kakao/google/naver/apple)에서 토큰을 검증해 사용자를 찾거나 만들고,
-우리 서비스의 JWT(access+refresh)를 발급한다.
+우리 서비스의 JWT(access+refresh)를 발급한다. 카카오 웹 로그인은 SDK 가 토큰을 주지
+않아, 먼저 인가 코드를 서버에서 카카오 access_token 으로 바꾼 뒤 같은 로그인 길을 탄다.
 """
 from __future__ import annotations
 
@@ -22,7 +24,13 @@ from app.services import auth_tokens
 from app.services.audit import client_ip, record as audit
 from app.services.contact_format import normalize_email
 from app.models.models import SocialAccount, User
-from app.schemas.user import LoginToken, SocialLoginRequest
+from app.schemas.user import (
+    KakaoCodeExchangeRequest,
+    KakaoCodeExchangeResponse,
+    LoginToken,
+    SocialLoginRequest,
+)
+from app.services.social import kakao as kakao_social
 from app.services.social.base import (
     SocialAuthError,
     SocialIdentity,
@@ -87,6 +95,45 @@ def _complete_login(
     # 소셜로 처음 들어온 계정은 가입 화면을 거치지 않아 동의 기록이 없다(#2819) —
     # `consent_required` 가 참이 되어 앱이 가입 화면과 같은 동의 화면을 띄운다.
     return auth_tokens.issue_login_tokens(db, user)
+
+
+@router.post(
+    "/auth/social/kakao/code",
+    response_model=KakaoCodeExchangeResponse,
+    dependencies=[Depends(rate_limit("auth-social"))],
+)
+async def kakao_code_exchange(
+    payload: KakaoCodeExchangeRequest,
+    request: Request,
+    db: Annotated[Session, Depends(get_db)],
+) -> KakaoCodeExchangeResponse:
+    """카카오 웹 로그인 인가 코드 → 카카오 access_token (#330).
+
+    로그인·계정 생성은 하지 않는다. 앱이 받은 토큰을 `POST /auth/social/kakao`(로그인)나
+    본인 확인(`social_token`)에 그대로 넣게 해, 웹과 모바일이 같은 검증을 탄다. 실패 응답은
+    소셜 로그인과 같은 401·502 다.
+    """
+    ip = client_ip(request)
+    try:
+        token = await kakao_social.exchange_code(payload.code, payload.redirect_uri)
+    except SocialProviderResponseError as exc:
+        logger.warning("카카오 코드 교환 응답 형식 이상: %s", exc)
+        await run_in_threadpool(
+            audit, db, event="auth.social", ip=ip, success=False, detail="kakao code"
+        )
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=_PROVIDER_BAD_RESPONSE)
+    except SocialAuthError:
+        await run_in_threadpool(
+            audit, db, event="auth.social", ip=ip, success=False, detail="kakao code"
+        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=_AUTH_FAILED)
+    except Exception as exc:  # noqa: BLE001 — 로그인과 같은 이유로 감사 없이 500 이 되면 안 된다
+        logger.error("카카오 코드 교환 중 예상 못 한 예외 type=%s", type(exc).__name__)
+        await run_in_threadpool(
+            audit, db, event="auth.social", ip=ip, success=False, detail="kakao code"
+        )
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=_PROVIDER_BAD_RESPONSE)
+    return KakaoCodeExchangeResponse(access_token=token)
 
 
 @router.post(
