@@ -111,13 +111,26 @@ def test_sensitive_values_come_from_secrets():
     """민감값은 평문 환경변수가 아니라 Secrets Manager 참조로만 들어간다."""
     secrets = {item["Name"] for item in _entries("Secrets")}
     plain = {item["Name"] for item in _entries("Environment")}
-    sensitive = {"DATABASE_URL", "JWT_SECRET", "GEMINI_API_KEY", "KAKAO_REST_API_KEY", "SENTRY_DSN"}
+    sensitive = {
+        "DATABASE_URL",
+        "JWT_SECRET",
+        "GEMINI_API_KEY",
+        "KAKAO_REST_API_KEY",
+        "KAKAO_CLIENT_SECRET",
+        "SENTRY_DSN",
+    }
     assert sensitive <= secrets
     assert not sensitive & plain
 
 
 # 스택 파라미터가 비면 아예 넣지 않는 키(!If). 운영 가드 검사에서는 빈 값과 같다.
-_OPTIONAL_PARAMETER_KEYS = {"ADMIN_EMAILS", "APPLE_CLIENT_IDS", "GOOGLE_CLIENT_IDS", "KAKAO_APP_ID"}
+_OPTIONAL_PARAMETER_KEYS = {
+    "ADMIN_EMAILS",
+    "APPLE_CLIENT_IDS",
+    "GOOGLE_CLIENT_IDS",
+    "KAKAO_APP_ID",
+    "KAKAO_LOGIN_REST_API_KEY",
+}
 
 
 def _production_values() -> dict[str, object]:
@@ -132,6 +145,7 @@ def _production_values() -> dict[str, object]:
         "JWT_SECRET": "a-strong-random-secret-value-for-prod-tests",
         "GEMINI_API_KEY": "test-gemini-key",
         "KAKAO_REST_API_KEY": "",
+        "KAKAO_CLIENT_SECRET": "",
         "SENTRY_DSN": "",
         "MAIL_FROM": "noreply@example.com",
         "SMTP_HOST": "smtp.example.com",
