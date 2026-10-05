@@ -1,4 +1,4 @@
-"""check_mobile_app_identity.py 테스트(#2823).
+"""check_mobile_app_identity.py 테스트(#2823, 실행 화면 #3153).
 
 실제 회원 앱 설정이 통과하는지, 그리고 한 곳만 어긋나도 걸리는지를 확인한다. 어긋난
 경우는 회원 앱 설정 파일을 임시 폴더로 복사한 뒤 한 군데만 바꿔 만든다.
@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import io
 import shutil
+import struct
 import sys
 import tempfile
 import unittest
@@ -37,6 +38,41 @@ COPIED = [
     KOTLIN_DIR / "MainActivity.kt",
 ]
 
+# 실행 화면(#3153) 검사에 쓰는 파일. 그림은 바이너리라 그대로 복사한다.
+LAUNCH_DENSITIES = ("mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi")
+LAUNCH_IMAGES = [
+    identity.ANDROID_RES / f"drawable-{density}" / "launch_image.png"
+    for density in LAUNCH_DENSITIES
+]
+IOS_LAUNCH_IMAGES = [
+    identity.LAUNCH_IMAGESET / name
+    for name in ("LaunchImage.png", "LaunchImage@2x.png", "LaunchImage@3x.png")
+]
+ANDROID12_ICON = identity.ANDROID_RES / "drawable-v31" / "launch_icon_android12.xml"
+LAUNCH_FILES = [
+    *identity.LAUNCH_BACKGROUNDS,
+    *identity.SPLASH_STYLES_V31,
+    ANDROID12_ICON,
+    *LAUNCH_IMAGES,
+    identity.LAUNCH_IMAGESET / "Contents.json",
+    *IOS_LAUNCH_IMAGES,
+    identity.LAUNCH_STORYBOARD,
+]
+
+COPIED += LAUNCH_FILES
+
+
+def tiny_png(width: int, height: int) -> bytes:
+    """IHDR 까지만 있는 PNG — 검사는 크기만 읽는다."""
+    ihdr = struct.pack(">II", width, height) + bytes([8, 6, 0, 0, 0])
+    return (
+        identity.PNG_SIGNATURE
+        + struct.pack(">I", len(ihdr))
+        + b"IHDR"
+        + ihdr
+        + b"\x00\x00\x00\x00"
+    )
+
 
 def run_main(*args: str) -> tuple[int, str]:
     buffer = io.StringIO()
@@ -48,6 +84,38 @@ def run_main(*args: str) -> tuple[int, str]:
 class RealAppTest(unittest.TestCase):
     def test_member_app_passes(self) -> None:
         self.assertEqual(identity.check(APP_DIR), [])
+
+    def test_member_app_launch_screen_passes(self) -> None:
+        self.assertEqual(identity.check_launch_screen(APP_DIR), [])
+
+    def test_ios_launch_images_are_real_logo_sizes(self) -> None:
+        sizes = [identity.png_size(APP_DIR / image) for image in IOS_LAUNCH_IMAGES]
+        self.assertNotIn((1, 1), sizes)
+        base = sizes[0]
+        self.assertIsNotNone(base)
+        self.assertGreaterEqual(min(base), identity.MIN_LAUNCH_IMAGE_POINTS)
+        self.assertEqual(sizes[1], (base[0] * 2, base[1] * 2))
+        self.assertEqual(sizes[2], (base[0] * 3, base[1] * 3))
+
+    def test_android_launch_images_follow_density_ratio(self) -> None:
+        # mdpi 1 : hdpi 1.5 : xhdpi 2 : xxhdpi 3 : xxxhdpi 4
+        ratios = (1, 1.5, 2, 3, 4)
+        base = identity.png_size(APP_DIR / LAUNCH_IMAGES[0])
+        self.assertIsNotNone(base)
+        for image, ratio in zip(LAUNCH_IMAGES, ratios):
+            self.assertEqual(
+                identity.png_size(APP_DIR / image),
+                (int(base[0] * ratio), int(base[1] * ratio)),
+                str(image),
+            )
+
+    def test_png_size_rejects_non_png(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "x.png"
+            path.write_bytes(b"not a png at all, just bytes......")
+            self.assertIsNone(identity.png_size(path))
+            path.write_bytes(tiny_png(120, 80))
+            self.assertEqual(identity.png_size(path), (120, 80))
 
     def test_main_returns_zero_for_member_app(self) -> None:
         code, output = run_main(str(APP_DIR))
@@ -152,6 +220,66 @@ class MismatchTest(unittest.TestCase):
             'name="apple-mobile-web-app-title" content="oncare"',
         )
         self.assert_problem(identity.WEB_INDEX, "apple-mobile-web-app-title")
+
+    # ── 실행 화면 (#3153) ──
+
+    def test_launch_background_template_comment(self) -> None:
+        # 템플릿처럼 로고 항목을 주석으로 돌리면 흰 화면만 남는다.
+        relative = identity.LAUNCH_BACKGROUNDS[0]
+        path = self.app / relative
+        text = path.read_text(encoding="utf-8")
+        start = text.index("<item>\n        <bitmap")
+        end = text.index("</item>", start) + len("</item>")
+        path.write_text(
+            text[:start] + "<!-- " + text[start:end] + " -->" + text[end:],
+            encoding="utf-8",
+        )
+        self.assert_problem(relative, "로고 비트맵 항목이 없습니다")
+
+    def test_launch_background_v21_checked_too(self) -> None:
+        relative = identity.LAUNCH_BACKGROUNDS[1]
+        self.replace(relative, "@drawable/launch_image", "@drawable/missing_logo")
+        self.assert_problem(relative, "그림 파일이 없습니다")
+
+    def test_android_placeholder_logo(self) -> None:
+        (self.app / LAUNCH_IMAGES[2]).write_bytes(tiny_png(1, 1))
+        self.assert_problem(LAUNCH_IMAGES[2], "자리표시가 아닌 실제 로고")
+
+    def test_android12_background_missing(self) -> None:
+        relative = identity.SPLASH_STYLES_V31[0]
+        self.replace(relative, 'name="android:windowSplashScreenBackground"', 'name="android:unused"')
+        self.assert_problem(relative, "windowSplashScreenBackground")
+
+    def test_android12_night_icon_missing(self) -> None:
+        relative = identity.SPLASH_STYLES_V31[1]
+        self.replace(relative, 'name="android:windowSplashScreenAnimatedIcon"', 'name="android:unused"')
+        self.assert_problem(relative, "windowSplashScreenAnimatedIcon")
+
+    def test_android12_night_styles_missing(self) -> None:
+        (self.app / identity.SPLASH_STYLES_V31[1]).unlink()
+        self.assert_problem(identity.SPLASH_STYLES_V31[1], "스타일 파일이 없습니다")
+
+    def test_android12_icon_drawable_missing(self) -> None:
+        (self.app / ANDROID12_ICON).unlink()
+        self.assert_problem(identity.SPLASH_STYLES_V31[0], "launch_icon_android12")
+
+    def test_ios_one_pixel_placeholder(self) -> None:
+        (self.app / IOS_LAUNCH_IMAGES[0]).write_bytes(tiny_png(1, 1))
+        self.assert_problem(IOS_LAUNCH_IMAGES[0], "1×1 픽셀 자리표시")
+
+    def test_ios_scale_mismatch(self) -> None:
+        base = identity.png_size(self.app / IOS_LAUNCH_IMAGES[0])
+        assert base is not None
+        (self.app / IOS_LAUNCH_IMAGES[1]).write_bytes(tiny_png(base[0] * 3, base[1] * 3))
+        self.assert_problem(identity.LAUNCH_IMAGESET / "Contents.json", "배율별 크기가 서로 다릅니다")
+
+    def test_ios_launch_image_not_png(self) -> None:
+        (self.app / IOS_LAUNCH_IMAGES[2]).write_bytes(b"placeholder")
+        self.assert_problem(IOS_LAUNCH_IMAGES[2], "PNG 가 아닙니다")
+
+    def test_storyboard_without_launch_image(self) -> None:
+        self.replace(identity.LAUNCH_STORYBOARD, 'image="LaunchImage"', 'image="Other"')
+        self.assert_problem(identity.LAUNCH_STORYBOARD, "LaunchImage 를 보여 주지 않습니다")
 
     def test_main_reports_annotation_and_fails(self) -> None:
         self.replace(identity.ANDROID_MANIFEST, f'android:label="{APP_NAME}"', 'android:label="oncare"')
