@@ -149,6 +149,8 @@ def record_client_read(
 def purge_expired(db: Session, *, now: datetime | None = None) -> int:
     """보존 기간이 지난 감사 기록을 지운다. 지운 건수를 돌려준다(커밋 포함).
 
+    기동 때와 하루마다 `retention.run_purge` 가 부른다(#3144).
+
     민감정보 처리 기록([SENSITIVE_EVENTS])과 그 밖의 접속 기록은 기간이 다르다.
     기간이 0 이하인 쪽은 지우지 않는다.
     """
@@ -175,22 +177,3 @@ def purge_expired(db: Session, *, now: datetime | None = None) -> int:
     )
     db.commit()
     return result.rowcount or 0
-
-
-def purge_expired_best_effort() -> None:
-    """기동 시 정리 — 실패해도 서버 기동을 막지 않는다."""
-    from app.db.session import SessionLocal
-
-    db = SessionLocal()
-    try:
-        removed = purge_expired(db)
-        if removed:
-            log.info("보존 기간 지난 감사 기록 %d건 정리", removed)
-    except Exception as e:  # noqa: BLE001
-        log.warning("감사 기록 정리 실패(무시): %s", e)
-        try:
-            db.rollback()
-        except Exception:  # noqa: BLE001
-            pass
-    finally:
-        db.close()

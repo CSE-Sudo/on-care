@@ -164,4 +164,12 @@ void main() {
       isTrue,
     );
   });
+
+  test('boot status runs from a same-origin file, not inline (#3152)', () {
+    // 로딩 표시를 거두는 스크립트도 인라인으로 두면 'unsafe-inline' 을 열어야
+    // 한다. 같은 출처 파일이고, 정책은 그대로다.
+    expect(File('web/js/boot_status.js').existsSync(), isTrue);
+    expect(markup, contains('<script src="js/boot_status.js"></script>'));
+    expect(directives()['script-src'], isNot(contains("'unsafe-inline'")));
+  });
 }

@@ -18,6 +18,7 @@ import 'package:oncare/core/storage/prefs_store.dart';
 import 'package:oncare/core/storage/secure_token_store.dart';
 import 'package:oncare/core/storage/seed_data.dart';
 import 'package:oncare_core/clock.dart';
+import 'package:oncare_core/licenses.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Single entry point used by `main.dart`. Initializes binding,
@@ -27,6 +28,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// the app inside a [ProviderScope].
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // 앱에 담긴 Pretendard 글꼴(OFL)을 오픈소스 라이선스 목록에 넣는다(#3150).
+  // 패키지 라이선스는 Flutter 가 모으지만 글꼴 같은 자산은 직접 넣어야 한다.
+  registerBundledLicenses();
   // 휴대폰은 세로로 고정한다. 태블릿·웹은 그대로 둔다(#3050).
   await applyPhoneOrientationLock();
 

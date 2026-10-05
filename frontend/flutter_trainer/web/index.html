@@ -46,6 +46,44 @@
   <style>
     html, body { background-color: #F5F7FA; }
   </style>
+  <!-- 부팅 중 로딩 표시와 부팅 실패 안내(#3152). 마크업은 <body> 의 #boot-status,
+       언제 거두고 언제 실패 안내로 바꿀지는 js/boot_status.js 가 정한다. 색은 앱 토큰과
+       같다 — 배경 surfacePage, 브랜드 남색 OnCareBrand.trainer.primary, 본문 textPrimary·
+       textSecondary. 첫 프레임 전이라 번들 글꼴을 아직 못 쓰므로 시스템 글꼴로 그린다. -->
+  <style>
+    .boot {
+      position: fixed; inset: 0; z-index: 2147483647;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 20px; padding: 24px; box-sizing: border-box;
+      background-color: #F5F7FA; color: #1A1A1A; text-align: center;
+      font: 15px/1.5 -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+        'Malgun Gothic', 'Noto Sans KR', sans-serif;
+    }
+    .boot-logo { width: 72px; height: 72px; }
+    .boot-spinner {
+      width: 32px; height: 32px; box-sizing: border-box; border-radius: 50%;
+      border: 3px solid rgba(35, 92, 136, 0.2); border-top-color: #235C88;
+      animation: boot-spin 0.9s linear infinite;
+    }
+    @keyframes boot-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) {
+      .boot-spinner { animation-duration: 2.4s; }
+    }
+    .boot-label {
+      position: absolute; width: 1px; height: 1px; overflow: hidden;
+      clip: rect(0 0 0 0); white-space: nowrap;
+    }
+    .boot-error { max-width: 360px; }
+    .boot-error[hidden] { display: none; }
+    .boot-error-text { margin: 0 0 16px; color: #465568; }
+    .boot-reload {
+      min-height: 44px; padding: 0 24px; border: 0; border-radius: 12px;
+      background-color: #235C88; color: #FFFFFF; font: inherit; font-weight: 600;
+      cursor: pointer;
+    }
+    .boot-reload:focus-visible { outline: 3px solid rgba(35, 92, 136, 0.4); outline-offset: 2px; }
+    .boot-failed .boot-spinner { display: none; }
+  </style>
   <!-- 로그인해야 쓰는 앱이라 검색 색인에서 뺀다(#3015). 검색에 걸려야 하는 것은
        저장소 루트의 소개 페이지뿐이다 — 앱 주소가 수집되면 빈 로그인 화면이
        검색 결과에 뜬다. -->
@@ -70,6 +108,26 @@
        지웠다(#3159). -->
 </head>
 <body>
+  <!-- 부팅 중 로딩 표시(#3152). 첫 프레임 전 화면 전체를 덮고, 첫 프레임에서 지운다. -->
+  <div id="boot-status" class="boot" role="status" aria-live="polite">
+    <img class="boot-logo" src="icons/Icon-192.png" alt="" width="72" height="72">
+    <div class="boot-spinner" aria-hidden="true"></div>
+    <span class="boot-label">트레이너 웹을 불러오는 중입니다</span>
+    <div class="boot-error" hidden>
+      <p class="boot-error-text">트레이너 웹을 불러오지 못했습니다. 연결을 확인하고 새로고침해 주세요.</p>
+      <button type="button" class="boot-reload">새로고침</button>
+    </div>
+  </div>
+  <noscript>
+    <div class="boot">
+      <img class="boot-logo" src="icons/Icon-192.png" alt="" width="72" height="72">
+      <p>트레이너 웹은 JavaScript 가 필요합니다. 브라우저 설정에서 JavaScript 를 켜 주세요.</p>
+      <p lang="en">The trainer web needs JavaScript. Please enable it in your browser settings.</p>
+    </div>
+  </noscript>
+  <!-- 로딩 표시를 거두거나 실패 안내로 바꾼다. 부팅 스크립트의 로드 오류를 받으려면
+       아래 pdf.js 로더(Flutter 를 띄움)보다 먼저 실행돼야 한다. -->
+  <script src="js/boot_status.js"></script>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader

@@ -66,7 +66,7 @@ def get_current_user(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail="회원 전용 API 입니다.",
                     )
-                ensure_member_consented(request, user, db)
+                ensure_consented(request, user, db)
                 return user
         except jwt.InvalidTokenError:
             pass
@@ -122,13 +122,20 @@ def require_admin(
 
 
 def require_trainer(
+    request: Request,
     user: Annotated[User, Depends(require_auth)],
+    db: Annotated[Session, Depends(get_db)],
 ) -> User:
     """트레이너 전용: 유효 토큰 + role == 'trainer'. 데모 폴백 없음(회원 데모 사용자가
     트레이너 엔드포인트에 새어 들어가지 않도록). 미인증은 require_auth 가 401,
-    회원 계정이면 403."""
+    회원 계정이면 403.
+
+    필수 동의(약관·개인정보·만 14세)가 남은 트레이너도 403 `consent_required` 다
+    ([ensure_consented], #3155). 트레이너는 회원의 건강정보를 열람하는 쪽이라,
+    동의 화면을 거치지 않은 경로로도 동의 없이 쓰지 못하게 서버가 확인한다."""
     if user.role != "trainer":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="트레이너 권한이 필요합니다.")
+    ensure_consented(request, user, db)
     return user
 
 
@@ -141,18 +148,19 @@ def require_member(
     데모 폴백 없음(require_auth 기반). 읽기 폴백이 필요한 엔드포인트는 CurrentUser
     (get_current_user)가 이미 트레이너를 403 처리한다.
 
-    필수 동의가 남은 계정은 403 `consent_required` 다([ensure_member_consented])."""
+    필수 동의가 남은 계정은 403 `consent_required` 다([ensure_consented])."""
     if user.role != "member":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="회원 전용 API 입니다.")
-    ensure_member_consented(request, user, db)
+    ensure_consented(request, user, db)
     return user
 
 
 # ---- 필수 동의 확인 (#3088) ----
 
-#: 필수 동의가 남은 회원도 부를 수 있는 회원 라우트. `(메서드, /v1 을 뺀 경로)`.
+#: 필수 동의가 남은 계정도 부를 수 있는 라우트. `(메서드, /v1 을 뺀 경로)`.
 #:
-#: 회원 의존성(`CurrentUser`·`RequireMember`)을 쓰는 라우트는 **기본으로 막힌다** —
+#: 회원 의존성(`CurrentUser`·`RequireMember`)과 트레이너 의존성(`RequireTrainer`,
+#: #3155)을 쓰는 라우트는 **기본으로 막힌다** —
 #: 새 라우트가 빠지지 않게 하려는 것이다. 여기에는 동의를 처리하는 데 필요한 경로만
 #: 둔다. `/auth/*`(로그인·refresh·로그아웃·비밀번호 재설정)와 `POST /users/me/consents`
 #: 는 회원 의존성을 쓰지 않아 처음부터 이 확인 밖이다.
@@ -162,7 +170,14 @@ CONSENT_EXEMPT_ROUTES: dict[tuple[str, str], str] = {
     ("GET", "/users/me"): "앱이 동의가 필요한지 읽는 곳이다. 회원 앱 세션 복원은 "
     "이 경로의 401·403 을 로그인 만료로 본다.",
     ("DELETE", "/users/me"): "탈퇴는 동의하지 않은 회원도 할 수 있어야 한다.",
+    ("GET", "/trainer/me"): "트레이너 웹이 로그인·세션 복구 때 프로필을 읽는 곳이다. "
+    "막으면 동의 화면에 닿기 전에 로그인이 실패한다.",
+    ("DELETE", "/trainer/me"): "탈퇴는 동의하지 않은 트레이너도 할 수 있어야 한다.",
 }
+
+
+#: 서버가 필수 동의를 확인하는 역할. (#3155 에서 트레이너 추가)
+_CONSENT_CHECKED_ROLES = frozenset({"member", "trainer"})
 
 
 def _route_key(request: Request) -> tuple[str, str] | None:
@@ -177,8 +192,11 @@ def _route_key(request: Request) -> tuple[str, str] | None:
     return request.method.upper(), path
 
 
-def ensure_member_consented(request: Request, user: User, db: Session) -> None:
-    """회원 계정의 필수 동의(약관·개인정보·건강정보·만 14세)가 끝났는지 본다. (#3088)
+def ensure_consented(request: Request, user: User, db: Session) -> None:
+    """회원·트레이너 계정의 역할별 필수 동의가 끝났는지 본다. (#3088, #3155)
+
+    회원은 약관·개인정보·건강정보·만 14세, 트레이너는 약관·개인정보·만 14세다
+    (`signup_consent.REQUIRED_BY_ROLE`). 그 밖의 역할은 보지 않는다.
 
     동의는 지금까지 앱 화면이 동의 화면을 먼저 띄우는 것으로만 지켜졌다. 앱을
     거치지 않거나 옛 빌드로 부르면 동의 없이 건강정보가 저장되고 외부 AI 로
@@ -190,7 +208,7 @@ def ensure_member_consented(request: Request, user: User, db: Session) -> None:
 
     한 요청 안에서는 한 번만 조회한다(회원 의존성이 겹쳐도).
     """
-    if user.role != "member":
+    if user.role not in _CONSENT_CHECKED_ROLES:
         return
     key = _route_key(request)
     if key is not None and key in CONSENT_EXEMPT_ROUTES:

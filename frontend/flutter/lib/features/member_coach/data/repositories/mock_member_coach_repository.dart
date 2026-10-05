@@ -142,6 +142,9 @@ class MockMemberCoachRepository implements MemberCoachRepository {
         intensity: r.intensity,
         sets: r.sets,
         reps: r.reps,
+        // 버티는 운동은 횟수 대신 초다 — 실서버 `RoutineOut.hold_seconds` 와
+        // 같은 칸에 싣는다(#3138).
+        holdSeconds: r.holdSeconds,
         weight: r.weight,
       ),
   ];
@@ -769,8 +772,9 @@ class MockMemberCoachRepository implements MemberCoachRepository {
 
   /// 픽스처 운동 한 줄 → 수업 프로그램 한 줄. 근력은 세트·횟수·중량, 나머지는
   /// 운동 시간(분)이다 — 서버 계약과 같다. 버티는 운동(플랭크)은 횟수 대신 버틴
-  /// 시간을 이름에 붙인다. 트레이너 웹 시드의 오늘 수업(`플랭크 60초`)과 같은
-  /// 표기다.
+  /// 시간을 [CoachProgramItem.holdSeconds] 에 싣는다(#3138) — 서버
+  /// `ProgramItem.hold_seconds` 와 같은 칸이다. 예전에는 이름에 `플랭크 60초`
+  /// 로 붙여, 실서버에서만 초가 사라졌다.
   static CoachProgramItem _programItem(FixtureExercise e) {
     if (e.type != 'strength') {
       return CoachProgramItem(
@@ -782,12 +786,12 @@ class MockMemberCoachRepository implements MemberCoachRepository {
         durationSeconds: e.minutes * 60,
       );
     }
-    final int? hold = e.holdSeconds;
     return CoachProgramItem(
-      name: hold == null ? e.name : '${e.name} $hold초',
+      name: e.name,
       sets: e.sets ?? 0,
       reps: e.reps ?? 0,
       weight: e.weight ?? 0,
+      holdSeconds: e.holdSeconds,
     );
   }
 
