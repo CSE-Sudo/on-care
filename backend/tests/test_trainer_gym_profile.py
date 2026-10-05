@@ -161,7 +161,8 @@ def test_member_gym_endpoints_show_the_saved_values(client, gym, make_trainer):
     token, _ = make_trainer(gym)
     client.put(URL, json=FULL, headers=_auth(token))
 
-    detail = client.get(f"/v1/gyms/{gym}", headers=_auth(token)).json()
+    # 회원 API 는 트레이너 토큰을 403 으로 막는다 — 토큰 없이 데모 회원으로 읽는다(test_gyms 와 같다).
+    detail = client.get(f"/v1/gyms/{gym}").json()
     assert detail["weekday_hours"] == FULL["weekday_hours"]
     assert detail["weekend_hours"] == FULL["weekend_hours"]
     assert detail["phone"] == FULL["phone"]
@@ -169,7 +170,7 @@ def test_member_gym_endpoints_show_the_saved_values(client, gym, make_trainer):
     # 평점은 없는 그대로 — 프론트는 0 이면 뱃지를 감춘다(#329).
     assert detail["rating"] == 0.0
 
-    listed = [g for g in client.get("/v1/gyms", headers=_auth(token)).json() if g["id"] == gym]
+    listed = [g for g in client.get("/v1/gyms").json() if g["id"] == gym]
     assert listed and listed[0]["tags"] == FULL["tags"]
 
 

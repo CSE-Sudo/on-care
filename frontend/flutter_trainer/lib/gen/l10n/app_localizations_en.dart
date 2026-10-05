@@ -6175,4 +6175,72 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorServerTemporary =>
       'The server is having a temporary problem. Please try again in a moment.';
+
+  @override
+  String get myGymInfoEdit => 'Edit gym info';
+
+  @override
+  String get myGymInfoSubtitle =>
+      'Shown as-is on the gym list and detail in the member app. Any trainer at this gym can edit it, and the last save stays.';
+
+  @override
+  String get myGymInfoCardTitle => 'Gym info members see';
+
+  @override
+  String get myGymWeekdayHours => 'Weekday hours';
+
+  @override
+  String get myGymWeekendHours => 'Weekend hours';
+
+  @override
+  String get myGymHoursHint => 'e.g. 06:00 - 23:00';
+
+  @override
+  String get myGymPhone => 'Main phone';
+
+  @override
+  String get myGymPhoneHint => 'e.g. 02-123-4567';
+
+  @override
+  String get myGymTags => 'Tags';
+
+  @override
+  String get myGymAddTag => 'Add a tag...';
+
+  @override
+  String get myGymTagsEmpty => 'No tags yet.';
+
+  @override
+  String get myGymInfoLoadFailed => 'Couldn\'t load the gym info.';
+
+  @override
+  String get myGymInfoSaveFailed => 'Couldn\'t save the gym info.';
+
+  @override
+  String get a11yRemoveGymTag => 'Remove tag';
+
+  @override
+  String myGymTagsHint(int max, int length) {
+    return 'Shown as chips on the gym card in the member app. Up to $max tags, $length characters each.';
+  }
+
+  @override
+  String myGymTagsFull(int max) {
+    return 'You can add up to $max tags';
+  }
+
+  @override
+  String myGymTagTooLong(int length) {
+    return 'A tag can be up to $length characters';
+  }
+
+  @override
+  String myGymHoursWeekday(String hours) {
+    return 'Weekdays $hours';
+  }
+
+  @override
+  String myGymHoursWeekend(String hours) {
+    return 'Weekends $hours';
+  }
 }
