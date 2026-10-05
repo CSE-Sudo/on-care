@@ -771,11 +771,13 @@ category: reminder|health_check|achievement|system|coach_chat|coach_report|routi
 - 대상은 `read = true` 이고 `created_at` 이 90일보다 오래된 행뿐입니다.
 - **미확인 알림은 아무리 오래돼도 지우지 않습니다.** 사용자가 보지 않은 알림을 서버가
   지우면 무엇이 사라졌는지 알 길이 없고, 배지 수도 그만큼 조용히 줄어듭니다.
-- 자동으로 돌지 않습니다. 삭제는 되돌릴 수 없어 **사람이 실행**합니다:
+- 서버가 기동 때와 그 뒤 하루마다 감사 로그 정리와 함께 지웁니다(`app/services/retention.py`, #3144).
+  대상을 먼저 보거나 기준·사용자를 바꿔 손으로 정리할 때는 스크립트를 씁니다:
 
   ```
   python -m scripts.purge_notifications --dry-run   # 대상만 본다
   python -m scripts.purge_notifications             # 실제로 지운다
+  python -m scripts.purge_retention                 # 감사 로그·알림 정기 정리를 지금 한 번
   ```
 
 - 정리 대상 선정(`expired_notifications`)은 지우는 일과 분리돼 있고 테스트가 있습니다
@@ -1610,10 +1612,10 @@ N명이면 첫 화면에서 요청이 2N개였다.
 | POST | `/auth/register/email-code` | `{ email, purpose: "member_signup"\|"trainer_signup" }` → **202** `{ expires_in_minutes, resend_after_seconds }` — 가입 전 이메일 인증 코드(#3038). 가입 여부와 무관하게 같은 응답. 아래 [가입 이메일 인증](#가입-이메일-인증-3038) |
 | POST | `/auth/register` | `{ email, password, name, phone, email_code }` → **201** `{ id, name, email, role: "member" }` — 회원(`role=member`). 이미 가입된 이메일 409, 코드 없음 422 `email_code_required`, 틀린·만료 코드 400 `invalid_email_code`(#3038) |
 | POST | `/auth/trainer/register` | 같은 입력 → **201** `{ id, name, email, role: "trainer" }` — 트레이너(#475). 역할을 요청 필드로 가르지 않으려고 경로를 나눴다. 소속 헬스장은 가입 뒤 `PUT /trainer/me/gym`. 코드는 `purpose=trainer_signup` 으로 받은 것만 맞다 |
-| POST | `/auth/login` | form(`application/x-www-form-urlencoded`) `username`(이메일)·`password` → `{ access_token, refresh_token, token_type }`. 틀리면 401 |
+| POST | `/auth/login` | form(`application/x-www-form-urlencoded`) `username`(이메일)·`password` → `{ access_token, refresh_token, token_type, consent_required, role }`. 틀리면 401. `role` 은 계정 역할(`member`·`trainer`) — 회원 앱은 저장 전에 보고 트레이너 계정이면 토큰을 폐기하고 트레이너 웹 안내를 보인다(#3137) |
 | POST | `/auth/refresh` | `{ refresh_token }` → 새 `{ access_token, refresh_token, token_type }`(회전). 무효·폐기된 토큰 401 |
 | POST | `/auth/logout` | `{ refresh_token }` → **204**. 그 refresh 토큰을 폐기한다. access 토큰은 요구하지 않고, 못 알아본 토큰에도 204 |
-| POST | `/auth/social/{provider}` | `{ token }` → `{ access_token, refresh_token, token_type }`. 실패 응답은 아래 절 |
+| POST | `/auth/social/{provider}` | `{ token }` → `{ access_token, refresh_token, token_type, consent_required, role }`(`role` 은 위 `/auth/login` 과 같다, #3137). 실패 응답은 아래 절 |
 | POST | `/auth/password-reset/request` | `{ email }` → **202** `{ status: "requested", expires_in_minutes }` — 계정 유무와 무관하게 같은 응답(#2824). 아래 [비밀번호 재설정](#비밀번호-재설정-2824) |
 | POST | `/auth/password-reset/confirm` | `{ token, new_password }` → `{ status: "reset" }`. 코드 없음·만료·사용됨은 400 `invalid_reset_token`(#2824) |
 
@@ -1704,7 +1706,11 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
   - 동의 없이도 열려 있는 경로: `GET /users/me`(동의 필요 여부 조회), `POST /users/me/consents`,
     `DELETE /users/me`(탈퇴), `/auth/*`(로그인·refresh·로그아웃·비밀번호 재설정·소셜 로그인),
     계정 데이터가 없는 공개 경로. 목록은 `api/deps.CONSENT_EXEMPT_ROUTES` 한 곳에 있다.
-  - 트레이너 계정은 이 확인을 거치지 않는다(트레이너 필수 동의 강제는 따로 정한다).
+  - **트레이너 계정(#3155)** 도 같은 규칙이다. 트레이너의 필수 항목(`terms`·`privacy`·`age14`)이
+    남았으면 트레이너 의존성(`RequireTrainer`)을 쓰는 API 가 같은 모양의 403 을 준다. 동의 없이도
+    열린 트레이너 경로는 `GET /trainer/me`(트레이너 웹이 로그인·세션 복구 때 읽는 프로필)와
+    `DELETE /trainer/me`(탈퇴)뿐이다. 트레이너 웹도 이 403 을 받으면 세션을 "동의 필요" 로 바꿔
+    동의 화면(`/auth/consent`)으로 보낸다.
   - 회원 앱은 이 403 을 받으면 세션을 "동의 필요" 로 바꿔 동의 화면으로 보낸다. 앱을 쓰는 사이
     문서 버전이 올라도 다음 데이터 요청에서 동의 화면으로 넘어간다.
   - 회원 의존성 없이 `RequireUser` 로만 사용자를 받는 라우트가 생기면
@@ -2016,7 +2022,7 @@ CDN·인라인 스크립트로 그려지므로 CSP 만 뺀다. 정적 웹(두 �
 세대(`users.token_version`, 처음 0)를 두고, 발급하는 접근·refresh 토큰에 그 값을 `tv`
 클레임으로 싣는다. 검증하는 쪽(`deps.py` 의 모든 의존성, `POST /auth/refresh`)은 토큰의
 세대가 계정의 지금 세대와 다르면 **무효한 토큰과 같이** 다룬다 — 엄격 의존성은 401,
-`CurrentUser` 는 무효 토큰과 같은 폴백 규칙, refresh 는 401 + `auth.refresh_stale` 감사 로그
+`CurrentUser` 도 무효 토큰과 같이 401(데모 폴백 없음, #3160), refresh 는 401 + `auth.refresh_stale` 감사 로그
 (그 `jti` 는 폐기 표에도 적는다). `tv` 가 없는 예전 토큰은 0세대로 읽으므로 배포만으로
 끊기는 세션은 없다. 정수가 아닌 `tv` 는 거부한다.
 
@@ -2210,10 +2216,10 @@ IP 를 바꿔 가며 한 계정을 노리는 시도는 계정 쪽 버킷이 막�
 
 | 의존성 | 토큰 없을 때 | 역할 제한 |
 |---|---|---|
-| `CurrentUser` | 환경에 따라 데모 사용자 폴백 또는 401 (아래) | 트레이너 계정이면 **403**. 필수 동의가 남은 회원이면 403 `consent_required` (#3088) |
+| `CurrentUser` | 환경에 따라 데모 사용자 폴백 또는 401 (아래). 토큰이 **있는데** 무효·만료면 항상 401 (#3160) | 트레이너 계정이면 **403**. 필수 동의가 남은 회원이면 403 `consent_required` (#3088) |
 | `RequireUser` | 401 | 없음 |
 | `RequireMember` | 401 | 회원만. 트레이너면 403. 필수 동의가 남았으면 403 `consent_required` (#3088) |
-| `RequireTrainer` | 401 | 트레이너만. 회원이면 403 |
+| `RequireTrainer` | 401 | 트레이너만. 회원이면 403. 필수 동의가 남았으면 403 `consent_required` (#3155) |
 | `RequireAdmin` | 401 | `is_admin` 아니면 403 |
 
 읽기 화면은 `CurrentUser`, 쓰기·삭제는 `RequireMember`, 트레이너 앱(`/v1/trainer/*`)은
@@ -2229,7 +2235,12 @@ IP 를 바꿔 가며 한 계정을 노리는 시도는 계정 쪽 버킷이 막�
 
 ### 데모 폴백은 환경으로 갈린다
 
-`CurrentUser` 에 유효한 토큰이 없을 때의 동작은 설정이 정한다 (`app/core/config.py`).
+`CurrentUser` 에 토큰이 **아예 없을** 때의 동작은 설정이 정한다 (`app/core/config.py`).
+
+토큰을 **보냈는데** 쓸 수 없으면(서명 불일치·만료·지난 세대·없는 사용자·비활성 계정) 폴백이
+켜져 있어도 **401** 이다(#3160). 스테이징에서 실계정 테스터의 접근 토큰이 만료되는 순간 데모 회원의
+기록이 보이던 문제를 막는다 — 401 을 받은 앱은 refresh 를 시도하고, 그것도 거부되면 운영과 같이
+로그인 화면으로 간다.
 
 ```python
 demo_fallback_enabled = allow_demo_fallback and not is_prod
@@ -2276,7 +2287,7 @@ CORS 와일드카드, 기본·짧은 `DEMO_LOGIN_PASSWORD` 로 켠 데모 시드
   관리자 지정·해제 `admin.grant`·`admin.revoke`(`target_user_id` 에 대상, `scripts/grant_admin.py`), 가입 인증 코드
   요청 `auth.signup_code_request`·확인 실패 `auth.signup_code_verify`(이메일은 키를 둔 해시만).
 - 보존 기간: 접속 기록 365일(`AUDIT_RETENTION_DAYS`), 열람·동의·탈퇴 기록 730일
-  (`AUDIT_SENSITIVE_RETENTION_DAYS`). 서버 기동 때 지난 기록을 정리한다.
+  (`AUDIT_SENSITIVE_RETENTION_DAYS`). 서버가 기동 때와 그 뒤 하루마다 지난 기록을 정리한다(#3144).
 
 ## 도메인 핵심 (놓치면 안 되는 차별점)
 

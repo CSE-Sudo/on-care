@@ -28,7 +28,9 @@ import 'package:oncare/features/my_health/presentation/controllers/my_health_con
 import 'package:oncare/features/my_health/presentation/widgets/account_reauth_dialog.dart';
 import 'package:oncare/features/notification/data/repositories/notification_settings_repository.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_core/legal_contact.dart';
+import 'package:oncare_core/licenses.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -162,14 +164,18 @@ Widget _listCard(List<Widget> children) => AppCard(
 /// 않아, 기본값이 내 설정인 것처럼 보이고 그대로 저장하면 서버에 있던 실제 값이
 /// 기본값으로 덮였다(#789). 읽지 못했으면 읽지 못했다고 말하고, 저장 자체를
 /// 막는 것이 맞다.
-Widget _loadFailed(BuildContext context, VoidCallback onRetry) {
+///
+/// 설명은 [error] 의 원인(연결·서버·권한)에서 고르고, 원인을 가릴 수 없을 때만
+/// 지금의 안내 문구로 떨어진다(#3140).
+Widget _loadFailed(BuildContext context, Object error, VoidCallback onRetry) {
   final AppLocalizations l = AppLocalizations.of(context);
   return KeyedSubtree(
     key: const Key('mySettingsRetry'),
-    child: AppErrorState(
+    child: appErrorStateFor(
+      context,
+      error: error,
       title: l.mySettingsLoadFailed,
       message: l.mySettingsLoadFailedBody,
-      retryLabel: l.actionRetry,
       onRetry: onRetry,
     ),
   );
@@ -218,8 +224,8 @@ class ProfileSettingsPage extends ConsumerWidget {
           _shell(context, l.myProfileTitle, const <Widget>[AppLoading()]),
       // 건강 목표와 같은 이유로 폼을 그리지 않는다 — 빈 프로필을 저장하면
       // 이름·연락처가 지워진다(#789).
-      error: (_, _) => _shell(context, l.myProfileTitle, <Widget>[
-        _loadFailed(context, () => ref.invalidate(profileProvider)),
+      error: (Object error, _) => _shell(context, l.myProfileTitle, <Widget>[
+        _loadFailed(context, error, () => ref.invalidate(profileProvider)),
       ]),
     );
   }
@@ -820,9 +826,10 @@ class HealthGoalsPage extends ConsumerWidget {
       data: (UserProfile p) => _GoalsForm(initial: p),
       loading: () =>
           _shell(context, l.myHealthGoalsTitle, const <Widget>[AppLoading()]),
-      error: (_, _) => _shell(context, l.myHealthGoalsTitle, <Widget>[
-        _loadFailed(context, () => ref.invalidate(profileProvider)),
-      ]),
+      error: (Object error, _) =>
+          _shell(context, l.myHealthGoalsTitle, <Widget>[
+            _loadFailed(context, error, () => ref.invalidate(profileProvider)),
+          ]),
     );
   }
 }
@@ -2042,6 +2049,15 @@ class SupportPage extends StatelessWidget {
         const AppDivider(),
         const LocationConsentRow(),
         const AppDivider(),
+        // 오픈소스 라이선스(#3150) — 의존 패키지와 앱에 담긴 Pretendard 글꼴의
+        // 고지. Flutter 기본 목록 화면을 앱 테마 그대로 연다.
+        _supportRow(
+          context,
+          AppIcons.info,
+          l.myOpenSourceLicensesTitle,
+          () => openOpenSourceLicenses(context),
+        ),
+        const AppDivider(),
         // 탈퇴는 MY 설정 목록 맨 끝이 아니라 여기다(#2019). 로그아웃 바로
         // 아래에 두면 빨간 글자 둘이 나란히 서서 어느 쪽이 되돌릴 수 없는
         // 동작인지 흐려진다. 약관·개인정보 다음, 계정을 정리하는 줄로 묶는다.
@@ -2100,6 +2116,21 @@ Future<void> _openExternal(BuildContext context, String url) async {
   if (!opened) {
     toast.show(l.mySupportOpenFailed, type: AppToastType.error);
   }
+}
+
+/// 오픈소스 라이선스 목록을 연다(#3150). 머리에는 앱 이름과, 읽었으면 버전을
+/// 싣는다 — 고객 지원 아래 버전 줄과 같은 값이다.
+void openOpenSourceLicenses(BuildContext context) {
+  final AppLocalizations l = AppLocalizations.of(context);
+  final String? version = ProviderScope.containerOf(
+    context,
+    listen: false,
+  ).read(appVersionProvider).valueOrNull;
+  showOnCareLicenses(
+    context,
+    applicationName: l.myAppName,
+    applicationVersion: version,
+  );
 }
 
 void _openLegal(BuildContext context, _LegalDoc doc) {

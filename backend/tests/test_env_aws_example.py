@@ -1,6 +1,7 @@
 """운영 환경변수 템플릿 `.env.aws.example` 이 설정과 어긋나지 않는지 — DB 불필요. (#3034)
 
-배포 담당은 이 템플릿으로 App Runner 환경변수를 채우고, 운영 체크리스트 첫 항목도
+배포 담당은 이 템플릿으로 운영 서비스(ECS Express Mode, `infra/backend-service.yml`)의
+환경변수·비밀을 채우고, 운영 체크리스트 첫 항목도
 "템플릿의 키를 모두 갖는다" 다. 새 설정 키를 `config.py` 에 넣고 템플릿을 빠뜨리면 그 키는
 아무도 모르는 채 개발 기본값으로 운영된다. 개발 예시(`.env.example`)는 103개 키를 모두
 적지만, 운영 템플릿은 읽을 수 있는 길이로 두려고 **기본값이 곧 운영값인 키는 일부러 뺀다.**
@@ -86,7 +87,8 @@ _AWS_INTENTIONALLY_OMITTED: dict[str, str] = {
 
 # 배포 과정이 넣는 키 — 템플릿에 적지 않는다. Settings 필드인지와 무관하게 허용한다.
 _AWS_INJECTED: dict[str, str] = {
-    "PORT": "App Runner 가 넣는다. scripts/start.sh 가 ${PORT:-8000} 으로 읽는다.",
+    "PORT": "플랫폼이 넣을 수 있는 값이다. ECS 는 ContainerPort 8000 을 쓰고, "
+    "scripts/start.sh 가 ${PORT:-8000} 으로 읽는다.",
     "GIT_SHA": "배포 워크플로가 이미지 빌드 인자로 넣는다(#3029).",
 }
 
@@ -110,6 +112,8 @@ _PROD_VALUES: dict[str, str] = {
     "FORCE_HTTPS": "true",
     "SECURITY_HEADERS": "true",
     "RATE_LIMIT_ENABLED": "true",
+    # 태스크·워커가 여럿이어도 한도가 하나이도록 공유 저장소에 센다(#3143).
+    "RATE_LIMIT_STORE": "database",
     "GYM_BENEFITS_ENABLED": "false",
     "EXPOSE_API_DOCS": "false",
     # auto 면 SMTP 를 빠뜨려도 조용히 꺼진다. smtp 로 두면 기동에서 드러난다(#3033).

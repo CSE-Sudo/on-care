@@ -11,10 +11,11 @@ ORM 모델 — 프론트 계약(LocalApiInterceptor + drift 스키마)에 맞춤
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     CheckConstraint,
     DateTime,
@@ -447,7 +448,7 @@ class DietEntry(Base):
     sugar_g: Mapped[float] = mapped_column(Float, default=0.0)
     engine: Mapped[str] = mapped_column(
         String(20), default=""
-    )  # 인식 엔진(gemini|yolo)
+    )  # 인식 엔진(gemini|litellm|stub)
     # 사진 분석이 만든 식단평(#1932). 앱이 끼니 카드 아래 한 줄로 보여 준다.
     # 손으로 적은 끼니와 이 컬럼 이전 기록은 빈 문자열이다.
     ai_comment: Mapped[str] = mapped_column(Text, default="", server_default="")
@@ -2918,4 +2919,31 @@ class AiCallUsage(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class RateLimitHit(Base):
+    """시도 제한 기록 한 번 — 분당 한도·로그인 실패 잠금·가입 한도를 센다. (#3143)
+
+    예전에는 프로세스 메모리에 셌다. 그래서 태스크·워커가 늘면 한도가 그 수만큼
+    느슨해지고, 재배포·재시작 때마다 로그인 잠금이 풀렸다. 이제 모든 태스크가 이 표
+    하나를 본다. 한 번 시도(또는 실패 잠금 버킷의 실패 한 번)가 한 행이고, `key` 는
+    `엔드포인트:IP`·`login-fail:<이메일>` 같은 버킷 이름이다.
+
+    창(window) 안의 행 수로 한도를 판정한다(메모리 구현과 같은 슬라이딩 창). 막힌
+    시도는 행을 남기지 않으므로 한 키의 행 수는 한도를 넘지 않는다. 판정과 기록은
+    키 단위 트랜잭션 잠금 안에서 하므로 여러 태스크가 동시에 세도 한도를 넘지 않는다.
+    `expires_at`(기록 시각 + 창)이 지난 행은 정리 대상이다.
+    """
+
+    __tablename__ = "rate_limit_hits"
+    __table_args__ = (
+        Index("ix_rate_limit_hits_key_hit_at", "key", "hit_at"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    key: Mapped[str] = mapped_column(Text, nullable=False)
+    hit_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
     )

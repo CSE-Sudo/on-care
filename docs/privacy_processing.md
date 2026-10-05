@@ -47,7 +47,8 @@
 | 탈퇴 사유 | 회원과 잇지 않은 사유 코드·시각만 | 개인정보 아님 | `account_deletion_reasons` |
 | 위치정보 이용 동의·철회 기록 | 탈퇴 시까지(철회해도 행은 남고 철회 시각만 적는다) | 위치기반서비스 이용약관 제5조 ③ | `user_consents` (`kind=location`) |
 
-기간이 지난 감사 기록은 서버가 기동할 때 지운다(`audit.purge_expired_best_effort`, `app/main.py`).
+기간이 지난 감사 기록은 서버가 기동할 때와 그 뒤 하루마다 지운다(`services/retention.py` `run_purge`,
+`app/main.py` lifespan, #3144). 재시작 없이 오래 도는 서버에서도 고지한 보관 기간을 하루 넘게 넘기지 않는다.
 
 ## 3. 파기 — 실제 동작
 

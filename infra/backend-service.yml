@@ -34,16 +34,20 @@ Parameters:
     Type: String
     Default: '2048'
     AllowedValues: ['512', '1024', '2048', '3072', '4096']
-  # 시도 제한(로그인 실패 잠금·가입 상한)은 프로세스 메모리에 있다(app/core/rate_limit.py).
-  # 태스크가 둘이 되면 한도가 두 배로 느슨해지므로 공유 저장소로 바꾸기 전까지 1 로 묶는다.
+  # 시도 제한(분당 한도·로그인 실패 잠금·가입 상한)은 Postgres 공유 표에 센다(RATE_LIMIT_STORE,
+  # #3143). 태스크가 늘어도 한도가 느슨해지지 않으므로 1~4 를 받는다. 기본은 1 이고, 늘릴 때는
+  # DB 연결 수((DB_POOL_SIZE + DB_MAX_OVERFLOW) × 워커 × 태스크)가 DB 플랜 상한 안인지 먼저 본다
+  # (backend/docs/DEPLOY.md). /v1/system/metrics 는 요청을 받은 태스크 하나의 값만 보여 준다.
   MinTaskCount:
     Type: Number
     Default: 1
-    AllowedValues: [1]
+    MinValue: 1
+    MaxValue: 4
   MaxTaskCount:
     Type: Number
     Default: 1
-    AllowedValues: [1]
+    MinValue: 1
+    MaxValue: 4
   CorsAllowOrigins:
     Type: String
     AllowedPattern: '^https://[^,*\s]+(,https://[^,*\s]+)*$'
@@ -52,9 +56,6 @@ Parameters:
     Type: String
     AllowedPattern: '^[a-z0-9][a-z0-9.-]*$'
     Description: Pinned Gemini model name (DEPLOY.md 5-3)
-  AdminEmails:
-    Type: String
-    Default: ''
   AppleClientIds:
     Type: String
     Default: ''
@@ -112,7 +113,6 @@ Mappings:
 
 Conditions:
   IsStaging: !Equals [!Ref EnvironmentName, staging]
-  HasAdminEmails: !Not [!Equals [!Ref AdminEmails, '']]
   HasAppleClientIds: !Not [!Equals [!Ref AppleClientIds, '']]
   HasGoogleClientIds: !Not [!Equals [!Ref GoogleClientIds, '']]
   HasKakaoAppId: !Not [!Equals [!Ref KakaoAppId, '']]
@@ -175,7 +175,8 @@ Resources:
           # ALB 하나 뒤다. X-Forwarded-For 를 오른쪽에서 첫 값으로 읽는다(#2815).
           - Name: TRUSTED_PROXY_HOPS
             Value: '1'
-          # 워커 하나 — 시도 제한·메트릭이 워커마다 따로라서(#2835).
+          # 워커 하나 — 메트릭(/v1/system/metrics)이 워커마다 따로라서(#2835). 시도 제한은 DB 공유
+          # 저장소라(#3143) 워커 수와 무관하다. 처리량은 워커 대신 태스크 수로 늘린다.
           - Name: WEB_CONCURRENCY
             Value: '1'
           - Name: ATTACHMENT_STORAGE
@@ -219,6 +220,9 @@ Resources:
             Value: 'true'
           - Name: RATE_LIMIT_ENABLED
             Value: 'true'
+          # 시도 제한을 Postgres 공유 표에 센다(#3143) — 태스크가 여럿이어도 한도가 하나다.
+          - Name: RATE_LIMIT_STORE
+            Value: database
           - Name: GYM_BENEFITS_ENABLED
             Value: 'false'
           - Name: EXPOSE_API_DOCS
@@ -235,11 +239,6 @@ Resources:
             Value: '365'
           - Name: AUDIT_SENSITIVE_RETENTION_DAYS
             Value: '730'
-          - !If
-            - HasAdminEmails
-            - Name: ADMIN_EMAILS
-              Value: !Ref AdminEmails
-            - !Ref AWS::NoValue
           - !If
             - HasAppleClientIds
             - Name: APPLE_CLIENT_IDS

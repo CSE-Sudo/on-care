@@ -18,6 +18,7 @@ import 'package:oncare/features/exercise/presentation/controllers/location_conse
 import 'package:oncare/features/exercise/presentation/widgets/gym_trainer_line.dart';
 import 'package:oncare/features/exercise/presentation/widgets/location_consent_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare/shared/widgets/member_tab_header.dart';
 import 'package:oncare_kakao_map/oncare_kakao_map.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -410,10 +411,11 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
       loading: () => const SliverToBoxAdapter(
         child: AppLoading(placement: AppStatePlacement.card),
       ),
-      error: (Object _, StackTrace _) => SliverToBoxAdapter(
-        child: AppErrorState(
+      error: (Object error, StackTrace _) => SliverToBoxAdapter(
+        child: appErrorStateFor(
+          context,
+          error: error,
           title: l.exGymsLoadError,
-          retryLabel: l.actionRetry,
           onRetry: () => ref.invalidate(gymFinderResultsProvider),
           placement: AppStatePlacement.card,
         ),

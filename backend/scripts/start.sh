@@ -35,9 +35,9 @@ if (( PORT < 1 || PORT > 65535 )); then
   exit 1
 fi
 
-# 워커 수(#2835). 기본 1 — 인메모리 rate limiter·메트릭은 워커마다 따로 세므로
-# 늘리면 분당 한도가 사실상 워커 수만큼 느슨해지고 /system/metrics 는 요청을 받은
-# 워커 하나의 값만 보여 준다(하루 상한처럼 DB 에서 세는 값은 영향 없음). DB 연결
+# 워커 수(#2835). 기본 1 — 메트릭은 워커마다 따로 세므로 늘리면 /system/metrics 는
+# 요청을 받은 워커 하나의 값만 보여 준다. 시도 제한은 RATE_LIMIT_STORE=database(운영
+# 기본)면 DB 공유 저장소라 영향이 없지만, memory 면 워커 수만큼 느슨해진다(#3143). DB 연결
 # 상한도 워커 수만큼 곱해진다 — 계산법은 docs/DEPLOY.md. 값은 배포 설정에서 정한다.
 WEB_CONCURRENCY="${WEB_CONCURRENCY:-1}"
 if ! [[ "${WEB_CONCURRENCY}" =~ ^[0-9]+$ ]] || (( 10#$WEB_CONCURRENCY < 1 )); then

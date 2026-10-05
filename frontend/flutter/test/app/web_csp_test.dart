@@ -118,15 +118,12 @@ void main() {
     });
 
     test('moved helpers ship next to index.html', () {
-      // index.html 은 글꼴 보정과 pdf.js 로더만 부른다. pdf.js 본체·워커는
-      // 로더가 `pdfjs/` 아래에서 올린다(#2818).
+      // index.html 은 pdf.js 로더만 부른다. pdf.js 본체·워커는 로더가
+      // `pdfjs/` 아래에서 올린다(#2818).
       final String loader = File(
         'web/js/pdfjs_loader.js',
       ).readAsStringSync();
-      for (final String path in <String>[
-        'web/js/font_fix.js',
-        'web/js/pdfjs_loader.js',
-      ]) {
+      for (final String path in <String>['web/js/pdfjs_loader.js']) {
         expect(File(path).existsSync(), isTrue, reason: path);
         expect(markup, contains(path.replaceFirst('web/', '')), reason: path);
       }
@@ -150,8 +147,12 @@ void main() {
       expect(markup, isNot(contains('src="flutter_bootstrap.js"')));
     });
 
-    test('font fix still runs from <head>', () {
-      expect(head, contains('src="js/font_fix.js"'));
+    test('no HTML-renderer font fix is shipped', () {
+      // 웹은 CanvasKit 으로만 그려 HTML 렌더러용 글꼴 보정은 효과가 없고,
+      // 스크립트는 열려 있는 내내 0.15초마다 문서를 조회했다(#3159).
+      expect(File('web/js/font_fix.js').existsSync(), isFalse);
+      expect(markup, isNot(contains('font_fix')));
+      expect(markup, isNot(contains('flt-glass-pane')));
     });
   });
 

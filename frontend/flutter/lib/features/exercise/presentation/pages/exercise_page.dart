@@ -24,6 +24,7 @@ import 'package:oncare/features/member_coach/presentation/widgets/trainer_chat_h
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare/shared/widgets/member_tab_header.dart';
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -295,9 +296,10 @@ class _RecordTabState extends ConsumerState<_RecordTab> {
       loading: () => const AppLoading(placement: AppStatePlacement.card),
       error: (Object e, StackTrace _) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s24),
-        child: AppErrorState(
+        child: appErrorStateFor(
+          context,
+          error: e,
           title: l.exLoadError,
-          retryLabel: l.actionRetry,
           onRetry: () => ref.invalidate(exerciseWeekProvider),
           placement: AppStatePlacement.card,
         ),
@@ -519,7 +521,7 @@ class _ExerciseSelectedDay extends ConsumerWidget {
           // 받지 못한 것을 "기록이 없어요" 로 말하지 않는다(#2635) — 이번 주
           // 오류와 같은 모양으로, 그 주를 다시 받을 자리를 준다.
           error: (Object e, StackTrace _) =>
-              _pastWeekError(context, ref, weekStart),
+              _pastWeekError(context, ref, weekStart, e),
           data: (ExerciseWeek week) =>
               _ExerciseDayDetail(week: week, date: date),
         );
@@ -527,14 +529,21 @@ class _ExerciseSelectedDay extends ConsumerWidget {
 }
 
 /// 지난 주를 받지 못했을 때. 이번 주 오류와 같은 문구·버튼이다. (#2635)
-Widget _pastWeekError(BuildContext context, WidgetRef ref, DateTime weekStart) {
+/// 설명은 [error] 의 원인에서 고른다(#3140).
+Widget _pastWeekError(
+  BuildContext context,
+  WidgetRef ref,
+  DateTime weekStart,
+  Object error,
+) {
   final AppLocalizations l = AppLocalizations.of(context);
   return Padding(
     padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s24),
-    child: AppErrorState(
+    child: appErrorStateFor(
+      context,
       key: const Key('exercisePastWeekError'),
+      error: error,
       title: l.exLoadError,
-      retryLabel: l.actionRetry,
       onRetry: () => ref.invalidate(exercisePastWeekProvider(weekStart)),
       placement: AppStatePlacement.card,
     ),

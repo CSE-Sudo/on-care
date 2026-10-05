@@ -2263,6 +2263,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myLegalPrivacyTitle => 'Privacy Policy';
 
   @override
+  String get myOpenSourceLicensesTitle => 'Open-source licenses';
+
+  @override
   String get myLegalTermsEffectiveDate => 'Effective Oct 3, 2026';
 
   @override
@@ -6160,4 +6163,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get releaseUpdateDismiss => 'Dismiss';
+
+  @override
+  String get errorNetworkUnstable =>
+      'The connection is unstable. Please check your network and try again.';
+
+  @override
+  String get errorServerTemporary =>
+      'The server is having a temporary problem. Please try again in a moment.';
 }

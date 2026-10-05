@@ -17,7 +17,7 @@
 API 는 쓰지 못한다. 계정은 만들되 동의 행이 없으므로 [pending_kinds] 가 필수
 항목을 모두 돌려주고, 앱은 로그인 직후 동의 화면을 거치게 한다. 화면을 거치지
 않고 부르면 회원 데이터·AI API 가 403 `consent_required` 로 막는다
-(`api/deps.py` 의 `ensure_member_consented`, #3088). 목록을 보냈는데 필수 항목이
+(`api/deps.py` 의 `ensure_consented`, #3088 · 트레이너 API 는 #3155). 목록을 보냈는데 필수 항목이
 빠졌다면 그것은 화면의 잘못이라 422 로 거절한다.
 
 국외 이전 동의는 따로 받지 않는다(#2820). 국외 이전(AWS·Neon 싱가포르, Gemini·Sentry 미국)은

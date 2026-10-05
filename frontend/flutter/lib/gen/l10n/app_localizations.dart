@@ -290,6 +290,24 @@ abstract class AppLocalizations {
   /// **'Too many requests right now. Please try again in a moment.'**
   String get errorRateLimited;
 
+  /// Connection lost or timed out — the member should check the network (#3140).
+  ///
+  /// In en, this message translates to:
+  /// **'Your connection looks unstable. Check your network and try again.'**
+  String get errorNetwork;
+
+  /// 5xx from the server: a temporary server problem the member cannot fix (#3140).
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong on our side. Please try again in a moment.'**
+  String get errorServer;
+
+  /// 400/422 without a usable server reason: the request was rejected (#3140).
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t process that request. Please check what you entered.'**
+  String get errorInvalidRequest;
+
   /// No description provided for @dashboardMetricCalories.
   ///
   /// In en, this message translates to:
@@ -3878,6 +3896,12 @@ abstract class AppLocalizations {
   /// **'Privacy Policy'**
   String get myLegalPrivacyTitle;
 
+  /// MY support row that opens the open-source license list (packages and the bundled Pretendard font, #3150).
+  ///
+  /// In en, this message translates to:
+  /// **'Open-source licenses'**
+  String get myOpenSourceLicensesTitle;
+
   /// No description provided for @myLegalTermsBody.
   ///
   /// In en, this message translates to:
@@ -5269,6 +5293,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Social sign-in is coming soon. Please sign in with your email'**
   String get authSocialComingSoon;
+
+  /// Title of the sign-in banner shown when a trainer account tries to sign in to the member app (#3137).
+  ///
+  /// In en, this message translates to:
+  /// **'This is a trainer account'**
+  String get authTrainerAccountTitle;
+
+  /// Body of the trainer-account sign-in banner. The issued tokens are discarded (#3137).
+  ///
+  /// In en, this message translates to:
+  /// **'The member app is for member accounts. Please sign in to the trainer web with your trainer account'**
+  String get authTrainerAccountMessage;
+
+  /// Banner action that opens the trainer web on the same origin. Shown on web builds only (#3137).
+  ///
+  /// In en, this message translates to:
+  /// **'Open trainer web'**
+  String get authTrainerAccountOpenWeb;
 
   /// No description provided for @signUpTitle.
   ///
