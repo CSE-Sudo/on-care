@@ -22,6 +22,8 @@ def _prod(**kw) -> Settings:
         gemini_api_key="test-gemini-key",
         recognizer="gemini",
         embedder="gemini",
+        # 운영은 장소 검색 키가 비면 오류 로그를 남긴다(#3161).
+        kakao_rest_api_key="test-kakao-rest-key",
         # 운영은 첨부를 S3 에 둬야 기동한다(#3029).
         attachment_s3_bucket="oncare-prod",
         # 운영은 소셜 토큰의 발급 앱을 확인한다(#3035). 비우면 그 provider 로그인을
@@ -29,6 +31,9 @@ def _prod(**kw) -> Settings:
         google_client_ids="test-google-client.apps.googleusercontent.com",
         kakao_app_id="1234567",
         apple_client_ids="com.example.oncare",
+        # 운영은 메일 발송 설정이 필수다 — 없으면 가입 인증 코드를 못 보내 기동 거부(#3131).
+        smtp_host="smtp.example.com",
+        mail_from="no-reply@example.com",
     )
     base.update(kw)
     return Settings(**base)

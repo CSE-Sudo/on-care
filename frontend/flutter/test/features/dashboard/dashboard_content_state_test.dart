@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
@@ -248,6 +249,75 @@ void main() {
 
     expect(find.text('대시보드 정보를 불러오지 못했어요.'), findsOneWidget);
     expect(find.text('다시 시도'), findsOneWidget);
+  });
+
+  group('오류 상태의 설명은 원인을 말한다 (#3140)', () {
+    Future<AppLocalizations> pumpFailing(
+      WidgetTester tester,
+      Object error, {
+      Locale locale = const Locale('ko'),
+    }) async {
+      await pumpDashboard(
+        tester,
+        load: () => Future<DashboardSummary>.error(error),
+        locale: locale,
+      );
+      await tester.pump();
+      await tester.pump();
+      return AppLocalizations.of(tester.element(find.byType(DashboardContent)));
+    }
+
+    testWidgets('연결이 끊기면 연결 확인 안내', (WidgetTester tester) async {
+      final AppLocalizations l = await pumpFailing(
+        tester,
+        const NetworkError(),
+      );
+
+      expect(find.text(l.homeDashboardLoadError), findsOneWidget);
+      expect(find.text(l.errorNetwork), findsOneWidget);
+      expect(find.text(l.errorServer), findsNothing);
+      expect(find.text(l.actionRetry), findsOneWidget);
+    });
+
+    testWidgets('서버가 5xx 면 일시 문제 안내', (WidgetTester tester) async {
+      final AppLocalizations l = await pumpFailing(
+        tester,
+        const ServerError(statusCode: 503),
+      );
+
+      expect(find.text(l.homeDashboardLoadError), findsOneWidget);
+      expect(find.text(l.errorServer), findsOneWidget);
+      expect(find.text(l.errorNetwork), findsNothing);
+    });
+
+    testWidgets('영어 화면도 원인별 영어 문구', (WidgetTester tester) async {
+      final AppLocalizations l = await pumpFailing(
+        tester,
+        const NetworkError(),
+        locale: const Locale('en'),
+      );
+
+      expect(find.text(l.errorNetwork), findsOneWidget);
+    });
+
+    testWidgets('다시 시도는 지금처럼 다시 받는다', (WidgetTester tester) async {
+      int loads = 0;
+      await pumpDashboard(
+        tester,
+        load: () {
+          loads++;
+          return Future<DashboardSummary>.error(const NetworkError());
+        },
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(loads, 1);
+
+      await tester.tap(find.text('다시 시도'));
+      await tester.pump();
+      await tester.pump();
+      expect(loads, 2);
+    });
   });
 
   testWidgets('shows empty state with zero values', (

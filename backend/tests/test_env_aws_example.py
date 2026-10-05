@@ -112,6 +112,8 @@ _PROD_VALUES: dict[str, str] = {
     "FORCE_HTTPS": "true",
     "SECURITY_HEADERS": "true",
     "RATE_LIMIT_ENABLED": "true",
+    # 태스크·워커가 여럿이어도 한도가 하나이도록 공유 저장소에 센다(#3143).
+    "RATE_LIMIT_STORE": "database",
     "GYM_BENEFITS_ENABLED": "false",
     "EXPOSE_API_DOCS": "false",
     # auto 면 SMTP 를 빠뜨려도 조용히 꺼진다. smtp 로 두면 기동에서 드러난다(#3033).

@@ -19,6 +19,7 @@ import 'package:oncare/features/member_coach/presentation/widgets/coach_report_o
 import 'package:oncare/features/member_coach/presentation/widgets/sent_weekly_feedback_card.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/weekly_feedback_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -44,12 +45,13 @@ class CoachReportsPage extends ConsumerWidget {
             child: AppLoading(placement: AppStatePlacement.card),
           ),
           // 피드백을 못 읽는 것이 리포트 목록을 막을 이유는 아니다 — 칸만 비운다.
-          error: (Object _, StackTrace _) => AppCard(
-            child: AppErrorState(
+          error: (Object error, StackTrace _) => AppCard(
+            child: appErrorStateFor(
+              context,
               // 읽기 실패다 — `보내지 못했어요` 로 안내하면 무엇을 다시 해야
               // 하는지 알 수 없다(#2643).
+              error: error,
               title: l.weeklyFeedbackLoadFailed,
-              retryLabel: l.actionRetry,
               onRetry: () => ref.invalidate(lastWeekFeedbackProvider),
               placement: AppStatePlacement.card,
             ),
@@ -66,11 +68,12 @@ class CoachReportsPage extends ConsumerWidget {
           loading: () => const AppCard(
             child: AppLoading(placement: AppStatePlacement.card),
           ),
-          error: (Object _, StackTrace _) => AppCard(
-            child: AppErrorState(
+          error: (Object error, StackTrace _) => AppCard(
+            child: appErrorStateFor(
+              context,
               // 목록을 읽지 못한 것이지 문서를 열지 못한 것이 아니다(#2643).
+              error: error,
               title: l.coachReportsLoadFailed,
-              retryLabel: l.actionRetry,
               onRetry: () => ref.invalidate(sentReportNoticesProvider),
               placement: AppStatePlacement.card,
             ),

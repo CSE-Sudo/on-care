@@ -6,6 +6,7 @@ import 'package:oncare/features/benefits/presentation/benefit_labels.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/benefits/presentation/widgets/benefit_cards.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 포인트 내역 — 무엇으로 얼마가 쌓이고 쓰였는가. (#2146)
@@ -29,6 +30,9 @@ class _PointsHistoryPageState extends ConsumerState<PointsHistoryPage> {
   bool _loading = true;
   bool _failed = false;
 
+  /// 그 실패의 오류 — 첫 쪽 오류 안내가 원인을 말한다(#3140).
+  Object? _error;
+
   /// 이어 받기(`더 보기`)가 실패했는가(#2641). 첫 쪽 실패와 달리 받아 둔 내역이
   /// 있어 카드 오류 상태를 그릴 자리가 없다 — 그래서 토스트로 알리고 버튼을
   /// `다시 시도` 로 바꾼다.
@@ -45,6 +49,7 @@ class _PointsHistoryPageState extends ConsumerState<PointsHistoryPage> {
     setState(() {
       _loading = true;
       _failed = false;
+      _error = null;
       _moreFailed = false;
     });
     try {
@@ -59,11 +64,12 @@ class _PointsHistoryPageState extends ConsumerState<PointsHistoryPage> {
         _nextBefore = page.nextBefore;
         _loading = false;
       });
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       setState(() {
         _loading = false;
         _failed = true;
+        _error = error;
         // 받아 둔 내역과 커서(`_nextBefore`)는 그대로 둔다 — 다시 누르면 같은
         // 자리부터 이어 받는다.
         _moreFailed = more;
@@ -112,9 +118,10 @@ class _PointsHistoryPageState extends ConsumerState<PointsHistoryPage> {
       if (_failed) {
         return <Widget>[
           AppCard(
-            child: AppErrorState(
+            child: appErrorStateFor(
+              context,
+              error: _error,
               title: l.myPointsHistoryLoadFailed,
-              retryLabel: l.actionRetry,
               onRetry: _load,
               placement: AppStatePlacement.card,
             ),

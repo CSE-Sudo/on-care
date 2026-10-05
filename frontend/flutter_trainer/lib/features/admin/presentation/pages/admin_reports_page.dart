@@ -4,8 +4,8 @@ import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/app/router/not_found_page.dart';
 import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/admin/data/repositories/admin_trainer_repository.dart';
 import 'package:oncare_trainer/features/admin/domain/entities/admin_report.dart';
 import 'package:oncare_trainer/features/admin/domain/entities/admin_trainer.dart';
@@ -143,10 +143,10 @@ class _ReportsSection extends ConsumerWidget {
             key: const ValueKey<String>('admin-reports-error'),
             placement: AppStatePlacement.card,
             title: l.adminReportsLoadFailed,
-            message: serverDetailOr(
+            message: appErrorMessage(
               l,
-              error is AppError ? error.message : null,
-              l.adminActionRetryLater,
+              error,
+              fallback: l.adminActionRetryLater,
             ),
             retryLabel: l.actionRetry,
             onRetry: () => ref.invalidate(adminReportsProvider),
@@ -401,10 +401,10 @@ class _TrainersSectionState extends ConsumerState<_TrainersSection> {
             key: const ValueKey<String>('admin-trainers-error'),
             placement: AppStatePlacement.card,
             title: l.adminTrainersLoadFailed,
-            message: serverDetailOr(
+            message: appErrorMessage(
               l,
-              error is AppError ? error.message : null,
-              l.adminActionRetryLater,
+              error,
+              fallback: l.adminActionRetryLater,
             ),
             retryLabel: l.actionRetry,
             onRetry: () => ref.invalidate(adminTrainersProvider),
@@ -557,7 +557,7 @@ mixin _AdminRunner<T extends ConsumerStatefulWidget> on ConsumerState<T> {
       if (!mounted) return;
       showAppToast(
         context,
-        serverDetailOr(l, e.message, l.adminActionFailed),
+        appErrorMessage(l, e, fallback: l.adminActionFailed),
         type: AppToastType.error,
       );
     } finally {
