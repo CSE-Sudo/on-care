@@ -20,6 +20,11 @@
     python -m scripts.import_food_nutrients --only 음식
     python -m scripts.import_food_nutrients --raw-dir C:/경로/raw
 
+`--only` 로 한 데이터셋만 다시 만들거나 원본이 없어 건너뛴 데이터셋이 있으면, 그
+데이터셋의 행은 **이미 있는 집계본에서 그대로 가져온다**(#3251). 예전에는 처리한
+데이터셋만으로 집계본을 통째로 덮어써 다른 데이터셋 행이 사라졌다. 처리한 데이터셋이
+하나도 없으면 집계본을 건드리지 않는다.
+
 원본(총 약 220MB)은 저장소에 넣지 않는다(`backend/data/raw/` 는 gitignore).
 이 스크립트가 만든 집계본만 커밋해 CI·팀원·배포가 같은 데이터를 쓴다.
 
@@ -764,6 +769,45 @@ def _sugar_within_carbs(sugar: float | None, carbs: float | None) -> float | Non
     return carbs
 
 
+def _existing_rows(
+    path: pathlib.Path, *, exclude: set[str]
+) -> dict[str, list[dict[str, object]]]:
+    """이미 있는 집계본의 행을 데이터셋별로. [exclude] 데이터셋은 뺀다(새로 만든다).
+
+    값은 읽은 문자열 그대로 둔다 — 다시 쓸 때 같은 글자로 나가야 다시 만들지 않은
+    데이터셋의 행이 diff 에 나오지 않는다.
+    """
+    if not path.exists():
+        return {}
+    out: dict[str, list[dict[str, object]]] = {}
+    with path.open(encoding="utf-8", newline="") as fh:
+        for row in csv.DictReader(fh):
+            dataset = row.get("source_dataset", "")
+            if dataset in exclude:
+                continue
+            out.setdefault(dataset, []).append(dict(row))
+    return out
+
+
+def merge_datasets(
+    fresh: dict[str, list[dict[str, object]]],
+    kept: dict[str, list[dict[str, object]]],
+) -> dict[str, dict[str, object]]:
+    """데이터셋 순서대로 합친다. 이름이 겹치면 앞선 데이터셋이 남는다. (#3251)
+
+    앞선 데이터셋이 우선한다(음식 > 가공식품 > 원재료성식품). 사용자가 사진으로 찍는
+    것에 가까운 순서다. 새로 만든 데이터셋([fresh])이 있으면 그것을, 없으면 기존
+    집계본의 그 데이터셋 행([kept])을 쓴다. 목록에 없는 데이터셋 이름의 기존 행은 맨
+    뒤에 둔다 — 버리면 손으로 고친 행이 소리 없이 사라진다.
+    """
+    order = [*_SOURCES, *(d for d in kept if d not in _SOURCES)]
+    merged: dict[str, dict[str, object]] = {}
+    for dataset in order:
+        for item in fresh.get(dataset, kept.get(dataset, [])):
+            merged.setdefault(str(item["name"]), item)
+    return merged
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -778,25 +822,24 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     wanted = (args.only,) if args.only else _SOURCES
-    merged: dict[str, dict[str, object]] = {}
+    fresh: dict[str, list[dict[str, object]]] = {}
     for dataset in wanted:
         path = _find_source(args.raw_dir, dataset)
         if path is None:
             print(f"건너뜀(파일 없음): {args.raw_dir / dataset}.*", file=sys.stderr)
             continue
         rows = _read(path)
-        aggregated = aggregate(rows, dataset)
-        # 앞선 데이터셋이 우선한다(음식 > 가공식품 > 원재료성식품). 사용자가
-        # 사진으로 찍는 것에 가까운 순서다.
-        added = 0
-        for item in aggregated:
-            if item["name"] not in merged:
-                merged[item["name"]] = item
-                added += 1
-        print(
-            f"{dataset}({path.name}): {len(rows)}행 → 대표식품 "
-            f"{len(aggregated)}종 (신규 {added})"
-        )
+        fresh[dataset] = aggregate(rows, dataset)
+        print(f"{dataset}({path.name}): {len(rows)}행 → 대표식품 {len(fresh[dataset])}종")
+    if not fresh:
+        print(f"처리한 데이터셋이 없어 {args.out} 를 그대로 둡니다.", file=sys.stderr)
+        return 1
+
+    kept = _existing_rows(args.out, exclude=set(fresh))
+    merged = merge_datasets(fresh, kept)
+    for dataset in _SOURCES:
+        if dataset in kept and kept[dataset]:
+            print(f"{dataset}: 기존 집계본의 {len(kept[dataset])}종 유지")
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("w", encoding="utf-8", newline="") as fh:
