@@ -1178,6 +1178,12 @@ abstract class AppLocalizations {
   /// **'No members match {filter}'**
   String clientsEmptyForFilter(String filter);
 
+  /// No description provided for @clientsEmptyForManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'No members match these filters'**
+  String get clientsEmptyForManagement;
+
   /// No description provided for @clientsMemberCount.
   ///
   /// In en, this message translates to:
@@ -3408,6 +3414,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pick an end date for the repeat.'**
   String get schedRepeatNeedsEndDate;
+
+  /// No description provided for @schedRepeatNoOccurrences.
+  ///
+  /// In en, this message translates to:
+  /// **'None of the chosen days fall within the repeat period. Change the days or the end date.'**
+  String get schedRepeatNoOccurrences;
+
+  /// No description provided for @schedNewNeedsClient.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no members yet. Connect a member before adding a session.'**
+  String get schedNewNeedsClient;
+
+  /// No description provided for @schedClientsLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading your members. Please try again in a moment.'**
+  String get schedClientsLoading;
 
   /// No description provided for @schedRepeatConflictTitle.
   ///

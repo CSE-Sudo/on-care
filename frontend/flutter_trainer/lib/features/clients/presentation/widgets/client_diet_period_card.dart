@@ -17,6 +17,7 @@ import 'package:oncare_trainer/shared/services/member_health_profile_provider.da
 import 'package:oncare_trainer/shared/widgets/chart_a11y_labels.dart';
 import 'package:oncare_trainer/shared/widgets/metric_trend_chart.dart'
     show MetricTrendChart;
+import 'package:oncare_trainer/shared/widgets/period_chart_selection_bounds.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 고객의 기간 영양 추이 — 회원 앱 식단 탭 기간 뷰와 **같은 것**을 트레이너에게.
@@ -271,7 +272,11 @@ class _Body extends StatelessWidget {
               builder: (BuildContext context, Widget? _) {
                 // 평소에는 **보이는 구간의** 평균, 날을 고르면 그날의 값.
                 // 이번 주도 점을 골라 그날 값을 볼 수 있다 (회원 앱 #1122).
-                final int? picked = selection.selected;
+                // 다시 읽은 배열이 짧아져 고른 칸이 범위를 벗어나면 고르지
+                // 않은 것으로 본다(#3249) — `values[picked]` 가 RangeError 였다.
+                final int? picked = selection.selectedWithin(
+                  math.min(values.length, dates.length),
+                );
                 final double value = picked == null
                     ? selection.averageOf(values)
                     : values[picked];
@@ -393,7 +398,7 @@ class _Body extends StatelessWidget {
                         dayLabels: days,
                         goal: goal,
                         ticks: ticks,
-                        selectedIndex: selection.selected,
+                        selectedIndex: selection.selectedWithin(values.length),
                         onSelected: selection.select,
                         // 선은 오늘까지만 잇는다. 아직 오지 않은 요일의 0 이
                         // 급락처럼 보이면 안 된다.
@@ -740,7 +745,7 @@ class _PeriodBars extends StatelessWidget {
             height: chartHeight,
             // 한 화면 칸 수가 회원 앱과 같아야 `하루 평균` 이 같은 구간을 센다.
             daysPerScreen: _allDaysPerScreen,
-            selectedIndex: selection.selected,
+            selectedIndex: selection.selectedWithin(values.length),
             onSelected: selection.select,
             onVisibleRangeChanged: selection.setVisible,
             // 되감을 일이 없다 — 처음 한 번만 바닥에서 자란다. 날을 고르는

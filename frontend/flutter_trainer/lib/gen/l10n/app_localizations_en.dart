@@ -609,6 +609,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get clientsEmptyForManagement => 'No members match these filters';
+
+  @override
   String clientsMemberCount(int total) {
     return '$total members';
   }
@@ -1938,6 +1941,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedRepeatNeedsEndDate => 'Pick an end date for the repeat.';
+
+  @override
+  String get schedRepeatNoOccurrences =>
+      'None of the chosen days fall within the repeat period. Change the days or the end date.';
+
+  @override
+  String get schedNewNeedsClient =>
+      'You have no members yet. Connect a member before adding a session.';
+
+  @override
+  String get schedClientsLoading =>
+      'Loading your members. Please try again in a moment.';
 
   @override
   String schedRepeatConflictTitle(int total, int count) {

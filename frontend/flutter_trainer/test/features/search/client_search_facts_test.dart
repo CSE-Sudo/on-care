@@ -79,6 +79,30 @@ void main() {
       expect(map['c1']!.time, '11:00');
     });
 
+    // 정리하지 않은 오늘 아침 `예정` 이 저녁에도 다음 예약으로 떴다(#3249).
+    test('지금을 주면 이미 시작한 예정은 다음 예약이 아니다', () {
+      final map = nextSessionsByClient(
+        <TrainerClient>[minsu],
+        <ScheduleSession>[
+          session(date: '2026-08-13', time: '09:00', clientId: 'c1'),
+          session(date: '2026-08-13', time: '19:00', clientId: 'c1'),
+        ],
+        now: DateTime(2026, 8, 13, 18),
+      );
+
+      expect(map['c1']!.time, '19:00');
+      expect(
+        nextSessionsByClient(
+          <TrainerClient>[minsu],
+          <ScheduleSession>[
+            session(date: '2026-08-13', time: '09:00', clientId: 'c1'),
+          ],
+          now: DateTime(2026, 8, 13, 18),
+        ),
+        isEmpty,
+      );
+    });
+
     test('동명이인에게 clientId 없는 예약을 임의 연결하지 않는다', () {
       final anotherMinsu = makeClient(id: 'c3', name: ' 김민수 ');
       final map = nextSessionsByClient(

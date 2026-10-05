@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_invite_repository.dart';
+import 'package:oncare_trainer/features/clients/presentation/controllers/roster_view.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_connect_dialog.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -99,6 +100,25 @@ void main() {
     expect(find.byKey(_empty), findsOneWidget);
     expect(find.byKey(_emptyConnect), findsNothing);
     expect(find.textContaining(_hintKo), findsNothing);
+  });
+
+  // 관리 필터만 건 0명이 "아직 담당 회원이 없어요" 로 보였다(#3249).
+  testWidgets('관리 필터로 걸러진 0명은 담당 회원이 없다고 하지 않는다', (tester) async {
+    await _pumpEmpty(
+      tester,
+      extra: <Override>[
+        rosterViewProvider.overrideWith(
+          (ref) => const RosterView(
+            filters: <RosterManagementFilter>{RosterManagementFilter.noShow},
+          ),
+        ),
+      ],
+    );
+
+    expect(find.byKey(_empty), findsOneWidget);
+    expect(find.text('아직 담당 회원이 없어요'), findsNothing);
+    expect(find.text('조건에 맞는 회원이 없어요'), findsOneWidget);
+    expect(find.byKey(_emptyConnect), findsNothing);
   });
 
   testWidgets('회원이 있으면 빈 상태가 없다', (tester) async {

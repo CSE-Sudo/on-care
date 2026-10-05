@@ -118,6 +118,13 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
   void didUpdateWidget(ClientDetailView old) {
     super.didUpdateWidget(old);
     if (old.clientId != widget.clientId) _startSync();
+    // 회원을 오가도 이 State 는 그대로 쓰인다. 연 창의 표시를 풀지 않으면 다음
+    // 알림(다른 회원이든 같은 회원이든)이 창을 열지 못했다(#3249). 요청이
+    // 사라졌거나(연 뒤 주소에서 `open` 을 지웠다) 회원이 바뀌면 다시 열 수 있다.
+    if (old.clientId != widget.clientId ||
+        !(widget.openHealthNotes || widget.openFeedback)) {
+      _openedHealthNotes = false;
+    }
   }
 
   @override

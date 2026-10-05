@@ -382,6 +382,7 @@
       }
     }
   },
+  "clientsEmptyForManagement": "No members match these filters",
   "clientsMemberCount": "{total} members",
   "@clientsMemberCount": {
     "placeholders": {
@@ -1369,6 +1370,9 @@
   },
   "schedRepeatNeedsDays": "Pick at least one weekday.",
   "schedRepeatNeedsEndDate": "Pick an end date for the repeat.",
+  "schedRepeatNoOccurrences": "None of the chosen days fall within the repeat period. Change the days or the end date.",
+  "schedNewNeedsClient": "You have no members yet. Connect a member before adding a session.",
+  "schedClientsLoading": "Loading your members. Please try again in a moment.",
   "schedRepeatConflictTitle": "{count} of {total} sessions clash",
   "@schedRepeatConflictTitle": {
     "placeholders": {

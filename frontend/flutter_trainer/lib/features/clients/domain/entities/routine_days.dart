@@ -5,6 +5,8 @@
 /// 과 프로그램 화면 `개인운동 이행` 카드가 이 값 하나를 읽는다.
 library;
 
+import 'package:oncare_core/clock.dart';
+
 /// 그날 걸린 개인운동 하나의 결과.
 enum RoutineDayStatus {
   /// 그날 완료.
@@ -89,7 +91,13 @@ class RoutineDayRoutine {
   final String effect;
 
   /// 회원 목록에 뜨는 마지막 날. 기한이 없으면 null.
-  DateTime? get lastDay => endedOn?.subtract(const Duration(days: 1));
+  ///
+  /// 달력의 전날이다(#3249) — 24시간을 빼면 서머타임이 바뀌는 날 기기 시간대에서
+  /// 전날 23:00 이 되어 날짜가 하루 어긋난다.
+  DateTime? get lastDay => switch (endedOn) {
+    final DateTime end => addCalendarDays(end, -1),
+    null => null,
+  };
 
   /// [day] 에 회원 목록에 걸려 있었는가.
   bool activeOn(DateTime day) {

@@ -210,6 +210,7 @@
   "clientsEmpty": "아직 담당 회원이 없어요",
   "clientsEmptyConnectHint": "연결 코드를 받거나 담당 요청을 보내 회원을 연결하세요. 회원이 상담을 신청하면 상담 요청함에도 표시돼요.",
   "clientsEmptyForFilter": "{filter}에 해당하는 회원이 없어요",
+  "clientsEmptyForManagement": "조건에 맞는 회원이 없어요",
   "clientsMemberCount": "{total}명",
   "clientsMemberCountFiltered": "{total}명 중 {shown}명",
   "clientWeeklyRoutineAdherence": "주간 이행률",
@@ -862,6 +863,9 @@
   },
   "schedRepeatNeedsDays": "반복할 요일을 골라 주세요.",
   "schedRepeatNeedsEndDate": "반복 종료일을 골라 주세요.",
+  "schedRepeatNoOccurrences": "고른 요일이 반복 기간 안에 없어요. 요일이나 종료일을 바꿔 주세요.",
+  "schedNewNeedsClient": "담당 회원이 없어 일정을 만들 수 없어요. 회원을 먼저 연결해 주세요.",
+  "schedClientsLoading": "회원 목록을 불러오는 중이에요. 잠시 후 다시 눌러 주세요.",
   "schedRepeatConflictTitle": "총 {total}회 중 {count}개의 일정이 겹칩니다",
   "@schedRepeatConflictTitle": {
     "placeholders": {

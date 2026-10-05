@@ -21,6 +21,7 @@ import 'package:oncare_trainer/shared/services/member_health_profile_provider.da
 // 대응이 없어 앱 위젯을 그대로 쓴다. BurnBarChart 가 받는 선택 상태도 그 앱
 // 쪽 [PeriodChartSelection] 이라 이것만 가져온다.
 import 'package:oncare_trainer/shared/widgets/activity_charts.dart';
+import 'package:oncare_trainer/shared/widgets/period_chart_selection_bounds.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 데이터를 받는 동안 비워 두는 높이 — 받은 뒤의 그래프 자리와 크게 어긋나지
@@ -118,7 +119,11 @@ class ClientExerciseStatusCard extends ConsumerWidget {
             ),
             data: (ClientExercisePeriod data) => period == ClientPeriod.today
                 ? _Today(clientId: clientId, period: data, goals: goals)
-                : _Range(period: data, goals: goals),
+                : _Range(
+                    period: data,
+                    goals: goals,
+                    all: period == ClientPeriod.month,
+                  ),
           ),
           if (showRecords) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s12),
@@ -443,9 +448,13 @@ class _Today extends ConsumerWidget {
 }
 
 class _Range extends StatefulWidget {
-  const _Range({required this.period, required this.goals});
+  const _Range({required this.period, required this.goals, required this.all});
 
   final ClientExercisePeriod period;
+
+  /// `전체` 인가. 칸 수로 가르면 지난주에 시작한 회원의 `전체`(8~10일)가 주간
+  /// 링과 `이번 주 소모` 제목으로 그려졌다(#3249) — 고른 기간으로 가른다.
+  final bool all;
 
   /// 회원의 목표 — 링의 주간 목표와 `전체` 의 주간 소모 목표선(#2157).
   final ExerciseBurnGoals goals;
@@ -472,7 +481,7 @@ class _RangeState extends State<_Range> {
     final ClientExercisePeriod period = widget.period;
     final ExerciseBurnGoals goals = widget.goals;
     final List<ClientExerciseDay> days = period.days;
-    final bool all = days.length > 10;
+    final bool all = widget.all;
 
     // `이번 주` 는 유형별 주간 목표를 채우는 3중 링이다 — 회원 앱과 같다.
     if (!all) {
@@ -508,7 +517,8 @@ class _RangeState extends State<_Range> {
           ListenableBuilder(
             listenable: _selection,
             builder: (BuildContext context, Widget? _) {
-              final int? picked = _selection.selected;
+              // 다시 읽은 기간이 짧아지면 고른 칸이 범위를 벗어난다(#3249).
+              final int? picked = _selection.selectedWithin(weeks.length);
               final _WeekBucket? week = picked == null ? null : weeks[picked];
               final (int first, int last) =
                   _selection.visible ?? (0, weeks.length - 1);

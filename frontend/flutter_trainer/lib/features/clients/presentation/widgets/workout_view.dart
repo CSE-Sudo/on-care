@@ -341,7 +341,8 @@ class _DailyExerciseRecordsState extends ConsumerState<_DailyExerciseRecords> {
           if (day == null) return const SizedBox.shrink();
           final List<RoutineHistoryEntry> dayEntries =
               byDate[ymd(day.date)] ?? const <RoutineHistoryEntry>[];
-          final bool logged = day.minutes > 0 || dayEntries.isNotEmpty;
+          // 칼로리만 남긴 날도 기록한 날이다(#3249) — 시간만 보면 `기록 없음` 이 됐다.
+          final bool logged = day.logged || dayEntries.isNotEmpty;
           if (!logged && routines.isEmpty) {
             return withUndated(
               AppCard(
@@ -386,8 +387,9 @@ class _DailyExerciseRecordsState extends ConsumerState<_DailyExerciseRecords> {
                       byDate[ymd(day.date)] ?? const <RoutineHistoryEntry>[];
                   // 집계는 0 인데 이력은 있는 날이 있다 — 스케줄에서 세션을 완료
                   // 처리하면 이력이 먼저 생기고 하루 집계는 아직 0 이다. 시간만
-                  // 보고 접어 두면 방금 남긴 기록이 갈 곳을 잃는다(#1025).
-                  final bool logged = day.minutes > 0 || dayEntries.isNotEmpty;
+                  // 보고 접어 두면 방금 남긴 기록이 갈 곳을 잃는다(#1025). 칼로리만
+                  // 남긴 날도 기록한 날이다(#3249, [ClientExerciseDay.logged]).
+                  final bool logged = day.logged || dayEntries.isNotEmpty;
                   final bool today = widget.period == ClientPeriod.today;
                   return ClientDayRecordTile(
                     date: day.date,

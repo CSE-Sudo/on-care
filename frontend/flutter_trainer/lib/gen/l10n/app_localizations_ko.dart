@@ -590,6 +590,9 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get clientsEmptyForManagement => '조건에 맞는 회원이 없어요';
+
+  @override
   String clientsMemberCount(int total) {
     return '$total명';
   }
@@ -1855,6 +1858,16 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get schedRepeatNeedsEndDate => '반복 종료일을 골라 주세요.';
+
+  @override
+  String get schedRepeatNoOccurrences =>
+      '고른 요일이 반복 기간 안에 없어요. 요일이나 종료일을 바꿔 주세요.';
+
+  @override
+  String get schedNewNeedsClient => '담당 회원이 없어 일정을 만들 수 없어요. 회원을 먼저 연결해 주세요.';
+
+  @override
+  String get schedClientsLoading => '회원 목록을 불러오는 중이에요. 잠시 후 다시 눌러 주세요.';
 
   @override
   String schedRepeatConflictTitle(int total, int count) {

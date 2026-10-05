@@ -569,6 +569,32 @@ void main() {
         expect(await _onDate(tester, backend, '2026-08-24'), hasLength(1));
       });
 
+      // 겹친 회차 목록은 그 입력의 이야기다 — 입력을 바꿔도 남아 있으면 지금
+      // 회차와 상관없는 충돌을 말한다(#3249).
+      testWidgets('충돌 배너는 입력을 바꾸면 내려간다', (tester) async {
+        final backend = await entry.value();
+        final flaky = _Flaky(backend.repo)..loseNextAddResponse = true;
+        await _pumpSheet(tester, flaky, date: '2026-08-24');
+        await tester.tap(find.byKey(const ValueKey<String>('repeat-weekly')));
+        await _settle(tester);
+        await _tapSave(tester, label: '추가');
+        await tester.enterText(
+          find.descendant(
+            of: find.byKey(const ValueKey<String>('schedule-trainer-note')),
+            matching: find.byType(EditableText),
+          ),
+          '하체 위주',
+        );
+        await tester.pump();
+        await _tapSave(tester, label: '추가');
+        expect(find.byType(SessionRepeatConflicts), findsOneWidget);
+
+        _pickClient(tester, 'seed-client-2');
+        await _settle(tester);
+
+        expect(find.byType(SessionRepeatConflicts), findsNothing);
+      });
+
       testWidgets('되돌리기만 반영된 재시도는 되돌리기를 다시 보내지 않는다', (tester) async {
         final backend = await entry.value();
         final json = _sessionJson(
