@@ -1623,20 +1623,20 @@ N명이면 첫 화면에서 요청이 2N개였다.
 
 ### 소셜 로그인 실패 응답 (#1550)
 
-`POST /auth/social/{provider}` 는 provider(google·kakao, naver 는 아래 #3035 절)에 토큰을 확인한 뒤
+`POST /auth/social/{provider}` 는 provider(google·kakao)에 토큰을 확인한 뒤
 결과에 따라 아래처럼 답한다. **500 은 내지 않는다** — provider 점검 페이지·WAF 차단 화면처럼
 200 에 HTML 이 오거나, JSON 이 깨졌거나, 약속한 필드의 타입이 달라도 마찬가지다.
 
 | 상황 | 상태 | `detail` |
 |---|---|---|
-| 지원하지 않는 provider(`apple` 포함, #3218) | **400** | `지원하지 않는 소셜 로그인입니다.` |
+| 지원하지 않는 provider(`naver`·`apple` 포함, #3218) | **400** | `지원하지 않는 소셜 로그인입니다.` |
 | 토큰 거절(provider 가 200 아닌 응답)·요청 실패(연결·타임아웃)·필수 사용자 id 누락 | **401** | `소셜 인증에 실패했습니다.` |
 | provider 응답 형식 이상 — JSON 이 아님(HTML·깨진 JSON·빈 본문), JSON 객체가 아님(배열·문자열·숫자·null), 필드 타입 이상(id 가 객체·bool 등, 하위 객체가 배열 등) | **502** | `소셜 로그인 제공자의 응답을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.` |
 | 검증 중 예상하지 못한 예외 | **502** | 위와 같음 |
 
 - 401 은 "이 토큰으로는 로그인할 수 없다", 502 는 "provider 쪽이 지금 제대로 답하지 않는다"
   이다. 앱은 502 를 잠시 뒤 재시도할 일로 다루면 된다.
-- 선택 필드(이메일·이름·kakao `kakao_account`/`profile`·naver `response`)는 없거나 `null` 이면
+- 선택 필드(이메일·이름·kakao `kakao_account`/`profile`)는 없거나 `null` 이면
   빈 값으로 받는다. 있는데 타입이 다르면 형식 이상(502)이다. kakao id 는 정수로 와도 문자열로
   저장한다.
 - 401·502 모두 실패 감사 로그(`auth.social`, `success=false`, `detail`=provider)를 남긴다.
@@ -1651,12 +1651,12 @@ provider 가 "유효한 토큰"이라고 답해도, 그 토큰이 **우리 앱 �
 |---|---|---|
 | google | tokeninfo 의 `aud` 가 허용 목록 안, `iss` 가 `accounts.google.com`·`https://accounts.google.com`, `exp` 가 미래 | `GOOGLE_CLIENT_IDS`(콤마 구분) |
 | kakao | `GET /v1/user/access_token_info` 의 `app_id` 가 설정값과 같고, 그 `id` 가 `/v2/user/me` 의 `id` 와 같음(토큰 정보가 맞을 때만 사용자 정보를 부른다) | `KAKAO_APP_ID` |
-| naver | 앱이 보낸 access_token 의 발급 앱을 확인할 수단이 없다. 서버 측 코드 교환 전까지 **501** `아직 지원하지 않는 소셜 로그인입니다.`(네이버로 요청도 보내지 않는다) | — |
 
 - 발급 앱·발급자 불일치, 만료, 두 응답의 id 불일치는 위 표의 **401** `소셜 인증에 실패했습니다.` 와 같다.
   어느 검사에서 떨어졌는지는 서버 로그에만 남기고, 값(토큰·client_id·응답 본문)은 남기지 않는다.
-- 애플 로그인은 제공하지 않는다(#3218). 유료 Apple Developer Program 을 쓰지 않기로 해 검증기와
-  `APPLE_CLIENT_IDS` 설정을 지웠고, `POST /auth/social/apple` 은 모르는 provider 와 같은 **400** 이다.
+- 네이버·애플 로그인은 제공하지 않는다(#3218). 애플은 유료 Apple Developer Program 을 쓰지 않기로 했고
+  네이버도 함께 접었다. 두 검증기와 `APPLE_CLIENT_IDS` 설정을 지웠고, `POST /auth/social/naver`·`/apple` 은
+  모르는 provider 와 같은 **400** 이다(네이버가 쓰던 501 은 "지원 예정"이라는 뜻이라 쓰지 않는다).
   `social_accounts.provider` 는 자유 문자열이라 스키마 변경은 없다.
 - 허용 설정이 비어 있으면 그 provider 는 외부 호출 없이 **401** 이다(조용히 통과시키지 않는다). 기동
   점검이 비어 있는 provider 를 경고 로그로 남긴다.
