@@ -91,6 +91,7 @@ def test_production_frontend_rejects_staging_backend() -> None:
 # 배포 역할이 믿는 Environment(템플릿) 밖에서 쓰는 Environment — 사유와 함께.
 _NON_AWS_ENVIRONMENTS = {
     "github-pages": "데모 Pages 배포(deploy.yml). AWS 역할을 받지 않는다.",
+    "mobile-release": "회원 앱 서명 빌드(member-app-release.yml). 서명 비밀만 두고 AWS 역할을 받지 않는다(#3148).",
 }
 
 
