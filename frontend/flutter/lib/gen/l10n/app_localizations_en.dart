@@ -3791,6 +3791,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachRoutineAiTitle => 'AI-recommended personal exercises';
 
   @override
+  String coachUpcomingDate(int month, int day, String weekday) {
+    return '$weekday $month/$day';
+  }
+
+  @override
+  String coachUpcomingStarts(String date) {
+    return 'From $date';
+  }
+
+  @override
+  String coachUpcomingMore(int count) {
+    return '+$count more';
+  }
+
+  @override
   String get coachRoutinePastEditHint =>
       'You can add a missed check now. Your trainer will see it as checked later.';
 

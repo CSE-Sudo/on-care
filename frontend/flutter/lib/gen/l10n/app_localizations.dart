@@ -6499,6 +6499,24 @@ abstract class AppLocalizations {
   /// **'AI-recommended personal exercises'**
   String get coachRoutineAiTitle;
 
+  /// Start date in the upcoming personal exercise line under today's list (#3106). ko: 8/22(토), en: Sat 8/22.
+  ///
+  /// In en, this message translates to:
+  /// **'{weekday} {month}/{day}'**
+  String coachUpcomingDate(int month, int day, String weekday);
+
+  /// Start of the upcoming line — personal exercises a trainer sent with a future start date (#3106). Shown in the accent color.
+  ///
+  /// In en, this message translates to:
+  /// **'From {date}'**
+  String coachUpcomingStarts(String date);
+
+  /// Folds the rest of the upcoming exercise names after the first three (#3106).
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} more'**
+  String coachUpcomingMore(int count);
+
   /// Shown after tapping the pencil on a past day's recommended exercises — past checks are allowed and marked as late for the trainer (#2506).
   ///
   /// In en, this message translates to:

@@ -2715,6 +2715,29 @@
   },
   "coachRoutineTitle": "Recommended personal exercises",
   "coachRoutineAiTitle": "AI-recommended personal exercises",
+  "coachUpcomingDate": "{weekday} {month}/{day}",
+  "@coachUpcomingDate": {
+    "description": "Start date in the upcoming personal exercise line under today's list (#3106). ko: 8/22(토), en: Sat 8/22.",
+    "placeholders": {
+      "month": {"type": "int", "example": "8"},
+      "day": {"type": "int", "example": "22"},
+      "weekday": {"type": "String", "example": "Sat"}
+    }
+  },
+  "coachUpcomingStarts": "From {date}",
+  "@coachUpcomingStarts": {
+    "description": "Start of the upcoming line — personal exercises a trainer sent with a future start date (#3106). Shown in the accent color.",
+    "placeholders": {
+      "date": {"type": "String", "example": "Sat, Aug 22"}
+    }
+  },
+  "coachUpcomingMore": "+{count} more",
+  "@coachUpcomingMore": {
+    "description": "Folds the rest of the upcoming exercise names after the first three (#3106).",
+    "placeholders": {
+      "count": {"type": "int", "example": "1"}
+    }
+  },
   "coachRoutinePastEditHint": "You can add a missed check now. Your trainer will see it as checked later.",
   "@coachRoutinePastEditHint": {
     "description": "Shown after tapping the pencil on a past day's recommended exercises — past checks are allowed and marked as late for the trainer (#2506)."
