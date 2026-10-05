@@ -4,9 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
+import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/routine_days_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_days.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_routine_status.dart';
+import 'package:oncare_trainer/features/coaching/data/demo_routine_store.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
@@ -356,28 +358,10 @@ void main() {
         token: 'demo-trainer-token',
         seedClock: kMidWeekKst,
       );
-      await c.read(trainerRoutineRepositoryProvider).assignProgram(
-        'seed-client-10',
-        <String, Object?>{
-          'name': '이번 주 개인운동',
-          'delivery_kind': 'routine_only',
-          'start_date': '2026-08-18',
-          'active_days': 7,
-          'sessions': <Object?>[
-            <String, Object?>{
-              'name': '빠르게 걷기',
-              'exercises': <Object?>[
-                <String, Object?>{
-                  'name': '빠르게 걷기',
-                  'type': '유산소',
-                  'duration': 30,
-                  'effect': '체지방 감량에 도움',
-                },
-              ],
-            },
-          ],
-        },
-      );
+      // 신유나는 이번 주 수요일(8/19)에 처음 개인운동을 받았다(#2508 시드).
+      final List<AssignedRoutine> seeded = await DemoRoutineStore(
+        c.read(appDatabaseProvider),
+      ).assigned('seed-client-10');
       await goTo(
         tester,
         AppRoutes.clientDetail('seed-client-10', section: 'workout'),
@@ -390,16 +374,16 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.textContaining('8/18(화) 보냄 · 8/24(월)까지', findRichText: true),
+        find.textContaining('8/19(수) 보냄 · 8/23(일)까지', findRichText: true),
         findsOneWidget,
       );
       expect(
-        find.textContaining('체지방 감량에 도움', findRichText: true),
+        find.textContaining(seeded.first.effect, findRichText: true),
         findsWidgets,
       );
       // 신유나는 목요일에 개인운동 셋 중 둘을 했다(#3003). 오늘 운동 행에 있는
-      // 개인운동은 한 것, 방금 보낸 것은 아직이다 — 데모도
-      // 실서버처럼 체크가 운동 행을 남긴 만큼만 한 것으로 센다(#2508).
+      // 개인운동은 한 것, 나머지는 아직이다 — 데모도 실서버처럼 체크가 운동
+      // 행을 남긴 만큼만 한 것으로 센다(#2508).
       Finder rowsStarting(String prefix) => find.byWidgetPredicate(
         (Widget w) =>
             w.key is ValueKey<String> &&

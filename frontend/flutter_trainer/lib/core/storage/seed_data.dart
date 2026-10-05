@@ -32,6 +32,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 // lives next door. `part` keeps the `_Client` family private to this
 // library rather than making the shapes public just to split a file.
 part 'seed_clients.dart';
+part 'seed_rings.dart';
 part 'seed_text_en.dart';
 part 'seed_workouts.dart';
 
@@ -41,6 +42,10 @@ part 'seed_workouts.dart';
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
+///
+/// `_v54` 는 회원별 개인운동·운동 기록을 실서버 시드와 맞추고(#3003), 회원마다
+/// 받은 개인운동 기간 수를 다르게 심었다(#2508, `seed_rings.dart`). 올리지 않으면
+/// 오늘 이미 시드된 브라우저의 운동 탭 `전체` 에 링이 하나도 없다.
 ///
 /// `_v51` 은 이번 주 이행률 계열의 뜻을 바꿨다(#2513) — 걸린 것이 없는 날과
 /// 아직 오지 않은 날은 null, 0 은 "걸렸는데 하나도 안 했다" 다. 올리지 않으면
@@ -1609,7 +1614,10 @@ Iterable<_SeedDay> _seedDays(_Client client, DateTime now) sync* {
     final calorieFactor = _calorieFactors[back % _calorieFactors.length];
     final sodiumFactor = _sodiumFactors[back % _sodiumFactors.length];
     final sugarFactor = _sugarFactors[back % _sugarFactors.length];
-    final doneFactor = _completionFactors[back % _completionFactors.length];
+    // 받은 개인운동 기간의 흐름(#2508)도 곱한다 — 실서버 시드와 같은 산식이다.
+    final doneFactor =
+        _completionFactors[back % _completionFactors.length] *
+        _ringTrend(client.id, back);
     // 이번 주는 오늘까지만, 지난 주들은 일요일까지 — 지난 주에 '아직 오지 않은
     // 요일'은 없다.
     final anchor = back == 0 ? todayIndex : 6;
