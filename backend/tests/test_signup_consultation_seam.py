@@ -16,12 +16,10 @@ DB 가 필요하므로 로컬에서는 skip 되고 CI(Postgres) 에서 실행된
 """
 from __future__ import annotations
 
-from datetime import timedelta
 from uuid import uuid4
 
 import pytest
 
-from app.core import clock
 from app.models.models import (
     ConsultationRequest,
     MemberGym,
