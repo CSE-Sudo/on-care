@@ -1152,3 +1152,53 @@ def test_code_pairing_keeps_goals_the_member_already_picked(client, db_session):
         assert _member_profile(client, member_token)["conditions"] == "근력 향상"
     finally:
         _clear_member_profile(db_session, member_id)
+
+
+def _accept_response(client, trainer_token: str, consultation_id: str):
+    return client.post(
+        f"/v1/trainer/consultations/{consultation_id}/accept",
+        headers=_auth(trainer_token),
+        json={},
+    )
+
+
+def test_accept_refuses_a_request_past_its_hold_window(client, db_session):
+    """오래 열어 둔 인박스에서 누른 만료 요청은 수락하지 않고 만료로 내린다. (#3241)"""
+    trainer, trainer_token = _trainer(client, db_session)
+    _, member_token = _member(client)
+    consultation_id = _request_consultation(
+        client, member_token, trainer_id=trainer.id
+    )
+    row = db_session.get(ConsultationRequest, consultation_id)
+    row.created_at = datetime.now(timezone.utc) - timedelta(hours=25)
+    db_session.commit()
+
+    response = _accept_response(client, trainer_token, consultation_id)
+
+    assert response.status_code == 409, response.text
+    db_session.expire_all()
+    assert db_session.get(ConsultationRequest, consultation_id).status == "expired"
+    assert db_session.scalars(
+        select(TrainerSchedule).where(
+            TrainerSchedule.consultation_id == consultation_id
+        )
+    ).all() == []
+
+
+def test_accept_refuses_a_slot_that_is_about_to_start(client, db_session):
+    """자리 시작 2시간 전을 지난 요청은 수락해도 상담 일정을 만들지 않는다. (#3241)"""
+    trainer, trainer_token = _trainer(client, db_session)
+    _, member_token = _member(client)
+    consultation_id = _request_consultation(
+        client, member_token, trainer_id=trainer.id
+    )
+    row = db_session.get(ConsultationRequest, consultation_id)
+    slot = db_session.get(TrainerReservationSlot, row.slot_id)
+    slot.starts_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+    db_session.commit()
+
+    response = _accept_response(client, trainer_token, consultation_id)
+
+    assert response.status_code == 409, response.text
+    db_session.expire_all()
+    assert db_session.get(ConsultationRequest, consultation_id).status == "expired"
