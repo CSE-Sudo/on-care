@@ -317,12 +317,26 @@ void main() {
         tester,
         candidates: const <ScheduleSession>[_todayPt],
       );
-      repo.updateFailure = const ServerError(statusCode: 500);
+      repo.updateFailure = const ValidationError();
       await _composeRoutineOnly(tester);
 
       await _tapSend(tester);
 
       expect(find.text('개인운동을 고치지 못했어요. 다시 시도해 주세요.'), findsOneWidget);
+    });
+
+    testWidgets('사유 없는 5xx 는 서버 일시 문제 안내다', (tester) async {
+      final repo = await _open(
+        tester,
+        candidates: const <ScheduleSession>[_todayPt],
+      );
+      repo.updateFailure = const ServerError(statusCode: 500);
+      await _composeRoutineOnly(tester);
+
+      await _tapSend(tester);
+
+      expect(find.text('서버에 일시적인 문제가 있습니다. 잠시 후 다시 시도해 주세요.'), findsOneWidget);
+      expect(find.text('개인운동을 고치지 못했어요. 다시 시도해 주세요.'), findsNothing);
     });
 
     testWidgets('붙은 개인운동을 읽지 못하면 쓰기 실패와 다른 문구다', (tester) async {

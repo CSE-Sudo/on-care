@@ -130,22 +130,24 @@ def get_mailer(settings: Settings | None = None) -> Mailer:
 def warn_if_disabled(settings: Settings | None = None) -> bool:
     """기동 때 부른다 — 메일을 보낼 수 없으면 오류 로그로 드러내고 False.
 
-    운영에서 발송 수단 없이 뜨면 비밀번호 재설정이 꺼진다. 기동을 막지는 않는다:
-    로그인·기록 같은 나머지 기능까지 멈출 일은 아니고, 재설정 요청은 503 으로
-    분명히 거절된다.
+    메일이 꺼지면 가입 인증 코드(`/auth/register/email-code`)와 비밀번호 재설정이
+    모두 503 이 된다. 운영은 설정 검증(`Settings._guard_prod_secrets`)이 그런 설정으로
+    기동하는 것을 이미 거부하므로(#3131), 여기 오류 로그는 검증을 거치지 않고 값이
+    바뀐 설정 객체에 대한 마지막 확인이다. 개발·스테이징의 log 발송은 경고만 남긴다.
     """
     settings = settings or get_settings()
     if settings.mail_enabled:
         if settings.mail_backend == "log":
             log.warning(
-                "메일 발송 수단이 없어 재설정 메일을 로그로만 남깁니다(env=%s). "
-                "운영에서는 SMTP_HOST·MAIL_FROM 을 설정하세요.",
+                "메일 발송 수단이 없어 가입 인증 코드·재설정 메일을 로그로만 남깁니다(env=%s). "
+                "운영에서는 SMTP_HOST·MAIL_FROM 이 없으면 기동이 거부됩니다.",
                 settings.env,
             )
         return True
     log.error(
-        "운영(env=%s)인데 메일 발송 설정(SMTP_HOST·MAIL_FROM)이 없어 비밀번호 재설정이 "
-        "꺼져 있습니다. /auth/password-reset/request 는 503 으로 응답합니다.",
+        "메일 발송 설정(SMTP_HOST·MAIL_FROM)이 없어(env=%s) 가입 인증 코드와 비밀번호 재설정 "
+        "메일을 보낼 수 없습니다. 신규 가입 코드 요청과 /auth/password-reset/request 는 "
+        "503 으로 응답합니다.",
         settings.env,
     )
     return False

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12 이상 실행 화면 아이콘(#3153).
+     시스템은 이 그림을 288dp 정사각형에 맞추고 지름 192dp 원 밖을 잘라 낸다. 로고(원형)가
+     그 원 안에 여유 있게 들어가도록 사방을 20% 띄운다(로고 지름 약 173dp). -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/launch_image"
+    android:inset="20%" />
