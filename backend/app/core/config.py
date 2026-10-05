@@ -133,7 +133,7 @@ class Settings(BaseSettings):
     # 트레이너의 회원 기록 열람(`trainer.client_read`)은 같은 (트레이너, 회원, 자원)
     # 조합을 이 시간(분) 안에 한 번만 남긴다 — 화면을 넘길 때마다 쌓이지 않게.
     audit_read_dedupe_minutes: int = 10
-    # 보존 기간(일). 지난 기록은 기동 시 정리한다. 0 이면 정리하지 않는다.
+    # 보존 기간(일). 지난 기록은 기동 때와 하루마다 정리한다(#3144). 0 이면 정리하지 않는다.
     # 인증·계정 이벤트(접속 기록)는 1년, 건강정보 열람·동의·탈퇴 기록은 2년.
     audit_retention_days: int = 365
     audit_sensitive_retention_days: int = 730
@@ -344,6 +344,11 @@ class Settings(BaseSettings):
 
     # --- Rate limit (인증 엔드포인트 브루트포스 방어) ---
     rate_limit_enabled: bool = True
+    # 분당 한도·로그인 실패 잠금·가입 한도를 어디에 셀지(#3143). `database` 는 Postgres
+    # 공유 표(`rate_limit_hits`)라 태스크·워커가 여럿이어도 한도가 하나이고 재배포에도
+    # 잠금이 남는다. `memory` 는 프로세스 메모리(개발·테스트). `auto` 는 운영이면
+    # database, 그 밖은 memory.
+    rate_limit_store: Literal["auto", "memory", "database"] = "auto"
     rate_limit_auth_per_minute: int = 10  # IP·엔드포인트당 분당 시도 한도
     # AI 코치 채팅 한도. 브루트포스 방어가 아니라 LLM 비용 가드라서 목적이 다르다.
     # 사람이 대화하는 속도로는 걸리지 않되, 폭주하는 클라이언트는 막는 값.
@@ -523,7 +528,7 @@ class Settings(BaseSettings):
 
     @property
     def mail_enabled(self) -> bool:
-        """재설정 메일을 보낼 수 있는가.
+        """가입 인증 코드·재설정 메일을 보낼 수 있는가.
 
         개발·스테이징은 log 발송으로도 켜 둔다(코드를 서버 로그에서 읽어 확인한다).
         운영은 실제 발송 수단이 있어야만 켠다 — 로그로만 남기는 재설정은 회원에게
@@ -532,6 +537,13 @@ class Settings(BaseSettings):
         if self.mail_backend == "smtp":
             return bool(self.smtp_host.strip() and self.mail_from.strip())
         return not self.is_prod
+
+    @property
+    def rate_limit_backend(self) -> str:
+        """실제로 쓸 시도 제한 저장소(`memory`|`database`). `auto` 를 여기서 푼다(#3143)."""
+        if self.rate_limit_store != "auto":
+            return self.rate_limit_store
+        return "database" if self.is_prod else "memory"
 
     @property
     def demo_fallback_enabled(self) -> bool:
@@ -605,6 +617,16 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "운영(env=prod)에서는 사진 인식·임베딩·코치 LLM 키가 필요합니다: "
                     + "; ".join(problems)
+                )
+            # 운영은 가입 이메일 확인을 끌 수 없으므로(#3038) 메일을 못 보내면 가입 코드를
+            # 받을 수 없어 신규 가입이 모두 막히고, 비밀번호 재설정도 503 이 된다. 첫 가입
+            # 시도 때에야 드러나지 않게 기동에서 거부한다(#3131).
+            if not self.mail_enabled:
+                raise ValueError(
+                    "운영(env=prod)에서는 메일 발송 설정이 필요합니다 — 없으면 가입 인증 코드와 "
+                    "비밀번호 재설정 메일을 보낼 수 없어 신규 가입·재설정이 모두 막힙니다. "
+                    "SMTP_HOST·MAIL_FROM 과 SMTP 계정 비밀(SMTP_USERNAME·SMTP_PASSWORD)을 설정하고 "
+                    "MAIL_PROVIDER 는 smtp(또는 auto)로 두십시오."
                 )
         return self
 

@@ -264,8 +264,10 @@ Map<String, Object?> routineOnlyAssignToJson(
 
 /// 배정 항목([personalRoutinesToJson])을 세션의 운동 항목 모양으로 옮긴다.
 ///
-/// 세션은 유형에 맞지 않는 칸도 0 으로 받는다(`ProgramDraftExercise`) — 배정
-/// 입력처럼 빼 버리면 세션 요약이 값을 못 찾는다.
+/// 정하지 않은 칸은 0 이 아니라 `null` 로 보낸다 — [programExerciseToJson] 과
+/// 같은 규칙이다. 0 으로 채우던 동안에는 `hold_seconds: 0` 이 "버티는 운동"
+/// 으로 읽혀(#1969) 서버가 일반 근력 운동의 횟수를 지웠고, 회원은 `스쿼트
+/// 3세트 · 12회` 를 `스쿼트 3세트` 로 받았다.
 Map<String, Object?> _sessionExercise(Map<String, Object?> item, int index) {
   final bool strength = item['type'] == '근력';
   return <String, Object?>{
@@ -274,10 +276,10 @@ Map<String, Object?> _sessionExercise(Map<String, Object?> item, int index) {
     'type': item['type'],
     'duration': strength ? 0 : item['minutes'],
     'duration_seconds': strength ? null : item['duration_seconds'],
-    'sets': item['sets'] ?? 0,
-    'reps': item['reps'] ?? 0,
-    'hold_seconds': item['hold_seconds'] ?? 0,
-    'weight': item['weight'] ?? 0,
+    'sets': item['sets'],
+    'reps': item['reps'],
+    'hold_seconds': item['hold_seconds'],
+    'weight': item['weight'],
     'source': item['source'],
     'effect': ?item['effect'],
   };
