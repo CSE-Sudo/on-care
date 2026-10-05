@@ -86,6 +86,32 @@ def test_week_strings_in_other_shapes_are_rejected(bad):
         _feedback_week(bad)
 
 
+@pytest.mark.parametrize("bad", ["2026-02-180000", "어제", "20260218", "2026-02-30"])
+def test_pain_day_must_be_a_date(bad):
+    """#3243: 통증 날짜는 비었거나 `YYYY-MM-DD` 다. 10자를 넘는 값은 칸에서 500 이었다."""
+    from pydantic import ValidationError
+
+    from app.schemas.trainer_api import MemberWeeklyFeedbackSaveRequest
+
+    with pytest.raises(ValidationError):
+        MemberWeeklyFeedbackSaveRequest(
+            condition="ok", intensity="right", pain_area="무릎", pain_on=bad
+        )
+
+
+def test_pain_day_accepts_blank_and_a_date():
+    from app.schemas.trainer_api import MemberWeeklyFeedbackSaveRequest
+
+    def pain_on(value):
+        return MemberWeeklyFeedbackSaveRequest(
+            condition="ok", intensity="right", pain_area="무릎", pain_on=value
+        ).pain_on
+
+    assert pain_on("") == ""
+    assert pain_on("  ") == ""
+    assert pain_on(" 2026-02-18 ") == "2026-02-18"
+
+
 def test_empty_week_start_means_the_same_as_not_sending_one():
     """앱의 빈 입력칸이 오류가 되지는 않는다 — 값을 안 준 것과 같게 본다."""
     from app.api.v1.member_coach import _feedback_week

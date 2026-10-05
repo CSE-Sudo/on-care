@@ -2308,6 +2308,17 @@ class MemberWeeklyFeedbackSaveRequest(BaseModel):
     #: 한 줄은 길게 받지 않는다 — 30초 안에 끝나야 매주 돌아온다.
     note: str = Field(default="", max_length=TEXT_LINE_MAX)
 
+    @field_validator("pain_on")
+    @classmethod
+    def _v_pain_on(cls, v: str) -> str:
+        """비었거나 `YYYY-MM-DD`. (#3243)
+
+        검사가 없어 `pain_area` 가 있을 때 10자를 넘는 값은 칸(`String(10)`)에서 500,
+        짧은 날짜 아닌 값은 그대로 저장돼 트레이너 화면의 `(MM.DD)` 가 깨졌다.
+        """
+        v = v.strip()
+        return _validate_ymd(v) if v else v
+
 
 class ReportGoalsOut(BaseModel):
     """그 주에 적용돼 있는 목표. (#2232)
