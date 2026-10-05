@@ -8130,22 +8130,22 @@ abstract class AppLocalizations {
   /// **'Social sign-in isn\'t available in this version yet. Please contact support.'**
   String get reauthSocialUnavailable;
 
-  /// Title of the banner shown when a newer web release has been deployed while this tab is open (#3023).
+  /// Title of the banner shown when a newer web release has been deployed while this tab is open (#3023). Plain wording for members and trainers, not deployment jargon (#3204).
   ///
   /// In en, this message translates to:
-  /// **'A new version is available'**
+  /// **'The app has been updated'**
   String get releaseUpdateTitle;
 
   /// Body of the new-release banner.
   ///
   /// In en, this message translates to:
-  /// **'Reload to get the latest version. Save anything you\'re working on first.'**
+  /// **'Refresh to switch to the latest version. Save anything you\'re working on first.'**
   String get releaseUpdateMessage;
 
-  /// Button that reloads the page to load the new release.
+  /// Button that hides the banner and reloads the page with the new release's files (#3204).
   ///
   /// In en, this message translates to:
-  /// **'Reload'**
+  /// **'Refresh'**
   String get releaseUpdateReload;
 
   /// Tooltip of the button that hides the new-release banner for this release.
