@@ -25,6 +25,23 @@ void main() {
       expect(parts.map((p) => p.$1), <String>['스쿼트', '플랭크', '코어 스트레칭']);
     });
 
+    test('주의사항의 런닝 표기도 달리기 계열을 뺀다 (#3215)', () {
+      final List<String> cautions = cautionsIn(
+        '무릎 통증으로 런닝 자제',
+        const <String>[],
+      );
+      expect(cautions, <String>['무릎']);
+      final parts = safeParts(<(String, String, int)>[
+        ('런닝 30분', '유산소', 2),
+        ('플랭크', '근력', 1),
+      ], cautions);
+      expect(parts.map((p) => p.$1), <String>['플랭크', '코어 스트레칭']);
+      // `러닝` 이 `러닝머신` 에 걸리듯 `런닝` 도 `런닝머신` 에 걸린다.
+      expect(avoidsFor('러닝머신', cautions), isTrue);
+      expect(avoidsFor('런닝머신', cautions), isTrue);
+      expect(guessExerciseType('런닝'), '유산소');
+    });
+
     test('주의할 말이 없으면 구성을 그대로 둔다 — 같은 목록이다', () {
       final List<(String, String, int)> parts = <(String, String, int)>[
         ('인터벌 러닝', '유산소', 3),
