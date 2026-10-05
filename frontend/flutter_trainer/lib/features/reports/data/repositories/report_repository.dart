@@ -672,9 +672,9 @@ class DioReportRepository implements ReportRepository {
   }) async {
     // 회원 주간 피드백은 리포트 본문과 **나란히** 부른다(#2286) — 차례로
     // 부르면 리포트가 뜨는 시간이 두 요청을 더한 만큼 늘어난다. 이 요청은
-    // 실패해도 null 로 끝나므로(아래), 본문이 실패해 먼저 빠져나가도 처리되지
+    // 실패해도 던지지 않으므로(아래), 본문이 실패해 먼저 빠져나가도 처리되지
     // 않은 오류로 남지 않는다.
-    final Future<MemberWeeklyFeedback?> feedback = _memberFeedback(
+    final Future<_FeedbackRead> feedback = _memberFeedback(
       client.id,
       weekStart,
     );
@@ -688,7 +688,13 @@ class DioReportRepository implements ReportRepository {
         // 문구는 화면이 붙인다 — 리포지토리는 로케일을 모른다. (#501)
         throw const ServerError();
       }
-      return weeklyReportFromJson(json, client, memberFeedback: await feedback);
+      final _FeedbackRead read = await feedback;
+      return weeklyReportFromJson(
+        json,
+        client,
+        memberFeedback: read.feedback,
+        memberFeedbackFailed: read.failed,
+      );
     } on DioException catch (e) {
       throw AppError.fromDio(e);
     }
@@ -720,12 +726,14 @@ class DioReportRepository implements ReportRepository {
     }
   }
 
-  /// 회원이 그 주에 낸 세 문항. 안 냈거나 읽지 못하면 null. (#2286)
+  /// 회원이 그 주에 낸 세 문항. 안 냈으면 `feedback` 이 null 이다. (#2286)
   ///
   /// 이 칸 하나 때문에 리포트 전체를 오류 화면으로 바꾸지 않는다 — 수치는
   /// 멀쩡히 왔는데 피드백 요청만 실패했을 때 화면이 통째로 사라지면, 트레이너는
-  /// 읽을 수 있던 한 주를 잃는다. 그때 ① 칸은 "아직 받지 못함" 을 그린다.
-  Future<MemberWeeklyFeedback?> _memberFeedback(
+  /// 읽을 수 있던 한 주를 잃는다. 다만 읽지 못한 것과 안 낸 것은 가른다
+  /// (`failed`, #3246) — 서버는 안 낸 주를 `submitted=false` 로 답하므로, 오류는
+  /// 언제나 `모른다` 이지 `미응답` 이 아니다.
+  Future<_FeedbackRead> _memberFeedback(
     String clientId,
     DateTime weekStart,
   ) async {
@@ -736,12 +744,15 @@ class DioReportRepository implements ReportRepository {
         queryParameters: <String, String>{'week_start': ymd(weekStart)},
       );
       final json = res.data;
-      if (json == null) return null;
-      return memberWeeklyFeedbackFromJson(json, weekStart);
+      if (json == null) return (feedback: null, failed: true);
+      return (
+        feedback: memberWeeklyFeedbackFromJson(json, weekStart),
+        failed: false,
+      );
     } on Object {
       // 네트워크 오류(404·500·끊김)뿐 아니라 모양이 다른 응답도 여기서 멈춘다
-      // — 어느 쪽이든 이 칸만 비우고 리포트는 그대로 그린다.
-      return null;
+      // — 어느 쪽이든 이 칸만 `불러오지 못함` 으로 두고 리포트는 그대로 그린다.
+      return (feedback: null, failed: true);
     }
   }
 
@@ -909,6 +920,9 @@ class DioReportRepository implements ReportRepository {
   }
 }
 
+/// 회원 피드백 한 번 읽은 결과 — 읽지 못했으면 `failed` 다(#3246).
+typedef _FeedbackRead = ({MemberWeeklyFeedback? feedback, bool failed});
+
 /// Decodes `WeeklyReportOut`. 계열도 함께 온다 — 로스터의 것은 이번 주 것이라
 /// 과거 주 화면에 쓸 수 없다(#752).
 ///
@@ -918,6 +932,7 @@ WeeklyReport weeklyReportFromJson(
   Map<String, dynamic> json,
   TrainerClient client, {
   MemberWeeklyFeedback? memberFeedback,
+  bool memberFeedbackFailed = false,
 }) {
   int? optInt(String key) => (json[key] as num?)?.toInt();
   List<int> ints(String key) =>
@@ -985,6 +1000,7 @@ WeeklyReport weeklyReportFromJson(
           ),
     ],
     memberFeedback: memberFeedback,
+    memberFeedbackFailed: memberFeedbackFailed,
     // 직전 4주 칼로리 `평소`(#2863). 기록이 없으면 null 로 온다.
     calorieBaseline: (json['calorie_baseline'] as num?)?.toDouble(),
   );

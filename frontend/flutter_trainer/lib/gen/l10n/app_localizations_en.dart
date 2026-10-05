@@ -1386,6 +1386,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Nothing was sent yet. Review the report rebuilt with the new numbers, then send it';
 
   @override
+  String get reportsSendFeedbackFailedTitle =>
+      'Couldn\'t load the member\'s feedback';
+
+  @override
+  String get reportsSendFeedbackFailedBody =>
+      'Sending now would show the member as not having answered. Reload it, then send';
+
+  @override
   String get reportsSendAlreadyDone =>
       'This report was already sent. Send history has been refreshed';
 
@@ -5421,6 +5429,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsMemberFeedbackUnanswered => 'No answer';
+
+  @override
+  String get reportsMemberFeedbackLoadFailed => 'Couldn\'t load';
+
+  @override
+  String get reportsMemberFeedbackLoadFailedHint =>
+      'Couldn\'t check whether the member answered. Reload the report in a moment';
 
   @override
   String get reportsMemberFeedbackNoteLabel => 'One-line feedback';

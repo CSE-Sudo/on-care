@@ -260,9 +260,12 @@ void main() {
   });
 
   group('답이 없거나 읽을 수 없는 주 — 칸만 비고 리포트는 뜬다', () {
+    // 안 낸 주와 읽지 못한 주는 가른다(#3246) — 읽지 못한 주를 `미응답` 으로
+    // 그리면 답한 회원의 결과지에 `아직 받지 못했어요` 가 실린다.
     Future<void> expectEmptyFeedback(
-      Future<Response<Map<String, dynamic>>> Function() feedback,
-    ) async {
+      Future<Response<Map<String, dynamic>>> Function() feedback, {
+      bool failed = true,
+    }) async {
       stubReport(() async => _ok(_reportBody, _reportPath));
       stubFeedback(feedback);
 
@@ -271,11 +274,15 @@ void main() {
           .first;
 
       expect(report.memberFeedback, isNull);
+      expect(report.memberFeedbackFailed, failed);
       expect(report.sessionsBooked, 2);
     }
 
     test('submitted=false 는 답이 아니다', () async {
-      await expectEmptyFeedback(() async => _ok(_notSubmitted, _feedbackPath));
+      await expectEmptyFeedback(
+        () async => _ok(_notSubmitted, _feedbackPath),
+        failed: false,
+      );
     });
 
     test('submitted 가 빠진 응답도 답이 아니다', () async {
@@ -285,6 +292,7 @@ void main() {
           'condition': 'good',
           'intensity': 'right',
         }, _feedbackPath),
+        failed: false,
       );
     });
 

@@ -913,6 +913,11 @@
   "reportsSendFailed": "Couldn't send the report. Please try again",
   "reportsSendStaleTitle": "The member's records changed in the meantime",
   "reportsSendStaleBody": "Nothing was sent yet. Review the report rebuilt with the new numbers, then send it",
+  "reportsSendFeedbackFailedTitle": "Couldn't load the member's feedback",
+  "reportsSendFeedbackFailedBody": "Sending now would show the member as not having answered. Reload it, then send",
+  "@reportsSendFeedbackFailedBody": {
+    "description": "Notice on the send step when the member feedback request failed; sending is blocked (#3246)."
+  },
   "reportsSendAlreadyDone": "This report was already sent. Send history has been refreshed",
   "@reportsSendAlreadyDone": {
     "description": "Toast when the server says this report send was already processed (409, #2773)."
@@ -4020,6 +4025,11 @@
   "reportsMemberFeedbackPainLabel": "Pain",
   "reportsMemberFeedbackPainNone": "None",
   "reportsMemberFeedbackUnanswered": "No answer",
+  "reportsMemberFeedbackLoadFailed": "Couldn't load",
+  "reportsMemberFeedbackLoadFailedHint": "Couldn't check whether the member answered. Reload the report in a moment",
+  "@reportsMemberFeedbackLoadFailed": {
+    "description": "Member feedback card value when the feedback request failed, kept apart from 'No answer' (#3246)."
+  },
   "reportsMemberFeedbackNoteLabel": "One-line feedback",
   "reportsMemberFeedbackNoteNone": "No one-line feedback",
   "reportsMemberFeedbackPainOn": "{area} ({date})",

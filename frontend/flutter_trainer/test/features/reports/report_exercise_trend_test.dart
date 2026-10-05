@@ -7,6 +7,8 @@
 /// 없어, 여덟 주에서 읽은 흐름 한 줄이 옆에 선다.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -65,8 +67,10 @@ Future<void> _pump(
   ReportTrend? trend,
   WeeklyReport? report,
   bool empty = false,
+  Future<ReportTrend> Function()? load,
   String locale = 'ko',
   Size size = const Size(1400, 1000),
+  bool settle = true,
 }) async {
   tester.view.devicePixelRatio = 1.0;
   tester.view.physicalSize = size;
@@ -76,6 +80,7 @@ Future<void> _pump(
     ProviderScope(
       overrides: <Override>[
         reportTrendProvider.overrideWith((ref, key) async {
+          if (load != null) return load();
           // 못 읽은 주 — 값이 없는 것이지 0 인 것이 아니다.
           if (empty) {
             return const ReportTrend(
@@ -100,7 +105,7 @@ Future<void> _pump(
       ),
     ),
   );
-  await tester.pumpAndSettle();
+  if (settle) await tester.pumpAndSettle();
 }
 
 /// 그 유형 칸 안의 글월 목록.
@@ -399,6 +404,50 @@ void main() {
       expect(
         find.byKey(const ValueKey<String>('report-trend-cardio')),
         findsNothing,
+      );
+    });
+
+    testWidgets('읽는 중에는 `불러오지 못했어요` 대신 로딩을 그린다 (#3246)', (tester) async {
+      final Completer<ReportTrend> pending = Completer<ReportTrend>();
+      await _pump(tester, load: () => pending.future, settle: false);
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey<String>('report-trend-loading')),
+        findsOneWidget,
+      );
+      expect(find.text('이 주의 운동 기록을 불러오지 못했어요'), findsNothing);
+
+      pending.complete(_trend());
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey<String>('report-trend-cardio')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('읽지 못하면 다시 시도할 수 있다 (#3246)', (tester) async {
+      int calls = 0;
+      await _pump(
+        tester,
+        load: () async {
+          calls++;
+          if (calls == 1) throw Exception('network');
+          return _trend();
+        },
+      );
+
+      expect(
+        find.byKey(const ValueKey<String>('report-trend-error')),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('다시 시도'));
+      await tester.pumpAndSettle();
+
+      expect(calls, 2);
+      expect(
+        find.byKey(const ValueKey<String>('report-trend-cardio')),
+        findsOneWidget,
       );
     });
 

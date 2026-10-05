@@ -65,9 +65,19 @@ void main() {
       expect(w.sodiumTarget, 1800);
       expect(w.sugarTarget, 40);
       expect(w.carbsTarget, isNull);
+      expect(w.effectiveProteinTarget, isNull);
       expect(w.days, hasLength(3));
       expect(w.days[2].doneCount, 1);
       expect(w.days[2].totalCount, 2);
+    });
+
+    test('실효 단백질 목표를 읽는다 (#3246)', () {
+      final ReportSheetWeekData w = reportSheetWeekFromJson(<String, dynamic>{
+        ..._json(),
+        'effective_protein_target': 96,
+      }, today: DateTime(2026, 9, 30));
+      expect(w.effectiveProteinTarget, 96);
+      expect(w.proteinGoal, 96);
     });
 
     test('끼니 횟수가 없는 옛 응답은 비어 있다 — 끼니 기록일이 `미집계`', () {

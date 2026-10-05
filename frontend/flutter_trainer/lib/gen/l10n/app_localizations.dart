@@ -2516,6 +2516,18 @@ abstract class AppLocalizations {
   /// **'Nothing was sent yet. Review the report rebuilt with the new numbers, then send it'**
   String get reportsSendStaleBody;
 
+  /// No description provided for @reportsSendFeedbackFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the member\'s feedback'**
+  String get reportsSendFeedbackFailedTitle;
+
+  /// Notice on the send step when the member feedback request failed; sending is blocked (#3246).
+  ///
+  /// In en, this message translates to:
+  /// **'Sending now would show the member as not having answered. Reload it, then send'**
+  String get reportsSendFeedbackFailedBody;
+
   /// Toast when the server says this report send was already processed (409, #2773).
   ///
   /// In en, this message translates to:
@@ -9140,6 +9152,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No answer'**
   String get reportsMemberFeedbackUnanswered;
+
+  /// Member feedback card value when the feedback request failed, kept apart from 'No answer' (#3246).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load'**
+  String get reportsMemberFeedbackLoadFailed;
+
+  /// No description provided for @reportsMemberFeedbackLoadFailedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check whether the member answered. Reload the report in a moment'**
+  String get reportsMemberFeedbackLoadFailedHint;
 
   /// No description provided for @reportsMemberFeedbackNoteLabel.
   ///

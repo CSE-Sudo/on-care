@@ -37,8 +37,27 @@ class ReportExerciseTrend extends ConsumerWidget {
       clientId: report.client.id,
       weekStart: report.weekStart,
     );
-    final ReportTrend? trend = ref.watch(reportTrendProvider(key)).valueOrNull;
+    final AsyncValue<ReportTrend> async = ref.watch(reportTrendProvider(key));
+    final ReportTrend? trend = async.valueOrNull;
     final ReportTrendWeek? current = trend?.current;
+    // 읽는 중을 `불러오지 못했어요` 로 그리지 않는다(#3246).
+    if (trend == null && async.isLoading) {
+      return const AppLoading(
+        key: ValueKey<String>('report-trend-loading'),
+        placement: AppStatePlacement.card,
+      );
+    }
+    // 못 읽었으면 다시 읽을 길을 준다 — 탭을 옮겨 다녀와야만 다시 읽히면
+    // 트레이너는 이 주에 운동 기록이 없는 줄 안다.
+    if (trend == null && async.hasError) {
+      return AppErrorState(
+        key: const ValueKey<String>('report-trend-error'),
+        title: l.reportsTrendUnavailable,
+        retryLabel: l.actionRetry,
+        placement: AppStatePlacement.card,
+        onRetry: () => ref.invalidate(reportTrendProvider(key)),
+      );
+    }
     // 못 읽은 주를 0 으로 그리면 "그 주에 아무것도 안 했다" 는 다른 말이 된다.
     if (trend == null || current == null) {
       return AppEmptyState(

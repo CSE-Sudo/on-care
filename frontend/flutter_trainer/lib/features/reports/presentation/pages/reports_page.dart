@@ -571,6 +571,16 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       );
       return;
     }
+    // 회원 피드백을 읽지 못한 리포트는 보내지 않는다(#3246). 버튼이 잠겨 있지만
+    // 다른 길로 들어와도 답한 회원에게 `미응답` 결과지가 가지 않게 한다.
+    if (report.memberFeedbackFailed) {
+      showAppToast(
+        context,
+        l.reportsSendFeedbackFailedTitle,
+        type: AppToastType.error,
+      );
+      return;
+    }
     // 연타·창 겹침만 막는다. 이미 보낸 회원이어도 여기서 돌려보내지 않는다 —
     // 다시 쓰기 뒤의 재전송은 아래 확인창이 묻는다(#2770).
     if (_sending != null || _confirming) return;
@@ -603,6 +613,17 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       return;
     }
     if (!mounted) return;
+    // 다시 읽는 사이 회원 피드백만 실패했으면 `수치가 바뀌었다` 가 아니다 — 그
+    // 까닭으로 멈춘다(#3246). ③ 에 다시 불러오기 안내가 선다.
+    if (latest.memberFeedbackFailed) {
+      setState(() => _sending = null);
+      showAppToast(
+        context,
+        l.reportsSendFeedbackFailedTitle,
+        type: AppToastType.error,
+      );
+      return;
+    }
     // 수치가 바뀌었으면 보내지 않고 멈춘다. 손대지 않은 자동 문구도 트레이너가
     // 확인한 글이라, 새 수치로 몰래 다시 만들어 보내면 본 것과 나간 것이
     // 달라진다. 화면은 다시 읽은 값으로 미리보기·자동 문구를 새로 그리고(고친
@@ -659,16 +680,26 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     // 서버 기록을 다시 읽는다 — 방금 보낸 것이 새로고침 뒤에도 남는 근거다.
     ref.invalidate(reportSendHistoryProvider(weekStartOf(report.weekStart)));
     ref.invalidate(memberReportHistoryProvider(id));
+    // 업로드는 길게는 2분이 걸린다. 그사이 트레이너가 다른 탭이나 다른 회원·
+    // 주로 옮겼으면 그 화면을 건드리지 않는다(#3246) — 셸이 탭을 살려 두므로
+    // 여기서 `go` 하면 다른 탭에 있던 트레이너가 작업대로 끌려오고, 그사이 연
+    // 다른 회원의 단계가 처음으로 돌아간다.
+    final bool stillHere =
+        _clientId == id &&
+        _weekStart == weekStartOf(report.weekStart) &&
+        TickerMode.valuesOf(context).enabled;
     setState(() {
-      _sending = null;
-      _staleFor = null;
+      if (_sending == id) _sending = null;
+      if (_staleFor == _feedbackKey(report)) _staleFor = null;
       _sent.add(id);
-      // 보내고 나면 작업대로 돌아간다 — 다음 회원이 그 자리에 있다.
-      _stage = 0;
-      _maxStage = 0;
-      _dropPreview();
+      if (stillHere) {
+        // 보내고 나면 작업대로 돌아간다 — 다음 회원이 그 자리에 있다.
+        _stage = 0;
+        _maxStage = 0;
+        _dropPreview();
+      }
     });
-    context.go(_locationFor(null));
+    if (stillHere) context.go(_locationFor(null));
     // 전송 확인은 하단 SnackBar가 아니라 상단 토스트로 뜬다 — 채팅으로
     // 바로 넘어갈 수 있는 동작 버튼을 붙이기 위해서다(#1378).
     showAppToast(
@@ -834,8 +865,15 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     if (weekHistory.isLoading || reportAsync.isLoading) {
       return const AppLoading();
     }
+    // 읽지 못해 돌아가는 것이면 까닭을 말한다(#3246) — 말없이 돌아가면 `보기`
+    // 가 고장 난 것으로 읽힌다.
+    final bool failed = reportAsync.hasError || weekHistory.hasError;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) setState(() => _historyWeek = null);
+      if (!mounted) return;
+      setState(() => _historyWeek = null);
+      if (failed) {
+        showAppToast(context, l.reportsLoadFailed, type: AppToastType.error);
+      }
     });
     return const AppLoading();
   }
@@ -1009,9 +1047,19 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               );
             }
             // 기록이나 수치가 사라졌으면 작업대로 되돌린다 — 빈 화면에
-            // 가두지 않는다.
+            // 가두지 않는다. 수치를 읽지 못해 돌아가는 것이면 까닭을 말한다
+            // (#3246).
+            final bool sentFailed = sentAsync?.hasError ?? false;
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) setState(() => _sentViewFor = null);
+              if (!mounted) return;
+              setState(() => _sentViewFor = null);
+              if (sentFailed) {
+                showAppToast(
+                  context,
+                  l.reportsLoadFailed,
+                  type: AppToastType.error,
+                );
+              }
             });
           }
 
@@ -1086,6 +1134,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           final bool feedbackBlank =
               shownReport != null &&
               _messageFor(l, shownReport, savedDraft).trim().isEmpty;
+          // 회원 피드백을 읽지 못한 리포트는 보내지 않는다(#3246) — 답한 회원의
+          // 결과지에 `아직 받지 못했어요` 가 실린다.
+          final bool answersFailed = shownReport?.memberFeedbackFailed ?? false;
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1191,6 +1242,25 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                           ),
                           const SizedBox(height: OnCareSpacing.s12),
                         ],
+                        if (_stage == ReportEditorStage.send.index &&
+                            data.memberFeedbackFailed) ...<Widget>[
+                          AppBanner(
+                            key: const ValueKey<String>(
+                              'reports-send-feedback-failed-notice',
+                            ),
+                            title: l.reportsSendFeedbackFailedTitle,
+                            message: l.reportsSendFeedbackFailedBody,
+                            icon: AppIcons.warning,
+                            tone: AppBannerTone.caution,
+                            actionLabel: l.actionRetry,
+                            onAction: reportAsync.isLoading
+                                ? null
+                                : () => ref.invalidate(
+                                    weeklyReportProvider(reportKey),
+                                  ),
+                          ),
+                          const SizedBox(height: OnCareSpacing.s12),
+                        ],
                         if (_stage == ReportEditorStage.send.index)
                           ReportSendPreview(
                             report: data,
@@ -1253,7 +1323,11 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               _StepFooter(
                 stage: _stage,
                 sending: _sending == selected.id,
-                canSend: !feedbackBlank,
+                blockedReason: answersFailed
+                    ? l.reportsSendFeedbackFailedTitle
+                    : feedbackBlank
+                    ? l.reportsSendNeedsFeedback
+                    : null,
                 // ③ 에서는 미리보기 한 부가 다 만들어져야 인쇄할 수 있다.
                 pdf: _stage == ReportEditorStage.send.index ? _preview : null,
                 printing: _printing,
@@ -1295,7 +1369,7 @@ class _StepFooter extends StatelessWidget {
   const _StepFooter({
     required this.stage,
     required this.sending,
-    required this.canSend,
+    required this.blockedReason,
     required this.pdf,
     required this.printing,
     required this.onPrint,
@@ -1307,8 +1381,9 @@ class _StepFooter extends StatelessWidget {
   final int stage;
   final bool sending;
 
-  /// 보낼 글이 있는가. 빈 피드백은 보내지 않는다.
-  final bool canSend;
+  /// 보낼 수 없는 까닭. null 이면 보낼 수 있다 — 빈 피드백(#2771)이나 읽지
+  /// 못한 회원 피드백(#3246)이면 잠그고 툴팁으로 까닭을 말한다.
+  final String? blockedReason;
 
   /// ③ 에 떠 있는 PDF. 다 만들어지기 전이나 만들다 실패했으면 인쇄를 잠근다.
   final Future<Uint8List>? pdf;
@@ -1363,16 +1438,16 @@ class _StepFooter extends StatelessWidget {
               );
             },
           ),
-          // 빈 피드백으로 잠긴 버튼은 이유를 말하지 않으면 고장으로 읽힌다.
+          // 잠긴 버튼은 이유를 말하지 않으면 고장으로 읽힌다.
           Tooltip(
-            message: canSend ? '' : l.reportsSendNeedsFeedback,
+            message: blockedReason ?? '',
             child: AppButton(
               key: const ValueKey<String>('report-step-send'),
               label: l.reportsStepSend,
               // 전송 중에는 버튼 자리에서 진행을 보여 준다 — 같은 리포트가 두 번
               // 나가지 않게 잠그는 것도 이 자리다.
               loading: sending,
-              onPressed: sending || !canSend ? null : onSend,
+              onPressed: sending || blockedReason != null ? null : onSend,
             ),
           ),
         ] else

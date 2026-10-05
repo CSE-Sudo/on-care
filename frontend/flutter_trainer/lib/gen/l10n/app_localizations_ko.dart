@@ -1333,6 +1333,13 @@ class AppLocalizationsKo extends AppLocalizations {
       '아직 보내지 않았어요. 새 수치로 다시 만든 리포트를 확인한 뒤 보내 주세요';
 
   @override
+  String get reportsSendFeedbackFailedTitle => '회원 피드백을 불러오지 못했어요';
+
+  @override
+  String get reportsSendFeedbackFailedBody =>
+      '이대로 보내면 답한 회원도 미응답으로 실려요. 다시 불러온 뒤 보내 주세요';
+
+  @override
   String get reportsSendAlreadyDone => '이미 전송된 리포트예요. 전송 기록을 다시 불러왔어요';
 
   @override
@@ -5168,6 +5175,13 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportsMemberFeedbackUnanswered => '미응답';
+
+  @override
+  String get reportsMemberFeedbackLoadFailed => '불러오지 못했어요';
+
+  @override
+  String get reportsMemberFeedbackLoadFailedHint =>
+      '회원이 답했는지 확인하지 못했어요. 잠시 후 리포트를 다시 불러와 주세요';
 
   @override
   String get reportsMemberFeedbackNoteLabel => '한 줄 피드백';
