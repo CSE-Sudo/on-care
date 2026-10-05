@@ -211,7 +211,8 @@ void main() {
     await _tapSave(tester);
     await settle(tester);
 
-    expect(find.textContaining('템플릿을 저장하지 못했어요'), findsOneWidget);
+    // 연결 오류는 원인별 안내다 — Dio 영어 원문이 아니다.
+    expect(find.textContaining('연결이 불안정합니다'), findsOneWidget);
     expect(repository.saved, isEmpty);
     // 버튼이 잠긴 채로 남지 않고, 실패했으니 아이콘도 채워지지 않는다.
     await tester.scrollUntilVisible(

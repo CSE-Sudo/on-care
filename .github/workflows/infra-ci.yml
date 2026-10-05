@@ -7,7 +7,7 @@ name: Infra CI
 #  - cfn-lint: CloudFormation 문법·리소스 스키마(ECS Express Mode 포함)
 #  - infra/tests: 이 서비스가 정한 규칙(태스크 1 고정, 첨부 버킷 접두사, OIDC subject·PassRole 범위)
 #  - actionlint: 배포 워크플로 식·job 의존·재사용 워크플로 입력
-#  - 배포 스크립트 셸 검사: 헬스 판정·스택 갱신·되돌리기 지점·API 주소 가드
+#  - 배포 스크립트 셸 검사: 헬스 판정·스택 갱신(백엔드·프론트 릴리스 경로)·되돌리기 지점·API 주소 가드
 on:
   push:
     branches: [main]
@@ -18,6 +18,7 @@ on:
       - ".github/workflows/backend-deploy-service.yml"
       - ".github/workflows/aws-frontend-deploy.yml"
       - ".github/workflows/deploy.yml"
+      - ".github/workflows/member-app-release.yml"
       - ".github/workflows/infra-ci.yml"
   pull_request:
     paths:
@@ -27,6 +28,7 @@ on:
       - ".github/workflows/backend-deploy-service.yml"
       - ".github/workflows/aws-frontend-deploy.yml"
       - ".github/workflows/deploy.yml"
+      - ".github/workflows/member-app-release.yml"
       - ".github/workflows/infra-ci.yml"
 
 permissions:
@@ -79,6 +81,7 @@ jobs:
           .github/workflows/backend-deploy-service.yml
           .github/workflows/aws-frontend-deploy.yml
           .github/workflows/deploy.yml
+          .github/workflows/member-app-release.yml
           .github/workflows/infra-ci.yml
 
       # 랜딩 링크·데모 분기 검사는 PR gate 가 이미 돌린다.
@@ -89,7 +92,8 @@ jobs:
             .github/scripts/test_backend_health_check.sh \
             .github/scripts/test_backend_service_stack.sh \
             .github/scripts/test_backend_verify_service.sh \
-            .github/scripts/test_check_web_api_base_url.sh; do
+            .github/scripts/test_check_web_api_base_url.sh \
+            .github/scripts/test_frontend_hosting_stack.sh; do
             echo "::group::$test"
             bash "$test"
             echo "::endgroup::"

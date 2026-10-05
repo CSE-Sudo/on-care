@@ -12,6 +12,7 @@ import 'package:oncare_trainer/features/consultations/data/repositories/consulta
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/gen/l10n/app_localizations_en.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
@@ -181,6 +182,18 @@ class _HeldDecisionRepository extends _FakeConsultationRepository {
     await gate.future;
     if (decisionFailure != null) throw decisionFailure!;
     return super.reject(id, note: note);
+  }
+}
+
+/// 승인이 주어진 오류로 바로 실패하는 인박스 — 오류 문구를 본다.
+class _FailingAcceptRepository extends _FakeConsultationRepository {
+  _FailingAcceptRepository(this.acceptFailure, {super.requests});
+
+  final AppError acceptFailure;
+
+  @override
+  Future<ConsultationAcceptResult> accept(String id) async {
+    throw acceptFailure;
   }
 }
 
@@ -671,6 +684,76 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(repo.accepted, isEmpty);
       expect(countBuilds, greaterThan(countBefore));
+    });
+  });
+
+  group('승인 실패 문구에 Dio 원문이 뜨지 않는다', () {
+    // 예전에는 서버 사유가 없으면 `AppError.message` 가 Dio 의 영어 설명문이라
+    // "This exception was thrown because …" 이 한국어 화면에 그대로 떴다.
+    Future<void> acceptWith(
+      WidgetTester tester,
+      AppError failure, {
+      Locale locale = const Locale('ko'),
+    }) async {
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-token',
+        at: AppRoutes.consultations,
+        locale: locale,
+        extraOverrides: <Override>[
+          consultationRepositoryProvider.overrideWithValue(
+            _FailingAcceptRepository(
+              failure,
+              requests: <ConsultationRequest>[_request()],
+            ),
+          ),
+        ],
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('consultation-accept-consult-1')),
+      );
+      await settle(tester);
+    }
+
+    testWidgets('연결 오류는 연결 안내다', (tester) async {
+      await acceptWith(tester, const NetworkError());
+
+      expect(find.text(_ko.errorNetworkUnstable), findsOneWidget);
+      expect(find.textContaining('exception'), findsNothing);
+    });
+
+    testWidgets('사유 없는 5xx 는 서버 일시 문제 안내다', (tester) async {
+      await acceptWith(tester, const ServerError(statusCode: 502));
+
+      expect(find.text(_ko.errorServerTemporary), findsOneWidget);
+    });
+
+    testWidgets('422 목록형(사유 없음)은 화면의 기본 문구다', (tester) async {
+      await acceptWith(tester, const ValidationError());
+
+      expect(find.text(_ko.consultActionFailed), findsOneWidget);
+    });
+
+    testWidgets('서버가 사유를 주면 그 사유를 보인다', (tester) async {
+      await acceptWith(
+        tester,
+        const ServerError(statusCode: 409, message: '이미 처리된 상담 요청입니다.'),
+      );
+
+      expect(find.text('이미 처리된 상담 요청입니다.'), findsOneWidget);
+    });
+
+    testWidgets('영어 화면의 연결 오류는 영어 안내다', (tester) async {
+      await acceptWith(
+        tester,
+        const NetworkError(),
+        locale: const Locale('en'),
+      );
+
+      expect(
+        find.text(AppLocalizationsEn().errorNetworkUnstable),
+        findsOneWidget,
+      );
     });
   });
 }

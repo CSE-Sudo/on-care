@@ -65,3 +65,33 @@ def test_effective_date_is_not_the_old_placeholder():
     assert _privacy_version() != date(2026, 1, 1)
     for app in _APPS:
         assert "2026년 1월 1일" not in _privacy_body(app, "ko")
+
+
+_KO_REVISION = re.compile(r"^- (\d{4})년 (\d{1,2})월 (\d{1,2})일: ", re.MULTILINE)
+
+
+@pytest.mark.parametrize("app", _APPS)
+def test_newest_revision_entry_is_the_consent_version(app: str):
+    """개정 이력의 맨 위 항목이 지금 동의받는 버전이다 — 이력 없이 버전만 오르지 않는다."""
+    entries = _KO_REVISION.findall(_privacy_body(app, "ko"))
+    assert entries, "개정 이력 항목이 없다"
+    newest = max(date(int(y), int(m), int(d)) for y, m, d in entries)
+    first = date(*(int(x) for x in entries[0]))
+    assert first == newest, "개정 이력은 최신순이어야 한다"
+    assert newest == _privacy_version()
+
+
+@pytest.mark.parametrize("app", _APPS)
+def test_contact_change_is_recorded_in_the_history(app: str):
+    """보호책임자 연락처 변경(#3132)이 두 언어의 개정 이력에 남는다."""
+    assert "개인정보 보호책임자 연락처 변경" in _privacy_body(app, "ko")
+    assert "changed the contact address" in _privacy_body(app, "en")
+
+
+def test_contact_placeholder_is_kept_in_every_body():
+    """연락처는 본문에 박지 않고 `{contact}` 자리로 둔다 — 정의 지점은 한 곳이다(#3005)."""
+    for app in _APPS:
+        for lang in ("ko", "en"):
+            body = _privacy_body(app, lang)
+            assert "{contact}" in body
+            assert "@" not in body.replace("{contact}", "")

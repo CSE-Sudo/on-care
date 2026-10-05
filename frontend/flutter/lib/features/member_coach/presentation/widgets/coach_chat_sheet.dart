@@ -21,6 +21,7 @@ import 'package:oncare/features/member_coach/presentation/widgets/coach_report_c
 import 'package:oncare/features/member_coach/presentation/widgets/coach_report_opener.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/emote_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_core/clock.dart';
 import 'package:oncare_report/oncare_report.dart' show PdfPagesView;
 import 'package:oncare_ui/oncare_ui.dart';
@@ -439,10 +440,11 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                         title: l.coachChatUnassigned,
                         icon: AppIcons.disconnect,
                       )
-                    : AppErrorState(
+                    : appErrorStateFor(
+                        context,
                         key: const ValueKey<String>('coach-chat-error'),
+                        error: error,
                         title: l.coachChatLoadFailed,
-                        retryLabel: l.actionRetry,
                         retryKey: const ValueKey<String>('coach-chat-retry'),
                         onRetry: () => ref.invalidate(coachChatProvider),
                       ),

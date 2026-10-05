@@ -27,6 +27,7 @@ import 'package:oncare/features/my_health/presentation/controllers/my_health_con
 import 'package:oncare/features/my_health/presentation/widgets/account_reauth_dialog.dart';
 import 'package:oncare/features/notification/data/repositories/notification_settings_repository.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/app_error_state_for.dart';
 import 'package:oncare_core/legal_contact.dart';
 import 'package:oncare_core/licenses.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -162,14 +163,18 @@ Widget _listCard(List<Widget> children) => AppCard(
 /// 않아, 기본값이 내 설정인 것처럼 보이고 그대로 저장하면 서버에 있던 실제 값이
 /// 기본값으로 덮였다(#789). 읽지 못했으면 읽지 못했다고 말하고, 저장 자체를
 /// 막는 것이 맞다.
-Widget _loadFailed(BuildContext context, VoidCallback onRetry) {
+///
+/// 설명은 [error] 의 원인(연결·서버·권한)에서 고르고, 원인을 가릴 수 없을 때만
+/// 지금의 안내 문구로 떨어진다(#3140).
+Widget _loadFailed(BuildContext context, Object error, VoidCallback onRetry) {
   final AppLocalizations l = AppLocalizations.of(context);
   return KeyedSubtree(
     key: const Key('mySettingsRetry'),
-    child: AppErrorState(
+    child: appErrorStateFor(
+      context,
+      error: error,
       title: l.mySettingsLoadFailed,
       message: l.mySettingsLoadFailedBody,
-      retryLabel: l.actionRetry,
       onRetry: onRetry,
     ),
   );
@@ -218,8 +223,8 @@ class ProfileSettingsPage extends ConsumerWidget {
           _shell(context, l.myProfileTitle, const <Widget>[AppLoading()]),
       // 건강 목표와 같은 이유로 폼을 그리지 않는다 — 빈 프로필을 저장하면
       // 이름·연락처가 지워진다(#789).
-      error: (_, _) => _shell(context, l.myProfileTitle, <Widget>[
-        _loadFailed(context, () => ref.invalidate(profileProvider)),
+      error: (Object error, _) => _shell(context, l.myProfileTitle, <Widget>[
+        _loadFailed(context, error, () => ref.invalidate(profileProvider)),
       ]),
     );
   }
@@ -820,9 +825,10 @@ class HealthGoalsPage extends ConsumerWidget {
       data: (UserProfile p) => _GoalsForm(initial: p),
       loading: () =>
           _shell(context, l.myHealthGoalsTitle, const <Widget>[AppLoading()]),
-      error: (_, _) => _shell(context, l.myHealthGoalsTitle, <Widget>[
-        _loadFailed(context, () => ref.invalidate(profileProvider)),
-      ]),
+      error: (Object error, _) =>
+          _shell(context, l.myHealthGoalsTitle, <Widget>[
+            _loadFailed(context, error, () => ref.invalidate(profileProvider)),
+          ]),
     );
   }
 }

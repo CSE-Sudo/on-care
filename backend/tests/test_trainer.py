@@ -124,6 +124,9 @@ def test_prod_rejects_demo_seed():
         # conftest 가 EMBEDDER=hash 를 환경변수로 심으므로 운영 값을 명시한다.
         recognizer="gemini",
         embedder="gemini",
+        # 운영은 메일 발송 설정이 필수다 — 없으면 가입 인증 코드를 못 보내 기동 거부(#3131).
+        smtp_host="smtp.example.com",
+        mail_from="no-reply@example.com",
     )
     for password in ("", "short", "oncare123", "Str0ng!Demo#Pass"):
         with pytest.raises(ValueError):

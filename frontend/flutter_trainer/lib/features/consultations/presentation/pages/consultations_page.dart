@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/app/app_icons.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
+import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/consultations/data/dtos/consultation_dtos.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
@@ -123,11 +123,7 @@ class _Inbox extends ConsumerWidget {
           error: (error, _) => AppErrorState(
             placement: AppStatePlacement.card,
             title: l.consultLoadFailed,
-            message: serverDetailOr(
-              l,
-              error is AppError ? error.message : null,
-              l.consultRetryLater,
-            ),
+            message: appErrorMessage(l, error, fallback: l.consultRetryLater),
             retryLabel: l.actionRetry,
             onRetry: () => ref.invalidate(consultationsProvider),
           ),
@@ -225,7 +221,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
       // — that sentence is the whole point, so it is shown verbatim.
       showAppToast(
         context,
-        serverDetailOr(l, e.message, failureText),
+        appErrorMessage(l, e, fallback: failureText),
         type: AppToastType.error,
       );
     } finally {
@@ -265,7 +261,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
       if (!mounted) return;
       showAppToast(
         context,
-        serverDetailOr(l, e.message, l.consultActionFailed),
+        appErrorMessage(l, e, fallback: l.consultActionFailed),
         type: AppToastType.error,
       );
     } finally {
