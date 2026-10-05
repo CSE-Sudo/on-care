@@ -6,7 +6,16 @@
 * 같은 SHA 를 담은 `version.txt` 가 각 앱 폴더(`/frontend/`·`/trainer/`)에 올라가며,
 * 운영 업로드는 진입 파일을 no-cache 로 나눠 올리는 스크립트를 거치고 그 헤더를 검증한다.
 
-하나만 빠져도 빌드·배포는 성공하고 안내만 조용히 사라지므로 병합 전에 확인한다.
+안내의 `새로고침` 이 실제로 새 번들을 받으려면(#3204) 다음도 맞아야 한다.
+
+* 두 앱이 서비스 워커를 등록하지 않는다 — `web/flutter_bootstrap.js` 템플릿에
+  `serviceWorkerSettings` 가 없다.
+* 예전 빌드가 설치한 워커를 `web/js/sw_cleanup.js` 가 해제한다(두 앱 같은 파일).
+* 빌드는 `--pwa-strategy` 를 넘기지 않는다 — Flutter 의 자기 해제형
+  `flutter_service_worker.js` 가 빈 파일로 바뀌지 않게. 그 파일은 no-cache 로 올린다.
+* 새로고침 전에 진입 파일을 `cache: 'reload'` 로 받아 HTTP 캐시를 바꾼다.
+
+하나만 빠져도 빌드·배포는 성공하고 안내만 조용히 사라지거나 되풀이되므로 병합 전에 확인한다.
 
 실행: python3 -m unittest discover -s tool/ci -p 'test_*.py'
 """
@@ -23,6 +32,13 @@ AWS_DEPLOY = WORKFLOWS / "aws-frontend-deploy.yml"
 PAGES_DEPLOY = WORKFLOWS / "deploy.yml"
 SCRIPT = REPO_ROOT / ".github" / "scripts" / "web_cache_headers.sh"
 APPS = ("frontend/flutter", "frontend/flutter_trainer")
+WEB_BUILD_WORKFLOWS = ("deploy.yml", "aws-frontend-deploy.yml", "trainer-ci.yml", "user-app-ci.yml",
+                       "e2e-ci.yml")
+
+
+def strip_line_comments(text: str) -> str:
+    """`//` 로 시작하는 줄(설명 주석)을 뺀 코드만 남긴다."""
+    return "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("//"))
 
 
 def step_blocks(text: str) -> dict[str, str]:
@@ -95,6 +111,63 @@ class WebReleaseRefreshWiringTest(unittest.TestCase):
                 self.assertIn("baseURI", text)
                 self.assertIn("'version.txt'", text)
                 self.assertIn("no-store", text)
+
+    def test_apps_boot_without_service_worker(self) -> None:
+        for app in APPS:
+            path = REPO_ROOT / app / "web" / "flutter_bootstrap.js"
+            with self.subTest(app=app):
+                self.assertTrue(path.is_file(), path)
+                code = strip_line_comments(path.read_text(encoding="utf-8"))
+                self.assertIn("{{flutter_js}}", code)
+                self.assertIn("{{flutter_build_config}}", code)
+                self.assertIn("_flutter.loader.load();", code)
+                self.assertNotIn("serviceWorkerSettings", code)
+                self.assertNotIn("flutter_service_worker_version", code)
+                self.assertNotIn("serviceWorker", code)
+
+    def test_apps_unregister_old_service_workers(self) -> None:
+        copies = {}
+        for app in APPS:
+            script = REPO_ROOT / app / "web" / "js" / "sw_cleanup.js"
+            index = (REPO_ROOT / app / "web" / "index.html").read_text(encoding="utf-8")
+            with self.subTest(app=app):
+                self.assertTrue(script.is_file(), script)
+                copies[app] = script.read_bytes()
+                self.assertIn('<script src="js/sw_cleanup.js"></script>', index)
+                head = index[: index.index("</head>")]
+                self.assertIn("js/sw_cleanup.js", head)
+                code = copies[app].decode("utf-8")
+                self.assertIn("getRegistrations()", code)
+                self.assertIn(".unregister()", code)
+                self.assertIn("document.baseURI", code)
+        self.assertEqual(len(set(copies.values())), 1, "두 앱의 sw_cleanup.js 사본이 다르다")
+
+    def test_builds_keep_self_destroying_worker(self) -> None:
+        for name in WEB_BUILD_WORKFLOWS:
+            path = WORKFLOWS / name
+            if not path.is_file():
+                continue
+            with self.subTest(workflow=name):
+                self.assertNotIn("--pwa-strategy", path.read_text(encoding="utf-8"))
+
+    def test_script_keeps_service_worker_uncached(self) -> None:
+        script = SCRIPT.read_text(encoding="utf-8")
+        entries = re.search(r"ENTRY_FILES=\((.*?)\)", script, re.DOTALL)
+        self.assertIsNotNone(entries)
+        self.assertIn("flutter_service_worker.js", set(entries.group(1).split()))
+
+    def test_apps_refresh_entry_files_before_reload(self) -> None:
+        for app in APPS:
+            path = REPO_ROOT / app / "lib" / "core" / "release" / "release_probe_web.dart"
+            with self.subTest(app=app):
+                text = path.read_text(encoding="utf-8")
+                self.assertIn("cache: 'reload'", text)
+                for name in ("'flutter_bootstrap.js'", "'main.dart.js'"):
+                    self.assertIn(name, text)
+                self.assertIn("arrayBuffer()", text)
+                self.assertIn("sessionStorage", text)
+                refresh = text.index("kReleaseEntryFiles.map(_refresh)")
+                self.assertLess(refresh, text.index("location.reload()"))
 
 
 if __name__ == "__main__":

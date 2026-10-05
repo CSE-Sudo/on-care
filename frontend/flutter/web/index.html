@@ -77,6 +77,10 @@
   </style>
   <!-- 위 스타일을 shadow DOM 변화마다 다시 거는 스크립트(인라인 금지 — CSP). -->
   <script src="js/font_fix.js"></script>
+  <!-- 예전 빌드가 설치한 서비스 워커를 지운다(#3204). 지금 빌드는 워커를 등록하지
+       않는다(web/flutter_bootstrap.js). 남은 워커가 옛 main.dart.js 를 내주면 새로고침해도
+       새 배포로 바뀌지 않는다. 인라인 금지(CSP)라 같은 출처 파일로 둔다. -->
+  <script src="js/sw_cleanup.js"></script>
 </head>
 <body>
   <!--
