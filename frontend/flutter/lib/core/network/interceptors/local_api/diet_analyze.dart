@@ -134,7 +134,7 @@ extension _LocalApiDietAnalyze on LocalApiInterceptor {
         data: <String, Object?>{
           'detail': <String, Object?>{
             'code': 'no_food_detected',
-            'message': '사진에서 음식을 찾지 못했어요. 다른 사진을 고르거나 직접 입력해 주세요.',
+            'message': '사진에서 음식을 찾지 못했어요. 다른 사진을 고르거나 직접 추가해 주세요.',
           },
         },
       );

@@ -148,7 +148,7 @@
   "homeDetails": "Details",
   "homeGoal": "Goal",
   "homeDietNutritionTitle": "Diet & nutrition",
-  "homeCalorieIntake": "Today's calories",
+  "homeCalorieIntake": "Calories eaten today",
   "homeAchieveRate": "Progress",
   "homeWeeklyMetricTrend": "Weekly {metric} trend",
   "@homeWeeklyMetricTrend": {
@@ -159,7 +159,7 @@
     }
   },
   "homeExerciseTrendUnavailable": "Couldn't load this week's workout history.",
-  "homeExerciseBurned": "Calories",
+  "homeExerciseBurned": "Calories burned",
   "homeMealReasonSodium": "Great for sodium control",
   "homeMealSourceTrainer": "Trainer pick",
   "homeMealSourceAi": "AI pick",
@@ -174,7 +174,7 @@
   "homeMealReasonLowCal": "Low calorie, keeps you full",
   "homeMealTagLowCal": "Low calorie",
   "homeMealNamulBibimbap": "Namul bibimbap",
-  "homeMealReasonFiber": "Rich in dietary fiber",
+  "homeMealReasonFiber": "Rich in fiber",
   "homeMealTagLowFat": "Low fat",
   "homeTrainerPickReasonSodiumLow": "Less sodium",
   "homeTrainerPickReasonProteinHigh": "More protein",
@@ -238,7 +238,7 @@
   "dietWeekdayFri": "Fri",
   "dietWeekdaySat": "Sat",
   "dietWeekdaySun": "Sun",
-  "dietNutritionSummary": "Nutrition",
+  "dietNutritionSummary": "Nutrition summary",
   "dietAmount": "Serving size",
   "@dietAmount": {
     "description": "Label of the serving-size (g) field at the top of a food edit block; the rest of the nutrition scales with it (#1876)"
@@ -344,9 +344,9 @@
   "dietAddPhoto": "Add a photo",
   "dietAddPhotoSub": "Choose a food photo from your library, camera, or files",
   "dietPhotoLoadError": "Couldn't load the photo. Please try again in a moment.",
-  "dietCameraPermissionDenied": "Camera permission is needed to photograph your meal. Tap Take Photo to try again.",
+  "dietCameraPermissionDenied": "Camera permission is needed to photograph your meal. Tap \"Take a photo\" to try again.",
   "dietCameraPermissionPermanentlyDenied": "Camera access is off. Turn it on in Settings to photograph your meal.",
-  "dietPhotoPermissionDenied": "Photo permission is needed to choose a meal photo. Tap Choose Photo to try again.",
+  "dietPhotoPermissionDenied": "Photo permission is needed to choose a meal photo. Tap \"Choose a photo\" to try again.",
   "dietPhotoPermissionPermanentlyDenied": "Photo access is off. Turn it on in Settings to choose a meal photo.",
   "dietPhotoPermissionRestricted": "Camera or photo access is unavailable because of this device's settings or management policy.",
   "dietPhotoUnsupportedFormat": "That photo format isn't supported. Please try a JPG or PNG photo.",
@@ -387,7 +387,7 @@
   "dietAnalysisUnsupportedFormat": "This photo format can't be analyzed. Please pick a JPG or PNG photo instead.",
   "dietAnalysisBadRequest": "The photo couldn't be read. Please pick a different one.",
   "dietAnalysisUnauthorized": "Your sign-in expired. Please sign in again to log this meal.",
-  "dietAnalysisNotImplemented": "Photo analysis is unavailable right now. Please log the meal manually.",
+  "dietAnalysisNotImplemented": "Photo analysis is unavailable right now. Please add the meal manually.",
   "dietAnalysisNoFood": "We couldn't find any food in this photo. Pick another photo or add the meal manually.",
   "dietAnalysisDailyLimit": "You've used today's photo analyses. They reset tomorrow — for now you can add the meal manually.",
   "dietAnalysisRateLimited": "Too many photo analyses in a short time. Try again in a moment or add the meal manually.",
@@ -485,7 +485,7 @@
       }
     }
   },
-  "exStreakCheer": "{days} days in a row!",
+  "exStreakCheer": "{days, plural, =1{1 day in a row!} other{{days} days in a row!}}",
   "@exStreakCheer": {
     "placeholders": {
       "days": {
@@ -515,7 +515,7 @@
       }
     }
   },
-  "exCompletedPtNoProgram": "No workout program was recorded.",
+  "exCompletedPtNoProgram": "No PT program was recorded.",
   "exAddExercise": "Add exercise",
   "exDurationMinutes": "{minutes} min",
   "@exDurationMinutes": {
@@ -898,7 +898,7 @@
     }
   },
   "myGraphDayHint": "Tap a square to see that day",
-  "myGraphDayNone": "{date} · nothing logged",
+  "myGraphDayNone": "{date} · No record",
   "@myGraphDayNone": {
     "placeholders": {
       "date": {
@@ -1563,7 +1563,7 @@
     "description": "Support page footer when the build version cannot be read — the app name only (#3047)."
   },
   "coachHeaderPill": "AI health assistant",
-  "coachHeaderSubtitle": "Here are today's tailored tips",
+  "coachHeaderSubtitle": "Here's today's tailored advice",
   "coachCardDietTag": "Diet",
   "coachCardDietTitle": "Great breakfast — watch lunch sodium",
   "coachCardDietBody": "Breakfast was nicely balanced. The jjamppong you had for lunch can be heavy on sodium and sugar, so drink plenty of water today. For the rest of the day, pair vegetables with protein to keep things balanced.",
@@ -1680,7 +1680,7 @@
       }
     }
   },
-  "coachReportPdfFileName": "weekly-report_{date}.pdf",
+  "coachReportPdfFileName": "weekly_report_{date}.pdf",
   "@coachReportPdfFileName": {
     "placeholders": {
       "date": {
@@ -2204,7 +2204,7 @@
   "@guideDone": {
     "description": "Spotlight guide: ends the guide on the last step (#1857)."
   },
-  "guideHomeAdviceTitle": "Today's AI summary",
+  "guideHomeAdviceTitle": "Today's combined AI advice",
   "@guideHomeAdviceTitle": {
     "description": "Spotlight guide step: the home AI advice card (#1857)."
   },
@@ -2256,7 +2256,7 @@
   "@guidePointsTitle": {
     "description": "Spotlight guide step: the MY tab points card (#1857)."
   },
-  "guidePointsBody": "Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use points",
+  "guidePointsBody": "Every log earns points.\nLog a meal +{diet}P, log a workout yourself +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use points",
   "@guidePointsBody": {
     "description": "Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).",
     "placeholders": {
@@ -2678,7 +2678,7 @@
   "@coachRoutineLogged": {
     "description": "Shown after a routine is marked done."
   },
-  "coachRoutineGone": "This program no longer exists. Please refresh the list",
+  "coachRoutineGone": "This personal exercise no longer exists. Please refresh the list",
   "@coachRoutineGone": {
     "description": "Shown when the routine is missing."
   },
@@ -2998,7 +2998,7 @@
   },
   "a11yShowPassword": "Show password",
   "a11yHidePassword": "Hide password",
-  "a11yOpenCoaching": "Open coaching tips",
+  "a11yOpenCoaching": "Open coaching advice",
   "a11ySendMessage": "Send message",
   "a11yClearSearch": "Clear search",
   "a11yRemoveFood": "Remove food",

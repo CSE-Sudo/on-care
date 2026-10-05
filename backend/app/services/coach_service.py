@@ -123,9 +123,9 @@ def _diet_today_priority(db: Session, user_id: str) -> CoachSuggestion | None:
             tag="diet",
             title=localized("나트륨 섭취가 많아요", "High sodium today"),
             body=localized(
-                f"오늘 나트륨이 약 {total_na}mg 으로 권장량을 넘었어요. "
+                f"오늘 나트륨이 약 {total_na}mg 으로 목표를 넘었어요. "
                 "저녁은 국물을 남기고 채소를 늘려 균형을 맞춰봐요.",
-                f"Today's sodium is about {total_na}mg, over the recommended amount. "
+                f"Today's sodium is about {total_na}mg, over the goal. "
                 "At dinner, leave the broth and add more vegetables to balance it out.",
             ),
         )
@@ -152,8 +152,8 @@ def _diet_weekly_or_default(db: Session, user_id: str) -> CoachSuggestion:
             title=localized("이번 주 나트륨이 계속 높았어요", "Sodium ran high this week"),
             body=localized(
                 f"이번 주 기록한 {week.days_logged}일 중 {week.days_over_sodium}일 "
-                "나트륨이 권장량을 넘었어요. 오늘처럼 낮게 유지하는 날을 늘려봐요.",
-                f"Sodium went over the recommended amount on {week.days_over_sodium} "
+                "나트륨이 목표를 넘었어요. 오늘처럼 낮게 유지하는 날을 늘려봐요.",
+                f"Sodium went over the goal on {week.days_over_sodium} "
                 f"of the {week.days_logged} days you logged this week. "
                 "Try to have more low-sodium days like today.",
             ),

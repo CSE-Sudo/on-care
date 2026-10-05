@@ -67,7 +67,7 @@ def reserve(db: Session, user_id: str) -> str | None:
     if used_today(db, user_id) >= limit:
         db.rollback()
         raise DailyAnalysisLimitReached(
-            "오늘 사진 분석 횟수를 다 썼어요. 직접 입력으로 기록할 수 있어요."
+            "오늘 사진 분석 횟수를 다 썼어요. 직접 추가로 기록할 수 있어요."
         )
     usage_id = f"dau-{uuid.uuid4().hex[:12]}"
     db.add(DietAnalysisUsage(id=usage_id, user_id=user_id, kst_date=clock.today_iso()))

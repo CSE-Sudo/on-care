@@ -223,7 +223,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('앱 컨테이너의 운동 추세를 결과지에 싣는다', (tester) async {
+    testWidgets('앱 컨테이너의 운동 추이를 결과지에 싣는다', (tester) async {
       final _SpyCapture spy = _SpyCapture();
       await tester.runAsync(
         () => ReportPdfGenerator(
@@ -490,11 +490,11 @@ void main() {
     expect(content, contains('• 나트륨 목표 초과: 2일'));
     expect(content, contains('• 평균 칼로리: 1863kcal'));
     expect(content, contains('• 평균 당류: 21.4g'));
-    expect(content, contains('전주 대비 변화'));
+    expect(content, contains('지난주 대비 변화'));
     expect(content, contains('• 운동 완료율: +7%'));
     expect(content, contains('• 완료 PT: -1회'));
     expect(content, contains('주간 추이 (월~일)'));
-    expect(content, contains('일자별 운동'));
+    expect(content, contains('요일별 운동'));
     expect(content, contains('월: 80% · 스쿼트, 런지'));
     // 이행률 0 인 날은 `미집계`, 배정된 운동이 없으면 `기록 없음`.
     expect(content, contains('화: 미집계 · 기록 없음'));
@@ -520,7 +520,7 @@ void main() {
     expect(content, contains('Weekly trend (Mon–Sun)'));
     expect(content, contains('Workouts by day'));
     expect(content, contains('Mon: 80% · 스쿼트, 런지'));
-    expect(content, contains('Tue: Not measured · Not logged'));
+    expect(content, contains('Tue: Not measured · No record'));
     expect(content, contains('Trainer feedback'));
     expect(content, contains('Nice week'));
 

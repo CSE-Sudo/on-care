@@ -562,7 +562,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get dietAnalysisNotImplemented =>
-      '지금은 사진 분석을 사용할 수 없어요. 직접 입력으로 기록해 주세요.';
+      '지금은 사진 분석을 쓸 수 없어요. 직접 추가로 기록해 주세요.';
 
   @override
   String get dietAnalysisNoFood => '사진에서 음식을 찾지 못했어요. 다른 사진을 고르거나 직접 추가해 주세요.';
@@ -776,7 +776,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get exStreakStart => '오늘 운동으로 연속 기록을 시작해 봐요.';
+  String get exStreakStart => '오늘 운동으로 연속 운동을 시작해 봐요.';
 
   @override
   String get exStreakProtected => '보호권으로 이어짐';
@@ -801,7 +801,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get exCompletedPtNoProgram => '등록된 운동 프로그램이 없어요.';
+  String get exCompletedPtNoProgram => '기록된 PT 프로그램이 없어요.';
 
   @override
   String get exAddExercise => '운동 추가';
@@ -818,7 +818,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exSave => '저장';
 
   @override
-  String get exExerciseType => '운동 종류';
+  String get exExerciseType => '운동 유형';
 
   @override
   String get exExerciseDate => '날짜';
@@ -919,7 +919,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get exCaloriesRoughEstimate => '운동 종류 평균으로 낸 어림값이에요';
+  String get exCaloriesRoughEstimate => '운동 유형 평균으로 낸 어림값이에요';
 
   @override
   String get exEnterDuration => '운동 시간을 입력해 주세요';
@@ -1335,7 +1335,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String myGraphStreak(int days) {
-    return '기록 연속 $days일';
+    return '연속 기록 $days일';
   }
 
   @override
@@ -1385,7 +1385,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String myGraphProtectConfirmMessage(String date, int held) {
-    return '$date을 기록 연속에 이어 붙여요. 보호권 한 개를 사용해요(남은 보호권 $held개).';
+    return '$date을 연속 기록에 이어 붙여요. 보호권 한 개를 사용해요(남은 보호권 $held개).';
   }
 
   @override
@@ -1399,7 +1399,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String myGraphProtectBuyConfirmMessage(String date, String cost) {
-    return '지금 가진 보호권이 없어요. $cost로 보호권을 구매하고 $date을 바로 기록 연속에 이어 붙여요.';
+    return '지금 가진 보호권이 없어요. $cost로 보호권을 구매하고 $date을 바로 연속 기록에 이어 붙여요.';
   }
 
   @override
@@ -1842,7 +1842,7 @@ class AppLocalizationsKo extends AppLocalizations {
       '기한 없이 쓸 수 있어요. 헬스장에 가기 전에 담당 트레이너에게 식판이 준비됐는지 채팅으로 물어보세요.';
 
   @override
-  String get myCouponStaffConfirmTitle => '쿠폰을 사용 완료할까요?';
+  String get myCouponStaffConfirmTitle => '쿠폰을 사용 처리할까요?';
 
   @override
   String get myCouponStaffConfirmMessage => '직원 확인용 · 사용 후 되돌릴 수 없어요';
@@ -1859,7 +1859,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myCouponExpireNotice => '만료되면 포인트는 돌려받을 수 없어요.';
 
   @override
-  String get myCouponUse => '사용 완료';
+  String get myCouponUse => '사용 처리';
 
   @override
   String get myCouponUseDone => '사용 완료로 바꿨어요';
@@ -1895,7 +1895,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String emoteBuyConfirm(int cost, int days) {
-    return '${cost}P로 $days일 동안 쓸까요?\n산 때부터 기간이 흘러가요.';
+    return '${cost}P로 $days일 동안 쓸까요?\n구매한 때부터 기간이 흘러가요.';
   }
 
   @override
@@ -1905,13 +1905,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get emoteBought => '이제 이 이모티콘을 보낼 수 있어요';
 
   @override
-  String get emoteBuyFailed => '이모티콘을 사지 못했어요. 잠시 후 다시 시도해 주세요.';
+  String get emoteBuyFailed => '이모티콘을 구매하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get emoteAlreadyUnlocked => '이미 열려 있는 이모티콘이에요. 바로 보낼 수 있어요';
 
   @override
-  String get emoteTrainerRequired => '담당 트레이너가 있어야 이모티콘을 살 수 있어요';
+  String get emoteTrainerRequired => '담당 트레이너가 있어야 이모티콘을 구매할 수 있어요';
 
   @override
   String get emoteShortfall => '포인트가 부족해요';
@@ -2431,7 +2431,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String aicPaidInsufficient(String shortfall) {
-    return '포인트가 $shortfall 모자라요. 식단·운동을 기록하면 포인트가 쌓여요.';
+    return '포인트가 $shortfall 부족해요. 식단·운동을 기록하면 포인트가 쌓여요.';
   }
 
   @override
@@ -3146,7 +3146,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String guidePointsBody(int diet, int exercise, int routine) {
-    return '기록할 때마다 포인트가 쌓여요.\n식단 기록 +${diet}P, 운동 추가 +${exercise}P, 개인운동 완료 +${routine}P\n모은 포인트는 MY › 포인트 사용처에서 써요';
+    return '기록할 때마다 포인트가 쌓여요.\n식단 기록 +${diet}P, 운동 직접 기록 +${exercise}P, 개인운동 완료 +${routine}P\n모은 포인트는 MY › 포인트 사용처에서 써요';
   }
 
   @override
@@ -3490,13 +3490,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsGuideTitle => '포인트 적립 안내';
 
   @override
-  String get myPointsDietAdd => '식단 추가';
+  String get myPointsDietAdd => '식단 기록';
 
   @override
   String get myPointsRoutineComplete => '개인운동 완료';
 
   @override
-  String get myPointsExerciseAdd => '운동 직접 추가';
+  String get myPointsExerciseAdd => '운동 직접 기록';
 
   @override
   String myPointsRuleWithDailyCap(String action, int count) {
@@ -3520,7 +3520,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutineLogged => '운동 기록에 반영했어요';
 
   @override
-  String get coachRoutineGone => '이 프로그램은 더 이상 없어요. 목록을 새로 불러와 주세요';
+  String get coachRoutineGone => '이 개인운동은 더 이상 없어요. 목록을 새로 불러와 주세요';
 
   @override
   String get coachRoutineNetworkError => '네트워크 연결을 확인하고 다시 시도해 주세요';
@@ -3529,7 +3529,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutineLogFailed => '완료로 기록하지 못했어요.';
 
   @override
-  String get coachRoutineDone => '수행 완료';
+  String get coachRoutineDone => '완료';
 
   @override
   String get coachRoutineUndo => '완료 취소';
@@ -3569,7 +3569,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutineCancelFailed => '개인운동을 삭제하지 못했어요';
 
   @override
-  String get coachRoutineCompleteTitle => '개인운동 수행 완료';
+  String get coachRoutineCompleteTitle => '개인운동 완료';
 
   @override
   String get coachRoutineIntensity => '수행 강도';
@@ -3771,7 +3771,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get a11yRemoveFood => '음식 지우기';
 
   @override
-  String get a11yPrevWeek => '지난 주';
+  String get a11yPrevWeek => '지난주';
 
   @override
   String get a11yNextWeek => '다음 주';

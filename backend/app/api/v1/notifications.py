@@ -81,7 +81,7 @@ _ACTION_BY_CATEGORY: dict[str, tuple[str, str, str]] = {
 #: 알림별 목적지(`Notification.action_target`, #2690)의 라벨. 갈래별 표와 목적지가
 #: 같으면 그 라벨을 쓰고, 여기 없는 목적지는 "보기" 다.
 _LABEL_BY_TARGET: dict[str, tuple[str, str]] = {
-    "diet": ("식단 보기", "View meals"),
+    "diet": ("식단 보기", "View diet"),
     "exercise": ("운동 보기", "View workouts"),
     "dashboard": ("홈 보기", "View home"),
     "coach_chat": ("대화 보기", "View chat"),

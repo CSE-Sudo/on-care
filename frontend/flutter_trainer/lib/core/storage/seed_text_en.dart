@@ -465,7 +465,7 @@ const Map<String, String> _seedEnglish = <String, String>{
   '오른쪽 어깨': 'Right shoulder',
   '야근이 많아서 저녁 운동을 못 갔어요. 벤치 할 때 어깨가 좀 걸리는 느낌이 있습니다.':
       'Lots of late nights, so I missed my evening workouts. My shoulder catches a bit on the bench.',
-  '지난 주보다 컨디션은 나았는데 저녁 단백질은 계속 놓쳤어요.':
+  '지난주보다 컨디션은 나았는데 저녁 단백질은 계속 놓쳤어요.':
       'I felt better than last week, but I kept missing protein at dinner.',
   '스쿼트 무게 올린 게 오히려 재밌었어요.': 'Going heavier on squats was actually fun.',
   '출장이 겹쳐서 헬스장에 못 갔습니다. 다음 주부터 다시 갈게요.':

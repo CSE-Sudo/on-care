@@ -202,7 +202,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeDietNutritionTitle => 'Diet & nutrition';
 
   @override
-  String get homeCalorieIntake => 'Today\'s calories';
+  String get homeCalorieIntake => 'Calories eaten today';
 
   @override
   String get homeAchieveRate => 'Progress';
@@ -217,7 +217,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t load this week\'s workout history.';
 
   @override
-  String get homeExerciseBurned => 'Calories';
+  String get homeExerciseBurned => 'Calories burned';
 
   @override
   String get homeMealReasonSodium => 'Great for sodium control';
@@ -262,7 +262,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeMealNamulBibimbap => 'Namul bibimbap';
 
   @override
-  String get homeMealReasonFiber => 'Rich in dietary fiber';
+  String get homeMealReasonFiber => 'Rich in fiber';
 
   @override
   String get homeMealTagLowFat => 'Low fat';
@@ -351,7 +351,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietWeekdaySun => 'Sun';
 
   @override
-  String get dietNutritionSummary => 'Nutrition';
+  String get dietNutritionSummary => 'Nutrition summary';
 
   @override
   String get dietAmount => 'Serving size';
@@ -500,7 +500,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietCameraPermissionDenied =>
-      'Camera permission is needed to photograph your meal. Tap Take Photo to try again.';
+      'Camera permission is needed to photograph your meal. Tap \"Take a photo\" to try again.';
 
   @override
   String get dietCameraPermissionPermanentlyDenied =>
@@ -508,7 +508,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietPhotoPermissionDenied =>
-      'Photo permission is needed to choose a meal photo. Tap Choose Photo to try again.';
+      'Photo permission is needed to choose a meal photo. Tap \"Choose a photo\" to try again.';
 
   @override
   String get dietPhotoPermissionPermanentlyDenied =>
@@ -584,7 +584,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietAnalysisNotImplemented =>
-      'Photo analysis is unavailable right now. Please log the meal manually.';
+      'Photo analysis is unavailable right now. Please add the meal manually.';
 
   @override
   String get dietAnalysisNoFood =>
@@ -802,7 +802,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String exStreakCheer(int days) {
-    return '$days days in a row!';
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days in a row!',
+      one: '1 day in a row!',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -831,7 +837,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get exCompletedPtNoProgram => 'No workout program was recorded.';
+  String get exCompletedPtNoProgram => 'No PT program was recorded.';
 
   @override
   String get exAddExercise => 'Add exercise';
@@ -1408,7 +1414,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String myGraphDayNone(String date) {
-    return '$date · nothing logged';
+    return '$date · No record';
   }
 
   @override
@@ -2294,7 +2300,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachHeaderPill => 'AI health assistant';
 
   @override
-  String get coachHeaderSubtitle => 'Here are today\'s tailored tips';
+  String get coachHeaderSubtitle => 'Here\'s today\'s tailored advice';
 
   @override
   String get coachCardDietTag => 'Diet';
@@ -2456,7 +2462,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String coachReportPdfFileName(String date) {
-    return 'weekly-report_$date.pdf';
+    return 'weekly_report_$date.pdf';
   }
 
   @override
@@ -3275,7 +3281,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get guideDone => 'Done';
 
   @override
-  String get guideHomeAdviceTitle => 'Today\'s AI summary';
+  String get guideHomeAdviceTitle => 'Today\'s combined AI advice';
 
   @override
   String get guideHomeAdviceBody =>
@@ -3321,7 +3327,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String guidePointsBody(int diet, int exercise, int routine) {
-    return 'Every log earns points.\nLog a meal +${diet}P, log a workout +${exercise}P, finish a personal exercise +${routine}P\nSpend them in MY › Use points';
+    return 'Every log earns points.\nLog a meal +${diet}P, log a workout yourself +${exercise}P, finish a personal exercise +${routine}P\nSpend them in MY › Use points';
   }
 
   @override
@@ -3711,7 +3717,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachRoutineGone =>
-      'This program no longer exists. Please refresh the list';
+      'This personal exercise no longer exists. Please refresh the list';
 
   @override
   String get coachRoutineNetworkError => 'Check your connection and try again';
@@ -3960,7 +3966,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get a11yHidePassword => 'Hide password';
 
   @override
-  String get a11yOpenCoaching => 'Open coaching tips';
+  String get a11yOpenCoaching => 'Open coaching advice';
 
   @override
   String get a11ySendMessage => 'Send message';

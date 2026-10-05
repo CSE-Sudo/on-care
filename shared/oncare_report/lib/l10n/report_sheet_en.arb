@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "chartNoRecord": "Not logged",
+  "chartNoRecord": "No record",
   "dateMonthDay": "{month}/{day}",
   "@dateMonthDay": {
     "placeholders": {
@@ -109,7 +109,7 @@
   "@reportsSheetAttendance": {
     "description": "리포트 PDF 한 장 결과지 (#2485)."
   },
-  "reportsSheetAverageBase": "4-wk avg",
+  "reportsSheetAverageBase": "4-week average",
   "@reportsSheetAverageBase": {
     "description": "리포트 PDF 한 장 결과지 (#2485)."
   },
@@ -258,7 +258,7 @@
   "@reportsSheetTrendTitle": {
     "description": "리포트 PDF 한 장 결과지 (#2485)."
   },
-  "reportsSheetTrendWeekly": "Weekly exercise achievement (8 weeks)",
+  "reportsSheetTrendWeekly": "Weekly exercise goal progress (8 weeks)",
   "@reportsSheetTrendWeekly": {
     "description": "리포트 PDF 한 장 결과지 (#2485)."
   },

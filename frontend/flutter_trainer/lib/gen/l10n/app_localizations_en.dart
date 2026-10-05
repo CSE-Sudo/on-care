@@ -773,7 +773,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Keep trainer-only notes in Memo.';
 
   @override
-  String get memberHealthDietGoal => 'Nutrition goals';
+  String get memberHealthDietGoal => 'Diet goals';
 
   @override
   String get memberHealthExerciseGoal => 'Exercise goals';
@@ -797,7 +797,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memberHealthGoalFat => 'Daily fat goal (g)';
 
   @override
-  String get memberHealthGoalBurnDaily => 'Daily burn (kcal)';
+  String get memberHealthGoalBurnDaily => 'Daily calories burned (kcal)';
 
   @override
   String get memberHealthGoalCardioWeekly => 'Weekly cardio (min)';
@@ -1282,7 +1282,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientNutritionSummary => 'Nutrition summary';
 
   @override
-  String get dietCalorieIntake => 'Calories today';
+  String get dietCalorieIntake => 'Calories eaten today';
 
   @override
   String get dietAchieveRate => 'Progress';
@@ -1484,7 +1484,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsNoWorkoutsThisWeek => 'No workouts logged this week';
 
   @override
-  String get chartNoRecord => 'Not logged';
+  String get chartNoRecord => 'No record';
 
   @override
   String get chartNotYet => 'Not yet';
@@ -3189,7 +3189,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get routineEvidenceRecentRecord => 'Recent workout log';
 
   @override
-  String get aiPlanIntensityLow => 'Low';
+  String get aiPlanIntensityLow => 'Light';
 
   @override
   String aiPersonalStepFull(int count) {
@@ -4252,7 +4252,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientGoalFat => 'Fat';
 
   @override
-  String get clientGoalBurnDaily => 'Daily burn';
+  String get clientGoalBurnDaily => 'Daily calories burned';
 
   @override
   String get clientGoalCardioWeekly => 'Weekly cardio';
@@ -4274,7 +4274,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientGoalDefaultHint =>
-      'Faded values are the defaults used until a goal is set. Empty fields use them.';
+      'Dimmed values are the defaults used until a goal is set. Empty fields use them.';
 
   @override
   String clientGoalSuggestionDiet(
@@ -4300,7 +4300,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientGoalSuggestionPersonal =>
-      'Based on age, sex, height, weight, and health goals (2020 KDRIs and WHO guidelines)';
+      'Based on age, gender, height, weight, and health goals (2020 KDRIs and WHO guidelines)';
 
   @override
   String get clientGoalSuggestionFallback =>
@@ -4702,7 +4702,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programEditorReps => 'Reps';
 
   @override
-  String get programEditorWeight => 'Weight kg';
+  String get programEditorWeight => 'Weight (kg)';
 
   @override
   String reportsDemoSummarySteadyThisWeek(String name) {
@@ -5064,7 +5064,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsSortLabel => 'Sort';
 
   @override
-  String get reportsSortPriority => 'Needs attention';
+  String get reportsSortPriority => 'Needs attention first';
 
   @override
   String get reportsSortName => 'Name A–Z';
@@ -5472,7 +5472,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsTrendNoHistory => 'No earlier week to compare';
 
   @override
-  String get reportsTrendRate => 'Weekly goal rate';
+  String get reportsTrendRate => 'Weekly goal progress';
 
   @override
   String reportsTrendAverage(int weeks) {
@@ -5481,7 +5481,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsTrendRateFalling(int weeks) {
-    return 'Goal rate down $weeks weeks running';
+    return 'Goal progress down $weeks weeks running';
   }
 
   @override

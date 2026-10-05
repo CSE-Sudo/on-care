@@ -526,7 +526,7 @@ def test_schedule_added_and_cancelled_reach_the_member_in_english(client, db_ses
             {"item": "locker_month", "benefit": "개인 락커 1개월 무료", "reason": "gym",
              "refunded": 7000},
             "benefits",
-            "Locker coupon cancelled",
+            "Personal locker coupon cancelled",
         ),
         (
             nt.MEMBER_CHALLENGE_RESULT,

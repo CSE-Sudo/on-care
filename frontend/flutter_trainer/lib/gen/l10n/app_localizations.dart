@@ -1463,7 +1463,7 @@ abstract class AppLocalizations {
   /// No description provided for @memberHealthDietGoal.
   ///
   /// In en, this message translates to:
-  /// **'Nutrition goals'**
+  /// **'Diet goals'**
   String get memberHealthDietGoal;
 
   /// No description provided for @memberHealthExerciseGoal.
@@ -1511,7 +1511,7 @@ abstract class AppLocalizations {
   /// No description provided for @memberHealthGoalBurnDaily.
   ///
   /// In en, this message translates to:
-  /// **'Daily burn (kcal)'**
+  /// **'Daily calories burned (kcal)'**
   String get memberHealthGoalBurnDaily;
 
   /// No description provided for @memberHealthGoalCardioWeekly.
@@ -2375,7 +2375,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietCalorieIntake.
   ///
   /// In en, this message translates to:
-  /// **'Calories today'**
+  /// **'Calories eaten today'**
   String get dietCalorieIntake;
 
   /// No description provided for @dietAchieveRate.
@@ -2681,7 +2681,7 @@ abstract class AppLocalizations {
   /// No description provided for @chartNoRecord.
   ///
   /// In en, this message translates to:
-  /// **'Not logged'**
+  /// **'No record'**
   String get chartNoRecord;
 
   /// No description provided for @chartNotYet.
@@ -5566,7 +5566,7 @@ abstract class AppLocalizations {
   /// Intensity of an AI A/B plan whose contract value is 낮음 (#2301).
   ///
   /// In en, this message translates to:
-  /// **'Low'**
+  /// **'Light'**
   String get aiPlanIntensityLow;
 
   /// No description provided for @aiPersonalStepFull.
@@ -7306,7 +7306,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientGoalBurnDaily.
   ///
   /// In en, this message translates to:
-  /// **'Daily burn'**
+  /// **'Daily calories burned'**
   String get clientGoalBurnDaily;
 
   /// No description provided for @clientGoalCardioWeekly.
@@ -7348,7 +7348,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientGoalDefaultHint.
   ///
   /// In en, this message translates to:
-  /// **'Faded values are the defaults used until a goal is set. Empty fields use them.'**
+  /// **'Dimmed values are the defaults used until a goal is set. Empty fields use them.'**
   String get clientGoalDefaultHint;
 
   /// No description provided for @clientGoalSuggestionDiet.
@@ -7378,7 +7378,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientGoalSuggestionPersonal.
   ///
   /// In en, this message translates to:
-  /// **'Based on age, sex, height, weight, and health goals (2020 KDRIs and WHO guidelines)'**
+  /// **'Based on age, gender, height, weight, and health goals (2020 KDRIs and WHO guidelines)'**
   String get clientGoalSuggestionPersonal;
 
   /// No description provided for @clientGoalSuggestionFallback.
@@ -7998,7 +7998,7 @@ abstract class AppLocalizations {
   /// No description provided for @programEditorWeight.
   ///
   /// In en, this message translates to:
-  /// **'Weight kg'**
+  /// **'Weight (kg)'**
   String get programEditorWeight;
 
   /// 데모 AI 요약 머리 문장(#2669, #2775). 그 주 가장 위험한 주의사항 종류마다 하나, 이번 주(ThisWeek)와 지난 주(PastWeek) 변형.
@@ -8550,7 +8550,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsSortPriority.
   ///
   /// In en, this message translates to:
-  /// **'Needs attention'**
+  /// **'Needs attention first'**
   String get reportsSortPriority;
 
   /// No description provided for @reportsSortName.
@@ -9228,7 +9228,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsTrendRate.
   ///
   /// In en, this message translates to:
-  /// **'Weekly goal rate'**
+  /// **'Weekly goal progress'**
   String get reportsTrendRate;
 
   /// No description provided for @reportsTrendAverage.
@@ -9240,7 +9240,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsTrendRateFalling.
   ///
   /// In en, this message translates to:
-  /// **'Goal rate down {weeks} weeks running'**
+  /// **'Goal progress down {weeks} weeks running'**
   String reportsTrendRateFalling(int weeks);
 
   /// No description provided for @reportsTrendTracked.

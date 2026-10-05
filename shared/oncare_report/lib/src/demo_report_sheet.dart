@@ -102,7 +102,7 @@ const List<DemoReportAnswer> kDemoReportAnswers = <DemoReportAnswer>[
     weeksAgo: 1,
     condition: 'good',
     intensity: 'right',
-    note: '지난 주보다 컨디션은 나았는데 저녁 단백질은 계속 놓쳤어요.',
+    note: '지난주보다 컨디션은 나았는데 저녁 단백질은 계속 놓쳤어요.',
     noteEn:
         'I felt better than last week, but I kept missing protein at dinner.',
   ),

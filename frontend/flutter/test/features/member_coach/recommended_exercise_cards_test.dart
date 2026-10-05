@@ -559,7 +559,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     // 화면에서 부르는 이름을 `개인운동` 으로 통일했다(#1457).
-    expect(find.text('개인운동 수행 완료'), findsOneWidget);
+    expect(find.text('개인운동 완료'), findsOneWidget);
     // 회원이 운동의 세부 내용을 지정하는 자리는 없다 — 실제 수행 시간 입력은
     // 내려갔고(#1360), 피드백 칸도 없앴다 — 불편은 채팅에서 감지한다(#1825).
     // 남은 값은 강도뿐이다.

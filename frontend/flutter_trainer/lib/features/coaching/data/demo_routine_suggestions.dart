@@ -448,7 +448,7 @@ demoMemberSuggestionsEn = <String, List<RoutineSuggestion>>{
       reps: 12,
       weight: 0,
       reason:
-          'Recent personal workouts were 100% and 67% complete. Step-ups '
+          'Recent personal exercises were 100% and 67% complete. Step-ups '
           'load the legs from a different angle than squats.',
       evidence: <String>[RoutineEvidence.recentRecord],
     ),
@@ -482,7 +482,7 @@ demoMemberSuggestionsEn = <String, List<RoutineSuggestion>>{
       reps: 10,
       weight: 0,
       reason:
-          'Recent personal workouts were 33% and 0% complete. A short, '
+          'Recent personal exercises were 33% and 0% complete. A short, '
           'lighter circuit is an easier restart.',
       evidence: <String>[RoutineEvidence.recentRecord],
     ),
@@ -550,7 +550,7 @@ demoMemberSuggestionsEn = <String, List<RoutineSuggestion>>{
       minutes: 25,
       type: '유산소',
       reason:
-          'Recent personal workouts were all 100% complete. Tempo '
+          'Recent personal exercises were all 100% complete. Tempo '
           'segments between long runs raise the intensity.',
       evidence: <String>[RoutineEvidence.recentRecord],
     ),

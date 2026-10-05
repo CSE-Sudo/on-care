@@ -431,7 +431,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeCalorieIntake.
   ///
   /// In en, this message translates to:
-  /// **'Today\'s calories'**
+  /// **'Calories eaten today'**
   String get homeCalorieIntake;
 
   /// No description provided for @homeAchieveRate.
@@ -455,7 +455,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeExerciseBurned.
   ///
   /// In en, this message translates to:
-  /// **'Calories'**
+  /// **'Calories burned'**
   String get homeExerciseBurned;
 
   /// No description provided for @homeMealReasonSodium.
@@ -545,7 +545,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeMealReasonFiber.
   ///
   /// In en, this message translates to:
-  /// **'Rich in dietary fiber'**
+  /// **'Rich in fiber'**
   String get homeMealReasonFiber;
 
   /// No description provided for @homeMealTagLowFat.
@@ -695,7 +695,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietNutritionSummary.
   ///
   /// In en, this message translates to:
-  /// **'Nutrition'**
+  /// **'Nutrition summary'**
   String get dietNutritionSummary;
 
   /// Label of the serving-size (g) field at the top of a food edit block; the rest of the nutrition scales with it (#1876)
@@ -959,7 +959,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietCameraPermissionDenied.
   ///
   /// In en, this message translates to:
-  /// **'Camera permission is needed to photograph your meal. Tap Take Photo to try again.'**
+  /// **'Camera permission is needed to photograph your meal. Tap \"Take a photo\" to try again.'**
   String get dietCameraPermissionDenied;
 
   /// No description provided for @dietCameraPermissionPermanentlyDenied.
@@ -971,7 +971,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietPhotoPermissionDenied.
   ///
   /// In en, this message translates to:
-  /// **'Photo permission is needed to choose a meal photo. Tap Choose Photo to try again.'**
+  /// **'Photo permission is needed to choose a meal photo. Tap \"Choose a photo\" to try again.'**
   String get dietPhotoPermissionDenied;
 
   /// No description provided for @dietPhotoPermissionPermanentlyDenied.
@@ -1097,7 +1097,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietAnalysisNotImplemented.
   ///
   /// In en, this message translates to:
-  /// **'Photo analysis is unavailable right now. Please log the meal manually.'**
+  /// **'Photo analysis is unavailable right now. Please add the meal manually.'**
   String get dietAnalysisNotImplemented;
 
   /// No description provided for @dietAnalysisNoFood.
@@ -1493,7 +1493,7 @@ abstract class AppLocalizations {
   /// No description provided for @exStreakCheer.
   ///
   /// In en, this message translates to:
-  /// **'{days} days in a row!'**
+  /// **'{days, plural, =1{1 day in a row!} other{{days} days in a row!}}'**
   String exStreakCheer(int days);
 
   /// No description provided for @exStreakStart.
@@ -1541,7 +1541,7 @@ abstract class AppLocalizations {
   /// No description provided for @exCompletedPtNoProgram.
   ///
   /// In en, this message translates to:
-  /// **'No workout program was recorded.'**
+  /// **'No PT program was recorded.'**
   String get exCompletedPtNoProgram;
 
   /// No description provided for @exAddExercise.
@@ -2507,7 +2507,7 @@ abstract class AppLocalizations {
   /// No description provided for @myGraphDayNone.
   ///
   /// In en, this message translates to:
-  /// **'{date} · nothing logged'**
+  /// **'{date} · No record'**
   String myGraphDayNone(String date);
 
   /// No description provided for @myGraphDayDiet.
@@ -3941,7 +3941,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachHeaderSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Here are today\'s tailored tips'**
+  /// **'Here\'s today\'s tailored advice'**
   String get coachHeaderSubtitle;
 
   /// No description provided for @coachCardDietTag.
@@ -4217,7 +4217,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachReportPdfFileName.
   ///
   /// In en, this message translates to:
-  /// **'weekly-report_{date}.pdf'**
+  /// **'weekly_report_{date}.pdf'**
   String coachReportPdfFileName(String date);
 
   /// No description provided for @coachChatInputHint.
@@ -5615,7 +5615,7 @@ abstract class AppLocalizations {
   /// Spotlight guide step: the home AI advice card (#1857).
   ///
   /// In en, this message translates to:
-  /// **'Today\'s AI summary'**
+  /// **'Today\'s combined AI advice'**
   String get guideHomeAdviceTitle;
 
   /// Spotlight guide step: the home AI advice card (#1857).
@@ -5693,7 +5693,7 @@ abstract class AppLocalizations {
   /// Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).
   ///
   /// In en, this message translates to:
-  /// **'Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use points'**
+  /// **'Every log earns points.\nLog a meal +{diet}P, log a workout yourself +{exercise}P, finish a personal exercise +{routine}P\nSpend them in MY › Use points'**
   String guidePointsBody(int diet, int exercise, int routine);
 
   /// No description provided for @guideSampleFoodScrambledEggs.
@@ -6364,7 +6364,7 @@ abstract class AppLocalizations {
   /// Shown when the routine is missing.
   ///
   /// In en, this message translates to:
-  /// **'This program no longer exists. Please refresh the list'**
+  /// **'This personal exercise no longer exists. Please refresh the list'**
   String get coachRoutineGone;
 
   /// Shown when the network is unavailable.
@@ -6784,7 +6784,7 @@ abstract class AppLocalizations {
   /// No description provided for @a11yOpenCoaching.
   ///
   /// In en, this message translates to:
-  /// **'Open coaching tips'**
+  /// **'Open coaching advice'**
   String get a11yOpenCoaching;
 
   /// No description provided for @a11ySendMessage.

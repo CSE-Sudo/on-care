@@ -980,18 +980,18 @@ void main() {
     await openReports(tester, workbench: true);
 
     // 주 이동 줄은 주 이름 대신 **보고 있는 주의 날짜 범위**를 적는다.
-    // '이전 주' 라고 쓰면 비교 카드의 '지난 주' 열과 같은 말이 되어 어느 주를
+    // '지난주' 라고 쓰면 비교 카드의 '지난주' 열과 같은 말이 되어 어느 주를
     // 보고 있는지 헷갈린다.
     expect(prevWeek, findsOneWidget);
     expect(find.textContaining(' – '), findsWidgets);
-    expect(find.text('이전 주'), findsNothing);
+    expect(find.text('지난주'), findsNothing);
 
     await tester.tap(prevWeek);
     await settle(tester);
 
     // 과거 주로 옮겨도 마찬가지다 — 옮긴 주를 가리키는 말은 날짜 범위뿐이다.
     expect(find.textContaining(' – '), findsWidgets);
-    expect(find.text('이전 주'), findsNothing);
+    expect(find.text('지난주'), findsNothing);
   });
 
   testWidgets('요약 카드가 안내문 대신 이번 주 요약을 말한다 (#755)', (tester) async {

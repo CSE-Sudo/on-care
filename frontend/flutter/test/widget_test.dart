@@ -834,11 +834,11 @@ void main() {
     final RegExp hangul = RegExp('[가-힣]');
 
     // 화면에서 빠진 문구의 키는 ARB 에서 지웠다(#2905) — 지금 쓰는 키만 본다.
-    // '운동 유형' 은 신규 키를 만들지 않고 기존 exExerciseType('운동 종류')으로
+    // '운동 유형' 은 신규 키를 만들지 않고 기존 exExerciseType 으로
     // 합쳤다. exercise_flows 가 같은 개념에 이미 그 키를 쓰고 있어, 두 시트가
     // 서로 다른 말을 하던 것이 정리된다.
     expect(en.exExerciseType, 'Exercise type');
-    expect(ko.exExerciseType, '운동 종류');
+    expect(ko.exExerciseType, '운동 유형');
 
     for (final String s in <String>[
       en.exExerciseType,

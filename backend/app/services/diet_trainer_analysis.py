@@ -74,7 +74,7 @@ _KO: dict[str, str] = {
                      "{value}까지 올라 목표 {target}의 {ratio}배가 됐어요.",
     "tr_today_over_meal": "{slot_ko} 식사({food_value}) 때문에 오늘 {nutrient_subj} "
                           "{value}까지 올라 목표 {target}의 {ratio}배가 됐어요.",
-    "tr_today_protein_short": "단백질은 {value}으로 목표보다 {gap} 모자라요.",
+    "tr_today_protein_short": "단백질은 {value}으로 목표보다 {gap} 부족해요.",
     "tr_today_protein_chronic": "단백질은 {value}으로 목표보다 {gap} 모자라고, 최근 4주 "
                                 "평균도 하루 {avg}이라 꾸준히 부족한 편이에요.",
     "tr_today_missing": "{slot_ko} 기록이 아직 없어요.",
@@ -96,8 +96,8 @@ _KO: dict[str, str] = {
     "tr_week_vs_last_same": "지난주({prev_logged}일 중 {prev_days}일)와 비슷해요.",
     "tr_all_few": "최근 4주 기록이 {days}일이라, 7일이 넘으면 흐름을 짚어 드릴게요.",
     "tr_all_slot_sodium": "최근 4주 동안 {slot_ko} 나트륨이 {days}번 목표의 절반을 넘었어요.",
-    "tr_all_carb_heavy": "최근 4주 섭취 열량 중 탄수화물이 {pct}%로 높은 편이에요.",
-    "tr_all_protein_light": "최근 4주 섭취 열량 중 단백질이 {pct}%로 낮은 편이에요.",
+    "tr_all_carb_heavy": "최근 4주 섭취 칼로리 중 탄수화물이 {pct}%로 높은 편이에요.",
+    "tr_all_protein_light": "최근 4주 섭취 칼로리 중 단백질이 {pct}%로 낮은 편이에요.",
     "tr_all_protein_trend_up": "단백질 목표를 채운 날이 앞선 2주 {before}일에서 최근 2주 "
                                "{after}일로 늘었어요.",
     "tr_all_protein_trend_down": "단백질 목표를 채운 날이 앞선 2주 {before}일에서 최근 2주 "

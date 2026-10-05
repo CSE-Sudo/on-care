@@ -377,7 +377,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashAllReplied => '모두 답장했어요';
 
   @override
-  String get dashAttentionClients => '주의 회원';
+  String get dashAttentionClients => '관리 필요';
 
   @override
   String get dashNoIssues => '이상 없음';
@@ -670,7 +670,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientsSignalUnanswered => '답장 대기';
 
   @override
-  String get clientsAttentionClear => '주의 회원 보기 해제';
+  String get clientsAttentionClear => '관리 필요 보기 해제';
 
   @override
   String get memberHealthLoadFailed => '회원 정보를 불러오지 못했어요. 다시 시도해 주세요';
@@ -1380,7 +1380,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get exStreakStart => '아직 연속 기록이 없어요';
+  String get exStreakStart => '아직 연속 운동이 없어요';
 
   @override
   String get exTypeOther => '기타';
@@ -1466,7 +1466,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportBodySkipped(String names) {
-    return '다만 $names 건너뛰셨더라고요. 컨디션 때문이었다면 다음 PT 때 말씀해 주세요. 대체 동작으로 바꿔 둘게요.';
+    return '다만 $names 건너뛰셨더라고요. 컨디션 때문이었다면 다음 PT 때 말씀해 주세요. 대체 운동으로 바꿔 둘게요.';
   }
 
   @override
@@ -2623,7 +2623,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get routineFieldMinutes => '운동 시간';
 
   @override
-  String get routineFieldTotalMinutes => '총 운동시간';
+  String get routineFieldTotalMinutes => '총 운동 시간';
 
   @override
   String get routineFieldIntensity => '운동 강도';
@@ -2678,7 +2678,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get routineCaloriesRoughEstimate =>
-      '운동 종류 평균으로 낸 어림값 · 회원이 수행하면 체중까지 반영된 값이 기록돼요';
+      '운동 유형 평균으로 낸 어림값 · 회원이 수행하면 체중까지 반영된 값이 기록돼요';
 
   @override
   String get routineUnitHours => '시간';
@@ -2965,7 +2965,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get aiEditBlurb => '기존 AI 추천과 같은 방식으로 운동명·시간·구성을 수정할 수 있어요.';
+  String get aiEditBlurb => '기존 AI 추천과 같은 방식으로 운동 이름·시간·구성을 수정할 수 있어요.';
 
   @override
   String get aiAddExerciseManually => '운동 직접 추가하기';
@@ -3009,7 +3009,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get routineEvidenceRecentPtFeedback => '최근 PT 피드백 반영';
 
   @override
-  String get routineEvidenceStrengthHeavy => '최근 근력운동 비중 높음';
+  String get routineEvidenceStrengthHeavy => '최근 근력 운동 비중 높음';
 
   @override
   String get routineEvidenceBloodPressureGoal => '혈압 관리 목표';
@@ -3021,7 +3021,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get routineEvidenceRecentRecord => '최근 운동 기록 반영';
 
   @override
-  String get aiPlanIntensityLow => '낮음';
+  String get aiPlanIntensityLow => '가벼움';
 
   @override
   String aiPersonalStepFull(int count) {
@@ -4063,7 +4063,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientBodyHeight => '키';
 
   @override
-  String get clientBodyWeight => '몸무게';
+  String get clientBodyWeight => '체중';
 
   @override
   String get clientUnitCm => 'cm';
@@ -4096,10 +4096,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get clientGoalSuggestionPersonal =>
-      '나이·성별·키·몸무게와 건강 목표로 계산했어요 (2020 한국인 영양소 섭취기준·WHO 권고)';
+      '나이·성별·키·체중과 건강 목표로 계산했어요 (2020 한국인 영양소 섭취기준·WHO 권고)';
 
   @override
-  String get clientGoalSuggestionFallback => '나이·키·몸무게가 없어 기본 기준에 건강 목표만 반영했어요';
+  String get clientGoalSuggestionFallback => '나이·키·체중이 없어 기본 기준에 건강 목표만 반영했어요';
 
   @override
   String get clientGoalApplySuggestion => '권장값으로 채우기';
@@ -4465,13 +4465,13 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get programEditorSets => '세트';
+  String get programEditorSets => '세트 수';
 
   @override
   String get programEditorReps => '횟수';
 
   @override
-  String get programEditorWeight => '중량 kg';
+  String get programEditorWeight => '중량 (kg)';
 
   @override
   String reportsDemoSummarySteadyThisWeek(String name) {
@@ -4606,7 +4606,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportsActionSkipped(String names) {
-    return '$names 대체 동작을 준비해 다음 PT에서 맞춰 주세요.';
+    return '$names 대체 운동을 준비해 다음 PT에서 맞춰 주세요.';
   }
 
   @override
@@ -4654,13 +4654,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsPdfSectionMetrics => '핵심 지표';
 
   @override
-  String get reportsPdfSectionChange => '전주 대비 변화';
+  String get reportsPdfSectionChange => '지난주 대비 변화';
 
   @override
   String get reportsPdfSectionTrend => '주간 추이 (월~일)';
 
   @override
-  String get reportsPdfSectionDaily => '일자별 운동';
+  String get reportsPdfSectionDaily => '요일별 운동';
 
   @override
   String reportsPdfBullet(String label, String value) {
@@ -4774,7 +4774,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get a11yRemoveCertification => '자격증 지우기';
 
   @override
-  String get a11yPrevWeek => '이전 주';
+  String get a11yPrevWeek => '지난주';
 
   @override
   String get a11yNextWeek => '다음 주';
@@ -4829,7 +4829,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsSortLabel => '정렬';
 
   @override
-  String get reportsSortPriority => '우선 확인 순';
+  String get reportsSortPriority => '관리 필요 우선';
 
   @override
   String get reportsSortName => '이름 오름차순';
@@ -5094,7 +5094,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportsMacroShortfall(String name) {
-    return '$name이(가) 목표에 많이 모자라요 — 피드백에서 짚어 보세요';
+    return '$name이(가) 목표보다 많이 부족해요 — 피드백에서 짚어 보세요';
   }
 
   @override
@@ -5169,7 +5169,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportsTrendNoGoal => '목표 없음';
 
   @override
-  String get reportsExerciseTrend => '운동 추세';
+  String get reportsExerciseTrend => '운동 추이';
 
   @override
   String get reportsWriteFromScratch => '직접 작성하기';
@@ -5213,14 +5213,14 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportsTrendVsLastWeek(String delta) {
-    return '지난 주 대비 $delta%';
+    return '지난주 대비 $delta%';
   }
 
   @override
-  String get reportsTrendFlat => '지난 주와 비슷';
+  String get reportsTrendFlat => '지난주와 비슷';
 
   @override
-  String get reportsTrendNoHistory => '견줄 지난 주가 없어요';
+  String get reportsTrendNoHistory => '견줄 지난주가 없어요';
 
   @override
   String get reportsTrendRate => '주간 달성률';
@@ -5237,7 +5237,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String reportsTrendTracked(int count) {
-    return '추적 종목 $count개 — 자동 선별됨';
+    return '추적 운동 $count개 — 자동 선별됨';
   }
 
   @override
@@ -5459,7 +5459,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String clientDietAnalysisTodayProteinShort(String value, String gap) {
-    return '단백질은 $value으로 목표보다 $gap 모자라요.';
+    return '단백질은 $value으로 목표보다 $gap 부족해요.';
   }
 
   @override
@@ -5633,12 +5633,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String clientDietAnalysisAllCarbHeavy(int pct) {
-    return '최근 4주 섭취 열량 중 탄수화물이 $pct%로 높은 편이에요.';
+    return '최근 4주 섭취 칼로리 중 탄수화물이 $pct%로 높은 편이에요.';
   }
 
   @override
   String clientDietAnalysisAllProteinLight(int pct) {
-    return '최근 4주 섭취 열량 중 단백질이 $pct%로 낮은 편이에요.';
+    return '최근 4주 섭취 칼로리 중 단백질이 $pct%로 낮은 편이에요.';
   }
 
   @override
