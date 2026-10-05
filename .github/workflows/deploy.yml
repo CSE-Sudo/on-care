@@ -189,6 +189,9 @@ jobs:
           # 공개 정책 페이지(#3005). 스토어·가입 전 안내가 여는 처리방침·약관 주소다.
           mkdir -p public/legal
           cp legal/*.html public/legal/
+          # 랜딩의 홈 화면 아이콘·manifest. 랜딩이 assets/landing/ 상대 경로로 부른다.
+          mkdir -p public/assets/landing
+          cp -R docs/assets/landing/. public/assets/landing/
           # CanvasKit ships wasm symbol maps for debugging stack traces. They are
           # never fetched at runtime and cost ~8MB per app, so drop them to keep
           # the Pages publish as short as possible.
