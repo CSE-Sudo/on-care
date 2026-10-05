@@ -97,9 +97,9 @@ dependencies:
   # 트레이너 웹과 같은 버전을 쓴다.
   package_info_plus: ^9.0.1
 
-  # NOTE: Social-login SDKs (sign_in_with_apple / google_sign_in /
-  # kakao_flutter_sdk_user / flutter_naver_login) are added in Stage 4
-  # when the auth feature is implemented — they require native setup
+  # NOTE: Social-login SDKs (google_sign_in / kakao_flutter_sdk_user) are
+  # added in Stage 4 when the auth feature is implemented (Naver and Apple
+  # sign-in are not offered, #3218) — they require native setup
   # (Info.plist / AndroidManifest / SDK keys) and are not just pub adds.
 
 dev_dependencies:

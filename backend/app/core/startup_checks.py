@@ -31,10 +31,7 @@ _SOCIAL_APP_SETTINGS = (
 
 
 def unconfigured_social_providers(settings: Settings) -> list[str]:
-    """허용 앱 설정이 비어 로그인을 거부하는 provider 목록(`google(GOOGLE_CLIENT_IDS)` 꼴).
-
-    네이버는 설정과 무관하게 서버 측 코드 교환 전까지 닫혀 있어(501) 여기 넣지 않는다.
-    """
+    """허용 앱 설정이 비어 로그인을 거부하는 provider 목록(`google(GOOGLE_CLIENT_IDS)` 꼴)."""
     return [
         f"{provider}({name})"
         for provider, name, configured in _SOCIAL_APP_SETTINGS

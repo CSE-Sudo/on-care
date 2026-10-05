@@ -4,12 +4,10 @@ from __future__ import annotations
 from app.services.social.base import SocialVerifier
 from app.services.social.google import GoogleVerifier
 from app.services.social.kakao import KakaoVerifier
-from app.services.social.naver import NaverVerifier
 
 _VERIFIERS: dict[str, type[SocialVerifier]] = {
     "kakao": KakaoVerifier,
     "google": GoogleVerifier,
-    "naver": NaverVerifier,
 }
 
 

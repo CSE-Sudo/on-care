@@ -1,6 +1,6 @@
 """소셜 로그인 검증 추상화.
 
-각 provider(kakao/google/naver)는 SocialVerifier 를 구현해,
+각 provider(kakao/google)는 SocialVerifier 를 구현해,
 클라이언트가 넘긴 토큰을 provider 에 확인하고 정규화된 SocialIdentity 를 돌려준다.
 recognizer/embedder 와 동일한 factory 패턴.
 """
@@ -24,7 +24,7 @@ class SocialProviderResponseError(SocialAuthError):
 
 @dataclass
 class SocialIdentity:
-    provider: str            # kakao|google|naver
+    provider: str            # kakao|google
     provider_user_id: str    # provider 내 고유 사용자 id
     email: str = ""
     name: str = ""
