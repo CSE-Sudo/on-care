@@ -81,7 +81,24 @@ void main() {
           // 카카오맵 SDK 와 SDK 가 이어 올리는 본체.
           'https://dapi.kakao.com',
           'https://t1.daumcdn.net',
+          // 구글 로그인 버튼(Google Identity Services, #330).
+          'https://accounts.google.com/gsi/client',
         ]),
+      );
+    });
+
+    test('Google sign-in button sources are open and nothing wider (#330)', () {
+      final Map<String, List<String>> d = directives();
+      expect(d['frame-src'], contains('https://accounts.google.com/gsi/'));
+      expect(d['style-src'], contains('https://accounts.google.com/gsi/style'));
+      // 구글 출처 전체(accounts.google.com)를 열지 않는다 — GIS 경로만.
+      for (final List<String> sources in d.values) {
+        expect(sources, isNot(contains('https://accounts.google.com')));
+      }
+      // 카카오 웹 로그인은 팝업 + 같은 출처 콜백이라 카카오 인증 출처를 열지 않는다.
+      expect(
+        d.values.expand((s) => s),
+        isNot(contains('https://kauth.kakao.com')),
       );
     });
 
@@ -120,9 +137,7 @@ void main() {
     test('moved helpers ship next to index.html', () {
       // index.html 은 pdf.js 로더만 부른다. pdf.js 본체·워커는 로더가
       // `pdfjs/` 아래에서 올린다(#2818).
-      final String loader = File(
-        'web/js/pdfjs_loader.js',
-      ).readAsStringSync();
+      final String loader = File('web/js/pdfjs_loader.js').readAsStringSync();
       for (final String path in <String>['web/js/pdfjs_loader.js']) {
         expect(File(path).existsSync(), isTrue, reason: path);
         expect(markup, contains(path.replaceFirst('web/', '')), reason: path);

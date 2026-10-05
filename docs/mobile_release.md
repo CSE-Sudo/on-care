@@ -385,8 +385,13 @@ iOS 프로필은 다른 앱·와일드카드·개발용·Ad Hoc 프로필이면 
 | `MEMBER_APP_KAKAO_JS_KEY` | `KAKAO_JS_KEY` | 아니요(4절 헬스장 찾기 지도) |
 | `MEMBER_APP_KAKAO_MAP_ORIGIN` | `KAKAO_MAP_ORIGIN` | 아니요(4절) |
 | `MEMBER_APP_IOS_APP_STORE_ID` | `IOS_APP_STORE_ID` | 아니요(6절) |
+| `MEMBER_APP_KAKAO_NATIVE_APP_KEY` | `KAKAO_NATIVE_APP_KEY` | 아니요 — 카카오 로그인([social_login_setup.md](social_login_setup.md)) |
+| `MEMBER_APP_GOOGLE_WEB_CLIENT_ID` | `GOOGLE_WEB_CLIENT_ID` | 아니요 — 구글 로그인(Android·iOS 의 서버 client_id) |
+| `MEMBER_APP_GOOGLE_IOS_CLIENT_ID` | `GOOGLE_IOS_CLIENT_ID` | 아니요 — iOS 구글 로그인. 웹 client_id 와 함께 넣습니다 |
 
 `ENV` 는 실행 방법(위 표), `USE_MOCK_API` 는 `false` 로 워크플로가 정합니다.
+로그인 변수를 비우면 그 버튼은 '준비 중'으로 꺼진 채 빌드됩니다. iOS 잡은 같은 값으로 로그인 URL
+스킴 파일(`ios/Flutter/Social.xcconfig`)도 만듭니다.
 
 등록은 키 보관 담당자가 금고에서 파일을 받아 자기 PC 에서 바로 넣고, 파일은 넣은 뒤 지웁니다.
 값을 이슈·PR·채팅에 붙이지 않습니다.

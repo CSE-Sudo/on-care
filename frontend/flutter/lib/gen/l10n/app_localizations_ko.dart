@@ -2957,6 +2957,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authSocialComingSoon => '소셜 로그인은 준비 중이에요. 이메일로 로그인해 주세요';
 
   @override
+  String get authSocialPopupBlocked =>
+      '로그인 창이 차단됐어요. 이 사이트의 팝업을 허용한 뒤 다시 시도해 주세요';
+
+  @override
   String get authTrainerAccountTitle => '트레이너 계정이에요';
 
   @override

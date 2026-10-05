@@ -3116,6 +3116,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Social sign-in is coming soon. Please sign in with your email';
 
   @override
+  String get authSocialPopupBlocked =>
+      'The sign-in window was blocked. Allow pop-ups for this site and try again';
+
+  @override
   String get authTrainerAccountTitle => 'This is a trainer account';
 
   @override
