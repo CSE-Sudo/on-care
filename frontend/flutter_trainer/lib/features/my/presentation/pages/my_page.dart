@@ -14,6 +14,8 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
 // Session은 앱 전역 상태라 예외적으로 auth feature 의 provider 를 직접
 // 사용한다 (라우터의 인증 게이트와 동일한 소비자).
+import 'package:oncare_trainer/core/config/app_config.dart'
+    show kDemoCodeIncluded;
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/errors/app_error_message.dart';
 import 'package:oncare_trainer/core/release/build_info.dart';
@@ -159,9 +161,13 @@ class _MyPageState extends ConsumerState<MyPage> {
   void initState() {
     super.initState();
     final session = ref.read(sessionControllerProvider);
+    // 데모 신원은 데모 코드가 실리는 빌드에서만 쓴다(#3250, 사이드바와 같은 규칙).
+    // 실서버 빌드는 로그인하면 세션에 프로필이 늘 있어 빈 값은 화면에 서지 않는다.
     _profile =
         session.profile ??
-        seedTrainerProfileFor(ref.read(demoLanguageProvider));
+        (kDemoCodeIncluded
+            ? seedTrainerProfileFor(ref.read(demoLanguageProvider))
+            : _blankProfile);
     _gym = _profile.gym;
     _certs = List<String>.of(_profile.certifications);
     _draftCerts = List<String>.of(_certs);
@@ -2457,6 +2463,18 @@ class _SupportRow extends StatelessWidget {
 }
 
 /// 회원 관리 검색창의 입력 키 — 테스트가 이 화면의 입력칸을 짚는다.
+/// 운영 빌드에서 세션 프로필이 아직 없을 때의 자리 값 — 데모 신원을 싣지 않는다(#3250).
+const TrainerProfile _blankProfile = TrainerProfile(
+  name: '',
+  email: '',
+  phone: '',
+  specialty: '',
+  careerYears: null,
+  intro: '',
+  certifications: <String>[],
+  gym: TrainerGym(name: '', address: '', hours: '', phone: ''),
+);
+
 const Key clientManagementSearchFieldKey = ValueKey<String>(
   'client-management-search',
 );
