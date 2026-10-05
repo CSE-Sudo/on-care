@@ -137,9 +137,7 @@ void main() {
     test('pdf.js loads before Flutter boots', () {
       // 로더가 pdf.js 를 올린 뒤에 Flutter 를 띄운다 — 먼저 뜨면 `printing` 이
       // 자기 로더(CDN)로 빠진다. index.html 은 Flutter 를 따로 부르지 않는다.
-      final String loader = File(
-        'web/js/pdfjs_loader.js',
-      ).readAsStringSync();
+      final String loader = File('web/js/pdfjs_loader.js').readAsStringSync();
       final int lib = loader.indexOf('pdf.min.js');
       final int boot = loader.indexOf('"flutter_bootstrap.js"');
       expect(lib, greaterThan(0));
@@ -171,5 +169,15 @@ void main() {
     expect(File('web/js/boot_status.js').existsSync(), isTrue);
     expect(markup, contains('<script src="js/boot_status.js"></script>'));
     expect(directives()['script-src'], isNot(contains("'unsafe-inline'")));
+  });
+
+  test('old service worker cleanup runs from a same-origin file (#3204)', () {
+    // 예전 빌드의 서비스 워커를 지우는 스크립트도 인라인으로 두면 'unsafe-inline' 을
+    // 열어야 한다. 같은 출처 파일이고, 정책은 그대로다. 워커를 더 쓰지 않으므로
+    // worker-src 는 pdf.js·drift 워커용 그대로다.
+    expect(File('web/js/sw_cleanup.js').existsSync(), isTrue);
+    expect(markup, contains('<script src="js/sw_cleanup.js"></script>'));
+    expect(directives()['script-src'], isNot(contains("'unsafe-inline'")));
+    expect(directives()['worker-src'], <String>["'self'", 'blob:']);
   });
 }
