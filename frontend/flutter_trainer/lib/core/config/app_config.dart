@@ -23,6 +23,11 @@ enum ReleaseProblem {
 
   /// 실서버를 부르는데 API 주소가 `https://` 가 아니거나 읽을 수 없다.
   insecureApiUrl,
+
+  /// 데모 빌드 표시(`DEMO_BUILD=true`) 없이 로그인 화면의 데모 진입
+  /// (`SHOW_DEMO_ENTRY=true`)이 켜졌다 — 실제 사용자가 데모 계정으로 들어가 데모
+  /// 데이터를 보게 된다(#3147).
+  demoEntryWithoutDemoBuild,
 }
 
 /// 실서버 주소로 쓸 수 없는 예약·로컬 호스트(RFC 2606·6761).
@@ -128,11 +133,13 @@ class AppConfig {
   ///
   /// * 데모 빌드(`DEMO_BUILD=true` + 목업)는 `ENV=dev` 여도 된다.
   /// * 주소는 실서버 모드일 때만 본다. 목업 빌드는 주소를 넘기지 않는다.
+  /// * 데모 진입(`SHOW_DEMO_ENTRY`)은 데모 빌드에서만 된다(#3147).
   List<ReleaseProblem> releaseProblems() {
     final bool demoMock = useMockApi && demoBuild;
     return <ReleaseProblem>[
       if (isDev && !demoMock) ReleaseProblem.devEnvironment,
       if (useMockApi && !demoBuild) ReleaseProblem.mockWithoutDemoBuild,
+      if (showDemoEntry && !demoBuild) ReleaseProblem.demoEntryWithoutDemoBuild,
       if (usesNetwork) ...apiBaseUrlProblems(apiBaseUrl),
     ];
   }

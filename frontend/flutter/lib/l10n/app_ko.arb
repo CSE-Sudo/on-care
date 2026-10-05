@@ -19,6 +19,8 @@
   "misconfiguredBuildMockWithoutDemo": "데모 빌드 표시 없이 데모 데이터를 쓰고 있어요 (USE_MOCK_API, DEMO_BUILD)",
   "misconfiguredBuildPlaceholderApiUrl": "API 주소가 예시·로컬 주소예요 (API_BASE_URL)",
   "misconfiguredBuildInsecureApiUrl": "API 주소가 https:// 로 시작하지 않아요 (API_BASE_URL)",
+  "misconfiguredBuildDemoEntry": "데모 빌드 표시 없이 로그인 화면에 데모 진입이 켜져 있어요 (SHOW_DEMO_ENTRY, DEMO_BUILD)",
+  "misconfiguredBuildRealApi": "데모 빌드 표시 없이 일부 기능 실연동 스위치가 남아 있어요 (REAL_API, DEMO_BUILD)",
   "navDashboard": "홈",
   "navDiet": "식단",
   "navExercise": "운동",

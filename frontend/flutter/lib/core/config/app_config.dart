@@ -22,6 +22,16 @@ enum ReleaseProblem {
 
   /// 실서버를 부르는데 API 주소가 `https://` 가 아니거나 읽을 수 없다.
   insecureApiUrl,
+
+  /// 데모 빌드 표시(`DEMO_BUILD=true`) 없이 로그인 화면의 데모 진입
+  /// (`SHOW_DEMO_ENTRY=true`)이 켜졌다 — 실제 사용자가 데모 계정으로 들어가 데모
+  /// 데이터를 보게 된다(#3147).
+  demoEntryWithoutDemoBuild,
+
+  /// 데모 빌드 표시 없이 부분 실연동 스위치(`REAL_API`)가 남았다 — 목업 빌드에서
+  /// 일부 경로만 실서버로 보내는 데모 전용 값이라, 운영 빌드에서는 어떤 요청이
+  /// 어디로 가는지 판단을 흐린다(#3147).
+  realApiWithoutDemoBuild,
 }
 
 /// 실서버 주소로 쓸 수 없는 예약·로컬 호스트(RFC 2606·6761).
@@ -210,11 +220,16 @@ class AppConfig {
   /// * 데모 빌드(`DEMO_BUILD=true` + 목업)는 `ENV=dev` 여도 된다 — 데모 Pages 가
   ///   지금 그렇게 빌드된다.
   /// * 주소는 실 네트워크를 쓸 때만 본다. 목업 빌드는 주소를 넘기지 않는다.
+  /// * 데모 진입(`SHOW_DEMO_ENTRY`)·부분 실연동(`REAL_API`)은 데모 빌드에서만 된다
+  ///   (#3147). 데모 Pages 는 `DEMO_BUILD=true` 를 넘기므로 지금처럼 뜬다.
   List<ReleaseProblem> releaseProblems() {
     final bool demoMock = useMockApi && demoBuild;
     return <ReleaseProblem>[
       if (isDev && !demoMock) ReleaseProblem.devEnvironment,
       if (useMockApi && !demoBuild) ReleaseProblem.mockWithoutDemoBuild,
+      if (showDemoEntry && !demoBuild) ReleaseProblem.demoEntryWithoutDemoBuild,
+      if (realApiFeatures.isNotEmpty && !demoBuild)
+        ReleaseProblem.realApiWithoutDemoBuild,
       if (usesNetwork) ...apiBaseUrlProblems(apiBaseUrl),
     ];
   }

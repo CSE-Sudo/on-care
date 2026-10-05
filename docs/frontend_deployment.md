@@ -198,8 +198,10 @@ AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배�
 - `ENV` 가 `prod`·`staging` 이 아님(데모 빌드 표시가 있는 목업 빌드는 예외)
 - `USE_MOCK_API=true` 인데 데모 빌드 표시 `DEMO_BUILD=true` 가 없음
 - 실서버를 부르는데 `API_BASE_URL` 이 `https://` 가 아니거나 예시·로컬 주소(`example.com` 계열·`.test`·`localhost` 등)
+- 데모 빌드 표시 없이 로그인 화면의 데모 진입 `SHOW_DEMO_ENTRY=true` 가 켜짐(두 앱, #3147)
+- 데모 빌드 표시 없이 부분 실연동 스위치 `REAL_API` 가 남음(회원 앱, #3147)
 
-데모 Pages 빌드(`deploy.yml`)는 두 앱 모두 `--dart-define=DEMO_BUILD=true` 를 넘겨 지금처럼 목업으로 뜹니다. 운영 웹 빌드는 이 표시를 넘기지 않습니다. `flutter run`(디버그)과 테스트에는 가드가 적용되지 않습니다.
+데모 Pages 빌드(`deploy.yml`)는 두 앱 모두 `--dart-define=DEMO_BUILD=true` 를 넘겨 지금처럼 목업으로 뜹니다. 운영 웹 빌드는 이 표시를 넘기지 않습니다. 운영 웹 빌드(`aws-frontend-deploy.yml`)는 빌드 전에 `.github/scripts/check_web_release_defines.sh` 로 넘길 dart-define 을 검사해, `ENV` 가 prod·staging 이 아니거나 `USE_MOCK_API=false` 가 없거나 `DEMO_BUILD`·`SHOW_DEMO_ENTRY`·`REAL_API` 가 남아 있으면 배포 전에 멈춥니다(모바일 스토어 빌드의 `tool/check_release_defines.sh` 와 같은 규칙). `flutter run`(디버그)과 테스트에는 가드가 적용되지 않습니다.
 
 ### `ENV=prod` 로 띄울 때 걸리는 것
 

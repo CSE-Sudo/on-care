@@ -410,6 +410,12 @@ abstract class AppLocalizations {
   /// **'The API address does not start with https:// (API_BASE_URL)'**
   String get misconfiguredBuildInsecureApiUrl;
 
+  /// Startup guard item: a release build without DEMO_BUILD turned on the sign-in screen's demo entry button. Keep the define names in parentheses as-is.
+  ///
+  /// In en, this message translates to:
+  /// **'The demo entry is shown on the sign-in screen without the demo build flag (SHOW_DEMO_ENTRY, DEMO_BUILD)'**
+  String get misconfiguredBuildDemoEntry;
+
   /// Second word of the sidebar wordmark, rendered in the navy primary next to 'On-Care'.
   ///
   /// In en, this message translates to:

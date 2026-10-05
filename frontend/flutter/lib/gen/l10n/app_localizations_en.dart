@@ -76,6 +76,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'The API address does not start with https:// (API_BASE_URL)';
 
   @override
+  String get misconfiguredBuildDemoEntry =>
+      'The demo entry is shown on the sign-in screen without the demo build flag (SHOW_DEMO_ENTRY, DEMO_BUILD)';
+
+  @override
+  String get misconfiguredBuildRealApi =>
+      'The partial real-API switch is left on without the demo build flag (REAL_API, DEMO_BUILD)';
+
+  @override
   String get navDashboard => 'Home';
 
   @override
