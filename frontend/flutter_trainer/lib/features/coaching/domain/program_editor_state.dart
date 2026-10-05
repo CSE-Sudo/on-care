@@ -99,6 +99,32 @@ class ProgramEditorState {
       ),
     ],
   );
+
+  /// 새 세션·운동에 붙일 다음 번호 — 지금 있는 `session-N`·`exercise-N` 의
+  /// 가장 큰 N 다음 수다(#3247).
+  ///
+  /// 두 접두사가 한 카운터를 쓰므로 운동 수만 세면 되살린 초안에서 번호가
+  /// 겹친다 — 세션 1·운동 2·세션 3·운동 4 를 되살리면 운동 수(2) + 2 = 4 라 다음
+  /// 운동이 `exercise-4` 가 되어 위젯 키가 부딪히고 세션 유형이 덮였다. 다른
+  /// 모양의 id(서버·AI 가 붙인 것)는 번호를 차지하지 않는다.
+  int get nextFreeId {
+    int highest = 1;
+    void see(String id) {
+      final Match? match = _numberedId.firstMatch(id);
+      final int? n = match == null ? null : int.tryParse(match.group(1)!);
+      if (n != null && n > highest) highest = n;
+    }
+
+    for (final ProgramSessionDraft session in sessions) {
+      see(session.id);
+      for (final ProgramExerciseDraft exercise in session.exercises) {
+        see(exercise.id);
+      }
+    }
+    return highest + 1;
+  }
+
+  static final RegExp _numberedId = RegExp(r'^(?:session|exercise)-(\d+)$');
 }
 
 class ProgramSessionDraft {
