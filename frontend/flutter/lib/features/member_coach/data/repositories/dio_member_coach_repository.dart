@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 
 import 'package:oncare/core/errors/app_error.dart';
+import 'package:oncare/core/network/request_timeouts.dart';
 import 'package:oncare/features/member_coach/data/dtos/member_coach_dtos.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/weekly_feedback.dart';
@@ -201,6 +202,9 @@ class DioMemberCoachRepository implements MemberCoachRepository {
               'message': text.trim(),
               'client_request_id': clientRequestId,
             }),
+            // 느린 회선에서도 사진을 끝까지 올리도록 보내기 한도만 늘린다(#3141).
+            // 서버는 받은 사진을 저장만 하므로 응답 대기는 전역 한도 그대로다.
+            options: Options(sendTimeout: photoUploadSendTimeout),
           );
       final Map<String, Object?>? data = res.data;
       if (data == null) {
