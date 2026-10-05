@@ -316,10 +316,15 @@ def _member_schedule_out(
     트레이너만 보는 상담 기록(메모)이다. 트레이너 응답(`_schedule_out`)을 그대로 쓰면
     예정 PT 에 미리 적어 둔 글과 상담 기록까지 회원에게 간다. 회원 앱도 완료 PT 에서만
     그리므로, 그 밖의 `note` 는 여기서 비운다.
+
+    취소 사유도 비운다(#3239) — 트레이너가 취소하며 적은 내부 사유와 담당 해제
+    때 남는 `담당 해제`(`DETACH_CANCEL_REASON`)는 트레이너만 보는 기록이다.
+    회원 앱은 취소 주체·시각만 쓴다.
     """
     out = _schedule_out(s)
     if s.status != SCHEDULE_DONE or s.type == "상담":
         out.note = ""
+    out.cancellation_reason = ""
     # 상담 요청 내용은 트레이너 카드용이다 — 회원은 `내 상담 요청` 에서 본다(#2584).
     out.consultation = None
     out.session_number = session_number
