@@ -4893,11 +4893,11 @@ class AppLocalizationsKo extends AppLocalizations {
       '이 버전에서는 아직 소셜 계정 확인을 할 수 없어요. 고객 지원으로 문의해 주세요.';
 
   @override
-  String get releaseUpdateTitle => '새 버전이 배포되었어요';
+  String get releaseUpdateTitle => '앱이 업데이트되었어요';
 
   @override
   String get releaseUpdateMessage =>
-      '새로고침하면 최신 화면으로 바뀌어요. 작성 중인 내용이 있으면 먼저 저장해 주세요.';
+      '새로고침하면 최신 버전으로 바뀌어요. 작성 중인 내용이 있으면 먼저 저장해 주세요.';
 
   @override
   String get releaseUpdateReload => '새로고침';

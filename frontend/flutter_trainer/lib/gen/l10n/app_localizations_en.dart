@@ -6156,14 +6156,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t send the code. Please try again shortly.';
 
   @override
-  String get releaseUpdateTitle => 'A new version is available';
+  String get releaseUpdateTitle => 'The app has been updated';
 
   @override
   String get releaseUpdateMessage =>
-      'Reload to get the latest version. Save anything you\'re working on first.';
+      'Refresh to switch to the latest version. Save anything you\'re working on first.';
 
   @override
-  String get releaseUpdateReload => 'Reload';
+  String get releaseUpdateReload => 'Refresh';
 
   @override
   String get releaseUpdateDismiss => 'Dismiss';
