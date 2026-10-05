@@ -5,7 +5,7 @@ provider 서명·조회만 보고 로그인시키면, 같은 provider 를 쓰는
 
 - 구글: tokeninfo 의 `aud` 가 `GOOGLE_CLIENT_IDS` 에 있고 `iss`·`exp` 가 맞아야 통과.
 - 카카오: 토큰 정보 조회의 `app_id` 가 `KAKAO_APP_ID` 와 같고, 두 응답의 `id` 가 같아야 통과.
-- 네이버: 발급 앱을 확인할 수 없어 서버 측 코드 교환 전까지 501, 네이버로 요청도 안 보낸다.
+- 네이버·애플: 제공하지 않는다(#3218). API 는 모르는 provider 와 같은 400 이고 외부 호출이 없다.
 - 허용 설정이 비면 외부 호출 없이 거부하고, 기동 점검이 경고를 남긴다.
 - API: 다른 앱 토큰은 같은 이메일의 기존 계정에 소셜 연결을 만들지 않는다.
 
@@ -25,7 +25,6 @@ from app.core.config import Settings
 from app.services.social.base import SocialAuthError, SocialProviderResponseError
 from app.services.social.google import GOOGLE_ISSUERS, GoogleVerifier
 from app.services.social.kakao import KakaoVerifier
-from app.services.social.naver import NaverVerifier
 from tests.social_provider_fakes import (
     BODY_MARKER,
     FAR_FUTURE_EXP,
@@ -45,7 +44,7 @@ from tests.social_provider_fakes import (
 
 AUTH_FAILED_DETAIL = "소셜 인증에 실패했습니다."
 BAD_RESPONSE_DETAIL = "소셜 로그인 제공자의 응답을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요."
-NOT_SUPPORTED_DETAIL = "아직 지원하지 않는 소셜 로그인입니다."
+UNSUPPORTED_DETAIL = "지원하지 않는 소셜 로그인입니다."
 
 
 @pytest.fixture(autouse=True)
@@ -280,22 +279,6 @@ def test_kakao_without_app_id_setting_rejects_without_calling_kakao(monkeypatch,
     assert any("KAKAO_APP_ID" in r.getMessage() for r in caplog.records)
 
 
-# ── 네이버 ───────────────────────────────────────────────────────
-
-
-def test_naver_verify_is_closed_and_sends_nothing(monkeypatch):
-    seen = _no_network(monkeypatch)
-    with pytest.raises(NotImplementedError):
-        asyncio.run(NaverVerifier().verify(SECRET_TOKEN))
-    assert seen == []
-
-
-def test_naver_profile_reader_still_parses_for_code_exchange(monkeypatch):
-    respond_json(monkeypatch, {"response": {"id": "n-3035", "email": "n@oncare.com", "name": "네이버"}})
-    identity = asyncio.run(NaverVerifier().read_profile(SECRET_TOKEN))
-    assert (identity.provider, identity.provider_user_id) == ("naver", "n-3035")
-
-
 # ── 설정 파싱 ─────────────────────────────────────────────────────
 
 
@@ -463,17 +446,21 @@ def test_api_malformed_kakao_token_info_answers_502(client, monkeypatch):
     assert r.json()["detail"] == BAD_RESPONSE_DETAIL
 
 
-def test_api_naver_answers_501_and_creates_nothing(client, db_session, monkeypatch):
+@pytest.mark.parametrize("provider", ["naver", "apple"])
+def test_api_dropped_provider_answers_400_and_creates_nothing(
+    client, db_session, monkeypatch, provider
+):
+    """네이버·애플은 제공하지 않는다(#3218) — 외부 호출 없이 모르는 provider 와 같은 400."""
     from app.models.models import SocialAccount
 
     seen = _no_network(monkeypatch)
     db_session.expire_all()
     before = db_session.scalar(select(func.count()).select_from(SocialAccount))
 
-    r = _login(client, "naver")
+    r = _login(client, provider)
 
-    assert r.status_code == 501, r.text
-    assert r.json()["detail"] == NOT_SUPPORTED_DETAIL
+    assert r.status_code == 400, r.text
+    assert r.json()["detail"] == UNSUPPORTED_DETAIL
     assert seen == []
     db_session.expire_all()
     assert db_session.scalar(select(func.count()).select_from(SocialAccount)) == before
