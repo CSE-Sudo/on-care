@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 import shutil
 import sys
 import tempfile
@@ -258,6 +259,23 @@ class RepositoryPagesTest(unittest.TestCase):
             privacy.count('href="mailto:sudo.capstone@gmail.com"'), len(blp.SOURCES)
         )
         self.assertNotIn("@oncare.com", privacy)
+
+    def test_published_pages_do_not_offer_naver_or_apple_login(self) -> None:
+        # 네이버·애플 로그인은 제공하지 않는다(#3217). 처리방침이 수집 경로로 적으면
+        # 사실과 다른 고지가 된다. 둘이 남아도 되는 곳은 그 제외를 알리는 개정
+        # 이력 한 줄뿐이다. 글꼴 이름 `-apple-system` 은 소문자라 걸리지 않는다.
+        for path, text in blp.build().items():
+            for line in text.splitlines():
+                if re.search(r"애플|네이버|\bApple\b|\bNaver\b", line):
+                    self.assertRegex(
+                        line,
+                        r"2026년 10월 5일: .*네이버·애플 제외"
+                        r"|5 October 2026: .*removed Naver and Apple",
+                        f"{path.name}: {line.strip()}",
+                    )
+        privacy = (blp.OUT_DIR / "privacy.html").read_text(encoding="utf-8")
+        self.assertIn("소셜 로그인(카카오·구글)", privacy)
+        self.assertIn("social login (Kakao or Google)", privacy)
 
     def test_every_source_document_is_published(self) -> None:
         pages = blp.build()
