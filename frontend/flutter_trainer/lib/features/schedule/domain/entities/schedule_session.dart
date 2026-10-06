@@ -252,16 +252,24 @@ bool hasStartedAt(String date, String time, DateTime now) {
 ///
 /// "다가오는 세션" 의 기준이다(#3261). 대시보드 배너(`pickNextSession`, #2865)와
 /// 같은 규칙으로, 시작했지만 아직 끝나지 않은 수업은 다가오는 수업이고(진행 중)
-/// 완료 처리를 잊은 지난 수업은 아니다. 길이가 0 이면 시작 1분으로 본다. 시각
-/// 형식이 깨진 오늘 세션은 언제인지 알 수 없어 끝난 것으로 본다(배너도 뺀다).
-/// [now] 는 KST 벽시계(`nowKst()`)다.
+/// 완료 처리를 잊은 지난 수업은 아니다. 끝나는 시각은 [sessionEndMinutes] 다.
+/// 시각 형식이 깨진 오늘 세션은 언제인지 알 수 없어 끝난 것으로 본다(배너도
+/// 뺀다). [now] 는 KST 벽시계(`nowKst()`)다.
 bool sessionHasEnded(ScheduleSession session, DateTime now) {
   final String today = wireDate(now);
   if (session.date != today) return session.date.compareTo(today) < 0;
+  final int? end = sessionEndMinutes(session);
+  if (end == null) return true;
+  return end <= now.hour * 60 + now.minute;
+}
+
+/// [session] 이 끝나는 시각 — 그날 자정부터의 분. 길이가 0 이면 시작 1분으로
+/// 본다([timeRangesOverlap] 과 같은 규칙). 시각 형식이 깨졌으면 null.
+/// 자정을 넘기는 수업은 1440 보다 크다.
+int? sessionEndMinutes(ScheduleSession session) {
   final int? start = clockMinutes(session.time);
-  if (start == null) return true;
-  final int length = session.durationMinutes < 1 ? 1 : session.durationMinutes;
-  return start + length <= now.hour * 60 + now.minute;
+  if (start == null) return null;
+  return start + (session.durationMinutes < 1 ? 1 : session.durationMinutes);
 }
 
 /// `HH:mm` 을 자정부터의 분으로. 형식이 다르면 null. (#1012)
