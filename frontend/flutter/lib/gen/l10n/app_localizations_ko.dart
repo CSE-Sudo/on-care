@@ -933,9 +933,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exEnterDuration => '운동 시간을 입력해 주세요';
 
   @override
-  String get exCannotEdit => '이 기록은 수정할 수 없어요';
-
-  @override
   String get exUpdated => '운동 기록이 수정됐어요';
 
   @override

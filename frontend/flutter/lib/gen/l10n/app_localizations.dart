@@ -1778,12 +1778,6 @@ abstract class AppLocalizations {
   /// **'Please enter a duration'**
   String get exEnterDuration;
 
-  /// No description provided for @exCannotEdit.
-  ///
-  /// In en, this message translates to:
-  /// **'This record can\'t be edited'**
-  String get exCannotEdit;
-
   /// No description provided for @exUpdated.
   ///
   /// In en, this message translates to:

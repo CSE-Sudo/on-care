@@ -597,7 +597,6 @@
   },
   "exCaloriesRoughEstimate": "A rough average for this exercise type",
   "exEnterDuration": "Please enter a duration",
-  "exCannotEdit": "This record can't be edited",
   "exUpdated": "Exercise record updated",
   "exLogged": "Exercise logged",
   "exQueueTitle": "To add {count}",
