@@ -5629,6 +5629,24 @@ abstract class AppLocalizations {
   /// **'partly set by you'**
   String get aiBasisConditionMixed;
 
+  /// No description provided for @aiFindingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What this analysis found'**
+  String get aiFindingsTitle;
+
+  /// No description provided for @aiFindingSource.
+  ///
+  /// In en, this message translates to:
+  /// **' · {source}'**
+  String aiFindingSource(String source);
+
+  /// No description provided for @aiFindingAction.
+  ///
+  /// In en, this message translates to:
+  /// **'→ {action}'**
+  String aiFindingAction(String action);
+
   /// No description provided for @aiChatEvidenceTitle.
   ///
   /// In en, this message translates to:
