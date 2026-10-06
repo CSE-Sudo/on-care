@@ -97,26 +97,31 @@ def monday_of_this_week_str() -> str:
     return monday_of(today).isoformat()
 
 
+def _parse_day(day: str) -> date:
+    """내부 날짜 문자열(YYYY-MM-DD)을 읽는다. 깨진 값은 `ValueError` 로 올린다.
+
+    예전에는 깨진 값을 이번 주·오늘 요일로 조용히 떨어뜨렸다(#3256). 그러면 엉뚱한
+    주의 기록을 읽거나 써도 맞다고 믿게 된다. 남은 호출자는 모두 `date.isoformat()`
+    값이나 앞단에서 검사한 값(#3243)을 넘기므로, 여기서 깨진 값은 호출자의 버그다.
+    """
+    try:
+        return date.fromisoformat(day)
+    except (TypeError, ValueError):
+        raise ValueError(f"YYYY-MM-DD 날짜가 아니에요: {day!r}") from None
+
+
 def monday_of_str(day: str) -> str:
     """`day`(YYYY-MM-DD) 가 속한 주의 월요일.
 
     지난 주 세션을 오늘 완료 처리할 수 있으므로, 파생 기록의 주차는 완료 시점이
-    아니라 **세션 날짜** 기준이어야 한다. 형식이 깨진 값은 이번 주로 떨어뜨린다.
+    아니라 **세션 날짜** 기준이어야 한다. 형식이 깨진 값은 `ValueError`.
     """
-    try:
-        d = date.fromisoformat(day)
-    except (TypeError, ValueError):
-        return monday_of_this_week_str()
-    return monday_of(d).isoformat()
+    return monday_of(_parse_day(day)).isoformat()
 
 
 def weekday_label_of(day: str) -> str:
-    """`day`(YYYY-MM-DD) 의 요일 라벨(월~일). 형식이 깨지면 오늘 요일."""
-    try:
-        d = date.fromisoformat(day)
-    except (TypeError, ValueError):
-        return WEEKDAY_LABELS[clock.today().weekday()]
-    return WEEKDAY_LABELS[d.weekday()]
+    """`day`(YYYY-MM-DD) 의 요일 라벨(월~일). 형식이 깨진 값은 `ValueError`."""
+    return WEEKDAY_LABELS[_parse_day(day).weekday()]
 
 
 def member_weight_kg(db: Session, user_id: str) -> float | None:
