@@ -58,7 +58,7 @@ for app in flutter flutter_trainer; do
   expect "$app 목업 빌드 좁히기" pass bash "$script" narrow "$work/$app-mock.html"
   expect "$app 목업 빌드 확인" pass bash "$script" check "$work/$app-mock.html"
   contains "$app 목업 connect-src" "$work/$app-mock.html" \
-    "connect-src 'self' https://www.gstatic.com https://fonts.gstatic.com https://dapi.kakao.com https://accounts.google.com/gsi/;"
+    "connect-src 'self' blob: https://www.gstatic.com https://fonts.gstatic.com https://dapi.kakao.com https://accounts.google.com/gsi/;"
   lacks "$app 목업에 localhost 없음" "$work/$app-mock.html" "localhost"
   lacks "$app 목업에 127.0.0.1 없음" "$work/$app-mock.html" "127.0.0.1"
   # 다른 지시어(img-src·media-src 의 https:)는 그대로다.
@@ -81,7 +81,7 @@ for app in flutter flutter_trainer; do
   expect "$app 실서버 빌드 확인" pass \
     bash "$script" check "$work/$app-real.html" "https://api.oncare.test/v1"
   contains "$app 실서버 connect-src" "$work/$app-real.html" \
-    "connect-src 'self' https://api.oncare.test https://www.gstatic.com"
+    "connect-src 'self' blob: https://api.oncare.test https://www.gstatic.com"
   # 목업으로 좁힌 산출물은 실서버 API 출처를 요구하면 걸린다.
   expect "$app API 출처가 빠지면 실패" fail \
     bash "$script" check "$work/$app-mock.html" "https://api.oncare.test/v1"
@@ -101,6 +101,8 @@ expect "localhost 는 실패" fail bash "$script" check "$work/case.html"
 make_csp "'self' http://api.oncare.test"
 expect "http 출처는 실패" fail bash "$script" check "$work/case.html"
 make_csp "'self' https://api.oncare.test"
+expect "blob: 이 빠지면 실패" fail bash "$script" check "$work/case.html" "https://api.oncare.test/v1"
+make_csp "'self' blob: https://api.oncare.test"
 expect "좁은 목록은 통과" pass bash "$script" check "$work/case.html" "https://api.oncare.test/v1"
 
 # 운영 헤더 검사(frontend_security_headers.sh)와 같은 차단 기준(#3255). `*` 가 파일 이름으로
@@ -111,7 +113,7 @@ for source in 'wss:' 'ws:' 'ws://api.oncare.test' 'wss://*' 'https://*' 'http://
   expect "$source 는 실패" fail in_work bash "$script" check "$work/case.html"
 done
 for source in 'https://*.oncare.test' 'wss://*.oncare.test' 'wss://realtime.oncare.test'; do
-  make_csp "'self' https://api.oncare.test $source"
+  make_csp "'self' blob: https://api.oncare.test $source"
   expect "$source 는 통과(하위 도메인 묶음·좁은 출처)" pass     in_work bash "$script" check "$work/case.html" "https://api.oncare.test/v1"
 done
 printf '<html></html>\n' > "$work/none.html"

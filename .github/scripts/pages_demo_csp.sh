@@ -6,7 +6,8 @@
 # 운영(CloudFront)은 응답 헤더 CSP 가 API 출처로 좁히지만(#3017), Pages 는 응답 헤더를
 # 바꿀 수 없어 meta 가 전부다. 그래서 데모 빌드 산출물의 connect-src 를 그 빌드가 실제로
 # 부르는 출처만으로 바꾼다 — 운영 헤더와 같은 목록이다.
-#   'self' · API 출처(실서버 빌드만, 목업은 네트워크를 쓰지 않는다) · CanvasKit(www.gstatic.com)
+#   'self' · blob:(사진 선택기가 줄인 사진을 같은 탭의 blob: 주소에서 읽는다)
+#   · API 출처(실서버 빌드만, 목업은 네트워크를 쓰지 않는다) · CanvasKit(www.gstatic.com)
 #   · 대체 글꼴(fonts.gstatic.com) · 카카오맵 SDK(dapi.kakao.com)
 #   · 구글 로그인 버튼(accounts.google.com/gsi/, #330)
 #
@@ -84,7 +85,7 @@ case "$cmd" in
     if [ -z "$(connect_src "$csp")" ]; then
       fail "$file 의 meta CSP 에 connect-src 가 없습니다."
     fi
-    sources="'self'${origin:+ $origin} $STATIC_SOURCES"
+    sources="'self' blob:${origin:+ $origin} $STATIC_SOURCES"
     # connect-src 지시어 하나만 바꾼다(다음 `;` 전까지). 다른 지시어의 https: 는 그대로 둔다.
     tmp=$(mktemp)
     sed -E "/<meta http-equiv=\"Content-Security-Policy\"/ s#connect-src [^;\"]*#connect-src ${sources}#" \
@@ -109,6 +110,10 @@ case "$cmd" in
           fail "$file: connect-src 에 로컬 개발 주소가 남아 있습니다('$source')." ;;
       esac
     done
+    case " $connect " in
+      *" blob: "*) ;;
+      *) fail "$file: connect-src 에 blob: 이 없습니다 — 웹 사진 선택이 실패합니다." ;;
+    esac
     if [ -n "$origin" ]; then
       case " $connect " in
         *" $origin "*) ;;
