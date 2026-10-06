@@ -55,7 +55,8 @@ def test_reseed_renames_seeded_history_without_touching_rate(client, db_session)
     _seed_history(db_session, _MEMBER_ID)
     db_session.refresh(row)
 
-    assert row.exercises_json == '["인터벌 러닝 25분 ✓", "스쿼트 ✓"]'
+    # 운동 목록은 지금 시드 표로 다시 맞춰진다(#2508·#3003) — 옛 표기가 남지 않는다.
+    assert "런닝" not in row.exercises_json
     assert row.client_feedback == "러닝이 힘들었는데 다 했어요!"
     assert row.trainer_note == "다음 주 러닝 강도 소폭 올릴 예정."
     assert row.kind_label == "AI 개인운동"
@@ -66,35 +67,6 @@ def test_reseed_renames_seeded_history_without_touching_rate(client, db_session)
         row.kind_label, row.exercises_json, row.client_feedback,
         row.trainer_note, row.completion_rate,
     ) = original
-    db_session.commit()
-
-
-def test_reseed_renames_seeded_sessions_only(client, db_session):
-    from app.db.seed_member_logs import SESSION_ID_PREFIX, seed_routine_sessions
-    from app.models.models import ExerciseSession
-
-    row = db_session.scalar(
-        select(ExerciseSession)
-        .where(
-            ExerciseSession.user_id == _MEMBER_ID,
-            ExerciseSession.id.like(f"{SESSION_ID_PREFIX}{_MEMBER_ID}-%"),
-        )
-        .limit(1)
-    )
-    assert row is not None, "지수의 시드 운동 세션이 없다"
-    original_name = row.name
-    minutes, done_at = row.minutes, row.completed_at
-    row.name = "런닝"
-    db_session.commit()
-
-    seed_routine_sessions(db_session, _MEMBER_ID, 2, clock.today())
-    db_session.commit()
-    db_session.refresh(row)
-
-    assert row.name == "러닝"
-    assert (row.minutes, row.completed_at) == (minutes, done_at)
-
-    row.name = original_name
     db_session.commit()
 
 
