@@ -9,13 +9,19 @@
 /// 코드를 받아 온 뒤에야 본인 확인 창이 뜬다.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/features/account/domain/entities/account_reauth.dart';
+import 'package:oncare/features/account/domain/entities/measure_update.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
+import 'package:oncare/features/auth/domain/repositories/password_repository.dart'
+    show ReissuedTokens;
 import 'package:oncare/features/auth/domain/signup_email_code.dart';
 import 'package:oncare/features/my_health/presentation/widgets/account_reauth_dialog.dart';
 import 'package:oncare/features/my_health/presentation/widgets/email_change_code_dialog.dart';
@@ -68,16 +74,52 @@ const UserProfile _socialOnly = UserProfile(
   hasPassword: false,
 );
 
+/// 저장 요청을 [gate] 가 풀릴 때까지 붙드는 대역 — 요청 도중 창이 닫히는 경우를 본다.
+class _HeldAccountRepository extends MockAccountRepository {
+  _HeldAccountRepository() : super(currentPassword: _currentPassword);
+
+  Completer<void>? gate;
+
+  @override
+  Future<UserProfile> updateProfile({
+    String? name,
+    String? email,
+    String? phone,
+    String? birthDate,
+    String? gender,
+    MeasureUpdate? heightCm,
+    MeasureUpdate? weightKg,
+    AccountReauth? reauth,
+    String? emailCode,
+    void Function(ReissuedTokens tokens)? onTokensReissued,
+  }) async {
+    await gate?.future;
+    return super.updateProfile(
+      name: name,
+      email: email,
+      phone: phone,
+      birthDate: birthDate,
+      gender: gender,
+      heightCm: heightCm,
+      weightKg: weightKg,
+      reauth: reauth,
+      emailCode: emailCode,
+      onTokensReissued: onTokensReissued,
+    );
+  }
+}
+
 Future<(AppLocalizations, MockAccountRepository)> _openProfile(
   WidgetTester tester, {
   UserProfile? profile,
   Locale locale = const Locale('ko'),
+  MockAccountRepository? repository,
 }) async {
   tester.view.physicalSize = const Size(420, 1400);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 
-  final MockAccountRepository repository = profile == null
+  repository ??= profile == null
       ? MockAccountRepository(currentPassword: _currentPassword)
       : MockAccountRepository(
           profile: profile,
@@ -204,6 +246,38 @@ void main() {
     );
     expect((await repo.fetchProfile()).email, 'minsu@oncare.com');
     expect(find.text(l.mySaveFailed), findsNothing);
+  });
+
+  testWidgets('요청 중 창이 다른 길로 닫혀도 저장이 끝나면 저장된 것으로 다룬다 (#3245)', (
+    WidgetTester tester,
+  ) async {
+    final _HeldAccountRepository held = _HeldAccountRepository();
+    final (AppLocalizations l, MockAccountRepository repo) = await _openProfile(
+      tester,
+      repository: held,
+    );
+
+    await tester.enterText(find.byKey(_email), 'minsu.new@oncare.com');
+    await _tapSave(tester, l);
+    await _passCode(tester);
+    held.gate = Completer<void>();
+    await tester.enterText(_password(), _currentPassword);
+    await tester.pump();
+    await tester.tap(_confirm());
+    await tester.pump();
+
+    // 창만 걷어 낸다 — 결과 없이 닫히면 부른 쪽은 `취소` 로 받는다.
+    Navigator.of(tester.element(_dialog())).pop();
+    await tester.pumpAndSettle();
+    expect(_dialog(), findsNothing);
+
+    held.gate!.complete();
+    await tester.pumpAndSettle();
+
+    // 서버에서는 바뀌었으니 편집 상태로 남지 않고 저장됨을 알린다.
+    expect((await repo.fetchProfile()).email, 'minsu.new@oncare.com');
+    expect(find.text(l.myProfileSaved), findsOneWidget);
+    await _drainToast(tester);
   });
 
   testWidgets('취소하면 저장하지 않고 편집 상태로 돌아간다', (WidgetTester tester) async {
