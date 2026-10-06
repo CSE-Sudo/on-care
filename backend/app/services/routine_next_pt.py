@@ -147,11 +147,19 @@ def choose_next(
             kind="continue",
             label=label,
             items=latest.items,
-            basis=localized(
-                f"최근 {count}회 같은 프로그램({label})을 이어 와서 같은 흐름을 유지해요",
-                f"The last {count} sessions repeated the same program ({label}) "
-                "— keeping that flow",
-                locale,
+            basis=(
+                localized(
+                    f"지난 PT 1회의 프로그램({label})을 이어 가요",
+                    f"Continuing the program from the last PT ({label})",
+                    locale,
+                )
+                if count == 1
+                else localized(
+                    f"최근 {count}회 같은 프로그램({label})을 이어 와서 같은 흐름을 유지해요",
+                    f"The last {count} sessions repeated the same program ({label}) "
+                    "— keeping that flow",
+                    locale,
+                )
             ),
             session_count=count,
             days_ago=(today - latest.day).days,
@@ -307,10 +315,21 @@ def rule_plan_c(
         )
 
     intensity = "보통" if escalate else routine_ai._B_LABEL.get(intensity_preference, "보통")
-    rationale = next_pt.basis + (
-        localized(" · 바꾼 점: ", " · Changes: ", locale) + ", ".join(changes)
+    # 차례 근거(`basis`)와 바꾼 점(`changes`)은 카드에 따로 서므로 되풀이하지
+    # 않는다 — 규칙형이 무엇을 기준으로 고쳤는지만 짧게 적는다.
+    rationale = (
+        localized(
+            "지난 PT 프로그램을 기준으로 주의 부위·완료율·시간 조건만 반영했어요.",
+            "Based on the past PT program, adjusted only for cautions, "
+            "completion and the time limit.",
+            locale,
+        )
         if changes
-        else localized(" · 그대로 진행", " · Kept as is", locale)
+        else localized(
+            "지난 PT 프로그램을 그대로 이어 가요.",
+            "Continues the past PT program as is.",
+            locale,
+        )
     )
     return {
         "key": "C",

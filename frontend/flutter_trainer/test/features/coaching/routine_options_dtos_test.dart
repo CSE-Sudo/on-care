@@ -316,4 +316,66 @@ void main() {
       );
     });
   });
+
+  test('reads plan_c with basis, changes and strength amounts (#3282)', () {
+    final Map<String, Object?> plan = <String, Object?>{
+      'key': 'A',
+      'label': 'a',
+      'total_minutes': 10,
+      'intensity': '보통',
+      'exercises': <Object?>[
+        <String, Object?>{'name': '걷기', 'minutes': 10, 'type': '유산소'},
+      ],
+      'reason': 'r',
+      'rationale': 'r',
+    };
+    final o = routineOptionsFromJson(<String, Object?>{
+      'analysis': <String, Object?>{
+        'goal': '체중 감량',
+        'sodium_today_mg': 1500,
+        'sodium_over_target': false,
+        'avg_completion_rate': 70,
+        'latest_routine': '',
+        'note': '',
+      },
+      'plan_a': plan,
+      'plan_b': <String, Object?>{...plan, 'key': 'B'},
+      'plan_c': <String, Object?>{
+        'key': 'C',
+        'label': '숄더프레스 · 밴드 외전',
+        'total_minutes': 12,
+        'intensity': '보통',
+        'exercises': <Object?>[
+          <String, Object?>{
+            'name': '숄더프레스',
+            'minutes': 12,
+            'type': '근력',
+            'sets': 4,
+            'reps': 10,
+            'weight': 20,
+          },
+        ],
+        'reason': 'r',
+        'rationale': 'r',
+        'basis': '가장 오래 안 함 → 이번 차례',
+        'changes': <Object?>['근력 세트 +1'],
+      },
+      'generated_by': 'rule',
+    });
+    final c = o.planC!;
+    expect(c.basis, '가장 오래 안 함 → 이번 차례');
+    expect(c.changes, <String>['근력 세트 +1']);
+    expect(c.exercises.single.sets, 4);
+    expect(c.exercises.single.weight, 20);
+    final again = routineOptionsFromJson(routineOptionsToJson(o));
+    expect(again.planC!.exercises.single.reps, 10);
+    // 옛 응답(plan_c 없음)도 그대로 읽힌다.
+    expect(
+      routineOptionsFromJson(<String, Object?>{
+        ...routineOptionsToJson(o),
+        'plan_c': null,
+      }).planC,
+      isNull,
+    );
+  });
 }

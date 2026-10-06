@@ -113,7 +113,7 @@ void main() {
       await tester.tap(generate);
       await tester.pumpAndSettle();
       final existing = find.byKey(
-        const ValueKey<String>('routine-option-recommended'),
+        const ValueKey<String>('routine-option-A'),
       );
       await tester.scrollUntilVisible(existing, 150, scrollable: scrollable);
       await tester.ensureVisible(existing);
@@ -178,7 +178,7 @@ void main() {
       // 으로 범위를 좁힌다.
       final inEditor = find.descendant(
         of: find.byType(ProgramEditorWorkspace),
-        matching: find.text('저강도 유산소 (걷기)'),
+        matching: find.text('저강도 유산소'),
       );
       expect(inEditor, findsOneWidget);
 

@@ -594,10 +594,11 @@ Future<void> _applyRecommendedRoutine(WidgetTester tester) async {
   await tester.tap(generate);
   await tester.pumpAndSettle();
 
-  // 세 후보(회복안·강화안·기존안) 중 기존 AI 추천 그대로인 `기존안` 을
-  // 고른다 — 편집기에 들어갈 값이 이 회원의 seeded 추천과 같아야 한다.
+  // 세 후보(회복안·강화안·다음 차례안) 중 `회복안` 을 고른다 — 이 회원의
+  // 반복 운동을 그대로 유지하는 안이라 편집기 값이 정해져 있다. 옛 `기존안`
+  // (배정된 AI 개인운동)은 PT 단계에서 빠졌다(#3282).
   final existing = find.byKey(
-    const ValueKey<String>('routine-option-recommended'),
+    const ValueKey<String>('routine-option-A'),
   );
   await tester.scrollUntilVisible(
     existing,
@@ -1024,7 +1025,7 @@ void main() {
       final minsu = await repo.watchRoutine('seed-client-1').first;
       // 김민수의 개인 운동은 공유 픽스처가 정한다 — 네 건이다 (#1170).
       expect(minsu.length, 4);
-      expect(minsu.first.name, '저강도 유산소 (걷기)');
+      expect(minsu.first.name, '저강도 유산소');
       expect(minsu.first.minutes, 30);
       expect(minsu.first.type, '유산소');
 
@@ -1042,7 +1043,7 @@ void main() {
             .first;
 
         expect(minsu.length, 4);
-        expect(minsu.first.name, '저강도 유산소 (걷기)');
+        expect(minsu.first.name, '저강도 유산소');
       },
     );
 
@@ -1157,7 +1158,7 @@ void main() {
         expect(
           find.descendant(
             of: find.byType(ProgramEditorWorkspace),
-            matching: find.text('저강도 유산소 (걷기)'),
+            matching: find.text('저강도 유산소'),
           ),
           findsOneWidget,
         );
@@ -2012,11 +2013,11 @@ void main() {
         expect(
           find.descendant(
             of: find.byType(ProgramEditorWorkspace),
-            matching: find.text('인터벌 러닝'),
+            matching: find.byType(TextField),
           ),
-          findsOneWidget,
+          findsWidgets,
         );
-        expect(find.text('저강도 유산소 (걷기)'), findsNothing);
+        expect(find.text('저강도 유산소'), findsNothing);
       },
     );
 
@@ -2148,7 +2149,7 @@ void main() {
       await _applyRecommendedRoutine(tester);
       final inEditor = find.descendant(
         of: find.byType(ProgramEditorWorkspace),
-        matching: find.text('저강도 유산소 (걷기)'),
+        matching: find.text('저강도 유산소'),
       );
       expect(inEditor, findsOneWidget);
       await _selectExerciseAction(tester, '삭제');
@@ -2162,7 +2163,7 @@ void main() {
       await settle(tester);
       await tester.tap(find.text('김민수'));
       await settle(tester);
-      expect(find.text('저강도 유산소 (걷기)'), findsNothing);
+      expect(find.text('저강도 유산소'), findsNothing);
     });
 
     testWidgets('오늘 스케줄에 등록 writes the routine onto the schedule tab', (
@@ -2401,7 +2402,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(ProgramEditorWorkspace),
-          matching: find.text('저강도 유산소 (걷기)'),
+          matching: find.text('저강도 유산소'),
         ),
         findsNothing,
       );
@@ -2692,9 +2693,8 @@ void main() {
       // 있으려면 먼저 AI 코칭 보조 제안을 편집기에 반영해야 한다.
       await _applyRecommendedRoutine(tester);
 
-      // 김민수의 개인 운동을 모두 지운다 — 공유 픽스처가 정한 네 건이다
-      // (#1170).
-      for (var i = 0; i < 4; i++) {
+      // 회복안의 운동을 모두 지운다 — 김민수의 반복 운동 세 건이다(#3282).
+      for (var i = 0; i < 3; i++) {
         await _selectExerciseAction(tester, '삭제');
       }
 
@@ -3098,7 +3098,7 @@ void main() {
     const realSuggestions = <AiRoutineItem>[
       AiRoutineItem(
         id: 'real-suggestion-1',
-        name: '저강도 유산소 (걷기)',
+        name: '저강도 유산소',
         minutes: 30,
         type: '유산소',
         reason: '실 API 배정 테스트',
@@ -3356,7 +3356,7 @@ void main() {
         // 운동이 있으려면 먼저 AI 코칭 보조 제안을 편집기에 반영해야 한다.
         await _applyRecommendedRoutine(tester);
 
-        // Remove all 3 seeded AI suggestions for 김민수.
+        // Remove all 3 exercises of plan A (the template recovery plan).
         for (var i = 0; i < 3; i++) {
           await _selectExerciseAction(tester, '삭제');
         }

@@ -1412,10 +1412,6 @@ void main() {
             supportedLocales: AppLocalizations.supportedLocales,
             home: AiRoutineOptionsFlow(
               client: _client,
-              recommendedExercises: const <RoutineExercise>[
-                RoutineExercise(name: '실내 자전거', minutes: 20, type: '유산소'),
-              ],
-              recommendedReason: '기존 회원 데이터 기반 추천',
               onReviewCompleted: (exercises, personal, kind) =>
                   reviewed = exercises,
             ),
@@ -1511,16 +1507,13 @@ void main() {
       await tester.pump(const Duration(milliseconds: 700));
       await tester.pumpAndSettle();
 
-      // A/B + the existing recommendation are shown together. The layout
-      // adapts — side by side when the column is wide enough, stacked
-      // vertically when it isn't — so this asserts the three options
-      // themselves rather than which of the two layouts rendered them.
+      // A/B 가 함께 선다. 옛 세 번째 카드(`기존 AI 추천` — 배정된 개인운동)는
+      // 없다(#3282) — 이 응답에는 C안이 없으니 두 장이다. 레이아웃은 넓으면
+      // 옆으로, 좁으면 아래로 쌓이므로 카드 자체를 본다.
       expect(find.textContaining('회복안 · 회복·지속 중심'), findsOneWidget);
       expect(find.textContaining('강화안 · 강도·운동량 중심'), findsOneWidget);
-      expect(find.textContaining('기존안 · 기존 AI 추천'), findsOneWidget);
-      // 세 번째 후보의 key 는 선택 식별자다 — 화면 문구가 아니라서 로케일과
-      // 무관하게 'recommended' 로 고정돼 있다(#501).
-      final optionHeights = <String>['A', 'B', 'recommended']
+      expect(find.textContaining('기존 AI 추천'), findsNothing);
+      final optionHeights = <String>['A', 'B']
           .map(
             (key) => tester
                 .getSize(find.byKey(ValueKey<String>('routine-option-$key')))
@@ -1710,10 +1703,6 @@ void main() {
           supportedLocales: AppLocalizations.supportedLocales,
           home: AiRoutineOptionsFlow(
             client: _client,
-            recommendedExercises: const <RoutineExercise>[
-              RoutineExercise(name: '실내 자전거', minutes: 20, type: '유산소'),
-            ],
-            recommendedReason: '기존 회원 데이터 기반 추천',
             onReviewCompleted: (exercises, personal, kind) =>
                 reviewed = exercises,
           ),
@@ -2093,10 +2082,6 @@ Future<void> _pumpFlowWithOptionsError(
         supportedLocales: AppLocalizations.supportedLocales,
         home: const AiRoutineOptionsFlow(
           client: _client,
-          recommendedExercises: <RoutineExercise>[
-            RoutineExercise(name: '실내 자전거', minutes: 20, type: '유산소'),
-          ],
-          recommendedReason: '기존 회원 데이터 기반 추천',
         ),
       ),
     ),

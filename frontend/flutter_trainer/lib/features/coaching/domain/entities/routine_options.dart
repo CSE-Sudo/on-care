@@ -208,9 +208,11 @@ class RoutinePlan {
     required this.exercises,
     required this.reason,
     required this.rationale,
+    this.basis = '',
+    this.changes = const <String>[],
   });
 
-  /// "A" or "B".
+  /// "A", "B" or "C"(#3282).
   final String key;
   final String label;
   final int totalMinutes;
@@ -220,6 +222,12 @@ class RoutinePlan {
 
   /// Data-grounded rationale citing the member's numbers.
   final String rationale;
+
+  /// C안만(#3282) — 왜 이번 차례인지. 서버 규칙이 쓴다.
+  final String basis;
+
+  /// C안만(#3282) — 기준 프로그램(지난 PT)에서 바꾼 점, 한 줄씩.
+  final List<String> changes;
 }
 
 /// 서버가 이번 생성에서 찾은 것 하나와 반영 방향(#3280).
@@ -255,6 +263,7 @@ class RoutineOptions {
     required this.planB,
     required this.generatedBy,
     this.findings = const <RoutineFinding>[],
+    this.planC,
   });
 
   final MemberAnalysis analysis;
@@ -266,4 +275,8 @@ class RoutineOptions {
 
   /// 이번 생성의 판단 결과(#3280). 옛 서버·찾은 것이 없으면 비어 있다.
   final List<RoutineFinding> findings;
+
+  /// 지난 PT 흐름상 이번 차례 프로그램을 최근 상태에 맞게 고친 안(#3282).
+  /// 서버는 늘 채운다 — 옛 서버·옛 자동 보관만 비어 있다.
+  final RoutinePlan? planC;
 }

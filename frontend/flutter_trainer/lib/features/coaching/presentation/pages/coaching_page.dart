@@ -112,7 +112,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 주소가 그대로인 다시 그리기마다 그 값으로 회원을 바꾸려 들지 않게
   /// [didUpdateWidget] 이 건너뛴다.
   String? _unresolvedClientId;
-  final Map<String, String> _typeEdits = <String, String>{};
   final Map<String, List<AiRoutineItem>> _generatedRecommendations =
       <String, List<AiRoutineItem>>{};
 
@@ -545,8 +544,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       _unresolvedClientId = null;
       // 앞 회원의 편집기·위저드는 새로 선다 — 작성 내용도 함께 사라진다.
       _unsentWorkClients.clear();
-      // A different client gets a clean slate, like the mock.
-      _typeEdits.clear();
       _sent = false;
       _registerDate = _todayKst();
       _registerStartTime = const TimeOfDay(hour: 10, minute: 0);
@@ -1793,19 +1790,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 client: client,
                 embedded: true,
                 onStepNav: _onWizardNav,
-                recommendedExercises: items
-                    .map(
-                      (item) => RoutineExercise(
-                        name: item.name,
-                        minutes: item.minutes,
-                        durationSeconds: item.durationSeconds,
-                        type: _typeEdits[item.id] ?? item.type,
-                      ),
-                    )
-                    .toList(growable: false),
-                recommendedReason: items.isEmpty
-                    ? ''
-                    : items.map((item) => item.reason).join(' · '),
                 // 스케줄의 `개인운동 추가` 에서 왔으면 `개인운동만 짜기` 를
                 // 고른 채로 연다(#2280).
                 startRoutineOnly: _routineOnlyWizardRevision == _wizardRevision,

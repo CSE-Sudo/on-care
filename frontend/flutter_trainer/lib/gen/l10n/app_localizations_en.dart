@@ -3076,23 +3076,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get aiTagExisting => 'Existing suggestion';
-
-  @override
-  String get aiTagCustom => 'Custom';
-
-  @override
-  String get aiExistingBlurb =>
-      'The existing suggestion, based on their recent meals and workouts.';
-
-  @override
   String get aiOptionRecovery => 'Recovery';
 
   @override
   String get aiOptionPush => 'Push';
-
-  @override
-  String get aiOptionExisting => 'Existing';
 
   @override
   String get aiGenerateFailed =>
@@ -3249,6 +3236,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String aiFindingAction(String action) {
     return '→ $action';
   }
+
+  @override
+  String get aiOptionNext => 'Next up';
 
   @override
   String get aiChatEvidenceTitle => 'Recent conversation used';
