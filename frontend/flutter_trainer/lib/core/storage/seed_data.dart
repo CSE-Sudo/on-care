@@ -1663,6 +1663,7 @@ Iterable<ClientDailyMetricsCompanion> _dailyMetrics(
   _SeedText t,
 ) sync* {
   final today = DateTime(now.year, now.month, now.day);
+  final DateTime? offDay = _performedOffDay(client, now);
   for (final _SeedDay d in _seedDays(client, now)) {
     final shares = _macroShares(d.day);
     yield ClientDailyMetricsCompanion.insert(
@@ -1686,7 +1687,13 @@ Iterable<ClientDailyMetricsCompanion> _dailyMetrics(
         jsonEncode(<Map<String, Object?>>[
           ...?_historyRows(client, now, d.date, t),
           if (_seedsPersonalOn(client, d.date, today))
-            ..._personalRows(client, d.completion, t),
+            ..._personalRows(
+              client,
+              d.completion,
+              t,
+              date: d.date,
+              offDay: offDay,
+            ),
           if (d.date != today) ..._memberLogRows(client, d.date, t),
         ]),
       ),
